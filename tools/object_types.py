@@ -16,14 +16,19 @@ Every `lines` item of kind fence, wall or hedge gets:
          city_barriers.gd draws today; `hs` is a new key so the game is unchanged until a later
          step reads it: walls doc 4 "Heights by setting", build plan item 8)
 and the map a stamp `object_types`: {"v": VERSION, "osm": barrier ways matched, "ctx": context
-outlines used}. The game reads none of these keys (only city_barriers.gd reads `lines`, and only
-k, p, h, m, ft, st): what is drawn and what collides does not change.
+outlines used, "fixes": lines per v2 rule}. Since step 7 and W2 the game reads `sc` (a soft S
+fence or hedge), `ty` (the typed look, the stadium's railing) and `hs` (the typed look's height).
 
     python3 -I tools/object_types.py apply [MAP_DIR] [--osm=FILE] [--out=FILE] [--rows=FILE]
         types the map's lines (MAP_DIR/centrum.json, in place unless --out); --osm reads an
         OpenStreetMap JSON (the Overpass `out geom` of `fetch`, or the raw demo export) for the
         full barrier tags and the context outlines; --rows writes one row per line (its rule,
-        evidence and first point) for the plot and the 20-sample check. Idempotent.
+        evidence and first point) for the plot and the 20-sample check. Idempotent. Version 2
+        (W3 of the walls look, 2026-11-15): on a map v1 already typed and with no --osm (main's
+        map, TD-25) only the type fixes run (fix_types: types by id from road_objects.json `types`,
+        tall fences and hedges by OSM's height, the squares' planter edges), once: the stamp's v.
+        --retype types every line from the start again (the map's evidence alone without --osm).
+        A post-pass: tools/check_post_passes.py runs it on the committed map.
     python3 -I tools/object_types.py fetch [--out=data/raw/osm/object_context.json]
         the context outlines and the barrier ways with all their tags from the public Overpass
         API for the map's box (ODbL; gitignored data/raw). Not needed on the Mac: bake_osm.py
@@ -55,7 +60,9 @@ TOOLS = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(TOOLS)
 MAP_DIR = os.path.join(ROOT, "game", "map")
 CTX_FILE = os.path.join(ROOT, "data", "raw", "osm", "object_context.json")
-VERSION = 1
+# 2 (W3 of the walls look, 2026-11-15): the type fixes from the photos, fix_types() below, run on the
+# typed lines (main's map, or v1's output in a from-scratch bake)
+VERSION = 2
 KEY = "object_types"
 KINDS = ("fence", "wall", "hedge")
 LON0, LAT0 = 21.0240, 52.2340
@@ -75,6 +82,9 @@ TYPES = {
     "ball_net": ("light", 5.0), "low_lawn": ("light", 0.6), "wood": ("light", 1.5),
     "hoarding": ("light", 2.0), "green_fence": ("light", 1.6), "hedge_low": ("light", 0.8),
     "hedge_tall": ("light", 1.8), "chain_posts": ("light", 0.7), "fence_plain": ("light", 1.4),
+    # v2 (W3): a row of bollards, no rail (S: they break like fences, QUESTIONS 2026-11-15 "three
+    # defaults" (2)); Stadion Narodowy's perimeter railing, the palette's #808 row (by id only)
+    "post_row": ("light", 0.9), "stadium_fence": ("light", 2.3),
     # 4.1 low_wall: S from 0.6 m, R under it (by its height)
     "low_wall": ("low", 0.5), "basin_rim": ("low", 0.45), "island_edge": ("low", 0.2),
     # 4.2 heavy (H)
@@ -113,7 +123,8 @@ STYLE_TYPE = {"tram_railing": "rail_tram", "balustrade": "balustrade", "balustra
               "basin_rim": "basin_rim", "island_edge": "island_edge", "fence_railing": "bars_black",
               "fence_mesh": "chain_link", "fence_wood": "wood", "wall_brick": "wall_brick",
               "wall_stone": "wall_stone", "wall_concrete": "wall_precast", "wall_noise": "noise_screen",
-              "hedge": "hedge_low", "fence": "fence_plain", "wall": "wall_plaster", "pkin_wall": "low_wall"}
+              "hedge": "hedge_low", "fence": "fence_plain", "wall": "wall_plaster", "pkin_wall": "low_wall",
+              "stadium_fence": "stadium_fence"}
 
 # --- OpenStreetMap's tags (rule step 2). fence_type per the wiki's Key:fence_type (2026-11-13) and
 # the walls doc: `panel` is slabs in grooved posts, a precast wall.
@@ -194,6 +205,10 @@ RULES = {
     "platform": (3, "structure"), "tram": (3, "structure"), "railway": (3, "structure"),
     "water": (3, "structure"), "road_main": (3, "structure"),
     "ring_small": (5, "context"), "fragment": (5, "context"), "default": (6, "default"),
+    # v2 (W3, fix_types): a type by stable id (road_objects.json `types`), OSM's own height, the
+    # square's planter edges and the kerbs' bollard rows
+    "id_type": (0, "tag"), "tall_fence": (2, "tag"), "tall_hedge": (2, "tag"),
+    "ctx_square": (4, "context"), "kerb_posts": (4, "context"),
 }
 for _s in SETTING_ORDER:
     RULES["ctx_" + _s] = (4, "context")
@@ -294,6 +309,19 @@ class Segs:
                         continue
                     best, tag_best = d, tag
         return (best, tag_best) if tag_best is not None else (None, None)
+
+    def within(self, q, r):
+        """[(distance, tag)] of every segment within r of q (a tag once, at its nearest)."""
+        best = {}
+        n = int(r // self.cell) + 1
+        gx, gz = int(q[0] // self.cell), int(q[1] // self.cell)
+        for ix in range(gx - n, gx + n + 1):
+            for iz in range(gz - n, gz + n + 1):
+                for a, b, tag in self.c.get((ix, iz), ()):
+                    d = seg_dist(q, a, b)
+                    if d < r and d < best.get(tag, r):
+                        best[tag] = d
+        return [(d, t) for t, d in best.items()]
 
 
 class Polys:
@@ -901,6 +929,193 @@ def type_height(k, ty, m, rule):
     return TYPES[ty][1]
 
 
+# --- v2: the type fixes of 2026-11-15 (W3; walls doc 5 "The type fixes of 2026-11-15", the
+# evidence in its section 12). They run on lines v1 has typed (main's map, which cannot be typed
+# again without the raw OpenStreetMap export, TD-25; or v1's output in a from-scratch bake), each
+# only on lines no earlier rule named, so a second run finds nothing to do (idempotent even without
+# the stamp guard). First match wins, in this order:
+#   id_type     a type by stable id, game/data/road_objects.json `types` (the exception file; the
+#               stadium's lines, city objects plan 4): the type, tc tag, the class by the type
+#   tall_fence  no light type but ball_net stands over 3 m: a fence of a light type with OSM's own
+#               height of TALL_FENCE_H m or more is ball_net (tc tag). The walls doc's "stadium_fence
+#               inside the stadium's box" branch is not a rule: the stadium's sixteen 6.2 m fences are
+#               not #808's 2.3 m perimeter railing (they have a mapped height and stand on the
+#               podium's edge 166-196 m from the stadium's centre, inside #808's ring of 195-345 m), so
+#               they are ball_net like any tall fence, and #808's railing gets stadium_fence by id.
+#               A type OSM's fence_type named (tc tag) is left as it is: the tag wins (Legia's 6.4 m
+#               railings, QUESTIONS)
+#   tall_hedge  a hedge with OSM's height of TALL_HEDGE_H m or more is hedge_tall (tc tag): the
+#               fountain park's 3 to 5 m hedges by Wybrzeże Gdańskie
+#   ctx_square  a wall only the default named (tc default), not hard by a hazard, with SQUARE_SHARE
+#               of its samples inside a pedestrian zone, a plaza or a paved surface, or within
+#               SQUARE_PATH_R m of SQUARE_PATHS footways, and no building within SQUARE_BLD_R m of
+#               any sample, is a planter edge: low_wall, hs SQUARE_H (OSM's h wins), the class by its
+#               height (Plac Grzybowski: 10 of 10 default walls are raised planting beds). Not a wall
+#               OSM maps SMASH_BELOW m or taller: that is no planter edge (the 20-sample check's one
+#               wrong line, a 3 m wall by a tram street at (-2382, -2015))
+#   kerb_posts  a fence only the default named, with KERB_SHARE of its samples within KERB_EDGE_R m
+#               of a carriageway's edge and no building within KERB_BLD_R m of any sample, is a
+#               bollard row: post_row, class S (Prosta, Grzybowska)
+# The 20-sample check of each rule (Mapillary photos, tools/overlay_object_types.py sheet, the
+# verdicts in /mnt/project-files/walls-research/w3/; right / wrong / no photo or not visible, judged
+# in the W3 thread, 2026-11-15; fewer than 20 where the rule has fewer lines with a photo):
+#   ctx_square 10/1/7 of 18 drawn (32 lines; the wrong one a 3 m mapped wall: OSM's tall walls now
+#   left out); kerb_posts 0/6/6 of 12 drawn (48 lines: black bar fences, low lawn fences round an
+#   estate's drive, a site fence; no bollard row): DROPPED, the post_row row stays in the palette
+#   for street sweeps; tall_hedge and tall_fence: see TALL_CHECK below.
+TALL_FENCE_H = 4.0
+TALL_HEDGE_H = 1.5
+SQUARE_SHARE, SQUARE_PATH_R, SQUARE_PATHS, SQUARE_BLD_R, SQUARE_H = 0.5, 4.0, 2, 6.0, 0.5
+SQUARE_SURFACES = ("paving", "granite")
+KERB_SHARE, KERB_EDGE_R, KERB_BLD_R = 0.6, 2.5, 6.0
+DROPPED_V2 = {"kerb_posts"}
+
+
+class FixEvidence:
+    """What the v2 rules measure a line against, from the map alone."""
+    def __init__(self, d):
+        self.square = Polys()
+        for z in d.get("ped_zones", []):
+            self.square.add(pairs(z["p"]), "ped")
+        for a in d.get("areas", []):
+            if a.get("k") == "plaza":
+                self.square.add(pairs(a["p"]), "plaza")
+        for s in d.get("surfaces", []):
+            if s.get("k") in SQUARE_SURFACES:
+                self.square.add(pairs(s["p"]), s["k"])
+        self.foot, self.bld, self.road = Segs(), Segs(), Segs()
+        for i, p in enumerate(d.get("paths", [])):
+            if p.get("k") == "foot":
+                self.foot.add(pairs(p["p"]), i)
+        for b in d.get("buildings", []):
+            self.bld.add(pairs(b["p"]), "b", closed=True)
+        self.road_w = []
+        for i, r in enumerate(d.get("roads", [])):
+            self.road.add(pairs(r["p"]), i)
+            self.road_w.append(float(r.get("w", 6.0)))
+
+    def edge(self, q, r=25.0):
+        """The distance from q to the nearest carriageway's edge (negative inside it), or None."""
+        best = None
+        for dist, i in self.road.within(q, r):
+            e = dist - self.road_w[i] / 2.0
+            best = e if best is None or e < best else best
+        return best
+
+
+def fix_measure(l, ev):
+    """The v2 shares of a line's samples: in a square, by a kerb, and whether a building is near."""
+    sm = samples(pairs(l["p"]))
+    n = max(len(sm), 1)
+    sq = kerb = 0
+    bld_sq = bld_kerb = False
+    for q, _ang, _nrm in sm:
+        if ev.square.at(q) or len(ev.foot.within(q, SQUARE_PATH_R)) >= SQUARE_PATHS:
+            sq += 1
+        e = ev.edge(q)
+        if e is not None and e < KERB_EDGE_R:
+            kerb += 1
+        if not bld_sq and ev.bld.near(q, SQUARE_BLD_R)[1] is not None:
+            bld_sq = True
+        if not bld_kerb and ev.bld.near(q, KERB_BLD_R)[1] is not None:
+            bld_kerb = True
+    return {"square": sq / n, "kerb": kerb / n, "bld_sq": bld_sq, "bld_kerb": bld_kerb, "n": len(sm)}
+
+
+def fix_decide(l, ev, types):
+    """(rule, ty, hs) of one typed line under the v2 rules, or None when none applies."""
+    k, ty, tc = l["k"], l.get("ty"), l.get("tc")
+    h = l.get("h")
+    want = types.get(stable_id(k, l["p"]))
+    if want:
+        return None if want == ty else ("id_type", want, None)
+    if k == "fence" and h is not None and h >= TALL_FENCE_H and ty != "ball_net" and tc != "tag" \
+            and TYPES.get(ty, ("",))[0] == "light" and "ball_net" not in DROPPED_V2:
+        return "tall_fence", "ball_net", None
+    if k == "hedge" and h is not None and h >= TALL_HEDGE_H and ty != "hedge_tall" and "hedge_tall" not in DROPPED_V2:
+        return "tall_hedge", "hedge_tall", None
+    if tc != "default" or l.get("hz"):
+        return None
+    if k == "wall" and "ctx_square" not in DROPPED_V2 and (h is None or h < SMASH_BELOW):
+        m = fix_measure(l, ev)
+        if m["square"] >= SQUARE_SHARE and not m["bld_sq"]:
+            return "ctx_square", "low_wall", SQUARE_H
+    if k == "fence" and "kerb_posts" not in DROPPED_V2:
+        m = fix_measure(l, ev)
+        if m["kerb"] >= KERB_SHARE and not m["bld_kerb"]:
+            return "kerb_posts", "post_row", None
+    return None
+
+
+def fix_class(l, ty, height):
+    """The class of a line v2 retyped: a hazard keeps it hard; a wall by its height; else the family's."""
+    if l.get("hz"):
+        return "H"
+    fam = TYPES[ty][0]
+    if l["k"] == "wall" and fam in ("low", "heavy") and ty not in ("balustrade", "balustrade_rail", "balustrade_white", "parapet_concrete"):
+        return "R" if height < RIDE_BELOW else ("S" if height < SMASH_BELOW else "H")
+    if fam == "low":
+        return "R" if height < RIDE_BELOW else "S"
+    return FAMILY_CLASS[fam]
+
+
+def fix_types(d, rows=None, types=None):
+    """The v2 type fixes on the typed lines of `d` in place; stamps `object_types` v2 with the count
+    per rule. A map already at v2 is left alone. Returns a summary string."""
+    stamp = d.get(KEY) or {}
+    if int(stamp.get("v", 0)) >= VERSION:
+        return "v2 fixes: already applied (%s)" % stamp.get("fixes", {})
+    types = load_types() if types is None else types
+    ev = FixEvidence(d)
+    counts = collections.Counter()
+    metres = collections.Counter()
+    before_default = sum(length(pairs(l["p"])) for l in d.get("lines", []) if l.get("k") in KINDS and l.get("tc") == "default")
+    for i, l in enumerate(d.get("lines", [])):
+        if l.get("k") not in KINDS or "ty" not in l:
+            continue
+        got = fix_decide(l, ev, types)
+        if got is None:
+            continue
+        rule, ty, hs = got
+        old = (l["ty"], l["tc"], l["sc"], l.get("hs"))
+        h = l.get("h")
+        if h is None:
+            hs = TYPES[ty][1] if hs is None else hs
+        height = h if h is not None else hs
+        l["ty"] = ty
+        l["tc"] = RULES[rule][1]
+        l["sc"] = fix_class(l, ty, height)
+        if h is None and l["sc"] != "G":
+            l["hs"] = round(hs, 2)
+        else:
+            l.pop("hs", None)
+        counts[rule] += 1
+        L = length(pairs(l["p"]))
+        metres[rule] += L
+        if rows is not None:
+            p = pairs(l["p"])
+            mid = p[len(p) // 2] if len(p) > 2 else ((p[0][0] + p[-1][0]) / 2, (p[0][1] + p[-1][1]) / 2)
+            rows.append({"i": i, "k": l["k"], "rule": rule, "ty": ty, "tc": l["tc"], "sc": l["sc"], "hz": l.get("hz", ""),
+                         "h": l.get("h", l.get("hs")), "L": round(L, 1), "x": round(mid[0], 1), "z": round(mid[1], 1),
+                         "osm": False, "was": "%s/%s/%s/%s" % old})
+    after_default = sum(length(pairs(l["p"])) for l in d.get("lines", []) if l.get("k") in KINDS and l.get("tc") == "default")
+    stamp = dict(stamp)
+    stamp["v"] = VERSION
+    stamp["fixes"] = dict(sorted(counts.items()))
+    d[KEY] = stamp
+    return "v2 fixes: %s lines (%s m); default %.1f -> %.1f km" % (
+        dict(sorted(counts.items())), ", ".join("%s %d" % (r, m) for r, m in sorted(metres.items())) or "none",
+        before_default / 1000, after_default / 1000)
+
+
+def load_types():
+    """road_objects.json `types`: {stable id: [ty, reason]} as {stable id: ty}."""
+    path = os.path.join(ROOT, "game", "data", "road_objects.json")
+    if not os.path.exists(path):
+        return {}
+    return {k: v[0] for k, v in (json.load(open(path, encoding="utf-8")).get("types") or {}).items()}
+
+
 def load_overrides():
     path = os.path.join(ROOT, "game", "data", "road_objects.json")
     if not os.path.exists(path):
@@ -908,9 +1123,25 @@ def load_overrides():
     return (json.load(open(path, encoding="utf-8")).get("items") or {})
 
 
-def apply(d, map_dir=None, osm=None, rows=None, overrides=None):
-    """Type every barrier line of the map data `d` in place. `osm`: OpenStreetMap elements (or
-    None: the map's own evidence alone). Returns a summary string."""
+def apply(d, map_dir=None, osm=None, rows=None, overrides=None, types=None, retype=False):
+    """Type every barrier line of the map data `d` in place, then the v2 fixes (fix_types). With
+    `osm` (OpenStreetMap elements: bake_osm.py's raw export), on a map with no types yet, or with
+    `retype`, every line is typed from the start (type_all, v1's rules; `osm` None: the map's own
+    evidence alone). Without them a map v1 has typed keeps its types (main's map: its OSM tags and
+    context outlines are not in centrum.json, TD-25) and only the fixes run, once (the stamp's v).
+    Returns a summary string."""
+    if osm is not None or retype or not d.get(KEY):
+        msg = type_all(d, map_dir, osm, rows, overrides)
+    elif int((d.get(KEY) or {}).get("v", 0)) >= VERSION:
+        return summary(d) + "; already v%d" % VERSION
+    else:
+        msg = summary(d)
+    return msg + "; " + fix_types(d, rows, types)
+
+
+def type_all(d, map_dir=None, osm=None, rows=None, overrides=None):
+    """v1: type every barrier line of the map data `d` in place from its tags and the land beside it
+    (stamp v 1). Returns a summary string."""
     lines = d.get("lines", [])
     terrain = None
     if map_dir and os.path.exists(os.path.join(map_dir, "terrain.json")):
@@ -946,7 +1177,7 @@ def apply(d, map_dir=None, osm=None, rows=None, overrides=None):
                          "h": l.get("h", l.get("hs")), "L": round(m["L"], 1), "x": round(mid[0], 1), "z": round(mid[1], 1),
                          "osm": tags is not None,
                          "ev": {k: round(v, 2) for k, v in sorted(m["share"].items()) if v >= 0.1}})
-    d[KEY] = {"v": VERSION, "osm": n_osm, "ctx": len(ctx)}
+    d[KEY] = {"v": 1, "osm": n_osm, "ctx": len(ctx)}
     return summary(d)
 
 
@@ -1030,8 +1261,10 @@ def sample(rows, rule, n=20, seed=5, skip=0):
 
 def selftest():
     fails = []
+    cases = [0]
 
     def check(name, got, want):
+        cases[0] += 1
         if got != want:
             fails.append("%s: got %r, want %r" % (name, got, want))
 
@@ -1074,7 +1307,7 @@ def selftest():
                    {"k": "fence", "p": [600, 1600, 700, 1600], "ft": "mesh"},
                    {"k": "wall", "p": [0, 296, 100, 296]}]}         # railway wall: precast
     rows = []
-    apply(d, None, None, rows, overrides={})
+    apply(d, None, None, rows, overrides={}, types={})
     got = [(r["rule"], r["ty"], r["sc"], r["hz"]) for r in rows]
     want = [("tram", "rail_tram", "H", ""), ("default", "fence_plain", "H", "railway"), ("road_main", "rail_street", "S", ""),
             ("ctx_school", "mesh_panel", "S", ""), ("ctx_park", "hedge_low", "S", ""), ("ctx_park", "low_wall", "R", ""),
@@ -1085,6 +1318,51 @@ def selftest():
     check("every line typed", all("ty" in l and "tc" in l and "sc" in l for l in d["lines"]), True)
     check("park wall height", d["lines"][5].get("hs"), 0.5)
     check("stamp", d[KEY]["v"], VERSION)
+    check("second apply", apply(d, None, None, None, overrides={}, types={}).endswith("already v%d" % VERSION), True)
+    # v2: the fixes on lines v1 typed (W3)
+    def typed(k, p, ty, tc, sc, **kw):
+        return dict({"k": k, "p": p, "ty": ty, "tc": tc, "sc": sc}, **kw)
+    d2 = {"ped_zones": [{"z": "x", "p": [0, 0, 100, 0, 100, 100, 0, 100]}], "areas": [], "surfaces": [],
+          "buildings": [{"p": [40, 50, 60, 50, 60, 60, 40, 60]}],
+          "paths": [{"k": "foot", "p": [300, 0, 300, 100]}, {"k": "foot", "p": [304, 0, 304, 100]}],
+          "roads": [{"k": "residential", "w": 10.0, "p": [0, 500, 200, 500]}], KEY: {"v": 1},
+          "lines": [typed("wall", [10, 20, 30, 20], "wall_plaster", "default", "H", hs=1.6),        # in a square: a planter edge
+                    typed("wall", [40, 46, 60, 46], "wall_plaster", "default", "H", hs=1.6),        # in a square, by a building
+                    typed("wall", [302, 20, 302, 40], "wall_plaster", "default", "H", hs=1.6),      # between two footways
+                    typed("wall", [10, 30, 30, 30], "wall_plaster", "default", "H", hz="drop"),     # hard by a hazard: left
+                    typed("fence", [20, 506, 120, 506], "fence_plain", "default", "S", hs=1.4),     # along a kerb: bollards
+                    typed("fence", [20, 530, 120, 530], "fence_plain", "default", "S", hs=1.4),     # 25 m off it: left
+                    typed("fence", [500, 0, 560, 0], "mesh_panel", "context", "S", h=6.0),          # tall: a net
+                    typed("fence", [500, 20, 560, 20], "bars_black", "tag", "S", h=6.4),            # tall, OSM's type: left
+                    typed("fence", [500, 40, 560, 40], "parapet_concrete", "context", "H", h=6.2, hz="drop"),  # heavy: left
+                    typed("hedge", [500, 60, 560, 60], "hedge_low", "context", "S", h=3.0),         # a tall hedge
+                    typed("fence", [700, 0, 760, 0], "mesh_panel", "context", "S", hs=1.6)]}        # by id
+    sid = stable_id("fence", [700, 0, 760, 0])
+    rows2 = []
+    fix_types(d2, rows2, types={sid: "stadium_fence"})
+    got2 = [(l["ty"], l["tc"], l["sc"], l.get("hs")) for l in d2["lines"]]
+    kerb = "kerb_posts" not in DROPPED_V2   # dropped by its 20-sample check: the line stays the default
+    want2 = [("low_wall", "context", "R", 0.5), ("wall_plaster", "default", "H", 1.6), ("low_wall", "context", "R", 0.5),
+             ("wall_plaster", "default", "H", None),
+             ("post_row", "context", "S", 0.9) if kerb else ("fence_plain", "default", "S", 1.4),
+             ("fence_plain", "default", "S", 1.4),
+             ("ball_net", "tag", "S", None), ("bars_black", "tag", "S", None), ("parapet_concrete", "context", "H", None),
+             ("hedge_tall", "tag", "S", None), ("stadium_fence", "tag", "S", 2.3)]
+    for n, (g, w) in enumerate(zip(got2, want2)):
+        check("v2 line %d" % n, g, w)
+    fx = FixEvidence(d2)
+    check("kerb measure", (fix_measure(d2["lines"][4], fx)["kerb"] >= KERB_SHARE, fix_measure(d2["lines"][5], fx)["kerb"]), (True, 0.0))
+    fixes = {"ctx_square": 2, "id_type": 1, "tall_fence": 1, "tall_hedge": 1}
+    if kerb:
+        fixes["kerb_posts"] = 1
+    check("v2 rules", sorted(r["rule"] for r in rows2), sorted(r for r, n in fixes.items() for _ in range(n)))
+    check("v2 stamp", d2[KEY], {"v": VERSION, "fixes": fixes})
+    # idempotent without the guard: the fixes find nothing on their own output
+    before = json.dumps(d2["lines"], sort_keys=True)
+    d2[KEY] = {"v": 1}
+    fix_types(d2, None, types={sid: "stadium_fence"})
+    check("v2 idempotent", json.dumps(d2["lines"], sort_keys=True) == before and d2[KEY]["fixes"] == {}, True)
+    check("v2 types known", all(t in TYPES for t in ("post_row", "stadium_fence", "ball_net", "hedge_tall", "low_wall")), True)
     # the hand lists against the wall builder's
     src = open(os.path.join(ROOT, "game", "scripts", "city_barriers.gd"), encoding="utf-8").read()
     gd_site = re.findall(r'\[Vector2\(([-\d.]+), ([-\d.]+)\), "([a-z_]*)"\]', src.split("const SITE_WALLS")[1].split("\n]")[0])
@@ -1104,7 +1382,7 @@ def selftest():
             fails.append("unknown type %s" % ty)
     for f in fails:
         print("object_types selftest: " + f)
-    print("object_types selftest: %s (%d cases)" % ("OK" if not fails else "FAIL", 20 + len(want)))
+    print("object_types selftest: %s (%d cases)" % ("OK" if not fails else "FAIL", cases[0]))
     return 0 if not fails else 1
 
 
@@ -1142,7 +1420,7 @@ def main(argv):
         if opt.get("--osm"):
             osm = json.load(open(opt["--osm"], encoding="utf-8"))["elements"]
         rows = [] if opt.get("--rows") else None
-        print(apply(d, map_dir, osm, rows))
+        print(apply(d, map_dir, osm, rows, retype=bool(opt.get("--retype"))))
         with open(opt.get("--out", src), "w", encoding="utf-8") as f:
             json.dump(d, f, ensure_ascii=False, separators=(",", ":"))
         if rows is not None:

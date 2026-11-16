@@ -5506,6 +5506,22 @@ centrum.json waits for the next full re-bake on the Mac (bake_osm passes its raw
 then the check reports "not in this centrum.json yet". The type plot is
 `tools/overlay_object_types.py plot`, and the contact sheets are `... sheet`.
 
+**Barrier types v2 (walls look W3, 2026-11-15)**: `object_types.py` is now a post-pass on main's map
+(TD-25; in `tools/check_post_passes.py`): with bake_osm's raw export it types every line (v1) and then
+runs `fix_types`; on a map v1 typed, without `--osm`, only `fix_types` runs, once (stamp
+`object_types.v` 2, `fixes` the lines per rule). The fixes: `id_type` (a type by stable id from
+`game/data/road_objects.json` `types`: the stadium's 19 perimeter lines `stadium_fence`, its 11 light
+6.2 m fences `ball_net`), `tall_fence` (a light fence OSM maps 4 m or taller is `ball_net`, unless
+OSM's fence type named it: 1 line), `tall_hedge` (a hedge OSM maps 1.5 m or taller: 27 lines in the
+Royal Castle's lower garden), `ctx_square` (a default wall in a square or between footways, no
+building within 6 m, under 1.2 m mapped: `low_wall`, `hs` 0.5, R: 31 lines, 0.9 km, Plac Grzybowski's
+planting beds). `kerb_posts` (bollard rows) failed its 20-sample check and is dropped. On main's map
+the default share went from 11.9 % to 11.5 % of 278.8 km (fences 9.1 %): `check_map_data.py`
+`ALL_DEFAULT_MAX` 11.5 and `FENCE_DEFAULT_MAX` 9.2, both only go down. Class km H 81.7 → 80.8,
+R 6.9 → 7.8. Nothing changes in the classic look (the per-sector hashes are main's); the typed look
+draws the planters 0.5 m, the castle garden's hedges at their mapped 3-5 m and the 6 m school fence
+as a net.
+
 **Trees and fences off the water and the roads (F, 2026-11-08)**: `tools/object_audit.py` rules T1 (a
 scanned tree's trunk in a water area, a sandbar excepted), T2 (on the drawn asphalt at grade, check_streets
 S1's test, not on an island or a median) and L6 (a fence or hedge more than `WET_IN` 0.6 m inside a water

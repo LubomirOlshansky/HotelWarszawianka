@@ -1,5 +1,5 @@
 {
- "_about": "tools/street_pass.py --apply: per-barrier verdicts from the street records (docs/streets/), read by city_barriers.gd build_barriers (OBJECT_OVERRIDES). Do not edit `items` by hand: change the street's record or its `decisions` in docs/streets/streets.json and re-run. `hard_lines` ({stable id: reason}) is kept by hand and carried over by --apply: fences and hedges the bake classed S that stay hard wherever they are (the city objects plan, step 7: the `check_lane_drive.gd --wander` run's traps, rule R6).",
+ "_about": "tools/street_pass.py --apply: per-barrier verdicts from the street records (docs/streets/), read by city_barriers.gd build_barriers (OBJECT_OVERRIDES). Do not edit `items` by hand: change the street's record or its `decisions` in docs/streets/streets.json and re-run. `hard_lines` ({stable id: reason}) is kept by hand and carried over by --apply: fences and hedges the bake classed S that stay hard wherever they are (the city objects plan, step 7: the `check_lane_drive.gd --wander` run's traps, rule R6). `types` ({stable id: [type, reason]}) is kept by hand and carried over too: a line's type (`ty`) by id, read by tools/object_types.py fix_types (W3 of the walls look: the stadium's lines, city objects plan 4).",
  "items": {
   "barrier:fence:-1024:-64": [
    "RETEXTURE",
@@ -75,5 +75,127 @@
   "barrier:hedge:-1890:-220": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the north to Westynka; kept hard so the site stays closed as before (the tower's garden hedge, 25 m)",
   "barrier:hedge:-2224:-430": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the south-west to Kościół św. Karola Boromeusza; kept hard so the site stays closed as before (a low hedge, 24 m)",
   "barrier:hedge:624:-1994": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the east to Katedra św. Floriana; kept hard so the site stays closed as before (a low hedge, 24 m)"
+ },
+ "types": {
+  "barrier:fence:1218:-694": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 277 m from the stadium's centre, 27 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1232:-624": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 248 m from the stadium's centre, 125 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1256:-742": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 263 m from the stadium's centre, 82 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1294:-788": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 261 m from the stadium's centre, 38 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1310:-506": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 198 m from the stadium's centre, 187 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1322:-860": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 301 m from the stadium's centre, 130 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1326:-760": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 219 m from the stadium's centre, 67 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1328:-728": [
+   "ball_net",
+   "W3 (2026-11-15): one of the stadium's 6.2 m fences on the podium's edge (196 m from the stadium's centre, 39 m), not #808's 2.3 m railing: a tall net (city objects plan 4)"
+  ],
+  "barrier:fence:1346:-912": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 336 m from the stadium's centre, 2 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1392:-788": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 203 m from the stadium's centre, 145 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1422:-856": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 259 m from the stadium's centre, 387 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1438:-404": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 207 m from the stadium's centre, 286 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1442:-440": [
+   "ball_net",
+   "W3 (2026-11-15): one of the stadium's 6.2 m fences on the podium's edge (170 m from the stadium's centre, 10 m), not #808's 2.3 m railing: a tall net (city objects plan 4)"
+  ],
+  "barrier:fence:1446:-778": [
+   "ball_net",
+   "W3 (2026-11-15): one of the stadium's 6.2 m fences on the podium's edge (177 m from the stadium's centre, 156 m), not #808's 2.3 m railing: a tall net (city objects plan 4)"
+  ],
+  "barrier:fence:1490:-868": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 262 m from the stadium's centre, 167 m; the bake had fence_plain)"
+  ],
+  "barrier:fence:1568:-752": [
+   "ball_net",
+   "W3 (2026-11-15): one of the stadium's 6.2 m fences on the podium's edge (170 m from the stadium's centre, 74 m), not #808's 2.3 m railing: a tall net (city objects plan 4)"
+  ],
+  "barrier:fence:1584:-450": [
+   "ball_net",
+   "W3 (2026-11-15): one of the stadium's 6.2 m fences on the podium's edge (186 m from the stadium's centre, 2 m), not #808's 2.3 m railing: a tall net (city objects plan 4)"
+  ],
+  "barrier:fence:1598:-462": [
+   "ball_net",
+   "W3 (2026-11-15): one of the stadium's 6.2 m fences on the podium's edge (185 m from the stadium's centre, 1 m), not #808's 2.3 m railing: a tall net (city objects plan 4)"
+  ],
+  "barrier:fence:1606:-472": [
+   "ball_net",
+   "W3 (2026-11-15): one of the stadium's 6.2 m fences on the podium's edge (184 m from the stadium's centre, 1 m), not #808's 2.3 m railing: a tall net (city objects plan 4)"
+  ],
+  "barrier:fence:1610:-420": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 225 m from the stadium's centre, 59 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1610:-710": [
+   "ball_net",
+   "W3 (2026-11-15): one of the stadium's 6.2 m fences on the podium's edge (166 m from the stadium's centre, 18 m), not #808's 2.3 m railing: a tall net (city objects plan 4)"
+  ],
+  "barrier:fence:1632:-818": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 260 m from the stadium's centre, 235 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1638:-514": [
+   "ball_net",
+   "W3 (2026-11-15): one of the stadium's 6.2 m fences on the podium's edge (181 m from the stadium's centre, 2 m), not #808's 2.3 m railing: a tall net (city objects plan 4)"
+  ],
+  "barrier:fence:1640:-654": [
+   "ball_net",
+   "W3 (2026-11-15): one of the stadium's 6.2 m fences on the podium's edge (167 m from the stadium's centre, 50 m), not #808's 2.3 m railing: a tall net (city objects plan 4)"
+  ],
+  "barrier:fence:1652:-580": [
+   "ball_net",
+   "W3 (2026-11-15): one of the stadium's 6.2 m fences on the podium's edge (174 m from the stadium's centre, 69 m), not #808's 2.3 m railing: a tall net (city objects plan 4)"
+  ],
+  "barrier:fence:1686:-450": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 257 m from the stadium's centre, 5 m; the bake had chain_link)"
+  ],
+  "barrier:fence:1708:-442": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 280 m from the stadium's centre, 40 m; the bake had chain_link)"
+  ],
+  "barrier:fence:1708:-458": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 271 m from the stadium's centre, 180 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1716:-604": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 236 m from the stadium's centre, 234 m; the bake had mesh_panel)"
+  ],
+  "barrier:fence:1750:-636": [
+   "stadium_fence",
+   "W3 (2026-11-15): Stadion Narodowy's perimeter railing round the park, #808's look (city_barriers.gd stadium_fence_line: 272 m from the stadium's centre, 162 m; the bake had mesh_panel)"
+  ]
  }
 }

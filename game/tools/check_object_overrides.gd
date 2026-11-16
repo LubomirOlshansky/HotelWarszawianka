@@ -4,10 +4,12 @@ extends SceneTree
 ## stable id the Python tools compute), every style is a placed barrier type of the palette
 ## (game/data/object_palette.json "types", city_barriers.gd is_style), every verdict a known one.
 ## Step 7: every `hard_lines` id (soft lines kept hard by hand) names a fence or hedge the bake
-## classed S (`sc`), with a reason. A stale id (the line moved more than its 2 m cell after a re-bake) fails here.
+## classed S (`sc`), with a reason. W3: every `types` id (a line's type by id, tools/object_types.py
+## fix_types) names a line that carries that type, a type with a looks row, with a reason. A stale id (the line moved more than its 2 m cell after a re-bake) fails here.
 ##   godot --headless --path game --script res://tools/check_object_overrides.gd
 
 const CityBarriers := preload("res://scripts/city_barriers.gd")
+const Solidity := preload("res://scripts/solidity.gd")
 ## HARD (step 7): a fence or hedge the bake classed S kept solid (city_barriers.gd _is_soft).
 const VERDICTS := ["REMOVE", "RETEXTURE", "REPLACE", "SOFTEN", "KEEP", "HARD"]
 
@@ -52,7 +54,18 @@ func _init() -> void:
 			_expect(str(l["k"]) in ["fence", "hedge"] and str(l.get("sc", "")) == "S",
 					"hard_lines %s: not an S fence or hedge (k %s, sc %s): nothing to keep hard" % [id, l["k"], l.get("sc", "")])
 		_expect(str(hard[id]).length() > 10, "hard_lines %s: no reason" % id)
-	print("check_object_overrides counts: %d overrides %s, %d hard lines" % [items.size(), counts, hard.size()])
+	# W3: every `types` id names one barrier line that carries that type (tools/object_types.py
+	# fix_types wrote it), the type has a looks row, and there is a reason.
+	var types: Dictionary = j.get("types", {}) if j is Dictionary else {}
+	for id: String in types:
+		var t: Array = types[id]
+		var l2: Variant = ids.get(id)
+		_expect(l2 is Dictionary, "types %s: no barrier with this id in the map" % id)
+		_expect(not Solidity.look_row(StringName(str(t[0]))).is_empty(), "types %s: %s has no looks row" % [id, t[0]])
+		if l2 is Dictionary:
+			_expect(str(l2.get("ty", "")) == str(t[0]), "types %s: the map's line is %s, not %s (run tools/object_types.py apply)" % [id, l2.get("ty", ""), t[0]])
+		_expect(t.size() > 1 and str(t[1]).length() > 10, "types %s: no reason" % id)
+	print("check_object_overrides counts: %d overrides %s, %d hard lines, %d types" % [items.size(), counts, hard.size(), types.size()])
 	if _problems > 0:
 		print("check_object_overrides: FAIL (%d problems)" % _problems)
 		quit(1)

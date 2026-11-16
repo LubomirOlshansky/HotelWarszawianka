@@ -721,7 +721,7 @@ def spots(sd):
 
 
 ## game/data/road_objects.json's own description (--apply writes it).
-ABOUT_OBJECTS = "tools/street_pass.py --apply: per-barrier verdicts from the street records (docs/streets/), read by city_barriers.gd build_barriers (OBJECT_OVERRIDES). Do not edit `items` by hand: change the street's record or its `decisions` in docs/streets/streets.json and re-run. `hard_lines` ({stable id: reason}) is kept by hand and carried over by --apply: fences and hedges the bake classed S that stay hard wherever they are (the city objects plan, step 7: the `check_lane_drive.gd --wander` run's traps, rule R6)."
+ABOUT_OBJECTS = "tools/street_pass.py --apply: per-barrier verdicts from the street records (docs/streets/), read by city_barriers.gd build_barriers (OBJECT_OVERRIDES). Do not edit `items` by hand: change the street's record or its `decisions` in docs/streets/streets.json and re-run. `hard_lines` ({stable id: reason}) is kept by hand and carried over by --apply: fences and hedges the bake classed S that stay hard wherever they are (the city objects plan, step 7: the `check_lane_drive.gd --wander` run's traps, rule R6). `types` ({stable id: [type, reason]}) is kept by hand and carried over too: a line's type (`ty`) by id, read by tools/object_types.py fix_types (W3 of the walls look: the stadium's lines, city objects plan 4)."
 
 
 def main():
@@ -753,10 +753,13 @@ def main():
                 if o["verdict"] in ("REMOVE", "HARD") or (o["verdict"] in ("RETEXTURE", "REPLACE") and o.get("style")):
                     items[o["id"]] = [o["verdict"], o.get("style", ""), sd["slug"]]
         out = os.path.join(ROOT, "game", "data", "road_objects.json")
-        # Step 7: the hand-kept `hard_lines` (soft lines kept hard by id) are carried over as they are.
-        hard = json.load(open(out, encoding="utf-8")).get("hard_lines", {}) if os.path.exists(out) else {}
+        # Step 7: the hand-kept `hard_lines` (soft lines kept hard by id) are carried over as they are;
+        # W3: and the hand-kept `types` (a line's type by id, tools/object_types.py fix_types).
+        old = json.load(open(out, encoding="utf-8")) if os.path.exists(out) else {}
+        hard, types = old.get("hard_lines", {}), old.get("types", {})
         with open(out, "w", encoding="utf-8") as fh:
-            json.dump({"_about": ABOUT_OBJECTS, "items": dict(sorted(items.items())), "hard_lines": dict(sorted(hard.items()))},
+            json.dump({"_about": ABOUT_OBJECTS, "items": dict(sorted(items.items())), "hard_lines": dict(sorted(hard.items())),
+                       "types": dict(sorted(types.items()))},
                       fh, ensure_ascii=False, indent=1)
             fh.write("\n")
         print(f"street_pass: {len(items)} barrier overrides -> game/data/road_objects.json")

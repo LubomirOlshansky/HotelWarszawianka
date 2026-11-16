@@ -99,7 +99,13 @@ EXPECTED = {"trees3d": 269232, "pois": 4572, "trees3d_crown": 44872, "parked": 1
 # (map evidence only, cloud 2026-11-14): 31.4 % of 188.2 km; walls 46.8 %, hedges 32.4 %; class km
 # H 79.3, S 191.0, R 8.5, G 0; hard fences km deck 2.0, drop 3.3, railway 2.0, water 1.1. The full
 # re-bake with tools/object_types.py fetch (Overpass context) should land lower: lower this then.
-FENCE_DEFAULT_MAX = 32.0
+# W3 of the walls look (2026-11-15, tools/object_types.py v2): main's map, typed with the raw OSM
+# export, had 9.1 % of 188.2 km of fence and 11.9 % of all 278.8 km of barrier lines (33.0 km) on
+# the default; v2's fixes leave 9.1 % and 11.5 % (31.9 km: the square's planter edges 0.9 km, the
+# stadium's perimeter 0.2 km). Both ratchets only go down. The walls doc's aim for W3 was 9 % of all
+# lines: the bollard-row rule that was to carry most of it failed its 20-sample check (QUESTIONS).
+FENCE_DEFAULT_MAX = 9.2
+ALL_DEFAULT_MAX = 11.5
 # docs/DEMO.md 7 row 7: the lane graph's strongly connected share at least this.
 SCC_SHARE = 0.95
 
@@ -184,8 +190,8 @@ def main() -> int:
 
 def barrier_types(data, report):
     """City objects plan step 5 (tools/object_types.py): every wall, fence and hedge carries ty, tc
-    and sc; the fences' `tc: default` share stays at or under FENCE_DEFAULT_MAX (it only goes
-    down); the metres per type and the hard fences by reason are printed. Before the map is baked
+    and sc; the fences' `tc: default` share stays at or under FENCE_DEFAULT_MAX and that of all
+    three kinds at or under ALL_DEFAULT_MAX (W3; both only go down); the metres per type and the hard fences by reason are printed. Before the map is baked
     with the pass (its stamp `object_types` missing) this says so and passes."""
     kinds = ("fence", "wall", "hedge")
     bar = [l for l in data.get("lines", []) if l.get("k") in kinds]
@@ -196,13 +202,16 @@ def barrier_types(data, report):
         return
     untyped = sum(1 for l in bar if not all(k in l for k in ("ty", "tc", "sc")))
     metres = {}
-    default = {"fence": 0.0}
-    total = {"fence": 0.0}
+    default = {"fence": 0.0, "all": 0.0}
+    total = {"fence": 0.0, "all": 0.0}
     hard = {}
     for l in bar:
         p = l["p"]
         L = sum(math.dist((p[i], p[i + 1]), (p[i + 2], p[i + 3])) for i in range(0, len(p) - 3, 2))
         metres[(l["k"], l.get("ty"))] = metres.get((l["k"], l.get("ty")), 0.0) + L
+        total["all"] += L
+        if l.get("tc") == "default":
+            default["all"] += L
         if l["k"] == "fence":
             total["fence"] += L
             if l.get("tc") == "default":
@@ -216,6 +225,10 @@ def barrier_types(data, report):
            "%.1f %% of %.1f km with tc default (at most %.1f %%); hard fences km: %s" % (
                share, total["fence"] / 1000, FENCE_DEFAULT_MAX,
                ", ".join("%s %.1f" % (k, v / 1000) for k, v in sorted(hard.items())) or "none"))
+    share_all = 100.0 * default["all"] / max(total["all"], 1.0)
+    report("OK" if share_all <= ALL_DEFAULT_MAX else "FAIL", "all default",
+           "%.1f %% of %.1f km of walls, fences and hedges with tc default (at most %.1f %%; v2 fixes %s)" % (
+               share_all, total["all"] / 1000, ALL_DEFAULT_MAX, stamp.get("fixes", "not run")))
     for kind in kinds:
         rows = sorted(((ty, m) for (k, ty), m in metres.items() if k == kind), key=lambda r: -r[1])
         print("     %s km by type: %s" % (kind, ", ".join("%s %.1f" % (ty, m / 1000) for ty, m in rows)))

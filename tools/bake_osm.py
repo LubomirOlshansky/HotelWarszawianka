@@ -557,7 +557,9 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # City objects plan step 5 (2026-11-14): every wall, fence and hedge's type (ty), sureness (tc),
     # solidity class (sc), hazard reason (hz) and height by setting (hs), last, on the finished lines,
     # from OSM's full barrier tags and the land-use outlines in this export (tools/object_types.py;
-    # the game reads none of it yet).
+    # the game reads none of it yet). W3 of the walls look (2026-11-15): then its v2 type fixes, the
+    # same code check_post_passes.py runs on main's map (types by id, tall fences and hedges, the
+    # squares' planter edges).
     import object_types
     print(object_types.apply(out, map_dir, els))
     # City objects plan step 8b (2026-11-15): the parked rows thinned where the lane is pinched, the

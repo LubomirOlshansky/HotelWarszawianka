@@ -53,6 +53,11 @@ const TOTAL := 46762
 ## soft lines are the same. Moves with TOTAL (a re-bake): `--record --barriers=typed` prints it.
 ## 2026-11-15, Plac Defilad (#848): 46355 → 46573 with the same sites (measured with `--record
 ## --barriers=typed` on a fresh bake after merging main 85090c58).
+## W3 of the walls look (2026-11-15, tools/object_types.py v2): both measured again on the retyped map
+## (each with its own `--record` run, never one from the other): TOTAL 46762 and TOTAL_TYPED 46573
+## (after merging main with Plac Defilad #848), unchanged by W3: the stadium's retyped lines keep their look and class (soft, no faces), and the other
+## fixes change no face in these sectors (the planter edges by the Palace of Culture in (-2, 0) keep
+## a placed style).
 const TOTAL_TYPED := 46573
 
 var problems: Array[String] = []
