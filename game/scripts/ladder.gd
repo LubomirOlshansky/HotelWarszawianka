@@ -473,6 +473,23 @@ func title() -> Array:
 	return ["DRABINKA", "RIVAL LADDER"]
 
 
+## First hour step 4 (the map's one list): the six rivals as chips for the Rivals section, each
+## {"rung", "short" (HALINA...), "state" ("won", "open", "locked"), "pips" ("•••")}, in the rungs'
+## order. "open" can be called out (rivals.gd `call_out`); the old ladder's next rung reads "open"
+## once its respect is there.
+func chips() -> Array:
+	var out: Array = []
+	for i in RUNGS.size():
+		var state := "won" if beaten(i) else ("open" if is_open(i) else "locked")
+		out.append({"rung": i, "short": str(RUNGS[i]["short"]), "state": state, "pips": pip_text(i) if any_order else ""})
+	return out
+
+
+## The final waits for the night only: open, not won (the map's list offers the night then).
+func final_waits_night() -> bool:
+	return is_open(FINAL) and not final_won()
+
+
 ## The ladder as rows for the full map's card: [text, state] where state is "won", "next" or
 ## "locked" (`night`: it is night now, for the final's "w nocy · at night").
 func rows(night: bool) -> Array:
