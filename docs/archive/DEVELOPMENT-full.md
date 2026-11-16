@@ -5407,6 +5407,18 @@ four views and at night (the POLICE MultiMesh in the main and shadow passes, the
 the HUD's 2D pass no higher than before, the minimap now drawing its marks in one call), ≤ +3.2 k
 triangles a pass, 0.07-0.08 ms of police script plus 0.04 ms of HUD, and +2 MB (+4 MB more for
 Dialogue Manager's scripts); see Loop 3g-1: the police, part one.
+W4 of the walls look (the panel trial, 2026-11-16; only under `barrier_look` `panels`, the palette
+stays `classic`; walls doc 6.4 and 8 allowed +3 draw calls at the spawn and the river view, +6
+zoomed out, +9 from the helicopter, shadow pass +0) spent, on the cloud's lavapipe at 1266×585,
+the probe's medians of 3 against `typed`: main pass +3 at the spawn (76 against 73), +2 at the
+river view (47 / 45), +5 zoomed out (82 / 77), +2 from the helicopter (124 / 122), +3 at night
+and in rain at night (84 / 81); shadow pass +0 at every view (panels cast none); main-pass
+triangles +0.01 M at the spawn and the river, +0.05 M zoomed out (1.04 / 0.99 M: a piece is a
+10-triangle box, the posts and rails it replaces were fewer); static memory +2 MB. Prebuilt
+sectors 185.3 MB (classic 185.5, typed 188.5); a sector's main-thread load (instantiate and add,
+all 112, medians of 5 interleaved runs) p99 37.0 ms against typed's 37.6 and classic's 36.1, in all
+1.03 s against 1.02 and 0.98 (check_streaming's soak cannot run on the cloud's software GPU: 0.3 s
+a frame). The phone's numbers (the iPhone 11's frame with the panels' `discard`) are PHONE-CHECK 7c.
 Loop 2c spent none of it: +0 draw calls at every view, and the triangles at the default view
 went down (the traffic pools draw only the cars in use); its numbers are in Loop 2c: car models.
 What 2c may spend: ~15–25 draw calls (a few traffic kinds' MultiMeshes in the main and shadow
