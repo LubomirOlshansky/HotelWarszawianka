@@ -189,6 +189,7 @@ const INFO := {
 	"plebania_zagorna": ["Plebania przy Zagórnej", "Dom parafii Matki Bożej Częstochowskiej, w szarym tynku jak kościół.", "Our Lady of Częstochowa's parish house, in the church's grey render."],
 	"rodziny_maryi_pawilon": ["Pawilon sióstr Rodziny Maryi", "Niski dom przy klasztorze sióstr, pod zieloną miedzią.", "The low house by the sisters' convent, under green copper."],
 	"plebania_leszno": ["Plebania parafii Narodzenia NMP", "Plebania kościoła na Lesznie, w łososiowym tynku jak kościół.", "The presbytery of the church on Leszno, in the church's salmon plaster."],
+	"misjonarze_tyl": ["Dom zakonny Księży Misjonarzy", "Tylne skrzydło domu misjonarzy przy kościele Świętego Krzyża.", "The back wing of the Missionaries' house by the Holy Cross church."],
 	"dom_parafialny_barbara": ["Dom Parafialny im. Prymasa Tysiąclecia", "Dom parafii św. Barbary, w żółtym tynku przy Świętej Barbary.", "St Barbara's parish house, in yellow plaster on Świętej Barbary."],
 	"szarytki_zaulek": ["Domy Szarytek przy zaułku", "Dwa domy sióstr miłosierdzia za klasztorem na Tamce.", "Two houses of the Sisters of Charity behind their convent on Tamka."],
 	"faustyna_klasztor": ["Klasztor przy sanktuarium św. Faustyny", "Domy Zgromadzenia Sióstr Matki Bożej Miłosierdzia przy Żytniej.", "The Sisters of Our Lady of Mercy's houses round St Faustina's shrine."],
@@ -1423,6 +1424,12 @@ func _find_sites() -> void:
 		_add_site("plebania_leszno", [pls])
 		if not sites.is_empty() and sites[-1]["key"] == "plebania_leszno":
 			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": PLS_WALL, "roof": PLS_ROOF}
+	# The back wing of the Missionaries' house by Holy Cross (2026-11-15): its mass in the neighbour's colours, provisional.
+	var mst := _outline_at(MST_AT)
+	if mst.size() >= 3:
+		_add_site("misjonarze_tyl", [mst])
+		if not sites.is_empty() and sites[-1]["key"] == "misjonarze_tyl":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": MST_WALL, "roof": MST_ROOF}
 	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
 	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
@@ -1957,6 +1964,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"szarytki_zaulek":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"dom_parafialny_barbara":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
+			"misjonarze_tyl":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"plebania_leszno":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin
