@@ -40,6 +40,8 @@ extends Node
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Lines := preload("res://scripts/quest_lines.gd")
+const MapMarkers := preload("res://scripts/map_markers.gd")
+const Lang := preload("res://scripts/lang.gd")
 
 ## Within this many metres of a start (and slower than GREET_KMH) the friend walks up.
 const GREET_R := 30.0
@@ -190,6 +192,23 @@ static func marks(list: Array, in_focus: bool) -> Array:
 				pts.append(p)
 				cols.append(d.get("colour", COLOUR))
 	return [pts, cols]
+
+
+## The starts as the map marker registry's STORY marks (map_markers.gd `put_all`, owner "stories";
+## TD-13): each in its colour, group "story", with its name and one-line description in the
+## language shown and "small" for a smaller "!". All of them: the rule table hides them in quest
+## focus and in the air.
+static func map_marks(list: Array) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for d: Dictionary in list:
+		var p: Vector2 = d.get("at", Vector2.INF)
+		if p == Vector2.INF:
+			continue
+		var b: Array = d.get("blurb", ["", ""])
+		out.append({"layer": MapMarkers.Layer.STORY, "at": p, "colour": d.get("colour", COLOUR), "group": "story",
+				"key": str(d["id"]), "extra": {"name": Lang.pick(str(d["pl"]), str(d["en"])),
+				"blurb": Lang.pick(str(b[0]), str(b[1])), "small": bool(d.get("small", false))}})
+	return out
 
 
 ## The WĄTKI tab's entries (quest_lines.gd): one per questline, action "story", its name (the row

@@ -10,8 +10,8 @@ should grow into. Design background: docs/design/quest-map.md and docs/design/ma
 | --- | --- | --- | --- | --- | --- |
 | Active target | glowing, pulsing pin in the quest's colour, edge arrow, metres, dotted route | yes (`active_pin`, `set_minimap_target`, `set_minimap_route`) | yes, with a dotted line from the car | `beacon.gd` ring and light column | each activity sets its own (missions, jobs, rides, rivals, tours, boat race...) |
 | Picked place | the same pin, for a place tapped in the ZADANIA list | yes | yes | arrow only | main.gd `quest_pin` (`_on_quest_picked`) |
-| Main line | gold star in a breathing glow | yes (`main_star`) | yes (`set_main_line`) | the guide's beacon | `main_line.gd`; today only for the first kebab (`FIRST_JOB_ONLY`) |
-| Questline starts | round badge, white "!", the line's own colour | pinned to the rim up to 1.5 km | twice a job icon, with the name | lit column and the waving friend within `BEACON_R` 320 m | `story_quests.gd` `marks`, `hud.set_story` / `full_map.set_story` |
+| Main line | gold star in a breathing glow | registry MAIN `main:star` (`MainLine.map_marks`); goal line `hud.set_main_goal` | yes, same mark | the guide's beacon | `main_line.gd`; today only for the first kebab (`FIRST_JOB_ONLY`) |
+| Questline starts | round badge, white "!", the line's own colour | pinned to the rim up to 1.5 km | twice a job icon, with the name | lit column and the waving friend within `BEACON_R` 320 m | registry STORY, owner "stories" (`StoryQuests.map_marks`: name, line, small in `extra`); quest focus `hud.set_quest_focus` |
 | Street jobs | small icon per stand, station or depot | yes (registry JOB) | yes, zoomed in | the kebab stands' rings | `jobs.gd` (owner "jobs"), `roundup_job.gd` (owner "roundup", its pins during a run), main.gd `_quest_entries` for the list |
 | Ladder and final | rival rows; the final's start is the main line's star | registry MAIN "rivals:final" (kept, not drawn) | `set_ladder` | the race beacon at Rondo Daszyńskiego | `ladder.gd`, `rivals.gd` |
 | Garage | its diamond within reach | registry SERVICE "garage:workshop" | yes | | `garage.gd` |
@@ -51,8 +51,8 @@ should grow into. Design background: docs/design/quest-map.md and docs/design/ma
 
 1. **Many setters, no registry.** About a dozen `set_minimap_*` and `full_map.set_*` calls, each
    replacing its own list. Two owners of one list overwrote each other. Mended for the job places,
-   the garage, the "?" marks and the final (TD-13 step 1); the questlines, the main line and the
-   target still have their setters.
+   the garage, the "?" marks and the final (TD-13 step 1), the questlines and the main line's star
+   (step 2); the target still has its own path (step 3).
 2. **Quest focus has its own busy test.** `_quest_running()` checks six activities and the
    questlines' `busy`; `_free_block()` checks fifteen. They disagree: a Podwózka ride or a plain trend delivery blocks new starts in `_free_block()` but does not count for `_quest_running()`.
 3. **The active target is set by each activity.** 24 scripts touch the route line or beacon;
@@ -112,3 +112,10 @@ Step 3: TARGET, the edge arrow and the full map's pin (main.gd `_show_target`'s 
 routes, so the arrow and the maps follow the roads for every target, not only the ones that draw a
 `route_line.gd` today. Each pull request adds a PHONE-CHECK line for the minimap, the full map and
 the arrow.
+
+Step 2 as built: the context has a third column, AIR (flying; quest focus wins over it), which is
+how the questline badges hide in the helicopter; each mark carries a `group` (the kind of thing:
+"kebab", "sloik", "lezak", "garage", "story", "notebook", "final"; the onboarding plan's one map
+list shows a row per group) and an `extra` dictionary (a questline's name, line and small "!");
+the rivals have their own layer, RIVAL, drawn nowhere yet (the final's start moved there from
+MAIN), for that list.
