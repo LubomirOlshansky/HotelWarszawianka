@@ -2048,6 +2048,7 @@ func _set_quality(choice: int) -> void:
 	tod.glow_allowed = qs["glow"]
 	if map != null and map.leaf_material != null:
 		map.leaf_material.set_shader_parameter("limbs", 1.0 if qs.get("tree_limbs", true) else 0.0)
+	if map != null and map.panel_material != null: map.panel_material.set_shader_parameter("holes", 1.0 if qs.get("panel_holes", true) else 0.0)
 	if crowds != null:
 		crowds.amount = _crowd_scale()
 		crowds.refresh()
