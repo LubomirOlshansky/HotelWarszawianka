@@ -8,8 +8,8 @@ meaning. Character limits are Apple's; the counts in brackets were measured (Pol
 with diacritics count as one character but two bytes, and the keyword field is limited in
 bytes).
 
-Facts behind every answer: no network code at all, no accounts, no ads, no purchases, no
-analytics or crash SDK, saves only on the device (`user://`), haptics only. English is the
+Facts behind every answer: no accounts, no ads, no purchases, no crash SDK; the only network use is
+the beta's anonymous play stats to PostHog EU (docs/STATS.md); saves only on the device (`user://`), haptics only. English is the
 default language (the user's choice, 2026-10-29); Polish is the second localization. The game
 itself shows Polish above English on every screen.
 
