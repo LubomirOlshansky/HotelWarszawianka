@@ -10,7 +10,7 @@ extends "res://scripts/place.gd"
 ##    lace bell flower with a green calyx and a bunch of pearl beads (F's own photos, 2026-11-15);
 ##    warm bulb strings run from arch to arch and big butterflies hang from them on two cords (the
 ##    news: "at least six light hangings over the alley along Świętokrzyska");
-##  - giant dandelions (ten): a pale green stem, a warm-white clock of radial spikes with a bulb on
+##  - giant dandelions (nine): a pale green stem, a warm-white clock of radial spikes with a bulb on
 ##    each tip, long toothed leaves, a dark round base painted with flowers;
 ##  - five single bell flowers on their own stems between the arches, and butterflies on thin rods
 ##    among the dandelions (eighteen butterflies in all, with the ones on the arches);
@@ -61,7 +61,7 @@ const FOOT_R := 0.95
 ## the alley) and then the bell flowers (arches and singles, east of the fountain), nothing off that
 ## walk.
 const FIGURES := [
-	["d", -1412.0, 22.0, 4.2], ["d", -1404.5, 15.7, 3.6], ["d", -1392.0, 17.7, 4.0], ["d", -1379.9, 11.5, 3.9],
+	["d", -1412.0, 22.0, 4.2], ["d", -1404.5, 15.7, 3.6], ["d", -1379.9, 11.5, 3.9],
 	["d", -1376.5, 1.7, 4.3], ["d", -1363.4, 9.3, 4.1], ["d", -1362.2, -3.3, 3.6], ["d", -1349.1, -1.3, 4.2],
 	["d", -1340.7, -3.8, 3.8], ["d", -1331.5, -7.8, 3.5],
 	["f", -1281.0, -14.8, 4.3], ["f", -1266.4, -20.7, 4.5], ["f", -1251.9, -25.8, 4.4],
