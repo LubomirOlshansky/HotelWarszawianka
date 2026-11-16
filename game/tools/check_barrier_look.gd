@@ -15,14 +15,33 @@ extends SceneTree
 ##     an unknown type and a line a rule gave its look (`st`) make what classic makes;
 ##   4 the same line built twice gets the same `alt` colour, and the colour follows its stable id;
 ##   5 the whole map's lines built under typed on the flat map: none drawn classic for want of a
-##     row (`unknown`) and none in barrier_default; the count of lines per draw kind is printed.
+##     row (`unknown`) and none in barrier_default; the count of lines per draw kind is printed;
+##   6 W4 (walls doc 6.4): under panels, on the flat synthetic map, a line of each panel draw kind
+##     (a rail row, one with a foot, a slab row; hard and soft) makes no triangles in the city mesh
+##     and the very collider faces and soft list typed makes; its panel pieces are cut at every 2 m
+##     of the line's run and at its corners, each with its panel index (soft_things.gd's), its
+##     row, its run and its seed, the soft line's first instance and count in its tile's meta;
+##     under classic and typed no piece is made;
+##   7 W4: the whole map under panels on the flat map: the collider faces per class are typed's,
+##     face for face (the cars meet the same fences), every line of a panel row is drawn as
+##     panels and none of another; the pieces are printed;
+##   8 with `--paths` (verify step `barrierpaths`, the prebuilt city needed): in each of the
+##     sectors (check_colliders.gd's ten; `--all` every sector) the runtime build in the look the
+##     prebuilt city was baked in (map/sectors/city.stamp) has the prebuilt sector's city mesh
+##     vertices and its `Panels` pieces (walls doc 9: the two city paths agree).
 ## Prints `check_barrier_look: OK (...)` (exit 0) or the problems (exit 1).
-##   godot --headless --path game --script res://tools/check_barrier_look.gd
+##   godot --headless --path game --script res://tools/check_barrier_look.gd [-- --paths [--all]]
 
 const Solidity := preload("res://scripts/solidity.gd")
 const CityBarriers := preload("res://scripts/city_barriers.gd")
 const Chunked := preload("res://scripts/chunked_surface.gd")
+const PanelRule := preload("res://scripts/panel_rule.gd")
+const MapBuilder := preload("res://scripts/map_builder.gd")
 const PANEL_RHYTHMS := [2.0, 4.0]
+## 8: check_colliders.gd's ten sectors (the stadium's grounds, Marszałkowska and the spawn,
+## Poniatowski's viaduct and the river, the Old Town, Powiśle, Centralna's cutting, Praga).
+const PATH_SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2, 0), Vector2i(-2, 1),
+		Vector2i(0, 0), Vector2i(1, -1), Vector2i(-2, -3), Vector2i(0, -1), Vector2i(-3, 0), Vector2i(0, -2)]
 
 
 ## A flat world: the wall builder's terrain is 0 everywhere.
@@ -35,6 +54,9 @@ var problems: Array[String] = []
 
 
 func _initialize() -> void:
+	if "--paths" in OS.get_cmdline_user_args():
+		_paths("--all" in OS.get_cmdline_user_args())
+		return
 	var palette: Variant = JSON.parse_string(FileAccess.get_file_as_string(Solidity.PALETTE))
 	# 1: the key.
 	if not palette is Dictionary or str((palette as Dictionary).get("barrier_look", "")) != "classic":
@@ -59,12 +81,16 @@ func _initialize() -> void:
 	_kinds(map)
 	_alt(map)
 	var counts := {}
+	var panels := {}
+	_panels(map)
 	if data is Dictionary:
 		counts = _whole(map, data)
+		panels = _whole_panels(map, data)
 	map.free()
+	Solidity.set_barrier_look(&"classic")
 	if problems.is_empty():
-		print("check_barrier_look: OK (%d look rows, %d types on the map; the whole map typed on a flat map: %s)" % [
-				Solidity.looks().size(), types.size(), counts])
+		print("check_barrier_look: OK (%d look rows, %d types on the map; the whole map typed on a flat map: %s; under panels: %s)" % [
+				Solidity.looks().size(), types.size(), counts, panels])
 		quit(0)
 	else:
 		for p in problems:
@@ -222,3 +248,193 @@ func _whole(map: Node3D, data: Dictionary) -> Dictionary:
 	map._solids = {}
 	map.data = {}
 	return counts
+
+
+## 6: the panel draw kinds on the flat synthetic map, in a sector far from every place rule.
+func _panels(map: Node3D) -> void:
+	map._in_sector = true
+	map._sector_rect = Rect2(2560.0, 2560.0, 512.0, 512.0)
+	map._sector = Vector2i(5, 5)
+	var p := [3000.0, 3000.0, 3005.0, 3000.0, 3005.0, 3003.2]
+	# Runs 0..5 and 5..8.2: pieces 0-2, 2-4, 4-5 | 5-6, 6-8, 8-8.2, panels 0, 1, 2, 2, 3, 4.
+	var want_runs: Array[float] = [0.0, 2.0, 4.0, 5.0, 6.0, 8.0]
+	var want_panels: Array[int] = [0, 1, 2, 2, 3, 4]
+	var b: RefCounted = map.barriers
+	for case: Array in [["fence", "fence_plain", 1.3], ["fence", "bars_black", -1.0], ["hedge", "hedge_low", 0.7]]:
+		for sc: String in ["H", "S"]:
+			var extra := {"ty": case[1], "sc": sc}
+			if float(case[2]) > 0.0:
+				extra["hs"] = case[2]
+			var l := _line(str(case[0]), p, extra)
+			var typed := _build(map, [l], &"typed")
+			var typed_soft: Dictionary = b.soft_data()
+			if not (b.panel_tiles as Dictionary).is_empty():
+				problems.append("6 %s: typed made panel pieces" % case[1])
+			var classic := _build(map, [l], &"classic")
+			if not (b.panel_tiles as Dictionary).is_empty():
+				problems.append("6 %s: classic made panel pieces" % case[1])
+			var panels := _build(map, [l], &"panels")
+			var what := "%s (%s)" % [case[1], sc]
+			if int(panels[0]) != 0:
+				problems.append("6 %s: %d triangles in the city mesh under panels" % [what, panels[0]])
+			if panels[1] != typed[1]:
+				problems.append("6 %s: collider faces %s under panels, %s typed" % [what, panels[2], typed[2]])
+			if var_to_str(b.soft_data()) != var_to_str(typed_soft):
+				problems.append("6 %s: the soft list differs from typed's" % what)
+			if int(classic[0]) == 0:
+				problems.append("6 %s: classic drew nothing" % what)
+			var tiles: Dictionary = b.panel_tiles
+			if tiles.size() != 1 or not tiles.has(Vector2i(5, 5)):
+				problems.append("6 %s: pieces in tiles %s, want (5, 5)" % [what, tiles.keys()])
+				continue
+			var t = tiles[Vector2i(5, 5)]
+			var n: int = t.buf.size() / CityBarriers.PANEL_FLOATS
+			if n != want_runs.size() or int(b.panel_pieces) != n:
+				problems.append("6 %s: %d pieces (%d counted), want %d" % [what, n, b.panel_pieces, want_runs.size()])
+				continue
+			var row := PanelRule.row_of(StringName(str(case[1])))
+			var seed := PanelRule.seed(CityBarriers.barrier_id(str(case[0]), p))
+			for k in n:
+				var o: int = k * CityBarriers.PANEL_FLOATS
+				if int(t.buf[o + 12]) != row or absf(t.buf[o + 13] - want_runs[k]) > 1e-4 or t.buf[o + 14] != 0.0 \
+						or absf(t.buf[o + 15] - seed) > 1e-6 or int(t.panel[k]) != want_panels[k]:
+					problems.append("6 %s: piece %d is row %d, run %.2f, state %.0f, seed %.4f, panel %d; want %d, %.2f, 0, %.4f, %d" % [
+							what, k, t.buf[o + 12], t.buf[o + 13], t.buf[o + 14], t.buf[o + 15], t.panel[k], row, want_runs[k],
+							seed, want_panels[k]])
+					break
+			# The first piece: 2 m along +x, from SINK under the ground to the line's height, upright.
+			var h := float(Solidity.look_row(StringName(str(case[1])))["h"]) if float(case[2]) <= 0.0 else float(case[2])
+			var first := Vector3(t.buf[0], t.buf[4], t.buf[8])
+			var up := Vector3(t.buf[1], t.buf[5], t.buf[9])
+			if not first.is_equal_approx(Vector3(2, 0, 0)) or not up.is_equal_approx(Vector3(0, h + PanelRule.SINK, 0)) \
+					or not is_equal_approx(t.buf[7], -PanelRule.SINK):
+				problems.append("6 %s: the first piece's axes %s, %s and foot %.2f" % [what, first, up, t.buf[7]])
+			var soft := sc == "S"
+			var meta: Dictionary = t.meta()
+			var ids: PackedStringArray = meta["ids"]
+			if soft and (ids.size() != 1 or ids[0] != CityBarriers.barrier_id(str(case[0]), p) or meta["first"] != PackedInt32Array([0]) \
+					or meta["count"] != PackedInt32Array([n])):
+				problems.append("6 %s: the soft line's meta %s" % [what, meta])
+			if not soft and not ids.is_empty():
+				problems.append("6 %s: a hard line in the soft meta %s" % [what, ids])
+			if soft and typed_soft.is_empty():
+				problems.append("6 %s: the line is not soft (the case tests nothing)" % what)
+	# A row not marked panel (low_lawn) stays typed under panels.
+	var lawn := _line("fence", p, {"ty": "low_lawn"})
+	var lt := _build(map, [lawn], &"typed")
+	var lp := _build(map, [lawn], &"panels")
+	if lt[0] != lp[0] or lt[1] != lp[1] or not (b.panel_tiles as Dictionary).is_empty():
+		problems.append("6 low_lawn: typed %d triangles, panels %d (and %d tiles of pieces)" % [lt[0], lp[0], (b.panel_tiles as Dictionary).size()])
+	map._in_sector = false
+	map._sector = Vector2i.ZERO
+
+
+## 7: the whole map under panels on the flat map: typed's faces, every panel row's line as panels.
+func _whole_panels(map: Node3D, data: Dictionary) -> Dictionary:
+	Solidity.set_barrier_look(&"typed")
+	map.data = data
+	map._solids = {}
+	map.barriers.build_barriers(Chunked.new())
+	var typed_faces: Dictionary = map._solids.duplicate(true)
+	var typed_counts: Dictionary = (map.barriers.look_counts as Dictionary).duplicate()
+	Solidity.set_barrier_look(&"panels")
+	map._solids = {}
+	var st := Chunked.new()
+	map.barriers.build_barriers(st)
+	var b: RefCounted = map.barriers
+	for cls: StringName in typed_faces:
+		if map._solids.get(cls) != typed_faces[cls]:
+			problems.append("7 class %s: %d faces under panels, %d typed" % [cls,
+					(map._solids.get(cls, PackedVector3Array()) as PackedVector3Array).size() / 3, (typed_faces[cls] as PackedVector3Array).size() / 3])
+	for cls: StringName in map._solids:
+		if not typed_faces.has(cls):
+			problems.append("7 class %s under panels only" % cls)
+	var lines := int(b.look_counts.get(&"panel", 0))
+	var want := 0
+	for l: Dictionary in data.get("lines", []):
+		if PanelRule.is_panel(StringName(str(l.get("ty", "")))):
+			want += 1
+	if lines == 0 or lines > want:
+		problems.append("7 %d lines drawn as panels, %d lines of panel rows on the map" % [lines, want])
+	var counted := 0
+	for key: Vector2i in b.panel_tiles:
+		counted += (b.panel_tiles[key].buf as PackedFloat32Array).size() / CityBarriers.PANEL_FLOATS
+	if counted != int(b.panel_pieces):
+		problems.append("7 the tiles hold %d pieces, %d counted" % [counted, b.panel_pieces])
+	var out := {"panel lines": lines, "of": want, "pieces": counted, "tiles": (b.panel_tiles as Dictionary).size(),
+			"city mesh triangles": st.vertex_count / 3}
+	if int(typed_counts.get(&"rail", 0)) + int(typed_counts.get(&"slab", 0)) != int(b.look_counts.get(&"rail", 0)) + int(b.look_counts.get(&"slab", 0)):
+		problems.append("7 the typed lines' counts differ: %s typed, %s panels" % [typed_counts, b.look_counts])
+	map._solids = {}
+	map.data = {}
+	return out
+
+
+## 8: the two city paths against each other, in the look the prebuilt city was baked in.
+func _paths(every: bool) -> void:
+	var stamp: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://map/sectors/city.stamp")) \
+			if FileAccess.file_exists("res://map/sectors/city.stamp") else null
+	var index: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://map/index.json")) \
+			if FileAccess.file_exists("res://map/index.json") else null
+	if not stamp is Dictionary or not index is Dictionary:
+		print("  PROBLEM 8 no prebuilt city (map/sectors/city.stamp, map/index.json): run tools/setup_map.sh")
+		print("check_barrier_look: 1 problems")
+		quit(1)
+		return
+	var look := StringName(str((stamp as Dictionary).get("barrier_look", "classic")))
+	Solidity.set_barrier_look(look)
+	var runtime: Node3D = MapBuilder.new()
+	root.add_child(runtime)
+	runtime.setup_streamed(index, ShaderMaterial.new(), ShaderMaterial.new())
+	var keys: Array[Vector2i] = []
+	if every:
+		for k: Array in (index as Dictionary)["sectors"]["keys"]:
+			keys.append(Vector2i(int(k[0]), int(k[1])))
+	else:
+		keys = PATH_SECTORS
+	var pieces := 0
+	var verts := 0
+	for key in keys:
+		var built: Node3D = runtime.build_sector(key)
+		var a := _sector_counts(built)
+		built.free()
+		var path := "res://map/sectors/%s.scn" % MapBuilder.sector_name(key)
+		if not ResourceLoader.exists(path):
+			problems.append("8 %s: no prebuilt sector %s" % [key, path])
+			continue
+		var inst := (ResourceLoader.load(path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
+		var b := _sector_counts(inst)
+		inst.free()
+		if a != b:
+			problems.append("8 %s (%s): runtime %s, prebuilt %s" % [key, look, a, b])
+		pieces += int(a["panel pieces"])
+		verts += int(a["vertices"])
+	runtime.free()
+	Solidity.set_barrier_look(&"classic")
+	if problems.is_empty():
+		print("check_barrier_look: OK (paths: %d sectors in the baked look %s, %d city mesh vertices, %d panel pieces, the same on both)" % [
+				keys.size(), look, verts, pieces])
+		quit(0)
+	else:
+		for p in problems:
+			print("  PROBLEM " + p)
+		print("check_barrier_look: %d problems" % problems.size())
+		quit(1)
+
+
+## 8: a sector's mesh vertices (every MeshInstance3D's surfaces) and its Panels' pieces.
+func _sector_counts(sector: Node) -> Dictionary:
+	var verts := 0
+	var pieces := 0
+	var nodes := 0
+	for n in sector.find_children("*", "", true, false):
+		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
+			var m := (n as MeshInstance3D).mesh
+			for s in m.get_surface_count():
+				var arr := m.surface_get_arrays(s)
+				if arr[Mesh.ARRAY_VERTEX] is PackedVector3Array:
+					verts += (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
+		elif n is MultiMeshInstance3D and str(n.name).begins_with("Panels"):
+			nodes += 1
+			pieces += (n as MultiMeshInstance3D).multimesh.instance_count
+	return {"vertices": verts, "panel pieces": pieces, "panel nodes": nodes}
