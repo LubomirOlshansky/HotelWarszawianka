@@ -170,3 +170,133 @@ static func pad_move(sel: int, count: int, dir: int) -> int:
 	if sel < 0 or sel >= count:
 		return 0 if dir >= 0 else count - 1
 	return posmod(sel + dir, count)
+
+
+# --- First hour, step 4: one map list ---------------------------------------------------------
+## The spec "First hour for the beta" (section 3) and the critique's point 7 (F's yes, 2026-11-15):
+## the full map's three tabs (AUTO, HELI, WĄTKI) become one scrolling list with sections, grouped by
+## what the player wants to know. A new player sees three sections (First steps with only the
+## nearest few steps, Rivals as one row of names, Around town); Friends opens after the third First
+## step, Collection after the first find. While something runs only Now shows (as the tab did).
+## full_map.gd draws `sections`; the rivals' chips and the collection's line come with it.
+
+## The sections, in the order the list shows them.
+const SECTIONS := ["now", "steps", "rivals", "town", "friends", "collection"]
+const SECTION_TITLES := {
+	"now": ["TERAZ", "NOW"],
+	"steps": ["PIERWSZE KROKI", "FIRST STEPS"],
+	"rivals": ["RYWALE", "RIVALS"],
+	"town": ["W MIEŚCIE", "AROUND TOWN"],
+	"friends": ["ZNAJOMI", "FRIENDS"],
+	"collection": ["KOLEKCJA", "COLLECTION"],
+}
+## The First steps left that the list shows (the critique: two or three, not seven).
+const STEPS_SHOWN := 3
+## Around town's rows at most: one per kind of job, nearest first.
+const TOWN_ROWS := 6
+## Friends' rows at most (the questlines, open ones nearest first).
+const FRIENDS_ROWS := 6
+## A step row's action when tapped calls a rival out (full_map.gd `rival_called`), and the night
+## button's (main.gd switches the night on for the final).
+const RIVAL_CALL := "rival_call"
+const NIGHT := "night"
+## The groups that belong to the Rivals section, not Around town.
+const RIVAL_GROUPS := ["rival", "final"]
+
+
+## The list's sections for a player at `from`. `entries` as `rows` takes them (main.gd
+## `_quest_entries`); `line` is the vehicle's own (its places come first in Around town); `steps`
+## the First steps left, each {"id", "pl", "en", "entry"} with `entry` the place or request that
+## does it ({} for none: a step done by a button, as the helicopter); `friends` opens the Friends
+## section. Returns [{"key", "rows"}], only the sections with rows (Rivals and Collection are drawn
+## from their own data by full_map.gd; their keys come with no rows). Each row is an entry with
+## `far` [pl, en]; a step row also has `step` (its id) and `label` (true: not tappable).
+static func sections(entries: Array, line: int, from: Vector2, steps: Array, friends: bool) -> Array:
+	var out: Array = []
+	for e: Dictionary in entries:
+		if str(e["action"]) == NOW:
+			return [{"key": "now", "rows": rows(entries, int(e["line"]), from, 1)}]
+	var step_rows := _step_rows(steps, from)
+	if not step_rows.is_empty():
+		out.append({"key": "steps", "rows": step_rows})
+	var finals: Array = []
+	for e: Dictionary in entries:
+		if str(e["group"]) == "final":
+			var r := e.duplicate()
+			r["far"] = [far_text(from, e["at"], true), far_text(from, e["at"], false)] if e["at"] != Vector2.INF else ["", ""]
+			finals.append(r)
+	out.append({"key": "rivals", "rows": finals})
+	var town := _town_rows(entries, line, from, step_rows.map(func(r: Dictionary) -> String: return str(r["group"])))
+	if not town.is_empty():
+		out.append({"key": "town", "rows": town})
+	if friends:
+		var f := _story_rows(entries, from, FRIENDS_ROWS)
+		if not f.is_empty():
+			out.append({"key": "friends", "rows": f})
+	out.append({"key": "collection", "rows": []})
+	return out
+
+
+## Around town: the requests of both lines first (a ride, a rescue call), then the vehicle's own
+## line's places nearest first, then the other line's, one per kind (GROUP_KEEP), no rivals; a kind
+## First steps already shows (`shown` groups) is not listed twice.
+static func _town_rows(entries: Array, line: int, from: Vector2, shown: Array = []) -> Array:
+	var asks: Array = []
+	var own: Array = []
+	var other: Array = []
+	for e: Dictionary in entries:
+		var l := int(e["line"])
+		if l == Line.STORY or str(e["group"]) in RIVAL_GROUPS or str(e["group"]) in shown:
+			continue
+		var r := e.duplicate()
+		if str(e["action"]) != "" or e["at"] == Vector2.INF:
+			r["far"] = ["", ""]
+			asks.append(r)
+			continue
+		r["far"] = [far_text(from, e["at"], true), far_text(from, e["at"], false)]
+		r["d"] = from.distance_to(e["at"])
+		(own if l == line else other).append(r)
+	var near := func(a: Dictionary, b: Dictionary) -> bool: return float(a["d"]) < float(b["d"])
+	own.sort_custom(near)
+	other.sort_custom(near)
+	var out: Array = asks.duplicate()
+	var taken := {}
+	for r: Dictionary in own + other:
+		var g := str(r["group"])
+		var n: int = taken.get(g, 0)
+		if n >= int(GROUP_KEEP.get(g, 1)):
+			continue
+		taken[g] = n + 1
+		out.append(r)
+	return out.slice(0, TOWN_ROWS)
+
+
+## The First steps left as rows: the ones with a place nearest first, then the requests (a ride, a
+## rescue call, a rival called out), then the ones a button does (labels); STEPS_SHOWN at most.
+static func _step_rows(steps: Array, from: Vector2) -> Array:
+	var placed: Array = []
+	var asks: Array = []
+	var labels: Array = []
+	for s: Dictionary in steps:
+		var e: Dictionary = s.get("entry", {})
+		var r := {}
+		if e.is_empty():
+			r = entry("step_" + str(s["id"]), "step", Line.CAR, str(s["pl"]), str(s["en"]), Vector2.INF, Color("#ffd23f"))
+			r["label"] = true
+			r["far"] = ["", ""]
+			labels.append(r)
+		else:
+			r = e.duplicate()
+			r["pl"] = str(s["pl"])
+			r["en"] = str(s["en"])
+			r["label"] = false
+			if str(e["action"]) == "" and e["at"] != Vector2.INF:
+				r["far"] = [far_text(from, e["at"], true), far_text(from, e["at"], false)]
+				r["d"] = from.distance_to(e["at"])
+				placed.append(r)
+			else:
+				r["far"] = ["", ""]
+				asks.append(r)
+		r["step"] = str(s["id"])
+	placed.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["d"]) < float(b["d"]))
+	return (placed + asks + labels).slice(0, STEPS_SHOWN)

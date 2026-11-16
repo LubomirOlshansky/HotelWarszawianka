@@ -9,11 +9,11 @@ should grow into. Design background: docs/design/quest-map.md and docs/design/ma
 | Layer | Looks like | Minimap | Full map | In the world | Owner and setter |
 | --- | --- | --- | --- | --- | --- |
 | Active target | glowing, pulsing pin in the quest's colour, edge arrow, metres, dotted route | yes (`active_pin`, `set_minimap_target`, `set_minimap_route`) | yes, with a dotted line from the car | `beacon.gd` ring and light column | each activity sets its own (missions, jobs, rides, rivals, tours, boat race...) |
-| Picked place | the same pin, for a place tapped in the ZADANIA list | yes | yes | arrow only | main.gd `quest_pin` (`_on_quest_picked`) |
+| Picked place | the same pin, for a place tapped in the map's one list (first hour step 4; it was the ZADANIA tabs) | yes | yes | arrow only | main.gd `quest_pin` (`_on_quest_picked`) |
 | Main line | gold star in a breathing glow | registry MAIN `main:star` (`MainLine.map_marks`); goal line `hud.set_main_goal` | yes, same mark | the guide's beacon | `main_line.gd`; today only for the first kebab (`FIRST_JOB_ONLY`) |
 | Questline starts | round badge, white "!", the line's own colour | pinned to the rim up to 1.5 km | twice a job icon, with the name | lit column and the waving friend within `BEACON_R` 320 m | registry STORY, owner "stories" (`StoryQuests.map_marks`: name, line, small in `extra`); quest focus `hud.set_quest_focus` |
 | Street jobs | small icon per stand, station or depot | yes (registry JOB) | yes, zoomed in | the kebab stands' rings | `jobs.gd` (owner "jobs"), `roundup_job.gd` (owner "roundup", its pins during a run), main.gd `_quest_entries` for the list |
-| Ladder and final | rival rows; the final's start is the main line's star | registry MAIN "rivals:final" (kept, not drawn) | `set_ladder` | the race beacon at Rondo Daszyńskiego | `ladder.gd`, `rivals.gd` |
+| Ladder and final | the list's RYWALE section: six chips (`ladder.gd` `chips`), the final's line, the night button; the final's start is the main line's star | registry MAIN "rivals:final" (kept, not drawn) | `set_rivals` | the race beacon at Rondo Daszyńskiego | `ladder.gd`, `rivals.gd` |
 | Garage | its diamond within reach | registry SERVICE "garage:workshop" | yes | | `garage.gd` |
 | Unfound places | "?" | registry PLACE (owner "notebook") | no (F 2026-11-08) | | `notebook.gd` |
 | Police and traps | chasers, known traps, edge rooster | yes | | the patrol cars | `police.gd` |

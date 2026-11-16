@@ -378,6 +378,20 @@ func _save() -> void:
 	n.respect = 0
 	ln.preset(6)
 	_expect(ln.next_rung() == Ladder.FINAL and n.respect == 850 and ln.is_open(Ladder.FINAL), "--ladder=6: respect %d" % n.respect)
+	# First hour step 4: the map list's chips (the old ladder: beaten, the next open, the rest locked;
+	# any order: all six open, no gate), and the final waiting for the night.
+	ln.preset(3)
+	var ch: Array = ln.chips().map(func(c: Dictionary) -> String: return str(c["state"]))
+	_expect(ch == ["won", "won", "won", "open", "locked", "locked"] and not ln.final_waits_night(), "chips (old ladder, 3 beaten): %s" % [ch])
+	ln.any_order = true
+	ch = ln.chips().map(func(c: Dictionary) -> String: return str(c["state"]))
+	_expect(ch == ["won", "won", "won", "open", "open", "open"] and str(ln.chips()[0]["short"]) == "HALINA" \
+			and str(ln.chips()[5]["pips"]) == "••••••", "chips (any order, 3 beaten): %s" % [ch])
+	ln.preset(6)
+	_expect(ln.final_waits_night(), "all six beaten: the final waits for the night")
+	ln.preset(7)
+	_expect(not ln.final_waits_night(), "the final won: no night offer")
+	ln.any_order = false
 	ln.preset(0)
 	_expect(n.ladder.is_empty() and ln.next_rung() == 0, "--ladder=0")
 	_expect(not FileAccess.file_exists(SCRATCH), "--nosave wrote a file")
