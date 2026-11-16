@@ -668,7 +668,7 @@ func setup(data: Dictionary, places: Array) -> void:
 	_shop_mesh = Props.frogs_shop()
 	_lezak_mesh = Props.lezak()
 	await LoadYield.tick("storefronts meshes")
-	_build_atlas()
+	await _build_atlas()
 	await LoadYield.tick("storefronts atlas")
 	_kebab_boards(at)
 	await LoadYield.tick("storefronts boards")
@@ -1012,7 +1012,7 @@ static func line_px(line: String) -> int:
 ## neon_signs.gd's atlas with the venues' lines as rows after its own (drawn with pixel_font.gd's
 ## glyphs, the accents in the row's top padding): the shop words' rows keep their place, so the
 ## baked signs read the same through the new texture.
-func _build_atlas() -> void:
+func _build_atlas() -> void:  # a coroutine: a frame between two lines' glows under the title (LoadYield)
 	var lines: Array[String] = []
 	for v in venues:
 		for l: String in v["lines"]:
@@ -1025,6 +1025,7 @@ func _build_atlas() -> void:
 	img.fill(Color(0, 0, 0, 1))
 	img.blit_rect(base, Rect2i(0, 0, base.get_width(), base.get_height()), Vector2i.ZERO)
 	for k in lines.size():
+		await LoadYield.tick("storefronts atlas")
 		var r := n0 + k
 		_row_of[lines[k]] = r
 		var tube := {}
