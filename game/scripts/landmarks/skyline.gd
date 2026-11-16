@@ -5020,9 +5020,10 @@ func _build_towarowa22(_site: Dictionary) -> void:
 	_t22_ground([0.0, 260.0, 0.0, 95.0], 0.15, Color("#cfc6b6"))
 	_t22_ground([88.0, 292.0, 100.0, 222.0], 0.15, Color("#cfc6b6"))
 	_t22_ground([122.0, 211.0, 222.0, 280.0], 0.15, Color("#cfc6b6"))
-	_t22_ground([8.0, 134.0, 212.0, 310.0], 0.15, Color("#cfc6b6"))
-	_t22_ground([97.0, 282.0, 95.0, 106.0], 0.16, T22_PAVING)
-	_t22_ground([102.0, 108.0, 136.0, 222.0], 0.18, T22_PAVING)
+	_t22_ground([8.0, 122.0, 222.0, 310.0], 0.15, Color("#cfc6b6"))
+	_t22_ground([8.0, 88.0, 212.0, 222.0], 0.15, Color("#cfc6b6"))
+	_t22_ground([97.0, 282.0, 95.0, 106.0], 0.18, T22_PAVING)
+	_t22_ground([102.0, 108.0, 136.0, 222.0], 0.21, T22_PAVING)
 	_no_roof = false
 	_t22_hall(g)
 	_t22_park(g)
