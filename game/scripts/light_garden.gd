@@ -9,9 +9,9 @@ extends "res://scripts/place.gd"
 ##    with a green calyx and a bunch of pearl beads (F's own photos, 2026-11-15, replaced the first
 ##    lilac guess); warm bulb strings run from arch to arch and big butterflies hang from them on
 ##    two cords (the news: "at least six light hangings over the alley along Świętokrzyska");
-##  - giant dandelions beside the walks (ten): a pale green stem, a warm-white clock of radial
+##  - giant dandelions beside the walks (thirteen, on the west side of the Świętokrzyska walk): a pale green stem, a warm-white clock of radial
 ##    spikes with a bulb on each tip, long toothed leaves, a dark round base painted with flowers;
-##  - four single bell flowers on their own stems, and butterflies on thin rods among them
+##  - four single bell flowers on their own stems (on the east side of that walk), and butterflies on thin rods among them
 ##    (eighteen butterflies in all, with the ones on the arches);
 ##  - the 50 m interactive alley from the fountain towards the Palace: a row of mirror-steel pylons
 ##    on round concrete feet down its west side, each with an arm over the walk carrying a
@@ -50,11 +50,15 @@ const SPAN_BUTTERFLY := [0, 1, 3, 4]
 ## A planter's height and radius at an arch's foot.
 const FOOT_H := 0.8
 const FOOT_R := 0.95
-## [kind, x, z, height]: d a dandelion, f a single bell flower.
+## [kind, x, z, height]: d a dandelion, f a single bell flower. Seen from the walk that runs from
+## Świętokrzyska to the photo frame (F's phone, 2026-11-16, and the real garden): the bell flowers
+## stand on its left (the east side, the lawn between the walk and the fountain's link path) and the
+## dandelions on its right (the west side, along the kiosk alley), never the other way round.
 const FIGURES := [
-	["d", -1412.0, 22.0, 4.2], ["d", -1404.5, 15.7, 3.6], ["f", -1392.0, 17.7, 4.6], ["d", -1379.9, 11.5, 3.9],
-	["d", -1376.5, 1.7, 4.3], ["f", -1363.4, 9.3, 4.5], ["d", -1362.2, -3.3, 3.6], ["d", -1349.1, -1.3, 4.2],
-	["f", -1340.7, -3.8, 4.4], ["d", -1331.5, -7.8, 3.5], ["f", -1311.8, -0.5, 4.3],
+	["d", -1412.0, 22.0, 4.2], ["d", -1404.5, 15.7, 3.6], ["d", -1392.0, 17.7, 4.0], ["d", -1379.9, 11.5, 3.9],
+	["d", -1376.5, 1.7, 4.3], ["d", -1363.4, 9.3, 4.1], ["d", -1362.2, -3.3, 3.6], ["d", -1349.1, -1.3, 4.2],
+	["d", -1340.7, -3.8, 3.8], ["d", -1331.5, -7.8, 3.5], ["f", -1296.3, 0.0, 4.3],
+	["f", -1291.9, -3.1, 4.5], ["f", -1296.9, -6.9, 4.4], ["f", -1289.4, 1.3, 4.6],
 	["d", -1281.6, 84.3, 4.0], ["d", -1268.6, 89.2, 3.7],
 ]
 ## Butterflies on rods: [x, z, height, yaw, colour index].
