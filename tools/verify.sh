@@ -202,6 +202,10 @@
 # shapes: the Pasatini), the crazy_taxi / crazy_courier / crazy_pasatini / KEBAB FM lines (no real
 # marque), 60 s of real traffic through the centre (crazy drivers in racer mode on the lanes, never over
 # the cap or two Pasatinis, faster than town cars), the cut-in horn and one line; centrum.json only (CI too).
+# PT-55 (2026-11-16): `trafficbodies` runs game/tools/check_traffic_bodies.gd: 90 s of real traffic round
+# the player's car standing at Książęca x Kruczkowskiego (17 cars within 40 m): the 12 collision bodies
+# are always the 12 nearest cars', each where its car is, and a car keeps its body while it stays among
+# them; centrum.json only (CI too).
 # The vintage-tram loop: `oldtram` runs game/tools/check_old_tram.gd: the old set's window (weekends
 # 09-19, Live Jun-Sep) and one run an hour, the follow count and its reset, the look's draw-call
 # budget (2 car meshes, no node added), a run on the real tracks finding E39 once; centrum.json only
@@ -1428,6 +1432,8 @@ for s in $want; do
 		tramfleet) check tramfleet '^check_tram_fleet:' --script res://tools/check_tram_fleet.gd ;;
 		# The railway (docs/design/railway.md T1): the trains on the rail tracks.
 		trains) check trains '^check_trains:' --script res://tools/check_trains.gd ;;
+		# PT-55: the collision bodies go to the cars nearest the player, and stay with them.
+		trafficbodies) check trafficbodies '^check_traffic_bodies:' --script res://tools/check_traffic_bodies.gd ;;
 		# The railway audit (2026-11-07): the light signals at the platforms' ends and the tunnel mouths.
 		railsignals) check railsignals '^check_rail_signals:' --script res://tools/check_rail_signals.gd ;;
 		# Packs: running clubs, cycling packs, coffee raves, the big guys with tiny dogs.
