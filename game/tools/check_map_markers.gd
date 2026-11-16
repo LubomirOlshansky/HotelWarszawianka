@@ -74,6 +74,7 @@ func _rules() -> void:
 		L.SERVICE: [true, false, true, true, false, true],
 		L.INFO: [true, true, true, true, true, true],
 		L.RIVAL: [false, false, false, false, false, false],
+		L.UNKNOWN: [false, false, false, true, false, true],  # 2026-11-16: the "?" of a First step not done: full map only
 	}
 	_expect(MapMarkers.RULES.size() == L.size(), "a rule row for every layer (%d of %d)" % [MapMarkers.RULES.size(), L.size()])
 	for layer: int in want:
@@ -150,6 +151,11 @@ func _registry() -> void:
 	m.put("garage:workshop", L.SERVICE, Vector2(9, 9), Color.CYAN, 0, "garage")
 	_expect(m.marks_of(L.JOB)["group"] == PackedStringArray(["kebab", "sloik"]), "groups kept in order (%s)" % m.marks_of(L.JOB)["group"])
 	_expect(m.owned("garage")[0]["group"] == "garage", "put's group")
+	m.put_all("unknown", [{"layer": L.UNKNOWN, "at": Vector2(4, 4), "group": "unknown"}])
+	_expect(m.count_group(["unknown"]) == 1 and m.count_group(["unknown"], FULL, FREE) == 1 and m.count_group(["unknown"], FULL, QUEST) == 0
+			and m.count_group(["unknown"], MINI, FREE) == 0 and m.count_group(["kebab", "sloik"]) == 2,
+			"count_group: all, or only what the rule table shows (the full map's filter counts)")
+	m.clear("unknown")
 	_expect(m.shown(L.RIVAL, MINI, FREE)["at"].is_empty() and is_same(m.shown(L.RIVAL, MINI, FREE), m.shown(L.STORY, FULL, QUEST)),
 			"a hidden layer reads one shared empty view (nothing made per frame)")
 	# The game's own builders.

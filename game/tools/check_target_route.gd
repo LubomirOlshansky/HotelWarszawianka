@@ -8,13 +8,17 @@ extends SceneTree
 ##   3. many frames on one goal: no second search (the line is only walked again);
 ##   4. a goal that moves: under REGOAL_M no search, over it only once REGOAL_S have passed;
 ##   5. another owner's route (a delivery's) wins, and the target's comes back when it goes;
-##   6. in the air, without a target, or with a goal far from every road: no route.
+##   6. in the air, without a target, or with a goal far from every road: no route;
+##   7. a tracked place (the full map's track, map_track.gd: the quest pin is the registry's TARGET mark
+##      main.gd `_put_target` puts): the route follows it in its colour, goes when it is untracked and
+##      comes to the next place tracked, with a search each.
 ## Usage: godot --headless --path game --script res://tools/check_target_route.gd
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const MapMarkers := preload("res://scripts/map_markers.gd")
 const TargetRoute := preload("res://scripts/target_route.gd")
 const RouteLine := preload("res://scripts/route_line.gd")
+const MapTrack := preload("res://scripts/map_track.gd")
 const Fakes := preload("res://tools/fakes.gd")
 
 var problems: Array[String] = []
@@ -114,6 +118,20 @@ func _run() -> void:
 	markers.set_target(Vector2(90000, 90000), Color.ORANGE)
 	_frames(tr, 300)
 	_expect(hud.route.is_empty() and tr.searches == n, "a goal far from every road: no route, no search")
+	# 7.
+	var pin := MapTrack.entry_of("garage", goal)
+	var n7 := tr.searches
+	markers.set_target(pin["at"], pin["colour"])  # the tracked pin, as `_put_target` puts it
+	_frames(tr, 2)
+	_expect(tr.searches == n7 + 1 and hud.route.size() >= 3 and hud.route_colour == pin["colour"] and hud.route[hud.route.size() - 1] == goal,
+			"a tracked place: the route to it in its colour (%d points, %d searches)" % [hud.route.size(), tr.searches - n7])
+	markers.set_target(Vector2.INF, Color.WHITE)  # untracked
+	_frames(tr, 2)
+	_expect(hud.route.is_empty(), "untracked: the route is gone")
+	var other := graph.point_at(int(car_hit[0]), float(car_hit[2]) + 60.0) + Vector2(6, 0)
+	markers.set_target(other, pin["colour"])
+	_frames(tr, 2)
+	_expect(tr.searches == n7 + 2 and hud.route.size() >= 2, "the next place tracked: a new search and its route (%d)" % (tr.searches - n7))
 	tr.free()
 	hud.queue_free()
 	map.queue_free()

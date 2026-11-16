@@ -31,7 +31,7 @@ extends RefCounted
 ## Pure state, no nodes: game/tools/check_map_markers.gd drives it (verify step `markers`).
 
 ## The layers, loudest first.
-enum Layer {TARGET, MAIN, STORY, JOB, PLACE, SERVICE, INFO, RIVAL}
+enum Layer {TARGET, MAIN, STORY, JOB, PLACE, SERVICE, INFO, RIVAL, UNKNOWN}
 ## The maps that read the registry.
 enum View {MINIMAP, FULL_MAP}
 ## What the player is doing now (the activity director's context comes later, TD-1).
@@ -48,7 +48,9 @@ const ACTIVE_TARGET := "target:active"
 ## flying hides the questline badges (the job places hide themselves in the air, jobs.gd); the "?"
 ## marks are off the full map always (F 2026-11-08); the active target, the main line (its star
 ## dims in focus, the drawing's business) and the police show everywhere; the rivals' layer is
-## kept for the one map list and drawn nowhere yet.
+## kept for the one map list and drawn nowhere yet. UNKNOWN (2026-11-16, map_track.gd): the "?" of a
+## First step not done whose place is not shown otherwise, group "unknown": on the full map only,
+## in free driving and in the air (a tap tells a line and offers TRACK), never on the minimap.
 const RULES := {
 	Layer.TARGET: [true, true, true, true, true, true],
 	Layer.MAIN: [true, true, true, true, true, true],
@@ -58,6 +60,7 @@ const RULES := {
 	Layer.SERVICE: [true, false, true, true, false, true],
 	Layer.INFO: [true, true, true, true, true, true],
 	Layer.RIVAL: [false, false, false, false, false, false],
+	Layer.UNKNOWN: [false, false, false, true, false, true],
 }
 
 ## id -> {"layer", "at", "colour", "shape", "group", "extra", "owner"}, in the order they were first put (the order
@@ -154,6 +157,17 @@ func where(id: String) -> Vector2:
 
 func has(id: String) -> bool:
 	return _marks.has(id)
+
+
+## How many marks (any owner) are in one of `groups`: all of them, or (`view` given) only those the
+## rule table shows in `context` (the full map's filter counts, full_map.gd).
+func count_group(groups: Array, view := -1, context := 0) -> int:
+	var n := 0
+	for id: String in _marks:
+		var m: Dictionary = _marks[id]
+		if (m["group"] as String) in groups and (view < 0 or shows(int(m["layer"]), view, context)):
+			n += 1
+	return n
 
 
 ## `owner`'s marks in order, each {"id", "layer", "at", "colour", "shape", "group", "extra"}.

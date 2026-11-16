@@ -1481,6 +1481,9 @@ for s in $want; do
 		first10) check first10 '^first10:' --script res://tools/check_first10.gd ;;
 		mainline) check mainline '^main_line:' --script res://tools/check_main_line.gd ;;
 		chatter) check chatter '^check_chatter:' --script res://tools/check_chatter.gd ;;
+		# 2026-11-16 (F's map ask): the full map's track (the save's key, resolving it again), the legend's filters
+		# and the "?" marks' rules (map_track.gd), with the registry's UNKNOWN layer (headless, ~1 s).
+		maptrack) check maptrack '^check_map_track:' --script res://tools/check_map_track.gd ;;
 		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		targetroute) check targetroute '^check_target_route:' --script res://tools/check_target_route.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
