@@ -335,7 +335,7 @@ const BUDGET := {
 	"zygmunt": 320,
 	# Towarowa 22 built as finished (2026-11-03): seven towers and blocks, the hall's steel frame,
 	# the pavilion, the park, the drone port and the gilded crane.
-	"towarowa22": 5400,  # 2026-11-16 the paving now covers the whole plot (4 base rects, no brown earth), 5205 tris
+	"towarowa22": 5600,  # 2026-11-16 the paving now covers the whole plot (6 base rects, no brown earth), 5329 tris
 	# The Warsaw HUB's round-ended hotel tower (the photo report, 2026-11-03).
 	"crowne": 380,
 	# Wola's 19. Dzielnica (F's photos, 2026-11-07): the drug works' building site (four concrete

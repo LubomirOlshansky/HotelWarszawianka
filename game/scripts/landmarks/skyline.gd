@@ -5022,6 +5022,8 @@ func _build_towarowa22(_site: Dictionary) -> void:
 	_t22_ground([122.0, 211.0, 222.0, 280.0], 0.15, Color("#cfc6b6"))
 	_t22_ground([8.0, 122.0, 222.0, 310.0], 0.15, Color("#cfc6b6"))
 	_t22_ground([8.0, 88.0, 212.0, 222.0], 0.15, Color("#cfc6b6"))
+	_t22_ground([122.0, 215.0, 280.0, 314.0], 0.15, Color("#cfc6b6"))
+	_t22_ground([0.0, 8.0, 95.0, 312.0], 0.15, Color("#cfc6b6"))
 	_t22_ground([97.0, 282.0, 95.0, 106.0], 0.18, T22_PAVING)
 	_t22_ground([102.0, 108.0, 136.0, 222.0], 0.21, T22_PAVING)
 	_no_roof = false
@@ -5128,7 +5130,7 @@ func _t22_hall(g: float) -> void:
 	_mode = M_STONE
 	_no_roof = true
 	# The garden under the frame: lawn and a ring of trees.
-	_t22_ground([r[0] + 0.5, r[1] - 0.5, r[2] + 0.5, r[3] - 0.5], 0.19, Color("#6d8f4c"))
+	_t22_ground([r[0] + 0.5, r[1] - 0.5, r[2] + 0.5, r[3] - 0.5], 0.26, Color("#6d8f4c"))
 	for iu in 6:
 		for iv in 3:
 			var p := _w(lerpf(r[0] + 7.0, r[1] - 7.0, iu / 5.0), lerpf(r[2] + 9.0, r[3] - 9.0, iv / 2.0))
@@ -5248,7 +5250,7 @@ func _t22_park(g: float) -> void:
 	var r := T22_PARK
 	_no_roof = true
 	_mode = M_STONE
-	_t22_ground(r, 0.19, Color("#79a052"))
+	_t22_ground(r, 0.26, Color("#79a052"))
 	var loop := PackedVector2Array()
 	var loop_in := PackedVector2Array()
 	var c := _w((r[0] + r[1]) * 0.5, (r[2] + r[3]) * 0.5)
@@ -5261,11 +5263,11 @@ func _t22_park(g: float) -> void:
 	for k in 24:
 		var k1 := (k + 1) % 24
 		var mid := (loop[k] + loop_in[23 - k]) * 0.5
-		_cap(PackedVector2Array([loop[k], loop[k1], loop_in[23 - k1], loop_in[23 - k]]), map.terrain_height(mid.x, mid.y) + 0.22, Color("#d8c9a8"))
+		_cap(PackedVector2Array([loop[k], loop[k1], loop_in[23 - k1], loop_in[23 - k]]), map.terrain_height(mid.x, mid.y) + 0.29, Color("#d8c9a8"))
 	var play := c - _a * 12.0
-	_cap(_circle(play, 7.0, 16), map.terrain_height(play.x, play.y) + 0.22, Color("#d0603f"))
+	_cap(_circle(play, 7.0, 16), map.terrain_height(play.x, play.y) + 0.29, Color("#d0603f"))
 	var pool := c + _a * 10.0 + _b * 3.0
-	_cap(_circle(pool, 5.0, 16), map.terrain_height(pool.x, pool.y) + 0.22, Color("#4f8fb8"))
+	_cap(_circle(pool, 5.0, 16), map.terrain_height(pool.x, pool.y) + 0.29, Color("#4f8fb8"))
 	for k in 14:
 		var ang := TAU * k / 14.0 + 0.2
 		var p := c + _a * cos(ang) * 36.0 + _b * sin(ang) * 22.0

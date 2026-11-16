@@ -18,9 +18,11 @@ const Props := preload("res://scripts/props.gd")
 const FRAME_O := Vector2(-2635.5, 470.0)
 const FRAME_A := Vector2(0.4719, 0.8815)
 const FRAME_B := Vector2(0.8815, -0.4719)
-## The finished ground's height over the terrain (the lawn's 0.19 and the paving's 0.15-0.21 pass
+## The finished ground's height over the terrain (the lawn's 0.26 and the paving's 0.15-0.21 pass
 ## under it): pieces stand on it, not in it.
-const LIFT := 0.2
+const LIFT := 0.27
+## People are drawn a quarter larger than life: at the phone's isometric scale a true-size person is a few pixels.
+const PERSON := 1.3
 ## Which way a piece's front faces, degrees from +u towards +v.
 const FACES := {"+u": 0.0, "-u": 180.0, "+v": 90.0, "-v": -90.0}
 const SHIRTS := ["#c8282a", "#2a62d1", "#f2c12e", "#f4f2ec", "#3a7d44", "#7a52b8", "#e8762a", "#2b2730",
@@ -77,6 +79,16 @@ const ITEMS := [
 	["planter", 195.0, 160.0, "+u", "#c8282a"], ["planter", 195.0, 186.0, "+u", "#f4f2ec"],
 	["stand", 150.0, 173.0, "+u", 1], ["stand", 151.1, 174.0, "-u", 9], ["stand", 177.0, 176.0, "+v", 4],
 	["stand", 140.0, 190.0, "-v", 10], ["stand", 188.0, 150.0, "+v", 7],
+	# More of the walking street and the plazas: groups outside the cafés, people crossing.
+	["stand", 117.0, 99.0, "+u", 4], ["stand", 118.2, 100.2, "-u", 7], ["stand", 125.0, 101.5, "+u", 1],
+	["stand", 136.0, 98.8, "-u", 9], ["stand", 156.0, 100.0, "+u", 3], ["stand", 157.3, 101.1, "+v", 11],
+	["stand", 172.0, 99.0, "-u", 0], ["stand", 182.0, 101.0, "+u", 6], ["stand", 207.0, 100.5, "+u", 2],
+	["stand", 208.4, 99.5, "-u", 5], ["stand", 216.0, 101.2, "+v", 8], ["stand", 232.0, 100.0, "-u", 10],
+	["stand", 238.0, 99.2, "+u", 3], ["stand", 256.0, 100.8, "-u", 1], ["stand", 274.0, 100.0, "+u", 7],
+	["stand", 60.0, 30.0, "+u", 4], ["stand", 61.2, 31.0, "-u", 9], ["stand", 90.0, 70.0, "+v", 2],
+	["stand", 134.0, 70.0, "-u", 6], ["stand", 160.0, 60.0, "+u", 0], ["stand", 190.0, 72.0, "-v", 11],
+	["stand", 215.0, 98.0, "+u", 5], ["stand", 120.0, 214.0, "+u", 10], ["stand", 140.0, 214.5, "+u", 1],
+	["stand", 160.0, 215.0, "-u", 8], ["stand", 188.0, 214.0, "+u", 3],
 	# The pavilion's terrace on its south side.
 	["cafe", 118.0, 220.8, "-v", 1], ["cafe", 121.6, 220.8, "-v", 2], ["cafe", 125.2, 220.8, "-v", 5],
 	["cafe", 150.0, 220.8, "-v", 0], ["cafe", 153.6, 220.8, "-v", 4], ["cafe", 157.2, 220.8, "-v", 3],
@@ -116,10 +128,10 @@ func build() -> void:
 				var k: int = item[4]
 				Props.add_cafe_set(st, xf, Color(CANOPIES[k % CANOPIES.size()]))
 				# Two chairs at local z = -0.6 and +0.6: people in two of three sets.
-				if k % 3 != 2:
-					_seated(st, xf, Vector3(0.0, 0.0, -0.6 if k % 2 == 0 else 0.6), k, false)
-				if k % 3 == 0:
-					_seated(st, xf, Vector3(0.0, 0.0, 0.6 if k % 2 == 0 else -0.6), k + 5, true)
+				if k % 4 != 3:
+					_seated(st, xf, Vector3(0.0, 0.0, -0.6), k, false)
+				if k % 4 != 1:
+					_seated(st, xf, Vector3(0.0, 0.0, 0.6), k + 5, true)
 			"bench":
 				Props.add_long_bench(st, xf, float(item[4]))
 				if count % 2 == 0:
@@ -127,7 +139,7 @@ func build() -> void:
 					if float(item[4]) > 2.8:
 						_seated(st, xf, Vector3(0.45, 0.0, -0.05), count + 3, true)
 			"planter":
-				Props.add_planter(st, xf, Color(item[4]))
+				_bed(st, xf, Color(item[4]))
 			"heater":
 				Props.add_patio_heater(st, xf)
 			"lamp":
@@ -141,10 +153,20 @@ func build() -> void:
 	pour(st.commit(), true, "Towarowa22Life")
 
 
+## A raised bed (a stone kerb, a clipped hedge and a row of flowers, 3 m long): the quarter's planters.
+func _bed(st: SurfaceTool, xf: Transform3D, flower: Color) -> void:
+	var stone := Color("#bdb8ad")
+	Props._xbox(st, xf, Vector3(0, 0.25, 0), Vector3(3.0, 0.5, 0.8), stone)
+	Props._xbox(st, xf, Vector3(0, 0.62, 0), Vector3(2.7, 0.34, 0.6), Color("#4f7a3a"))
+	for k in 5:
+		Props._xbox(st, xf, Vector3((k - 2) * 0.55, 0.9, 0.0), Vector3(0.3, 0.26, 0.4), flower)
+	count += 0
+
+
 ## One person (props.gd's, 84 triangles) at `xf`, shirt `k`, scaled `h` tall (1.0 standing).
 func _person(st: SurfaceTool, xf: Transform3D, k: int, h: float) -> void:
 	var m := Props.person(Color(SHIRTS[k % SHIRTS.size()]), Color(TROUSERS[k % TROUSERS.size()]))
-	var b := xf.basis * Basis.from_scale(Vector3(1.0, h, 1.0))
+	var b := xf.basis * Basis.from_scale(Vector3(PERSON, PERSON * h, PERSON))
 	st.append_from(m, 0, Transform3D(b, xf.origin))
 
 

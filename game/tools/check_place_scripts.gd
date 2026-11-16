@@ -41,7 +41,7 @@ const KNOWN := {
 	"ratusz_hub": {"zfight": 271, "degenerate": 8, "float": 382},
 	"park_details": {"zfight": 2357, "float": 3602},
 	"tamka": {"zfight": 364, "float": 20},
-	"towarowa22_life": {"zfight": 1024, "float": 641},  # 2026-11-16: props.gd's cafe sets, benches and people (shared pieces: boxes that meet and stand on their feet) on the flat stub
+	"towarowa22_life": {"zfight": 538, "float": 1480},  # 2026-11-16: props.gd's cafe sets, benches and people (shared pieces: boxes that meet and stand on their feet) on the flat stub
 	"light_garden": {"float": 3},  # the dandelion clocks' bulb tips on their spikes (2026-11-15; 7 before the flower rebuild)
 	"trasa_wz": {"zfight": 249, "float": 128},  # 2026-11-15: the walls, rails and stairs keep set heights (walls and steps are sector-only data) and the kiosk front hangs on the map's kiosk, so on the flat stub the pilaster feet meet and the rails and the front stand off the ground
 }
