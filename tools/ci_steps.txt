@@ -89,6 +89,7 @@ kinotour             quick
 ladder               quick
 landmarks            landmarks
 laneassist           quick
+lanechanges          quick
 lanedrive            smoke     slow
 lanedrive-grounded   local     slow
 language             smoke

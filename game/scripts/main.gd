@@ -1716,8 +1716,14 @@ func _build_world() -> void:
 	if meet != null:
 		meet.place_car = _place_car
 	await LoadYield.tick("meet")
-	_build_boat_race(world)
-	await LoadYield.tick("_build_boat_race")
+	# Szymek's call, the start pontoon and the race down the river (boat_race.gd wires itself); none
+	# with --boat-race=0. A stop at the pontoon hands the race the controls and leaving hands them back:
+	# main.gd's own hooks, connected after the join.
+	boat_race = _join(BoatRace.new(), world) as BoatRace
+	if boat_race != null:
+		boat_race.boarded.connect(_on_boat_boarded)
+		boat_race.left_boat.connect(_on_boat_left)
+	await LoadYield.tick("boat_race")
 	_build_tours(world)
 	await LoadYield.tick("_build_tours")
 	_build_shisha(data, world)
@@ -3054,54 +3060,6 @@ func _build_crash_scenes() -> void:
 
 # --- the boat race ---------------------------------------------------------------------------
 
-## Szymek's call, the start pontoon and the race down the river (boat_race.gd). None with --boat-race=0.
-func _build_boat_race(world: Node3D) -> void:
-	if flags.boat_flag == "0":
-		return
-	boat_race = BoatRace.new()
-	boat_race.name = "BoatRace"
-	boat_race.hud = hud
-	boat_race.dialogue = dialogue
-	boat_race.wallet = wallet
-	boat_race.map = map
-	boat_race.car = car
-	boat_race.log_on = flags.boat_log
-	boat_race.autopilot = flags.autopilot or flags.boat_flag == "auto"
-	boat_race.force_hours = flags.boat_flag != ""
-	boat_race.vehicle = func() -> Array:
-		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true]
-		return [car.global_position, car.vel.length() * 3.6, false]
-	boat_race.seen = func(p: Vector3) -> bool: return cam.is_position_in_frustum(p)
-	boat_race.clock = func() -> float: return life.hour_now() if life != null else 12.0
-	world.add_child(boat_race)
-	boat_race.setup(world)
-	activities.add(boat_race)  # the director says when Szymek may ring (nothing else on: world_free)
-	boat_race.boarded.connect(_on_boat_boarded)
-	boat_race.left_boat.connect(_on_boat_left)
-	if jobs != null:
-		# The free-ride boat's mark on the minimap and the full map, with the job places.
-		jobs.boat_spot = BoatRace.fleet_spot(1)
-		jobs._show_places(jobs._places_shown, true)
-	if flags.boat_flag in ["race", "auto"]:
-		get_tree().create_timer(1.0).timeout.connect(func() -> void:
-			var at := BoatRace.CAR_SPOT
-			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
-			car.reset_physics_interpolation()
-			boat_race.board())
-	elif flags.boat_flag.begins_with("free") or flags.boat_flag == "marina":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void:
-			var at := BoatRace.CAR_SPOT
-			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
-			car.reset_physics_interpolation()
-			if flags.boat_flag.begins_with("free"):
-				boat_race.free_ride(int(flags.boat_flag.trim_prefix("free")) if flags.boat_flag.length() > 4 else 1)
-			else:
-				boat_race._marina_card())
-	elif flags.boat_flag == "call":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: boat_race.ring())
-
-
 # --- the activity kit: the tours ---------------------------------------------------------------
 
 ## The two guided tours (tour.gd, the activity kit's first activity): Claire's drive round the
@@ -3707,6 +3665,7 @@ func _build_ctx() -> GameCtx:
 	_ctx.city_sounds = city_sounds
 	_ctx.graph = graph
 	_ctx.traffic = traffic
+	_ctx.jobs = jobs
 	_ctx.police = police
 	_ctx.car = car
 	_ctx.heli = heli
@@ -3717,6 +3676,8 @@ func _build_ctx() -> GameCtx:
 			return [heli.global_position, heli.speed() * 3.6, true, 0.0]
 		return [car.global_position, car.vel.length() * 3.6, false, float(car.forward_speed)]
 	_ctx.hour = func() -> float: return float(tod.local_clock()["hour"])
+	_ctx.life_hour = func() -> float: return life.hour_now() if life != null else 12.0
+	_ctx.seen = func(p: Vector3) -> bool: return cam.is_position_in_frustum(p)
 	_ctx.take_off = func() -> void: _take_off(Heli.CRUISE)
 	_ctx.focus = func() -> Vector3: return cam_focus
 	_ctx.focus_at = func(p: Vector3) -> void: cam_focus = p
