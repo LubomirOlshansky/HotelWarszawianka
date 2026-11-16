@@ -109,7 +109,7 @@ class World:
                 cum.append(cum[-1] + math.hypot(b[0] - a[0], b[1] - a[1]))
             info = {"p": p, "cum": cum, "cls": class_of(e["k"]), "n": e["n"], "lw": e["lw"], "o": e["o"],
                     "left": e["o"] - e["lw"] * 0.5, "right": e["o"] + e["lw"] * (e["n"] - 1) + e["lw"] * 0.5,
-                    "s0": e["s0"], "s1": e["s1"], "k": e["k"], "i": len(self.edges)}
+                    "s0": e.get("s0o", e["s0"]), "s1": e.get("s1o", e["s1"]), "k": e["k"], "i": len(self.edges)}
             self.edges.append(info)
             for k, (a, b) in enumerate(zip(p, p[1:])):
                 self.edge_grid.add_seg(a, b, (info, k), SNAP_MAX + 6.0)

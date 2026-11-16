@@ -1341,7 +1341,11 @@ func _try_spawn(anywhere: bool) -> bool:
 		loud = true
 	# Crazy drivers: now and then a taxi, a van, or (once at a time) a car's spawn drives wild.
 	var crazy := 0
-	if not loud and crazy_count < crazy_target and cls <= 2 and kind != Kind.BUS and _crazy_rng.randf() < CRAZY_CHANCE:
+	# Not on a street outside the town's one connected net (`node_scc` 0: a cul-de-sac like Widok or
+	# Kubusia Puchatka): no fare is in reach from there, and a crazy driver lives on its fares
+	# (crazy_route.gd); the draw is made first, so the dice stay the same for every other spawn.
+	if not loud and crazy_count < crazy_target and cls <= 2 and kind != Kind.BUS and _crazy_rng.randf() < CRAZY_CHANCE \
+			and graph.node_scc[graph.e_b[e]] != 0:
 		if pasat_count == 0 and cls <= 1 and _crazy_rng.randf() < CRAZY_PASAT_SHARE and not _free_slots[Kind.TAXI].is_empty():
 			kind = Kind.TAXI
 			shapes = Models.TRAFFIC[kind]
