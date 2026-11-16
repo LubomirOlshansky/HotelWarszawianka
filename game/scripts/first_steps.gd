@@ -5,7 +5,7 @@ extends RefCounted
 ## facts five times a second and calls `tick_for`), and pays a small reward; the third tick is a
 ## small party (a car paint, and the friends' calls may start: "the city has noticed you"); all
 ## seven give a card, a second paint and RESPECT_ALL respect. The list hangs on one promise
-## (PROMISE), shown on the guide's choice card and in the list's header.
+## (`words("promise")`), shown on the guide's choice card and in the list's header.
 ##
 ## The ticks live in the save's [intro] section (wallet.gd `intro`) as "fs_<id>" -> the second of
 ## the session it was ticked (1 or more), so a tester's "copy my progress" (later) can say what came
@@ -14,19 +14,11 @@ extends RefCounted
 
 ## The steps, in the order the list shows them.
 const IDS := ["kebab", "ride", "race", "rescue", "heli", "police", "garage"]
-## Each step's line in the list, [Polish, English] (at most 40 characters).
-const NAMES := {
-	"kebab": ["Dowieź kebab", "Deliver a kebab"],
-	"ride": ["Podwieź kogoś (Podwózka)", "Give a lift (Podwózka)"],
-	"race": ["Ścigaj się z rywalem", "Race a rival"],
-	"rescue": ["Odbierz wezwanie ratunkowe", "Answer a rescue call"],
-	"heli": ["Polataj helikopterem", "Fly the helicopter"],
-	"police": ["Spotkaj policję: stań albo uciekaj", "Meet the police: stop or get away"],
-	"garage": ["Zajrzyj do warsztatu Mirka", "Visit Mirek's garage"],
-}
+## The list's words, the promise and the cards' words live in dialogue.json's group "first_steps"
+## (TD-19: words go to the dialogue owner), one line per key ({"only": key}): `words(key)`.
+const DIALOGUE_PATH := "res://data/dialogue.json"
+const GROUP := "first_steps"
 const TITLE := ["PIERWSZE KROKI", "First steps"]
-## The one promise (the critique's point 2, F's yes 2026-11-15 21:02 UTC): what all this is for.
-const PROMISE := ["Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty.", "Six rivals. Beat them all and win Trzy mosty."]
 const KEY := "fs_"
 ## Every tick pays this much.
 const STEP_ZL := 50
@@ -36,12 +28,30 @@ const NOTICED_PAINT := "green"
 ## All seven: a card, a second paint and this much respect.
 const ALL_PAINT := "yellow"
 const RESPECT_ALL := 100
-const NOTICED_WORDS := ["Miasto cię zauważyło: znajomi zaczną dzwonić. Nowy lakier u Mirka.",
-		"The city has noticed you: friends will call. New paint at Mirek's."]
-const ALL_TITLE := ["PIERWSZE KROKI ZALICZONE", "First steps done"]
-const ALL_BODY := ["Znasz już całe miasto. Lakier „Żółty jak tramwaj” czeka u Mirka, +100 respektu. Teraz szóstka rywali.",
-		"You know the whole city now. Tram yellow paint waits at Mirek's, +100 respect. Now the six rivals."]
 const ALL_BUTTON := "JEDZIEMY|LET'S GO"
+
+## dialogue.json's "first_steps" lines by key, read once.
+static var _words: Dictionary = {}
+
+
+## [Polish, English] for one key of dialogue.json's "first_steps" group: "step_<id>" (a step's
+## line in the list, at most 40 characters), "promise" (the one promise, the critique's point 2,
+## F's yes 2026-11-15 21:02 UTC), "choice_body" (the guide's choice card, which carries the
+## promise), "noticed" (the third tick's toast), "all_title" and "all_body" (the card for all
+## seven). [key, key] when the line is missing.
+static func words(key: String) -> Array:
+	if _words.is_empty():
+		var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(DIALOGUE_PATH)) if FileAccess.file_exists(DIALOGUE_PATH) else null
+		var lines: Variant = d.get(GROUP, []) if d is Dictionary else []
+		for l: Variant in lines:
+			if l is Array and l.size() >= 3 and l[2] is Dictionary and l[2].has("only"):
+				_words[str(l[2]["only"])] = [str(l[0]), str(l[1])]
+	return _words.get(key, [key, key])
+
+
+## A step's line in the list, [Polish, English].
+static func name_of(id: String) -> Array:
+	return words("step_" + id)
 
 
 ## The steps ticked in the save's [intro] section, in the list's order.
@@ -96,7 +106,7 @@ static func reward(n: int) -> Dictionary:
 
 ## The tick's toast: "✓ Pierwsze kroki 2/7: Podwózka" with the reward, [Polish, English].
 static func tick_words(id: String, n: int) -> Array:
-	var name: Array = NAMES.get(id, [id, id])
+	var name: Array = name_of(id)
 	return ["✓ Pierwsze kroki %d/%d: %s  +%d zł" % [n, IDS.size(), name[0], STEP_ZL],
 			"✓ First steps %d/%d: %s  +%d zł" % [n, IDS.size(), name[1], STEP_ZL]]
 
@@ -112,7 +122,7 @@ static func header(intro: Dictionary) -> Array:
 static func rows(intro: Dictionary) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for id: String in IDS:
-		var name: Array = NAMES[id]
+		var name: Array = name_of(id)
 		out.append({"id": id, "pl": name[0], "en": name[1], "done": intro.has(KEY + id),
 				"at": int(intro.get(KEY + id, 0))})
 	return out

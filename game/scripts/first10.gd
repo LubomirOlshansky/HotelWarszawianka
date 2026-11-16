@@ -129,8 +129,6 @@ const HINT_COLOUR := Color("#ffd23f")
 ## The choice card (step 3): its words and buttons ("POLISH|ENGLISH", hud.gd), what each button
 ## introduces, in order; the last is JUST DRIVE.
 const CHOICE_TITLE := ["CO TERAZ?", "What now?"]
-const CHOICE_BODY := ["Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty. Na start wybierz coś albo po prostu jedź.",
-		"Six rivals. Beat them all and win Trzy mosty. Pick a start, or just drive."]
 const CHOICE_BUTTONS := ["WYŚCIG|RACE", "KURSY|RIDES", "LOT|FLY", "JADĘ|JUST DRIVE"]
 const CHOICE_PICKS := [["race"], ["ride"], ["heli", "tape"], []]
 const CHOICE_COLOUR := Color("#ffd23f")
@@ -688,7 +686,8 @@ func _tick_step(id: String, quiet: bool) -> void:
 		var w := FirstSteps.tick_words(id, n)
 		hud.toast(w[0], w[1])
 		if bool(r["noticed"]):
-			hud.toast(FirstSteps.NOTICED_WORDS[0], FirstSteps.NOTICED_WORDS[1])
+			var noticed: Array = FirstSteps.words("noticed")
+			hud.toast(noticed[0], noticed[1])
 	if bool(r["card"]):
 		_all_due = true
 	step_ticked.emit(id, n, false)
@@ -819,8 +818,9 @@ func _end_guide() -> void:
 func _show_choice() -> void:
 	_choice_up = true
 	_choice_t = t
-	hud.show_card(CHOICE_TITLE[0], CHOICE_BODY[0], PackedStringArray(CHOICE_BUTTONS), CHOICE_COLOUR, false,
-			CHOICE_TITLE[1], CHOICE_BODY[1])
+	var body: Array = FirstSteps.words("choice_body")
+	hud.show_card(CHOICE_TITLE[0], body[0], PackedStringArray(CHOICE_BUTTONS), CHOICE_COLOUR, false,
+			CHOICE_TITLE[1], body[1])
 	hud.own_card(self)
 
 
@@ -858,8 +858,10 @@ func _show_all_card() -> void:
 		return
 	_all_due = false
 	_all_up = true
-	hud.show_card(FirstSteps.ALL_TITLE[0], FirstSteps.ALL_BODY[0], PackedStringArray([FirstSteps.ALL_BUTTON]),
-			CHOICE_COLOUR, false, FirstSteps.ALL_TITLE[1], FirstSteps.ALL_BODY[1])
+	var title: Array = FirstSteps.words("all_title")
+	var body: Array = FirstSteps.words("all_body")
+	hud.show_card(title[0], body[0], PackedStringArray([FirstSteps.ALL_BUTTON]),
+			CHOICE_COLOUR, false, title[1], body[1])
 	hud.own_card(self)
 	print("first10: the First steps card (7/7)")
 

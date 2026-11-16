@@ -813,21 +813,24 @@ func _words() -> void:
 		_expect(l.size() == 2 and str(l[0]) != "" and str(l[1]) != "" and str(l[0]) != str(l[1]), "Polish and English: %s" % [l])
 		for x in l:
 			_expect(str(x).length() <= 70, "at most 70 characters: %s (%d)" % [x, str(x).length()])
-	for id: String in FirstSteps.NAMES:
-		var n: Array = FirstSteps.NAMES[id]
+	for id: String in FirstSteps.IDS:
+		var n: Array = FirstSteps.name_of(id)
 		_expect(n.size() == 2 and str(n[0]) != str(n[1]) and str(n[0]).length() <= 40 and str(n[1]).length() <= 40,
 				"a First step's line in Polish and English, at most 40 characters: %s" % [n])
 		var tw := FirstSteps.tick_words(id, 7)
 		_expect(str(tw[0]).length() <= 70 and str(tw[1]).length() <= 70, "the tick's toast at most 70 characters: %s" % [tw])
-	for l: Array in [First10.CHOICE_TITLE, FirstSteps.TITLE, FirstSteps.PROMISE, FirstSteps.NOTICED_WORDS, FirstSteps.ALL_TITLE]:
+	for l: Array in [First10.CHOICE_TITLE, FirstSteps.TITLE, FirstSteps.words("promise"), FirstSteps.words("noticed"),
+			FirstSteps.words("all_title")]:
 		_expect(l.size() == 2 and str(l[0]) != str(l[1]), "Polish and English: %s" % [l])
 		for x in l:
 			_expect(str(x).length() <= 70, "at most 70 characters: %s (%d)" % [x, str(x).length()])
-	for l: Array in [First10.CHOICE_BODY, FirstSteps.ALL_BODY]:
+	for l: Array in [FirstSteps.words("choice_body"), FirstSteps.words("all_body")]:
 		_expect(l.size() == 2 and str(l[0]) != str(l[1]), "a card's body in Polish and English: %s" % [l])
 		for x in l:
 			_expect(str(x).length() <= 110, "a card's body at most 110 characters: %s (%d)" % [x, str(x).length()])
-	_expect(FirstSteps.PROMISE[1] in First10.CHOICE_BODY[1] and FirstSteps.PROMISE[0] in First10.CHOICE_BODY[0], "the choice card carries the promise")
+	var promise: Array = FirstSteps.words("promise")
+	var choice_body: Array = FirstSteps.words("choice_body")
+	_expect(promise[1] in choice_body[1] and promise[0] in choice_body[0], "the choice card carries the promise")
 	for b: String in First10.CHOICE_BUTTONS + [FirstSteps.ALL_BUTTON]:
 		_expect(b.get_slice_count("|") == 2 and b.get_slice("|", 0).length() <= 12, "a button's two words, short: %s" % b)
 	for l: Array in [First10.END_TITLE, First10.END_BODY, First10.END_FREE]:
