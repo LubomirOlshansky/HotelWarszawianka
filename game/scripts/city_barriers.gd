@@ -111,10 +111,12 @@ const POCKET_HEDGES := [
 ## 200-345 m from the stadium's centre; the real one is a tall black vertical-bar steel fence, so those
 ## lines are drawn in the palette's stadium_fence type. The ball-stop nets, the railway's fence
 ## (`hz`) and anything with a mapped height keep their own look. praga.gd puts the numbered gates
-## where footpaths and roads cross it (`stadium_fence_line` is the one rule both use).
+## where footpaths and roads cross it (`stadium_fence_line` is the one rule both use). W3 of the walls
+## look: the bake gives those 19 lines the type stadium_fence by id (tools/object_types.py fix_types,
+## game/data/road_objects.json `types`), so the rule looks for that type too.
 const STADIUM_CENTRE := Vector2(1480.5, -605.1)
 const STADIUM_FENCE_R := Vector2(195.0, 345.0)
-const STADIUM_FENCE_TYPES := ["mesh_panel", "chain_link", "fence_plain"]
+const STADIUM_FENCE_TYPES := ["mesh_panel", "chain_link", "fence_plain", "stadium_fence"]
 ## The gates: where a footpath or a road under 7 m wide meets that fence, one per 15 m of fence:
 ## two dark stone piers, two black leaves with a solid dark panel on each, and a red board on two
 ## poles with a pale stripe for the writing ("Do zobaczenia! See you! Brama N Gate") and a white

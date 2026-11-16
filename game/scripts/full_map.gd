@@ -103,8 +103,6 @@ var car_yaw := 0.0
 ## A crash scene (hud.set_scene_mark), Vector2.INF for none.
 var scene_mark := Vector2.INF
 var found := PackedVector2Array()
-var target := Vector2.INF
-var target_colour := Color.WHITE
 ## The main line (main_line.gd): its marker (the registry's MapMarkers.MAIN_STAR; none: no star)
 ## and goal line (hud.gd `set_main_goal`). On the map a big gold star in a pulsing ring (pinned to the screen's edge when off it); the side quests
 ## keep their colours: the active one a ringed dot, the places to start one (kebab stands, the
@@ -1198,13 +1196,15 @@ func _paint() -> void:
 		if view.has_point(g):
 			hud._tri_diamond(g, 6.5 * pt, (service["colour"] as PackedColorArray)[i])
 	# Loop 3h slice 3's diamond at the final's start is the main line's star now.
-	if target != Vector2.INF:
+	var targets := markers.shown(MapMarkers.Layer.TARGET, MapMarkers.View.FULL_MAP, ctx)
+	for i in (targets["at"] as PackedVector2Array).size():
 		# F 2026-11-08: the quest taken, strongly: a dotted line from the car, the glowing pin; off
-		# the screen it waits at the edge on the way to it.
-		var tp := to_screen(target)
+		# the screen it waits at the edge on the way to it (the registry's TARGET mark, TD-13).
+		var tp := to_screen((targets["at"] as PackedVector2Array)[i])
+		var tc := Access.tint((targets["colour"] as PackedColorArray)[i])  # colour-safe (access.gd)
 		var inner_t := Rect2(Vector2.ZERO, _view()).grow(-24.0 * pt)
-		_dotted(to_screen(car), tp.clamp(inner_t.position, inner_t.end), target_colour)
-		hud.active_pin(tp.clamp(inner_t.position, inner_t.end), 2.0 if inner_t.has_point(tp) else 1.4, target_colour)
+		_dotted(to_screen(car), tp.clamp(inner_t.position, inner_t.end), tc)
+		hud.active_pin(tp.clamp(inner_t.position, inner_t.end), 2.0 if inner_t.has_point(tp) else 1.4, tc)
 	if quest_pick.get("at", Vector2.INF) != Vector2.INF:
 		hud.side_pin(to_screen(quest_pick["at"]), 1.9, Access.tint(quest_pick["colour"]))  # G12: the quest pin
 	var main_at := _main_at()
@@ -1352,7 +1352,7 @@ func _process(dt: float) -> void:
 			_note.visible = false
 			_fit()
 	_pad_frame(dt)
-	if (_main_at() != Vector2.INF or target != Vector2.INF) and _hold_index < 0:
+	if (_main_at() != Vector2.INF or markers.has(MapMarkers.ACTIVE_TARGET)) and _hold_index < 0:
 		_overlay.queue_redraw()  # the star's and the active pin's rings pulse (one batch, the game paused under it)
 		_legend_art.queue_redraw()
 	if _hold_index < 0:

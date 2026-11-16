@@ -242,6 +242,25 @@ What the check found, and what follows for the look:
 The default share is recorded in `check_map_data.py` and only goes down: 12 % today, 9 % or less
 after W3.
 
+**Built in W3 (2026-11-15)**, `tools/object_types.py` version 2 (`fix_types`), verdicts and sheets
+in `/mnt/project-files/walls-research/w3/`:
+
+- `ctx_square`: 31 walls, 0.9 km, H to R (10 of 11 judged photos right, 7 of 18 with no usable
+  photo; narrowed: a wall OSM maps 1.2 m or taller is left out, the one wrong line).
+- `kerb_posts`: **dropped** (0 of 6 judged right: bar fences on piers, lawn fences along an estate's
+  drive, a site fence; no bollard row). The `post_row` row stays for sweeps.
+- The tall fences: on the current map 11 of the stadium's sixteen 6.2 m fences were already
+  `ball_net` (the stadium's outline is a pitch setting) and 5 are hard by the podium's drop. They
+  are not #808's 2.3 m perimeter railing (mapped height, on the podium's edge 166 to 196 m from the
+  stadium's centre), so the rule gives `ball_net` everywhere and `stadium_fence` is #808's id alone:
+  its 19 perimeter lines carry it by id (`road_objects.json` `types`, with the 11 nets), and its
+  `looks` row is `draw: keep` (one look in every look). One more line changes city-wide (a 6 m
+  school fence). OSM-tagged tall railings (Legia's 6.4 m) keep their tag's type.
+- `hedge_tall`: 27 hedges, 2.0 km, all in the Royal Castle's lower garden (12 of 12 judged right).
+- `object_types` joins `check_post_passes.py`.
+- The default share: 11.9 % to 11.5 % (fences 9.1 %), the new ratchets in `check_map_data.py`. The
+  9 % aim needed the bollard-row rule (parked in `docs/QUESTIONS.md`).
+
 ## 6. How a type is drawn
 
 ### 6.1 The palette owns the look, and one key picks it

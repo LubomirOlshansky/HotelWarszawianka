@@ -22,10 +22,11 @@ extends RefCounted
 ## Which layers the maps read from here so far (one layer per pull request, map-markers.md
 ## section 5 "Order of work"): JOB (street jobs' places, the round-up's pins), PLACE (the
 ## notebook's "?" marks), SERVICE (the garage), STORY (the questlines' starts, main.gd
-## `_story_tick`), MAIN (the main line's star, MAIN_STAR, main.gd `_main_line_tick`) and RIVAL (the
-## final's start, rivals.gd; kept, not drawn: the main line's star stands there; the rivals' own
-## marks join it for the one map list). TARGET still comes through main.gd `_show_target` until its
-## pull request.
+## `_story_tick`), MAIN (the main line's star, MAIN_STAR, main.gd `_main_line_tick`), TARGET (the
+## active target's pin, ACTIVE_TARGET, main.gd `_put_target`) and RIVAL (the final's start,
+## rivals.gd; kept, not drawn: the main line's star stands there; the rivals' own marks join it for
+## the one map list). The edge arrow on the driving screen stays hud.gd `set_target`: it is a point
+## on the screen (the camera's business), fed from the same branch of `_show_target` as the mark.
 ##
 ## Pure state, no nodes: game/tools/check_map_markers.gd drives it (verify step `markers`).
 
@@ -38,6 +39,9 @@ enum Context {FREE, QUEST, AIR}
 
 ## The main line's star (main.gd `_main_line_tick`): one MAIN mark under this id.
 const MAIN_STAR := "main:star"
+## The active target (main.gd `_put_target`, from `_show_target`'s chain): one TARGET mark under
+## this id, the quest taken's pin on both maps; none while the main line's star stands for it.
+const ACTIVE_TARGET := "target:active"
 
 ## Per layer: [minimap FREE, QUEST, AIR, full map FREE, QUEST, AIR]. Today's behaviour: quest
 ## focus hides the street jobs, the "?" marks, the garage and the questline badges on both maps;
@@ -79,11 +83,20 @@ static func context_of(focus: bool, flying := false) -> int:
 	return Context.QUEST if focus else (Context.AIR if flying else Context.FREE)
 
 
-## One mark: `id` is "owner:key" (the owner is what comes before the first colon).
+## One mark: `id` is "owner:key" (the owner is what comes before the first colon). A put that
+## changes nothing is not a write (the active target is put every frame, main.gd `_put_target`), and
+## a put drops only its layer's view (and the old one's, when the mark changed layer).
 func put(id: String, layer: int, at: Vector2, colour: Color, shape := 0, group := "") -> void:
+	var old: Dictionary = _marks.get(id, {})
+	if not old.is_empty() and int(old["layer"]) == layer and old["at"] == at and old["colour"] == colour \
+			and int(old["shape"]) == shape and str(old["group"]) == group and (old["extra"] as Dictionary).is_empty():
+		return
 	_marks[id] = {"layer": layer, "at": at, "colour": colour, "shape": shape, "group": group, "extra": {},
 			"owner": _owner_of(id)}
-	_changed(_owner_of(id), layer)
+	if not old.is_empty():
+		_views.erase(int(old["layer"]))
+	_views.erase(layer)
+	_count(_owner_of(id))
 
 
 ## Everything `owner` shows, in one call: its old marks go, these come in this order. Each entry is
@@ -97,19 +110,36 @@ func put_all(owner: String, marks: Array) -> void:
 		_marks[id] = {"layer": int(m["layer"]), "at": m["at"], "colour": m.get("colour", Color.WHITE),
 				"shape": int(m.get("shape", 0)), "group": str(m.get("group", "")), "extra": m.get("extra", {}),
 				"owner": owner}
-	_changed(owner, -1)
+	_changed(owner)
 
 
+## The active target (main.gd `_put_target`, every frame): its one TARGET mark at `xz`, or none
+## (`xz` INF).
+func set_target(xz: Vector2, colour: Color) -> void:
+	if xz == Vector2.INF:
+		remove(ACTIVE_TARGET)
+	else:
+		put(ACTIVE_TARGET, Layer.TARGET, xz, colour, 0, "target")
+
+
+## Where the active target is (INF: none).
+func target() -> Vector2:
+	return where(ACTIVE_TARGET)
+
+
+## Takes mark `id` away; removing a mark that isn't there is not a write.
 func remove(id: String) -> void:
-	if _marks.erase(id):
-		_views.clear()
+	if not _marks.has(id):
+		return
+	_views.erase(int(_marks[id]["layer"]))
+	_marks.erase(id)
 	_count(_owner_of(id))
 
 
 ## Takes all of `owner`'s marks away.
 func clear(owner: String) -> void:
 	_drop(owner)
-	_changed(owner, -1)
+	_changed(owner)
 
 
 ## Where mark `id` is (INF when it isn't there).
@@ -183,7 +213,7 @@ func _drop(owner: String) -> void:
 		_marks.erase(id)
 
 
-func _changed(owner: String, _l: int) -> void:
+func _changed(owner: String) -> void:
 	_views.clear()
 	_count(owner)
 

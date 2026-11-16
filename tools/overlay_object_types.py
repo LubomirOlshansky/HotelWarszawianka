@@ -36,6 +36,7 @@ import object_types as O  # noqa: E402
 # green, masonry, concrete, rails and parapets, low things.
 COLOURS = {
     "fence_plain": (150, 150, 150), "bars_black": (40, 40, 60), "bars_pier": (120, 40, 140),
+    "post_row": (60, 0, 0), "stadium_fence": (200, 0, 60),
     "rail_street": (230, 160, 0), "rail_tram": (0, 150, 70), "mesh_panel": (0, 170, 200),
     "chain_link": (90, 120, 200), "ball_net": (150, 200, 255), "low_lawn": (170, 220, 90),
     "wood": (150, 90, 30), "hoarding": (255, 120, 0), "green_fence": (60, 140, 40),
