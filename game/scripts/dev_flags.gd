@@ -245,6 +245,10 @@ var event_smoke := 1
 ## --event-t=SEC: with --cinematic=event, freeze the take at that second (stills for the path check).
 var event_t := -1.0
 var event_log := false
+## --stats=log|send|off: the play stats (play_stats.gd) for this run: log prints every event and
+## sends none (the check), send sends from a debug build (a test against the PostHog project), off
+## none. Without it a debug build sends nothing and a release build follows the setting.
+var stats_flag := ""
 var fans_flag := 1
 var fans_now := false
 var fans_log := false
@@ -604,6 +608,8 @@ func parse_with(args: PackedStringArray) -> void:
 			_flag_yaw = true
 		elif arg == "--cinematic" or arg.begins_with("--cinematic="):
 			_flag_cinematic = arg.trim_prefix("--cinematic=") if arg.contains("=") else "all"
+		elif arg.begins_with("--stats="):
+			stats_flag = arg.trim_prefix("--stats=")
 		elif arg == "--heli":
 			start_flying = true
 		elif arg.begins_with("--heli-stick="):

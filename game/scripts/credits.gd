@@ -33,6 +33,7 @@ const DATA := [
 		"beehave (bitbrain and contributors): MIT",
 		"Dialogue Manager (Nathan Hoad and contributors): MIT",
 		"Debug Draw (HardPixel): MIT",
+		"PostHog for Godot (PostHog): MIT · anonimowe statystyki ‖ anonymous stats",
 	]],
 ]
 
@@ -43,6 +44,7 @@ const ADDONS := {
 	"beehave": "beehave",
 	"dialogue_manager": "Dialogue Manager",
 	"debug_draw": "Debug Draw",
+	"posthog": "PostHog",
 }
 
 

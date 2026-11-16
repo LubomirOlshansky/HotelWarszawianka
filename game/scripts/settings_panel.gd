@@ -331,6 +331,11 @@ func _build() -> void:
 	# 2026-11-02 (F): the language, one at a time (lang.gd): POLSKI or ENGLISH.
 	_heading(sound[1], "Język", "Language")
 	_segments(sound[1], "lang", [["Polski", "Polski"], ["English", "English"]])
+	# The beta's play stats (play_stats.gd, docs/STATS.md, F 2026-11-15): anonymous counts, on by
+	# default, off here at once (settings.gd `stats`, key "stats"). Beside the language and the
+	# credits because it is about the game, not about the drive or the picture.
+	_heading(sound[1], "Anonimowa statystyka", "Anonymous stats")
+	_segments(sound[1], "stats", ON_OFF)
 	# DEMO 3j: the credits and licences (credits.gd), a page of their own opened from here.
 	_heading(sound[1], "O grze", "About")
 	var about_row := HBoxContainer.new()

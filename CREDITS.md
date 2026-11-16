@@ -104,6 +104,10 @@ Each add-on lives in `game/addons/<name>/` with its own licence file, unchanged.
   `addons/dialogue_manager/` only, unchanged). It runs the pull-over conversation
   (`game/dialogue/police.dialogue`, loop 3g-1); the editor plugin is off and its C# files are
   unused.
+- **PostHog for Godot** by PostHog and contributors, version 0.1.4, MIT licence
+  (`game/addons/posthog/LICENSE`), <https://github.com/PostHog/posthog-godot> (`addons/posthog/`
+  only, unchanged). It sends the beta's anonymous play stats (`game/scripts/play_stats.gd`,
+  docs/STATS.md); the editor plugin and its autoload are off.
 
 ## Website fonts (aroundwarsaw.app only, not in the game)
 

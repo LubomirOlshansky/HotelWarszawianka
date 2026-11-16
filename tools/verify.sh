@@ -28,6 +28,9 @@
 # stop from 90 km/h, coast, yaw lag, sideways pull, trail-brake slide, body pitch and roll, and its pull
 # the same as Cruise's, with a Cruise / Sport / Grounded table (no map; CI too). `lanedrive-grounded`
 # is `lanedrive` driven in Grounded (not in --quick).
+# `stats` runs game/tools/check_stats.gd (the beta's play stats, play_stats.gd, docs/STATS.md): the
+# send rule (a debug build, --nosave, the setting off or no token send nothing), the white list and
+# its slugs, the token file, a LOG run's events and the off switch; no map, no network, ~1 s.
 # `colliderules` runs game/tools/check_collide_rules.gd (the city objects plan, step 6): the collision
 # answer's table (collide_rules.gd: monotonic in the angle, never more speed out than in, the traffic
 # shares), and the real car into a wall at 12 cases with v1 (today's block gives exactly the v1
@@ -1296,6 +1299,7 @@ for s in $want; do
 		finite) check finite '^check_finite:' --fixed-fps 60 --script res://tools/check_finite.gd ;;
 		steering) check steering 'check_steering:' --fixed-fps 60 --script res://tools/check_steering.gd ;;
 		colliderules) check colliderules '^check_collide_rules:' --fixed-fps 60 --script res://tools/check_collide_rules.gd ;;
+		stats) check stats '^check_stats:' --script res://tools/check_stats.gd ;;
 		laneassist) check laneassist '^check_lane_assist:' --fixed-fps 60 --script res://tools/check_lane_assist.gd ;;
 		# G14's "later" (2026-11-03): trying to drive and going nowhere for 8 s offers the tow.
 		stuckoffer) check stuckoffer '^check_stuck_offer:' --fixed-fps 60 --script res://tools/check_stuck_offer.gd ;;
