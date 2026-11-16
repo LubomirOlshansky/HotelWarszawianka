@@ -8,7 +8,9 @@ extends Node
 ## **What leaves the phone.** Only the events and properties in EVENTS (a white list: any other
 ## name, key, or a string that is not a short slug is dropped in `clean`), plus a few coarse super
 ## properties (`platform`, `lang`, `quality_tier`, `controls`) and the SDK's own `$os`,
-## `$os_version`, `$app_version`, screen size and session id. `$device_model` and `$locale` are
+## `$os_version`, `$app_version`, `$device_model` (the phone's model code, e.g. `iPhone17,2`; F, 2026-11-16:
+## "how many different devices and which models"), screen size and session id, and one super property
+## `device_name` (`device_name()`: the code as a readable slug, e.g. `iphone_16_pro_max`). `$locale` is
 ## taken out (`_before_send`). The id is the SDK's random UUID in `user://posthog/` (no device id,
 ## no advertising id, no account); `person_profiles` NEVER, no `identify`. The project discards the
 ## IP after the country is read (PostHog's "Discard client IP data", set 2026-11-15).
@@ -65,7 +67,22 @@ const SETTING_KEYS := ["controls", "pads", "quality", "traffic", "lang", "wander
 		"handling", "vhs", "angle", "grade", "text_large", "calm", "color_safe", "vibration", "stop_assist",
 		"left_handed", "lane_assist", "chatter", "zones", "time", "weather"]
 ## The SDK's default properties that stay on the phone.
-const STRIPPED := ["$device_model", "$locale"]
+const STRIPPED := ["$locale"]
+## iPhone model code -> readable name (slug), for the `device_name` super property. A code that is
+## not here (a new phone, an iPad, an Android phone) is sent as its own slug: Android's code is
+## Build.MODEL (e.g. sm-s918b); Godot has no call for the maker, so the model alone is what there is.
+const IPHONES := {
+	"iPhone10,1": "iphone_8", "iPhone10,4": "iphone_8", "iPhone10,2": "iphone_8_plus", "iPhone10,5": "iphone_8_plus",
+	"iPhone10,3": "iphone_x", "iPhone10,6": "iphone_x", "iPhone11,2": "iphone_xs", "iPhone11,4": "iphone_xs_max",
+	"iPhone11,6": "iphone_xs_max", "iPhone11,8": "iphone_xr", "iPhone12,1": "iphone_11", "iPhone12,3": "iphone_11_pro",
+	"iPhone12,5": "iphone_11_pro_max", "iPhone12,8": "iphone_se_2", "iPhone13,1": "iphone_12_mini", "iPhone13,2": "iphone_12",
+	"iPhone13,3": "iphone_12_pro", "iPhone13,4": "iphone_12_pro_max", "iPhone14,2": "iphone_13_pro", "iPhone14,3": "iphone_13_pro_max",
+	"iPhone14,4": "iphone_13_mini", "iPhone14,5": "iphone_13", "iPhone14,6": "iphone_se_3", "iPhone14,7": "iphone_14",
+	"iPhone14,8": "iphone_14_plus", "iPhone15,2": "iphone_14_pro", "iPhone15,3": "iphone_14_pro_max", "iPhone15,4": "iphone_15",
+	"iPhone15,5": "iphone_15_plus", "iPhone16,1": "iphone_15_pro", "iPhone16,2": "iphone_15_pro_max", "iPhone17,1": "iphone_16_pro",
+	"iPhone17,2": "iphone_16_pro_max", "iPhone17,3": "iphone_16", "iPhone17,4": "iphone_16_plus", "iPhone17,5": "iphone_16e",
+	"iPhone18,1": "iphone_17_pro", "iPhone18,2": "iphone_17_pro_max", "iPhone18,3": "iphone_17", "iPhone18,4": "iphone_air",
+}
 ## A string property: a short slug, so no free text (a name, a sentence) can leave by mistake.
 const SLUG_MAX := 32
 
@@ -124,6 +141,13 @@ static func slug(text: String) -> String:
 	return s
 
 
+## The readable name of a model code (pure): IPHONES, else the code as a slug ("." for ","), else "".
+static func device_name(model: String) -> String:
+	if IPHONES.has(model):
+		return str(IPHONES[model])
+	return slug(model.replace(",", "."))
+
+
 ## The white list applied (pure): {} with "event" missing when the event is not on it.
 static func clean(event: String, props: Dictionary) -> Dictionary:
 	if not EVENTS.has(event):
@@ -167,6 +191,9 @@ func setup(debug: bool, persistent: bool, setting_on: bool, flag: String, supers
 	_setting_on = setting_on
 	mode = mode_for(debug, persistent, setting_on, flag, not _key.is_empty())
 	_supers = {}
+	var dn := device_name(OS.get_model_name())
+	if not dn.is_empty():
+		_supers["device_name"] = dn
 	for k: String in supers:
 		var s := slug(str(supers[k]))
 		if not s.is_empty():
