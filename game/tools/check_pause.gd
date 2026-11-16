@@ -64,7 +64,7 @@ func _finish(what: String) -> void:
 # --- A1: the reasons -------------------------------------------------------------------------
 
 func _reasons() -> void:
-	var names: Array[StringName] = [PauseReasons.LOAD, PauseReasons.SETTINGS, PauseReasons.MAP, PauseReasons.GARAGE]
+	var names: Array[StringName] = [PauseReasons.LOAD, PauseReasons.SETTINGS, PauseReasons.MAP, PauseReasons.GARAGE, PauseReasons.TITLE]
 	var seen := {}
 	for n in names:
 		seen[n] = true

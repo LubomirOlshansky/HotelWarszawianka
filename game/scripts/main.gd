@@ -792,6 +792,7 @@ func _ready() -> void:
 		return
 	if title != null:
 		_pause.hold(PauseReasons.LOAD)  # the loading bar: nothing half-built moves between the build's steps
+		Sfx.world_hold(true)  # no traffic or beds under the title; the tap lets them in (title.gd dismiss)
 		title.cap = lerpf(LOAD_FILES, LOAD_BUILT, LOAD_MARKS[0])
 		LoadYield.begin()  # the long setups let a frame through now and then (load_yield.gd)
 	await _build_world()
@@ -945,6 +946,7 @@ func _title_frame() -> void:
 		print("title: the start's sectors in after %d ms%s" % [Time.get_ticks_msec() - _title_wait_t,
 				"" if streamer == null or streamer.idle() else " (not all: the wait's limit)"])
 		_title_wait_t = -1
+		_pause.hold(PauseReasons.TITLE)  # the world waits for the tap: no NPC, race offer or dialogue before it
 		title.set_ready()
 		if title != null and flags.title_choice != "":
 			# Save and resume: --title-choice= picks for the player (continue, new, or ask: the question up).
@@ -1196,6 +1198,7 @@ func _on_title_dismissed() -> void:
 		# The verify step `boot-run` waits for this line: the boot scene's title lasted to here.
 		print("boot: the boot scene's title stayed up until the game began")
 		_title_from_boot = false
+	_pause.release(PauseReasons.TITLE)
 	hud.visible = not flags.hide_hud
 	dialogue.host_on = true
 	title = null
