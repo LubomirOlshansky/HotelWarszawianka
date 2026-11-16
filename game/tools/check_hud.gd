@@ -119,8 +119,8 @@ func _check_faces() -> void:
 	b.pt = 2.0
 	b.project = func(p: Vector3) -> Vector2: return Vector2(p.x, p.y)
 	root.add_child(b)
-	var cases := [["Ivan", Chatter.QUEST, true, true], ["Bogdan", Chatter.QUEST, true, false],
-			["Strażnik Henio", Chatter.POLICE, true, false], ["Nawigacja", Chatter.QUEST, false, false],
+	var cases := [["Ivan", Chatter.QUEST, true, true], ["Bogdan", Chatter.QUEST, true, true],
+			["Strażnik Henio", Chatter.POLICE, true, true], ["Nawigacja", Chatter.QUEST, false, false],
 			["Kolka", Chatter.AMBIENT, false, false], ["", Chatter.QUEST, false, false]]
 	for c in cases:
 		b.clear()
@@ -128,14 +128,29 @@ func _check_faces() -> void:
 		if not b.say(Vector3(100, 300, 0), c[0], "Siema.", "Hi.", 4.0, Color.WHITE, 2.6, c[1]):
 			problems.append("faces: %s's line did not show" % c[0])
 			continue
-		var bub: Dictionary = b._bubbles[0]
-		if bool(bub.get("face", false)) != c[2]:
-			problems.append("faces: %s (%d) face %s, wanted %s" % [c[0], c[1], bub.get("face"), c[2]])
-		elif c[2]:
-			if (bub.get("tex") != null) != c[3]:
+		if c[2]:
+			# F 2026-11-16: a person's line is the fixed panel's, not a floating bubble.
+			if not b._bubbles.is_empty() or b._cur.is_empty():
+				problems.append("faces: %s's line is not in the panel" % c[0])
+				continue
+			if (b._cur.get("tex") != null) != c[3]:
 				problems.append("faces: %s's portrait %s" % [c[0], "missing" if c[3] else "unexpected"])
-			if float(bub["wide"]["size"].y) < (Bubbles.FACE + Bubbles.PAD * 2.0) * b.pt - 0.5:
-				problems.append("faces: %s's bubble is lower than its face" % c[0])
+			continue
+		if not b._cur.is_empty() or b._bubbles.is_empty() or bool(b._bubbles[0].get("face", false)):
+			problems.append("faces: %s (%d) should be a name-only caption" % [c[0], c[1]])
+	# One voice at a time: a second person queues behind the first; a thing or ambient line is dropped.
+	b.clear()
+	b.chatter.clock += b.chatter.gap() * 2.0
+	b.say(Vector3(100, 300, 0), "Mati", "Pierwsza.", "Pierwsza.")
+	b.say(Vector3(110, 300, 0), "Mati", "Druga.", "Druga.")
+	b.say(Vector3(120, 300, 0), "Ivan", "Trzecia.", "Trzecia.")
+	if b.panel_line() != "Pierwsza." or b._queue.size() != 2:
+		problems.append("panel: lines must show one at a time and queue (now '%s', %d waiting)" % [b.panel_line(), b._queue.size()])
+	if b.say(Vector3(1, 1, 0), "Palma", "Hej.", "Hej."):
+		problems.append("panel: a thing's caption showed while a person talked")
+	if Portraits.has_face("Palma") or Portraits.has_face("Barierka · Marszałkowska"):
+		problems.append("faces: an object gets a face")
+	b.clear()
 	for who in ["Ty", "Winda", "Ktoś z tłumu", ""]:
 		if Portraits.has_face(who):
 			problems.append("faces: '%s' gets a face" % who)
@@ -1512,7 +1527,10 @@ static func _touch(index: int, at: Vector2, down: bool) -> InputEventScreenTouch
 func _say(bubbles: Control, who: String, p: Vector2, pl: String, en: String) -> void:
 	var anchor := func() -> Vector3: return Vector3(p.x, p.y, 0.0)
 	_speakers[who] = anchor
-	bubbles.say(anchor, who, pl, en, 4.0, Color("#ff9a3c"), 0.0)
+	# A person's quest line is the fixed panel's now (F 2026-11-16); these scenes test where a floating
+	# caption goes, so the speaker is a non-person ("Nawigacja") for the bubble's layout.
+	var speaker := "Nawigacja" if Portraits.has_face(who) else who
+	bubbles.say(anchor, speaker, pl, en, 4.0, Color("#ff9a3c"), 0.0)
 
 
 func _check_state(hud: CanvasLayer, bubbles: Control, where: String) -> void:

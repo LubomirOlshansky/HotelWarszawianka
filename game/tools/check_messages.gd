@@ -279,7 +279,8 @@ func _check_hud() -> void:
 		_expect(r.get_center().y < mid.y, "a box on the road ahead isn't ahead of the car (%s)" % r)
 	b.chatter.context = 0
 	var ahead_at := Vector3(mid.x, mid.y - 140.0 * pt, 0.0)
-	b.say(func() -> Vector3: return ahead_at, "Darek", "Za mną, w lewo przy Rondzie!", "Follow me, left at the roundabout!")
+	# A floating caption (a non-person: a person's line is the fixed panel's, F 2026-11-16).
+	b.say(func() -> Vector3: return ahead_at, "Nawigacja", "Za mną, w lewo przy Rondzie!", "Follow me, left at the roundabout!")
 	var placed: Array = b.layout()
 	_expect(placed.size() == 1, "the partner's bubble found no room (%d up, %d waiting)" % [b.count(), b.overlaps])
 	if placed.size() == 1:

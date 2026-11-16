@@ -1106,6 +1106,9 @@ func _show_door() -> void:
 	_beacon.recolour(target_colour())
 	_beacon.pattern = Beacon.Pattern.SOLID
 	set_target(Vector2(at.x, at.z), true, Vector3(side.x, at.y, side.z), DOOR_R * 0.75)
+	# F 2026-11-16: the bouncer stands at the door, in the dark figure the hooded man uses.
+	_hood.place(Vector3(side.x, at.y, side.z), DOOR_R * 0.75, false, true)
+	_hood.visible = true
 
 
 ## Mati in: the radio to MORDOR FM, the meeting point between here and the rave.
@@ -1149,7 +1152,6 @@ func _reveal() -> void:
 				dialogue.bubbles.say(side, "Kaptur", String(l[0]).replace("{where}", w[0]), String(l[1]).replace("{where}", w[1]),
 						5.0, COLOUR, 2.4)
 	hud.toast("Lokalizacja: %s" % w[0], "Location: %s" % w[1])
-	_hood.visible = false
 	_show_door()
 	_talk_t = 4.0
 	_hold_t = 0.0
@@ -1169,13 +1171,14 @@ func _door() -> void:
 
 func _ask() -> void:
 	var q: Array = quiz[quiz_i]
+	card_face = "Bramkarz"  # the bouncer asks: name and face on the card (F 2026-11-16)
 	var buttons := PackedStringArray()
 	for a: Array in q[1]:
 		buttons.append("%s|%s" % [a[0], a[1]])
 	# The answers stacked (Autopilot 2026-11-06: three answers in one row made the card too wide
 	# to place on a 16:9 screen, and the door waited for ever).
 	# Only the question on the card: short enough for a 16:9 screen too.
-	show_card(["SELEKCJA %d/%d" % [quiz_i + 1, quiz.size()], "THE DOOR %d/%d" % [quiz_i + 1, quiz.size()]],
+	show_card(["BRAMKARZ · SELEKCJA %d/%d" % [quiz_i + 1, quiz.size()], "BOUNCER · THE DOOR %d/%d" % [quiz_i + 1, quiz.size()]],
 			["„%s”" % q[0][0], "\"%s\"" % q[0][1]], buttons, DOOR_LIFE, true)
 	_log("door %d: %s" % [quiz_i + 1, q[0][1]])
 

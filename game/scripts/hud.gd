@@ -1017,6 +1017,10 @@ func _place(c: Control, s: Vector2, cands: Array) -> int:
 	# Loop 2d-1: the ride's side card stands beside the car, never over it (too wide for the room
 	# there at large text, it fits its text: `_fit_text`).
 	var taken := _taken.duplicate()
+	if speech != null and speech.has_method("dialogue_rect"):
+		var talk: Rect2 = speech.dialogue_rect()
+		if talk.has_area():
+			taken.append(talk)  # a person's line stands in the dialogue panel: nothing is placed over it
 	if c == _card and _card_side:
 		taken.append(car_zone())
 	for k in cands.size():
@@ -2228,6 +2232,13 @@ func _paint_handset(b: Control, answer: bool) -> void:
 
 
 ## The caller's face for the next card: the portrait if there is one, else the initial.
+## A card's speaker (activity.gd `card_face`): their face or initial before the title.
+func set_card_face(who: String, accent: Color) -> void:
+	_set_face(who, accent)
+	_card.reset_size()
+	_mark()
+
+
 func _set_face(who: String, accent: Color) -> void:
 	_card_face_tex = Portraits.face(who) if who != "" else null
 	_card_face_letter = Portraits.initial(who)

@@ -118,6 +118,8 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | --- | --- | --- | --- |
 | 16 | Settings → BENCH, run it | the numbers against the last build's | budgets |
 | 17 | Drive across the map for three minutes without stopping | streets that come in late, a hole in the ground, heat | #732 |
+| 18 | Take Mati's Smoła quest and watch the dialogue panel for a minute (BENCH on) | one line at a time at the bottom centre, no frame-time dip when a line starts, no toast over its words | #899 |
+| 19 | At the Smoła door, read the first question | the card says BRAMKARZ with his face, the dark bouncer figure stands at the door | #899 |
 
 ## Answers F owes that are not looks
 
