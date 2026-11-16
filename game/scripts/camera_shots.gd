@@ -47,13 +47,19 @@ const SKIP_GRACE := 0.25
 ## view's size in m, the turn from the follow camera's in degrees, the pitch). The last key is the
 ## follow camera itself, so the hand-off has no cut. The caption (WARSZAWA, the place) is up from
 ## CAPTION_IN to CAPTION_OUT s.
-const OPEN_TIME := 7.5
+## The morning (F, 2026-11-16): the flight is as long as the host's opening line (opening_audio.gd,
+## 13.4 s; her last sentence ends after the landing), and the city goes from night to day on the
+## way (time_of_day.gd `wake`). The first key is higher and wider than the Palace's, so the
+## sleeping city is seen whole before the camera turns round the Palace; the caption comes with
+## the sunrise.
+const OPEN_TIME := 12.0
 const OPEN_KEYS: Array[Dictionary] = [
+	{"at": Vector2(-1214.0, 247.0), "up": 140.0, "size": 520.0, "turn": 140.0, "pitch": -40.0},
 	{"at": Vector2(-1214.0, 247.0), "up": 95.0, "size": 420.0, "turn": 115.0, "pitch": -38.0},
 	{"at": Vector2(-1095.0, 165.0), "up": 30.0, "size": 230.0, "turn": 40.0, "pitch": -33.0},
 ]
-const CAPTION_IN := 0.6
-const CAPTION_OUT := 5.4
+const CAPTION_IN := 5.4
+const CAPTION_OUT := 9.6
 const CAPTION_FADE := 0.6
 
 ## The 11 listopada video (--cinematic=event, docs/design/event-11-listopad-15s.md): one take of

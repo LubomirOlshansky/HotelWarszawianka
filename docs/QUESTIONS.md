@@ -340,10 +340,12 @@ Newest first. One entry per question.
   DOSTĘP switch to turn it off. Needs a device run on the iPhone (and an Android phone if one is at
   hand): crash into a few cars and walls, take a job; say if it's too weak, too strong or missing,
   and whether the first crash after a pause hitches.
-- **2026-10-31 · gameplay · opening flyover** — How long the first launch's camera flight over
+- ~~**2026-10-31 · gameplay · opening flyover** — How long the first launch's camera flight over
   the Palace down to the car should be. Default built: 7.5 s (skippable with a tap), with a
   WARSZAWA caption. Alternatives: 5 s, or 10 s with one more pass (the Eastern Wall and the
-  Rotunda). docs/design/opening-flyover.md.
+  Rotunda). docs/design/opening-flyover.md.~~ **Answered by F (2026-11-16):** 12 s, the city
+  waking from night to morning on the way, timed to the host's opening line (option B of the
+  proposal).
 - **2026-10-31 · gameplay · opening flyover** — The guide's beats count from the flight's end, so
   the stand's arrow comes 10 s after you get control (17.5 s after the tap). Default built: that.
   Alternative: the arrow at once after the flight, since the flight already showed the square.

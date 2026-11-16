@@ -93,6 +93,9 @@ const SHOTS := {
 	"thump_soft": -8.0, "thump_hard": -6.0, "crash": -4.0, "clang": -9.0, "jar_clink": -12.0, "jar_break": -6.0,
 	"tram_bell": -8.0, "horn": -16.0, "horn_double": -16.0, "pigeons": -6.0,
 	"birds_a": -13.0, "birds_b": -15.0, "siren_far": -20.0, "dog_far": -10.0,
+	# The opening's morning (opening_audio.gd CUES, 2026-11-16): one church bell at first light, under
+	# the host's voice (the street's bells are city_sounds.gd's, positional).
+	"church_bell": -16.0,
 	# Loop 3g-2 (police.md 10, tools/make_sfx.py): the police's and the guards' own sounds, each
 	# set to land where its 3g-1 placeholder sat (by the files' RMS).
 	"police_whoop": -26.0, "megaphone": -14.0, "whistle": -18.0, "scribble": -14.0, "stamp": -17.0, "clank": -9.0,
@@ -909,7 +912,7 @@ func sound_check() -> void:
 		if n in ["tram_bell", "horn", "horn_double", "pigeons", "tram_creak", "old_tram_bell", "loud_rev",
 				"train_rumble", "train_bridge", "train_horn", "station_gong"]:
 			_play3(n, at, 0.0)
-		elif n in ["birds_a", "birds_b", "siren_far", "dog_far"]:
+		elif n in ["birds_a", "birds_b", "siren_far", "dog_far", "church_bell"]:
 			play(n, 0.0, 1.0, &"Ambience")
 		else:
 			play(n, 0.0)
