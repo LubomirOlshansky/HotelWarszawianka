@@ -4600,6 +4600,14 @@ const DPB_AT := Vector2(-1166.0, 740.0)      ## inside the outline
 const DPB_WALL := Color("#e6d49e")           ## pale yellow plaster (photos)
 const DPB_ROOF := Color("#6c6a66")           ## grey roof, a default
 
+## Dom zakonny Księży Misjonarzy (the back wing of the Missionaries' house, Krakowskie Przedmieście): OSM building 5803,
+## `monastery`, behind the Missionaries' house by Holy Cross, Krakowskie Przedmieście. Its mass stays the map's block in a skin in the colours of
+## the Missionaries' house on Krakowskie Przedmieście (`church_misjonarze`, MS_*): no open photo reaches the yard behind the street wing, so it is provisional.
+## Spec docs/landmarks/specs/misjonarze_tyl.md.
+const MST_AT := Vector2(-519.4, -546.9)
+const MST_WALL := Color("#d7c08a")
+const MST_ROOF := Color("#5b5d60")
+
 ## Plebania parafii Narodzenia NMP (the presbytery of the Nativity church on Leszno, Wola): OSM building 10100,
 ## `presbytery`, behind the Nativity church on Leszno, Wola. Its mass stays the map's block in a skin in the colours of
 ## the Nativity of the Virgin Mary church on Leszno (`church_narodzenia`, NR_*): one Mapillary photo within 45 m faces it at a steep slant from 42 m (2022), too far and too slanted to read, so it is provisional.
