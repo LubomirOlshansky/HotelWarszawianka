@@ -11,7 +11,8 @@ extends RefCounted
 
 const DIR := "res://art/portraits/"
 ## A name whose face file has a longer key (the only Kuba who calls is the padel one).
-const ALIAS := {"kuba": "kuba_padel"}
+const ALIAS := {"kuba": "kuba_padel", "bogdan": "bogdan_tenis", "sierzant": "sierzant_bogdan", "straznik": "henio",
+		"mistrz": "pan_dymek", "taksiarz": "taksiarz_zbyszek", "sloik": "sloik", "mordor": "mordor_mike", "trener": "trener_dominik"}
 
 ## Speakers that are not a person (the sat-nav, a lift, the player, a crowd): their lines keep the
 ## name only, no face. Compared on `key` (first word, plain, lower case).
