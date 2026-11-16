@@ -19,7 +19,7 @@ earth). Two kinds of way come out wrong where a road meets the Ochota cutting:
             there (TUNNEL_ZAWISZY_PLAC, PORTALS).
 
 Both leave every road where it was: a way keeps its geometry, loses its `dk`, `bridge` and the
-lane graph's `br`. The pass is idempotent and stamp-guarded like road_profiles; it reads the grid
+lane graph's `dk` and `br`. The pass is idempotent and stamp-guarded like road_profiles; it reads the grid
 (game/map/terrain.json) only to lay the cover.
 
     python3 -I tools/rail_covers.py [MAP_DIR] [--force]   applies COVERS to game/map/centrum.json
@@ -37,7 +37,7 @@ import sys
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 KEY = "rail_covers"
-VERSION = 1
+VERSION = 2
 
 # One entry a place. "group" is the deck group (`decks.pieces[].g`, `dk` on the things on it).
 # "cover" entries also give the stretch's axis (the tracks' direction), its centre, the along range
@@ -118,7 +118,10 @@ def _undeck(out, c, pieces):
                 moved += 1
     edges = 0
     for e in out["graph"]["edges"]:
-        if e.get("br") and all(inside(x, z) for x, z in _pairs(e["p"])):
+        # the lane graph's edges carry the deck group they drive on (`dk`, lane_graph.gd `e_dk`): a
+        # lane left on a deck that is gone is read at the ground's level, 6 m under the road
+        if e.get("dk", -1) == g:
+            del e["dk"]
             e["br"] = 0
             edges += 1
     return {"pieces": len(pieces), "piers": n_piers, "aprons": n_aprons, "items": moved, "edges": edges,
