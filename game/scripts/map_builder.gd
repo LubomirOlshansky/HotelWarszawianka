@@ -2021,6 +2021,19 @@ const SUNKEN := [
 		"a": Vector2(-1004.35, 222.0), "b": Vector2(-993.7, 252.35),
 		"ring": [Vector2(-1007.8, 222.0), Vector2(-1000.9, 222.0), Vector2(-990.7, 251.3), Vector2(-989.3, 255.3),
 			Vector2(-995.3, 257.4), Vector2(-996.7, 253.4)]},
+	# The entry ramp of the car park under Plac Powstańców Warszawy (F's photos, 2026-11-16: a
+	# straight ramp between bare concrete walls standing about a metre over the square, down to the
+	# mouth in its south end wall under the WJAZD board; refs/kilinski_plac). Before this the mapped
+	# wall U (`lines` wall_stone) stood round the 10 m grid's blurred pit, an asphalt road wandering
+	# down it to a roller shutter half way (R9's `garage_doors`, left out inside a ramp ring now).
+	# The ring is the walls' line (the west wall's kink kept, so the mapped walls are the site's);
+	# the floor falls 3.5 m from the top on the square's east road to the mouth, the last 4 m under
+	# GARAGE_MOUTHS' hood. `tile`, `floor` and `rise`: this ramp's own concrete, setts and wall height.
+	{"key": "powstancow_ramp", "site": "powstancow_ramp", "style": "ramp", "sub": 20, "hb": NAN, "drop": 3.5,
+		"rim": 12.9, "tile": Color("#cdcac2"), "floor": Color("#8b8d8e"), "rise": 1.0,
+		"a": Vector2(-725.05, -186.6), "b": Vector2(-717.6, -161.4),
+		"ring": [Vector2(-727.1, -186.6), Vector2(-723.0, -186.6), Vector2(-714.44, -162.57), Vector2(-713.1, -158.8),
+			Vector2(-719.5, -156.6), Vector2(-720.8, -160.39), Vector2(-726.3, -176.4)]},
 	# Złote Tarasy's sunken plaza (F, 2026-11-11: "the place on the level below now looks like a
 	# hole"; GUGiK orthophoto refs/tarasy, F's photos): the square one floor under the street on the
 	# station side, ringed by the railing OpenStreetMap maps (lines fence 29 round its top, the
@@ -2130,7 +2143,8 @@ static func sunk_entry(e: Dictionary, ha: float, step: float) -> Dictionary:
 		wide = wl[0] if not wl.is_empty() else ring
 	return {"key": e["key"], "ring": ring, "grown": grown, "wide": wide, "box": box, "a": e["a"], "b": e["b"], "ha": ha, "hb": hb, "sub": sub,
 			"site": e.get("site", "sunken"), "style": e.get("style", "rail"), "walk": PackedVector2Array(e.get("walk", [])),
-			"rim": float(e.get("rim", -INF))}
+			"rim": float(e.get("rim", -INF)), "tile": e.get("tile", Color(0, 0, 0, 0)),
+			"floor": e.get("floor", Color(0, 0, 0, 0)), "rise": float(e.get("rise", -1.0))}
 
 
 ## A sunken ring's floor at a point (its ring, or `grown` its ring grown for the drawn ground),
@@ -2227,6 +2241,14 @@ func _load_cut() -> void:
 static func in_sunken(x: float, z: float) -> bool:
 	for e: Dictionary in SUNKEN:
 		if Geometry2D.is_point_in_polygon(Vector2(x, z), PackedVector2Array(e["ring"])):
+			return true
+	return false
+
+
+## Whether plan point p lies in a SUNKEN ring of style "ramp" (static: the plan rings only).
+static func _in_ramp_ring(p: Vector2) -> bool:
+	for e: Dictionary in SUNKEN:
+		if str(e.get("style", "")) == "ramp" and Geometry2D.is_point_in_polygon(p, PackedVector2Array(e["ring"])):
 			return true
 	return false
 
@@ -5140,6 +5162,10 @@ func _build_garage_doors(st) -> void:
 	_uv2 = Vector2(0.5, -1.0)
 	for g: Dictionary in data.get("garage_doors", []):
 		var c := Vector2(float(g["c"][0]), float(g["c"][1]))
+		# a shutter R9 put half way down a ramp the map now sinks (SUNKEN style "ramp"): its site
+		# and GARAGE_MOUTHS draw the mouth at the ramp's foot instead
+		if _in_ramp_ring(c):
+			continue
 		var d := Vector2(float(g["d"][0]), float(g["d"][1])).normalized()
 		var side := Vector2(-d.y, d.x)
 		var w := float(g["w"])
@@ -5170,6 +5196,10 @@ const GARAGE_MOUTHS := [
 	# walls' pink tile (`tile`); the height gauge 4 m down the ramp from its top.
 	{"c": Vector2(-993.7, 252.35), "d": Vector2(0.338, 0.941), "w": 5.4, "top": Vector2(-1003.0, 225.8),
 		"tile": Color("#c9a69b")},
+	# Plac Powstańców Warszawy's car park (SUNKEN `powstancow_ramp`): the mouth in the ramp's south
+	# end wall, bare concrete like the walls (its WJAZD board: centralny_ramp.gd).
+	{"c": Vector2(-717.6, -161.4), "d": Vector2(0.2835, 0.959), "w": 5.2, "top": Vector2(-723.9, -182.8),
+		"tile": Color("#cdcac2")},
 ]
 const MOUTH_DARK := Color("#17181c")
 const MOUTH_HAZARD := Color("#e0b22a")

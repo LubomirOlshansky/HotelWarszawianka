@@ -541,6 +541,9 @@ const INFO := {
 	"dom_chlopa": ["Dom Chłopa",
 			"Hotel na placu Powstańców z lat 1958-61, zbudowany dla chłopów przyjeżdżających do stolicy. Falisty gzyms na dachu, zielony neon, kasyno na parterze.",
 			"The hotel on Plac Powstańców of 1958-61, built for farmers visiting the capital. A wavy roof edge, a green neon on top, a casino on the ground floor."],
+	"batalion_kilinski": ["Pomnik Batalionu AK „Kiliński”",
+			"Pomnik żołnierzy batalionu Armii Krajowej „Kiliński”, który w sierpniu 1944 roku zdobył PAST-ę. Pochyła granitowa płyta, białe stele z Kotwicą, 1939 i 1945, zawsze świeże kwiaty.",
+			"The monument to the Home Army battalion \"Kiliński\", which took the PAST building in August 1944. A tilted granite slab, white stelae with the Kotwica, 1939 and 1945, and always fresh flowers."],
 	"zyletkowiec": ["Żyletkowiec",
 			"Biurowiec przy Marszałkowskiej z 1952 roku. Białe żyletki na każdej osi elewacji robią pasy światła i cienia, a ciemny dach wystaje nad ulicę.",
 			"The 1952 office block on Marszałkowska. A white razor-blade fin on every bay makes bands of light and shadow, and a dark roof overhangs the street."],
@@ -1664,6 +1667,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_nbp(s)  # the whole branch (SKINS entry with `model`: it replaces LoD2)
 			"dom_chlopa":
 				_build_dom_chlopa(s)  # over its street block: the wavy roof edge and the signs
+			"batalion_kilinski":
+				_build_batalion_kilinski(s)  # the battalion's monument on Plac Powstańców Warszawy
 			"zyletkowiec":
 				_build_zyletkowiec(s)  # over its street block: the fins, the piers, the roof lid
 			"elektrownia":
@@ -1822,7 +1827,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"rondo":
 				_id = 0
 				_build_rondo(s)
-			"sunken", "underpass", "defilad_ramp", "tarasy_plaza":
+			"sunken", "underpass", "defilad_ramp", "powstancow_ramp", "tarasy_plaza":
 				_id = 0
 				_build_sunken(s)
 			"metro_tubes":

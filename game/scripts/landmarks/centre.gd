@@ -1889,6 +1889,7 @@ const BARREL_COPING := Color("#d9cfc6")
 const SUNK_BOX := [Vector2(-955.0, 360.0), Vector2(-805.0, 432.0)]
 const UNDERPASS_BOX := [Vector2(-1315.0, 546.0), Vector2(-1211.0, 625.0)]
 const DEFILAD_BOX := [Vector2(-1010.0, 220.0), Vector2(-986.0, 260.0)]
+const POWSTANCOW_RAMP_BOX := [Vector2(-729.0, -189.0), Vector2(-711.0, -155.0)]
 const TARASY_PLAZA_BOX := [Vector2(-1436.0, 456.0), Vector2(-1352.0, 499.0)]
 ## Złote Tarasy's plaza (F's photos 2026-11-11): the curved wall under the upper terrace is red-brown
 ## brick over a band of lit shopfronts (the electronics store, the restaurants); white café umbrellas
@@ -1941,6 +1942,11 @@ func _find_sunken() -> void:
 	for a: Vector2 in DEFILAD_BOX:
 		ramp.append(PackedVector2Array([a, a + Vector2(0.2, 0), a + Vector2(0.2, 0.2), a + Vector2(0, 0.2)]))
 	_add_site("defilad_ramp", ramp)
+	# Plac Powstańców Warszawy's car park ramp (SUNKEN `powstancow_ramp`), the same way.
+	var pramp: Array = []
+	for a: Vector2 in POWSTANCOW_RAMP_BOX:
+		pramp.append(PackedVector2Array([a, a + Vector2(0.2, 0), a + Vector2(0.2, 0.2), a + Vector2(0, 0.2)]))
+	_add_site("powstancow_ramp", pramp)
 	# Złote Tarasy's sunken plaza and its great stair (SUNKEN `tarasy_plaza`, `tarasy_stair`): their
 	# own site, tiny squares at the corners of its box (the railings and walls OSM maps on the rings
 	# are map_builder's to leave out).
@@ -2022,6 +2028,12 @@ func _sunk_edges(sk: Dictionary) -> void:
 		rise = 0.45
 		face_col = RAMP_TILE
 		top_col = RAMP_COPING
+		# a ramp's own walls (SUNKEN `tile`, `rise`: Plac Powstańców' bare concrete, a metre up)
+		if (sk.get("tile", Color(0, 0, 0, 0)) as Color).a > 0.0:
+			face_col = sk["tile"]
+			top_col = (sk["tile"] as Color).lightened(0.06)
+		if float(sk.get("rise", -1.0)) > 0.0:
+			rise = float(sk["rise"])
 	elif style == "shops":
 		face_col = PLAZA_BRICK
 	var run := 0.0
@@ -2119,11 +2131,17 @@ func _sunk_ramp(sk: Dictionary) -> void:
 	var floor_at := func(v: Vector2) -> float:
 		return map.sunk_level(sk, v) + 0.03
 	_mode = M_STONE
+	# the ramp's own surface (SUNKEN `floor`: Plac Powstańców' grey setts), else the dark ribbed slab
+	var road := RAMP_ROAD
+	var rib := RAMP_RIB
+	if (sk.get("floor", Color(0, 0, 0, 0)) as Color).a > 0.0:
+		road = sk["floor"]
+		rib = (sk["floor"] as Color).darkened(0.07)
 	for k in n:
 		var t0 := float(k) / n
 		var t1 := float(k + 1) / n
 		var q := PackedVector2Array([w_top.lerp(w_foot, t0), e_top.lerp(e_foot, t0), e_top.lerp(e_foot, t1), w_top.lerp(w_foot, t1)])
-		_sunk_top(q, floor_at, RAMP_ROAD if k % 2 == 0 else RAMP_RIB)
+		_sunk_top(q, floor_at, road if k % 2 == 0 else rib)
 
 
 ## Metro Centrum's two barrels by the Palace's park (METRO_TUBES), as the Patelnia's.

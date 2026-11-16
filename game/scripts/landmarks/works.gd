@@ -124,6 +124,10 @@ func _find_works() -> void:
 		_add_site("dom_chlopa", [dch])
 		if sites[-1]["key"] == "dom_chlopa":
 			sites[-1]["ring"] = dch
+	# The Kiliński battalion's monument on Plac Powstańców Warszawy: its footprint on the square
+	# (the generic stele bake_monuments.py stood there is skipped)
+	_add_site("batalion_kilinski", [PackedVector2Array([_bk_w(-11.0, -6.5), _bk_w(11.0, -6.5), _bk_w(11.0, 4.6),
+			_bk_w(-11.0, 4.6)])])
 	# Żyletkowiec (Marszałkowska 82): its outline (the street block blk_30241286 draws the mass,
 	# _build_zyletkowiec the fins, the piers and the roof lid)
 	var zyl := _landmark("Żyletkowiec")
@@ -1085,6 +1089,14 @@ const DCH_CREAM := Color("#e6e1cb")
 const DCH_GREEN := Color("#3fbf4a")
 const DCH_SIGN := Color("#2c3133")
 const DCH_WHITE := Color("#f2f2ee")
+## The casino (F's night photos 2026-11-16): its roof name centred this far along the front, its
+## ground-floor stretch from here to the south end, the lit panels' colours from north to south.
+const DCH_CASINO_ROOF := 62.0
+const DCH_CASINO_PU := 0.22
+const DCH_CASINO_U0 := 50.0
+const DCH_CASINO_BLUE := Color("#3c8cff")
+const DCH_CASINO_PANELS := [Color("#8a3cff"), Color("#5a4cff"), Color("#3c6cff"), Color("#3fb0f0"), Color("#3fd6c8"),
+		Color("#4fe08a"), Color("#3fd6c8"), Color("#3fb0f0"), Color("#9a4cf0"), Color("#d04fc8"), Color("#8a3cff")]
 
 
 func _build_dom_chlopa(site: Dictionary) -> void:
@@ -1134,8 +1146,28 @@ func _build_dom_chlopa(site: Dictionary) -> void:
 		var ch := letters[i]
 		var cw := PixelFont.width(ch) * 0.2
 		_dch_word(ch, 1.8 - cw * 0.5, 0.2, 0.2, g + 17.0 - float(i) * 1.9, 0.53, DCH_GREEN)
-	# KASYNO TRAF over the ground floor's north stretch, white
-	_dch_word("KASYNO TRAF", 21.0, 0.17, 0.15, g + 6.4, 0.13, DCH_WHITE)
+	# The casino at the front's south end (F's night photos and T14-01, 2026-11-16; KASYNO TRAF is
+	# the parody of its name): the name in white on the roof over the south end, on two dark beams
+	# like GROMADKA's; a dark fascia over the ground floor's south stretch with the name again; under
+	# it a row of glass panels lit in changing colours; a dark pier down the south-west corner
+	_mode = M_STONE
+	var cw := PixelFont.width("KASYNO TRAF")
+	var cu0 := DCH_CASINO_ROOF - cw * DCH_CASINO_PU * 0.5
+	_ubox(cu0 + 1.5, cu0 + 1.8, -2.2, -0.2, top - 0.2, top + 0.6, DCH_SIGN)
+	_ubox(cu0 + cw * DCH_CASINO_PU - 1.8, cu0 + cw * DCH_CASINO_PU - 1.5, -2.2, -0.2, top - 0.2, top + 0.6, DCH_SIGN)
+	_ubox(DCH_CASINO_U0, DCH_LEN, 0.0, 0.1, g + 4.8, g + 6.6, DCH_SIGN)
+	_ubox(DCH_LEN - 1.7, DCH_LEN - 0.1, 0.0, 0.45, g, g + 16.0, DCH_SIGN)
+	_mode = M_LAMP
+	_dch_word("KASYNO TRAF", cu0, DCH_CASINO_PU, 0.3, top + 0.6 + 7.0 * 0.3, -1.9, DCH_WHITE)
+	var gw := PixelFont.width("KASYNO TRAF") * 0.17
+	_dch_word("KASYNO TRAF", (DCH_CASINO_U0 + DCH_LEN) * 0.5 - gw * 0.5, 0.17, 0.15, g + 6.4, 0.13, DCH_WHITE)
+	# the corner pier's lit strip (the photos' blue CASINO down the corner)
+	_ubox(DCH_LEN - 1.2, DCH_LEN - 0.6, 0.45, 0.5, g + 7.2, g + 15.4, DCH_CASINO_BLUE, M_LAMP)
+	var pn := DCH_CASINO_PANELS.size()
+	var pw := (DCH_LEN - 2.4 - DCH_CASINO_U0 - 1.0) / float(pn)
+	for k in pn:
+		var u := DCH_CASINO_U0 + 1.0 + pw * float(k)
+		_ubox(u + 0.08, u + pw - 0.08, 0.0, 0.12, g + 0.1, g + 4.2, DCH_CASINO_PANELS[k], M_LAMP)
 	_mode = M_STONE
 
 
@@ -1187,6 +1219,116 @@ func _dch_word(word: String, u0: float, pu: float, py: float, y_top: float, v: f
 			rows[row - PixelFont.BODY] = []
 		(rows[row - PixelFont.BODY] as Array).append(x))
 	_nbp_pixels(rows, u0, pu, py, y_top, v, col)
+
+
+## The monument to the Home Army battalion "Kiliński" on Plac Powstańców Warszawy (F's photos,
+## 2026-11-16, and Mapillary 2021-2022, refs/kilinski_plac; spec docs/landmarks/specs/batalion_kilinski.md).
+## A wide slab of grey granite tilted up towards the east, its inscription in dark lines; behind
+## it on a white stone step four white stelae: one with a short text, 1939, the Kotwica (taller),
+## 1945; round it white stone blocks at two heights, the photos' stepped seats; in front, on the
+## west, five round stone bowls of red and white flowers. The frame's u runs south along the
+## square from the OSM point, v east (the way the slab rises).
+const BK_O := Vector2(-743.6, -208.8)
+const BK_A := Vector2(0.32948, 0.94416)
+const BK_GRANITE := Color("#5f6366")
+const BK_GRANITE_SIDE := Color("#4c5053")
+const BK_LINES := Color("#2a2d30")
+const BK_STONE := Color("#e4dfd3")
+const BK_STELE := Color("#eeeae1")
+const BK_INK := Color("#1d1f21")
+const BK_BOWL := Color("#bdb8ad")
+const BK_RED := Color("#c8282a")
+const BK_WHITE := Color("#f0efe9")
+## The white blocks round the slab: [u0, u1, v0, v1, height] (south of it the stepped seats,
+## north of it the long low steps).
+const BK_BLOCKS := [
+	[4.6, 6.4, -2.6, -1.4, 0.45], [4.6, 6.4, -1.0, 0.2, 0.9], [6.8, 8.6, -2.2, -1.0, 0.45],
+	[6.8, 8.6, -0.6, 0.6, 0.45], [5.0, 6.8, 1.0, 2.2, 0.45], [7.2, 9.0, 1.2, 2.4, 0.9],
+	[9.2, 10.8, -1.4, -0.2, 0.45], [5.0, 6.8, 2.8, 4.0, 0.9],
+	[-10.4, -4.6, -2.8, -1.9, 0.3], [-10.4, -4.6, -1.6, -0.5, 0.45], [-9.2, -4.6, 0.0, 1.0, 0.3],
+]
+## The flower bowls: [u, v].
+const BK_BOWLS := [[-7.5, -4.4], [-5.0, -4.4], [-2.5, -4.4], [0.2, -4.4], [3.0, -5.6]]
+
+
+func _bk_w(u: float, v: float) -> Vector2:
+	return BK_O + BK_A * u + Vector2(BK_A.y, -BK_A.x) * v
+
+
+func _build_batalion_kilinski(_site: Dictionary) -> void:
+	_o = BK_O
+	_a = BK_A
+	_b = Vector2(BK_A.y, -BK_A.x)
+	_g = _ground_under(_urect(-11.0, 11.0, -6.5, 4.6))
+	var g := _g
+	_mode = M_STONE
+	# the white stone base under the slab and the step the stelae stand on
+	_ubox(-4.1, 4.1, -2.4, 2.4, g - 0.2, g + 0.15, BK_STONE)
+	_ubox(-5.0, 5.0, 2.4, 4.2, g - 0.2, g + 0.45, BK_STONE)
+	# the granite slab: 0.3 m high at its west edge, 1.2 m at its east edge
+	var y0 := g + 0.15
+	var lo := g + 0.45
+	var hi := g + 1.35
+	var c00 := _w(-3.6, -1.9)
+	var c10 := _w(3.6, -1.9)
+	var c11 := _w(3.6, 1.9)
+	var c01 := _w(-3.6, 1.9)
+	var nb := Vector3(_b.x, 0.0, _b.y)
+	var na := Vector3(_a.x, 0.0, _a.y)
+	_quad(Vector3(c10.x, y0, c10.y), Vector3(c00.x, y0, c00.y), Vector3(c00.x, lo, c00.y), Vector3(c10.x, lo, c10.y), -nb, BK_GRANITE_SIDE)
+	_quad(Vector3(c01.x, y0, c01.y), Vector3(c11.x, y0, c11.y), Vector3(c11.x, hi, c11.y), Vector3(c01.x, hi, c01.y), nb, BK_GRANITE_SIDE)
+	_quad(Vector3(c00.x, y0, c00.y), Vector3(c01.x, y0, c01.y), Vector3(c01.x, hi, c01.y), Vector3(c00.x, lo, c00.y), -na, BK_GRANITE_SIDE)
+	_quad(Vector3(c11.x, y0, c11.y), Vector3(c10.x, y0, c10.y), Vector3(c10.x, lo, c10.y), Vector3(c11.x, hi, c11.y), na, BK_GRANITE_SIDE)
+	var slope := Vector3(0.0, 3.8, -0.9).normalized()  # the top's normal in (u, up, v): it leans west
+	var nt := Vector3(_b.x * slope.z, slope.y, _b.y * slope.z)
+	_quad(Vector3(c00.x, lo, c00.y), Vector3(c01.x, hi, c01.y), Vector3(c11.x, hi, c11.y), Vector3(c10.x, lo, c10.y), nt, BK_GRANITE)
+	# the inscription: five dark lines across the slope, 3.5 cm over it (closer flickers)
+	for k in 5:
+		var v := -1.2 + 0.55 * float(k)
+		var h := lo + (hi - lo) * (v + 1.9) / 3.8 + 0.035
+		var h2 := lo + (hi - lo) * (v + 0.18 + 1.9) / 3.8 + 0.035
+		var p0 := _w(-2.8, v)
+		var p1 := _w(2.8 - 0.6 * float(k % 2), v)
+		var p2 := _w(2.8 - 0.6 * float(k % 2), v + 0.18)
+		var p3 := _w(-2.8, v + 0.18)
+		_quad(Vector3(p0.x, h, p0.y), Vector3(p3.x, h2, p3.y), Vector3(p2.x, h2, p2.y), Vector3(p1.x, h, p1.y), nt, BK_LINES)
+	# the four stelae on the step, their faces to the west
+	var top := g + 0.45
+	_ubox(-4.05, -3.15, 3.1, 3.5, top, top + 1.0, BK_STELE)
+	_ubox(-1.95, -1.05, 3.1, 3.5, top, top + 1.0, BK_STELE)
+	_ubox(0.2, 1.4, 3.05, 3.5, top, top + 1.5, BK_STELE)
+	_ubox(2.65, 3.55, 3.1, 3.5, top, top + 1.0, BK_STELE)
+	# their writing, 3.5 cm off the faces (closer flickers): the frame turned to face west (u still
+	# reads left to right from the west)
+	var b_east := _b
+	_b = -b_east
+	_bk_word("AK", -3.6, 0.05, 0.05, top + 0.75, -3.065)
+	_bk_word("1939", -1.5, 0.035, 0.05, top + 0.7, -3.065)
+	_bk_word("P", 0.8, 0.1, 0.08, top + 1.25, -3.015)
+	_bk_word("W", 0.8, 0.1, 0.08, top + 0.8, -3.015)
+	_bk_word("1945", 3.1, 0.035, 0.05, top + 0.7, -3.065)
+	_b = b_east
+	_mode = M_STONE
+	# the white blocks round it
+	for bl: Array in BK_BLOCKS:
+		_ubox(float(bl[0]), float(bl[1]), float(bl[2]), float(bl[3]), g - 0.2, g + float(bl[4]), BK_STONE)
+	# the flower bowls: a stone bowl, red flowers, a white heart
+	for bw: Array in BK_BOWLS:
+		var c := _w(float(bw[0]), float(bw[1]))
+		_prism(_circle(c, 0.85, 8), g - 0.1, g + 0.4, BK_BOWL, BK_BOWL.lightened(0.05))
+		_prism(_circle(c, 0.72, 8), g + 0.4, g + 0.6, BK_RED, BK_RED)
+		_prism(_circle(c, 0.32, 6), g + 0.6, g + 0.66, BK_WHITE, BK_WHITE)
+	# what a car meets: the slab with its step, the seats south of it, the steps north of it
+	_collide(_urect(-5.0, 5.0, -2.4, 4.2))
+	_collide(_urect(4.6, 10.8, -2.6, 4.0))
+	_collide(_urect(-10.4, -4.6, -2.8, 1.0))
+
+
+## A word in dark pixel faces on the plane v, centred on u, its top at y_top (the frame as set).
+func _bk_word(word: String, u: float, pu: float, py: float, y_top: float, v: float) -> void:
+	_mode = M_STONE
+	var w := float(PixelFont.width(word)) * pu
+	_dch_word(word, u - w * 0.5, pu, py, y_top, v, BK_INK)
 
 
 ## Żyletkowiec (Marszałkowska 82, 1952; OSM way 30241286; 2026-11-16, spec
