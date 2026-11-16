@@ -4600,6 +4600,15 @@ const DPB_AT := Vector2(-1166.0, 740.0)      ## inside the outline
 const DPB_WALL := Color("#e6d49e")           ## pale yellow plaster (photos)
 const DPB_ROOF := Color("#6c6a66")           ## grey roof, a default
 
+## The presbytery of Our Lady of Victory (Plebania, OSM building 394, Praga, 43 m from the church):
+## a two-storey house behind iron railings on a stone wall. Its mass stays the map's block in a skin:
+## cream plaster from two Mapillary photos down the street (2015, refs/churches/plebania_394,
+## reference only, never shipped), which show its end wall over the railings and trees; the roof is
+## a grey default. Spec docs/landmarks/specs/plebania_zwycieskiej.md.
+const PZW_AT := Vector2(1928.0, -1366.0)
+const PZW_WALL := Color("#e6d9b5")
+const PZW_ROOF := Color("#6c6a66")
+
 
 ## The presbytery of St Florian's cathedral (Plebania katedry św. Floriana, Floriańska, Praga):
 ## an L of two plastered houses behind the cathedral. The range on Floriańska, three tall storeys
