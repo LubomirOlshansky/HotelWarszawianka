@@ -1006,6 +1006,10 @@ func _place(c: Control, s: Vector2, cands: Array) -> int:
 	# Loop 2d-1: the ride's side card stands beside the car, never over it (too wide for the room
 	# there at large text, it fits its text: `_fit_text`).
 	var taken := _taken.duplicate()
+	if speech != null and speech.has_method("dialogue_rect"):
+		var talk: Rect2 = speech.dialogue_rect()
+		if talk.has_area():
+			taken.append(talk)  # a person's line stands in the dialogue panel: nothing is placed over it
 	if c == _card and _card_side:
 		taken.append(car_zone())
 	for k in cands.size():

@@ -588,9 +588,12 @@ func _queue_line(speaker: String, line: String, seconds: float, accent: Color, k
 func _next_line() -> void:
 	if _queue.is_empty():
 		_cur = {}
-		return
-	_cur = _queue.pop_front()
-	_bubbles.clear()  # a floating caption does not talk over a person
+	else:
+		_cur = _queue.pop_front()
+		_bubbles.clear()  # a floating caption does not talk over a person
+	var hud := get_parent()
+	if hud != null and hud.has_method("_mark"):
+		hud._mark()  # the toasts and cards give way to the panel, or take its room back
 
 
 func _panel_step(dt: float) -> void:
@@ -602,22 +605,31 @@ func _panel_step(dt: float) -> void:
 	queue_redraw()
 
 
-func _panel_rect(m: Dictionary) -> Rect2:
+## The panel's size in points-wide text, and where it stands: the bottom centre of the bubble area.
+func _panel_geometry() -> Array:
 	var area := _area()
+	var w := minf(PANEL_W, area.size.x / pt * PANEL_SHARE)
+	var m := _measure(_cur, w - PAD * 2.0 - FACE - FACE_GAP)
+	m["size"].x = w * pt
 	var size: Vector2 = m["size"]
 	var rect := Rect2(Vector2(area.position.x + (area.size.x - size.x) * 0.48, area.end.y - size.y - 4.0 * pt), size)
-	var found := _clear(rect, _hud_rects(), area)
-	return found[0] if found[1] else rect
+	return [rect, m]
+
+
+## Where the panel stands now (empty: no line up). The HUD's toasts and cards keep off it (hud.gd `_place`),
+## so a "NEW ENTRY" toast no longer draws over a person's words (Mac run, PR 899).
+func dialogue_rect() -> Rect2:
+	if _cur.is_empty() or not project.is_valid():
+		return Rect2()
+	return (_panel_geometry()[0] as Rect2).grow(4.0 * pt)
 
 
 func _draw_panel() -> void:
 	if _cur.is_empty():
 		return
-	var area := _area()
-	var w := minf(PANEL_W, area.size.x / pt * PANEL_SHARE)
-	var m := _measure(_cur, w - PAD * 2.0 - FACE - FACE_GAP)
-	m["size"].x = w * pt
-	var rect := _panel_rect(m)
+	var geo := _panel_geometry()
+	var rect: Rect2 = geo[0]
+	var m: Dictionary = geo[1]
 	var age: float = _cur["age"]
 	var alpha := clampf((float(_cur["life"]) - age) / FADE, 0.0, 1.0) * clampf(age / 0.12, 0.0, 1.0)
 	_panel.bg_color.a = CARD_BG.a * alpha
