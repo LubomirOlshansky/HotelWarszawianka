@@ -76,8 +76,11 @@ static func roof_shown(name: String) -> String:
 
 
 func find_roofs(landmarks: Array) -> void:
+	# A coroutine: one landmark's flat-roof search is a few ms; frames pass between them under the
+	# title's loading bar (LoadYield; the phone's log: 257-286 ms in one block).
 	var best := {}
 	for l in landmarks:
+		await LoadYield.tick("missions roofs")
 		var name: String = l["name"]
 		var poly := _pts(l["p"])
 		if not outlines.has(name):
