@@ -523,11 +523,6 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # runs on a baked map). After lane_tapers: the corridors take the roads' final widths.
     import road_profiles
     print("road_profiles: " + road_profiles.apply(out, map_dir))
-    # Fake bridges over the Ochota cutting (F, 2026-11-16): Żelazna's deck over solid ground, and the
-    # Plac Zawiszy arm's two narrow decks with the cutting's open pit between them, where the line
-    # really runs under the junction (tools/rail_covers.py; the same code runs on a baked map).
-    import rail_covers
-    print("rail_covers: " + rail_covers.apply(out, map_dir))
     # Lane links (RT-2, F 2026-11-15 "td-23 you can go"): each lane's landing lane across every
     # junction and its turn codes, from the turn:lanes arrows as they stand, the arrows seated on
     # their lanes (tools/lane_links.py; the same code runs on a baked map). After road_fixes, which

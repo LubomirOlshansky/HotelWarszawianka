@@ -3109,7 +3109,7 @@ const RAIL_MOUTH := 6.4
 
 func _build_rail_portals(st) -> void:
 	_uv2 = Vector2(0.5, -1.0)
-	for q: Vector2 in Trains.MOUTHS:
+	for q: Vector2 in Trains.PORTALS:
 		if _in_sector and not _sector_rect.has_point(q):
 			continue  # a sector holds every rail it touches whole: one sector owns each mouth
 		var ends := PackedVector2Array()

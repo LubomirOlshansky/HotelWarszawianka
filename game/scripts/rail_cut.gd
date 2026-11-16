@@ -36,9 +36,6 @@ const SUB_WALL := 10         ## the drawn ground's sub-cells by a wall (1 m: the
 ## Walled whatever the bank's width: the approach to the cross-city tunnel's west mouth.
 const WALLED: Array[Vector2] = [Vector2(-1964.0, 812.0)]
 const WALLED_R := 150.0
-## Walled too, in a smaller radius: the cutting's ends under Plac Zawiszy's junction (trains.gd
-## TUNNEL_ZAWISZY_PLAC), where the banks stop at a retaining wall.
-const WALLED_NEAR: Array[Vector3] = [Vector3(-2440.7, 970.5, 45.0), Vector3(-2375.8, 944.5, 45.0)]
 const SUB := 5               ## the drawn ground's sub-cells a 10 m cell (2 m) over the cutting
 
 ## Per track: {"p": PackedVector2Array samples, "f": floors, "cut": PackedByteArray,
@@ -283,9 +280,6 @@ func _banks(t: Dictionary) -> void:
 		for q: Vector2 in WALLED:
 			if pts[k].distance_to(q) < WALLED_R:
 				below = INF  # the tunnel's approach is walled all along (Mapillary, Feb 2026)
-		for q: Vector3 in WALLED_NEAR:
-			if pts[k].distance_to(Vector2(q.x, q.y)) < q.z:
-				below = INF
 		if b.x > 0.25 and b.x < below and r.x - f[k] > WALL_DEEP:
 			b.x = WALL_W
 			wall.x = 1.0
