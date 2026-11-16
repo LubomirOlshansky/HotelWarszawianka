@@ -5,6 +5,8 @@
 #   tools/turntable.sh KEY [--looks=lit,flat,sil] [--out=DIR] [--tile=480x360] [-- game flags]
 #
 # KEY is a landmark site key (game/scripts/landmarks.gd; `rotunda`, `palace`, `dom_partii`).
+# A kept skin (SKINS in landmarks/fronts.gd, LoD2's mass recoloured) shows its LoD2 building(s)
+# alone in the skin (`pko_marszalkowska`).
 # game/tools/site_cams.gd builds the site alone (milliseconds) and works out the cameras from its
 # bounding box: 8 yaws at pitch -25 (lo_000 ... lo_315), 8 at pitch -50 (hi_*) and `top`. Then one
 # game run per look, in parallel (--solo=KEY --solo-look=lit|flat|sil, --cams, one shot each; the

@@ -293,6 +293,8 @@ var _scratch_roof := PackedFloat32Array()
 var _out: Node3D
 ## Whether a sector's build writes its cells of the roof and picking grids (build_sector).
 var _merge := true
+## `--solo=KEY` of a kept skin (SKINS): its skin, while _build_lod2 builds only its buildings.
+var _solo_skin: Dictionary = {}
 ## The landmark sites, found once from the index (the streamed city).
 var _marks
 ## The city objects plan, step 2: the wall builder (city_barriers.gd), which draws the walls,
@@ -588,6 +590,12 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		var solo_walls := _new_surface()
 		solo_walls.none = roofs_only
 		marks.build(solo_walls, _near if _in_sector else Rect2(), solo_site)
+		# A kept skin (SKINS) builds no triangles of its own: it recolours LoD2's mass, so the
+		# turntable shows its LoD2 building(s) alone, in the skin (`_solo_skin` in _build_lod2).
+		_solo_skin = marks.skin_of(solo_site)
+		if not _solo_skin.is_empty():
+			_build_lod2(solo_walls, marks)
+		_solo_skin = {}
 		if not roofs_only:
 			_add_mesh(solo_walls, building_material, true)
 		return
@@ -9665,7 +9673,11 @@ func _build_lod2(walls, marks) -> Array:
 					lo = lo.min(q)
 					hi = hi.max(q)
 				t1 += 3
-		if marks.replaces((lo + hi) * 0.5):
+		if not _solo_skin.is_empty() and not is_same(marks.skin_at(Rect2(lo, hi - lo)), _solo_skin):
+			# `--solo=KEY` of a kept skin: every other building goes
+			for t in range(t0, t1, 3):
+				dropped[t / 3] = 1
+		elif marks.replaces((lo + hi) * 0.5):
 			# A modelled block on a LoD2 roof: only the walls go, the measured roof stays.
 			var roofs: bool = marks.keeps_lod2_roof((lo + hi) * 0.5)
 			for t in range(t0, t1, 3):
