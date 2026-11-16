@@ -76,8 +76,11 @@ class Edge:
         self.n = int(e["n"])
         self.o = float(e["o"])
         self.lw = float(e["lw"])
-        self.s0 = float(e["s0"])
-        self.s1 = max(float(e["s1"]), self.s0 + 0.1)
+        # the bake's own trims: tools/lane_changes.py (RT-4) stretches some links over a taper
+        # and keeps the trims it replaced in `s0o`/`s1o`, so the links and arrows here are judged
+        # where they were and this pass stays a fixed point of the map
+        self.s0 = float(e.get("s0o", e["s0"]))
+        self.s1 = max(float(e.get("s1o", e["s1"])), self.s0 + 0.1)
         self.nrm = self._normals()
 
     def _seg_dir(self, i):

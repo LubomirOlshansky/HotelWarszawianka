@@ -20,6 +20,10 @@ const SafeFile := preload("res://scripts/safe_file.gd")
 const PATH := "user://settings.cfg"
 ## Loop 3h slice 1: the settings file's format version (1: before loop 3h, no `[meta]`).
 const VERSION := 2
+## F 2026-11-16 (TestFlight build 12): the players' defaults for the collision answer (2: mid) and the
+## fences that break (on).
+const DEFAULT_COLLIDE := 2
+const DEFAULT_SOFT := true
 ## Traffic levels: traffic.gd's density (Busy = 1.0, the level before loop 2a) and the
 ## share of the pedestrians. Busy's target is more than the spawner can place in the band
 ## round the view (about 44 cars at the default view, wanted 70), so the densities are set
@@ -104,12 +108,15 @@ var lane_assist := true
 var chatter := 1
 ## The city objects plan, settings rows (F 2026-11-14): the car's collision answer, an index into
 ## collide_rules.gd PRESETS (0 v1 "Klasyczne", the default; 1 soft, 2 mid, 3 firm), Settings → ŚWIAT,
-## key "collide"; `--collide=` wins for a run.
-var collide := 0
-## Step 7's fences and hedges that break (soft_things.gd), Settings → ŚWIAT, key "soft_fences". Off
-## by default (F 2026-11-14: "on for you only, off for testers"): every fence and hedge is hard, the
-## colliders as before step 7. `--no-soft` keeps them hard for a run, `--soft` breakable.
-var soft_fences := false
+## key "collide"; `--collide=` wins for a run. F 2026-11-16 (TestFlight build 12): Medium (2, "mid") is
+## the default, and an older file (no `collide_default` key) starts on it once, then keeps the choice.
+var collide := DEFAULT_COLLIDE
+## Step 7's fences and hedges that break (soft_things.gd), DEV page, key "soft_fences". On by default
+## since F 2026-11-16 (TestFlight build 12; before: off, "on for you only, off for testers"); an older
+## file (no `collide_default` key) starts on once, then keeps the choice. `--no-soft` keeps them hard
+## for a run, `--soft` breakable. A `--nosave` run (the checks) keeps the old measured defaults, hard
+## fences and v1, unless a flag says otherwise (main.gd `_soft_on`, `_collide_preset`).
+var soft_fences := DEFAULT_SOFT
 ## The beta's anonymous play stats (play_stats.gd, docs/STATS.md), Settings → DŹWIĘK beside the
 ## language, key "stats". On by default (F 2026-11-15: no consent card in the beta, an off switch
 ## in Settings); off stops sending at once and drops what waits to be sent.
@@ -185,6 +192,11 @@ func load_file() -> void:
 	chatter = clampi(int(cfg.get_value("world", "chatter", chatter)), 0, 2)
 	collide = clampi(int(cfg.get_value("game", "collide", collide)), 0, COLLIDE_PRESETS - 1)
 	soft_fences = bool(cfg.get_value("game", "soft_fences", soft_fences))
+	if not cfg.has_section_key("game", "collide_default"):
+		# F 2026-11-16: the two rows were on the hidden DEV page, so an older file holds the old
+		# defaults, not a choice: once, the new ones.
+		collide = DEFAULT_COLLIDE
+		soft_fences = DEFAULT_SOFT
 	stats = bool(cfg.get_value("game", "stats", stats))
 	text_large = bool(cfg.get_value("access", "text_large", text_large))
 	calm = bool(cfg.get_value("access", "calm", calm))
@@ -231,6 +243,7 @@ func save() -> void:
 	cfg.set_value("game", "sensitivity", snappedf(sensitivity, 0.05))
 	cfg.set_value("game", "lane_assist", lane_assist)
 	cfg.set_value("game", "lane_assist_default", 1)
+	cfg.set_value("game", "collide_default", 1)
 	cfg.set_value("world", "chatter", chatter)
 	cfg.set_value("game", "collide", collide)
 	cfg.set_value("game", "soft_fences", soft_fences)

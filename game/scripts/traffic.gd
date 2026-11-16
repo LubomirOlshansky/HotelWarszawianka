@@ -847,6 +847,10 @@ var _drawn := PackedInt32Array([0, 0, 0, 0, 0])
 var _top := PackedInt32Array([0, 0, 0, 0, 0])
 var _bodies: Array[AnimatableBody3D] = []
 var _body_driver: Array = []
+## PT-55 (2026-11-16): the cars within BODY_RANGE of the player this physics frame and their
+## squared distances, kept between frames so the pick allocates nothing.
+var _body_near: Array[Driver] = []
+var _body_d2 := PackedFloat32Array()
 var _rng := RandomNumberGenerator.new()
 ## The racing lines of this map (race_line.gd: the stretches built, shared by every racer).
 var _line: RaceLine
@@ -1103,31 +1107,59 @@ func _physics_process(_dt: float) -> void:
 	spent_usec += Time.get_ticks_usec() - t0
 
 
+## The BODIES cars nearest the player get a body each, so the player's car bumps them. PT-55
+## (Aura, 2026-11-16, Książęca x Kruczkowskiego): the first BODIES cars of `_active` in range got
+## them, not the nearest; at a busy junction 17 cars stand within BODY_RANGE, so one beside the
+## player could have none (a car 3.9 m off for 3.6 s of a 2 min stand, check_traffic_bodies). The
+## player's car drove into that one, and when the list's order gave it a body again the body was
+## put down inside the player's car: the van drawn over it, the car pinned.
 func _bodies_step(_dt: float) -> void:
-	# The cars nearest the player get a body each, so the player's car bumps them.
-	var used := 0
 	var p := Vector2(player_pos.x, player_pos.z)
+	_body_near.clear()
+	_body_d2.resize(0)
 	if player_on_road:
 		for d in _active:
-			if used >= BODIES:
-				break
-			if d.ghost or Vector2(d.pos.x, d.pos.z).distance_squared_to(p) > BODY_RANGE * BODY_RANGE:
+			if d.ghost:
 				continue
-			var body := _bodies[used]
-			var box: BoxShape3D = (body.get_child(0) as CollisionShape3D).shape
-			if box.size != d.size:
-				box.size = d.size
-			body.collision_layer = 1
-			if CollideRules.is_v2(collide):
-				body.set_meta(&"heavy", d.kind == Kind.BUS)
-			body.global_transform = Transform3D(Basis(Vector3.UP, d.yaw), d.pos + Vector3(0, d.size.y * 0.5 + 0.1, 0))
-			_body_driver[used] = d
-			used += 1
-	for k in range(used, BODIES):
-		if _body_driver[k] != null:
+			var d2 := Vector2(d.pos.x, d.pos.z).distance_squared_to(p)
+			if d2 > BODY_RANGE * BODY_RANGE:
+				continue
+			# Kept in order of distance (a handful in range: an insertion is cheapest).
+			var i := _body_near.size()
+			_body_near.append(d)
+			_body_d2.append(d2)
+			while i > 0 and _body_d2[i - 1] > d2:
+				_body_near[i] = _body_near[i - 1]
+				_body_d2[i] = _body_d2[i - 1]
+				i -= 1
+			_body_near[i] = d
+			_body_d2[i] = d2
+		if _body_near.size() > BODIES:
+			_body_near.resize(BODIES)
+	# A car keeps the body it had while it stays among the nearest; a newcomer takes a free one.
+	# (A body handed to another car each frame as two swap places in the order jumps metres in a
+	# step, and the physics reads that jump as the body's speed against the player's car.)
+	for k in BODIES:
+		var had: Driver = _body_driver[k]
+		if had != null and not _body_near.has(had):
+			_body_driver[k] = null
+	for d in _body_near:
+		var k := _body_driver.find(d)
+		if k < 0:
+			k = _body_driver.find(null)
+		_body_driver[k] = d
+		var body := _bodies[k]
+		var box: BoxShape3D = (body.get_child(0) as CollisionShape3D).shape
+		if box.size != d.size:
+			box.size = d.size
+		body.collision_layer = 1
+		if CollideRules.is_v2(collide):
+			body.set_meta(&"heavy", d.kind == Kind.BUS)
+		body.global_transform = Transform3D(Basis(Vector3.UP, d.yaw), d.pos + Vector3(0, d.size.y * 0.5 + 0.1, 0))
+	for k in BODIES:
+		if _body_driver[k] == null and _bodies[k].collision_layer != 0:
 			_bodies[k].collision_layer = 0
 			_bodies[k].global_position = Vector3(0, -500 - k * 10, 0)
-			_body_driver[k] = null
 
 
 ## The player's car hit something; if it was one of ours, that car stops a moment.
@@ -1341,7 +1373,11 @@ func _try_spawn(anywhere: bool) -> bool:
 		loud = true
 	# Crazy drivers: now and then a taxi, a van, or (once at a time) a car's spawn drives wild.
 	var crazy := 0
-	if not loud and crazy_count < crazy_target and cls <= 2 and kind != Kind.BUS and _crazy_rng.randf() < CRAZY_CHANCE:
+	# Not on a street outside the town's one connected net (`node_scc` 0: a cul-de-sac like Widok or
+	# Kubusia Puchatka): no fare is in reach from there, and a crazy driver lives on its fares
+	# (crazy_route.gd); the draw is made first, so the dice stay the same for every other spawn.
+	if not loud and crazy_count < crazy_target and cls <= 2 and kind != Kind.BUS and _crazy_rng.randf() < CRAZY_CHANCE \
+			and graph.node_scc[graph.e_b[e]] != 0:
 		if pasat_count == 0 and cls <= 1 and _crazy_rng.randf() < CRAZY_PASAT_SHARE and not _free_slots[Kind.TAXI].is_empty():
 			kind = Kind.TAXI
 			shapes = Models.TRAFFIC[kind]

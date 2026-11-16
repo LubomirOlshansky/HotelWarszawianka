@@ -220,6 +220,55 @@ const PIER_CELL := 40.0
 var walk_up_pill := true
 
 
+## Wires the boat race from the game (activity.gd `install`; main.gd's `_build_boat_race` until TD-4
+## b5). None with --boat-race=0. `autopilot` is on with --autopilot or --boat-race=auto. The ride's
+## two signals (`boarded`, `left_boat`) go to main.gd, which hands over the controls: its hooks,
+## connected after the join.
+func install(ctx: GameCtx) -> bool:
+	if ctx.flags.boat_flag == "0":
+		return false
+	super(ctx)
+	name = "BoatRace"
+	dialogue = ctx.dialogue
+	car = ctx.car
+	log_on = ctx.flags.boat_log
+	autopilot = ctx.flags.autopilot or ctx.flags.boat_flag == "auto"
+	force_hours = ctx.flags.boat_flag != ""
+	vehicle = ctx.vehicle
+	seen = ctx.seen
+	clock = ctx.life_hour
+	return true
+
+
+## After the join (main.gd's `_build_boat_race` until TD-4 b5): the free-ride boat's mark among the
+## jobs' places (the minimap and the full map), and the test starts a second into the drive:
+## --boat-race=race / =auto (the car at the pontoon, aboard), =free[N] / =marina (the car there,
+## a free ride or the marina's card) and =call (Szymek rings).
+func joined(ctx: GameCtx) -> void:
+	var jobs: Node = ctx.jobs
+	if jobs != null:
+		jobs.boat_spot = fleet_spot(1)
+		jobs._show_places(jobs._places_shown, true)
+	var how: String = ctx.flags.boat_flag
+	if how in ["race", "auto"]:
+		get_tree().create_timer(1.0).timeout.connect(func() -> void:
+			var at := CAR_SPOT
+			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
+			car.reset_physics_interpolation()
+			board())
+	elif how.begins_with("free") or how == "marina":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void:
+			var at := CAR_SPOT
+			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
+			car.reset_physics_interpolation()
+			if how.begins_with("free"):
+				free_ride(int(how.trim_prefix("free")) if how.length() > 4 else 1)
+			else:
+				_marina_card())
+	elif how == "call":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void: ring())
+
+
 func setup(world: Node3D) -> void:
 	tag = "boat race"
 	colour = COLOUR

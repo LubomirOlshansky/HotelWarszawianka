@@ -138,6 +138,9 @@
 # Beta values (2026-11-04): `delivery` runs game/tools/check_delivery.gd: the deliveries' minimap
 # route from the stands to 60 doors (and from the reverse lane), the heat's words, NASTĘPNE's
 # nearest stand and the route's owner rule (the committed centrum.json, headless, ~20 s).
+# TD-13 step 4: `targetroute` runs game/tools/check_target_route.gd: the road route to any target
+# (target_route.gd) on the real lane graph: one search per goal, a moving goal, another owner's
+# route winning, none in the air or far from roads (headless, ~5 s).
 # Loop couriers: `couriers` runs game/tools/check_couriers.gd: the Pędzik couriers waiting at the kebab
 # stands at night (1 or 2, none by day, the race's take), the kerb riders on the real lane graph (the
 # count in the band, on the kerb line, through the junctions), the swerve / hop on synthetic inputs and
@@ -199,6 +202,10 @@
 # shapes: the Pasatini), the crazy_taxi / crazy_courier / crazy_pasatini / KEBAB FM lines (no real
 # marque), 60 s of real traffic through the centre (crazy drivers in racer mode on the lanes, never over
 # the cap or two Pasatinis, faster than town cars), the cut-in horn and one line; centrum.json only (CI too).
+# PT-55 (2026-11-16): `trafficbodies` runs game/tools/check_traffic_bodies.gd: 90 s of real traffic round
+# the player's car standing at Książęca x Kruczkowskiego (17 cars within 40 m): the 12 collision bodies
+# are always the 12 nearest cars', each where its car is, and a car keeps its body while it stays among
+# them; centrum.json only (CI too).
 # The vintage-tram loop: `oldtram` runs game/tools/check_old_tram.gd: the old set's window (weekends
 # 09-19, Live Jun-Sep) and one run an hour, the follow count and its reset, the look's draw-call
 # budget (2 car meshes, no node added), a run on the real tracks finding E39 once; centrum.json only
@@ -317,13 +324,16 @@
 # width steps at the joins tapered, the lane lines stitched; its steps and jogs never grow).
 # Lane drops (2026-11-14): `tapers` runs tools/lane_tapers.py --check (two lanes become one along a
 # real-life taper, about 1:15; the lane drops steeper than 1:5 away from junctions never grow).
+# Lane changes (RT-4, 2026-11-15): `lanechanges` runs tools/lane_changes.py --check (the continuation
+# links that move a lane over steeper than 1:6, where a street gains, loses or moves a lane between two
+# of its ways, never grow; the pass that stretches them is parked until traffic drives long links, TD-27).
 # Street objects (2026-11-07): `objects` runs tools/object_fixes.py --check (the map's lamps, signals,
 # benches, bins, racks, columns, shelters, parked cars and barriers carry no artifact object_audit.py
 # fixes by itself: inside a wall, in a carriageway, under a deck, doubles, stubs, stair slabs, paths
 # walled off; 2026-11-08: no scanned tree in the water or on the asphalt, no fence or hedge in the
 # water; the CHECK rules are only counted).
 # Re-bake guard (2026-11-14): `postpasses` runs tools/check_post_passes.py (road_fixes, lane_tapers, zamek_ramps,
-# object_fixes, road_profiles and parked_thin each leave the committed map unchanged: a pass that is not
+# object_fixes, road_profiles, lane_links and parked_thin each leave the committed map unchanged: a pass that is not
 # idempotent drifts it on every re-run).
 # Parked rows (the city objects plan, step 8b, 2026-11-15): `parkedthin` runs tools/parked_thin.py --check
 # (the map is thinned, and over the whole map no parked car's box reaches into a lane, none within 1 m
@@ -1068,6 +1078,15 @@ for s in $want; do
 				0) row PASS "smooth" $secs "$(grep '^road_smooth: ' $logs/smooth.log | tail -1)" ;;
 				*) row FAIL "smooth" $secs "$(grep '^road_smooth: ' $logs/smooth.log | tail -1) ($logs/smooth.log)" ;;
 			esac ;;
+		lanechanges)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/lane_changes.py --check > $logs/lanechanges.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "lanechanges" $secs "$(grep '^lane_changes: ' $logs/lanechanges.log | tail -1)" ;;
+				*) row FAIL "lanechanges" $secs "$(grep '^lane_changes: ' $logs/lanechanges.log | tail -1) ($logs/lanechanges.log)" ;;
+			esac ;;
 		tapers)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/lane_tapers.py --check > $logs/tapers.log 2>&1
@@ -1419,6 +1438,8 @@ for s in $want; do
 		tramfleet) check tramfleet '^check_tram_fleet:' --script res://tools/check_tram_fleet.gd ;;
 		# The railway (docs/design/railway.md T1): the trains on the rail tracks.
 		trains) check trains '^check_trains:' --script res://tools/check_trains.gd ;;
+		# PT-55: the collision bodies go to the cars nearest the player, and stay with them.
+		trafficbodies) check trafficbodies '^check_traffic_bodies:' --script res://tools/check_traffic_bodies.gd ;;
 		# The railway audit (2026-11-07): the light signals at the platforms' ends and the tunnel mouths.
 		railsignals) check railsignals '^check_rail_signals:' --script res://tools/check_rail_signals.gd ;;
 		# Packs: running clubs, cycling packs, coffee raves, the big guys with tiny dogs.
@@ -1461,6 +1482,7 @@ for s in $want; do
 		mainline) check mainline '^main_line:' --script res://tools/check_main_line.gd ;;
 		chatter) check chatter '^check_chatter:' --script res://tools/check_chatter.gd ;;
 		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
+		targetroute) check targetroute '^check_target_route:' --script res://tools/check_target_route.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		endcard) check endcard '^end_card:' --script res://tools/check_end_card.gd ;;
 		# First hour step 6: the hints in play, the loading tips, the spotlight (no map).

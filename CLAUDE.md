@@ -103,8 +103,10 @@ tools/export_android.sh [--skip-city|--apk]   # the signed Play AAB
   anything per-frame. Name what only the phone can show.
 - **Landmark and building models.** Before the pull request, run `tools/turntable.sh KEY` for
   every site built or changed, look at the sheet (`shots/turntable_KEY/KEY_turntable.png`: all
-  sides, lit, flat and silhouette, the top) and say in the PR what it showed. City shots come
-  after it, not instead of it (F, 2026-11-13).
+  sides, lit, flat and silhouette, the top; a kept skin shows its LoD2 building) and say in the
+  PR what it showed. City shots come after it, not instead of it (F, 2026-11-13). The "model
+  done" reply to F opens with the sheet itself, attached or on the lane's turntable page, never
+  only its path (F, 2026-11-16).
 
 ## Git
 

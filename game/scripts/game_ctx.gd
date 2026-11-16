@@ -32,6 +32,9 @@ var city_sounds: Node
 var graph: RefCounted
 ## The traffic, null with --no-traffic.
 var traffic: Node3D
+## The side jobs (jobs.gd), null without a lane graph: their places on the map carry other
+## activities' marks too (the free-ride boat's).
+var jobs: Node
 ## The police (police.gd), null with --no-police.
 var police: Node
 var car: CharacterBody3D
@@ -46,6 +49,11 @@ var ground_mat: Material
 var vehicle: Callable
 ## The hour of the local clock (time_of_day.gd), 0 to 24.
 var hour: Callable
+## The hour of the city's life (city_life.gd `hour_now`; 12.0 when there is none, as with
+## --no-traffic).
+var life_hour: Callable
+## (Vector3) -> bool: the point is on screen (the camera's frustum).
+var seen: Callable
 ## Takes the player up in the helicopter from where the car stands, at cruise height.
 var take_off: Callable
 ## The camera's focus now (main.gd's `cam_focus`): the point the view follows, where an activity

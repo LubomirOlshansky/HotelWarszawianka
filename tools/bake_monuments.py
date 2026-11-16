@@ -88,6 +88,8 @@ SKIP = [
     ("Jan Kiliński", -896.0, -1573.0, 8.0),
     ("Umschlagplatz", -2382.0, -2020.0, 10.0),
     ("Poległym i Pomordowanym na Wschodzie", -1718.0, -2183.0, 25.0),
+    # The Kiliński battalion's monument on Plac Powstańców Warszawy (site batalion_kilinski, 2026-11-16)
+    ("Pomnik Powstańców Warszawy", -743.6, -208.8, 8.0),
 ]
 # Still generic until their photo builds land and join SKIP: docs/CITY_INVENTORY.md rows 113-116.
 SAXON = (-1125.2, -691.8)   # a point in Ogród Saski (bake_park_details.PARKS)

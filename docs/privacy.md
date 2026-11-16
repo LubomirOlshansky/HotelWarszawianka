@@ -12,8 +12,7 @@ play statistics, which you can turn off in Settings.
   events: a session started or ended (with minutes played and kilometres driven), a job or race
   started or finished, a district or secret found, a setting changed, the frame rate. Each copy
   of the game has a random ID made on your phone, not linked to you or to your device's own
-  identifiers. Your IP address is discarded on arrival and no device model or language list is
-  sent. The events go to PostHog (EU Cloud, servers in Frankfurt), are used only to improve the
+  identifiers. Your IP address is discarded on arrival and the phone's model (for example "iPhone 16 Pro") is sent so we know which phones the game must run on, but no language list. The events go to PostHog (EU Cloud, servers in Frankfurt), are used only to improve the
   game, are never sold or used for advertising, and are kept for at most one year.
 - **Turn it off.** Settings → Dźwięk (Sound) → "Anonimowa statystyka · Anonymous stats" → Off.
   From then on nothing is sent, and the events waiting on the phone are dropped.
@@ -48,7 +47,7 @@ statystyki gry, które można wyłączyć w Ustawieniach.
   sesji (z minutami gry i przejechanymi kilometrami), początek i koniec zlecenia lub wyścigu,
   odkrytą dzielnicę lub sekret, zmianę ustawienia, liczbę klatek. Każda kopia gry ma losowy
   identyfikator utworzony na telefonie, niepowiązany z Tobą ani z identyfikatorami urządzenia.
-  Adres IP jest odrzucany po dotarciu, nie wysyłamy modelu telefonu ani listy języków. Zdarzenia
+  Adres IP jest odrzucany po dotarciu, wysyłamy model telefonu (np. „iPhone 16 Pro”), żeby wiedzieć, na jakich telefonach gra ma działać, ale nie listę języków. Zdarzenia
   trafiają do PostHog (EU Cloud, serwery we Frankfurcie), służą tylko do ulepszania gry, nigdy nie
   są sprzedawane ani używane do reklam i są przechowywane najwyżej rok.
 - **Wyłączanie.** Ustawienia → Dźwięk → „Anonimowa statystyka · Anonymous stats” → Wył. Od tej

@@ -295,11 +295,18 @@ func _check_traffic(g: LaneGraph, map: Node3D, digest: PackedStringArray) -> voi
 	lc.set_process(false)
 	root.add_child(lc)
 	lc.setup()
+	# One loud car listened to: the others are muted for the tick (a clip under 0.5 never revs), as
+	# where the traffic puts its cars is the map's and two may happen to drive side by side.
 	var loud: Object = null
+	var muted := {}
 	for d in traffic.drivers():
-		if d.loud and d.clip >= 0.5:
+		if not d.loud or d.clip < 0.5:
+			continue
+		if loud == null:
 			loud = d
-			break
+		else:
+			muted[d] = d.clip
+			d.clip = 0.0
 	if loud == null:
 		problems.append("tick: no loud car to listen to")
 	else:
@@ -308,6 +315,8 @@ func _check_traffic(g: LaneGraph, map: Node3D, digest: PackedStringArray) -> voi
 		lc.step(0.25)
 		lc.step(0.25)
 		lc.step(0.25)
+		for d in muted:
+			d.clip = muted[d]
 		if lc.revs != 1:
 			problems.append("tick: %d revs from one car in 0.75 s (want 1)" % lc.revs)
 		if fradio.said.size() != 1:

@@ -90,6 +90,7 @@ kinotour             quick
 ladder               quick
 landmarks            landmarks
 laneassist           quick
+lanechanges          quick
 lanedrive            smoke     slow
 lanedrive-grounded   local     slow
 language             smoke
@@ -202,10 +203,12 @@ tamka                quick
 tape                 quick
 tapers               quick
 tarasyscreen         quick
+targetroute          quick
 teleport             runs
 tenementtrim         quick
 tiers                quick
 tour-run             local     slow
+trafficbodies        quick
 trains               quick
 tramfleet            quick
 tramstops            quick

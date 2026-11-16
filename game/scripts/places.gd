@@ -82,7 +82,7 @@ func build(map: Node3D, ctx: Dictionary, solo_site := "") -> void:
 		place.set("ctx", ctx)
 		place.set("hub", self)
 		add_child(place)
-		place.call("build")
+		await place.call("build")  # a place may let frames through under the title (tamka.gd)
 		var ms := float(Time.get_ticks_usec() - t0) / 1000.0
 		var tris := int(place.call("total_triangles"))
 		var own := int(place.get("own_parts"))

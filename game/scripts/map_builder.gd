@@ -299,6 +299,8 @@ var _scratch_roof := PackedFloat32Array()
 var _out: Node3D
 ## Whether a sector's build writes its cells of the roof and picking grids (build_sector).
 var _merge := true
+## `--solo=KEY` of a kept skin (SKINS): its skin, while _build_lod2 builds only its buildings.
+var _solo_skin: Dictionary = {}
 ## The landmark sites, found once from the index (the streamed city).
 var _marks
 ## The city objects plan, step 2: the wall builder (city_barriers.gd), which draws the walls,
@@ -594,6 +596,12 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		var solo_walls := _new_surface()
 		solo_walls.none = roofs_only
 		marks.build(solo_walls, _near if _in_sector else Rect2(), solo_site)
+		# A kept skin (SKINS) builds no triangles of its own: it recolours LoD2's mass, so the
+		# turntable shows its LoD2 building(s) alone, in the skin (`_solo_skin` in _build_lod2).
+		_solo_skin = marks.skin_of(solo_site)
+		if not _solo_skin.is_empty():
+			_build_lod2(solo_walls, marks)
+		_solo_skin = {}
 		if not roofs_only:
 			_add_mesh(solo_walls, building_material, true)
 		return
@@ -2028,6 +2036,19 @@ const SUNKEN := [
 		"a": Vector2(-1004.35, 222.0), "b": Vector2(-993.7, 252.35),
 		"ring": [Vector2(-1007.8, 222.0), Vector2(-1000.9, 222.0), Vector2(-990.7, 251.3), Vector2(-989.3, 255.3),
 			Vector2(-995.3, 257.4), Vector2(-996.7, 253.4)]},
+	# The entry ramp of the car park under Plac Powstańców Warszawy (F's photos, 2026-11-16: a
+	# straight ramp between bare concrete walls standing about a metre over the square, down to the
+	# mouth in its south end wall under the WJAZD board; refs/kilinski_plac). Before this the mapped
+	# wall U (`lines` wall_stone) stood round the 10 m grid's blurred pit, an asphalt road wandering
+	# down it to a roller shutter half way (R9's `garage_doors`, left out inside a ramp ring now).
+	# The ring is the walls' line (the west wall's kink kept, so the mapped walls are the site's);
+	# the floor falls 3.5 m from the top on the square's east road to the mouth, the last 4 m under
+	# GARAGE_MOUTHS' hood. `tile`, `floor` and `rise`: this ramp's own concrete, setts and wall height.
+	{"key": "powstancow_ramp", "site": "powstancow_ramp", "style": "ramp", "sub": 20, "hb": NAN, "drop": 3.5,
+		"rim": 12.9, "tile": Color("#cdcac2"), "floor": Color("#8b8d8e"), "rise": 1.0,
+		"a": Vector2(-725.05, -186.6), "b": Vector2(-717.6, -161.4),
+		"ring": [Vector2(-727.1, -186.6), Vector2(-723.0, -186.6), Vector2(-714.44, -162.57), Vector2(-713.1, -158.8),
+			Vector2(-719.5, -156.6), Vector2(-720.8, -160.39), Vector2(-726.3, -176.4)]},
 	# Złote Tarasy's sunken plaza (F, 2026-11-11: "the place on the level below now looks like a
 	# hole"; GUGiK orthophoto refs/tarasy, F's photos): the square one floor under the street on the
 	# station side, ringed by the railing OpenStreetMap maps (lines fence 29 round its top, the
@@ -2137,7 +2158,8 @@ static func sunk_entry(e: Dictionary, ha: float, step: float) -> Dictionary:
 		wide = wl[0] if not wl.is_empty() else ring
 	return {"key": e["key"], "ring": ring, "grown": grown, "wide": wide, "box": box, "a": e["a"], "b": e["b"], "ha": ha, "hb": hb, "sub": sub,
 			"site": e.get("site", "sunken"), "style": e.get("style", "rail"), "walk": PackedVector2Array(e.get("walk", [])),
-			"rim": float(e.get("rim", -INF))}
+			"rim": float(e.get("rim", -INF)), "tile": e.get("tile", Color(0, 0, 0, 0)),
+			"floor": e.get("floor", Color(0, 0, 0, 0)), "rise": float(e.get("rise", -1.0))}
 
 
 ## A sunken ring's floor at a point (its ring, or `grown` its ring grown for the drawn ground),
@@ -2234,6 +2256,14 @@ func _load_cut() -> void:
 static func in_sunken(x: float, z: float) -> bool:
 	for e: Dictionary in SUNKEN:
 		if Geometry2D.is_point_in_polygon(Vector2(x, z), PackedVector2Array(e["ring"])):
+			return true
+	return false
+
+
+## Whether plan point p lies in a SUNKEN ring of style "ramp" (static: the plan rings only).
+static func _in_ramp_ring(p: Vector2) -> bool:
+	for e: Dictionary in SUNKEN:
+		if str(e.get("style", "")) == "ramp" and Geometry2D.is_point_in_polygon(p, PackedVector2Array(e["ring"])):
 			return true
 	return false
 
@@ -5147,6 +5177,10 @@ func _build_garage_doors(st) -> void:
 	_uv2 = Vector2(0.5, -1.0)
 	for g: Dictionary in data.get("garage_doors", []):
 		var c := Vector2(float(g["c"][0]), float(g["c"][1]))
+		# a shutter R9 put half way down a ramp the map now sinks (SUNKEN style "ramp"): its site
+		# and GARAGE_MOUTHS draw the mouth at the ramp's foot instead
+		if _in_ramp_ring(c):
+			continue
 		var d := Vector2(float(g["d"][0]), float(g["d"][1])).normalized()
 		var side := Vector2(-d.y, d.x)
 		var w := float(g["w"])
@@ -5177,6 +5211,10 @@ const GARAGE_MOUTHS := [
 	# walls' pink tile (`tile`); the height gauge 4 m down the ramp from its top.
 	{"c": Vector2(-993.7, 252.35), "d": Vector2(0.338, 0.941), "w": 5.4, "top": Vector2(-1003.0, 225.8),
 		"tile": Color("#c9a69b")},
+	# Plac Powstańców Warszawy's car park (SUNKEN `powstancow_ramp`): the mouth in the ramp's south
+	# end wall, bare concrete like the walls (its WJAZD board: centralny_ramp.gd).
+	{"c": Vector2(-717.6, -161.4), "d": Vector2(0.2835, 0.959), "w": 5.2, "top": Vector2(-723.9, -182.8),
+		"tile": Color("#cdcac2")},
 ]
 const MOUTH_DARK := Color("#17181c")
 const MOUTH_HAZARD := Color("#e0b22a")
@@ -6105,10 +6143,15 @@ func _fine_index() -> void:
 	# sub-cells meet the 2 m ones by it; there the drawn ground cracked up to 3.3 m deep
 	# (check_ground's height rule, 2026-11-05 to -08: west of Centralna, -3050..-2090, 810..1200).
 	# The coarser side takes the finer one's sub-cells, until every edge in the cutting agrees.
+	# The same round each sunken place (2026-11-16): Plac Powstańców's ramp's sub-cells met a plain
+	# cell over its east road's lowering ground profile, 0.15 m apart along their shared edge.
 	var todo: Array[Vector2i] = []
 	var near_cut: Rect2 = _cut.box.grow(step)
+	var near_sunk: Array[Rect2] = []
+	for sk: Dictionary in _sunk:
+		near_sunk.append((sk["box"] as Rect2).grow(step * 2.0))
 	for c: Vector2i in _fine_cells:
-		if near_cut.has_point(Vector2(gx + (c.x + 0.5) * step, gz + (c.y + 0.5) * step)):
+		if _near_closure(Vector2(gx + (c.x + 0.5) * step, gz + (c.y + 0.5) * step), near_cut, near_sunk):
 			todo.append(c)
 	while not todo.is_empty():
 		var c: Vector2i = todo.pop_back()
@@ -6124,12 +6167,23 @@ func _fine_index() -> void:
 			var ex := gx + (c.x + maxi(d.x, 0)) * step
 			var ez := gz + (c.y + maxi(d.y, 0)) * step
 			var dir := Vector2(0.0, step) if d.x != 0 else Vector2(step, 0.0)
-			if not near_cut.has_point(Vector2(ex, ez) + dir * 0.5):
+			if not _near_closure(Vector2(ex, ez) + dir * 0.5, near_cut, near_sunk):
 				continue
 			if not _edge_splits(Vector2(ex, ez), dir, sc, sn, _fine_cells.has(nb)):
 				continue
 			_fine_cells[nb] = sc
 			todo.append(nb)
+
+
+## Whether point p lies where _fine_index closes the edges between fine and coarse cells: by the
+## railway cutting, or by a sunken place.
+static func _near_closure(p: Vector2, near_cut: Rect2, near_sunk: Array[Rect2]) -> bool:
+	if near_cut.has_point(p):
+		return true
+	for r: Rect2 in near_sunk:
+		if r.has_point(p):
+			return true
+	return false
 
 
 ## Whether two cells sharing the edge from `o` along `dir` draw it apart: the finer side's
@@ -9626,7 +9680,11 @@ func _build_lod2(walls, marks) -> Array:
 					lo = lo.min(q)
 					hi = hi.max(q)
 				t1 += 3
-		if marks.replaces((lo + hi) * 0.5):
+		if not _solo_skin.is_empty() and not is_same(marks.skin_at(Rect2(lo, hi - lo)), _solo_skin):
+			# `--solo=KEY` of a kept skin: every other building goes
+			for t in range(t0, t1, 3):
+				dropped[t / 3] = 1
+		elif marks.replaces((lo + hi) * 0.5):
 			# A modelled block on a LoD2 roof: only the walls go, the measured roof stays.
 			var roofs: bool = marks.keeps_lod2_roof((lo + hi) * 0.5)
 			for t in range(t0, t1, 3):

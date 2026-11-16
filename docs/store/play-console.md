@@ -4,8 +4,8 @@ Answers for Around Warsaw's Play Console forms (and, in section 7, its App Store
 and keywords), version 0.1 (code 1 was the first upload to
 internal testing, October 2026; code 2 requires Vulkan). The build: `tools/export_android.sh`
 (docs/DEVELOPMENT.md, "Android (Google Play)"). Field names follow Play Console's English labels; Play may
-reword them. Facts behind the answers: no network code, no INTERNET permission, VIBRATE only,
-saves in `user://` on the device (`settings.gd`, `wallet.gd`), no accounts, ads or purchases;
+reword them. Facts behind the answers: no accounts, ads or purchases, VIBRATE and INTERNET only (INTERNET since 2026-11-15, for the
+anonymous play stats to PostHog EU, docs/STATS.md); saves in `user://` on the device (`settings.gd`, `wallet.gd`);
 Vulkan required (level 1, version 1.1.0).
 
 ## 1. Create app
@@ -80,7 +80,7 @@ code.
 
 ### Advertising ID
 
-**No.** The app doesn't use the advertising ID (no ads or analytics SDK; the manifest has no
+**No.** The app doesn't use the advertising ID (no ads SDK; the PostHog play-stats SDK uses its own random install ID, and the manifest has no
 `AD_ID` permission).
 
 ### Content rating (IARC questionnaire)
@@ -252,7 +252,7 @@ screen; the listing says "Polish with English" nowhere because Play shows one la
 | Name (30 characters at most) | **Around Warsaw** (13) |
 | Subtitle (30 at most) | **Drive and fly the real Warsaw** (29); Polish **Jeźdź i lataj po Warszawie** (26) |
 | Keywords (100 at most, commas, no spaces) | per language in `app-store-connect.md` section 7 |
-| Bundle ID | `com.olshanskysoft.nocnawarszawa` (unchanged by the rename; players never see it) |
+| Bundle ID | `com.olshanskysoft.aroundwarsaw` (the Android package keeps `com.olshanskysoft.nocnawarszawa`) |
 
 The home-screen name under the icon is the project's name, `Around Warsaw` (`game/project.godot`
 `config/name` on iOS, the Android preset's `package/name` on Android).

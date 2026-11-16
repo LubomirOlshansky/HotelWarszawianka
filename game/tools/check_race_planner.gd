@@ -79,7 +79,9 @@ const CIRCLE_GAIN := 15.0
 const OFF_ROAD := 7.0
 ## Trzy mosty's finish: the metres the circle saves Seba from the last bridge, at least.
 const FINAL_GAIN := 300.0
-const CIRCLE_TRAFFIC := 1.25
+## 1.25 until 2026-11-16, 1.35 since: the first race no longer waits at the line (its wait used to be
+## left out of the time), so a player ahead of her at the start and the town's cars cost her a little more.
+const CIRCLE_TRAFFIC := 1.35
 
 var _bench: RaceBench
 var _graph: LaneGraph

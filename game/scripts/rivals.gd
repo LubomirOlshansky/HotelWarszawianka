@@ -153,9 +153,10 @@ const FIRST_ROLL := 12.0
 ## so she stood held 12 m in front of the car on the 3 m street (no room to pass) and the car
 ## crawled into her at a wall's 6-7 km/h for the whole 20 s prompt.
 const FIRST_SNAP := 15.0
-## PT-11 (the design half): after START! in the first race she waits at the line until the player
-## moves (faster than FIRST_MOVE m/s) or FIRST_HOLD s pass, so a new player who doesn't yet know to
-## drive is not left behind. Still after FIRST_IDLE s: the GO nudge (the banner GAZ!, the ghost
+## PT-11 (the design half), changed 2026-11-16 (F, build 11: "she stays and waits for me"): she
+## does NOT wait at the line any more, she drives off at START! like a real racer. The player who
+## doesn't yet know to drive is told instead: the window below lasts until the player moves (faster
+## than FIRST_MOVE m/s) or FIRST_HOLD s pass. Still after FIRST_IDLE s: the GO nudge (the banner GAZ!, the ghost
 ## finger on the stick, her line "go"). Stopped (slower than FIRST_STOP m/s) for FIRST_STALL s
 ## mid-race, more than FIRST_EASE m from the Palm: the "stall" nudge, at most FIRST_STALLS times.
 const FIRST_HOLD := 12.0
@@ -1117,8 +1118,8 @@ func _go() -> void:
 	_stall_t = 0.0
 	_stalls = 0
 	_nudge_banner_t = 0.0
-	if _first_hold:
-		d.held = true
+	# F 2026-11-16 (build 11): she no longer waits at the line; she drives off at START! (the
+	# nudge below still tells an idle player to go, `_first_hold` is only that window).
 	# Its rung, Pani Halina's gentle day and an easier rematch (`_tuning`).
 	var tuning := _tuning()
 	var rung: int = tuning[0]

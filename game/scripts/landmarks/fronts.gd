@@ -103,6 +103,13 @@ const SKINS := [
 	# NBP's regional branch on Plac Powstańców from F's photos (2026-11-16, docs/landmarks/specs/nbp.md):
 	# the whole building is the site's own model (_build_nbp), dark folded panels over a glass ground floor.
 	{"key": "nbp", "osm": "NBP Oddział Okręgowy w Warszawie", "model": true, "mode": M_STONE, "wall": "#4d4446", "roof": "#6f7173"},
+	# PKO BP's office on Marszałkowska by Nowogrodzka from Mapillary photos (2026-11-16,
+	# docs/landmarks/specs/pko_marszalkowska.md): light grey bands round the floors with blue ribbon
+	# glazing between them, not the dark glass box LoD2 gave it.
+	{"key": "pko_marszalkowska", "osm": "PKO BP", "mode": M_SKIN + float(S_RIBBON) / 16.0, "wall": "#4f7db8", "roof": "#8a9094"},
+	# Its neighbour Wolf Marszałkowska (the same photos): a glass tower with silver floor bands
+	# over a dark stone and glass base, not a dark punched block.
+	{"key": "wolf_marszalkowska", "osm": "Wolf Marszałkowska", "mode": M_SKIN + float(S_BANDS) / 16.0, "wall": "#5f7a90", "roof": "#596066"},
 ]
 
 

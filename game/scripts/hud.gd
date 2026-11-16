@@ -386,13 +386,12 @@ var quest_focus := false
 ## goal line [Polish, English] for the full map. Side quests keep their colours (a ringed dot for
 ## the active one, squares for the places to start one).
 var main_goal := PackedStringArray(["", ""])
-## Mission target: its point on screen (the arrow) and on the minimap.
+## Mission target: its point on screen (the edge arrow, `set_target`). On the maps it is the
+## marker registry's TARGET mark (MapMarkers.ACTIVE_TARGET, main.gd `_put_target`).
 var _target_visible := false
 var _target_at := Vector2.ZERO
 var _target_label := ""
 var _target_colour := Color.WHITE
-var _mini_target := Vector2.INF
-var _mini_target_colour := Color.WHITE
 var _mini_dots := PackedVector2Array()
 ## A quest's own racers on the minimap (street_meet.gd's club), kept apart from the rivals' dots,
 ## which rivals.gd writes every frame.
@@ -2413,12 +2412,6 @@ func set_target(at: Vector2, label: String, colour: Color, show: bool) -> void:
 	_target_colour = colour
 
 
-func set_minimap_target(xz: Vector2, colour: Color) -> void:
-	colour = Access.tint(colour)  # colour-safe (access.gd)
-	_mini_target = xz
-	_mini_target_colour = colour
-
-
 ## Touches on the buttons and cards belong to them, not to the stick.
 func _over_panel(p: Vector2) -> bool:
 	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _zoom_out_button, _zoom_in_button, _card, _status, _challenge, _bench_card]:
@@ -2707,13 +2700,14 @@ func _paint_minimap_overlay() -> void:
 			_tri_fan(centre + r, 2.4 * pt, 0.0, TAU, LENS_BLUE if flip == (i % 2 == 0) else LENS_RED)
 	if _mini_route.size() >= 2:
 		_paint_minimap_route(centre, s)
-	if _mini_target != Vector2.INF:
+	var targets := markers.shown(MapMarkers.Layer.TARGET, MapMarkers.View.MINIMAP, ctx)
+	for i in (targets["at"] as PackedVector2Array).size():
 		# A side quest's target, pinned to the rim when it's beyond the map's reach: a dot in the
 		# job's colour inside a white ring (the main line's is the star below).
-		var t := ((_mini_target - _mini_car) * s).rotated(_mini_yaw)
+		var t := (((targets["at"] as PackedVector2Array)[i] - _mini_car) * s).rotated(_mini_yaw)
 		# F 2026-11-08: the quest taken reads much stronger: a breathing glow and ring in its colour.
 		t = t.limit_length(_mini_radius - 7.0 * pt)
-		active_pin(centre + t, 1.15, _mini_target_colour)
+		active_pin(centre + t, 1.15, Access.tint((targets["colour"] as PackedColorArray)[i]))  # colour-safe
 	var main_at := markers.where(MapMarkers.MAIN_STAR)
 	if main_at != Vector2.INF and MapMarkers.shows(MapMarkers.Layer.MAIN, MapMarkers.View.MINIMAP, ctx):
 		# The main line: a gold star in a pulsing ring, pinned to the rim at any distance.
@@ -2999,6 +2993,20 @@ func clear_minimap_route(owner: String) -> void:
 ## The minimap's route now (empty: none): the checks read it.
 func minimap_route() -> PackedVector2Array:
 	return _mini_route
+
+
+## Who drew the route now ("" for Podwózka's; target_route.gd steps aside for any other).
+func minimap_route_owner() -> String:
+	return _mini_route_owner
+
+
+## The car (or helicopter) on the map and its heading there, as `update_minimap` got them last.
+func minimap_car() -> Vector2:
+	return _mini_car
+
+
+func minimap_heading() -> Vector2:
+	return _car_dir.rotated(-_mini_yaw)
 
 
 ## A small square every 5 pt along the route, fixed to the map (they don't crawl as the car
@@ -3543,8 +3551,6 @@ func open_full_map(car_xz: Vector2, car_yaw: float, found: PackedVector2Array) -
 	full_map.night = _night
 	full_map.scene_mark = _scene_mark
 	full_map.found = found
-	full_map.target = _mini_target
-	full_map.target_colour = _mini_target_colour
 	full_map.markers = markers
 	full_map.focus = quest_focus
 	full_map.flying = flying

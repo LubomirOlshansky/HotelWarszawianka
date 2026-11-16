@@ -8,7 +8,7 @@ should grow into. Design background: docs/design/quest-map.md and docs/design/ma
 
 | Layer | Looks like | Minimap | Full map | In the world | Owner and setter |
 | --- | --- | --- | --- | --- | --- |
-| Active target | glowing, pulsing pin in the quest's colour, edge arrow, metres, dotted route | yes (`active_pin`, `set_minimap_target`, `set_minimap_route`) | yes, with a dotted line from the car | `beacon.gd` ring and light column | each activity sets its own (missions, jobs, rides, rivals, tours, boat race...) |
+| Active target | glowing, pulsing pin in the quest's colour, edge arrow, metres, dotted route | yes (the registry's TARGET mark `MapMarkers.ACTIVE_TARGET`, `active_pin`; `set_minimap_route`) | yes, with a dotted line from the car | `beacon.gd` ring and light column | each activity sets its own (missions, jobs, rides, rivals, tours, boat race...) |
 | Picked place | the same pin, for a place tapped in the map's one list (first hour step 4; it was the ZADANIA tabs) | yes | yes | arrow only | main.gd `quest_pin` (`_on_quest_picked`) |
 | Main line | gold star in a breathing glow | registry MAIN `main:star` (`MainLine.map_marks`); goal line `hud.set_main_goal` | yes, same mark | the guide's beacon | `main_line.gd`; today only for the first kebab (`FIRST_JOB_ONLY`) |
 | Questline starts | round badge, white "!", the line's own colour | pinned to the rim up to 1.5 km | twice a job icon, with the name | lit column and the waving friend within `BEACON_R` 320 m | registry STORY, owner "stories" (`StoryQuests.map_marks`: name, line, small in `extra`); quest focus `hud.set_quest_focus` |
@@ -42,8 +42,11 @@ should grow into. Design background: docs/design/quest-map.md and docs/design/ma
   MapMarkers.Layer.JOB, "at": xz, "colour": c, "shape": MapIcons.POI_*}, ...])` (replaces only
   that owner's marks) or `hud.markers.put("<owner>:<key>", layer, xz, colour, shape)` and
   `remove`. The minimap and the full map draw it by the rule table; no new HUD setter.
-- **The active target**: a `beacon.gd`, `hud.set_minimap_target`, `route_line.gd` +
-  `hud.set_minimap_route`, `hud.show_status`, and clear every one of them where the activity ends.
+- **The active target**: an activity of the kit says `set_target(point, person)` (TD-2); main.gd
+  `_show_target` picks the one target now and `_put_target` puts it in the registry
+  (`markers.set_target`, the TARGET mark `MapMarkers.ACTIVE_TARGET`, both maps' pin), and `hud.set_target` gets its point on the
+  screen (the edge arrow and the metres). Outside the kit: a `beacon.gd`, `route_line.gd` +
+  `hud.set_minimap_route`, `hud.show_status`, cleared where the activity ends.
 - **Its busy state for quest focus**: add it to `_quest_running()` in main.gd (another copy of
   `_free_block`, TD-1).
 
@@ -52,7 +55,7 @@ should grow into. Design background: docs/design/quest-map.md and docs/design/ma
 1. **Many setters, no registry.** About a dozen `set_minimap_*` and `full_map.set_*` calls, each
    replacing its own list. Two owners of one list overwrote each other. Mended for the job places,
    the garage, the "?" marks and the final (TD-13 step 1), the questlines and the main line's star
-   (step 2); the target still has its own path (step 3).
+   (step 2), the active target's pin on both maps (step 3) and its road route (step 4).
 2. **Quest focus has its own busy test.** `_quest_running()` checks six activities and the
    questlines' `busy`; `_free_block()` checks fifteen. They disagree: a Podwózka ride or a plain trend delivery blocks new starts in `_free_block()` but does not count for `_quest_running()`.
 3. **The active target is set by each activity.** 24 scripts touch the route line or beacon;
@@ -119,3 +122,23 @@ how the questline badges hide in the helicopter; each mark carries a `group` (th
 list shows a row per group) and an `extra` dictionary (a questline's name, line and small "!");
 the rivals have their own layer, RIVAL, drawn nowhere yet (the final's start moved there from
 MAIN), for that list.
+
+Step 3 as built: the active target is one TARGET mark, `MapMarkers.ACTIVE_TARGET`, put by main.gd
+`_put_target` through `markers.set_target` (every branch of `_show_target` ends there) and drawn by the minimap and the full map
+from the registry; `hud.set_minimap_target`, `hud._mini_target` and `full_map.target` are gone, and
+the full map's pin is live while it is open instead of a copy made at open. A put that changes
+nothing is not a write and a put drops only its own layer's view, so a target put every frame
+rebuilds nothing; a moving one (a rival's pin) rebuilds only the TARGET view. The edge arrow and
+its metres stay `hud.set_target`: they are a point on the screen, which needs the camera, fed from
+the same branch. None is put while the main line's star stands for the target (the guide's first
+job), as before.
+
+Step 4 as built: `target_route.gd` gives every target the road route. It reads the registry's
+target (`markers.target()`) and the HUD's car (`minimap_car`, `minimap_heading`, `flying`), searches
+the lane graph once per goal (a moving goal, a rival's pin, again after 40 m and 3 s; ~6-11 ms a
+search on the cloud CPU), walks the line again from the car every second, and puts it in the HUD's
+one route slot under the owner "target". An activity that draws its own route (jobs.gd's
+deliveries and next stand, the street races, Podwózka) wins the slot and this one steps aside. The
+full map's dotted line follows the slot's route when it ends at the target, else it stays straight.
+In the air there is no road route. The edge arrow still points straight at the target: a road
+arrow would change how the drive feels, so it waits for F (QUESTIONS.md).

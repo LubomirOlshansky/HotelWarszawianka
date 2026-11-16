@@ -725,6 +725,12 @@ func _ready() -> void:
 		title.language_chosen.connect(_on_language_chosen)
 		if fresh:
 			add_child(title)
+			# NOWA GRA reloads this scene: the boot scene's title (under the root, so it outlives the
+			# scene) is still up on its "start over?" question (F, 2026-11-16, build on the phone:
+			# the new game ran behind it). The new title takes over; the old one goes.
+			for stale in get_tree().root.get_children():
+				if stale != title and stale.get_script() == Title:
+					stale.queue_free()
 			# The first frame (F, 2026-11-08: ~8 s of a plain blue screen on a Nothing Phone): the
 			# title is drawn before the settings, radio, wallet and save below, not after them.
 			await get_tree().process_frame
@@ -792,6 +798,7 @@ func _ready() -> void:
 		return
 	if title != null:
 		_pause.hold(PauseReasons.LOAD)  # the loading bar: nothing half-built moves between the build's steps
+		Sfx.world_hold(true)  # no traffic or beds under the title; the tap lets them in (title.gd dismiss)
 		title.cap = lerpf(LOAD_FILES, LOAD_BUILT, LOAD_MARKS[0])
 		LoadYield.begin()  # the long setups let a frame through now and then (load_yield.gd)
 	await _build_world()
@@ -945,6 +952,7 @@ func _title_frame() -> void:
 		print("title: the start's sectors in after %d ms%s" % [Time.get_ticks_msec() - _title_wait_t,
 				"" if streamer == null or streamer.idle() else " (not all: the wait's limit)"])
 		_title_wait_t = -1
+		_pause.hold(PauseReasons.TITLE)  # the world waits for the tap: no NPC, race offer or dialogue before it
 		title.set_ready()
 		if title != null and flags.title_choice != "":
 			# Save and resume: --title-choice= picks for the player (continue, new, or ask: the question up).
@@ -1196,6 +1204,7 @@ func _on_title_dismissed() -> void:
 		# The verify step `boot-run` waits for this line: the boot scene's title lasted to here.
 		print("boot: the boot scene's title stayed up until the game began")
 		_title_from_boot = false
+	_pause.release(PauseReasons.TITLE)
 	hud.visible = not flags.hide_hud
 	dialogue.host_on = true
 	title = null
@@ -1716,10 +1725,20 @@ func _build_world() -> void:
 	if meet != null:
 		meet.place_car = _place_car
 	await LoadYield.tick("meet")
-	_build_boat_race(world)
-	await LoadYield.tick("_build_boat_race")
-	_build_tours(world)
-	await LoadYield.tick("_build_tours")
+	# Szymek's call, the start pontoon and the race down the river (boat_race.gd wires itself); none
+	# with --boat-race=0. A stop at the pontoon hands the race the controls and leaving hands them back:
+	# main.gd's own hooks, connected after the join.
+	boat_race = _join(BoatRace.new(), world) as BoatRace
+	if boat_race != null:
+		boat_race.boarded.connect(_on_boat_boarded)
+		boat_race.left_boat.connect(_on_boat_left)
+	await LoadYield.tick("boat_race")
+	# The two guided tours, one script (tour.gd: each wires itself from its data file and its flags):
+	# Claire's drive round the Dekalog's places and Wiktor's round the cinemas. None with
+	# --dekalog=0 / --kino-tour=0.
+	dekalog_tour = _join(Tour.new("dekalog"), world) as Tour
+	kino_tour = _join(Tour.new("kino"), world) as Tour
+	await LoadYield.tick("tours")
 	_build_shisha(data, world)
 	await LoadYield.tick("_build_shisha")
 	# Bartek's call and the stranded TESŁO cars (ev_tow.gd wires itself), under main.gd; none with
@@ -2464,6 +2483,7 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	jobs.map_data = data
 	add_child(jobs)
 	jobs.setup(world)
+	add_child(preload("res://scripts/target_route.gd").new(hud, graph))  # the road route to any target (TD-13)
 	if flags.solo_site != "":
 		jobs.clear_stands()  # a landmark alone (--solo): no kebab stand beside it
 	# --- loop 2d-1: Podwózka, the app-taxi side job (and the GPS moments of the app-taxis) ---
@@ -3054,101 +3074,7 @@ func _build_crash_scenes() -> void:
 
 # --- the boat race ---------------------------------------------------------------------------
 
-## Szymek's call, the start pontoon and the race down the river (boat_race.gd). None with --boat-race=0.
-func _build_boat_race(world: Node3D) -> void:
-	if flags.boat_flag == "0":
-		return
-	boat_race = BoatRace.new()
-	boat_race.name = "BoatRace"
-	boat_race.hud = hud
-	boat_race.dialogue = dialogue
-	boat_race.wallet = wallet
-	boat_race.map = map
-	boat_race.car = car
-	boat_race.log_on = flags.boat_log
-	boat_race.autopilot = flags.autopilot or flags.boat_flag == "auto"
-	boat_race.force_hours = flags.boat_flag != ""
-	boat_race.vehicle = func() -> Array:
-		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true]
-		return [car.global_position, car.vel.length() * 3.6, false]
-	boat_race.seen = func(p: Vector3) -> bool: return cam.is_position_in_frustum(p)
-	boat_race.clock = func() -> float: return life.hour_now() if life != null else 12.0
-	world.add_child(boat_race)
-	boat_race.setup(world)
-	activities.add(boat_race)  # the director says when Szymek may ring (nothing else on: world_free)
-	boat_race.boarded.connect(_on_boat_boarded)
-	boat_race.left_boat.connect(_on_boat_left)
-	if jobs != null:
-		# The free-ride boat's mark on the minimap and the full map, with the job places.
-		jobs.boat_spot = BoatRace.fleet_spot(1)
-		jobs._show_places(jobs._places_shown, true)
-	if flags.boat_flag in ["race", "auto"]:
-		get_tree().create_timer(1.0).timeout.connect(func() -> void:
-			var at := BoatRace.CAR_SPOT
-			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
-			car.reset_physics_interpolation()
-			boat_race.board())
-	elif flags.boat_flag.begins_with("free") or flags.boat_flag == "marina":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void:
-			var at := BoatRace.CAR_SPOT
-			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
-			car.reset_physics_interpolation()
-			if flags.boat_flag.begins_with("free"):
-				boat_race.free_ride(int(flags.boat_flag.trim_prefix("free")) if flags.boat_flag.length() > 4 else 1)
-			else:
-				boat_race._marina_card())
-	elif flags.boat_flag == "call":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: boat_race.ring())
-
-
-# --- the activity kit: the tours ---------------------------------------------------------------
-
-## The two guided tours (tour.gd, the activity kit's first activity): Claire's drive round the
-## Dekalog's places and Wiktor's round the cinemas. None with --dekalog=0 / --kino-tour=0.
-func _build_tours(world: Node3D) -> void:
-	dekalog_tour = _build_tour(world, "dekalog", flags.dekalog_flag, flags.dekalog_log)
-	kino_tour = _build_tour(world, "kino", flags.kino_flag, flags.kino_log)
-
-
-## One tour from its data file (data/<id>_tour.json), joined to the director. `flag`: "0" none,
-## "call" the guest phones a second into the drive, "go" the tour starts with the car at the
-## pickup, "auto" that with the cards answered by themselves.
-func _build_tour(world: Node3D, id: String, flag: String, log_on: bool) -> Tour:
-	if flag == "0":
-		return null
-	var data := Tour.load_data(id)
-	if data.is_empty():
-		return null
-	var t := Tour.new()
-	t.name = "%sTour" % id.capitalize()
-	t.configure(data)
-	t.hud = hud
-	t.dialogue = dialogue
-	t.wallet = wallet
-	t.map = map
-	t.car = car
-	t.log_on = log_on
-	t.autopilot = flags.autopilot or flag == "auto"
-	t.force_hours = flag != ""
-	t.vehicle = func() -> Array:
-		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true, 0.0]
-		return [car.global_position, car.vel.length() * 3.6, false, float(car.forward_speed)]
-	t.clock = func() -> float: return life.hour_now() if life != null else 12.0
-	world.add_child(t)
-	t.setup(world)
-	activities.add(t)
-	if flag in ["go", "auto"]:
-		get_tree().create_timer(1.0).timeout.connect(func() -> void:
-			var at := t.pickup_at()
-			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
-			car.reset_physics_interpolation()
-			t.start())
-	elif flag == "call":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: t.ring())
-	return t
-
+# --- the questlines ----------------------------------------------------------------------------
 
 ## The questlines (story_quests.gd): each big quest joins with one `stories.add` here. A new quest
 ## thread adds its own block (id, names, friend, words, start spot, colour, hours, call / meet /
@@ -3707,6 +3633,7 @@ func _build_ctx() -> GameCtx:
 	_ctx.city_sounds = city_sounds
 	_ctx.graph = graph
 	_ctx.traffic = traffic
+	_ctx.jobs = jobs
 	_ctx.police = police
 	_ctx.car = car
 	_ctx.heli = heli
@@ -3717,6 +3644,8 @@ func _build_ctx() -> GameCtx:
 			return [heli.global_position, heli.speed() * 3.6, true, 0.0]
 		return [car.global_position, car.vel.length() * 3.6, false, float(car.forward_speed)]
 	_ctx.hour = func() -> float: return float(tod.local_clock()["hour"])
+	_ctx.life_hour = func() -> float: return life.hour_now() if life != null else 12.0
+	_ctx.seen = func(p: Vector3) -> bool: return cam.is_position_in_frustum(p)
 	_ctx.take_off = func() -> void: _take_off(Heli.CRUISE)
 	_ctx.focus = func() -> Vector3: return cam_focus
 	_ctx.focus_at = func(p: Vector3) -> void: cam_focus = p
@@ -5029,7 +4958,7 @@ func _quest_now() -> Dictionary:
 			var b: Callable = d.get("busy", Callable())
 			if b.is_valid() and bool(b.call()):
 				what = ["Teraz · %s" % d["pl"], "Now · %s" % d["en"]]
-				var mt: Vector2 = hud._mini_target
+				var mt: Vector2 = hud.markers.target()
 				at = Vector3(mt.x, 0.0, mt.y) if mt != Vector2.INF else Vector3.INF
 				colour = d.get("colour", Lines.STORY_COLOUR)
 				break
@@ -5450,17 +5379,23 @@ func _build_soft_things(world: Node3D) -> void:
 
 
 ## Settings rows: whether the fences and hedges break this run (--no-soft, else --soft, else the
-## setting; off by default).
+## setting; on by default since F 2026-11-16). A `--nosave` run (the checks and their baselines)
+## keeps the measured default, hard fences, unless --soft asks.
 func _soft_on() -> bool:
 	if flags._no_soft:
 		return false
-	return flags._flag_soft or settings.soft_fences
+	if flags._flag_soft:
+		return true
+	return settings.soft_fences if settings.persistent else false
 
 
-## Settings rows: the collision answer for the run (--collide=, else the setting; v1 by default).
+## Settings rows: the collision answer for the run (--collide=, else the setting; mid by default
+## since F 2026-11-16). A `--nosave` run keeps v1, the measured baseline, unless --collide= asks.
 func _collide_preset() -> StringName:
 	if flags._flag_collide != &"":
 		return flags._flag_collide
+	if not settings.persistent:
+		return Car.CollideRules.V1
 	return Car.CollideRules.PRESETS[clampi(settings.collide, 0, Car.CollideRules.PRESETS.size() - 1)]
 
 
@@ -6300,13 +6235,13 @@ func _guide_on() -> bool:
 	return first10 != null and first10.guide_on()
 
 
-## The active target on the minimap: a side quest's dot in its colour, or (`main`) the main line's
-## star (hud.gd `set_main_line`, from `_main_line_tick`).
+## The active target's pin on both maps (the registry's TARGET mark, TD-13), or none when the
+## main line's star stands for it (`main`, `_main_line_tick`).
 func _put_target(xz: Vector2, colour: Color, main: bool) -> void:
 	# F 2026-11-08: past the first job the main line is off (main_line.gd FIRST_JOB_ONLY): its
 	# targets are ordinary pins then, so nothing hides behind a star that isn't drawn.
 	main = main and _main_live()
-	hud.set_minimap_target(Vector2.INF if main else xz, colour)
+	hud.markers.set_target(Vector2.INF if main else xz, colour)
 	_main_target = xz if main else Vector2.INF
 
 

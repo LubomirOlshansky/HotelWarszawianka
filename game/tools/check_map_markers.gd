@@ -112,6 +112,34 @@ func _registry() -> void:
 	_expect(not m.has("garage:workshop") and m.where("garage:workshop") == Vector2.INF and m.marks_of(L.SERVICE)["at"].is_empty(), "remove")
 	m.remove("garage:never")
 	_expect(m.marks_of(L.JOB)["at"].size() == 1, "removing a mark that isn't there changes nothing")
+	# The active target (main.gd `_put_target`) is put every frame: only a change is a write, and a
+	# put drops only its own layer's view.
+	var w0 := m.version
+	m.remove(MapMarkers.ACTIVE_TARGET)
+	_expect(m.version == w0, "removing a mark that isn't there is not a write")
+	var job_view := m.marks_of(L.JOB)
+	m.put(MapMarkers.ACTIVE_TARGET, L.TARGET, Vector2(3, 4), Color.RED, 0, "target")
+	_expect(m.version == w0 + 1 and m.where(MapMarkers.ACTIVE_TARGET) == Vector2(3, 4) and m.owned("target").size() == 1, "the active target is one TARGET mark")
+	_expect(is_same(m.marks_of(L.JOB), job_view), "a put keeps the other layers' views (nothing rebuilt per frame)")
+	var tv := m.marks_of(L.TARGET)
+	m.put(MapMarkers.ACTIVE_TARGET, L.TARGET, Vector2(3, 4), Color.RED, 0, "target")
+	_expect(m.version == w0 + 1 and is_same(m.marks_of(L.TARGET), tv), "the same put again is not a write")
+	m.put(MapMarkers.ACTIVE_TARGET, L.TARGET, Vector2(3, 5), Color.RED, 0, "target")
+	_expect(m.version == w0 + 2 and m.marks_of(L.TARGET)["at"] == PackedVector2Array([Vector2(3, 5)]), "a moved target is a write (a rival's pin follows them)")
+	m.put(MapMarkers.ACTIVE_TARGET, L.TARGET, Vector2(3, 5), Color.BLUE, 0, "target")
+	_expect(m.marks_of(L.TARGET)["colour"] == PackedColorArray([Color.BLUE]), "a new colour is a write")
+	m.put("target:moved", L.TARGET, Vector2(1, 1), Color.RED)
+	m.put("target:moved", L.SERVICE, Vector2(1, 1), Color.RED)
+	_expect(not m.marks_of(L.TARGET)["at"].has(Vector2(1, 1)) and m.marks_of(L.SERVICE)["at"].has(Vector2(1, 1)), "a mark that changes layer leaves the old layer's view")
+	m.remove("target:moved")
+	m.remove(MapMarkers.ACTIVE_TARGET)
+	_expect(m.marks_of(L.TARGET)["at"].is_empty() and m.version == w0 + 7, "removing the target is a write, and it is gone")
+	m.set_target(Vector2(6, 6), Color.RED)
+	_expect(m.where(MapMarkers.ACTIVE_TARGET) == Vector2(6, 6) and m.marks_of(L.TARGET)["group"] == PackedStringArray(["target"]), "set_target puts the one TARGET mark")
+	m.set_target(Vector2.INF, Color.RED)
+	_expect(not m.has(MapMarkers.ACTIVE_TARGET) and m.target() == Vector2.INF, "set_target(INF): no target")
+	_expect(MapMarkers.shows(L.TARGET, MINI, QUEST) and MapMarkers.shows(L.TARGET, MINI, AIR) and MapMarkers.shows(L.TARGET, FULL, QUEST),
+			"the active target shows on both maps in every context")
 	# The rule table on the read.
 	_expect(m.shown(L.JOB, MINI, QUEST)["at"].is_empty() and m.shown(L.JOB, MINI, FREE)["at"].size() == 1, "shown() follows the rules")
 	var v := m.version
@@ -202,6 +230,26 @@ func _hud() -> void:
 	hud.quest_focus = false
 	_expect(star_free > base and star_focus > focus_base2, "minimap: the main star in free drive (%d) and in focus (%d over %d)" % [star_free, star_focus, focus_base2])
 	markers.clear("main")
+	# The active target: drawn in free drive, in focus and in the air; gone with its mark.
+	markers.put(MapMarkers.ACTIVE_TARGET, L.TARGET, Vector2(50, -20), Color.ORANGE, 0, "target")
+	var tg_free := await _tris(hud)
+	hud.quest_focus = true
+	var tg_focus := await _tris(hud)
+	hud.quest_focus = false
+	hud.flying = true
+	var tg_air := await _tris(hud)
+	markers.remove(MapMarkers.ACTIVE_TARGET)
+	var tg_air_base := await _tris(hud)
+	hud.flying = false
+	var tg_gone := await _tris(hud)
+	_expect(tg_free > base and tg_focus > focus_base2 and tg_air > tg_air_base and tg_gone == base,
+			"minimap: the active target in free drive (%d over %d), in focus (%d over %d), in the air (%d over %d), gone with its mark (%d)"
+			% [tg_free, base, tg_focus, focus_base2, tg_air, tg_air_base, tg_gone])
+	# Far away it waits on the rim (pinned, not dropped).
+	markers.put(MapMarkers.ACTIVE_TARGET, L.TARGET, Vector2(5000, 0), Color.ORANGE, 0, "target")
+	var tg_far := await _tris(hud)
+	markers.remove(MapMarkers.ACTIVE_TARGET)
+	_expect(tg_far == tg_free, "minimap: a far target waits on the rim (%d, as near %d)" % [tg_far, tg_free])
 	markers.put("rivals:final", L.RIVAL, Vector2(10, 10), Color.GOLD, 0, "final")
 	var with_final := await _tris(hud)
 	_expect(with_final == base and base > 0, "the final's start mark is kept, not drawn (the main line's star stands there)")
@@ -230,6 +278,24 @@ func _hud() -> void:
 		fm.set("flying", false)
 		markers.put_all("main", MainLine.map_marks(Vector2(-60, 10)))
 		_expect(fm.call("_main_at") == Vector2(-60, 10), "the full map's star from the registry")
+		# The active target's pin and dotted line come from the registry's TARGET mark.
+		markers.clear("main")
+		var fm_base := await _tris_full(hud, fm)
+		markers.put(MapMarkers.ACTIVE_TARGET, L.TARGET, Vector2(40, 30), Color.ORANGE, 0, "target")
+		var fm_target := await _tris_full(hud, fm)
+		# Step 4: with a road route on the HUD that ends at the target, the dots follow it (a detour
+		# north is longer than the straight line, so more dots); one that ends elsewhere is not used.
+		hud.set_minimap_route(PackedVector2Array([Vector2(10, 20), Vector2(10, -120), Vector2(40, -120), Vector2(40, 30)]), Color.ORANGE, "target")
+		var fm_road := await _tris_full(hud, fm)
+		hud.set_minimap_route(PackedVector2Array([Vector2(10, 20), Vector2(-300, 20)]), Color.ORANGE, "jobs")
+		var fm_elsewhere := await _tris_full(hud, fm)
+		hud.clear_minimap_route("jobs")
+		_expect(fm_road > fm_target and fm_elsewhere == fm_target,
+				"the full map's dots follow a road route that ends at the target (%d over %d straight), not one that ends elsewhere (%d)" % [fm_road, fm_target, fm_elsewhere])
+		markers.remove(MapMarkers.ACTIVE_TARGET)
+		var fm_gone := await _tris_full(hud, fm)
+		_expect(fm_base >= 0 and fm_target > fm_base and fm_gone == fm_base,
+				"the full map's active pin from the registry (%d over %d, %d after)" % [fm_target, fm_base, fm_gone])
 	hud.set_quest_focus(true)
 	_expect(fm == null or bool(fm.get("focus")), "focus while the map is open reaches it")
 	hud.set_quest_focus(false)
@@ -244,6 +310,19 @@ func _hud() -> void:
 ## right after hud.gd's painter, which is connected first).
 func _tris(hud: CanvasLayer) -> int:
 	var o: Control = hud.get("_mini_overlay")
+	var got := [-1]
+	var read := func() -> void: got[0] = (hud.get("_tri_pts") as PackedVector2Array).size()
+	o.draw.connect(read)
+	o.queue_redraw()
+	await process_frame
+	await process_frame
+	o.draw.disconnect(read)
+	return got[0]
+
+
+## The full map's triangle count for one paint (its overlay draws in the HUD's batch).
+func _tris_full(hud: CanvasLayer, fm: Control) -> int:
+	var o: Control = fm.get("_overlay")
 	var got := [-1]
 	var read := func() -> void: got[0] = (hud.get("_tri_pts") as PackedVector2Array).size()
 	o.draw.connect(read)
