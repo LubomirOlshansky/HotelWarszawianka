@@ -28,6 +28,9 @@ const Solidity := preload("res://scripts/solidity.gd")
 ## Step 2: the wall builder (walls, fences, hedges, rails, guard rails; their looks are the
 ## palette's barrier types). One per map (`barriers`).
 const CityBarriers := preload("res://scripts/city_barriers.gd")
+## W4 of the walls look: the panels' numbers and rows texture, and their MultiMesh buffers.
+const PanelRule := preload("res://scripts/panel_rule.gd")
+const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 ## Pasaż Wiecha's white Y masts stand in place of the map's lamps there (first_scene.gd PASAZ).
 const FirstScene := preload("res://scripts/first_scene.gd")
 ## Tile size for instanced things (trees, lamps, parked cars). Loop 2b: 512 m (was 256): one
@@ -124,7 +127,10 @@ var data: Dictionary
 ## The materials the game updates every frame (car position for the see-through hole).
 @export_storage var building_material: ShaderMaterial
 @export_storage var flat_material: ShaderMaterial
-## Every material that opens a see-through hole around the car (trees, parked cars).
+## W4 of the walls look: the light fences' panels (panel.gdshader; `_build_panels`). main.gd sets
+## its `holes` from the quality level (tiers.gd panel_holes).
+@export_storage var panel_material: ShaderMaterial
+## Every material that opens a see-through hole around the car (trees, parked cars, panels).
 @export_storage var fade_materials: Array[ShaderMaterial] = []
 ## F (2026-11-08): the materials of what stands on the ground over a tunnel and goes with the
 ## tunnel cutaway (tunnel_cut.gdshaderinc): the trees' crowns and trunks, the street lamps and their
@@ -675,6 +681,7 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		return
 	_build_platforms(walls)
 	barriers.build_barriers(walls)
+	_build_panels()
 	_uv2 = Vector2(0.5, -1.0)
 	_build_pkin_bushes(walls)
 	_uv2 = Vector2.ZERO
@@ -10273,6 +10280,14 @@ func _make_shared() -> void:
 	fade_materials.clear()
 	fade_materials.append(leaf_material)
 	fade_materials.append(car_paint)
+	# W4 of the walls look: the panels' material (its rows texture made here from the palette's
+	# looks, as the trees' look texture is) and box; made under every look, used under panels.
+	panel_material = ShaderMaterial.new()
+	panel_material.shader = load("res://shaders/panel.gdshader")
+	panel_material.set_shader_parameter("rows", PanelRule.rows_texture())
+	_shared["panel"] = panel_material
+	_shared["panel_box"] = panel_box()
+	fade_materials.append(panel_material)
 
 	var halo := ShaderMaterial.new()
 	halo.shader = load("res://shaders/glow.gdshader")
@@ -10393,6 +10408,65 @@ func _make_shared() -> void:
 		_box(shelter, Vector3(-2.55, 1.55, -0.72 + sz), Vector3(0.42, 0.62, 0.01), Color("#f6f4ec"))
 		_box(shelter, Vector3(-2.55, 1.8, -0.72 + sz), Vector3(0.42, 0.06, 0.012), Color("#f2c12e"))
 	_shared["shelter"] = _mark_glow(shelter.commit(), SHELTER_POSTER)
+
+
+## W4 of the walls look (docs/design/walls-true-to-life.md 6.4): the panels' one mesh, a unit box
+## without a bottom (x 0..1 along the line, y 0..1 up, z -0.5..0.5 across; four sides and the
+## top, 10 triangles), each face with its own normal.
+static func panel_box() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var faces := [
+		[Vector3(0, 0, 0.5), Vector3(1, 0, 0.5), Vector3(1, 1, 0.5), Vector3(0, 1, 0.5), Vector3(0, 0, 1)],
+		[Vector3(1, 0, -0.5), Vector3(0, 0, -0.5), Vector3(0, 1, -0.5), Vector3(1, 1, -0.5), Vector3(0, 0, -1)],
+		[Vector3(0, 0, -0.5), Vector3(0, 0, 0.5), Vector3(0, 1, 0.5), Vector3(0, 1, -0.5), Vector3(-1, 0, 0)],
+		[Vector3(1, 0, 0.5), Vector3(1, 0, -0.5), Vector3(1, 1, -0.5), Vector3(1, 1, 0.5), Vector3(1, 0, 0)],
+		[Vector3(0, 1, 0.5), Vector3(1, 1, 0.5), Vector3(1, 1, -0.5), Vector3(0, 1, -0.5), Vector3(0, 1, 0)],
+	]
+	for f: Array in faces:
+		st.set_normal(f[4])
+		# Godot draws a clockwise triangle as its front: each face is listed counter-clockwise
+		# from outside, so it goes 0, 2, 1.
+		for k: int in [0, 2, 1, 0, 3, 2]:
+			st.add_vertex(f[k])
+	return st.commit()
+
+
+## W4: the panel pieces of the last build_barriers (city_barriers.gd panel_tiles; none unless the
+## barrier look is panels) as one MultiMesh per 512 m tile, `Panels`, under the sector's root (or
+## `Panels_i_j` under the map, the whole city in one build): the panel box in panel_material, the
+## buffer as the builder wrote it (instance_buffers.gd), its bounds stored (a saved MultiMesh does
+## not recompute them), no shadow, physics interpolation off (a static node). The tile's
+## `panels` meta (per soft line its stable id, first instance and pieces, every instance's panel
+## index: soft_things.gd's panels, for W6's broken looks) on the sector's root, and on the node
+## itself when the whole city is built at once.
+func _build_panels() -> void:
+	var tiles: Dictionary = barriers.panel_tiles
+	for key: Vector2i in tiles:
+		var t = tiles[key]
+		var n: int = t.buf.size() / CityBarriers.PANEL_FLOATS
+		if n == 0:
+			continue
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_custom_data = true
+		InstanceBuffers.prepare(mm)
+		mm.mesh = _shared["panel_box"]
+		mm.instance_count = n
+		InstanceBuffers.send(mm.get_rid(), t.buf)
+		mm.custom_aabb = (t.box as AABB).grow(0.5)
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = "Panels" if _in_sector else "Panels_%d_%d" % [key.x, key.y]
+		mmi.multimesh = mm
+		mmi.material_override = panel_material
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+		mmi.set_meta(&"panel_pieces", n)
+		if _in_sector:
+			_out.set_meta(&"panels", t.meta())
+		else:
+			mmi.set_meta(&"panels", t.meta())
+		_out.add_child(mmi)
 
 
 func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], colours: Array[Color],

@@ -21,6 +21,9 @@ const LIT_BUDGET := 260
 const UNSHADED_BUDGET := 320
 ## building.gdshader runs as its lite copy on these GPUs (gpu_quirks.gd).
 const BUDGETS := {"building.gdshader": 505}
+## W4 of the walls look (docs/design/walls-true-to-life.md 6.4): panel.gdshader keeps well under the
+## lit budget (the panels are the one light fence; a fence that fails to link draws nothing).
+const CAPS := {"panel.gdshader": 200}
 
 var _func := RegEx.create_from_string("(?m)^[a-z][A-Za-z0-9_]*\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\([^;{]*\\)\\s*\\{")
 var _flow := RegEx.create_from_string("\\bif\\s*\\(|\\bfor\\s*\\(|\\bwhile\\s*\\(|\\breturn\\b|\\?|&&|\\|\\|")
@@ -42,6 +45,8 @@ func _init() -> void:
 		print("%s: %d of %d%s" % [f, cost, budget, " (unshaded)" if unshaded else ""])
 		if cost > budget:
 			over.append("%s %d > %d" % [f, cost, budget])
+		if CAPS.has(f) and cost >= int(CAPS[f]):
+			over.append("%s %d, its cap is under %d" % [f, cost, CAPS[f]])
 	if GpuQuirks.lite_code("render_mode cull_disabled;") == "render_mode cull_disabled;" \
 			or not (load(GpuQuirks.BUILDING) as Shader).code.contains(GpuQuirks.BUILDING_MODE):
 		over.append("gpu_quirks.gd's lite anchor \"%s\" is not in building.gdshader" % GpuQuirks.BUILDING_MODE)

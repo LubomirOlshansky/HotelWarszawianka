@@ -88,8 +88,9 @@ static var _types: Dictionary = _load_types()
 ## each row read-only, and its `barrier_look` key. Read once when the script loads, on the main
 ## thread (the streamer's worker builds sectors and only reads them).
 static var _looks: Dictionary = _load_looks()
-## The looks the game knows (W4 adds `panels`).
-const BARRIER_LOOKS: Array[StringName] = [&"classic", &"typed"]
+## The looks the game knows. W4 (walls doc 6.4): `panels`, typed with the rows marked `panel`
+## drawn as instanced 2 m panels (city_barriers.gd `panel_along`, panel.gdshader).
+const BARRIER_LOOKS: Array[StringName] = [&"classic", &"typed", &"panels"]
 ## `set_barrier_look`'s override (`--barriers=`, dev_flags.gd, bake_city.gd, the checks): &"" for
 ## none, the palette's key then.
 static var _look_override := &""
@@ -146,7 +147,7 @@ static func set_barrier_look(look: StringName) -> void:
 	_look_override = look
 
 
-## W2: `--barriers=classic|typed` among `args` (a check's or a bake's user arguments) set as the
+## W2: `--barriers=classic|typed|panels` among `args` (a check's or a bake's user arguments) set as the
 ## override; nothing when it isn't given.
 static func barrier_look_from(args: PackedStringArray) -> void:
 	for a in args:
