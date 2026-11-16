@@ -13,8 +13,9 @@ doc: https://claude.ai/artifact/429FNJDfrpt6PRypbTaor3 (Ukrainian). F moved it i
 - The SDK is PostHog's official GDScript one (`game/addons/posthog`, v0.1.4, MIT, docs/ADDONS.md),
   EU Cloud (`https://eu.i.posthog.com`, Frankfurt), project "Around Warsaw".
   `person_profiles = NEVER`, no exception capture, no feature flags, the SDK's own
-  `$app_opened`/`$app_backgrounded` lifecycle events on, `$device_model` and `$locale` stripped
-  in `before_send`. The project discards the client IP.
+  `$app_opened`/`$app_backgrounded` lifecycle events on, `$locale` stripped in
+  `before_send`; `$device_model` (the model code, e.g. `iPhone17,2`) is sent, plus the super property
+  `device_name` (`iphone_16_pro_max`; an unknown code goes as its own slug). The project discards the client IP.
 - **The anonymous ID** is the SDK's random `distinct_id`, kept in `user://posthog`; reinstalling
   makes a new one. Returning players, DAU and "online now" come from it.
 - **Offline**: the SDK keeps up to 1000 events on disk and sends them when the network is back.
@@ -74,7 +75,7 @@ PostHog web app (EU), project "Around Warsaw" (id 351865): the dashboard "Around
 has DAU, sessions (new vs resumed), minutes per session, the first-hour funnel (fresh start → stand → choice
 card → activity started → finished → guide done), D1/D7 retention, activities by kind and outcome, and
 fps by quality tier. The project filters internal and test accounts by default, session replay is off,
-IP discard is on, timezone Europe/Warsaw. No device model is sent, so fps is by `quality_tier`, not phone.
+IP discard is on, timezone Europe/Warsaw. The device model is sent since 2026-11-16 (`$device_model`, `device_name`): break fps and sessions down by `device_name` to count phones; `quality_tier` stays the main fps split.
 The store forms for this are in docs/store/ (App Privacy: app-store-connect.md section 4; Data safety:
 play-console.md section 3). The project can also be read with its free MCP server (`https://mcp.posthog.com/mcp`, only if F connects
 it). Useful insights: DAU/WAU from `session_start`, retention (first `session_start` → any

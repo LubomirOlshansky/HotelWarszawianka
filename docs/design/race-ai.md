@@ -804,6 +804,15 @@ came with step 3's route planner.
   race against her until the player has beaten her once, so a new player who loses the first
   race never meets a faster Halina. After that win she drives her rung's numbers in a rematch
   (parked question 1).
+  **Changed 2026-11-16** (F, build 11 playtest: she "waits for me, drives slow, too easy to beat"):
+  in the guided first race she no longer waits at the line (the 12 s hold, PT-11, is gone; the GAZ
+  nudge for an idle player stays), and the whole ladder was retuned (F chose "retune all six"): see
+  the table. Mike cannot go faster (he already uses the car's whole top speed), so the ladder was
+  compressed from below: Halina from 99.6 s to about 88 s on Tamka, Słoik, Bartek, Seba and Zbyszek
+  in step, each 3 to 6 % quicker than the one below. Her gentle day sits just under her rung.
+  The bench's Skill ladder and Ladder curve marks compare Słoik's pace without half of what his
+  wrong turn costs (`WRONG_TURN_COST`, 4 s of the 6 to 9.5 s measured), or he would be slower than
+  Halina on the short Marszałkowska course.
 
 The ladder as built, with each rival's time alone on clear roads from Tamka to Plac Trzech Krzyży
 (1752 m), after step 4a, and the numbers and the time of steps 2 and 3 in brackets. The bench's
@@ -811,12 +820,12 @@ Skill ladder mark holds the order of the times, not of any one number.
 
 | Rival | Share of the road's speed | Pull (m/s²) | Brakes (m/s²) | Grip (m/s²) | Time alone |
 | --- | --- | --- | --- | --- | --- |
-| Pani Halina on her gentle day | 0.65 | 7.0 | 4.0 | 9.5 (5.0) | 108.2 s (108.0) |
-| Pani Halina | 0.70 | 8.0 | 4.5 | 10.0 (5.5) | 99.6 s (99.2) |
-| Słoik z Radomia | 0.92 | 9.5 (8.5) | 8.0 (5.5) | 11.0 (6.0) | 88.6 s (88.0), his wrong turn included |
-| Bulwar Bartek | 0.80 | 10.5 (9.5) | 9.0 (6.0) | 12.0 (7.5) | 87.0 s (86.7) |
-| Seba z Pragi | 0.86 (0.83) | 12.0 (10.5) | 13.0 (9.0) | 15.0 (11.5) | 80.2 s (80.3) |
-| Taksiarz Zbyszek | 0.93 (0.92) | 12.5 (11.0) | 12.0 (7.0) | 15.5 (10.0) | 75.7 s (75.6) |
+| Pani Halina on her gentle day | 0.76 | 9.4 | 6.8 | 11.4 | about 91 s (before the 2026-11-16 retune: 0.65, 7.0, 4.0, 9.5, 108.2 s) |
+| Pani Halina | 0.78 | 9.8 | 7.0 | 11.8 | 88.5 s (before the retune: 0.70, 8.0, 4.5, 10.0, 99.6 s) |
+| Słoik z Radomia | 0.92 | 11.2 | 10.0 | 13.5 | 84.1 s (88.6 s: 9.5, 8.0, 11.0), his wrong turn included |
+| Bulwar Bartek | 0.86 | 12.0 | 12.0 | 14.8 | 80.4 s (87.0 s: 0.80, 10.5, 9.0, 12.0) |
+| Seba z Pragi | 0.89 | 12.8 | 13.0 | 16.3 | 77.5 s (80.2 s: 0.86, 12.0, 13.0, 15.0) |
+| Taksiarz Zbyszek | 0.94 | 13.0 | 12.5 | 16.3 | 74.5 s (75.7 s: 0.93, 12.5, 12.0, 15.5) |
 | Mordor Mike | 1.00 (0.97) | 13.5 (12.5) | 13.0 (9.0) | 16.5 (11.0) | 71.6 s (71.2) |
 | The player's car, for scale | 1.00 | 15 | 30 | 19 | 75.3 s (the fast test player) |
 

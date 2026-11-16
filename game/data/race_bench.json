@@ -5,7 +5,7 @@
 		"independence": "pass",
 		"no_crawl": "pass",
 		"passes_traffic": "unsteady",
-		"no_ghosting": "pass",
+		"no_ghosting": "unsteady",
 		"reroutes": "pass",
 		"recovers": "pass",
 		"honest_car": "fail",

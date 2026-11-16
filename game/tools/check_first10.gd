@@ -46,6 +46,7 @@ const Ladder := preload("res://scripts/ladder.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const Districts := preload("res://scripts/districts.gd")
 const Traffic := preload("res://scripts/traffic.gd")
+const Rules := preload("res://scripts/ride_rules.gd")
 const STEP := 0.2
 
 var _problems := 0
@@ -98,9 +99,13 @@ func _data() -> void:
 		_expect(w.x < w.y and w.y < First10.REPLAY_DEADLINE, "%s's window %s ends before the replay's deadline" % [id, w])
 	for id: String in First10.INTRO_STEP:
 		_expect(str(First10.INTRO_STEP[id]) in FirstSteps.IDS, "intro %s's step %s is a First step" % [id, First10.INTRO_STEP[id]])
-	_expect(First10.CHOICE_BUTTONS.size() == 3 and First10.CHOICE_CLOSE == First10.CHOICE_BUTTONS.size()
-			and First10.CHOICE_PICKS.size() == First10.CHOICE_BUTTONS.size() + 1 and (First10.CHOICE_PICKS[First10.CHOICE_CLOSE] as Array).is_empty(),
+	_expect(First10.CHOICE_LOG.size() == 3 and First10.CHOICE_CLOSE == First10.CHOICE_LOG.size()
+			and First10.CHOICE_PICKS.size() == First10.CHOICE_LOG.size() + 1 and (First10.CHOICE_PICKS[First10.CHOICE_CLOSE] as Array).is_empty(),
 			"the choice card: RACE, RIDES, FLY, one pick each, and the ✕ is JUST DRIVE (none)")
+	# F's playtest 2026-11-16: the card comes sooner and stays longer, the garage follows the race.
+	_expect(First10.CHOICE_LIFE == 30.0, "the choice card lives 30 s: %.0f" % First10.CHOICE_LIFE)
+	_expect(First10.CHOICE_AFTER == 20.0 and First10.CHOICE_LATEST == 150.0, "pacing.json: the card 20 s after the delivery, 150 s at the latest: %.0f %.0f" % [First10.CHOICE_AFTER, First10.CHOICE_LATEST])
+	_expect(First10.INTROS.find("garage") == First10.INTROS.find("race") + 1, "the garage is the intro right after the race: %s" % [First10.INTROS])
 	_expect(First10.REPLAY_DEADLINE * 60.0 < 48000.0, "the replay judges before verify.sh's 48000 frames")
 	_summary.append("%d beats" % First10.BEATS.size())
 
@@ -448,11 +453,11 @@ func _busy() -> void:
 	toy.input_at = 1.0
 	toy.order_at = 35.0
 	toy.pick = 3
-	toy.job_from = 170.0
+	toy.job_from = 115.0  # the card is due 20 s after the first delivery (about 110 s): the job starts before it
 	toy.job_to = 330.0
 	var r := _play(toy, 1300.0)
 	var done: Dictionary = r[0]
-	_expect(_at(done, "choice") >= 330.0 - 0.01 and _at(done, "choice") < 331.0, "the choice card waits for the job (170-330 s): %.1f" % _at(done, "choice"))
+	_expect(_at(done, "choice") >= 330.0 - 0.01 and _at(done, "choice") < 331.0, "the choice card waits for the job (115-330 s): %.1f" % _at(done, "choice"))
 	_expect(_at(done, "race") >= 330.0 + First10.NEXT_GAP - 0.01, "the first intro NEXT_GAP s after it: %.1f" % _at(done, "race"))
 	_summary.append("busy: the card at %.0f s" % _at(done, "choice"))
 
@@ -630,7 +635,7 @@ func _race(speed: float, stop := 0.0, road := 800.0, late := 0.0, hold := false,
 	var stats := RaceSession.arm_racer(toy, RaceSession.race_stats(0, true, ease), Ladder.pace(0), 30.0, {}, 1)
 	var own: float = minf(toy.race_top, Traffic.RACE_CLASS_TOP[0]) * toy.race_share
 	var pace := RaceSession.Pace.new()
-	var held := hold
+	var held := false  # F 2026-11-16: she never waits at the line; `hold` is only kept for the callers
 	var me := road
 	var her := road + 12.0
 	var v := 0.0
@@ -771,9 +776,9 @@ func _effort() -> void:
 		lows = minf(lows, x)
 	_expect(absf(worst) <= 0.12, "her time moves at most 12 %% whatever the player does: %+.0f %%" % (worst * 100.0))
 	var ordinary := _race(9.5)
-	var fast := _race(21.0)
+	var fast := _race(26.0)
 	var slow := _race(6.0)
-	var stops := _race(21.0, 60.0)
+	var stops := _race(26.0, 60.0)
 	_expect(float(fast["lead"]) > 0.0, "a player faster than her wins: %.1f s" % fast["lead"])
 	_expect(float(ordinary["lead"]) < -10.0 and float(slow["lead"]) < float(ordinary["lead"]), "a player at town pace loses, a slower one by more (she does not wait): %.1f s, %.1f s" % [ordinary["lead"], slow["lead"]])
 	_expect(float(stops["lead"]) < 0.0, "a fast player who stops for a minute loses: %.1f s" % stops["lead"])
@@ -783,13 +788,13 @@ func _effort() -> void:
 	var eased := _race(0.0, 0.0, 800.0, 0.0, false, Ladder.EASE_MAX)
 	_expect(float(eased["time"]) > alone * 1.05, "after three losses in a row she is slower: %.1f s against %.1f s" % [eased["time"], alone])
 	# PT-11: a new player who sits still after START! (the agent in run 20261102-175913 lost so).
-	var late_new := _race(21.0, 0.0, 800.0, 8.0, true)
+	var late_new := _race(26.0, 0.0, 800.0, 8.0, true)
 	var long_s := Rivals.FIRST_HOLD + 8.0
-	var long_new := _race(21.0, 0.0, 800.0, long_s, true)
-	_expect(float(late_new["wait"]) >= 8.0 and float(late_new["wait"]) < 9.0 and absf(float(late_new["lead"]) - float(fast["lead"])) < 1.0,
-			"8 s still at the start, she waits: the race is the same: waited %.1f s, %.1f s against %.1f s" % [late_new["wait"], late_new["lead"], fast["lead"]])
-	_expect(absf(float(long_new["wait"]) - Rivals.FIRST_HOLD) < 0.11 and float(long_new["lead"]) < float(fast["lead"]),
-			"%.0f s still: she goes after FIRST_HOLD s and the player pays for the rest: waited %.1f s, %.1f s" % [long_s, long_new["wait"], long_new["lead"]])
+	var long_new := _race(26.0, 0.0, 800.0, long_s, true)
+	_expect(float(late_new["wait"]) == 0.0 and float(late_new["lead"]) < float(fast["lead"]),
+			"8 s still at the start, she does not wait (F 2026-11-16): waited %.1f s, the player pays for it: %.1f s against %.1f s" % [late_new["wait"], late_new["lead"], fast["lead"]])
+	_expect(float(long_new["wait"]) == 0.0 and float(long_new["lead"]) < float(late_new["lead"]),
+			"%.0f s still: she is long gone, the player pays for all of it: waited %.1f s, %.1f s" % [long_s, long_new["wait"], long_new["lead"]])
 	_expect(Rivals.first_start_step(0.5, 0.0) == "wait", "START! + 0.5 s, still: wait")
 	_expect(Rivals.first_start_step(Rivals.FIRST_IDLE + 0.1, 0.5) == "nudge", "still past FIRST_IDLE: the GO nudge")
 	_expect(Rivals.first_start_step(1.0, Rivals.FIRST_MOVE + 0.1) == "release", "the player moves: she goes")
@@ -799,7 +804,7 @@ func _effort() -> void:
 	_expect(not Rivals.first_stall_due(Rivals.FIRST_STALL, Rivals.FIRST_STALLS, 500.0), "at most FIRST_STALLS nudges")
 	_expect(not Rivals.first_stall_due(60.0, 0, Rivals.FIRST_EASE - 1.0), "the last stretch: no nudge")
 	_expect(Rivals.FIRST_GO_BANNER.length() <= 24, "the GO banner fits: %s" % Rivals.FIRST_GO_BANNER)
-	_summary.append("start: 8 s still, she waits %.1f s; %.0f s still, she goes at %.0f s" % [late_new["wait"], long_s, long_new["wait"]])
+	_summary.append("start: she never waits at the line: 8 s still, player %+.1f s; %.0f s still, %+.1f s" % [late_new["lead"], long_s, long_new["lead"]])
 	_summary.append("first race: her 800 m alone %.1f s, with any player %+.0f to %+.0f %%, %.2f-%.2f of her own pace; a fast player %+.1f s, town pace %+.1f s, a stop %+.1f s" % [
 			alone, lows * 100.0, worst * 100.0 if worst > 0.0 else 0.0, minf(float(slow["lo"]), float(stops["lo"])), float(fast["hi"]), fast["lead"], ordinary["lead"], stops["lead"]])
 
@@ -822,20 +827,42 @@ func _words() -> void:
 				"a First step's line in Polish and English, at most 40 characters: %s" % [n])
 		var tw := FirstSteps.tick_words(id, 7)
 		_expect(str(tw[0]).length() <= 70 and str(tw[1]).length() <= 70, "the tick's toast at most 70 characters: %s" % [tw])
-	for l: Array in [First10.CHOICE_TITLE, FirstSteps.TITLE, FirstSteps.words("promise"), FirstSteps.words("noticed"),
+	for l: Array in [FirstSteps.words("choice_title"), FirstSteps.TITLE, FirstSteps.words("promise"), FirstSteps.words("noticed"),
 			FirstSteps.words("all_title")]:
 		_expect(l.size() == 2 and str(l[0]) != str(l[1]), "Polish and English: %s" % [l])
 		for x in l:
 			_expect(str(x).length() <= 70, "at most 70 characters: %s (%d)" % [x, str(x).length()])
-	for l: Array in [FirstSteps.words("choice_body"), FirstSteps.words("all_body")]:
+	for l: Array in [FirstSteps.words("all_body")]:
 		_expect(l.size() == 2 and str(l[0]) != str(l[1]), "a card's body in Polish and English: %s" % [l])
 		for x in l:
 			_expect(str(x).length() <= 110, "a card's body at most 110 characters: %s (%d)" % [x, str(x).length()])
-	var promise: Array = FirstSteps.words("promise")
-	var choice_body: Array = FirstSteps.words("choice_body")
-	_expect(promise[1] in choice_body[1] and promise[0] in choice_body[0], "the choice card carries the promise")
-	for b: String in First10.CHOICE_BUTTONS + [FirstSteps.ALL_BUTTON]:
-		_expect(b.get_slice_count("|") == 2 and b.get_slice("|", 0).length() <= 12, "a button's two words, short: %s" % b)
+	# The choice card (F's playtest 2026-11-16): every key is in dialogue.json (a missing one reads as its own name),
+	# the numbers in the words are the game's (ladder stake and gain, Podwózka's base fare, the route's km).
+	for k: String in ["choice_title", "choice_body", "choice_race", "choice_ride", "choice_fly", "next_rival", "next_waits", "tick_race"]:
+		var w: Array = FirstSteps.words(k)
+		_expect(w.size() == 2 and str(w[0]) != k and str(w[1]) != k and str(w[0]) != str(w[1]), "dialogue.json first_steps has %s in both languages: %s" % [k, w])
+	var cw := First10.choice_words(0.8)
+	var stake := int(Ladder.RUNGS[0]["stake"])
+	_expect(cw["title"][0] == "PANI HALINA MRUGA" and cw["title"][1] == "Pani Halina is flashing you", "the choice card's title: %s" % [cw["title"]])
+	_expect(cw["body"][0].begins_with("„Do Palmy, kto pierwszy?”") and "0,8 km" in cw["body"][0] and "%d zł" % stake in cw["body"][0]
+			and "%d respektu" % Ladder.WIN_GAIN in cw["body"][0], "the Polish body has the route (0,8), the stake and the gain: %s" % cw["body"][0])
+	_expect("0.8 km" in cw["body"][1] and "%d zł" % stake in cw["body"][1] and "%d respect." % Ladder.WIN_GAIN in cw["body"][1]
+			and "First of six rivals" in cw["body"][1], "the English body: %s" % cw["body"][1])
+	_expect(stake == 60 and Ladder.WIN_GAIN == 100, "the reward is 60 zł and 100 respect (the ladder's data)")
+	var bs: PackedStringArray = cw["buttons"]
+	_expect(bs.size() == 3 and bs[0] == "ŚCIGAJ SIĘ · +%d zł|START RACE · +%d zł" % [stake, stake], "START RACE button: %s" % [bs])
+	_expect(bs[1] == "Podwózka · od %d zł|Give a lift · from %d zł" % [int(Rules.BASE), int(Rules.BASE)] and int(Rules.BASE) == 15, "the ride chip is from Rules.BASE: %s" % [bs])
+	_expect(bs[2] == "Lot · kaseta na dachu BUW|Fly · a mixtape on the BUW roof", "the fly chip names the BUW mixtape: %s" % [bs])
+	_expect(First10.choice_words(-1.0)["body"][1].contains("? km"), "an unknown route reads as ? km, never an invented number")
+	for l: Array in [cw["body"], cw["title"]]:
+		for x in l:
+			_expect(str(x).length() <= 110, "the choice card's text at most 110 characters: %s" % x)
+	for b: String in [FirstSteps.ALL_BUTTON] + Array(bs):
+		_expect(b.get_slice_count("|") == 2 and b.get_slice("|", 0).length() <= 30, "a button's two words: %s" % b)
+	# The race's tick names the garage (the next intro); the others keep the plain toast.
+	var tr := FirstSteps.tick_words("race", 3, true)
+	_expect("garaż" in tr[0] and "garage" in tr[1] and str(tr[0]).length() <= 70 and str(tr[1]).length() <= 70, "the race tick names the garage: %s" % [tr])
+	_expect(not "garaż" in FirstSteps.tick_words("race", 3)[0] and not "garaż" in FirstSteps.tick_words("kebab", 1, true)[0], "no other tick names it")
 	for l: Array in [First10.END_TITLE, First10.END_BODY, First10.END_FREE]:
 		_expect(l.size() == 2 and str(l[0]) != str(l[1]), "the end card in Polish and English: %s" % [l])
 		for x in l:

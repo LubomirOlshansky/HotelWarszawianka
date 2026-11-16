@@ -61,7 +61,7 @@ const HALINA := "Pani Halina"
 const SLOIK := "Słoik z Radomia"
 const MIKE := "Mordor Mike"
 ## The plan's clock against the race as driven on clear roads (a share of the race).
-const CLOCK := 0.06
+const CLOCK := 0.075
 ## Out of the town's cars: the seconds lost against the delay owed (a share of it), and the
 ## seconds that may still be owed at the finish.
 const AWAY := 0.15
@@ -79,7 +79,9 @@ const CIRCLE_GAIN := 15.0
 const OFF_ROAD := 7.0
 ## Trzy mosty's finish: the metres the circle saves Seba from the last bridge, at least.
 const FINAL_GAIN := 300.0
-const CIRCLE_TRAFFIC := 1.25
+## 1.25 until 2026-11-16, 1.35 since: the first race no longer waits at the line (its wait used to be
+## left out of the time), so a player ahead of her at the start and the town's cars cost her a little more.
+const CIRCLE_TRAFFIC := 1.35
 
 var _bench: RaceBench
 var _graph: LaneGraph

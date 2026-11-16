@@ -100,7 +100,7 @@ class PlayHud extends Fakes.Hud:
 	func cards_up() -> bool:
 		return super() or map_open
 
-	func set_card_art(art: Control) -> void:
+	func set_card_art(art: Control, _left := false) -> void:
 		arts += 1
 		art.free()
 
@@ -933,11 +933,11 @@ func _f_first() -> void:
 	_ok(_hud.finger, "a car that stands still gets the ghost finger")
 	_ok(_hud.banners.has("GAZ! JEDŹ ZA STRZAŁKĄ"), "and the GAZ banner")
 	_ok(_bub.said.has(FIRST_GO), "and Halina's go line")
-	_ok(_rv._drivers[HALINA].held, "Halina waits at the line while the player stands still")
+	_ok(not _rv._drivers[HALINA].held, "Halina does not wait at the line while the player stands still (F 2026-11-16)")
 	_vel = Vector3(6.0, 0.0, 0.0)
 	_run_frames(5)
 	_ok(not _hud.finger, "the car moving takes the finger away")
-	_ok(not _rv._drivers[HALINA].held, "the car moving lets Halina go")
+	_ok(not _rv._drivers[HALINA].held, "the car moving changes nothing for Halina: she is already off")
 	_cross()
 	_eq(int(_rv.state), 5, "the cross gives the first race up")
 	_press_ok()
@@ -999,6 +999,37 @@ func _f_first() -> void:
 	_eq(_hud.challenge, "", "a probe starts under her prompt: the HUD's challenge is down")
 	_ok(_bub.said.has(FIRST_GONE), "she says her parting line after flashing")
 	_ok(not _rv.busy(), "she gave up: nothing is on")
+	# The choice card's roll-up (call_first with no prompt): she stops behind the car held, says her line,
+	# and waits for the card's answer with no timer of her own; START RACE starts the race at once.
+	_new_world(false)
+	_frame()
+	_ok(_rv.call_first("Pani Halina", false), "the quiet call_first")
+	_ok(_until(func() -> bool: return _rv.first_stopped(), 1500, "she stops behind the car") >= 0, "she stops")
+	_eq(int(_rv.state), 0, "the quiet call: no prompt, still CRUISE")
+	_eq(_hud.challenge, "", "the quiet call: nothing on the HUD")
+	_ok(_bub.said.has(FIRST_CALL), "the quiet call: she says her call line")
+	_ok(_rv._drivers[HALINA].held, "the quiet call: she is held behind the car")
+	_run_frames(1500)
+	_ok(_rv.first_waiting() and _rv.first_stopped(), "the quiet call: no timer of hers ends it (25 s on)")
+	_ok(_rv.first_route_m() >= 0.0, "first_route_m: the road to her finish (%.0f m)" % _rv.first_route_m())
+	_ok(_rv.first_start(), "first_start() starts the race")
+	_eq(int(_rv.state), 2, "START RACE: the challenge at once")
+	_ok(_rv.first_race, "START RACE: it is the guided first race")
+	_eq(_car.flashes, 0, "START RACE: no flash back asked for")
+	_eq(_hud.challenge, "", "START RACE: no second prompt")
+	_ok(_reach(3, 400), "START RACE: the countdown")
+	# Any other answer: she goes with her parting line and no cool-down; the later race intro still works.
+	_new_world(false)
+	_frame()
+	_rv.call_first("Pani Halina", false)
+	_until(func() -> bool: return _rv.first_stopped(), 1500, "she stops (decline)")
+	_rv.first_decline()
+	_ok(not _rv.first_waiting() and not _rv.calling(), "declined at the card: she is gone")
+	_ok(_bub.said.has(FIRST_GONE), "declined at the card: her parting line")
+	_ok(_rv._cooldown[HALINA] < 24.0, "declined at the card: no 25 s cool-down (%.1f)" % _rv._cooldown[HALINA])
+	_ok(not _rv._drivers[HALINA].held, "declined at the card: she is let go")
+	_ok(_rv.call_first(), "declined at the card: the race intro can call her again")
+	_ok(_reach(1, 1500), "declined at the card: and she flashes with the prompt")
 
 
 # --- G. a locked rival ---------------------------------------------------------------------------------
@@ -1677,7 +1708,20 @@ func _o_six() -> void:
 	_hud.press(0)
 	_eq(nights[0], 1, "NOC turns the night on")
 	_ended("NOC on the sixth win")
-	# The home areas: Seba far from Praga and out of sight goes back; near the car he stays.
+	# Halina's first win: the card's NEXT button calls out the next rival (the ladder's name and stake).
+	_race_on(HALINA, 0)
+	_finish_now()
+	_ok(_reach(5, 60), "Halina beaten for the first time")
+	var sloik := Ladder.RUNGS[1]
+	_eq(Array(_hud.button_words), ["NASTĘPNY: SŁOIK · %d zł|Next: Słoik · %d zł" % [sloik["stake"], sloik["stake"]], "OK"], "Halina's win offers the next rival")
+	_ok(_hud.stacked, "the NEXT card's buttons are one under the other")
+	_ok(_hud.body.contains("Rywale 1/6"), "the win card counts one of six")
+	_hud.press(0)
+	_eq(_rv.called_out, SLOIK, "NASTĘPNY calls Słoik out")
+	_ok(_rv._drivers[SLOIK].held and _rv._beacon.visible, "Słoik waits held in the ring")
+	_rv.end_call_out()  # the called-out rival waits in her ring (the beacon on, as asserted above); the player walks away
+	_ended("NEXT after Halina")
+		# The home areas: Seba far from Praga and out of sight goes back; near the car he stays.
 	_new_world(false)
 	_run_frames(2)
 	var seba = _rv._drivers[SEBA]

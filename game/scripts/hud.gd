@@ -256,9 +256,20 @@ var _card_rows: VBoxContainer
 ## Racer AI step 6a: the row of a card's words and its picture, and the picture (`set_card_art`).
 var _card_mid: HBoxContainer
 var _card_art: Control
+## The card's title row (face, title, ✕), and the VBox of its words: a left picture (`set_card_art`
+## with left) takes the title row in beside the words, so the card stays short (the choice card, which
+## has to fit a 375 pt screen with its three stacked buttons).
+var _card_head: HBoxContainer
+var _card_text: VBoxContainer
 ## ... the card's width without it (px), and the room between the words and the picture (points).
 var _card_art_w := 0.0
 const CARD_ART_GAP := 10.0
+## A card whose picture stands left of the words (the choice card) is this wide, in points, at most:
+## the room on a 667 pt phone between the minimap's column and the gas pedal.
+const CARD_LEFT_W := 380.0
+## The lead button of a card (`set_card_lead`): its height in plain buttons, and its words' colour on the gold.
+const LEAD_TALL := 1.4
+const LEAD_INK := Color("#1b1405")
 var _card_face: Control
 var _card_face_tex: Texture2D
 var _card_face_letter := ""
@@ -771,7 +782,7 @@ func _set_chip(b: Button, pl: String, en: String, min_width := 64.0) -> void:
 	var font := ThemeDB.fallback_font
 	var w := maxf(font.get_string_size(pl, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_BODY)).x,
 			font.get_string_size(en, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_LABEL)).x)
-	b.custom_minimum_size = Vector2(maxf(w + 24.0 * pt, min_width * pt), TOUCH * pt)
+	b.custom_minimum_size = Vector2(maxf(w + 24.0 * pt, min_width * pt), TOUCH * pt * (LEAD_TALL if b.has_meta("lead") else 1.0))
 	b.size = b.custom_minimum_size
 	_mark()
 
@@ -1662,6 +1673,7 @@ func _build_mission_panels() -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", roundi(10.0 * pt))
 	box.add_child(head)
+	_card_head = head
 	_card_title = _label(T_TITLE, ACCENT)
 	head.add_child(_card_title)
 	_card_title_en = _label(T_LABEL, SUB)
@@ -1679,6 +1691,7 @@ func _build_mission_panels() -> void:
 	text.add_theme_constant_override("separation", roundi(2.0 * pt))
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_card_mid.add_child(text)
+	_card_text = text
 	_card_body = _label(T_SUB, INK)
 	_wrap(_card_body, CARD_W - 20.0)
 	text.add_child(_card_body)
@@ -1823,6 +1836,7 @@ func show_card(title: String, body: String, buttons: PackedStringArray, accent: 
 	_card_body_en.visible = body_en != ""
 	# The rave door's answers (rave.gd): one under another, so three long answers fit a narrow card.
 	_card_buttons.vertical = stacked
+	_card_buttons.add_theme_constant_override("separation", roundi((4.0 if stacked else 8.0) * pt))
 	for b in _card_buttons.get_children():
 		_card_buttons.remove_child(b)
 		b.queue_free()
@@ -1905,12 +1919,29 @@ func _set_card_x(index: int) -> void:
 ## words keep their lines; on a screen with no room for that between the top row's buttons it
 ## keeps its width and the words wrap narrower. The card owns the picture from here: the next
 ## card shown, or this one's end, frees it and gives the card its shape back.
-func set_card_art(art: Control) -> void:
+func set_card_art(art: Control, left := false) -> void:
 	_drop_card_art()
 	_card_art = art
 	_card_art_w = _card.custom_minimum_size.x
 	_card_mid.add_child(art)
 	var more := art.custom_minimum_size.x + CARD_ART_GAP * pt
+	if left:
+		# The choice card's face: before the words, and the card keeps its width (the words wrap narrower).
+		_card_mid.move_child(art, 0)
+		art.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		_card_head.get_parent().remove_child(_card_head)
+		_card_text.add_child(_card_head)
+		_card_text.move_child(_card_head, 0)
+		# Narrower too: at 667 pt the room between the minimap's column and the gas pedal is about 385 pt.
+		var cw := minf(_card_art_w / pt, CARD_LEFT_W)
+		_card.custom_minimum_size.x = cw * pt
+		var lw := cw - more / pt - 20.0
+		_wrap(_card_body, lw)
+		_wrap(_card_body_en, lw)
+		_card.reset_size()
+		_layout()
+		_mark()
+		return
 	_card.custom_minimum_size.x = _card_art_w + more
 	_card.reset_size()
 	_layout()
@@ -1923,6 +1954,32 @@ func set_card_art(art: Control) -> void:
 	_mark()
 
 
+## The first button of the card showing (index `index`) is its lead: filled gold, dark words, and
+## LEAD_TALL times taller than a plain button (the choice card's START RACE: the one to tap, the
+## others stay plain). Call it right after `show_card`; the next card shown starts plain again. A
+## later `set_card_button` keeps the lead's height and look.
+func set_card_lead(index: int) -> void:
+	var b := _card_buttons.get_node_or_null("button%d" % index) as Button
+	if b == null:
+		return
+	var gold := Access.tint(ACCENT)  # colour-safe (access.gd)
+	var fill := _box(gold, gold.lightened(0.35), 2.0)
+	var down := _box(gold.lightened(0.3), Color.WHITE, 2.0)
+	for st in ["normal", "hover", "disabled"]:
+		b.add_theme_stylebox_override(st, fill)
+	for st in ["pressed", "hover_pressed"]:
+		b.add_theme_stylebox_override(st, down)
+	var words := b.get_child(0)
+	for l in words.get_children():
+		(l as Label).add_theme_color_override("font_color", LEAD_INK)
+		(l as Label).add_theme_constant_override("outline_size", 0)
+	b.set_meta("lead", true)
+	b.custom_minimum_size.y = TOUCH * pt * LEAD_TALL
+	b.size = b.custom_minimum_size
+	_card.reset_size()
+	_mark()
+
+
 ## True while the card showing has a picture (`set_card_art`).
 func card_has_art() -> bool:
 	return _card_art != null
@@ -1932,6 +1989,10 @@ func _drop_card_art() -> void:
 	if _card_art == null:
 		return
 	_card_mid.remove_child(_card_art)
+	if _card_head.get_parent() != _card_rows:
+		_card_head.get_parent().remove_child(_card_head)
+		_card_rows.add_child(_card_head)
+		_card_rows.move_child(_card_head, 0)
 	_card_art.queue_free()
 	_card_art = null
 	_set_card_width(_card_art_w / pt)

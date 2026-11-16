@@ -181,6 +181,7 @@ const Garage := preload("res://scripts/garage.gd")
 const First10 := preload("res://scripts/first10.gd")
 const Hints := preload("res://scripts/hints.gd")
 const FirstSteps := preload("res://scripts/first_steps.gd")
+const MapTrack := preload("res://scripts/map_track.gd")
 const PlayStats := preload("res://scripts/play_stats.gd")
 const StopAssist := preload("res://scripts/stop_assist.gd")
 const MainLine := preload("res://scripts/main_line.gd")
@@ -513,7 +514,14 @@ var garage: Garage
 var rides: Rides
 ## G12 part 2: the quest pin, a place picked on the full map's ZADANIA card (quest_lines.gd entry;
 ## {} none): the arrow and minimap dot point at it while nothing else is on, until it is reached.
-var quest_pin: Dictionary = {}
+var quest_pin: Dictionary = {}:
+	set(v):
+		quest_pin = v
+		if tracking.pin(v) and wallet != null:  # the full map's track (map_track.gd): kept in the save
+			tracking.save_to(wallet.intro)
+			wallet.save()
+## The tracked place the save holds, until the world offers it again (`_restore_track`).
+var tracking := MapTrack.new()
 # --- end loop 2d-1 ---
 ## Loop MW-2: the storefronts (storefronts.gd) and their flags: --no-parodies (none of MW-2's
 ## shops, signs, scooters or entrances, for an A/B), --rechotka (the car by the nearest Frogs
@@ -725,6 +733,12 @@ func _ready() -> void:
 		title.language_chosen.connect(_on_language_chosen)
 		if fresh:
 			add_child(title)
+			# NOWA GRA reloads this scene: the boot scene's title (under the root, so it outlives the
+			# scene) is still up on its "start over?" question (F, 2026-11-16, build on the phone:
+			# the new game ran behind it). The new title takes over; the old one goes.
+			for stale in get_tree().root.get_children():
+				if stale != title and stale.get_script() == Title:
+					stale.queue_free()
 			# The first frame (F, 2026-11-08: ~8 s of a plain blue screen on a Nothing Phone): the
 			# title is drawn before the settings, radio, wallet and save below, not after them.
 			await get_tree().process_frame
@@ -749,6 +763,7 @@ func _ready() -> void:
 		wallet.load_note = flags.save_note_flag
 	hints = Hints.new()
 	hints.load_from(wallet.intro)
+	tracking.load_from(wallet.intro)
 	hints.use_flags(flags)
 	if title != null:
 		title.set_done(Hints.done_tags(wallet))  # the loading tips about things not done yet first
@@ -792,6 +807,7 @@ func _ready() -> void:
 		return
 	if title != null:
 		_pause.hold(PauseReasons.LOAD)  # the loading bar: nothing half-built moves between the build's steps
+		Sfx.world_hold(true)  # no traffic or beds under the title; the tap lets them in (title.gd dismiss)
 		title.cap = lerpf(LOAD_FILES, LOAD_BUILT, LOAD_MARKS[0])
 		LoadYield.begin()  # the long setups let a frame through now and then (load_yield.gd)
 	await _build_world()
@@ -945,6 +961,7 @@ func _title_frame() -> void:
 		print("title: the start's sectors in after %d ms%s" % [Time.get_ticks_msec() - _title_wait_t,
 				"" if streamer == null or streamer.idle() else " (not all: the wait's limit)"])
 		_title_wait_t = -1
+		_pause.hold(PauseReasons.TITLE)  # the world waits for the tap: no NPC, race offer or dialogue before it
 		title.set_ready()
 		if title != null and flags.title_choice != "":
 			# Save and resume: --title-choice= picks for the player (continue, new, or ask: the question up).
@@ -1196,6 +1213,7 @@ func _on_title_dismissed() -> void:
 		# The verify step `boot-run` waits for this line: the boot scene's title lasted to here.
 		print("boot: the boot scene's title stayed up until the game began")
 		_title_from_boot = false
+	_pause.release(PauseReasons.TITLE)
 	hud.visible = not flags.hide_hud
 	dialogue.host_on = true
 	title = null
@@ -2039,6 +2057,7 @@ func _set_quality(choice: int) -> void:
 	tod.glow_allowed = qs["glow"]
 	if map != null and map.leaf_material != null:
 		map.leaf_material.set_shader_parameter("limbs", 1.0 if qs.get("tree_limbs", true) else 0.0)
+	if map != null and map.panel_material != null: map.panel_material.set_shader_parameter("holes", 1.0 if qs.get("panel_holes", true) else 0.0)
 	if crowds != null:
 		crowds.amount = _crowd_scale()
 		crowds.refresh()
@@ -3239,6 +3258,8 @@ func _quest_running() -> bool:
 func _story_tick() -> void:
 	if stories == null or hud == null:
 		return
+	if tracking.pending != "":
+		_restore_track()
 	var focus := _quest_running()
 	stories.focus = focus
 	_shisha_secret(focus)
@@ -4732,10 +4753,11 @@ func _open_full_map() -> void:
 		hud.full_map.set_districts(districts.view(), districts.percent_total(), syrenki.found_count() if syrenki != null else 0,
 				syrenki.entries.size() if syrenki != null else 0)  # loop 3h slice 1 (+ slice 2: the Syrenki line)
 	hud.full_map.quit_what = _quest_quit_name()  # F 2026-11-08: the card's quit button
+	hud.full_map.hints = hints  # 2026-11-16: the map's coach marks (hints.gd)
 	var entries := _quest_entries()
 	_fill_map_list(entries)  # first hour step 4: the one list's First steps, Rivals and Collection
 	hud.full_map.set_quests(entries, Lines.Line.HELI if flying else Lines.Line.CAR,
-			str(quest_pin.get("id", "")))  # G12 part 2: the quest list (one list since step 4)
+			str(quest_pin.get("id", "")), quest_pin)  # G12 part 2: the quest list (one list since step 4)
 	if quest_tab_flag >= 0:
 		hud.full_map.show_line(quest_tab_flag)
 		quest_tab_flag = -1
@@ -4779,6 +4801,10 @@ func _fill_map_list(entries: Array) -> void:
 		if left.is_empty():
 			head = []
 	fm.set_steps(left, head, FirstSteps.words("promise") if not left.is_empty() else [], friends)
+	fm.set_next([str(main_next.get("pl", "")), str(main_next.get("en", ""))], main_next.get("at", Vector2.INF))  # the NEXT card after First steps
+	# The "?" of the First steps not done whose place nothing else shows (map_track.gd).
+	hud.markers.put_all(MapTrack.OWNER, MapTrack.unknown_marks(wallet.intro, _unknown_places(),
+			{"garage": hud.markers.has("garage:workshop")}) if wallet != null else [])
 	if rivals != null and rivals.ladder != null and wallet != null:
 		var rows: Array = rivals.ladder_rows()
 		fm.set_rivals(rivals.ladder.chips(), rivals.ladder.title(), rows[rows.size() - 1] if not rows.is_empty() else [],
@@ -4811,6 +4837,29 @@ func _fill_map_list(entries: Array) -> void:
 			en.append("Tapes %d/%d" % [taken, cassettes.entries.size()])
 		words = [" · ".join(pl), " · ".join(en)]
 	fm.set_collection(words)
+
+
+## Where the First steps with a fixed place are (map_track.gd PLACED): Mirek's garage, the guide's cassette on the BUW roof.
+func _unknown_places() -> Dictionary:
+	var out := {}
+	if garage != null and garage.at != Vector3.INF:
+		out["garage"] = Vector2(garage.at.x, garage.at.z)
+	var i: int = cassettes.index_of(First10.CASSETTE_ID) if cassettes != null and cassettes.ready_ok else -1
+	if i >= 0:
+		out["heli"] = Vector2(cassettes.at(i).x, cassettes.at(i).z)
+	return out
+
+
+## The saved track, found again (map_track.gd): the pin is back once the list or a "?" offers its place.
+func _restore_track() -> void:
+	var qs: Array = []
+	var places := _unknown_places()
+	for id: String in places:
+		qs.append(MapTrack.entry_of(id, places[id]))
+	var e := tracking.resolve([_quest_entries(), qs])
+	if not e.is_empty():
+		quest_pin = e
+		print("quest list: track %s kept from the save" % e["id"])
 
 
 ## The place or request that does First step `id` ({} for none), from the list's entries by group:
@@ -5322,7 +5371,7 @@ func _hints_frame(dt: float) -> void:
 	var at: Vector3 = car.assist_at
 	var person: Vector3 = missions.target_position() if missions.needs_heli() else Vector3.INF
 	var f := {"context": hud.messages.context, "card": hud.card_showing(), "flying": flying,
-			"speed": absf(car.forward_speed), "stalled": car.stalled, "map_open": hud.full_map_open(),
+			"speed": absf(car.forward_speed), "driving": absf(car.forward_speed) > 1.0, "stalled": car.stalled, "map_open": hud.full_map_open(),
 			"in_ring": at != Vector3.INF and Vector2(at.x - car.global_position.x, at.z - car.global_position.z).length() < car.assist_reach,
 			"heli_call": missions.call_needs_heli(), "heli_shown": hud.spotlight_target_rect("heli").has_area(),
 			"climbed": flying and absf(heli.climb) > 0.1, "earned": wallet.jobs_done() > 0 or wallet.zl > 0,
@@ -6207,6 +6256,8 @@ func _stop_assist() -> void:
 var _main_target := Vector2.INF
 var _main_t := 0.0
 var main_step: Dictionary = {}
+## The main line's step as `step` gives it, even past the first job (the full map's NEXT card, 2026-11-16).
+var main_next: Dictionary = {}
 ## The main line on the driving screen (main_nudge.gd): its goal line and gold edge arrow, shown
 ## when nothing else is on (`_free_now`, from `_show_target`).
 var _nudge := MainNudge.new()
@@ -6265,6 +6316,7 @@ func _main_line_tick(dt: float) -> void:
 	if wallet != null:
 		f["jobs"] = wallet.jobs_done()
 	main_step = MainLine.now(f)
+	main_next = MainLine.step(f)
 	# The star is the marker registry's MAIN mark (TD-13), written only when it moves.
 	if main_step["at"] != hud.markers.where("main:star"):
 		hud.markers.put_all("main", MainLine.map_marks(main_step["at"]))

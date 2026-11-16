@@ -551,6 +551,7 @@ func dismiss() -> void:
 	_prompt.modulate.a = 1.0
 	_prompt_pl.modulate.a = 1.0
 	var sfx: Variant = load(SFX)
+	sfx.world_hold(false)  # the world's sounds come on with the tap (main.gd holds them till here)
 	sfx.ui("start")
 	dismissed.emit()
 	var tween := create_tween()

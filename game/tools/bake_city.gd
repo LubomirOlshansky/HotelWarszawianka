@@ -10,8 +10,10 @@ extends SceneTree
 ## Reads map/index.json and map/sectors/<i>_<j>.json (tools/bake_sectors.py), and checks the
 ## landmark sites found from the index's `site_parts` against the whole map's (centrum.json).
 ## Run with a real renderer (not --headless, which drops MultiMesh and texture data):
-##   godot --path game --resolution 320x180 --script res://tools/bake_city.gd [-- --barriers=typed]
-## (W2 of the walls look: the barriers in that look; by default the palette's barrier_look, classic.)
+##   godot --path game --resolution 320x180 --script res://tools/bake_city.gd [-- --barriers=typed|panels]
+## (W2 of the walls look: the barriers in that look; by default the palette's barrier_look, classic.
+## W4: under panels each sector's light fences are its `Panels` MultiMesh, saved as one of its
+## pieces; the line prints each sector's panel pieces and the end their total.)
 ## Loop 3d-1: everything it writes is derived and not committed (tools/setup_map.sh makes it on a
 ## fresh clone). It ends by writing map/sectors/city.stamp: the split's digest (sectors/split.stamp)
 ## and the SHA-256 of every input in CITY_INPUTS, so tools/check_map_data.py tells stale prebuilt
@@ -35,7 +37,7 @@ const CITY_INPUTS := ["map/lod2.bin", "map/terrain.json", "map/ao.bin", "map/lig
 		"scripts/map_builder.gd", "scripts/chunked_surface.gd", "scripts/neon_signs.gd", "scripts/landmarks.gd",
 		"scripts/sector_proxies.gd", "scripts/models.gd", "scripts/pixel_font.gd", "scripts/index_pack.gd",
 		"scripts/city_maps.gd", "tools/bake_city.gd", "data/courts.json", "scripts/solidity.gd", "data/object_palette.json",
-		"scripts/city_barriers.gd", "scripts/facade_kit.gd"]
+		"scripts/city_barriers.gd", "scripts/facade_kit.gd", "scripts/panel_rule.gd"]
 ## TD-10 (2026-11-15): and every file of landmarks.gd's base chain (`scripts/landmarks/*.gd`, by name).
 const CITY_INPUT_DIRS := ["scripts/landmarks"]
 
@@ -90,6 +92,7 @@ func _bake() -> Error:
 	for k: Array in index["sectors"]["keys"]:
 		keys.append(Vector2i(int(k[0]), int(k[1])))
 	var total := 0
+	var panel_total := 0
 	# The loading fix: the sectors' builds note each roof-grid cell's roof and wall colours, for the
 	# proxies (sector_proxies.gd); the grids aren't saved.
 	map.proxy_colours = true
@@ -120,7 +123,11 @@ func _bake() -> Error:
 		var size := FileAccess.get_file_as_bytes(path).size() if err == OK else 0
 		size += _dir_bytes("res://map/sectors/%s/" % MapBuilder.sector_name(key))
 		total += size
-		print("  %s: %d nodes, %d pieces, %.2f MB, %d ms" % [path.get_file(), _count(root), pieces, size / 1048576.0, Time.get_ticks_msec() - t])
+		var panel_node := root.get_node_or_null("Panels")
+		var panel_n := int(panel_node.get_meta(&"panel_pieces", 0)) if panel_node != null else 0
+		panel_total += panel_n
+		print("  %s: %d nodes, %d pieces, %.2f MB, %d ms%s" % [path.get_file(), _count(root), pieces, size / 1048576.0,
+				Time.get_ticks_msec() - t, ", %d panel pieces" % panel_n if panel_n > 0 else ""])
 		root.free()
 		if err != OK:
 			push_error("bake_city: %s: %s" % [path, error_string(err)])
@@ -161,6 +168,8 @@ func _bake() -> Error:
 	print("bake_city: %d sector scenes %.1f MB, index.res %.1f MB, proxies.scn %.2f MB (at most %d triangles a sector)" % [
 			keys.size(), total / 1048576.0, FileAccess.get_file_as_bytes("res://map/index.res").size() / 1048576.0,
 			FileAccess.get_file_as_bytes("res://map/proxies.scn").size() / 1048576.0, proxy_tris])
+	if panel_total > 0:
+		print("bake_city: %d panel pieces in the sectors (barriers %s)" % [panel_total, Solidity.barrier_look()])
 	if err == OK:
 		err = _write_stamp()
 	_finished = true

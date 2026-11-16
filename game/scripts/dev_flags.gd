@@ -171,6 +171,8 @@ var first_race_flag := false
 ## --no-hints keeps every hint down.
 var hint_flag := ""
 var no_hints := false
+## 2026-11-16 (--map-coach): the full map's coach marks show as if never seen (hints.gd `use_flags`).
+var map_coach := false
 var egg_flag := ""
 var egg_log := false
 var found_eggs := ""
@@ -635,7 +637,7 @@ func parse_with(args: PackedStringArray) -> void:
 			_flag_soft = true
 		elif arg.begins_with("--barriers="):
 			# W2 of the walls look: before the city is built (the wall builder reads it): the runtime
-			# city's walls, fences and hedges in that look (classic or typed) over the palette's
+			# city's walls, fences and hedges in that look (classic, typed or panels) over the palette's
 			# barrier_look. The prebuilt city is the look it was baked in (`note_barrier_look`).
 			_flag_barriers = StringName(arg.trim_prefix("--barriers="))
 			Solidity.set_barrier_look(_flag_barriers)
@@ -1065,6 +1067,8 @@ func parse_with(args: PackedStringArray) -> void:
 			hint_flag = arg.trim_prefix("--hint=")
 		elif arg == "--no-hints":
 			no_hints = true
+		elif arg == "--map-coach":
+			map_coach = true
 		elif arg.begins_with("--ladder="):
 			ladder_flag = clampi(int(arg.trim_prefix("--ladder=")), 0, Ladder.FINAL + 1)  # loop 3h slice 3
 		elif arg == "--trzy-mosty" or arg.begins_with("--trzy-mosty="):
