@@ -725,6 +725,12 @@ func _ready() -> void:
 		title.language_chosen.connect(_on_language_chosen)
 		if fresh:
 			add_child(title)
+			# NOWA GRA reloads this scene: the boot scene's title (under the root, so it outlives the
+			# scene) is still up on its "start over?" question (F, 2026-11-16, build on the phone:
+			# the new game ran behind it). The new title takes over; the old one goes.
+			for stale in get_tree().root.get_children():
+				if stale != title and stale.get_script() == Title:
+					stale.queue_free()
 			# The first frame (F, 2026-11-08: ~8 s of a plain blue screen on a Nothing Phone): the
 			# title is drawn before the settings, radio, wallet and save below, not after them.
 			await get_tree().process_frame
