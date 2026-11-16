@@ -11,7 +11,7 @@ extends Node
 ##
 ## **First hour, step 3** (the spec "First hour for the beta", F 2026-11-15): after the first
 ## minute the guide no longer fires beats by the clock. It shows ONE choice card (RACE, RIDES, FLY,
-## or JUST DRIVE; the guide's neutral voice, no call), then, whenever the player has been free
+## or JUST DRIVE, the card's ✕; the guide's neutral voice, no call), then, whenever the player has been free
 ## NEXT_GAP s (and NEXT_GAP s after the last intro), it introduces the next thing on the First
 ## steps list (first_steps.gd) the player has not done yet, once each, in the order of INTROS. A
 ## player who skipped the kebab still gets the race and the rescue; one who already flew is not
@@ -127,9 +127,11 @@ const HINT_S := 150.0
 const GARAGE_HINT_S := 90.0
 const HINT_COLOUR := Color("#ffd23f")
 ## The choice card (step 3): its words and buttons ("POLISH|ENGLISH", hud.gd), what each button
-## introduces, in order; the last is JUST DRIVE.
+## introduces, in order. JUST DRIVE is the card's ✕ (hud.gd `set_card_close`, the critique's point
+## 1): the press CHOICE_CLOSE, past the three buttons, with no pick.
 const CHOICE_TITLE := ["CO TERAZ?", "What now?"]
-const CHOICE_BUTTONS := ["WYŚCIG|RACE", "KURSY|RIDES", "LOT|FLY", "JADĘ|JUST DRIVE"]
+const CHOICE_BUTTONS := ["WYŚCIG|RACE", "KURSY|RIDES", "LOT|FLY"]
+const CHOICE_CLOSE := 3
 const CHOICE_PICKS := [["race"], ["ride"], ["heli", "tape"], []]
 const CHOICE_COLOUR := Color("#ffd23f")
 ## The end card: the jobs it needs, its words ([Polish, English]), its button ("POLISH|ENGLISH",
@@ -151,14 +153,11 @@ const END_COLOUR := Color("#ffd23f")
 const LINES := {
 	"stand": ["Kebab przy Świętokrzyskiej czeka z twoim pierwszym zamówieniem.", "The kebab stand by Świętokrzyska has your first order."],
 	"lure": ["Kebab poczeka na stoisku. Wpadnij, kiedy chcesz.", "The kebab will wait at the stand. Come by anytime."],
-	"kebab": ["Kebab przy Świętokrzyskiej wciąż czeka. Gorący.", "The kebab stand by Świętokrzyska still waits. Hot."],
 	"heli": ["Pogotowie lotnicze pożycza ci stary śmigłowiec: HELI", "The air ambulance lends you its old helicopter: HELI"],
 	"heli_locked": ["Helikopter? Najpierw jedno wezwanie ratunkowe.", "The helicopter comes after your first rescue call."],
 	"tape": ["Na dachu BUW leży kaseta z muzyką. Leć po nią helikopterem.", "A mixtape lies on the BUW roof: fly the helicopter to it."],
 	"tape_ground": ["Na bulwarach czeka KASETA. Zwolnij przy niej.", "A KASETA waits on the boulevards: slow down by it."],
 	"powisle": ["Pod skarpą jest Powiśle. Zjedź w dół, do Wisły.", "Powiśle is below the escarpment: head down to the river."],
-	"ride": ["Ktoś szuka podwózki. Nowe: zlecenie w aplikacji.", "Someone needs a lift. New: a request in the app."],
-	"what_next": ["Pierwsze kroki: jeszcze %d. Złota strzałka pokazuje drogę.", "First steps: %d to go. The gold arrow shows the way."],
 }
 
 signal beat(id: String, how: String, at: float)
@@ -765,7 +764,8 @@ func _fire(id: String) -> void:
 			var ride: Variant = jobs.get("rides") if jobs != null else null
 			ok = ride is Node and ride.has_method("offer_now") and bool(ride.call("offer_now"))
 			if ok and hud != null:
-				hud.toast(LINES["ride"][0], LINES["ride"][1])
+				var ride_words: Array = FirstSteps.words("intro_ride")
+				hud.toast(ride_words[0], ride_words[1])
 		"powisle":
 			var at := powisle_at()
 			if at != Vector3.INF:
@@ -779,7 +779,8 @@ func _fire(id: String) -> void:
 		"kebab":
 			if jobs != null and _stand >= 0:
 				_hint(jobs.stand_ring(_stand), "KEBAB", HINT_S)
-				hud.toast(LINES["kebab"][0], LINES["kebab"][1])
+				var kebab_words: Array = FirstSteps.words("intro_kebab")
+				hud.toast(kebab_words[0], kebab_words[1])
 		"done":
 			_end_guide()
 	if not ok:
@@ -822,9 +823,10 @@ func _show_choice() -> void:
 	hud.show_card(CHOICE_TITLE[0], body[0], PackedStringArray(CHOICE_BUTTONS), CHOICE_COLOUR, false,
 			CHOICE_TITLE[1], body[1])
 	hud.own_card(self)
+	hud.set_card_close(CHOICE_CLOSE)
 
 
-## The choice card's button `index` (CHOICE_BUTTONS), or "unanswered": the intros it asks for come
+## The choice card's button `index` (CHOICE_BUTTONS; CHOICE_CLOSE is the ✕), or "unanswered": the intros it asks for come
 ## first (`want`), at once when free; JUST DRIVE asks for none, and the card never comes again.
 func _pick(index: int, why := "pressed") -> void:
 	_choice_up = false
@@ -834,7 +836,7 @@ func _pick(index: int, why := "pressed") -> void:
 	for id: String in picks:
 		if not fired.has(id) and not id in _want:
 			_want.append(id)
-	var word := str(CHOICE_BUTTONS[clampi(index, 0, CHOICE_BUTTONS.size() - 1)]).get_slice("|", 1)
+	var word := str(CHOICE_BUTTONS[index]).get_slice("|", 1) if index >= 0 and index < CHOICE_BUTTONS.size() else "JUST DRIVE (✕)"
 	print("first10: the choice card: %s (%s) at %.1f s" % [word, why, t])
 	if wallet != null:
 		wallet.intro["choice_pick"] = clampi(index, 0, CHOICE_PICKS.size() - 1) + 1
@@ -892,7 +894,8 @@ func _what_next_tick(f: Dictionary) -> void:
 	_hint(best, word, WHAT_NEXT_SHOW)
 	_what_next = true
 	if hud != null:
-		hud.toast(LINES["what_next"][0] % left.size(), LINES["what_next"][1] % left.size())
+		var next_words: Array = FirstSteps.words("what_next")
+		hud.toast(next_words[0] % left.size(), next_words[1] % left.size())
 	print("first10: what next: %s, %d steps left" % [word, left.size()])
 
 

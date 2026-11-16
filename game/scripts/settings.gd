@@ -110,6 +110,10 @@ var collide := 0
 ## by default (F 2026-11-14: "on for you only, off for testers"): every fence and hedge is hard, the
 ## colliders as before step 7. `--no-soft` keeps them hard for a run, `--soft` breakable.
 var soft_fences := false
+## The beta's anonymous play stats (play_stats.gd, docs/STATS.md), Settings → DŹWIĘK beside the
+## language, key "stats". On by default (F 2026-11-15: no consent card in the beta, an off switch
+## in Settings); off stops sending at once and drops what waits to be sent.
+var stats := true
 ## Accessibility (access.gd, Settings → ŁATWOŚĆ): larger HUD text, calm (no flashing or shaking),
 ## colour-safe markers, the phone's vibration, and the quest stop assist.
 var text_large := false
@@ -181,6 +185,7 @@ func load_file() -> void:
 	chatter = clampi(int(cfg.get_value("world", "chatter", chatter)), 0, 2)
 	collide = clampi(int(cfg.get_value("game", "collide", collide)), 0, COLLIDE_PRESETS - 1)
 	soft_fences = bool(cfg.get_value("game", "soft_fences", soft_fences))
+	stats = bool(cfg.get_value("game", "stats", stats))
 	text_large = bool(cfg.get_value("access", "text_large", text_large))
 	calm = bool(cfg.get_value("access", "calm", calm))
 	color_safe = bool(cfg.get_value("access", "color_safe", color_safe))
@@ -229,6 +234,7 @@ func save() -> void:
 	cfg.set_value("world", "chatter", chatter)
 	cfg.set_value("game", "collide", collide)
 	cfg.set_value("game", "soft_fences", soft_fences)
+	cfg.set_value("game", "stats", stats)
 	cfg.set_value("access", "text_large", text_large)
 	cfg.set_value("access", "calm", calm)
 	cfg.set_value("access", "color_safe", color_safe)
@@ -243,9 +249,9 @@ func save() -> void:
 
 
 func summary() -> String:
-	return "controls %d pads %d, classic camera %s, traffic %s, quality %s, volume %.0f/%.0f/%.0f %%, perf %s, %d fps, style %d, vhs %s, zone cap %s, handling %d sens %.2f lane %s chatter %d, collide %d soft fences %s, access large %s calm %s colour-safe %s vibration %s assist %s left-handed %s, auto image %s" % [
+	return "controls %d pads %d, classic camera %s, traffic %s, quality %s, volume %.0f/%.0f/%.0f %%, perf %s, %d fps, style %d, vhs %s, zone cap %s, handling %d sens %.2f lane %s chatter %d, collide %d soft fences %s stats %s, access large %s calm %s colour-safe %s vibration %s assist %s left-handed %s, auto image %s" % [
 			controls, pads, "follow" if classic_follow else "fixed", TRAFFIC_NAMES[traffic], "auto" if quality == AUTO else str(quality),
-			master * 100.0, music * 100.0, effects * 100.0, perf, fps, style, vhs, zone_cap, handling, sensitivity, lane_assist, chatter, collide, soft_fences, text_large, calm, color_safe, vibration, stop_assist, left_handed, image_summary()]
+			master * 100.0, music * 100.0, effects * 100.0, perf, fps, style, vhs, zone_cap, handling, sensitivity, lane_assist, chatter, collide, soft_fences, stats, text_large, calm, color_safe, vibration, stop_assist, left_handed, image_summary()]
 
 
 ## Loop G1b: "sharp", "sharp, on trial 1/4" or "fallback, calm 1/2 (GPU extras down 74 s)".

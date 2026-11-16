@@ -262,6 +262,7 @@ SITE_AREAS = [
     (-2781, -728, -2700, -643),   # faustyna_klasztor
     (53, -294, 115, -243),   # szarytki_zaulek
     (-1184, 716, -1143, 779),   # dom_parafialny_barbara
+    (1912, -1385, 1942, -1339),   # plebania_zwycieskiej
     (451, -2008, 468, -1991),   # church_kaplica_florianska
     (-2267, 61, -2247, 83),   # church_kaplica_lucka
     (-1018, 1015, -997, 1043),   # church_kaplica_hoza

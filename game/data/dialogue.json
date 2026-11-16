@@ -6830,6 +6830,10 @@
     ["Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty. Na start wybierz coś albo po prostu jedź.", "Six rivals. Beat them all and win Trzy mosty. Pick a start, or just drive.", {"only": "choice_body"}],
     ["Miasto cię zauważyło: znajomi zaczną dzwonić. Nowy lakier u Mirka.", "The city has noticed you: friends will call. New paint at Mirek's.", {"only": "noticed"}],
     ["PIERWSZE KROKI ZALICZONE", "First steps done", {"only": "all_title"}],
-    ["Znasz już całe miasto. Lakier „Żółty jak tramwaj” czeka u Mirka, +100 respektu. Teraz szóstka rywali.", "You know the whole city now. Tram yellow paint waits at Mirek's, +100 respect. Now the six rivals.", {"only": "all_body"}]
+    ["Znasz już całe miasto. Lakier „Żółty jak tramwaj” czeka u Mirka, +100 respektu. Teraz szóstka rywali.", "You know the whole city now. Tram yellow paint waits at Mirek's, +100 respect. Now the six rivals.", {"only": "all_body"}],
+    ["Kebab przy Świętokrzyskiej wciąż czeka. Gorący.", "The kebab stand by Świętokrzyska still waits. Hot.", {"only": "intro_kebab"}],
+    ["Ktoś szuka podwózki. Nowe: zlecenie w aplikacji.", "Someone needs a lift. New: a request in the app.", {"only": "intro_ride"}],
+    ["Pierwsze kroki: jeszcze %d. Złota strzałka pokazuje drogę.", "First steps: %d to go. The gold arrow shows the way.", {"only": "what_next"}],
+    ["✓ Pierwsze kroki %d/%d: %s  +%d zł", "✓ First steps %d/%d: %s  +%d zł", {"only": "tick"}]
   ]
 }

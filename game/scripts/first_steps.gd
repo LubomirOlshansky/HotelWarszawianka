@@ -38,7 +38,9 @@ static var _words: Dictionary = {}
 ## line in the list, at most 40 characters), "promise" (the one promise, the critique's point 2,
 ## F's yes 2026-11-15 21:02 UTC), "choice_body" (the guide's choice card, which carries the
 ## promise), "noticed" (the third tick's toast), "all_title" and "all_body" (the card for all
-## seven). [key, key] when the line is missing.
+## seven), "intro_kebab" and "intro_ride" (the guide's intros, first10.gd), "what_next" (its
+## nudge, "%d" steps left) and "tick" (a tick's toast: n, of, the step's line, zł). [key, key] when
+## the line is missing.
 static func words(key: String) -> Array:
 	if _words.is_empty():
 		var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(DIALOGUE_PATH)) if FileAccess.file_exists(DIALOGUE_PATH) else null
@@ -107,8 +109,8 @@ static func reward(n: int) -> Dictionary:
 ## The tick's toast: "✓ Pierwsze kroki 2/7: Podwózka" with the reward, [Polish, English].
 static func tick_words(id: String, n: int) -> Array:
 	var name: Array = name_of(id)
-	return ["✓ Pierwsze kroki %d/%d: %s  +%d zł" % [n, IDS.size(), name[0], STEP_ZL],
-			"✓ First steps %d/%d: %s  +%d zł" % [n, IDS.size(), name[1], STEP_ZL]]
+	var w: Array = words("tick")
+	return [w[0] % [n, IDS.size(), name[0], STEP_ZL], w[1] % [n, IDS.size(), name[1], STEP_ZL]]
 
 
 ## The list's header: "PIERWSZE KROKI 2/7" and "First steps 2/7".

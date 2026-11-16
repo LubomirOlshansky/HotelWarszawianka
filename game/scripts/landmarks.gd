@@ -183,6 +183,7 @@ const INFO := {
 			"Narożna kamienica w brzoskwiniowym tynku, z balkonami i ślepą arkadą na rogu.",
 			"A corner tenement in peach plaster, with iron balconies and a blind arch at the corner."],
 	"adwentysci": ["Kościół Adwentystów na Foksal", "Zbór w żółtej kamienicy za ogródkiem.", "A church inside a yellow house behind a front garden."],
+	"plebania_zwycieskiej": ["Plebania parafii Matki Boskiej Zwycięskiej", "Plebania za ogrodzeniem, w kremowym tynku.", "The presbytery behind its railings, in cream plaster."],
 	"dom_parafialny_barbara": ["Dom Parafialny im. Prymasa Tysiąclecia", "Dom parafii św. Barbary, w żółtym tynku przy Świętej Barbary.", "St Barbara's parish house, in yellow plaster on Świętej Barbary."],
 	"szarytki_zaulek": ["Domy Szarytek przy zaułku", "Dwa domy sióstr miłosierdzia za klasztorem na Tamce.", "Two houses of the Sisters of Charity behind their convent on Tamka."],
 	"faustyna_klasztor": ["Klasztor przy sanktuarium św. Faustyny", "Domy Zgromadzenia Sióstr Matki Bożej Miłosierdzia przy Żytniej.", "The Sisters of Our Lady of Mercy's houses round St Faustina's shrine."],
@@ -678,8 +679,17 @@ const INFO := {
 			"Ocalały fragment trybuny z placu Defilad (1955), złożony z dawnego granitu. Dziś ogród widokowy na placu Centralnym.",
 			"What is left of Plac Defilad's 1955 parade tribune, rebuilt in its old granite. Now a garden with a view over Plac Centralny."],
 	"tr": ["Plac budowy TR Warszawa",
-			"Ogrodzony plac pod nowy gmach teatru TR Warszawa, obok białego muzeum.",
-			"The fenced plot for TR Warszawa's new theatre, next to the white museum."],
+			"Betonowy szkielet nowego teatru, dwa czerwone żurawie i czarny płot.",
+			"TR Warszawa's new theatre: a concrete shell, two red cranes, a black hoarding."],
+	"nozyce": ["Złote nożyce",
+			"Wielkie złote nożyce na granitowym cokole przed białym muzeum.",
+			"Giant gold scissors on a granite plinth in front of the white museum."],
+	"jarmark": ["Jarmark na placu Defilad",
+			"Świąteczne budki, choinka i płotek. Jeszcze się rozstawia.",
+			"The Christmas market on Plac Defilad: huts, a big tree, a fence. Still going up."],
+	"obeliski": ["Obeliski przy Pałacu",
+			"Dwa granitowe obeliski z 1955 roku przy Marszałkowskiej, na północnym i południowym skraju placu.",
+			"Two granite obelisks of 1955 on Marszałkowska, at the north and south ends of Plac Defilad."],
 	"dtc": ["Domy Towarowe Centrum",
 			"Trzy szklane domy towarowe Ściany Wschodniej, 1962–1970. Nazwy po Warsie i Sawie z legendy.",
 			"The Eastern Wall's three glass department stores, 1962–1970, named after the legend's Wars and Sawa."],
@@ -1171,6 +1181,9 @@ func _find_sites() -> void:
 	# First scene item 1 (2026-10-31): the Museum of Modern Art on Plac Defilad.
 	_find_msn()
 	_find_tr()
+	_find_nozyce()
+	_find_jarmark()
+	_find_obeliski()
 	# First scene item 3 (2026-10-31): the Eastern Wall's three glass department stores.
 	_find_dtc()
 	# The Mac photo check (2026-11-01, specs C and D): the tower and the slabs behind the stores.
@@ -1363,6 +1376,12 @@ func _find_sites() -> void:
 		_add_site("dom_parafialny_barbara", [dpb])
 		if not sites.is_empty() and sites[-1]["key"] == "dom_parafialny_barbara":
 			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": DPB_WALL, "roof": DPB_ROOF}
+	# The presbytery by Our Lady of Victory (2026-11-15): its mass in cream plaster.
+	var pzw := _outline_at(PZW_AT)
+	if pzw.size() >= 3:
+		_add_site("plebania_zwycieskiej", [pzw])
+		if not sites.is_empty() and sites[-1]["key"] == "plebania_zwycieskiej":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": PZW_WALL, "roof": PZW_ROOF}
 	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
 	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
@@ -1526,6 +1545,12 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_msn(s)
 			"tr":
 				_build_tr(s)
+			"nozyce":
+				_build_nozyce(s)
+			"jarmark":
+				_build_jarmark(s)
+			"obeliski":
+				_build_obeliski(s)
 			"dtc":
 				_build_dtc(s)
 			"trojca":
@@ -1887,6 +1912,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"szarytki_zaulek":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"dom_parafialny_barbara":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
+			"plebania_zwycieskiej":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"elzbietanki":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the rounded east end is ours
