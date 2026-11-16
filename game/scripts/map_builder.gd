@@ -6128,10 +6128,15 @@ func _fine_index() -> void:
 	# sub-cells meet the 2 m ones by it; there the drawn ground cracked up to 3.3 m deep
 	# (check_ground's height rule, 2026-11-05 to -08: west of Centralna, -3050..-2090, 810..1200).
 	# The coarser side takes the finer one's sub-cells, until every edge in the cutting agrees.
+	# The same round each sunken place (2026-11-16): Plac Powstańców's ramp's sub-cells met a plain
+	# cell over its east road's lowering ground profile, 0.15 m apart along their shared edge.
 	var todo: Array[Vector2i] = []
 	var near_cut: Rect2 = _cut.box.grow(step)
+	var near_sunk: Array[Rect2] = []
+	for sk: Dictionary in _sunk:
+		near_sunk.append((sk["box"] as Rect2).grow(step * 2.0))
 	for c: Vector2i in _fine_cells:
-		if near_cut.has_point(Vector2(gx + (c.x + 0.5) * step, gz + (c.y + 0.5) * step)):
+		if _near_closure(Vector2(gx + (c.x + 0.5) * step, gz + (c.y + 0.5) * step), near_cut, near_sunk):
 			todo.append(c)
 	while not todo.is_empty():
 		var c: Vector2i = todo.pop_back()
@@ -6147,12 +6152,23 @@ func _fine_index() -> void:
 			var ex := gx + (c.x + maxi(d.x, 0)) * step
 			var ez := gz + (c.y + maxi(d.y, 0)) * step
 			var dir := Vector2(0.0, step) if d.x != 0 else Vector2(step, 0.0)
-			if not near_cut.has_point(Vector2(ex, ez) + dir * 0.5):
+			if not _near_closure(Vector2(ex, ez) + dir * 0.5, near_cut, near_sunk):
 				continue
 			if not _edge_splits(Vector2(ex, ez), dir, sc, sn, _fine_cells.has(nb)):
 				continue
 			_fine_cells[nb] = sc
 			todo.append(nb)
+
+
+## Whether point p lies where _fine_index closes the edges between fine and coarse cells: by the
+## railway cutting, or by a sunken place.
+static func _near_closure(p: Vector2, near_cut: Rect2, near_sunk: Array[Rect2]) -> bool:
+	if near_cut.has_point(p):
+		return true
+	for r: Rect2 in near_sunk:
+		if r.has_point(p):
+			return true
+	return false
 
 
 ## Whether two cells sharing the edge from `o` along `dir` draw it apart: the finer side's
