@@ -33,6 +33,25 @@ const LIVE_PITCH := Vector2(20.0, 55.0)
 ## Loop MW-3 (vision.md 4.5): the Dawn look is Dusk's palette with the sun in the east-north-east
 ## (azimuth 67.5 degrees: yaw = 180 - azimuth, as in Live), no new shader.
 const DAWN_SUN_YAW := 112.5
+## The morning of the opening flight (F, 2026-11-16, docs/design/opening-flyover.md): on a new
+## game the city wakes up while the camera flies in. The flight's share (0..1) at which each look
+## is reached, and in between one look blends into the next: Night, held while the host says
+## "Dzień dobry, Warszawo!"; Dawn's blue hour by her weather line (the lamps fading, the windows
+## going dark one by one); SUNRISE (low gold light from the east, long shadows) by the
+## Marszałkowska line; the Day look by her last sentence. The lights only go down and the daylight
+## only up on the way, and the last frame is the Day look itself.
+const WAKE_KEYS := [[0.0, NIGHT], [0.15, NIGHT], [0.42, DAWN], [0.62, SUNRISE_LOOK], [0.88, DAY]]
+## Where the sunrise sits in the looks (after Dawn; no mode has it).
+const SUNRISE_LOOK := 5
+## The sunrise: Dawn's look (the grade's sunset, the sun in the east-north-east) with the sun out:
+## shadows on, the lights nearly off, brighter and warmer. Only the opening uses it.
+const SUNRISE := {
+	"shadows": 1.0, "lights_on": 0.15, "daylight": 0.72, "sun": Color("#ffbc7a"), "sun_energy": 1.85,
+	"sun_pitch": -16.0, "sun_yaw": 60.0, "ambient_energy": 0.62, "glow": 0.15, "stars": 0.0,
+}
+## A tap that skips the flight: the Day look comes in over this many seconds (the camera takes
+## camera_shots.gd SKIP_TIME to the car).
+const WAKE_SKIP := 1.0
 
 ## Each look. Colours are sRGB except the post-pass values (linear multipliers).
 ## saturation_share (the look loop, 2026-10-28): how much of the visual style's saturation
@@ -90,6 +109,11 @@ var _from: Dictionary
 var _to: Dictionary
 var _t := 1.0
 var _looks: Array = []
+## The opening's morning: the seconds into it (-1: none), its length, and the seconds the current
+## blend takes (BLEND, or WAKE_SKIP after a skip).
+var _wake_t := -1.0
+var _wake_len := 0.0
+var _blend_len := BLEND
 var _lit := false
 var _rain := 0.0
 var _live_wait := 0.0
@@ -122,19 +146,29 @@ func set_grade(name: String) -> void:
 	_to = _live_look() if mode == LIVE else _looks[mode]
 	_from = _to
 	_t = 1.0
-	_apply(_to)
+	_apply(_wake_look() if waking() else _to)
 
 
 ## The looks for this grade: Day, Dusk, Night, then Live (no entry of its own: it blends the
 ## three) and Dawn (loop MW-3: Dusk's with the sun in the east-north-east).
 func _build_looks() -> void:
-	_looks = Grades.apply(LOOKS, grade)
-	if not Grades.looks_of(grade)[DAY].has("sun_pitch"):
-		_looks[DAY]["sun_pitch"] = _day_pitch
-	_looks.append({})
-	var dawn: Dictionary = _looks[DUSK].duplicate()
+	_looks = build_looks(grade, _day_pitch)
+
+
+## The looks of `grade`, indexed by mode (Live's entry empty), then the opening's sunrise
+## (SUNRISE_LOOK). Static so check_opening.gd builds the same ones.
+static func build_looks(grade_name: String, day_pitch: float) -> Array:
+	var looks := Grades.apply(LOOKS, grade_name)
+	if not Grades.looks_of(grade_name)[DAY].has("sun_pitch"):
+		looks[DAY]["sun_pitch"] = day_pitch
+	looks.append({})
+	var dawn: Dictionary = looks[DUSK].duplicate()
 	dawn["sun_yaw"] = DAWN_SUN_YAW
-	_looks.append(dawn)
+	looks.append(dawn)
+	var sunrise := dawn.duplicate()
+	sunrise.merge(SUNRISE, true)
+	looks.append(sunrise)
+	return looks
 
 
 static func parse(text: String) -> int:
@@ -143,6 +177,8 @@ static func parse(text: String) -> int:
 
 ## Switches to a mode, blending over BLEND seconds unless `instant`.
 func set_mode(m: int, instant := false) -> void:
+	_wake_t = -1.0
+	_blend_len = BLEND
 	mode = m % NAMES.size()
 	_look_ms = Time.get_ticks_msec()
 	fixed_start = -1.0
@@ -177,6 +213,15 @@ func _process(dt: float) -> void:
 
 
 func _frame(dt: float) -> void:
+	if _wake_t >= 0.0:
+		_wake_t += dt
+		if _wake_t >= _wake_len:
+			_wake_t = -1.0
+			_t = 1.0
+			_apply(_to)
+		else:
+			_apply(_wake_look())
+		return
 	if mode == LIVE:
 		_live_wait -= dt
 		if _live_wait <= 0.0:
@@ -186,11 +231,13 @@ func _frame(dt: float) -> void:
 				_apply(_to)
 	if _t >= 1.0:
 		return
-	_t = minf(_t + dt / BLEND, 1.0)
+	_t = minf(_t + dt / _blend_len, 1.0)
 	_apply(_current())
 
 
 func _current() -> Dictionary:
+	if waking():
+		return _wake_look()
 	if _t >= 1.0:
 		return _to
 	return _blend(_from, _to, smoothstep(0.0, 1.0, _t))
@@ -206,6 +253,53 @@ static func _blend(from: Dictionary, to: Dictionary, k: float) -> Dictionary:
 		else:
 			out[key] = a.lerp(b, k)
 	return out
+
+
+## The opening's morning (WAKE_KEYS): from Night to the Day look over `seconds`, the night at once.
+## Only from the Day look (a normal launch's), so a --time= run keeps its look; false otherwise.
+func wake(seconds: float) -> bool:
+	if mode != DAY or seconds <= 0.0:
+		return false
+	_wake_len = seconds
+	_wake_t = 0.0
+	_from = _looks[DAY]
+	_to = _looks[DAY]
+	_t = 1.0
+	_apply(_wake_look())
+	return true
+
+
+## The flight ended: a skip brings the Day look in over WAKE_SKIP s from wherever the morning is; a
+## flight that ran its length has already ended the morning.
+func end_wake() -> void:
+	if not waking():
+		return
+	_from = _wake_look()
+	_wake_t = -1.0
+	_blend_len = WAKE_SKIP
+	_t = 0.0
+
+
+## True while the opening's morning plays.
+func waking() -> bool:
+	return _wake_t >= 0.0
+
+
+func _wake_look() -> Dictionary:
+	return morning(_looks, _wake_t / maxf(_wake_len, 0.001))
+
+
+## The morning's look at `e` (0..1 of the flight) from `looks` (build_looks): the two WAKE_KEYS
+## round `e`, blended with a smoothstep. Static and pure (check_opening.gd samples it).
+static func morning(looks: Array, e: float) -> Dictionary:
+	e = clampf(e, 0.0, 1.0)
+	for i in range(WAKE_KEYS.size() - 1):
+		var a: Array = WAKE_KEYS[i]
+		var b: Array = WAKE_KEYS[i + 1]
+		if e <= float(b[0]):
+			var k := smoothstep(float(a[0]), float(b[0]), e) if float(b[0]) > float(a[0]) else 1.0
+			return _blend(looks[int(a[1])], looks[int(b[1])], k)
+	return (looks[int(WAKE_KEYS[-1][1])] as Dictionary).duplicate()
 
 
 ## Live: the three looks blended by the real sun's elevation, the sun turned to its
@@ -334,8 +428,11 @@ func _apply(look: Dictionary) -> void:
 	sun.light_color = look["sun"]
 	sun.light_energy = look["sun_energy"] * (1.0 - 0.45 * r)
 	sun.rotation_degrees = Vector3(look["sun_pitch"], look["sun_yaw"], 0.0)
-	sun.shadow_enabled = look["shadows"] > 0.5 and shadows_allowed
-	sun.shadow_opacity = 1.0 - 0.5 * r
+	# The shadows fade in and out with a blend (the opening's sunrise) instead of switching at its
+	# middle; a whole look is 0 or 1 as before.
+	var shade := clampf(float(look["shadows"]), 0.0, 1.0)
+	sun.shadow_enabled = shade > 0.02 and shadows_allowed
+	sun.shadow_opacity = shade * (1.0 - 0.5 * r)
 	lights_on = look["lights_on"]
 	daylight = look["daylight"]
 	RenderingServer.global_shader_parameter_set("lights_on", lights_on)

@@ -1247,8 +1247,12 @@ func _fly_in() -> void:
 		hud.visible = false
 		moments.ended.connect(_on_opening_ended, CONNECT_ONE_SHOT)
 		_opening_audio = OpeningAudio.new()
+		_opening_audio.sounds = sfx
 		add_child(_opening_audio)
 		_opening_audio.start(radio)
+		# The morning (F, 2026-11-16): the city wakes up while the camera flies in. It loaded in the
+		# Day look under the title (the shadows' pipelines are warm); the night comes at the tap.
+		tod.wake(CameraShots.OPEN_TIME)
 		moments.opening(vehicle.global_position, cam_yaw, camera_pitch,
 				PackedStringArray(["Śródmieście · Plac Defilad", "the centre of Warsaw"]))
 		return
@@ -1279,6 +1283,7 @@ func _event_take() -> void:
 
 func _on_opening_ended(_what: String) -> void:
 	_opening_on = false
+	tod.end_wake()  # a skip: the day comes in over a second
 	if _opening_audio != null:
 		_opening_audio.flight_ended()
 	hud.visible = not flags.hide_hud
