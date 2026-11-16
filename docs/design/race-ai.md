@@ -804,6 +804,10 @@ came with step 3's route planner.
   race against her until the player has beaten her once, so a new player who loses the first
   race never meets a faster Halina. After that win she drives her rung's numbers in a rematch
   (parked question 1).
+  **Changed 2026-11-16** (F, build 11 playtest: she "waits for me, drives slow, too easy to beat"): in
+  the guided first race she no longer waits at the line (the 12 s hold, PT-11, is gone; the GAZ
+  nudge for an idle player stays) and her numbers sit a hair under the rung's (104 s against 108 s on the bench
+  course). The rung itself stays: Słoik above her is only 3 % quicker, so the whole ladder needs a retune (parked). The race stays one a beginner can lose and a good driver wins.
 
 The ladder as built, with each rival's time alone on clear roads from Tamka to Plac Trzech Krzyży
 (1752 m), after step 4a, and the numbers and the time of steps 2 and 3 in brackets. The bench's
@@ -811,7 +815,7 @@ Skill ladder mark holds the order of the times, not of any one number.
 
 | Rival | Share of the road's speed | Pull (m/s²) | Brakes (m/s²) | Grip (m/s²) | Time alone |
 | --- | --- | --- | --- | --- | --- |
-| Pani Halina on her gentle day | 0.65 | 7.0 | 4.0 | 9.5 (5.0) | 108.2 s (108.0) |
+| Pani Halina on her gentle day | 0.67 | 7.4 | 4.2 | 9.7 | about 104 s (before build 11's playtest: 0.65, 7.0, 4.0, 9.5, 108.2 s) |
 | Pani Halina | 0.70 | 8.0 | 4.5 | 10.0 (5.5) | 99.6 s (99.2) |
 | Słoik z Radomia | 0.92 | 9.5 (8.5) | 8.0 (5.5) | 11.0 (6.0) | 88.6 s (88.0), his wrong turn included |
 | Bulwar Bartek | 0.80 | 10.5 (9.5) | 9.0 (6.0) | 12.0 (7.5) | 87.0 s (86.7) |
