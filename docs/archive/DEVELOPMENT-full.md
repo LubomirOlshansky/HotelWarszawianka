@@ -5414,7 +5414,11 @@ the probe's medians of 3 against `typed`: main pass +3 at the spawn (76 against 
 river view (47 / 45), +5 zoomed out (82 / 77), +2 from the helicopter (124 / 122), +3 at night
 and in rain at night (84 / 81); shadow pass +0 at every view (panels cast none); main-pass
 triangles +0.01 M at the spawn and the river, +0.05 M zoomed out (1.04 / 0.99 M: a piece is a
-10-triangle box, the posts and rails it replaces were fewer); static memory +2 MB. Prebuilt
+10-triangle box, the posts and rails it replaces were fewer); static memory +2 MB. The bench
+(prebuilt, medians of 3 interleaved runs, day / night / rain at night): draw calls 152 / 121 /
+120 against typed's 150 / 118 / 118, scripts 2.65 / 2.92 / 2.99 ms against 2.49 / 3.05 / 2.86
+(noise), the software GPU's frame 583 / 366 / 391 ms against 557 / 376 / 383 (it says nothing
+of the phone's tile-based GPU). Prebuilt
 sectors 185.3 MB (classic 185.5, typed 188.5); a sector's main-thread load (instantiate and add,
 all 112, medians of 5 interleaved runs) p99 37.0 ms against typed's 37.6 and classic's 36.1, in all
 1.03 s against 1.02 and 0.98 (check_streaming's soak cannot run on the cloud's software GPU: 0.3 s

@@ -1560,9 +1560,10 @@ for s in $want; do
 		# for a thread under the title waits 8 ms (boot.gd `wait_frame`), so the scripts' load takes
 		# about 850 frames in the cloud, the map's two big files about 35 and the start's sectors up
 		# to 8 s more; without that wait the run spent all its frames before the files were in.
-		# ENGINE_TOKENS: the engine's exit line for the index's threaded load (see `problems`); 19 is
-		# its count for the index's 10 files, a count to change only with them.
-		boot-run) skip_prebuilt "run: boot" || ENGINE_TOKENS=19 game boot 8000 "^boot: the boot scene's title stayed up" --boot --prebuilt --title-choice=continue ;;
+		# ENGINE_TOKENS: the engine's exit line for the index's threaded load (see `problems`); 21 is
+		# its count for the index's 11 files (W4 of the walls look added the panels' material and its
+		# shader: 19 before), a count to change only with them.
+		boot-run) skip_prebuilt "run: boot" || ENGINE_TOKENS=21 game boot 8000 "^boot: the boot scene's title stayed up" --boot --prebuilt --title-choice=continue ;;
 		# TD-20: the real game on the prebuilt city, through the real input: the garage card with the
 		# full map over it stays paused when the map closes; each card alone pauses and lets go.
 		pause-run) skip_prebuilt pause-run || check pause-run '^check_pause:' --fixed-fps 60 --script res://tools/check_pause.gd -- --nosave --notitle --prebuilt --garage ;;
