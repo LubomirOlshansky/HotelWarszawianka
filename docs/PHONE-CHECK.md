@@ -93,6 +93,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 14s | Hala Koszyki from Koszykowa, by day and at night | both stone pavilions read cream against the buff brick; the red brick panels on the pylons show; the green arch frames read; the festoon bulbs and the blue KOSZYKI sign lit at night | Koszyki photo rework |
 | 15 | Settings → the experimental graphics switch, on and off at the Palace | the look and the frame | #647 |
 | 15a | Torwar from Łazienkowska and from the stadium's corner, by day and at night | the white portico reads as twelve columns under a deep entablature with the curved parapet over the middle; TORWAR reads grey on white by day and glows at night; the lattice panels on the long sides read as panels, not windows | Torwar photo build |
+| 15b | NBP's branch on Plac Powstańców from the square, by day and at night | the three dark bands read as leaning panels over the square, not one flat wall; the glass ground floor sits back up the wide steps; NBP and the eagle read on the white wall; the stair slot reads as a glass strip to the roof | NBP photo build |
 
 ## 5. The frame (3 min)
 
