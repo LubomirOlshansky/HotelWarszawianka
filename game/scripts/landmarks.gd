@@ -970,6 +970,16 @@ func keeps_lod2_roof(p: Vector2) -> bool:
 	return false
 
 
+## The skin of the kept skin (SKINS) `key`, the same Dictionary `skin_at` returns for its
+## buildings (compare with is_same: two skins can share their colours), or empty. The turntable
+## (`--solo=KEY`, tools/site_cams.gd) uses it to show a recoloured LoD2 building alone.
+func skin_of(key: String) -> Dictionary:
+	for s in sites:
+		if s["key"] == key and s.has("skin"):
+			return s["skin"]
+	return {}
+
+
 ## The landmarks loop: how a kept building whose plan spans `box` is drawn instead of its own
 ## look (Muzeum Narodowe's stone): {"mode", "wall", "roof"}, or empty. A building counts when
 ## its centre is inside the site's outline, or its whole box inside the outline's box (the

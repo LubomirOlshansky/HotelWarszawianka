@@ -147,7 +147,13 @@ kind repeated across the whole map gets one MultiMesh. No new node, material or 
   every side of the site on one sheet (lit from 8 sides at two heights, flat, silhouette, top
   view), so a builder and F check the whole model before any single matched shot is taken. The
   sheet is `shots/turntable_KEY/KEY_turntable.png`; open it and look, then take matched shots for
-  the sides that need a closer look.
+  the sides that need a closer look. A kept skin (a SKINS entry, LoD2's mass recoloured) works the same:
+  the sheet shows its LoD2 building alone, in the skin.
+- **Show the turntable to F**: every "model done" reply opens with the turntable sheet, attached,
+  and says in a line what it shows; city shots come after it. F judges the whole model from it
+  (F, 2026-11-16: "why you do not show turntables after the modeling done"). When the thread
+  can attach no more files, put the sheet on the lane's turntable page (an Artifact) and link it
+  at the top of the reply; a path in the shared folder alone is not showing it.
 - **Side by side, photo first**: the reviewer opens the photos and shots and scores them
   *before* reading the spec (a judge favours what it wrote or read; the spec comes after, to
   name what is missing). Scores 1-5 on silhouette, proportions, colour, identity features

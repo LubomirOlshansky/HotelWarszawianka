@@ -5,6 +5,7 @@ extends SceneTree
 ## the `--lift` to go with it.
 ##   godot --headless --path game --script res://tools/site_cams.gd -- --site=rotunda [--tile=480x360]
 ## Output: `site_cams: KEY centre X,Z size W x D x H m, N tris`, `cams: ...`, `lift: M`.
+## A kept skin (SKINS, a recoloured LoD2 building) is framed by its LoD2 buildings' box.
 ## Unknown key, or a site that builds nothing: a message and exit 1.
 ## The maths (box_for, cams_for) is static, so tools/check_turntable.gd calls the same code.
 
@@ -43,8 +44,11 @@ static func box_for(key: String) -> Dictionary:
 	var rec := MeshQuality.Recorder.new()
 	marks.build(rec, Rect2(), key)
 	if rec.pos.is_empty():
+		# A kept skin (SKINS) builds nothing of its own: the box of the LoD2 buildings it recolours
+		var skin: Dictionary = marks.skin_of(key)
+		var sbox := {} if skin.is_empty() else skin_box(marks, skin)
 		map.free()  # the map is a Node3D (Fakes.BuilderMap): not counted, so freed by hand
-		return {}
+		return sbox
 	var lo := rec.pos[0]
 	var hi := rec.pos[0]
 	for p: Vector3 in rec.pos:
@@ -52,6 +56,46 @@ static func box_for(key: String) -> Dictionary:
 		hi = hi.max(p)
 	map.free()
 	return {"min": lo, "max": hi, "tris": rec.pos.size() / 3}
+
+
+## The box of the LoD2 buildings a kept skin recolours: lod2.bin's buildings split the way the
+## runtime city splits them (map_builder.gd _build_lod2: one style seed (UV2.x) a building, within
+## 300 m of its first vertex), those whose plan `skin_at` gives this very skin. {} when none.
+static func skin_box(marks, skin: Dictionary) -> Dictionary:
+	if not FileAccess.file_exists("res://map/lod2.bin"):
+		return {}
+	var bytes := FileAccess.get_file_as_bytes("res://map/lod2.bin")
+	var count := bytes.decode_u32(0)
+	var f := bytes.slice(4).to_float32_array()
+	var o_u2 := count * 12
+	var lo := Vector3.INF
+	var hi := -Vector3.INF
+	var tris := 0
+	var t0 := 0
+	while t0 < count:
+		var seed := f[o_u2 + t0 * 2]
+		var first := Vector2(f[t0 * 3], f[t0 * 3 + 2])
+		var plo := first
+		var phi := first
+		var blo := Vector3.INF
+		var bhi := -Vector3.INF
+		var t1 := t0
+		while t1 < count and f[o_u2 + t1 * 2] == seed and Vector2(f[t1 * 3], f[t1 * 3 + 2]).distance_to(first) < 300.0:
+			for k in 3:
+				var p := Vector3(f[(t1 + k) * 3], f[(t1 + k) * 3 + 1], f[(t1 + k) * 3 + 2])
+				plo = plo.min(Vector2(p.x, p.z))
+				phi = phi.max(Vector2(p.x, p.z))
+				blo = blo.min(p)
+				bhi = bhi.max(p)
+			t1 += 3
+		if is_same(marks.skin_at(Rect2(plo, phi - plo)), skin):
+			lo = lo.min(blo)
+			hi = hi.max(bhi)
+			tris += (t1 - t0) / 3
+		t0 = t1
+	if tris == 0:
+		return {}
+	return {"min": lo, "max": hi, "tris": tris}
 
 
 ## The view height (m) that shows a box of footprint `diag` (its diagonal, the widest it can look
@@ -98,7 +142,7 @@ func _initialize() -> void:
 				aspect = float(wh[0]) / float(wh[1])
 	var box := box_for(key)
 	if box.is_empty():
-		print("site_cams: '%s' is not a landmark site that builds triangles (see game/scripts/landmarks.gd)" % key)
+		print("site_cams: '%s' is not a landmark site that builds triangles or a kept skin (see game/scripts/landmarks.gd)" % key)
 		quit(1)
 		return
 	var lo: Vector3 = box["min"]

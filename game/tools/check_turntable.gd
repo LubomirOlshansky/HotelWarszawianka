@@ -36,6 +36,14 @@ func _init() -> void:
 		for n in ["lo_000", "lo_315", "hi_000", "hi_315", "top"]:
 			_expect(names.has(n), "camera %s exists" % n)
 	_expect(SiteCams.box_for("no_such_site_key").is_empty(), "an unknown key gives no box")
+	# A kept skin (SKINS: LoD2's mass recoloured) builds nothing of its own: framed by its LoD2
+	# building (PKO BP on Marszałkowska, a 46 m office), when the map has LoD2.
+	if FileAccess.file_exists("res://map/lod2.bin"):
+		var skin := SiteCams.box_for("pko_marszalkowska")
+		_expect(not skin.is_empty() and int(skin["tris"]) > 0, "a kept skin gives its LoD2 building's box")
+		if not skin.is_empty():
+			var ks: Vector3 = skin["max"] - skin["min"]
+			_expect(ks.y > 30.0 and ks.x < 120.0 and ks.z < 120.0, "the skin's box is one building, not the block (%s)" % ks)
 	# A tall thin box and a wide flat one both fit (view height covers the worst yaw).
 	for dims: Vector3 in [Vector3(10, 200, 10), Vector3(300, 5, 300)]:
 		var o := SiteCams.cams_for({"min": Vector3.ZERO, "max": dims}, 4.0 / 3.0)
