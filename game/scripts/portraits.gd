@@ -16,7 +16,9 @@ const ALIAS := {"kuba": "kuba_padel"}
 ## Speakers that are not a person (the sat-nav, a lift, the player, a crowd): their lines keep the
 ## name only, no face. Compared on `key` (first word, plain, lower case).
 const NO_FACE := ["ty", "you", "nawigacja", "start", "kebab", "podwozka", "winda", "lift",
-		"goscie", "guests", "ktos", "someone"]
+		"goscie", "guests", "ktos", "someone",
+		# F 2026-11-16: things that talk (eggs.gd) get no portrait, only people and heroes do
+		"palma", "golab", "barierka", "patelnia", "syrenka"]
 
 static var _cache := {}
 

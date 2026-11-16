@@ -482,6 +482,11 @@ func show_side_card(title: Array, body: Array, buttons: PackedStringArray, life 
 	_put_card()
 
 
+## F 2026-11-16: who speaks on the next card ("" none): their portrait or initial and name show on it,
+## the same as the dialogue panel's speaker. Cleared when a card is put with no speaker.
+var card_face := ""
+
+
 func _put_card() -> void:
 	var title: Array = _card_args[0]
 	var body: Array = _card_args[1]
@@ -492,6 +497,9 @@ func _put_card() -> void:
 	else:
 		hud.show_card(str(title[0]), str(body[0]), _card_args[2], accent, cards_low, str(title[1]), str(body[1]), _card_args[3])
 	_own_card()
+	if card_face != "":
+		hud.set_card_face(card_face, accent)
+		card_face = ""
 
 
 func _own_card() -> void:

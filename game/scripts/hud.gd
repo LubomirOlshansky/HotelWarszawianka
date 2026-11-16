@@ -2167,6 +2167,13 @@ func _paint_handset(b: Control, answer: bool) -> void:
 
 
 ## The caller's face for the next card: the portrait if there is one, else the initial.
+## A card's speaker (activity.gd `card_face`): their face or initial before the title.
+func set_card_face(who: String, accent: Color) -> void:
+	_set_face(who, accent)
+	_card.reset_size()
+	_mark()
+
+
 func _set_face(who: String, accent: Color) -> void:
 	_card_face_tex = Portraits.face(who) if who != "" else null
 	_card_face_letter = Portraits.initial(who)

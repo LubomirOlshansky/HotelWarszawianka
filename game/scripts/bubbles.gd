@@ -214,6 +214,8 @@ static func _same(a: Variant, b: Variant) -> bool:
 
 func clear() -> void:
 	_bubbles.clear()
+	_queue.clear()
+	_cur = {}
 	queue_redraw()
 
 
@@ -255,6 +257,7 @@ func _process(dt: float) -> void:
 func _frame(dt: float) -> void:
 	chatter.clock += dt
 	_sense()
+	_panel_step(dt)
 	if _bubbles.is_empty() and _tags.is_empty():
 		return
 	if chatter.context >= 2:
@@ -285,6 +288,7 @@ func _where(anchor: Variant, height: float) -> Vector3:
 func _draw() -> void:
 	var t0 := Time.get_ticks_usec()
 	_paint()
+	_draw_panel()
 	spent_usec += Time.get_ticks_usec() - t0
 
 
@@ -532,3 +536,101 @@ func _draw_typing(font: Font, top: Vector2, line: String, n: int, width: float, 
 		if shown > 0:
 			draw_string(font, Vector2(top.x, y + para.get_line_ascent(i)), line.substr(r.x, shown), HORIZONTAL_ALIGNMENT_LEFT, -1, size, colour)
 		y += para.get_line_size(i).y
+
+
+## F 2026-11-16: a person's quest or police line (a speaker with a face) shows in ONE fixed panel at the
+## bottom centre, between the steering slider and the pedals, never floating from the car. Lines queue and
+## show one at a time. Things that talk (the palm, pigeons, a barrier) and ambient chatter stay small
+## floating captions with a name only, and are dropped while the panel is up.
+const PANEL_W := 400.0
+const PANEL_SHARE := 0.46     # of the screen width at most (the slider and the pedals stay free)
+const PANEL_MAX_QUEUE := 4
+var _queue: Array[Dictionary] = []
+var _cur := {}
+
+
+## True while a panel line is up or waiting.
+func panel_busy() -> bool:
+	return not _cur.is_empty() or not _queue.is_empty()
+
+
+## The line now in the panel ("" when none), for tools/check_hud.gd.
+func panel_line() -> String:
+	return String(_cur.get("line", ""))
+
+
+func _queue_line(speaker: String, line: String, seconds: float, accent: Color, kind: int) -> bool:
+	for q in _queue:
+		if q["speaker"] == speaker and q["line"] == line:
+			return false
+	if _cur.get("line", "") == line and _cur.get("speaker", "") == speaker:
+		return false
+	while _queue.size() >= PANEL_MAX_QUEUE:
+		_queue.remove_at(0)
+	var typing := line.length() / TYPE_RATE
+	_queue.append({"speaker": speaker, "line": line, "sub": "", "age": 0.0, "typing": typing,
+			"life": typing + maxf(seconds, Chatter.read_time(line)), "accent": accent, "kind": kind,
+			"face": true, "tex": Portraits.face(speaker), "letter": Portraits.initial(speaker)})
+	if _cur.is_empty():
+		_next_line()
+	queue_redraw()
+	return true
+
+
+func _next_line() -> void:
+	if _queue.is_empty():
+		_cur = {}
+		return
+	_cur = _queue.pop_front()
+	_bubbles.clear()  # a floating caption does not talk over a person
+
+
+func _panel_step(dt: float) -> void:
+	if _cur.is_empty():
+		return
+	_cur["age"] = float(_cur["age"]) + dt
+	if float(_cur["age"]) >= float(_cur["life"]):
+		_next_line()
+	queue_redraw()
+
+
+func _panel_rect(m: Dictionary) -> Rect2:
+	var area := _area()
+	var size: Vector2 = m["size"]
+	var rect := Rect2(Vector2(area.position.x + (area.size.x - size.x) * 0.48, area.end.y - size.y - 4.0 * pt), size)
+	var found := _clear(rect, _hud_rects(), area)
+	return found[0] if found[1] else rect
+
+
+func _draw_panel() -> void:
+	if _cur.is_empty():
+		return
+	var area := _area()
+	var w := minf(PANEL_W, area.size.x / pt * PANEL_SHARE)
+	var m := _measure(_cur, w - PAD * 2.0 - FACE - FACE_GAP)
+	m["size"].x = w * pt
+	var rect := _panel_rect(m)
+	var age: float = _cur["age"]
+	var alpha := clampf((float(_cur["life"]) - age) / FADE, 0.0, 1.0) * clampf(age / 0.12, 0.0, 1.0)
+	_panel.bg_color.a = CARD_BG.a * alpha
+	_panel.border_color.a = 0.3 * alpha
+	draw_style_box(_panel, rect)
+	var font := ThemeDB.fallback_font
+	var pad := PAD * pt
+	var x := rect.position.x + pad
+	var y := rect.position.y + pad
+	var accent: Color = _cur["accent"]
+	var r := FACE * 0.5 * pt
+	Portraits.paint(self, Vector2(x + r, y + r), r, _cur["tex"], _cur["letter"], accent, maxf(1.5, 1.5 * pt), alpha)
+	x += (FACE + FACE_GAP) * pt
+	var tw := rect.size.x - pad * 2.0 - (FACE + FACE_GAP) * pt
+	var fs := _px(NAME_SIZE)
+	draw_string(font, Vector2(x, y + font.get_ascent(fs)), String(_cur["speaker"]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
+			Color(accent.lerp(Color.WHITE, 0.15), alpha))
+	y += float(m["name_h"])
+	var ls := _px(LINE_SIZE)
+	var line: String = _cur["line"]
+	if age < float(_cur["typing"]):
+		_draw_typing(font, Vector2(x, y), line, int(age * TYPE_RATE), tw + 1.0, ls, Color(INK, alpha))
+	else:
+		draw_multiline_string(font, Vector2(x, y + font.get_ascent(ls)), line, HORIZONTAL_ALIGNMENT_LEFT, tw + 1.0, ls, -1, Color(INK, alpha))
