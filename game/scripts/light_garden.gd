@@ -3,16 +3,17 @@ extends "res://scripts/place.gd"
 ## and the news of 15 October 2026: "całoroczny ogród światła", made by Multidekor for the city).
 ## The park between Świętokrzyska and the Palace is in the map data (its walks, lawns, trees,
 ## lamps, benches and the fountain); this adds the installation, which stands all year:
-##  - over the alley that runs from the Pijana Czereśnia kiosk along Świętokrzyska to the fountain:
-##    six arches of giant flower stems that meet over the walk, green tube bundles out of round
-##    planters printed with mushrooms and autumn flowers, each ending in a white lace bell flower
-##    with a green calyx and a bunch of pearl beads (F's own photos, 2026-11-15, replaced the first
-##    lilac guess); warm bulb strings run from arch to arch and big butterflies hang from them on
-##    two cords (the news: "at least six light hangings over the alley along Świętokrzyska");
-##  - giant dandelions beside the walks (thirteen, on the west side of the Świętokrzyska walk): a pale green stem, a warm-white clock of radial
-##    spikes with a bulb on each tip, long toothed leaves, a dark round base painted with flowers;
-##  - four single bell flowers on their own stems (on the east side of that walk), and butterflies on thin rods among them
-##    (eighteen butterflies in all, with the ones on the arches);
+##  - the installation follows one walk (F's red line on the aerial, 2026-11-16): from the Pijana
+##    Czereśnia kiosk along Świętokrzyska the giant dandelions come first, then, from the fountain's
+##    longitude to the east end, six arches of giant flower stems meet over the walk, green tube
+##    bundles out of round planters printed with mushrooms and autumn flowers, each ending in a white
+##    lace bell flower with a green calyx and a bunch of pearl beads (F's own photos, 2026-11-15);
+##    warm bulb strings run from arch to arch and big butterflies hang from them on two cords (the
+##    news: "at least six light hangings over the alley along Świętokrzyska");
+##  - giant dandelions (ten): a pale green stem, a warm-white clock of radial spikes with a bulb on
+##    each tip, long toothed leaves, a dark round base painted with flowers;
+##  - five single bell flowers on their own stems between the arches, and butterflies on thin rods
+##    among the dandelions (eighteen butterflies in all, with the ones on the arches);
 ##  - the 50 m interactive alley from the fountain towards the Palace: a row of mirror-steel pylons
 ##    on round concrete feet down its west side, each with an arm over the walk carrying a
 ##    projector; after dark the walk is a carpet of projected flowers (light_garden.gdshader), and
@@ -38,11 +39,16 @@ const ALLEY := [Vector2(-1407.9, 29.0), Vector2(-1404.9, 23.8), Vector2(-1398.7,
 		Vector2(-1388.9, 10.8), Vector2(-1383.4, 8.3), Vector2(-1377.9, 6.3), Vector2(-1372.1, 5.0),
 		Vector2(-1364.5, 3.9), Vector2(-1346.6, 2.7), Vector2(-1339.3, 1.6), Vector2(-1332.0, -0.2),
 		Vector2(-1326.2, -2.2), Vector2(-1320.5, -4.6), Vector2(-1310.5, -8.5)]
-## The arches' feet either side of the walk (placed clear of the trees, lamps and benches).
+## The arches' feet either side of the walk (F's red line on the aerial, 2026-11-16: from the kiosk the
+## walk first passes the dandelions, and from the fountain's longitude on the bell-flower arches stand
+## over it, to the east end by the sundial; placed clear of tree trunks, lamps, benches and side paths).
 const ARCHES := [
-	[Vector2(-1397.3, 20.1), Vector2(-1401.2, 16.2)], [Vector2(-1384.8, 12.0), Vector2(-1387.1, 6.9)],
-	[Vector2(-1370.3, 7.6), Vector2(-1371.1, 2.0)], [Vector2(-1354.6, 6.0), Vector2(-1354.9, 0.5)],
-	[Vector2(-1338.2, 4.2), Vector2(-1339.5, -1.2)], [Vector2(-1322.5, -0.7), Vector2(-1324.7, -5.9)],
+	[Vector2(-1288.9, -13.5), Vector2(-1290.7, -18.2)],
+	[Vector2(-1274.2, -19.5), Vector2(-1276.2, -24.0)],
+	[Vector2(-1259.7, -25.0), Vector2(-1261.3, -29.7)],
+	[Vector2(-1242.9, -30.1), Vector2(-1244.2, -34.9)],
+	[Vector2(-1229.5, -33.9), Vector2(-1231.1, -38.6)],
+	[Vector2(-1215.5, -42.8), Vector2(-1218.8, -46.6)],
 ]
 ## Which spans between arches (span i runs from arch i to arch i + 1) hang a butterfly on two cords
 ## from the festoon (F's photos: the butterflies hang from the light strings, not on the arches).
@@ -50,17 +56,16 @@ const SPAN_BUTTERFLY := [0, 1, 3, 4]
 ## A planter's height and radius at an arch's foot.
 const FOOT_H := 0.8
 const FOOT_R := 0.95
-## [kind, x, z, height]: d a dandelion, f a single bell flower. Seen from the walk that runs from
-## Świętokrzyska to the photo frame (F's phone, 2026-11-16, and the real garden): the bell flowers
-## stand on its left (the east side, the lawn between the walk and the fountain's link path) and the
-## dandelions on its right (the west side, along the kiosk alley), never the other way round.
+## [kind, x, z, height]: d a dandelion, f a single bell flower. F's red line: from the kiosk along
+## the walk the dandelions come first (west of the fountain's longitude, x < -1330, both sides of
+## the alley) and then the bell flowers (arches and singles, east of the fountain), nothing off that
+## walk.
 const FIGURES := [
 	["d", -1412.0, 22.0, 4.2], ["d", -1404.5, 15.7, 3.6], ["d", -1392.0, 17.7, 4.0], ["d", -1379.9, 11.5, 3.9],
 	["d", -1376.5, 1.7, 4.3], ["d", -1363.4, 9.3, 4.1], ["d", -1362.2, -3.3, 3.6], ["d", -1349.1, -1.3, 4.2],
-	["d", -1340.7, -3.8, 3.8], ["d", -1331.5, -7.8, 3.5], ["f", -1300.0, -12.5, 4.3],
-	["f", -1298.8, -6.0, 4.5], ["f", -1299.6, -0.5, 4.4], ["f", -1297.5, 4.5, 4.6],
-	["d", -1320.0, -21.0, 3.8], ["d", -1316.0, -15.5, 4.0], ["d", -1313.8, -1.8, 4.2], ["d", -1314.5, 6.0, 3.7],
-	["d", -1281.6, 84.3, 4.0], ["d", -1268.6, 89.2, 3.7],
+	["d", -1340.7, -3.8, 3.8], ["d", -1331.5, -7.8, 3.5],
+	["f", -1281.0, -14.8, 4.3], ["f", -1266.4, -20.7, 4.5], ["f", -1251.9, -25.8, 4.4],
+	["f", -1236.8, -29.9, 4.6], ["f", -1221.1, -36.3, 4.3],
 ]
 ## Butterflies on rods: [x, z, height, yaw, colour index].
 const BUTTERFLIES := [
