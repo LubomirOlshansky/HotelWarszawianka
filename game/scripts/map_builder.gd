@@ -1117,19 +1117,35 @@ const FILL_SEAM_STEP := 1.0
 
 
 func _fill_height_base(x: float, z: float) -> float:
+	return _fill_base(x, z, false)
+
+
+## Whether a ground profile's corridor ("s" fills) set the ground at (x, z) (`_fill_base`).
+func _set_hit_at(x: float, z: float) -> bool:
+	return _fill_base(x, z, true) > 0.5
+
+
+## The ground with the grid's approaches at (x, z): its height, or with `hit` 1.0 where a ground
+## profile set it and 0.0 where not. Everything it works with is local (the NaN car, 2026-11-16):
+## it used to say "a profile set it" through a member, `_set_hit`, written here and read back two
+## lines later. The runtime city builds its sectors on the streamer's thread (sector_streamer.gd
+## `_make`, the ground's `_drawn_corner`) while the car reads its height on the main thread, so the
+## other thread's write could land between the two and the height came back as this function's
+## NAN (set_h). A NaN y set through global_position makes the car's whole origin NaN under its
+## parent: the first-10 replay's `car: state not a number` (check_height_threads.gd).
+func _fill_base(x: float, z: float, hit: bool) -> float:
 	var h := _grid_height(x, z)
-	_set_hit = false
 	# A sunken place's floor (SUNKEN) wins over the grid and the approaches.
 	if _sunk_box.has_point(Vector2(x, z)):
 		var f := sunk_floor(x, z)
 		if f < h:
-			return f
+			return 0.0 if hit else f
 	if _fill_cells.is_empty():
-		return h
+		return 0.0 if hit else h
 	var codes: PackedInt32Array = _fill_cells.get((floori(x / FILL_CELL) + 1024) * 4096 + floori(z / FILL_CELL) + 1024,
 			PackedInt32Array())
 	if codes.is_empty():
-		return h
+		return 0.0 if hit else h
 	# Loop 3a: inside an approach's corridor the ground is its profile (never lower).
 	# Loop 3e: inside a ground profile's ("s": the 1 m NMT's level of a way by a structure,
 	# tools/bake_roads.py `_ground_profiles`) it is that level, up or down: the nearest one's,
@@ -1191,10 +1207,9 @@ func _fill_height_base(x: float, z: float) -> float:
 	if not held and seam_b >= 0 and absf(seam_ha - seam_hb) <= FILL_SEAM_STEP:
 		# Between two approaches side by side (a sliver their corridors leave open), the lower one's level.
 		h = maxf(h, minf(seam_ha, seam_hb))
-	_set_hit = not is_nan(set_h)
-	if _set_hit:
-		return set_h
-	return h
+	if not is_nan(set_h):
+		return 1.0 if hit else set_h
+	return 0.0 if hit else h
 
 
 ## The GUGiK terrain grid alone (the two triangles per cell `_build_ground` draws).
@@ -6162,7 +6177,7 @@ func _drawn_corner_raw(x: float, z: float) -> float:
 	var t := terrain_height(x, z)
 	# Loop 3e: under a ground profile that lowers the ground, SET_SINK lower still (the 1 m
 	# sub-cells between two profiles' levels or across a corridor's edge stay under the road).
-	if _set_hit and t < g - 0.001:
+	if t < g - 0.001 and _set_hit_at(x, z):
 		t -= SET_SINK
 	# Over a sunken place grown by its sub-cell's diagonal: its floor (no sub-cell's slope inside).
 	if _sunk_box.has_point(Vector2(x, z)):
@@ -6170,22 +6185,19 @@ func _drawn_corner_raw(x: float, z: float) -> float:
 	# The railway cutting's banks and shoulders may stand over the grid (its blurred slope).
 	# Not where an approach's fill holds the ground up (the grid's own drawing stays under it).
 	if _cut.box.has_point(Vector2(x, z)) and _cut.at(x, z, g).y > 1.5:
-		var hit := _set_hit
 		var held := _fill_height_base(x, z) > g + 0.05
-		_set_hit = hit
 		if not held:
 			return t
 	return minf(g, t)
 
 
 ## Loop 3e: the drawn ground's sink under a lowering ground profile (`_drawn_corner`;
-## check_roads Map.drawn the same), and whether the last `_fill_height` was in one's corridor.
+## check_roads Map.drawn the same).
 const SET_SINK := 0.1
 ## Loop 3e: a ground profile's segment gets the 1 m sub-cells where it lies this far under the grid
 ## anywhere (a raised one doesn't; a lowered one left out would meet its sub-celled neighbour in a
 ## crack at their shared edge: check_ground's height rule).
 const SET_FINE := 0.001
-var _set_hit := false
 
 
 ## The drawn ground's height at a point (the mesh `_build_ground` draws): the grid's two
