@@ -190,6 +190,9 @@ func _collect(node: Node, builder: Node3D, out: Dictionary, faces: Dictionary) -
 		if mmi != null and mmi.multimesh.instance_count > 0:
 			var mm := mmi.multimesh
 			var o := mm.get_instance_transform(0).origin
+			if _kind(mmi.material_override, builder) == "panel":
+				# W4: a panel piece belongs to the tile of its middle (city_barriers.gd `_panel_piece`).
+				o += mm.get_instance_transform(0).basis.x * 0.5
 			var mesh_n := (mm.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
 			var key := "multimesh %s %s (%d vertices) tile %d,%d" % [_kind(mmi.material_override, builder),
 					n.get_parent().name if n.get_parent().name in ["LampHalos", "Neon"] else "", mesh_n,
