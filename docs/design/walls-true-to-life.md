@@ -410,7 +410,9 @@ Rows marked `slab` use `wall_along` as today, with the row's numbers.
   draws as `typed`.
 - 96,325 pieces city-wide in 102 sectors, 4,484 of the 4,485 lines of the six rows (the one left
   keeps its classic drawing, as it does under `typed`); the same count per sector on both city paths (`check_barrier_look --paths
-  --all`, 112 sectors). Prebuilt sectors 185.3 MB (classic 185.5, typed 188.5).
+  --all`, 112 sectors), and the whole city's build (`--monolithic`) holds the same 102 tiles as
+  the sectors, buffer for buffer (`check_streaming` identity). Prebuilt sectors 185.3 MB
+  (classic 185.5, typed 188.5).
 - The numbers live in `game/scripts/panel_rule.gd` (pure); `check_panel_rule` (verify
   `panelrule`) holds the shader's formulas to it and to the gate at 5, 10, 17 and 26 cm a pixel.
   `panel.gdshader` costs 3 by `check_shader_budget`'s counter, against its cap of 200 (its one
