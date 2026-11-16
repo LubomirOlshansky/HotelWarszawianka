@@ -5411,17 +5411,23 @@ func _build_soft_things(world: Node3D) -> void:
 
 
 ## Settings rows: whether the fences and hedges break this run (--no-soft, else --soft, else the
-## setting; off by default).
+## setting; on by default since F 2026-11-16). A `--nosave` run (the checks and their baselines)
+## keeps the measured default, hard fences, unless --soft asks.
 func _soft_on() -> bool:
 	if flags._no_soft:
 		return false
-	return flags._flag_soft or settings.soft_fences
+	if flags._flag_soft:
+		return true
+	return settings.soft_fences if settings.persistent else false
 
 
-## Settings rows: the collision answer for the run (--collide=, else the setting; v1 by default).
+## Settings rows: the collision answer for the run (--collide=, else the setting; mid by default
+## since F 2026-11-16). A `--nosave` run keeps v1, the measured baseline, unless --collide= asks.
 func _collide_preset() -> StringName:
 	if flags._flag_collide != &"":
 		return flags._flag_collide
+	if not settings.persistent:
+		return Car.CollideRules.V1
 	return Car.CollideRules.PRESETS[clampi(settings.collide, 0, Car.CollideRules.PRESETS.size() - 1)]
 
 

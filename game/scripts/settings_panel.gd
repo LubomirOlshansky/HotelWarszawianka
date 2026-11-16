@@ -274,11 +274,17 @@ func _build() -> void:
 	# player's own preferences stay on the tabs. Jazda keeps the rescue, the controls and the
 	# steering in its first column; the second shows what DEV holds.
 	_heading(drive[1], "Ustawienia testów", "Test settings")
-	var dev_note := _text(Lang.pick("Prowadzenie, kamera i zderzenia są takie same dla wszystkich testerów.",
-			"Handling, camera and collisions are the same for every tester."), T_SUB, SUB)
+	var dev_note := _text(Lang.pick("Prowadzenie, kamera, zderzenia i łamliwe płoty: na stronie DEV.",
+			"Handling, camera, collisions and smashable fences: on the DEV page."), T_SUB, SUB)
 	dev_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dev_note.custom_minimum_size.x = 200.0 * pt
 	drive[1].add_child(dev_note)
+	# F 2026-11-16 (TestFlight build 12): the DEV page shows to every tester, one tap from here (the
+	# seven taps on the version still open it too).
+	var open_dev := _word_button("DEV", "OPEN DEV")
+	open_dev.name = "open_dev"
+	open_dev.pressed.connect(show_dev)
+	drive[1].add_child(open_dev)
 	# Świat · World: the time of day and the mode; the weather and the traffic.
 	var world := _rows(body, [2, 2])
 	_heading(world[0], "Pora dnia", "Time of day")
