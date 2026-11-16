@@ -37,9 +37,9 @@ const NAMES := ["Low", "Medium", "High", "Ultra", "Experimental"]
 ## 1.48 MP ×1 image (the iPhone 11's look before G1, for anyone who picks it).
 const QUALITY := [
 	{"name": "Low", "step": 1, "budget": 0.5, "shadows": false, "shadow_size": 1024, "glow": false, "rain": 0.4,
-		"reflect": 0, "traffic": 0.55, "people": 24, "small_shadows": false, "tree_limbs": false},
+		"reflect": 0, "traffic": 0.55, "people": 24, "small_shadows": false, "tree_limbs": false, "panel_holes": true},
 	{"name": "Medium", "step": 1, "budget": 0.5, "shadows": true, "shadow_size": 1024, "glow": true, "rain": 0.7,
-		"reflect": 6, "traffic": 0.8, "people": 40, "small_shadows": false},
+		"reflect": 6, "traffic": 0.8, "people": 40, "small_shadows": false, "panel_holes": true},
 	{"name": "High", "step": 0, "budget": 0.96, "shadows": true, "shadow_size": 2048, "glow": true, "rain": 1.0,
 		"reflect": 10, "traffic": 1.0, "people": 60, "small_shadows": true},
 	{"name": "Ultra", "step": 0, "budget": 1.6, "shadows": true, "shadow_size": 4096, "glow": true, "rain": 1.0,
@@ -51,6 +51,12 @@ const QUALITY := [
 ]
 ## Trees thread (2026-11-15): `tree_limbs` false (Low) hides the crowns' limbs (foliage.gdshader
 ## `limbs`): a bare tree is its haze and trunk, 36 fewer triangles a crown. Missing means true.
+## W4 of the walls look (docs/design/walls-true-to-life.md 9): `panel_holes` false makes the
+## fence panels (panel.gdshader `holes`) solid, their gaps the row's colour blended toward the
+## ground by its openness, so the tile-based GPU keeps its hidden-surface shortcut for them (a
+## `discard` turns it off). The fallback ladder's step for a frame that drops on the iPhone 11
+## with panels: true everywhere until the phone shows it is needed (then Low and Medium go
+## false); the governor never touches it. Missing means true.
 ## Experimental (F 2026-11-10, "after the ultra the experimental setting of graphic to test all
 ## this enhancements on the phone"): Ultra plus the beta trailer's capture extras
 ## (trailer.gd begin; the graphics research's "High" list), to judge each on a real phone:

@@ -234,6 +234,10 @@ const ENGINE_SOFT := 0.45
 
 
 ## Loop 2a: the player's volumes (Settings → Sound) as dB on top of the bus levels.
+## The world's sounds are held (the title is up, F 2026-11-16: the traffic and the beds played
+## before the tap): the SFX, Ambience and Voice buses are muted, the radio (Music) is not.
+## `world_hold` is the one place that sets it; set_levels keeps it.
+static var world_held := false
 static var user_db := {"Master": 0.0, "Music": 0.0, "SFX": 0.0, "Ambience": 0.0, "Voice": 0.0}
 ## The mixer's state: the ducks held now (name -> seconds left, INF: until released), each
 ## target's level now (dB, eased) and how fast it is moving (dB per second).
@@ -418,6 +422,14 @@ static func setup_buses() -> void:
 
 ## Loop 2a: the player's volumes, 0..1 each: everything, the radio, the effects (engine,
 ## tyres, knocks, the city's beds, the spoken clips). Zero mutes the bus.
+static func world_hold(on: bool) -> void:
+	world_held = on
+	for bus in [&"SFX", &"Ambience", &"Voice"]:
+		var i := AudioServer.get_bus_index(bus)
+		if i >= 0:
+			AudioServer.set_bus_mute(i, on or user_db[str(bus)] <= linear_to_db(0.001) + 0.01)
+
+
 static func set_levels(master: float, music: float, effects: float) -> void:
 	var levels := {"Master": master, "Music": music, "SFX": effects, "Ambience": effects, "Voice": effects}
 	for bus in levels:
@@ -426,7 +438,7 @@ static func set_levels(master: float, music: float, effects: float) -> void:
 		var i := AudioServer.get_bus_index(bus)
 		if i < 0:
 			continue
-		AudioServer.set_bus_mute(i, v <= 0.001)
+		AudioServer.set_bus_mute(i, v <= 0.001 or (world_held and bus in ["SFX", "Ambience", "Voice"]))
 		AudioServer.set_bus_volume_db(i, BUSES.get(bus, 0.0) + user_db[bus])
 
 

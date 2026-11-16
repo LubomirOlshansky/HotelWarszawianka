@@ -88,27 +88,27 @@ const Lang := preload("res://scripts/lang.gd")
 ## the locked prompt, the stake (zł, as RIVALS), the respect it needs, and the race pace.
 const RUNGS := [
 	{"id": "halina", "rival": "Pani Halina", "short": "HALINA", "stake": 60, "respect": 0, "pace": 1.25, "accel": 1.5,
-		"share": 0.70, "race_accel": 8.0, "brake": 4.5, "lat": 10.0, "knows": 1.0, "caution": 0.8,
+		"share": 0.775, "race_accel": 9.8, "brake": 7.0, "lat": 11.8, "knows": 1.0, "caution": 0.8,
 		"cuts": 0.3, "yards": 1.0, "narrow": 3.5, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false,
 		"dare": 2.5, "indicate": 3.0, "flash": 0.0, "home": ["powisle", "srodmiescie", "trakt"],
 		"den": Vector2(-950, 150), "den_pl": "Śródmieście", "den_en": "the City Centre"},
 	{"id": "sloik", "rival": "Słoik z Radomia", "short": "SŁOIK", "stake": 90, "respect": 100, "pace": 1.3, "accel": 1.55,
-		"share": 0.92, "race_accel": 9.5, "brake": 8.0, "lat": 11.0, "knows": 0.0, "caution": 0.5,
+		"share": 0.92, "race_accel": 11.2, "brake": 10.0, "lat": 13.5, "knows": 0.0, "caution": 0.5,
 		"cuts": 0.0, "yards": 0.0, "narrow": 4.5, "hops": 0.0, "mistake": 0.12, "wrong": 1, "block": 0.0, "phone": false,
 		"dare": 1.5, "indicate": 1.0, "flash": 0.0, "home": [],
 		"den": Vector2(-1380, 560), "den_pl": "Dworzec Centralny", "den_en": "the Central Station"},
 	{"id": "bartek", "rival": "Bulwar Bartek", "short": "BARTEK", "stake": 120, "respect": 220, "pace": 1.35, "accel": 1.6,
-		"share": 0.80, "race_accel": 10.5, "brake": 9.0, "lat": 12.0, "knows": 0.5, "caution": 0.3,
+		"share": 0.86, "race_accel": 12.0, "brake": 12.0, "lat": 14.8, "knows": 0.5, "caution": 0.3,
 		"cuts": 0.4, "yards": 0.3, "narrow": 3.0, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.3, "phone": false,
 		"dare": 1.0, "indicate": 1.6, "flash": 3.0, "home": ["powisle"],
 		"den": Vector2(450, -650), "den_pl": "bulwary", "den_en": "the boulevards"},
 	{"id": "seba", "rival": "Seba z Pragi", "short": "SEBA", "stake": 150, "respect": 340, "pace": 1.4, "accel": 1.65,
-		"share": 0.86, "race_accel": 12.0, "brake": 13.0, "lat": 15.0, "knows": 0.7, "caution": 0.0,
+		"share": 0.89, "race_accel": 12.8, "brake": 13.0, "lat": 16.3, "knows": 0.7, "caution": 0.0,
 		"cuts": 0.6, "yards": 0.6, "narrow": 2.8, "hops": 1.0, "mistake": 0.08, "wrong": 0, "block": 0.9, "phone": false,
 		"dare": 0.5, "indicate": 0.0, "flash": 0.8, "home": ["praga"],
 		"den": Vector2(1450, -1450), "den_pl": "Praga", "den_en": "Praga"},
 	{"id": "zbyszek", "rival": "Taksiarz Zbyszek", "short": "ZBYSZEK", "stake": 200, "respect": 480, "pace": 1.45, "accel": 1.7,
-		"share": 0.93, "race_accel": 12.5, "brake": 12.0, "lat": 15.5, "knows": 1.0, "caution": 0.2,
+		"share": 0.94, "race_accel": 13.0, "brake": 12.5, "lat": 16.3, "knows": 1.0, "caution": 0.2,
 		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.0, "mistake": 0.03, "wrong": 0, "block": 0.4, "phone": false,
 		"dare": 1.3, "indicate": 2.2, "flash": 2.5, "home": [],
 		"den": Vector2(-650, -1650), "den_pl": "Stare Miasto", "den_en": "the Old Town"},
@@ -144,8 +144,12 @@ const DEFAULT_RACER := {"share": 0.82, "race_accel": 10.5, "brake": 9.0, "lat": 
 		"cuts": 0.5, "yards": 0.5, "narrow": 3.0, "hops": 0.0, "mistake": 0.1, "wrong": 0, "block": 0.3, "phone": false,
 		"dare": 1.0, "indicate": 1.5, "flash": 2.0, "home": []}
 ## Halina on a gentle day: the guided first race (rivals.gd `call_first`) and every race against
-## her until she has been beaten once (`gentle`). Gentler than on her rung, and as steady.
-const FIRST_RACER := {"share": 0.65, "race_accel": 7.0, "brake": 4.0, "lat": 9.5, "knows": 1.0, "caution": 1.0,
+## her until she has been beaten once (`gentle`). Since F's playtest of build 11 (2026-11-16: "too easy
+## to beat") it is only a hair under her rung (share 0.76 against 0.78, about 91 s against 88 s on the
+## bench course; it was 0.65 / 7.0 / 4.0 / 9.5, 108 s): a first race is a real race. The same day the
+## whole ladder from Halina to Zbyszek was retuned (docs/design/race-ai.md 6): Mike already uses the
+## car's whole top speed, so the rest were brought up to him, each 3 to 6 % quicker than the one below.
+const FIRST_RACER := {"share": 0.76, "race_accel": 9.4, "brake": 6.5, "lat": 11.4, "knows": 1.0, "caution": 1.0,
 		"cuts": 0.3, "yards": 1.0, "narrow": 3.5, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false,
 		"dare": 2.5, "indicate": 3.0, "flash": 0.0, "home": ["powisle", "srodmiescie", "trakt"]}
 ## Racer AI step 6b (street_meet.gd, the race from Plac Defilad to meet 2): the night club's eight

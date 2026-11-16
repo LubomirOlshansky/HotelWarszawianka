@@ -142,7 +142,7 @@ func setup(lane_graph: LaneGraph, map_node: Node3D, data: Dictionary) -> void:
 				_succ[i].append(j)
 				_pred[j].append(i)
 	await LoadYield.tick("trams joins")
-	_find_halts(data)
+	await _find_halts(data)
 	await LoadYield.tick("trams halts")
 	# Night: headlight cones ahead of the first car, a red glow behind the last.
 	var cones := Models.headlight_pools(CAR * 0.5 + 0.2, 0.75, 16.0, false)
@@ -264,6 +264,7 @@ func _find_halts(data: Dictionary) -> void:
 		centres.append(Vector2(float(extra[k]), float(extra[k + 1])))
 		reach.append(9.0)  # tram_stops.py HALT_SHELTER
 	for c in centres.size():
+		await LoadYield.tick("trams halts")
 		var centre := centres[c]
 		for i in _pts.size():
 			var near := _project(i, centre)
@@ -278,6 +279,8 @@ func _find_halts(data: Dictionary) -> void:
 					_halts[i].append_array(PackedFloat32Array([at, 0.0, -1.0, 0.0, halt_id]))
 					halt_id += 1
 	for e in graph.e_a.size():
+		if e % 16 == 0:
+			await LoadYield.tick("trams halts")
 		var stops := graph.e_stops[e]
 		for k in range(0, stops.size(), 3):
 			var p := graph.point_at(e, stops[k])

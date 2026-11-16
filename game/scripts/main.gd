@@ -725,6 +725,12 @@ func _ready() -> void:
 		title.language_chosen.connect(_on_language_chosen)
 		if fresh:
 			add_child(title)
+			# NOWA GRA reloads this scene: the boot scene's title (under the root, so it outlives the
+			# scene) is still up on its "start over?" question (F, 2026-11-16, build on the phone:
+			# the new game ran behind it). The new title takes over; the old one goes.
+			for stale in get_tree().root.get_children():
+				if stale != title and stale.get_script() == Title:
+					stale.queue_free()
 			# The first frame (F, 2026-11-08: ~8 s of a plain blue screen on a Nothing Phone): the
 			# title is drawn before the settings, radio, wallet and save below, not after them.
 			await get_tree().process_frame
@@ -792,6 +798,7 @@ func _ready() -> void:
 		return
 	if title != null:
 		_pause.hold(PauseReasons.LOAD)  # the loading bar: nothing half-built moves between the build's steps
+		Sfx.world_hold(true)  # no traffic or beds under the title; the tap lets them in (title.gd dismiss)
 		title.cap = lerpf(LOAD_FILES, LOAD_BUILT, LOAD_MARKS[0])
 		LoadYield.begin()  # the long setups let a frame through now and then (load_yield.gd)
 	await _build_world()
@@ -945,6 +952,7 @@ func _title_frame() -> void:
 		print("title: the start's sectors in after %d ms%s" % [Time.get_ticks_msec() - _title_wait_t,
 				"" if streamer == null or streamer.idle() else " (not all: the wait's limit)"])
 		_title_wait_t = -1
+		_pause.hold(PauseReasons.TITLE)  # the world waits for the tap: no NPC, race offer or dialogue before it
 		title.set_ready()
 		if title != null and flags.title_choice != "":
 			# Save and resume: --title-choice= picks for the player (continue, new, or ask: the question up).
@@ -1196,6 +1204,7 @@ func _on_title_dismissed() -> void:
 		# The verify step `boot-run` waits for this line: the boot scene's title lasted to here.
 		print("boot: the boot scene's title stayed up until the game began")
 		_title_from_boot = false
+	_pause.release(PauseReasons.TITLE)
 	hud.visible = not flags.hide_hud
 	dialogue.host_on = true
 	title = null
@@ -2039,6 +2048,7 @@ func _set_quality(choice: int) -> void:
 	tod.glow_allowed = qs["glow"]
 	if map != null and map.leaf_material != null:
 		map.leaf_material.set_shader_parameter("limbs", 1.0 if qs.get("tree_limbs", true) else 0.0)
+	if map != null and map.panel_material != null: map.panel_material.set_shader_parameter("holes", 1.0 if qs.get("panel_holes", true) else 0.0)
 	if crowds != null:
 		crowds.amount = _crowd_scale()
 		crowds.refresh()

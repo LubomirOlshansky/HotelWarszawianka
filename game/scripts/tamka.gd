@@ -179,6 +179,8 @@ var _t := 0.0
 
 ## Builds the bollards and the footbridge (one mesh, the deck's collider) and the walker.
 func build() -> void:
+	# A coroutine: under the title's loading bar it lets frames through between its parts and
+	# inside the bollards' loop (LoadYield; F's phone log 2026-11-16: this place was one 1.3 s block).
 	# What main.gd hands every place (ctx), unless a check set the field directly.
 	if dialogue == null:
 		dialogue = ctx.get("dialogue")
@@ -190,10 +192,14 @@ func build() -> void:
 		vehicle = ctx.get("vehicle", Callable())
 	log_on = log_on or bool((ctx.get("logs", {}) as Dictionary).get("tamka", false))
 	var cells := {}
-	_bollards(cells)
+	await _bollards(cells)
+	await LoadYield.tick("tamka bollards")
 	_park(cells)
+	await LoadYield.tick("tamka park")
 	_plates(cells)
+	await LoadYield.tick("tamka plates")
 	_ateneum(cells)
+	await LoadYield.tick("tamka ateneum")
 	for key: Vector2i in cells:
 		pour((cells[key] as SurfaceTool).commit(), false, "Bollards_%d_%d" % [key.x, key.y])
 	var st := SurfaceTool.new()
@@ -202,6 +208,7 @@ func build() -> void:
 	body.name = "TamkaSolids"
 	body.set_meta(&"solid", &"pier")  # the footbridge's pier and deck: the solid class (solidity.gd)
 	_footbridge(st, body)
+	await LoadYield.tick("tamka footbridge")
 	pour(st.commit(), true, "TamkaProps")
 	part(body)
 	_cum.resize(WALK.size())
@@ -252,6 +259,7 @@ func _bollards(cells: Dictionary) -> void:
 			for i in range(0, p.size() - 3, 2):
 				zebras.append([Vector2(float(p[i]), float(p[i + 1])), Vector2(float(p[i + 2]), float(p[i + 3]))])
 	for sg: Array in own:
+		await LoadYield.tick("tamka bollards")
 		var w: float = sg[2]
 		if w < BOLLARD_MIN_W:
 			continue

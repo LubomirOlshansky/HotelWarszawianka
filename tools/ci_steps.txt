@@ -20,6 +20,7 @@
 activity             quick
 architecture         quick
 barrierlook          quick
+barrierpaths         smoke
 boatrace             quick
 boot                 quick
 boot-run             smoke
@@ -120,6 +121,7 @@ pacing               quick
 packs                quick
 padel                quick
 palacelights         quick
+panelrule            quick
 parkdetails          quick
 parkedthin           quick
 parkmesh             quick
