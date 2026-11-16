@@ -58,6 +58,7 @@ const Ladder := preload("res://scripts/ladder.gd")
 const FirstSteps := preload("res://scripts/first_steps.gd")
 const Pacer := preload("res://scripts/pacer.gd")
 const Rules := preload("res://scripts/ride_rules.gd")
+const Access := preload("res://scripts/access.gd")
 
 ## Five looks a second.
 const TICK := 0.2

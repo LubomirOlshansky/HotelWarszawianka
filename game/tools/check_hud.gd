@@ -1704,6 +1704,7 @@ func _check_map_guidance(fm: Control, where: String, pt: float, safe: Rect2, ste
 		if cr.intersects(r4["quests"]):
 			problems.append("%s: the list's coach mark covers the list" % where)
 	fm.call("_drag_quests", 30.0)
+	fm.set("_qdrag_px", 0.0)  # the finger lifts (a next press zeroes it, full_map.gd): a later tap is no drag
 	fm.call("_process", 0.016)
 	if fm.hints.coach != "map_hold":
 		problems.append("%s: scrolling the list did not bring the hold coach mark (%s)" % [where, fm.hints.coach])
@@ -1734,6 +1735,21 @@ func _check_map_guidance(fm: Control, where: String, pt: float, safe: Rect2, ste
 	if fm.rects().has("coach"):
 		problems.append("%s: a coach mark shows again once all three were seen" % where)
 	# The "?" plays them again; a run without hints shows none.
+	# The pins above rebuilt the list: its scroll and the tall row are new nodes, so the long list is made
+	# again (the "?" replay starts with the list mark, which needs a list longer than its scroll).
+	await process_frame  # (the rebuild lands on a frame)
+	await process_frame
+	sc1 = fm.get("_quests").find_child("list_scroll", true, false) as ScrollContainer
+	if not is_instance_valid(tall) or tall.get_parent() == null:
+		tall = Control.new()
+		tall.custom_minimum_size = Vector2(10.0, 3000.0 * pt)
+		(sc1.get_child(0) as Control).add_child(tall)
+	fm.call("_fit")
+	await process_frame
+	await process_frame
+	fm.call("_update_more")
+	if not fm.rects().has("more"):
+		problems.append("%s: no more cue over the list again, before its end" % where)
 	fm.hints.dirty = false
 	(fm.get("_help") as Button).pressed.emit()
 	fm.call("_process", 0.016)
@@ -1753,6 +1769,7 @@ func _check_map_guidance(fm: Control, where: String, pt: float, safe: Rect2, ste
 	if fm.rects().has("more"):
 		problems.append("%s: the more cue stays at the end of the list" % where)
 	fm.hints = null
-	tall.queue_free()
+	if is_instance_valid(tall):
+		tall.queue_free()
 	fm.set_steps(steps, ["PIERWSZE KROKI 0/7", "First steps 0/7"], FS.words("promise"), false)
 	await process_frame

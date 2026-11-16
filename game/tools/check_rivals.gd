@@ -1719,6 +1719,7 @@ func _o_six() -> void:
 	_hud.press(0)
 	_eq(_rv.called_out, SLOIK, "NASTĘPNY calls Słoik out")
 	_ok(_rv._drivers[SLOIK].held and _rv._beacon.visible, "Słoik waits held in the ring")
+	_rv.end_call_out()  # the called-out rival waits in her ring (the beacon on, as asserted above); the player walks away
 	_ended("NEXT after Halina")
 		# The home areas: Seba far from Praga and out of sight goes back; near the car he stays.
 	_new_world(false)

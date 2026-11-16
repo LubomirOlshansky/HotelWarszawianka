@@ -453,11 +453,11 @@ func _busy() -> void:
 	toy.input_at = 1.0
 	toy.order_at = 35.0
 	toy.pick = 3
-	toy.job_from = 170.0
+	toy.job_from = 115.0  # the card is due 20 s after the first delivery (about 110 s): the job starts before it
 	toy.job_to = 330.0
 	var r := _play(toy, 1300.0)
 	var done: Dictionary = r[0]
-	_expect(_at(done, "choice") >= 330.0 - 0.01 and _at(done, "choice") < 331.0, "the choice card waits for the job (170-330 s): %.1f" % _at(done, "choice"))
+	_expect(_at(done, "choice") >= 330.0 - 0.01 and _at(done, "choice") < 331.0, "the choice card waits for the job (115-330 s): %.1f" % _at(done, "choice"))
 	_expect(_at(done, "race") >= 330.0 + First10.NEXT_GAP - 0.01, "the first intro NEXT_GAP s after it: %.1f" % _at(done, "race"))
 	_summary.append("busy: the card at %.0f s" % _at(done, "choice"))
 
