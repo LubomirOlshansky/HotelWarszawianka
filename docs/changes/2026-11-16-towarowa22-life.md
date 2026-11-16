@@ -6,4 +6,4 @@
 - checked in the cloud: check_mesh_quality, check_place_scripts, check_architecture; the look, the turntable and the bench still need the Mac.
 
 ## Roadmap
-- ticks: "Towarowa 22 ground life" (F's playtest 2026-11-16)
+- ticked: "Towarowa 22 ground and street life (F's playtest 2026-11-16)"

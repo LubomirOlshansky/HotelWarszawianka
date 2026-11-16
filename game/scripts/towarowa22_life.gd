@@ -21,8 +21,8 @@ const FRAME_B := Vector2(0.8815, -0.4719)
 ## The finished ground's height over the terrain (the lawn's 0.26 and the paving's 0.15-0.21 pass
 ## under it): pieces stand on it, not in it.
 const LIFT := 0.27
-## People are drawn a quarter larger than life: at the phone's isometric scale a true-size person is a few pixels.
-const PERSON := 1.3
+## People are drawn about two thirds larger than life: at the phone's isometric scale a true-size person is a few pixels.
+const PERSON := 1.7
 ## Which way a piece's front faces, degrees from +u towards +v.
 const FACES := {"+u": 0.0, "-u": 180.0, "+v": 90.0, "-v": -90.0}
 const SHIRTS := ["#c8282a", "#2a62d1", "#f2c12e", "#f4f2ec", "#3a7d44", "#7a52b8", "#e8762a", "#2b2730",
@@ -72,11 +72,11 @@ const ITEMS := [
 	# The towers' feet: a few waiting and meeting.
 	["stand", 36.0, 13.5, "+v", 2], ["stand", 37.2, 14.3, "+v", 5], ["stand", 104.0, 13.0, "+u", 0],
 	["stand", 168.0, 13.5, "-u", 8], ["stand", 226.0, 13.0, "+v", 6],
-	# Ogrody Towarowa: benches between the trees under the hall's frame, people on the lawn.
-	["bench", 131.0, 164.0, "+v", 3.0], ["bench", 158.0, 164.0, "+v", 3.0], ["bench", 184.0, 164.0, "+v", 3.0],
-	["bench", 144.0, 182.0, "-v", 3.0], ["bench", 171.0, 182.0, "-v", 3.0],
-	["planter", 121.0, 160.0, "-u", "#e8a6b8"], ["planter", 121.0, 186.0, "-u", "#f2c12e"],
-	["planter", 195.0, 160.0, "+u", "#c8282a"], ["planter", 195.0, 186.0, "+u", "#f4f2ec"],
+	# Ogrody Towarowa: benches on both sides of the hall's frame (clear of its bars and the tree crowns), people on the lawn.
+	["bench", 113.5, 154.0, "+u", 3.0], ["bench", 113.5, 168.0, "+u", 3.0], ["bench", 113.5, 182.0, "+u", 3.0],
+	["bench", 203.0, 154.0, "-u", 3.0], ["bench", 203.0, 168.0, "-u", 3.0], ["bench", 203.0, 182.0, "-u", 3.0],
+	["planter", 113.5, 161.0, "+u", "#e8a6b8"], ["planter", 113.5, 175.0, "+u", "#f2c12e"],
+	["planter", 203.0, 161.0, "-u", "#c8282a"], ["planter", 203.0, 175.0, "-u", "#f4f2ec"],
 	["stand", 150.0, 173.0, "+u", 1], ["stand", 151.1, 174.0, "-u", 9], ["stand", 177.0, 176.0, "+v", 4],
 	["stand", 140.0, 190.0, "-v", 10], ["stand", 188.0, 150.0, "+v", 7],
 	# More of the walking street and the plazas: groups outside the cafés, people crossing.
@@ -160,7 +160,6 @@ func _bed(st: SurfaceTool, xf: Transform3D, flower: Color) -> void:
 	Props._xbox(st, xf, Vector3(0, 0.62, 0), Vector3(2.7, 0.34, 0.6), Color("#4f7a3a"))
 	for k in 5:
 		Props._xbox(st, xf, Vector3((k - 2) * 0.55, 0.9, 0.0), Vector3(0.3, 0.26, 0.4), flower)
-	count += 0
 
 
 ## One person (props.gd's, 84 triangles) at `xf`, shirt `k`, scaled `h` tall (1.0 standing).
