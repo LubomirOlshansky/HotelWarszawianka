@@ -7,7 +7,7 @@ extends SceneTree
 ##      letting go of one that is not held changes nothing; `release_all` ends every hold; `still`
 ##      names what is left for the log;
 ##   A2 the scripts: nothing under res://scripts writes the tree's pause but pause_reasons.gd (one
-##      line of it); main.gd holds and lets go of each of the four reasons; the loading bar's hold
+##      line of it); main.gd holds and lets go of each of the five reasons; the loading bar's hold
 ##      is before the city's build and its release after it; a new game lets go of everything
 ##      before the scene reloads.
 ##
@@ -134,7 +134,7 @@ func _scripts() -> void:
 			_ok(n == 0, "%s writes the tree's pause itself (%d lines): hold a reason of main.gd's `_pause` instead" % [path, n])
 	_ok(owner_writes == 1, "pause_reasons.gd writes the tree's pause in %d lines, not in its one `_apply`" % owner_writes)
 	var main := FileAccess.get_file_as_string(MAIN)
-	for reason: String in ["LOAD", "SETTINGS", "MAP", "GARAGE"]:
+	for reason: String in ["LOAD", "SETTINGS", "MAP", "GARAGE", "TITLE"]:
 		var holds := main.count("_pause.hold(PauseReasons.%s)" % reason)
 		var lets := main.count("_pause.release(PauseReasons.%s)" % reason)
 		_ok(holds == 1 and lets == 1, "main.gd holds %s %d times and lets it go %d times (one each)" % [reason, holds, lets])
