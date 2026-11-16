@@ -100,6 +100,10 @@ func say(anchor: Variant, speaker: String, line: String, subtitle := "", seconds
 	accent = Access.tint(accent)  # colour-safe (access.gd)
 	line = Lang.pick(line, subtitle)  # one language (lang.gd)
 	subtitle = ""
+	if kind in [Chatter.QUEST, Chatter.POLICE] and Portraits.has_face(speaker):
+		return _queue_line(speaker, line, seconds, accent, kind)  # a person: the fixed panel
+	if panel_busy():
+		return false  # one voice at a time: a thing or ambient line is dropped while a person talks
 	hush(anchor)
 	_make_room()
 	var typing := line.length() / TYPE_RATE
@@ -221,7 +225,7 @@ func clear() -> void:
 
 ## How many bubbles are up.
 func count() -> int:
-	return _bubbles.size()
+	return _bubbles.size() + (0 if _cur.is_empty() else 1) + _queue.size()
 
 
 func is_talking(anchor: Variant) -> bool:
@@ -565,6 +569,10 @@ func _queue_line(speaker: String, line: String, seconds: float, accent: Color, k
 			return false
 	if _cur.get("line", "") == line and _cur.get("speaker", "") == speaker:
 		return false
+	if chatter.max_on_screen() <= 1:
+		# A chase (chatter.gd): one voice, the newest line takes the place of the one before.
+		_queue.clear()
+		_cur = {}
 	while _queue.size() >= PANEL_MAX_QUEUE:
 		_queue.remove_at(0)
 	var typing := line.length() / TYPE_RATE

@@ -625,7 +625,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_park()
 	_frames(1.2)
 	var spot: Dictionary = c.spots[c.quest_spot]
-	_ok(_is(Rave.Stage.DRIVE) and _toast("Lokalizacja: " + String(spot["where"][0])) and not c._hood.visible, "the reveal: the toast names the place, the hooded man goes")
+	_ok(_is(Rave.Stage.DRIVE) and _toast("Lokalizacja: " + String(spot["where"][0])) and c._hood.visible and c._hood.position != m["side"], "the reveal: the toast names the place, the hooded man leaves the meeting point for the door (the bouncer)")
 	_ok(_bubbles.said.size() >= 1 and String(spot["where"][0]) in _bubbles.said[0], "and the hooded man says it (%s)" % [_bubbles.said])
 
 	# The door ring, in the night's colour, with the bouncer in it.
@@ -646,7 +646,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_frames(1.2)
 	var money: int = _wallet.money
 	pw = c.password
-	_ok(_is(Rave.Stage.DOOR) and _hud.card == "SELEKCJA 1/3" and _hud.stacked and _hud.buttons == 3 and _hud.card_is(c), "at the door: the first question, a stacked card with three answers (%s)" % _hud.card)
+	_ok(_is(Rave.Stage.DOOR) and _hud.card == "BRAMKARZ · SELEKCJA 1/3" and _hud.stacked and _hud.buttons == 3 and _hud.card_is(c), "at the door: the first question, a stacked card with three answers (%s)" % _hud.card)
 	_ok(not c.has_target() and not b.visible and _hud.status == "" and c.busy(), "no target, no ring, no status line at the door")
 	_ok(c.quiz.size() == 3 and c.quiz.any(func(q: Array) -> bool: return q[0][0] == "Hasło?" and (q[1] as Array).any(func(a: Array) -> bool: return a[0] == pw)), "a secret rave asks the password and offers it among the answers")
 	_hud.abort_pressed.emit()
@@ -654,7 +654,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 
 	# A question nobody answers: out.
 	_frames(Rave.DOOR_LIFE - 1.0)
-	_ok(_is(Rave.Stage.DOOR) and _hud.card == "SELEKCJA 1/3", "the question waits for its life")
+	_ok(_is(Rave.Stage.DOOR) and _hud.card == "BRAMKARZ · SELEKCJA 1/3", "the question waits for its life")
 	var spot0: int = c.night_spot
 	_frames(2.0)
 	_ok(_is(Rave.Stage.RESULT) and c.last_pay.get("result", "") == "out" and _hud.card == "NIE DZIŚ" and _hud.buttons == 1 and c.rejected == 1,
@@ -677,7 +677,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	pw = c.password
 	_ok(_is(Rave.Stage.DOOR), "the second night: at the door")
 	_hud.press(int(c.quiz[0][2]))
-	_ok(_hud.card == "SELEKCJA 2/3" and _hud.stacked, "a right answer: the second question")
+	_ok(_hud.card == "BRAMKARZ · SELEKCJA 2/3" and _hud.stacked, "a right answer: the second question")
 	_hud.press(int(c.quiz[1][2]))
 	_hud.toasts.clear()
 	money = _wallet.money
@@ -773,7 +773,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(c.idle() and not c.waiting, "and the ✕ ends it")
 	_ok(c.meet_in_person("smola") and _is(Rave.Stage.DRIVE) and c.kind == "smola" and c.password == "" and c.meeting.is_empty(), "met at the Smoła start: straight to the club, no password, no meeting point")
 	_nights += 1
-	_ok(c.busy_kind("smola") and not c.busy_kind("rave") and c.target_colour() == Rave.SMOLA_COLOUR and b._colour == Rave.SMOLA_COLOUR and b.visible and not c._hood.visible,
+	_ok(c.busy_kind("smola") and not c.busy_kind("rave") and c.target_colour() == Rave.SMOLA_COLOUR and b._colour == Rave.SMOLA_COLOUR and b.visible and c._hood.visible,
 			"Smoła's night is busy for Smoła only, its ring and arrow in the gate's red")
 	_ok(c.target_position() == c.smola["door"]["at"], "the arrow leads to Smoła's door")
 	var kept_spot: int = c.night_spot
