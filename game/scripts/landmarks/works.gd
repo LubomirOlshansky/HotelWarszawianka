@@ -825,6 +825,234 @@ func _torwar_north(g: float) -> void:
 	_lbox(0.0, v - 0.2, 40.6, 0.55, g + 12.5, g + 13.4, TW_PILASTER, M_STONE, TW_PILASTER.darkened(0.05))
 
 
+## NBP's regional branch (Oddział Okręgowy, Plac Powstańców Warszawy 4; 2026-11-16, spec
+## docs/landmarks/specs/nbp.md; photos: F's T13 set and refs/nbp_oddzial/street). A long, low
+## block whose 133 m front on the square is dark brown-grey metal panels in three bands, each
+## leaning out over the one below and the top one curving out over the square. Under them the
+## glass ground floor stands back on a terrace up a wide flight of granite steps, with a white
+## wall bearing the eagle and NBP left of the doors and a narrow glazed stair slot right of
+## them; the rest of the front stands on a rough stone plinth wall with wooden planters. The
+## whole building is ours (SKINS `model`, it replaces LoD2's beige block); the frame's u runs
+## south along the front from its north-west corner, v out over the square.
+const NBP_O := Vector2(-703.2, -225.0)
+const NBP_A := Vector2(0.32948, 0.94416)
+const NBP_LEN := 133.24
+## the mass, LoD2's footprint (GUGiK) simplified; the last edge is the front. The roof is 14 m
+## over the square (LoD2 24-28 m, the square at 11.3 m)
+const NBP_RING := [Vector2(-703.2, -225.0), Vector2(-675.5, -234.3), Vector2(-671.1, -223.9), Vector2(-644.5, -151.7),
+		Vector2(-633.5, -115.6), Vector2(-630.9, -109.4), Vector2(-659.3, -99.2)]
+const NBP_TOP := 14.0
+const NBP_PANEL := Color("#4d4446")
+const NBP_JOINT := Color("#625a5c")
+const NBP_SHADOW := Color("#2f2a2b")
+const NBP_ROOF := Color("#6f7173")
+const NBP_STONE := Color("#b9b2a5")    # the rough plinth wall
+const NBP_GRANITE := Color("#a9a7a1")  # the steps and the terrace
+const NBP_GLASS := Color("#5d6f78")
+const NBP_FRAME := Color("#c9cbc8")
+const NBP_WHITE := Color("#eeeeea")
+const NBP_LETTER := Color("#8a8d90")
+const NBP_WOOD := Color("#b08a5e")
+const NBP_GREEN := Color("#6f8f4a")
+## along the front (u): the terrace, the steps up to it, the white wall, the stair slot
+const NBP_TERRACE := Vector2(26.0, 84.0)
+const NBP_STEPS := Vector2(30.0, 80.0)
+const NBP_PLAQUE := Vector2(40.0, 50.0)
+const NBP_SLOT := Vector2(57.0, 60.5)
+## the front's profile over the ground floor, (height over the square, v): three bands, each
+## leaning out with a lip over the next, the top one curving out to the roof's edge
+const NBP_PROFILE := [Vector2(5.6, 0.2), Vector2(8.5, 0.6), Vector2(8.5, 0.35), Vector2(11.3, 0.95), Vector2(11.3, 0.7),
+		Vector2(12.6, 1.15), Vector2(13.5, 1.6), Vector2(14.0, 1.75), Vector2(14.0, 0.0)]
+## the eagle on the white wall, rows from the top
+const NBP_EAGLE := ["...X.X...", "X..XXX..X", "XX.XXX.XX", "XXXXXXXXX", ".XXXXXXX.", "...XXX...", "..XX.XX..", ".X.....X."]
+
+
+func _build_nbp(_site: Dictionary) -> void:
+	_o = NBP_O
+	_a = NBP_A
+	_b = Vector2(-NBP_A.y, NBP_A.x)
+	var ring := PackedVector2Array(NBP_RING)
+	var lo := _ground_under(ring) - 0.6
+	# the square's level in front of the steps
+	var gf := 0.0
+	for k in 6:
+		var p := _w(30.0 + 10.0 * k, 5.0)
+		gf += map.terrain_height(p.x, p.y)
+	gf /= 6.0
+	_g = gf
+	_mode = M_STONE
+	var top := gf + NBP_TOP
+	# --- the mass: dark panels round the back and the ends (seams where the front's bands
+	# meet), the flat roof, two plant rooms at the ends
+	var n := ring.size()
+	for k in n - 1:
+		var p: Vector2 = ring[k]
+		var q: Vector2 = ring[k + 1]
+		var out := _out(ring, p, q)
+		_wall(p, q, lo, top, out, NBP_PANEL)
+		for h: float in [5.6, 8.5, 11.3]:
+			_buw_face(p + out * 0.03, q + out * 0.03, gf + h - 0.14, gf + h, out, NBP_SHADOW)
+	_cap(ring, top, NBP_ROOF)
+	_ubox(2.0, 11.0, -22.0, -6.0, top, top + 2.2, NBP_ROOF.lightened(0.15))
+	_ubox(121.0, 130.0, -22.0, -6.0, top, top + 2.2, NBP_ROOF.lightened(0.15))
+	_nbp_front(gf, lo)
+	_collide(ring)
+	_collide(_urect(0.0, NBP_LEN, -1.0, 0.5))
+	_collide(_urect(NBP_TERRACE.x, NBP_TERRACE.y, -1.0, 3.9))
+
+
+## The front on the square: the bands either side of the stair slot, the slot, the glass ground
+## floor on its terrace with the white wall, the steps, and the plinth wall with its planters.
+func _nbp_front(gf: float, lo: float) -> void:
+	var a3 := Vector3(_a.x, 0.0, _a.y)
+	var deck := gf + 1.8
+	var t0 := NBP_TERRACE.x
+	var t1 := NBP_TERRACE.y
+	_nbp_bands(0.0, NBP_SLOT.x, gf)
+	_nbp_bands(NBP_SLOT.y, NBP_LEN, gf)
+	# the bands' ends, the slot's cheeks back to its glass
+	_nbp_cheek(0.0, -a3, 0.0, gf)
+	_nbp_cheek(NBP_LEN, a3, 0.0, gf)
+	_nbp_cheek(NBP_SLOT.x, a3, -1.0, gf)
+	_nbp_cheek(NBP_SLOT.y, -a3, -1.0, gf)
+	# --- the stair slot: glass from the ground floor's top to the roof, light frames
+	_mode = M_GLASS
+	_buw_face(_w(NBP_SLOT.x, -1.0), _w(NBP_SLOT.y, -1.0), gf + 5.6, gf + NBP_TOP, _b, NBP_GLASS)
+	_mode = M_STONE
+	for k in 2:
+		var u := NBP_SLOT.x + (NBP_SLOT.y - NBP_SLOT.x) * float(k + 1) / 3.0
+		_buw_face(_w(u - 0.05, -0.97), _w(u + 0.05, -0.97), gf + 5.6, gf + NBP_TOP, _b, NBP_FRAME)
+	for h: float in [8.4, 11.2]:
+		_buw_face(_w(NBP_SLOT.x, -0.96), _w(NBP_SLOT.y, -0.96), gf + h - 0.08, gf + h + 0.08, _b, NBP_FRAME)
+	# --- the terrace: granite to the glass, the glass ground floor in light frames, the bands'
+	# dark soffit over it and dark ends
+	_ubox(t0, t1, -2.6, 0.0, lo, deck, NBP_GRANITE)
+	_mode = M_GLASS
+	_buw_face(_w(t0, -2.6), _w(NBP_PLAQUE.x, -2.6), deck, gf + 5.6, _b, NBP_GLASS)
+	_buw_face(_w(NBP_PLAQUE.y, -2.6), _w(t1, -2.6), deck, gf + 5.6, _b, NBP_GLASS)
+	_mode = M_STONE
+	var u := t0 + 1.6
+	while u < t1 - 0.5:
+		if u < NBP_PLAQUE.x - 0.1 or u > NBP_PLAQUE.y + 0.1:
+			_buw_face(_w(u - 0.05, -2.57), _w(u + 0.05, -2.57), deck, gf + 5.6, _b, NBP_FRAME)
+		u += 1.6
+	_buw_face(_w(t0, -2.57), _w(t1, -2.57), gf + 4.9, gf + 5.0, _b, NBP_FRAME)
+	_soffit(_urect(t0, t1, -2.6, 0.2), gf + 5.6, NBP_SHADOW)
+	# (the strip over the plinth's end only above the stone, which closes it below: no overlap)
+	_buw_face(_w(t0, -2.6), _w(t0, 0.0), deck, gf + 5.6, _a, NBP_PANEL)
+	_buw_face(_w(t0, 0.0), _w(t0, 0.2), gf + 3.0, gf + 5.6, _a, NBP_PANEL)
+	_buw_face(_w(t1, 0.0), _w(t1, -2.6), deck, gf + 5.6, -_a, NBP_PANEL)
+	_buw_face(_w(t1, 0.2), _w(t1, 0.0), gf + 3.0, gf + 5.6, -_a, NBP_PANEL)
+	# the white wall left of the doors: the eagle and NBP in grey
+	_ubox(NBP_PLAQUE.x, NBP_PLAQUE.y, -2.6, -2.3, deck, gf + 5.6, NBP_WHITE)
+	var rows := {}
+	for r in NBP_EAGLE.size():
+		var line: String = NBP_EAGLE[r]
+		var xs: Array = []
+		for x in line.length():
+			if line[x] == "X":
+				xs.append(x)
+		rows[r] = xs
+	_nbp_pixels(rows, NBP_PLAQUE.x + 0.9, 0.18, 0.17, gf + 4.75, -2.27, NBP_LETTER)
+	rows = {}
+	PixelFont.each_pixel("NBP", 0, func(x: int, row: int) -> void:
+		if not rows.has(row):
+			rows[row] = []
+		(rows[row] as Array).append(x))
+	var lrows := {}
+	for row: int in rows:
+		lrows[row - PixelFont.BODY] = rows[row]
+	_nbp_pixels(lrows, NBP_PLAQUE.x + 3.2, 0.3, 0.19, gf + 4.65, -2.27, NBP_LETTER)
+	# --- the steps: nine granite steps from the square up to the terrace, solid blocks at the
+	# flight's ends, three handrails
+	for k in 9:
+		_ubox(NBP_STEPS.x, NBP_STEPS.y, 0.42 * float(k), 0.42 * float(k + 1), lo, deck - 0.2 * float(k),
+				NBP_GRANITE, M_STONE, NBP_GRANITE.lightened(0.04 if k % 2 == 0 else 0.0))
+	_ubox(t0, NBP_STEPS.x, 0.0, 3.9, lo, deck + 0.9, NBP_GRANITE.darkened(0.06))
+	_ubox(NBP_STEPS.y, t1, 0.0, 3.9, lo, deck + 0.9, NBP_GRANITE.darkened(0.06))
+	for ur: float in [42.0, 55.0, 68.0]:
+		for side: float in [-1.0, 1.0]:
+			var p0 := _w(ur + side * 0.03, 0.2)
+			var p1 := _w(ur + side * 0.03, 3.7)
+			_quad(Vector3(p0.x, deck + 0.75, p0.y), Vector3(p1.x, gf + 0.95, p1.y), Vector3(p1.x, gf + 1.05, p1.y),
+					Vector3(p0.x, deck + 0.85, p0.y), a3 * side, NBP_FRAME)
+	# --- the plinth: rough stone either side of the terrace, the panels' dark foot above it,
+	# wooden planters with small trees along the south stretch
+	for span: Vector2 in [Vector2(0.0, t0), Vector2(t1, NBP_LEN)]:
+		_ubox(span.x, span.y, 0.0, 0.5, lo, gf + 3.0, NBP_STONE, M_STONE, NBP_STONE.darkened(0.08))
+		_wall(_w(span.x, 0.2), _w(span.y, 0.2), gf + 3.0, gf + 5.6, _b, NBP_PANEL)
+	for k in 6:
+		var up := 92.0 + 7.0 * float(k)
+		var c := _w(up, 1.5)
+		var gp: float = map.terrain_height(c.x, c.y)
+		_ubox(up - 0.6, up + 0.6, 0.9, 2.1, gp - 0.2, gp + 0.9, NBP_WOOD, M_STONE, NBP_WOOD.darkened(0.25))
+		_prism(_circle(c, 0.75, 6), gp + 1.2, gp + 2.6, NBP_GREEN, NBP_GREEN.lightened(0.12), M_STONE, M_STONE)
+
+
+## One stretch of the panel bands (NBP_PROFILE) from u0 to u1, each band a shade lighter than the
+## one below (they catch more sky, T13-01), with a lighter seam every ~4 m.
+func _nbp_bands(u0: float, u1: float, gf: float) -> void:
+	for k in NBP_PROFILE.size() - 1:
+		var p: Vector2 = NBP_PROFILE[k]
+		var q: Vector2 = NBP_PROFILE[k + 1]
+		var nl := Vector2(q.x - p.x, -(q.y - p.y)).normalized()  # the face's normal: (out, up)
+		var n := Vector3(_b.x * nl.x, nl.y, _b.y * nl.x)
+		var a0 := _w(u0, p.y)
+		var a1 := _w(u1, p.y)
+		var b0 := _w(u0, q.y)
+		var b1 := _w(u1, q.y)
+		var tall := q.x - p.x
+		_quad(Vector3(a0.x, gf + p.x, a0.y), Vector3(a1.x, gf + p.x, a1.y), Vector3(b1.x, gf + q.x, b1.y),
+				Vector3(b0.x, gf + q.x, b0.y), n, NBP_PANEL.lightened(0.012 * (p.x - 5.6)) if tall > 0.01 else NBP_JOINT)
+		if tall < 1.0:
+			continue
+		var m := maxi(1, roundi((u1 - u0) / 4.2))
+		for j in range(1, m):
+			var u := u0 + (u1 - u0) * float(j) / float(m)
+			var c0 := _w(u - 0.05, p.y + 0.03 * nl.x)
+			var c1 := _w(u + 0.05, p.y + 0.03 * nl.x)
+			var d0 := _w(u - 0.05, q.y + 0.03 * nl.x)
+			var d1 := _w(u + 0.05, q.y + 0.03 * nl.x)
+			var h0 := gf + p.x + 0.03 * nl.y
+			var h1 := gf + q.x + 0.03 * nl.y
+			_quad(Vector3(c0.x, h0, c0.y), Vector3(c1.x, h0, c1.y), Vector3(d1.x, h1, d1.y), Vector3(d0.x, h1, d0.y), n, NBP_JOINT)
+
+
+## The bands' side at u, facing n (plan direction as a Vector3), from v `back` out to the profile.
+func _nbp_cheek(u: float, n: Vector3, back: float, gf: float) -> void:
+	for k in NBP_PROFILE.size() - 1:
+		var p: Vector2 = NBP_PROFILE[k]
+		var q: Vector2 = NBP_PROFILE[k + 1]
+		if q.x - p.x < 0.01:
+			continue
+		var a0 := _w(u, back)
+		var a1 := _w(u, p.y)
+		var b1 := _w(u, q.y)
+		_quad(Vector3(a0.x, gf + p.x, a0.y), Vector3(a1.x, gf + p.x, a1.y), Vector3(b1.x, gf + q.x, b1.y),
+				Vector3(a0.x, gf + q.x, a0.y), n, NBP_PANEL)
+
+
+## Pixel runs (rows: row index -> sorted or unsorted pixel columns) on a face at v, from u0, the
+## top row's top at y_top: one face per run of neighbouring pixels.
+func _nbp_pixels(rows: Dictionary, u0: float, pu: float, py: float, y_top: float, v: float, col: Color) -> void:
+	for row: int in rows:
+		var xs: Array = (rows[row] as Array).duplicate()
+		if xs.is_empty():
+			continue
+		xs.sort()
+		var s0: int = xs[0]
+		var prev: int = xs[0]
+		for idx in range(1, xs.size() + 1):
+			var x: int = xs[idx] if idx < xs.size() else -999
+			if x == prev + 1:
+				prev = x
+				continue
+			var y := y_top - float(row) * py
+			_buw_face(_w(u0 + s0 * pu, v), _w(u0 + (prev + 1) * pu, v), y - py, y, _b, col)
+			s0 = x
+			prev = x
+
+
 ## Elektrownia Powiśle, the whole complex (2026-11-13, F: "like in real life, with the fronts", and
 ## "alive: people, summer bars, small squares"; spec docs/landmarks/specs/elektrownia.md, photos:
 ## 34 Mapillary frames round the block, refs/elektrownia-*/, never shipped). Every part is placed
