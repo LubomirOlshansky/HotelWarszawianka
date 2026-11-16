@@ -4600,6 +4600,17 @@ const DPB_AT := Vector2(-1166.0, 740.0)      ## inside the outline
 const DPB_WALL := Color("#e6d49e")           ## pale yellow plaster (photos)
 const DPB_ROOF := Color("#6c6a66")           ## grey roof, a default
 
+## The low house east of the Franciscan Sisters of the Family of Mary's convent (OSM building 10482,
+## `religious`, unnamed, Wola), at the street corner beside the long banded house
+## (`church_rodziny_maryi`, RM_*). Its mass stays the map's block in a skin: the convent's warm peach
+## plaster (RM_WALL) under green copper, from Mapillary photos along the street (2020-2021,
+## refs/churches/religious_10482, reference only, never shipped), which show a low pavilion with a
+## green hipped roof behind the iron railings and gate pavilions. Spec
+## docs/landmarks/specs/rodziny_maryi_pawilon.md.
+const RMP_AT := Vector2(-2595.0, -765.0)
+const RMP_WALL := Color("#e6c2a2")
+const RMP_ROOF := Color("#7f9e86")
+
 ## The parish house of Our Lady of Częstochowa on Zagórna (OSM building 2197, `presbytery`,
 ## unnamed, Powiśle): the block joined to the back of the 1960s church (`church_czestochowska`, MC_*).
 ## Its mass stays the map's block in a skin: the church's grey render (MC_WALL) from two Mapillary
