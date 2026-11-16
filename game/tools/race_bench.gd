@@ -1830,6 +1830,7 @@ func _fill(out: Dictionary, probe: Probe, d, r: RaceSession.Racer, session: Race
 	out["slips"] = probe.slips
 	out["slips_seen"] = probe.slips_seen
 	out["overlaps"] = probe.overlaps
+	out["rams"] = probe.rams
 	out["head_ons"] = probe.head_ons
 	out["overlap_s"] = snappedf(probe.overlap_s, 0.1)
 	out["overlap_log"] = probe.overlap_log
@@ -2143,7 +2144,10 @@ static func judge(results: Array) -> Array:
 				continue
 			blocked += 1
 			var allowed: float = _run(base) * float(r["wall"]["turn_m"]) / maxf(float(r["wall"]["base_m"]), 1.0) * REROUTE_SLACK + REROUTE_GRACE
-			if r["finished"] and int(r["overlaps"]) == 0 and _run(r) <= allowed:
+			# 2026-11-16: the test player's own car at the wall (`rams`) is not the town's traffic: the
+			# rival backs out of the wall as the player's car turns round in the same narrow street,
+			# and a faster Halina meets it there. No ghosting still counts it.
+			if r["finished"] and int(r["overlaps"]) - int(r.get("rams", 0)) == 0 and _run(r) <= allowed:
 				rerouted += 1
 			elif worst == "":
 				worst = r["id"]
@@ -2258,7 +2262,7 @@ static func judge(results: Array) -> Array:
 		for k in rungs.size():
 			var r: Dictionary = ladder[start][rungs[k]]
 			names.append("%s %.1f s" % [r["rival"], _run(r)])
-			if k > 0 and _run(r) > _run(ladder[start][rungs[k - 1]]) * LADDER_ORDER:
+			if k > 0 and _pace(r) > _pace(ladder[start][rungs[k - 1]]) * LADDER_ORDER:
 				out_of_order += 1
 		var spread: float = _run(ladder[start][rungs[0]]) / maxf(_run(ladder[start][rungs[rungs.size() - 1]]), 1.0) - 1.0
 		note = "%s; the top rival %d %% faster than the first (at least %d %%), %d slower than the one below" % [", ".join(names), roundi(spread * 100.0), roundi(LADDER_SPREAD * 100.0), out_of_order]
@@ -2276,7 +2280,7 @@ static func judge(results: Array) -> Array:
 			continue
 		curve_n += 1
 		for k in Ladder.RUNGS.size():
-			curve_log[k] += log(maxf(_run(ladder[start][k]), 1.0))
+			curve_log[k] += log(maxf(_pace(ladder[start][k]), 1.0))
 	var curve_ok := true
 	var steps := PackedStringArray()
 	worst = ""
@@ -2708,6 +2712,21 @@ static func _home(r: Dictionary) -> float:
 ## A race's time once the rival is let go (the first race's wait at the line is not racing).
 static func _run(r: Dictionary) -> float:
 	return float(r["time"]) - float(r["hold_s"])
+
+
+## What a wrong turn costs a rival on the bench's courses (s; measured 2026-11-16 on Słoik: 5.9 s on
+## Tamka, 9.4 s on Leszczyńska, 9.5 s on Marszałkowska). It is partly bad luck, not pace: the ladder marks
+## (Skill ladder, Ladder curve) compare a rival's pace, `_run` less this for each wrong turn it takes
+## (about half the loss: it is what Słoik is, one lost turn a race, as well as luck, and on the short
+## Marszałkowska course the whole loss would put him behind Halina).
+const WRONG_TURN_COST := 4.0
+
+
+## A race's time as pace: `_run` without the seconds a rung's wrong turns are allowed to cost.
+static func _pace(r: Dictionary) -> float:
+	var rung := Ladder.rung_of(String(r["rival"]))
+	var wrong := int(Ladder.RUNGS[rung]["wrong"]) if rung >= 0 and rung < Ladder.RUNGS.size() else 0
+	return _run(r) - WRONG_TURN_COST * wrong
 
 
 ## Whether race r ran among the town's cars (its situation's Traffic level).
