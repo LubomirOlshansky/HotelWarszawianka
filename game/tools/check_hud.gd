@@ -116,8 +116,8 @@ func _check_faces() -> void:
 	b.pt = 2.0
 	b.project = func(p: Vector3) -> Vector2: return Vector2(p.x, p.y)
 	root.add_child(b)
-	var cases := [["Ivan", Chatter.QUEST, true, true], ["Bogdan", Chatter.QUEST, true, false],
-			["Strażnik Henio", Chatter.POLICE, true, false], ["Nawigacja", Chatter.QUEST, false, false],
+	var cases := [["Ivan", Chatter.QUEST, true, true], ["Bogdan", Chatter.QUEST, true, true],
+			["Strażnik Henio", Chatter.POLICE, true, true], ["Nawigacja", Chatter.QUEST, false, false],
 			["Kolka", Chatter.AMBIENT, false, false], ["", Chatter.QUEST, false, false]]
 	for c in cases:
 		b.clear()
@@ -1439,7 +1439,10 @@ static func _touch(index: int, at: Vector2, down: bool) -> InputEventScreenTouch
 func _say(bubbles: Control, who: String, p: Vector2, pl: String, en: String) -> void:
 	var anchor := func() -> Vector3: return Vector3(p.x, p.y, 0.0)
 	_speakers[who] = anchor
-	bubbles.say(anchor, who, pl, en, 4.0, Color("#ff9a3c"), 0.0)
+	# A person's quest line is the fixed panel's now (F 2026-11-16); these scenes test where a floating
+	# caption goes, so the speaker is a non-person ("Nawigacja") for the bubble's layout.
+	var speaker := "Nawigacja" if Portraits.has_face(who) else who
+	bubbles.say(anchor, speaker, pl, en, 4.0, Color("#ff9a3c"), 0.0)
 
 
 func _check_state(hud: CanvasLayer, bubbles: Control, where: String) -> void:
