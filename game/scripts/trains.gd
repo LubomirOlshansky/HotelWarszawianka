@@ -33,6 +33,9 @@ const MAX_TURN := 0.55
 ## mouth (the cross-city tunnel west of Ochota's cutting and under Powiśle's upper pavilion).
 const EDGE := 45.0
 const PORTALS := [Vector2(-1964.0, 812.0), Vector2(176.0, 80.0)]
+## Every tunnel mouth that gets a headwall: PORTALS, and the two ends of the short tunnel under Plac
+## Zawiszy's junction (TUNNEL_ZAWISZY_PLAC), which trains run through (no way in or out there).
+const MOUTHS := [Vector2(-1964.0, 812.0), Vector2(176.0, 80.0), Vector2(-2440.7, 970.5), Vector2(-2375.8, 944.5)]
 const PORTAL_R := 40.0
 ## The cross-city tunnel under Plac Zawiszy: the 10 m terrain grid has the cutting's floor (7.5 m)
 ## up to its mouth, then the street (14.2 m) over the tunnel, but OSM keeps the tracks on to
@@ -46,7 +49,16 @@ const TUNNEL_ZAWISZY := [Vector2(-2018.0, 850.0), Vector2(-1992.0, 834.0), Vecto
 ## 1.5 m out from that face, across the tracks) cuts them all on one line, so the mouth's headwall
 ## (map_builder `_build_rail_portals`) stands in front of the pavilion with every track going in.
 const TUNNEL_POWISLE := [Vector2(186.7, 100.5), Vector2(170.3, 53.3), Vector2(113.6, 73.0), Vector2(130.0, 120.2)]
-const TUNNELS := [TUNNEL_ZAWISZY, TUNNEL_POWISLE]
+## The line under the Towarowa / Al. Jerozolimskie arm at Plac Zawiszy (F, 2026-11-16: the game showed an
+## open pit with the tracks running through it between two narrow bridges; the real arm is one slab over
+## a 70 m tunnel, the cutting ending in a retaining wall each side). The rails inside this rectangle (the
+## tracks' direction, 70 m along, 92 m across) are not drawn (no ballast, rails, wires) and MOUTHS[2] and
+## [3] are its mouths (tools/rail_covers.py lays the ground up to the street's level between them).
+## The trains' own pieces run on through it (TUNNELS_TRAIN), their cars hidden inside the polygon.
+const TUNNEL_ZAWISZY_PLAC := [Vector2(-2458.9, 925.1), Vector2(-2394.0, 899.0), Vector2(-2359.8, 984.4),
+		Vector2(-2424.7, 1010.4)]
+const TUNNELS := [TUNNEL_ZAWISZY, TUNNEL_POWISLE, TUNNEL_ZAWISZY_PLAC]
+const TUNNELS_TRAIN := [TUNNEL_ZAWISZY, TUNNEL_POWISLE]
 ## A platform within this distance of a track (its centre from the track's line) is a stop.
 const PLATFORM_NEAR := 9.0
 ## A train this close to the end of its piece holds the next one.
@@ -142,9 +154,9 @@ const MUSEUM_X := -2895.0
 
 
 ## The rails trains run on (trim_rails without the museum's sidings east of MUSEUM_X).
-static func service_rails(rails: Array) -> Array:
+static func service_rails(rails: Array, for_trains := false) -> Array:
 	var out: Array = []
-	for r in trim_rails(rails):
+	for r in trim_rails(rails, for_trains):
 		var f: Array = r["p"]
 		var n := f.size()
 		var museum := false
@@ -170,9 +182,9 @@ static func service_rails(rails: Array) -> Array:
 	return out
 
 
-static func trim_rails(rails: Array) -> Array:
+static func trim_rails(rails: Array, for_trains := false) -> Array:
 	var out: Array = rails
-	for t: Array in TUNNELS:
+	for t: Array in (TUNNELS_TRAIN if for_trains else TUNNELS):
 		out = _trim_by(out, PackedVector2Array(t))
 	return out
 
@@ -215,7 +227,7 @@ func setup(map_node: Node3D, data: Dictionary) -> void:
 	_bounds = Rect2(float(b[0]), float(b[1]), float(b[2]) - float(b[0]), float(b[3]) - float(b[1]))
 	var lines: Array[PackedVector2Array] = []
 	var decks := PackedInt32Array()
-	for r in service_rails(data.get("rails", [])):
+	for r in service_rails(data.get("rails", []), true):
 		var flat: Array = r["p"]
 		var p := PackedVector2Array()
 		for i in range(0, flat.size() - 1, 2):
@@ -1226,6 +1238,10 @@ func _pose(t: Train) -> void:
 		var rear := _back_point(t, b1)
 		var y := (_back_height(t, b0) + _back_height(t, b1)) * 0.5
 		var mid := (front + rear) * 0.5
+		if Geometry2D.is_point_in_polygon(mid, PackedVector2Array(TUNNEL_ZAWISZY_PLAC)):
+			body.visible = false  # in the tunnel under Plac Zawiszy's junction: under the street
+			body.collision_layer = 0
+			continue
 		var d := front - rear
 		body.visible = true
 		body.global_transform = Transform3D(Basis(Vector3.UP, atan2(-d.x, -d.y)), Vector3(mid.x, y + 0.15, mid.y))
