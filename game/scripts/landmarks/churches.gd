@@ -4600,6 +4600,15 @@ const DPB_AT := Vector2(-1166.0, 740.0)      ## inside the outline
 const DPB_WALL := Color("#e6d49e")           ## pale yellow plaster (photos)
 const DPB_ROOF := Color("#6c6a66")           ## grey roof, a default
 
+## The Pallottine fathers' house on Skaryszewska (OSM building 3049, `monastery`, unnamed, Praga):
+## the tall block at the north corner of the Christ the King church's plot (`church_chrystusa_krola`,
+## CK_*). Its mass stays the map's block (17.5 m) in a skin in the parish wings' plaster and grey roof
+## (CK_WING, CK_TILE). No open photo faces it (one Mapillary photo within 45 m, looking away), so
+## it is provisional. Spec docs/landmarks/specs/pallotyni_dom.md.
+const PDM_AT := Vector2(1745.0, -1650.0)
+const PDM_WALL := Color("#e6dcc4")
+const PDM_ROOF := Color("#8a8a84")
+
 ## The presbytery of Christ the King on Skaryszewska (Plebania, OSM building 6054, Praga, the
 ## Pallottines' parish): a low house at the west corner of the church's block (`church_chrystusa_krola`,
 ## CK_*), beside the cream chapel on the street. Its mass stays the map's block in a skin in the parish

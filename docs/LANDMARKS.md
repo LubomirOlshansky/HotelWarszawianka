@@ -44,7 +44,7 @@ photos; **C** small, tucked away or outside the player's loops.
 **Counts.** Photo-built 10 (Florian, Karmelici, Archikatedra front, Anna, Święty Krzyż, Wszystkich Świętych, Wizytki, Niepokalanego Poczęcia, Trójca, Synagoga Nożyków) ·
 own hand-built model from the outline, never checked against photos 3 (Zbawiciela, Aleksander,
 Teresy) · church kit (outline plus guessed style) 20 · skin only 1
-(Jezuici) · plain block 6 small religious-tagged outlines (presbyteries, monastery wings, unnamed; churches.md Inventory). The chapels, convent houses and parish halls were built 2026-11-14..15 (#832..#864). The map's north
+(Jezuici) · plain block 5 small religious-tagged outlines (presbyteries, monastery wings, unnamed; churches.md Inventory). The chapels, convent houses and parish halls were built 2026-11-14..15 (#832..#864). The map's north
 (Praga north of z -2045) is cut off, so Loretańska, Stygmatów, Nawiedzenia, Benon, Kazimierz, Jan Boży
 and Marii Magdaleny are not in the game.
 
@@ -125,6 +125,7 @@ and Marii Magdaleny are not in the game.
 | Siostry Szarytki (Zakład Sióstr Miłosierdzia, unnamed outline) | Tamka 35 | LoD2 mass in its white and green copper skin with our onion turret (`_build_szarytki`, spec `szarytki.md`), 2026-11-15 from 11 Commons photos | C | 11 / 0 | the turret's exact spot; the dormer rows are not built |
 | Domy Szarytek przy zaułku (two unnamed outlines) | Zaułek Ku Szarytkom, north of the convent on Tamka | LoD2 mass in the convent's white plaster and green copper skin (site `szarytki_zaulek`, spec `szarytki_zaulek.md`), 2026-11-15; **provisional, no photo** | C | 2 / 0 | a photo from the lane or the yard: plaster, roofs, which house is which |
 | Dom Parafialny im. Prymasa Tysiąclecia | Świętej Barbary, south of St Barbara's | LoD2 mass in its pale yellow plaster skin (site `dom_parafialny_barbara`, spec `dom_parafialny_barbara.md`), 2026-11-15; the roof colour is a default | C | 3 / 0 | a photo facing the front: the gate, the roof |
+| Dom pallotynów przy Skaryszewskiej (unnamed monastery outline) | behind Christ the King, Skaryszewska | the map's mass in the church block's plaster skin (site `pallotyni_dom`, spec `pallotyni_dom.md`), 2026-11-15; **provisional, no photo** | C | 0 / 0 | any photo of the house |
 | Plebania przy Skaryszewskiej | Skaryszewska, beside the Our Lady of Częstochowa chapel | the map's mass in the church block's plaster skin (site `plebania_pallotynow`, spec `plebania_pallotynow.md`), 2026-11-15; colours follow the church | C | 8 / 0 | a photo over the fence: the house's plaster and roof |
 | Plebania parafii Matki Boskiej Zwycięskiej | Praga, behind railings 43 m from the church | the map's mass in a cream plaster skin (site `plebania_zwycieskiej`, spec `plebania_zwycieskiej.md`), 2026-11-15; the roof colour is a default | C | 2 / 0 | a photo facing the front: windows, door, roof |
 | Dom Prowincjalny Sióstr Elżbietanek | behind Piekarska, over the Podwale gardens | LoD2 mass in a default ochre and red-tile skin with our rounded east end (`_build_elzbietanki`, spec `elzbietanki.md`), 2026-11-15 from LoD2 only, **provisional, no photo** | C | 0 / 0 | plaster, tiles and the apse reading are defaults until a photo arrives |
@@ -138,7 +139,7 @@ and Marii Magdaleny are not in the game.
 | Klasztor Ojców Kapucynów | Miodowa 13 / Kapucyńska | `_build_kapucyni_klasztor`, replacing the plain OSM block (building 821), 2026-11-14 from 12 Commons photos (5 of the monastery) and LoD2 (spec `kapucyni_klasztor.md`, 797 tris): three-storey pale yellow ranges round the courtyard, hipped green copper roofs, white cornice, rows of windows | B | 5 / 0 | the garden wall with its red coping is not built |
 | Siostry Franciszkanki Służebnice Krzyża | Piwna 9/11, by St Martin's | `_build_franciszkanki_piwna`, replacing the plain OSM block (building 1676), 2026-11-14 from 9 Commons photos and LoD2 (spec `franciszkanki_piwna.md`, 969 tris): ochre ranges round St Martin's chancel, three rows of windows on Piwna with stone surrounds, the arched stone portal under its cartouche, hipped roofs; St Martin's tower in the block stays the church's model | B | 9 / 0 | the roof colour (tile) is a default |
 | Sala św. Faustyny | Ochota, St James' parish | `_build_sala_faustyny`, replacing the plain OSM block (building 5693), 2026-11-14 from one Commons photo and the OSM outline (spec `sala_faustyny.md`, 182 tris): the red brick hall, three steep gabled bays with louvres, the round-arched porch with the oak door | C | 1 / 0 | the north side and the roofs' colour are defaults |
-| Presbyteries (2197, 10100), monastery wings (3049, 5803), unnamed religious (1000, 10482) | various | plain blocks, the rest of the church list built 2026-11-15 (#864) | C | few | only if a street pass needs them |
+| Presbyteries (2197, 10100), a monastery wing (5803), unnamed religious (1000, 10482) | various | plain blocks, the rest of the church list built 2026-11-15 (#864) | C | few | only if a street pass needs them |
 
 ### Order if F wants them built (proposal)
 
