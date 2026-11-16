@@ -22,15 +22,15 @@ extends Node
 ## | finger | 0:05 | the ghost finger (hud.gd) after FINGER_IDLE s with no touch or key; it goes at the first one |
 ## | stand | 0:10 | the edge arrow to the kebab stand by Świętokrzyska (jobs.gd FIRST_STAND), straight ahead of the start (START), until an order starts or LURE_LATEST (then one toast: the kebab will wait, step 1) |
 ## | order | 0:15 | --first10 only: that stand's guided order (~250 m straight on up Marszałkowska, jobs.gd `pin_first`) |
-## | choice | ~1:45 | CHOICE_AFTER s after the first delivery (or the kebab let go), CHOICE_LATEST at the latest, when calls may ring (hud.gd `call_ok`): the choice card. A pick is introduced at once; JUST DRIVE (or no answer in CHOICE_LIFE s) is never asked again |
-## | race | intro | Pani Halina rolls up behind and flashes (rivals.gd `call_first`), once: refused, she joins the others on the map |
+## | choice | ~1:30 | CHOICE_AFTER s after the first delivery (or the kebab let go), CHOICE_LATEST at the latest, when calls may ring (hud.gd `call_ok`): Pani Halina rolls up and stops behind the car (rivals.gd `call_first`, no prompt), then the choice card (her face, the route and the reward; START RACE gold, RIDES, FLY, ✕). START RACE starts the race at once; any other answer sends her off (no cooldown) and its pick is introduced; JUST DRIVE (or no answer in CHOICE_LIFE s) is never asked again |
+## | race | intro | Pani Halina rolls up behind and flashes (rivals.gd `call_first`), once: refused, she joins the others on the map; START RACE on the choice card has made it already |
 ## | trap | intro | the police's scripted first contact (police.gd), armed by the race; without one the director arms it |
 ## | rescue | intro | the first call (held by missions.gd `held` until then) rings RESCUE_RING s later |
 ## | heli | intro | the helicopter's toast; at once when a rescue is done or a call needs the helicopter |
 ## | tape | intro | the arrow to the mixtape on the University Library's roof (cassettes.gd, CASSETTE_ID), from the air; without it, KASETA on the boulevards (TAPE_ID) |
 ## | ride | intro | the first Podwózka request (rides.gd `offer_now`) |
 ## | powisle | intro | the arrow to Powiśle, unless districts.gd discovered it |
-## | garage | intro | Mirek's garage (garage.gd `held`), after the first earnings: its toast and an arrow |
+## | garage | intro | Mirek's garage (garage.gd `held`), after the first earnings: its toast and an arrow; it comes right after the race (the race's tick toast names it) |
 ## | kebab | intro | the arrow to the stand again, for a player who never delivered one |
 ##
 ## The guide ends when every intro was made or met (or at GUIDE_END s): every hold is let go and
@@ -49,7 +49,7 @@ extends Node
 ## "Jedź dalej · Free roam" (everything stays unlocked); `end_seen` saved in [intro].
 ##
 ## --first10 scripts the beats' triggers for a headless replay with --autopilot (the car taken to
-## the stand, RACE on the choice card, the flash back, the call answered, the tape played, the cards
+## the stand, RACE on the choice card, the call answered, the tape played, the cards
 ## closed), prints a `first10:` line per beat and `first10: OK` when each came by its window's end
 ## (WINDOWS), and quits. --end-card shows the end card at once, --first-race has Halina roll up a
 ## second in (screenshots).
@@ -57,11 +57,13 @@ extends Node
 const Ladder := preload("res://scripts/ladder.gd")
 const FirstSteps := preload("res://scripts/first_steps.gd")
 const Pacer := preload("res://scripts/pacer.gd")
+const Rules := preload("res://scripts/ride_rules.gd")
 
 ## Five looks a second.
 const TICK := 0.2
-## The intros after the choice card, in the order the guide brings them.
-const INTROS := ["race", "trap", "rescue", "heli", "tape", "ride", "powisle", "garage", "kebab"]
+## The intros after the choice card, in the order the guide brings them (the garage right after the
+## race: the race pays, and Mirek is where the money goes).
+const INTROS := ["race", "garage", "trap", "rescue", "heli", "tape", "ride", "powisle", "kebab"]
 ## The intro a First steps tick makes "met" (the step done by the player: no intro for it).
 const INTRO_STEP := {"race": "race", "trap": "police", "rescue": "rescue", "heli": "heli", "ride": "ride",
 		"garage": "garage", "kebab": "kebab"}
@@ -97,7 +99,10 @@ const ORDER_AT := 15.0
 ## go), its latest second without either, and how long it stays up unanswered (then: just drive).
 static var CHOICE_AFTER: float = Pacer.num("first_steps", "choice_after")
 static var CHOICE_LATEST: float = Pacer.num("first_steps", "choice_latest")
-const CHOICE_LIFE := 25.0
+const CHOICE_LIFE := 30.0
+## The choice card waits for Pani Halina to stop behind the car (rivals.gd `call_first` with no
+## prompt) at most this long, then shows anyway.
+const CHOICE_HALINA_WAIT := 12.0
 ## Seconds of free driving, and since the last intro, before the next intro.
 static var NEXT_GAP: float = Pacer.num("first_steps", "next_gap")
 ## The friends' calls (main.gd `_free_block`) wait for FRIENDS_STEPS ticked steps or FRIENDS_AFTER s
@@ -126,14 +131,21 @@ const REPLAY_DEADLINE := 770.0
 const HINT_S := 150.0
 const GARAGE_HINT_S := 90.0
 const HINT_COLOUR := Color("#ffd23f")
-## The choice card (step 3): its words and buttons ("POLISH|ENGLISH", hud.gd), what each button
-## introduces, in order. JUST DRIVE is the card's ✕ (hud.gd `set_card_close`, the critique's point
-## 1): the press CHOICE_CLOSE, past the three buttons, with no pick.
-const CHOICE_TITLE := ["CO TERAZ?", "What now?"]
-const CHOICE_BUTTONS := ["WYŚCIG|RACE", "KURSY|RIDES", "LOT|FLY"]
+## The choice card (step 3, F's playtest 2026-11-16: a hook, not three equal buttons): Pani Halina
+## flashes behind the car, her face on the left (`Portraits.badge`, her colour), the title, one taunt
+## line with the route and the reward, and below three buttons one under the other: START RACE gold
+## and taller (hud.gd `set_card_lead`), RIDES and FLY plain. The words are dialogue.json's
+## first_steps group (`choice_words` fills in the numbers); CHOICE_LOG names the buttons in the log.
+## What each button introduces, in order. JUST DRIVE is the card's ✕ (hud.gd `set_card_close`, the
+## critique's point 1): the press CHOICE_CLOSE, past the three buttons, with no pick.
+const CHOICE_LOG := ["START RACE", "RIDES", "FLY"]
 const CHOICE_CLOSE := 3
 const CHOICE_PICKS := [["race"], ["ride"], ["heli", "tape"], []]
 const CHOICE_COLOUR := Color("#ffd23f")
+## Her badge on the card: the name Portraits looks the face up by, her colour (rivals.gd) and its size (pt).
+const CHOICE_WHO := "Pani Halina"
+const CHOICE_FACE := Color("#86d3b0")
+const CHOICE_FACE_PT := 72.0
 ## The end card: the jobs it needs, its words ([Polish, English]), its button ("POLISH|ENGLISH",
 ## hud.gd) and the repo's name (README's; as text, no link).
 const END_JOBS := 10
@@ -224,6 +236,11 @@ var _free_for := 0.0
 ## The choice card is up (since `_choice_t`); the intros its pick asks for first (`want`).
 var _choice_up := false
 var _choice_t := 0.0
+## The choice beat asked Halina to roll up and the card waits for her to stop (since `_choice_wait_t`);
+## `_choice_halina`: she is behind the car for the card (START RACE starts her race at once).
+var _choice_pending := false
+var _choice_wait_t := 0.0
+var _choice_halina := false
 var _want: Array[String] = []
 ## An intro that could not be made: not before this second again, and its tries.
 var _retry_t := 0.0
@@ -562,6 +579,9 @@ func tick() -> void:
 	_hold_offers(guide and not due(t, f, fired).is_empty())
 	_intro_next = guide and fired.has("choice") and not fired.has("done") and _free_for >= FRIENDS_YIELD \
 			and waiting_intro(f, fired) != ""
+	if _choice_pending and (t - _choice_wait_t > CHOICE_HALINA_WAIT or rivals == null or rivals.first_stopped() or not rivals.first_waiting()):
+		_choice_pending = false
+		_show_choice()
 	if _choice_up and t - _choice_t > CHOICE_LIFE:
 		_pick(CHOICE_PICKS.size() - 1, "unanswered")
 	if hint_shown() and (t > hint_until or _hint_met(f)):
@@ -611,7 +631,7 @@ func facts() -> Dictionary:
 	var other: bool = (jobs != null and jobs.ride_offered()) or (rivals != null and (rivals.busy() or rivals.first_waiting())) \
 			or (missions != null and missions.busy()) \
 			or (police != null and int(police.phase) != 0) or (garage != null and garage.is_open()) or _end_up \
-			or _choice_up or _all_up or bool(side_busy.call())
+			or _choice_up or _choice_pending or _all_up or bool(side_busy.call())
 	var busy: bool = other or (jobs != null and bool(job_on.call()))
 	var orders: int = jobs.orders_started() if jobs != null else 0
 	var gone: bool = jobs != null and jobs.get("first_gone") == true
@@ -682,7 +702,7 @@ func _tick_step(id: String, quiet: bool) -> void:
 		wallet.paints[paint] = _today()
 	wallet.pay(int(r["zl"]), int(r["respect"]), "")  # saves
 	if hud != null:
-		var w := FirstSteps.tick_words(id, n)
+		var w := FirstSteps.tick_words(id, n, id == "race" and not _garage_opened and not wallet.intro.has(FirstSteps.KEY + "garage"))
 		hud.toast(w[0], w[1])
 		if bool(r["noticed"]):
 			var noticed: Array = FirstSteps.words("noticed")
@@ -740,7 +760,15 @@ func _fire(id: String) -> void:
 			# The one offer, in the guide's neutral voice, when calls may ring (hud.gd `call_ok`).
 			if hud == null or not hud.call_ok():
 				return
-			_show_choice()
+			# Halina rolls up first (no prompt: she stops behind the car, held, and says her line); the
+			# card shows when she has stopped, after CHOICE_HALINA_WAIT s, or at once when she cannot.
+			if rivals != null and rivals.call_first(CHOICE_WHO, false):
+				_choice_pending = true
+				_choice_wait_t = t
+				_choice_halina = true
+			else:
+				_choice_halina = false
+				_show_choice()
 		"race":
 			ok = rivals != null and rivals.call_first()
 		"trap":
@@ -819,25 +847,68 @@ func _end_guide() -> void:
 func _show_choice() -> void:
 	_choice_up = true
 	_choice_t = t
-	var body: Array = FirstSteps.words("choice_body")
-	hud.show_card(CHOICE_TITLE[0], body[0], PackedStringArray(CHOICE_BUTTONS), CHOICE_COLOUR, false,
-			CHOICE_TITLE[1], body[1])
+	var km := -1.0
+	if rivals != null and rivals.has_method("first_route_m"):
+		var m := float(rivals.first_route_m())
+		km = snappedf(m / 1000.0, 0.1) if m >= 0.0 else -1.0
+	var w := choice_words(km)
+	hud.show_card(w["title"][0], w["body"][0], w["buttons"], CHOICE_COLOUR, false, w["title"][1], w["body"][1], true)
 	hud.own_card(self)
+	var face := Portraits.badge(CHOICE_FACE_PT * hud.pt)
+	Portraits.set_badge(face, CHOICE_WHO, Access.tint(CHOICE_FACE))
+	hud.set_card_art(face, true)
+	hud.set_card_lead(0)
 	hud.set_card_close(CHOICE_CLOSE)
 
 
-## The choice card's button `index` (CHOICE_BUTTONS; CHOICE_CLOSE is the ✕), or "unanswered": the intros it asks for come
+## The choice card's words with the game's own numbers in them: {"title": [pl, en], "body": [pl, en],
+## "buttons": PackedStringArray ("POLISH|ENGLISH" each)}. `km` is the road to the finish in km (rivals.gd
+## `first_route_m`, rounded to 0.1; below 0: unknown, "?"); the reward is the ladder's first stake and
+## WIN_GAIN, the ride chip's "from" Podwózka's base fare (ride_rules.gd BASE). A pure function: check_first10.gd.
+static func choice_words(km: float) -> Dictionary:
+	var stake: int = int(Ladder.RUNGS[0]["stake"])
+	var title: Array = FirstSteps.words("choice_title")
+	var body: Array = FirstSteps.words("choice_body")
+	var race: Array = FirstSteps.words("choice_race")
+	var ride: Array = FirstSteps.words("choice_ride")
+	var fly: Array = FirstSteps.words("choice_fly")
+	var km_en := "%.1f" % km if km >= 0.0 else "?"
+	var km_pl := km_en.replace(".", ",")
+	var from := int(Rules.BASE)
+	return {
+		"title": title,
+		"body": [str(body[0]) % [km_pl, stake, Ladder.WIN_GAIN], str(body[1]) % [km_en, stake, Ladder.WIN_GAIN]],
+		"buttons": PackedStringArray(["%s|%s" % [str(race[0]) % stake, str(race[1]) % stake],
+				"%s|%s" % [str(ride[0]) % from, str(ride[1]) % from],
+				"%s|%s" % [fly[0], fly[1]]]),
+	}
+
+
+## The choice card's button `index` (0 to 2, CHOICE_LOG; CHOICE_CLOSE is the ✕), or "unanswered": the intros it asks for come
 ## first (`want`), at once when free; JUST DRIVE asks for none, and the card never comes again.
 func _pick(index: int, why := "pressed") -> void:
 	_choice_up = false
 	if hud != null and hud.card_is(self):
 		hud.hide_card()
 	var picks: Array = CHOICE_PICKS[clampi(index, 0, CHOICE_PICKS.size() - 1)]
+	var raced := false
+	if _choice_halina and rivals != null:
+		# START RACE goes straight to the race (no flash back, no second prompt); every other answer, and
+		# the card's end, sends her off without the cooldown, so the race intro can still come later.
+		if index == 0 and rivals.first_waiting():
+			raced = bool(rivals.first_start())
+		elif rivals.first_waiting():
+			rivals.first_decline()
+	_choice_halina = false
 	for id: String in picks:
+		if raced and id == "race":
+			continue  # the race is on: its beat is made below
 		if not fired.has(id) and not id in _want:
 			_want.append(id)
-	var word := str(CHOICE_BUTTONS[index]).get_slice("|", 1) if index >= 0 and index < CHOICE_BUTTONS.size() else "JUST DRIVE (✕)"
-	print("first10: the choice card: %s (%s) at %.1f s" % [word, why, t])
+	if raced:
+		_trigger("race", "fired")
+	var word: String = CHOICE_LOG[index] if index >= 0 and index < CHOICE_LOG.size() else "JUST DRIVE (✕)"
+	print("first10: the choice card: %s (%s) at %.1f s%s" % [word, why, t, ", the race started" if raced else ""])
 	if wallet != null:
 		wallet.intro["choice_pick"] = clampi(index, 0, CHOICE_PICKS.size() - 1) + 1
 		wallet.save()
@@ -1029,7 +1100,7 @@ func _on_card(_index: int) -> void:
 
 # --- the --first10 replay ----------------------------------------------------------------------
 
-## The replay's player: closes each result card after a moment, flashes back at Halina, answers
+## The replay's player: closes each result card after a moment, starts Halina's race from the choice card, answers
 ## the first call (later ones ring on), plays the boulevard tape, then judges the run and quits.
 func _script(f: Dictionary) -> void:
 	# A car that left the numbers (NaN) fails the replay at once with what was going on, not
@@ -1063,7 +1134,7 @@ func _script(f: Dictionary) -> void:
 		# The race's result card is its own too: its OK, as the press above did when rivals.gd
 		# listened to every card.
 		if rivals != null and int(rivals.state) == 5 and rivals.has_method("card_pressed"):
-			rivals.card_pressed(0)
+			rivals.card_pressed(1 if rivals.next_offered() else 0)  # not the NEXT rival's call-out
 	# First hour, step 3: RACE on the choice card after a moment (the race, then the police's first
 	# contact, as before the card); the First steps card's button the same way.
 	if _choice_up and t - _choice_t > 2.0:

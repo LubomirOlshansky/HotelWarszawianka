@@ -81,3 +81,28 @@ version).
 - 3 s for "reverse": before the player gives up, after a normal three-point turn?
 - The ring's pulse and the words at phone size, over a sunny street and at night.
 - Four seconds a tip: enough to read twice?
+
+## The choice card as a hook (F's playtest, 2026-11-16; Fable's spec)
+
+The first-hour "What now?" card was flat words with three equal buttons. It is now Pani Halina asking.
+
+- **Flow.** The choice beat (first10.gd `_fire("choice")`) calls `rivals.call_first("Pani Halina", false)`: no
+  prompt, she rolls up, stops behind the car, held, and says her "call" line. The card shows when she has
+  stopped, after `CHOICE_HALINA_WAIT` (12 s), or at once if `call_first` fails. START RACE goes straight to
+  `rivals.first_start()` (the race to the Palm: no flash back, no second "Tap or L to race" prompt). The ✕,
+  RIDES, FLY or no answer in `CHOICE_LIFE` (30 s) call `first_decline()`: her parting line, no 25 s cooldown,
+  so the later race intro still works. Pacing: `choice_after` 60 -> 20 s, `choice_latest` 240 -> 150 s.
+- **Layout.** 440 pt, top centre as before. Left: her face (`Portraits.badge`, 72 pt, her colour #86d3b0; the
+  initial on a disc until `portraits/pani_halina.png` exists, PR #899). Right: the title, one taunt line, one
+  reward line. Below: three buttons one under the other (`show_card(..., stacked)`); button 0 is the lead
+  (`hud.set_card_lead(0)`: gold fill, 1.4 x taller), buttons 1 and 2 plain. Indexes and the ✕ (3) unchanged.
+- **Numbers are the game's.** Reward `Ladder.RUNGS[0]["stake"]` (60 zł) and `Ladder.WIN_GAIN` (100 respect);
+  the distance is `rivals.first_route_m()` (by the lanes, `graph.remaining`, rounded to 0.1 km, never a
+  straight line); the ride chip's "from" is `ride_rules.gd` BASE (15 zł). The FLY chip says a mixtape on the BUW
+  roof, not a rescue. The words are dialogue.json's `first_steps` group (`choice_title`, `choice_body`,
+  `choice_race`, `choice_ride`, `choice_fly`); `First10.choice_words(km)` fills the numbers.
+- **After the race.** Halina's first win adds a button "NASTĘPNY: SŁOIK · 90 zł" (the next rung's name and
+  stake from `Ladder.RUNGS`) that calls `rivals.call_out(i)`; the count "Rywale 1/6" stays on the card. The race
+  tick's toast names Mirek's garage, and the garage intro now follows the race (`INTROS`).
+- **Add-ons.** Beehave and Dialogue Manager not used: one card, one step, no branching scene.
+- To tune on the phone: PHONE-CHECK 3e to 3h.

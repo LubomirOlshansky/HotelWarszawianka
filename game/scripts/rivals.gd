@@ -57,6 +57,7 @@ const RacePlanner := preload("res://scripts/race_planner.gd")
 const RaceSignals := preload("res://scripts/race_signals.gd")
 const RaceReport := preload("res://scripts/race_report.gd")
 const RaceSession := preload("res://scripts/race_session.gd")
+const FirstSteps := preload("res://scripts/first_steps.gd")
 
 const CHALLENGE_RANGE := 15.0
 ## The Six (first hour step 5, F 2026-11-15; spec section 4 "Found on the street"): with the
@@ -408,6 +409,11 @@ const GAP_FLOOR := 8.0
 var _call_t := 0.0
 var _call_up := false
 var _nudged := false
+## `call_first(name, false)`: she stops behind the car held, says her line and waits with no prompt on
+## screen for the choice card's pick (first10.gd): `first_start` or `first_decline`.
+var _quiet_call := false
+## The result card's NEXT button: the rival it calls out (RIVALS' index, -1: none).
+var _next_rival := -1
 var first_race := false
 var first_result := ""
 ## PT-11: the first race's start hold and nudges: she waits at the line (`_first_hold`), the GO
@@ -744,6 +750,7 @@ func start_race(i: int, finish := {}) -> void:
 	var d = _drivers[i]
 	var t0 := Time.get_ticks_usec()
 	_card_offer = ""
+	_next_rival = -1
 	_rematch = {"i": i, "spot": [d.edge, d.lane, d.s], "car": car.global_transform, "finish": {}}
 	_finish = _first_finish() if first_race else finish
 	if not _finish.is_empty() and graph.remaining(_distances(_finish["node"]), d.edge, d.s) > FIRST_FAR:
@@ -1355,6 +1362,17 @@ func _finish_race(won: bool, why: String) -> void:
 					if not night() and night_now.is_valid():
 						buttons = PackedStringArray(["NIGHT", "OK"])
 						_card_offer = "night"
+				elif rung == 0:
+					# Halina's win: the next rival one tap away (the ladder's data: name, stake).
+					var nx := ladder.next_rung()
+					_next_rival = index_of(str(Ladder.RUNGS[nx]["rival"])) if nx < Ladder.RUNGS.size() else -1
+					if _next_rival >= 0:
+						var short := str(Ladder.RUNGS[nx]["short"])
+						var nw: Array = FirstSteps.words("next_rival")
+						var stake_nx := int(Ladder.RUNGS[nx]["stake"])
+						buttons = PackedStringArray(["%s|%s" % [str(nw[0]) % [short, stake_nx],
+								str(nw[1]) % [short.substr(0, 1) + short.substr(1).to_lower(), stake_nx]], "OK"])
+						_card_offer = "next"
 		var total := (" · wallet %s · respect %d" % [_money(wallet.zl), wallet.respect]) if wallet != null else ""
 		var total_pl := (" · w portfelu %s · szacunek %d" % [_money(wallet.zl), wallet.respect]) if wallet != null else ""
 		var record_pl := record.replace("new best!", "nowy rekord!").replace("best", "rekord")
@@ -1362,7 +1380,7 @@ func _finish_race(won: bool, why: String) -> void:
 				_finish["name"], _clock(_race_time), record_pl, who, by_pl, line[0], stake, bonus_pl, gain, total_pl, prog_pl, told[0]]).strip_edges(),
 				("You beat %s to %s in %s%s%s. %s +%d zł (the stake%s) · respect +%d%s%s\n%s" % [
 				who, _finish["name"], _clock(_race_time), by_en, record, line[1], stake, bonus_en, gain, total, prog_en, told[1]]).strip_edges()],
-				buttons, 0.0, false, WIN_COLOUR)
+				buttons, 0.0, _card_offer == "next", WIN_COLOUR)
 		_report_art(rival, _finish["pos"])
 		Access.buzz(150, 0.9)
 	else:
@@ -1391,6 +1409,11 @@ func _card_pressed(index: int) -> void:
 		return
 	if offer == "rematch":
 		rematch()
+	elif offer == "next" and _next_rival >= 0:
+		var who := str(RIVALS[_next_rival]["name"])
+		if call_out(_next_rival) != Vector2.INF:
+			var waits: Array = FirstSteps.words("next_waits")
+			hud.toast(str(waits[0]) % who, str(waits[1]) % who)
 	elif offer == "night" and night_now.is_valid():
 		print("rivals: all six beaten, the night switched on for Trzy mosty")
 		night_now.call()
@@ -1611,8 +1634,10 @@ func _cruise(d) -> void:
 ## Loop 3h slice 4: Halina (rival `name`) rolls up behind the player for the guided first race:
 ## put about FIRST_BACK m back on the player's road (out of sight if it can be), she drives up and
 ## stops behind, flashes and the prompt asks for a flash back. False if a race or a prompt is on,
-## the rival is unknown or no lane is near the car.
-func call_first(name := "Pani Halina") -> bool:
+## the rival is unknown or no lane is near the car. `prompt` false (the choice card, first hour
+## step 3): she stops behind the car held and says her line, with no prompt and no flash back; the
+## card's START RACE is `first_start`, anything else `first_decline`; `first_stopped` says she is there.
+func call_first(name := "Pani Halina", prompt := true) -> bool:
 	if state != State.CRUISE or _caller >= 0 or flying:
 		return false
 	var i := -1
@@ -1635,6 +1660,7 @@ func call_first(name := "Pani Halina") -> bool:
 	_call_t = 0.0
 	_call_up = false
 	_nudged = false
+	_quiet_call = not prompt
 	rival = i
 	print("first race: %s rolls up %.0f m behind (edge %d)" % [name, FIRST_BACK, spot[0]])
 	return true
@@ -1714,12 +1740,23 @@ func _first_call_tick(dt: float) -> void:
 			d.held = true
 			_call_up = true
 			_call_t = 0.0
-			state = State.PROMPT
 			var r: Dictionary = RIVALS[_caller]
-			hud.show_challenge("WYŚCIG · %s" % String(r["name"]).to_upper(), r["colour"], "RACE · %s" % String(r["name"]).to_upper(),
-					"Mruga do ciebie! Dotknij albo L", "Flashing you! Tap or L to race")
+			if not _quiet_call:
+				state = State.PROMPT
+				hud.show_challenge("WYŚCIG · %s" % String(r["name"]).to_upper(), r["colour"], "RACE · %s" % String(r["name"]).to_upper(),
+						"Mruga do ciebie! Dotknij albo L", "Flashing you! Tap or L to race")
 			_say(_caller, FIRST_LINES["call"][0], FIRST_LINES["call"][1], 4.0)
-			print("first race: %s flashed, waiting for the flash back" % r["name"])
+			print("first race: %s flashed, %s" % [r["name"], "held behind the car for the choice card" if _quiet_call else "waiting for the flash back"])
+		return
+	if _quiet_call and _call_up:
+		# Held behind the car for the choice card: no timer of hers (the card's own life ends it). She
+		# comes back behind a car that drove on, and gives up quietly when it takes off.
+		if flying:
+			_first_give_up(false)
+		elif gap > FIRST_AWAY:
+			var back := _spot_behind(12.0)
+			if not back.is_empty():
+				traffic.teleport(d, back[0], back[1], back[2])
 		return
 	if _call_up and not _nudged and _call_t > 8.0:
 		_nudged = true
@@ -1730,14 +1767,17 @@ func _first_call_tick(dt: float) -> void:
 
 
 ## The first race's call ends unanswered (`say`: her parting line; not when she never got there).
-func _first_give_up(say: bool) -> void:
+func _first_give_up(say: bool, cool := true) -> void:
 	var d = _drivers[_caller]
 	if say:
 		_say(_caller, FIRST_LINES["gone"][0], FIRST_LINES["gone"][1], 3.5)
 	d.held = false
 	traffic.stop_racing(d)
-	_cooldown[_caller] = 25.0
+	if cool:
+		_cooldown[_caller] = 25.0
 	_caller = -1
+	_quiet_call = false
+	_call_up = false
 	first_result = "declined"
 	state = State.CRUISE
 	hud.hide_challenge()
@@ -1752,6 +1792,58 @@ func calling() -> bool:
 ## Loop 3h slice 4: the guided first race is waiting for its flash back.
 func first_waiting() -> bool:
 	return _caller >= 0
+
+
+## The result card shows a NEXT button (the next rival's call-out) now.
+func next_offered() -> bool:
+	return _card_offer == "next"
+
+
+## The first race's rival has stopped behind the car (rolled up and flashed: the prompt is up, or in
+## the choice card's quiet call, held there).
+func first_stopped() -> bool:
+	return _caller >= 0 and _call_up
+
+
+## The choice card's START RACE: the race to the Palm begins now, from where she stands, with no flash
+## back and no second prompt. False when she is not rolling up (the card's maker asks for the race later).
+func first_start() -> bool:
+	if _caller < 0 or (state != State.CRUISE and state != State.PROMPT) or flying:
+		return false
+	var i := _caller
+	traffic.stop_racing(_drivers[i])
+	_quiet_call = false
+	start_race(i, _first_finish())
+	return true
+
+
+## The choice card's other answers (✕, RIDES, FLY, no answer): she says her parting line and drives
+## off. No 25 s cooldown (`_first_give_up`'s `cool`): the later race intro (`call_first` again) works.
+func first_decline() -> void:
+	if _caller >= 0:
+		_first_give_up(true, false)
+
+
+## The road distance in metres from the first race's rival (the one rolling up, or Pani Halina where
+## she is) to the finish `start_race` will give her: the Palm, or the nearer finish when the player is
+## far from it. By the lanes (`graph.remaining`), never a straight line; -1 when the map has no graph.
+func first_route_m() -> float:
+	if graph == null or _drivers.is_empty():
+		return -1.0
+	var i := _caller if _caller >= 0 else index_of("Pani Halina")
+	if i < 0 or i >= _drivers.size():
+		return -1.0
+	var d = _drivers[i]
+	var f := _first_finish()
+	var m := INF
+	if not f.is_empty():
+		m = graph.remaining(_distances(f["node"]), d.edge, d.s)
+	if f.is_empty() or m > FIRST_FAR:
+		if _finishes.is_empty():
+			return -1.0
+		f = _pick_finish(d)
+		m = graph.remaining(_distances(f["node"]), d.edge, d.s)
+	return m
 
 
 ## The main line (main_line.gd): the race on now is the final or the next rung's (a beaten rival

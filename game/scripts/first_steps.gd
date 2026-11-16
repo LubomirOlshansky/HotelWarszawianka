@@ -5,7 +5,7 @@ extends RefCounted
 ## facts five times a second and calls `tick_for`), and pays a small reward; the third tick is a
 ## small party (a car paint, and the friends' calls may start: "the city has noticed you"); all
 ## seven give a card, a second paint and RESPECT_ALL respect. The list hangs on one promise
-## (`words("promise")`), shown on the guide's choice card and in the list's header.
+## (`words("promise")`), shown in the list's header.
 ##
 ## The ticks live in the save's [intro] section (wallet.gd `intro`) as "fs_<id>" -> the second of
 ## the session it was ticked (1 or more), so a tester's "copy my progress" (later) can say what came
@@ -36,11 +36,13 @@ static var _words: Dictionary = {}
 
 ## [Polish, English] for one key of dialogue.json's "first_steps" group: "step_<id>" (a step's
 ## line in the list, at most 40 characters), "promise" (the one promise, the critique's point 2,
-## F's yes 2026-11-15 21:02 UTC), "choice_body" (the guide's choice card, which carries the
-## promise), "noticed" (the third tick's toast), "all_title" and "all_body" (the card for all
+## F's yes 2026-11-15 21:02 UTC), "choice_body" (the guide's choice card), "noticed" (the third tick's toast), "all_title" and "all_body" (the card for all
 ## seven), "intro_kebab" and "intro_ride" (the guide's intros, first10.gd), "what_next" (its
-## nudge, "%d" steps left) and "tick" (a tick's toast: n, of, the step's line, zł). [key, key] when
-## the line is missing.
+## nudge, "%d" steps left), "tick" (a tick's toast: n, of, the step's line, zł) and "tick_race" (the
+## same, naming the garage), "choice_title", "choice_body" (%s km, %d zł, %d respect), "choice_race"
+## (%d zł), "choice_ride" (%d zł) and "choice_fly" (the choice card's words, first10.gd `choice_words`),
+## "next_rival" (%s, %d zł) and "next_waits" (%s): the race result card's NEXT button and its toast
+## (rivals.gd). [key, key] when the line is missing.
 static func words(key: String) -> Array:
 	if _words.is_empty():
 		var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(DIALOGUE_PATH)) if FileAccess.file_exists(DIALOGUE_PATH) else null
@@ -106,10 +108,12 @@ static func reward(n: int) -> Dictionary:
 	return out
 
 
-## The tick's toast: "✓ Pierwsze kroki 2/7: Podwózka" with the reward, [Polish, English].
-static func tick_words(id: String, n: int) -> Array:
+## The tick's toast: "✓ Pierwsze kroki 2/7: Podwózka" with the reward, [Polish, English]. The
+## race's tick, while Mirek's garage is not visited (`garage_next`), names the garage: it is the
+## next intro (first10.gd INTROS).
+static func tick_words(id: String, n: int, garage_next := false) -> Array:
 	var name: Array = name_of(id)
-	var w: Array = words("tick")
+	var w: Array = words("tick_race" if id == "race" and garage_next else "tick")
 	return [w[0] % [n, IDS.size(), name[0], STEP_ZL], w[1] % [n, IDS.size(), name[1], STEP_ZL]]
 
 

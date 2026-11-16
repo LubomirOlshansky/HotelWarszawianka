@@ -259,6 +259,9 @@ var _card_art: Control
 ## ... the card's width without it (px), and the room between the words and the picture (points).
 var _card_art_w := 0.0
 const CARD_ART_GAP := 10.0
+## The lead button of a card (`set_card_lead`): its height in plain buttons, and its words' colour on the gold.
+const LEAD_TALL := 1.4
+const LEAD_INK := Color("#1b1405")
 var _card_face: Control
 var _card_face_tex: Texture2D
 var _card_face_letter := ""
@@ -771,7 +774,7 @@ func _set_chip(b: Button, pl: String, en: String, min_width := 64.0) -> void:
 	var font := ThemeDB.fallback_font
 	var w := maxf(font.get_string_size(pl, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_BODY)).x,
 			font.get_string_size(en, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_LABEL)).x)
-	b.custom_minimum_size = Vector2(maxf(w + 24.0 * pt, min_width * pt), TOUCH * pt)
+	b.custom_minimum_size = Vector2(maxf(w + 24.0 * pt, min_width * pt), TOUCH * pt * (LEAD_TALL if b.has_meta("lead") else 1.0))
 	b.size = b.custom_minimum_size
 	_mark()
 
@@ -1901,12 +1904,22 @@ func _set_card_x(index: int) -> void:
 ## words keep their lines; on a screen with no room for that between the top row's buttons it
 ## keeps its width and the words wrap narrower. The card owns the picture from here: the next
 ## card shown, or this one's end, frees it and gives the card its shape back.
-func set_card_art(art: Control) -> void:
+func set_card_art(art: Control, left := false) -> void:
 	_drop_card_art()
 	_card_art = art
 	_card_art_w = _card.custom_minimum_size.x
 	_card_mid.add_child(art)
 	var more := art.custom_minimum_size.x + CARD_ART_GAP * pt
+	if left:
+		# The choice card's face: before the words, and the card keeps its width (the words wrap narrower).
+		_card_mid.move_child(art, 0)
+		var lw := (_card_art_w - more) / pt - 20.0
+		_wrap(_card_body, lw)
+		_wrap(_card_body_en, lw)
+		_card.reset_size()
+		_layout()
+		_mark()
+		return
 	_card.custom_minimum_size.x = _card_art_w + more
 	_card.reset_size()
 	_layout()
@@ -1916,6 +1929,32 @@ func set_card_art(art: Control) -> void:
 		_wrap(_card_body, w)
 		_wrap(_card_body_en, w)
 		_card.reset_size()
+	_mark()
+
+
+## The first button of the card showing (index `index`) is its lead: filled gold, dark words, and
+## LEAD_TALL times taller than a plain button (the choice card's START RACE: the one to tap, the
+## others stay plain). Call it right after `show_card`; the next card shown starts plain again. A
+## later `set_card_button` keeps the lead's height and look.
+func set_card_lead(index: int) -> void:
+	var b := _card_buttons.get_node_or_null("button%d" % index) as Button
+	if b == null:
+		return
+	var gold := Access.tint(ACCENT)  # colour-safe (access.gd)
+	var fill := _box(gold, gold.lightened(0.35), 2.0)
+	var down := _box(gold.lightened(0.3), Color.WHITE, 2.0)
+	for st in ["normal", "hover", "disabled"]:
+		b.add_theme_stylebox_override(st, fill)
+	for st in ["pressed", "hover_pressed"]:
+		b.add_theme_stylebox_override(st, down)
+	var words := b.get_child(0)
+	for l in words.get_children():
+		(l as Label).add_theme_color_override("font_color", LEAD_INK)
+		(l as Label).add_theme_constant_override("outline_size", 0)
+	b.set_meta("lead", true)
+	b.custom_minimum_size.y = TOUCH * pt * LEAD_TALL
+	b.size = b.custom_minimum_size
+	_card.reset_size()
 	_mark()
 
 

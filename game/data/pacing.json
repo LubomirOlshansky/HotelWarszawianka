@@ -79,8 +79,8 @@
 	},
 	"first_steps": {
 		"_note": "The first hour's guide (first10.gd, first hour step 3): the one choice card choice_after s after the first delivery (or the first kebab let go), choice_latest s at the latest; the next First steps intro after next_gap s of free driving and next_gap s after the last one. Friends' calls wait for friends_steps ticked steps (a count, not seconds) or friends_after s, then at most one new friend every new_friend_gap s while the guide runs.",
-		"choice_after": 60,
-		"choice_latest": 240,
+		"choice_after": 20,
+		"choice_latest": 150,
 		"next_gap": 40,
 		"friends_steps": 3,
 		"friends_after": 720,

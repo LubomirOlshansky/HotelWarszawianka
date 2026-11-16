@@ -6827,13 +6827,20 @@
     ["Spotkaj policję: stań albo uciekaj", "Meet the police: stop or get away", {"only": "step_police"}],
     ["Zajrzyj do warsztatu Mirka", "Visit Mirek's garage", {"only": "step_garage"}],
     ["Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty.", "Six rivals. Beat them all and win Trzy mosty.", {"only": "promise"}],
-    ["Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty. Na start wybierz coś albo po prostu jedź.", "Six rivals. Beat them all and win Trzy mosty. Pick a start, or just drive.", {"only": "choice_body"}],
+    ["PANI HALINA MRUGA", "Pani Halina is flashing you", {"only": "choice_title"}],
+    ["„Do Palmy, kto pierwszy?”\n%s km · %d zł + %d respektu. Pierwsza z sześciu rywali.", "\"Race you to the Palm?\"\n%s km · %d zł + %d respect. First of six rivals.", {"only": "choice_body"}],
+    ["ŚCIGAJ SIĘ · +%d zł", "START RACE · +%d zł", {"only": "choice_race"}],
+    ["Podwózka · od %d zł", "Give a lift · from %d zł", {"only": "choice_ride"}],
+    ["Lot · kaseta na dachu BUW", "Fly · a mixtape on the BUW roof", {"only": "choice_fly"}],
+    ["NASTĘPNY: %s · %d zł", "Next: %s · %d zł", {"only": "next_rival"}],
+    ["%s czeka w kole", "%s waits in the ring", {"only": "next_waits"}],
     ["Miasto cię zauważyło: znajomi zaczną dzwonić. Nowy lakier u Mirka.", "The city has noticed you: friends will call. New paint at Mirek's.", {"only": "noticed"}],
     ["PIERWSZE KROKI ZALICZONE", "First steps done", {"only": "all_title"}],
     ["Znasz już całe miasto. Lakier „Żółty jak tramwaj” czeka u Mirka, +100 respektu. Teraz szóstka rywali.", "You know the whole city now. Tram yellow paint waits at Mirek's, +100 respect. Now the six rivals.", {"only": "all_body"}],
     ["Kebab przy Świętokrzyskiej wciąż czeka. Gorący.", "The kebab stand by Świętokrzyska still waits. Hot.", {"only": "intro_kebab"}],
     ["Ktoś szuka podwózki. Nowe: zlecenie w aplikacji.", "Someone needs a lift. New: a request in the app.", {"only": "intro_ride"}],
     ["Pierwsze kroki: jeszcze %d. Złota strzałka pokazuje drogę.", "First steps: %d to go. The gold arrow shows the way.", {"only": "what_next"}],
-    ["✓ Pierwsze kroki %d/%d: %s  +%d zł", "✓ First steps %d/%d: %s  +%d zł", {"only": "tick"}]
+    ["✓ Pierwsze kroki %d/%d: %s  +%d zł", "✓ First steps %d/%d: %s  +%d zł", {"only": "tick"}],
+    ["✓ Pierwsze kroki %d/%d: %s  +%d zł · Dalej: garaż", "✓ First steps %d/%d: %s  +%d zł · Next: the garage", {"only": "tick_race"}]
   ]
 }

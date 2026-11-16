@@ -410,11 +410,18 @@ func _check_screen(screen: Vector2i) -> int:
 							Color("#4fd8c4"), "From work. Club hoodie before her first match.")
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
 				"choice card":
-					# First hour step 6: the choice card with its three picks and the ✕ for "just drive".
-					hud.show_card("OD CZEGO ZACZYNASZ?", "Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty.",
-							PackedStringArray(["WYŚCIG|RACE", "KURSY|RIDES", "LOT|FLY"]), Color("#ffd23f"), false,
-							"Where do you start?", "Six rivals. Beat them all and win Trzy mosty.")
+					# F's playtest 2026-11-16: Halina's face, the title, the taunt and the reward (the longest the
+					# words give: first10.gd `choice_words`), the three buttons one under the other with the first
+					# gold and taller, and the ✕ for "just drive".
+					hud.show_card("PANI HALINA MRUGA", "„Do Palmy, kto pierwszy?”\n12,8 km · 60 zł + 100 respektu. Pierwsza z sześciu rywali.",
+							PackedStringArray(["ŚCIGAJ SIĘ · +60 zł|START RACE · +60 zł", "Podwózka · od 15 zł|Give a lift · from 15 zł",
+							"Lot · kaseta na dachu BUW|Fly · a mixtape on the BUW roof"]), Color("#ffd23f"), false,
+							"Pani Halina is flashing you", "\"Race you to the Palm?\"\n12.8 km · 60 zł + 100 respect. First of six rivals.", true)
 					hud.own_card(_closer)
+					var face := Portraits.badge(72.0 * pt)
+					Portraits.set_badge(face, "Pani Halina", Color("#86d3b0"))
+					hud.set_card_art(face, true)
+					hud.set_card_lead(0)
 					hud.set_card_close(3)
 				"quest offer":
 					hud.show_side_card("📞 IVAN", "„Siema! Szisza dziś? Podjedź po mnie pod 19. Dzielnicę, weźmiemy jeszcze Bogdana z kortu. Ma być spokojnie.”",
@@ -439,6 +446,7 @@ func _check_screen(screen: Vector2i) -> int:
 					elif b.size.x < 44.0 * pt - 0.5 or b.size.y < 44.0 * pt - 0.5:
 						problems.append("%s: round button %d is under 44 pt" % [w, i])
 			if state == "choice card":
+				_check_choice_card(hud, safe, pt, "%s choice card%s" % [tag, " + " + mode if mode != "" else ""])
 				_check_card_close(hud, safe, pt, "%s choice card%s" % [tag, " + " + mode if mode != "" else ""])
 			if state == "quest offer":
 				var f := hud.get("_card_face") as Control
@@ -1320,6 +1328,53 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 ## hint (both schemes) keeps off it, and the hint's room goes when the finger does.
 ## First hour step 6: the card's ✕ (`set_card_close`) shows on the card, is a full touch target
 ## inside the card and the safe area, sends its index to the card's owner, and goes with the card.
+## F's playtest 2026-11-16: the choice card keeps its 440 pt, has her face on the left of the words, its three
+## buttons one under the other inside the card and the safe area, the first gold and taller (1.4 x), the other two
+## plain, and each button reaches the card's owner.
+func _check_choice_card(hud: CanvasLayer, safe: Rect2, pt: float, where: String) -> void:
+	var card := hud.get("_card") as Control
+	var art := hud.get("_card_art") as Control
+	if not hud.card_has_art() or art == null or not art.is_visible_in_tree():
+		problems.append("%s: no face on the card" % where)
+		return
+	var cr := card.get_global_rect()
+	var ar := art.get_global_rect()
+	if cr.size.x > 440.0 * pt + 1.0:
+		problems.append("%s: the card is %.0f pt wide, over 440" % [where, cr.size.x / pt])
+	if absf(ar.size.x - 72.0 * pt) > 1.5 or not cr.grow(1.0).encloses(ar):
+		problems.append("%s: the face is %.0f pt wide or outside the card (%s)" % [where, ar.size.x / pt, ar])
+	var body := hud.get("_card_body") as Control
+	if body.get_global_rect().position.x < ar.end.x - 1.0:
+		problems.append("%s: the words start left of the face's end" % where)
+	var bs: Array[Button] = []
+	for i in 3:
+		var b := (hud.get("_card_buttons") as Node).get_node_or_null("button%d" % i) as Button
+		if b == null:
+			problems.append("%s: no button %d" % [where, i])
+			return
+		bs.append(b)
+		var r := b.get_global_rect()
+		if not cr.grow(1.0).encloses(r) or not safe.grow(1.0).encloses(r):
+			problems.append("%s: button %d %s is outside the card or the safe area" % [where, i, r])
+		if r.size.y < MIN_TOUCH * pt - 0.5:
+			problems.append("%s: button %d is %.0f pt tall, under 44" % [where, i, r.size.y / pt])
+	if not (bs[0].get_global_rect().end.y <= bs[1].get_global_rect().position.y + 1.0 and bs[1].get_global_rect().end.y <= bs[2].get_global_rect().position.y + 1.0):
+		problems.append("%s: the buttons are not one under the other" % where)
+	var tall := bs[0].get_global_rect().size.y / maxf(bs[1].get_global_rect().size.y, 1.0)
+	if tall < 1.35 or tall > 1.45 or absf(bs[1].get_global_rect().size.y - bs[2].get_global_rect().size.y) > 1.0:
+		problems.append("%s: the lead button is %.2f x the plain ones (want 1.4), the plain two %.0f and %.0f px" % [where, tall,
+				bs[1].get_global_rect().size.y, bs[2].get_global_rect().size.y])
+	var gold := (bs[0].get_theme_stylebox("normal") as StyleBoxFlat).bg_color
+	var plain := (bs[1].get_theme_stylebox("normal") as StyleBoxFlat).bg_color
+	if gold.r < 0.8 or gold.g < 0.6 or gold.b > 0.5 or plain.v > 0.3:
+		problems.append("%s: the lead button's fill %s is not gold or the plain one's %s is not dark" % [where, gold, plain])
+	for i in 3:
+		_closer.got = -1
+		bs[i].pressed.emit()
+		if _closer.got != i:
+			problems.append("%s: button %d pressed %d for the card's owner" % [where, i, _closer.got])
+
+
 func _check_card_close(hud: CanvasLayer, safe: Rect2, pt: float, where: String) -> void:
 	var x := hud.get("_card_x") as Control
 	var card := hud.get("_card") as Control
@@ -1665,7 +1720,7 @@ func _check_map_guidance(fm: Control, where: String, pt: float, safe: Rect2, ste
 	for i in fm.quest_rows.size():
 		if str(fm.quest_rows[i]["id"]) == "c1":
 			cass = i
-	var n_pin := fm.quest_rows.size()
+	var n_pin: int = fm.quest_rows.size()
 	var pinned: Array = []
 	var on_pin := func(x: Dictionary) -> void: pinned.append(x)
 	fm.quest_picked.connect(on_pin)
