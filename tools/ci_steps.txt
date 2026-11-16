@@ -79,6 +79,7 @@ heights              quick
 heightthreads        smoke
 heli                 local     slow
 heliview             quick
+hints                quick
 hud                  quick
 jobplay              quick
 jobs2                quick

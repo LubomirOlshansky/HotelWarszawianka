@@ -179,6 +179,7 @@ const Wellness := preload("res://scripts/wellness.gd")
 const Garage := preload("res://scripts/garage.gd")
 ## Loop 3h slice 4: the guided first 10 minutes and the end card.
 const First10 := preload("res://scripts/first10.gd")
+const Hints := preload("res://scripts/hints.gd")
 const FirstSteps := preload("res://scripts/first_steps.gd")
 const PlayStats := preload("res://scripts/play_stats.gd")
 const StopAssist := preload("res://scripts/stop_assist.gd")
@@ -375,6 +376,9 @@ var cassettes: Cassettes
 ## shows the end card at once (screenshots); --first-race has Halina roll up for the first race a
 ## second in.
 var first10: First10
+## First hour step 6: the hints in play (hints.gd), ticked five times a second by `_hints_frame`.
+var hints: Hints
+var _hints_t := 0.0
 ## The beta's anonymous play stats (play_stats.gd, docs/STATS.md): it listens to the systems' signals.
 var play_stats: PlayStats
 var tape: Tape
@@ -743,6 +747,11 @@ func _ready() -> void:
 		wallet.reset()
 	if flags.save_note_flag != "":
 		wallet.load_note = flags.save_note_flag
+	hints = Hints.new()
+	hints.load_from(wallet.intro)
+	hints.use_flags(flags)
+	if title != null:
+		title.set_done(Hints.done_tags(wallet))  # the loading tips about things not done yet first
 	# Loop MW-5: PÓŁNOC FM's locked tracks read the save; chapters finished before this loop
 	# open their tracks once, quietly. --station= by name; --radio= now reaches every station.
 	radio.wallet = wallet
@@ -5413,6 +5422,32 @@ func _unstuck() -> void:
 ## up on the context button once it is free, with one toast; a tap tows (`_unstuck`). It goes when
 ## the car leaves the spot, takes to the air or is towed. The pinned car's own turn-out and tow
 ## (car.gd) still come first: this is for what they miss.
+## First hour step 6: the facts hints.gd decides on, five times a second; the save keeps what was
+## shown. Off on the bench, the probe, the demo and with --no-hints; --hint=ID puts one up at once
+## (hints.gd `use_flags`).
+func _hints_frame(dt: float) -> void:
+	_hints_t += dt
+	if hints == null or hints.off or _hints_t < 0.2 or title != null or _bench_ghost != null or hud.settings_open():
+		return
+	if hints.force != "":
+		hud.spotlight(Hints.TARGETS.get(hints.force, "car"), hints.words(hints.force), 600.0)
+		hints.force = ""
+		return
+	var at: Vector3 = car.assist_at
+	var person: Vector3 = missions.target_position() if missions.needs_heli() else Vector3.INF
+	var f := {"context": hud.messages.context, "card": hud.card_showing(), "flying": flying,
+			"speed": absf(car.forward_speed), "stalled": car.stalled, "map_open": hud.full_map_open(),
+			"in_ring": at != Vector3.INF and Vector2(at.x - car.global_position.x, at.z - car.global_position.z).length() < car.assist_reach,
+			"heli_call": missions.call_needs_heli(), "heli_shown": hud.spotlight_target_rect("heli").has_area(),
+			"climbed": flying and absf(heli.climb) > 0.1, "earned": wallet.jobs_done() > 0 or wallet.zl > 0,
+			"land_near": person != Vector3.INF and Vector2(person.x - heli.global_position.x, person.z - heli.global_position.z).length() < Hints.LAND_NEAR}
+	hints.tick(_hints_t, f, hud)
+	_hints_t = 0.0
+	if hints.dirty:
+		hints.save_to(wallet.intro)
+		wallet.save()
+
+
 func _stuck_offer_frame() -> void:
 	var want: bool = not flying and not flags.autopilot and _bench_ghost == null and title == null \
 			and not car.in_water and car.stalled >= Car.STALL_TIME \
@@ -5825,6 +5860,7 @@ func _process(dt: float) -> void:
 	_moment_frame(dt)  # loop MW-6: --egg, --tape, --fotka and the VHS of a tape
 	_water_frame(dt)
 	_stuck_offer_frame()  # G14's "later": POMOC DROGOWA on the context button when stuck
+	_hints_frame(dt)  # first hour step 6: a hint when the player needs one
 	if not _push_parked_done and flags._flag_push_parked != Vector2.INF and soft_things != null and soft_things.car_count() > 0:
 		_push_parked_done = true
 		var pushed_id := soft_things.push_near(flags._flag_push_parked, 7.0)

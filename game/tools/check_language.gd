@@ -304,7 +304,7 @@ func _check_panel(code: String) -> void:
 			"effects": 1.0, "fps": 0, "weather": 0, "time": 0, "lang": Lang.CODES.find(other)})
 	await process_frame
 	var rebuilt := _joined(panel)
-	panel.set_tab(0)
+	panel.set_tab(5)  # DOSTĘP and its On / Off (first hour step 6 moved Jazda's to the DEV page)
 	await process_frame
 	rebuilt = _joined(panel)
 	var want := "Wł." if other == Lang.PL else "On"

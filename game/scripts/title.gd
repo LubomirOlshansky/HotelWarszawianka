@@ -29,6 +29,14 @@ const WORDMARK := "AROUND WARSAW"
 const TAGLINE_PL := "Jeźdź, lataj i odkrywaj prawdziwą Warszawę"
 const TAGLINE_EN := "Drive, fly and discover the real Warsaw"
 
+## First hour step 6 (docs/design/onboarding-hints.md): the loading tips, one line under the prompt,
+## a new one every TIP_EVERY s while the city builds; the last stays under TAP TO DRIVE. They say
+## what the game holds, not how to steer (the hints in play teach that). From game/data/tips.json,
+## read here with FileAccess (no script preloaded: the boot scene waits for this one); main.gd
+## hands `set_done` the tags this save has done, and those tips go last.
+const TIPS_FILE := "res://data/tips.json"
+const TIP_EVERY := 4.0
+
 ## The player picked a language here (POLSKI / ENGLISH, top right): main.gd keeps it (settings.gd `lang`).
 signal language_chosen(code: String)
 
@@ -77,6 +85,12 @@ var cap := 0.0
 var _shown := 0.0
 var _bar_plate: Panel
 var _bar_fill: ColorRect
+## The loading tips (tips.json `tips`), in the order they show; the one up now, and for how long.
+var tips: Array = []
+var _tip: Label
+var _tip_i := 0
+var _tip_t := 0.0
+var _tip_w := 0.0
 ## Safe area in pixels: left, top, right, bottom.
 var _safe := Rect2()
 
@@ -118,6 +132,11 @@ func _ready() -> void:
 	_prompt = _make_label(ThemeDB.fallback_font)
 	_prompt_pl = _make_label(ThemeDB.fallback_font)
 	_line = _make_label(ThemeDB.fallback_font)
+	_tip = _make_label(ThemeDB.fallback_font)
+	_tip.name = "tip"
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(TIPS_FILE))
+	if d is Dictionary:
+		tips = (d as Dictionary).get("tips", [])
 	_bar_plate = Panel.new()
 	_bar_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var plate := StyleBoxFlat.new()
@@ -243,6 +262,16 @@ func _layout() -> void:
 	_line.add_theme_constant_override("outline_size", maxi(3, int(ps * 0.16)))
 	_line.size = Vector2(_safe.size.x, ps * 1.1)
 	_line.position = Vector2(_safe.position.x, bottom + ps * 0.3)
+	# The loading tip under the prompt (where the old English line stood), clear of NOWA GRA in the
+	# corner on both sides so the centred words never run under it.
+	var clear := maxf(int(maxf(h * 0.03, 12.0)) * 9.0, 140.0) + h * 0.05  # NOWA GRA's width (below)
+	_tip_w = maxf(_safe.size.x - 2.0 * clear, _safe.size.x * 0.5)
+	_tip.add_theme_color_override("font_color", Color("#ffb3e6"))
+	_tip.add_theme_color_override("font_outline_color", Color("#14053a"))
+	_tip.add_theme_constant_override("outline_size", maxi(3, int(ps * 0.16)))
+	_tip.size = Vector2(_tip_w, ps * 1.1)
+	_tip.position = Vector2(size.x * 0.5 - _tip_w * 0.5, bottom - ps * 0.95)
+	_tip.set_meta("ps", ps)
 	var bh := maxf(h * 0.1, 44.0)
 	var bs := int(maxf(h * 0.03, 12.0))
 	for b: Label in [_new_btn, _yes_btn, _no_btn]:
@@ -291,6 +320,7 @@ func _set_prompt() -> void:
 		_lang_btns[k].add_theme_color_override("font_color", Color("#ffd23f") if on else Color("#7ff6ff"))
 		_lang_btns[k].modulate.a = 1.0 if on else 0.7
 	_prompt_pl.text = ""  # one language at a time (lang.gd): the small second line is gone
+	_set_tip()
 	if problem != "":
 		_prompt.text = problem
 	elif choosing and screen == CONFIRM:
@@ -305,6 +335,49 @@ func _set_prompt() -> void:
 		_prompt.text = Lang.pick("DOTKNIJ, BY JECHAĆ", "TAP TO DRIVE")
 	else:
 		_prompt.text = Lang.pick("budujemy miasto… %d %%", "building the city… %d %%") % roundi(_shown * 100.0)
+
+
+## The tip up now, in the game's language ("" when there are none or the question is asked).
+func tip_text() -> String:
+	if tips.is_empty() or problem != "" or screen == CONFIRM:
+		return ""
+	var t: Dictionary = tips[_tip_i % tips.size()]
+	return Lang.pick(str(t.get("pl", "")), str(t.get("en", "")))
+
+
+## The tags of what this save has done (hints.gd `done_tags`): those tips go after the rest, each
+## group in the file's order; the tip up now stays and the next comes from the new order.
+func set_done(done: PackedStringArray) -> void:
+	if tips.is_empty():
+		return
+	var now: Variant = tips[_tip_i % tips.size()]
+	var fresh: Array = []
+	var later: Array = []
+	for t: Dictionary in tips:
+		if t != now:
+			(later if done.has(str(t.get("tag", ""))) else fresh).append(t)
+	tips = [now] + fresh + later
+	_tip_i = 0
+
+
+## The next tip (every TIP_EVERY s while the city builds).
+func next_tip() -> void:
+	_tip_i += 1
+	_tip_t = 0.0
+	_set_tip()
+
+
+func _set_tip() -> void:
+	if _tip == null:
+		return
+	_tip.text = tip_text()
+	# A long tip on a narrow screen: a smaller font rather than words under NOWA GRA.
+	var ps := int(_tip.get_meta("ps", 14))
+	var fs := int(ps * 0.8)
+	var font := ThemeDB.fallback_font
+	while fs > 10 and font.get_string_size(_tip.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > _tip_w:
+		fs -= 1
+	_tip.add_theme_font_size_override("font_size", fs)
 
 
 ## The loading bar's fill (2 px inside the plate's edge).
@@ -336,6 +409,10 @@ func set_ready() -> void:
 
 func _process(dt: float) -> void:
 	_t += dt
+	if not ready_to_drive and not _gone:
+		_tip_t += dt
+		if _tip_t >= TIP_EVERY:
+			next_tip()
 	if not ready_to_drive:
 		# The bar eases towards the load's share (quick to catch up, never back); between two
 		# reports it creeps a little so a long step doesn't look stuck, never past the next 5 %.
