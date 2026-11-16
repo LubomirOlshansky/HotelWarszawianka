@@ -8,10 +8,15 @@ extends RefCounted
 ## | id | the hint | shows when | goes when |
 ## | stop | "Slow down and stop in the ring" over the car | in a job's ring faster than STOP_FAST, the first STOP_TIMES times | the car stands |
 ## | reverse | "Hold BRAKE to reverse" round the brake | trying to drive in one spot for STALL_HINT s (car.gd `stalled`), before the tow offer at Car.STALL_TIME | the car moves |
-## | minimap | "Tap the map: all of Warsaw" round the minimap | free driving after the first pay, the full map never opened | the map opens |
+## | minimap | "Tap the map: all of Warsaw" round the minimap | free driving after the first pay or MINIMAP_DRIVE_S s of it, the full map never opened; twice at most | the map opens |
 ## | heli | "Roof? Take the helicopter" round HELI | a rescue only the helicopter reaches, by car | the take-off |
 ## | climb | "Hold: up and down" round the up pad | the first flight, until the up or down pad (or key) is used | climbing or sinking |
 ## | land | "Land by the person" over the helicopter | flying within LAND_NEAR m of a roof rescue's person | the pick-up |
+##
+## The full map's coach marks (map_list, map_hold, map_pin; `decide_map`, `map_tick`) are the same
+## rules inside the map: one at a time, once, each gone when the player does the thing (scrolls the
+## list, holds a spot, taps a place); full_map.gd draws them (the game is paused under the map, so
+## hud.gd's spotlight is not used) and its "?" button plays them again.
 ##
 ## The words are game/data/tips.json `hints`; what was shown is the save's [intro] section, under
 ## "hint_<id>" (wallet.gd). main.gd hands `tick` the facts five times a second (`_hints_frame`);
@@ -24,10 +29,17 @@ const IDS := ["stop", "reverse", "minimap", "heli", "climb", "land"]
 ## Things done that a hint or a loading tip asks about, kept beside the hints: the full map opened
 ## once, a flight once (`tick` notes them from `map_open` and `flying`).
 const DID := ["map", "flown"]
+## The full map's coach marks, in the order they show (save keys "hint_map_list" and so on).
+const MAP_IDS := ["map_list", "map_hold", "map_pin"]
+## Driving this long (s) in free driving also brings the minimap hint, pay or not (a player who
+## has not been paid yet has still not found the map).
+const MINIMAP_DRIVE_S := 60.0
+## A map coach mark gives way to the next after this long (s) if the thing was not done.
+const COACH_LIFE := 9.0
 ## Where each hint's ring goes (hud.gd `spotlight`).
 const TARGETS := {"stop": "car", "reverse": "brake", "minimap": "minimap", "heli": "heli", "climb": "climb", "land": "car"}
 ## How many times each shows at most.
-const TIMES := {"stop": 2}
+const TIMES := {"stop": 2, "minimap": 2}
 ## Faster than this (m/s, ~16 km/h) in a job's ring: "stop in the ring".
 const STOP_FAST := 4.5
 ## Trying to drive in one spot this long (s): "hold BRAKE to reverse" (the tow offer comes at 8).
@@ -56,6 +68,13 @@ var shown_log: Array[String] = []
 var off := false
 var force := ""
 var _since := GAP
+## Seconds of free driving so far this run (`tick` adds the dt of a tick with the fact "driving").
+var _drive := 0.0
+## The map coach mark up now ("" none), how long it has been up, and the ones a replay (the map's
+## "?") has shown so far.
+var coach := ""
+var coach_for := 0.0
+var _replayed := {}
 var _was_fast := false
 var _words := {}
 
@@ -67,10 +86,13 @@ func _init() -> void:
 
 
 ## The run's flags (dev_flags.gd): off on the bench, the probe and the demo and with --no-hints;
-## --hint=ID.
+## --hint=ID; --map-coach (the map's coach marks as if never seen).
 func use_flags(flags: Object) -> void:
 	off = bool(flags.bench) or bool(flags.probe) or bool(flags.demo) or bool(flags.no_hints)
 	force = str(flags.hint_flag)
+	if bool(flags.map_coach):
+		for id: String in MAP_IDS:
+			seen.erase(id)
 
 
 ## The words of hint `id` in the game's language.
@@ -83,7 +105,7 @@ func words(id: String) -> String:
 func load_from(intro: Dictionary) -> void:
 	seen.clear()
 	did.clear()
-	for id: String in IDS:
+	for id: String in IDS + MAP_IDS:
 		if intro.has(KEY + id):
 			seen[id] = int(intro[KEY + id])
 	for id: String in DID:
@@ -98,6 +120,13 @@ func save_to(intro: Dictionary) -> void:
 	for id: String in did:
 		intro[KEY + id] = 1
 	dirty = false
+
+
+## Hint `id`'s words in the game's language without an instance (the map's coach marks).
+static func words_of(id: String) -> String:
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(FILE))
+	var w: Dictionary = ((d as Dictionary).get("hints", {}) as Dictionary).get(id, {}) if d is Dictionary else {}
+	return Lang.pick(str(w.get("pl", "")), str(w.get("en", "")))
 
 
 func _left(id: String) -> bool:
@@ -124,8 +153,8 @@ func decide(f: Dictionary) -> String:
 		return "climb"
 	if flying and bool(f.get("land_near", false)) and _left("land"):
 		return "land"
-	if ctx == Messages.FREE and _since >= GAP and bool(f.get("earned", false)) and not did.has("map") \
-			and _left("minimap"):
+	var asked := bool(f.get("earned", false)) or float(f.get("drive_s", 0.0)) >= MINIMAP_DRIVE_S
+	if ctx == Messages.FREE and _since >= GAP and asked and not did.has("map") and _left("minimap"):
 		return "minimap"
 	return ""
 
@@ -155,10 +184,15 @@ func done_now(f: Dictionary) -> bool:
 ## Five times a second (main.gd): takes a hint down when it is done, puts up the next one.
 ## `f`: context (messages.gd), card (a card is up), flying, speed (m/s), in_ring (in a job's ring),
 ## stalled (car.gd), heli_call (a rescue only the helicopter reaches), heli_shown (the HELI chip),
-## climbed (this flight), land_near, earned (any pay so far), map_open (the full map is open).
+## climbed (this flight), land_near, earned (any pay so far), map_open (the full map is open),
+## driving (the car is moving in free driving: `tick` sums it into drive_s, which a check may give).
 ## Returns the id it put up ("" none); `hud` may be null (a check).
 func tick(dt: float, f: Dictionary, hud: Object) -> String:
 	_since += dt
+	if bool(f.get("driving", false)) and int(f.get("context", Messages.FREE)) == Messages.FREE and not bool(f.get("flying", false)):
+		_drive += dt
+	if not f.has("drive_s"):
+		f["drive_s"] = _drive
 	for pair: Array in [["map", "map_open"], ["flown", "flying"]]:
 		if bool(f.get(pair[1], false)) and not did.has(pair[0]):
 			did[pair[0]] = 1
@@ -182,6 +216,69 @@ func tick(dt: float, f: Dictionary, hud: Object) -> String:
 		hud.spotlight(TARGETS[id], words(id), LIFE)
 	print("hints: %s (%d)" % [id, int(seen[id])])
 	return id
+
+
+## The map coach mark to show now ("" none), from the facts the map gives: scrollable (the list
+## is longer than its scroll), has_place (a place row to tap), cards (the ≡ cards are up: no coach
+## mark then), replay (the "?" was tapped: every mark again, once each, whether seen or not).
+## Pure but for `_replayed`. One at a time, in MAP_IDS' order.
+func decide_map(f: Dictionary) -> String:
+	if coach != "" or bool(f.get("cards", false)):
+		return ""
+	var replay := bool(f.get("replay", false))
+	for id: String in MAP_IDS:
+		var avail := not _replayed.has(id) if replay else int(seen.get(id, 0)) < 1
+		if not avail:
+			continue
+		if id == "map_list" and not bool(f.get("scrollable", false)):
+			continue
+		if id == "map_pin" and not bool(f.get("has_place", false)):
+			continue
+		return id
+	return ""
+
+
+## The map coach mark up now is done: the player did its thing (did_scroll, did_hold, did_pin
+## in the facts), it has been up COACH_LIFE s, or the ≡ cards came up.
+func map_done(f: Dictionary) -> bool:
+	if coach_for >= COACH_LIFE or bool(f.get("cards", false)):
+		return true
+	match coach:
+		"map_list":
+			return bool(f.get("did_scroll", false))
+		"map_hold":
+			return bool(f.get("did_hold", false))
+		"map_pin":
+			return bool(f.get("did_pin", false))
+	return true
+
+
+## Every frame the map is open (full_map.gd): takes a coach mark down when done, puts the next
+## up, counts it shown (a replay does not touch the save). Returns the id up now ("" none).
+func map_tick(dt: float, f: Dictionary) -> String:
+	if coach != "":
+		coach_for += dt
+		if map_done(f):
+			coach = ""
+	var id := decide_map(f)
+	if id != "":
+		coach = id
+		coach_for = 0.0
+		if bool(f.get("replay", false)):
+			_replayed[id] = 1
+		else:
+			seen[id] = int(seen.get(id, 0)) + 1
+			dirty = true
+		shown_log.append(id)
+		print("hints: %s (%d)" % [id, int(seen.get(id, 0))])
+	return coach
+
+
+## The map closed or a replay ended: no coach mark up, the replay's memory cleared.
+func map_reset() -> void:
+	coach = ""
+	coach_for = 0.0
+	_replayed.clear()
 
 
 ## The tags of the loading tips this save has done (tips.json `tag`; the title puts those tips

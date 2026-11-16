@@ -176,12 +176,12 @@ static func pad_move(sel: int, count: int, dir: int) -> int:
 ## The spec "First hour for the beta" (section 3) and the critique's point 7 (F's yes, 2026-11-15):
 ## the full map's three tabs (AUTO, HELI, WĄTKI) become one scrolling list with sections, grouped by
 ## what the player wants to know. A new player sees three sections (First steps with only the
-## nearest few steps, Rivals as one row of names, Around town); Friends opens after the third First
+## nearest few steps, Around town, Rivals as one row that opens to their names); Friends opens after the third First
 ## step, Collection after the first find. While something runs only Now shows (as the tab did).
 ## full_map.gd draws `sections`; the rivals' chips and the collection's line come with it.
 
 ## The sections, in the order the list shows them.
-const SECTIONS := ["now", "steps", "rivals", "town", "friends", "collection"]
+const SECTIONS := ["now", "steps", "town", "rivals", "friends", "collection"]
 const SECTION_TITLES := {
 	"now": ["TERAZ", "NOW"],
 	"steps": ["PIERWSZE KROKI", "FIRST STEPS"],
@@ -225,10 +225,10 @@ static func sections(entries: Array, line: int, from: Vector2, steps: Array, fri
 			var r := e.duplicate()
 			r["far"] = [far_text(from, e["at"], true), far_text(from, e["at"], false)] if e["at"] != Vector2.INF else ["", ""]
 			finals.append(r)
-	out.append({"key": "rivals", "rows": finals})
 	var town := _town_rows(entries, line, from, step_rows.map(func(r: Dictionary) -> String: return str(r["group"])))
 	if not town.is_empty():
 		out.append({"key": "town", "rows": town})
+	out.append({"key": "rivals", "rows": finals})
 	if friends:
 		var f := _story_rows(entries, from, FRIENDS_ROWS)
 		if not f.is_empty():

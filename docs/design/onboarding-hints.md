@@ -16,7 +16,7 @@ a scripted moment (the message director's CHASE and FOCUS contexts), nor while a
 | --- | --- | --- | --- | --- |
 | stop | Slow down and stop in the ring | over the car | into a job's ring faster than 4.5 m/s (~16 km/h), the first two times | the car stands, or leaves the ring |
 | reverse | Hold BRAKE to reverse | the brake | 3 s trying to drive in one spot (car.gd `stalled`), before the tow offer at 8 s | the car moves |
-| minimap | Tap the map: all of Warsaw | the minimap | free driving after the first pay, 20 s after another hint, the full map never opened | the map opens |
+| minimap | Tap the map: all of Warsaw | the minimap | free driving after the first pay or after 60 s of it (`drive_s`), 20 s after another hint, the full map never opened; twice at most | the map opens |
 | heli | Roof? Take the helicopter | HELI | a rescue only the helicopter reaches, by car | take-off |
 | climb | Hold: up and down | the up pad | the first flight | the up or down pad (or key) is used |
 | land | Land by the person | over the helicopter | flying within 120 m of a roof rescue's person | the pick-up |
@@ -24,9 +24,30 @@ a scripted moment (the message director's CHASE and FOCUS contexts), nor while a
 Each hint stays 7 s at most. What was shown and two things done (the full map opened, a flight)
 are in the save's [intro] section as `hint_<id>`, `hint_map`, `hint_flown`.
 
-Left to other steps: "the list glows" on the first map open (step 4's one list), "what next" (step
+Left to other steps: "what next" (step
 3's guide), the rival's name tag and RACE button (step 5, built), the tow when stuck (built
 before, G14: POMOC DROGOWA on the context button at 8 s).
+
+## The map's coach marks (map guidance, 2026-11-16)
+
+"The list glows" is replaced by what F's playtest of build 11 asked for: a way to see that the
+list scrolls and what the map can do. No tabs (the Fable critique), no rotating tip chip.
+
+- **The cue.** A bottom fade and a small ▼ on the list's scroll while there is more under the
+  fold (hidden at the end); a row is cut at the fold so it reads as scrollable. `rects()` has it
+  as "more".
+- **The NEXT card.** Pinned gold above the scroll: "First steps n/7" and the nearest step (tappable
+  like its row) while steps are left; after 7/7 the main line's next step (the next rival, the
+  respect to earn, the final) as words, tappable when it has a place. No map star (FIRST_JOB_ONLY).
+- **Rivals** fold to one row, "RYWALE n/6 ›", under Around town; a tap opens the six chips.
+- **Coach marks** `map_list` (scroll the list), `map_hold` (hold a spot to jump), `map_pin` (tap a
+  place to pin it), eight words at most (tips.json `hints`), one at a time, each shown once (the
+  save's [intro] `hint_map_list`, `hint_map_hold`, `hint_map_pin`; no wallet version change), each
+  gone when the player does the thing or after 9 s. `hints.gd` `decide_map` / `map_tick` decide,
+  `full_map.gd` draws them as a small card (the game is paused under the map, so hud.gd's spotlight
+  is not used). The "?" left of ≡ plays all three again without touching the save. `--map-coach`
+  shows them as if never seen.
+- **The minimap hint** also fires after 60 s of free driving with no pay yet, twice at most.
 
 ## The spotlight (`hud.gd` `spotlight`)
 

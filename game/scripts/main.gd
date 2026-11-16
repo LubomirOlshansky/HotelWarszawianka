@@ -4732,6 +4732,7 @@ func _open_full_map() -> void:
 		hud.full_map.set_districts(districts.view(), districts.percent_total(), syrenki.found_count() if syrenki != null else 0,
 				syrenki.entries.size() if syrenki != null else 0)  # loop 3h slice 1 (+ slice 2: the Syrenki line)
 	hud.full_map.quit_what = _quest_quit_name()  # F 2026-11-08: the card's quit button
+	hud.full_map.hints = hints  # 2026-11-16: the map's coach marks (hints.gd)
 	var entries := _quest_entries()
 	_fill_map_list(entries)  # first hour step 4: the one list's First steps, Rivals and Collection
 	hud.full_map.set_quests(entries, Lines.Line.HELI if flying else Lines.Line.CAR,
@@ -4779,6 +4780,7 @@ func _fill_map_list(entries: Array) -> void:
 		if left.is_empty():
 			head = []
 	fm.set_steps(left, head, FirstSteps.words("promise") if not left.is_empty() else [], friends)
+	fm.set_next([str(main_next.get("pl", "")), str(main_next.get("en", ""))], main_next.get("at", Vector2.INF))  # the NEXT card after First steps
 	if rivals != null and rivals.ladder != null and wallet != null:
 		var rows: Array = rivals.ladder_rows()
 		fm.set_rivals(rivals.ladder.chips(), rivals.ladder.title(), rows[rows.size() - 1] if not rows.is_empty() else [],
@@ -5322,7 +5324,7 @@ func _hints_frame(dt: float) -> void:
 	var at: Vector3 = car.assist_at
 	var person: Vector3 = missions.target_position() if missions.needs_heli() else Vector3.INF
 	var f := {"context": hud.messages.context, "card": hud.card_showing(), "flying": flying,
-			"speed": absf(car.forward_speed), "stalled": car.stalled, "map_open": hud.full_map_open(),
+			"speed": absf(car.forward_speed), "driving": absf(car.forward_speed) > 1.0, "stalled": car.stalled, "map_open": hud.full_map_open(),
 			"in_ring": at != Vector3.INF and Vector2(at.x - car.global_position.x, at.z - car.global_position.z).length() < car.assist_reach,
 			"heli_call": missions.call_needs_heli(), "heli_shown": hud.spotlight_target_rect("heli").has_area(),
 			"climbed": flying and absf(heli.climb) > 0.1, "earned": wallet.jobs_done() > 0 or wallet.zl > 0,
@@ -6207,6 +6209,8 @@ func _stop_assist() -> void:
 var _main_target := Vector2.INF
 var _main_t := 0.0
 var main_step: Dictionary = {}
+## The main line's step as `step` gives it, even past the first job (the full map's NEXT card, 2026-11-16).
+var main_next: Dictionary = {}
 ## The main line on the driving screen (main_nudge.gd): its goal line and gold edge arrow, shown
 ## when nothing else is on (`_free_now`, from `_show_target`).
 var _nudge := MainNudge.new()
@@ -6265,6 +6269,7 @@ func _main_line_tick(dt: float) -> void:
 	if wallet != null:
 		f["jobs"] = wallet.jobs_done()
 	main_step = MainLine.now(f)
+	main_next = MainLine.step(f)
 	# The star is the marker registry's MAIN mark (TD-13), written only when it moves.
 	if main_step["at"] != hud.markers.where("main:star"):
 		hud.markers.put_all("main", MainLine.map_marks(main_step["at"]))

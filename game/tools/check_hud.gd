@@ -38,6 +38,7 @@ const EggBook := preload("res://scripts/egg_book.gd")
 const Tape := preload("res://scripts/tape.gd")
 const Fotka := preload("res://scripts/fotka.gd")
 const MainLine := preload("res://scripts/main_line.gd")
+const Hints := preload("res://scripts/hints.gd")
 ## The garage loop: Warsztat u Mirka's paint card (garage.gd, garage_card.gd).
 const Garage := preload("res://scripts/garage.gd")
 const Ladder := preload("res://scripts/ladder.gd")
@@ -662,8 +663,10 @@ func _check_full_map(hud: CanvasLayer, tag: String) -> int:
 ## G12 part 2 and first hour step 4: the one list (full_map.gd `set_quests`, `set_steps`,
 ## `set_rivals`, `set_collection`) with the longest names: inside the safe area (its scroll takes
 ## the rest), clear of the other cards, its rows and chips MIN_TOUCH tall; the sections in order
-## (First steps with only three steps, Rivals, Around town with one row per kind, the vehicle's own
-## first; Friends only once opened; Collection only after a find); a tapped place becomes the pin
+## (First steps with only three steps, Around town with one row per kind, the vehicle's own
+## first, Rivals as one row that opens the six chips; Friends only once opened; Collection only
+## after a find); the NEXT card pinned above the scroll (map guidance, 2026-11-16: inside the safe
+## area, MIN_TOUCH tall, its words after the seventh step) and the "more" cue and the coach marks; a tapped place becomes the pin
 ## and emits it, tapped again the pin goes; a request emits and closes the map; a rival's chip
 ## calls them out; the ≡ cards take its place; the pad's X jumps sections.
 func _check_quest_card(fm: Control, where: String, pt: float, safe: Rect2) -> void:
@@ -708,18 +711,19 @@ func _check_quest_card(fm: Control, where: String, pt: float, safe: Rect2) -> vo
 	if not safe.grow(0.5).encloses(rs["quests"]):
 		problems.append("%s: the list card %s is outside the safe area %s" % [where, _pts(rs["quests"], pt), _pts(safe, pt)])
 	for k in rs:
-		if k != "quests" and (rs[k] as Rect2).intersects(rs["quests"]):
+		if k != "quests" and k != "more" and k != "next" and (rs[k] as Rect2).intersects(rs["quests"]):
 			problems.append("%s: the list card and %s overlap" % [where, k])
+	_check_touch(where + " help", rs["help"], pt, safe)
 	var keys: Array = fm.list_sections.map(func(x: Dictionary) -> String: return str(x["key"]))
-	if keys != ["steps", "rivals", "town", "collection"]:
-		problems.append("%s: the list's sections are %s (want steps, rivals, town; no friends before the third step)" % [where, keys])
+	if keys != ["steps", "town", "rivals", "collection"]:
+		problems.append("%s: the list's sections are %s (want steps, town, rivals; no friends before the third step)" % [where, keys])
 	var shown_steps: Array = (fm.list_sections[0]["rows"] as Array)
 	if shown_steps.size() != L.STEPS_SHOWN or str(shown_steps[0].get("step", "")) != "garage":
 		problems.append("%s: First steps shows %s (want 3, the nearest place first: the garage)" % [where,
 				shown_steps.map(func(x: Dictionary) -> String: return str(x.get("step", "")))])
 	if fm.get("_quests").find_child("promise", true, false) == null:
 		problems.append("%s: no promise line under First steps" % where)
-	var town: Array = fm.list_sections[2]["rows"]
+	var town: Array = fm.list_sections[1]["rows"]
 	var town_ids: Array = town.map(func(x: Dictionary) -> String: return str(x["id"]))
 	if town_ids != ["call", "s", "c1"]:
 		problems.append("%s: Around town lists %s (want the requests, then the car's places one per kind, then the heli's; none First steps shows)" % [where, town_ids])
@@ -727,9 +731,21 @@ func _check_quest_card(fm: Control, where: String, pt: float, safe: Rect2) -> vo
 	for b: Button in rows:
 		if b.get_global_rect().size.y < MIN_TOUCH * pt - 0.5:
 			problems.append("%s: list %s is %.0f pt tall (< %d)" % [where, b.name, b.get_global_rect().size.y / pt, MIN_TOUCH])
+	# Map guidance: the six chips stay folded behind one row until it is tapped.
+	if fm.get("_quests").find_child("rival_0", true, false) != null:
+		problems.append("%s: the rival chips show before the RYWALE row is tapped" % where)
+	var tog := fm.get("_quests").find_child("rivals_toggle", true, false) as Button
+	if tog == null or not tog.text.contains("1/6"):
+		problems.append("%s: no RYWALE n/6 row (%s)" % [where, tog.text if tog != null else "missing"])
+	else:
+		tog.pressed.emit()
+		await process_frame
 	var chip0 := fm.get("_quests").find_child("rival_5", true, false) as Button
 	if chip0 == null or not chip0.disabled:
-		problems.append("%s: a locked rival's chip is missing or tappable" % where)
+		problems.append("%s: a locked rival's chip is missing or tappable once the RYWALE row is open" % where)
+	if fm.get("_quests").find_child("rival_0", true, false) == null:
+		problems.append("%s: the RYWALE row did not open the chips" % where)
+	await _check_map_guidance(fm, where, pt, safe, steps, e)
 	_check_fonts(fm.get("_quests"), where + " quests", pt)
 	var sc := fm.get("_quests").find_child("list_scroll", true, false) as ScrollContainer
 	if sc == null:
@@ -771,6 +787,20 @@ func _check_quest_card(fm: Control, where: String, pt: float, safe: Rect2) -> vo
 	for i in fm.quest_rows.size():
 		if str(fm.quest_rows[i]["id"]) == "c1":
 			cass = i
+	# The NEXT card's step is tapped like its row: the garage (the nearest place) is pinned.
+	var next_row := fm.get("_quests").find_child("next_row", true, false) as Button
+	if next_row == null:
+		problems.append("%s: no tappable step on the NEXT card" % where)
+	else:
+		var n_got := got.size()
+		next_row.pressed.emit()
+		if str(fm.quest_pick.get("id", "")) != "garage":
+			problems.append("%s: the NEXT card's step did not pin the garage (%s)" % [where, fm.quest_pick.get("id", "")])
+		for i in fm.quest_rows.size():
+			if str(fm.quest_rows[i]["id"]) == "garage":
+				fm.pick_row(i)  # the pin off again
+				break
+		got.resize(n_got)
 	fm.pick_row(cass)  # the cassette
 	if got.size() != 1 or str(got[0].get("id", "")) != "c1" or str(fm.quest_pick.get("id", "")) != "c1" \
 			or fm.centre.distance_to(Vector2(900, -100)) > 1.0:
@@ -1532,3 +1562,142 @@ static func _button_of(c: Control) -> Button:
 
 static func _pts(r: Rect2, pt: float) -> String:
 	return "(%.0f,%.0f %.0fx%.0f pt)" % [r.position.x / pt, r.position.y / pt, r.size.x / pt, r.size.y / pt]
+
+
+## Map guidance (2026-11-16): the NEXT card pinned above the list's scroll (inside the safe area and
+## the list's card, not in the scroll, MIN_TOUCH tall; after the seventh step the main line's words,
+## tappable when it has a place; none with nothing to say), the "more" cue (shown when the list is
+## longer than its scroll, gone at the end, inside the card), and the coach marks (one at a time,
+## each gone when its thing is done, once, off without hints).
+func _check_map_guidance(fm: Control, where: String, pt: float, safe: Rect2, steps: Array, entries: Array) -> void:
+	const L := preload("res://scripts/quest_lines.gd")
+	const FS := preload("res://scripts/first_steps.gd")
+	var rs: Dictionary = fm.rects()
+	var sc := fm.get("_quests").find_child("list_scroll", true, false) as ScrollContainer
+	if not rs.has("next"):
+		problems.append("%s: no NEXT card while First steps run" % where)
+	else:
+		var nx: Rect2 = rs["next"]
+		if not safe.grow(0.5).encloses(nx):
+			problems.append("%s: the NEXT card %s is outside the safe area %s" % [where, _pts(nx, pt), _pts(safe, pt)])
+		if nx.size.y < MIN_TOUCH * pt - 0.5:
+			problems.append("%s: the NEXT card is %.0f pt tall (< %d)" % [where, nx.size.y / pt, MIN_TOUCH])
+		if rs.has("quests") and not (rs["quests"] as Rect2).grow(0.5).encloses(nx):
+			problems.append("%s: the NEXT card %s is not inside the list's card" % [where, _pts(nx, pt)])
+		if sc != null and sc.get_global_rect().grow(-0.5).intersects(nx):
+			problems.append("%s: the NEXT card is inside the scroll (it must stay when the list scrolls)" % where)
+		var nr := fm.get("_quests").find_child("next_row", true, false) as Button
+		if nr == null or nr.get_global_rect().size.y < MIN_TOUCH * pt - 0.5:
+			problems.append("%s: the NEXT card's step row is missing or under %d pt" % [where, MIN_TOUCH])
+		var head := fm.get("_quests").find_child("next_head", true, false) as Label
+		if head == null or not head.text.contains("/7"):
+			problems.append("%s: the NEXT card's header is not First steps n/7 (%s)" % [where, head.text if head != null else "missing"])
+	# After the seventh step: the main line's next step, as words or a tappable row.
+	fm.set_steps([], [], [], true)
+	fm.set_next(["Znajdź i mrugnij: Bartek", "Find and flash: Bartek"], Vector2(100.0, 100.0))
+	await process_frame
+	var r2: Dictionary = fm.rects()
+	var row2 := fm.get("_quests").find_child("next_row", true, false) as Button
+	if not r2.has("next") or row2 == null or not (row2.text.contains("Bartek")):
+		problems.append("%s: after the seventh step the NEXT card does not show the next rival" % where)
+	else:
+		if not safe.grow(0.5).encloses(r2["next"]) or (r2["next"] as Rect2).size.y < MIN_TOUCH * pt - 0.5:
+			problems.append("%s: the NEXT card after the seventh step is outside the safe area or under %d pt" % [where, MIN_TOUCH])
+		var c0: Vector2 = fm.centre
+		row2.pressed.emit()
+		if fm.centre.distance_to(Vector2(100.0, 100.0)) > 1.0:
+			problems.append("%s: a tap on the NEXT card's step did not look at its place" % where)
+		fm.centre = c0
+	fm.set_next(["Zdobądź szacunek: 100/200, potem Bartek", "Earn respect: 100/200, then Bartek"], Vector2.INF)
+	await process_frame
+	var r3: Dictionary = fm.rects()
+	if not r3.has("next") or (r3["next"] as Rect2).size.y < MIN_TOUCH * pt - 0.5 or not safe.grow(0.5).encloses(r3["next"]):
+		problems.append("%s: the NEXT card's words (no place) are missing, short or outside the safe area" % where)
+	fm.set_next([], Vector2.INF)
+	await process_frame
+	if fm.rects().has("next"):
+		problems.append("%s: a NEXT card with nothing to say" % where)
+	fm.set_steps(steps, ["PIERWSZE KROKI 0/7", "First steps 0/7"], FS.words("promise"), false)
+	await process_frame
+	# The "more" cue: made certain with a tall row; shown while there is more under the fold, gone at the end.
+	var sc1 := fm.get("_quests").find_child("list_scroll", true, false) as ScrollContainer
+	if sc1 == null:
+		problems.append("%s: no scroll for the more cue" % where)
+		return
+	fm.hints = Hints.new()
+	var tall := Control.new()
+	tall.custom_minimum_size = Vector2(10.0, 3000.0 * pt)
+	(sc1.get_child(0) as Control).add_child(tall)
+	fm.call("_fit")
+	await process_frame
+	await process_frame
+	fm.call("_update_more")
+	var r4: Dictionary = fm.rects()
+	if not r4.has("more"):
+		problems.append("%s: no more cue over a list longer than its scroll" % where)
+	else:
+		if not safe.grow(0.5).encloses(r4["more"]) or not (r4["quests"] as Rect2).grow(0.5).encloses(r4["more"]):
+			problems.append("%s: the more cue %s is outside the list card or the safe area" % [where, _pts(r4["more"], pt)])
+	# The coach marks: the list first (the more cue shows), each gone when its thing is done.
+	fm.call("_process", 0.016)
+	if fm.hints.coach != "map_list" or not fm.rects().has("coach"):
+		problems.append("%s: no coach mark for the list (%s)" % [where, fm.hints.coach])
+	else:
+		var cr: Rect2 = fm.rects()["coach"]
+		if not safe.grow(0.5).encloses(cr):
+			problems.append("%s: the list's coach mark %s is outside the safe area" % [where, _pts(cr, pt)])
+		if cr.intersects(r4["quests"]):
+			problems.append("%s: the list's coach mark covers the list" % where)
+	fm.call("_drag_quests", 30.0)
+	fm.call("_process", 0.016)
+	if fm.hints.coach != "map_hold":
+		problems.append("%s: scrolling the list did not bring the hold coach mark (%s)" % [where, fm.hints.coach])
+	else:
+		var hr: Rect2 = fm.rects().get("coach", Rect2())
+		if not safe.grow(0.5).encloses(hr) or hr.intersects(fm.rects().get("hint", Rect2())):
+			problems.append("%s: the hold coach mark %s is outside the safe area or over the hold hint" % [where, _pts(hr, pt)])
+	fm.call("_start_hold", 7, fm.get_viewport().get_visible_rect().size * 0.5)
+	fm.call("_cancel_hold")
+	fm.call("_process", 0.016)
+	if fm.hints.coach != "map_pin":
+		problems.append("%s: a hold did not bring the pin coach mark (%s)" % [where, fm.hints.coach])
+	var cass := -1
+	for i in fm.quest_rows.size():
+		if str(fm.quest_rows[i]["id"]) == "c1":
+			cass = i
+	var n_pin := fm.quest_rows.size()
+	var pinned: Array = []
+	var on_pin := func(x: Dictionary) -> void: pinned.append(x)
+	fm.quest_picked.connect(on_pin)
+	fm.pick_row(cass)
+	fm.quest_picked.disconnect(on_pin)
+	fm.pick_row(cass)  # the pin off again (the list is as it was)
+	fm.call("_process", 0.016)
+	if fm.hints.coach != "" or fm.hints.seen.size() != 3 or not fm.hints.dirty or n_pin != fm.quest_rows.size():
+		problems.append("%s: a tapped place did not end the coach marks (%s, seen %s)" % [where, fm.hints.coach, fm.hints.seen])
+	fm.call("_process", 0.016)
+	if fm.rects().has("coach"):
+		problems.append("%s: a coach mark shows again once all three were seen" % where)
+	# The "?" plays them again; a run without hints shows none.
+	fm.hints.dirty = false
+	(fm.get("_help") as Button).pressed.emit()
+	fm.call("_process", 0.016)
+	if fm.hints.coach != "map_list" or fm.hints.dirty:
+		problems.append("%s: the ? button did not replay the coach marks without touching the save (%s)" % [where, fm.hints.coach])
+	fm.hints.map_reset()
+	fm.set("_replay", false)
+	fm.hints.off = true
+	fm.call("_process", 0.016)
+	if fm.rects().has("coach"):
+		problems.append("%s: a coach mark shows in a run without hints" % where)
+	# At the end of the list the cue is gone.
+	sc1.scroll_vertical = 1000000
+	await process_frame
+	await process_frame
+	fm.call("_update_more")
+	if fm.rects().has("more"):
+		problems.append("%s: the more cue stays at the end of the list" % where)
+	fm.hints = null
+	tall.queue_free()
+	fm.set_steps(steps, ["PIERWSZE KROKI 0/7", "First steps 0/7"], FS.words("promise"), false)
+	await process_frame

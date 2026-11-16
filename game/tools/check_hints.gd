@@ -40,6 +40,7 @@ func _expect(ok: bool, what: String) -> void:
 func _initialize() -> void:
 	_words()
 	_decide()
+	_map_coach()
 	_save()
 	await _title()
 	await _spotlight()
@@ -64,13 +65,13 @@ func _words() -> void:
 	if not d is Dictionary:
 		return
 	var hints: Dictionary = (d as Dictionary).get("hints", {})
-	for id: String in Hints.IDS:
+	for id: String in Hints.IDS + Hints.MAP_IDS:
 		_expect(hints.has(id), "hint %s has words" % id)
 		var w: Dictionary = hints.get(id, {})
 		for lang in ["pl", "en"]:
 			var text := str(w.get(lang, ""))
 			_expect(text != "" and text.split(" ", false).size() <= 8, "hint %s (%s) is 1 to 8 words: \"%s\"" % [id, lang, text])
-		_expect(Hints.TARGETS.has(id), "hint %s has a target" % id)
+		_expect(Hints.TARGETS.has(id) or id in Hints.MAP_IDS, "hint %s has a target" % id)
 	var tips: Array = (d as Dictionary).get("tips", [])
 	_expect(tips.size() >= 12, "at least 12 tips (%d)" % tips.size())
 	var jokes := 0
@@ -150,6 +151,34 @@ func _decide() -> void:
 	h = Hints.new()
 	h.tick(0.2, _free({"map_open": true}), null)
 	_expect(h.tick(0.2, _free({"earned": true}), null) == "", "no minimap hint once the map was opened")
+	# The minimap also after MINIMAP_DRIVE_S s of free driving with no pay yet; never in FOCUS or
+	# under a card; twice at most.
+	h = Hints.new()
+	_expect(h.decide(_free({"drive_s": Hints.MINIMAP_DRIVE_S - 1.0})) == "", "no minimap hint at 59 s of driving")
+	_expect(h.decide(_free({"drive_s": Hints.MINIMAP_DRIVE_S})) == "minimap", "the minimap hint at 60 s of free driving, unpaid")
+	_expect(h.decide(_free({"drive_s": 90.0, "context": Messages.FOCUS})) == "", "no minimap hint in FOCUS at 90 s")
+	_expect(h.decide(_free({"drive_s": 90.0, "card": true})) == "", "no minimap hint under a card at 90 s")
+	_expect(h.decide(_free({"drive_s": 90.0, "map_open": true, "context": Messages.CHASE})) == "", "no minimap hint in a chase at 90 s")
+	h = Hints.new()
+	var ticks := int(Hints.MINIMAP_DRIVE_S / 0.2)
+	var got := ""
+	for i in ticks - 2:
+		got = h.tick(0.2, _free({"driving": true}), null)
+	_expect(got == "", "tick: no minimap hint just before 60 s of driving")
+	for i in 6:
+		got = h.tick(0.2, _free({"driving": true}), null)
+		if got != "":
+			break
+	_expect(got == "minimap", "tick sums the driving: the minimap hint at 60 s")
+	h = Hints.new()
+	for i in ticks + 5:
+		h.tick(0.2, _free({"driving": true, "context": Messages.QUEST}), null)
+	_expect(h.current == "" and h.shown_log.is_empty(), "a job's driving does not count towards the minimap hint")
+	h = Hints.new()
+	h.seen["minimap"] = 1
+	_expect(h.decide(_free({"earned": true})) == "minimap", "the minimap hint shows a second time if the map stayed shut")
+	h.seen["minimap"] = 2
+	_expect(h.decide(_free({"earned": true})) == "", "the minimap hint shows twice at most")
 	# A hint goes after LIFE s, and at once when a chase begins.
 	h = Hints.new()
 	h.tick(0.2, _free({"stalled": 4.0}), null)
@@ -160,6 +189,47 @@ func _decide() -> void:
 	h.tick(0.2, _free({"flying": true}), null)
 	h.tick(0.2, _free({"flying": true, "context": Messages.CHASE}), null)
 	_expect(h.current == "", "a hint goes when a chase begins")
+
+
+## The full map's coach marks: one at a time, in order, each gone when its thing is done, once,
+## the save keys, the replay.
+func _map_coach() -> void:
+	var h := Hints.new()
+	var all := {"scrollable": true, "has_place": true}
+	_expect(h.decide_map({"scrollable": true, "has_place": true, "cards": true}) == "", "no coach mark under the ≡ cards")
+	_expect(h.decide_map({"scrollable": false, "has_place": false}) == "map_hold", "a short list and no place: only the hold")
+	_expect(h.map_tick(0.1, all) == "map_list", "the first coach mark: scroll the list")
+	_expect(h.map_tick(0.1, all) == "map_list", "it stays until the list is scrolled")
+	_expect(h.map_tick(0.1, {"scrollable": true, "has_place": true, "did_scroll": true}) == "map_hold", "scrolled: the hold comes next")
+	_expect(h.map_tick(0.1, {"scrollable": true, "has_place": true, "did_hold": true}) == "map_pin", "held: the pin comes next")
+	_expect(h.map_tick(0.1, {"scrollable": true, "has_place": true, "did_pin": true}) == "", "pinned: none left")
+	_expect(h.dirty and int(h.seen.get("map_list", 0)) == 1 and int(h.seen.get("map_pin", 0)) == 1, "each shown once is counted")
+	h.map_reset()
+	_expect(h.map_tick(0.1, all) == "", "never again once all three were shown")
+	var intro := {}
+	h.save_to(intro)
+	_expect(intro.has("hint_map_list") and intro.has("hint_map_hold") and intro.has("hint_map_pin"), "the [intro] keys of the coach marks: %s" % intro)
+	var back := Hints.new()
+	back.load_from(intro)
+	_expect(back.map_tick(0.1, all) == "", "a loaded save does not coach again")
+	# A mark nobody did gives way after COACH_LIFE s.
+	h = Hints.new()
+	h.map_tick(0.1, all)
+	var after := ""
+	for i in int(Hints.COACH_LIFE / 0.5) + 2:
+		after = h.map_tick(0.5, all)
+	_expect(after == "map_hold", "an ignored coach mark gives way after %.0f s (%s)" % [Hints.COACH_LIFE, after])
+	# The "?": every mark again, once each, the save untouched.
+	var played: Array[String] = []
+	var rf := {"scrollable": true, "has_place": true, "replay": true, "did_scroll": true, "did_hold": true, "did_pin": true}
+	back.dirty = false
+	for i in 8:
+		var id := back.map_tick(0.1, rf)
+		if id != "" and not id in played:
+			played.append(id)
+	_expect(played == ["map_list", "map_hold", "map_pin"], "the replay plays all three in order (%s)" % [played])
+	_expect(not back.dirty, "a replay does not touch the save")
+	_expect(back.map_tick(0.1, rf) == "", "the replay ends after the third")
 
 
 func _save() -> void:
