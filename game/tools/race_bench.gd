@@ -1122,8 +1122,8 @@ func race(spec: Dictionary) -> Dictionary:
 				session.plan(r, k)
 			session.start(r)
 			plan_s = _plan_time(d)
-			# PT-11: in the first race she waits at the line until the player moves.
-			hold = first and ghost != null
+			# F 2026-11-16: in the first race she no longer waits at the line for the player.
+			hold = false
 			d.held = hold
 			if ghost != null:
 				# The test player's own plan, where it needs one: the follower takes the rival's

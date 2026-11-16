@@ -144,8 +144,11 @@ const DEFAULT_RACER := {"share": 0.82, "race_accel": 10.5, "brake": 9.0, "lat": 
 		"cuts": 0.5, "yards": 0.5, "narrow": 3.0, "hops": 0.0, "mistake": 0.1, "wrong": 0, "block": 0.3, "phone": false,
 		"dare": 1.0, "indicate": 1.5, "flash": 2.0, "home": []}
 ## Halina on a gentle day: the guided first race (rivals.gd `call_first`) and every race against
-## her until she has been beaten once (`gentle`). Gentler than on her rung, and as steady.
-const FIRST_RACER := {"share": 0.65, "race_accel": 7.0, "brake": 4.0, "lat": 9.5, "knows": 1.0, "caution": 1.0,
+## her until she has been beaten once (`gentle`). Since F's playtest of build 11 (2026-11-16: "too easy
+## to beat") it is only a hair under her rung (share 0.67 against 0.70): a first race is a real race. It
+## was 0.65 / 7.0 / 4.0 / 9.5 (108 s on the bench course; now about 104 s). Halina's rung cannot go up alone:
+## Słoik, the next rung, is only 3 % quicker than her on the short courses (Ladder curve mark).
+const FIRST_RACER := {"share": 0.67, "race_accel": 7.4, "brake": 4.2, "lat": 9.7, "knows": 1.0, "caution": 1.0,
 		"cuts": 0.3, "yards": 1.0, "narrow": 3.5, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false,
 		"dare": 2.5, "indicate": 3.0, "flash": 0.0, "home": ["powisle", "srodmiescie", "trakt"]}
 ## Racer AI step 6b (street_meet.gd, the race from Plac Defilad to meet 2): the night club's eight
