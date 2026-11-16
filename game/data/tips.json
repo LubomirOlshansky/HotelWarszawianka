@@ -28,6 +28,10 @@
 		"map_list": {"pl": "Przewiń listę: jest tego więcej", "en": "Scroll the list: there is more"},
 		"map_hold": {"pl": "Przytrzymaj mapę, by tam skoczyć", "en": "Hold the map to jump there"},
 		"map_pin": {"pl": "Dotknij miejsca, by przypiąć cel", "en": "Tap a place to pin it"},
-		"next_head": {"pl": "NASTĘPNE", "en": "NEXT"}
+		"next_head": {"pl": "NASTĘPNE", "en": "NEXT"},
+		"track_head": {"pl": "ŚLEDZONE", "en": "TRACKED"},
+		"track_offer": {"pl": "ŚLEDŹ", "en": "TRACK"},
+		"track_off": {"pl": "dotknij, by przestać", "en": "tap to stop"},
+		"map_all": {"pl": "WSZYSTKO", "en": "ALL"}
 	}
 }

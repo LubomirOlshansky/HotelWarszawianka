@@ -6826,6 +6826,8 @@
     ["Polataj helikopterem", "Fly the helicopter", {"only": "step_heli"}],
     ["Spotkaj policję: stań albo uciekaj", "Meet the police: stop or get away", {"only": "step_police"}],
     ["Zajrzyj do warsztatu Mirka", "Visit Mirek's garage", {"only": "step_garage"}],
+    ["Na Pradze ktoś lakieruje za złotówki.", "Someone on Praga paints cars for pennies.", {"only": "unknown_garage"}],
+    ["Na dachu BUW coś leży. Dolecisz?", "Something lies on the BUW roof. Can you fly?", {"only": "unknown_heli"}],
     ["Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty.", "Six rivals. Beat them all and win Trzy mosty.", {"only": "promise"}],
     ["PANI HALINA MRUGA", "Pani Halina is flashing you", {"only": "choice_title"}],
     ["„Do Palmy, kto pierwszy?”\n%s km · %d zł + %d respektu. Pierwsza z sześciu rywali.", "\"Race you to the Palm?\"\n%s km · %d zł + %d respect. First of six rivals.", {"only": "choice_body"}],

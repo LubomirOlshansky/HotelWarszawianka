@@ -39,6 +39,8 @@ const Tape := preload("res://scripts/tape.gd")
 const Fotka := preload("res://scripts/fotka.gd")
 const MainLine := preload("res://scripts/main_line.gd")
 const Hints := preload("res://scripts/hints.gd")
+const MapTrack := preload("res://scripts/map_track.gd")
+const MapMarkers := preload("res://scripts/map_markers.gd")
 ## The garage loop: Warsztat u Mirka's paint card (garage.gd, garage_card.gd).
 const Garage := preload("res://scripts/garage.gd")
 const Ladder := preload("res://scripts/ladder.gd")
@@ -597,6 +599,7 @@ func _check_full_map(hud: CanvasLayer, tag: String) -> int:
 	var fm: Control = hud.full_map
 	if not fm.rects().has("goal"):
 		problems.append("%s: no goal card for the main line" % where)
+	await _check_map_track(hud, fm, where, pt, safe)
 	await _check_quest_card(fm, where, pt, safe)
 	# Loop 3h slice 1: the DISTRICTS card behind the ≡ button (the rivals are in the one list since
 	# first hour step 4).
@@ -1617,6 +1620,181 @@ static func _button_of(c: Control) -> Button:
 
 static func _pts(r: Rect2, pt: float) -> String:
 	return "(%.0f,%.0f %.0fx%.0f pt)" % [r.position.x / pt, r.position.y / pt, r.size.x / pt, r.size.y / pt]
+
+
+## F's map ask (2026-11-16, map_track.gd): the legend's rows are filters (two columns of cells,
+## MIN_TOUCH tall, inside the safe area, "n/total" each, an ALL cell), a hidden kind's icons are
+## not painted but the target and the car are, ALL shows them again; a tap on a row pins it and the
+## NEXT card shows it tracked (gold head), a tap on that line or the row again lets it go; a "?" for
+## a First step not done is painted, a tap on it tells the teaser and offers TRACK, which pins the
+## step's place; ticking the step takes the "?" away.
+func _check_map_track(hud: CanvasLayer, fm: Control, where: String, pt: float, safe: Rect2) -> void:
+	where += " track"
+	var mk: MapMarkers = hud.markers
+	mk.put_all("jobs", [
+		{"layer": MapMarkers.Layer.JOB, "at": Vector2(-120.0, 60.0), "colour": Color.ORANGE, "shape": 0, "group": "kebab"},
+		{"layer": MapMarkers.Layer.JOB, "at": Vector2(150.0, 90.0), "colour": Color.ORANGE, "shape": 0, "group": "kebab"},
+		{"layer": MapMarkers.Layer.JOB, "at": Vector2(60.0, -140.0), "colour": Color.TEAL, "shape": 1, "group": "sloik"}])
+	var steps_left: Array = []
+	fm.set_steps(steps_left, [], [], true)
+	fm.set_quests([], 0, "")
+	fm.set_rivals([])
+	fm.set_next([], Vector2.INF)
+	fm.set_collection([])
+	fm.set("_hidden", {})
+	fm.call("_refresh_legend")
+	fm.call("_fit")
+	await process_frame
+	await process_frame
+	var legend := fm.get("_legend") as Control
+	if not legend.visible:
+		problems.append("%s: the legend is not shown with nothing else on the map" % where)
+		return
+	var cells: Array = fm.get("_legend_cells")
+	var all_cell := fm.get("_legend_all") as Button
+	if cells.size() != 7 or all_cell == null:
+		problems.append("%s: the legend has %d filter cells and ALL %s (want 7 and ALL)" % [where, cells.size(), all_cell])
+		return
+	var lr := legend.get_global_rect()
+	for c: Button in cells + [all_cell]:
+		var r := c.get_global_rect()
+		if r.size.y < MIN_TOUCH * pt - 0.5 or r.size.x < MIN_TOUCH * pt - 0.5:
+			problems.append("%s: legend cell %s is %.0f x %.0f pt (< %d)" % [where, c.name, r.size.x / pt, r.size.y / pt, MIN_TOUCH])
+		if not safe.grow(0.5).encloses(r) or not lr.grow(0.5).encloses(r):
+			problems.append("%s: legend cell %s %s is outside the safe area or the legend" % [where, c.name, _pts(r, pt)])
+	var rs: Dictionary = fm.rects()
+	var keys := rs.keys()
+	for i in keys.size():
+		for j in range(i + 1, keys.size()):
+			if (rs[keys[i]] as Rect2).intersects(rs[keys[j]]):
+				problems.append("%s: %s and %s overlap with the legend up" % [where, keys[i], keys[j]])
+	if not (cells[3] as Button).text.ends_with("2/2") or not (cells[4] as Button).text.ends_with("1/1") or not (cells[0] as Button).text.ends_with("1/1"):
+		problems.append("%s: the legend's counts are wrong: %s | %s | %s" % [where, (cells[0] as Button).text, (cells[3] as Button).text, (cells[4] as Button).text])
+	# A hidden kind's icons are not painted; the target and the car still are; ALL brings them back.
+	var base := await _full_tris(hud, fm)
+	(cells[3] as Button).pressed.emit()
+	await process_frame
+	var less := await _full_tris(hud, fm)
+	if less >= base or not (cells[3] as Button).text.ends_with("0/2") or not all_cell.text.contains("/"):
+		problems.append("%s: hiding kebab stands changed the paint %d -> %d, cell \"%s\"" % [where, base, less, (cells[3] as Button).text])
+	mk.set_target(Vector2(-200.0, -60.0), Color.RED)
+	var with_target := await _full_tris(hud, fm)
+	for i in cells.size():
+		if not (fm.get("_hidden") as Dictionary).has(MapTrack.KINDS[i]["id"]):
+			(cells[i] as Button).pressed.emit()
+	await process_frame
+	var only_target := await _full_tris(hud, fm)
+	mk.set_target(Vector2.INF, Color.RED)
+	var nothing := await _full_tris(hud, fm)
+	mk.set_target(Vector2(-200.0, -60.0), Color.RED)
+	if only_target <= nothing or with_target <= less - 0:
+		problems.append("%s: with every kind hidden the target is gone (%d with, %d without; before %d)" % [where, only_target, nothing, with_target])
+	if (fm.get("_hidden") as Dictionary).size() != 7:
+		problems.append("%s: not every kind hidden (%s)" % [where, (fm.get("_hidden") as Dictionary).keys()])
+	all_cell.pressed.emit()
+	await process_frame
+	var back := await _full_tris(hud, fm)
+	if not (fm.get("_hidden") as Dictionary).is_empty() or back != base + (with_target - less):
+		problems.append("%s: ALL did not bring every kind back (%d, want %d; hidden %s)" % [where, back, base + (with_target - less), fm.get("_hidden")])
+	mk.set_target(Vector2.INF, Color.RED)
+	# TRACK: a tap on a row pins it; the NEXT card shows it, gold, tappable to let it go; a second tap on the row too.
+	const L := preload("res://scripts/quest_lines.gd")
+	var place := L.entry("kebab_9_9", "kebab", L.Line.CAR, "Stoisko", "Stand", Vector2(300.0, 100.0), Color.ORANGE)
+	var picked: Array = []
+	var on_pick := func(e: Dictionary) -> void: picked.append(e)
+	fm.quest_picked.connect(on_pick)
+	fm.set_quests([place], L.Line.CAR, "")
+	await process_frame
+	var row_i := -1
+	for i in (fm.quest_rows as Array).size():
+		if str(fm.quest_rows[i]["id"]) == "kebab_9_9":
+			row_i = i
+	if row_i < 0:
+		problems.append("%s: the place has no row in the list" % where)
+	else:
+		fm.pick_row(row_i)
+		await process_frame
+		await process_frame
+		var head := fm.get("_quests").find_child("next_head", true, false) as Label
+		var nr := fm.get("_quests").find_child("next_row", true, false) as Button
+		if picked.size() != 1 or picked[0]["id"] != "kebab_9_9" or head == null or not head.text.begins_with(Hints.words_of("track_head")) \
+				or nr == null or not nr.text.contains("Stoisko") and not nr.text.contains("Stand"):
+			problems.append("%s: a tap on a row did not show it tracked on the NEXT card (%s)" % [where, head.text if head != null else "no head"])
+		elif nr.get_global_rect().size.y < MIN_TOUCH * pt - 0.5 or not safe.grow(0.5).encloses(fm.rects().get("next", Rect2())):
+			problems.append("%s: the tracked NEXT line is under %d pt or outside the safe area" % [where, MIN_TOUCH])
+		else:
+			nr.pressed.emit()
+			await process_frame
+			if picked.size() != 2 or not (picked[1] as Dictionary).is_empty() or not (fm.quest_pick as Dictionary).is_empty():
+				problems.append("%s: a tap on the tracked line did not let it go" % where)
+			fm.pick_row(row_i)
+			fm.pick_row(row_i)  # a second tap on the row lets it go too
+			if not (fm.quest_pick as Dictionary).is_empty() or picked.size() != 4:
+				problems.append("%s: a second tap on the tracked row did not let it go (%d picks)" % [where, picked.size()])
+	# "?" marks.
+	var at := Vector2(-250.0, -80.0)
+	mk.put_all(MapTrack.OWNER, MapTrack.unknown_marks({}, {"garage": at}, {}))
+	await process_frame
+	var with_q := await _full_tris(hud, fm)
+	mk.clear(MapTrack.OWNER)
+	var without_q := await _full_tris(hud, fm)
+	if with_q <= without_q:
+		problems.append("%s: a \"?\" adds nothing to the full map's paint (%d, %d)" % [where, with_q, without_q])
+	mk.put_all(MapTrack.OWNER, MapTrack.unknown_marks({}, {"garage": at}, {}))
+	var mini_before := mk.shown(MapMarkers.Layer.UNKNOWN, MapMarkers.View.MINIMAP, MapMarkers.Context.FREE)["at"] as PackedVector2Array
+	if not mini_before.is_empty():
+		problems.append("%s: the \"?\" shows on the minimap" % where)
+	var sp: Vector2 = fm.to_screen(at)
+	for down in [true, false]:
+		var t := InputEventScreenTouch.new()
+		t.index = 0
+		t.position = sp
+		t.pressed = down
+		fm._input(t)
+	await process_frame
+	var rs2: Dictionary = fm.rects()
+	var note := fm.get("_note") as Control
+	var teaser: Array = MapTrack.teaser("garage")
+	var text := ((note.get_child(0) as VBoxContainer).get_child(0) as Label).text
+	if not note.visible or not rs2.has("offer") or not (text == str(teaser[0]) or text == str(teaser[1])):
+		problems.append("%s: a tap on the \"?\" did not tell the teaser and offer TRACK (note %s, offer %s, \"%s\")" % [where, note.visible, rs2.has("offer"), text])
+	else:
+		_check_touch(where + " offer", rs2["offer"], pt, safe)
+		if (rs2["offer"] as Rect2).intersects(rs2["note"]) or not safe.grow(0.5).encloses(rs2["offer"]):
+			problems.append("%s: the TRACK offer overlaps the note or leaves the safe area" % where)
+		if rs2.has("legend") and ((rs2["note"] as Rect2).intersects(rs2["legend"]) or (rs2["offer"] as Rect2).intersects(rs2["legend"])):
+			problems.append("%s: the note or the offer is on the legend" % where)
+		(fm.get("_offer") as Button).pressed.emit()
+		await process_frame
+		if str(fm.quest_pick.get("id", "")) != "unknown_garage" or picked.back()["id"] != "unknown_garage" or fm.quest_pick["at"] != at:
+			problems.append("%s: TRACK on the \"?\" did not pin its place (%s)" % [where, fm.quest_pick])
+		elif (fm.get("_quests") as Control).find_child("next_row", true, false) == null:
+			problems.append("%s: no NEXT card for the tracked \"?\"" % where)
+	# The step ticked: the "?" goes.
+	mk.put_all(MapTrack.OWNER, MapTrack.unknown_marks({"fs_garage": 7}, {"garage": at}, {}))
+	fm.quest_pick = {}
+	var ticked := await _full_tris(hud, fm)
+	if ticked != without_q:
+		problems.append("%s: the \"?\" is still painted once its step is ticked (%d, want %d)" % [where, ticked, without_q])
+	fm.quest_picked.disconnect(on_pick)
+	mk.clear(MapTrack.OWNER)
+	mk.clear("jobs")
+	fm.quest_pick = {}
+	fm.set_quests([], 0, "")
+	await process_frame
+
+
+## The full map's triangle count for one paint (its overlay draws in the HUD's batch).
+func _full_tris(hud: CanvasLayer, fm: Control) -> int:
+	var o: Control = fm.get("_overlay")
+	var got := [-1]
+	var read := func() -> void: got[0] = (hud.get("_tri_pts") as PackedVector2Array).size()
+	o.draw.connect(read)
+	o.queue_redraw()
+	await process_frame
+	await process_frame
+	o.draw.disconnect(read)
+	return got[0]
 
 
 ## Map guidance (2026-11-16): the NEXT card pinned above the list's scroll (inside the safe area and

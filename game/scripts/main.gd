@@ -181,6 +181,7 @@ const Garage := preload("res://scripts/garage.gd")
 const First10 := preload("res://scripts/first10.gd")
 const Hints := preload("res://scripts/hints.gd")
 const FirstSteps := preload("res://scripts/first_steps.gd")
+const MapTrack := preload("res://scripts/map_track.gd")
 const PlayStats := preload("res://scripts/play_stats.gd")
 const StopAssist := preload("res://scripts/stop_assist.gd")
 const MainLine := preload("res://scripts/main_line.gd")
@@ -513,7 +514,14 @@ var garage: Garage
 var rides: Rides
 ## G12 part 2: the quest pin, a place picked on the full map's ZADANIA card (quest_lines.gd entry;
 ## {} none): the arrow and minimap dot point at it while nothing else is on, until it is reached.
-var quest_pin: Dictionary = {}
+var quest_pin: Dictionary = {}:
+	set(v):
+		quest_pin = v
+		if tracking.pin(v) and wallet != null:  # the full map's track (map_track.gd): kept in the save
+			tracking.save_to(wallet.intro)
+			wallet.save()
+## The tracked place the save holds, until the world offers it again (`_restore_track`).
+var tracking := MapTrack.new()
 # --- end loop 2d-1 ---
 ## Loop MW-2: the storefronts (storefronts.gd) and their flags: --no-parodies (none of MW-2's
 ## shops, signs, scooters or entrances, for an A/B), --rechotka (the car by the nearest Frogs
@@ -755,6 +763,7 @@ func _ready() -> void:
 		wallet.load_note = flags.save_note_flag
 	hints = Hints.new()
 	hints.load_from(wallet.intro)
+	tracking.load_from(wallet.intro)
 	hints.use_flags(flags)
 	if title != null:
 		title.set_done(Hints.done_tags(wallet))  # the loading tips about things not done yet first
@@ -3249,6 +3258,8 @@ func _quest_running() -> bool:
 func _story_tick() -> void:
 	if stories == null or hud == null:
 		return
+	if tracking.pending != "":
+		_restore_track()
 	var focus := _quest_running()
 	stories.focus = focus
 	_shisha_secret(focus)
@@ -4746,7 +4757,7 @@ func _open_full_map() -> void:
 	var entries := _quest_entries()
 	_fill_map_list(entries)  # first hour step 4: the one list's First steps, Rivals and Collection
 	hud.full_map.set_quests(entries, Lines.Line.HELI if flying else Lines.Line.CAR,
-			str(quest_pin.get("id", "")))  # G12 part 2: the quest list (one list since step 4)
+			str(quest_pin.get("id", "")), quest_pin)  # G12 part 2: the quest list (one list since step 4)
 	if quest_tab_flag >= 0:
 		hud.full_map.show_line(quest_tab_flag)
 		quest_tab_flag = -1
@@ -4791,6 +4802,9 @@ func _fill_map_list(entries: Array) -> void:
 			head = []
 	fm.set_steps(left, head, FirstSteps.words("promise") if not left.is_empty() else [], friends)
 	fm.set_next([str(main_next.get("pl", "")), str(main_next.get("en", ""))], main_next.get("at", Vector2.INF))  # the NEXT card after First steps
+	# The "?" of the First steps not done whose place nothing else shows (map_track.gd).
+	hud.markers.put_all(MapTrack.OWNER, MapTrack.unknown_marks(wallet.intro, _unknown_places(),
+			{"garage": hud.markers.has("garage:workshop")}) if wallet != null else [])
 	if rivals != null and rivals.ladder != null and wallet != null:
 		var rows: Array = rivals.ladder_rows()
 		fm.set_rivals(rivals.ladder.chips(), rivals.ladder.title(), rows[rows.size() - 1] if not rows.is_empty() else [],
@@ -4823,6 +4837,29 @@ func _fill_map_list(entries: Array) -> void:
 			en.append("Tapes %d/%d" % [taken, cassettes.entries.size()])
 		words = [" · ".join(pl), " · ".join(en)]
 	fm.set_collection(words)
+
+
+## Where the First steps with a fixed place are (map_track.gd PLACED): Mirek's garage, the guide's cassette on the BUW roof.
+func _unknown_places() -> Dictionary:
+	var out := {}
+	if garage != null and garage.at != Vector3.INF:
+		out["garage"] = Vector2(garage.at.x, garage.at.z)
+	var i: int = cassettes.index_of(First10.CASSETTE_ID) if cassettes != null and cassettes.ready_ok else -1
+	if i >= 0:
+		out["heli"] = Vector2(cassettes.at(i).x, cassettes.at(i).z)
+	return out
+
+
+## The saved track, found again (map_track.gd): the pin is back once the list or a "?" offers its place.
+func _restore_track() -> void:
+	var qs: Array = []
+	var places := _unknown_places()
+	for id: String in places:
+		qs.append(MapTrack.entry_of(id, places[id]))
+	var e := tracking.resolve([_quest_entries(), qs])
+	if not e.is_empty():
+		quest_pin = e
+		print("quest list: track %s kept from the save" % e["id"])
 
 
 ## The place or request that does First step `id` ({} for none), from the list's entries by group:
