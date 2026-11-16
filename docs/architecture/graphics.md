@@ -32,6 +32,7 @@ after the scale-up, so they stay sharp and need no 3D transparency.
 | `foliage.gdshader` | Tree crowns and the parked cars' paint. Trees: the kind (instance custom r, `map_builder.gd` TreeKind) bends the crown into its silhouette; the leaves left come from the shader global `tree_season` and the kind's row of `tree_look` (`map_builder.gd` TREE_LOOK): full, thin (the whole crown fading evenly towards twig brown, no patches, no discard) or bare (a warm brown twig crown keeping 18 % of its leaf tint, short limbs, UV 1, 1, width in world metres from CUSTOM0); nothing seasonal in the instance data; `limbs` 0 on Low (`tiers.gd` tree_limbs) |
 | `fixture.gdshader`, `glow.gdshader`, `neon.gdshader` | Lamps, additive light cones, neon signs (night only) |
 | `map_edge.gdshader` | Land past the map edge |
+| `panel.gdshader` | W4 of the walls look: the light fences and low hedges as instanced 2 m panels (one `Panels` MultiMesh a sector, `barrier_look` `panels` only): posts, rails, bars and a tint fill by the pixel rule (`panel_rule.gd`), the row's numbers from a rows texture, `discard` holes (`tiers.gd` panel_holes), no shadow; 3 of the lit budget |
 | `poster.gdshader`, `led_screen.gdshader`, `spire_*.gdshader`, `event_fog.gdshader` | Single landmarks and events |
 | `post.gdshader`, `vhs.gdshader` | Full-screen passes |
 | `title.gdshader`, `chrome.gdshader`, `solo.gdshader` | Title screen, wordmark, landmark review look |

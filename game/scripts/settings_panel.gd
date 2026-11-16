@@ -481,7 +481,11 @@ func _rows(parent: Control, cells: Array[int]) -> Array[VBoxContainer]:
 
 ## Shows tab `i` (0 Driving, 1 World, 2 Picture, 3 Sound, 4 Notebook, 5 Access; 6 the credits page).
 func set_tab(i: int) -> void:
-	_tab = clampi(i, 0, DEV_PAGE if _built else TABS.size() - 1)
+	# The pages past the tabs (credits, tips, DEV) can be asked for before the panel is built
+	# (--settings-tab=6..8); `_build` shows the page asked for. Opening DEV by any road turns it on.
+	_tab = clampi(i, 0, DEV_PAGE)
+	if _tab == DEV_PAGE:
+		dev_on = true
 	if not _built:
 		return
 	var lit := SOUND_TAB if _tab == CREDITS_PAGE or _tab == TIPS_PAGE else (-1 if _tab == DEV_PAGE else _tab)

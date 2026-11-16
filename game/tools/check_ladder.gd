@@ -175,7 +175,10 @@ func _data() -> void:
 			and soft["race_accel"] == mike["race_accel"] and soft["brake"] == mike["brake"] and soft["block"] == mike["block"],
 			"eased 10 %%: share %.3f, lat %.2f" % [soft["share"], soft["lat"]])
 	_expect(is_equal_approx(float(Ladder.racer(5)["share"]), float(mike["share"])) and float(Ladder.RUNGS[5]["share"]) == float(mike["share"]), "easing changed the rung itself")
-	_expect(is_equal_approx(float(Ladder.eased(Ladder.FIRST_RACER, Ladder.EASE_MAX)["share"]), Ladder.SHARE_MIN), "the gentle day eased to the floor: %.3f" % Ladder.eased(Ladder.FIRST_RACER, Ladder.EASE_MAX)["share"])
+	var tired := Ladder.FIRST_RACER.duplicate()
+	tired["share"] = 0.65
+	_expect(is_equal_approx(float(Ladder.eased(tired, Ladder.EASE_MAX)["share"]), Ladder.SHARE_MIN), "a slow gentle day eased to the floor: %.3f" % Ladder.eased(tired, Ladder.EASE_MAX)["share"])
+	_expect(float(Ladder.eased(Ladder.FIRST_RACER, Ladder.EASE_MAX)["share"]) >= Ladder.SHARE_MIN, "the gentle day, eased most, stays over the floor: %.3f" % Ladder.eased(Ladder.FIRST_RACER, Ladder.EASE_MAX)["share"])
 	_expect(is_equal_approx(float(Ladder.eased({"share": 0.5, "lat": 5.0}, 0.1)["share"]), 0.5), "a share under the floor is not raised by easing")
 	_summary["data"] = "stakes %s, pace %.2f-%.2f, respect +%d first win, +%d rematch, skill share %.2f-%.2f (the gentle day %.2f, floor %.2f)" % [
 			stakes, Ladder.pace(0).x, Ladder.pace(5).x, Ladder.WIN_GAIN, Ladder.REMATCH_GAIN, Ladder.racer(0)["share"], Ladder.racer(5)["share"], Ladder.FIRST_RACER["share"], Ladder.SHARE_MIN]

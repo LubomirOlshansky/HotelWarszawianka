@@ -108,8 +108,8 @@ func _initialize() -> void:
 			problems.append("S1 %s: faces per class differ: runtime %s, prebuilt %s" % [key, a, b])
 		if verbose:
 			print("  %s: %s" % [key, a])
-	var want := TOTAL_TYPED if Solidity.barrier_look() == &"typed" else TOTAL
-	var name := "TOTAL_TYPED" if Solidity.barrier_look() == &"typed" else "TOTAL"
+	var want := TOTAL_TYPED if Solidity.barrier_look() != &"classic" else TOTAL
+	var name := "TOTAL_TYPED" if Solidity.barrier_look() != &"classic" else "TOTAL"
 	if total != want:
 		problems.append("S1 the sectors' faces: %d, recorded %d (a re-bake or a collider change: record it in %s)" % [total, want, name])
 	# S3: the map's own bodies.
@@ -131,7 +131,7 @@ func _initialize() -> void:
 		dressing += _check_bodies(node, "dressing %s" % node.name, false)
 		node.free()
 	if record:
-		print("solids: --record: %s := %d" % ["TOTAL_TYPED" if Solidity.barrier_look() == &"typed" else "TOTAL", total])
+		print("solids: --record: %s := %d" % ["TOTAL_TYPED" if Solidity.barrier_look() != &"classic" else "TOTAL", total])
 	var names := classes_seen.keys()
 	names.sort()
 	var per := PackedStringArray()

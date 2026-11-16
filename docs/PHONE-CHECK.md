@@ -47,6 +47,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 6 | The same switch **off** (what testers get): drive fast along Marszałkowska and over a bridge | a hitch each time new streets come in (the fences' colliders are rebuilt at sector load, about 3.3 ms per sector in the cloud) | #780, #732 |
 | 7 | Switch on, shove parked cars on Krucza, end-on and from the side | a push, never a dead stop; where the pushed car comes to rest (it may sit a kerb low); the frame among parked cars (the cloud measured about 40 µs more per physics step there) | #796 |
 | 7b | A build baked with `typed` (device run): drive Marszałkowska, Plac Grzybowski and the stadium | do thin fences read as fences, or flicker? Are heights right (planters, park hedges)? | W2 |
+| 7c | A build baked with `panels` (device run): the same drive, at the closest, default and widest zoom, by day and at night; then Settings → BENCH | bars and mesh steady while driving at 40 km/h (no shimmer or crawl)? Black fences still seen at night? Hedges sit on the ground without a shadow? BENCH against the last build (the frame, missed refreshes). On the Adreno 6xx phone the runtime city draws `typed` fences (gpu_quirks.gd); a prebuilt `panels` city runs panel.gdshader there: does it link (fences drawn, no "Failed to link shaders" in logcat)? | W4 |
 
 ## 3. Races and police (4 min)
 

@@ -119,7 +119,7 @@ CITY_INPUTS = ["map/lod2.bin", "map/terrain.json", "map/ao.bin", "map/lights.bin
                "scripts/landmarks.gd", "scripts/sector_proxies.gd", "scripts/models.gd",
                "scripts/pixel_font.gd", "scripts/index_pack.gd", "scripts/city_maps.gd",
                "tools/bake_city.gd", "data/courts.json", "scripts/solidity.gd", "data/object_palette.json",
-               "scripts/city_barriers.gd", "scripts/facade_kit.gd"]
+               "scripts/city_barriers.gd", "scripts/facade_kit.gd", "scripts/panel_rule.gd"]
 # TD-10 (2026-11-15): and every file of landmarks.gd's base chain, by name (bake_city.gd city_inputs).
 CITY_INPUT_DIRS = ["scripts/landmarks"]
 SETUP = "run tools/setup_map.sh"

@@ -32,6 +32,16 @@ static func lite() -> bool:
 	return _lite == 1
 
 
+## W4 of the walls look (docs/design/walls-true-to-life.md 9): whether this GPU draws the light
+## fences as panels (panel.gdshader) when the barrier look is `panels`. Not on the GPUs that take
+## the lite shaders (or with --lite-shaders): nobody has seen panel.gdshader link on an Adreno 6xx
+## yet, and a pipeline that fails to link draws nothing, so there the builder draws those fences
+## typed (city_barriers.gd rail_lite_along): panels are never the only way a fence is drawn. This
+## is read where a city is built (the runtime path); a prebuilt city is the look it was baked in.
+static func panels() -> bool:
+	return not lite()
+
+
 ## "Adreno (TM) 642L" and the like, model 300 to 699.
 static func is_old_adreno(adapter: String) -> bool:
 	var m := RegEx.create_from_string("Adreno[^0-9]*([0-9])[0-9][0-9]").search(adapter)

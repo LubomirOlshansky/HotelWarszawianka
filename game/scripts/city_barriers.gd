@@ -9,6 +9,11 @@ extends RefCounted
 ## (solidity.gd `barrier_look`, the palette's key or `--barriers=`) a line whose chain ends generic
 ## is drawn from its type's `looks` row instead (`_typed`, `rail_lite_along`); classic, the default,
 ## runs none of that and draws as main does.
+## W4 (walls doc 6.4): under `panels` the lines whose `looks` row is marked `panel` are not drawn in
+## the city mesh: `panel_along` cuts them into 2 m panel pieces (the panel index of soft_things.gd,
+## `PANEL`) and keeps them per 512 m tile (`panel_tiles`); map_builder.gd
+## `_build_panels` makes one `Panels` MultiMesh of them per sector (panel.gdshader). Their colliders
+## are the typed ones, filed the same way.
 ##
 ## A RefCounted the map makes once (map_builder.gd `barriers`), with the map as its reference, the
 ## way landmarks.gd is called: the map swaps `data` for every sector it builds, and the caches here
@@ -17,6 +22,7 @@ extends RefCounted
 ## draw their rails with `railing_along`.
 
 const Solidity := preload("res://scripts/solidity.gd")
+const PanelRule := preload("res://scripts/panel_rule.gd")
 
 ## Operation Unslop's per-object decisions (tools/street_pass.py --apply writes them from the street
 ## records): {"items": {id: [verdict, style]}}. The id is road-objects.md's stable id: class, kind
@@ -182,6 +188,20 @@ var guard_joins := 0
 var look_counts := {}
 var low_typed := PackedStringArray()
 var default_lines := 0
+## W4: the panel pieces of the last build_barriers under `panels`, per 512 m tile (Vector2i, the
+## sector's key: a PanelTile): `buf` the MultiMesh buffer (PANEL_FLOATS a piece: the transform's
+## 12 floats, then the custom data: the line's row in the rows texture, the metres along the line
+## at the piece's start, the state (0 whole; W6 writes the others), the line's colour seed);
+## `ids`, `first`, `count`: each soft line's stable id, its first instance and its pieces in this
+## tile; `panel` every instance's panel index; `box` their AABB. `panel_pieces` all of them.
+## Empty under classic and typed.
+var panel_tiles := {}
+var panel_pieces := 0
+## W4: the metres drawn along the line so far (a panel piece's start; the same count as
+## `_soft_run`, which soft_things.gd's panels are cut by), and a serial per line (two lines with
+## one stable id stay two entries in a tile).
+var _panel_run := 0.0
+var _panel_serial := 0
 var _object_overrides := {}
 ## Step 7: road_objects.json "hard_lines" ({stable id: reason}): soft lines kept hard by id, the
 ## `--wander` run's traps (rule R6: a trap is hard or a hole to close).
@@ -1175,7 +1195,12 @@ func build_barriers(st) -> void:
 	look_counts = {}
 	low_typed = PackedStringArray()
 	default_lines = 0
+	panel_tiles = {}
+	panel_pieces = 0
+	_panel_serial = 0
 	var typed_on := Solidity.barrier_look() != &"classic"
+	# W4: panels, unless this GPU gets the typed look instead (gpu_quirks.gd).
+	var panels_on := Solidity.barrier_look() == &"panels" and GpuQuirks.panels()
 	_stairs_for_walls()
 	var gate_segs: Array = []
 	for l in map.data.get("lines", []):
@@ -1247,6 +1272,13 @@ func build_barriers(st) -> void:
 			look = _typed(l, generic)
 			if look.get("draw", &"") == &"none":
 				continue
+			# W4: a row marked `panel` is drawn as panel pieces (panel_along).
+			if panels_on and not look.is_empty() and bool((look["row"] as Dictionary).get("panel", false)):
+				look["panel"] = PanelRule.row_of(StringName(str(l["ty"])))
+				look["seed"] = PanelRule.seed(barrier_id(l["k"], l["p"]))
+				_panel_run = 0.0
+				_panel_serial += 1
+				_count_look(&"panel")
 		if style == _s(&"barrier_default"):
 			default_lines += 1
 		var pts: PackedVector2Array = map._pts(l["p"])
@@ -1300,10 +1332,121 @@ func build_barriers(st) -> void:
 func _draw_piece(st, piece: PackedVector2Array, style: Array, look: Dictionary, solid: bool, cls: StringName) -> void:
 	if look.is_empty():
 		wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
+	elif look.has("panel"):
+		panel_along(piece, look, solid, cls)
 	elif look["draw"] == &"slab":
 		wall_along(st, piece, float((look["row"] as Dictionary)["thick"]), float(look["h"]), look["colour"], solid, cls)
 	else:
 		rail_lite_along(st, piece, look["row"], float(look["h"]), look["colour"], solid, cls)
+
+
+## W4 (walls doc 6.4): a panel line's piece `poly` (a line, or one piece of it between stair gaps
+## or a sunken ring's edges), drawn by its `look` (`_typed`, with the panel's row and seed): no
+## triangles in the city mesh, but its 2 m panel pieces (`_panel_segment`), and the colliders its
+## typed drawing files, the same faces in the same order (a `rail` row: `rail_faces`, as
+## rail_lite_along; a `slab` row: `slab_faces` at the row's thickness, as wall_along), with
+## `_soft_run` advanced as each of them advances it, so a panels city has the typed city's
+## colliders and soft lines.
+func panel_along(poly: PackedVector2Array, look: Dictionary, collide: bool, cls: StringName) -> void:
+	var row: Dictionary = look["row"]
+	var slab: bool = look["draw"] == &"slab"
+	var height := float(look["h"])
+	var thick := float(row["thick"])
+	for i in poly.size() - 1:
+		var a := poly[i]
+		var b := poly[i + 1]
+		var length := a.distance_to(b)
+		if length < 0.05:
+			continue
+		var ga: float = map.terrain_height(a.x, a.y)
+		var gb: float = map.terrain_height(b.x, b.y)
+		_panel_segment(a, b, ga, gb, length, height, thick, look)
+		_panel_run += length
+		if collide:
+			var faces := slab_faces(a, b, thick * 0.5, ga, gb, height) if slab else rail_faces(a, b, ga, gb, height)
+			if _soft_line.is_empty():
+				map._solid(cls, faces, {"same": true, "h": height})
+			else:
+				_soft_seg(cls, faces, a, b, thick * 0.5 if slab else 0.0, ga, gb, height)
+			if slab:
+				_soft_run += length
+		if not slab:
+			_soft_run += length
+
+
+## W4: segment a..b (its ground `ga`, `gb`, `length` m) cut at every PANEL m of the line's run
+## (`_panel_run` at a): one piece per panel it crosses, a piece under 0.05 m left out.
+func _panel_segment(a: Vector2, b: Vector2, ga: float, gb: float, length: float, height: float, thick: float,
+		look: Dictionary) -> void:
+	var r0 := _panel_run
+	var r1 := r0 + length
+	var k := floori(r0 / PANEL)
+	while true:
+		var s0 := maxf(r0, k * PANEL)
+		var s1 := minf(r1, (k + 1) * PANEL)
+		if s1 - s0 >= 0.05:
+			var t0 := (s0 - r0) / length
+			var t1 := (s1 - r0) / length
+			_panel_piece(a.lerp(b, t0), a.lerp(b, t1), lerpf(ga, gb, t0), lerpf(ga, gb, t1), (b - a) / length, s0, k,
+					height, thick, look)
+		if (k + 1) * PANEL >= r1:
+			break
+		k += 1
+
+
+## Floats a panel piece takes in a PanelTile's `buf`: a 3D transform (12) and the custom data (4).
+const PANEL_FLOATS := 16
+
+
+## W4: one tile's panel pieces (see `panel_tiles`).
+class PanelTile:
+	var buf := PackedFloat32Array()
+	var ids := PackedStringArray()
+	var first := PackedInt32Array()
+	var count := PackedInt32Array()
+	var panel := PackedInt32Array()
+	var box := AABB()
+	var last := -1
+
+	## The tile's `panels` meta (map_builder.gd `_build_panels`).
+	func meta() -> Dictionary:
+		return {"ids": ids, "first": first, "count": count, "panel": panel}
+
+
+## W4: one panel piece p0..p1 (its foot g0..g1, the line's direction `dir`, `run` m along the line
+## at p0, panel index `panel`) into its tile's buffer: the unit box of map_builder.gd `panel_box`
+## (x 0..1 along, y 0..1 up, z -0.5..0.5 across) stretched to the piece, from PanelRule.SINK under
+## its foot to `height` over it, `thick` across, its posts upright on a slope (the slope is in its
+## x axis). A piece belongs to the tile holding its middle, so the sectors together hold every
+## piece once.
+func _panel_piece(p0: Vector2, p1: Vector2, g0: float, g1: float, dir: Vector2, run: float, panel: int, height: float,
+		thick: float, look: Dictionary) -> void:
+	var mid := (p0 + p1) * 0.5
+	var key := Vector2i(floori(mid.x / map.SECTOR), floori(mid.y / map.SECTOR))
+	if map._in_sector and key != map._sector:
+		return
+	var x := Vector3(p1.x - p0.x, g1 - g0, p1.y - p0.y)
+	var y := Vector3(0.0, height + PanelRule.SINK, 0.0)
+	var z := Vector3(-dir.y, 0.0, dir.x) * thick
+	var o := Vector3(p0.x, g0 - PanelRule.SINK, p0.y)
+	var t: PanelTile = panel_tiles.get(key)
+	if t == null:
+		t = PanelTile.new()
+		t.box = AABB(o, Vector3.ZERO)
+		panel_tiles[key] = t
+	t.buf.append_array([x.x, y.x, z.x, o.x, x.y, y.y, z.y, o.y, x.z, y.z, z.z, o.z,
+			float(look["panel"]), run, 0.0, float(look["seed"])])
+	if not _soft_line.is_empty():
+		if t.last != _panel_serial:
+			t.last = _panel_serial
+			t.ids.append(soft_ids[int(_soft_line["i"])])
+			t.first.append(t.panel.size())
+			t.count.append(0)
+		t.count[t.count.size() - 1] += 1
+	t.panel.append(panel)
+	for c: Vector3 in [o - z * 0.5, o + z * 0.5, o + x + y - z * 0.5, o + x + y + z * 0.5]:
+		t.box = t.box.expand(c)
+	panel_pieces += 1
 
 
 ## W2: line `l`'s typed drawing, from its `ty`'s `looks` row (solidity.gd `look_row`), or {} when it

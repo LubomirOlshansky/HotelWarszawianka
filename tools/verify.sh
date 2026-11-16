@@ -370,7 +370,11 @@
 # game/tools/check_object_overrides.gd (every id in game/data/road_objects.json names a barrier).
 # W2 of the walls look (2026-11-15): `barrierlook` runs game/tools/check_barrier_look.gd (the palette's
 # barrier_look is classic; every barrier type on the map has a `looks` row; the typed drawing's
-# triangles and colliders per draw kind on a flat synthetic map; the alt colours stable).
+# triangles and colliders per draw kind on a flat synthetic map; the alt colours stable). W4
+# (2026-11-16): and the panels look (no triangles, the typed colliders and soft lines, the pieces
+# and their panel indices; the whole map's pieces); `panelrule` runs game/tools/check_panel_rule.gd
+# (the panels' pixel rule at 5, 10, 17 and 26 cm a pixel: bars 2.5 px apart and 1 px wide; the
+# shader's numbers; the rows texture; the seed's alt colour).
 # Road design (2026-11-06): `design` runs tools/road_design.py --check-all (every area applied to the
 # map, docs/roads/AREA.json, still builds with no problems: kerbs closed, lanes inside, crossings fit;
 # footways and cycle tracks continuous: every path end the new asphalt cut is on a crossing of its kind).
@@ -1206,6 +1210,8 @@ for s in $want; do
 		parkmesh) check parkmesh '^park_details:' --script res://tools/check_park_details.gd ;;
 		overrides) check overrides '^check_object_overrides:' --script res://tools/check_object_overrides.gd ;;
 		barrierlook) check barrierlook '^check_barrier_look:' --script res://tools/check_barrier_look.gd ;;
+		barrierpaths) skip_prebuilt barrierpaths || check barrierpaths '^check_barrier_look:' --script res://tools/check_barrier_look.gd -- --paths ;;
+		panelrule) check panelrule '^check_panel_rule:' --script res://tools/check_panel_rule.gd ;;
 		monuments)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/check_monuments.py > $logs/monuments.log 2>&1
@@ -1585,9 +1591,10 @@ for s in $want; do
 		# for a thread under the title waits 8 ms (boot.gd `wait_frame`), so the scripts' load takes
 		# about 850 frames in the cloud, the map's two big files about 35 and the start's sectors up
 		# to 8 s more; without that wait the run spent all its frames before the files were in.
-		# ENGINE_TOKENS: the engine's exit line for the index's threaded load (see `problems`); 19 is
-		# its count for the index's 10 files, a count to change only with them.
-		boot-run) skip_prebuilt "run: boot" || ENGINE_TOKENS=19 game boot 8000 "^boot: the boot scene's title stayed up" --boot --prebuilt --title-choice=continue ;;
+		# ENGINE_TOKENS: the engine's exit line for the index's threaded load (see `problems`); 21 is
+		# its count for the index's 11 files (W4 of the walls look added the panels' material and its
+		# shader: 19 before), a count to change only with them.
+		boot-run) skip_prebuilt "run: boot" || ENGINE_TOKENS=21 game boot 8000 "^boot: the boot scene's title stayed up" --boot --prebuilt --title-choice=continue ;;
 		# TD-20: the real game on the prebuilt city, through the real input: the garage card with the
 		# full map over it stays paused when the map closes; each card alone pauses and lets go.
 		pause-run) skip_prebuilt pause-run || check pause-run '^check_pause:' --fixed-fps 60 --script res://tools/check_pause.gd -- --nosave --notitle --prebuilt --garage ;;

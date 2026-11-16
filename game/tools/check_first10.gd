@@ -630,7 +630,7 @@ func _race(speed: float, stop := 0.0, road := 800.0, late := 0.0, hold := false,
 	var stats := RaceSession.arm_racer(toy, RaceSession.race_stats(0, true, ease), Ladder.pace(0), 30.0, {}, 1)
 	var own: float = minf(toy.race_top, Traffic.RACE_CLASS_TOP[0]) * toy.race_share
 	var pace := RaceSession.Pace.new()
-	var held := hold
+	var held := false  # F 2026-11-16: she never waits at the line; `hold` is only kept for the callers
 	var me := road
 	var her := road + 12.0
 	var v := 0.0
@@ -771,9 +771,9 @@ func _effort() -> void:
 		lows = minf(lows, x)
 	_expect(absf(worst) <= 0.12, "her time moves at most 12 %% whatever the player does: %+.0f %%" % (worst * 100.0))
 	var ordinary := _race(9.5)
-	var fast := _race(21.0)
+	var fast := _race(26.0)
 	var slow := _race(6.0)
-	var stops := _race(21.0, 60.0)
+	var stops := _race(26.0, 60.0)
 	_expect(float(fast["lead"]) > 0.0, "a player faster than her wins: %.1f s" % fast["lead"])
 	_expect(float(ordinary["lead"]) < -10.0 and float(slow["lead"]) < float(ordinary["lead"]), "a player at town pace loses, a slower one by more (she does not wait): %.1f s, %.1f s" % [ordinary["lead"], slow["lead"]])
 	_expect(float(stops["lead"]) < 0.0, "a fast player who stops for a minute loses: %.1f s" % stops["lead"])
@@ -783,13 +783,13 @@ func _effort() -> void:
 	var eased := _race(0.0, 0.0, 800.0, 0.0, false, Ladder.EASE_MAX)
 	_expect(float(eased["time"]) > alone * 1.05, "after three losses in a row she is slower: %.1f s against %.1f s" % [eased["time"], alone])
 	# PT-11: a new player who sits still after START! (the agent in run 20261102-175913 lost so).
-	var late_new := _race(21.0, 0.0, 800.0, 8.0, true)
+	var late_new := _race(26.0, 0.0, 800.0, 8.0, true)
 	var long_s := Rivals.FIRST_HOLD + 8.0
-	var long_new := _race(21.0, 0.0, 800.0, long_s, true)
-	_expect(float(late_new["wait"]) >= 8.0 and float(late_new["wait"]) < 9.0 and absf(float(late_new["lead"]) - float(fast["lead"])) < 1.0,
-			"8 s still at the start, she waits: the race is the same: waited %.1f s, %.1f s against %.1f s" % [late_new["wait"], late_new["lead"], fast["lead"]])
-	_expect(absf(float(long_new["wait"]) - Rivals.FIRST_HOLD) < 0.11 and float(long_new["lead"]) < float(fast["lead"]),
-			"%.0f s still: she goes after FIRST_HOLD s and the player pays for the rest: waited %.1f s, %.1f s" % [long_s, long_new["wait"], long_new["lead"]])
+	var long_new := _race(26.0, 0.0, 800.0, long_s, true)
+	_expect(float(late_new["wait"]) == 0.0 and float(late_new["lead"]) < float(fast["lead"]),
+			"8 s still at the start, she does not wait (F 2026-11-16): waited %.1f s, the player pays for it: %.1f s against %.1f s" % [late_new["wait"], late_new["lead"], fast["lead"]])
+	_expect(float(long_new["wait"]) == 0.0 and float(long_new["lead"]) < float(late_new["lead"]),
+			"%.0f s still: she is long gone, the player pays for all of it: waited %.1f s, %.1f s" % [long_s, long_new["wait"], long_new["lead"]])
 	_expect(Rivals.first_start_step(0.5, 0.0) == "wait", "START! + 0.5 s, still: wait")
 	_expect(Rivals.first_start_step(Rivals.FIRST_IDLE + 0.1, 0.5) == "nudge", "still past FIRST_IDLE: the GO nudge")
 	_expect(Rivals.first_start_step(1.0, Rivals.FIRST_MOVE + 0.1) == "release", "the player moves: she goes")
@@ -799,7 +799,7 @@ func _effort() -> void:
 	_expect(not Rivals.first_stall_due(Rivals.FIRST_STALL, Rivals.FIRST_STALLS, 500.0), "at most FIRST_STALLS nudges")
 	_expect(not Rivals.first_stall_due(60.0, 0, Rivals.FIRST_EASE - 1.0), "the last stretch: no nudge")
 	_expect(Rivals.FIRST_GO_BANNER.length() <= 24, "the GO banner fits: %s" % Rivals.FIRST_GO_BANNER)
-	_summary.append("start: 8 s still, she waits %.1f s; %.0f s still, she goes at %.0f s" % [late_new["wait"], long_s, long_new["wait"]])
+	_summary.append("start: she never waits at the line: 8 s still, player %+.1f s; %.0f s still, %+.1f s" % [late_new["lead"], long_s, long_new["lead"]])
 	_summary.append("first race: her 800 m alone %.1f s, with any player %+.0f to %+.0f %%, %.2f-%.2f of her own pace; a fast player %+.1f s, town pace %+.1f s, a stop %+.1f s" % [
 			alone, lows * 100.0, worst * 100.0 if worst > 0.0 else 0.0, minf(float(slow["lo"]), float(stops["lo"])), float(fast["hi"]), fast["lead"], ordinary["lead"], stops["lead"]])
 
