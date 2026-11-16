@@ -3,7 +3,7 @@
 ## Backlog
 - fixed: the opening flight (7.5 s) ended halfway through the host's 13.4 s opening line; it is now 12 s and her last sentence ends just after the landing
 - found: the game clock still reads 14:00 after the morning flight (buses, crowds, clubs and the radio's hours read it); a morning clock for the first session would be its own change
-- found: only the phone can show whether the first frame with the sunrise's shadows hitches, and how 12 s feels with the voice (PHONE-CHECK)
+- found: only the phone can show whether the first frame with the sunrise's shadows hitches, and how 12 s feels with the voice (PHONE-CHECK line 1a)
 
 ## Roadmap
 - added and ticked: "The opening flight wakes the city: night to morning in 12 s, timed to the host's line (F, 2026-11-16; phone look and listen check open)"
