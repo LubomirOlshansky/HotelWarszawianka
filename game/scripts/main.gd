@@ -180,6 +180,7 @@ const Garage := preload("res://scripts/garage.gd")
 ## Loop 3h slice 4: the guided first 10 minutes and the end card.
 const First10 := preload("res://scripts/first10.gd")
 const Hints := preload("res://scripts/hints.gd")
+const FirstSteps := preload("res://scripts/first_steps.gd")
 const PlayStats := preload("res://scripts/play_stats.gd")
 const StopAssist := preload("res://scripts/stop_assist.gd")
 const MainLine := preload("res://scripts/main_line.gd")
@@ -1692,10 +1693,19 @@ func _build_world() -> void:
 	# director's quiet time (TD-3).
 	activities.world_free = _world_free
 	activities.finished = hud.messages.finished
+	# First hour, step 3: a friend's phone rang (first10.gd: one new friend at a time in the guide).
+	activities.rang = func(a: Activity) -> void:
+		if first10 != null and not a.pill_call and not a.is_job:
+			first10.friend_rang(a.tag)
 	_build_rave(data, world)
 	await LoadYield.tick("_build_rave")
-	_build_meet(data, world)
-	await LoadYield.tick("_build_meet")
+	# Darek's calls, the meets, the raids and the drag (street_meet.gd wires itself); none with
+	# --no-traffic or --meet=0. START DRAG and the test jumps put the car with main.gd's own hook
+	# (`_place_car` also cuts the camera), set after the join.
+	meet = _join(StreetMeet.new(), world) as StreetMeet
+	if meet != null:
+		meet.place_car = _place_car
+	await LoadYield.tick("meet")
 	_build_boat_race(world)
 	await LoadYield.tick("_build_boat_race")
 	_build_tours(world)
@@ -3685,7 +3695,9 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "lounge inside"
 	if title != null or _phone_bench or _bench_ghost != null or (spacer != null and spacer.on):
 		return "title/bench/Spacer"
-	if first10 != null and first10.guide_on() and not guide_ok:
+	# First hour, step 3: the guide holds the friends' calls until 3 First steps (or 12 minutes),
+	# then one new friend at a time (first10.gd `friends_wait`); before, it held them all its run.
+	if first10 != null and first10.friends_wait() and not guide_ok:
 		return "first-10 guide"
 	if not ringing_ok and not hud.call_ok():
 		return "calls: a call rang lately, or a quest or a chase is on or just ended (messages.gd)"
@@ -3703,41 +3715,6 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 
 
 # --- the night racing club -------------------------------------------------------------------
-
-## Darek's calls, the meets, the raids and the drag (street_meet.gd). None with --no-traffic or --meet=0.
-func _build_meet(data: Dictionary, world: Node3D) -> void:
-	if traffic == null or graph == null or flags.meet_flag == "0":
-		return
-	meet = StreetMeet.new()
-	meet.name = "StreetMeet"
-	meet.hud = hud
-	meet.dialogue = dialogue
-	meet.wallet = wallet
-	meet.map = map
-	meet.graph = graph
-	meet.traffic = traffic
-	meet.police = police
-	meet.car = car
-	meet.flat_mat = _ground_mat
-	meet.origin = data.get("origin", [52.234, 21.024])
-	meet.log_on = flags.meet_log
-	meet.auto = flags._meet_auto
-	meet.force = flags.meet_flag == "on"
-	meet.vehicle = func() -> Array:
-		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true]
-		return [car.global_position, car.vel.length() * 3.6, false]
-	meet.calendar = tod.local_clock
-	meet.place_car = _place_car
-	world.add_child(meet)
-	meet.setup(world)
-	# `meet.autopilot` stays off: a test run does not answer Darek or the result card (it never did).
-	activities.add(meet)  # the director says when Darek may ring (nothing else on: world_free)
-	if flags.meet_flag == "call":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.ring())
-	if flags.meet_at != "":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.jump(flags.meet_at))
-
 
 ## Puts the car at `at` heading `yaw` at once (the meet's START DRAG), the camera cut with it.
 func _place_car(at: Vector3, yaw: float) -> void:
@@ -3764,8 +3741,11 @@ func _build_ctx() -> GameCtx:
 	_ctx.radio = radio
 	_ctx.graph = graph
 	_ctx.traffic = traffic
+	_ctx.police = police
 	_ctx.car = car
 	_ctx.heli = heli
+	_ctx.tod = tod
+	_ctx.ground_mat = _ground_mat
 	_ctx.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true, 0.0]
@@ -3819,7 +3799,7 @@ func _ev_free() -> bool:
 		return false
 	if title != null or _phone_bench or _bench_ghost != null or (spacer != null and spacer.on):
 		return false
-	if first10 != null and first10.guide_on():
+	if first10 != null and first10.friends_wait():
 		return false
 	if hud.cards_up() or activities.call_on_pill() or hud.offers_quiet():
 		return false
@@ -5194,7 +5174,10 @@ func _close_settings() -> void:
 	print("settings panel: closed%s" % _pause.still())
 	_blip_sound()
 	# Loop MW-6 (Open Question 7): Spacer offered once, after the first pause.
-	if not settings.wander_offered and spacer != null and not spacer.on:
+	# First hour, step 3 (the critique): not before 3 First steps, or a new player who says yes in
+	# the second minute turns off the whole first hour.
+	if not settings.wander_offered and spacer != null and not spacer.on \
+			and (first10 == null or first10.steps_done() >= FirstSteps.NOTICED_AT):
 		settings.wander_offered = true
 		settings.save()
 		hud.toast("Spróbuj trybu Spacer: Ustawienia → Jazda", "Try Wander mode: Settings → Driving → Game mode")

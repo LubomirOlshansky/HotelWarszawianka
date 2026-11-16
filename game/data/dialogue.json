@@ -6817,5 +6817,23 @@
     ["Wolniej! Tu się studiuje, a nie ściga.", "Slow down! People study here, they don't race.", {"only": "fast"}],
     ["Dwadzieścia na godzinę, nie dwadzieścia na sekundę!", "Twenty an hour, not twenty a second!", {"only": "fast"}],
     ["Zapiszę to w raporcie. Długopisem. Bardzo stanowczo.", "I'll put that in my report. In pen. Very firmly.", {"only": "fast"}]
+  ],
+  "first_steps": [
+    ["Dowieź kebab", "Deliver a kebab", {"only": "step_kebab"}],
+    ["Podwieź kogoś (Podwózka)", "Give a lift (Podwózka)", {"only": "step_ride"}],
+    ["Ścigaj się z rywalem", "Race a rival", {"only": "step_race"}],
+    ["Odbierz wezwanie ratunkowe", "Answer a rescue call", {"only": "step_rescue"}],
+    ["Polataj helikopterem", "Fly the helicopter", {"only": "step_heli"}],
+    ["Spotkaj policję: stań albo uciekaj", "Meet the police: stop or get away", {"only": "step_police"}],
+    ["Zajrzyj do warsztatu Mirka", "Visit Mirek's garage", {"only": "step_garage"}],
+    ["Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty.", "Six rivals. Beat them all and win Trzy mosty.", {"only": "promise"}],
+    ["Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty. Na start wybierz coś albo po prostu jedź.", "Six rivals. Beat them all and win Trzy mosty. Pick a start, or just drive.", {"only": "choice_body"}],
+    ["Miasto cię zauważyło: znajomi zaczną dzwonić. Nowy lakier u Mirka.", "The city has noticed you: friends will call. New paint at Mirek's.", {"only": "noticed"}],
+    ["PIERWSZE KROKI ZALICZONE", "First steps done", {"only": "all_title"}],
+    ["Znasz już całe miasto. Lakier „Żółty jak tramwaj” czeka u Mirka, +100 respektu. Teraz szóstka rywali.", "You know the whole city now. Tram yellow paint waits at Mirek's, +100 respect. Now the six rivals.", {"only": "all_body"}],
+    ["Kebab przy Świętokrzyskiej wciąż czeka. Gorący.", "The kebab stand by Świętokrzyska still waits. Hot.", {"only": "intro_kebab"}],
+    ["Ktoś szuka podwózki. Nowe: zlecenie w aplikacji.", "Someone needs a lift. New: a request in the app.", {"only": "intro_ride"}],
+    ["Pierwsze kroki: jeszcze %d. Złota strzałka pokazuje drogę.", "First steps: %d to go. The gold arrow shows the way.", {"only": "what_next"}],
+    ["✓ Pierwsze kroki %d/%d: %s  +%d zł", "✓ First steps %d/%d: %s  +%d zł", {"only": "tick"}]
   ]
 }

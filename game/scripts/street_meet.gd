@@ -413,6 +413,39 @@ func _init() -> void:
 	card_life = RING_LIFE
 
 
+## Wires the club from the game (activity.gd `install`; main.gd's `_build_meet` until TD-4 b3). None
+## with --no-traffic or --meet=0. `autopilot` stays off: a test run does not answer Darek or the
+## result card (it never did). `place_car` is main.gd's hook, set after the join (it cuts the camera).
+func install(ctx: GameCtx) -> bool:
+	if ctx.traffic == null or ctx.graph == null or ctx.flags.meet_flag == "0":
+		return false
+	super(ctx)
+	name = "StreetMeet"
+	dialogue = ctx.dialogue
+	graph = ctx.graph as LaneGraph
+	traffic = ctx.traffic
+	police = ctx.police
+	car = ctx.car
+	flat_mat = ctx.ground_mat
+	origin = ctx.data.get("origin", [52.234, 21.024])
+	log_on = ctx.flags.meet_log
+	auto = ctx.flags._meet_auto
+	force = ctx.flags.meet_flag == "on"
+	vehicle = ctx.vehicle
+	calendar = ctx.tod.local_clock
+	return true
+
+
+## The test starts, a second into the drive (main.gd's `_build_meet` until TD-4 b3): --meet-call
+## (Darek rings) and --meet-at=BEAT (`jump`).
+func joined(ctx: GameCtx) -> void:
+	if ctx.flags.meet_flag == "call":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void: ring())
+	var beat: String = ctx.flags.meet_at
+	if beat != "":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void: jump(beat))
+
+
 func setup(world: Node3D, seed_value := -1) -> void:
 	if seed_value >= 0:
 		_rng.seed = seed_value

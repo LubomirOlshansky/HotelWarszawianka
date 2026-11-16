@@ -295,14 +295,16 @@
 # are braked for in time, in the order of the racers' grip, a mistake within the car's own grip;
 # about 15 s (CI too, skipped without centrum.json).
 # Loop 3h slice 4: `first10`
-# runs game/tools/check_first10.gd: the guide's ten beats and windows, who gets the guide, three
-# synthetic players through the director's rules (each beat in its window, the fallbacks, a beat
-# waiting for a job), the first race at her own pace in a 1-D race, the words; `endcard` runs
+# runs game/tools/check_first10.gd: the guide's beats and windows, who gets the guide, synthetic
+# players through the director's rules (first hour step 3: the choice card, one intro per First
+# step not done yet, a beat waiting for a job, a rider, the friends' wait), the First steps'
+# rewards, the first race at her own pace in a 1-D race, the words; `endcard` runs
 # game/tools/check_end_card.gd: the end card's trigger on fixture wallets (final + 9 jobs no, + 10
 # yes, seen no), the card and its button, the save's [intro]; neither needs a map (CI too).
 # `first10-run` (not in --quick, ~12 min) is the headless replay: --first10 --autopilot plays the
-# first 10 minutes on the real city (the stand, the guided order, Halina's race, the trap, the
-# call, the helicopter, the cassette, Powiśle, the garage) and passes on `first10: OK`. The first-10
+# first 10 minutes on the real city (the stand, the guided order, RACE on the choice card,
+# Halina's race, the trap, the call, the helicopter, the cassette, a ride, Powiśle, the garage) and
+# passes on `first10: OK`. The first-10
 # polish: `cassettes` runs game/tools/check_cassettes.gd: the mixtapes on roofs (cassettes.json), the
 # helicopter's pickup rule, a pickup's card, respect and PÓŁNOC FM track, the save; no map (CI too).
 # The opening flyover: `opening` runs game/tools/check_opening.gd: the first launch's camera flight
