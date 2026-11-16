@@ -54,6 +54,7 @@ const MainLine := preload("res://scripts/main_line.gd")
 const Lines := preload("res://scripts/quest_lines.gd")
 const Access := preload("res://scripts/access.gd")
 const Gamepad := preload("res://scripts/gamepad.gd")  # the gamepad loop
+const Hints := preload("res://scripts/hints.gd")  # 2026-11-16: the map's coach marks
 ## The hold to teleport: this long, the finger within HOLD_SLOP points of where it went down.
 const HOLD_S := 0.6
 const HOLD_SLOP := 12.0
@@ -226,6 +227,28 @@ var friends_open := true
 ## pad's X jumps to the next one).
 var list_sections: Array = []
 var _section_starts: Array[int] = []
+## 2026-11-16 (map guidance, F's playtest of build 11): the NEXT card pinned above the list's scroll
+## (`set_next`: after First steps, the main line's next step as [pl, en] and its place, INF none),
+## Rivals folded to one row that opens to the six chips, a "more below" cue on the scroll, and the
+## coach marks (hints.gd `map_tick`; `hints` is main.gd's, null in a check that wants none).
+var next_words: Array = []
+var next_at := Vector2.INF
+var _next_card: PanelContainer
+var _rivals_open := false
+var _reveal_chips := false
+var hints: Hints
+var _coach: PanelContainer
+var _help: Button
+var _more: Control
+var _more_label: Label
+var _did_scroll := false
+var _did_hold := false
+var _did_pin := false
+var _replay := false
+## The "more below" fade is this tall (points).
+const FADE_H := 30.0
+## The rivals row's action (a tap folds or opens the six chips).
+const RIVALS_TOGGLE := "rivals_toggle"
 ## The rivals' race colour (rivals.gd RACE_COLOUR) for the chips' rim.
 const RIVAL_COLOUR := Color("#ff4f6d")
 ## A rival chip's width share (three to a row) and the gap between chips.
@@ -348,6 +371,17 @@ func _build() -> void:
 	_cards.custom_minimum_size = Vector2.ONE * 48.0 * pt
 	_cards.pressed.connect(func() -> void: show_cards(not cards_shown))
 	add_child(_cards)
+	_help = Button.new()
+	_help.name = "help"
+	_help.text = "?"
+	_help.focus_mode = Control.FOCUS_NONE
+	_help.add_theme_font_size_override("font_size", _px(22))
+	_help.add_theme_color_override("font_color", Color("#ffd23f"))
+	for s in ["normal", "hover", "pressed", "focus"]:
+		_help.add_theme_stylebox_override(s, _box(0.94 if s != "pressed" else 1.0))
+	_help.custom_minimum_size = Vector2.ONE * 48.0 * pt
+	_help.pressed.connect(replay_coach)
+	add_child(_help)
 	_list = _card([], [])
 	_list.name = "districts"
 	_list.visible = false
@@ -360,6 +394,39 @@ func _build() -> void:
 	_note.name = "note"
 	_note.visible = false
 	add_child(_note)
+	_more = Control.new()
+	_more.name = "more"
+	_more.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_more.visible = false
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 1.0])
+	grad.colors = PackedColorArray([Color(0.07, 0.06, 0.1, 0.0), Color(0.07, 0.06, 0.1, 0.97)])
+	var gt := GradientTexture2D.new()
+	gt.gradient = grad
+	gt.fill_from = Vector2(0.0, 0.0)
+	gt.fill_to = Vector2(0.0, 1.0)
+	gt.width = 4
+	gt.height = 32
+	var fade := TextureRect.new()
+	fade.name = "fade"
+	fade.texture = gt
+	fade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	fade.stretch_mode = TextureRect.STRETCH_SCALE
+	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_more.add_child(fade)
+	_more_label = Label.new()
+	_more_label.text = "▼"
+	_more_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_more_label.add_theme_font_size_override("font_size", _px(T_SUB))
+	_more_label.add_theme_color_override("font_color", Color("#ffd23f"))
+	_more_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_more.add_child(_more_label)
+	add_child(_more)
+	_coach = _card([""], [T_SUB])
+	_coach.name = "coach"
+	_coach.visible = false
+	add_child(_coach)
 
 
 func _box(alpha: float) -> StyleBoxFlat:
@@ -413,6 +480,12 @@ func open(at: Vector2, yaw: float) -> void:
 	_note.visible = false
 	_hint.visible = true
 	_hint_words()
+	_did_scroll = false
+	_did_hold = false
+	_did_pin = false
+	_replay = false
+	if hints != null:
+		hints.map_reset()
 	visible = true
 	_fit()
 	ppm = clampf(_view().y / START_M, _ppm_min(), _ppm_max())
@@ -453,6 +526,9 @@ func close() -> void:
 	_touches.clear()
 	_hold_index = -1
 	_quit_armed = 0.0
+	_coach.visible = false
+	if hints != null:
+		hints.map_reset()
 	closed.emit()
 
 
@@ -484,6 +560,8 @@ func _fit() -> void:
 	_close.position = Vector2(s.end.x - m - _close.size.x, s.position.y + m)
 	_cards.size = _cards.custom_minimum_size
 	_cards.position = _close.position - Vector2(m + _cards.size.x, 0.0)
+	_help.size = _help.custom_minimum_size
+	_help.position = _cards.position - Vector2(m + _help.size.x, 0.0)
 	_hint.size = _hint.get_combined_minimum_size()
 	_hint.position = Vector2(s.position.x + (s.size.x - _hint.size.x) * 0.5, s.end.y - m - _hint.size.y)
 	var below := _head.position.y + _head.size.y + m
@@ -491,7 +569,7 @@ func _fit() -> void:
 		_fit_list(s, m)
 	if _goal.visible:
 		# As wide as its line, but never into the list's card or the buttons: then it wraps.
-		var right := _quests.position.x if _quests.visible else _cards.position.x
+		var right := _quests.position.x if _quests.visible else _help.position.x
 		_wrap_goal(maxf(120.0 * pt, right - m - (s.position.x + m) - 24.0 * pt))
 		_goal.size = _goal.get_combined_minimum_size()
 		_goal.position = Vector2(s.position.x + m, below)
@@ -508,6 +586,7 @@ func _fit() -> void:
 		_note.size = _note.get_combined_minimum_size()
 		_note.position = Vector2(s.position.x + (s.size.x - _note.size.x) * 0.5, s.end.y - m - _note.size.y)
 	_hint.visible = not _note.visible  # the note takes the hint's place for its moment
+	_place_coach()
 	_place()
 
 
@@ -528,10 +607,64 @@ func _fit_list(s: Rect2, m: float) -> void:
 		_quests.reset_size()
 		var chrome := _quests.get_combined_minimum_size().y
 		var want := inner.get_combined_minimum_size().y
-		sc.custom_minimum_size.y = clampf(want, LIST_MIN_ROWS * ROW_H * pt, maxf(LIST_MIN_ROWS * ROW_H * pt, bottom - top - chrome))
+		var avail := bottom - top - chrome
+		var floor_h := LIST_MIN_ROWS * ROW_H * pt
+		var h := clampf(want, floor_h, maxf(floor_h, avail))
+		if want > avail:
+			h = maxf(floor_h, minf(avail, _fold_cut(inner, avail)))
+		sc.custom_minimum_size.y = h
 	_quests.reset_size()
 	_quests.size = _quests.get_combined_minimum_size()
 	_quests.position = Vector2(s.end.x - m - _quests.size.x, top)
+	_update_more()
+
+
+## Where to cut the list's scroll (px from its top, never past `avail`) so a row is cut at the
+## fold and the list reads as scrollable: the first child that runs past `avail` shows between a
+## third and two thirds of itself; when that would leave only a sliver, the one before it is cut.
+func _fold_cut(inner: Control, avail: float) -> float:
+	var gap := float(inner.get_theme_constant("separation"))
+	var y := 0.0
+	var prev_y := -1.0
+	var prev_h := 0.0
+	for c in inner.get_children():
+		var ch := (c as Control).get_combined_minimum_size().y
+		if y + ch > avail:
+			var shown := avail - y
+			if shown >= ch * 0.34:
+				return y + minf(shown, ch * 0.66)
+			if prev_y >= 0.0:
+				return prev_y + prev_h * 0.6
+			return avail
+		prev_y = y
+		prev_h = ch
+		y += ch + gap
+	return avail
+
+
+## The "more below" cue: a fade and a ▼ over the scroll's bottom while there is more under it,
+## gone once the end is in view (and while the ≡ cards hide the list). Every frame the map is open
+## and after a drag; cheap (a few reads).
+func _update_more() -> void:
+	if _more == null:
+		return
+	var sc: ScrollContainer = null
+	if _quests.visible:
+		sc = _quests.find_child("list_scroll", true, false) as ScrollContainer
+	var over := 0.0
+	if sc != null and maxf(sc.size.y, sc.custom_minimum_size.y) > 1.0:
+		# Its size is last frame's until the layout runs; the height the fit asked for stands in.
+		over = (sc.get_child(0) as Control).get_combined_minimum_size().y - maxf(sc.size.y, sc.custom_minimum_size.y)
+	var on := sc != null and over > 2.0 and float(sc.scroll_vertical) < over - 2.0
+	_more.visible = on
+	if not on:
+		return
+	var r := sc.get_global_rect()
+	var fade_h := minf(FADE_H * pt, r.size.y * 0.5)
+	_more.position = Vector2(r.position.x, r.end.y - fade_h) - get_global_rect().position
+	_more.size = Vector2(r.size.x, fade_h)
+	_more_label.size = Vector2(r.size.x, _more_label.get_combined_minimum_size().y)
+	_more_label.position = Vector2(0.0, fade_h - _more_label.size.y)
 
 
 ## The map under the screen's centre and the zoom: the content's transform, the marks redrawn.
@@ -575,6 +708,13 @@ func rects() -> Dictionary:
 		out["districts"] = _list.get_global_rect()
 	if _quests.visible:
 		out["quests"] = _quests.get_global_rect()
+	out["help"] = _help.get_global_rect()
+	if _more.visible:
+		out["more"] = _more.get_global_rect()
+	if _next_card != null and _quests.visible:
+		out["next"] = _next_card.get_global_rect()
+	if _coach.visible:
+		out["coach"] = _coach.get_global_rect()
 	return out
 
 
@@ -740,6 +880,16 @@ func set_steps(left: Array, head: Array, words: Array, friends := true) -> void:
 		_fill_quests()
 
 
+## 2026-11-16: what the NEXT card says once First steps are done (or while no step has a row):
+## the main line's next step as [pl, en] (main_line.gd `step`; empty: no card) and its place on the
+## map (INF: none). Call after open().
+func set_next(words: Array, at := Vector2.INF) -> void:
+	next_words = words
+	next_at = at
+	if _built:
+		_fill_quests()
+
+
 ## First hour step 4: the Collection line ([pl, en]: districts, Syrenki, cassettes); empty until
 ## the first find.
 func set_collection(words: Array) -> void:
@@ -763,6 +913,11 @@ func _section_title(key: String) -> String:
 ## `quest_rows` and `_quest_buttons` hold every tappable row in order (the rivals' chips too).
 func _fill_quests() -> void:
 	var box: VBoxContainer = _quests.get_child(0)
+	var keep := 0
+	var old := _quests.find_child("list_scroll", true, false) as ScrollContainer
+	if old != null:
+		keep = old.scroll_vertical  # a rebuild (a pin, the rivals opened) keeps the place in the list
+	_next_card = null
 	for c in box.get_children():
 		box.remove_child(c)
 		c.queue_free()
@@ -782,6 +937,10 @@ func _fill_quests() -> void:
 		keys.add_theme_font_size_override("font_size", _px(T_SUB))
 		keys.add_theme_color_override("font_color", Gamepad.RING)
 		box.add_child(keys)
+	var nxt := _make_next()
+	if nxt != null:
+		box.add_child(nxt)
+		_next_card = nxt
 	var scroll := ScrollContainer.new()
 	scroll.name = "list_scroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -803,12 +962,19 @@ func _fill_quests() -> void:
 			continue
 		any = true
 		_section_starts.append(quest_rows.size())
-		inner.add_child(_section_label(key))
+		if key == "rivals":
+			var tb := _rivals_row()
+			inner.add_child(tb)
+			if quest_rows.size() - 1 == quest_pad:
+				padded = tb
+		else:
+			inner.add_child(_section_label(key))
 		if key == "steps" and promise.size() == 2:
 			inner.add_child(_words(Lang.pick(str(promise[0]), str(promise[1])), "promise"))
 		if key == "rivals":
-			padded = _add_chips(inner, padded)
-			if final_line.size() == 2 and rows.is_empty():
+			if _rivals_open:
+				padded = _add_chips(inner, padded)
+			if _rivals_open and final_line.size() == 2 and rows.is_empty():
 				var fl := _words(str(final_line[0]), "final_line")
 				fl.add_theme_color_override("font_color", LADDER_COLOURS.get(str(final_line[1]), Color.WHITE))
 				inner.add_child(fl)
@@ -837,8 +1003,15 @@ func _fill_quests() -> void:
 	_quests.reset_size()
 	_quests.visible = not cards_shown and _has_quests()
 	_fit()
+	if keep > 0:
+		scroll.set_deferred("scroll_vertical", keep)
 	if padded != null:
 		scroll.ensure_control_visible.call_deferred(padded)
+	if _reveal_chips:
+		_reveal_chips = false
+		var grid := inner.find_child("rival_chips", false, false) as Control
+		if grid != null:
+			scroll.ensure_control_visible.call_deferred(grid)
 
 
 ## A section's title in the list: small gold capitals.
@@ -914,6 +1087,120 @@ func _add_chips(inner: VBoxContainer, padded: Button) -> Button:
 				padded = b
 		grid.add_child(b)
 	return padded
+
+
+## The Rivals section's one row, "RYWALE 1/6 ›": a tap opens the six chips under it, again folds them.
+func _rivals_row() -> Button:
+	var t := _section_title("rivals")
+	var r := Lines.entry("rivals_toggle", "rival", Lines.Line.CAR, t, t, Vector2.INF, RIVAL_COLOUR, RIVALS_TOGGLE)
+	r["far"] = ["", ""]
+	var b := _row_button(r, quest_rows.size())
+	b.name = "rivals_toggle"
+	if _rivals_open:
+		b.text = t + " ▲"
+	return b
+
+
+## The NEXT card, pinned above the list's scroll (the list's first thing, whatever it is scrolled
+## to): while First steps are not all done, their header ("First steps 2/7") and the nearest step,
+## tappable like its row below; after them the main line's next step (`set_next`: the next rival,
+## the respect to earn, the final). None while something runs (only Now shows) or with nothing to say.
+func _make_next() -> PanelContainer:
+	if list_sections.is_empty() or str(list_sections[0]["key"]) == "now":
+		return null
+	var head := ""
+	var row: Dictionary = {}
+	var words := ""
+	var first: Dictionary = list_sections[0]
+	if str(first["key"]) == "steps" and not (first["rows"] as Array).is_empty():
+		head = _section_title("steps")
+		row = (first["rows"] as Array)[0]
+	elif next_words.size() == 2 and str(next_words[0]) != "":
+		head = Hints.words_of("next_head")
+		words = Lang.pick(str(next_words[0]), str(next_words[1]))
+	else:
+		return null
+	var card := PanelContainer.new()
+	card.name = "next_card"
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.2, 0.16, 0.04, 0.96)
+	sb.set_corner_radius_all(_px(8))
+	sb.border_color = GOLD
+	sb.set_border_width_all(_px(2))
+	sb.set_content_margin_all(6.0 * pt)
+	card.add_theme_stylebox_override("panel", sb)
+	card.custom_minimum_size.y = ROW_H * pt
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", int(2.0 * pt))
+	card.add_child(v)
+	var hl := Label.new()
+	hl.name = "next_head"
+	hl.text = head
+	hl.add_theme_font_size_override("font_size", _px(T_SUB))
+	hl.add_theme_color_override("font_color", GOLD)
+	v.add_child(hl)
+	var w := (QUEST_W - 16.0) * pt
+	if not row.is_empty():
+		var nm := Lang.pick(str(row["pl"]), str(row["en"]))
+		if bool(row.get("label", false)):
+			var l := _words("○ " + nm, "next_words")
+			l.custom_minimum_size.x = w
+			v.add_child(l)
+		else:
+			var far := Lang.pick(str(row["far"][0]), str(row["far"][1]))
+			v.add_child(_next_button(("○ %s · %s" % [nm, far]) if far != "" else ("○ %s ›" % nm), Access.tint(row["colour"]),
+					_next_tapped.bind(str(row["id"]))))
+	elif next_at != Vector2.INF:
+		v.add_child(_next_button(words + " ›", MainLine.COLOUR, _next_look))
+	else:
+		var l := _words(words, "next_words")
+		l.custom_minimum_size.x = w
+		v.add_child(l)
+	return card
+
+
+## The NEXT card's tappable line: `col`'s rim on its left, MIN_TOUCH tall, `then` on a tap.
+func _next_button(text: String, col: Color, then: Callable) -> Button:
+	var b := Button.new()
+	b.name = "next_row"
+	b.focus_mode = Control.FOCUS_NONE
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.clip_text = true
+	b.custom_minimum_size = Vector2(QUEST_W - 16.0, ROW_H) * pt
+	b.add_theme_font_size_override("font_size", _px(T_SUB))
+	b.text = text
+	for k in ["font_color", "font_hover_color", "font_pressed_color"]:
+		b.add_theme_color_override(k, Color("#fbf7ee"))
+	for st in ["normal", "hover", "pressed", "focus"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = col.darkened(0.55) if st == "pressed" else Color(0.12, 0.11, 0.17, 0.9)
+		sb.set_corner_radius_all(_px(6))
+		sb.border_color = col
+		sb.border_width_left = _px(6)
+		sb.content_margin_left = 12.0 * pt
+		sb.content_margin_right = 6.0 * pt
+		b.add_theme_stylebox_override(st, sb)
+	b.pressed.connect(then)
+	return b
+
+
+## A tap on the NEXT card's step: the same as a tap on its row in the list below.
+func _next_tapped(id: String) -> void:
+	if _dragged():
+		return
+	for i in quest_rows.size():
+		if str(quest_rows[i]["id"]) == id:
+			pick_row(i)
+			return
+
+
+## A tap on the NEXT card's main line step: the map looks at its place.
+func _next_look() -> void:
+	if _dragged() or next_at == Vector2.INF:
+		return
+	centre = next_at
+	_place()
 
 
 ## The night button under the rivals: the final waits for the night (critique point 5).
@@ -1111,6 +1398,12 @@ func pick_row(i: int) -> void:
 			print("full map: the collection's cards")
 			show_cards(true)
 			return
+		RIVALS_TOGGLE:
+			_rivals_open = not _rivals_open
+			_reveal_chips = _rivals_open
+			print("full map: the rivals %s" % ("open" if _rivals_open else "folded"))
+			_fill_quests()
+			return
 	if str(r["action"]) != "":
 		print("full map: quest request %s" % r["id"])
 		quest_picked.emit(r)
@@ -1122,6 +1415,7 @@ func pick_row(i: int) -> void:
 		quest_picked.emit({})
 	else:
 		quest_pick = r
+		_did_pin = true
 		centre = r["at"]
 		print("full map: quest pin %s at %.0f, %.0f" % [r["id"], r["at"].x, r["at"].y])
 		quest_picked.emit(r)
@@ -1346,6 +1640,8 @@ func on_map(p: Vector2) -> bool:
 func _process(dt: float) -> void:
 	if not visible:
 		return
+	_update_more()
+	_coach_frame(dt)
 	if _quit_armed > 0.0:
 		_quit_armed -= dt
 		if _quit_armed <= 0.0 and _built:
@@ -1365,6 +1661,78 @@ func _process(dt: float) -> void:
 	if _hold_t >= HOLD_S:
 		_finish_hold()
 	_overlay.queue_redraw()
+
+
+## 2026-11-16: the coach marks (hints.gd `map_tick`) while the map is open: scroll the list, hold a
+## spot, tap a place; each goes when the player does it. The game is paused under the map, so the
+## words are a card of the map's own (`_coach`), not hud.gd's spotlight. Off for a run without hints
+## (the bench, the demo, --no-hints) unless the "?" asked for them.
+func _coach_frame(dt: float) -> void:
+	if hints == null or not _built or (hints.off and not _replay):
+		_coach.visible = false
+		return
+	var has_place := false
+	for r: Dictionary in quest_rows:
+		if r["at"] != Vector2.INF and str(r["action"]) == "":
+			has_place = true
+			break
+	var f := {"scrollable": _more.visible, "has_place": has_place, "cards": cards_shown, "replay": _replay,
+			"did_scroll": _did_scroll, "did_hold": _did_hold, "did_pin": _did_pin}
+	var before := hints.coach
+	var id := hints.map_tick(dt, f)
+	if id == "" and _replay:
+		_replay = false
+		hints.map_reset()
+	if id != before:
+		_did_scroll = false  # a mark waits for the thing done after it came up
+		_did_hold = false
+		_did_pin = false
+	_place_coach()
+	if _coach.visible:
+		_coach.modulate.a = 0.82 + 0.18 * sin(float(Time.get_ticks_msec()) * 0.006)
+
+
+## The coach mark's card: beside the list for the list and the pin, over the hold hint for the hold.
+func _place_coach() -> void:
+	var id := hints.coach if hints != null else ""
+	_coach.visible = id != "" and _built
+	if not _coach.visible:
+		return
+	var lbl := (_coach.get_child(0) as VBoxContainer).get_child(0) as Label
+	lbl.text = Hints.words_of(id) + ("" if id == "map_hold" else " ›")
+	_coach.size = _coach.get_combined_minimum_size()
+	var s := safe if safe.has_area() else Rect2(Vector2.ZERO, _view())
+	var m := 8.0 * pt
+	var at := Vector2(s.position.x + (s.size.x - _coach.size.x) * 0.5, _hint.position.y - m - _coach.size.y)
+	if id != "map_hold" and _quests.visible:
+		var sc := _quests.find_child("list_scroll", true, false) as ScrollContainer
+		var r := sc.get_global_rect() if sc != null else _quests.get_global_rect()
+		var y := r.position.y + (r.size.y - _coach.size.y) * 0.5
+		if id == "map_pin":
+			for i in mini(quest_rows.size(), _quest_buttons.size()):
+				if quest_rows[i]["at"] != Vector2.INF and str(quest_rows[i]["action"]) == "":
+					y = _quest_buttons[i].get_global_rect().get_center().y - _coach.size.y * 0.5
+					break
+			y = clampf(y, r.position.y, maxf(r.position.y, r.end.y - _coach.size.y))
+		at = Vector2(_quests.position.x - m - _coach.size.x, y)
+	at.x = clampf(at.x, s.position.x + m, maxf(s.position.x + m, s.end.x - m - _coach.size.x))
+	at.y = clampf(at.y, s.position.y + m, maxf(s.position.y + m, s.end.y - m - _coach.size.y))
+	_coach.position = at
+
+
+## The "?" button: the coach marks again, one at a time, whether seen or not (the save is not
+## touched); the ≡ cards go so the list is there to point at.
+func replay_coach() -> void:
+	if hints == null:
+		return
+	if cards_shown:
+		show_cards(false)
+	hints.map_reset()
+	_replay = true
+	_did_scroll = false
+	_did_hold = false
+	_did_pin = false
+	print("full map: coach marks replay")
 
 
 ## The gamepad follow-ups: the stick pans, RT / LT zoom about the centre (the cross); a move
@@ -1388,6 +1756,7 @@ func _start_hold(index: int, at: Vector2) -> void:
 	_hold_index = -1
 	if not on_map(to_map(at)):
 		return
+	_did_hold = true
 	var why: Array = can_teleport.call() if can_teleport.is_valid() else []
 	if not why.is_empty():
 		_say(why)
@@ -1425,6 +1794,9 @@ func _drag_quests(dy: float) -> void:
 	var sc := _quests.find_child("list_scroll", true, false) as ScrollContainer
 	if sc != null:
 		sc.scroll_vertical -= int(dy)
+		if int(dy) != 0:
+			_did_scroll = true
+		_update_more()
 
 
 func _cancel_hold() -> void:
@@ -1522,6 +1894,7 @@ func _input(event: InputEvent) -> void:
 		var t := event as InputEventScreenTouch
 		if t.pressed:
 			if _close.get_global_rect().has_point(t.position) or _cards.get_global_rect().has_point(t.position) \
+					or _help.get_global_rect().has_point(t.position) \
 					or (_quests.visible and _quests.get_global_rect().has_point(t.position)):
 				# F 2026-11-08: a finger dragged on the list scrolls it (the bar alone was too thin).
 				_qdrag = t.index if _quests.visible and _quests.get_global_rect().has_point(t.position) else -1

@@ -24,6 +24,10 @@
 		"minimap": {"pl": "Dotknij mapy: cała Warszawa", "en": "Tap the map: all of Warsaw"},
 		"heli": {"pl": "Dach? Weź helikopter", "en": "Roof? Take the helicopter"},
 		"climb": {"pl": "Trzymaj: w górę i w dół", "en": "Hold: up and down"},
-		"land": {"pl": "Wyląduj przy osobie", "en": "Land by the person"}
+		"land": {"pl": "Wyląduj przy osobie", "en": "Land by the person"},
+		"map_list": {"pl": "Przewiń listę: jest tego więcej", "en": "Scroll the list: there is more"},
+		"map_hold": {"pl": "Przytrzymaj mapę, by tam skoczyć", "en": "Hold the map to jump there"},
+		"map_pin": {"pl": "Dotknij miejsca, by przypiąć cel", "en": "Tap a place to pin it"},
+		"next_head": {"pl": "NASTĘPNE", "en": "NEXT"}
 	}
 }
