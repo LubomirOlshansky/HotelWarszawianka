@@ -68,7 +68,7 @@ func _reasons() -> void:
 	var seen := {}
 	for n in names:
 		seen[n] = true
-	_ok(seen.size() == 4, "the four reasons are not four different names: %s" % [names])
+	_ok(seen.size() == 5, "the five reasons are not five different names: %s" % [names])
 	var p := PauseReasons.new(self)
 	_ok(not paused and p.still() == "" and not p.held(PauseReasons.LOAD), "a new owner: something is held, or the tree is paused")
 	# Two reasons, the first let go first (the garage card, then the map over it, the card closed first).
