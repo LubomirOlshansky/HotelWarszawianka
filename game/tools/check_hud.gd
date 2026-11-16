@@ -37,6 +37,7 @@ const Wallet := preload("res://scripts/wallet.gd")
 const EggBook := preload("res://scripts/egg_book.gd")
 const Tape := preload("res://scripts/tape.gd")
 const Fotka := preload("res://scripts/fotka.gd")
+const MainLine := preload("res://scripts/main_line.gd")
 ## The garage loop: Warsztat u Mirka's paint card (garage.gd, garage_card.gd).
 const Garage := preload("res://scripts/garage.gd")
 const Ladder := preload("res://scripts/ladder.gd")
@@ -53,6 +54,15 @@ const MIN_LABEL := 11.0
 const MIN_BODY := 13.0
 
 var problems: Array[String] = []
+## The choice card's owner in the "choice card" state: remembers the index its card's ✕ pressed.
+var _closer := Closer.new()
+
+
+class Closer extends RefCounted:
+	var got := -1
+
+	func card_pressed(index: int) -> void:
+		got = index
 var verbose := false
 var _speakers := {}
 ## Passing panels (the radio ticker, the note and landmark cards) and the performance overlay
@@ -239,7 +249,7 @@ func _check_screen(screen: Vector2i) -> int:
 		for state in ["car, Point", "car, Classic", "car, Classic slider", "helicopter", "call came in", "call card", "rescued, paid",
 				"rescue, host, egg", "kebab offer", "kebab delivery", "race", "rival ahead", "landmark card", "note card", "tow toast",
 				"police chase", "lizak", "pull-over",
-				"ride offer", "ride", "ride result", "ride result, police", "phone call", "quest offer", "drag shift"]:
+				"ride offer", "ride", "ride result", "ride result, police", "phone call", "quest offer", "drag shift", "choice card"]:
 			if perf and not state in ["car, Point", "call card", "rescue, host, egg", "kebab offer", "kebab delivery", "landmark card"]:
 				continue
 			if mode == "no-touch" and not state in ["car, Point", "car, Classic", "helicopter", "kebab offer", "pull-over", "ride offer"]:
@@ -247,7 +257,7 @@ func _check_screen(screen: Vector2i) -> int:
 			if mode == "left-handed" and not state in ["car, Point", "car, Classic", "car, Classic slider", "helicopter", "rescue, host, egg", "kebab offer",
 					"landmark card", "police chase", "pull-over", "ride offer", "ride", "phone call"]:
 				continue
-			if mode == "large-text" and not state in ["car, Point", "call came in", "call card", "rescue, host, egg", "kebab offer",
+			if mode == "large-text" and not state in ["choice card", "car, Point", "call came in", "call card", "rescue, host, egg", "kebab offer",
 					"kebab delivery", "race", "landmark card", "note card", "police chase", "pull-over", "ride offer", "ride", "ride result",
 					"phone call", "quest offer"]:
 				continue
@@ -333,11 +343,11 @@ func _check_screen(screen: Vector2i) -> int:
 				"tow toast":
 					hud.toast("Pomoc drogowa: wyciągnięci!", "Towed free")
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
-				# Loop 3g-1: a koguty 2 chase (the pill and its countdown, the koguty, a megaphone
+				# Loop 3g-1: a koguty 2 chase (the pill and its gap bar, the koguty, a megaphone
 				# bubble, the edge rooster), the lizak's pill, and the pull-over card with two replies.
 				"police chase":
 					hud.set_koguty(2, 1)
-					hud.police_pill("SZUKAJĄ CIĘ · KONIEC ZMIANY ZA 0:27", "SEARCHING · END OF SHIFT IN 0:27")
+					hud.police_pill("UCIEKAJ", "GET AWAY", 0.6, 1)
 					hud.police_fx(1.0, PackedVector2Array([at.call(0.5, 1.3)]), Vector2.INF)
 					_say(bubbles, "Policja", at.call(0.5, 0.72), "Proszę się zatrzymać! Albo chociaż zwolnić, będzie miło.",
 							"Please stop! Or at least slow down, that would be nice.")
@@ -398,6 +408,13 @@ func _check_screen(screen: Vector2i) -> int:
 					hud.show_call("Darek „Bawarka”|Darek \"Bawarka\"", "Z pracy. Bluza klubowa przed pierwszym meczem.",
 							Color("#4fd8c4"), "From work. Club hoodie before her first match.")
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
+				"choice card":
+					# First hour step 6: the choice card with its three picks and the ✕ for "just drive".
+					hud.show_card("OD CZEGO ZACZYNASZ?", "Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty.",
+							PackedStringArray(["WYŚCIG|RACE", "KURSY|RIDES", "LOT|FLY"]), Color("#ffd23f"), false,
+							"Where do you start?", "Six rivals. Beat them all and win Trzy mosty.")
+					hud.own_card(_closer)
+					hud.set_card_close(3)
 				"quest offer":
 					hud.show_side_card("📞 IVAN", "„Siema! Szisza dziś? Podjedź po mnie pod 19. Dzielnicę, weźmiemy jeszcze Bogdana z kortu. Ma być spokojnie.”",
 							PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]), Color("#7fd4a0"), "Ivan",
@@ -420,6 +437,8 @@ func _check_screen(screen: Vector2i) -> int:
 						problems.append("%s: no round button %d" % [w, i])
 					elif b.size.x < 44.0 * pt - 0.5 or b.size.y < 44.0 * pt - 0.5:
 						problems.append("%s: round button %d is under 44 pt" % [w, i])
+			if state == "choice card":
+				_check_card_close(hud, safe, pt, "%s choice card%s" % [tag, " + " + mode if mode != "" else ""])
 			if state == "quest offer":
 				var f := hud.get("_card_face") as Control
 				if f == null or not f.is_visible_in_tree():
@@ -560,7 +579,8 @@ func _check_full_map(hud: CanvasLayer, tag: String) -> int:
 	if tapped[0] != 1:
 		problems.append("%s: a tap on the minimap emitted map_pressed %d times (want 1)" % [where, tapped[0]])
 	# The main line (main_line.gd): its star and its longest goal line, the card under the title.
-	hud.set_main_line(Vector2(300.0, -200.0), "Zdobądź szacunek: 1000/1000, potem Taksiarz Zbyszek",
+	hud.markers.put_all("main", MainLine.map_marks(Vector2(300.0, -200.0)))
+	hud.set_main_goal("Zdobądź szacunek: 1000/1000, potem Taksiarz Zbyszek",
 			"Earn respect: 1000/1000, then Taksiarz Zbyszek")
 	hud.open_full_map(Vector2(10.0, 20.0), 0.5, PackedVector2Array([Vector2(100.0, 50.0)]))
 	await process_frame
@@ -569,25 +589,24 @@ func _check_full_map(hud: CanvasLayer, tag: String) -> int:
 	if not fm.rects().has("goal"):
 		problems.append("%s: no goal card for the main line" % where)
 	await _check_quest_card(fm, where, pt, safe)
-	# Loop 3h slice 3: the DRABINKA card (a ladder half way up, the longest rows).
-	var lw := Wallet.new()
-	lw.persistent = false
-	var ld := Ladder.new()
-	ld.wallet = lw
-	ld.preset(3)
-	fm.set_ladder(ld.rows(false))
-	lw.free()
+	# Loop 3h slice 1: the DISTRICTS card behind the ≡ button (the rivals are in the one list since
+	# first hour step 4).
+	var dv: Array[Dictionary] = []
+	for i in 8:
+		dv.append({"name_pl": "Śródmieście Północne %d" % i, "name_en": "North City Centre %d" % i, "pct": 40, "found": i % 2 == 0,
+				"at": Vector2(100.0 * i, 0.0), "polys": []})
+	fm.set_districts(dv, 21, 2, 10)
 	await process_frame
-	if fm.rects().has("ladder"):
+	if fm.rects().has("districts"):
 		problems.append("%s: the cards show before the ≡ is pressed" % where)
 	(fm.get("_cards") as Button).pressed.emit()  # 2026-10-31: the cards behind the ≡ button
 	await process_frame
 	var rs: Dictionary = fm.rects()
 	_check_touch(where + " close", rs["close"], pt, safe)
 	_check_touch(where + " cards", rs["cards"], pt, safe)
-	if not rs.has("ladder"):
-		problems.append("%s: no ladder card" % where)
-	for k in ["head", "hint", "ladder", "cards", "goal", "legend"]:
+	if not rs.has("districts"):
+		problems.append("%s: no districts card behind the ≡" % where)
+	for k in ["head", "hint", "districts", "cards", "goal", "legend"]:
 		if not rs.has(k):
 			continue
 		if not safe.grow(0.5).encloses(rs[k]):
@@ -640,17 +659,23 @@ func _check_full_map(hud: CanvasLayer, tag: String) -> int:
 	return 1
 
 
-## G12 part 2: the ZADANIA card (full_map.gd `set_quests`) with the longest names: inside the safe
-## area, clear of the other cards, its tabs and rows MIN_TOUCH tall; the HELI tab lists only heli
-## quests; a tapped place becomes the pin and emits it, tapped again the pin goes; a request emits
-## and closes the map; the ≡ cards take its place.
+## G12 part 2 and first hour step 4: the one list (full_map.gd `set_quests`, `set_steps`,
+## `set_rivals`, `set_collection`) with the longest names: inside the safe area (its scroll takes
+## the rest), clear of the other cards, its rows and chips MIN_TOUCH tall; the sections in order
+## (First steps with only three steps, Rivals, Around town with one row per kind, the vehicle's own
+## first; Friends only once opened; Collection only after a find); a tapped place becomes the pin
+## and emits it, tapped again the pin goes; a request emits and closes the map; a rival's chip
+## calls them out; the ≡ cards take its place; the pad's X jumps sections.
 func _check_quest_card(fm: Control, where: String, pt: float, safe: Rect2) -> void:
 	const L := preload("res://scripts/quest_lines.gd")
+	const FS := preload("res://scripts/first_steps.gd")
 	var e: Array = [
 		L.entry("ride", "ride", L.Line.CAR, "Podwózka · poproś o kurs", "Podwózka · ask for a ride", Vector2.INF,
 				Color("#4fd8c4"), "ride"),
 		L.entry("garage", "garage", L.Line.CAR, "Warsztat u Mirka", "Mirek's garage", Vector2(400, 300), Color("#5aa0ff")),
 		L.entry("k", "kebab", L.Line.CAR, "Kebab · Zakwas I Rożen", "Kebab · Zakwas I Rożen", Vector2(-1800, -2400),
+				Color("#ff8a3d")),
+		L.entry("k2", "kebab", L.Line.CAR, "Kebab · Pod Kogutem", "Kebab · Pod Kogutem", Vector2(-1900, -2500),
 				Color("#ff8a3d")),
 		L.entry("s", "sloik", L.Line.CAR, "Słoiki · Dworzec Gdański", "Jars · Dworzec Gdański", Vector2(-2000, -2700),
 				Color("#4fd8c4")),
@@ -658,79 +683,163 @@ func _check_quest_card(fm: Control, where: String, pt: float, safe: Rect2) -> vo
 				Vector2.INF, L.HELI_COLOUR, "call"),
 		L.entry("c1", "cassette", L.Line.HELI, "Kaseta · Dach Pałacu Kultury", "Cassette · The Palace roof",
 				Vector2(900, -100), Color("#ff5fa2")),
+		L.entry("story_a", "story", L.Line.STORY, "Wątek · Szisza u Dżemiego", "Story · Shisha at Dżemi's",
+				Vector2(300, 300), L.STORY_COLOUR, "story"),
 	]
+	var steps: Array = []
+	for id: String in FS.IDS:
+		var nm: Array = FS.name_of(id)
+		var en: Dictionary = {"kebab": e[2], "ride": e[0], "garage": e[1]}.get(id, {})
+		steps.append({"id": id, "pl": nm[0], "en": nm[1], "entry": en})
+	var chips: Array = []
+	for i in 6:
+		chips.append({"rung": i, "short": ["HALINA", "SŁOIK", "BARTEK", "SEBA", "ZBYSZEK", "MIKE"][i],
+				"state": ["won", "open", "open", "open", "open", "locked"][i], "pips": "•".repeat(i + 1)})
+	fm.set_steps(steps, ["PIERWSZE KROKI 0/7", "First steps 0/7"], FS.words("promise"), false)
+	fm.set_rivals(chips, ["RYWALE 1/6", "RIVALS 1/6"], ["· Finał · Trzy mosty · 2000 zł · po sześciu wygranych",
+			"· Final · Three Bridges · 2000 zł · after all six"], false)
+	fm.set_collection([])
 	fm.set_quests(e, L.Line.CAR)
 	await process_frame
 	var rs: Dictionary = fm.rects()
 	if not rs.has("quests"):
-		problems.append("%s: no ZADANIA card" % where)
+		problems.append("%s: no list card" % where)
 		return
 	if not safe.grow(0.5).encloses(rs["quests"]):
-		problems.append("%s: the ZADANIA card %s is outside the safe area %s" % [where, _pts(rs["quests"], pt), _pts(safe, pt)])
+		problems.append("%s: the list card %s is outside the safe area %s" % [where, _pts(rs["quests"], pt), _pts(safe, pt)])
 	for k in rs:
 		if k != "quests" and (rs[k] as Rect2).intersects(rs["quests"]):
-			problems.append("%s: the ZADANIA card and %s overlap" % [where, k])
-	var tabs: Array = fm.get("_tab_buttons")
+			problems.append("%s: the list card and %s overlap" % [where, k])
+	var keys: Array = fm.list_sections.map(func(x: Dictionary) -> String: return str(x["key"]))
+	if keys != ["steps", "rivals", "town", "collection"]:
+		problems.append("%s: the list's sections are %s (want steps, rivals, town; no friends before the third step)" % [where, keys])
+	var shown_steps: Array = (fm.list_sections[0]["rows"] as Array)
+	if shown_steps.size() != L.STEPS_SHOWN or str(shown_steps[0].get("step", "")) != "garage":
+		problems.append("%s: First steps shows %s (want 3, the nearest place first: the garage)" % [where,
+				shown_steps.map(func(x: Dictionary) -> String: return str(x.get("step", "")))])
+	if fm.get("_quests").find_child("promise", true, false) == null:
+		problems.append("%s: no promise line under First steps" % where)
+	var town: Array = fm.list_sections[2]["rows"]
+	var town_ids: Array = town.map(func(x: Dictionary) -> String: return str(x["id"]))
+	if town_ids != ["call", "s", "c1"]:
+		problems.append("%s: Around town lists %s (want the requests, then the car's places one per kind, then the heli's; none First steps shows)" % [where, town_ids])
 	var rows: Array = fm.get("_quest_buttons")
-	if rows.size() != 4:
-		problems.append("%s: the car tab shows %d rows (want 4)" % [where, rows.size()])
-	for b: Button in tabs + rows:
+	for b: Button in rows:
 		if b.get_global_rect().size.y < MIN_TOUCH * pt - 0.5:
-			problems.append("%s: ZADANIA %s is %.0f pt tall (< %d)" % [where, b.name, b.get_global_rect().size.y / pt, MIN_TOUCH])
+			problems.append("%s: list %s is %.0f pt tall (< %d)" % [where, b.name, b.get_global_rect().size.y / pt, MIN_TOUCH])
+	var chip0 := fm.get("_quests").find_child("rival_5", true, false) as Button
+	if chip0 == null or not chip0.disabled:
+		problems.append("%s: a locked rival's chip is missing or tappable" % where)
 	_check_fonts(fm.get("_quests"), where + " quests", pt)
-	(tabs[1] as Button).pressed.emit()
+	var sc := fm.get("_quests").find_child("list_scroll", true, false) as ScrollContainer
+	if sc == null:
+		problems.append("%s: the list has no scroll" % where)
+	# Friends open after the third step: the questline joins the list.
+	fm.set_steps(steps.slice(3), ["PIERWSZE KROKI 3/7", "First steps 3/7"], FS.words("promise"), true)
 	await process_frame
-	if fm.quest_line != L.Line.HELI or not fm.quest_rows.all(func(r: Dictionary) -> bool: return int(r["line"]) == L.Line.HELI):
-		problems.append("%s: the HELI tab lists car quests" % where)
+	keys = fm.list_sections.map(func(x: Dictionary) -> String: return str(x["key"]))
+	if not "friends" in keys:
+		problems.append("%s: no Friends section after the third step (%s)" % [where, keys])
+	if not safe.grow(0.5).encloses(fm.rects().get("quests", Rect2())):
+		problems.append("%s: the longer list %s is outside the safe area" % [where, _pts(fm.rects().get("quests", Rect2()), pt)])
+	# A find: the Collection row; tapped, the ≡ cards.
+	fm.set_collection(["Dzielnice 21% · Syrenki 2/10 · Kasety 1/5", "Districts 21% · Syrenki 2/10 · Tapes 1/5"])
+	await process_frame
+	var ci := -1
+	for i in fm.quest_rows.size():
+		if str(fm.quest_rows[i]["id"]) == "collection":
+			ci = i
+	if ci < 0:
+		problems.append("%s: no Collection row after a find" % where)
+	else:
+		fm.pick_row(ci)
+		await process_frame
+		if not fm.cards_shown or fm.rects().has("quests"):
+			problems.append("%s: the Collection row did not open the ≡ cards" % where)
+		(fm.get("_cards") as Button).pressed.emit()
+		await process_frame
+	fm.set_steps(steps, ["PIERWSZE KROKI 0/7", "First steps 0/7"], FS.words("promise"), false)
+	fm.set_collection([])
+	await process_frame
 	var got: Array = []
 	var on_pick := func(x: Dictionary) -> void: got.append(x)
 	fm.quest_picked.connect(on_pick)
-	fm.pick_row(1)  # the cassette
+	var called: Array = []
+	var on_rival := func(r: int) -> void: called.append(r)
+	fm.rival_called.connect(on_rival)
+	var cass := -1
+	for i in fm.quest_rows.size():
+		if str(fm.quest_rows[i]["id"]) == "c1":
+			cass = i
+	fm.pick_row(cass)  # the cassette
 	if got.size() != 1 or str(got[0].get("id", "")) != "c1" or str(fm.quest_pick.get("id", "")) != "c1" \
 			or fm.centre.distance_to(Vector2(900, -100)) > 1.0:
 		problems.append("%s: a tapped place did not become the pin %s" % [where, got])
-	fm.pick_row(1)
+	fm.pick_row(cass)
 	if got.size() != 2 or not (got[1] as Dictionary).is_empty() or not fm.quest_pick.is_empty():
 		problems.append("%s: a second tap did not take the pin off" % where)
 	(fm.get("_cards") as Button).pressed.emit()
 	await process_frame
 	if fm.rects().has("quests"):
-		problems.append("%s: the ZADANIA card stays under the ≡ cards" % where)
+		problems.append("%s: the list stays under the ≡ cards" % where)
 	(fm.get("_cards") as Button).pressed.emit()
 	await process_frame
-	fm.pick_row(0)  # the rescue call: a request closes the map
-	if got.size() != 3 or str(got[2].get("action", "")) != "call" or fm.visible:
+	var bartek := -1
+	for i in fm.quest_rows.size():
+		if str(fm.quest_rows[i]["id"]) == "rival_2":
+			bartek = i
+	fm.pick_row(bartek)  # a rival's chip: called out, the map closes
+	if called != [2] or fm.visible:
+		problems.append("%s: a rival's chip did not call them out and close the map (%s)" % [where, called])
+	var hud0: CanvasLayer = fm.hud
+	hud0.open_full_map(Vector2(10.0, 20.0), 0.5, PackedVector2Array([Vector2(100.0, 50.0)]))
+	fm.set_quests(e, L.Line.CAR)
+	await process_frame
+	var ride := -1
+	for i in fm.quest_rows.size():
+		if str(fm.quest_rows[i]["id"]) == "ride":
+			ride = i
+	fm.pick_row(ride)  # the ride request: a request closes the map
+	if got.size() != 3 or str(got[2].get("action", "")) != "ride" or fm.visible:
 		problems.append("%s: a request did not emit and close the map" % where)
-	# G12b: the pad's way into the card: X switches the tab and picks its first row, the D-pad
-	# moves the pick (a place centres the map), Y takes it; the pad's words show on the card.
+	# G12b: the pad's way into the list: X jumps to the next section's first row, the D-pad moves
+	# the pick (a place centres the map), Y takes it; the pad's words show on the card.
 	hud_pad(true)
-	(fm.hud as CanvasLayer).open_full_map(Vector2(10.0, 20.0), 0.5, PackedVector2Array([Vector2(100.0, 50.0)]))
+	hud0.open_full_map(Vector2(10.0, 20.0), 0.5, PackedVector2Array([Vector2(100.0, 50.0)]))
 	fm.set_quests(e, L.Line.CAR)
 	await process_frame
 	if fm.get("_quests").find_child("pad_keys", true, false) == null:
-		problems.append("%s: the ZADANIA card shows no pad keys while the pad is used" % where)
+		problems.append("%s: the list shows no pad keys while the pad is used" % where)
 	var rs_pad: Dictionary = fm.rects()
 	if rs_pad.has("quests") and not safe.grow(0.5).encloses(rs_pad["quests"]):
-		problems.append("%s: the ZADANIA card with the pad's keys %s is outside the safe area" % [where, _pts(rs_pad["quests"], pt)])
-	_pad_press(fm, JOY_BUTTON_X)
-	if fm.quest_line != L.Line.HELI or fm.quest_pad != 0:
-		problems.append("%s: pad X did not switch to HELI with row 0 picked (%d, %d)" % [where, fm.quest_line, fm.quest_pad])
+		problems.append("%s: the list with the pad's keys %s is outside the safe area" % [where, _pts(rs_pad["quests"], pt)])
 	_pad_press(fm, JOY_BUTTON_DPAD_DOWN)
-	if fm.quest_pad != 1 or fm.centre.distance_to(Vector2(900, -100)) > 1.0:
+	if fm.quest_pad != 0:
+		problems.append("%s: pad down did not pick the first row (%d)" % [where, fm.quest_pad])
+	_pad_press(fm, JOY_BUTTON_X)
+	var starts: Array = fm.get("_section_starts")
+	if starts.size() < 2 or fm.quest_pad != int(starts[1]):
+		problems.append("%s: pad X did not jump to the next section (%d, starts %s)" % [where, fm.quest_pad, starts])
+	fm.quest_pad = cass - 1
+	_pad_press(fm, JOY_BUTTON_DPAD_DOWN)
+	if fm.quest_pad != cass or fm.centre.distance_to(Vector2(900, -100)) > 1.0:
 		problems.append("%s: pad down did not pick the cassette and look at it (%d)" % [where, fm.quest_pad])
 	var before := got.size()
 	_pad_press(fm, JOY_BUTTON_Y)
 	if got.size() != before + 1 or str(fm.quest_pick.get("id", "")) != "c1":
 		problems.append("%s: pad Y did not take the picked row" % where)
+	fm.quest_pad = 0
 	_pad_press(fm, JOY_BUTTON_DPAD_UP)
-	_pad_press(fm, JOY_BUTTON_DPAD_UP)
-	if fm.quest_pad != 1:
+	if fm.quest_pad != fm.quest_rows.size() - 1:
 		problems.append("%s: pad up did not wrap round (%d)" % [where, fm.quest_pad])
-	# G12c: the quest under way: one row, tapped it only looks at the target.
+	# G12c: the quest under way: only Now, one row, tapped it only looks at the target.
 	var now := L.entry("now", "now", L.Line.CAR, "Teraz · zlecenie na czasie", "Now · on-trend job", Vector2(-600, 200),
 			Color("#ff7ac8"), L.NOW)
 	fm.set_quests([now], L.Line.CAR)
 	await process_frame
+	keys = fm.list_sections.map(func(x: Dictionary) -> String: return str(x["key"]))
+	if keys != ["now"] or fm.quest_rows.size() != 1:
+		problems.append("%s: with something under way the list shows %s, %d rows (want only now)" % [where, keys, fm.quest_rows.size()])
 	var n0 := got.size()
 	fm.pick_row(0)
 	if got.size() != n0 or not fm.visible or fm.centre.distance_to(Vector2(-600, 200)) > 1.0:
@@ -741,7 +850,7 @@ func _check_quest_card(fm: Control, where: String, pt: float, safe: Rect2) -> vo
 	await process_frame
 	var n1 := got.size()
 	fm.set("_qdrag_px", 40.0 * pt)
-	fm.call("_row_tapped", 0)  # the ride request: tapped, it would close the map
+	fm.call("_row_tapped", ride)  # the ride request: tapped, it would close the map
 	if got.size() != n1 or not fm.visible:
 		problems.append("%s: the end of a drag on the list picked a row" % where)
 	fm.set("_qdrag_px", 0.0)
@@ -774,12 +883,14 @@ func _check_quest_card(fm: Control, where: String, pt: float, safe: Rect2) -> vo
 	fm.quit_quest.disconnect(on_quit)
 	fm.quit_what = []
 	fm.quest_picked.disconnect(on_pick)
+	fm.rival_called.disconnect(on_rival)
+	fm.set_steps([], [], [], true)
+	fm.set_rivals([])
 	fm.set_quests([], L.Line.CAR)
-	var hud: CanvasLayer = fm.hud
-	hud.open_full_map(Vector2(10.0, 20.0), 0.5, PackedVector2Array([Vector2(100.0, 50.0)]))
+	hud0.open_full_map(Vector2(10.0, 20.0), 0.5, PackedVector2Array([Vector2(100.0, 50.0)]))
 	await process_frame
 	if verbose:
-		print("  %s: ZADANIA %s" % [where, _pts(rs["quests"], pt)])
+		print("  %s: list %s" % [where, _pts(rs["quests"], pt)])
 
 
 ## G12b: a gamepad button press through the full map's input (as the pad sends it).
@@ -1177,6 +1288,32 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 ## PT-26 (2026-11-07, run 20261106-004005): the roadworks sign's bubble by the start covered the
 ## ghost finger's steering hint. With the finger on, a bubble whose speaker stands right under the
 ## hint (both schemes) keeps off it, and the hint's room goes when the finger does.
+## First hour step 6: the card's ✕ (`set_card_close`) shows on the card, is a full touch target
+## inside the card and the safe area, sends its index to the card's owner, and goes with the card.
+func _check_card_close(hud: CanvasLayer, safe: Rect2, pt: float, where: String) -> void:
+	var x := hud.get("_card_x") as Control
+	var card := hud.get("_card") as Control
+	if x == null or not x.is_visible_in_tree():
+		problems.append("%s: the card's ✕ is not shown" % where)
+		return
+	var r := x.get_global_rect()
+	if r.size.x < MIN_TOUCH * pt - 0.5 or r.size.y < MIN_TOUCH * pt - 0.5:
+		problems.append("%s: the card's ✕ is %.0fx%.0f pt, under 44" % [where, r.size.x / pt, r.size.y / pt])
+	if not card.get_global_rect().grow(1.0).encloses(r) or not safe.grow(1.0).encloses(r):
+		problems.append("%s: the card's ✕ is outside the card or the safe area (%s)" % [where, r])
+	if int(hud.card_close()) != 3:
+		problems.append("%s: card_close() is %d, not 3" % [where, hud.card_close()])
+	_closer.got = -1
+	hud.press_card_close()
+	if _closer.got != 3:
+		problems.append("%s: the ✕ pressed %d for the card's owner, not 3" % [where, _closer.got])
+	# Another card shown takes the ✕ away.
+	hud.show_card("X", "y", PackedStringArray(["OK"]), Color.WHITE)
+	if x.visible or int(hud.card_close()) != -1:
+		problems.append("%s: the next card kept the ✕" % where)
+	hud.hide_card()
+
+
 func _check_finger_hint(hud: CanvasLayer, bubbles: Control, tag: String) -> void:
 	for s in [0, 1, 2]:  # Point, Classic with the arrows, Classic with the slider
 		hud.clear_all()

@@ -24,9 +24,24 @@ extends "res://scripts/activity.gd"
 ## drive into it for his challenge and the countdown, then over three bridges (ordered checkpoints:
 ## the beacon on the next one) to the National Stadium. Checked at 5 Hz (START_EVERY), no per-frame
 ## scans. The win pays Ladder.FINAL_ZL and FINAL_GAIN and records `trzy_mosty` in the save.
+##
+## First hour step 5, "The Six" (F 2026-11-15; the spec "First hour for the beta", section 4, and
+## the critique's points 4 and 5): with ladder.gd ANY_ORDER all six rivals are open from the start
+## and beaten in any order, the final after all six. The RACE prompt comes up for a rival within
+## RACE_REACH m in any direction (`_can_challenge`) and shows its difficulty pips; each rival keeps
+## to its home area (`_home_tick`, out of sight); one picked on the full map's list is called out
+## (`call_out`: it waits near the car in the race beacon's ring, drive in and the race starts). The
+## win card counts "Rywale n/6"; the sixth win offers the night (`night_now`) for the final; the lose
+## card has REWANŻ (`rematch`: the same start, the same finish). `race_over` tells who was raced,
+## won or lost (the First steps list counts a lost race too).
 
 ## Loop 2b: time spent in this script's per-frame work since the bench last read it (µs).
 var spent_usec := 0
+
+## First hour step 5 (The Six): a race against a rival or the final was driven to its end or given
+## up (`who`: the rival's name, "Trzy mosty" for the final): won or lost. The First steps list counts
+## a lost race too (the critique's point 4).
+signal race_over(who: String, won: bool)
 
 const MapMarkers := preload("res://scripts/map_markers.gd")
 const Lang := preload("res://scripts/lang.gd")
@@ -44,6 +59,28 @@ const RaceReport := preload("res://scripts/race_report.gd")
 const RaceSession := preload("res://scripts/race_session.gd")
 
 const CHALLENGE_RANGE := 15.0
+## The Six (first hour step 5, F 2026-11-15; spec section 4 "Found on the street"): with the
+## ladder in any order the RACE prompt comes up for a rival within RACE_REACH m of the car in any
+## direction, moving or not, at about the car's height (RACE_RISE m: never one on the deck above or
+## the street below). The old ladder kept CHALLENGE_RANGE behind the bumper, both moving.
+const RACE_REACH := 35.0
+const RACE_RISE := 5.0
+## Home areas (ladder.gd `den`): every HOME_EVERY s one rival is looked at; one cruising further
+## than Ladder.DEN_RADIUS from its den, more than WAIT_UNSEEN m from the car, is put back on a lane
+## at most HOME_IN m from the den and WAIT_UNSEEN m or more from the car (never in sight).
+const HOME_EVERY := 2.0
+const HOME_IN := 300.0
+## The call-out (spec "Or called out from the list"): picked on the full map's list, the rival
+## waits held on a lane CALL_NEAR to CALL_FAR m from the car, in the race beacon's ring
+## (CALL_RADIUS m); drive into it and the challenge and the countdown start. It gives up after
+## CALL_WAIT s.
+const CALL_NEAR := 120.0
+const CALL_FAR := 280.0
+const CALL_RADIUS := 12.0
+const CALL_WAIT := 300.0
+## After a race's card no RACE prompt for this many seconds (with the wider reach a rival near the
+## finish would pop up at once).
+const PROMPT_REST := 4.0
 ## The finish margin's metres are at most the straight line to the finish times this.
 const MARGIN_DETOUR := 1.4
 const RACE_COLOUR := Color("#ff4fd8")
@@ -251,6 +288,22 @@ var tod: Node
 var final_route: TrzyMosty
 ## The race on now is the final "Trzy mosty".
 var final_on := false
+## The Six: the rival called out from the list and waiting (-1: none), for how long (s), and its
+## spot; whether rivals go back to their home areas (a check turns it off); the night switch the
+## sixth win's card offers (main.gd: the clock to 22:00, the way CZEKAM DO 21:00 does it).
+var called_out := -1
+var _out_t := 0.0
+var _out_pos := Vector3.INF
+var homing := true
+var night_now: Callable
+var _home_t := 0.0
+var _home_i := -1
+var _home_rng := RandomNumberGenerator.new()
+var _rest_t := 0.0
+## The result card's offer ("rematch": the lose card's REWANŻ; "night": the sixth win's NOC; ""),
+## and where the race started (the rival's lane spot, the car, the finish) for the rematch.
+var _card_offer := ""
+var _rematch := {}
 
 ## Loop 3h slice 3: the final's state: checkpoints the player has passed (0-3) and the ghost's leg
 ## (index into final_route.legs). Seba's leg, the legs' distances (computed one a frame during the
@@ -379,6 +432,7 @@ func _init() -> void:
 ## ghost_pace before this.
 func setup(world: Node3D, data := {}) -> void:
 	_rng.seed = 7
+	_home_rng.seed = 11  # its own dice: the races' (`_rng`) draw as before
 	_find_finishes(data)
 	_cuts = RaceCuts.new()
 	_cuts.load_cuts(graph)
@@ -677,7 +731,8 @@ func rung_open(i: int) -> bool:
 
 ## Challenges rival i at once (also the --race flag): they name a finish, count
 ## down and go.
-func start_race(i: int) -> void:
+func start_race(i: int, finish := {}) -> void:
+	end_call_out()
 	_marker(false)
 	_release_seba()
 	final_on = false
@@ -688,11 +743,14 @@ func start_race(i: int) -> void:
 	_caller = -1
 	var d = _drivers[i]
 	var t0 := Time.get_ticks_usec()
-	_finish = _first_finish() if first_race else {}
+	_card_offer = ""
+	_rematch = {"i": i, "spot": [d.edge, d.lane, d.s], "car": car.global_transform, "finish": {}}
+	_finish = _first_finish() if first_race else finish
 	if not _finish.is_empty() and graph.remaining(_distances(_finish["node"]), d.edge, d.s) > FIRST_FAR:
 		_finish = {}  # the player is far from the Palm (another stand's order): a nearer finish, the same tuning
 	if _finish.is_empty():
 		_finish = _pick_finish(d)
+	_rematch["finish"] = _finish
 	# A course of one leg to the finish's circle; the plan made now, for the town's traffic as it is.
 	_new_session(PackedInt32Array([_finish["node"]]))
 	_dist = _race_session.distances(_racer, 0)
@@ -920,6 +978,7 @@ func _tick(dt: float) -> void:
 	if graph == null:
 		return
 	_stage_t += dt
+	_rest_t = maxf(0.0, _rest_t - dt)
 	for i in _cooldown.size():
 		_cooldown[i] = maxf(0.0, _cooldown[i] - dt)
 	_update_tags()
@@ -938,6 +997,10 @@ func _idle_tick(dt: float) -> void:
 		return
 	match state:
 		State.CRUISE:
+			_out_tick(dt)
+			if state != State.CRUISE:
+				return  # driven into the call-out's ring: the race is on
+			_home_tick(dt)
 			_look_for_challenge()
 			_look_for_start(dt)
 		State.PROMPT:
@@ -948,7 +1011,9 @@ func _idle_tick(dt: float) -> void:
 					hud.hide_challenge()
 			else:
 				_lost_sight = 0.0
-			_look_for_start(dt)
+			_out_tick(dt)
+			if state == State.PROMPT:
+				_look_for_start(dt)
 
 
 ## CHALLENGE, COUNTDOWN and RACE (the kit's run; the result card holds it).
@@ -996,6 +1061,8 @@ func _look_for_challenge() -> void:
 		return
 	if hud != null and hud.cards_up():
 		return  # no prompt over a result or win card (2026-11-08)
+	if _rest_t > 0.0:
+		return  # The Six: a moment after a race's card
 	for i in _drivers.size():
 		if _cooldown[i] <= 0.0 and _can_challenge(i):
 			rival = i
@@ -1008,19 +1075,25 @@ func _look_for_challenge() -> void:
 				hud.show_challenge("%s · ZAMKNIĘTE" % r["name"].to_upper(), LOCKED_COLOUR, "%s · LOCKED" % r["name"].to_upper(),
 						String(miss[0]), String(miss[1]))
 				return
-			hud.show_challenge("WYŚCIG · %s" % r["name"].to_upper(), r["colour"], "RACE · %s" % r["name"].to_upper(),
+			var pips := _pips_of(i)
+			hud.show_challenge("WYŚCIG · %s%s" % [r["name"].to_upper(), pips], r["colour"], "RACE · %s%s" % [r["name"].to_upper(), pips],
 					"Dotknij albo L: mrugnij światłami", "Tap or L: flash your lights")
 			if _stage_t - _said[i] > 40.0 and not quiet:
 				_say(i, r["approach"][0], r["approach"][1], 3.5)
 			return
 
 
-## Close behind the rival (within 15 m, roughly in its lane), both moving.
+## The Six: within RACE_REACH m in any direction, at the car's height. The old ladder: close
+## behind the rival (within 15 m, roughly in its lane), both moving.
 func _can_challenge(i: int) -> bool:
 	if flying or not bool(free_now.call()):
 		return false
 	var d = _drivers[i]
 	var rel := Vector2(d.pos.x - car.global_position.x, d.pos.z - car.global_position.z)
+	if i == _seba and _seba_waiting:
+		return false  # waiting for the final: his ring starts it
+	if ladder != null and ladder.any_order:
+		return rel.length() <= RACE_REACH and absf(d.pos.y - car.global_position.y) <= RACE_RISE
 	if rel.length() > CHALLENGE_RANGE or car.vel.length() < 2.0 or d.v < 1.0:
 		return false
 	var fwd := Vector2(-sin(d.yaw), -cos(d.yaw))
@@ -1265,17 +1338,31 @@ func _finish_race(won: bool, why: String) -> void:
 		gain = Ladder.race_gain(rung, first_win or ladder == null)
 		if wallet != null:
 			wallet.pay(stake, gain, "race")
+		var prog_pl := ""
+		var prog_en := ""
+		var buttons := PackedStringArray(["OK"])
 		if first_win:
-			print("ladder: %s beaten (%d/%d), next: %s" % [who, rung + 1, Ladder.RUNGS.size(), _rung_name(ladder.next_rung())])
+			print("ladder: %s beaten (%d/%d), next: %s" % [who, ladder.beaten_count() if ladder.any_order else rung + 1, Ladder.RUNGS.size(), _rung_name(ladder.next_rung())])
 			_check_ladder()
+			if ladder.any_order:
+				# The Six: the count on the card, and after the sixth the final and, by day, the night.
+				var n := ladder.beaten_count()
+				prog_pl = "\nRywale %d/6" % n
+				prog_en = "\nRivals %d/6" % n
+				if n == Ladder.RUNGS.size():
+					prog_pl += " · Trzy mosty otwarte: finał w nocy"
+					prog_en += " · Three bridges is open: the final is at night"
+					if not night() and night_now.is_valid():
+						buttons = PackedStringArray(["NIGHT", "OK"])
+						_card_offer = "night"
 		var total := (" · wallet %s · respect %d" % [_money(wallet.zl), wallet.respect]) if wallet != null else ""
 		var total_pl := (" · w portfelu %s · szacunek %d" % [_money(wallet.zl), wallet.respect]) if wallet != null else ""
 		var record_pl := record.replace("new best!", "nowy rekord!").replace("best", "rekord")
-		show_card(["WYGRANA · 1. MIEJSCE", "Win · 1st"], [("Meta: %s, czas %s%s. %s za tobą%s.\n„%s”\n+%d zł (stawka%s) · szacunek +%d%s\n%s" % [
-				_finish["name"], _clock(_race_time), record_pl, who, by_pl, line[0], stake, bonus_pl, gain, total_pl, told[0]]).strip_edges(),
-				("You beat %s to %s in %s%s%s. %s +%d zł (the stake%s) · respect +%d%s\n%s" % [
-				who, _finish["name"], _clock(_race_time), by_en, record, line[1], stake, bonus_en, gain, total, told[1]]).strip_edges()],
-				PackedStringArray(["OK"]), 0.0, false, WIN_COLOUR)
+		show_card(["WYGRANA · 1. MIEJSCE", "Win · 1st"], [("Meta: %s, czas %s%s. %s za tobą%s.\n„%s”\n+%d zł (stawka%s) · szacunek +%d%s%s\n%s" % [
+				_finish["name"], _clock(_race_time), record_pl, who, by_pl, line[0], stake, bonus_pl, gain, total_pl, prog_pl, told[0]]).strip_edges(),
+				("You beat %s to %s in %s%s%s. %s +%d zł (the stake%s) · respect +%d%s%s\n%s" % [
+				who, _finish["name"], _clock(_race_time), by_en, record, line[1], stake, bonus_en, gain, total, prog_en, told[1]]).strip_edges()],
+				buttons, 0.0, false, WIN_COLOUR)
 		_report_art(rival, _finish["pos"])
 		Access.buzz(150, 0.9)
 	else:
@@ -1283,19 +1370,54 @@ func _finish_race(won: bool, why: String) -> void:
 		var reason := why if why != "" else "%s got to %s first. You were %d m short%s after %s." % [who, _finish["name"], short, by_en, _clock(_race_time)]
 		var reason_pl := "Wyścig poddany." if why != "" else "%s pierwszy na mecie: %s. Zabrakło ci %d m%s, czas %s." % [
 				who, _finish["name"], short, by_pl, _clock(_race_time)]
+		# The Six (the critique's point 4): one big REWANŻ, from the same start to the same finish.
+		var lose_buttons := PackedStringArray(["OK"])
+		if ladder != null and ladder.any_order and not _rematch.is_empty():
+			lose_buttons = PackedStringArray(["REMATCH", "OK"])
+			_card_offer = "rematch"
 		show_card(["PRZEGRANA · 2. MIEJSCE", "Lose · 2nd"], [("%s\n„%s”\n%s" % [reason_pl, line[0], told[0]]).strip_edges(),
-				("%s %s\n%s" % [reason, line[1], told[1]]).strip_edges()], PackedStringArray(["OK"]), 0.0, false, LOSE_COLOUR)
+				("%s %s\n%s" % [reason, line[1], told[1]]).strip_edges()], lose_buttons, 0.0, false, LOSE_COLOUR)
 		_report_art(rival, _finish["pos"])
+	race_over.emit(who, won)
 
 
-## The result card's OK (the kit's `_card_pressed`): the race is over.
-func _card_pressed(_index: int) -> void:
+## The result card's button (the kit's `_card_pressed`): the race is over; the lose card's REWANŻ
+## starts it again from the same start, the sixth win's NOC turns the clock to night.
+func _card_pressed(index: int) -> void:
+	var offer := _card_offer
+	_card_offer = ""
 	finish()
+	if index != 0:
+		return
+	if offer == "rematch":
+		rematch()
+	elif offer == "night" and night_now.is_valid():
+		print("rivals: all six beaten, the night switched on for Trzy mosty")
+		night_now.call()
+
+
+## The Six: the last race again: the rival back on its start, the car where it started, the same
+## finish. False when there is nothing to race again or something else is on.
+func rematch() -> bool:
+	if _rematch.is_empty() or state != State.CRUISE or flying:
+		return false
+	var i: int = _rematch["i"]
+	var spot: Array = _rematch["spot"]
+	if int(spot[0]) < 0:
+		return false
+	traffic.teleport(_drivers[i], int(spot[0]), int(spot[1]), float(spot[2]))
+	car.global_transform = _rematch["car"]
+	car.vel = Vector3.ZERO
+	car.reset_physics_interpolation()
+	print("race: a rematch against %s, from the same start" % RIVALS[i]["name"])
+	start_race(i, _rematch["finish"])
+	return true
 
 
 ## The kit's end of a run (its card is already down): cruising again, the rescue calls free.
 func _ended() -> void:
 	state = State.CRUISE
+	_rest_t = PROMPT_REST
 
 
 ## Bumped mid-race (or just bumped): the rival complains.
@@ -1641,7 +1763,10 @@ func main_race() -> bool:
 		return true
 	if ladder == null or wallet == null or rival < 0:
 		return false
-	return Ladder.rung_of(str(RIVALS[rival]["name"])) == ladder.next_rung()
+	var rung := Ladder.rung_of(str(RIVALS[rival]["name"]))
+	if ladder.any_order:
+		return rung >= 0 and not ladder.beaten(rung)  # The Six: any rival not beaten yet counts
+	return rung == ladder.next_rung()
 
 
 ## The map point (x, z) of the rival called `name` (RIVALS' name), INF if not on the map.
@@ -1651,6 +1776,132 @@ func rival_at(name: String) -> Vector2:
 			var p: Vector3 = _drivers[i].pos
 			return Vector2(p.x, p.z)
 	return Vector2.INF
+
+
+# --- first hour step 5: The Six ---------------------------------------------------------------
+
+## Rival `i`'s difficulty pips after a space (" •••"), or "" outside the ladder or with the old one.
+func _pips_of(i: int) -> String:
+	if ladder == null or not ladder.any_order:
+		return ""
+	var rung := Ladder.rung_of(str(RIVALS[i]["name"]))
+	return " " + Ladder.pip_text(rung) if rung >= 0 else ""
+
+
+## RIVALS' index of the rival called `name`, or -1.
+static func index_of(name: String) -> int:
+	for i in RIVALS.size():
+		if RIVALS[i]["name"] == name:
+			return i
+	return -1
+
+
+## A lane spot [edge, lane, s] `lo` to `hi` m from map point `p` and at least `clear` m from the car
+## (out of its sight), on a ground road the traffic may use (no bridge deck, no tunnel): a random
+## point in the ring snapped to its lane (the graph's grid), [] when 60 tries found none. Its own
+## dice (`_home_rng`), so the races' draw as before.
+func _lane_near(p: Vector2, lo: float, hi: float, clear: float) -> Array:
+	var at := Vector2(car.global_position.x, car.global_position.z)
+	for attempt in 60:
+		var a := _home_rng.randf() * TAU
+		var r := sqrt(_home_rng.randf_range(lo * lo, hi * hi))
+		var hit := graph.snap(p + Vector2(cos(a), sin(a)) * r, 30.0, Vector2.ZERO, true, true, true)
+		if hit.is_empty():
+			continue
+		var e: int = hit[0]
+		if graph.e_class[e] > 1 or graph.e_s1[e] - graph.e_s0[e] < 20.0:
+			continue
+		var s := clampf(float(hit[2]), graph.e_s0[e] + 5.0, graph.e_s1[e] - 5.0)
+		var q := graph.point_at(e, s)
+		var d := q.distance_to(p)
+		if d >= lo and d <= hi and q.distance_to(at) >= clear:
+			return [e, int(hit[1]), s]
+	return []
+
+
+## Every HOME_EVERY s while cruising, one rival in turn: cruising out of its home area and out of the
+## player's sight, it is put back in the area (out of sight too). Not the one in a prompt or a race,
+## nor one called out, rolling up or waiting for the final.
+func _home_tick(dt: float) -> void:
+	if not homing or ladder == null or not ladder.any_order or _drivers.is_empty():
+		return
+	_home_t += dt
+	if _home_t < HOME_EVERY:
+		return
+	_home_t = 0.0
+	_home_i = (_home_i + 1) % _drivers.size()
+	var i := _home_i
+	if (i == rival and state != State.CRUISE) or i == called_out or i == _caller or (i == _seba and _seba_waiting):
+		return
+	var rung := Ladder.rung_of(str(RIVALS[i]["name"]))
+	if rung < 0:
+		return
+	var den: Vector2 = Ladder.den(rung)[0]
+	var d = _drivers[i]
+	if Vector2(d.pos.x, d.pos.z).distance_to(den) <= Ladder.DEN_RADIUS or d.pos.distance_to(car.global_position) < WAIT_UNSEEN:
+		return
+	var spot := _lane_near(den, 0.0, HOME_IN, WAIT_UNSEEN)
+	if spot.is_empty():
+		return
+	traffic.teleport(d, spot[0], spot[1], spot[2])
+	if log_on:
+		print("rivals: %s back home (%s)" % [RIVALS[i]["name"], Ladder.den(rung)[2]])
+
+
+## The Six: rival `i` called out from the full map's list waits held on a lane near the car, in the
+## race beacon's ring. Its map point, or INF when it can't now (a race or a prompt on, flying, Halina
+## rolling up, Seba waiting for the final, a rival locked on the old ladder, no lane found).
+func call_out(i: int) -> Vector2:
+	if i < 0 or i >= _drivers.size() or flying or state != State.CRUISE or _caller >= 0:
+		return Vector2.INF
+	if (i == _seba and _seba_waiting) or not rung_open(i):
+		return Vector2.INF
+	end_call_out()
+	var at := car.global_position
+	var spot := _lane_near(Vector2(at.x, at.z), CALL_NEAR, CALL_FAR, CALL_NEAR)
+	if spot.is_empty():
+		return Vector2.INF
+	var d = _drivers[i]
+	traffic.teleport(d, spot[0], spot[1], spot[2])
+	d.held = true
+	called_out = i
+	_out_t = 0.0
+	var q := graph.point_at(spot[0], spot[2], graph.lane_offset(spot[0], spot[1]))
+	_out_pos = Vector3(q.x, graph.height(spot[0], spot[2]), q.y)
+	_marker(false)
+	_beacon.recolour(RACE_COLOUR)
+	_beacon.place(_out_pos, CALL_RADIUS - 2.0)
+	print("rivals: %s called out, waits %.0f m away" % [RIVALS[i]["name"], Vector2(q.x - at.x, q.y - at.z).length()])
+	return q
+
+
+## The rival called out goes back to cruising (its ring comes down).
+func end_call_out() -> void:
+	if called_out < 0:
+		return
+	_drivers[called_out].held = false
+	called_out = -1
+	_out_pos = Vector3.INF
+	if not _marker_on:
+		_beacon.visible = false
+
+
+## While a call-out waits: the car in its ring starts the race; it gives up after CALL_WAIT s.
+func _out_tick(dt: float) -> void:
+	if called_out < 0:
+		return
+	_out_t += dt
+	if _out_t > CALL_WAIT:
+		print("rivals: %s stopped waiting" % RIVALS[called_out]["name"])
+		end_call_out()
+		return
+	if flying or not bool(free_now.call()) or bool(request_up.call()):
+		return
+	var at := car.global_position
+	if Vector2(at.x - _out_pos.x, at.z - _out_pos.z).length() < CALL_RADIUS and absf(at.y - _out_pos.y) < RACE_RISE:
+		var i := called_out
+		hud.hide_challenge()
+		start_race(i)
 
 
 # --- loop 3h slice 3: the ladder and the final "Trzy mosty" ---------------------------------
@@ -1712,7 +1963,7 @@ func _look_for_start(dt: float) -> void:
 		_park_seba(first)
 	elif not want and _seba_waiting:
 		_release_seba()
-	var free: bool = _seba_waiting and not flying and bool(free_now.call())
+	var free: bool = _seba_waiting and called_out < 0 and not flying and bool(free_now.call())
 	_marker(free)
 	if free:
 		var at := car.global_position
@@ -1756,9 +2007,10 @@ func _marker(on: bool) -> void:
 	if on:
 		_beacon.recolour(FINAL_COLOUR)
 		_beacon.place(final_route.start_pos, START_RADIUS - 2.0)
-		# Its mark in the registry (map_markers.gd, TD-13), as before not drawn: the main line's
-		# star stands at the start.
-		hud.markers.put("rivals:final", MapMarkers.Layer.MAIN, Vector2(final_route.start_pos.x, final_route.start_pos.z), FINAL_COLOUR)
+		# Its mark in the registry's rivals' layer (map_markers.gd, TD-13), as before not drawn: the
+		# main line's star stands at the start.
+		hud.markers.put("rivals:final", MapMarkers.Layer.RIVAL, Vector2(final_route.start_pos.x, final_route.start_pos.z),
+				FINAL_COLOUR, 0, "final")
 	else:
 		_beacon.visible = false
 		hud.markers.remove("rivals:final")
@@ -1892,6 +2144,7 @@ func _show_final_status() -> void:
 
 
 func _finish_final(won: bool, why: String) -> void:
+	_card_offer = ""
 	state = State.RESULT
 	_route_off()
 	var margin := _finish_margin(won)
@@ -1954,6 +2207,7 @@ func _finish_final(won: bool, why: String) -> void:
 				"You gave up the final." if gave_up else "%s got to the Stadium first (bridges %d/3, %s, %.1f s short)." % [who, _cp, _clock(_race_time), margin], line[1], told[1]]).strip_edges()],
 				PackedStringArray(["OK"]), 0.0, false, LOSE_COLOUR)
 		_report_art(_seba, goal)
+	race_over.emit(Ladder.FINAL_ID, won)
 
 
 ## --ladder=N: the first N rungs beaten for this run (in memory; use with --nosave).

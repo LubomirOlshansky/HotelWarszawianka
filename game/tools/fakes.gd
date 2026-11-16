@@ -158,6 +158,7 @@ class Hud extends CanvasLayer:
 
 	func _up(title: String, text: String, btn: PackedStringArray) -> void:
 		_owner = null
+		close_as = -1
 		card = title
 		body = text
 		buttons = btn.size()
@@ -175,8 +176,24 @@ class Hud extends CanvasLayer:
 		shown += 1
 		cards.append(title)
 
+	## hud.gd `set_card_close`: the button the card's ✕ presses (-1: none); `press_card_close`.
+	var close_as := -1
+
+	func set_card_close(index: int) -> void:
+		close_as = index
+
+	func card_close() -> int:
+		return close_as if card != "" else -1
+
+	func press_card_close() -> bool:
+		if card_close() < 0:
+			return false
+		press(close_as)
+		return true
+
 	func hide_card() -> void:
 		_owner = null
+		close_as = -1
 		card = ""
 		body = ""
 		buttons = 0
@@ -497,12 +514,12 @@ class Bubbles extends Control:
 ## (`free_now`, `calls_held`, `call_waiting`, a `mission_on` the check binds to the director) count it as the
 ## game's. It runs nothing by itself: a check puts it where it needs it (`put`): its call ringing on the
 ## context button (Phase.RING), its card up (OFFER), a rescue under way (RUN; `aim`: someone to go to,
-## `has_target`), or nothing (IDLE). `paused` is main.gd's own hold (the phone bench, a boat ride), which no
-## activity writes; `_held()` is the countdown's hold as missions.gd's: that, or another activity's run whose
-## `rescue_calls` holds or restarts the calls. `closed` counts the line closing (`close`), which a RESTART
-## activity's run does as it starts and as it ends (`other_started`, `other_ended`).
+## `has_target`), or nothing (IDLE). `_held()` is the countdown's hold as missions.gd's: another activity's
+## run whose `rescue_calls` holds or restarts the calls, or one of main.gd's own holds (the phone bench, a
+## boat ride: the director's `hold_calls`, which no activity writes). `closed` counts the line closing
+## (`close`), which a RESTART activity's run does as it starts and as it ends (the director's
+## `calls_put_off`).
 class Calls extends "res://scripts/activity.gd":
-	var paused := false
 	var closed := 0
 	var _aim := false
 
@@ -525,15 +542,10 @@ class Calls extends "res://scripts/activity.gd":
 		return _aim
 
 	func _held() -> bool:
-		return paused or bool(calls_held.call())
+		return bool(calls_held.call())
 
-	func other_started(a: Node) -> void:
-		if a.rescue_calls == RescueCalls.RESTART:
-			close()
-
-	func other_ended(a: Node) -> void:
-		if a.rescue_calls == RescueCalls.RESTART:
-			close()
+	func calls_put_off() -> void:
+		close()
 
 	## The check's own: the line where the check needs it (`aim`: a rescue has someone to go to).
 	func put(p: Phase, aim := false) -> void:

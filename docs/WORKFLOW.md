@@ -244,7 +244,9 @@ Every plan ends a stage with "F looks on the phone", so the build has a beat of 
    only that template shows how a release build answers a script error; added with TD-4 a2, #798).
    When `lane_graph.gd`, `traffic.gd`, `race_*.gd` or the map's lane links (`tools/lane_links.py`)
    changed since the last build, also the full racer bench, `tools/race_bench.sh` (about 4 min),
-   against the Mac marks in `game/data/race_bench.json` (#762; added after RT-2, #841). Each step's result goes into the build's note. A red step
+   against the Mac marks in `game/data/race_bench.json` (#762; added after RT-2, #841). When `foliage.gdshader` or the trees in `map_builder.gd` changed since the last build, also the bench
+   framed on Pole Mokotowskie (`--at=950,-850 --heading=60 --size=150`, by day, shadows on, High and Low) against
+   the last build (owed by the trees PR #857: park triangles 0.70 M to 1.09 M, the Mac frame time not measured yet). Every build also gets one rival race smoke run with the game's own flag (`godot --path game --quit-after 7200 -- --race=6 --nosave`, about two minutes, Bulwar Bartek put just ahead: the race starts, the finish card shows) and one REWANŻ run (lose that race, press REWANŻ on the card: both cars back on the start line and a fresh countdown); added with The Six, #862. Each step's result goes into the build's note. A red step
    is fixed, or its feature is switched off for this build; the build does not wait for a
    redesign.
 3. **F's yes** for each upload, as before. Then one sitting with `docs/PHONE-CHECK.md`, top to

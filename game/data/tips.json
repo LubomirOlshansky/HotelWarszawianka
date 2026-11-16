@@ -1,0 +1,29 @@
+{
+	"_note": "First hour step 6 (docs/design/onboarding-hints.md; the first-hour spec, section 6, F 2026-11-15). `tips`: the title's loading tips (title.gd, a new one every 4 s, the last stays under TAP TO DRIVE) and the Tips page in Settings (settings_panel.gd), twelve words at most, about two game facts to each Warsaw joke. `tag`: the thing the tip tells about; a tip whose tag this save has done goes to the back (hints.gd `done_tags`), \"\" never does. `hints`: the hints in play (hints.gd), eight words at most, each shown only until the player has done the thing.",
+	"tips": [
+		{"tag": "flown", "pl": "HELI działa wszędzie. Dotknij i leć.", "en": "HELI works anywhere. Tap it and fly."},
+		{"tag": "raced", "pl": "Sześciu rywali krąży po mieście. Pokonaj ich w dowolnej kolejności.", "en": "Six rivals cruise the city. Beat them in any order."},
+		{"tag": "", "pl": "Zgubiłeś ich pod mostem? Taki był plan.", "en": "Lost them under a bridge? That was the plan."},
+		{"tag": "chased", "pl": "Policja nie daje mandatów. Zatrzymaj się albo odjedź na 100 m.", "en": "The police never fine you. Stop, or get 100 m away."},
+		{"tag": "delivered", "pl": "Kebab płaci więcej, póki jest gorący.", "en": "A kebab pays more while it is hot."},
+		{"tag": "", "pl": "Rondo Dmowskiego stoi zawsze. Nawet w grze.", "en": "Rondo Dmowskiego is always jammed. Even in a game."},
+		{"tag": "map", "pl": "Dotknij minimapy, a otworzy się mapa Warszawy.", "en": "Tap the minimap to open the map of Warsaw."},
+		{"tag": "teleport", "pl": "Przytrzymaj punkt na mapie, by tam skoczyć.", "en": "Hold a spot on the map to jump there."},
+		{"tag": "", "pl": "Palma na rondzie de Gaulle'a nie rośnie. Ale stoi.", "en": "The palm on Rondo de Gaulle'a doesn't grow. It stands."},
+		{"tag": "rescued", "pl": "Wezwania ratunkowe płacą za szybkość. Na dach leć helikopterem.", "en": "Rescue calls pay for speed. Fly to the roof ones."},
+		{"tag": "garage", "pl": "U Mirka w garażu kupisz lakier i nitro.", "en": "Mirek's garage sells paint and nitro."},
+		{"tag": "", "pl": "W Warszawie każdy jest trochę słoikiem.", "en": "Everyone in Warsaw is a bit of a słoik."},
+		{"tag": "ride", "pl": "Podwózka: weź pasażera i posłuchaj jego historii.", "en": "Podwózka: pick up a passenger and hear their story."},
+		{"tag": "raced", "pl": "Pokonaj wszystkich sześciu, a nocą czekają Trzy mosty.", "en": "Beat all six, and Trzy mosty waits at night."},
+		{"tag": "syrenka", "pl": "Syrenki chowają się po całym mieście. Znajdź wszystkie.", "en": "Mermaids hide all over the city. Find them all."},
+		{"tag": "", "pl": "Nocą miasto żyje inaczej. Porę dnia zmienisz w Ustawieniach.", "en": "The city lives differently at night. Settings change the hour."}
+	],
+	"hints": {
+		"stop": {"pl": "Zwolnij i stań w kole", "en": "Slow down and stop in the ring"},
+		"reverse": {"pl": "Trzymaj HAMULEC, żeby cofnąć", "en": "Hold BRAKE to reverse"},
+		"minimap": {"pl": "Dotknij mapy: cała Warszawa", "en": "Tap the map: all of Warsaw"},
+		"heli": {"pl": "Dach? Weź helikopter", "en": "Roof? Take the helicopter"},
+		"climb": {"pl": "Trzymaj: w górę i w dół", "en": "Hold: up and down"},
+		"land": {"pl": "Wyląduj przy osobie", "en": "Land by the person"}
+	}
+}

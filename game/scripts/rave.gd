@@ -269,6 +269,48 @@ func _init() -> void:
 	card_life = RING_LIFE
 
 
+## Wires the raves from the game (activity.gd `install`; main.gd's `_build_rave` until TD-4 b4). None
+## with --no-traffic or --rave=0. `car` and `autopilot` stay unset: a test run does not answer Mati
+## or the bouncer (it never did). `enter_club` is main.gd's hook, set after the join (the club's
+## room is main.gd's).
+func install(ctx: GameCtx) -> bool:
+	if ctx.traffic == null or ctx.graph == null or ctx.flags.rave_flag == "0":
+		return false
+	super(ctx)
+	name = "Rave"
+	dialogue = ctx.dialogue
+	graph = ctx.graph as LaneGraph
+	radio = ctx.radio
+	city_sounds = ctx.city_sounds
+	origin = ctx.data.get("origin", [52.234, 21.024])
+	log_on = ctx.flags.rave_log
+	auto = ctx.flags._rave_auto
+	force = ctx.flags.rave_flag if ctx.flags.rave_flag in ["on", "day"] else ""
+	vehicle = ctx.vehicle
+	focus = ctx.focus
+	calendar = ctx.tod.local_clock
+	return true
+
+
+## After the join (main.gd's `_build_rave` until TD-4 b4): --rave-spot=ID picks this weekend's night
+## spot, and the test starts a second into the drive: --rave-call (LEKTI speaks, Mati rings) and
+## --rave-smola (Mati's Smoła night rings).
+func joined(ctx: GameCtx) -> void:
+	var spot: String = ctx.flags.rave_spot
+	if spot != "":
+		for i in spots.size():
+			if String(spots[i]["id"]) == spot:
+				night_spot = i
+	var how: String = ctx.flags.rave_flag
+	if how in ["call", "smola"]:
+		get_tree().create_timer(1.0).timeout.connect(func() -> void:
+			if how == "smola":
+				ring("smola")
+			else:
+				tease()
+				ring())
+
+
 func setup(world: Node3D, seed_value := -1) -> void:
 	if seed_value >= 0:
 		_rng.seed = seed_value
@@ -668,13 +710,15 @@ func _tick(dt: float) -> void:
 				# Mati's nights take turns: Smoła (he rings straight away), then a secret rave
 				# (LEKTI first).
 				if next_kind == "smola" and not smola.is_empty():
-					if not ring("smola"):
+					# Not again straight after its own call while another's waits (TD-3's variety): retry.
+					if not (_ring_turn() and ring("smola")):
 						tease_in = RETRY
 				else:
 					tease()
 	elif _free():
 		call_in -= _due
-		if call_in <= 0.0 and not ring():
+		# Not again straight after its own call while another's waits (TD-3's variety): retry.
+		if call_in <= 0.0 and not (_ring_turn() and ring()):
 			call_in = RETRY
 
 

@@ -540,7 +540,9 @@ func _idle_tick(dt: float) -> void:
 	_offer_in -= dt
 	if guide_hold:
 		_offer_in = maxf(_offer_in, HOLD_GAP)  # a beat comes first; a request a while after it
-	if (_offer_in <= 0.0 and not quiet and not guide_hold) or (_pill_at >= 0.0 and _t - _pill_at >= PILL_DELAY):
+	# A request that comes by itself waits for the quiet time after a finish (TD-3); one the player
+	# asked for with the PODWÓZKA button does not.
+	if (_offer_in <= 0.0 and not quiet and not guide_hold and not _hushed()) or (_pill_at >= 0.0 and _t - _pill_at >= PILL_DELAY):
 		_pill_at = -1.0
 		_offer_in = _rng.randf_range(OFFER_GAP.x, OFFER_GAP.y)
 		_offer_here()
@@ -585,6 +587,16 @@ func can_request() -> bool:
 func request() -> void:
 	if can_request():
 		_on_context("ride")
+
+
+## First hour, step 3: the guide's first request (first10.gd: RIDES on the choice card, or the
+## ride's turn in the First steps): one comes now, before FIRST_OFFER s of driving if need be, as
+## long as nothing else is on (`_free`). False when none could be made.
+func offer_now() -> bool:
+	if not idle() or not _free():
+		return false
+	_offer_here()
+	return not idle()
 
 
 ## A request from near where the car is.

@@ -28,6 +28,9 @@
 # stop from 90 km/h, coast, yaw lag, sideways pull, trail-brake slide, body pitch and roll, and its pull
 # the same as Cruise's, with a Cruise / Sport / Grounded table (no map; CI too). `lanedrive-grounded`
 # is `lanedrive` driven in Grounded (not in --quick).
+# `stats` runs game/tools/check_stats.gd (the beta's play stats, play_stats.gd, docs/STATS.md): the
+# send rule (a debug build, --nosave, the setting off or no token send nothing), the white list and
+# its slugs, the token file, a LOG run's events and the off switch; no map, no network, ~1 s.
 # `colliderules` runs game/tools/check_collide_rules.gd (the city objects plan, step 6): the collision
 # answer's table (collide_rules.gd: monotonic in the angle, never more speed out than in, the traffic
 # shares), and the real car into a wall at 12 cases with v1 (today's block gives exactly the v1
@@ -72,6 +75,9 @@
 # `finite` runs game/tools/check_finite.gd (the NaN car, 2026-11-02): every map height, lane and
 # junction curve the car and the traffic read is a number, the car's own step stays finite, and a
 # NaN written into its stick, steering, pedal or position is dropped or put back (~2 min, map index).
+# `heightthreads` runs game/tools/check_height_threads.gd (the NaN car, 2026-11-16): the map's
+# heights read on the main thread give the same number while another thread reads heights and
+# builds sectors, as the runtime city's streamer does (~40 s, map index).
 # `tiers` and `governor` (loop G1): the device tiers and the pixel image's size rule, and the
 # frame governor's rules on scripted frames. `shaderbudget` (2026-11-08): every spatial shader
 # under the Adreno 6xx driver's control-flow limit (check_shader_budget.gd, source only). `heliview` (GAMEPLAY_PLAN 3.1): the helicopter's framing
@@ -292,14 +298,16 @@
 # are braked for in time, in the order of the racers' grip, a mistake within the car's own grip;
 # about 15 s (CI too, skipped without centrum.json).
 # Loop 3h slice 4: `first10`
-# runs game/tools/check_first10.gd: the guide's ten beats and windows, who gets the guide, three
-# synthetic players through the director's rules (each beat in its window, the fallbacks, a beat
-# waiting for a job), the first race at her own pace in a 1-D race, the words; `endcard` runs
+# runs game/tools/check_first10.gd: the guide's beats and windows, who gets the guide, synthetic
+# players through the director's rules (first hour step 3: the choice card, one intro per First
+# step not done yet, a beat waiting for a job, a rider, the friends' wait), the First steps'
+# rewards, the first race at her own pace in a 1-D race, the words; `endcard` runs
 # game/tools/check_end_card.gd: the end card's trigger on fixture wallets (final + 9 jobs no, + 10
 # yes, seen no), the card and its button, the save's [intro]; neither needs a map (CI too).
 # `first10-run` (not in --quick, ~12 min) is the headless replay: --first10 --autopilot plays the
-# first 10 minutes on the real city (the stand, the guided order, Halina's race, the trap, the
-# call, the helicopter, the cassette, Powiśle, the garage) and passes on `first10: OK`. The first-10
+# first 10 minutes on the real city (the stand, the guided order, RACE on the choice card,
+# Halina's race, the trap, the call, the helicopter, the cassette, a ride, Powiśle, the garage) and
+# passes on `first10: OK`. The first-10
 # polish: `cassettes` runs game/tools/check_cassettes.gd: the mixtapes on roofs (cassettes.json), the
 # helicopter's pickup rule, a pickup's card, respect and PÓŁNOC FM track, the save; no map (CI too).
 # The opening flyover: `opening` runs game/tools/check_opening.gd: the first launch's camera flight
@@ -668,13 +676,12 @@ police_runs() {
 	a=$(frame_of '^police: stopped by unit' $f); b=$(frame_of '^police: pull-over' $f); l=$(frame_of '^police: caution' $f)
 	(( a > 0 && b >= a && b - a <= 150 && l > b && l - b <= 600 )) && P_NOTE+=("P4 pull-over $(printf '%.1f' $(( (b - a) / 60.0 )))s, caution $(printf '%.1f' $(( (l - b) / 60.0 )))s") \
 		|| P_FAIL+=("P4: stopped at frame $a, pull-over $b, caution $l ($f)")
-	# P5: the caps, 30 / 40 / 45 s ± 0.5 s (no other traffic: no second unit raises the level).
-	police_run p5_1 2100 --police=1 --police-auto=hold --traffic=empty; f=$RUN_LOG
-	expect P5 '^police: end of shift after (29\.[5-9]|30\.[0-5]) s \(L1\)' $f "30s"
-	police_run p5_2 2700 --police=2 --police-auto=hold --traffic=empty; f=$RUN_LOG
-	expect P5 '^police: end of shift after (39\.[5-9]|40\.[0-5]) s \(L2\)' $f "40s"
-	police_run p5_3 3000 --police=3 --police-auto=hold --traffic=empty; f=$RUN_LOG
-	expect P5 '^police: end of shift after (44\.[5-9]|45\.[0-5]) s \(L3\)' $f "45s"
+	# P5: the hidden backstop (first-hour step 2), 120 s ± 0.5 s at any level (no other traffic:
+	# no second unit raises the level); the chasers tire at 30 s and the held car stays near.
+	police_run p5_1 7500 --police=1 --police-auto=hold --traffic=empty; f=$RUN_LOG
+	expect P5 '^police: end of shift after (119\.[5-9]|120\.[0-5]) s \(L1\)' $f "120s L1"
+	police_run p5_3 7500 --police=3 --police-auto=hold --traffic=empty; f=$RUN_LOG
+	expect P5 '^police: end of shift after (119\.[5-9]|120\.[0-5]) s \(L3\)' $f "120s L3"
 	# P6: the start grace: speeding through the trap gives nothing (before 60 s), never a chase.
 	police_run p6 900 --trap=2 --pedal=gas; f=$RUN_LOG
 	expect P6 '^police: trap 2: .*\(grace\)' $f "grace"
@@ -1295,8 +1302,10 @@ for s in $want; do
 		stuckspots-prebuilt) skip_prebuilt stuckspots-prebuilt || check stuckspots-prebuilt '^check_stuck_spots:' --fixed-fps 60 --script res://tools/check_stuck_spots.gd -- --prebuilt ;;
 		oldtowndrive) check oldtowndrive '^check_old_town_drive:' --fixed-fps 60 --script res://tools/check_old_town_drive.gd ;;
 		finite) check finite '^check_finite:' --fixed-fps 60 --script res://tools/check_finite.gd ;;
+		heightthreads) check heightthreads '^check_height_threads:' --script res://tools/check_height_threads.gd ;;
 		steering) check steering 'check_steering:' --fixed-fps 60 --script res://tools/check_steering.gd ;;
 		colliderules) check colliderules '^check_collide_rules:' --fixed-fps 60 --script res://tools/check_collide_rules.gd ;;
+		stats) check stats '^check_stats:' --script res://tools/check_stats.gd ;;
 		laneassist) check laneassist '^check_lane_assist:' --fixed-fps 60 --script res://tools/check_lane_assist.gd ;;
 		# G14's "later" (2026-11-03): trying to drive and going nowhere for 8 s offers the tow.
 		stuckoffer) check stuckoffer '^check_stuck_offer:' --fixed-fps 60 --script res://tools/check_stuck_offer.gd ;;
@@ -1316,6 +1325,7 @@ for s in $want; do
 		language) check language '^check_language:' --script res://tools/check_language.gd ;;
 		# Loop G1: model id -> tier, the pixel image at the phones' sizes; the governor's rules.
 		tiers) check tiers '^check_tiers:' --script res://tools/check_tiers.gd ;;
+		trees) check trees '^check_trees:' --script res://tools/check_trees.gd ;;
 		governor) check governor '^check_governor:' --script res://tools/check_governor.gd ;;
 		# F 2026-11-15: the colour looks (grades.gd) against time_of_day.gd's base looks.
 		grades) check grades '^check_grades:' --script res://tools/check_grades.gd ;;
@@ -1447,6 +1457,8 @@ for s in $want; do
 		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		endcard) check endcard '^end_card:' --script res://tools/check_end_card.gd ;;
+		# First hour step 6: the hints in play, the loading tips, the spotlight (no map).
+		hints) check hints '^check_hints:' --script res://tools/check_hints.gd ;;
 		opening) check opening '^opening:' --script res://tools/check_opening.gd ;;
 		life-soak) life_soak ;;
 		# Loop 2d-1: Podwózka's star and pay tables, the streak and the cancel rules, its lines.

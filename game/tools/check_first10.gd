@@ -1,20 +1,28 @@
 extends SceneTree
-## Loop 3h slice 4: the guided first 10 minutes (first10.gd), without the map. Checks that:
-## - the beats are 6.2's ten in order, each window holds its 6.2 time and the windows follow on;
+## Loop 3h slice 4 and first hour step 3: the guided first minutes (first10.gd) and the First steps
+## list (first_steps.gd), without the map. Checks that:
+## - the beats a replay must see are the finger, the stand, the order, the choice card and the nine
+##   intros, each window holds the first hour's time ("First hour for the beta", the hour as it
+##   would play), and the windows are in order;
 ## - `guide_due` only on a fresh save (a job, złoty, a rung or a finished guide: never);
-## - three players played on a synthetic clock through `decide` and `met` (the director's rules)
-##   with a toy city (a delivery takes 75 s, a race 60 s, a rescue 90 s, ...): an ordinary player
-##   (touches at once, orders at 0:35) gets every beat inside its window, the stand's arrow and the
-##   race fired, the order met; a wanderer (never touches, never orders, says no to Halina) still
-##   gets the finger at 4 s, the arrow at 10 s, Halina at RACE_LATEST, the trap armed at
-##   TRAP_LATEST, the call at RESCUE_LATEST, the helicopter at HELI_LATEST, the tape and Powiśle
-##   arrows, no garage without earnings and the guide's end at GUIDE_END; a player busy with a job
-##   from 3:40 to 5:30 gets the call only after it (beats wait); a player on one long Podwózka
-##   ride (4.5 minutes, taken after the tape's beat and before the hold for Powiśle) gets the
-##   Powiśle line at POWISLE_LATEST, over the ride and inside its window (without that rule it came at the ride's end, late), and behind any other job it
-##   still waits; the replay's scripted order fires
-##   at ORDER_AT; a helicopter-only call unlocks the helicopter at once; `judge` flags a late, a
-##   missing and an early-fired beat;
+## - players on a synthetic clock through `decide` and `met` (the director's rules) with a toy city
+##   (a delivery takes 75 s, a race 60 s, a rescue 90 s, ...): an ordinary player (touches at once,
+##   orders at 0:35, picks RACE, does what each intro offers) gets the choice card CHOICE_AFTER s
+##   after the delivery, Halina at once, every intro by its window's end, and all seven First steps;
+##   a wanderer (never touches or orders, picks JUST DRIVE, says no to Halina) gets the finger, the
+##   arrow, the kebab let go at LURE_LATEST, the choice at LURE_LATEST + CHOICE_AFTER, then one
+##   intro every NEXT_GAP s of free driving, Halina only once, no garage without earnings and the
+##   guide's end at GUIDE_END; a player who already flew and gave a lift is never told about the
+##   helicopter or the rides (met, not fired); FLY asks for the helicopter and the tape at once,
+##   RIDES for the ride; a player busy with a job gets the next intro only NEXT_GAP s after it; a
+##   player who takes every Podwózka request still meets every intro (the hold, `due`), and without
+##   the hold does not (the test means something); the replay's scripted order fires at ORDER_AT; a
+##   helicopter-only call brings the helicopter's toast at once; `judge` flags a late, a missing and
+##   an early-fired beat;
+## - the friends' calls wait for FRIENDS_STEPS steps or FRIENDS_AFTER s, then NEW_FRIEND_GAP s after a
+##   new friend (`friends_held`); the First steps' rewards (money each, a paint and the friends at the
+##   third, the card, a paint and the respect at the seventh), an old save's quiet ticks
+##   (`from_wallet`), the rows and the header for the map's list;
 ## - the first race's driver (the racer AI rebuild, step 2: rivals.gd `effort_of` and `pace_tick` on
 ##   ladder.gd's gentle day; the rubber band `first_speed` is gone): the effort follows the time gap
 ##   alone and stays between EFFORT_EASE and EFFORT_PUSH, a pushing rival makes more mistakes and
@@ -25,11 +33,13 @@ extends SceneTree
 ##   release at FIRST_HOLD), and the stall nudge mid-race (`first_stall_due`) skips red-light
 ##   stops, the last stretch and comes at most FIRST_STALLS times;
 ## - PT-30: the Powiśle arrow's spot comes from the real districts data (it read "at" off an index);
-## - the words (the director's, Halina's, the end card's) in Polish and English, each line at most
-##   70 characters (the card's at most 100), the repo's name as README has it.
+## - the words (the director's, Halina's, the choice card's, the First steps', the end card's) in
+##   Polish and English, each line at most 70 characters (a card's body at most 110), the repo's
+##   name as README has it.
 ##   godot --headless --path game --script res://tools/check_first10.gd
 
 const First10 := preload("res://scripts/first10.gd")
+const FirstSteps := preload("res://scripts/first_steps.gd")
 const Rivals := preload("res://scripts/rivals.gd")
 const RaceSession := preload("res://scripts/race_session.gd")
 const Ladder := preload("res://scripts/ladder.gd")
@@ -53,12 +63,14 @@ func _initialize() -> void:
 	_due()
 	_ordinary()
 	_wanderer()
+	_skipper()
+	_picks()
 	_busy()
 	_rider()
-	_long_ride()
-	_quick()
 	_scripted()
 	_judge()
+	_friends()
+	_steps()
 	_effort()
 	_words()
 	_powisle()
@@ -71,18 +83,26 @@ func _initialize() -> void:
 
 
 func _data() -> void:
-	var want := ["finger", "stand", "order", "race", "trap", "rescue", "heli", "tape", "powisle", "garage"]
+	var want := ["finger", "stand", "order", "choice", "race", "trap", "rescue", "heli", "tape", "ride", "powisle", "garage"]
 	_expect(First10.BEATS == want, "the beats: %s" % [First10.BEATS])
-	# DEMO.md 6.2's times (the helicopter comes with the rescue, about a minute after the call).
-	var times := {"finger": 5.0, "stand": 15.0, "order": 30.0, "race": 90.0, "trap": 180.0, "rescue": 240.0,
-			"heli": 300.0, "tape": 360.0, "powisle": 480.0, "garage": 600.0}
-	var last := 0.0
+	for id: String in First10.INTROS:
+		_expect(id in First10.BEATS or id == "kebab", "intro %s is a beat (or the kebab, met by the first delivery)" % id)
+	# The first hour as it would play (the spec's table): the choice about 1:45, the race 2:00 to
+	# 4:00, the police about 4:00, the first rescue about 5:00, the helicopter about 7:00, the garage
+	# about 9:30.
+	var times := {"finger": 5.0, "stand": 15.0, "order": 30.0, "choice": 105.0, "race": 150.0, "trap": 240.0,
+			"rescue": 300.0, "heli": 420.0, "tape": 430.0, "ride": 480.0, "powisle": 500.0, "garage": 570.0}
 	for id: String in First10.BEATS:
 		var w: Vector2 = First10.WINDOWS[id]
-		_expect(w.x <= times[id] and times[id] <= w.y, "%s's window %s holds 6.2's %.0f s" % [id, w, times[id]])
-		_expect(w.x >= last - 120.0 and w.x < w.y, "%s's window %s follows on" % [id, w])
-		last = w.x
-	_summary.append("10 beats")
+		_expect(w.x <= times[id] and times[id] <= w.y, "%s's window %s holds the hour's %.0f s" % [id, w, times[id]])
+		_expect(w.x < w.y and w.y < First10.REPLAY_DEADLINE, "%s's window %s ends before the replay's deadline" % [id, w])
+	for id: String in First10.INTRO_STEP:
+		_expect(str(First10.INTRO_STEP[id]) in FirstSteps.IDS, "intro %s's step %s is a First step" % [id, First10.INTRO_STEP[id]])
+	_expect(First10.CHOICE_BUTTONS.size() == 3 and First10.CHOICE_CLOSE == First10.CHOICE_BUTTONS.size()
+			and First10.CHOICE_PICKS.size() == First10.CHOICE_BUTTONS.size() + 1 and (First10.CHOICE_PICKS[First10.CHOICE_CLOSE] as Array).is_empty(),
+			"the choice card: RACE, RIDES, FLY, one pick each, and the ✕ is JUST DRIVE (none)")
+	_expect(First10.REPLAY_DEADLINE * 60.0 < 48000.0, "the replay judges before verify.sh's 48000 frames")
+	_summary.append("%d beats" % First10.BEATS.size())
 
 
 func _fresh() -> Wallet:
@@ -120,6 +140,7 @@ class Toy:
 	var input_at := INF
 	var order_at := INF       # pulls into the stand (or the director's scripted order)
 	var deliver_s := 75.0
+	var pick := 0             # the choice card's button (First10.CHOICE_BUTTONS); 3: the ✕, JUST DRIVE
 	var says_no := false      # declines Halina
 	var job_from := INF       # an extra job of the player's own
 	var job_to := INF
@@ -127,16 +148,22 @@ class Toy:
 	var scripted := false
 	var heli_call_at := INF
 	var rescue_ok := true
-	var rider := false        # takes every Podwózka request (rides.gd: the first at 120 s, then a gap)
+	var flies_at := INF       # flies the helicopter by themselves at this second
+	var flies := true         # flies when the guide says so (the heli intro)
+	var takes_rides := true   # takes the ride the guide's intro offers
+	var visits := true        # drives into the garage after its intro
+	var rider := false        # takes every Podwózka request (rides.gd: the next after ride_gap s of free driving)
 	var ride_s := 150.0
-	var ride_gap := 90.0
+	var ride_gap := 75.0
 	var honour_hold := true   # the rides honour the guide's hold (false: as before the hold)
-	var tell_riding := true   # the director knows a ride is the only thing on (false: as before POWISLE_LATEST)
 	var held := false         # set by _play from First10.due (first10.gd `_hold_offers`)
 	# the state
-	var next_ride := 120.0
+	var offer_in := 30.0
 	var ride_until := -1.0
 	var rides_taken := 0
+	var rode := false
+	var ride_done := -1.0
+	var ride_starts: Array[float] = []
 	var ordered := false
 	var delivered_t := -1.0
 	var busy_until := -1.0
@@ -144,6 +171,8 @@ class Toy:
 	var raced := false
 	var race_end := INF
 	var trap := false
+	var police_at := INF
+	var police := false
 	var rang := false
 	var rang_at := INF
 	var rescued := false
@@ -153,64 +182,111 @@ class Toy:
 	var powisle := false
 	var garage := false
 	var garage_at := INF
+	var garage_seen := false
 	var earned := false
+	var flown := false
+	var want: Array[String] = []
+	var free_for := 0.0
+	var choice_seen := false
+	var ways := {}
+	var jobs_n := 0
+	var jobs_at_intro := 0
+
+	func steps() -> Array[String]:
+		return FirstSteps.from_facts({"kebab": delivered_t >= 0.0, "ride": rode, "race": raced, "rescue": rang,
+				"heli": flown, "police": police, "garage": garage_seen})
 
 	func facts() -> Dictionary:
 		var other := t < busy_until or (t >= job_from and t < job_to) or t < calling_until
 		var busy := other or t < ride_until
-		return {"input": t >= input_at, "free": not busy, "riding": tell_riding and t < ride_until and not other,
+		return {"input": t >= input_at, "free": not busy, "free_for": free_for,
 				"ordered": ordered, "delivered_t": delivered_t,
-				"raced": raced, "calling": t < calling_until, "race_next": 0.0, "trap": trap, "rang": rang,
+				"raced": raced, "calling": t < calling_until, "trap": trap, "rang": rang,
 				"rescued": rescued, "heli_call": t >= heli_call_at and not rescued, "tape": tape,
-				"powisle": powisle, "garage": garage, "earned": earned, "scripted": scripted}
+				"powisle": powisle, "garage": garage, "earned": earned, "scripted": scripted,
+				"steps": steps(), "want": want, "retry_t": 0.0, "ways": ways,
+				"jobs_since": jobs_n > jobs_at_intro}
 
 	## The world moves on by itself.
 	func step() -> void:
 		var free_now: bool = facts()["free"]
+		if free_now and choice_seen:
+			offer_in -= 0.2
 		if held and honour_hold:
-			next_ride = maxf(next_ride, t + 30.0)  # rides.gd HOLD_GAP
-		if rider and t >= next_ride and free_now and not (held and honour_hold):
-			ride_until = t + ride_s
-			next_ride = ride_until + ride_gap
-			rides_taken += 1
+			offer_in = maxf(offer_in, 30.0)  # rides.gd HOLD_GAP
+		if rider and choice_seen and offer_in <= 0.0 and free_now and not (held and honour_hold):
+			_ride()
+		if ride_until >= 0.0 and t >= ride_until and ride_until > ride_done:
+			ride_done = ride_until
+			jobs_n += 1
+			rode = true
+			earned = true
 		if not ordered and t >= order_at:
 			ordered = true
 			busy_until = t + deliver_s
 		if ordered and delivered_t < 0.0 and t >= busy_until:
 			delivered_t = t
+			jobs_n += 1
 			earned = true
 		if race_end != INF and t >= race_end and not raced:
 			raced = true
 			earned = true
 		if raced and not trap and t >= race_end + 6.0:
 			trap = true  # police.gd arms it FIRST_DELAY s after the race
+			police_at = t + 30.0
+		if trap and not police and t >= police_at:
+			police = true  # the first contact: a stop of 10 s
+			busy_until = maxf(busy_until, t + 10.0)
 		if not rang and t >= rang_at:
 			rang = true
 			busy_until = t + 90.0
 			rescue_end = t + 90.0
 		if rang and not rescued and t >= rescue_end and rescue_ok:
 			rescued = true
+			jobs_n += 1
 			earned = true
 		if not tape and t >= tape_at:
 			tape = true
 			powisle = true  # the boulevards are in Powiśle
 		if not garage and t >= garage_at:
 			garage = true
+			garage_seen = visits
+		if not flown and t >= flies_at:
+			flown = true
+
+	func _ride() -> void:
+		ride_until = t + ride_s
+		offer_in = ride_gap
+		rides_taken += 1
+		ride_starts.append(t)
 
 	## The director fired `id`: what follows in the toy.
 	func on_fire(id: String) -> void:
 		match id:
 			"order":
 				order_at = t
+			"choice":
+				choice_seen = true
+				for p: String in First10.CHOICE_PICKS[pick]:
+					want.append(p)
 			"race":
 				calling_until = t + (20.0 if says_no else 8.0)
 				if not says_no:
 					race_end = t + 8.0 + 60.0
 					busy_until = race_end
+			"trap":
+				trap = true
+				police_at = t + 30.0
 			"rescue":
 				rang_at = t + 12.0
+			"heli":
+				if flies:
+					flies_at = minf(flies_at, t + 5.0)
 			"tape":
 				tape_at = t + tape_after
+			"ride":
+				if takes_rides:
+					_ride()
 			"garage":
 				garage_at = t + 0.3
 
@@ -218,9 +294,10 @@ class Toy:
 ## Plays `toy` for `seconds` through the director's rules: [fired (id -> s), how (id -> way)].
 func _play(toy: Toy, seconds: float) -> Array:
 	var done := {}
-	var ways := {}
+	var ways := toy.ways
 	while toy.t < seconds:
 		toy.step()
+		toy.free_for = toy.free_for + STEP if toy.facts()["free"] else 0.0
 		var f := toy.facts()
 		toy.held = not First10.due(toy.t, f, done).is_empty()
 		if not done.has("done"):
@@ -228,10 +305,14 @@ func _play(toy: Toy, seconds: float) -> Array:
 				if not done.has(id):
 					done[id] = toy.t
 					ways[id] = "met"
+					toy.want.erase(id)
 			for id in First10.decide(toy.t, f, done):
 				if not done.has(id):
 					done[id] = toy.t
 					ways[id] = "fired"
+					toy.want.erase(id)
+					if id in First10.INTROS or id == "choice":
+						toy.jobs_at_intro = toy.jobs_n
 					toy.on_fire(id)
 		toy.t += STEP
 	return [done, ways]
@@ -241,11 +322,21 @@ func _at(done: Dictionary, id: String) -> float:
 	return float(done.get(id, -1.0))
 
 
+## The intros fired, in the order they came: [id, second].
+func _intro_times(done: Dictionary, ways: Dictionary) -> Array:
+	var out: Array = []
+	for id: String in First10.INTROS:
+		if ways.get(id) == "fired":
+			out.append([id, _at(done, id)])
+	out.sort_custom(func(a: Array, b: Array) -> bool: return float(a[1]) < float(b[1]))
+	return out
+
+
 func _ordinary() -> void:
 	var toy := Toy.new()
 	toy.input_at = 1.0
 	toy.order_at = 35.0
-	var r := _play(toy, 1000.0)
+	var r := _play(toy, 1300.0)
 	var done: Dictionary = r[0]
 	var ways: Dictionary = r[1]
 	var bad := First10.judge(done, ways)
@@ -253,163 +344,182 @@ func _ordinary() -> void:
 	_expect(ways.get("finger") == "met" and _at(done, "finger") < 2.0, "a touch at 1 s: no finger (%s)" % ways.get("finger"))
 	_expect(ways.get("stand") == "fired" and absf(_at(done, "stand") - First10.STAND_AT) < 0.3, "the stand's arrow at 10 s: %.1f" % _at(done, "stand"))
 	_expect(ways.get("order") == "met" and absf(_at(done, "order") - 35.0) < 0.3, "the order met at 35 s: %.1f" % _at(done, "order"))
-	_expect(ways.get("race") == "fired" and absf(_at(done, "race") - (110.0 + First10.RACE_AFTER)) < 0.5,
-			"Halina %.0f s after the delivery: %.1f" % [First10.RACE_AFTER, _at(done, "race")])
-	_expect(ways.get("trap") == "met", "the trap armed by the race, not the fallback: %s" % ways.get("trap"))
-	_expect(ways.get("rescue") == "fired" and absf(_at(done, "rescue") - First10.RESCUE_AT) < 0.3, "the call let through at 3:45: %.1f" % _at(done, "rescue"))
-	_expect(ways.get("heli") == "fired" and _at(done, "heli") > _at(done, "rescue") + 90.0, "the helicopter after the rescue: %.1f" % _at(done, "heli"))
+	_expect(not done.has("lure"), "an order taken: the kebab is never let go (%.1f)" % _at(done, "lure"))
+	var delivered := 35.0 + toy.deliver_s
+	_expect(ways.get("choice") == "fired" and absf(_at(done, "choice") - (delivered + First10.CHOICE_AFTER)) < 0.5,
+			"the choice card %.0f s after the delivery: %.1f" % [First10.CHOICE_AFTER, _at(done, "choice")])
+	_expect(ways.get("race") == "fired" and _at(done, "race") - _at(done, "choice") < 0.5, "RACE: Halina at once: %.1f" % _at(done, "race"))
+	_expect(ways.get("trap") == "met", "the trap armed by the race, not an intro: %s" % ways.get("trap"))
+	_expect(ways.get("rescue") == "fired" and ways.get("heli") == "fired" and _at(done, "heli") > _at(done, "rescue") + 90.0,
+			"the helicopter after the rescue: %.1f" % _at(done, "heli"))
 	_expect(ways.get("powisle") == "met", "Powiśle discovered at the boulevards: %s" % ways.get("powisle"))
-	_expect(ways.get("garage") == "fired" and absf(_at(done, "garage") - First10.GARAGE_AT) < 0.3, "the garage at 9:30: %.1f" % _at(done, "garage"))
-	_expect(done.has("done") and _at(done, "done") < First10.GARAGE_AT + 2.0, "the guide ends at the garage: %.1f" % _at(done, "done"))
+	_expect(ways.get("garage") == "fired" and ways.get("kebab") == "met", "the garage an intro, the kebab met: %s %s" % [ways.get("garage"), ways.get("kebab")])
+	var seq := _intro_times(done, ways)
+	var spaced := true
+	for i in range(1, seq.size()):
+		if str(seq[i][0]) != "heli":  # the helicopter's toast comes with the rescue, never waits
+			spaced = spaced and float(seq[i][1]) - float(seq[i - 1][1]) >= First10.NEXT_GAP - 0.01
+	_expect(spaced, "the intros NEXT_GAP s apart at least: %s" % [seq])
+	_expect(done.has("done") and _at(done, "done") < 800.0, "the guide ends once every intro came: %.1f" % _at(done, "done"))
+	_expect(toy.steps().size() == FirstSteps.IDS.size(), "all seven First steps: %s" % [toy.steps()])
 	_summary.append("ordinary %s" % _line(done))
 
 
 func _wanderer() -> void:
 	var toy := Toy.new()
+	toy.pick = 3
 	toy.says_no = true
 	toy.tape_after = INF
 	toy.rescue_ok = false
-	var r := _play(toy, 1000.0)
+	toy.flies = false
+	toy.takes_rides = false
+	var r := _play(toy, 1300.0)
 	var done: Dictionary = r[0]
 	var ways: Dictionary = r[1]
 	_expect(ways.get("finger") == "fired" and absf(_at(done, "finger") - First10.FINGER_IDLE) < 0.3, "the finger at 4 s: %.1f" % _at(done, "finger"))
 	_expect(ways.get("stand") == "fired" and absf(_at(done, "stand") - First10.STAND_AT) < 0.3, "the arrow at 10 s: %.1f" % _at(done, "stand"))
 	_expect(not done.has("order"), "no order without the player (or the replay)")
-	_expect(ways.get("race") == "fired" and absf(_at(done, "race") - First10.RACE_LATEST) < 0.3, "Halina at the fallback: %.1f" % _at(done, "race"))
-	_expect(ways.get("trap") == "fired" and absf(_at(done, "trap") - First10.TRAP_LATEST) < 0.3, "the trap armed at its fallback: %.1f" % _at(done, "trap"))
-	_expect(ways.get("rescue") == "fired" and absf(_at(done, "rescue") - First10.RESCUE_LATEST) < 0.3, "the call at its fallback: %.1f" % _at(done, "rescue"))
-	_expect(ways.get("heli") == "fired" and absf(_at(done, "heli") - First10.HELI_LATEST) < 0.3, "the helicopter at its fallback: %.1f" % _at(done, "heli"))
-	_expect(ways.get("tape") == "fired" and _at(done, "tape") >= First10.HELI_LATEST, "the tape's arrow after the helicopter: %.1f" % _at(done, "tape"))
-	_expect(ways.get("powisle") == "fired" and _at(done, "powisle") >= First10.POWISLE_AT, "the Powiśle arrow: %.1f" % _at(done, "powisle"))
+	# First hour, step 1: the kebab is a lure; at LURE_LATEST its arrow goes, and the free minute
+	# before the choice card starts there, as after a delivery.
+	_expect(ways.get("lure") == "fired" and absf(_at(done, "lure") - First10.LURE_LATEST) < 0.3, "the kebab let go at 1:30: %.1f" % _at(done, "lure"))
+	_expect(ways.get("choice") == "fired" and absf(_at(done, "choice") - (First10.LURE_LATEST + First10.CHOICE_AFTER)) < 0.3,
+			"the choice card a free minute after the kebab was let go: %.1f" % _at(done, "choice"))
+	_expect(ways.get("race") == "fired" and absf(_at(done, "race") - (_at(done, "choice") + First10.NEXT_GAP)) < 0.5,
+			"JUST DRIVE: Halina NEXT_GAP s later, the first intro: %.1f" % _at(done, "race"))
+	_expect(ways.get("trap") == "fired" and ways.get("rescue") == "fired" and ways.get("heli") == "fired" and ways.get("ride") == "fired",
+			"the trap, the call, the helicopter and the ride all come as intros: %s" % [_intro_times(done, ways)])
+	_expect(ways.get("kebab") == "fired", "the stand's arrow once more for a player who never delivered: %s" % ways.get("kebab"))
 	_expect(not done.has("garage"), "no earnings: no garage (%.1f)" % _at(done, "garage"))
 	_expect(absf(_at(done, "done") - First10.GUIDE_END) < 0.3, "the guide ends at GUIDE_END: %.1f" % _at(done, "done"))
 	_summary.append("wanderer %s" % _line(done))
+
+
+## A player who flew and gave a lift before the guide got there is not told about either.
+func _skipper() -> void:
+	var toy := Toy.new()
+	toy.input_at = 1.0
+	toy.order_at = 35.0
+	toy.flies_at = 20.0
+	toy.pick = 3
+	var r := _play(toy, 1300.0)
+	var done: Dictionary = r[0]
+	var ways: Dictionary = r[1]
+	_expect(ways.get("heli") == "met" and _at(done, "heli") < 21.0, "flown at 20 s: the helicopter's intro met, never told: %s %.1f" % [ways.get("heli"), _at(done, "heli")])
+	_expect(ways.get("race") == "fired", "the race still comes: %s" % ways.get("race"))
+	_summary.append("skipper: heli %s at %.0f" % [ways.get("heli"), _at(done, "heli")])
+
+
+## The choice card's picks: FLY asks for the helicopter and the tape at once, RIDES for a ride.
+func _picks() -> void:
+	var fly := Toy.new()
+	fly.input_at = 1.0
+	fly.order_at = 35.0
+	fly.pick = 2
+	var r := _play(fly, 600.0)
+	var done: Dictionary = r[0]
+	var ways: Dictionary = r[1]
+	var c := _at(done, "choice")
+	var fly_heli := _at(done, "heli")
+	_expect(ways.get("heli") == "fired" and _at(done, "heli") - c < 0.5, "FLY: the helicopter at once: %.1f (card %.1f)" % [_at(done, "heli"), c])
+	_expect(ways.get("tape") == "fired" and _at(done, "tape") - c < 1.0, "FLY: the tape's arrow right after: %.1f" % _at(done, "tape"))
+	_expect(_at(done, "race") >= c + First10.NEXT_GAP, "FLY: Halina later, as an intro: %.1f" % _at(done, "race"))
+	var ride := Toy.new()
+	ride.input_at = 1.0
+	ride.order_at = 35.0
+	ride.pick = 1
+	r = _play(ride, 600.0)
+	done = r[0]
+	ways = r[1]
+	c = _at(done, "choice")
+	_expect(ways.get("ride") == "fired" and _at(done, "ride") - c < 0.5, "RIDES: the first request at once: %.1f (card %.1f)" % [_at(done, "ride"), c])
+	_expect(_at(done, "race") >= _at(done, "ride") + ride.ride_s, "RIDES: Halina after the ride: %.1f" % _at(done, "race"))
+	# due: the choice holds the offers before it comes; then the intro waiting, once a job was done.
+	var f := {"free": true, "free_for": 5.0, "earned": true}
+	_expect(First10.due(50.0, f, {"finger": 1.0}) == ["choice"], "before the choice card the guide holds the offers")
+	_expect(First10.due(160.0, f, {"choice": 150.0}).is_empty(), "no job since the card: the requests may come")
+	f["jobs_since"] = true
+	_expect(First10.due(160.0, f, {"choice": 150.0}) == ["race"], "a job done since the card: held for Halina: %s" % [First10.due(160.0, f, {"choice": 150.0})])
+	_expect(First10.due(200.0, f, {"done": 900.0}).is_empty(), "nothing held once the guide is over")
+	_summary.append("picks: FLY heli %.0f, RIDES ride %.0f" % [fly_heli, _at(done, "ride")])
 
 
 func _busy() -> void:
 	var toy := Toy.new()
 	toy.input_at = 1.0
 	toy.order_at = 35.0
-	toy.job_from = 220.0
+	toy.pick = 3
+	toy.job_from = 170.0
 	toy.job_to = 330.0
-	var r := _play(toy, 1000.0)
+	var r := _play(toy, 1300.0)
 	var done: Dictionary = r[0]
-	_expect(_at(done, "rescue") >= 330.0 - 0.01 and _at(done, "rescue") < 331.0, "the call waits for the job (220-330 s): %.1f" % _at(done, "rescue"))
-	_summary.append("busy: the call at %.0f s" % _at(done, "rescue"))
+	_expect(_at(done, "choice") >= 330.0 - 0.01 and _at(done, "choice") < 331.0, "the choice card waits for the job (170-330 s): %.1f" % _at(done, "choice"))
+	_expect(_at(done, "race") >= 330.0 + First10.NEXT_GAP - 0.01, "the first intro NEXT_GAP s after it: %.1f" % _at(done, "race"))
+	_summary.append("busy: the card at %.0f s" % _at(done, "choice"))
 
 
 ## Run 12 (2026-11-03): a player who takes every Podwózka request kept the first call waiting
-## 83 s past its window. The guide holds new requests while a beat is due (first10.gd `due`), so
-## the race and the call land in their windows and the rides come between the beats.
+## 83 s past its window. Once a job was done since the last intro the guide holds new requests
+## (first10.gd `due`), so a rider meets every intro, with at most one ride between two of them;
+## without the hold the rides crowd the intros out (the test means something).
 func _rider() -> void:
-	var toy := Toy.new()
-	toy.input_at = 1.0
-	toy.order_at = 15.0
-	toy.deliver_s = 20.0
-	toy.rider = true
-	var r := _play(toy, 1000.0)
-	var done: Dictionary = r[0]
-	var bad := First10.judge(done, r[1])
-	_expect(bad.is_empty(), "the rider's beats in their windows: %s" % [bad])
-	_expect(toy.rides_taken >= 2, "the rider still gets rides between the beats: %d" % toy.rides_taken)
-	var old := Toy.new()
-	old.input_at = 1.0
-	old.order_at = 15.0
-	old.deliver_s = 20.0
-	old.rider = true
-	old.honour_hold = false
-	var o := _play(old, 1000.0)
-	_expect(not First10.judge(o[0], o[1]).is_empty(), "without the hold the rider meets a beat late (the test means something)")
-	# due: what the director waits to fire, and nothing once the guide is over.
-	var f := {"free": false, "ordered": true, "delivered_t": 40.0, "race_next": 0.0, "earned": true}
-	_expect(First10.due(100.0, f, {"finger": 1.0, "stand": 10.0, "order": 15.0}) == ["race"], "Halina due at 100 s while busy: %s" % [First10.due(100.0, f, {"finger": 1.0, "stand": 10.0, "order": 15.0})])
-	_expect(First10.due(100.0, f, {"done": 900.0}).is_empty(), "nothing due once the guide is over")
-	_expect(First10.due(20.0, f, {"finger": 1.0, "stand": 10.0, "order": 15.0}).is_empty(), "nothing due at 20 s (Halina not before %.0f s)" % First10.RACE_EARLIEST)
-	_summary.append("rider: %d rides, the call at %.0f s (%s without the hold)" % [toy.rides_taken, _at(done, "rescue"), ", ".join(First10.judge(o[0], o[1]))])
-
-
-## The replay of 2026-11-10: a Podwózka request taken at 331 s, in the free gap between the tape's
-## beat and the hold for Powiśle (45 s before a beat), ran to 600 s with the drive to the pin, and
-## Powiśle came 20 s past its window. The Powiśle line now shows at POWISLE_LATEST over a ride
-## (first10.gd `decide`; the ride's pin keeps the arrow until it is done), and only over a ride.
-func _long_ride() -> void:
-	var make := func(riding: bool, as_job: bool) -> Toy:
+	var make := func(hold: bool) -> Toy:
 		var toy := Toy.new()
 		toy.input_at = 1.0
 		toy.order_at = 15.0
 		toy.deliver_s = 20.0
-		toy.tape_after = INF  # the tape is not fetched: Powiśle is not met by the way
-		toy.tell_riding = riding
-		if as_job:
-			toy.job_from = 335.0
-			toy.job_to = 600.0
-		else:
-			toy.rider = true
-			toy.next_ride = 335.0
-			toy.ride_s = 265.0
-			toy.ride_gap = 1000.0
+		toy.rider = true
+		toy.pick = 3
+		toy.ride_gap = 30.0
+		toy.honour_hold = hold
 		return toy
-	var toy: Toy = make.call(true, false)
-	var r := _play(toy, 1000.0)
+	var toy: Toy = make.call(true)
+	var r := _play(toy, 1300.0)
 	var done: Dictionary = r[0]
-	var ways: Dictionary = r[1]
-	var bad := First10.judge(done, ways)
-	var from := toy.ride_until - toy.ride_s
-	_expect(toy.rides_taken == 1 and from > _at(done, "tape") and from < First10.POWISLE_AT - First10.HOLD_AHEAD
-			and toy.ride_until > First10.WINDOWS["powisle"].y,
-			"one ride, taken between the tape's beat and the hold for Powiśle, past Powiśle's window: %d, %.1f to %.1f s" % [toy.rides_taken, from, toy.ride_until])
-	_expect(bad.is_empty(), "a 4.5-minute ride across Powiśle's window: every beat in its window: %s" % [bad])
-	_expect(ways.get("powisle") == "fired" and absf(_at(done, "powisle") - First10.POWISLE_LATEST) < 0.3,
-			"the Powiśle line over the ride at POWISLE_LATEST: %.1f" % _at(done, "powisle"))
-	var old: Toy = make.call(false, false)
-	var o := _play(old, 1000.0)
-	var late := First10.judge(o[0], o[1])
-	_expect(late.size() == 1 and late[0].begins_with("powisle late"), "without the rule the same ride makes Powiśle late (the test means something): %s" % [late])
-	# Any other job of that length: the line still waits for its end.
-	var job: Toy = make.call(true, true)
-	var j: Dictionary = _play(job, 1000.0)[0]
-	_expect(_at(j, "powisle") >= 600.0 - 0.01 and _at(j, "powisle") < 601.0, "behind another job the Powiśle line waits: %.1f" % _at(j, "powisle"))
-	# The rule itself: not before POWISLE_LATEST, and never when something else is on.
-	var seen := {"finger": 1.0, "stand": 10.0, "order": 15.0, "race": 75.0, "trap": 150.0, "rescue": 225.0, "heli": 327.0, "tape": 330.0}
-	var f := {"free": false, "riding": true, "ordered": true, "raced": true, "trap": true, "rang": false, "rescued": true}
-	_expect(not ("powisle" in First10.decide(First10.POWISLE_LATEST - 1.0, f, seen)), "a ride before POWISLE_LATEST: the line waits")
-	_expect("powisle" in First10.decide(First10.POWISLE_LATEST, f, seen), "a ride at POWISLE_LATEST: the line shows")
-	f["riding"] = false
-	_expect(not ("powisle" in First10.decide(First10.POWISLE_LATEST + 60.0, f, seen)), "a race, a call, the police or a card at POWISLE_LATEST: the line waits")
-	_expect(First10.POWISLE_AT < First10.POWISLE_LATEST and First10.POWISLE_LATEST < First10.WINDOWS["powisle"].y,
-			"POWISLE_LATEST %.0f s is after POWISLE_AT and inside the window" % First10.POWISLE_LATEST)
-	_summary.append("a ride from %.0f to %.0f s: Powiśle at %.0f s (%s without the rule)" % [from, toy.ride_until, _at(done, "powisle"), ", ".join(late)])
+	var most := _rides_between(toy, done, r[1])
+	var all := true
+	for id: String in First10.INTROS:
+		all = all and done.has(id) and _at(done, id) < First10.GUIDE_END
+	_expect(all, "the rider meets every intro before GUIDE_END: %s" % _line(done))
+	_expect(most <= 1, "at most one ride between two intros: %d" % most)
+	_expect(toy.rides_taken >= 3, "the rider still gets rides between the intros: %d" % toy.rides_taken)
+	var old: Toy = make.call(false)
+	var o := _play(old, 1300.0)
+	var old_most := _rides_between(old, o[0], o[1])
+	var missing := 0
+	for id: String in First10.INTROS:
+		if not (o[0] as Dictionary).has(id) or _at(o[0], id) >= First10.GUIDE_END:
+			missing += 1
+	_expect(old_most >= 2 or missing > 0, "without the hold the rides crowd the intros out (the test means something): %d rides between two, %d never" % [old_most, missing])
+	_summary.append("rider: %d rides, %s (without the hold: %d rides between two, %d intros never)" % [toy.rides_taken, _line(done), old_most, missing])
 
 
-## The first-10 polish: the short first order is done in ~20 s; Halina still waits for
-## RACE_EARLIEST, inside the race's window.
-func _quick() -> void:
-	var toy := Toy.new()
-	toy.input_at = 1.0
-	toy.order_at = 15.0
-	toy.deliver_s = 20.0
-	var r := _play(toy, 1000.0)
-	var done: Dictionary = r[0]
-	var race := _at(done, "race")
-	_expect(race >= First10.RACE_EARLIEST - 0.01 and race <= First10.RACE_EARLIEST + 1.0, "a quick first delivery (35 s): Halina at %.1f s, not before %.0f" % [race, First10.RACE_EARLIEST])
-	_expect(First10.judge(done, r[1]).is_empty(), "the quick player's beats in their windows: %s" % [First10.judge(done, r[1])])
-	_summary.append("quick: the race at %.0f s" % race)
+## The most rides the toy started between two intros the director made in a row.
+func _rides_between(toy: Toy, done: Dictionary, ways: Dictionary) -> int:
+	var seq := _intro_times(done, ways)
+	var most := 0
+	for i in range(1, seq.size()):
+		var n := 0
+		for at: float in toy.ride_starts:
+			if at >= float(seq[i - 1][1]) and at < float(seq[i][1]):
+				n += 1
+		most = maxi(most, n)
+	return most
 
 
 func _scripted() -> void:
 	var toy := Toy.new()
 	toy.scripted = true
-	var r := _play(toy, 1000.0)
+	var r := _play(toy, 1300.0)
 	var done: Dictionary = r[0]
 	var ways: Dictionary = r[1]
 	_expect(ways.get("order") == "fired" and absf(_at(done, "order") - First10.ORDER_AT) < 0.3, "the replay's order at 15 s: %.1f" % _at(done, "order"))
 	var bad := First10.judge(done, ways)
-	_expect(bad.is_empty(), "the replay toy (no touch, the order scripted): %s" % [bad])
+	_expect(bad.is_empty(), "the replay toy (no touch, the order scripted, RACE): %s" % [bad])
 	var heli := Toy.new()
 	heli.input_at = 1.0
 	heli.heli_call_at = 100.0
 	var h: Dictionary = _play(heli, 200.0)[0]
-	_expect(absf(_at(h, "heli") - 100.0) < 0.3, "a helicopter-only call unlocks it at once: %.1f" % _at(h, "heli"))
+	_expect(absf(_at(h, "heli") - 100.0) < 0.3, "a helicopter-only call brings the helicopter's toast at once: %.1f" % _at(h, "heli"))
 	_summary.append("replay toy OK")
 
 
@@ -421,13 +531,61 @@ func _judge() -> void:
 		done[id] = (w.x + w.y) * 0.5
 		ways[id] = "fired"
 	_expect(First10.judge(done, ways).is_empty(), "every beat mid-window passes")
-	done["race"] = 260.0
-	done["tape"] = 100.0
+	done["race"] = 400.0
+	done["tape"] = 50.0
 	done.erase("garage")
 	var bad := First10.judge(done, ways)
 	_expect(bad.size() == 3, "late race, early tape, missing garage: %s" % [bad])
 	ways["tape"] = "met"
 	_expect(First10.judge(done, ways).size() == 2, "a tape met early is fine")
+
+
+## The friends' calls during the guide (first10.gd `friends_held`, main.gd `_free_block`).
+func _friends() -> void:
+	var steps := int(First10.FRIENDS_STEPS)
+	_expect(First10.friends_held(0, 60.0, -1.0), "no steps at 1:00: the friends wait")
+	_expect(First10.friends_held(steps - 1, First10.FRIENDS_AFTER - 1.0, -1.0), "%d steps just before FRIENDS_AFTER: they wait" % (steps - 1))
+	_expect(not First10.friends_held(steps, 200.0, -1.0), "%d steps: the friends may call" % steps)
+	_expect(not First10.friends_held(0, First10.FRIENDS_AFTER, -1.0), "FRIENDS_AFTER s with no steps: they may call")
+	_expect(First10.friends_held(steps, 400.0, 400.0 - First10.NEW_FRIEND_GAP + 1.0), "a new friend rang lately: the next waits")
+	_expect(not First10.friends_held(steps, 400.0, 400.0 - First10.NEW_FRIEND_GAP), "NEW_FRIEND_GAP s after a new friend: the next may ring")
+	_expect(First10.friends_held(steps, 400.0, -1.0, true), "an intro waits for its turn: it goes before a friend's call")
+	_expect(First10.FRIENDS_YIELD < First10.NEXT_GAP, "a call yields before the intro is due (%.0f < %.0f s)" % [First10.FRIENDS_YIELD, First10.NEXT_GAP])
+	_expect(steps == FirstSteps.NOTICED_AT, "the friends open at the third step, the reward's party (%d, %d)" % [steps, FirstSteps.NOTICED_AT])
+	_summary.append("friends after %d steps or %.0f s, one new every %.0f s" % [steps, First10.FRIENDS_AFTER, First10.NEW_FRIEND_GAP])
+
+
+## first_steps.gd: the list, the rewards, an old save's quiet ticks, the rows for the map.
+func _steps() -> void:
+	_expect(FirstSteps.IDS == ["kebab", "ride", "race", "rescue", "heli", "police", "garage"], "the seven steps: %s" % [FirstSteps.IDS])
+	var zl := 0
+	var paints: Array = []
+	var respect := 0
+	for n in range(1, FirstSteps.IDS.size() + 1):
+		var r := FirstSteps.reward(n)
+		zl += int(r["zl"])
+		respect += int(r["respect"])
+		if str(r["paint"]) != "":
+			paints.append(r["paint"])
+		_expect(bool(r["noticed"]) == (n == FirstSteps.NOTICED_AT), "only the third tick opens the friends (%d)" % n)
+		_expect(bool(r["card"]) == (n == FirstSteps.IDS.size()), "only the seventh brings the card (%d)" % n)
+		_expect(int(r["zl"]) > 0, "every tick pays (%d)" % n)
+	_expect(paints == [FirstSteps.NOTICED_PAINT, FirstSteps.ALL_PAINT] and respect == FirstSteps.RESPECT_ALL,
+			"a paint at the third and the seventh, %d respect at the seventh: %s %d" % [FirstSteps.RESPECT_ALL, paints, respect])
+	const Garage := preload("res://scripts/garage.gd")
+	for p: String in paints:
+		_expect(not Garage.find(p).is_empty(), "the gift paint %s is one of Mirek's" % p)
+	var old := FirstSteps.from_wallet({"kebab": 3, "podwozka": 1, "sloik": 2}, {"halina": 20261101})
+	_expect(old == ["kebab", "ride", "race"], "an old save ticks the kebab, the ride and the race quietly: %s" % [old])
+	_expect(FirstSteps.from_wallet({}, {}).is_empty(), "a fresh save ticks nothing")
+	var intro := {"fs_ride": 130, "fs_heli": 400, "done": 20261115}
+	_expect(FirstSteps.done(intro) == ["ride", "heli"] and FirstSteps.count(intro) == 2, "the save's ticks in the list's order")
+	_expect(FirstSteps.left(intro).size() == 5 and not "ride" in FirstSteps.left(intro), "the steps left")
+	var rows := FirstSteps.rows(intro)
+	_expect(rows.size() == 7 and bool(rows[1]["done"]) and int(rows[1]["at"]) == 130 and not bool(rows[0]["done"]), "the rows for the map: %s" % [rows[1]])
+	var h := FirstSteps.header(intro)
+	_expect(h[0] == "PIERWSZE KROKI 2/7" and h[1] == "First steps 2/7", "the header: %s" % [h])
+	_summary.append("first steps: %d zł, paints %s, %d respect" % [zl, paints, respect])
 
 
 ## A stand-in for a traffic driver: the fields race_session.gd `arm_racer` and `pace_tick` set.
@@ -652,10 +810,32 @@ func _words() -> void:
 		lines.append(First10.LINES[k])
 	for k in Rivals.FIRST_LINES:
 		lines.append(Rivals.FIRST_LINES[k])
+	for k: String in ["intro_kebab", "intro_ride", "what_next"]:
+		lines.append(FirstSteps.words(k))
 	for l: Array in lines:
 		_expect(l.size() == 2 and str(l[0]) != "" and str(l[1]) != "" and str(l[0]) != str(l[1]), "Polish and English: %s" % [l])
 		for x in l:
 			_expect(str(x).length() <= 70, "at most 70 characters: %s (%d)" % [x, str(x).length()])
+	for id: String in FirstSteps.IDS:
+		var n: Array = FirstSteps.name_of(id)
+		_expect(n.size() == 2 and str(n[0]) != str(n[1]) and str(n[0]).length() <= 40 and str(n[1]).length() <= 40,
+				"a First step's line in Polish and English, at most 40 characters: %s" % [n])
+		var tw := FirstSteps.tick_words(id, 7)
+		_expect(str(tw[0]).length() <= 70 and str(tw[1]).length() <= 70, "the tick's toast at most 70 characters: %s" % [tw])
+	for l: Array in [First10.CHOICE_TITLE, FirstSteps.TITLE, FirstSteps.words("promise"), FirstSteps.words("noticed"),
+			FirstSteps.words("all_title")]:
+		_expect(l.size() == 2 and str(l[0]) != str(l[1]), "Polish and English: %s" % [l])
+		for x in l:
+			_expect(str(x).length() <= 70, "at most 70 characters: %s (%d)" % [x, str(x).length()])
+	for l: Array in [FirstSteps.words("choice_body"), FirstSteps.words("all_body")]:
+		_expect(l.size() == 2 and str(l[0]) != str(l[1]), "a card's body in Polish and English: %s" % [l])
+		for x in l:
+			_expect(str(x).length() <= 110, "a card's body at most 110 characters: %s (%d)" % [x, str(x).length()])
+	var promise: Array = FirstSteps.words("promise")
+	var choice_body: Array = FirstSteps.words("choice_body")
+	_expect(promise[1] in choice_body[1] and promise[0] in choice_body[0], "the choice card carries the promise")
+	for b: String in First10.CHOICE_BUTTONS + [FirstSteps.ALL_BUTTON]:
+		_expect(b.get_slice_count("|") == 2 and b.get_slice("|", 0).length() <= 12, "a button's two words, short: %s" % b)
 	for l: Array in [First10.END_TITLE, First10.END_BODY, First10.END_FREE]:
 		_expect(l.size() == 2 and str(l[0]) != str(l[1]), "the end card in Polish and English: %s" % [l])
 		for x in l:

@@ -4589,6 +4589,83 @@ const FKL_ROOF := Color("#606366")      ## grey sheet roofs (the church's, photo
 ## docs/landmarks/specs/szarytki_zaulek.md.
 const SZZ_AT := [Vector2(66.0, -262.0), Vector2(100.0, -278.0)]  ## one point inside each outline
 
+## Dom Parafialny im. Prymasa Tysiąclecia, St Barbara's parish house on Świętej Barbary (OSM
+## building 1525, the only named one of these blocks): a pale yellow plastered house along the
+## street's west side, its back block taller. Its outline is ragged (18 corners) and its LoD2 has
+## two heights, so the mass stays GUGiK's LoD2 in a skin: yellow plaster from three Mapillary
+## photos along Świętej Barbary (2020, refs/churches/dom_parafialny_barbara, reference only, never
+## shipped), which show it only at a slant behind trees, under a grey roof (a default). Spec
+## docs/landmarks/specs/dom_parafialny_barbara.md.
+const DPB_AT := Vector2(-1166.0, 740.0)      ## inside the outline
+const DPB_WALL := Color("#e6d49e")           ## pale yellow plaster (photos)
+const DPB_ROOF := Color("#6c6a66")           ## grey roof, a default
+
+## Dom zakonny Księży Misjonarzy (the back wing of the Missionaries' house, Krakowskie Przedmieście): OSM building 5803,
+## `monastery`, behind the Missionaries' house by Holy Cross, Krakowskie Przedmieście. Its mass stays the map's block in a skin in the colours of
+## the Missionaries' house on Krakowskie Przedmieście (`church_misjonarze`, MS_*): no open photo reaches the yard behind the street wing, so it is provisional.
+## Spec docs/landmarks/specs/misjonarze_tyl.md.
+const MST_AT := Vector2(-519.4, -546.9)
+const MST_WALL := Color("#d7c08a")
+const MST_ROOF := Color("#5b5d60")
+
+## Plebania parafii Narodzenia NMP (the presbytery of the Nativity church on Leszno, Wola): OSM building 10100,
+## `presbytery`, behind the Nativity church on Leszno, Wola. Its mass stays the map's block in a skin in the colours of
+## the Nativity of the Virgin Mary church on Leszno (`church_narodzenia`, NR_*): one Mapillary photo within 45 m faces it at a steep slant from 42 m (2022), too far and too slanted to read, so it is provisional.
+## Spec docs/landmarks/specs/plebania_leszno.md.
+const PLS_AT := Vector2(-1991.4, -975.4)
+const PLS_WALL := Color("#d49885")
+const PLS_ROOF := Color("#a3553f")
+
+## The low house east of the Franciscan Sisters of the Family of Mary's convent (OSM building 10482,
+## `religious`, unnamed, Wola), at the street corner beside the long banded house
+## (`church_rodziny_maryi`, RM_*). Its mass stays the map's block in a skin: the convent's warm peach
+## plaster (RM_WALL) under green copper, from Mapillary photos along the street (2020-2021,
+## refs/churches/religious_10482, reference only, never shipped), which show a low pavilion with a
+## green hipped roof behind the iron railings and gate pavilions. Spec
+## docs/landmarks/specs/rodziny_maryi_pawilon.md.
+const RMP_AT := Vector2(-2595.0, -765.0)
+const RMP_WALL := Color("#e6c2a2")
+const RMP_ROOF := Color("#7f9e86")
+
+## The parish house of Our Lady of Częstochowa on Zagórna (OSM building 2197, `presbytery`,
+## unnamed, Powiśle): the block joined to the back of the 1960s church (`church_czestochowska`, MC_*).
+## Its mass stays the map's block in a skin: the church's grey render (MC_WALL) from two Mapillary
+## photos at its south-west corner (2026, refs/churches/plebania_2197, reference only, never shipped),
+## which show the grey wall with gold window frames, the gilt Mass-times cross and the stair down;
+## the roof is a grey default. Spec docs/landmarks/specs/plebania_zagorna.md.
+const PZG_AT := Vector2(1145.0, 846.0)
+const PZG_WALL := Color("#c8c5be")
+const PZG_ROOF := Color("#6c6a66")
+
+## The Pallottine fathers' house on Skaryszewska (OSM building 3049, `monastery`, unnamed, Praga):
+## the tall block at the north corner of the Christ the King church's plot (`church_chrystusa_krola`,
+## CK_*). Its mass stays the map's block (17.5 m) in a skin in the parish wings' plaster and grey roof
+## (CK_WING, CK_TILE). No open photo faces it (one Mapillary photo within 45 m, looking away), so
+## it is provisional. Spec docs/landmarks/specs/pallotyni_dom.md.
+const PDM_AT := Vector2(1745.0, -1650.0)
+const PDM_WALL := Color("#e6dcc4")
+const PDM_ROOF := Color("#8a8a84")
+
+## The presbytery of Christ the King on Skaryszewska (Plebania, OSM building 6054, Praga, the
+## Pallottines' parish): a low house at the west corner of the church's block (`church_chrystusa_krola`,
+## CK_*), beside the cream chapel on the street. Its mass stays the map's block in a skin in the parish
+## wings' plaster and grey roof (CK_WING, CK_TILE), from eight Mapillary photos along Skaryszewska
+## (2026, refs/churches/plebania_6054, reference only, never shipped), which show the chapel's front
+## and the iron fence and gate beside it; the house itself stands behind the fence. Spec
+## docs/landmarks/specs/plebania_pallotynow.md.
+const PPL_AT := Vector2(1709.0, -1676.0)
+const PPL_WALL := Color("#e6dcc4")
+const PPL_ROOF := Color("#8a8a84")
+
+## The presbytery of Our Lady of Victory (Plebania, OSM building 394, Praga, 43 m from the church):
+## a two-storey house behind iron railings on a stone wall. Its mass stays the map's block in a skin:
+## cream plaster from two Mapillary photos down the street (2015, refs/churches/plebania_394,
+## reference only, never shipped), which show its end wall over the railings and trees; the roof is
+## a grey default. Spec docs/landmarks/specs/plebania_zwycieskiej.md.
+const PZW_AT := Vector2(1928.0, -1366.0)
+const PZW_WALL := Color("#e6d9b5")
+const PZW_ROOF := Color("#6c6a66")
+
 
 ## The presbytery of St Florian's cathedral (Plebania katedry św. Floriana, Floriańska, Praga):
 ## an L of two plastered houses behind the cathedral. The range on Floriańska, three tall storeys
@@ -4878,6 +4955,19 @@ const KLU_WALL := Color("#e4dccb")      ## pale plaster, a default
 
 func _build_kaplica_lucka(site: Dictionary) -> void:
 	_flat_chapel(site["outline"], 5.3, KLU_WALL, Vector2(0.3, 0.95))
+
+
+## The yard chapel behind Hoża 55 (unnamed `chapel`, OSM building 8734, Śródmieście Południowe): a
+## long single storey about 5.8 m tall under a flat roof (GUGiK's LoD2), its short north end
+## towards Hoża. A model that replaces the plain OpenStreetMap block (no landmark until
+## 2026-11-15). **Provisional, no photo**: the twelve street photos within 45 m look along Hoża
+## and none faces the yard (refs/churches/kaplica_8734 is empty), so the walls, windows, door and
+## cross are `_flat_chapel`'s defaults (docs/QUESTIONS.md). Spec docs/landmarks/specs/kaplica_hoza.md.
+const KHZ_WALL := Color("#ddd6c8")      ## pale grey-cream plaster, a default
+
+
+func _build_kaplica_hoza(site: Dictionary) -> void:
+	_flat_chapel(site["outline"], 5.8, KHZ_WALL, Vector2(-0.356, -0.935))
 
 
 func _build_zwycieska_klasztor(site: Dictionary) -> void:
@@ -7483,6 +7573,8 @@ const CHURCHES := [
 			"fill": 0.9, "style": "neogothic", "wall": "#9b4535", "roof": "#3b3d42", "towers": 0, "cap": "none"},
 	{"key": "church_kaplica_lucka", "at": Vector2(-2257.0, 72.4), "o": Vector2(-2263.0, 68.5), "out": Vector2(0.337, 0.942), "L": 8.8, "W": 11.4,
 			"fill": 0.9, "style": "modern", "wall": "#e4dccb", "roof": "#b9b7b1", "towers": 0, "cap": "none"},
+	{"key": "church_kaplica_hoza", "at": Vector2(-1008.9, 1027.6), "o": Vector2(-1007.9, 1019.2), "out": Vector2(-0.356, -0.935), "L": 18.7, "W": 5.9,
+			"fill": 0.9, "style": "modern", "wall": "#ddd6c8", "roof": "#b9b7b1", "towers": 0, "cap": "none"},
 	{"key": "church_sluzki_dom_generalny", "at": Vector2(-203.0, -515.0), "o": Vector2(-206.4, -500.9), "out": Vector2(-0.917, 0.400), "L": 28.3, "W": 29.6,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e3c48e", "roof": "#6b6c6c", "towers": 0, "cap": "none"},
 	{"key": "church_uczennice_boskiego_mistrza", "at": Vector2(-2890.0, -650.0), "o": Vector2(-2919.2, -669.7), "out": Vector2(-0.231, -0.973), "L": 37.5, "W": 41.5,
@@ -7616,6 +7708,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_kaplica_lucka":
 		_build_kaplica_lucka(site)  # the flat-roofed yard chapel behind Łucka, provisional
+		return
+	if site["key"] == "church_kaplica_hoza":
+		_build_kaplica_hoza(site)  # the flat-roofed yard chapel behind Hoża 55, provisional
 		return
 	if site["key"] == "church_sluzki_dom_generalny":
 		_build_sluzki_dom_generalny(site)  # the Servants of Jesus' generalate, from photos and LoD2

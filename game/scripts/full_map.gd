@@ -12,6 +12,7 @@ extends Control
 ## Loop 3h slice 3: the rival ladder's card on the right (DRABINKA · rival ladder: each rung with
 ## its stake, ★ beaten, → next and what it needs, · locked; the final's state), given by
 ## `set_ladder` after open, and the final's start marker (a diamond) once it is open at night.
+## (First hour step 4: the ladder is the Rivals section of the one list now, below.)
 ## F's ask (2026-10-31, BACKLOG top): a game map, not a survey sheet. Its own meshes (map_art.gd:
 ## the land, the districts' pastels, the greens and water, bold roads by class, the bridges on top;
 ## built on the first open, three draw calls) and the landmarks' pin icons (map_icons.gd, in the
@@ -25,6 +26,12 @@ extends Control
 ## distance and compass point). A tapped place centres the map on it and becomes the quest pin (a
 ## big pin in its colour here, the arrow and minimap dot in the city: main.gd); tapped again, the
 ## pin goes. A request (a ride, a rescue call) closes the map and starts. The ≡ cards take its place.
+## First hour step 4 (the spec "First hour for the beta" section 3, the critique's point 7, F's yes
+## 2026-11-15): the tabs are gone. The card is ONE scrolling list in sections (quest_lines.gd
+## `sections`): TERAZ (only while something runs), PIERWSZE KROKI (the promise and the nearest
+## First steps left, first_steps.gd), RYWALE (the six as one row of names, a tap calls one out; the
+## final, and the night for it), W MIEŚCIE (one row per kind of job), ZNAJOMI (after the third First
+## step) and KOLEKCJA (after the first find; a tap opens the ≡ cards).
 
 signal closed
 ## G12 part 2: a row of the ZADANIA card was tapped (its entry, quest_lines.gd `entry`; {}: the
@@ -35,6 +42,9 @@ signal quest_picked(entry: Dictionary)
 signal quit_quest
 ## The hold's spot (map metres), when the hold was held to the end.
 signal teleport(at: Vector2)
+## First hour step 5 (The Six): a rival's row on the RYWALE card was tapped (its ladder.gd rung):
+## main.gd calls that rival out (rivals.gd `call_out`) and the map closes.
+signal rival_called(rung: int)
 
 const Lang := preload("res://scripts/lang.gd")
 const MapArt := preload("res://scripts/map_art.gd")
@@ -95,26 +105,17 @@ var scene_mark := Vector2.INF
 var found := PackedVector2Array()
 var target := Vector2.INF
 var target_colour := Color.WHITE
-## The main line (main_line.gd, hud.gd `set_main_line`): its marker (INF: none) and goal line. On the
-## map a big gold star in a pulsing ring (pinned to the screen's edge when off it); the side quests
+## The main line (main_line.gd): its marker (the registry's MapMarkers.MAIN_STAR; none: no star)
+## and goal line (hud.gd `set_main_goal`). On the map a big gold star in a pulsing ring (pinned to the screen's edge when off it); the side quests
 ## keep their colours: the active one a ringed dot, the places to start one (kebab stands, the
 ## station, the scooters: hud.gd's minimap squares) squares. A legend bottom left says which is which.
-var main_at := Vector2.INF
 var main_pl := ""
 var main_en := ""
 ## The map marker registry (map_markers.gd, TD-13; hud.gd hands its own over on open): the street
-## jobs' places (JOB) and the garage (SERVICE) come from it, by its rule table.
+## jobs' places (JOB), the garage (SERVICE), the questlines' starts (STORY: each with its name in
+## the language shown, its one-line description for a tap, `_tap_story`, and "small" for a smaller
+## "!") and the main line's star (MAIN) come from it, by its rule table.
 var markers := MapMarkers.new()
-## The questlines' starts (story_quests.gd) and their colours; quest focus (a quest under way: the
-## side places, the garage, the "?" marks and the starts stay off, the main star dims).
-var story_spots := PackedVector2Array()
-var story_colours := PackedColorArray()
-## The questlines' names (in the language shown) by start, for their labels.
-var story_names := PackedStringArray()
-## Each questline's one-line description (a tap on its pin shows it, `_tap_story`) and, per
-## questline, 1 for a smaller "!" (the shisha night: it starts only at its pin).
-var story_blurbs := PackedStringArray()
-var story_small := PackedByteArray()
 var _qdrag := -1
 var _qdrag_px := 0.0
 ## F (2026-11-08): what is under way, [pl, en] (main.gd sets it on open; empty: nothing to quit).
@@ -125,7 +126,10 @@ const QUIT_ARM := 3.0
 const QUIT_COLOUR := Color("#ff5a5a")
 var _tap_at := Vector2.INF
 var _tap_ms := 0
+## Quest focus (a quest under way: the side places, the garage, the "?" marks and the starts stay
+## off, the main star dims) and flying (the starts stay off): hud.gd sets both.
 var focus := false
+var flying := false
 ## F (2026-11-07): the hospitals only matter to a rescue; their marks show only while one is on
 ## (main.gd sets it on open).
 var hospitals := false
@@ -183,7 +187,6 @@ var _close: Button
 var _cards: Button
 var cards_shown := false
 var _has_list := false
-var _has_ladder := false
 var _touches := {}
 var _pinch := 0.0
 ## Loop 3h slice 1: the fog's triangles (map points, three a triangle: the districts not
@@ -191,7 +194,6 @@ var _pinch := 0.0
 var _fog := PackedVector2Array()
 var _list: PanelContainer
 ## Loop 3h slice 3: the ladder's card (top right, under the ✕).
-var _ladder: PanelContainer
 ## G12 part 2: the ZADANIA card, the quests given by `set_quests` (entries), the tab shown
 ## (Lines.Line) and the picked place (an entry; {} none). `quest_rows` is what the tab shows now.
 var _quests: PanelContainer
@@ -200,16 +202,38 @@ var quest_line := 0
 var quest_pick: Dictionary = {}
 var quest_rows: Array = []
 var _quest_buttons: Array[Button] = []
-## G12b: the row the gamepad has picked out (-1: none; the D-pad moves it, Y takes it, X switches
-## the tab). A is still the teleport hold, so the card never takes A.
+## G12b: the row the gamepad has picked out (-1: none; the D-pad moves it, Y takes it, X jumps to
+## the next section). A is still the teleport hold, so the card never takes A.
 var quest_pad := -1
-var _tab_buttons: Array[Button] = []
-## Row and tab heights in points (MIN_TOUCH, 44 pt: four rows still fit under the buttons at 375 pt).
+## Row heights in points (MIN_TOUCH, 44 pt) and the list's width.
 const ROW_H := 44.0
-const TAB_H := 44.0
 const QUEST_W := 236.0
 ## Its rows' colours: beaten, next, locked.
-const LADDER_COLOURS := {"won": Color("#ffd23f"), "next": Color("#fbf7ee"), "locked": Color("#8f88a0")}
+const LADDER_COLOURS := {"won": Color("#ffd23f"), "next": Color("#fbf7ee"), "open": Color("#fbf7ee"), "locked": Color("#8f88a0")}
+## First hour step 4: what the one list shows besides the quests (each given after open by main.gd):
+## the First steps left ({"id", "pl", "en", "entry"}), their header and the promise ([pl, en]);
+## the rivals' chips (ladder.gd `chips`), the Rivals title, the final's line ([text, state]) and
+## whether the night button shows; the Collection line ([pl, en]; empty: no find yet); and whether
+## the Friends section is open (the third First step).
+var steps_left: Array = []
+var steps_head: Array = []
+var promise: Array = []
+var rival_chips: Array = []
+var rivals_title: Array = []
+var final_line: Array = []
+var night_offer := false
+var collection: Array = []
+var friends_open := true
+## The sections shown now (quest_lines.gd `sections`) and where each starts in `quest_rows` (the
+## pad's X jumps to the next one).
+var list_sections: Array = []
+var _section_starts: Array[int] = []
+## The rivals' race colour (rivals.gd RACE_COLOUR) for the chips' rim.
+const RIVAL_COLOUR := Color("#ff4f6d")
+## A rival chip's width share (three to a row) and the gap between chips.
+const CHIPS_PER_ROW := 3
+## The list's scroll is never shorter than this many rows (a short screen still scrolls).
+const LIST_MIN_ROWS := 2.0
 
 
 func _ready() -> void:
@@ -330,10 +354,6 @@ func _build() -> void:
 	_list.name = "districts"
 	_list.visible = false
 	add_child(_list)
-	_ladder = _card([], [])
-	_ladder.name = "ladder"
-	_ladder.visible = false
-	add_child(_ladder)
 	_quests = _card([], [])
 	_quests.name = "quests"
 	_quests.visible = false
@@ -385,7 +405,7 @@ func open(at: Vector2, yaw: float) -> void:
 		_build()
 		var keep := [main_pl, main_en]
 		main_pl = "-"
-		set_main_line(main_at, keep[0], keep[1])
+		set_main_goal(keep[0], keep[1])
 	car = at
 	car_yaw = yaw
 	centre = at
@@ -412,13 +432,12 @@ func _hint_words() -> void:
 		label.text = Lang.pick("Przytrzymaj miejsce, by się tam przenieść", "Hold a spot to jump there")
 
 
-## Shows or hides the districts' and the ladder's cards (the ≡ button).
+## Shows or hides the districts' card (the ≡ button; the rivals are in the one list since step 4).
 func show_cards(on: bool) -> void:
 	cards_shown = on
 	if not _built:
 		return
 	_list.visible = _has_list and on
-	_ladder.visible = _has_ladder and on
 	_quests.visible = not on and _has_quests()
 	_fit()
 
@@ -471,14 +490,10 @@ func _fit() -> void:
 	_hint.position = Vector2(s.position.x + (s.size.x - _hint.size.x) * 0.5, s.end.y - m - _hint.size.y)
 	var below := _head.position.y + _head.size.y + m
 	if _quests.visible:
-		_quests.size = _quests.get_combined_minimum_size()
-		_quests.position = Vector2(s.end.x - m - _quests.size.x, _close.position.y + _close.size.y + m)
-	if _ladder.visible:
-		_ladder.size = _ladder.get_combined_minimum_size()
-		_ladder.position = Vector2(s.end.x - m - _ladder.size.x, _close.position.y + _close.size.y + m)
+		_fit_list(s, m)
 	if _goal.visible:
-		# As wide as its line, but never into the ladder's card or the buttons: then it wraps.
-		var right := _ladder.position.x if _ladder.visible else (_quests.position.x if _quests.visible else _cards.position.x)
+		# As wide as its line, but never into the list's card or the buttons: then it wraps.
+		var right := _quests.position.x if _quests.visible else _cards.position.x
 		_wrap_goal(maxf(120.0 * pt, right - m - (s.position.x + m) - 24.0 * pt))
 		_goal.size = _goal.get_combined_minimum_size()
 		_goal.position = Vector2(s.position.x + m, below)
@@ -496,6 +511,29 @@ func _fit() -> void:
 		_note.position = Vector2(s.position.x + (s.size.x - _note.size.x) * 0.5, s.end.y - m - _note.size.y)
 	_hint.visible = not _note.visible  # the note takes the hint's place for its moment
 	_place()
+
+
+## First hour step 4: the list's card on the right under the buttons, as tall as its rows but no
+## lower than the safe area's bottom (or the hint's top, when the hint sits under it): past that
+## its scroll takes the rest.
+func _fit_list(s: Rect2, m: float) -> void:
+	var top := _close.position.y + _close.size.y + m
+	var bottom := s.end.y - m
+	var sc := _quests.find_child("list_scroll", true, false) as ScrollContainer
+	var w := _quests.get_combined_minimum_size().x
+	var left := s.end.x - m - w
+	if _hint.visible and _hint.position.x < s.end.x - m and _hint.position.x + _hint.size.x > left:
+		bottom = _hint.position.y - m
+	if sc != null:
+		var inner := sc.get_child(0) as Control
+		sc.custom_minimum_size.y = 0.0
+		_quests.reset_size()
+		var chrome := _quests.get_combined_minimum_size().y
+		var want := inner.get_combined_minimum_size().y
+		sc.custom_minimum_size.y = clampf(want, LIST_MIN_ROWS * ROW_H * pt, maxf(LIST_MIN_ROWS * ROW_H * pt, bottom - top - chrome))
+	_quests.reset_size()
+	_quests.size = _quests.get_combined_minimum_size()
+	_quests.position = Vector2(s.end.x - m - _quests.size.x, top)
 
 
 ## The map under the screen's centre and the zoom: the content's transform, the marks redrawn.
@@ -537,8 +575,6 @@ func rects() -> Dictionary:
 		out["note"] = _note.get_global_rect()
 	if _list.visible:
 		out["districts"] = _list.get_global_rect()
-	if _ladder.visible:
-		out["ladder"] = _ladder.get_global_rect()
 	if _quests.visible:
 		out["quests"] = _quests.get_global_rect()
 	return out
@@ -575,11 +611,10 @@ func _wrap_goal(w: float) -> void:
 	_goal.reset_size()
 
 
-## The main line's marker (map x, z; INF: none) and goal line (hud.gd passes it on open and while
-## open). An empty line hides the goal card (the main line is done).
-func set_main_line(at: Vector2, pl: String, en: String) -> void:
+## The main line's goal line (hud.gd passes it on open and while open; its star is in the
+## registry). An empty line hides the goal card (the main line is done).
+func set_main_goal(pl: String, en: String) -> void:
 	var changed := pl != main_pl or en != main_en
-	main_at = at
 	main_pl = pl
 	main_en = en
 	if not _built or not changed:
@@ -592,27 +627,24 @@ func set_main_line(at: Vector2, pl: String, en: String) -> void:
 	_fit()
 
 
-## Loop 3h slice 3: the rival ladder's card (ladder.gd `rows`: [text, "won" | "next" | "locked"]);
-## call after open(). Labels only: the game is paused under the map.
-func set_ladder(rows: Array) -> void:
-	if not _built:
-		return
-	var box: VBoxContainer = _ladder.get_child(0)
-	for c in box.get_children():
-		box.remove_child(c)
-		c.queue_free()
-	var lines: Array = [[Lang.pick("DRABINKA", "RIVAL LADDER"), ""]]
-	lines.append_array(rows)
-	for i in lines.size():
-		var l := Label.new()
-		l.text = str(lines[i][0])
-		l.add_theme_font_size_override("font_size", _px(T_TITLE if i == 0 else T_SUB))
-		l.add_theme_color_override("font_color", Color("#ffd23f") if i == 0 else
-				LADDER_COLOURS.get(str(lines[i][1]), Color.WHITE))
-		box.add_child(l)
-	_has_ladder = not rows.is_empty()
-	_ladder.visible = _has_ladder and cards_shown
-	_fit()
+## Loop 3h slice 3 (the ladder's card) and The Six (step 5): since first hour step 4 the rivals are
+## the one list's RYWALE section: `chips` (ladder.gd `chips`: six names, "open" and "won" ones
+## tappable to call that rival out, `rival_called`), `title` [pl, en] (ladder.gd `title`), `final`
+## the final's line (ladder.gd `rows`' last, [text, state]) and `night` (the final waits for the
+## night: a button switches it on, main.gd). Call after open().
+func set_rivals(chips: Array, title: Array = [], final: Array = [], night := false) -> void:
+	rival_chips = chips
+	rivals_title = title
+	final_line = final
+	night_offer = night
+	if _built:
+		_fill_quests()
+
+
+func _rival_tapped(rung: int) -> void:
+	print("full map: rival %d called out" % rung)
+	rival_called.emit(rung)
+	close()
 
 
 ## Loop 3h slice 1: the districts to show (districts.gd `view()`) and the total per cent; call
@@ -673,19 +705,18 @@ func set_districts(view: Array[Dictionary], total: int, syrenki_found := 0, syre
 	_fit()
 
 
-## The questlines' starts and quest focus (hud.gd `set_story`).
-func set_story(points: PackedVector2Array, colours: PackedColorArray, in_focus: bool, names := PackedStringArray(),
-		blurbs := PackedStringArray(), small := PackedByteArray()) -> void:
-	story_names = names
-	story_blurbs = blurbs
-	story_small = small
-	story_spots = points
-	story_colours = colours
-	focus = in_focus
+## The main line's star (INF: none), from the registry.
+func _main_at() -> Vector2:
+	return markers.where(MapMarkers.MAIN_STAR)
 
 
-## G12 part 2: the quests on offer now (quest_lines.gd entries), the tab to show first and the id
-## of the quest pin (""); call after open().
+## The questlines' starts the map shows now (the registry's STORY layer by the rule table).
+func _stories() -> Dictionary:
+	return markers.shown(MapMarkers.Layer.STORY, MapMarkers.View.FULL_MAP, MapMarkers.context_of(focus, flying))
+
+
+## G12 part 2: the quests on offer now (quest_lines.gd entries), the vehicle's line (its places
+## lead Around town) and the id of the quest pin (""); call after open().
 func set_quests(entries: Array, line: int, pick_id := "") -> void:
 	quest_entries = entries
 	quest_line = line
@@ -699,152 +730,280 @@ func set_quests(entries: Array, line: int, pick_id := "") -> void:
 	_fill_quests()
 
 
-## Builds the ZADANIA card for `quest_line`: the two tabs (they name it), the rows (or a line saying
-## there is nothing to start).
+## First hour step 4: the First steps left (each {"id", "pl", "en", "entry"}: first_steps.gd's rows
+## not done with the place or request that does each, main.gd), the header ("PIERWSZE KROKI 2/7"),
+## the promise and whether Friends shows (the third step). Empty `left`: no First steps section.
+func set_steps(left: Array, head: Array, words: Array, friends := true) -> void:
+	steps_left = left
+	steps_head = head
+	promise = words
+	friends_open = friends
+	if _built:
+		_fill_quests()
+
+
+## First hour step 4: the Collection line ([pl, en]: districts, Syrenki, cassettes); empty until
+## the first find.
+func set_collection(words: Array) -> void:
+	collection = words
+	if _built:
+		_fill_quests()
+
+
+## A section's title [pl, en] as the list shows it (the First steps' and the Rivals' with counts).
+func _section_title(key: String) -> String:
+	var t: Array = Lines.SECTION_TITLES[key]
+	if key == "steps" and steps_head.size() == 2:
+		t = steps_head
+	elif key == "rivals" and rivals_title.size() == 2:
+		t = rivals_title
+	return Lang.pick(str(t[0]), str(t[1]))
+
+
+## Builds the one list (first hour step 4): the pad's keys, then one scroll with the sections
+## (quest_lines.gd `sections`), each a title and its rows, then the quit button for what runs.
+## `quest_rows` and `_quest_buttons` hold every tappable row in order (the rivals' chips too).
 func _fill_quests() -> void:
 	var box: VBoxContainer = _quests.get_child(0)
 	for c in box.get_children():
 		box.remove_child(c)
 		c.queue_free()
 	_quest_buttons.clear()
-	_tab_buttons.clear()
+	_section_starts.clear()
 	box.add_theme_constant_override("separation", int(4.0 * pt))
 	box.custom_minimum_size.x = QUEST_W * pt
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", int(6.0 * pt))
-	box.add_child(tabs)
-	# F (2026-11-07): a third tab, WĄTKI, the big questlines (story_quests.gd); in the beta a tap
-	# starts one now.
-	for line in [Lines.Line.CAR, Lines.Line.HELI, Lines.Line.STORY]:
-		var b := Button.new()
-		b.name = ["tab_car", "tab_heli", "tab_story"][line]
-		b.text = [Lang.pick("AUTO", "CAR"), Lang.pick("HELI", "HELI"), Lang.pick("WĄTKI", "STORIES")][line]
-		b.focus_mode = Control.FOCUS_NONE
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.custom_minimum_size.y = TAB_H * pt
-		b.add_theme_font_size_override("font_size", _px(T_SUB))
-		var on: bool = line == quest_line
-		var col: Color = _line_colour(line)
-		b.add_theme_color_override("font_color", Color("#1a1622") if on else col)
-		b.add_theme_color_override("font_hover_color", Color("#1a1622") if on else col)
-		b.add_theme_color_override("font_pressed_color", Color("#1a1622"))
-		for st in ["normal", "hover", "pressed", "focus"]:
-			var sb := StyleBoxFlat.new()
-			sb.bg_color = col if on or st == "pressed" else Color(0.16, 0.14, 0.22, 0.95)
-			sb.set_corner_radius_all(_px(8))
-			sb.border_color = col
-			sb.set_border_width_all(_px(2))
-			b.add_theme_stylebox_override(st, sb)
-		b.pressed.connect(show_line.bind(line))
-		tabs.add_child(b)
-		_tab_buttons.append(b)
-	quest_rows = Lines.rows(quest_entries, quest_line, car)
-	quest_pad = mini(quest_pad, quest_rows.size() - 1)
+	list_sections = Lines.sections(quest_entries, quest_line, car, steps_left, friends_open)
+	quest_rows = []
 	if Gamepad.in_use():
 		# G12b: the pad's words for the card (A stays the teleport hold).
 		var keys := Label.new()
 		keys.name = "pad_keys"
-		keys.text = Gamepad.fmt(Lang.pick("{x}: AUTO / HELI / WĄTKI · krzyżak: wybór · {y}: bierz", "{x}: CAR / HELI / STORIES · D-pad: pick · {y}: take"))
+		keys.text = Gamepad.fmt(Lang.pick("{x}: następna sekcja · krzyżak: wybór · {y}: bierz", "{x}: next section · D-pad: pick · {y}: take"))
 		keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		keys.custom_minimum_size.x = QUEST_W * pt
 		keys.add_theme_font_size_override("font_size", _px(T_SUB))
 		keys.add_theme_color_override("font_color", Gamepad.RING)
 		box.add_child(keys)
-	if quest_rows.is_empty():
-		var none := Label.new()
-		none.text = Lang.pick("Na razie nic. Skończ to, co trwa, albo zajrzyj później.",
-				"Nothing to start now. Finish what's on, or look again later.")
-		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		none.custom_minimum_size.x = QUEST_W * pt
-		none.add_theme_font_size_override("font_size", _px(T_SUB))
-		none.add_theme_color_override("font_color", Color("#c9c2d8"))
-		box.add_child(none)
-	# The WĄTKI tab lists every questline: past MAX_ROWS rows they scroll (the card keeps its size).
-	var holder: Container = box
-	if quest_rows.size() > Lines.MAX_ROWS:
-		var scroll := ScrollContainer.new()
-		scroll.name = "story_scroll"
-		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		scroll.custom_minimum_size = Vector2(QUEST_W, (ROW_H + 4.0) * Lines.MAX_ROWS) * pt
-		box.add_child(scroll)
-		var inner := VBoxContainer.new()
-		inner.add_theme_constant_override("separation", int(4.0 * pt))
-		scroll.add_child(inner)
-		holder = inner
-	for i in quest_rows.size():
-		var r: Dictionary = quest_rows[i]
-		var b := Button.new()
-		b.name = "quest_%d" % i
-		b.focus_mode = Control.FOCUS_NONE
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.clip_text = true
-		b.custom_minimum_size = Vector2(QUEST_W, ROW_H) * pt
-		b.add_theme_font_size_override("font_size", _px(T_SUB))
-		var picked := str(r["id"]) == str(quest_pick.get("id", ""))
-		var padded := i == quest_pad
-		var far := Lang.pick(str(r["far"][0]), str(r["far"][1]))
-		var name := Lang.pick(str(r["pl"]), str(r["en"]))
-		b.text = ("%s · %s" % [name, far]) if far != "" else ("%s ›" % name if str(r["action"]) != Lines.NOW else name)
-		b.add_theme_color_override("font_color", Color("#fbf7ee"))
-		b.add_theme_color_override("font_hover_color", Color("#fbf7ee"))
-		b.add_theme_color_override("font_pressed_color", Color("#fbf7ee"))
-		var col := Access.tint(r["colour"])
-		for st in ["normal", "hover", "pressed", "focus"]:
-			var sb := StyleBoxFlat.new()
-			sb.bg_color = col.darkened(0.55) if picked or st == "pressed" else Color(0.12, 0.11, 0.17, 0.9)
-			sb.set_corner_radius_all(_px(6))
-			sb.border_color = col
-			sb.border_width_left = _px(6)
-			if picked:
-				sb.set_border_width_all(_px(2))
-				sb.border_width_left = _px(6)
-			if padded:
-				# G12b: the pad's pick wears the pad's accent ring (gamepad.gd RING).
-				sb.border_color = Gamepad.RING
-				sb.set_border_width_all(_px(3))
-				sb.border_width_left = _px(6)
-			sb.content_margin_left = 12.0 * pt
-			sb.content_margin_right = 6.0 * pt
-			b.add_theme_stylebox_override(st, sb)
-		if not bool(r.get("open", true)):
-			b.modulate = Color(1, 1, 1, 0.7)  # a questline closed at this hour (the beta still starts it)
-		b.pressed.connect(_row_tapped.bind(i))
-		holder.add_child(b)
-		_quest_buttons.append(b)
+	var scroll := ScrollContainer.new()
+	scroll.name = "list_scroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size.x = QUEST_W * pt
+	box.add_child(scroll)
+	var inner := VBoxContainer.new()
+	inner.name = "list"
+	inner.add_theme_constant_override("separation", int(4.0 * pt))
+	inner.custom_minimum_size.x = QUEST_W * pt
+	scroll.add_child(inner)
+	var padded: Button = null
+	var any := false
+	for sec: Dictionary in list_sections:
+		var key := str(sec["key"])
+		var rows: Array = sec["rows"]
+		if key == "rivals" and rival_chips.is_empty() and rows.is_empty():
+			continue
+		if key == "collection" and collection.size() != 2:
+			continue
+		any = true
+		_section_starts.append(quest_rows.size())
+		inner.add_child(_section_label(key))
+		if key == "steps" and promise.size() == 2:
+			inner.add_child(_words(Lang.pick(str(promise[0]), str(promise[1])), "promise"))
+		if key == "rivals":
+			padded = _add_chips(inner, padded)
+			if final_line.size() == 2 and rows.is_empty():
+				var fl := _words(str(final_line[0]), "final_line")
+				fl.add_theme_color_override("font_color", LADDER_COLOURS.get(str(final_line[1]), Color.WHITE))
+				inner.add_child(fl)
+			if night_offer:
+				rows = rows + [_night_row()]
+		if key == "collection":
+			var cr := Lines.entry("collection", "collection", Lines.Line.CAR, str(collection[0]), str(collection[1]),
+					Vector2.INF, Color("#ffd23f"), "cards")
+			cr["far"] = ["", ""]
+			rows = [cr]
+		for r: Dictionary in rows:
+			if bool(r.get("label", false)):
+				inner.add_child(_words("○ " + Lang.pick(str(r["pl"]), str(r["en"])), "step_" + str(r.get("step", ""))))
+				continue
+			var b := _row_button(r, quest_rows.size())
+			inner.add_child(b)
+			if quest_rows.size() - 1 == quest_pad:
+				padded = b
+	if not any:
+		var none := _words(Lang.pick("Na razie nic. Skończ to, co trwa, albo zajrzyj później.",
+				"Nothing to start now. Finish what's on, or look again later."), "none")
+		inner.add_child(none)
+	quest_pad = mini(quest_pad, quest_rows.size() - 1)
 	if not quit_what.is_empty():
-		# F 2026-11-08: a way out of the quest taken, under its row; a second tap within QUIT_ARM s.
-		var q := Button.new()
-		q.name = "quit_quest"
-		q.focus_mode = Control.FOCUS_NONE
-		q.alignment = HORIZONTAL_ALIGNMENT_CENTER
-		q.clip_text = true
-		q.custom_minimum_size = Vector2(QUEST_W, ROW_H) * pt
-		q.add_theme_font_size_override("font_size", _px(T_SUB))
-		var armed := _quit_armed > 0.0
-		q.text = Lang.pick("Na pewno? Dotknij jeszcze raz", "Sure? Tap again") if armed \
-				else Lang.pick("✕ Porzuć: %s" % str(quit_what[0]), "✕ Quit: %s" % str(quit_what[1]))
-		var qc := Access.tint(QUIT_COLOUR)
-		for k in ["font_color", "font_hover_color", "font_pressed_color"]:
-			q.add_theme_color_override(k, Color("#1a1622") if armed else qc)
-		for st in ["normal", "hover", "pressed", "focus"]:
-			var sb := StyleBoxFlat.new()
-			sb.bg_color = qc if armed or st == "pressed" else Color(0.12, 0.11, 0.17, 0.9)
-			sb.set_corner_radius_all(_px(6))
-			sb.border_color = qc
-			sb.set_border_width_all(_px(2))
-			sb.content_margin_left = 8.0 * pt
-			sb.content_margin_right = 8.0 * pt
-			q.add_theme_stylebox_override(st, sb)
-		q.pressed.connect(_quit_tapped)
-		box.add_child(q)
+		box.add_child(_quit_button())
 	_quests.reset_size()
 	_quests.visible = not cards_shown and _has_quests()
 	_fit()
+	if padded != null:
+		scroll.ensure_control_visible.call_deferred(padded)
+
+
+## A section's title in the list: small gold capitals.
+func _section_label(key: String) -> Label:
+	var l := Label.new()
+	l.name = "sec_" + key
+	l.text = _section_title(key)
+	l.add_theme_font_size_override("font_size", _px(T_SUB))
+	l.add_theme_color_override("font_color", Color("#ffd23f"))
+	return l
+
+
+## A line of words in the list (the promise, a step done by a button, "nothing now"), wrapped.
+func _words(text: String, n: String) -> Label:
+	var l := Label.new()
+	l.name = n
+	l.text = text
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size.x = QUEST_W * pt
+	l.add_theme_font_size_override("font_size", _px(T_SUB))
+	l.add_theme_color_override("font_color", Color("#c9c2d8"))
+	return l
+
+
+## The rivals' chips, CHIPS_PER_ROW to a row (each MIN_TOUCH tall): "★ HALINA" beaten, "BARTEK •••"
+## open (a tap calls them out), locked ones greyed and not tappable. Returns the pad's pick's
+## button if it is one of them (else `padded`).
+func _add_chips(inner: VBoxContainer, padded: Button) -> Button:
+	var grid := GridContainer.new()
+	grid.name = "rival_chips"
+	grid.columns = CHIPS_PER_ROW
+	grid.add_theme_constant_override("h_separation", int(4.0 * pt))
+	grid.add_theme_constant_override("v_separation", int(4.0 * pt))
+	inner.add_child(grid)
+	var w := (QUEST_W - 4.0 * (CHIPS_PER_ROW - 1)) / CHIPS_PER_ROW
+	for c: Dictionary in rival_chips:
+		var state := str(c["state"])
+		var b := Button.new()
+		b.name = "rival_%d" % int(c["rung"])
+		b.focus_mode = Control.FOCUS_NONE
+		b.clip_text = true
+		b.custom_minimum_size = Vector2(w, ROW_H) * pt
+		b.add_theme_font_size_override("font_size", _px(T_SUB))
+		b.text = ("★ " + str(c["short"])) if state == "won" else str(c["short"])
+		var col: Color = LADDER_COLOURS.get(state, Color.WHITE)
+		for k in ["font_color", "font_hover_color", "font_pressed_color", "font_disabled_color"]:
+			b.add_theme_color_override(k, col)
+		var tappable := state != "locked"
+		var here := quest_rows.size()
+		var rim := Access.tint(RIVAL_COLOUR)
+		for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = rim.darkened(0.55) if st == "pressed" else Color(0.12, 0.11, 0.17, 0.9)
+			sb.set_corner_radius_all(_px(6))
+			sb.border_color = Gamepad.RING if tappable and here == quest_pad else (rim if tappable else Color("#8f88a0"))
+			sb.set_border_width_all(_px(3) if tappable and here == quest_pad else _px(1))
+			sb.border_width_bottom = _px(4)
+			sb.content_margin_left = 4.0 * pt
+			sb.content_margin_right = 4.0 * pt
+			b.add_theme_stylebox_override(st, sb)
+		if not tappable:
+			b.disabled = true
+			b.modulate = Color(1, 1, 1, 0.7)
+		else:
+			var r := Lines.entry("rival_%d" % int(c["rung"]), "rival", Lines.Line.CAR, str(c["short"]), str(c["short"]),
+					Vector2.INF, RIVAL_COLOUR, Lines.RIVAL_CALL)
+			r["rung"] = int(c["rung"])
+			r["far"] = ["", ""]
+			quest_rows.append(r)
+			_quest_buttons.append(b)
+			b.pressed.connect(_row_tapped.bind(here))
+			if here == quest_pad:
+				padded = b
+		grid.add_child(b)
+	return padded
+
+
+## The night button under the rivals: the final waits for the night (critique point 5).
+func _night_row() -> Dictionary:
+	var r := Lines.entry("night", "night", Lines.Line.CAR, "Noc na Trzy mosty", "Night for Trzy mosty",
+			Vector2.INF, Color("#8fa8ff"), Lines.NIGHT)
+	r["far"] = ["", ""]
+	return r
+
+
+## One tappable row of the list: its name and distance, its colour's rim (the pin's and the pad's
+## pick drawn round it). `i` is its index in `quest_rows` (it is appended there).
+func _row_button(r: Dictionary, i: int) -> Button:
+	quest_rows.append(r)
+	var b := Button.new()
+	b.name = "quest_%d" % i
+	b.focus_mode = Control.FOCUS_NONE
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.clip_text = true
+	b.custom_minimum_size = Vector2(QUEST_W, ROW_H) * pt
+	b.add_theme_font_size_override("font_size", _px(T_SUB))
+	var picked := str(r["id"]) == str(quest_pick.get("id", ""))
+	var padded := i == quest_pad
+	var far := Lang.pick(str(r["far"][0]), str(r["far"][1]))
+	var name := Lang.pick(str(r["pl"]), str(r["en"]))
+	if r.has("step"):
+		name = "○ " + name
+	b.text = ("%s · %s" % [name, far]) if far != "" else ("%s ›" % name if str(r["action"]) != Lines.NOW else name)
+	b.add_theme_color_override("font_color", Color("#fbf7ee"))
+	b.add_theme_color_override("font_hover_color", Color("#fbf7ee"))
+	b.add_theme_color_override("font_pressed_color", Color("#fbf7ee"))
+	var col := Access.tint(r["colour"])
+	for st in ["normal", "hover", "pressed", "focus"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = col.darkened(0.55) if picked or st == "pressed" else Color(0.12, 0.11, 0.17, 0.9)
+		sb.set_corner_radius_all(_px(6))
+		sb.border_color = col
+		sb.border_width_left = _px(6)
+		if picked:
+			sb.set_border_width_all(_px(2))
+			sb.border_width_left = _px(6)
+		if padded:
+			# G12b: the pad's pick wears the pad's accent ring (gamepad.gd RING).
+			sb.border_color = Gamepad.RING
+			sb.set_border_width_all(_px(3))
+			sb.border_width_left = _px(6)
+		sb.content_margin_left = 12.0 * pt
+		sb.content_margin_right = 6.0 * pt
+		b.add_theme_stylebox_override(st, sb)
+	if not bool(r.get("open", true)):
+		b.modulate = Color(1, 1, 1, 0.7)  # a questline closed at this hour (the beta still starts it)
+	b.pressed.connect(_row_tapped.bind(i))
+	_quest_buttons.append(b)
+	return b
+
+
+## F 2026-11-08: a way out of the quest taken, under the list; a second tap within QUIT_ARM s.
+func _quit_button() -> Button:
+	var q := Button.new()
+	q.name = "quit_quest"
+	q.focus_mode = Control.FOCUS_NONE
+	q.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	q.clip_text = true
+	q.custom_minimum_size = Vector2(QUEST_W, ROW_H) * pt
+	q.add_theme_font_size_override("font_size", _px(T_SUB))
+	var armed := _quit_armed > 0.0
+	q.text = Lang.pick("Na pewno? Dotknij jeszcze raz", "Sure? Tap again") if armed \
+			else Lang.pick("✕ Porzuć: %s" % str(quit_what[0]), "✕ Quit: %s" % str(quit_what[1]))
+	var qc := Access.tint(QUIT_COLOUR)
+	for k in ["font_color", "font_hover_color", "font_pressed_color"]:
+		q.add_theme_color_override(k, Color("#1a1622") if armed else qc)
+	for st in ["normal", "hover", "pressed", "focus"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = qc if armed or st == "pressed" else Color(0.12, 0.11, 0.17, 0.9)
+		sb.set_corner_radius_all(_px(6))
+		sb.border_color = qc
+		sb.set_border_width_all(_px(2))
+		sb.content_margin_left = 8.0 * pt
+		sb.content_margin_right = 8.0 * pt
+		q.add_theme_stylebox_override(st, sb)
+	q.pressed.connect(_quit_tapped)
+	return q
 
 
 ## The card shows: something to list, or a quest to quit.
 func _has_quests() -> bool:
-	return not quest_entries.is_empty() or not quit_what.is_empty()
+	return not quest_entries.is_empty() or not quit_what.is_empty() or not steps_left.is_empty() \
+			or not rival_chips.is_empty() or collection.size() == 2
 
 
 ## A finger let go on a row: a tap picks it, the end of a drag (the list scrolled, F 2026-11-08:
@@ -875,31 +1034,22 @@ func _quit_tapped() -> void:
 	_fill_quests()
 
 
-## A tab's colour: the car's amber pickup, the helicopter's violet, the questlines' pink
-## (colour-safe aware).
-func _line_colour(line: int) -> Color:
-	if line == Lines.Line.STORY:
-		return Access.tint(Lines.STORY_COLOUR)
-	return Access.tint(Lines.HELI_COLOUR if line == Lines.Line.HELI else Color("#ff8a3d"))
-
-
-## Shows the AUTO or HELI tab (Lines.Line).
+## The vehicle's line (Lines.Line): its places lead Around town. Kept for --quest-tab (shots).
 func show_line(line: int) -> void:
 	quest_line = line
 	if _built:
 		_fill_quests()
 
 
-## G12b: a gamepad button on the ZADANIA card: X switches the tab (its first row picked out), the
-## D-pad up / down moves the pick (a place's row centres the map on it, as a look before taking
-## it), Y takes the row picked out as a tap would. True when the card used the press.
+## G12b: a gamepad button on the list: X jumps to the next section's first row, the D-pad up /
+## down moves the pick (a place's row centres the map on it, as a look before taking it), Y takes
+## the row picked out as a tap would. True when the card used the press.
 func pad_quest(button: int) -> bool:
 	if not _quests.visible:
 		return false
 	match button:
 		JOY_BUTTON_X:
-			show_line((quest_line + 1) % 3)  # AUTO, HELI, WĄTKI
-			pad_select(0)
+			pad_section()
 		JOY_BUTTON_DPAD_DOWN:
 			pad_select(1)
 		JOY_BUTTON_DPAD_UP:
@@ -912,7 +1062,23 @@ func pad_quest(button: int) -> bool:
 	return true
 
 
-## G12b: moves the pad's pick `dir` rows (0: the first row, or none on an empty tab).
+## G12b: the pad's pick jumps to the first row of the next section that has one (round to the
+## first section after the last).
+func pad_section() -> void:
+	if quest_rows.is_empty():
+		return
+	var to := -1
+	for st: int in _section_starts:
+		if st > quest_pad and st < quest_rows.size():
+			to = st
+			break
+	if to < 0:
+		to = 0
+	quest_pad = to - 1
+	pad_select(1)
+
+
+## G12b: moves the pad's pick `dir` rows (0: the first row, or none on an empty list).
 func pad_select(dir: int) -> void:
 	quest_pad = Lines.pad_move(quest_pad if dir != 0 else -1, quest_rows.size(), 1 if dir == 0 else dir)
 	if quest_pad >= 0:
@@ -924,19 +1090,29 @@ func pad_select(dir: int) -> void:
 		_place()
 
 
-## Row `i` of the tab shown was tapped: a request closes the map and starts (main.gd); a place
-## becomes the quest pin and the map centres on it, or, picked already, the pin goes.
+## Row `i` of the list was tapped: a request closes the map and starts (main.gd); a place becomes
+## the quest pin and the map centres on it, or, picked already, the pin goes. A rival's chip (or
+## the race step) calls that rival out; the Collection row opens the ≡ cards; the night button
+## asks main.gd for the night.
 func pick_row(i: int) -> void:
 	if i < 0 or i >= quest_rows.size():
 		return
 	var r: Dictionary = quest_rows[i]
-	if str(r["action"]) == Lines.NOW:
-		# G12c: the quest under way: the map looks at its target; nothing else changes.
-		if r["at"] != Vector2.INF:
-			centre = r["at"]
-			_place()
-		print("full map: quest under way %s" % r["id"])
-		return
+	match str(r["action"]):
+		Lines.NOW:
+			# G12c: the quest under way: the map looks at its target; nothing else changes.
+			if r["at"] != Vector2.INF:
+				centre = r["at"]
+				_place()
+			print("full map: quest under way %s" % r["id"])
+			return
+		Lines.RIVAL_CALL:
+			_rival_tapped(int(r["rung"]))
+			return
+		"cards":
+			print("full map: the collection's cards")
+			show_cards(true)
+			return
 	if str(r["action"]) != "":
 		print("full map: quest request %s" % r["id"])
 		quest_picked.emit(r)
@@ -990,7 +1166,7 @@ func _paint() -> void:
 			named.append(ic)
 	# The side quests' places to start one: squares in their job's colour.
 	# F 2026-11-08: fewer pins, the street jobs show only zoomed in.
-	var ctx := MapMarkers.context_of(focus)
+	var ctx := MapMarkers.context_of(focus, flying)
 	var jobs := markers.shown(MapMarkers.Layer.JOB, MapMarkers.View.FULL_MAP, ctx)
 	var job_at: PackedVector2Array = jobs["at"]
 	for i in (job_at.size() if close_in else 0):
@@ -1009,11 +1185,13 @@ func _paint() -> void:
 			hud._tri_fan(at, 4.4 * pt, 0.0, TAU, hud.OUTLINE)
 			hud._tri_fan(at, 3.2 * pt, 0.0, TAU, hud.SCENE_AMBER)
 	# The questlines' starts: the "!" badges, bigger than any street job's icon (none in focus).
-	for i in story_spots.size():
-		var at := to_screen(story_spots[i])
+	var stories := markers.shown(MapMarkers.Layer.STORY, MapMarkers.View.FULL_MAP, ctx)
+	var story_at: PackedVector2Array = stories["at"]
+	for i in story_at.size():
+		var at := to_screen(story_at[i])
 		if view.has_point(at):
-			var small: bool = i < story_small.size() and story_small[i] == 1
-			hud.story_badge(at, 1.4 if small else 2.3, story_colours[i] if i < story_colours.size() else Color.WHITE)
+			var small := bool((stories["extra"][i] as Dictionary).get("small", false))
+			hud.story_badge(at, 1.4 if small else 2.3, (stories["colour"] as PackedColorArray)[i])
 	var service := markers.shown(MapMarkers.Layer.SERVICE, MapMarkers.View.FULL_MAP, ctx)
 	for i in (service["at"] as PackedVector2Array).size():
 		var g := to_screen((service["at"] as PackedVector2Array)[i])
@@ -1029,6 +1207,7 @@ func _paint() -> void:
 		hud.active_pin(tp.clamp(inner_t.position, inner_t.end), 2.0 if inner_t.has_point(tp) else 1.4, target_colour)
 	if quest_pick.get("at", Vector2.INF) != Vector2.INF:
 		hud.side_pin(to_screen(quest_pick["at"]), 1.9, Access.tint(quest_pick["colour"]))  # G12: the quest pin
+	var main_at := _main_at()
 	if main_at != Vector2.INF:
 		# The main line's star; off the screen it waits at the edge, smaller, on the way to it.
 		var mp := to_screen(main_at)
@@ -1110,10 +1289,12 @@ func _paint() -> void:
 	# The pins' names, close in.
 	var ns := _px(T_SUB)
 	# The questlines' names under their badges (any zoom: there are few; a clash leaves one out).
-	for i in mini(story_spots.size(), story_names.size()):
-		var text := story_names[i]
+	for i in story_at.size():
+		var text := str((stories["extra"][i] as Dictionary).get("name", ""))
+		if text == "":
+			continue
 		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns).x
-		var p := to_screen(story_spots[i]) + Vector2(-w * 0.5, 21.0 * pt + ns)
+		var p := to_screen(story_at[i]) + Vector2(-w * 0.5, 21.0 * pt + ns)
 		var box := Rect2(p - Vector2(0.0, ns), Vector2(w, ns * 1.3)).grow(2.0 * pt)
 		if not view.has_point(p):
 			continue
@@ -1125,7 +1306,7 @@ func _paint() -> void:
 		if clash:
 			continue
 		taken.append(box)
-		var col := Access.tint(story_colours[i]) if i < story_colours.size() else Color.WHITE
+		var col := Access.tint((stories["colour"] as PackedColorArray)[i])
 		o.draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, _px(5), Color(0.11, 0.1, 0.14, 0.95))
 		o.draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, col.lightened(0.35))
 	for ic in named:
@@ -1171,7 +1352,7 @@ func _process(dt: float) -> void:
 			_note.visible = false
 			_fit()
 	_pad_frame(dt)
-	if (main_at != Vector2.INF or target != Vector2.INF) and _hold_index < 0:
+	if (_main_at() != Vector2.INF or target != Vector2.INF) and _hold_index < 0:
 		_overlay.queue_redraw()  # the star's and the active pin's rings pulse (one batch, the game paused under it)
 		_legend_art.queue_redraw()
 	if _hold_index < 0:
@@ -1216,25 +1397,28 @@ func _start_hold(index: int, at: Vector2) -> void:
 func _tap_story(at: Vector2) -> bool:
 	var best := -1
 	var best_d := 16.0 * pt
-	for i in story_spots.size():
-		var d := to_screen(story_spots[i]).distance_to(at)
-		if d < best_d and i < story_blurbs.size() and i < story_names.size():
+	var stories := _stories()
+	var story_at: PackedVector2Array = stories["at"]
+	for i in story_at.size():
+		var d := to_screen(story_at[i]).distance_to(at)
+		if d < best_d and (stories["extra"][i] as Dictionary).has("blurb"):
 			best = i
 			best_d = d
 	if best < 0:
 		return false
 	_cancel_hold()
-	var text := story_names[best] + " · " + story_blurbs[best]
+	var e: Dictionary = stories["extra"][best]
+	var text := str(e.get("name", "")) + " · " + str(e.get("blurb", ""))
 	_say([text, text])
 	_note_t = 4.5
 	return true
 
 
-## A finger drag on the quest list: scrolls it (the STORIES tab's scroll); past a few points the
-## row under the finger is not picked when it lets go (`_row_tapped`), on any tab.
+## A finger drag on the list: scrolls it (first hour step 4: the one list's scroll); past a few
+## points the row under the finger is not picked when it lets go (`_row_tapped`).
 func _drag_quests(dy: float) -> void:
 	_qdrag_px += absf(dy)
-	var sc := _quests.find_child("story_scroll", true, false) as ScrollContainer
+	var sc := _quests.find_child("list_scroll", true, false) as ScrollContainer
 	if sc != null:
 		sc.scroll_vertical -= int(dy)
 

@@ -261,10 +261,20 @@ SITE_AREAS = [
     (-2820, -712, -2762, -673),   # church_siostry_milosierdzia_zytnia
     (-2781, -728, -2700, -643),   # faustyna_klasztor
     (53, -294, 115, -243),   # szarytki_zaulek
+    (-1184, 716, -1143, 779),   # dom_parafialny_barbara
+    (-531, -568, -502, -527),   # misjonarze_tyl
+    (-2004, -989, -1976, -964),   # plebania_leszno
+    (-2623, -776, -2586, -752),   # rodziny_maryi_pawilon
+    (1121, 829, 1164, 867),   # plebania_zagorna
+    (1721, -1667, 1763, -1627),   # pallotyni_dom
+    (1698, -1686, 1720, -1663),   # plebania_pallotynow
+    (1912, -1385, 1942, -1339),   # plebania_zwycieskiej
     (451, -2008, 468, -1991),   # church_kaplica_florianska
     (-2267, 61, -2247, 83),   # church_kaplica_lucka
+    (-1018, 1015, -997, 1043),   # church_kaplica_hoza
     (519, -1995, 559, -1936),   # church_plebania_florian
     (527, -1822, 579, -1775),   # church_klopotowskiego_18
+    (-1264, 566, -1098, 670),   # jerozolimskie57 (the row's five outlines and the pavement strip)
     (2011, -1375, 2056, -1345),   # church_zwycieska_klasztor
     (-2704, -752, -2654, -720),   # church_zytnia_dom_zakonny
     (-2685, -722, -2609, -688),   # church_zytnia_dom_zakonny_tyl

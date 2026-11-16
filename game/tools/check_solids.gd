@@ -44,17 +44,21 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## and the phone's place data, #818),
 ## tools/parked_thin.py took 11 parked cars out of these sectors (8 faces a car, filed by face
 ## centre, so a car on a sector's border counts in part).
-const TOTAL := 46502
+## 2026-11-15, Plac Defilad (#848): +260 faces (46502 → 46762), the TR site's wider plot, the
+## market moved into sector (-2, 0) (a box per hut, the van, the tree) and the candelabras' pedestals.
+const TOTAL := 46762
 ## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
 ## soft lines are the same. Moves with TOTAL (a re-bake): `--record --barriers=typed` prints it.
+## 2026-11-15, Plac Defilad (#848): 46355 → 46573 with the same sites (measured with `--record
+## --barriers=typed` on a fresh bake after merging main 85090c58).
 ## W3 of the walls look (2026-11-15, tools/object_types.py v2): both measured again on the retyped map
-## (each with its own `--record` run, never one from the other): TOTAL 46502 and TOTAL_TYPED 46355,
-## unchanged: the stadium's retyped lines keep their look and class (soft, no faces), and the other
+## (each with its own `--record` run, never one from the other): TOTAL 46762 and TOTAL_TYPED 46573
+## (after merging main with Plac Defilad #848), unchanged by W3: the stadium's retyped lines keep their look and class (soft, no faces), and the other
 ## fixes change no face in these sectors (the planter edges by the Palace of Culture in (-2, 0) keep
 ## a placed style).
-const TOTAL_TYPED := 46355
+const TOTAL_TYPED := 46573
 
 var problems: Array[String] = []
 var verbose := false

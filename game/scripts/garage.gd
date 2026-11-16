@@ -386,7 +386,7 @@ func _refresh(quiet := false) -> void:
 	if hud != null:
 		# Its diamond on the minimap and the full map (map_markers.gd, TD-13).
 		if on:
-			hud.markers.put("garage:workshop", MapMarkers.Layer.SERVICE, Vector2(at.x, at.z), GARAGE_COLOUR)
+			hud.markers.put("garage:workshop", MapMarkers.Layer.SERVICE, Vector2(at.x, at.z), GARAGE_COLOUR, 0, "garage")
 		else:
 			hud.markers.remove("garage:workshop")
 	if on and not quiet and not force and hud != null and wallet != null and not bool(wallet.keep.get("garage_told", false)):

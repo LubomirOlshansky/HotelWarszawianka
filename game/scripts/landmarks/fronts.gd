@@ -100,6 +100,9 @@ const SKINS := [
 	{"key": "brama_zach", "osm": "Brama Zachodnia", "hull": true, "mode": M_SKIN + float(S_PUNCHED) / 16.0, "wall": "#d9a27c", "roof": "#878d8f"},
 	{"key": "proximo1", "osm": "Proximo I", "hull": true, "mode": M_GLASS, "wall": "#667f93", "roof": "#6d7377"},
 	{"key": "proximo2", "osm": "Proximo II", "hull": true, "mode": M_SKIN + float(S_DARK) / 16.0, "wall": "#35495b", "roof": "#596168"},
+	# NBP's regional branch on Plac Powstańców from F's photos (2026-11-16, docs/landmarks/specs/nbp.md):
+	# the whole building is the site's own model (_build_nbp), dark folded panels over a glass ground floor.
+	{"key": "nbp", "osm": "NBP Oddział Okręgowy w Warszawie", "model": true, "mode": M_STONE, "wall": "#4d4446", "roof": "#6f7173"},
 ]
 
 

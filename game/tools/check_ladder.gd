@@ -8,6 +8,10 @@ extends SceneTree
 ##   ("NAJPIERW HALINA", "SZACUNEK 220") and cannot be won; race wins alone (+100 each) are not
 ##   enough past the second rung; the whole ladder walked to the final and `final_won`; open_count
 ##   only grows; next_rung; the full map's rows (★ / → / ·, the final "w nocy" by day);
+##   (these with `any_order` off: the old ladder behind ladder.gd ANY_ORDER);
+## - The Six (first hour step 5, ANY_ORDER on): all six open on a fresh save, the final not; any
+##   order, no respect; missing() counts the six; next_rung the easiest not beaten; the final after
+##   the sixth; the pips 1 to 6; each home area inside the map; the RYWALE title and rows;
 ## - every rival has a refusal line and Seba's final lines are there, Polish and English, at most
 ##   70 characters each;
 ## - difficulty from skill (the racer AI rebuild, step 2): every racer's skill is inside the
@@ -67,6 +71,7 @@ func _expect(ok: bool, what: String) -> void:
 func _initialize() -> void:
 	_data()
 	_gating()
+	_any_order()
 	_words()
 	_race_hud()
 	_save()
@@ -192,6 +197,7 @@ func _skill(who: String, s: Dictionary) -> void:
 func _gating() -> void:
 	var w := _fresh()
 	var l := Ladder.new()
+	l.any_order = false  # the old ladder: its gates and order
 	l.wallet = w
 	_expect(l.is_open(0) and not l.is_open(1) and l.open_count() == 1, "fresh: open %d" % l.open_count())
 	_expect(l.missing(1)[0] == "NAJPIERW HALINA" and l.missing(1)[1] == "beat Pani Halina first", "missing(1): %s" % [l.missing(1)])
@@ -235,6 +241,7 @@ func _gating() -> void:
 	# The rows of a fresh ladder: Halina next and open, the rest locked.
 	var w2 := _fresh()
 	var l2 := Ladder.new()
+	l2.any_order = false  # the old ladder: its gates and order
 	l2.wallet = w2
 	var rows: Array = l2.rows(true)
 	_expect(rows[0][1] == "next" and str(rows[0][0]).contains("otwarty") and rows[1][1] == "locked" and rows[6][1] == "locked", "fresh rows: %s" % [rows])
@@ -245,6 +252,43 @@ func _gating() -> void:
 	_summary["cost"] = "open_count %.1f µs" % ((Time.get_ticks_usec() - t0) / 1000.0)
 	w.free()
 	w2.free()
+
+
+## The Six (first hour step 5, ladder.gd ANY_ORDER): on a fresh wallet all six are open and the
+## final is not; each can be beaten in any order; missing() says how many of six; next_rung is the
+## easiest not beaten; the final opens after the sixth whatever the respect; the pips run 1 to 6;
+## every rival has a home area inside the map; the rows and the title ("RYWALE n/6").
+func _any_order() -> void:
+	_expect(Ladder.ANY_ORDER, "ANY_ORDER is on for the beta")
+	var w := _fresh()
+	var l := Ladder.new()
+	l.wallet = w
+	_expect(l.any_order, "a new ladder is in any order")
+	for i in Ladder.RUNGS.size():
+		_expect(l.is_open(i), "fresh: %s open" % Ladder.RUNGS[i]["rival"])
+		_expect(Ladder.pips(i) == i + 1 and Ladder.pip_text(i) == "•".repeat(i + 1), "%s: %d pips" % [Ladder.RUNGS[i]["rival"], Ladder.pips(i)])
+		var d := Ladder.den(i)
+		var at: Vector2 = d[0]
+		_expect(at.x > -3100.0 and at.x < 2150.0 and at.y > -2750.0 and at.y < 1700.0 and str(d[1]) != "" and str(d[2]) != "",
+				"%s's home %s inside the map" % [Ladder.RUNGS[i]["rival"], d])
+	_expect(not l.is_open(Ladder.FINAL) and l.open_count() == 6, "fresh: open %d, the final shut" % l.open_count())
+	_expect(l.missing(Ladder.FINAL)[1] == "beat all six first · 0/6", "missing(final): %s" % [l.missing(Ladder.FINAL)])
+	_expect(l.title() == ["RYWALE 0/6", "RIVALS 0/6"], "title %s" % [l.title()])
+	var rows: Array = l.rows(false)
+	_expect(rows.size() == 7 and rows[5][1] == "open" and str(rows[5][0]).begins_with("•••••• Mordor Mike") and rows[6][1] == "locked",
+			"fresh rows: %s" % [rows])
+	# Mike first, then the rest backwards: any order, no respect needed.
+	_expect(l.win(5, 20261115) and l.beaten_count() == 1 and l.next_rung() == 0, "Mike first: next %d" % l.next_rung())
+	for i in [4, 3, 2, 1]:
+		_expect(l.win(i, 20261115), "rung %d won out of order at respect %d" % [i, w.respect])
+	_expect(l.next_rung() == 0 and not l.is_open(Ladder.FINAL) and l.missing(Ladder.FINAL)[1] == "beat all six first · 5/6",
+			"five beaten: next %d, %s" % [l.next_rung(), l.missing(Ladder.FINAL)])
+	_expect(l.win(0, 20261115) and l.beaten_count() == 6 and l.is_open(Ladder.FINAL) and l.next_rung() == Ladder.FINAL and w.respect == 0,
+			"all six at respect %d: the final open" % w.respect)
+	_expect(l.title()[0] == "RYWALE 6/6" and str(l.rows(true)[6][0]).contains("Rondo Daszyńskiego"), "six: %s / %s" % [l.title(), l.rows(true)[6]])
+	_expect(l.win(Ladder.FINAL, 20261115) and l.final_won(), "the final won")
+	_summary["any_order"] = "The Six: all open, any order, final after six"
+	w.free()
 
 
 func _words() -> void:
@@ -278,6 +322,7 @@ func _save() -> void:
 	var w := Wallet.new()
 	w.path = SCRATCH
 	var l := Ladder.new()
+	l.any_order = false  # the old ladder: its gates and order
 	l.wallet = w
 	_expect(l.win(0, 20261031), "win(0) on the scratch wallet")
 	w.respect = 850
@@ -290,6 +335,7 @@ func _save() -> void:
 	b.load_save()
 	_expect(b.ladder == w.ladder and b.ladder.size() == 7 and int(b.ladder.get("trzy_mosty", 0)) == 20261031, "round trip: %s" % [b.ladder])
 	var lb := Ladder.new()
+	lb.any_order = false  # the old ladder: its gates and order
 	lb.wallet = b
 	_expect(lb.final_won() and lb.next_rung() == Ladder.FINAL + 1, "the loaded ladder")
 	b.reset()
@@ -309,6 +355,7 @@ func _save() -> void:
 		o.path = SCRATCH
 		o.load_save()
 		var lo := Ladder.new()
+		lo.any_order = false  # the old ladder: its gates and order
 		lo.wallet = o
 		_expect(o.zl == 777 and o.respect == 420 and o.ladder.is_empty() and lo.next_rung() == 0 and lo.is_open(0) and not lo.is_open(1),
 				"a v%d file without [ladder]: %d zł, %s" % [version, o.zl, o.ladder])
@@ -319,6 +366,7 @@ func _save() -> void:
 	n.path = SCRATCH
 	n.persistent = false
 	var ln := Ladder.new()
+	ln.any_order = false  # the old ladder: its gates and order
 	ln.wallet = n
 	ln.win(0)
 	n.respect = 400
@@ -330,6 +378,20 @@ func _save() -> void:
 	n.respect = 0
 	ln.preset(6)
 	_expect(ln.next_rung() == Ladder.FINAL and n.respect == 850 and ln.is_open(Ladder.FINAL), "--ladder=6: respect %d" % n.respect)
+	# First hour step 4: the map list's chips (the old ladder: beaten, the next open, the rest locked;
+	# any order: all six open, no gate), and the final waiting for the night.
+	ln.preset(3)
+	var ch: Array = ln.chips().map(func(c: Dictionary) -> String: return str(c["state"]))
+	_expect(ch == ["won", "won", "won", "open", "locked", "locked"] and not ln.final_waits_night(), "chips (old ladder, 3 beaten): %s" % [ch])
+	ln.any_order = true
+	ch = ln.chips().map(func(c: Dictionary) -> String: return str(c["state"]))
+	_expect(ch == ["won", "won", "won", "open", "open", "open"] and str(ln.chips()[0]["short"]) == "HALINA" \
+			and str(ln.chips()[5]["pips"]) == "••••••", "chips (any order, 3 beaten): %s" % [ch])
+	ln.preset(6)
+	_expect(ln.final_waits_night(), "all six beaten: the final waits for the night")
+	ln.preset(7)
+	_expect(not ln.final_waits_night(), "the final won: no night offer")
+	ln.any_order = false
 	ln.preset(0)
 	_expect(n.ladder.is_empty() and ln.next_rung() == 0, "--ladder=0")
 	_expect(not FileAccess.file_exists(SCRATCH), "--nosave wrote a file")

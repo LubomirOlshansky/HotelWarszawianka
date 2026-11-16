@@ -62,23 +62,34 @@ the renderer are tested on iPhone only.
 | --- | --- |
 | Privacy Policy URL | `https://aroundwarsaw.app/privacy/` |
 | User Privacy Choices URL | leave empty |
-| Do you or your third-party partners collect data from this app? | **No, we do not collect data from this app** |
+| Do you or your third-party partners collect data from this app? | **Yes, we collect data from this app** (the beta's anonymous play stats, play_stats.gd, docs/STATS.md, F 2026-11-15) |
 
-The label then reads **Data Not Collected**. That is true: nothing leaves the phone. The
-website's beta form is the website's, not the app's, and the privacy page describes it
-separately.
+Declare three data types, each **Not linked to the user**, **Not used for tracking**, purpose
+**Analytics** only:
+
+| Data type (App Store Connect) | What it is in the game |
+| --- | --- |
+| Usage Data → Product Interaction | sessions, minutes played, jobs and races started and finished, districts and secrets found, setting changes |
+| Diagnostics → Performance Data | the frame-rate sample (average and low FPS, draw calls) |
+| Identifiers → Device ID | the random install ID the PostHog SDK makes on the phone (no IDFA, no IDFV, no account) |
+
+The label then reads **Data Not Linked to You** (Usage Data, Diagnostics, Identifiers). PostHog's
+project discards the IP address on arrival; the game strips the device model and the language
+list before sending. Settings → Dźwięk → "Anonimowa statystyka" turns it off. The website's beta
+form is the website's, not the app's, and the privacy page describes it separately.
 
 **Privacy manifest.** Godot's iOS export writes `PrivacyInfo.xcprivacy` from the preset's
-`privacy/` options; our preset leaves them at Godot's defaults. Checked in the export of
-2026-10-30 (`build/ios/PrivacyInfo.xcprivacy`): it declares file timestamps (DDA9.1, C617.1),
-system boot time (35F9.1) and disk space (E174.1, 85F4.1), `NSPrivacyTracking` false, no
-tracking domains and no collected data types, which matches "Data Not Collected". When the
-first archive is uploaded, still read App Store Connect's email: an "ITMS-91053: Missing API
-declaration" warning would name a reason to add in the export preset.
+`privacy/` options. Since 2026-11-15 the iOS preset sets `privacy/collected_data/
+{product_interaction,performance_data,device_id}/collected=true`, `linked_to_user=false`,
+`used_for_tracking=false`, `collection_purposes=1` (Analytics), which matches the answers above;
+`NSPrivacyTracking` stays false, no tracking domains. The required-reason APIs stay as checked in
+the export of 2026-10-30 (file timestamps DDA9.1, C617.1; system boot time 35F9.1; disk space
+E174.1, 85F4.1). When the first archive is uploaded, still read App Store Connect's email: an
+"ITMS-91053: Missing API declaration" warning would name a reason to add in the export preset.
 
 ## 5. Export compliance (asked for every build)
 
-**The app uses no encryption beyond what's exempt** (it makes no network connections at all).
+**The app uses no encryption beyond what's exempt** (its only network use is HTTPS to PostHog for the anonymous play stats, which is exempt).
 If asked: "None of the algorithms mentioned above". The question doesn't come back with each
 TestFlight build, because the iOS preset's `application/additional_plist_content`
 (`game/export_presets.cfg`) carries, since 2026-10-30,
@@ -137,7 +148,7 @@ From Śródmieście to the National Stadium: the Palace of Culture, Marszałkows
 • The police are here, with a sense of humour: speed traps, the lizak, a little talk. No fine, ever. A caution, maybe.
 • A car radio and a city that keeps talking back, in Polish with English.
 
-No ads, no purchases, no account, no internet, no data collected. A free, open-source fan game made out of love for Warsaw. Every brand in it is a parody.
+No ads, no purchases, no account, nothing about you collected (anonymous play stats in the beta, off in Settings). A free, open-source fan game made out of love for Warsaw. Every brand in it is a parody.
 
 The Marszałkowska roadworks continue. You keep driving.
 
@@ -177,7 +188,7 @@ Od Śródmieścia po Stadion Narodowy: Pałac Kultury, Marszałkowska, Rondo Dmo
 • Policja jest, ale z humorem: suszarka, lizak, pogadanka. Mandatu nie będzie. Pouczenie owszem.
 • Radio w aucie i miasto, które ciągle coś do Ciebie mówi, po polsku i po angielsku.
 
-Bez reklam, bez zakupów, bez konta, bez internetu, bez zbierania danych. Darmowa gra fanowska open source, zrobiona z miłości do Warszawy. Wszystkie marki w grze to parodie.
+Bez reklam, bez zakupów, bez konta, bez danych o Tobie (w becie anonimowe statystyki, do wyłączenia w Ustawieniach). Darmowa gra fanowska open source, zrobiona z miłości do Warszawy. Wszystkie marki w grze to parodie.
 
 Remont Marszałkowskiej trwa. Ty jedź.
 

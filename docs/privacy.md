@@ -1,22 +1,31 @@
 # Around Warsaw: privacy policy
 
-Last updated: 29 October 2026
+Last updated: 15 November 2026
 
-Around Warsaw is a free game. It collects no personal data, and it stores or
-shares none.
+Around Warsaw is a free game. It collects no personal data. During the beta it sends anonymous
+play statistics, which you can turn off in Settings.
 
-- **No data collected.** The game has no accounts, no sign-in, no analytics, no advertising,
-  no crash reporting and no tracking of any kind.
-- **No network.** The game makes no network connections. On Android it doesn't ask for the
-  internet permission at all.
+- **No personal data.** The game has no accounts, no sign-in, no advertising and no tracking
+  across apps or websites. It never asks for your name, email, location or contacts.
+- **Anonymous play statistics (beta).** To see how many people play, whether they come back,
+  how long they play and where the game is confusing or slow, the game sends short anonymous
+  events: a session started or ended (with minutes played and kilometres driven), a job or race
+  started or finished, a district or secret found, a setting changed, the frame rate. Each copy
+  of the game has a random ID made on your phone, not linked to you or to your device's own
+  identifiers. Your IP address is discarded on arrival and no device model or language list is
+  sent. The events go to PostHog (EU Cloud, servers in Frankfurt), are used only to improve the
+  game, are never sold or used for advertising, and are kept for at most one year.
+- **Turn it off.** Settings → Dźwięk (Sound) → "Anonimowa statystyka · Anonymous stats" → Off.
+  From then on nothing is sent, and the events waiting on the phone are dropped.
 - **Saves stay on your device.** Your settings and progress (złoty, respect, finished jobs)
   are kept in the game's own storage on your phone. They are never sent anywhere. Uninstalling
-  the game deletes them.
-- **Permissions.** On Android the game asks only for vibration, for its haptic feedback.
-  It doesn't use your location, camera, microphone, contacts or files.
+  the game deletes them, and the random ID with them.
+- **Permissions.** On Android the game asks for vibration (haptics) and internet access (the
+  statistics). It doesn't use your location, camera, microphone, contacts or files.
 - **Children.** The game is not aimed at children under 13 and knowingly collects nothing
-  from anyone.
-- **Third parties.** No data goes to any third party, because no data leaves your device.
+  personal from anyone.
+- **Third parties.** The anonymous statistics are processed by PostHog on our behalf. Nothing
+  else leaves your device.
 
 The map comes from open data: OpenStreetMap contributors (ODbL) and GUGiK (Poland's surveying
 office). That data is built into the game; nothing about you is used with it.
@@ -29,20 +38,29 @@ Questions: write to us through the Support page (https://aroundwarsaw.app/suppor
 
 ## Polityka prywatności (po polsku)
 
-Around Warsaw to darmowa gra. Nie zbiera żadnych danych osobowych, nie
-przechowuje ich i nikomu ich nie przekazuje.
+Around Warsaw to darmowa gra. Nie zbiera danych osobowych. W czasie bety wysyła anonimowe
+statystyki gry, które można wyłączyć w Ustawieniach.
 
-- **Żadnych danych.** Gra nie ma kont, logowania, analityki, reklam, raportów o błędach ani
-  żadnego śledzenia.
-- **Bez internetu.** Gra nie łączy się z siecią. Na Androidzie w ogóle nie prosi o dostęp do
-  internetu.
+- **Żadnych danych osobowych.** Gra nie ma kont, logowania, reklam ani śledzenia między
+  aplikacjami i stronami. Nigdy nie pyta o imię, e-mail, lokalizację ani kontakty.
+- **Anonimowe statystyki gry (beta).** Żeby wiedzieć, ile osób gra, czy wracają, jak długo grają
+  i gdzie gra jest niejasna albo wolna, gra wysyła krótkie anonimowe zdarzenia: początek i koniec
+  sesji (z minutami gry i przejechanymi kilometrami), początek i koniec zlecenia lub wyścigu,
+  odkrytą dzielnicę lub sekret, zmianę ustawienia, liczbę klatek. Każda kopia gry ma losowy
+  identyfikator utworzony na telefonie, niepowiązany z Tobą ani z identyfikatorami urządzenia.
+  Adres IP jest odrzucany po dotarciu, nie wysyłamy modelu telefonu ani listy języków. Zdarzenia
+  trafiają do PostHog (EU Cloud, serwery we Frankfurcie), służą tylko do ulepszania gry, nigdy nie
+  są sprzedawane ani używane do reklam i są przechowywane najwyżej rok.
+- **Wyłączanie.** Ustawienia → Dźwięk → „Anonimowa statystyka · Anonymous stats” → Wył. Od tej
+  chwili nic nie jest wysyłane, a zdarzenia czekające w telefonie są usuwane.
 - **Zapis zostaje w telefonie.** Ustawienia i postęp (złotówki, respekt, wykonane zlecenia)
   są zapisane w pamięci gry na Twoim telefonie i nigdzie nie są wysyłane. Odinstalowanie gry
-  je usuwa.
-- **Uprawnienia.** Na Androidzie gra prosi tylko o wibracje (do haptyki). Nie korzysta
-  z lokalizacji, aparatu, mikrofonu, kontaktów ani plików.
-- **Dzieci.** Gra nie jest przeznaczona dla dzieci poniżej 13 lat i od nikogo niczego nie
-  zbiera.
-- **Podmioty trzecie.** Żadne dane nie trafiają do nikogo, bo żadne nie opuszczają telefonu.
+  je usuwa, razem z losowym identyfikatorem.
+- **Uprawnienia.** Na Androidzie gra prosi o wibracje (haptyka) i dostęp do internetu
+  (statystyki). Nie korzysta z lokalizacji, aparatu, mikrofonu, kontaktów ani plików.
+- **Dzieci.** Gra nie jest przeznaczona dla dzieci poniżej 13 lat i od nikogo nie zbiera danych
+  osobowych.
+- **Podmioty trzecie.** Anonimowe statystyki przetwarza w naszym imieniu PostHog. Nic innego
+  nie opuszcza telefonu.
 
 Pytania: napisz do nas przez stronę Wsparcie (https://aroundwarsaw.app/support/).

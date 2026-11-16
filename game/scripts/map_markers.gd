@@ -9,42 +9,54 @@ extends RefCounted
 ## what a script that rebuilds its list (the job places, the "?" marks) wants. `remove` and
 ## `clear(owner)` take marks away. A write never touches another owner's marks.
 ##
+## Each mark may carry a `group` (the kind of thing it is: "kebab", "sloik", "lezak", "garage",
+## "story"...; the onboarding plan's one map list shows one row per group) and, for the questline
+## badges, `extra` ({"name", "blurb", "small"}: the label, the tap's line, a smaller "!").
+##
 ## The rule table (RULES) says which layer each map shows in each context: FREE (driving round the
-## city) and QUEST (quest focus: something runs, main.gd `_quest_running`, hud.gd `quest_focus`).
-## It holds today's behaviour; a new situation (the helicopter, a chase, an event day) is a column
-## here, not edits in five scripts. Reach (how far from the car a layer's marks show on the
+## city), QUEST (quest focus: something runs, main.gd `_quest_running`, hud.gd `quest_focus`) and
+## AIR (flying, nothing running; quest focus wins over AIR). It holds today's behaviour; a new
+## situation (a chase, an event day) is a column here, not edits in five scripts. Reach (how far from the car a layer's marks show on the
 ## minimap) and the full map's zoom rule stay with the drawing.
 ##
 ## Which layers the maps read from here so far (one layer per pull request, map-markers.md
 ## section 5 "Order of work"): JOB (street jobs' places, the round-up's pins), PLACE (the
-## notebook's "?" marks), SERVICE (the garage), and MAIN's start marker of the final (rivals.gd;
-## kept, not drawn, as before: the main line's star stands there). STORY, MAIN and TARGET still come
-## through their own HUD setters until their pull requests.
+## notebook's "?" marks), SERVICE (the garage), STORY (the questlines' starts, main.gd
+## `_story_tick`), MAIN (the main line's star, MAIN_STAR, main.gd `_main_line_tick`) and RIVAL (the
+## final's start, rivals.gd; kept, not drawn: the main line's star stands there; the rivals' own
+## marks join it for the one map list). TARGET still comes through main.gd `_show_target` until its
+## pull request.
 ##
 ## Pure state, no nodes: game/tools/check_map_markers.gd drives it (verify step `markers`).
 
 ## The layers, loudest first.
-enum Layer {TARGET, MAIN, STORY, JOB, PLACE, SERVICE, INFO}
+enum Layer {TARGET, MAIN, STORY, JOB, PLACE, SERVICE, INFO, RIVAL}
 ## The maps that read the registry.
 enum View {MINIMAP, FULL_MAP}
 ## What the player is doing now (the activity director's context comes later, TD-1).
-enum Context {FREE, QUEST}
+enum Context {FREE, QUEST, AIR}
 
-## Per layer: [minimap FREE, minimap QUEST, full map FREE, full map QUEST]. Today's behaviour:
-## quest focus hides the street jobs, the "?" marks, the garage and the questline badges on both
-## maps; the "?" marks are off the full map always (F 2026-11-08); the active target, the main
-## line (its star dims in focus, the drawing's business) and the police show everywhere.
+## The main line's star (main.gd `_main_line_tick`): one MAIN mark under this id.
+const MAIN_STAR := "main:star"
+
+## Per layer: [minimap FREE, QUEST, AIR, full map FREE, QUEST, AIR]. Today's behaviour: quest
+## focus hides the street jobs, the "?" marks, the garage and the questline badges on both maps;
+## flying hides the questline badges (the job places hide themselves in the air, jobs.gd); the "?"
+## marks are off the full map always (F 2026-11-08); the active target, the main line (its star
+## dims in focus, the drawing's business) and the police show everywhere; the rivals' layer is
+## kept for the one map list and drawn nowhere yet.
 const RULES := {
-	Layer.TARGET: [true, true, true, true],
-	Layer.MAIN: [true, true, true, true],
-	Layer.STORY: [true, false, true, false],
-	Layer.JOB: [true, false, true, false],
-	Layer.PLACE: [true, false, false, false],
-	Layer.SERVICE: [true, false, true, false],
-	Layer.INFO: [true, true, true, true],
+	Layer.TARGET: [true, true, true, true, true, true],
+	Layer.MAIN: [true, true, true, true, true, true],
+	Layer.STORY: [true, false, false, true, false, false],
+	Layer.JOB: [true, false, true, true, false, true],
+	Layer.PLACE: [true, false, true, false, false, false],
+	Layer.SERVICE: [true, false, true, true, false, true],
+	Layer.INFO: [true, true, true, true, true, true],
+	Layer.RIVAL: [false, false, false, false, false, false],
 }
 
-## id -> {"layer", "at", "colour", "shape", "owner"}, in the order they were first put (the order
+## id -> {"layer", "at", "colour", "shape", "group", "extra", "owner"}, in the order they were first put (the order
 ## the maps draw them in).
 var _marks := {}
 ## Per layer, its marks as packed arrays for the drawing (rebuilt on the first read after a write).
@@ -58,30 +70,33 @@ var version := 0
 ## Whether `view` shows `layer` in `context` (the rule table).
 static func shows(layer: int, view: int, context: int) -> bool:
 	var row: Array = RULES.get(layer, [])
-	var i := (0 if view == View.MINIMAP else 2) + (0 if context == Context.FREE else 1)
+	var i := (0 if view == View.MINIMAP else 3) + context
 	return i < row.size() and bool(row[i])
 
 
-## The context for quest focus on or off (hud.gd's `quest_focus`).
-static func context_of(focus: bool) -> int:
-	return Context.QUEST if focus else Context.FREE
+## The context for quest focus on or off (hud.gd's `quest_focus`) and flying (quest focus wins).
+static func context_of(focus: bool, flying := false) -> int:
+	return Context.QUEST if focus else (Context.AIR if flying else Context.FREE)
 
 
 ## One mark: `id` is "owner:key" (the owner is what comes before the first colon).
-func put(id: String, layer: int, at: Vector2, colour: Color, shape := 0) -> void:
-	_marks[id] = {"layer": layer, "at": at, "colour": colour, "shape": shape, "owner": _owner_of(id)}
+func put(id: String, layer: int, at: Vector2, colour: Color, shape := 0, group := "") -> void:
+	_marks[id] = {"layer": layer, "at": at, "colour": colour, "shape": shape, "group": group, "extra": {},
+			"owner": _owner_of(id)}
 	_changed(_owner_of(id), layer)
 
 
 ## Everything `owner` shows, in one call: its old marks go, these come in this order. Each entry is
-## {"layer", "at", "colour", "shape" (optional), "key" (optional; else its index)}.
+## {"layer", "at", "colour", "shape", "group", "extra" (each optional), "key" (optional; else its
+## index)}.
 func put_all(owner: String, marks: Array) -> void:
 	_drop(owner)
 	for i in marks.size():
 		var m: Dictionary = marks[i]
 		var id := "%s:%s" % [owner, str(m.get("key", i))]
 		_marks[id] = {"layer": int(m["layer"]), "at": m["at"], "colour": m.get("colour", Color.WHITE),
-				"shape": int(m.get("shape", 0)), "owner": owner}
+				"shape": int(m.get("shape", 0)), "group": str(m.get("group", "")), "extra": m.get("extra", {}),
+				"owner": owner}
 	_changed(owner, -1)
 
 
@@ -106,13 +121,14 @@ func has(id: String) -> bool:
 	return _marks.has(id)
 
 
-## `owner`'s marks in order, each {"id", "layer", "at", "colour", "shape"}.
+## `owner`'s marks in order, each {"id", "layer", "at", "colour", "shape", "group", "extra"}.
 func owned(owner: String) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for id: String in _marks:
 		var m: Dictionary = _marks[id]
 		if m["owner"] == owner:
-			out.append({"id": id, "layer": m["layer"], "at": m["at"], "colour": m["colour"], "shape": m["shape"]})
+			out.append({"id": id, "layer": m["layer"], "at": m["at"], "colour": m["colour"], "shape": m["shape"],
+					"group": m["group"], "extra": m["extra"]})
 	return out
 
 
@@ -122,7 +138,8 @@ func writes(owner: String) -> int:
 
 
 ## One layer's marks for the drawing: {"at": PackedVector2Array, "colour": PackedColorArray,
-## "shape": PackedInt32Array}, parallel, in the order put. Cached until the next write, so the
+## "shape": PackedInt32Array, "group": PackedStringArray, "extra": Array}, parallel, in the order
+## put. Cached until the next write, so the
 ## minimap reads it every frame for nothing.
 func marks_of(l: int) -> Dictionary:
 	if _views.has(l):
@@ -130,22 +147,31 @@ func marks_of(l: int) -> Dictionary:
 	var pts := PackedVector2Array()
 	var cols := PackedColorArray()
 	var shapes := PackedInt32Array()
+	var groups := PackedStringArray()
+	var extras: Array = []
 	for id: String in _marks:
 		var m: Dictionary = _marks[id]
 		if int(m["layer"]) == l:
 			pts.append(m["at"])
 			cols.append(m["colour"])
 			shapes.append(m["shape"])
-	var v := {"at": pts, "colour": cols, "shape": shapes}
+			groups.append(m["group"])
+			extras.append(m["extra"])
+	var v := {"at": pts, "colour": cols, "shape": shapes, "group": groups, "extra": extras}
 	_views[l] = v
 	return v
 
 
-## The marks of `l` that `view` shows in `context` (empty when the rule table hides the layer).
+## The marks of `l` that `view` shows in `context` (empty when the rule table hides the layer: one
+## shared empty view, nothing made per frame; never write into it).
 func shown(l: int, view: int, context: int) -> Dictionary:
 	if shows(l, view, context):
 		return marks_of(l)
-	return {"at": PackedVector2Array(), "colour": PackedColorArray(), "shape": PackedInt32Array()}
+	return _none
+
+
+var _none := {"at": PackedVector2Array(), "colour": PackedColorArray(), "shape": PackedInt32Array(),
+		"group": PackedStringArray(), "extra": []}
 
 
 func _drop(owner: String) -> void:

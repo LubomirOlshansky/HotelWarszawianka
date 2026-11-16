@@ -76,8 +76,10 @@ ground               ground    slow
 grounded             quick
 handling             quick
 heights              quick
+heightthreads        smoke
 heli                 local     slow
 heliview             quick
+hints                quick
 hud                  quick
 jobplay              quick
 jobs2                quick
@@ -180,6 +182,7 @@ spec                 quick
 spiremotion          quick
 splash               local     slow
 stairs               quick
+stats                quick
 steering             quick
 stopassist           smoke
 stops                quick
@@ -204,6 +207,7 @@ tour-run             local     slow
 trains               quick
 tramfleet            quick
 tramstops            quick
+trees                quick
 trendjob             quick
 trzy-mosty           local     slow
 tunnelcut            smoke

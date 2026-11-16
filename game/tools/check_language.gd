@@ -35,7 +35,7 @@ const SAMPLES := {
 	"card_body": ["Ranny rowerzysta czeka przy skrzyżowaniu.", "A hurt cyclist waits at the crossing."],
 	"status_hint": ["Stań w zielonym kółku", "Stop inside the green ring"],
 	"info": ["Pałac Kultury, dar narodu radzieckiego.", "Palace of Culture, a gift from the Soviet people."],
-	"police": ["POŚCIG, KONIEC ZMIANY ZA 0:30", "CHASE, END OF SHIFT IN 0:30"],
+	"police": ["SZUKAJĄ CIĘ", "SEARCHING"],
 	"pill": ["WEZWANIE RATUNKOWE", "RESCUE CALL INCOMING"],
 	"challenge": ["MRUGNIJ ŚWIATŁAMI", "FLASH YOUR LIGHTS"],
 	"goal": ["Jedź na Rondo Dmowskiego", "Drive to Rondo Dmowskiego"],
@@ -204,7 +204,7 @@ func _check_hud(code: String) -> void:
 			"challenge":
 				hud.show_challenge(s["challenge"][0], Color.WHITE, s["challenge"][1])
 			"goal":
-				hud.set_main_line(Vector2(10, 10), s["goal"][0], s["goal"][1])
+				hud.set_main_goal(s["goal"][0], s["goal"][1])
 		await process_frame
 		var all := _joined(hud)
 		match key:
@@ -304,7 +304,7 @@ func _check_panel(code: String) -> void:
 			"effects": 1.0, "fps": 0, "weather": 0, "time": 0, "lang": Lang.CODES.find(other)})
 	await process_frame
 	var rebuilt := _joined(panel)
-	panel.set_tab(0)
+	panel.set_tab(5)  # DOSTĘP and its On / Off (first hour step 6 moved Jazda's to the DEV page)
 	await process_frame
 	rebuilt = _joined(panel)
 	var want := "Wł." if other == Lang.PL else "On"

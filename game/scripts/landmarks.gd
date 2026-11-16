@@ -183,6 +183,14 @@ const INFO := {
 			"Narożna kamienica w brzoskwiniowym tynku, z balkonami i ślepą arkadą na rogu.",
 			"A corner tenement in peach plaster, with iron balconies and a blind arch at the corner."],
 	"adwentysci": ["Kościół Adwentystów na Foksal", "Zbór w żółtej kamienicy za ogródkiem.", "A church inside a yellow house behind a front garden."],
+	"plebania_zwycieskiej": ["Plebania parafii Matki Boskiej Zwycięskiej", "Plebania za ogrodzeniem, w kremowym tynku.", "The presbytery behind its railings, in cream plaster."],
+	"plebania_pallotynow": ["Plebania przy Skaryszewskiej", "Plebania pallotynów obok kaplicy Matki Boskiej Częstochowskiej.", "The Pallottines' presbytery beside the Our Lady of Częstochowa chapel."],
+	"pallotyni_dom": ["Dom pallotynów przy Skaryszewskiej", "Dom zakonny pallotynów za kościołem Chrystusa Króla.", "The Pallottine fathers' house behind the church of Christ the King."],
+	"plebania_zagorna": ["Plebania przy Zagórnej", "Dom parafii Matki Bożej Częstochowskiej, w szarym tynku jak kościół.", "Our Lady of Częstochowa's parish house, in the church's grey render."],
+	"rodziny_maryi_pawilon": ["Pawilon sióstr Rodziny Maryi", "Niski dom przy klasztorze sióstr, pod zieloną miedzią.", "The low house by the sisters' convent, under green copper."],
+	"plebania_leszno": ["Plebania parafii Narodzenia NMP", "Plebania kościoła na Lesznie, w łososiowym tynku jak kościół.", "The presbytery of the church on Leszno, in the church's salmon plaster."],
+	"misjonarze_tyl": ["Dom zakonny Księży Misjonarzy", "Tylne skrzydło domu misjonarzy przy kościele Świętego Krzyża.", "The back wing of the Missionaries' house by the Holy Cross church."],
+	"dom_parafialny_barbara": ["Dom Parafialny im. Prymasa Tysiąclecia", "Dom parafii św. Barbary, w żółtym tynku przy Świętej Barbary.", "St Barbara's parish house, in yellow plaster on Świętej Barbary."],
 	"szarytki_zaulek": ["Domy Szarytek przy zaułku", "Dwa domy sióstr miłosierdzia za klasztorem na Tamce.", "Two houses of the Sisters of Charity behind their convent on Tamka."],
 	"faustyna_klasztor": ["Klasztor przy sanktuarium św. Faustyny", "Domy Zgromadzenia Sióstr Matki Bożej Miłosierdzia przy Żytniej.", "The Sisters of Our Lady of Mercy's houses round St Faustina's shrine."],
 	"elzbietanki": ["Siostry Elżbietanki", "Dom prowincjalny sióstr za Piekarską, nad ogrodami Podwala.", "The Elizabethan sisters' provincial house behind Piekarska, over the Podwale gardens."],
@@ -523,6 +531,15 @@ const INFO := {
 	"koszyki": ["Hala Koszyki",
 			"Ceglana hala targowa z 1909 roku. Dziś: ramen.",
 			"The brick market hall of 1909. Now: ramen."],
+	"torwar": ["Torwar",
+			"Hala przy Łazienkowskiej z lat 50.: hokej, koncerty, gale. Od ulicy biały portyk na smukłych kolumnach, po meczu zawsze korek.",
+			"The 1950s hall on Łazienkowska: hockey, concerts, galas. A white portico on slender columns faces the street, and there's a jam after every game."],
+	"nbp": ["NBP, Oddział Okręgowy",
+			"Oddział Narodowego Banku Polskiego przy placu Powstańców: długi dom w ciemnych, pochylonych blachach, szklany parter na tarasie, szerokie granitowe schody. Tu pieniądze śpią, zanim pójdą w miasto.",
+			"The National Bank's Warsaw branch on Plac Powstańców: a long block in dark, leaning metal panels, a glass ground floor on a terrace, a wide flight of granite steps. The money sleeps here before it goes out into the city."],
+	"dom_chlopa": ["Dom Chłopa",
+			"Hotel na placu Powstańców z lat 1958-61, zbudowany dla chłopów przyjeżdżających do stolicy. Falisty gzyms na dachu, zielony neon, kasyno na parterze.",
+			"The hotel on Plac Powstańców of 1958-61, built for farmers visiting the capital. A wavy roof edge, a green neon on top, a casino on the ground floor."],
 	"rotunda_dynasy": ["Rotunda na Dynasach",
 			"Okrągły dom na miejscu dawnej panoramy na Dynasach: ceglany parter, białe ramy, szkło.",
 			"A round house where the old panorama stood on Dynasy: a brick base, white frames, glass."],
@@ -677,8 +694,17 @@ const INFO := {
 			"Ocalały fragment trybuny z placu Defilad (1955), złożony z dawnego granitu. Dziś ogród widokowy na placu Centralnym.",
 			"What is left of Plac Defilad's 1955 parade tribune, rebuilt in its old granite. Now a garden with a view over Plac Centralny."],
 	"tr": ["Plac budowy TR Warszawa",
-			"Ogrodzony plac pod nowy gmach teatru TR Warszawa, obok białego muzeum.",
-			"The fenced plot for TR Warszawa's new theatre, next to the white museum."],
+			"Betonowy szkielet nowego teatru, dwa czerwone żurawie i czarny płot.",
+			"TR Warszawa's new theatre: a concrete shell, two red cranes, a black hoarding."],
+	"nozyce": ["Złote nożyce",
+			"Wielkie złote nożyce na granitowym cokole przed białym muzeum.",
+			"Giant gold scissors on a granite plinth in front of the white museum."],
+	"jarmark": ["Jarmark na placu Defilad",
+			"Świąteczne budki, choinka i płotek. Jeszcze się rozstawia.",
+			"The Christmas market on Plac Defilad: huts, a big tree, a fence. Still going up."],
+	"obeliski": ["Obeliski przy Pałacu",
+			"Dwa granitowe obeliski z 1955 roku przy Marszałkowskiej, na północnym i południowym skraju placu.",
+			"Two granite obelisks of 1955 on Marszałkowska, at the north and south ends of Plac Defilad."],
 	"dtc": ["Domy Towarowe Centrum",
 			"Trzy szklane domy towarowe Ściany Wschodniej, 1962–1970. Nazwy po Warsie i Sawie z legendy.",
 			"The Eastern Wall's three glass department stores, 1962–1970, named after the legend's Wars and Sawa."],
@@ -736,6 +762,9 @@ const INFO := {
 	"kozia9": ["Kozia 9",
 			"1974–76, Kuźmienko i Sembrat: blok wspina się po piętrze, okna chowają się w zębach.",
 			"1974-76, Kuźmienko and Sembrat: the block climbs a storey at a time, windows hidden in its teeth."],
+	"jerozolimskie57": ["Aleje Jerozolimskie 57-63",
+			"Rząd kamienic naprzeciw Pałacu: odnowiona czerwona z pomarańczowym dachem (dawna Nowa Jerozolima), biała pod białą płachtą, dwie ozdobne z mansardą i zielone arkady z gablotami.",
+			"The tenement row across from the Palace: the restored red one with the orange roof (where Nowa Jerozolima was), the white one under its white wrap, two ornate ones with zinc mansards, and the green arcades with their showcases."],
 	"smolna38": ["Smolna 38",
 			"Przedwojenna kamienica z bramą pod kamienną konsolą i erkerem; wieczorem czerwone światło i kolejka do klubu.",
 			"A pre-war tenement: a gate under a stone console and an oriel; at night red light and the club queue."],
@@ -848,6 +877,7 @@ const INFO := {
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
 	"church_siostry_milosierdzia_zytnia": ["Siostry Matki Bożej Miłosierdzia", "Dom sióstr przy sanktuarium św. Faustyny na Żytniej.", "The Sisters of Our Lady of Mercy's house by St Faustina's shrine."],
 	"church_uczennice_boskiego_mistrza": ["Siostry Uczennice Boskiego Mistrza", "Ceglany dom zakonny sióstr uczennic przy Żytniej.", "The Sister Disciples of the Divine Master's brick convent."],
+	"church_kaplica_hoza": ["Kaplica przy Hożej", "Długa kaplica w podwórzu za domem przy Hożej.", "A long chapel in the yard behind a house on Hoża."],
 	"church_kaplica_lucka": ["Kaplica przy Łuckiej", "Mała kaplica w podwórzu za domami przy Łuckiej.", "A small chapel in the yard behind the houses on Łucka."],
 	"church_kaplica_florianska": ["Kaplica przy katedrze św. Floriana", "Ośmioboczna ceglana kaplica z łupkowym hełmem, przy ogrodzeniu katedry.", "A small octagonal brick chapel with a slate bell roof, by the cathedral's fence."],
 	"church_zytnia_dom_zakonny_tyl": ["Dom zakonny na Żytniej, skrzydło", "Długie skrzydło domu zakonnego w głębi posesji przy Żytniej.", "The long wing of the convent behind its range on Żytnia."],
@@ -1166,6 +1196,9 @@ func _find_sites() -> void:
 	# First scene item 1 (2026-10-31): the Museum of Modern Art on Plac Defilad.
 	_find_msn()
 	_find_tr()
+	_find_nozyce()
+	_find_jarmark()
+	_find_obeliski()
 	# First scene item 3 (2026-10-31): the Eastern Wall's three glass department stores.
 	_find_dtc()
 	# The Mac photo check (2026-11-01, specs C and D): the tower and the slabs behind the stores.
@@ -1235,6 +1268,8 @@ func _find_sites() -> void:
 	_find_hortus()
 	_find_moderna()
 	_find_flisac()
+	# Al. Jerozolimskie 57-63 (F's photos, 2026-11-15): Nowa Jerozolima's red tenement and the row beside it.
+	_find_jerozolimskie57()
 	# Plac Krasińskich (CITY_INVENTORY 22 and 79, 2026-11-02): the Uprising Monument and the palace.
 	# Sąd Najwyższy's colonnade (2026-11-02): green ribbed columns instead of OSM's white boxes.
 	# Found (and built) before the monument: its beams' cells would cover the monument's tap.
@@ -1350,6 +1385,54 @@ func _find_sites() -> void:
 	_add_site("szarytki_zaulek", szz)
 	if not sites.is_empty() and sites[-1]["key"] == "szarytki_zaulek":
 		sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": SZT_WALL, "roof": SZT_ROOF, "steep": 0.3}
+	# St Barbara's parish house on Świętej Barbary (2026-11-15): LoD2's mass in its yellow plaster.
+	var dpb := _outline_at(DPB_AT)
+	if dpb.size() >= 3:
+		_add_site("dom_parafialny_barbara", [dpb])
+		if not sites.is_empty() and sites[-1]["key"] == "dom_parafialny_barbara":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": DPB_WALL, "roof": DPB_ROOF}
+	# The presbytery by Our Lady of Victory (2026-11-15): its mass in cream plaster.
+	var pzw := _outline_at(PZW_AT)
+	if pzw.size() >= 3:
+		_add_site("plebania_zwycieskiej", [pzw])
+		if not sites.is_empty() and sites[-1]["key"] == "plebania_zwycieskiej":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": PZW_WALL, "roof": PZW_ROOF}
+	# The Pallottines' presbytery on Skaryszewska (2026-11-15): its mass in the parish wings' plaster.
+	var ppl := _outline_at(PPL_AT)
+	if ppl.size() >= 3:
+		_add_site("plebania_pallotynow", [ppl])
+		if not sites.is_empty() and sites[-1]["key"] == "plebania_pallotynow":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": PPL_WALL, "roof": PPL_ROOF}
+	# The Pallottines' house behind Christ the King on Skaryszewska (2026-11-15): its mass in the parish wings' plaster.
+	var pdm := _outline_at(PDM_AT)
+	if pdm.size() >= 3:
+		_add_site("pallotyni_dom", [pdm])
+		if not sites.is_empty() and sites[-1]["key"] == "pallotyni_dom":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": PDM_WALL, "roof": PDM_ROOF}
+	# Our Lady of Częstochowa's parish house on Zagórna (2026-11-15): its mass in the church's grey render.
+	var pzg := _outline_at(PZG_AT)
+	if pzg.size() >= 3:
+		_add_site("plebania_zagorna", [pzg])
+		if not sites.is_empty() and sites[-1]["key"] == "plebania_zagorna":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": PZG_WALL, "roof": PZG_ROOF}
+	# The low house east of the Family of Mary sisters' convent on Żytnia (2026-11-15): its mass in the convent's plaster.
+	var rmp := _outline_at(RMP_AT)
+	if rmp.size() >= 3:
+		_add_site("rodziny_maryi_pawilon", [rmp])
+		if not sites.is_empty() and sites[-1]["key"] == "rodziny_maryi_pawilon":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": RMP_WALL, "roof": RMP_ROOF}
+	# The presbytery of the Nativity church on Leszno (2026-11-15): its mass in the neighbour's colours, provisional.
+	var pls := _outline_at(PLS_AT)
+	if pls.size() >= 3:
+		_add_site("plebania_leszno", [pls])
+		if not sites.is_empty() and sites[-1]["key"] == "plebania_leszno":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": PLS_WALL, "roof": PLS_ROOF}
+	# The back wing of the Missionaries' house by Holy Cross (2026-11-15): its mass in the neighbour's colours, provisional.
+	var mst := _outline_at(MST_AT)
+	if mst.size() >= 3:
+		_add_site("misjonarze_tyl", [mst])
+		if not sites.is_empty() and sites[-1]["key"] == "misjonarze_tyl":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": MST_WALL, "roof": MST_ROOF}
 	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
 	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
@@ -1513,6 +1596,12 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_msn(s)
 			"tr":
 				_build_tr(s)
+			"nozyce":
+				_build_nozyce(s)
+			"jarmark":
+				_build_jarmark(s)
+			"obeliski":
+				_build_obeliski(s)
 			"dtc":
 				_build_dtc(s)
 			"trojca":
@@ -1559,6 +1648,12 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_browary(s)
 			"koszyki":
 				_build_koszyki(s)
+			"torwar":
+				_build_torwar(s)
+			"nbp":
+				_build_nbp(s)  # the whole branch (SKINS entry with `model`: it replaces LoD2)
+			"dom_chlopa":
+				_build_dom_chlopa(s)  # over its street block: the wavy roof edge and the signs
 			"elektrownia":
 				_build_elektrownia(s)
 			"rotunda_dynasy":
@@ -1834,6 +1929,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_karowa18a(s)
 			"smolna38":
 				_build_smolna38(s)
+			"jerozolimskie57":
+				_build_jerozolimskie57(s)
 			"nowogrodzka31":
 				_id = 0  # no card, not on the picking grid
 				_build_nowogrodzka31(s)
@@ -1870,6 +1967,22 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"faustyna_klasztor":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"szarytki_zaulek":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
+			"dom_parafialny_barbara":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
+			"misjonarze_tyl":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
+			"plebania_leszno":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
+			"rodziny_maryi_pawilon":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
+			"plebania_zagorna":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
+			"pallotyni_dom":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
+			"plebania_pallotynow":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
+			"plebania_zwycieskiej":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"elzbietanki":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the rounded east end is ours
@@ -1993,7 +2106,7 @@ func _mark_zone(site: Dictionary) -> void:
 # --- Plac Piłsudskiego, part 2 (2026-10-31) ---------------------------------------------------
 
 ## The far skyline's colour of each (sector_proxies.gd, through `tower_colour`).
-const PLAC_WALLS := {"metropolitan": "#8a979c", "wiktoria": "#6f6b66", "europejski": "#e7ddc5",
+const PLAC_WALLS := {"metropolitan": "#8a979c", "wiktoria": "#d9d7d0", "europejski": "#e7ddc5",
 		"grob": "#ddd3bf", "bez_kantow": "#dccdac", "departament": "#dccfb2"}
 
 

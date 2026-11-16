@@ -167,6 +167,10 @@ var trzy_mosty_bridge := 0
 var first10_flag := false
 var end_card_flag := false
 var first_race_flag := false
+## First hour step 6: --hint=ID puts that hint up at once (hints.gd IDS: a shot of the spotlight),
+## --no-hints keeps every hint down.
+var hint_flag := ""
+var no_hints := false
 var egg_flag := ""
 var egg_log := false
 var found_eggs := ""
@@ -241,6 +245,10 @@ var event_smoke := 1
 ## --event-t=SEC: with --cinematic=event, freeze the take at that second (stills for the path check).
 var event_t := -1.0
 var event_log := false
+## --stats=log|send|off: the play stats (play_stats.gd) for this run: log prints every event and
+## sends none (the check), send sends from a debug build (a test against the PostHog project), off
+## none. Without it a debug build sends nothing and a release build follows the setting.
+var stats_flag := ""
 var fans_flag := 1
 var fans_now := false
 var fans_log := false
@@ -600,6 +608,8 @@ func parse_with(args: PackedStringArray) -> void:
 			_flag_yaw = true
 		elif arg == "--cinematic" or arg.begins_with("--cinematic="):
 			_flag_cinematic = arg.trim_prefix("--cinematic=") if arg.contains("=") else "all"
+		elif arg.begins_with("--stats="):
+			stats_flag = arg.trim_prefix("--stats=")
 		elif arg == "--heli":
 			start_flying = true
 		elif arg.begins_with("--heli-stick="):
@@ -1051,6 +1061,10 @@ func parse_with(args: PackedStringArray) -> void:
 			end_card_flag = true
 		elif arg == "--first-race":
 			first_race_flag = true
+		elif arg.begins_with("--hint="):
+			hint_flag = arg.trim_prefix("--hint=")
+		elif arg == "--no-hints":
+			no_hints = true
 		elif arg.begins_with("--ladder="):
 			ladder_flag = clampi(int(arg.trim_prefix("--ladder=")), 0, Ladder.FINAL + 1)  # loop 3h slice 3
 		elif arg == "--trzy-mosty" or arg.begins_with("--trzy-mosty="):

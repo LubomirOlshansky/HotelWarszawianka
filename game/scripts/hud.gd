@@ -143,6 +143,7 @@ const CARD_EDGE := Color(1, 1, 1, 0.16)
 const WORDS := {
 	"ACCEPT": "PRZYJMIJ", "SKIP": "POMIŃ", "LATER": "PÓŹNIEJ", "NEXT CALL": "NASTĘPNE",
 	"FREE ROAM": "SWOBODNIE", "TRY AGAIN": "JESZCZE RAZ", "GO!": "JEDZIEMY!", "NOT NOW": "NIE TERAZ",
+	"REMATCH": "REWANŻ", "NIGHT": "NOC",
 }
 enum { DOWN = 1, UP = -1 }
 
@@ -371,12 +372,8 @@ func zoom_in_held_s() -> float:
 var markers := MapMarkers.new()
 ## The garage loop: the garage's diamond (a SERVICE mark) is pinned to the rim up to this far.
 const GARAGE_REACH := 1500.0
-## The questlines' starts (story_quests.gd `marks`): points and colours; empty in quest focus.
-var _mini_story := PackedVector2Array()
-var _mini_story_colours := PackedColorArray()
-var _story_names := PackedStringArray()
-var _story_blurbs := PackedStringArray()
-var _story_small := PackedByteArray()
+## The questlines' starts are the registry's STORY layer (main.gd `_story_tick`), the main line's
+## star its MapMarkers.MAIN_STAR (main.gd `_main_line_tick`).
 const STORY_REACH := 1500.0
 ## Quest focus (main.gd `_story_tick`): something runs; the minimap and the full map hide the side
 ## places, the garage, the "?" marks and the starts, and the main star dims.
@@ -388,7 +385,6 @@ var quest_focus := false
 ## pulsing ring, pinned to the minimap's rim at any distance; INF: this step has no place) and its
 ## goal line [Polish, English] for the full map. Side quests keep their colours (a ringed dot for
 ## the active one, squares for the places to start one).
-var _main_at := Vector2.INF
 var main_goal := PackedStringArray(["", ""])
 ## Mission target: its point on screen (the arrow) and on the minimap.
 var _target_visible := false
@@ -412,6 +408,11 @@ var pill_owner := "call"
 var _card_side := false
 ## Whose card is up (tech-debt TD-16, `own_card`); null: nobody's, the press goes to every listener.
 var _card_owner: Object = null
+## First hour step 6: the ✕ in the card's top right corner (`set_card_close`), and the button it
+## presses (-1: the card has no ✕).
+var _card_x: Button
+var _card_x_room: Control
+var _card_x_as := -1
 var _side_call := false
 ## Loop 2d-1: the Podwózka app's route on the minimap (map coordinates), drawn dotted.
 var _mini_route := PackedVector2Array()
@@ -451,6 +452,17 @@ const LENS_RED := Color("#ff3b3b")
 var _police_pill: PanelContainer
 var _police_pl: Label
 var _police_en: Label
+## First-hour step 2 (2026-11-15): the pill's bar under its words, one draw call while it shows:
+## mode 1 the chase (the share of the escape made, gold), 2 the search (the share left, grey-blue
+## emptying), 0 none.
+var _police_gap: Control
+var _gap_share := 0.0
+var _gap_mode := 0
+const GAP_GOLD := Color("#ffd23f")
+const GAP_SEARCH := Color("#9fb4d8")
+## Hiding spots blinking on the minimap during a chase (police.gd `_hides_near`).
+const HIDE_GREEN := Color("#5fd38a")
+var _hide_marks := PackedVector2Array()
 var _koguty: Control
 var _koguty_lit := 0
 ## 0 hidden, 1 a chase (lit), 2 searching (grey, blinking), 3 a warning (the first outline blinks).
@@ -482,6 +494,13 @@ var touch_off := false
 var input_ms := 0
 var _finger := false
 var _finger_t := 0.0
+## First hour step 6: the spotlight (`spotlight`): what it points at ("minimap", "heli", "climb",
+## "brake", or "car" for words over the car with no ring), its words, how long it has been up and
+## how long it stays. Drawn on the pad like the ghost finger: no node of its own, nothing when off.
+var _spot := ""
+var _spot_words := ""
+var _spot_t := 0.0
+var _spot_life := 0.0
 ## Minimap: north-up data drawn once, then turned and moved so the camera's view is up.
 ## Loop 2b: every street, park and pond is built once into one 2D mesh, drawn with one call and
 ## cut to the circle by a small shader (it was 6,500 draw calls, the iPhone's 16 fps).
@@ -868,6 +887,8 @@ func _layout() -> void:
 		# PT-26 (2026-11-07): the ghost finger's two-line hint is room taken too, so a bubble
 		# (the Marszałkowska roadworks sign by the start) keeps off the words that teach steering.
 		_taken.append(finger_hint_rect())
+	if _spot != "":
+		_taken.append(spotlight_label_rect())  # the same for a hint's words
 	var car_zone_added := false
 	for c in _floating:
 		if not car_zone_added and not c in [_status, _police_pill, _card, _challenge] and not _panel_spots.has(c):
@@ -1114,6 +1135,7 @@ func clear_all() -> void:
 	set_koguty(0, 0)
 	police_fx(0.0, PackedVector2Array(), Vector2.INF)
 	set_pedals_hidden(false)
+	spotlight_off()
 	_mark()
 
 
@@ -1676,6 +1698,19 @@ func _build_mission_panels() -> void:
 	head.add_child(_card_face)
 	head.move_child(_card_face, 0)
 	_card_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	# First hour step 6 (Fable critique point 1): "no, thanks" as a ✕ in the corner, not a
+	# button of its own (`set_card_close`); hidden until a card asks for it.
+	_card_x_room = Control.new()  # pushes the ✕ into the corner when the English title is hidden
+	_card_x_room.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_card_x_room.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card_x_room.visible = false
+	head.add_child(_card_x_room)
+	_card_x = _chip(head, "✕", "", Color(0, 0, 0, 0))
+	_card_x.name = "card_close"
+	_card_x.custom_minimum_size = Vector2.ONE * TOUCH * pt
+	_card_x.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_card_x.visible = false
+	_card_x.pressed.connect(func(): press_card_close())
 	_build_call_view()
 	add_child(_card)
 
@@ -1758,6 +1793,7 @@ func show_card(title: String, body: String, buttons: PackedStringArray, accent: 
 	accent = Access.tint(accent)  # colour-safe (access.gd)
 	_card_owner = null  # a new card is nobody's until its maker calls own_card
 	_drop_card_art()  # ... and has no picture until its maker gives it one
+	_set_card_x(-1)  # ... and no ✕ until its maker asks for one (`set_card_close`)
 	title = Lang.pick(title, title_en)
 	body = Lang.pick(body, body_en)
 	title_en = ""
@@ -1825,6 +1861,39 @@ func hide_card() -> void:
 	_card_owner = null
 	_show(_card, false)
 	_drop_card_art()
+	_set_card_x(-1)
+
+
+## First hour step 6: a ✕ in the top right corner of the card showing now, which presses button
+## `index` (to the card's owner, as a tap on that button would). Call it right after `show_card`
+## or `show_side_card` (and `own_card`); the next card shown, or `hide_card`, takes it away. The
+## index may be past the card's own buttons: the choice card's RACE, RIDES and FLY are 0 to 2 and
+## its ✕ is 3, "just drive" (Fable critique point 1). The pad's B and Esc do not press it: Esc
+## opens the settings, as it always has.
+func set_card_close(index: int) -> void:
+	_set_card_x(index)
+	_card.reset_size()
+	_mark()
+
+
+## The button the card's ✕ presses, or -1 when the card showing has none.
+func card_close() -> int:
+	return _card_x_as if card_showing() else -1
+
+
+## A tap on the card's ✕ (a check presses it here). False when the card showing has none.
+func press_card_close() -> bool:
+	if card_close() < 0:
+		return false
+	_press_card(_card_x_as)
+	return true
+
+
+func _set_card_x(index: int) -> void:
+	_card_x_as = index
+	if _card_x != null:
+		_card_x.visible = index >= 0
+		_card_x_room.visible = index >= 0 and not _card_title_en.visible
 
 
 ## Racer AI step 6a: a picture beside the words of the card showing now (the race result's two
@@ -2015,6 +2084,7 @@ func show_call(who: String, about: String, accent: Color, about_en := "", face :
 		buttons := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
 	accent = Access.tint(accent)  # colour-safe (access.gd)
 	_card_owner = null  # as show_card: a new call is nobody's until own_card
+	_set_card_x(-1)
 	messages.call_rang()  # the message director spaces the next call from this one
 	about = Lang.pick(about, about_en)
 	if "|" in who:
@@ -2280,6 +2350,11 @@ func _frame(dt: float) -> void:
 	if _finger:
 		_finger_t += dt
 		_pad.queue_redraw()
+	if _spot != "":
+		_spot_t += dt
+		_pad.queue_redraw()
+		if _spot_t >= _spot_life:
+			spotlight_off()
 	if _pill.visible:
 		# The context button breathes so a call that came in is noticed.
 		_pill_t += dt
@@ -2556,7 +2631,7 @@ func _paint_minimap_overlay() -> void:
 	# Quest focus (story_quests.gd, F 2026-11-07): while something runs, the side places, the garage
 	# and the "?" marks stay off the minimap; only what the player is doing shows.
 	# (The rule table, map_markers.gd RULES, says which layers quest focus hides.)
-	var ctx := MapMarkers.context_of(quest_focus)
+	var ctx := MapMarkers.context_of(quest_focus, flying)
 	var jobs := markers.shown(MapMarkers.Layer.JOB, MapMarkers.View.MINIMAP, ctx)
 	var job_at: PackedVector2Array = jobs["at"]
 	var job_col: PackedColorArray = jobs["colour"]
@@ -2603,11 +2678,14 @@ func _paint_minimap_overlay() -> void:
 			_tri_question(centre + r)
 	# The questlines' starts (story_quests.gd): a "!" badge in each one's colour, pinned to the rim
 	# up to STORY_REACH m away (the list is empty in quest focus).
-	for i in _mini_story.size():
-		if _mini_story[i].distance_to(_mini_car) > STORY_REACH:
+	var stories := markers.shown(MapMarkers.Layer.STORY, MapMarkers.View.MINIMAP, ctx)
+	var story_at: PackedVector2Array = stories["at"]
+	for i in story_at.size():
+		if story_at[i].distance_to(_mini_car) > STORY_REACH:
 			continue
-		var r := ((_mini_story[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 7.0 * pt)
-		story_badge(centre + r, 0.6 if i < _story_small.size() and _story_small[i] == 1 else 0.85, _mini_story_colours[i])
+		var r := ((story_at[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 7.0 * pt)
+		var small := bool((stories["extra"][i] as Dictionary).get("small", false))
+		story_badge(centre + r, 0.6 if small else 0.85, (stories["colour"] as PackedColorArray)[i])
 	if _scene_mark != Vector2.INF:
 		# A crash scene: an amber dot with a white ring, pulsing slowly (not the chasers' flicker).
 		var r := ((_scene_mark - _mini_car) * s).rotated(_mini_yaw)
@@ -2615,6 +2693,12 @@ func _paint_minimap_overlay() -> void:
 			var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.006)
 			_tri_fan(centre + r, (3.6 + pulse) * pt, 0.0, TAU, Color.WHITE)
 			_tri_fan(centre + r, 2.6 * pt, 0.0, TAU, SCENE_AMBER)
+	if not _hide_marks.is_empty():
+		var glow := 0.45 + 0.55 * absf(sin(Time.get_ticks_msec() * 0.005))
+		for q in _hide_marks:
+			var r := ((q - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 6.0 * pt)
+			_tri_fan(centre + r, 4.2 * pt, 0.0, TAU, Color(CARD_BG, 0.85))
+			_tri_ring(centre + r, 2.6 * pt, 4.2 * pt, 0.0, TAU, Color(HIDE_GREEN, glow))
 	var flip := int(Time.get_ticks_msec() / 200) % 2 == 0
 	for i in _police_marks.size():
 		var r := ((_police_marks[i] - _mini_car) * s).rotated(_mini_yaw)
@@ -2630,9 +2714,10 @@ func _paint_minimap_overlay() -> void:
 		# F 2026-11-08: the quest taken reads much stronger: a breathing glow and ring in its colour.
 		t = t.limit_length(_mini_radius - 7.0 * pt)
 		active_pin(centre + t, 1.15, _mini_target_colour)
-	if _main_at != Vector2.INF:
+	var main_at := markers.where(MapMarkers.MAIN_STAR)
+	if main_at != Vector2.INF and MapMarkers.shows(MapMarkers.Layer.MAIN, MapMarkers.View.MINIMAP, ctx):
 		# The main line: a gold star in a pulsing ring, pinned to the rim at any distance.
-		var mr := ((_main_at - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 8.0 * pt)
+		var mr := ((main_at - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 8.0 * pt)
 		main_star(centre + mr, 1.3, quest_focus)
 	var d := _car_dir.normalized()
 	var side := Vector2(-d.y, d.x)
@@ -2759,14 +2844,14 @@ func _tri_star(at: Vector2, r: float, colour: Color) -> void:
 		_tri(at, p0, p1, colour, colour, colour)
 
 
-## The main line's marker (map x, z; INF: none) and its goal line (main.gd, a few times a second).
-func set_main_line(at: Vector2, pl: String, en: String) -> void:
+## The main line's goal line (main.gd, a few times a second; its star is the registry's
+## MapMarkers.MAIN_STAR).
+func set_main_goal(pl: String, en: String) -> void:
 	pl = Lang.pick(pl, en)
 	en = ""
-	_main_at = at
 	main_goal = PackedStringArray([pl, en])
 	if full_map != null and full_map.is_open():
-		full_map.set_main_line(at, pl, en)
+		full_map.set_main_goal(pl, en)
 
 
 ## The garage loop: a diamond `r` from its centre to a corner, with the dark outline (two
@@ -2836,18 +2921,12 @@ func _tri_question(at: Vector2, k := 1.0) -> void:
 	_tri_cols.append_array(_question_cols)
 
 
-## The questlines' starts on the minimap and the full map, and quest focus (main.gd, a few
-## times a second; both only when they change).
-func set_story(points: PackedVector2Array, colours: PackedColorArray, focus: bool, names := PackedStringArray(),
-		blurbs := PackedStringArray(), small := PackedByteArray()) -> void:
-	_story_blurbs = blurbs
-	_story_small = small
-	_mini_story = points
-	_mini_story_colours = colours
-	_story_names = names
+## Quest focus on or off (main.gd `_story_tick`, a few times a second; only when it changes): the
+## rule table's QUEST context for both maps (map_markers.gd).
+func set_quest_focus(focus: bool) -> void:
 	quest_focus = focus
 	if full_map != null and full_map.is_open():
-		full_map.set_story(points, colours, focus, names, blurbs, small)
+		full_map.focus = focus
 
 
 # --- loop 2d-1: the Podwózka app's route (rides.gd) -------------------------------------------
@@ -3467,8 +3546,9 @@ func open_full_map(car_xz: Vector2, car_yaw: float, found: PackedVector2Array) -
 	full_map.target = _mini_target
 	full_map.target_colour = _mini_target_colour
 	full_map.markers = markers
-	full_map.set_story(_mini_story, _mini_story_colours, quest_focus, _story_names, _story_blurbs, _story_small)
-	full_map.set_main_line(_main_at, main_goal[0], main_goal[1])
+	full_map.focus = quest_focus
+	full_map.flying = flying
+	full_map.set_main_goal(main_goal[0], main_goal[1])
 	full_map.open(car_xz, car_yaw)
 
 
@@ -3885,6 +3965,119 @@ func _draw_finger_classic() -> void:
 	_pad.draw_string(font, at2, lines[1], HORIZONTAL_ALIGNMENT_LEFT, -1, fs2, SUB)
 
 
+# --- first hour step 6: the spotlight -----------------------------------------------------------
+
+## A hint (hints.gd): a ring that pulses round `target` and its words beside it, for `life` s or
+## until `spotlight_off`. `target` is "minimap", "heli" (the HELI chip), "climb" (the helicopter's
+## up pad), "brake", or "car" (the words over the car, no ring). One at a time: a new one takes the
+## place of the last. Eight words at most (George Fan's rule, the spec's section 6).
+func spotlight(target: String, words: String, life := 7.0) -> void:
+	_spot = target
+	_spot_words = words
+	_spot_t = 0.0
+	_spot_life = life
+	_dirty = true  # its words take room from the bubbles, as the ghost finger's do
+	_pad.queue_redraw()
+
+
+func spotlight_off() -> void:
+	if _spot == "":
+		return
+	_spot = ""
+	_spot_words = ""
+	_dirty = true
+	_pad.queue_redraw()
+
+
+## What the spotlight points at now ("" when none is up).
+func spotlight_target() -> String:
+	return _spot
+
+
+## The spotlight's words now ("" when none is up).
+func spotlight_words() -> String:
+	return _spot_words
+
+
+## The screen rect of what the spotlight points at, or an empty rect when it is not on screen
+## (the HELI chip hidden, the climb pad while driving).
+func spotlight_target_rect(target := "") -> Rect2:
+	if target == "":
+		target = _spot
+	var disc := func(c: Vector2, r: float) -> Rect2: return Rect2(c - Vector2.ONE * r, Vector2.ONE * r * 2.0)
+	match target:
+		"minimap":
+			return Rect2(_minimap.position, _minimap.size) if _minimap.visible else Rect2()
+		"heli":
+			return Rect2(_vehicle_button.position, _vehicle_button.size) if _vehicle_button.visible else Rect2()
+		"climb":
+			return disc.call(_climb_centre(1), PAD_R * pt) if flying and not touch_off else Rect2()
+		"brake":
+			return disc.call(_brake_centre(), _brake_r() * pt) if not flying and not touch_off else Rect2()
+		"car":
+			return car_zone()
+	return Rect2()
+
+
+## Where the spotlight's words go: beside the target on the side of the screen's middle (under a
+## target in the top half, over one in the bottom half), centred on it, kept in the safe area.
+func spotlight_label_rect() -> Rect2:
+	var font := ThemeDB.fallback_font
+	var fs := _px(T_BODY)
+	var w := font.get_string_size(_spot_words, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 16.0 * pt
+	var h := fs * 1.5 + 8.0 * pt
+	var r := spotlight_target_rect()
+	var c := r.get_center() if r.has_area() else _screen * 0.5
+	var ring := _spot_ring(r)
+	var gap := 8.0 * pt
+	var down := c.y < _screen.y * 0.5
+	var y := c.y + ring + gap if down else c.y - ring - gap - h
+	if _spot == "car":
+		y = r.position.y - h  # over the car, where a bubble would stand
+	var x := clampf(c.x - w * 0.5, _safe.position.x + EDGE * pt, _safe.end.x - EDGE * pt - w)
+	# Off the fixed controls (the wallet under the minimap, the zoom buttons beside it): step on,
+	# away from the target, until the words sit on free ground.
+	var fixed: Array[Rect2] = []
+	for k: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _zoom_out_button, _zoom_in_button, _minimap, _wallet, _koguty]:
+		if k != null and k.visible:
+			fixed.append(Rect2(k.position, k.size).grow(4.0 * pt))
+	fixed.append(_speed_rect())
+	fixed.append_array(_pedal_rects())
+	var box := Rect2(x, clampf(y, _safe.position.y + EDGE * pt, _safe.end.y - EDGE * pt - h), w, h)
+	for i in 8:
+		var hit := false
+		for f in fixed:
+			if f.intersects(box) and not f.grow(-4.0 * pt).is_equal_approx(r):
+				hit = true
+				box.position.y = f.end.y + gap if down else f.position.y - gap - h
+				break
+		if not hit:
+			break
+	box.position.y = clampf(box.position.y, _safe.position.y + EDGE * pt, _safe.end.y - EDGE * pt - h)
+	return box
+
+
+func _spot_ring(r: Rect2) -> float:
+	return 0.0 if _spot == "car" or not r.has_area() else maxf(r.size.x, r.size.y) * 0.5 + 6.0 * pt
+
+
+func _draw_spotlight() -> void:
+	var r := spotlight_target_rect()
+	var pulse := 0.5 + 0.5 * sin(_spot_t * 5.0)
+	var fade := clampf(_spot_t / 0.25, 0.0, 1.0) * clampf((_spot_life - _spot_t) / 0.4, 0.0, 1.0)
+	if r.has_area() and _spot != "car":
+		var ring := _spot_ring(r) + 4.0 * pt * pulse
+		_pad.draw_arc(r.get_center(), ring, 0, TAU, 48, Color(ACCENT, (0.55 + 0.45 * pulse) * fade), 3.0 * pt)
+		_pad.draw_arc(r.get_center(), ring + 7.0 * pt * pulse, 0, TAU, 48, Color(ACCENT, 0.35 * (1.0 - pulse) * fade), 2.0 * pt)
+	var box := spotlight_label_rect()
+	var font := ThemeDB.fallback_font
+	var fs := _px(T_BODY)
+	_pad.draw_rect(box, Color(CARD_BG, 0.9 * fade))
+	_pad.draw_rect(Rect2(box.position, Vector2(3.0 * pt, box.size.y)), Color(ACCENT, fade))
+	var at := Vector2(box.position.x + 8.0 * pt, box.position.y + (box.size.y - fs) * 0.5 + font.get_ascent(fs))
+	_pad.draw_string(font, at, _spot_words, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(INK, fade))
+
+
 ## Loop 3h slice 4: the HELI chip shown or hidden (first10.gd: the helicopter waits for the first
 ## rescue on a fresh save).
 func set_vehicle_shown(on: bool) -> void:
@@ -3897,6 +4090,8 @@ func set_vehicle_shown(on: bool) -> void:
 func _draw_pad() -> void:
 	if _finger and _stick_index == -1 and not flying:
 		_draw_finger()
+	if _spot != "":
+		_draw_spotlight()
 	if _marker_visible:
 		# A yellow pointer over the player's car.
 		var m := _marker - Vector2(0, 6.0 * pt)
@@ -4273,6 +4468,13 @@ func _build_police() -> void:
 	_police_en.name = "police_en"
 	_police_en.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rows.add_child(_police_en)
+	_police_gap = Control.new()
+	_police_gap.name = "police_gap"
+	_police_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_police_gap.custom_minimum_size = Vector2(120.0 * pt, 9.0 * pt)
+	_police_gap.visible = false
+	_police_gap.draw.connect(_draw_police_gap)
+	rows.add_child(_police_gap)
 	add_child(_police_pill)
 	# The koguty's place beside the wallet (the layout keeps it); the overlay draws them.
 	_koguty = Control.new()
@@ -4329,19 +4531,41 @@ func _koguty_tris() -> void:
 		_tri_rect(Rect2(c + Vector2(-r - 1.5 * pt, 0.0), Vector2(r * 2.0 + 3.0 * pt, 3.0 * pt)), base)
 
 
-## The police pill at the top centre (Polish over English); empty words hide it.
-func police_pill(pl: String, en: String) -> void:
+## The police pill at the top centre (Polish over English); empty words hide it. First-hour step 2:
+## `gap` (0..1) fills the bar under the words in `mode` 1 (a chase: the escape made) or 2 (the
+## search: what is left of it); mode 0 has no bar.
+func police_pill(pl: String, en: String, gap := 0.0, mode := 0) -> void:
 	pl = Lang.pick(pl, en)
 	en = ""
 	if pl == "":
 		_show(_police_pill, false)
 		return
-	if _police_pl.text != pl or _police_en.text != en:
+	var bar := mode != 0
+	if _police_pl.text != pl or _police_en.text != en or _police_gap.visible != bar:
 		_police_pl.text = pl
 		_police_en.text = en
 		_police_en.visible = en != ""
+		_police_gap.visible = bar
 		_police_pill.reset_size()
+	gap = clampf(gap, 0.0, 1.0)
+	if bar and (mode != _gap_mode or absf(gap - _gap_share) > 0.004):
+		_police_gap.queue_redraw()
+	_gap_share = gap
+	_gap_mode = mode
 	_show(_police_pill, true)
+
+
+## The pill's bar: a dark track and the fill, gathered as triangles, one draw call.
+func _draw_police_gap() -> void:
+	var size := _police_gap.size
+	var h := 5.0 * pt
+	var track := Rect2(Vector2(0.0, (size.y - h) * 0.5 + 1.0 * pt), Vector2(size.x, h))
+	_tri_begin()
+	_tri_round_rect(track, h * 0.5, Color(1, 1, 1, 0.16))
+	var w := track.size.x * _gap_share
+	if w >= 1.0:
+		_tri_round_rect(Rect2(track.position, Vector2(maxf(w, h), h)), h * 0.5, GAP_GOLD if _gap_mode == 1 else GAP_SEARCH)
+	_tri_flush(_police_gap)
 
 
 ## The overlay: the blue-red edge breath at `breath` (0..1; at most 10 % opacity at the very
@@ -4516,10 +4740,12 @@ func _tri_flush(item: CanvasItem) -> void:
 	RenderingServer.canvas_item_add_triangle_array(item.get_canvas_item(), _tri_idx.slice(0, n), _tri_pts, _tri_cols)
 
 
-## Chasers (map x, z) and the speed traps the player knows of, on the minimap.
-func set_police_marks(chasers: PackedVector2Array, traps: PackedVector2Array) -> void:
+## Chasers (map x, z) and the speed traps the player knows of, on the minimap; in a chase, the
+## hiding spots near (first-hour step 2: a blinking green ring, pinned to the rim).
+func set_police_marks(chasers: PackedVector2Array, traps: PackedVector2Array, hides := PackedVector2Array()) -> void:
 	_police_marks = chasers
 	_trap_marks = traps
+	_hide_marks = hides
 
 
 ## The crash scene's spot (map x, z) on the minimap and the full map, or Vector2.INF for none.
@@ -4627,10 +4853,17 @@ const CTA_MIN_W := 248.0
 const CTA_FLAG := 34.0
 
 
-## A friend's call may ring now (messages.gd `call_ok`): no quest, no chase, settled, spaced.
+## A friend's call may ring now (messages.gd `call_ok`): no quest, no chase, settled, spaced, past the
+## quiet time after a finish.
 func call_ok() -> bool:
 	messages.tick(0.0, context_now())
 	return messages.call_ok()
+
+
+## The quiet time after a finish is on (messages.gd `quiet`): the ride app's requests and Bartek's
+## calls, which do not ask `call_ok`, wait for it too (TD-3).
+func offers_quiet() -> bool:
+	return messages.quiet()
 
 
 ## The player pressed RADIO (or its next key, or R): the caption that comes next shows even in a chase.
