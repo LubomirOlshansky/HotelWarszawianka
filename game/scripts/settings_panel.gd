@@ -281,7 +281,7 @@ func _build() -> void:
 	drive[1].add_child(dev_note)
 	# F 2026-11-16 (TestFlight build 12): the DEV page shows to every tester, one tap from here (the
 	# seven taps on the version still open it too).
-	var open_dev := _word_button("OTWÓRZ DEV", "OPEN DEV")
+	var open_dev := _word_button("DEV", "OPEN DEV")
 	open_dev.name = "open_dev"
 	open_dev.pressed.connect(show_dev)
 	drive[1].add_child(open_dev)
