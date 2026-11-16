@@ -183,6 +183,7 @@ const INFO := {
 			"Narożna kamienica w brzoskwiniowym tynku, z balkonami i ślepą arkadą na rogu.",
 			"A corner tenement in peach plaster, with iron balconies and a blind arch at the corner."],
 	"adwentysci": ["Kościół Adwentystów na Foksal", "Zbór w żółtej kamienicy za ogródkiem.", "A church inside a yellow house behind a front garden."],
+	"plebania_zwycieskiej": ["Plebania parafii Matki Boskiej Zwycięskiej", "Plebania za ogrodzeniem, w kremowym tynku.", "The presbytery behind its railings, in cream plaster."],
 	"dom_parafialny_barbara": ["Dom Parafialny im. Prymasa Tysiąclecia", "Dom parafii św. Barbary, w żółtym tynku przy Świętej Barbary.", "St Barbara's parish house, in yellow plaster on Świętej Barbary."],
 	"szarytki_zaulek": ["Domy Szarytek przy zaułku", "Dwa domy sióstr miłosierdzia za klasztorem na Tamce.", "Two houses of the Sisters of Charity behind their convent on Tamka."],
 	"faustyna_klasztor": ["Klasztor przy sanktuarium św. Faustyny", "Domy Zgromadzenia Sióstr Matki Bożej Miłosierdzia przy Żytniej.", "The Sisters of Our Lady of Mercy's houses round St Faustina's shrine."],
@@ -1375,6 +1376,12 @@ func _find_sites() -> void:
 		_add_site("dom_parafialny_barbara", [dpb])
 		if not sites.is_empty() and sites[-1]["key"] == "dom_parafialny_barbara":
 			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": DPB_WALL, "roof": DPB_ROOF}
+	# The presbytery by Our Lady of Victory (2026-11-15): its mass in cream plaster.
+	var pzw := _outline_at(PZW_AT)
+	if pzw.size() >= 3:
+		_add_site("plebania_zwycieskiej", [pzw])
+		if not sites.is_empty() and sites[-1]["key"] == "plebania_zwycieskiej":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": PZW_WALL, "roof": PZW_ROOF}
 	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
 	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
@@ -1905,6 +1912,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"szarytki_zaulek":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"dom_parafialny_barbara":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
+			"plebania_zwycieskiej":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"elzbietanki":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the rounded east end is ours
