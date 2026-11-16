@@ -5028,7 +5028,7 @@ func _quest_now() -> Dictionary:
 			var b: Callable = d.get("busy", Callable())
 			if b.is_valid() and bool(b.call()):
 				what = ["Teraz · %s" % d["pl"], "Now · %s" % d["en"]]
-				var mt: Vector2 = hud._mini_target
+				var mt: Vector2 = hud.markers.target()
 				at = Vector3(mt.x, 0.0, mt.y) if mt != Vector2.INF else Vector3.INF
 				colour = d.get("colour", Lines.STORY_COLOUR)
 				break
@@ -6299,13 +6299,13 @@ func _guide_on() -> bool:
 	return first10 != null and first10.guide_on()
 
 
-## The active target on the minimap: a side quest's dot in its colour, or (`main`) the main line's
-## star (hud.gd `set_main_line`, from `_main_line_tick`).
+## The active target's pin on both maps (the registry's TARGET mark, TD-13), or none when the
+## main line's star stands for it (`main`, `_main_line_tick`).
 func _put_target(xz: Vector2, colour: Color, main: bool) -> void:
 	# F 2026-11-08: past the first job the main line is off (main_line.gd FIRST_JOB_ONLY): its
 	# targets are ordinary pins then, so nothing hides behind a star that isn't drawn.
 	main = main and _main_live()
-	hud.set_minimap_target(Vector2.INF if main else xz, colour)
+	hud.markers.set_target(Vector2.INF if main else xz, colour)
 	_main_target = xz if main else Vector2.INF
 
 
