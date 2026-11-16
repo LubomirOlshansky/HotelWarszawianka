@@ -77,6 +77,15 @@
 		"offer_gap": [75, 120],
 		"hold_gap": 30
 	},
+	"first_steps": {
+		"_note": "The first hour's guide (first10.gd, first hour step 3): the one choice card choice_after s after the first delivery (or the first kebab let go), choice_latest s at the latest; the next First steps intro after next_gap s of free driving and next_gap s after the last one. Friends' calls wait for friends_steps ticked steps (a count, not seconds) or friends_after s, then at most one new friend every new_friend_gap s while the guide runs.",
+		"choice_after": 60,
+		"choice_latest": 240,
+		"next_gap": 40,
+		"friends_steps": 3,
+		"friends_after": 720,
+		"new_friend_gap": 240
+	},
 	"trend": {
 		"_note": "The trend courier's orders. Dżemini: first after dz_first s, again dz_cool s after a skip. Kawa: between kawa_hours, first after kawa_first s, then every kawa_cool s. Deski (padel): between deski_hours, first after deski_first s, then every deski_cool s. A slot offers again after slot_cool s; Mlask between ml_hours, again after ml_cool s. card_rest s after a card closes before the next offer; call_rest s after a rescue ends before a friend's call.",
 		"dz_first": 300,

@@ -52,6 +52,9 @@ var world_free: Callable = func() -> bool: return true
 ## main.gd's: a run of an activity has ended (the message director's `finished`: the quiet time after a
 ## finish, TD-3).
 var finished: Callable
+## main.gd's: an activity's phone rang (`on_ring`), with the activity (the first hour's guide counts
+## the new friends, first10.gd `friend_rang`).
+var rang: Callable
 var list: Array[Activity] = []
 ## An activity's own test in place of `world_free` (`add`'s second argument), by the activity.
 var _own_world := {}
@@ -250,6 +253,8 @@ func rescue_busy(a: Activity = null) -> bool:
 ## `a`'s phone rang (a call that came by itself or one the player asked for): it rang last.
 func _rang(a: Activity) -> void:
 	_last = a
+	if rang.is_valid():
+		rang.call(a)
 
 
 ## `a`'s run has started: every other activity hears it, and a run that restarts the rescue calls puts
