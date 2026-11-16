@@ -262,6 +262,7 @@ SITE_AREAS = [
     (-2781, -728, -2700, -643),   # faustyna_klasztor
     (53, -294, 115, -243),   # szarytki_zaulek
     (-1184, 716, -1143, 779),   # dom_parafialny_barbara
+    (-2623, -776, -2586, -752),   # rodziny_maryi_pawilon
     (1121, 829, 1164, 867),   # plebania_zagorna
     (1721, -1667, 1763, -1627),   # pallotyni_dom
     (1698, -1686, 1720, -1663),   # plebania_pallotynow
