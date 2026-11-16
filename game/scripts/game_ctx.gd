@@ -25,6 +25,9 @@ var wallet: Node
 var map: Node3D
 ## The radio (radio.gd): an activity's news and stings.
 var radio: Node
+## The city's sounds (city_sounds.gd): an activity's crowds and their beat at its spots. Null when
+## the notebook's places did not load.
+var city_sounds: Node
 ## The traffic's lane graph, null with --no-traffic.
 var graph: RefCounted
 ## The traffic, null with --no-traffic.
@@ -45,5 +48,8 @@ var vehicle: Callable
 var hour: Callable
 ## Takes the player up in the helicopter from where the car stands, at cruise height.
 var take_off: Callable
+## The camera's focus now (main.gd's `cam_focus`): the point the view follows, where an activity
+## draws what is near the player.
+var focus: Callable
 ## Puts the camera's focus at a point (a test start that moves the player at once).
 var focus_at: Callable
