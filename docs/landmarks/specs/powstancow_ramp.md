@@ -27,7 +27,8 @@ deep.
 - **Floor**: grey setts #8b8d8e with darker ribs across.
 - **Mouth**: a dark opening under the hood with a yellow and black band, a barrier and a P board.
 - **WJAZD board**: dark, 5.6 x 0.8 m, 3.35 m over the floor at the mouth, facing up the ramp: a
-  no-entry disc, two red-rimmed limit discs, WJAZD in white, 235 in green.
+  no-entry disc, two red-rimmed limit discs, WJAZD in white, 235 in green; two thin dark posts
+  down the side walls hold it.
 - **Gauge**: a height bar at the top of the ramp.
 
 ## 4. Roof
@@ -61,6 +62,7 @@ mouth; budget 1500 (check_mesh_quality BUDGET "powstancow_ramp"); no draw call a
 | mouth | quad | 5.2 x 2.4 m | the foot | dark | 1.3 mouth |
 | barrier | box | 4.8 m | in the mouth | M_STONE red and white | 1.3 barrier |
 | WJAZD board | box | 5.6 x 0.8 m | over the floor at the mouth | M_STONE #2a2f35 | 1.2 board |
+| board posts | boxes | 0.14 x 2.95 m | the board's ends, down the side walls | M_STONE #2a2f35 | 1.2 board |
 | board text | pixel faces | 0.5 m letters | on the board | M_LAMP #f2f2ee, #3fe07a | 1.2 WJAZD 235 |
 | gauge | bar | 5.2 m | the top of the ramp | M_STONE yellow and black | 1.3 entry |
 
