@@ -47,7 +47,7 @@ Current state, tiers and photo counts (2026-11-13): docs/LANDMARKS.md "Churches 
 
 ## Inventory
 
-Status as of 2026-11-15 (after #864). Every church in this table now has its own builder; none is left on the kit, and the chapels, convent houses and parish halls of the 2026-11-14 list are built too (#832..#864; several from LoD2 with default colours because no open photo reaches them, each flagged in QUESTIONS). Still plain blocks: small religious-tagged outlines no list named (1000, unnamed religious; 821 is the Capuchin monastery's model and 4469 is in the `faustyna_klasztor` skin already), left for street passes; the Archikatedra's side walls and east end stay the LoD2 mass in brick: the Kanonia and Dziekania houses hide almost all of them, and the 2026-11-14 photos (Commons and Mapillary, 14 more round the east end on 2026-11-15) show only interiors and the neighbours. One combined phone measurement of the whole church set is on the next-build list.
+Status as of 2026-11-15 (after #864). Every church in this table now has its own builder; none is left on the kit, and the chapels, convent houses and parish halls of the 2026-11-14 list are built too (#832..#864; several from LoD2 with default colours because no open photo reaches them, each flagged in QUESTIONS). The religious-tagged outlines no list named are skins in their neighbours' colours too (2026-11-15; 821 is the Capuchin monastery's model and 4469 is in the `faustyna_klasztor` skin), so no religious outline is a plain block any more; the Archikatedra's side walls and east end stay the LoD2 mass in brick: the Kanonia and Dziekania houses hide almost all of them, and the 2026-11-14 photos (Commons and Mapillary, 14 more round the east end on 2026-11-15) show only interiors and the neighbours. One combined phone measurement of the whole church set is on the next-build list.
 
 | Church (OSM name) | Kind | Centre (x, z) | Status |
 | --- | --- | --- | --- |
@@ -93,6 +93,7 @@ Status as of 2026-11-15 (after #864). Every church in this table now has its own
 | Siostry Szarytki (Zakład Sióstr Miłosierdzia, Tamka 35; unnamed in OSM) | monastery | 78, -165 | LoD2 mass in its skin plus a model turret (`szarytki`, `_build_szarytki`, spec `szarytki.md`), 2026-11-15 from 11 Commons photos: white ranges, green copper roofs, the onion turret; the dormers are not built |
 | Domy Szarytek przy zaułku (two houses of the Sisters of Charity by Zaułek Ku Szarytkom; unnamed in OSM) | religious | 80, -268 | LoD2 mass in a skin (`szarytki_zaulek`, spec `szarytki_zaulek.md`), 2026-11-15: the convent's white plaster and green copper roofs; **provisional, no photo** |
 | Dom Parafialny im. Prymasa Tysiąclecia (St Barbara's parish house, Świętej Barbary) | parish house | -1162, 750 | LoD2 mass in a skin (`dom_parafialny_barbara`, spec `dom_parafialny_barbara.md`), 2026-11-15: pale yellow plaster from three street photos at a slant; roof colour a default |
+| Dom przy kościele Świętej Trójcy na Solcu (OSM `religious`, unnamed, Powiśle) | religious | 1080, 298 | the map's mass in a skin (`solec_dom`, spec `solec_dom.md`), 2026-11-15: the neighbouring model's colours; **provisional, no photo** |
 | Dom zakonny Księży Misjonarzy (OSM `monastery`, the back wing behind the street house by Holy Cross) | monastery | -519, -547 | the map's mass in a skin (`misjonarze_tyl`, spec `misjonarze_tyl.md`), 2026-11-15: the neighbouring model's colours; **provisional, no photo** |
 | Plebania parafii Narodzenia NMP (OSM "Plebania", behind the Nativity church on Leszno, Wola) | presbytery | -1991, -975 | the map's mass in a skin (`plebania_leszno`, spec `plebania_leszno.md`), 2026-11-15: the neighbouring model's colours; **provisional, no photo** |
 | Pawilon sióstr Rodziny Maryi (OSM `religious`, unnamed, east of the Family of Mary convent, Wola) | religious | -2604, -764 | the map's mass in a skin (`rodziny_maryi_pawilon`, spec `rodziny_maryi_pawilon.md`), 2026-11-15: the convent's peach plaster under green copper from street photos |
@@ -122,8 +123,8 @@ Status as of 2026-11-15 (after #864). Every church in this table now has its own
 
 Also on the map (no model): the Archikatedra św. Jana (`archikatedra`, front on the kept skin,
 PR #167) and the Barbican's neighbours are the Old Town lane's; Praga's cathedral (Bazylika
-Katedralna św. Michała i św. Floriana) is still open (LANDMARKS 3.2). The religious-tagged
-outlines listed under Inventory stay plain blocks.
+Katedralna św. Michała i św. Floriana) is still open (LANDMARKS 3.2). No religious
+outline is left a plain block.
 
 ## Targets
 
