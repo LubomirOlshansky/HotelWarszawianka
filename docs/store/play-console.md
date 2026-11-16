@@ -124,11 +124,22 @@ Families requirements.
 
 | Question | Answer |
 | --- | --- |
-| Does your app collect or share any of the required user data types? | **No** |
-| (then) Is all user data encrypted in transit? / Account deletion | Not asked when nothing is collected; if asked: no data is transmitted, no accounts |
+| Does your app collect or share any of the required user data types? | **Yes** (the beta's anonymous play stats, play_stats.gd, docs/STATS.md, F 2026-11-15) |
+| Is all of the user data collected by your app encrypted in transit? | **Yes** (HTTPS to PostHog EU) |
+| Do you provide a way for users to request that their data is deleted? | **No account**: say the data is anonymous; the in-game switch (Settings → Dźwięk → "Anonimowa statystyka") stops it and drops the queue |
 
-Summary Play will show: "No data collected · No data shared with third parties". Saves stay on
-the device and never leave it (Play's definition of "collected" is data sent off the device).
+Data types to tick, each **Collected** (not shared), **Processed ephemerally: no**, **Optional**
+(the player can turn it off), purpose **Analytics**:
+
+| Category → type | What it is in the game |
+| --- | --- |
+| App activity → App interactions | sessions, jobs and races, districts and secrets found, setting changes |
+| App info and performance → Diagnostics | the frame-rate sample |
+| Device or other IDs → Device or other IDs | the random install ID the SDK makes (no advertising ID) |
+
+Summary Play will show: "Data collected: App activity, App info and performance, Device or other
+IDs · No data shared with third parties" (PostHog processes it for us, a service provider, which
+Play does not count as sharing). Saves stay on the device and never leave it.
 Android's own Play services crash reports are Google's and not declared by the app.
 
 ### Government apps, financial features, health, news
@@ -137,7 +148,7 @@ Not a government app · no financial features · no health features · not a new
 
 ### Permissions
 
-Only `android.permission.VIBRATE` (haptics). No sensitive permission declaration is needed.
+`android.permission.VIBRATE` (haptics) and `android.permission.INTERNET` (the anonymous play stats; `permissions/internet=true` in the Android preset since 2026-11-15). No sensitive permission declaration is needed.
 
 ## 4. Store settings
 
@@ -175,7 +186,7 @@ Od Śródmieścia po Stadion: Pałac Kultury, Marszałkowska, Rondo Dmowskiego, 
 • Policja jest, ale z humorem: suszarka, lizak, pogadanka. Mandatu nie będzie. Pouczenie owszem.
 • Radio w aucie i miasto, które ciągle coś do Ciebie mówi.
 
-Bez reklam, bez zakupów, bez internetu, bez zbierania danych. Darmowa gra open source, zrobiona z miłości do Warszawy.
+Bez reklam, bez zakupów, bez danych o Tobie (w becie anonimowe statystyki, do wyłączenia w Ustawieniach). Darmowa gra open source, zrobiona z miłości do Warszawy.
 
 Remont Marszałkowskiej trwa. Ty jedź.
 ```
@@ -202,7 +213,7 @@ From Śródmieście to the Stadium: the Palace of Culture, Marszałkowska, Rondo
 • The police are here, with a sense of humour: speed traps, the lizak, a little talk. No fine, ever. A caution, maybe.
 • A car radio and a city that keeps talking back.
 
-No ads, no purchases, no internet, no data collected. A free, open-source game made out of love for Warsaw.
+No ads, no purchases, nothing about you collected (anonymous play stats in the beta, off in Settings). A free, open-source game made out of love for Warsaw.
 
 The Marszałkowska roadworks continue. You keep driving.
 ```

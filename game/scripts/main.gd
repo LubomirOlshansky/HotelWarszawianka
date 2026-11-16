@@ -179,6 +179,7 @@ const Wellness := preload("res://scripts/wellness.gd")
 const Garage := preload("res://scripts/garage.gd")
 ## Loop 3h slice 4: the guided first 10 minutes and the end card.
 const First10 := preload("res://scripts/first10.gd")
+const PlayStats := preload("res://scripts/play_stats.gd")
 const StopAssist := preload("res://scripts/stop_assist.gd")
 const MainLine := preload("res://scripts/main_line.gd")
 const MainNudge := preload("res://scripts/main_nudge.gd")
@@ -373,6 +374,8 @@ var cassettes: Cassettes
 ## shows the end card at once (screenshots); --first-race has Halina roll up for the first race a
 ## second in.
 var first10: First10
+## The beta's anonymous play stats (play_stats.gd, docs/STATS.md): it listens to the systems' signals.
+var play_stats: PlayStats
 var tape: Tape
 var spacer: Spacer
 var fotka: Fotka
@@ -808,6 +811,7 @@ func _ready() -> void:
 		_fallback_toast()
 		if first10 != null and not _opening_on:
 			first10.begin()  # loop 3h slice 4: no title: the guide's clock starts now
+		play_stats.begin()
 	_started = true
 
 
@@ -1018,9 +1022,13 @@ func _notification(what: int) -> void:
 			wallet.flush()
 		if _trap != null:
 			_trap.mark()  # so far this session ended in order (error_trap.gd)
+		if play_stats != null:
+			play_stats.pause()  # the session's summary, sent now or from the disk queue next launch
 	elif what in [NOTIFICATION_APPLICATION_RESUMED, NOTIFICATION_APPLICATION_FOCUS_IN]:
 		# iOS stops the haptic engine in the background: start it again now, not in a crash's frame.
 		Haptics.warm()
+		if play_stats != null:
+			play_stats.resume()
 
 
 ## Safer saves (tech-debt TD-8): what the player is told when the save was damaged at launch
@@ -1190,6 +1198,7 @@ func _on_title_dismissed() -> void:
 		_fly_in()
 	if first10 != null and not _opening_on:
 		first10.begin()  # loop 3h slice 4: the guide's clock starts with the first tap
+	play_stats.begin()
 
 
 ## The opening flyover (docs/design/opening-flyover.md): the first launch's camera flight over
@@ -1716,6 +1725,7 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_wellness")
 	_build_first10()
 	await LoadYield.tick("_build_first10")
+	_build_play_stats()
 	await _load_mark(0.99)
 	_set_quality(quality_choice)
 	get_tree().root.size_changed.connect(_apply_style)
@@ -2815,6 +2825,20 @@ func _build_wellness(world: Node3D) -> void:
 		wellness.on_screen = traffic.on_screen
 	world.add_child(wellness)
 	wellness.setup()
+
+
+## The play stats (play_stats.gd): sends only from a release build with the setting on and a
+## save (never under --nosave), unless --stats= says otherwise; it hears the systems built above.
+func _build_play_stats() -> void:
+	play_stats = PlayStats.new()
+	play_stats.name = "PlayStats"
+	add_child(play_stats)
+	play_stats.setup(OS.is_debug_build(), wallet.persistent and settings.persistent, settings.stats, flags.stats_flag,
+			{"platform": OS.get_name(), "lang": Lang.code, "quality_tier": Tiers.NAMES[auto_quality] if quality_choice == Tiers.AUTO else Tiers.NAMES[quality_choice],
+			"controls": controls.scheme})
+	play_stats.watch({"wallet": wallet, "car": car, "is_flying": func() -> bool: return flying, "activities": activities,
+			"police": police, "first10": first10, "districts": districts, "egg_book": egg_book, "garage": garage,
+			"heli": heli, "radio": radio, "panel": hud.settings_panel, "save_note": wallet.load_note})
 
 
 func _build_first10() -> void:
@@ -5126,7 +5150,7 @@ func _settings_state() -> Dictionary:
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
 			"lane_assist": int(car.lane_assist if car != null else settings.lane_assist),
 			"pads": settings.pads if hud == null else (0 if hud.arrows_layout else 1),
-			"left_handed": int(settings.left_handed), "lang": maxi(0, Lang.CODES.find(Lang.code))}
+			"left_handed": int(settings.left_handed), "lang": maxi(0, Lang.CODES.find(Lang.code)), "stats": int(settings.stats)}
 
 
 ## The save's line on the title screen: "1 240 zł · respekt 87" in the chosen language.
@@ -5241,6 +5265,9 @@ func _on_setting(key: String, value: Variant) -> void:
 		"soft_fences":
 			settings.soft_fences = int(value) == 1
 			_apply_soft_fences(settings.soft_fences)
+		"stats":
+			settings.stats = int(value) == 1
+			play_stats.set_enabled(settings.stats)
 		"pads":
 			# F 2026-11-13: fixed arrows + pedals (0, the default) or the sliding strip (1).
 			settings.pads = clampi(int(value), 0, 1)

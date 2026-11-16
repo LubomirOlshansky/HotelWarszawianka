@@ -681,8 +681,17 @@ const INFO := {
 			"Ocalały fragment trybuny z placu Defilad (1955), złożony z dawnego granitu. Dziś ogród widokowy na placu Centralnym.",
 			"What is left of Plac Defilad's 1955 parade tribune, rebuilt in its old granite. Now a garden with a view over Plac Centralny."],
 	"tr": ["Plac budowy TR Warszawa",
-			"Ogrodzony plac pod nowy gmach teatru TR Warszawa, obok białego muzeum.",
-			"The fenced plot for TR Warszawa's new theatre, next to the white museum."],
+			"Betonowy szkielet nowego teatru, dwa czerwone żurawie i czarny płot.",
+			"TR Warszawa's new theatre: a concrete shell, two red cranes, a black hoarding."],
+	"nozyce": ["Złote nożyce",
+			"Wielkie złote nożyce na granitowym cokole przed białym muzeum.",
+			"Giant gold scissors on a granite plinth in front of the white museum."],
+	"jarmark": ["Jarmark na placu Defilad",
+			"Świąteczne budki, choinka i płotek. Jeszcze się rozstawia.",
+			"The Christmas market on Plac Defilad: huts, a big tree, a fence. Still going up."],
+	"obeliski": ["Obeliski przy Pałacu",
+			"Dwa granitowe obeliski z 1955 roku przy Marszałkowskiej, na północnym i południowym skraju placu.",
+			"Two granite obelisks of 1955 on Marszałkowska, at the north and south ends of Plac Defilad."],
 	"dtc": ["Domy Towarowe Centrum",
 			"Trzy szklane domy towarowe Ściany Wschodniej, 1962–1970. Nazwy po Warsie i Sawie z legendy.",
 			"The Eastern Wall's three glass department stores, 1962–1970, named after the legend's Wars and Sawa."],
@@ -1174,6 +1183,9 @@ func _find_sites() -> void:
 	# First scene item 1 (2026-10-31): the Museum of Modern Art on Plac Defilad.
 	_find_msn()
 	_find_tr()
+	_find_nozyce()
+	_find_jarmark()
+	_find_obeliski()
 	# First scene item 3 (2026-10-31): the Eastern Wall's three glass department stores.
 	_find_dtc()
 	# The Mac photo check (2026-11-01, specs C and D): the tower and the slabs behind the stores.
@@ -1529,6 +1541,12 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_msn(s)
 			"tr":
 				_build_tr(s)
+			"nozyce":
+				_build_nozyce(s)
+			"jarmark":
+				_build_jarmark(s)
+			"obeliski":
+				_build_obeliski(s)
 			"dtc":
 				_build_dtc(s)
 			"trojca":
