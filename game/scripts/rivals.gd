@@ -2007,9 +2007,10 @@ func _marker(on: bool) -> void:
 	if on:
 		_beacon.recolour(FINAL_COLOUR)
 		_beacon.place(final_route.start_pos, START_RADIUS - 2.0)
-		# Its mark in the registry (map_markers.gd, TD-13), as before not drawn: the main line's
-		# star stands at the start.
-		hud.markers.put("rivals:final", MapMarkers.Layer.MAIN, Vector2(final_route.start_pos.x, final_route.start_pos.z), FINAL_COLOUR)
+		# Its mark in the registry's rivals' layer (map_markers.gd, TD-13), as before not drawn: the
+		# main line's star stands at the start.
+		hud.markers.put("rivals:final", MapMarkers.Layer.RIVAL, Vector2(final_route.start_pos.x, final_route.start_pos.z),
+				FINAL_COLOUR, 0, "final")
 	else:
 		_beacon.visible = false
 		hud.markers.remove("rivals:final")

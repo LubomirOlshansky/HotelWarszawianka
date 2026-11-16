@@ -372,12 +372,8 @@ func zoom_in_held_s() -> float:
 var markers := MapMarkers.new()
 ## The garage loop: the garage's diamond (a SERVICE mark) is pinned to the rim up to this far.
 const GARAGE_REACH := 1500.0
-## The questlines' starts (story_quests.gd `marks`): points and colours; empty in quest focus.
-var _mini_story := PackedVector2Array()
-var _mini_story_colours := PackedColorArray()
-var _story_names := PackedStringArray()
-var _story_blurbs := PackedStringArray()
-var _story_small := PackedByteArray()
+## The questlines' starts are the registry's STORY layer (main.gd `_story_tick`), the main line's
+## star its MapMarkers.MAIN_STAR (main.gd `_main_line_tick`).
 const STORY_REACH := 1500.0
 ## Quest focus (main.gd `_story_tick`): something runs; the minimap and the full map hide the side
 ## places, the garage, the "?" marks and the starts, and the main star dims.
@@ -389,7 +385,6 @@ var quest_focus := false
 ## pulsing ring, pinned to the minimap's rim at any distance; INF: this step has no place) and its
 ## goal line [Polish, English] for the full map. Side quests keep their colours (a ringed dot for
 ## the active one, squares for the places to start one).
-var _main_at := Vector2.INF
 var main_goal := PackedStringArray(["", ""])
 ## Mission target: its point on screen (the arrow) and on the minimap.
 var _target_visible := false
@@ -2636,7 +2631,7 @@ func _paint_minimap_overlay() -> void:
 	# Quest focus (story_quests.gd, F 2026-11-07): while something runs, the side places, the garage
 	# and the "?" marks stay off the minimap; only what the player is doing shows.
 	# (The rule table, map_markers.gd RULES, says which layers quest focus hides.)
-	var ctx := MapMarkers.context_of(quest_focus)
+	var ctx := MapMarkers.context_of(quest_focus, flying)
 	var jobs := markers.shown(MapMarkers.Layer.JOB, MapMarkers.View.MINIMAP, ctx)
 	var job_at: PackedVector2Array = jobs["at"]
 	var job_col: PackedColorArray = jobs["colour"]
@@ -2683,11 +2678,14 @@ func _paint_minimap_overlay() -> void:
 			_tri_question(centre + r)
 	# The questlines' starts (story_quests.gd): a "!" badge in each one's colour, pinned to the rim
 	# up to STORY_REACH m away (the list is empty in quest focus).
-	for i in _mini_story.size():
-		if _mini_story[i].distance_to(_mini_car) > STORY_REACH:
+	var stories := markers.shown(MapMarkers.Layer.STORY, MapMarkers.View.MINIMAP, ctx)
+	var story_at: PackedVector2Array = stories["at"]
+	for i in story_at.size():
+		if story_at[i].distance_to(_mini_car) > STORY_REACH:
 			continue
-		var r := ((_mini_story[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 7.0 * pt)
-		story_badge(centre + r, 0.6 if i < _story_small.size() and _story_small[i] == 1 else 0.85, _mini_story_colours[i])
+		var r := ((story_at[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 7.0 * pt)
+		var small := bool((stories["extra"][i] as Dictionary).get("small", false))
+		story_badge(centre + r, 0.6 if small else 0.85, (stories["colour"] as PackedColorArray)[i])
 	if _scene_mark != Vector2.INF:
 		# A crash scene: an amber dot with a white ring, pulsing slowly (not the chasers' flicker).
 		var r := ((_scene_mark - _mini_car) * s).rotated(_mini_yaw)
@@ -2716,9 +2714,10 @@ func _paint_minimap_overlay() -> void:
 		# F 2026-11-08: the quest taken reads much stronger: a breathing glow and ring in its colour.
 		t = t.limit_length(_mini_radius - 7.0 * pt)
 		active_pin(centre + t, 1.15, _mini_target_colour)
-	if _main_at != Vector2.INF:
+	var main_at := markers.where(MapMarkers.MAIN_STAR)
+	if main_at != Vector2.INF and MapMarkers.shows(MapMarkers.Layer.MAIN, MapMarkers.View.MINIMAP, ctx):
 		# The main line: a gold star in a pulsing ring, pinned to the rim at any distance.
-		var mr := ((_main_at - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 8.0 * pt)
+		var mr := ((main_at - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 8.0 * pt)
 		main_star(centre + mr, 1.3, quest_focus)
 	var d := _car_dir.normalized()
 	var side := Vector2(-d.y, d.x)
@@ -2845,14 +2844,14 @@ func _tri_star(at: Vector2, r: float, colour: Color) -> void:
 		_tri(at, p0, p1, colour, colour, colour)
 
 
-## The main line's marker (map x, z; INF: none) and its goal line (main.gd, a few times a second).
-func set_main_line(at: Vector2, pl: String, en: String) -> void:
+## The main line's goal line (main.gd, a few times a second; its star is the registry's
+## MapMarkers.MAIN_STAR).
+func set_main_goal(pl: String, en: String) -> void:
 	pl = Lang.pick(pl, en)
 	en = ""
-	_main_at = at
 	main_goal = PackedStringArray([pl, en])
 	if full_map != null and full_map.is_open():
-		full_map.set_main_line(at, pl, en)
+		full_map.set_main_goal(pl, en)
 
 
 ## The garage loop: a diamond `r` from its centre to a corner, with the dark outline (two
@@ -2922,18 +2921,12 @@ func _tri_question(at: Vector2, k := 1.0) -> void:
 	_tri_cols.append_array(_question_cols)
 
 
-## The questlines' starts on the minimap and the full map, and quest focus (main.gd, a few
-## times a second; both only when they change).
-func set_story(points: PackedVector2Array, colours: PackedColorArray, focus: bool, names := PackedStringArray(),
-		blurbs := PackedStringArray(), small := PackedByteArray()) -> void:
-	_story_blurbs = blurbs
-	_story_small = small
-	_mini_story = points
-	_mini_story_colours = colours
-	_story_names = names
+## Quest focus on or off (main.gd `_story_tick`, a few times a second; only when it changes): the
+## rule table's QUEST context for both maps (map_markers.gd).
+func set_quest_focus(focus: bool) -> void:
 	quest_focus = focus
 	if full_map != null and full_map.is_open():
-		full_map.set_story(points, colours, focus, names, blurbs, small)
+		full_map.focus = focus
 
 
 # --- loop 2d-1: the Podwózka app's route (rides.gd) -------------------------------------------
@@ -3553,8 +3546,9 @@ func open_full_map(car_xz: Vector2, car_yaw: float, found: PackedVector2Array) -
 	full_map.target = _mini_target
 	full_map.target_colour = _mini_target_colour
 	full_map.markers = markers
-	full_map.set_story(_mini_story, _mini_story_colours, quest_focus, _story_names, _story_blurbs, _story_small)
-	full_map.set_main_line(_main_at, main_goal[0], main_goal[1])
+	full_map.focus = quest_focus
+	full_map.flying = flying
+	full_map.set_main_goal(main_goal[0], main_goal[1])
 	full_map.open(car_xz, car_yaw)
 
 

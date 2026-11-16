@@ -30,6 +30,7 @@ const Neon := preload("res://scripts/neon_signs.gd")
 const BUDGET := {
 	"scena_relax": 600,
 	"smolna38": 2700,
+	"jerozolimskie57": 10000,  # 2026-11-15: the Jerozolimskie row from F's photos: four fronts, canopies, showcases, the building site (measured 9179)
 	"tides": 8000,
 	"ujazdowskie47": 3000,
 	"krasinski_ogrod": 900,
@@ -318,7 +319,7 @@ const BUDGET := {
 	"pzu": 900,
 	"jm": 900,
 	"babka": 800,  # 2026-11-15 photo pass with F's photos (637 tris): stone tower, loggia columns, mast, the 34 m block
-	"wiktoria": 230,
+	"wiktoria": 4500,  # 2026-11-15 photo rebuild (about 4100 tris): two white volumes, 8 and 6 floors of niche windows, glazed base; an exception to the L2 cap, one 117 by 79 m outline
 	"wtt": 1900,  # 2026-11-15 photo rework (1604 tris): crown slits, the mast from its mapped foot
 	"zacheta": 720,
 	"zlota44": 1800,

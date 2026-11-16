@@ -98,26 +98,17 @@ var scene_mark := Vector2.INF
 var found := PackedVector2Array()
 var target := Vector2.INF
 var target_colour := Color.WHITE
-## The main line (main_line.gd, hud.gd `set_main_line`): its marker (INF: none) and goal line. On the
-## map a big gold star in a pulsing ring (pinned to the screen's edge when off it); the side quests
+## The main line (main_line.gd): its marker (the registry's MapMarkers.MAIN_STAR; none: no star)
+## and goal line (hud.gd `set_main_goal`). On the map a big gold star in a pulsing ring (pinned to the screen's edge when off it); the side quests
 ## keep their colours: the active one a ringed dot, the places to start one (kebab stands, the
 ## station, the scooters: hud.gd's minimap squares) squares. A legend bottom left says which is which.
-var main_at := Vector2.INF
 var main_pl := ""
 var main_en := ""
 ## The map marker registry (map_markers.gd, TD-13; hud.gd hands its own over on open): the street
-## jobs' places (JOB) and the garage (SERVICE) come from it, by its rule table.
+## jobs' places (JOB), the garage (SERVICE), the questlines' starts (STORY: each with its name in
+## the language shown, its one-line description for a tap, `_tap_story`, and "small" for a smaller
+## "!") and the main line's star (MAIN) come from it, by its rule table.
 var markers := MapMarkers.new()
-## The questlines' starts (story_quests.gd) and their colours; quest focus (a quest under way: the
-## side places, the garage, the "?" marks and the starts stay off, the main star dims).
-var story_spots := PackedVector2Array()
-var story_colours := PackedColorArray()
-## The questlines' names (in the language shown) by start, for their labels.
-var story_names := PackedStringArray()
-## Each questline's one-line description (a tap on its pin shows it, `_tap_story`) and, per
-## questline, 1 for a smaller "!" (the shisha night: it starts only at its pin).
-var story_blurbs := PackedStringArray()
-var story_small := PackedByteArray()
 var _qdrag := -1
 var _qdrag_px := 0.0
 ## F (2026-11-08): what is under way, [pl, en] (main.gd sets it on open; empty: nothing to quit).
@@ -128,7 +119,10 @@ const QUIT_ARM := 3.0
 const QUIT_COLOUR := Color("#ff5a5a")
 var _tap_at := Vector2.INF
 var _tap_ms := 0
+## Quest focus (a quest under way: the side places, the garage, the "?" marks and the starts stay
+## off, the main star dims) and flying (the starts stay off): hud.gd sets both.
 var focus := false
+var flying := false
 ## F (2026-11-07): the hospitals only matter to a rescue; their marks show only while one is on
 ## (main.gd sets it on open).
 var hospitals := false
@@ -388,7 +382,7 @@ func open(at: Vector2, yaw: float) -> void:
 		_build()
 		var keep := [main_pl, main_en]
 		main_pl = "-"
-		set_main_line(main_at, keep[0], keep[1])
+		set_main_goal(keep[0], keep[1])
 	car = at
 	car_yaw = yaw
 	centre = at
@@ -578,11 +572,10 @@ func _wrap_goal(w: float) -> void:
 	_goal.reset_size()
 
 
-## The main line's marker (map x, z; INF: none) and goal line (hud.gd passes it on open and while
-## open). An empty line hides the goal card (the main line is done).
-func set_main_line(at: Vector2, pl: String, en: String) -> void:
+## The main line's goal line (hud.gd passes it on open and while open; its star is in the
+## registry). An empty line hides the goal card (the main line is done).
+func set_main_goal(pl: String, en: String) -> void:
 	var changed := pl != main_pl or en != main_en
-	main_at = at
 	main_pl = pl
 	main_en = en
 	if not _built or not changed:
@@ -700,15 +693,14 @@ func set_districts(view: Array[Dictionary], total: int, syrenki_found := 0, syre
 	_fit()
 
 
-## The questlines' starts and quest focus (hud.gd `set_story`).
-func set_story(points: PackedVector2Array, colours: PackedColorArray, in_focus: bool, names := PackedStringArray(),
-		blurbs := PackedStringArray(), small := PackedByteArray()) -> void:
-	story_names = names
-	story_blurbs = blurbs
-	story_small = small
-	story_spots = points
-	story_colours = colours
-	focus = in_focus
+## The main line's star (INF: none), from the registry.
+func _main_at() -> Vector2:
+	return markers.where(MapMarkers.MAIN_STAR)
+
+
+## The questlines' starts the map shows now (the registry's STORY layer by the rule table).
+func _stories() -> Dictionary:
+	return markers.shown(MapMarkers.Layer.STORY, MapMarkers.View.FULL_MAP, MapMarkers.context_of(focus, flying))
 
 
 ## G12 part 2: the quests on offer now (quest_lines.gd entries), the tab to show first and the id
@@ -1017,7 +1009,7 @@ func _paint() -> void:
 			named.append(ic)
 	# The side quests' places to start one: squares in their job's colour.
 	# F 2026-11-08: fewer pins, the street jobs show only zoomed in.
-	var ctx := MapMarkers.context_of(focus)
+	var ctx := MapMarkers.context_of(focus, flying)
 	var jobs := markers.shown(MapMarkers.Layer.JOB, MapMarkers.View.FULL_MAP, ctx)
 	var job_at: PackedVector2Array = jobs["at"]
 	for i in (job_at.size() if close_in else 0):
@@ -1036,11 +1028,13 @@ func _paint() -> void:
 			hud._tri_fan(at, 4.4 * pt, 0.0, TAU, hud.OUTLINE)
 			hud._tri_fan(at, 3.2 * pt, 0.0, TAU, hud.SCENE_AMBER)
 	# The questlines' starts: the "!" badges, bigger than any street job's icon (none in focus).
-	for i in story_spots.size():
-		var at := to_screen(story_spots[i])
+	var stories := markers.shown(MapMarkers.Layer.STORY, MapMarkers.View.FULL_MAP, ctx)
+	var story_at: PackedVector2Array = stories["at"]
+	for i in story_at.size():
+		var at := to_screen(story_at[i])
 		if view.has_point(at):
-			var small: bool = i < story_small.size() and story_small[i] == 1
-			hud.story_badge(at, 1.4 if small else 2.3, story_colours[i] if i < story_colours.size() else Color.WHITE)
+			var small := bool((stories["extra"][i] as Dictionary).get("small", false))
+			hud.story_badge(at, 1.4 if small else 2.3, (stories["colour"] as PackedColorArray)[i])
 	var service := markers.shown(MapMarkers.Layer.SERVICE, MapMarkers.View.FULL_MAP, ctx)
 	for i in (service["at"] as PackedVector2Array).size():
 		var g := to_screen((service["at"] as PackedVector2Array)[i])
@@ -1056,6 +1050,7 @@ func _paint() -> void:
 		hud.active_pin(tp.clamp(inner_t.position, inner_t.end), 2.0 if inner_t.has_point(tp) else 1.4, target_colour)
 	if quest_pick.get("at", Vector2.INF) != Vector2.INF:
 		hud.side_pin(to_screen(quest_pick["at"]), 1.9, Access.tint(quest_pick["colour"]))  # G12: the quest pin
+	var main_at := _main_at()
 	if main_at != Vector2.INF:
 		# The main line's star; off the screen it waits at the edge, smaller, on the way to it.
 		var mp := to_screen(main_at)
@@ -1137,10 +1132,12 @@ func _paint() -> void:
 	# The pins' names, close in.
 	var ns := _px(T_SUB)
 	# The questlines' names under their badges (any zoom: there are few; a clash leaves one out).
-	for i in mini(story_spots.size(), story_names.size()):
-		var text := story_names[i]
+	for i in story_at.size():
+		var text := str((stories["extra"][i] as Dictionary).get("name", ""))
+		if text == "":
+			continue
 		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns).x
-		var p := to_screen(story_spots[i]) + Vector2(-w * 0.5, 21.0 * pt + ns)
+		var p := to_screen(story_at[i]) + Vector2(-w * 0.5, 21.0 * pt + ns)
 		var box := Rect2(p - Vector2(0.0, ns), Vector2(w, ns * 1.3)).grow(2.0 * pt)
 		if not view.has_point(p):
 			continue
@@ -1152,7 +1149,7 @@ func _paint() -> void:
 		if clash:
 			continue
 		taken.append(box)
-		var col := Access.tint(story_colours[i]) if i < story_colours.size() else Color.WHITE
+		var col := Access.tint((stories["colour"] as PackedColorArray)[i])
 		o.draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, _px(5), Color(0.11, 0.1, 0.14, 0.95))
 		o.draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, col.lightened(0.35))
 	for ic in named:
@@ -1198,7 +1195,7 @@ func _process(dt: float) -> void:
 			_note.visible = false
 			_fit()
 	_pad_frame(dt)
-	if (main_at != Vector2.INF or target != Vector2.INF) and _hold_index < 0:
+	if (_main_at() != Vector2.INF or target != Vector2.INF) and _hold_index < 0:
 		_overlay.queue_redraw()  # the star's and the active pin's rings pulse (one batch, the game paused under it)
 		_legend_art.queue_redraw()
 	if _hold_index < 0:
@@ -1243,15 +1240,18 @@ func _start_hold(index: int, at: Vector2) -> void:
 func _tap_story(at: Vector2) -> bool:
 	var best := -1
 	var best_d := 16.0 * pt
-	for i in story_spots.size():
-		var d := to_screen(story_spots[i]).distance_to(at)
-		if d < best_d and i < story_blurbs.size() and i < story_names.size():
+	var stories := _stories()
+	var story_at: PackedVector2Array = stories["at"]
+	for i in story_at.size():
+		var d := to_screen(story_at[i]).distance_to(at)
+		if d < best_d and (stories["extra"][i] as Dictionary).has("blurb"):
 			best = i
 			best_d = d
 	if best < 0:
 		return false
 	_cancel_hold()
-	var text := story_names[best] + " · " + story_blurbs[best]
+	var e: Dictionary = stories["extra"][best]
+	var text := str(e.get("name", "")) + " · " + str(e.get("blurb", ""))
 	_say([text, text])
 	_note_t = 4.5
 	return true
