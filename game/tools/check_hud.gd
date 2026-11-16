@@ -37,6 +37,7 @@ const Wallet := preload("res://scripts/wallet.gd")
 const EggBook := preload("res://scripts/egg_book.gd")
 const Tape := preload("res://scripts/tape.gd")
 const Fotka := preload("res://scripts/fotka.gd")
+const MainLine := preload("res://scripts/main_line.gd")
 ## The garage loop: Warsztat u Mirka's paint card (garage.gd, garage_card.gd).
 const Garage := preload("res://scripts/garage.gd")
 const Ladder := preload("res://scripts/ladder.gd")
@@ -578,7 +579,8 @@ func _check_full_map(hud: CanvasLayer, tag: String) -> int:
 	if tapped[0] != 1:
 		problems.append("%s: a tap on the minimap emitted map_pressed %d times (want 1)" % [where, tapped[0]])
 	# The main line (main_line.gd): its star and its longest goal line, the card under the title.
-	hud.set_main_line(Vector2(300.0, -200.0), "Zdobądź szacunek: 1000/1000, potem Taksiarz Zbyszek",
+	hud.markers.put_all("main", MainLine.map_marks(Vector2(300.0, -200.0)))
+	hud.set_main_goal("Zdobądź szacunek: 1000/1000, potem Taksiarz Zbyszek",
 			"Earn respect: 1000/1000, then Taksiarz Zbyszek")
 	hud.open_full_map(Vector2(10.0, 20.0), 0.5, PackedVector2Array([Vector2(100.0, 50.0)]))
 	await process_frame
