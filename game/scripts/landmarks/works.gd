@@ -117,6 +117,13 @@ func _find_works() -> void:
 				_tw_w(-22.0, 12.0)])])
 		if sites[-1]["key"] == "torwar":
 			sites[-1]["ring"] = torwar
+	# Dom Chłopa: its outline (the street block blk_2250406 draws the mass, _build_dom_chlopa the
+	# wavy roof edge and the signs)
+	var dch := _landmark("Dom Chłopa")
+	if dch.size() >= 3:
+		_add_site("dom_chlopa", [dch])
+		if sites[-1]["key"] == "dom_chlopa":
+			sites[-1]["ring"] = dch
 	var rdyn := _landmark("Rotunda na Dynasach")
 	if rdyn.size() >= 3:
 		_add_site("rotunda_dynasy", [rdyn])
@@ -1051,6 +1058,128 @@ func _nbp_pixels(rows: Dictionary, u0: float, pu: float, py: float, y_top: float
 			_buw_face(_w(u0 + s0 * pu, v), _w(u0 + (prev + 1) * pu, v), y - py, y, _b, col)
 			s0 = x
 			prev = x
+
+
+## Dom Chłopa (Plac Powstańców Warszawy 2, 1958-61, today a hotel; 2026-11-16, spec
+## docs/landmarks/specs/dom_chlopa.md; photos: F's T14 set and refs/dom_chlopa/street). The
+## cream block round its courtyard is the street block that already stood on the outline
+## (blk_2250406, its walls, windows, dark glass ground floor and coping). This site adds what makes
+## it Dom Chłopa from the square: the wavy roof edge, a row of shallow arcs along every street
+## front, and the signs (as parodies): GROMADKA in green on the roof over the north end of the
+## front, a tall dark HOTEL sign at the north-west corner, KASYNO TRAF over the ground floor.
+## The frame's u runs south along the front on the square from its north-west corner, v out.
+const DCH_O := Vector2(-664.3, -39.7)
+const DCH_A := Vector2(0.3211, 0.9476)
+const DCH_LEN := 76.3
+const DCH_TOP := 18.4      # the block's coping, over its ground
+const DCH_WAVE := 6.2      # one arc of the roof edge, about two window bays
+const DCH_RISE := 1.3      # how far each arc rises over the coping
+const DCH_CREAM := Color("#e6e1cb")
+const DCH_GREEN := Color("#3fbf4a")
+const DCH_SIGN := Color("#2c3133")
+const DCH_WHITE := Color("#f2f2ee")
+
+
+func _build_dom_chlopa(site: Dictionary) -> void:
+	var ring: PackedVector2Array = site["ring"]
+	_g = _ground_under(ring)
+	var g := _g
+	_mode = M_STONE
+	# --- the wavy roof edge along every street front long enough for one arc
+	# (a piece under 4 m, the outline's small kinks, is a flat band; each edge's underside sits a
+	# few cm off its neighbours', so two never lie in one plane at a corner)
+	var n := ring.size()
+	var drop: Array[float] = []
+	for k in n:
+		drop.append(0.05 * float(k % 3))
+	if n > 2 and is_equal_approx(drop[n - 1], drop[0]):
+		drop[n - 1] = 0.125
+	for k in n:
+		var p := ring[k]
+		var q := ring[(k + 1) % n]
+		if p.distance_to(q) < 0.3:
+			continue
+		_dch_waves(p, q, _out(ring, p, q), g + DCH_TOP, drop[k])
+	# --- the signs, in the front's frame
+	_o = DCH_O
+	_a = DCH_A
+	_b = Vector2(-DCH_A.y, DCH_A.x)
+	var top := g + DCH_TOP
+	# GROMADKA over the north end: green letters on two dark posts, lit at night
+	var word := "GROMADKA"
+	var pu := 0.42
+	var py := 0.36
+	var u0 := 17.0 - PixelFont.width(word) * pu * 0.5
+	# (the posts are beams from the sign back over the roof edge, resting on it)
+	_ubox(u0 + 2.0, u0 + 2.3, -2.2, -0.2, top - 0.2, top + 0.6, DCH_SIGN)
+	_ubox(u0 + PixelFont.width(word) * pu - 2.3, u0 + PixelFont.width(word) * pu - 2.0, -2.2, -0.2, top - 0.2, top + 0.6, DCH_SIGN)
+	_mode = M_LAMP
+	_dch_word(word, u0, pu, py, top + 0.6 + 7.0 * py, -1.9, DCH_GREEN)
+	# HOTEL down the north-west corner: a tall dark pier from the ground to the roof edge, the
+	# letters stacked high on it, green; a dark fascia from it over the ground floor carries the
+	# casino's name
+	_mode = M_STONE
+	_ubox(1.0, 2.6, 0.0, 0.5, g - 0.3, top, DCH_SIGN)
+	_ubox(2.6, 33.0, 0.0, 0.1, g + 4.8, g + 6.6, DCH_SIGN)
+	_mode = M_LAMP
+	var letters := "HOTEL"
+	for i in letters.length():
+		var ch := letters[i]
+		var cw := PixelFont.width(ch) * 0.2
+		_dch_word(ch, 1.8 - cw * 0.5, 0.2, 0.2, g + 17.0 - float(i) * 1.9, 0.53, DCH_GREEN)
+	# KASYNO TRAF over the ground floor's north stretch, white
+	_dch_word("KASYNO TRAF", 21.0, 0.17, 0.15, g + 6.4, 0.13, DCH_WHITE)
+	_mode = M_STONE
+
+
+## One street front's roof edge from a to b: shallow arcs over the coping at y, a cream band
+## 0.3 m proud of the wall line with its shaded underside (the photos' dark line under the
+## waves), its back and its top, each arc in five straight pieces.
+func _dch_waves(a: Vector2, b: Vector2, out: Vector2, y: float, drop: float) -> void:
+	var l := a.distance_to(b)
+	var d := (b - a) / l
+	var m := maxi(1, roundi(l / DCH_WAVE))
+	var segs := 5 if l >= 4.0 else 1
+	var rise := DCH_RISE if l >= 4.0 else 0.0
+	var n_out := Vector3(out.x, 0.0, out.y)
+	var fo := out * 0.3
+	var bo := -out * 0.25
+	for w in m:
+		for s in segs:
+			var t0 := float(s) / float(segs)
+			var t1 := float(s + 1) / float(segs)
+			var c0 := a + d * l * (float(w) + t0) / float(m)
+			var c1 := a + d * l * (float(w) + t1) / float(m)
+			var flat := 0.0 if l >= 4.0 else drop  # a flat piece's top, off its neighbours' too
+			var h0 := y + rise * sin(PI * t0) + flat
+			var h1 := y + rise * sin(PI * t1) + flat
+			var y0 := y - 0.3 - drop
+			var f0 := c0 + fo
+			var f1 := c1 + fo
+			var k0 := c0 + bo
+			var k1 := c1 + bo
+			_quad(Vector3(f0.x, y0, f0.y), Vector3(f1.x, y0, f1.y), Vector3(f1.x, h1 + 0.2, f1.y), Vector3(f0.x, h0 + 0.2, f0.y),
+					n_out, DCH_CREAM)
+			_quad(Vector3(k1.x, y0, k1.y), Vector3(k0.x, y0, k0.y), Vector3(k0.x, h0 + 0.2, k0.y), Vector3(k1.x, h1 + 0.2, k1.y),
+					-n_out, DCH_CREAM.darkened(0.06))
+			_quad(Vector3(c0.x, y0, c0.y), Vector3(c1.x, y0, c1.y), Vector3(f1.x, y0, f1.y), Vector3(f0.x, y0, f0.y),
+					Vector3.DOWN, DCH_CREAM.darkened(0.35))
+			var e := Vector3(c1.x - c0.x, h1 - h0, c1.y - c0.y)
+			var up := e.cross(n_out).normalized()
+			if up.y < 0.0:
+				up = -up
+			_quad(Vector3(f0.x, h0 + 0.2, f0.y), Vector3(f1.x, h1 + 0.2, f1.y), Vector3(k1.x, h1 + 0.2, k1.y), Vector3(k0.x, h0 + 0.2, k0.y),
+					up, DCH_CREAM.lightened(0.05))
+
+
+## A word in pixel faces on the plane v, from u0, its top at y_top; one face per run of pixels.
+func _dch_word(word: String, u0: float, pu: float, py: float, y_top: float, v: float, col: Color) -> void:
+	var rows := {}
+	PixelFont.each_pixel(word, 0, func(x: int, row: int) -> void:
+		if not rows.has(row - PixelFont.BODY):
+			rows[row - PixelFont.BODY] = []
+		(rows[row - PixelFont.BODY] as Array).append(x))
+	_nbp_pixels(rows, u0, pu, py, y_top, v, col)
 
 
 ## Elektrownia Powiśle, the whole complex (2026-11-13, F: "like in real life, with the fronts", and
