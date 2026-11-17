@@ -1,6 +1,6 @@
 {
   "_about": "Pictures for the wiki (tools/wiki_build.py). Each key is a landmark key (landmarks.gd INFO), a place or egg id, or a page topic; each picture is a file in wiki/img/ or, with the site: prefix, one of the landing's screenshots in site/public/img/game/. To add one: save a .webp (960 px wide is plenty) in wiki/img/ and list it here with a caption.",
-  "palace": [["site:palace-night-960.webp", "The Palace of Culture at night"], ["site:hero-palace-dusk-960.webp", "The Palace at dusk"]],
+  "palace": [["site:palace-night-exp-960.webp", "The Palace of Culture at night"], ["site:hero-palace-dusk-960.webp", "The Palace at dusk"]],
   "varso": [["site:varso-dusk-960.webp", "Varso Tower at dusk"]],
   "rotunda": [["site:rotunda-rain-night-960.webp", "The Rotunda, rain at night"]],
   "stadium": [["site:narodowy-day-960.webp", "Stadion Narodowy by day"], ["site:narodowy-night-960.webp", "Stadion Narodowy at night"]],
@@ -34,7 +34,7 @@
   "sw_krzyz": [["krakowskie.webp", "Krakowskie Przedmieście"]],
   "mdm": [["mdm.webp", "MDM's blocks"], ["mdm-konstytucji.webp", "Plac Konstytucji's candelabras"], ["mdm-konstytucji-dusk.webp", "Plac Konstytucji at dusk"]],
   "street_furniture": [["busstop.webp", "The new bus shelters"], ["busstop-night.webp", "Bus shelters at night: the poster box lit"], ["lanterns-royal-route.webp", "Historic lanterns on the Royal Route"], ["lanterns-royal-route-night.webp", "The Royal Route's lanterns at night"], ["lanterns-oldtown.webp", "Old Town lanterns at night"]],
-  "skyline": [["skyline-night.webp", "The skyline at night"], ["site:heli-vistula-day-960.webp", "The helicopter over the Vistula"]],
+  "skyline": [["skyline-night.webp", "The skyline at night"], ["site:wisla-heli-day-960.webp", "The helicopter over the Vistula"]],
   "police": [["police-clamp.webp", "The wheel clamp in a pedestrian zone"], ["police-escort.webp", "A police escort to the hospital"], ["police-guard.webp", "A city guard: \"this is a promenade\""]],
   "notebook": [["notebook-grid.webp", "MOJA WARSZAWA, the city notebook"], ["notebook-card.webp", "A place's card"], ["notebook-new-entry.webp", "A new entry toast"]],
   "palma": [["palm-dawn.webp", "The Palm at dawn"]],
