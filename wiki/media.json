@@ -3,7 +3,7 @@
   "palace": [["site:palace-night-exp-960.webp", "The Palace of Culture at night"], ["site:hero-palace-dusk-960.webp", "The Palace at dusk"]],
   "varso": [["site:varso-dusk-960.webp", "Varso Tower at dusk"]],
   "rotunda": [["site:rotunda-rain-night-960.webp", "The Rotunda, rain at night"]],
-  "stadium": [["site:narodowy-day-960.webp", "Stadion Narodowy by day"], ["site:narodowy-night-960.webp", "Stadion Narodowy at night"]],
+  "stadium": [["site:narodowy-day-exp-960.webp", "Stadion Narodowy by day"], ["site:narodowy-night-exp-960.webp", "Stadion Narodowy at night"]],
   "poniatowski": [["site:poniatowski-night-960.webp", "Most Poniatowskiego at night"]],
   "tarasy": [["tarasy.webp", "Złote Tarasy's golden glass wave, Złota 44 behind"]],
   "zlota44": [["zlota44-curved.webp", "Złota 44, the curved sail"], ["zlota44-close.webp", "Złota 44 up close"], ["zlota44-street.webp", "Złota 44 from the street"]],
