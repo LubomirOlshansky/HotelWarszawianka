@@ -285,7 +285,7 @@ var style_index := 0
 var cam_yaw := 45.0
 ## Road view (F 2026-11-07, "photos of the roads from height, like GTA"): the camera looks
 ## straight down, north up, no ghost (the tunnel cut stays). F 2026-11-17: also DEV's driving
-## camera (settings.gd `top_down`; FollowCamera.TOP_DOWN_ZOOM). `--topdown`, T (`_set_top_down`).
+## camera (settings.gd `camera_view`; FollowCamera.TOP_DOWN_ZOOM). `--topdown`, T (`_set_view`).
 ## Also written by a command-line flag (dev_flags.gd).
 var top_down := false
 const TOP_DOWN_PITCH := -89.9
@@ -4578,10 +4578,10 @@ func _load_settings() -> void:
 	if flags._flag_color_safe:
 		Access.color_safe = true
 	if not flags._flag_size:
-		base_size = settings.view
+		base_size = FollowCamera.AERIAL_VIEW if settings.camera_view == FollowCamera.VIEW_AERIAL else settings.view
 	if not flags._flag_pitch:
 		camera_pitch = -settings.pitch
-	top_down = top_down or settings.top_down  # --topdown, or DEV's top-down view
+	top_down = top_down or settings.camera_view == FollowCamera.VIEW_TOP_DOWN  # --topdown, or DEV's
 	model_name = flags._flag_model if flags._flag_model != "" else OS.get_model_name()
 	auto_quality = Tiers.for_model(model_name)
 	quality_choice = flags._flag_quality if flags._flag_quality != -2 else settings.quality
@@ -4693,10 +4693,11 @@ func _rotate_camera(direction: int) -> void:
 
 ## C (and Settings → Kamera za autem): the camera follows the car or stays put. Loop 2e: a toast
 ## says which, so it never switches off unnoticed (it did with the old CAM button).
-## F 2026-11-17: the top-down camera on or off (DEV, T on a keyboard), kept in the settings.
-func _set_top_down(on: bool) -> void:
-	top_down = on
-	settings.top_down = on
+## F 2026-11-17: DEV's camera view (FollowCamera.VIEW_*; T toggles top-down), kept in the settings.
+func _set_view(mode: int) -> void:
+	top_down = mode == FollowCamera.VIEW_TOP_DOWN
+	base_size = FollowCamera.AERIAL_VIEW if mode == FollowCamera.VIEW_AERIAL else settings.view
+	settings.camera_view = mode
 	settings.save()
 	hud.settings_panel.sync(_settings_state())
 
@@ -5177,7 +5178,7 @@ func _settings_state() -> Dictionary:
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
 			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
-			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "top_down": int(top_down),
+			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view,
 			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
 			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "sensitivity": settings.sensitivity,
@@ -5271,8 +5272,8 @@ func _on_setting(key: String, value: Variant) -> void:
 			# F (2026-11-07): the camera's angle (follow_camera.gd PITCHES); the camera follows next frame.
 			settings.pitch = FollowCamera.PITCHES[clampi(int(value), 0, FollowCamera.PITCHES.size() - 1)]
 			camera_pitch = -settings.pitch
-		"top_down":
-			_set_top_down(int(value) == 1)
+		"camera_view":
+			_set_view(int(value))
 		"bench":
 			_start_phone_bench.call_deferred()
 			return
@@ -6929,7 +6930,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			KEY_C:
 				_toggle_follow()
 			KEY_T:
-				_set_top_down(not top_down)
+				_set_view(FollowCamera.VIEW_NORMAL if top_down else FollowCamera.VIEW_TOP_DOWN)
 			KEY_H:
 				_toggle_vehicle()
 			KEY_B:
