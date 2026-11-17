@@ -3,6 +3,7 @@
 ## Backlog
 - found: the cinematic moments (the opening flight, "look at" shots) still fly at the 30° angle and the top-down view snaps back in when they end
 - found: the top-down camera's feel on the phone (zoom with speed, Point steering) waits for PHONE-CHECK 7d
+- note: the tunnel cut now also shows in `--topdown` road-plan shots taken with the car in a tunnel (on purpose: the car stays visible there)
 
 ## Roadmap
 - added: "DEV: top-down camera (straight down, north up), decide after the phone check whether it becomes a player setting"

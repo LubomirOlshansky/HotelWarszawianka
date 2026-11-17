@@ -284,12 +284,8 @@ var style_index := 0
 ## Also written by a command-line flag (dev_flags.gd).
 var cam_yaw := 45.0
 ## Road view (F 2026-11-07, "photos of the roads from height, like GTA"): the camera looks
-## straight down, north up, with no occlusion ghost, to check kerbs, asphalt and paint from above.
-## F 2026-11-17: also a driving camera, DEV → "Widok z góry · Top-down view" (settings.gd
-## `top_down`, saved): north up and still while the car turns under it, the look-ahead along the
-## way the car goes, the view widening by FollowCamera.TOP_DOWN_ZOOM at top speed; the tunnel cut
-## stays on so a car in a tunnel shows. `--topdown` starts in it; T toggles it on a keyboard
-## (`_set_top_down`). The angle setting is untouched; the bench runs at the game's 30°.
+## straight down, north up, no ghost (the tunnel cut stays). F 2026-11-17: also DEV's driving
+## camera (settings.gd `top_down`; FollowCamera.TOP_DOWN_ZOOM). `--topdown`, T (`_set_top_down`).
 ## Also written by a command-line flag (dev_flags.gd).
 var top_down := false
 const TOP_DOWN_PITCH := -89.9
@@ -4697,15 +4693,12 @@ func _rotate_camera(direction: int) -> void:
 
 ## C (and Settings → Kamera za autem): the camera follows the car or stays put. Loop 2e: a toast
 ## says which, so it never switches off unnoticed (it did with the old CAM button).
-## F 2026-11-17: the top-down camera on or off (DEV, T on a keyboard), kept in the settings; the
-## camera turns to north up (or back to the car) at the follow camera's own pace.
+## F 2026-11-17: the top-down camera on or off (DEV, T on a keyboard), kept in the settings.
 func _set_top_down(on: bool) -> void:
 	top_down = on
 	settings.top_down = on
 	settings.save()
-	print("road view: %s" % ("on" if top_down else "off"))
-	if hud != null and hud.settings_panel != null:
-		hud.settings_panel.sync(_settings_state())
+	hud.settings_panel.sync(_settings_state())
 
 
 func _toggle_follow() -> void:
