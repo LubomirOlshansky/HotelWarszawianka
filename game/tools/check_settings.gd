@@ -32,7 +32,7 @@ func _initialize() -> void:
 			and fresh.master == 1.0 and fresh.music == 1.0 and fresh.effects == 1.0 and not fresh.perf and fresh.classic_follow \
 			and fresh.fps == 60 and fresh.style == 0 and not fresh.vhs and not fresh.zone_cap and fresh.handling == 0 and is_equal_approx(fresh.sensitivity, 0.5) \
 			and not fresh.text_large and not fresh.calm and not fresh.color_safe and fresh.vibration and fresh.stop_assist \
-			and not fresh.left_handed and fresh.lane_assist and fresh.pads == Settings.PADS_SLIDER and fresh.view == 80.0 and fresh.pitch == 30.0 \
+			and not fresh.left_handed and fresh.lane_assist and fresh.pads == Settings.PADS_SLIDER and fresh.view == 80.0 and fresh.pitch == 30.0 and fresh.camera_view == 0 \
 			and fresh.collide == Settings.DEFAULT_COLLIDE and fresh.soft_fences == Settings.DEFAULT_SOFT
 	print("defaults from a missing file: %s (%s)" % ["OK" if defaults else "WRONG", fresh.summary()])
 	ok = ok and defaults
@@ -118,11 +118,12 @@ func _initialize() -> void:
 	a.pads = Settings.PADS_ARROWS  # the arrows by choice (the slider is the default since 2026-11-14) survive
 	a.view = 40.0
 	a.pitch = 50.0
+	a.camera_view = 2
 	a.save()
 	var b := Settings.new()
 	b.path = SCRATCH
 	b.load_file()
-	var same := a.summary() == b.summary() and b.classic_follow == a.classic_follow and b.view == 40.0 and b.pitch == 50.0 \
+	var same := a.summary() == b.summary() and b.classic_follow == a.classic_follow and b.view == 40.0 and b.pitch == 50.0 and b.camera_view == 2 \
 			and not b.lane_assist and b.pads == Settings.PADS_ARROWS and b.collide == 3 and not b.soft_fences and b.grade == 1
 	# F 2026-11-13: a save from before the arrows (lane assist off, no `lane_assist_default`, no
 	# `pads`) loads with the lane assist on; F 2026-11-14: and the slider.

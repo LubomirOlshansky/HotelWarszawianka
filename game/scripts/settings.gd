@@ -78,6 +78,10 @@ var view := 80.0
 ## F, 2026-11-07: the camera's angle over the ground in degrees (follow_camera.gd PITCHES; 30, the
 ## game's look, is the default). Settings → Obraz, key "angle".
 var pitch := FollowCamera.DEFAULT_PITCH
+## F, 2026-11-17: the camera view (follow_camera.gd VIEW_*): 0 the game's (the default), 1 top-down
+## (main.gd `top_down`: straight down, north up), 2 aerial (the website's high view). DEV →
+## "Widok kamery · Camera view", key "camera_view".
+var camera_view := FollowCamera.VIEW_NORMAL
 ## Loop 2e: main.gd STYLES (Sharp, Fine, Clean, Chunky) and the VHS overlay.
 var style := 0
 var vhs := false
@@ -181,6 +185,7 @@ func load_file() -> void:
 	pitch = float(cfg.get_value("display", "pitch", pitch))
 	if not pitch in FollowCamera.PITCHES:
 		pitch = FollowCamera.DEFAULT_PITCH
+	camera_view = clampi(int(cfg.get_value("display", "camera_view", camera_view)), 0, FollowCamera.VIEW_AERIAL)
 	wander = bool(cfg.get_value("game", "wander", wander))
 	wander_offered = bool(cfg.get_value("game", "wander_offered", wander_offered))
 	zone_cap = bool(cfg.get_value("game", "zone_cap", zone_cap))
@@ -236,6 +241,7 @@ func save() -> void:
 	cfg.set_value("display", "grade", grade)
 	cfg.set_value("display", "view", view)
 	cfg.set_value("display", "pitch", pitch)
+	cfg.set_value("display", "camera_view", camera_view)
 	cfg.set_value("game", "wander", wander)
 	cfg.set_value("game", "wander_offered", wander_offered)
 	cfg.set_value("game", "zone_cap", zone_cap)
@@ -262,9 +268,9 @@ func save() -> void:
 
 
 func summary() -> String:
-	return "controls %d pads %d, classic camera %s, traffic %s, quality %s, volume %.0f/%.0f/%.0f %%, perf %s, %d fps, style %d, vhs %s, zone cap %s, handling %d sens %.2f lane %s chatter %d, collide %d soft fences %s stats %s, access large %s calm %s colour-safe %s vibration %s assist %s left-handed %s, auto image %s" % [
+	return "controls %d pads %d, classic camera %s, traffic %s, quality %s, volume %.0f/%.0f/%.0f %%, perf %s, %d fps, style %d, vhs %s, camera view %d, zone cap %s, handling %d sens %.2f lane %s chatter %d, collide %d soft fences %s stats %s, access large %s calm %s colour-safe %s vibration %s assist %s left-handed %s, auto image %s" % [
 			controls, pads, "follow" if classic_follow else "fixed", TRAFFIC_NAMES[traffic], "auto" if quality == AUTO else str(quality),
-			master * 100.0, music * 100.0, effects * 100.0, perf, fps, style, vhs, zone_cap, handling, sensitivity, lane_assist, chatter, collide, soft_fences, stats, text_large, calm, color_safe, vibration, stop_assist, left_handed, image_summary()]
+			master * 100.0, music * 100.0, effects * 100.0, perf, fps, style, vhs, camera_view, zone_cap, handling, sensitivity, lane_assist, chatter, collide, soft_fences, stats, text_large, calm, color_safe, vibration, stop_assist, left_handed, image_summary()]
 
 
 ## Loop G1b: "sharp", "sharp, on trial 1/4" or "fallback, calm 1/2 (GPU extras down 74 s)".

@@ -45,6 +45,7 @@ credits              quick
 crowds               quick
 cyclehang            roads
 deckxray             smoke
+defiladobelisk       quick
 dekalog              quick
 delivery             quick
 design               quick

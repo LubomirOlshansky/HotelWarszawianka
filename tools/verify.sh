@@ -354,6 +354,9 @@
 # Grodzka's ramp by the Royal Castle (F, 2026-11-13): `zamekramps` runs tools/zamek_ramps.py --check
 # (the slip road past Pałac pod Blachą up to the W-Z tunnel is one smooth climb: no pit fills or their
 # walls on it, one ground profile; no map beyond centrum.json, CI too).
+# The obelisk's semicircle north of the Palace (F, 2026-11-17): `defiladobelisk` runs
+# tools/defilad_obelisk.py --check (no mapped wall loop, service ramp, zebra or garage door left on it;
+# no map beyond centrum.json, CI too).
 # Bridge cycle paths (2026-11-08): `cyclehang` runs tools/cycle_hang.py --check (Most Łazienkowski's
 # cycle bridges hang 4 m under the road deck, as on F's photos, and come down to their ramps; needs
 # terrain.json from the map pack).
@@ -1041,6 +1044,15 @@ for s in $want; do
 			case $code in
 				0) row PASS "zamekramps" $secs "$(grep '^zamek_ramps: ' $logs/zamekramps.log | tail -1)" ;;
 				*) row FAIL "zamekramps" $secs "$(grep '^zamek_ramps: ' $logs/zamekramps.log | tail -1) ($logs/zamekramps.log)" ;;
+			esac ;;
+		defiladobelisk)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/defilad_obelisk.py --check > $logs/defiladobelisk.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "defiladobelisk" $secs "$(grep '^defilad_obelisk: ' $logs/defiladobelisk.log | tail -1)" ;;
+				*) row FAIL "defiladobelisk" $secs "$(grep '^defilad_obelisk: ' $logs/defiladobelisk.log | tail -1) ($logs/defiladobelisk.log)" ;;
 			esac ;;
 		roadprofiles)
 			t0=$EPOCHREALTIME

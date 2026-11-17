@@ -23,7 +23,7 @@ const Hud := preload("res://scripts/hud.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const SettingsPanel := preload("res://scripts/settings_panel.gd")
 ## The A/B switches that live on the DEV page only (the Fable critique's list).
-const DEV_KEYS := ["camera", "handling", "lane_assist", "zones", "collide", "soft_fences", "chatter", "perf"]
+const DEV_KEYS := ["camera", "handling", "lane_assist", "zones", "collide", "soft_fences", "chatter", "perf", "camera_view"]
 const SCREENS := [Vector2i(2532, 1170), Vector2i(1334, 750), Vector2i(1280, 720), Vector2i(2868, 1320)]
 
 var _problems := 0
