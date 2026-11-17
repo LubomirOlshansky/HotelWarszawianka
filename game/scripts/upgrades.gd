@@ -4,15 +4,16 @@ extends RefCounted
 ## what"): the rules and the numbers of the garage's second tab, "Części i auta" (Warsztat u Mirka,
 ## garage.gd; its card garage_card.gd). Static and map-free, so check_garage.gd tests them:
 ##  - **Cars** (CARS): the striped hatch (free, the default) and the "Ołdi TT" (a parody of a
-##    certain Bavarian coupe; 2,500 zł): a lower, wider coupe with more top speed, pull and grip.
+##    certain Bavarian coupe; 1,500 zł): a lower, wider coupe with more top speed, pull and grip.
 ##    Both drive on the player's profile, Cruise or Sport (car.gd PROFILES).
-##  - **Nitro** (NITRO, 600 zł): "Kebab Boost", a button that opens the gas and lifts the top speed
+##  - **Nitro** (NITRO, 350 zł): "Kebab Boost", a button that opens the gas and lifts the top speed
 ##    and the pull for a few seconds, then refills (car.gd NITRO_*; hud.gd draws the button and its
 ##    tank once it is owned; Shift on a keyboard, LB or RB on a pad).
 ##  - **Parts** (PARTS): tyres (grip) and engine (top speed and pull), levels 1 to 3, each level
-##    dearer than the last (150-400 zł), kept for any car.
-## Prices follow the jobs' pay (a kebab run about 35 zł): the first part (150 zł) is a few runs
-## away, the nitro about a quarter of an hour of jobs, the coupe the long-term goal.
+##    dearer than the last (100-320 zł), kept for any car.
+## Prices follow the jobs' pay (a kebab run about 35 zł, a First step 50 zł). Beta prices (F
+## 2026-11-17: "a lot less, it's a beta"): the first part (100 zł) is two runs away, the nitro
+## (350) about ten minutes of jobs, the coupe (1,500) the long-term goal.
 
 ## id, kind, name [pl, en], what it is [pl, en], price (zł), and the model's multipliers (cars).
 const CARS: Array[Dictionary] = [
@@ -21,20 +22,20 @@ const CARS: Array[Dictionary] = [
 			"price": 0, "top": 1.0, "pull": 1.0, "grip": 1.0},
 	{"id": "tt", "name": ["Ołdi TT", "Owdy TT"],
 			"blurb": ["Niski, szybki, trochę za drogi. Cztery kółka, żadne się nie zazębia.", "Low, fast, a bit overpriced. Four wheels, none interlocking."],
-			"price": 2500, "top": 1.2, "pull": 1.2, "grip": 1.1},
+			"price": 1500, "top": 1.2, "pull": 1.2, "grip": 1.1},
 ]
 const DEFAULT_CAR := "hatch"
 const NITRO := {"id": "nitro", "name": ["Nitro „Kebab Boost”", "Nitro: Kebab Boost"],
 		"blurb": ["Przycisk obok hamulca: 3,5 s mocy, potem 20 s ładowania.", "A button by the brake: 3.5 s of power, then 20 s to refill."],
-		"price": 600}
+		"price": 350}
 ## The part's id, name, what a level adds, and the price of each level.
 const PARTS: Array[Dictionary] = [
 	{"id": "tyres", "name": ["Opony „Przyczep”", "Grip tyres"],
 			"blurb": ["Przyczepność +8 % za poziom: trzyma zakręt.", "Grip +8 % a level: it holds the corner."],
-			"prices": [150, 250, 350], "grip": 0.08},
+			"prices": [100, 180, 280], "grip": 0.08},
 	{"id": "engine", "name": ["Silnik „Mirek Stage”", "Mirek Stage engine"],
 			"blurb": ["Prędkość +4 %, przyspieszenie +8 % za poziom.", "Top speed +4 %, pull +8 % a level."],
-			"prices": [200, 300, 400], "top": 0.04, "pull": 0.08},
+			"prices": [120, 220, 320], "top": 0.04, "pull": 0.08},
 ]
 const MAX_LEVEL := 3
 ## Order of the rows on the card.
