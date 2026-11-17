@@ -159,6 +159,10 @@ const CORDON_FROM := 34.0
 const CORDON_T := 2.4
 const CORDON_STAGGER := 0.5
 const CORDON_GONE := 90.0
+## Playtest 2026-11-16: a player who stayed near the plaza (or whose car was boxed in by the ring of
+## cars) never got 90 m away, and the on-screen cordon never left (200 s stuck). The cordon goes
+## this long after the pin whatever the distance, on screen or not.
+const CORDON_HOLD := 25.0
 ## The pin (the next destination) comes this long after the sirens start, once the cordon has
 ## closed in, whether or not the chase is still on.
 const PIN_AFTER := 4.5
@@ -362,6 +366,8 @@ var _tandem := false
 ## player is away (out of sight, one a tick).
 var _cordon: Array[Dictionary] = []
 var _cordon_leaving := false
+## Seconds since the cordon came in (`_tick`): CORDON_HOLD past the pin it goes whatever the distance.
+var _cordon_t := 0.0
 ## Red and blue light pools on the ground under the cordon's cars (one draw call, raids only), so
 ## the box-in reads at night and from the far camera.
 var _flash: MultiMeshInstance3D
@@ -1115,7 +1121,11 @@ func _tick(dt: float) -> void:
 	_kmh = v[1]
 	if not _cordon.is_empty():
 		var c0: Vector3 = (_cordon[0]["to"] as Vector3)
-		if _cordon_leaving or Vector2(_at.x, _at.z).distance_to(Vector2(c0.x, c0.z)) > CORDON_GONE or not (stage == Stage.RAID or stage == Stage.RAID2):
+		var raiding := stage == Stage.RAID or stage == Stage.RAID2
+		_cordon_t += _due
+		if _cordon_t > PIN_AFTER + CORDON_HOLD:
+			_cordon_leave(true)
+		elif _cordon_leaving or Vector2(_at.x, _at.z).distance_to(Vector2(c0.x, c0.z)) > CORDON_GONE or not raiding:
 			_cordon_leaving = true
 			_cordon_leave()
 	if phase == Phase.IDLE and auto and _free() and (force or night_on(_hour())):
@@ -1429,6 +1439,7 @@ func _on_chase_ended(how: String) -> void:
 func _cordon_in() -> int:
 	_cordon_leave(true)
 	_cordon_leaving = false
+	_cordon_t = 0.0
 	if police == null or not police.has_method("scene_car") or graph == null or ("gentle" in police and bool(police.gentle)):
 		return 0
 	var v: Array = vehicle.call() if vehicle.is_valid() else [car.global_position, 0.0, false]
