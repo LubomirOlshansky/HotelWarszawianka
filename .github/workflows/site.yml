@@ -23,13 +23,14 @@ jobs:
       HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Built pages are up to date with site/src, docs/privacy.md and docs/support.md
+      - name: Built pages are up to date with docs/privacy.md and docs/support.md
         run: |
           python3 -I tools/site_build.py
-          git diff --exit-code -- site/public/index.html site/public/pl/index.html site/public/privacy/index.html site/public/support/index.html
-      # /progress/ follows docs/changes/, docs/CHANGELOG.md and ROADMAP's progress log, which every update
-      # touches, so it is rebuilt here rather than checked (the committed copy may lag a day).
-      - name: Rebuild the progress page
+          git diff --exit-code -- site/public/privacy/index.html site/public/support/index.html
+      # /progress/ and the landing's "New every day" strip (/ and /pl/) follow docs/changes/,
+      # docs/CHANGELOG.md and ROADMAP's progress log, which every update touches, so they are rebuilt
+      # here rather than checked (the committed copies may lag a day).
+      - name: Rebuild the landing and progress pages
         run: python3 -I tools/site_build.py
       - name: Deploy to Cloudflare
         if: env.HAS_TOKEN == 'true'

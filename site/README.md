@@ -73,8 +73,8 @@ npx wrangler@4 deploy        # npx wrangler@4 login first if it asks
 npx wrangler@4 rollback      # back to the previous version if something is wrong
 ```
 
-**Automatically, from GitHub**: `.github/workflows/site.yml` checks that the built pages match
-`site/src`, `docs/privacy.md` and `docs/support.md`, and deploys on every push to `main` that touches the site,
+**Automatically, from GitHub**: `.github/workflows/site.yml` checks that the privacy and support pages match
+`docs/privacy.md` and `docs/support.md`, rebuilds the landing (its "New every day" strip follows the changelog) and /progress/, and deploys on every push to `main` that touches the site,
 once the repository has two secrets (Settings → Secrets and variables → Actions):
 
 - `CLOUDFLARE_API_TOKEN`: Cloudflare → My Profile → API Tokens → Create Token → template
