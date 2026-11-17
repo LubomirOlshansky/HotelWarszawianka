@@ -90,6 +90,8 @@ const TRAFFIC := [["Pustawo", "Almost empty"], ["Mało", "Low"], ["Normalnie", "
 const QUALITY := [["Auto", "auto"], ["Niska", "Low"], ["Średnia", "Medium"], ["Wysoka", "High"], ["Ultra", "Ultra"],
 		["Eksperyment", "Experimental"]]
 const ON_OFF := [["Wył.", "Off"], ["Wł.", "On"]]
+## F 2026-11-17: DEV's camera view (settings.gd `camera_view`).
+const CAMERA_VIEW := [["Normalny", "Normal"], ["Z góry", "Top"], ["Z lotu", "Aerial"]]
 ## grades.gd SETTING, in its order.
 const GRADE := [["Natura", "Natural"], ["Neon", "Neon"], ["Klasyk", "Classic"]]
 ## F (2026-11-07): the camera's angle over the ground, follow_camera.gd PITCHES (30° the default).
@@ -574,7 +576,7 @@ func show_dev() -> void:
 ## settings.gd keep them as ever; only where they sit changed.
 func _dev_page(body: Control) -> Control:
 	var at := _pages.size()
-	var dev := _rows(body, [3, 3, 2])
+	var dev := _rows(body, [3, 3, 3])
 	_heading(dev[0], "Kamera za autem", "Camera follows the car")
 	_segments(dev[0], "camera", CAMERA)
 	_heading(dev[1], "Prowadzenie", "Handling")
@@ -601,6 +603,9 @@ func _dev_page(body: Control) -> Control:
 		close()
 		changed.emit("bench", 1))
 	perf_row.add_child(bench)
+	# F 2026-11-17: the camera view (follow_camera.gd VIEW_*): the game's, top-down, aerial.
+	_heading(dev[8], "Widok kamery", "Camera view")
+	_segments(dev[8], "camera_view", CAMERA_VIEW)
 	for key: String in ["camera", "lane_assist", "zones", "soft_fences", "perf"]:
 		for b: Button in _groups[key]:
 			b.custom_minimum_size.x = touch * 1.05

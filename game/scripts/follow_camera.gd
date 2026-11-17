@@ -45,6 +45,19 @@ const DEFAULT_PITCH := 30.0
 const PINCH_STEP := 1.2
 ## The view widens by this share at top speed.
 const SPEED_ZOOM := 0.25
+## The top-down camera (F 2026-11-17, main.gd `top_down`): the view widens by this share at top
+## speed instead, the classic overhead feel of the city pulling away as the car speeds up. Straight
+## down the view shows `size` m of ground front to back (the 30° view shows twice that), so even
+## at top speed it shows less ground, and draws less, than the 30° view.
+const TOP_DOWN_ZOOM := 0.5
+## DEV → "Widok kamery · Camera view" (settings.gd `camera_view`, F 2026-11-17): 0 the game's view,
+## 1 top-down (main.gd `top_down`), 2 aerial: the 30° view AERIAL_VIEW m tall, high over the city
+## like the website's Stadion Narodowy shots (docs/store/screenshots: --size=260). The streamer
+## loads by the view's frustum, so the wide view fills in; it draws far more than the 80 m view.
+const VIEW_NORMAL := 0
+const VIEW_TOP_DOWN := 1
+const VIEW_AERIAL := 2
+const AERIAL_VIEW := 260.0
 ## The fastest the camera ever turns, degrees a second.
 const MAX_TURN := 64.0
 ## Classic: the turn rate per degree of error (1/s), at FULL_SPEED and over (loop 2a's 2.2).

@@ -284,8 +284,8 @@ var style_index := 0
 ## Also written by a command-line flag (dev_flags.gd).
 var cam_yaw := 45.0
 ## Road view (F 2026-11-07, "photos of the roads from height, like GTA"): the camera looks
-## straight down, north up, with no occlusion ghost, to check kerbs, asphalt and paint from above.
-## `--topdown` starts in it; T toggles it on a keyboard. A debug view: the pitch setting is untouched.
+## straight down, north up, no ghost (the tunnel cut stays). F 2026-11-17: also DEV's driving
+## camera (settings.gd `camera_view`; FollowCamera.TOP_DOWN_ZOOM). `--topdown`, T (`_set_view`).
 ## Also written by a command-line flag (dev_flags.gd).
 var top_down := false
 const TOP_DOWN_PITCH := -89.9
@@ -2398,7 +2398,7 @@ func _start_phone_bench() -> void:
 	if busy != "":
 		hud.toast(Lang.split(busy))
 		return
-	_phone_saved = {"at": car.global_transform, "mask": car.collision_mask, "size": base_size, "pitch": camera_pitch,
+	_phone_saved = {"at": car.global_transform, "mask": car.collision_mask, "size": base_size, "pitch": camera_pitch, "top_down": top_down,
 			"wallet": [wallet.zl, wallet.respect, wallet.jobs.duplicate(true), wallet.best.duplicate(true),
 					wallet.eggs.duplicate(true), wallet.district_jobs.duplicate(true), wallet.ladder.duplicate(true)], "persistent": wallet.persistent}
 	wallet.persistent = false
@@ -2410,6 +2410,7 @@ func _start_phone_bench() -> void:
 	moments.stop()
 	base_size = FollowCamera.DEFAULT_SIZE
 	camera_pitch = -FollowCamera.DEFAULT_PITCH  # the bench's numbers at the game's look, whatever the player chose
+	top_down = false
 	car.global_transform = _spawn
 	car.vel = Vector3.ZERO
 	car.forward_speed = 0.0
@@ -2455,6 +2456,7 @@ func _end_phone_bench(done: bool) -> void:
 	cam_focus = car.global_position
 	base_size = _phone_saved["size"]
 	camera_pitch = _phone_saved["pitch"]
+	top_down = _phone_saved["top_down"]
 	var w: Array = _phone_saved["wallet"]
 	wallet.zl = w[0]
 	wallet.respect = w[1]
@@ -4576,9 +4578,10 @@ func _load_settings() -> void:
 	if flags._flag_color_safe:
 		Access.color_safe = true
 	if not flags._flag_size:
-		base_size = settings.view
+		base_size = FollowCamera.AERIAL_VIEW if settings.camera_view == FollowCamera.VIEW_AERIAL else settings.view
 	if not flags._flag_pitch:
 		camera_pitch = -settings.pitch
+	top_down = top_down or settings.camera_view == FollowCamera.VIEW_TOP_DOWN  # --topdown, or DEV's
 	model_name = flags._flag_model if flags._flag_model != "" else OS.get_model_name()
 	auto_quality = Tiers.for_model(model_name)
 	quality_choice = flags._flag_quality if flags._flag_quality != -2 else settings.quality
@@ -4690,6 +4693,15 @@ func _rotate_camera(direction: int) -> void:
 
 ## C (and Settings → Kamera za autem): the camera follows the car or stays put. Loop 2e: a toast
 ## says which, so it never switches off unnoticed (it did with the old CAM button).
+## F 2026-11-17: DEV's camera view (FollowCamera.VIEW_*; T toggles top-down), saved; Normal takes the saved zoom, not --size.
+func _set_view(mode: int) -> void:
+	top_down = mode == FollowCamera.VIEW_TOP_DOWN
+	base_size = FollowCamera.AERIAL_VIEW if mode == FollowCamera.VIEW_AERIAL else settings.view
+	settings.camera_view = mode
+	settings.save()
+	hud.settings_panel.sync(_settings_state())
+
+
 func _toggle_follow() -> void:
 	_set_follow(not follow)
 	hud.toast("Kamera: za autem" if follow else "Kamera: stała", "Camera: follows the car" if follow else "Camera: fixed")
@@ -5166,7 +5178,7 @@ func _settings_state() -> Dictionary:
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
 			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
-			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)),
+			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view,
 			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
 			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "sensitivity": settings.sensitivity,
@@ -5260,6 +5272,8 @@ func _on_setting(key: String, value: Variant) -> void:
 			# F (2026-11-07): the camera's angle (follow_camera.gd PITCHES); the camera follows next frame.
 			settings.pitch = FollowCamera.PITCHES[clampi(int(value), 0, FollowCamera.PITCHES.size() - 1)]
 			camera_pitch = -settings.pitch
+		"camera_view":
+			_set_view(int(value))
 		"bench":
 			_start_phone_bench.call_deferred()
 			return
@@ -6024,7 +6038,7 @@ var _tunnel_cut_on := false
 
 func _update_tunnel_cut(pos: Vector3) -> bool:
 	var chords: Array = []
-	if not flying and not flags.no_ghost and not top_down and (fotka == null or not fotka.is_open()):
+	if not flying and not flags.no_ghost and (fotka == null or not fotka.is_open()):
 		var reach := clampf(cam.size * TUNNEL_CUT_SIZE, TUNNEL_CUT_MIN, TUNNEL_CUT_MAX)
 		chords = map.tunnel_cut_chords(pos.x, pos.z, pos.y, reach + TUNNEL_CUT_PAST, TUNNEL_CUT_CHORDS)
 		if not chords.is_empty():
@@ -6916,8 +6930,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			KEY_C:
 				_toggle_follow()
 			KEY_T:
-				top_down = not top_down
-				print("road view: %s" % ("on" if top_down else "off"))
+				_set_view(FollowCamera.VIEW_NORMAL if top_down else FollowCamera.VIEW_TOP_DOWN)
 			KEY_H:
 				_toggle_vehicle()
 			KEY_B:
@@ -7097,7 +7110,7 @@ func _update_camera(dt: float) -> void:
 		# by zoom_step like the speed zoom, and back out when the car returns.
 		var bike: bool = car.model == "bike"
 		var view := base_size * (CoffeeRun.BIKE_VIEW if bike else 1.0)
-		var zoom := view * FollowCamera.SPEED_ZOOM * clampf(speed / (car.top_speed() if bike else car.max_speed * car.top_mult), 0.0, 1.0)
+		var zoom := view * (FollowCamera.TOP_DOWN_ZOOM if top_down else FollowCamera.SPEED_ZOOM) * clampf(speed / (car.top_speed() if bike else car.max_speed * car.top_mult), 0.0, 1.0)
 		if boat_race != null and boat_race.boating():
 			zoom *= BOAT_ZOOM  # the boat race: the rings and the rivals stay big enough to read
 			if boat_race.stage == BoatRace.Stage.FREE:
@@ -7107,7 +7120,7 @@ func _update_camera(dt: float) -> void:
 		_view_size = fcam.zoom_step(_view_size, view, zoom, dt)
 	# The look-ahead along the way it goes, and the dead zone's window (follow_camera.gd).
 	var forward := Vector3(-basis.z.x, 0.0, -basis.z.z).normalized() \
-			if follow and not flying and controls.scheme == Controls.CLASSIC else Vector3.ZERO
+			if follow and not flying and not top_down and controls.scheme == Controls.CLASSIC else Vector3.ZERO
 	var lead := fcam.lead_step(heli.vel if flying else car.vel, Heli.MAX_SPEED if flying else car.max_speed * car.top_mult,
 			_view_size, dt, forward)
 	cam_focus = fcam.focus_step(cam_focus, focus + lead, basis, _view_size, focus_rate, dt)
@@ -7209,7 +7222,7 @@ func _camera_far(distance: float, size: float) -> float:
 		above = maxf(cam_focus.y - minf(map.ground_height(cam_focus.x, cam_focus.z), heli.global_position.y - heli.above_ground), 0.0)
 	var low: float = FAR_MARGIN + above / sin(deg_to_rad(maxf(absf(_view_pitch()), 5.0)))
 	# The widest this zoom gets: the car's view at top speed, the helicopter's as it is.
-	var widest := maxf(cam.size, size if flying else base_size * (1.0 + FollowCamera.SPEED_ZOOM))
+	var widest := maxf(cam.size, size if flying else base_size * (1.0 + (FollowCamera.TOP_DOWN_ZOOM if top_down else FollowCamera.SPEED_ZOOM)))
 	var reach: float = maxf(CAMERA_DISTANCE, widest * 1.6) + 0.5 * widest * t + low
 	var diagonal := reach * reach + widest * widest * (aspect * aspect + 1.0)
 	var need: float = distance + 0.5 * cam.size * t + low
