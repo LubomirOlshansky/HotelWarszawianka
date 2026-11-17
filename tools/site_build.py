@@ -293,11 +293,12 @@ MONTHS_PL = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipc
              "października", "listopada", "grudnia"]
 
 
-def pic(name: str, w: int, h: int, alt: str, lazy: bool = True) -> str:
-    """A <picture>: <name>.webp (1920 px) and <name>-960.webp for phones."""
+def pic(name: str, w: int, h: int, alt: str, lazy: bool = True, sizes: str = "100vw") -> str:
+    """A <picture>: <name>-960.webp and <name>.webp (1920 px) as a width srcset, so a 3x phone
+    takes the 1920 file (the 960 one alone looked soft on F's iPhone, 2026-11-17)."""
     load = ' loading="lazy" decoding="async"' if lazy else ""
-    return (f'<picture><source media="(max-width: 700px)" srcset="/img/game/{name}-960.webp">'
-            f'<img src="/img/game/{name}.webp" alt="{html.escape(alt)}" width="{w}" height="{h}"{load}></picture>')
+    return (f'<img src="/img/game/{name}.webp" srcset="/img/game/{name}-960.webp 960w, /img/game/{name}.webp 1920w" '
+            f'sizes="{sizes}" alt="{html.escape(alt)}" width="{w}" height="{h}"{load}>')
 
 
 def video_sources(sets: list[tuple[str, str]], note: str) -> str:
@@ -416,9 +417,9 @@ def landing(strings: dict, lang: str) -> str:
     # What you do: the QUESTS-shaped frame and five rows.
     q = strings["quests"]
     fr = q["frame"]
-    values["quests_frame"] = "        " + pic(fr["img"], fr["w"], fr["h"], t["quests_frame_alt"])
+    values["quests_frame"] = "        " + pic(fr["img"], fr["w"], fr["h"], t["quests_frame_alt"], sizes="(max-width: 900px) 100vw, 45vw")
     values["quests_rows"] = "\n".join(
-        f'      <li class="row">{pic(r["img"], r["w"], r["h"], r[lang]["alt"])}'
+        f'      <li class="row">{pic(r["img"], r["w"], r["h"], r[lang]["alt"], sizes="(max-width: 700px) 80vw, 320px")}'
         f'<div><h3>{e(r[lang]["name"])}</h3><p>{e(r[lang]["line"])}</p></div></li>'
         for r in q["rows"])
 

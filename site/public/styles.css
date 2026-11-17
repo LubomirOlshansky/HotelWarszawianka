@@ -273,8 +273,12 @@ html[data-os="android"] .stk-i { display: none; }
   .hero-in > * { margin-left: 0; }
   .vctl { top: calc(75vw - 60px); }
   .radio-tag { padding-left: var(--gutter); }
-  .chap { min-height: clamp(420px, 72svh, 620px); }
-  .chap-in { padding-top: 96px; }
+  /* Phones: the picture as a 4:3 block with the words under it (a tall full-bleed crop blew a
+     1920 x 884 shot up 2.4x and looked soft on F's iPhone, 2026-11-17). */
+  .chap { display: block; min-height: 0; }
+  .chap-media { position: relative; inset: auto; z-index: auto; aspect-ratio: 4 / 3; }
+  .chap::after, .chap-left::after, .chap-right::after { inset: 0 0 auto; height: calc(100vw * 0.75); background: linear-gradient(0deg, var(--night) 0%, rgba(11,13,36,0) 40%); z-index: 0; }
+  .chap-in { position: relative; z-index: 1; padding-top: 0; margin-top: -1.6rem; }
   .chap-right .chap-in { text-align: left; }
   .chap-right .chap-line { margin-left: 0; }
   .dn-stage { aspect-ratio: 4 / 3; }

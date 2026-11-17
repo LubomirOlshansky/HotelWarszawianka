@@ -59,10 +59,7 @@
 
 <section class="hero" aria-labelledby="title">
   <div class="hero-media">
-    <picture>
-      <source media="(max-width: 700px)" srcset="/img/game/{{hero_poster}}-960.webp">
-      <img src="/img/game/{{hero_poster}}.webp" alt="{{hero_alt}}" width="{{hero_w}}" height="{{hero_h}}" fetchpriority="high">
-    </picture>
+    <img src="/img/game/{{hero_poster}}.webp" srcset="/img/game/{{hero_poster}}-960.webp 960w, /img/game/{{hero_poster}}.webp 1920w" sizes="100vw" alt="{{hero_alt}}" width="{{hero_w}}" height="{{hero_h}}" fetchpriority="high">
 {{hero_video}}
   </div>
   <div class="hero-in wrap">
@@ -119,7 +116,7 @@
 
 <section class="join" id="beta" aria-labelledby="join-title">
   <div class="join-bg" aria-hidden="true">
-    <picture><source media="(max-width: 700px)" srcset="/img/game/{{join_img}}-960.webp"><img src="/img/game/{{join_img}}.webp" alt="" width="{{join_w}}" height="{{join_h}}" loading="lazy" decoding="async"></picture>
+    <img src="/img/game/{{join_img}}.webp" srcset="/img/game/{{join_img}}-960.webp 960w, /img/game/{{join_img}}.webp 1920w" sizes="100vw" alt="" width="{{join_w}}" height="{{join_h}}" loading="lazy" decoding="async">
   </div>
   <div class="wrap join-in">
     <h2 id="join-title">{{join_title}}</h2>
