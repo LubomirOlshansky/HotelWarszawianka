@@ -6,4 +6,4 @@
 - found: the matching semicircle south of the Palace (by the south-east fountain) may hold the other obelisk, and the one on Marszałkowska by Świętokrzyska may not exist; check on the orthophoto (QUESTIONS 2026-11-17)
 
 ## Roadmap
-- ticked: "photo re-pass of the outline builds on the first ten minutes' routes": Plac Defilad's obelisk semicircle
+- added, done: "Plac Defilad's obelisk semicircle north of the Palace (F, 2026-11-17): level paving, the obelisk at the middle of its straight side with the lawn behind it, no wall loop, ramp or garage door" (beside "Palace of Culture grounds and venues")
