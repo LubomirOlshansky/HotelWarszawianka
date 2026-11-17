@@ -1001,6 +1001,12 @@ func _resume_start() -> void:
 	var spot := wallet.resume_spot()
 	if spot.is_empty():
 		return
+	# F (2026-11-17): while the guide is still due (a fresh save: the first launch, or one quit
+	# before the first job) the opening starts at the Palace and the car at First10.START, never
+	# at a spot a first session left behind. `--resume` (the tests) still places it.
+	if flags.resume_flag.is_empty() and First10.guide_due(wallet):
+		print("resume: a fresh save, the opening starts at the Palace")
+		return
 	start_at = spot[0]
 	start_in_tunnel = spot[2]
 	_resume_yaw = spot[1]
