@@ -370,6 +370,7 @@ func _find_varso_place() -> void:
 ## card: off the picking grid, a tap on the roofs finds what it found before.
 func _build_varso_place(_site: Dictionary) -> void:
 	_id = 0
+	_varso_wings()
 	_varso_sign()
 	_varso_rock()
 	for name: String in ["Varso I", "Varso II"]:
@@ -383,6 +384,262 @@ func _build_varso_place(_site: Dictionary) -> void:
 				continue
 			for piece in _varso_open_roof(b, parts):
 				_varso_garden(piece, g + float(b["h"]), VARSO_TERRACE)
+
+
+# --- Varso Place's office wings (F's photos, 2026-11-17; spec varso_place.md W1-W6) ---------------
+
+## Varso 1 and 2 are each a glass tower on a lower office wing (HB Reavis, Foster + Partners,
+## 2020-22): eight storeys in a cream stone frame (deep windows between square piers and
+## spandrel bands), a set-back ninth storey of dark glass, roof terraces with planters and small
+## trees behind a glass balustrade. OpenStreetMap maps the towers' parts but not the wings: the
+## outline's area that no part covers is the wing (Varso 1's east of its tower, towards Varso
+## Tower; Varso 2's west of its tower, round the glass-roofed atrium against the tower's face).
+const VARSO_WING_STONE := Color("#e4ddcd")   # the warm cream stone (photos 2, 4, 6)
+const VARSO_WING_GLASS := Color("#2c3946")   # the deep windows' dark blue-grey glass
+const VARSO_WING_TOP := Color("#2a3038")     # the set-back top storey's dark glass
+const VARSO_WING_ROOF := Color("#d3d4cf")    # its pale roof (photo 7)
+const VARSO_ATRIUM := Color("#9fc0d8")       # the atrium's glass roof (photo 7)
+const VARSO_WING_GF := 5.0      # the glazed ground floor
+const VARSO_WING_FH := 3.9      # each office storey
+const VARSO_WING_FLOORS := 8    # ground + 7 (the photos count eight rows of windows)
+const VARSO_WING_BAY := 3.3     # pier to pier
+## Per wing: the top storey's set-back from the faces, and whether it holds the atrium.
+const VARSO_WINGS := {
+	"Varso I": {"inset": 7.0, "atrium": 0.0},
+	"Varso II": {"inset": 7.0, "atrium": 80.0},  # the atrium stands against the 80 m part's face
+}
+
+
+## W1-W6: each outline less every mapped part (5 m tall or more) standing in or by it, its
+## small jogs smoothed, then the wing on each piece of 150 m² or more.
+func _varso_wings() -> void:
+	var tall: Array[PackedVector2Array] = []
+	var tall_h: Array[float] = []
+	var near := VARSO_BOX.grow(20.0)
+	for b in data["buildings"]:
+		if float(b["h"]) < 5.0 or float(b["mh"]) > 1.0:
+			continue
+		var q := _pts(b["p"])
+		if q.size() >= 3 and near.has_point(_centre(q)):
+			tall.append(q)
+			tall_h.append(float(b["h"]))
+	for name: String in VARSO_WINGS:
+		var outline := _landmark(name)
+		if outline.size() < 3:
+			continue
+		var whole := absf(_area(outline))
+		var open: Array[PackedVector2Array] = [outline]
+		for q in tall:
+			if absf(_area(q)) > 0.8 * whole:
+				continue
+			var next: Array[PackedVector2Array] = []
+			var cutter := _grown(q, 0.05)
+			if cutter.size() < 3:
+				continue
+			for piece in open:
+				for r in Geometry2D.clip_polygons(piece, cutter):
+					if r.size() >= 3 and not Geometry2D.is_polygon_clockwise(r):
+						next.append(r)
+			open = next
+		for piece in open:
+			if absf(_area(piece)) >= 150.0:
+				_varso_wing(_simplify(piece, 0.6), VARSO_WINGS[name], tall, tall_h)
+
+
+## One wing: the glass body, its stone frame, the top storey, the terrace and (Varso 2) the atrium.
+func _varso_wing(piece: PackedVector2Array, look: Dictionary, tall: Array[PackedVector2Array], tall_h: Array[float]) -> void:
+	if Geometry2D.is_polygon_clockwise(piece):
+		piece.reverse()
+	var g := _ground_under(piece)
+	_g = g
+	var h := VARSO_WING_GF + VARSO_WING_FH * (VARSO_WING_FLOORS - 1)
+	var body := piece
+	var atrium := PackedVector2Array()
+	if float(look["atrium"]) > 0.0:
+		atrium = _varso_atrium(piece, float(look["atrium"]), tall, tall_h)
+		if not atrium.is_empty():
+			var best := 0.0
+			for r in Geometry2D.clip_polygons(piece, atrium):
+				if r.size() >= 3 and not Geometry2D.is_polygon_clockwise(r) and _area(r) > best:
+					best = _area(r)
+					body = r
+	# W1 the body: dark glass (its lit bays at night), the timber deck on top.
+	_prism(body, g - 0.4, g + h, VARSO_WING_GLASS, VARSO_DECK, M_SKIN + float(S_DARK) / 16.0, M_STONE)
+	_collide(body)
+	# W2 the stone frame: the spandrel bands round the whole ring (mitred, so no two tops
+	# overlap), then the piers on every face that shows (not in the atrium, not inside a tower).
+	var bands: Array[Vector2] = []
+	for j in VARSO_WING_FLOORS - 1:
+		var y := g + VARSO_WING_GF + VARSO_WING_FH * j
+		bands.append(Vector2(y - 0.45, y + 0.8))
+	bands.append(Vector2(g + h - 0.45, g + h + 0.3))
+	for band in bands:
+		# The parapet stands 0.5 m proud, over the piers' heads (0.45): they need no tops.
+		_ring_slab(body, band.x, band.y, 0.5 if band == bands[-1] else 0.4, VARSO_WING_STONE)
+	for i in body.size():
+		var a := body[i]
+		var b := body[(i + 1) % body.size()]
+		if a.distance_to(b) < 2.0:
+			continue
+		var out := _out(body, a, b)
+		var probe := (a + b) * 0.5 + out * 0.9
+		if not atrium.is_empty() and Geometry2D.is_point_in_polygon(probe, atrium):
+			continue
+		var hidden := 0.0
+		for k in tall.size():
+			if Geometry2D.is_point_in_polygon(probe, tall[k]):
+				hidden = maxf(hidden, tall_h[k])
+		if hidden >= h:
+			continue
+		var prev := body[(i + body.size() - 1) % body.size()]
+		var straight := _out(body, prev, a).dot(out) > 0.95  # the last face's end pier stands here
+		_varso_piers(a, b, out, maxf(g, g + hidden - 0.5), g + h - 0.45, straight)
+	# W3 the glass balustrade round the terrace, lit like the towers' terraces at night.
+	var keep := _no_roof
+	_no_roof = true
+	var rail := _ring_out(body, 0.2)
+	var rev := PackedVector2Array(rail)
+	rev.reverse()
+	_prism(rail, g + h + 0.3, g + h + 1.2, VARSO_RAIL, Color(0, 0, 0, 0), M_PAVILION + 0.5)
+	_prism(rev, g + h + 0.3, g + h + 1.2, VARSO_RAIL, Color(0, 0, 0, 0), M_PAVILION + 0.5)
+	_no_roof = keep
+	# W4 the set-back top storey: dark glass under a stone cornice, a pale roof, a plant box.
+	var tops: Array[PackedVector2Array] = []
+	for r in Geometry2D.offset_polygon(body, -float(look["inset"]), Geometry2D.JOIN_MITER):
+		if r.size() >= 3 and not Geometry2D.is_polygon_clockwise(r) and _area(r) >= 80.0:
+			tops.append(_simplify(r, 0.4))
+			var pent := tops[-1]
+			_prism(pent, g + h, g + h + 3.6, VARSO_WING_TOP, Color(0, 0, 0, 0), M_SKIN + float(S_DARK) / 16.0)
+			_prism(pent, g + h + 3.6, g + h + 4.1, VARSO_WING_STONE, VARSO_WING_ROOF, M_STONE, M_STONE)
+			var c := _centre(pent)
+			if Geometry2D.is_point_in_polygon(c, pent):
+				_prism(_square(c, 2.2), g + h + 4.1, g + h + 5.6, VARSO_WING_ROOF.darkened(0.25), VARSO_WING_ROOF.darkened(0.1), M_STONE, M_STONE)
+	# W5 the terrace's planters and small trees.
+	_varso_wing_planters(body, tops, atrium, g + h, float(look["inset"]))
+	# W6 the atrium's glass roof, a low pyramid just under the parapet.
+	if not atrium.is_empty():
+		var roof := PackedVector2Array()
+		for r in Geometry2D.intersect_polygons(atrium, piece):
+			if r.size() >= 3 and not Geometry2D.is_polygon_clockwise(r) and _area(r) > _area(roof):
+				roof = r
+		if roof.size() >= 3:
+			_mode = M_GLASS_ROOF
+			_pyramid(roof, g + h - 1.6, g + h + 0.6, VARSO_ATRIUM)
+			_mode = M_STONE
+
+
+## The atrium (photo 7): a rectangle against the face of the `part_h` part that looks into the
+## wing, 26 m along it (less where the face is shorter) and 21 m into the wing; a metre into
+## the tower so the cut leaves the wing a C, not a ring.
+func _varso_atrium(piece: PackedVector2Array, part_h: float, tall: Array[PackedVector2Array], tall_h: Array[float]) -> PackedVector2Array:
+	for k in tall.size():
+		if absf(tall_h[k] - part_h) > 1.0:
+			continue
+		var part := tall[k]
+		var i := _edge_facing(part, (_centre(piece) - _centre(part)).normalized(), 10.0)
+		if i < 0:
+			continue
+		var a := part[i]
+		var b := part[(i + 1) % part.size()]
+		var t := (b - a).normalized()
+		var o := _out(part, a, b)
+		var m := (a + b) * 0.5
+		var half := minf(13.0, a.distance_to(b) * 0.5 - 1.5)
+		if half < 6.0:
+			continue
+		return PackedVector2Array([m - t * half - o, m + t * half - o, m + t * half + o * 21.0, m - t * half + o * 21.0])
+	return PackedVector2Array()
+
+
+## One face's piers from a to b (`out` its outward normal): square, 0.9 m wide and 0.45 m proud
+## (the bands are 0.4), one every bay or so from y0 to y1, the ends at the corners; `straight`
+## leaves out the first where the last face runs on in line (its own end pier stands there).
+func _varso_piers(a: Vector2, b: Vector2, out: Vector2, y0: float, y1: float, straight: bool) -> void:
+	var length := a.distance_to(b)
+	var t := (b - a) / length
+	var n := maxi(1, roundi(length / VARSO_WING_BAY))
+	var last := -INF
+	for k in n + 1:
+		var c := clampf(length * k / n, 0.45, length - 0.45)
+		if (k == 0 and straight) or c - last < 0.95:
+			continue
+		last = c
+		_varso_box(a + t * (c - 0.45), a + t * (c + 0.45), out, 0.45, y0, y1)
+
+
+## A pier standing on a face: from p to q along it, `depth` out, y0 to y1; its front and its two
+## sides (the back is the wall, its head is under the parapet, its foot never shows).
+func _varso_box(p: Vector2, q: Vector2, out: Vector2, depth: float, y0: float, y1: float) -> void:
+	_mode = M_STONE
+	var col := VARSO_WING_STONE
+	var p1 := p + out * depth
+	var q1 := q + out * depth
+	var t := (q - p).normalized()
+	var w := p.distance_to(q)
+	var hy0 := y0 - _g
+	var hy1 := y1 - _g
+	var side := col.darkened(0.08)
+	for f: Array in [[p1, q1, out, col, w], [p, p1, -t, side, depth], [q1, q, t, side, depth]]:
+		var u: Vector2 = f[0]
+		var v: Vector2 = f[1]
+		var nn: Vector2 = f[2]
+		var len_f: float = f[4]
+		_quad(Vector3(u.x, y0, u.y), Vector3(v.x, y0, v.y), Vector3(v.x, y1, v.y), Vector3(u.x, y1, u.y), Vector3(nn.x, 0.0, nn.y), f[3],
+				Vector2(0, hy0), Vector2(len_f, hy0), Vector2(len_f, hy1), Vector2(0, hy1), hy1)
+
+
+## W5: planters in two rows round the terrace (photo 7), 2.4 m in from the parapet and 2 m
+## short of the top storey, one every 5.5 m where the top storey, the atrium and the towers
+## leave room: a granite box 4 x 1.8 m (perennials, lawn or grasses on top), a small
+## round-crowned tree in every other one, a dwarf pine in the rest.
+func _varso_wing_planters(body: PackedVector2Array, tops: Array[PackedVector2Array], atrium: PackedVector2Array, y: float, inset: float) -> void:
+	var keep := _no_roof
+	_no_roof = true
+	var lines := Geometry2D.offset_polygon(body, -2.4, Geometry2D.JOIN_MITER)
+	lines.append_array(Geometry2D.offset_polygon(body, -(inset - 2.0), Geometry2D.JOIN_MITER))
+	var room := Geometry2D.offset_polygon(body, -0.9, Geometry2D.JOIN_MITER)
+	var k := 0
+	for line: PackedVector2Array in lines:
+		if line.size() < 3 or Geometry2D.is_polygon_clockwise(line):
+			continue
+		var ring := _simplify(line, 0.4)
+		for i in ring.size():
+			var a := ring[i]
+			var b := ring[(i + 1) % ring.size()]
+			var length := a.distance_to(b)
+			if length < 5.0:
+				continue
+			var t := (b - a) / length
+			var o := Vector2(t.y, -t.x)
+			var n := floori((length - 1.0) / 5.5)
+			for j in n:
+				var c := a + t * (length - (n - 1) * 5.5) * 0.5 + t * (j * 5.5)
+				if not _varso_free(c, room, tops, atrium):
+					continue
+				var box := PackedVector2Array([c - t * 2.0 - o * 0.9, c + t * 2.0 - o * 0.9, c + t * 2.0 + o * 0.9, c - t * 2.0 + o * 0.9])
+				_prism(box, y, y + 0.6, VARSO_GRANITE, VARSO_BEDS[k % VARSO_BEDS.size()], M_STONE, M_STONE)
+				if k % 2 == 0:
+					var jit := 0.9 + 0.2 * fposmod(sin(c.x * 12.9898 + c.y * 78.233) * 43758.5453, 1.0)
+					_varso_tree(c, y + 0.6, 4.2 * jit, 1.6 * jit)
+				else:
+					_pyramid(_circle(c, 0.6, 5), y + 0.6, y + 1.8, VARSO_PINE)
+				k += 1
+	_no_roof = keep
+
+
+## True where a planter at c stands clear: on the terrace, off the top storey (with a metre
+## to walk) and off the atrium.
+func _varso_free(c: Vector2, room: Array[PackedVector2Array], tops: Array[PackedVector2Array], atrium: PackedVector2Array) -> bool:
+	var on := false
+	for r in room:
+		if not Geometry2D.is_polygon_clockwise(r) and Geometry2D.is_point_in_polygon(c, r):
+			on = true
+	if not on:
+		return false
+	for r in tops:
+		if Geometry2D.is_point_in_polygon(c, r) or _dist_to_ring(c, r) < 1.4:
+			return false
+	return atrium.is_empty() or not (Geometry2D.is_point_in_polygon(c, atrium) or _dist_to_ring(c, atrium) < 1.5)
 
 
 ## The part of a flat roof nothing taller stands on or rises through (every part that starts
