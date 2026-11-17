@@ -424,7 +424,7 @@ def landing(strings: dict, lang: str) -> str:
     fr = q["frame"]
     values["quests_frame"] = "        " + pic(fr["img"], fr["w"], fr["h"], t["quests_frame_alt"], sizes="(max-width: 900px) 100vw, 45vw")
     values["quests_rows"] = "\n".join(
-        f'      <li class="row{" row-full" if r.get("crop") == "none" else ""}">'
+        f'      <li class="row{ROW_CROP.get(r.get("crop", ""), "")}">'
         f'{pic(r["img"], r["w"], r["h"], r[lang]["alt"], sizes="(max-width: 700px) 136vw, 320px")}'
         f'<div><h3>{e(r[lang]["name"])}</h3><p>{e(r[lang]["line"])}</p></div></li>'
         for r in q["rows"])
@@ -449,6 +449,11 @@ def landing(strings: dict, lang: str) -> str:
         f"<span>{e(label)}</span></label>"
         for i, (v, label) in enumerate(strings["topics"][lang]))
     return fill((SITE / "src" / "index.html").read_text(encoding="utf-8"), values)
+
+
+# A row's optional "crop": "none" shows the whole wide shot; "left"/"right" keep that side
+# when the 16:10 card crops it (where the shot's text card or bubble sits).
+ROW_CROP = {"none": " row-full", "left": " row-l", "right": " row-r"}
 
 
 def changelog():

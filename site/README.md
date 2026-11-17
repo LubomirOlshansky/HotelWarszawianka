@@ -8,7 +8,7 @@ tracking scripts. Visits come from Cloudflare's own traffic numbers, store-butto
 | File | What |
 | --- | --- |
 | `src/index.html` | the landing's template, `{{key}}` placeholders |
-| `src/strings.json` | all the copy in `en` and `pl`, plus the data the page is built from: `hero` (the poster's image name, as before), `hero_video` (`ver`, poster size), `chapters` (the four city chapters: image, size, `side`, optional `clip`, texts), `dn` (the day/night pair), `quests` (the frame and the five rows), `join_bg`, `author` (raw HTML, for the link), `topics`, and the Google Play slot (`android_live`, `android_url`) |
+| `src/strings.json` | all the copy in `en` and `pl`, plus the data the page is built from: `hero` (the poster's image name, as before), `hero_video` (`ver`, poster size), `chapters` (the four city chapters: image, size, `side`, optional `clip`, texts), `dn` (the day/night pair), `quests` (the frame and the five rows; a row's optional `crop` is `none` for the whole wide shot, or `left`/`right` to keep that side of a shot whose card or bubble sits there when the phone crops it), `join_bg`, `author` (raw HTML, for the link), `topics`, and the Google Play slot (`android_live`, `android_url`) |
 | `public/progress/index.html` | **built**: what was added or improved each day (`tools/changelog.py` from `docs/CHANGELOG.md` and ROADMAP's progress log) with links to the backlog; run `python3 -I tools/site_build.py` before every deploy so it is current |
 | `public/index.html`, `public/pl/index.html`, `public/privacy/index.html`, `public/support/index.html` | **built**, never edited by hand: `python3 -I tools/site_build.py` (the privacy page comes from `docs/privacy.md`, support from `docs/support.md`) |
 | `public/styles.css` | all styles; colours and fonts are tokens on `:root` |
@@ -75,7 +75,7 @@ npx wrangler@4 rollback      # back to the previous version if something is wron
 
 **Automatically, from GitHub**: `.github/workflows/site.yml` checks that the privacy and support pages match
 `docs/privacy.md` and `docs/support.md`, rebuilds the landing (its "New every day" strip follows the changelog) and /progress/, and deploys on every push to `main` that touches the site,
-once the repository has two secrets (Settings → Secrets and variables → Actions):
+once the repository has two secrets (Settings → Secrets and variables → Actions). Until then the workflow skips the deploy, and the site is deployed by hand from a checkout of `main` with wrangler logged in (`python3 -I tools/site_build.py && cd site && npx wrangler@4 deploy`):
 
 - `CLOUDFLARE_API_TOKEN`: Cloudflare → My Profile → API Tokens → Create Token → template
   "Edit Cloudflare Workers"; under Zone Resources include the `aroundwarsaw.app` zone.
