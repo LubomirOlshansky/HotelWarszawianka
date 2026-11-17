@@ -574,7 +574,7 @@ func show_dev() -> void:
 ## settings.gd keep them as ever; only where they sit changed.
 func _dev_page(body: Control) -> Control:
 	var at := _pages.size()
-	var dev := _rows(body, [3, 3, 2])
+	var dev := _rows(body, [3, 3, 3])
 	_heading(dev[0], "Kamera za autem", "Camera follows the car")
 	_segments(dev[0], "camera", CAMERA)
 	_heading(dev[1], "Prowadzenie", "Handling")
@@ -601,7 +601,10 @@ func _dev_page(body: Control) -> Control:
 		close()
 		changed.emit("bench", 1))
 	perf_row.add_child(bench)
-	for key: String in ["camera", "lane_assist", "zones", "soft_fences", "perf"]:
+	# F 2026-11-17: the top-down camera (main.gd `top_down`), straight down, north up.
+	_heading(dev[8], "Widok z góry", "Top-down view")
+	_segments(dev[8], "top_down", ON_OFF)
+	for key: String in ["camera", "lane_assist", "zones", "soft_fences", "perf", "top_down"]:
 		for b: Button in _groups[key]:
 			b.custom_minimum_size.x = touch * 1.05
 	var page := _pages[at]
