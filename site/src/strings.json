@@ -139,6 +139,7 @@
    {
     "id": "jobs",
     "img": "m-escort",
+    "crop": "none",
     "w": 1920,
     "h": 887,
     "en": {
@@ -254,6 +255,7 @@
   "video_pause": "Pause the background video",
   "video_play": "Play the background video",
   "radio_label": "On the car radio",
+  "radio_pause": ": pause or play the ticker",
   "radio_lines": "Traffic on Marszałkowska: yes, as always <i>·</i> The Palace clock is right, we checked <i>·</i> Pigeons on Plac Defilad report no delays <i>·</i> Seba from Praga is warming up the engine <i>·</i> Next on Mordor FM: Monday <i>·</i> The roadworks continue. You keep driving <i>·</i> Weather: rain, then more rain, then Monday <i>·</i> Most Poniatowskiego is open. Enjoy it while it lasts <i>·</i> A syrenka was seen near the river. Do not feed it kebab <i>·</i>",
   "city_title": "The real centre of Warsaw.",
   "city_lede": "About 21 km², from Arkadia to Stadion Narodowy, built from open map data. If you live here, you can drive home.",
@@ -346,6 +348,7 @@
   "video_pause": "Zatrzymaj wideo w tle",
   "video_play": "Odtwórz wideo w tle",
   "radio_label": "W radiu w aucie",
+  "radio_pause": ": zatrzymaj lub puść pasek",
   "radio_lines": "Na Marszałkowskiej korek. Tak, jak zawsze <i>·</i> Zegar na Pałacu chodzi dobrze, sprawdzaliśmy <i>·</i> Gołębie z placu Defilad nie zgłaszają opóźnień <i>·</i> Seba z Pragi grzeje silnik <i>·</i> Za chwilę w Mordor FM: poniedziałek <i>·</i> Remont trwa. Ty jedź <i>·</i> Pogoda: deszcz, potem więcej deszczu, potem poniedziałek <i>·</i> Most Poniatowskiego przejezdny. Korzystaj, póki trwa <i>·</i> Syrenkę widziano nad rzeką. Nie karmić kebabem <i>·</i>",
   "city_title": "Prawdziwe centrum Warszawy.",
   "city_lede": "Około 21 km² od Arkadii po Stadion Narodowy, z otwartych danych map. Jeśli tu mieszkasz, dojedziesz do domu.",
