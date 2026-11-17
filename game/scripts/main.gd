@@ -3235,7 +3235,11 @@ func _build_stories(world: Node3D) -> void:
 		var act := (d["idle"] as Callable).get_object() as Activity  # its call card names it (F 2026-11-17)
 		if act != null:
 			act.invites[str(d["id"])] = [str(d["pl"]), str(d["en"])]
-			act.declined = _invite_declined
+			act.declined = func(id: String) -> void:  # turned down or rung out: NEW in QUESTS, and a toast
+				var w := QuestBook.mark_invite(wallet.intro, stories.defs, id) if wallet != null else []
+				if not w.is_empty():
+					hud.toast(str(w[0]), str(w[1]))
+					wallet.save()
 		var own: Callable = d.get("meet", Callable())
 		if own.is_valid():
 			d["meet"] = func() -> bool:
@@ -3247,15 +3251,6 @@ func _build_stories(world: Node3D) -> void:
 		if harness != null: get_tree().create_timer(flags.quest_quit_flag).timeout.connect(harness._quest_quit_test)
 	print("stories: %d questlines (%s)" % [stories.defs.size(), ", ".join(stories.defs.map(func(d: Dictionary) -> String:
 			return "%s %s" % [d["id"], "%.0f,%.0f" % [d["at"].x, d["at"].y] if d["at"] != Vector2.INF else "no start"]))])
-
-
-## A friend's call turned down or rung out (activity.gd `declined`, F 2026-11-17): the questline
-## stays NEW in QUESTS ("qnew_<id>" in [intro], cleared when its detail is opened) and a toast says so.
-func _invite_declined(id: String) -> void:
-	var w := QuestBook.mark_invite(wallet.intro, stories.defs, id) if wallet != null and stories != null else []
-	if not w.is_empty():
-		hud.toast(str(w[0]), str(w[1]))
-		wallet.save()
 
 
 ## The shisha night's hidden start (F 2026-11-08, 2026-11-10: anywhere in the city, only this, no
@@ -4838,12 +4833,7 @@ func _fill_map_list(entries: Array) -> void:
 			var name: Array = FirstSteps.name_of(id)
 			f["steps"].append({"id": id, "pl": name[0], "en": name[1], "done": not id in left, "entry": _step_entry(id, by_group, here)})
 	if stories != null:
-		var c: Array = stories.clock.call()
-		for d: Dictionary in stories.defs:
-			f["stories"].append({"id": d["id"], "pl": d["pl"], "en": d["en"], "who": d["who"], "blurb": d.get("blurb", ["", ""]),
-					"hello": d.get("hello", ["", ""]), "colour": d.get("colour", Lines.STORY_COLOUR), "at": d.get("at", Vector2.INF),
-					"open": StoryQuests.open_at(d, float(c[0]), int(c[1])), "new": intro.has(QuestBook.NEW_KEY + str(d["id"])),
-					"when": [StoryQuests.when_text(d, true), StoryQuests.when_text(d, false)]})
+		f["stories"] = QuestBook.story_facts(stories.defs, stories.clock.call(), intro)
 	if rivals != null and rivals.ladder != null and wallet != null:
 		var rows: Array = rivals.ladder_rows()
 		f["rivals"] = rivals.ladder.chips()

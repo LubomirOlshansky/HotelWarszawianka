@@ -32,6 +32,7 @@ extends RefCounted
 const Lines := preload("res://scripts/quest_lines.gd")
 const FirstSteps := preload("res://scripts/first_steps.gd")
 const Ladder := preload("res://scripts/ladder.gd")
+const StoryQuests := preload("res://scripts/story_quests.gd")
 
 const DIALOGUE_PATH := "res://data/dialogue.json"
 const GROUP := "quest_book"
@@ -103,6 +104,18 @@ static func fmt(key: String, args: Array) -> Array:
 		pl.append(a[0] if a is Array else a)
 		en.append(a[1] if a is Array else a)
 	return [str(w[0]) % pl, str(w[1]) % en]
+
+
+## The `stories` facts for `tabs`: one per questline of `defs` (story_quests.gd, with main.gd's
+## blurbs), open or closed at `clock` ([hour, weekday]), NEW while `intro` (wallet.gd) marks it.
+static func story_facts(defs: Array, clock: Array, intro: Dictionary) -> Array:
+	var out: Array = []
+	for d: Dictionary in defs:
+		out.append({"id": d["id"], "pl": d["pl"], "en": d["en"], "who": d["who"], "blurb": d.get("blurb", ["", ""]),
+				"hello": d.get("hello", ["", ""]), "colour": d.get("colour", Lines.STORY_COLOUR), "at": d.get("at", Vector2.INF),
+				"open": StoryQuests.open_at(d, float(clock[0]), int(clock[1])), "new": intro.has(NEW_KEY + str(d["id"])),
+				"when": [StoryQuests.when_text(d, true), StoryQuests.when_text(d, false)]})
+	return out
 
 
 ## A questline's call was turned down or rang out (activity.gd `declined`): mark it NEW in QUESTS in

@@ -13,9 +13,10 @@ extends SceneTree
 ##   own START words; nothing but NOW while a quest runs;
 ## - rivals: the six with their state, RACE only for one not locked, the final last;
 ## - a turned-down invite (`mark_invite`) marks only a questline of the list NEW, with the toast's
-##   words naming it; an unknown id marks nothing and says nothing;
-## - `find` and `first_tab`; every item has an icon key in ICONS; the beta card's SHOWCASE tiles
-##   name icons and words.
+##   words naming it; an unknown id marks nothing and says nothing; `story_facts` opens each
+##   questline by its hours and marks the NEW one;
+## - `find` and `first_tab`; every item has an icon key in ICONS, and every icon's file loads; the
+##   beta card's SHOWCASE tiles name icons and words.
 ##   godot --headless --path game --script res://tools/check_quest_book.gd
 
 const QuestBook := preload("res://scripts/quest_book.gd")
@@ -200,9 +201,10 @@ func _icons(f: Dictionary) -> void:
 			_expect(QuestBook.ICONS.has(str(it["icon"])), "%s has an icon name (%s)" % [it["id"], it["icon"]])
 	for pair: Array in QuestBook.SHOWCASE:
 		_expect(QuestBook.ICONS.has(str(pair[0])), "the beta tile %s has an icon name" % pair[0])
-	# Each named icon file is either there or drawn as the colour's letter (no error either way).
+	# Each named icon is a file in game/art/quest_icons (the Codex set, 2026-11-17) that loads.
 	for k: String in QuestBook.ICONS:
-		QuestBook.icon(k)
+		var tex := QuestBook.icon(k)
+		_expect(tex != null and tex.get_width() >= 128, "the icon %s (%s.png) is missing or smaller than 128 px" % [k, QuestBook.ICONS[k]])
 
 
 func _invites() -> void:
@@ -217,3 +219,12 @@ func _invites() -> void:
 			"the toast names the questline in both languages: %s" % [w])
 	_expect(not QuestBook.mark_invite(intro, defs, "boat").is_empty() and intro.size() == 1,
 			"turning the same questline down again keeps one NEW mark")
+	# The questlines' facts (`story_facts`): open by their hours at the clock, NEW by the mark.
+	defs[1]["who"] = "Mati"
+	defs[1]["hours"] = Vector2(22.0, 4.0)
+	defs[0]["who"] = "Wiesiek"
+	var sf := QuestBook.story_facts(defs, [12.0, 3], intro)
+	_expect(sf.size() == 2 and bool(sf[0]["new"]) and not bool(sf[1]["new"]) and bool(sf[0]["open"]) and not bool(sf[1]["open"]),
+			"story_facts: the boat NEW and open, the rave closed at noon: %s" % [sf])
+	_expect(sf.size() == 2 and str(sf[1]["when"][1]) == "22:00-4:00" and sf[0]["at"] == Vector2.INF,
+			"story_facts: the rave's hours, no start for a def without one: %s" % [sf])
