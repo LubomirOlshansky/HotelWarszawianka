@@ -4217,59 +4217,84 @@ func _jar_ground(u: float, v: float) -> float:
 	return h
 
 
-# --- The two obelisks on Plac Defilad (F's photos and links, 2026-11-15) -----------------------
+# --- The two obelisks on Plac Defilad (F's photos and links, 2026-11-15 and 2026-11-17) ---------
 
-## The 1955 granite obelisks: one on Marszałkowska at the square's north end (by Świętokrzyska),
-## and "Obelisk Granitowy 2" in the paved semicircle north of the Palace's north wing, by its
-## north-west fountain, at the middle of the straight side with the lawn behind it (F's Google
-## Earth shots, 2026-11-17; it stood at the Patelnia by mistake before, and the semicircle was a
-## walled pit: tools/defilad_obelisk.py, map_builder.gd GRID_HOLD). A stepped base, a pedestal with
-## a carved garland swag on each face under a cornice, and a tall tapering square shaft with a
-## pyramidion. Spots and the 24 m height are read from photos, not mapped: the museum's frame.
-const OBELISKS := [Vector2(-195.0, 2.0), Vector2(-108.4, 110.6)]
+## The 1955 granite obelisks on the Palace's Marszałkowska side (F, 2026-11-17: "two stand today,
+## there were four at first; each about 12 m; the exits from the Palace's underground are beside
+## them"; fotopolska "Obelisk południowy PKiN"): one in each paved semicircle at the Palace's north
+## and south ends, at the middle of its straight side where the lawn's edge curves round the
+## obelisk (the lawns' mapped notches, centrum.json areas, give the spots; the south one beside the
+## Samo Centrum bar). A stepped base, a pedestal with a carved garland swag on each face under a
+## cornice, a tapering square shaft with a pyramidion, and beside each a low granite box with a
+## steel hatch, the underground's emergency exit (its side and size are a guess, not mapped).
+## Before: the north one stood on the park's corner by Świętokrzyska, the south one at the Patelnia,
+## both 25 m; the north semicircle was a walled pit (tools/defilad_obelisk.py, map_builder.gd
+## GRID_HOLD). The museum's frame (u along Marszałkowska, southwards; v westwards).
+const OBELISKS := [Vector2(-109.4, 111.1), Vector2(249.8, 110.8)]
 const OBELISK_STONE := Color("#a9a59c")
-const OBELISK_TOP := 24.0
+const OBELISK_TOP := 11.0   # the shaft's top; the pyramidion takes it to 12 m
+## The exit hatch: its centre from the obelisk's (u, v; towards the semicircle's arc) and size.
+const OBELISK_HATCH := Vector2(5.0, 0.0)
+const OBELISK_HATCH_SIZE := Vector3(1.3, 0.95, 1.1)   # half u, height, half v
+const HATCH_STEEL := Color("#5d6166")
 
 
 func _find_obeliski() -> void:
 	_tr_frame()
 	var zones: Array = []
-	for c: Vector2 in OBELISKS:
-		zones.append(_rect(c.x, c.y, 3.3, 3.3))
+	for k in OBELISKS.size():
+		var c: Vector2 = OBELISKS[k]
+		zones.append(_rect(c.x, c.y, 2.8, 2.8))
+		var hc := c + OBELISK_HATCH * _hatch_side(k)
+		zones.append(_rect(hc.x, hc.y, OBELISK_HATCH_SIZE.x + 0.2, OBELISK_HATCH_SIZE.z + 0.2))
 	_add_site("obeliski", zones)
 
 
+## The north obelisk's semicircle opens away from the Palace northwards (-u), the south one's southwards.
+func _hatch_side(k: int) -> float:
+	return -1.0 if k == 0 else 1.0
+
+
 func _build_obeliski(_site: Dictionary) -> void:
-	for c: Vector2 in OBELISKS:
+	for k in OBELISKS.size():
+		var c: Vector2 = OBELISKS[k]
 		_tr_frame()
-		_g = _ground_under(_rect(c.x, c.y, 3.2, 3.2))
+		_g = _ground_under(_rect(c.x, c.y, 2.6, 2.6))
 		var g := _g
 		_o = _w(c.x, c.y)
 		var st := OBELISK_STONE
 		_mode = M_STONE
 		# Three steps, the pedestal and its cornice.
-		_lbox(0.0, 0.0, 3.2, 3.2, g - 0.3, g + 0.3, st.darkened(0.06), M_STONE, st)
-		_lbox(0.0, 0.0, 2.6, 2.6, g + 0.3, g + 0.6, st.darkened(0.03), M_STONE, st.lightened(0.03))
-		_lbox(0.0, 0.0, 2.0, 2.0, g + 0.6, g + 0.9, st, M_STONE, st.lightened(0.04))
-		_lbox(0.0, 0.0, 1.45, 1.45, g + 0.9, g + 4.2, st.darkened(0.04), M_STONE)
-		_lbox(0.0, 0.0, 1.65, 1.65, g + 4.2, g + 4.55, st.lightened(0.05), M_STONE, st.lightened(0.05))
-		# The garland swag on each face: a hanging V of two carved bands under two rosettes.
-		for k in 4:
-			var f := Vector2.from_angle(PI * 0.5 * k)
+		_lbox(0.0, 0.0, 2.6, 2.6, g - 0.3, g + 0.2, st.darkened(0.06), M_STONE, st)
+		_lbox(0.0, 0.0, 2.15, 2.15, g + 0.2, g + 0.4, st.darkened(0.03), M_STONE, st.lightened(0.03))
+		_lbox(0.0, 0.0, 1.7, 1.7, g + 0.4, g + 0.6, st, M_STONE, st.lightened(0.04))
+		_lbox(0.0, 0.0, 1.2, 1.2, g + 0.6, g + 2.8, st.darkened(0.04), M_STONE)
+		_lbox(0.0, 0.0, 1.38, 1.38, g + 2.8, g + 3.05, st.lightened(0.05), M_STONE, st.lightened(0.05))
+		# The garland swag on each face: a hanging V of two carved bands.
+		for f4 in 4:
+			var f := Vector2.from_angle(PI * 0.5 * f4)
 			var s := Vector2(-f.y, f.x)
-			var off := 1.5
+			var off := 1.24
 			var l := _o + _a * (f.x * off) + _b * (f.y * off)
-			var y := g + 3.7
-			var p0 := Vector3(l.x + (_a * s.x + _b * s.y).x * 1.0, y, l.y + (_a * s.x + _b * s.y).y * 1.0)
-			var p1 := Vector3(l.x, y - 0.75, l.y)
-			var p2 := Vector3(l.x - (_a * s.x + _b * s.y).x * 1.0, y, l.y - (_a * s.x + _b * s.y).y * 1.0)
-			_beam(p0, p1, 0.22, st.darkened(0.12))
-			_beam(p1, p2, 0.22, st.darkened(0.12))
+			var y := g + 2.45
+			var p0 := Vector3(l.x + (_a * s.x + _b * s.y).x * 0.8, y, l.y + (_a * s.x + _b * s.y).y * 0.8)
+			var p1 := Vector3(l.x, y - 0.55, l.y)
+			var p2 := Vector3(l.x - (_a * s.x + _b * s.y).x * 0.8, y, l.y - (_a * s.x + _b * s.y).y * 0.8)
+			_beam(p0, p1, 0.18, st.darkened(0.12))
+			_beam(p1, p2, 0.18, st.darkened(0.12))
 		# The shaft, tapering, a band at its foot, and the pyramidion.
-		_lbox(0.0, 0.0, 1.25, 1.25, g + 4.55, g + 5.0, st, M_STONE)
-		_frustum(_rect(0.0, 0.0, 1.15, 1.15), g + 5.0, _rect(0.0, 0.0, 0.72, 0.72), g + OBELISK_TOP, st.lightened(0.02))
-		_pyramid(_rect(0.0, 0.0, 0.72, 0.72), g + OBELISK_TOP, g + OBELISK_TOP + 1.6, st.lightened(0.06))
-		_collide(_rect(0.0, 0.0, 3.2, 3.2))
+		_lbox(0.0, 0.0, 1.05, 1.05, g + 3.05, g + 3.35, st, M_STONE)
+		_frustum(_rect(0.0, 0.0, 0.95, 0.95), g + 3.35, _rect(0.0, 0.0, 0.58, 0.58), g + OBELISK_TOP, st.lightened(0.02))
+		_pyramid(_rect(0.0, 0.0, 0.58, 0.58), g + OBELISK_TOP, g + OBELISK_TOP + 1.0, st.lightened(0.06))
+		_collide(_rect(0.0, 0.0, 2.6, 2.6))
+		# The underground's emergency exit beside it: a low granite box under a steel hatch.
+		var h := OBELISK_HATCH * _hatch_side(k)
+		var hs := OBELISK_HATCH_SIZE
+		_g = _ground_under(_rect(h.x, h.y, hs.x, hs.z))
+		var hg := _g
+		_lbox(h.x, h.y, hs.x, hs.z, hg - 0.3, hg + hs.y, st.darkened(0.08), M_STONE, st.darkened(0.02))
+		_lbox(h.x, h.y, hs.x - 0.15, hs.z - 0.15, hg + hs.y, hg + hs.y + 0.08, HATCH_STEEL, M_STONE, HATCH_STEEL)
+		_collide(_rect(h.x, h.y, hs.x, hs.z))
 	_tr_frame()
 
 

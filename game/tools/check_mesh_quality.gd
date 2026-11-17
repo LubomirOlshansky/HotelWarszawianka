@@ -236,7 +236,7 @@ const BUDGET := {
 	"tr": 6500,  # 2026-11-15 rebuild from F's 13 photos: concrete shell with red formwork and rebar, two lattice cranes, flags, yard
 	"nozyce": 700,  # the gold scissors on their granite plinth (F's photo, 2026-11-15)
 	"jarmark": 7000,  # the Christmas market being set up on Plac Defilad (F's photos, 2026-11-15): huts, planters, tree, fence
-	"obeliski": 600,  # the two 1955 granite obelisks on Plac Defilad (F, 2026-11-15)
+	"obeliski": 600,  # the two 1955 granite obelisks by the Palace and their exit hatches (F, 2026-11-15, 2026-11-17)
 	"tower75": 220,
 	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
 	"pijana": 2200,  # 2026-11-08 PIJANA CZEREŚNIA kiosk (F): 1806 tris (octagon, drum, painted windows, deck rail, string lights)
