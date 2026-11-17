@@ -923,6 +923,10 @@ func parse_with(args: PackedStringArray) -> void:
 			story_flag = arg.trim_prefix("--story=")
 		elif arg.begins_with("--quest-tab="):
 			m.quest_tab_flag = int(arg.trim_prefix("--quest-tab="))
+			open_map_at_start = true
+		elif arg == "--quests":
+			m.quests_flag = true  # 2026-11-17: the QUESTS screen up at the start (shots)
+			open_map_at_start = true
 		elif arg.begins_with("--boat-race"):
 			boat_flag = arg.trim_prefix("--boat-race=") if arg.contains("=") else "call"
 		elif arg == "--boat-log":

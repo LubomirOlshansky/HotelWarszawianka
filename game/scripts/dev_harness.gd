@@ -246,6 +246,7 @@ func _quest_quit_test() -> void:
 		m._quit_quest()
 		print("quest quit test: after, running %s" % m._quest_running())
 		return
+	m.hud.full_map.open_screen()  # 2026-11-17: QUIT is on the QUESTS screen's NOW line
 	var qb := m.hud.full_map.find_child("quit_quest", true, false) as Button
 	if qb == null:
 		print("quest quit test: no quit button")

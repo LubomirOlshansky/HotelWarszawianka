@@ -61,6 +61,7 @@ const Access := preload("res://scripts/access.gd")
 const Pacer := preload("res://scripts/pacer.gd")
 const StopAssist := preload("res://scripts/stop_assist.gd")
 const GameCtx := preload("res://scripts/game_ctx.gd")
+const QuestBook := preload("res://scripts/quest_book.gd")
 
 enum Phase { IDLE, RING, OFFER, RUN }
 
@@ -108,6 +109,13 @@ var my_turn: Callable = func() -> bool: return true
 var on_start: Callable
 var on_end: Callable
 var on_ring: Callable
+## 2026-11-17 (F's QUESTS screen): the questlines this activity starts, id -> [pl, en] name
+## (main.gd `_build_stories` fills it from the story defs). The call card says which one the friend
+## invites to ("Invites you: ...", `_invite`); empty for a plain side job.
+var invites := {}
+## Called with the questline's id when its call or offer is turned down or rings out: main.gd marks
+## it NEW in the QUESTS screen and toasts where it waits.
+var declined: Callable
 ## Testing aid: calls at any hour.
 var force_hours := false
 
@@ -320,6 +328,7 @@ func _process(dt: float) -> void:
 		Phase.RING, Phase.OFFER:
 			if _t > card_life:
 				_hide_own_card()
+				_declined()
 				_refused(true)
 				_end(call_cool * 0.5)
 			elif autopilot and _t > AUTO_ANSWER:
@@ -414,7 +423,14 @@ func ring() -> bool:
 func _show_ring() -> void:
 	var c := _call_card()
 	var about: Array = c.get("about", ["", ""])
-	hud.show_call(str(c.get("who", "")), str(about[0]), colour, str(about[1]), str(c.get("face", "")))
+	var pl := str(about[0])
+	var en := str(about[1])
+	var quest := _invite()
+	if not quest.is_empty():  # the questline it starts, under the caller (F 2026-11-17)
+		var line := QuestBook.fmt("invite", [quest])
+		pl = (pl + "\n" if pl != "" else "") + str(line[0])
+		en = (en + "\n" if en != "" else "") + str(line[1])
+	hud.show_call(str(c.get("who", "")), pl, colour, en, str(c.get("face", "")))
 	_own_card()
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
@@ -528,6 +544,7 @@ func card_pressed(index: int) -> void:
 			if index == 0:
 				_offer()
 			else:
+				_declined()
 				_refused(false)
 				_end(call_cool)
 		Phase.OFFER:
@@ -535,6 +552,7 @@ func card_pressed(index: int) -> void:
 			if index == 0:
 				start()
 			else:
+				_declined()
 				_refused(false)
 				_end(call_cool)
 		Phase.RUN:
@@ -624,6 +642,29 @@ func _call_card() -> Dictionary:
 ## The offer: {"title": [pl, en], "body": [pl, en], "face": whose portrait, "buttons": optional}.
 func _offer_card() -> Dictionary:
 	return {}
+
+
+## The questline this call starts, [pl, en] (from `invites`), or [] for none. One questline: that
+## one; an activity with several says which by its own state (rave.gd, trend_job.gd).
+func _invite() -> Array:
+	return invites.values()[0] if invites.size() == 1 else []
+
+
+## The questline's id `_invite` names, or "".
+func _invite_id() -> String:
+	var quest := _invite()
+	for id: String in invites:
+		if invites[id] == quest:
+			return id
+	return ""
+
+
+## A call or offer of a questline turned down or rung out: `declined` hears which (it stays NEW in
+## QUESTS). Before `_refused`, which may change the state `_invite` reads.
+func _declined() -> void:
+	var id := _invite_id()
+	if id != "" and declined.is_valid():
+		declined.call(id)
 
 
 ## The call or the offer was turned down, by a button or (`timed_out`) by nobody answering;

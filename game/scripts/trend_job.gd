@@ -692,6 +692,17 @@ static func _deski_face(who: String) -> String:
 	return padel if Portraits.face(padel) != null else who
 
 
+## The coffee run and padel are questlines; the trend calls are a side job (no invite line). The
+## order's kind says which (F 2026-11-17).
+func _invite() -> Array:
+	match str(order.get("kind", "")):
+		"kawa":
+			return invites.get("kawa", [])
+		"czwarty":
+			return invites.get("padel", [])
+	return []
+
+
 func _call_card() -> Dictionary:
 	return _caller
 

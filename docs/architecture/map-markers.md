@@ -90,7 +90,7 @@ markers.clear_target("rescue")             # ending the activity clears it, in o
 | --- | --- | --- | --- | --- |
 | TARGET | loud | loud | loud | if its line allows |
 | MAIN | glow | no glow | hidden | glow |
-| STORY | badge | hidden | hidden | hidden |
+| STORY | badge (full map: always, dimmed in QUEST) | hidden (full map: shown) | hidden | hidden (full map: shown) |
 | JOB, PLACE | icon | hidden | hidden | heli jobs only |
 | SERVICE (garage, hospitals) | in reach | only if the quest needs it | hidden | hidden |
 | INFO (police, traps) | yes | yes | yes | yes |
@@ -145,6 +145,15 @@ arrow would change how the drive feels, so it waits for F (QUESTIONS.md).
 
 ## 6. Track, filters and "?" marks (F's map ask, 2026-11-16; `map_track.gd`)
 
+**2026-11-17 (F: "too complicated"):** the full map is minimal now. The legend and its filters, the
+title, the right-hand list, the ≡ and ? cards, the always-on hint and the metro icons are gone; the
+questlines' dots and names show in every context (dimmed in quest focus; STORY's rule row above); a
+dot tapped shows its line with ROUTE (its start becomes the pin) and DETAILS. What to do lives on the
+QUESTS screen (big button bottom right; quest_book.gd builds it from main.gd `_fill_map_list`'s
+facts, quests_screen.gd draws it), whose SHOW ON MAP is the track below. The NEXT line (top left)
+leads with the tracked place, else the nearest First step, else the main line's next step, else a
+questline that invited. The Filters paragraph below is history.
+
 Three things on the full map, all on the registry and the existing quest pin, none a private copy.
 
 - **Track.** The tracked thing is the quest pin (main.gd `quest_pin`, full_map.gd `quest_pick`): a tap
@@ -172,7 +181,7 @@ Three things on the full map, all on the registry and the existing quest pin, no
 | --- | --- | --- | --- | --- |
 | UNKNOWN (full map only) | "?" | hidden | hidden | "?" |
 
-Checks: `check_map_track` (the save key, finding it again, the kinds, the "?" rules), `check_hud`
-(the legend's cells and counts, hiding a kind and the target staying, ALL, track and untrack on the
-NEXT card, the "?" tap and TRACK, no overlaps at six screen sizes), `check_map_markers` (the rule row)
+Checks: `check_map_track` (the save key, finding it again, the "?" rules), `check_hud` (the minimal
+map's parts, the "?" tap and TRACK, a dot's ROUTE and DETAILS, the QUESTS screen's layout and flows,
+the coach marks, no overlaps at six screen sizes), `check_quest_book` (the tabs), `check_map_markers` (the rule row)
 and `check_target_route` (the route follows a tracked place and goes when it is let go).

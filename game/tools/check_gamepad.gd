@@ -20,7 +20,7 @@ extends SceneTree
 ##   P10 the notebook page's cursor moves to the nearest target each way, A opens a card, B (and
 ##       WRÓĆ) comes back to the card it left, nothing that way gives the focus back;
 ##   P11 the garage card opened by the pad focuses the paint worn; B closes it;
-##   P12 the full map: the pad's hint, the stick pans east, RT zooms in, A held on the cross
+##   P12 the full map: the pad's note on opening, the stick pans east, RT zooms in, A held on the cross
 ##       teleports there, a pan cancels the hold.
 ##   P13 (G13 leftovers) LB or RB held is the nitro and fed to the car in main.gd, no shoulder is a
 ##       press-command; the right stick turns the view once per flick (either way), not while held,
@@ -332,10 +332,12 @@ func _ui() -> void:
 	hud.open_full_map(Vector2(10.0, 20.0), 0.0, PackedVector2Array())
 	await process_frame
 	var fm: Control = hud.full_map
-	var hint: PanelContainer = fm.get("_hint")
-	# One line in the player's language (main's Lang.pick card); both name the triggers.
-	if not ((hint.get_child(0).get_child(0) as Label).text.contains("RT / LT")):
-		fails.append("P12 the full map's hint doesn't speak of the pad")
+	var note: PanelContainer = fm.get("_note")
+	# One line in the player's language, for a few seconds (2026-11-17: no hint stays on the map);
+	# it names the triggers and QUESTS' button.
+	var said := (note.get_child(0).get_child(0) as Label).text
+	if not note.visible or not said.contains("RT / LT") or not said.contains("Y"):
+		fails.append("P12 the full map's note doesn't speak of the pad (%s)" % said)
 	var c0: Vector2 = fm.centre
 	_axis(JOY_AXIS_LEFT_X, 1.0)
 	fm._process(0.5)

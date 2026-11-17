@@ -44,8 +44,10 @@ const MAIN_STAR := "main:star"
 const ACTIVE_TARGET := "target:active"
 
 ## Per layer: [minimap FREE, QUEST, AIR, full map FREE, QUEST, AIR]. Today's behaviour: quest
-## focus hides the street jobs, the "?" marks, the garage and the questline badges on both maps;
-## flying hides the questline badges (the job places hide themselves in the air, jobs.gd); the "?"
+## focus hides the street jobs, the "?" marks and the garage on both maps, and the questline badges
+## on the minimap; flying hides the questline badges on the minimap (the job places hide themselves
+## in the air, jobs.gd); the full map shows the questline badges always (F 2026-11-17: the minimal
+## map's dots with their names; full_map.gd draws them faint in focus); the "?"
 ## marks are off the full map always (F 2026-11-08); the active target, the main line (its star
 ## dims in focus, the drawing's business) and the police show everywhere; the rivals' layer is
 ## kept for the one map list and drawn nowhere yet. UNKNOWN (2026-11-16, map_track.gd): the "?" of a
@@ -54,7 +56,7 @@ const ACTIVE_TARGET := "target:active"
 const RULES := {
 	Layer.TARGET: [true, true, true, true, true, true],
 	Layer.MAIN: [true, true, true, true, true, true],
-	Layer.STORY: [true, false, false, true, false, false],
+	Layer.STORY: [true, false, false, true, true, true],
 	Layer.JOB: [true, false, true, true, false, true],
 	Layer.PLACE: [true, false, true, false, false, false],
 	Layer.SERVICE: [true, false, true, true, false, true],

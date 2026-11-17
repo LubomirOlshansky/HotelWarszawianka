@@ -191,43 +191,47 @@ func _decide() -> void:
 	_expect(h.current == "", "a hint goes when a chase begins")
 
 
-## The full map's coach marks: one at a time, in order, each gone when its thing is done, once,
-## the save keys, the replay.
+## The full map's coach marks (2026-11-17: QUESTS, a friend's dot, the hold): one at a time, in
+## order, each gone when its thing is done, once, none over the QUESTS screen, the save keys, the replay.
 func _map_coach() -> void:
 	var h := Hints.new()
-	var all := {"scrollable": true, "has_place": true}
-	_expect(h.decide_map({"scrollable": true, "has_place": true, "cards": true}) == "", "no coach mark under the ≡ cards")
-	_expect(h.decide_map({"scrollable": false, "has_place": false}) == "map_hold", "a short list and no place: only the hold")
-	_expect(h.map_tick(0.1, all) == "map_list", "the first coach mark: scroll the list")
-	_expect(h.map_tick(0.1, all) == "map_list", "it stays until the list is scrolled")
-	_expect(h.map_tick(0.1, {"scrollable": true, "has_place": true, "did_scroll": true}) == "map_hold", "scrolled: the hold comes next")
-	_expect(h.map_tick(0.1, {"scrollable": true, "has_place": true, "did_hold": true}) == "map_pin", "held: the pin comes next")
-	_expect(h.map_tick(0.1, {"scrollable": true, "has_place": true, "did_pin": true}) == "", "pinned: none left")
-	_expect(h.dirty and int(h.seen.get("map_list", 0)) == 1 and int(h.seen.get("map_pin", 0)) == 1, "each shown once is counted")
+	var all := {"has_book": true, "has_story": true}
+	_expect(h.decide_map({"has_book": true, "has_story": true, "screen": true}) == "", "no coach mark over the QUESTS screen")
+	_expect(h.decide_map({"has_book": false, "has_story": false}) == "map_hold", "no QUESTS and no friend's dot: only the hold")
+	_expect(h.map_tick(0.1, all) == "map_quests", "the first coach mark: the QUESTS button")
+	_expect(h.map_tick(0.1, all) == "map_quests", "it stays until QUESTS is opened")
+	_expect(h.map_tick(0.1, {"has_book": true, "has_story": true, "did_quests": true}) == "map_pin", "QUESTS opened: a friend's dot comes next")
+	_expect(h.map_tick(0.1, {"has_book": true, "has_story": true, "did_pin": true}) == "map_hold", "a dot tapped: the hold comes next")
+	_expect(h.map_tick(0.1, {"has_book": true, "has_story": true, "did_hold": true}) == "", "held: none left")
+	_expect(h.dirty and int(h.seen.get("map_quests", 0)) == 1 and int(h.seen.get("map_pin", 0)) == 1, "each shown once is counted")
 	h.map_reset()
 	_expect(h.map_tick(0.1, all) == "", "never again once all three were shown")
 	var intro := {}
 	h.save_to(intro)
-	_expect(intro.has("hint_map_list") and intro.has("hint_map_hold") and intro.has("hint_map_pin"), "the [intro] keys of the coach marks: %s" % intro)
+	_expect(intro.has("hint_map_quests") and intro.has("hint_map_hold") and intro.has("hint_map_pin"), "the [intro] keys of the coach marks: %s" % intro)
 	var back := Hints.new()
 	back.load_from(intro)
 	_expect(back.map_tick(0.1, all) == "", "a loaded save does not coach again")
+	# The QUESTS screen coming up takes the mark down.
+	h = Hints.new()
+	h.map_tick(0.1, all)
+	_expect(h.map_tick(0.1, {"has_book": true, "has_story": true, "screen": true}) == "", "the QUESTS screen up: no coach mark")
 	# A mark nobody did gives way after COACH_LIFE s.
 	h = Hints.new()
 	h.map_tick(0.1, all)
 	var after := ""
 	for i in int(Hints.COACH_LIFE / 0.5) + 2:
 		after = h.map_tick(0.5, all)
-	_expect(after == "map_hold", "an ignored coach mark gives way after %.0f s (%s)" % [Hints.COACH_LIFE, after])
+	_expect(after == "map_pin", "an ignored coach mark gives way after %.0f s (%s)" % [Hints.COACH_LIFE, after])
 	# The "?": every mark again, once each, the save untouched.
 	var played: Array[String] = []
-	var rf := {"scrollable": true, "has_place": true, "replay": true, "did_scroll": true, "did_hold": true, "did_pin": true}
+	var rf := {"has_book": true, "has_story": true, "replay": true, "did_quests": true, "did_hold": true, "did_pin": true}
 	back.dirty = false
 	for i in 8:
 		var id := back.map_tick(0.1, rf)
 		if id != "" and not id in played:
 			played.append(id)
-	_expect(played == ["map_list", "map_hold", "map_pin"], "the replay plays all three in order (%s)" % [played])
+	_expect(played == ["map_quests", "map_pin", "map_hold"], "the replay plays all three in order (%s)" % [played])
 	_expect(not back.dirty, "a replay does not touch the save")
 	_expect(back.map_tick(0.1, rf) == "", "the replay ends after the third")
 

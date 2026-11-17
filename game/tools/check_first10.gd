@@ -47,6 +47,7 @@ const Wallet := preload("res://scripts/wallet.gd")
 const Districts := preload("res://scripts/districts.gd")
 const Traffic := preload("res://scripts/traffic.gd")
 const Rules := preload("res://scripts/ride_rules.gd")
+const QuestBook := preload("res://scripts/quest_book.gd")
 const STEP := 0.2
 
 var _problems := 0
@@ -70,6 +71,7 @@ func _initialize() -> void:
 	_rider()
 	_scripted()
 	_judge()
+	_beta()
 	_friends()
 	_steps()
 	_effort()
@@ -84,14 +86,14 @@ func _initialize() -> void:
 
 
 func _data() -> void:
-	var want := ["finger", "stand", "order", "choice", "race", "trap", "rescue", "heli", "tape", "ride", "powisle", "garage"]
+	var want := ["finger", "stand", "order", "beta", "choice", "race", "trap", "rescue", "heli", "tape", "ride", "powisle", "garage"]
 	_expect(First10.BEATS == want, "the beats: %s" % [First10.BEATS])
 	for id: String in First10.INTROS:
 		_expect(id in First10.BEATS or id == "kebab", "intro %s is a beat (or the kebab, met by the first delivery)" % id)
 	# The first hour as it would play (the spec's table): the choice about 1:45, the race 2:00 to
 	# 4:00, the police about 4:00, the first rescue about 5:00, the helicopter about 7:00, the garage
 	# about 9:30.
-	var times := {"finger": 5.0, "stand": 15.0, "order": 30.0, "choice": 105.0, "race": 150.0, "trap": 240.0,
+	var times := {"finger": 5.0, "stand": 15.0, "order": 30.0, "beta": 90.0, "choice": 105.0, "race": 150.0, "trap": 240.0,
 			"rescue": 300.0, "heli": 420.0, "tape": 430.0, "ride": 480.0, "powisle": 500.0, "garage": 570.0}
 	for id: String in First10.BEATS:
 		var w: Vector2 = First10.WINDOWS[id]
@@ -147,6 +149,7 @@ class Toy:
 	var deliver_s := 75.0
 	var pick := 0             # the choice card's button (First10.CHOICE_BUTTONS); 3: the ✕, JUST DRIVE
 	var says_no := false      # declines Halina
+	var beta_read := 6.0      # how long the beta card stays up (s)
 	var job_from := INF       # an extra job of the player's own
 	var job_to := INF
 	var tape_after := 50.0    # after the tape's arrow, the tape is played (INF: never)
@@ -270,6 +273,8 @@ class Toy:
 		match id:
 			"order":
 				order_at = t
+			"beta":
+				busy_until = maxf(busy_until, t + beta_read)
 			"choice":
 				choice_seen = true
 				for p: String in First10.CHOICE_PICKS[pick]:
@@ -457,8 +462,11 @@ func _busy() -> void:
 	toy.job_to = 330.0
 	var r := _play(toy, 1300.0)
 	var done: Dictionary = r[0]
-	_expect(_at(done, "choice") >= 330.0 - 0.01 and _at(done, "choice") < 331.0, "the choice card waits for the job (115-330 s): %.1f" % _at(done, "choice"))
-	_expect(_at(done, "race") >= 330.0 + First10.NEXT_GAP - 0.01, "the first intro NEXT_GAP s after it: %.1f" % _at(done, "race"))
+	# The beta card came before the job (114 s): the choice card waits BETA_GAP s of free driving after it.
+	var due := 330.0 + First10.BETA_GAP
+	_expect(_at(done, "beta") < 115.0 and _at(done, "choice") >= due - 0.01 and _at(done, "choice") < due + 1.0,
+			"the choice card waits for the job (115-330 s) and BETA_GAP s more: %.1f (beta %.1f)" % [_at(done, "choice"), _at(done, "beta")])
+	_expect(_at(done, "race") >= due + First10.NEXT_GAP - 0.01, "the first intro NEXT_GAP s after it: %.1f" % _at(done, "race"))
 	_summary.append("busy: the card at %.0f s" % _at(done, "choice"))
 
 
@@ -543,6 +551,42 @@ func _judge() -> void:
 	_expect(bad.size() == 3, "late race, early tape, missing garage: %s" % [bad])
 	ways["tape"] = "met"
 	_expect(First10.judge(done, ways).size() == 2, "a tape met early is fine")
+
+
+## The beta card (2026-11-17): BETA_AFTER s after the first delivery, before the choice card; a slow
+## reader pushes the choice card to BETA_GAP s of free driving after it. Its words and tiles exist.
+func _beta() -> void:
+	var toy := Toy.new()
+	toy.input_at = 1.0
+	toy.order_at = 35.0
+	var r := _play(toy, 300.0)
+	var done: Dictionary = r[0]
+	var delivered := 35.0 + toy.deliver_s
+	_expect(absf(_at(done, "beta") - (delivered + First10.BETA_AFTER)) < 0.3, "the beta card %.0f s after the delivery: %.1f" % [First10.BETA_AFTER, _at(done, "beta")])
+	_expect(_at(done, "beta") < _at(done, "choice"), "the beta card before the choice card: %.1f %.1f" % [_at(done, "beta"), _at(done, "choice")])
+	var slow := Toy.new()
+	slow.input_at = 1.0
+	slow.order_at = 35.0
+	slow.beta_read = 30.0
+	r = _play(slow, 300.0)
+	done = r[0]
+	var shut := _at(done, "beta") + slow.beta_read
+	_expect(absf(_at(done, "choice") - (shut + First10.BETA_GAP)) < 0.5, "a slow reader: the choice card BETA_GAP s after the beta card closed: %.1f (closed %.1f)" % [_at(done, "choice"), shut])
+	_expect(First10.BETA_AFTER < First10.CHOICE_AFTER and First10.BETA_LATEST < First10.CHOICE_LATEST, "pacing.json: the beta card before the choice card (%.0f < %.0f, %.0f < %.0f)"
+			% [First10.BETA_AFTER, First10.CHOICE_AFTER, First10.BETA_LATEST, First10.CHOICE_LATEST])
+	var w := First10.beta_words()
+	_expect((w["buttons"] as PackedStringArray).size() == 2, "the beta card: SEE QUESTS and DRIVE ON: %s" % [w["buttons"]])
+	for k: String in ["title", "body"]:
+		var pair: Array = w[k]
+		_expect(str(pair[0]) != "" and str(pair[1]) != "" and str(pair[1]) != "show_" + k, "the beta card's %s has words: %s" % [k, pair])
+	for pair: Array in QuestBook.SHOWCASE:
+		var words := QuestBook.words(str(pair[1]))
+		_expect(str(words[1]) != str(pair[1]), "the tile %s has words (%s)" % [pair[0], pair[1]])
+		_expect(QuestBook.ICONS.has(str(pair[0])), "the tile %s has an icon name" % pair[0])
+	var tiles := First10.beta_tiles(1.0)
+	_expect(tiles.get_child_count() == QuestBook.SHOWCASE.size(), "six tiles under the words: %d" % tiles.get_child_count())
+	tiles.free()
+	_summary.append("beta card at +%.0f s, %d tiles" % [First10.BETA_AFTER, QuestBook.SHOWCASE.size()])
 
 
 ## The friends' calls during the guide (first10.gd `friends_held`, main.gd `_free_block`).

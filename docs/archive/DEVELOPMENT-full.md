@@ -6021,9 +6021,10 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--settings` | loop 2a: open the settings panel at the start (screenshots) |
 | `--fullmap` | F's asks (2026-10-30): open the full-screen map at the start (the game paused; screenshots) |
 | `--fullmap=M` | 2026-10-31: the same, M metres across the screen's height (the game map's shots) |
-| `--quest-pick=N` | G12 part 2 (2026-11-02): open the full map at the start and tap row N of the ZADANIA tab shown (the vehicle's); a place's pick closes the map and becomes the quest pin |
-| `--quest-quit=S` | F 2026-11-08: S s into the run, open the full map and tap the quest card's "✕ Quit" button twice; prints `quest quit test:` lines (running before/after) |
-| `--quest-tab=N` | quest map (2026-11-07): the full map's quest card opens on tab N (0 AUTO, 1 HELI, 2 WĄTKI) |
+| `--quest-pick=N` | G12 part 2 (2026-11-02; QUESTS screen 2026-11-17): open the full map at the start, the QUESTS screen on its first tab, and press row N's first button; a place's pick closes the map and becomes the quest pin |
+| `--quest-quit=S` | F 2026-11-08: S s into the run, open the full map and tap the QUESTS screen's "✕ Quit" button twice; prints `quest quit test:` lines (running before/after) |
+| `--quest-tab=N` | quest map (2026-11-07; 2026-11-17): open the full map at the start with the QUESTS screen on tab N (quest_book.gd `TABS`: steps, stories, jobs, rivals, collection; only the shown ones count) |
+| `--quests` | 2026-11-17: open the full map at the start with the QUESTS screen up (shots) |
 | `--story=ID` | quest map: questline ID (`boat`, `rave`) starts from the WĄTKI list 1.5 s in (its friend phones) |
 | `--story-meet` | quest map: the friend's WCHODZĘ is pressed by itself a second after they walk up (the in-person start without a tap) |
 | `--stories-log` | quest map (`story_quests.gd`): the questlines, quest focus, the friend walking up |
