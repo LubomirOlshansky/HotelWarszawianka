@@ -758,6 +758,21 @@ func _check_quests_screen(fm: Control, where: String, pt: float, safe: Rect2) ->
 	if tab_keys != ["steps", "stories", "jobs", "rivals", "collection"] or str(scr.tab) != "steps":
 		problems.append("%s: the tabs are %s, open on %s (want steps, stories, jobs, rivals, collection; on steps)" % [where, tab_keys, scr.tab])
 	await _check_screen_layout(scr, where + " steps", pt, safe)
+	# The picked row is in view once the list has settled (shots 2026-11-17: a tab with a wrapped head
+	# line opened scrolled past it).
+	var row_shown := func(tab: String) -> void:
+		for i in 3:
+			await process_frame
+		var row := scr.find_child("row_%d" % int(scr.pick), true, false) as Control
+		var box := (scr.get("_list_scroll") as Control).get_global_rect().grow(1.0)
+		if row == null or not box.encloses(row.get_global_rect()):
+			problems.append("%s %s: the picked row %d is out of the list's view (%s in %s)" % [where, tab, int(scr.pick),
+					_pts(row.get_global_rect(), pt) if row != null else "none", _pts(box, pt)])
+	await row_shown.call("steps")
+	fm.open_screen("stories")
+	await row_shown.call("stories")
+	fm.open_screen("steps")
+	await row_shown.call("steps again")
 	# SHOW ON MAP on the nearest step (the garage): the screen closes, the map looks, the pin is set.
 	var list: Array = scr.items()
 	if list.is_empty() or str(list[0]["id"]) != "step_garage":
@@ -838,6 +853,10 @@ func _check_quests_screen(fm: Control, where: String, pt: float, safe: Rect2) ->
 	var p0: int = scr.pick
 	var row := scr.find_child("row_4", true, false) as Button
 	if row != null:
+		for i in 3:
+			await process_frame  # the list settles on its pick (quests_screen.gd `_show_later`)
+		(scr.get("_list_scroll") as ScrollContainer).ensure_control_visible(row)  # the finger lands on a row in view
+		await process_frame
 		var lr := row.get_global_rect()
 		scr.touch(_touch_ev(0, lr.get_center(), true))
 		var d := InputEventScreenDrag.new()

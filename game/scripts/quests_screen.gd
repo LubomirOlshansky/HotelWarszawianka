@@ -70,6 +70,8 @@ var _tab_scroll: ScrollContainer
 var _tab_row: HBoxContainer
 var _now: PanelContainer
 var _list_scroll: ScrollContainer
+## The tab the list was last filled with: a refill of it keeps its scroll, another tab starts at the top.
+var _filled_tab := ""
 var _list: VBoxContainer
 var _detail: PanelContainer
 var _detail_scroll: ScrollContainer
@@ -189,6 +191,7 @@ func show_book(tabs_list: Array, on := "", item_id := "") -> void:
 func close() -> void:
 	visible = false
 	_drag_idx = -1
+	_filled_tab = ""
 
 
 ## The tab with key `key` ({} none).
@@ -212,7 +215,8 @@ func picked() -> Dictionary:
 
 
 func _fill() -> void:
-	var keep := _list_scroll.scroll_vertical
+	var keep := _list_scroll.scroll_vertical if tab == _filled_tab else 0  # a new tab starts at its top
+	_filled_tab = tab
 	for c in _tab_row.get_children():
 		_tab_row.remove_child(c)
 		c.queue_free()
@@ -261,12 +265,17 @@ func _fill() -> void:
 			_show_later(_tab_scroll, b)
 
 
-## Scrolls `sc` to show `c` once the frame's layout is done, if `c` is still in it then (a second
-## fill in the same frame, a pad press, frees the rows of the first).
+## Scrolls `sc` to show `c` once the layout has settled, if `c` is still in it then (a second fill,
+## a pad press, frees the rows of the first). Two frames: a wrapped head line (First steps) is tall
+## until the list has its width and pushes the rows down, so a scroll in the first frame went past
+## them (the shots, 2026-11-17).
 func _show_later(sc: ScrollContainer, c: Control) -> void:
-	(func() -> void:
-		if is_instance_valid(c) and not c.is_queued_for_deletion() and sc.is_ancestor_of(c):
-			sc.ensure_control_visible(c)).call_deferred()
+	for i in 2:
+		if not is_inside_tree():
+			return
+		await get_tree().process_frame
+	if is_instance_valid(c) and not c.is_queued_for_deletion() and sc.is_ancestor_of(c):
+		sc.ensure_control_visible(c)
 
 
 ## The NOW line: what runs, SHOW (the map looks at its target) and QUIT (tapped twice).
@@ -645,11 +654,13 @@ func _row(it: Dictionary, on: bool) -> Button:
 	var done := bool(it.get("done", false))
 	var name := _label(Lang.pick(str(it["title"][0]), str(it["title"][1])), T_SUB + 2.0, MUTED if done else CREAM)
 	name.clip_text = true
+	name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS  # a long line ends in "…", not half a letter
 	v.add_child(name)
 	var sub := Lang.pick(str(it["sub"][0]), str(it["sub"][1]))
 	if sub != "":
 		var sl := _label(sub, T_SUB, MUTED)
 		sl.clip_text = true
+		sl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		v.add_child(sl)
 	if bool(it.get("new", false)):
 		var nw: Array = QuestBook.words("new")
