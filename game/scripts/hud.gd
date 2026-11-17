@@ -2208,6 +2208,10 @@ func _call_button(index: int, word: String, colour: Color, answer: bool) -> void
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	b.draw.connect(func() -> void: _paint_handset(b, answer))
 	b.pressed.connect(func(): _press_card(index))
+	# The round button draws only a handset: its word is the label under it. Give the button the same
+	# words (screen readers, the playtest harness: PT 2026-11-16 found Answer and Decline unnamed).
+	b.tooltip_text = word
+	b.accessibility_name = word
 	col.add_child(b)
 	var l := _label(T_LABEL, INK)
 	l.text = word.substr(0, 1) + word.substr(1).to_lower()  # "Odbierz", as a phone writes it
