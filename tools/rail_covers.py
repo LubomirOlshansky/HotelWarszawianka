@@ -31,7 +31,7 @@ Idempotent and stamp-guarded like road_profiles.
     python3 -I tools/rail_covers.py --sweep [MAP_DIR]     every road deck group: its air over the grid and
                                                           the widest gap between its pieces (the list for F)
 
-tools/bake_osm.py runs `apply` first among the post-passes. Re-run tools/bake_sectors.py and bake_city.gd after it.
+tools/bake_osm.py runs `apply` after road_profiles. Re-run tools/bake_sectors.py and bake_city.gd after it.
 """
 import hashlib
 import json
@@ -41,7 +41,7 @@ import sys
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 KEY = "rail_covers"
-VERSION = 3
+VERSION = 7
 
 # One entry a place. "group" is the deck group (`decks.pieces[].g`, `dk` on the things on it).
 COVERS = [
@@ -50,6 +50,8 @@ COVERS = [
 ]
 
 APRON_NEAR = 10.0    # an apron this near a removed deck's end goes with it
+APRON = 10.0         # a slab end's apron reaches this far onto the street (bake_structures.APRON)...
+APRON_IN = 4.0       # ...from this far inside the end (bake_structures.APRON_IN)
 KEYS_ON_DECK = ("roads", "paths", "trams", "kerbs", "medians", "guards", "symbols", "markings", "surfaces",
                 "carriage", "lines", "fills")
 
@@ -68,16 +70,73 @@ def _group_pieces(out, group):
 
 
 def _slab(out, c, pieces):
-    """One deck from mouth to mouth: each piece joins its neighbours up to c["join"] m apart."""
-    for p in pieces:
-        p["j"] = c["join"]
+    """One deck from mouth to mouth: each piece widened half way across the gap to its neighbour on
+    a side where one lies within c["join"] m (that side no longer outer: no parapet), and marked a
+    street's slab (`st`: paved top, map_builder.gd)."""
+    widen = [_gaps_lr(p, pieces, c["join"]) for p in pieces]
+    for p, (gl, gr) in zip(pieces, widen):
+        for side, gap, bit in (("l", gl, 1), ("r", gr, 2)):
+            if gap > 0.0:
+                p[side] = round(p[side] + gap * 0.5 + 0.15, 2)
+                p["o"] = [o & ~bit for o in p["o"]]
+        p["st"] = 1
     # The mapped guard rails along each carriageway made every way read as a bridge of its own; on
     # the street over the tunnel there are kerbs only (they stay). The parapets on the slab's two
     # outer edges, over the cutting's mouths, are the deck's own (map_builder.gd) and stay.
     guards = out.get("guards", [])
     keep = [q for q in guards if q.get("dk", -1) != c["group"]]
     out["guards"] = keep
-    return {"pieces": len(pieces), "join": c["join"], "guards": len(guards) - len(keep)}
+    n_guards = len(guards) - len(keep)
+    # The same for the bridge railings in `lines` (object_types' hazard "deck": the tram corridor's
+    # railings, a guard rail and a deck railing across the slab): a street over a tunnel has none, and
+    # with them the tram tracks read as a fenced stop on a bridge (F, 2026-11-16).
+    pts = [q for p in pieces for q in _pairs(p["p"])]
+    pad = max(max(p.get("l", 0), p.get("r", 0)) for p in pieces)
+    x0, x1 = min(q[0] for q in pts) - pad, max(q[0] for q in pts) + pad
+    z0, z1 = min(q[1] for q in pts) - pad, max(q[1] for q in pts) + pad
+    lines = out.get("lines", [])
+    keep = [q for q in lines if not (q.get("hz") == "deck" and all(
+        x0 <= x <= x1 and z0 <= z <= z1 for x, z in _pairs(q["p"])))]
+    out["lines"] = keep
+    # The slab's ends meet the street on the ground; the widened bands reach past the approaches'
+    # corridors, where the cutting's bank dug a notch under the slab's edge and a car beside the
+    # carriageway dropped under it (check_drive "under"). An apron per free end, as wide as the
+    # widened piece (bake_structures.place_aprons' layout), holds the ground at the end's height
+    # and keeps the bank out (map_builder.gd `_near_apron`).
+    aprons = [a for a in out.get("aprons", []) if a.get("rc") != c["id"]]
+    n_aprons = 0
+    for p in pieces:
+        pp = _pairs(p["p"])
+        if len(pp) < 2:
+            continue
+        for end in (0, -1):
+            ex, ez = pp[end]
+            nx, nz = pp[1] if end == 0 else pp[-2]
+            L = math.hypot(ex - nx, ez - nz) or 1.0
+            ux, uz = (ex - nx) / L, (ez - nz) / L          # outward
+            if _held((ex + ux * 1.0, ez + uz * 1.0), pieces, p):
+                continue                                    # a joint with the next piece
+            l, r = (p["r"], p["l"]) if end == 0 else (p["l"], p["r"])
+            aprons.append({"p": [round(ex - ux * APRON_IN, 2), round(ez - uz * APRON_IN, 2),
+                                 round(ex + ux * APRON, 2), round(ez + uz * APRON, 2)],
+                           "h": round(float(p["h"][end]), 2), "l": round(l, 2), "r": round(r, 2),
+                           "i": APRON_IN, "rc": c["id"]})
+            n_aprons += 1
+    out["aprons"] = aprons
+    # Street objects the widened slab now covers (object_audit P6 "under a deck"): object_fixes
+    # removes them on a fresh bake, after this pass; on a baked map it is stamped, so they go here.
+    sys.path.insert(0, TOOLS)
+    import object_audit as oa
+    gone = {}
+    for rule, key, idx, kind, x, z, note in oa.audit(out, []):
+        if rule == "P6" and x0 <= x <= x1 and z0 <= z <= z1 and key in oa.STRIDE:
+            gone.setdefault(key, set()).add(idx)
+    for key, ids in gone.items():
+        st, lst = oa.STRIDE[key], out.get(key, [])
+        out[key] = [v for i in range(0, len(lst) - st + 1, st) if i // st not in ids for v in lst[i:i + st]]
+    return {"pieces": len(pieces), "widened": [list(w) for w in widen], "guards": n_guards,
+            "railings": len(lines) - len(keep), "aprons": n_aprons,
+            "under": sum(len(v) for v in gone.values())}
 
 
 def _undeck(out, c, pieces):
@@ -109,11 +168,11 @@ def _undeck(out, c, pieces):
     # The deck's own level, smooth along each way, becomes the ground's there (a ground profile, "s"
     # fill, map_builder.gd `_fill_base`): the 10 m grid's bumps stood through the asphalt in pale
     # wedges where a road that used to ride the deck now lay on the ground.
-    out["fills"] = [f for f in out["fills"] if f.get("rp") != "cover_" + c["id"]]
+    out["fills"] = [f for f in out["fills"] if f.get("rc") != c["id"]]
     for p in pieces:
         out["fills"].append({"p": list(p["p"]), "h": list(p["h"]), "l": p["l"], "r": p["r"],
                              "k": p["k"] if p["k"] in ("road", "path", "tram") else "path", "s": 1,
-                             "rp": "cover_" + c["id"]})
+                             "rc": c["id"]})  # not "rp": road_profiles counts every "rp" fill as its own
     edges = 0
     for e in out["graph"]["edges"]:
         # the lane graph's edges carry the deck group they drive on (`dk`, lane_graph.gd `e_dk`): a
@@ -217,9 +276,45 @@ def check(out, map_dir=None):
         pieces = _group_pieces(out, c["group"])
         if c["kind"] == "dedeck" and pieces:
             bad.append("%s: deck group %d still on the map" % (c["id"], c["group"]))
-        if c["kind"] == "slab" and any(p.get("j") != c["join"] for p in pieces):
+        if c["kind"] == "slab" and any(p.get("st") != 1 for p in pieces):
             bad.append("%s: deck group %d is not one slab" % (c["id"], c["group"]))
     return bad
+
+
+def _held(q, ps, skip):
+    for b in ps:
+        if b is skip:
+            continue
+        w = max(b.get("l", 0), b.get("r", 0))
+        for i in range(0, len(b["p"]) - 3, 2):
+            q0, q1 = (b["p"][i], b["p"][i + 1]), (b["p"][i + 2], b["p"][i + 3])
+            dx, dz = q1[0] - q0[0], q1[1] - q0[1]
+            L2 = dx * dx + dz * dz
+            if L2 < 1e-6:
+                continue
+            u = ((q[0] - q0[0]) * dx + (q[1] - q0[1]) * dz) / L2
+            if -0.02 <= u <= 1.02 and math.hypot(q[0] - q0[0] - u * dx, q[1] - q0[1] - u * dz) <= w:
+                return True
+    return False
+
+
+def _gaps_lr(a, ps, reach):
+    """Piece a's widest gap (m, 0.5 m steps) to another piece of `ps` on its left and on its right, over
+    its inner points, counting only gaps up to `reach` (0.0: none)."""
+    pts = _pairs(a["p"])
+    out = [0.0, 0.0]
+    for i in range(1, len(pts) - 1):
+        q, p0, p1 = pts[i], pts[i - 1], pts[i + 1]
+        L = math.hypot(p1[0] - p0[0], p1[1] - p0[1]) or 1.0
+        n = (-(p1[1] - p0[1]) / L, (p1[0] - p0[0]) / L)
+        for k, (sgn, w) in enumerate(((-1.0, a.get("l", 0)), (1.0, a.get("r", 0)))):
+            t = 0.5
+            while t <= reach:
+                if _held((q[0] + n[0] * sgn * (w + t), q[1] + n[1] * sgn * (w + t)), ps, a):
+                    out[k] = max(out[k], t)
+                    break
+                t += 0.5
+    return tuple(out)
 
 
 def _side_gaps(a, ps):

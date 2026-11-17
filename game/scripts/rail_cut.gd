@@ -34,7 +34,7 @@ const WALL_FLAT := 1.6       ## behind a wall's face the floor runs on this far 
 const WALL_W := 3.0          ## ... then the ground climbs to the rim by here, all under the wall's top
 const SUB_WALL := 10         ## the drawn ground's sub-cells by a wall (1 m: the step stays behind its face)
 ## Walled whatever the bank's width: the approach to the cross-city tunnel's west mouth.
-const WALLED: Array[Vector2] = [Vector2(-1964.0, 812.0)]
+const WALLED: Array[Vector2] = [Vector2(-1953.5, 806.0)]
 const WALLED_R := 150.0
 const SUB := 5               ## the drawn ground's sub-cells a 10 m cell (2 m) over the cutting
 

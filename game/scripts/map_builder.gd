@@ -1055,9 +1055,26 @@ func _fill_height(x: float, z: float) -> float:
 func _over_tunnel(x: float, z: float) -> bool:
 	var p := Vector2(x, z)
 	for t: Array in _tunnel_polys:
-		if (t[0] as Rect2).has_point(p) and Geometry2D.is_point_in_polygon(p, t[1]):
+		if not (t[0] as Rect2).has_point(p) or not Geometry2D.is_point_in_polygon(p, t[1]):
+			continue
+		# Within TUNNEL_CAP of the line the rails are cut on, the cutting runs on: the mouth's floor
+		# and the end wall stand there (the rails' own trimmed ends lie on the line).
+		var poly: PackedVector2Array = t[1]
+		var near := false
+		for i in poly.size():
+			var a := poly[i]
+			var b := poly[(i + 1) % poly.size()]
+			if Geometry2D.get_closest_point_to_segment(p, a, b).distance_to(p) < TUNNEL_CAP:
+				near = true
+				break
+		if not near:
 			return true
 	return false
+
+
+## How far into a tunnel's polygon the cutting still shapes the ground (the mouth is 3.5 m deep,
+## rail_cut.gd's floor reaches FLOOR_W past a track's end, then its end wall).
+const TUNNEL_CAP := 6.0
 
 
 ## [box, polygon] a tunnel, made when the builder is made (read from the streamer's thread too).
@@ -1968,14 +1985,17 @@ func _load_decks() -> void:
 			box = box.expand(q)
 		var reach := maxf(float(piece["l"]), float(piece["r"])) + 1.0
 		var hs := PackedFloat32Array(piece["h"])
-		if String(piece["k"]) == "path":
+		# A street's slab over a short tunnel (`st`) keeps the bake's level: its footways are the
+		# street's pavement, not a footbridge held clear of the catenary (Plac Zawiszy, F 2026-11-16:
+		# they stood 0.5 m proud of the slab between the tram and the carriageways).
+		if String(piece["k"]) == "path" and int(piece.get("st", 0)) != 1:
 			_lift_sagging_deck(pts, cum, hs)
 			_lift_rail_footbridge(pts, cum, hs)
 		_decks.append({"pts": pts, "cum": cum, "h": hs, "l": float(piece["l"]),
 				"r": float(piece["r"]), "g": int(piece["g"]), "k": String(piece["k"]),
 				"o": PackedByteArray(piece.get("o", [])), "box": box.grow(reach),
 				"rail": String(piece.get("rail", "")), "lp": PackedFloat32Array(piece.get("lp", [])),
-				"j": float(piece.get("j", DECK_JOIN))})
+				"st": int(piece.get("st", 0)) == 1})
 
 
 # --- sunken places ---------------------------------------------------------------------------
@@ -8008,8 +8028,6 @@ static func _box_of_pts(pts: PackedVector2Array) -> Rect2:
 ## (Most Poniatowskiego). Up to DECK_JOIN apart, the slabs now meet half way across the gap, the
 ## parapets there go and a low kerb marks each piece's edge (the car still can't cross it: the
 ## parapet's collider stays where there is a drop under it).
-## A piece may carry its own reach (`j`, tools/rail_covers.py): the slab over a short rail tunnel
-## (Plac Zawiszy, F 2026-11-16) is one deck from mouth to mouth, its pieces up to 8 m apart.
 const DECK_JOIN := 6.0
 ## A deck with its own steel railing (`rail`, tools/port_bridge.py: Port Czerniakowski's
 ## footbridge, green bars in the Mapillary photos): the railing's height and the bars' spacing.
@@ -8039,7 +8057,7 @@ func _deck_gaps(di: int) -> PackedVector2Array:
 			var sgn := -1.0 if side == 0 else 1.0
 			var edge := float(d["l"]) if side == 0 else float(d["r"])
 			var t := 0.5
-			while t <= float(d.get("j", DECK_JOIN)):
+			while t <= DECK_JOIN:
 				if _other_piece_at(di, g, pts[i] + right * sgn * (edge + t)):
 					if side == 0:
 						gap.x = t
@@ -8120,7 +8138,10 @@ func _build_bridge_structures(st) -> void:
 			var ar := a + right * ro
 			var br := b + right * ro
 			# Slab top (shows between the pieces) and underside.
-			_quad(st, Vector3(al.x, ya, al.y), Vector3(bl.x, yb, bl.y), Vector3(br.x, yb, br.y), Vector3(ar.x, ya, ar.y), Vector3.UP, concrete.darkened(0.15))
+			# A street's slab over a short rail tunnel (`st`, tools/rail_covers.py: Plac Zawiszy): its
+			# top between the ways is the street's paving, not a bridge's bare concrete.
+			var top_col: Color = COL["plaza"] if d.get("st", false) else concrete.darkened(0.15)
+			_quad(st, Vector3(al.x, ya, al.y), Vector3(bl.x, yb, bl.y), Vector3(br.x, yb, br.y), Vector3(ar.x, ya, ar.y), Vector3.UP, top_col)
 			_quad(st, Vector3(al.x, ya - 1.3, al.y), Vector3(bl.x, yb - 1.3, bl.y), Vector3(br.x, yb - 1.3, br.y), Vector3(ar.x, ya - 1.3, ar.y), Vector3.DOWN, concrete.darkened(0.3))
 			for side in [-1.0, 1.0]:
 				var is_outer := bool(bits & (1 if side < 0.0 else 2))
