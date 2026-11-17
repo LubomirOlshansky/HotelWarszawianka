@@ -315,7 +315,8 @@
   "foot_privacy": "Privacy",
   "foot_support": "Support",
   "foot_note": "Map:",
-  "foot_parody": "Every brand in the game is a parody."
+  "foot_parody": "Every brand in the game is a parody.",
+  "and_privacy": "Your email is used only to tell you when the Android beta opens, then deleted. <a href=\"/privacy/\">Privacy</a>."
  },
  "pl": {
   "lang": "pl",
@@ -406,6 +407,7 @@
   "foot_privacy": "Prywatność",
   "foot_support": "Pomoc",
   "foot_note": "Mapa:",
-  "foot_parody": "Wszystkie marki w grze to parodie."
+  "foot_parody": "Wszystkie marki w grze to parodie.",
+  "and_privacy": "E-mail posłuży tylko do tego, by dać znać o otwarciu bety na Androida, potem go usuwam. <a href=\"/privacy/\">Prywatność</a>."
  }
 }

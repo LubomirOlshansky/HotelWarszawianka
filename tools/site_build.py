@@ -25,7 +25,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
 # Copy that carries its own markup (links, separators); everything else is escaped.
-RAW_KEYS = {"f_legal", "radio_lines"}  # the author paragraphs are raw too (a link)
+RAW_KEYS = {"f_legal", "radio_lines", "and_privacy"}  # the author paragraphs are raw too (a link)
 
 # --- A minimal QR encoder (byte mode, error correction M, versions 1-3) for the landing's TestFlight code.
 # Tested by decoding its output with OpenCV's QRCodeDetector.
@@ -383,6 +383,7 @@ def landing(strings: dict, lang: str) -> str:
             f'          <div class="hp" aria-hidden="true"><label for="n-gotcha">Leave empty</label><input id="n-gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>\n'
             f'          <p class="status" role="status" aria-live="polite" data-ok="{values["n_ok"]}" data-fail="{values["f_fail"]}" '
             f'data-need-email="{values["f_need_email"]}" data-bad-email="{values["f_bad_email"]}" data-sending="{values["f_sending"]}"></p>\n'
+            f'          <p class="small">{values["and_privacy"]}</p>\n'
             f'        </form>\n        {vulkan}\n      </div>')
     values["qr_svg"] = qr_svg(GO_IOS_QR, t["qr_alt"])
 
