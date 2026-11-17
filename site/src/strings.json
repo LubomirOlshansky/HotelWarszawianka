@@ -8,7 +8,7 @@
   "h": 884
  },
  "join_bg": {
-  "img": "palace-night",
+  "img": "palace-night-exp",
   "w": 1920,
   "h": 884
  },
@@ -59,7 +59,7 @@
   },
   {
    "id": "wisla",
-   "img": "heli-vistula-day",
+   "img": "wisla-heli-day",
    "w": 1920,
    "h": 884,
    "side": "left",
@@ -68,13 +68,13 @@
     "name": "Wisła",
     "line": "Fly it, sail it, or cross it at dawn. Drag to change the time; the rain is extra.",
     "where": "Most Poniatowskiego",
-    "alt": "A helicopter above Most Poniatowskiego and the Vistula by day in the game, with a sandbar and a tram on the bridge"
+    "alt": "A helicopter above Most Poniatowskiego and the Vistula by day in the game, with a sandbar and the bridge's red steel spans"
    },
    "pl": {
     "name": "Wisła",
     "line": "Przeleć nad nią, przepłyń ją albo przejedź o świcie. Przeciągnij, żeby zmienić porę; deszcz w gratisie.",
     "where": "Most Poniatowskiego",
-    "alt": "Śmigłowiec nad Mostem Poniatowskiego i Wisłą w dzień, w grze, z łachą i tramwajem na moście"
+    "alt": "Śmigłowiec nad Mostem Poniatowskiego i Wisłą w dzień, w grze, z łachą i czerwonymi przęsłami mostu"
    }
   },
   {
