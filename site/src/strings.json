@@ -5,8 +5,7 @@
   "ver": "1",
   "poster": "rotunda-rain-night",
   "w": 1920,
-  "h": 884,
-  "pos": "64% 42%"
+  "h": 884
  },
  "join_bg": {
   "img": "palace-night",
@@ -25,7 +24,6 @@
    "img": "palace-golden",
    "w": 1920,
    "h": 884,
-   "pos": "50% 50%",
    "side": "left",
    "en": {
     "name": "Centrum",
@@ -45,7 +43,6 @@
    "img": "car-zamek",
    "w": 1920,
    "h": 884,
-   "pos": "50% 50%",
    "side": "right",
    "en": {
     "name": "Stare Miasto",
@@ -65,7 +62,6 @@
    "img": "heli-vistula-day",
    "w": 1920,
    "h": 884,
-   "pos": "50% 50%",
    "side": "left",
    "slider": true,
    "en": {
@@ -86,7 +82,6 @@
    "img": "varso-dusk",
    "w": 1920,
    "h": 912,
-   "pos": "50% 50%",
    "side": "right",
    "en": {
     "name": "Wola",
