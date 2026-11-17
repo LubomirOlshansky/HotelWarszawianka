@@ -37,6 +37,9 @@
   <symbol id="i-telegram" viewBox="0 0 24 24"><path fill="currentColor" d="M21.4 4.2 2.9 11.4c-1.2.5-1.2 1.2-.2 1.5l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.2-15c.3-1.3-.5-1.9-1.4-1.5ZM8.9 14.2l9.4-5.9c.5-.3.9-.1.5.2l-7.8 7.1-.3 3.4-1.8-4.8Z"/></symbol>
   <symbol id="i-linkedin" viewBox="0 0 24 24"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9.75h4v11H3v-11Zm6.5 0h3.8v1.5h.1c.5-1 1.8-1.8 3.7-1.8 4 0 4.7 2.5 4.7 5.8v5.5h-4v-4.9c0-1.2 0-2.7-1.7-2.7s-1.9 1.3-1.9 2.6v5h-4.7v-11Z"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4.5 12h14.5M13.5 6.5 19 12l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></symbol>
+  <symbol id="i-resume" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.2v13.6L19 12z"/></symbol>
+  <symbol id="i-drag" viewBox="0 0 24 24"><path d="M9 6 3.5 12 9 18M15 6l5.5 6L15 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>
 
 <header class="bar">
@@ -44,11 +47,10 @@
     <a class="brand" href="{{home}}" aria-label="{{brand_label}}"><img src="/favicon.svg" alt="" width="28" height="28">Around Warsaw</a>
     <nav aria-label="{{nav_label}}">
       <a class="wide" href="#city">{{nav_city}}</a>
-      <a class="wide" href="#missions">{{nav_missions}}</a>
-      <a class="nav-wiki" href="https://wiki.aroundwarsaw.app">{{nav_wiki}}</a>
+      <a class="wide" href="#quests">{{nav_quests}}</a>
       <a class="wide" href="/progress/">{{nav_progress}}</a>
-      <a class="nav-beta" href="#beta">{{nav_beta}}</a>
       <a class="lang" href="{{other_home}}" hreflang="{{other_lang}}" lang="{{other_lang}}" aria-label="{{other_lang_label}}">{{other_lang_short}}</a>
+      <a class="nav-beta" href="#beta">{{nav_beta}}</a>
     </nav>
   </div>
 </header>
@@ -56,19 +58,22 @@
 <main id="main">
 
 <section class="hero" aria-labelledby="title">
-  <picture class="hero-shot">
-    <source media="(max-width: 700px)" srcset="/img/game/{{hero}}-960.webp">
-    <img src="/img/game/{{hero}}.webp" alt="{{hero_alt}}" width="1920" height="884" fetchpriority="high">
-  </picture>
-  <div class="hero-in"><div class="hero-text">
+  <div class="hero-media">
+    <picture>
+      <source media="(max-width: 700px)" srcset="/img/game/{{hero_poster}}-960.webp">
+      <img src="/img/game/{{hero_poster}}.webp" alt="{{hero_alt}}" width="{{hero_w}}" height="{{hero_h}}" fetchpriority="high">
+    </picture>
+{{hero_video}}
+  </div>
+  <div class="hero-in wrap">
     <h1 id="title">Around<br>Warsaw</h1>
-    <p class="hook">{{hook}}</p>
+    <p class="hook">{{hero_hook}}</p>
     <div class="cta">
-      <a class="btn btn-primary" href="/go/ios">{{cta_beta}}<svg aria-hidden="true"><use href="#i-apple"/></svg></a>
-      <a class="btn btn-ghost" href="#android"><svg aria-hidden="true"><use href="#i-play"/></svg>{{cta_android}}</a>
+{{hero_ctas}}
     </div>
-    <p class="cta-note">{{cta_free}}</p>
-  </div></div>
+    <p class="cta-note">{{cta_note}}</p>
+  </div>
+{{hero_button}}
 </section>
 
 <div class="radio" role="note" aria-label="{{radio_label}}">
@@ -81,101 +86,87 @@
     <h2 id="city-title">{{city_title}}</h2>
     <p class="lede">{{city_lede}}</p>
   </div>
-  <div class="mosaic">
-{{reel}}
-  </div>
-  <figure class="wrap daynight" id="daynight">
-    <div class="dn-stage">
-      <picture><source media="(max-width: 700px)" srcset="/img/game/narodowy-night-960.webp"><img src="/img/game/narodowy-night.webp" alt="{{dn_alt_night}}" width="1920" height="884" loading="lazy" decoding="async"></picture>
-      <picture class="dn-day"><source media="(max-width: 700px)" srcset="/img/game/narodowy-day-960.webp"><img src="/img/game/narodowy-day.webp" alt="{{dn_alt_day}}" width="1920" height="884" loading="lazy" decoding="async"></picture>
-      <input class="dn-range" type="range" min="0" max="100" value="50" aria-label="{{dn_label}}">
+{{chapters}}
+</section>
+
+<section class="quests" id="quests" aria-labelledby="quests-title">
+  <div class="wrap quests-grid">
+    <div class="quests-head">
+      <h2 id="quests-title">{{quests_title}}</h2>
+      <p class="lede">{{quests_lede}}</p>
+      <figure class="quests-frame">
+{{quests_frame}}
+        <figcaption>{{quests_frame_cap}}</figcaption>
+      </figure>
     </div>
-    <figcaption><h3>{{dn_title}}</h3><p>{{dn_line}}</p></figcaption>
-  </figure>
-  <div class="small-pair">
-{{small}}
+    <ul class="rows" tabindex="0" aria-label="{{quests_rows_label}}">
+{{quests_rows}}
+    </ul>
   </div>
 </section>
 
-<section class="missions" id="missions" aria-labelledby="missions-title">
-  <div class="wrap head">
-    <h2 id="missions-title">{{missions_title}}</h2>
-    <p class="lede">{{missions_lede}}</p>
-  </div>
-  <div class="trio">
-{{missions}}
+<section class="grow" id="grow" aria-labelledby="grow-title">
+  <div class="wrap grow-in">
+    <h2 id="grow-title">{{grow_title}}</h2>
+    <p class="lede">{{grow_lede}}</p>
+    <p class="grow-date">{{grow_label}} <time datetime="{{grow_iso}}">{{grow_date}}</time></p>
+    <ul class="grow-list" lang="en">
+{{grow_items}}
+    </ul>
+    <p><a class="more" href="/progress/">{{grow_more}}<svg aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
   </div>
 </section>
 
-<section class="beta" id="beta" aria-labelledby="beta-title">
-  <div class="wrap beta-grid">
-    <div class="beta-intro">
-      <h2 id="beta-title">{{beta_title}}</h2>
-      <p class="lede">{{beta_lede}}</p>
-      <div class="plat">
-        <div class="plat-card" id="ios">
-          <h3><svg aria-hidden="true"><use href="#i-apple"/></svg>{{ios_title}}</h3>
-          <p>{{ios_text}}</p>
-          <a class="btn btn-primary" href="/go/ios">{{ios_btn}}<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
-        </div>
-        <div class="plat-card" id="android">
-          <h3><svg aria-hidden="true"><use href="#i-play"/></svg>{{and_title}}</h3>
-          <p>{{and_text}}</p>
-          <a class="btn btn-ghost" href="/go/android">{{and_btn}}<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+<section class="join" id="beta" aria-labelledby="join-title">
+  <div class="join-bg" aria-hidden="true">
+    <picture><source media="(max-width: 700px)" srcset="/img/game/{{join_img}}-960.webp"><img src="/img/game/{{join_img}}.webp" alt="" width="{{join_w}}" height="{{join_h}}" loading="lazy" decoding="async"></picture>
+  </div>
+  <div class="wrap join-in">
+    <h2 id="join-title">{{join_title}}</h2>
+    <p class="lede">{{join_lede}}</p>
+    <div class="plat">
+      <div class="plat-card" id="ios">
+        <h3><svg aria-hidden="true"><use href="#i-apple"/></svg>{{ios_title}}</h3>
+        <p>{{ios_text}}</p>
+        <a class="btn btn-primary" href="/go/ios">{{ios_btn}}<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+        <div class="qr-box">
+          {{qr_svg}}
+          <p>{{qr_text}}</p>
         </div>
       </div>
+{{android_card}}
     </div>
-
-    <form class="form" id="form" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate>
-      <fieldset class="topics">
-        <legend>{{f_topic}}</legend>
+    <details class="write">
+      <summary>{{feedback_summary}}</summary>
+      <form class="form" id="form" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="message">
+        <fieldset class="topics">
+          <legend>{{f_topic}}</legend>
 {{topics}}
-      </fieldset>
-      <fieldset class="topics platform">
-        <legend>{{f_platform}}</legend>
-        <label><input type="radio" name="platform" value="iPhone"><span>iPhone</span></label>
-        <label><input type="radio" name="platform" value="Android" checked><span>Android</span></label>
-        <label><input type="radio" name="platform" value="—"><span>{{f_platform_none}}</span></label>
-      </fieldset>
-      <div class="field">
-        <label for="email">{{f_email}} <span class="opt" data-opt>{{f_email_opt}}</span></label>
-        <input id="email" name="email" type="email" autocomplete="email" inputmode="email" aria-describedby="email-err">
-        <p class="err" id="email-err" aria-live="polite"></p>
-      </div>
-      <div class="field">
-        <label for="message">{{f_message}} <span class="opt" data-msg-opt>{{f_message_opt}}</span></label>
-        <textarea id="message" name="message" rows="5" maxlength="5000" aria-describedby="message-err"></textarea>
-        <p class="err" id="message-err" aria-live="polite"></p>
-      </div>
-      <input type="hidden" name="source" value="aroundwarsaw.app ({{lang}})">
-      <input type="hidden" name="_subject" id="subject" value="Around Warsaw: {{topic_default}}">
-      <div class="hp" aria-hidden="true"><label for="_gotcha">Leave empty</label><input id="_gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>
-      <button class="btn btn-primary send" type="submit">{{f_send}}<svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
-      <p class="legal">{{f_legal}}</p>
-      <p class="status" id="status" role="status" aria-live="polite" data-ok="{{f_ok}}" data-fail="{{f_fail}}" data-need-email="{{f_need_email}}" data-bad-email="{{f_bad_email}}" data-need-msg="{{f_need_msg}}" data-sending="{{f_sending}}"></p>
-    </form>
-  </div>
-</section>
-
-<section class="open" id="open" aria-labelledby="open-title">
-  <div class="wrap open-grid">
-    <div>
-      <h2 id="open-title">{{open_title}}</h2>
-      <p class="lede">{{open_lede}}</p>
-      <ul class="links open-links">
-        <li><a href="https://wiki.aroundwarsaw.app">{{open_wiki}}</a></li>
-        <li><a href="/progress/">{{open_progress}}<svg aria-hidden="true"><use href="#i-arrow"/></svg></a></li>
-      </ul>
-    </div>
-    <dl class="stack">
-{{open_facts}}
-    </dl>
-  </div>
-  <div class="wrap">
-    <h3 class="tl-title">{{tl_label}}</h3>
-    <ol class="timeline" aria-label="{{tl_label}}">
-{{timeline}}
-    </ol>
+        </fieldset>
+        <fieldset class="topics platform">
+          <legend>{{f_platform}}</legend>
+          <label><input type="radio" name="platform" value="iPhone"><span>iPhone</span></label>
+          <label><input type="radio" name="platform" value="Android"><span>Android</span></label>
+          <label><input type="radio" name="platform" value="—" checked><span>{{f_platform_none}}</span></label>
+        </fieldset>
+        <div class="field">
+          <label for="email">{{f_email}} <span class="opt">{{f_email_opt}}</span></label>
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" aria-describedby="email-err">
+          <p class="err" id="email-err" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="message">{{f_message}}</label>
+          <textarea id="message" name="message" rows="5" maxlength="5000" aria-describedby="message-err"></textarea>
+          <p class="err" id="message-err" aria-live="polite"></p>
+        </div>
+        <input type="hidden" name="source" value="aroundwarsaw.app ({{lang}})">
+        <input type="hidden" name="_subject" id="subject" value="Around Warsaw: {{topic_default}}">
+        <div class="hp" aria-hidden="true"><label for="_gotcha">Leave empty</label><input id="_gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>
+        <button class="btn btn-primary send" type="submit">{{f_send}}<svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        <p class="legal">{{f_legal}}</p>
+        <p class="status" role="status" aria-live="polite" data-ok="{{f_ok}}" data-fail="{{f_fail}}" data-need-email="{{f_need_email}}" data-bad-email="{{f_bad_email}}" data-need-msg="{{f_need_msg}}" data-sending="{{f_sending}}"></p>
+      </form>
+    </details>
   </div>
 </section>
 
@@ -184,6 +175,7 @@
     <h2 id="author-title">{{author_title}}</h2>
     <div class="author-text">
 {{author_body}}
+      <p class="facts">{{author_facts}}</p>
       <ul class="links">
         <li><a href="https://t.me/olshansky93"><svg aria-hidden="true"><use href="#i-telegram"/></svg>Telegram</a></li>
         <li><a href="https://www.linkedin.com/in/lubomir-olshansky/"><svg aria-hidden="true"><use href="#i-linkedin"/></svg>LinkedIn</a></li>
@@ -198,7 +190,6 @@
   <div class="wrap foot-in">
     <p class="foot-brand"><img src="/favicon.svg" alt="" width="22" height="22">Around Warsaw <span>· {{foot_tag}}</span></p>
     <ul>
-      <li><a href="https://wiki.aroundwarsaw.app">{{open_wiki}}</a></li>
       <li><a href="/progress/">{{foot_progress}}</a></li>
       <li><a href="/privacy/">{{foot_privacy}}</a></li>
       <li><a href="/support/">{{foot_support}}</a></li>
@@ -209,5 +200,10 @@
     <p class="foot-note">{{foot_note}} <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a> (ODbL) · <a href="https://www.geoportal.gov.pl/">GUGiK</a>. {{foot_parody}}</p>
   </div>
 </footer>
+
+<div class="stk" hidden>
+  <p>{{sticky_text}}</p>
+{{sticky_buttons}}
+</div>
 </body>
 </html>

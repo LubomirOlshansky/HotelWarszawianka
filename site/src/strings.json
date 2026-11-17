@@ -1,413 +1,416 @@
 {
-  "hero": "rotunda-rain-night",
-  "reel": [
-    {
-      "img": "palace-golden",
-      "w": 1920,
-      "h": 884,
-      "span": "lead",
-      "en": [
-        "The Palace of Culture at golden hour",
-        "Plac Defilad from above: the Palace, the new white Museum of Modern Art, the theatre's building site and Złote Tarasy.",
-        "The Palace of Culture at golden hour in the game, seen from above, with the white Museum of Modern Art, a building site with a crane, the glass domes of Złote Tarasy and the towers of Śródmieście"
-      ],
-      "pl": [
-        "Pałac Kultury o złotej godzinie",
-        "Plac Defilad z góry: Pałac, nowe białe Muzeum Sztuki Nowoczesnej, plac budowy teatru i Złote Tarasy.",
-        "Pałac Kultury o złotej godzinie w grze, z góry, z białym Muzeum Sztuki Nowoczesnej, placem budowy z dźwigiem, szklanymi kopułami Złotych Tarasów i wieżowcami Śródmieścia"
-      ]
-    }
-  ],
-  "topics": {
-    "en": [
-      [
-        "Beta invite",
-        "Beta invite"
-      ],
-      [
-        "Feedback",
-        "Feedback"
-      ],
-      [
-        "Something broke",
-        "Something broke"
-      ],
-      [
-        "Idea",
-        "An idea"
-      ]
-    ],
-    "pl": [
-      [
-        "Beta invite",
-        "Zaproszenie do bety"
-      ],
-      [
-        "Feedback",
-        "Opinia"
-      ],
-      [
-        "Something broke",
-        "Coś nie działa"
-      ],
-      [
-        "Idea",
-        "Pomysł"
-      ]
-    ]
+ "android_live": false,
+ "android_url": "/go/android",
+ "hero_video": {
+  "ver": "1",
+  "poster": "rotunda-rain-night",
+  "w": 1920,
+  "h": 884,
+  "pos": "64% 42%"
+ },
+ "join_bg": {
+  "img": "palace-night",
+  "w": 1920,
+  "h": 884
+ },
+ "dn": {
+  "night": "narodowy-night",
+  "day": "narodowy-day",
+  "w": 1920,
+  "h": 884
+ },
+ "chapters": [
+  {
+   "id": "centrum",
+   "img": "palace-golden",
+   "w": 1920,
+   "h": 884,
+   "pos": "50% 50%",
+   "side": "left",
+   "en": {
+    "name": "Centrum",
+    "line": "The Palace, the Rotunda, Marszałkowska. Traffic included, as always.",
+    "where": "Plac Defilad",
+    "alt": "The Palace of Culture at golden hour in the game, seen from above, with the white Museum of Modern Art, a crane, the glass domes of Złote Tarasy and the towers of Śródmieście"
+   },
+   "pl": {
+    "name": "Centrum",
+    "line": "Pałac, Rotunda, Marszałkowska. Korek w komplecie, jak zawsze.",
+    "where": "Plac Defilad",
+    "alt": "Pałac Kultury o złotej godzinie w grze, z góry, z białym Muzeum Sztuki Nowoczesnej, dźwigiem, szklanymi kopułami Złotych Tarasów i wieżowcami Śródmieścia"
+   }
   },
-  "en": {
-    "lang": "en",
-    "path": "/",
-    "home": "/",
-    "og_locale": "en_GB",
-    "other_lang": "pl",
-    "other_home": "/pl/",
-    "other_lang_short": "PL",
-    "other_lang_name": "Po polsku",
-    "other_lang_label": "Polska wersja",
-    "title": "Around Warsaw · a small-car game about living in Warsaw",
-    "description": "An arcade game for iPhone and Android, set in the real centre of Warsaw: drive a small car through kebab runs, rescues and city lore. Free beta, join on TestFlight or request Android access.",
-    "skip": "Skip to content",
-    "brand_label": "Around Warsaw, home",
-    "nav_label": "Main",
-    "nav_city": "The city",
-    "nav_beta": "Beta",
-    "hero_alt": "Rondo Dmowskiego in the rain at night in the game: the glowing Rotunda, headlights on wet tarmac and a kebab neon",
-    "cta_beta": "Join on TestFlight",
-    "cta_free": "Free, no ads. The beta is open for iPhone and Android.",
-    "radio_label": "On the car radio",
-    "radio_lines": "Traffic on Marszałkowska: yes, as always <i>·</i> The Palace clock is right, we checked <i>·</i> Pigeons on Plac Defilad report no delays <i>·</i> Seba from Praga is warming up the engine <i>·</i> Next on Mordor FM: Monday <i>·</i> The roadworks continue. You keep driving <i>·</i>",
-    "city_title": "The real centre of Warsaw",
-    "city_lede": "About 21 km² from Arkadia to Stadion Narodowy, built from open map data.",
-    "beta_title": "Join the beta",
-    "beta_lede": "The beta is free. On iPhone you can join right now. On Android I add each tester by hand, so send me the email of your Google account and I'll let you in.",
-    "beta_ios": "iPhone: an invite to TestFlight, Apple's app for betas.",
-    "beta_android": "Android: an invite to the test on Google Play. The phone needs Vulkan.",
-    "f_topic": "What is it about?",
-    "f_platform": "Your phone",
-    "f_platform_none": "Doesn't matter",
-    "f_email": "Email",
-    "f_email_opt": "your Google Play email, for the invite",
-    "f_message": "Message",
-    "f_message_opt": "optional for an invite",
-    "f_send": "Send",
-    "f_legal": "Sent through Formspree straight to the developer. Your email is used only for the invite or a reply. <a href=\"/privacy/\">Privacy</a>.",
-    "f_ok": "Thanks! It's on its way.",
-    "f_fail": "That didn't go through. Try again, or write on Telegram.",
-    "f_need_email": "Add your email so the invite has somewhere to go.",
-    "f_bad_email": "That email doesn't look right.",
-    "f_need_msg": "Write a few words first.",
-    "f_sending": "Sending…",
-    "topic_default": "Beta invite",
-    "foot_tag": "a fan game about Warsaw",
-    "foot_progress": "Progress",
-    "foot_privacy": "Privacy",
-    "foot_support": "Support",
-    "foot_credits": "Credits",
-    "foot_note": "Map:",
-    "foot_parody": "Every brand in the game is a parody.",
-    "nav_missions": "Missions",
-    "nav_open": "How it's made",
-    "tag_open": "How it's made",
-    "hook": "Drive a small car through the real centre of Warsaw: kebab runs at 3 a.m., rescues, and a notebook of 72 real places. A free game for iPhone and Android.",
-    "missions_title": "Missions with a Warsaw accent",
-    "missions_lede": "Real addresses, and the city talks back in Polish and English.",
-    "open_title": "How it's made",
-    "open_lede": "Around Warsaw is a free fan game made in public. Browse the design wiki or follow what changed each day.",
-    "author_title": "About the author",
-    "open_wiki": "Design wiki",
-    "open_backlog": "Backlog",
-    "open_progress": "Daily progress",
-    "dn_title": "Stadion Narodowy, day and night",
-    "dn_line": "Drag to change the time. Same spot, same river, different city.",
-    "dn_label": "Time of day: drag to switch between day and night",
-    "dn_alt_day": "Stadion Narodowy by day in the game, with Most Poniatowskiego and the Vistula",
-    "dn_alt_night": "Stadion Narodowy at night in the game, the bridge lamps reflected in the Vistula",
-    "tl_label": "How it grew so far",
-    "nav_wiki": "Wiki",
-    "nav_progress": "Progress",
-    "cta_ios": "iPhone: join on TestFlight",
-    "cta_android": "Android: request access",
-    "ios_title": "iPhone",
-    "ios_text": "Open the link on your iPhone and install TestFlight, Apple's app for betas. No request needed.",
-    "ios_btn": "Join on TestFlight",
-    "and_title": "Android",
-    "and_text": "Fill in the form with the email of your Google Play account. Once I've added you, you get the Play link below. The phone needs Vulkan.",
-    "and_btn": "Already added? Open on Google Play"
+  {
+   "id": "stare-miasto",
+   "img": "car-zamek",
+   "w": 1920,
+   "h": 884,
+   "pos": "50% 50%",
+   "side": "right",
+   "en": {
+    "name": "Stare Miasto",
+    "line": "Sigismund's Column, the Castle, cobbles. Mind where you park: the city guards do.",
+    "where": "Plac Zamkowy",
+    "alt": "A small red car on Plac Zamkowy near Sigismund's Column and the Royal Castle in the game"
+   },
+   "pl": {
+    "name": "Stare Miasto",
+    "line": "Kolumna Zygmunta, Zamek, kocie łby. Uważaj, gdzie parkujesz: straż miejska patrzy.",
+    "where": "Plac Zamkowy",
+    "alt": "Małe czerwone auto na placu Zamkowym przy Kolumnie Zygmunta i Zamku Królewskim w grze"
+   }
   },
-  "pl": {
-    "lang": "pl",
-    "path": "/pl/",
-    "home": "/pl/",
-    "og_locale": "pl_PL",
-    "other_lang": "en",
-    "other_home": "/",
-    "other_lang_short": "EN",
-    "other_lang_name": "In English",
-    "other_lang_label": "English version",
-    "title": "Around Warsaw · gra z małym autem o życiu w Warszawie",
-    "description": "Gra zręcznościowa na iPhone'a i Androida w prawdziwym centrum Warszawy: małe auto, kebab o trzeciej, ratunek i miejska historia. Darmowa beta: TestFlight albo prośba o dostęp na Androida.",
-    "skip": "Przejdź do treści",
-    "brand_label": "Around Warsaw, strona główna",
-    "nav_label": "Menu",
-    "nav_city": "Miasto",
-    "nav_beta": "Beta",
-    "hero_alt": "Rondo Dmowskiego w deszczu nocą w grze: świecąca Rotunda, reflektory na mokrym asfalcie i neon kebaba",
-    "cta_beta": "Dołącz przez TestFlight",
-    "cta_free": "Za darmo, bez reklam. Beta jest otwarta na iPhone'a i Androida.",
-    "radio_label": "W radiu w aucie",
-    "radio_lines": "Na Marszałkowskiej korek. Tak, jak zawsze <i>·</i> Zegar na Pałacu chodzi dobrze, sprawdzaliśmy <i>·</i> Gołębie z placu Defilad nie zgłaszają opóźnień <i>·</i> Seba z Pragi grzeje silnik <i>·</i> Za chwilę w Mordor FM: poniedziałek <i>·</i> Remont trwa. Ty jedź <i>·</i>",
-    "city_title": "Prawdziwe centrum Warszawy",
-    "city_lede": "Około 21 km² od Arkadii po Stadion Narodowy, z otwartych danych map.",
-    "beta_title": "Dołącz do bety",
-    "beta_lede": "Beta jest darmowa. Na iPhonie możesz dołączyć od razu. Na Androida dodaję testerów ręcznie, więc podaj e-mail swojego konta Google, a Cię wpuszczę.",
-    "beta_ios": "iPhone: zaproszenie do TestFlight, aplikacji Apple do bet.",
-    "beta_android": "Android: zaproszenie do testu w Google Play. Telefon musi mieć Vulkan.",
-    "f_topic": "W jakiej sprawie?",
-    "f_platform": "Twój telefon",
-    "f_platform_none": "Obojętnie",
-    "f_email": "E-mail",
-    "f_email_opt": "e-mail konta Google Play, do zaproszenia",
-    "f_message": "Wiadomość",
-    "f_message_opt": "opcjonalna przy zaproszeniu",
-    "f_send": "Wyślij",
-    "f_legal": "Wysyłane przez Formspree prosto do autora. E-mail służy tylko do zaproszenia albo odpowiedzi. <a href=\"/privacy/\">Prywatność</a>.",
-    "f_ok": "Dzięki! Już leci.",
-    "f_fail": "Nie udało się wysłać. Spróbuj jeszcze raz albo napisz na Telegramie.",
-    "f_need_email": "Dodaj e-mail, żeby zaproszenie miało dokąd trafić.",
-    "f_bad_email": "Ten e-mail wygląda na niepoprawny.",
-    "f_need_msg": "Napisz najpierw kilka słów.",
-    "f_sending": "Wysyłam…",
-    "topic_default": "Beta invite",
-    "foot_tag": "fanowska gra o Warszawie",
-    "foot_progress": "Postępy",
-    "foot_privacy": "Prywatność",
-    "foot_support": "Pomoc",
-    "foot_credits": "Autorzy",
-    "foot_note": "Mapa:",
-    "foot_parody": "Wszystkie marki w grze to parodie.",
-    "nav_missions": "Misje",
-    "nav_open": "Jak powstaje",
-    "tag_open": "Jak powstaje",
-    "hook": "Jeździsz małym autem po prawdziwym centrum Warszawy: kebab o trzeciej, ratunek i zeszyt 72 prawdziwych miejsc. Darmowa gra na iPhone'a i Androida.",
-    "missions_title": "Misje z warszawskim akcentem",
-    "missions_lede": "Prawdziwe adresy, a miasto odpowiada po polsku i angielsku.",
-    "open_title": "Jak powstaje",
-    "open_lede": "Around Warsaw to darmowa gra fanowska robiona publicznie. Zajrzyj do wiki projektowej albo zobacz, co zmieniło się każdego dnia.",
-    "author_title": "O autorze",
-    "open_wiki": "Wiki projektowa",
-    "open_backlog": "Lista zadań",
-    "open_progress": "Postępy dzień po dniu",
-    "dn_title": "Stadion Narodowy, dzień i noc",
-    "dn_line": "Przeciągnij, żeby zmienić porę. To samo miejsce, ta sama rzeka, inne miasto.",
-    "dn_label": "Pora dnia: przeciągnij, żeby przełączyć dzień i noc",
-    "dn_alt_day": "Stadion Narodowy w dzień w grze, z Mostem Poniatowskiego i Wisłą",
-    "dn_alt_night": "Stadion Narodowy nocą w grze, latarnie mostu odbite w Wiśle",
-    "tl_label": "Jak rosło dotąd",
-    "nav_wiki": "Wiki",
-    "nav_progress": "Postępy",
-    "cta_ios": "iPhone: dołącz przez TestFlight",
-    "cta_android": "Android: poproś o dostęp",
-    "ios_title": "iPhone",
-    "ios_text": "Otwórz link na iPhonie i zainstaluj TestFlight, aplikację Apple do bet. Nie trzeba o nic prosić.",
-    "ios_btn": "Dołącz przez TestFlight",
-    "and_title": "Android",
-    "and_text": "Wypełnij formularz, podając e-mail konta Google Play. Gdy Cię dodam, wejdziesz przez link do Google Play poniżej. Telefon musi mieć Vulkan.",
-    "and_btn": "Już dodany? Otwórz w Google Play"
+  {
+   "id": "wisla",
+   "img": "heli-vistula-day",
+   "w": 1920,
+   "h": 884,
+   "pos": "50% 50%",
+   "side": "left",
+   "slider": true,
+   "en": {
+    "name": "Wisła",
+    "line": "Fly it, sail it, or cross it at dawn. Drag to change the time; the rain is extra.",
+    "where": "Most Poniatowskiego",
+    "alt": "A helicopter above Most Poniatowskiego and the Vistula by day in the game, with a sandbar and a tram on the bridge"
+   },
+   "pl": {
+    "name": "Wisła",
+    "line": "Przeleć nad nią, przepłyń ją albo przejedź o świcie. Przeciągnij, żeby zmienić porę; deszcz w gratisie.",
+    "where": "Most Poniatowskiego",
+    "alt": "Śmigłowiec nad Mostem Poniatowskiego i Wisłą w dzień, w grze, z łachą i tramwajem na moście"
+   }
   },
-  "missions": [
-    {
-      "img": "m-courier-race",
-      "en": [
-        "Kebab at 3 a.m.",
-        "Deliver to a real address before it goes cold. A bike courier may race you.",
-        "A night kebab delivery in the game, with a courier racing the player"
-      ],
-      "pl": [
-        "Kebab o trzeciej",
-        "Dowieź pod prawdziwy adres, zanim wystygnie. Kurier na rowerze może się ścigać.",
-        "Nocna dostawa kebaba w grze, kurier na rowerze ściga gracza"
-      ]
-    },
-    {
-      "img": "m-escort",
-      "en": [
-        "Rescue calls",
-        "Pick someone up from a roof or a sandbar and race to a real hospital.",
-        "A rescue in the game: a car with a patient heads for the hospital"
-      ],
-      "pl": [
-        "Wezwania ratunkowe",
-        "Zabierz kogoś z dachu albo łachy i zdąż do prawdziwego szpitala.",
-        "Akcja ratunkowa w grze: auto wiezie pacjenta do szpitala"
-      ]
-    },
-    {
-      "img": "lore-notebook",
-      "en": [
-        "72 places in a notebook",
-        "Find a place, and the game writes down a true fact and a local joke.",
-        "The MOJA WARSZAWA notebook open in the game"
-      ],
-      "pl": [
-        "72 miejsca w zeszycie",
-        "Znajdź miejsce, a gra zapisze prawdziwą ciekawostkę i lokalny żart.",
-        "Zeszyt MOJA WARSZAWA otwarty w grze"
-      ]
-    }
-  ],
-  "author": {
-    "en": [
-      "Hi, I'm Lubomir Olshansky. By day I build iOS and Kotlin Multiplatform apps at a bank in Poland, and I've lived in Warsaw for twelve years.",
-      "As a kid I dreamed of a game set in the city I live in. When I saw <a href=\"https://bedirhanyildirim.com/pixel-art-map-of-warsaw/\">Isometric Warsaw</a> and what generative AI makes possible, it finally looked doable. I want it to hold what living here is like, not just the map."
-    ],
-    "pl": [
-      "Cześć, jestem Lubomir Olshansky. Na co dzień tworzę aplikacje na iOS i w Kotlin Multiplatform w banku w Polsce, a w Warszawie mieszkam od dwunastu lat.",
-      "Jako dziecko marzyłem o grze w mieście, w którym mieszkam. Gdy zobaczyłem <a href=\"https://bedirhanyildirim.com/pixel-art-map-of-warsaw/\">Isometric Warsaw</a> i to, co daje generatywna AI, wreszcie wyglądało to na wykonalne. Chcę, żeby było w niej to, jak się tu żyje, a nie sama mapa."
-    ]
-  },
-  "small": [
-    {
-      "img": "car-zamek",
-      "w": 1920,
-      "h": 884,
-      "en": [
-        "Plac Zamkowy",
-        "A small car by Sigismund's Column, under the Royal Castle.",
-        "A small red car on Plac Zamkowy near Sigismund's Column and the Royal Castle in the game"
-      ],
-      "pl": [
-        "Plac Zamkowy",
-        "Małe auto przy Kolumnie Zygmunta, pod Zamkiem Królewskim.",
-        "Małe czerwone auto na placu Zamkowym przy Kolumnie Zygmunta i Zamku Królewskim w grze"
-      ]
-    },
-    {
-      "img": "heli-palm",
-      "w": 1920,
-      "h": 884,
-      "en": [
-        "The helicopter and the palm",
-        "Hovering over Rondo de Gaulle'a, the most famous palm in town.",
-        "The rescue helicopter hovering over the roundabout with the palm at Rondo de Gaulle'a in the game"
-      ],
-      "pl": [
-        "Helikopter i palma",
-        "W zawisie nad rondem de Gaulle'a, przy najsłynniejszej palmie w mieście.",
-        "Śmigłowiec ratunkowy w zawisie nad rondem de Gaulle'a z palmą w grze"
-      ]
-    }
-  ],
-  "timeline": [
-    [
-      "27 Oct",
-      {
-        "en": "A small car in an isometric centre of Warsaw, built from open map data.",
-        "pl": "Małe auto w izometrycznym centrum Warszawy, zbudowanym z otwartych danych map."
-      }
-    ],
-    [
-      "28 Oct",
-      {
-        "en": "The helicopter, rescue calls, traffic and trams, day and night, the first landmarks.",
-        "pl": "Helikopter, wezwania ratunkowe, ruch i tramwaje, dzień i noc, pierwsze zabytki."
-      }
-    ],
-    [
-      "29 Oct",
-      {
-        "en": "The city streams in pieces; a 20 km² map, the app-taxi job, the first Android build.",
-        "pl": "Miasto ładuje się kawałkami; mapa 20 km², praca w aplikacji taxi, pierwsza wersja na Androida."
-      }
-    ],
-    [
-      "30 Oct",
-      {
-        "en": "The game becomes Around Warsaw. The city notebook, PÓŁNOC FM, 40 more landmarks.",
-        "pl": "Gra staje się Around Warsaw. Zeszyt miasta, PÓŁNOC FM, 40 kolejnych zabytków."
-      }
-    ],
-    [
-      "31 Oct",
-      {
-        "en": "The map grows north, couriers race you at night, a vintage tram and a first garage.",
-        "pl": "Mapa rośnie na północ, kurierzy ścigają Cię nocą, stary tramwaj i pierwszy warsztat."
-      }
-    ],
-    [
-      "1 Nov",
-      {
-        "en": "Parks come alive, the Vistula boulevards fill with people, and churches, Ujazdowski Castle and MDM look like themselves. The Autopilot playtester starts hunting bugs.",
-        "pl": "Parki ożywają, bulwary nad Wisłą wypełniają się ludźmi, a kościoły, Zamek Ujazdowski i MDM wyglądają jak w życiu. Autopilot-playtester zaczyna szukać błędów."
-      }
-    ],
-    [
-      "2 Nov",
-      {
-        "en": "Landmarks start to be built from real photos: Krakowskie Przedmieście, the Warsaw Rising Museum, POLIN, Most Poniatowskiego. The quest list joins the map, and gamepads work.",
-        "pl": "Zabytki powstają ze zdjęć: Krakowskie Przedmieście, Muzeum Powstania Warszawskiego, POLIN, Most Poniatowskiego. Mapa dostaje listę zadań, działają gamepady."
-      }
-    ],
-    [
-      "3 Nov",
-      {
-        "en": "The beta opens: TestFlight for iPhone, Play for Android. A voiced fly-over intro, Arkadia, the Forest towers, Hotel Europejski and the Daszyńskiego skyline, and bar streets that wake up after dark.",
-        "pl": "Rusza beta: TestFlight na iPhone'a, Google Play na Androida. Intro z lektorem, Arkadia, wieże Forest, Hotel Europejski, panorama Daszyńskiego i barowe ulice, które budzą się po zmroku."
-      }
-    ],
-    [
-      "4 Nov",
-      {
-        "en": "Driving by buttons: steering strip and pedals by default. Rival racers drive like real ones, and a city progress console tracks every place.",
-        "pl": "Jazda na przyciskach: pasek skrętu i pedały domyślnie. Rywale ścigają się jak prawdziwi kierowcy, a konsola postępów śledzi każde miejsce w mieście."
-      }
-    ]
-  ],
-  "open_facts": {
-    "en": [
-      [
-        "Licence",
-        "Source-available for non-commercial use (PolyForm Noncommercial for the code, CC BY-NC for the art and sound). The design wiki is public."
-      ],
-      [
-        "Engine",
-        "Godot 4, GDScript, the Mobile renderer. Runs at 60 fps on an iPhone 11."
-      ],
-      [
-        "Map",
-        "OpenStreetMap streets and GUGiK's 3D buildings, terrain and laser-scanned trees."
-      ],
-      [
-        "Built",
-        "Started 27 October 2026, with changes landing every day. 154 ranked places so far; 39 rebuilt from photos, 48 more from outlines."
-      ],
-      [
-        "Privacy",
-        "No ads, no purchases, no tracking. The game works offline."
-      ]
-    ],
-    "pl": [
-      [
-        "Licencja",
-        "Kod dostępny do użytku niekomercyjnego (PolyForm Noncommercial dla kodu, CC BY-NC dla grafiki i dźwięku). Wiki projektowa jest publiczna."
-      ],
-      [
-        "Silnik",
-        "Godot 4, GDScript, renderer Mobile. 60 kl./s na iPhonie 11."
-      ],
-      [
-        "Mapa",
-        "Ulice z OpenStreetMap, budynki 3D, teren i drzewa ze skanu laserowego GUGiK."
-      ],
-      [
-        "Powstaje",
-        "Od 27 października 2026, zmiany codziennie. 154 miejsca na liście; 39 odbudowanych ze zdjęć, 48 kolejnych z obrysów."
-      ],
-      [
-        "Prywatność",
-        "Bez reklam, zakupów i śledzenia. Gra działa bez internetu."
-      ]
-    ]
+  {
+   "id": "wola",
+   "img": "varso-dusk",
+   "w": 1920,
+   "h": 912,
+   "pos": "50% 50%",
+   "side": "right",
+   "en": {
+    "name": "Wola",
+    "line": "Glass towers and long Mondays. The game is too polite to say Mordor.",
+    "where": "Varso i Rondo ONZ",
+    "alt": "Varso and the glass towers of Wola at dusk in the game, lit windows and traffic at Rondo ONZ below"
+   },
+   "pl": {
+    "name": "Wola",
+    "line": "Szklane wieżowce i długie poniedziałki. Gra jest zbyt kulturalna, żeby mówić o Mordorze.",
+    "where": "Varso i Rondo ONZ",
+    "alt": "Varso i szklane wieżowce Woli o zmierzchu w grze, oświetlone okna i ruch na rondzie ONZ w dole"
+   }
   }
+ ],
+ "quests": {
+  "frame": {
+   "img": "m-courier-race",
+   "w": 1920,
+   "h": 887
+  },
+  "rows": [
+   {
+    "id": "steps",
+    "img": "frogs-kebab",
+    "w": 1920,
+    "h": 887,
+    "en": {
+     "name": "First steps",
+     "line": "Seven small errands to learn the city. The first one is a kebab.",
+     "alt": "A kebab stand on a street corner in the game, a night errand waiting"
+    },
+    "pl": {
+     "name": "Pierwsze kroki",
+     "line": "Siedem małych zadań, żeby poznać miasto. Pierwsze: kebab.",
+     "alt": "Budka z kebabem na rogu ulicy w grze, nocne zadanie czeka"
+    }
+   },
+   {
+    "id": "stories",
+    "img": "m-guard",
+    "w": 1920,
+    "h": 887,
+    "en": {
+     "name": "Stories",
+     "line": "Friends call, the police stop you for a chat, passengers need a lift. Polish on top, English underneath.",
+     "alt": "A city guard tells the player the Wisłostrada is a promenade, in the game, in Polish and English"
+    },
+    "pl": {
+     "name": "Historie",
+     "line": "Dzwonią znajomi, policja chce pogadać, pasażerowie czekają na podwózkę. Po polsku na górze, po angielsku pod spodem.",
+     "alt": "Strażnik miejski tłumaczy graczowi, że Wisłostrada to deptak, w grze, po polsku i po angielsku"
+    }
+   },
+   {
+    "id": "jobs",
+    "img": "m-escort",
+    "w": 1920,
+    "h": 887,
+    "en": {
+     "name": "Jobs",
+     "line": "Kebab at 3 a.m., rescue calls, escorts. Real addresses, short runs.",
+     "alt": "An escort job in the game: a car with a patient heads for the hospital"
+    },
+    "pl": {
+     "name": "Zlecenia",
+     "line": "Kebab o trzeciej, wezwania ratunkowe, eskorty. Prawdziwe adresy, krótkie trasy.",
+     "alt": "Eskorta w grze: auto z pacjentem jedzie do szpitala"
+    }
+   },
+   {
+    "id": "rivals",
+    "img": "poniatowski-night",
+    "w": 1920,
+    "h": 884,
+    "en": {
+     "name": "Rivals",
+     "line": "Six street racers, and a boat race under four bridges with a jet ski in it.",
+     "alt": "Most Poniatowskiego at night in the game, its lamps reflected in the Vistula"
+    },
+    "pl": {
+     "name": "Rywale",
+     "line": "Sześciu ulicznych rywali i wyścig łodzi pod czterema mostami, z jednym skuterem wodnym.",
+     "alt": "Most Poniatowskiego nocą w grze, latarnie odbite w Wiśle"
+    }
+   },
+   {
+    "id": "collection",
+    "img": "lore-notebook",
+    "w": 1920,
+    "h": 884,
+    "en": {
+     "name": "Collection",
+     "line": "More than 70 real places, each with a true fact and a local joke.",
+     "alt": "The MOJA WARSZAWA notebook open in the game, a place with a fact and a joke"
+    },
+    "pl": {
+     "name": "Kolekcja",
+     "line": "Ponad 70 prawdziwych miejsc, każde z prawdziwą ciekawostką i lokalnym żartem.",
+     "alt": "Zeszyt MOJA WARSZAWA otwarty w grze, miejsce z ciekawostką i żartem"
+    }
+   }
+  ]
+ },
+ "topics": {
+  "en": [
+   [
+    "Feedback",
+    "Feedback"
+   ],
+   [
+    "Something broke",
+    "Something broke"
+   ],
+   [
+    "Idea",
+    "An idea"
+   ]
+  ],
+  "pl": [
+   [
+    "Feedback",
+    "Opinia"
+   ],
+   [
+    "Something broke",
+    "Coś nie działa"
+   ],
+   [
+    "Idea",
+    "Pomysł"
+   ]
+  ]
+ },
+ "author": {
+  "en": [
+   "Hi, I'm Lubomir Olshansky. By day I build iOS and Kotlin Multiplatform apps at a bank in Poland, and I've lived in Warsaw for twelve years.",
+   "As a kid I dreamed of a game set in the city I live in. When I saw <a href=\"https://bedirhanyildirim.com/pixel-art-map-of-warsaw/\">Isometric Warsaw</a> and what generative AI makes possible, it finally looked doable. I want it to hold what living here is like, not just the map."
+  ],
+  "pl": [
+   "Cześć, jestem Lubomir Olshansky. Na co dzień tworzę aplikacje na iOS i w Kotlin Multiplatform w banku w Polsce, a w Warszawie mieszkam od dwunastu lat.",
+   "Jako dziecko marzyłem o grze w mieście, w którym mieszkam. Gdy zobaczyłem <a href=\"https://bedirhanyildirim.com/pixel-art-map-of-warsaw/\">Isometric Warsaw</a> i to, co daje generatywna AI, wreszcie wyglądało to na wykonalne. Chcę, żeby było w niej to, jak się tu żyje, a nie sama mapa."
+  ]
+ },
+ "en": {
+  "lang": "en",
+  "path": "/",
+  "home": "/",
+  "og_locale": "en_GB",
+  "other_lang": "pl",
+  "other_home": "/pl/",
+  "other_lang_short": "PL",
+  "other_lang_name": "Po polsku",
+  "other_lang_label": "Polska wersja",
+  "title": "Around Warsaw · a small-car game about living in Warsaw",
+  "description": "A free arcade game in the real centre of Warsaw: one small car, kebab runs at 3 a.m., rescues and city lore. Free open beta, no ads, no purchases, no tracking.",
+  "skip": "Skip to content",
+  "brand_label": "Around Warsaw, home",
+  "nav_label": "Main",
+  "nav_city": "The city",
+  "nav_quests": "What you do",
+  "nav_progress": "Progress",
+  "nav_beta": "Join the beta",
+  "hero_alt": "Rondo Dmowskiego in the rain at night in the game: the glowing Rotunda, headlights on wet tarmac",
+  "hero_hook": "The real centre of Warsaw, one small car, and a kebab going cold.",
+  "cta_ios": "iPhone: join on TestFlight",
+  "cta_android_a": "Android: Google Play, opening soon",
+  "cta_android_b": "Android: get the beta on Google Play",
+  "cta_note": "Free open beta. No ads, no purchases, no tracking.",
+  "video_pause": "Pause the background video",
+  "video_play": "Play the background video",
+  "radio_label": "On the car radio",
+  "radio_lines": "Traffic on Marszałkowska: yes, as always <i>·</i> The Palace clock is right, we checked <i>·</i> Pigeons on Plac Defilad report no delays <i>·</i> Seba from Praga is warming up the engine <i>·</i> Next on Mordor FM: Monday <i>·</i> The roadworks continue. You keep driving <i>·</i> Weather: rain, then more rain, then Monday <i>·</i> Most Poniatowskiego is open. Enjoy it while it lasts <i>·</i> A syrenka was seen near the river. Do not feed it kebab <i>·</i>",
+  "city_title": "The real centre of Warsaw.",
+  "city_lede": "About 21 km², from Arkadia to Stadion Narodowy, built from open map data. If you live here, you can drive home.",
+  "dn_title": "Stadion Narodowy, day and night",
+  "dn_line": "Same spot, same river, different city.",
+  "dn_label": "Time of day: drag to switch between day and night",
+  "dn_day": "Day",
+  "dn_night": "Night",
+  "dn_alt_day": "Stadion Narodowy by day in the game, with Most Poniatowskiego and the Vistula",
+  "dn_alt_night": "Stadion Narodowy at night in the game, the bridge lamps reflected in the Vistula",
+  "quests_title": "Things to do tonight.",
+  "quests_lede": "The game keeps a list. So will you.",
+  "quests_frame_alt": "A kebab job in progress in the game: the job card, the heat bar and the courier racing ahead",
+  "quests_frame_cap": "A kebab job in progress.",
+  "quests_rows_label": "What the list holds",
+  "grow_title": "New every day.",
+  "grow_lede": "Around Warsaw started on 27 October 2026 and has changed every day since. This is the latest:",
+  "grow_label": "Last update:",
+  "grow_more": "See everything that changed",
+  "join_title": "Come for a drive.",
+  "join_lede": "The beta is free and open. Tell me what broke; I read everything.",
+  "ios_title": "iPhone",
+  "ios_text": "Opens in TestFlight, Apple's app for betas. Two taps.",
+  "ios_btn": "Join on TestFlight",
+  "qr_text": "On a computer? Scan this with your iPhone.",
+  "qr_alt": "QR code that opens the TestFlight beta on an iPhone",
+  "and_title": "Android",
+  "and_text_a": "The open beta on Google Play is waiting for Google's approval. Leave your email and I'll write once, the day it opens.",
+  "and_text_b": "Open beta on Google Play.",
+  "and_vulkan": "The phone needs Vulkan.",
+  "and_btn_a": "Tell me when",
+  "and_btn_b": "Get the beta on Google Play",
+  "n_email": "Email",
+  "n_ok": "Got it. One email, the day it opens.",
+  "feedback_summary": "Something broke, or an idea? Write to me",
+  "f_topic": "What is it about?",
+  "f_platform": "Your phone",
+  "f_platform_none": "Doesn't matter",
+  "f_email": "Email",
+  "f_email_opt": "only if you want a reply",
+  "f_message": "Message",
+  "f_send": "Send",
+  "f_legal": "Sent through Formspree straight to the developer. Your email is used only to reply, or for the one Android message. <a href=\"/privacy/\">Privacy</a>.",
+  "f_ok": "Thanks! It's on its way.",
+  "f_fail": "That didn't go through. Try again, or write on Telegram.",
+  "f_need_email": "Add your email so I can write back.",
+  "f_bad_email": "That email doesn't look right.",
+  "f_need_msg": "Write a few words first.",
+  "f_sending": "Sending…",
+  "topic_default": "Feedback",
+  "author_title": "About the author",
+  "author_facts": "Free. No ads, no purchases, no tracking; works offline. Built in Godot from OpenStreetMap and GUGiK open data. Every brand in the game is a parody.",
+  "sticky_text": "Free open beta",
+  "sticky_ios": "Join on TestFlight",
+  "sticky_android_a": "Google Play: opening soon",
+  "sticky_android_b": "Get it on Google Play",
+  "foot_tag": "a fan game about Warsaw",
+  "foot_progress": "Progress",
+  "foot_privacy": "Privacy",
+  "foot_support": "Support",
+  "foot_note": "Map:",
+  "foot_parody": "Every brand in the game is a parody."
+ },
+ "pl": {
+  "lang": "pl",
+  "path": "/pl/",
+  "home": "/pl/",
+  "og_locale": "pl_PL",
+  "other_lang": "en",
+  "other_home": "/",
+  "other_lang_short": "EN",
+  "other_lang_name": "In English",
+  "other_lang_label": "English version",
+  "title": "Around Warsaw · gra z małym autem o życiu w Warszawie",
+  "description": "Darmowa gra zręcznościowa w prawdziwym centrum Warszawy: małe auto, kebab o trzeciej, ratunek i miejska historia. Otwarta beta, bez reklam, zakupów i śledzenia.",
+  "skip": "Przejdź do treści",
+  "brand_label": "Around Warsaw, strona główna",
+  "nav_label": "Menu",
+  "nav_city": "Miasto",
+  "nav_quests": "Co robisz",
+  "nav_progress": "Postępy",
+  "nav_beta": "Dołącz do bety",
+  "hero_alt": "Rondo Dmowskiego w deszczu nocą w grze: świecąca Rotunda, reflektory na mokrym asfalcie",
+  "hero_hook": "Prawdziwe centrum Warszawy, małe auto i kebab, który stygnie.",
+  "cta_ios": "iPhone: dołącz przez TestFlight",
+  "cta_android_a": "Android: Google Play, wkrótce",
+  "cta_android_b": "Android: pobierz betę z Google Play",
+  "cta_note": "Darmowa, otwarta beta. Bez reklam, zakupów i śledzenia.",
+  "video_pause": "Zatrzymaj wideo w tle",
+  "video_play": "Odtwórz wideo w tle",
+  "radio_label": "W radiu w aucie",
+  "radio_lines": "Na Marszałkowskiej korek. Tak, jak zawsze <i>·</i> Zegar na Pałacu chodzi dobrze, sprawdzaliśmy <i>·</i> Gołębie z placu Defilad nie zgłaszają opóźnień <i>·</i> Seba z Pragi grzeje silnik <i>·</i> Za chwilę w Mordor FM: poniedziałek <i>·</i> Remont trwa. Ty jedź <i>·</i> Pogoda: deszcz, potem więcej deszczu, potem poniedziałek <i>·</i> Most Poniatowskiego przejezdny. Korzystaj, póki trwa <i>·</i> Syrenkę widziano nad rzeką. Nie karmić kebabem <i>·</i>",
+  "city_title": "Prawdziwe centrum Warszawy.",
+  "city_lede": "Około 21 km² od Arkadii po Stadion Narodowy, z otwartych danych map. Jeśli tu mieszkasz, dojedziesz do domu.",
+  "dn_title": "Stadion Narodowy, dzień i noc",
+  "dn_line": "To samo miejsce, ta sama rzeka, inne miasto.",
+  "dn_label": "Pora dnia: przeciągnij, żeby przełączyć dzień i noc",
+  "dn_day": "Dzień",
+  "dn_night": "Noc",
+  "dn_alt_day": "Stadion Narodowy w dzień w grze, z Mostem Poniatowskiego i Wisłą",
+  "dn_alt_night": "Stadion Narodowy nocą w grze, latarnie mostu odbite w Wiśle",
+  "quests_title": "Do zrobienia tej nocy.",
+  "quests_lede": "Gra prowadzi listę. Ty też zaczniesz.",
+  "quests_frame_alt": "Zlecenie z kebabem w toku w grze: karta zlecenia, pasek temperatury i kurier z przodu",
+  "quests_frame_cap": "Kebab w drodze.",
+  "quests_rows_label": "Co jest na liście",
+  "grow_title": "Nowe codziennie.",
+  "grow_lede": "Around Warsaw powstało 27 października 2026 i zmienia się codziennie. Oto najnowsze (po angielsku):",
+  "grow_label": "Ostatnia zmiana:",
+  "grow_more": "Zobacz wszystko, co się zmieniło",
+  "join_title": "Wsiadaj, jedziemy.",
+  "join_lede": "Beta jest darmowa i otwarta. Napisz, co nie działa; czytam wszystko.",
+  "ios_title": "iPhone",
+  "ios_text": "Otworzy się w TestFlight, aplikacji Apple do bet. Dwa dotknięcia.",
+  "ios_btn": "Dołącz przez TestFlight",
+  "qr_text": "Na komputerze? Zeskanuj to iPhone'em.",
+  "qr_alt": "Kod QR, który otwiera betę w TestFlight na iPhonie",
+  "and_title": "Android",
+  "and_text_a": "Otwarta beta w Google Play czeka na zgodę Google. Zostaw e-mail, a napiszę raz: w dniu otwarcia.",
+  "and_text_b": "Otwarta beta w Google Play.",
+  "and_vulkan": "Telefon musi mieć Vulkan.",
+  "and_btn_a": "Daj znać",
+  "and_btn_b": "Pobierz betę z Google Play",
+  "n_email": "E-mail",
+  "n_ok": "Mam. Jeden e-mail, w dniu otwarcia.",
+  "feedback_summary": "Coś nie działa albo masz pomysł? Napisz do mnie",
+  "f_topic": "W jakiej sprawie?",
+  "f_platform": "Twój telefon",
+  "f_platform_none": "Obojętnie",
+  "f_email": "E-mail",
+  "f_email_opt": "tylko jeśli chcesz odpowiedź",
+  "f_message": "Wiadomość",
+  "f_send": "Wyślij",
+  "f_legal": "Wysyłane przez Formspree prosto do autora. E-mail służy tylko do odpowiedzi albo do tej jednej wiadomości o Androidzie. <a href=\"/privacy/\">Prywatność</a>.",
+  "f_ok": "Dzięki! Już leci.",
+  "f_fail": "Nie udało się wysłać. Spróbuj jeszcze raz albo napisz na Telegramie.",
+  "f_need_email": "Dodaj e-mail, żebym mógł odpisać.",
+  "f_bad_email": "Ten e-mail wygląda na niepoprawny.",
+  "f_need_msg": "Napisz najpierw kilka słów.",
+  "f_sending": "Wysyłam…",
+  "topic_default": "Feedback",
+  "author_title": "O autorze",
+  "author_facts": "Za darmo. Bez reklam, zakupów i śledzenia; działa bez internetu. Zrobione w Godot z otwartych danych OpenStreetMap i GUGiK. Każda marka w grze to parodia.",
+  "sticky_text": "Darmowa beta",
+  "sticky_ios": "Dołącz przez TestFlight",
+  "sticky_android_a": "Google Play: wkrótce",
+  "sticky_android_b": "Pobierz z Google Play",
+  "foot_tag": "fanowska gra o Warszawie",
+  "foot_progress": "Postępy",
+  "foot_privacy": "Prywatność",
+  "foot_support": "Pomoc",
+  "foot_note": "Mapa:",
+  "foot_parody": "Wszystkie marki w grze to parodie."
+ }
 }
