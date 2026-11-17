@@ -108,6 +108,13 @@
     });
   }
 
+  // The radio ticker: its tag is a pause button (WCAG 2.2.2; hover alone does nothing on a phone).
+  var rt = $(".radio-tag");
+  if (rt) rt.addEventListener("click", function () {
+    var on = rt.getAttribute("aria-pressed") !== "true";
+    rt.setAttribute("aria-pressed", on); rt.parentNode.classList.toggle("held", on);
+  });
+
   // Sticky bar (phones): after the hero is gone, until the join section is on screen.
   var stk = $(".stk"), heroEl = $(".hero"), join = $("#beta");
   if (stk && heroEl && join && window.IntersectionObserver) {

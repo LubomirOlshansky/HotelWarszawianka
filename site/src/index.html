@@ -59,10 +59,7 @@
 
 <section class="hero" aria-labelledby="title">
   <div class="hero-media">
-    <picture>
-      <source media="(max-width: 700px)" srcset="/img/game/{{hero_poster}}-960.webp">
-      <img src="/img/game/{{hero_poster}}.webp" alt="{{hero_alt}}" width="{{hero_w}}" height="{{hero_h}}" fetchpriority="high">
-    </picture>
+    <img src="/img/game/{{hero_poster}}.webp" srcset="/img/game/{{hero_poster}}-960.webp 960w, /img/game/{{hero_poster}}.webp 1920w" sizes="(max-width: 700px) 163vw, 100vw" alt="{{hero_alt}}" width="{{hero_w}}" height="{{hero_h}}" fetchpriority="high">
 {{hero_video}}
   </div>
   <div class="hero-in wrap">
@@ -77,7 +74,7 @@
 </section>
 
 <div class="radio" role="note" aria-label="{{radio_label}}">
-  <span class="radio-tag"><svg aria-hidden="true"><use href="#i-radio"/></svg>KEBAB FM <b>87,3</b></span>
+  <button class="radio-tag" type="button" aria-pressed="false"><svg aria-hidden="true"><use href="#i-radio"/></svg>KEBAB FM <b>87,3</b><span class="vh">{{radio_pause}}</span></button>
   <div class="radio-roll"><p>{{radio_lines}}</p><p aria-hidden="true">{{radio_lines}}</p></div>
 </div>
 
@@ -99,7 +96,7 @@
         <figcaption>{{quests_frame_cap}}</figcaption>
       </figure>
     </div>
-    <ul class="rows" tabindex="0" aria-label="{{quests_rows_label}}">
+    <ul class="rows" aria-label="{{quests_rows_label}}">
 {{quests_rows}}
     </ul>
   </div>
@@ -119,7 +116,7 @@
 
 <section class="join" id="beta" aria-labelledby="join-title">
   <div class="join-bg" aria-hidden="true">
-    <picture><source media="(max-width: 700px)" srcset="/img/game/{{join_img}}-960.webp"><img src="/img/game/{{join_img}}.webp" alt="" width="{{join_w}}" height="{{join_h}}" loading="lazy" decoding="async"></picture>
+    <img src="/img/game/{{join_img}}.webp" srcset="/img/game/{{join_img}}-960.webp 960w, /img/game/{{join_img}}.webp 1920w" sizes="100vw" alt="" width="{{join_w}}" height="{{join_h}}" loading="lazy" decoding="async">
   </div>
   <div class="wrap join-in">
     <h2 id="join-title">{{join_title}}</h2>

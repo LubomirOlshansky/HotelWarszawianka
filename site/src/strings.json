@@ -99,89 +99,92 @@
  ],
  "quests": {
   "frame": {
-   "img": "kebab-job-night",
+   "img": "quests-screen",
    "w": 1920,
    "h": 884
   },
   "rows": [
    {
     "id": "steps",
-    "img": "frogs-kebab",
+    "img": "card-steps",
     "w": 1920,
-    "h": 887,
+    "h": 884,
     "en": {
      "name": "First steps",
      "line": "Seven small errands to learn the city. The first one is a kebab.",
-     "alt": "A kebab stand on a street corner in the game, a night errand waiting"
+     "alt": "A kebab errand offered in the game at night: a wrap for a student on the fourth floor, the lift's been broken"
     },
     "pl": {
      "name": "Pierwsze kroki",
      "line": "Siedem małych zadań, żeby poznać miasto. Pierwsze: kebab.",
-     "alt": "Budka z kebabem na rogu ulicy w grze, nocne zadanie czeka"
+     "alt": "Nocne zlecenie z kebabem w grze: wrap dla studenta z czwartego piętra, winda nie działa"
     }
    },
    {
     "id": "stories",
-    "img": "police-stop-dusk",
+    "img": "story-smola",
+    "crop": "left",
     "w": 1920,
     "h": 884,
     "en": {
      "name": "Stories",
-     "line": "Friends call, the police stop you for a chat, passengers need a lift. Polish on top, English underneath.",
-     "alt": "A police officer stops the small car at dusk in the game: \"Routine check. Relax, everything's in order. For now.\""
+     "line": "A night at the club, friends on the phone, the police who want a chat, passengers who need a lift.",
+     "alt": "Inside the Smoła club in the game: dancers under the lights, the DJ booth, a line from the DJ in a speech bubble"
     },
     "pl": {
      "name": "Historie",
-     "line": "Dzwonią znajomi, policja chce pogadać, pasażerowie czekają na podwózkę. Po polsku na górze, po angielsku pod spodem.",
-     "alt": "Policjant zatrzymuje małe auto o zmierzchu w grze: rutynowa kontrola, wszystko w porządku. Na razie."
+     "line": "Noc w klubie, znajomi na telefonie, policja, która chce pogadać, pasażerowie czekający na podwózkę.",
+     "alt": "Wnętrze klubu Smoła w grze: tancerze w światłach, konsola DJ-a i jego tekst w dymku"
     }
    },
    {
     "id": "jobs",
-    "img": "m-escort",
+    "img": "card-jobs",
+    "crop": "right",
     "w": 1920,
-    "h": 887,
+    "h": 884,
     "en": {
      "name": "Jobs",
      "line": "Kebab at 3 a.m., rescue calls, escorts. Real addresses, short runs.",
-     "alt": "An escort job in the game: a car with a patient heads for the hospital"
+     "alt": "A kebab delivery in progress at night in the game: the order still 99% hot, 442 m to go"
     },
     "pl": {
      "name": "Zlecenia",
      "line": "Kebab o trzeciej, wezwania ratunkowe, eskorty. Prawdziwe adresy, krótkie trasy.",
-     "alt": "Eskorta w grze: auto z pacjentem jedzie do szpitala"
+     "alt": "Dostawa kebaba nocą w grze: zamówienie gorące w 99%, zostało 442 m"
     }
    },
    {
     "id": "rivals",
-    "img": "poniatowski-night-exp",
+    "img": "card-rivals",
+    "crop": "right",
     "w": 1920,
     "h": 884,
     "en": {
      "name": "Rivals",
      "line": "Six street racers, and a boat race under four bridges with a jet ski in it.",
-     "alt": "Most Poniatowskiego at night in the game, its lamps reflected in the Vistula and searchlights over the bank"
+     "alt": "A street race to the Palace at dusk in the game: the small car second in a pack, 467 m to go"
     },
     "pl": {
      "name": "Rywale",
      "line": "Sześciu ulicznych rywali i wyścig łodzi pod czterema mostami, z jednym skuterem wodnym.",
-     "alt": "Most Poniatowskiego nocą w grze, latarnie odbite w Wiśle i reflektory nad brzegiem"
+     "alt": "Wyścig uliczny do Pałacu o zmierzchu w grze: małe auto drugie w stawce, zostało 467 m"
     }
    },
    {
     "id": "collection",
-    "img": "lore-notebook",
+    "img": "card-collection",
     "w": 1920,
     "h": 884,
     "en": {
      "name": "Collection",
      "line": "More than 70 real places, each with a true fact and a local joke.",
-     "alt": "The MOJA WARSZAWA notebook open in the game, a place with a fact and a joke"
+     "alt": "The MY WARSAW notebook open in the game: the Night and Techno chapter with clubs and their opening hours"
     },
     "pl": {
      "name": "Kolekcja",
      "line": "Ponad 70 prawdziwych miejsc, każde z prawdziwą ciekawostką i lokalnym żartem.",
-     "alt": "Zeszyt MOJA WARSZAWA otwarty w grze, miejsce z ciekawostką i żartem"
+     "alt": "Zeszyt MOJA WARSZAWA otwarty w grze: rozdział Noc i techno z klubami i godzinami otwarcia"
     }
    }
   ]
@@ -254,6 +257,7 @@
   "video_pause": "Pause the background video",
   "video_play": "Play the background video",
   "radio_label": "On the car radio",
+  "radio_pause": ": pause or play the ticker",
   "radio_lines": "Traffic on Marszałkowska: yes, as always <i>·</i> The Palace clock is right, we checked <i>·</i> Pigeons on Plac Defilad report no delays <i>·</i> Seba from Praga is warming up the engine <i>·</i> Next on Mordor FM: Monday <i>·</i> The roadworks continue. You keep driving <i>·</i> Weather: rain, then more rain, then Monday <i>·</i> Most Poniatowskiego is open. Enjoy it while it lasts <i>·</i> A syrenka was seen near the river. Do not feed it kebab <i>·</i>",
   "city_title": "The real centre of Warsaw.",
   "city_lede": "About 21 km², from Arkadia to Stadion Narodowy, built from open map data. If you live here, you can drive home.",
@@ -266,8 +270,8 @@
   "dn_alt_night": "Stadion Narodowy at night in the game, the bridge lamps reflected in the Vistula",
   "quests_title": "Things to do tonight.",
   "quests_lede": "The game keeps a list. So will you.",
-  "quests_frame_alt": "A kebab job at night in the game: the job card for Walecznych 22, the order still 99% hot, KEBAB FM on the radio",
-  "quests_frame_cap": "A kebab job in progress.",
+  "quests_frame_alt": "The QUESTS screen in the game: First steps 0 of 7, with Deliver a kebab picked and its reward and distance",
+  "quests_frame_cap": "The QUESTS screen: what to do next.",
   "quests_rows_label": "What the list holds",
   "grow_title": "New every day.",
   "grow_lede": "Around Warsaw started on 27 October 2026 and has changed every day since. This is the latest:",
@@ -346,6 +350,7 @@
   "video_pause": "Zatrzymaj wideo w tle",
   "video_play": "Odtwórz wideo w tle",
   "radio_label": "W radiu w aucie",
+  "radio_pause": ": zatrzymaj lub puść pasek",
   "radio_lines": "Na Marszałkowskiej korek. Tak, jak zawsze <i>·</i> Zegar na Pałacu chodzi dobrze, sprawdzaliśmy <i>·</i> Gołębie z placu Defilad nie zgłaszają opóźnień <i>·</i> Seba z Pragi grzeje silnik <i>·</i> Za chwilę w Mordor FM: poniedziałek <i>·</i> Remont trwa. Ty jedź <i>·</i> Pogoda: deszcz, potem więcej deszczu, potem poniedziałek <i>·</i> Most Poniatowskiego przejezdny. Korzystaj, póki trwa <i>·</i> Syrenkę widziano nad rzeką. Nie karmić kebabem <i>·</i>",
   "city_title": "Prawdziwe centrum Warszawy.",
   "city_lede": "Około 21 km² od Arkadii po Stadion Narodowy, z otwartych danych map. Jeśli tu mieszkasz, dojedziesz do domu.",
@@ -358,8 +363,8 @@
   "dn_alt_night": "Stadion Narodowy nocą w grze, latarnie mostu odbite w Wiśle",
   "quests_title": "Do zrobienia tej nocy.",
   "quests_lede": "Gra prowadzi listę. Ty też zaczniesz.",
-  "quests_frame_alt": "Zlecenie z kebabem nocą w grze: karta zlecenia na Walecznych 22, zamówienie gorące w 99%, w radiu KEBAB FM",
-  "quests_frame_cap": "Kebab w drodze.",
+  "quests_frame_alt": "Ekran ZADANIA w grze: Pierwsze kroki 0 z 7, wybrane Dostarcz kebab, z nagrodą i odległością",
+  "quests_frame_cap": "Ekran ZADANIA: co dalej.",
   "quests_rows_label": "Co jest na liście",
   "grow_title": "Nowe codziennie.",
   "grow_lede": "Around Warsaw powstało 27 października 2026 i zmienia się codziennie. Oto najnowsze (po angielsku):",

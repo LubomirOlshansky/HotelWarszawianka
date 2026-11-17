@@ -59,14 +59,8 @@
 
 <section class="hero" aria-labelledby="title">
   <div class="hero-media">
-    <picture>
-      <source media="(max-width: 700px)" srcset="/img/game/hero-rotunda-exp-960.webp">
-      <img src="/img/game/hero-rotunda-exp.webp" alt="Rondo Dmowskiego in the rain at night in the game: the glowing Rotunda, headlights on wet tarmac" width="1920" height="884" fetchpriority="high">
-    </picture>
-    <video class="hero-video" data-hero muted playsinline loop preload="none" aria-hidden="true" poster="/img/game/hero-rotunda-exp-960.webp">
-      <source data-set="desktop" data-src="/video/hero-3.mp4" type="video/mp4">
-      <source data-set="phone" data-src="/video/hero-phone-3.mp4" type="video/mp4">
-    </video>
+    <img src="/img/game/hero-rotunda-exp.webp" srcset="/img/game/hero-rotunda-exp-960.webp 960w, /img/game/hero-rotunda-exp.webp 1920w" sizes="(max-width: 700px) 163vw, 100vw" alt="Rondo Dmowskiego in the rain at night in the game: the glowing Rotunda, headlights on wet tarmac" width="1920" height="884" fetchpriority="high">
+
   </div>
   <div class="hero-in wrap">
     <h1 id="title">Around<br>Warsaw</h1>
@@ -77,11 +71,11 @@
     </div>
     <p class="cta-note">Free open beta. No ads, no purchases, no tracking.</p>
   </div>
-  <button class="vctl" type="button" hidden data-pause="Pause the background video" data-play="Play the background video" aria-label="Pause the background video"><svg class="i-p" aria-hidden="true"><use href="#i-pause"/></svg><svg class="i-r" aria-hidden="true"><use href="#i-resume"/></svg></button>
+
 </section>
 
 <div class="radio" role="note" aria-label="On the car radio">
-  <span class="radio-tag"><svg aria-hidden="true"><use href="#i-radio"/></svg>KEBAB FM <b>87,3</b></span>
+  <button class="radio-tag" type="button" aria-pressed="false"><svg aria-hidden="true"><use href="#i-radio"/></svg>KEBAB FM <b>87,3</b><span class="vh">: pause or play the ticker</span></button>
   <div class="radio-roll"><p>Traffic on Marszałkowska: yes, as always <i>·</i> The Palace clock is right, we checked <i>·</i> Pigeons on Plac Defilad report no delays <i>·</i> Seba from Praga is warming up the engine <i>·</i> Next on Mordor FM: Monday <i>·</i> The roadworks continue. You keep driving <i>·</i> Weather: rain, then more rain, then Monday <i>·</i> Most Poniatowskiego is open. Enjoy it while it lasts <i>·</i> A syrenka was seen near the river. Do not feed it kebab <i>·</i></p><p aria-hidden="true">Traffic on Marszałkowska: yes, as always <i>·</i> The Palace clock is right, we checked <i>·</i> Pigeons on Plac Defilad report no delays <i>·</i> Seba from Praga is warming up the engine <i>·</i> Next on Mordor FM: Monday <i>·</i> The roadworks continue. You keep driving <i>·</i> Weather: rain, then more rain, then Monday <i>·</i> Most Poniatowskiego is open. Enjoy it while it lasts <i>·</i> A syrenka was seen near the river. Do not feed it kebab <i>·</i></p></div>
 </div>
 
@@ -91,21 +85,21 @@
     <p class="lede">About 21 km², from Arkadia to Stadion Narodowy, built from open map data. If you live here, you can drive home.</p>
   </div>
   <article class="chap chap-left" id="centrum" aria-labelledby="h-centrum">
-    <div class="chap-media"><picture><source media="(max-width: 700px)" srcset="/img/game/palace-dusk-exp-960.webp"><img src="/img/game/palace-dusk-exp.webp" alt="The Palace of Culture at dusk in the game, seen from above, with the white Museum of Modern Art, the glass domes of Złote Tarasy and the towers of Śródmieście" width="1920" height="884" loading="lazy" decoding="async"></picture></div>
+    <div class="chap-media"><img src="/img/game/palace-dusk-exp.webp" srcset="/img/game/palace-dusk-exp-960.webp 960w, /img/game/palace-dusk-exp.webp 1920w" sizes="(max-width: 700px) 163vw, 100vw" alt="The Palace of Culture at dusk in the game, seen from above, with the white Museum of Modern Art, the glass domes of Złote Tarasy and the towers of Śródmieście" width="1920" height="884" loading="lazy" decoding="async"></div>
     <div class="chap-in wrap"><h3 id="h-centrum">Centrum</h3><p class="chap-line">The Palace, the Rotunda, Marszałkowska. Traffic included, as always.</p><p class="chap-where">Plac Defilad</p></div>
   </article>
   <article class="chap chap-right" id="stare-miasto" aria-labelledby="h-stare-miasto">
-    <div class="chap-media"><picture><source media="(max-width: 700px)" srcset="/img/game/plac-zamkowy-dusk-960.webp"><img src="/img/game/plac-zamkowy-dusk.webp" alt="Plac Zamkowy at dusk in the game: the Royal Castle&#x27;s clock tower, Sigismund&#x27;s Column and people on the square, with the car among them" width="1920" height="884" loading="lazy" decoding="async"></picture></div>
+    <div class="chap-media"><img src="/img/game/plac-zamkowy-dusk.webp" srcset="/img/game/plac-zamkowy-dusk-960.webp 960w, /img/game/plac-zamkowy-dusk.webp 1920w" sizes="(max-width: 700px) 163vw, 100vw" alt="Plac Zamkowy at dusk in the game: the Royal Castle&#x27;s clock tower, Sigismund&#x27;s Column and people on the square, with the car among them" width="1920" height="884" loading="lazy" decoding="async"></div>
     <div class="chap-in wrap"><h3 id="h-stare-miasto">Stare Miasto</h3><p class="chap-line">Sigismund&#x27;s Column, the Castle, cobbles. Mind where you park: the city guards do.</p><p class="chap-where">Plac Zamkowy</p></div>
   </article>
   <article class="chap chap-left" id="wisla" aria-labelledby="h-wisla">
-    <div class="chap-media"><picture><source media="(max-width: 700px)" srcset="/img/game/heli-vistula-day-960.webp"><img src="/img/game/heli-vistula-day.webp" alt="A helicopter above Most Poniatowskiego and the Vistula by day in the game, with a sandbar and a tram on the bridge" width="1920" height="884" loading="lazy" decoding="async"></picture></div>
+    <div class="chap-media"><img src="/img/game/heli-vistula-day.webp" srcset="/img/game/heli-vistula-day-960.webp 960w, /img/game/heli-vistula-day.webp 1920w" sizes="(max-width: 700px) 163vw, 100vw" alt="A helicopter above Most Poniatowskiego and the Vistula by day in the game, with a sandbar and a tram on the bridge" width="1920" height="884" loading="lazy" decoding="async"></div>
     <div class="chap-in wrap"><h3 id="h-wisla">Wisła</h3><p class="chap-line">Fly it, sail it, or cross it at dawn. Drag to change the time; the rain is extra.</p><p class="chap-where">Most Poniatowskiego</p></div>
   </article>
   <figure class="dn" id="daynight">
     <div class="dn-stage">
-      <picture><source media="(max-width: 700px)" srcset="/img/game/narodowy-night-960.webp"><img src="/img/game/narodowy-night.webp" alt="Stadion Narodowy at night in the game, the bridge lamps reflected in the Vistula" width="1920" height="884" loading="lazy" decoding="async"></picture>
-      <div class="dn-day"><picture><source media="(max-width: 700px)" srcset="/img/game/narodowy-day-960.webp"><img src="/img/game/narodowy-day.webp" alt="Stadion Narodowy by day in the game, with Most Poniatowskiego and the Vistula" width="1920" height="884" loading="lazy" decoding="async"></picture></div>
+      <img src="/img/game/narodowy-night.webp" srcset="/img/game/narodowy-night-960.webp 960w, /img/game/narodowy-night.webp 1920w" sizes="(max-width: 700px) 163vw, 100vw" alt="Stadion Narodowy at night in the game, the bridge lamps reflected in the Vistula" width="1920" height="884" loading="lazy" decoding="async">
+      <div class="dn-day"><img src="/img/game/narodowy-day.webp" srcset="/img/game/narodowy-day-960.webp 960w, /img/game/narodowy-day.webp 1920w" sizes="(max-width: 700px) 163vw, 100vw" alt="Stadion Narodowy by day in the game, with Most Poniatowskiego and the Vistula" width="1920" height="884" loading="lazy" decoding="async"></div>
       <span class="dn-tag dn-tag-l" aria-hidden="true">Day</span><span class="dn-tag dn-tag-r" aria-hidden="true">Night</span>
       <span class="dn-knob" aria-hidden="true"><svg><use href="#i-drag"/></svg></span>
       <input class="dn-range" type="range" min="0" max="100" value="50" aria-label="Time of day: drag to switch between day and night">
@@ -113,7 +107,7 @@
     <figcaption class="wrap"><h3>Stadion Narodowy, day and night</h3><p>Same spot, same river, different city.</p></figcaption>
   </figure>
   <article class="chap chap-right" id="wola" aria-labelledby="h-wola">
-    <div class="chap-media"><picture><source media="(max-width: 700px)" srcset="/img/game/wola-daszynskiego-960.webp"><img src="/img/game/wola-daszynskiego.webp" alt="The glass office towers of Wola round Rondo Daszyńskiego at dusk in the game, lit windows, a tram and traffic below" width="1920" height="912" loading="lazy" decoding="async"></picture></div>
+    <div class="chap-media"><img src="/img/game/wola-daszynskiego.webp" srcset="/img/game/wola-daszynskiego-960.webp 960w, /img/game/wola-daszynskiego.webp 1920w" sizes="(max-width: 700px) 163vw, 100vw" alt="The glass office towers of Wola round Rondo Daszyńskiego at dusk in the game, lit windows, a tram and traffic below" width="1920" height="912" loading="lazy" decoding="async"></div>
     <div class="chap-in wrap"><h3 id="h-wola">Wola</h3><p class="chap-line">Glass towers round Rondo Daszyńskiego. Locals call it Western Mordor.</p><p class="chap-where">Rondo Daszyńskiego</p></div>
   </article>
 </section>
@@ -124,16 +118,16 @@
       <h2 id="quests-title">Things to do tonight.</h2>
       <p class="lede">The game keeps a list. So will you.</p>
       <figure class="quests-frame">
-        <picture><source media="(max-width: 700px)" srcset="/img/game/kebab-job-night-960.webp"><img src="/img/game/kebab-job-night.webp" alt="A kebab job at night in the game: the job card for Walecznych 22, the order still 99% hot, KEBAB FM on the radio" width="1920" height="884" loading="lazy" decoding="async"></picture>
-        <figcaption>A kebab job in progress.</figcaption>
+        <img src="/img/game/quests-screen.webp" srcset="/img/game/quests-screen-960.webp 960w, /img/game/quests-screen.webp 1920w" sizes="(max-width: 900px) 100vw, 45vw" alt="The QUESTS screen in the game: First steps 0 of 7, with Deliver a kebab picked and its reward and distance" width="1920" height="884" loading="lazy" decoding="async">
+        <figcaption>The QUESTS screen: what to do next.</figcaption>
       </figure>
     </div>
-    <ul class="rows" tabindex="0" aria-label="What the list holds">
-      <li class="row"><picture><source media="(max-width: 700px)" srcset="/img/game/frogs-kebab-960.webp"><img src="/img/game/frogs-kebab.webp" alt="A kebab stand on a street corner in the game, a night errand waiting" width="1920" height="887" loading="lazy" decoding="async"></picture><div><h3>First steps</h3><p>Seven small errands to learn the city. The first one is a kebab.</p></div></li>
-      <li class="row"><picture><source media="(max-width: 700px)" srcset="/img/game/police-stop-dusk-960.webp"><img src="/img/game/police-stop-dusk.webp" alt="A police officer stops the small car at dusk in the game: &quot;Routine check. Relax, everything&#x27;s in order. For now.&quot;" width="1920" height="884" loading="lazy" decoding="async"></picture><div><h3>Stories</h3><p>Friends call, the police stop you for a chat, passengers need a lift. Polish on top, English underneath.</p></div></li>
-      <li class="row"><picture><source media="(max-width: 700px)" srcset="/img/game/m-escort-960.webp"><img src="/img/game/m-escort.webp" alt="An escort job in the game: a car with a patient heads for the hospital" width="1920" height="887" loading="lazy" decoding="async"></picture><div><h3>Jobs</h3><p>Kebab at 3 a.m., rescue calls, escorts. Real addresses, short runs.</p></div></li>
-      <li class="row"><picture><source media="(max-width: 700px)" srcset="/img/game/poniatowski-night-exp-960.webp"><img src="/img/game/poniatowski-night-exp.webp" alt="Most Poniatowskiego at night in the game, its lamps reflected in the Vistula and searchlights over the bank" width="1920" height="884" loading="lazy" decoding="async"></picture><div><h3>Rivals</h3><p>Six street racers, and a boat race under four bridges with a jet ski in it.</p></div></li>
-      <li class="row"><picture><source media="(max-width: 700px)" srcset="/img/game/lore-notebook-960.webp"><img src="/img/game/lore-notebook.webp" alt="The MOJA WARSZAWA notebook open in the game, a place with a fact and a joke" width="1920" height="884" loading="lazy" decoding="async"></picture><div><h3>Collection</h3><p>More than 70 real places, each with a true fact and a local joke.</p></div></li>
+    <ul class="rows" aria-label="What the list holds">
+      <li class="row"><img src="/img/game/card-steps.webp" srcset="/img/game/card-steps-960.webp 960w, /img/game/card-steps.webp 1920w" sizes="(max-width: 700px) 136vw, 320px" alt="A kebab errand offered in the game at night: a wrap for a student on the fourth floor, the lift&#x27;s been broken" width="1920" height="884" loading="lazy" decoding="async"><div><h3>First steps</h3><p>Seven small errands to learn the city. The first one is a kebab.</p></div></li>
+      <li class="row row-l"><img src="/img/game/story-smola.webp" srcset="/img/game/story-smola-960.webp 960w, /img/game/story-smola.webp 1920w" sizes="(max-width: 700px) 136vw, 320px" alt="Inside the Smoła club in the game: dancers under the lights, the DJ booth, a line from the DJ in a speech bubble" width="1920" height="884" loading="lazy" decoding="async"><div><h3>Stories</h3><p>A night at the club, friends on the phone, the police who want a chat, passengers who need a lift.</p></div></li>
+      <li class="row row-r"><img src="/img/game/card-jobs.webp" srcset="/img/game/card-jobs-960.webp 960w, /img/game/card-jobs.webp 1920w" sizes="(max-width: 700px) 136vw, 320px" alt="A kebab delivery in progress at night in the game: the order still 99% hot, 442 m to go" width="1920" height="884" loading="lazy" decoding="async"><div><h3>Jobs</h3><p>Kebab at 3 a.m., rescue calls, escorts. Real addresses, short runs.</p></div></li>
+      <li class="row row-r"><img src="/img/game/card-rivals.webp" srcset="/img/game/card-rivals-960.webp 960w, /img/game/card-rivals.webp 1920w" sizes="(max-width: 700px) 136vw, 320px" alt="A street race to the Palace at dusk in the game: the small car second in a pack, 467 m to go" width="1920" height="884" loading="lazy" decoding="async"><div><h3>Rivals</h3><p>Six street racers, and a boat race under four bridges with a jet ski in it.</p></div></li>
+      <li class="row"><img src="/img/game/card-collection.webp" srcset="/img/game/card-collection-960.webp 960w, /img/game/card-collection.webp 1920w" sizes="(max-width: 700px) 136vw, 320px" alt="The MY WARSAW notebook open in the game: the Night and Techno chapter with clubs and their opening hours" width="1920" height="884" loading="lazy" decoding="async"><div><h3>Collection</h3><p>More than 70 real places, each with a true fact and a local joke.</p></div></li>
     </ul>
   </div>
 </section>
@@ -154,7 +148,7 @@
 
 <section class="join" id="beta" aria-labelledby="join-title">
   <div class="join-bg" aria-hidden="true">
-    <picture><source media="(max-width: 700px)" srcset="/img/game/palace-night-960.webp"><img src="/img/game/palace-night.webp" alt="" width="1920" height="884" loading="lazy" decoding="async"></picture>
+    <img src="/img/game/palace-night.webp" srcset="/img/game/palace-night-960.webp 960w, /img/game/palace-night.webp 1920w" sizes="100vw" alt="" width="1920" height="884" loading="lazy" decoding="async">
   </div>
   <div class="wrap join-in">
     <h2 id="join-title">Come for a drive.</h2>

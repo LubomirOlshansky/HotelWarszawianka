@@ -293,11 +293,17 @@ MONTHS_PL = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipc
              "października", "listopada", "grudnia"]
 
 
-def pic(name: str, w: int, h: int, alt: str, lazy: bool = True) -> str:
-    """A <picture>: <name>.webp (1920 px) and <name>-960.webp for phones."""
+# Phones show the wide shots as a 4:3 crop (the hero, the chapters, day/night): a 1920 x 884 frame
+# cropped to 4:3 fills the width with 61% of the picture, so the browser must ask for 163vw.
+PHONE_43 = "(max-width: 700px) 163vw, 100vw"
+
+
+def pic(name: str, w: int, h: int, alt: str, lazy: bool = True, sizes: str = "100vw") -> str:
+    """A <picture>: <name>-960.webp and <name>.webp (1920 px) as a width srcset, so a 3x phone
+    takes the 1920 file (the 960 one alone looked soft on F's iPhone, 2026-11-17)."""
     load = ' loading="lazy" decoding="async"' if lazy else ""
-    return (f'<picture><source media="(max-width: 700px)" srcset="/img/game/{name}-960.webp">'
-            f'<img src="/img/game/{name}.webp" alt="{html.escape(alt)}" width="{w}" height="{h}"{load}></picture>')
+    return (f'<img src="/img/game/{name}.webp" srcset="/img/game/{name}-960.webp 960w, /img/game/{name}.webp 1920w" '
+            f'sizes="{sizes}" alt="{html.escape(alt)}" width="{w}" height="{h}"{load}>')
 
 
 def video_sources(sets: list[tuple[str, str]], note: str) -> str:
@@ -397,15 +403,15 @@ def landing(strings: dict, lang: str) -> str:
                if clip_src else "")
         chap.append(
             f'  <article class="chap chap-{c["side"]}" id="{c["id"]}" aria-labelledby="h-{c["id"]}">\n'
-            f'    <div class="chap-media">{pic(c["img"], c["w"], c["h"], x["alt"])}{vid}</div>\n'
+            f'    <div class="chap-media">{pic(c["img"], c["w"], c["h"], x["alt"], sizes=PHONE_43)}{vid}</div>\n'
             f'    <div class="chap-in wrap"><h3 id="h-{c["id"]}">{e(x["name"])}</h3><p class="chap-line">{e(x["line"])}</p>'
             f'<p class="chap-where">{e(x["where"])}</p></div>\n  </article>')
         if c.get("slider"):
             dn = strings["dn"]
             chap.append(
                 f'  <figure class="dn" id="daynight">\n    <div class="dn-stage">\n'
-                f'      {pic(dn["night"], dn["w"], dn["h"], t["dn_alt_night"])}\n'
-                f'      <div class="dn-day">{pic(dn["day"], dn["w"], dn["h"], t["dn_alt_day"])}</div>\n'
+                f'      {pic(dn["night"], dn["w"], dn["h"], t["dn_alt_night"], sizes=PHONE_43)}\n'
+                f'      <div class="dn-day">{pic(dn["day"], dn["w"], dn["h"], t["dn_alt_day"], sizes=PHONE_43)}</div>\n'
                 f'      <span class="dn-tag dn-tag-l" aria-hidden="true">{values["dn_day"]}</span><span class="dn-tag dn-tag-r" aria-hidden="true">{values["dn_night"]}</span>\n'
                 f'      <span class="dn-knob" aria-hidden="true"><svg><use href="#i-drag"/></svg></span>\n'
                 f'      <input class="dn-range" type="range" min="0" max="100" value="50" aria-label="{values["dn_label"]}">\n    </div>\n'
@@ -416,9 +422,10 @@ def landing(strings: dict, lang: str) -> str:
     # What you do: the QUESTS-shaped frame and five rows.
     q = strings["quests"]
     fr = q["frame"]
-    values["quests_frame"] = "        " + pic(fr["img"], fr["w"], fr["h"], t["quests_frame_alt"])
+    values["quests_frame"] = "        " + pic(fr["img"], fr["w"], fr["h"], t["quests_frame_alt"], sizes="(max-width: 900px) 100vw, 45vw")
     values["quests_rows"] = "\n".join(
-        f'      <li class="row">{pic(r["img"], r["w"], r["h"], r[lang]["alt"])}'
+        f'      <li class="row{ROW_CROP.get(r.get("crop", ""), "")}">'
+        f'{pic(r["img"], r["w"], r["h"], r[lang]["alt"], sizes="(max-width: 700px) 136vw, 320px")}'
         f'<div><h3>{e(r[lang]["name"])}</h3><p>{e(r[lang]["line"])}</p></div></li>'
         for r in q["rows"])
 
@@ -442,6 +449,11 @@ def landing(strings: dict, lang: str) -> str:
         f"<span>{e(label)}</span></label>"
         for i, (v, label) in enumerate(strings["topics"][lang]))
     return fill((SITE / "src" / "index.html").read_text(encoding="utf-8"), values)
+
+
+# A row's optional "crop": "none" shows the whole wide shot; "left"/"right" keep that side
+# when the 16:10 card crops it (where the shot's text card or bubble sits).
+ROW_CROP = {"none": " row-full", "left": " row-l", "right": " row-r"}
 
 
 def changelog():
