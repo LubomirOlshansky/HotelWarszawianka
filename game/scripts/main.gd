@@ -4693,7 +4693,7 @@ func _rotate_camera(direction: int) -> void:
 
 ## C (and Settings → Kamera za autem): the camera follows the car or stays put. Loop 2e: a toast
 ## says which, so it never switches off unnoticed (it did with the old CAM button).
-## F 2026-11-17: DEV's camera view (FollowCamera.VIEW_*; T toggles top-down), kept in the settings.
+## F 2026-11-17: DEV's camera view (FollowCamera.VIEW_*; T toggles top-down), saved; Normal takes the saved zoom, not --size.
 func _set_view(mode: int) -> void:
 	top_down = mode == FollowCamera.VIEW_TOP_DOWN
 	base_size = FollowCamera.AERIAL_VIEW if mode == FollowCamera.VIEW_AERIAL else settings.view
