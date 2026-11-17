@@ -1,9 +1,9 @@
 {
+ "hero": "rotunda-rain-night",
  "android_live": false,
  "android_url": "/go/android",
  "hero_video": {
   "ver": "1",
-  "poster": "rotunda-rain-night",
   "w": 1920,
   "h": 884
  },
@@ -85,13 +85,13 @@
    "side": "right",
    "en": {
     "name": "Wola",
-    "line": "Glass towers and long Mondays. The game is too polite to say Mordor.",
+    "line": "Glass towers, tram bells, and the tallest building in town.",
     "where": "Varso i Rondo ONZ",
     "alt": "Varso and the glass towers of Wola at dusk in the game, lit windows and traffic at Rondo ONZ below"
    },
    "pl": {
     "name": "Wola",
-    "line": "Szklane wieżowce i długie poniedziałki. Gra jest zbyt kulturalna, żeby mówić o Mordorze.",
+    "line": "Szklane wieżowce, dzwonki tramwajów i najwyższy budynek w mieście.",
     "where": "Varso i Rondo ONZ",
     "alt": "Varso i szklane wieżowce Woli o zmierzchu w grze, oświetlone okna i ruch na rondzie ONZ w dole"
    }

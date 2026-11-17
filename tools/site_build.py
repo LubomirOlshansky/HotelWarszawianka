@@ -335,11 +335,11 @@ def landing(strings: dict, lang: str) -> str:
     # Hero: poster first (a <picture>), the loop on top when its files exist, a pause button for it.
     hv = strings["hero_video"]
     ver = hv["ver"]
-    values.update(hero_poster=hv["poster"], hero_w=str(hv["w"]), hero_h=str(hv["h"]))
+    values.update(hero_poster=strings["hero"], hero_w=str(hv["w"]), hero_h=str(hv["h"]))
     src = video_sources([("desktop", f"/video/hero-{ver}"), ("phone", f"/video/hero-phone-{ver}")], "the hero loop")
     if src:
         values["hero_video"] = (f'    <video class="hero-video" data-hero muted playsinline loop preload="none" aria-hidden="true" '
-                                f'poster="/img/game/{hv["poster"]}-960.webp">\n{src}\n    </video>')
+                                f'poster="/img/game/{strings["hero"]}-960.webp">\n{src}\n    </video>')
         values["hero_button"] = (
             f'  <button class="vctl" type="button" hidden data-pause="{e(t["video_pause"])}" data-play="{e(t["video_play"])}" '
             f'aria-label="{e(t["video_pause"])}"><svg class="i-p" aria-hidden="true"><use href="#i-pause"/></svg>'

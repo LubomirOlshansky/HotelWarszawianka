@@ -3,7 +3,8 @@
 //   /go/ios      -> IOS_URL     (App Store / TestFlight link, set in wrangler.jsonc)
 //   /go/android  -> ANDROID_URL (Google Play link)
 //
-// Until a store URL is set, the link falls back to the beta form (/#beta), still counted.
+// Until a store URL is set, the link falls back to the page's own card for that platform, still counted
+// and keeping the language: /go/android -> /#android (/pl/#android from the Polish page), /go/ios -> /#beta.
 // Privacy: nothing about the visitor is stored. The count has the button name, the page
 // language the click came from and the country (Cloudflare's country code), no IP, no cookie.
 // Where to read it: dashboard -> Workers & Pages -> aroundwarsaw -> Logs (one line per click)
@@ -19,10 +20,13 @@ export default {
 
     const button = m[1];
     const referer = request.headers.get("referer") || "";
-    const lang = referer.includes("/pl/") ? "pl" : "en";
+    let path = "";
+    try { path = new URL(referer).pathname; } catch (_) { /* no or odd referer: English */ }
+    const lang = path.startsWith("/pl/") ? "pl" : "en";
     const country = request.cf?.country || "??";
     const dest = (env[TARGETS[button]] || "").trim();
-    const target = dest || "/#beta";
+    const base = lang === "pl" ? "/pl/" : "/";
+    const target = dest || base + (button === "android" ? "#android" : "#beta");
 
     console.log(JSON.stringify({ event: "store_click", button, lang, country, live: !!dest }));
     try {
