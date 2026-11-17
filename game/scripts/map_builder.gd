@@ -2088,6 +2088,13 @@ const GRID_HOLD := [
 	[Vector2(-1396.1, 480.4), 14.6], [Vector2(-1386.1, 480.4), 14.8], [Vector2(-1376.1, 480.4), 15.2],
 	[Vector2(-1366.1, 480.4), 15.6], [Vector2(-1416.1, 490.4), 15.0], [Vector2(-1406.1, 490.4), 15.5],
 	[Vector2(-1396.1, 490.4), 15.8], [Vector2(-1386.1, 490.4), 15.9], [Vector2(-1416.1, 500.4), 15.5],
+	# The obelisk's semicircle north of the Palace (F, 2026-11-17: "here should be the obelisk, not
+	# some hole"): level paving on the real square, but the grid dips to 6.9-11.8 m there against
+	# the square's 13.6-14.9 m round it. Held to the level of the nodes round the pit, rising
+	# gently towards the Palace (tools/defilad_obelisk.py takes the mapped wall loop and ramp off).
+	[Vector2(-1176.1, 10.4), 13.6], [Vector2(-1166.1, 10.4), 13.6], [Vector2(-1156.1, 10.4), 13.65],
+	[Vector2(-1186.1, 20.4), 13.8], [Vector2(-1176.1, 20.4), 14.0], [Vector2(-1166.1, 20.4), 14.0],
+	[Vector2(-1156.1, 20.4), 13.9], [Vector2(-1146.1, 20.4), 13.8], [Vector2(-1146.1, 30.4), 14.5],
 ]
 
 

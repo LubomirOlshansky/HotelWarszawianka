@@ -4219,11 +4219,14 @@ func _jar_ground(u: float, v: float) -> float:
 
 # --- The two obelisks on Plac Defilad (F's photos and links, 2026-11-15) -----------------------
 
-## The 1955 granite obelisks on Marszałkowska at the square's north end (by Świętokrzyska) and its
-## south end (towards Jerozolimskie, the hotel tower behind it): a stepped base, a pedestal with a
-## carved garland swag on each face under a cornice, and a tall tapering square shaft with a
+## The 1955 granite obelisks: one on Marszałkowska at the square's north end (by Świętokrzyska),
+## and "Obelisk Granitowy 2" in the paved semicircle north of the Palace's north wing, by its
+## north-west fountain, at the middle of the straight side with the lawn behind it (F's Google
+## Earth shots, 2026-11-17; it stood at the Patelnia by mistake before, and the semicircle was a
+## walled pit: tools/defilad_obelisk.py, map_builder.gd GRID_HOLD). A stepped base, a pedestal with
+## a carved garland swag on each face under a cornice, and a tall tapering square shaft with a
 ## pyramidion. Spots and the 24 m height are read from photos, not mapped: the museum's frame.
-const OBELISKS := [Vector2(-195.0, 2.0), Vector2(333.0, 4.0)]
+const OBELISKS := [Vector2(-195.0, 2.0), Vector2(-108.4, 110.6)]
 const OBELISK_STONE := Color("#a9a59c")
 const OBELISK_TOP := 24.0
 
