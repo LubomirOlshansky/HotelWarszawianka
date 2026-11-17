@@ -130,6 +130,7 @@ class Hud extends CanvasLayer:
 	var cards: Array[String] = []
 	var broadcast := 0
 	var _owner: Object = null
+	var card_face := ""
 
 	func show_card(title: String, text: String, btn: PackedStringArray, a: Color, bottom := false, te := "", be := "", s := false) -> void:
 		_up(title, text, btn)
@@ -359,6 +360,10 @@ class Hud extends CanvasLayer:
 	# The card's owner, as in hud.gd.
 	func own_card(o: Object) -> void:
 		_owner = o
+
+	# The card's speaker, as in hud.gd (activity.gd `card_face`).
+	func set_card_face(who: String, _accent: Color) -> void:
+		card_face = who
 
 	func card_is(o: Object) -> bool:
 		return _owner == o and card != ""

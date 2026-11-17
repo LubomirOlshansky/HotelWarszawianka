@@ -142,3 +142,37 @@ deliveries and next stand, the street races, Podwózka) wins the slot and this o
 full map's dotted line follows the slot's route when it ends at the target, else it stays straight.
 In the air there is no road route. The edge arrow still points straight at the target: a road
 arrow would change how the drive feels, so it waits for F (QUESTIONS.md).
+
+## 6. Track, filters and "?" marks (F's map ask, 2026-11-16; `map_track.gd`)
+
+Three things on the full map, all on the registry and the existing quest pin, none a private copy.
+
+- **Track.** The tracked thing is the quest pin (main.gd `quest_pin`, full_map.gd `quest_pick`): a tap
+  on a place's row, on a "?" (TRACK) or a rival's call-out pins it, a second tap lets it go. Nothing
+  new feeds the map: `_show_target` already puts the pin as the registry's TARGET mark, so the glowing
+  pin, the edge arrow and target_route.gd's road line follow it. What is added: the pin is kept in the
+  save's [intro] as one `track_<id>` key (`quest_pin`'s setter, `MapTrack.pin` and `save_to`; no
+  wallet version change; places only, a rival's moving pin and a request are not kept) and found
+  again from the list or the "?" places (`_restore_track`, from `_story_tick`, up to `MapTrack.TRIES`);
+  the full map draws a gold ring round it and the NEXT card leads with it (head TRACKED, a tap lets it
+  go); a tracked row wears a ◆.
+- **Filters.** The legend's rows are the kinds in `MapTrack.KINDS`, each a set of marks' `group`
+  (main, story, side = lezak + boat, kebab, station = sloik, garage) or the metro's map icon. A tap
+  hides that kind on the full map only (`full_map._hidden`, session only, never saved); each row says
+  "n/total" (n counts what the rule table shows now, 0 when hidden); ALL shows every kind. The
+  TARGET mark, the quest pin and the car are not in any kind and never hide.
+- **"?" marks.** A new layer, `UNKNOWN` (the end of the enum, rule: full map in FREE and AIR only,
+  never the minimap), group "unknown", owner "unknown", put by main.gd `_fill_map_list` from
+  `MapTrack.unknown_marks`: a First step not ticked whose place nothing else shows. Only the steps
+  with a fixed place (`MapTrack.PLACED`: the garage until its diamond shows, the cassette on the BUW
+  roof for the helicopter step). A tap shows the step's teaser (dialogue.json first_steps
+  `unknown_<id>`) and a TRACK button; ticking the step takes the "?" away at the next open.
+
+| Layer | FREE | QUEST | CHASE | Flying |
+| --- | --- | --- | --- | --- |
+| UNKNOWN (full map only) | "?" | hidden | hidden | "?" |
+
+Checks: `check_map_track` (the save key, finding it again, the kinds, the "?" rules), `check_hud`
+(the legend's cells and counts, hiding a kind and the target staying, ALL, track and untrack on the
+NEXT card, the "?" tap and TRACK, no overlaps at six screen sizes), `check_map_markers` (the rule row)
+and `check_target_route` (the route follows a tracked place and goes when it is let go).

@@ -225,7 +225,7 @@ func _check_hud(code: String) -> void:
 	if hud.main_goal[0] != _pair("goal", code)[0] or hud.main_goal[1] != "":
 		_fail("[%s] the main line's goal is '%s' / '%s'" % [code, hud.main_goal[0], hud.main_goal[1]])
 	hud.clear_all()
-	bubbles.say(Vector3.ZERO, "Ania", s["bubble"][0], s["bubble"][1])
+	bubbles.say(Vector3.ZERO, "Nawigacja", s["bubble"][0], s["bubble"][1])
 	talk.show_line("Policjant", s["talk"][0], s["talk"][1], [["Tak, proszę pana", "Yes, officer"]])
 	hud.show_panel(talk, true)
 	await process_frame

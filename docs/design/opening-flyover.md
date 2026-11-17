@@ -26,7 +26,46 @@ Short notes from how well-known openings are built and talked about (sources at 
 - **First launch only.** Every later launch goes straight to the car (here: the short 2.6 s
   fly-in that was already there).
 
-## The design
+## The morning (F, 2026-11-16)
+
+F: the city should go from night to day during the flight, "as if it is waking up". Picked option
+B of the proposal (https://claude.ai/artifact/YBputobbxzscN35kvQ4wUA): the flight is 12 s, as long
+as the host's opening line (13.4 s, `audio/opening/opening_line.ogg`), and each of her sentences
+has its own stage. Her pauses in the recording are at 1.6, 5.0 and 9.3 s.
+
+| Time | Her line | The picture (time_of_day.gd `WAKE_KEYS`) | Sound (opening_audio.gd `CUES`) |
+| --- | --- | --- | --- |
+| 0 – 1.8 s | "Dzień dobry, Warszawo!" | Night, held: lamps, lit windows, neon, the floodlit Palace, headlights. The camera high and wide (520 m), turning round the Palace | the night bed, a far dog at 0.8 s |
+| 1.8 – 5.0 s | the weather, "słonecznie…" | into Dawn's blue hour (the grade's sunset palette, the sun in the east-north-east): the windows start going dark one by one (the building shader lights a hashed share of them by `lights_on`), the stars go | the church bell at 3.0 s, birds at 4.8 s |
+| 5.0 – 7.4 s | "Na Marszałkowskiej nowy remont…" | into SUNRISE: low gold light from the east, the shadows fade in (long, from the east), the lamps nearly out; WARSZAWA comes up (5.4 – 9.6 s) while the camera comes down over Plac Defilad | the tram's bell at 7.4 s |
+| 7.4 – 10.6 s | "…miłego dnia!" | into the Day look: the sun climbs and turns to the day's angle, the shadows shorten, the grade settles | birds at 9.4 s; the day bed by itself |
+| 10.6 – 12 s | | the Day look itself; the last frame is exactly the normal day (check_opening) | the radio swells after her last word |
+
+- **Where it lives.** `time_of_day.gd`: `wake(seconds)`, `end_wake()`, the static `morning(looks, e)`
+  over `build_looks()` (Night, Dawn, the new SUNRISE look, Day; the sunrise is Dawn with the sun out
+  and is used only here). `camera_shots.gd`: OPEN_TIME 12 s, a new wider first key, the caption at
+  the sunrise. `main.gd` starts the morning with the flight and ends it with the flight.
+- **Only from the Day look.** A launch starts in Day (the city loads in it under the title, so the
+  shadows' pipelines are warm); the night comes at the tap. A `--time=` run keeps its own look and
+  gets no morning.
+- **A tap skips** as before: the camera drops to the car in 0.3 s, the voice fades, the remaining
+  cues are dropped, and the Day look comes in over `WAKE_SKIP` (1 s) from wherever the morning was.
+- **Shadows fade** now with any blend (the sun's `shadow_opacity` follows the look's `shadows`
+  value, the pass is off below 0.02) instead of switching at the blend's middle. A whole look is 0
+  or 1, so nothing changes outside a blend.
+- **The game clock** stays at 14:00 after the flight (buses, crowds, clubs and the radio's hours
+  read it); a morning clock for the first session is its own change.
+- **Cost.** No draw call, material, shader or light: the morning is the same per-frame blend the
+  TIME setting runs for 1.5 s (about 30 values and the post pass's uniforms). The shadow pass is off
+  while the view is wider than the old flight's widest (420 m), so no frame costs more than the old
+  day flight's; the wide night part has no shadow pass at all. The night's neon and lamp halos show
+  for the first 8 s, as in night play. `check_opening.gd` checks the morning for every colour look:
+  Night first, Day last, the lights only down, at most 0.02 a frame, no shadows wider than 420 m,
+  the stages in the host's order.
+- **Only the phone can show** whether the first frame with the sunrise's shadows (or the first
+  night frame's neon) hitches, and how the 12 s feel with the voice.
+
+## The design (2026-10-31, before the morning)
 
 | Time | What happens |
 | --- | --- |
@@ -58,7 +97,7 @@ the way down, and how 7.5 s feels with the first song.
 
 ## Open for F (parked in docs/QUESTIONS.md)
 
-- Length: 7.5 s by default. Shorter (5 s) or longer (10 s)?
+- ~~Length: 7.5 s by default. Shorter (5 s) or longer (10 s)?~~ 12 s with the morning (F, 2026-11-16).
 - Should the stand's arrow come at once after the flight (the flight already showed the area)
   instead of 10 s later?
 

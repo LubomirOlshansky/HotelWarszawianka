@@ -100,6 +100,7 @@ lod2                 roads     slow
 loud                 quick
 mainline             quick
 map                  smoke
+maptrack             quick
 markers              quick
 meet                 quick
 meshq                quick

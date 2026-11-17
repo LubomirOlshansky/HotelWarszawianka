@@ -11,12 +11,18 @@ extends RefCounted
 
 const DIR := "res://art/portraits/"
 ## A name whose face file has a longer key (the only Kuba who calls is the padel one).
-const ALIAS := {"kuba": "kuba_padel"}
+const ALIAS := {"kuba": "kuba_padel", "bogdan": "bogdan_tenis", "sierzant": "sierzant_bogdan", "straznik": "henio",
+		"mistrz": "pan_dymek", "taksiarz": "taksiarz_zbyszek", "sloik": "sloik", "mordor": "mordor_mike", "trener": "trener_dominik", "dj": "club_dj"}
+## First words that are not a name on their own: the file key is this word and the next ("Pani Halina" ->
+## pani_halina, "Pan Kołek" -> pan_kolek, "Bulwar Bartek" -> bulwar_bartek).
+const TITLES := ["pan", "pani", "bulwar"]
 
 ## Speakers that are not a person (the sat-nav, a lift, the player, a crowd): their lines keep the
 ## name only, no face. Compared on `key` (first word, plain, lower case).
 const NO_FACE := ["ty", "you", "nawigacja", "start", "kebab", "podwozka", "winda", "lift",
-		"goscie", "guests", "ktos", "someone"]
+		"goscie", "guests", "ktos", "someone",
+		# F 2026-11-16: things that talk (eggs.gd) get no portrait, only people and heroes do
+		"palma", "golab", "barierka", "patelnia", "syrenka", "pan_paw"]
 
 static var _cache := {}
 
@@ -90,17 +96,24 @@ static func set_badge(c: Control, who: String, accent: Color) -> void:
 	c.queue_redraw()
 
 
-## The file key: the first word made only of letters, lower case, Polish letters plain.
+## The file key: the first word made only of letters, lower case, Polish letters plain (a title word such as Pan, Pani or Bulwar takes the next word too).
 static func key(who: String) -> String:
+	var first := ""
 	for word in who.split(" ", false):
 		var w := plain(word).to_lower()
 		var out := ""
 		for ch in w:
 			if (ch >= "a" and ch <= "z") or ch == "_":
 				out += ch
-		if out.length() >= 2:
-			return out
-	return ""
+		if out.length() < 2:
+			continue
+		if first == "":
+			if not out in TITLES:
+				return out
+			first = out
+		else:
+			return first + "_" + out
+	return first
 
 
 ## The fallback's letter: the first letter of the name (after any "+33 ·").

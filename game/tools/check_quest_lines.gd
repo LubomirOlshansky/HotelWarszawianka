@@ -126,7 +126,7 @@ func _sections() -> void:
 	var secs := Lines.sections(e, Lines.Line.CAR, Vector2.ZERO, steps, false)
 	var keys: Array = secs.map(func(x: Dictionary) -> String: return str(x["key"]))
 	_expect("the list's sections in order, no friends before the third step (%s)" % [keys],
-			keys == ["steps", "rivals", "town", "collection"])
+			keys == ["steps", "town", "rivals", "collection"])
 	var st: Array = secs[0]["rows"]
 	var sid: Array = st.map(func(x: Dictionary) -> String: return str(x["step"]))
 	_expect("First steps shows three: the places nearest first, then the requests (%s)" % [sid],
@@ -134,18 +134,18 @@ func _sections() -> void:
 	_expect("a step row takes the step's own words", str(st[0]["en"]) == "Garage" and not bool(st[0]["label"]))
 	var few := Lines.sections(e, Lines.Line.CAR, Vector2.ZERO, [steps[3]], false)
 	_expect("a step done by a button is words, not a row", bool((few[0]["rows"] as Array)[0]["label"]))
-	var town: Array = secs[2]["rows"]
+	var town: Array = secs[1]["rows"]
 	var tid: Array = town.map(func(x: Dictionary) -> String: return str(x["id"]))
 	_expect("Around town: requests, the car's places one per kind, then the heli's, no rivals, none First steps shows (%s)" % [tid],
 			tid == ["call", "c1"])
-	var fl: Array = secs[1]["rows"]
+	var fl: Array = secs[2]["rows"]
 	_expect("the final is a row of Rivals", fl.size() == 1 and str(fl[0]["id"]) == "final")
 	var flying := Lines.sections(e, Lines.Line.HELI, Vector2.ZERO, [], true)
 	var ftown: Array = (flying.filter(func(x: Dictionary) -> bool: return x["key"] == "town")[0] as Dictionary)["rows"]
 	_expect("flying: the heli's places lead Around town", str(ftown[2]["id"]) == "c1")
 	var fkeys: Array = flying.map(func(x: Dictionary) -> String: return str(x["key"]))
 	_expect("no First steps left: no section; Friends once opened (%s)" % [fkeys],
-			fkeys == ["rivals", "town", "friends", "collection"])
+			fkeys == ["town", "rivals", "friends", "collection"])
 	var now := Lines.entry("now", "now", Lines.Line.HELI, "Teraz", "Now", Vector2(0, 50), c, Lines.NOW)
 	var ns := Lines.sections([now], Lines.Line.CAR, Vector2.ZERO, steps, true)
 	_expect("something under way: only Now, its one row", ns.size() == 1 and str(ns[0]["key"]) == "now" \
