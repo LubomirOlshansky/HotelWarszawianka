@@ -1073,7 +1073,9 @@ func _over_tunnel(x: float, z: float) -> bool:
 
 
 ## How far into a tunnel's polygon the cutting still shapes the ground (the mouth is 3.5 m deep,
-## rail_cut.gd's floor reaches FLOOR_W past a track's end, then its end wall).
+## rail_cut.gd's floor reaches FLOOR_W past a track's end, then its end wall). Less lifts the grid's
+## 2 m cells into a ridge in front of the mouth; the headwall's roof (RAIL_MOUTH_DEEP) covers the
+## strip from above, where an open slot showed between the headwall and the street (F 2026-11-17).
 const TUNNEL_CAP := 6.0
 
 
@@ -3155,6 +3157,9 @@ func _platform_slab(st, poly: PackedVector2Array, h: float) -> void:
 ## posts and the dark back a few metres in, across all the tracks that end there. The trains
 ## slide in and out of it (trains.gd cuts them at the tracks' ends).
 const RAIL_MOUTH := 6.4
+## How far back from the rails' ends a mouth's headwall and roof reach: past TUNNEL_CAP and the slope
+## up to the solid ground behind it (the dark back stands at 3.5 m).
+const RAIL_MOUTH_DEEP := 8.0
 
 
 func _build_rail_portals(st) -> void:
@@ -3196,8 +3201,12 @@ func _build_rail_portals(st) -> void:
 		var top := maxf(terrain_height(inside.x, inside.y), y + RAIL_MOUTH + 1.0) + 0.5
 		var basis := Basis(Vector3.UP, atan2(-d.x, -d.y))
 		var head := mid + d * 0.6
-		_box_oriented(st, Vector3(head.x, (y + RAIL_MOUTH + top) * 0.5, head.y), basis,
-				Vector3(w + 2.4, top - y - RAIL_MOUTH, 1.2), PORTAL_CONCRETE)
+		# The headwall runs back over the whole mouth (its front at the rails' ends, its back past the
+		# dark back wall): the mouth is roofed, so from above the street's ground meets the headwall
+		# with no slot down into the mouth (F 2026-11-17, Żelazna; TUNNEL_CAP).
+		var roof := mid + d * (RAIL_MOUTH_DEEP * 0.5)
+		_box_oriented(st, Vector3(roof.x, (y + RAIL_MOUTH + top) * 0.5 + 0.01, roof.y), basis,
+				Vector3(w + 2.4, top - y - RAIL_MOUTH, RAIL_MOUTH_DEEP), PORTAL_CONCRETE)
 		for sgn in [-1.0, 1.0]:
 			var p: Vector2 = head + side * sgn * (w * 0.5 + 0.6)
 			_box_oriented(st, Vector3(p.x, (y - 0.5 + top) * 0.5, p.y), basis, Vector3(1.2, top - y + 0.5, 1.2),
