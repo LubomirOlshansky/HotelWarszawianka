@@ -139,7 +139,7 @@ All `M_STONE` (plain, in the city's one building material) unless named.
 
 L2 for the plaza and the roofs (the tower stays L3). Triangles (`check_mesh_quality`): the tower
 with G1 2,182 (budget 1,680 → 2,500); T1-T3, the sign and the erratic 901; with the wings (L2) 6,846 (`varso_place`, budget
-8,200, 2026-11-17). No new node, material, light or draw call: everything is the city's building surface
+7,200, 2026-11-17). No new node, material, light or draw call: everything is the city's building surface
 (UV2 landmark codes) and the trees' existing MultiMesh. Shots: the sky garden from the helicopter
 (`--at=-1622,583 --yaw=225 --pitch=-40 --size=90`), the terraces (`--at=-1730,630 --size=90`),
 the corner plaza (`--at=-1590,560 --size=40`), day and dusk, both city paths.
