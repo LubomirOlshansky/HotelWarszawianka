@@ -317,7 +317,7 @@ const BUDGET := {
 	"trojca": 3700,  # 2026-11-14 photo rebuild: rusticated drum, arched windows, framed oculi, Doric porticoes with lunettes, dormers, glazed lantern (measured 3361)
 	"unit": 1160,
 	"varso": 4300,  # 2026-11-15 photo rebuild (3614 tris): grey frame, louvre crown, lattice spire with dish platforms, lobby, observation box; +0 draw calls
-	"varso_place": 1100,
+	"varso_place": 8200,  # 2026-11-17 the office wings from F's photos (stone frame, set-back top storey, terraces, atrium): 6846 tris, +0 draw calls
 	"wcf": 1400,  # 2026-11-08 F's 13 photos: the Emilii Plater portico, piers, fins, the low roof's rail (1319)
 	"wszystkich": 1300,
 	"wizytki": 3600,  # 2026-11-14: the whole Visitationist church replaces LoD2 (front, nave, aisles, chancel, wing, turret; measured 3248)
