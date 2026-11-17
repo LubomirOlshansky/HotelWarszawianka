@@ -8,6 +8,7 @@
 		{"tag": "delivered", "pl": "Kebab płaci więcej, póki jest gorący.", "en": "A kebab pays more while it is hot."},
 		{"tag": "", "pl": "Rondo Dmowskiego stoi zawsze. Nawet w grze.", "en": "Rondo Dmowskiego is always jammed. Even in a game."},
 		{"tag": "map", "pl": "Dotknij minimapy, a otworzy się mapa Warszawy.", "en": "Tap the minimap to open the map of Warsaw."},
+		{"tag": "quests", "pl": "Na mapie przycisk ZADANIA: wszystko, co możesz robić.", "en": "QUESTS on the map: everything you can do."},
 		{"tag": "teleport", "pl": "Przytrzymaj punkt na mapie, by tam skoczyć.", "en": "Hold a spot on the map to jump there."},
 		{"tag": "", "pl": "Palma na rondzie de Gaulle'a nie rośnie. Ale stoi.", "en": "The palm on Rondo de Gaulle'a doesn't grow. It stands."},
 		{"tag": "rescued", "pl": "Wezwania ratunkowe płacą za szybkość. Na dach leć helikopterem.", "en": "Rescue calls pay for speed. Fly to the roof ones."},
@@ -21,17 +22,13 @@
 	"hints": {
 		"stop": {"pl": "Zwolnij i stań w kole", "en": "Slow down and stop in the ring"},
 		"reverse": {"pl": "Trzymaj HAMULEC, żeby cofnąć", "en": "Hold BRAKE to reverse"},
-		"minimap": {"pl": "Dotknij mapy: cała Warszawa", "en": "Tap the map: all of Warsaw"},
+		"minimap": {"pl": "Dotknij mapy: zadania i miejsca", "en": "Tap the map: quests and places"},
 		"heli": {"pl": "Dach? Weź helikopter", "en": "Roof? Take the helicopter"},
 		"climb": {"pl": "Trzymaj: w górę i w dół", "en": "Hold: up and down"},
 		"land": {"pl": "Wyląduj przy osobie", "en": "Land by the person"},
-		"map_list": {"pl": "Przewiń listę: jest tego więcej", "en": "Scroll the list: there is more"},
+		"map_quests": {"pl": "ZADANIA: wszystko, co możesz robić", "en": "QUESTS: everything you can do"},
+		"map_pin": {"pl": "Dotknij kropki znajomego", "en": "Tap a friend's dot"},
 		"map_hold": {"pl": "Przytrzymaj mapę, by tam skoczyć", "en": "Hold the map to jump there"},
-		"map_pin": {"pl": "Dotknij miejsca, by przypiąć cel", "en": "Tap a place to pin it"},
-		"next_head": {"pl": "NASTĘPNE", "en": "NEXT"},
-		"track_head": {"pl": "ŚLEDZONE", "en": "TRACKED"},
-		"track_offer": {"pl": "ŚLEDŹ", "en": "TRACK"},
-		"track_off": {"pl": "dotknij, by przestać", "en": "tap to stop"},
-		"map_all": {"pl": "WSZYSTKO", "en": "ALL"}
+		"track_offer": {"pl": "ŚLEDŹ", "en": "TRACK"}
 	}
 }

@@ -1352,6 +1352,9 @@ for s in $want; do
 		stopassist) check stopassist '^check_stop_assist:' --fixed-fps 60 --script res://tools/check_stop_assist.gd ;;
 		# G12: the car and heli quest lines (quest_lines.gd) and G10's START RIDE reach.
 		questlines) check questlines '^check_quest_lines:' --script res://tools/check_quest_lines.gd ;;
+		# 2026-11-17 (F's QUESTS screen): the tabs and items quest_book.gd builds from the facts, the
+		# words of every key, the icons and the beta card's tiles (pure, no map, ~1 s).
+		questbook) check questbook '^check_quest_book:' --script res://tools/check_quest_book.gd ;;
 		# Wątki (2026-11-07): the questlines' hours, starts, map badges, quest focus, the WĄTKI tab and
 		# the friend walking up in person (story_quests.gd; no map, CI too).
 		stories) check stories '^check_story_quests:' --script res://tools/check_story_quests.gd ;;
@@ -1493,8 +1496,8 @@ for s in $want; do
 		first10) check first10 '^first10:' --script res://tools/check_first10.gd ;;
 		mainline) check mainline '^main_line:' --script res://tools/check_main_line.gd ;;
 		chatter) check chatter '^check_chatter:' --script res://tools/check_chatter.gd ;;
-		# 2026-11-16 (F's map ask): the full map's track (the save's key, resolving it again), the legend's filters
-		# and the "?" marks' rules (map_track.gd), with the registry's UNKNOWN layer (headless, ~1 s).
+		# 2026-11-16 (F's map ask): the full map's track (the save's key, resolving it again) and the "?"
+		# marks' rules (map_track.gd), with the registry's UNKNOWN layer (headless, ~1 s).
 		maptrack) check maptrack '^check_map_track:' --script res://tools/check_map_track.gd ;;
 		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		targetroute) check targetroute '^check_target_route:' --script res://tools/check_target_route.gd ;;

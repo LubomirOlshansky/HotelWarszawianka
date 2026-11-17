@@ -993,6 +993,11 @@ func ring(k := "") -> bool:
 	return super.ring()
 
 
+## Two questlines, one Mati: the call's `kind` says which one he invites to (F 2026-11-17).
+func _invite() -> Array:
+	return invites.get(kind, [])
+
+
 func _call_card() -> Dictionary:
 	return {"who": FRIEND, "about": ["Kumpel z osiedla. Wie o imprezie, zanim powstała.",
 			"Estate mate. Knows the party before it exists."]}

@@ -147,6 +147,8 @@ const Activities := preload("res://scripts/activities.gd")
 ## (`install`, TD-4 b, docs/design/wiring-out-of-main.md), and main.gd only joins it (`_join`).
 const Activity := preload("res://scripts/activity.gd")
 const GameCtx := preload("res://scripts/game_ctx.gd")
+## The QUESTS screen's words and tabs (2026-11-17).
+const QuestBook := preload("res://scripts/quest_book.gd")
 const PauseReasons := preload("res://scripts/pause_reasons.gd")
 const Tour := preload("res://scripts/tour.gd")
 
@@ -467,7 +469,7 @@ var dekalog_tour: Tour
 
 ## The questlines (story_quests.gd); --stories-log prints what they do.
 var stories: StoryQuests
-## --quest-tab=N: the full map's ZADANIA card opens on tab N (0 AUTO, 1 HELI, 2 WĄTKI; shots).
+## --quest-tab=N (shots): the full map opens with the QUESTS screen on tab N (quest_book.gd TABS).
 ## Also written by a command-line flag (dev_flags.gd).
 var quest_tab_flag := -1
 var _story_t := 0.0
@@ -622,10 +624,13 @@ const PUSH_BUBBLE := Color("#f0b35a")
 var _push_parked_done := false
 ## Also written by a command-line flag (dev_flags.gd).
 var fullmap_span := 0.0
-## G12 part 2, --quest-pick=N (tests, shots): the full map opens at the start and row N of the
-## ZADANIA tab shown (the vehicle's) is tapped; a place's pick then closes the map.
+## --quest-pick=N (tests, shots): the full map opens at the start, the QUESTS screen on its first
+## tab, and row N's first button is pressed; a place's pick then closes the map.
 ## Also written by a command-line flag (dev_flags.gd).
 var quest_pick_flag := -1
+## --quests (shots): the full map opens at the start with the QUESTS screen up (2026-11-17).
+## Also written by a command-line flag (dev_flags.gd).
+var quests_flag := false
 ## [x, z, what]: above the four driven tunnels (the bug: a hold over a tunnel put the car on its
 ## floor), by a portal, and plain streets.
 const TELEPORT_TESTS := [
@@ -2932,6 +2937,11 @@ func _build_first10() -> void:
 	first10.cassettes = cassettes
 	first10.flying = func() -> bool: return flying
 	first10.side_busy = func() -> bool: return boat_race != null and boat_race.boating()
+	first10.open_quests = func() -> void:  # the beta card's SEE QUESTS (2026-11-17)
+		(func() -> void:
+			quests_flag = true
+			_open_full_map()
+			quests_flag = false).call_deferred()
 	first10.scripted = flags.first10_flag and flags.autopilot
 	add_child(first10)
 	first10.setup(flags.first10_flag or flags.show_title)
@@ -3222,6 +3232,14 @@ func _build_stories(world: Node3D) -> void:
 	# first puts off a rescue call still ringing (its pill), which no longer stops the friend.
 	for d: Dictionary in stories.defs:
 		d["blurb"] = STORY_BLURBS.get(str(d["id"]), ["", ""])
+		var act := (d["idle"] as Callable).get_object() as Activity  # its call card names it (F 2026-11-17)
+		if act != null:
+			act.invites[str(d["id"])] = [str(d["pl"]), str(d["en"])]
+			act.declined = func(id: String) -> void:  # turned down or rung out: NEW in QUESTS, and a toast
+				var w := QuestBook.mark_invite(wallet.intro, stories.defs, id) if wallet != null else []
+				if not w.is_empty():
+					hud.toast(str(w[0]), str(w[1]))
+					wallet.save()
 		var own: Callable = d.get("meet", Callable())
 		if own.is_valid():
 			d["meet"] = func() -> bool:
@@ -4775,91 +4793,66 @@ func _open_full_map() -> void:
 	if districts != null and districts.ready_ok:
 		hud.full_map.set_districts(districts.view(), districts.percent_total(), syrenki.found_count() if syrenki != null else 0,
 				syrenki.entries.size() if syrenki != null else 0)  # loop 3h slice 1 (+ slice 2: the Syrenki line)
-	hud.full_map.quit_what = _quest_quit_name()  # F 2026-11-08: the card's quit button
+	hud.full_map.quit_what = _quest_quit_name()  # F 2026-11-08: QUIT on the QUESTS screen's NOW line
 	hud.full_map.hints = hints  # 2026-11-16: the map's coach marks (hints.gd)
-	var entries := _quest_entries()
-	_fill_map_list(entries)  # first hour step 4: the one list's First steps, Rivals and Collection
-	hud.full_map.set_quests(entries, Lines.Line.HELI if flying else Lines.Line.CAR,
-			str(quest_pin.get("id", "")), quest_pin)  # G12 part 2: the quest list (one list since step 4)
-	if quest_tab_flag >= 0:
-		hud.full_map.show_line(quest_tab_flag)
-		quest_tab_flag = -1
+	_fill_map_list(_quest_entries())  # 2026-11-17: the QUESTS screen's facts (quest_book.gd)
 	_wire_full_map()
+	if quest_tab_flag >= 0:
+		hud.full_map.show_tab(quest_tab_flag)
+		quest_tab_flag = -1
 	if quest_pick_flag >= 0:
-		var rows: Array = hud.full_map.quest_rows
-		print("quest list: %d rows on the %s tab: %s" % [rows.size(), "HELI" if flying else "AUTO",
-				", ".join(rows.map(func(r: Dictionary) -> String: return "%s %s" % [r["id"], r["far"][1]]))])
-		hud.full_map.pick_row(quest_pick_flag)
+		hud.full_map.pick_item(quest_pick_flag)
 		quest_pick_flag = -1
 		if hud.full_map.is_open():
 			hud.full_map.close()
+	if quests_flag:
+		quests_flag = false
+		hud.full_map.open_screen()
 
 
-## First hour step 4 (the map's one list): what it shows besides the quests. The First steps left
-## (first_steps.gd) with the place or request that does each, from `entries` (`_quest_entries`):
-## the nearest kebab stand, a ride, the easiest rival to call out, a rescue call, Mirek's garage
-## (the helicopter and the police have none: they are words). Friends opens with the third step
-## (as first10.gd lets the friends call). The rivals as chips (ladder.gd `chips`), the final's
-## line and the night for it. The Collection line after the first find.
+## 2026-11-17 (F's QUESTS screen): the facts quest_book.gd `tabs` builds the screen from, handed
+## to the full map with the quest pin. `entries` is `_quest_entries` (places and requests on offer;
+## only the NOW row while something runs). The First steps all seven, each with the place or request
+## that does it (`_step_entry`); every questline with its friend, words, hours and NEW mark (a call
+## turned down: "qnew_<id>" in [intro]); the jobs done (wallet.gd `jobs`); the rivals' chips, the
+## final and the night for it; the collection's counts. The "?" marks of the First steps not done.
 func _fill_map_list(entries: Array) -> void:
-	var fm: Control = hud.full_map
-	var left: Array = []
-	var head: Array = []
-	var friends := true
-	if wallet != null:
-		var by_group := {}
-		for e: Dictionary in entries:
-			var g := str(e["group"])
-			if not by_group.has(g) and str(e["action"]) != Lines.NOW:
-				by_group[g] = []
-			if by_group.has(g):
-				(by_group[g] as Array).append(e)
-		var pos := _vehicle_position()
-		var here := Vector2(pos.x, pos.z)
-		for id: String in FirstSteps.left(wallet.intro):
+	var pos := _vehicle_position()
+	var here := Vector2(pos.x, pos.z)
+	var intro: Dictionary = wallet.intro if wallet != null else {}
+	var f := {"car": here, "entries": entries, "jobs": wallet.jobs if wallet != null else {},
+			"now": entries[0] if not entries.is_empty() and str(entries[0]["action"]) == Lines.NOW else {},
+			"friends": FirstSteps.count(intro) >= FirstSteps.NOTICED_AT, "steps": [], "stories": []}
+	var by_group := {}
+	for e: Dictionary in entries:
+		if str(e["action"]) != Lines.NOW:
+			by_group[str(e["group"])] = (by_group.get(str(e["group"]), []) as Array) + [e]
+	var left := FirstSteps.left(intro)
+	if wallet != null and not left.is_empty():
+		for id: String in FirstSteps.IDS:
 			var name: Array = FirstSteps.name_of(id)
-			left.append({"id": id, "pl": name[0], "en": name[1], "entry": _step_entry(id, by_group, here)})
-		head = FirstSteps.header(wallet.intro)
-		friends = FirstSteps.count(wallet.intro) >= FirstSteps.NOTICED_AT
-		if left.is_empty():
-			head = []
-	fm.set_steps(left, head, FirstSteps.words("promise") if not left.is_empty() else [], friends)
-	fm.set_next([str(main_next.get("pl", "")), str(main_next.get("en", ""))], main_next.get("at", Vector2.INF))  # the NEXT card after First steps
-	# The "?" of the First steps not done whose place nothing else shows (map_track.gd).
-	hud.markers.put_all(MapTrack.OWNER, MapTrack.unknown_marks(wallet.intro, _unknown_places(),
-			{"garage": hud.markers.has("garage:workshop")}) if wallet != null else [])
+			f["steps"].append({"id": id, "pl": name[0], "en": name[1], "done": not id in left, "entry": _step_entry(id, by_group, here)})
+	if stories != null:
+		f["stories"] = QuestBook.story_facts(stories.defs, stories.clock.call(), intro)
 	if rivals != null and rivals.ladder != null and wallet != null:
 		var rows: Array = rivals.ladder_rows()
-		fm.set_rivals(rivals.ladder.chips(), rivals.ladder.title(), rows[rows.size() - 1] if not rows.is_empty() else [],
-				rivals.ladder.final_waits_night() and not tod.lights_on and rivals.night_now.is_valid())
-	else:
-		fm.set_rivals([])
-	var taken := 0
+		f["rivals"] = rivals.ladder.chips()
+		f["final"] = rows[rows.size() - 1] if not rows.is_empty() else []
+		f["night"] = rivals.ladder.final_waits_night() and not tod.lights_on and rivals.night_now.is_valid()
+	if districts != null and districts.ready_ok:
+		f["districts"] = districts.view()
+		f["total"] = districts.percent_total()
+	if syrenki != null:
+		f["syrenki"] = [syrenki.found_count(), syrenki.entries.size()]
 	if cassettes != null and cassettes.ready_ok:
-		for c: Dictionary in cassettes.entries:
-			if cassettes.is_taken(str(c["id"])):
-				taken += 1
-	var syr := syrenki.found_count() if syrenki != null else 0
-	var found_notes := 0
+		f["tapes"] = [cassettes.entries.filter(func(x: Dictionary) -> bool: return cassettes.is_taken(str(x["id"]))).size(), cassettes.entries.size()]
 	if notes != null:
-		for place: Dictionary in notes.places:
-			if notes.is_found(str(place["id"])):
-				found_notes += 1
-	var words: Array = []
-	if taken + syr + found_notes > 0:
-		var pl := PackedStringArray()
-		var en := PackedStringArray()
-		if districts != null and districts.ready_ok:
-			pl.append("Dzielnice %d%%" % districts.percent_total())
-			en.append("Districts %d%%" % districts.percent_total())
-		if syrenki != null and not syrenki.entries.is_empty():
-			pl.append("Syrenki %d/%d" % [syr, syrenki.entries.size()])
-			en.append("Syrenki %d/%d" % [syr, syrenki.entries.size()])
-		if cassettes != null and cassettes.ready_ok:
-			pl.append("Kasety %d/%d" % [taken, cassettes.entries.size()])
-			en.append("Tapes %d/%d" % [taken, cassettes.entries.size()])
-		words = [" · ".join(pl), " · ".join(en)]
-	fm.set_collection(words)
+		f["places"] = [notes.places.filter(func(x: Dictionary) -> bool: return notes.is_found(str(x["id"]))).size(), notes.places.size()]
+	# The "?" of the First steps not done whose place nothing else shows (map_track.gd).
+	hud.markers.put_all(MapTrack.OWNER, MapTrack.unknown_marks(intro, _unknown_places(),
+			{"garage": hud.markers.has("garage:workshop")}) if wallet != null else [])
+	hud.full_map.set_next([str(main_next.get("pl", "")), str(main_next.get("en", ""))], main_next.get("at", Vector2.INF))
+	hud.full_map.set_book(f, quest_pin)
 
 
 ## Where the First steps with a fixed place are (map_track.gd PLACED): Mirek's garage, the guide's cassette on the BUW roof.
@@ -4916,6 +4909,9 @@ func _wire_full_map() -> void:
 	hud.full_map.quest_picked.connect(_on_quest_picked)
 	hud.full_map.quit_quest.connect(_quit_quest)
 	hud.full_map.rival_called.connect(_call_rival_out)
+	hud.full_map.seen.connect(func(id: String) -> void:
+		if wallet != null and wallet.intro.erase(QuestBook.NEW_KEY + id.trim_prefix("story_")):
+			wallet.save())  # a questline that invited the player was looked at in QUESTS
 	hud.full_map.can_teleport = _teleport_refusal
 
 

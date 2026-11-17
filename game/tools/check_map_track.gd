@@ -1,13 +1,12 @@
 extends SceneTree
-## The full map's track, filters and "?" marks (map_track.gd, F's map ask 2026-11-16), pure rules
+## The full map's track and "?" marks (map_track.gd, F's map ask 2026-11-16), pure rules
 ## and the saved key, no map, no game. Checks that:
 ## - a pin that is a place is tracked and saved as one "track_<id>" key in the [intro] section, a
 ##   second `pin({})` lets it go and takes the key away, a rival's moving pin or a request is no
 ##   track, an id with odd characters is saved safely;
 ## - a saved key is found again among the lists the world offers (a stand, a "?") and let go of after
 ##   TRIES tries when it never comes; a pin put meanwhile cancels the wait;
-## - every legend row has a kind and every kind's groups are the registry's (the jobs' kebab, sloik,
-##   lezak and boat, the story badges, the garage, the main star), and no group is in two kinds;
+## (The legend's filters and their kinds went with the minimal map, 2026-11-17: the QUESTS screen.)
 ## - the "?" marks: only the steps with a fixed place that are not ticked and not otherwise shown, in
 ##   the UNKNOWN layer, group "unknown"; the teaser lines exist in both languages; the pin a tap offers
 ##   has the vehicle's line.
@@ -17,7 +16,6 @@ const MapTrack := preload("res://scripts/map_track.gd")
 const MapMarkers := preload("res://scripts/map_markers.gd")
 const FirstSteps := preload("res://scripts/first_steps.gd")
 const Lines := preload("res://scripts/quest_lines.gd")
-const FullMap := preload("res://scripts/full_map.gd")
 
 var _problems := 0
 
@@ -30,7 +28,6 @@ func _expect(ok: bool, what: String) -> void:
 
 func _initialize() -> void:
 	_track()
-	_kinds()
 	_unknown()
 	if _problems == 0:
 		print("check_map_track: OK")
@@ -86,20 +83,6 @@ func _track() -> void:
 	x.load_from({"track_waiting": 1})
 	x.pin(_place("kebab_9_9"))
 	_expect(x.pending == "" and x.resolve([[_place("waiting")]]).is_empty(), "a pin put meanwhile cancels the wait")
-
-
-func _kinds() -> void:
-	_expect(MapTrack.KINDS.size() == FullMap.LEGEND.size(), "a kind for every legend row (%d, %d)" % [MapTrack.KINDS.size(), FullMap.LEGEND.size()])
-	var seen := {}
-	for k: Dictionary in MapTrack.KINDS:
-		for g: String in k["groups"]:
-			_expect(not seen.has(g), "group %s is in one kind only" % g)
-			seen[g] = true
-	for g in ["main", "story", "lezak", "boat", "kebab", "sloik", "garage"]:
-		_expect(MapTrack.kind_of(g) != "", "group %s has a legend row" % g)
-	_expect(MapTrack.kind_of("target") == "" and MapTrack.kind_of("unknown") == "" and MapTrack.kind_of("notebook") == "",
-			"the target and the '?' marks belong to no filter")
-	_expect(MapTrack.kind_of("lezak") == "side" and MapTrack.kind_of("sloik") == "station", "kinds by group")
 
 
 func _unknown() -> void:

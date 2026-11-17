@@ -100,7 +100,7 @@ class PlayHud extends Fakes.Hud:
 	func cards_up() -> bool:
 		return super() or map_open
 
-	func set_card_art(art: Control, _left := false) -> void:
+	func set_card_art(art: Control, _left := false, _below := false) -> void:
 		arts += 1
 		art.free()
 

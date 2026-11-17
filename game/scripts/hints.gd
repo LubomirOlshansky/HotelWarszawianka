@@ -13,10 +13,11 @@ extends RefCounted
 ## | climb | "Hold: up and down" round the up pad | the first flight, until the up or down pad (or key) is used | climbing or sinking |
 ## | land | "Land by the person" over the helicopter | flying within LAND_NEAR m of a roof rescue's person | the pick-up |
 ##
-## The full map's coach marks (map_list, map_hold, map_pin; `decide_map`, `map_tick`) are the same
-## rules inside the map: one at a time, once, each gone when the player does the thing (scrolls the
-## list, holds a spot, taps a place); full_map.gd draws them (the game is paused under the map, so
-## hud.gd's spotlight is not used) and its "?" button plays them again.
+## The full map's coach marks (map_quests, map_pin, map_hold; `decide_map`, `map_tick`) are the same
+## rules inside the map: one at a time, once, each gone when the player does the thing (opens
+## QUESTS, taps a questline's dot, holds a spot); full_map.gd draws them (the game is paused under
+## the map, so hud.gd's spotlight is not used). 2026-11-17: the list and its "?" button went with
+## F's minimal map, so the first mark points at the QUESTS button now.
 ##
 ## The words are game/data/tips.json `hints`; what was shown is the save's [intro] section, under
 ## "hint_<id>" (wallet.gd). main.gd hands `tick` the facts five times a second (`_hints_frame`);
@@ -29,8 +30,8 @@ const IDS := ["stop", "reverse", "minimap", "heli", "climb", "land"]
 ## Things done that a hint or a loading tip asks about, kept beside the hints: the full map opened
 ## once, a flight once (`tick` notes them from `map_open` and `flying`).
 const DID := ["map", "flown"]
-## The full map's coach marks, in the order they show (save keys "hint_map_list" and so on).
-const MAP_IDS := ["map_list", "map_hold", "map_pin"]
+## The full map's coach marks, in the order they show (save keys "hint_map_quests" and so on).
+const MAP_IDS := ["map_quests", "map_pin", "map_hold"]
 ## Driving this long (s) in free driving also brings the minimap hint, pay or not (a player who
 ## has not been paid yet has still not found the map).
 const MINIMAP_DRIVE_S := 60.0
@@ -218,34 +219,34 @@ func tick(dt: float, f: Dictionary, hud: Object) -> String:
 	return id
 
 
-## The map coach mark to show now ("" none), from the facts the map gives: scrollable (the list
-## is longer than its scroll), has_place (a place row to tap), cards (the ≡ cards are up: no coach
-## mark then), replay (the "?" was tapped: every mark again, once each, whether seen or not).
+## The map coach mark to show now ("" none), from the facts the map gives: has_book (the QUESTS
+## screen has something), has_story (a questline's dot is on the map), screen (the QUESTS screen is
+## up: no coach mark then), replay (every mark again, once each, whether seen or not).
 ## Pure but for `_replayed`. One at a time, in MAP_IDS' order.
 func decide_map(f: Dictionary) -> String:
-	if coach != "" or bool(f.get("cards", false)):
+	if coach != "" or bool(f.get("screen", false)):
 		return ""
 	var replay := bool(f.get("replay", false))
 	for id: String in MAP_IDS:
 		var avail := not _replayed.has(id) if replay else int(seen.get(id, 0)) < 1
 		if not avail:
 			continue
-		if id == "map_list" and not bool(f.get("scrollable", false)):
+		if id == "map_quests" and not bool(f.get("has_book", false)):
 			continue
-		if id == "map_pin" and not bool(f.get("has_place", false)):
+		if id == "map_pin" and not bool(f.get("has_story", false)):
 			continue
 		return id
 	return ""
 
 
-## The map coach mark up now is done: the player did its thing (did_scroll, did_hold, did_pin
-## in the facts), it has been up COACH_LIFE s, or the ≡ cards came up.
+## The map coach mark up now is done: the player did its thing (did_quests, did_pin, did_hold in
+## the facts), it has been up COACH_LIFE s, or the QUESTS screen came up.
 func map_done(f: Dictionary) -> bool:
-	if coach_for >= COACH_LIFE or bool(f.get("cards", false)):
+	if coach_for >= COACH_LIFE or bool(f.get("screen", false)):
 		return true
 	match coach:
-		"map_list":
-			return bool(f.get("did_scroll", false))
+		"map_quests":
+			return bool(f.get("did_quests", false))
 		"map_hold":
 			return bool(f.get("did_hold", false))
 		"map_pin":

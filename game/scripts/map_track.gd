@@ -1,19 +1,19 @@
 extends RefCounted
-## The full map's track, filters and "?" marks (F's ask 2026-11-16, after the Witcher 3's map and
-## GTA; docs/architecture/map-markers.md "Track, filters and ?"). Pure state and rules, no nodes:
+## The full map's track and "?" marks (F's ask 2026-11-16, after the Witcher 3's map and
+## GTA; docs/architecture/map-markers.md "Track and ?"). Pure state and rules, no nodes:
 ## full_map.gd draws and taps, main.gd feeds it, game/tools/check_hud.gd and check_map_track.gd
 ## drive it.
 ##
-## TRACK. The tracked thing is the quest pin (main.gd `quest_pin`, full_map.gd `quest_pick`): a tap
-## on a row or a "?" pins it, a second tap on it lets it go. What is new is only that the pin is
-## kept across sessions (this instance: the save's [intro] section, one key "track_<id>", no wallet
-## version change) and that the full map shows it gold on the map and at the top of the NEXT card.
+## TRACK. The tracked thing is the quest pin (main.gd `quest_pin`, full_map.gd `quest_pick`): SHOW
+## ON MAP on the QUESTS screen, ROUTE on a questline's dot or TRACK on a "?" pins it, STOP TRACKING
+## lets it go. What is new is only that the pin is kept across sessions (this instance: the save's
+## [intro] section, one key "track_<id>", no wallet version change) and that the full map shows it
+## gold on the map and on the NEXT line.
 ## The pin is the registry's TARGET mark whenever no activity has a target of its own
 ## (main.gd `_show_target` -> `_put_target`), and so the road route (target_route.gd) follows it.
 ##
-## FILTERS. The full map's legend rows are the KINDS below: each is a group (or groups) of the
-## registry's marks (map_markers.gd `group`), or the metro's map icon. The state is the full map's
-## own and lasts for the session; the target, the quest pin and the car are never hidden.
+## FILTERS (2026-11-16) went with the legend on 2026-11-17 (F: "make the map minimalistic"; the
+## QUESTS screen, quest_book.gd, lists what the map no longer does).
 ##
 ## "?" MARKS. A First step not done whose map point nothing else shows: `unknown_marks` gives its
 ## UNKNOWN-layer mark (group "unknown", owner OWNER), a tap on it tells the step's teaser line
@@ -33,18 +33,6 @@ const GROUP := "unknown"
 const PLACED := ["garage", "heli"]
 ## The "?" mark's colour (the map's gold).
 const COLOUR := Color("#f0b429")
-## The legend's kinds, in its rows' order (full_map.gd LEGEND): id, the registry groups it hides
-## and shows. "side" is every street job that is not a kebab stand or a station (the Leżak depots,
-## the boat); "metro" is the map's own icon, not a registry mark.
-const KINDS := [
-	{"id": "main", "groups": ["main"]},
-	{"id": "story", "groups": ["story"]},
-	{"id": "side", "groups": ["lezak", "boat"]},
-	{"id": "kebab", "groups": ["kebab"]},
-	{"id": "station", "groups": ["sloik"]},
-	{"id": "garage", "groups": ["garage"]},
-	{"id": "metro", "groups": []},
-]
 ## A saved id that never resolves is let go after this many tries (main.gd `_story_tick`, 4 a second).
 const TRIES := 40
 
@@ -54,14 +42,6 @@ var tried := 0
 ## The id tracked now ("" none), and whether it changed since the last `save_to`.
 var tracked := ""
 var dirty := false
-
-
-## The kind (KINDS id) whose rows hide and show marks of `group`; "" for a group no row owns.
-static func kind_of(group: String) -> String:
-	for k: Dictionary in KINDS:
-		if group in (k["groups"] as Array):
-			return str(k["id"])
-	return ""
 
 
 ## A saved key's tail for `id`: letters, digits, "_" and "-" only (ConfigFile keys).

@@ -11,7 +11,8 @@ extends SceneTree
 ##   until the next write;
 ## - the minimap paints what the registry holds and the rule table allows: a job place, a garage and
 ##   a "?" each add triangles to the overlay's one batch in free drive, none in quest focus; a
-##   questline badge adds them in free drive, none in focus and none in the air; the main line's
+##   questline badge adds them in free drive, none in focus and none in the air (the full map keeps
+##   them in both, 2026-11-17); the main line's
 ##   star shows in focus too; a mark of the final's start (RIVAL, kept, not drawn) adds none;
 ## - each mark keeps its group and extra (the questline's name, line and "small"), and the game's
 ##   own builders give them: the questlines' starts (story_quests.gd `map_marks`) and the main
@@ -68,7 +69,7 @@ func _rules() -> void:
 	var want := {
 		L.TARGET: [true, true, true, true, true, true],
 		L.MAIN: [true, true, true, true, true, true],
-		L.STORY: [true, false, false, true, false, false],
+		L.STORY: [true, false, false, true, true, true],
 		L.JOB: [true, false, true, true, false, true],
 		L.PLACE: [true, false, true, false, false, false],
 		L.SERVICE: [true, false, true, true, false, true],
@@ -156,7 +157,7 @@ func _registry() -> void:
 			and m.count_group(["unknown"], MINI, FREE) == 0 and m.count_group(["kebab", "sloik"]) == 2,
 			"count_group: all, or only what the rule table shows (the full map's filter counts)")
 	m.clear("unknown")
-	_expect(m.shown(L.RIVAL, MINI, FREE)["at"].is_empty() and is_same(m.shown(L.RIVAL, MINI, FREE), m.shown(L.STORY, FULL, QUEST)),
+	_expect(m.shown(L.RIVAL, MINI, FREE)["at"].is_empty() and is_same(m.shown(L.RIVAL, MINI, FREE), m.shown(L.STORY, MINI, QUEST)),
 			"a hidden layer reads one shared empty view (nothing made per frame)")
 	# The game's own builders.
 	var defs := [{"id": "rave", "pl": "Tajny rejw", "en": "Secret rave", "at": Vector2(5, 6), "colour": Color.PURPLE,
@@ -270,17 +271,18 @@ func _hud() -> void:
 	markers.put_all("jobs", [{"layer": L.JOB, "at": Vector2(70, 0), "colour": Color.ORANGE}])
 	_expect(fm != null and (fm.get("markers") as MapMarkers).marks_of(L.JOB)["at"] == PackedVector2Array([Vector2(70, 0)]),
 			"a write while the map is open is what it draws next (no copy)")
-	# Its questline starts: the labels' names and the tap's line come from the marks; none in focus.
+	# Its questline starts: the labels' names and the tap's line come from the marks; in focus and in
+	# the air too (2026-11-17, F: the questlines always on the full map; dimmed in focus).
 	markers.put_all("stories", [{"layer": L.STORY, "at": Vector2(30, -30), "colour": Color.PURPLE, "group": "story",
 			"extra": {"name": "Secret rave", "blurb": "Bass", "small": false}}])
 	if fm != null:
 		var sv: Dictionary = fm.call("_stories")
 		_expect((sv["at"] as PackedVector2Array).size() == 1 and str((sv["extra"][0] as Dictionary)["name"]) == "Secret rave", "the full map's questline label")
 		fm.set("focus", true)
-		_expect((fm.call("_stories")["at"] as PackedVector2Array).is_empty(), "the full map in focus: no starts")
+		_expect((fm.call("_stories")["at"] as PackedVector2Array).size() == 1, "the full map in focus: the starts stay")
 		fm.set("focus", false)
 		fm.set("flying", true)
-		_expect((fm.call("_stories")["at"] as PackedVector2Array).is_empty(), "the full map in the air: no starts")
+		_expect((fm.call("_stories")["at"] as PackedVector2Array).size() == 1, "the full map in the air: the starts stay")
 		fm.set("flying", false)
 		markers.put_all("main", MainLine.map_marks(Vector2(-60, 10)))
 		_expect(fm.call("_main_at") == Vector2(-60, 10), "the full map's star from the registry")

@@ -22,6 +22,7 @@ extends Node
 ## | finger | 0:05 | the ghost finger (hud.gd) after FINGER_IDLE s with no touch or key; it goes at the first one |
 ## | stand | 0:10 | the edge arrow to the kebab stand by Świętokrzyska (jobs.gd FIRST_STAND), straight ahead of the start (START), until an order starts or LURE_LATEST (then one toast: the kebab will wait, step 1) |
 ## | order | 0:15 | --first10 only: that stand's guided order (~250 m straight on up Marszałkowska, jobs.gd `pin_first`) |
+## | beta | ~1:15 | BETA_AFTER s after the first delivery (or the kebab let go), BETA_LATEST at the latest, when free and no card is up (F 2026-11-17: "the game is in beta, in the first minutes introduce that there are the different activities"): one card, "That was just a kebab": six tiles (kebabs, rides, races, rescues, friends' quests, the collection; quest_book.gd SHOWCASE) and SEE QUESTS (the map's QUESTS screen, `open_quests`) or DRIVE ON; once, never again (BETA_LIFE s unanswered: DRIVE ON). The choice card then waits BETA_GAP s of free driving |
 ## | choice | ~1:30 | CHOICE_AFTER s after the first delivery (or the kebab let go), CHOICE_LATEST at the latest, when calls may ring (hud.gd `call_ok`): Pani Halina rolls up and stops behind the car (rivals.gd `call_first`, no prompt), then the choice card (her face, the route and the reward; START RACE gold, RIDES, FLY, ✕). START RACE starts the race at once; any other answer sends her off (no cooldown) and its pick is introduced; JUST DRIVE (or no answer in CHOICE_LIFE s) is never asked again |
 ## | race | intro | Pani Halina rolls up behind and flashes (rivals.gd `call_first`), once: refused, she joins the others on the map; START RACE on the choice card has made it already |
 ## | trap | intro | the police's scripted first contact (police.gd), armed by the race; without one the director arms it |
@@ -59,6 +60,9 @@ const FirstSteps := preload("res://scripts/first_steps.gd")
 const Pacer := preload("res://scripts/pacer.gd")
 const Rules := preload("res://scripts/ride_rules.gd")
 const Access := preload("res://scripts/access.gd")
+const QuestBook := preload("res://scripts/quest_book.gd")
+const QuestsScreen := preload("res://scripts/quests_screen.gd")
+const Lang := preload("res://scripts/lang.gd")
 
 ## Five looks a second.
 const TICK := 0.2
@@ -73,10 +77,10 @@ const INTRO_STEP := {"race": "race", "trap": "police", "rescue": "rescue", "heli
 ## (an early order is good); a beat the director fires is fired inside it. Since step 3 the intros'
 ## windows are wide: they follow the player, not the clock ("kebab" is met by the first delivery,
 ## so the replay does not ask for it).
-const BEATS := ["finger", "stand", "order", "choice", "race", "trap", "rescue", "heli", "tape", "ride", "powisle", "garage"]
+const BEATS := ["finger", "stand", "order", "beta", "choice", "race", "trap", "rescue", "heli", "tape", "ride", "powisle", "garage"]
 const WINDOWS := {
 	"finger": Vector2(4.0, 8.0), "stand": Vector2(10.0, 25.0), "order": Vector2(15.0, 60.0),
-	"choice": Vector2(60.0, 260.0), "race": Vector2(60.0, 330.0), "trap": Vector2(60.0, 480.0),
+	"beta": Vector2(40.0, 240.0), "choice": Vector2(60.0, 260.0), "race": Vector2(60.0, 330.0), "trap": Vector2(60.0, 480.0),
 	"rescue": Vector2(100.0, 560.0), "heli": Vector2(100.0, 640.0), "tape": Vector2(100.0, 700.0),
 	"ride": Vector2(100.0, 740.0), "powisle": Vector2(100.0, 740.0), "garage": Vector2(100.0, 760.0),
 }
@@ -96,6 +100,15 @@ const STAND_AT := 10.0
 const LURE_LATEST := 90.0
 ## --first10: the car is taken to the stand at ORDER_AT s.
 const ORDER_AT := 15.0
+## The beta card (2026-11-17): seconds after the first delivery (or the kebab let go), its latest
+## second without either, how long it stays up unanswered, and the free seconds after it before the
+## choice card. Its tiles: QuestBook.SHOWCASE, BETA_TILE points each.
+static var BETA_AFTER: float = Pacer.num("first_steps", "beta_after")
+static var BETA_LATEST: float = Pacer.num("first_steps", "beta_latest")
+static var BETA_GAP: float = Pacer.num("first_steps", "choice_after_beta")
+const BETA_LIFE := 40.0
+const BETA_TILE := 44.0
+const BETA_COLOUR := Color("#ffd23f")
 ## First hour, step 3: the choice card's free minute after the first delivery (or the kebab let
 ## go), its latest second without either, and how long it stays up unanswered (then: just drive).
 static var CHOICE_AFTER: float = Pacer.num("first_steps", "choice_after")
@@ -243,6 +256,11 @@ var _choice_pending := false
 var _choice_wait_t := 0.0
 var _choice_halina := false
 var _want: Array[String] = []
+## The beta card is up (since `_beta_t`).
+var _beta_up := false
+var _beta_t := 0.0
+## The beta card's SEE QUESTS: the full map with the QUESTS screen up (main.gd).
+var open_quests: Callable
 ## An intro that could not be made: not before this second again, and its tries.
 var _retry_t := 0.0
 var _tries := {}
@@ -333,7 +351,13 @@ static func decide(now: float, f: Dictionary, done: Dictionary) -> Array[String]
 	var delivered: float = f.get("delivered_t", -1.0)
 	if delivered < 0.0 and is_done.call("lure"):
 		delivered = float(done["lure"])
-	if not is_done.call("choice") and free and ((delivered >= 0.0 and now >= delivered + CHOICE_AFTER) or now >= CHOICE_LATEST):
+	if not is_done.call("beta") and not is_done.call("choice") and free \
+			and ((delivered >= 0.0 and now >= delivered + BETA_AFTER) or now >= BETA_LATEST):
+		out.append("beta")
+	# The choice card: CHOICE_AFTER s after the delivery, and BETA_GAP s of free driving after the beta card.
+	var after_beta: bool = not is_done.call("beta") or float(f.get("free_for", 0.0)) >= BETA_GAP
+	if not is_done.call("choice") and free and not "beta" in out and after_beta \
+			and ((delivered >= 0.0 and now >= delivered + CHOICE_AFTER) or now >= CHOICE_LATEST):
 		out.append("choice")
 	# The helicopter's toast never waits once a rescue is done or a call needs it.
 	if not is_done.call("heli") and (f.get("rescued", false) or f.get("heli_call", false)):
@@ -585,6 +609,8 @@ func tick() -> void:
 		_show_choice()
 	if _choice_up and t - _choice_t > CHOICE_LIFE:
 		_pick(CHOICE_PICKS.size() - 1, "unanswered")
+	if _beta_up and t - _beta_t > BETA_LIFE:
+		_beta_pressed(1, "unanswered")
 	if hint_shown() and (t > hint_until or _hint_met(f)):
 		hint_at = Vector3.INF
 		_what_next = false
@@ -632,7 +658,7 @@ func facts() -> Dictionary:
 	var other: bool = (jobs != null and jobs.ride_offered()) or (rivals != null and (rivals.busy() or rivals.first_waiting())) \
 			or (missions != null and missions.busy()) \
 			or (police != null and int(police.phase) != 0) or (garage != null and garage.is_open()) or _end_up \
-			or _choice_up or _choice_pending or _all_up or bool(side_busy.call())
+			or _choice_up or _choice_pending or _all_up or _beta_up or bool(side_busy.call())
 	var busy: bool = other or (jobs != null and bool(job_on.call()))
 	var orders: int = jobs.orders_started() if jobs != null else 0
 	var gone: bool = jobs != null and jobs.get("first_gone") == true
@@ -757,6 +783,12 @@ func _fire(id: String) -> void:
 			# --first10 only: the car at the stand, the guided order.
 			if jobs == null or _stand < 0 or not jobs.start_first(_stand):
 				return
+		"beta":
+			# Over another card (the delivery's result) it waits a tick; without a HUD it is made.
+			if hud != null:
+				if hud.cards_up():
+					return
+				_show_beta()
 		"choice":
 			# The one offer, in the guide's neutral voice, when calls may ring (hud.gd `call_ok`).
 			if hud == null or not hud.call_ok():
@@ -843,6 +875,75 @@ func _end_guide() -> void:
 	_done_t = t
 
 
+# --- the beta card (2026-11-17) ----------------------------------------------------------------
+
+## The beta card: what else the city has (six tiles under the words) and where it all is (SEE
+## QUESTS). Lead: SEE QUESTS; ✕ is DRIVE ON.
+func _show_beta() -> void:
+	_beta_up = true
+	_beta_t = t
+	var w := beta_words()
+	hud.show_card(w["title"][0], w["body"][0], w["buttons"], BETA_COLOUR, false, w["title"][1], w["body"][1])
+	hud.own_card(self)
+	hud.set_card_art(beta_tiles(hud.pt), false, true)
+	hud.set_card_lead(0)
+	hud.set_card_close(1)
+	print("first10: the beta card at %.1f s" % t)
+
+
+## The beta card's words: {"title": [pl, en], "body": [pl, en], "buttons": PackedStringArray
+## ("POLISH|ENGLISH" each): SEE QUESTS, DRIVE ON}. Pure: check_first10.gd.
+static func beta_words() -> Dictionary:
+	var see := QuestBook.words("b_show_quests")
+	var drive := QuestBook.words("b_show_drive")
+	return {"title": QuestBook.words("show_title"), "body": QuestBook.words("show_body"),
+			"buttons": PackedStringArray(["%s|%s" % [see[0], see[1]], "%s|%s" % [drive[0], drive[1]]])}
+
+
+## The strip of tiles under the beta card's words: QuestBook.SHOWCASE's icons (the QUESTS screen's
+## look, quests_screen.gd `icon_tile`), each with its word under it; `pt` the HUD's point.
+static func beta_tiles(pt: float) -> Control:
+	var row := HBoxContainer.new()
+	row.name = "beta_tiles"
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", roundi(6.0 * pt))
+	for pair: Array in QuestBook.SHOWCASE:
+		var words := QuestBook.words(str(pair[1]))
+		var name := Lang.pick(str(words[0]), str(words[1]))
+		var tile := VBoxContainer.new()
+		tile.name = "tile_" + str(pair[0])
+		tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile.add_theme_constant_override("separation", roundi(2.0 * pt))
+		tile.custom_minimum_size.x = (BETA_TILE + 18.0) * pt
+		var icon := QuestsScreen.icon_tile(str(pair[0]), BETA_COLOUR, name, BETA_TILE * pt)
+		icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		tile.add_child(icon)
+		var label := Label.new()
+		label.text = name
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.custom_minimum_size.x = (BETA_TILE + 18.0) * pt
+		label.add_theme_font_size_override("font_size", roundi(11.0 * pt))
+		label.add_theme_color_override("font_color", Color("#fbf7ee"))
+		tile.add_child(label)
+		row.add_child(tile)
+	return row
+
+
+## The beta card's button `index` (0 SEE QUESTS, 1 DRIVE ON or ✕), or "unanswered".
+func _beta_pressed(index: int, why := "pressed") -> void:
+	_beta_up = false
+	if hud != null and hud.card_is(self):
+		hud.hide_card()
+	print("first10: the beta card: %s (%s) at %.1f s" % ["SEE QUESTS" if index == 0 else "DRIVE ON", why, t])
+	if wallet != null:
+		wallet.intro["beta_pick"] = 1 if index == 0 else 2
+		wallet.save()
+	if index == 0 and open_quests.is_valid():
+		open_quests.call()
+
+
 # --- first hour, step 3: the choice card, the First steps card, "what next?" ---------------------
 
 func _show_choice() -> void:
@@ -918,7 +1019,9 @@ func _pick(index: int, why := "pressed") -> void:
 ## A button of a card the guide owns (hud.gd `own_card`): the choice card's, or the First steps
 ## card's.
 func card_pressed(index: int) -> void:
-	if _choice_up:
+	if _beta_up:
+		_beta_pressed(index)
+	elif _choice_up:
 		_pick(index)
 	elif _all_up:
 		_all_up = false
@@ -1140,6 +1243,8 @@ func _script(f: Dictionary) -> void:
 	# contact, as before the card); the First steps card's button the same way.
 	if _choice_up and t - _choice_t > 2.0:
 		card_pressed(0)
+	if _beta_up and t - _beta_t > 2.0:
+		card_pressed(1)  # DRIVE ON: the map would pause the replay
 	if _all_up:
 		card_pressed(0)
 	if rivals != null and rivals.first_waiting() and int(rivals.state) == 1:

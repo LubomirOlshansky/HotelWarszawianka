@@ -78,7 +78,10 @@
 		"hold_gap": 30
 	},
 	"first_steps": {
-		"_note": "The first hour's guide (first10.gd, first hour step 3): the one choice card choice_after s after the first delivery (or the first kebab let go), choice_latest s at the latest; the next First steps intro after next_gap s of free driving and next_gap s after the last one. Friends' calls wait for friends_steps ticked steps (a count, not seconds) or friends_after s, then at most one new friend every new_friend_gap s while the guide runs.",
+		"_note": "The first hour's guide (first10.gd, first hour step 3): the beta card (the activities, SEE QUESTS) beta_after s after the first delivery (or the kebab let go), beta_latest s at the latest; the one choice card choice_after_beta s of free driving after it and choice_after s after the first delivery (or the first kebab let go), choice_latest s at the latest; the next First steps intro after next_gap s of free driving and next_gap s after the last one. Friends' calls wait for friends_steps ticked steps (a count, not seconds) or friends_after s, then at most one new friend every new_friend_gap s while the guide runs.",
+		"beta_after": 4,
+		"beta_latest": 120,
+		"choice_after_beta": 8,
 		"choice_after": 20,
 		"choice_latest": 150,
 		"next_gap": 40,

@@ -1919,10 +1919,18 @@ func _set_card_x(index: int) -> void:
 ## words keep their lines; on a screen with no room for that between the top row's buttons it
 ## keeps its width and the words wrap narrower. The card owns the picture from here: the next
 ## card shown, or this one's end, frees it and gives the card its shape back.
-func set_card_art(art: Control, left := false) -> void:
+func set_card_art(art: Control, left := false, below := false) -> void:
 	_drop_card_art()
 	_card_art = art
 	_card_art_w = _card.custom_minimum_size.x
+	if below:
+		# The beta card's activity tiles (first10.gd, 2026-11-17): a strip under the words, the
+		# card's width kept.
+		_card_text.add_child(art)
+		_card.reset_size()
+		_layout()
+		_mark()
+		return
 	_card_mid.add_child(art)
 	var more := art.custom_minimum_size.x + CARD_ART_GAP * pt
 	if left:
@@ -1988,7 +1996,7 @@ func card_has_art() -> bool:
 func _drop_card_art() -> void:
 	if _card_art == null:
 		return
-	_card_mid.remove_child(_card_art)
+	_card_art.get_parent().remove_child(_card_art)  # beside the words, or under them (`below`)
 	if _card_head.get_parent() != _card_rows:
 		_card_head.get_parent().remove_child(_card_head)
 		_card_rows.add_child(_card_head)
@@ -2920,8 +2928,6 @@ func set_main_goal(pl: String, en: String) -> void:
 	pl = Lang.pick(pl, en)
 	en = ""
 	main_goal = PackedStringArray([pl, en])
-	if full_map != null and full_map.is_open():
-		full_map.set_main_goal(pl, en)
 
 
 ## The garage loop: a diamond `r` from its centre to a corner, with the dark outline (two
@@ -3630,7 +3636,6 @@ func open_full_map(car_xz: Vector2, car_yaw: float, found: PackedVector2Array) -
 	full_map.markers = markers
 	full_map.focus = quest_focus
 	full_map.flying = flying
-	full_map.set_main_goal(main_goal[0], main_goal[1])
 	full_map.open(car_xz, car_yaw)
 
 

@@ -196,8 +196,8 @@ static func marks(list: Array, in_focus: bool) -> Array:
 
 ## The starts as the map marker registry's STORY marks (map_markers.gd `put_all`, owner "stories";
 ## TD-13): each in its colour, group "story", with its name and one-line description in the
-## language shown and "small" for a smaller "!". All of them: the rule table hides them in quest
-## focus and in the air.
+## language shown, its id (the full map's DETAILS and ROUTE) and "small" for a smaller "!". All of
+## them: the rule table hides them on the minimap in quest focus and in the air.
 static func map_marks(list: Array) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for d: Dictionary in list:
@@ -206,7 +206,7 @@ static func map_marks(list: Array) -> Array[Dictionary]:
 			continue
 		var b: Array = d.get("blurb", ["", ""])
 		out.append({"layer": MapMarkers.Layer.STORY, "at": p, "colour": d.get("colour", COLOUR), "group": "story",
-				"key": str(d["id"]), "extra": {"name": Lang.pick(str(d["pl"]), str(d["en"])),
+				"key": str(d["id"]), "extra": {"id": str(d["id"]), "name": Lang.pick(str(d["pl"]), str(d["en"])),
 				"blurb": Lang.pick(str(b[0]), str(b[1])), "small": bool(d.get("small", false))}})
 	return out
 
