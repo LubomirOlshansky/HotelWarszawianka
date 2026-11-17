@@ -60,10 +60,13 @@
 <section class="hero" aria-labelledby="title">
   <div class="hero-media">
     <picture>
-      <source media="(max-width: 700px)" srcset="/img/game/rotunda-rain-night-960.webp">
-      <img src="/img/game/rotunda-rain-night.webp" alt="Rondo Dmowskiego w deszczu nocą w grze: świecąca Rotunda, reflektory na mokrym asfalcie" width="1920" height="884" fetchpriority="high">
+      <source media="(max-width: 700px)" srcset="/img/game/hero-rotunda-exp-960.webp">
+      <img src="/img/game/hero-rotunda-exp.webp" alt="Rondo Dmowskiego w deszczu nocą w grze: świecąca Rotunda, reflektory na mokrym asfalcie" width="1920" height="884" fetchpriority="high">
     </picture>
-
+    <video class="hero-video" data-hero muted playsinline loop preload="none" aria-hidden="true" poster="/img/game/hero-rotunda-exp-960.webp">
+      <source data-set="desktop" data-src="/video/hero-3.mp4" type="video/mp4">
+      <source data-set="phone" data-src="/video/hero-phone-3.mp4" type="video/mp4">
+    </video>
   </div>
   <div class="hero-in wrap">
     <h1 id="title">Around<br>Warsaw</h1>
@@ -74,7 +77,7 @@
     </div>
     <p class="cta-note">Darmowa, otwarta beta. Bez reklam, zakupów i śledzenia.</p>
   </div>
-
+  <button class="vctl" type="button" hidden data-pause="Zatrzymaj wideo w tle" data-play="Odtwórz wideo w tle" aria-label="Zatrzymaj wideo w tle"><svg class="i-p" aria-hidden="true"><use href="#i-pause"/></svg><svg class="i-r" aria-hidden="true"><use href="#i-resume"/></svg></button>
 </section>
 
 <div class="radio" role="note" aria-label="W radiu w aucie">
@@ -88,11 +91,11 @@
     <p class="lede">Około 21 km² od Arkadii po Stadion Narodowy, z otwartych danych map. Jeśli tu mieszkasz, dojedziesz do domu.</p>
   </div>
   <article class="chap chap-left" id="centrum" aria-labelledby="h-centrum">
-    <div class="chap-media"><picture><source media="(max-width: 700px)" srcset="/img/game/palace-golden-960.webp"><img src="/img/game/palace-golden.webp" alt="Pałac Kultury o złotej godzinie w grze, z góry, z białym Muzeum Sztuki Nowoczesnej, dźwigiem, szklanymi kopułami Złotych Tarasów i wieżowcami Śródmieścia" width="1920" height="884" loading="lazy" decoding="async"></picture></div>
+    <div class="chap-media"><picture><source media="(max-width: 700px)" srcset="/img/game/palace-dusk-exp-960.webp"><img src="/img/game/palace-dusk-exp.webp" alt="Pałac Kultury o zmierzchu w grze, z góry, z białym Muzeum Sztuki Nowoczesnej, kopułami Złotych Tarasów i wieżowcami Śródmieścia" width="1920" height="884" loading="lazy" decoding="async"></picture></div>
     <div class="chap-in wrap"><h3 id="h-centrum">Centrum</h3><p class="chap-line">Pałac, Rotunda, Marszałkowska. Korek w komplecie, jak zawsze.</p><p class="chap-where">Plac Defilad</p></div>
   </article>
   <article class="chap chap-right" id="stare-miasto" aria-labelledby="h-stare-miasto">
-    <div class="chap-media"><picture><source media="(max-width: 700px)" srcset="/img/game/car-zamek-960.webp"><img src="/img/game/car-zamek.webp" alt="Małe czerwone auto na placu Zamkowym przy Kolumnie Zygmunta i Zamku Królewskim w grze" width="1920" height="884" loading="lazy" decoding="async"></picture></div>
+    <div class="chap-media"><picture><source media="(max-width: 700px)" srcset="/img/game/plac-zamkowy-dusk-960.webp"><img src="/img/game/plac-zamkowy-dusk.webp" alt="Plac Zamkowy o zmierzchu w grze: wieża zegarowa Zamku Królewskiego, Kolumna Zygmunta i ludzie na placu, a wśród nich auto" width="1920" height="884" loading="lazy" decoding="async"></picture></div>
     <div class="chap-in wrap"><h3 id="h-stare-miasto">Stare Miasto</h3><p class="chap-line">Kolumna Zygmunta, Zamek, kocie łby. Uważaj, gdzie parkujesz: straż miejska patrzy.</p><p class="chap-where">Plac Zamkowy</p></div>
   </article>
   <article class="chap chap-left" id="wisla" aria-labelledby="h-wisla">
@@ -110,8 +113,8 @@
     <figcaption class="wrap"><h3>Stadion Narodowy, dzień i noc</h3><p>To samo miejsce, ta sama rzeka, inne miasto.</p></figcaption>
   </figure>
   <article class="chap chap-right" id="wola" aria-labelledby="h-wola">
-    <div class="chap-media"><picture><source media="(max-width: 700px)" srcset="/img/game/varso-dusk-960.webp"><img src="/img/game/varso-dusk.webp" alt="Varso i szklane wieżowce Woli o zmierzchu w grze, oświetlone okna i ruch na rondzie ONZ w dole" width="1920" height="912" loading="lazy" decoding="async"></picture></div>
-    <div class="chap-in wrap"><h3 id="h-wola">Wola</h3><p class="chap-line">Szklane wieżowce, dzwonki tramwajów i najwyższy budynek w mieście.</p><p class="chap-where">Varso i Rondo ONZ</p></div>
+    <div class="chap-media"><picture><source media="(max-width: 700px)" srcset="/img/game/wola-daszynskiego-960.webp"><img src="/img/game/wola-daszynskiego.webp" alt="Szklane biurowce Woli wokół Ronda Daszyńskiego o zmierzchu w grze, oświetlone okna, tramwaj i ruch w dole" width="1920" height="912" loading="lazy" decoding="async"></picture></div>
+    <div class="chap-in wrap"><h3 id="h-wola">Wola</h3><p class="chap-line">Szklane wieże wokół Ronda Daszyńskiego. Tu mówią na to Mordor Zachodni.</p><p class="chap-where">Rondo Daszyńskiego</p></div>
   </article>
 </section>
 
@@ -121,15 +124,15 @@
       <h2 id="quests-title">Do zrobienia tej nocy.</h2>
       <p class="lede">Gra prowadzi listę. Ty też zaczniesz.</p>
       <figure class="quests-frame">
-        <picture><source media="(max-width: 700px)" srcset="/img/game/m-courier-race-960.webp"><img src="/img/game/m-courier-race.webp" alt="Zlecenie z kebabem w toku w grze: karta zlecenia, pasek temperatury i kurier z przodu" width="1920" height="887" loading="lazy" decoding="async"></picture>
+        <picture><source media="(max-width: 700px)" srcset="/img/game/kebab-job-night-960.webp"><img src="/img/game/kebab-job-night.webp" alt="Zlecenie z kebabem nocą w grze: karta zlecenia na Walecznych 22, zamówienie gorące w 99%, w radiu KEBAB FM" width="1920" height="884" loading="lazy" decoding="async"></picture>
         <figcaption>Kebab w drodze.</figcaption>
       </figure>
     </div>
     <ul class="rows" tabindex="0" aria-label="Co jest na liście">
       <li class="row"><picture><source media="(max-width: 700px)" srcset="/img/game/frogs-kebab-960.webp"><img src="/img/game/frogs-kebab.webp" alt="Budka z kebabem na rogu ulicy w grze, nocne zadanie czeka" width="1920" height="887" loading="lazy" decoding="async"></picture><div><h3>Pierwsze kroki</h3><p>Siedem małych zadań, żeby poznać miasto. Pierwsze: kebab.</p></div></li>
-      <li class="row"><picture><source media="(max-width: 700px)" srcset="/img/game/m-guard-960.webp"><img src="/img/game/m-guard.webp" alt="Strażnik miejski tłumaczy graczowi, że Wisłostrada to deptak, w grze, po polsku i po angielsku" width="1920" height="887" loading="lazy" decoding="async"></picture><div><h3>Historie</h3><p>Dzwonią znajomi, policja chce pogadać, pasażerowie czekają na podwózkę. Po polsku na górze, po angielsku pod spodem.</p></div></li>
+      <li class="row"><picture><source media="(max-width: 700px)" srcset="/img/game/police-stop-dusk-960.webp"><img src="/img/game/police-stop-dusk.webp" alt="Policjant zatrzymuje małe auto o zmierzchu w grze: rutynowa kontrola, wszystko w porządku. Na razie." width="1920" height="884" loading="lazy" decoding="async"></picture><div><h3>Historie</h3><p>Dzwonią znajomi, policja chce pogadać, pasażerowie czekają na podwózkę. Po polsku na górze, po angielsku pod spodem.</p></div></li>
       <li class="row"><picture><source media="(max-width: 700px)" srcset="/img/game/m-escort-960.webp"><img src="/img/game/m-escort.webp" alt="Eskorta w grze: auto z pacjentem jedzie do szpitala" width="1920" height="887" loading="lazy" decoding="async"></picture><div><h3>Zlecenia</h3><p>Kebab o trzeciej, wezwania ratunkowe, eskorty. Prawdziwe adresy, krótkie trasy.</p></div></li>
-      <li class="row"><picture><source media="(max-width: 700px)" srcset="/img/game/poniatowski-night-960.webp"><img src="/img/game/poniatowski-night.webp" alt="Most Poniatowskiego nocą w grze, latarnie odbite w Wiśle" width="1920" height="884" loading="lazy" decoding="async"></picture><div><h3>Rywale</h3><p>Sześciu ulicznych rywali i wyścig łodzi pod czterema mostami, z jednym skuterem wodnym.</p></div></li>
+      <li class="row"><picture><source media="(max-width: 700px)" srcset="/img/game/poniatowski-night-exp-960.webp"><img src="/img/game/poniatowski-night-exp.webp" alt="Most Poniatowskiego nocą w grze, latarnie odbite w Wiśle i reflektory nad brzegiem" width="1920" height="884" loading="lazy" decoding="async"></picture><div><h3>Rywale</h3><p>Sześciu ulicznych rywali i wyścig łodzi pod czterema mostami, z jednym skuterem wodnym.</p></div></li>
       <li class="row"><picture><source media="(max-width: 700px)" srcset="/img/game/lore-notebook-960.webp"><img src="/img/game/lore-notebook.webp" alt="Zeszyt MOJA WARSZAWA otwarty w grze, miejsce z ciekawostką i żartem" width="1920" height="884" loading="lazy" decoding="async"></picture><div><h3>Kolekcja</h3><p>Ponad 70 prawdziwych miejsc, każde z prawdziwą ciekawostką i lokalnym żartem.</p></div></li>
     </ul>
   </div>
