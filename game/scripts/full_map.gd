@@ -343,12 +343,14 @@ func _box(alpha: float) -> StyleBoxFlat:
 	return b
 
 
-## A small card: lines of text, Polish over English.
+## A small card: lines of text, Polish over English. Taps go through it to the map (its box too: a
+## container stops them by default, and the coach mark took the ✕'s tap under it, 2026-11-17).
 func _card(lines: Array, sizes: Array) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_theme_stylebox_override("panel", _box(0.9))
 	var v := VBoxContainer.new()
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_theme_constant_override("separation", 0)
 	p.add_child(v)
 	for i in lines.size():

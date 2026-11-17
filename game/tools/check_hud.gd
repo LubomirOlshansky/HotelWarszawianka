@@ -1810,6 +1810,13 @@ func _check_map_coach(fm: Control, where: String, pt: float, safe: Rect2) -> voi
 	if fm.hints.coach != "map_quests":
 		problems.append("%s: the first mark is %s (want map_quests)" % [where, fm.hints.coach])
 	clear_of.call("QUESTS", ["quests", "next", "close"])
+	for card: String in ["coach", "note"]:  # a tap goes through the map's cards (CI 2026-11-17: the ✕ under the mark)
+		var stack: Array[Node] = [fm.get_node_or_null(card)]
+		while not stack.is_empty():
+			var n: Node = stack.pop_back()
+			if n is Control and (n as Control).mouse_filter != Control.MOUSE_FILTER_IGNORE:
+				problems.append("%s: the %s card's %s takes taps meant for the map under it" % [where, card, n.get_class()])
+			stack.append_array(n.get_children() if n != null else [])
 	fm.open_screen()
 	fm.call("_process", 0.016)
 	if fm.rects().has("coach") or fm.hints.coach != "":
