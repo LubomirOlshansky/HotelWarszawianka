@@ -21,7 +21,7 @@ extends SceneTree
 const FLY_OVER := ["monkey_love", "port_wtw", "port_halls", "port_basin", "bulwary_basen", "bazar", "towarowa22", "noho", "stacja_muzeum", "nocny", "kolejowa", "plac_centralny", "sunken", "underpass", "tarasy_plaza"]
 ## Monuments lower than the heli's 6 m floor (the monuments pass, part 2): it flies at this height
 ## instead, so their bronze and stone have to stop it.
-const LOW_MONUMENTS := {"maly_powstaniec": 1.5, "starzynski": 2.5, "umschlagplatz": 2.5, "pomnik_wschod": 3.0}
+const LOW_MONUMENTS := {"maly_powstaniec": 1.5, "starzynski": 2.5, "umschlagplatz": 2.5, "pomnik_wschod": 3.0, "obeliski": 6.0}
 
 var map: Node3D
 var _frames := 0
@@ -193,8 +193,8 @@ func _fly_checks() -> int:
 					if h > top:
 						top = h
 						top_at = Vector2(x, z)
-		if info["key"] in ["elektrownia", "stadion_pkp", "ostrogski", "mpw", "equator2", "bulwary_pawilony", "bulwary_bary", "umschlagplatz", "pomnik_wschod"]:
-			c = top_at  # open yards, platforms, rows along the river (Ostrogski's courtyard between its two blocks), Umschlagplatz's open enclosure, the Eastern memorial's long low track: the box's middle is air, aim at the tallest cell
+		if info["key"] in ["elektrownia", "stadion_pkp", "ostrogski", "mpw", "equator2", "bulwary_pawilony", "bulwary_bary", "umschlagplatz", "pomnik_wschod", "obeliski"]:
+			c = top_at  # open yards, platforms, rows along the river (Ostrogski's courtyard between its two blocks), Umschlagplatz's open enclosure, the Eastern memorial's long low track, the two obelisks 350 m apart: the box's middle is air, aim at the tallest cell
 		var alt := clampf(top * 0.5, 6.0, 45.0)
 		if info["key"] == "arkady":
 			alt = 5.0  # the arcade wall stands 7.5 m over the Lower Garden; the castle's roofs in the box are higher

@@ -2,7 +2,7 @@ extends SceneTree
 ## The garage loop (2026-10-31): Warsztat u Mirka's rules without the map (garage.gd,
 ## garage_card.gd's words, wallet.gd's [garage] section, car.gd `set_paint`, eggs E01 and E21).
 ##   - the paints: 8, ids unique, the factory red free and the default, black and green there
-##     (the eggs need them), the gold one behind GOLD_EGGS egg cards, prices 150-400 zł (ten paints since loop 3h slice 2: the Syrenki ones are free, opened by 5 and 20 Syrenki);
+##     (the eggs need them), the gold one behind GOLD_EGGS egg cards, prices 50-150 zł (beta, F 2026-11-17) (ten paints since loop 3h slice 2: the Syrenki ones are free, opened by 5 and 20 Syrenki);
 ##   - the rule: on / switch / buy / short / locked for each case; when it shows (`open_rule`);
 ##   - buying with enough money pays the price once and owns the paint; too little pays nothing;
 ##     switching to an owned paint (or the factory red) is free; the gold one opens at 5 eggs;
@@ -92,15 +92,15 @@ func _check_paints() -> void:
 		if id == Garage.DEFAULT or p.has("eggs") or p.has("syrenki"):
 			if price != 0:
 				problems.append("paint %s: %d zł (want free)" % [id, price])
-		elif price < 150 or price > 400:
-			problems.append("paint %s: %d zł (want 150-400)" % [id, price])
+		elif price < 50 or price > 150:
+			problems.append("paint %s: %d zł (want 50-150)" % [id, price])
 	if Garage.PAINTS.size() < 6 or Garage.PAINTS.size() > 10:
 		problems.append("%d paints (want 6-10)" % Garage.PAINTS.size())
 	for need in ["red", "black", "green", "gold"]:
 		if not ids.has(need):
 			problems.append("no %s paint" % need)
-	if int(Garage.find("black")["price"]) != 300:
-		problems.append("black costs %d zł (want 300)" % int(Garage.find("black")["price"]))
+	if int(Garage.find("black")["price"]) != 120:
+		problems.append("black costs %d zł (want 120)" % int(Garage.find("black")["price"]))
 	if int(Garage.find("gold").get("eggs", 0)) != Garage.GOLD_EGGS:
 		problems.append("gold wants %d eggs (want %d)" % [int(Garage.find("gold").get("eggs", 0)), Garage.GOLD_EGGS])
 
@@ -115,8 +115,9 @@ func _check_rules() -> void:
 	_expect("rule red on", Garage.rule("red", "red", 0, {}, 0), "on")
 	_expect("rule red from blue", Garage.rule("red", "blue", 0, owned, 0), "switch")
 	_expect("rule blue owned", Garage.rule("blue", "red", 0, owned, 0), "switch")
-	_expect("rule black 300 zł", Garage.rule("black", "red", 300, {}, 0), "buy")
-	_expect("rule black 299 zł", Garage.rule("black", "red", 299, {}, 0), "short")
+	var black_zl := int(Garage.find("black")["price"])
+	_expect("rule black at its price", Garage.rule("black", "red", black_zl, {}, 0), "buy")
+	_expect("rule black a złoty short", Garage.rule("black", "red", black_zl - 1, {}, 0), "short")
 	_expect("rule gold 4 eggs", Garage.rule("gold", "red", 9999, {}, 4), "locked")
 	_expect("rule scale 4 syrenki", Garage.rule("scale", "red", 9999, {}, 99, 4), "locked")
 	_expect("rule scale 5 syrenki", Garage.rule("scale", "red", 0, {}, 0, 5), "switch")
@@ -129,13 +130,13 @@ func _check_rules() -> void:
 
 
 func _check_buying() -> void:
-	var w := _wallet(299)
+	var w := _wallet(119)
 	var g := _garage(w)
-	_expect("buy black with 299 zł", g.choose("black"), "short")
-	_expect("299 zł after", int(w.zl), 299)
+	_expect("buy black with 119 zł", g.choose("black"), "short")
+	_expect("119 zł after", int(w.zl), 119)
 	_expect("black owned after short", w.paints.has("black"), false)
-	w.zl = 450
-	_expect("buy black with 450 zł", g.choose("black"), "buy")
+	w.zl = 270
+	_expect("buy black with 270 zł", g.choose("black"), "buy")
 	_expect("zł after black", int(w.zl), 150)
 	_expect("black owned", w.paints.has("black"), true)
 	_expect("paint after buying", str(w.paint), "black")
@@ -208,7 +209,7 @@ func _check_save() -> void:
 	back.load_save()
 	_expect("saved paint", str(back.paint), "blue")
 	_expect("saved owned", back.paints.keys().size(), 2)
-	_expect("saved zł", int(back.zl), 500 - 180 - 200)
+	_expect("saved zł", int(back.zl), 500 - int(Garage.find("green")["price"]) - int(Garage.find("blue")["price"]))
 	_expect("green kept", back.paints.has("green"), true)
 	# An old save (no [garage] section): the factory red, nothing owned.
 	var old := ConfigFile.new()
@@ -345,8 +346,8 @@ func _check_shop_rules() -> void:
 	if tt.is_empty() or hatch.is_empty():
 		problems.append("shop: the hatch or the TT is missing")
 		return
-	_expect("TT price", int(tt["price"]), 2500)
-	_expect("nitro price", int(Upgrades.NITRO["price"]), 600)
+	_expect("TT price", int(tt["price"]), 1500)
+	_expect("nitro price", int(Upgrades.NITRO["price"]), 350)
 	_expect("hatch is free", int(hatch["price"]), 0)
 	for k in ["top", "pull", "grip"]:
 		if float(tt[k]) <= float(hatch[k]):
@@ -356,8 +357,8 @@ func _check_shop_rules() -> void:
 		if prices.size() != Upgrades.MAX_LEVEL:
 			problems.append("shop: %s has %d levels" % [p["id"], prices.size()])
 		for i in prices.size():
-			if int(prices[i]) < 150 or int(prices[i]) > 400:
-				problems.append("shop: %s level %d costs %d zł (want 150-400)" % [p["id"], i + 1, int(prices[i])])
+			if int(prices[i]) < 100 or int(prices[i]) > 400:
+				problems.append("shop: %s level %d costs %d zł (want 100-400)" % [p["id"], i + 1, int(prices[i])])
 			if i > 0 and int(prices[i]) <= int(prices[i - 1]):
 				problems.append("shop: %s level %d is not dearer than the last" % [p["id"], i + 1])
 	for id: String in Upgrades.ORDER:
@@ -367,21 +368,21 @@ func _check_shop_rules() -> void:
 		if str(row["name"][0]).length() > 32:
 			problems.append("shop: %s's Polish name is over 32 characters" % id)
 	var st := {"car": "hatch", "cars": {}, "nitro": false, "tune": {}}
-	_expect("rule tt 2500", Upgrades.rule("tt", 2500, st), "buy")
-	_expect("rule tt 2499", Upgrades.rule("tt", 2499, st), "short")
+	_expect("rule tt 1500", Upgrades.rule("tt", 1500, st), "buy")
+	_expect("rule tt 1499", Upgrades.rule("tt", 1499, st), "short")
 	_expect("rule hatch on", Upgrades.rule("hatch", 0, st), "on")
-	_expect("rule nitro 600", Upgrades.rule("nitro", 600, st), "buy")
-	_expect("rule nitro 599", Upgrades.rule("nitro", 599, st), "short")
-	_expect("rule tyres 150", Upgrades.rule("tyres", 150, st), "buy")
-	_expect("rule engine 199", Upgrades.rule("engine", 199, st), "short")
+	_expect("rule nitro 350", Upgrades.rule("nitro", 350, st), "buy")
+	_expect("rule nitro 349", Upgrades.rule("nitro", 349, st), "short")
+	_expect("rule tyres 100", Upgrades.rule("tyres", 100, st), "buy")
+	_expect("rule engine 119", Upgrades.rule("engine", 119, st), "short")
 	_expect("rule nothing", Upgrades.rule("turbo", 9999, st), "")
 	st = {"car": "tt", "cars": {"tt": 1}, "nitro": true, "tune": {"tyres": 3, "engine": 1}}
 	_expect("rule tt on", Upgrades.rule("tt", 0, st), "on")
 	_expect("rule hatch back", Upgrades.rule("hatch", 0, st), "switch")
 	_expect("rule nitro owned", Upgrades.rule("nitro", 0, st), "owned")
 	_expect("rule tyres max", Upgrades.rule("tyres", 9999, st), "max")
-	_expect("rule engine level 2", Upgrades.rule("engine", 300, st), "buy")
-	_expect("engine 2 price", Upgrades.price("engine", st["tune"]), 300)
+	_expect("rule engine level 2", Upgrades.rule("engine", 220, st), "buy")
+	_expect("engine 2 price", Upgrades.price("engine", st["tune"]), 220)
 	_expect("tyres maxed price", Upgrades.price("tyres", st["tune"]), 0)
 	# The numbers: the hatch as it was, the TT and the parts above it.
 	var base := Upgrades.stats("hatch", {}, false)
@@ -402,7 +403,7 @@ func _check_shop_buying() -> void:
 	var w := _wallet(0)
 	var g := _garage(w)
 	_expect("tyres with 0 zł", g.choose_item("tyres"), "short")
-	w.zl = 150 + 250 + 350 + 200 + 300 + 400 + 600 + 2500 + 10
+	w.zl = 100 + 180 + 280 + 120 + 220 + 320 + 350 + 1500 + 10
 	var total := int(w.zl)
 	for lv in 3:
 		_expect("tyres level %d" % (lv + 1), g.choose_item("tyres"), "buy")
@@ -422,7 +423,7 @@ func _check_shop_buying() -> void:
 	_expect("on the hatch", str(w.car), "hatch")
 	_expect("the TT, owned, free", g.choose_item("tt"), "switch")
 	_expect("zł after switching", int(w.zl), 10)
-	_expect("paid in all", total - int(w.zl), 150 + 250 + 350 + 200 + 300 + 400 + 600 + 2500)
+	_expect("paid in all", total - int(w.zl), 100 + 180 + 280 + 120 + 220 + 320 + 350 + 1500)
 	g.free()
 	w.free()
 
@@ -447,7 +448,7 @@ func _check_shop_save() -> void:
 	_expect("saved nitro", bool(back.nitro), true)
 	_expect("saved tyres", Upgrades.level(back.tune, "tyres"), 2)
 	_expect("saved engine", Upgrades.level(back.tune, "engine"), 1)
-	_expect("saved zł", int(back.zl), 5000 - 2500 - 600 - 150 - 250 - 200)
+	_expect("saved zł", int(back.zl), 5000 - 1500 - 350 - 100 - 180 - 120)
 	_expect("has progress", back.has_progress(), true)
 	# A save from before G13 (a [garage] section with paints only): the hatch, untuned, no nitro.
 	var old := ConfigFile.new()

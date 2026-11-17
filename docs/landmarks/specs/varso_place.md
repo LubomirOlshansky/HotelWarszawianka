@@ -8,6 +8,10 @@ from the developer's and the suppliers' published pages (sources below) and the 
 the layout of each roof's planting is an estimate marked *(photo check)*. The Mac pass (QUESTIONS)
 puts `refs/varso_place/` photos and `ortho.jpg` beside the shots.
 
+Wings (2026-11-17, F's eight photos in the thread: an in-game shot of the empty plaza, two
+street views from the south-west and south, three aerials and the top-down drone shot of Varso 2's
+roof): parts W1-W6 below. Kept in the thread, never in the repo.
+
 Sources: HB Reavis "Sky garden at Varso Tower is taking shape" (2021: the garden on the 205 m
 roof, 16 single-stem hawthorns *Crataegus monogyna* up to 6 m and over 2 t each, spherical crowns,
 by RS Architektura Krajobrazu, planted by Hadart; the second deck at 230 m); ZinCo's Varso Place
@@ -27,12 +31,23 @@ helicopter:
 1. green on the tops: a grove of round-crowned hawthorns on the tower's 205 m step, under the
    230 m top; planted terraces on Varso 1 and 2;
 2. a green street front on Chmielna: a tree in each bed along Varso 1 and 2;
-3. the corner plaza by Al. Jana Pawła II: the name on a low granite plinth (the parody
+3. the low cream stone wings the towers rise out of (W1-W6): an even grid of deep windows,
+   a dark set-back top floor, terraces with planters and small trees; Varso 2's glass atrium
+   against its tower;
+4. the corner plaza by Al. Jana Pawła II: the name on a low granite plinth (the parody
    **VERSO PLACE**, never the real mark or lettering) and the big erratic boulder.
 
 ## 2. Massing
 
-All from the OSM parts (`centrum.json`), nothing new is tall:
+The wings (W1-W6, `_varso_wings`): each of the Varso I and Varso II outlines less every mapped
+part 5 m tall or more standing in or by it (grown 5 cm), jogs under 0.6 m smoothed, pieces of
+150 m² or more: Varso 1's east of its tower towards Varso Tower, Varso 2's west of its tower.
+Each is eight storeys (a 5 m glazed ground floor + 7 x 3.9 m = 32.3 m; the photos count eight
+rows of windows), a set-back ninth (3.6 m dark glass + a 0.5 m stone cornice) 7 m in from every
+face; Varso 2's atrium is a 26 x 21 m rectangle against the 80 m part's face that looks into the
+wing (photo 7), cut out of the wing, leaving it a C.
+
+The terraces, all from the OSM parts (`centrum.json`), nothing new is tall:
 - the tower's 205 m part (1,392 m²) minus everything that starts at or under 206 m and rises
   above it (the 230 m top, the dark spines to 209 and 234 m, the 207-209 m parapets): an open
   step of about 600 m² on its north-west half (G1);
@@ -43,12 +58,29 @@ All from the OSM parts (`centrum.json`), nothing new is tall:
 
 ## 3. Facade, base to top
 
+The wings (W1, W2): a dark glass body (`M_SKIN` S_DARK: its lobby glass under 4.5 m and lit
+bays at night) behind a cream stone frame: square piers 0.9 m wide, 0.45 m proud, every ~3.3 m
+(the ends at the corners), from the ground to the parapet; spandrel bands 0.4 m proud, 1.25 m
+tall, over every floor line (the first is the ground floor's head at 5 m); the parapet band
+0.75 m tall and 0.5 m proud over the piers' heads. The bands run mitred round the whole ring (no
+two tops on one plane); the piers stand only on faces that show (not in the atrium, not inside
+a tower part; over the 10 m link they start at its roof). No shader change: the building
+shader's lite copy is at its Adreno budget.
+
 Unchanged: the tower is `_build_varso` (M_GLASS slabs, spines, the lit crown); Varso 1 and 2 stay
 the map's extrusions. The only thing on a facade line is the glass balustrade round each planted
 roof (1.1 m, lit glass `M_PAVILION + 0.5`, as the Forest's terrace), the terraces' edge seen from
 the street.
 
 ## 4. Roof
+
+The wings (W3-W6): a timber deck (the body's roof), a glass balustrade (1.1 m, `M_PAVILION + 0.5`,
+lit at night) 0.2 m out of the parapet's line; the set-back top storey with a pale roof and one
+4.4 m plant box; planters (4 x 1.8 x 0.6 m granite boxes, perennials, lawn or grasses on top)
+in two rows, 2.4 m in from the parapet and 2 m short of the top storey, one every 5.5 m where
+the top storey, the atrium and the towers leave room, a small round-crowned tree (4.2 m ±10 %,
+crown radius 1.6 m) in every other one and a dwarf pine in the rest; Varso 2's atrium roof a
+low glass pyramid (`M_GLASS_ROOF`, #9fc0d8) from 1.6 m under the parapet to 0.6 m over it.
 
 Each open piece (G1, T1-T3) the same way, `_varso_garden`:
 - a timber deck 0.12 m over the roof, 0.5 m in from the edge, inside the glass balustrade;
@@ -78,6 +110,10 @@ All `M_STONE` (plain, in the city's one building material) unless named.
 | deck, benches | timber #a58a69 (benches' sides 25 % darker) | M_STONE |
 | balustrade | #c9dcdc | M_PAVILION + 0.5 |
 | erratic | #867f74, upper half 6 % lighter | M_STONE |
+| wings' stone frame | cream #e4ddcd (sides 8 % darker, tops 4 % lighter) | M_STONE |
+| wings' glass body | #2c3946 | M_SKIN S_DARK |
+| top storey | dark glass #2a3038, roof #d3d4cf | M_SKIN S_DARK / M_STONE |
+| atrium roof | #9fc0d8 | M_GLASS_ROOF |
 | VERSO PLACE | warm white (0.97, 0.94, 0.86) | neon sign (`signs`) |
 
 ## 6. Ground and night
@@ -102,8 +138,8 @@ All `M_STONE` (plain, in the city's one building material) unless named.
 ## 7. Detail level and budget
 
 L2 for the plaza and the roofs (the tower stays L3). Triangles (`check_mesh_quality`): the tower
-with G1 2,182 (budget 1,680 → 2,500); T1-T3, the sign and the erratic 901 (`varso_place`, budget
-1,100). No new node, material, light or draw call: everything is the city's building surface
+with G1 2,182 (budget 1,680 → 2,500); T1-T3, the sign and the erratic 901; with the wings (L2) 6,846 (`varso_place`, budget
+7,200, 2026-11-17). No new node, material, light or draw call: everything is the city's building surface
 (UV2 landmark codes) and the trees' existing MultiMesh. Shots: the sky garden from the helicopter
 (`--at=-1622,583 --yaw=225 --pitch=-40 --size=90`), the terraces (`--at=-1730,630 --size=90`),
 the corner plaza (`--at=-1590,560 --size=40`), day and dusk, both city paths.
@@ -121,4 +157,10 @@ the corner plaza (`--at=-1590,560 --size=40`), day and dusk, both city paths.
 | T3 Varso 2 low terrace | `_varso_garden` | 150 m² | the 72 m part | as section 5 | 1 |
 | S1 street trees | `trees3d` entries | 6 young trees | Chmielna's bare beds by Varso 1 and 2 | tree MultiMesh | 2 |
 | P1 sign | granite plinth + neon word | ~9 x 0.9 x 1.2 m | (-1597.5, 553.5) along Al. Jana Pawła II | M_STONE + sign | 3 |
+| W1 wing bodies | dark glass prism | 8 storeys, 32.3 m | each outline less its parts | M_SKIN S_DARK | 3 |
+| W2 stone frame | piers 0.9 x 0.45 m, mitred bands | every ~3.3 m; 8 bands | the faces that show | M_STONE | 3 |
+| W3 balustrade | glass ring | 1.1 m | 0.2 m out of the parapet | M_PAVILION + 0.5 | 3 |
+| W4 top storey | dark glass + cornice | 4.1 m | 7 m in from the faces | M_SKIN S_DARK, M_STONE | 3 |
+| W5 planters | granite box + tree or pine | 4 x 1.8 x 0.6 m | two rows round the terrace | M_STONE | 3 |
+| W6 atrium roof | glass pyramid | 26 x 21 m | against Varso 2's 80 m part | M_GLASS_ROOF | 3 |
 | P2 erratic | two 8-sided frusta | 4.2 x 3.2 x 2.1 m | (-1600.5, 541.5) | M_STONE | 3 |

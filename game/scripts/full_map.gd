@@ -831,7 +831,14 @@ func _kind_total(kind: Dictionary, ctx := -1) -> int:
 			if str(ic["shape"]) == "metro":
 				n += 1
 		return n
-	return markers.count_group(kind["groups"], MapMarkers.View.FULL_MAP, ctx)
+	if ctx >= 0:
+		return markers.count_group(kind["groups"], MapMarkers.View.FULL_MAP, ctx)
+	# The total is the most the kind ever shows (any context): count_group with -1 would index the
+	# minimap's column of the rule table and could total less than the shown n ("ALL 70/62").
+	var best := 0
+	for c in [MapMarkers.Context.FREE, MapMarkers.Context.QUEST, MapMarkers.Context.AIR]:
+		best = maxi(best, markers.count_group(kind["groups"], MapMarkers.View.FULL_MAP, c))
+	return best
 
 
 ## The cells' words ("kebab  3/9": shown n of the total; a hidden kind shows 0) and looks, ALL's too.
@@ -844,7 +851,7 @@ func _refresh_legend() -> void:
 	for i in LEGEND.size():
 		var kind: Dictionary = MapTrack.KINDS[i]
 		var all_n := _kind_total(kind)
-		var n := 0 if _hidden.has(str(kind["id"])) else _kind_total(kind, ctx)
+		var n := 0 if _hidden.has(str(kind["id"])) else mini(_kind_total(kind, ctx), all_n)
 		vis += n
 		tot += all_n
 		_legend_cells[i].text = "%s  %d/%d" % [Lang.split(LEGEND[i]), n, all_n]

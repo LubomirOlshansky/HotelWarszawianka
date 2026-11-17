@@ -1273,9 +1273,15 @@ func _show_status() -> void:
 	if state == State.RACE:
 		# Beta values (R5): the gap in seconds ("Pani Halina 2,4 s za tobą"); it was metres.
 		var g := gap_words(r["name"], gap, _gap_seconds(first), first)
-		hint = ["Jedź %s! %s." % [goal_pl, g[0]], "Drive %s! %s." % [goal_en, g[1]]]
+		# gap_words can end in "!" ("łeb w łeb!"): no second full stop after it.
+		hint = ["Jedź %s! %s" % [goal_pl, _end_stop(g[0])], "Drive %s! %s" % [goal_en, _end_stop(g[1])]]
 	status("WYŚCIG · " + Lang.pick(goal_pl, goal_en).to_upper(), _clock(_race_time), "%d m" % metres,
 			hint, 0.0, RACE_COLOUR, ("1ST" if first else "2ND") if state == State.RACE else "")
+
+
+## `s` ended with a full stop unless it already ends in "!", "?" or ".".
+static func _end_stop(s: String) -> String:
+	return s if s.ends_with("!") or s.ends_with("?") or s.ends_with(".") else s + "."
 
 
 func _finish_race(won: bool, why: String) -> void:

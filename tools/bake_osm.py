@@ -472,6 +472,11 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # the W-Z tunnel instead of pit fills and their walls (tools/zamek_ramps.py; the same code runs on a baked map).
     import zamek_ramps
     print("zamek_ramps: " + zamek_ramps.apply(out, map_dir))
+    # The obelisk's semicircle north of the Palace (F, 2026-11-17): its mapped 2 m wall loop, the
+    # service ramp into it and the garage door off, so it is open paving (tools/defilad_obelisk.py;
+    # the same code runs on a baked map; map_builder.gd GRID_HOLD levels the grid's pit there).
+    import defilad_obelisk
+    print("defilad_obelisk: " + defilad_obelisk.apply(out, map_dir))
     # G8/G9 (2026-11-01): shelters onto the kerb of their bus road, turned roof along it; benches
     # turned to face the walk (tools/snap_props.py; the same code runs on a baked map).
     import snap_props
