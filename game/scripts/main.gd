@@ -3250,14 +3250,10 @@ func _build_stories(world: Node3D) -> void:
 ## A friend's call turned down or rung out (activity.gd `declined`, F 2026-11-17): the questline
 ## stays NEW in QUESTS ("qnew_<id>" in [intro], cleared when its detail is opened) and a toast says so.
 func _invite_declined(id: String) -> void:
-	if wallet == null:
-		return
-	wallet.intro["qnew_" + id] = 1
-	for d: Dictionary in stories.defs if stories != null else []:
-		if str(d["id"]) == id:
-			var w := QuestBook.fmt("invite_later", [[str(d["pl"]), str(d["en"])]])
-			hud.toast(str(w[0]), str(w[1]))
-	wallet.save()
+	var w := QuestBook.mark_invite(wallet.intro, stories.defs, id) if wallet != null and stories != null else []
+	if not w.is_empty():
+		hud.toast(str(w[0]), str(w[1]))
+		wallet.save()
 
 
 ## The shisha night's hidden start (F 2026-11-08, 2026-11-10: anywhere in the city, only this, no
@@ -4834,7 +4830,7 @@ func _fill_map_list(entries: Array) -> void:
 		for d: Dictionary in stories.defs:
 			f["stories"].append({"id": d["id"], "pl": d["pl"], "en": d["en"], "who": d["who"], "blurb": d.get("blurb", ["", ""]),
 					"hello": d.get("hello", ["", ""]), "colour": d.get("colour", Lines.STORY_COLOUR), "at": d.get("at", Vector2.INF),
-					"open": StoryQuests.open_at(d, float(c[0]), int(c[1])), "new": intro.has("qnew_" + str(d["id"])),
+					"open": StoryQuests.open_at(d, float(c[0]), int(c[1])), "new": intro.has(QuestBook.NEW_KEY + str(d["id"])),
 					"when": [StoryQuests.when_text(d, true), StoryQuests.when_text(d, false)]})
 	if rivals != null and rivals.ladder != null and wallet != null:
 		var rows: Array = rivals.ladder_rows()
@@ -4912,7 +4908,7 @@ func _wire_full_map() -> void:
 	hud.full_map.quit_quest.connect(_quit_quest)
 	hud.full_map.rival_called.connect(_call_rival_out)
 	hud.full_map.seen.connect(func(id: String) -> void:
-		if wallet != null and wallet.intro.erase("qnew_" + id.trim_prefix("story_")):
+		if wallet != null and wallet.intro.erase(QuestBook.NEW_KEY + id.trim_prefix("story_")):
 			wallet.save())  # a questline that invited the player was looked at in QUESTS
 	hud.full_map.can_teleport = _teleport_refusal
 

@@ -12,6 +12,8 @@ extends SceneTree
 ## - side jobs: one item per kind on offer (the nearest place), the count of jobs done, a request's
 ##   own START words; nothing but NOW while a quest runs;
 ## - rivals: the six with their state, RACE only for one not locked, the final last;
+## - a turned-down invite (`mark_invite`) marks only a questline of the list NEW, with the toast's
+##   words naming it; an unknown id marks nothing and says nothing;
 ## - `find` and `first_tab`; every item has an icon key in ICONS; the beta card's SHOWCASE tiles
 ##   name icons and words.
 ##   godot --headless --path game --script res://tools/check_quest_book.gd
@@ -50,6 +52,7 @@ func _initialize() -> void:
 	_jobs(f)
 	_rivals(f)
 	_icons(f)
+	_invites()
 	if _problems == 0:
 		print("check_quest_book: OK (%d tabs, %d words, %d icons named)" % [QuestBook.tabs(f).size(), KEYS.size(), QuestBook.ICONS.size()])
 		quit(0)
@@ -200,3 +203,17 @@ func _icons(f: Dictionary) -> void:
 	# Each named icon file is either there or drawn as the colour's letter (no error either way).
 	for k: String in QuestBook.ICONS:
 		QuestBook.icon(k)
+
+
+func _invites() -> void:
+	var defs := [{"id": "boat", "pl": "Wyścig łodzi", "en": "Boat race"}, {"id": "rave", "pl": "Rave", "en": "Rave"}]
+	var intro := {}
+	_expect(QuestBook.mark_invite(intro, defs, "ghost").is_empty() and intro.is_empty(),
+			"an invite id that is no questline marks nothing NEW and shows no toast")
+	_expect(QuestBook.mark_invite(intro, defs, "").is_empty() and intro.is_empty(), "an empty invite id marks nothing")
+	var w := QuestBook.mark_invite(intro, defs, "boat")
+	_expect(intro.keys() == [QuestBook.NEW_KEY + "boat"], "a turned-down questline is marked NEW, only that one: %s" % [intro])
+	_expect(w.size() == 2 and "Wyścig łodzi" in str(w[0]) and "Boat race" in str(w[1]),
+			"the toast names the questline in both languages: %s" % [w])
+	_expect(not QuestBook.mark_invite(intro, defs, "boat").is_empty() and intro.size() == 1,
+			"turning the same questline down again keeps one NEW mark")

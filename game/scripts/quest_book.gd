@@ -51,6 +51,8 @@ const STORY_COUNT := {"boat": "boat_race", "rave": "rave", "dekalog": "dekalog",
 ## icon for each quest"): by questline id, job group, First step id or tab. A missing file draws the
 ## item's colour dot instead (`icon`).
 const ICON_DIR := "res://art/quest_icons/"
+## The wallet intro key prefix that marks a questline NEW in QUESTS (a turned-down invite, `mark_invite`).
+const NEW_KEY := "qnew_"
 const ICONS := {"kebab": "kebab", "ride": "ride", "call": "rescue", "rescue": "rescue", "sloik": "jars", "lezak": "scooter",
 		"trend": "trend", "mlask": "foodvan", "drop": "drop", "peacock": "peacock", "cassette": "cassette", "garage": "garage",
 		"boat": "boat", "rave": "rave", "smola": "club", "dekalog": "film_tour", "kawa": "coffee", "padel": "padel",
@@ -101,6 +103,18 @@ static func fmt(key: String, args: Array) -> Array:
 		pl.append(a[0] if a is Array else a)
 		en.append(a[1] if a is Array else a)
 	return [str(w[0]) % pl, str(w[1]) % en]
+
+
+## A questline's call was turned down or rang out (activity.gd `declined`): mark it NEW in QUESTS in
+## `intro` (wallet.gd) and return the toast's words, or [] and mark nothing for an id that is no
+## questline of `defs` (story_quests.gd). It can't be one under way: `declined` fires only from that
+## activity's ringing or offer card. Questlines repeat, so a played one is a fresh invite on purpose.
+static func mark_invite(intro: Dictionary, defs: Array, id: String) -> Array:
+	for d: Dictionary in defs:
+		if str(d.get("id", "")) == id:
+			intro[NEW_KEY + id] = 1
+			return fmt("invite_later", [[str(d.get("pl", id)), str(d.get("en", id))]])
+	return []
 
 
 ## The tabs for these facts: [{"key", "title": [pl, en], "badge": String ("2/7", "" none), "head":
