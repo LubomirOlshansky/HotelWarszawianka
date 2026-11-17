@@ -10,8 +10,9 @@ extends Node3D
 ##  - **The card** (garage_card.gd): drive into the ring and stop (under STOP_SPEED m/s, no job,
 ##    race, rescue or chase on, not flying): the game pauses under it like the settings card. The
 ##    paints, their prices, Mirek's line; buy one (the wallet pays), or switch to one owned (free).
-##  - **The paints** (PAINTS): factory red (free, the default), six more for 150-350 zł (black 300:
-##    egg E01 at Lusterko's door; pea green 180: egg E21 at Glon) and gold, free once GOLD_EGGS
+##  - **The paints** (PAINTS): factory red (free, the default), six more for 50-150 zł (beta prices,
+##    F 2026-11-17: the first delivery's money buys one; black 120: egg E01 at Lusterko's door; pea
+##    green 60: egg E21 at Glon) and gold, free once GOLD_EGGS
 ##    egg cards are found. Owned paints are kept (wallet.gd `paints`, the day each was bought) and
 ##    the one on the car (`paint`): the save's [garage] section. car.gd `set_paint` rebuilds the
 ##    body's one mesh once (the same material: no new draw call).
@@ -51,17 +52,17 @@ const PAINTS: Array[Dictionary] = [
 	{"id": "red", "name": ["Fabryczna czerwień", "Factory red"], "paint": Color("#d8432f"), "glow": 1.4,
 			"stripe": Color("#f4efe4"), "stripe_glow": 0.3, "price": 0},
 	{"id": "cream", "name": ["Kremowy", "Cream"], "paint": Color("#e9dfc6"), "glow": 0.9,
-			"stripe": Color("#c43b2c"), "stripe_glow": 0.6, "price": 150},
+			"stripe": Color("#c43b2c"), "stripe_glow": 0.6, "price": 50},
 	{"id": "green", "name": ["Zielony groszek", "Pea green"], "paint": Color("#5aa83a"), "glow": 1.4,
-			"stripe": Color("#f4efe4"), "stripe_glow": 0.3, "price": 180},
+			"stripe": Color("#f4efe4"), "stripe_glow": 0.3, "price": 60},
 	{"id": "blue", "name": ["Wiślany błękit", "Vistula blue"], "paint": Color("#2f72c8"), "glow": 1.5,
-			"stripe": Color("#f4efe4"), "stripe_glow": 0.3, "price": 200},
+			"stripe": Color("#f4efe4"), "stripe_glow": 0.3, "price": 80},
 	{"id": "yellow", "name": ["Żółty jak tramwaj", "Tram yellow"], "paint": Color("#ecc02a"), "glow": 1.2,
-			"stripe": Color("#23211f"), "stripe_glow": 0.0, "price": 250},
+			"stripe": Color("#23211f"), "stripe_glow": 0.0, "price": 100},
 	{"id": "black", "name": ["Czarny lakier", "Black paint"], "paint": Color("#1d1e24"), "glow": 4.5,
-			"stripe": Color("#b9bec8"), "stripe_glow": 0.9, "price": 300},
+			"stripe": Color("#b9bec8"), "stripe_glow": 0.9, "price": 120},
 	{"id": "pink", "name": ["Różowy pączek", "Doughnut pink"], "paint": Color("#e87aa6"), "glow": 1.3,
-			"stripe": Color("#f4efe4"), "stripe_glow": 0.3, "price": 350},
+			"stripe": Color("#f4efe4"), "stripe_glow": 0.3, "price": 150},
 	{"id": "gold", "name": ["Złoto Syrenki", "Mermaid gold"], "paint": Color("#d6a630"), "glow": 1.5,
 			"stripe": Color("#2b2620"), "stripe_glow": 0.0, "price": 0, "eggs": GOLD_EGGS},
 	{"id": "scale", "name": ["Łuska Syreny", "Mermaid scale"], "paint": Color("#2a9d8f"), "glow": 1.4,
