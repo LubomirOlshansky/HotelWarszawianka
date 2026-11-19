@@ -344,7 +344,7 @@ func _show_ring() -> void:
 	state = State.RINGING
 	card_life = INF  # the pill waits until pressed
 	if hud.get("messages") != null:
-		hud.messages.call_rang()
+		hud.messages.call_rang(false)  # the pill waits until pressed: its gap counts from the ring
 	hud.show_pill("WEZWANIE", "rescue call")
 	if hud.pad_mode:
 		hud.toast(Gamepad.fmt("Wezwanie ratunkowe! {a}: odbierz."), Gamepad.fmt("A rescue call came in: {a} to answer."))

@@ -21,6 +21,7 @@ activity             quick
 architecture         quick
 barrierlook          quick
 barrierpaths         smoke
+blockeaves           quick
 boatrace             quick
 boot                 quick
 boot-run             smoke
@@ -71,6 +72,7 @@ firstlife            runs
 fixes                quick
 freecam              quick
 gamepad              quick
+gametime             quick
 garage               quick
 governor             quick
 grades               quick
@@ -106,6 +108,7 @@ markers              quick
 meet                 quick
 meshq                quick
 messages             quick
+metropol             quick
 mixer                quick
 models               quick
 monumentmesh         quick
@@ -213,6 +216,7 @@ tenementtrim         quick
 tiers                quick
 tour-run             local     slow
 trafficbodies        quick
+trafficsounds        quick
 trains               quick
 tramfleet            quick
 tramstops            quick

@@ -1016,6 +1016,25 @@ func keeps_lod2_roof(p: Vector2) -> bool:
 	return false
 
 
+## The walls a kept LoD2 roof meets, for the modelled block that keeps it at p (as
+## keeps_lod2_roof): {"ring": the block's outline, "eaves": one absolute wall-top height per
+## outline edge (NAN where no wall of the model runs along it)}, or empty. From index.json's
+## `eaves` (tools/block_eaves.py) over the block's own ground (_build_block's `_g`), so
+## map_builder can lift a roof that sat a storey down inside its walls (F's shot, 2026-11-19).
+func block_eaves_at(p: Vector2) -> Dictionary:
+	for s in sites:
+		if not s.has("lod2_roof") or not s.has("eaves") or not (s["box"] as Rect2).has_point(p):
+			continue
+		for z: PackedVector2Array in s["zone"]:
+			if Geometry2D.is_point_in_polygon(p, z):
+				var g := _ground_under(s["raw"])
+				var tops := PackedFloat32Array()
+				for e in s["eaves"]:
+					tops.append(g + float(e) if e != null else NAN)
+				return {"ring": s["raw"], "eaves": tops}
+	return {}
+
+
 ## The skin of the kept skin (SKINS) `key`, the same Dictionary `skin_at` returns for its
 ## buildings (compare with is_same: two skins can share their colours), or empty. The turntable
 ## (`--solo=KEY`, tools/site_cams.gd) uses it to show a recoloured LoD2 building alone.
@@ -1896,6 +1915,9 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"metro_tubes":
 				_id = 0
 				_build_metro_tubes()
+			"metro_pavilion":
+				_id = 0
+				_build_metro_pavilion()
 			"zodiak":
 				_build_zodiak(s)
 			"pijana":

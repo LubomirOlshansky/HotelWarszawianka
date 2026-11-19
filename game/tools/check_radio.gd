@@ -9,6 +9,8 @@ extends SceneTree
 ##      its order and wraps, a station with one track loops and one with several does not, the
 ##      caption reads "freq NAME · title (artist)";
 ##   3. a single-track station's loop has no jump or gap across its loop point (decoded);
+##      after skips it holds one stream per station and the next one, read ahead on the loader
+##      thread (housekeeping, 2026-11-19);
 ##   4. a track whose licence is "unknown" is a WARN line (check them before a release, README
 ##      "Adding music"), not a failure. The total radio size is printed;
 ##   5. loop MW-5, PÓŁNOC FM (_check_polnoc): its 7 tracks (titles as vision.md 4.6, 90-120 s,
@@ -232,6 +234,18 @@ func _check_radio(problems: Array[String]) -> void:
 			problems.append("%s: skipping gave %s, the playlist says %s" % [label, seen, titles])
 		if changed.size() != n + 1:
 			problems.append("%s: %d skips made %d track_changed signals" % [label, n + 1, changed.size()])
+		# Housekeeping (2026-11-19): after n + 1 skips the radio holds one stream per station and
+		# the next one, never every song played; the next is asked of the loader thread ahead.
+		var held := radio.held_streams()
+		if held.size() > radio.stations.size() + 1:
+			problems.append("%s: %d streams held after %d skips (at most one a station and the next)" % [label, held.size(), n + 1])
+		if not held.has(radio.current_track()["file"]):
+			problems.append("%s: the track on air is not held" % label)
+		var ahead := radio.next_file()
+		if n > 1 and ahead == "":
+			problems.append("%s: no next file with %d tracks" % [label, n])
+		if n > 1 and ahead != "" and radio._ahead != ahead and not held.has(ahead):
+			problems.append("%s: the next track %s is not read ahead" % [label, ahead])
 		if n == 1:
 			_check_seam(radio.current_track(), label, problems)
 	radio.next()

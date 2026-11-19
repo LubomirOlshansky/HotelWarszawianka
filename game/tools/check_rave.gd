@@ -34,6 +34,7 @@ extends SceneTree
 ## Prints "check_rave: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_rave.gd [-- --verbose]
 
+const GameTime := preload("res://scripts/game_time.gd")
 const Rave := preload("res://scripts/rave.gd")
 const Club := preload("res://scripts/club.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
@@ -502,6 +503,10 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_hour = 12.0
 	var t0: float = c.tease_in
 	_frames(2.0)
+	_ok(c.tease_in < t0 - 1.5, "with time.by_day LEKTI's timer does not count by day (F 2026-11-19)")
+	GameTime.BY_DAY = 0.0  # the hours rule alone, to the end of this block
+	t0 = c.tease_in
+	_frames(2.0)
 	_ok(c.tease_in == t0, "no tease outside the hours")
 	_hour = 23.0
 	_world_free = false
@@ -514,6 +519,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	c.auto = true
 	_frames(2.0)
 	_ok(c.tease_in < t0 - 1.5 and c.tease_in > t0 - 2.5, "on a rave night with the world free the timer counts (%.2f of %.2f)" % [c.tease_in, t0])
+	GameTime.BY_DAY = 1.0  # pacing.json's (check_game_time)
 
 	# Mati's nights take turns: Smoła first, he rings straight away.
 	c.tease_in = 0.3

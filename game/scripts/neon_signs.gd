@@ -17,7 +17,7 @@ const WORDS := ["KEBAB 24H", "BAR MLECZNY", "APTEKA", "KWIATY", "HOTEL", "KANTOR
 const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA", "CHILTON", "INTERKONTI", "N", "O", "W", "T", "E", "L", "BANK POLSKA", "PEPEO ŻUBR", "ERZATZ",
 		"METROPOLKA", "ENELMEDIK", "ACORN", "HOTELS", "--",
 		# First scene item 3: the Eastern Wall's stores (parodies of their roof names).
-		"JUNIOREK", "SAWKA", "WARSIK",
+		"JUNIOREK", "SAWKA", "WARSIK", "ATOMIK 24H",
 		# Junior's hanging cube and the rooftop box beside it (F's photos, 2026-11-15).
 		"JUNIOR", "CITY",
 		# The stores' printed ad banners (the Mac photo check, 2026-11-01).
@@ -56,6 +56,9 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# Its front's roof letters from F's photos (2026-11-11): the menswear maker's name spelt the
 		# Polish way (the bank's board is PEPEO ŻUBR, already in the list).
 		"WISTULA",
+		# Its arcade's cafés and bars (parodies, F 2026-11-19): the bakery-bistro, the cocktail
+		# bar (its neon Z is the "Z" below) and the craft-beer bar.
+		"SZARLOTKA", "ZAMIESZAJ", "CUDA NA PATYKU",
 		# The power company's red roof sign on Wybrzeże Kościuszkowskie 41 (F's photos, 2026-11-13).
 		"ELEKTRON",
 		# HOTEL PIURE's rooftop date bar (G3).

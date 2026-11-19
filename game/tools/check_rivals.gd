@@ -144,6 +144,8 @@ class PlayCar extends Fakes.Car:
 	var max_speed := 30.0
 	var top_mult := 1.0
 	var target_dir := Vector3.ZERO
+	var steer := 0.0
+	var nitro_on := false
 	var collision_mask := 1
 
 	func flash_lights() -> void:
@@ -526,7 +528,12 @@ func _a_win() -> void:
 	_rv.flash()
 	_eq(_car.flashes, 1, "a second flash in the challenge does nothing")
 	_eq(int(_rv.state), 2, "a second flash leaves the challenge as it is")
-	# CHALLENGE, COUNTDOWN, RACE in order, with the stages' lengths (the countdown is 3, 2, 1, START!).
+	# CHALLENGE, COUNTDOWN, RACE in order, with the stages' lengths (the countdown is only START!,
+	# F 2026-11-19; the player's car waits on the line with the rival until then).
+	_car.throttle = 1.0
+	_car.parked = false
+	_rv.hold_car(_car)
+	_ok(_car.throttle == 0.0 and _car.parked and _car.braking, "the challenge: the player's car waits on the line (no gas, parked)")
 	var in2 := _until(func() -> bool: return int(_rv.state) == 3, 400, "COUNTDOWN")
 	_ok(in2 > 140 and in2 < 175, "the challenge lasts about 2.6 s (%d frames)" % in2)
 	_ok(_rv.has_target() and _dir.targeted() == _rv, "the countdown: the finish is the target")
@@ -537,17 +544,19 @@ func _a_win() -> void:
 	_eq(_rv.target_position(), finish_pos, "the countdown: target_position is the finish")
 	_eq(_rv.target_colour(), PINK, "the race's colour is pink")
 	_ok(not _hud.finger and _hud.finger_calls.is_empty(), "no ghost finger in an ordinary race")
-	_run_frames(2)
-	_ok(_hud.status != "" and _hud.status_title.begins_with("WYŚCIG · "), "the countdown: the status line is up (%s)" % _hud.status_title)
+	var in3 := _until(func() -> bool: return int(_rv.state) == 4, 400, "RACE")
+	_ok(in3 <= 3, "the countdown is gone: START! at once (%d frames)" % in3)
+	_ok(_hud.status != "" and _hud.status_title.begins_with("WYŚCIG · "), "the start: the status line is up (%s)" % _hud.status_title)
 	_eq(_hud.tint, PINK, "the status line is pink")
 	_ok(_hud.distance.ends_with(" m"), "the status line gives the metres")
-	_ok(_hud.status.begins_with("Jedź "), "the countdown's hint says where to drive (%s)" % _hud.status)
-	var in3 := _until(func() -> bool: return int(_rv.state) == 4, 400, "RACE")
-	_ok(in3 > 170 and in3 < 190, "the countdown lasts 3 s (%d frames)" % in3)
+	_ok(_hud.status.begins_with("Jedź "), "the start's hint says where to drive (%s)" % _hud.status)
 	var banners := _banners()
-	var at3 := banners.find("3")
-	_ok(at3 >= 0 and banners.find("2") == at3 + 1 and banners.find("1") == at3 + 2 and banners.find("START!") == at3 + 3,
-			"the countdown reads 3, 2, 1, START! (%s)" % str(banners))
+	_ok(banners.has("START!") and not banners.has("3") and not banners.has("2") and not banners.has("1"),
+			"the start reads START! only, no 3, 2, 1 (%s)" % str(banners))
+	_car.throttle = 1.0
+	_car.parked = false
+	_rv.hold_car(_car)
+	_ok(_car.throttle == 1.0 and not _car.parked, "after START! the player's car is free")
 	_eq(_seq, [0, 1, 2, 3, 4], "the states came in order")
 	_run_frames(60)
 	_ok(_hud.banner != "START!", "START! goes after a second")
@@ -1143,7 +1152,7 @@ func _h_final() -> void:
 	var cps: Array = _rv.final_route.checkpoints
 	_ok(_hud.status != "" and _hud.status_title == "MOST 1/3 · TRZY MOSTY", "the final's status line names the first bridge (%s)" % _hud.status_title)
 	_eq(_hud.tint, GOLD, "the final's colour is gold")
-	_eq(_hud.status, "Uwaga…", "the countdown's hint")
+	_ok(_hud.status != "Uwaga…", "no countdown hint: the race is on at START! (%s)" % _hud.status)
 	_ok(_rv.has_target() and _dir.targeted() == _rv, "the final's target is the first bridge")
 	_eq(_rv.target_position(), cps[0]["pos"], "the target is the first checkpoint")
 	_ok(_rv._beacon.visible and Vector2(_rv._beacon.global_position.x - cps[0]["pos"].x, _rv._beacon.global_position.z - cps[0]["pos"].z).length() < 3.0,
@@ -1315,7 +1324,7 @@ func _j_stages() -> void:
 		if cols.is_empty() or cols[cols.size() - 1] != b:
 			cols.append(b)
 	for t in ["3", "2", "1"]:
-		_ok(cols.any(func(b: Array) -> bool: return b[0] == t and b[1] == Color.WHITE), "the countdown's %s is white" % t)
+		_ok(not cols.any(func(b: Array) -> bool: return b[0] == t), "no countdown %s (F 2026-11-19)" % t)
 	_ok(cols.any(func(b: Array) -> bool: return b[0] == "START!" and b[1] == WIN_GREEN), "START! is green")
 	var clock0: String = _hud.count
 	_run_frames(60)
@@ -1366,19 +1375,19 @@ func _j_stages() -> void:
 	_ok(not _rv.escape_bonus, "an old escape is forgotten when a race starts")
 	_ok(_rv._drivers[HALINA].held, "the rival is held in the challenge")
 	_eq(_rv._beacon._colour, PINK, "the race's flag is pink from the challenge")
-	_reach(3, 400)
 	_run_frames(10)
-	_ok(not _rv._sig_on and _lamps_out(), "no lamp is lit in the countdown")
-	_eq(_hud.badge, "", "no place in the countdown")
-	_eq(_rv._beacon._ring_radius, RaceSession.FINISH_RADIUS - 4.0, "the finish's flag is 12 m in the countdown")
-	_ok(_rv._ghost != null and _rv._ghost.held, "the ghost waits for GO")
-	_ok(_rv._drivers[HALINA].held, "the rival waits for GO")
+	_ok(not _rv._sig_on and _lamps_out(), "no lamp is lit in the challenge")
+	_eq(_hud.badge, "", "no place in the challenge")
+	_ok(_rv._drivers[HALINA].held, "the rival waits for START!")
+	# No 3, 2, 1 (F 2026-11-19): from the challenge straight to START!, the ghost let go with her.
+	_reach(4, 400)
+	_eq(_rv._beacon._ring_radius, RaceSession.FINISH_RADIUS - 4.0, "the finish's flag is 12 m at START!")
 	_car.global_position += Vector3(20.0, 0.0, 0.0)
-	_ok(_rv.drive_player(), "the countdown: the ghost drives the player")
-	_ok(_xz(_car.global_position, _rv._ghost.pos) < 0.5, "the countdown: the car is put where the ghost waits")
+	_ok(_rv.drive_player(), "at START!: the ghost drives the player")
+	_ok(_xz(_car.global_position, _rv._ghost.pos) < 0.5, "at START!: the car is put where the ghost is")
 	_eq(_car.collision_mask, 0, "a driven car has no collisions")
 	_run_frames(60)
-	_ok(_hud.routes_set > 0, "the way is on the minimap before GO")
+	_ok(_hud.routes_set > 0, "the way is on the minimap")
 	# The start marker at night goes when a street race starts; the race's flag is pink.
 	_new_world(true, WIN_PACE, true)
 	_rv.preset_ladder(6)

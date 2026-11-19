@@ -57,7 +57,10 @@ const DUCKS := {
 ## Loops: name, bus, level (dB) at full.
 const LOOPS := {
 	"engine_idle": ["SFX", -10.0], "engine_mid": ["SFX", -10.0], "engine_high": ["SFX", -10.0],
-	"tyre_roll": ["SFX", -14.0], "tyre_wet": ["SFX", -11.5], "tyre_squeal": ["SFX", -15.0],
+	"tyre_roll": ["SFX", -14.0], "tyre_wet": ["SFX", -11.5],
+	# A recorded squeal (ElevenLabs, 2026-11-19): 4 of the 6.7 dB its peak limit cost taken back
+	# (a real squeal has spikes the old steady synth tone did not).
+	"tyre_squeal": ["SFX", -11.0],
 	"rotor": ["SFX", -3.0],
 	# The coffee run's bike (PT 2026-11-08: the car's engine kept on after the swap): the ride's
 	# tyres and chain, and the hub's ratchet while coasting (tools/make_sfx.py).

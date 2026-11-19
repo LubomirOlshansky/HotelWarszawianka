@@ -9668,6 +9668,70 @@ static func _grid_add(grid: Dictionary, box: Rect2, index: int) -> void:
 		grid[key].append(index)
 
 
+## A kept roof plane this close to a block's outline edge (m) meets that edge's wall.
+const EAVE_NEAR := 2.0
+## How far under its walls' top a lifted roof ends (m): flush, a lid on the walls, so no rim of
+## wall shows round it from above (F's comment on the first fix, 2026-11-19).
+const EAVE_LIP := 0.0
+## A roof sitting less than this under its walls' tops stays (a parapet, m); more than LIFT_MAX
+## is another building's roof (a podium under a tower, a LoD2 outline that is not the block's).
+const EAVE_GAP := 0.6
+const LIFT_MAX := 6.5
+## How many kept roofs (LoD2 buildings) _lift_block_roof raised in this build (printed after the LoD2 pass).
+var _roof_lifts := 0
+
+
+## F's shot (2026-11-19, Al. Jerozolimskie by Nowy Świat): a modelled street block that keeps
+## LoD2's measured roof (marks.keeps_lod2_roof) has its own walls, from its model, and those
+## stood up to a storey over the measured roof in 78 blocks, so the roof sat inside them like
+## the floor of an open box. Each kept roof vertex of the run [t0, t1) under its walls' top is
+## raised to it (EAVE_LIP): the walls are the lowest wall top among the outline edges within
+## EAVE_NEAR (`eaves`, landmarks.block_eaves_at; the lowest, so a corner pavilion's walls don't
+## twist a roof's eave up), the block's median wall top for a vertex away from the outline. Vertex by
+## vertex, so a lifted roof keeps no seam: two planes' shared corner moves the same; a gable's
+## ridge over the walls stays where it is and its eaves come up. Never lowered; left as it is
+## past LIFT_MAX (another building's roof). Returns pos. Before the tiles, the colliders and
+## the roof grid, so the helicopter lands on the roof that is drawn, on both city paths (no new
+## triangle or draw call: the measured roof only moves up).
+func _lift_block_roof(pos: PackedVector3Array, dropped: PackedByteArray, t0: int, t1: int,
+		eaves: Dictionary) -> PackedVector3Array:
+	if eaves.is_empty():
+		return pos
+	var ring: PackedVector2Array = eaves["ring"]
+	var tops: PackedFloat32Array = eaves["eaves"]
+	var known: Array[float] = []
+	for h in tops:
+		if not is_nan(h):
+			known.append(h)
+	if known.is_empty():
+		return pos
+	known.sort()
+	var middle: float = known[known.size() / 2]
+	var lifted := false
+	for t in range(t0, t1, 3):
+		if dropped[t / 3]:
+			continue
+		for k in 3:
+			var v := pos[t + k]
+			var q := Vector2(v.x, v.z)
+			# The lowest wall among the edges it is near, so a corner pavilion's taller walls
+			# don't twist the main roof's eave up with them.
+			var top := NAN
+			for i in ring.size():
+				if not is_nan(tops[i]) and (is_nan(top) or tops[i] < top) and Geometry2D.get_closest_point_to_segment(q,
+						ring[i], ring[(i + 1) % ring.size()]).distance_to(q) < EAVE_NEAR:
+					top = tops[i]
+			if is_nan(top):
+				top = middle
+			if top - v.y > EAVE_GAP and top - v.y <= LIFT_MAX:
+				v.y = top - EAVE_LIP
+				pos[t + k] = v
+				lifted = true
+	if lifted:
+		_roof_lifts += 1
+	return pos
+
+
 ## GUGiK LoD2 buildings from the baked mesh. Returns the OpenStreetMap
 ## buildings that still need drawing (empty when there is no LoD2 bake).
 func _build_lod2(walls, marks) -> Array:
@@ -9778,6 +9842,8 @@ func _build_lod2(walls, marks) -> Array:
 			for t in range(t0, t1, 3):
 				if not roofs or absf(nrm[t].y) < 0.3:
 					dropped[t / 3] = 1
+			if roofs:
+				pos = _lift_block_roof(pos, dropped, t0, t1, marks.block_eaves_at((lo + hi) * 0.5))
 		else:
 			# The landmarks loop: a kept building in a landmark's own stone (Muzeum Narodowe).
 			var skin: Dictionary = marks.skin_at(Rect2(lo, hi - lo))
@@ -9861,6 +9927,8 @@ func _build_lod2(walls, marks) -> Array:
 				_solid(&"lod2", [pos[t], pos[t + 1], pos[t + 2]], R2_SAME)
 		_roof_triangle(pos[t], pos[t + 1], pos[t + 2], flat_ish, col[t])
 	_has_lod2 = true
+	if _roof_lifts > 0 and not _in_sector:
+		print("block roofs: %d kept LoD2 roofs lifted to their walls" % _roof_lifts)
 	if not _in_sector:
 		return meta["keep_osm"]
 	# Loop 3c: the split marks the OpenStreetMap buildings LoD2 keeps (`keep`).

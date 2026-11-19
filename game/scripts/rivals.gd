@@ -121,9 +121,13 @@ const FIRST_EASE := 140.0
 ## Effort, the finish's circle and the race's mechanics are the race session's (race_session.gd,
 ## racer AI step 6b): one `_race_session` a race, its one racer the rival (`_racer`).
 ## A plan made for another traffic than the town has now is made again before the start
-## (RaceSession.PLAN_STALE, `_plan_tick`), no later than this many seconds into the countdown (a
-## plan is up to 52 slices: a second at 60 frames a second, and the countdown is three).
+## (RaceSession.PLAN_STALE, `_plan_tick`), in the challenge (2.6 s; a plan is up to 52 slices: a
+## second at 60 frames a second) and no later than this many seconds into the countdown.
 const PLAN_STALE_UNTIL := 1.0
+## No 3, 2, 1 any more (F 2026-11-19, phone: "remove the 3 2 1, just GO and you go together"): the
+## countdown is START! after this many seconds, and until START! both cars wait on the line (the
+## rival held, the player's car by `hold_car`), so nobody jumps the start.
+const GO_AFTER := 0.0
 ## What a rival says when it does something human (traffic.gd counts it), [Polish, English] (each
 ## at most 70 characters), only within HUMAN_NEAR m of the player and HUMAN_QUIET s after its last line.
 const HUMAN_NEAR := 120.0
@@ -1044,11 +1048,10 @@ func _run_tick(dt: float) -> void:
 			if final_on:
 				_prepare_final_step()
 			_plan_tick()
-			var n := 3 - int(_stage_t)
-			hud.show_banner(str(n) if n > 0 else "START!", Color.WHITE if n > 0 else WIN_COLOUR)
+			hud.show_banner("START!", WIN_COLOUR)
 			_show_status()
 			_route_tick(dt)
-			if _stage_t >= 3.0:
+			if _stage_t >= GO_AFTER:
 				_go()
 		State.RACE:
 			_race_time += dt
@@ -1106,6 +1109,21 @@ func _can_challenge(i: int) -> bool:
 		return false
 	var fwd := Vector2(-sin(d.yaw), -cos(d.yaw))
 	return rel.dot(fwd) > 0.0 and absf(rel.cross(fwd)) < 4.0
+
+
+## Called by main.gd after the controls set the car's inputs: in the challenge and the countdown the
+## player's car waits on the line with the rival, so both leave at START! together (F 2026-11-19:
+## on the phone the car could drive off through 3, 2, 1 while the rival was held). Parked, not just
+## braking, as for Fotka: a held brake at a standstill reverses (car.gd); main.gd unparks it.
+func hold_car(c: Node) -> void:
+	if c == null or flying or not (state == State.CHALLENGE or state == State.COUNTDOWN):
+		return
+	c.target_dir = Vector3.ZERO
+	c.steer = 0.0
+	c.throttle = 0.0
+	c.nitro_on = false
+	c.braking = true
+	c.parked = true
 
 
 func _go() -> void:
