@@ -2,7 +2,7 @@
 """Puts a recorded or generated sound (ElevenLabs, a field recording) into game/audio/sfx.
 
 Usage:
-  python3 -I tools/add_sfx.py SOURCE NAME [--loop [--rotate]] [--fade=0.5] [--trim=0.06]
+  python3 -I tools/add_sfx.py SOURCE NAME [--loop] [--fade=0.5] [--trim=0.06]
       [--peak=-3] [--rms=DB | --match] [--rate=22050] [--mono]
       [--from="ElevenLabs Sound Effects v2"] [--prompt="..."] [--dry]
 
@@ -11,8 +11,6 @@ Usage:
 
   --loop    makes a seamless loop: the last --fade seconds are cross-faded into the start, so the
             file wraps on itself whatever the source's own ends were (an mp3 has padding)
-  --rotate  with --loop: starts the loop at its quietest zero crossing in the middle half (a loud,
-            low seam made Godot's QOA decoder click once per wrap: tyre_roll, 2026-11-19)
   --trim    seconds cut from both ends first (mp3 encoder padding), default 0.06
   --peak    the highest peak allowed, dBFS (the game's files peak at -3 for QOA headroom)
   --match   keeps the loudness (RMS) of the file being replaced, so its level in sfx.gd stays right
@@ -87,21 +85,6 @@ def make_loop(a, channels, fade_frames):
     return out
 
 
-def rotate(a, channels):
-    """The loop started again at its quietest zero crossing in the middle half (first channel)."""
-    frames = len(a) // channels
-    best = None
-    for i in range(frames // 4, 3 * frames // 4):
-        if (a[(i - 1) * channels] < 0) != (a[i * channels] < 0):
-            env = sum(abs(a[j * channels]) for j in range(i - 200, i + 200, 10))
-            if best is None or env < best[0]:
-                best = (env, i)
-    if best is None:
-        return a
-    cut = best[1] * channels
-    return array.array("h", a[cut:]) + array.array("h", a[:cut])
-
-
 def arg(name, default=None):
     for x in sys.argv[1:]:
         if x == "--" + name:
@@ -128,8 +111,6 @@ def main():
         a = a[cut:len(a) - cut]
     if arg("loop"):
         a = make_loop(a, channels, int(float(arg("fade", 0.5)) * rate))
-        if arg("rotate"):
-            a = rotate(a, channels)
 
     peak, rms = levels(a)
     want = None
