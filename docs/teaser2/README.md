@@ -1,4 +1,4 @@
-# Teaser 2: "Warsaw 3 a.m." (10 s Reel)
+# Teaser 2: "Warsaw 10 p.m." (5 s Reel)
 
 F, 2026-11-19: "this view" (the website hero: the Centrum metro pavilions, Marszałkowska and the
 Rotunda at Rondo Dmowskiego), at night in the rain, Experimental quality, people walking under
@@ -14,14 +14,19 @@ out of the metro under umbrellas, the city's life. The only text is "Warsaw / 3 
 the bottom of the safe area. No LIVE badge, no clock, no title or STAY TUNED, no store plates.
 No zoom (F: "no need for zoom in video"; PUSH=1.0). The sound is the ambience alone, faded out over the last 0.8 s.
 
+F, 20:19 UTC (final): "10 p.m." instead of "3 a.m.", a bit fewer cars, ride-hail cars (Podwózka
+on a Tesla-Y-like crossover, the city taxi on a Prius-like liftback), a tram crossing, more people
+on Pasaż Wiecha and around (the WIECHA_NIGHT crowd sites, `--crowd=2`), Zodiak's sign on its
+front and bigger (PR #944).
+
 F, 17:33 UTC: not busy, "calm, the vibe of night Warsaw, meditative": the normal crowd (no --crowd=2), the words typed slowly, the sound rain with the city far away.
 
 ## Shots (tools/clip.sh, skill shoot-video)
 
 ```zsh
-Q=(--nohud --no-touch --no-ghost --quality=experimental --lines=1920 --governor=off --time=night --weather=rain)
-tools/clip.sh metroF 1080x1920 6 -- --cam=-851,400 --yaw=0 --pitch=-32 --size=280 $Q   # F 19:54 UTC: exactly A2-frame.png, the rondo in the centre, the Rotunda right, the metro left
-# cut: SHOTS="metroF:0.5:5" docs/teaser2/cut.sh build/clips build/reel/art build/reel/teaser2-1080x1920.mp4
+Q=(--nohud --no-touch --no-ghost --quality=experimental --lines=1920 --governor=off --time=night --clock=22:00 --date=20261120 --weather=rain --traffic=low --crowd=2)
+tools/clip.sh metroF 1080x1920 16 -- --cam=-851,400 --yaw=0 --pitch=-32 --size=280 $Q   # 16 s: cut the 5 s with a tram crossing   # F 19:54 UTC: exactly A2-frame.png, the rondo in the centre, the Rotunda right, the metro left
+# cut: SHOTS="metroF:START:5" (START = where a tram crosses) docs/teaser2/cut.sh build/clips build/reel/art build/reel/teaser2-1080x1920.mp4
 ```
 
 The Mac run's framing fixes replace these lines (the commands that worked are the record).

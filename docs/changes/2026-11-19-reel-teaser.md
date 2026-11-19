@@ -15,3 +15,14 @@
   while `weather.amount > 0.2`. Owner: the people's own scripts (pedestrians, crowds), no new system.
 - cost: +1 draw call per shown people MultiMesh while it rains (the walkers, plus each visible crowd
   cell), none when dry. Bench in the rain on the Mac before merge.
+
+## Ride-hail cars and a fuller rainy evening (teaser 2 final)
+
+- seen: Podwózka, the app taxi, now drives an electric crossover and the city taxi a hybrid liftback; a few more of them on the main streets; Pasaż Wiecha has people out in the evening, and the rain thins the streets less now that everyone has an umbrella.
+- fixed: F (20:19 UTC) asked for Uber/Bolt-like cars (a Tesla Model Y and a Toyota Prius, as
+  parodies, no marques) and more people on the pasaż. `Models.spec("crossover")` and
+  `spec("liftback")` replace the hatch and saloon in the taxi family (same parts, so the morph and the
+  draw calls are unchanged); traffic.gd's taxi share 10 % → 14 %. crowds.gd `WIECHA_NIGHT`: three
+  `pub`-curve sites by Zodiak, on the square and in the middle of the pasaż; `RAIN_OUT` 0.6 (was 0.35
+  for the street, 0.3 for the pubs). Owner: crowds.gd's sites, models.gd's taxi family.
+- cost: no new draw call; up to 36 more crowd figures near Pasaż Wiecha in the evening.

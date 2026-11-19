@@ -307,7 +307,7 @@ func _check_sites(c: Crowds) -> void:
 			"Nowogrodzka: %d pub spots are sites" % Crowds.NOWOGRODZKA.size())
 	_expect(Crowds.pub_level(23.5, 5, 7, false) == 1.0 and is_equal_approx(Crowds.pub_level(1.0, 6, 7, false), 0.85)
 			and Crowds.pub_level(10.0, 5, 7, false) == 0.0 and Crowds.pub_level(23.5, 2, 7, false) < 0.5
-			and Crowds.pub_level(23.5, 5, 1, false) >= 0.6 and Crowds.pub_level(23.5, 5, 7, true) <= 0.3,
+			and Crowds.pub_level(23.5, 5, 1, false) >= 0.6 and Crowds.pub_level(23.5, 5, 7, true) <= Crowds.RAIN_OUT,
 			"Nowogrodzka: the pub crowd by hour, night, month and rain")
 	_expect(Crowds.WILCZA.size() >= 5 and Crowds.WILCZA.keys().all(func(id: String) -> bool: return c.by_id.has(id)),
 			"Wilcza: %d pub spots are sites" % Crowds.WILCZA.size())
@@ -439,7 +439,7 @@ func _check_first_scene(c: Crowds) -> void:
 		_expect(Crowds.street_level(float(h), 7, false) >= 0.5, "first scene: the street at %d:00 is %.2f (want 0.5+ from 8 to 21)" % [h, Crowds.street_level(float(h), 7, false)])
 	_expect(Crowds.street_level(14.0, 1, false) < Crowds.street_level(14.0, 7, false)
 			and Crowds.street_level(14.0, 1, false) >= 0.5, "first scene: January at 14:00 %.2f (want under July, 0.5+)" % Crowds.street_level(14.0, 1, false))
-	_expect(Crowds.street_level(14.0, 7, true) < Crowds.street_level(14.0, 7, false) * 0.5, "first scene: rain thins the street")
+	_expect(Crowds.street_level(14.0, 7, true) <= Crowds.street_level(14.0, 7, false) * Crowds.RAIN_OUT + 0.001, "first scene: rain thins the street")
 	_expect(Crowds.street_level(3.0, 7, false) == 0.0, "first scene: nobody standing at 3:00")
 	var saved_now := now.duplicate()
 	var saved_cal := cal.duplicate()

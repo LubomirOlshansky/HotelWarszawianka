@@ -1350,7 +1350,8 @@ func _try_spawn(anywhere: bool) -> bool:
 		kind = Kind.BUS
 	elif r < 0.17:
 		kind = Kind.VAN
-	elif r < 0.27 and cls <= 1:
+	elif r < 0.31 and cls <= 1:
+		# Taxis and ride-hail cars: about one car in seven on the main streets (2026-11-19).
 		kind = Kind.TAXI
 	if _free_slots[kind].is_empty():
 		kind = Kind.CAR

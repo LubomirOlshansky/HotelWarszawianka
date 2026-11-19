@@ -65,10 +65,10 @@ const TRAFFIC := [
 			"paint": ["#2b2c2f", "#e9e9e6", "#6f7378", "#5d6b4e", "#24324a", "#8c8f94"]},
 	],
 	[
-		{"name": "taxi", "share": 0.5, "size": Vector3(1.8, 1.7, 4.6),
+		{"name": "taxi", "share": 0.5, "size": Vector3(1.78, 1.7, 4.6),
 			"paint": ["#f2f2ee", "#e9e9e6", "#d6d8da"]},
-		{"name": "podwozka", "share": 0.5, "size": Vector3(1.74, 2.0, 3.95),
-			"paint": ["#2b2c2f", "#6f7378", "#b8bcc0", "#e9e9e6", "#24324a"]},
+		{"name": "podwozka", "share": 0.5, "size": Vector3(1.92, 2.2, 4.75),
+			"paint": ["#f2f2ee", "#1c1d20", "#6f7378", "#b8bcc0", "#e9e9e6", "#24324a"]},
 		# City-life satire #1 (loud_cars.gd): never a random taxi (share 0); traffic.gd makes a
 		# few of its cars loud ones in this shape. Loud paints, none of them the player's red
 		# and orange or the police's blue: lime, acid yellow, violet, matte black, teal, pearl,
@@ -536,6 +536,22 @@ static func spec(name: String) -> Dictionary:
 					"cowl_z": -0.35, "cowl_y": 0.78, "belt_z": 1.3, "belt_y": 0.84, "tail_y": 0.86, "tail_in": 0.1,
 					"roof_y": 1.12, "roof_z0": 0.15, "roof_z1": 0.72, "gw0": 0.86, "gw1": 0.6, "r": 0.34,
 					"axle_f": -1.42, "axle_r": 1.4, "bp": 0.62}, true)
+		"liftback":
+			# The city taxi (2026-11-19, F: "toyota prius"): Warsaw's taxis are mostly hybrid
+			# liftbacks, no marque: a low wedge nose, a long raked windscreen, the roof's peak
+			# forward, one long sloping rear pane down to a high, cut-off tail.
+			p.merge({"L": 4.6, "W": 0.88, "sill": 0.3, "bump_f": 0.5, "bump_r": 0.6, "nose": 0.74, "nose_in": 0.18,
+					"cowl_z": -1.02, "cowl_y": 0.92, "belt_z": 2.1, "belt_y": 1.03, "tail_y": 1.03, "tail_in": 0.04,
+					"roof_y": 1.46, "roof_z0": -0.38, "roof_z1": 0.42, "gw0": 0.84, "gw1": 0.68, "r": 0.31,
+					"axle_f": -1.4, "axle_r": 1.36, "bp": 0.5}, true)
+		"crossover":
+			# Podwózka's car (2026-11-19, F: "tesla y"): an electric crossover, no marque: a smooth
+			# rounded nose with no grille height, a tall body, a fastback roof falling in one curve
+			# to a short tail.
+			p.merge({"L": 4.75, "W": 0.95, "sill": 0.4, "bump_f": 0.62, "bump_r": 0.68, "nose": 0.9, "nose_in": 0.22,
+					"cowl_z": -1.0, "cowl_y": 1.06, "belt_z": 2.12, "belt_y": 1.1, "tail_y": 1.1, "tail_in": 0.08,
+					"roof_y": 1.64, "roof_z0": -0.2, "roof_z1": 0.72, "gw0": 0.9, "gw1": 0.72, "r": 0.37,
+					"axle_f": -1.45, "axle_r": 1.45, "bp": 0.48}, true)
 		"city car":
 			p.merge({"L": 3.4, "W": 0.8, "sill": 0.3, "bump_f": 0.52, "bump_r": 0.52, "nose": 0.82, "nose_in": 0.14,
 					"cowl_z": -0.85, "cowl_y": 0.98, "belt_z": 1.48, "belt_y": 1.0, "tail_y": 0.98, "tail_in": 0.04,
@@ -634,8 +650,8 @@ static func traffic_mesh(kind: int) -> ArrayMesh:
 	return bus_mesh()
 
 
-## The city taxi (an invented livery: a white saloon with a yellow band of dark squares along
-## the doors and a lit yellow roof sign) or Podwózka, the app taxi (parodies.md 3.1: a hatch
+## The city taxi (an invented livery: a white hybrid liftback with a yellow band of dark squares along
+## the doors and a lit yellow roof sign) or Podwózka, the app taxi (parodies.md 3.1: an electric crossover
 ## in its own paint with a phone standing on the roof, its screen lit). City-life satire #1
 ## (loud_cars.gd, 2026-11-02): `which` 2 is the loud supercar that shares the taxis' MultiMesh
 ## (no draw call of its own): a low, wide wedge with no badge and no marque, a carbon wing on
@@ -652,7 +668,7 @@ const TAXI_PASAT := 3
 static func _taxi(which: int) -> Shape:
 	var s := Shape.new()
 	var city := which == TAXI_CITY
-	var p := spec(["saloon", "hatch", "supercar", "estate"][which])
+	var p := spec(["liftback", "crossover", "supercar", "estate"][which])
 	_vehicle(s, p, fin(Color.WHITE, PAINT))
 	var roof_y: float = p["roof_y"]
 	var mid := Vector3(0.0, roof_y - 0.2, (p["roof_z0"] + p["roof_z1"]) * 0.5)

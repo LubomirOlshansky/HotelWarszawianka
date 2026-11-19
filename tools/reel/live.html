@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Teaser 2's overlay (F, 2026-11-19: "Warsaw 3 a.m." in the website's pixel font, and then "only
+  Teaser 2's overlay (F, 2026-11-19: "Warsaw 3 a.m." (then "10 p.m.", F 20:19 UTC) in the website's pixel font, and then "only
   Warsaw 3 a.m., nothing else"): a transparent 1080x1920 layer over the game footage, the words
   typed in at the bottom of Instagram's safe area (x 60-960, y 250-1500), a soft shade under them.
   tools/reel/render.mjs --live-frames=SECONDS calls window.frame(t) per frame.
@@ -25,11 +25,11 @@ html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
 </div>
 <script>
 const P = new URLSearchParams(location.search);
-const TEXT = "Warsaw\n3 a.m.";
+const TEXT = "Warsaw\n10 p.m.";
 const $ = (id) => document.getElementById(id);
 const k = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
 function frame(t) {
-  // "Warsaw 3 a.m." typed in from 1.0 s, a letter every 0.11 s (calm, F), the cursor blinking after.
+  // "Warsaw 10 p.m." typed in from 1.0 s, a letter every 0.11 s (calm, F), the cursor blinking after.
   const n = Math.max(0, Math.min(TEXT.length, Math.floor((t - 1.0) / 0.11)));
   const cur = (n < TEXT.length || Math.floor(t * 2.5) % 2 === 0) ? '<span class="cur"></span>' : "";
   $("title").innerHTML = TEXT.slice(0, n).replace("\n", "<br>") + cur;

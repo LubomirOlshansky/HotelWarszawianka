@@ -342,6 +342,15 @@ const NOWOGRODZKA := {
 	"pub_nowo_22": [Vector2(-680.0, 528.0), 14, 16.0],
 	"pub_nowo_27": [Vector2(-695.0, 547.0), 10, 14.0],
 }
+## Pasaż Wiecha's evening (F, 2026-11-19: "more people on the pasaż"): Zodiak's café, the square
+## between the pavilions and Wars, and the walk past the kebab windows, on the `pub` curve (the
+## pasaż is busiest after 20:00). Same shape as NOWOGRODZKA; the spots are footway, checked
+## against centrum.json's buildings.
+const WIECHA_NIGHT := {
+	"pub_wiecha_zodiak": [Vector2(-815.0, 285.0), 14, 12.0],
+	"pub_wiecha_square": [Vector2(-835.0, 275.0), 12, 12.0],
+	"pub_wiecha_mid": [Vector2(-845.0, 240.0), 10, 12.0],
+}
 ## Wilcza and Poznańska's bars (street-by-street, 2026-11-03): people with a glass and a cigarette on the
 ## pavement in front of the bars, on the `pub` curve like NOWOGRODZKA. id -> [spot (game coordinates),
 ## most people, radius]. The fascias are storefronts.gd's WILCZA.
@@ -874,12 +883,16 @@ static func campus_level(hour: float, weekday: int, month: int, rain: bool) -> f
 	return lvl * (0.4 if rain else 1.0)
 
 
+## The share of the street and pub people still out in the rain (2026-11-19: everyone carries an
+## umbrella now, Models.umbrella_twin, so the rain thins them less; it was a third) *guess*.
+const RAIN_OUT := 0.6
+
 ## Nowogrodzka's pub crowd level 0..1: the `pub` curve × PUB_WEEKDAY (past midnight counts as the
-## evening before, as the clubs do); winter keeps 60 % (they smoke outside in the snow), rain 0.3
-## (under the doorways) *guess*.
+## evening before, as the clubs do); winter keeps 60 % (they smoke outside in the snow), rain RAIN_OUT
+## (umbrellas, doorways) *guess*.
 static func pub_level(hour: float, weekday: int, month: int, rain: bool) -> float:
 	return minf(curve_at("pub", hour) * float(PUB_WEEKDAY[night_day(hour, weekday) - 1]) * maxf(month_factor(month), 0.6)
-			* (0.3 if rain else 1.0), 1.0)
+			* (RAIN_OUT if rain else 1.0), 1.0)
 
 
 ## Mazowiecka's club crowd level 0..1: the `club` curve × WEEKDAY (past midnight counts as the
@@ -897,9 +910,9 @@ static func theatre_level(hour: float, weekday: int, rain: bool) -> float:
 
 
 ## First scene item 6: the start's street level 0..1 (FIRST_SCENE): the `street` curve, winter keeps
-## 60 % (people still buy papers and coffee), rain a third *guess*.
+## 60 % (people still buy papers and coffee), rain RAIN_OUT.
 static func street_level(hour: float, month: int, rain: bool) -> float:
-	return curve_at("street", hour) * maxf(month_factor(month), 0.6) * (0.35 if rain else 1.0)
+	return curve_at("street", hour) * maxf(month_factor(month), 0.6) * (RAIN_OUT if rain else 1.0)
 
 
 ## KROWA 2.0's line now: [people, "kolejka"]. Open 8:00-18:00, 26 at lunch (12-15), 10 otherwise.
@@ -1171,6 +1184,9 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 	for pid: String in NOWOGRODZKA:
 		var ps: Array = NOWOGRODZKA[pid]
 		_add_site({"id": pid, "kind": "chill", "pub": true, "sit": false, "at": ps[0], "max": int(ps[1]), "radius": float(ps[2])})
+	for pid: String in WIECHA_NIGHT:
+		var ws: Array = WIECHA_NIGHT[pid]
+		_add_site({"id": pid, "kind": "chill", "pub": true, "sit": false, "at": ws[0], "max": int(ws[1]), "radius": float(ws[2])})
 	for wid: String in WILCZA:
 		var ws: Array = WILCZA[wid]
 		_add_site({"id": wid, "kind": "chill", "pub": true, "sit": false, "at": ws[0], "max": int(ws[1]), "radius": float(ws[2])})
