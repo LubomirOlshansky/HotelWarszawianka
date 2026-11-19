@@ -10,7 +10,7 @@
   // the open test). Empty means /go/ios and /go/android send the visitor to the page's own card (#beta,
   // #android), in the language they came from. When Google approves: put the Play URL here AND set
   // "android_live": true in src/strings.json (site/README.md, "Google Play slot").
-  "vars": { "IOS_URL": "https://testflight.apple.com/join/dKEKRncj", "ANDROID_URL": "" },
+  "vars": { "IOS_URL": "https://testflight.apple.com/join/dKEKRncj", "ANDROID_URL": "https://play.google.com/store/apps/details?id=com.olshanskysoft.nocnawarszawa" },
   "analytics_engine_datasets": [{ "binding": "CLICKS", "dataset": "aroundwarsaw_clicks" }],
   "observability": { "enabled": true },
   "assets": {

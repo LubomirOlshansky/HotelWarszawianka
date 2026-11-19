@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Around Warsaw · gra z małym autem o życiu w Warszawie</title>
-<meta name="description" content="Darmowa gra zręcznościowa w prawdziwym centrum Warszawy: małe auto, kebab o trzeciej, ratunek i miejska historia. Otwarta beta, bez reklam, zakupów i śledzenia.">
+<meta name="description" content="Darmowa gra zręcznościowa w prawdziwym centrum Warszawy: małe auto, kebab o trzeciej, ratunek i miejska historia. Otwarta beta, bez reklam i zakupów.">
 <meta name="theme-color" content="#0b0d24">
 <meta name="color-scheme" content="dark">
 <link rel="canonical" href="https://aroundwarsaw.app/pl/">
@@ -19,7 +19,7 @@
 <meta property="og:site_name" content="Around Warsaw">
 <meta property="og:url" content="https://aroundwarsaw.app/pl/">
 <meta property="og:title" content="Around Warsaw · gra z małym autem o życiu w Warszawie">
-<meta property="og:description" content="Darmowa gra zręcznościowa w prawdziwym centrum Warszawy: małe auto, kebab o trzeciej, ratunek i miejska historia. Otwarta beta, bez reklam, zakupów i śledzenia.">
+<meta property="og:description" content="Darmowa gra zręcznościowa w prawdziwym centrum Warszawy: małe auto, kebab o trzeciej, ratunek i miejska historia. Otwarta beta, bez reklam i zakupów.">
 <meta property="og:locale" content="pl_PL">
 <meta property="og:image" content="https://aroundwarsaw.app/img/og.jpg">
 <meta property="og:image:width" content="1200">
@@ -67,9 +67,9 @@
     <p class="hook">Prawdziwe centrum Warszawy, małe auto i kebab, który stygnie.</p>
     <div class="cta">
       <a class="btn btn-primary" data-for="ios" href="/go/ios"><svg aria-hidden="true"><use href="#i-apple"/></svg>iPhone: dołącz przez TestFlight</a>
-      <a class="btn btn-ghost" data-for="android" href="#android"><svg aria-hidden="true"><use href="#i-play"/></svg>Android: Google Play, wkrótce</a>
+      <a class="btn btn-primary" data-for="android" href="/go/android"><svg aria-hidden="true"><use href="#i-play"/></svg>Android: beta w Google Play</a>
     </div>
-    <p class="cta-note">Darmowa, otwarta beta. Bez reklam, zakupów i śledzenia.</p>
+    <p class="cta-note">Darmowa, otwarta beta. Bez reklam i zakupów.</p>
   </div>
 
 </section>
@@ -136,11 +136,11 @@
   <div class="wrap grow-in">
     <h2 id="grow-title">Nowe codziennie.</h2>
     <p class="lede">Around Warsaw powstało 27 października 2026 i zmienia się codziennie. Oto najnowsze (po angielsku):</p>
-    <p class="grow-date">Ostatnia zmiana: <time datetime="2026-11-17">17 listopada 2026</time></p>
+    <p class="grow-date">Ostatnia zmiana: <time datetime="2026-11-19">19 listopada 2026</time></p>
     <ul class="grow-list" lang="en">
+      <li>The glass towers at Rondo Daszyńskiego (Warsaw Spire, Skyliner, Warsaw Unit, Mennica, Generation Park Y, the HUB and The Bridge) are now…</li>
       <li>Varso Place now has its lower office wings round the two glass towers: eight storeys of cream stone grid, a dark set-back top floor, roof…</li>
       <li>Two new camera views in the DEV settings: a top-down view straight down over the car, north always up, in the style of the classic overhead…</li>
-      <li>The website has a new look: four full-width chapters of the city, the game&#x27;s own list of things to do, and one clear button to join the…</li>
     </ul>
     <p><a class="more" href="/progress/">Zobacz wszystko, co się zmieniło<svg aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
   </div>
@@ -165,29 +165,19 @@
       </div>
       <div class="plat-card" id="android">
         <h3><svg aria-hidden="true"><use href="#i-play"/></svg>Android</h3>
-        <p>Otwarta beta w Google Play czeka na zgodę Google. Zostaw e-mail, a napiszę raz: w dniu otwarcia.</p>
-        <form class="notify" id="notify" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="email">
-          <label for="n-email">E-mail</label>
-          <div class="notify-row"><input id="n-email" name="email" type="email" required autocomplete="email" inputmode="email" aria-describedby="n-email-err"><button class="btn btn-ghost send" type="submit">Daj znać</button></div>
-          <p class="err" id="n-email-err" aria-live="polite"></p>
-          <input type="hidden" name="_subject" value="Around Warsaw: Android beta, notify">
-          <input type="hidden" name="platform" value="Android">
-          <input type="hidden" name="source" value="aroundwarsaw.app (pl) android notify">
-          <div class="hp" aria-hidden="true"><label for="n-gotcha">Leave empty</label><input id="n-gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>
-          <p class="status" role="status" aria-live="polite" data-ok="Mam. Jeden e-mail, w dniu otwarcia." data-fail="Nie udało się wysłać. Spróbuj jeszcze raz albo napisz na Telegramie." data-need-email="Dodaj e-mail, żebym mógł odpisać." data-bad-email="Ten e-mail wygląda na niepoprawny." data-sending="Wysyłam…"></p>
-          <p class="small">E-mail posłuży tylko do tego, by dać znać o otwarciu bety na Androida, potem go usuwam. <a href="/privacy/">Prywatność</a>.</p>
-        </form>
+        <p>Otwarta beta w Google Play.</p>
+        <a class="btn btn-primary" href="/go/android">Pobierz betę z Google Play<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
         <p class="small">Telefon musi mieć Vulkan.</p>
       </div>
     </div>
-    <details class="write">
-      <summary>Coś nie działa albo masz pomysł? Napisz do mnie</summary>
+    <details class="write" open>
+      <summary>Masz pomysł, co dodać, albo co naprawić? Napisz</summary>
       <form class="form" id="form" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="message">
         <fieldset class="topics">
           <legend>W jakiej sprawie?</legend>
-          <label><input type="radio" name="topic" value="Feedback" checked><span>Opinia</span></label>
-          <label><input type="radio" name="topic" value="Something broke"><span>Coś nie działa</span></label>
-          <label><input type="radio" name="topic" value="Idea"><span>Pomysł</span></label>
+          <label><input type="radio" name="topic" value="Idea: add" checked><span>Dodaj coś</span></label>
+          <label><input type="radio" name="topic" value="Fix"><span>Napraw coś</span></label>
+          <label><input type="radio" name="topic" value="Feedback"><span>Coś innego</span></label>
         </fieldset>
         <fieldset class="topics platform">
           <legend>Twój telefon</legend>
@@ -206,10 +196,10 @@
           <p class="err" id="message-err" aria-live="polite"></p>
         </div>
         <input type="hidden" name="source" value="aroundwarsaw.app (pl)">
-        <input type="hidden" name="_subject" id="subject" value="Around Warsaw: Feedback">
+        <input type="hidden" name="_subject" id="subject" value="Around Warsaw: Idea: add">
         <div class="hp" aria-hidden="true"><label for="_gotcha">Leave empty</label><input id="_gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>
         <button class="btn btn-primary send" type="submit">Wyślij<svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
-        <p class="legal">Wysyłane przez Formspree prosto do autora. E-mail służy tylko do odpowiedzi albo do tej jednej wiadomości o Androidzie. <a href="/privacy/">Prywatność</a>.</p>
+        <p class="legal">Wysyłane przez Formspree prosto do autora. E-mail służy tylko do odpowiedzi. <a href="/privacy/">Prywatność</a>.</p>
         <p class="status" role="status" aria-live="polite" data-ok="Dzięki! Już leci." data-fail="Nie udało się wysłać. Spróbuj jeszcze raz albo napisz na Telegramie." data-need-email="Dodaj e-mail, żebym mógł odpisać." data-bad-email="Ten e-mail wygląda na niepoprawny." data-need-msg="Napisz najpierw kilka słów." data-sending="Wysyłam…"></p>
       </form>
     </details>
@@ -222,7 +212,7 @@
     <div class="author-text">
       <p>Cześć, jestem Lubomir Olshansky. Na co dzień tworzę aplikacje na iOS i w Kotlin Multiplatform w banku w Polsce, a w Warszawie mieszkam od dwunastu lat.</p>
       <p>Jako dziecko marzyłem o grze w mieście, w którym mieszkam. Gdy zobaczyłem <a href="https://bedirhanyildirim.com/pixel-art-map-of-warsaw/">Isometric Warsaw</a> i to, co daje generatywna AI, wreszcie wyglądało to na wykonalne. Chcę, żeby było w niej to, jak się tu żyje, a nie sama mapa.</p>
-      <p class="facts">Za darmo. Bez reklam, zakupów i śledzenia; działa bez internetu. Zrobione w Godot z otwartych danych OpenStreetMap i GUGiK. Każda marka w grze to parodia.</p>
+      <p class="facts">Za darmo. Bez reklam i zakupów; działa bez internetu. Zrobione w Godot z otwartych danych OpenStreetMap i GUGiK. Każda marka w grze to parodia.</p>
       <ul class="links">
         <li><a href="https://t.me/olshansky93"><svg aria-hidden="true"><use href="#i-telegram"/></svg>Telegram</a></li>
         <li><a href="https://www.linkedin.com/in/lubomir-olshansky/"><svg aria-hidden="true"><use href="#i-linkedin"/></svg>LinkedIn</a></li>
@@ -251,7 +241,7 @@
 <div class="stk" hidden>
   <p>Darmowa beta</p>
   <a class="btn btn-primary stk-i" href="/go/ios">Dołącz przez TestFlight</a>
-  <a class="btn btn-ghost stk-a" href="#android">Google Play: wkrótce</a>
+  <a class="btn btn-primary stk-a" href="/go/android">Pobierz z Google Play</a>
 </div>
 </body>
 </html>

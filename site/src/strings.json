@@ -1,6 +1,6 @@
 {
  "hero": "hero-rotunda-exp",
- "android_live": false,
+ "android_live": true,
  "android_url": "/go/android",
  "hero_video": {
   "ver": "3",
@@ -192,30 +192,30 @@
  "topics": {
   "en": [
    [
+    "Idea: add",
+    "Add something"
+   ],
+   [
+    "Fix",
+    "Fix something"
+   ],
+   [
     "Feedback",
-    "Feedback"
-   ],
-   [
-    "Something broke",
-    "Something broke"
-   ],
-   [
-    "Idea",
-    "An idea"
+    "Something else"
    ]
   ],
   "pl": [
    [
+    "Idea: add",
+    "Dodaj coś"
+   ],
+   [
+    "Fix",
+    "Napraw coś"
+   ],
+   [
     "Feedback",
-    "Opinia"
-   ],
-   [
-    "Something broke",
-    "Coś nie działa"
-   ],
-   [
-    "Idea",
-    "Pomysł"
+    "Coś innego"
    ]
   ]
  },
@@ -240,7 +240,7 @@
   "other_lang_name": "Po polsku",
   "other_lang_label": "Polska wersja",
   "title": "Around Warsaw · a small-car game about living in Warsaw",
-  "description": "A free arcade game in the real centre of Warsaw: one small car, kebab runs at 3 a.m., rescues and city lore. Free open beta, no ads, no purchases, no tracking.",
+  "description": "A free arcade game in the real centre of Warsaw: one small car, kebab runs at 3 a.m., rescues and city lore. Free open beta, no ads, no purchases.",
   "skip": "Skip to content",
   "brand_label": "Around Warsaw, home",
   "nav_label": "Main",
@@ -252,8 +252,8 @@
   "hero_hook": "The real centre of Warsaw, one small car, and a kebab going cold.",
   "cta_ios": "iPhone: join on TestFlight",
   "cta_android_a": "Android: Google Play, opening soon",
-  "cta_android_b": "Android: get the beta on Google Play",
-  "cta_note": "Free open beta. No ads, no purchases, no tracking.",
+  "cta_android_b": "Android: open beta on Google Play",
+  "cta_note": "Free open beta. No ads, no purchases.",
   "video_pause": "Pause the background video",
   "video_play": "Play the background video",
   "radio_label": "On the car radio",
@@ -292,7 +292,7 @@
   "and_btn_b": "Get the beta on Google Play",
   "n_email": "Email",
   "n_ok": "Got it. One email, the day it opens.",
-  "feedback_summary": "Something broke, or an idea? Write to me",
+  "feedback_summary": "Got an idea to add, or something to fix? Tell me",
   "f_topic": "What is it about?",
   "f_platform": "Your phone",
   "f_platform_none": "Doesn't matter",
@@ -300,16 +300,16 @@
   "f_email_opt": "only if you want a reply",
   "f_message": "Message",
   "f_send": "Send",
-  "f_legal": "Sent through Formspree straight to the developer. Your email is used only to reply, or for the one Android message. <a href=\"/privacy/\">Privacy</a>.",
+  "f_legal": "Sent through Formspree straight to the developer. Your email is used only to reply. <a href=\"/privacy/\">Privacy</a>.",
   "f_ok": "Thanks! It's on its way.",
   "f_fail": "That didn't go through. Try again, or write on Telegram.",
   "f_need_email": "Add your email so I can write back.",
   "f_bad_email": "That email doesn't look right.",
   "f_need_msg": "Write a few words first.",
   "f_sending": "Sending…",
-  "topic_default": "Feedback",
+  "topic_default": "Idea: add",
   "author_title": "About the author",
-  "author_facts": "Free. No ads, no purchases, no tracking; works offline. Built in Godot from OpenStreetMap and GUGiK open data. Every brand in the game is a parody.",
+  "author_facts": "Free. No ads, no purchases; works offline. Built in Godot from OpenStreetMap and GUGiK open data. Every brand in the game is a parody.",
   "sticky_text": "Free open beta",
   "sticky_ios": "Join on TestFlight",
   "sticky_android_a": "Google Play: opening soon",
@@ -333,7 +333,7 @@
   "other_lang_name": "In English",
   "other_lang_label": "English version",
   "title": "Around Warsaw · gra z małym autem o życiu w Warszawie",
-  "description": "Darmowa gra zręcznościowa w prawdziwym centrum Warszawy: małe auto, kebab o trzeciej, ratunek i miejska historia. Otwarta beta, bez reklam, zakupów i śledzenia.",
+  "description": "Darmowa gra zręcznościowa w prawdziwym centrum Warszawy: małe auto, kebab o trzeciej, ratunek i miejska historia. Otwarta beta, bez reklam i zakupów.",
   "skip": "Przejdź do treści",
   "brand_label": "Around Warsaw, strona główna",
   "nav_label": "Menu",
@@ -345,8 +345,8 @@
   "hero_hook": "Prawdziwe centrum Warszawy, małe auto i kebab, który stygnie.",
   "cta_ios": "iPhone: dołącz przez TestFlight",
   "cta_android_a": "Android: Google Play, wkrótce",
-  "cta_android_b": "Android: pobierz betę z Google Play",
-  "cta_note": "Darmowa, otwarta beta. Bez reklam, zakupów i śledzenia.",
+  "cta_android_b": "Android: beta w Google Play",
+  "cta_note": "Darmowa, otwarta beta. Bez reklam i zakupów.",
   "video_pause": "Zatrzymaj wideo w tle",
   "video_play": "Odtwórz wideo w tle",
   "radio_label": "W radiu w aucie",
@@ -385,7 +385,7 @@
   "and_btn_b": "Pobierz betę z Google Play",
   "n_email": "E-mail",
   "n_ok": "Mam. Jeden e-mail, w dniu otwarcia.",
-  "feedback_summary": "Coś nie działa albo masz pomysł? Napisz do mnie",
+  "feedback_summary": "Masz pomysł, co dodać, albo co naprawić? Napisz",
   "f_topic": "W jakiej sprawie?",
   "f_platform": "Twój telefon",
   "f_platform_none": "Obojętnie",
@@ -393,16 +393,16 @@
   "f_email_opt": "tylko jeśli chcesz odpowiedź",
   "f_message": "Wiadomość",
   "f_send": "Wyślij",
-  "f_legal": "Wysyłane przez Formspree prosto do autora. E-mail służy tylko do odpowiedzi albo do tej jednej wiadomości o Androidzie. <a href=\"/privacy/\">Prywatność</a>.",
+  "f_legal": "Wysyłane przez Formspree prosto do autora. E-mail służy tylko do odpowiedzi. <a href=\"/privacy/\">Prywatność</a>.",
   "f_ok": "Dzięki! Już leci.",
   "f_fail": "Nie udało się wysłać. Spróbuj jeszcze raz albo napisz na Telegramie.",
   "f_need_email": "Dodaj e-mail, żebym mógł odpisać.",
   "f_bad_email": "Ten e-mail wygląda na niepoprawny.",
   "f_need_msg": "Napisz najpierw kilka słów.",
   "f_sending": "Wysyłam…",
-  "topic_default": "Feedback",
+  "topic_default": "Idea: add",
   "author_title": "O autorze",
-  "author_facts": "Za darmo. Bez reklam, zakupów i śledzenia; działa bez internetu. Zrobione w Godot z otwartych danych OpenStreetMap i GUGiK. Każda marka w grze to parodia.",
+  "author_facts": "Za darmo. Bez reklam i zakupów; działa bez internetu. Zrobione w Godot z otwartych danych OpenStreetMap i GUGiK. Każda marka w grze to parodia.",
   "sticky_text": "Darmowa beta",
   "sticky_ios": "Dołącz przez TestFlight",
   "sticky_android_a": "Google Play: wkrótce",
