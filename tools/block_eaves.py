@@ -8,7 +8,7 @@ draws its own walls from its model and LoD2's roof over them. Where the model's 
 taller than the measured roof (78 blocks, 2026-11-19: Al. Jerozolimskie by Nowy Świat and
 most of Śródmieście's tenements), the roof sat a storey down inside its own walls, an open
 box from above (F's teaser shot). map_builder lifts each kept roof plane to the walls it meets
-(`_lift_block_roofs`); this gives it the walls' height: `eaves`, one number per outline edge
+(`_lift_block_roof`); this gives it the walls' height: `eaves`, one number per outline edge
 (edge i runs from point i to point i + 1, the last back to the first), the height of the
 block's wall tops along that edge in metres over the block's ground (the model's own y,
 _build_block's `_g`), or null where no wall of the model runs along it. The height is the
