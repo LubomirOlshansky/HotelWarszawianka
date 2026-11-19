@@ -15,7 +15,8 @@
 		"told_apart": "pass",
 		"pack_order": "pass",
 		"chase_keeps_off": "pass",
-		"crazy_stays": "pass"
+		"crazy_stays": "pass",
+		"on_tail": "pass"
 	},
 	"full": {
 		"finishes": "pass",
@@ -39,6 +40,7 @@
 		"chase_keeps_off": "pass",
 		"chase_balance": "pass",
 		"crazy_pace": "pass",
-		"crazy_stays": "pass"
+		"crazy_stays": "pass",
+		"on_tail": "pass"
 	}
 }

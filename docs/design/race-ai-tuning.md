@@ -110,10 +110,11 @@ Race-ai.md 6.4 has the table.
 | `EFFORT_RATE` | 0.05 a second | how fast effort moves |
 | `PUSH_MISTAKES` | 1.5 | mistakes while pushing |
 | `CATCH_FROM`, `CATCH_FULL` | 0.5, 2.5 s behind | where the catch-up starts and is full (F 2026-11-19) |
-| `CATCH_MAX` | 1.6 | the catch-up's most, times the straight's speed; a profile's own `catch` wins (Halina's gentle day 1.45) |
+| `CATCH_MAX` | 1.6 | the catch-up's most, times the straight's speed; a profile's own `catch` wins (Halina's gentle day 1.55); pull and brakes rise with it, grip too up to `GRIP_EFFORT_MOST` |
 | `CATCH_RATE` | 0.4 a second | how fast the boost comes and goes |
 | `CATCH_TOP` | 42 m/s (traffic.gd `RACE_BOOST_TOP`) | the fastest a boosted rival drives |
 | `CATCH_EASE` | 3 | an easier rematch takes this many times its ease off the boost |
+| `race_bench.gd` `PRO`, `TAIL_MOST`, `TAIL_FIRST` | Mike's car use, clean; 3 s, 5 s | the bench's best real player, and how close On the tail wants every rival behind it |
 | `FINISH_RADIUS` | 16 m | the finish circle, the same line for both cars |
 | `FIRST_*` | | the guided first race only: its start, waits and stalls |
 

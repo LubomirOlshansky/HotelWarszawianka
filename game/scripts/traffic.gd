@@ -608,7 +608,8 @@ class Driver:
 	var race_effort := 1.0
 	var race_corner := 1.0
 	## Catch-up (race_session.gd CATCH_*): over 1 a rival far behind the player drives this many
-	## times its straight's speed, past the road's racing speed and the car's top (RACE_BOOST_TOP).
+	## times its straight's speed, past the road's racing speed and the car's top (RACE_BOOST_TOP),
+	## pulling and braking this many times harder.
 	var race_boost := 1.0
 	var pass_t := 0.0
 	var pass_off := 0.0
@@ -2975,7 +2976,7 @@ func _drive(d: Driver, dt: float) -> void:
 		a = minf(a, -DAZE_DECEL)
 	if d.back == BACK_STOP:
 		# Turning back: on the brakes from where it saw the block, and round where it stops.
-		a = minf(a, -(d.race_brake if d.race_brake > 0.0 else RACE_DECEL * 0.7))
+		a = minf(a, -(d.race_brake if d.race_brake > 0.0 else RACE_DECEL * 0.7) * d.race_boost)
 	var v_was := d.v
 	d.v = maxf(0.0, d.v + maxf(a, -10.0) * dt)
 	if racer:
@@ -2985,7 +2986,7 @@ func _drive(d: Driver, dt: float) -> void:
 	if d.line != null and line_v < INF:
 		# (The line's speeds fall as fast as the racer brakes; the pull towards a speed lags a
 		# falling one, and it would come into the bend too fast.)
-		d.v = minf(d.v, maxf(line_v, v_was - maxf(10.0, d.race_brake) * dt))
+		d.v = minf(d.v, maxf(line_v, v_was - maxf(10.0, d.race_brake * d.race_boost) * dt))
 	if gap < 0.2:
 		d.v = minf(d.v, maxf(lead_v, 0.0) * 0.5)
 	d.accel_now = (d.v - v_was) / maxf(dt, 0.001)
@@ -4731,7 +4732,7 @@ func _line_build(d: Driver) -> void:
 ## behind, it takes the corners harder) and its braking; with a mistake rolled for the junction
 ## ahead (`mistake_side`), too fast round that one.
 func _line_speeds(d: Driver) -> void:
-	var brake := d.race_brake if d.race_brake > 0.0 else RACE_DECEL * 0.7
+	var brake := (d.race_brake if d.race_brake > 0.0 else RACE_DECEL * 0.7) * d.race_boost
 	d.line_grip = d.race_lat * clampf(d.race_corner, GRIP_EFFORT_LEAST, GRIP_EFFORT_MOST)
 	d.line_fast = d.mistake_side != 0.0
 	if d.line_fast:

@@ -805,8 +805,8 @@ func _effort() -> void:
 	var chase_pace := RaceSession.Pace.new()
 	for i in 200:
 		RaceSession.pace_tick(chase_pace, chase, 0.1, 2000.0, 1000.0, RaceSession.catch_of(Ladder.racer(5)))
-	_expect(is_equal_approx(chase.race_boost, RaceSession.CATCH_MAX) and is_equal_approx(chase.race_corner, RaceSession.EFFORT_PUSH),
-			"far behind, a rival speeds up to CATCH_MAX on the straights (%.2f), not in its grip (%.2f)" % [chase.race_boost, chase.race_corner])
+	_expect(is_equal_approx(chase.race_boost, RaceSession.CATCH_MAX) and is_equal_approx(chase.race_corner, RaceSession.EFFORT_PUSH * RaceSession.CATCH_MAX),
+			"far behind, a rival speeds up to CATCH_MAX (%.2f) and pushes its grip with it (%.2f; traffic.gd caps it at GRIP_EFFORT_MOST)" % [chase.race_boost, chase.race_corner])
 	_expect(is_equal_approx(Traffic.boosted(chase, 30.0), RaceSession.CATCH_TOP) and is_equal_approx(Traffic.boosted(chase, 20.0), 20.0 * RaceSession.CATCH_MAX) and Traffic.boosted(chase, 50.0) == 50.0,
 			"the boost goes past the car's top up to CATCH_TOP only: %.1f, %.1f, %.1f" % [Traffic.boosted(chase, 30.0), Traffic.boosted(chase, 20.0), Traffic.boosted(chase, 50.0)])
 	for i in 200:
