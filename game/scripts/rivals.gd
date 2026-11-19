@@ -1111,6 +1111,7 @@ func _can_challenge(i: int) -> bool:
 func _go() -> void:
 	state = State.RACE
 	_stage_t = 0.0
+	hud.cue("go")
 	_race_time = 0.0
 	_rank_timer = 0.0
 	var d = _drivers[rival]
@@ -1390,6 +1391,7 @@ func _finish_race(won: bool, why: String) -> void:
 				buttons, 0.0, _card_offer == "next", WIN_COLOUR)
 		_report_art(rival, _finish["pos"])
 		Access.buzz(150, 0.9)
+		hud.cue("win")
 	else:
 		var short := roundi(_player_remaining())
 		var reason := why if why != "" else "%s got to %s first. You were %d m short%s after %s." % [who, _finish["name"], short, by_en, _clock(_race_time)]
@@ -1402,6 +1404,7 @@ func _finish_race(won: bool, why: String) -> void:
 			_card_offer = "rematch"
 		show_card(["PRZEGRANA · 2. MIEJSCE", "Lose · 2nd"], [("%s\n„%s”\n%s" % [reason_pl, line[0], told[0]]).strip_edges(),
 				("%s %s\n%s" % [reason, line[1], told[1]]).strip_edges()], lose_buttons, 0.0, false, LOSE_COLOUR)
+		hud.cue("fail")
 		_report_art(rival, _finish["pos"])
 	race_over.emit(who, won)
 
@@ -2204,6 +2207,7 @@ func _track_final(dt: float) -> void:
 				print("trzy mosty: checkpoint %d/%d %s at %.1f s" % [_cp + 1, final_route.checkpoints.size(), final_route.checkpoints[_cp]["pl"], _race_time])
 				_cp += 1
 				Access.buzz(40, 0.5)
+				hud.cue("checkpoint")
 				hud.toast("MOST %d/3 · %s" % [_cp, final_route.checkpoints[_cp - 1]["pl"]], "bridge %d/3 · %s" % [_cp, final_route.checkpoints[_cp - 1]["en"]])
 				if _cp < final_route.checkpoints.size():
 					_beacon.place(final_target(), TrzyMosty.CHECK_RADIUS - 6.0)
@@ -2298,6 +2302,7 @@ func _finish_final(won: bool, why: String) -> void:
 				PackedStringArray(["OK"]), 0.0, false, FINAL_COLOUR)
 		_report_art(_seba, goal)
 		Access.buzz(200, 1.0)
+		hud.cue("win")
 	else:
 		var gave_up := why != ""
 		show_card(["TRZY MOSTY · PRZEGRANA", "Three bridges · Lose"], [("%s\n„%s”\nRewanż: Rondo Daszyńskiego, w nocy.\n%s" % [
@@ -2305,6 +2310,7 @@ func _finish_final(won: bool, why: String) -> void:
 				("%s %s Rematch: Rondo Daszyńskiego, at night.\n%s" % [
 				"You gave up the final." if gave_up else "%s got to the Stadium first (bridges %d/3, %s, %.1f s short)." % [who, _cp, _clock(_race_time), margin], line[1], told[1]]).strip_edges()],
 				PackedStringArray(["OK"]), 0.0, false, LOSE_COLOUR)
+		hud.cue("fail")
 		_report_art(_seba, goal)
 	race_over.emit(Ladder.FINAL_ID, won)
 

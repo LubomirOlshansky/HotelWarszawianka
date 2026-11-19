@@ -1234,6 +1234,7 @@ func _kebab_result() -> void:
 			" · new best!" if record and best > 0.0 else (" · best %s" % _clock_text(best) if best > 0.0 else "")]
 	var times_pl := "%s, ciepło %d%%%s" % [_clock_text(_clock), roundi(_heat * 100.0),
 			" · nowy rekord!" if record and best > 0.0 else (" · rekord %s" % _clock_text(best) if best > 0.0 else "")]
+	hud.cue("win")
 	show_card(["DOWIEZIONE · " + ("WCIĄŻ GORĄCY" if _heat >= 0.7 else ("CIEPŁY" if hot else "ZIMNY")),
 			"Delivered · " + ("still hot" if _heat >= 0.7 else ("warm" if hot else "cold"))],
 			["%s%s, %s: %s\n%s%s" % [quote, _order["customer"], _order["name"], times_pl, money_pl, race_pl],
@@ -1398,6 +1399,7 @@ func _sloik_result() -> void:
 	elif best > 0.0:
 		times += " · best with every jar %s" % _clock_text(best)
 		times_pl += " · rekord z kompletem %s" % _clock_text(best)
+	hud.cue("win")
 	show_card(["DOWIEZIONE · %d/%d SŁOIKÓW" % [intact, JARS], "Delivered · %d/%d jars" % [intact, JARS]],
 			["%s%s, %s: %s\nKurs %d zł + %d × %d zł za słoiki = %d zł · w portfelu %s" % [quote, _order["customer"], _order["name"],
 			times_pl, SLOIK_BASE, intact, SLOIK_PER_JAR, pay, _money(wallet.zl)],
@@ -1477,6 +1479,7 @@ func _key(index: int) -> void:
 func _abandon() -> void:
 	stage = Stage.RESULT
 	_delivered = false
+	hud.cue("fail")
 	_result_shown()
 	courier.cancel()
 	hide_status()

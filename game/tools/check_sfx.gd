@@ -150,3 +150,9 @@ func _private_players(dir_path: String, out: Array[String]) -> void:
 				continue
 			if line.contains("res://audio/ui/") or line.contains("res://audio/sfx/"):
 				out.append("%s/%s:%d loads a sound file itself: use Sfx.ui(name), sfx.play(name) or sfx.play_at(name, at)" % [dir_path, f, n])
+			# The feedback set (hud.gd `cue`): every name asked for is an interface sound.
+			var at := line.find(".cue(\"")
+			if at >= 0:
+				var name := line.substr(at + 6).get_slice("\"", 0)
+				if not Sfx.UI.has(name):
+					out.append("%s/%s:%d cues \"%s\", which is not in Sfx.UI" % [dir_path, f, n, name])

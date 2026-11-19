@@ -337,6 +337,21 @@ class Hud extends CanvasLayer:
 		banner = text
 		banners.append(text)
 
+	## The feedback sounds asked for, in order (hud.gd `cue`; `tick_clock` asks for "tick").
+	var cues := PackedStringArray()
+	var _tick_at := -1
+
+	func cue(n: String) -> void:
+		cues.append(n)
+
+	func tick_clock(left: float) -> void:
+		var s := ceili(left)
+		if s > 10 or left <= 0.0:
+			_tick_at = -1
+		elif s != _tick_at:
+			_tick_at = s
+			cue("tick")
+
 	func hide_banner() -> void:
 		banner = ""
 

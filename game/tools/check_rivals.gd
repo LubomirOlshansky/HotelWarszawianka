@@ -549,6 +549,7 @@ func _a_win() -> void:
 	_ok(at3 >= 0 and banners.find("2") == at3 + 1 and banners.find("1") == at3 + 2 and banners.find("START!") == at3 + 3,
 			"the countdown reads 3, 2, 1, START! (%s)" % str(banners))
 	_eq(_seq, [0, 1, 2, 3, 4], "the states came in order")
+	_ok(_hud.cues.count("go") == 1 and not _hud.cues.has("count"), "START! sounds one GO, no countdown beeps (%s)" % str(_hud.cues))
 	_run_frames(60)
 	_ok(_hud.banner != "START!", "START! goes after a second")
 	# The race: what it asks of the kit.
@@ -583,6 +584,7 @@ func _a_win() -> void:
 	_eq(_rv.phase, Activity.Phase.RUN, "the result: the kit's phase is still RUN")
 	_ok(_rv.busy() and _dir.current() == _rv and _dir.busy_tag() == "rival race", "the result: the race is still the one that is on")
 	_card_is_result("WYGRANA", "Win · 1st", WIN_GREEN)
+	_ok(_hud.cues.has("win") and not _hud.cues.has("fail"), "the win sounds the win (%s)" % str(_hud.cues))
 	_ok(_hud.body.begins_with("Meta: "), "the win card's text starts with the finish (%s)" % _hud.body)
 	_ok(_hud.body.contains("Pani Halina za tobą"), "the win card names Halina behind the player")
 	_ok(_hud.body.contains("+60 zł"), "the win card gives the stake")
@@ -715,6 +717,7 @@ func _c_lose() -> void:
 	_ok(_reach(5, 16000), "the slow ghost loses the race")
 	_card_is_result("PRZEGRANA", "Lose · 2nd", LOSE_RED, ["REMATCH", "OK"])
 	_eq(_hud.card, "PRZEGRANA · 2. MIEJSCE", "the lose card's title")
+	_ok(_hud.cues.has("fail"), "the loss sounds the fail (%s)" % str(_hud.cues))
 	_ok(_hud.body.begins_with("Pani Halina pierwszy na mecie: "), "the lose card names who got there first (%s)" % _hud.body)
 	_ok(_hud.body.contains("Zabrakło ci "), "the lose card says how far short")
 	_ok(HALINA_WIN.any(func(l: String) -> bool: return _hud.body.contains("„%s”" % l)), "the lose card quotes Halina's gloat")

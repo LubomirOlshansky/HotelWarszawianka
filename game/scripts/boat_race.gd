@@ -608,15 +608,23 @@ func _start_grid() -> void:
 	_log("grid: 4 boats, %d rings, water at %.2f m" % [rings.size(), water_y])
 
 
+## The countdown's number that sounded last (hud.gd `cue("count")` once a number).
+var _count_said := 0
+
 func _countdown_tick(dt: float) -> void:
 	_count -= dt
 	_hold_boats(dt)
 	_status()
 	var n := ceili(_count - 0.6)
 	if n >= 1:
+		if n != _count_said:
+			_count_said = n
+			hud.cue("count")
 		hud.show_banner(str(n), COLOUR)
 	else:
+		_count_said = 0
 		hud.show_banner("START!", Access.GREEN)
+		hud.cue("go")
 		stage = Stage.RACE
 		_stage_t = 0.0
 		_say(1, "start")
@@ -856,8 +864,11 @@ func _check_rings(k: int) -> void:
 				if k == 0:
 					hud.toast("ZŁOTE KÓŁKO! Dopalacz", "GOLD RING! Boost")
 					Access.buzz(30, 0.5)
+					hud.cue("checkpoint")
 			else:
 				r["rhythm"] = int(r["rhythm"]) + 1
+				if k == 0:
+					hud.cue("checkpoint")
 				_maybe_stunt(k)
 				if k == 0 and int(r["rhythm"]) > 1 and int(r["rhythm"]) <= RHYTHM_MAX:
 					hud.ambient_toast("Rytm ×%d" % int(r["rhythm"]), "Rhythm ×%d" % int(r["rhythm"]))
@@ -912,6 +923,7 @@ func _out() -> void:
 	_stage_t = 0.0
 	hide_status()
 	hud.show_banner("ODPADASZ!", FAIL)
+	hud.cue("fail")
 	show_card(["ODPADASZ! Trzy pudła.", "YOU'RE OUT! Three misses."],
 			["Szymek: „No to klasyk. Kółka, nie bojki do omijania! Jeszcze raz?”", "Szymek: \"A classic. Rings, not buoys to dodge! Once more?\""],
 			PackedStringArray(["JESZCZE RAZ|AGAIN", "WYJDŹ|QUIT"]), 0.0, false, FAIL)
@@ -931,6 +943,7 @@ func _finish() -> void:
 	var words := ["Pierwszy! Szymek stawia lody na bulwarach.", "Drugi. Szymek: „Rewanż, ale już!”", "Trzeci. Pan Zdzisiek kiwa głową z uznaniem.", "Ostatni. Kamil już nagrywa relację."]
 	var words_en := ["First! Szymek buys the ice cream on the boulevards.", "Second. Szymek: \"Rematch, right now!\"", "Third. Pan Zdzisiek nods his approval.", "Last. Kamil is already filming his story."]
 	var w := clampi(place - 1, 0, 3)
+	hud.cue("win" if place == 1 else "step")  # first wins; any other place is a finish, not a loss
 	show_card(["META! %d. miejsce · %s" % [place, t], "FINISH! Place %d · %s" % [place, t]],
 			["%s%s" % [words[w], "  +%d zł  +%d szacunu" % pay if int(pay[0]) > 0 else ""],
 			"%s%s" % [words_en[w], "  +%d zł  +%d respect" % pay if int(pay[0]) > 0 else ""]],

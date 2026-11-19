@@ -2136,6 +2136,7 @@ func _drag_frame(dt: float) -> void:
 			_tree.queue_redraw()
 			if a > 0:
 				Access.buzz(30, 0.4)
+				hud.cue("count")
 		if _player_s > FALSE_M or absf(lat) > 3.0:
 			_tree.red = true
 			_tree.queue_redraw()
@@ -2153,6 +2154,7 @@ func _drag_frame(dt: float) -> void:
 			_tacho.staging = false
 			_launch(launch_grade(_revs))
 			Access.buzz(80, 0.8)
+			hud.cue("go")
 		return
 	_drag_t += dt
 	if _react < 0.0 and _player_s > 0.5:
@@ -2279,6 +2281,7 @@ func _drag_end(won: bool, how: String) -> void:
 	_tree.visible = how == "false"
 	if _tree.visible:
 		get_tree().create_timer(2.0).timeout.connect(func() -> void: _tree.visible = false)
+	hud.cue("win" if won else "fail")
 	var pay: Array = DRAG_PAY if won else DRAG_LOSE
 	if wallet != null:
 		wallet.pay(int(pay[0]), int(pay[1]), "meet_drag")

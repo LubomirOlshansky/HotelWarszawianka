@@ -509,6 +509,7 @@ func _run_tick(dt: float) -> void:
 	var flying := _flying
 	if not calls_off:
 		_time_left -= dt
+		hud.tick_clock(_time_left)
 	if _time_left <= 0.0:
 		_finish(false, ["Czas minął. Przejęła inna załoga.", "Out of time. Another crew took over."])
 		return
@@ -601,6 +602,7 @@ func _finish(success: bool, why: Array) -> void:
 				"Safe and sound at the hospital: time, score and pay above.")
 		hud.own_card(self)
 		Access.buzz(120, 0.8)
+		hud.cue("win")
 		if dialogue != null:
 			dialogue.say(_dropoff, "Ratownik", "rescue_done", "peacock" if _mission.get("peacock", false) else "", 5.0, _dropoff_colour(), 3.6)
 	else:
@@ -610,6 +612,7 @@ func _finish(success: bool, why: Array) -> void:
 				PackedStringArray(["TRY AGAIN", "NEXT CALL", "FREE ROAM"]), FAIL_COLOUR, false, "Too late",
 				"%s Score total %d." % [why[1], total_score])
 		hud.own_card(self)
+		hud.cue("fail")
 
 
 ## The call for mission n: a place of its kind a short trip from the player
