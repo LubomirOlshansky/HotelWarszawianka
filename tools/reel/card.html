@@ -1,0 +1,227 @@
+<!doctype html>
+<!--
+  Around Warsaw's synthwave logo, background and the Reels end card, drawn in SVG and CSS
+  (no image generator: every shape is here). tools/reel/render.mjs loads this page with
+  ?mode=card|bg|square|wordmark&w=&h= and calls window.frame(t) for each frame of the animation.
+  Fonts: Pixelify Sans (the site's display font, OFL) and Manrope (OFL), from site/public/fonts.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: "Pixelify Sans"; src: url(../../site/public/fonts/pixelify-latin.woff2) format("woff2"); font-weight: 400 700; }
+@font-face { font-family: "Pixelify Sans"; src: url(../../site/public/fonts/pixelify-latin-ext.woff2) format("woff2"); font-weight: 400 700; unicode-range: U+0100-02BA; }
+@font-face { font-family: "Manrope"; src: url(../../site/public/fonts/manrope-latin.woff2) format("woff2"); font-weight: 400 800; }
+:root { --night: #0b0d24; --night-2: #12153a; --neon: #ff4fa3; --sodium: #ffb347; --sky: #7fe6ff; --ink: #f2f1ff; }
+html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+#stage { position: relative; overflow: hidden; }
+svg { position: absolute; inset: 0; display: block; }
+.wordmark { position: absolute; left: 0; right: 0; text-align: center; font-family: "Pixelify Sans", monospace; font-weight: 700; line-height: 0.86; letter-spacing: 0.02em; }
+.wordmark .l { display: block; position: relative; }
+.wordmark .fill { background: linear-gradient(180deg, #ffffff 0%, #c9f6ff 30%, #7fe6ff 47%, #ff9ad0 53%, #ff4fa3 75%, #ffb347 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 0.06em rgba(255, 79, 163, 0.9)) drop-shadow(0 0 0.22em rgba(255, 79, 163, 0.45)); }
+.wordmark .shadow { position: absolute; inset: 0; color: #2a0f4a; transform: translate(0.045em, 0.06em); z-index: -1; -webkit-text-stroke: 0.03em #2a0f4a; }
+.tag { position: absolute; left: 0; right: 0; text-align: center; font-family: "Pixelify Sans", monospace; font-weight: 600; color: #fff6e0;
+  letter-spacing: 0.2em; text-shadow: 0 0 14px rgba(255, 179, 71, 0.9), 0 0 34px rgba(255, 79, 163, 0.6), 0 4px 0 #2a0f4a; }
+.badges { position: absolute; left: 0; right: 0; display: flex; justify-content: center; gap: 28px; }
+.badge { display: flex; align-items: center; gap: 18px; padding: 18px 28px 18px 22px; border-radius: 22px; background: rgba(11, 13, 36, 0.86);
+  border: 2px solid rgba(127, 230, 255, 0.55); box-shadow: 0 0 24px rgba(127, 230, 255, 0.25), inset 0 0 18px rgba(127, 230, 255, 0.08); }
+.badge.android { border-color: rgba(255, 79, 163, 0.7); box-shadow: 0 0 24px rgba(255, 79, 163, 0.3), inset 0 0 18px rgba(255, 79, 163, 0.1); }
+.badge svg { position: static; width: 54px; height: 54px; flex: none; }
+.badge .t { font-family: "Manrope", sans-serif; color: var(--ink); line-height: 1.12; text-align: left; }
+.badge .t small { display: block; font-size: 22px; font-weight: 600; color: #bfc2ea; letter-spacing: 0.02em; }
+.badge .t b { display: block; font-size: 36px; font-weight: 800; letter-spacing: 0.01em; }
+.free { position: absolute; left: 0; right: 0; text-align: center; font-family: "Manrope", sans-serif; font-weight: 700; font-size: 26px; color: #bfc2ea; letter-spacing: 0.08em; }
+.scan { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.13) 0 2px, transparent 2px 5px); mix-blend-mode: multiply; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg id="scene" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="wordmark" id="wm"><span class="l"><span class="shadow">AROUND</span><span class="fill">AROUND</span></span><span class="l"><span class="shadow">WARSAW</span><span class="fill">WARSAW</span></span></div>
+  <div class="tag" id="tag">STAY TUNED</div>
+  <div class="badges" id="badges">
+    <div class="badge ios">
+      <svg viewBox="0 0 16 16" shape-rendering="crispEdges"><g fill="#7fe6ff"><rect x="4" y="1" width="8" height="14" rx="0"/></g><g fill="#0b0d24"><rect x="5" y="3" width="6" height="9"/></g><g fill="#ffb347"><rect x="6" y="5" width="4" height="1"/><rect x="6" y="7" width="3" height="1"/><rect x="6" y="9" width="4" height="1"/></g><rect x="7" y="13" width="2" height="1" fill="#0b0d24"/></svg>
+      <div class="t"><small>iPhone · open beta</small><b>TestFlight</b></div>
+    </div>
+    <div class="badge android">
+      <svg viewBox="0 0 16 16" shape-rendering="crispEdges"><g fill="#ff4fa3"><rect x="4" y="1" width="8" height="14"/></g><g fill="#0b0d24"><rect x="5" y="3" width="6" height="9"/></g><g fill="#7fe6ff"><rect x="6" y="5" width="1" height="5"/><rect x="7" y="6" width="1" height="3"/><rect x="8" y="7" width="1" height="1"/></g><rect x="7" y="13" width="2" height="1" fill="#0b0d24"/></svg>
+      <div class="t"><small>Android · open testing</small><b>Google Play</b></div>
+    </div>
+  </div>
+  <div class="free" id="free">FREE · WARSAW, POCKET-SIZED</div>
+  <div class="scan" id="scan"></div>
+</div>
+<script>
+const P = new URLSearchParams(location.search);
+const MODE = P.get("mode") || "card";          // card | bg | square | wordmark
+const W = +(P.get("w") || 1080), H = +(P.get("h") || 1920);
+const NS = "http://www.w3.org/2000/svg";
+const stage = document.getElementById("stage");
+stage.style.width = W + "px"; stage.style.height = H + "px";
+const svg = document.getElementById("scene");
+svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("width", W); svg.setAttribute("height", H);
+
+// Layout. The card keeps every word inside Instagram's Reels safe area (top 250 px and bottom
+// ~420 px carry the app's own UI, the right 120 px its buttons): logo 300-760, tag ~830,
+// badges 1290-1420. The horizon sits at 64% of the height in the card, 66% in the square.
+const L = MODE === "square"
+  ? { hz: H * 0.78, sunR: W * 0.2, wmTop: H * 0.06, wmSize: W * 0.165, tag: null }
+  : { hz: H * 0.625, sunR: W * 0.28, wmTop: H * 0.15, wmSize: W * 0.205, tag: H * 0.37, badges: H * 0.675, free: H * 0.765 };
+
+function el(name, attrs, parent = svg) {
+  const e = document.createElementNS(NS, name);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent.appendChild(e); return e;
+}
+
+function defs() {
+  const d = el("defs", {});
+  const sky = el("linearGradient", { id: "sky", x1: 0, y1: 0, x2: 0, y2: 1 }, d);
+  [["0", "#07081c"], ["0.38", "#1a1150"], ["0.72", "#5a1a78"], ["0.92", "#c22f86"], ["1", "#ff6aa8"]]
+    .forEach(([o, c]) => el("stop", { offset: o, "stop-color": c }, sky));
+  const sun = el("linearGradient", { id: "sun", x1: 0, y1: 0, x2: 0, y2: 1 }, d);
+  [["0", "#fff3a8"], ["0.35", "#ffb347"], ["0.75", "#ff4fa3"], ["1", "#d92d82"]]
+    .forEach(([o, c]) => el("stop", { offset: o, "stop-color": c }, sun));
+  const ground = el("linearGradient", { id: "ground", x1: 0, y1: 0, x2: 0, y2: 1 }, d);
+  [["0", "#2a0b45"], ["0.25", "#12082e"], ["1", "#05040f"]]
+    .forEach(([o, c]) => el("stop", { offset: o, "stop-color": c }, ground));
+  const glow = el("radialGradient", { id: "glow", cx: 0.5, cy: 0.5, r: 0.5 }, d);
+  [["0", "rgba(255,120,190,0.55)"], ["0.5", "rgba(255,79,163,0.18)"], ["1", "rgba(255,79,163,0)"]]
+    .forEach(([o, c]) => el("stop", { offset: o, "stop-color": c }, glow));
+  const blur = el("filter", { id: "blur", x: "-50%", y: "-50%", width: "200%", height: "200%" }, d);
+  el("feGaussianBlur", { stdDeviation: 6 }, blur);
+  // The sun's stripes: a mask with bands that grow toward the horizon.
+  const m = el("mask", { id: "sunmask" }, d);
+  el("rect", { x: 0, y: 0, width: W, height: H, fill: "white" }, m);
+  const g = el("g", { id: "bands" }, m);
+  return { g };
+}
+
+// Warsaw's skyline, drawn as plain polygons on a 1000-wide strip whose baseline is y = 0 and whose
+// heights go up (negative). From left: the Royal Castle's clock tower and Sigismund's Column, the
+// Old Town roofs, the Świętokrzyski bridge pylon with its cables, the Palace of Culture and Science
+// (the centre), Złota 44's sail, Varso Tower with its spire, the Warsaw Spire, the Rotunda's roof.
+const SKY = [
+  // castle tower with spire
+  "M40 0 L40 -95 L48 -95 L48 -128 L52 -150 L56 -128 L56 -95 L64 -95 L64 0 Z",
+  // column with king
+  "M88 0 L88 -12 L92 -12 L92 -118 L90 -122 L98 -122 L96 -118 L96 -12 L100 -12 L100 0 Z M92 -122 L94 -136 L96 -122 Z",
+  // old town gables
+  "M0 0 L0 -60 L12 -78 L24 -60 L24 -68 L34 -84 L40 -70 L40 0 Z M64 0 L64 -58 L74 -74 L84 -58 L84 0 Z M100 0 L100 -64 L110 -80 L120 -64 L120 -56 L132 -72 L144 -56 L144 0 Z",
+  // bridge pylon (leaning A) and deck
+  "M200 0 L212 -150 L218 -150 L210 0 Z M150 -18 L330 -18 L330 -12 L150 -12 Z",
+  // Palace of Culture: tiers and spire
+  "M360 0 L360 -110 L380 -110 L380 -150 L398 -150 L398 -190 L412 -190 L412 -232 L424 -232 L424 -262 L432 -262 L432 -300 L438 -300 L440 -352 L442 -300 L448 -300 L448 -262 L456 -262 L456 -232 L468 -232 L468 -190 L482 -190 L482 -150 L500 -150 L500 -110 L520 -110 L520 0 Z",
+  // side wings with pinnacles
+  "M320 0 L320 -70 L326 -82 L332 -70 L360 -70 L360 0 Z M520 0 L520 -70 L548 -70 L554 -82 L560 -70 L560 0 Z",
+  // Złota 44 sail
+  "M590 0 L590 -230 Q606 -262 628 -268 L630 0 Z",
+  // Varso Tower with spire
+  "M660 0 L660 -250 L668 -262 L700 -262 L708 -250 L708 0 Z M681 -262 L684 -360 L687 -262 Z",
+  // Warsaw Spire (Wola)
+  "M740 0 L740 -210 Q760 -236 784 -222 L784 0 Z M790 0 L790 -120 L812 -120 L812 0 Z",
+  // other towers
+  "M560 0 L560 -150 L586 -150 L586 0 Z M630 0 L630 -170 L656 -170 L656 0 Z M712 0 L712 -190 L736 -190 L736 0 Z M820 0 L820 -150 L846 -160 L846 0 Z",
+  // Rotunda and low blocks to the right
+  "M860 0 L860 -40 Q890 -62 920 -40 L920 0 Z M920 0 L920 -70 L960 -70 L960 -90 L1000 -90 L1000 0 Z",
+];
+// Lit windows: [x, y] on the same strip.
+const WINDOWS = [];
+(function () { let s = 7; const r = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+  const blocks = [[562, 584, 145], [632, 654, 165], [662, 706, 245], [714, 734, 185], [742, 782, 205], [592, 626, 225], [822, 844, 145], [384, 496, 145], [400, 480, 185]];
+  for (const [x0, x1, top] of blocks) for (let y = -14; y > -top + 10; y -= 12) for (let x = x0 + 4; x < x1 - 3; x += 7) if (r() < 0.32) WINDOWS.push([x, y]);
+})();
+
+let bands, gridG, skyG, stars = [];
+function build() {
+  const d = defs(); bands = d.g;
+  el("rect", { x: 0, y: 0, width: W, height: L.hz + 2, fill: "url(#sky)" });
+  // stars
+  let s = 11; const r = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+  for (let i = 0; i < 140; i++) {
+    const st = el("rect", { x: Math.floor(r() * W), y: Math.floor(r() * L.hz * 0.62), width: r() < 0.2 ? 4 : 2, height: r() < 0.2 ? 4 : 2, fill: r() < 0.25 ? "#7fe6ff" : "#ffffff" });
+    stars.push([st, r() * 6.28, 0.35 + r() * 0.6]);
+  }
+  // sun glow and sun
+  el("circle", { cx: W / 2, cy: L.hz - L.sunR * 0.35, r: L.sunR * 2.0, fill: "url(#glow)" });
+  el("circle", { id: "sun", cx: W / 2, cy: L.hz - L.sunR * 0.35, r: L.sunR, fill: "url(#sun)", mask: "url(#sunmask)" });
+  // skyline
+  const scale = W / 1000 * (MODE === "square" ? 0.86 : 1.0);
+  skyG = el("g", { transform: `translate(${(W - 1000 * scale) / 2} ${L.hz + 1}) scale(${scale})` });
+  const rim = el("g", { transform: "translate(0 -2)", opacity: 0.95, filter: "url(#blur)" }, skyG);
+  for (const p of SKY) el("path", { d: p, fill: "#ff4fa3" }, rim);
+  for (const p of SKY) el("path", { d: p, fill: "#0d0b26", stroke: "#ff7fc0", "stroke-width": 1.4, "stroke-linejoin": "miter" }, skyG);
+  // bridge cables
+  for (let i = 0; i < 6; i++) {
+    el("line", { x1: 214, y1: -148 + i * 4, x2: 160 + i * 9, y2: -18, stroke: "#ff7fc0", "stroke-width": 1, opacity: 0.8 }, skyG);
+    el("line", { x1: 214, y1: -148 + i * 4, x2: 320 - i * 14, y2: -18, stroke: "#ff7fc0", "stroke-width": 1, opacity: 0.8 }, skyG);
+  }
+  for (const [x, y] of WINDOWS) el("rect", { x, y, width: 3, height: 4, fill: "#ffb347", opacity: 0.9 }, skyG);
+  // the spire tips glow cyan
+  for (const [x, y] of [[440, -352], [684, -360], [52, -150]]) el("circle", { cx: x, cy: y, r: 3.5, fill: "#7fe6ff" }, skyG);
+  // ground, the Vistula's glint and the grid
+  el("rect", { x: 0, y: L.hz, width: W, height: H - L.hz, fill: "url(#ground)" });
+  el("rect", { x: 0, y: L.hz, width: W, height: 3, fill: "#ff9ad0" });
+  gridG = el("g", {});
+}
+
+function frame(t) {
+  // sun bands drift down (the classic stripes)
+  while (bands.firstChild) bands.removeChild(bands.firstChild);
+  const cy = L.hz - L.sunR * 0.35, top = cy - L.sunR * 0.15, bot = cy + L.sunR;
+  for (let i = 0; i < 9; i++) {
+    const f = ((i + (t * 0.6) % 1) / 9);
+    const y = top + (bot - top) * f;
+    el("rect", { x: 0, y, width: W, height: 2 + 16 * f, fill: "black" }, bands);
+  }
+  // perspective grid scrolling toward the viewer
+  while (gridG.firstChild) gridG.removeChild(gridG.firstChild);
+  const depth = H - L.hz, vx = W / 2;
+  for (let i = -16; i <= 16; i++) {
+    const xb = vx + i * W * 0.16;
+    el("line", { x1: vx + i * 6, y1: L.hz, x2: xb, y2: H, stroke: i % 4 === 0 ? "#7fe6ff" : "#ff4fa3", "stroke-width": 2.2, opacity: 0.75 }, gridG);
+  }
+  const phase = (t * 0.9) % 1;
+  for (let k = 0; k < 14; k++) {
+    const z = Math.pow((k + phase) / 14, 2.2);
+    const y = L.hz + depth * z;
+    el("line", { x1: 0, y1: y, x2: W, y2: y, stroke: "#ff4fa3", "stroke-width": 1 + 3 * z, opacity: 0.25 + 0.6 * z }, gridG);
+  }
+  for (const [st, ph, sp] of stars) st.setAttribute("opacity", (0.45 + 0.55 * Math.abs(Math.sin(ph + t * sp * 3))).toFixed(2));
+  // card animation: the wordmark punches in on t = 0 (the music's hit), the tag at 0.35 s,
+  // the badges at 0.6 s; a still (t = 99) shows everything.
+  const ease = (a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
+  const back = (x) => 1 + 2.4 * Math.pow(x - 1, 3) + 1.4 * Math.pow(x - 1, 2);
+  const wm = document.getElementById("wm");
+  const k = ease(0, 0.28);
+  wm.style.opacity = Math.min(1, k * 2.5);
+  wm.style.transform = `scale(${0.82 + 0.18 * back(k)})`;
+  const tag = document.getElementById("tag"); const kt = ease(0.35, 0.6);
+  tag.style.opacity = kt; tag.style.letterSpacing = (0.5 - 0.3 * kt) + "em";
+  const b = document.getElementById("badges"); const kb = ease(0.6, 0.9);
+  b.style.opacity = kb; b.style.transform = `translateY(${(1 - kb) * 40}px)`;
+  const fr = document.getElementById("free"); fr.style.opacity = ease(0.85, 1.1);
+}
+
+build();
+const wm = document.getElementById("wm");
+wm.style.top = L.wmTop + "px"; wm.style.fontSize = L.wmSize + "px";
+const tag = document.getElementById("tag"), badges = document.getElementById("badges"), free = document.getElementById("free");
+if (MODE === "card") {
+  tag.style.top = L.tag + "px"; tag.style.fontSize = (W * 0.07) + "px";
+  badges.style.top = L.badges + "px"; free.style.top = L.free + "px";
+} else { tag.remove(); badges.remove(); free.remove(); }
+if (MODE === "bg") wm.remove();
+if (MODE === "wordmark") {
+  svg.remove(); document.getElementById("scan").remove();
+  wm.style.top = (H * 0.14) + "px"; wm.style.fontSize = (W * 0.17) + "px";
+  for (const f of wm.querySelectorAll(".fill")) f.style.filter = "drop-shadow(0 0 0.03em rgba(255, 79, 163, 0.9))";
+}
+window.frame = frame;
+frame(99);
+</script>
+</body>
+</html>
