@@ -26,11 +26,11 @@ const INK := UiKit.INK
 const SUB := UiKit.SUB
 const ACCENT := UiKit.GOLD
 ## Collectibles' gold (the art bible): a complete chapter's number.
-const GOLD := Color("#f0b429")
+const GOLD := UiKit.GOLD  # the one gold (was #f0b429)
 const DIM := UiKit.DIM
-const EDGE := Color(1, 1, 1, 0.18)
-const SHUT := Color(1, 1, 1, 0.03)
-const ON := Color(1, 0.82, 0.25, 0.22)
+const EDGE := UiKit.EDGE
+const SHUT := Color(UiKit.INK, 0.03)
+const ON := UiKit.GOLD_TINT
 ## The card under a box's fill (settings_panel.gd CARD_BG, opaque): a box is its edge colour,
 ## then this inset, then its fill.
 const UNDER := UiKit.CARD_SOLID

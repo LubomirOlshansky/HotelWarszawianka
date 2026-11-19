@@ -575,6 +575,9 @@ func _ready() -> void:
 	var m := ScreenPoints.measure(_screen)
 	pt = m["pt"]
 	_safe = m["safe"]
+	# The UI kit as the whole window's theme: a plain Button, Panel or slider wears the kit
+	# (docs/design/ui-kit.md); scripts' own overrides still win.
+	get_tree().root.theme = UiKit.theme(pt)
 
 	_pad = Control.new()
 	_pad.set_anchors_preset(Control.PRESET_FULL_RECT)

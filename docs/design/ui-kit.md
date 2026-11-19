@@ -85,8 +85,8 @@ is 12, and a touch target is at least 44 pt.
 
 | Step | What | State |
 | --- | --- | --- |
-| 1 | `ui_kit.gd`, the ratchet. hud.gd, settings, notebook, photo mode, bubbles, quests and the map alias their copies to the kit (same values, no visible change) | this PR |
-| 1b | The Theme on the root window; settings, notebook, photo mode and bubbles drawn with the builders | after F's OK of the sheet |
+| 1 | `ui_kit.gd`, the ratchet. hud.gd, settings, notebook, photo mode, bubbles, quests and the map alias their copies to the kit (same values, no visible change) | #952 |
+| 1b | The Theme on the root window (hud.gd `_ready`); settings, notebook, photo mode and bubbles drawn with the builders: the settings card loses its gold rail, button words in capitals, the photo shutter is gold, bubbles and photo plates take the kit's corners | #952 |
 | 2 | The HUD: pills, chips, call view, challenge card, job card, toasts | |
 | 3 | Map and quests: one gold and one red, the chosen row gold on every tab, the legend (after #949) | |
 | 4 | Garage, end card, title buttons, club and the police balloon | |

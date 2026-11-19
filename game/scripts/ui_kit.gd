@@ -34,6 +34,8 @@ const GLASS_EDGE := Color(1, 1, 1, 0.42)
 ## A card's and a button's thin border; STRONG on hover and for a raised button.
 const EDGE := Color(1, 1, 1, 0.16)
 const EDGE_STRONG := Color(1, 1, 1, 0.30)
+## The dim over the game behind a modal card (settings, the garage).
+const SCRIM := Color(0.02, 0.01, 0.05, 0.55)
 ## A faint fill (an empty slot, a bar's track).
 const DIM := Color(1, 1, 1, 0.07)
 
@@ -235,8 +237,7 @@ static func style_label(l: Label, role: String, pt: float, size_pt := -1.0) -> v
 ## a LineEdit, a slider and a scroll bar use the same surfaces. Scripts that override styles keep
 ## them; this is the default the overrides now agree with.
 static func theme(pt: float) -> Theme:
-	var t := Theme.new()
-	t.default_font_size = px(T_BODY, pt)
+	var t := Theme.new()  # no default font size: labels without a size keep the engine's
 	var boxes := button_boxes(Kind.SECONDARY, pt)
 	for state in boxes:
 		t.set_stylebox(state, "Button", boxes[state])
