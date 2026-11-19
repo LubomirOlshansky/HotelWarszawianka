@@ -74,3 +74,7 @@ tools/clip.sh heroW 1920x1080 12 -- --cam=-851,400 --yaw=0 --pitch=-32 --size=16
 node tools/reel/render.mjs build/reel/art-h --live-frames=7 --live-size=1920x1080
 SIZE=1920x1080 SHOTS="heroH:1:7" docs/teaser2/cut.sh build/clips build/reel/art-h build/reel/teaser2-1920x1080.mp4
 ```
+
+Second remix (21:55 UTC, the 5 s dip measured on the Mac): a slow compressor on the music and a gentle
+one on the bed instead of dynaudnorm; the bed stays within ~1.5 dB (0.5 s steps) over the whole loop,
+-19.5 LUFS, the rain 8 dB under the music. cut.sh: empty-array fix for macOS bash 3.2.

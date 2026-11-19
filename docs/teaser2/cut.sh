@@ -36,7 +36,7 @@ inputs+=(-i "$here/${AMBIENCE:-ambience-7s.m4a}"); au=$i
 chains+="${concat}concat=n=$ov:v=1:a=0,scale=w='trunc($W*(1+($PUSH-1)*t/$total)/2)*2':h=-2:eval=frame,crop=$W:$H,setsar=1[base];"
 chains+="[base][$ov:v]overlay=0:0:shortest=1,format=yuv420p[v]"
 
-ffmpeg -v error -y "${inputs[@]}" -filter_complex "$chains" -map "[v]" -map "$au:a" ${afade[@]} \
+ffmpeg -v error -y "${inputs[@]}" -filter_complex "$chains" -map "[v]" -map "$au:a" ${afade[@]+"${afade[@]}"} \
 	-c:v libx264 -profile:v high -level 4.2 -preset slow -crf 17 -maxrate 14M -bufsize 28M \
 	-pix_fmt yuv420p -r $FPS -g $FPS -c:a aac -b:a 192k -ar 48000 -ac 2 \
 	-movflags +faststart -t "$total" "$out"
