@@ -130,6 +130,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 18 | Take Mati's Smoła quest and watch the dialogue panel for a minute (BENCH on) | one line at a time at the bottom centre, no frame-time dip when a line starts, no toast over its words | #899 |
 | 19 | At the Smoła door, read the first question | the card says BRAMKARZ with his face, the dark bouncer figure stands at the door | #899 |
 | 15m | Sound on, KEBAB FM playing: stand at a busy junction on Marszałkowska, then by a tram stop and a bus stop, then drive along with the traffic; BENCH on | the nearest cars, a bus and a tram are heard passing and panning with distance, a little higher in pitch as they come and lower as they go, quieter at a red light (a standing tram silent); no click at a loop's end; not louder than the radio; BENCH shows "traffic sounds" under 0.2 ms and no new frame dip | traffic sounds #940 |
+| 15n | Hotel Metropol from Rondo Dmowskiego and Marszałkowska, by day and at night (rain too) | METROPOLKA reads green on its white light box over the middle of the roof, nothing over the letters; at night the box glows white without washing the green letters out (judge the glow on the phone's tonemap); by day the box's shaded face reads light grey | METROPOLKA #942 |
 
 ## Answers F owes that are not looks
 
