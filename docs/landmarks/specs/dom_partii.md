@@ -62,7 +62,7 @@ field; fountain granite #c9c6bf, water #3f6670, the warm strip #f6dc9a and its g
 
 ## 7. Detail level and budget
 
-L3, budget 6200 triangles (measured 5202), an exception to L3's 8000 not needed. One surface with
+L3, budget 8000 triangles (measured 7225 since 2026-11-19, 5202 before), an exception to L3's 8000 not needed. One surface with
 the city's buildings: no new draw call.
 
 ## 8. Parts table
@@ -88,3 +88,24 @@ drive into the courtyard. 5,202 triangles, one surface with the city (no new dra
 
 - Phone look check by day and night (sizes of the boards and letters, the fountain's glow).
 - Mac orthophoto check of the pier positions and the courtyard faces' window count.
+
+## 2026-11-19: the front's ground floor (F's photos for the Instagram teaser)
+
+F's seven photos (the front from the plaza, the terrace at dusk, the corner from the statue,
+the aerial, two Nowy Świat corners) showed what the front lacked. `_dp_arcade` adds:
+
+- **Terrace**: a stone slab 0.75 m over the plaza from v -6.5 to the colonnade, the arcade's
+  floor at the same height; five 15 cm steps (u 21..53) between two round drums 1.5 m across,
+  a low wall on the edge either side. It collides: cars stay on the plaza, the courtyard is
+  reached through the back colonnade; the middle bay steps down into the courtyard.
+- **Cafés** in the two glass bays (the mapped 7.6 m parts): mullions and a transom, planters,
+  signs SZARLOTKA (the bakery-bistro) and ZAMIESZAJ with the bar's tall neon Z (parodies).
+- **Loggias** in the two end bays: a back wall at v 9 with a door, two windows and lanterns;
+  CUDA NA PATYKU (the craft-beer bar, a parody) in the west one; four tables in each.
+- **Arcade**: a shaded soffit with a lamp in each bay (warm at night), a lantern on each pier,
+  ten café tables along the terrace.
+- **Towers' ground floor**: stone panels four across and two high (no door on the plaza), four
+  clipped ball trees in granite planters before each.
+- **Roof**: ROBUR now navy letters on a white board, like the real tenant's board.
+
+7,225 triangles (was 5,202), still one surface with the city.

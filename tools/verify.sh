@@ -1464,6 +1464,8 @@ for s in $want; do
 		trains) check trains '^check_trains:' --script res://tools/check_trains.gd ;;
 		# PT-55: the collision bodies go to the cars nearest the player, and stay with them.
 		trafficbodies) check trafficbodies '^check_traffic_bodies:' --script res://tools/check_traffic_bodies.gd ;;
+		# Sound engine plan step 5: traffic you can hear (traffic_sounds.gd): who is heard, fades, jumps, Doppler, cost.
+		trafficsounds) check trafficsounds '^traffic_sounds:' --script res://tools/check_traffic_sounds.gd ;;
 		# The railway audit (2026-11-07): the light signals at the platforms' ends and the tunnel mouths.
 		railsignals) check railsignals '^check_rail_signals:' --script res://tools/check_rail_signals.gd ;;
 		# Packs: running clubs, cycling packs, coffee raves, the big guys with tiny dogs.

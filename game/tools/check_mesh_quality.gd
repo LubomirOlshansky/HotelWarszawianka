@@ -145,7 +145,7 @@ const BUDGET := {
 	"cosmopolitan": 420,  # 2026-11-08 photo rebuild (F)
 	"plac_grzybowski": 1500,  # 2026-11-08 photo build (F): 1429 tris, the cascade field is 48 blocks
 	"prozna": 5100,  # 2026-11-08 photo build (F): 5014 tris, 1,300 of them the 90 bollards
-	"dom_partii": 6200,  # 2026-11-12 rebuilt whole from F's photos (towers, colonnade, frieze, courtyard fountain): 5202 tris, +0 draw calls
+	"dom_partii": 8000,  # 2026-11-12 rebuilt whole from F's photos: 5202 tris; 2026-11-19 the arcade, terrace, cafés and tables (F's photos): 7225 tris, +0 draw calls
 	"eon41": 1300,  # 2026-11-13 photo rebuild (F): the power company's L-block, curve, medallions, glass tower, lantern
 	"asp37": 1600,  # 2026-11-13 the Academy of Fine Arts: the 1914 school and JEMS's wing
 	"deski": 2300,
@@ -169,8 +169,8 @@ const BUDGET := {
 	"grob": 340,
 	"grzybowska63": 500,
 	"gwardii": 1450,
-	"hub_b": 260,  # RD-4: parapet, roof plant, podium skylight
-	"hub_c": 220,  # RD-4: parapet, roof plant
+	"hub_b": 380,  # RD-4: parapet, roof plant, podium skylight; 2026-11-19 the glass crown and the street-front boards
+	"hub_c": 280,  # RD-4: parapet, roof plant; 2026-11-19 the glass crown and the HUB board
 	"ilmet": 400,
 	"jp2_21": 280,
 	"kopernik": 1720,
@@ -222,7 +222,7 @@ const BUDGET := {
 	"q22": 720,  # 2026-11-08 photo rebuild (top-50 T02): 607 tris
 	"rondo1": 900,  # 2026-11-08 photo rebuild (top-50 T03): 769 tris
 	"rotunda": 2450,  # 2026-11-11: + the plaza's dark stone grid and its bollards
-	"skyliner": 400,
+	"skyliner": 440,  # 2026-11-19: the KANTOR and SUSHI boards toward the Rondo
 	"skysawa": 170,
 	"powstancow_blue": 100,
 	"slabs": 1100,   # 2026-11-03: balcony bands, a ledge every storey on the long faces (look check)
@@ -315,7 +315,7 @@ const BUDGET := {
 	"tarasy": 9400,  # 2026-11-11 F's photos: the triangular glass wave, the guitar, the café (5455); the whole complex: podium ledges, shop boards, Lumen's setback (7781)
 	"tarasy_plaza": 2750,  # 2026-11-11: the sunken plaza by the station: walls, shopfronts, railings, treads, umbrellas (2290)
 	"trojca": 3700,  # 2026-11-14 photo rebuild: rusticated drum, arched windows, framed oculi, Doric porticoes with lunettes, dormers, glazed lantern (measured 3361)
-	"unit": 1160,
+	"unit": 1450,  # 2026-11-19: the Dragon Skin dress (green wall, MODERATO) and the corner café board
 	"varso": 4300,  # 2026-11-15 photo rebuild (3614 tris): grey frame, louvre crown, lattice spire with dish platforms, lobby, observation box; +0 draw calls
 	"varso_place": 7200,  # 2026-11-17 the office wings from F's photos (stone frame, set-back top storey, terraces, atrium): 6846 tris, +0 draw calls
 	"wcf": 1400,  # 2026-11-08 F's 13 photos: the Emilii Plater portico, piers, fins, the low roof's rail (1319)
@@ -337,7 +337,7 @@ const BUDGET := {
 	# the pavilion, the park, the drone port and the gilded crane.
 	"towarowa22": 5600,  # 2026-11-16 the paving now covers the whole plot (6 base rects, no brown earth), 5329 tris
 	# The Warsaw HUB's round-ended hotel tower (the photo report, 2026-11-03).
-	"crowne": 380,
+	"crowne": 2500,  # 2026-11-19 The Roof: rail, deck, lounge, pergola, festoons, sofas, trees
 	# Wola's 19. Dzielnica (F's photos, 2026-11-07): the drug works' building site (four concrete
 	# frames, cores, three cranes, the yard), the Kolejowa estate's 58 mapped parts, Asbud's towers.
 	"noho": 12700,
