@@ -233,6 +233,8 @@ func _find_blocks() -> void:
 				sites[-1]["cap"] = d["cap"]
 			if d.get("roof", false):
 				sites[-1]["lod2_roof"] = true
+				if d.has("eaves") and (d["eaves"] as Array).size() == q.size():
+					sites[-1]["eaves"] = d["eaves"]
 
 
 ## A covered filter bed: a flat grass plateau over the outline, lifted clear of the terrain under

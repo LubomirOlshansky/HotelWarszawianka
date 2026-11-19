@@ -959,6 +959,17 @@ for s in $want; do
 					fi ;;
 				*) row FAIL "architecture" $secs "$(grep -E '^check_architecture( selftest)?:' $logs/architecture.log | head -1) · $counts ($logs/architecture.log)" ;;
 			esac ;;
+		# Block eaves (2026-11-19): street_blocks/index.json's `eaves`, the walls' tops a kept LoD2
+		# roof is lifted to (map_builder _lift_block_roof), match the block models (no map).
+		blockeaves)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/block_eaves.py --check > $logs/blockeaves.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "blockeaves" $secs "block_eaves: OK" ;;
+				*) row FAIL "blockeaves" $secs "$(grep -m1 '^block_eaves:' $logs/blockeaves.log) ($logs/blockeaves.log)" ;;
+			esac ;;
 		# Reference-photo store (2026-11-13): tools/refs_store.py builds a fake store, inventory and repo
 		# in a temp dir and exercises index, gaps, pull, push, aliases and conflicts (no map, no photos).
 		refs-store)

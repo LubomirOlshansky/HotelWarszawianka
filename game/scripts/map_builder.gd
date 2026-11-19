@@ -9587,6 +9587,68 @@ static func _grid_add(grid: Dictionary, box: Rect2, index: int) -> void:
 		grid[key].append(index)
 
 
+## A kept roof plane this close to a block's outline edge (m) meets that edge's wall.
+const EAVE_NEAR := 2.0
+## The coping left showing over a lifted roof (m): the walls end just over it, as a parapet.
+const EAVE_LIP := 0.25
+## A roof sitting less than this under its walls' tops stays (a parapet, m); more than LIFT_MAX
+## is another building's roof (a podium under a tower, a LoD2 outline that is not the block's).
+const EAVE_GAP := 0.6
+const LIFT_MAX := 6.5
+## How many kept roof planes _lift_block_roof raised in this build (printed after the LoD2 pass).
+var _roof_lifts := 0
+
+
+## F's shot (2026-11-19, Al. Jerozolimskie by Nowy Świat): a modelled street block that keeps
+## LoD2's measured roof (marks.keeps_lod2_roof) has its own walls, from its model, and those
+## stood up to a storey over the measured roof in 78 blocks, so the roof sat inside them like
+## the floor of an open box. Each kept roof plane of the run [t0, t1) (its triangles sharing a
+## plane) is raised, whole, so it meets the walls along the outline edges it touches: the
+## smallest rise its low corners need (`eaves`, landmarks.block_eaves_at), a coping's lip under
+## the cornice. Never lowered; left as it is past LIFT_MAX. Returns pos. Before the tiles, the
+## colliders and the roof grid, so the helicopter lands on the roof that is drawn, on both city
+## paths (no new triangle or draw call: the measured roof only moves up).
+func _lift_block_roof(pos: PackedVector3Array, nrm: PackedVector3Array, dropped: PackedByteArray,
+		t0: int, t1: int, eaves: Dictionary) -> PackedVector3Array:
+	if eaves.is_empty():
+		return pos
+	var ring: PackedVector2Array = eaves["ring"]
+	var tops: PackedFloat32Array = eaves["eaves"]
+	var planes := {}
+	for t in range(t0, t1, 3):
+		if dropped[t / 3]:
+			continue
+		var n := nrm[t].normalized()
+		var key := Vector4i(roundi(n.x * 50.0), roundi(n.y * 50.0), roundi(n.z * 50.0), roundi(n.dot(pos[t]) * 2.0))
+		if not planes.has(key):
+			planes[key] = []
+		(planes[key] as Array).append(t)
+	for key in planes:
+		var list: Array = planes[key]
+		var lift := INF
+		for t: int in list:
+			for k in 3:
+				var v := pos[t + k]
+				var q := Vector2(v.x, v.z)
+				# The highest wall among the edges it is near (a corner meets two).
+				var top := -INF
+				for i in ring.size():
+					if not is_nan(tops[i]) and tops[i] > top and Geometry2D.get_closest_point_to_segment(q, ring[i],
+							ring[(i + 1) % ring.size()]).distance_to(q) < EAVE_NEAR:
+						top = tops[i]
+				if top - v.y > EAVE_GAP:
+					lift = minf(lift, top - EAVE_LIP - v.y)
+		if lift == INF or lift > LIFT_MAX:
+			continue
+		for t: int in list:
+			for k in 3:
+				var v := pos[t + k]
+				v.y += lift
+				pos[t + k] = v
+		_roof_lifts += 1
+	return pos
+
+
 ## GUGiK LoD2 buildings from the baked mesh. Returns the OpenStreetMap
 ## buildings that still need drawing (empty when there is no LoD2 bake).
 func _build_lod2(walls, marks) -> Array:
@@ -9697,6 +9759,8 @@ func _build_lod2(walls, marks) -> Array:
 			for t in range(t0, t1, 3):
 				if not roofs or absf(nrm[t].y) < 0.3:
 					dropped[t / 3] = 1
+			if roofs:
+				pos = _lift_block_roof(pos, nrm, dropped, t0, t1, marks.block_eaves_at((lo + hi) * 0.5))
 		else:
 			# The landmarks loop: a kept building in a landmark's own stone (Muzeum Narodowe).
 			var skin: Dictionary = marks.skin_at(Rect2(lo, hi - lo))
@@ -9780,6 +9844,8 @@ func _build_lod2(walls, marks) -> Array:
 				_solid(&"lod2", [pos[t], pos[t + 1], pos[t + 2]], R2_SAME)
 		_roof_triangle(pos[t], pos[t + 1], pos[t + 2], flat_ish, col[t])
 	_has_lod2 = true
+	if _roof_lifts > 0 and not _in_sector:
+		print("block roofs: %d kept LoD2 roof planes lifted to their walls" % _roof_lifts)
 	if not _in_sector:
 		return meta["keep_osm"]
 	# Loop 3c: the split marks the OpenStreetMap buildings LoD2 keeps (`keep`).
