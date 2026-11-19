@@ -86,6 +86,19 @@ const SITUATIONS := {
 	"parked": {"traffic": -1, "hop_car": true},
 }
 const PLAYERS := ["none", "stopped", "slow", "average", "fast", "follower"]
+## The pro (F 2026-11-19: "Autopilot drives slow, not the most a real person can do"): the best a
+## real player does, run only where the matrix names it (not one of PLAYERS): the racers' own
+## driver on its racing line with the car's whole top and grip (Mordor Mike's numbers), every
+## shortcut a local knows (PRO_KNOWS' table), the town's traffic planned with, no mistake, no
+## wrong turn, no phone. The catch-up (race_session.gd CATCH_*) is judged against it.
+const PRO := "pro"
+const PRO_KNOWS := "Taksiarz Zbyszek"
+## On the tail (the mark): against the pro on clear roads every rival finishes behind it (a clean
+## drive still wins) and within TAIL_MOST s (TAIL_FIRST in the guided first race, a gentler day).
+const TAIL_MOST := 3.0
+const TAIL_FIRST := 5.0
+const PRO_SKILL := {"knows": 1.0, "caution": 0.3, "cuts": 1.0, "yards": 1.0, "hops": 0.0, "mistake": 0.0,
+		"wrong": 0, "block": 0.0, "phone": false}
 ## The prototype race (F 2026-11-09: Powiśle to Plac Trzech Krzyży) from two starts: where F
 ## teleported to (Tamka: one obvious way), and north Powiśle by Leszczyńska, where three useful
 ## routes lie within 15 s of each other (ROUTES: a point each is forced through).
@@ -969,7 +982,7 @@ func race(spec: Dictionary) -> Dictionary:
 		# The final: its own racer and Trzy mosty's finish (rivals.gd `start_final`).
 		rung = Ladder.FINAL
 		fin = final_finish()
-	if who < 0 or rung < 0 or fin.is_empty() or sit.is_empty() or not kind in PLAYERS:
+	if who < 0 or rung < 0 or fin.is_empty() or sit.is_empty() or not (kind in PLAYERS or kind == PRO):
 		error = "%s: unknown rival, finish, situation or player" % out["id"]
 		out["error"] = error
 		return out
@@ -1131,9 +1144,14 @@ func race(spec: Dictionary) -> Dictionary:
 				# turns round as a person would (without a plan it stood behind the rival, in her
 				# way back, and then slipped through her and the wall).
 				var own = null
-				if not spec.get("no_plan", false) and (kind == "follower" or sit.has("wall")):
-					own = planner.plan(fin["node"], stats, PLAYER_TOP, table if kind == "follower" else {}, 0.0, PackedInt32Array(), fin["at"], RaceSession.FINISH_RADIUS)
-				_arm_player(traffic, ghost, kind, fin["node"], plain, dist, table, own)
+				if kind == PRO:
+					var pro_table: Dictionary = links_of(PRO_KNOWS)[0]
+					own = planner.plan(fin["node"], pro_skill(), PLAYER_TOP, pro_table, 0.0, PackedInt32Array(), fin["at"], RaceSession.FINISH_RADIUS)
+					_arm_pro(traffic, ghost, fin["node"], racer_to(PRO_KNOWS, fin["node"], fin["ends"]), pro_table, own)
+				else:
+					if not spec.get("no_plan", false) and (kind == "follower" or sit.has("wall")):
+						own = planner.plan(fin["node"], stats, PLAYER_TOP, table if kind == "follower" else {}, 0.0, PackedInt32Array(), fin["at"], RaceSession.FINISH_RADIUS)
+					_arm_player(traffic, ghost, kind, fin["node"], plain, dist, table, own)
 		if started:
 			if hold and Rivals.first_start_step(t, ghost.v) == "release":
 				hold = false
@@ -1915,6 +1933,22 @@ func _arm_player(traffic: Node3D, ghost, kind: String, node: int, plain: PackedF
 	ghost.held = false
 
 
+## The pro's racer stats (PRO above): Mordor Mike's car use with PRO_SKILL's clean driving.
+static func pro_skill() -> Dictionary:
+	var out := Ladder.racer(Ladder.RUNGS.size() - 1).duplicate()
+	out.merge(PRO_SKILL, true)
+	out.erase("catch")
+	return out
+
+
+## The pro sets off (PRO above): armed as a racer (RaceSession.arm_racer, the car's own top), its
+## plan `plan` and the shortcuts of `table`; never boosted (the catch-up is the rivals').
+func _arm_pro(traffic: Node3D, ghost, node: int, plain: PackedFloat32Array, table: Dictionary, plan) -> void:
+	RaceSession.arm_racer(ghost, pro_skill(), Ladder.pace(Ladder.RUNGS.size() - 1), PLAYER_TOP, table, 7)
+	traffic.race_to(ghost, node, plain, plan)
+	ghost.held = false
+
+
 ## A wall of parked cars across every lane of edge e at s, both ways.
 func _park_wall(traffic: Node3D, e: int, s: float) -> void:
 	for side in 2:
@@ -2034,8 +2068,8 @@ static func judge(results: Array) -> Array:
 		var g: Dictionary = groups[key]
 		for sp: String in g:
 			var base: Dictionary = g.get(sp.get_slice("/", 0) + "/none", {})
-			if base.is_empty() or sp.ends_with("/none") or not base["finished"]:
-				continue
+			if base.is_empty() or sp.ends_with("/none") or sp.ends_with("/" + PRO) or not base["finished"]:
+				continue  # (the pro's races are On the tail's: the catch-up follows it on purpose)
 			var r: Dictionary = g[sp]
 			if not r["finished"] and float(r.get("boxed_s", 0.0)) > BOXED_SHARE * _run(r):
 				# Boxed in behind the player's stopped car (BOXED_SHARE): Finishes' race, not this mark's.
@@ -2531,6 +2565,27 @@ static func judge(results: Array) -> Array:
 			"cut-ins and blocks near the player by kind %s; on clear roads %d crazy drivers on the racers' driver never reached a fare; in traffic fares by kind %s%s%s" % [
 			cut_by, no_fare, fare_by, "; never near the player: " + ", ".join(tame) if not tame.is_empty() else "",
 			"; no fare in traffic: " + ", ".join(stuck) if not stuck.is_empty() else ""], worst, crazy_traffic))
+
+	# On the tail: the pro's races (PRO, TAIL_* above).
+	var tail_n := 0
+	var tail_ok := true
+	var tails: Array = []
+	worst = ""
+	var worst_gap := -INF
+	for r: Dictionary in by_id.values():
+		if r.get("player", "") != PRO or r.get("situation", "") != "clear" or not r.get("finished", false) or r.get("player_time", null) == null:
+			continue
+		tail_n += 1
+		var gap := float(r["time"]) - float(r["player_time"])
+		var most := TAIL_FIRST if r.get("tuning", "") == "first" else TAIL_MOST
+		var ok := gap > 0.0 and gap <= most
+		tail_ok = tail_ok and ok
+		tails.append("%s %+.1f s" % [String(r["id"]).get_slice("/", 0), gap])
+		if not ok and absf(gap) - most > worst_gap:
+			worst_gap = absf(gap) - most
+			worst = r["id"]
+	out.append(_mark("on_tail", "On the tail", tail_ok if tail_n > 0 else null,
+			"against the pro on clear roads every rival home behind it and within %.0f s (%.0f s in the first race): %s" % [TAIL_MOST, TAIL_FIRST, ", ".join(tails)], worst))
 
 	# The same race twice.
 	var same := 0

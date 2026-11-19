@@ -64,9 +64,11 @@ const PUSH_MISTAKES := 1.5
 ## CATCH_TOP m/s at most (traffic.gd RACE_BOOST_TOP). The boost comes on fast (CATCH_RATE a second) and goes as fast once it is
 ## back within CATCH_FROM s, so it closes the gap to the player's tail and never passes by itself:
 ## from there it is its own skill again, and a player who keeps driving clean stays ahead. Corners
-## and traffic still hold it (no boost to its grip, `race_corner`: tried, it gained nothing on the
-## bench and would rebuild the racing line as the boost moves). An easier rematch takes
-## CATCH_EASE times its ease off the boost.
+## and traffic still hold it, though it brakes and corners harder too while boosted (its brakes
+## times the boost, traffic.gd; its grip `race_corner` times the boost up to GRIP_EFFORT_MOST):
+## against the race bench's pro (the best a real player does) the straights alone left every rung
+## 1 to 6 s behind, with the brakes and grip 1 to 2.5 s (Halina's first race 4 s). An easier rematch
+## takes CATCH_EASE times its ease off the boost.
 const CATCH_FROM := 0.5
 const CATCH_FULL := 2.5
 const CATCH_MAX := 1.6
@@ -635,7 +637,7 @@ static func pace_tick(pace: Pace, d, mistake: float, rival_left: float, player_l
 	d.race_boost = pace.boost
 	var effort := minf(pace.effort, 1.0 / maxf(d.race_share, 0.01))
 	d.race_effort = effort
-	d.race_corner = pace.effort
+	d.race_corner = pace.effort * pace.boost
 	d.race_mistake = mistake * lerpf(1.0, PUSH_MISTAKES, clampf((pace.effort - 1.0) / (EFFORT_PUSH - 1.0), 0.0, 1.0))
 	pace.lo = minf(pace.lo, effort)
 	pace.hi = maxf(pace.hi, effort)

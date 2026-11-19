@@ -793,12 +793,19 @@ came with step 3's route planner.
   "more hardcore": rivals should speed up, even past 100 to 150 km/h, to stay on the tail. F
   chose catch-up for every rival on a decision card. So this one knob does follow the player,
   against the rule of this section: a rival more than 0.5 s behind drives faster on a straight,
-  rising to `catch` times its speed there (1.6; Halina's gentle day 1.45) from 2.5 s behind, past
+  rising to `catch` times its speed there (1.6; Halina's gentle day 1.55) from 2.5 s behind, past
   the road's racing speed and the car's own top, up to 42 m/s (151 km/h). It comes on within
   about a second and goes as fast once the rival is back within 0.5 s, so it closes the gap to the
   player's tail (on the bench a flat-out player keeps Halina 1.5 to 2 s behind on her rung,
   about 4 s in the guided first race, where she was 10 to 18 s behind before) but never passes by itself: from there the rival drives its own skill, and a
-  player who keeps driving clean still wins. No boost to its grip (corners) or through traffic.
+  player who keeps driving clean still wins. Its pull and brakes rise with the boost and its
+  grip in corners too (up to the cap every effort has, ×1.15), but it gets no boost through traffic. The bench's
+  **pro** (the same day, `race_bench.gd` `PRO`) is the best a real player does: the racers' driver
+  on its line with the car's whole top and grip, every shortcut, no mistakes. The mark **On the
+  tail** holds that every rival finishes behind it and within 3 s (5 s in the first race). On
+  Tamka: Halina +2.4 s, Słoik +1.7, Bartek +1.2, Seba +1.0, Zbyszek +1.0, Mike +0.9; the first
+  race +4.0 s. The Mac's Autopilot and the bench's "fast" player drive slower than that (F: "the
+  autopilot is not the most a real person can do").
   An easier rematch takes three times its ease off the boost. The start changed the same day:
   no 3, 2, 1, only START!, and the player's car waits on the line with the rival until then
   (`rivals.gd` `hold_car`, `GO_AFTER`).
