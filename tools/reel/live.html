@@ -15,7 +15,6 @@ html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
 .abs { position: absolute; }
 #shade { left: 0; top: 0; width: 1080px; height: 1920px; background: linear-gradient(180deg, rgba(8,6,24,0) 50%, rgba(8,6,24,0.6) 100%); }
 #title { left: 64px; top: 1360px; font-size: 76px; font-weight: 500; line-height: 1.0; color: rgba(255,255,255,0.82); text-shadow: 0 2px 6px rgba(0,0,0,0.6); white-space: pre; }
-#title .cur { display: inline-block; width: 0.5em; height: 0.1em; background: rgba(255,255,255,0.82); margin-left: 0.08em; }
 </style>
 </head>
 <body>
@@ -29,10 +28,8 @@ const TEXT = "Warsaw\n10 p.m.";
 const $ = (id) => document.getElementById(id);
 const k = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
 function frame(t) {
-  // "Warsaw 10 p.m." typed in from 1.0 s, a letter every 0.11 s (calm, F), the cursor blinking after.
-  const n = Math.max(0, Math.min(TEXT.length, Math.floor((t - 1.0) / 0.11)));
-  const cur = (n < TEXT.length || Math.floor(t * 2.5) % 2 === 0) ? '<span class="cur"></span>' : "";
-  $("title").innerHTML = TEXT.slice(0, n).replace("\n", "<br>") + cur;
+  // F (21:04 UTC): the words stay still from the first frame to the last, no typing, no cursor.
+  $("title").innerHTML = TEXT.replace("\n", "<br>");
 }
 window.frame = frame;
 frame(+(P.get("t") || 2.5));

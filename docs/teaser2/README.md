@@ -1,4 +1,4 @@
-# Teaser 2: "Warsaw 10 p.m." (5 s Reel)
+# Teaser 2: "Warsaw 10 p.m." (7 s Reel)
 
 F, 2026-11-19: "this view" (the website hero: the Centrum metro pavilions, Marszałkowska and the
 Rotunda at Rondo Dmowskiego), at night in the rain, Experimental quality, people walking under
@@ -26,7 +26,7 @@ F, 17:33 UTC: not busy, "calm, the vibe of night Warsaw, meditative": the normal
 ```zsh
 Q=(--nohud --no-touch --no-ghost --quality=experimental --lines=1920 --governor=off --time=night --clock=22:00 --date=20261120 --weather=rain --traffic=low --crowd=2)
 tools/clip.sh metroF 1080x1920 16 -- --cam=-851,400 --yaw=0 --pitch=-32 --size=280 $Q   # 16 s: cut the 5 s with a tram crossing   # F 19:54 UTC: exactly A2-frame.png, the rondo in the centre, the Rotunda right, the metro left
-# cut: SHOTS="metroF:START:5" (START = where a tram crosses) docs/teaser2/cut.sh build/clips build/reel/art build/reel/teaser2-1080x1920.mp4
+# cut: SHOTS="metroF:2:7" (F 21:04 UTC: 7 s, the words still, not typed in; a tram crosses from 2 s) docs/teaser2/cut.sh build/clips build/reel/art build/reel/teaser2-1080x1920.mp4
 ```
 
 The Mac run's framing fixes replace these lines (the commands that worked are the record).
@@ -34,7 +34,7 @@ The Mac run's framing fixes replace these lines (the commands that worked are th
 ## Overlay, sound and cut
 
 ```zsh
-node tools/reel/render.mjs build/reel/art --live-frames=5   # build/reel/art/live/f_0000.png ...
+node tools/reel/render.mjs build/reel/art --live-frames=7   # build/reel/art/live/f_0000.png ...
 docs/teaser2/cut.sh build/clips build/reel/art build/reel/teaser2-1080x1920.mp4
 SHOTS="metro:1:5" docs/teaser2/cut.sh ...           # another pick, no re-render
 ```

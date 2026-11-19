@@ -6,7 +6,7 @@
 #   docs/teaser2/cut.sh CLIPS_DIR ART_DIR OUT.mp4
 #
 #   CLIPS_DIR  the clips SHOTS names, from tools/clip.sh (1080x1920, 30 fps)
-#   ART_DIR    node tools/reel/render.mjs ART_DIR --live-frames=5 (live/f_0000.png ...)
+#   ART_DIR    node tools/reel/render.mjs ART_DIR --live-frames=7 (live/f_0000.png ...)
 #
 # SHOTS is NAME:START:LENGTH (seconds) per shot (F: one 5 s shot). PUSH is the slow
 # push-in over the whole cut (1.0 = none, the default: F 2026-11-19 "no need for zoom").
@@ -14,7 +14,7 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 clips=${1:?CLIPS_DIR}; art=${2:?ART_DIR}; out=${3:?OUT.mp4}
 FPS=30
-SHOTS=(${SHOTS:-metro:0:5})
+SHOTS=(${SHOTS:-metroF:2:7})
 PUSH=${PUSH:-1.0}
 
 inputs=(); chains=""; i=0; concat=""; total=0
