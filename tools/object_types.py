@@ -113,6 +113,7 @@ SITE_WALLS = [
     ((-1644.7, -1190.0), "balustrade_white"), ((-1656.4, -1197.6), "balustrade_white"),
     ((-1624.6, -1230.3), "balustrade_rail"), ((-1621.2, -1219.2), "balustrade_rail"),
     ((-1625.5, -1232.3), "balustrade_rail"), ((-1628.1, -1232.1), "balustrade_rail"),
+    ((-964.8, 238.7), ""), ((-957.9, 234.2), ""),  # the two plain fences by Metro Centrum's glass pavilion, left out (F, 2026-11-19)
     ((-1635.1, -1234.3), "tram_railing"), ((-1635.7, -1235.6), "tram_railing"),
 ]
 LOW_WALLS = [(-820.1, 345.4), (-807.1, 378.0), (-1627.1, -1219.5)]
