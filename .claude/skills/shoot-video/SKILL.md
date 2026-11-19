@@ -35,6 +35,7 @@ tools/clip.sh bridge 1080x1920 3 -- --at=560,-770 --heading=52 --demo --time=dus
 Out: `build/clips/NAME.mp4` (CRF 14 master, no audio), `NAME-sheet.png` (8 frames), `NAME.log`.
 SECONDS and --skip are whole seconds. **Always pass `--lines=` equal to the video height** (`--lines=1920` for
 Reels): the style draws a fixed line count (Sharp 480), so a tall frame without it is blown-up blocks.
+Also pass `--governor=off`: otherwise the frame governor drops Experimental to Ultra mid-render.
 Use a flag ARRAY in zsh (`Q=(--nohud ...)`), never a string, or the flags are silently dropped. `--preview` renders at half size and High for framing rounds.
 
 Flags that make shots (full table: `grep '^| \`--' docs/archive/DEVELOPMENT-full.md`):

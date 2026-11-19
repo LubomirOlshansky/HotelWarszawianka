@@ -27,7 +27,7 @@ helicopter low over the Vistula at dawn).
 # Portrait needs --lines = the video height: the style draws a fixed line count (Sharp 480), so
 # 1080x1920 without it is a 270x480 image blown up 4x (F, 2026-11-19: "why the quality so bad?").
 # zsh: flags in an array, a string is not split.
-Q=(--nohud --no-touch --no-ghost --quality=experimental --lines=1920)
+Q=(--nohud --no-touch --no-ghost --quality=experimental --lines=1920 --governor=off)
 tools/clip.sh hook    1080x1920 3 -- --at=-1113,-263 --heading=160 --demo --time=night --weather=rain --pitch=-24 --size=34 $Q
 tools/clip.sh bridge  1080x1920 3 -- --at=560,-770 --heading=52 --demo --time=dusk --pitch=-28 --size=60 $Q
 tools/clip.sh skyline 1080x1920 3 -- --heli --at=-1180,-60 --heli-stick=0,1 --heli-alt=120 --time=live --clock=18:15 --date=20260915 --palace-lights=gold --pitch=-38 --size=260 --sectors=all $Q
