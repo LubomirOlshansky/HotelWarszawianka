@@ -8,7 +8,7 @@
 //                                                       card-1080x1920.png
 //   node tools/reel/render.mjs OUT_DIR --card-frames=SECONDS [--fps=30]
 //                                                       the animated end card as OUT_DIR/card/f_0000.png...
-//   node tools/reel/render.mjs OUT_DIR --live-frames=SECONDS [--end=7]
+//   node tools/reel/render.mjs OUT_DIR --live-frames=SECONDS
 //                                                       teaser 2's transparent overlay (live.html), OUT_DIR/live/f_0000.png...
 //
 // Needs Node and the playwright package with a Chromium (the cloud containers have both; on a Mac:
@@ -43,11 +43,11 @@ async function open(mode, w, h) {
 const seconds = parseFloat(opt("card-frames", "0"));
 const live = parseFloat(opt("live-frames", "0"));
 if (live > 0) {
-	// Teaser 2's overlay (live.html): transparent frames, the closing title from --end= seconds.
+	// Teaser 2's overlay (live.html): transparent frames.
 	const fps = parseInt(opt("fps", "30"), 10);
 	const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
 	page.on("pageerror", (e) => { console.error(`render.mjs: live: ${e.message}`); process.exitCode = 1; });
-	await page.goto(pathToFileURL(join(here, "live.html")).href + `?end=${opt("end", "7")}`);
+	await page.goto(pathToFileURL(join(here, "live.html")).href );
 	await page.evaluate(() => document.fonts.ready);
 	mkdirSync(join(out, "live"), { recursive: true });
 	const n = Math.round(live * fps);

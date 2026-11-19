@@ -1,11 +1,9 @@
 <!doctype html>
 <!--
-  Teaser 2's overlay (F, 2026-11-19: "Warsaw 3 a.m.", night rain, "like video on the reel, live vibe",
-  in the website's pixel font): a transparent 1080x1920 layer drawn over the game footage. A LIVE
-  badge and a ticking 03:00 clock up top, "Warsaw 3 a.m." typed in at the bottom of the safe area,
-  and from END s the closing title: Around Warsaw with the iOS and Android plates. All text sits
-  inside Instagram's safe area (x 60-960, y 250-1500). tools/reel/render.mjs --live-frames=SECONDS
-  calls window.frame(t) per frame.
+  Teaser 2's overlay (F, 2026-11-19: "Warsaw 3 a.m." in the website's pixel font, and then "only
+  Warsaw 3 a.m., nothing else"): a transparent 1080x1920 layer over the game footage, the words
+  typed in at the bottom of Instagram's safe area (x 60-960, y 250-1500), a soft shade under them.
+  tools/reel/render.mjs --live-frames=SECONDS calls window.frame(t) per frame.
 -->
 <html>
 <head>
@@ -15,66 +13,26 @@
 html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
 #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: "Pixel", monospace; color: #fff; }
 .abs { position: absolute; }
-#shade { left: 0; top: 0; width: 1080px; height: 1920px; background: linear-gradient(180deg, rgba(8,6,24,0.55) 0%, rgba(8,6,24,0) 22%, rgba(8,6,24,0) 55%, rgba(8,6,24,0.7) 100%); }
-#endshade { left: 0; top: 0; width: 1080px; height: 1920px; background: rgba(10,6,30,0.62); opacity: 0; }
-#live { left: 64px; top: 262px; display: flex; align-items: center; gap: 14px; font-size: 40px; font-weight: 700; letter-spacing: 0.06em; }
-#live .pill { display: flex; align-items: center; gap: 12px; background: #e8203c; padding: 6px 18px 8px; border-radius: 6px; }
-#live .dot { width: 18px; height: 18px; border-radius: 50%; background: #fff; }
-#live .where { font-size: 34px; font-weight: 500; opacity: 0.92; text-shadow: 0 2px 0 #000a; }
-#clock { right: 124px; top: 262px; font-size: 46px; font-weight: 700; text-shadow: 0 3px 0 #000a; text-align: right; }
-#clock small { display: block; font-size: 28px; font-weight: 500; opacity: 0.85; margin-top: 6px; }
-#rec { left: 64px; top: 340px; font-size: 28px; opacity: 0.8; text-shadow: 0 2px 0 #000a; }
+#shade { left: 0; top: 0; width: 1080px; height: 1920px; background: linear-gradient(180deg, rgba(8,6,24,0) 50%, rgba(8,6,24,0.6) 100%); }
 #title { left: 64px; top: 1170px; font-size: 150px; font-weight: 700; line-height: 0.95; text-shadow: 0 6px 0 #ff2fa0, 0 0 40px rgba(255,47,160,0.55); white-space: pre; }
 #title .cur { display: inline-block; width: 0.5em; height: 0.12em; background: #fff; margin-left: 0.08em; }
-#end { left: 0; width: 1080px; top: 640px; text-align: center; opacity: 0; }
-#end .name { font-size: 168px; font-weight: 700; line-height: 0.92; text-shadow: 0 7px 0 #ff2fa0, 0 0 50px rgba(255,47,160,0.6); }
-#end .tag { margin-top: 70px; font-size: 52px; font-weight: 700; color: #7ff6ff; letter-spacing: 0.08em; }
-#plates { display: flex; justify-content: center; gap: 34px; margin-top: 44px; }
-.plate { display: flex; align-items: center; justify-content: center; gap: 20px; width: 360px; height: 116px; background: rgba(20,5,46,0.84); border: 3px solid #7ff6ff; border-radius: 6px; }
-.plate b { font-size: 50px; font-weight: 700; color: #7ff6ff; }
-.plate.android { border-color: #a4e86b; } .plate.android b { color: #a4e86b; }
 </style>
 </head>
 <body>
 <div id="stage">
   <div class="abs" id="shade"></div>
-  <div class="abs" id="endshade"></div>
-  <div class="abs" id="live"><div class="pill"><div class="dot" id="dot"></div>LIVE</div><div class="where">Rondo Dmowskiego</div></div>
-  <div class="abs" id="rec">CAM 03 · WARSZAWA CENTRUM</div>
-  <div class="abs" id="clock"><span id="hms">03:00:00</span><small>RAIN · 6°C</small></div>
   <div class="abs" id="title"></div>
-  <div class="abs" id="end">
-    <div class="name">Around<br>Warsaw</div>
-    <div class="tag">STAY TUNED</div>
-    <div id="plates">
-      <div class="plate ios"><svg width="40" height="64" viewBox="0 0 40 64"><rect x="3" y="2" width="34" height="60" rx="8" fill="none" stroke="#7ff6ff" stroke-width="4"/><rect x="14" y="6" width="12" height="3" rx="1.5" fill="#7ff6ff"/><rect x="13" y="54" width="14" height="3" rx="1.5" fill="#7ff6ff"/></svg><b>iOS</b></div>
-      <div class="plate android"><svg width="78" height="49" viewBox="0 0 64 40"><path d="M6 38 A26 26 0 0 1 58 38 Z" fill="#a4e86b"/><line x1="16" y1="8" x2="10" y2="1" stroke="#a4e86b" stroke-width="3" stroke-linecap="round"/><line x1="48" y1="8" x2="54" y2="1" stroke="#a4e86b" stroke-width="3" stroke-linecap="round"/><circle cx="21" cy="25" r="3" fill="#14052e"/><circle cx="43" cy="25" r="3" fill="#14052e"/></svg><b>Android</b></div>
-    </div>
-  </div>
 </div>
 <script>
 const P = new URLSearchParams(location.search);
-const END = +(P.get("end") || 7.0);          // the closing title starts here (s)
 const TEXT = "Warsaw\n3 a.m.";
 const $ = (id) => document.getElementById(id);
 const k = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
 function frame(t) {
-  $("dot").style.opacity = (Math.floor(t * 2) % 2 === 0) ? 1 : 0.25;
-  const s = 7 + Math.floor(t);               // the clock starts at 03:00:07
-  $("hms").textContent = `03:00:${String(s).padStart(2, "0")}`;
   // "Warsaw 3 a.m." typed in from 0.6 s, a letter every 0.07 s, the cursor blinking after.
   const n = Math.max(0, Math.min(TEXT.length, Math.floor((t - 0.6) / 0.07)));
   const cur = (n < TEXT.length || Math.floor(t * 2.5) % 2 === 0) ? '<span class="cur"></span>' : "";
   $("title").innerHTML = TEXT.slice(0, n).replace("\n", "<br>") + cur;
-  // The ending: the HUD and the title make way, the screen darkens, the name and plates come up.
-  const e = k(t, END, END + 0.35);
-  for (const id of ["title", "live", "rec", "clock"]) $(id).style.opacity = 1 - e;
-  $("endshade").style.opacity = e;
-  $("end").style.opacity = e;
-  $("end").style.transform = `translateY(${(1 - e) * 30}px)`;
-  const pl = k(t, END + 0.4, END + 0.75);
-  $("plates").style.opacity = pl;
-  document.querySelector("#end .tag").style.opacity = k(t, END + 0.25, END + 0.55);
 }
 window.frame = frame;
 frame(+(P.get("t") || 2.5));

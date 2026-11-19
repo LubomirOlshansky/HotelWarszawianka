@@ -6,16 +6,16 @@
 #   docs/teaser2/cut.sh CLIPS_DIR ART_DIR OUT.mp4
 #
 #   CLIPS_DIR  the clips SHOTS names, from tools/clip.sh (1080x1920, 30 fps)
-#   ART_DIR    node tools/reel/render.mjs ART_DIR --live-frames=10 --end=7 (live/f_0000.png ...)
+#   ART_DIR    node tools/reel/render.mjs ART_DIR --live-frames=5 (live/f_0000.png ...)
 #
-# SHOTS is NAME:START:LENGTH (seconds) per shot; the lengths add up to 10 s. PUSH is the slow
+# SHOTS is NAME:START:LENGTH (seconds) per shot (F: one 5 s shot). PUSH is the slow
 # push-in over the whole cut (1.0 = none), the live camera's drift.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 clips=${1:?CLIPS_DIR}; art=${2:?ART_DIR}; out=${3:?OUT.mp4}
 FPS=30
-SHOTS=(${SHOTS:-wide:0:4.5 crowd:0:2.5 wide:4.5:3})
-PUSH=${PUSH:-1.06}
+SHOTS=(${SHOTS:-metro:0:5})
+PUSH=${PUSH:-1.03}
 
 inputs=(); chains=""; i=0; concat=""; total=0
 for s in "${SHOTS[@]}"; do
@@ -30,7 +30,7 @@ inputs+=(-i "$here/ambience-10s.m4a"); au=$i
 chains+="${concat}concat=n=$ov:v=1:a=0,scale=w='trunc(1080*(1+($PUSH-1)*t/$total)/2)*2':h=-2:eval=frame,crop=1080:1920,setsar=1[base];"
 chains+="[base][$ov:v]overlay=0:0:shortest=1,format=yuv420p[v]"
 
-ffmpeg -v error -y "${inputs[@]}" -filter_complex "$chains" -map "[v]" -map "$au:a" \
+ffmpeg -v error -y "${inputs[@]}" -filter_complex "$chains" -map "[v]" -map "$au:a" -af "afade=t=out:st=$(echo "$total - 0.8" | bc):d=0.8" \
 	-c:v libx264 -profile:v high -level 4.2 -preset slow -crf 17 -maxrate 14M -bufsize 28M \
 	-pix_fmt yuv420p -r $FPS -g $FPS -c:a aac -b:a 192k -ar 48000 -ac 2 \
 	-movflags +faststart -t "$total" "$out"
