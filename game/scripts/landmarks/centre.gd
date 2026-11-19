@@ -4559,15 +4559,17 @@ func _build_zodiak(site: Dictionary) -> void:
 	for k in n + 1:
 		var u := lerpf(u0 + 0.1, u1 - 0.1, float(k) / n)
 		_ubox(u - 0.06, u + 0.06, v1 - ZOD_TERRACE, v1 + 0.15, y + 0.1, y + 0.3, ZOD_WHITE)
-	# The white neon word over the back (on the brick wall behind in the photos), facing the square.
-	_usign(ZOD_WORD, (u0 + u1) * 0.5, v0 + 0.3, g + ZOD_H + ZOD_ROOF + 0.6, _b, 0.55 * (u1 - u0), 1.6, ZOD_COLOUR)
+	# The white neon word over the roof's front edge, facing the square.
+	# F, 2026-11-19: on the FRONT (the square's side), standing on the upper room's roof edge.
+	var sv := v1 - ZOD_TERRACE - 0.25
+	_usign(ZOD_WORD, (u0 + u1) * 0.5, sv, g + ZOD_H + ZOD_ROOF + 0.6, _b, 0.75 * (u1 - u0), 2.2, ZOD_COLOUR)   # a little bigger (F, 2026-11-19)
 	# The little neon star over the "i" (F's night photo): a lit plus and a lit diamond.
-	var su := (u0 + u1) * 0.5 + 0.08 * 0.55 * (u1 - u0)
-	var sy := g + ZOD_H + ZOD_ROOF + 0.6 + 1.75
-	_lbox(su, v0 + 0.3, 0.03, 0.03, g + ZOD_H, sy - 0.2, Color("#2b2c2f"), M_STONE)   # its stem on the roof
-	_lbox(su, v0 + 0.3, 0.3, 0.03, sy - 0.04, sy + 0.04, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
-	_lbox(su, v0 + 0.3, 0.04, 0.03, sy - 0.3, sy + 0.3, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
-	_lbox(su, v0 + 0.3, 0.12, 0.03, sy - 0.12, sy + 0.12, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
+	var su := (u0 + u1) * 0.5 + 0.08 * 0.75 * (u1 - u0)
+	var sy := g + ZOD_H + ZOD_ROOF + 0.6 + 2.35
+	_lbox(su, sv, 0.03, 0.03, g + ZOD_H, sy - 0.2, Color("#2b2c2f"), M_STONE)   # its stem on the roof
+	_lbox(su, sv, 0.3, 0.03, sy - 0.04, sy + 0.04, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
+	_lbox(su, sv, 0.04, 0.03, sy - 0.3, sy + 0.3, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
+	_lbox(su, sv, 0.12, 0.03, sy - 0.12, sy + 0.12, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
 	# String lights over the square (the photo): bulbs hung from the pergola's front beam out to
 	# three poles in the square, one sagging fan.
 	var top_y := g + ZOD_H + 0.22   # inside the pergola beam, so the string is welded to it
@@ -4764,12 +4766,13 @@ func _awning(a: Vector2, d: Vector2, o: Vector2, c: Vector2, bay: float, g: floa
 			Vector3(o.x, 0.0, o.y), col.darkened(0.12))
 
 
-## A blade sign at right angles to the wall at the bay's edge: two neon words back to back.
+## A blade sign at right angles to the wall at the bay's edge: one neon word, readable from one side.
 func _blade(at: Vector2, o: Vector2, d: Vector2, y: float, word: String, col: Color) -> void:
 	var k := minf(0.7 / (Neon.ROW_H * Neon.PIXEL), 2.0 / Neon.length_of(word))
 	var mid := at + o * (WIECHA_OVER + 0.2 + Neon.length_of(word) * k * 0.5)   # stands out from the fascia
-	for side in [1.0, -1.0]:
-		signs.append([word, Vector3(mid.x, y, mid.y), Vector3(d.x, 0.0, d.y) * side, k, col])
+	# One face only: the neon quad shows through from behind, so a second, opposite face drew the
+	# word mirrored over the first (Mac night shot, 2026-11-19). Readable from the +d side.
+	signs.append([word, Vector3(mid.x, y, mid.y), Vector3(d.x, 0.0, d.y), k, col])
 
 
 ## A rectangle on the ground plan: centre `c`, its long axis `d`, half sizes hu along and hv across.
