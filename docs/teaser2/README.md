@@ -54,3 +54,9 @@ brings back the old mix.
 more melancholy"): two ElevenLabs takes (eleven_music_v2_5, melancholic ambient vaporwave, same flow)
 at -23 LUFS under the rain at -21, the city at -33; raw in teaser/music/teaser2/vapor1.mp3, vapor2.mp3.
 `AMBIENCE=ambience-7s-vapor1.m4a docs/teaser2/cut.sh ...`
+
+F 21:46 UTC: "why does the rain drop at the 5 second, and the rain should be quieter". The takes fade
+inside their 10 s (the prompt asked for a soft ending) and the per-stem loudnorm rode them. Remixed
+with `docs/teaser2/mix.sh MUSIC START OUT` (static gains, no loudnorm on the stems): the music levelled
+with dynaudnorm at -25 LUFS, the rain 6 dB under it at -31, the city at -38, the bed at about -17 LUFS;
+the level now stays within ~2 dB until the planned fade at 6.2 s.
