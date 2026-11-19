@@ -48,10 +48,12 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## market moved into sector (-2, 0) (a box per hut, the van, the tree) and the candelabras' pedestals.
 ## 2026-11-17, the obelisk's semicircle (#914, tools/defilad_obelisk.py): -8 faces (46762 → 46754), its
 ## garage door and the ramp's walls taken off; TOTAL_TYPED 46573 → 46565 the same way (each its own `--record`).
-## 2026-11-19, Hotel Metropol (#942): -74 faces (46754 → 46680), the street block blk_28759009 (#495) on the
+## 2026-11-19, Metro Centrum's glass pavilion (#933): -44 faces (46754 → 46710), the pavilion's ring replaces its
+## box, and the two little boxes and the two plain fences beside it go; TOTAL_TYPED 46565 → 46533 the same way.
+## 2026-11-19, Hotel Metropol (#942): -74 faces (46710 → 46636), the street block blk_28759009 (#495) on the
 ## hotel's outline is no longer built (a second model over METROPOLKA); the hotel's own site keeps its walls.
-## TOTAL_TYPED 46565 → 46491 the same way (each its own `--record` on a fresh bake).
-const TOTAL := 46680
+## TOTAL_TYPED 46533 → 46459 the same way (each its own `--record` on a fresh bake after merging #933).
+const TOTAL := 46636
 ## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
@@ -63,7 +65,7 @@ const TOTAL := 46680
 ## (after merging main with Plac Defilad #848), unchanged by W3: the stadium's retyped lines keep their look and class (soft, no faces), and the other
 ## fixes change no face in these sectors (the planter edges by the Palace of Culture in (-2, 0) keep
 ## a placed style).
-const TOTAL_TYPED := 46491
+const TOTAL_TYPED := 46459
 
 var problems: Array[String] = []
 var verbose := false

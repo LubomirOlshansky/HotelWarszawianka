@@ -32,6 +32,7 @@ typeset -A SHOT
 FIRST=()
 SHOT[spawn_day]="--time=day"
 SHOT[spawn_night_prebuilt]="--prebuilt --time=night"
+SHOT[defilad_pavilion]="--at=-950,205 --heading=160 --time=day"
 SHOT[marszalkowska_day]="--at=-1113.2,-263.4 --heading=160 --time=day"
 SHOT[palace_day]="--at=-1290,170 --heading=135 --time=day"
 SHOT[river_day]="--at=1135.7,-198.1 --heading=72 --time=day"
