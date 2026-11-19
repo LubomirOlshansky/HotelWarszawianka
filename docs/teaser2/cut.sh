@@ -25,7 +25,7 @@ for s in "${SHOTS[@]}"; do
 	concat+="[v$i]"; i=$((i + 1)); total=$(echo "$total + $len" | bc)
 done
 inputs+=(-framerate $FPS -i "$art/live/f_%04d.png"); ov=$i; i=$((i + 1))
-inputs+=(-i "$here/ambience-10s.m4a"); au=$i
+inputs+=(-i "$here/${AMBIENCE:-ambience-7s.m4a}"); au=$i
 # The push-in: scale up a little over the cut and crop the centre back to 1080x1920.
 chains+="${concat}concat=n=$ov:v=1:a=0,scale=w='trunc(1080*(1+($PUSH-1)*t/$total)/2)*2':h=-2:eval=frame,crop=1080:1920,setsar=1[base];"
 chains+="[base][$ov:v]overlay=0:0:shortest=1,format=yuv420p[v]"

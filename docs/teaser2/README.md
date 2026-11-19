@@ -43,3 +43,10 @@ SHOTS="metro:1:5" docs/teaser2/cut.sh ...           # another pick, no re-render
 take 1 of "steady night rain on a city street" and take 4 of "distant city centre at night, tyres on
 a wet road, a far tram, people", mixed with the city low and far (lowpass 2.5 kHz, half volume: calm, F), faded, -16 LUFS. The raw takes are in the project files
 (teaser/music/teaser2). Made on F's ElevenLabs account for the game; CC BY-NC like its other sound.
+
+`ambience-7s.m4a` (F 21:22 UTC: "ambient music, quiet, on the rain drops, and the city sound very
+delicate"): rain1 at -20 LUFS, a new ElevenLabs ambient pad (eleven_music_v2_5, take 2 of "meditative
+late-night city ambient: warm slow synth pads, soft drone, electric piano with long reverb", same flow)
+at -27 LUFS under it, city4 low-passed at -33 LUFS, faded in 0.6 s and out over the last 0.8 s, -16 LUFS.
+Raw pads in the project files (teaser/music/teaser2/pad1.mp3, pad2.mp3). `AMBIENCE=ambience-10s.m4a`
+brings back the old mix.
