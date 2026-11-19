@@ -223,6 +223,7 @@ trendjob             quick
 trzy-mosty           local     slow
 tunnelcut            smoke
 turntable           quick
+uikit                quick
 water                roads     slow
 water-prebuilt       smoke     slow
 wellness             quick

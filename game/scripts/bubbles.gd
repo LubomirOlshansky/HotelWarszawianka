@@ -21,6 +21,7 @@ extends Control
 ## face on the left (Portraits: the portrait, or their initial on a disc in their colour), so the
 ## player sees who is talking, not only a name; ambient chatter and shouts stay name-only.
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")
 const Access := preload("res://scripts/access.gd")
 const Chatter := preload("res://scripts/chatter.gd")
@@ -54,9 +55,9 @@ const TAIL := 10.0
 ## PT-9: the longest tail, in points: a bubble that had to move away from its speaker still points at it.
 const REACH := 150.0
 ## The HUD's card recipe (hud.gd CARD_BG) and its text colours.
-const CARD_BG := Color(0.07, 0.06, 0.1, 0.94)
-const INK := Color("#fbf7ee")
-const SUB := Color("#c9c2d8")
+const CARD_BG := UiKit.CARD
+const INK := UiKit.INK
+const SUB := UiKit.SUB
 
 var _bubbles: Array[Dictionary] = []
 var _tags: Array[Dictionary] = []

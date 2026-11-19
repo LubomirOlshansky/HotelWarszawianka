@@ -20,19 +20,20 @@ extends Control
 ## "Performance budgets"); nothing is drawn while the panel is closed. Sized in points like
 ## the panel; every target at least 44 pt.
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")  # one language at a time
-const INK := Color("#fbf7ee")
-const SUB := Color("#c9c2d8")
-const ACCENT := Color("#ffd23f")
+const INK := UiKit.INK
+const SUB := UiKit.SUB
+const ACCENT := UiKit.GOLD
 ## Collectibles' gold (the art bible): a complete chapter's number.
 const GOLD := Color("#f0b429")
-const DIM := Color(1, 1, 1, 0.07)
+const DIM := UiKit.DIM
 const EDGE := Color(1, 1, 1, 0.18)
 const SHUT := Color(1, 1, 1, 0.03)
 const ON := Color(1, 0.82, 0.25, 0.22)
 ## The card under a box's fill (settings_panel.gd CARD_BG, opaque): a box is its edge colour,
 ## then this inset, then its fill.
-const UNDER := Color(0.07, 0.06, 0.1, 1.0)
+const UNDER := UiKit.CARD_SOLID
 const T_BIG := 22.0
 const T_BODY := 15.0
 const T_SUB := 13.0

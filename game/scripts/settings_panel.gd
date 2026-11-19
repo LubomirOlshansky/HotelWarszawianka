@@ -31,20 +31,21 @@ extends Control
 signal changed(key: String, value: Variant)
 signal closed
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")  # one language at a time
-const ACCENT := Color("#ffd23f")
-const INK := Color("#fbf7ee")
-const SUB := Color("#c9c2d8")
-const DIM := Color(1, 1, 1, 0.07)
+const ACCENT := UiKit.GOLD
+const INK := UiKit.INK
+const SUB := UiKit.SUB
+const DIM := UiKit.DIM
 ## The HUD's card recipe (hud.gd CARD_BG).
-const CARD_BG := Color(0.07, 0.06, 0.1, 0.94)
+const CARD_BG := UiKit.CARD
 ## Type sizes in points (hud.gd's scale).
-const T_HEAD := 22.0
-const T_BODY := 15.0
-const T_SUB := 13.0
-const T_LABEL := 11.0
+const T_HEAD := UiKit.T_CLOCK
+const T_BODY := UiKit.T_BODY
+const T_SUB := UiKit.T_SUB
+const T_LABEL := UiKit.T_LABEL
 ## Loop MW-1: the notebook tab's title size (hud.gd T_TITLE).
-const T_NOTES := 17.0
+const T_NOTES := UiKit.T_TITLE
 
 const TABS := [["JAZDA", "driving"], ["ŚWIAT", "world"], ["OBRAZ", "picture"], ["DŹWIĘK", "sound"], ["ZESZYT", "notebook"], ["DOSTĘP", "access"]]
 ## Loop MW-1: the notebook's tab. The accessibility tab comes last (index 5) so the notebook keeps

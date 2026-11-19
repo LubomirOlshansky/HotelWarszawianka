@@ -14,6 +14,7 @@ extends Node
 ## Cost: nothing while closed. The UI (a CanvasLayer of a few Controls) is built at the first
 ## open and hidden after; the camera is not current, so it draws nothing; no _process.
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")
 
 signal opened
@@ -32,10 +33,10 @@ const KADR_REACH := 300.0
 const KADR_RESPECT := 20
 ## The subject's point above the ground (m): the middle of a view of it.
 const SUBJECT_LIFT := 8.0
-const ACCENT := Color("#ffd23f")
-const INK := Color("#fbf7ee")
-const SUB := Color("#c9c2d8")
-const CARD_BG := Color(0.07, 0.06, 0.1, 0.94)
+const ACCENT := UiKit.GOLD
+const INK := UiKit.INK
+const SUB := UiKit.SUB
+const CARD_BG := UiKit.CARD
 const KADR_COLOUR := Color("#1ae6ff")
 const T_TITLE := 17.0
 const T_BODY := 15.0

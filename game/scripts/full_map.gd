@@ -38,6 +38,7 @@ signal rival_called(rung: int)
 ## An item marked NEW was looked at on the QUESTS screen (its id, quest_book.gd): main.gd forgets it.
 signal seen(id: String)
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")
 const MapArt := preload("res://scripts/map_art.gd")
 const MapIcons := preload("res://scripts/map_icons.gd")
@@ -81,7 +82,7 @@ const NEXT_H := 44.0
 const NEXT_W := 330.0
 ## A questline's dot and name while something runs (quest focus): drawn this small and this faint.
 const FOCUS_DIM := 0.45
-const NEW_RED := Color("#ff4f6d")
+const NEW_RED := UiKit.ALERT
 
 ## Set by hud.gd before the first open.
 var hud: CanvasLayer

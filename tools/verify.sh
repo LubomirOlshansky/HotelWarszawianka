@@ -1274,6 +1274,19 @@ for s in $want; do
 				0) row PASS "facadekit" $secs "check_facade_kit: OK · $counts" ;;
 				*) row FAIL "facadekit" $secs "$(grep '^check_facade_kit: ' $logs/facadekit.log | tail -1) · $counts ($logs/facadekit.log)" ;;
 			esac ;;
+		# The UI kit's ratchet (2026-11-19, docs/design/ui-kit.md): the UI scripts' own colour literals
+		# only fall, and the kit keeps the tokens the doc names (tools/check_ui_kit.py; no map, ~0.1 s).
+		uikit)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/check_ui_kit.py > $logs/uikit.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			counts=$(grep -m1 '^check_ui_kit counts:' $logs/uikit.log)
+			counts=${counts#check_ui_kit counts: }
+			case $code in
+				0) row PASS "uikit" $secs "check_ui_kit: OK · $counts" ;;
+				*) row FAIL "uikit" $secs "$(grep '^check_ui_kit: ' $logs/uikit.log | tail -1) · $counts ($logs/uikit.log)" ;;
+			esac ;;
 		# Landmark specs (LANDMARKS 0.4): every docs/landmarks/specs/*.md has all eight sections, a
 		# detail level, a triangle budget and a filled parts table (tools/check_spec.py; ~0.1 s).
 		spec)
