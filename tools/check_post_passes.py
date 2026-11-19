@@ -29,7 +29,7 @@ def canon(d):
 
 
 def passes(map_dir):
-    import road_fixes, lane_tapers, zamek_ramps, defilad_obelisk, object_fixes, road_profiles, lane_links, parked_thin, object_types
+    import road_fixes, lane_tapers, zamek_ramps, defilad_obelisk, object_fixes, road_profiles, rail_covers, lane_links, parked_thin, object_types
     return [
         ("road_fixes", lambda d: road_fixes.apply(d)),
         ("lane_tapers", lambda d: lane_tapers.apply(d)),
@@ -37,6 +37,7 @@ def passes(map_dir):
         ("defilad_obelisk", lambda d: defilad_obelisk.apply(d, map_dir)),
         ("object_fixes", lambda d: object_fixes.apply(d)),
         ("road_profiles", lambda d: road_profiles.apply(d, map_dir)),
+        ("rail_covers", lambda d: rail_covers.apply(d, map_dir)),
         ("lane_links", lambda d: lane_links.apply(d)),
         # W3 of the walls look (TD-25): on a typed map only its v2 fixes run, once (the stamp's v)
         ("object_types", lambda d: object_types.apply(d, map_dir)),
