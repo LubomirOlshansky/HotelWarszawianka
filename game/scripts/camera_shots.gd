@@ -52,9 +52,11 @@ const SKIP_GRACE := 0.25
 ## way (time_of_day.gd `wake`). The first key is higher and wider than the Palace's, so the
 ## sleeping city is seen whole before the camera turns round the Palace; the caption comes with
 ## the sunrise.
+## The first key is lower and narrower again (F, 2026-11-19: the models popped in at the start of the
+## flight, it was smoother before the morning): 100 m up, a 400 m view, as the old flight began.
 const OPEN_TIME := 12.0
 const OPEN_KEYS: Array[Dictionary] = [
-	{"at": Vector2(-1214.0, 247.0), "up": 140.0, "size": 520.0, "turn": 140.0, "pitch": -40.0},
+	{"at": Vector2(-1214.0, 247.0), "up": 100.0, "size": 400.0, "turn": 135.0, "pitch": -39.0},
 	{"at": Vector2(-1214.0, 247.0), "up": 95.0, "size": 420.0, "turn": 115.0, "pitch": -38.0},
 	{"at": Vector2(-1095.0, 165.0), "up": 30.0, "size": 230.0, "turn": 40.0, "pitch": -33.0},
 ]
@@ -457,7 +459,17 @@ static func open_view(e: float, ground: float, yaw: float, follow_xf: Transform3
 	var size := exp(_cr(log(k0["size"]), log(k1["size"]), log(k2["size"]), log(k3["size"]), t))
 	var turn := _cr(k0["yaw"], k1["yaw"], k2["yaw"], k3["yaw"], t)
 	var pitch := _cr(k0["pitch"], k1["pitch"], k2["pitch"], k3["pitch"], t)
-	return {"xf": _view(focus, size, turn, pitch), "size": size, "focus": focus}
+	return {"xf": _view(focus, size, turn, pitch), "size": size, "focus": focus, "yaw": turn, "pitch": pitch}
+
+
+## The flyover's views, `n` + 1 of them along the flight: [focus, size, yaw, pitch] each, for the
+## streamer to load before the flight starts (main.gd `_preload_opening`).
+static func open_samples(ground: float, yaw: float, follow_xf: Transform3D, follow_size: float, n: int) -> Array:
+	var out: Array = []
+	for i in n + 1:
+		var v := open_view(float(i) / float(n), ground, yaw, follow_xf, follow_size)
+		out.append([v["focus"], v["size"], v["yaw"], v["pitch"]])
+	return out
 
 
 ## One frame of the flyover (the camera is placed here, not by the host).
