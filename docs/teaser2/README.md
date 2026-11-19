@@ -50,3 +50,7 @@ late-night city ambient: warm slow synth pads, soft drone, electric piano with l
 at -27 LUFS under it, city4 low-passed at -33 LUFS, faded in 0.6 s and out over the last 0.8 s, -16 LUFS.
 Raw pads in the project files (teaser/music/teaser2/pad1.mp3, pad2.mp3). `AMBIENCE=ambience-10s.m4a`
 brings back the old mix.
+`ambience-7s-vapor1.m4a`, `-vapor2.m4a` (F 21:23 UTC: "ambient retrowave synth music, vaporwave,
+more melancholy"): two ElevenLabs takes (eleven_music_v2_5, melancholic ambient vaporwave, same flow)
+at -23 LUFS under the rain at -21, the city at -33; raw in teaser/music/teaser2/vapor1.mp3, vapor2.mp3.
+`AMBIENCE=ambience-7s-vapor1.m4a docs/teaser2/cut.sh ...`
