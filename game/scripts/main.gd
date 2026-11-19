@@ -837,8 +837,7 @@ func _ready() -> void:
 		_new_game_pending = false
 		# The loading fix: "tap to drive" once the sectors round the start are in (_title_frame).
 		_title_wait_t = Time.get_ticks_msec()
-		_preload_opening()
-		_title_pending = streamer.pending() if streamer != null else 0
+		_title_pending = CameraShots.preload_opening(streamer, _opening_due(), get_viewport().get_visible_rect().size, car.global_position.y, cam_yaw, cam.global_transform, _view_size)
 	else:
 		radio.now_playing()
 		_fallback_toast()
@@ -1253,21 +1252,6 @@ func _opening_due() -> bool:
 	if flags._flag_cinematic == "opening":
 		return true
 	return flags.cinematic_flyin and not flying and flags._flag_cinematic == "" and first10 != null and first10.guide
-
-
-## The opening's models (F, 2026-11-19: "I see the models not loaded" at the flight's start): the
-## title waits for every sector the flight's views show, not only the start's square, so the first
-## frame has no proxies. The sectors stay wanted for the wait and the flight.
-func _preload_opening() -> void:
-	if streamer == null or not _opening_due():
-		return
-	var screen := get_viewport().get_visible_rect().size
-	var aspect := screen.x / maxf(screen.y, 1.0)
-	var ground := car.global_position.y
-	var secs := TITLE_WAIT_MS / 1000.0 + CameraShots.OPEN_TIME + 3.0
-	for v: Array in CameraShots.open_samples(ground, cam_yaw, cam.global_transform, _view_size, 10):
-		var f: Vector3 = v[0]
-		streamer.expect_shot([[f, v[1]]], v[2], v[3], aspect, secs)
 
 
 ## Camera loop: the fly-in from over the city down to the car (camera_shots.gd), or the opening

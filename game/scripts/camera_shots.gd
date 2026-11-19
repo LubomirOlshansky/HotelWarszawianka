@@ -15,6 +15,7 @@ extends Node
 ## camera's turn, so the stick means the same direction on screen during a moment.
 ## Between moments the host isn't run at all (main.gd moves the camera itself): no cost.
 
+const SectorStreamer := preload("res://scripts/sector_streamer.gd")
 const Lang := preload("res://scripts/lang.gd")
 const PCamHost := preload("res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd")
 const PCam := preload("res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd")
@@ -470,6 +471,21 @@ static func open_samples(ground: float, yaw: float, follow_xf: Transform3D, foll
 		var v := open_view(float(i) / float(n), ground, yaw, follow_xf, follow_size)
 		out.append([v["focus"], v["size"], v["yaw"], v["pitch"]])
 	return out
+
+
+## The opening's models (F, 2026-11-19: "I see the models not loaded" at the flight's start): when
+## the opening is `due`, the streamer is asked for every sector the flight's views show, so the
+## title (which waits for the streamer) offers "tap to drive" with no proxies in the first frame.
+## The sectors stay wanted for the title's wait (8 s) and the flight. Returns the sectors still to
+## come (the loading bar's count), 0 without a streamer.
+static func preload_opening(streamer: SectorStreamer, due: bool, screen: Vector2, ground: float, yaw: float, follow_xf: Transform3D, follow_size: float) -> int:
+	if streamer == null:
+		return 0
+	if due:
+		var aspect := screen.x / maxf(screen.y, 1.0)
+		for v: Array in open_samples(ground, yaw, follow_xf, follow_size, 10):
+			streamer.expect_shot([[v[0], v[1]]], v[2], v[3], aspect, 8.0 + OPEN_TIME + 3.0)
+	return streamer.pending()
 
 
 ## One frame of the flyover (the camera is placed here, not by the host).
