@@ -35,5 +35,5 @@ SHOTS="metro:1:5" docs/teaser2/cut.sh ...           # another pick, no re-render
 
 `ambience-10s.m4a`: ElevenLabs sound effects (eleven_text_to_sound_v3, flow cL8xacMOlAJYfvedMjiw):
 take 1 of "steady night rain on a city street" and take 4 of "distant city centre at night, tyres on
-a wet road, a far tram, people", mixed, faded, -16 LUFS. The raw takes are in the project files
+a wet road, a far tram, people", mixed with the city low and far (lowpass 2.5 kHz, half volume: calm, F), faded, -16 LUFS. The raw takes are in the project files
 (teaser/music/teaser2). Made on F's ElevenLabs account for the game; CC BY-NC like its other sound.
