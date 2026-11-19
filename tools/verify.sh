@@ -1533,6 +1533,9 @@ for s in $want; do
 		# The museum and Plac loop: Muzeum Narodowe, Hotel Europejski and the Tomb from centrum.json
 		# alone (found, what they replace, triangles, one material, cards; no terrain or sectors).
 		sites) check sites '^check_sites:' --script res://tools/check_sites.gd ;;
+		# Hotel Metropol's METROPOLKA (srodmiescie.gd): on the real outline's street face, a lit light box
+		# behind the letters, the letters inside its face (F, 2026-11-19: "fixed so many times").
+		metropol) check metropol '^check_metropol:' --script res://tools/check_metropol.gd ;;
 		palacelights) check palacelights '^check_palace_lights:' --script res://tools/check_palace_lights.gd ;;
 		meshq) check meshq '^check_mesh_quality:' --script res://tools/check_mesh_quality.gd ;;
 		sfx) check sfx '^sfx:' --script res://tools/check_sfx.gd ;;

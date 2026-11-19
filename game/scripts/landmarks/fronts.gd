@@ -215,7 +215,7 @@ func _find_blocks() -> void:
 		var q := _pts(d["outline"])
 		if q.size() < 3:
 			continue
-		if str(d["id"]) in DE_BLOCKS or str(d["id"]) == CM_BLOCK:
+		if str(d["id"]) in DE_BLOCKS or str(d["id"]) in [CM_BLOCK, MP_BLOCK]:
 			continue
 		var key := "blk_" + str(d["id"])
 		var zone: Array = [_largest(Geometry2D.offset_polygon(q, 1.0, Geometry2D.JOIN_MITER))]

@@ -106,6 +106,7 @@ markers              quick
 meet                 quick
 meshq                quick
 messages             quick
+metropol             quick
 mixer                quick
 models               quick
 monumentmesh         quick
