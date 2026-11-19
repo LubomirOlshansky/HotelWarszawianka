@@ -2290,15 +2290,11 @@ const BBC_LEAF := Color("#4f8a46")
 const BBC_BARREL := Color("#7a583a")
 const BBC_SAIL := Color("#f8f6ee")
 const BBC_CHAIR := Color("#f1efe8")
-## The swirl murals' paint (the pavilion's long sides, from F's aerial photo).
-const BBC_SWIRL := [Color("#e0457b"), Color("#f2b632"), Color("#2f7fd0"), Color("#3aa876"), Color("#7a4fc9"), Color("#ef7a2e")]
-## The lettering's pink: visible on the white wall by day, lit by night (M_LAMP).
-const BBC_LETTER := Color("#e23d78")
 
 ## Pawilon Tańca i Innych Sztuk Performatywnych (Wybrzeże Kościuszkowskie 22): OSM's `Pawilon
 ## Tańca` outline, a 57 x 20 m box. Its height is F's aerial photo (~8 m), not the bake's 14 m.
 const TN_H := 8.0
-const TN_BODY := Color("#eeece4")
+const TN_BODY := Color("#f2f1ec")
 const TN_UNITS := [[-8.0, -2.0, 3.0, 1.6, 1.3], [4.0, 2.5, 2.2, 1.5, 1.8], [15.0, -3.0, 1.4, 1.1, 2.4],
 		[-20.0, 3.0, 1.6, 1.0, 1.1], [22.0, 2.0, 1.2, 1.2, 1.6]]
 ## The extra kiosks of the row before the pavilion, from the last mapped one (group 2 of
@@ -2309,7 +2305,8 @@ const TN_KIOSK_STEP := 9.0
 const TN_KIOSK_HU := 4.0
 const TN_KIOSK_HV := 1.3
 const TN_KIOSK_WORDS := ["GOFRY", "LODY", "PIWO", "ZAPIEKANKI", "KAWA"]
-const TN_KIOSK_COLS := [Color("#2d3238"), Color("#3b4046"), Color("#283338"), Color("#3a3534"), Color("#2c3a36")]
+## Black boxes and timber-clad ones with closed shutters, alternating (F's photo of the row).
+const TN_KIOSK_COLS := [Color("#1d1f22"), Color("#8b6140"), Color("#25282c"), Color("#7f5736"), Color("#1b1d20")]
 
 ## The six barge bars. Each: where it lies (snapped to the river's bank), length, width, hull,
 ## antifouling band, deck, the hall (its span as fractions of the length, height, wall, roof,
@@ -2390,37 +2387,150 @@ func _bbc_letters(word: String, u_c: float, v: float, y_top: float, px: float, p
 			prev = x
 
 
-## A swirl mural on the wall at local v (facing `side`): ribbons of paint in a sine each, a disc
-## for the swirl's eye. Each ribbon stands 3 cm further out than the one before, so no two
-## overlapping ones share a plane.
-func _bbc_mural(u0: float, u1: float, y0: float, y1: float, v: float, side: float, seed: int) -> void:
+## A wall for the pavilion's line murals: [is_end, the fixed local coordinate, side]. A long face
+## stands at local v (c runs along u), an end face at local u (c runs along v); `side` is where it faces.
+func _bbc_wp(wall: Array, c: float, off: float) -> Vector2:
+	var s: float = wall[2]
+	if wall[0]:
+		return _w(float(wall[1]) + s * off, c)
+	return _w(c, float(wall[1]) + s * off)
+
+
+func _bbc_wn(wall: Array) -> Vector3:
+	var n: Vector2 = (_a if wall[0] else _b) * float(wall[2])
+	return Vector3(n.x, 0.0, n.y)
+
+
+var _bbc_lvl := 0
+
+
+## A polyline of paint on a wall, `w` thick, `pts` as (c, height over g). Each polyline stands at
+## one of seven depths (3 to 17 cm proud), so crossing lines of the net murals never share a plane.
+func _bbc_poly(wall: Array, g: float, pts: Array, w: float, col: Color) -> void:
 	_mode = M_STONE
-	var ribbons := 5
-	var segs := 8
-	var span := u1 - u0
-	var n := Vector2(_b.x, _b.y) * side
-	for k in ribbons:
-		var col: Color = BBC_SWIRL[(seed + k) % BBC_SWIRL.size()]
-		var ym := lerpf(y0 + 0.9, y1 - 0.9, float(k) / float(ribbons - 1))
-		var amp := (y1 - y0) * 0.13
-		var th := 0.75 + 0.2 * float(k % 2)
-		var freq := 1.1 + 0.25 * float(k)
-		var ph := 0.9 * float(k) + float(seed)
-		var vv := v + side * (0.03 + 0.03 * float(k))
-		var prev_u := u0
-		var prev_y := ym + amp * sin(ph)
-		for i in range(1, segs + 1):
-			var t := float(i) / float(segs)
-			var uu := u0 + span * t
-			var yy := ym + amp * sin(TAU * freq * t + ph)
-			var pa := _w(prev_u, vv)
-			var pb := _w(uu, vv)
-			_quad(Vector3(pa.x, prev_y - th * 0.5, pa.y), Vector3(pb.x, yy - th * 0.5, pb.y), Vector3(pb.x, yy + th * 0.5, pb.y),
-					Vector3(pa.x, prev_y + th * 0.5, pa.y), Vector3(n.x, 0.0, n.y), col)
-			prev_u = uu
-			prev_y = yy
-	var eye := _w(u0 + span * 0.5, v + side * 0.24)
-	_disc(Vector3(eye.x, (y0 + y1) * 0.5, eye.y), Vector3(n.x, 0.0, n.y), 0.9, 10, BBC_SWIRL[(seed + 3) % BBC_SWIRL.size()])
+	_bbc_lvl += 1
+	var off := 0.03 + 0.021 * float(_bbc_lvl % 10)
+	var n := _bbc_wn(wall)
+	for i in range(pts.size() - 1):
+		var p0: Vector2 = pts[i]
+		var p1: Vector2 = pts[i + 1]
+		var d := p1 - p0
+		if d.length() < 0.02:
+			continue
+		var nn := Vector2(-d.y, d.x).normalized() * (w * 0.5)
+		var qa := p0 + nn
+		var qb := p1 + nn
+		var qc := p1 - nn
+		var qd := p0 - nn
+		var wa := _bbc_wp(wall, qa.x, off)
+		var wb := _bbc_wp(wall, qb.x, off)
+		var wc := _bbc_wp(wall, qc.x, off)
+		var wd := _bbc_wp(wall, qd.x, off)
+		_quad(Vector3(wa.x, g + qa.y, wa.y), Vector3(wb.x, g + qb.y, wb.y), Vector3(wc.x, g + qc.y, wc.y),
+				Vector3(wd.x, g + qd.y, wd.y), n, col)
+
+
+## An ellipse arc (centre cc, cy; radii rc, ry; from a0 to a1; turned by rot) as points.
+func _bbc_ell(cc: float, cy: float, rc: float, ry: float, a0: float, a1: float, segs: int, rot := 0.0) -> Array:
+	var out: Array = []
+	for i in range(segs + 1):
+		var t := lerpf(a0, a1, float(i) / float(segs))
+		var x := rc * cos(t)
+		var y := ry * sin(t)
+		out.append(Vector2(cc + x * cos(rot) - y * sin(rot), cy + x * sin(rot) + y * cos(rot)))
+	return out
+
+
+## A spring: a sine along a line from (c0, y0) to (c1, y1), `turns` crests, ending in a round head.
+func _bbc_coil(wall: Array, g: float, c0: float, y0: float, c1: float, y1: float, amp: float, turns: float, w: float, col: Color) -> void:
+	var pts: Array = []
+	var n := int(turns * 4.0)
+	var d := Vector2(c1 - c0, y1 - y0)
+	var nrm := Vector2(-d.y, d.x).normalized()
+	for i in range(n + 1):
+		var t := float(i) / float(n)
+		var p := Vector2(c0, y0) + d * t + nrm * amp * sin(TAU * turns * t)
+		pts.append(p)
+	_bbc_poly(wall, g, pts, w, col)
+	_bbc_poly(wall, g, _bbc_ell(c1, y1, 0.22, 0.22, 0.0, TAU, 6), w * 1.4, col)
+
+
+## A net cone: two sides meeting at the apex, rungs across and two diagonals.
+func _bbc_cone(wall: Array, g: float, cc: float, y_apex: float, y_top: float, half: float, w: float, col: Color, col2: Color) -> void:
+	_bbc_poly(wall, g, [Vector2(cc - half, y_top), Vector2(cc, y_apex)], w * 1.3, col)
+	_bbc_poly(wall, g, [Vector2(cc, y_apex), Vector2(cc + half, y_top)], w * 1.3, col)
+	for k in range(1, 4):
+		var f := float(k) / 4.0
+		var yy := lerpf(y_apex, y_top, f)
+		_bbc_poly(wall, g, [Vector2(cc - half * f, yy), Vector2(cc + half * f, yy)], w, col2)
+	_bbc_poly(wall, g, [Vector2(cc - half, y_top), Vector2(cc + half * 0.25, y_apex + (y_top - y_apex) * 0.25)], w, col2)
+	_bbc_poly(wall, g, [Vector2(cc + half, y_top), Vector2(cc - half * 0.25, y_apex + (y_top - y_apex) * 0.25)], w, col2)
+
+
+## The black flower: seven petals round a ring.
+func _bbc_flower(wall: Array, g: float, cc: float, cy: float, r: float, col: Color) -> void:
+	for k in 7:
+		var ang := TAU * float(k) / 7.0
+		var pc := cc + cos(ang) * r * 0.9
+		var py := cy + sin(ang) * r * 0.9
+		_bbc_poly(wall, g, _bbc_ell(pc, py, r * 0.8, r * 0.4, 0.0, TAU, 7, ang), 0.13, col)
+	_bbc_poly(wall, g, _bbc_ell(cc, cy, r * 0.35, r * 0.35, 0.0, TAU, 6), 0.13, col)
+
+
+## The starfish of the long river face: spiky red arms, a teal and red core.
+func _bbc_starfish(wall: Array, g: float, cc: float, cy: float) -> void:
+	var red := Color("#cf3340")
+	var teal := Color("#2a9aa3")
+	for k in 9:
+		var ang := TAU * float(k) / 9.0 + 0.3
+		var len := 2.2 + 1.5 * float(k % 3) / 2.0
+		var tip := Vector2(cc + cos(ang) * len * 1.5, clampf(cy + sin(ang) * len * 0.9, 3.5, 7.2))
+		for sd: float in [-1.7, 1.7]:
+			var base := Vector2(cc + cos(ang + sd) * 0.4, cy + sin(ang + sd) * 0.4)
+			_bbc_poly(wall, g, [base, tip], 0.13, red if k % 3 != 2 else teal)
+	_bbc_lvl += 6
+	_bbc_poly(wall, g, _bbc_ell(cc, cy, 1.1, 0.8, 0.0, TAU, 10), 0.14, red)
+	_bbc_poly(wall, g, _bbc_ell(cc, cy, 0.65, 0.5, 0.0, TAU, 8), 0.14, teal)
+
+
+## The teal wire globe: an outline, two meridians and two parallels.
+func _bbc_globe(wall: Array, g: float, cc: float, cy: float, rc: float, ry: float) -> void:
+	var teal := Color("#2a9aa3")
+	_bbc_poly(wall, g, _bbc_ell(cc, cy, rc, ry, 0.0, TAU, 20), 0.16, teal)
+	_bbc_poly(wall, g, _bbc_ell(cc, cy, rc * 0.4, ry, 0.0, TAU, 14), 0.09, teal)
+	_bbc_poly(wall, g, _bbc_ell(cc, cy, rc * 0.75, ry, 0.0, TAU, 14), 0.09, Color("#d63a45"))
+	_bbc_poly(wall, g, _bbc_ell(cc, cy + ry * 0.45, rc * 0.9, ry * 0.15, 0.0, TAU, 12), 0.09, teal)
+	_bbc_poly(wall, g, _bbc_ell(cc, cy - ry * 0.45, rc * 0.9, ry * 0.15, 0.0, TAU, 12), 0.09, teal)
+
+
+## The three painted faces of the pavilion, thin calligraphic lines (F's photos): the river long
+## face has the starfish, the wire globe, a red cone and the black flower; the street long face
+## blue springs, a red circle and a net cone; the end face (Palomka's) the springs, a red circle
+## and a blue and red net cone. All above 3.4 m, clear of the windows.
+func _bbc_murals(g: float, hu: float, hv: float) -> void:
+	var blue := Color("#2c4f9c")
+	var red := Color("#cf3340")
+	var black := Color("#1e1f22")
+	var river: Array = [false, hv, 1.0]
+	_bbc_starfish(river, g, 4.0, 5.4)
+	_bbc_globe(river, g, 11.5, 5.5, 1.9, 1.8)
+	_bbc_cone(river, g, 19.5, 3.6, 7.2, 0.9, 0.1, red, Color("#d98080"))
+	_bbc_flower(river, g, -23.0, 5.4, 1.0, black)
+	_bbc_coil(river, g, -17.0, 6.6, -9.0, 5.0, 0.3, 5.0, 0.13, blue)
+	for k in 4:
+		_bbc_poly(river, g, [Vector2(24.0 + 0.5 * float(k), 6.4 - 0.5 * float(k)), Vector2(24.4 + 0.5 * float(k), 6.0 - 0.5 * float(k))], 0.12, red)
+	var street: Array = [false, -hv, -1.0]
+	_bbc_coil(street, g, -22.0, 6.8, -10.0, 5.2, 0.35, 6.0, 0.13, blue)
+	_bbc_coil(street, g, -20.0, 5.4, -12.0, 4.4, 0.3, 4.0, 0.12, blue)
+	_bbc_poly(street, g, _bbc_ell(12.0, 5.6, 1.6, 1.4, 0.0, TAU, 14), 0.14, red)
+	_bbc_cone(street, g, 20.0, 3.6, 7.0, 1.3, 0.1, blue, red)
+	_bbc_flower(street, g, 26.0, 5.4, 0.8, black)
+	var end: Array = [true, -hu, -1.0]
+	_bbc_coil(end, g, -8.5, 6.9, 2.0, 5.2, 0.35, 6.0, 0.13, blue)
+	_bbc_coil(end, g, -8.0, 5.6, -1.0, 4.4, 0.3, 4.0, 0.12, blue)
+	_bbc_coil(end, g, -6.0, 4.4, -2.0, 3.8, 0.2, 3.0, 0.1, blue)
+	_bbc_poly(end, g, _bbc_ell(-5.5, 6.2, 1.5, 1.2, 0.0, TAU, 14), 0.14, red)
+	_bbc_cone(end, g, 5.5, 3.6, 7.2, 2.4, 0.1, blue, red)
 
 
 ## A table with two benches (cushioned) and, when `brella` is set, a parasol through it.
@@ -2507,9 +2617,11 @@ func _find_pawilon_tanca() -> void:
 	var hu: float = f[3]
 	var hv: float = f[4]
 	var zone: Array = [_largest(Geometry2D.offset_polygon(q, 0.8, Geometry2D.JOIN_MITER))]
-	# Palomka's terrace by the river-side corner at the south-east end (-u there).
-	zone.append(PackedVector2Array([o + a * (-hu - 4.0) + b * (hv + 0.2), o + a * (-hu + 14.0) + b * (hv + 0.2),
-			o + a * (-hu + 14.0) + b * (hv + 9.6), o + a * (-hu - 4.0) + b * (hv + 9.6)]))
+	# Palomka's terrace: the end face at the south-east (-u) and the river face's first 12 m.
+	zone.append(PackedVector2Array([o + a * (-hu - 8.2) + b * (-hv + 0.8), o + a * (-hu - 0.2) + b * (-hv + 0.8),
+			o + a * (-hu - 0.2) + b * (hv + 6.2), o + a * (-hu - 8.2) + b * (hv + 6.2)]))
+	zone.append(PackedVector2Array([o + a * (-hu - 0.2) + b * (hv + 0.2), o + a * (-hu + 12.2) + b * (hv + 0.2),
+			o + a * (-hu + 12.2) + b * (hv + 6.2), o + a * (-hu - 0.2) + b * (hv + 6.2)]))
 	_add_site("pawilon_tanca", zone)
 	if not sites.is_empty() and sites[-1]["key"] == "pawilon_tanca":
 		sites[-1]["frame"] = f
@@ -2522,7 +2634,7 @@ func _build_pawilon_tanca(site: Dictionary) -> void:
 	var hv: float = f[4]
 	var top := g + TN_H
 	var body := _rect(0.0, 0.0, hu, hv)
-	# The white box on a pale plinth band, a grey flat roof behind a low white parapet.
+	# The pure white box on a pale plinth band, a grey flat roof behind a low white parapet.
 	_prism(body, g - 0.4, top, TN_BODY, PAL_ROOF_PALE, M_STONE, M_STONE)
 	_collide(body)
 	_barge_rail(-hu - 0.08, hu + 0.08, -hv - 0.08, hv + 0.08, g + 0.9, 0.25, 0.08, BBC_BASE)
@@ -2532,72 +2644,146 @@ func _build_pawilon_tanca(site: Dictionary) -> void:
 		_lbox(r[0], r[1], r[2], r[3], top, top + float(r[4]), PAL_ROOF_GREY if int(r[0]) % 2 == 0 else PAL_ALUMINIUM)
 	for sk: float in [-14.0, 9.0]:
 		_prism(_rect(sk, -1.5, 2.2, 1.0), top, top + 0.7, PAL_GLASS_STEEL, PAL_GLASS_STEEL, M_PAVILION, M_PAVILION)
-	# The two long sides: swirl murals (F's aerial photo); the river side has two glazed bays
-	# between them, the street side a dark door under the lettering.
-	var y0 := g + 1.5
-	var y1 := g + 7.3
-	_bbc_mural(8.0, 25.0, y0, y1, hv, 1.0, 1)
-	_bbc_mural(-27.0, -12.0, y0, y1, -hv, -1.0, 2)
-	_bbc_mural(14.0, 27.0, y0, y1, -hv, -1.0, 4)
-	# Glazed bays on the river side: Palomka's café front towards the south-east end and the main
-	# entrance in the middle, mullions every 2 m (lit warm at night).
-	var nr := Vector3(_b.x, 0.0, _b.y)
-	for bay: Vector2 in [Vector2(-25.0, -11.0), Vector2(-7.0, 5.0)]:
-		var a0 := _w(bay.x, hv + 0.04)
-		var a1 := _w(bay.y, hv + 0.04)
-		_mode = M_PAVILION
-		_quad(Vector3(a0.x, g + 0.4, a0.y), Vector3(a1.x, g + 0.4, a1.y), Vector3(a1.x, g + 3.9, a1.y), Vector3(a0.x, g + 3.9, a0.y), nr, PAL_GLASS_NAVY)
-		_mode = M_STONE
-		var n := maxi(2, roundi((bay.y - bay.x) / 2.0))
-		for k in range(0, n + 1):
-			var mu := bay.x + (bay.y - bay.x) * float(k) / float(n)
-			_lbox(mu, hv + 0.07, 0.05, 0.03, g + 0.4, g + 3.9, PAL_IRON)
-		_lbox((bay.x + bay.y) * 0.5, hv + 0.9, (bay.y - bay.x) * 0.5 + 0.2, 0.9, g + 4.0, g + 4.25, TN_BODY)
+	# The murals, thin lines on the three faces F's photos show.
+	_bbc_murals(g, hu, hv)
+	# Ground floor, river face: four small dark square windows and a glazed door in a dark frame.
+	_mode = M_STONE
+	var wn := Vector3(_b.x, 0.0, _b.y)
+	for wu: float in [-9.0, -4.0, 14.0, 19.0]:
+		_bbc_pane(wu - 0.45, wu + 0.45, g + 1.6, g + 2.5, hv + 0.03, 1.0, PAL_IRON)
+	_bbc_door(6.0, hv, 1.0, g)
+	# Street face: the dark door and two small windows.
+	for wu: float in [-6.0, 6.0]:
+		_bbc_pane(wu - 0.45, wu + 0.45, g + 1.6, g + 2.5, -hv - 0.03, -1.0, PAL_IRON)
 	_lbox(0.0, -hv - 0.1, 1.1, 0.06, g, g + 2.8, PAL_DARK_DOOR)
-	# TANIEC, the lettering in pink pixel letters on the white band over both entrances (lit at night).
+	# End face (Palomka's): the cafe's two big windows, warm lit at night, with a door between.
+	for wv: Vector2 in [Vector2(-7.0, -1.4), Vector2(1.4, 7.0)]:
+		_mode = M_PAVILION
+		var e0 := _w(-hu - 0.04, wv.x)
+		var e1 := _w(-hu - 0.04, wv.y)
+		_quad(Vector3(e0.x, g + 0.5, e0.y), Vector3(e1.x, g + 0.5, e1.y), Vector3(e1.x, g + 3.0, e1.y), Vector3(e0.x, g + 3.0, e0.y),
+				Vector3(-_a.x, 0.0, -_a.y), PAL_GLASS_NAVY)
+		_mode = M_STONE
+		var nm := roundi((wv.y - wv.x) / 1.8)
+		for k in range(0, nm + 1):
+			_lbox(-hu - 0.07, wv.x + (wv.y - wv.x) * float(k) / float(nm), 0.04, 0.06, g + 0.5, g + 3.0, PAL_IRON)
+	_lbox(-hu - 0.06, 0.0, 0.04, 0.9, g, g + 2.6, PAL_DARK_DOOR)
+	_lbox(-hu - 0.5, 0.0, 0.5, 1.5, g + 3.1, g + 3.3, TN_BODY)
+	# MUZEUM: big plain letters on a thin steel frame standing on the roof over the long face the
+	# camera sees most; white by day, lit cool white-blue at night (M_LAMP).
+	var side := -1.0 if _b.dot(BEHIND_FACE) > 0.0 else 1.0
+	var px := 0.34
+	var half := PixelFont.width("MUZEUM") * px * 0.5
+	var fy := top + 0.5
+	var vl := side * (hv - 0.5)
+	for k in 5:
+		_lbox(-half + 0.5 + (2.0 * half - 1.0) * float(k) / 4.0, vl - side * 0.12, 0.04, 0.04, fy, fy + 0.7, PAL_IRON)
+	_lbox(0.0, vl - side * 0.12, half, 0.03, fy + 0.65, fy + 0.72, PAL_IRON)
 	_mode = M_LAMP
-	_bbc_letters("TANIEC", 0.0, hv + 0.12, g + 7.7, 0.45, 0.45, 1.0, BBC_LETTER)
-	_bbc_letters("TANIEC", 0.0, -hv - 0.12, g + 7.7, 0.45, 0.45, -1.0, BBC_LETTER)
+	_bbc_letters("MUZEUM", 0.0, vl, fy + 0.7 + 8.0 * px, px, px, side, Color(0.9, 0.96, 1.0))
 	_mode = M_STONE
 	_bbc_palomka(g, hu, hv)
 
 
-## Palomka: a small terrace on the pavilion's river-side corner under white triangular sails.
+## Two short drop wires from a wire at height `yw` to a bar hung 0.27 m below, at two local spots.
+func _bbc_drops(u0: float, v0: float, u1: float, v1: float, yw: float) -> void:
+	for pt: Vector2 in [Vector2(u0, v0), Vector2(u1, v1)]:
+		var w := _w(pt.x, pt.y)
+		_beam(Vector3(w.x, yw - 0.27, w.y), Vector3(w.x, yw, w.y), 0.02, BARGE_POST, false)
+
+
+## A small dark pane on a long face at local v (facing `side`), from u0 to u1.
+func _bbc_pane(u0: float, u1: float, y0: float, y1: float, v: float, side: float, col: Color) -> void:
+	var p0 := _w(u0, v)
+	var p1 := _w(u1, v)
+	_quad(Vector3(p0.x, y0, p0.y), Vector3(p1.x, y0, p1.y), Vector3(p1.x, y1, p1.y), Vector3(p0.x, y1, p0.y),
+			Vector3(_b.x, 0.0, _b.y) * side, col)
+
+
+## A glazed door on the river face: a dark frame and a pane of glass in it.
+func _bbc_door(u: float, hv: float, side: float, g: float) -> void:
+	_lbox(u, hv + 0.03, 1.0, 0.03, g, g + 2.8, PAL_IRON)
+	_mode = M_PAVILION
+	_bbc_pane(u - 0.8, u + 0.8, g + 0.1, g + 2.65, hv + 0.10, side, PAL_GLASS_NAVY)
+	_mode = M_STONE
+	_lbox(u, hv + 0.12, 0.04, 0.02, g + 0.1, g + 2.65, PAL_IRON)
+
+
+## A white metal chair: a seat block and a thin back on the side away from the table.
+func _bbc_chair(u: float, v: float, y: float, away: float) -> void:
+	_lbox(u, v, 0.19, 0.19, y, y + 0.46, BBC_CHAIR)
+	_lbox(u, v + away * 0.17, 0.19, 0.025, y + 0.46, y + 0.86, BBC_CHAIR)
+
+
+## A small white table with two chairs.
+func _bbc_cafe_set(u: float, v: float, y: float) -> void:
+	_prism(_rect(u, v, 0.04, 0.04), y, y + 0.72, BBC_CHAIR, BBC_CHAIR, M_STONE, M_STONE)
+	_lbox(u, v, 0.4, 0.4, y + 0.72, y + 0.77, BBC_CHAIR)
+	_bbc_chair(u, v - 0.75, y, -1.0)
+	_bbc_chair(u, v + 0.75, y, 1.0)
+
+
+## Palomka: the raised light-timber terrace at the pavilion's end face (and 12 m along the river
+## face), white metal chairs and small tables, LED light bars hung on wires between tall dark
+## poles, two or three low sails, a small wooden bar counter at one corner.
 func _bbc_palomka(g: float, hu: float, hv: float) -> void:
-	var u0 := -hu - 4.0
-	var u1 := -hu + 14.0
-	var v0 := hv + 0.4
-	var v1 := hv + 9.4
-	var corners := PackedVector2Array([_w(u0, v0), _w(u1, v0), _w(u1, v1), _w(u0, v1)])
+	var corners := PackedVector2Array([_w(-hu - 8.0, -hv + 1.0), _w(-hu - 0.4, -hv + 1.0), _w(-hu - 0.4, hv + 6.0),
+			_w(-hu - 8.0, hv + 6.0), _w(-hu + 12.0, hv + 0.4), _w(-hu + 12.0, hv + 6.0)])
 	var tg := g
 	for c in corners:
 		tg = maxf(tg, map.terrain_height(c.x, c.y))
-	var y := tg + 0.18
-	_lbox((u0 + u1) * 0.5, (v0 + v1) * 0.5, (u1 - u0) * 0.5, (v1 - v0) * 0.5, tg - 0.4, y, BBC_TIMBER_DARK, M_STONE, PAL_TIMBER)
-	# Masts at the sails' corners (u, v, height over the deck), the sails between them.
-	var pts := {"a": Vector3(u0 + 1.5, v0 + 1.0, 4.6), "b": Vector3(u0 + 7.5, v0 + 1.0, 3.3), "c": Vector3(u0 + 13.5, v0 + 1.0, 4.6),
-			"d": Vector3(u0 + 4.5, v0 + 4.8, 3.4), "e": Vector3(u0 + 10.5, v0 + 4.8, 3.6), "f": Vector3(u0 + 1.5, v0 + 8.2, 3.3),
-			"g": Vector3(u0 + 7.5, v0 + 8.2, 4.4), "h": Vector3(u0 + 13.5, v0 + 8.2, 3.3)}
+	var y := tg + 0.3
+	var deck := Color("#cfae80")
+	# Deck A at the end face, deck B along the river face: the same height, side by side.
+	_lbox(-hu - 4.2, 3.5, 3.8, hv + 2.5, tg - 0.4, y, BBC_TIMBER_DARK, M_STONE, deck)
+	_lbox(-hu + 5.8, hv + 3.2, 6.2, 2.8, tg - 0.4, y, BBC_TIMBER_DARK, M_STONE, deck)
+	# Café sets: three columns by three rows on the end deck (the door's row left clear), five on the river deck.
+	for cu: float in [-hu - 2.2, -hu - 4.7, -hu - 7.0]:
+		for cv: float in [-5.0, 0.0, 5.0]:
+			if cv == 0.0 and cu > -hu - 3.0:
+				continue
+			_bbc_cafe_set(cu, cv, y)
+	for k in 5:
+		_bbc_cafe_set(-hu + 1.5 + 2.3 * float(k), hv + 3.0, y)
+	# Tall dark poles with LED bars hung on wires between them (M_LAMP bars, cool white).
+	var pole_h := 3.6
+	var pu: Array = [-hu - 7.7, -hu - 3.4]
+	var pv: Array = [-7.0, -2.5, 2.5, 7.0]
+	var tops := {}
+	for iu in 2:
+		for iv in 4:
+			tops[Vector2i(iu, iv)] = _barge_post(pu[iu], pv[iv], y, pole_h)
+	var led := Color(0.85, 0.95, 1.0)
+	for iu in 2:
+		for iv in 4:
+			var p0: Vector3 = tops[Vector2i(iu, iv)]
+			if iv < 3:
+				var p1: Vector3 = tops[Vector2i(iu, iv + 1)]
+				_beam(p0, p1, 0.02, BARGE_POST, false)
+				_lbox(pu[iu], (pv[iv] + pv[iv + 1]) * 0.5, 0.04, 1.2, y + pole_h - 0.35, y + pole_h - 0.27, led, M_LAMP)
+				_bbc_drops(pu[iu], (pv[iv] + pv[iv + 1]) * 0.5 - 1.1, pu[iu], (pv[iv] + pv[iv + 1]) * 0.5 + 1.1, y + pole_h)
+			if iu == 0:
+				var p2: Vector3 = tops[Vector2i(1, iv)]
+				_beam(p0, p2, 0.02, BARGE_POST, false)
+				_lbox((pu[0] + pu[1]) * 0.5, pv[iv], 1.2, 0.04, y + pole_h - 0.35, y + pole_h - 0.27, led, M_LAMP)
+				_bbc_drops((pu[0] + pu[1]) * 0.5 - 1.1, pv[iv], (pu[0] + pu[1]) * 0.5 + 1.1, pv[iv], y + pole_h)
+	# Two or three low sails on the river deck's masts.
+	var pts := {"a": Vector3(-hu + 2.0, hv + 1.0, 3.0), "b": Vector3(-hu + 6.2, hv + 1.0, 2.4), "c": Vector3(-hu + 10.4, hv + 1.0, 3.0),
+			"d": Vector3(-hu + 4.0, hv + 5.2, 2.6), "e": Vector3(-hu + 8.4, hv + 5.2, 2.6)}
 	var world := {}
 	for k: String in pts:
 		var m: Vector3 = pts[k]
 		var w := _w(m.x, m.y)
 		world[k] = Vector3(w.x, y + m.z, w.y)
 		_prism(_rect(m.x, m.y, 0.05, 0.05), y, y + m.z, BARGE_POST, BARGE_POST, M_STONE, M_STONE)
-	_mode = M_STONE
-	for s: String in ["abd", "bce", "bde", "dgf", "egh", "deg"]:
+	for s: String in ["abd", "bce", "bde"]:
 		_bbc_tri(world[s[0]], world[s[1]], world[s[2]], BBC_SAIL)
-	# Tables under the sails, a chalk board by the pavilion wall, bulbs along the sails' edge.
-	var k := 0
-	for tv: float in [v0 + 2.9, v0 + 6.6]:
-		for tu: float in [u0 + 3.0, u0 + 7.5, u0 + 12.0]:
-			_bbc_set(tu, tv, y, PAL_TIMBER, BBC_CHAIR if k % 2 == 0 else Color("#7fb2c9"))
-			k += 1
-	_lbox(u0 + 15.4, v0 + 0.5, 0.45, 0.06, y, y + 1.0, Color("#26282a"), M_STONE, Color("#26282a"))
-	_barge_festoon(world["a"], world["c"], 0.5, 6)
-	_barge_festoon(world["f"], world["h"], 0.5, 6)
+	# The bar: a small timber counter with a slatted back at the end deck's river corner, a chalk board.
+	_barge_bar(-hu - 5.5, hv + 4.8, 1.8, 0.45, y, Color("#a37a52"))
+	_lbox(-hu - 5.5, hv + 5.4, 1.8, 0.06, y, y + 2.2, Color("#7a583a"))
+	_lbox(-hu - 0.9, -3.6, 0.45, 0.06, y, y + 1.0, Color("#26282a"), M_STONE, Color("#26282a"))
 	# PALOMKA on a short post at the terrace's south-east edge, facing the camera.
-	var post := _barge_post(u0 + 0.2, (v0 + v1) * 0.5, y, 3.0)
+	var post := _barge_post(-hu - 7.9, hv + 2.0, y, 3.0)
 	var nrm := Vector3(-_a.x, 0.0, -_a.y)
 	signs.append(["PALOMKA", post + Vector3(0.0, 0.05, 0.0), nrm, 0.4, Color(1.0, 0.92, 0.7)])
 

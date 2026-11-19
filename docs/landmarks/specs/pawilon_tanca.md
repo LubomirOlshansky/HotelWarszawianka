@@ -11,12 +11,10 @@ check is open (QUESTIONS): the real murals' motifs, which end the entrance is at
 
 ## 1. Identity
 
-A long white box on the upper promenade with big swirl murals in pink, yellow, blue, green and
-purple on both long sides; TANIEC in big pink letters over the entrances, lit at night; at the
-south-east river-side corner PALOMKA, a small timber terrace under white triangular sails with
-tables and bulbs; a row of dark container kiosks (GOFRY, LODY, PIWO, ZAPIEKANKI, KAWA among the
+A long white box on the upper promenade with thin calligraphic line murals (F's photos, fix round 1: a red-teal starfish with a teal wire globe, red cones, springs, a black flower); MUZEUM in big plain letters on a thin steel frame on the roof, white by day, lit cool white-blue at night; at the
+south-east river-side corner PALOMKA, a raised light-timber terrace at the end face with white metal chairs and small tables, LED bars on wires between dark poles and two or three low sails, a small timber bar; a row of dark container kiosks (GOFRY, LODY, PIWO, ZAPIEKANKI, KAWA among the
 mapped LEMONIADA ones) in front along the boulevard, each with a lit hatch. Parody names only
-(PALOMKA for Paloma); TANIEC is the institution's own word, a dance, not a brand.
+(PALOMKA for Paloma); The roof sign says only MUZEUM (F's correction); the card keeps the name.
 
 ## 2. Massing
 
@@ -56,12 +54,12 @@ M_PAVILION, M_LAMP): no new material, no new draw call. The kiosks: dark paint `
 
 Everything stands on the lowest ground under its box; the terrace deck on the highest under its
 corners. Car collision round the pavilion's box and the kiosks. At night the glazed bays glow, the
-TANIEC letters light, the hatches glow, the kiosk words and PALOMKA burn in neon and the sails'
+MUZEUM letters light, the hatches glow, the kiosk words and PALOMKA burn in neon and the sails'
 bulbs light (M_LAMP).
 
 ## 7. Detail level and budget
 
-L2, triangle budget 1800 for the site `pawilon_tanca` (built 1428); `bulwary_bary` goes from 1760 to 2800
+L2, triangle budget 3300 for the site `pawilon_tanca`, an exception to L2's 3000 (one site, three line-mural faces, 13 cafe sets; built 2724); `bulwary_bary` goes from 1760 to 2800
 (2282 with the five extra kiosks, +820). Both budgets are entries of `check_mesh_quality.gd`.
 
 ## 8. Parts table
@@ -70,10 +68,10 @@ L2, triangle budget 1800 for the site `pawilon_tanca` (built 1428); `bulwary_bar
 | --- | --- | --- | --- | --- | --- |
 | body | box + plinth band + parapet | 56.6 x 19.8 x 8 m | the outline's box | white plaster, pale roof | the long white box |
 | units | five boxes + two skylights | 1.2 to 3 m | on the roof | grey metal, glass | the small units on the roof |
-| murals | five ribbons + a disc each, three panels | 15 to 17 m x 5.8 m | both long faces | `BBC_SWIRL` | the swirl murals |
-| bays | glass quads + iron mullions + canopy | 12 to 14 m x 3.5 m | river face | M_PAVILION | the glazed entrance and Palomka's front |
-| lettering | font pixels as lit faces | 0.45 m pixels, ~16 m wide | both long faces, top at 7.7 m | M_LAMP pink | the TANIEC sign |
-| terrace | timber deck | 18 x 9 x 0.18 m | the south-east river corner | timber | Palomka's terrace |
-| sails | eight masts, six two-sided triangles | 3.3 to 4.6 m | over the terrace | white | the white triangular sails |
-| tables | table + two benches | 2 x 3 | under the sails | timber, cushions | the café tables |
+| murals | thin line quads 0.09 to 0.16 m, ten depths 3 to 22 cm proud | three faces, 3.4 to 7.3 m up | both long faces and the end face | red, teal, blue, black paint | the line murals |
+| bays | glass quads + iron mullions + canopy | 12 to 14 m x 3.5 m | river face | M_PAVILION | the glazed door and the café windows |
+| lettering | font pixels as lit faces on a thin steel frame | 0.34 m pixels, 2.4 m tall, ~12 m wide | on the roof, over the long face the camera sees | M_LAMP cool white | the MUZEUM sign |
+| terrace | raised light-timber deck | 7.6 x 15 m end deck and 12.4 x 5.6 m river deck, 0.3 m | the end face and the river face's first 12 m | timber | Palomka's terrace |
+| sails and LED bars | five masts, three two-sided triangles; eight 3.6 m poles, ten wires with lit bars | 2.4 to 3 m | over the terrace | white, M_LAMP | the low sails and the hung LED bars |
+| tables | white table + two chairs | 13 sets | the terrace | white metal | the café tables |
 | kiosks | container + hatch + flap + counter + chairs + neon word | 8 x 2.6 x 2.6 m | five, along the boulevard | dark paint, M_LAMP | the dark kiosk row |

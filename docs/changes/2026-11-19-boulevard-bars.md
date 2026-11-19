@@ -1,4 +1,4 @@
-- The Vistula boulevards get their bars: the white Pawilon Tańca with its swirl murals, the TANIEC letters and Palomka's white sails, a row of dark kiosks selling waffles, ice cream and beer, five new bar barges on the water (a long sand-deck one in front of the pavilion, Zanurzenie, Wirek, Kalmar and Barkas), the terrace of Zachodni Brzeżek and three beach bars on the sand under Most Poniatowskiego.
+- The Vistula boulevards get their bars: the white Pawilon (the museum on the boulevard) with its line murals, the MUZEUM letters on the roof and Palomka's terrace of white chairs and light bars, a row of black and timber kiosks selling waffles, ice cream and beer, five new bar barges on the water (a long sand-deck one in front of the pavilion, Zanurzenie, Wirek, Kalmar and Barkas), the terrace of Zachodni Brzeżek and three beach bars on the sand under Most Poniatowskiego.
 
 ## Backlog
 - found: the inventory pins Zachodni Brzeg on "the ground floor of The Tides", but no outline stands at that pin; the bar is dressed on the rowing club's glass block, the nearest real wall (a Mac look check settles the building)

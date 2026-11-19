@@ -282,7 +282,7 @@ const BUDGET := {
 	"bulwary_pomosty": 1450,
 	"bulwary_basen": 700,
 	# The boulevards, phase C (2026-11-19, specs pawilon_tanca.md, zachodni_brzezek.md, barki_bary.md).
-	"pawilon_tanca": 1800,  # the white dance pavilion, its murals and TANIEC, Palomka's sails (1428 measured)
+	"pawilon_tanca": 3300,  # the white MUZEUM pavilion, thin-line murals, Palomka's terrace (F's photos, fix round 1)
 	"zachodni_brzezek": 2500,  # the grey ground floor, white letters, glass rail, the deck with palms (2016 measured)
 	"barka_nowa_falka": 3700,  # the 70 m sand-deck barge with its long dark hall, one site (3060 measured)
 	"barka_zanurzenie": 950,
