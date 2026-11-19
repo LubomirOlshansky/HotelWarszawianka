@@ -1185,7 +1185,13 @@ func _legend_rect(rows: Array[Dictionary]) -> Rect2:
 
 func _legend_marks(rows: Array[Dictionary]) -> void:
 	var box := _legend_rect(rows)
-	hud._tri_rect(box, Color(0.98, 0.96, 0.9, 0.88))  # a light plate (F 2026-11-19)
+	hud._tri_rect(box, Color(0.07, 0.06, 0.1, 0.94))  # the dark card (F 2026-11-19: dark cards everywhere)
+	var edge := Color(1, 1, 1, 0.16)
+	var ew := maxf(1.0, pt)
+	hud._tri_rect(Rect2(box.position, Vector2(box.size.x, ew)), edge)
+	hud._tri_rect(Rect2(box.position + Vector2(0, box.size.y - ew), Vector2(box.size.x, ew)), edge)
+	hud._tri_rect(Rect2(box.position, Vector2(ew, box.size.y)), edge)
+	hud._tri_rect(Rect2(box.position + Vector2(box.size.x - ew, 0), Vector2(ew, box.size.y)), edge)
 	for i in rows.size():
 		var at := box.position + Vector2(17.0 * pt, 6.0 * pt + (i + 0.5) * LEGEND_ROW * pt)
 		match str(rows[i]["kind"]):
@@ -1215,7 +1221,7 @@ func _legend_text(o: Control, font: Font, rows: Array[Dictionary]) -> void:
 	for i in rows.size():
 		var t := Lang.pick(str(rows[i]["words"][0]), str(rows[i]["words"][1]))
 		var y := box.position.y + 6.0 * pt + (i + 0.5) * LEGEND_ROW * pt + fs * 0.35
-		var col := Color("#8a5a00") if str(rows[i]["kind"]) == "hold" else Color("#1a1622")
+		var col := Color("#ffd23f") if str(rows[i]["kind"]) == "hold" else Color("#fbf7ee")
 		o.draw_string(font, Vector2(box.position.x + 32.0 * pt, y), t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
 
