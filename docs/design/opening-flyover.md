@@ -65,6 +65,10 @@ has its own stage. Her pauses in the recording are at 1.6, 5.0 and 9.3 s.
 - **Only the phone can show** whether the first frame with the sunrise's shadows (or the first
   night frame's neon) hitches, and how the 12 s feel with the voice.
 
+## Loading before the flight (F, 2026-11-19)
+
+F saw models not loaded at the flight's start. The morning's first key (520 m) showed about 9-10 sectors, the title waited for the 4 within 320 m of the start. Now `main.gd` `_preload_opening` asks the streamer (`expect_shot`) for every sector of eleven views along the flight (`CameraShots.open_samples`) when the title's wait starts, so "tap to drive" appears once they are all in (the 8 s limit applies as before). The first key is 100 m up and 400 m, near the old flight's.
+
 ## The design (2026-10-31, before the morning)
 
 | Time | What happens |

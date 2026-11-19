@@ -837,7 +837,7 @@ func _ready() -> void:
 		_new_game_pending = false
 		# The loading fix: "tap to drive" once the sectors round the start are in (_title_frame).
 		_title_wait_t = Time.get_ticks_msec()
-		_title_pending = streamer.pending() if streamer != null else 0
+		_title_pending = CameraShots.preload_opening(streamer, _opening_due(), get_viewport().get_visible_rect().size, car.global_position.y, cam_yaw, cam.global_transform, _view_size)
 	else:
 		radio.now_playing()
 		_fallback_toast()

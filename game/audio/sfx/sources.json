@@ -48,5 +48,10 @@
 		"added": "2026-11-19",
 		"from": "ElevenLabs Sound Effects v2",
 		"prompt": "Modern city tram rolling steadily along street rails, soft electric motor whine, steel wheels on rails with rhythmic clicks over rail joints, constant, no bell, no voices"
+	},
+	"tyre_squeal": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "One long unbroken tyre squeal at a constant level and constant pitch, rubber screeching on dry asphalt during a long steady drift, sustained the whole time with no gaps, no start or stop, no engine, no crash, no voices"
 	}
 }
