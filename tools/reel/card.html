@@ -16,11 +16,12 @@
 html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
 #stage { position: relative; overflow: hidden; }
 #stage > canvas, #stage > svg { position: absolute; left: 0; top: 0; display: block; }
-.plate { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+.plate { position: absolute; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 22px;
   background: rgba(20, 5, 46, 0.84); border: 3px solid #7ff6ff; border-radius: 4px; font-family: "Title Sans", sans-serif; }
-.plate small { font-weight: 600; font-size: 25px; color: #ffb3e6; letter-spacing: 0.02em; }
-.plate b { font-weight: 800; font-size: 38px; color: #7ff6ff; letter-spacing: 0.01em; }
-.plate.android b { color: #ffd23f; }
+.plate b { font-weight: 800; font-size: 52px; color: #7ff6ff; letter-spacing: 0.02em; }
+.plate.android b { color: #a4e86b; }
+.plate.ios svg { width: 40px; height: 64px; }
+.plate.android svg { width: 78px; height: 49px; }
 </style>
 </head>
 <body>
@@ -28,8 +29,10 @@ html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
   <canvas id="gl"></canvas>
   <canvas id="palm"></canvas>
   <svg id="text" xmlns="http://www.w3.org/2000/svg"></svg>
-  <div class="plate ios" id="ios"><small>iPhone · open beta</small><b>TestFlight</b></div>
-  <div class="plate android" id="android"><small>Android · open testing</small><b>Google Play</b></div>
+  <!-- F 2026-11-19: just the platforms, an icon each. iOS: a plain iPhone outline (Apple's logo is not
+       for third-party art); Android: the Android robot's head (Google, CC BY 3.0). -->
+  <div class="plate ios" id="ios"><svg viewBox="0 0 40 64"><rect x="3" y="2" width="34" height="60" rx="8" fill="none" stroke="#7ff6ff" stroke-width="4"/><rect x="14" y="6" width="12" height="3" rx="1.5" fill="#7ff6ff"/><rect x="13" y="54" width="14" height="3" rx="1.5" fill="#7ff6ff"/></svg><b>iOS</b></div>
+  <div class="plate android" id="android"><svg viewBox="0 0 64 40"><path d="M6 38 A26 26 0 0 1 58 38 Z" fill="#a4e86b"/><line x1="16" y1="8" x2="10" y2="1" stroke="#a4e86b" stroke-width="3" stroke-linecap="round"/><line x1="48" y1="8" x2="54" y2="1" stroke="#a4e86b" stroke-width="3" stroke-linecap="round"/><circle cx="21" cy="25" r="3" fill="#14052e"/><circle cx="43" cy="25" r="3" fill="#14052e"/></svg><b>Android</b></div>
 </div>
 <script>
 const P = new URLSearchParams(location.search);
@@ -259,11 +262,11 @@ function layout() {
     parts.tag.textContent = "STAY TUNED";
     parts.sub = line("Drive, fly and discover the real Warsaw", W / 2, H * 0.348, W * 0.037, "#7ff6ff", 600);
     parts.sub.setAttribute("letter-spacing", 0); parts.sub.textContent = "Drive, fly and discover the real Warsaw";
-    const bw = 420, bh = 124, gap = 26, y = H * 0.69;
+    const bw = 380, bh = 124, gap = 34, y = H * 0.69;
     for (const [b, x] of [[ios, W / 2 - gap / 2 - bw], [android, W / 2 + gap / 2]]) {
       b.style.left = x + "px"; b.style.top = y + "px"; b.style.width = bw + "px"; b.style.height = bh + "px";
     }
-    android.style.borderColor = "#ff4fb0";
+    android.style.borderColor = "#a4e86b";
   } else {
     ios.remove(); android.remove();
     if (MODE === "square") parts.mark = wordmark(["AROUND", "WARSAW"], W / 2, H * 0.08, W * 0.15);

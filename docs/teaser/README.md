@@ -24,7 +24,10 @@ helicopter low over the Vistula at dawn).
 ## Shots (tools/clip.sh, skill shoot-video)
 
 ```zsh
-Q="--nohud --no-touch --no-ghost --quality=experimental"
+# Portrait needs --lines = the video height: the style draws a fixed line count (Sharp 480), so
+# 1080x1920 without it is a 270x480 image blown up 4x (F, 2026-11-19: "why the quality so bad?").
+# zsh: flags in an array, a string is not split.
+Q=(--nohud --no-touch --no-ghost --quality=experimental --lines=1920)
 tools/clip.sh hook    1080x1920 3 -- --at=-1113,-263 --heading=160 --demo --time=night --weather=rain --pitch=-24 --size=34 $Q
 tools/clip.sh bridge  1080x1920 3 -- --at=560,-770 --heading=52 --demo --time=dusk --pitch=-28 --size=60 $Q
 tools/clip.sh skyline 1080x1920 3 -- --heli --at=-1180,-60 --heli-stick=0,1 --heli-alt=120 --time=live --clock=18:15 --date=20260915 --palace-lights=gold --pitch=-38 --size=260 --sectors=all $Q
@@ -51,3 +54,11 @@ SHOTS="hook:0.4 bridge:1.2 stadium:0.5" docs/teaser/cut.sh ...   # another pick,
 
 `music-5s.m4a` is 29.0-34.0 s of the beta trailer's music take 4 (original, made for the game;
 CC BY-NC like the game's other sound), faded out over its last 0.5 s.
+
+## F's notes on the first draft (2026-11-19)
+
+- 7 s, five one-second shots, then the 2 s card (`music-7s.m4a` until the ElevenLabs track).
+- Open on the car gliding past the palm at Rondo de Gaulle'a; no Marszałkowska hook.
+- No bridge shot until the bridge rework from another thread lands.
+- The card shows the platforms only: iOS and Android icons, no "open beta" words.
+- New order: palm, skyline (the Palace, golden), wola (dusk), hook2 (Rondo Dmowskiego, night rain), stadium (night).

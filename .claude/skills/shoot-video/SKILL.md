@@ -29,11 +29,13 @@ rendered by Chromium; F chose that look on 2026-11-19 over a separate synthwave 
 
 ```zsh
 tools/clip.sh NAME WxH SECONDS [--fps=30] [--skip=4] [--preview] -- GAME FLAGS
-tools/clip.sh bridge 1080x1920 3 -- --at=560,-770 --heading=52 --demo --time=dusk --pitch=-28 --size=60 --nohud --no-touch --quality=experimental
+tools/clip.sh bridge 1080x1920 3 -- --at=560,-770 --heading=52 --demo --time=dusk --pitch=-28 --size=60 --nohud --no-touch --quality=experimental --lines=1920
 ```
 
 Out: `build/clips/NAME.mp4` (CRF 14 master, no audio), `NAME-sheet.png` (8 frames), `NAME.log`.
-SECONDS and --skip are whole seconds. `--preview` renders at half size and High for framing rounds.
+SECONDS and --skip are whole seconds. **Always pass `--lines=` equal to the video height** (`--lines=1920` for
+Reels): the style draws a fixed line count (Sharp 480), so a tall frame without it is blown-up blocks.
+Use a flag ARRAY in zsh (`Q=(--nohud ...)`), never a string, or the flags are silently dropped. `--preview` renders at half size and High for framing rounds.
 
 Flags that make shots (full table: `grep '^| \`--' docs/archive/DEVELOPMENT-full.md`):
 `--at=X,Z --heading=DEG` place the car (x east, z south, heading clockwise from north);
