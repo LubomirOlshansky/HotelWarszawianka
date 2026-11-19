@@ -78,3 +78,20 @@ SIZE=1920x1080 SHOTS="heroH:1:7" docs/teaser2/cut.sh build/clips build/reel/art-
 Second remix (21:55 UTC, the 5 s dip measured on the Mac): a slow compressor on the music and a gentle
 one on the bed instead of dynaudnorm; the bed stays within ~1.5 dB (0.5 s steps) over the whole loop,
 -19.5 LUFS, the rain 8 dB under the music. cut.sh: empty-array fix for macOS bash 3.2.
+
+## Teaser 3: night Reels without rain (F 2026-11-19 22:53 UTC)
+
+F: the same technique as the vapor1 cut, at night, no rain, light city sound and the music; Plac
+Zamkowy with the pigeons flying up, the Palace of Culture, and the bridge with the stadium.
+Sound: `NORAIN=1 docs/teaser2/mix.sh vapor1.mp3 0 ambience-7s-vapor1-dry.m4a`.
+
+```zsh
+Q=(--nohud --no-touch --no-ghost --quality=ultra --lines=1920 --governor=off --time=night --clock=22:00 --date=20261120 --weather=clear --traffic=low --sectors=all)
+tools/clip.sh zamek 1080x1920 12 -- --cam=-713,-1480 --yaw=0 --pitch=-30 --size=185 --pigeons-at=6.7 $Q   # 4 s lead-in counts: the burst lands ~2.5 s into the cut
+tools/clip.sh palac 1080x1920 12 -- --cam=-1150,330 --yaw=270 --pitch=-26 --size=540 $Q
+tools/clip.sh most 1080x1920 12 -- --cam=1270,-560 --yaw=-25 --pitch=-28 --size=760 $Q
+SHOTS="zamek:1:7" AMBIENCE=ambience-7s-vapor1-dry.m4a docs/teaser2/cut.sh build/clips build/reel/art build/reel/teaser3-zamek.mp4
+```
+
+First cut's notes: the pigeons are tiny at size 185 (a closer re-shoot reads better); the Palace frame
+has the round glass building in front, not behind; `most` has a dark car park and river.
