@@ -788,6 +788,20 @@ came with step 3's route planner.
   push is all in the corners, where the car still has grip to give (`race_corner`). The effort
   moves at most 0.05 a second. So a rival's whole time moves by about a tenth at most whatever
   the player does, nobody waits, and nobody lifts off before the finish.
+- **Catch-up** (F 2026-11-19, `race_session.gd` `CATCH_*`, traffic.gd `boosted`). F's phone
+  check of build 12: a player who drives flat out leaves every rival behind, and F wants it
+  "more hardcore": rivals should speed up, even past 100 to 150 km/h, to stay on the tail. F
+  chose catch-up for every rival on a decision card. So this one knob does follow the player,
+  against the rule of this section: a rival more than 0.5 s behind drives faster on a straight,
+  rising to `catch` times its speed there (1.6; Halina's gentle day 1.45) from 2.5 s behind, past
+  the road's racing speed and the car's own top, up to 42 m/s (151 km/h). It comes on within
+  about a second and goes as fast once the rival is back within 0.5 s, so it closes the gap to the
+  player's tail (on the bench a flat-out player keeps Halina 1.5 to 2 s behind on her rung,
+  about 4 s in the guided first race, where she was 10 to 18 s behind before) but never passes by itself: from there the rival drives its own skill, and a
+  player who keeps driving clean still wins. No boost to its grip (corners) or through traffic.
+  An easier rematch takes three times its ease off the boost. The start changed the same day:
+  no 3, 2, 1, only START!, and the player's car waits on the line with the rival until then
+  (`rivals.gd` `hold_car`, `GO_AFTER`).
 - **Fair out of sight** (step 3, `traffic.gd` `AWAY_*`). The town's cars exist only round the
   view, so a racer beyond them pays the delay its streets would have cost, as ground not covered
   ([5.1](#51-step-3-as-built-the-plan-the-way-round-the-towns-traffic)). A rival the player

@@ -648,6 +648,7 @@ class ToyRacer:
 	var race_lat := 0.0
 	var race_effort := 1.0
 	var race_corner := 1.0
+	var race_boost := 1.0
 	var race_still := 0.0
 	var race_passes := 0
 	var cuts := {}
@@ -797,6 +798,24 @@ func _effort() -> void:
 	_expect(is_equal_approx(room.race_effort, RaceSession.EFFORT_PUSH) and room.race_effort * room.race_share <= 1.0001 and is_equal_approx(room.race_corner, RaceSession.EFFORT_PUSH),
 			"far behind, a rival with room under the car's top pushes on the straights too: %.3f of the car's top" % (room.race_effort * room.race_share))
 	_expect(is_equal_approx(toy.race_mistake, 0.1 * RaceSession.PUSH_MISTAKES), "pushing: PUSH_MISTAKES times the mistakes: %.3f" % toy.race_mistake)
+	# Catch-up (F 2026-11-19): far behind, past the car's top up to its `catch`; never by itself past.
+	_expect(is_equal_approx(toy.race_boost, 1.0), "pace_tick with no catch-up asked: no boost (%.2f)" % toy.race_boost)
+	var chase := ToyRacer.new()
+	RaceSession.arm_racer(chase, RaceSession.race_stats(5, false, 0.0), Ladder.pace(5), 30.0, {}, 1)
+	var chase_pace := RaceSession.Pace.new()
+	for i in 200:
+		RaceSession.pace_tick(chase_pace, chase, 0.1, 2000.0, 1000.0, RaceSession.catch_of(Ladder.racer(5)))
+	_expect(is_equal_approx(chase.race_boost, RaceSession.CATCH_MAX) and is_equal_approx(chase.race_corner, RaceSession.EFFORT_PUSH),
+			"far behind, a rival speeds up to CATCH_MAX on the straights (%.2f), not in its grip (%.2f)" % [chase.race_boost, chase.race_corner])
+	_expect(is_equal_approx(Traffic.boosted(chase, 30.0), RaceSession.CATCH_TOP) and is_equal_approx(Traffic.boosted(chase, 20.0), 20.0 * RaceSession.CATCH_MAX) and Traffic.boosted(chase, 50.0) == 50.0,
+			"the boost goes past the car's top up to CATCH_TOP only: %.1f, %.1f, %.1f" % [Traffic.boosted(chase, 30.0), Traffic.boosted(chase, 20.0), Traffic.boosted(chase, 50.0)])
+	for i in 200:
+		RaceSession.pace_tick(chase_pace, chase, 0.1, 1000.0 + RaceSession.own_pace(chase.race_top, chase.race_share) * RaceSession.CATCH_FROM * 0.9, 1000.0, RaceSession.catch_of(Ladder.racer(5)))
+	_expect(is_equal_approx(chase.race_boost, 1.0), "on the player's tail (within CATCH_FROM s) the boost is gone: %.2f" % chase.race_boost)
+	_expect(RaceSession.boost_of(0.0, RaceSession.CATCH_MAX) == 1.0 and RaceSession.boost_of(5.0, RaceSession.CATCH_MAX) == 1.0, "level or ahead: no boost")
+	_expect(RaceSession.catch_of(Ladder.FIRST_RACER) < RaceSession.CATCH_MAX and RaceSession.catch_of(Ladder.FIRST_RACER) > 1.0,
+			"Halina's gentle day chases, but less: %.2f" % RaceSession.catch_of(Ladder.FIRST_RACER))
+	_expect(RaceSession.catch_of(Ladder.racer(0), 0.1) < RaceSession.catch_of(Ladder.racer(0)), "an easier rematch chases less")
 	pace = RaceSession.Pace.new()
 	for i in 200:
 		RaceSession.pace_tick(pace, toy, 0.1, 1000.0, 2000.0)

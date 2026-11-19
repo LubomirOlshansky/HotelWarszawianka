@@ -607,6 +607,9 @@ class Driver:
 	var race_share := 1.0
 	var race_effort := 1.0
 	var race_corner := 1.0
+	## Catch-up (race_session.gd CATCH_*): over 1 a rival far behind the player drives this many
+	## times its straight's speed, past the road's racing speed and the car's top (RACE_BOOST_TOP).
+	var race_boost := 1.0
 	var pass_t := 0.0
 	var pass_off := 0.0
 	## Racer mode: the seconds it still holds the lane it has just moved to (RACE_LANE_HOLD).
@@ -1475,6 +1478,7 @@ func _crazy_stats(d: Driver) -> void:
 	d.race_mistake = CRAZY_MISTAKE[d.crazy]
 	d.race_effort = 1.0
 	d.race_corner = 1.0
+	d.race_boost = 1.0
 
 
 ## Racer AI step 6b part 3, for the race bench (`crazy` races): a crazy driver of kind `crazy`
@@ -1563,6 +1567,7 @@ func _start(d: Driver, e: int, lane: int, s: float) -> void:
 		d.race_share = 1.0
 		d.race_effort = 1.0
 		d.race_corner = 1.0
+		d.race_boost = 1.0
 		d.cuts = {}
 		d.race_mistake = 0.0
 		d.race_wrong = 0
@@ -2638,7 +2643,7 @@ func _drive(d: Driver, dt: float) -> void:
 		hop_stop = _hop_look(d)
 	var v0 := graph.e_speed[e] * d.speed_factor
 	if racer and d.race_top > 0.0:
-		v0 = minf(d.race_top, RACE_CLASS_TOP[graph.e_class[e]]) * d.race_share * d.race_effort
+		v0 = boosted(d, minf(d.race_top, RACE_CLASS_TOP[graph.e_class[e]]) * d.race_share * d.race_effort)
 		if d.crazy > 0:
 			v0 = minf(v0, graph.e_speed[e] * CRAZY_OVER[d.crazy])
 	if d.v_cap > 0.0:
@@ -2953,7 +2958,7 @@ func _drive(d: Driver, dt: float) -> void:
 		d.stun -= dt
 
 	var ratio := minf(d.v / maxf(v0, 0.1), 2.0)
-	var amax := d.race_accel if racer else ACCEL * d.accel_factor
+	var amax := d.race_accel * d.race_boost if racer else ACCEL * d.accel_factor
 	var a := amax * (1.0 - ratio * ratio * ratio * ratio)
 	if gap < INF:
 		var head := RACE_HEADWAY if racer else HEADWAY
@@ -3677,6 +3682,18 @@ func _on_carriageway(d: Driver, rel: Vector2) -> bool:
 	return lat > minf(a, b) - half and lat < maxf(a, b) + half
 
 
+## Catch-up (race_session.gd CATCH_*): the most a boosted racer drives (m/s; 151 km/h).
+const RACE_BOOST_TOP := 42.0
+
+
+## Catch-up (race_session.gd CATCH_*): racer d's straight speed `v` (m/s) times its boost, up to
+## RACE_BOOST_TOP (never down: a road that is already faster keeps its speed).
+static func boosted(d, v: float) -> float:
+	if d.race_boost <= 1.0:
+		return v
+	return minf(v * d.race_boost, maxf(v, RACE_BOOST_TOP))
+
+
 ## Step 4b: the speed racer d would drive its street at with nobody in its way (m/s).
 func _race_top(d: Driver) -> float:
 	var e := d.edge
@@ -3684,7 +3701,7 @@ func _race_top(d: Driver) -> float:
 		return d.v_cap
 	if d.race_top <= 0.0:
 		return graph.e_speed[e] * d.speed_factor
-	var top := minf(d.race_top, RACE_CLASS_TOP[graph.e_class[e]]) * d.race_share * d.race_effort
+	var top := boosted(d, minf(d.race_top, RACE_CLASS_TOP[graph.e_class[e]]) * d.race_share * d.race_effort)
 	if d.crazy > 0:
 		top = minf(top, graph.e_speed[e] * CRAZY_OVER[d.crazy])
 	return top

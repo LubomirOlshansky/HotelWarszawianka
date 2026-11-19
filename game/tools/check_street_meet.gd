@@ -83,6 +83,7 @@ class Driver extends RefCounted:
 	var race_lat := 0.0
 	var race_effort := 0.0
 	var race_corner := 0.0
+	var race_boost := 1.0
 	var race_still := 0.0
 	var race_passes := 0
 	var race_mistake := 0.0
