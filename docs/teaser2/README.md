@@ -60,3 +60,7 @@ inside their 10 s (the prompt asked for a soft ending) and the per-stem loudnorm
 with `docs/teaser2/mix.sh MUSIC START OUT` (static gains, no loudnorm on the stems): the music levelled
 with dynaudnorm at -25 LUFS, the rain 6 dB under it at -31, the city at -38, the bed at about -17 LUFS;
 the level now stays within ~2 dB until the planned fade at 6.2 s.
+
+F 21:47 UTC: "make the sound loop if the user replays the reel". mix.sh now makes 8 s and cross-fades
+its last second into its first, so the 7 s bed runs end-to-start with no seam; cut.sh no longer fades
+the sound out (FADE=1 for the old fade). The bed is at about -17 LUFS (the rain 6 dB under the music).

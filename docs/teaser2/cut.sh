@@ -16,6 +16,10 @@ clips=${1:?CLIPS_DIR}; art=${2:?ART_DIR}; out=${3:?OUT.mp4}
 FPS=30
 SHOTS=(${SHOTS:-metroF:2:7})
 PUSH=${PUSH:-1.0}
+# F 2026-11-19: the reel replays, so the sound loops (docs/teaser2/mix.sh) and is not faded out;
+# FADE=1 brings back the 0.8 s fade at the end.
+afade=()
+[ "${FADE:-0}" = 1 ] && afade=(-af "afade=t=out:st=$(echo "${SHOTS[0]##*:} - 0.8" | bc):d=0.8")
 
 inputs=(); chains=""; i=0; concat=""; total=0
 for s in "${SHOTS[@]}"; do
@@ -30,7 +34,7 @@ inputs+=(-i "$here/${AMBIENCE:-ambience-7s.m4a}"); au=$i
 chains+="${concat}concat=n=$ov:v=1:a=0,scale=w='trunc(1080*(1+($PUSH-1)*t/$total)/2)*2':h=-2:eval=frame,crop=1080:1920,setsar=1[base];"
 chains+="[base][$ov:v]overlay=0:0:shortest=1,format=yuv420p[v]"
 
-ffmpeg -v error -y "${inputs[@]}" -filter_complex "$chains" -map "[v]" -map "$au:a" -af "afade=t=out:st=$(echo "$total - 0.8" | bc):d=0.8" \
+ffmpeg -v error -y "${inputs[@]}" -filter_complex "$chains" -map "[v]" -map "$au:a" ${afade[@]} \
 	-c:v libx264 -profile:v high -level 4.2 -preset slow -crf 17 -maxrate 14M -bufsize 28M \
 	-pix_fmt yuv420p -r $FPS -g $FPS -c:a aac -b:a 192k -ar 48000 -ac 2 \
 	-movflags +faststart -t "$total" "$out"
