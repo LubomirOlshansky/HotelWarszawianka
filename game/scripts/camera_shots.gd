@@ -58,7 +58,7 @@ const SKIP_GRACE := 0.25
 const OPEN_TIME := 12.0
 const OPEN_KEYS: Array[Dictionary] = [
 	{"at": Vector2(-1214.0, 247.0), "up": 100.0, "size": 400.0, "turn": 135.0, "pitch": -39.0},
-	{"at": Vector2(-1214.0, 247.0), "up": 95.0, "size": 420.0, "turn": 115.0, "pitch": -38.0},
+	{"at": Vector2(-1214.0, 247.0), "up": 95.0, "size": 390.0, "turn": 115.0, "pitch": -38.0},
 	{"at": Vector2(-1095.0, 165.0), "up": 30.0, "size": 230.0, "turn": 40.0, "pitch": -33.0},
 ]
 const CAPTION_IN := 5.4
