@@ -20,8 +20,8 @@ F, 17:33 UTC: not busy, "calm, the vibe of night Warsaw, meditative": the normal
 
 ```zsh
 Q=(--nohud --no-touch --no-ghost --quality=experimental --lines=1920 --governor=off --time=night --weather=rain)
-tools/clip.sh metroA2 1080x1920 6 -- --cam=-840,270 --yaw=0 --pitch=-32 --size=240 $Q   # F picked this view (18:00 UTC): the Rotunda, the metro pavilions and the Patelnia, the stores behind
-# cut: SHOTS="metroA2:0.5:5" docs/teaser2/cut.sh build/clips build/reel/art build/reel/teaser2-1080x1920.mp4
+tools/clip.sh metroF 1080x1920 6 -- --cam=-851,400 --yaw=0 --pitch=-32 --size=280 $Q   # F 19:54 UTC: exactly A2-frame.png, the rondo in the centre, the Rotunda right, the metro left
+# cut: SHOTS="metroF:0.5:5" docs/teaser2/cut.sh build/clips build/reel/art build/reel/teaser2-1080x1920.mp4
 ```
 
 The Mac run's framing fixes replace these lines (the commands that worked are the record).
