@@ -63,11 +63,24 @@ CC BY-NC like the game's other sound), faded out over its last 0.5 s.
 - The card shows the platforms only: iOS and Android icons, no "open beta" words.
 - New order: palm, skyline (the Palace, golden), wola (dusk), hook2 (Rondo Dmowskiego, night rain), stadium (night).
 
+## F's notes on the second draft (2026-11-19, round 3)
+
+- Daytime shots of nice places, each carefully framed; the skyline (golden Palace) stays.
+- The palm: the whole of Rondo de Gaulle'a, no roof in front of it (a steep fixed cam).
+- No Wola dusk, no Rondo Dmowskiego, no stadium. New: `spire` (Warsaw Spire, Plac Europejski),
+  `kopernik` (Kopernik by the Vistula), and last `drive`: the in-game view, the normal follow
+  camera at --size=55, the car going straight down a road.
+- The card's lettering is more stylish: `render.mjs --style=neon` (the default) puts a pink neon
+  script "Around" (Mr Dafoe) over chrome "WARSAW" (Russo One), with Audiowide for the rest.
+  `--style=tail` (Yellowtail + Audiowide), `--style=orbit` (Orbitron) and `--style=open` (the first
+  draft) are kept for comparison. All fonts are OFL, from Google Fonts.
+- No hit sound at the end: `music-7s.m4a` is now take 3 alone, 0-7 s, with its own ending faded out.
+
 ## Music (7 s)
 
 `music-7s.m4a` (F, 2026-11-19: "use 11labs to generate the teaser sound"): ElevenLabs Music
-(eleven_music_v2_5, 4 takes of a 120 bpm synthwave sting, take 3 used for 0-5 s) and an ElevenLabs
-sound effect (eleven_text_to_sound_v3, a synth impact) on the card's hit at 5.0 s with an echo
-tail of the groove, loudness -14 LUFS (Instagram's level). Made on F's ElevenLabs account for
+(eleven_music_v2_5, 4 takes of a 120 bpm synthwave sting, take 3 used for with its own ending
+faded out from 6.3 s (round 3: F did not like the ElevenLabs impact on the card, which is dropped),
+loudness -14 LUFS (Instagram's level). Made on F's ElevenLabs account for
 the game; the raw takes are in the project files (teaser/music). `music-5s.m4a` is the older
 5 s cut from the trailer's take 4.

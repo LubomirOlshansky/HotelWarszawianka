@@ -12,7 +12,7 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 clips=${1:?CLIPS_DIR}; art=${2:?ART_DIR}; out=${3:?OUT.mp4}
 FPS=30
-SHOTS=(${SHOTS:-palm:0.5 skyline:1.0 bridge:0.5 hook2:1.0 stadium:0.5})   # each plays 1.0 s; the card at N s
+SHOTS=(${SHOTS:-palm2:0.5 skyline:1.0 spire:0.5 kopernik:0.5 drive:0.5})   # each plays 1.0 s; the card at N s
 CARD=2.0
 
 inputs=(); chains=""; i=0

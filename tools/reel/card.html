@@ -13,12 +13,17 @@
 <style>
 @font-face { font-family: "Title Sans"; src: url(fonts/opensans-800-latin.woff2) format("woff2"); font-weight: 800; }
 @font-face { font-family: "Title Sans"; src: url(fonts/opensans-600-latin.woff2) format("woff2"); font-weight: 600; }
+@font-face { font-family: "Mr Dafoe"; src: url(fonts/mrdafoe.woff2) format("woff2"); }
+@font-face { font-family: "Yellowtail"; src: url(fonts/yellowtail.woff2) format("woff2"); }
+@font-face { font-family: "Audiowide"; src: url(fonts/audiowide.woff2) format("woff2"); }
+@font-face { font-family: "Russo One"; src: url(fonts/russoone.woff2) format("woff2"); }
+@font-face { font-family: "Orbitron"; src: url(fonts/orbitron.woff2) format("woff2"); font-weight: 900; }
 html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
 #stage { position: relative; overflow: hidden; }
 #stage > canvas, #stage > svg { position: absolute; left: 0; top: 0; display: block; }
 .plate { position: absolute; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 22px;
-  background: rgba(20, 5, 46, 0.84); border: 3px solid #7ff6ff; border-radius: 4px; font-family: "Title Sans", sans-serif; }
-.plate b { font-weight: 800; font-size: 52px; color: #7ff6ff; letter-spacing: 0.02em; }
+  background: rgba(20, 5, 46, 0.84); border: 3px solid #7ff6ff; border-radius: 4px; font-family: var(--ui, "Title Sans"), sans-serif; }
+.plate b { font-weight: var(--ui-weight, 800); font-size: 52px; color: #7ff6ff; letter-spacing: 0.02em; }
 .plate.android b { color: #a4e86b; }
 .plate.ios svg { width: 40px; height: 64px; }
 .plate.android svg { width: 78px; height: 49px; }
@@ -38,6 +43,17 @@ html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
 const P = new URLSearchParams(location.search);
 const MODE = P.get("mode") || "card";   // card | bg | square | wordmark (one line) | wordmark2 (two lines)
 const W = +(P.get("w") || 1080), H = +(P.get("h") || 1920);
+// The lettering (F, 2026-11-19 round 3: "change the fonts to more stylish"): "neon" is the outrun
+// look, a pink neon script over chrome block capitals; "open" is the first draft's Open Sans.
+const STYLES = {
+  open: { block: "Title Sans", weight: 800, ui: "Title Sans", uiWeight: 800 },
+  neon: { script: "Mr Dafoe", block: "Russo One", weight: 400, ui: "Audiowide", uiWeight: 400 },
+  tail: { script: "Yellowtail", block: "Audiowide", weight: 400, ui: "Audiowide", uiWeight: 400 },
+  orbit: { block: "Orbitron", weight: 900, ui: "Orbitron", uiWeight: 900 },
+};
+const ST = STYLES[P.get("style") || "neon"];
+document.documentElement.style.setProperty("--ui", `"${ST.ui}"`);
+document.documentElement.style.setProperty("--ui-weight", ST.uiWeight);
 const TEXT_ONLY = MODE.startsWith("wordmark");
 const stage = document.getElementById("stage");
 stage.style.width = W + "px"; stage.style.height = H + "px";
@@ -248,8 +264,49 @@ function wordmark(lines, cx, y0, fs) {
   });
   return g;
 }
+// The stylish mark: chrome block capitals forced to width w, the neon script word across their top.
+function stylish(cx, y0, w, one = false) {
+  if (!ST.script) {
+    // Two chrome lines in the block face, each forced to width w.
+    const g = el("g", {}), fs = w * 0.2;
+    ["AROUND", "WARSAW"].forEach((word, i) => {
+      const base = y0 + fs * 0.75 + i * fs * 1.12, capTop = base - fs * 0.75;
+      const tr = `translate(${cx} ${base}) skewX(-10) translate(${-cx} ${-base})`;
+      const common = { x: cx, y: base, "text-anchor": "middle", "font-family": ST.block, "font-weight": ST.weight,
+        "font-size": fs, textLength: w, lengthAdjust: "spacingAndGlyphs", transform: tr, "paint-order": "stroke", "stroke-linejoin": "round" };
+      el("text", { ...common, x: cx + fs * 0.05, y: base + fs * 0.07, fill: "#ff2fa0", stroke: "#ff2fa0", "stroke-width": fs * 0.1 }, g).textContent = word;
+      el("text", { ...common, fill: `url(#${chrome(capTop, base)})`, stroke: "#2a0838", "stroke-width": fs * 0.09 }, g).textContent = word;
+    });
+    return g;
+  }
+  const g = el("g", {}), fs = w * 0.235, base = y0 + fs * 1.55, capTop = base - fs * 0.72;
+  const tr = `translate(${cx} ${base}) skewX(-8) translate(${-cx} ${-base})`;
+  const common = { x: cx, y: base, "text-anchor": "middle", "font-family": ST.block, "font-weight": ST.weight,
+    "font-size": fs, textLength: w, lengthAdjust: "spacingAndGlyphs", transform: tr, "paint-order": "stroke", "stroke-linejoin": "round" };
+  el("text", { ...common, x: cx + fs * 0.05, y: base + fs * 0.07, fill: "#ff2fa0", stroke: "#ff2fa0", "stroke-width": fs * 0.1 }, g).textContent = "WARSAW";
+  el("text", { ...common, fill: `url(#${chrome(capTop, base)})`, stroke: "#2a0838", "stroke-width": fs * 0.08 }, g).textContent = "WARSAW";
+  // A horizon glint across the chrome's middle.
+  el("rect", { x: cx - w * 0.5, y: base - fs * 0.37, width: w, height: Math.max(2, fs * 0.012), fill: "#ffffff", opacity: 0.55, transform: tr }, g);
+  // The neon script: a blurred pink glow, a hot pink tube and a white-pink core, tilted up.
+  const id = "glow" + gradN++;
+  const f = el("filter", { id, x: "-20%", y: "-40%", width: "140%", height: "180%" }, defs);
+  el("feGaussianBlur", { stdDeviation: fs * 0.07 }, f);
+  const sfs = fs * 1.05, sx = cx - w * 0.05, sy = capTop - fs * 0.06;
+  const str = `rotate(-8 ${sx} ${sy})`;
+  const sc = { x: sx, y: sy, "text-anchor": "middle", "font-family": ST.script, "font-size": sfs, transform: str,
+    "stroke-linejoin": "round", "stroke-linecap": "round" };
+  el("text", { ...sc, fill: "#ff2fd0", stroke: "#ff2fd0", "stroke-width": sfs * 0.06, filter: `url(#${id})` }, g).textContent = "Around";
+  el("text", { ...sc, fill: "#14053a", stroke: "#14053a", "stroke-width": sfs * 0.09 }, g).textContent = "Around";
+  el("text", { ...sc, fill: "#ff5ee0", stroke: "#ff5ee0", "stroke-width": sfs * 0.035 }, g).textContent = "Around";
+  el("text", { ...sc, fill: "#ffe6fb" }, g).textContent = "Around";
+  return g;
+}
+function mark(cx, y0, w, fsOld, oneLine = false) {
+  if (P.get("style") === "open") return wordmark(oneLine ? ["AROUND WARSAW"] : ["AROUND", "WARSAW"], cx, y0, fsOld);
+  return stylish(cx, y0, w);
+}
 function line(text, cx, y, fs, color, weight = 800) {
-  return el("text", { x: cx, y, "text-anchor": "middle", "font-family": "Title Sans", "font-weight": weight, "font-size": fs,
+  return el("text", { x: cx, y, "text-anchor": "middle", "font-family": ST.ui, "font-weight": ST.ui === "Title Sans" ? weight : ST.uiWeight, "font-size": fs,
     fill: color, stroke: "#14053a", "stroke-width": fs * 0.16, "paint-order": "stroke", "stroke-linejoin": "round", "letter-spacing": fs * 0.06 });
 }
 
@@ -257,7 +314,7 @@ let parts = {};
 function layout() {
   const ios = document.getElementById("ios"), android = document.getElementById("android");
   if (MODE === "card") {
-    parts.mark = wordmark(["AROUND", "WARSAW"], W / 2, H * 0.15, W * 0.165);
+    parts.mark = mark(W / 2, H * 0.135, W * 0.8, W * 0.165);
     parts.tag = line("STAY TUNED", W / 2, H * 0.668, W * 0.085, "#7ff6ff");
     parts.tag.textContent = "STAY TUNED";
     parts.sub = line("Drive, fly and discover the real Warsaw", W / 2, H * 0.348, W * 0.037, "#7ff6ff", 600);
@@ -269,9 +326,9 @@ function layout() {
     android.style.borderColor = "#a4e86b";
   } else {
     ios.remove(); android.remove();
-    if (MODE === "square") parts.mark = wordmark(["AROUND", "WARSAW"], W / 2, H * 0.08, W * 0.15);
-    if (MODE === "wordmark") parts.mark = wordmark(["AROUND WARSAW"], W / 2, H * 0.27, W * 0.078);
-    if (MODE === "wordmark2") parts.mark = wordmark(["AROUND", "WARSAW"], W / 2, H * 0.12, W * 0.18);
+    if (MODE === "square") parts.mark = mark(W / 2, H * 0.08, W * 0.74, W * 0.15);
+    if (MODE === "wordmark") parts.mark = mark(W / 2, H * 0.08, H * 2.3, W * 0.078, true);
+    if (MODE === "wordmark2") parts.mark = mark(W / 2, H * 0.08, W * 0.78, W * 0.18);
   }
 }
 

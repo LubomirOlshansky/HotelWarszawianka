@@ -2,7 +2,8 @@
 // Renders Around Warsaw's synthwave logo, background and the Reels end card from tools/reel/card.html
 // with Playwright's Chromium (no image generator: the art is SVG and CSS in that page).
 //
-//   node tools/reel/render.mjs OUT_DIR                 the stills: logo-wordmark.png and logo-wordmark-stacked.png (transparent),
+//   node tools/reel/render.mjs OUT_DIR [--style=neon|tail|orbit|open]
+//                                                   the stills: logo-wordmark.png and logo-wordmark-stacked.png (transparent),
 //                                                       logo-square-1080.png, background-1080x1920.png,
 //                                                       card-1080x1920.png
 //   node tools/reel/render.mjs OUT_DIR --card-frames=SECONDS [--fps=30]
@@ -31,7 +32,7 @@ const browser = await chromium.launch(launch);
 async function open(mode, w, h) {
 	const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
 	page.on("pageerror", (e) => { console.error(`render.mjs: ${mode}: ${e.message}`); process.exitCode = 1; });
-	await page.goto(`${page_url}?mode=${mode}&w=${w}&h=${h}`);
+	await page.goto(`${page_url}?mode=${mode}&w=${w}&h=${h}&style=${opt("style", "neon")}`);
 	await page.evaluate(() => document.fonts.ready);
 	await page.evaluate(() => window.frame(99));
 	return page;
