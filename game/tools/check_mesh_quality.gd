@@ -169,8 +169,8 @@ const BUDGET := {
 	"grob": 340,
 	"grzybowska63": 500,
 	"gwardii": 1450,
-	"hub_b": 260,  # RD-4: parapet, roof plant, podium skylight
-	"hub_c": 220,  # RD-4: parapet, roof plant
+	"hub_b": 380,  # RD-4: parapet, roof plant, podium skylight; 2026-11-19 the glass crown and the street-front boards
+	"hub_c": 280,  # RD-4: parapet, roof plant; 2026-11-19 the glass crown and the HUB board
 	"ilmet": 400,
 	"jp2_21": 280,
 	"kopernik": 1720,
@@ -337,7 +337,7 @@ const BUDGET := {
 	# the pavilion, the park, the drone port and the gilded crane.
 	"towarowa22": 5600,  # 2026-11-16 the paving now covers the whole plot (6 base rects, no brown earth), 5329 tris
 	# The Warsaw HUB's round-ended hotel tower (the photo report, 2026-11-03).
-	"crowne": 380,
+	"crowne": 2500,  # 2026-11-19 The Roof: rail, deck, lounge, pergola, festoons, sofas, trees
 	# Wola's 19. Dzielnica (F's photos, 2026-11-07): the drug works' building site (four concrete
 	# frames, cores, three cranes, the yard), the Kolejowa estate's 58 mapped parts, Asbud's towers.
 	"noho": 12700,
