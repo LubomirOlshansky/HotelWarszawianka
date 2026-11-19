@@ -20,6 +20,7 @@ extends RefCounted
 ## have shrinks to a point in that shape (Shape.hide()).
 
 const PixelFont := preload("res://scripts/pixel_font.gd")
+const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 
 const PAINT := 0.0
 const FIXED := 1.0
@@ -106,6 +107,7 @@ const AMBULANCE_RED := Color("#d9262c")
 
 static var _material: ShaderMaterial
 static var _glow_material: ShaderMaterial
+static var _umbrella: ArrayMesh
 
 
 ## Loop 2c: the triangles of a model before they become a mesh, flat-shaded, with each
@@ -1302,6 +1304,80 @@ static func tram_mesh(cab: bool, rear := false) -> ArrayMesh:
 
 
 ## A pedestrian 1.75 m tall: trousers (palette), shirt (instance paint), skin, hair.
+## A rain umbrella over a person (F, 2026-11-19, teaser 2: "model the people with umbrellas"):
+## an eight-panel canopy in the instance's shirt colour (PAINT, alternate panels a shade darker,
+## a darker underside) on a dark shaft in the right hand, in person_mesh's space. Drawn by
+## umbrella_twin's MultiMesh from the people's own instance buffer, only while it rains.
+static func umbrella_mesh() -> ArrayMesh:
+	if _umbrella != null:
+		return _umbrella
+	var st := _begin()
+	box(st, Vector3(0.22, 1.66, 0.06), Vector3(0.035, 0.9, 0.035), Color("#1c1c22"), FIXED)
+	var top := Vector3(0.12, 2.24, 0.04)
+	const R := 0.6
+	const RIM := 2.02
+	for k in 8:
+		var a0 := TAU * k / 8.0
+		var a1 := TAU * (k + 1) / 8.0
+		var p0 := Vector3(top.x + cos(a0) * R, RIM, top.z + sin(a0) * R)
+		var p1 := Vector3(top.x + cos(a1) * R, RIM, top.z + sin(a1) * R)
+		var n := (p0 - top).cross(p1 - top).normalized()
+		if n.y < 0.0:
+			n = -n
+		var shade := 1.0 if k % 2 == 0 else 0.82
+		for face in [1.0, -1.0]:
+			var tri: Array[Vector3] = [top, p0, p1]
+			var fn: Vector3 = n * face
+			if (tri[1] - tri[0]).cross(tri[2] - tri[0]).dot(fn) > 0.0:
+				tri = [top, p1, p0]
+			var c := Color(shade, shade, shade) if face > 0.0 else Color(0.45, 0.45, 0.45)
+			for v in tri:
+				st.set_color(c)
+				st.set_normal(fn)
+				st.set_uv(Vector2(PAINT, 0.0))
+				st.add_vertex(v)
+	box(st, top + Vector3(0, 0.05, 0), Vector3(0.04, 0.1, 0.04), Color("#1c1c22"), FIXED)
+	_umbrella = st.commit()
+	return _umbrella
+
+
+## A hidden twin of a people MultiMeshInstance3D (already in the tree) that draws umbrella_mesh
+## from the same instance buffer: send it the buffer the people get and call `rain_sync`. +1 draw
+## call while it rains and people are shown, none otherwise.
+static func umbrella_twin(src: MultiMeshInstance3D) -> MultiMeshInstance3D:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_custom_data = true
+	InstanceBuffers.prepare(mm)
+	mm.mesh = umbrella_mesh()
+	mm.instance_count = src.multimesh.instance_count
+	mm.custom_aabb = src.multimesh.custom_aabb
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = src.name + "Umbrellas"
+	mmi.multimesh = mm
+	mmi.material_override = src.material_override
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	mmi.visible = false
+	src.get_parent().add_child(mmi)
+	return mmi
+
+
+## Keeps an umbrella twin in step with its people: shown when they are and it rains, the same
+## visible count and box. Sends `buf` too when given (whenever the people's buffer is sent, rain or
+## not, so the umbrellas are in place the moment the rain starts).
+static func rain_sync(twin: MultiMeshInstance3D, src: MultiMeshInstance3D, raining: bool, buf := PackedFloat32Array()) -> void:
+	if twin == null:
+		return
+	var on := raining and src.visible and src.is_visible_in_tree()
+	if not buf.is_empty():
+		InstanceBuffers.send(twin.multimesh.get_rid(), buf)
+	twin.multimesh.visible_instance_count = src.multimesh.visible_instance_count
+	twin.multimesh.custom_aabb = src.multimesh.custom_aabb
+	if twin.visible != on:
+		twin.visible = on
+
+
 static func person_mesh() -> ArrayMesh:
 	var st := _begin()
 	for side in [-1.0, 1.0]:

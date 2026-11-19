@@ -1908,6 +1908,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	if flags.train_at != Vector2.INF:
 		trains.place_near(flags.train_at, flags.train_kind)
 	walkers = Pedestrians.new()
+	walkers.weather = weather
 	world.add_child(walkers)
 	await walkers.setup(map, cam, traffic, data)
 	await LoadYield.tick("walkers.setup")
@@ -2672,6 +2673,7 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 	crowds.police = police
 	crowds.sounds = city_sounds
 	crowds.log_on = flags.night_log
+	crowds.weather = weather
 	crowds.amount = _crowd_scale()
 	crowds.meet_on = flags.loud_flag != 0
 	crowds.clock = tod.local_clock

@@ -28,6 +28,8 @@ const SHIRTS := ["#d8432f", "#2f6fb5", "#e0b23a", "#3b8f5a", "#f2efe8", "#7a4fa8
 
 var map: Node3D
 var cam: Camera3D
+## The weather (main.gd's Weather): in the rain everybody carries an umbrella (Models.umbrella_twin).
+var weather: Node
 var traffic: Node3D
 ## Quality (v0.9): at most this many people (High: MAX).
 var limit := MAX
@@ -73,6 +75,9 @@ var _pos := PackedVector3Array()
 var _alive_count := 0
 var _filled := false
 var _mm: MultiMesh
+var _mmi: MultiMeshInstance3D
+## The people's umbrellas (+1 draw call while it rains).
+var _umb: MultiMeshInstance3D
 var _buf := PackedFloat32Array()
 ## Loop MW-4: the guests handed over by take_guests, merged into _buf before the next send.
 var _guest_buf := PackedFloat32Array()
@@ -240,6 +245,8 @@ func setup(map_node: Node3D, camera: Camera3D, traffic_node: Node3D, data: Dicti
 	mmi.material_override = mat
 	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(mmi)
+	_mmi = mmi
+	_umb = Models.umbrella_twin(mmi)
 
 
 ## Loop 10a: nobody walks footway i: it crosses the water at ground level between its ends,
@@ -557,6 +564,7 @@ func _process(dt: float) -> void:
 		_buf.append_array(_stop_buf)
 		_buf.append_array(_scene_buf)
 	InstanceBuffers.send(_mm.get_rid(), _buf)
+	Models.rain_sync(_umb, _mmi, weather != null and float(weather.get("amount")) > 0.2, _buf)
 	last_usec = Time.get_ticks_usec() - t0
 
 

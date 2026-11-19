@@ -561,6 +561,8 @@ var paint: Callable
 var egg: Callable
 ## --crowd=: 0 none (this node isn't built), 1 normal, 2 double; the Low tier halves it.
 var amount := 1.0
+## The weather (main.gd's Weather): in the rain every figure carries an umbrella (Models.umbrella_twin).
+var weather: Node
 ## City-life satire #1: the car meet's crowd (main.gd: off with --loud=0).
 var meet_on := true
 ## --night-log: queues, rejections, the dawn walkers each minute and every event.
@@ -601,6 +603,10 @@ var _still_mat: ShaderMaterial
 var _walk_mat: ShaderMaterial
 var _walk_mm: MultiMesh
 var _walk_mmi: MultiMeshInstance3D
+## The figures' umbrellas: one twin per cell (in `_cells`) and the walkers' (Models.umbrella_twin).
+var _walk_umb: MultiMeshInstance3D
+## Whether it rained at the last frame: a change shows or hides every cell's umbrellas.
+var _wet_was := false
 var _walk_buf := PackedFloat32Array()
 var _walk_box := Rect2()
 ## The footways near the crowds: {pts: PackedVector2Array, dk: int, w: float, k: String}.
@@ -2028,7 +2034,7 @@ func _build_drawing() -> void:
 		var buf := PackedFloat32Array()
 		buf.resize(int(cap[c]) * 16)
 		buf.fill(0.0)
-		_cells[c] = {"mmi": mmi, "mm": mm, "buf": buf, "cap": int(cap[c]), "dirty": false}
+		_cells[c] = {"mmi": mmi, "mm": mm, "buf": buf, "cap": int(cap[c]), "dirty": false, "umb": Models.umbrella_twin(mmi)}
 	var wcap := ceili(maxi(DAWN_MAX, OFFICE_MAX) * maxf(amount, 1.0)) + 4
 	_walk_mm = MultiMesh.new()
 	_walk_mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -2047,6 +2053,7 @@ func _build_drawing() -> void:
 	_walk_mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_walk_mmi.visible = false
 	add_child(_walk_mmi)
+	_walk_umb = Models.umbrella_twin(_walk_mmi)
 
 
 ## Writes one figure into `buf` at instance `i`: standing, sitting (lower and longer) or broad.
@@ -2142,6 +2149,11 @@ func _ground(p: Vector2) -> Vector3:
 	return Vector3(p.x, map.deck_height(-1, p.x, p.y) if map != null else 0.0, p.y)
 
 
+## True while it rains enough for umbrellas (the same line as the pedestrians').
+func _raining() -> bool:
+	return weather != null and float(weather.get("amount")) > 0.2
+
+
 ## Rewrites the cells whose crowds changed: each figure of each active site in the cell.
 func _redraw() -> void:
 	for c: Vector2i in _cells:
@@ -2167,6 +2179,7 @@ func _redraw() -> void:
 			mm.custom_aabb = box.grow(1.0).expand(box.end + Vector3(0, 2.5, 0))
 		mm.visible_instance_count = n
 		(cell["mmi"] as MultiMeshInstance3D).visible = n > 0
+		Models.rain_sync(cell["umb"], cell["mmi"], _raining(), buf if n > 0 else PackedFloat32Array())
 
 
 # --- the logic -----------------------------------------------------------------------------
@@ -2183,6 +2196,11 @@ func _process(dt: float) -> void:
 	var t0 := Time.get_ticks_usec()
 	t += dt
 	_tick_t += dt
+	var wet := _raining()
+	if wet != _wet_was:
+		_wet_was = wet
+		for c: Vector2i in _cells:
+			Models.rain_sync(_cells[c]["umb"], _cells[c]["mmi"], wet)
 	if _route_task >= 0 and WorkerThreadPool.is_task_completed(_route_task):
 		WorkerThreadPool.wait_for_task_completion(_route_task)
 		_route_task = -1
@@ -2929,6 +2947,7 @@ func _move_walkers() -> void:
 	if not box_now.grow(ACTIVE_R).has_point(Vector2(eye.x, eye.z)):
 		if _walk_mmi.visible:
 			_walk_mmi.visible = false
+			Models.rain_sync(_walk_umb, _walk_mmi, false)
 		return
 	var n := mini(walkers.size(), _walk_mm.instance_count)
 	var box := AABB()
@@ -2945,6 +2964,7 @@ func _move_walkers() -> void:
 		InstanceBuffers.send(_walk_mm.get_rid(), _walk_buf)
 		_walk_mm.custom_aabb = box.grow(1.0).expand(box.end + Vector3(0, 2.5, 0))
 	_walk_mmi.visible = n > 0
+	Models.rain_sync(_walk_umb, _walk_mmi, _raining(), _walk_buf if n > 0 else PackedFloat32Array())
 
 
 ## The dawn crowd's routes: A* over the footways and crossings (`paths`: [PackedVector2Array,
