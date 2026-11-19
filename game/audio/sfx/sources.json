@@ -33,5 +33,20 @@
 		"added": "2026-11-12",
 		"from": "ElevenLabs Sound Effects v2 (medium take 2, highs 3 dB down above 5 kHz)",
 		"prompt": "Moderate steady rain on a city street, even continuous patter on pavement, clearly audible but not a downpour, no thunder, no wind, no splashing cars"
+	},
+	"traffic_bus": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "City bus diesel engine driving steadily, deep low rumble and heavy tyre roll, heard from the pavement close by, constant, no brakes, no air hiss, no voices"
+	},
+	"traffic_car": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "Small petrol car cruising steadily at city speed, smooth engine hum and tyre roll on asphalt, heard from close beside it, constant, no passing, no horn, no music"
+	},
+	"traffic_tram": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "Modern city tram rolling steadily along street rails, soft electric motor whine, steel wheels on rails with rhythmic clicks over rail joints, constant, no bell, no voices"
 	}
 }

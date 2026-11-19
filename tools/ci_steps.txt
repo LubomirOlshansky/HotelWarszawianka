@@ -21,6 +21,7 @@ activity             quick
 architecture         quick
 barrierlook          quick
 barrierpaths         smoke
+blockeaves           quick
 boatrace             quick
 boot                 quick
 boot-run             smoke
@@ -213,6 +214,7 @@ tenementtrim         quick
 tiers                quick
 tour-run             local     slow
 trafficbodies        quick
+trafficsounds        quick
 trains               quick
 tramfleet            quick
 tramstops            quick

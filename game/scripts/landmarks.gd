@@ -61,7 +61,8 @@ const TOWERS := [
 	# north end; no real sign up there, so the parody NOSE AGENCY sits on the block's east face.
 	# F's HUB photos (2026-11-06): the fin is bronze-gold (the full-height gold strip under it: BACKLOG).
 	{"key": "skyliner", "osm": "Skyliner", "style": S_MIRROR, "glass": "#2a4560", "roof": "#59636b", "sign": "NOSE AGENCY",
-			"crown_from": 125.0, "crown": "#1e2226", "crown_sign": true, "slope_to": Vector2(1.0, 0.0), "fin": "#c9a24a"},
+			"crown_from": 125.0, "crown": "#1e2226", "crown_sign": true, "slope_to": Vector2(1.0, 0.0), "fin": "#c9a24a",
+			"shops": [["KANTOR", "#ffb81f", 0.25], ["SUSHI", "#ff4a6a", 0.7]], "shops_dir": Vector2(0.0, -1.0)},
 	# Warsaw Unit: dark navy glass between black strips (each corner and the middle of the long
 	# faces), the 22 m black crown block (180-202 m) with the insurer's logo, here WARTKA in red.
 	# RD-1 (2026-11-06, the report and street photos): the shaft tapers from the 27 m base to
@@ -69,21 +70,29 @@ const TOWERS := [
 	# base's lifted wings (9 m up) stand over a glass hall set 6 m in, so the tower's foot reads
 	# as the two-storey gate (`hall`); F's photos (2026-11-06) show the podium blocks clad in a
 	# fine grid of warm grey stone panels, floodlit at night (`podium`, `podium_style`).
+	# The Dragon Skin (F's photos and notes, 2026-11-19): that "stone" is the kinetic skin of loose
+	# aluminium plates over the podium box east of the shaft, crossed by white light slits, lit
+	# salmon pink at night, with a green wall in a recess and the tenant's red name (`scales`: the
+	# plates' colour, building.gdshader S_SCALES; skyline.gd _unit_skin_dress); the shaft's glass
+	# runs down to the ground (`podium` is the tower's glass), and the café on the corner (`shops`).
 	{"key": "unit", "osm": "Warsaw Unit", "style": S_MIRROR, "glass": "#2c4264", "roof": "#8a96a0", "sign": "WARTKA",
 			"crown_from": 168.0, "crown": "#1b1e22", "crown_sign": true, "sign_col": Color(1.0, 0.15, 0.12), "strips": "#20252c",
-			"taper": Vector3(27.0, 168.8, 0.9), "hall": 6.0, "podium": "#cbc1b3", "podium_style": S_TILE},
+			"taper": Vector3(27.0, 168.8, 0.9), "hall": 6.0, "podium": "#2c4264", "podium_style": S_MIRROR,
+			"scales": "#80878e", "shops": [["STARY BAKS", "#2fd18a", 0.35]]},
 	# Mennica Legacy Tower: dark blue glass with vertical silver fins, a flat top (no crown).
 	# RD-2 (2026-11-06): the 13 m ground storeys are an open arcade: the copper-tinted lobby
 	# set 5 m in under the shaft's soffit, the mapped posts as round stainless columns (`arcade`).
 	# F's photos (2026-11-06): the bank's white name high on the faces, here the parody MBĄK.
 	{"key": "mennica", "osm": "Mennica Legacy Tower", "style": S_FINS, "glass": "#3a5474", "roof": "#b5c0c9",
-			"sign": "MBĄK", "sign_col": Color(0.95, 0.97, 1.0), "arcade": 13.0, "lobby": "#8a4a32", "columns": "#c9ced3"},
+			"sign": "MBĄK", "sign_col": Color(0.95, 0.97, 1.0), "arcade": 13.0, "lobby": "#8a4a32", "columns": "#c9ced3",
+			"shops": [["BISTRO", "#ffd27a", 0.3, 5.0], ["LUNCH", "#7fe0ff", 0.7, 5.0]]},
 	# Generation Park Y: dark blue glass in a white grid (white piers every 3 m), a flat roof; 140 m.
 	# RD-3 (2026-11-06): black spandrel patches a bay or two wide every few storeys and the two
 	# dark top storeys (`patches`), and the decked roof terraces of the Z and X wings (`terraces`:
 	# a point in each wing's roof, its deck at the roof's mapped height).
 	{"key": "gpy", "osm": "Generation Park Y", "style": S_GRID, "glass": "#33506f", "roof": "#8d969c",
-			"patches": "#1a1d22", "terraces": [Vector3(-2654.0, 43.9, 268.0), Vector3(-2687.0, 53.8, 286.0), Vector3(-2605.0, 37.3, 300.0)]},
+			"patches": "#1a1d22", "terraces": [Vector3(-2654.0, 43.9, 268.0), Vector3(-2687.0, 53.8, 286.0), Vector3(-2605.0, 37.3, 300.0)],
+			"shops": [["PIEKARNIA", "#ffcf5a", 0.3], ["APTEKA", "#33ff73", 0.75]]},
 	# The Warsaw HUB's two glass towers (unnamed in OpenStreetMap: found by a point, `at`, in
 	# the tallest building there): dark blue glass, flat roofs; B (the south one) stands about
 	# 15 % lower than A in the photos though OSM gives both 130 m.
@@ -91,13 +100,24 @@ const TOWERS := [
 	# roof (`parapet`, `plant`), and the 8 x 12 m glazed skylight on the 10.9 m podium between
 	# the two (`skylight`: its rectangle, the podium's height).
 	{"key": "hub_b", "at": Vector2(-2677.0, 576.0), "style": S_MIRROR, "glass": "#34506e", "roof": "#b8bcbf",
-			"parapet": "#c8ccd0", "plant": Vector2(17.0, 13.0), "skylight": [Rect2(-2678.0, 599.0, 9.0, 12.0), 10.9]},
+			"parapet": "#c8ccd0", "plant": Vector2(17.0, 13.0), "skylight": [Rect2(-2678.0, 599.0, 9.0, 12.0), 10.9],
+			"shops": [["RAMEN", "#ff6a3a", 0.3], ["KAWA", "#ffe2b0", 0.7],
+					["ORAKEL", "#ff3b30", 0.18, 0.0, 7.6, 1.0], ["STANDARD CZARTER", "#3fb4ff", 0.62, 0.0, 7.6, 1.0]],
+			"screen": 4.5},
 	{"key": "hub_c", "at": Vector2(-2677.0, 633.0), "style": S_MIRROR, "glass": "#34506e", "roof": "#b8bcbf", "top": 112.0,
-			"parapet": "#c8ccd0", "plant": Vector2(12.0, 8.0)},
+			"parapet": "#c8ccd0", "plant": Vector2(12.0, 8.0), "screen": 4.5,
+			"shops": [["HUB", "#f2f4f6", 0.5, 0.0, 4.0, 2.4]]},
 	# The HUB's third, round-ended tower is the hotel (85 m): cream fins over narrow windows, a
 	# dark band over the glazed ground floors.
+	# F's photos (2026-11-19): the office towers' glass runs 4.5 m over their roofs under a dark
+	# crown band (`screen`), the tenants' names over the podium's street front (parodies); the
+	# hotel's name twice on its band and The Roof bar on top (`the_roof`, `band_signs`:
+	# [word, colour, facing, height, letter height]).
 	{"key": "crowne", "at": Vector2(-2706.0, 512.0), "style": S_TILE, "glass": "#e8e4da", "roof": "#b8bcbf", "cool": true,
-			"band": "#3a3c40"},
+			"band": "#3a3c40", "the_roof": true,
+			"band_signs": [["KORONA", "#f4f1ea", Vector2(0.0, -1.0), 10.1, 0.8], ["PLAZA", "#f4f1ea", Vector2(0.0, -1.0), 9.0, 0.8],
+					["HOLIDEJ INN", "#7fd35a", Vector2(0.7, -0.7), 9.6, 0.8],
+					["KORONA PLAZA", "#f4f1ea", Vector2(1.0, -0.3), 9.6, 0.8]]},
 	# The Zachodnia offices by the tracks (F, 2026-11-06; street photos from Mapillary and Panoramax,
 	# refs/equator*, refs/brama): Brama Zachodnia is the terracotta tower with a green-glazed ground
 	# floor; Equator a graphite block in ribbon glazing over a perforated-metal car-park screen;
@@ -970,6 +990,25 @@ func keeps_lod2_roof(p: Vector2) -> bool:
 				if Geometry2D.is_point_in_polygon(p, z):
 					return true
 	return false
+
+
+## The walls a kept LoD2 roof meets, for the modelled block that keeps it at p (as
+## keeps_lod2_roof): {"ring": the block's outline, "eaves": one absolute wall-top height per
+## outline edge (NAN where no wall of the model runs along it)}, or empty. From index.json's
+## `eaves` (tools/block_eaves.py) over the block's own ground (_build_block's `_g`), so
+## map_builder can lift a roof that sat a storey down inside its walls (F's shot, 2026-11-19).
+func block_eaves_at(p: Vector2) -> Dictionary:
+	for s in sites:
+		if not s.has("lod2_roof") or not s.has("eaves") or not (s["box"] as Rect2).has_point(p):
+			continue
+		for z: PackedVector2Array in s["zone"]:
+			if Geometry2D.is_point_in_polygon(p, z):
+				var g := _ground_under(s["raw"])
+				var tops := PackedFloat32Array()
+				for e in s["eaves"]:
+					tops.append(g + float(e) if e != null else NAN)
+				return {"ring": s["raw"], "eaves": tops}
+	return {}
 
 
 ## The skin of the kept skin (SKINS) `key`, the same Dictionary `skin_at` returns for its

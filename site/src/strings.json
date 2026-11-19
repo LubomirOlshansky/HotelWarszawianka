@@ -79,21 +79,21 @@
   },
   {
    "id": "wola",
-   "img": "wola-daszynskiego",
+   "img": "wola-rondo-day",
    "w": 1920,
-   "h": 912,
+   "h": 884,
    "side": "right",
    "en": {
     "name": "Wola",
     "line": "Glass towers round Rondo Daszyńskiego. Locals call it Western Mordor.",
     "where": "Rondo Daszyńskiego",
-    "alt": "The glass office towers of Wola round Rondo Daszyńskiego at dusk in the game, lit windows, a tram and traffic below"
+    "alt": "Rondo Daszyńskiego from a helicopter in the game: the round tower with its lettering, the dark navy glass towers of Wola and two slim striped towers round the roundabout"
    },
    "pl": {
     "name": "Wola",
     "line": "Szklane wieże wokół Ronda Daszyńskiego. Tu mówią na to Mordor Zachodni.",
     "where": "Rondo Daszyńskiego",
-    "alt": "Szklane biurowce Woli wokół Ronda Daszyńskiego o zmierzchu w grze, oświetlone okna, tramwaj i ruch w dole"
+    "alt": "Rondo Daszyńskiego z helikoptera w grze: okrągła wieża z napisem, granatowe szklane wieżowce Woli i dwie smukłe wieże w paski wokół ronda"
    }
   }
  ],
