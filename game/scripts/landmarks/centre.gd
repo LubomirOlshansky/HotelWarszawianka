@@ -1909,7 +1909,7 @@ const METRO_TUBES := [
 ## glass on dark blue steel ribs over a 1.1 m beige tiled base, a fan-glazed closed end.
 const METRO_PAVILION := [Vector2(-963.4, 218.1), Vector2(-971.1, 220.7), Vector2(-965.6, 236.8), Vector2(-957.9, 234.2)]
 ## The two little boxes south of it (OSM `service` 3222 and `transportation` 3402, a vent and a
-## kiosk) that F asked to go (2026-11-19, with its fence: city_barriers SITE_WALLS): dropped with the site.
+## kiosk) that F asked to remove (2026-11-19, with its fence: city_barriers SITE_WALLS): dropped with the site.
 const PAV_NEIGHBOURS := [
 	[Vector2(-947.9, 258.4), Vector2(-946.7, 261.4), Vector2(-951.6, 263.3), Vector2(-952.8, 260.4)],
 	[Vector2(-962.7, 252.5), Vector2(-961.5, 252.0), Vector2(-960.4, 251.5), Vector2(-959.2, 254.4), Vector2(-961.5, 255.3)],
