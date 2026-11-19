@@ -28,6 +28,7 @@ campus_cart.gd                          the University guards' cart on a fixed c
 pedestrians.gd  walkers on footways in one MultiMesh, plus fixed "slots" other systems rent
      ├─ crowds.gd        queues, roof crowds, river people (still figures, same mesh)
      ├─ city_life.gd     dog walkers, cyclists, runners, Hyrax, the Wiralek trend cycle
+     │   └─ boulevard_life.gd  the Vistula steps' life: police/Straż patrol with a dog, walkers, queues, scooters (closed-form poses)
      ├─ packs.gd         running clubs and coffee crowds
      ├─ fans.gd          football fans on match evenings
      └─ wellness.gd      sound healing, yoga and other park circles
@@ -181,6 +182,12 @@ traffic Driver because the campus paths are not in the lane graph.
   `set_scene` (crash scenes). The slot ranges are agreed by hand today (tech-debt TD-6).
 - **Crowds, packs, fans, wellness** draw still or looping figures in the same person mesh and
   material. They switch on by the game clock and place (`hours`, weekdays).
+- **Schodki nad Wisłą life** (`boulevard_life.gd`, 2026-11-19): pure closed-form poses (a function
+  of the clock, no state) for a Policja or Straż Miejska patrol (with a dog at night), evening and
+  day walkers, the food queues and scooter/rollerblade riders along the Vistula steps by Kopernik.
+  `city_life.gd` writes them into guest slots (`BLVD_BIT` in `_shown`, 7.5 Hz), the dog MultiMesh and
+  one small `Scooters` MultiMesh (the bike family's four shapes were taken: +1 draw call). Not
+  Beehave: one fixed loop per figure. Lines: `policja_bulwar` (`say_ambient`).
 - **Reactions** go through bubbles and the chatter budget (`say_reaction`, `say_ambient`), never a
   private cooldown.
 

@@ -42,6 +42,7 @@ const PixelFont := preload("res://scripts/pixel_font.gd")
 const Crowds := preload("res://scripts/crowds.gd")
 const EggBook := preload("res://scripts/egg_book.gd")
 const Pedestrians := preload("res://scripts/pedestrians.gd")
+const BoulevardLife := preload("res://scripts/boulevard_life.gd")
 const Props := preload("res://scripts/props.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 
@@ -194,6 +195,16 @@ const ARMCHAIR_EGG := 8.0
 const ARMCHAIR_EVERY := 3
 ## His bit in `_shown` (out and near the view), clear of the docks' bits from 5 up.
 const ARM_BIT := 1 << 30
+## Schodki nad Wisłą Phase B (boulevard_life.gd): the steps' life is up (the view within
+## BoulevardLife.NEAR_R of the steps and the hours' say so): the patrol, the walkers, the scooters.
+## Its bit in `_shown` (below ARM_BIT, above the docks' bits); the figures' count rides above it
+## (BLVD_SIG_SHIFT) so a count that changed writes everything.
+const BLVD_BIT := 1 << 29
+const BLVD_SIG_SHIFT := 31
+## The scooters' and rollerbladers' own MultiMesh: instances (the riders in boulevard_life.gd are 6).
+const SCOOT_CAP := 8
+## A scooter (0) or a rollerblader (1) as a family mesh shape.
+enum { SCOOTER, BLADER }
 const ARM_SHIRT := Color("#c96b2c")
 ## Pale yellow, mint, white (never the jobs' orange).
 const KOLKA_TOPS := ["#fff3a6", "#b8f0d8", "#f7f7f2", "#fff8c9", "#c9f5e6", "#eef9b0"]
@@ -419,6 +430,20 @@ var _dogs: Array[Mover] = []
 var _riders: Array[Mover] = []
 ## The view is on the Vistula boulevards (Crowds.BULWARY): more and faster riders.
 var _on_blvd := false
+## Schodki Phase B: the scooters' MultiMesh, the guest slot the steps' people start at (-1: none)
+## and the police dog's slot in the dog buffer, the bubble's gap clock and the patrol's lines said.
+var _scoot_mm: MultiMesh
+var _scoot_mmi: MultiMeshInstance3D
+var _scoot_buf := PackedFloat32Array()
+var _blvd_slot := -1
+var _blvd_dog := -1
+var _blvd_line_t := 0.0
+var blvd_lines := 0
+## The mandat captions said, and the patrol passing last fined (so a passing is told once).
+var blvd_fines := 0
+var _blvd_fined := -1
+## --blvd-t=S: the steps' life starts S seconds into its loops (a screenshot aid: the patrol at the steps).
+var blvd_t0 := 0.0
 var _pedziks: Array[Mover] = []
 ## Loop couriers: the kerb riders (Pędzik too: their slots in the Pedzik MultiMesh follow _pedziks').
 var _kerbers: Array[Mover] = []
@@ -1292,6 +1317,40 @@ static func bike_mesh() -> ArrayMesh:
 	return family_mesh(parts, [commuter, rowerilo, cargo, parked])
 
 
+## The boulevard's scooter riders (Schodki Phase B), facing -z, a family of two: an e-scooter (a thin
+## deck on two small wheels, a stem and a bar, the rider upright on the deck) and a rollerblader (the
+## same rider, feet in skates, leaning forward, arms out). The rider's shirt is the instance colour.
+## The bike family's four shapes are all taken, so this is its own small MultiMesh (+1 draw call).
+static func scooter_mesh() -> ArrayMesh:
+	var tyre := [Models.TYRE, Models.FIXED]
+	var deck := [Color("#2d3442"), Models.FIXED]
+	var steel := [Color("#8a8d91"), Models.FIXED]
+	var black := [Color("#202024"), Models.FIXED]
+	var skin := [Color("#e2b48c"), Models.FIXED]
+	var shirt := [Color.WHITE, Models.PAINT]
+	var trousers := [Color("#2d3442"), Models.FIXED]
+	var hair := [Color("#4a3426"), Models.FIXED]
+	var skate := [Color("#e8e4da"), Models.FIXED]
+	# 0 front wheel, 1 rear wheel, 2 deck, 3 stem, 4 bar, 5-6 legs, 7 torso, 8 head, 9 hair, 10-11 skates,
+	# 12-13 arms.
+	var parts := [tyre, tyre, deck, steel, black, trousers, trousers, shirt, skin, hair, skate, skate, shirt, shirt]
+	var Z := [Vector3.ZERO, Vector3.ZERO]
+	var scooter := [[Vector3(0, 0.1, -0.5), Vector3(0.05, 0.2, 0.2)], [Vector3(0, 0.1, 0.5), Vector3(0.05, 0.2, 0.2)],
+			[Vector3(0, 0.17, 0.0), Vector3(0.14, 0.04, 0.95)], [Vector3(0, 0.62, -0.46), Vector3(0.04, 0.92, 0.04)],
+			[Vector3(0, 1.1, -0.46), Vector3(0.46, 0.04, 0.04)],
+			[Vector3(-0.08, 0.6, 0.2), Vector3(0.14, 0.86, 0.16)], [Vector3(0.08, 0.6, 0.0), Vector3(0.14, 0.86, 0.16)],
+			[Vector3(0, 1.3, 0.1), Vector3(0.42, 0.6, 0.26)], [Vector3(0, 1.75, 0.08), Vector3(0.24, 0.24, 0.24)],
+			[Vector3(0, 1.89, 0.1), Vector3(0.26, 0.07, 0.27)], Z, Z,
+			[Vector3(-0.28, 1.2, -0.2), Vector3(0.1, 0.1, 0.5)], [Vector3(0.28, 1.2, -0.2), Vector3(0.1, 0.1, 0.5)]]
+	var blader := [Z, Z, Z, Z, Z,
+			[Vector3(-0.11, 0.52, -0.2), Vector3(0.15, 0.78, 0.17)], [Vector3(0.11, 0.52, 0.22), Vector3(0.15, 0.78, 0.17)],
+			[Vector3(0, 1.1, -0.1), Vector3(0.42, 0.6, 0.26)], [Vector3(0, 1.55, -0.2), Vector3(0.24, 0.24, 0.24)],
+			[Vector3(0, 1.69, -0.18), Vector3(0.26, 0.07, 0.27)],
+			[Vector3(-0.11, 0.07, -0.22), Vector3(0.12, 0.13, 0.4)], [Vector3(0.11, 0.07, 0.24), Vector3(0.12, 0.13, 0.4)],
+			[Vector3(-0.34, 1.05, -0.05), Vector3(0.1, 0.1, 0.5)], [Vector3(0.34, 1.05, -0.2), Vector3(0.1, 0.1, 0.5)]]
+	return family_mesh(parts, [scooter, blader])
+
+
 ## A sign: a dark board with lines of the pixel font (lit at night: actor.gdshader's LIT_SIGN)
 ## and two posts, facing +z (the reader). `px` the pixel's size (m).
 func _sign_mesh(lines: Array, px: float, ink: Color, board: Color, posts := 0) -> MeshInstance3D:
@@ -1331,6 +1390,10 @@ func _build_drawing() -> void:
 	_ped_buf.resize(PEDZIK_CAP * 16)
 	_ped_buf.fill(0.0)
 	_ped_mmi = _new_mmi(_ped_mm, "Pedzik")
+	_scoot_mm = _new_mm(scooter_mesh(), SCOOT_CAP)
+	_scoot_buf.resize(SCOOT_CAP * 16)
+	_scoot_buf.fill(0.0)
+	_scoot_mmi = _new_mmi(_scoot_mm, "Scooters")
 	_gbuf.resize(Pedestrians.GUESTS * 16)
 	_gbuf.fill(0.0)
 	# Loop jobs-2: the armchair on the man's head (shown only near him).
@@ -1673,6 +1736,11 @@ func tick(step: float) -> void:
 				print("life: passed the armchair man at %.0f, %.0f" % [ap.x, ap.z])
 	if _chair != null and _chair.visible and _shown_now & ARM_BIT == 0:
 		_chair.visible = false
+	# Schodki Phase B: the steps' patrol, walkers and scooters (near the view: they walk; a view near
+	# an officer gets his line now and then).
+	if _blvd_near(eye):
+		near_fixed = true
+		_blvd_talk(eye, step)
 	var kolka_near := kphase != "" and not _kolka.is_empty() and eye.distance_to(_kolka_centre()) < NEAR_R + 200.0
 	if _banner != null:
 		_banner.visible = hyrax and eye.distance_to(_hyrax["at"]) < FASCIA_R
@@ -1843,6 +1911,8 @@ func _hide_all() -> void:
 	_bike_mmi.visible = false
 	_ped_mm.visible_instance_count = 0
 	_ped_mmi.visible = false
+	_scoot_mm.visible_instance_count = 0
+	_scoot_mmi.visible = false
 	_gbuf.fill(0.0)
 	if walkers != null:
 		walkers.take_guests(_gbuf)
@@ -2557,7 +2627,10 @@ func _shown_bits(eye: Vector2) -> int:
 	if _arm_on:
 		var ap: Vector3 = armchair_pose()[0]
 		arm = ARM_BIT if eye.distance_to(Vector2(ap.x, ap.z)) < NEAR_R else 0
-	return int(hyrax) | int(infl) << 1 | int(aport) << 2 | int(aport_near) << 3 | int(kolka_on) << 4 | docks_in << 5 | arm
+	var blvd := 0
+	if _blvd_near(eye):
+		blvd = BLVD_BIT | _blvd_sig() << BLVD_SIG_SHIFT
+	return int(hyrax) | int(infl) << 1 | int(aport) << 2 | int(aport_near) << 3 | int(kolka_on) << 4 | docks_in << 5 | arm | blvd
 
 
 ## After the steps that wrote their own slots: the sends, Kolka's half, the Hyrax loop, a carried
@@ -2594,6 +2667,8 @@ func _write_moved(car2: Vector2) -> void:
 		for i in _g_n:
 			put(_gbuf, _hyrax_slot + i, _g_pos[i], _g_yaw[i], Vector3.ONE, _g_shirt[i], _g_tr[i])
 		_gdirty = true
+	if _shown & BLVD_BIT:
+		_blvd_step()
 	if _gdirty and walkers != null:
 		walkers.take_guests(_gbuf)
 	_gdirty = false
@@ -2609,13 +2684,21 @@ func _write_all(eye: Vector2, car2: Vector2) -> void:
 	var hyrax := _shown & 1 != 0
 	var infl := _shown & 2 != 0
 	var aport_near := _shown & 8 != 0
-	var docks_in := (_shown & ~ARM_BIT) >> 5
+	var docks_in := (_shown & (BLVD_BIT - 1)) >> 5
 	_dn = 0
 	_dbox = AABB()
 	_ball_slot = -1
+	_blvd_dog = -1
 	var dsc := Vector3.ONE * DOG_SCALE
 	for d in _dogs:
 		_add_dog(d.d3, d.yaw, dsc * TINY_DOG if d.big else dsc, d.coat, d.shape)
+	if _shown & BLVD_BIT:
+		var bd := _blvd_pose()["dog"] as Array
+		if not bd.is_empty():
+			var bp := bd[0] as Vector2
+			if _dn < DOG_CAP:
+				_blvd_dog = _dn
+			_add_dog(Vector3(bp.x, _ground(bp), bp.y), float(bd[1]), Vector3.ONE * BoulevardLife.DOG_SCALE, BoulevardLife.DOG_COAT, LONG)
 	if hyrax:
 		for i in (_hyrax["barriers"] as Array).size():
 			var b: Array = _hyrax["barriers"][i]
@@ -2700,6 +2783,7 @@ func _write_all(eye: Vector2, car2: Vector2) -> void:
 		InstanceBuffers.send(_ped_mm.get_rid(), _ped_buf)
 		_ped_mm.custom_aabb = pbox.grow(1.5).expand(pbox.end + Vector3(0, 2.2, 0))
 	_ped_mmi.visible = pn > 0
+	_write_scooters()
 	_write_guests(eye, car2, hyrax, infl, aport_near)
 
 
@@ -2767,6 +2851,7 @@ func _write_guests(eye: Vector2, car2: Vector2, hyrax: bool, infl: bool, aport: 
 	_kolka_slot = -1
 	_hyrax_slot = -1
 	_arm_slot = -1
+	_blvd_slot = -1
 	if _shown & ARM_BIT and _arm_on:
 		var pose := armchair_pose()
 		_arm_slot = _g_n
@@ -2790,6 +2875,9 @@ func _write_guests(eye: Vector2, car2: Vector2, hyrax: bool, infl: bool, aport: 
 			_hyrax["marshals"] = ms
 		for f: Array in _hyrax["marshals"]:
 			_fig(f[0], f[1], Color("#e8f23a"), 0.1)
+	if _shown & BLVD_BIT:
+		_blvd_slot = _g_n
+		_blvd_people()
 	if infl:
 		if not _infl.has("crew"):
 			var ia: Vector2 = _infl["at"]
@@ -2813,6 +2901,7 @@ func _write_guests(eye: Vector2, car2: Vector2, hyrax: bool, infl: bool, aport: 
 		_kolka_slot = -1
 		_hyrax_slot = -1
 		_arm_slot = -1
+		_blvd_slot = -1
 		# The nearest GUESTS, in order of distance (stable as before: a sort of the indices).
 		var order: Array[int] = []
 		var dist := PackedFloat32Array()
@@ -2844,6 +2933,117 @@ func _hyrax_loop() -> void:
 		var q := c + Vector2.from_angle(a) * (HYRAX_LOOP_R + (i % 2) * 1.2)
 		var tangent := Vector2.from_angle(a + PI * 0.5)
 		_fig(Vector3(q.x, _ground(q), q.y), atan2(-tangent.x, -tangent.y), Color(KOLKA_TOPS[i % KOLKA_TOPS.size()] if i % 3 else SHIRTS[i % SHIRTS.size()]), 0.2)
+
+
+# --- Schodki nad Wisłą, Phase B (boulevard_life.gd) ---------------------------------------------
+
+## The view is near the steps and the street life is up at this hour.
+func _blvd_near(eye: Vector2) -> bool:
+	return amount > 0.0 and BoulevardLife.active(_hour) and eye.distance_to(BoulevardLife.C) < BoulevardLife.NEAR_R
+
+
+## The patrol's figures and dog now: BoulevardLife.patrol_figures for the hour's kind and pairs
+## ({"figs": [], "dog": []} when nobody patrols).
+func _blvd_pose() -> Dictionary:
+	var kind := BoulevardLife.patrol_kind(_hour)
+	if kind == "":
+		return {"figs": [], "dog": []}
+	return BoulevardLife.patrol_figures(t + blvd_t0, kind, BoulevardLife.patrol_pairs(_hour, _weekday))
+
+
+## How many figures of each sort the steps' life has now, packed (a change writes everything).
+func _blvd_sig() -> int:
+	var pose := _blvd_pose()
+	return (pose["figs"] as Array).size() | (1 if not (pose["dog"] as Array).is_empty() else 0) << 4 \
+			| BoulevardLife.walker_figures(0.0, _hour).size() << 5 | BoulevardLife.rider_figures(0.0, _hour).size() << 11
+
+
+## The patrol's and the walkers' people into the step's guest lists (`_fig`), at their poses now.
+## Returns nothing; the dog and the scooters have their own writes.
+func _blvd_people() -> void:
+	var lists: Array = [(_blvd_pose()["figs"] as Array), BoulevardLife.walker_figures(t + blvd_t0, _hour)]
+	for list: Array in lists:
+		for f: Array in list:
+			var q := f[0] as Vector2
+			_fig(Vector3(q.x, _ground(q), q.y), float(f[1]), f[2] as Color, float(f[3]), f[4] as Vector3)
+
+
+## Between full writes: the steps' people, dog and scooters at their poses now (people and the dog
+## at every other step, 7.5 Hz; the scooters at 15 Hz: they move 5-6 m/s).
+func _blvd_step() -> void:
+	_write_scooters()
+	if _blvd_slot < 0 or _move_n % 2 != 0:
+		return
+	_g_n = 0
+	_blvd_people()
+	for i in _g_n:
+		put(_gbuf, _blvd_slot + i, _g_pos[i], _g_yaw[i], _g_sc[i], _g_shirt[i], _g_tr[i])
+	_gdirty = true
+	if _blvd_dog >= 0:
+		var bd := _blvd_pose()["dog"] as Array
+		if not bd.is_empty():
+			var bp := bd[0] as Vector2
+			var at := Vector3(bp.x, _ground(bp), bp.y)
+			put(_dog_buf, _blvd_dog, at, float(bd[1]), Vector3.ONE * BoulevardLife.DOG_SCALE, BoulevardLife.DOG_COAT, LONG)
+			_dbox = _dbox.expand(at)
+			_dogs_moved = true
+
+
+## The scooters and rollerbladers into their MultiMesh at their poses now (none when the steps' life
+## is not shown).
+func _write_scooters() -> void:
+	var list: Array = BoulevardLife.rider_figures(t + blvd_t0, _hour) if _shown & BLVD_BIT else []
+	var n := mini(list.size(), SCOOT_CAP)
+	var box := AABB()
+	for i in n:
+		var f: Array = list[i]
+		var q := f[0] as Vector2
+		var at := Vector3(q.x, _ground(q), q.y)
+		put(_scoot_buf, i, at, float(f[1]), Vector3.ONE, f[3] as Color, float(f[2]))
+		box = AABB(at, Vector3.ZERO) if i == 0 else box.expand(at)
+	_scoot_mm.visible_instance_count = n
+	if n > 0:
+		InstanceBuffers.send(_scoot_mm.get_rid(), _scoot_buf)
+		_scoot_mm.custom_aabb = box.grow(1.5).expand(box.end + Vector3(0, 2.0, 0))
+	_scoot_mmi.visible = n > 0
+
+
+## The patrol's line: at most one in LINE_GAP s, when the view is within LINE_R of an officer, from
+## the group `policja_bulwar` (the tag `steps` while they stand looking down, `straz` by day).
+func _blvd_talk(eye: Vector2, step: float) -> void:
+	_blvd_line_t -= step
+	if dialogue == null:
+		return
+	var kind := BoulevardLife.patrol_kind(_hour)
+	if kind == "":
+		return
+	var pairs := BoulevardLife.patrol_pairs(_hour, _weekday)
+	var pose := BoulevardLife.patrol_figures(t + blvd_t0, kind, pairs)
+	# The mandat: the first officer writing a ticket at the steps' top edge: his caption, once a passing,
+	# whatever the gap since the last line (the writing lasts only FINE_WRITE s).
+	var p0 := BoulevardLife.patrol_pose(t + blvd_t0, 0.0)
+	var ft: float = p0["fine_t"]
+	if kind == "policja" and BoulevardLife.fine_writing(ft) and int(p0["passing"]) != _blvd_fined:
+		var fq := (pose["figs"] as Array)[0][0] as Vector2
+		if fq.distance_to(eye) <= BoulevardLife.LINE_R:
+			var fspot := Vector3(fq.x, _ground(fq) + 2.4, fq.y)
+			var said: Array = dialogue.say_ambient(func() -> Vector3: return fspot, "", "mandat_bulwar", "", 5.0, BUBBLE, 2.2)
+			if not said.is_empty():
+				_blvd_fined = int(p0["passing"])
+				blvd_fines += 1
+				_blvd_line_t = 8.0
+			return
+	if _blvd_line_t > 0.0:
+		return
+	var q := BoulevardLife.nearest(pose["figs"] as Array, eye)
+	if q == Vector2.INF or q.distance_to(eye) > BoulevardLife.LINE_R:
+		return
+	_blvd_line_t = BoulevardLife.LINE_GAP * _rng.randf_range(0.8, 1.3)
+	var paused: bool = BoulevardLife.patrol_pose(t + blvd_t0, 0.0)["paused"]
+	var tag := "straz" if kind == "straz" else ("steps" if paused else "")
+	var spot := Vector3(q.x, _ground(q) + 2.2, q.y)
+	dialogue.say_ambient(func() -> Vector3: return spot, "", "policja_bulwar", tag, 4.0, BUBBLE, 2.2, tag != "")
+	blvd_lines += 1
 
 
 func _ground(p: Vector2) -> float:
