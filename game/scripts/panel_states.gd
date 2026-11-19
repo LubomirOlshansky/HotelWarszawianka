@@ -76,6 +76,13 @@ var read_usec := 0
 var keep_live := false
 
 
+## main.gd: listens to soft_things.gd `soft`'s `broke` and `repaired`.
+func attach(soft_things: Node) -> void:
+	soft = soft_things
+	soft_things.connect(&"broke", on_broke)
+	soft_things.connect(&"repaired", on_repaired)
+
+
 ## A sector (or the whole city's map) is in: its panels noted, and the broken ones shown again.
 func add_sector(root: Node3D) -> void:
 	if root == null:

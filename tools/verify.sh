@@ -54,6 +54,12 @@
 # fences and hedges the car smashes through (soft_things.gd) on pure cases (the swept box, the cost per
 # panel and its cap, grinding, rule B's repair, the contact log's soft line), then the soft lists of four
 # sectors the same on both city paths and `--no-soft`'s restore exact (~1 min).
+# `panelstates` runs game/tools/check_panel_states.gd (W6 of the walls look, 2026-11-19): the broken
+# panels shown (panel_states.gd) on the stadium's sector built `panels`, both city paths (the prebuilt
+# one, or the runtime sector through a .scn when the prebuilt city is another look): a hit sets the right
+# pieces (down, torn, stub), still down after the sector leaves and comes back, `repair_near` and
+# `reset` put the baked buffer back float for float, soft off writes nothing, a hit's script time
+# under 0.1 ms, nothing under `typed` (~30 s).
 # `deckxray` runs game/tools/check_deck_xray.gd (GAMEPLAY_PLAN 0.3, 2026-11-03): the car's x-ray is on
 # under a bridge or viaduct deck (Trasa Łazienkowska) and off on top of one and on open streets.
 # `tunnelcut` runs game/tools/check_tunnel_cut.gd (F, 2026-11-08): in every tunnel the ground that
@@ -1340,6 +1346,7 @@ for s in $want; do
 		solids) skip_prebuilt solids || check solids '^solids:' --script res://tools/check_solids.gd ;;
 		colliders) check colliders '^check_colliders:' --script res://tools/check_colliders.gd ;;
 		softthings) skip_prebuilt softthings || check softthings '^check_soft_things:' --script res://tools/check_soft_things.gd ;;
+		panelstates) check panelstates '^check_panel_states:' --script res://tools/check_panel_states.gd ;;
 		deckxray) check deckxray '^check_deck_xray:' --script res://tools/check_deck_xray.gd ;;
 		tunnelcut) check tunnelcut '^check_tunnel_cut:' --script res://tools/check_tunnel_cut.gd ;;
 		lanedrive) check lanedrive '^check_lane_drive:' --fixed-fps 60 --script res://tools/check_lane_drive.gd ;;

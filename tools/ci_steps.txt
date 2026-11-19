@@ -124,6 +124,7 @@ packs                quick
 padel                quick
 palacelights         quick
 panelrule            quick
+panelstates          smoke
 parkdetails          quick
 parkedthin           quick
 parkmesh             quick
