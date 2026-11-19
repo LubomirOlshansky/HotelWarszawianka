@@ -4433,15 +4433,17 @@ func _build_zodiak(site: Dictionary) -> void:
 	for k in n + 1:
 		var u := lerpf(u0 + 0.1, u1 - 0.1, float(k) / n)
 		_ubox(u - 0.06, u + 0.06, v1 - ZOD_TERRACE, v1 + 0.15, y + 0.1, y + 0.3, ZOD_WHITE)
-	# The white neon word over the back (on the brick wall behind in the photos), facing the square.
-	_usign(ZOD_WORD, (u0 + u1) * 0.5, v0 + 0.3, g + ZOD_H + ZOD_ROOF + 0.6, _b, 0.55 * (u1 - u0), 1.6, ZOD_COLOUR)
+	# The white neon word over the roof's front edge, facing the square.
+	# F, 2026-11-19: on the FRONT (the square's side), standing on the upper room's roof edge.
+	var sv := v1 - ZOD_TERRACE - 0.25
+	_usign(ZOD_WORD, (u0 + u1) * 0.5, sv, g + ZOD_H + ZOD_ROOF + 0.6, _b, 0.55 * (u1 - u0), 1.6, ZOD_COLOUR)
 	# The little neon star over the "i" (F's night photo): a lit plus and a lit diamond.
 	var su := (u0 + u1) * 0.5 + 0.08 * 0.55 * (u1 - u0)
 	var sy := g + ZOD_H + ZOD_ROOF + 0.6 + 1.75
-	_lbox(su, v0 + 0.3, 0.03, 0.03, g + ZOD_H, sy - 0.2, Color("#2b2c2f"), M_STONE)   # its stem on the roof
-	_lbox(su, v0 + 0.3, 0.3, 0.03, sy - 0.04, sy + 0.04, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
-	_lbox(su, v0 + 0.3, 0.04, 0.03, sy - 0.3, sy + 0.3, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
-	_lbox(su, v0 + 0.3, 0.12, 0.03, sy - 0.12, sy + 0.12, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
+	_lbox(su, sv, 0.03, 0.03, g + ZOD_H, sy - 0.2, Color("#2b2c2f"), M_STONE)   # its stem on the roof
+	_lbox(su, sv, 0.3, 0.03, sy - 0.04, sy + 0.04, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
+	_lbox(su, sv, 0.04, 0.03, sy - 0.3, sy + 0.3, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
+	_lbox(su, sv, 0.12, 0.03, sy - 0.12, sy + 0.12, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
 	# String lights over the square (the photo): bulbs hung from the pergola's front beam out to
 	# three poles in the square, one sagging fan.
 	var top_y := g + ZOD_H + 0.22   # inside the pergola beam, so the string is welded to it
