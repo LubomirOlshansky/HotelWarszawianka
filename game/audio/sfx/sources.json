@@ -29,10 +29,45 @@
 		"from": "ElevenLabs Sound Effects v2",
 		"prompt": "Quiet city at night ambience, low distant traffic rumble, soft electrical hum of street lamps, a single far car now and then, no voices, no music"
 	},
+	"clang": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "A car scraping into a steel road guard rail: one loud metallic clang with a short ringing metal tail and a brief scrape, no glass, no voices"
+	},
+	"crash": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "A small car crashing into another car at city speed: one heavy metal crunch, bending sheet metal, a little glass and plastic debris falling, short, no screams, no voices, no alarm"
+	},
+	"engine_high": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "Small 1.2 litre four-cylinder petrol hatchback engine held at a steady high 4500 rpm, straining, buzzy exhaust, heard from just behind the car, constant pitch, no gear changes, no revving up or down, no tyre noise, no voices"
+	},
+	"engine_idle": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "Small old 1.2 litre four-cylinder petrol hatchback engine idling steadily at about 850 rpm, heard from just behind the car, slightly rough idle, constant pitch, no revving, no voices, no music"
+	},
+	"engine_mid": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "Small 1.2 litre four-cylinder petrol hatchback engine held at a steady 2400 rpm under light load, heard from just behind the car, constant pitch, no gear changes, no revving up or down, no tyre noise, no voices"
+	},
 	"rain": {
 		"added": "2026-11-12",
 		"from": "ElevenLabs Sound Effects v2 (medium take 2, highs 3 dB down above 5 kHz)",
 		"prompt": "Moderate steady rain on a city street, even continuous patter on pavement, clearly audible but not a downpour, no thunder, no wind, no splashing cars"
+	},
+	"thump_hard": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "A small car bumping hard into a post: one firm dull metal and plastic thud, a short dent, no glass, no debris, no voices"
+	},
+	"thump_soft": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "A car's plastic bumper gently nudging a wall at walking speed: one soft short muffled bump, no metal, no glass, no voices"
 	},
 	"traffic_bus": {
 		"added": "2026-11-19",
@@ -48,5 +83,20 @@
 		"added": "2026-11-19",
 		"from": "ElevenLabs Sound Effects v2",
 		"prompt": "Modern city tram rolling steadily along street rails, soft electric motor whine, steel wheels on rails with rhythmic clicks over rail joints, constant, no bell, no voices"
+	},
+	"tyre_roll": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "Close microphone mounted at a car's front wheel while driving at a constant 50 km/h on smooth dry asphalt: steady even tyre roar and road rumble at one constant level the whole time, no pass-by, no fade in or out, no engine, no wind, no voices"
+	},
+	"tyre_squeal": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "One long unbroken tyre squeal at a constant level and constant pitch, rubber screeching on dry asphalt during a long steady drift, sustained the whole time with no gaps, no start or stop, no engine, no crash, no voices"
+	},
+	"tyre_wet": {
+		"added": "2026-11-19",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "Car tyres rolling through a wet rainy road at steady speed, constant water spray hiss and swish, no engine, no rain drops on roof, no splashes from puddles, constant, no voices"
 	}
 }

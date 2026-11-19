@@ -21,8 +21,10 @@ extends Node3D
 ## pitches. Headless runs (tests) have no audio device and play nothing.
 
 const DIR := "res://audio/sfx/"
-## The rpm each engine loop was recorded at (tools/make_sfx.py prints them).
-const ENGINE_RPM := [850.0, 2397.0, 4500.0]
+## The rpm each engine loop was recorded at. Sound engine step 4 (2026-11-19): the three loops are
+## ElevenLabs recordings; their rpm is read off the firing frequency (rpm / 30 for a four-cylinder:
+## 31, 60 and 121 Hz, steady through each loop), so the layers agree where they cross-fade.
+const ENGINE_RPM := [930.0, 1800.0, 3630.0]
 ## Gearbox: the speed (m/s) where each gear tops out; first gear starts at rest.
 const GEAR_TOP := [0.0, 6.5, 12.5, 19.0, 25.5, 40.0]
 const RPM_IDLE := 850.0
@@ -56,8 +58,10 @@ const DUCKS := {
 }
 ## Loops: name, bus, level (dB) at full.
 const LOOPS := {
-	"engine_idle": ["SFX", -10.0], "engine_mid": ["SFX", -10.0], "engine_high": ["SFX", -10.0],
-	"tyre_roll": ["SFX", -14.0], "tyre_wet": ["SFX", -11.5], "tyre_squeal": ["SFX", -15.0],
+	# Step 4 (2026-11-19): recorded loops; each level takes back what the peak limit cost them
+	# (tools/add_sfx.py --match), the squeal only 4 of its 6.7 dB (a real squeal has spikes).
+	"engine_idle": ["SFX", -8.8], "engine_mid": ["SFX", -7.4], "engine_high": ["SFX", -6.7],
+	"tyre_roll": ["SFX", -12.4], "tyre_wet": ["SFX", -9.3], "tyre_squeal": ["SFX", -11.0],
 	"rotor": ["SFX", -3.0],
 	# The coffee run's bike (PT 2026-11-08: the car's engine kept on after the swap): the ride's
 	# tyres and chain, and the hub's ratchet while coasting (tools/make_sfx.py).
