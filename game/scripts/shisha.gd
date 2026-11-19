@@ -137,6 +137,7 @@ func _init() -> void:
 
 
 func setup(world: Node3D) -> void:
+	run_hours = HOURS
 	super.setup(world)
 	if rng_seed >= 0:
 		_rng.seed = rng_seed
@@ -277,7 +278,8 @@ func _tick(dt: float) -> void:
 	_at = v[0]
 	_kmh = v[1]
 	_play(_due)
-	if phase == Phase.IDLE and auto and _may_call() and open_at(float(clock.call())):
+	# By day too (game_time.gd `by_day`, F 2026-11-19): a yes jumps the clock to HOURS (`run_hours`).
+	if phase == Phase.IDLE and auto and _may_call() and GameTime.may_call(HOURS, float(clock.call())):
 		call_in -= _due
 		# Not again straight after its own call while another's waits (TD-3's variety): retry.
 		if call_in <= 0.0 and not (_ring_turn() and ring()):

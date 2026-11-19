@@ -1524,6 +1524,8 @@ for s in $want; do
 		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		targetroute) check targetroute '^check_target_route:' --script res://tools/check_target_route.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
+		# The time owner (game_time.gd, F 2026-11-19): hours, the night friends by day, the clock's jump.
+		gametime) check gametime '^check_game_time:' --script res://tools/check_game_time.gd ;;
 		endcard) check endcard '^end_card:' --script res://tools/check_end_card.gd ;;
 		# First hour step 6: the hints in play, the loading tips, the spotlight (no map).
 		hints) check hints '^check_hints:' --script res://tools/check_hints.gd ;;

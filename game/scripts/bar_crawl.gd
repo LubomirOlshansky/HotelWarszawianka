@@ -186,6 +186,7 @@ func install(ctx: GameCtx) -> bool:
 	if ctx.traffic == null or ctx.graph == null or ctx.flags.crawl_flag == "0":
 		return false
 	super(ctx)
+	run_hours = HOURS
 	name = "BarCrawl"
 	bubbles = ctx.bubbles
 	graph = ctx.graph as LaneGraph
@@ -338,8 +339,9 @@ func _may_call() -> bool:
 	return bool(free_now.call()) and not routes.is_empty() and not groups.is_empty()
 
 
+## By day too (game_time.gd `by_day`, F 2026-11-19): a yes jumps the clock to HOURS (`run_hours`).
 func _hours_now() -> bool:
-	return call_hours(float(clock.call()))
+	return GameTime.may_call(HOURS, float(clock.call()))
 
 
 ## The group rings (--crawl-call too). False with no routes or groups, or unless idle.

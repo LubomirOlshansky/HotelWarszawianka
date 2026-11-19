@@ -426,6 +426,7 @@ func install(ctx: GameCtx) -> bool:
 	if ctx.traffic == null or ctx.graph == null or ctx.flags.meet_flag == "0":
 		return false
 	super(ctx)
+	run_hours = NIGHT_HOURS
 	name = "StreetMeet"
 	dialogue = ctx.dialogue
 	graph = ctx.graph as LaneGraph
@@ -1128,7 +1129,8 @@ func _tick(dt: float) -> void:
 		elif _cordon_leaving or Vector2(_at.x, _at.z).distance_to(Vector2(c0.x, c0.z)) > CORDON_GONE or not raiding:
 			_cordon_leaving = true
 			_cordon_leave()
-	if phase == Phase.IDLE and auto and _free() and (force or night_on(_hour())):
+	# By day too (game_time.gd `by_day`, F 2026-11-19): a yes jumps the clock (`run_hours`).
+	if phase == Phase.IDLE and auto and _free() and (force or GameTime.may_call(NIGHT_HOURS, _hour())):
 		call_in -= _due
 		# Not again straight after its own call while another's waits (TD-3's variety): retry.
 		if call_in <= 0.0 and not (_ring_turn() and ring()):
