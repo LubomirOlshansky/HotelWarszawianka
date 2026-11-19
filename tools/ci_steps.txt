@@ -72,6 +72,7 @@ firstlife            runs
 fixes                quick
 freecam              quick
 gamepad              quick
+gametime             quick
 garage               quick
 governor             quick
 grades               quick

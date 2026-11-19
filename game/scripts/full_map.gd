@@ -37,6 +37,9 @@ signal teleport(at: Vector2)
 signal rival_called(rung: int)
 ## An item marked NEW was looked at on the QUESTS screen (its id, quest_book.gd): main.gd forgets it.
 signal seen(id: String)
+## F 2026-11-19: the map's clock picker set the time of day (time_of_day.gd's mode: DAY 0, DUSK 1,
+## NIGHT 2, DAWN 4); main.gd applies it as the settings' Time of day does.
+signal time_picked(mode: int)
 
 const Lang := preload("res://scripts/lang.gd")
 const MapArt := preload("res://scripts/map_art.gd")
@@ -70,6 +73,10 @@ const MINOR_M := 2600.0
 const NEAR_M := 250.0
 const START_M := 1400.0
 const GOLD := Color("#f0b429")
+const GameTime := preload("res://scripts/game_time.gd")
+## The clock picker's choices, in the day's order: [time_of_day.gd mode, Polish, English].
+## No Live here (F 2026-11-19: the game has its own clock).
+const TIME_PICKS := [[4, "Świt", "Dawn"], [0, "Dzień", "Day"], [1, "Zmierzch", "Dusk"], [2, "Noc", "Night"]]
 const ARROW := Color("#d8432f")
 ## Type sizes in points (hud.gd's).
 const T_TITLE := 17.0
@@ -127,6 +134,8 @@ var flying := false
 ## F (2026-11-07): the hospitals only matter to a rescue; their marks show only while one is on
 ## (main.gd sets it on open).
 var hospitals := false
+## () -> {hour, weekday} (time_of_day.gd `local_clock`; main.gd sets it on open): the clock top right.
+var clock: Callable
 ## The minimap's night (kept for hud.gd; the full map has one look day and night).
 var night := 0.0
 ## Loop 3h slice 1: districts.gd `view()` (names, label point, polygons, found, pct) and the total %.
@@ -186,6 +195,11 @@ var _screen: QuestsScreen
 var _quests_btn: Button
 var _badge: Label
 var _next: Button
+## F 2026-11-19 ("add the clock to the map", "when the user clicks the time show a clock where they
+## can change it"): the clock left of the ✕, and its picker under it (what is open now, the looks).
+var _clock_btn: Button
+var _picker: PanelContainer
+var _picker_open: Label
 ## The NEXT line's thing ({} none): {"words": [pl, en], "colour", "at", "entry" (a place to pin, {}
 ## none), "id" (an item to open the screen on, "" none)}.
 var next_info: Dictionary = {}
@@ -262,6 +276,12 @@ func _build() -> void:
 	_close.name = "close"
 	_close.pressed.connect(close)
 	add_child(_close)
+	_clock_btn = _round_button("", Color("#fbf7ee"))
+	_clock_btn.name = "clock"
+	_clock_btn.add_theme_font_size_override("font_size", _px(T_SUB + 2.0))
+	_clock_btn.pressed.connect(_clock_tapped)
+	add_child(_clock_btn)
+	_build_picker()
 	_next = Button.new()
 	_next.name = "next"
 	_next.focus_mode = Control.FOCUS_NONE
@@ -366,6 +386,77 @@ func _card(lines: Array, sizes: Array) -> PanelContainer:
 
 
 ## A square 48 pt button on the map's dark card look (the ✕).
+## The clock's picker: a dark card with "what is open now" and one button per look.
+func _build_picker() -> void:
+	_picker = PanelContainer.new()
+	_picker.name = "time_picker"
+	_picker.add_theme_stylebox_override("panel", _box(0.95))
+	_picker.visible = false
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", _px(6))
+	_picker.add_child(v)
+	var title := Label.new()
+	var tw: Array = QuestBook.words("clock_title")
+	title.text = Lang.pick(str(tw[0]), str(tw[1]))
+	title.add_theme_font_size_override("font_size", _px(T_TITLE))
+	title.add_theme_color_override("font_color", Color("#ffd23f"))
+	v.add_child(title)
+	_picker_open = Label.new()
+	_picker_open.add_theme_font_size_override("font_size", _px(T_SUB))
+	_picker_open.add_theme_color_override("font_color", Color("#c9c2d8"))
+	_picker_open.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_picker_open.custom_minimum_size.x = 300.0 * pt
+	v.add_child(_picker_open)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", _px(6))
+	v.add_child(row)
+	for pick: Array in TIME_PICKS:
+		var b := _gold_button(Lang.pick(str(pick[1]), str(pick[2])))
+		b.visible = true
+		b.custom_minimum_size = Vector2(64.0, 48.0) * pt
+		b.name = "time_%d" % int(pick[0])
+		b.pressed.connect(_time_tapped.bind(int(pick[0])))
+		row.add_child(b)
+	add_child(_picker)
+
+
+## The clock's words now ("PT 14:05"; "--:--" without a clock).
+func _clock_words() -> String:
+	if not clock.is_valid():
+		return "--:--"
+	var w: Array = GameTime.label(clock.call())
+	return Lang.pick(str(w[0]), str(w[1]))
+
+
+## "Open now: ..." for the picker, from the time owner's table.
+func _open_words() -> String:
+	if not clock.is_valid():
+		return ""
+	var c: Dictionary = clock.call()
+	var names := PackedStringArray()
+	for id: String in GameTime.open_ids(float(c.get("hour", 12.0))):
+		var n: Array = GameTime.NAMES[id]
+		names.append(Lang.pick(str(n[0]), str(n[1])))
+	var none: Array = QuestBook.words("clock_none")
+	var w: Array = QuestBook.fmt("clock_open", [", ".join(names) if not names.is_empty() else Lang.pick(str(none[0]), str(none[1]))])
+	return Lang.pick(str(w[0]), str(w[1]))
+
+
+func _clock_tapped() -> void:
+	_picker.visible = not _picker.visible
+	_picker_open.text = _open_words()
+	print("full map: clock %s (%s)" % ["open" if _picker.visible else "closed", _clock_words()])
+	_fit()
+
+
+func _time_tapped(mode: int) -> void:
+	time_picked.emit(mode)
+	_picker.visible = false
+	_clock_btn.text = _clock_words()
+	print("full map: time picked %d, now %s" % [mode, _clock_words()])
+	_fit()
+
+
 func _round_button(text: String, ink: Color) -> Button:
 	var b := Button.new()
 	b.text = text
@@ -416,6 +507,7 @@ func open(at: Vector2, yaw: float) -> void:
 	_hold_index = -1
 	_note_t = 0.0
 	_note.visible = false
+	_picker.visible = false
 	_did_quests = false
 	_did_hold = false
 	_did_pin = false
@@ -479,12 +571,20 @@ func _fit() -> void:
 	var m := 8.0 * pt
 	_close.size = _close.custom_minimum_size
 	_close.position = Vector2(s.end.x - m - _close.size.x, s.position.y + m)
+	_clock_btn.text = _clock_words()
+	_clock_btn.size = Vector2.ZERO
+	_clock_btn.size = Vector2(maxf(_clock_btn.get_combined_minimum_size().x, 96.0 * pt), _close.size.y)
+	_clock_btn.position = Vector2(_close.position.x - m - _clock_btn.size.x, _close.position.y)
+	if _picker.visible:
+		_picker.reset_size()
+		_picker.size = _picker.get_combined_minimum_size()
+		_picker.position = Vector2(s.end.x - m - _picker.size.x, _close.position.y + _close.size.y + m)
 	_quests_btn.size = _quests_btn.custom_minimum_size
 	_quests_btn.position = s.end - Vector2(m, m) - _quests_btn.size
 	_badge.size = _badge.custom_minimum_size
 	_badge.position = Vector2(_quests_btn.size.x - _badge.size.x * 0.7, -_badge.size.y * 0.3)
 	if _next.visible:
-		var room := _close.position.x - m - (s.position.x + m)
+		var room := _clock_btn.position.x - m - (s.position.x + m)
 		# Its words' width (the button clips them, so its own minimum is none), at least a touch target.
 		var want := _next.get_theme_font("font").get_string_size(_next.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
 				_next.get_theme_font_size("font_size")).x + _next.get_theme_stylebox("normal").get_minimum_size().x + 4.0
@@ -543,7 +643,9 @@ func to_screen(p: Vector2) -> Vector2:
 func rects() -> Dictionary:
 	if not _built:
 		return {}
-	var out := {"close": _close.get_global_rect(), "quests": _quests_btn.get_global_rect()}
+	var out := {"close": _close.get_global_rect(), "quests": _quests_btn.get_global_rect(), "clock": _clock_btn.get_global_rect()}
+	if _picker.visible:
+		out["picker"] = _picker.get_global_rect()
 	if _next.visible:
 		out["next"] = _next.get_global_rect()
 	if _note.visible:
@@ -1451,7 +1553,7 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventScreenTouch:
 		var t := event as InputEventScreenTouch
 		if t.pressed:
-			for b: Control in [_close, _quests_btn, _next, _offer, _details]:
+			for b: Control in [_close, _clock_btn, _picker, _quests_btn, _next, _offer, _details]:
 				if b.visible and b.get_global_rect().has_point(t.position):
 					return  # the button takes it
 			_touches[t.index] = t.position
