@@ -63,6 +63,7 @@ resolution is the cost (Experimental at x2 held 60 for 10 s, 46-55 after a minut
 | Build | fps | 1% low | GPU ms | scripts ms | physics ms | main + shadow tris |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-11-08, city not drawn (driver bug) | 57.8 | 28.4 | 8.1 | 7.4 | | |
+| `b9030c1f` (end of 11-08), checked again: city not drawn, 32 Vulkan pipeline errors | 56.0 / 57.0 | 26.6 / 29.5 | 8.4 | 7.7 | 1.3-1.4 | 0.51 + 0.47 M |
 | 2026-11-08, Adreno fix | 22.6 | 13.5 | 30.7 | 19.7 | | |
 | `556dbe13` (11-11) | 20.2 / 19.3 | 11.7 | 37.6 / 40.0 | 21.9 | 4.8 | 0.51 + 0.48 M |
 | `419be67e` (TestFlight 11's source) | 17.8 | 6.4 | 45.0 | 26.1 | 7.1 | 0.70 + 0.65 M |
