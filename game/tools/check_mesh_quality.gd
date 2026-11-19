@@ -278,9 +278,18 @@ const BUDGET := {
 	"barka_kaskada": 1880,
 	"houseboats": 1080,
 	"bulwary_pawilony": 3500,
-	"bulwary_bary": 1760,
+	"bulwary_bary": 2800,  # 2026-11-19: five extra dark kiosks before Pawilon Tańca (2282 measured)
 	"bulwary_pomosty": 1450,
 	"bulwary_basen": 700,
+	# The boulevards, phase C (2026-11-19, specs pawilon_tanca.md, zachodni_brzezek.md, barki_bary.md).
+	"pawilon_tanca": 1800,  # the white dance pavilion, its murals and TANIEC, Palomka's sails (1428 measured)
+	"zachodni_brzezek": 2500,  # the grey ground floor, white letters, glass rail, the deck with palms (2016 measured)
+	"barka_nowa_falka": 3700,  # the 70 m sand-deck barge with its long dark hall, one site (3060 measured)
+	"barka_zanurzenie": 950,
+	"barka_wirek": 700,
+	"barka_kalmar": 1800,
+	"barka_barkas": 950,
+	"plyta_desantu": 1900,  # the three beach bars and the dock (1516 measured)
 	"marina": 5200,
 	"port_majami": 4200,
 	"port_wtw": 1400,
