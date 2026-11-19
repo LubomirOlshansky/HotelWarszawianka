@@ -28,10 +28,12 @@ extends "res://scripts/landmarks/praga.gd"
 ## else stands in it is dropped) in its skin, glass colour and roof colour; `crest` adds its
 ## top: "slope" (Złota 44's sail falls away from its high corner), "frame" (Rondo 1's open
 ## crown); `mapped` keeps the parts' mapped colours. Colours from photographs, kept a step
-## paler than life for the game's palette.
+## paler than life for the game's palette. The Rondo Daszyńskiego towers (Spire, Skyliner, Unit,
+## Mennica, Generation Park Y, the HUB) are the exception: dark navy glass as in life (F's photos,
+## 2026-11-17: the light blue read wrong next to them).
 const TOWERS := [
 	{"key": "zlota44", "osm": "Złota 44", "style": S_SAIL, "glass": "#bccdd8", "roof": "#e4e8ea", "crest": "slope"},
-	{"key": "spire", "osm": "Warsaw Spire", "style": S_MIRROR, "glass": "#6f8fab", "roof": "#b9c4cc",
+	{"key": "spire", "osm": "Warsaw Spire", "style": S_MIRROR, "glass": "#2f4562", "roof": "#b9c4cc",
 			"with": [Vector2(-2672.0, 195.0), Vector2(-2745.0, 150.0)]},  # the two crescent wings
 	# Q22 and Rondo 1 rebuilt from the top-50 photo set (2026-11-08): _build_q22, _build_rondo1.
 	{"key": "q22", "osm": "Q22", "style": S_BANDS, "glass": "#3f5e5c", "roof": "#9ea4a6", "sign": "DELOJT"},
@@ -54,43 +56,43 @@ const TOWERS := [
 	# `crown_sign`: the `sign` goes on that block (in `sign_col`), not on the shaft; `slope_to`: the
 	# roof's cut rises towards that side; `fin`: a glass plate on the cut's high corner; `strips`:
 	# dark vertical strips at the long faces' ends and middles; `top`: a part's height cap.
-	# Skyliner: dark teal glass in a fine storey grid, the roof cut rising to the east (the Rondo)
+	# Skyliner: dark navy mirror glass (a fine spandrel at every floor), the roof cut rising to the east (the Rondo)
 	# with a glass fin on the high corner, the black crown block (130-180 m) and the mast at the
 	# north end; no real sign up there, so the parody NOSE AGENCY sits on the block's east face.
 	# F's HUB photos (2026-11-06): the fin is bronze-gold (the full-height gold strip under it: BACKLOG).
-	{"key": "skyliner", "osm": "Skyliner", "style": S_BANDS, "glass": "#3a5f7c", "roof": "#59636b", "sign": "NOSE AGENCY",
+	{"key": "skyliner", "osm": "Skyliner", "style": S_MIRROR, "glass": "#2a4560", "roof": "#59636b", "sign": "NOSE AGENCY",
 			"crown_from": 125.0, "crown": "#1e2226", "crown_sign": true, "slope_to": Vector2(1.0, 0.0), "fin": "#c9a24a"},
-	# Warsaw Unit: sky-blue glass between black strips (each corner and the middle of the long
+	# Warsaw Unit: dark navy glass between black strips (each corner and the middle of the long
 	# faces), the 22 m black crown block (180-202 m) with the insurer's logo, here WARTKA in red.
 	# RD-1 (2026-11-06, the report and street photos): the shaft tapers from the 27 m base to
 	# 90 % at 168.8 m and the crown stands on the narrowed top (`taper`: from, to, scale); the
 	# base's lifted wings (9 m up) stand over a glass hall set 6 m in, so the tower's foot reads
 	# as the two-storey gate (`hall`); F's photos (2026-11-06) show the podium blocks clad in a
 	# fine grid of warm grey stone panels, floodlit at night (`podium`, `podium_style`).
-	{"key": "unit", "osm": "Warsaw Unit", "style": S_BANDS, "glass": "#6f99c2", "roof": "#8a96a0", "sign": "WARTKA",
+	{"key": "unit", "osm": "Warsaw Unit", "style": S_MIRROR, "glass": "#2c4264", "roof": "#8a96a0", "sign": "WARTKA",
 			"crown_from": 168.0, "crown": "#1b1e22", "crown_sign": true, "sign_col": Color(1.0, 0.15, 0.12), "strips": "#20252c",
 			"taper": Vector3(27.0, 168.8, 0.9), "hall": 6.0, "podium": "#cbc1b3", "podium_style": S_TILE},
-	# Mennica Legacy Tower: silver-blue glass with vertical silver fins, a flat top (no crown).
+	# Mennica Legacy Tower: dark blue glass with vertical silver fins, a flat top (no crown).
 	# RD-2 (2026-11-06): the 13 m ground storeys are an open arcade: the copper-tinted lobby
 	# set 5 m in under the shaft's soffit, the mapped posts as round stainless columns (`arcade`).
 	# F's photos (2026-11-06): the bank's white name high on the faces, here the parody MBĄK.
-	{"key": "mennica", "osm": "Mennica Legacy Tower", "style": S_FINS, "glass": "#86a6c4", "roof": "#b5c0c9",
+	{"key": "mennica", "osm": "Mennica Legacy Tower", "style": S_FINS, "glass": "#3a5474", "roof": "#b5c0c9",
 			"sign": "MBĄK", "sign_col": Color(0.95, 0.97, 1.0), "arcade": 13.0, "lobby": "#8a4a32", "columns": "#c9ced3"},
-	# Generation Park Y: blue glass in a white grid (white piers every 3 m), a flat roof; 140 m.
+	# Generation Park Y: dark blue glass in a white grid (white piers every 3 m), a flat roof; 140 m.
 	# RD-3 (2026-11-06): black spandrel patches a bay or two wide every few storeys and the two
 	# dark top storeys (`patches`), and the decked roof terraces of the Z and X wings (`terraces`:
 	# a point in each wing's roof, its deck at the roof's mapped height).
-	{"key": "gpy", "osm": "Generation Park Y", "style": S_GRID, "glass": "#6b94b8", "roof": "#8d969c",
+	{"key": "gpy", "osm": "Generation Park Y", "style": S_GRID, "glass": "#33506f", "roof": "#8d969c",
 			"patches": "#1a1d22", "terraces": [Vector3(-2654.0, 43.9, 268.0), Vector3(-2687.0, 53.8, 286.0), Vector3(-2605.0, 37.3, 300.0)]},
 	# The Warsaw HUB's two glass towers (unnamed in OpenStreetMap: found by a point, `at`, in
-	# the tallest building there): blue-green glass, flat roofs; B (the south one) stands about
+	# the tallest building there): dark blue glass, flat roofs; B (the south one) stands about
 	# 15 % lower than A in the photos though OSM gives both 130 m.
 	# RD-4 (2026-11-06): a 1.5 m parapet with a silver edge and the grey plant blocks on each
 	# roof (`parapet`, `plant`), and the 8 x 12 m glazed skylight on the 10.9 m podium between
 	# the two (`skylight`: its rectangle, the podium's height).
-	{"key": "hub_b", "at": Vector2(-2677.0, 576.0), "style": S_BANDS, "glass": "#6a93b3", "roof": "#b8bcbf",
+	{"key": "hub_b", "at": Vector2(-2677.0, 576.0), "style": S_MIRROR, "glass": "#34506e", "roof": "#b8bcbf",
 			"parapet": "#c8ccd0", "plant": Vector2(17.0, 13.0), "skylight": [Rect2(-2678.0, 599.0, 9.0, 12.0), 10.9]},
-	{"key": "hub_c", "at": Vector2(-2677.0, 633.0), "style": S_BANDS, "glass": "#6a93b3", "roof": "#b8bcbf", "top": 112.0,
+	{"key": "hub_c", "at": Vector2(-2677.0, 633.0), "style": S_MIRROR, "glass": "#34506e", "roof": "#b8bcbf", "top": 112.0,
 			"parapet": "#c8ccd0", "plant": Vector2(12.0, 8.0)},
 	# The HUB's third, round-ended tower is the hotel (85 m): cream fins over narrow windows, a
 	# dark band over the glazed ground floors.

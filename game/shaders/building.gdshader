@@ -487,9 +487,15 @@ vec3 skin(int s, vec3 col, float u, float h, float top, out vec3 glow, out bool 
 		// The Blue Skyscraper's reflective float glass (1991): plain blue mirror panes, the sky
 		// shining in them in slow streaks, a fine pale-silver spandrel at every floor and a
 		// hairline mullion every 2.4 m (not the gold of its first, copper-tinted cladding).
+		// Dark tinted panes (the Rondo Daszyńskiego towers' navy glass, F's photos 2026-11-17)
+		// reflect a dimmer sky and carry dark mullions, so they read navy from the air, not
+		// sky blue; pale or bright blue glass (luminance over ~0.14) keeps the plain mirror.
+		float tint = smoothstep(0.03, 0.14, dot(col, vec3(0.2126, 0.7152, 0.0722)));
+		vec3 mirror_sky = sky * mix(0.4, 1.0, daylight) * mix(0.45, 1.0, tint);
+		c = mix(col * mix(0.35, 1.0, daylight), mirror_sky, refl);
 		frame = any(bvec2(fract(h / fh) < 0.07, fract(u / 2.4) < 0.04));
-		frame_col = mix(silver, white, 0.3) * 0.92;
-		c = mix(c, sky * mix(0.4, 1.0, daylight), 0.28);
+		frame_col = mix(c * 1.5, mix(silver, white, 0.3) * 0.92, tint);
+		c = mix(c, mirror_sky, 0.28 * mix(0.5, 1.0, tint));
 		c *= 0.9 + 0.2 * value_noise(vec2(u * 0.11, h * 0.025));
 	} else if (s == S_TILE) {
 		// White tiled panels, floodlit at night. The wall colour picks the face:
