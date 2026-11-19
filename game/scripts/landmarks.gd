@@ -101,13 +101,23 @@ const TOWERS := [
 	# the two (`skylight`: its rectangle, the podium's height).
 	{"key": "hub_b", "at": Vector2(-2677.0, 576.0), "style": S_MIRROR, "glass": "#34506e", "roof": "#b8bcbf",
 			"parapet": "#c8ccd0", "plant": Vector2(17.0, 13.0), "skylight": [Rect2(-2678.0, 599.0, 9.0, 12.0), 10.9],
-			"shops": [["RAMEN", "#ff6a3a", 0.3], ["KAWA", "#ffe2b0", 0.7]]},
+			"shops": [["RAMEN", "#ff6a3a", 0.3], ["KAWA", "#ffe2b0", 0.7],
+					["ORAKEL", "#ff3b30", 0.18, 0.0, 7.6, 1.0], ["STANDARD CZARTER", "#3fb4ff", 0.62, 0.0, 7.6, 1.0]],
+			"screen": 4.5},
 	{"key": "hub_c", "at": Vector2(-2677.0, 633.0), "style": S_MIRROR, "glass": "#34506e", "roof": "#b8bcbf", "top": 112.0,
-			"parapet": "#c8ccd0", "plant": Vector2(12.0, 8.0)},
+			"parapet": "#c8ccd0", "plant": Vector2(12.0, 8.0), "screen": 4.5,
+			"shops": [["HUB", "#f2f4f6", 0.5, 0.0, 4.0, 2.4]]},
 	# The HUB's third, round-ended tower is the hotel (85 m): cream fins over narrow windows, a
 	# dark band over the glazed ground floors.
+	# F's photos (2026-11-19): the office towers' glass runs 4.5 m over their roofs under a dark
+	# crown band (`screen`), the tenants' names over the podium's street front (parodies); the
+	# hotel's name twice on its band and The Roof bar on top (`the_roof`, `band_signs`:
+	# [word, colour, facing, height, letter height]).
 	{"key": "crowne", "at": Vector2(-2706.0, 512.0), "style": S_TILE, "glass": "#e8e4da", "roof": "#b8bcbf", "cool": true,
-			"band": "#3a3c40"},
+			"band": "#3a3c40", "the_roof": true,
+			"band_signs": [["KORONA", "#f4f1ea", Vector2(0.0, -1.0), 10.1, 0.8], ["PLAZA", "#f4f1ea", Vector2(0.0, -1.0), 9.0, 0.8],
+					["HOLIDEJ INN", "#7fd35a", Vector2(0.7, -0.7), 9.6, 0.8],
+					["KORONA PLAZA", "#f4f1ea", Vector2(1.0, -0.3), 9.6, 0.8]]},
 	# The Zachodnia offices by the tracks (F, 2026-11-06; street photos from Mapillary and Panoramax,
 	# refs/equator*, refs/brama): Brama Zachodnia is the terracotta tower with a green-glazed ground
 	# floor; Equator a graphite block in ribbon glazing over a perforated-metal car-park screen;
