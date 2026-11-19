@@ -411,9 +411,6 @@ const FIRST_SCENE := {
 	# Pasaż Wiecha behind the stores (2026-11-02): its north café garden (the one on the square by
 	# Chmielna lies past the start box's edge).
 	"street_wiecha_north": [90.0, 69.0, 8, 8.0, true],
-	# Pasaż Wiecha's 24 h kebab hatch (landmarks/centre.gd `_wiecha_life`, 2026-11-19): a few
-	# standers at its lit window all night (a sixth value true = the `kebab24` curve, a third fewer in rain).
-	"street_wiecha_kebab": [8.0, 71.2, 5, 3.0, false, true],
 	# The stores' arcade (F's photos, 2026-11-15): shoppers under the white ceiling, window gazers
 	# and people with bags, along the street face (t 34, 3 m in from the cantilever's edge), from
 	# Junior's north end to the start box's south edge. Standers only: the walkers are busy_bands'.
@@ -507,10 +504,6 @@ const CURVES := {
 	# *guess*: Nowogrodzka's bars (NOWOGRODZKA): a few after work, fullest 22-01, gone by 04
 	"pub": {16: 0.1, 17: 0.15, 18: 0.25, 19: 0.4, 20: 0.55, 21: 0.75, 22: 0.9, 23: 1.0, 0: 1.0, 1: 0.85, 2: 0.55,
 			3: 0.25},
-	# *guess*: a 24 h kebab hatch on Pasaż Wiecha: two or three at 3 a.m., a queue after the clubs
-	"kebab24": {0: 0.6, 1: 0.6, 2: 0.5, 3: 0.4, 4: 0.35, 5: 0.25, 6: 0.2, 7: 0.25, 8: 0.3, 9: 0.3, 10: 0.35,
-			11: 0.45, 12: 0.6, 13: 0.6, 14: 0.5, 15: 0.5, 16: 0.55, 17: 0.65, 18: 0.7, 19: 0.8, 20: 0.85,
-			21: 0.9, 22: 1.0, 23: 0.8},
 	# *guess*: 20 walkers at the edges of 05-09, 40 at the peak
 	"dawn": {5: 0.5, 6: 1.0, 7: 1.0, 8: 0.4},
 	# *guess*: the Palace's stages (THEATRES): the audience gathers from 18:30 for a 19:00 curtain,
@@ -1208,7 +1201,7 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 	for fid: String in FIRST_SCENE:
 		var fs: Array = FIRST_SCENE[fid]
 		_add_site({"id": fid, "kind": "chill", "street": true, "sit": bool(fs[4]), "at": first_scene_at(float(fs[0]), float(fs[1])),
-				"max": int(fs[2]), "radius": float(fs[3]), "kebab24": fs.size() > 5 and bool(fs[5])})
+				"max": int(fs[2]), "radius": float(fs[3])})
 	if meet_on:
 		var slots: Array = []
 		var mrng := RandomNumberGenerator.new()
@@ -2255,8 +2248,6 @@ func tick(step: float) -> void:
 						float(s["open"]), float(s["close"]), k)
 			"chill":
 				var lvl := street_level(hour, month, rain) if bool(s.get("street", false)) else chill_level(hour, month, rain)
-				if bool(s.get("kebab24", false)):
-					lvl = curve_at("kebab24", hour) * (0.7 if rain else 1.0)
 				if bool(s.get("pub", false)):
 					lvl = pub_level(hour, weekday, month, rain)
 				if bool(s.get("club", false)):

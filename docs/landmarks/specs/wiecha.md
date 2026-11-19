@@ -97,6 +97,6 @@ window displays (M_LAMP pane in one of five warm or cool tints, with a dark shel
 dark and shut; on the pasaż-facing front a few bays get a striped awning; each longer face carries
 a small light-box word on the fascia (parody words from neon_signs.gd). The first pavilion's front
 holds the 24 h kebab hatch: a hot orange window over a counter, an awning, a two-sided blade sign
-"KEBAB 24H" and a string of bulbs. `crowds.gd` FIRST_SCENE `street_wiecha_kebab` puts a few
-people at the hatch on the `kebab24` curve (some at every hour, most at 22:00, a third fewer in rain).
+"KEBAB 24H" and a string of bulbs. No crowd site: the pavilions lie outside the crowds' start box
+(x > -880), so customers at the hatch need a place for them there first (BACKLOG).
 Not done: umbrellas (the teaser thread's), a night café terrace, reflections beyond the ground shader's lamp pools.
