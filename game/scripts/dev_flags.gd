@@ -386,6 +386,12 @@ var _flag_barriers := &""
 ## --push-parked=X,Z (step 8a, for shots; needs --soft): the parked car nearest X,Z slides off its bay
 ## sideways as a push would send it, once its sector is in (main.gd, `soft_things.gd` `push_near`).
 var _flag_push_parked := Vector2.INF
+## --smash-fence=X,Z[,FRAME[,DEG]] (W6 of the walls look, for shots; needs --soft): at frame FRAME
+## (default 60) the soft fence or hedge nearest X,Z (within 15 m) breaks as a car crossing it there
+## would break it (two panels, the debris, the sound), thrown toward DEG degrees (0 +x, 90 +z;
+## default 90), so a `--shots=` strip shows before, just after and what stays (main.gd,
+## `soft_things.gd` `smash_near`).
+var _flag_smash_fence := Vector4.INF
 var _flag_traffic := -1
 var _flag_fixed := false
 var _flag_perf := false
@@ -641,6 +647,12 @@ func parse_with(args: PackedStringArray) -> void:
 			# barrier_look. The prebuilt city is the look it was baked in (`note_barrier_look`).
 			_flag_barriers = StringName(arg.trim_prefix("--barriers="))
 			Solidity.set_barrier_look(_flag_barriers)
+		elif arg.begins_with("--smash-fence="):
+			var sf := arg.trim_prefix("--smash-fence=").split_floats(",")
+			if sf.size() < 2:
+				push_error("--smash-fence: '%s' is not X,Z[,FRAME[,DEG]]" % arg)
+			else:
+				_flag_smash_fence = Vector4(sf[0], sf[1], sf[2] if sf.size() > 2 else 60.0, sf[3] if sf.size() > 3 else 90.0)
 		elif arg.begins_with("--push-parked="):
 			var pp := arg.trim_prefix("--push-parked=").split_floats(",")
 			_flag_push_parked = Vector2(pp[0], pp[1])

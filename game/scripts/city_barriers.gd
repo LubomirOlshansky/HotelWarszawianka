@@ -156,7 +156,8 @@ static var soft_off := false
 const HARD_RAILS: Array[StringName] = [&"tram_railing", &"balustrade", &"balustrade_rail", &"balustrade_white"]
 ## Step 7: a smash line's 2 m panels (the look thread's instanced panels use the same length).
 const PANEL := 2.0
-## Step 7: fence types (object_types.py `ty`) whose panels sound and break as wood.
+## Step 7: fence types (object_types.py `ty`) whose panels sound and break as wood, for a line whose
+## type has no `debris` in its looks row (W6: the row's `debris` decides, Solidity.debris_of).
 const WOOD_TYPES := ["wood", "hoarding"]
 ## Step 7: an S line inside or within this of a landmark site's ring (landmarks.gd `sites` "zone":
 ## the outlines its model replaces; the sites with a card, as check_landmarks drives its car rays
@@ -167,8 +168,8 @@ const LANDMARK_GUARD := 10.0
 
 var map  # map_builder.gd: terrain, decks, the building surface's helpers, `_solid`
 ## Step 7: the soft lines of the last build_barriers (one sector, or the whole map): per line its
-## stable id (barrier_id), kind, material for the sound and debris ("metal", "wood", "hedge") and
-## panel count; per segment SOFT_STRIDE numbers (soft_data).
+## stable id (barrier_id), kind, debris for the sound and the burst (W6: its looks row's `debris`,
+## "metal", "wood", "sheet" or "leaf"; Solidity.debris_of) and panel count; per segment SOFT_STRIDE numbers (soft_data).
 var soft_ids := PackedStringArray()
 var soft_kinds := PackedStringArray()
 var soft_mats := PackedStringArray()
@@ -465,7 +466,10 @@ func _begin_soft(l: Dictionary, pts: PackedVector2Array) -> void:
 	_soft_run = 0.0
 	soft_ids.append(barrier_id(k, l["p"]))
 	soft_kinds.append(k)
-	soft_mats.append("hedge" if k == "hedge" else ("wood" if ty in WOOD_TYPES or str(l.get("ft", "")) == "wood" else "metal"))
+	var debris := Solidity.debris_of(StringName(ty))
+	if debris == "":
+		debris = "leaf" if k == "hedge" else ("wood" if ty in WOOD_TYPES or str(l.get("ft", "")) == "wood" else "metal")
+	soft_mats.append(debris)
 	soft_panels.append(maxi(1, ceili(length / PANEL)))
 
 
