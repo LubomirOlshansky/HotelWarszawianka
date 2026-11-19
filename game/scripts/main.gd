@@ -2585,6 +2585,9 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	zamkowy_life = PlacZamkowyLife.new()
 	world.add_child(zamkowy_life)
 	zamkowy_life.setup(map)
+	if flags.pigeons_at > 0.0:
+		zamkowy_life.keep_awake = true
+		zamkowy_life.flush_in = flags.pigeons_at
 
 
 # --- loop MW-1: MOJA WARSZAWA, the notebook --------------------------------------------------

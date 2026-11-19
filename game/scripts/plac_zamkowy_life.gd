@@ -38,6 +38,10 @@ var map: Node3D
 var player := Vector3.ZERO
 var player_vel := Vector3.ZERO
 var flying := false
+## Videos (--pigeons-at): the square stays awake wherever the player is, and the flock bursts
+## up when this runs out (seconds; below zero, never).
+var keep_awake := false
+var flush_in := -1.0
 ## How long the last update took, for --bench.
 var last_usec := 0
 
@@ -248,6 +252,12 @@ func _pigeons(dt: float) -> void:
 	var flat := Vector2(player.x - _centre.x, player.z - _centre.z).length()
 	var low := player.y - _centre.y < 35.0
 	var scare := (flat < 13.0 and (player_vel.length() > 1.0 or flying)) or (flying and flat < 30.0 and low)
+	var from := player
+	if flush_in > 0.0:
+		flush_in -= dt
+		if flush_in <= 0.0 and _flock == Flock.GROUND:
+			scare = true
+			from = _centre  # a burst outwards, from the middle of the flock
 	_flock_t += dt
 	match _flock:
 		Flock.GROUND:
@@ -255,7 +265,7 @@ func _pigeons(dt: float) -> void:
 				_flock = Flock.AIR
 				_flock_t = 0.0
 				for i in PIGEONS:
-					var away := Vector3(_pos[i].x - player.x, 0.0, _pos[i].z - player.z).normalized()
+					var away := Vector3(_pos[i].x - from.x, 0.0, _pos[i].z - from.z).normalized()
 					if away == Vector3.ZERO:
 						away = Vector3.FORWARD
 					away = away.rotated(Vector3.UP, _rng.randf_range(-0.8, 0.8))
@@ -352,6 +362,6 @@ func tick(pos: Vector3, vel: Vector3, fly: bool) -> void:
 	player = pos
 	player_vel = vel
 	flying = fly
-	var near := Vector2(pos.x - CENTRE.x, pos.z - CENTRE.y).length() < ACTIVE_R
+	var near := keep_awake or Vector2(pos.x - CENTRE.x, pos.z - CENTRE.y).length() < ACTIVE_R
 	if near != _awake:
 		_wake(near)

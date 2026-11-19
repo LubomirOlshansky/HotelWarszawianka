@@ -46,6 +46,9 @@ var train_at := Vector2.INF
 ## after the start, rolling.
 var promo_at := Vector2.INF
 var promo_t := 6.0
+## --pigeons-at=T (videos, F 2026-11-19 "the pigeons fly up during the video"): Plac Zamkowy's
+## square stays awake wherever the player is, and its flock bursts up T s after the start.
+var pigeons_at := -1.0
 ## --train=X,Z,K: that train of kind K (trains.gd KINDS: 0 Koleje Mazowe, 1 SKiM, 2 the
 ## long-distance one).
 var train_kind := -1
@@ -971,6 +974,8 @@ func parse_with(args: PackedStringArray) -> void:
 				promo_at = Vector2(float(pa[0]), float(pa[1]))
 			if pa.size() >= 3:
 				promo_t = float(pa[2])
+		elif arg.begins_with("--pigeons-at="):
+			pigeons_at = maxf(0.01, float(arg.trim_prefix("--pigeons-at=")))
 		elif arg.begins_with("--train="):
 			var xz := arg.trim_prefix("--train=").split(",")
 			if xz.size() >= 2:
