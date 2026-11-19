@@ -3,7 +3,7 @@
 Research and plan only. No code was changed, nothing was run. Numbers come from
 `docs/builds/perf-bisect-2026-11-19.md` unless marked *est.* (my estimate, with the reasoning) or
 *unverified* (could not be confirmed from Godot's docs or the code). Code read at the snapshot of
-main in `/private/tmp/aw-perf-docs`.
+main (2026-11-19).
 
 Contents: 1 where the time goes · 2 options design · 3 loading · 4 fps per bottleneck ·
 5 C++ · 6 ranked work items (15) · 7 what Godot offers (research notes) · sources.
