@@ -62,3 +62,12 @@ CC BY-NC like the game's other sound), faded out over its last 0.5 s.
 - No bridge shot until the bridge rework from another thread lands.
 - The card shows the platforms only: iOS and Android icons, no "open beta" words.
 - New order: palm, skyline (the Palace, golden), wola (dusk), hook2 (Rondo Dmowskiego, night rain), stadium (night).
+
+## Music (7 s)
+
+`music-7s.m4a` (F, 2026-11-19: "use 11labs to generate the teaser sound"): ElevenLabs Music
+(eleven_music_v2_5, 4 takes of a 120 bpm synthwave sting, take 3 used for 0-5 s) and an ElevenLabs
+sound effect (eleven_text_to_sound_v3, a synth impact) on the card's hit at 5.0 s with an echo
+tail of the groove, loudness -14 LUFS (Instagram's level). Made on F's ElevenLabs account for
+the game; the raw takes are in the project files (teaser/music). `music-5s.m4a` is the older
+5 s cut from the trailer's take 4.
