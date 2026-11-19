@@ -356,7 +356,14 @@
       {
         "only": "ev"
       }
-    ]
+    ],
+    ["Słuchacz z Prymasa Tysiąclecia: jechał setką i coś go wyprzedziło. Nie auto. Kukuryźnik.", "A listener on Prymasa Tysiąclecia: he was doing a hundred and something passed him. Not a car. A Kukuryźnik.", {"only": "kukuryznik"}],
+    ["Kask na głowę, nie na kierownicę. Apel KEBAB FM do wszystkich kukuryźniarzy.", "The helmet goes on your head, not on the handlebar. KEBAB FM's appeal to every kukuryźniarz.", {"only": "kukuryznik"}],
+    ["Na Złotej strefa dwanaście na godzinę. Kukuryźniarze mówią, że tyle mają na parkingu.", "Złota is a twelve-an-hour zone. The kukuryźniarze say that's their parking speed.", {"only": "kukuryznik"}],
+    ["Młodzieżowe słowo roku? Kukuryźniarz prowadzi. Rodzice głosują przeciw.", "Youth word of the year? Kukuryźniarz is in the lead. The parents are voting against.", {"only": "kukuryznik"}],
+    ["Kukuryźnik, czyli kukuruźnik dla nastolatków. Też brzęczy, tylko lata niżej.", "The Kukuryźnik: a crop duster for teenagers. Same buzz, it just flies lower.", {"only": "kukuryznik"}],
+    ["Uwaga, Marszałkowska: przejeżdża Kukuryźnik Mob. Siedem hulajnóg, jeden kask.", "Heads up, Marszałkowska: the Kukuryźnik Mob is coming through. Seven scooters, one helmet.", {"only": "kukuryznik_mob"}],
+    ["Kukuryźnik Mob w centrum. Policja mówi: znowu oni. My mówimy: dobranoc, Warszawo.", "The Kukuryźnik Mob is in the centre. The police say: them again. We say: good night, Warsaw.", {"only": "kukuryznik_mob"}]
   ],
   "kebab_order": [
     [
@@ -3175,6 +3182,34 @@
       "Trzy Frogsy na jednym skrzyżowaniu. Żaby, wiadomo: się mnożą.",
       "Three Frogs on one junction. Frogs, you know: they multiply."
     ]
+  ],
+  "kukuryznik": [
+    ["Sorry szefie, mam sześćdziesiąt na liczniku!", "Sorry boss, I've got sixty on the clock!", {"only": "overtake"}],
+    ["Lewy pas dla Kukuryźników!", "Left lane's for Kukuryźniks!", {"only": "overtake"}],
+    ["Ty stoisz w korku, ja jestem korkiem.", "You're stuck in traffic. I am the traffic.", {"only": "overtake"}],
+    ["Spokojnie, mam kask. W plecaku.", "Relax, I've got a helmet. In my backpack.", {"only": "overtake"}],
+    ["Nic mi nie jest! Nagrałeś to? Wrzuć!", "I'm fine! Did you film that? Post it!", {"only": "gleba"}],
+    ["To nie gleba, to manewr taktyczny.", "That wasn't a wipeout. That was a tactical manoeuvre.", {"only": "gleba"}],
+    ["Krawężnik wyskoczył. Serio, sam wyskoczył.", "The kerb jumped out. Seriously, all by itself.", {"only": "gleba"}],
+    ["Mamo, jestem w bibliotece. Tak, z Kubą. Tak, czytamy.", "Mum, I'm at the library. Yes, with Kuba. Yes, we're reading.", {"only": "mama"}],
+    ["Mamo, to nie silnik, to wentylator w czytelni.", "Mum, that's not a motor, it's the reading room's fan.", {"only": "mama"}],
+    ["Tato, jaka bateria z garażu? Nie wiem, o czym mówisz.", "Dad, what garage battery? No idea what you mean.", {"only": "mama"}],
+    ["KUKURYŹNIK MOB! Z drogi, jedziemy nad Wisłę!", "KUKURYŹNIK MOB! Out of the way, we're heading for the river!", {"only": "mob"}],
+    ["Na jednym kole aż na Pragę!", "On one wheel all the way to Praga!", {"only": "mob"}],
+    ["Ładna fura. Ile pali? Bo my nic.", "Nice ride. What's it burn? Ours burns nothing.", {"only": "gang"}],
+    ["Kebab bez sosu, bo sos spowalnia.", "Kebab, no sauce. Sauce slows you down.", {"only": "gang"}],
+    ["Mój ma dwa silniki i jeden hamulec. Zapasowy niepotrzebny.", "Mine's got two motors and one brake. No need for a spare.", {"only": "gang"}],
+    ["Ej, uważaj! Prawie zrobiłeś ze mnie kontent!", "Hey, watch it! You nearly turned me into content!", {"only": "near_miss"}],
+    ["Auto na ścieżce? Wrzucam cię do sieci.", "A car on the bike path? You're going online.", {"only": "near_miss"}]
+  ],
+  "kukuryznik_walker": [
+    ["Chodnik jest dla ludzi, młody!", "The pavement's for people, kid!"],
+    ["Gdzie kask?! Mama wie, gdzie jesteś?", "Where's your helmet?! Does your mum know where you are?"],
+    ["Znowu kukuryźniarz! Trzeci dzisiaj!", "Another kukuryźniarz! That's three today!"],
+    ["Prawie zabrał mi zakupy. Razem z ręką.", "He nearly took my shopping. And my arm with it."],
+    ["Za moich czasów hulajnogę pchało się nogą!", "In my day you pushed a scooter with your foot!"],
+    ["Brzęczy jak samolot, jedzie jak rakieta, myśli jak nikt.", "Buzzes like a plane, goes like a rocket, thinks like nobody."],
+    ["Tu jest dwunastka! Dwanaście na godzinę!", "This is a twelve zone! Twelve an hour!", {"only": "zone"}]
   ],
   "pedzik": [
     [

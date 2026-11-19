@@ -145,6 +145,9 @@
 # stands at night (1 or 2, none by day, the race's take), the kerb riders on the real lane graph (the
 # count in the band, on the kerb line, through the junctions), the swerve / hop on synthetic inputs and
 # a car driven at one (never in its footprint), the near miss's line once per 30 s; centrum.json only (CI too).
+# F's scooter chaos: `kukuryznik` runs game/tools/check_kukuryznik.gd: the Kukuryźnik riders' rules (hours,
+# the gang's stands, the mob, the overtake, the wheelie), the mesh, the words, and the real city: riders by
+# the rule, walkers leaping, an encounter, an overtake past a car, the mob together, the gang, KEBAB FM.
 # Loop MW-4: `life` runs game/tools/check_city_life.gd: the dogs' hours and caps, the horn's rate
 # limits, the Wiralek cycle on synthetic dates, the "Na czasie" pay, the Zając, Fat Thursday, the
 # life eggs, the meshes and the tick's cost; centrum.json only (CI too). `life-soak` (not in
@@ -1425,6 +1428,7 @@ for s in $want; do
 		rescueplay) check rescueplay '^check_rescue_play:' --script res://tools/check_rescue_play.gd ;;
 		# Loop couriers: the waiting couriers, the kerb riders, the dodge, the near miss's line.
 		couriers) check couriers '^check_couriers:' --script res://tools/check_couriers.gd ;;
+		kukuryznik) check kukuryznik '^check_kukuryznik:' --script res://tools/check_kukuryznik.gd ;;
 		# Beta values: the deliveries' route, the heat's words, NASTĘPNE.
 		delivery) check delivery '^check_delivery:' --script res://tools/check_delivery.gd ;;
 		# The deliveries played on the activity kit (the committed map, fake HUD, the autopilot over the engine's frames).

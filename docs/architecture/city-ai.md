@@ -27,7 +27,8 @@ trains.gd                               trains on the baked railway tracks
 campus_cart.gd                          the University guards' cart on a fixed campus ring
 pedestrians.gd  walkers on footways in one MultiMesh, plus fixed "slots" other systems rent
      ├─ crowds.gd        queues, roof crowds, river people (still figures, same mesh)
-     ├─ city_life.gd     dog walkers, cyclists, runners, Hyrax, the Wiralek trend cycle
+     ├─ city_life.gd     dog walkers, cyclists, runners, Hyrax, the Wiralek trend cycle,
+     │                   the Kukuryźnik e-scooter riders (docs/design/kukuryznik.md)
      ├─ packs.gd         running clubs and coffee crowds
      ├─ fans.gd          football fans on match evenings
      └─ wellness.gd      sound healing, yoga and other park circles
@@ -181,6 +182,8 @@ traffic Driver because the campus paths are not in the lane graph.
   `set_scene` (crash scenes). The slot ranges are agreed by hand today (tech-debt TD-6).
 - **Crowds, packs, fans, wellness** draw still or looping figures in the same person mesh and
   material. They switch on by the game clock and place (`hours`, weekdays).
+- **The leap** (`leap`, F's scooter chaos): walkers ahead of a Kukuryźnik hop to the far side of their
+  footway; the shout is city_life.gd's, through the chatter budget.
 - **Reactions** go through bubbles and the chatter budget (`say_reaction`, `say_ambient`), never a
   private cooldown.
 
@@ -195,7 +198,7 @@ traffic Driver because the campus paths are not in the lane graph.
    `--bench` before and after.
 5. Words: `data/dialogue.json` group and `bubbles.say_*` with the right chatter class.
 6. Add a check in `game/tools/check_*.gd` (the existing ones: `check_police`, `check_crowds`,
-   `check_city_life`, `check_buses`, `check_trains`, `check_crash_scenes`, `check_race_bench`,
+   `check_city_life`, `check_kukuryznik`, `check_buses`, `check_trains`, `check_crash_scenes`, `check_race_bench`,
    `check_race_planner`, `check_race_line`).
 
 ## 8. The town: planned, not built

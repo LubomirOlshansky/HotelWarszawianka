@@ -89,6 +89,7 @@ jobs2                quick
 juice                quick
 kebab                local     slow
 kinotour             quick
+kukuryznik           quick
 ladder               quick
 landmarks            landmarks
 laneassist           quick
