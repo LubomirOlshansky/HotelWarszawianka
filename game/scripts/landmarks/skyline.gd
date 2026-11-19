@@ -997,6 +997,8 @@ func _build_tower(site: Dictionary) -> void:
 				_tower_strips(poly, base + 2.0, g + h, Color(spec["strips"]))
 			if spec.has("band") and h >= top_h - 0.5:
 				_tower_band(poly, g + 8.5, g + 11.5, Color(spec["band"]))
+				if spec.has("band_signs"):
+					_ring_signs(poly, g, spec["band_signs"])
 			if spec.get("crest", "") == "frame" and h >= top_h - 0.5:
 				# Rondo 1: an open frame round the top, from the roof to 192 m.
 				_prism(poly, g + h, g + 192.0, wall, Color(0, 0, 0, 0), M_SKIN + float(S_FRAME) / 16.0)
@@ -1005,7 +1007,10 @@ func _build_tower(site: Dictionary) -> void:
 			if spec.has("patches") and h >= 100.0:
 				_tower_patches(poly, base, g + h, Color(spec["patches"]))
 			if spec.has("parapet") and h >= minf(top_h, float(spec.get("top", INF))) - 0.5:
-				_tower_roof(poly, g + h, Color(spec["parapet"]), spec.get("plant", Vector2.ZERO))
+				_tower_roof(poly, g + h, Color(spec["parapet"]), spec.get("plant", Vector2.ZERO),
+						float(spec.get("screen", 0.0)), wall)
+			if spec.get("the_roof", false) and h >= top_h - 0.5:
+				_the_roof(poly, g + h)
 		if mh < 2.0:
 			_collide(poly)
 	if spec.has("top"):
@@ -2106,18 +2111,20 @@ func _shop_signs(parts: Array, g: float, shops: Array, dir := Vector2.ZERO) -> v
 	if score <= 0.0:
 		return
 	var e := (best_b - best_a).normalized()
-	var k := 0.9 / (Neon.ROW_H * Neon.PIXEL)
 	var keep := _mode
 	_mode = M_STONE
 	for s: Array in shops:
 		var word := str(s[0])
 		var inset := float(s[3]) if s.size() > 3 else 0.0
+		var y := g + (float(s[4]) if s.size() > 4 else 3.2)  # the board's foot over the ground
+		var tall := float(s[5]) if s.size() > 5 else 0.9  # the letters' height
+		var k := tall / (Neon.ROW_H * Neon.PIXEL)
 		var mid := best_a.lerp(best_b, float(s[2])) - best_o * inset
 		var half := 0.5 * k * Neon.length_of(word) + 0.4
 		var board := PackedVector2Array([mid - e * half, mid + e * half, mid + e * half + best_o * 0.12, mid - e * half + best_o * 0.12])
-		_prism(board, g + 3.2, g + 4.5, SHOP_BOARD, SHOP_BOARD, M_STONE, M_STONE)
+		_prism(board, y, y + tall + 0.4, SHOP_BOARD, SHOP_BOARD, M_STONE, M_STONE)
 		var at := mid + best_o * (0.12 - 0.38)  # map_builder puts the letters 0.4 m out: 2 cm off the board
-		signs.append([word, Vector3(at.x, g + 3.4, at.y), Vector3(best_o.x, 0.0, best_o.y), k, Color(str(s[1]))])
+		signs.append([word, Vector3(at.x, y + 0.2, at.y), Vector3(best_o.x, 0.0, best_o.y), k, Color(str(s[1]))])
 	_mode = keep
 
 
@@ -2193,17 +2200,31 @@ func _tower_patches(poly: PackedVector2Array, y0: float, y1: float, col: Color) 
 
 ## RD-4 the HUB's roofs (the report's ortho): a 1.5 m parapet with a silver edge, its inner face
 ## too, and a grey plant block of `plant` metres (along the longest edge, across) in the middle.
-func _tower_roof(poly: PackedVector2Array, y: float, col: Color, plant: Vector2) -> void:
+## With `screen` (F's HUB photos, 2026-11-19) the curtain wall runs on that far over the roof in the
+## tower's own glass, hiding the plant, under a dark crown band and a silver coping.
+func _tower_roof(poly: PackedVector2Array, y: float, col: Color, plant: Vector2, screen := 0.0,
+		glass := Color.WHITE) -> void:
 	var keep := _mode
 	_mode = M_STONE
-	_prism(poly, y, y + 1.5, col, Color(0, 0, 0, 0), M_STONE)
+	var top := y + (screen if screen > 0.0 else 1.5)
+	if screen > 0.0:
+		# plain glass: the skin would light rooms in it at night, and there are none up there
+		_prism(poly, y, top, glass.darkened(0.08), Color(0, 0, 0, 0), M_STONE)
+		for i in poly.size():
+			var a := poly[i]
+			var b := poly[(i + 1) % poly.size()]
+			var o := _out(poly, a, b)
+			_wall(a + o * 0.08, b + o * 0.08, top - 1.8, top - 0.4, o, HUB_CROWN)
+			_wall(a + o * 0.1, b + o * 0.1, top - 0.4, top, o, col)  # the silver coping
+	else:
+		_prism(poly, y, top, col, Color(0, 0, 0, 0), M_STONE)
 	var inner := Geometry2D.offset_polygon(poly, -0.3)
 	if inner.size() == 1:
 		var r := inner[0]
 		for i in r.size():
 			var a := r[i]
 			var b := r[(i + 1) % r.size()]
-			_wall(a, b, y, y + 1.5, -_out(r, a, b), col.darkened(0.15))
+			_wall(a, b, y, top, -_out(r, a, b), col.darkened(0.15))
 	if plant.x > 0.0:
 		var c := _centre(poly)
 		var e := Vector2.RIGHT
@@ -2223,6 +2244,137 @@ func _tower_roof(poly: PackedVector2Array, y: float, col: Color, plant: Vector2)
 			var f := c - hx * 0.6 + hx * 0.6 * k + n * (plant.y * 0.5 + 2.0)
 			_prism(_square(f, 1.1), y, y + 1.6, Color("#9aa0a4"), Color("#5f6569"), M_STONE, M_STONE)
 	_mode = keep
+
+
+const HUB_CROWN := Color("#1f252c")
+const ROOF_RAIL := Color("#c9dbe2")
+const ROOF_DECK := Color("#8a7a6c")
+const ROOF_STEEL := Color("#cfd1cc")
+const ROOF_SOFA := Color("#3e4044")
+const ROOF_TABLE := Color("#d9d3c7")
+const ROOF_CYPRESS := Color("#2f4a2c")
+
+
+## The Roof, the bar on the HUB hotel's top (F's photo, 2026-11-19; the hotel's own pages): a
+## pale glass screen round the edge, grey timber decking, a glazed lounge lit warm on the half
+## away from the Rondo, and on the Rondo's round end an open pale steel pergola strung with
+## festoon lights over pale tables and dark wicker sofas, olives and cypresses along the rail. The bar's name, "NA DACHU" ("on
+## the roof"), sits over the lounge's door; the hotel's (a parody) on the screen's long side.
+func _the_roof(poly: PackedVector2Array, y: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var keep := _mode
+	_mode = M_STONE
+	var rail := 2.4
+	_prism(poly, y, y + rail, ROOF_RAIL, none, M_STONE)
+	var inner := Geometry2D.offset_polygon(poly, -0.15)
+	if inner.size() != 1:
+		_mode = keep
+		return
+	var r := inner[0]
+	for i in r.size():
+		var a := r[i]
+		var b := r[(i + 1) % r.size()]
+		_wall(a, b, y, y + rail, -_out(r, a, b), ROOF_RAIL.darkened(0.2))
+	_prism(r, y, y + 0.25, ROOF_DECK, ROOF_DECK.lightened(0.1), M_STONE, M_STONE)
+	var d := y + 0.25
+	# The plan's long axis (the two points furthest apart: the round ends' tips), its middle and
+	# half-width; the round end nearer the Rondo carries the pergola, the other the lounge.
+	var p0 := poly[0]
+	var p1 := poly[0]
+	for a in poly:
+		for b in poly:
+			if a.distance_squared_to(b) > p0.distance_squared_to(p1):
+				p0 = a
+				p1 = b
+	var c := (p0 + p1) * 0.5
+	var ax := (p1 - p0).normalized()
+	if ax.dot(RONDO_D - c) < 0.0:
+		ax = -ax
+	var side := Vector2(-ax.y, ax.x)
+	var half_l := 0.5 * p0.distance_to(p1)
+	var half_w := 0.0
+	for a in poly:
+		half_w = maxf(half_w, absf((a - c).dot(side)))
+	# the lounge: the far half, 2.5 m in from the rail, 4 m of warm-lit glass under a dark roof
+	var far := PackedVector2Array([c - ax * (half_l + 5.0) - side * (half_w + 5.0), c - ax * (half_l + 5.0) + side * (half_w + 5.0),
+			c - ax * 2.0 + side * (half_w + 5.0), c - ax * 2.0 - side * (half_w + 5.0)])
+	var shrunk := Geometry2D.offset_polygon(poly, -2.5)
+	if shrunk.size() == 1:
+		for lounge in Geometry2D.intersect_polygons(shrunk[0], far):
+			if Geometry2D.is_polygon_clockwise(lounge):
+				continue
+			_prism(lounge, d, d + 3.8, Color("#e4cfa6"), Color("#7f8388"), M_PAVILION, M_STONE)
+			_mode = M_STONE
+			var door := c - ax * 2.0
+			signs.append(["NA DACHU", Vector3(door.x, d + 2.6, door.y) + Vector3(ax.x, 0.0, ax.y) * -0.3,
+					Vector3(ax.x, 0.0, ax.y), 0.95 / (Neon.ROW_H * Neon.PIXEL), Color("#ffb46b")])
+	# the pergola: posts on a 5 m by 6.5 m grid over the near end, beams both ways at 3 m
+	var xs := [-10.0, -5.0, 0.0, 5.0, 10.0]
+	var zs := [4.0, 10.5, 17.0]
+	var ph := 3.0
+	var at := func(u: float, v: float) -> Vector2: return c + side * u + ax * v
+	for u: float in xs:
+		for v: float in zs:
+			_prism(_square(at.call(u, v), 0.12), d, d + ph, ROOF_STEEL, ROOF_STEEL, M_STONE, M_STONE)
+	for v: float in zs:
+		var p: Vector2 = at.call(xs[0], v)
+		var q: Vector2 = at.call(xs[-1], v)
+		_beam(Vector3(p.x, d + ph, p.y), Vector3(q.x, d + ph, q.y), 0.22, ROOF_STEEL)
+	for u: float in xs:
+		var p: Vector2 = at.call(u, zs[0])
+		var q: Vector2 = at.call(u, zs[-1])
+		_beam(Vector3(p.x, d + ph + 0.2, p.y), Vector3(q.x, d + ph + 0.2, q.y), 0.14, ROOF_STEEL)
+	# festoons zig-zag under the beams, a bulb every metre or so
+	for i in xs.size() - 1:
+		for j in zs.size() - 1:
+			var p: Vector2 = at.call(xs[i], zs[j] if i % 2 == 0 else zs[j + 1])
+			var q: Vector2 = at.call(xs[i + 1], zs[j + 1] if i % 2 == 0 else zs[j])
+			_pow_festoon(Vector3(p.x, d + ph - 0.1, p.y), Vector3(q.x, d + ph - 0.1, q.y), 0.45, 6)
+	_mode = M_STONE
+	# pale tables with two dark wicker sofas each, in the pergola's bays
+	for u: float in [-7.5, -2.5, 2.5, 7.5]:
+		for v: float in [7.25, 13.75]:
+			var t: Vector2 = at.call(u, v)
+			_prism(_square(t, 0.45), d, d + 0.75, ROOF_TABLE.darkened(0.2), ROOF_TABLE, M_STONE, M_STONE)
+			for sd: float in [-1.3, 1.3]:
+				var sofa := PackedVector2Array([t + side * (sd - 0.4) - ax * 0.9, t + side * (sd + 0.4) - ax * 0.9,
+						t + side * (sd + 0.4) + ax * 0.9, t + side * (sd - 0.4) + ax * 0.9])
+				_prism(sofa, d, d + 0.55, ROOF_SOFA, ROOF_SOFA.lightened(0.15), M_STONE, M_STONE)
+	# olives and cypresses in planters 2 m in from the rail, every 5 m round the near end
+	var ring := Geometry2D.offset_polygon(poly, -2.0)
+	if ring.size() == 1:
+		var last := Vector2(INF, INF)
+		var n := 0
+		for p: Vector2 in ring[0]:
+			if (p - c).dot(ax) < 3.0 or p.distance_to(last) < 5.0:
+				continue
+			last = p
+			_prism(_square(p, 0.5), d, d + 0.7, Color("#8b8f90"), Color("#5a4a3c"), M_STONE, M_STONE)
+			if n % 2 == 0:
+				_varso_tree(p, d + 0.7, 2.8, 1.0)
+			else:
+				_mode = M_STONE
+				_frustum(_circle(p, 0.55, 6), d + 0.7, _circle(p, 0.08, 6), d + 4.2, ROOF_CYPRESS, ROOF_CYPRESS)
+			n += 1
+	_mode = keep
+	# the hotel's name on the screen's long side, as on the real one
+	_crown_signs(poly, y + rail, "KORONA PLAZA", Color(0.94, 0.95, 1.0), 1.2, 0.45)
+
+
+## Letters on a round tower's band with no board (the HUB hotel's grey band, F's street photo):
+## each [word, colour, direction, height over the ground, letter height] stands where the outline
+## reaches furthest that way, square to that direction, so a round end carries a name too.
+func _ring_signs(poly: PackedVector2Array, g: float, list: Array) -> void:
+	for s: Array in list:
+		var dir := (s[2] as Vector2).normalized()
+		var far := poly[0]
+		for q in poly:
+			if q.dot(dir) > far.dot(dir):
+				far = q
+		var k := float(s[4]) / (Neon.ROW_H * Neon.PIXEL)
+		# the band stands 0.2 m proud; map_builder puts letters 0.4 m out from this point
+		var at := far + dir * 0.3  # clear of a round end's curve under the word's ends
+		signs.append([str(s[0]), Vector3(at.x, g + float(s[3]), at.y), Vector3(dir.x, 0.0, dir.y), k, Color(str(s[1]))])
 
 
 ## RD-4 the HUB podium's skylight (the report's ortho): a glazed ridge over a steel kerb on the
