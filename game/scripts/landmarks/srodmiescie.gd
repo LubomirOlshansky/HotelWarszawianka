@@ -1193,8 +1193,17 @@ const MP_ROOF := Color("#7b7a76")
 const MP_PLANT := Color("#a9a8a2")
 const MP_GLASS := Color("#2f3a42")
 const MP_CREAM := Color("#e6dfcf")
-const MP_BOX := Color("#f2f2ee")
+## The light box: M_LAMP glows its colour x2.4 at night, so a light grey reads as a lit white panel
+## without blooming over the green letters (#f2f2ee blew out and the letters went pale).
+const MP_BOX := Color("#a8aca6")
 const MP_GREEN := Color(0.18, 1.0, 0.36)
+## The street block (game/data/street_blocks, #495) that is this hotel: it stood in the same outline as a
+## second model, and its triangles (a white frame round a dark green panel at the roof edge, among others)
+## stood in front of the light box's lower half and over the letters, in both city paths (F, 2026-11-19:
+## "fixed so many times, still wrong"). This site builds the hotel whole, so `_find_blocks` skips it.
+const MP_BLOCK := "28759009"
+## How far the light box's bottom stands over the main roof (clear of the 2 m roof structures).
+const MP_SIGN_LIFT := 2.4
 
 
 func _build_metropol_sign(site: Dictionary) -> void:
@@ -1294,12 +1303,18 @@ func _build_metropol_sign(site: Dictionary) -> void:
 		var th := Neon.ROW_H * Neon.PIXEL * k
 		var board_h := th * 1.5
 		# On two posts over the roof structures (up to 2 m above the main roof) and flush with the face.
-		var base := top + 2.4
-		_lbox(0.0, 0.2, width * 0.5, 0.25, base, base + board_h, MP_BOX, M_STONE, MP_BOX.darkened(0.08))
+		# The box is a light box (M_LAMP): white by day, lit from inside at night, so the green
+		# letters stand on a white panel as in F's photos and never float on the dark (2026-11-19:
+		# in M_STONE it went as dark as the roof at night and only the letters showed).
+		var base := top + MP_SIGN_LIFT
+		_lbox(0.0, 0.2, width * 0.5, 0.25, base, base + board_h, MP_BOX, M_LAMP, Color("#e6e6e0"))
 		for pu: float in [-width * 0.35, width * 0.35]:
 			_lbox(pu, 0.0, 0.2, 0.2, top, base, MP_PLANT, M_STONE, MP_PLANT)
-		var c := _w(0.0, 0.52)
-		signs.append(["METROPOLKA", Vector3(c.x, base + board_h * 0.5, c.y), Vector3(out.x, 0.0, out.y), k, MP_GREEN])
+		# A landmark sign's point is the middle of the letters' BOTTOM edge (map_builder
+		# _build_landmark_signs adds half their height and 0.4 m out): the letters' row (th tall)
+		# sits in the box's middle, 0.03 m in front of its face (0.45 m out).
+		var c := _w(0.0, 0.08)
+		signs.append(["METROPOLKA", Vector3(c.x, base + (board_h - th) * 0.5, c.y), Vector3(out.x, 0.0, out.y), k, MP_GREEN])
 	_collide(_simplify(outline, 0.3))
 	_mode = M_STONE
 

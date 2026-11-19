@@ -135,6 +135,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 15n | With KEBAB FM on, drive for 20 minutes through several song changes, skip a few with R, then look at BENCH | each song change is smooth (no frame hitch at the change); BENCH's memory does not keep climbing with every song played | radio housekeeping #941 |
 | 15p | Radio off, sound on: slide round a corner, then brake hard from top speed | the tyre squeal sounds like real rubber, not shrill or louder than the engine; no click when it loops | tyre squeal |
 | 15w | Night and rain: Pasaż Wiecha behind the stores, the Zodiak pavilion, Widok 26 at the Jerozolimskie corner, and the Wars/Sawa/Junior faces from Marszałkowska | lit shop windows with awnings and light-box words along the pavilions, the 24 h kebab hatch with its glowing blade sign and bulbs, Zodiak's blue-white neon with its star and the string lights over the square, Widok 26's brown fronts and big names, the stores' upper floors lit (and Babka's glazed loggia column), no flicker on the new faces, frame time unchanged | #938 |
+| 15q | Hotel Metropol from Rondo Dmowskiego and Marszałkowska, by day and at night (rain too) | METROPOLKA reads green on its white light box over the middle of the roof, nothing over the letters; at night the box glows white without washing the green letters out (judge the glow on the phone's tonemap); by day the box's shaded face reads light grey | METROPOLKA #942 |
 
 ## Answers F owes that are not looks
 
