@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Around Warsaw · a small-car game about living in Warsaw</title>
-<meta name="description" content="A free arcade game in the real centre of Warsaw: one small car, kebab runs at 3 a.m., rescues and city lore. Free open beta, no ads, no purchases, no tracking.">
+<meta name="description" content="A free arcade game in the real centre of Warsaw: one small car, kebab runs at 3 a.m., rescues and city lore. Free open beta, no ads, no purchases.">
 <meta name="theme-color" content="#0b0d24">
 <meta name="color-scheme" content="dark">
 <link rel="canonical" href="https://aroundwarsaw.app/">
@@ -19,7 +19,7 @@
 <meta property="og:site_name" content="Around Warsaw">
 <meta property="og:url" content="https://aroundwarsaw.app/">
 <meta property="og:title" content="Around Warsaw · a small-car game about living in Warsaw">
-<meta property="og:description" content="A free arcade game in the real centre of Warsaw: one small car, kebab runs at 3 a.m., rescues and city lore. Free open beta, no ads, no purchases, no tracking.">
+<meta property="og:description" content="A free arcade game in the real centre of Warsaw: one small car, kebab runs at 3 a.m., rescues and city lore. Free open beta, no ads, no purchases.">
 <meta property="og:locale" content="en_GB">
 <meta property="og:image" content="https://aroundwarsaw.app/img/og.jpg">
 <meta property="og:image:width" content="1200">
@@ -67,9 +67,9 @@
     <p class="hook">The real centre of Warsaw, one small car, and a kebab going cold.</p>
     <div class="cta">
       <a class="btn btn-primary" data-for="ios" href="/go/ios"><svg aria-hidden="true"><use href="#i-apple"/></svg>iPhone: join on TestFlight</a>
-      <a class="btn btn-ghost" data-for="android" href="#android"><svg aria-hidden="true"><use href="#i-play"/></svg>Android: Google Play, opening soon</a>
+      <a class="btn btn-primary" data-for="android" href="/go/android"><svg aria-hidden="true"><use href="#i-play"/></svg>Android: open beta on Google Play</a>
     </div>
-    <p class="cta-note">Free open beta. No ads, no purchases, no tracking.</p>
+    <p class="cta-note">Free open beta. No ads, no purchases.</p>
   </div>
 
 </section>
@@ -136,11 +136,11 @@
   <div class="wrap grow-in">
     <h2 id="grow-title">New every day.</h2>
     <p class="lede">Around Warsaw started on 27 October 2026 and has changed every day since. This is the latest:</p>
-    <p class="grow-date">Last update: <time datetime="2026-11-17">17 November 2026</time></p>
+    <p class="grow-date">Last update: <time datetime="2026-11-19">19 November 2026</time></p>
     <ul class="grow-list" lang="en">
+      <li>The glass towers at Rondo Daszyńskiego (Warsaw Spire, Skyliner, Warsaw Unit, Mennica, Generation Park Y, the HUB and The Bridge) are now…</li>
       <li>Varso Place now has its lower office wings round the two glass towers: eight storeys of cream stone grid, a dark set-back top floor, roof…</li>
       <li>Two new camera views in the DEV settings: a top-down view straight down over the car, north always up, in the style of the classic overhead…</li>
-      <li>The website has a new look: four full-width chapters of the city, the game&#x27;s own list of things to do, and one clear button to join the…</li>
     </ul>
     <p><a class="more" href="/progress/">See everything that changed<svg aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
   </div>
@@ -165,29 +165,19 @@
       </div>
       <div class="plat-card" id="android">
         <h3><svg aria-hidden="true"><use href="#i-play"/></svg>Android</h3>
-        <p>The open beta on Google Play is waiting for Google&#x27;s approval. Leave your email and I&#x27;ll write once, the day it opens.</p>
-        <form class="notify" id="notify" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="email">
-          <label for="n-email">Email</label>
-          <div class="notify-row"><input id="n-email" name="email" type="email" required autocomplete="email" inputmode="email" aria-describedby="n-email-err"><button class="btn btn-ghost send" type="submit">Tell me when</button></div>
-          <p class="err" id="n-email-err" aria-live="polite"></p>
-          <input type="hidden" name="_subject" value="Around Warsaw: Android beta, notify">
-          <input type="hidden" name="platform" value="Android">
-          <input type="hidden" name="source" value="aroundwarsaw.app (en) android notify">
-          <div class="hp" aria-hidden="true"><label for="n-gotcha">Leave empty</label><input id="n-gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>
-          <p class="status" role="status" aria-live="polite" data-ok="Got it. One email, the day it opens." data-fail="That didn&#x27;t go through. Try again, or write on Telegram." data-need-email="Add your email so I can write back." data-bad-email="That email doesn&#x27;t look right." data-sending="Sending…"></p>
-          <p class="small">Your email is used only to tell you when the Android beta opens, then deleted. <a href="/privacy/">Privacy</a>.</p>
-        </form>
+        <p>Open beta on Google Play.</p>
+        <a class="btn btn-primary" href="/go/android">Get the beta on Google Play<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
         <p class="small">The phone needs Vulkan.</p>
       </div>
     </div>
-    <details class="write">
-      <summary>Something broke, or an idea? Write to me</summary>
+    <details class="write" open>
+      <summary>Got an idea to add, or something to fix? Tell me</summary>
       <form class="form" id="form" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="message">
         <fieldset class="topics">
           <legend>What is it about?</legend>
-          <label><input type="radio" name="topic" value="Feedback" checked><span>Feedback</span></label>
-          <label><input type="radio" name="topic" value="Something broke"><span>Something broke</span></label>
-          <label><input type="radio" name="topic" value="Idea"><span>An idea</span></label>
+          <label><input type="radio" name="topic" value="Idea: add" checked><span>Add something</span></label>
+          <label><input type="radio" name="topic" value="Fix"><span>Fix something</span></label>
+          <label><input type="radio" name="topic" value="Feedback"><span>Something else</span></label>
         </fieldset>
         <fieldset class="topics platform">
           <legend>Your phone</legend>
@@ -206,10 +196,10 @@
           <p class="err" id="message-err" aria-live="polite"></p>
         </div>
         <input type="hidden" name="source" value="aroundwarsaw.app (en)">
-        <input type="hidden" name="_subject" id="subject" value="Around Warsaw: Feedback">
+        <input type="hidden" name="_subject" id="subject" value="Around Warsaw: Idea: add">
         <div class="hp" aria-hidden="true"><label for="_gotcha">Leave empty</label><input id="_gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>
         <button class="btn btn-primary send" type="submit">Send<svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
-        <p class="legal">Sent through Formspree straight to the developer. Your email is used only to reply, or for the one Android message. <a href="/privacy/">Privacy</a>.</p>
+        <p class="legal">Sent through Formspree straight to the developer. Your email is used only to reply. <a href="/privacy/">Privacy</a>.</p>
         <p class="status" role="status" aria-live="polite" data-ok="Thanks! It&#x27;s on its way." data-fail="That didn&#x27;t go through. Try again, or write on Telegram." data-need-email="Add your email so I can write back." data-bad-email="That email doesn&#x27;t look right." data-need-msg="Write a few words first." data-sending="Sending…"></p>
       </form>
     </details>
@@ -222,7 +212,7 @@
     <div class="author-text">
       <p>Hi, I'm Lubomir Olshansky. By day I build iOS and Kotlin Multiplatform apps at a bank in Poland, and I've lived in Warsaw for twelve years.</p>
       <p>As a kid I dreamed of a game set in the city I live in. When I saw <a href="https://bedirhanyildirim.com/pixel-art-map-of-warsaw/">Isometric Warsaw</a> and what generative AI makes possible, it finally looked doable. I want it to hold what living here is like, not just the map.</p>
-      <p class="facts">Free. No ads, no purchases, no tracking; works offline. Built in Godot from OpenStreetMap and GUGiK open data. Every brand in the game is a parody.</p>
+      <p class="facts">Free. No ads, no purchases; works offline. Built in Godot from OpenStreetMap and GUGiK open data. Every brand in the game is a parody.</p>
       <ul class="links">
         <li><a href="https://t.me/olshansky93"><svg aria-hidden="true"><use href="#i-telegram"/></svg>Telegram</a></li>
         <li><a href="https://www.linkedin.com/in/lubomir-olshansky/"><svg aria-hidden="true"><use href="#i-linkedin"/></svg>LinkedIn</a></li>
@@ -251,7 +241,7 @@
 <div class="stk" hidden>
   <p>Free open beta</p>
   <a class="btn btn-primary stk-i" href="/go/ios">Join on TestFlight</a>
-  <a class="btn btn-ghost stk-a" href="#android">Google Play: opening soon</a>
+  <a class="btn btn-primary stk-a" href="/go/android">Get it on Google Play</a>
 </div>
 </body>
 </html>
