@@ -9,13 +9,13 @@
 #   ART_DIR    node tools/reel/render.mjs ART_DIR --live-frames=5 (live/f_0000.png ...)
 #
 # SHOTS is NAME:START:LENGTH (seconds) per shot (F: one 5 s shot). PUSH is the slow
-# push-in over the whole cut (1.0 = none), the live camera's drift.
+# push-in over the whole cut (1.0 = none, the default: F 2026-11-19 "no need for zoom").
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 clips=${1:?CLIPS_DIR}; art=${2:?ART_DIR}; out=${3:?OUT.mp4}
 FPS=30
 SHOTS=(${SHOTS:-metro:0:5})
-PUSH=${PUSH:-1.03}
+PUSH=${PUSH:-1.0}
 
 inputs=(); chains=""; i=0; concat=""; total=0
 for s in "${SHOTS[@]}"; do

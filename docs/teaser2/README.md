@@ -12,7 +12,7 @@ in the website's pixel font (Pixelify Sans).
 square and the pavilions) and the Rotunda in one frame, at night in the rain, people going in and
 out of the metro under umbrellas, the city's life. The only text is "Warsaw / 3 a.m." typed in at
 the bottom of the safe area. No LIVE badge, no clock, no title or STAY TUNED, no store plates.
-A slight push-in (PUSH=1.03). The sound is the ambience alone, faded out over the last 0.8 s.
+No zoom (F: "no need for zoom in video"; PUSH=1.0). The sound is the ambience alone, faded out over the last 0.8 s.
 
 F, 17:33 UTC: not busy, "calm, the vibe of night Warsaw, meditative": the normal crowd (no --crowd=2), the words typed slowly, the sound rain with the city far away.
 
