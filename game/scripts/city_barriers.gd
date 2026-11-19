@@ -87,6 +87,9 @@ const SITE_WALLS := [
 	[Vector2(-1621.2, -1219.2), "balustrade_rail"],
 	[Vector2(-1625.5, -1232.3), "balustrade_rail"],
 	[Vector2(-1628.1, -1232.1), "balustrade_rail"],
+	# The two plain fences round the lawn bit south of Metro Centrum's big glass pavilion (F, 2026-11-19: "remove this wall").
+	[Vector2(-964.8, 238.7), ""],
+	[Vector2(-957.9, 234.2), ""],
 	# The pair of `fence` lines along the ramp south of the fountain: its handrails.
 	[Vector2(-1635.1, -1234.3), "tram_railing"],
 	[Vector2(-1635.7, -1235.6), "tram_railing"],
