@@ -4436,10 +4436,10 @@ func _build_zodiak(site: Dictionary) -> void:
 	# The white neon word over the roof's front edge, facing the square.
 	# F, 2026-11-19: on the FRONT (the square's side), standing on the upper room's roof edge.
 	var sv := v1 - ZOD_TERRACE - 0.25
-	_usign(ZOD_WORD, (u0 + u1) * 0.5, sv, g + ZOD_H + ZOD_ROOF + 0.6, _b, 0.55 * (u1 - u0), 1.6, ZOD_COLOUR)
+	_usign(ZOD_WORD, (u0 + u1) * 0.5, sv, g + ZOD_H + ZOD_ROOF + 0.6, _b, 0.75 * (u1 - u0), 2.2, ZOD_COLOUR)   # a little bigger (F, 2026-11-19)
 	# The little neon star over the "i" (F's night photo): a lit plus and a lit diamond.
-	var su := (u0 + u1) * 0.5 + 0.08 * 0.55 * (u1 - u0)
-	var sy := g + ZOD_H + ZOD_ROOF + 0.6 + 1.75
+	var su := (u0 + u1) * 0.5 + 0.08 * 0.75 * (u1 - u0)
+	var sy := g + ZOD_H + ZOD_ROOF + 0.6 + 2.35
 	_lbox(su, sv, 0.03, 0.03, g + ZOD_H, sy - 0.2, Color("#2b2c2f"), M_STONE)   # its stem on the roof
 	_lbox(su, sv, 0.3, 0.03, sy - 0.04, sy + 0.04, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
 	_lbox(su, sv, 0.04, 0.03, sy - 0.3, sy + 0.3, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
