@@ -1900,6 +1900,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	trams.traffic = traffic
 	traffic.trams = trams
 	_first_scene_trams()
+	_promo_traffic()
 	trains = Trains.new()
 	world.add_child(trains)
 	trains.setup(map, data)
@@ -1999,6 +2000,28 @@ const FIRST_UP_V := 7.0
 const FIRST_DOWN_V := 8.0
 ## How long the first seconds' bell may wait for a tram to pass the car, after the camera lands.
 const FIRST_BELL_S := 20.0
+## --promo-at=X,Z,T (videos): trams[0] up Marszałkowska, trams[1] east along the Aleje two
+## seconds later, and a bus up Marszałkowska, each placed so it passes X,Z about T s after the start.
+const PROMO_TRAM_V := 8.0
+const PROMO_BUS_V := 9.0
+const ALEJE_EAST := Vector2(0.937, -0.349)
+func _promo_traffic() -> void:
+	var at := flags.promo_at
+	if at == Vector2.INF or trams == null or trams.trams.size() < 2:
+		return
+	var t := flags.promo_t
+	var up := trams.place_near(trams.trams[0], at, -PROMO_TRAM_V * t, MARSZALKOWSKA_NORTH, PROMO_TRAM_V)
+	var east := trams.place_near(trams.trams[1], at, -PROMO_TRAM_V * (t + 2.0), ALEJE_EAST, PROMO_TRAM_V)
+	var bus := false
+	var lane := graph.snap(at - MARSZALKOWSKA_NORTH * (PROMO_BUS_V * (t + 1.0)), 30.0, MARSZALKOWSKA_NORTH, true, true, true)
+	if not lane.is_empty():
+		var d := traffic.add_bus(int(lane[0]), int(lane[1]), float(lane[2]))
+		if d != null:
+			d.v = PROMO_BUS_V
+			bus = true
+	print("promo: at %s in %.1f s: tram up %s, tram east %s, bus %s" % [at, t, up, east, bus])
+
+
 func _first_scene_trams(lead := 0.0) -> void:
 	var at := Vector2(car.global_position.x, car.global_position.z)
 	if flying or not FIRST_SCENE.has_point(at) or trams == null or trams.trams.size() < 2:

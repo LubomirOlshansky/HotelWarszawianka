@@ -41,6 +41,11 @@ var _flag_pitch := false
 var zone_cap_flag := -1
 ## --train=X,Z: a train put on the track nearest that point at the start (shots).
 var train_at := Vector2.INF
+## --promo-at=X,Z[,T] (videos, F 2026-11-19 "run the tram and the bus on one video"): two trams
+## (one up Marszałkowska, one along the Aleje) and a bus put so they reach that point T s (default 6)
+## after the start, rolling.
+var promo_at := Vector2.INF
+var promo_t := 6.0
 ## --train=X,Z,K: that train of kind K (trains.gd KINDS: 0 Koleje Mazowe, 1 SKiM, 2 the
 ## long-distance one).
 var train_kind := -1
@@ -960,6 +965,12 @@ func parse_with(args: PackedStringArray) -> void:
 			crazy_log = true
 		elif arg == "--old-tram" or arg.begins_with("--old-tram="):
 			old_tram_flag = "follow" if arg == "--old-tram=follow" else "now"
+		elif arg.begins_with("--promo-at="):
+			var pa := arg.trim_prefix("--promo-at=").split(",")
+			if pa.size() >= 2:
+				promo_at = Vector2(float(pa[0]), float(pa[1]))
+			if pa.size() >= 3:
+				promo_t = float(pa[2])
 		elif arg.begins_with("--train="):
 			var xz := arg.trim_prefix("--train=").split(",")
 			if xz.size() >= 2:

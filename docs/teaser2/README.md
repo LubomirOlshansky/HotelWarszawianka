@@ -24,7 +24,7 @@ F, 17:33 UTC: not busy, "calm, the vibe of night Warsaw, meditative": the normal
 ## Shots (tools/clip.sh, skill shoot-video)
 
 ```zsh
-Q=(--nohud --no-touch --no-ghost --quality=experimental --lines=1920 --governor=off --time=night --clock=22:00 --date=20261120 --weather=rain --traffic=low --crowd=2)
+Q=(--nohud --no-touch --no-ghost --quality=experimental --lines=1920 --governor=off --time=night --clock=22:00 --date=20261120 --weather=rain --traffic=low --crowd=2 --promo-at=-851,400,7)
 tools/clip.sh metroF 1080x1920 16 -- --cam=-851,400 --yaw=0 --pitch=-32 --size=280 $Q   # 16 s: cut the 5 s with a tram crossing   # F 19:54 UTC: exactly A2-frame.png, the rondo in the centre, the Rotunda right, the metro left
 # cut: SHOTS="metroF:2:7" (F 21:04 UTC: 7 s, the words still, not typed in; a tram crosses from 2 s) docs/teaser2/cut.sh build/clips build/reel/art build/reel/teaser2-1080x1920.mp4
 ```

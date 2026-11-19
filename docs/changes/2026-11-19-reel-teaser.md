@@ -26,3 +26,10 @@
   `pub`-curve sites by Zodiak, on the square and in the middle of the pasaż; `RAIN_OUT` 0.6 (was 0.35
   for the street, 0.3 for the pubs). Owner: crowds.gd's sites, models.gd's taxi family.
 - cost: no new draw call; up to 36 more crowd figures near Pasaż Wiecha in the evening.
+
+## Trams and a bus on cue for videos
+
+- seen: nothing in a normal game; video shots can now have a tram and a bus pass a chosen spot.
+- fixed: F (21:07 UTC): "run the tram and the bus on one video". `--promo-at=X,Z[,T]` (main.gd
+  `_promo_traffic`, dev_flags.gd) uses trams.gd `place_near` (as the first scene does) and
+  traffic.gd `add_bus`. Owner: the trams' and traffic's own placement calls, no new system.
