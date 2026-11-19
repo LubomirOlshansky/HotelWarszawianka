@@ -130,6 +130,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 18 | Take Mati's Smoła quest and watch the dialogue panel for a minute (BENCH on) | one line at a time at the bottom centre, no frame-time dip when a line starts, no toast over its words | #899 |
 | 19 | At the Smoła door, read the first question | the card says BRAMKARZ with his face, the dark bouncer figure stands at the door | #899 |
 | 15m | Sound on, KEBAB FM playing: stand at a busy junction on Marszałkowska, then by a tram stop and a bus stop, then drive along with the traffic; BENCH on | the nearest cars, a bus and a tram are heard passing and panning with distance, a little higher in pitch as they come and lower as they go, quieter at a red light (a standing tram silent); no click at a loop's end; not louder than the radio; BENCH shows "traffic sounds" under 0.2 ms and no new frame dip | traffic sounds #940 |
+| 15n | With KEBAB FM on, drive for 20 minutes through several song changes, skip a few with R, then look at BENCH | each song change is smooth (no frame hitch at the change); BENCH's memory does not keep climbing with every song played | radio housekeeping #941 |
 
 ## Answers F owes that are not looks
 
