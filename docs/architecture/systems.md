@@ -152,6 +152,7 @@ in one file, `data/pacing.json`, read by the offer pacer (`pacer.gd`, tech-debt 
 | `radio.gd`, `greeting_clips.gd`, `opening_audio.gd` | The radio stations and host; launch greeting; opening line. |
 | `sfx.gd` | Audio buses and every effect (engine, tyres, crashes); the mixer: who turns whom down (`DUCKS`, `Sfx.duck` / `Sfx.release`). |
 | `city_sounds.gd` | Positional sounds at places (club bass, bells). |
+| `traffic_sounds.gd` | The nearest cars, bus and tram heard as moving loops (pitch with speed, Doppler), at most 8 players on the Ambience bus. |
 | `gps_moments.gd` | App-taxi GPS jokes in traffic. |
 
 ## 6. Progress and the save
