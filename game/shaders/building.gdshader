@@ -418,7 +418,8 @@ const int M_PANE = 15;
 // floor bands, Rondo 1's fins, the hotel's white grid, Cosmopolitan's balcony slabs, dark
 // glass, gold glass, and an open frame (Rondo 1's crown: the panes are cut away).
 const int S_SAIL = 0;
-// 1 is free: the diamond grid had no building left (removed 2026-11-13); the next new skin takes it.
+// 1 was the diamond grid (removed 2026-11-13); Warsaw UNIT's Dragon Skin took it (2026-11-19).
+const int S_SCALES = 1;
 const int S_BANDS = 2;
 const int S_FINS = 3;
 const int S_GRID = 4;
@@ -670,6 +671,28 @@ vec3 skin(int s, vec3 col, float u, float h, float top, out vec3 glow, out bool 
 			return key;
 		}
 		return any(bvec2(fract(x) < 0.025, fract(x) > 0.975)) ? plaster * 0.86 : plaster;
+	} else if (s == S_SCALES) {
+		// Warsaw UNIT's Dragon Skin (F's photos and Mapillary 2020-26, 2026-11-19): small aluminium
+		// plates hung loose on a mesh over the podium, each turned a little by the wind, so the
+		// face is a fine grid of dark-silver plates catching the sky one by one in slow ripples,
+		// crossed by staggered white light slits. At night the skin is floodlit salmon pink and the
+		// slits glow white. No windows. Straight-line maths only (the Adreno budget).
+		vec2 g = vec2(u, h) / 0.9;
+		vec2 f = fract(g);
+		float tilt = fract(sin(dot(floor(g), vec2(12.9898, 78.233))) * 43758.5453);
+		float wave = 0.5 + 0.5 * sin(u * 0.21 + h * 0.13) * sin(h * 0.37 - u * 0.05);
+		float shine = clamp(tilt * 0.35 + wave * 0.8 - 0.3, 0.0, 1.0);
+		float gap = step(0.88, max(f.x, f.y));
+		vec3 plate = mix(col * mix(0.35, 1.0, daylight), sky * mix(0.4, 1.0, daylight), shine * 0.5);
+		// the slits: a row every 2.9 m, cut in 12 m runs that slide along row by row, each run
+		// lit over a part of its length or dark
+		float row = floor(h / 2.9);
+		float x = fract(u / 12.0 + row * 0.37);
+		float r = fract(sin(dot(vec2(floor(u / 12.0 + row * 0.37), row), vec2(41.3, 17.9))) * 24634.63);
+		float slit = step(fract(h / 2.9), 0.09) * step(r, 0.4) * step(abs(x - 0.5), 0.1 + 0.6 * r);
+		vec3 pink = vec3(0.9, 0.56, 0.58);
+		glow = mix(pink * (0.85 + 0.3 * shine) * (1.0 - 0.5 * gap), vec3(1.1, 1.0, 0.95), slit) * lights_on;
+		return mix(mix(plate, plate * 0.62, gap), white * 1.05, slit);
 	} else if (s == S_FRAME) {
 		frame = any(bvec3(fract(u / 3.2) < 0.14, fract(h / 4.4) < 0.1, h > top - 0.9));
 		frame_col = mix(silver, white, 0.5);

@@ -30,7 +30,7 @@ const M_PANE := 15.0      # one real pane of a modelled block: fraction = its nu
 ## silver floor bands, vertical fins, a white grid, balcony slabs, dark glass, gold glass,
 ## and an open frame (its panes cut away).
 const S_SAIL := 0
-# 1 is free (the diamond grid, no building used it; building.gdshader skin()): the next new skin takes it.
+const S_SCALES := 1  # Warsaw UNIT's Dragon Skin: loose silver plates, light slits, pink at night (2026-11-19)
 const S_BANDS := 2
 const S_FINS := 3
 const S_GRID := 4

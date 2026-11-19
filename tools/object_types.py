@@ -247,7 +247,7 @@ WATER_MIN = 50000.0
 # The cross-city railway's tunnel mouths: rails inside are underground (game/scripts/trains.gd
 # TUNNELS, which trims them the same way; --selftest compares the copies).
 RAIL_TUNNELS = [
-    [(-2018.0, 850.0), (-1992.0, 834.0), (-1966.0, 825.0), (-1962.0, 806.0), (-1962.0, 760.0), (-1890.0, 760.0), (-1890.0, 860.0)],
+    [(-1966.1, 769.5), (-1940.7, 843.2), (-1890.0, 860.0), (-1890.0, 760.0)],
     [(186.7, 100.5), (170.3, 53.3), (113.6, 73.0), (130.0, 120.2)],
 ]
 MAIN_ROADS = ("primary", "secondary", "tertiary", "primary_link", "secondary_link", "tertiary_link", "trunk", "trunk_link")
