@@ -249,11 +249,18 @@ func idle() -> bool:
 
 # --- the target (TD-2) -------------------------------------------------------------------------
 
+## A run's target that moves further than this (m) is a new place: hud.gd `cue("ping")`.
+const PING_MOVE := 5.0
+
 ## Where the player is sent now: the beacon stands there, and main.gd reads it (through the
 ## director) for the arrow, the metres, the minimap's dot and the stop assist. `person`: someone
 ## waits in the ring. `ring_at` and `radius`: the ring's own place and size when it is not on the
 ## spot the player is sent to (a group on the pavement beside the kerb the car stops at).
 func set_target(at: Vector2, person := false, ring_at := Vector3.INF, radius := 0.0) -> void:
+	# The run's next place (the kebab picked up: now the customer) pings; the same place set again
+	# each frame, or the run's first, does not.
+	if phase == Phase.RUN and _beacon != null and _beacon.visible and Vector2(_target.x, _target.z).distance_to(at) > PING_MOVE:
+		hud.cue("ping")
 	_target = Vector3(at.x, _ground(at), at.y)
 	_beacon.visible = true
 	_beacon.place(_target if ring_at == Vector3.INF else ring_at, radius if radius > 0.0 else arrive - 0.5, true, person)
@@ -469,6 +476,7 @@ func _offer() -> void:
 	var body: Array = c.get("body", ["", ""])
 	hud.show_side_card(str(title[0]), str(body[0]), PackedStringArray(c.get("buttons", OFFER_BUTTONS)), colour,
 			str(title[1]), str(body[1]), false, str(c.get("face", "")))
+	hud.cue("offer")
 	_own_card()
 
 

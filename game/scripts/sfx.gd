@@ -175,6 +175,19 @@ const UI := {
 	"ring": ["res://audio/ui/ring.wav", -9.0],
 	# The title's tap. It sat on Master at -8 dB; on SFX (-3 dB) this keeps its level.
 	"start": ["res://audio/ui/start.wav", -5.0],
+	# The gameplay feedback set (sound engine plan step 1, tools/make_ui_sounds.py, 2026-11-19): what
+	# the game tells you, in the blip's voice, through hud.gd `cue`. Levels by each file's loudest
+	# 100 ms: START!, the win and the loss land ~3 dB over the blip, the rest at it, the clock's tick
+	# under it (it comes ten times running).
+	"count": ["res://audio/ui/count.wav", -13.0],
+	"go": ["res://audio/ui/go.wav", -6.0],
+	"checkpoint": ["res://audio/ui/checkpoint.wav", -12.0],
+	"win": ["res://audio/ui/win.wav", -5.5],
+	"fail": ["res://audio/ui/fail.wav", -10.5],
+	"tick": ["res://audio/ui/tick.wav", -9.0],
+	"step": ["res://audio/ui/step.wav", -10.5],
+	"offer": ["res://audio/ui/offer.wav", -11.5],
+	"ping": ["res://audio/ui/ping.wav", -12.0],
 }
 ## Positional sounds: full level within UNIT metres of the listener, gone past REACH.
 const UNIT := 14.0

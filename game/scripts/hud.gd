@@ -2345,6 +2345,33 @@ func hide_challenge() -> void:
 	_show(_challenge, false)
 
 
+## The game telling you something (sound engine plan step 1): one interface sound of Sfx.UI's
+## feedback set, by meaning: "count" and "go" (a start), "checkpoint" (a ring or bridge passed),
+## "win" and "fail" (a result), "tick" (a clock's last seconds, `tick_clock`), "step" (a note: a
+## step, a chapter, a find), "offer" (a job on a card), "ping" (the next place of a run). The one
+## place an activity sounds its feedback, so a check's HUD (fakes.gd) hears it too.
+## `hush` (the drag's focus) quiets words, not these: the drag's lights and result still sound.
+func cue(n: String) -> void:
+	Sfx.ui(n)
+
+
+## The whole second a run's clock showed last in its final TICK_FROM s (-1 above them).
+var _tick_at := -1
+const TICK_FROM := 10
+
+
+## A run's clock that counts down, `left` seconds to go (each frame): a "tick" as each of its
+## last TICK_FROM whole seconds starts.
+func tick_clock(left: float) -> void:
+	var s := ceili(left)
+	if s > TICK_FROM or left <= 0.0:
+		_tick_at = -1
+		return
+	if s != _tick_at:
+		_tick_at = s
+		cue("tick")
+
+
 ## A big line across the middle of the screen: the race countdown.
 func show_banner(text: String, colour: Color) -> void:
 	colour = Access.tint(colour)  # colour-safe (access.gd)
@@ -3264,6 +3291,7 @@ func show_note(title: String, body: String, colour: Color, priority := Messages.
 
 
 func _show_note_now(title: String, body: String, colour: Color) -> void:
+	cue("step")
 	colour = Access.tint(colour)  # colour-safe (access.gd)
 	_set_note_width()  # landmark card fix
 	_note_title.text = title
