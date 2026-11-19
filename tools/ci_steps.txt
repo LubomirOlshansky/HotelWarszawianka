@@ -213,6 +213,7 @@ tenementtrim         quick
 tiers                quick
 tour-run             local     slow
 trafficbodies        quick
+trafficsounds        quick
 trains               quick
 tramfleet            quick
 tramstops            quick
