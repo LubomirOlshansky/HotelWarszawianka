@@ -32,14 +32,18 @@ const MAX_TURN := 0.55
 ## An end of the track this near the map's bounds is a way in and out; so is one near a tunnel
 ## mouth (the cross-city tunnel west of Ochota's cutting and under Powiśle's upper pavilion).
 const EDGE := 45.0
-const PORTALS := [Vector2(-1964.0, 812.0), Vector2(176.0, 80.0)]
+const PORTALS := [Vector2(-1953.5, 806.0), Vector2(176.0, 80.0)]
 const PORTAL_R := 40.0
 ## The cross-city tunnel under Plac Zawiszy: the 10 m terrain grid has the cutting's floor (7.5 m)
 ## up to its mouth, then the street (14.2 m) over the tunnel, but OSM keeps the tracks on to
 ## (-1923, 798), so beds, rails, wires and trains ran over the road. Rails are cut by this polygon
-## (`trim_rails`); the mouth stands where the cutting ends (PORTALS[0]).
-const TUNNEL_ZAWISZY := [Vector2(-2018.0, 850.0), Vector2(-1992.0, 834.0), Vector2(-1966.0, 825.0),
-		Vector2(-1962.0, 806.0), Vector2(-1962.0, 760.0), Vector2(-1890.0, 760.0), Vector2(-1890.0, 860.0)]
+## (`trim_rails`); the mouth stands where the cutting ends (PORTALS[0]). F, 2026-11-16: the mouth
+## stands by Żelazna's west pavement, every track cut on one line square to the tracks, 8 m west of
+## the pavement's edge (room for the mouth's 3.5 m and the cutting's end wall under the street;
+## map_builder.gd `_over_tunnel` keeps the ground solid from TUNNEL_CAP past the line); the old polygon cut the southern tracks on a slant 15-40 m short of it, so
+## the beds ended in steps and the mouth faced an empty floor.
+const TUNNEL_ZAWISZY := [Vector2(-1966.1, 769.5), Vector2(-1940.7, 843.2), Vector2(-1890.0, 860.0),
+		Vector2(-1890.0, 760.0)]
 ## The cross-city tunnel's east mouth under Warszawa Powiśle's upper pavilion (F, 2026-11-13: the
 ## tracks ran into the pavilion's glass wall, two of them stopped in the open beside it). OSM ends the
 ## four tracks at the pavilion's east face and 6 m behind it; this polygon (everything west of a line

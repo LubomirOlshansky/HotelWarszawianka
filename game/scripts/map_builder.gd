@@ -1023,6 +1023,11 @@ func _fill_height(x: float, z: float) -> float:
 	# apron's corridor, from 3 m under the deck on), or the car drops off it (check_drive).
 	if _near_apron(x, z):
 		return h
+	# Over a tunnel (Trains.TUNNELS) the ground is solid: the cutting ends at the mouth, and a
+	# street over the tunnel's roof never sinks into the bank of a track that ended under it
+	# (Żelazna by the cross-city tunnel's west mouth, F 2026-11-16).
+	if _over_tunnel(x, z):
+		return h
 	var land := _landing_blend(x, z)
 	if land <= 0.0:
 		return h
@@ -1044,6 +1049,49 @@ func _fill_height(x: float, z: float) -> float:
 	if c.x < g and _by_cut_deck(x, z):
 		return g
 	return c.x
+
+
+## Whether (x, z) lies in one of Trains.TUNNELS (the rails are cut there, `trim_rails`).
+func _over_tunnel(x: float, z: float) -> bool:
+	var p := Vector2(x, z)
+	for t: Array in _tunnel_polys:
+		if not (t[0] as Rect2).has_point(p) or not Geometry2D.is_point_in_polygon(p, t[1]):
+			continue
+		# Within TUNNEL_CAP of the line the rails are cut on, the cutting runs on: the mouth's floor
+		# and the end wall stand there (the rails' own trimmed ends lie on the line).
+		var poly: PackedVector2Array = t[1]
+		var near := false
+		for i in poly.size():
+			var a := poly[i]
+			var b := poly[(i + 1) % poly.size()]
+			if Geometry2D.get_closest_point_to_segment(p, a, b).distance_to(p) < TUNNEL_CAP:
+				near = true
+				break
+		if not near:
+			return true
+	return false
+
+
+## How far into a tunnel's polygon the cutting still shapes the ground (the mouth is 3.5 m deep,
+## rail_cut.gd's floor reaches FLOOR_W past a track's end, then its end wall). Less lifts the grid's
+## 2 m cells into a ridge in front of the mouth; the headwall's roof (RAIL_MOUTH_DEEP) covers the
+## strip from above, where an open slot showed between the headwall and the street (F 2026-11-17).
+const TUNNEL_CAP := 6.0
+
+
+## [box, polygon] a tunnel, made when the builder is made (read from the streamer's thread too).
+var _tunnel_polys: Array = _make_tunnel_polys()
+
+
+static func _make_tunnel_polys() -> Array:
+	var out: Array = []
+	for t: Array in Trains.TUNNELS:
+		var poly := PackedVector2Array(t)
+		var r := Rect2(poly[0], Vector2.ZERO)
+		for q in poly:
+			r = r.expand(q)
+		out.append([r, poly])
+	return out
 
 
 ## Deck segments over the cut box by 16 m cell (_index_cut_decks, after the decks load).
@@ -1939,13 +1987,17 @@ func _load_decks() -> void:
 			box = box.expand(q)
 		var reach := maxf(float(piece["l"]), float(piece["r"])) + 1.0
 		var hs := PackedFloat32Array(piece["h"])
-		if String(piece["k"]) == "path":
+		# A street's slab over a short tunnel (`st`) keeps the bake's level: its footways are the
+		# street's pavement, not a footbridge held clear of the catenary (Plac Zawiszy, F 2026-11-16:
+		# they stood 0.5 m proud of the slab between the tram and the carriageways).
+		if String(piece["k"]) == "path" and int(piece.get("st", 0)) != 1:
 			_lift_sagging_deck(pts, cum, hs)
 			_lift_rail_footbridge(pts, cum, hs)
 		_decks.append({"pts": pts, "cum": cum, "h": hs, "l": float(piece["l"]),
 				"r": float(piece["r"]), "g": int(piece["g"]), "k": String(piece["k"]),
 				"o": PackedByteArray(piece.get("o", [])), "box": box.grow(reach),
-				"rail": String(piece.get("rail", "")), "lp": PackedFloat32Array(piece.get("lp", []))})
+				"rail": String(piece.get("rail", "")), "lp": PackedFloat32Array(piece.get("lp", [])),
+				"st": int(piece.get("st", 0)) == 1})
 
 
 # --- sunken places ---------------------------------------------------------------------------
@@ -3131,6 +3183,9 @@ func _platform_slab(st, poly: PackedVector2Array, h: float) -> void:
 ## posts and the dark back a few metres in, across all the tracks that end there. The trains
 ## slide in and out of it (trains.gd cuts them at the tracks' ends).
 const RAIL_MOUTH := 6.4
+## How far back from the rails' ends a mouth's headwall and roof reach: past TUNNEL_CAP and the slope
+## up to the solid ground behind it (the dark back stands at 3.5 m).
+const RAIL_MOUTH_DEEP := 8.0
 
 
 func _build_rail_portals(st) -> void:
@@ -3172,8 +3227,12 @@ func _build_rail_portals(st) -> void:
 		var top := maxf(terrain_height(inside.x, inside.y), y + RAIL_MOUTH + 1.0) + 0.5
 		var basis := Basis(Vector3.UP, atan2(-d.x, -d.y))
 		var head := mid + d * 0.6
-		_box_oriented(st, Vector3(head.x, (y + RAIL_MOUTH + top) * 0.5, head.y), basis,
-				Vector3(w + 2.4, top - y - RAIL_MOUTH, 1.2), PORTAL_CONCRETE)
+		# The headwall runs back over the whole mouth (its front at the rails' ends, its back past the
+		# dark back wall): the mouth is roofed, so from above the street's ground meets the headwall
+		# with no slot down into the mouth (F 2026-11-17, Żelazna; TUNNEL_CAP).
+		var roof := mid + d * (RAIL_MOUTH_DEEP * 0.5)
+		_box_oriented(st, Vector3(roof.x, (y + RAIL_MOUTH + top) * 0.5 + 0.01, roof.y), basis,
+				Vector3(w + 2.4, top - y - RAIL_MOUTH, RAIL_MOUTH_DEEP), PORTAL_CONCRETE)
 		for sgn in [-1.0, 1.0]:
 			var p: Vector2 = head + side * sgn * (w * 0.5 + 0.6)
 			_box_oriented(st, Vector3(p.x, (y - 0.5 + top) * 0.5, p.y), basis, Vector3(1.2, top - y + 0.5, 1.2),
@@ -8114,7 +8173,10 @@ func _build_bridge_structures(st) -> void:
 			var ar := a + right * ro
 			var br := b + right * ro
 			# Slab top (shows between the pieces) and underside.
-			_quad(st, Vector3(al.x, ya, al.y), Vector3(bl.x, yb, bl.y), Vector3(br.x, yb, br.y), Vector3(ar.x, ya, ar.y), Vector3.UP, concrete.darkened(0.15))
+			# A street's slab over a short rail tunnel (`st`, tools/rail_covers.py: Plac Zawiszy): its
+			# top between the ways is the street's paving, not a bridge's bare concrete.
+			var top_col: Color = COL["plaza"] if d.get("st", false) else concrete.darkened(0.15)
+			_quad(st, Vector3(al.x, ya, al.y), Vector3(bl.x, yb, bl.y), Vector3(br.x, yb, br.y), Vector3(ar.x, ya, ar.y), Vector3.UP, top_col)
 			_quad(st, Vector3(al.x, ya - 1.3, al.y), Vector3(bl.x, yb - 1.3, bl.y), Vector3(br.x, yb - 1.3, br.y), Vector3(ar.x, ya - 1.3, ar.y), Vector3.DOWN, concrete.darkened(0.3))
 			for side in [-1.0, 1.0]:
 				var is_outer := bool(bits & (1 if side < 0.0 else 2))
