@@ -55,7 +55,10 @@ print -r -- "[display]
 window/size/viewport_width=$w
 window/size/viewport_height=$h
 window/size/window_width_override=$w
-window/size/window_height_override=$h" > $ROOT/game/override.cfg
+window/size/window_height_override=$h
+window/size/always_on_top=true" > $ROOT/game/override.cfg
+# always_on_top (2026-11-19, teaser 2): macOS skips drawing a hidden window, so a clip shot behind
+# another full-screen app wrote the same frame for ~45 frames at a time (Movie Maker repeats it).
 
 out=$ROOT/build/clips
 frames=$out/$name.frames
