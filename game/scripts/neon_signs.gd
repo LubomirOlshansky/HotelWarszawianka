@@ -152,7 +152,10 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# and Śródmieście's cafés.
 		"DELOJT", "EJ", "WEKTRA", "LEGUMINA", "BRISTOL", "HOTEL EUROPEJSKI", "POLONIA PALACE",
 		"POLONIA PALACE HOTEL", "MAŁPI LOVE", "MAJAMI WAWA", "WTW", "WIEŻYCZKA", "CHARLOTTA MENORKA",
-		"SEZON", "HEJ!", "SPACJE", "DESKA", "KOSZYKI"]
+		"SEZON", "HEJ!", "SPACJE", "DESKA", "KOSZYKI",
+		# Rondo Daszyńskiego (F, 2026-11-19): Warsaw UNIT's corner café and the tenant's red name on
+		# the Dragon Skin (parodies of a coffee chain and a drug maker), the towers' ground-floor shops.
+		"STARY BAKS", "MODERATO", "SUSHI", "BISTRO", "LUNCH", "PIEKARNIA", "RAMEN", "KAWA"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)
