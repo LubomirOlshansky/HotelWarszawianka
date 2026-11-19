@@ -1845,6 +1845,9 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"metro_tubes":
 				_id = 0
 				_build_metro_tubes()
+			"metro_pavilion":
+				_id = 0
+				_build_metro_pavilion()
 			"zodiak":
 				_build_zodiak(s)
 			"pijana":

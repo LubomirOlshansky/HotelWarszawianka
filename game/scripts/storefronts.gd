@@ -1521,6 +1521,10 @@ func _load_metros(pois: Array) -> void:
 		if str(p.get("st", "")) == "Centrum" and str(p.get("ref", "")) in ["4", "10"]:
 			form = "none"
 		var ref := str(p.get("ref", ""))
+		# Ref 5, the big glass pavilion by Plac Defilad, is the landmark site `metro_pavilion` (OSM
+		# outline 3223): only its M post stays a prop.
+		if str(p.get("st", "")) == "Centrum" and ref == "5":
+			form = "post"
 		var open_stairs := str(p.get("st", "")) == "Centrum" and ref in CENTRUM_OPEN_STAIRS
 		if open_stairs:
 			form = "steps"  # F, 2026-11-09: these four are a bare stair, no glass pavilion

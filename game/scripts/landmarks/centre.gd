@@ -1903,6 +1903,15 @@ const METRO_TUBES := [
 	[Vector2(-937.1, 306.2), Vector2(-927.5, 302.2), Vector2(-925.9, 305.8), Vector2(-935.6, 309.8)],
 	[Vector2(-962.7, 316.7), Vector2(-972.4, 320.7), Vector2(-970.8, 324.4), Vector2(-961.2, 320.3)],
 ]
+## Metro Centrum's big glass pavilion by the Palace's park (ref 5, OSM `transportation` outline 3223,
+## 5 m): the outline's four corners, the mouth's two first (north, facing Plac Defilad's lawn), then
+## the closed end's two. Built from F's Street View and aerial (2026-11-19): a barrel vault of smoky
+## glass on dark blue steel ribs over a 1.1 m beige tiled base, a fan-glazed closed end.
+const METRO_PAVILION := [Vector2(-963.4, 218.1), Vector2(-971.1, 220.7), Vector2(-965.6, 236.8), Vector2(-957.9, 234.2)]
+const PAV_TILE := Color("#c7b08f")
+const PAV_COPING := Color("#ddd2bf")
+const PAV_GLASS := Color("#6f8799")
+const PAV_BASE_H := 1.1
 ## The Plac Defilad car park ramp's walls: pink wall tile (Street View, Aug 2025) under a pale
 ## granite coping, the ramp's surface a dark ribbed slab.
 const RAMP_TILE := Color("#c9a69b")
@@ -1960,6 +1969,8 @@ func _find_sunken() -> void:
 	for b: Array in METRO_TUBES:
 		tubes.append(PackedVector2Array(b))
 	_add_site("metro_tubes", tubes)
+	# The big pavilion beside them (ref 5): its outline is the plan, the grey box goes.
+	_add_site("metro_pavilion", [PackedVector2Array(METRO_PAVILION)])
 
 
 var _sunk_done: Array[PackedVector2Array] = []
@@ -2144,12 +2155,118 @@ func _sunk_ramp(sk: Dictionary) -> void:
 		_sunk_top(q, floor_at, road if k % 2 == 0 else rib)
 
 
+## Metro Centrum's big pavilion by the Palace's park (METRO_PAVILION).
+func _build_metro_pavilion() -> void:
+	_no_roof = true
+	_glass_pavilion(METRO_PAVILION)
+	_no_roof = false
+
+
 ## Metro Centrum's two barrels by the Palace's park (METRO_TUBES), as the Patelnia's.
 func _build_metro_tubes() -> void:
 	_no_roof = true
 	for b: Array in METRO_TUBES:
 		_glass_barrel(b)
 	_no_roof = false
+
+
+## Metro Centrum's big glass pavilion (METRO_PAVILION): a 1.1 m beige tiled base round a half-barrel
+## vault of smoky glass on dark blue steel ribs (every ~1.5 m) with horizontal glazing bars, the
+## closed south end glazed in a fan of radial bars, the north mouth open between two stubs of
+## base wall over a stair going down (the M post is storefronts' prop, form "post"). Car
+## collision on the outline.
+func _glass_pavilion(q: Array) -> void:
+	var p0: Vector2 = q[0]
+	var p1: Vector2 = q[1]
+	var p2: Vector2 = q[2]
+	var p3: Vector2 = q[3]
+	var mouth := (p0 + p1) * 0.5
+	var far := (p2 + p3) * 0.5
+	var length := mouth.distance_to(far)
+	var up := (mouth - far) / length
+	var side := Vector2(-up.y, up.x)
+	var width := p0.distance_to(p1)
+	var c := (mouth + far) * 0.5
+	var half := length * 0.5
+	var hw := width * 0.5
+	var r := hw - 0.15
+	var g: float = map.terrain_height(c.x, c.y)
+	var y0 := g + PAV_BASE_H
+	_o = c
+	_a = up
+	_b = side
+	_collide(PackedVector2Array(q))
+	# The tiled base: both long walls, the closed end, the mouth's two stubs (a 3.6 m gap between),
+	# a coping over each.
+	var gap := 1.8
+	_mode = M_STONE
+	for sv: float in [-1.0, 1.0]:
+		_lbox(0.0, (hw - 0.2) * sv, half, 0.2, g - 0.05, y0, PAV_TILE, M_STONE, PAV_COPING)
+		_lbox(half - 0.2, (gap + hw) * 0.5 * sv, 0.2, (hw - gap) * 0.5, g - 0.05, y0 - 0.03, PAV_TILE, M_STONE, PAV_COPING)
+	_lbox(-half + 0.2, 0.0, 0.2, hw - 0.4, g - 0.05, y0 - 0.03, PAV_TILE, M_STONE, PAV_COPING)
+	# The vault: half a barrel, 12 panes round, smoky glass, a pale sheen band along the crown.
+	var segs := 12
+	var arc: Array[Vector2] = []
+	for k in segs + 1:
+		var ang := PI * float(k) / float(segs)
+		arc.append(Vector2(cos(ang) * r, sin(ang) * r))
+	var at := func(s: float, p: Vector2) -> Vector3:
+		var w := c + up * s + side * p.x
+		return Vector3(w.x, y0 + p.y, w.y)
+	_mode = M_PAVILION + 0.5
+	for k in segs:
+		var pa: Vector2 = arc[k]
+		var pb: Vector2 = arc[k + 1]
+		var n3: Vector3 = ((at.call(0.0, (pa + pb) * 0.5) as Vector3) - Vector3(c.x, y0, c.y)).normalized()
+		var tone := PAV_GLASS.lightened(0.10) if k % 4 == 1 else PAV_GLASS
+		_quad(at.call(-half, pa), at.call(half, pa), at.call(half, pb), at.call(-half, pb), n3, tone)
+	# The closed south end: glass in a fan from the foot of the end wall, radial bars and a ring.
+	var back := Vector3(-up.x, 0.0, -up.y)
+	var hub: Vector3 = at.call(-half, Vector2.ZERO)
+	for k in segs:
+		_tri(hub, at.call(-half, arc[k]), at.call(-half, arc[k + 1]), back, PAV_GLASS.darkened(0.12),
+				Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	# Ribs every ~1.5 m, the mouth's arch heavier.
+	var n_rib := maxi(4, roundi(length / 1.5) + 1)
+	for i in n_rib:
+		var s := -half + length * float(i) / float(n_rib - 1)
+		_barrel_rib(at, s, 0.22 if i == n_rib - 1 or i == 0 else 0.12, arc, r)
+	# Horizontal glazing bars along the vault at every second vertex, on the glass.
+	_mode = M_STONE
+	var k_out := 1.015
+	for k in range(2, segs - 1, 2):
+		var pk: Vector2 = arc[k]
+		var tang := Vector2(-pk.y, pk.x).normalized() * 0.05
+		var nrm3: Vector3 = ((at.call(0.0, pk) as Vector3) - Vector3(c.x, y0, c.y)).normalized()
+		_quad(at.call(-half, pk * k_out - tang), at.call(half, pk * k_out - tang), at.call(half, pk * k_out + tang),
+				at.call(-half, pk * k_out + tang), nrm3, BARREL_RIB)
+	# The fan's radial bars on the end glass (in the end plane, 0.1 m proud), and a ring half way up.
+	for k in range(1, segs):
+		var pk: Vector2 = arc[k]
+		var perp := Vector2(-pk.y, pk.x).normalized() * 0.05
+		_quad(at.call(-half - 0.04, pk * 0.12 + perp), at.call(-half - 0.04, pk + perp), at.call(-half - 0.04, pk - perp),
+				at.call(-half - 0.04, pk * 0.12 - perp), back, BARREL_RIB)
+	for k in segs:
+		var pa: Vector2 = arc[k] * 0.55
+		var pb: Vector2 = arc[k + 1] * 0.55
+		var pa2: Vector2 = pa * 1.08
+		var pb2: Vector2 = pb * 1.08
+		_quad(at.call(-half - 0.04, pa), at.call(-half - 0.04, pb), at.call(-half - 0.04, pb2), at.call(-half - 0.04, pa2), back, BARREL_RIB)
+	# Inside the mouth: the dark well and its first lighter steps going down.
+	var w0 := c + up * (half - 0.6) - side * gap
+	var w1 := c + up * (half - 0.6) + side * gap
+	var w2 := c - up * (half - 0.6) + side * gap
+	var w3 := c - up * (half - 0.6) - side * gap
+	_quad(Vector3(w0.x, g + 0.03, w0.y), Vector3(w1.x, g + 0.03, w1.y), Vector3(w2.x, g + 0.03, w2.y), Vector3(w3.x, g + 0.03, w3.y),
+			Vector3.UP, BARREL_WELL)
+	for k in 4:
+		var s := half - 0.5 - 0.45 * k
+		var e0 := c + up * s - side * (gap - 0.1)
+		var e1 := c + up * s + side * (gap - 0.1)
+		var e2 := c + up * (s - 0.2) + side * (gap - 0.1)
+		var e3 := c + up * (s - 0.2) - side * (gap - 0.1)
+		_quad(Vector3(e0.x, g + 0.07, e0.y), Vector3(e1.x, g + 0.07, e1.y), Vector3(e2.x, g + 0.07, e2.y), Vector3(e3.x, g + 0.07, e3.y),
+				Vector3.UP, SUNK_TREAD.darkened(0.2 + 0.12 * k))
 
 
 ## A flat top over plan polygon `poly`, less what this build already covered (neighbouring edges'
