@@ -15,9 +15,10 @@ const Models := preload("res://scripts/models.gd")
 const Pixel := preload("res://scripts/pixel_font.gd")
 const Blvd := preload("res://scripts/boulevard_life.gd")
 
-## Where the two stand (frame u, v), see boulevard_life.gd STANDERS for their queues.
-const CART_AT := Vector2(24.0, -14.6)
-const TRUCK_AT := Vector2(36.0, -16.0)
+## Where the two stand (frame u, v): on the plaza at the promenade's east end, beyond the lamp row and
+## the benches, hatches to the water; see boulevard_life.gd STANDERS for their queues.
+const CART_AT := Vector2(104.0, -19.0)
+const TRUCK_AT := Vector2(92.0, -19.2)
 const CREAM := Color("#f4efe2")
 const PINK := Color("#e8749a")
 const RED := Color("#b8322a")

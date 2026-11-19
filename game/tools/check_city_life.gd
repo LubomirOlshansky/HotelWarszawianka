@@ -83,9 +83,9 @@ func _run() -> void:
 	book.queue_free()
 	await process_frame
 	if problems.is_empty():
-		print("check_city_life: OK (dog hours and caps, riders, runners, Kolka; horn %s; trend cycle on synthetic dates, sync every %d cycles; pay %s; Zając once; Fat Thursday %s; eggs E16 E18 E19 E20 E27 E28 E29 E30 E34 once each; dogs %d tris; city %s; the armchair man %s, his way %s; steps' life (Schodki Phase B): %s)" % [
+		print("check_city_life: OK (dog hours and caps, riders, runners, Kolka; horn %s; trend cycle on synthetic dates, sync every %d cycles; pay %s; Zając once; Fat Thursday %s; eggs E16 E18 E19 E20 E27 E28 E29 E30 E34 once each; dogs %d tris; city %s; the armchair man %s, his way %s; steps' life (Schodki Phase B): %s; %s)" % [
 				_summary.get("horn", "?"), CityLife.SYNC_EVERY, _summary.get("pay", "?"), _summary.get("fat", "?"),
-				_summary.get("tris", 0), _summary.get("city", "?"), _summary.get("armchair", "?"), _summary.get("armchair_city", "?"), _summary.get("blvd", "?")])
+				_summary.get("tris", 0), _summary.get("city", "?"), _summary.get("armchair", "?"), _summary.get("armchair_city", "?"), _summary.get("blvd", "?"), _summary.get("blvd_paving", "?")])
 		quit(0)
 	else:
 		for p in problems:
@@ -632,6 +632,7 @@ func _check_city(nb: Notebook, data: Dictionary) -> void:
 		arm_note = "%.0f m" % float(arm["len"])
 	_summary["armchair_city"] = arm_note
 	_check_boulevard_city(life, dlg)
+	_check_boulevard_paving(data)
 	# Far from everything (the Vistula's far side, 4 km out): nothing active, nothing drawn.
 	eye = Vector3(5000.0, 0.0, 5000.0)
 	now = {"hour": 7.5, "weekday": 5}
@@ -718,7 +719,7 @@ func _check_boulevard_rules() -> void:
 	_expect((night["figs"][0][2] as Color) == Blvd.POLICE_SHIRT and (day["figs"][0][2] as Color) == Blvd.GUARD_SHIRT, "the uniforms")
 	for f: Array in night["figs"]:
 		var v := ((f[0] as Vector2) - Blvd.C).dot(Blvd.N)
-		_expect(v < -5.0 and v > -16.0, "an officer at v %.1f (the upper promenade is -8 .. -20)" % v)
+		_expect(v < -3.5 and v > -17.0, "an officer at v %.1f (the upper promenade is -8 .. -20)" % v)
 	# The walkers: evening, day, the small hours; every figure on the promenade's v.
 	var eve := Blvd.walker_figures(500.0, 20.0)
 	var noon := Blvd.walker_figures(500.0, 12.0)
@@ -845,3 +846,82 @@ func _check_boulevard_city(life: Node3D, dlg: Node) -> void:
 	eye = Vector3.ZERO
 	life.walkers = null
 	fake.queue_free()
+
+
+## F's rule (2026-11-19): everything on the promenade stands and walks on paving. Samples the patrol's
+## route (both pairs and the fining officer's walk), the walkers' and riders' lanes, the lower quay's path,
+## the queues and the food places' hatches every 2 m / by position, and asserts each lies on a footway
+## ribbon or a plaza, or within 1.5 m of one, and never on a cycle path alone.
+func _check_boulevard_paving(data: Dictionary) -> void:
+	var foot: Array = []
+	var cycle: Array = []
+	for p: Dictionary in data["paths"]:
+		var q: Array = p["p"]
+		if (p["k"] != "foot" and p["k"] != "cycle") or q.size() < 4:
+			continue
+		var pts := PackedVector2Array()
+		for i in range(0, q.size() - 1, 2):
+			pts.append(Vector2(float(q[i]), float(q[i + 1])))
+		var b := Rect2(pts[0], Vector2.ZERO)
+		for pt in pts:
+			b = b.expand(pt)
+		if b.grow(60.0).has_point(Blvd.C):
+			(foot if p["k"] == "foot" else cycle).append([pts, float(p.get("w", 2.0)) * 0.5])
+	var plazas: Array = []
+	for a: Dictionary in data["areas"]:
+		if a["k"] == "plaza":
+			var q: Array = a["p"]
+			var pts := PackedVector2Array()
+			for i in range(0, q.size() - 1, 2):
+				pts.append(Vector2(float(q[i]), float(q[i + 1])))
+			if pts.size() >= 3 and Rect2(pts[0], Vector2.ZERO).grow(300.0).has_point(Blvd.C):
+				plazas.append(pts)
+	var bad := 0
+	var worst := 0.0
+	var n := 0
+	var spots: Array[Vector2] = []
+	var u := Blvd.PATROL_U.x
+	while u <= Blvd.PATROL_U.y:
+		for off in [0.0, -1.2]:
+			var c := Blvd.on_route(u, off)
+			var side := Blvd.line_dir(Blvd.ROUTE, u, 1.0)
+			side = Vector2(-side.y, side.x)
+			spots.append(c + side * Blvd.PAIR_GAP)
+			spots.append(c - side * Blvd.PAIR_GAP)
+		u += 2.0
+	# The fining officer's stop: at the stop's u, out FINE_WALK m (the steps' top edge).
+	for stop in Blvd.PATROL_STOPS:
+		if stop.y == Blvd.FINE_PAUSE:
+			spots.append(Blvd.on_route(stop.x, 0.0) + Blvd.N * Blvd.FINE_WALK)
+	var lu := -118.0
+	while lu <= 125.0:
+		for lane in [-1.0, 0.0, 0.9]:
+			spots.append(Blvd.on_route(lu, lane))
+		lu += 2.0
+	lu = -5.0
+	while lu <= 89.0:
+		spots.append(Blvd.at(lu, Blvd.line_v(Blvd.LOWER, lu)))
+		lu += 2.0
+	for q: Array in Blvd.STANDERS:
+		spots.append(Blvd.at(float(q[1]), float(q[2])))
+	for at_uv: Vector2 in [Vector2(92.0, -19.2), Vector2(104.0, -19.0)]:
+		spots.append(Blvd.at(at_uv.x, at_uv.y))
+	for p: Vector2 in spots:
+		n += 1
+		var gap := INF
+		for pl: PackedVector2Array in plazas:
+			if Geometry2D.is_point_in_polygon(p, pl):
+				gap = 0.0
+		if gap > 0.0:
+			for f: Array in foot:
+				var pts: PackedVector2Array = f[0]
+				for i in pts.size() - 1:
+					gap = minf(gap, Geometry2D.get_closest_point_to_segment(p, pts[i], pts[i + 1]).distance_to(p) - float(f[1]))
+		if gap > 1.5:
+			bad += 1
+			if verbose:
+				var dd := p - Blvd.C
+				print("  off paving %.1f m at u %.0f v %.1f" % [gap, dd.dot(Blvd.A), dd.dot(Blvd.N)])
+		worst = maxf(worst, gap if gap < INF else 99.0)
+	_expect(bad == 0, "%d of %d promenade samples are over 1.5 m from paving (worst %.1f m)" % [bad, n, worst])
+	_summary["blvd_paving"] = "%d samples on paving (worst %.1f m off)" % [n, worst]

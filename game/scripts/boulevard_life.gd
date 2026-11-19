@@ -27,10 +27,19 @@ const N := Vector2(0.747, -0.665)
 ## The view this near C (m) brings the life up (the steps' band is 200 m long).
 const NEAR_R := 170.0
 
+## The paved upper promenade's middle line, (u, v) points read off centrum.json's footway ribbons and
+## the plaza (the strip runs slanted to the steps' frame: v -15.8 at the west end, -5.3 by the steps'
+## top, then onto the plaza at u 80), kept >= 1.5 m off the lamps, benches, bins and trunks there. The
+## patrol, the walkers and the riders all follow it (a lane is an offset in v from it).
+const ROUTE: Array[Vector2] = [Vector2(-135.0, -17.0), Vector2(-110.0, -15.8), Vector2(-80.0, -13.8), Vector2(-50.0, -12.0),
+		Vector2(-30.0, -10.6), Vector2(-10.0, -8.6), Vector2(10.0, -7.8), Vector2(20.0, -6.6), Vector2(30.0, -5.3),
+		Vector2(60.0, -5.5), Vector2(72.0, -5.6), Vector2(80.0, -5.4), Vector2(88.0, -12.6), Vector2(140.0, -12.6)]
+## The lower quay's path (the footway at v 7-12 by the water, u -5 .. 89).
+const LOWER: Array[Vector2] = [Vector2(-5.0, 7.0), Vector2(3.0, 8.0), Vector2(17.0, 9.0), Vector2(35.0, 10.0), Vector2(47.0, 10.0),
+		Vector2(60.0, 11.0), Vector2(75.0, 12.0), Vector2(89.0, 12.0)]
 ## The patrol: from PATROL_U.x to .y along the river at PATROL_V, PATROL_SPEED m/s, with the pauses at
 ## the tops of the steps: [u, seconds].
 const PATROL_U := Vector2(-110.0, 120.0)
-const PATROL_V := -10.0
 const PATROL_SPEED := 1.2
 const PATROL_STOPS: Array[Vector2] = [Vector2(-62.0, 7.0), Vector2(-8.0, 24.0), Vector2(52.0, 6.0), Vector2(96.0, 8.0)]
 ## The mandat (F, 2026-11-19): at the stop whose pause is FINE_PAUSE s the first Policja officer
@@ -55,42 +64,46 @@ const GUARD_TR := 0.35
 const DOG_COAT := Color("#5b4636")
 const DOG_SCALE := 1.6
 
-## The riders (scooter 0, rollerblader 1): [kind, v (m, the lane), speed m/s, phase 0..1, shirt].
-## They ride the promenade's far lane between RIDE_U.x and .y, there and back (the ends lie off
-## the steps' view); RIDE_HOURS is the cyclists' day.
-const RIDE_U := Vector2(-135.0, 140.0)
+## The riders (scooter 0, rollerblader 1): [kind, lane (m off the route), speed m/s, phase 0..1, shirt].
+## They ride the promenade between RIDE_U.x and .y, there and back (the ends lie off the steps' view);
+## RIDE_HOURS is the cyclists' day.
+const RIDE_U := Vector2(-118.0, 125.0)
 const RIDE_HOURS := [6.0, 22.0]
 const RIDERS := [
-	[0, -17.5, 5.6, 0.05, "#2f6fb5"], [0, -19.0, 4.8, 0.33, "#d8432f"], [0, -20.5, 6.2, 0.61, "#3b8f5a"],
-	[0, -18.2, 5.2, 0.84, "#e0b23a"], [1, -19.6, 3.6, 0.2, "#7a4fa8"], [1, -17.0, 3.2, 0.7, "#e57aa0"],
+	[0, -0.8, 5.6, 0.05, "#2f6fb5"], [0, 0.6, 4.8, 0.33, "#d8432f"], [0, -1.0, 6.2, 0.61, "#3b8f5a"],
+	[0, 0.9, 5.2, 0.84, "#e0b23a"], [1, -0.3, 3.6, 0.2, "#7a4fa8"], [1, 0.4, 3.2, 0.7, "#e57aa0"],
 ]
 
-## The walkers: [kind, hours key, lane v, u0, u1, speed, phase, shirt, shirt2]. Kind: "couple",
-## "single", "jogger" and "family" (two adults and a child). Hours: "eve" 18:00-24:00, "day"
-## 10:00-18:00, "all" 6:00-24:00. A figure walks u0 to u1 and back.
+## The walkers: [kind, hours key, lane (m off the route; the lower quay's path when `lower`), u0, u1,
+## speed, phase, shirt, shirt2, lower]. Kind: "couple", "single", "jogger" and "family" (two adults and
+## a child). Hours: "eve" 18:00-24:00, "day" 10:00-18:00, "all" 6:00-24:00. A figure walks u0 to u1
+## and back.
 const EVE_HOURS := [18.0, 24.0]
 const WALK_DAY := [10.0, 18.0]
 const WALK_ALL := [6.0, 24.0]
 const WALKERS := [
-	["couple", "eve", -13.5, -100.0, 110.0, 1.0, 0.1, "#e57aa0", "#2b2c2f"],
-	["couple", "eve", -15.5, -90.0, 100.0, 0.9, 0.45, "#5aa9c9", "#9c2f3a"],
-	["couple", "eve", 10.8, -85.0, 95.0, 0.85, 0.3, "#f2efe8", "#3b8f5a"],
-	["couple", "eve", -9.0, -100.0, 110.0, 1.05, 0.72, "#7a4fa8", "#e0b23a"],
-	["single", "eve", -12.0, -100.0, 110.0, 1.3, 0.55, "#d8432f", ""],
-	["single", "eve", 10.4, -85.0, 95.0, 1.1, 0.9, "#2f6fb5", ""],
-	["jogger", "eve", 10.9, -90.0, 100.0, 2.9, 0.0, "#fff3a6", ""],
-	["family", "day", -14.0, -100.0, 110.0, 0.8, 0.25, "#3b8f5a", "#e0b23a"],
-	["couple", "day", -11.5, -100.0, 110.0, 0.95, 0.6, "#2f6fb5", "#d8432f"],
-	["couple", "day", 10.6, -85.0, 95.0, 0.9, 0.15, "#e0b23a", "#7a4fa8"],
-	["jogger", "all", -16.0, -100.0, 110.0, 2.7, 0.4, "#b8f0d8", ""],
+	["couple", "eve", 0.5, -105.0, 118.0, 1.0, 0.1, "#e57aa0", "#2b2c2f", false],
+	["couple", "eve", -0.4, -95.0, 110.0, 0.9, 0.45, "#5aa9c9", "#9c2f3a", false],
+	["couple", "eve", 0.0, -2.0, 88.0, 0.85, 0.3, "#f2efe8", "#3b8f5a", true],
+	["couple", "eve", 0.6, -100.0, 118.0, 1.05, 0.72, "#7a4fa8", "#e0b23a", false],
+	["single", "eve", 0.1, -100.0, 118.0, 1.3, 0.55, "#d8432f", "", false],
+	["single", "eve", 0.3, -2.0, 88.0, 1.1, 0.9, "#2f6fb5", "", true],
+	["jogger", "eve", -0.2, -2.0, 88.0, 2.9, 0.0, "#fff3a6", "", true],
+	["family", "day", 0.0, -100.0, 118.0, 0.8, 0.25, "#3b8f5a", "#e0b23a", false],
+	["couple", "day", 0.4, -100.0, 118.0, 0.95, 0.6, "#2f6fb5", "#d8432f", false],
+	["couple", "day", 0.0, -2.0, 88.0, 0.9, 0.15, "#e0b23a", "#7a4fa8", true],
+	["jogger", "all", -0.4, -100.0, 118.0, 2.7, 0.4, "#b8f0d8", "", false],
 ]
-## Who queues at the food (bulwar_food.gd): [hours key, u, v, shirt, trousers]; they face the hatches
-## (towards -N). Two at the ice-cream cart by day and in the evening, three more at the truck then.
+## Who queues at the food (bulwar_food.gd, on the plaza at the promenade's east end): [hours key, u, v,
+## shirt, trousers]; they stand still facing the hatches (towards -N). Two at the ice-cream cart by day
+## and in the evening, three more at the truck then.
 const STANDERS := [
-	["day", 23.4, -13.4, "#2f6fb5", 0.35], ["day", 24.8, -13.3, "#e57aa0", 0.1],
-	["eve", 23.4, -13.4, "#d8432f", 0.1], ["eve", 24.9, -13.3, "#f2efe8", 0.35],
-	["eve", 35.0, -13.7, "#3b8f5a", 0.1], ["eve", 36.4, -13.6, "#7a4fa8", 0.35], ["eve", 37.7, -13.8, "#e0b23a", 0.1],
+	["day", 103.2, -17.4, "#2f6fb5", 0.35], ["day", 104.7, -17.4, "#e57aa0", 0.1],
+	["eve", 103.2, -17.4, "#d8432f", 0.1], ["eve", 104.7, -17.4, "#f2efe8", 0.35],
+	["eve", 90.8, -16.6, "#3b8f5a", 0.1], ["eve", 92.2, -16.6, "#7a4fa8", 0.35], ["eve", 93.6, -16.6, "#e0b23a", 0.1],
 ]
+## Added to the trousers' value, a figure stands still (actor.gdshader: no leg swing from 2.0 up).
+const STILL := 2.0
 ## A child walks at this scale and the pair's side offsets are in m.
 const CHILD_SCALE := 0.62
 const PAIR_GAP := 0.42
@@ -132,6 +145,28 @@ static func patrol_pairs(hour: float, weekday: int) -> int:
 ## Is any of the street life up at `hour` (the view this near gets the bit)?
 static func active(hour: float) -> bool:
 	return hour >= 6.0 or hour < 2.0
+
+
+## The frame's v of a polyline (ROUTE or LOWER) at `u` (flat beyond its ends).
+static func line_v(line: Array[Vector2], u: float) -> float:
+	if u <= line[0].x:
+		return line[0].y
+	for i in range(1, line.size()):
+		if u <= line[i].x:
+			return lerpf(line[i - 1].y, line[i].y, (u - line[i - 1].x) / (line[i].x - line[i - 1].x))
+	return line[line.size() - 1].y
+
+
+## The map position at `u` on the upper promenade's middle line, `off` m towards the water.
+static func on_route(u: float, off := 0.0) -> Vector2:
+	return at(u, line_v(ROUTE, u) + off)
+
+
+## The way a figure walking along `line` at `u` faces, going towards +u (`dir` 1) or -u (-1).
+static func line_dir(line: Array[Vector2], u: float, dir: float) -> Vector2:
+	var a := at(u, line_v(line, u))
+	var b := at(u + dir, line_v(line, u + dir))
+	return (b - a).normalized()
 
 
 ## Map position of the frame's (u, v).
@@ -221,6 +256,12 @@ static func fine_offset(fine_t: float) -> float:
 	return maxf(0.0, FINE_WALK - (fine_t - walk - FINE_WRITE) * PATROL_SPEED)
 
 
+## Is the officer walking (out or back) at `fine_t`?
+static func fine_moving(fine_t: float) -> bool:
+	var walk := FINE_WALK / PATROL_SPEED
+	return fine_t >= 0.0 and (fine_t < walk or (fine_t >= walk + FINE_WRITE and fine_t < 2.0 * walk + FINE_WRITE))
+
+
 ## Is the officer writing the ticket at `fine_t` (a line is due)?
 static func fine_writing(fine_t: float) -> bool:
 	var walk := FINE_WALK / PATROL_SPEED
@@ -238,16 +279,21 @@ static func patrol_figures(t: float, kind: String, pairs: int) -> Dictionary:
 	for p in pairs:
 		var pose := patrol_pose(t, 0.0 if p == 0 else 0.5)
 		var u: float = pose["u"]
-		var face: Vector2 = pose["face"]
 		var dir: float = pose["dir"]
+		var face: Vector2 = N if bool(pose["paused"]) else line_dir(ROUTE, u, dir)
 		var side := Vector2(-face.y, face.x)
-		var centre := at(u, PATROL_V - p * 2.2)
+		var centre := on_route(u, -1.2 * p)
 		var yaw := yaw_of(face)
 		var out := Vector2.ZERO
-		if p == 0 and kind == "policja":
-			out = N * fine_offset(float(pose["fine_t"]))
-		figs.append([centre + side * PAIR_GAP + out, yaw, shirt, tr, Vector3.ONE])
-		figs.append([centre - side * PAIR_GAP, yaw, shirt, tr, Vector3.ONE])
+		var ft: float = pose["fine_t"]
+		var fining := p == 0 and kind == "policja" and ft >= 0.0
+		if fining:
+			out = N * fine_offset(ft)
+		# Still (no leg swing) while paused, but the fining officer's walk out and back swings.
+		var still := STILL if bool(pose["paused"]) else 0.0
+		var still1 := 0.0 if fining and fine_moving(ft) else still
+		figs.append([centre + side * PAIR_GAP + out, yaw, shirt, tr + still1, Vector3.ONE])
+		figs.append([centre - side * PAIR_GAP, yaw, shirt, tr + still, Vector3.ONE])
 		if p == 0 and kind == "policja":
 			# The dog on its lead, ahead and a little out from the second officer (it trots ahead
 			# along the way, or sits at his boot when he stands).
@@ -293,9 +339,10 @@ static func walker_figures(t: float, hour: float) -> Array:
 		var f := float(w[6]) + t * float(w[5]) / (2.0 * length)
 		var u := float(w[3]) + tri(f) * length
 		var dir := 1.0 if fposmod(f, 1.0) < 0.5 else -1.0
-		var face := A * dir
+		var line: Array[Vector2] = LOWER if bool(w[9]) else ROUTE
+		var face := line_dir(line, u, dir)
 		var side := Vector2(-face.y, face.x)
-		var centre := at(u, float(w[2]))
+		var centre := at(u, line_v(line, u) + float(w[2]))
 		var yaw := yaw_of(face)
 		var c1 := Color(str(w[7]))
 		var c2 := Color(str(w[8])) if str(w[8]) != "" else c1
@@ -311,7 +358,7 @@ static func walker_figures(t: float, hour: float) -> Array:
 				out.append([centre, yaw, c1, 0.35, Vector3.ONE])
 	for q: Array in STANDERS:
 		if in_window(walker_hours(str(q[0])), hour):
-			out.append([at(float(q[1]), float(q[2])), yaw_of(-N), Color(str(q[3])), float(q[4]), Vector3.ONE])
+			out.append([at(float(q[1]), float(q[2])), yaw_of(-N), Color(str(q[3])), float(q[4]) + STILL, Vector3.ONE])
 	return out
 
 
@@ -327,5 +374,5 @@ static func rider_figures(t: float, hour: float) -> Array:
 		var f := float(r[3]) + t * float(r[2]) / (2.0 * length)
 		var u := RIDE_U.x + tri(f) * length
 		var dir := 1.0 if fposmod(f, 1.0) < 0.5 else -1.0
-		out.append([at(u, float(r[1])), yaw_of(A * dir), int(r[0]), Color(str(r[4]))])
+		out.append([on_route(u, float(r[1])), yaw_of(line_dir(ROUTE, u, dir)), int(r[0]), Color(str(r[4]))])
 	return out
