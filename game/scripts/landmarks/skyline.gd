@@ -950,6 +950,15 @@ func _build_tower(site: Dictionary) -> void:
 			var sk: Array = spec["skins"][str(b.get("c", "")).to_lower()]
 			wall = Color(sk[1])
 			part_skin = M_SKIN + float(sk[0]) / 16.0
+		if spec.has("scales") and str(b.get("c", "")).to_lower() in UNIT_SKIN_COLOURS:
+			# Warsaw UNIT's Dragon Skin (F's photos, 2026-11-19): the podium box from the first floor
+			# up wears the plate skin; the mapped piece under it is the glazed ground floor.
+			wall = Color(spec["scales"]) if mh >= 8.5 else glass
+			part_skin = M_SKIN + float(S_SCALES) / 16.0 if mh >= 8.5 else skin
+		elif spec.has("scales") and mh > 20.0 and h - mh < 3.0:
+			# the thin slab between the podium and the shaft: a silver fascia (Street View)
+			wall = UNIT_FASCIA
+			part_skin = M_STONE
 		if spec.has("arcade") and absf(h - float(spec["arcade"])) < 0.5 and mh < 0.5:
 			# RD-2 the arcade's lobby: copper-tinted glass 5 m in from the column line, lit warm.
 			var lobby := Geometry2D.offset_polygon(poly, -5.0)
@@ -1011,6 +1020,10 @@ func _build_tower(site: Dictionary) -> void:
 		_roof_terrace(t[0], float(t[1]), t[2])
 	if spec["key"] == "wtt":
 		_wtt_crown_slits(parts, g)
+	if spec.has("scales"):
+		_unit_skin_dress(parts, g)
+	if spec.has("shops"):
+		_shop_signs(parts, g, spec["shops"], spec.get("shops_dir", Vector2.ZERO))
 	if sign_poly.size() >= 3:
 		# The sign on the crown block, not on the shaft (_dusk_details skips it); a name of two
 		# words on a narrow block goes in two rows, so the letters stay readable from the street.
@@ -1990,6 +2003,125 @@ func _tower_strips(poly: PackedVector2Array, y0: float, y1: float, col: Color, c
 				_mode = M_SKIN + float(S_DARK) / 16.0
 				_frustum(_scaled(strip, c, s0), y0, _scaled(strip, c, s1), y1, col)
 				_mode = keep
+
+
+## Warsaw UNIT's Dragon Skin box: the OpenStreetMap colours of its parts (the box and its corner
+## piece), the silver fascia over it, the green wall's leaves and the box's tenant sign.
+const UNIT_SKIN_COLOURS := ["#485477", "#647481"]
+const UNIT_FASCIA := Color("#c3c8cd")
+const UNIT_LEAVES: Array[Color] = [Color("#3f6b34"), Color("#557d3a"), Color("#2f5a2e"), Color("#6b8a45")]
+const UNIT_TENANT := "MODERATO"   ## the red name on the skin's top (a parody of the tenant's logo)
+const UNIT_TENANT_COL := Color(1.0, 0.16, 0.14)
+
+
+## Warsaw UNIT's Dragon Skin box (F's photos and notes, Mapillary 2020-26, 2026-11-19): the plates
+## are the skin (building.gdshader S_SCALES); here the green wall, a planted strip 4.5 m wide in a
+## recess at the south end of the box's east face (the night photo, the notes' third picture),
+## its leaves in clumps, and the tenant's red name across the top of that face.
+func _unit_skin_dress(parts: Array, g: float) -> void:
+	var box := PackedVector2Array()
+	var top := 0.0
+	for b: Dictionary in parts:
+		if str(b.get("c", "")).to_lower() == UNIT_SKIN_COLOURS[0] and float(b["mh"]) >= 8.5:
+			box = _pts(b["p"])
+			top = float(b["h"])
+	if box.size() < 3:
+		return
+	# the east face: the longest edge whose outward normal points most to +x
+	var best := -1
+	var score := -INF
+	for i in box.size():
+		var a := box[i]
+		var b := box[(i + 1) % box.size()]
+		var l := a.distance_to(b)
+		var sc := _out(box, a, b).x * l
+		if l > 12.0 and sc > score:
+			score = sc
+			best = i
+	if best < 0:
+		return
+	var a := box[best]
+	var b := box[(best + 1) % box.size()]
+	var o := _out(box, a, b)
+	var e := (b - a).normalized()
+	var l := a.distance_to(b)
+	# the south end of the face (the larger z)
+	var t0 := l - 6.0 if b.y > a.y else 1.5
+	var p0 := a + e * t0
+	var p1 := a + e * (t0 + 4.5)
+	var y0 := g + 9.6
+	var y1 := g + top - 0.4
+	var keep := _mode
+	_mode = M_STONE
+	# the planted panel, 0.25 m proud, then the clumps on it (a fixed hash picks size and green)
+	_prism(PackedVector2Array([p0, p1, p1 + o * 0.25, p0 + o * 0.25]), y0, y1, UNIT_LEAVES[2], UNIT_LEAVES[0], M_STONE, M_STONE)
+	var rows := int((y1 - y0) / 1.3)
+	for r in rows:
+		for c in 3:
+			var hsh := hash(Vector2i(r, c + 31))
+			var w := 0.9 + 0.5 * float(hsh % 7) / 6.0
+			var at := 0.4 + c * 1.45 + float(hsh % 5) * 0.08
+			var q0 := p0 + e * at
+			var q1 := p0 + e * minf(at + w, 4.4)
+			var y := y0 + r * 1.3 + float(hsh % 3) * 0.2
+			var col: Color = UNIT_LEAVES[hsh % UNIT_LEAVES.size()]
+			_prism(PackedVector2Array([q0, q1, q1 + o * 0.6, q0 + o * 0.6]), y, minf(y + 1.1, y1), col, col.lightened(0.12), M_STONE, M_STONE)
+	_mode = keep
+	# the tenant's name: centred on the rest of the face, 3 m letters a little under the top
+	var mid := a + e * ((l - 6.0) * 0.5 if b.y > a.y else 6.0 + (l - 6.0) * 0.5) + o * 0.05
+	var k := 3.0 / (Neon.ROW_H * Neon.PIXEL)
+	signs.append([UNIT_TENANT, Vector3(mid.x, y1 - 3.4, mid.y), Vector3(o.x, 0.0, o.y), k, UNIT_TENANT_COL])
+
+
+## The Rondo Daszyńskiego towers' shop signs (F, 2026-11-19: "signs to bring life"): each entry
+## [word, colour, t, inset] goes on the ground-floor face of the site that looks most towards the
+## Rondo (or along `dir`, where the Rondo-facing face looks into a narrow gap), `t` of the way along it, `inset` m in (Mennica's lobby stands behind its columns): a dark
+## fascia board 0.12 m proud with the lit word 0.9 m tall on it, 3.4 m over the pavement.
+const RONDO_D := Vector2(-2697.0, 406.0)
+
+
+func _shop_signs(parts: Array, g: float, shops: Array, dir := Vector2.ZERO) -> void:
+	var best_a := Vector2.ZERO
+	var best_b := Vector2.ZERO
+	var best_o := Vector2.ZERO
+	var score := -INF
+	for b: Dictionary in parts:
+		if float(b["mh"]) > 0.5 or float(b["h"]) < 5.0:
+			continue
+		var poly := _pts(b["p"])
+		for i in poly.size():
+			var a := poly[i]
+			var c := poly[(i + 1) % poly.size()]
+			var l := a.distance_to(c)
+			if l < 10.0:
+				continue
+			var o := _out(poly, a, c)
+			var to := dir if dir != Vector2.ZERO else (RONDO_D - (a + c) * 0.5).normalized()
+			var sc := o.dot(to) * minf(l, 30.0)
+			if sc > score:
+				score = sc
+				best_a = a
+				best_b = c
+				best_o = o
+	if score <= 0.0:
+		return
+	var e := (best_b - best_a).normalized()
+	var k := 0.9 / (Neon.ROW_H * Neon.PIXEL)
+	var keep := _mode
+	_mode = M_STONE
+	for s: Array in shops:
+		var word := str(s[0])
+		var inset := float(s[3]) if s.size() > 3 else 0.0
+		var mid := best_a.lerp(best_b, float(s[2])) - best_o * inset
+		var half := 0.5 * k * Neon.length_of(word) + 0.4
+		var board := PackedVector2Array([mid - e * half, mid + e * half, mid + e * half + best_o * 0.12, mid - e * half + best_o * 0.12])
+		_prism(board, g + 3.2, g + 4.5, SHOP_BOARD, SHOP_BOARD, M_STONE, M_STONE)
+		var at := mid + best_o * (0.12 - 0.38)  # map_builder puts the letters 0.4 m out: 2 cm off the board
+		signs.append([word, Vector3(at.x, g + 3.4, at.y), Vector3(best_o.x, 0.0, best_o.y), k, Color(str(s[1]))])
+	_mode = keep
+
+
+const SHOP_BOARD := Color("#23272c")
 
 
 ## The hotel's dark band over its glazed ground floors (the HUB photo report), 0.2 m proud.
