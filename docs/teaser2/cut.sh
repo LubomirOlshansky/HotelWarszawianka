@@ -14,6 +14,8 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 clips=${1:?CLIPS_DIR}; art=${2:?ART_DIR}; out=${3:?OUT.mp4}
 FPS=30
+# SIZE=1920x1080: the landscape cut (Threads; F 2026-11-19), from a 1920x1080 clip and overlay.
+SIZE=${SIZE:-1080x1920}; W=${SIZE%x*}; H=${SIZE#*x}
 SHOTS=(${SHOTS:-metroF:2:7})
 PUSH=${PUSH:-1.0}
 # F 2026-11-19: the reel replays, so the sound loops (docs/teaser2/mix.sh) and is not faded out;
@@ -25,13 +27,13 @@ inputs=(); chains=""; i=0; concat=""; total=0
 for s in "${SHOTS[@]}"; do
 	IFS=: read -r name start len <<<"$s"
 	inputs+=(-ss "$start" -t "$len" -i "$clips/$name.mp4")
-	chains+="[$i:v]fps=$FPS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,trim=0:$len,setpts=PTS-STARTPTS[v$i];"
+	chains+="[$i:v]fps=$FPS,scale=$W:$H:force_original_aspect_ratio=increase,crop=$W:$H,setsar=1,trim=0:$len,setpts=PTS-STARTPTS[v$i];"
 	concat+="[v$i]"; i=$((i + 1)); total=$(echo "$total + $len" | bc)
 done
 inputs+=(-framerate $FPS -i "$art/live/f_%04d.png"); ov=$i; i=$((i + 1))
 inputs+=(-i "$here/${AMBIENCE:-ambience-7s.m4a}"); au=$i
 # The push-in: scale up a little over the cut and crop the centre back to 1080x1920.
-chains+="${concat}concat=n=$ov:v=1:a=0,scale=w='trunc(1080*(1+($PUSH-1)*t/$total)/2)*2':h=-2:eval=frame,crop=1080:1920,setsar=1[base];"
+chains+="${concat}concat=n=$ov:v=1:a=0,scale=w='trunc($W*(1+($PUSH-1)*t/$total)/2)*2':h=-2:eval=frame,crop=$W:$H,setsar=1[base];"
 chains+="[base][$ov:v]overlay=0:0:shortest=1,format=yuv420p[v]"
 
 ffmpeg -v error -y "${inputs[@]}" -filter_complex "$chains" -map "[v]" -map "$au:a" ${afade[@]} \

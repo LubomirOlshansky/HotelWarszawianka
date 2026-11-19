@@ -64,3 +64,13 @@ the level now stays within ~2 dB until the planned fade at 6.2 s.
 F 21:47 UTC: "make the sound loop if the user replays the reel". mix.sh now makes 8 s and cross-fades
 its last second into its first, so the 7 s bed runs end-to-start with no seam; cut.sh no longer fades
 the sound out (FADE=1 for the old fade). The bed is at about -17 LUFS (the rain 6 dB under the music).
+
+## Landscape for Threads (F 21:49 UTC: "horizontal, the same view, like our website's header")
+
+```zsh
+Q=(--nohud --no-touch --no-ghost --quality=ultra --lines=1080 --governor=off --time=night --clock=22:00 --date=20261120 --weather=rain --traffic=low --crowd=2 --promo-at=-851,400,7)
+tools/clip.sh heroH 1920x1080 12 -- --cam=-845,415 --yaw=0 --pitch=-32 --size=105 $Q   # the website header's camera
+tools/clip.sh heroW 1920x1080 12 -- --cam=-851,400 --yaw=0 --pitch=-32 --size=160 $Q   # a wider pick, the rondo centred
+node tools/reel/render.mjs build/reel/art-h --live-frames=7 --live-size=1920x1080
+SIZE=1920x1080 SHOTS="heroH:1:7" docs/teaser2/cut.sh build/clips build/reel/art-h build/reel/teaser2-1920x1080.mp4
+```
