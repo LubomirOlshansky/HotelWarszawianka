@@ -149,7 +149,9 @@ const DEFAULT_RACER := {"share": 0.82, "race_accel": 10.5, "brake": 9.0, "lat": 
 ## bench course; it was 0.65 / 7.0 / 4.0 / 9.5, 108 s): a first race is a real race. The same day the
 ## whole ladder from Halina to Zbyszek was retuned (docs/design/race-ai.md 6): Mike already uses the
 ## car's whole top speed, so the rest were brought up to him, each 3 to 6 % quicker than the one below.
-const FIRST_RACER := {"share": 0.76, "race_accel": 9.4, "brake": 6.5, "lat": 11.4, "knows": 1.0, "caution": 1.0,
+## Its `catch` (race_session.gd CATCH_*, F 2026-11-19): the guided first race chases a player who
+## pulls away, but less than every other rival (CATCH_MAX); the other profiles have no `catch`.
+const FIRST_RACER := {"catch": 1.45, "share": 0.76, "race_accel": 9.4, "brake": 6.5, "lat": 11.4, "knows": 1.0, "caution": 1.0,
 		"cuts": 0.3, "yards": 1.0, "narrow": 3.5, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false,
 		"dare": 2.5, "indicate": 3.0, "flash": 0.0, "home": ["powisle", "srodmiescie", "trakt"]}
 ## Racer AI step 6b (street_meet.gd, the race from Plac Defilad to meet 2): the night club's eight

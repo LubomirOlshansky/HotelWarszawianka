@@ -6566,9 +6566,9 @@ func _read_input(dt: float) -> void:
 		stick_on = true
 	controls.arrows = hud.arrows()  # F 2026-11-13: the fixed arrow buttons (ramped in drive_controls.gd)
 	controls.drive(car, stick, stick_on, keys, hud.gas or Gamepad.gas(), hud.brake or Gamepad.brake(), cam_yaw, dt)
-	# The drag (street_meet.gd): the car holds the strip and any gas is full gas.
-	if meet != null:
-		meet.hold_car(car)
+	# The drag (street_meet.gd) holds the strip, any gas full gas; a race's start (rivals.gd) the line.
+	if meet != null: meet.hold_car(car)
+	if rivals != null: rivals.hold_car(car)
 	_lane_tick(dt)
 	# G13: the nitro (bought at the garage): the disc by the horn, Shift on a keyboard, LB or RB on a
 	# pad. Not N: N switches the time of day, so holding it for the nitro also turned day to dusk.
