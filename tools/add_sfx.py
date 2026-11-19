@@ -153,7 +153,7 @@ def main():
             s = re.sub(r"edit/loop_end=-?\d+", "edit/loop_end=%d" % frames, s)
         open(imp, "w", encoding="utf-8").write(s)
     else:
-        print("  no %s.wav.import yet: import the project once, then set its loop and QOA like its neighbours" % name)
+        print("  no %s.wav.import yet: run `godot --headless --path game --import`, then this again (it sets the loop)" % name)
 
     sources = {}
     if os.path.exists(SOURCES):

@@ -551,6 +551,9 @@ vec3 skin(int s, vec3 col, float u, float h, float top, out vec3 glow, out bool 
 		// glass in big panes, a light silver grid, mullions every 3 m and four rows of 2.7 m.
 		frame = any(bvec2(fract(u / 3.0) < 0.035, fract(h / 2.7) < 0.045));
 		frame_col = srgb_to_linear(vec3(0.80, 0.82, 0.84)) * mix(0.3, 1.0, daylight);
+		// At night the stores' upper floors read lit, not dark (F, 2026-11-19, the Wars face in the
+		// "Warsaw 3 a.m." teaser): most floors glow, with gaps, in the generic tail below.
+		lit = 0.85;
 	} else if (s == S_PUNCHED) {
 		// A re-clad 1970s point block (the start area's 75 m tower, 2026-11-01): light horizontal
 		// metal cladding, punched windows in bands (2 x 1.4 m every 3.2 m, white frames, dark

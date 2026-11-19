@@ -145,7 +145,7 @@ const BUDGET := {
 	"cosmopolitan": 420,  # 2026-11-08 photo rebuild (F)
 	"plac_grzybowski": 1500,  # 2026-11-08 photo build (F): 1429 tris, the cascade field is 48 blocks
 	"prozna": 5100,  # 2026-11-08 photo build (F): 5014 tris, 1,300 of them the 90 bollards
-	"dom_partii": 6200,  # 2026-11-12 rebuilt whole from F's photos (towers, colonnade, frieze, courtyard fountain): 5202 tris, +0 draw calls
+	"dom_partii": 8000,  # 2026-11-12 rebuilt whole from F's photos: 5202 tris; 2026-11-19 the arcade, terrace, cafés and tables (F's photos): 7225 tris, +0 draw calls
 	"eon41": 1300,  # 2026-11-13 photo rebuild (F): the power company's L-block, curve, medallions, glass tower, lantern
 	"asp37": 1600,  # 2026-11-13 the Academy of Fine Arts: the 1914 school and JEMS's wing
 	"deski": 2300,
@@ -169,8 +169,8 @@ const BUDGET := {
 	"grob": 340,
 	"grzybowska63": 500,
 	"gwardii": 1450,
-	"hub_b": 260,  # RD-4: parapet, roof plant, podium skylight
-	"hub_c": 220,  # RD-4: parapet, roof plant
+	"hub_b": 380,  # RD-4: parapet, roof plant, podium skylight; 2026-11-19 the glass crown and the street-front boards
+	"hub_c": 280,  # RD-4: parapet, roof plant; 2026-11-19 the glass crown and the HUB board
 	"ilmet": 400,
 	"jp2_21": 280,
 	"kopernik": 1720,
@@ -240,13 +240,13 @@ const BUDGET := {
 	"tower75": 220,
 	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
 	"pijana": 2200,  # 2026-11-08 PIJANA CZEREŚNIA kiosk (F): 1806 tris (octagon, drum, painted windows, deck rail, string lights)
-	"zodiak": 720,  # 2026-11-08 photo rebuild (F): 620 tris
+	"zodiak": 1500,  # 2026-11-19 neon star, string lights on three poles
 	"cmarsz": 2200,
 	"sowa": 1500,  # SOWA CLUB and CITY 25 (F's photos, 2026-11-06): 1298 tris
 	"brama": 100,
 	"equator": 120,
 	"equator2": 120,
-	"wiecha": 1800,
+	"wiecha": 2500,  # 2026-11-19 night life (lit displays, awnings, kebab hatch, bulbs)
 	"orly": 1600,
 	"hotel_warszawa": 2300,
 	"cedet": 2300,
@@ -337,7 +337,7 @@ const BUDGET := {
 	# the pavilion, the park, the drone port and the gilded crane.
 	"towarowa22": 5600,  # 2026-11-16 the paving now covers the whole plot (6 base rects, no brown earth), 5329 tris
 	# The Warsaw HUB's round-ended hotel tower (the photo report, 2026-11-03).
-	"crowne": 380,
+	"crowne": 2500,  # 2026-11-19 The Roof: rail, deck, lounge, pergola, festoons, sofas, trees
 	# Wola's 19. Dzielnica (F's photos, 2026-11-07): the drug works' building site (four concrete
 	# frames, cores, three cranes, the yard), the Kolejowa estate's 58 mapped parts, Asbud's towers.
 	"noho": 12700,

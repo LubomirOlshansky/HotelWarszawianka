@@ -398,6 +398,7 @@ var _rig_t := 0.0
 var _moment_at := -1.0
 var _vhs_until := -1.0
 var city_sounds: CitySounds
+var traffic_sounds: Node3D  # traffic_sounds.gd: the traffic you can hear
 ## Loop MW-3: the crowds (crowds.gd) and their flags: --crowd=0|1|2 (none, normal, double; the
 ## Low tier halves them), --night-log (queues, rejections, the dawn walkers each minute, every
 ## event), --club=<id|name> (the car at that club's door).
@@ -2054,6 +2055,7 @@ func _build_sound(data: Dictionary, world: Node3D) -> void:
 		city_sounds.setup(notes.places, func(x: float, z: float) -> float: return map.ground_height(x, z))
 		city_sounds.clock = tod.local_clock
 		city_sounds.ear = func() -> Vector3: return cam_focus
+	traffic_sounds = preload("res://scripts/traffic_sounds.gd").build(world, traffic, trams, func() -> Vector3: return cam_focus)
 	if flags.sound_check:
 		missions.close()
 		sfx.sound_check()
@@ -6146,6 +6148,8 @@ func _make_stats() -> BenchStats:
 		b.systems["notebook"] = [notes, "spent_usec", true]  # loop MW-1
 	if city_sounds != null:
 		b.systems["city sounds"] = [city_sounds, "spent_usec", true]  # loop MW-5
+	if traffic_sounds != null:
+		b.systems["traffic sounds"] = [traffic_sounds, "spent_usec", true]
 	if crowds != null:
 		b.systems["crowds"] = [crowds, "spent_usec", true]  # loop MW-3
 	if life != null:
