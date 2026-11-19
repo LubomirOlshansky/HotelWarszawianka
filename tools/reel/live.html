@@ -29,8 +29,8 @@ const TEXT = "Warsaw\n3 a.m.";
 const $ = (id) => document.getElementById(id);
 const k = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
 function frame(t) {
-  // "Warsaw 3 a.m." typed in from 0.6 s, a letter every 0.07 s, the cursor blinking after.
-  const n = Math.max(0, Math.min(TEXT.length, Math.floor((t - 0.6) / 0.07)));
+  // "Warsaw 3 a.m." typed in from 1.0 s, a letter every 0.11 s (calm, F), the cursor blinking after.
+  const n = Math.max(0, Math.min(TEXT.length, Math.floor((t - 1.0) / 0.11)));
   const cur = (n < TEXT.length || Math.floor(t * 2.5) % 2 === 0) ? '<span class="cur"></span>' : "";
   $("title").innerHTML = TEXT.slice(0, n).replace("\n", "<br>") + cur;
 }

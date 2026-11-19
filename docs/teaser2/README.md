@@ -14,10 +14,12 @@ out of the metro under umbrellas, the city's life. The only text is "Warsaw / 3 
 the bottom of the safe area. No LIVE badge, no clock, no title or STAY TUNED, no store plates.
 A slight push-in (PUSH=1.03). The sound is the ambience alone, faded out over the last 0.8 s.
 
+F, 17:33 UTC: not busy, "calm, the vibe of night Warsaw, meditative": the normal crowd (no --crowd=2), the words typed slowly, the sound rain with the city far away.
+
 ## Shots (tools/clip.sh, skill shoot-video)
 
 ```zsh
-Q=(--nohud --no-touch --no-ghost --quality=experimental --lines=1920 --governor=off --time=night --weather=rain --crowd=2)
+Q=(--nohud --no-touch --no-ghost --quality=experimental --lines=1920 --governor=off --time=night --weather=rain)
 tools/clip.sh metro 1080x1920 6 -- --cam=X,Z --yaw=0 --pitch=-32 --size=120 $Q   # the metro entrance and the Rotunda both in frame (the hero is -845,415)
 ```
 
