@@ -80,3 +80,7 @@ barka_kalmar 1800, barka_barkas 950, plyta_desantu 1900.
 | logo | pole + discs | 0.6 to 0.9 m radius | the hall roof corner | M_LAMP | the round lit logo |
 | name | neon sign | 3 to 6 m wide | the roof edge | neon | the parody name |
 | (Płyta Desantu) hut, deck, tables, leżaki, dock | boxes | 5.6 x 3.4 x 2.9 m hut; 9 x 3.6 deck; 3 sets; 9 leżaki; 3.4 x 14 dock | three spots by the sand | timber, canvas, neon | the beach bars POMOST 411, FALKA, WODNIK |
+
+## People (Phase D, 2026-11-19)
+
+Guests and barmen come from `Landmarks.bulwar_bar_plans` (river.gd, one static plan per builder: seat points at the chair, bench, leżak or sofa height, facing the table) through crowds.gd kind `bar`: they share the crowd cells' MultiMesh (+0 draw calls), at most 218 figures over all ten bar sites (`Crowds.BAR_MAX`), busiest 17:00-01:00, lunch moderate, thin in rain, the barges fuller on Friday and Saturday. A change to a builder's table layout must change its plan too.

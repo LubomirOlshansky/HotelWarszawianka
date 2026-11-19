@@ -2948,7 +2948,16 @@ func _blvd_pose() -> Dictionary:
 	var kind := BoulevardLife.patrol_kind(_hour)
 	if kind == "":
 		return {"figs": [], "dog": []}
-	return BoulevardLife.patrol_figures(t + blvd_t0, kind, BoulevardLife.patrol_pairs(_hour, _weekday))
+	return BoulevardLife.patrol_figures(t + blvd_t0, kind, BoulevardLife.patrol_pairs(_hour, _weekday), _blvd_target())
+
+
+## Phase D: the mandat's target, a seated group on the steps (crowds.gd's `steps_fine`): {} when the steps' plan is not
+## there (the old fixed walk), {"off": true} while that group is not yet sitting there (no fine, nobody to fine).
+func _blvd_target() -> Dictionary:
+	var tg: Dictionary = Crowds.steps_fine
+	if tg.is_empty():
+		return {}
+	return tg if Crowds.steps_n >= int(tg["need"]) else {"off": true}
 
 
 ## How many figures of each sort the steps' life has now, packed (a change writes everything).
@@ -3018,12 +3027,13 @@ func _blvd_talk(eye: Vector2, step: float) -> void:
 	if kind == "":
 		return
 	var pairs := BoulevardLife.patrol_pairs(_hour, _weekday)
-	var pose := BoulevardLife.patrol_figures(t + blvd_t0, kind, pairs)
+	var tg := _blvd_target()
+	var pose := BoulevardLife.patrol_figures(t + blvd_t0, kind, pairs, tg)
 	# The mandat: the first officer writing a ticket at the steps' top edge: his caption, once a passing,
 	# whatever the gap since the last line (the writing lasts only FINE_WRITE s).
 	var p0 := BoulevardLife.patrol_pose(t + blvd_t0, 0.0)
 	var ft: float = p0["fine_t"]
-	if kind == "policja" and BoulevardLife.fine_writing(ft) and int(p0["passing"]) != _blvd_fined:
+	if kind == "policja" and not bool(tg.get("off", false)) and BoulevardLife.fine_writing(ft, float(tg.get("len", BoulevardLife.FINE_WALK))) and int(p0["passing"]) != _blvd_fined:
 		var fq := (pose["figs"] as Array)[0][0] as Vector2
 		if fq.distance_to(eye) <= BoulevardLife.LINE_R:
 			var fspot := Vector3(fq.x, _ground(fq) + 2.4, fq.y)

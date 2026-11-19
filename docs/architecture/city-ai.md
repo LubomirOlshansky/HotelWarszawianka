@@ -26,7 +26,7 @@ trams.gd, tram_fleet.gd, old_tram.gd   trams on the baked rails, same lights as 
 trains.gd                               trains on the baked railway tracks
 campus_cart.gd                          the University guards' cart on a fixed campus ring
 pedestrians.gd  walkers on footways in one MultiMesh, plus fixed "slots" other systems rent
-     ├─ crowds.gd        queues, roof crowds, river people (still figures, same mesh)
+     ├─ crowds.gd        queues, roof crowds, river people (still figures, same mesh); kind `bar` seats the boulevard bars (Landmarks.bulwar_bar_plans), the steps site also owns their props MultiMesh (steps_props.gdshader) and the mandat target (`steps_fine`)
      ├─ city_life.gd     dog walkers, cyclists, runners, Hyrax, the Wiralek trend cycle
      │   └─ boulevard_life.gd  the Vistula steps' life: police/Straż patrol with a dog, walkers, queues, scooters (closed-form poses)
      ├─ packs.gd         running clubs and coffee crowds

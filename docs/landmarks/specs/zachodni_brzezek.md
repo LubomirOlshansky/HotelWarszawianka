@@ -60,3 +60,7 @@ L2. Budget 2500 (built 2016) in `check_mesh_quality.gd`: `zachodni_brzezek`.
 | tables | table + two benches | 2 rows x 6 + 4 | the deck and the roof | dark wood, blue cushions | the tables and benches |
 | palms | barrel + trunk + six fronds | 2.1 to 2.7 m | the deck's edge and ends | wood, green | palms in wooden barrels |
 | bulbs | wire + bulbs | 2 strings | over the deck's edge | M_LAMP warm | string lights |
+
+## People (Phase D, 2026-11-19)
+
+Guests and barmen come from `Landmarks.bulwar_bar_plans` (river.gd, one static plan per builder: seat points at the chair, bench, leżak or sofa height, facing the table) through crowds.gd kind `bar`: they share the crowd cells' MultiMesh (+0 draw calls), at most 218 figures over all ten bar sites (`Crowds.BAR_MAX`), busiest 17:00-01:00, lunch moderate, thin in rain, the barges fuller on Friday and Saturday. A change to a builder's table layout must change its plan too.

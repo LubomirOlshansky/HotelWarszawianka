@@ -283,7 +283,7 @@ const BUDGET := {
 	"bulwary_basen": 700,
 	"schodki_wisla": 3600,  # 2026-11-19: the seating band, ~195 m (L2): ten rows, the walking stairs, boards, coping, lamps, quay
 	# The boulevards, phase C (2026-11-19, specs pawilon_tanca.md, zachodni_brzezek.md, barki_bary.md).
-	"pawilon_tanca": 3300,  # the white MUZEUM pavilion, thin-line murals, Palomka's terrace (F's photos, fix round 1)
+	"pawilon_tanca": 3800,  # the white MUZEUM pavilion, bold line murals on 60-70 % of each wall, solid 3D letters on a steel frame, Palomka's terrace (Phase D, 2026-11-19; 3532 measured)
 	"zachodni_brzezek": 2500,  # the grey ground floor, white letters, glass rail, the deck with palms (2016 measured)
 	"barka_nowa_falka": 3700,  # the 70 m sand-deck barge with its long dark hall, one site (3060 measured)
 	"barka_zanurzenie": 950,

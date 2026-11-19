@@ -11,7 +11,7 @@ check is open (QUESTIONS): the real murals' motifs, which end the entrance is at
 
 ## 1. Identity
 
-A long white box on the upper promenade with thin calligraphic line murals (F's photos, fix round 1: a red-teal starfish with a teal wire globe, red cones, springs, a black flower); MUZEUM in big plain letters on a thin steel frame on the roof, white by day, lit cool white-blue at night; at the
+A long white box on the upper promenade with bold calligraphic line murals covering 60-70 % of each wall (F's photos; Phase D, 2026-11-19: lines 0.22-0.35 m, a red-teal starfish with a teal wire globe, red and blue net cones, springs, a red circle, a black flower); MUZEUM in solid 2.6 m letters, 0.25 m deep, on a steel frame standing 0.9 m over the roof (clear of the parapet, readable against the sky from the game camera), white by day, lit cool white-blue at night, both faces; at the
 south-east river-side corner PALOMKA, a raised light-timber terrace at the end face with white metal chairs and small tables, LED bars on wires between dark poles and two or three low sails, a small timber bar; a row of dark container kiosks (GOFRY, LODY, PIWO, ZAPIEKANKI, KAWA among the
 mapped LEMONIADA ones) in front along the boulevard, each with a lit hatch. Parody names only
 (PALOMKA for Paloma); The roof sign says only MUZEUM (F's correction); the card keeps the name.
@@ -59,7 +59,7 @@ bulbs light (M_LAMP).
 
 ## 7. Detail level and budget
 
-L2, triangle budget 3300 for the site `pawilon_tanca`, an exception to L2's 3000 (one site, three line-mural faces, 13 cafe sets; built 2724); `bulwary_bary` goes from 1760 to 2800
+L2, triangle budget 3800 for the site `pawilon_tanca`, an exception to L2's 3000 (one site, three bold line-mural faces, solid 3D letters on a frame, 13 cafe sets; built 2724 in round 1, 3532 in Phase D, 2026-11-19); `bulwary_bary` goes from 1760 to 2800
 (2282 with the five extra kiosks, +820). Both budgets are entries of `check_mesh_quality.gd`.
 
 ## 8. Parts table
@@ -68,10 +68,14 @@ L2, triangle budget 3300 for the site `pawilon_tanca`, an exception to L2's 3000
 | --- | --- | --- | --- | --- | --- |
 | body | box + plinth band + parapet | 56.6 x 19.8 x 8 m | the outline's box | white plaster, pale roof | the long white box |
 | units | five boxes + two skylights | 1.2 to 3 m | on the roof | grey metal, glass | the small units on the roof |
-| murals | thin line quads 0.09 to 0.16 m, ten depths 3 to 22 cm proud | three faces, 3.4 to 7.3 m up | both long faces and the end face | red, teal, blue, black paint | the line murals |
+| murals | mitred line ribbons 0.22 to 0.35 m, twelve depths 3 to 26 cm proud (the probe's coplanar window is 2 cm) | three faces, 1.4 to 7.4 m up, 60-70 % of each wall | both long faces and the end face | red, teal, blue, black paint | the line murals |
 | bays | glass quads + iron mullions + canopy | 12 to 14 m x 3.5 m | river face | M_PAVILION | the glazed door and the café windows |
-| lettering | font pixels as lit faces on a thin steel frame | 0.34 m pixels, 2.4 m tall, ~12 m wide | on the roof, over the long face the camera sees | M_LAMP cool white | the MUZEUM sign |
+| lettering | font pixels as solid boxes (0.25 m deep) on a steel frame: posts, two rails, X braces | 0.37 m pixels, 2.6 m tall, ~13 m wide, bottom 0.9 m over the roof | on the roof, 2.5 m in from the camera side's edge | M_LAMP cool white | the MUZEUM sign |
 | terrace | raised light-timber deck | 7.6 x 15 m end deck and 12.4 x 5.6 m river deck, 0.3 m | the end face and the river face's first 12 m | timber | Palomka's terrace |
 | sails and LED bars | five masts, three two-sided triangles; eight 3.6 m poles, ten wires with lit bars | 2.4 to 3 m | over the terrace | white, M_LAMP | the low sails and the hung LED bars |
 | tables | white table + two chairs | 13 sets | the terrace | white metal | the café tables |
 | kiosks | container + hatch + flap + counter + chairs + neon word | 8 x 2.6 x 2.6 m | five, along the boulevard | dark paint, M_LAMP | the dark kiosk row |
+
+## People (Phase D, 2026-11-19)
+
+Guests and barmen come from `Landmarks.bulwar_bar_plans` (river.gd, one static plan per builder: seat points at the chair, bench, leżak or sofa height, facing the table) through crowds.gd kind `bar`: they share the crowd cells' MultiMesh (+0 draw calls), at most 218 figures over all ten bar sites (`Crowds.BAR_MAX`), busiest 17:00-01:00, lunch moderate, thin in rain, the barges fuller on Friday and Saturday. A change to a builder's table layout must change its plan too.

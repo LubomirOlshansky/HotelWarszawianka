@@ -49,6 +49,9 @@ const PATROL_STOPS: Array[Vector2] = [Vector2(-62.0, 7.0), Vector2(-8.0, 24.0), 
 const FINE_PAUSE := 24.0
 const FINE_WALK := 4.5
 const FINE_WRITE := 10.0
+## The longest path to a seated group (m) the stop's pause holds: out and back at the patrol's pace and the
+## writing in FINE_PAUSE s.
+const FINE_MAX := 7.5
 ## Policja 18:00-02:00 (wraps midnight), Straż Miejska by day; a second Policja pair on these
 ## weekdays (1 Monday .. 7 Sunday: Friday, Saturday and the small hours after them).
 const NIGHT_HOURS := [18.0, 26.0]
@@ -243,35 +246,117 @@ static func patrol_pose(t: float, phase: float) -> Dictionary:
 	return {"u": u, "dir": dir, "paused": paused, "face": N if paused else A * dir, "fine_t": fine_t, "passing": passing}
 
 
-## How far (m towards the water) the fining officer is `fine_t` s into the fine stop, and whether he is
-## writing (standing at the group): out FINE_WALK m at the patrol's pace, FINE_WRITE s, and back.
-static func fine_offset(fine_t: float) -> float:
+## How far (m along his path) the fining officer is `fine_t` s into the fine stop, and whether he is
+## writing (standing at the group): out `walk` m (FINE_WALK; the seated group's path in Phase D) at the
+## patrol's pace, FINE_WRITE s, and back.
+static func fine_offset(fine_t: float, walk := FINE_WALK) -> float:
 	if fine_t < 0.0:
 		return 0.0
-	var walk := FINE_WALK / PATROL_SPEED
-	if fine_t < walk:
+	var wt := walk / PATROL_SPEED
+	if fine_t < wt:
 		return fine_t * PATROL_SPEED
-	if fine_t < walk + FINE_WRITE:
-		return FINE_WALK
-	return maxf(0.0, FINE_WALK - (fine_t - walk - FINE_WRITE) * PATROL_SPEED)
+	if fine_t < wt + FINE_WRITE:
+		return walk
+	return maxf(0.0, walk - (fine_t - wt - FINE_WRITE) * PATROL_SPEED)
 
 
 ## Is the officer walking (out or back) at `fine_t`?
-static func fine_moving(fine_t: float) -> bool:
-	var walk := FINE_WALK / PATROL_SPEED
-	return fine_t >= 0.0 and (fine_t < walk or (fine_t >= walk + FINE_WRITE and fine_t < 2.0 * walk + FINE_WRITE))
+static func fine_moving(fine_t: float, walk := FINE_WALK) -> bool:
+	var wt := walk / PATROL_SPEED
+	return fine_t >= 0.0 and (fine_t < wt or (fine_t >= wt + FINE_WRITE and fine_t < 2.0 * wt + FINE_WRITE))
 
 
 ## Is the officer writing the ticket at `fine_t` (a line is due)?
-static func fine_writing(fine_t: float) -> bool:
-	var walk := FINE_WALK / PATROL_SPEED
-	return fine_t >= walk and fine_t < walk + FINE_WRITE
+static func fine_writing(fine_t: float, walk := FINE_WALK) -> bool:
+	var wt := walk / PATROL_SPEED
+	return fine_t >= wt and fine_t < wt + FINE_WRITE
+
+
+## Phase D (2026-11-19): the mandat's target, an actual seated group on the steps instead of a fixed point.
+## `slots` are crowds.gd's steps slots in their order ({"p", "yaw", "pose", "row", "gid"} each): among the
+## groups of the top two rows within the first `limit` slots the one whose nearest sitter is nearest the fine stop; the nearest sitter is the target.
+## The officer comes along the tread to 0.9 m beside him and stops 0.8 m in front of him (on the water
+## side), looking at him. {} when no group is near enough (a path over FINE_MAX m does not fit the stop).
+## {"via", "stand": map points, "look": yaw, "sitter", "len": path m, "need": slots that must be shown}.
+static func fine_target(slots: Array, limit := 400) -> Dictionary:
+	var stop_u := 0.0
+	for st in PATROL_STOPS:
+		if is_equal_approx(st.y, FINE_PAUSE):
+			stop_u = st.x
+	var start := on_route(stop_u) + Vector2(-N.y, N.x) * PAIR_GAP
+	var groups := {}
+	for i in mini(limit, slots.size()):
+		var sl: Dictionary = slots[i]
+		if int(sl.get("row", 9)) > 1 or not sl.has("gid"):
+			continue
+		if not groups.has(sl["gid"]):
+			groups[sl["gid"]] = []
+		(groups[sl["gid"]] as Array).append(i)
+	var best := {}
+	var best_score := INF
+	for gid in groups:
+		var idx: Array = groups[gid]
+		if idx.size() < 2:
+			continue
+		# A group counts whole (a slot of it past the limit would leave it half there).
+		var whole := true
+		for j in range(idx[0], idx[idx.size() - 1] + 1):
+			if int((slots[j] as Dictionary).get("gid", -1)) == int(gid) and not idx.has(j):
+				whole = false
+		if not whole:
+			continue
+		var centroid := Vector2.ZERO
+		for i: int in idx:
+			centroid += (slots[i] as Dictionary)["p"] as Vector2
+		centroid /= float(idx.size())
+		var nearest := -1
+		var nd := INF
+		for i: int in idx:
+			var d := (((slots[i] as Dictionary)["p"]) as Vector2).distance_to(start)
+			if d < nd:
+				nd = d
+				nearest = i
+		var sl: Dictionary = slots[nearest]
+		var sp: Vector2 = sl["p"]
+		var yaw := float(sl["yaw"])
+		var face := Vector2(-sin(yaw), -cos(yaw))
+		var away := sp - centroid
+		away -= face * away.dot(face)
+		if away.length() < 0.05:
+			var perp := Vector2(-face.y, face.x)
+			away = perp if perp.dot(start - sp) > 0.0 else -perp
+		away = away.normalized()
+		var via := sp + away * 0.9
+		var stand := sp + face * 0.8
+		var length := start.distance_to(via) + via.distance_to(stand)
+		if length > FINE_MAX:
+			continue
+		var score := length + 6.0 * float(int(sl["row"]))
+		if score < best_score:
+			best_score = score
+			best = {"via": via, "stand": stand, "look": yaw_of((sp - stand).normalized()), "sitter": sp, "len": length,
+					"need": idx[idx.size() - 1] + 1, "gid": int(gid)}
+	return best
+
+
+## The point `d` m along the polyline `pts`, and the direction there.
+static func along_path(pts: Array, d: float) -> Array:
+	var left := d
+	for i in range(pts.size() - 1):
+		var a: Vector2 = pts[i]
+		var b: Vector2 = pts[i + 1]
+		var seg := a.distance_to(b)
+		if left <= seg or i == pts.size() - 2:
+			var f := clampf(left / maxf(seg, 0.001), 0.0, 1.0)
+			return [a.lerp(b, f), (b - a).normalized()]
+		left -= seg
+	return [pts[0], Vector2.ZERO]
 
 
 ## The patrol's figures at clock `t`: one entry per figure, [position (map x, z), yaw, shirt, trousers,
 ## scale], and the dog as the last entry of the list in "dog": [position, yaw]. `pairs` the pairs on
 ## duty, `kind` "policja" or "straz".
-static func patrol_figures(t: float, kind: String, pairs: int) -> Dictionary:
+static func patrol_figures(t: float, kind: String, pairs: int, target := {}) -> Dictionary:
 	var figs: Array = []
 	var dog := []
 	var shirt := POLICE_SHIRT if kind == "policja" else GUARD_SHIRT
@@ -286,13 +371,29 @@ static func patrol_figures(t: float, kind: String, pairs: int) -> Dictionary:
 		var yaw := yaw_of(face)
 		var out := Vector2.ZERO
 		var ft: float = pose["fine_t"]
-		var fining := p == 0 and kind == "policja" and ft >= 0.0
-		if fining:
+		# `target` {}: the old fixed walk out FINE_WALK m; {"off": true}: nobody to fine; a fine_target(): the group.
+		var fining := p == 0 and kind == "policja" and ft >= 0.0 and not bool(target.get("off", false))
+		var walk := FINE_WALK
+		var own_yaw := yaw
+		var moving_o := false
+		if fining and target.has("stand"):
+			walk = float(target["len"])
+			var path := [centre + side * PAIR_GAP, target["via"], target["stand"]]
+			var along := along_path(path, fine_offset(ft, walk))
+			out = (along[0] as Vector2) - (centre + side * PAIR_GAP)
+			moving_o = fine_moving(ft, walk)
+			if fine_writing(ft, walk):
+				own_yaw = float(target["look"])
+			elif moving_o:
+				var heading: Vector2 = along[1]
+				own_yaw = yaw_of(heading if ft < walk / PATROL_SPEED + FINE_WRITE else -heading)
+		elif fining:
 			out = N * fine_offset(ft)
+			moving_o = fine_moving(ft)
 		# Still (no leg swing) while paused, but the fining officer's walk out and back swings.
 		var still := STILL if bool(pose["paused"]) else 0.0
-		var still1 := 0.0 if fining and fine_moving(ft) else still
-		figs.append([centre + side * PAIR_GAP + out, yaw, shirt, tr + still1, Vector3.ONE])
+		var still1 := 0.0 if fining and moving_o else still
+		figs.append([centre + side * PAIR_GAP + out, own_yaw if fining else yaw, shirt, tr + still1, Vector3.ONE])
 		figs.append([centre - side * PAIR_GAP, yaw, shirt, tr + still, Vector3.ONE])
 		if p == 0 and kind == "policja":
 			# The dog on its lead, ahead and a little out from the second officer (it trots ahead

@@ -855,7 +855,7 @@ func _find_barges() -> void:
 
 
 ## An outline's smallest oriented box: [centre, u axis (the long one), v axis, half u, half v].
-func _barge_frame(poly: PackedVector2Array) -> Array:
+static func _barge_frame(poly: PackedVector2Array) -> Array:
 	var best := INF
 	var out: Array = []
 	for i in poly.size():
@@ -2733,6 +2733,37 @@ func _bbc_letters(word: String, u_c: float, v: float, y_top: float, px: float, p
 			prev = x
 
 
+## Solid pixel letters (Phase D): every run of a row a box `depth` deep, lit (M_LAMP) on the side faces, readable from the side `side` (+1: looking along -v from the +v side), centred on u_c at local v,
+## the top row at y_top, each pixel `px` square. `on_end`: along local v at u = `v` (an end face, reading towards +v).
+func _bbc_letters3d(word: String, u_c: float, v: float, y_top: float, px: float, depth: float, side: float, col: Color, on_end := false) -> void:
+	var rows := {}
+	PixelFont.each_pixel(word, 0, func(x: int, row: int) -> void:
+		if not rows.has(row):
+			rows[row] = []
+		(rows[row] as Array).append(x))
+	var half := PixelFont.width(word) * px * 0.5
+	for row: int in rows:
+		var xs: Array = rows[row]
+		xs.sort()
+		var s0: int = xs[0]
+		var prev: int = xs[0]
+		for idx in range(1, xs.size() + 1):
+			var x: int = xs[idx] if idx < xs.size() else -999
+			if x == prev + 1:
+				prev = x
+				continue
+			var y := y_top - float(row - PixelFont.BODY + 1) * px
+			var ua := u_c + side * (-half + s0 * px)
+			var ub := u_c + side * (-half + (prev + 1) * px)
+			if on_end:
+				# On an end face (u fixed at `v`): the run along local v, reading towards +v from outside the -u end.
+				_lbox(v, (ua + ub) * 0.5, depth * 0.5, absf(ub - ua) * 0.5, y - px, y, col, M_LAMP, col)
+			else:
+				_lbox((ua + ub) * 0.5, v, absf(ub - ua) * 0.5, depth * 0.5, y - px, y, col, M_LAMP, col)
+			s0 = x
+			prev = x
+
+
 ## A wall for the pavilion's line murals: [is_end, the fixed local coordinate, side]. A long face
 ## stands at local v (c runs along u), an end face at local u (c runs along v); `side` is where it faces.
 func _bbc_wp(wall: Array, c: float, off: float) -> Vector2:
@@ -2751,29 +2782,39 @@ var _bbc_lvl := 0
 
 
 ## A polyline of paint on a wall, `w` thick, `pts` as (c, height over g). Each polyline stands at
-## one of seven depths (3 to 17 cm proud), so crossing lines of the net murals never share a plane.
+## one of twelve depths (3 to 26 cm proud, the probe's coplanar window is 2 cm), so crossing lines of the net murals never share a plane.
 func _bbc_poly(wall: Array, g: float, pts: Array, w: float, col: Color) -> void:
 	_mode = M_STONE
 	_bbc_lvl += 1
-	var off := 0.03 + 0.021 * float(_bbc_lvl % 10)
+	var off := 0.03 + 0.021 * float(_bbc_lvl % 12)
 	var n := _bbc_wn(wall)
-	for i in range(pts.size() - 1):
-		var p0: Vector2 = pts[i]
-		var p1: Vector2 = pts[i + 1]
-		var d := p1 - p0
-		if d.length() < 0.02:
-			continue
-		var nn := Vector2(-d.y, d.x).normalized() * (w * 0.5)
-		var qa := p0 + nn
-		var qb := p1 + nn
-		var qc := p1 - nn
-		var qd := p0 - nn
-		var wa := _bbc_wp(wall, qa.x, off)
-		var wb := _bbc_wp(wall, qb.x, off)
-		var wc := _bbc_wp(wall, qc.x, off)
-		var wd := _bbc_wp(wall, qd.x, off)
-		_quad(Vector3(wa.x, g + qa.y, wa.y), Vector3(wb.x, g + qb.y, wb.y), Vector3(wc.x, g + qc.y, wc.y),
-				Vector3(wd.x, g + qd.y, wd.y), n, col)
+	# One ribbon: the points joined with mitres (so the pieces share their edges and never overlap).
+	var p: Array[Vector2] = []
+	for q: Vector2 in pts:
+		if p.is_empty() or q.distance_to(p[p.size() - 1]) >= 0.02:
+			p.append(q)
+	if p.size() < 2:
+		return
+	var left: Array[Vector2] = []
+	var right: Array[Vector2] = []
+	var last := p.size() - 1
+	var closed := p.size() > 3 and p[0].distance_to(p[last]) < 0.02
+	for i in p.size():
+		var d0 := (p[i] - p[i - 1]).normalized() if i > 0 else ((p[last] - p[last - 1]).normalized() if closed else (p[1] - p[0]).normalized())
+		var d1 := (p[i + 1] - p[i]).normalized() if i < last else ((p[1] - p[0]).normalized() if closed else d0)
+		var n0 := Vector2(-d0.y, d0.x)
+		var n1 := Vector2(-d1.y, d1.x)
+		var m := (n0 + n1)
+		m = m.normalized() * (w * 0.5) / maxf(m.normalized().dot(n1), 0.45) if m.length() > 0.01 else n1 * (w * 0.5)
+		left.append(p[i] + m)
+		right.append(p[i] - m)
+	for i in range(p.size() - 1):
+		var wa := _bbc_wp(wall, left[i].x, off)
+		var wb := _bbc_wp(wall, left[i + 1].x, off)
+		var wc := _bbc_wp(wall, right[i + 1].x, off)
+		var wd := _bbc_wp(wall, right[i].x, off)
+		_quad(Vector3(wa.x, g + left[i].y, wa.y), Vector3(wb.x, g + left[i + 1].y, wb.y), Vector3(wc.x, g + right[i + 1].y, wc.y),
+				Vector3(wd.x, g + right[i].y, wd.y), n, col)
 
 
 ## An ellipse arc (centre cc, cy; radii rc, ry; from a0 to a1; turned by rot) as points.
@@ -2798,7 +2839,7 @@ func _bbc_coil(wall: Array, g: float, c0: float, y0: float, c1: float, y1: float
 		var p := Vector2(c0, y0) + d * t + nrm * amp * sin(TAU * turns * t)
 		pts.append(p)
 	_bbc_poly(wall, g, pts, w, col)
-	_bbc_poly(wall, g, _bbc_ell(c1, y1, 0.22, 0.22, 0.0, TAU, 6), w * 1.4, col)
+	_bbc_poly(wall, g, _bbc_ell(c1, y1, 0.22 + amp * 0.5, 0.22 + amp * 0.5, 0.0, TAU, 7), w * 1.3, col)
 
 
 ## A net cone: two sides meeting at the apex, rungs across and two diagonals.
@@ -2813,70 +2854,79 @@ func _bbc_cone(wall: Array, g: float, cc: float, y_apex: float, y_top: float, ha
 	_bbc_poly(wall, g, [Vector2(cc + half, y_top), Vector2(cc - half * 0.25, y_apex + (y_top - y_apex) * 0.25)], w, col2)
 
 
-## The black flower: seven petals round a ring.
-func _bbc_flower(wall: Array, g: float, cc: float, cy: float, r: float, col: Color) -> void:
+## The black flower: seven petals round a ring, `r` the petal ring's radius, lines `w` thick.
+func _bbc_flower(wall: Array, g: float, cc: float, cy: float, r: float, col: Color, w := 0.24) -> void:
 	for k in 7:
 		var ang := TAU * float(k) / 7.0
 		var pc := cc + cos(ang) * r * 0.9
 		var py := cy + sin(ang) * r * 0.9
-		_bbc_poly(wall, g, _bbc_ell(pc, py, r * 0.8, r * 0.4, 0.0, TAU, 7, ang), 0.13, col)
-	_bbc_poly(wall, g, _bbc_ell(cc, cy, r * 0.35, r * 0.35, 0.0, TAU, 6), 0.13, col)
+		_bbc_poly(wall, g, _bbc_ell(pc, py, r * 0.8, r * 0.4, 0.0, TAU, 7, ang), w, col)
+	_bbc_poly(wall, g, _bbc_ell(cc, cy, r * 0.35, r * 0.35, 0.0, TAU, 6), w, col)
 
 
-## The starfish of the long river face: spiky red arms, a teal and red core.
-func _bbc_starfish(wall: Array, g: float, cc: float, cy: float) -> void:
+## The starfish of the long river face, `k` times the first size: spiky red arms, a teal and red core;
+## arms' tips kept between y 1.4 and 7.4.
+func _bbc_starfish(wall: Array, g: float, cc: float, cy: float, k := 1.0) -> void:
 	var red := Color("#cf3340")
 	var teal := Color("#2a9aa3")
-	for k in 9:
-		var ang := TAU * float(k) / 9.0 + 0.3
-		var len := 2.2 + 1.5 * float(k % 3) / 2.0
-		var tip := Vector2(cc + cos(ang) * len * 1.5, clampf(cy + sin(ang) * len * 0.9, 3.5, 7.2))
-		for sd: float in [-1.7, 1.7]:
-			var base := Vector2(cc + cos(ang + sd) * 0.4, cy + sin(ang + sd) * 0.4)
-			_bbc_poly(wall, g, [base, tip], 0.13, red if k % 3 != 2 else teal)
-	_bbc_lvl += 6
-	_bbc_poly(wall, g, _bbc_ell(cc, cy, 1.1, 0.8, 0.0, TAU, 10), 0.14, red)
-	_bbc_poly(wall, g, _bbc_ell(cc, cy, 0.65, 0.5, 0.0, TAU, 8), 0.14, teal)
+	for i in 9:
+		var ang := TAU * float(i) / 9.0 + 0.3
+		var len := (2.2 + 1.5 * float(i % 3) / 2.0) * k
+		var tip := Vector2(cc + cos(ang) * len * 1.5, clampf(cy + sin(ang) * len * 0.9, 1.4 + 0.12 * float(i), 7.4 - 0.12 * float(i)))
+		var b1 := Vector2(cc + cos(ang - 1.7) * 0.4 * k, cy + sin(ang - 1.7) * 0.4 * k)
+		var b2 := Vector2(cc + cos(ang + 1.7) * 0.4 * k, cy + sin(ang + 1.7) * 0.4 * k)
+		# One ribbon per arm, base - tip - base (the arms' levels 1..9, the core's 10 and 11: none shared).
+		_bbc_poly(wall, g, [b1, tip, b2], 0.22, red if i % 3 != 2 else teal)
+	_bbc_poly(wall, g, _bbc_ell(cc, cy, 1.1 * k, 0.8 * k, 0.0, TAU, 12), 0.3, red)
+	_bbc_poly(wall, g, _bbc_ell(cc, cy, 0.65 * k, 0.5 * k, 0.0, TAU, 10), 0.3, teal)
 
 
 ## The teal wire globe: an outline, two meridians and two parallels.
 func _bbc_globe(wall: Array, g: float, cc: float, cy: float, rc: float, ry: float) -> void:
 	var teal := Color("#2a9aa3")
-	_bbc_poly(wall, g, _bbc_ell(cc, cy, rc, ry, 0.0, TAU, 20), 0.16, teal)
-	_bbc_poly(wall, g, _bbc_ell(cc, cy, rc * 0.4, ry, 0.0, TAU, 14), 0.09, teal)
-	_bbc_poly(wall, g, _bbc_ell(cc, cy, rc * 0.75, ry, 0.0, TAU, 14), 0.09, Color("#d63a45"))
-	_bbc_poly(wall, g, _bbc_ell(cc, cy + ry * 0.45, rc * 0.9, ry * 0.15, 0.0, TAU, 12), 0.09, teal)
-	_bbc_poly(wall, g, _bbc_ell(cc, cy - ry * 0.45, rc * 0.9, ry * 0.15, 0.0, TAU, 12), 0.09, teal)
+	_bbc_poly(wall, g, _bbc_ell(cc, cy, rc, ry, 0.0, TAU, 24), 0.35, teal)
+	_bbc_poly(wall, g, _bbc_ell(cc, cy, rc * 0.4, ry, 0.0, TAU, 16), 0.22, teal)
+	_bbc_poly(wall, g, _bbc_ell(cc, cy, rc * 0.75, ry, 0.0, TAU, 16), 0.22, Color("#d63a45"))
+	_bbc_poly(wall, g, _bbc_ell(cc, cy + ry * 0.45, rc * 0.9, ry * 0.15, 0.0, TAU, 14), 0.22, teal)
+	_bbc_poly(wall, g, _bbc_ell(cc, cy - ry * 0.45, rc * 0.9, ry * 0.15, 0.0, TAU, 14), 0.22, teal)
 
 
-## The three painted faces of the pavilion, thin calligraphic lines (F's photos): the river long
-## face has the starfish, the wire globe, a red cone and the black flower; the street long face
-## blue springs, a red circle and a net cone; the end face (Palomka's) the springs, a red circle
-## and a blue and red net cone. All above 3.4 m, clear of the windows.
+## The three painted faces of the pavilion, bold calligraphic lines (F's photos; Phase D scaled them up to
+## cover 60-70 % of each wall, lines 0.22-0.35 m): the river long face has the starfish, the wire globe, a
+## red cone and the black flower; the street long face blue springs, a red circle, a net cone and a flower;
+## the end face (Palomka's) springs, a red circle and a blue and red net cone. Windows are painted round.
 func _bbc_murals(g: float, hu: float, hv: float) -> void:
 	var blue := Color("#2c4f9c")
 	var red := Color("#cf3340")
 	var black := Color("#1e1f22")
 	var river: Array = [false, hv, 1.0]
-	_bbc_starfish(river, g, 4.0, 5.4)
-	_bbc_globe(river, g, 11.5, 5.5, 1.9, 1.8)
-	_bbc_cone(river, g, 19.5, 3.6, 7.2, 0.9, 0.1, red, Color("#d98080"))
-	_bbc_flower(river, g, -23.0, 5.4, 1.0, black)
-	_bbc_coil(river, g, -17.0, 6.6, -9.0, 5.0, 0.3, 5.0, 0.13, blue)
-	for k in 4:
-		_bbc_poly(river, g, [Vector2(24.0 + 0.5 * float(k), 6.4 - 0.5 * float(k)), Vector2(24.4 + 0.5 * float(k), 6.0 - 0.5 * float(k))], 0.12, red)
+	_bbc_starfish(river, g, 3.0, 4.6, 1.75)
+	_bbc_lvl += 2  # the globe sits right of the starfish arms: levels apart from the arms that reach it
+	_bbc_globe(river, g, 15.5, 4.8, 3.3, 3.0)
+	_bbc_cone(river, g, 24.0, 1.8, 7.4, 2.0, 0.26, red, Color("#d98080"))
+	_bbc_flower(river, g, -21.0, 4.6, 2.3, black)
+	_bbc_coil(river, g, -27.0, 7.0, -12.0, 4.4, 0.7, 6.0, 0.3, blue)
+	_bbc_coil(river, g, -26.0, 3.4, -13.0, 2.6, 0.45, 5.0, 0.24, blue)
+	for k in 5:
+		_bbc_poly(river, g, [Vector2(-9.0 + 2.6 * float(k), 7.2 - 0.9 * float(k % 2)), Vector2(-8.2 + 2.6 * float(k), 6.5 - 0.9 * float(k % 2))], 0.26, red)
 	var street: Array = [false, -hv, -1.0]
-	_bbc_coil(street, g, -22.0, 6.8, -10.0, 5.2, 0.35, 6.0, 0.13, blue)
-	_bbc_coil(street, g, -20.0, 5.4, -12.0, 4.4, 0.3, 4.0, 0.12, blue)
-	_bbc_poly(street, g, _bbc_ell(12.0, 5.6, 1.6, 1.4, 0.0, TAU, 14), 0.14, red)
-	_bbc_cone(street, g, 20.0, 3.6, 7.0, 1.3, 0.1, blue, red)
-	_bbc_flower(street, g, 26.0, 5.4, 0.8, black)
+	_bbc_coil(street, g, -27.0, 7.0, -10.0, 4.8, 0.75, 7.0, 0.3, blue)
+	_bbc_coil(street, g, -25.0, 4.0, -9.0, 3.0, 0.55, 6.0, 0.26, blue)
+	_bbc_poly(street, g, _bbc_ell(6.0, 4.6, 3.2, 2.8, 0.0, TAU, 22), 0.32, red)
+	_bbc_poly(street, g, _bbc_ell(6.0, 4.6, 2.2, 1.9, 0.0, TAU, 18), 0.24, red)
+	_bbc_cone(street, g, 17.0, 1.7, 7.4, 2.6, 0.26, blue, red)
+	_bbc_flower(street, g, 25.0, 4.6, 2.0, black)
 	var end: Array = [true, -hu, -1.0]
-	_bbc_coil(end, g, -8.5, 6.9, 2.0, 5.2, 0.35, 6.0, 0.13, blue)
-	_bbc_coil(end, g, -8.0, 5.6, -1.0, 4.4, 0.3, 4.0, 0.12, blue)
-	_bbc_coil(end, g, -6.0, 4.4, -2.0, 3.8, 0.2, 3.0, 0.1, blue)
-	_bbc_poly(end, g, _bbc_ell(-5.5, 6.2, 1.5, 1.2, 0.0, TAU, 14), 0.14, red)
-	_bbc_cone(end, g, 5.5, 3.6, 7.2, 2.4, 0.1, blue, red)
+	_bbc_coil(end, g, -9.0, 7.0, 3.0, 4.8, 0.7, 6.0, 0.3, blue)
+	_bbc_coil(end, g, -9.0, 5.0, -1.0, 3.8, 0.5, 5.0, 0.26, blue)
+	_bbc_poly(end, g, _bbc_ell(-4.5, 6.0, 2.3, 1.6, 0.0, TAU, 16), 0.3, red)
+	_bbc_cone(end, g, 6.0, 3.4, 7.4, 3.0, 0.26, blue, red)
+	# The north-west end (away from the bridge) is a plain wall with its own murals (the photo's end above the
+	# café is the south-east one, Palomka's).
+	var end2: Array = [true, hu, 1.0]
+	_bbc_coil(end2, g, -9.0, 6.6, 3.0, 4.4, 0.7, 6.0, 0.3, blue)
+	_bbc_poly(end2, g, _bbc_ell(4.5, 4.6, 2.6, 2.2, 0.0, TAU, 18), 0.3, red)
+	_bbc_cone(end2, g, -3.0, 1.8, 7.0, 2.8, 0.26, blue, red)
 
 
 ## A table with two benches (cushioned) and, when `brella` is set, a parasol through it.
@@ -2996,11 +3046,11 @@ func _build_pawilon_tanca(site: Dictionary) -> void:
 	_mode = M_STONE
 	var wn := Vector3(_b.x, 0.0, _b.y)
 	for wu: float in [-9.0, -4.0, 14.0, 19.0]:
-		_bbc_pane(wu - 0.45, wu + 0.45, g + 1.6, g + 2.5, hv + 0.03, 1.0, PAL_IRON)
+		_bbc_dark_quad(wu - 0.45, wu + 0.45, g + 1.6, g + 2.5, hv + 0.03, 1.0, PAL_IRON)
 	_bbc_door(6.0, hv, 1.0, g)
 	# Street face: the dark door and two small windows.
 	for wu: float in [-6.0, 6.0]:
-		_bbc_pane(wu - 0.45, wu + 0.45, g + 1.6, g + 2.5, -hv - 0.03, -1.0, PAL_IRON)
+		_bbc_dark_quad(wu - 0.45, wu + 0.45, g + 1.6, g + 2.5, -hv - 0.03, -1.0, PAL_IRON)
 	_lbox(0.0, -hv - 0.1, 1.1, 0.06, g, g + 2.8, PAL_DARK_DOOR)
 	# End face (Palomka's): the cafe's two big windows, warm lit at night, with a door between.
 	for wv: Vector2 in [Vector2(-7.0, -1.4), Vector2(1.4, 7.0)]:
@@ -3015,18 +3065,29 @@ func _build_pawilon_tanca(site: Dictionary) -> void:
 			_lbox(-hu - 0.07, wv.x + (wv.y - wv.x) * float(k) / float(nm), 0.04, 0.06, g + 0.5, g + 3.0, PAL_IRON)
 	_lbox(-hu - 0.06, 0.0, 0.04, 0.9, g, g + 2.6, PAL_DARK_DOOR)
 	_lbox(-hu - 0.5, 0.0, 0.5, 1.5, g + 3.1, g + 3.3, TN_BODY)
-	# MUZEUM: big plain letters on a thin steel frame standing on the roof over the long face the
-	# camera sees most; white by day, lit cool white-blue at night (M_LAMP).
-	var side := -1.0 if _b.dot(BEHIND_FACE) > 0.0 else 1.0
-	var px := 0.34
-	var half := PixelFont.width("MUZEUM") * px * 0.5
-	var fy := top + 0.5
-	var vl := side * (hv - 0.5)
-	for k in 5:
-		_lbox(-half + 0.5 + (2.0 * half - 1.0) * float(k) / 4.0, vl - side * 0.12, 0.04, 0.04, fy, fy + 0.7, PAL_IRON)
-	_lbox(0.0, vl - side * 0.12, half, 0.03, fy + 0.65, fy + 0.72, PAL_IRON)
-	_mode = M_LAMP
-	_bbc_letters("MUZEUM", 0.0, vl, fy + 0.7 + 8.0 * px, px, px, side, Color(0.9, 0.96, 1.0))
+	# MUZEUM (Phase D, F's photo f_3: the letters stand over the SHORT end face above Palomka's terrace, the
+	# bridge beyond): 2.6 m solid letters, 0.25 m deep, centred on that end face (-u), on a steel frame
+	# standing 0.9 m over the roof, reading from outside the end, lit cool white at night (M_LAMP).
+	var py := 2.6 / 7.0
+	var half := PixelFont.width("MUZEUM") * py * 0.5
+	var fy := top + 0.9
+	var ue := -hu + 2.5
+	_mode = M_STONE
+	# The frame: a rail under the letters and a lower rail 0.45 m below it, posts to the roof every ~3 m,
+	# an X brace in each bay (dark steel).
+	_lbox(ue, 0.0, 0.06, half + 0.3, fy - 0.12, fy - 0.02, PAL_IRON)
+	_lbox(ue, 0.0, 0.05, half + 0.3, top + 0.35, top + 0.43, PAL_IRON)
+	var bays := ceili((2.0 * half + 0.6) / 3.0)
+	var pv0 := -half - 0.3
+	var span := (2.0 * half + 0.6) / float(bays)
+	for k in range(bays + 1):
+		_lbox(ue, pv0 + span * float(k), 0.05, 0.05, top, fy - 0.02, PAL_IRON)
+	for k in bays:
+		var q0 := _w(ue, pv0 + span * float(k))
+		var q1 := _w(ue, pv0 + span * float(k + 1))
+		_beam(Vector3(q0.x, top + 0.43, q0.y), Vector3(q1.x, fy - 0.12, q1.y), 0.03, BARGE_POST, false)
+		_beam(Vector3(q1.x, top + 0.43, q1.y), Vector3(q0.x, fy - 0.12, q0.y), 0.03, BARGE_POST, false)
+	_bbc_letters3d("MUZEUM", 0.0, ue, fy + 8.0 * py, py, 0.25, 1.0, Color(0.9, 0.96, 1.0), true)
 	_mode = M_STONE
 	_bbc_palomka(g, hu, hv)
 
@@ -3039,7 +3100,7 @@ func _bbc_drops(u0: float, v0: float, u1: float, v1: float, yw: float) -> void:
 
 
 ## A small dark pane on a long face at local v (facing `side`), from u0 to u1.
-func _bbc_pane(u0: float, u1: float, y0: float, y1: float, v: float, side: float, col: Color) -> void:
+func _bbc_dark_quad(u0: float, u1: float, y0: float, y1: float, v: float, side: float, col: Color) -> void:
 	var p0 := _w(u0, v)
 	var p1 := _w(u1, v)
 	_quad(Vector3(p0.x, y0, p0.y), Vector3(p1.x, y0, p1.y), Vector3(p1.x, y1, p1.y), Vector3(p0.x, y1, p0.y),
@@ -3050,7 +3111,7 @@ func _bbc_pane(u0: float, u1: float, y0: float, y1: float, v: float, side: float
 func _bbc_door(u: float, hv: float, side: float, g: float) -> void:
 	_lbox(u, hv + 0.03, 1.0, 0.03, g, g + 2.8, PAL_IRON)
 	_mode = M_PAVILION
-	_bbc_pane(u - 0.8, u + 0.8, g + 0.1, g + 2.65, hv + 0.10, side, PAL_GLASS_NAVY)
+	_bbc_dark_quad(u - 0.8, u + 0.8, g + 0.1, g + 2.65, hv + 0.10, side, PAL_GLASS_NAVY)
 	_mode = M_STONE
 	_lbox(u, hv + 0.12, 0.04, 0.02, g + 0.1, g + 2.65, PAL_IRON)
 
@@ -3138,23 +3199,36 @@ func _bbc_palomka(g: float, hu: float, hv: float) -> void:
 
 ## The river's outline: the largest water area of the map.
 func _bbc_river() -> PackedVector2Array:
-	if _bbc_ring.size() > 0:
-		return _bbc_ring
+	if _bbc_ring.size() == 0:
+		_bbc_ring = bbc_river_of(data)
+	return _bbc_ring
+
+
+## The largest water area of a map's data (static: the seat plans use it too).
+static func bbc_river_of(map_data: Dictionary) -> PackedVector2Array:
 	var best := 0
-	for ar in data.get("areas", []):
+	var ring := PackedVector2Array()
+	for ar in map_data.get("areas", []):
 		if str(ar.get("k", "")) != "water":
 			continue
-		var q := _pts(ar["p"])
+		var q := PackedVector2Array()
+		var flat: Array = ar["p"]
+		for i in range(0, flat.size() - 1, 2):
+			q.append(Vector2(flat[i], flat[i + 1]))
 		if q.size() > best:
 			best = q.size()
-			_bbc_ring = q
-	return _bbc_ring
+			ring = q
+	return ring
 
 
 ## The bank's edge near `at`: [the point on the bank's chord level with `at`, the bank's direction
 ## (smoothed over 20 m each way), the direction into the water], or [] when the map has no river.
 func _bbc_shore(at: Vector2) -> Array:
-	var ring := _bbc_river()
+	return bbc_shore_in(_bbc_river(), at)
+
+
+## `_bbc_shore` on a given river ring (static: the seat plans of phase D run it from the map data).
+static func bbc_shore_in(ring: PackedVector2Array, at: Vector2) -> Array:
 	var n := ring.size()
 	if n < 8:
 		return []
@@ -3589,3 +3663,277 @@ func _build_plyta_desantu(site: Dictionary) -> void:
 			_lbox(0.0, 5.0, 1.7, 7.0, wv - 0.4, dy, BBC_TIMBER_DARK, M_STONE, PAL_TIMBER)
 			_lbox(0.0, 11.4, 0.15, 0.15, dy, dy + 0.5, BARGE_POST)
 			_bbc_set(0.0, 7.5, dy, PAL_TIMBER, Color("#2f6fb0"), Color("#f4f2ea"))
+
+
+# --- Phase D (2026-11-19): who sits where on the terraces, decks and barges ----------------------------
+# One static plan per builder above, for crowds.gd (kind "bar"): the same layout the builder lays, as
+# seat points [point, yaw, height] (a sitter on his chair, facing his table), standing guests and the
+# bar staff. Static and from the map data alone (the prebuilt city has no builder at run time).
+
+## The seat heights of the Phase C furniture: a café chair's seat, a bench's cushion, a leżak, a pallet sofa.
+const BAR_CHAIR_H := 0.46
+const BAR_BENCH_H := 0.44
+const BAR_LEZAK_H := 0.28
+const BAR_SOFA_H := 0.52
+
+
+## A seat at local (u, v) of frame `f` ([origin, u axis, v axis]) at height `y`, facing local (du, dv).
+static func _bar_seat(f: Array, u: float, v: float, y: float, du: float, dv: float) -> Array:
+	var a: Vector2 = f[1]
+	var b: Vector2 = f[2]
+	var face := a * du + b * dv
+	return [(f[0] as Vector2) + a * u + b * v, atan2(-face.x, -face.y), y]
+
+
+## The lowest ground (`ground` Callable (x, z) -> metres) under local points of the frame.
+static func _bar_low(f: Array, pts: Array, ground: Callable) -> float:
+	var g := INF
+	for l: Vector2 in pts:
+		var p: Vector2 = (f[0] as Vector2) + (f[1] as Vector2) * l.x + (f[2] as Vector2) * l.y
+		g = minf(g, float(ground.call(p.x, p.y)))
+	return g if g < INF else 0.0
+
+
+static func _bar_corners(cu: float, cv: float, hu: float, hv: float) -> Array:
+	return [Vector2(cu - hu, cv - hv), Vector2(cu + hu, cv - hv), Vector2(cu + hu, cv + hv), Vector2(cu - hu, cv + hv)]
+
+
+## The four sitters of a table with two cushioned benches (`_bbc_set`): two on each bench facing the table.
+static func _bar_bench_seats(f: Array, u: float, v: float, y: float, out: Array) -> void:
+	for du: float in [-0.22, 0.22]:
+		out.append(_bar_seat(f, u + du, v - 0.78, y + BAR_BENCH_H, 0.0, 1.0))
+		out.append(_bar_seat(f, u + du, v + 0.78, y + BAR_BENCH_H, 0.0, -1.0))
+
+
+## An empty plan: seats, standing guests, staff (each [point, yaw, height]) and the site's centre.
+static func _bar_plan(f: Array, seats: Array, standing: Array, staff: Array) -> Dictionary:
+	return {"seats": seats, "standing": standing, "staff": staff, "centre": f[0]}
+
+
+## Palomka's plan (`_bbc_palomka`): the 13 café sets (a chair each side of the table), guests at the
+## counter, one barman behind it. Frame: the pavilion's box, v towards the river.
+static func palomka_plan(data: Dictionary, ground: Callable) -> Dictionary:
+	var q := PackedVector2Array()
+	for l in data.get("landmarks", []):
+		if l["name"] == "Pawilon Tańca":
+			var flat: Array = l["p"]
+			for i in range(0, flat.size() - 1, 2):
+				q.append(Vector2(flat[i], flat[i + 1]))
+			break
+	if q.size() < 3:
+		return {}
+	var bf := _barge_frame(q)
+	if bf.is_empty():
+		return {}
+	var a: Vector2 = bf[1]
+	var b: Vector2 = bf[2]
+	if b.dot(BULWAR_RIVER) < 0.0:
+		a = -a
+		b = -b
+	var f: Array = [bf[0], a, b]
+	var hu: float = bf[3]
+	var hv: float = bf[4]
+	var tg := _bar_low(f, _bar_corners(0.0, 0.0, hu, hv), ground)
+	for c: Vector2 in [Vector2(-hu - 8.0, -hv + 1.0), Vector2(-hu - 0.4, -hv + 1.0), Vector2(-hu - 0.4, hv + 6.0),
+			Vector2(-hu - 8.0, hv + 6.0), Vector2(-hu + 12.0, hv + 0.4), Vector2(-hu + 12.0, hv + 6.0)]:
+		var p: Vector2 = (f[0] as Vector2) + a * c.x + b * c.y
+		tg = maxf(tg, float(ground.call(p.x, p.y)))
+	var y := tg + 0.3
+	var seats: Array = []
+	var sets: Array[Vector2] = []
+	for cu: float in [-hu - 2.2, -hu - 4.7, -hu - 7.0]:
+		for cv: float in [-5.0, 0.0, 5.0]:
+			if cv == 0.0 and cu > -hu - 3.0:
+				continue
+			sets.append(Vector2(cu, cv))
+	for k in 5:
+		sets.append(Vector2(-hu + 1.5 + 2.3 * float(k), hv + 3.0))
+	for st: Vector2 in sets:
+		seats.append(_bar_seat(f, st.x, st.y - 0.75, y + BAR_CHAIR_H, 0.0, 1.0))
+		seats.append(_bar_seat(f, st.x, st.y + 0.75, y + BAR_CHAIR_H, 0.0, -1.0))
+	var standing: Array = [_bar_seat(f, -hu - 6.4, hv + 3.7, y, 0.0, 1.0), _bar_seat(f, -hu - 4.6, hv + 3.7, y, 0.0, 1.0)]
+	var staff: Array = [_bar_seat(f, -hu - 5.5, hv + 4.8, y, 0.0, -1.0)]
+	return _bar_plan(f, seats, standing, staff)
+
+
+## Zachodni Brzeżek's plan (`_build_zachodni_brzezek`): the deck's tables with their benches, the four
+## tables of the roof terrace, a waiter on the deck. Frame: the club's river face.
+static func zachodni_plan(data: Dictionary, ground: Callable) -> Dictionary:
+	var q := PackedVector2Array()
+	for l in data.get("landmarks", []):
+		if l["name"] == ZBZ_NAME:
+			var flat: Array = l["p"]
+			for i in range(0, flat.size() - 1, 2):
+				q.append(Vector2(flat[i], flat[i + 1]))
+			break
+	if q.size() < 3:
+		return {}
+	var best := -1
+	var score := -INF
+	var cw := Geometry2D.is_polygon_clockwise(q)
+	var outs: Array[Vector2] = []
+	for i in q.size():
+		var p0 := q[i]
+		var p1 := q[(i + 1) % q.size()]
+		var e := (p1 - p0).normalized()
+		var n := Vector2(e.y, -e.x)
+		outs.append(-n if cw else n)
+		if p0.distance_to(p1) < 15.0:
+			continue
+		var sc := outs[i].dot(ZBZ_RIVER)
+		if sc > score:
+			score = sc
+			best = i
+	if best < 0:
+		return {}
+	var p0 := q[best]
+	var p1 := q[(best + 1) % q.size()]
+	var b := outs[best]
+	var a := Vector2(b.y, -b.x)
+	var hu := p0.distance_to(p1) * 0.5 - 0.3
+	var f: Array = [(p0 + p1) * 0.5, a, b]
+	var g := _bar_low(f, _bar_corners(0.0, ZBZ_DEPTH * 0.5 + 0.0, hu, ZBZ_DEPTH * 0.5 + 3.0), ground)
+	var seats: Array = []
+	var y := g + 0.25
+	var tu := -hu + 2.5
+	while tu <= hu - 2.0:
+		for tv: float in [ZBZ_DEPTH + 2.4, ZBZ_DEPTH + 5.6]:
+			_bar_bench_seats(f, tu, tv, y, seats)
+		tu += 4.4
+	for k in 4:
+		_bar_bench_seats(f, -hu + 4.0 + float(k) * (2.0 * hu - 8.0) / 3.0, ZBZ_DEPTH * 0.55, g + ZBZ_H, seats)
+	var standing: Array = [_bar_seat(f, -hu * 0.4, ZBZ_DEPTH + 1.0, y, 0.0, -1.0), _bar_seat(f, hu * 0.3, ZBZ_DEPTH + 1.0, y, 0.0, -1.0)]
+	var staff: Array = [_bar_seat(f, 0.0, ZBZ_DEPTH + 0.8, y, 0.0, 1.0)]
+	return _bar_plan(f, seats, standing, staff)
+
+
+## One bar barge's plan (`_build_bbc_barge`, `_find_bbc_barges`): the barge's frame from the bank, its
+## tables' benches, leżaki, pallet sofas, guests at the counter and the barmen behind it. `shore` is a
+## Callable (x, z) -> metres to the shore (invalid: the +v side is the bank's).
+static func bbc_barge_plan(key: String, ring: PackedVector2Array, ground: Callable, shore: Callable) -> Dictionary:
+	var sty: Dictionary = BBC_BARGES[key]
+	var sh := bbc_shore_in(ring, sty["at"])
+	if sh.is_empty():
+		return {}
+	var t: Vector2 = sh[1]
+	var nrm: Vector2 = sh[2]
+	var hu: float = float(sty["len"]) * 0.5
+	var hv: float = float(sty["wid"]) * 0.5
+	var a := t if t.dot(Vector2(0.665, 0.747)) >= 0.0 else -t
+	var b := Vector2(-a.y, a.x)
+	var c: Vector2 = (sh[0] as Vector2) + nrm * (hv + 1.5)
+	var f: Array = [c, a, b]
+	var g := _bar_low(f, [Vector2(0.0, 0.0), Vector2(-hu, -hv), Vector2(hu, -hv), Vector2(hu, hv), Vector2(-hu, hv)], ground)
+	var deck := g + BARGE_FREEBOARD
+	var s := 1.0
+	if shore.is_valid():
+		var plus := 0.0
+		var minus := 0.0
+		for u: float in [-hu * 0.5, 0.0, hu * 0.5]:
+			var p := c + a * u + b * (hv + 4.0)
+			var m := c + a * u - b * (hv + 4.0)
+			plus += float(shore.call(p.x, p.y))
+			minus += float(shore.call(m.x, m.y))
+		s = 1.0 if plus <= minus else -1.0
+	var y := deck + (0.12 if sty.get("sand", false) else 0.0)
+	var r := minf(1.6, hv * 0.4)
+	var hs: Vector2 = sty["hall"]
+	var h0 := maxf(-hu + 2.0 * hu * hs.x, -hu + r + 0.2)
+	var h1 := minf(-hu + 2.0 * hu * hs.y, hu - r - 0.2)
+	var hh := hv * 0.38
+	var uc := (h0 + h1) * 0.5
+	var hhu := (h1 - h0) * 0.5
+	var left := Vector2(-hu + r + 0.8, h0 - 0.6)
+	var right := Vector2(h1 + 0.6, hu - r - 0.8)
+	var longer := left if left.y - left.x >= right.y - right.x else right
+	var gu := (longer.x + longer.y) * 0.5 if longer.y - longer.x >= 2.5 else hu * 0.3
+	var w_max := hv - 0.5
+	var w_min := -(hv - 0.5 - 2.0 * hh - 0.6)
+	var w1 := w_max - 1.7
+	var rows: Array = [w1]
+	if w1 - 3.1 - 0.95 >= w_min:
+		rows.append(w1 - 3.1)
+	var lez: bool = sty.get("lez", false)
+	var pallets: bool = sty.get("pallets", false)
+	var seats: Array = []
+	var u := -hu + r + 1.6
+	var ustop := hu - r - 1.6
+	if sty.get("stages", false):
+		u += 3.5
+		ustop -= 3.5
+	var k := 0
+	while u <= ustop:
+		for wr: float in rows:
+			if absf(u - gu) < 1.7 and wr == rows[0]:
+				continue
+			var v := s * wr
+			var odd := (k + rows.find(wr)) % 2 == 1
+			if lez and odd:
+				for du: float in [-0.45, 0.45]:
+					seats.append(_bar_seat(f, u + du, v, y + BAR_LEZAK_H, 0.0, -s))
+			elif pallets and odd:
+				for du: float in [-0.4, 0.4]:
+					seats.append(_bar_seat(f, u + du, v + s * 0.1, y + BAR_SOFA_H, 0.0, s))
+			else:
+				_bar_bench_seats(f, u, v, y, seats)
+		u += 3.6
+		k += 1
+	var cv := -s * (hv - 0.5 - 2.0 * hh) + s * 0.45
+	var cw := minf(hhu - 0.6, 3.5)
+	var standing: Array = []
+	for du: float in [-cw * 0.6, cw * 0.1, cw * 0.7]:
+		standing.append(_bar_seat(f, uc + du, cv + s * 1.0, y, 0.0, -s))
+	var staff: Array = [_bar_seat(f, uc - cw * 0.3, cv - s * 0.05, y, 0.0, s), _bar_seat(f, uc + cw * 0.4, cv - s * 0.05, y, 0.0, s)]
+	return _bar_plan(f, seats, standing, staff)
+
+
+## The three beach bars of Płyta Desantu (`_find_plyta_desantu`, `_build_plyta_desantu`): [plan, ...], one
+## each, leżaki facing the river, the tables' benches, the hatch's barman, and the first one's dock.
+static func plyta_plans(ring: PackedVector2Array, ground: Callable) -> Array:
+	var out: Array = []
+	for e: Array in PLYTA_BARS:
+		var sh := bbc_shore_in(ring, e[0])
+		if sh.is_empty():
+			continue
+		var b: Vector2 = sh[2]
+		var f: Array = [sh[0], Vector2(b.y, -b.x), b]
+		var g := _bar_low(f, _bar_corners(0.0, -11.0, 9.0, 6.0), ground)
+		var seats: Array = []
+		var hv := -14.0
+		var hf := hv + 1.78
+		for k in 3:
+			_bar_bench_seats(f, -5.0 + 5.0 * float(k), hv + 7.5, g, seats)
+		for k in 5:
+			seats.append(_bar_seat(f, -6.0 + 3.0 * float(k), hv + 10.5, g + BAR_LEZAK_H, 0.0, 1.0))
+		for k in 4:
+			seats.append(_bar_seat(f, -4.5 + 3.0 * float(k), hv + 12.3, g + BAR_LEZAK_H, 0.0, 1.0))
+		if e[2]:
+			var wv := _bar_low(f, _bar_corners(0.0, 9.0, 1.7, 3.0), ground)
+			_bar_bench_seats(f, 0.0, 7.5, wv + 0.55, seats)
+		var standing: Array = [_bar_seat(f, -1.0, hf + 1.6, g, 0.0, -1.0), _bar_seat(f, 1.2, hf + 1.7, g, 0.0, -1.0)]
+		var staff: Array = [_bar_seat(f, 0.0, hf + 0.3, g, 0.0, 1.0)]
+		var plan := _bar_plan(f, seats, standing, staff)
+		plan["id"] = "plyta_%d" % out.size()
+		out.append(plan)
+	return out
+
+
+## Every terrace, deck and barge plan of the boulevards, by site id: {"palomka", "zachodni_brzezek",
+## "barka_*", "plyta_0..2"} -> {"seats", "standing", "staff", "centre"}. `shore` may be an invalid Callable.
+static func bulwar_bar_plans(data: Dictionary, ground: Callable, shore: Callable) -> Dictionary:
+	var out := {}
+	var p := palomka_plan(data, ground)
+	if not p.is_empty():
+		out["palomka"] = p
+	var z := zachodni_plan(data, ground)
+	if not z.is_empty():
+		out["zachodni_brzezek"] = z
+	var ring := bbc_river_of(data)
+	if ring.size() >= 8:
+		for key: String in BBC_BARGES:
+			var bp := bbc_barge_plan(key, ring, ground, shore)
+			if not bp.is_empty():
+				out[key] = bp
+		for pp: Dictionary in plyta_plans(ring, ground):
+			out[str(pp["id"])] = pp
+	return out
