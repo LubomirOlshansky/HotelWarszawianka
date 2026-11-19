@@ -36,6 +36,12 @@ The Mac run's framing fixes replace these lines (the commands that worked are th
 
 ## Logo, card and cut
 
+The art copies the game's title screen (F, 2026-11-19: "I like how my loading screen looks"):
+`tools/reel/card.html` ports `game/shaders/title.gdshader`, the palm from `title.gd` and the chrome
+wordmark (`chrome.gdshader`, Open Sans like Godot's default font). Change the title screen and the
+art follows only if the port is updated too.
+
+
 ```zsh
 node tools/reel/render.mjs build/reel/art                   # logo + background + card stills
 node tools/reel/render.mjs build/reel/art --card-frames=2   # the animated card

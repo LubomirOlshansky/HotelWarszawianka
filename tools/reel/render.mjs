@@ -2,7 +2,7 @@
 // Renders Around Warsaw's synthwave logo, background and the Reels end card from tools/reel/card.html
 // with Playwright's Chromium (no image generator: the art is SVG and CSS in that page).
 //
-//   node tools/reel/render.mjs OUT_DIR                 the stills: logo-wordmark.png (transparent),
+//   node tools/reel/render.mjs OUT_DIR                 the stills: logo-wordmark.png and logo-wordmark-stacked.png (transparent),
 //                                                       logo-square-1080.png, background-1080x1920.png,
 //                                                       card-1080x1920.png
 //   node tools/reel/render.mjs OUT_DIR --card-frames=SECONDS [--fps=30]
@@ -24,11 +24,16 @@ const out = resolve(args.find((a) => !a.startsWith("--")) || "build/reel/art");
 const opt = (name, dflt) => { const a = args.find((x) => x.startsWith(`--${name}=`)); return a ? a.split("=")[1] : dflt; };
 mkdirSync(out, { recursive: true });
 
-const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
+// WebGL 2 in a headless browser: ANGLE on SwiftShader (software) works everywhere.
+const launch = { args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] };
+if (process.env.CHROME) launch.executablePath = process.env.CHROME;
+const browser = await chromium.launch(launch);
 async function open(mode, w, h) {
 	const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
+	page.on("pageerror", (e) => { console.error(`render.mjs: ${mode}: ${e.message}`); process.exitCode = 1; });
 	await page.goto(`${page_url}?mode=${mode}&w=${w}&h=${h}`);
 	await page.evaluate(() => document.fonts.ready);
+	await page.evaluate(() => window.frame(99));
 	return page;
 }
 
@@ -48,7 +53,8 @@ if (seconds > 0) {
 		["card", 1080, 1920, "card-1080x1920.png", false],
 		["bg", 1080, 1920, "background-1080x1920.png", false],
 		["square", 1080, 1080, "logo-square-1080.png", false],
-		["wordmark", 2000, 900, "logo-wordmark.png", true],
+		["wordmark", 2400, 600, "logo-wordmark.png", true],
+		["wordmark2", 1600, 900, "logo-wordmark-stacked.png", true],
 	];
 	for (const [mode, w, h, file, transparent] of shots) {
 		const page = await open(mode, w, h);

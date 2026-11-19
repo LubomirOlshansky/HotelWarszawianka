@@ -8,8 +8,9 @@ argument-hint: "[reel|trailer|site] [shot names]"
 
 The picture always comes from the game itself, rendered offline with Godot's Movie Maker
 (`--write-movie`), so `--quality=experimental` never stutters and every frame is exact. Art that
-is not the game (the logo, the end card, the background) is drawn in code: `tools/reel/card.html`
-(SVG + CSS, the site's Pixelify Sans and Manrope) rendered by Chromium. No image generator.
+is not the game (the logo, the end card, the background) is drawn in code: `tools/reel/card.html`,
+a WebGL port of the game's title screen (title.gdshader, the palm, the chrome wordmark in Open Sans)
+rendered by Chromium; F chose that look on 2026-11-19 over a separate synthwave design. No image generator.
 
 ## Who does what
 
@@ -72,7 +73,7 @@ not systems: no HUD, no missions or characters, no menus.
 ## Logo and end card
 
 ```zsh
-node tools/reel/render.mjs OUT                        # logo-wordmark.png (transparent 2000x900),
+node tools/reel/render.mjs OUT                        # logo-wordmark.png + logo-wordmark-stacked.png (transparent),
                                                       # logo-square-1080.png, background-1080x1920.png,
                                                       # card-1080x1920.png
 node tools/reel/render.mjs OUT --card-frames=2        # the animated card, OUT/card/f_0000.png... (30 fps)
@@ -80,7 +81,7 @@ node tools/reel/render.mjs OUT --card-frames=2        # the animated card, OUT/c
 
 Needs Node + Playwright with Chromium (cloud: there; Mac: `npx playwright install chromium`).
 The card's words and badges live in `card.html` (iPhone: TestFlight open beta; Android: Google
-Play open testing). Store badges are our own pixel chips, not Apple's or Google's artwork (their
+Play open testing). Store badges are plates in the title's button style, not Apple's or Google's artwork (their
 badge rules do not cover TestFlight or open testing). Real platform names only as plain words.
 
 ## Check before showing F
