@@ -37,6 +37,9 @@ signal teleport(at: Vector2)
 signal rival_called(rung: int)
 ## An item marked NEW was looked at on the QUESTS screen (its id, quest_book.gd): main.gd forgets it.
 signal seen(id: String)
+## F 2026-11-19: the map's clock picker set the time of day (time_of_day.gd's mode: DAY 0, DUSK 1,
+## NIGHT 2, DAWN 4); main.gd applies it as the settings' Time of day does.
+signal time_picked(mode: int)
 
 const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")
@@ -71,6 +74,10 @@ const MINOR_M := 2600.0
 const NEAR_M := 250.0
 const START_M := 1400.0
 const GOLD := Color("#f0b429")
+const GameTime := preload("res://scripts/game_time.gd")
+## The clock picker's choices, in the day's order: [time_of_day.gd mode, Polish, English].
+## No Live here (F 2026-11-19: the game has its own clock).
+const TIME_PICKS := [[4, "Świt", "Dawn"], [0, "Dzień", "Day"], [1, "Zmierzch", "Dusk"], [2, "Noc", "Night"]]
 const ARROW := Color("#d8432f")
 ## Type sizes in points (hud.gd's).
 const T_TITLE := 17.0
@@ -82,6 +89,8 @@ const NEXT_H := 44.0
 const NEXT_W := 330.0
 ## A questline's dot and name while something runs (quest focus): drawn this small and this faint.
 const FOCUS_DIM := 0.45
+## The legend's row height (points; F 2026-11-19).
+const LEGEND_ROW := 20.0
 const NEW_RED := UiKit.ALERT
 
 ## Set by hud.gd before the first open.
@@ -126,6 +135,8 @@ var flying := false
 ## F (2026-11-07): the hospitals only matter to a rescue; their marks show only while one is on
 ## (main.gd sets it on open).
 var hospitals := false
+## () -> {hour, weekday} (time_of_day.gd `local_clock`; main.gd sets it on open): the clock top right.
+var clock: Callable
 ## The minimap's night (kept for hud.gd; the full map has one look day and night).
 var night := 0.0
 ## Loop 3h slice 1: districts.gd `view()` (names, label point, polygons, found, pct) and the total %.
@@ -185,6 +196,11 @@ var _screen: QuestsScreen
 var _quests_btn: Button
 var _badge: Label
 var _next: Button
+## F 2026-11-19 ("add the clock to the map", "when the user clicks the time show a clock where they
+## can change it"): the clock left of the ✕, and its picker under it (what is open now, the looks).
+var _clock_btn: Button
+var _picker: PanelContainer
+var _picker_open: Label
 ## The NEXT line's thing ({} none): {"words": [pl, en], "colour", "at", "entry" (a place to pin, {}
 ## none), "id" (an item to open the screen on, "" none)}.
 var next_info: Dictionary = {}
@@ -261,6 +277,12 @@ func _build() -> void:
 	_close.name = "close"
 	_close.pressed.connect(close)
 	add_child(_close)
+	_clock_btn = _round_button("", Color("#fbf7ee"))
+	_clock_btn.name = "clock"
+	_clock_btn.add_theme_font_size_override("font_size", _px(T_SUB + 2.0))
+	_clock_btn.pressed.connect(_clock_tapped)
+	add_child(_clock_btn)
+	_build_picker()
 	_next = Button.new()
 	_next.name = "next"
 	_next.focus_mode = Control.FOCUS_NONE
@@ -365,6 +387,77 @@ func _card(lines: Array, sizes: Array) -> PanelContainer:
 
 
 ## A square 48 pt button on the map's dark card look (the ✕).
+## The clock's picker: a dark card with "what is open now" and one button per look.
+func _build_picker() -> void:
+	_picker = PanelContainer.new()
+	_picker.name = "time_picker"
+	_picker.add_theme_stylebox_override("panel", _box(0.95))
+	_picker.visible = false
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", _px(6))
+	_picker.add_child(v)
+	var title := Label.new()
+	var tw: Array = QuestBook.words("clock_title")
+	title.text = Lang.pick(str(tw[0]), str(tw[1]))
+	title.add_theme_font_size_override("font_size", _px(T_TITLE))
+	title.add_theme_color_override("font_color", Color("#ffd23f"))
+	v.add_child(title)
+	_picker_open = Label.new()
+	_picker_open.add_theme_font_size_override("font_size", _px(T_SUB))
+	_picker_open.add_theme_color_override("font_color", Color("#c9c2d8"))
+	_picker_open.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_picker_open.custom_minimum_size.x = 300.0 * pt
+	v.add_child(_picker_open)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", _px(6))
+	v.add_child(row)
+	for pick: Array in TIME_PICKS:
+		var b := _gold_button(Lang.pick(str(pick[1]), str(pick[2])))
+		b.visible = true
+		b.custom_minimum_size = Vector2(64.0, 48.0) * pt
+		b.name = "time_%d" % int(pick[0])
+		b.pressed.connect(_time_tapped.bind(int(pick[0])))
+		row.add_child(b)
+	add_child(_picker)
+
+
+## The clock's words now ("PT 14:05"; "--:--" without a clock).
+func _clock_words() -> String:
+	if not clock.is_valid():
+		return "--:--"
+	var w: Array = GameTime.label(clock.call())
+	return Lang.pick(str(w[0]), str(w[1]))
+
+
+## "Open now: ..." for the picker, from the time owner's table.
+func _open_words() -> String:
+	if not clock.is_valid():
+		return ""
+	var c: Dictionary = clock.call()
+	var names := PackedStringArray()
+	for id: String in GameTime.open_ids(float(c.get("hour", 12.0))):
+		var n: Array = GameTime.NAMES[id]
+		names.append(Lang.pick(str(n[0]), str(n[1])))
+	var none: Array = QuestBook.words("clock_none")
+	var w: Array = QuestBook.fmt("clock_open", [", ".join(names) if not names.is_empty() else Lang.pick(str(none[0]), str(none[1]))])
+	return Lang.pick(str(w[0]), str(w[1]))
+
+
+func _clock_tapped() -> void:
+	_picker.visible = not _picker.visible
+	_picker_open.text = _open_words()
+	print("full map: clock %s (%s)" % ["open" if _picker.visible else "closed", _clock_words()])
+	_fit()
+
+
+func _time_tapped(mode: int) -> void:
+	time_picked.emit(mode)
+	_picker.visible = false
+	_clock_btn.text = _clock_words()
+	print("full map: time picked %d, now %s" % [mode, _clock_words()])
+	_fit()
+
+
 func _round_button(text: String, ink: Color) -> Button:
 	var b := Button.new()
 	b.text = text
@@ -415,6 +508,7 @@ func open(at: Vector2, yaw: float) -> void:
 	_hold_index = -1
 	_note_t = 0.0
 	_note.visible = false
+	_picker.visible = false
 	_did_quests = false
 	_did_hold = false
 	_did_pin = false
@@ -478,19 +572,28 @@ func _fit() -> void:
 	var m := 8.0 * pt
 	_close.size = _close.custom_minimum_size
 	_close.position = Vector2(s.end.x - m - _close.size.x, s.position.y + m)
+	_clock_btn.text = _clock_words()
+	_clock_btn.size = Vector2.ZERO
+	_clock_btn.size = Vector2(maxf(_clock_btn.get_combined_minimum_size().x, 96.0 * pt), _close.size.y)
+	_clock_btn.position = Vector2(_close.position.x - m - _clock_btn.size.x, _close.position.y)
+	if _picker.visible:
+		_picker.reset_size()
+		_picker.size = _picker.get_combined_minimum_size()
+		_picker.position = Vector2(s.end.x - m - _picker.size.x, _close.position.y + _close.size.y + m)
 	_quests_btn.size = _quests_btn.custom_minimum_size
 	_quests_btn.position = s.end - Vector2(m, m) - _quests_btn.size
 	_badge.size = _badge.custom_minimum_size
 	_badge.position = Vector2(_quests_btn.size.x - _badge.size.x * 0.7, -_badge.size.y * 0.3)
 	if _next.visible:
-		var room := _close.position.x - m - (s.position.x + m)
+		var room := _clock_btn.position.x - m - (s.position.x + m)
 		# Its words' width (the button clips them, so its own minimum is none), at least a touch target.
 		var want := _next.get_theme_font("font").get_string_size(_next.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
 				_next.get_theme_font_size("font_size")).x + _next.get_theme_stylebox("normal").get_minimum_size().x + 4.0
 		_next.size = Vector2(clampf(want, NEXT_H * pt, maxf(NEXT_H * pt, minf(NEXT_W * pt, room))), NEXT_H * pt)
 		_next.position = s.position + Vector2(m, m)
 	if _note.visible:
-		var room_w := _quests_btn.position.x - m - (s.position.x + m)
+		var lg_w := _legend_rect(_legend_rows()).size.x + m
+		var room_w := _quests_btn.position.x - m - (s.position.x + m + lg_w)
 		var nl := (_note.get_child(0) as VBoxContainer).get_child(0) as Label
 		nl.autowrap_mode = TextServer.AUTOWRAP_OFF
 		nl.custom_minimum_size.x = 0.0
@@ -499,7 +602,7 @@ func _fit() -> void:
 			nl.custom_minimum_size.x = room_w - 24.0 * pt
 		_note.reset_size()
 		_note.size = _note.get_combined_minimum_size()
-		_note.position = Vector2(s.position.x + m + maxf(0.0, (room_w - _note.size.x) * 0.5), s.end.y - m - _note.size.y)
+		_note.position = Vector2(s.position.x + m + lg_w + maxf(0.0, (room_w - _note.size.x) * 0.5), s.end.y - m - _note.size.y)
 	var bx := _note.position.x
 	for b: Button in [_offer, _details]:
 		if b.visible:
@@ -541,7 +644,9 @@ func to_screen(p: Vector2) -> Vector2:
 func rects() -> Dictionary:
 	if not _built:
 		return {}
-	var out := {"close": _close.get_global_rect(), "quests": _quests_btn.get_global_rect()}
+	var out := {"close": _close.get_global_rect(), "quests": _quests_btn.get_global_rect(), "clock": _clock_btn.get_global_rect()}
+	if _picker.visible:
+		out["picker"] = _picker.get_global_rect()
 	if _next.visible:
 		out["next"] = _next.get_global_rect()
 	if _note.visible:
@@ -1065,8 +1170,11 @@ func _paint() -> void:
 			hud._tri_quad(h + u * r0, h + u * r1, h + v * r1, h + v * r0, [col, col, col, col])
 		hud._tri_fan(h, 4.0 * pt, 0.0, TAU, hud.OUTLINE)
 		hud._tri_fan(h, 2.6 * pt, 0.0, TAU, GOLD)
+	var legend := _legend_rows()
+	_legend_marks(legend)
 	hud._tri_flush(o)
 	var font := ThemeDB.fallback_font
+	_legend_text(o, font, legend)
 	var qs := _px(T_SUB + 3.0)
 	for i in unknown_at.size():
 		var at := to_screen(unknown_at[i])
@@ -1148,6 +1256,76 @@ func _paint() -> void:
 		# Printed like a map's own labels: dark ink in a cream outline (quieter than the quests' names).
 		o.draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, _px(4), Color(1.0, 0.97, 0.9, 0.85))
 		o.draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, Color(0.16, 0.14, 0.2, 0.95))
+
+
+## F (2026-11-19): a small legend bottom left, so the marks read at a glance and the hold to jump is
+## said once, quietly: the main quest's star, a questline's "!", a side job's square, and the hold.
+## Rows: {"words": [pl, en], "kind": "main"|"story"|"job"|"hold"}. Drawn in the batch (no node).
+func _legend_rows() -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	for pair: Array in [["main", "legend_main"], ["story", "legend_story"], ["job", "legend_job"]]:
+		rows.append({"kind": pair[0], "words": QuestBook.words(pair[1])})
+	var hw: Array = QuestBook.words("legend_hold_pad" if Gamepad.in_use() else "legend_hold")
+	if Gamepad.in_use():
+		hw = [Gamepad.fmt(str(hw[0])), Gamepad.fmt(str(hw[1]))]
+	rows.append({"kind": "hold", "words": hw})
+	return rows
+
+
+## The legend's box in px: bottom left of the safe area, as wide as its longest line.
+func _legend_rect(rows: Array[Dictionary]) -> Rect2:
+	var s := safe if safe.has_area() else Rect2(Vector2.ZERO, _view())
+	var font := ThemeDB.fallback_font
+	var fs := _px(T_SUB - 1.0)
+	var w := 0.0
+	for r in rows:
+		var t := Lang.pick(str(r["words"][0]), str(r["words"][1]))
+		w = maxf(w, font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	var size := Vector2(w + 44.0 * pt, rows.size() * LEGEND_ROW * pt + 12.0 * pt)
+	var m := 8.0 * pt
+	return Rect2(Vector2(s.position.x + m, s.end.y - m - size.y), size)
+
+
+func _legend_marks(rows: Array[Dictionary]) -> void:
+	var box := _legend_rect(rows)
+	hud._tri_rect(box, Color(0.07, 0.06, 0.1, 0.94))  # the dark card (F 2026-11-19: dark cards everywhere)
+	var edge := Color(1, 1, 1, 0.16)
+	var ew := maxf(1.0, pt)
+	hud._tri_rect(Rect2(box.position, Vector2(box.size.x, ew)), edge)
+	hud._tri_rect(Rect2(box.position + Vector2(0, box.size.y - ew), Vector2(box.size.x, ew)), edge)
+	hud._tri_rect(Rect2(box.position, Vector2(ew, box.size.y)), edge)
+	hud._tri_rect(Rect2(box.position + Vector2(box.size.x - ew, 0), Vector2(ew, box.size.y)), edge)
+	for i in rows.size():
+		var at := box.position + Vector2(17.0 * pt, 6.0 * pt + (i + 0.5) * LEGEND_ROW * pt)
+		match str(rows[i]["kind"]):
+			"main":
+				hud.main_star(at, 1.0, true)
+			"story":
+				hud._tri_fan(at, 5.6 * pt, 0.0, TAU, hud.OUTLINE)
+				hud._tri_fan(at, 4.6 * pt, 0.0, TAU, Color(1, 1, 1, 0.97))
+				hud._tri_fan(at, 3.6 * pt, 0.0, TAU, Color("#e0527a"))
+				var w := 1.2 * pt
+				hud._tri_rect(Rect2(at + Vector2(-w * 0.5, -2.4 * pt), Vector2(w, 2.8 * pt)), Color.WHITE)
+				hud._tri_rect(Rect2(at + Vector2(-w * 0.5, 1.2 * pt), Vector2(w, w)), Color.WHITE)
+			"job":
+				hud.poi_mark(at, 4.6 * pt, Color("#ff8a3d"), MapIcons.POI_SQUARE)
+			"hold":
+				for j in 24:
+					var u := Vector2.from_angle(TAU * j / 24.0)
+					var v := Vector2.from_angle(TAU * (j + 1) / 24.0)
+					var col := Color(GOLD, 0.95 if j < 16 else 0.35)
+					hud._tri_quad(at + u * 4.4 * pt, at + u * 6.4 * pt, at + v * 6.4 * pt, at + v * 4.4 * pt, [col, col, col, col])
+				hud._tri_fan(at, 2.0 * pt, 0.0, TAU, GOLD)
+
+
+func _legend_text(o: Control, font: Font, rows: Array[Dictionary]) -> void:
+	var box := _legend_rect(rows)
+	var fs := _px(T_SUB - 1.0)
+	for i in rows.size():
+		var t := Lang.pick(str(rows[i]["words"][0]), str(rows[i]["words"][1]))
+		var y := box.position.y + 6.0 * pt + (i + 0.5) * LEGEND_ROW * pt + fs * 0.35
+		var col := Color("#ffd23f") if str(rows[i]["kind"]) == "hold" else Color("#fbf7ee")
+		o.draw_string(font, Vector2(box.position.x + 32.0 * pt, y), t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
 
 ## The map point (m) under a screen point (px).
@@ -1376,7 +1554,7 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventScreenTouch:
 		var t := event as InputEventScreenTouch
 		if t.pressed:
-			for b: Control in [_close, _quests_btn, _next, _offer, _details]:
+			for b: Control in [_close, _clock_btn, _picker, _quests_btn, _next, _offer, _details]:
 				if b.visible and b.get_global_rect().has_point(t.position):
 					return  # the button takes it
 			_touches[t.index] = t.position

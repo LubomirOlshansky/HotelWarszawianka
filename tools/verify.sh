@@ -1537,6 +1537,8 @@ for s in $want; do
 		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		targetroute) check targetroute '^check_target_route:' --script res://tools/check_target_route.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
+		# The time owner (game_time.gd, F 2026-11-19): hours, the night friends by day, the clock's jump.
+		gametime) check gametime '^check_game_time:' --script res://tools/check_game_time.gd ;;
 		endcard) check endcard '^end_card:' --script res://tools/check_end_card.gd ;;
 		# First hour step 6: the hints in play, the loading tips, the spotlight (no map).
 		hints) check hints '^check_hints:' --script res://tools/check_hints.gd ;;
@@ -1559,6 +1561,9 @@ for s in $want; do
 		# The museum and Plac loop: Muzeum Narodowe, Hotel Europejski and the Tomb from centrum.json
 		# alone (found, what they replace, triangles, one material, cards; no terrain or sectors).
 		sites) check sites '^check_sites:' --script res://tools/check_sites.gd ;;
+		# Hotel Metropol's METROPOLKA (srodmiescie.gd): on the real outline's street face, a lit light box
+		# behind the letters, the letters inside its face (F, 2026-11-19: "fixed so many times").
+		metropol) check metropol '^check_metropol:' --script res://tools/check_metropol.gd ;;
 		palacelights) check palacelights '^check_palace_lights:' --script res://tools/check_palace_lights.gd ;;
 		meshq) check meshq '^check_mesh_quality:' --script res://tools/check_mesh_quality.gd ;;
 		sfx) check sfx '^sfx:' --script res://tools/check_sfx.gd ;;

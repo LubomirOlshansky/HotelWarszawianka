@@ -4771,8 +4771,8 @@ func _blade(at: Vector2, o: Vector2, d: Vector2, y: float, word: String, col: Co
 	var k := minf(0.7 / (Neon.ROW_H * Neon.PIXEL), 2.0 / Neon.length_of(word))
 	var mid := at + o * (WIECHA_OVER + 0.2 + Neon.length_of(word) * k * 0.5)   # stands out from the fascia
 	# One face only: the neon quad shows through from behind, so a second, opposite face drew the
-	# word mirrored over the first (Mac night shot, 2026-11-19). Readable from the +d side.
-	signs.append([word, Vector3(mid.x, y, mid.y), Vector3(d.x, 0.0, d.y), k, col])
+	# word mirrored over the first (Mac night shot, 2026-11-19). Readable from the -d side (flipped 2026-11-19: the Mac shot from the pasaż still read it backwards).
+	signs.append([word, Vector3(mid.x, y, mid.y), Vector3(-d.x, 0.0, -d.y), k, col])
 
 
 ## A rectangle on the ground plan: centre `c`, its long axis `d`, half sizes hu along and hv across.

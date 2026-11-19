@@ -1811,6 +1811,9 @@ func _build_mission_panels() -> void:
 func show_card(title: String, body: String, buttons: PackedStringArray, accent: Color, bottom := false,
 		title_en := "", body_en := "", stacked := false) -> void:
 	accent = Access.tint(accent)  # colour-safe (access.gd)
+	messages.card_seen()  # the next offer that comes by itself waits OFFER_SPACING (messages.gd)
+	if messages.call_open() and (buttons.is_empty() or not buttons[0].begins_with("ODBIERZ")):
+		messages.call_closed(true)  # the caller's offer follows an answer (an autopilot's too)
 	_card_owner = null  # a new card is nobody's until its maker calls own_card
 	_drop_card_art()  # ... and has no picture until its maker gives it one
 	_set_card_x(-1)  # ... and no ✕ until its maker asks for one (`set_card_close`)
@@ -1879,6 +1882,11 @@ func card_button_text(index: int) -> String:
 
 
 func hide_card() -> void:
+	if card_showing():
+		# A call's card taken away unanswered (rung out, or its caller gave up) is a no (messages.gd
+		# `call_closed`: the next call waits longer); any card going starts the offer spacing again.
+		messages.call_closed(false)
+		messages.card_seen()
 	_card_owner = null
 	_show(_card, false)
 	_drop_card_art()
@@ -2032,6 +2040,8 @@ func card_showing() -> bool:
 
 ## A button of the card was pressed: to the card's owner, or to every listener when it has none.
 func _press_card(index: int) -> void:
+	# A call's card: the first button answers (ODBIERZ), any other turns it down (messages.gd).
+	messages.call_closed(index == 0)
 	if _card_owner != null and is_instance_valid(_card_owner):
 		_card_owner.card_pressed(index)
 	else:
@@ -4951,10 +4961,19 @@ func call_ok() -> bool:
 	return messages.call_ok()
 
 
-## The quiet time after a finish is on (messages.gd `quiet`): the ride app's requests and Bartek's
+## The quiet time after a finish is on (messages.gd `quiet`), or the last card is under OFFER_SPACING s
+## back (`spaced`, F 2026-11-19): the ride app's requests and Bartek's
 ## calls, which do not ask `call_ok`, wait for it too (TD-3).
 func offers_quiet() -> bool:
-	return messages.quiet()
+	messages.tick(0.0, context_now())
+	return messages.quiet() or not messages.spaced()
+
+
+## An offer that comes by itself may show now (messages.gd `offer_ok`): free roam, settled, OFFER_SPACING
+## s after the last card, past the quiet time; no call gap (main.gd `_free_block`, the guide's cards).
+func offer_ok() -> bool:
+	messages.tick(0.0, context_now())
+	return messages.offer_ok()
 
 
 ## The player pressed RADIO (or its next key, or R): the caption that comes next shows even in a chase.

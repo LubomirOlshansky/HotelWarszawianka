@@ -235,6 +235,16 @@ func _matrix(full: bool) -> Array:
 		var hop := _spec(pair[0], "ladder", RaceBench.HOP_START, pair[1], "none")
 		hop["finish"] = RaceBench.HOP_FINISH
 		out.append(hop)
+	# The pro (RaceBench.PRO, F 2026-11-19): the best a real player does, against Halina (her rung
+	# and the guided first race), and in the full matrix against every rung.
+	for tuning: String in ["ladder", "first"]:
+		out.append(_spec(HALINA, tuning, "tamka", "clear", RaceBench.PRO))
+	if full:
+		for rung: Dictionary in RaceBench.Ladder.RUNGS:
+			if rung["rival"] != HALINA:
+				out.append(_spec(rung["rival"], "ladder", "tamka", "clear", RaceBench.PRO))
+		for tuning: String in ["ladder", "first"]:
+			out.append(_spec(HALINA, tuning, "leszczynska", "clear", RaceBench.PRO))
 	if not full:
 		out.append_array(_pack_matrix(false))
 		out.append_array(_chase_matrix(false))

@@ -72,6 +72,7 @@ firstlife            runs
 fixes                quick
 freecam              quick
 gamepad              quick
+gametime             quick
 garage               quick
 governor             quick
 grades               quick
@@ -107,6 +108,7 @@ markers              quick
 meet                 quick
 meshq                quick
 messages             quick
+metropol             quick
 mixer                quick
 models               quick
 monumentmesh         quick
