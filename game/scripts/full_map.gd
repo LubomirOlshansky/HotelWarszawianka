@@ -81,6 +81,8 @@ const NEXT_H := 44.0
 const NEXT_W := 330.0
 ## A questline's dot and name while something runs (quest focus): drawn this small and this faint.
 const FOCUS_DIM := 0.45
+## The legend's row height (points; F 2026-11-19).
+const LEGEND_ROW := 20.0
 const NEW_RED := Color("#ff4f6d")
 
 ## Set by hud.gd before the first open.
@@ -489,7 +491,8 @@ func _fit() -> void:
 		_next.size = Vector2(clampf(want, NEXT_H * pt, maxf(NEXT_H * pt, minf(NEXT_W * pt, room))), NEXT_H * pt)
 		_next.position = s.position + Vector2(m, m)
 	if _note.visible:
-		var room_w := _quests_btn.position.x - m - (s.position.x + m)
+		var lg_w := _legend_rect(_legend_rows()).size.x + m
+		var room_w := _quests_btn.position.x - m - (s.position.x + m + lg_w)
 		var nl := (_note.get_child(0) as VBoxContainer).get_child(0) as Label
 		nl.autowrap_mode = TextServer.AUTOWRAP_OFF
 		nl.custom_minimum_size.x = 0.0
@@ -498,7 +501,7 @@ func _fit() -> void:
 			nl.custom_minimum_size.x = room_w - 24.0 * pt
 		_note.reset_size()
 		_note.size = _note.get_combined_minimum_size()
-		_note.position = Vector2(s.position.x + m + maxf(0.0, (room_w - _note.size.x) * 0.5), s.end.y - m - _note.size.y)
+		_note.position = Vector2(s.position.x + m + lg_w + maxf(0.0, (room_w - _note.size.x) * 0.5), s.end.y - m - _note.size.y)
 	var bx := _note.position.x
 	for b: Button in [_offer, _details]:
 		if b.visible:
@@ -1064,8 +1067,11 @@ func _paint() -> void:
 			hud._tri_quad(h + u * r0, h + u * r1, h + v * r1, h + v * r0, [col, col, col, col])
 		hud._tri_fan(h, 4.0 * pt, 0.0, TAU, hud.OUTLINE)
 		hud._tri_fan(h, 2.6 * pt, 0.0, TAU, GOLD)
+	var legend := _legend_rows()
+	_legend_marks(legend)
 	hud._tri_flush(o)
 	var font := ThemeDB.fallback_font
+	_legend_text(o, font, legend)
 	var qs := _px(T_SUB + 3.0)
 	for i in unknown_at.size():
 		var at := to_screen(unknown_at[i])
@@ -1147,6 +1153,70 @@ func _paint() -> void:
 		# Printed like a map's own labels: dark ink in a cream outline (quieter than the quests' names).
 		o.draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, _px(4), Color(1.0, 0.97, 0.9, 0.85))
 		o.draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, Color(0.16, 0.14, 0.2, 0.95))
+
+
+## F (2026-11-19): a small legend bottom left, so the marks read at a glance and the hold to jump is
+## said once, quietly: the main quest's star, a questline's "!", a side job's square, and the hold.
+## Rows: {"words": [pl, en], "kind": "main"|"story"|"job"|"hold"}. Drawn in the batch (no node).
+func _legend_rows() -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	for pair: Array in [["main", "legend_main"], ["story", "legend_story"], ["job", "legend_job"]]:
+		rows.append({"kind": pair[0], "words": QuestBook.words(pair[1])})
+	var hw: Array = QuestBook.words("legend_hold_pad" if Gamepad.in_use() else "legend_hold")
+	if Gamepad.in_use():
+		hw = [Gamepad.fmt(str(hw[0])), Gamepad.fmt(str(hw[1]))]
+	rows.append({"kind": "hold", "words": hw})
+	return rows
+
+
+## The legend's box in px: bottom left of the safe area, as wide as its longest line.
+func _legend_rect(rows: Array[Dictionary]) -> Rect2:
+	var s := safe if safe.has_area() else Rect2(Vector2.ZERO, _view())
+	var font := ThemeDB.fallback_font
+	var fs := _px(T_SUB - 1.0)
+	var w := 0.0
+	for r in rows:
+		var t := Lang.pick(str(r["words"][0]), str(r["words"][1]))
+		w = maxf(w, font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	var size := Vector2(w + 44.0 * pt, rows.size() * LEGEND_ROW * pt + 12.0 * pt)
+	var m := 8.0 * pt
+	return Rect2(Vector2(s.position.x + m, s.end.y - m - size.y), size)
+
+
+func _legend_marks(rows: Array[Dictionary]) -> void:
+	var box := _legend_rect(rows)
+	hud._tri_rect(box, Color(0.98, 0.96, 0.9, 0.88))  # a light plate (F 2026-11-19)
+	for i in rows.size():
+		var at := box.position + Vector2(17.0 * pt, 6.0 * pt + (i + 0.5) * LEGEND_ROW * pt)
+		match str(rows[i]["kind"]):
+			"main":
+				hud.main_star(at, 1.0, true)
+			"story":
+				hud._tri_fan(at, 5.6 * pt, 0.0, TAU, hud.OUTLINE)
+				hud._tri_fan(at, 4.6 * pt, 0.0, TAU, Color(1, 1, 1, 0.97))
+				hud._tri_fan(at, 3.6 * pt, 0.0, TAU, Color("#e0527a"))
+				var w := 1.2 * pt
+				hud._tri_rect(Rect2(at + Vector2(-w * 0.5, -2.4 * pt), Vector2(w, 2.8 * pt)), Color.WHITE)
+				hud._tri_rect(Rect2(at + Vector2(-w * 0.5, 1.2 * pt), Vector2(w, w)), Color.WHITE)
+			"job":
+				hud.poi_mark(at, 4.6 * pt, Color("#ff8a3d"), MapIcons.POI_SQUARE)
+			"hold":
+				for j in 24:
+					var u := Vector2.from_angle(TAU * j / 24.0)
+					var v := Vector2.from_angle(TAU * (j + 1) / 24.0)
+					var col := Color(GOLD, 0.95 if j < 16 else 0.35)
+					hud._tri_quad(at + u * 4.4 * pt, at + u * 6.4 * pt, at + v * 6.4 * pt, at + v * 4.4 * pt, [col, col, col, col])
+				hud._tri_fan(at, 2.0 * pt, 0.0, TAU, GOLD)
+
+
+func _legend_text(o: Control, font: Font, rows: Array[Dictionary]) -> void:
+	var box := _legend_rect(rows)
+	var fs := _px(T_SUB - 1.0)
+	for i in rows.size():
+		var t := Lang.pick(str(rows[i]["words"][0]), str(rows[i]["words"][1]))
+		var y := box.position.y + 6.0 * pt + (i + 0.5) * LEGEND_ROW * pt + fs * 0.35
+		var col := Color("#8a5a00") if str(rows[i]["kind"]) == "hold" else Color("#1a1622")
+		o.draw_string(font, Vector2(box.position.x + 32.0 * pt, y), t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
 
 ## The map point (m) under a screen point (px).
