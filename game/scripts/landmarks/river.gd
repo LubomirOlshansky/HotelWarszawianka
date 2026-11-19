@@ -2268,3 +2268,351 @@ func _bulwary_fish(u: float, v: float, flen: float, yaw: float, col: Color, g: f
 	# The dorsal fin over the shoulder, a small raised sail.
 	var sh: Vector3 = pt.call(0.4)
 	_beam(sh + Vector3.UP * flen * 0.06, sh + Vector3.UP * flen * 0.2 + (tail - head).normalized() * flen * 0.05, 0.025 * flen, col.darkened(0.15))
+
+
+# --- Schodki nad Wisłą: the concrete seating steps along the left bank (2026-11-19) ---------------
+
+## Spec docs/landmarks/specs/schodki_wisla.md, plan /schodki/PLAN.md. The ground is map_builder.gd's SUNKEN
+## entries `schodki_wisla` (east of the shore's turn at u -36) and `schodki_wisla_w` (west of it): their floor
+## is the plane from the top edge (`a`) to the quay (`b`), `rows` treads over it. This site draws what stands
+## on it, all in the city's one stone material (no draw call of its own): the seat steps, the walking stairs
+## cut into them, the timber seat boards, the coping and lamps on the top edge, the granite quay.
+## The corners of the band's box (a tiny square each, as `_find_sunken`: nothing mapped is replaced).
+const SCHODKI_BOX := [Vector2(371.0, -936.0), Vector2(526.0, -781.0)]
+## The OSM walking flights inside the band (centrum.json `steps`, the two ends of each, measured 2026-11-19),
+## frozen here so the builder and the crowd's seats plan (static, no map) cut the same gaps.
+const SCHODKI_FLIGHTS := [
+	[Vector2(475.1, -842.5), Vector2(468.6, -830.2)], [Vector2(382.5, -929.6), Vector2(374.6, -923.1)],
+	[Vector2(443.5, -874.5), Vector2(434.2, -865.4)], [Vector2(503.4, -814.0), Vector2(499.4, -808.4)],
+	[Vector2(492.8, -824.5), Vector2(488.3, -819.9)], [Vector2(484.1, -833.4), Vector2(473.6, -825.2)],
+	[Vector2(463.0, -854.6), Vector2(456.5, -842.7)], [Vector2(452.7, -865.0), Vector2(441.4, -858.1)],
+	[Vector2(512.6, -803.6), Vector2(499.4, -798.0)], [Vector2(488.3, -819.9), Vector2(483.3, -815.1)],
+	[Vector2(499.4, -808.4), Vector2(495.3, -802.4)], [Vector2(521.2, -794.3), Vector2(510.4, -786.3)],
+]
+const SCHODKI_CUT_W := 2.4     # a walking stair's width
+const SCHODKI_CUT_RISE := 0.15
+const SCHODKI_LAMP_GAP := 25.0
+const SCHODKI_SEAT := Color("#b9b6ae")
+const SCHODKI_RISER := Color("#a29f98")
+const SCHODKI_NOSE := Color("#cdcac2")
+const SCHODKI_BOARD := Color("#a37a52")
+const SCHODKI_QUAY := Color("#a9a59c")
+const SCHODKI_CUT := Color("#a7a49d")
+const SCHODKI_CUT_RISER := Color("#8f8c86")
+const SCHODKI_COPING := Color("#c4c1b9")
+const SCHODKI_POST := Color("#4a4e53")
+
+
+func _find_schodki_wisla() -> void:
+	if map._sunk.is_empty():
+		return
+	var zone: Array = []
+	for a: Vector2 in SCHODKI_BOX:
+		zone.append(PackedVector2Array([a, a + Vector2(0.2, 0), a + Vector2(0.2, 0.2), a + Vector2(0, 0.2)]))
+	_add_site("schodki_wisla", zone)
+
+
+## The walking stairs' outlines: each OSM flight a 2.4 m wide strip along its line, 3 m past both ends,
+## flights that overlap (a concrete foot and a wooden top) merged into one.
+static func schodki_cuts() -> Array[PackedVector2Array]:
+	var merged: Array[PackedVector2Array] = []
+	for f: Array in SCHODKI_FLIGHTS:
+		var p0: Vector2 = f[0]
+		var p1: Vector2 = f[1]
+		var d := (p1 - p0).normalized()
+		var half := Vector2(-d.y, d.x) * SCHODKI_CUT_W * 0.5
+		var a := p0 - d * 3.0
+		var b := p1 + d * 3.0
+		var cur := PackedVector2Array([a - half, b - half, b + half, a + half])
+		var rest: Array[PackedVector2Array] = []
+		for m: PackedVector2Array in merged:
+			var u := Geometry2D.merge_polygons(cur, m)
+			if u.size() == 1 and not Geometry2D.is_polygon_clockwise(u[0]):
+				cur = u[0]
+			else:
+				rest.append(m)
+		rest.append(cur)
+		merged = rest
+	return merged
+
+
+static func _schodki_area(poly: PackedVector2Array) -> float:
+	var s := 0.0
+	for i in poly.size():
+		s += poly[i].cross(poly[(i + 1) % poly.size()])
+	return absf(s) * 0.5
+
+
+## `poly` less every cut, as polygons (slivers dropped).
+static func _schodki_minus(poly: PackedVector2Array, cuts: Array[PackedVector2Array]) -> Array[PackedVector2Array]:
+	var pieces: Array[PackedVector2Array] = [poly]
+	for c: PackedVector2Array in cuts:
+		var next: Array[PackedVector2Array] = []
+		for pc: PackedVector2Array in pieces:
+			for q: PackedVector2Array in Geometry2D.clip_polygons(pc, c):
+				if q.size() >= 3 and not Geometry2D.is_polygon_clockwise(q) and _schodki_area(q) > 0.3:
+					next.append(q)
+		pieces = next
+	return pieces
+
+
+## `a` ∩ `b` as polygons (holes and slivers dropped).
+static func _schodki_meet(a: PackedVector2Array, b: PackedVector2Array) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = []
+	for q: PackedVector2Array in Geometry2D.intersect_polygons(a, b):
+		if q.size() >= 3 and not Geometry2D.is_polygon_clockwise(q) and _schodki_area(q) > 0.05:
+			out.append(q)
+	return out
+
+
+## The band's frame for one SUNKEN entry: a, d (the way down, a to b), side, the ring's lateral reach.
+static func _schodki_frame(ring: PackedVector2Array, a: Vector2, b: Vector2) -> Dictionary:
+	var d := (b - a).normalized()
+	var side := Vector2(-d.y, d.x)
+	var lo := INF
+	var hi := -INF
+	for q in ring:
+		lo = minf(lo, (q - a).dot(side))
+		hi = maxf(hi, (q - a).dot(side))
+	return {"a": a, "d": d, "side": side, "lo": lo - 2.0, "hi": hi + 2.0, "reach": a.distance_to(b)}
+
+
+## The strip of the band between `s0` and `s1` metres down from `a` (all its width).
+static func _schodki_strip(f: Dictionary, s0: float, s1: float) -> PackedVector2Array:
+	var a: Vector2 = f["a"]
+	var d: Vector2 = f["d"]
+	var side: Vector2 = f["side"]
+	return PackedVector2Array([a + d * s0 + side * float(f["lo"]), a + d * s1 + side * float(f["lo"]),
+			a + d * s1 + side * float(f["hi"]), a + d * s0 + side * float(f["hi"])])
+
+
+func _build_schodki_wisla(_site: Dictionary) -> void:
+	_no_roof = true
+	_mode = M_STONE
+	var cuts := schodki_cuts()
+	for sk: Dictionary in map._sunk:
+		if str(sk.get("site", "")) == "schodki_wisla":
+			_schodki_band(sk, cuts)
+	_no_roof = false
+
+
+## One entry's band: the quay, the coping and lamps along the top, then each tread row between the
+## walking stairs, each stair as small steps.
+func _schodki_band(sk: Dictionary, cuts: Array[PackedVector2Array]) -> void:
+	var ring: PackedVector2Array = sk["ring"]
+	var f := _schodki_frame(ring, sk["a"], sk["b"])
+	var a: Vector2 = f["a"]
+	var d: Vector2 = f["d"]
+	var side: Vector2 = f["side"]
+	var length: float = f["reach"]
+	var ha := float(sk["ha"])
+	var hb := float(sk["hb"])
+	var n := int(sk["rows"])
+	var tread := length / n
+	# The quay: the ring past the foot line, flat at the floor's end.
+	for q in _schodki_meet(_schodki_strip(f, length, length + 40.0), ring):
+		var c := _centre(q)
+		var g := minf(_ground_under(q), map.terrain_height(c.x, c.y))
+		_schodki_slab(q, minf(hb - 0.3, g - 0.05), hb, SCHODKI_QUAY.darkened(0.12), SCHODKI_QUAY)
+	_schodki_top(ring, f, ha)
+	var count := 0
+	for k in n:
+		var s0 := -1.5 if k == 0 else tread * k
+		var s1 := tread * (k + 1)
+		var top := lerpf(ha, hb, float(k) / n)
+		for poly in _schodki_meet(_schodki_strip(f, s0, s1), ring):
+			for piece in _schodki_minus(poly, cuts):
+				_schodki_row(piece, f, top, s1)
+				if k in [2, 3, 5, 6] and count % 3 == 0:
+					_schodki_boards(piece, f, top, s1, count)
+				count += 1
+	# The walking stairs: small steps over the same depth, a shade darker.
+	var m := maxi(4, roundi((ha - hb) / SCHODKI_CUT_RISE))
+	for c: PackedVector2Array in cuts:
+		for cp in _schodki_meet(c, ring):
+			for j in m:
+				var s0 := -1.5 if j == 0 else length * j / m
+				var s1 := length * (j + 1) / m
+				var y0 := lerpf(ha, hb, float(j) / m)
+				var y1 := lerpf(ha, hb, float(j + 1) / m)
+				for tp in _schodki_meet(_schodki_strip(f, s0, s1), cp):
+					_cap_piece(tp, y0, SCHODKI_CUT)
+				var line := PackedVector2Array([a + d * s1 + side * float(f["lo"]), a + d * s1 + side * float(f["hi"])])
+				for h: PackedVector2Array in Geometry2D.intersect_polyline_with_polygon(line, cp):
+					if h.size() >= 2:
+						var p := h[0]
+						var q := h[h.size() - 1]
+						_quad(Vector3(p.x, y1, p.y), Vector3(q.x, y1, q.y), Vector3(q.x, y0, q.y), Vector3(p.x, y0, p.y),
+								Vector3(d.x, 0.0, d.y), SCHODKI_CUT_RISER)
+
+
+## A tread block: walls (the riser face a shade darker) from the ground up to `top`, the tread's top
+## with a lighter nosing along its front (s = `s_front` down from `a`).
+func _schodki_row(piece: PackedVector2Array, f: Dictionary, top: float, s_front: float) -> void:
+	var c := _centre(piece)
+	var g := minf(_ground_under(piece), map.terrain_height(c.x, c.y))
+	_schodki_slab(piece, minf(top - 0.5, g - 0.05), top, SCHODKI_RISER, Color(0, 0, 0, 0))
+	for q in _schodki_meet(piece, _schodki_strip(f, s_front - 0.14, s_front + 2.0)):
+		_cap_piece(q, top, SCHODKI_NOSE)
+	for q in _schodki_meet(piece, _schodki_strip(f, s_front - 40.0, s_front - 0.14)):
+		_cap_piece(q, top, SCHODKI_SEAT)
+
+
+## A timber seat board, 0.45 m deep and 0.06 m thick, along 6-8 m of the tread's front.
+func _schodki_boards(piece: PackedVector2Array, f: Dictionary, top: float, s_front: float, count: int) -> void:
+	var a: Vector2 = f["a"]
+	var d: Vector2 = f["d"]
+	var side: Vector2 = f["side"]
+	var lo := INF
+	var hi := -INF
+	for q in piece:
+		lo = minf(lo, (q - a).dot(side))
+		hi = maxf(hi, (q - a).dot(side))
+	if hi - lo < 3.0:
+		return
+	var span := minf(6.0 + float(count % 3), hi - lo - 1.0)
+	var mid := lerpf(lo + span * 0.5 + 0.5, hi - span * 0.5 - 0.5, fposmod(count * 0.37, 1.0))
+	var s0 := s_front - 0.57
+	var s1 := s_front - 0.12
+	var w := PackedVector2Array([a + d * s0 + side * (mid - span * 0.5), a + d * s1 + side * (mid - span * 0.5),
+			a + d * s1 + side * (mid + span * 0.5), a + d * s0 + side * (mid + span * 0.5)])
+	for q in _schodki_meet(w, piece):
+		_schodki_slab(q, top, top + 0.06, SCHODKI_BOARD.darkened(0.12), SCHODKI_BOARD)
+
+
+## Walls round `poly` from y0 to y1, then a flat top (when `top_col` has alpha).
+func _schodki_slab(poly: PackedVector2Array, y0: float, y1: float, wall: Color, top_col: Color) -> void:
+	if y1 <= y0:
+		return
+	for i in poly.size():
+		var p := poly[i]
+		var q := poly[(i + 1) % poly.size()]
+		if p.distance_to(q) < 0.02:
+			continue
+		var o := _out(poly, p, q)
+		_quad(Vector3(p.x, y0, p.y), Vector3(q.x, y0, q.y), Vector3(q.x, y1, q.y), Vector3(p.x, y1, p.y),
+				Vector3(o.x, 0.0, o.y).normalized(), wall)
+	if top_col.a > 0.0:
+		_cap_piece(poly, y1, top_col)
+
+
+## The top edge: a 0.5 m coping along it and a low lamp post every ~25 m just behind it.
+func _schodki_top(ring: PackedVector2Array, f: Dictionary, ha: float) -> void:
+	var a: Vector2 = f["a"]
+	var d: Vector2 = f["d"]
+	var side: Vector2 = f["side"]
+	# The two corners nearest the promenade (least way down), west to east along the band.
+	var order: Array = []
+	for q in ring:
+		order.append(q)
+	order.sort_custom(func(p: Vector2, q: Vector2) -> bool: return (p - a).dot(d) < (q - a).dot(d))
+	var t0: Vector2 = order[0]
+	var t1: Vector2 = order[1]
+	if (t0 - a).dot(side) > (t1 - a).dot(side):
+		var sw := t0
+		t0 = t1
+		t1 = sw
+	var coping := PackedVector2Array([t0, t1, t1 - d * 0.5, t0 - d * 0.5])
+	var g := minf(_ground_under(coping), ha - 0.4)
+	_schodki_slab(coping, g - 0.05, ha + 0.12, SCHODKI_COPING.darkened(0.1), SCHODKI_COPING)
+	var span := t0.distance_to(t1)
+	var lamps := maxi(1, roundi(span / SCHODKI_LAMP_GAP))
+	for i in lamps:
+		var p := t0.lerp(t1, (i + 0.5) / lamps) - d * 1.0
+		var y: float = map.terrain_height(p.x, p.y)
+		var head := p + d * 0.7
+		_mode = M_STONE
+		_beam(Vector3(p.x, y - 0.1, p.y), Vector3(p.x, y + 3.5, p.y), 0.12, SCHODKI_POST)
+		_beam(Vector3(p.x, y + 3.45, p.y), Vector3(head.x, y + 3.45, head.y), 0.07, SCHODKI_POST)
+		_prism(_circle(head, 0.2, 4), y + 3.2, y + 3.45, Color("#ffd27a"), Color("#1e1e22"), M_LAMP, M_STONE)
+
+
+## The seats plan for crowds.gd, one SUNKEN entry (`schodki_wisla`, `schodki_wisla_w`): {"seats": [[point, yaw,
+## tread k, group]], "standing": [[point, yaw]] on the quay, "centre", "stair": key, "n": rows, "guitar": a seat
+## on a middle row}. Groups of 2-7 about 0.6 m apart with 1-3 m between them on every tread row, none within
+## 1 m of a walking stair, facing the water; tread k's top is lerp(ha, hb, k / n) (`_schodki_band`).
+static func schodki_plan(e: Dictionary) -> Dictionary:
+	if e.is_empty():
+		return {"seats": [], "standing": [], "centre": Vector2.ZERO, "stair": "", "n": 1, "guitar": Vector2.ZERO}
+	var ring := PackedVector2Array(e["ring"])
+	var a: Vector2 = e["a"]
+	var b: Vector2 = e["b"]
+	var f := _schodki_frame(ring, a, b)
+	var d: Vector2 = f["d"]
+	var side: Vector2 = f["side"]
+	var length: float = f["reach"]
+	var n := int(e["rows"])
+	var tread := length / n
+	var yaw := atan2(-d.x, -d.y)
+	var grown: Array[PackedVector2Array] = []
+	for c: PackedVector2Array in schodki_cuts():
+		var g := Geometry2D.offset_polygon(c, 1.0, Geometry2D.JOIN_MITER)
+		grown.append(g[0] if not g.is_empty() else c)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1968 + int(absf(a.x))
+	var seats: Array = []
+	var gid := 0
+	for k in n:
+		var line := PackedVector2Array([a + d * ((k + 0.62) * tread) + side * float(f["lo"]),
+				a + d * ((k + 0.62) * tread) + side * float(f["hi"])])
+		for run: Array in _schodki_runs(line, ring, grown):
+			var origin: Vector2 = run[0]
+			var way: Vector2 = (run[1] as Vector2) - origin
+			var reach := way.length()
+			way /= maxf(reach, 0.001)
+			var x := rng.randf_range(0.3, 1.5)
+			while x < reach - 0.6:
+				var size := mini([2, 2, 3, 3, 4, 4, 5, 6, 7][rng.randi() % 9], int((reach - x) / 0.6))
+				if size < 2:
+					break
+				if rng.randf() < 0.7:
+					for i in size:
+						var p := origin + way * (x + i * 0.6) + d * rng.randf_range(-0.08, 0.08)
+						seats.append([p, yaw + rng.randf_range(-0.4, 0.4), k, gid])
+					gid += 1
+				x += size * 0.6 + rng.randf_range(1.0, 3.0)
+	# The quay: small standing groups 1.1 m past the foot line.
+	var standing: Array = []
+	var qline := PackedVector2Array([a + d * (length + 1.1) + side * float(f["lo"]), a + d * (length + 1.1) + side * float(f["hi"])])
+	for run: Array in _schodki_runs(qline, ring, grown):
+		var origin: Vector2 = run[0]
+		var way: Vector2 = (run[1] as Vector2) - origin
+		var reach := way.length()
+		way /= maxf(reach, 0.001)
+		var x := rng.randf_range(0.5, 3.0)
+		while x < reach - 0.7:
+			var size := mini(rng.randi_range(2, 5), int((reach - x) / 0.7))
+			if size < 2:
+				break
+			for i in size:
+				standing.append([origin + way * (x + i * 0.7), yaw + rng.randf_range(-0.4, 0.4)])
+			x += size * 0.7 + rng.randf_range(3.0, 8.0)
+	# The guitarist: on the fifth row, a few metres along from the axis, clear of a stair.
+	var guitar := a + d * (4.62 * tread)
+	for x: float in [2.0, 3.0, 4.0, 5.0, 6.0, -3.0, -4.0, -5.0, 8.0, 10.0]:
+		var cand := a + d * (4.62 * tread) + side * x
+		var clear := Geometry2D.is_point_in_polygon(cand, ring)
+		for c: PackedVector2Array in grown:
+			if Geometry2D.is_point_in_polygon(cand, c):
+				clear = false
+		if clear:
+			guitar = cand
+			break
+	return {"seats": seats, "standing": standing, "centre": (a + b) * 0.5, "stair": str(e["key"]), "n": n, "guitar": guitar}
+
+
+## The parts of `line` inside `ring` and outside every cut, as [from, to] pairs of at least 1 m.
+static func _schodki_runs(line: PackedVector2Array, ring: PackedVector2Array, cuts: Array[PackedVector2Array]) -> Array:
+	var runs: Array = []
+	var inside: Array = Geometry2D.intersect_polyline_with_polygon(line, ring)
+	for seg: PackedVector2Array in inside:
+		var pieces: Array = [seg]
+		for c: PackedVector2Array in cuts:
+			var next: Array = []
+			for pc: PackedVector2Array in pieces:
+				next.append_array(Geometry2D.clip_polyline_with_polygon(pc, c))
+			pieces = next
+		for pc: PackedVector2Array in pieces:
+			if pc.size() >= 2 and pc[0].distance_to(pc[pc.size() - 1]) >= 1.0:
+				runs.append([pc[0], pc[pc.size() - 1]])
+	return runs

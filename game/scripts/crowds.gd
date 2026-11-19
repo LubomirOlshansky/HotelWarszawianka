@@ -85,7 +85,9 @@ const POLICE_NEAR := 15.0
 const POLICE_GAP := 45.0
 ## A queue starts on the footway within this of its place.
 const FOOT_REACH := 40.0
-const STEPS_MAX := 80
+## The steps' crowd at its peak (F, 2026-11-19: the whole 195 m band, was 80 on a shore-distance fan).
+const STEPS_MAX := 180
+const STEPS_KEYS := ["schodki_wisla", "schodki_wisla_w"]
 const PLAN_C_MAX := 40
 ## City-life satire #1 (loud_cars.gd, 2026-11-02): the car meet at Browary's gate square, people
 ## standing round the parked supercars with their phones (kind `meet`, loud_cars.gd meet_slots():
@@ -1155,7 +1157,9 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 				site[key] = d[key]
 		_add_site(site)
 	if at.has(STEPS_ID):
-		_add_site({"id": STEPS_ID, "kind": "steps", "at": at[STEPS_ID], "max": STEPS_MAX})
+		# At the seating band's middle (SUNKEN `schodki_wisla`), not the places.json point.
+		var band := Landmarks.schodki_plan(MapBuilderData.sunk_spec(STEPS_KEYS[0]))
+		_add_site({"id": STEPS_ID, "kind": "steps", "at": band["centre"] if band["stair"] != "" else at[STEPS_ID], "max": STEPS_MAX})
 	var yards := CHILL.duplicate()
 	yards.merge(BULWARY)
 	yards.merge(NOWY_SWIAT)
@@ -1570,48 +1574,63 @@ static func _resample(pts: PackedVector2Array, gap: float, count: int) -> Packed
 	return out
 
 
-## The steps: the river's direction (the nearest wet ground in 24 directions), rows from the
-## water's edge back, groups of 2-6 along them; each slot a seeded order so a bigger crowd only
-## adds people. Row 0 stands (by the rail), the rest sit; one guitarist.
+## The steps (F, 2026-11-19): the seating band's plan (Landmarks.schodki_plan, one per SUNKEN entry
+## `schodki_wisla`, `schodki_wisla_w`): groups sitting on their tread's top, every fifth person standing on
+## the quay; the groups in a seeded order so a bigger crowd only adds groups. One guitarist on a middle row.
 func _place_steps(s: Dictionary) -> void:
-	var at: Vector2 = s["at"]
-	var face := Vector2.RIGHT
-	var reach := 120.0
-	if map != null:
-		var best := INF
-		for a in 24:
-			var dir := Vector2.from_angle(a * TAU / 24.0)
-			var r := 4.0
-			while r < 300.0:
-				if map.shore_distance(at.x + dir.x * r, at.y + dir.y * r) > 0.5:
-					if r < best:
-						best = r
-						face = dir
-					break
-				r += 4.0
-		reach = best if best < INF else 30.0
-	var side := Vector2(-face.y, face.x)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 3303
+	var groups: Array = []
+	var quay: Array = []
+	var centre: Vector2 = s["at"]
+	var face := Vector2.RIGHT
+	var guitar := centre
+	var guitar_y := NAN
+	var first := true
+	for key: String in STEPS_KEYS:
+		var spec := MapBuilderData.sunk_spec(key)
+		var plan := Landmarks.schodki_plan(spec)
+		var stair: Dictionary = _sunk_live(key)
+		var n := int(plan["n"])
+		var by_group := {}
+		for st: Array in plan["seats"]:
+			var slot := {"p": st[0], "pose": SIT, "yaw": float(st[1]), "shirt": BRIGHT[rng.randi() % BRIGHT.size()]}
+			if not stair.is_empty():
+				slot["y"] = lerpf(float(stair["ha"]), float(stair["hb"]), float(st[2]) / float(n))
+			var gid := int(st[3]) + (0 if first else 100000)
+			if not by_group.has(gid):
+				by_group[gid] = []
+			(by_group[gid] as Array).append(slot)
+		for gid: int in by_group:
+			groups.append([rng.randf(), by_group[gid]])
+		for st: Array in plan["standing"]:
+			var slot := {"p": st[0], "pose": STAND, "yaw": float(st[1]), "shirt": BRIGHT[rng.randi() % BRIGHT.size()]}
+			if not stair.is_empty():
+				slot["y"] = float(stair["hb"])
+			quay.append([rng.randf(), slot])
+		if first:
+			centre = plan["centre"]
+			guitar = plan["guitar"]
+			if not stair.is_empty():
+				guitar_y = lerpf(float(stair["ha"]), float(stair["hb"]), 4.0 / float(n))
+			face = ((spec["b"] as Vector2) - (spec["a"] as Vector2)).normalized()
+		first = false
+	groups.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
+	quay.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
 	var slots: Array = []
-	for row in 8:
-		var back := maxf(reach - 3.0 - row * 1.3, -20.0)
-		var x := -28.0
-		while x < 28.0:
-			var g := rng.randi_range(2, 6)
-			for i in g:
-				var p := at + face * back + side * (x + i * 0.75) + Vector2(rng.randf_range(-0.15, 0.15), rng.randf_range(-0.15, 0.15))
-				if map == null or map.shore_distance(p.x, p.y) <= 0.0:
-					slots.append({"p": p, "pose": STAND if row == 0 else SIT, "yaw": atan2(-face.x, -face.y) + rng.randf_range(-0.35, 0.35),
-							"key": rng.randf(), "shirt": BRIGHT[rng.randi() % BRIGHT.size()]})
-			x += g * 0.75 + rng.randf_range(1.0, 2.6)
-	slots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["key"] < b["key"])
+	var qi := 0
+	for g: Array in groups:
+		for slot: Dictionary in g[1]:
+			slots.append(slot)
+			if slots.size() % 5 == 0 and qi < quay.size():
+				slots.append((quay[qi] as Array)[1])
+				qi += 1
 	s["slots"] = slots
 	s["face"] = face
-	# The guitarist: the middle of the third row, sitting, in orange.
-	var g_at := at + face * maxf(reach - 3.0 - 2.0 * 1.3, -20.0)
-	s["guitar"] = g_at
-	s["door"] = at + face * maxf(reach - 6.0, 0.0)
+	s["guitar"] = guitar
+	s["guitar_y"] = guitar_y
+	s["at"] = centre
+	s["door"] = centre + face * 8.0
 
 
 ## Plac Zbawiciela: groups of 2-5 standing round points on the footways within 30 m, facing their
@@ -2122,10 +2141,14 @@ func _figures(s: Dictionary) -> Array:
 			var slots: Array = s["slots"]
 			for k in mini(n, slots.size()):
 				var sl: Dictionary = slots[k]
-				out.append([_ground(sl["p"]), sl["yaw"], sl["pose"], Color(sl["shirt"]), rng.randf() * 0.99])
+				var sp: Vector2 = sl["p"]
+				var y := float(sl["y"]) if sl.has("y") else _ground(sp).y
+				out.append([Vector3(sp.x, y, sp.y), sl["yaw"], sl["pose"], Color(sl["shirt"]), rng.randf() * 0.99])
 			if bool(s.get("guitar_on", false)):
 				var face: Vector2 = s["face"]
-				out.append([_ground(s["guitar"]), atan2(-face.x, -face.y), SIT, GUITAR_SHIRT, 0.0])
+				var gp: Vector2 = s["guitar"]
+				var gy := float(s["guitar_y"]) if not is_nan(float(s.get("guitar_y", NAN))) else _ground(gp).y
+				out.append([Vector3(gp.x, gy, gp.y), atan2(-face.x, -face.y), SIT, GUITAR_SHIRT, 0.0])
 		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe", "view", "view_dj":
 			var slots: Array = s["slots"]
 			for k in mini(n, slots.size()):

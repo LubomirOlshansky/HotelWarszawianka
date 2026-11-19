@@ -173,12 +173,12 @@ func _check_rules() -> void:
 				if n < 0 or n > 24:
 					problems.append("queue %s at %.1f day %d: %d (0-24)" % [curve, h * 0.5, d, n])
 	# The steps: hour × month × rain, sunset 1.0.
-	var steps: Array = [[19.5, 7, false, 80], [14.0, 7, false, 24], [10.0, 7, false, 8], [23.0, 7, false, 56], [1.0, 7, false, 24],
-			[3.0, 7, false, 4], [19.5, 7, true, 8], [19.5, 11, false, 4], [19.5, 5, false, 56], [19.5, 4, false, 24], [18.0, 7, false, 48]]
+	var steps: Array = [[19.5, 7, false, 180], [14.0, 7, false, 54], [10.0, 7, false, 18], [23.0, 7, false, 126], [1.0, 7, false, 54],
+			[3.0, 7, false, 9], [19.5, 7, true, 18], [19.5, 11, false, 9], [19.5, 5, false, 126], [19.5, 4, false, 54], [18.0, 7, false, 108]]
 	for r: Array in steps:
 		var got := Crowds.steps_count(float(r[0]), int(r[1]), bool(r[2]), 19.5)
 		_expect(got == int(r[3]), "steps at %.1f month %d rain %s: %d (want %d)" % [r[0], r[1], r[2], got, r[3]])
-	_expect(Crowds.steps_count(21.0, 7, false, 21.0) == 80, "Live's sunset at 21:00: the steps full")
+	_expect(Crowds.steps_count(21.0, 7, false, 21.0) == 180, "Live's sunset at 21:00: the steps full")
 	var prev := 0.0
 	for k in 8:
 		var v := Crowds.steps_curve(18.0 + k * 0.25, 19.75)
@@ -186,7 +186,7 @@ func _check_rules() -> void:
 		prev = v
 	for h in 48:
 		var n := Crowds.steps_count(h * 0.5, 7, false, 19.5, 2.0)
-		_expect(n <= 160, "steps doubled at %.1f: %d (≤ 160)" % [h * 0.5, n])
+		_expect(n <= 360, "steps doubled at %.1f: %d (≤ 360)" % [h * 0.5, n])
 	_expect(Crowds.guitar_on(24, 19.5) and not Crowds.guitar_on(6, 19.5) and not Crowds.guitar_on(24, 10.0), "the guitarist's rule")
 	# Plac Zbawiciela: Fri/Sat nights in summer.
 	_expect(roundi(40 * Crowds.plan_c_level(23.0, 5, 7, false)) == 40, "Plan C Friday 23:00: 40")
@@ -422,7 +422,7 @@ func _check_sites(c: Crowds) -> void:
 		if verbose:
 			print("  %s: door %s, %.1f m from the place, line of %d" % [s["id"], s["door"], (s["door"] as Vector2).distance_to(s["at"]), line.size()])
 	var steps: Dictionary = c.sites[c.by_id["schodki_kopernik"]]
-	_expect((steps["slots"] as Array).size() >= Crowds.STEPS_MAX, "the steps: %d slots for 80" % (steps["slots"] as Array).size())
+	_expect((steps["slots"] as Array).size() >= Crowds.STEPS_MAX, "the steps: %d slots for 180" % (steps["slots"] as Array).size())
 	var sq: Dictionary = c.sites[c.by_id["plan_c"]]
 	_expect((sq["slots"] as Array).size() >= Crowds.PLAN_C_MAX, "Plan C: %d slots for 40" % (sq["slots"] as Array).size())
 

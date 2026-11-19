@@ -1266,6 +1266,8 @@ func _find_sites() -> void:
 	# The boulevards' dressing (2026-11-02, spec docs/landmarks/specs/bulwary.md).
 	_find_bulwar_dress()
 	_find_bulwary_pool()
+	# Schodki nad Wisłą (2026-11-19, spec docs/landmarks/specs/schodki_wisla.md): the seating steps' band.
+	_find_schodki_wisla()
 	_find_srodmiescie()
 	# The railway S3c-e (2026-11-02): the WKD stops, from the Mac photo gather.
 	_find_wkd()
@@ -1912,6 +1914,9 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"bulwary_basen":
 				_id = 0  # the children's corner: no card, not on the picking grid
 				_build_bulwary_pool(s)
+			"schodki_wisla":
+				_id = 0  # ground-level steps: no card, not on the picking grid
+				_build_schodki_wisla(s)
 			"srodmiescie":
 				_build_srodmiescie(s)
 			"wkd_srodmiescie":

@@ -281,6 +281,7 @@ const BUDGET := {
 	"bulwary_bary": 1760,
 	"bulwary_pomosty": 1450,
 	"bulwary_basen": 700,
+	"schodki_wisla": 3600,  # 2026-11-19: the seating band, ~195 m (L2): ten rows, the walking stairs, boards, coping, lamps, quay
 	"marina": 5200,
 	"port_majami": 4200,
 	"port_wtw": 1400,
