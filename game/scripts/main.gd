@@ -1766,8 +1766,21 @@ func _build_world() -> void:
 	dekalog_tour = _join(Tour.new("dekalog"), world) as Tour
 	kino_tour = _join(Tour.new("kino"), world) as Tour
 	await LoadYield.tick("tours")
-	_build_shisha(data, world)
-	await LoadYield.tick("_build_shisha")
+	# Ivan's call, the two pickups and the entrance (shisha.gd wires itself); none with --no-traffic
+	# or --shisha=0. Its way into the lounge's room (`_enter_lounge`) is main.gd's hook, set after the
+	# join, and so are the --shisha-lounge / --shisha-terrace test starts: the room is main.gd's. The
+	# lounge plays itself in a test run that arrives at it by itself.
+	shisha = _join(Shisha.new(), world) as Shisha
+	if shisha != null:
+		var self_played := flags.shisha_flag == "arrive" or flags.autopilot
+		shisha.enter_lounge = _enter_lounge if not self_played else func(v: Dictionary) -> void: _enter_lounge(v, true)
+		if flags.shisha_flag in ["lounge", "terrace"]:
+			get_tree().create_timer(1.0).timeout.connect(func() -> void:
+				shisha.meet()
+				shisha.skip_inside()
+				_enter_lounge({"flavour": "master", "strength": 5, "name": ["Forhend", "Forehand"]}, true)
+				lounge.auto_how = "terrace" if flags.shisha_flag == "terrace" else "smoke")
+	await LoadYield.tick("shisha")
 	# Bartek's call and the stranded TESŁO cars (ev_tow.gd wires itself), under main.gd; none with
 	# --no-traffic or --ev=0. The director says when Bartek may ring, with the tow's own test for
 	# everything outside the kit: it may start from the air (`world_free` refuses the helicopter).
@@ -3220,7 +3233,7 @@ func _build_stories(world: Node3D) -> void:
 				"at": kino_tour.pickup_at(), "colour": kino_tour.colour, "hours": kino_tour.hours,
 				"call": kino_tour.ring, "meet": kino_tour.meet, "busy": kino_tour.busy, "idle": kino_tour.idle})
 	# The shisha night is a hidden quest (F 2026-11-08): no story, no pin, no phone call. Press and
-	# hold "+" for SHISHA_HOLD_S seconds anywhere (`_shisha_secret`, F 2026-11-10) and he rings.
+	# hold "+" for Shisha.SECRET_HOLD_S seconds anywhere (`_shisha_secret`, F 2026-11-10) and he rings.
 	if shisha != null:
 		shisha.auto = false
 	# Bartek's dead TESŁO (ev_tow.gd, F 2026-11-08): a helicopter story with no fixed start, so it
@@ -3257,17 +3270,13 @@ func _build_stories(world: Node3D) -> void:
 
 
 ## The shisha night's hidden start (F 2026-11-08, 2026-11-10: anywhere in the city, only this, no
-## pin or marker): hold "+" (the zoom-in button, or + / = on a keyboard) SHISHA_HOLD_S seconds with
-## nothing else on, and Ivan rings.
-const SHISHA_HOLD_S := 4.0
-
-
-## "+" held SHISHA_HOLD_S seconds (a few times a second, `_story_tick`): on the ground, no other
-## quest, not inside a club or the lounge, the quest idle.
+## pin or marker): "+" (the zoom-in button, or + / = on a keyboard) held `Shisha.SECRET_HOLD_S`
+## seconds (read a few times a second, `_story_tick`) on the ground, with no other quest, not inside
+## a club or the lounge, the quest idle, and Ivan rings.
 func _shisha_secret(busy: bool) -> void:
 	if busy or shisha == null or shisha.home.is_empty() or flying or car == null or not shisha.idle():
 		return
-	if (club != null and club.inside) or (lounge != null and lounge.inside) or hud.zoom_in_held_s() < SHISHA_HOLD_S:
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or hud.zoom_in_held_s() < Shisha.SECRET_HOLD_S:
 		return
 	if shisha.ring():
 		print("shisha: + held: Ivan rings")
@@ -3471,80 +3480,6 @@ func _on_club_left() -> void:
 
 
 # --- the shisha night ---------------------------------------------------------------------------
-
-## Ivan's call, the two pickups, the entrance and the lounge with its choices (shisha.gd, an
-## activity of the kit; lounge.gd). None with --no-traffic or --shisha=0.
-func _build_shisha(data: Dictionary, world: Node3D) -> void:
-	if traffic == null or graph == null or flags.shisha_flag == "0":
-		return
-	shisha = Shisha.new()
-	shisha.name = "Shisha"
-	shisha.hud = hud
-	shisha.dialogue = dialogue
-	shisha.wallet = wallet
-	shisha.map = map
-	shisha.graph = graph
-	shisha.origin = data.get("origin", [52.234, 21.024])
-	shisha.log_on = flags.shisha_log
-	shisha.auto = flags._shisha_auto
-	shisha.autopilot = flags.autopilot
-	shisha.vehicle = func() -> Array:
-		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true]
-		return [car.global_position, car.vel.length() * 3.6, false]
-	shisha.clock = func() -> float: return float(tod.local_clock()["hour"])
-	shisha.clock_node = tod  # a yes by day jumps the clock to the night (game_time.gd)
-	# The lounge plays itself in a test run that arrives at it by itself.
-	var self_played := flags.shisha_flag == "arrive" or flags.autopilot
-	shisha.enter_lounge = _enter_lounge if not self_played else func(v: Dictionary) -> void: _enter_lounge(v, true)
-	world.add_child(shisha)
-	shisha.setup(world)
-	activities.add(shisha)  # the director says when Ivan may ring (nothing else on: `world_free`)
-	match flags.shisha_flag:
-		"call":
-			get_tree().create_timer(1.0).timeout.connect(func() -> void: shisha.ring())
-		"meet":
-			# The car at Ivan's kerb, as a player meeting him in person (Autopilot 2026-11-08: it
-			# started at the spawn, 1.3 km off).
-			get_tree().create_timer(1.0).timeout.connect(func() -> void:
-				var k: Vector3 = shisha.home["at"]
-				car.global_position = Vector3(k.x, map.ground_height(k.x, k.z), k.z)
-				car.reset_physics_interpolation()
-				shisha.meet())
-		"hold":
-			# The hidden start played by itself, far from Ivan's block (it works anywhere): "+" held
-			# 2 s (must not ring), then 4.5 s (rings), as the zoom button or the + key sends it.
-			get_tree().create_timer(2.0).timeout.connect(func() -> void:
-				for held: float in [2.0, SHISHA_HOLD_S + 0.5]:
-					hud.zoom_in_key(true)
-					await get_tree().create_timer(held).timeout
-					hud.zoom_in_key(false)
-					print("shisha hold test: %.1f s, state %s" % [held, Shisha.Phase.keys()[shisha.phase]])
-					await get_tree().create_timer(1.0).timeout)
-		"door", "arrive":
-			# Both friends in, the car 25 m up Emilii Plater from the lounge's kerb, facing it: the
-			# shots of the entrance's two rings (F 2026-11-11: "I don't see how to enter"). "arrive":
-			# the car stopped in the kerb ring, so they walk in and the lounge plays itself (the
-			# door, the lift, the three choices at the table, the mini-game).
-			get_tree().create_timer(1.0).timeout.connect(func() -> void:
-				shisha.meet()
-				shisha._board_bogdan()
-				var k: Dictionary = shisha.door
-				var yaw: float = k["yaw"]
-				var back := 25.0 if flags.shisha_flag == "door" else 0.0
-				var p: Vector3 = k["at"] - Vector3(sin(yaw), 0.0, cos(yaw)) * back
-				car.global_position = Vector3(p.x, map.ground_height(p.x, p.z), p.z)
-				car.rotation.y = yaw + PI
-				car.vel = Vector3.ZERO
-				car.forward_speed = 0.0
-				car.reset_physics_interpolation())
-		"lounge", "terrace":
-			get_tree().create_timer(1.0).timeout.connect(func() -> void:
-				shisha.meet()
-				shisha.skip_inside()
-				_enter_lounge({"flavour": "master", "strength": 5, "name": ["Forhend", "Forehand"]}, true)
-				lounge.auto_how = "terrace" if flags.shisha_flag == "terrace" else "smoke")
-
 
 ## Into Senatorek (lounge.gd: the door, the lift, the choices at the table): the HUD aside, the car
 ## waiting at the kerb, the camera on the room.
