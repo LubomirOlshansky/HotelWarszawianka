@@ -7,7 +7,8 @@ extends SceneTree
 ##   2 every `ty` on a fence, wall or hedge line of map/centrum.json has a `looks` row; every row
 ##     has the keys its `draw` needs (rail: h, colour, post {every, w}, rails; slab: h, thick,
 ##     colour; every drawn row a family); every `post.every` is 2 or 4 (a multiple of the 2 m
-##     panel soft_things.gd remembers); every colour parses; `alt` shares add up to at most 1;
+##     panel soft_things.gd remembers; a `keep` row's posts are its classic look's: stadium_fence's
+##     1.5 m); every colour parses; `alt` shares add up to at most 1;
 ##   3 on a flat synthetic map, one line per draw kind built by build_barriers under typed: `rail`
 ##     makes 4 x posts + 2 x rails x segments triangles (its foot, where the row has one, wall_along's
 ##     10 a segment) and the same collider faces as railing_along at that height; `slab` makes what
@@ -22,10 +23,15 @@ extends SceneTree
 ##     of the line's run and at its corners, each with its panel index (soft_things.gd's), its
 ##     row, its run and its seed, the soft line's first instance and count in its tile's meta;
 ##     under classic and typed no piece is made; the whole city's build (no sector) makes its
-##     `Panels_i_j` node with the pieces and the panel material;
+##     `Panels_i_j` node with the pieces and the panel material; W5: the same for a line of every
+##     light row (bars_pier's `in_mesh` posts: rail_lite_along's 4 triangles a post in the city mesh,
+##     nothing else); a row not marked panel (deck_railing) stays typed; the stadium's railing (#808)
+##     is classic under typed and, under panels, pieces of its row at its types row's height with
+##     the classic railing's colliders and no triangle in the city mesh;
 ##   7 W4: the whole map under panels on the flat map: the collider faces per class are typed's,
 ##     face for face (the cars meet the same fences), every line of a panel row is drawn as
-##     panels and none of another; the pieces are printed;
+##     panels and none of another; the pieces are printed; W5: the light-family lines still drawn
+##     in the city mesh are named by type (`mesh_light`), and none is of a type outside MESH_LIGHT;
 ##   8 with `--paths` (verify step `barrierpaths`, the prebuilt city needed): in each of the
 ##     sectors (check_colliders.gd's ten; `--all` every sector) the runtime build in the look the
 ##     prebuilt city was baked in (map/sectors/city.stamp) has the prebuilt sector's city mesh
@@ -39,6 +45,10 @@ const Chunked := preload("res://scripts/chunked_surface.gd")
 const PanelRule := preload("res://scripts/panel_rule.gd")
 const MapBuilder := preload("res://scripts/map_builder.gd")
 const PANEL_RHYTHMS := [2.0, 4.0]
+## 7 (W5): the light types whose lines may still be drawn in the city mesh under panels: the tram's
+## railing (`draw: keep`: the placed tram_railing, a hard rail by the tracks). Every other light line
+## is panels (bars_pier's posts stand in the mesh as part of its panel line, W7's piers).
+const MESH_LIGHT := ["rail_tram"]
 ## 8: check_colliders.gd's ten sectors (the stadium's grounds, Marszałkowska and the spawn,
 ## Poniatowski's viaduct and the river, the Old Town, Powiśle, Centralna's cutting, Praga).
 const PATH_SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2, 0), Vector2i(-2, 1),
@@ -118,7 +128,7 @@ func _rows() -> void:
 				problems.append("2 %s (%s): no %s" % [id, draw, key])
 		if row.has("post"):
 			var post: Dictionary = row["post"]
-			if not float(post.get("every", 0.0)) in PANEL_RHYTHMS:
+			if not float(post.get("every", 0.0)) in PANEL_RHYTHMS and draw != "keep":
 				problems.append("2 %s: post.every %s is not 2 or 4" % [id, post.get("every")])
 			if draw == "rail" and not float(post.get("w", 0.0)) > 0.0:
 				problems.append("2 %s: no post width" % id)
@@ -261,8 +271,12 @@ func _panels(map: Node3D) -> void:
 	var want_runs: Array[float] = [0.0, 2.0, 4.0, 5.0, 6.0, 8.0]
 	var want_panels: Array[int] = [0, 1, 2, 2, 3, 4]
 	var b: RefCounted = map.barriers
-	for case: Array in [["fence", "fence_plain", 1.3], ["fence", "bars_black", -1.0], ["hedge", "hedge_low", 0.7]]:
-		for sc: String in ["H", "S"]:
+	for case: Array in [["fence", "fence_plain", 1.3], ["fence", "bars_black", -1.0], ["hedge", "hedge_low", 0.7],
+			["fence", "green_fence", -1.0], ["fence", "low_lawn", -1.0], ["fence", "ball_net", -1.0], ["fence", "wood", -1.0],
+			["wall", "wood", -1.0], ["fence", "hoarding", -1.0], ["hedge", "hedge_tall", -1.0], ["fence", "chain_posts", -1.0],
+			["fence", "post_row", -1.0], ["fence", "bars_pier", -1.0]]:
+		# (A wall is never soft: soft_things breaks fences and hedges.)
+		for sc: String in (["H"] if case[0] == "wall" else ["H", "S"]):
 			var extra := {"ty": case[1], "sc": sc}
 			if float(case[2]) > 0.0:
 				extra["hs"] = case[2]
@@ -275,9 +289,14 @@ func _panels(map: Node3D) -> void:
 			if not (b.panel_tiles as Dictionary).is_empty():
 				problems.append("6 %s: classic made panel pieces" % case[1])
 			var panels := _build(map, [l], &"panels")
-			var what := "%s (%s)" % [case[1], sc]
-			if int(panels[0]) != 0:
-				problems.append("6 %s: %d triangles in the city mesh under panels" % [what, panels[0]])
+			var what := "%s %s (%s)" % [case[0], case[1], sc]
+			var lrow := Solidity.look_row(StringName(str(case[1])))
+			var mesh_tris := 0
+			if bool((lrow.get("post", {}) as Dictionary).get("in_mesh", false)):
+				var pe := float(lrow["post"]["every"])
+				mesh_tris = 4 * (floori(8.2 / pe) + 1 + (1 if fmod(8.2, pe) > 0.05 else 0))
+			if int(panels[0]) != mesh_tris:
+				problems.append("6 %s: %d triangles in the city mesh under panels, want %d" % [what, panels[0], mesh_tris])
 			if panels[1] != typed[1]:
 				problems.append("6 %s: collider faces %s under panels, %s typed" % [what, panels[2], typed[2]])
 			if var_to_str(b.soft_data()) != var_to_str(typed_soft):
@@ -320,12 +339,13 @@ func _panels(map: Node3D) -> void:
 				problems.append("6 %s: a hard line in the soft meta %s" % [what, ids])
 			if soft and typed_soft.is_empty():
 				problems.append("6 %s: the line is not soft (the case tests nothing)" % what)
-	# A row not marked panel (low_lawn) stays typed under panels.
-	var lawn := _line("fence", p, {"ty": "low_lawn"})
-	var lt := _build(map, [lawn], &"typed")
-	var lp := _build(map, [lawn], &"panels")
-	if lt[0] != lp[0] or lt[1] != lp[1] or not (b.panel_tiles as Dictionary).is_empty():
-		problems.append("6 low_lawn: typed %d triangles, panels %d (and %d tiles of pieces)" % [lt[0], lp[0], (b.panel_tiles as Dictionary).size()])
+	# A row not marked panel (deck_railing, heavy) stays typed under panels.
+	var deck := _line("fence", p, {"ty": "deck_railing"})
+	var lt := _build(map, [deck], &"typed")
+	var lp := _build(map, [deck], &"panels")
+	if lt[0] != lp[0] or lt[1] != lp[1] or not (b.panel_tiles as Dictionary).is_empty() or int(lt[0]) == 0:
+		problems.append("6 deck_railing: typed %d triangles, panels %d (and %d tiles of pieces)" % [lt[0], lp[0], (b.panel_tiles as Dictionary).size()])
+	_stadium(map)
 	# The node as the whole city's build makes it (map_builder.gd `build` makes the shared things
 	# later, at the trees, so `_build_panels` makes them itself): Panels_5_5, the pieces, the material.
 	map._in_sector = false
@@ -341,6 +361,39 @@ func _panels(map: Node3D) -> void:
 		map.remove_child(node)
 		node.free()
 	map._out = null
+	map._in_sector = false
+	map._sector = Vector2i.ZERO
+
+
+## 6 (W5): the stadium's railing (#808): a line of it 250 m from the stadium's centre, in its tile.
+func _stadium(map: Node3D) -> void:
+	var c := CityBarriers.STADIUM_CENTRE + Vector2(250.0, 0.0)
+	var key := Vector2i(floori(c.x / 512.0), floori(c.y / 512.0))
+	map._in_sector = true
+	map._sector = key
+	map._sector_rect = Rect2(key.x * 512.0, key.y * 512.0, 512.0, 512.0)
+	var p := [c.x, c.y, c.x + 5.0, c.y, c.x + 5.0, c.y + 3.2]
+	var b: RefCounted = map.barriers
+	for sc: String in ["H", "S"]:
+		var l := _line("fence", p, {"ty": "stadium_fence", "sc": sc})
+		if not CityBarriers.stadium_fence_line(l):
+			problems.append("6 stadium: the test line is not the stadium's railing")
+			break
+		var classic := _build(map, [l], &"classic")
+		var classic_soft: Dictionary = b.soft_data()
+		var typed := _build(map, [l], &"typed")
+		if typed[0] != classic[0] or typed[1] != classic[1] or not (b.panel_tiles as Dictionary).is_empty():
+			problems.append("6 stadium (%s): typed %d triangles %s, classic %d %s" % [sc, typed[0], typed[2], classic[0], classic[2]])
+		var panels := _build(map, [l], &"panels")
+		if int(panels[0]) != 0 or panels[1] != classic[1] or var_to_str(b.soft_data()) != var_to_str(classic_soft):
+			problems.append("6 stadium (%s): panels %d triangles, faces %s (classic %s), the soft list %s" % [sc, panels[0], panels[2],
+					classic[2], "the same" if var_to_str(b.soft_data()) == var_to_str(classic_soft) else "differs"])
+		var t = (b.panel_tiles as Dictionary).get(key)
+		var h := float(Solidity.type_row(&"stadium_fence")["height"])
+		if t == null or (t.buf as PackedFloat32Array).size() / CityBarriers.PANEL_FLOATS != 6 \
+				or int(t.buf[12]) != PanelRule.row_of(&"stadium_fence") or not is_equal_approx(t.buf[5], h + PanelRule.SINK):
+			problems.append("6 stadium (%s): pieces %s, want 6 of row %d at %.2f m" % [sc, "none" if t == null else str(
+					(t.buf as PackedFloat32Array).size() / CityBarriers.PANEL_FLOATS), PanelRule.row_of(&"stadium_fence"), h])
 	map._in_sector = false
 	map._sector = Vector2i.ZERO
 
@@ -378,7 +431,10 @@ func _whole_panels(map: Node3D, data: Dictionary) -> Dictionary:
 	if counted != int(b.panel_pieces):
 		problems.append("7 the tiles hold %d pieces, %d counted" % [counted, b.panel_pieces])
 	var out := {"panel lines": lines, "of": want, "pieces": counted, "tiles": (b.panel_tiles as Dictionary).size(),
-			"city mesh triangles": st.vertex_count / 3}
+			"city mesh triangles": st.vertex_count / 3, "light lines in the city mesh": (b.mesh_light as Dictionary).duplicate()}
+	for ty: String in b.mesh_light:
+		if not ty in MESH_LIGHT:
+			problems.append("7 %d lines of light type %s drawn in the city mesh under panels" % [b.mesh_light[ty], ty])
 	if int(typed_counts.get(&"rail", 0)) + int(typed_counts.get(&"slab", 0)) != int(b.look_counts.get(&"rail", 0)) + int(b.look_counts.get(&"slab", 0)):
 		problems.append("7 the typed lines' counts differ: %s typed, %s panels" % [typed_counts, b.look_counts])
 	map._solids = {}

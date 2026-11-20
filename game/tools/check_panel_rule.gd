@@ -15,7 +15,14 @@ extends SceneTree
 ##     `panel` row flagged, the colours the palette's; the rows the walls doc's W4 names (six) are
 ##     the palette's `panel` rows;
 ##   5 a line's seed picks the alt colour city_barriers.gd `_typed` picks, for 400 ids of every
-##     row with an alt.
+##     row with an alt;
+##   6 W5 (walls doc 6.4): the tops and closed rows as `sample` draws them, 4 m of each panel row in
+##     a grid of 2 cm: a `sag` row's top rail midway between two posts SAG lower than at a post, its
+##     fill never over the sagging line; a `leafy` row's leaves never over the top nor under it by
+##     more than LEAFY, and the edge not flat (a noise); a closed row (wood, hoarding, the hedges)
+##     solid everywhere under its top line (no hole), a closed row's bars drawn as joints; a row with
+##     `in_mesh` posts draws none in its panels; the shader carries SAG, LEAFY, LEAF_CELL,
+##     LEAFY_FOOT, CLOSED and JOINT_SHADE as panel_rule.gd has them.
 ## Prints `check_panel_rule: OK (...)` (exit 0) or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_panel_rule.gd
 
@@ -25,12 +32,15 @@ const CityBarriers := preload("res://scripts/city_barriers.gd")
 const SHADER := "res://shaders/panel.gdshader"
 ## The gate's pixel sizes (m): the closest zoom's finest, the default's two ends, the widest's.
 const PIXELS: Array[float] = [0.05, 0.10, 0.17, 0.26]
-## The walls doc's W4 rows (section 10): 173 km of light fences and low hedges.
+## The walls doc's W4 rows (section 10): 173 km of light fences and low hedges; W5's, the rest of the
+## light rows (rail_tram stays the tram's railing, `draw: keep`).
 ## The gate (walls doc 10), not panel_rule.gd's own numbers: bars at least this many pixels apart
 ## and this many wide.
 const GATE_GAP := 2.5
 const GATE_WIDTH := 1.0
 const W4_ROWS: Array[StringName] = [&"fence_plain", &"bars_black", &"mesh_panel", &"chain_link", &"rail_street", &"hedge_low"]
+const W5_ROWS: Array[StringName] = [&"green_fence", &"low_lawn", &"ball_net", &"wood", &"hoarding", &"hedge_tall",
+		&"chain_posts", &"post_row", &"stadium_fence", &"bars_pier"]
 
 var problems: Array[String] = []
 
@@ -47,6 +57,7 @@ func _initialize() -> void:
 	_shader()
 	_texture(rows)
 	_seeds()
+	_tops(rows)
 	if problems.is_empty():
 		print("check_panel_rule: OK (%d panel rows, %d with bars, at %s m a pixel)" % [rows.size(), bars_checked, PIXELS])
 		quit(0)
@@ -102,7 +113,7 @@ func _sampled(id: StringName) -> void:
 			var u := 1.0 + (i + 0.5) * px  # away from the line's start
 			var s := PanelRule.sample(t, u, v, h, px, 0.37)
 			var what := str(s["what"])
-			if what == "bar":
+			if what == "bar" or what == "joint":
 				if not runs.is_empty() and int(runs[runs.size() - 1].y) == i - 1:
 					runs[runs.size() - 1].y = i
 				else:
@@ -111,14 +122,15 @@ func _sampled(id: StringName) -> void:
 				posts += 1
 			in_post = what == "post"
 		if bars > 0.0:
-			if runs.is_empty():
+			# (W5: a leafy row's leaves cover its bars where they grow.)
+			if runs.is_empty() and not row.has("leaf"):
 				problems.append("2 %s at %.2f m a pixel: no bar drawn in 4 m" % [id, px])
 			for k in range(1, runs.size()):
 				var gap := (runs[k].x + runs[k].y) * 0.5 - (runs[k - 1].x + runs[k - 1].y) * 0.5
 				if gap < GATE_GAP - 0.5 - 1e-6:
 					problems.append("2 %s at %.2f m a pixel: two bars %.1f px apart" % [id, px, gap])
 					break
-		if every > 0.0:
+		if every > 0.0 and t[4].g > 0.0:
 			var want := floori(4.0 / every)
 			if posts < want:
 				problems.append("2 %s at %.2f m a pixel: %d posts in 4 m, want %d" % [id, px, posts, want])
@@ -164,8 +176,16 @@ func _texture(rows: Array[StringName]) -> void:
 			var got := img.get_pixel(0, r)
 			if absf(got.r - want.r) + absf(got.g - want.g) + absf(got.b - want.b) > 1e-4:
 				problems.append("4 %s: colour %s in the texture, %s in the palette" % [ids[r], got, want])
-	if rows != W4_ROWS:
-		problems.append("4 the palette's panel rows are %s, the walls doc's W4 rows %s" % [rows, W4_ROWS])
+	var want: Array[StringName] = []
+	for id in Solidity.looks():
+		if id in W4_ROWS or id in W5_ROWS:
+			want.append(id)
+	if rows != want:
+		problems.append("4 the palette's panel rows are %s, the walls doc's W4 and W5 rows %s" % [rows, want])
+	for id in Solidity.looks():
+		var row := Solidity.look_row(id)
+		if str(row.get("family", "")) == "light" and not PanelRule.is_panel(id) and id != &"rail_tram":
+			problems.append("4 light row %s is not a panel row" % id)
 
 
 ## 5: the seed's alt against _typed's pick.
@@ -195,3 +215,67 @@ func _seeds() -> void:
 			if absf(got.r - want.r) + absf(got.g - want.g) + absf(got.b - want.b) > 1e-4:
 				problems.append("5 %s, id %s: the seed picks %s, _typed %s" % [id, sid, got.to_html(false), want.to_html(false)])
 				break
+
+
+## 6: the tops, the closed rows, the leaves, the posts left to the mesh; the shader's numbers.
+func _tops(rows: Array[StringName]) -> void:
+	var px := 0.02
+	for id in rows:
+		var row := Solidity.look_row(id)
+		var t := PanelRule.row_texels(row)
+		var h := float(row["h"])
+		var every := t[4].r
+		var top := str(row.get("top", "flat"))
+		var closed := float(row.get("open", 0.0)) <= PanelRule.CLOSED
+		var leaves := row.has("leaf")
+		var holes := 0
+		var joints := 0
+		var over := 0
+		var edges := {}
+		var n := ceili(4.0 / px)
+		for i in n:
+			var u := 1.0 + (i + 0.5) * px
+			var line := h - (PanelRule.sag_drop(u, every) if top == "sag" else 0.0)
+			var edge := PanelRule.leaf_edge(u, h, 0.37) if top == "leafy" else h
+			if top == "leafy":
+				edges[snappedf(edge, 0.01)] = true
+				if edge > h + 1e-6 or edge < h - PanelRule.LEAFY - 1e-6:
+					problems.append("6 %s: the leafy edge at %.2f m stands at %.3f of %.2f" % [id, u, edge, h])
+					break
+			for j in ceili(h / px):
+				var v := (j + 0.5) * px
+				var smp := PanelRule.sample(t, u, v, h, 0.02, 0.37)
+				var what := str(smp["what"])
+				if what == "joint":
+					joints += 1
+				if closed and not bool(smp["solid"]) and v < minf(line, edge) - px:
+					holes += 1
+				if bool(smp["solid"]) and v > line + 1e-6 and what != "post" and what != "foot":
+					over += 1
+				if what == "leaf" and v > edge + 1e-6:
+					over += 1
+		if holes > 0:
+			problems.append("6 %s: a closed row with %d holes under its top" % [id, holes])
+		if over > 0:
+			problems.append("6 %s: %d pixels drawn over the top line or the leaves' edge" % [id, over])
+		if closed and float(row.get("bars", 0.0)) > 0.0 and joints == 0:
+			problems.append("6 %s: a closed row's bars drew no joint" % id)
+		if top == "leafy" and edges.size() < 4:
+			problems.append("6 %s: the leafy edge takes %d heights in 4 m (flat)" % [id, edges.size()])
+		if top == "sag" and every > 0.0:
+			var mid := PanelRule.sag_drop(every * 0.5, every)
+			var at := PanelRule.sag_drop(every * 3.0, every)
+			if absf(mid - PanelRule.SAG) > 1e-6 or absf(at) > 1e-6:
+				problems.append("6 %s: the sag %.3f m midway, %.3f at a post" % [id, mid, at])
+		var in_mesh := bool((row.get("post", {}) as Dictionary).get("in_mesh", false))
+		if in_mesh and t[4].g != 0.0:
+			problems.append("6 %s: its posts are the mesh's, the panel draws them %.2f wide" % [id, t[4].g])
+		if leaves and t[7].a < 0.5:
+			problems.append("6 %s: its leaves are not in the texture" % id)
+	var code := FileAccess.get_file_as_string(SHADER)
+	for pair: Array in [["SAG", PanelRule.SAG], ["LEAFY", PanelRule.LEAFY], ["LEAF_CELL", PanelRule.LEAF_CELL],
+			["LEAFY_FOOT", PanelRule.LEAFY_FOOT], ["LEAFY_SHADE", PanelRule.LEAFY_SHADE], ["CLOSED", PanelRule.CLOSED],
+			["JOINT_SHADE", PanelRule.JOINT_SHADE], ["PANEL", CityBarriers.PANEL]]:
+		var m := RegEx.create_from_string("const float %s = ([0-9.]+);" % pair[0]).search(code)
+		if m == null or absf(float(m.get_string(1)) - float(pair[1])) > 1e-6:
+			problems.append("6 %s: %s is not %s" % [SHADER, pair[0], pair[1]])
