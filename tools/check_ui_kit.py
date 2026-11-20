@@ -29,16 +29,16 @@ STYLEBOX = re.compile(r"StyleBoxFlat\.new\(\)")
 # the kit (steps 1 to 4 of the design doc); a 3D scene's own light colours count too until they
 # move to a named palette of that scene.
 BASELINE = {
-    "hud.gd": 80,
-    "full_map.gd": 35,  # +10 on purpose: #949 legend, #950 map clock landed after the kit (step 3 moves them)
-    "quests_screen.gd": 7,
+    "hud.gd": 64,
+    "full_map.gd": 11,
+    "quests_screen.gd": 1,
     "settings_panel.gd": 0,
-    "garage_card.gd": 4,
+    "garage_card.gd": 0,
     "notebook_page.gd": 0,
     "fotka.gd": 0,
     "bubbles.gd": 0,
-    "title.gd": 26,
-    "club.gd": 113,
+    "title.gd": 17,
+    "club.gd": 110,
     "police/police_balloon.gd": 25,
     "first10.gd": 6,
     "gamepad.gd": 1,

@@ -17,6 +17,7 @@ signal new_game
 
 ## The game's name as the title shows it (the rename to Around Warsaw, 2026-10-30; it was
 ## "NOCNA WARSZAWA"). The one place to change it.
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")
 ## The sound engine, loaded when the title goes and not preloaded: this script is one of the few
 ## the boot scene waits for before the first frame (check_boot's BOOT_SCRIPTS), and sfx.gd there
@@ -69,6 +70,8 @@ var screen := CHOICE
 var _new_btn: Label
 ## The language buttons, top right: one language is shown at a time (lang.gd).
 var _lang_btns: Array[Label] = []
+## Pixels a point for the buttons (set in `_layout`).
+var _kpt := 1.0
 var _yes_btn: Label
 var _no_btn: Label
 var _line: Label
@@ -140,14 +143,14 @@ func _ready() -> void:
 	_bar_plate = Panel.new()
 	_bar_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var plate := StyleBoxFlat.new()
-	plate.bg_color = Color(0.08, 0.02, 0.18, 0.82)
-	plate.border_color = Color("#7ff6ff")
+	plate.bg_color = UiKit.CARD
+	plate.border_color = UiKit.NEON_CYAN  # the loading bar is the brand neon
 	plate.set_border_width_all(2)
 	plate.set_corner_radius_all(3)
 	_bar_plate.add_theme_stylebox_override("panel", plate)
 	_root.add_child(_bar_plate)
 	_bar_fill = ColorRect.new()
-	_bar_fill.color = Color("#ff2fa0")
+	_bar_fill.color = UiKit.NEON_PINK
 	_bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bar_plate.add_child(_bar_fill)
 	_new_btn = _make_button()
@@ -172,18 +175,20 @@ func _make_label(font: Font) -> Label:
 	return l
 
 
-## Save and resume: a label on a dark, cyan-edged plate, as the HUD's buttons; hidden until used.
+## Save and resume: a label dressed as a kit button (docs/design/ui-kit.md: the title's buttons
+## are the game's buttons); its kind is set in `_dress`. Hidden until used.
 func _make_button() -> Label:
 	var l := _make_label(ThemeDB.fallback_font)
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	var box := StyleBoxFlat.new()
-	box.bg_color = Color(0.08, 0.02, 0.18, 0.82)
-	box.border_color = Color("#7ff6ff")
-	box.set_border_width_all(2)
-	box.set_corner_radius_all(6)
-	l.add_theme_stylebox_override("normal", box)
 	l.visible = false
 	return l
+
+
+## A title button wears the kit's `kind` at `k` pixels a point.
+func _dress(b: Label, kind: int, k: float) -> void:
+	b.add_theme_stylebox_override("normal", UiKit.button_boxes(kind, k)["normal"])
+	b.add_theme_color_override("font_color", UiKit.button_ink(kind))
+	b.add_theme_constant_override("outline_size", 0)
 
 
 ## Everything is placed from the screen size, inside the safe area (notch, home bar).
@@ -274,11 +279,12 @@ func _layout() -> void:
 	_tip.set_meta("ps", ps)
 	var bh := maxf(h * 0.1, 44.0)
 	var bs := int(maxf(h * 0.03, 12.0))
+	_kpt = bh / 44.0  # a title button is 44 pt tall: pixels a point for the kit's corners
 	for b: Label in [_new_btn, _yes_btn, _no_btn]:
 		b.add_theme_font_size_override("font_size", bs)
-		b.add_theme_color_override("font_color", Color("#7ff6ff"))
-		b.add_theme_color_override("font_outline_color", Color("#14053a"))
-		b.add_theme_constant_override("outline_size", maxi(2, int(bs * 0.16)))
+	_dress(_new_btn, UiKit.Kind.SECONDARY, _kpt)
+	_dress(_yes_btn, UiKit.Kind.DANGER, _kpt)  # it wipes the save
+	_dress(_no_btn, UiKit.Kind.SECONDARY, _kpt)
 	_new_btn.size = Vector2(maxf(bs * 9.0, 140.0), bh)
 	_new_btn.position = Vector2(_safe.end.x - _new_btn.size.x - h * 0.03, _safe.end.y - bh - h * 0.04)
 	var bw := maxf(bs * 13.0, 200.0)
@@ -294,7 +300,6 @@ func _layout() -> void:
 	for k in _lang_btns.size():
 		var lb := _lang_btns[k]
 		lb.add_theme_font_size_override("font_size", bs)
-		lb.add_theme_constant_override("outline_size", maxi(2, int(bs * 0.16)))
 		lb.size = Vector2(lw, bh)
 		lb.position = Vector2(_safe.end.x - (lw + h * 0.02) * float(_lang_btns.size() - k) - h * 0.02, _safe.position.y + h * 0.03)
 	_set_prompt()
@@ -317,8 +322,7 @@ func _set_prompt() -> void:
 		var code: String = Lang.CODES[k]
 		_lang_btns[k].text = Lang.NAMES[code]
 		var on: bool = code == Lang.code
-		_lang_btns[k].add_theme_color_override("font_color", Color("#ffd23f") if on else Color("#7ff6ff"))
-		_lang_btns[k].modulate.a = 1.0 if on else 0.7
+		_dress(_lang_btns[k], UiKit.Kind.SELECTED if on else UiKit.Kind.SECONDARY, _kpt)
 	_prompt_pl.text = ""  # one language at a time (lang.gd): the small second line is gone
 	_set_tip()
 	if problem != "":
