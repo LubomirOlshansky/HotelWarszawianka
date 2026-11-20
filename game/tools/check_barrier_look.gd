@@ -39,6 +39,14 @@ extends SceneTree
 ##     face for face (the cars meet the same fences), every line of a panel row is drawn as
 ##     panels and none of another; the pieces are printed; W5: the light-family lines still drawn
 ##     in the city mesh are named by type (`mesh_light`), and none is of a type outside MESH_LIGHT;
+##   9 W8 (walls doc 6.6 row 9, tools/barrier_gates.py): a 20 m fence with a gap (`g`) and gate ends
+##     (`ge`: a post at its start, a post and an open leaf at its end), a soft and a hard one, under
+##     typed and panels on the flat map: no triangle, collider face, soft segment or panel piece inside
+##     the gap; the pieces after it keep their panel index (metres / 2 along the whole line) and run;
+##     the soft list's panels are the whole line's; a gate post at each of the gap's edges and at each
+##     gated end, inside the line, CityBarriers.GATE_RISE m over the line, and nothing else over it; the
+##     leaf on its side of the line, off the line's own segment, not past the line's far end; a wall's
+##     gap the same; under classic the gates change nothing (triangles and faces as the line without them);
 ##   8 with `--paths` (verify step `barrierpaths`, the prebuilt city needed): in each of the
 ##     sectors (check_colliders.gd's ten; `--all` every sector) the runtime build in the look the
 ##     prebuilt city was baked in (map/sectors/city.stamp) has the prebuilt sector's city mesh
@@ -52,6 +60,8 @@ const Chunked := preload("res://scripts/chunked_surface.gd")
 const PanelRule := preload("res://scripts/panel_rule.gd")
 const MapBuilder := preload("res://scripts/map_builder.gd")
 const PANEL_RHYTHMS := [2.0, 4.0]
+## 9 (W8): how far a piece's own end shape (rail_lite's last post, a wall's end) may reach into a gap.
+const END_IN := 0.1
 ## 7 (W5): the light types whose lines may still be drawn in the city mesh under panels: the tram's
 ## railing (`draw: keep`: the placed tram_railing, a hard rail by the tracks). Every other light line
 ## is panels (bars_pier's posts stand in the mesh as part of its panel line, W7's piers).
@@ -101,6 +111,7 @@ func _initialize() -> void:
 	var counts := {}
 	var panels := {}
 	_panels(map)
+	_gates(map)
 	if data is Dictionary:
 		counts = _whole(map, data)
 		panels = _whole_panels(map, data)
@@ -471,6 +482,127 @@ func _panels(map: Node3D) -> void:
 		map.remove_child(node)
 		node.free()
 	map._out = null
+	map._in_sector = false
+	map._sector = Vector2i.ZERO
+
+
+## 9 (W8): the gates on a flat synthetic line: see the header.
+func _gates(map: Node3D) -> void:
+	map._in_sector = true
+	map._sector_rect = Rect2(2560.0, 2560.0, 512.0, 512.0)
+	map._sector = Vector2i(5, 5)
+	var b: RefCounted = map.barriers
+	var p := [3000.0, 3000.0, 3012.0, 3000.0, 3020.0, 3000.0]
+	var g0 := 7.0
+	var g1 := 9.4
+	var gates := {"g": [[g0, g1 - g0, 0]], "ge": [1, 2]}
+	for case: Array in [["fence", "fence_plain", "S"], ["fence", "bars_black", "H"], ["hedge", "hedge_low", "S"], ["wall", "wall_precast", "H"]]:
+		var what := "%s %s (%s)" % case
+		var bare := _line(str(case[0]), p, {"ty": case[1], "sc": case[2]})
+		var gated := bare.duplicate(true)
+		gated.merge(gates, true)
+		# Classic ignores the gates.
+		var cb := _build(map, [bare], &"classic")
+		var cg := _build(map, [gated], &"classic")
+		if cb[0] != cg[0] or cb[1] != cg[1]:
+			problems.append("9 %s: classic draws the gates (%d triangles %s, %d %s without)" % [what, cg[0], cg[2], cb[0], cb[2]])
+		var row := Solidity.look_row(StringName(str(case[1])))
+		var h := float(row["h"])
+		for look: StringName in [&"typed", &"panels"]:
+			Solidity.set_barrier_look(look)
+			map.data = {"lines": [gated]}
+			map._solids = {}
+			var st := Chunked.new()
+			b.build_barriers(st)
+			Solidity.set_barrier_look(&"typed")
+			var tag := "%s %s" % [what, look]
+			var eps := 1e-3
+			var post_w := maxf(CityBarriers.GATE_POST_W, float(row.get("thick", 0.0)) + CityBarriers.GATE_POST_PROUD) if case[0] == "wall" \
+					else CityBarriers.GATE_POST_W
+			# Triangles: none inside the gap (a piece's own end shape, a post's or a wall end's half width,
+			# may reach END_IN m into it, as at any line's end); over the line's height only the posts,
+			# wholly inside the line at the gap's edges and the gated ends, GATE_RISE over it.
+			var tops := {0.0: -INF, g0: -INF, g1: -INF, 20.0: -INF}
+			var in_gap := 0
+			var odd := 0
+			for mesh: ArrayMesh in st.meshes():
+				for si in mesh.get_surface_count():
+					var verts: PackedVector3Array = mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]
+					for v: Vector3 in verts:
+						var s := v.x - 3000.0
+						if s > g0 + END_IN and s < g1 - END_IN:
+							in_gap += 1
+						if s < -END_IN or s > 20.0 + END_IN:
+							odd += 1
+						if v.y > h + 0.2 + eps:
+							var near := false
+							for edge: float in tops:
+								var inner := edge + (post_w if edge == g1 or edge == 0.0 else -post_w)
+								if s >= minf(edge, inner) - eps and s <= maxf(edge, inner) + eps:
+									tops[edge] = maxf(float(tops[edge]), v.y)
+									near = true
+							if not near:
+								odd += 1
+			if in_gap > 0 or odd > 0:
+				problems.append("9 %s: %d vertices in the gap, %d over the line's height off a post or past its ends" % [tag, in_gap, odd])
+			for edge: float in tops:
+				if absf(float(tops[edge]) - (h + CityBarriers.GATE_RISE)) > eps:
+					problems.append("9 %s: the post at %.1f m stands %.2f m, want %.2f" % [tag, edge, tops[edge], h + CityBarriers.GATE_RISE])
+			# Collider faces and soft segments: none inside the gap.
+			for cls: StringName in map._solids:
+				var faces: PackedVector3Array = map._solids[cls]
+				for v: Vector3 in faces:
+					if v.x - 3000.0 > g0 + END_IN and v.x - 3000.0 < g1 - END_IN:
+						problems.append("9 %s: a %s collider vertex in the gap at %.2f m" % [tag, cls, v.x - 3000.0])
+						break
+			var soft: Dictionary = b.soft_data()
+			if case[2] == "S" and case[0] != "wall":
+				if soft.is_empty():
+					problems.append("9 %s: the line is not soft (the case tests nothing)" % tag)
+				else:
+					var segs: PackedFloat64Array = soft["segs"]
+					for k in range(0, segs.size(), CityBarriers.SOFT_STRIDE):
+						var ax := segs[k + 1] - 3000.0
+						var bx := segs[k + 3] - 3000.0
+						if maxf(ax, bx) > g0 + END_IN and minf(ax, bx) < g1 - END_IN:
+							problems.append("9 %s: a soft segment %.2f..%.2f m in the gap" % [tag, ax, bx])
+						if absf(segs[k + 9] - ax) > eps:
+							problems.append("9 %s: the soft segment at %.2f m says it starts %.2f m along the line" % [tag, ax, segs[k + 9]])
+					if (soft["panels"] as PackedInt32Array) != PackedInt32Array([10]):
+						problems.append("9 %s: the soft line's panels %s, want the whole line's [10]" % [tag, soft["panels"]])
+			# Panels: no piece in the gap; each piece's panel index metres / 2 along the whole line.
+			if look == &"panels" and bool(row.get("panel", false)):
+				var tiles: Dictionary = b.panel_tiles
+				if not tiles.has(Vector2i(5, 5)):
+					problems.append("9 %s: no panel pieces" % tag)
+				else:
+					var t = tiles[Vector2i(5, 5)]
+					for k in (t.buf.size() / CityBarriers.PANEL_FLOATS):
+						var o: int = k * CityBarriers.PANEL_FLOATS
+						var x0: float = t.buf[o + 3] - 3000.0
+						var x1: float = x0 + t.buf[o]
+						var run: float = t.buf[o + 13]
+						if x1 > g0 + END_IN and x0 < g1 - END_IN:
+							problems.append("9 %s: a panel piece %.2f..%.2f m in the gap" % [tag, x0, x1])
+						if absf(run - x0) > eps or int(t.panel[k]) != floori(x0 / CityBarriers.PANEL + 1e-6):
+							problems.append("9 %s: the piece at %.2f m has run %.2f, panel %d" % [tag, x0, run, t.panel[k]])
+			# The leaf: at the end gate (2: the left side, +z for a line running +x), off the line, inside it.
+			var leaf := 0
+			var left := 0
+			for mesh: ArrayMesh in st.meshes():
+				for si in mesh.get_surface_count():
+					var arrays := mesh.surface_get_arrays(si)
+					var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+					var cols: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+					for vi in verts.size():
+						if cols[vi].is_equal_approx(CityBarriers.GATE_LEAF):
+							leaf += 1
+							left += 1 if verts[vi].z > 3000.0 + float(row.get("thick", 0.0)) * 0.5 else 0
+							if verts[vi].x < 3020.0 - CityBarriers.GATE_LEAF_LEN - post_w - eps:
+								problems.append("9 %s: the leaf reaches %.2f m along the line" % [tag, verts[vi].x - 3000.0])
+								break
+			if leaf == 0 or left != leaf:
+				problems.append("9 %s: %d leaf vertices, %d on its side" % [tag, leaf, left])
 	map._in_sector = false
 	map._sector = Vector2i.ZERO
 

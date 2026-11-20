@@ -1694,38 +1694,55 @@ func build_barriers(st) -> void:
 			solid = l["k"] != "platform" and float(look["h"]) >= BARRIER_SOLID_MIN
 			if not solid:
 				low_typed.append(barrier_id(l["k"], l["p"]))
-		elif style.size() > 3:
-			var open: Array = style[3]
-			# A railing OSM maps (tools/barrier_tags.py) has a post every `posts_mapped` m: 30 km of them.
-			railing_along(st, pts, float(style[2]), float(open[0]), Color(style[0]), Color(str(open[1])), true, cls,
-					float(open[3]) if l.has("ft") or (l["k"] == "fence" and float(l.get("h", 0.0)) > float(_kit["fence_max"])) else float(open[2]))
-			_soft_line = {}
-			continue
-		# Loop 3b: a stop's platform is kerb height (0.25 m), not a wall: like the kerbs and
-		# islands, the car drives over it (check_drive.gd found buses brushing them).
-		if l["k"] == "wall" and not map._sunk.is_empty() and map._sunk_box.grow(2.0).intersects(map._box_of_pts(pts)):
-			# The pieces off a sunken ring's edge (the site builds the walls on it).
-			if map._walls_in_ramp(pts):
-				continue
-			var piece := PackedVector2Array()
-			for i in pts.size():
-				if i > 0 and map._on_sunk_edge(pts[i - 1], pts[i]):
-					if piece.size() >= 2:
-						_draw_piece(st, piece, style, look, solid, cls)
-					piece = PackedVector2Array()
-				piece.append(pts[i])
-			if piece.size() >= 2:
-				_draw_piece(st, piece, style, look, solid, cls)
-			continue
-		if l["k"] == "wall" and not _stair_idx.is_empty():
-			for piece in _stair_gaps(pts):
-				_draw_piece(st, piece, style, look, solid, cls)
-			continue
-		_draw_piece(st, pts, style, look, solid, cls)
+		# W8: a line with gates (tools/barrier_gates.py `g`, `ge`), under typed and panels only: its
+		# pieces between the gaps, each drawn as a whole line is, with the runs along the line (soft
+		# segments, panel indices) carried on from where the piece starts, then its gate posts and leaves.
+		if typed_on and (l.has("g") or l.has("ge")):
+			var cut := gate_pieces(pts, l.get("g", []))
+			for pc: Array in cut:
+				_soft_run = float(pc[1])
+				_panel_run = float(pc[1])
+				_draw_line(st, l, pc[0], style, look, solid, cls)
+			_gate_kit(st, l, pts, style, look, cls)
+		else:
+			_draw_line(st, l, pts, style, look, solid, cls)
 		_soft_line = {}
 	_pocket_hedges(st)
 	_stadium_gates(st, gate_segs)
 	map._uv2 = Vector2.ZERO
+
+
+## One barrier line `l` (or, W8, one piece `pts` of it between its gaps) by its classic `style` or
+## typed `look`: an OSM-mapped railing (railing_along), a wall's pieces off a sunken ring's edge or
+## between stair gaps, or the line as one piece (_draw_piece).
+func _draw_line(st, l: Dictionary, pts: PackedVector2Array, style: Array, look: Dictionary, solid: bool, cls: StringName) -> void:
+	if look.is_empty() and style.size() > 3:
+		var open: Array = style[3]
+		# A railing OSM maps (tools/barrier_tags.py) has a post every `posts_mapped` m: 30 km of them.
+		railing_along(st, pts, float(style[2]), float(open[0]), Color(style[0]), Color(str(open[1])), true, cls,
+				float(open[3]) if l.has("ft") or (l["k"] == "fence" and float(l.get("h", 0.0)) > float(_kit["fence_max"])) else float(open[2]))
+		return
+	# Loop 3b: a stop's platform is kerb height (0.25 m), not a wall: like the kerbs and
+	# islands, the car drives over it (check_drive.gd found buses brushing them).
+	if l["k"] == "wall" and not map._sunk.is_empty() and map._sunk_box.grow(2.0).intersects(map._box_of_pts(pts)):
+		# The pieces off a sunken ring's edge (the site builds the walls on it).
+		if map._walls_in_ramp(pts):
+			return
+		var piece := PackedVector2Array()
+		for i in pts.size():
+			if i > 0 and map._on_sunk_edge(pts[i - 1], pts[i]):
+				if piece.size() >= 2:
+					_draw_piece(st, piece, style, look, solid, cls)
+				piece = PackedVector2Array()
+			piece.append(pts[i])
+		if piece.size() >= 2:
+			_draw_piece(st, piece, style, look, solid, cls)
+		return
+	if l["k"] == "wall" and not _stair_idx.is_empty():
+		for piece in _stair_gaps(pts):
+			_draw_piece(st, piece, style, look, solid, cls)
+		return
+	_draw_piece(st, pts, style, look, solid, cls)
 
 
 ## One piece of a barrier line: in classic `style` with wall_along as ever, or (W2) by `look`, the
@@ -1905,6 +1922,177 @@ func _panel_piece(p0: Vector2, p1: Vector2, g0: float, g1: float, dir: Vector2, 
 		t.box = t.box.expand(c)
 	panel_pieces += 1
 
+
+## W8 (walls doc 6.6 row 9): a gate post stands GATE_RISE m over its line, GATE_POST_W m square (or the
+## line's thickness and GATE_POST_PROUD more, a wall's pier), sunk GATE_SINK m, wholly inside the line
+## at the piece's end (the opening keeps the gap's or the bake's cut's width for the car); it files no
+## collider of its own (the line's faces reach height + 1.5 m over it, as the line's own posts). A
+## drive's open leaf: GATE_LEAF_LEN m long (half a 3.6 m drive gate) or the gap's half width, lying
+## along the line on the yard side GATE_LEAF_OFF m off its face, GATE_LEAF_LIFT m over the ground, a
+## frame and a bar every GATE_BAR m, in GATE_LEAF's colour; no collider (it lies against the line).
+const GATE_RISE := 0.3
+const GATE_POST_W := 0.14
+const GATE_POST_PROUD := 0.08
+const GATE_SINK := 0.2
+const GATE_LEAF_LEN := 1.8
+const GATE_LEAF_OFF := 0.06
+const GATE_LEAF_LIFT := 0.05
+const GATE_BAR := 0.3
+const GATE_FRAME := 0.06
+const GATE_POST := Color("#2b2e33")
+
+
+## W8: the pieces of polyline `pts` left between the gaps `g` ([[s, w, leaf], ...]: from s m along it,
+## w m long; tools/barrier_gates.py): [[piece, metres along the line where it starts], ...], pieces
+## under 0.05 m left out. With no gap: the line itself from 0.
+static func gate_pieces(pts: PackedVector2Array, g: Array) -> Array:
+	var spans: Array = []
+	for x: Array in g:
+		spans.append([float(x[0]), float(x[0]) + float(x[1])])
+	spans.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
+	var total := 0.0
+	for i in pts.size() - 1:
+		total += pts[i].distance_to(pts[i + 1])
+	var out: Array = []
+	var start := 0.0
+	for sp: Array in spans + [[total + 1.0, total + 1.0]]:
+		var end := minf(float(sp[0]), total)
+		if end - start >= 0.05:
+			out.append([line_cut(pts, start, end), start])
+		start = maxf(start, float(sp[1]))
+	return out
+
+
+## W8: the part of polyline `pts` from `s0` to `s1` m along it (its own points between, the cut points
+## at both ends).
+static func line_cut(pts: PackedVector2Array, s0: float, s1: float) -> PackedVector2Array:
+	var out := PackedVector2Array([line_at(pts, s0)])
+	var run := 0.0
+	for i in pts.size() - 1:
+		run += pts[i].distance_to(pts[i + 1])
+		if run > s0 + 1e-6 and run < s1 - 1e-6 and i + 1 < pts.size() - 1:
+			out.append(pts[i + 1])
+	out.append(line_at(pts, s1))
+	return out
+
+
+## W8: the point `s` m along polyline `pts` (clamped to its ends).
+static func line_at(pts: PackedVector2Array, s: float) -> Vector2:
+	var run := 0.0
+	for i in pts.size() - 1:
+		var length := pts[i].distance_to(pts[i + 1])
+		if run + length >= s and length > 1e-9:
+			return pts[i].lerp(pts[i + 1], clampf((s - run) / length, 0.0, 1.0))
+		run += length
+	return pts[pts.size() - 1] if s > 0.0 else pts[0]
+
+
+## W8: the unit direction of polyline `pts` at `s` m along it.
+static func line_dir(pts: PackedVector2Array, s: float) -> Vector2:
+	var run := 0.0
+	for i in pts.size() - 1:
+		var length := pts[i].distance_to(pts[i + 1])
+		if length > 1e-9 and (run + length >= s or i == pts.size() - 2):
+			return (pts[i + 1] - pts[i]) / length
+		run += length
+	return Vector2.RIGHT
+
+
+## W8: what a line's gates stand, as data (check_barrier_look tests it): [[kind, metres along the line,
+## out], ...], kind &"post" (out: +1 the opening lies further along the line, -1 before it) or
+## &"leaf" (out as the post's; the leaf's side in [3]: +1 left of the line's direction, -1 right).
+## A gap's two edges inside the line get a post each; an `ge` end a post, and with +-2 a leaf.
+static func gate_marks(pts: PackedVector2Array, g: Array, ge: Array) -> Array:
+	var total := 0.0
+	for i in pts.size() - 1:
+		total += pts[i].distance_to(pts[i + 1])
+	var out: Array = []
+	for x: Array in g:
+		var s0 := float(x[0])
+		var s1 := s0 + float(x[1])
+		var leaf := int(x[2]) if x.size() > 2 else 0
+		for edge: Array in [[s0, 1.0], [s1, -1.0]]:
+			var s := float(edge[0])
+			if s <= 0.01 or s >= total - 0.01:
+				continue
+			out.append([&"post", s, float(edge[1]), 0])
+			if leaf != 0:
+				out.append([&"leaf", s, float(edge[1]), leaf])
+	for e in mini(ge.size(), 2):
+		var v := int(ge[e])
+		if v == 0:
+			continue
+		var s := 0.0 if e == 0 else total
+		var o := -1.0 if e == 0 else 1.0
+		out.append([&"post", s, o, 0])
+		if absi(v) == 2:
+			out.append([&"leaf", s, o, signi(v)])
+	return out
+
+
+## W8: line `l`'s gate posts and open leaves (gate_marks) into the city mesh `st`, at its drawn height
+## (`look`'s, else the classic `style`'s) and thickness. A sector keeps the triangles whose centre lies
+## in it (chunked_surface.gd), as for the line itself.
+func _gate_kit(st, l: Dictionary, pts: PackedVector2Array, style: Array, look: Dictionary, cls: StringName) -> void:
+	var height := float(style[2]) if look.is_empty() else float(look["h"])
+	var thick := float(style[1]) if look.is_empty() else float((look["row"] as Dictionary).get("thick", GATE_POST_W))
+	var wall := cls == &"wall"
+	var post_w := maxf(GATE_POST_W, thick + GATE_POST_PROUD) if wall else GATE_POST_W
+	var colour: Color = Color(style[0]) if look.is_empty() else look["colour"]
+	var post_col := colour.lightened(0.08) if wall else GATE_POST
+	var total := 0.0
+	for i in pts.size() - 1:
+		total += pts[i].distance_to(pts[i + 1])
+	for m: Array in gate_marks(pts, l.get("g", []), l.get("ge", [])):
+		var out := float(m[2])
+		# The post's middle half its width back from the opening, so it stands wholly inside the line.
+		var s := clampf(float(m[1]) - out * post_w * 0.5, 0.0, total)
+		var p := line_at(pts, s)
+		var dir := line_dir(pts, s)
+		var y: float = map.terrain_height(p.x, p.y)
+		if m[0] == &"post":
+			var top := y + height + GATE_RISE
+			var bottom := y - GATE_SINK
+			map._box_oriented(st, Vector3(p.x, (top + bottom) * 0.5, p.y), Basis(Vector3.UP, atan2(-dir.x, -dir.y)),
+					Vector3(post_w, top - bottom, post_w), post_col)
+			continue
+		# A leaf: from the post's face back along the line (away from the opening), on the yard side.
+		var gap_half := GATE_LEAF_LEN
+		for x: Array in l.get("g", []):
+			if absf(float(x[0]) - float(m[1])) < 0.01 or absf(float(x[0]) + float(x[1]) - float(m[1])) < 0.01:
+				gap_half = float(x[1]) * 0.5
+		# As long as the line behind the post allows (a leaf does not reach past the line's far end).
+		var behind := s - post_w * 0.5 if out > 0.0 else total - s - post_w * 0.5
+		var length := minf(gap_half, behind)
+		if length < 0.3:
+			continue
+		var n := Vector2(-dir.y, dir.x) * float(m[3])
+		var off := n * (thick * 0.5 + GATE_LEAF_OFF)
+		var a := p + off - dir * out * post_w * 0.5
+		var b := a - dir * out * length
+		_gate_leaf(st, a, b, map.terrain_height(a.x, a.y), map.terrain_height(b.x, b.y),
+				minf(height, 2.2), Vector3(n.x, 0.0, n.y))
+
+
+## W8: one open leaf from `a` (its hinge, by the post) to `b`, its foot `ga`, `gb` on the ground,
+## `height` tall: a frame (top and bottom rails, the far stile) and a bar every GATE_BAR m, upright
+## quads in GATE_LEAF (one quad shows from both sides: the building shader is cull_disabled).
+func _gate_leaf(st, a: Vector2, b: Vector2, ga: float, gb: float, height: float, n: Vector3) -> void:
+	var lo := GATE_LEAF_LIFT
+	var hi := height - 0.1
+	for y0: float in [lo, hi - GATE_FRAME]:
+		map._quad(st, Vector3(a.x, ga + y0, a.y), Vector3(b.x, gb + y0, b.y), Vector3(b.x, gb + y0 + GATE_FRAME, b.y),
+				Vector3(a.x, ga + y0 + GATE_FRAME, a.y), n, GATE_LEAF)
+	var length := a.distance_to(b)
+	var dir := (b - a) / length
+	var bars := maxi(1, floori(length / GATE_BAR))
+	for k in range(1, bars + 1):
+		var t := minf(1.0, float(k) * GATE_BAR / length) if k < bars else 1.0
+		var c := a.lerp(b, t)
+		var w := dir * (GATE_FRAME if k == bars else 0.02)
+		var g := lerpf(ga, gb, t)
+		map._quad(st, Vector3(c.x - w.x, g + lo, c.y - w.y), Vector3(c.x, g + lo, c.y), Vector3(c.x, g + hi, c.y),
+				Vector3(c.x - w.x, g + hi, c.y - w.y), n, GATE_LEAF)
 
 ## W2: line `l`'s typed drawing, from its `ty`'s `looks` row (solidity.gd `look_row`), or {} when it
 ## keeps its classic style: a line whose chain did not end `generic`, a platform, no `ty`, a type
