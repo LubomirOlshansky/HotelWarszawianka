@@ -515,7 +515,7 @@ static func _banners(ctx: Dictionary) -> void:
 			for texel: Variant in tab["texel"]:
 				var qw := r.size.x * float(texel)
 				var qh := r.size.y * float(texel)
-				if qw > hi - lo or qh > float(ctx["h"]) - 0.3:
+				if qw > hi - lo or qh > float(ctx["h"]) - 0.15:
 					continue
 				var s0 := lo + (hi - lo - qw) * 0.5
 				if _in_gap(ctx, s0, s0 + qw):

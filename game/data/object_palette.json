@@ -105,9 +105,9 @@
 			"share": {"wall_plaster": 0.22, "wall_brick": 0.3, "wall_precast": 0.3, "wall_stone": 0.25, "noise_screen": 0.15, "parapet_concrete": 0.2}},
 		"ivy": {"cell": 12.0, "lift": 0.025, "width": [1.5, 4.0], "drop": [0.5, 1.4], "colours": ["#3f6b34", "#4a7a3a", "#35592d"],
 			"share": {"wall_plaster": 0.1, "wall_brick": 0.2}},
-		"slogan": {"window": 150.0, "lift": 0.04, "texel": 0.11, "pad": 2, "bg_lift": 0.1, "bottom": 0.45,
+		"slogan": {"window": 150.0, "lift": 0.04, "texel": 0.1, "pad": 1, "bg_lift": 0.1, "bottom": 0.35,
 			"inks": ["#f2f0e8", "#b8232a", "#2d3a5a", "#2b2e33"], "share": {"wall_precast": 0.6, "wall_stone": 0.45}},
-		"banner": {"lift": 0.02, "texel": [0.1, 0.08, 0.065], "pad": 3,
+		"banner": {"lift": 0.02, "texel": [0.06, 0.055, 0.05], "pad": 2,
 			"schemes": [{"bg": "#f1efe6", "ink": "#1f4b8f"}, {"bg": "#e8e2c8", "ink": "#2f6a3f"}, {"bg": "#2d5fa8", "ink": "#f4f2ea"}], "share": {"hoarding": 1.0}}
 	}
 }
