@@ -14,6 +14,12 @@ extends SceneTree
 ##     10 a segment) and the same collider faces as railing_along at that height; `slab` makes what
 ##     wall_along makes at the row's thickness and the line's height; `none` makes nothing; `keep`,
 ##     an unknown type and a line a rule gave its look (`st`) make what classic makes;
+##     W7 (walls doc 6.5): every heavy or low `slab` row with a foot, cap, bays or piers is drawn by the
+##     heavy kit (city_barriers.gd wall_kit), the same under typed and panels: more triangles than
+##     wall_along's slab, nothing under its sink, over its top but its piers, posts and rails, or
+##     further from the line than its cap, posts and piers reach; every other bay a step darker; a
+##     stone wall over water gets its top rail; and the very collider faces wall_along files at the
+##     row's thickness and the line's height, in the same order;
 ##   4 the same line built twice gets the same `alt` colour, and the colour follows its stable id;
 ##   5 the whole map's lines built under typed on the flat map: none drawn classic for want of a
 ##     row (`unknown`) and none in barrier_default; the count of lines per draw kind is printed;
@@ -25,7 +31,8 @@ extends SceneTree
 ##     under classic and typed no piece is made; the whole city's build (no sector) makes its
 ##     `Panels_i_j` node with the pieces and the panel material; W5: the same for a line of every
 ##     light row (bars_pier's `in_mesh` posts: rail_lite_along's 4 triangles a post in the city mesh,
-##     nothing else); a row not marked panel (deck_railing) stays typed; the stadium's railing (#808)
+##     nothing else; W7: its plinth and piers, `_pier_fence_kit`'s triangles, and on a soft line a
+##     diamond collider of class wall per pier, none on a hard line or with the soft switch off); a row not marked panel (deck_railing) stays typed; the stadium's railing (#808)
 ##     is classic under typed and, under panels, pieces of its row at its types row's height with
 ##     the classic railing's colliders and no triangle in the city mesh;
 ##   7 W4: the whole map under panels on the flat map: the collider faces per class are typed's,
@@ -215,6 +222,7 @@ func _kinds(map: Node3D) -> void:
 	map.barriers.wall_along(st, pts, float(hedge["thick"]), 0.7, Color(str(hedge["colour"])), true, &"hedge")
 	if int(got[0]) != st.vertex_count / 3 or (got[1] as Dictionary).get(&"hedge") != map._solids.get(&"hedge"):
 		problems.append("3 slab: %d triangles %s, wall_along makes %d" % [got[0], got[2], st.vertex_count / 3])
+	_kit(map)
 	# none: nothing.
 	got = _build(map, [_line("fence", p, {"ty": "removed"})], &"typed")
 	if int(got[0]) != 0 or not (got[1] as Dictionary).is_empty():
@@ -226,6 +234,86 @@ func _kinds(map: Node3D) -> void:
 		if typed[0] != classic[0] or typed[1] != classic[1]:
 			problems.append("3 %s: typed makes %d triangles %s, classic %d %s" % [extra, typed[0], typed[2], classic[0], classic[2]])
 	map._in_sector = false
+
+
+## 3 (W7): the heavy kit, a line of every kit row on the flat map (a corner, so it mitres; 19 m, so
+## the rhythm repeats): see the header.
+func _kit(map: Node3D) -> void:
+	var p := [3000.0, 3000.0, 3012.0, 3000.0, 3012.0, 3007.0]
+	var pts := PackedVector2Array([Vector2(3000, 3000), Vector2(3012, 3000), Vector2(3012, 3007)])
+	var b: RefCounted = map.barriers
+	var kits := 0
+	for id: StringName in Solidity.looks():
+		var row := Solidity.look_row(id)
+		if str(row.get("draw", "")) != "slab" or not CityBarriers.kit_row(row):
+			continue
+		kits += 1
+		var h := float(row["h"])
+		var hw := float(row["thick"]) * 0.5
+		for hz: String in ["", "water"]:
+			var l := _line("wall", p, {"ty": str(id)} if hz == "" else {"ty": str(id), "hz": hz})
+			var look: Dictionary = b._typed(l, true)
+			var colour: Color = look["colour"]
+			var typed := _build(map, [l], &"typed")
+			var st := Chunked.new()
+			Solidity.set_barrier_look(&"typed")
+			map.data = {"lines": [l]}
+			map._solids = {}
+			b.build_barriers(st)
+			var panels := _build(map, [l], &"panels")
+			map._solids = {}
+			var slab := Chunked.new()
+			b.wall_along(slab, pts, float(row["thick"]), h, colour, true, &"wall")
+			if typed[1] != map._solids:
+				problems.append("3 kit %s: collider faces %s, wall_along files %d" % [id, typed[2],
+						(map._solids.get(&"wall", PackedVector3Array()) as PackedVector3Array).size() / 3])
+			if panels[0] != typed[0] or panels[1] != typed[1]:
+				problems.append("3 kit %s: panels %d triangles %s, typed %d %s" % [id, panels[0], panels[2], typed[0], typed[2]])
+			if int(typed[0]) <= slab.vertex_count / 3:
+				problems.append("3 kit %s: %d triangles, the plain slab %d" % [id, typed[0], slab.vertex_count / 3])
+			var pier: Dictionary = row.get("pier", {})
+			var bay: Dictionary = row.get("bay", {})
+			var cap: Dictionary = row.get("cap", {})
+			var rail: Dictionary = row.get("top_rail", {})
+			var railed := hz != "" and hz in (rail.get("hz", []) as Array)
+			var top := h + (CityBarriers.KIT_PIER_RISE if not pier.is_empty() else (CityBarriers.KIT_POST_RISE if bay.has("post_w") else 0.0))
+			if railed:
+				top = maxf(top, h + float(rail["h"]))
+			var reach := maxf(hw + float(cap.get("over", 0.0)), hw + float(bay.get("proud", CityBarriers.KIT_PROUD)))
+			reach = maxf(reach, float(pier.get("w", 0.0)) * 0.71) * 1.415
+			var lo := INF
+			var hi := -INF
+			var far := 0.0
+			var colours: Array[Color] = []
+			for mesh: ArrayMesh in st.meshes():
+				for si in mesh.get_surface_count():
+					var arrays := mesh.surface_get_arrays(si)
+					for v: Vector3 in arrays[Mesh.ARRAY_VERTEX]:
+						lo = minf(lo, v.y)
+						hi = maxf(hi, v.y)
+						far = maxf(far, CityBarriers._dist_to_line(Vector2(v.x, v.z), pts))
+					for c: Color in arrays[Mesh.ARRAY_COLOR]:
+						if not _has_colour(colours, c):
+							colours.append(c)
+			if lo < -CityBarriers.KIT_SINK - 1e-3 or hi > top + 1e-3 or far > reach + 1e-3:
+				problems.append("3 kit %s%s: drawn from %.2f to %.2f m, %.2f m off the line; want %.2f to %.2f, %.2f" % [id,
+						" (hz %s)" % hz if hz != "" else "", lo, hi, far, -CityBarriers.KIT_SINK, top, reach])
+			if railed and absf(hi - (h + float(rail["h"]))) > 1e-3:
+				problems.append("3 kit %s over %s: no top rail (the top at %.2f m)" % [id, hz, hi])
+			var step := float(bay.get("step", 0.0))
+			if step > 0.0 and not (_has_colour(colours, colour.darkened(0.08)) and _has_colour(colours, colour.darkened(step).darkened(0.08))):
+				problems.append("3 kit %s: the bays are not a step %.2f apart (%d colours)" % [id, step, colours.size()])
+	if kits < 9:
+		problems.append("3 kit: %d rows drawn by the heavy kit, want the nine heavy and low slab rows" % kits)
+	map._solids = {}
+
+
+## Whether `list` holds `c` to within the 8 bits a vertex colour keeps.
+static func _has_colour(list: Array[Color], c: Color) -> bool:
+	for x in list:
+		if absf(x.r - c.r) < 0.006 and absf(x.g - c.g) < 0.006 and absf(x.b - c.b) < 0.006:
+			return true
+	return false
 
 
 ## 4: the alt colour is the line's, every time, and follows its id.
@@ -283,6 +371,7 @@ func _panels(map: Node3D) -> void:
 			var l := _line(str(case[0]), p, extra)
 			var typed := _build(map, [l], &"typed")
 			var typed_soft: Dictionary = b.soft_data()
+			var typed_diamonds: int = b.kit_diamonds
 			if not (b.panel_tiles as Dictionary).is_empty():
 				problems.append("6 %s: typed made panel pieces" % case[1])
 			var classic := _build(map, [l], &"classic")
@@ -292,7 +381,22 @@ func _panels(map: Node3D) -> void:
 			var what := "%s %s (%s)" % [case[0], case[1], sc]
 			var lrow := Solidity.look_row(StringName(str(case[1])))
 			var mesh_tris := 0
-			if bool((lrow.get("post", {}) as Dictionary).get("in_mesh", false)):
+			if lrow.has("pier"):
+				# W7: the plinth and piers in the city mesh; a pier diamond each on a soft line only.
+				var pe := float(lrow["pier"]["every"])
+				var marks := floori(8.2 / pe) + 1 + (1 if fmod(8.2, pe) > 0.05 else 0)
+				var kst := Chunked.new()
+				b._soft_line = {}
+				b._pier_fence_kit(kst, PackedVector2Array([Vector2(3000, 3000), Vector2(3005, 3000), Vector2(3005, 3003.2)]),
+						lrow, float(lrow["h"]))
+				map._solids = {}
+				mesh_tris = kst.vertex_count / 3
+				var want_d := marks if sc == "S" else 0
+				var walls := (typed[1] as Dictionary).get(&"wall", PackedVector3Array()) as PackedVector3Array
+				if typed_diamonds != want_d or walls.size() != want_d * 24:
+					problems.append("6 %s (%s): %d pier diamonds, %d wall faces; want %d and %d" % [case[1], sc, typed_diamonds,
+							walls.size() / 3, want_d, want_d * 8])
+			elif bool((lrow.get("post", {}) as Dictionary).get("in_mesh", false)):
 				var pe := float(lrow["post"]["every"])
 				mesh_tris = 4 * (floori(8.2 / pe) + 1 + (1 if fmod(8.2, pe) > 0.05 else 0))
 			if int(panels[0]) != mesh_tris:
@@ -339,6 +443,12 @@ func _panels(map: Node3D) -> void:
 				problems.append("6 %s: a hard line in the soft meta %s" % [what, ids])
 			if soft and typed_soft.is_empty():
 				problems.append("6 %s: the line is not soft (the case tests nothing)" % what)
+	# W7: a soft pier-and-iron line with the soft switch off: hard, and no pier diamond.
+	CityBarriers.soft_off = true
+	var hard := _build(map, [_line("fence", p, {"ty": "bars_pier", "sc": "S"})], &"typed")
+	CityBarriers.soft_off = false
+	if int(b.kit_diamonds) != 0 or (hard[1] as Dictionary).has(&"wall"):
+		problems.append("6 bars_pier: %d pier diamonds with the soft switch off" % b.kit_diamonds)
 	# A row not marked panel (deck_railing, heavy) stays typed under panels.
 	var deck := _line("fence", p, {"ty": "deck_railing"})
 	var lt := _build(map, [deck], &"typed")
