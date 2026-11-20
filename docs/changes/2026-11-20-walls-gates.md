@@ -3,6 +3,7 @@
 - found: the open-gate leaves for drives failed their photo check (of the 14 service-road openings the street photos showed, 6 are gates and 8 are open car-park mouths, plaza drives, a barrier arm, a roller shutter, low lawn fences), so service openings get posts only; the leaf rule stays in the pass behind a switch for a better test (a gate node or `barrier=gate` from OpenStreetMap)
 - found: one footway gap at Port Czerniakowski is a closed gate with a no-entry sign on the photos (a `barrier=gate` with `access=no` would say so: not read yet)
 - found: 128 footways only end on a fence (a dead end on the map); they get no gap
+- found: under `typed`, the sloppy driver's route set A gives 229 contacts against 228 (15 dead stops on both, the same lines): one 0.72 s scrape along the tram railing on Okopowa (line 4859, hard, no gate on it) became two of 0.25 s and 0.12 s. A run with only one far-away gap taken out (line 4138, 368 m off) is byte-identical to the base, so it is the physics settling differently when a sector's colliders change, not a contact at a gate
 
 ## Roadmap
 - progress on "Hoardings, graffiti, gates; types in the street sweeps, W6 and W7" (the gates are walls look W8, behind `barrier_look`; hoardings and graffiti are W9; the key waits for F's phone look): not ticked
