@@ -550,6 +550,52 @@ Ranked by how much each makes the city read as Warsaw at the default zoom, with 
 Not planned: scrape marks on hard walls, lamps on gate piers (a light each), true glass
 transparency for noise screens (a blended material), textures of bricks or boards.
 
+### 6.7 Gates and gaps (W8)
+
+**Built in W8 (2026-11-20)**, behind `barrier_look` `typed` and `panels` (the key stays `classic`):
+
+- The pass `tools/barrier_gates.py` (TD-25: stamp-guarded, last in `bake_osm.py`, in
+  `tools/check_post_passes.py`, verify step `barriergates`) writes on S and H fences, walls and
+  hedges without a hazard reason: `g`, the gaps where a footway, cycleway or crossing's centre line
+  crosses the line (strictly, or through OSM's gate node: a vertex both share, the way going on to
+  both sides), the way's width + 0.4 m over the crossing's sine; and `ge`, a gate post at a line's
+  end that faces an opening the bake already cut across a way (`clear_carriageways` for drives,
+  object_fixes L4 for footways). Not at a deck or in a tunnel; line ids, pieces and panel indices
+  stay. Main's map: 761 lines, 326 gaps (834 m), all by footways; 0 by service roads (every line was
+  already cut out of the drives); 556 gate ends, 244 by paths and 312 by service roads.
+- A footway that only ends on a line (128) gets no gap. An end more than 0.15 m inside the way's
+  width gets no post (66 path ends).
+- The photo check (street photos nearest each point, walls-research/w8/photos/): the footway gaps
+  19 right of 20 judged (the wrong one a closed gate with a no-entry sign at Port Czerniakowski); the
+  open leaves at drives failed: of 14 service openings the photos showed, 6 are gates and 8 are open
+  car-park mouths, a plaza drive, a barrier arm, a roller shutter, low lawn fences. So no leaves:
+  `LEAVES = False` in the pass, the drives get posts only. The leaf rule (two open leaves swung back
+  against the line on the yard side, the side the drive runs on for longer) stays behind the switch,
+  for a better test (OSM's `barrier=gate` nodes, which the map does not keep yet).
+- `city_barriers.gd`: a line with a typed look and gates is drawn as its pieces between the gaps,
+  each the old way, with `_soft_run` and `_panel_run` at the piece's own metre (soft segments and
+  panel indices are the whole line's); posts (`_gate_kit`) at each gap's edge and each `ge` end,
+  0.3 m taller than the line, 0.14 m square (on a wall its thickness + 0.08, in the wall's colour
+  lightened), centred half their width inside the line, from 0.2 m under the ground. They file no
+  collider of their own: the line's collider holds them and stops at the gap, so the car's openings
+  keep their width. Not on the stadium's railing (#808, its own gates) nor on lines drawn by a placed
+  or site style. Classic ignores `g` and `ge`: its per-sector hashes are main's on both paths.
+- Drawn on the whole map (flat build): 710 lines, 311 gaps, 1,033 posts. Barrier triangles typed
+  842,210 -> 852,264, panels 340,118 -> 352,534 (panel pieces 110,185 -> 109,655); collider faces of
+  walls 41,324 -> 41,268; typed city mesh vertices (both paths) 27,226,683 -> 27,256,845.
+- The car: route set A with the sloppy driver under typed, 228 -> 229 contacts and 15 = 15 dead stops;
+  the one more is a scrape along Okopowa's tram railing split in two by the physics' numerics (with
+  only one gap 368 m away taken out the run is main's, byte for byte). The 30 fence contacts are
+  along main streets (Prosta, Towarowa, Okopowa, Poniatowskiego ...), none at a path or a drive, so
+  gates cannot move them.
+- The wander run (typed): traps 0 -> 0; 1,613 -> 1,608 lines tested (5 tested where a gap now is),
+  ok 1,548 -> 1,544, miss 65 -> 64.
+- Draw calls at the five probe views: typed equal; panels equal but the helicopter's main pass, 124 ->
+  123. Prebuilt sectors +0.05 % (typed and panels). `check_solids` TOTAL_TYPED unchanged (46,459).
+- Shots (walls-research/w8/shots/): a Wola yard's footway, LO Batorego's drive on Myśliwiecka, Park
+  Ujazdowski's railing (Pole Mokotowskie is south of the map), an iron gate between piers by
+  Mokotowska, the mesh fence by the stadium: gaps and posts read at 26 m; the same on both paths.
+
 ## 7. Broken looks: the seam with the drivable-city plan
 
 `soft_things.gd` (merged, #776) keeps each broken panel by the line's stable id and the panel's
