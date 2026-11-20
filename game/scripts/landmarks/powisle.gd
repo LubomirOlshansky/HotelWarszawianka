@@ -868,7 +868,6 @@ const BUW_NOTCH_W := 3.0
 const BUW_NOTCH_BAND := Color("#4f9068")
 const BUW_SHRUB := Color("#3f5e36")
 const BUW_HEATHER := Color("#7b5d6a")
-const BUW_HILL := Color("#456f3a")
 const BUW_EARTH := Color("#7a5a44")
 const BUW_FLOWERS := [Color("#d9c23e"), Color("#d9873a"), Color("#b8343f"), Color("#8b4f9e"), Color("#e07ba0")]
 const BUW_WHITE := Color("#e2e0d6")
@@ -909,8 +908,6 @@ const BUW_RIB_COL := Color("#2e5c4a")
 const BUW_RAIL := Color("#a9c9b4")     # the walkways' pale green mesh railings
 const BUW_RAIL_TOP := Color("#7fa892")
 const BUW_BENCH := Color("#355a45")
-const BUW_DOME := Color("#a9bdb8")     # the ribbed glass dome, silver-green
-const BUW_DOME_RISE := 0.72
 const BUW_PINK := Color("#c34dc0")     # OSM's colour of the tower's parts
 const BUW_PINK_AT := Vector2(55.0, -893.0)
 const BUW_PINK_H := 11.6
@@ -919,7 +916,42 @@ const BUW_DRUM_R := 1.5
 const BUW_DRUM_UP := 3.0               # the drums' tops over the deck
 const BUW_CONCRETE := Color("#bcb9b0")
 const BUW_SLIT := Color("#3b3e3d")
-const BUW_LOOKOUT := Vector2(153.34, -955.89)  # the drum by the round east corner, people on its top
+## The round corner at Lipowa and Wybrzeże Kościuszkowskie (F, 2026-11-20, his photos and the street
+## photos): the walls round it in green-framed glass, the vault over it a ribbed glass dome, and on the
+## dome's top the steel drum of the viewing platform, a mesh stair down to the garden's path (OSM's
+## footway from 145, -946 to 159, -945). BUW_ROUND_C, BUW_ROUND_R: the outline's arc (fitted).
+const BUW_ROUND_C := Vector2(158.2, -945.0)
+const BUW_ROUND_R := 4.5
+const BUW_ROUND_IN := Vector2(-0.978, -0.207)   # into the building along the corner's bisector
+const BUW_ROTUNDA_R := 6.0      # the dome's foot (its centre 1.5 m in from the arc's)
+const BUW_ROTUNDA_TOP := 1.0    # the dome's top (the drum's foot) over the deck
+const BUW_LOOKOUT_R := 3.0      # the drum
+const BUW_LOOKOUT_UP := 3.3     # its floor over the deck
+const BUW_LOOKOUT := Vector2(156.73, -945.31)   # the drum's centre: BUW_ROUND_C + BUW_ROUND_IN * 1.5
+const BUW_STAIR_RUN := 6.4
+const BUW_STEEL_DRUM := Color("#8e989a")
+const BUW_GRATING := Color("#5d6466")
+const BUW_HANDRAIL := Color("#6f8fae")   # the platform's tube handrail (the photos: pale steel blue)
+const BUW_BINOCULAR := Color("#e0782e")
+const BUW_ROTUNDA_GLASS := Color("#5c8f83")
+const BUW_ROTUNDA_RIB := Color("#2f6250")
+## The oculus (F's photos and the garden's: a funnel of glass panes sinking into the reading rooms,
+## not a dome): its foot's radius as a share of the rim's, and how deep it goes under the deck.
+const BUW_FUNNEL_FOOT := 0.42
+const BUW_FUNNEL_DEEP := 5.5
+const BUW_FUNNEL_BLUE := Color("#5d7fa3")
+const BUW_FUNNEL_PALE := Color("#b9cad6")
+## The ivy hill (F's photos): a big rounded mound all in ivy, reddening in autumn, a small opening on
+## its top; BUW_MOUND_RISE over the deck.
+const BUW_MOUND_RISE := 6.5
+## Boskajola, the pizzeria under the lookout (F, 2026-11-20; a parody name): white square umbrellas
+## over tables on the Lipowa pavement by the corner, and the old stone gate pier with its arched
+## niche at the corner itself (F's photos).
+const BUW_CAFE_ALONG := Vector2(-0.892, 0.451)   # along Lipowa, away from the corner
+const BUW_CAFE_OUT := Vector2(0.451, 0.892)      # out of the Lipowa front
+const BUW_CAFE_FROM := Vector2(157.9, -940.2)    # the arc's end on Lipowa
+const BUW_UMBRELLA := Color("#f1eee6")
+const BUW_STONE := Color("#ddd3bd")
 const BUW_CASCADE := Vector2(70.0, -1024.5)    # the first step of the cascade by the north tip
 const BUW_CASCADE_DIR := Vector2(-0.55, -0.83) # down into the stream's end
 const BUW_WATER := Color("#4d7f86")
@@ -1221,9 +1253,14 @@ func _build_buw(site: Dictionary) -> void:
 	# by the south corner, every other front off-white concrete with teal windows behind a
 	# patina trellis and ivy; the paved deck inside the curved green glass vault all round.
 	_buw_walls(ring, g, top - BUW_BAND_DROP)
+	# the oculus is a funnel into the building (F's photos): the deck open over it
+	var wells: Array = []
+	for r: Vector3 in site.get("rounds", []):
+		if r.z > 6.0:
+			wells.append(_circle(Vector2(r.x, r.y), r.z, 16))
 	for deck in Geometry2D.offset_polygon(ring, -BUW_BAND_W + 1.0):
 		if deck.size() >= 3 and not Geometry2D.is_polygon_clockwise(deck):
-			_cap(deck, top, BUW_DECK)
+			_cap_holes(deck, wells, top, BUW_DECK)
 	_buw_band(ring, top)
 	_collide(outline)
 	_buw_front(g, ring)
@@ -1231,13 +1268,18 @@ func _build_buw(site: Dictionary) -> void:
 	_buw_court(site, g)
 	_buw_pink(site, g)
 	_buw_drums(site, g)
+	_buw_rotunda(g)
+	_buw_cafe(g)
 	_buw_ci4(site)
 	_buw_lower_garden(site, g)
 
 
 ## Which front an edge of the outline is (F's photos, 2026-11-13): 1 the glass behind Dobra's
-## copper, 2 the tall glass hall past the copper's south end and its recess, 0 the rest (white).
+## copper, 2 the tall glass hall past the copper's south end and its recess, 3 the round corner's
+## glass (F, 2026-11-20), 0 the rest (white).
 func _buw_front_kind(a: Vector2, b: Vector2) -> int:
+	if ((a + b) * 0.5).distance_to(BUW_ROUND_C) < BUW_ROUND_R + 1.2:
+		return 3
 	var ax := BUW_FRONT_AXIS.normalized()
 	var d := (a + b) * 0.5 - BUW_FRONT
 	var u := d.dot(ax)
@@ -1268,6 +1310,8 @@ func _buw_walls(ring: PackedVector2Array, g: float, y1: float) -> void:
 		elif kind == 2:
 			_mode = M_GLASS
 			_wall(a, b, g - 0.4, y1, out, BUW_HALL_GLASS, run)
+		elif kind == 3:
+			_buw_rotunda_wall(a, b, g, y1, out, run)
 		else:
 			_mode = M_STONE
 			_wall(a, b, g - 0.4, y1, out, BUW_WALL, run)
@@ -1307,7 +1351,9 @@ func _buw_walls(ring: PackedVector2Array, g: float, y1: float) -> void:
 ## from the walls' top (BUW_BAND_DROP under the roof) up and in to just over the deck,
 ## BUW_BAND_W wide (narrower over the notch's court); BUW_VAULT_STEPS facets per edge.
 func _buw_band(outline: PackedVector2Array, top: float) -> void:
-	var ring := _simplify(outline, 2.0)  # short jogs fold a band this wide over itself
+	# short jogs fold a band this wide over itself; the round corner's arc goes to one chamfer (the
+	# rotunda's dome covers it: its short edges left a hole in the vault, F 2026-11-20)
+	var ring := _buw_chamfer(_simplify(outline, 2.0))
 	var y0 := top - BUW_BAND_DROP
 	var rise := BUW_BAND_DROP + 0.6
 	var n := ring.size()
@@ -1559,10 +1605,30 @@ func _buw_roof(site: Dictionary, g: float) -> void:
 		_cap(lr, top + 1.2, BUW_SKY)
 		_mode = M_STONE
 	_no_roof = false
-	# The hill between the field and the oculus (the Mac's check): a solid dark green mound, the
-	# small teal glass pyramid (OSM's 6 m part) on its flat top.
-	_frustum(_buw_ellipse(1.0, 16), top, _buw_ellipse(0.62, 16), top + 2.0, BUW_HILL)
-	_frustum(_buw_ellipse(0.62, 16), top + 2.0, _buw_ellipse(0.32, 16), top + 3.0, BUW_HILL, BUW_HILL)
+	# The hill between the field and the oculus (F's photos, 2026-11-20): a big rounded mound all in
+	# ivy, its leaves reddening in patches in autumn, a small dark opening on its top.
+	var hill_c := Vector3(BUW_MOUND.x, top, BUW_MOUND.y)
+	var prev := _buw_ellipse(1.0, 20)
+	var prev_y := top
+	for k in range(1, 6):
+		var th := PI * 0.5 * float(k) / 5.0
+		var ring2 := _buw_ellipse(maxf(cos(th), 0.12), 20)
+		var y2 := top + BUW_MOUND_RISE * sin(th)
+		for i in 20:
+			var j := (i + 1) % 20
+			var p0 := Vector3(prev[i].x, prev_y, prev[i].y)
+			var p1 := Vector3(prev[j].x, prev_y, prev[j].y)
+			var p2 := Vector3(ring2[j].x, y2, ring2[j].y)
+			var p3 := Vector3(ring2[i].x, y2, ring2[i].y)
+			var nrm := (p1 - p0).cross(p3 - p0).normalized()
+			if nrm.dot((p0 + p2) * 0.5 - hill_c) < 0.0:
+				nrm = -nrm
+			var h := _buw_hash(float(i) + 3.0, float(k) + 17.0)
+			var col: Color = BUW_IVY_RED.lerp(BUW_IVY[1], 0.25) if h > 0.78 else BUW_IVY[int(h * 23.0) % BUW_IVY.size()]
+			_quad(p0, p1, p2, p3, nrm, col)
+		prev = ring2
+		prev_y = y2
+	_cap(prev, prev_y, BUW_DARK)
 	# The white pavilions, and the small white domes on brown rings along the south lawn.
 	for pv: Vector4 in BUW_PAVILIONS:
 		_prism(_buw_pavilion(pv), top, top + 2.6, BUW_WHITE, BUW_WHITE.darkened(0.08), M_STONE, M_STONE)
@@ -1579,9 +1645,10 @@ func _buw_roof(site: Dictionary, g: float) -> void:
 		var c := p + s * 1.9
 		var seat := PackedVector2Array([c - e * 0.9 - s * 0.25, c + e * 0.9 - s * 0.25, c + e * 0.9 + s * 0.25, c - e * 0.9 + s * 0.25])
 		_prism(seat, top + 0.12, top + 0.5, BUW_BENCH, BUW_BENCH, M_STONE, M_STONE)
-	# The round lights (F's photos): the big one a ribbed glass dome, silver-green, on a low
-	# copper curb in a 4 m paved ring path; the small one a glass cone in a planted hump. The
-	# dome's glass stays out of the roof grid (the cassette goes to the garden).
+	# The round lights (F's photos): the big one, the oculus, a funnel of glass panes sinking from a
+	# low copper rim into the reading rooms (2026-11-20, not a dome), blue with a few pale panes, dark
+	# green ribs down its slope, a mesh railing round the rim, the 4 m paved ring path round it; the
+	# small one a glass cone in a planted hump. The funnel stays out of the roof grid.
 	for r: Vector3 in site.get("rounds", []):
 		var c := Vector2(r.x, r.y)
 		if r.z > 6.0:
@@ -1595,20 +1662,41 @@ func _buw_roof(site: Dictionary, g: float) -> void:
 				var o1 := c + d1 * (r.z + BUW_RING_W)
 				_quad(Vector3(i0.x, top + 0.14, i0.y), Vector3(o0.x, top + 0.14, o0.y), Vector3(o1.x, top + 0.14, o1.y),
 						Vector3(i1.x, top + 0.14, i1.y), Vector3.UP, BUW_PAVING)
-			_prism(_circle(c, r.z, sides), top, top + 0.6, BUW_PATINA, none, M_STONE)
+			var rim := top + 0.45
+			_prism(_circle(c, r.z + 0.25, sides), top, rim, BUW_PATINA, BUW_PATINA, M_STONE, M_STONE)
 			_no_roof = true
-			_mode = M_GLASS_ROOF
-			var y := top + 0.6
-			var rr := r.z
-			for k in 4:
-				var ph := PI * 0.5 * float(k + 1) / 4.6
-				var r1 := r.z * cos(ph)
-				var y1 := top + 0.6 + r.z * BUW_DOME_RISE * sin(ph)
-				_frustum(_circle(c, rr, sides), y, _circle(c, r1, sides), y1, BUW_DOME.lightened(0.04 * k))
-				rr = r1
-				y = y1
-			_mode = M_STONE
-			_frustum(_circle(c, rr, 8), y, _circle(c, rr * 0.6, 8), y + 0.5, BUW_PATINA, BUW_PATINA)
+			var levels := 3
+			for k in levels:
+				var ra := r.z * lerpf(1.0, BUW_FUNNEL_FOOT, float(k) / levels)
+				var rb := r.z * lerpf(1.0, BUW_FUNNEL_FOOT, float(k + 1) / levels)
+				var ya := rim - BUW_FUNNEL_DEEP * float(k) / levels
+				var yb := rim - BUW_FUNNEL_DEEP * float(k + 1) / levels
+				for i in sides:
+					var d0 := Vector2.from_angle(TAU * i / sides)
+					var d1 := Vector2.from_angle(TAU * (i + 1) / sides)
+					var dm := (d0 + d1).normalized()
+					var nrm := Vector3(-dm.x * (ya - yb), ra - rb, -dm.y * (ya - yb)).normalized()
+					var col := BUW_FUNNEL_PALE if (i * 7 + k * 3) % 6 == 0 else BUW_FUNNEL_BLUE
+					col = col.darkened(0.14 * k)
+					var a0 := c + d0 * ra
+					var a1 := c + d1 * ra
+					var b0 := c + d0 * rb
+					var b1 := c + d1 * rb
+					_quad(Vector3(a0.x, ya, a0.y), Vector3(a1.x, ya, a1.y), Vector3(b1.x, yb, b1.y), Vector3(b0.x, yb, b0.y), nrm, col)
+					var lift := nrm * 0.04
+					_buw_strip(Vector3(a0.x, ya, a0.y) + lift, Vector3(b0.x, yb, b0.y) + lift, Vector3(-d0.y, 0.0, d0.x), 0.16,
+							BUW_RIB_COL, nrm)
+			_cap(_circle(c, r.z * BUW_FUNNEL_FOOT, sides), rim - BUW_FUNNEL_DEEP, BUW_DARK)
+			# the railing round the rim, seen from both sides
+			for i in sides:
+				var d0 := Vector2.from_angle(TAU * i / sides)
+				var d1 := Vector2.from_angle(TAU * (i + 1) / sides)
+				var dm := (d0 + d1).normalized()
+				var p0 := c + d0 * (r.z + 0.45)
+				var p1 := c + d1 * (r.z + 0.45)
+				_buw_face(p0, p1, top + 0.14, top + 1.15, dm, BUW_RAIL)
+				_buw_face(p1, p0, top + 0.14, top + 1.15, -dm, BUW_RAIL)
+				_buw_face(p0 + dm * 0.01, p1 + dm * 0.01, top + 1.15, top + 1.27, dm, BUW_RAIL_TOP)
 			_no_roof = false
 		else:
 			_frustum(_circle(c, r.z + 2.0, 12), top, _circle(c, 1.6, 12), top + 1.4, BUW_PARK)
@@ -1621,9 +1709,7 @@ func _buw_roof(site: Dictionary, g: float) -> void:
 		var q := _hull(_pts(h["p"]))
 		var area := absf(_area(q))
 		if area < 60.0 and q.size() <= 5 and Geometry2D.is_point_in_polygon(_centre(q), _buw_ellipse(0.32, 16)):
-			_mode = M_GLASS_ROOF
-			_pyramid(q, top + 3.0, top + 5.0, BUW_SKY.lerp(Color("#5fb3ad"), 0.5))
-			_mode = M_STONE
+			pass  # OSM's 6 m part on the hill: its opening (above), under the ivy
 		elif area > 120.0:
 			_prism(q, top, top + 0.8, BUW_PATINA, none, M_STONE)
 			_mode = M_GLASS_ROOF
@@ -1707,8 +1793,8 @@ func _buw_pink(site: Dictionary, g: float) -> void:
 
 
 ## The round towers (F's photos): concrete drums standing out of the north-east and north
-## fronts to over the roof, the top 2 m dark slits between pale ribs; the one nearest the round
-## east corner carries a railed lookout (crowds.gd's `buw_lookout` deck stands people on it).
+## fronts to over the roof, the top 2 m dark slits between pale ribs. The lookout is the round
+## corner's own drum (`_buw_rotunda`, F 2026-11-20), not one of these.
 func _buw_drums(site: Dictionary, g: float) -> void:
 	var top := g + BUW_ROOF
 	var vents: Array = site.get("vents", [])
@@ -1725,15 +1811,217 @@ func _buw_drums(site: Dictionary, g: float) -> void:
 			var p := c + d * (r + 0.02)
 			_buw_face(p - t * 0.22, p + t * 0.22, body, top + BUW_DRUM_UP, d, BUW_CONCRETE.lightened(0.05))
 		_collide(_circle(c, r, 8))
-		if c.distance_to(BUW_LOOKOUT) < 6.0:
-			# the lookout's railing: posts and a top ring, people inside (crowds.gd)
-			var y0 := top + BUW_DRUM_UP
-			for k in 12:
-				var d := Vector2.from_angle(TAU * (k + 0.5) / 12.0)
-				var p := c + d * (r - 0.1)
-				var t := d.orthogonal()
-				_buw_face(p - t * 0.05, p + t * 0.05, y0, y0 + 1.1, d, BUW_RAIL_TOP)
-			_frustum(_circle(c, r - 0.05, 14), y0 + 1.0, _circle(c, r - 0.05, 14), y0 + 1.12, BUW_RAIL_TOP)
+
+
+## The band's ring with the round corner's arc cut to one chamfer, its first and last points: the arc's
+## edges, shorter than the band is wide, folded and were skipped, a hole in the vault at the corner
+## (F, 2026-11-20); the rotunda's dome (`_buw_rotunda`) stands over the chamfer.
+func _buw_chamfer(ring: PackedVector2Array) -> PackedVector2Array:
+	var n := ring.size()
+	var near: Array[bool] = []
+	var far := -1
+	for i in n:
+		near.append(ring[i].distance_to(BUW_ROUND_C) < BUW_ROUND_R + 0.8)
+		if not near[i] and far < 0:
+			far = i
+	if far < 0:
+		return ring
+	var out := PackedVector2Array()
+	var run := PackedVector2Array()
+	for k in n + 1:
+		var i := (far + k) % n
+		if k < n and near[i]:
+			run.append(ring[i])
+			continue
+		if run.size() > 0:
+			out.append(run[0])
+			if run.size() > 1:
+				out.append(run[run.size() - 1])
+			run = PackedVector2Array()
+		if k < n:
+			out.append(ring[i])
+	return out
+
+
+## The round corner's walls (F's photos): green-framed glass bays three storeys up, transoms at the
+## floors, ivy (red in autumn) grown over parts of it.
+func _buw_rotunda_wall(a: Vector2, b: Vector2, g: float, y1: float, out: Vector2, run: float) -> void:
+	_mode = M_GLASS
+	_wall(a, b, g - 0.4, y1, out, BUW_ROTUNDA_GLASS, run)
+	_mode = M_STONE
+	var length := a.distance_to(b)
+	if length < 0.1:
+		return
+	var e := (b - a) / length
+	var posts := maxi(1, roundi(length / 1.6))
+	for k in posts + 1:
+		var p := a + e * (length * float(k) / float(posts)) + out * 0.06
+		_buw_face(p - e * 0.09, p + e * 0.09, g - 0.4, y1, out, BUW_FRAME)
+	for row in range(1, 4):
+		var y := g + 3.75 * float(row) - 0.2
+		if y + 0.3 < y1:
+			_buw_face(a + out * 0.07, b + out * 0.07, y, y + 0.3, out, BUW_FRAME)
+	var h := _buw_hash(roundf(a.x * 3.0), roundf(a.y * 3.0))
+	var ivy: Color = BUW_IVY_RED if h > 0.55 else BUW_IVY[int(h * 17.0) % BUW_IVY.size()]
+	var top := minf(g + 5.0 + 8.0 * h, y1 + 0.2)
+	_buw_face(a + out * 0.12, a + e * length * 0.6 + out * 0.12, g - 0.2, top, out, ivy)
+
+
+## A strip `w` wide from p0 to p1 (a rib on a curved face), facing `hint`'s way.
+func _buw_strip(p0: Vector3, p1: Vector3, side: Vector3, w: float, col: Color, hint: Vector3) -> void:
+	var s := side.normalized() * w * 0.5
+	var nrm := (p1 - p0).cross(s).normalized()
+	if nrm.dot(hint) < 0.0:
+		nrm = -nrm
+	_quad(p0 - s, p0 + s, p1 + s, p1 - s, nrm, col)
+
+
+## The viewing platform on the round corner (F, 2026-11-20, his photos and the street photos): the
+## vault turns the corner as a ribbed green glass dome from the walls' top to a steel drum; on the
+## drum a round steel-grating floor in a mesh railing with a tube handrail and a coin binocular; a
+## steel mesh stair from the floor down into the garden along OSM's footway (BUW_ROUND_IN). People
+## stand at the railing (crowds.gd `buw_lookout`).
+func _buw_rotunda(g: float) -> void:
+	_g = g
+	var none := Color(0, 0, 0, 0)
+	var top := g + BUW_ROOF
+	var y0 := top - BUW_BAND_DROP
+	var c := BUW_LOOKOUT
+	var rd := BUW_LOOKOUT_R
+	var sides := 24
+	var steps := 5
+	var rise := BUW_ROTUNDA_TOP + BUW_BAND_DROP
+	var rs: Array[float] = []
+	var ys: Array[float] = []
+	for k in steps + 1:
+		var th := PI * 0.5 * float(k) / float(steps)
+		rs.append(rd + (BUW_ROTUNDA_R - rd) * cos(th))
+		ys.append(y0 + rise * sin(th))
+	_mode = M_STONE
+	for k in steps:
+		_frustum(_circle(c, rs[k], sides), ys[k], _circle(c, rs[k + 1], sides), ys[k + 1], BUW_BAND.lightened(0.05 * k))
+	# the ribs: twelve meridians and two rings, dark green, a little proud of the glass
+	for m in 12:
+		var d := Vector2.from_angle(TAU * (float(m) + 0.25) / 12.0)
+		var t := Vector3(-d.y, 0.0, d.x)
+		for k in steps:
+			var p0 := c + d * (rs[k] + 0.06)
+			var p1 := c + d * (rs[k + 1] + 0.06)
+			_buw_strip(Vector3(p0.x, ys[k], p0.y), Vector3(p1.x, ys[k + 1], p1.y), t, 0.2, BUW_ROTUNDA_RIB,
+					Vector3(d.x, 0.6, d.y))
+	for k: int in [0, 2]:
+		_frustum(_circle(c, rs[k] + 0.05, sides), ys[k] - 0.02, _circle(c, rs[k] + 0.03, sides), ys[k] + 0.22, BUW_ROTUNDA_RIB)
+	# the drum and its floor
+	var yd := top + BUW_ROTUNDA_TOP
+	var yf := top + BUW_LOOKOUT_UP
+	_prism(_circle(c, rd, 20), yd - 0.3, yf, BUW_STEEL_DRUM, BUW_GRATING, M_STONE, M_STONE)
+	_frustum(_circle(c, rd + 0.05, 20), yf - 0.3, _circle(c, rd + 0.05, 20), yf + 0.02, BUW_STEEL_DRUM.darkened(0.18))
+	for k in 10:
+		var d := Vector2.from_angle(TAU * float(k) / 10.0)
+		var p := c + d * (rd + 0.02)
+		_buw_face(p - d.orthogonal() * 0.04, p + d.orthogonal() * 0.04, yd - 0.3, yf - 0.3, d, BUW_STEEL_DRUM.darkened(0.1))
+	_cap(_circle(c, rd * 0.55, 12), yf + 0.01, BUW_GRATING.darkened(0.12))
+	# the railing: a mesh ring seen from both sides, the tube on top; open where the stair comes up
+	var n := 20
+	for k in n:
+		var d0 := Vector2.from_angle(TAU * float(k) / float(n))
+		var d1 := Vector2.from_angle(TAU * float(k + 1) / float(n))
+		var dm := (d0 + d1).normalized()
+		if dm.dot(BUW_ROUND_IN) > 0.93:
+			continue
+		var p0 := c + d0 * (rd - 0.08)
+		var p1 := c + d1 * (rd - 0.08)
+		_buw_face(p0, p1, yf, yf + 1.05, dm, BUW_RAIL)
+		_buw_face(p1, p0, yf, yf + 1.05, -dm, BUW_RAIL)
+		_beam(Vector3(p0.x, yf + 1.1, p0.y), Vector3(p1.x, yf + 1.1, p1.y), 0.08, BUW_HANDRAIL, false)
+	# the coin binocular at the river side
+	var bp := c - BUW_ROUND_IN * (rd - 0.9)
+	_prism(_circle(bp, 0.08, 6), yf, yf + 1.05, BUW_STEEL, none, M_STONE)
+	_prism(_circle(bp, 0.24, 6), yf + 1.05, yf + 1.4, BUW_BINOCULAR, BUW_BINOCULAR, M_STONE, M_STONE)
+	# the stair: grating treads between two steel stringers, mesh rails both sides
+	var s0 := c + BUW_ROUND_IN * (rd - 0.1)
+	var s1 := c + BUW_ROUND_IN * (rd + BUW_STAIR_RUN)
+	var side := BUW_ROUND_IN.orthogonal()
+	var w := 0.75
+	var yb := top + 0.12
+	var treads := 13
+	for k in treads:
+		var q0 := s0.lerp(s1, float(k) / float(treads))
+		var q1 := s0.lerp(s1, float(k + 1) / float(treads))
+		var y := yf - (yf - yb) * float(k + 1) / float(treads + 1)
+		_prism(PackedVector2Array([q0 - side * w, q1 - side * w, q1 + side * w, q0 + side * w]), y - 0.06, y,
+				BUW_GRATING, BUW_GRATING.lightened(0.12), M_STONE, M_STONE)
+	for sg: float in [-1.0, 1.0]:
+		var o := side * sg * (w + 0.05)
+		var a := s0 + o
+		var b := s1 + o
+		_beam(Vector3(a.x, yf - 0.1, a.y), Vector3(b.x, yb - 0.1, b.y), 0.16, BUW_STEEL_DRUM, false)
+		var nrm := Vector3(o.x, 0.0, o.y).normalized()
+		var pa := Vector3(a.x, yf, a.y)
+		var pb := Vector3(b.x, yb, b.y)
+		var up := Vector3(0.0, 1.0, 0.0)
+		_quad(pa, pb, pb + up, pa + up, nrm, BUW_RAIL)
+		_quad(pa, pa + up, pb + up, pb, -nrm, BUW_RAIL)
+		_beam(pa + up * 1.05, pb + up * 1.05, 0.07, BUW_HANDRAIL, false)
+	# a post under the stair's middle
+	var pm := s0.lerp(s1, 0.55)
+	_prism(_circle(pm, 0.1, 6), top, yf - (yf - yb) * 0.55 - 0.1, BUW_STEEL_DRUM, none, M_STONE)
+
+
+## Boskajola (F, 2026-11-20: "a café-pizzeria on the ground under the viewing platform"; a parody
+## name): a paved garden on the Lipowa pavement by the round corner, four white square umbrellas
+## over tables and chairs, a low black rail to the street, its name on the glass over it; and at the
+## corner itself the old stone gate pier with an arched niche (F's photos).
+func _buw_cafe(g: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var e := BUW_CAFE_ALONG
+	var o := BUW_CAFE_OUT
+	var from := BUW_CAFE_FROM
+	var at := func(s: float, v: float) -> Vector2:
+		return from + e * s + o * v
+	var mid: Vector2 = at.call(8.0, 3.0)
+	var gy: float = map.terrain_height(mid.x, mid.y)
+	_g = gy
+	_mode = M_STONE
+	_cap(PackedVector2Array([at.call(1.2, 0.6), at.call(15.0, 0.6), at.call(15.0, 5.0), at.call(1.2, 5.0)]), gy + 0.1, Color("#b8b1a3"))
+	# the low black rail to the street, open at both ends
+	var r0: Vector2 = at.call(1.6, 5.0)
+	var r1: Vector2 = at.call(14.6, 5.0)
+	_buw_face(r0, r1, gy + 0.1, gy + 0.85, o, Color("#2b2d2e"))
+	_buw_face(r1, r0, gy + 0.1, gy + 0.85, -o, Color("#2b2d2e"))
+	for k in 4:
+		var p: Vector2 = at.call(3.0 + 3.3 * float(k), 2.9)
+		_prism(_circle(p, 0.05, 4), gy + 0.1, gy + 2.55, BUW_UMBRELLA, none, M_STONE)
+		var sq := PackedVector2Array([p - e * 1.4 - o * 1.4, p + e * 1.4 - o * 1.4, p + e * 1.4 + o * 1.4, p - e * 1.4 + o * 1.4])
+		_frustum(sq, gy + 2.2, sq, gy + 2.38, BUW_UMBRELLA.darkened(0.06))
+		_pyramid(sq, gy + 2.38, gy + 2.85, BUW_UMBRELLA)
+		_prism(_circle(p + e * 0.6, 0.42, 8), gy + 0.72, gy + 0.78, Color("#e8e4da"), Color("#e8e4da"), M_STONE, M_STONE)
+		_prism(_circle(p + e * 0.6, 0.05, 4), gy + 0.1, gy + 0.72, Color("#3a3a3a"), none, M_STONE)
+		for cd: Vector2 in [o * 0.75, -o * 0.75, e * 0.75]:
+			var cp := p + e * 0.6 + cd
+			var seat := PackedVector2Array([cp - e * 0.2 - o * 0.2, cp + e * 0.2 - o * 0.2, cp + e * 0.2 + o * 0.2, cp - e * 0.2 + o * 0.2])
+			_prism(seat, gy + 0.1, gy + 0.55, Color("#4a3a2e"), Color("#5a473a"), M_STONE, M_STONE)
+	var sign_at: Vector2 = at.call(8.0, 0.08)
+	signs.append(["BOSKAJOLA", Vector3(sign_at.x, g + 3.3, sign_at.y), Vector3(o.x, 0.0, o.y), 0.32, Color(1.0, 0.9, 0.72)])
+	# the stone gate pier: a cream box, a cornice and a low attic, an arched niche on its street face
+	var a := -BUW_ROUND_IN
+	var b := a.orthogonal()
+	var gp := BUW_ROUND_C + a * (BUW_ROUND_R + 3.0)
+	var py: float = map.terrain_height(gp.x, gp.y)
+	_g = py
+	var box := func(hu: float, hv: float) -> PackedVector2Array:
+		return PackedVector2Array([gp - a * hv - b * hu, gp + a * hv - b * hu, gp + a * hv + b * hu, gp - a * hv + b * hu])
+	_prism(box.call(1.2, 0.85), py - 0.3, py + 3.2, BUW_STONE, none, M_STONE)
+	_prism(box.call(1.38, 1.02), py + 3.2, py + 3.5, BUW_STONE.lightened(0.05), BUW_STONE, M_STONE, M_STONE)
+	_prism(box.call(1.0, 0.7), py + 3.5, py + 3.95, BUW_STONE, BUW_STONE.darkened(0.06), M_STONE, M_STONE)
+	_prism(box.call(1.28, 0.95), py - 0.3, py + 0.35, BUW_STONE.darkened(0.1), none, M_STONE)
+	var niche := Color("#5b5348")
+	for s: float in [1.0, -1.0]:
+		var fc := gp + a * s * 0.87
+		_buw_face(fc - b * 0.55 * s, fc + b * 0.55 * s, py + 0.35, py + 2.1, a * s, niche)
+		_disc(Vector3(fc.x, py + 2.1, fc.y), Vector3(a.x * s, 0.0, a.y * s), 0.55, 10, niche)
+	_collide(box.call(1.2, 0.85))
+	_g = g
 
 
 ## Collegium Iuridicum IV, Wybrzeże Kościuszkowskie 47 (F's photos, 2026-11-13): the 19th-century
