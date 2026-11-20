@@ -49,7 +49,10 @@ if (live > 0) {
 	const [lw, lh] = opt("live-size", "1080x1920").split("x").map((v) => parseInt(v, 10));
 	const page = await browser.newPage({ viewport: { width: lw, height: lh }, deviceScaleFactor: 1 });
 	page.on("pageerror", (e) => { console.error(`render.mjs: live: ${e.message}`); process.exitCode = 1; });
-	await page.goto(pathToFileURL(join(here, "live.html")).href + `?w=${lw}&h=${lh}`);
+	// --live-text="Warsaw\n3:30 p.m.": other words (teaser 4); \n splits the lines.
+	const lt = opt("live-text", "");
+	const tq = lt ? `&text=${encodeURIComponent(lt.replace(/\\n/g, "\n"))}` : "";
+	await page.goto(pathToFileURL(join(here, "live.html")).href + `?w=${lw}&h=${lh}${tq}`);
 	await page.evaluate(() => document.fonts.ready);
 	mkdirSync(join(out, "live"), { recursive: true });
 	const n = Math.round(live * fps);

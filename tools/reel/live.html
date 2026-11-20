@@ -31,7 +31,7 @@ const stage = document.getElementById("stage");
 stage.style.width = W + "px"; stage.style.height = H + "px";
 document.getElementById("shade").style.width = W + "px"; document.getElementById("shade").style.height = H + "px";
 document.getElementById("title").style.top = (H > W ? H - 560 : H - 250) + "px";
-const TEXT = "Warsaw\n10 p.m.";
+const TEXT = P.get("text") || "Warsaw\n10 p.m.";  // ?text=Warsaw%0A3:30%20p.m. (teaser 4)
 const $ = (id) => document.getElementById(id);
 const k = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
 function frame(t) {
