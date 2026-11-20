@@ -65,6 +65,9 @@ const TOTAL := 46636
 ## (after merging main with Plac Defilad #848), unchanged by W3: the stadium's retyped lines keep their look and class (soft, no faces), and the other
 ## fixes change no face in these sectors (the planter edges by the Palace of Culture in (-2, 0) keep
 ## a placed style).
+## W8 of the walls look (2026-11-20, tools/barrier_gates.py): measured again with its own `--record
+## --barriers=typed` on the gated map: 46459, unchanged (the gaps in these six sectors cut soft lines,
+## which file no faces; the gate posts file none). TOTAL (classic) ignores the gates.
 const TOTAL_TYPED := 46459
 
 var problems: Array[String] = []
