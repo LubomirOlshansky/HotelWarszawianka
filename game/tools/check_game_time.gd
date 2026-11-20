@@ -20,7 +20,9 @@ const Pacer := preload("res://scripts/pacer.gd")
 const TimeOfDay := preload("res://scripts/time_of_day.gd")
 const Activity := preload("res://scripts/activity.gd")
 const Fakes := preload("res://tools/fakes.gd")
+const UiKit := preload("res://scripts/ui_kit.gd")
 const ClockDial := preload("res://scripts/clock_dial.gd")
+const FullMap := preload("res://scripts/full_map.gd")
 
 
 ## A clock with the methods the jump uses.
@@ -99,6 +101,31 @@ func _game_clock() -> void:
 	# The watch: noon at the top, 6:00 left, quarter hours.
 	_expect(is_equal_approx(ClockDial.hour_at(Vector2(0, -50)), 12.0) and is_equal_approx(ClockDial.hour_at(Vector2(-50, 0)), 6.0)
 			and is_equal_approx(ClockDial.hour_at(Vector2(0, 50)), 0.0), "the watch's hours are wrong")
+	# The map: the clock button opens the watch on the game clock's hour; the watch moves the clock;
+	# a look button picks its look and the button the sun makes SELECTED (F 2026-11-20, the kit).
+	t.set_hour(14.0, true)
+	var fm := FullMap.new()
+	fm.bounds = Rect2(-2000, -2000, 4000, 4000)
+	fm.tod = t
+	root.add_child(fm)
+	fm.open(Vector2.ZERO, 0.0)
+	fm._clock_tapped()
+	var dial := fm.find_child("clock_dial", true, false)
+	_expect(fm._picker.visible and dial != null and absf(float(dial.hour) - 14.0) < 0.05 and dial.day_name.size() == 2,
+			"the map's watch did not open on 14:00 with the weekday")
+	fm._hour_picked(17.5)
+	_expect(absf(float(t.local_clock()["hour"]) - 17.5) < 0.02 and fm._clock_btn.text.ends_with("17:30"), "the watch did not move the clock to 17:30")
+	fm._time_tapped(TimeOfDay.DAWN)
+	_expect(t.look_mode() == TimeOfDay.DAWN, "the map's Dawn did not make the dawn")
+	fm._clock_tapped()
+	var chosen := 0
+	for b: Button in fm._time_buttons:
+		if b.get_theme_stylebox("normal").border_color == UiKit.GOLD:
+			chosen += 1
+	_expect(chosen == 1, "%d look buttons are SELECTED, not one" % chosen)
+	_expect(ClockDial.phase(15.25, Vector2(7.07, 15.65)) == "clock_golden" and ClockDial.phase(23.0, Vector2(7.07, 15.65)) == "clock_night"
+			and ClockDial.phase(11.0, Vector2(7.07, 15.65)) == "clock_day", "the watch's parts of the day are wrong")
+	fm.free()
 	t.free()
 	sun.free()
 

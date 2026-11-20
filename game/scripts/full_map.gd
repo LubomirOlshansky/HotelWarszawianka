@@ -201,6 +201,8 @@ var _clock_btn: Button
 var _picker: PanelContainer
 var _picker_open: Label
 var _dial: Control
+var _clock_icon: Control
+var _time_buttons: Array[Button] = []
 ## The NEXT line's thing ({} none): {"words": [pl, en], "colour", "at", "entry" (a place to pin, {}
 ## none), "id" (an item to open the screen on, "" none)}.
 var next_info: Dictionary = {}
@@ -280,7 +282,17 @@ func _build() -> void:
 	_clock_btn = _round_button("", UiKit.INK)
 	_clock_btn.name = "clock"
 	_clock_btn.add_theme_font_size_override("font_size", _px(T_SUB + 2.0))
+	_clock_btn.alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_clock_btn.pressed.connect(_clock_tapped)
+	# F 2026-11-20: a sun or a moon left of the time (clock_dial.gd draws both)
+	_clock_icon = Control.new()
+	_clock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_clock_icon.draw.connect(func() -> void:
+		var c: Dictionary = tod.local_clock() if tod != null else {}
+		var night := tod != null and tod.has_method("sun_times") \
+				and ClockDial.phase(float(c.get("hour", 12.0)), tod.sun_times()) == "clock_night"
+		ClockDial.draw_sun_or_moon(_clock_icon, _clock_icon.size * 0.5, 7.0 * pt, night, pt))
+	_clock_btn.add_child(_clock_icon)
 	add_child(_clock_btn)
 	_build_picker()
 	_next = Button.new()
@@ -405,16 +417,28 @@ func _build_picker() -> void:
 	_dial.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_dial.picked.connect(_hour_picked)
 	v.add_child(_dial)
+	var hint := Label.new()
+	var hw: Array = QuestBook.words("clock_drag")
+	hint.text = Lang.pick(str(hw[0]), str(hw[1]))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiKit.style_label(hint, "sub", pt)
+	v.add_child(hint)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", _px(6))
 	v.add_child(row)
+	# F 2026-11-20 (the kit's rules): the looks are SECONDARY buttons, the one the sun makes now
+	# SELECTED (`_show_time`); no gold PRIMARY on this card.
 	for pick: Array in TIME_PICKS:
-		var b := _gold_button(Lang.pick(str(pick[1]), str(pick[2])))
-		b.visible = true
-		b.custom_minimum_size = Vector2(64.0, 48.0) * pt
+		var b := Button.new()
+		b.text = Lang.pick(str(pick[1]), str(pick[2])).to_upper()
+		b.focus_mode = Control.FOCUS_NONE
+		b.custom_minimum_size = Vector2(64.0, 44.0) * pt
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.name = "time_%d" % int(pick[0])
+		b.set_meta("mode", int(pick[0]))
 		b.pressed.connect(_time_tapped.bind(int(pick[0])))
 		row.add_child(b)
+		_time_buttons.append(b)
 	add_child(_picker)
 
 
@@ -443,17 +467,31 @@ func _open_words() -> String:
 func _clock_tapped() -> void:
 	_picker.visible = not _picker.visible
 	_picker_open.text = _open_words()
-	if tod != null and tod.has_method("sun_times"):
-		_dial.set_time(float(tod.local_clock()["hour"]), tod.sun_times())
+	_show_time()
 	print("full map: clock %s (%s)" % ["open" if _picker.visible else "closed", _clock_words()])
 	_fit()
+
+
+## The clock now on the watch, the clock button (SELECTED while its picker is open, its sun or
+## moon) and the look buttons (the look the sun makes now SELECTED).
+func _show_time() -> void:
+	_clock_btn.text = _clock_words()
+	UiKit.style_button(_clock_btn, UiKit.Kind.SELECTED if _picker.visible else UiKit.Kind.SECONDARY, pt, T_SUB + 2.0, UiKit.R_PILL)
+	_clock_icon.queue_redraw()
+	if tod == null or not tod.has_method("sun_times"):
+		return
+	var c: Dictionary = tod.local_clock()
+	_dial.set_time(float(c["hour"]), tod.sun_times(), GameTime.DAYS[clampi(int(c.get("weekday", 5)) - 1, 0, 6)])
+	var now: int = tod.look_mode()
+	for b: Button in _time_buttons:
+		UiKit.style_button(b, UiKit.Kind.SELECTED if int(b.get_meta("mode")) == now else UiKit.Kind.SECONDARY, pt, T_SUB)
 
 
 func _time_tapped(mode: int) -> void:
 	if tod != null:
 		tod.set_mode(mode)
 	_picker.visible = false
-	_clock_btn.text = _clock_words()
+	_show_time()
 	print("full map: time picked %d, now %s" % [mode, _clock_words()])
 	_fit()
 
@@ -463,7 +501,7 @@ func _hour_picked(hour: float) -> void:
 	if tod != null:
 		tod.set_hour(hour)
 	_picker_open.text = _open_words()
-	_clock_btn.text = _clock_words()
+	_show_time()
 	print("full map: watch set %.2f, now %s" % [hour, _clock_words()])
 
 
@@ -510,6 +548,7 @@ func open(at: Vector2, yaw: float) -> void:
 	_note_t = 0.0
 	_note.visible = false
 	_picker.visible = false
+	_show_time()
 	_did_quests = false
 	_did_hold = false
 	_did_pin = false
@@ -575,7 +614,10 @@ func _fit() -> void:
 	_close.position = Vector2(s.end.x - m - _close.size.x, s.position.y + m)
 	_clock_btn.text = _clock_words()
 	_clock_btn.size = Vector2.ZERO
-	_clock_btn.size = Vector2(maxf(_clock_btn.get_combined_minimum_size().x, 96.0 * pt), _close.size.y)
+	_clock_btn.size = Vector2(maxf(_clock_btn.get_combined_minimum_size().x + 22.0 * pt, 112.0 * pt), _close.size.y)
+	_clock_icon.position = Vector2(8.0 * pt, 0.0)
+	_clock_icon.size = Vector2(22.0 * pt, _clock_btn.size.y)
+	_clock_icon.queue_redraw()
 	_clock_btn.position = Vector2(_close.position.x - m - _clock_btn.size.x, _close.position.y)
 	if _picker.visible:
 		_picker.reset_size()
