@@ -3565,9 +3565,13 @@ func _build_ctx() -> GameCtx:
 	_ctx.graph = graph
 	_ctx.traffic = traffic
 	_ctx.jobs = jobs
+	_ctx.rides = rides
 	_ctx.police = police
 	_ctx.rivals = rivals
 	_ctx.weather = weather
+	_ctx.life = life
+	_ctx.crowds = crowds
+	_ctx.notes = notes
 	_ctx.car = car
 	_ctx.heli = heli
 	_ctx.tod = tod
@@ -3786,31 +3790,13 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 							func() -> bool: return int(site["n"]) >= 2)
 	if rides != null:
 		rides.hurry_to = life.hurry_target
-	if jobs != null:
-		trend_job = TrendJob.new()
-		trend_job.name = "TrendJob"
-		trend_job.autopilot = flags.autopilot
-		trend_job.log_on = flags.trend_log
-		trend_job.hud = hud
-		trend_job.dialogue = dialogue
-		trend_job.wallet = wallet
-		trend_job.rivals = rivals
-		trend_job.jobs = jobs
-		trend_job.rides = rides
-		trend_job.graph = graph
-		trend_job.map = map
-		trend_job.car = car
-		trend_job.life = life
-		trend_job.crowds = crowds
-		trend_job.places = at
-		add_child(trend_job)
-		trend_job.setup(world)
-		# The director counts it among the activities (one of the kit at a time); the job's own
-		# `_free` holds every rule for what is outside the kit, so its test here is "yes".
-		activities.add(trend_job, func() -> bool: return true)
-		jobs.trend = trend_job
+	# The "Na czasie" job (trend_job.gd) wires itself; none without the side jobs. The director
+	# counts it among the activities (one of the kit at a time); the job's own `_free` holds every
+	# rule for what is outside the kit, so its test here is "yes". The padel court, the egg and
+	# Spacer's quiet are main.gd's own, so their hooks stay here.
+	trend_job = _join(TrendJob.new(), self, func() -> bool: return true) as TrendJob
+	if trend_job != null:
 		trend_job.enter_padel = _enter_padel
-		trend_job.hour_now = func() -> float: return float(tod.local_clock()["hour"])
 		if flags.padel_flag >= 0.0:
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
 				_enter_padel({"partner": "Kuba", "rivals": TrendJob.ARCADE_RIVALS, "hour": flags.padel_flag, "seed": 3}, true))
