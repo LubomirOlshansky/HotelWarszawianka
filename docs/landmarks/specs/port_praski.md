@@ -33,7 +33,7 @@ the rest the new block. The Minter: 18.2 m. Basin: tower 10.9 m, pump houses 4.5
 ## 3. Facade, base to top
 Sections: the ordinary facade shader's windows (its seed per look: storey height and window
 spacing), shops on the ground floor; piers between sections; ledges every second storey and a
-cornice on limestone; frames at every slab on copper loggias; glass balconies on some brick
+cornice on limestone; frames at every slab on copper loggias; glass balconies (kit_balcony PARAPET in glass) in every third bay of some brick
 sections. Krowia 6: arched windows on three floors (facade kit), a ledge at 4.6 m, a cornice slab.
 
 ## 4. Roof
@@ -51,8 +51,8 @@ Lamps on the boulevard glow (M_LAMP); the tower's glass top and the glass storey
 along the boulevard (crowds.gd PORT_PRASKI, talk "port_praski"), the riders double near them.
 
 ## 7. Detail level and budget
-L3, triangle budget 23000 for `port_praski` (an exception: a whole district of 13 buildings, about
-1700 per building) and 8800 for `pp_basin` (check_mesh_quality BUDGET).
+L3, triangle budget 25000 for `port_praski` (an exception: a whole district of 13 buildings, about
+1900 per building) and 8800 for `pp_basin` (check_mesh_quality BUDGET).
 
 ## 8. Parts table
 | id | shape | size | position | material | feature |

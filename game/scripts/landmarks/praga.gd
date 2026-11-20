@@ -816,7 +816,24 @@ func _pp_row(ring: PackedVector2Array, g: float, h: float, only: Array) -> void:
 						_pp_band(e, e + t * 0.25, o, 0.0, 0.75, g + fh, top + lift, trim)
 				_:
 					if (pick == 0 or pick == 1 or pick == 4) and _pp_rand(mid, 4) < 0.55 and seg >= 7.0:
-						_pp_balconies(s0, s1, o, run + length * k / n, seed, g, floors, fh)
+						# glass balconies (kit PARAPET in glass) in every third window bay
+						var sp := 2.2 + 1.4 * fposmod(seed * 3.71, 1.0)
+						var run0 := run + length * k / n
+						var flip := Vector2(-t.y, t.x).dot(o) < 0.0
+						if flip:
+							kit_front(s1, s0)
+						else:
+							kit_front(s0, s1)
+						var bay := ceili(run0 / sp - 0.5)
+						while true:
+							var u := (bay + 0.5) * sp - run0
+							bay += 1
+							if u > seg - 1.2:
+								break
+							if u < 1.2 or bay % 3 != 0:
+								continue
+							for j in range(1, floors):
+								kit_balcony(seg - u if flip else u, g + j * fh + 0.26, 0.95, Balcony.PARAPET, PP_GLASS, PP_SLAB, 1.2)
 		run += length
 	_mode = M_STONE
 	_cap(ring, top, PP_ROOF)
@@ -830,25 +847,6 @@ func _pp_row(ring: PackedVector2Array, g: float, h: float, only: Array) -> void:
 				_prism(_square(c + d, 2.6), top, top + 0.35, PP_ROOF.darkened(0.1), PP_GREEN_ROOF, M_STONE, M_STONE)
 
 
-## Glass balconies on a brick section: one under every other window of the facade shader's grid
-## (its window centres are at (k + 0.5) * spacing along the run), on every storey over the shops.
-func _pp_balconies(s0: Vector2, s1: Vector2, o: Vector2, run0: float, seed: float, g: float, floors: int, fh: float) -> void:
-	var sp := 2.2 + 1.4 * fposmod(seed * 3.71, 1.0)
-	var t := (s1 - s0).normalized()
-	var seg := s0.distance_to(s1)
-	var k := ceili(run0 / sp - 0.5)
-	while true:
-		var u := (k + 0.5) * sp - run0
-		k += 1
-		if u > seg - 1.2:
-			break
-		if u < 1.2 or k % 2 == 0:
-			continue
-		var c := s0 + t * u
-		for j in range(1, floors):
-			var y := g + j * fh
-			_pp_band(c - t * 0.95, c + t * 0.95, o, 0.0, 1.2, y - 0.16, y, PP_SLAB)
-			_wall(c - t * 0.95 + o * 1.2, c + t * 0.95 + o * 1.2, y, y + 1.0, o, PP_GLASS)
 
 
 ## Krowia 6: the restored red-brick works (three tall storeys, arched windows, a glass and white
