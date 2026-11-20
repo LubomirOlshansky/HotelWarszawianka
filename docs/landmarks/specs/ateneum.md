@@ -1,20 +1,21 @@
 # Teatr Ateneum: spec
 
-Site key `ateneum` in `game/scripts/landmarks/powisle2.gd` (`_build_ateneum`, constants `ATE_`). Written 2026-11-20 from F's four photos (refs `_f/warsaw-needed-photos/powisle/X-Ateneum`: the porch on Jaracza, the curved corner house beside it) and the 20.8 m OSM outline at (581, -382). The porch, the arched band and the letters are `tamka.gd` `_ateneum` (2026-11-09) and stay there.
+Site key `ateneum` in `game/scripts/landmarks/powisle2.gd` (`_build_ateneum`, constants `ATE_`). Rewritten 2026-11-21 from F's photos and aerial (the porch on Jaracza, the curved corner, the vertical ATENEUM sign, the whole block from above). The Ateneum is the whole L-shaped block: the 20.8 m Jaracza house and the map's 47.2 m "hotel" strip (wrong height) are one building of about 23 m, replaced by one hand-set ring (`_ate_ring`) with a true arc at the corner. The porch, the arched band and the letters stay `tamka.gd`'s.
 
 ## 1. Identity
 
-1. A warm grey plaster house with a pale blue-grey plinth on Jaracza.
-2. A tall framed window each side of the porch and a round window above each.
-3. Three upper floors of framed windows on five axes under a pale cornice.
+1. The L of two wings joined by a rounded corner with a ground-floor colonnade.
+2. Pink walls with white pilaster strips, a taupe ground floor, a red and white set-back attic.
+3. Tall arched windows over the porch and over the corner, round windows beside the porch.
+4. The vertical coloured ATENEUM sign at the far end of the Jaracza wing.
 
 ## 2. Massing
 
-The mapped outline (8 points, simplified to 0.3 m) to 19.4 m, a parapet to 20.8 m, a stage house behind on the roof to 23.2 m. Only the Jaracza edge (from (579.9, -370.5) to (592.1, -386.2), 19.9 m) is free; the other faces stand against neighbours and stay plain.
+The ring: the Wybrzeże wing's outer face from (555.2, -456.5) to (598.1, -403.3), an arc (sagitta 3 m, five bays) to (592.1, -386.2), the Jaracza face to (579.9, -370.5), the courtyard side plain. Cornice at 19.9 m, attic set back 1.6 m to 23.0 m, a stage house on the roof.
 
 ## 3. Facade, base to top
 
-Plinth 1.5 m (pale blue-grey), a string course at 5.4 m, ground-floor windows 1.4 x 2.4 m at u 2.4 and 17.5, round windows (radius 0.9) at 7.3 m, windows on five axes at sills 9.5, 13.2 and 16.5 m, the middle axis starting at 10.1 m over the porch's crest (9.35 m). Nothing within u 4.5 to 15.4 below 9.4 m (the porch).
+Ground floor 5.4 m: taupe with framed windows (stone grey under the corner arcade: cream columns, arched openings), white string course. Four floors of windows at sills 6.7, 10.0, 13.3, 16.6 m every 3.3 m, white pilasters at the ends and every 13 m, a balcony rail along the corner's first floor, tall arched windows over the three middle corner bays and over the porch, round windows at 7.6 m each side of the porch.
 
 ## 4. Roof
 
@@ -30,15 +31,16 @@ The porch and its poster cases are tamka.gd's. Window panes light by chance at n
 
 ## 7. Detail level and budget
 
-L2, triangle budget 800 (built 678).
+L3 for the identity features, triangle budget 5200 (an exception to the L2 range: a whole block of two wings; built 4973).
 
 ## 8. Parts table
 
 | id | shape | size | position | material | feature |
 | --- | --- | --- | --- | --- | --- |
-| body | ring prism, cornice ring, parapet | 20.8 m high | the outline | M_STONE | 1 grey house |
-| plinth | ledge ring | 1.5 m | round the foot | M_STONE | 1 grey house |
-| ground_windows | kit_window FRAMED | 1.4 x 2.4 m | u 2.4, 17.5 | M_STONE | 2 windows beside the porch |
-| oculi | two stacked discs | radius 0.9 | u 2.4, 17.5, y 7.3 | M_STONE | 2 round windows |
-| upper_windows | kit_window SILL_HEAD, SILL | 1.2 x 2.0 m | five axes, three floors | M_STONE | 3 upper floors |
-| stage_house | box | 12 x 9 x 4.8 m | behind the front | M_STONE | 1 grey house |
+| body | ring prism, attic ring | 23 m high | the hand-set ring | M_STONE | 1 the L |
+| corner_arc | five wall bays, columns | radius 15 m | junction | M_STONE | 1 the L |
+| bays | kit_window grid | 1.2 x 1.9 m | every 3.3 m, four floors | M_STONE | 2 pink walls |
+| pilasters | kit_pilaster | 1.1 m wide | ends and every 13 m | M_STONE | 2 pink walls |
+| arched_windows | kit_window ARCHED | 1.7 x 6.4 m | over porch and corner | M_STONE | 3 tall windows |
+| oculi | stacked discs | radius 0.9 | each side of the porch | M_STONE | 3 round windows |
+| sign | seven lit boxes | 1 x 1.3 m each | far end of the Jaracza wing | M_LAMP | 4 ATENEUM sign |

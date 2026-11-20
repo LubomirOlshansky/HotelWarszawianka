@@ -1121,7 +1121,7 @@ static func tower_colour(key: String, fallback: Color) -> Color:
 	if key == "ateneum":
 		return ATE_WALL
 	if key == "lipowa1a":
-		return LP_PLASTER
+		return L1A_WHITE
 	if key == "vitkac":
 		return VITKAC_WALL
 	if key == "dom_partii":

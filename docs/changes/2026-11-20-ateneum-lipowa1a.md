@@ -1,10 +1,10 @@
-- Teatr Ateneum on Jaracza is a real house now: grey plaster on a pale blue plinth, framed windows and round windows beside the porch, a cornice and a stage house on the roof.
-- Lipowa 1A, across the street from the University Library's glass vault, is built as it stands: a white base, four floors of dark glass between teal fins, and a planted roof terrace.
+- Teatr Ateneum is the whole block now: the long wing on Wybrzeże Kościuszkowskie and the wing on Jaracza joined by the rounded colonnaded corner, pink walls with white pilasters, tall arched windows, a red and white attic and the tall coloured ATENEUM sign.
+- Lipowa 1A, across from the University Library's glass vault, is built as it stands: a white arched base and four copper-green floors with deep balconies on Lipowa and a solid copper end.
 
 ## Backlog
-- found: the curved colonnaded corner house at the Jaracza and Wybrzeże Kościuszkowskie junction (photos X-Ateneum 03, 04, 06; the Railway Unions' house) is not modelled; the map folds it into the 47 m "hotel" outline next to the Ateneum, so it needs that outline cut first
-- found: Ateneum's other faces are plain on purpose (neighbours stand against them); the real stage house is guessed from the roof
-- found: Lipowa 1A's height (22.6 m) and the teal colour are from F's screenshot and one photo, the map says 10.9 m
+- fixed: the map's 47 m "hotel" strip beside the Ateneum (really the Wybrzeże wing, about 23 m) is replaced by the theatre's own ring
+- found: the Ateneum's courtyard side and the part of the block beyond the Jaracza wing's far end (the neighbouring 20.8 m house) are still the map's plain masses
+- found: Lipowa 1A's height (24.8 m) and colours come from F's photos; the map says 10.9 m
 
 ## Roadmap
 - ticked: "Teatr Ateneum" (Powiśle, from F's photos)

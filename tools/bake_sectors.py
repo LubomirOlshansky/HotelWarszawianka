@@ -165,7 +165,7 @@ SITE_AREAS = [
     (-193.0, 46.0, -183.0, 56.0),           # and Foksal 15
     (70.0, 20.0, 100.0, 45.0),              # Młotek, Smolna 8 (landmarks.gd ML_AT)
     (-820.0, -1185.0, -790.0, -1160.0),     # Kozia 9 (unnamed in OSM; landmarks.gd KZ_AT)
-    (566.0, -396.0, 596.0, -368.0),         # Teatr Ateneum (unnamed in OSM; powisle2.gd ATE_AT)
+    (546.0, -460.0, 602.0, -366.0),         # Teatr Ateneum (unnamed in OSM; powisle2.gd ATE_AT)
     (94.0, -903.0, 127.0, -876.0),          # Lipowa 1A (unnamed in OSM; powisle2.gd LP_AT)
     (-815.0, -115.0, -770.0, -78.0),        # the blue glass office north of Hotel Warszawa (unnamed in OSM; landmarks.gd TOWERS powstancow_blue)
     (-690.0, 525.0, -628.0, 635.0),         # Cyfrowy Parking Novotel, Nowogrodzka 27 (landmarks.gd CP_AT)

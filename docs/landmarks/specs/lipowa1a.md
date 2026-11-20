@@ -1,6 +1,6 @@
 # Lipowa 1A: spec
 
-Site key `lipowa1a` in `game/scripts/landmarks/powisle2.gd` (`_build_lipowa1a`, constants `LP_`). Written 2026-11-20 from F's screenshot of the block (3D view over the University Library's vault) and the Lipowa photos (`C-Lipowa-1-04`), on the OSM outline at (111, -889) (mapped as 10.9 m, which is the default height).
+Site key `lipowa1a` in `game/scripts/landmarks/powisle2.gd` (`_build_lipowa1a`, constants `LP_`). Rewritten 2026-11-21 to the copper version the BUW thread built from F's two street photos and aerial (F: "i like"): white four-storey base with arched ground-floor windows and a cornice, four copper-patina storeys with 1.6 m loggias between copper piers on Lipowa, a solid copper end toward Dobra, roof terrace to 24.8 m (patch from the BUW thread, `_l1a_copper`, `_l1a_loggias`). The text below keeps the first reading; the code is the current version. Written 2026-11-20 from F's screenshot of the block (3D view over the University Library's vault) and the Lipowa photos (`C-Lipowa-1-04`), on the OSM outline at (111, -889) (mapped as 10.9 m, which is the default height).
 
 ## 1. Identity
 
@@ -30,7 +30,7 @@ Windows light by chance at night; the pavilion glows (M_PAVILION).
 
 ## 7. Detail level and budget
 
-L2, triangle budget 1150 (built 960).
+L2, triangle budget 900 (built 748).
 
 ## 8. Parts table
 
