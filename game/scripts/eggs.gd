@@ -342,6 +342,12 @@ func _build_gaulle_lawn() -> void:
 		# Facing the palm across the rondo, each turned a little its own way.
 		var yaw := atan2(-to.x, -to.y) + sin(p.x * 1.7 + p.y) * 0.35 + PI
 		spots.append([p.x, p.y, yaw, map.ground_height(p.x, p.y), int(c[2])])
+		# F (2026-11-21, "more people near the Zamieszanie"): a second chair between each pair
+		# of the rows, every one taken, kept inside the rows' own span of the lawn.
+		var q := p + Vector2(1.05, 1.75)
+		if q.x < -151.0 and q.y < 282.0:
+			var yaw_q := atan2(-(palm - q).normalized().x, -(palm - q).normalized().y) + cos(q.x * 1.3 - q.y) * 0.4 + PI
+			spots.append([q.x, q.y, yaw_q, map.ground_height(q.x, q.y), 1])
 	var chairs := MeshInstance3D.new()
 	chairs.name = "LawnChairs"
 	chairs.mesh = Props.deckchairs(spots, 515)

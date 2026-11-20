@@ -273,7 +273,7 @@ func _gaulle_figure(y: float, h: float) -> void:
 ##   ones under the cornice; a long balcony with an iron railing over the front colonnade;
 ## - the courtyard: pale granite slabs with a dark key border, the wavy fountain round the mapped
 ##   pool (a granite rim lit underneath by a warm strip at night, five jets), planters;
-## - the roof signs (parodies): PEPEO ŻUBR on a white board over the north-west tower (F, 2026-11-20),
+## - the roof signs (parodies): BANK PEPEO on a white board over the north-west tower (F, 2026-11-20),
 ##   ROBUR (the oak in Latin) on the north-east tower, WISTULA in letters on the front body.
 ## The car drives through the colonnade into the courtyard (the piers, the lobbies, the wings and
 ## the fountain's rim collide). Frame: u east along the front from the north-west corner, v south
@@ -760,7 +760,8 @@ func _build_dom_partii(_site: Dictionary) -> void:
 	# PEPEO ŻUBR in red letters on a white board over the Nowy Świat tower, on its plaza and
 	# street fronts (F, 2026-11-20: "make Bank Pekao": the bank's white board with the red bison
 	# stands on this tower, his Street View photos).
-	var top_sign := "PEPEO ŻUBR"
+	# F 2026-11-21: "not PEPEO ŻUBR but Bank Pepeo".
+	var top_sign := "BANK PEPEO"
 	var k_r := 1.5
 	var r_len := Neon.length_of(top_sign) * k_r
 	var r_h := Neon.ROW_H * Neon.PIXEL * k_r
