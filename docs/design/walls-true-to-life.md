@@ -653,6 +653,15 @@ How it is wired (W6):
   sheet and the metal sound, wood before).
 - `check_panel_states` (verify `panelstates`); `--smash-fence=` for shots.
 
+### 6.8 Marks (W9)
+
+**Built in W9 (2026-11-20)**, behind `barrier_look` `typed` and `panels` (the key stays `classic`):
+
+- `game/scripts/wall_marks.gd`, called by `city_barriers.gd` for each line drawn by a heavy slab row or the hoarding, from the palette's new `marks` table (shares by row, sizes, colours) and the rows' `marks` lists (`wall_stone` gained `poster`, `hoarding` `banner`). Places are a hash of the line's stable id and its metres: the same on both paths and every run. None within 0.3 m of a corner, an end or a gap; graffiti and slogans never on a landmark-guarded line.
+- Colour quads in the city mesh (vertex colour, prop path, no draw call), 1.5 to 2.5 cm off the face, both faces: `graffiti` (a muted spray patch 1 to 4 m by 0.4 to 1.4 m, with a bright inner block or a dark tag bar), `stain` (drip stripes under the coping), `ivy` (a mantle over the top, the cap's face and a stepped skirt). The bake has no setting for a wall (railway land, Wola works), so the graffiti share is flat per row (precast 0.5, stone 0.2, plaster 0.1 per 20 m and face): open question.
+- Slogans and banners: words in `game/data/wall_marks.json` drawn with `pixel_font.gd` into one 512 x 64 atlas (128 KB), quads of one `Slogans` MeshInstance3D per sector in `poster.gdshader` (the existing poster items are built per object in `eggs.gd`, so not shared): one draw call a sector with a slogan or banner in view. A slogan is a painted word on a repainted patch of the wall's own colour, one per 150 m window of a line at most and never two closer than 150 m on a line. Only four hoardings (21 m) are on the map: eight banners.
+- Night: `poster.gdshader` lights its texture (emission 0.7 when the lamps are on), so painted words do not go dark at night; the shader stays unchanged by the gate. Open question.
+
 ## 8. Cost on the phone
 
 The budgets are in the archive's "Performance budgets": draw calls are the gate, triangles are
