@@ -1,4 +1,4 @@
-extends "res://scripts/landmarks/praga.gd"
+extends "res://scripts/landmarks/kladka.gd"
 ## v0.8 "Landmarks": the buildings that make it Warsaw at a glance, built in code
 ## from the real footprints and heights in centrum.json (OpenStreetMap outlines and
 ## building parts, which carry `height` / `min_height`) instead of their GUGiK LoD2 or
@@ -617,6 +617,9 @@ const INFO := {
 	"flaga": ["Flaga na rondzie Radosława",
 			"Biało-czerwona na maszcie wysokim na prawie 58 m.",
 			"The white-and-red on a mast almost 58 m tall."],
+	"kladka": ["Kładka Abakanowicz",
+			"452 metry z Karowej na Pragę, otwarta w 2024. Mówili: kładka donikąd. Pierwszy tydzień: 200 tysięcy ludzi idących donikąd. Samochodów zero, schodki do siedzenia, a czerwona linia to południk.",
+			"452 metres from Karowa to Praga, opened in 2024. They called it the bridge to nowhere. First week: 200,000 people walking to nowhere. Zero cars, steps to sit on, and the red line is the meridian."],
 	"swieto": ["Most Świętokrzyski",
 			"Most wantowy z 2000 roku: jeden pylon, wanty w jednej płaszczyźnie.",
 			"A cable-stayed bridge of 2000: one pylon, its stays in one plane."],
@@ -1252,6 +1255,7 @@ func _find_sites() -> void:
 	_find_bridge()
 	_find_flag()
 	_find_swieto()
+	_find_kladka()
 	# The museum and Plac Piłsudskiego loop (2026-10-31): the square's edges.
 	_find_plac()
 	_find_pawilony()
@@ -1669,6 +1673,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_bellona(s)
 			"flaga":
 				_build_flag(s)
+			"kladka":
+				_build_kladka(s)
 			"swieto":
 				_build_swieto(s)
 			"muzeum":

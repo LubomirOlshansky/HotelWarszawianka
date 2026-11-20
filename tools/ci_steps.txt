@@ -90,6 +90,7 @@ jobs2                quick
 juice                quick
 kebab                local     slow
 kinotour             quick
+kladka               quick
 ladder               quick
 landmarks            landmarks
 laneassist           quick

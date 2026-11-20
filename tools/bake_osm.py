@@ -477,6 +477,11 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # the same code runs on a baked map; map_builder.gd GRID_HOLD levels the grid's pit there).
     import defilad_obelisk
     print("defilad_obelisk: " + defilad_obelisk.apply(out, map_dir))
+    # Kładka Abakanowicz (F, 2026-11-20): the footbridge's deck tagged for the landmark, its seating
+    # bays, the living street's asphalt hidden, 7 supports instead of the bake's piers (tools/kladka.py;
+    # the same code runs on a baked map; landmarks/kladka.gd draws it).
+    import kladka
+    print("kladka: " + kladka.apply(out, map_dir))
     # G8/G9 (2026-11-01): shelters onto the kerb of their bus road, turned roof along it; benches
     # turned to face the walk (tools/snap_props.py; the same code runs on a baked map).
     import snap_props

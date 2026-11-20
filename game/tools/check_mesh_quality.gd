@@ -304,6 +304,7 @@ const BUDGET := {
 	"wkd_ochota": 650,  # the stair has up to 40 steps on the real ground (6 on the flat stub)
 	"stadium": 4750,
 	"swieto": 240,
+	"kladka": 8000,  # 2026-11-20 Kładka Abakanowicz from F's photos: 451 m deck, seating bays, rails, 7 supports (measured 5944)
 	"teatr": 820,  # 2026-11-08 photo pass (top-50 T06): ten columns, pediment, quadriga: 705 tris
 	# Plac Bankowy, Filharmonia, Teatr Polski (the Mac photo reports, 2026-11-02): fronts on kept skins.
 	"ratusz": 2500,
