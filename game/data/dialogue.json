@@ -2927,6 +2927,42 @@
       }
     ]
   ],
+  "kladka": [
+    ["Kładka donikąd? Dla mnie to kładka do kebaba.", "Bridge to nowhere? For me it's the bridge to the kebab."],
+    ["Stoję na południku. Jedną nogą na wschodzie, drugą na zachodzie.", "I'm on the meridian. One foot in the east, one in the west."],
+    ["120 milionów za most bez aut. Najlepiej wydane pieniądze w mieście.", "120 million for a bridge with no cars. Best money the city ever spent."],
+    ["Dzwonek, proszę! To nie jest droga szybkiego ruchu!", "Ring your bell! This is not an expressway!"],
+    ["Rowerzysta zwalnia, pieszy się dziwi. Cuda na kładce.", "A cyclist slowing down, a pedestrian amazed. Miracles on the bridge."],
+    ["Gdzie tu jest kosz? Dobra, niosę do domu.", "Where's a bin around here? Fine, I'm taking it home."],
+    ["Siadamy na schodkach. Wisła za darmo, zachód słońca też.", "Let's sit on the steps. The Vistula is free, and so is the sunset."],
+    ["Po drugiej stronie Praga. Paszport masz?", "Praga's on the other side. Got your passport?"],
+    ["Kiedyś tu pływał prom. Teraz są ławki i hulajnogi.", "A ferry used to cross here. Now there are benches and scooters."],
+    ["Mamo, czemu tu nie ma samochodów? Bo tu jest ładnie, synku.", "Mum, why are there no cars here? Because it's nice here, sweetie."],
+    ["Pierwszy tydzień: dwieście tysięcy ludzi. Ja byłem trzy razy.", "First week: two hundred thousand people. I came three times."],
+    ["Selfie z Zamkiem, selfie ze Stadionem. Kładka robi za statyw.", "A selfie with the Castle, a selfie with the Stadium. The bridge is my tripod."],
+    ["Nie skacz do Wisły. Ona wcale nie jest taka ciepła, jak wygląda.", "Don't jump into the Vistula. It's not as warm as it looks."],
+    ["Most tylko dla ludzi. W Warszawie? Dziwne uczucie.", "A bridge just for people. In Warsaw? Strange feeling."]
+  ],
+  "mandat_bulwar": [
+    ["Mandat za piwo: 100 zł. Zachód słońca: bezcenny.", "Beer fine: 100 zł. The sunset: priceless."],
+    ["Panie władzo, to Kubuś!", "Officer, it's apple juice!"],
+    ["Pan to pije, czy pan tylko trzyma dla kolegi?", "Are you drinking that, or just holding it for a friend?"],
+    ["Imię, nazwisko i skąd ten kapsel?", "Name, surname and where did that bottle cap come from?"],
+    ["Przy Wiśle też obowiązuje prawo. Nawet o zachodzie.", "The law applies by the Vistula too. Even at sunset."],
+    ["Kwitek wypisany. Zachód słońca gratis.", "Ticket written. Sunset free of charge."],
+    ["Tylko ostrzeżenie. Ale proszę zapamiętać ten wzrok.", "Just a warning. But do remember that look."],
+    ["Najpierw mandat, potem zdjęcie na pamiątkę.", "Ticket first, souvenir photo after."]
+  ],
+  "policja_bulwar": [
+    ["Szkło do kosza, panowie.", "Glass in the bin, gents."],
+    ["Muzyka może być. Byle ciszej niż mewy.", "Music's fine. Just quieter than the seagulls."],
+    ["Pies na smyczy, pies na smyczy... mój też.", "Dog on a lead, dog on a lead... mine too."],
+    ["Spokojnie, tylko patrzymy. I trochę zazdrościmy.", "Easy, we're only looking. And a bit envious."],
+    ["Z góry widać wszystko, nawet kto zabrał ostatni koc.", "You can see everything from up here, even who took the last blanket.", {"only": "steps"}],
+    ["Ktoś gra na gitarze od trzech godzin. Nie przerywamy.", "Someone's been strumming that guitar for three hours. We're not stopping them.", {"only": "steps"}],
+    ["Straż Miejska. Rolki, hulajnogi, rowery: tylko nie naraz.", "City Guard. Skates, scooters, bikes: just not all at once.", {"only": "straz"}],
+    ["Bulwar jest dla wszystkich. Ławki też.", "The boulevard is for everyone. Benches too.", {"only": "straz"}]
+  ],
   "dog_walkers": [
     [
       "On nie gryzie. On tylko ocenia.",
@@ -6792,6 +6828,20 @@
     ["Lusterka całe? Całe. No to jedź już, jedź.", "Mirrors intact? Intact. Off you go, go on."],
     ["Parkowanie równoległe za mnie? Dzięki, prawie wyszło.", "Parallel parking done for me? Thanks, nearly worked."],
     ["Bilet za szybą był! Na pchanie też trzeba?", "The ticket was on the dash! Do I need one for shoving too?"]
+  ],
+  "port_praski": [
+    ["Port budują od 1919. Śluza była w 2020. Statki? Cierpliwości.", "They've built this port since 1919. The lock came in 2020. Ships? Patience."],
+    ["Sto lat portu bez śluzy. Bobry nie narzekały.", "A hundred years of port with no lock. The beavers didn't mind."],
+    ["Na płocie piszą: „Statki wkrótce”. Mój dziadek też czytał.", "The fence says \"Ships soon\". My grandad read it too."],
+    ["Za tym płotem będą Doki. Albo dalej płot. Zobaczymy.", "Behind that fence: the Docks. Or more fence. We'll see."],
+    ["Mieszkam w porcie i nie mam łódki. Mam rower.", "I live in a port and I don't own a boat. I own a bike."],
+    ["Kładka do centrum: dziesięć minut i jesteś na Powiślu.", "The footbridge to the centre: ten minutes and you're in Powiśle."],
+    ["Na kładce wszyscy robią zdjęcia. Nikt nie idzie dalej.", "On the footbridge everyone takes photos. Nobody walks on."],
+    ["Mówią na nią Agrafka. Spina dwa brzegi i trzyma.", "They call it the Safety Pin. It pins two banks together."],
+    ["Tu kiedyś stały hurtownie. Teraz stoją kawiarnie.", "Wholesalers stood here once. Now cafés do."],
+    ["Mały Mordor nad wodą. Lunch z widokiem na śluzę.", "A little office Mordor by the water. Lunch with a lock view."],
+    ["Bóbr znowu podgryzł drzewko. Ma tu dłuższy staż ode mnie.", "The beaver chewed a sapling again. He's been here longer than me."],
+    ["Prom na Pragę? Tak, nazywa się kładka.", "A ferry to Praga? Yes, it's called the footbridge."]
   ],
   "students": [
     ["Kolokwium jest jutro? Myślałem, że w przyszłym semestrze.", "The test is tomorrow? I thought it was next semester."],

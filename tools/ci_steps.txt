@@ -90,6 +90,7 @@ jobs2                quick
 juice                quick
 kebab                local     slow
 kinotour             quick
+kladka               quick
 ladder               quick
 landmarks            landmarks
 laneassist           quick
@@ -127,6 +128,7 @@ packs                quick
 padel                quick
 palacelights         quick
 panelrule            quick
+panelstates          smoke
 parkdetails          quick
 parkedthin           quick
 parkmesh             quick
@@ -225,6 +227,7 @@ trendjob             quick
 trzy-mosty           local     slow
 tunnelcut            smoke
 turntable           quick
+uikit                quick
 water                roads     slow
 water-prebuilt       smoke     slow
 wellness             quick

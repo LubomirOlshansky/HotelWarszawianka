@@ -279,9 +279,19 @@ const BUDGET := {
 	"barka_kaskada": 1880,
 	"houseboats": 1080,
 	"bulwary_pawilony": 3500,
-	"bulwary_bary": 1760,
+	"bulwary_bary": 2800,  # 2026-11-19: five extra dark kiosks before Pawilon Tańca (2282 measured)
 	"bulwary_pomosty": 1450,
 	"bulwary_basen": 700,
+	"schodki_wisla": 3600,  # 2026-11-19: the seating band, ~195 m (L2): ten rows, the walking stairs, boards, coping, lamps, quay
+	# The boulevards, phase C (2026-11-19, specs pawilon_tanca.md, zachodni_brzezek.md, barki_bary.md).
+	"pawilon_tanca": 3800,  # the white MUZEUM pavilion, bold line murals on 60-70 % of each wall, solid 3D letters on a steel frame, Palomka's terrace (Phase D, 2026-11-19; 3532 measured)
+	"zachodni_brzezek": 2500,  # the grey ground floor, white letters, glass rail, the deck with palms (2016 measured)
+	"barka_nowa_falka": 3700,  # the 70 m sand-deck barge with its long dark hall, one site (3060 measured)
+	"barka_zanurzenie": 950,
+	"barka_wirek": 700,
+	"barka_kalmar": 1800,
+	"barka_barkas": 950,
+	"plyta_desantu": 1900,  # the three beach bars and the dock (1516 measured)
 	"marina": 5200,
 	"port_majami": 4200,
 	"port_wtw": 1400,
@@ -294,6 +304,7 @@ const BUDGET := {
 	"wkd_ochota": 650,  # the stair has up to 40 steps on the real ground (6 on the flat stub)
 	"stadium": 4750,
 	"swieto": 240,
+	"kladka": 8000,  # 2026-11-20 Kładka Abakanowicz from F's photos: 451 m deck, seating bays, rails, 7 supports (measured 5944)
 	"teatr": 820,  # 2026-11-08 photo pass (top-50 T06): ten columns, pediment, quadriga: 705 tris
 	# Plac Bankowy, Filharmonia, Teatr Polski (the Mac photo reports, 2026-11-02): fronts on kept skins.
 	"ratusz": 2500,
@@ -304,6 +315,8 @@ const BUDGET := {
 	"flisac": 4200,  # 2026-11-13: the grid of panes, loggias and shop glass, 3,552 triangles
 	"florian": 2480,
 	"bazar": 2210,
+	"port_praski": 25000,  # 2026-11-20: the whole Port Praski district from photos: 13 tenement blocks in sections (glass balconies from kit_balcony), Krowia 6 works, the Minter hotel (measured 24161)
+	"pp_basin": 8800,  # 2026-11-20: Port Praski basin: lock, tower, pump houses, sheds, boulevard, hoardings (measured 7776)
 	"sw_krzyz": 1250,  # 2026-11-06 photo pass: the real flat front, balustrade and statue
 	"sejm": 1400,
 	"staszic": 360,
@@ -357,7 +370,11 @@ const BUDGET := {
 ## Towarowa 22's drone taxi hovers 7 m over its pad by design (the "Warsaw of the future").
 ## The Szarytki's turret stands on LoD2's ridge and the Adventists' balconies hang on LoD2's wall:
 ## the map's mass, not the site's mesh.
-const KNOWN := {"towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}, "tr": {"zfight": 8}}  # tr: 8 coplanar triangles in crane 1's A-frame legs at 36 m, not found (hidden in a lattice, never seen)
+## port_praski "plain": its tenement sections' walls (two triangles each) take the ordinary facade
+## shader's windows on purpose (UV2.x a seed 0..1 or the typed tenement 1.x), the way a street
+## block's `facade` walls do (fronts.gd _build_block): they go into the same building surface, so no
+## draw call of their own; any plain triangle more than that number still fails.
+const KNOWN := {"port_praski": {"plain": 750}, "towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}, "tr": {"zfight": 8}}  # tr: 8 coplanar triangles in crane 1's A-frame legs at 36 m, not found (hidden in a lattice, never seen)
 
 var _probe: MeshProbe
 var problems: Array[String] = []
@@ -443,7 +460,7 @@ func _judge(key: String, f: Dictionary) -> void:
 		problems.append("%s: %d triangles and no BUDGET entry (add one)" % [key, tris])
 	elif tris > int(BUDGET[key]):
 		problems.append("%s: %d triangles (budget %d)" % [key, tris, BUDGET[key]])
-	if f["plain"] > 0:
+	if f["plain"] > int(known.get("plain", 0)):
 		problems.append("%s: %d triangles without a landmark material code (a draw call of its own)" % [key, f["plain"]])
 	for kind: String in ["zfight", "degenerate", "badnormal", "float"]:
 		var allowed := int(known.get(kind, 0))

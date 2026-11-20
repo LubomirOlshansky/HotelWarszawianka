@@ -29,12 +29,13 @@ def canon(d):
 
 
 def passes(map_dir):
-    import road_fixes, lane_tapers, zamek_ramps, defilad_obelisk, object_fixes, road_profiles, rail_covers, lane_links, parked_thin, object_types
+    import road_fixes, lane_tapers, zamek_ramps, defilad_obelisk, kladka, object_fixes, road_profiles, rail_covers, lane_links, parked_thin, object_types
     return [
         ("road_fixes", lambda d: road_fixes.apply(d)),
         ("lane_tapers", lambda d: lane_tapers.apply(d)),
         ("zamek_ramps", lambda d: zamek_ramps.apply(d, map_dir)),
         ("defilad_obelisk", lambda d: defilad_obelisk.apply(d, map_dir)),
+        ("kladka", lambda d: kladka.apply(d, map_dir)),
         ("object_fixes", lambda d: object_fixes.apply(d)),
         ("road_profiles", lambda d: road_profiles.apply(d, map_dir)),
         ("rail_covers", lambda d: rail_covers.apply(d, map_dir)),

@@ -228,8 +228,42 @@ var _drive_counts: Array[int] = []
 var drive_toasts := 0
 
 
-## main.gd hands in the nodes (hud, bubbles, dialogue, wallet, rivals, jobs, graph,
-## traffic, map, car, tod, weather) and `map_data` before this.
+## Wires Podwózka from the game (activity.gd `install`; main.gd's `_build_side_jobs` until TD-4 b8),
+## after the deliveries (`jobs`), whose addresses it picks from. --autopilot drives the app's route,
+## --ignore-app the shortest; --parody-log, --ride-quirk, --passenger, --ride-story, --ride-answer,
+## --stars and --gps-in= as the flags table says.
+func install(ctx: GameCtx) -> bool:
+	super(ctx)
+	autopilot = ctx.flags.autopilot
+	ignore_app = ctx.flags.ignore_app
+	log_on = ctx.flags.parody_log
+	force_quirk = ctx.flags.ride_quirk
+	force_passenger = ctx.flags.ride_passenger
+	force_story = ctx.flags.ride_story
+	force_answer = ctx.flags.ride_answer
+	start_stars = ctx.flags.ride_stars
+	gps_first = ctx.flags.gps_in
+	bubbles = ctx.bubbles
+	dialogue = ctx.dialogue
+	rivals = ctx.rivals
+	jobs = ctx.jobs
+	graph = ctx.graph as LaneGraph
+	traffic = ctx.traffic
+	car = ctx.car
+	tod = ctx.tod
+	weather = ctx.weather
+	map_data = ctx.data
+	return true
+
+
+## After the join (main.gd's `_build_side_jobs` until TD-4 b8): the deliveries learn of it, so the
+## two never run at once (jobs.gd `rides`).
+func joined(ctx: GameCtx) -> void:
+	ctx.jobs.rides = self
+
+
+## `install` hands in the nodes (hud, bubbles, dialogue, wallet, rivals, jobs, graph, traffic, map,
+## car, tod, weather) and `map_data` before this.
 func setup(world: Node3D) -> void:
 	tag = "podwózka"
 	colour = COLOUR

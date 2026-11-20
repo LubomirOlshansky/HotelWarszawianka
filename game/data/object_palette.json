@@ -94,5 +94,7 @@
 		{"id": "island_edge", "family": "low", "draw": "keep", "note": "a planting bed's kerb in a traffic island: today's chain"},
 		{"id": "site", "family": "ghost", "draw": "none", "note": "a landmark site builds it"},
 		{"id": "removed", "family": "ghost", "draw": "none", "note": "nothing stands there"}
-	]
+	],
+	"_debris": "W6 of the walls look (docs/design/walls-true-to-life.md 7): the colour of what a broken panel throws, by its looks row's `debris` (game/scripts/solidity.gd debris_of, debris_colour; soft_things.gd's burst). metal, wood and leaf are the colours the bursts had before W6 (soft_things.gd's old table: metal, wood, hedge); sheet is new (building-site hoarding: light galvanised sheet). A line whose type has no `debris` throws by its kind as before W6: leaf for a hedge, wood for a board fence, metal for the rest. The sound is picked by the same word (main.gd _on_soft_broke: leaf the hedge's, wood the wooden fence's, metal and sheet the metal fence's).",
+	"debris": {"metal": "#3b3f44", "wood": "#8a6a43", "sheet": "#b9bcbd", "leaf": "#4d7a35"}
 }

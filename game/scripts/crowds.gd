@@ -85,7 +85,30 @@ const POLICE_NEAR := 15.0
 const POLICE_GAP := 45.0
 ## A queue starts on the footway within this of its place.
 const FOOT_REACH := 40.0
-const STEPS_MAX := 80
+## The steps' crowd at its peak (F, 2026-11-19: the whole 195 m band, was 80 on a shore-distance fan).
+const STEPS_MAX := 180
+const STEPS_KEYS := ["schodki_wisla", "schodki_wisla_w"]
+## Kładka Abakanowicz (F, 2026-11-20: "people sit there like on the steps"): the footbridge's seated
+## bays and its railing (Landmarks.kladka_plan), kind `kladka`, two sites (the Powiśle half and the Praga
+## half: the bridge is 450 m long, so each half comes up within ACTIVE_R of its own middle). The most each half shows at its peak, on
+## the steps' evening curve.
+const KLADKA_IDS := ["kladka_w", "kladka_e"]
+const KLADKA_SPLIT := 250.0
+const KLADKA_MAX := {"kladka_w": 90, "kladka_e": 50}
+## Phase D (2026-11-19, F: "the terraces and barges are empty"): the boulevard bars' guests, kind `bar`
+## (landmarks river.gd `bulwar_bar_plans`: the seats the Phase C builders lay). The most each site
+## shows at its peak, staff included (the plan's seats are more; the rest stay empty): in all 218.
+## `barge` ones are busier on a Friday and Saturday night. The sums go to check_crowds.gd.
+const BAR_MAX := {"palomka": 28, "zachodni_brzezek": 36, "barka_nowa_falka": 50, "barka_zanurzenie": 14, "barka_wirek": 14,
+		"barka_kalmar": 26, "barka_barkas": 22, "plyta_0": 12, "plyta_1": 8, "plyta_2": 8}
+const BAR_BARGES := ["barka_nowa_falka", "barka_zanurzenie", "barka_wirek", "barka_kalmar", "barka_barkas"]
+## The staff's shirts (a black apron and a white shirt) and what they carry nothing of.
+const BAR_STAFF := ["#1f1f22", "#2b2c2f", "#e8e4d8"]
+## Props beside the steps' sitters (one MultiMesh of unit boxes, steps_props.gdshader): the most at once.
+const PROPS_MAX := 256
+const BLANKETS := ["#c0392b", "#2f6fb5", "#e0b23a", "#3b8f5a", "#d8d2c0", "#7a4fa8", "#e57aa0"]
+const BOTTLES := ["#2f6b3a", "#6b4423", "#c8ccd0", "#3f7a4a"]
+const PACKS := ["#2b2c2f", "#c96b2c", "#2f6fb5", "#7a2f3a", "#3b6f5a"]
 const PLAN_C_MAX := 40
 ## City-life satire #1 (loud_cars.gd, 2026-11-02): the car meet at Browary's gate square, people
 ## standing round the parked supercars with their phones (kind `meet`, loud_cars.gd meet_slots():
@@ -250,6 +273,7 @@ const JAZZ_BAND := 4
 const JAZZ_SHIRTS := ["#1b1b1e", "#f1efe9", "#c99a2e", "#6e2230"]
 const LORETKA_WEEKNIGHT := 10
 const Landmarks := preload("res://scripts/landmarks.gd")
+const BoulevardLife := preload("res://scripts/boulevard_life.gd")  # Phase D: the mandat's target group
 const MapBuilderData := preload("res://scripts/map_builder.gd")
 const FirstScene := preload("res://scripts/first_scene.gd")
 const ROOF_ID := "level_26"
@@ -316,6 +340,15 @@ const BULWARY := {
 	"chill_bulwary_7": [Vector2(590.0, -680.0), 24, 32.0],
 	"chill_bulwary_8": [Vector2(640.0, -632.0), 18, 30.0],
 	"chill_bulwary_9": [Vector2(690.0, -590.0), 16, 30.0],
+}
+## Port Praski (F 2026-11-20: "people sit there like on the boulevards, cyclists, everyone"): the
+## basin's boulevard in front of Sierakowskiego 1-3, its timber seating steps and the quay lane by
+## the lock (praga.gd PP_WALK, PP_SEAT_STEPS). id -> [spot, most people, radius]; on the chill curve,
+## they talk the "port_praski" lines, and city_life doubles the riders near them like the boulevards.
+const PORT_PRASKI := {
+	"chill_port_steps": [Vector2(642.0, -1544.0), 14, 14.0],
+	"chill_port_walk": [Vector2(672.0, -1556.0), 10, 12.0],
+	"chill_port_lock": [Vector2(585.0, -1552.0), 8, 12.0],
 }
 ## Nowy Świat pass 2 (2026-11-02): the café street's pavements, people at the terraces and between
 ## the shops, on the chill curve (a lunch crowd that fills towards a long evening). id -> [spot (the
@@ -530,6 +563,10 @@ enum { STAND, SIT, BROAD }
 
 ## The "Mrożulo effect": trend site id -> the weekday it was reviewed on (mrozulo_boost).
 var mrozulo := {}
+## Phase D: the steps' crowd now and the seated group the patrol's mandat walks to (BoulevardLife.fine_target; {} before
+## the steps are placed or when no group is near enough): city_life.gd reads both, so the officer fines a group that is there.
+static var steps_n := 0
+static var steps_fine := {}
 ## DŻEMINI KEBAB has had Mrożulo's MLASK (trend_job.gd sets it, from the save too): its line for good.
 var dzemini_hype := false
 var _weekday_now := 0
@@ -603,6 +640,12 @@ var _walk_mm: MultiMesh
 var _walk_mmi: MultiMeshInstance3D
 var _walk_buf := PackedFloat32Array()
 var _walk_box := Rect2()
+## Phase D: the steps' props, ONE MultiMesh (+1 draw call, only while the steps are on screen).
+var _props_mm: MultiMesh
+var _props_mmi: MultiMeshInstance3D
+var _props_buf := PackedFloat32Array()
+## The props now drawn (read by check_crowds.gd).
+var props_shown := 0
 ## The footways near the crowds: {pts: PackedVector2Array, dk: int, w: float, k: String}.
 var _foot: Array[Dictionary] = []
 var _route_task := -1
@@ -762,6 +805,38 @@ static func jazz_cafe_level(hour: float, month: int, rain: bool) -> float:
 	if month < 5 or month > 9:
 		lvl *= 0.5
 	return lvl * (0.15 if rain else 1.0)
+
+
+## A boulevard bar's guests 0..1 (Phase D): the summer evening is the peak (17:00-01:00), lunch and the
+## afternoon moderate, nothing in the morning; the season thins it (a winter terrace is a few smokers),
+## rain to a fifth; the `barge` ones are full on a Friday and Saturday night, seven tenths otherwise.
+static func bar_level(hour: float, weekday: int, month: int, rain: bool, barge: bool) -> float:
+	var h := fmod(hour + 24.0, 24.0)
+	var lvl := 0.0
+	if h >= 17.0:
+		lvl = 1.0
+	elif h < 1.0:
+		lvl = 0.85
+	elif h >= 14.0:
+		lvl = 0.5
+	elif h >= 12.0:
+		lvl = 0.4
+	elif h >= 11.0:
+		lvl = 0.15
+	if lvl <= 0.0:
+		return 0.0
+	if barge:
+		lvl *= 1.0 if night_day(hour, weekday) in [5, 6] else 0.7
+	lvl *= 0.15 + 0.85 * month_factor(month)
+	return lvl * (0.2 if rain else 1.0)
+
+
+## How many guests (staff first) a bar site shows: its `max` times the level, at least its staff while
+## open, never past `max`.
+static func bar_count(max_n: int, staff: int, lvl: float, k := 1.0) -> int:
+	if lvl <= 0.0:
+		return 0
+	return clampi(maxi(staff, roundi(max_n * k * lvl)), 0, max_n)
 
 
 static func meet_level(hour: float, weekday: int, rain: bool) -> float:
@@ -1155,13 +1230,19 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 				site[key] = d[key]
 		_add_site(site)
 	if at.has(STEPS_ID):
-		_add_site({"id": STEPS_ID, "kind": "steps", "at": at[STEPS_ID], "max": STEPS_MAX})
+		# At the seating band's middle (SUNKEN `schodki_wisla`), not the places.json point.
+		var band := Landmarks.schodki_plan(MapBuilderData.sunk_spec(STEPS_KEYS[0]))
+		_add_site({"id": STEPS_ID, "kind": "steps", "at": band["centre"] if band["stair"] != "" else at[STEPS_ID], "max": STEPS_MAX})
+	_add_kladka(data.get("kladka", {}))
 	var yards := CHILL.duplicate()
 	yards.merge(BULWARY)
 	yards.merge(NOWY_SWIAT)
 	for cid: String in yards:
 		var cs: Array = yards[cid]
 		_add_site({"id": cid, "kind": "chill", "at": cs[0], "max": int(cs[1]), "radius": float(cs[2])})
+	for qid: String in PORT_PRASKI:
+		var qs: Array = PORT_PRASKI[qid]
+		_add_site({"id": qid, "kind": "chill", "at": qs[0], "max": int(qs[1]), "radius": float(qs[2]), "talk": "port_praski"})
 	for pid: String in NOWOGRODZKA:
 		var ps: Array = NOWOGRODZKA[pid]
 		_add_site({"id": pid, "kind": "chill", "pub": true, "sit": false, "at": ps[0], "max": int(ps[1]), "radius": float(ps[2])})
@@ -1191,6 +1272,19 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 	if not (rot_steps["seats"] as Array).is_empty():
 		_add_site({"id": ROTUNDA_STEPS_ID, "kind": "jazz_cafe", "at": rot_steps["centre"], "max": (rot_steps["seats"] as Array).size(),
 				"plan": rot_steps})
+	# Phase D: the boulevard bars' terraces, decks and barges (river.gd `bulwar_bar_plans`).
+	var ground := func(x: float, z: float) -> float: return map.terrain_height(x, z) if map != null else 0.0
+	var shore := Callable()
+	if map != null and map.has_method("shore_distance"):
+		shore = func(x: float, z: float) -> float: return map.shore_distance(x, z)
+	var bars := Landmarks.bulwar_bar_plans(data, ground, shore)
+	for bid: String in BAR_MAX:
+		if not bars.has(bid):
+			continue
+		var bp: Dictionary = bars[bid]
+		var total := (bp["seats"] as Array).size() + (bp["standing"] as Array).size() + (bp["staff"] as Array).size()
+		_add_site({"id": bid, "kind": "bar", "at": bp["centre"], "max": mini(total, int(BAR_MAX[bid])), "plan": bp,
+				"barge": bid in BAR_BARGES})
 	for uid: String in CAMPUS:
 		var us: Array = CAMPUS[uid]
 		_add_site({"id": uid, "kind": "chill", "campus": true, "at": us[0], "max": int(us[1]), "radius": float(us[2]),
@@ -1375,6 +1469,69 @@ func _add_stops(data: Dictionary) -> void:
 			other += 1
 
 
+## The footbridge's two crowds (KLADKA_IDS) from the map's stamp: the seated groups and the railing's
+## standers of each half, mixed (a standing one after every fourth sitter) in a seeded order, so a
+## bigger crowd adds whole groups. Nothing when the map has no bridge.
+func _add_kladka(st: Dictionary) -> void:
+	var plan := Landmarks.kladka_plan(st)
+	if (plan["seats"] as Array).is_empty():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2803
+	var line := Landmarks._kl_triples(st["line"])
+	var cum := Landmarks._kl_cumulate(line)
+	for half in 2:
+		var groups := {}
+		var stand: Array = []
+		for st_: Array in plan["seats"]:
+			if (_kl_s(line, cum, st_[0]) < KLADKA_SPLIT) != (half == 0):
+				continue
+			var gid := int(st_[3])
+			if not groups.has(gid):
+				groups[gid] = [rng.randf(), []]
+			(groups[gid][1] as Array).append({"p": st_[0], "pose": SIT, "yaw": float(st_[1]), "y": float(st_[2]),
+					"shirt": BRIGHT[rng.randi() % BRIGHT.size()]})
+		for st_: Array in plan["standing"]:
+			if (_kl_s(line, cum, st_[0]) < KLADKA_SPLIT) != (half == 0):
+				continue
+			stand.append([rng.randf(), {"p": st_[0], "pose": STAND, "yaw": float(st_[1]), "y": float(st_[2]),
+					"shirt": BRIGHT[rng.randi() % BRIGHT.size()]}])
+		var order: Array = groups.values()
+		order.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
+		stand.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
+		var slots: Array = []
+		var qi := 0
+		for g: Array in order:
+			for sl: Dictionary in g[1]:
+				slots.append(sl)
+				if slots.size() % 5 == 0 and qi < stand.size():
+					slots.append((stand[qi] as Array)[1])
+					qi += 1
+		while qi < stand.size():
+			slots.append((stand[qi] as Array)[1])
+			qi += 1
+		if slots.is_empty():
+			continue
+		var c := Vector2.ZERO
+		for sl: Dictionary in slots:
+			c += sl["p"] as Vector2
+		var id: String = KLADKA_IDS[half]
+		_add_site({"id": id, "kind": "kladka", "at": c / slots.size(), "max": mini(int(KLADKA_MAX[id]), slots.size()),
+				"slots": slots})
+
+
+## Where along the footbridge's line (m from the Powiśle end) the point p is: its nearest station's.
+static func _kl_s(line: PackedVector3Array, cum: PackedFloat32Array, p: Vector2) -> float:
+	var best := INF
+	var at := 0.0
+	for i in line.size():
+		var d := p.distance_squared_to(Vector2(line[i].x, line[i].z))
+		if d < best:
+			best = d
+			at = cum[i]
+	return at
+
+
 func _add_site(s: Dictionary) -> void:
 	s["n"] = 0
 	s["want"] = 0
@@ -1509,11 +1666,13 @@ func _place_site(s: Dictionary) -> void:
 			_place_terrace(s)
 		"jazz", "jazz_cafe":
 			_place_jazz(s)
+		"bar":
+			_place_bar(s)
 		"view", "view_dj":
 			_place_view(s)
 		"deck":
 			_place_deck(s)
-		"meet":
+		"meet", "kladka":
 			s["door"] = s["at"]
 
 
@@ -1570,48 +1729,143 @@ static func _resample(pts: PackedVector2Array, gap: float, count: int) -> Packed
 	return out
 
 
-## The steps: the river's direction (the nearest wet ground in 24 directions), rows from the
-## water's edge back, groups of 2-6 along them; each slot a seeded order so a bigger crowd only
-## adds people. Row 0 stands (by the rail), the rest sit; one guitarist.
+## The steps (F, 2026-11-19): the seating band's plan (Landmarks.schodki_plan, one per SUNKEN entry
+## `schodki_wisla`, `schodki_wisla_w`): groups sitting on their tread's top, every fifth person standing on
+## the quay; the groups in a seeded order so a bigger crowd only adds groups. One guitarist on a middle row.
 func _place_steps(s: Dictionary) -> void:
-	var at: Vector2 = s["at"]
-	var face := Vector2.RIGHT
-	var reach := 120.0
-	if map != null:
-		var best := INF
-		for a in 24:
-			var dir := Vector2.from_angle(a * TAU / 24.0)
-			var r := 4.0
-			while r < 300.0:
-				if map.shore_distance(at.x + dir.x * r, at.y + dir.y * r) > 0.5:
-					if r < best:
-						best = r
-						face = dir
-					break
-				r += 4.0
-		reach = best if best < INF else 30.0
-	var side := Vector2(-face.y, face.x)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 3303
+	var groups: Array = []
+	var quay: Array = []
+	var centre: Vector2 = s["at"]
+	var face := Vector2.RIGHT
+	var guitar := centre
+	var guitar_y := NAN
+	var first := true
+	for key: String in STEPS_KEYS:
+		var spec := MapBuilderData.sunk_spec(key)
+		var plan := Landmarks.schodki_plan(spec)
+		var stair: Dictionary = _sunk_live(key)
+		var n := int(plan["n"])
+		var by_group := {}
+		for st: Array in plan["seats"]:
+			var slot := {"p": st[0], "pose": SIT, "yaw": float(st[1]), "shirt": BRIGHT[rng.randi() % BRIGHT.size()]}
+			if not stair.is_empty():
+				slot["y"] = lerpf(float(stair["ha"]), float(stair["hb"]), float(st[2]) / float(n))
+			var gid := int(st[3]) + (0 if first else 100000)
+			slot["gid"] = gid
+			slot["row"] = int(st[2])
+			if not by_group.has(gid):
+				by_group[gid] = []
+			(by_group[gid] as Array).append(slot)
+		for gid: int in by_group:
+			groups.append([rng.randf(), by_group[gid]])
+		for st: Array in plan["standing"]:
+			var slot := {"p": st[0], "pose": STAND, "yaw": float(st[1]), "shirt": BRIGHT[rng.randi() % BRIGHT.size()]}
+			if not stair.is_empty():
+				slot["y"] = float(stair["hb"])
+			quay.append([rng.randf(), slot])
+		if first:
+			centre = plan["centre"]
+			guitar = plan["guitar"]
+			if not stair.is_empty():
+				guitar_y = lerpf(float(stair["ha"]), float(stair["hb"]), 4.0 / float(n))
+			face = ((spec["b"] as Vector2) - (spec["a"] as Vector2)).normalized()
+		first = false
+	# The mandat's target group (boulevard_life.gd fine_target): the seated group of the top rows nearest the fine
+	# stop, put first in the order so it sits there from the first few people on.
+	var cand: Array = []
+	for g: Array in groups:
+		cand.append_array(g[1])
+	steps_fine = BoulevardLife.fine_target(cand, cand.size())
+	if not steps_fine.is_empty():
+		for g: Array in groups:
+			if int((g[1][0] as Dictionary)["gid"]) == int(steps_fine["gid"]):
+				g[0] = -1.0
+	groups.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
+	quay.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
 	var slots: Array = []
-	for row in 8:
-		var back := maxf(reach - 3.0 - row * 1.3, -20.0)
-		var x := -28.0
-		while x < 28.0:
-			var g := rng.randi_range(2, 6)
-			for i in g:
-				var p := at + face * back + side * (x + i * 0.75) + Vector2(rng.randf_range(-0.15, 0.15), rng.randf_range(-0.15, 0.15))
-				if map == null or map.shore_distance(p.x, p.y) <= 0.0:
-					slots.append({"p": p, "pose": STAND if row == 0 else SIT, "yaw": atan2(-face.x, -face.y) + rng.randf_range(-0.35, 0.35),
-							"key": rng.randf(), "shirt": BRIGHT[rng.randi() % BRIGHT.size()]})
-			x += g * 0.75 + rng.randf_range(1.0, 2.6)
-	slots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["key"] < b["key"])
+	var qi := 0
+	for g: Array in groups:
+		for slot: Dictionary in g[1]:
+			slots.append(slot)
+			if slots.size() % 5 == 0 and qi < quay.size():
+				slots.append((quay[qi] as Array)[1])
+				qi += 1
 	s["slots"] = slots
+	s["props"] = _steps_props(slots)
+	if not steps_fine.is_empty():
+		for i in slots.size():
+			if int((slots[i] as Dictionary).get("gid", -1)) == int(steps_fine["gid"]):
+				steps_fine["need"] = i + 1
 	s["face"] = face
-	# The guitarist: the middle of the third row, sitting, in orange.
-	var g_at := at + face * maxf(reach - 3.0 - 2.0 * 1.3, -20.0)
-	s["guitar"] = g_at
-	s["door"] = at + face * maxf(reach - 6.0, 0.0)
+	s["guitar"] = guitar
+	s["guitar_y"] = guitar_y
+	s["at"] = centre
+	s["door"] = centre + face * 8.0
+
+
+## Phase D props beside the steps' sitters: [anchor slot index, point, height (NAN: the ground), yaw, box size,
+## paint, glow, (lift over the tread)] each, a prop shown while its anchor sitter is (the crowd's count > anchor). Picnic blankets
+## under groups of 3-6 (anchored to the second sitter), bottles and cans beside some sitters, a few
+## portable speakers (a lit LED), backpacks behind some, a pizza box or two. Seeded, one tread's top each.
+func _steps_props(slots: Array) -> Array:
+	slots = slots.slice(0, ceili(STEPS_MAX * maxf(amount, 1.0)))  # only those that can ever be shown
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4404
+	var props: Array = []
+	var groups := {}
+	for i in slots.size():
+		var sl: Dictionary = slots[i]
+		if int(sl["pose"]) != SIT or not sl.has("gid"):
+			continue
+		if not groups.has(sl["gid"]):
+			groups[sl["gid"]] = []
+		(groups[sl["gid"]] as Array).append(i)
+	for gid: int in groups:
+		var idx: Array = groups[gid]
+		var n := idx.size()
+		var first: Dictionary = slots[idx[0]]
+		var last: Dictionary = slots[idx[n - 1]]
+		var p0: Vector2 = first["p"]
+		var p1: Vector2 = last["p"]
+		var yaw := float(first["yaw"])
+		var face := Vector2(-sin(yaw), -cos(yaw))
+		var y := float(first["y"]) if first.has("y") else NAN
+		var roll := rng.randf()
+		if n >= 3 and n <= 6 and roll < 0.5:
+			var along := (p1 - p0)
+			var span := along.length() + 0.9
+			var dir := along.normalized() if along.length() > 0.05 else Vector2(face.y, -face.x)
+			props.append([idx[1], (p0 + p1) * 0.5 + face * 0.1, y, atan2(-dir.y, dir.x),
+					Vector3(span, 0.03, 1.15), Color(BLANKETS[rng.randi() % BLANKETS.size()]), 0.0])
+		if n >= 3 and rng.randf() < 0.18:
+			var sp: Vector2 = (p0 + p1) * 0.5 - face * 0.55
+			props.append([idx[1], sp, y, yaw, Vector3(0.24, 0.34, 0.2), Color("#1d1e22"), 0.0])
+			props.append([idx[1], sp + face * 0.11, y, yaw, Vector3(0.05, 0.05, 0.03), Color("#6bff8a"), 1.0, 0.225])
+	for i in slots.size():
+		var sl: Dictionary = slots[i]
+		if int(sl["pose"]) != SIT:
+			continue
+		var p: Vector2 = sl["p"]
+		var yaw := float(sl["yaw"])
+		var face := Vector2(-sin(yaw), -cos(yaw))
+		var side := Vector2(-face.y, face.x)
+		var y := float(sl["y"]) if sl.has("y") else NAN
+		var roll := rng.randf()
+		if roll < 0.24:
+			var m := side * (0.34 if rng.randf() < 0.5 else -0.34) + face * rng.randf_range(0.0, 0.3)
+			var can := rng.randf() < 0.4
+			props.append([i, p + m, y, yaw, Vector3(0.07, 0.12 if can else 0.24, 0.07), Color(BOTTLES[rng.randi() % BOTTLES.size()]), 0.0])
+			if rng.randf() < 0.35:
+				props.append([i, p + m + side * 0.1, y, yaw, Vector3(0.07, 0.24, 0.07), Color(BOTTLES[rng.randi() % BOTTLES.size()]), 0.0])
+		elif roll < 0.33:
+			props.append([i, p - face * 0.42 + side * 0.15, y, yaw, Vector3(0.34, 0.42, 0.2), Color(PACKS[rng.randi() % PACKS.size()]), 0.0])
+		elif roll < 0.345:
+			props.append([i, p + side * 0.5 + face * 0.2, y, yaw, Vector3(0.4, 0.05, 0.4), Color("#e8dcc0"), 0.0])
+	if props.size() > PROPS_MAX:
+		props.resize(PROPS_MAX)
+	return props
 
 
 ## Plac Zbawiciela: groups of 2-5 standing round points on the footways within 30 m, facing their
@@ -1824,6 +2078,32 @@ func _place_jazz(s: Dictionary) -> void:
 	s["slots"] = slots
 
 
+## A boulevard bar (Phase D): the staff first (they are there from the opening), then the seated
+## and the standing guests in a seeded mix, so a thin evening fills a few tables and a full one all.
+## Seats carry their own height (the chair, the bench, the leżak).
+func _place_bar(s: Dictionary) -> void:
+	var plan: Dictionary = s["plan"]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(s["id"]))
+	var slots: Array = []
+	for st: Array in plan["staff"]:
+		slots.append({"p": st[0], "y": float(st[2]), "pose": STAND, "yaw": float(st[1]), "shirt": BAR_STAFF[slots.size() % BAR_STAFF.size()]})
+	s["staff_n"] = slots.size()
+	var guests: Array = []
+	for st: Array in plan["seats"]:
+		guests.append({"p": st[0], "y": float(st[2]), "pose": SIT, "yaw": float(st[1]) + rng.randf_range(-0.2, 0.2),
+				"shirt": BRIGHT[rng.randi() % BRIGHT.size()]})
+	for st: Array in plan["standing"]:
+		guests.append({"p": st[0], "y": float(st[2]), "pose": STAND, "yaw": float(st[1]) + rng.randf_range(-0.4, 0.4),
+				"shirt": BRIGHT[rng.randi() % BRIGHT.size()] if rng.randf() < 0.6 else DARK[rng.randi() % DARK.size()]})
+	var order := range(guests.size())
+	_shuffle(order, rng)
+	for i: int in order:
+		slots.append(guests[i])
+	s["slots"] = slots
+	s["door"] = s["at"]
+
+
 ## The map's built sunken entry `key` (with its heights ha/hb), or {} without a map or stair.
 func _sunk_live(key: String) -> Dictionary:
 	if key == "" or map == null or not ("_sunk" in map):
@@ -2029,6 +2309,27 @@ func _build_drawing() -> void:
 		buf.resize(int(cap[c]) * 16)
 		buf.fill(0.0)
 		_cells[c] = {"mmi": mmi, "mm": mm, "buf": buf, "cap": int(cap[c]), "dirty": false}
+	_props_mm = MultiMesh.new()
+	_props_mm.transform_format = MultiMesh.TRANSFORM_3D
+	_props_mm.use_custom_data = true
+	InstanceBuffers.prepare(_props_mm)
+	var box := BoxMesh.new()
+	box.size = Vector3.ONE
+	_props_mm.mesh = box
+	_props_mm.instance_count = PROPS_MAX
+	_props_mm.visible_instance_count = 0
+	_props_buf.resize(PROPS_MAX * 16)
+	_props_buf.fill(0.0)
+	var props_mat := ShaderMaterial.new()
+	props_mat.shader = load("res://shaders/steps_props.gdshader")
+	_props_mmi = MultiMeshInstance3D.new()
+	_props_mmi.name = "StepsProps"
+	_props_mmi.multimesh = _props_mm
+	_props_mmi.material_override = props_mat
+	_props_mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_props_mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	_props_mmi.visible = false
+	add_child(_props_mmi)
 	var wcap := ceili(maxi(DAWN_MAX, OFFICE_MAX) * maxf(amount, 1.0)) + 4
 	_walk_mm = MultiMesh.new()
 	_walk_mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -2122,11 +2423,15 @@ func _figures(s: Dictionary) -> Array:
 			var slots: Array = s["slots"]
 			for k in mini(n, slots.size()):
 				var sl: Dictionary = slots[k]
-				out.append([_ground(sl["p"]), sl["yaw"], sl["pose"], Color(sl["shirt"]), rng.randf() * 0.99])
+				var sp: Vector2 = sl["p"]
+				var y := float(sl["y"]) if sl.has("y") else _ground(sp).y
+				out.append([Vector3(sp.x, y, sp.y), sl["yaw"], sl["pose"], Color(sl["shirt"]), rng.randf() * 0.99])
 			if bool(s.get("guitar_on", false)):
 				var face: Vector2 = s["face"]
-				out.append([_ground(s["guitar"]), atan2(-face.x, -face.y), SIT, GUITAR_SHIRT, 0.0])
-		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe", "view", "view_dj":
+				var gp: Vector2 = s["guitar"]
+				var gy := float(s["guitar_y"]) if not is_nan(float(s.get("guitar_y", NAN))) else _ground(gp).y
+				out.append([Vector3(gp.x, gy, gp.y), atan2(-face.x, -face.y), SIT, GUITAR_SHIRT, 0.0])
+		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe", "view", "view_dj", "bar", "kladka":
 			var slots: Array = s["slots"]
 			for k in mini(n, slots.size()):
 				var sl: Dictionary = slots[k]
@@ -2140,6 +2445,52 @@ func _figures(s: Dictionary) -> Array:
 
 func _ground(p: Vector2) -> Vector3:
 	return Vector3(p.x, map.deck_height(-1, p.x, p.y) if map != null else 0.0, p.y)
+
+
+## Phase D: writes the steps' props whose anchor sitter is there (`n` of the slots) into the one MultiMesh,
+## or none while the steps are off screen. A box is a unit cube scaled by `size`, turned by `yaw`.
+func _redraw_props(s: Dictionary, near: bool) -> void:
+	var n := 0
+	if near and _props_mm != null:
+		var props: Array = s.get("props", [])
+		var shown := int(s["n"])
+		for pr: Array in props:
+			if int(pr[0]) >= shown or n >= PROPS_MAX:
+				continue
+			var at: Vector2 = pr[1]
+			var sz: Vector3 = pr[4]
+			var base := float(pr[2]) if not is_nan(float(pr[2])) else _ground(at).y
+			var lift := float(pr[7]) if pr.size() > 7 else 0.0
+			var yaw := float(pr[3])
+			var c := cos(yaw)
+			var sn := sin(yaw)
+			var col: Color = pr[5]
+			var b := n * 16
+			_props_buf[b] = c * sz.x
+			_props_buf[b + 1] = 0.0
+			_props_buf[b + 2] = sn * sz.z
+			_props_buf[b + 3] = at.x
+			_props_buf[b + 4] = 0.0
+			_props_buf[b + 5] = sz.y
+			_props_buf[b + 6] = 0.0
+			_props_buf[b + 7] = base + lift + sz.y * 0.5
+			_props_buf[b + 8] = -sn * sz.x
+			_props_buf[b + 9] = 0.0
+			_props_buf[b + 10] = c * sz.z
+			_props_buf[b + 11] = at.y
+			_props_buf[b + 12] = col.r
+			_props_buf[b + 13] = col.g
+			_props_buf[b + 14] = col.b
+			_props_buf[b + 15] = float(pr[6])
+			n += 1
+	props_shown = n
+	if n > 0:
+		InstanceBuffers.send(_props_mm.get_rid(), _props_buf)
+		var c0: Vector2 = s["at"]
+		_props_mm.custom_aabb = AABB(Vector3(c0.x - 130.0, -40.0, c0.y - 130.0), Vector3(260.0, 80.0, 260.0))
+	if _props_mm != null:
+		_props_mm.visible_instance_count = n
+		_props_mmi.visible = n > 0
 
 
 ## Rewrites the cells whose crowds changed: each figure of each active site in the cell.
@@ -2240,6 +2591,8 @@ func tick(step: float) -> void:
 			"steps":
 				steps_lvl = steps_level(hour, month, rain, sunset)
 				want = roundi(STEPS_MAX * k * steps_lvl)
+			"kladka":
+				want = roundi(int(s["max"]) * k * steps_level(hour, month, rain, sunset))
 			"plan_c":
 				plan_lvl = plan_c_level(hour, weekday, month, rain)
 				want = roundi(PLAN_C_MAX * k * plan_lvl)
@@ -2269,6 +2622,8 @@ func tick(step: float) -> void:
 					want = mini(JAZZ_BAND + roundi((int(s["max"]) - JAZZ_BAND) * k * jazz_level(hour, weekday, month, rain)), int(s["max"]))
 			"jazz_cafe":
 				want = mini(roundi(int(s["max"]) * k * jazz_cafe_level(hour, month, rain)), int(s["max"]))
+			"bar":
+				want = bar_count(int(s["max"]), int(s.get("staff_n", 0)), bar_level(hour, weekday, month, rain, bool(s["barge"])), k)
 			"view":
 				want = mini(roundi(int(s["max"]) * k * view_level(hour, weekday, month, rain, false)), int(s["max"]))
 			"view_dj":
@@ -2310,6 +2665,8 @@ func tick(step: float) -> void:
 			if int(s["n"]) != want:
 				s["n"] = want
 				s["dirty"] = true
+				if kind == "steps":
+					steps_n = want
 		if kind == "steps":
 			var g := guitar_on(int(s["n"]), hour)
 			if g != bool(s.get("guitar_on", false)):
@@ -2324,6 +2681,8 @@ func tick(step: float) -> void:
 			s["dirty"] = false
 			s["inst"] = _figures(s) if near else []
 			(_cells[s["cell"]] as Dictionary)["dirty"] = true
+			if kind == "steps":
+				_redraw_props(s, near)
 		if kind == "roof" and _ring != null:
 			# F's asks: the band while the club is open (the roof's hours) and near the view.
 			var lit := near and want > 0

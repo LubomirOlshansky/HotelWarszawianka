@@ -500,6 +500,32 @@ How it is wired (W6):
 - With the soft switch off nothing breaks, so no state is ever written. Panels are drawn the
   same either way.
 
+**Built in W6 (2026-11-19)**, behind `barrier_look` `panels` (the palette's key stays `classic`):
+
+- `game/scripts/panel_states.gd` (main.gd `panel_states.attach(soft_things)`, `_on_sector_ready`;
+  the whole city's `Panels_i_j` on `--monolithic`). States in the custom data's third float: down
+  1 (`fence_plain`, `bars_black`, `mesh_panel`, `rail_street`; `flat` will lie down the same), torn
+  2 (`chain_link`), stub 3 (`hedge_low`; `gap` takes the slot until W5 draws it). A `down` piece's
+  box is laid with its height along the ground on the side the car went, turned up to 7 degrees by
+  a hash of the line and panel, its thickness standing, 4 cm over the ground at its foot; the posts
+  of the neighbours stand.
+- `panel.gdshader`: the box's height is its y axis' length (a fallen box's y lies flat); down a
+  shade darker (0.7); torn drops the fill (bars or stipple) and keeps posts and rails, a hole even
+  where `holes` is off; stub squashes the box in `vertex()` to a quarter of the height (a closed
+  top) in a brown (#5c452b). Its count stays 3 of the cap 200; `building.gdshader` 501 of 505.
+- The baked buffer is read once a tile, on its first write. On a RenderingDevice (the phone) the
+  read is asynchronous (`buffer_get_data_async` on the MultiMesh's own buffer: a synchronous read
+  stalled 1 to 2.3 ms on the cloud's software renderer) and the tile's writes follow it, two
+  frames after the hit, behind the debris; then a write is one instance's 64 bytes
+  (`buffer_update`). A write made inside the read's answer is accepted and lost (Godot 4.7.2,
+  Mobile), so they are deferred. Elsewhere (Compatibility, headless) the MultiMesh path. A hit's
+  script time: 10 to 11 µs median, 14 to 20 µs at the 95th centile (`check_panel_states` S5).
+- Debris colour and the smash sound by the looks row's `debris` (the palette's `debris` table:
+  metal, wood and leaf the old colours, sheet new); under every look this changes 484
+  `green_fence` lines (leaves and the hedge's sound, metal before) and 4 `hoarding` lines (a light
+  sheet and the metal sound, wood before).
+- `check_panel_states` (verify `panelstates`); `--smash-fence=` for shots.
+
 ## 8. Cost on the phone
 
 The budgets are in the archive's "Performance budgets": draw calls are the gate, triangles are

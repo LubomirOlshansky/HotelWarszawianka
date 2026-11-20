@@ -30,6 +30,9 @@ const Notebook := preload("res://scripts/notebook.gd")
 const EggBook := preload("res://scripts/egg_book.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const Props := preload("res://scripts/props.gd")
+const Blvd := preload("res://scripts/boulevard_life.gd")
+const Kladka := preload("res://scripts/kladka_life.gd")
+const Pedestrians := preload("res://scripts/pedestrians.gd")
 const Fakes := preload("res://tools/fakes.gd")
 
 
@@ -40,6 +43,12 @@ var cal := {"live": false, "month": 7, "date": 0, "look": "Day", "rain": false}
 var eye := Vector3.ZERO
 var veh: Array = [Vector3.INF, 0.0, false, 0.0, 0.0]
 var _summary := {}
+
+
+## Stands in for pedestrians.gd where the guests are handed over.
+class FakeWalkers extends Node3D:
+	func take_guests(_buf: PackedFloat32Array) -> void:
+		pass
 
 
 func _initialize() -> void:
@@ -62,6 +71,7 @@ func _run() -> void:
 	_check_fat_thursday()
 	_check_meshes()
 	_check_armchair_rules()
+	_check_boulevard_rules()
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://map/centrum.json"))
 	var book: Notebook = Notebook.new()
 	root.add_child(book)
@@ -70,13 +80,14 @@ func _run() -> void:
 		quit(1)
 		return
 	_check_eggs(book)
+	_check_kladka_rules(data)
 	await _check_city(book, data)
 	book.queue_free()
 	await process_frame
 	if problems.is_empty():
-		print("check_city_life: OK (dog hours and caps, riders, runners, Kolka; horn %s; trend cycle on synthetic dates, sync every %d cycles; pay %s; Zając once; Fat Thursday %s; eggs E16 E18 E19 E20 E27 E28 E29 E30 E34 once each; dogs %d tris; city %s; the armchair man %s, his way %s)" % [
+		print("check_city_life: OK (dog hours and caps, riders, runners, Kolka; horn %s; trend cycle on synthetic dates, sync every %d cycles; pay %s; Zając once; Fat Thursday %s; eggs E16 E18 E19 E20 E27 E28 E29 E30 E34 once each; dogs %d tris; city %s; the armchair man %s, his way %s; steps' life (Schodki Phase B): %s; %s; the footbridge's life: %s)" % [
 				_summary.get("horn", "?"), CityLife.SYNC_EVERY, _summary.get("pay", "?"), _summary.get("fat", "?"),
-				_summary.get("tris", 0), _summary.get("city", "?"), _summary.get("armchair", "?"), _summary.get("armchair_city", "?")])
+				_summary.get("tris", 0), _summary.get("city", "?"), _summary.get("armchair", "?"), _summary.get("armchair_city", "?"), _summary.get("blvd", "?"), _summary.get("blvd_paving", "?"), _summary.get("kladka", "?")])
 		quit(0)
 	else:
 		for p in problems:
@@ -622,6 +633,8 @@ func _check_city(nb: Notebook, data: Dictionary) -> void:
 		life.trend_day_flag = 0
 		arm_note = "%.0f m" % float(arm["len"])
 	_summary["armchair_city"] = arm_note
+	_check_boulevard_city(life, dlg)
+	_check_boulevard_paving(data)
 	# Far from everything (the Vistula's far side, 4 km out): nothing active, nothing drawn.
 	eye = Vector3(5000.0, 0.0, 5000.0)
 	now = {"hour": 7.5, "weekday": 5}
@@ -640,3 +653,313 @@ func _check_city(nb: Notebook, data: Dictionary) -> void:
 			n_dogs, float(kolka.get("len", 0.0)), int((life.get("_docks") as Array)[0]["n"]) if not (life.get("_docks") as Array).is_empty() else 0, per_s]
 	life.queue_free()
 	dlg.queue_free()
+
+
+## Kładka Abakanowicz (scripts/kladka_life.gd, F 2026-11-20): from the map's stamp, the walkers and riders
+## on the walk (within its half width, the riders EDGE m in), up from 6:00 to 1:00 and more in the evening,
+## a cyclist among the riders, no more than the scooters' MultiMesh holds; the `kladka` words.
+func _check_kladka_rules(data: Dictionary) -> void:
+	Kladka.setup(data.get("kladka", {}))
+	if Kladka.centre() == Vector2.INF:
+		problems.append("kladka life: no footbridge in the map")
+		return
+	var eve := Kladka.walker_figures(500.0, 20.0)
+	var noon := Kladka.walker_figures(500.0, 12.0)
+	_expect(eve.size() >= 12 and noon.size() >= 8 and Kladka.walker_figures(500.0, 3.0).is_empty(),
+			"kladka life: walkers %d at 20:00, %d at noon" % [eve.size(), noon.size()])
+	var riders := Kladka.rider_figures(300.0, 20.0)
+	var cyc := 0
+	for r: Array in riders:
+		cyc += int(int(r[2]) == CityLife.CYCLIST)
+	_expect(riders.size() <= CityLife.SCOOT_CAP and cyc >= 2, "kladka life: %d riders (%d cyclists)" % [riders.size(), cyc])
+	var half := float(data["kladka"]["half"])
+	for tt in [0.0, 41.0, 333.0, 1777.0]:
+		for f: Array in Kladka.walker_figures(tt, 20.0) + Kladka.walker_figures(tt, 12.0) + Kladka.rider_figures(tt, 20.0):
+			var p: Vector2 = f[0]
+			var off := INF
+			for s in range(0, int(Kladka.total()) + 1, 2):
+				off = minf(off, p.distance_to(Kladka.at(float(s), 0.0)))
+			_expect(off <= half - 0.1, "kladka life: a figure %.1f m off the line at t %.0f" % [off, tt])
+	_expect(Kladka.near(Kladka.centre(), 20.0) and not Kladka.near(Kladka.centre() + Vector2(400, 0), 20.0)
+			and not Kladka.near(Kladka.centre(), 3.0), "kladka life: near and its hours")
+	_expect(Kladka.centre().distance_to(Blvd.C) > Kladka.NEAR_R + Blvd.NEAR_R, "kladka life: its view range meets the steps' (one at a time)")
+	var words: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
+	var lines: Array = words.get("kladka", [])
+	_expect(lines.size() >= 10, "kladka: %d lines" % lines.size())
+	for l: Array in lines:
+		_expect(str(l[0]).length() <= 70 and str(l[1]) != "", "kladka: a line over 70 characters or without English: %s" % str(l[0]))
+	_summary["kladka"] = "%d walkers at 20:00, %d riders (%d cyclists), %d lines" % [eve.size(), riders.size(), cyc, lines.size()]
+
+
+## Schodki nad Wisłą Phase B (scripts/boulevard_life.gd): the patrol's hours, pairs and its poses along a
+## whole cycle (the ends, the speed, the pauses of 5-10 s facing the water), the walkers' and riders'
+## hours and lanes, the words (`policja_bulwar`: PL ≤ 70 characters, an English line each) and the
+## scooter mesh's budget.
+func _check_boulevard_rules() -> void:
+	_expect(Blvd.patrol_kind(20.0) == "policja" and Blvd.patrol_kind(1.5) == "policja" and Blvd.patrol_kind(12.0) == "straz"
+			and Blvd.patrol_kind(3.0) == "" and Blvd.patrol_kind(8.0) == "", "the patrol's hours")
+	_expect(Blvd.patrol_pairs(20.0, 5) == 2 and Blvd.patrol_pairs(21.0, 6) == 2 and Blvd.patrol_pairs(1.0, 7) == 2
+			and Blvd.patrol_pairs(20.0, 2) == 1 and Blvd.patrol_pairs(12.0, 6) == 1 and Blvd.patrol_pairs(1.0, 6) == 2 and Blvd.patrol_pairs(1.0, 3) == 1
+			and Blvd.patrol_pairs(4.0, 6) == 0, "the patrol's pairs: two on Friday and Saturday evenings only")
+	var cycle := Blvd.cycle_time()
+	var last_u := INF
+	var pauses: Array[float] = []
+	var run := 0.0
+	var min_u := INF
+	var max_u := -INF
+	var max_v := 0.0
+	var dt := 0.25
+	var tt := 0.0
+	while tt < cycle:
+		var pose := Blvd.patrol_pose(tt, 0.0)
+		var u: float = pose["u"]
+		min_u = minf(min_u, u)
+		max_u = maxf(max_u, u)
+		if bool(pose["paused"]):
+			run += dt
+			_expect((pose["face"] as Vector2).is_equal_approx(Blvd.N), "an officer paused facing away from the water")
+		else:
+			if run > 0.0:
+				pauses.append(run)
+				run = 0.0
+			if last_u != INF:
+				max_v = maxf(max_v, absf(u - last_u) / dt)
+		last_u = u
+		tt += dt
+	_expect(min_u >= Blvd.PATROL_U.x - 0.01 and max_u <= Blvd.PATROL_U.y + 0.01 and max_u - min_u > 225.0,
+			"the patrol's reach %.0f .. %.0f" % [min_u, max_u])
+	_expect(max_v <= 1.3 and max_v >= 1.1, "the patrol's walking speed %.2f m/s (want 1.1-1.3)" % max_v)
+	_expect(pauses.size() == 2 * Blvd.PATROL_STOPS.size(), "%d pauses a cycle (want %d)" % [pauses.size(), 2 * Blvd.PATROL_STOPS.size()])
+	for p in pauses:
+		_expect((p >= 5.0 - dt and p <= 10.0 + dt) or absf(p - Blvd.FINE_PAUSE) <= 1.0, "a pause of %.1f s (want 5-10, or the fine stop's %.0f)" % [p, Blvd.FINE_PAUSE])
+	# The mandat: out 4.5 m at the patrol's pace, 10 s writing, back; one officer only.
+	_expect(is_zero_approx(Blvd.fine_offset(-1.0)) and absf(Blvd.fine_offset(8.0) - Blvd.FINE_WALK) < 0.01
+			and Blvd.fine_offset(Blvd.FINE_WALK / Blvd.PATROL_SPEED * 0.5) < Blvd.FINE_WALK and Blvd.fine_offset(23.0) < 0.5
+			and Blvd.fine_writing(8.0) and not Blvd.fine_writing(1.0) and not Blvd.fine_writing(18.0), "the fine's walk")
+	var fine_n := 0
+	var seen_write := 0.0
+	tt = 0.0
+	while tt < cycle:
+		var fp := Blvd.patrol_pose(tt, 0.0)
+		if float(fp["fine_t"]) >= 0.0 and Blvd.fine_writing(float(fp["fine_t"])):
+			seen_write += dt
+		tt += dt
+	_expect(absf(seen_write - 2.0 * Blvd.FINE_WRITE) <= 2.0, "%.1f s of writing a cycle (want %.0f)" % [seen_write, 2.0 * Blvd.FINE_WRITE])
+	var fw := Blvd.patrol_figures(100.0, "policja", 1)
+	var fw0 := Blvd.patrol_figures(10.0, "policja", 1)
+	_expect(fw["figs"].size() == 2 and fw["figs"][0][0] != fw0["figs"][0][0], "the fining officer's figure")
+	fine_n += 1
+	# The pair, the dog, the uniforms.
+	var night: Dictionary = Blvd.patrol_figures(100.0, "policja", 2)
+	var day: Dictionary = Blvd.patrol_figures(100.0, "straz", 1)
+	_expect((night["figs"] as Array).size() == 4 and not (night["dog"] as Array).is_empty(), "a night patrol of two pairs with a dog")
+	_expect((day["figs"] as Array).size() == 2 and (day["dog"] as Array).is_empty(), "a Straż Miejska pair, no dog")
+	_expect((night["figs"][0][2] as Color) == Blvd.POLICE_SHIRT and (day["figs"][0][2] as Color) == Blvd.GUARD_SHIRT, "the uniforms")
+	for f: Array in night["figs"]:
+		var v := ((f[0] as Vector2) - Blvd.C).dot(Blvd.N)
+		_expect(v < -3.5 and v > -17.0, "an officer at v %.1f (the upper promenade is -8 .. -20)" % v)
+	# The walkers: evening, day, the small hours; every figure on the promenade's v.
+	var eve := Blvd.walker_figures(500.0, 20.0)
+	var noon := Blvd.walker_figures(500.0, 12.0)
+	var late := Blvd.walker_figures(500.0, 3.0)
+	_expect(eve.size() >= 14 and eve.size() <= 20 and noon.size() >= 8 and noon.size() <= 14 and late.is_empty(),
+			"walkers %d at 20:00, %d at noon, %d at 03:00" % [eve.size(), noon.size(), late.size()])
+	var n_child := 0
+	for f: Array in noon:
+		n_child += int((f[4] as Vector3).x < 0.9)
+	_expect(n_child == 1, "a family by day has one child (%d)" % n_child)
+	for tt2 in [0.0, 37.0, 411.0, 1203.0]:
+		for f: Array in Blvd.walker_figures(tt2, 20.0) + Blvd.walker_figures(tt2, 12.0):
+			var d := (f[0] as Vector2) - Blvd.C
+			_expect(absf(d.dot(Blvd.A)) < 125.0 and d.dot(Blvd.N) > -22.0 and d.dot(Blvd.N) < 13.0, "a walker off the promenade at t %.0f" % tt2)
+	# The riders: four scooters and two rollerbladers, by day and evening only.
+	var riders := Blvd.rider_figures(300.0, 15.0)
+	var scoots := 0
+	for r: Array in riders:
+		scoots += int(r[2] == 0)
+	_expect(riders.size() == 6 and scoots == 4 and Blvd.rider_figures(300.0, 23.0).is_empty(), "riders %d (%d scooters)" % [riders.size(), scoots])
+	_expect(riders.size() <= CityLife.SCOOT_CAP, "more riders than the scooters' MultiMesh holds")
+	# The words.
+	var words: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
+	var lines: Array = words.get("policja_bulwar", [])
+	var tags := {}
+	for l: Array in lines:
+		_expect(str(l[0]).length() <= 70 and str(l[1]) != "", "policja_bulwar: a line over 70 characters or without English: %s" % str(l[0]))
+		var tag := str((l[2] as Dictionary).get("only", "")) if l.size() > 2 else ""
+		tags[tag] = int(tags.get(tag, 0)) + 1
+	_expect(int(tags.get("", 0)) >= 3 and int(tags.get("steps", 0)) >= 2 and int(tags.get("straz", 0)) >= 2, "policja_bulwar lines by tag: %s" % str(tags))
+	var mand: Array = words.get("mandat_bulwar", [])
+	_expect(mand.size() >= 6, "mandat_bulwar has %d lines (want 6-8)" % mand.size())
+	for l: Array in mand:
+		_expect(str(l[0]).length() <= 70 and str(l[1]) != "", "mandat_bulwar: a line over 70 characters or without English: %s" % str(l[0]))
+	# The scooter mesh.
+	var sm := CityLife.scooter_mesh()
+	var tris := sm.surface_get_array_index_len(0) / 3 if sm.surface_get_array_index_len(0) > 0 else sm.surface_get_array_len(0) / 3
+	_expect(tris > 0 and tris <= 600, "the scooter mesh has %d triangles (budget 600)" % tris)
+	_summary["blvd_rules"] = "%d s cycle, %d pauses, %.2f m/s, %d scooter tris" % [int(cycle), pauses.size(), max_v, tris]
+
+
+## The steps' life on the real city: the view at the steps at 20:00 on a Friday gets the patrol (two
+## pairs and a dog), the walkers and the scooters; they move between steps; a view beside an officer
+## hears a line; by day a Straż Miejska pair; at 03:00 and from far away nothing.
+func _check_boulevard_city(life: Node3D, dlg: Node) -> void:
+	var fake := FakeWalkers.new()
+	root.add_child(fake)
+	life.walkers = fake
+	eye = Vector3(Blvd.C.x, 0.0, Blvd.C.y)
+	veh = [Vector3.INF, 0.0, false, 0.0, 0.0]
+	now = {"hour": 20.0, "weekday": 5}
+	for i in 6:
+		life.tick(0.5)
+	life.call("_move", CityLife.MOVE_TICK)
+	_expect(int(life.get("_shown")) & CityLife.BLVD_BIT != 0, "the steps' life isn't shown at 20:00 at the steps")
+	var slot: int = life.get("_blvd_slot")
+	_expect(slot >= 0 and int(life.get("_blvd_dog")) >= 0, "the steps' people (slot %d) or the police dog have no slot" % slot)
+	var scoots: MultiMesh = (life.get("_scoot_mm") as MultiMesh)
+	_expect(scoots.visible_instance_count == 6, "%d scooters and rollerbladers drawn (want 6)" % scoots.visible_instance_count)
+	var g0: PackedFloat32Array = (life.get("_gbuf") as PackedFloat32Array).slice(maxi(slot, 0) * 16, maxi(slot, 0) * 16 + 16)
+	var s0: PackedFloat32Array = (life.get("_scoot_buf") as PackedFloat32Array).slice(0, 16)
+	for i in 30:
+		life.set("t", float(life.get("t")) + CityLife.MOVE_TICK)
+		life.call("_move", CityLife.MOVE_TICK)
+	var g1: PackedFloat32Array = (life.get("_gbuf") as PackedFloat32Array).slice(maxi(slot, 0) * 16, maxi(slot, 0) * 16 + 16)
+	var s1: PackedFloat32Array = (life.get("_scoot_buf") as PackedFloat32Array).slice(0, 16)
+	# The cost: 150 moves (10 s) at the steps at 20:00, the steps' life on, against the same at 03:00 (off).
+	var us_on := Time.get_ticks_usec()
+	for i in 150:
+		life.set("t", float(life.get("t")) + CityLife.MOVE_TICK)
+		life.call("_move", CityLife.MOVE_TICK)
+	us_on = Time.get_ticks_usec() - us_on
+	_expect(us_on / 150 < 1500, "a move at the steps costs %d µs (budget 1500)" % (us_on / 150))
+	_expect(g0 != g1, "the first officer didn't move in 2 s")
+	_expect(s0 != s1, "the first scooter didn't move in 2 s")
+	var n_guests := 0
+	for i in Pedestrians.GUESTS:
+		if (life.get("_gbuf") as PackedFloat32Array)[i * 16 + 3] != 0.0:
+			n_guests += 1
+	var want := 4 + Blvd.walker_figures(0.0, 20.0).size()
+	_expect(n_guests >= want, "%d guests written, at least %d at the steps" % [n_guests, want])
+	# A line: the view beside the first officer.
+	var pose := Blvd.patrol_figures(float(life.get("t")), "policja", 2)
+	var q: Vector2 = (pose["figs"] as Array)[0][0]
+	eye = Vector3(q.x, 0.0, q.y)
+	var lines0: int = dlg.count("policja_bulwar", "") + dlg.count("policja_bulwar", "steps")
+	life.set("blvd_lines", 0)
+	life.set("_blvd_line_t", 0.0)
+	life.tick(0.5)
+	var said: int = dlg.count("policja_bulwar", "") + dlg.count("policja_bulwar", "steps") - lines0
+	_expect(said == 1 and int(life.get("blvd_lines")) == 1, "a view beside an officer: %d lines (want 1)" % said)
+	life.tick(0.5)
+	_expect(int(life.get("blvd_lines")) == 1, "a second line within the gap")
+	# The mandat: the first officer at the fine stop, writing: one caption, once.
+	life.set("blvd_t0", 100.0 - float(life.get("t")))
+	var fpose := Blvd.patrol_pose(100.0, 0.0)
+	_expect(Blvd.fine_writing(float(fpose["fine_t"])), "the test's clock isn't at the fine (fine_t %.1f)" % float(fpose["fine_t"]))
+	var fq: Vector2 = (Blvd.patrol_figures(100.0, "policja", 2)["figs"] as Array)[0][0]
+	eye = Vector3(fq.x, 0.0, fq.y)
+	var fines0: int = dlg.count("mandat_bulwar", "")
+	life.tick(0.5)
+	life.tick(0.5)
+	_expect(dlg.count("mandat_bulwar", "") - fines0 == 1 and int(life.get("blvd_fines")) == 1, "the mandat caption said %d times (want 1)" % (dlg.count("mandat_bulwar", "") - fines0))
+	life.set("blvd_t0", 0.0)
+	# By day: Straż Miejska, one pair, no dog.
+	now = {"hour": 12.0, "weekday": 3}
+	for i in 4:
+		life.tick(0.5)
+	life.call("_move", CityLife.MOVE_TICK)
+	_expect(int(life.get("_blvd_dog")) < 0 and ((life.call("_blvd_pose") as Dictionary)["figs"] as Array).size() == 2,
+			"the day patrol isn't a pair without a dog")
+	# The small hours and far away: nothing of it.
+	now = {"hour": 3.0, "weekday": 3}
+	for i in 4:
+		life.tick(0.5)
+	_expect(int(life.get("_shown_now")) & CityLife.BLVD_BIT == 0, "the steps' life at 03:00")
+	now = {"hour": 20.0, "weekday": 5}
+	eye = Vector3(Blvd.C.x + 600.0, 0.0, Blvd.C.y)
+	for i in 4:
+		life.tick(0.5)
+	_expect(int(life.get("_shown_now")) & CityLife.BLVD_BIT == 0, "the steps' life 600 m away")
+	_summary["blvd"] = "%s; %d guests at the steps, 6 riders, a line said, a day pair without a dog; a move at the steps %d µs" % [
+			_summary.get("blvd_rules", "?"), n_guests, us_on / 150]
+	eye = Vector3.ZERO
+	life.walkers = null
+	fake.queue_free()
+
+
+## F's rule (2026-11-19): everything on the promenade stands and walks on paving. Samples the patrol's
+## route (both pairs and the fining officer's walk), the walkers' and riders' lanes, the lower quay's path,
+## the queues and the food places' hatches every 2 m / by position, and asserts each lies on a footway
+## ribbon or a plaza, or within 1.5 m of one, and never on a cycle path alone.
+func _check_boulevard_paving(data: Dictionary) -> void:
+	var foot: Array = []
+	var cycle: Array = []
+	for p: Dictionary in data["paths"]:
+		var q: Array = p["p"]
+		if (p["k"] != "foot" and p["k"] != "cycle") or q.size() < 4:
+			continue
+		var pts := PackedVector2Array()
+		for i in range(0, q.size() - 1, 2):
+			pts.append(Vector2(float(q[i]), float(q[i + 1])))
+		var b := Rect2(pts[0], Vector2.ZERO)
+		for pt in pts:
+			b = b.expand(pt)
+		if b.grow(60.0).has_point(Blvd.C):
+			(foot if p["k"] == "foot" else cycle).append([pts, float(p.get("w", 2.0)) * 0.5])
+	var plazas: Array = []
+	for a: Dictionary in data["areas"]:
+		if a["k"] == "plaza":
+			var q: Array = a["p"]
+			var pts := PackedVector2Array()
+			for i in range(0, q.size() - 1, 2):
+				pts.append(Vector2(float(q[i]), float(q[i + 1])))
+			if pts.size() >= 3 and Rect2(pts[0], Vector2.ZERO).grow(300.0).has_point(Blvd.C):
+				plazas.append(pts)
+	var bad := 0
+	var worst := 0.0
+	var n := 0
+	var spots: Array[Vector2] = []
+	var u := Blvd.PATROL_U.x
+	while u <= Blvd.PATROL_U.y:
+		for off in [0.0, -1.2]:
+			var c := Blvd.on_route(u, off)
+			var side := Blvd.line_dir(Blvd.ROUTE, u, 1.0)
+			side = Vector2(-side.y, side.x)
+			spots.append(c + side * Blvd.PAIR_GAP)
+			spots.append(c - side * Blvd.PAIR_GAP)
+		u += 2.0
+	# The fining officer's stop: at the stop's u, out FINE_WALK m (the steps' top edge).
+	for stop in Blvd.PATROL_STOPS:
+		if stop.y == Blvd.FINE_PAUSE:
+			spots.append(Blvd.on_route(stop.x, 0.0) + Blvd.N * Blvd.FINE_WALK)
+	var lu := -118.0
+	while lu <= 125.0:
+		for lane in [-1.0, 0.0, 0.9]:
+			spots.append(Blvd.on_route(lu, lane))
+		lu += 2.0
+	lu = -5.0
+	while lu <= 89.0:
+		spots.append(Blvd.at(lu, Blvd.line_v(Blvd.LOWER, lu)))
+		lu += 2.0
+	for q: Array in Blvd.STANDERS:
+		spots.append(Blvd.at(float(q[1]), float(q[2])))
+	for at_uv: Vector2 in [Vector2(92.0, -19.2), Vector2(104.0, -19.0)]:
+		spots.append(Blvd.at(at_uv.x, at_uv.y))
+	for p: Vector2 in spots:
+		n += 1
+		var gap := INF
+		for pl: PackedVector2Array in plazas:
+			if Geometry2D.is_point_in_polygon(p, pl):
+				gap = 0.0
+		if gap > 0.0:
+			for f: Array in foot:
+				var pts: PackedVector2Array = f[0]
+				for i in pts.size() - 1:
+					gap = minf(gap, Geometry2D.get_closest_point_to_segment(p, pts[i], pts[i + 1]).distance_to(p) - float(f[1]))
+		if gap > 1.5:
+			bad += 1
+			if verbose:
+				var dd := p - Blvd.C
+				print("  off paving %.1f m at u %.0f v %.1f" % [gap, dd.dot(Blvd.A), dd.dot(Blvd.N)])
+		worst = maxf(worst, gap if gap < INF else 99.0)
+	_expect(bad == 0, "%d of %d promenade samples are over 1.5 m from paving (worst %.1f m)" % [bad, n, worst])
+	_summary["blvd_paving"] = "%d samples on paving (worst %.1f m off)" % [n, worst]

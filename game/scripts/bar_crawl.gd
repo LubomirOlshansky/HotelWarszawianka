@@ -437,6 +437,7 @@ func _run_tick(_dt: float) -> void:
 				_board()
 		Stage.DRIVE, Stage.WAIT:
 			time_left -= dt
+			hud.tick_clock(time_left)
 			_drive_mood(dt, _kmh)
 			if time_left <= 0.0:
 				_result(false)
@@ -565,6 +566,7 @@ func _result(made: bool) -> void:
 	var en := "%s %d of %d bars, mood: %s. %d zł for the ride, +%d respect." % [q[1], done, total, mw[1], p[0], p[1]]
 	var title := ["RAJD PO BARACH", "BAR CRAWL"] if made else ["OSTATNIE ZAMÓWIENIA", "LAST ORDERS"]
 	show_card(title, [pl, en], PackedStringArray(["OK"]), RESULT_LIFE)
+	hud.cue("win" if made else "fail")
 	_log("end: %s, %d/%d bars, mood %.0f, +%d zł +%d respect" % ["made it" if made else "out of time", done, total, mood, p[0], p[1]])
 
 

@@ -54,6 +54,12 @@
 # fences and hedges the car smashes through (soft_things.gd) on pure cases (the swept box, the cost per
 # panel and its cap, grinding, rule B's repair, the contact log's soft line), then the soft lists of four
 # sectors the same on both city paths and `--no-soft`'s restore exact (~1 min).
+# `panelstates` runs game/tools/check_panel_states.gd (W6 of the walls look, 2026-11-19): the broken
+# panels shown (panel_states.gd) on the stadium's sector built `panels`, both city paths (the prebuilt
+# one, or the runtime sector through a .scn when the prebuilt city is another look): a hit sets the right
+# pieces (down, torn, stub), still down after the sector leaves and comes back, `repair_near` and
+# `reset` put the baked buffer back float for float, soft off writes nothing, a hit's script time
+# under 0.1 ms, nothing under `typed` (~30 s).
 # `deckxray` runs game/tools/check_deck_xray.gd (GAMEPLAY_PLAN 0.3, 2026-11-03): the car's x-ray is on
 # under a bridge or viaduct deck (Trasa Łazienkowska) and off on top of one and on open streets.
 # `tunnelcut` runs game/tools/check_tunnel_cut.gd (F, 2026-11-08): in every tunnel the ground that
@@ -360,6 +366,9 @@
 # Bridge cycle paths (2026-11-08): `cyclehang` runs tools/cycle_hang.py --check (Most Łazienkowski's
 # cycle bridges hang 4 m under the road deck, as on F's photos, and come down to their ramps; needs
 # terrain.json from the map pack).
+# Kładka Abakanowicz (F, 2026-11-20): `kladka` runs tools/kladka.py --check (the footbridge's deck
+# pieces tagged, its seating bays, the living street's asphalt hidden, 7 supports with the Warsaw
+# meridian between the second and third from Praga; no map beyond centrum.json, CI too).
 # Port Czerniakowski's footbridge (2026-11-08): `portbridge` runs tools/port_bridge.py --check (the
 # mouth's bridge by Majami Wawa is one flat railed deck joining the boulevard's paths, the finished
 # construction lot north-west of it has no site fences).
@@ -1056,6 +1065,15 @@ for s in $want; do
 				0) row PASS "zamekramps" $secs "$(grep '^zamek_ramps: ' $logs/zamekramps.log | tail -1)" ;;
 				*) row FAIL "zamekramps" $secs "$(grep '^zamek_ramps: ' $logs/zamekramps.log | tail -1) ($logs/zamekramps.log)" ;;
 			esac ;;
+		kladka)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/kladka.py --check > $logs/kladka.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "kladka" $secs "$(grep '^kladka: ' $logs/kladka.log | tail -1)" ;;
+				*) row FAIL "kladka" $secs "$(grep '^kladka: ' $logs/kladka.log | tail -1) ($logs/kladka.log)" ;;
+			esac ;;
 		defiladobelisk)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/defilad_obelisk.py --check > $logs/defiladobelisk.log 2>&1
@@ -1274,6 +1292,19 @@ for s in $want; do
 				0) row PASS "facadekit" $secs "check_facade_kit: OK · $counts" ;;
 				*) row FAIL "facadekit" $secs "$(grep '^check_facade_kit: ' $logs/facadekit.log | tail -1) · $counts ($logs/facadekit.log)" ;;
 			esac ;;
+		# The UI kit's ratchet (2026-11-19, docs/design/ui-kit.md): the UI scripts' own colour literals
+		# only fall, and the kit keeps the tokens the doc names (tools/check_ui_kit.py; no map, ~0.1 s).
+		uikit)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/check_ui_kit.py > $logs/uikit.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			counts=$(grep -m1 '^check_ui_kit counts:' $logs/uikit.log)
+			counts=${counts#check_ui_kit counts: }
+			case $code in
+				0) row PASS "uikit" $secs "check_ui_kit: OK · $counts" ;;
+				*) row FAIL "uikit" $secs "$(grep '^check_ui_kit: ' $logs/uikit.log | tail -1) · $counts ($logs/uikit.log)" ;;
+			esac ;;
 		# Landmark specs (LANDMARKS 0.4): every docs/landmarks/specs/*.md has all eight sections, a
 		# detail level, a triangle budget and a filled parts table (tools/check_spec.py; ~0.1 s).
 		spec)
@@ -1351,6 +1382,7 @@ for s in $want; do
 		solids) skip_prebuilt solids || check solids '^solids:' --script res://tools/check_solids.gd ;;
 		colliders) check colliders '^check_colliders:' --script res://tools/check_colliders.gd ;;
 		softthings) skip_prebuilt softthings || check softthings '^check_soft_things:' --script res://tools/check_soft_things.gd ;;
+		panelstates) check panelstates '^check_panel_states:' --script res://tools/check_panel_states.gd ;;
 		deckxray) check deckxray '^check_deck_xray:' --script res://tools/check_deck_xray.gd ;;
 		tunnelcut) check tunnelcut '^check_tunnel_cut:' --script res://tools/check_tunnel_cut.gd ;;
 		lanedrive) check lanedrive '^check_lane_drive:' --fixed-fps 60 --script res://tools/check_lane_drive.gd ;;

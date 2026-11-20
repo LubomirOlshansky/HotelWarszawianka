@@ -1,4 +1,4 @@
-extends "res://scripts/landmarks/praga.gd"
+extends "res://scripts/landmarks/kladka.gd"
 ## v0.8 "Landmarks": the buildings that make it Warsaw at a glance, built in code
 ## from the real footprints and heights in centrum.json (OpenStreetMap outlines and
 ## building parts, which carry `height` / `min_height`) instead of their GUGiK LoD2 or
@@ -617,6 +617,9 @@ const INFO := {
 	"flaga": ["Flaga na rondzie Radosława",
 			"Biało-czerwona na maszcie wysokim na prawie 58 m.",
 			"The white-and-red on a mast almost 58 m tall."],
+	"kladka": ["Kładka Abakanowicz",
+			"452 metry z Karowej na Pragę, otwarta w 2024. Mówili: kładka donikąd. Pierwszy tydzień: 200 tysięcy ludzi idących donikąd. Samochodów zero, schodki do siedzenia, a czerwona linia to południk.",
+			"452 metres from Karowa to Praga, opened in 2024. They called it the bridge to nowhere. First week: 200,000 people walking to nowhere. Zero cars, steps to sit on, and the red line is the meridian."],
 	"swieto": ["Most Świętokrzyski",
 			"Most wantowy z 2000 roku: jeden pylon, wanty w jednej płaszczyźnie.",
 			"A cable-stayed bridge of 2000: one pylon, its stays in one plane."],
@@ -692,6 +695,12 @@ const INFO := {
 	"florian": ["Katedra św. Floriana",
 			"Neogotycka katedra na Pradze, 1888–1904. Dwie wieże po 75 m widać z drugiego brzegu Wisły.",
 			"Praga's neo-Gothic cathedral, 1888–1904. Its two 75 m spires are seen from across the Vistula."],
+	"port_praski": ["Port Praski",
+			"Port budowany od 1919 roku, bez śluzy aż do 2017. Dziś kamienice, a doki wciąż za płotem.",
+			"A port dug from 1919 with no lock until 2017. Now tenements, the docks still behind a fence."],
+	"pp_basin": ["Basen Portu Praskiego",
+			"Śluza, wieża i bulwar. Statków na razie brak, bobry są.",
+			"A lock, a tower and a boulevard. No ships yet, beavers yes."],
 	"bazar": ["Bazar Różyckiego",
 			"Najstarszy bazar Warszawy, od 1882 roku. Stare budy obok nowych zielonych pawilonów. Kupisz tu wszystko.",
 			"Warsaw's oldest market, since 1882. Old sheds face the new green kiosks. Everything is for sale."],
@@ -872,6 +881,30 @@ const INFO := {
 	"bulwary_bary": ["Kontenery na bulwarach",
 			"Kontenery z okienkiem: piwo, lemoniada, zapiekanki. Leżak obok zawsze zajęty.",
 			"Containers with a hatch: beer, lemonade, zapiekanki. The deck chair next to it is always taken."],
+	"pawilon_tanca": ["Pawilon Tańca",
+			"Biały pawilon nad bulwarem z napisem MUZEUM na dachu i cienkoliniowymi muralami; przy nim Palomka z białymi krzesłami.",
+			"A white pavilion above the boulevard with MUZEUM on its roof and fine-line murals; Palomka's white chairs beside it."],
+	"zachodni_brzezek": ["Zachodni Brzeżek",
+			"Bar z wielkim tarasem przy Wioślarskiej: szary beton, białe litery, palmy w beczkach i lampiony nad Wisłą.",
+			"A bar with a big terrace on Wioślarska: grey concrete, white letters, palms in barrels and bulbs above the Vistula."],
+	"plyta_desantu": ["Płyta Desantu",
+			"Piaszczysta plaża pod Mostem Poniatowskiego: trzy bary z leżakami, parasolami i pomostem prosto z desantu.",
+			"The sandy beach under Most Poniatowskiego: three bars with deck chairs, parasols and a dock straight off the landing."],
+	"barka_nowa_falka": ["Nowa Falka",
+			"Długa czarna barka z piaskowym pokładem, białymi parasolami i stolikami przed Pawilonem Tańca.",
+			"A long dark barge with a sand-coloured deck, white umbrellas and tables in front of the Dance Pavilion."],
+	"barka_zanurzenie": ["Zanurzenie",
+			"Barka pod płóciennym dachem: paletowe sofy, lampiony i kraftowe piwo kołyszące się przy trapie.",
+			"A canopied barge: pallet sofas, lanterns and craft beer swaying by the gangplank."],
+	"barka_wirek": ["Wirek",
+			"Drewniana platforma na wodzie naprzeciw Schodków: leżaki, palety i industrialne lampy.",
+			"A timber platform on the water facing the Steps: deck chairs, pallets and industrial lamps."],
+	"barka_kalmar": ["Kalmar",
+			"Pływająca plaża obok Dworca Wodnego: piasek pod stopami, leżaki i bar z białego muru.",
+			"A floating beach next to Dworzec Wodny: sand underfoot, loungers and a whitewashed bar."],
+	"barka_barkas": ["Barkas",
+			"Biała barka z płaskim dachem i dwiema scenami; latem koncerty i kino pod gołym niebem.",
+			"A white flat-topped barge with two stages; free concerts and open-air cinema in summer."],
 	"barka_kaskada": ["Kaskadka",
 			"Długa czarna barka koncertowa: industrial, minimalizm i bas słyszalny na Pradze.",
 			"A long black concert barge: industrial, minimal, and bass you can hear in Praga."],
@@ -1228,6 +1261,7 @@ func _find_sites() -> void:
 	_find_bridge()
 	_find_flag()
 	_find_swieto()
+	_find_kladka()
 	# The museum and Plac Piłsudskiego loop (2026-10-31): the square's edges.
 	_find_plac()
 	_find_pawilony()
@@ -1305,6 +1339,13 @@ func _find_sites() -> void:
 	# The boulevards' dressing (2026-11-02, spec docs/landmarks/specs/bulwary.md).
 	_find_bulwar_dress()
 	_find_bulwary_pool()
+	# Schodki nad Wisłą (2026-11-19, spec docs/landmarks/specs/schodki_wisla.md): the seating steps' band.
+	_find_schodki_wisla()
+	# The boulevards, phase C (2026-11-19): the dance pavilion with Palomka, the bar barges.
+	_find_pawilon_tanca()
+	_find_zachodni_brzezek()
+	_find_bbc_barges()
+	_find_plyta_desantu()
 	_find_srodmiescie()
 	# The railway S3c-e (2026-11-02): the WKD stops, from the Mac photo gather.
 	_find_wkd()
@@ -1384,6 +1425,7 @@ func _find_sites() -> void:
 	# Praga (2026-11-02, the Mac's photo reports): St Florian's cathedral and Bazar Różyckiego.
 	_find_florian()
 	_find_bazar()
+	_find_port_praski()
 	# Stacja Filtrów (F, 2026-11-06): the water tower and Starynkiewicz's bust.
 	_add_site("filtry", [_circle(FT_C, FT_R + 1.0, 28)])
 	if not sites.is_empty() and sites[-1]["key"] == "filtry":
@@ -1638,6 +1680,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_bellona(s)
 			"flaga":
 				_build_flag(s)
+			"kladka":
+				_build_kladka(s)
 			"swieto":
 				_build_swieto(s)
 			"muzeum":
@@ -1954,6 +1998,17 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"bulwary_basen":
 				_id = 0  # the children's corner: no card, not on the picking grid
 				_build_bulwary_pool(s)
+			"schodki_wisla":
+				_id = 0  # ground-level steps: no card, not on the picking grid
+				_build_schodki_wisla(s)
+			"pawilon_tanca":
+				_build_pawilon_tanca(s)
+			"zachodni_brzezek":
+				_build_zachodni_brzezek(s)
+			"plyta_desantu":
+				_build_plyta_desantu(s)
+			"barka_nowa_falka", "barka_zanurzenie", "barka_wirek", "barka_kalmar", "barka_barkas":
+				_build_bbc_barge(s)
 			"srodmiescie":
 				_build_srodmiescie(s)
 			"wkd_srodmiescie":
@@ -1970,6 +2025,10 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_florian(s)
 			"bazar":
 				_build_bazar(s)
+			"port_praski":
+				_build_port_praski(s)
+			"pp_basin":
+				_build_pp_basin(s)
 			"syrenka_powisle":
 				_build_syrenka_powisle(s)
 			"dworzec_wodny":
