@@ -5,13 +5,18 @@ extends RefCounted
 ##   graffiti, stain, ivy: colour quads in the city mesh, 1.5 to 2.5 cm off the wall face (vertex
 ##     colour, the building shader's prop path, no new draw call);
 ##   slogans (a row's `poster` mark) and banners (`banner`): quads of one MeshInstance3D per sector
-##     (`Slogans`, map_builder.gd `_build_marks`), poster.gdshader and one shared atlas drawn here
-##     with pixel_font.gd from game/data/wall_marks.json: one draw call a sector with any in view.
-## A place is a hash of the line's stable id and its metres (`hv`), so both city paths and every run
-## draw the same marks; none on a line inside a landmark's guard (graffiti and slogans), none across
-## a gap (tools/barrier_gates.py `g`), none within MARGIN m of a corner or an end (the kit's mitres,
-## piers and posts stand there). The numbers are the palette's `marks` table (solidity.gd
-## marks_table); the words are game/data/wall_marks.json.
+##     (`Slogans`, map_builder.gd `_build_marks`), wall_mark.gdshader (poster.gdshader's look by day,
+##     paint that darkens with its wall at night) and one shared atlas drawn here with pixel_font.gd
+##     from game/data/wall_marks.json: one draw call a sector with any in view. Banners only on a
+##     hoarding drawn in the city mesh: under `panels` its sheets are panel pieces that fall flat when
+##     the car breaks them (panel_states.gd), and a banner would stay standing in the air.
+## A place is a hash of the line's stable id and its metres along the line's own points (`hv`), so
+## both city paths and every run draw the same marks; none on a line inside a landmark's guard
+## (graffiti and slogans), none across a gap or over a gate post or its leaf (W8: tools/barrier_gates.py
+## `g` and `ge`, city_barriers.gd gate_marks), none within MARGIN m of a corner or an end (the kit's
+## mitres, piers and posts stand there). A slogan with an `area` (wall_marks.json `areas`: Praga's
+## bank, Wola, the boulevards) only stands inside it. The numbers are the palette's `marks` table
+## (solidity.gd marks_table); the words are game/data/wall_marks.json.
 
 const Solidity := preload("res://scripts/solidity.gd")
 const PixelFont := preload("res://scripts/pixel_font.gd")
@@ -29,6 +34,8 @@ const MIN_PATCH := 0.8
 
 static var _texts: Dictionary = _load_texts()
 static var _atlas: Dictionary = {}
+## The texts' areas (wall_marks.json `areas`) as polygons, made once.
+static var _areas: Dictionary = {}
 
 
 ## One sector's slogan and banner quads (a tile of the last build_barriers).
@@ -60,13 +67,34 @@ class Tile:
 		quads += 1
 
 
-## game/data/wall_marks.json, read once: {"slogans": [...], "banners": [...]}.
+## game/data/wall_marks.json, read once: {"slogans": [...], "banners": [...], "areas": {...}}.
 static func _load_texts() -> Dictionary:
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(TEXTS)) if FileAccess.file_exists(TEXTS) else null
 	if not parsed is Dictionary:
 		push_error("wall_marks: %s is missing or not an object" % TEXTS)
-		return {"slogans": [], "banners": []}
+		return {"slogans": [], "banners": [], "areas": {}}
 	return parsed
+
+
+## The polygon of a text's `area` (map metres, x and z), or an empty one for a text without.
+static func area(name: String) -> PackedVector2Array:
+	if name == "":
+		return PackedVector2Array()
+	if not _areas.has(name):
+		var flat: Array = (_texts.get("areas", {}) as Dictionary).get(name, [])
+		var poly := PackedVector2Array()
+		for i in range(0, flat.size() - 1, 2):
+			poly.append(Vector2(float(flat[i]), float(flat[i + 1])))
+		if poly.size() < 3:
+			push_error("wall_marks: area %s is not a polygon in %s" % [name, TEXTS])
+		_areas[name] = poly
+	return _areas[name]
+
+
+## Whether text `t` may stand at point `p` (no `area`, or inside it).
+static func allowed_at(t: Dictionary, p: Vector2) -> bool:
+	var poly := area(str(t.get("area", "")))
+	return poly.is_empty() or Geometry2D.is_point_in_polygon(p, poly)
 
 
 static func texts() -> Dictionary:
@@ -159,7 +187,7 @@ static func atlas() -> Dictionary:
 	return out
 
 
-## The atlas as a texture for poster.gdshader's `poster` uniform.
+## The atlas as a texture for wall_mark.gdshader's `poster` uniform.
 static func atlas_texture() -> ImageTexture:
 	return ImageTexture.create_from_image(atlas()["image"])
 
@@ -201,7 +229,7 @@ static func draw(cb, st, l: Dictionary, pts: PackedVector2Array, look: Dictionar
 	if segs.is_empty():
 		return
 	var total: float = segs[segs.size() - 1]["e"]
-	var gaps: Array = l.get("g", [])
+	var gaps: Array = _blocks(cb, l, pts, row)
 	var guarded := false
 	if "graffiti" in marks or "poster" in marks:
 		guarded = cb.near_landmark(l["p"])
@@ -216,12 +244,37 @@ static func draw(cb, st, l: Dictionary, pts: PackedVector2Array, look: Dictionar
 		_ivy(ctx)
 	if "poster" in marks and not guarded:
 		_slogans(ctx)
-	if "banner" in marks:
+	if "banner" in marks and not look.has("panel"):
 		_banners(ctx)
 
 
+## The spans [s0, s1] (metres along the line) no mark may touch (padded by MARGIN in _in_gap): the
+## line's W8 gaps (`g`) and, where city_barriers.gd `_gate_kit` stands them, each gate post (its width
+## back from the opening, `_gate_kit`'s rule) with its open leaf behind it (GATE_LEAF_LEN).
+static func _blocks(cb, l: Dictionary, pts: PackedVector2Array, row: Dictionary) -> Array:
+	var g: Array = l.get("g", [])
+	var ge: Array = l.get("ge", [])
+	var out: Array = []
+	for x: Array in g:
+		out.append([float(x[0]), float(x[0]) + float(x[1])])
+	if g.is_empty() and ge.is_empty():
+		return out
+	# city_barriers.gd's own numbers, through its script (it preloads this one).
+	var kit: Script = cb.get_script()
+	var post_min := float(kit.get("GATE_POST_W"))
+	var thick := float(row.get("thick", post_min))
+	var post_w := maxf(post_min, thick + float(kit.get("GATE_POST_PROUD"))) if cb.barrier_class(l) == &"wall" else post_min
+	for m: Array in cb.gate_marks(pts, g, ge):
+		var s := float(m[1])
+		var reach := post_w + (float(kit.get("GATE_LEAF_LEN")) if m[0] == &"leaf" else 0.0)
+		var back := s - float(m[2]) * reach
+		out.append([minf(s, back), maxf(s, back)])
+	return out
+
+
 ## The line's segments: [{"s": metres at its start, "e": at its end, "a", "b": points, "ga", "gb": ground,
-## "d": unit direction}], the ones under 0.05 m left out (as the kit's).
+## "d": unit direction}], the ones under 0.05 m left out (as the kit's) but counted in the metres, so a
+## segment's metres are the line's own (the W8 gaps' and gate posts' metres, city_barriers.gd gate_marks).
 static func _segments(cb, pts: PackedVector2Array) -> Array:
 	var out: Array = []
 	var run := 0.0
@@ -230,6 +283,7 @@ static func _segments(cb, pts: PackedVector2Array) -> Array:
 		var b := pts[i + 1]
 		var len := a.distance_to(b)
 		if len < 0.05:
+			run += len
 			continue
 		out.append({"s": run, "e": run + len, "a": a, "b": b, "ga": cb.map.terrain_height(a.x, a.y),
 				"gb": cb.map.terrain_height(b.x, b.y), "d": (b - a) / len})
@@ -245,10 +299,10 @@ static func _seg_at(ctx: Dictionary, s: float) -> Dictionary:
 	return {}
 
 
-## Whether [s0, s1] metres of the line touch a gap (padded by MARGIN).
+## Whether [s0, s1] metres of the line touch a gap, a gate post or its leaf (_blocks, padded by MARGIN).
 static func _in_gap(ctx: Dictionary, s0: float, s1: float) -> bool:
 	for g: Array in ctx["gaps"]:
-		if s1 > float(g[0]) - MARGIN and s0 < float(g[0]) + float(g[1]) + MARGIN:
+		if s1 > float(g[0]) - MARGIN and s0 < float(g[1]) + MARGIN:
 			return true
 	return false
 
@@ -450,10 +504,11 @@ static func _slogans(ctx: Dictionary) -> void:
 			continue
 		var lo := maxf(float(best["s"]), ws) + MARGIN
 		var hi := minf(float(best["e"]), we) - MARGIN
+		var where := _point(best, (lo + hi) * 0.5)
 		var fits: Array = []
 		for t: Dictionary in _texts.get("slogans", []):
 			var cell_key := "%s|%s" % [t["id"], ctx["ty"]]
-			if not (at["slogans"] as Dictionary).has(cell_key):
+			if not (at["slogans"] as Dictionary).has(cell_key) or not allowed_at(t, where):
 				continue
 			var cr: Rect2i = at["slogans"][cell_key]
 			if cr.size.x * texel + SLOGAN_ROOM <= hi - lo and cr.size.y * texel + float(tab["bottom"]) + 0.15 <= float(ctx["body_hi"]):
@@ -479,7 +534,7 @@ static func _slogans(ctx: Dictionary) -> void:
 			continue
 		last = s0 + qw * 0.5
 		cb.mark_counts["slogan"] = int(cb.mark_counts.get("slogan", 0)) + 1
-		cb.slogan_log.append([str(ctx["id"]), s0 + qw * 0.5, total, str(pick[2]), mid])
+		cb.slogan_log.append([str(ctx["id"]), s0 + qw * 0.5, total, str(pick[2]), mid, where])
 
 
 ## Banners: on a hoarding, a developer's banner per face (the largest texel of the palette's list that

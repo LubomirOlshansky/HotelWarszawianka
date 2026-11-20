@@ -5789,6 +5789,8 @@ func _process(dt: float) -> void:
 	if flags.no_ghost or top_down:
 		hole = 0.0  # --no-ghost: the see-through hole is off too
 	building_mat.set_shader_parameter("fade_radius", hole)
+	for m: ShaderMaterial in _wall_marks_material():  # W9: the words on walls go with their wall
+		m.set_shader_parameter("fade_radius", hole)
 	_update_ghost(pos, car_view)
 	for m in map.fade_materials:
 		m.set_shader_parameter("car_view", car_view)
@@ -5796,7 +5798,9 @@ func _process(dt: float) -> void:
 	# Loop MW-6: Fotka's photo shows the city whole (no see-through hole, no ghost).
 	if fotka != null and fotka.is_open():
 		building_mat.set_shader_parameter("fade_radius", 0.0)
-		for m: ShaderMaterial in [building_mat, map.flat_material, post_mat] + _neon_materials():
+		for m: ShaderMaterial in _wall_marks_material():
+			m.set_shader_parameter("fade_radius", 0.0)
+		for m: ShaderMaterial in [building_mat, map.flat_material, post_mat] + _neon_materials() + _wall_marks_material():
 			m.set_shader_parameter("occlusion_radius", 0.0)
 		for m in map.fade_materials:
 			m.set_shader_parameter("fade_radius", 0.0)
@@ -5836,7 +5840,7 @@ func _update_ghost(pos: Vector3, car_view: Vector3) -> void:
 	var ghost_r := clampf(cam.size * 0.22, 14.0, 50.0) * (0.6 if flying else 1.0)
 	if flags.no_ghost or top_down:
 		ghost_r = 0.0
-	for m: ShaderMaterial in [building_mat, map.flat_material, post_mat] + _neon_materials():  # sweep 2: + neon
+	for m: ShaderMaterial in [building_mat, map.flat_material, post_mat] + _neon_materials() + _wall_marks_material():  # sweep 2: + neon; W9: + the words on walls
 		m.set_shader_parameter("car_view", car_view)
 		m.set_shader_parameter("occluder", occ)
 		m.set_shader_parameter("occlusion_radius", ghost_r)
@@ -5900,6 +5904,17 @@ func _update_tunnel_cut(pos: Vector3) -> bool:
 ## the first ghost update on either city path; empty when the map has no signs.
 var _neon_mats: Array[ShaderMaterial] = []
 var _neon_found := false
+
+
+## W9 of the walls look: the walls' slogans and banners (map_builder.gd `marks_material`,
+## wall_mark.gdshader), holed and ghosted with the building material so a word goes with its wall;
+## none under the classic look.
+func _wall_marks_material() -> Array[ShaderMaterial]:
+	var out: Array[ShaderMaterial] = []
+	var m: Variant = map.get("marks_material") if map != null else null
+	if m is ShaderMaterial:
+		out.append(m)
+	return out
 
 
 func _neon_materials() -> Array[ShaderMaterial]:

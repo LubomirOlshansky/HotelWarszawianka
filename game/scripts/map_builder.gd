@@ -134,6 +134,10 @@ var data: Dictionary
 @export_storage var panel_material: ShaderMaterial
 ## Every material that opens a see-through hole around the car (trees, parked cars, panels).
 @export_storage var fade_materials: Array[ShaderMaterial] = []
+## W9 of the walls look: the walls' slogans and banners (wall_mark.gdshader, `_build_marks`; null under
+## classic). main.gd gives it the building material's see-through hole and ghost, so a word goes with
+## the wall it is painted on.
+@export_storage var marks_material: ShaderMaterial
 ## F (2026-11-08): the materials of what stands on the ground over a tunnel and goes with the
 ## tunnel cutaway (tunnel_cut.gdshaderinc): the trees' crowns and trunks, the street lamps and their
 ## halos, the benches and bins. The ground's (flat_material) and the buildings' are set beside them.
@@ -10542,11 +10546,12 @@ func _make_shared() -> void:
 	_shared["panel"] = panel_material
 	_shared["panel_box"] = panel_box()
 	fade_materials.append(panel_material)
-	# W9: the walls' slogans and banners: poster.gdshader with the atlas WallMarks draws (only under a
-	# look with marks: a classic city has no atlas).
+	# W9: the walls' slogans and banners: wall_mark.gdshader with the atlas WallMarks draws (only under
+	# a look with marks: a classic city has no atlas).
+	marks_material = null
 	if Solidity.barrier_look() != &"classic":
-		var marks_material := ShaderMaterial.new()
-		marks_material.shader = load("res://shaders/poster.gdshader")
+		marks_material = ShaderMaterial.new()
+		marks_material.shader = load("res://shaders/wall_mark.gdshader")
 		marks_material.set_shader_parameter("poster", WallMarks.atlas_texture())
 		_shared["wall_marks"] = marks_material
 
@@ -10737,8 +10742,8 @@ func _build_panels() -> void:
 ## W9 (walls doc 6.8): the slogan and banner quads of the last build_barriers (city_barriers.gd
 ## `mark_tiles`; none unless the barrier look is typed or panels) as one MeshInstance3D per 512 m tile,
 ## `Slogans` under the sector's root (or `Slogans_i_j` under the map, the whole city in one build): one
-## surface, poster.gdshader's shared material (`wall_marks`), no shadow. One draw call a sector with any
-## in view; none for a sector without a slogan or banner.
+## surface, wall_mark.gdshader's shared material (`wall_marks`, `marks_material`), no shadow. One draw
+## call a sector with any in view; none for a sector without a slogan or banner.
 func _build_marks() -> void:
 	var tiles: Dictionary = barriers.mark_tiles
 	if tiles.is_empty():

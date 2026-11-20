@@ -51,9 +51,11 @@ extends SceneTree
 ##     the pixel font and its lines fit (a slogan at most 15 characters, a banner line 11); the atlas holds
 ##     every cell inside the image, none over another; on a 600 m precast wall under typed marks stand off
 ##     the wall's face by their lift, under its top and over the ground, the same on a second build, none
-##     under classic; none across a gap; on a hoarding a banner per face; and on the whole map no line has
-##     more slogans than its length in 150 m windows (at least one) or two closer than 150 m, and the
-##     slogans are at most the marked walls' length over 150 m;
+##     under classic; none across a gap or over its gate posts; on a hoarding a banner per face under
+##     typed, none under panels (its sheets are panel pieces that fall); and on the whole map no line has
+##     more slogans than its length in 150 m windows (at least one) or two closer than 150 m, the
+##     slogans are at most the marked walls' length over 150 m, a slogan with an `area` stands in it,
+##     and panels draw what typed draws but the banners;
 ##   8 with `--paths` (verify step `barrierpaths`, the prebuilt city needed): in each of the
 ##     sectors (check_colliders.gd's ten; `--all` every sector) the runtime build in the look the
 ##     prebuilt city was baked in (map/sectors/city.stamp) has the prebuilt sector's city mesh
@@ -849,9 +851,12 @@ func _marks(map: Node3D) -> Dictionary:
 			for v: Vector3 in mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]:
 				if not seen.has(v):
 					extra_verts.append(v)
+	# The gap from 100 to 104 m and its two gate posts, each its width back from the opening (a wall's
+	# post: the row's thickness and GATE_POST_PROUD).
+	var post_w := maxf(CityBarriers.GATE_POST_W, float(Solidity.look_row(&"wall_precast")["thick"]) + CityBarriers.GATE_POST_PROUD)
 	var in_gap := 0
 	for v: Vector3 in extra_verts:
-		if v.x > 4100.0 and v.x < 4104.0:
+		if v.x > 4100.0 - post_w and v.x < 4104.0 + post_w:
 			in_gap += 1
 		var off := absf(v.z - 4000.0)
 		near = minf(near, off)
@@ -859,7 +864,7 @@ func _marks(map: Node3D) -> Dictionary:
 		top = maxf(top, v.y)
 		low = minf(low, v.y)
 	if in_gap > 0:
-		problems.append("10 %d mark vertices stand in the gap of the precast wall" % in_gap)
+		problems.append("10 %d mark vertices stand in the gap of the precast wall or on its gate posts" % in_gap)
 	if not extra_verts.is_empty():
 		if near < hw + 0.01 or far > hw + 0.1 or low < 0.0 or top > float(row["h"]) + 0.05:
 			problems.append("10 precast marks reach %.3f to %.3f m off the line (face at %.3f), from %.2f to %.2f m up (wall %.2f)" % [
@@ -872,15 +877,16 @@ func _marks(map: Node3D) -> Dictionary:
 	b.build_barriers(classic)
 	if not (b.mark_counts as Dictionary).is_empty() or not (b.mark_tiles as Dictionary).is_empty():
 		problems.append("10 classic made marks: %s" % b.mark_counts)
-	# A hoarding: a banner on each face.
+	# A hoarding: a banner on each face under typed; none under panels (where this GPU draws panels).
 	var hoard := _line("fence", [4000.0, 4100.0, 4008.0, 4100.0], {"ty": "hoarding", "sc": "S"})
 	for look: StringName in [&"typed", &"panels"]:
 		Solidity.set_barrier_look(look)
 		map.data = {"lines": [hoard]}
 		map._solids = {}
 		b.build_barriers(Chunked.new())
-		if int(b.mark_counts.get("banner", 0)) != 2:
-			problems.append("10 a 8 m hoarding under %s got %s banners, want 2" % [look, b.mark_counts.get("banner", 0)])
+		var want := 0 if look == &"panels" and GpuQuirks.panels() else 2
+		if int(b.mark_counts.get("banner", 0)) != want:
+			problems.append("10 a 8 m hoarding under %s got %s banners, want %d" % [look, b.mark_counts.get("banner", 0), want])
 	Solidity.set_barrier_look(&"typed")
 	map.data = {}
 	map._solids = {}
@@ -927,8 +933,30 @@ func _whole_marks(map: Node3D, data: Dictionary) -> Dictionary:
 			if float(b.slogan_log.size()) > wall_m / 150.0:
 				problems.append("10 %d slogans on %.0f m of slogan walls (one per 150 m at most)" % [b.slogan_log.size(), wall_m])
 			out["slogan walls m"] = roundi(wall_m)
-		elif var_to_str(counts) != var_to_str(first):
-			problems.append("10 marks under panels %s, under typed %s" % [counts, first])
+			# A district's or the boulevards' words only on their own walls.
+			var by_id := {}
+			for t: Dictionary in WallMarks.texts().get("slogans", []):
+				by_id[str(t["id"])] = t
+			var placed := {}
+			for e: Array in b.slogan_log:
+				var t: Dictionary = by_id.get(str(e[3]), {})
+				placed[str(e[3])] = int(placed.get(str(e[3]), 0)) + 1
+				if not WallMarks.allowed_at(t, e[5]):
+					problems.append("10 slogan %s on line %s at %s, outside its area %s" % [e[3], e[0], e[4], t.get("area", "")])
+			out["slogans by text"] = placed
+		else:
+			# Panels: the same marks but the banners (a hoarding there is panel pieces).
+			var same := first.duplicate()
+			if GpuQuirks.panels():
+				same.erase("banner")
+				same["poster quads"] = int(same["poster quads"]) - int(first.get("banner", 0))
+				same.erase("poster tiles")
+				counts.erase("poster tiles")
+			var mine := counts.duplicate()
+			if GpuQuirks.panels():
+				mine.erase("banner")
+			if var_to_str(mine) != var_to_str(same):
+				problems.append("10 marks under panels %s, under typed %s" % [counts, first])
 	out["counts"] = first
 	map.data = {}
 	map._solids = {}
