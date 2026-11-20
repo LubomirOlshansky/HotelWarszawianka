@@ -1,4 +1,4 @@
-extends "res://scripts/landmarks/kladka.gd"
+extends "res://scripts/landmarks/powisle2.gd"
 ## v0.8 "Landmarks": the buildings that make it Warsaw at a glance, built in code
 ## from the real footprints and heights in centrum.json (OpenStreetMap outlines and
 ## building parts, which carry `height` / `min_height`) instead of their GUGiK LoD2 or
@@ -710,6 +710,12 @@ const INFO := {
 	"teresy": ["Kościół św. Teresy od Dzieciątka Jezus",
 			"Jasny kościół parafialny przy Tamce, z wysokimi łukowymi oknami, okrągłym oknem i wielkim portalem.",
 			"A light parish church on Tamka, with tall arched windows, a round window and a big arched porch."],
+	"ateneum": ["Teatr Ateneum",
+			"Szary dom teatru przy Jaracza, z kolumnowym portykiem i kolorowym napisem nad wejściem.",
+			"The theatre's grey house on Jaracza, with a columned porch and the colourful name over the door."],
+	"lipowa1a": ["Lipowa 1A",
+			"Siedmiopiętrowy dom na Lipowej, naprzeciwko Biblioteki: biały cokół, szkło i zielonkawe żebra, taras na dachu.",
+			"A seven-storey house on Lipowa across from the Library: white base, glass and teal fins, a roof terrace."],
 	"flisac": ["Flisac, Tamka 2",
 			"Apartamentowiec przy moście Świętokrzyskim: jasny kamienny szkielet, tarasy na dachu i kawa na rogu.",
 			"The apartment block by the Świętokrzyski bridge: a light stone grid, roof terraces and coffee on the corner."],
@@ -1112,6 +1118,10 @@ static func tower_colour(key: String, fallback: Color) -> Color:
 		return TERESY_BRICK
 	if key == "flisac":
 		return FLISAC_STONE
+	if key == "ateneum":
+		return ATE_WALL
+	if key == "lipowa1a":
+		return LP_PLASTER
 	if key == "vitkac":
 		return VITKAC_WALL
 	if key == "dom_partii":
@@ -1265,6 +1275,9 @@ func _find_sites() -> void:
 	_find_flag()
 	_find_swieto()
 	_find_kladka()
+	# Teatr Ateneum and Lipowa 1A (F, 2026-11-20).
+	_find_ateneum()
+	_find_lipowa1a()
 	# The museum and Plac Piłsudskiego loop (2026-10-31): the square's edges.
 	_find_plac()
 	_find_pawilony()
@@ -1686,6 +1699,10 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_flag(s)
 			"kladka":
 				_build_kladka(s)
+			"ateneum":
+				_build_ateneum(s)
+			"lipowa1a":
+				_build_lipowa1a(s)
 			"swieto":
 				_build_swieto(s)
 			"muzeum":
