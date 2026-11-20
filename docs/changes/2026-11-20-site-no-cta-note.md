@@ -1,1 +1,0 @@
-- The website no longer repeats "Free. No ads, no purchases." under the beta sign-up.
