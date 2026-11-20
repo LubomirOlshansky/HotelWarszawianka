@@ -68,6 +68,7 @@ const Bubbles := preload("res://scripts/bubbles.gd")
 const Chatter := preload("res://scripts/chatter.gd")
 const Models := preload("res://scripts/models.gd")
 const TimeOfDay := preload("res://scripts/time_of_day.gd")
+const GameTime := preload("res://scripts/game_time.gd")
 const Radio := preload("res://scripts/radio.gd")
 const OpeningAudio := preload("res://scripts/opening_audio.gd")
 const GreetingClips := preload("res://scripts/greeting_clips.gd")
@@ -398,6 +399,7 @@ var _rig_t := 0.0
 var _moment_at := -1.0
 var _vhs_until := -1.0
 var city_sounds: CitySounds
+var traffic_sounds: Node3D  # traffic_sounds.gd: the traffic you can hear
 ## Loop MW-3: the crowds (crowds.gd) and their flags: --crowd=0|1|2 (none, normal, double; the
 ## Low tier halves them), --night-log (queues, rejections, the dawn walkers each minute, every
 ## event), --club=<id|name> (the car at that club's door).
@@ -836,7 +838,7 @@ func _ready() -> void:
 		_new_game_pending = false
 		# The loading fix: "tap to drive" once the sectors round the start are in (_title_frame).
 		_title_wait_t = Time.get_ticks_msec()
-		_title_pending = streamer.pending() if streamer != null else 0
+		_title_pending = CameraShots.preload_opening(streamer, _opening_due(), get_viewport().get_visible_rect().size, car.global_position.y, cam_yaw, cam.global_transform, _view_size)
 	else:
 		radio.now_playing()
 		_fallback_toast()
@@ -2054,6 +2056,7 @@ func _build_sound(data: Dictionary, world: Node3D) -> void:
 		city_sounds.setup(notes.places, func(x: float, z: float) -> float: return map.ground_height(x, z))
 		city_sounds.clock = tod.local_clock
 		city_sounds.ear = func() -> Vector3: return cam_focus
+	traffic_sounds = preload("res://scripts/traffic_sounds.gd").build(world, traffic, trams, func() -> Vector3: return cam_focus)
 	if flags.sound_check:
 		missions.close()
 		sfx.sound_check()
@@ -3360,14 +3363,10 @@ func _rave_night() -> void:
 ## Day, Dusk or Night, blended), the way the TIME setting's fixed looks keep a running clock. True
 ## when it was set. Live time becomes that fixed look until the player picks Live again.
 func _story_skip_to(hour: float) -> bool:
-	if tod == null:
+	if not GameTime.jump(tod, hud, hour):  # the time owner's jump (F 2026-11-19)
 		return false
-	tod.set_mode(TimeOfDay.parse(StoryQuests.look_for(hour)))
-	tod.fixed_start = hour
 	if hud.settings_panel != null:
 		hud.settings_panel.sync(_settings_state())
-	var hm := "%02d:%02d" % [int(hour), int(fmod(hour, 1.0) * 60.0)]
-	hud.toast("Czekacie do %s." % hm, "You wait until %s." % hm)
 	return true
 
 
@@ -3495,6 +3494,7 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
 	shisha.clock = func() -> float: return float(tod.local_clock()["hour"])
+	shisha.clock_node = tod  # a yes by day jumps the clock to the night (game_time.gd)
 	# The lounge plays itself in a test run that arrives at it by itself.
 	var self_played := flags.shisha_flag == "arrive" or flags.autopilot
 	shisha.enter_lounge = _enter_lounge if not self_played else func(v: Dictionary) -> void: _enter_lounge(v, true)
@@ -3633,8 +3633,8 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 	# then one new friend at a time (first10.gd `friends_wait`); before, it held them all its run.
 	if first10 != null and first10.friends_wait() and not guide_ok:
 		return "first-10 guide"
-	if not ringing_ok and not hud.call_ok():
-		return "calls: a call rang lately, or a quest or a chase is on or just ended (messages.gd)"
+	if not ringing_ok and not hud.offer_ok():  # spacing, settle, quiet; a call's gap: activity.gd `_ring_turn`
+		return "offers: a card was up lately, or a quest or a chase is on or just ended (messages.gd)"
 	# Any card on screen, and the rescue line's call ringing on the context button (the director's
 	# `call_on_pill`) unless `ringing_ok`; its card or run is the director's (`activities.busy` below).
 	if hud.cards_up() or (activities.call_on_pill() and not ringing_ok):
@@ -4784,10 +4784,9 @@ func _open_full_map() -> void:
 	print("full map: open (paused), %d places found on it" % found.size())
 	_blip_sound()
 	_pause.hold(PauseReasons.MAP)
-	if hud.full_map != null:
-		hud.full_map.hospitals = missions != null and missions.has_target()  # only a rescue needs them
 	hud.open_full_map(Vector2(pos.x, pos.z), yaw, found)
-	hud.full_map.hospitals = missions != null and missions.has_target()
+	hud.full_map.hospitals = missions != null and missions.has_target()  # only a rescue needs them
+	hud.full_map.clock = tod.local_clock  # the map's clock and its picker (F 2026-11-19, game_time.gd)
 	if fullmap_span > 0.0:
 		hud.full_map.show_span(fullmap_span)
 		fullmap_span = 0.0
@@ -4914,6 +4913,7 @@ func _wire_full_map() -> void:
 		if wallet != null and wallet.intro.erase(QuestBook.NEW_KEY + id.trim_prefix("story_")):
 			wallet.save())  # a questline that invited the player was looked at in QUESTS
 	hud.full_map.can_teleport = _teleport_refusal
+	hud.full_map.time_picked.connect(func(m: int) -> void: _on_setting("time", m))  # the map clock's picker
 
 
 ## G12 part 2: what the ZADANIA card lists now (quest_lines.gd entries). AUTO: the kebab stands,
@@ -6144,6 +6144,8 @@ func _make_stats() -> BenchStats:
 		b.systems["notebook"] = [notes, "spent_usec", true]  # loop MW-1
 	if city_sounds != null:
 		b.systems["city sounds"] = [city_sounds, "spent_usec", true]  # loop MW-5
+	if traffic_sounds != null:
+		b.systems["traffic sounds"] = [traffic_sounds, "spent_usec", true]
 	if crowds != null:
 		b.systems["crowds"] = [crowds, "spent_usec", true]  # loop MW-3
 	if life != null:
@@ -6562,9 +6564,9 @@ func _read_input(dt: float) -> void:
 		stick_on = true
 	controls.arrows = hud.arrows()  # F 2026-11-13: the fixed arrow buttons (ramped in drive_controls.gd)
 	controls.drive(car, stick, stick_on, keys, hud.gas or Gamepad.gas(), hud.brake or Gamepad.brake(), cam_yaw, dt)
-	# The drag (street_meet.gd): the car holds the strip and any gas is full gas.
-	if meet != null:
-		meet.hold_car(car)
+	# The drag (street_meet.gd) holds the strip, any gas full gas; a race's start (rivals.gd) the line.
+	if meet != null: meet.hold_car(car)
+	if rivals != null: rivals.hold_car(car)
 	_lane_tick(dt)
 	# G13: the nitro (bought at the garage): the disc by the horn, Shift on a keyboard, LB or RB on a
 	# pad. Not N: N switches the time of day, so holding it for the nitro also turned day to dusk.

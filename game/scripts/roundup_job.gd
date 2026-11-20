@@ -401,6 +401,7 @@ func _result() -> void:
 	var quote := "„%s”\n" % l[0] if not l.is_empty() else ""
 	var quote_en := "\"%s\"\n" % l[1] if not l.is_empty() else ""
 	var mm := "%d:%02d" % [int(secs) / 60, int(secs) % 60]
+	hud.cue("win")
 	show_card(["ZEBRANE · %d LEŻAKÓW · +%d zł" % [unloaded, int(r["zl"])], "Rounded up · %d Leżaks · +%d zł" % [unloaded, int(r["zl"])]],
 			["%s%d × %d zł%s, +%d szacunku · czas %s" % [quote, unloaded, PER,
 			(" + %d zł premii" % int(r["bonus"])) if int(r["bonus"]) > 0 else "", int(r["respect"]), mm],

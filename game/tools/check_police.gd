@@ -122,6 +122,7 @@ class FakeDriver extends RefCounted:
 	var race_share := 1.0
 	var race_brake := 0.0
 	var race_corner := 1.0
+	var race_boost := 1.0
 	var race_still := 0.0
 	var race_passes := 0
 	var cuts := {}

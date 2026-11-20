@@ -20,13 +20,21 @@ const Pacer := preload("res://scripts/pacer.gd")
 ##
 ## Incoming calls (F 2026-11-11: "also the incoming calls in this queue, with logic too"): a friend's
 ## call rings only in FREE, CALL_SETTLE s into a calm spell (never straight after a result or an
-## escape), CALL_GAP s after the last call of anyone (no two friends ringing back to back) and
+## escape), CALL_GAP s after the last call of anyone ended (no two friends ringing back to back;
+## F 2026-11-19: "1 minute between calls is too fast", and the gap counts from the call's end, not
+## its ring), DECLINE_GAP s after a call the player turned down or let ring out (DECLINE_MAX after
+## two in a row: a player who keeps saying no is left alone; an answer resets it), and
 ## CALL_QUIET s after the last run of an activity ended (the quiet time after a finish: TD-3, F
 ## 2026-11-15; the director tells `finished`); the callers keep their own timers and ask `call_ok`
 ## before they ring (main.gd `_free_block`, trend_job.gd, and the rescue line in missions.gd, which
 ## waits at zero), and a call that rings tells `call_rang`. The ride app's requests and Bartek's
 ## calls, which do not ask `call_ok`, wait for the quiet time alone (`quiet`). A call the player
 ## asked for (the WĄTKI or HELI list, a test flag) does not ask.
+##
+## Offer spacing (F 2026-11-19: "I had a few calls in 10 seconds"): any card that comes by itself
+## (a call, an offer such as a ride request or a drive-past order, a guide's card) waits
+## OFFER_SPACING s after the last card of any kind closed (`spaced`). `offer_ok` is the gate for an
+## offer (free roam, settled, spaced, past the quiet time), `call_ok` adds the call gap to it.
 ##
 ## The queue holds deferred notes until the context lets them through (in arrival order within a
 ## priority, the highest first), one every FLUSH_GAP s, each for at most TTL s; past MAX_QUEUED the
@@ -60,6 +68,11 @@ const SETTLE := 3.0
 static var CALL_GAP: float = Pacer.num("calls", "gap")
 static var CALL_SETTLE: float = Pacer.num("calls", "settle")
 static var CALL_QUIET: float = Pacer.num("calls", "quiet")
+## Any card that comes by itself: at least this long after the last card closed (or showed) (s).
+static var OFFER_SPACING: float = Pacer.num("calls", "spacing")
+## After a call turned down or rung out: the next call waits this long; after two or more in a row, DECLINE_MAX.
+static var DECLINE_GAP: float = Pacer.num("calls", "decline_gap")
+static var DECLINE_MAX: float = Pacer.num("calls", "decline_max")
 
 var context := FREE
 var clock := 0.0
@@ -73,6 +86,12 @@ var _flushed_at := -INF
 var _calm_since := 0.0
 var _call_at := -INF
 var _done_at := -INF
+## The last card shown or closed (`spaced`).
+var _card_at := -INF
+## A call's card is up and not answered or turned down yet (`call_closed`).
+var _call_open := false
+## Calls turned down or rung out in a row (`gap_now`); an answered one resets it.
+var declines := 0
 var calls := 0
 
 
@@ -150,16 +169,59 @@ func next_ready() -> Dictionary:
 	return out
 
 
-## A friend's call may ring now (see the top: FREE, settled, spaced from the last call, past the
-## quiet time).
+## A friend's call may ring now (see the top: an offer may come, and the call gap since the last
+## call ended has passed).
 func call_ok() -> bool:
-	return context == FREE and clock - _calm_since >= CALL_SETTLE and clock - _call_at >= CALL_GAP and not quiet()
+	return offer_ok() and clock - _call_at >= gap_now()
 
 
-## A call rang just now (any caller).
-func call_rang() -> void:
+## An offer that comes by itself may show now: FREE, settled, spaced from the last card, past the
+## quiet time.
+func offer_ok() -> bool:
+	return context == FREE and clock - _calm_since >= CALL_SETTLE and spaced() and not quiet()
+
+
+## OFFER_SPACING s since the last card showed or closed.
+func spaced() -> bool:
+	return clock - _card_at >= OFFER_SPACING
+
+
+## The call gap now: CALL_GAP, or longer after calls the player turned down (DECLINE_GAP, then
+## DECLINE_MAX after two in a row).
+func gap_now() -> float:
+	if declines <= 0:
+		return CALL_GAP
+	return maxf(CALL_GAP, minf(DECLINE_MAX, DECLINE_GAP * float(declines)))
+
+
+## A call rang just now (any caller). `card`: its card waits for an answer (`call_closed`); the
+## rescue line's pill (false) counts from its ring.
+func call_rang(card := true) -> void:
 	_call_at = clock
+	_card_at = clock
+	_call_open = card
 	calls += 1
+
+
+## The call's card went: answered (the gap again, the no's forgotten) or not (turned down, rung
+## out, taken away: the next call waits longer). The gap counts from now.
+func call_closed(answered: bool) -> void:
+	if not _call_open:
+		return
+	_call_open = false
+	_call_at = clock
+	_card_at = clock
+	declines = 0 if answered else declines + 1
+
+
+## A call's card is up, not answered yet.
+func call_open() -> bool:
+	return _call_open
+
+
+## A card showed or closed now (hud.gd): the next offer waits OFFER_SPACING.
+func card_seen() -> void:
+	_card_at = clock
 
 
 ## A run of an activity ended just now (the director, activities.gd): the quiet time starts.
@@ -184,4 +246,4 @@ func summary() -> String:
 	var parts := PackedStringArray()
 	for c: String in CHANNELS:
 		parts.append("%s %d/%d/%d" % [c, shown[c], deferred[c], dropped[c]])
-	return "messages %s: shown/deferred/dropped %s, %d waiting, %d calls" % [CONTEXT_NAMES[context], ", ".join(parts), _queue.size(), calls]
+	return "messages %s: shown/deferred/dropped %s, %d waiting, %d calls (%d turned down in a row)" % [CONTEXT_NAMES[context], ", ".join(parts), _queue.size(), calls, declines]
