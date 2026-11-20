@@ -16,7 +16,7 @@ const ALIAS := {"kuba": "kuba_padel", "bogdan": "bogdan_tenis", "sierzant": "sie
 		"bartek": "bartek_padel", "posterunkowy": "kacper", "zbyszek": "pan_zbyszek"}
 ## First words that are not a name on their own: the file key is this word and the next ("Pani Halina" ->
 ## pani_halina, "Pan Kołek" -> pan_kolek, "Bulwar Bartek" -> bulwar_bartek).
-const TITLES := ["pan", "pani", "bulwar", "dj"]
+const TITLES := ["pan", "pani", "bulwar"]
 
 ## Speakers that are not a person (the sat-nav, a lift, the player, a crowd): their lines keep the
 ## name only, no face. Compared on `key` (first word, plain, lower case).
@@ -25,6 +25,9 @@ const NO_FACE := ["ty", "you", "nawigacja", "start", "kebab", "podwozka", "winda
 		# F 2026-11-16: things that talk (eggs.gd) get no portrait, only people and heroes do
 		"palma", "golab", "barierka", "patelnia", "syrenka", "pan_paw"]
 
+## Whole names whose first word alone would give another face ("DJ na patio" stays the club's DJ).
+const FULL := {"dj espresso": "dj_espresso"}
+
 static var _cache := {}
 
 
@@ -32,6 +35,9 @@ static var _cache := {}
 static func face(who: String) -> Texture2D:
 	var k := key(who)
 	k = String(ALIAS.get(k, k))
+	for full: String in FULL:
+		if plain(who).to_lower().begins_with(full):
+			k = String(FULL[full])
 	if k == "":
 		return null
 	if not _cache.has(k):
