@@ -354,6 +354,10 @@
 # Dworzec Centralny's car park ramp (F, 2026-11-08): `centralnyramp` runs tools/centralny_ramp.py
 # --check (the service tunnel under Aleja Jana Pawła II is a drive: its tunnel, portal and frame, the
 # way out from the portal, no garage door across it; no map beyond centrum.json, CI too).
+# Walls look W8 (2026-11-20): `barriergates` runs tools/barrier_gates.py --selftest (the gate rules on
+# synthetic lines) and --check (the map carries the gates its rules give: gaps where a path or a
+# service drive crosses a fence, wall or hedge, gate posts at the openings the bake cut; no map beyond
+# centrum.json, CI too).
 # City objects plan step 5 (2026-11-14): `objecttypes` runs tools/object_types.py --selftest (the
 # barrier type rules on synthetic lines, the OSM reader in both formats, its copies of the wall
 # builder's hand lists against city_barriers.gd; no map, CI too).
@@ -1163,6 +1167,16 @@ for s in $want; do
 			case $code in
 				0) row PASS "tramstops" $secs "$(grep '^tramstops: ' $logs/tramstops.log | tail -1)" ;;
 				*) row FAIL "tramstops" $secs "$(grep '^tramstops: ' $logs/tramstops.log | head -1) ($logs/tramstops.log)" ;;
+			esac ;;
+		barriergates)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/barrier_gates.py --selftest > $logs/barriergates.log 2>&1 && \
+				python3 -I $ROOT/tools/barrier_gates.py --check >> $logs/barriergates.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "barriergates" $secs "$(grep '^barrier_gates: [0-9]' $logs/barriergates.log | tail -1)" ;;
+				*) row FAIL "barriergates" $secs "$(grep -m1 'FAIL' $logs/barriergates.log) ($logs/barriergates.log)" ;;
 			esac ;;
 		objecttypes)
 			t0=$EPOCHREALTIME
