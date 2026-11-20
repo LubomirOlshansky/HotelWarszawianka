@@ -1,20 +1,22 @@
 extends SceneTree
 ## W6 of the walls look (docs/design/walls-true-to-life.md 7): the broken panels shown
-## (scripts/panel_states.gd) on a real sector built in the `panels` look, on both city paths. In
-## SECTOR (the stadium's grounds: bars, mesh, chain link and hedges) a car is driven square through
-## one soft line of each broken kind (soft_things.gd's own sweep, as check_soft_things drives it):
+## (scripts/panel_states.gd) on real sectors built in the `panels` look, on both city paths. In each
+## of SECTORS a car is driven square through one soft line of each of its rows (soft_things.gd's own
+## sweep, as check_soft_things drives it). W5: the stadium's grounds (the stadium's railing down,
+## the green fence's stub, the lawn guard's gap, a net torn), a wood fence in Wola (boards) and the
+## hoarding by Prosta (flat), so every broken kind of walls doc 7 is crossed:
 ##   S1 a hit sets the right pieces: every instance of a panel `broke` named has its row's state
-##      (down 1, torn 2, stub 3), a `down` piece the transform PanelStates.down_transform makes of
-##      its baked one (on the far side of the hit: the side the car went to), every other instance
-##      float for float as baked;
+##      (down 1 and flat, torn 2, stub 3, gap 4, a wood row's gap boards 5), a `down`, `flat` or
+##      boards piece the transform PanelStates.down_transform makes of its baked one (on the far side
+##      of the hit: the side the car went to), every other instance float for float as baked;
 ##   S2 the sector leaves the tree and comes back (a new root, as the streamer loads it): the same
 ##      pieces in the same states and transforms;
 ##   S3 `repair_near` stands them up: the whole buffer float for float as baked; broken again, then
 ##      `reset` (every `repaired` at once): as baked again;
 ##   S4 soft off (`set_soft(false)`, the setting and --no-soft): driving through breaks nothing and
 ##      writes nothing;
-##   S5 the script time of a hit (a tile already read): HIT_USEC at most, over HITS panels (the 95th
-##      centile and the median; the most and a tile's first read are reported);
+##   S5 the script time of a hit (a tile already read; the first sector): HIT_USEC at most, over
+##      HITS panels (the 95th centile and the median; the most and a tile's first read are reported);
 ##   S6 under `typed` (no Panels) a hit writes nothing.
 ## The prebuilt path: the prebuilt sector when the prebuilt city is baked `panels`
 ## (map/sectors/city.stamp), else the runtime sector packed and saved as a scene and loaded back
@@ -31,8 +33,17 @@ const Solidity := preload("res://scripts/solidity.gd")
 const CityBarriers := preload("res://scripts/city_barriers.gd")
 const MapBuilder := preload("res://scripts/map_builder.gd")
 const Car := preload("res://scripts/car.gd")
+const PanelRule := preload("res://scripts/panel_rule.gd")
 
-const SECTOR := Vector2i(3, -1)
+## W5: the sectors and, in each, the rows whose soft lines are driven through (one line each).
+const SECTORS := {
+	Vector2i(3, -1): [&"stadium_fence", &"green_fence", &"low_lawn", &"chain_link"],
+	Vector2i(3, -2): [&"ball_net"],
+	Vector2i(-5, -1): [&"wood"],
+	Vector2i(-5, 1): [&"hoarding"],
+}
+## The shortest segment a target is driven through the middle of (m).
+const MIN_SEG := 3.0
 const DT := 1.0 / 60.0
 const HIT_USEC := 100.0
 const HITS := 200
@@ -66,13 +77,18 @@ func _initialize() -> void:
 	# before the map is freed at the end.
 	for _i in 120:
 		await process_frame
-	await _path("runtime", _build_runtime)
 	var baked := _baked_look()
-	if baked == &"panels":
-		await _path("prebuilt", _load_prebuilt)
-	else:
-		_save_standin()
-		await _path("prebuilt (stand-in: the runtime sector through a .scn; the prebuilt city is %s)" % baked, _load_standin)
+	var first := true
+	for sector: Vector2i in SECTORS:
+		var rows: Array = SECTORS[sector]
+		await _path("runtime %d,%d" % [sector.x, sector.y], _build_runtime.bind(sector), sector, rows, first)
+		if baked == &"panels":
+			await _path("prebuilt %d,%d" % [sector.x, sector.y], _load_prebuilt.bind(sector), sector, rows, first)
+		else:
+			_save_standin(sector)
+			await _path("prebuilt %d,%d (stand-in: the runtime sector through a .scn; the prebuilt city is %s)" % [sector.x, sector.y, baked],
+					_load_standin, sector, rows, first)
+		first = false
 	_s6_typed()
 	_runtime.free()
 	if problems.is_empty():
@@ -100,19 +116,19 @@ func _baked_look() -> StringName:
 	return StringName(str((stamp as Dictionary).get("barrier_look", "classic"))) if stamp is Dictionary else &"none"
 
 
-func _build_runtime() -> Node3D:
-	return _runtime.build_sector(SECTOR)
+func _build_runtime(sector: Vector2i) -> Node3D:
+	return _runtime.build_sector(sector)
 
 
-func _load_prebuilt() -> Node3D:
-	var path := "res://map/sectors/%s.scn" % MapBuilder.sector_name(SECTOR)
+func _load_prebuilt(sector: Vector2i) -> Node3D:
+	var path := "res://map/sectors/%s.scn" % MapBuilder.sector_name(sector)
 	return (ResourceLoader.load(path, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
 
 
 ## The stand-in for a prebuilt city baked in another look: the runtime sector's Panels and its metas
 ## in a scene saved as bake_city.gd saves a sector.
-func _save_standin() -> void:
-	var built: Node3D = _runtime.build_sector(SECTOR)
+func _save_standin(sector: Vector2i) -> void:
+	var built: Node3D = _runtime.build_sector(sector)
 	var keep := Node3D.new()
 	keep.name = built.name
 	for m: StringName in [&"panels", &"soft"]:
@@ -133,13 +149,14 @@ func _load_standin() -> Node3D:
 	return (ResourceLoader.load(SAVED, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene).instantiate()
 
 
-## S1 to S5 on one path: `make` gives the sector's root, as that path loads it.
-func _path(name: String, make: Callable) -> void:
+## S1 to S5 on one path: `make` gives sector `sector`'s root, as that path loads it; a line of each of
+## `rows` is driven through; `timing`: S5 too.
+func _path(name: String, make: Callable, sector: Vector2i, rows: Array, timing: bool) -> void:
 	var sec: Node3D = make.call()
 	root.add_child(sec)
 	var node := sec.get_node_or_null(^"Panels") as MultiMeshInstance3D
 	if node == null or not sec.has_meta(&"panels") or not sec.has_meta(&"soft"):
-		problems.append("%s %s: no Panels, panels meta or soft list" % [name, SECTOR])
+		problems.append("%s: no Panels, panels meta or soft list" % name)
 		sec.free()
 		return
 	var baked := _gpu(node) if _renderer else node.multimesh.buffer
@@ -160,24 +177,27 @@ func _path(name: String, make: Callable) -> void:
 	root.add_child(car)
 	car.set_physics_process(false)
 	soft.car = car
-	var targets := _targets(sec, baked, ps)
-	_expect(targets.size() == 3, "%s: a soft line of each broken kind in %s (%s)" % [name, SECTOR, targets.keys()])
-	# S1: one crossing per kind.
+	var targets := _targets(sec, baked, rows)
+	_expect(targets.size() == rows.size(), "%s: a soft line of each of %s (%s)" % [name, rows, targets.keys()])
+	# S1: one crossing per row.
 	var spots: Array[Vector3] = []
-	for state: float in targets:
-		var t: Array = targets[state]
+	var kinds: Array[String] = []
+	for ty: StringName in targets:
+		var t: Array = targets[ty]
 		var before := broke.size()
 		spots.append(_cross(soft, car, t))
 		var got := broke.slice(before)
 		var hit := false
 		for e: Array in got:
 			hit = hit or e[0] == t[0]
-		_expect(hit, "%s S1: driving through %s (state %d) broke it (%d panels)" % [name, t[0], int(state), got.size()])
+		var state := ps._state_of_row(PanelRule.row_of(ty))
+		kinds.append("%s %s" % [ty, "boards" if state == PanelStates.BOARDS else str(Solidity.look_row(ty).get("broken", "?"))])
+		_expect(hit, "%s S1: driving through %s (%s, state %d) broke it (%d panels)" % [name, t[0], ty, int(state), got.size()])
 	var down := _down_of(broke)
 	await _settle(ps)
 	var live := _live(ps, node)
 	_expect(_states(name + " S1", sec, baked, live, down, ps) > 0, "%s S1: some pieces written" % name)
-	notes.append("%s: %d panels down, %d pieces written" % [name.get_slice(" ", 0), down.size(), ps.writes])
+	notes.append("%s: %s, %d panels broken, %d pieces written" % [name.get_slice(" (", 0), ", ".join(kinds), down.size(), ps.writes])
 	# S2: the sector leaves and comes back.
 	var before_live := live.duplicate()
 	sec.free()
@@ -200,8 +220,8 @@ func _path(name: String, make: Callable) -> void:
 	_expect(stood > 0 and soft.broken_count() == 0 and live == baked,
 			"%s S3: repair_near stood %d panels up, the buffer as baked (%d floats differ, %d still broken)" % [
 			name, stood, _differ(live, baked), soft.broken_count()])
-	for state: float in targets:
-		_cross(soft, car, targets[state])
+	for ty: StringName in targets:
+		_cross(soft, car, targets[ty])
 	var again := soft.broken_count()
 	soft.reset()
 	await _settle(ps)
@@ -209,13 +229,14 @@ func _path(name: String, make: Callable) -> void:
 	_expect(again > 0 and live == baked, "%s S3: broken again (%d) and reset: the buffer as baked (%d floats differ)" % [
 			name, again, _differ(live, baked)])
 	# S5: the script time of a hit, the tile read already.
-	_s5_time(name, sec, ps, soft)
+	if timing:
+		_s5_time(name, sec, sector, ps, soft)
 	# S4: soft off.
 	soft.set_soft(false)
 	var writes := ps.writes
 	var n_broke := broke.size()
-	for state: float in targets:
-		_cross(soft, car, targets[state])
+	for ty: StringName in targets:
+		_cross(soft, car, targets[ty])
 	await _settle(ps)
 	_expect(broke.size() == n_broke and ps.writes == writes and _live(ps, node) == baked,
 			"%s S4: soft off, driving through broke %d panels and wrote %d pieces" % [name, broke.size() - n_broke,
@@ -261,9 +282,9 @@ func _live(ps: PanelStates, node: MultiMeshInstance3D) -> PackedFloat32Array:
 	return mine
 
 
-## Per broken kind (state), one soft line in the sector: [id, a, b, foot, run at a] of a segment of it
-## at least 5 m long, its first piece's row in that state.
-func _targets(sec: Node3D, baked: PackedFloat32Array, ps: PanelStates) -> Dictionary:
+## Per row of `rows`, one soft line of it in the sector: [id, a, b, foot, run at a] of a segment of it
+## at least MIN_SEG m long (its first piece's row that row).
+func _targets(sec: Node3D, baked: PackedFloat32Array, rows: Array) -> Dictionary:
 	var meta: Dictionary = sec.get_meta(&"panels")
 	var soft: Dictionary = sec.get_meta(&"soft")
 	var stride := baked.size() / (sec.get_node(^"Panels") as MultiMeshInstance3D).multimesh.instance_count
@@ -273,15 +294,16 @@ func _targets(sec: Node3D, baked: PackedFloat32Array, ps: PanelStates) -> Dictio
 	var ids: PackedStringArray = meta["ids"]
 	for k in ids.size():
 		var i: int = (meta["first"] as PackedInt32Array)[k]
-		var state := ps._state_of_row(int(baked[i * stride + stride - 4] + 0.5))
-		if state == PanelStates.WHOLE or out.has(state):
+		var r := int(baked[i * stride + stride - 4] + 0.5)
+		var ty: StringName = Solidity.looks()[r] if r >= 0 and r < Solidity.looks().size() else &""
+		if not ty in rows or out.has(ty):
 			continue
 		var line := soft_ids.find(ids[k])
 		for o in range(0, segs.size(), CityBarriers.SOFT_STRIDE):
 			var a := Vector2(segs[o + 1], segs[o + 2])
 			var b := Vector2(segs[o + 3], segs[o + 4])
-			if int(segs[o]) == line and a.distance_to(b) >= 5.0:
-				out[state] = [ids[k], a, b, segs[o + 5], segs[o + 9]]
+			if int(segs[o]) == line and a.distance_to(b) >= MIN_SEG:
+				out[ty] = [ids[k], a, b, segs[o + 5], segs[o + 9]]
 				break
 	return out
 
@@ -344,7 +366,7 @@ func _states(what: String, sec: Node3D, baked: PackedFloat32Array, live: PackedF
 					and live[o + c + 3] == baked[o + c + 3]
 			var xf := PanelStates._transform(live, o)
 			var want_xf := PanelStates._transform(baked, o)
-			if want == PanelStates.DOWN:
+			if want == PanelStates.DOWN or want == PanelStates.BOARDS:
 				want_xf = PanelStates.down_transform(want_xf, down[key], owner[i], panel[i])
 				# On the far side: the laid panel's far end is where the car went.
 				var dir: Vector3 = down[key]
@@ -362,12 +384,12 @@ func _states(what: String, sec: Node3D, baked: PackedFloat32Array, live: PackedF
 
 ## S5: HITS panels of the sector's soft lines broken one by one through on_broke (the tile read
 ## already), each timed; then stood up.
-func _s5_time(name: String, sec: Node3D, ps: PanelStates, soft: SoftThings) -> void:
+func _s5_time(name: String, sec: Node3D, sector: Vector2i, ps: PanelStates, soft: SoftThings) -> void:
 	var meta: Dictionary = sec.get_meta(&"panels")
 	var ids: PackedStringArray = meta["ids"]
 	var first: PackedInt32Array = meta["first"]
 	var panel: PackedInt32Array = meta["panel"]
-	var at := Vector3((SECTOR.x + 0.5) * 512.0, 0.0, (SECTOR.y + 0.5) * 512.0)
+	var at := Vector3((sector.x + 0.5) * 512.0, 0.0, (sector.y + 0.5) * 512.0)
 	var times: Array[float] = []
 	var done := []
 	var step := maxi(1, ids.size() / HITS)
@@ -393,7 +415,7 @@ func _s5_time(name: String, sec: Node3D, ps: PanelStates, soft: SoftThings) -> v
 ## S6: the typed look builds no Panels: panel_states notes nothing and a hit writes nothing.
 func _s6_typed() -> void:
 	Solidity.set_barrier_look(&"typed")
-	var sec: Node3D = _runtime.build_sector(SECTOR)
+	var sec: Node3D = _runtime.build_sector(SECTORS.keys()[0])
 	root.add_child(sec)
 	var ps := PanelStates.new()
 	ps.add_sector(sec)

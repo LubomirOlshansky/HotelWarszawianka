@@ -701,6 +701,9 @@ const INFO := {
 	"florian": ["Katedra św. Floriana",
 			"Neogotycka katedra na Pradze, 1888–1904. Dwie wieże po 75 m widać z drugiego brzegu Wisły.",
 			"Praga's neo-Gothic cathedral, 1888–1904. Its two 75 m spires are seen from across the Vistula."],
+	"kosciuszkowcy": ["Pomnik Kościuszkowców",
+			"12 m brązu z 1985 roku: żołnierz sięga ręką ku drugiemu brzegowi. Warszawa mówi: „Pięć piw proszę”.",
+			"12 m of bronze from 1985: a soldier reaching for the other bank. Warsaw calls it \"Five beers, please\"."],
 	"port_praski": ["Port Praski",
 			"Port budowany od 1919 roku, bez śluzy aż do 2017. Dziś kamienice, a doki wciąż za płotem.",
 			"A port dug from 1919 with no lock until 2017. Now tenements, the docks still behind a fence."],
@@ -1435,6 +1438,7 @@ func _find_sites() -> void:
 	_find_florian()
 	_find_bazar()
 	_find_port_praski()
+	_find_kosciuszkowcy()
 	# Stacja Filtrów (F, 2026-11-06): the water tower and Starynkiewicz's bust.
 	_add_site("filtry", [_circle(FT_C, FT_R + 1.0, 28)])
 	if not sites.is_empty() and sites[-1]["key"] == "filtry":
@@ -2040,6 +2044,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_bazar(s)
 			"port_praski":
 				_build_port_praski(s)
+			"kosciuszkowcy":
+				_build_kosciuszkowcy(s)
 			"pp_basin":
 				_build_pp_basin(s)
 			"syrenka_powisle":

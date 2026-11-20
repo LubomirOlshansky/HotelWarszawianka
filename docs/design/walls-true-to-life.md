@@ -424,6 +424,50 @@ Rows marked `slab` use `wall_along` as today, with the row's numbers.
   a range in metres hides everything; none is set); the Adreno 6xx fallback reaches only the
   runtime city (a prebuilt city baked `panels` has no typed fences to fall back to).
 
+**Built in W5 (2026-11-20)**, behind `barrier_look` `panels` (the palette's key stays `classic`):
+
+- Every light row but `rail_tram` carries `"panel": true`: the six of W4 and `green_fence`,
+  `low_lawn`, `ball_net`, `wood`, `hoarding`, `hedge_tall`, `chain_posts`, `post_row`,
+  `stadium_fence` and `bars_pier`, their numbers as the rows have them (none changed). Under
+  `panels` no light line is drawn in the city mesh but the tram's railing (`draw: keep`, 181 lines,
+  a hard rail; `check_barrier_look` 7 names them) and `bars_pier`'s posts: its row's `post.in_mesh`
+  keeps them in the city mesh where typed stands them (the piers until W7), its panels hold the iron
+  between, so a fallen panel leaves them standing. `chain_posts` and `post_row` have no line on
+  the map yet.
+- `stadium_fence` (#808) keeps its classic railing under `classic` and `typed`; under `panels` its
+  19 lines are panels of its row at the types row's 2.3 m, posts every 1.5 m 0.06 wide (the row's
+  new `post`, railing_along's), the 0.4 m dark band, bars 0.12; their colliders and soft list are
+  railing_along's, face for face (`check_barrier_look` 6); the gates are drawn as ever.
+- `panel.gdshader`: `sag` lowers the top rail and the fill under it by 4 t (1 - t) x 8 cm between
+  posts; `leafy` cuts the leaves' top by a value noise of the seed (at most 0.15 m, 0.3 m cells)
+  and darkens the lowest 0.2 m by 0.75; a hedge's top face sits 0.15 m lower so its sides' leafy
+  edge stands over it. A row `open` 0.1 or less (wood, hoarding, the hedges) is closed: no holes,
+  its bars drawn as joints 0.72 darker. A row with a `leaf` colour (green_fence) has leaves on
+  1 - open of its fill's cells, in front of its bars. Alt colours by the seed as in W4 (hoarding's
+  two). Its count stays 3 of the cap 200; `building.gdshader` unchanged from main (503 of 505).
+- The pixel rule at a grazing view: a panel seen nearly end-on (a fence running almost along the
+  view) has a pixel footprint metres long one way and centimetres the other, and W4's floors took
+  the long side (`fwidth`), so every post, rail and bar was a pixel wide and together they filled
+  the panel: a solid dark band (Pole Mokotowskie's lawn edge). The floors (never the bar spacing
+  or the fill's cell) are now capped at `GRAZE` (2) times the footprint's narrow side; a face along
+  u or v (the top, the ends) keeps W4's. Seen at 45 degrees or more nothing changes, pixel for
+  pixel; at 4 to 6 degrees a third less is dark; the lawn edge's band went from 8 to 10 pixels
+  wide to 4 to 6, a railing with its posts (typed: 2 to 4).
+- Broken (section 7): `gap` is state 4, the box squashed to a point in `vertex()` (no fragment, no
+  discard); a wood row's gap is state 5, the box laid down as a fallen panel and only two boards of
+  it kept (at 0.6 and 1.35 m of the panel); `flat` lies down as `down`, the face the car saw up;
+  `stub` (green_fence, hedge_tall) the low brown box, solid; `torn` (ball_net) and `down`
+  (stadium_fence, bars_pier) as W6. `bars_pier`'s three lines are within the landmark guard, so
+  they never break today. `check_panel_states` drives through stadium_fence, chain_link,
+  green_fence, low_lawn (the stadium's grounds), ball_net, wood and hoarding on both paths.
+- 110,185 pieces city-wide in 102 sectors, 5,435 of the 5,438 lines of the panel rows (the three
+  left are left out in every look, before any drawing: a site wall, the Palace's forecourt, the
+  tribune, the river or a street pass's REMOVE); prebuilt sectors 186.2 MB
+  (classic 187.2, typed 190.2).
+- Draw calls (probe, prebuilt, `panels` against `typed`): main pass +3 at the spawn, +2 at the
+  river view, +3 zoomed out, +3 from the helicopter, +3 at night; shadow pass +0 (-1 zoomed out);
+  a broken panel (boards, gap) adds none.
+
 Why not the other ways: more patterns in `building.gdshader` has no room; bars as real geometry
 for 190 km is about 4 million triangles and cannot fall over; a photo texture per type shows
 nothing at this pixel size and adds a material per type; alpha blending needs sorting and costs

@@ -3,8 +3,11 @@ extends RefCounted
 ## only writer of a panel's state. soft_things.gd owns the events and the memory (`broke`,
 ## `repaired`, `is_broken`); this shows them on the sectors' `Panels` MultiMeshes (W4: under the
 ## `panels` look only; map_builder.gd `_build_panels`), in the instance custom data's third float,
-## which panel.gdshader reads: 0 whole, 1 down, 2 torn, 3 stub (and gap, W5's), by the line's looks
-## row's `broken` (the row is the custom data's first float, its place in Solidity.looks()).
+## which panel.gdshader reads: 0 whole, 1 down, 2 torn, 3 stub, 4 gap, 5 boards (W5), by the line's
+## looks row's `broken` (the row is the custom data's first float, its place in Solidity.looks()).
+## W5: `flat` (hoarding) lies down as `down` does, the face the car saw (the banner's) up; `gap`
+## draws nothing of the panel; a wood row's gap (`debris` wood) is its two boards on the ground, the
+## box laid down as a fallen panel's.
 ##
 ## - `on_broke(id, panel, kind, at, direction, speed)` (main.gd connects soft_things.broke): the
 ##   line's pieces with that panel index, in the loaded `Panels` round `at` (the root's "panels"
@@ -37,9 +40,11 @@ const WHOLE := 0.0
 const DOWN := 1.0
 const TORN := 2.0
 const STUB := 3.0
+const GAP := 4.0
+const BOARDS := 5.0
 ## A looks row's `broken` -> the state its panels take (walls doc 7: `flat` lies down like `down`;
-## `gap` is a stub's slot until W5 draws it; `none` and `notch` are not panels' looks).
-const STATE_OF := {"down": DOWN, "flat": DOWN, "torn": TORN, "stub": STUB, "gap": STUB}
+## W5: `gap` its own state, BOARDS for a wood row's; `none` and `notch` are not panels' looks).
+const STATE_OF := {"down": DOWN, "flat": DOWN, "torn": TORN, "stub": STUB, "gap": GAP}
 ## A fallen panel: at most this many degrees off square to its line, and this far over the ground
 ## at its foot (m), so it does not sink into a kerb.
 const ASKEW_DEG := 7.0
@@ -285,7 +290,7 @@ func _apply(tile: Dictionary, op: Array) -> void:
 		if state == WHOLE:
 			return
 		custom.b = state
-		if state == DOWN:
+		if state == DOWN or state == BOARDS:
 			xf = down_transform(xf, op[3], op[1], op[2])
 	if tile.has("rid"):
 		var floats := b.slice(o, o + stride)
@@ -345,7 +350,10 @@ func _state_of_row(r: int) -> float:
 		var looks := Solidity.looks()
 		_row_state.resize(looks.size())
 		for k in looks.size():
-			_row_state[k] = float(STATE_OF.get(str(Solidity.look_row(looks[k]).get("broken", "")), WHOLE))
+			var row := Solidity.look_row(looks[k])
+			_row_state[k] = float(STATE_OF.get(str(row.get("broken", "")), WHOLE))
+			if _row_state[k] == GAP and str(row.get("debris", "")) == "wood":
+				_row_state[k] = BOARDS
 	return _row_state[r] if r >= 0 and r < _row_state.size() else WHOLE
 
 

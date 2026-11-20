@@ -14,6 +14,9 @@ extends RefCounted
 ## `PANEL`) and keeps them per 512 m tile (`panel_tiles`); map_builder.gd
 ## `_build_panels` makes one `Panels` MultiMesh of them per sector (panel.gdshader). Their colliders
 ## are the typed ones, filed the same way.
+## W5 (walls doc 10): every light row but the tram's railing is a panel row; the stadium's own
+## railing (#808, `stadium_fence_line`) is panels too under `panels`, and only there; a row whose
+## posts are `in_mesh` (bars_pier's piers until W7) keeps its posts in the city mesh.
 ##
 ## A RefCounted the map makes once (map_builder.gd `barriers`), with the map as its reference, the
 ## way landmarks.gd is called: the map swaps `data` for every sector it builds, and the caches here
@@ -190,6 +193,9 @@ var guard_joins := 0
 ## low_typed, the stable ids of typed lines drawn under BARRIER_SOLID_MIN (they stop colliding);
 ## default_lines, the lines drawn in the barrier_default type (none on today's map).
 var look_counts := {}
+## W5: under panels, the light-family lines (by `ty`) still drawn in the city mesh, {ty: lines}
+## (check_barrier_look 7 names them: the kept rows and the chains a rule or a site gave a look).
+var mesh_light := {}
 var low_typed := PackedStringArray()
 var default_lines := 0
 ## W4: the panel pieces of the last build_barriers under `panels`, per 512 m tile (Vector2i, the
@@ -1200,6 +1206,7 @@ func build_barriers(st) -> void:
 	soft_segs = PackedFloat64Array()
 	_soft_line = {}
 	look_counts = {}
+	mesh_light = {}
 	low_typed = PackedStringArray()
 	default_lines = 0
 	panel_tiles = {}
@@ -1281,13 +1288,21 @@ func build_barriers(st) -> void:
 			look = _typed(l, generic)
 			if look.get("draw", &"") == &"none":
 				continue
+			# W5: the stadium's railing (#808) keeps its look under typed; under panels it is
+			# panels of its row at its types row's height, colliding as railing_along does.
+			var row_ty := StringName(str(l.get("ty", "")))
+			if panels_on and look.is_empty() and style == _placed("stadium_fence") and PanelRule.is_panel(&"stadium_fence"):
+				row_ty = &"stadium_fence"
+				look = {"draw": &"rail", "row": Solidity.look_row(row_ty), "h": float(style[2]), "colour": Color(style[0])}
 			# W4: a row marked `panel` is drawn as panel pieces (panel_along).
 			if panels_on and not look.is_empty() and bool((look["row"] as Dictionary).get("panel", false)):
-				look["panel"] = PanelRule.row_of(StringName(str(l["ty"])))
+				look["panel"] = PanelRule.row_of(row_ty)
 				look["seed"] = PanelRule.seed(barrier_id(l["k"], l["p"]))
 				_panel_run = 0.0
 				_panel_serial += 1
 				_count_look(&"panel")
+			elif panels_on and str(Solidity.look_row(row_ty).get("family", "")) == "light":
+				mesh_light[str(row_ty)] = int(mesh_light.get(str(row_ty), 0)) + 1
 		if style == _s(&"barrier_default"):
 			default_lines += 1
 		var pts: PackedVector2Array = map._pts(l["p"])
@@ -1342,7 +1357,7 @@ func _draw_piece(st, piece: PackedVector2Array, style: Array, look: Dictionary, 
 	if look.is_empty():
 		wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
 	elif look.has("panel"):
-		panel_along(piece, look, solid, cls)
+		panel_along(st, piece, look, solid, cls)
 	elif look["draw"] == &"slab":
 		wall_along(st, piece, float((look["row"] as Dictionary)["thick"]), float(look["h"]), look["colour"], solid, cls)
 	else:
@@ -1356,11 +1371,15 @@ func _draw_piece(st, piece: PackedVector2Array, style: Array, look: Dictionary, 
 ## rail_lite_along; a `slab` row: `slab_faces` at the row's thickness, as wall_along), with
 ## `_soft_run` advanced as each of them advances it, so a panels city has the typed city's
 ## colliders and soft lines.
-func panel_along(poly: PackedVector2Array, look: Dictionary, collide: bool, cls: StringName) -> void:
+## W5: a row whose posts are `in_mesh` (bars_pier) keeps them in the city mesh `st` as typed draws
+## them (`_mesh_posts`); its panels draw no posts (panel_rule.gd row_texels).
+func panel_along(st, poly: PackedVector2Array, look: Dictionary, collide: bool, cls: StringName) -> void:
 	var row: Dictionary = look["row"]
 	var slab: bool = look["draw"] == &"slab"
 	var height := float(look["h"])
 	var thick := float(row["thick"])
+	if bool((row.get("post", {}) as Dictionary).get("in_mesh", false)):
+		_mesh_posts(st, poly, row, height, look["colour"])
 	for i in poly.size() - 1:
 		var a := poly[i]
 		var b := poly[i + 1]
@@ -1381,6 +1400,45 @@ func panel_along(poly: PackedVector2Array, look: Dictionary, collide: bool, cls:
 				_soft_run += length
 		if not slab:
 			_soft_run += length
+
+
+## W5: rail_lite_along's posts alone along `poly` (row `row`, the line's `height` and `colour`): one
+## every `post.every` m of the whole line and one at its last point, the same quads at the same
+## places, so a row's posts stand under panels where typed stands them.
+func _mesh_posts(st, poly: PackedVector2Array, row: Dictionary, height: float, colour: Color) -> void:
+	var post: Dictionary = row.get("post", {})
+	var every := float(post.get("every", 0.0))
+	var pw := float(post.get("w", 0.0)) * 0.5
+	if every <= 0.0 or pw <= 0.0:
+		return
+	var post_col := Color(str(post["colour"])) if post.has("colour") else colour
+	var foot_h := float((row.get("foot", {}) as Dictionary).get("h", 0.0))
+	var run := 0.0
+	var next_post := 0.0
+	var last_post := Vector2(INF, INF)
+	var last_dir := Vector2.ZERO
+	for i in poly.size() - 1:
+		var a := poly[i]
+		var b := poly[i + 1]
+		var length := a.distance_to(b)
+		if length < 0.05:
+			continue
+		var dir := (b - a) / length
+		last_dir = dir
+		var n := Vector3(-dir.y, 0.0, dir.x)
+		var ga: float = map.terrain_height(a.x, a.y)
+		var gb: float = map.terrain_height(b.x, b.y)
+		while next_post <= run + length:
+			var p := a + dir * (next_post - run)
+			_lite_post(st, p, lerpf(ga, gb, (next_post - run) / length), dir, pw, foot_h, height, n, post_col)
+			last_post = p
+			next_post += every
+		run += length
+	if last_dir != Vector2.ZERO:
+		var end := poly[poly.size() - 1]
+		if last_post.distance_to(end) > 0.05:
+			_lite_post(st, end, map.terrain_height(end.x, end.y), last_dir, pw, foot_h, height,
+					Vector3(-last_dir.y, 0.0, last_dir.x), post_col)
 
 
 ## W4: segment a..b (its ground `ga`, `gb`, `length` m) cut at every PANEL m of the line's run
