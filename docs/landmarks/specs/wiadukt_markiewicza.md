@@ -44,7 +44,9 @@ setts by the kerbs and the paved walks out to the balustrades.
 | Figures | #d6cab0 | M_STONE |
 | Lantern glass | #ffd9a0 | M_LAMP (glows at night) |
 
-No new material, shader instruction or draw call: all of it lands in the site's existing buckets.
+No new material: the viaduct lands in the site's existing buckets (+0 draw calls). The Royal
+Route lanterns are one more MultiMesh in the one sector that had none: rendered probe (lavapipe,
+1280x720) at the viaduct 143 → 145 and on the loop 138 → 140 draw calls (main +1, shadow +1).
 
 ## 6. Ground and night
 map_builder.gd and city_barriers.gd leave the ring to this model (`Landmarks.mk_covers`): the
