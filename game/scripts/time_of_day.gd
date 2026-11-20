@@ -272,6 +272,23 @@ func set_hour(hour: float, instant := false) -> void:
 	changed.emit(mode)
 
 
+## Promo Mode (promo_mode.gd, through game_time.gd `nudge`): the clock moves by `minutes`, back
+## as well as forward (set_hour only goes forward), and the light follows at once. Without the game
+## clock: the look that fits the new hour.
+func shift_clock(minutes: float) -> void:
+	if not game_clock:
+		set_hour(float(local_clock()["hour"]) + minutes / 60.0, true)
+		return
+	_game_utc += minutes * 60.0
+	_wake_t = -1.0
+	_from = _current()
+	_to = _live_look()
+	_live_wait = _look_every
+	_t = 1.0
+	_apply(_to)
+	changed.emit(mode)
+
+
 ## The fixed look whose light fits `hour` (game_time.gd `look_for` asks it): Dawn 5-8, Day to
 ## 18:30, Dusk to 20:30, else Night.
 static func look_at(hour: float) -> String:

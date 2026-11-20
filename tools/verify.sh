@@ -1572,6 +1572,9 @@ for s in $want; do
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		# The time owner (game_time.gd, F 2026-11-19): hours, the night friends by day, the clock's jump.
 		gametime) check gametime '^check_game_time:' --script res://tools/check_game_time.gd ;;
+		# Promo Mode (promo_mode.gd, F 2026-11-20): the clock's -15 / +15, the car and free cameras, the
+		# saved shots and COPY's flags (no map; CI too).
+		promo) check promo '^check_promo:' --script res://tools/check_promo.gd ;;
 		endcard) check endcard '^end_card:' --script res://tools/check_end_card.gd ;;
 		# First hour step 6: the hints in play, the loading tips, the spotlight (no map).
 		hints) check hints '^check_hints:' --script res://tools/check_hints.gd ;;
