@@ -213,6 +213,8 @@ var panel_tiles := {}
 var panel_pieces := 0
 ## W7: the pier diamonds the last build_barriers filed (`_pier_diamond`; check_barrier_look counts them).
 var kit_diamonds := 0
+## W8: the last build_barriers' gated lines, gaps, gate posts and open leaves (check_barrier_look prints them).
+var gate_counts := {}
 ## W4: the metres drawn along the line so far (a panel piece's start; the same count as
 ## `_soft_run`, which soft_things.gd's panels are cut by), and a serial per line (two lines with
 ## one stable id stay two entries in a tile).
@@ -1591,6 +1593,7 @@ func build_barriers(st) -> void:
 	panel_pieces = 0
 	_panel_serial = 0
 	kit_diamonds = 0
+	gate_counts = {"lines": 0, "gaps": 0, "posts": 0, "leaves": 0}
 	var typed_on := Solidity.barrier_look() != &"classic"
 	# W4: panels, unless this GPU gets the typed look instead (gpu_quirks.gd).
 	var panels_on := Solidity.barrier_look() == &"panels" and GpuQuirks.panels()
@@ -1694,10 +1697,14 @@ func build_barriers(st) -> void:
 			solid = l["k"] != "platform" and float(look["h"]) >= BARRIER_SOLID_MIN
 			if not solid:
 				low_typed.append(barrier_id(l["k"], l["p"]))
-		# W8: a line with gates (tools/barrier_gates.py `g`, `ge`), under typed and panels only: its
-		# pieces between the gaps, each drawn as a whole line is, with the runs along the line (soft
-		# segments, panel indices) carried on from where the piece starts, then its gate posts and leaves.
-		if typed_on and (l.has("g") or l.has("ge")):
+		# W8: a line with gates (tools/barrier_gates.py `g`, `ge`), under typed and panels only and only
+		# where the line is drawn by its typed look (walls doc 6.1: every hand-placed and F-approved
+		# look, the stadium's railing with its own gates among them, stays as it is): its pieces between
+		# the gaps, each drawn as a whole line is, with the runs along the line (soft segments, panel
+		# indices) carried on from where the piece starts, then its gate posts and leaves.
+		if typed_on and not look.is_empty() and not stadium_fence_line(l) and (l.has("g") or l.has("ge")):
+			gate_counts["lines"] += 1
+			gate_counts["gaps"] += (l.get("g", []) as Array).size()
 			var cut := gate_pieces(pts, l.get("g", []))
 			for pc: Array in cut:
 				_soft_run = float(pc[1])
@@ -2051,6 +2058,7 @@ func _gate_kit(st, l: Dictionary, pts: PackedVector2Array, style: Array, look: D
 		var dir := line_dir(pts, s)
 		var y: float = map.terrain_height(p.x, p.y)
 		if m[0] == &"post":
+			gate_counts["posts"] += 1
 			var top := y + height + GATE_RISE
 			var bottom := y - GATE_SINK
 			map._box_oriented(st, Vector3(p.x, (top + bottom) * 0.5, p.y), Basis(Vector3.UP, atan2(-dir.x, -dir.y)),
@@ -2066,6 +2074,7 @@ func _gate_kit(st, l: Dictionary, pts: PackedVector2Array, style: Array, look: D
 		var length := minf(gap_half, behind)
 		if length < 0.3:
 			continue
+		gate_counts["leaves"] += 1
 		var n := Vector2(-dir.y, dir.x) * float(m[3])
 		var off := n * (thick * 0.5 + GATE_LEAF_OFF)
 		var a := p + off - dir * out * post_w * 0.5

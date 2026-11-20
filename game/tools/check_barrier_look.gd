@@ -355,6 +355,8 @@ func _whole(map: Node3D, data: Dictionary) -> Dictionary:
 		problems.append("5 %d lines drawn classic for want of a looks row" % counts["unknown"])
 	if int(map.barriers.default_lines) > 0:
 		problems.append("5 %d lines drawn in barrier_default" % map.barriers.default_lines)
+	# 9 (W8): the map's gates as drawn (the lines with a typed look): printed.
+	counts["gates"] = (map.barriers.gate_counts as Dictionary).duplicate()
 	map._solids = {}
 	map.data = {}
 	return counts
