@@ -348,9 +348,10 @@ func setup_streamed(index: Dictionary, building_mat: ShaderMaterial, flat_mat: S
 	index_data = index
 	# `areas`: the lawns of the University Library's roof garden (landmarks.gd _find_buw);
 	# `platforms`: Powiśle's canopies stand on its platforms (landmarks.gd _find_powisle).
+	# `kladka`: the footbridge's layout (tools/kladka.py; landmarks/kladka.gd).
 	_marks = Landmarks.new(self, {"landmarks": index.get("landmarks", []), "towers": index.get("towers", []),
 			"buildings": index.get("site_parts", []), "areas": index.get("areas", []),
-			"platforms": index.get("platforms", [])})
+			"platforms": index.get("platforms", []), "kladka": index.get("kladka", {})})
 	landmark_info = _marks.info
 	_pick.resize(_roof_nx * _roof_nz * 2)
 	_pick.fill(0)
@@ -1717,6 +1718,22 @@ func _decks_at(x: float, z: float, feet = null) -> PackedFloat32Array:
 	return out
 
 
+## Whether (x, z) lies on Kładka Abakanowicz or within 2 m of its edge (tools/kladka.py's `kl` pieces):
+## what the bake stood on the living street it was (lamp posts) does not stand there.
+func _on_kladka(x: float, z: float) -> bool:
+	var p := Vector2(x, z)
+	for d: Dictionary in _decks:
+		if int(d["kl"]) == 0 or not (d["box"] as Rect2).grow(2.0).has_point(p):
+			continue
+		var pts: PackedVector2Array = d["pts"]
+		for k in pts.size() - 1:
+			var ab := pts[k + 1] - pts[k]
+			var u := clampf((p - pts[k]).dot(ab) / maxf(ab.length_squared(), 0.000001), 0.0, 1.0)
+			if p.distance_to(pts[k] + ab * u) < maxf(float(d["l"]), float(d["r"])) + 2.0:
+				return true
+	return false
+
+
 ## The height of deck group g at a point (its nearest piece, projected onto it), or the
 ## terrain for g < 0. Things baked onto a bridge (markings, kerbs, tram tracks) use it.
 ## PT-18: the nearest point of deck group g's centrelines to p (p itself when there is none).
@@ -1990,14 +2007,16 @@ func _load_decks() -> void:
 		# A street's slab over a short tunnel (`st`) keeps the bake's level: its footways are the
 		# street's pavement, not a footbridge held clear of the catenary (Plac Zawiszy, F 2026-11-16:
 		# they stood 0.5 m proud of the slab between the tram and the carriageways).
-		if String(piece["k"]) == "path" and int(piece.get("st", 0)) != 1:
+		# The footbridge's pieces (tools/kladka.py `kl`) keep the bake's profile: its bays lie on the
+		# main deck's line at the main deck's heights, and the landmark is built on them.
+		if String(piece["k"]) == "path" and int(piece.get("st", 0)) != 1 and int(piece.get("kl", 0)) == 0:
 			_lift_sagging_deck(pts, cum, hs)
 			_lift_rail_footbridge(pts, cum, hs)
 		_decks.append({"pts": pts, "cum": cum, "h": hs, "l": float(piece["l"]),
 				"r": float(piece["r"]), "g": int(piece["g"]), "k": String(piece["k"]),
 				"o": PackedByteArray(piece.get("o", [])), "box": box.grow(reach),
 				"rail": String(piece.get("rail", "")), "lp": PackedFloat32Array(piece.get("lp", [])),
-				"st": int(piece.get("st", 0)) == 1})
+				"st": int(piece.get("st", 0)) == 1, "kl": int(piece.get("kl", 0))})
 
 
 # --- sunken places ---------------------------------------------------------------------------
@@ -2128,6 +2147,25 @@ const SUNKEN := [
 			Vector2(-1367.1, 480.1), Vector2(-1370.6, 481.5), Vector2(-1374.2, 483.1), Vector2(-1377.8, 484.9),
 			Vector2(-1381.3, 486.7), Vector2(-1386.7, 484.5), Vector2(-1385.4, 482.7), Vector2(-1384.1, 480.7),
 			Vector2(-1383.0, 478.8)]},
+	# Schodki nad Wisłą (F, 2026-11-19; plan /schodki/PLAN.md, spec docs/landmarks/specs/schodki_wisla.md):
+	# the concrete seating steps along the left bank, ~195 m, which OSM maps only as 12 narrow walking
+	# flights (the grid between them is a smooth slope). Measured from terrain.json and the bake's
+	# `steps` and `shore` (local frame: C (445, -862), along-river u (0.665, 0.747), water v (0.747, -0.665)):
+	# the flights' tops lie on a line v = -5.9 + 0.039 (u + 10) where the grid is -17.7..-17.9 m (-18.2..-18.4
+	# west of u -36), their feet at the shore; the quay at the shore line is the grid's -21.9..-22.2 m, 1.1-1.3
+	# over the river (-23.1, the water is drawn on the ground). So: the top edge on that line, `hb` -21.9, ten
+	# rows of 0.41 m (`rows`), the ring's water side the shore line 0.4 m inland (the shore stone stands on it),
+	# the rows ending 2-3 m before it (`b` on the foot line v = 4.5 + 0.0436 (u + 36)), the quay flat past `b`.
+	# Two entries: the shore turns at u -36..-55 (v 7 -> 2), so the band west of it has its own a-b axis, its top
+	# `at` the east one's so the two share one height. The site `schodki_wisla` (landmarks/river.gd) draws them.
+	{"key": "schodki_wisla", "site": "schodki_wisla", "style": "seats", "sub": 10, "hb": -21.9, "rows": 10,
+		"a": Vector2(458.2, -840.3), "b": Vector2(466.6, -848.5),
+		"ring": [Vector2(415.9, -884.3), Vector2(513.1, -783.3), Vector2(523.6, -792.8), Vector2(508.0, -810.6),
+			Vector2(490.7, -826.9), Vector2(426.0, -893.3)]},
+	{"key": "schodki_wisla_w", "site": "schodki_wisla", "style": "seats", "sub": 10, "hb": -21.9, "rows": 10,
+		"at": Vector2(458.2, -840.3), "a": Vector2(394.8, -904.3), "b": Vector2(401.8, -911.7),
+		"ring": [Vector2(373.0, -925.1), Vector2(415.8, -884.2), Vector2(426.0, -893.3), Vector2(410.1, -904.0),
+			Vector2(382.6, -933.7)]},
 ]
 ## Grid nodes held up to the street (the 10 m grid's pit at Złote Tarasy's plaza pulled the upper
 ## terrace, the stair's sides and the station forecourt down into a crater): [node, at least m].
@@ -2217,7 +2255,7 @@ static func sunk_entry(e: Dictionary, ha: float, step: float) -> Dictionary:
 		wide = wl[0] if not wl.is_empty() else ring
 	return {"key": e["key"], "ring": ring, "grown": grown, "wide": wide, "box": box, "a": e["a"], "b": e["b"], "ha": ha, "hb": hb, "sub": sub,
 			"site": e.get("site", "sunken"), "style": e.get("style", "rail"), "walk": PackedVector2Array(e.get("walk", [])),
-			"rim": float(e.get("rim", -INF)), "tile": e.get("tile", Color(0, 0, 0, 0)),
+			"rows": int(e.get("rows", 0)), "rim": float(e.get("rim", -INF)), "tile": e.get("tile", Color(0, 0, 0, 0)),
 			"floor": e.get("floor", Color(0, 0, 0, 0)), "rise": float(e.get("rise", -1.0))}
 
 
@@ -2396,6 +2434,12 @@ const WALL_CONCRETE := Color("#a59f95")
 const WALL_COPING := Color("#c9c4b8")
 const WALL_TUNNEL := Color("#6e6a63")
 const WALL_PARAPET := 0.9
+## W7 of the walls look (walls doc 4.2, 6.5: the retaining walls' looks are the heavy kit's last
+## item): under a look other than classic (solidity.gd barrier_look) the coping has a lip, its
+## outer edge WALL_LIP m proud of the face and WALL_LIP_H m deep, so a retaining wall reads capped
+## from the road below. Classic draws the walls as ever.
+const WALL_LIP := 0.06
+const WALL_LIP_H := 0.15
 
 
 func _build_walls(st) -> void:
@@ -2403,6 +2447,7 @@ func _build_walls(st) -> void:
 		_build_fill_sides(st)
 		return
 	_uv2 = Vector2(0.5, -1.0)
+	var lip := Solidity.barrier_look() != &"classic"
 	# PT-40: the Poniatowski towers' zones (the sectors' files leave them in the index).
 	var towers: Array = data.get("towers", index_data.get("towers", []))
 	for w: Dictionary in data["walls"]:
@@ -2435,6 +2480,13 @@ func _build_walls(st) -> void:
 			if not tunnel:
 				_quad(st, Vector3(a.x, ta + lift, a.y), Vector3(b.x, tb + lift, b.y), Vector3(bi.x, tb + lift, bi.y),
 						Vector3(ai.x, ta + lift, ai.y), Vector3.UP, WALL_COPING)
+				if lip:
+					var ao := a + out * WALL_LIP
+					var bo := b + out * WALL_LIP
+					_quad(st, Vector3(ao.x, ta + lift - WALL_LIP_H, ao.y), Vector3(bo.x, tb + lift - WALL_LIP_H, bo.y),
+							Vector3(bo.x, tb + lift, bo.y), Vector3(ao.x, ta + lift, ao.y), n, WALL_COPING.darkened(0.08))
+					_quad(st, Vector3(a.x, ta + lift, a.y), Vector3(b.x, tb + lift, b.y), Vector3(bo.x, tb + lift, bo.y),
+							Vector3(ao.x, ta + lift, ao.y), Vector3.UP, WALL_COPING)
 			if lift > 0.0:
 				_quad(st, Vector3(ai.x, ta - 0.05, ai.y), Vector3(bi.x, tb - 0.05, bi.y), Vector3(bi.x, tb + lift, bi.y),
 						Vector3(ai.x, ta + lift, ai.y), -n, face.lightened(0.08))
@@ -8116,6 +8168,8 @@ func _build_bridge_structures(st) -> void:
 		var d: Dictionary = _decks[di]
 		if _in_sector and not (d["box"] as Rect2).grow(8.0).intersects(_sector_rect):
 			continue  # loop 3c: none of this piece reaches the sector being built
+		if int(d["kl"]) > 0:
+			continue  # Kładka Abakanowicz (tools/kladka.py): the landmark `kladka` draws its deck, railings and girder
 		var pts: PackedVector2Array = d["pts"]
 		var hs: PackedFloat32Array = d["h"]
 		var outer: PackedByteArray = d["o"]
@@ -8246,6 +8300,8 @@ func _build_bridge_structures(st) -> void:
 ## and, for the ones that reach the ground, solid from the ground up (one concave shape,
 ## like the walls).
 func _pier(st, p: Dictionary, col: Color) -> void:
+	if int(p.get("kl", 0)) > 0:
+		return  # one of Kładka Abakanowicz's seven supports: the landmark `kladka` draws it and its collider
 	var c := Vector2(float(p["c"][0]), float(p["c"][1]))
 	var dir := Vector2(float(p["d"][0]), float(p["d"][1]))
 	var y0 := float(p["y"][0])
@@ -9649,6 +9705,70 @@ static func _grid_add(grid: Dictionary, box: Rect2, index: int) -> void:
 		grid[key].append(index)
 
 
+## A kept roof plane this close to a block's outline edge (m) meets that edge's wall.
+const EAVE_NEAR := 2.0
+## How far under its walls' top a lifted roof ends (m): flush, a lid on the walls, so no rim of
+## wall shows round it from above (F's comment on the first fix, 2026-11-19).
+const EAVE_LIP := 0.0
+## A roof sitting less than this under its walls' tops stays (a parapet, m); more than LIFT_MAX
+## is another building's roof (a podium under a tower, a LoD2 outline that is not the block's).
+const EAVE_GAP := 0.6
+const LIFT_MAX := 6.5
+## How many kept roofs (LoD2 buildings) _lift_block_roof raised in this build (printed after the LoD2 pass).
+var _roof_lifts := 0
+
+
+## F's shot (2026-11-19, Al. Jerozolimskie by Nowy Świat): a modelled street block that keeps
+## LoD2's measured roof (marks.keeps_lod2_roof) has its own walls, from its model, and those
+## stood up to a storey over the measured roof in 78 blocks, so the roof sat inside them like
+## the floor of an open box. Each kept roof vertex of the run [t0, t1) under its walls' top is
+## raised to it (EAVE_LIP): the walls are the lowest wall top among the outline edges within
+## EAVE_NEAR (`eaves`, landmarks.block_eaves_at; the lowest, so a corner pavilion's walls don't
+## twist a roof's eave up), the block's median wall top for a vertex away from the outline. Vertex by
+## vertex, so a lifted roof keeps no seam: two planes' shared corner moves the same; a gable's
+## ridge over the walls stays where it is and its eaves come up. Never lowered; left as it is
+## past LIFT_MAX (another building's roof). Returns pos. Before the tiles, the colliders and
+## the roof grid, so the helicopter lands on the roof that is drawn, on both city paths (no new
+## triangle or draw call: the measured roof only moves up).
+func _lift_block_roof(pos: PackedVector3Array, dropped: PackedByteArray, t0: int, t1: int,
+		eaves: Dictionary) -> PackedVector3Array:
+	if eaves.is_empty():
+		return pos
+	var ring: PackedVector2Array = eaves["ring"]
+	var tops: PackedFloat32Array = eaves["eaves"]
+	var known: Array[float] = []
+	for h in tops:
+		if not is_nan(h):
+			known.append(h)
+	if known.is_empty():
+		return pos
+	known.sort()
+	var middle: float = known[known.size() / 2]
+	var lifted := false
+	for t in range(t0, t1, 3):
+		if dropped[t / 3]:
+			continue
+		for k in 3:
+			var v := pos[t + k]
+			var q := Vector2(v.x, v.z)
+			# The lowest wall among the edges it is near, so a corner pavilion's taller walls
+			# don't twist the main roof's eave up with them.
+			var top := NAN
+			for i in ring.size():
+				if not is_nan(tops[i]) and (is_nan(top) or tops[i] < top) and Geometry2D.get_closest_point_to_segment(q,
+						ring[i], ring[(i + 1) % ring.size()]).distance_to(q) < EAVE_NEAR:
+					top = tops[i]
+			if is_nan(top):
+				top = middle
+			if top - v.y > EAVE_GAP and top - v.y <= LIFT_MAX:
+				v.y = top - EAVE_LIP
+				pos[t + k] = v
+				lifted = true
+	if lifted:
+		_roof_lifts += 1
+	return pos
+
+
 ## GUGiK LoD2 buildings from the baked mesh. Returns the OpenStreetMap
 ## buildings that still need drawing (empty when there is no LoD2 bake).
 func _build_lod2(walls, marks) -> Array:
@@ -9759,6 +9879,8 @@ func _build_lod2(walls, marks) -> Array:
 			for t in range(t0, t1, 3):
 				if not roofs or absf(nrm[t].y) < 0.3:
 					dropped[t / 3] = 1
+			if roofs:
+				pos = _lift_block_roof(pos, dropped, t0, t1, marks.block_eaves_at((lo + hi) * 0.5))
 		else:
 			# The landmarks loop: a kept building in a landmark's own stone (Muzeum Narodowe).
 			var skin: Dictionary = marks.skin_at(Rect2(lo, hi - lo))
@@ -9842,6 +9964,8 @@ func _build_lod2(walls, marks) -> Array:
 				_solid(&"lod2", [pos[t], pos[t + 1], pos[t + 2]], R2_SAME)
 		_roof_triangle(pos[t], pos[t + 1], pos[t + 2], flat_ish, col[t])
 	_has_lod2 = true
+	if _roof_lifts > 0 and not _in_sector:
+		print("block roofs: %d kept LoD2 roofs lifted to their walls" % _roof_lifts)
 	if not _in_sector:
 		return meta["keep_osm"]
 	# Loop 3c: the split marks the OpenStreetMap buildings LoD2 keeps (`keep`).
@@ -10839,6 +10963,8 @@ func _build_street_furniture() -> void:
 	for i in range(0, _extra_lamps.size() - 2, 3):
 		var x := _extra_lamps[i]
 		var z := _extra_lamps[i + 1]
+		if _on_kladka(x, z):
+			continue  # Kładka Abakanowicz has no lamp posts: its light is the LED under the handrails
 		var t := Transform3D(Basis(Vector3.UP, _extra_lamps[i + 2]), Vector3(x, ground_height(x, z), z))
 		spots.append(t)
 		var head := t * Vector3(1.2, 0.0, 0.0)

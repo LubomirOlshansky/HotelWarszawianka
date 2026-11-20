@@ -121,9 +121,13 @@ const FIRST_EASE := 140.0
 ## Effort, the finish's circle and the race's mechanics are the race session's (race_session.gd,
 ## racer AI step 6b): one `_race_session` a race, its one racer the rival (`_racer`).
 ## A plan made for another traffic than the town has now is made again before the start
-## (RaceSession.PLAN_STALE, `_plan_tick`), no later than this many seconds into the countdown (a
-## plan is up to 52 slices: a second at 60 frames a second, and the countdown is three).
+## (RaceSession.PLAN_STALE, `_plan_tick`), in the challenge (2.6 s; a plan is up to 52 slices: a
+## second at 60 frames a second) and no later than this many seconds into the countdown.
 const PLAN_STALE_UNTIL := 1.0
+## No 3, 2, 1 any more (F 2026-11-19, phone: "remove the 3 2 1, just GO and you go together"): the
+## countdown is START! after this many seconds, and until START! both cars wait on the line (the
+## rival held, the player's car by `hold_car`), so nobody jumps the start.
+const GO_AFTER := 0.0
 ## What a rival says when it does something human (traffic.gd counts it), [Polish, English] (each
 ## at most 70 characters), only within HUMAN_NEAR m of the player and HUMAN_QUIET s after its last line.
 const HUMAN_NEAR := 120.0
@@ -435,8 +439,37 @@ func _init() -> void:
 	dark = Color("#2b2c2f")
 
 
-## main.gd sets graph, traffic, hud, bubbles, map, car, wallet, tod, autopilot and
-## ghost_pace before this.
+## Wires the street racers from the game (activity.gd `install`; main.gd's `_build_life` until
+## TD-4 b11). Never off where they join: `_build_life` runs only with the traffic. --autopilot
+## drives their races, --ghost-pace sets its speed.
+func install(ctx: GameCtx) -> bool:
+	super(ctx)
+	autopilot = ctx.flags.autopilot
+	if ctx.flags.ghost_pace > 0.0:
+		ghost_pace = ctx.flags.ghost_pace
+	tod = ctx.tod  # loop 3h slice 3: the final waits for the night
+	night_now = ctx.night_now  # first hour step 5: the sixth win's NOC
+	graph = ctx.graph as LaneGraph
+	traffic = ctx.traffic as Traffic
+	bubbles = ctx.bubbles
+	car = ctx.car
+	return true
+
+
+## Their setup reads the map data too: the finishes and the Trzy mosty route.
+func setup_in(ctx: GameCtx) -> void:
+	setup(ctx.world, ctx.data)
+
+
+## After the join (main.gd's `_build_life` until TD-4 b11): --ladder=N, or --trzy-mosty (every
+## rung), presets the ladder for this run (loop 3h slice 3).
+func joined(ctx: GameCtx) -> void:
+	if ctx.flags.ladder_flag >= 0 or ctx.flags.trzy_mosty_flag:
+		preset_ladder(ctx.flags.ladder_flag if ctx.flags.ladder_flag >= 0 else Ladder.RUNGS.size())
+
+
+## `install` (or a check, by hand) sets graph, traffic, hud, bubbles, map, car, wallet, tod,
+## autopilot and ghost_pace before this.
 func setup(world: Node3D, data := {}) -> void:
 	_rng.seed = 7
 	_home_rng.seed = 11  # its own dice: the races' (`_rng`) draw as before
@@ -1044,11 +1077,10 @@ func _run_tick(dt: float) -> void:
 			if final_on:
 				_prepare_final_step()
 			_plan_tick()
-			var n := 3 - int(_stage_t)
-			hud.show_banner(str(n) if n > 0 else "START!", Color.WHITE if n > 0 else WIN_COLOUR)
+			hud.show_banner("START!", WIN_COLOUR)
 			_show_status()
 			_route_tick(dt)
-			if _stage_t >= 3.0:
+			if _stage_t >= GO_AFTER:
 				_go()
 		State.RACE:
 			_race_time += dt
@@ -1108,9 +1140,25 @@ func _can_challenge(i: int) -> bool:
 	return rel.dot(fwd) > 0.0 and absf(rel.cross(fwd)) < 4.0
 
 
+## Called by main.gd after the controls set the car's inputs: in the challenge and the countdown the
+## player's car waits on the line with the rival, so both leave at START! together (F 2026-11-19:
+## on the phone the car could drive off through 3, 2, 1 while the rival was held). Parked, not just
+## braking, as for Fotka: a held brake at a standstill reverses (car.gd); main.gd unparks it.
+func hold_car(c: Node) -> void:
+	if c == null or flying or not (state == State.CHALLENGE or state == State.COUNTDOWN):
+		return
+	c.target_dir = Vector3.ZERO
+	c.steer = 0.0
+	c.throttle = 0.0
+	c.nitro_on = false
+	c.braking = true
+	c.parked = true
+
+
 func _go() -> void:
 	state = State.RACE
 	_stage_t = 0.0
+	hud.cue("go")
 	_race_time = 0.0
 	_rank_timer = 0.0
 	var d = _drivers[rival]
@@ -1390,6 +1438,7 @@ func _finish_race(won: bool, why: String) -> void:
 				buttons, 0.0, _card_offer == "next", WIN_COLOUR)
 		_report_art(rival, _finish["pos"])
 		Access.buzz(150, 0.9)
+		hud.cue("win")
 	else:
 		var short := roundi(_player_remaining())
 		var reason := why if why != "" else "%s got to %s first. You were %d m short%s after %s." % [who, _finish["name"], short, by_en, _clock(_race_time)]
@@ -1402,6 +1451,7 @@ func _finish_race(won: bool, why: String) -> void:
 			_card_offer = "rematch"
 		show_card(["PRZEGRANA · 2. MIEJSCE", "Lose · 2nd"], [("%s\n„%s”\n%s" % [reason_pl, line[0], told[0]]).strip_edges(),
 				("%s %s\n%s" % [reason, line[1], told[1]]).strip_edges()], lose_buttons, 0.0, false, LOSE_COLOUR)
+		hud.cue("fail")
 		_report_art(rival, _finish["pos"])
 	race_over.emit(who, won)
 
@@ -2204,6 +2254,7 @@ func _track_final(dt: float) -> void:
 				print("trzy mosty: checkpoint %d/%d %s at %.1f s" % [_cp + 1, final_route.checkpoints.size(), final_route.checkpoints[_cp]["pl"], _race_time])
 				_cp += 1
 				Access.buzz(40, 0.5)
+				hud.cue("checkpoint")
 				hud.toast("MOST %d/3 · %s" % [_cp, final_route.checkpoints[_cp - 1]["pl"]], "bridge %d/3 · %s" % [_cp, final_route.checkpoints[_cp - 1]["en"]])
 				if _cp < final_route.checkpoints.size():
 					_beacon.place(final_target(), TrzyMosty.CHECK_RADIUS - 6.0)
@@ -2298,6 +2349,7 @@ func _finish_final(won: bool, why: String) -> void:
 				PackedStringArray(["OK"]), 0.0, false, FINAL_COLOUR)
 		_report_art(_seba, goal)
 		Access.buzz(200, 1.0)
+		hud.cue("win")
 	else:
 		var gave_up := why != ""
 		show_card(["TRZY MOSTY · PRZEGRANA", "Three bridges · Lose"], [("%s\n„%s”\nRewanż: Rondo Daszyńskiego, w nocy.\n%s" % [
@@ -2305,6 +2357,7 @@ func _finish_final(won: bool, why: String) -> void:
 				("%s %s Rematch: Rondo Daszyńskiego, at night.\n%s" % [
 				"You gave up the final." if gave_up else "%s got to the Stadium first (bridges %d/3, %s, %.1f s short)." % [who, _cp, _clock(_race_time), margin], line[1], told[1]]).strip_edges()],
 				PackedStringArray(["OK"]), 0.0, false, LOSE_COLOUR)
+		hud.cue("fail")
 		_report_art(_seba, goal)
 	race_over.emit(Ladder.FINAL_ID, won)
 

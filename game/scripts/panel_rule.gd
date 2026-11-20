@@ -14,6 +14,12 @@ extends RefCounted
 ##   a look in the palette's order (a line's row index is its type's place there), made once by
 ##   map_builder.gd `_make_shared` with the panel material (the prebuilt city keeps it under
 ##   map/shared/, as the trees' look texture).
+## - W5 (walls doc 6.4): the tops. `sag` lowers the top edge (the top rail and the fill under it)
+##   by up to SAG between posts, 4 t (1 - t) of the way from one post to the next; `leafy` cuts the
+##   leaves' top edge by a value noise of the line's seed, at most LEAFY under the top, on cells of
+##   LEAF_CELL along the line, and darkens the lowest LEAFY_FOOT. A closed row (`open` at most
+##   CLOSED: wood, hoarding, the hedges) has no holes: its bars are board joints, a shade darker.
+##   A row with a `leaf` colour (green_fence) has leaves on 1 - open of its fill's cells.
 
 const Solidity := preload("res://scripts/solidity.gd")
 
@@ -36,8 +42,27 @@ const BOX_TRIANGLES := 10
 ## The rows texture: texels a row and rows at most (64 x 8 RGBA floats, 8 KB).
 const ROW_TEXELS := 8
 const MAX_ROWS := 64
-## `top` codes in texel 4 (W5 draws sag and leafy).
+## `top` codes in texel 6 (W5 draws sag and leafy).
 const TOPS := {"flat": 0.0, "sag": 1.0, "leafy": 2.0}
+## W5: a sagging top's drop midway between two posts (m; walls doc 6.4: "up to 8 cm").
+const SAG := 0.08
+## W5: a leafy top: the deepest cut under the top (m), the noise's cell along the line (m), and the
+## darkened band over the foot (m; walls doc 6.4: "the lowest 0.2 m") with its shade.
+const LEAFY := 0.15
+const LEAF_CELL := 0.3
+const LEAFY_FOOT := 0.2
+const LEAFY_SHADE := 0.75
+## W5: a row this open or less is closed (walls doc 10: wood 0.08, hoarding 0): no holes, its bars
+## drawn as joints JOINT_SHADE darker.
+const CLOSED := 0.1
+const JOINT_SHADE := 0.72
+## W5: the pixel floors' cap. A pixel's footprint on a panel seen nearly edge-on is a long thin
+## sliver (metres along u or v one way, centimetres the other), and its long side (fwidth) made
+## every post, rail and bar a "pixel" wide until the bands filled the panel: a solid dark band
+## (Pole Mokotowskie's lawn edge). The shader caps the floors at GRAZE times the footprint's narrow
+## side (its area over its long side); spacings and cells keep the long side. Seen at 45 degrees or
+## more, and wherever a pixel is square (the `px` of the functions here), the cap never bites.
+const GRAZE := 2.0
 
 
 ## The spacing of the bars drawn (m) for a row's `spacing` at `px` metres an image pixel: the
@@ -96,7 +121,8 @@ static func is_panel(ty: StringName) -> bool:
 ## colours sRGB as the palette writes them; panel.gdshader converts them):
 ##   0 colour, open        1 alt colour, its share     2 the second alt, the two shares together
 ##   3 foot colour, foot h 4 post every, post width, rails, bar spacing
-##   5 post colour, ribs   6 top (TOPS), thick, h, panel (1)   7 unused
+##   5 post colour, ribs   6 top (TOPS), thick, h, panel (1)   7 leaf colour, has leaves (1)
+## (W5: a row whose posts are `in_mesh` gets post width 0: the city mesh stands them.)
 static func rows_image() -> Image:
 	var img := Image.create_empty(ROW_TEXELS, MAX_ROWS, false, Image.FORMAT_RGBAF)
 	var ids := Solidity.looks()
@@ -127,16 +153,18 @@ static func row_texels(row: Dictionary) -> Array[Color]:
 	var foot_col := _colour(foot["colour"]) if foot.has("colour") else colour.darkened(float(foot.get("darken", 0.0)))
 	var post: Dictionary = row.get("post", {})
 	var post_col := _colour(post["colour"]) if post.has("colour") else colour
+	var post_w := 0.0 if bool(post.get("in_mesh", false)) else float(post.get("w", 0.0))
+	var leaf := _colour(row["leaf"]) if row.has("leaf") else colour
 	var out: Array[Color] = [
 		Color(colour.r, colour.g, colour.b, float(row.get("open", 0.0))),
 		Color(a1.r, a1.g, a1.b, s1),
 		Color(a2.r, a2.g, a2.b, s2),
 		Color(foot_col.r, foot_col.g, foot_col.b, float(foot.get("h", 0.0))),
-		Color(float(post.get("every", 0.0)), float(post.get("w", 0.0)), float(row.get("rails", 0)), float(row.get("bars", 0.0))),
+		Color(float(post.get("every", 0.0)), post_w, float(row.get("rails", 0)), float(row.get("bars", 0.0))),
 		Color(post_col.r, post_col.g, post_col.b, float(row.get("ribs", 0.0))),
 		Color(float(TOPS.get(str(row.get("top", "flat")), 0.0)), float(row.get("thick", 0.05)), float(row.get("h", 1.0)),
 				1.0 if bool(row.get("panel", false)) else 0.0),
-		Color(0, 0, 0, 0),
+		Color(leaf.r, leaf.g, leaf.b, 1.0 if row.has("leaf") else 0.0),
 	]
 	return out
 
@@ -154,7 +182,8 @@ static func rows_texture() -> ImageTexture:
 ## What the shader draws at a point of a panel, in GDScript for the check: `u` metres along the
 ## line, `v` metres up from the foot, `h` the panel's height, `px` metres an image pixel, the
 ## row's texels `t` (row_texels) and the line's `seed`. {"solid": bool, "what": "foot", "post",
-## "rail", "bar", "fill" or ""}. The shader's fragment() is this, in step / mix form.
+## "rail", "bar", "joint", "leaf", "fill" or ""}. The shader's fragment() is this, in step / mix form.
+## W5: the tops (`sag_drop`, `leaf_edge`), a closed row's joints, a leafy row's leaves.
 static func sample(t: Array[Color], u: float, v: float, h: float, px: float, seed_v: float) -> Dictionary:
 	var foot_h := t[3].a
 	var every := t[4].r
@@ -163,6 +192,13 @@ static func sample(t: Array[Color], u: float, v: float, h: float, px: float, see
 	var bars := t[4].a
 	var ribs := t[5].a
 	var open := t[0].a
+	var top := t[6].r
+	var closed := open <= CLOSED
+	var leaves := t[7].a > 0.5
+	# The top line: sagging between posts, else the panel's height; a leafy row's leaves stop at
+	# its noisy edge (a hedge is all leaves).
+	var line := h - (sag_drop(u, every) if absf(top - 1.0) < 0.5 else 0.0)
+	var edge := leaf_edge(u, h, seed_v) if top > 1.5 else h
 	if v <= foot_h:
 		return {"solid": true, "what": "foot"}
 	if every > 0.0 and pw > 0.0:
@@ -170,20 +206,45 @@ static func sample(t: Array[Color], u: float, v: float, h: float, px: float, see
 		if d <= band(pw, px) * 0.5:
 			return {"solid": true, "what": "post"}
 	var rail := band(RAIL, px)
-	if rails >= 0.5 and v >= h - rail:
+	if rails >= 0.5 and v >= line - rail and v <= line:
 		return {"solid": true, "what": "rail"}
 	if rails >= 1.5 and absf(v - (foot_h + LOW_RAIL + RAIL * 0.5)) <= rail * 0.5:
 		return {"solid": true, "what": "rail"}
+	if v > line or (closed and not leaves and top > 1.5 and v > edge):
+		return {"solid": false, "what": ""}
+	var c := cell(px)
+	var stipple := _hash12(Vector2(floorf(u / c), floorf(v / c)) + Vector2(seed_v * 17.0, 0.0)) < 1.0 - open
+	if leaves and stipple and v <= edge:
+		return {"solid": true, "what": "leaf"}
 	if bars > 0.0:
 		var s := bar_spacing(bars, px)
 		if absf(fposmod(u / s + 0.5, 1.0) - 0.5) * s <= bar_width(px) * 0.5:
-			return {"solid": true, "what": "bar"}
-		return {"solid": false, "what": ""}
+			return {"solid": true, "what": "joint" if closed else "bar"}
+		return {"solid": closed, "what": "fill" if closed else ""}
 	if ribs > 0.0 and absf(fposmod(v / ribs + 0.5, 1.0) - 0.5) * ribs <= band(0.0, px) * 0.5:
 		return {"solid": true, "what": "rail"}
-	var c := cell(px)
-	var keep := _hash12(Vector2(floorf(u / c), floorf(v / c)) + Vector2(seed_v * 17.0, 0.0)) < 1.0 - open
+	var keep := closed or (stipple and not leaves)
 	return {"solid": keep, "what": "fill" if keep else ""}
+
+
+## W5: a sagging top's drop (m) at `u` m along the line, posts every `every` m: SAG x 4 t (1 - t),
+## t the share of the way from the last post (0 at a post, SAG midway). No posts: no sag.
+static func sag_drop(u: float, every: float) -> float:
+	if every <= 0.0:
+		return 0.0
+	var f := fposmod(u / every, 1.0)
+	return SAG * 4.0 * f * (1.0 - f)
+
+
+## W5: a leafy top's edge (m over the foot) at `u` m along the line for the line's seed: the
+## height less LEAFY times a value noise (two hashes of LEAF_CELL cells, smoothstepped between).
+static func leaf_edge(u: float, h: float, seed_v: float) -> float:
+	var x := u / LEAF_CELL
+	var i := floorf(x)
+	var f := x - i
+	var s := f * f * (3.0 - 2.0 * f)
+	var n := lerpf(_hash12(Vector2(i, seed_v * 31.0)), _hash12(Vector2(i + 1.0, seed_v * 31.0)), s)
+	return h - LEAFY * n
 
 
 ## common.gdshaderinc's hash12, the same arithmetic (the check's stipple share).

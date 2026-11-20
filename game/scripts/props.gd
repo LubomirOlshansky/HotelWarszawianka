@@ -550,7 +550,7 @@ static func _xbox(st: SurfaceTool, xf: Transform3D, centre: Vector3, size: Vecto
 ## is the bake's `f`: "canopy" (a barrel-vaulted glass canopy on steel ribs with a lit red fascia
 ## and a handrail down the middle), "steps" (an open stairwell behind a granite balustrade) or
 ## "footway" (a passage mouth between two stepped concrete retaining walls) or "tube" (Metro
-## Centrum's blue half-barrel canopy). Every form has the
+## Centrum's blue half-barrel canopy) or "post" (just the M post). Every form has the
 ## step treads painted down the dark opening, a red M post (a pixel-font M in a red square, our
 ## own shape, not the operator's mark; lit at night) and, when `lift`, a glass lift shaft beside it.
 ## Stays in the sector's one mesh: no extra draw call. 320-620 triangles.
@@ -560,6 +560,11 @@ static func add_metro_entrance(st: SurfaceTool, xf: Transform3D, form := "canopy
 	var glass := Color("#a8cde6")
 	var granite := Color("#8d8b86")
 	var concrete := Color("#9a978f")
+	if form == "post":
+		# Only the red M post: the stair and the glass belong to a landmark site (Metro Centrum's big
+		# pavilion by the Palace's park, landmarks/centre.gd `_glass_pavilion`).
+		_metro_post(st, xf, steel)
+		return
 	# The opening, its treads (light at the top, darker down) and the handrail posts.
 	_xbox(st, xf, Vector3(0, 0.02, 0), Vector3(2.2, 0.03, 4.0), Color("#1d1f24"))
 	for i in 9:
@@ -663,11 +668,7 @@ static func add_metro_entrance(st: SurfaceTool, xf: Transform3D, form := "canopy
 			# The fascia over the open front: red, lit, with the M on it.
 			_xbox(st, xf, Vector3(0, 2.62, -2.15), Vector3(2.8, 0.55, 0.14), Color("#c8171f"), LIT_SIGN)
 			_metro_m(st, xf, Vector3(0, 2.62, -2.15), 0.06, [-1.0])
-	# The M post at the front right: a 3.4 m pole, a 0.9 m red square, the M on both faces.
-	var post := Vector3(1.7, 0, -2.4)
-	_xbox(st, xf, post + Vector3(0, 1.7, 0), Vector3(0.1, 3.4, 0.1), steel)
-	_xbox(st, xf, post + Vector3(0, 3.3, 0), Vector3(0.9, 0.9, 0.08), Color("#c8171f"), LIT_SIGN)
-	_metro_m(st, xf, post + Vector3(0, 3.3, 0), 0.095, [-1.0, 1.0], 0.08)
+	_metro_post(st, xf, steel)
 	if lift:
 		if form == "wings":
 			glass = Color("#b0202c")  # Rondo Daszyńskiego's lifts wear the same red glass
@@ -679,6 +680,14 @@ static func add_metro_entrance(st: SurfaceTool, xf: Transform3D, form := "canopy
 				_xbox(st, xf, c + Vector3(x, 1.35, z), Vector3(0.1, 2.7, 0.1), steel)
 		_xbox(st, xf, c + Vector3(0, 2.72, 0), Vector3(1.5, 0.12, 1.5), steel)
 		_xbox(st, xf, c + Vector3(0, 0.95, -0.67), Vector3(0.9, 1.9, 0.04), Color("#3a3e45"))
+
+
+## The M post at the front right of an entrance: a 3.4 m pole, a 0.9 m red square, the M on both faces.
+static func _metro_post(st: SurfaceTool, xf: Transform3D, steel: Color) -> void:
+	var post := Vector3(1.7, 0, -2.4)
+	_xbox(st, xf, post + Vector3(0, 1.7, 0), Vector3(0.1, 3.4, 0.1), steel)
+	_xbox(st, xf, post + Vector3(0, 3.3, 0), Vector3(0.9, 0.9, 0.08), Color("#c8171f"), LIT_SIGN)
+	_metro_m(st, xf, post + Vector3(0, 3.3, 0), 0.095, [-1.0, 1.0], 0.08)
 
 
 ## Metro Ratusz-Arsenał's entrances (F's photos, 2026-11-07), local frame as add_metro_entrance's

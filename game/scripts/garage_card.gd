@@ -10,6 +10,7 @@ extends Control
 ## -> after buying the item picked) in place of the paints; the same action button buys it.
 
 const Lang := preload("res://scripts/lang.gd")
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 
 signal closed
 
@@ -34,7 +35,7 @@ var picked_item := "tt"
 
 var _built := false
 ## The dim over the HUD and the city behind the card (drawn by this Control, `_draw`).
-const DIM := Color(0, 0, 0, 0.4)
+const DIM := UiKit.SCRIM
 var _card: PanelContainer
 var _title: Label
 var _title_en: Label
@@ -80,7 +81,7 @@ func _build() -> void:
 	names.add_theme_constant_override("separation", 0)
 	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(names)
-	_title = hud._label(hud.T_TITLE, garage.GARAGE_COLOUR)
+	_title = hud._label(hud.T_TITLE, UiKit.GOLD)  # card titles are gold (the kit; was the garage blue)
 	_title.text = str(garage.NAME[0]).to_upper()
 	names.add_child(_title)
 	_title_en = hud._label(hud.T_LABEL, hud.SUB)
@@ -303,7 +304,7 @@ func _refresh() -> void:
 	_stats_en.visible = on_parts
 	for t: Array in [[_tab_paint, "paint"], [_tab_parts, "parts"]]:
 		var tb: Button = t[0]
-		var tstyle: StyleBoxFlat = hud._box(hud.CARD_BG, hud.ACCENT if tab == t[1] else Color(1, 1, 1, 0.22), 2.0 if tab == t[1] else 1.0)
+		var tstyle: StyleBoxFlat = hud._box(UiKit.GOLD_TINT if tab == t[1] else hud.CARD_BG, hud.ACCENT if tab == t[1] else UiKit.EDGE_STRONG, 2.0 if tab == t[1] else 1.0)
 		for s in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
 			tb.add_theme_stylebox_override(s, tstyle)
 	if on_parts:
@@ -329,7 +330,7 @@ func _refresh() -> void:
 			_:
 				price.text = w.money(int(p["price"]))
 		var lit := id == picked
-		var edge: Color = hud.ACCENT if lit else (garage.GARAGE_COLOUR if id == cur else Color(1, 1, 1, 0.22))
+		var edge: Color = hud.ACCENT if lit else (UiKit.INK if id == cur else UiKit.EDGE_STRONG)
 		var style: StyleBoxFlat = hud._box(hud.CARD_BG, edge, 2.0 if lit or id == cur else 1.0)
 		for s in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
 			b.add_theme_stylebox_override(s, style)
@@ -387,7 +388,7 @@ func _refresh_parts() -> void:
 					price.text = w.money(U.price(id, st["tune"]))
 		var lit := id == picked_item
 		var worn: bool = r in ["on", "owned", "max"]
-		var edge: Color = hud.ACCENT if lit else (garage.GARAGE_COLOUR if worn else Color(1, 1, 1, 0.22))
+		var edge: Color = hud.ACCENT if lit else (UiKit.INK if worn else UiKit.EDGE_STRONG)
 		var style: StyleBoxFlat = hud._box(hud.CARD_BG, edge, 2.0 if lit or worn else 1.0)
 		for s in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
 			b.add_theme_stylebox_override(s, style)

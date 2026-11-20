@@ -61,6 +61,7 @@ const Access := preload("res://scripts/access.gd")
 const Pacer := preload("res://scripts/pacer.gd")
 const StopAssist := preload("res://scripts/stop_assist.gd")
 const GameCtx := preload("res://scripts/game_ctx.gd")
+const GameTime := preload("res://scripts/game_time.gd")
 const QuestBook := preload("res://scripts/quest_book.gd")
 
 enum Phase { IDLE, RING, OFFER, RUN }
@@ -84,6 +85,12 @@ var autopilot := false
 ## [position, speed km/h, flying, forward speed m/s].
 var vehicle: Callable
 var clock: Callable = func() -> float: return 12.0
+## The hours its run belongs to (game_time.gd, F 2026-11-19: a night activity offered by day): a run
+## that starts outside them jumps the game clock to their opening hour, and its call says so.
+## Vector2(-1, -1): any time.
+var run_hours := Vector2(-1.0, -1.0)
+## The game clock's node (time_of_day.gd, `install`), for the jump; null in a check.
+var clock_node: Node
 ## Nothing else is on (the director sets this when the activity joins it).
 var free_now: Callable = func() -> bool: return true
 ## Another activity's request card that leaves the player free is up (`offer_busy` off: Podwózka's,
@@ -212,6 +219,7 @@ func install(ctx: GameCtx) -> bool:
 	hud = ctx.hud
 	wallet = ctx.wallet
 	map = ctx.map
+	clock_node = ctx.tod
 	return true
 
 
@@ -241,11 +249,18 @@ func idle() -> bool:
 
 # --- the target (TD-2) -------------------------------------------------------------------------
 
+## A run's target that moves further than this (m) is a new place: hud.gd `cue("ping")`.
+const PING_MOVE := 5.0
+
 ## Where the player is sent now: the beacon stands there, and main.gd reads it (through the
 ## director) for the arrow, the metres, the minimap's dot and the stop assist. `person`: someone
 ## waits in the ring. `ring_at` and `radius`: the ring's own place and size when it is not on the
 ## spot the player is sent to (a group on the pavement beside the kerb the car stops at).
 func set_target(at: Vector2, person := false, ring_at := Vector3.INF, radius := 0.0) -> void:
+	# The run's next place (the kebab picked up: now the customer) pings; the same place set again
+	# each frame, or the run's first, does not.
+	if phase == Phase.RUN and _beacon != null and _beacon.visible and Vector2(_target.x, _target.z).distance_to(at) > PING_MOVE:
+		hud.cue("ping")
 	_target = Vector3(at.x, _ground(at), at.y)
 	_beacon.visible = true
 	_beacon.place(_target if ring_at == Vector3.INF else ring_at, radius if radius > 0.0 else arrive - 0.5, true, person)
@@ -378,7 +393,9 @@ func _idle_tick(dt: float) -> void:
 ## The call's own clock says ring now: false while another caller's call goes first (TD-3's variety:
 ## this one rang last and another's call waits, the director's `my_turn`); this one then waits too.
 func _ring_turn() -> bool:
-	if bool(my_turn.call()):
+	# The call gate (F 2026-11-19): `free_now` holds every offer for the spacing and the quiet time;
+	# a call by its own clock waits the call gap as well (messages.gd `call_ok`).
+	if _call_gate() and bool(my_turn.call()):
 		return true
 	_waited = _session
 	return false
@@ -425,6 +442,10 @@ func _show_ring() -> void:
 	var about: Array = c.get("about", ["", ""])
 	var pl := str(about[0])
 	var en := str(about[1])
+	var night := _night_line()
+	if not night.is_empty():  # a night run offered by day: when it starts (F 2026-11-19)
+		pl = (pl + "\n" if pl != "" else "") + str(night[0])
+		en = (en + "\n" if en != "" else "") + str(night[1])
 	var quest := _invite()
 	if not quest.is_empty():  # the questline it starts, under the caller (F 2026-11-17)
 		var line := QuestBook.fmt("invite", [quest])
@@ -434,6 +455,14 @@ func _show_ring() -> void:
 	_own_card()
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
+
+
+## The call card's line for a night run offered outside its hours ([] in them, or any-time runs).
+func _night_line() -> Array:
+	if run_hours.x < 0.0 or clock_node == null or not clock_node.has_method("local_clock") \
+			or GameTime.in_hours(float(clock_node.local_clock()["hour"]), run_hours):
+		return []
+	return QuestBook.fmt("call_night", ["%d:00" % int(run_hours.x)])
 
 
 func _offer() -> void:
@@ -447,6 +476,7 @@ func _offer() -> void:
 	var body: Array = c.get("body", ["", ""])
 	hud.show_side_card(str(title[0]), str(body[0]), PackedStringArray(c.get("buttons", OFFER_BUTTONS)), colour,
 			str(title[1]), str(body[1]), false, str(c.get("face", "")))
+	hud.cue("offer")
 	_own_card()
 
 
@@ -462,6 +492,9 @@ func meet() -> bool:
 ## It starts (the offer taken, a meeting, a test flag). The director hears it before `_begin`, so a
 ## call another activity puts off goes before this run shows anything (missions.gd `calls_put_off`).
 func start() -> void:
+	# A night run taken by day: the clock jumps to its hour first, so the run sees the night.
+	if run_hours.x >= 0.0 and clock_node != null and clock_node.has_method("local_clock"):
+		GameTime.jump_into(clock_node, hud, run_hours)
 	phase = Phase.RUN
 	_t = 0.0
 	_run_t = 0.0

@@ -1903,6 +1903,21 @@ const METRO_TUBES := [
 	[Vector2(-937.1, 306.2), Vector2(-927.5, 302.2), Vector2(-925.9, 305.8), Vector2(-935.6, 309.8)],
 	[Vector2(-962.7, 316.7), Vector2(-972.4, 320.7), Vector2(-970.8, 324.4), Vector2(-961.2, 320.3)],
 ]
+## Metro Centrum's big glass pavilion by the Palace's park (ref 5, OSM `transportation` outline 3223,
+## 5 m): the outline's four corners, the mouth's two first (north, facing Plac Defilad's lawn), then
+## the closed end's two. Built from F's Street View and aerial (2026-11-19): a barrel vault of smoky
+## glass on dark blue steel ribs over a 1.1 m beige tiled base, a fan-glazed closed end.
+const METRO_PAVILION := [Vector2(-963.4, 218.1), Vector2(-971.1, 220.7), Vector2(-965.6, 236.8), Vector2(-957.9, 234.2)]
+## The two little boxes south of it (OSM `service` 3222 and `transportation` 3402, a vent and a
+## kiosk) that F asked to remove (2026-11-19, with its fence: city_barriers SITE_WALLS): dropped with the site.
+const PAV_NEIGHBOURS := [
+	[Vector2(-947.9, 258.4), Vector2(-946.7, 261.4), Vector2(-951.6, 263.3), Vector2(-952.8, 260.4)],
+	[Vector2(-962.7, 252.5), Vector2(-961.5, 252.0), Vector2(-960.4, 251.5), Vector2(-959.2, 254.4), Vector2(-961.5, 255.3)],
+]
+const PAV_TILE := Color("#c7b08f")
+const PAV_COPING := Color("#ddd2bf")
+const PAV_GLASS := Color("#6f8799")
+const PAV_BASE_H := 1.1
 ## The Plac Defilad car park ramp's walls: pink wall tile (Street View, Aug 2025) under a pale
 ## granite coping, the ramp's surface a dark ribbed slab.
 const RAMP_TILE := Color("#c9a69b")
@@ -1960,6 +1975,11 @@ func _find_sunken() -> void:
 	for b: Array in METRO_TUBES:
 		tubes.append(PackedVector2Array(b))
 	_add_site("metro_tubes", tubes)
+	# The big pavilion beside them (ref 5): its outline is the plan, the grey box goes.
+	var pav_zone: Array = [PackedVector2Array(METRO_PAVILION)]
+	for n: Array in PAV_NEIGHBOURS:
+		pav_zone.append(PackedVector2Array(n))
+	_add_site("metro_pavilion", pav_zone)
 
 
 var _sunk_done: Array[PackedVector2Array] = []
@@ -2144,12 +2164,118 @@ func _sunk_ramp(sk: Dictionary) -> void:
 		_sunk_top(q, floor_at, road if k % 2 == 0 else rib)
 
 
+## Metro Centrum's big pavilion by the Palace's park (METRO_PAVILION).
+func _build_metro_pavilion() -> void:
+	_no_roof = true
+	_glass_pavilion(METRO_PAVILION)
+	_no_roof = false
+
+
 ## Metro Centrum's two barrels by the Palace's park (METRO_TUBES), as the Patelnia's.
 func _build_metro_tubes() -> void:
 	_no_roof = true
 	for b: Array in METRO_TUBES:
 		_glass_barrel(b)
 	_no_roof = false
+
+
+## Metro Centrum's big glass pavilion (METRO_PAVILION): a 1.1 m beige tiled base round a half-barrel
+## vault of smoky glass on dark blue steel ribs (every ~1.5 m) with horizontal glazing bars, the
+## closed south end glazed in a fan of radial bars, the north mouth open between two stubs of
+## base wall over a stair going down (the M post is storefronts' prop, form "post"). Car
+## collision on the outline.
+func _glass_pavilion(q: Array) -> void:
+	var p0: Vector2 = q[0]
+	var p1: Vector2 = q[1]
+	var p2: Vector2 = q[2]
+	var p3: Vector2 = q[3]
+	var mouth := (p0 + p1) * 0.5
+	var far := (p2 + p3) * 0.5
+	var length := mouth.distance_to(far)
+	var up := (mouth - far) / length
+	var side := Vector2(-up.y, up.x)
+	var width := p0.distance_to(p1)
+	var c := (mouth + far) * 0.5
+	var half := length * 0.5
+	var hw := width * 0.5
+	var r := hw - 0.15
+	var g: float = map.terrain_height(c.x, c.y)
+	var y0 := g + PAV_BASE_H
+	_o = c
+	_a = up
+	_b = side
+	_collide(PackedVector2Array(q))
+	# The tiled base: both long walls, the closed end, the mouth's two stubs (a 3.6 m gap between),
+	# a coping over each.
+	var gap := 1.8
+	_mode = M_STONE
+	for sv: float in [-1.0, 1.0]:
+		_lbox(0.0, (hw - 0.2) * sv, half, 0.2, g - 0.05, y0, PAV_TILE, M_STONE, PAV_COPING)
+		_lbox(half - 0.2, (gap + hw) * 0.5 * sv, 0.2, (hw - gap) * 0.5, g - 0.05, y0 - 0.03, PAV_TILE, M_STONE, PAV_COPING)
+	_lbox(-half + 0.2, 0.0, 0.2, hw - 0.4, g - 0.05, y0 - 0.03, PAV_TILE, M_STONE, PAV_COPING)
+	# The vault: half a barrel, 12 panes round, smoky glass, a pale sheen band along the crown.
+	var segs := 12
+	var arc: Array[Vector2] = []
+	for k in segs + 1:
+		var ang := PI * float(k) / float(segs)
+		arc.append(Vector2(cos(ang) * r, sin(ang) * r))
+	var at := func(s: float, p: Vector2) -> Vector3:
+		var w := c + up * s + side * p.x
+		return Vector3(w.x, y0 + p.y, w.y)
+	_mode = M_PAVILION + 0.5
+	for k in segs:
+		var pa: Vector2 = arc[k]
+		var pb: Vector2 = arc[k + 1]
+		var n3: Vector3 = ((at.call(0.0, (pa + pb) * 0.5) as Vector3) - Vector3(c.x, y0, c.y)).normalized()
+		var tone := PAV_GLASS.lightened(0.10) if k % 4 == 1 else PAV_GLASS
+		_quad(at.call(-half, pa), at.call(half, pa), at.call(half, pb), at.call(-half, pb), n3, tone)
+	# The closed south end: glass in a fan from the foot of the end wall, radial bars and a ring.
+	var back := Vector3(-up.x, 0.0, -up.y)
+	var hub: Vector3 = at.call(-half, Vector2.ZERO)
+	for k in segs:
+		_tri(hub, at.call(-half, arc[k]), at.call(-half, arc[k + 1]), back, PAV_GLASS.darkened(0.12),
+				Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	# Ribs every ~1.5 m, the mouth's arch heavier.
+	var n_rib := maxi(4, roundi(length / 1.5) + 1)
+	for i in n_rib:
+		var s := -half + length * float(i) / float(n_rib - 1)
+		_barrel_rib(at, s, 0.22 if i == n_rib - 1 or i == 0 else 0.12, arc, r)
+	# Horizontal glazing bars along the vault at every second vertex, on the glass.
+	_mode = M_STONE
+	var k_out := 1.015
+	for k in range(2, segs - 1, 2):
+		var pk: Vector2 = arc[k]
+		var tang := Vector2(-pk.y, pk.x).normalized() * 0.05
+		var nrm3: Vector3 = ((at.call(0.0, pk) as Vector3) - Vector3(c.x, y0, c.y)).normalized()
+		_quad(at.call(-half, pk * k_out - tang), at.call(half, pk * k_out - tang), at.call(half, pk * k_out + tang),
+				at.call(-half, pk * k_out + tang), nrm3, BARREL_RIB)
+	# The fan's radial bars on the end glass (in the end plane, 0.1 m proud), and a ring half way up.
+	for k in range(1, segs):
+		var pk: Vector2 = arc[k]
+		var perp := Vector2(-pk.y, pk.x).normalized() * 0.05
+		_quad(at.call(-half - 0.04, pk * 0.12 + perp), at.call(-half - 0.04, pk + perp), at.call(-half - 0.04, pk - perp),
+				at.call(-half - 0.04, pk * 0.12 - perp), back, BARREL_RIB)
+	for k in segs:
+		var pa: Vector2 = arc[k] * 0.55
+		var pb: Vector2 = arc[k + 1] * 0.55
+		var pa2: Vector2 = pa * 1.08
+		var pb2: Vector2 = pb * 1.08
+		_quad(at.call(-half - 0.04, pa), at.call(-half - 0.04, pb), at.call(-half - 0.04, pb2), at.call(-half - 0.04, pa2), back, BARREL_RIB)
+	# Inside the mouth: the dark well and its first lighter steps going down.
+	var w0 := c + up * (half - 0.6) - side * gap
+	var w1 := c + up * (half - 0.6) + side * gap
+	var w2 := c - up * (half - 0.6) + side * gap
+	var w3 := c - up * (half - 0.6) - side * gap
+	_quad(Vector3(w0.x, g + 0.03, w0.y), Vector3(w1.x, g + 0.03, w1.y), Vector3(w2.x, g + 0.03, w2.y), Vector3(w3.x, g + 0.03, w3.y),
+			Vector3.UP, BARREL_WELL)
+	for k in 4:
+		var s := half - 0.5 - 0.45 * k
+		var e0 := c + up * s - side * (gap - 0.1)
+		var e1 := c + up * s + side * (gap - 0.1)
+		var e2 := c + up * (s - 0.2) + side * (gap - 0.1)
+		var e3 := c + up * (s - 0.2) - side * (gap - 0.1)
+		_quad(Vector3(e0.x, g + 0.07, e0.y), Vector3(e1.x, g + 0.07, e1.y), Vector3(e2.x, g + 0.07, e2.y), Vector3(e3.x, g + 0.07, e3.y),
+				Vector3.UP, SUNK_TREAD.darkened(0.2 + 0.12 * k))
 
 
 ## A flat top over plan polygon `poly`, less what this build already covered (neighbouring edges'
@@ -4345,7 +4471,7 @@ const ZOD_GLASS := Color("#5f7782")
 const ZOD_RAIL := Color("#a9bcc6")
 const ZOD_GRASS := Color("#7d8a4e")
 const ZOD_WORD := "ZODIAK"
-const ZOD_COLOUR := Color(0.86, 0.93, 1.0)
+const ZOD_COLOUR := Color(0.5, 0.72, 1.0)   # blue-white neon (F's night photo, 2026-11-19)
 
 
 func _find_modern_pavilions() -> void:
@@ -4433,8 +4559,26 @@ func _build_zodiak(site: Dictionary) -> void:
 	for k in n + 1:
 		var u := lerpf(u0 + 0.1, u1 - 0.1, float(k) / n)
 		_ubox(u - 0.06, u + 0.06, v1 - ZOD_TERRACE, v1 + 0.15, y + 0.1, y + 0.3, ZOD_WHITE)
-	# The white neon word over the back (on the brick wall behind in the photos), facing the square.
-	_usign(ZOD_WORD, (u0 + u1) * 0.5, v0 + 0.3, g + ZOD_H + ZOD_ROOF + 0.6, _b, 0.55 * (u1 - u0), 1.6, ZOD_COLOUR)
+	# The white neon word over the roof's front edge, facing the square.
+	# F, 2026-11-19: on the FRONT (the square's side), standing on the upper room's roof edge.
+	var sv := v1 - ZOD_TERRACE - 0.25
+	_usign(ZOD_WORD, (u0 + u1) * 0.5, sv, g + ZOD_H + ZOD_ROOF + 0.6, _b, 0.75 * (u1 - u0), 2.2, ZOD_COLOUR)   # a little bigger (F, 2026-11-19)
+	# The little neon star over the "i" (F's night photo): a lit plus and a lit diamond.
+	var su := (u0 + u1) * 0.5 + 0.08 * 0.75 * (u1 - u0)
+	var sy := g + ZOD_H + ZOD_ROOF + 0.6 + 2.35
+	_lbox(su, sv, 0.03, 0.03, g + ZOD_H, sy - 0.2, Color("#2b2c2f"), M_STONE)   # its stem on the roof
+	_lbox(su, sv, 0.3, 0.03, sy - 0.04, sy + 0.04, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
+	_lbox(su, sv, 0.04, 0.03, sy - 0.3, sy + 0.3, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
+	_lbox(su, sv, 0.12, 0.03, sy - 0.12, sy + 0.12, ZOD_COLOUR, M_LAMP, ZOD_COLOUR)
+	# String lights over the square (the photo): bulbs hung from the pergola's front beam out to
+	# three poles in the square, one sagging fan.
+	var top_y := g + ZOD_H + 0.22   # inside the pergola beam, so the string is welded to it
+	for f in [0.12, 0.5, 0.88]:
+		var uu := lerpf(u0, u1, f)
+		var from := _w(uu, v1 + 0.3)
+		var to := _w(uu + (f - 0.5) * 6.0, v1 + 12.0)
+		_beam(Vector3(to.x, g - 0.2, to.y), Vector3(to.x, g + 6.6, to.y), 0.12, Color("#2b2c2f"))
+		_pow_festoon(Vector3(from.x, top_y, from.y), Vector3(to.x, g + 6.5, to.y), 0.6, 7)
 	_collide(low)
 
 
@@ -4482,13 +4626,15 @@ func _find_wiecha() -> void:
 
 func _build_wiecha(site: Dictionary) -> void:
 	var none := Color(0, 0, 0, 0)
+	var idx := -1
 	for outline: PackedVector2Array in site["outlines"]:
+		idx += 1
 		if outline.size() < 3:
 			continue
 		_g = _ground_under(outline)
 		var g := _g
 		# The shop storey: dark glass lit warm at night, thin dark frames every 2.2 m.
-		_prism(outline, g - 0.4, g + WIECHA_LOW, WIECHA_SHOP, none, M_PAVILION)
+		_prism(outline, g - 0.4, g + WIECHA_LOW, WIECHA_BROWN if idx == WIECHA_WIDOK else WIECHA_SHOP, none, M_PAVILION)
 		_mullions(outline, g, g + WIECHA_LOW, 2.2, 0.05, WIECHA_FRAME)
 		# The fascia over the shopfronts, reaching out WIECHA_OVER m: its face, its top round the
 		# upper band, its underside.
@@ -4516,8 +4662,123 @@ func _build_wiecha(site: Dictionary) -> void:
 			var p := c + Vector2(2.2 * (k * 2 - 1), 0.8 * (k * 2 - 1))
 			if Geometry2D.is_point_in_polygon(p, outline):
 				_prism(_square(p, 0.9), g + WIECHA_TOP, g + WIECHA_TOP + 1.1, Color("#a9aaa6"), Color("#7f807c"), M_STONE, M_STONE)
+		_wiecha_life(outline, idx, g)
 		_collide(outline)
 	_mode = M_STONE
+
+
+# Night life on the shop storeys (F, 2026-11-19, the "Warsaw 3 a.m." teaser): each bay between two
+# frames is a lit window display or a dark shut shopfront; some have a striped awning; the fascia
+# carries a small light-box word; one pavilion has the 24 h kebab hatch with its blade sign and a
+# string of bulbs. Everything is the site's one mesh (M_LAMP glows at night) and a few neon words:
+# no new material, no new draw call. Parody words only (neon_signs.gd's own list).
+const WIECHA_FRONT := Vector2(-0.937, 0.349)   # towards the pasaż (first_scene.gd's -FRAME_T)
+const WIECHA_BAY := 2.2                        # = the mullion step above
+const WIECHA_DISPLAYS := [Color("#f2c27a"), Color("#f6dcae"), Color("#9fd0e8"), Color("#f2a7b8"), Color("#b8e0a8")]
+const WIECHA_AWNINGS := [Color("#7a2630"), Color("#24425f"), Color("#2f5b3f"), Color("#3a3a3e")]
+const WIECHA_WORDS := ["APTEKA", "KWIATY", "KANTOR", "PIZZA", "BAR MLECZNY", "KLUB"]
+const WIECHA_HATCH := Color("#ffb454")
+const WIECHA_WIDOK := 3      # Widok 26, the corner of the pasaż and Aleje Jerozolimskie: a dark-brown fast-food ground floor (F's photos, 2026-11-19)
+const WIECHA_BROWN := Color("#3b2b24")
+const WIECHA_FOOD := ["ATOMIK 24H", "KEBAB 24H", "PIZZA", "NOCNY", "KEBAB 24H"]
+const WIECHA_KEBAB_AT := 0   # the outline (in WIECHA_AT order) that carries the kebab hatch
+
+
+## One pavilion's night life. `idx` seeds the pattern, so it never changes between builds.
+func _wiecha_life(outline: PackedVector2Array, idx: int, g: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var front := _edge_facing(outline, WIECHA_FRONT, 4.0)
+	for i in outline.size():
+		var a := outline[i]
+		var b := outline[(i + 1) % outline.size()]
+		var len := a.distance_to(b)
+		if len < 3.0:
+			continue
+		var o := _out(outline, a, b)
+		var d := (b - a) / len
+		var n := maxi(1, roundi(len / WIECHA_BAY))
+		var bay := len / float(n)
+		var on_front := i == front
+		var hatch := (n - 1) / 2 if (on_front and idx == WIECHA_KEBAB_AT) else -1
+		for k in n:
+			var h := (idx * 7 + i * 5 + k * 3 + (idx ^ k) * 11) % 10
+			var c := a + d * bay * (float(k) + 0.5)
+			var half := bay * 0.5 - 0.14
+			var p0 := c - d * half + o * 0.03
+			var p1 := c + d * half + o * 0.03
+			var nrm := Vector3(o.x, 0.0, o.y)
+			_mode = M_LAMP
+			if k == hatch:
+				# The serving window: a hot orange pane, a counter, the blade sign over it.
+				_quad(Vector3(p0.x, g + 0.9, p0.y), Vector3(p1.x, g + 0.9, p1.y), Vector3(p1.x, g + 2.5, p1.y),
+						Vector3(p0.x, g + 2.5, p0.y), nrm, WIECHA_HATCH)
+				_mode = M_STONE
+				var cc := c + o * 0.35
+				_prism(_rect_dir(cc, d, half, 0.3), g, g + 1.0, Color("#3c3a38"), Color("#8c8a85"), M_STONE, M_STONE)
+				_awning(a, d, o, c, bay, g, Color("#b0281f"))
+				_blade(c - d * (half + 0.1), o, d, g + 2.6, "KEBAB 24H", Color(1.0, 0.3, 0.2))
+				continue
+			if h >= 7:
+				continue   # shut: its dark glass stays dark
+			var glow: Color = WIECHA_DISPLAYS[(idx + i + k) % WIECHA_DISPLAYS.size()]
+			_quad(Vector3(p0.x, g + 0.55, p0.y), Vector3(p1.x, g + 0.55, p1.y), Vector3(p1.x, g + 2.6, p1.y),
+					Vector3(p0.x, g + 2.6, p0.y), nrm, glow.darkened(0.4))
+			# A shelf and a dark row of goods across the lit pane.
+			_mode = M_STONE
+			var s0 := c - d * half + o * 0.06
+			var s1 := c + d * half + o * 0.06
+			_quad(Vector3(s0.x, g + 1.25, s0.y), Vector3(s1.x, g + 1.25, s1.y), Vector3(s1.x, g + 1.4, s1.y),
+					Vector3(s0.x, g + 1.4, s0.y), nrm, WIECHA_FRAME)
+			if h < 3 and on_front:
+				_awning(a, d, o, c, bay, g, WIECHA_AWNINGS[(idx + k) % WIECHA_AWNINGS.size()])
+		# Widok 26: a big parody fast-food name on the white band over each longer face.
+		if idx == WIECHA_WIDOK and len >= 6.0:
+			var fw: String = WIECHA_FOOD[i % WIECHA_FOOD.size()]
+			var fm := (a + b) * 0.5 + o * 0.02
+			var fk := minf(0.9 / (Neon.ROW_H * Neon.PIXEL), minf(5.0, len * 0.6) / Neon.length_of(fw))
+			signs.append([fw, Vector3(fm.x, g + WIECHA_LOW + WIECHA_FASCIA + 0.45, fm.y), Vector3(o.x, 0.0, o.y), fk,
+					Neon.colour_for(fw, float(i) * 0.41)])
+		# A light-box word on the fascia of the longer faces (the fascia reaches out WIECHA_OVER m).
+		if len >= 6.0 and not (idx == WIECHA_KEBAB_AT and on_front):
+			var word: String = WIECHA_WORDS[(idx * 3 + i) % WIECHA_WORDS.size()]
+			var m := (a + b) * 0.5 + o * (WIECHA_OVER + 0.02)
+			var kk := minf(0.36 / (Neon.ROW_H * Neon.PIXEL), 3.2 / Neon.length_of(word))
+			signs.append([word, Vector3(m.x, g + WIECHA_LOW + 0.03, m.y), Vector3(o.x, 0.0, o.y), kk, Neon.colour_for(word, float(idx + i) * 0.37)])
+		# 24 h kebab: a string of bulbs along the front, hung a little out from the fascia.
+		if on_front and idx == WIECHA_KEBAB_AT:
+			var q0 := a + d * 0.8 + o * (WIECHA_OVER + 0.3)
+			var q1 := b - d * 0.8 + o * (WIECHA_OVER + 0.3)
+			_pow_festoon(Vector3(q0.x, g + WIECHA_LOW + 0.1, q0.y), Vector3(q1.x, g + WIECHA_LOW + 0.1, q1.y), 0.35, 6)
+	_mode = M_STONE
+
+
+## A sloped awning over a bay: its cloth rising to the wall at 3.3 m, 0.9 m out at 2.75 m, and the front valance.
+func _awning(a: Vector2, d: Vector2, o: Vector2, c: Vector2, bay: float, g: float, col: Color) -> void:
+	_mode = M_STONE
+	var w := bay * 0.5 - 0.1
+	var w0 := c - d * w + o * 0.05
+	var w1 := c + d * w + o * 0.05
+	var f0 := w0 + o * 0.9
+	var f1 := w1 + o * 0.9
+	var up := Vector3(o.x * 0.5, 0.86, o.y * 0.5).normalized()
+	_quad(Vector3(w0.x, g + 3.3, w0.y), Vector3(w1.x, g + 3.3, w1.y), Vector3(f1.x, g + 2.75, f1.y), Vector3(f0.x, g + 2.75, f0.y), up, col)
+	_quad(Vector3(f0.x, g + 2.75, f0.y), Vector3(f1.x, g + 2.75, f1.y), Vector3(f1.x, g + 2.55, f1.y), Vector3(f0.x, g + 2.55, f0.y),
+			Vector3(o.x, 0.0, o.y), col.darkened(0.12))
+
+
+## A blade sign at right angles to the wall at the bay's edge: one neon word, readable from one side.
+func _blade(at: Vector2, o: Vector2, d: Vector2, y: float, word: String, col: Color) -> void:
+	var k := minf(0.7 / (Neon.ROW_H * Neon.PIXEL), 2.0 / Neon.length_of(word))
+	var mid := at + o * (WIECHA_OVER + 0.2 + Neon.length_of(word) * k * 0.5)   # stands out from the fascia
+	# One face only: the neon quad shows through from behind, so a second, opposite face drew the
+	# word mirrored over the first (Mac night shot, 2026-11-19). Readable from the -d side (flipped 2026-11-19: the Mac shot from the pasaż still read it backwards).
+	signs.append([word, Vector3(mid.x, y, mid.y), Vector3(-d.x, 0.0, -d.y), k, col])
+
+
+## A rectangle on the ground plan: centre `c`, its long axis `d`, half sizes hu along and hv across.
+func _rect_dir(c: Vector2, d: Vector2, hu: float, hv: float) -> PackedVector2Array:
+	var e := Vector2(-d.y, d.x)
+	return PackedVector2Array([c - d * hu - e * hv, c + d * hu - e * hv, c + d * hu + e * hv, c - d * hu + e * hv])
 
 
 # --- Plac Centralny (F's photos, 2026-11-05; the tribune and the field's place, 2026-11-08) ---------

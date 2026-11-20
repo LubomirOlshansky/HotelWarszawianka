@@ -31,20 +31,21 @@ extends Control
 signal changed(key: String, value: Variant)
 signal closed
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")  # one language at a time
-const ACCENT := Color("#ffd23f")
-const INK := Color("#fbf7ee")
-const SUB := Color("#c9c2d8")
-const DIM := Color(1, 1, 1, 0.07)
+const ACCENT := UiKit.GOLD
+const INK := UiKit.INK
+const SUB := UiKit.SUB
+const DIM := UiKit.DIM
 ## The HUD's card recipe (hud.gd CARD_BG).
-const CARD_BG := Color(0.07, 0.06, 0.1, 0.94)
+const CARD_BG := UiKit.CARD
 ## Type sizes in points (hud.gd's scale).
-const T_HEAD := 22.0
-const T_BODY := 15.0
-const T_SUB := 13.0
-const T_LABEL := 11.0
+const T_HEAD := UiKit.T_CLOCK
+const T_BODY := UiKit.T_BODY
+const T_SUB := UiKit.T_SUB
+const T_LABEL := UiKit.T_LABEL
 ## Loop MW-1: the notebook tab's title size (hud.gd T_TITLE).
-const T_NOTES := 17.0
+const T_NOTES := UiKit.T_TITLE
 
 const TABS := [["JAZDA", "driving"], ["ŚWIAT", "world"], ["OBRAZ", "picture"], ["DŹWIĘK", "sound"], ["ZESZYT", "notebook"], ["DOSTĘP", "access"]]
 ## Loop MW-1: the notebook's tab. The accessibility tab comes last (index 5) so the notebook keeps
@@ -171,7 +172,7 @@ func _build() -> void:
 	if not safe.has_area():
 		safe = Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
 	var shade := ColorRect.new()
-	shade.color = Color(0.02, 0.01, 0.05, 0.55)
+	shade.color = UiKit.SCRIM
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	# A tap beside the card closes it.
@@ -180,14 +181,7 @@ func _build() -> void:
 			close())
 	add_child(shade)
 
-	var style := StyleBoxFlat.new()
-	style.bg_color = CARD_BG
-	style.set_corner_radius_all(_px(12))
-	style.set_content_margin_all(14.0 * pt)
-	style.border_color = Color(1, 1, 1, 0.16)
-	style.set_border_width_all(maxi(1, roundi(0.5 * pt)))
-	style.border_width_left = _px(3)
-	style.border_color = ACCENT
+	var style := UiKit.card(pt, 14.0)  # the kit's card, as every panel (docs/design/ui-kit.md)
 	_card = PanelContainer.new()
 	_card.add_theme_stylebox_override("panel", style)
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -291,6 +285,7 @@ func _build() -> void:
 	var world := _rows(body, [2, 2])
 	_heading(world[0], "Pora dnia", "Time of day")
 	_segments(world[0], "time", TIME)
+	_groups["time"][3].visible = false  # F 2026-11-19: no Live, the game runs its own clock (time_of_day.gd)
 	_heading(world[1], "Tryb gry", "Game mode")
 	_segments(world[1], "wander", MODE)
 	_heading(world[2], "Pogoda", "Weather")
@@ -831,31 +826,12 @@ func _heading(parent: Node, pl: String, en: String) -> void:
 	parent.add_child(row)
 
 
-func _box(bg: Color, border: Color, width: float) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = bg
-	s.set_corner_radius_all(_px(8))
-	s.border_color = border
-	s.set_border_width_all(maxi(1, roundi(width * pt)))
-	s.set_content_margin_all(4.0 * pt)
-	return s
-
-
+## A kit button (docs/design/ui-kit.md): SECONDARY, its pressed and toggled state SELECTED.
 func _flat_button(label: String, points: float) -> Button:
 	var b := Button.new()
 	b.text = label
 	b.focus_mode = Control.FOCUS_NONE
-	b.add_theme_font_size_override("font_size", _px(points))
-	b.add_theme_color_override("font_color", INK)
-	b.add_theme_color_override("font_hover_color", INK)
-	b.add_theme_color_override("font_pressed_color", ACCENT)
-	var normal := _box(DIM, Color(1, 1, 1, 0.18), 0.5)
-	b.add_theme_stylebox_override("normal", normal)
-	b.add_theme_stylebox_override("hover", normal)
-	var on := _box(Color(1, 0.82, 0.25, 0.22), ACCENT, 1.0)
-	b.add_theme_stylebox_override("pressed", on)
-	b.add_theme_stylebox_override("hover_pressed", on)
-	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	UiKit.style_button(b, UiKit.Kind.SECONDARY, pt, points)
 	return b
 
 
@@ -893,6 +869,7 @@ func _word_button(pl: String, en: String) -> Button:
 	words.add_theme_constant_override("separation", 0)
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var top := _text(Lang.pick(pl, en), T_BODY, INK)
+	top.uppercase = true  # the kit's button words are capitals
 	var low := _text("", T_LABEL, SUB)  # the second line is gone: one language (lang.gd)
 	low.visible = false
 	for l in [top, low]:
@@ -1000,13 +977,13 @@ func _draw_steps(bar: Control, key: String, options: Array) -> void:
 	var x0 := pad
 	var span := maxf(bar.size.x - pad * 2.0, 1.0)
 	var h := 9.0 * pt
-	bar.draw_rect(Rect2(x0 - 1.2 * pt, y - h * 0.5 - 1.2 * pt, span + 2.4 * pt, h + 2.4 * pt), Color("#1d1b19"))
-	bar.draw_rect(Rect2(x0, y - h * 0.5, span, h), Color(1, 1, 1, 0.1))
+	bar.draw_rect(Rect2(x0 - 1.2 * pt, y - h * 0.5 - 1.2 * pt, span + 2.4 * pt, h + 2.4 * pt), UiKit.OUTLINE)
+	bar.draw_rect(Rect2(x0, y - h * 0.5, span, h), UiKit.DIM)
 	var lit := span * float(v) / maxf(n - 1.0, 1.0)
-	bar.draw_rect(Rect2(x0, y - h * 0.5, lit, h), Color("#5fd4ff").lerp(Color("#ff4fd8"), float(v) / maxf(n - 1.0, 1.0)))
+	bar.draw_rect(Rect2(x0, y - h * 0.5, lit, h), UiKit.NEON_CYAN.lerp(UiKit.NEON_PINK, float(v) / maxf(n - 1.0, 1.0)))
 	for k in n:
 		var cx := x0 + span * float(k) / maxf(n - 1.0, 1.0)
-		bar.draw_circle(Vector2(cx, y), (9.0 if k == v else 4.5) * pt, Color("#fff4d6") if k == v else Color(1, 1, 1, 0.5))
+		bar.draw_circle(Vector2(cx, y), (9.0 if k == v else 4.5) * pt, UiKit.INK if k == v else Color(UiKit.INK, 0.5))
 	var font := ThemeDB.fallback_font
 	var words: Array = options[clampi(v, 0, n - 1)]
 	bar.draw_string(font, Vector2(x0, touch + 12.0 * pt), Lang.pick(words[0], words[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_SUB), SUB)
@@ -1089,8 +1066,8 @@ func _draw_bar(bar: Control, key: String) -> void:
 	var track := Rect2(Vector2(pad, bar.size.y - h - 8.0 * pt), Vector2(bar.size.x - pad * 2.0, h))
 	if bar.has_focus():
 		bar.draw_rect(Rect2(Vector2.ZERO, bar.size).grow(1.0 * pt), Gamepad.RING, false, maxf(2.0, 2.0 * pt))
-	bar.draw_rect(track.grow(1.2 * pt), Color("#1d1b19"))
-	bar.draw_rect(track, Color(1, 1, 1, 0.1))
+	bar.draw_rect(track.grow(1.2 * pt), UiKit.OUTLINE)
+	bar.draw_rect(track, UiKit.DIM)
 	# Ten steps, lit up to the level: cyan to pink, the vaporwave way.
 	var steps := 10
 	var w := track.size.x / steps
@@ -1098,7 +1075,7 @@ func _draw_bar(bar: Control, key: String) -> void:
 		var f := (k + 1.0) / steps
 		if f <= v + 0.001 or (k == floori(v * steps) and v * steps - k > 0.01):
 			var share := clampf(v * steps - k, 0.0, 1.0)
-			var c := Color("#5fd4ff").lerp(Color("#ff4fd8"), float(k) / (steps - 1))
+			var c := UiKit.NEON_CYAN.lerp(UiKit.NEON_PINK, float(k) / (steps - 1))
 			bar.draw_rect(Rect2(track.position + Vector2(k * w + 0.6 * pt, 0), Vector2((w - 1.2 * pt) * share, h)), c)
 	var font := ThemeDB.fallback_font
 	var fs := _px(T_SUB)
