@@ -22,8 +22,9 @@ code runs on a baked map, and tools/check_post_passes.py runs it again to see it
   `kl` (map_builder.gd draws no slab, parapet or underside for them: the landmark site `kladka`,
   landmarks/kladka.gd, draws the whole bridge), the main deck and the north ramp widened to HALF
   each side (6.9 m), the south ramp to RAMP_HALF.
-- two more pieces of that group over each bend, on the main deck's line, wider on the bay's side
-  (`kl` 2): the bays' paving and steps stand on the deck's ground (the car, the walkers and the
+- pieces of that group over each bend, on the main deck's line, wider on the bay's side and
+  stepped over the tapers so each stays inside the lens and its railing (`kl` 2; version 1 had one
+  full-width piece a bay, whose tapers stuck out past the railing into the river): the bays' paving and steps stand on the deck's ground (the car, the walkers and the
   sitters find the deck there, not the river).
 - `roads`: the living street's four ways hidden over their whole length (`hide`), so no asphalt and
   no centre line are drawn; they stay in the data (no lane is laid on them: the traffic never came).
@@ -47,7 +48,7 @@ ROOT = os.path.normpath(os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
 
 KEY = "kladka"
-VERSION = 1
+VERSION = 2
 # The living street's ends (OpenStreetMap way 527506690 projected): Powiśle (on Wybrzeże
 # Kościuszkowskie's pavement by Karowa) and Praga (by the Port Praski park).
 WEST = (-25.6, -1247.8)
@@ -69,6 +70,8 @@ BAYS = [
     [296.0, 362.0, 1, 1.4, 0],
 ]
 TAPER = 26.0             # a bay widens and narrows over this many metres at each end
+BAY_STEP = 2.0           # the bay pieces step up the taper this often (m)
+BAY_IN = 0.15            # and keep this far inside the lens (the railing stands 8 cm in from it)
 # The seven supports ("na siedmiu podporach z żelbetu", 19115), metres along the line. Not
 # surveyed: three river piers 70 m apart (one under the first bay, as in F's dusk photo, in its ring of
 # timber piles), the fourth at the Praga water's edge (s 302 on the map), three on the Praga
@@ -200,18 +203,47 @@ def meridian_s(line, cum):
     return -1.0
 
 
-def _bay_piece(line, cum, g, bay):
-    s0, s1, side, extra, _rows = bay
+def _lens(bay, s):
+    """The bay's extra width at s: a smoothstep up over TAPER m at each end (landmarks/kladka.gd's
+    _kl_extra draws the same edge)."""
+    s0, s1, _side, extra, _rows = bay
+    if s <= s0 or s >= s1:
+        return 0.0
+    f = min(max((s - s0) / TAPER, 0.0), 1.0, max((s1 - s) / TAPER, 0.0))
+    return extra * f * f * (3.0 - 2.0 * f)
+
+
+def _one_piece(line, cum, g, a, b, side, reach):
     pts, hs = [], []
-    s = s0
-    while s < s1 + 0.01:
-        x, z, y, _dx, _dz = at(line, cum, min(s, s1))
+    s = a
+    while True:
+        x, z, y, _dx, _dz = at(line, cum, min(s, b))
         pts.append((x, z))
         hs.append(y)
-        s += STEP
-    reach = HALF + extra
+        if s >= b - 0.01:
+            break
+        s = min(s + STEP, b)
     return {"p": _flat(pts, 2), "h": [round(h, 2) for h in hs], "l": round(reach if side < 0 else 0.5, 2),
             "r": round(reach if side > 0 else 0.5, 2), "g": g, "k": "path", "o": [3] * len(pts), "kl": 2}
+
+
+def _bay_pieces(line, cum, g, bay):
+    """The bay's walk as deck pieces that stay inside its lens: one at full width over the middle and
+    stepped ones over the tapers, each as wide as the lens at its narrower end less BAY_IN, so the
+    railing (on the lens edge) is always outside a piece's side and nothing walks off into the river."""
+    s0, s1, side, extra, _rows = bay
+    out = []
+    mid0, mid1 = s0 + TAPER, s1 - TAPER
+    if mid1 > mid0 + 1.0:
+        out.append(_one_piece(line, cum, g, mid0, mid1, side, HALF + extra - BAY_IN))
+    for a, b in [(s0 + i * BAY_STEP, s0 + (i + 1) * BAY_STEP) for i in range(int(TAPER / BAY_STEP + 0.5))] + \
+            [(mid1 + i * BAY_STEP, mid1 + (i + 1) * BAY_STEP) for i in range(int(TAPER / BAY_STEP + 0.5))]:
+        b = min(b, s1)
+        e = min(_lens(bay, a + 0.01), _lens(bay, b - 0.01)) - BAY_IN
+        if e < 0.3 or b - a < 1.0:
+            continue
+        out.append(_one_piece(line, cum, g, a, b, side, HALF + e))
+    return out
 
 
 def _corridor(line, cum, p, r):
@@ -249,7 +281,11 @@ def apply(out, map_dir=None, dry=False, terrain=None):
     for pc in south:
         pc["l"] = pc["r"] = RAMP_HALF
         pc["kl"] = 1
-    out["decks"]["pieces"].extend(_bay_piece(line, cum, g, b) for b in BAYS)
+    # Version 1 drew each bay as one full-width piece (its tapers stuck out past the railing): a
+    # re-stamp drops the old bay pieces before it adds the stepped ones.
+    out["decks"]["pieces"] = [pc for pc in out["decks"]["pieces"] if not (pc.get("kl") == 2 and int(pc.get("g", -1)) == g)]
+    for b in BAYS:
+        out["decks"]["pieces"].extend(_bay_pieces(line, cum, g, b))
     hidden = 0
     for r in out.get("roads", []):
         if r.get("k") == "living_street" and int(r.get("dk", -1)) == g:
@@ -283,7 +319,7 @@ def check(out):
     tagged = [pc for pc in pcs if pc.get("kl")]
     if len(tagged) != len(pcs):
         return False, "%d of the bridge's %d deck pieces untagged" % (len(pcs) - len(tagged), len(pcs))
-    if sum(1 for pc in pcs if pc.get("kl") == 2) != len(BAYS):
+    if sum(1 for pc in pcs if pc.get("kl") == 2) < len(BAYS):
         return False, "the bays' pieces are missing"
     ways = [r for r in out.get("roads", []) if r.get("k") == "living_street" and int(r.get("dk", -1)) == g]
     if not ways or any(not r.get("hide") for r in ways):

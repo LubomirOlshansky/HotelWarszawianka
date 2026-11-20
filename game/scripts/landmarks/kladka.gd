@@ -241,9 +241,15 @@ func _kl_deck(line: PackedVector3Array, cum: PackedFloat32Array, stations: Array
 		var r1 := rs[i + 1]
 		var mid := (Vector2(c0.x, c0.z) + Vector2(c1.x, c1.z)) * 0.5
 		var smid := (stations[i] + stations[i + 1]) * 0.5
-		# Where the ramp runs on the deck's walk (the fork), the deck draws it.
-		if yields and _kl_on_other(mid, other, other_half):
-			continue
+		# Where the ramp runs wholly on the deck's walk (the fork), the deck draws it. Where it is
+		# partly on it, its slab sits 3 cm under the deck's (no z-fight) and its outer railing stays,
+		# clipped where it meets the deck's (a whole skipped segment left the fork open to the river).
+		var sink := 0.0
+		if yields:
+			if _kl_on_other(mid, other, other_half - half + 0.3):
+				continue
+			if _kl_on_other(mid, other, other_half + half):
+				sink = 0.03
 		var red := meridian > 0.0 and absf(smid - meridian) < 0.3
 		# The walk in three strips: the deck (concrete), and each bay (the boardwalk's timber or the
 		# concrete under the seats).
@@ -254,7 +260,8 @@ func _kl_deck(line: PackedVector3Array, cum: PackedFloat32Array, stations: Array
 		# The walk goes into the roof grid (the heli lands on it, a tap finds the bridge); the rest
 		# (girder, railings, supports) stays out of it.
 		_no_roof = false
-		_quad(a_in, b_in, b_out, a_out, Vector3.UP, KL_RED if red else KL_DECK)
+		var dn := Vector3(0.0, sink, 0.0)
+		_quad(a_in - dn, b_in - dn, b_out - dn, a_out - dn, Vector3.UP, KL_RED if red else KL_DECK)
 		_no_roof = true
 		for side: int in [-1, 1]:
 			var e0 := el[i] if side < 0 else er[i]
@@ -289,8 +296,28 @@ func _kl_deck(line: PackedVector3Array, cum: PackedFloat32Array, stations: Array
 			var seated := _kl_rows(bays, smid, side) > 0 and minf(e0, e1) - half >= KL_SEAT_MIN
 			var ra := _kl_pt(c0, r0, side * (e0 - 0.08))
 			var rb := _kl_pt(c1, r1, side * (e1 - 0.08))
-			if has_other and (_kl_on_other(Vector2(ra.x, ra.z), other, other_half) or _kl_on_other(Vector2(rb.x, rb.z), other, other_half)):
-				continue
+			if has_other:
+				# At the fork the railing runs up to the ramp's walk and stops there (clipped, so no
+				# gap is left beside the ramp's mouth).
+				var in_a := _kl_on_other(Vector2(ra.x, ra.z), other, other_half)
+				var in_b := _kl_on_other(Vector2(rb.x, rb.z), other, other_half)
+				if in_a and in_b:
+					continue
+				if in_a or in_b:
+					var keep := rb if in_a else ra
+					var gone := ra if in_a else rb
+					for _k in 10:
+						var m := keep.lerp(gone, 0.5)
+						if _kl_on_other(Vector2(m.x, m.z), other, other_half):
+							gone = m
+						else:
+							keep = m
+					if in_a:
+						ra = keep
+					else:
+						rb = keep
+					if ra.distance_to(rb) < 0.05:
+						continue
 			if not seated:
 				_kl_railing(ra, rb, n)
 			if maxf(ra.y - map.terrain_height(ra.x, ra.z), rb.y - map.terrain_height(rb.x, rb.z)) > 1.0:
