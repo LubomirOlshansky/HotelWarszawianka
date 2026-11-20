@@ -49,6 +49,9 @@ var promo_t := 6.0
 ## --pigeons-at=T (videos, F 2026-11-19 "the pigeons fly up during the video"): Plac Zamkowy's
 ## square stays awake wherever the player is, and its flock bursts up T s after the start.
 var pigeons_at := -1.0
+## --season=summer|autumn (videos, F 2026-11-20 "trees can be green like summer not yellow"): the
+## trees' shader global `tree_season` until the season module (trees plan S1) sets it from the date.
+var season := ""
 ## --train=X,Z,K: that train of kind K (trains.gd KINDS: 0 Koleje Mazowe, 1 SKiM, 2 the
 ## long-distance one).
 var train_kind := -1
@@ -995,6 +998,11 @@ func parse_with(args: PackedStringArray) -> void:
 				promo_at = Vector2(float(pa[0]), float(pa[1]))
 			if pa.size() >= 3:
 				promo_t = float(pa[2])
+		elif arg.begins_with("--season="):
+			season = arg.trim_prefix("--season=")
+			# x the summer-to-autumn turn, y the fall of leaves (project.godot holds mid-November).
+			var look := Vector4(0, 0, 0, 0) if season == "summer" else Vector4(1, 0.5, 0, 0)
+			RenderingServer.global_shader_parameter_set("tree_season", look)
 		elif arg.begins_with("--pigeons-at="):
 			pigeons_at = maxf(0.01, float(arg.trim_prefix("--pigeons-at=")))
 		elif arg.begins_with("--train="):

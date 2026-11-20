@@ -1432,6 +1432,8 @@ func _build_world() -> void:
 				works.free()
 	else:
 		map = MapBuilder.new()
+		if flags.season == "summer":
+			map.season = "summer"  # the runtime proxies' leaf colours (dev_flags --season)
 		world.add_child(map)
 		data = map.build(MAP_PATH, building_mat, flat_mat)
 		map.open_maps_whole()  # loop 3d-2b: every sector's map slices on the GPU at once
