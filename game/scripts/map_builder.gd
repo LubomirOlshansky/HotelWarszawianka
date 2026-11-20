@@ -10256,6 +10256,17 @@ func _tree_blocked(x: float, z: float) -> bool:
 	return false
 
 
+## A landmark keeps this spot clear of parked cars (landmarks.gd parked_free: the Christmas market
+## on Plac Defilad's car park).
+func _parked_blocked(x: float, z: float) -> bool:
+	if _marks == null:
+		return false
+	for c: Array in _marks.parked_free:
+		if (c[1] as Rect2).has_point(Vector2(x, z)) and Geometry2D.is_point_in_polygon(Vector2(x, z), c[0]):
+			return true
+	return false
+
+
 ## Trees thread (F, 2026-11-15: "all our trees look the same"): the kinds of tree the crowns
 ## take. Each is a silhouette (foliage.gdshader `crown_shape`, from the same crown mesh: no new
 ## draw call). The kind rides in the instance's custom data (r = kind / 16, g = a seed); nothing
@@ -11029,6 +11040,8 @@ func _build_street_furniture() -> void:
 	for i in range(0, list.size() - 3, 4):
 		var x := float(list[i])
 		var z := float(list[i + 1])
+		if _parked_blocked(x, z):
+			continue
 		spots.append(Transform3D(Basis(Vector3.UP, float(list[i + 2])), Vector3(x, terrain_height(x, z), z)))
 		paints.append(Color(CAR_PAINT[int(list[i + 3]) % CAR_PAINT.size()]))
 	for mmi in _tree_multimesh(_shared["parked"], _shared["car_paint"], spots, paints, [], null, PARKED_TILE):

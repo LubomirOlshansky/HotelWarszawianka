@@ -92,6 +92,11 @@ const STEPS_KEYS := ["schodki_wisla", "schodki_wisla_w"]
 ## bays and its railing (Landmarks.kladka_plan), kind `kladka`, two sites (the Powiśle half and the Praga
 ## half: the bridge is 450 m long, so each half comes up within ACTIVE_R of its own middle). The most each half shows at its peak, on
 ## the steps' evening curve.
+## Jarmark Warszawski (F, 2026-11-20: the market "like for the best trailer"): its shoppers at the
+## chalets' counters, round the tree and queueing at the rides (Landmarks.jarmark_plan), kind `jarmark`,
+## two sites (the main market, and the annex with Plac Centralny). Open 11:00-22:00, busiest after dark.
+const JARMARK_IDS := ["jarmark_main", "jarmark_annex"]
+const JARMARK_MAX := {"jarmark_main": 150, "jarmark_annex": 70}
 const KLADKA_IDS := ["kladka_w", "kladka_e"]
 const KLADKA_SPLIT := 250.0
 const KLADKA_MAX := {"kladka_w": 90, "kladka_e": 50}
@@ -1236,6 +1241,7 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 		var band := Landmarks.schodki_plan(MapBuilderData.sunk_spec(STEPS_KEYS[0]))
 		_add_site({"id": STEPS_ID, "kind": "steps", "at": band["centre"] if band["stair"] != "" else at[STEPS_ID], "max": STEPS_MAX})
 	_add_kladka(data.get("kladka", {}))
+	_add_jarmark()
 	var yards := CHILL.duplicate()
 	yards.merge(BULWARY)
 	yards.merge(NOWY_SWIAT)
@@ -1522,6 +1528,52 @@ func _add_kladka(st: Dictionary) -> void:
 				"slots": slots})
 
 
+## The market's two crowds (JARMARK_IDS) from its plan, in a seeded order so a bigger crowd fills
+## the whole market evenly; standing on the market's asphalt (16 cm over the ground on the car park).
+func _add_jarmark() -> void:
+	var plan: Array = Landmarks.jarmark_plan()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1120
+	for part in 2:
+		var slots: Array = []
+		var c := Vector2.ZERO
+		for e: Array in plan:
+			if int(e[2]) != part:
+				continue
+			var p: Vector2 = e[0]
+			var d: Vector2 = e[1]
+			slots.append({"p": p, "y": _ground(p).y + Landmarks.jarmark_lift(p), "pose": STAND, "yaw": atan2(-d.x, -d.y),
+					"shirt": BRIGHT[rng.randi() % BRIGHT.size()]})
+			c += p
+		if slots.is_empty():
+			continue
+		var order := range(slots.size())
+		_shuffle(order, rng)
+		var mixed: Array = []
+		for i: int in order:
+			mixed.append(slots[i])
+		var id: String = JARMARK_IDS[part]
+		_add_site({"id": id, "kind": "jarmark", "at": c / slots.size(), "max": mini(int(JARMARK_MAX[id]), mixed.size()),
+				"slots": mixed})
+
+
+## How full the market is (0..1): shut before 11:00 and after 22:00, filling through the afternoon,
+## fullest from dusk to 21:00 (the reels: packed aisles after dark), a third in the rain.
+static func jarmark_level(hour: float, rain: bool) -> float:
+	var lvl := 0.0
+	if hour >= 11.0 and hour < 22.0:
+		lvl = 0.45
+		if hour >= 13.0:
+			lvl = 0.6
+		if hour >= 15.0:
+			lvl = 0.75
+		if hour >= 16.5 and hour < 21.0:
+			lvl = 1.0
+		elif hour >= 21.0:
+			lvl = 0.6
+	return lvl * (0.35 if rain else 1.0)
+
+
 ## Where along the footbridge's line (m from the Powiśle end) the point p is: its nearest station's.
 static func _kl_s(line: PackedVector3Array, cum: PackedFloat32Array, p: Vector2) -> float:
 	var best := INF
@@ -1674,7 +1726,7 @@ func _place_site(s: Dictionary) -> void:
 			_place_view(s)
 		"deck":
 			_place_deck(s)
-		"meet", "kladka":
+		"meet", "kladka", "jarmark":
 			s["door"] = s["at"]
 
 
@@ -2433,7 +2485,7 @@ func _figures(s: Dictionary) -> Array:
 				var gp: Vector2 = s["guitar"]
 				var gy := float(s["guitar_y"]) if not is_nan(float(s.get("guitar_y", NAN))) else _ground(gp).y
 				out.append([Vector3(gp.x, gy, gp.y), atan2(-face.x, -face.y), SIT, GUITAR_SHIRT, 0.0])
-		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe", "view", "view_dj", "bar", "kladka":
+		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe", "view", "view_dj", "bar", "kladka", "jarmark":
 			var slots: Array = s["slots"]
 			for k in mini(n, slots.size()):
 				var sl: Dictionary = slots[k]
@@ -2595,6 +2647,8 @@ func tick(step: float) -> void:
 				want = roundi(STEPS_MAX * k * steps_lvl)
 			"kladka":
 				want = roundi(int(s["max"]) * k * steps_level(hour, month, rain, sunset))
+			"jarmark":
+				want = roundi(int(s["max"]) * k * jarmark_level(hour, rain))
 			"plan_c":
 				plan_lvl = plan_c_level(hour, weekday, month, rain)
 				want = roundi(PLAN_C_MAX * k * plan_lvl)

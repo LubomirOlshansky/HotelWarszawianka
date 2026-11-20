@@ -1,4 +1,4 @@
-extends "res://scripts/landmarks/kladka.gd"
+extends "res://scripts/landmarks/jarmark.gd"
 ## v0.8 "Landmarks": the buildings that make it Warsaw at a glance, built in code
 ## from the real footprints and heights in centrum.json (OpenStreetMap outlines and
 ## building parts, which carry `height` / `min_height`) instead of their GUGiK LoD2 or
@@ -740,9 +740,9 @@ const INFO := {
 	"nozyce": ["Złote nożyce",
 			"Wielkie złote nożyce na granitowym cokole przed białym muzeum.",
 			"Giant gold scissors on a granite plinth in front of the white museum."],
-	"jarmark": ["Jarmark na placu Defilad",
-			"Świąteczne budki, choinka i płotek. Jeszcze się rozstawia.",
-			"The Christmas market on Plac Defilad: huts, a big tree, a fence. Still going up."],
+	"jarmark": ["Jarmark Warszawski",
+			"Ponad 200 budek pod Pałacem, grzaniec, wielka choinka, karuzela wenecka, filiżanki i wieża z krzesełkami na placu Centralnym. Do 6 stycznia.",
+			"Over 200 huts under the Palace: mulled wine, the big tree, a Venetian carousel, teacups and a chair-swing tower on Plac Centralny. Until 6 January."],
 	"obeliski": ["Obeliski przy Pałacu",
 			"Dwa granitowe obeliski z 1955 roku, po 12 metrów, w półkolach od strony Marszałkowskiej; obok nich wyjścia ewakuacyjne z podziemi Pałacu. Z czterech zostały dwa.",
 			"Two 12 m granite obelisks of 1955 in the semicircles on the Marszałkowska side, beside the emergency exits from the Palace's underground. Two of the four survive."],
