@@ -445,6 +445,14 @@ Rows marked `slab` use `wall_along` as today, with the row's numbers.
   its bars drawn as joints 0.72 darker. A row with a `leaf` colour (green_fence) has leaves on
   1 - open of its fill's cells, in front of its bars. Alt colours by the seed as in W4 (hoarding's
   two). Its count stays 3 of the cap 200; `building.gdshader` unchanged from main (503 of 505).
+- The pixel rule at a grazing view: a panel seen nearly end-on (a fence running almost along the
+  view) has a pixel footprint metres long one way and centimetres the other, and W4's floors took
+  the long side (`fwidth`), so every post, rail and bar was a pixel wide and together they filled
+  the panel: a solid dark band (Pole Mokotowskie's lawn edge). The floors (never the bar spacing
+  or the fill's cell) are now capped at `GRAZE` (2) times the footprint's narrow side; a face along
+  u or v (the top, the ends) keeps W4's. Seen at 45 degrees or more nothing changes, pixel for
+  pixel; at 4 to 6 degrees a third less is dark; the lawn edge's band went from 8 to 10 pixels
+  wide to 4 to 6, a railing with its posts (typed: 2 to 4).
 - Broken (section 7): `gap` is state 4, the box squashed to a point in `vertex()` (no fragment, no
   discard); a wood row's gap is state 5, the box laid down as a fallen panel and only two boards of
   it kept (at 0.6 and 1.35 m of the panel); `flat` lies down as `down`, the face the car saw up;

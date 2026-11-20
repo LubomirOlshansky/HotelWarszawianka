@@ -9,7 +9,7 @@ extends SceneTree
 ##     across a 4 m stretch of each panel row at mid-height: every bar a run of at least one
 ##     pixel, two bars' middles never under 2.5 pixels apart, every post drawn;
 ##   3 panel.gdshader carries panel_rule.gd's numbers (BAR_GAP_PX, MIN_PX, CELL, RAIL, LOW_RAIL,
-##     SINK) and the two formulas (the bar spacing and the cell, exp2 of a ceiled log2), and holds
+##     SINK; W5: GRAZE, the floors' cap at a grazing view) and the two formulas (the bar spacing and the cell, exp2 of a ceiled log2), and holds
 ##     its one discard behind `holes` and the car's hole;
 ##   4 the rows texture: 8 texels by 64 rows, one row per look in the palette's order, every
 ##     `panel` row flagged, the colours the palette's; the rows the walls doc's W4 names (six) are
@@ -143,7 +143,8 @@ func _shader() -> void:
 		problems.append("3 no %s" % SHADER)
 		return
 	for pair: Array in [["BAR_GAP_PX", PanelRule.BAR_GAP_PX], ["MIN_PX", PanelRule.MIN_PX], ["CELL", PanelRule.CELL],
-			["RAIL", PanelRule.RAIL], ["LOW_RAIL", PanelRule.LOW_RAIL], ["SINK", PanelRule.SINK]]:
+			["RAIL", PanelRule.RAIL], ["LOW_RAIL", PanelRule.LOW_RAIL], ["SINK", PanelRule.SINK],
+			["GRAZE", PanelRule.GRAZE]]:
 		var m := RegEx.create_from_string("const float %s = ([0-9.]+);" % pair[0]).search(code)
 		if m == null or absf(float(m.get_string(1)) - float(pair[1])) > 1e-6:
 			problems.append("3 %s: %s is not panel_rule.gd's %s" % [SHADER, pair[0], pair[1]])

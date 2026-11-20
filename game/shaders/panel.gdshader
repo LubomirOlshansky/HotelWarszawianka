@@ -71,6 +71,8 @@ const float CLOSED = 0.1;
 const float JOINT_SHADE = 0.72;
 const float PANEL = 2.0;
 const vec2 BOARDS = vec2(0.6, 1.35);
+// W5: the pixel floors' cap, in widths of the pixel's narrow side on the panel (panel_rule.gd GRAZE).
+const float GRAZE = 2.0;
 
 const float BAYER[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
 
@@ -132,6 +134,17 @@ void fragment() {
 	float v = uvm.y;
 	float px = max(fwidth(u), 1e-4);
 	float pxv = max(fwidth(v), 1e-4);
+	// W5: the floors' pixel (posts, rails, bars, ribs, boards; spacings and cells keep px): px and
+	// pxv, never over GRAZE times the narrow side of the pixel's footprint on the panel, so a panel
+	// seen nearly edge-on (a pixel spanning metres across it) is not filled by pixel-wide bands.
+	// A face along u or v (the top, the ends) has no area: its floors stay px and pxv.
+	vec2 ex = vec2(dFdx(u), dFdx(v));
+	vec2 ey = vec2(dFdy(u), dFdy(v));
+	float area = abs(ex.x * ey.y - ex.y * ey.x);
+	float major = max(max(length(ex), length(ey)), 1e-6);
+	float narrow = GRAZE * mix(area / major, major, step(area, 1e-9));
+	float fpx = min(px, narrow);
+	float fpxv = min(pxv, narrow);
 	float every = max(shape.x, 1e-3);
 	float has_posts = step(0.001, shape.x);
 	float leafy = step(1.5, h_seed.z);
@@ -147,22 +160,22 @@ void fragment() {
 	// The foot; the posts every `every` m along the line, at least a pixel wide.
 	float at_foot = step(v, foot.a);
 	float post = has_posts * step(0.001, shape.y)
-			* step(abs(fract(u / every + 0.5) - 0.5) * every, max(shape.y, MIN_PX * px) * 0.5);
+			* step(abs(fract(u / every + 0.5) - 0.5) * every, max(shape.y, MIN_PX * fpx) * 0.5);
 	// The rails: one under the top line, a second LOW_RAIL over the foot, at least a pixel tall.
-	float rail = max(RAIL, MIN_PX * pxv);
+	float rail = max(RAIL, MIN_PX * fpxv);
 	float top = step(0.5, shape.z) * step(line - rail, v) * under;
 	float low = step(1.5, shape.z) * step(abs(v - (foot.a + LOW_RAIL + RAIL * 0.5)), rail * 0.5);
 	// The bars, BAR_GAP_PX pixels apart at least, one pixel wide (a closed row's joints).
 	float has_bars = step(0.001, shape.w);
 	float spacing = max(shape.w, 1e-3);
 	float sp = spacing * exp2(max(ceil(log2(max(BAR_GAP_PX * px / spacing, 1e-6))), 0.0));
-	float bar = step(abs(fract(u / sp + 0.5) - 0.5) * sp, MIN_PX * px * 0.5);
+	float bar = step(abs(fract(u / sp + 0.5) - 0.5) * sp, MIN_PX * fpx * 0.5);
 	// The tint fill: a stipple fixed to the fence, and the ribs across it.
 	float cell = CELL * exp2(max(ceil(log2(max(max(px, pxv) / CELL, 1e-6))), 0.0));
 	vec2 grid = floor(vec2(u, v) / cell);
 	float keep = step(hash12(grid + vec2(h_seed.y * 17.0, 0.0)), 1.0 - colour.a);
 	float ribs = max(post_col.a, 1e-3);
-	float rib = step(0.001, post_col.a) * step(abs(fract(v / ribs + 0.5) - 0.5) * ribs, MIN_PX * pxv * 0.5);
+	float rib = step(0.001, post_col.a) * step(abs(fract(v / ribs + 0.5) - 0.5) * ribs, MIN_PX * fpxv * 0.5);
 	// W5: the leaves (a row with a leaf colour) on the stipple's cells under the leafy edge; a closed
 	// row whole under its top line (a hedge under its leafy edge). Torn: the fill and leaves gone.
 	float leaves = leaf.a * keep * step(v, edge + 0.001) * (1.0 - broken.y);
@@ -189,7 +202,7 @@ void fragment() {
 	col = mix(col, srgb_to_linear(STUB_COLOUR), broken.z);
 	// W5: a wood gap's two boards, each the row's joint spacing wide (a pixel at least), the rest gone.
 	float pu = fract(u / PANEL) * PANEL;
-	float bw = max(shape.w, MIN_PX * px) * 0.5;
+	float bw = max(shape.w, MIN_PX * fpx) * 0.5;
 	float kept = max(step(abs(pu - BOARDS.x), bw), step(abs(pu - BOARDS.y), bw));
 
 	// The see-through hole round the car (foliage.gdshader's).

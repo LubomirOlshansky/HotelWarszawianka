@@ -56,6 +56,13 @@ const LEAFY_SHADE := 0.75
 ## drawn as joints JOINT_SHADE darker.
 const CLOSED := 0.1
 const JOINT_SHADE := 0.72
+## W5: the pixel floors' cap. A pixel's footprint on a panel seen nearly edge-on is a long thin
+## sliver (metres along u or v one way, centimetres the other), and its long side (fwidth) made
+## every post, rail and bar a "pixel" wide until the bands filled the panel: a solid dark band
+## (Pole Mokotowskie's lawn edge). The shader caps the floors at GRAZE times the footprint's narrow
+## side (its area over its long side); spacings and cells keep the long side. Seen at 45 degrees or
+## more, and wherever a pixel is square (the `px` of the functions here), the cap never bites.
+const GRAZE := 2.0
 
 
 ## The spacing of the bars drawn (m) for a row's `spacing` at `px` metres an image pixel: the
