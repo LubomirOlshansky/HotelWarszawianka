@@ -1,0 +1,7 @@
+## Backlog
+- fixed: W7 of the walls look, the heavy kit, is built behind `barrier_look` `typed` and `panels` (classic on main; nothing a tester sees changes): walls get a darker foot, a cap with its overhang and bays a shade apart; brick walls their piers, precast fences their proud posts, noise screens their steel posts and pale top band, parapets their rail on posts, gabions their 1 m cages, stone walls over water their top rail, and every run a pier, a post or a closed end; the iron fences between piers (`bars_pier`) get a plinth and 0.5 m piers that stand when a panel falls (a diamond collider each on a soft line); retaining walls' copings get a lip. Colliders are unchanged but for the pier diamonds
+- found: the stone walls on Wybrzeże Gdańskie's boulevards carry no hazard reason (`hz`: tools/object_types.py writes one on a wall only when a hazard made it hard, and a 2 m wall is hard by its height), so the palette's rule (a top rail where `hz` is water or drop) draws none there, though the photos show a handrail (an open question of W7)
+- found: the three `bars_pier` lines are inside the landmark guard (hard), so no pier diamond stands on today's map; only `check_barrier_look`'s synthetic soft line shows them
+
+## Roadmap
+- ticked: "Types in the bake and the heavy kit (walls with foot, cap and piers, noise screens, parapets), W0 to W2" (the heavy kit is W7, built behind `barrier_look`; the key waits for F's phone look)
