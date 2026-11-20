@@ -453,7 +453,8 @@ Rows marked `slab` use `wall_along` as today, with the row's numbers.
   they never break today. `check_panel_states` drives through stadium_fence, chain_link,
   green_fence, low_lawn (the stadium's grounds), ball_net, wood and hoarding on both paths.
 - 110,185 pieces city-wide in 102 sectors, 5,435 of the 5,438 lines of the panel rows (the three
-  left are left out in every look: a site, the forecourt, the tribune); prebuilt sectors 186.2 MB
+  left are left out in every look, before any drawing: a site wall, the Palace's forecourt, the
+  tribune, the river or a street pass's REMOVE); prebuilt sectors 186.2 MB
   (classic 187.2, typed 190.2).
 - Draw calls (probe, prebuilt, `panels` against `typed`): main pass +3 at the spawn, +2 at the
   river view, +3 zoomed out, +3 from the helicopter, +3 at night; shadow pass +0 (-1 zoomed out);
