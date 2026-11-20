@@ -118,6 +118,7 @@ func setup(nodes: Dictionary, data: Dictionary) -> void:
 		if not pois.has(p["k"]):
 			pois[p["k"]] = p
 	var palm := _build_palm(data)
+	_build_gaulle_lawn()
 	var square := _defilad(data, pois)
 	if square != Vector2.INF:
 		_build_pigeons(square)
@@ -285,22 +286,7 @@ func _place_palm(spot: Vector2) -> Vector3:
 	add_child(palm)
 	palm.global_position = at
 	palm.rotation.y = 0.6
-	# Uplights at night: a pink-violet wash up the trunk, a glow in the crown.
-	var wash := MeshInstance3D.new()
-	wash.mesh = _uplight(13.5, 2.6, Color(1.0, 0.25, 0.75, 0.32), Color(0.55, 0.3, 1.0, 0.0))
-	wash.material_override = Props.glow_material(false, 0.6)
-	wash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	palm.add_child(wash)
-	for h in [[0.8, 4.0, Color(1.0, 0.3, 0.8, 0.6)], [13.4, 10.0, Color(0.65, 0.35, 1.0, 0.6)]]:
-		var halo := MeshInstance3D.new()
-		halo.mesh = Props.halo(h[1], h[2])
-		halo.material_override = Props.glow_material(true, 1.5)
-		halo.position = Vector3(0.6, h[0], -0.2)
-		halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		palm.add_child(halo)
-	for c3 in palm.get_children():
-		c3.visible = false
-		c3.add_to_group("night_lights")
+	_build_palm_garden(spot)
 	var anchor := Node3D.new()
 	add_child(anchor)
 	anchor.global_position = at + Vector3(0.6, 0, -0.2)
@@ -308,19 +294,112 @@ func _place_palm(spot: Vector2) -> Vector3:
 	return at
 
 
-## Light washing up a trunk: two crossed vertical quads, bright at the foot, fading up.
-static func _uplight(height: float, width: float, low: Color, high: Color) -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for axis in [Vector3.RIGHT, Vector3.BACK]:
-		var w: Vector3 = axis * width * 0.5
-		var up := Vector3(0, height, 0)
-		var base := Vector3(0, 0.6, 0)
-		for v in [[base - w, low], [base + w, low], [base + w + up, high], [base - w, low], [base + w + up, high], [base - w + up, high]]:
-			st.set_color(v[1])
-			st.set_uv(Vector2(0.5, 0.5))
-			st.add_vertex(v[0])
-	return st.commit()
+## The island's two halves round the palm (centrum.json's kerbs and the tram ballast's edge
+## near the scanned palm, 2026-11-20): planted since the autumn 2026 greening.
+const PALM_BEDS := [
+	[-232.0, 246.6, -231.4, 242.4, -230.2, 240.0, -227.5, 237.2, -223.4, 235.1, -218.0, 233.7,
+			-212.1, 233.2, -209.4, 233.7, -207.2, 234.6, -205.1, 236.0, -204.6, 238.5, -205.6, 240.1,
+			-203.6, 240.8],
+	[-201.2, 245.6, -200.7, 247.6, -200.6, 250.0, -200.7, 251.5, -202.6, 254.8, -204.6, 256.6,
+			-207.6, 258.1, -212.9, 259.2, -218.1, 259.8, -222.7, 259.9, -224.7, 259.1, -226.4, 258.2,
+			-227.9, 257.0, -229.0, 255.4],
+]
+
+
+## The lawn by the de Gaulle statue and the cobbled inner road in front of the Party House
+## (F, 2026-11-20: "a lot of people chilling there on summer evenings", "taxis on the inner road
+## near the monument", "these lamps"): deckchairs with people in them on the lawn, facing the
+## palm, a few taxis waiting along the inner road, and the plaza's five-lantern lamps. Three
+## draw calls; static (the deckchair sitters don't move).
+const LAWN_CHAIRS := [
+	# [x, z, sitter] on the lawn east of the statue (centrum.json's grass, its steps kept clear)
+	[-160.5, 270.5, 1], [-158.6, 270.0, 1], [-156.4, 269.8, 0], [-154.3, 271.0, 1], [-152.5, 272.5, 1],
+	[-161.0, 274.0, 1], [-158.9, 273.6, 1], [-156.8, 273.4, 1], [-154.6, 274.4, 0], [-152.2, 275.8, 1],
+	[-150.4, 277.0, 1], [-160.9, 277.6, 0], [-158.6, 277.2, 1], [-156.5, 277.0, 1], [-154.3, 277.9, 1],
+	[-152.3, 279.0, 0], [-162.5, 281.3, 1], [-160.3, 280.9, 1], [-158.1, 280.5, 1], [-156.0, 280.8, 1],
+	[-166.5, 283.2, 1], [-164.4, 282.7, 0], [-169.6, 284.3, 1], [-155.5, 267.9, 1],
+]
+## The inner road's east kerb, where the taxis wait (the service way, offset to its statue side).
+const TAXI_RANK := [[-171.6, 265.6, 1], [-175.4, 268.9, 0], [-177.4, 273.6, 1], [-177.6, 279.0, 0]]
+const LAMP_SPOTS := [[-149.0, 281.5], [-161.5, 285.0], [-174.4, 281.5], [-157.5, 265.4]]
+
+
+func _build_gaulle_lawn() -> void:
+	var palm := Vector2(-213.9, 238.5)
+	var spots: Array = []
+	for c: Array in LAWN_CHAIRS:
+		var p := Vector2(float(c[0]), float(c[1]))
+		var to := (palm - p).normalized()
+		# Facing the palm across the rondo, each turned a little its own way.
+		var yaw := atan2(-to.x, -to.y) + sin(p.x * 1.7 + p.y) * 0.35 + PI
+		spots.append([p.x, p.y, yaw, map.ground_height(p.x, p.y), int(c[2])])
+	var chairs := MeshInstance3D.new()
+	chairs.name = "LawnChairs"
+	chairs.mesh = Props.deckchairs(spots, 515)
+	chairs.material_override = Models.material()
+	add_child(chairs)
+	# The taxis: one MultiMesh of the taxi family (the city taxi and Podwózka), parked along
+	# the inner road, nose to the north-west like the cars in F's Street View.
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_custom_data = true
+	mm.mesh = Models.traffic_mesh(1)
+	mm.instance_count = TAXI_RANK.size()
+	var paints := [Color("#f2f2ee"), Color("#1c1d20"), Color("#e9e9e6"), Color("#24324a")]
+	for i in TAXI_RANK.size():
+		var t: Array = TAXI_RANK[i]
+		var p := Vector2(float(t[0]), float(t[1]))
+		var nxt: Vector2 = Vector2(TAXI_RANK[mini(i + 1, TAXI_RANK.size() - 1)][0], TAXI_RANK[mini(i + 1, TAXI_RANK.size() - 1)][1])
+		var prv: Vector2 = Vector2(TAXI_RANK[maxi(i - 1, 0)][0], TAXI_RANK[maxi(i - 1, 0)][1])
+		var dir := (nxt - prv).normalized()
+		var yaw := atan2(-dir.x, -dir.y)
+		mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, yaw), Vector3(p.x, map.ground_height(p.x, p.y), p.y)))
+		var paint: Color = paints[i % paints.size()]
+		mm.set_instance_custom_data(i, Color(paint.r, paint.g, paint.b, float(t[2])))
+	var taxis := MultiMeshInstance3D.new()
+	taxis.name = "TaxiRank"
+	taxis.multimesh = mm
+	taxis.material_override = Models.material()
+	add_child(taxis)
+	var lamps := MultiMesh.new()
+	lamps.transform_format = MultiMesh.TRANSFORM_3D
+	lamps.mesh = Props.candelabra()
+	lamps.instance_count = LAMP_SPOTS.size()
+	for i in LAMP_SPOTS.size():
+		var l: Array = LAMP_SPOTS[i]
+		lamps.set_instance_transform(i, Transform3D(Basis.IDENTITY, _on_ground(Vector2(float(l[0]), float(l[1])))))
+	var lmi := MultiMeshInstance3D.new()
+	lmi.name = "PlazaLamps"
+	lmi.multimesh = lamps
+	lmi.material_override = Models.material()
+	add_child(lmi)
+
+
+## The planted island round the palm (Props.palm_garden), when the palm stands where the
+## laser scan put it (the beds are drawn round that spot).
+func _build_palm_garden(spot: Vector2) -> void:
+	if spot.distance_to(Vector2(-213.9, 238.5)) > 3.0:
+		return
+	var beds: Array = []
+	for flat: Array in PALM_BEDS:
+		var poly := PackedVector2Array()
+		for i in range(0, flat.size() - 1, 2):
+			poly.append(Vector2(flat[i], flat[i + 1]))
+		if Geometry2D.is_polygon_clockwise(poly):
+			poly.reverse()
+		beds.append(poly)
+	# The north half's straight side is the ballast's edge: close it along the tracks.
+	var north: PackedVector2Array = beds[0]
+	north.append(Vector2(-231.9, 249.5))
+	if Geometry2D.is_polygon_clockwise(north):
+		north.reverse()
+	beds[0] = north
+	var garden := MeshInstance3D.new()
+	garden.name = "PalmGarden"
+	garden.mesh = Props.palm_garden(beds, func(p: Vector2) -> float: return map.ground_height(p.x, p.y),
+			Vector3(spot.x, spot.y, 3.4), 2002)
+	garden.material_override = Models.material()
+	add_child(garden)
 
 
 # --- pigeons -------------------------------------------------------------------------

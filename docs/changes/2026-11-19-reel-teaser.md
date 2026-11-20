@@ -33,3 +33,8 @@
 - fixed: F (21:07 UTC): "run the tram and the bus on one video". `--promo-at=X,Z[,T]` (main.gd
   `_promo_traffic`, dev_flags.gd) uses trams.gd `place_near` (as the first scene does) and
   traffic.gd `add_bus`. Owner: the trams' and traffic's own placement calls, no new system.
+
+## Rondo de Gaulle'a, as it is now (F, 2026-11-20)
+
+- Player-visible: the palm on Rondo de Gaulle'a looks like today's date palm (diamond-cut trunk, a full crown of stiff fronds, orange dates) with no neon; its island is planted with grasses, verbena, catmint and sage after the city's 2026 greening; people lie in deckchairs on the lawn by the de Gaulle statue; taxis wait on the inner road; the Party House plaza has its five-lantern lamps; the bank's board (PEPEO ŻUBR) is on the Nowy Świat tower.
+- Found: the island's greening (ZDM, Sept–Nov 2026) replaced about 500 m² of concrete; the palm is not moved (a move to the Partisan Monument corner is only planned with a 2030s rail stop).

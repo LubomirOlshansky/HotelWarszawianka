@@ -273,8 +273,8 @@ func _gaulle_figure(y: float, h: float) -> void:
 ##   ones under the cornice; a long balcony with an iron railing over the front colonnade;
 ## - the courtyard: pale granite slabs with a dark key border, the wavy fountain round the mapped
 ##   pool (a granite rim lit underneath by a warm strip at night, five jets), planters;
-## - the roof signs (parodies): ROBUR over the north-west tower (the oak in Latin again), PEPEO
-##   ŻUBR on a white board on the north-east tower, WISTULA in letters on the front body.
+## - the roof signs (parodies): PEPEO ŻUBR on a white board over the north-west tower (F, 2026-11-20),
+##   ROBUR (the oak in Latin) on the north-east tower, WISTULA in letters on the front body.
 ## The car drives through the colonnade into the courtyard (the piers, the lobbies, the wings and
 ## the fountain's rim collide). Frame: u east along the front from the north-west corner, v south
 ## into the block.
@@ -757,10 +757,12 @@ func _build_dom_partii(_site: Dictionary) -> void:
 
 	# --- the roof signs (parodies) ------------------------------------------------------------
 	var wing_top := g + DOM_WING_TOP
-	# ROBUR in navy letters on a white board over the Nowy Świat tower, on its plaza and street
-	# fronts (the real board is white with dark serif letters, F's photos 2026-11-19).
+	# PEPEO ŻUBR in red letters on a white board over the Nowy Świat tower, on its plaza and
+	# street fronts (F, 2026-11-20: "make Bank Pekao": the bank's white board with the red bison
+	# stands on this tower, his Street View photos).
+	var top_sign := "PEPEO ŻUBR"
 	var k_r := 1.5
-	var r_len := Neon.length_of("ROBUR") * k_r
+	var r_len := Neon.length_of(top_sign) * k_r
 	var r_h := Neon.ROW_H * Neon.PIXEL * k_r
 	_lbox(r_len * 0.5 + 2.5, 0.35, r_len * 0.5 + 0.4, 0.1, wing_top, wing_top + r_h + 0.9, DOM_BOARD, M_STONE, DOM_SHADE)
 	_lbox(0.35, r_len * 0.5 + 2.5, 0.1, r_len * 0.5 + 0.4, wing_top, wing_top + r_h + 0.9, DOM_BOARD, M_STONE, DOM_SHADE)
@@ -768,13 +770,13 @@ func _build_dom_partii(_site: Dictionary) -> void:
 		var along: Vector2 = f[0]
 		var o: Vector2 = f[1]
 		var mid := DOM_NW + along * (r_len * 0.5 + 2.5) - o * 0.6
-		signs.append(["ROBUR", Vector3(mid.x, wing_top + 0.45, mid.y), Vector3(o.x, 0.0, o.y), k_r, DOM_NAVY])
-	# PEPEO ŻUBR on a white board over the north-east tower's front.
+		signs.append([top_sign, Vector3(mid.x, wing_top + 0.45, mid.y), Vector3(o.x, 0.0, o.y), k_r, DOM_ZUBR])
+	# ROBUR (the oak in Latin) in navy letters on a white board over the north-east tower's front.
 	var bu := DOM_LEN - DOM_WING * 0.5
 	_lbox(bu, 1.2, 6.0, 0.25, wing_top, wing_top + 3.4, DOM_BOARD, M_STONE, DOM_SHADE)
-	var k_z := 10.6 / Neon.length_of("PEPEO ŻUBR")
+	var k_z := minf(1.5, 10.6 / Neon.length_of("ROBUR"))
 	var zp := _w(bu, 0.9)
-	signs.append(["PEPEO ŻUBR", Vector3(zp.x, wing_top + 0.5, zp.y), Vector3(-_b.x, 0.0, -_b.y), k_z, DOM_ZUBR])
+	signs.append(["ROBUR", Vector3(zp.x, wing_top + 0.5, zp.y), Vector3(-_b.x, 0.0, -_b.y), k_z, DOM_NAVY])
 	# WISTULA in letters on the front body's roof.
 	var k_w := 11.0 / Neon.length_of("WISTULA")
 	var wp := _w(DOM_LEN * 0.5, DOM_BODY_V[0].x + 1.2)
