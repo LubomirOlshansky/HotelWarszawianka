@@ -1854,17 +1854,18 @@ func _buw_rotunda_wall(a: Vector2, b: Vector2, g: float, y1: float, out: Vector2
 		return
 	var e := (b - a) / length
 	var posts := maxi(1, roundi(length / 1.6))
-	for k in posts + 1:
+	# the post at `b` is the next edge's first one (no two posts in one place)
+	for k in posts:
 		var p := a + e * (length * float(k) / float(posts)) + out * 0.06
 		_buw_face(p - e * 0.09, p + e * 0.09, g - 0.4, y1, out, BUW_FRAME)
 	for row in range(1, 4):
 		var y := g + 3.75 * float(row) - 0.2
 		if y + 0.3 < y1:
-			_buw_face(a + out * 0.07, b + out * 0.07, y, y + 0.3, out, BUW_FRAME)
+			_buw_face(a + out * 0.11, b + out * 0.11, y, y + 0.3, out, BUW_FRAME)
 	var h := _buw_hash(roundf(a.x * 3.0), roundf(a.y * 3.0))
 	var ivy: Color = BUW_IVY_RED if h > 0.55 else BUW_IVY[int(h * 17.0) % BUW_IVY.size()]
 	var top := minf(g + 5.0 + 8.0 * h, y1 + 0.2)
-	_buw_face(a + out * 0.12, a + e * length * 0.6 + out * 0.12, g - 0.2, top, out, ivy)
+	_buw_face(a + out * 0.16, a + e * length * 0.6 + out * 0.16, g - 0.2, top, out, ivy)
 
 
 ## A strip `w` wide from p0 to p1 (a rib on a curved face), facing `hint`'s way.
@@ -2019,7 +2020,9 @@ func _buw_cafe(g: float) -> void:
 	for s: float in [1.0, -1.0]:
 		var fc := gp + a * s * 0.87
 		_buw_face(fc - b * 0.55 * s, fc + b * 0.55 * s, py + 0.35, py + 2.1, a * s, niche)
-		_disc(Vector3(fc.x, py + 2.1, fc.y), Vector3(a.x * s, 0.0, a.y * s), 0.55, 10, niche)
+		# the arch's disc 3 cm proud of the niche's face, so the two never share a plane
+		var dc := fc + a * s * 0.03
+		_disc(Vector3(dc.x, py + 2.1, dc.y), Vector3(a.x * s, 0.0, a.y * s), 0.55, 10, niche)
 	_collide(box.call(1.2, 0.85))
 	_g = g
 
