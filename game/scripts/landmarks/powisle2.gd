@@ -105,9 +105,10 @@ const LP_P1 := Vector2(97.2, -890.0)
 const LP_BASE := 10.8     # the three white floors
 const LP_BODY := 22.6     # to the roof
 const LP_RIM := 0.9       # the teal rim over it
-const LP_PLASTER := Color("#dcdad2")
+const LP_PLASTER := Color("#e4dfd0")
 const LP_TEAL := Color("#4f9a94")
 const LP_GLASS := Color("#34424a")
+const LP_COPPER := Color("#78b5a6")
 const LP_SLAB := Color("#cfcdc5")
 const LP_DECK := Color("#6d6040")
 const LP_ROOF_BOX := Color("#a3a5a4")
@@ -130,7 +131,7 @@ func _build_lipowa1a(site: Dictionary) -> void:
 	_mode = M_STONE
 	_prism(ring, g - 1.5, g + LP_BODY, LP_PLASTER, LP_DECK, M_STONE, M_STONE)
 	# the teal rim round the roof, a slab over the white base on every face
-	kit_ledge_ring(ring, g + LP_BODY, LP_RIM, LP_TEAL, 0.12)
+	kit_ledge_ring(ring, g + LP_BODY, LP_RIM, LP_COPPER, 0.12)
 	kit_ledge_ring(ring, g + LP_BASE - 0.15, 0.3, LP_SLAB, 0.1)
 	# the other faces: small windows, a row a floor, white frames
 	for i in ring.size():
@@ -146,9 +147,15 @@ func _build_lipowa1a(site: Dictionary) -> void:
 		var n := floori((length - 1.0) / 3.0)
 		for j in n:
 			var m := a + e * ((j + 0.5) * length / n)
-			for k in 7:
+			for k in 3:
 				var y := g + 1.4 + 3.1 * k
 				_framed(m - e * 0.55, m + e * 0.55, y, y + 1.35, out, Color("#f0eee8"), LP_GLASS, float(i) * 3.7 + float(j) * 5.3 + float(k) * 11.0)
+		# the upper four floors on these faces: patina copper panels, two or three small windows
+		_mode = M_STONE
+		_wall(a + out * 0.1, b + out * 0.1, g + LP_BASE, g + LP_BODY, out, LP_COPPER, 0.0)
+		for j in maxi(1, floori(length / 8.0)):
+			var m2 := a + e * ((j + 0.5) * length / maxi(1, floori(length / 8.0)))
+			_framed(m2 - e * 0.5, m2 + e * 0.5, g + LP_BASE + 3.4 + 3.0 * (j % 2), g + LP_BASE + 4.9 + 3.0 * (j % 2), out, LP_COPPER.darkened(0.25), LP_GLASS, float(i) * 3.1 + float(j) * 7.7)
 	# the Lipowa front
 	var width := kit_front(LP_P0, LP_P1)
 	kit_face(0.0)
@@ -168,10 +175,10 @@ func _build_lipowa1a(site: Dictionary) -> void:
 	_mode = keep
 	for k in 4:
 		var y := g + LP_BASE + 3.0 * k
-		_kbox(0.5, width - 0.5, 0.0, 1.0, y - 0.05, y + 0.2, LP_SLAB)
-		_kbox(0.5, width - 0.5, 0.9, 1.0, y + 0.2, y + 1.05, LP_GLASS.lightened(0.15))
+		_kbox(0.5, width - 0.5, 0.0, 1.5, y - 0.05, y + 0.2, LP_SLAB.darkened(0.3))
+		_kbox(0.5, width - 0.5, 1.4, 1.5, y + 0.2, y + 1.05, Color("#9fc3c4"))
 	for u: float in [0.6, width * 0.25, width * 0.5, width * 0.75, width - 0.6]:
-		_kbox(u - 0.22, u + 0.22, 0.0, 1.1, g + LP_BASE - 0.1, g + LP_BODY, LP_TEAL)
+		_kbox(u - 0.25, u + 0.25, 0.0, 1.6, g + LP_BASE - 0.1, g + LP_BODY, LP_COPPER)
 	# roof terrace: plant boxes, a lift head and a small glass pavilion
 	for p: Vector3 in [Vector3(4.0, -4.0, 1.6), Vector3(9.0, -5.0, 1.4), Vector3(14.0, -4.0, 1.2), Vector3(17.5, -7.0, 1.5)]:
 		_lbox(p.x, p.y, 1.4, 1.0, g + LP_BODY, g + LP_BODY + p.z, LP_ROOF_BOX, M_STONE, LP_ROOF_BOX.lightened(0.05))
