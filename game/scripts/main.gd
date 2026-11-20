@@ -1577,12 +1577,11 @@ func _build_world() -> void:
 	hud.tapped.connect(_on_tap)
 	_set_flying(false)
 
-	missions = Missions.new()
-	missions.line_split = flags.start_mission == 0  # G12: calls follow the vehicle (quest_lines.gd)
-	add_child(missions)
+	# The rescue line (missions.gd wires itself), under main.gd. Its setup takes frames (the places of
+	# each kind), so it is awaited here; it joins the director last (after the round-up, below).
+	missions = _install(Missions.new(), self)
 	await missions.setup(map, data, world, hud)
 	await LoadYield.tick("missions")
-	missions.player = car.global_position
 	# Speech bubbles (anyone can talk) and everybody's lines.
 	bubbles = Bubbles.new()
 	bubbles.pt = hud.pt
@@ -1612,9 +1611,7 @@ func _build_world() -> void:
 	dialogue.radio = radio
 	add_child(dialogue)
 	radio.station_changed.connect(dialogue.on_station_changed)
-	missions.wallet = wallet
-	missions.dialogue = dialogue
-	missions.vehicle_anchor = func() -> Vector3: return _vehicle_position() + Vector3(0, 4.0 if flying else 2.2, 0)
+	missions.dialogue = dialogue  # the rescue line's lines: dialogue.gd is made after its install
 	hud.set_wallet(wallet.zl, wallet.respect)
 	wallet.changed.connect(hud.set_wallet)
 	wallet.changed.connect(func(_zl: int, _respect: int, gained: int) -> void:
@@ -1802,7 +1799,7 @@ func _build_world() -> void:
 	# other activities' runs hold or restart its calls through the director (activity.gd
 	# `rescue_calls`). Its own test for the world: none (its calls have their own holds, `_held`, and
 	# ring in the air too); the kit's rule, one at a time, is what M and the HELI list ask (`free_now`).
-	activities.add(missions, func() -> bool: return true)
+	_add(missions, func() -> bool: return true)
 	_build_packs(data, world)
 	await LoadYield.tick("_build_packs")
 	_build_fans(data, world)
