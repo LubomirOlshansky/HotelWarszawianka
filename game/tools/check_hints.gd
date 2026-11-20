@@ -11,7 +11,7 @@ extends SceneTree
 ## - the title: the tips load, a new one every TIP_EVERY s while the city builds, none after it
 ##   (the last stays), the done ones last, the line clear of NOWA GRA at the phone's sizes;
 ## - the DEV page: six taps on the version do nothing, the seventh opens it, then one tap does;
-##   our A/B switches are there and on no tab; Experimental quality shows only once it opened;
+##   our A/B switches are there and on no tab; Max quality shows for everyone;
 ## - the spotlight on each target at the phone's sizes: its words inside the safe area and off
 ##   the thing it rings, and gone with `spotlight_off` and `clear_all`.
 ##   godot --headless --path game --script res://tools/check_hints.gd
@@ -352,12 +352,12 @@ func _dev() -> void:
 			"effects": 1.0, "fps": 0, "weather": 0, "time": 0})
 	await process_frame
 	var exp: Button = panel._groups["quality"][SettingsPanel.QUALITY.size() - 1]
-	_expect(not exp.visible, "DEV: Experimental quality is hidden before DEV")
+	_expect(exp.visible, "Max quality (was Experimental) shows for everyone (perf thread, F 2026-11-20)")
 	_expect(str(panel._subtitle.text).ends_with(SettingsPanel.version()), "DEV: the version under the title (%s)" % panel._subtitle.text)
 	for i in SettingsPanel.DEV_TAPS - 1:
 		_expect(not panel.dev_tap(), "DEV: tap %d does not open it" % (i + 1))
 	_expect(panel.dev_tap() and panel._tab == SettingsPanel.DEV_PAGE, "DEV: the seventh tap opens it")
-	_expect(exp.visible, "DEV: Experimental quality shows once DEV opened")
+	_expect(exp.visible, "Max quality still shows once DEV opened")
 	var dev_page: Control = panel._pages[SettingsPanel.DEV_PAGE]
 	for key: String in DEV_KEYS:
 		var b: Button = panel._groups[key][0]

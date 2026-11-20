@@ -69,6 +69,9 @@ var quality := AUTO
 ## last one never got going: a crash on the 8192 shadow map) loads Ultra instead, once (`quality_guarded`).
 var quality_pending := false
 var quality_guarded := false
+## Perf thread (F 2026-11-20): Obraz Piksel / Pełny: the 3D image at the screen's own pixels on any
+## level (tiers.gd full_image). Off by default: x2 on a phone is what holds 60.
+var image_full := false
 ## 0..1 each: everything, the radio (Music bus), the effects (SFX and Ambience buses).
 var master := 1.0
 var music := 1.0
@@ -181,6 +184,7 @@ func load_file() -> void:
 	traffic = clampi(int(cfg.get_value("world", "traffic", traffic)), 0, TRAFFIC.size() - 1)
 	quality = clampi(int(cfg.get_value("world", "quality", quality)), AUTO, EXPERIMENTAL)
 	quality_pending = bool(cfg.get_value("world", "quality_pending", false))
+	image_full = bool(cfg.get_value("display", "image_full", false))
 	if quality_pending and quality == EXPERIMENTAL:
 		quality = ULTRA
 		quality_pending = false
@@ -249,6 +253,7 @@ func save() -> void:
 	cfg.set_value("world", "traffic", traffic)
 	cfg.set_value("world", "quality", quality)
 	cfg.set_value("world", "quality_pending", quality_pending)
+	cfg.set_value("display", "image_full", image_full)
 	cfg.set_value("world", "tiers", 1)
 	cfg.set_value("sound", "master", snappedf(master, 0.01))
 	cfg.set_value("sound", "music", snappedf(music, 0.01))

@@ -24,7 +24,8 @@ extends RefCounted
 enum { LOW, MEDIUM, HIGH, ULTRA, EXPERIMENTAL }
 ## The player's choice that follows the device (settings.gd quality).
 const AUTO := -1
-const NAMES := ["Low", "Medium", "High", "Ultra", "Experimental"]
+## Perf thread (F 2026-11-20): the fifth level is Max (it was Experimental), for everyone.
+const NAMES := ["Low", "Medium", "High", "Ultra", "Max"]
 
 ## Low, Medium, High, Ultra. step: whole screen pixels coarser than the style's own scale
 ## (loop 2b); budget: the most megapixels the pixel image may have (G1); the sun's shadow map
@@ -37,19 +38,33 @@ const NAMES := ["Low", "Medium", "High", "Ultra", "Experimental"]
 ## 1.48 MP ×1 image (the iPhone 11's look before G1, for anyone who picks it).
 const QUALITY := [
 	{"name": "Low", "step": 1, "budget": 0.5, "shadows": false, "shadow_size": 1024, "glow": false, "rain": 0.4,
-		"reflect": 0, "traffic": 0.55, "people": 24, "small_shadows": false, "tree_limbs": false, "panel_holes": true},
+		"reflect": 0, "traffic": 0.55, "people": 24, "small_shadows": false, "tree_limbs": false, "panel_holes": true,
+		"cap": 30},
 	{"name": "Medium", "step": 1, "budget": 0.5, "shadows": true, "shadow_size": 1024, "glow": true, "rain": 0.7,
 		"reflect": 6, "traffic": 0.8, "people": 40, "small_shadows": false, "panel_holes": true},
 	{"name": "High", "step": 0, "budget": 0.96, "shadows": true, "shadow_size": 2048, "glow": true, "rain": 1.0,
 		"reflect": 10, "traffic": 1.0, "people": 60, "small_shadows": true},
-	{"name": "Ultra", "step": 0, "budget": 1.6, "shadows": true, "shadow_size": 4096, "glow": true, "rain": 1.0,
-		"reflect": 16, "traffic": 1.0, "people": 60, "small_shadows": true},
-	{"name": "Experimental", "step": 0, "budget": 99.0, "shadows": true, "shadow_size": 8192, "glow": true, "rain": 1.0,
+	{"name": "Ultra", "step": 0, "budget": 0.96, "shadows": true, "shadow_size": 4096, "glow": true, "rain": 1.0,
 		"reflect": 16, "traffic": 1.0, "people": 60, "small_shadows": true,
-		"full": true, "fine_trees": true, "msaa": Viewport.MSAA_4X, "aniso": Viewport.ANISOTROPY_16X, "lod": 0.0,
+		"msaa": Viewport.MSAA_4X, "soft": RenderingServer.SHADOW_QUALITY_SOFT_LOW},
+	{"name": "Max", "step": 0, "budget": 0.96, "shadows": true, "shadow_size": 8192, "glow": true, "rain": 1.0,
+		"reflect": 16, "traffic": 1.0, "people": 60, "small_shadows": true,
+		"fine_trees": true, "msaa": Viewport.MSAA_4X, "aniso": Viewport.ANISOTROPY_16X, "lod": 0.0,
 		"soft": RenderingServer.SHADOW_QUALITY_SOFT_HIGH},
 ]
-## Perf thread (2026-11-19): `fine_trees` true (Experimental only; missing means false) draws the cut
+## Perf thread (F 2026-11-20, "go"), the levels rebuilt from the per-option costs (docs/changes
+## 2026-11-19-graphics-kept.md: on Apple GPUs the image's pixels are the cost; shadow map size,
+## softness, reflections and the rest are nearly free):
+## - Low caps the frame rate at 30 (`cap`, main.gd _apply_fps; the player's 60/30 can only lower
+##   it): the Adreno 642L runs Low at 28.5-35 uncapped, so a steady 30 paces better than 60.
+## - Ultra keeps the High budget (0.96 MP: x2 on every phone; it was 1.6, x1 on the iPhone 11 at
+##   41.8 fps, x2 is 60) and adds MSAA 4x and soft shadows (the 16 Pro Max: Ultra + MSAA 4x 60.0).
+## - Max (was Experimental) is every extra at the x2 image, the same 0.96 MP budget (60.0 / 59.9 on
+##   the 16 Pro Max; 37 at x1). The screen's own pixels are the Image switch's Full (`full_image`, Settings → Obraz),
+##   on any level, for shots and trailers.
+## The extras (msaa, soft, aniso, lod, fine_trees) apply only on the rows that name them; missing
+## keys take EXTRA_DEFAULTS.
+## Perf thread (2026-11-19): `fine_trees` true (Max only; missing means false) draws the cut
 ## 80-face crowns (map_builder.gd set_tree_detail), the others the 20-face crown with its limbs.
 ## Trees thread (2026-11-15): `tree_limbs` false (Low) hides the crowns' limbs (foliage.gdshader
 ## `limbs`): a bare tree is its haze and trunk, 36 fewer triangles a crown. Missing means true.
@@ -203,7 +218,15 @@ static func mac_scale(size: Vector2) -> int:
 ## quality level: the style's own scale, the level's step coarser, then coarser until the
 ## image (the screen's size divided by it, as SubViewportContainer.stretch_shrink rounds it)
 ## fits the level's budget.
+## Perf thread (F 2026-11-20): Settings → Obraz "Pełny · Full": the 3D image at the screen's own
+## pixels on any level (the old Experimental's x1, for shots and trailers; 37 fps on the 16 Pro Max at
+## Max, where x2 holds 60). main.gd sets it from settings.gd `image_full`.
+static var full_image := false
+
+
 static func image_scale(size: Vector2, lines: float, quality: int) -> int:
+	if full_image and not overrides.has("scale"):
+		return 1
 	if overrides.has("scale"):
 		return maxi(1, int(overrides["scale"]))
 	var k := own_scale(size, lines, quality)
@@ -220,7 +243,7 @@ static func image_scale(size: Vector2, lines: float, quality: int) -> int:
 static func own_scale(size: Vector2, lines: float, quality: int) -> int:
 	if overrides.has("scale"):
 		return maxi(1, int(overrides["scale"]))
-	if bool(value(quality, "full", false)):
+	if full_image or bool(value(quality, "full", false)):
 		return 1
 	if mac:
 		return mac_scale(size) + int(value(quality, "step"))
@@ -320,9 +343,9 @@ static func sharp_clean(state: Dictionary) -> Dictionary:
 ## A choice (AUTO or a level) by name or number for --quality= (-2: not one).
 static func parse(text: String) -> int:
 	var t := text.to_lower()
-	# Experimental by name only: a number still stops at Ultra.
+	# Max (was Experimental) by name only: a number still stops at Ultra.
 	var named := {"auto": AUTO, "low": LOW, "medium": MEDIUM, "med": MEDIUM, "high": HIGH, "ultra": ULTRA,
-			"experimental": EXPERIMENTAL, "exp": EXPERIMENTAL}
+			"experimental": EXPERIMENTAL, "exp": EXPERIMENTAL, "max": EXPERIMENTAL}
 	if named.has(t):
 		return named[t]
 	if t.is_valid_int():
