@@ -35,6 +35,7 @@ extends Node3D
 const Models := preload("res://scripts/models.gd")
 const Rave := preload("res://scripts/rave.gd")
 const Club := preload("res://scripts/club.gd")
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const PixelFont := preload("res://scripts/pixel_font.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const Lang := preload("res://scripts/lang.gd")
@@ -969,7 +970,7 @@ func _build_ui() -> void:
 	_ui.layer = 20
 	add_child(_ui)
 	var top := PanelContainer.new()
-	top.add_theme_stylebox_override("panel", Club._box(Color(0.04, 0.035, 0.03, 0.85), GOLD))
+	top.add_theme_stylebox_override("panel", UiKit.card(pt, 10.0))
 	top.position = Vector2(16, 16) * pt
 	_ui.add_child(top)
 	_title = Label.new()
@@ -977,7 +978,7 @@ func _build_ui() -> void:
 	_title.add_theme_color_override("font_color", GOLD)
 	top.add_child(_title)
 	_talk = PanelContainer.new()
-	_talk.add_theme_stylebox_override("panel", Club._box(Color(0.04, 0.035, 0.03, 0.9), TEAL))
+	_talk.add_theme_stylebox_override("panel", UiKit.card(pt, 10.0))
 	_talk.custom_minimum_size = Vector2(360, 0) * pt
 	_ui.add_child(_talk)
 	var row := HBoxContainer.new()
@@ -999,7 +1000,7 @@ func _build_ui() -> void:
 	v.add_child(_line)
 	# The mini-game panel, top right.
 	_game = PanelContainer.new()
-	_game.add_theme_stylebox_override("panel", Club._box(Color(0.04, 0.035, 0.03, 0.9), GOLD))
+	_game.add_theme_stylebox_override("panel", UiKit.card(pt, 10.0))
 	_ui.add_child(_game)
 	var g := VBoxContainer.new()
 	g.add_theme_constant_override("separation", int(6 * pt))

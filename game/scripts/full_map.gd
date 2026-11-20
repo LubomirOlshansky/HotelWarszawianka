@@ -41,6 +41,7 @@ signal seen(id: String)
 ## NIGHT 2, DAWN 4); main.gd applies it as the settings' Time of day does.
 signal time_picked(mode: int)
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")
 const MapArt := preload("res://scripts/map_art.gd")
 const MapIcons := preload("res://scripts/map_icons.gd")
@@ -72,7 +73,7 @@ const MINOR_M := 2600.0
 ## The closest zoom: this many metres across the screen's height; the start: START_M.
 const NEAR_M := 250.0
 const START_M := 1400.0
-const GOLD := Color("#f0b429")
+const GOLD := UiKit.GOLD  # the one gold (was #f0b429; docs/design/ui-kit.md)
 const GameTime := preload("res://scripts/game_time.gd")
 ## The clock picker's choices, in the day's order: [time_of_day.gd mode, Polish, English].
 ## No Live here (F 2026-11-19: the game has its own clock).
@@ -90,7 +91,7 @@ const NEXT_W := 330.0
 const FOCUS_DIM := 0.45
 ## The legend's row height (points; F 2026-11-19).
 const LEGEND_ROW := 20.0
-const NEW_RED := Color("#ff4f6d")
+const NEW_RED := UiKit.ALERT
 
 ## Set by hud.gd before the first open.
 var hud: CanvasLayer
@@ -272,11 +273,11 @@ func _build() -> void:
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_overlay.draw.connect(_paint)
 	add_child(_overlay)
-	_close = _round_button("✕", Color("#fbf7ee"))
+	_close = _round_button("✕", UiKit.INK)
 	_close.name = "close"
 	_close.pressed.connect(close)
 	add_child(_close)
-	_clock_btn = _round_button("", Color("#fbf7ee"))
+	_clock_btn = _round_button("", UiKit.INK)
 	_clock_btn.name = "clock"
 	_clock_btn.add_theme_font_size_override("font_size", _px(T_SUB + 2.0))
 	_clock_btn.pressed.connect(_clock_tapped)
@@ -298,17 +299,12 @@ func _build() -> void:
 	_quests_btn.text = Lang.pick(str(qw[0]), str(qw[1]))
 	_quests_btn.custom_minimum_size = Vector2(QUESTS_W, QUESTS_H) * pt
 	_quests_btn.add_theme_font_size_override("font_size", _px(T_TITLE + 3.0))
-	for k in ["font_color", "font_hover_color", "font_pressed_color"]:
-		_quests_btn.add_theme_color_override(k, Color("#1a1622"))
-	for st in ["normal", "hover", "pressed", "focus"]:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color("#ffd23f").darkened(0.18) if st == "pressed" else Color("#ffd23f")
-		sb.set_corner_radius_all(_px(14))
-		sb.border_color = Color("#1a1622")
-		sb.set_border_width_all(_px(3))
-		sb.shadow_color = Color(0, 0, 0, 0.45)
+	# The kit's PRIMARY button (docs/design/ui-kit.md), lifted off the map by a shadow.
+	UiKit.style_button(_quests_btn, UiKit.Kind.PRIMARY, pt, T_TITLE + 3.0)
+	for st in ["normal", "hover", "pressed", "hover_pressed"]:
+		var sb := _quests_btn.get_theme_stylebox(st) as StyleBoxFlat
+		sb.shadow_color = Color(UiKit.CARD_SOLID, 0.45)
 		sb.shadow_size = _px(6)
-		_quests_btn.add_theme_stylebox_override(st, sb)
 	_quests_btn.pressed.connect(func() -> void: open_screen())
 	add_child(_quests_btn)
 	_badge = Label.new()
@@ -317,11 +313,11 @@ func _build() -> void:
 	_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_badge.add_theme_font_size_override("font_size", _px(T_SUB + 1.0))
-	_badge.add_theme_color_override("font_color", Color.WHITE)
+	_badge.add_theme_color_override("font_color", UiKit.INK)
 	var bb := StyleBoxFlat.new()
 	bb.bg_color = NEW_RED
 	bb.set_corner_radius_all(_px(13))
-	bb.border_color = Color("#1a1622")
+	bb.border_color = UiKit.ON_GOLD
 	bb.set_border_width_all(_px(2))
 	_badge.add_theme_stylebox_override("normal", bb)
 	_badge.custom_minimum_size = Vector2(26.0, 26.0) * pt
@@ -356,12 +352,8 @@ func _build() -> void:
 
 
 func _box(alpha: float) -> StyleBoxFlat:
-	var b := StyleBoxFlat.new()
-	b.bg_color = Color(0.07, 0.06, 0.1, alpha)
-	b.set_corner_radius_all(_px(12))
-	b.set_content_margin_all(10.0 * pt)
-	b.border_color = Color("#ffd23f")
-	b.border_width_left = _px(3)
+	var b := UiKit.card(pt, 10.0)  # the kit's card (no gold rail)
+	b.bg_color = Color(UiKit.CARD, alpha)
 	return b
 
 
@@ -379,8 +371,8 @@ func _card(lines: Array, sizes: Array) -> PanelContainer:
 		var l := Label.new()
 		l.text = lines[i]
 		l.add_theme_font_size_override("font_size", _px(sizes[i]))
-		l.add_theme_color_override("font_color", Color("#ffd23f") if i == 0 and sizes[i] == T_TITLE else
-				(Color("#fbf7ee") if i == 0 else Color("#c9c2d8")))
+		l.add_theme_color_override("font_color", UiKit.GOLD if i == 0 and sizes[i] == T_TITLE else
+				(UiKit.INK if i == 0 else UiKit.SUB))
 		v.add_child(l)
 	return p
 
@@ -399,11 +391,11 @@ func _build_picker() -> void:
 	var tw: Array = QuestBook.words("clock_title")
 	title.text = Lang.pick(str(tw[0]), str(tw[1]))
 	title.add_theme_font_size_override("font_size", _px(T_TITLE))
-	title.add_theme_color_override("font_color", Color("#ffd23f"))
+	title.add_theme_color_override("font_color", UiKit.GOLD)
 	v.add_child(title)
 	_picker_open = Label.new()
 	_picker_open.add_theme_font_size_override("font_size", _px(T_SUB))
-	_picker_open.add_theme_color_override("font_color", Color("#c9c2d8"))
+	_picker_open.add_theme_color_override("font_color", UiKit.SUB)
 	_picker_open.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_picker_open.custom_minimum_size.x = 300.0 * pt
 	v.add_child(_picker_open)
@@ -477,15 +469,7 @@ func _gold_button(text: String) -> Button:
 	b.visible = false
 	b.custom_minimum_size = Vector2(110.0, 48.0) * pt
 	b.add_theme_font_size_override("font_size", _px(T_SUB + 1.0))
-	for k in ["font_color", "font_hover_color", "font_pressed_color"]:
-		b.add_theme_color_override(k, Color("#1a1622"))
-	for st in ["normal", "hover", "pressed", "focus"]:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = GOLD.darkened(0.2) if st == "pressed" else GOLD
-		sb.set_corner_radius_all(_px(8))
-		sb.content_margin_left = 12.0 * pt
-		sb.content_margin_right = 12.0 * pt
-		b.add_theme_stylebox_override(st, sb)
+	UiKit.style_button(b, UiKit.Kind.PRIMARY, pt, T_SUB + 1.0)
 	return b
 
 
@@ -781,15 +765,18 @@ func _next_of() -> Dictionary:
 
 func _style_next(col: Color, tracked: bool) -> void:
 	for k in ["font_color", "font_hover_color", "font_pressed_color"]:
-		_next.add_theme_color_override(k, Color("#1a1622") if tracked else Color("#fbf7ee"))
+		_next.add_theme_color_override(k, UiKit.ON_GOLD if tracked else UiKit.INK)
+	# The kit: tracked is the gold PRIMARY, otherwise the card; the quest's own colour is gone
+	# from the plate (its pin on the map carries it).
+	var boxes := UiKit.button_boxes(UiKit.Kind.PRIMARY, pt) if tracked else {
+		"normal": UiKit.card(pt, 0.0), "hover": UiKit.card(pt, 0.0), "pressed": UiKit.row(pt, true, 0.0)}
+	boxes["focus"] = boxes["normal"]
 	for st in ["normal", "hover", "pressed", "focus"]:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = (GOLD if st != "pressed" else GOLD.darkened(0.2)) if tracked else (col.darkened(0.55) if st == "pressed" else Color(0.07, 0.06, 0.1, 0.92))
-		sb.set_corner_radius_all(_px(10))
-		sb.border_color = col
-		sb.border_width_left = _px(6)
+		var sb := (boxes[st] as StyleBoxFlat).duplicate() as StyleBoxFlat
 		sb.content_margin_left = 12.0 * pt
 		sb.content_margin_right = 12.0 * pt
+		sb.content_margin_top = 4.0 * pt
+		sb.content_margin_bottom = 4.0 * pt
 		_next.add_theme_stylebox_override(st, sb)
 
 
@@ -1179,7 +1166,7 @@ func _paint() -> void:
 		var at := to_screen(unknown_at[i])
 		if view.has_point(at):
 			var qw := font.get_string_size("?", HORIZONTAL_ALIGNMENT_LEFT, -1, qs).x
-			o.draw_string(font, at + Vector2(-qw * 0.5, qs * 0.36), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, qs, Color("#1a1622"))
+			o.draw_string(font, at + Vector2(-qw * 0.5, qs * 0.36), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, qs, UiKit.ON_GOLD)
 	# Loop 3h slice 1: each discovered district's name and per cent at its label: big, spaced
 	# capitals in its own tint's deep shade, a cream outline.
 	var fs := _px(T_TITLE)
@@ -1287,8 +1274,8 @@ func _legend_rect(rows: Array[Dictionary]) -> Rect2:
 
 func _legend_marks(rows: Array[Dictionary]) -> void:
 	var box := _legend_rect(rows)
-	hud._tri_rect(box, Color(0.07, 0.06, 0.1, 0.94))  # the dark card (F 2026-11-19: dark cards everywhere)
-	var edge := Color(1, 1, 1, 0.16)
+	hud._tri_rect(box, UiKit.CARD)  # the dark card (F 2026-11-19: dark cards everywhere)
+	var edge := UiKit.EDGE
 	var ew := maxf(1.0, pt)
 	hud._tri_rect(Rect2(box.position, Vector2(box.size.x, ew)), edge)
 	hud._tri_rect(Rect2(box.position + Vector2(0, box.size.y - ew), Vector2(box.size.x, ew)), edge)
@@ -1323,7 +1310,7 @@ func _legend_text(o: Control, font: Font, rows: Array[Dictionary]) -> void:
 	for i in rows.size():
 		var t := Lang.pick(str(rows[i]["words"][0]), str(rows[i]["words"][1]))
 		var y := box.position.y + 6.0 * pt + (i + 0.5) * LEGEND_ROW * pt + fs * 0.35
-		var col := Color("#ffd23f") if str(rows[i]["kind"]) == "hold" else Color("#fbf7ee")
+		var col := UiKit.GOLD if str(rows[i]["kind"]) == "hold" else UiKit.INK
 		o.draw_string(font, Vector2(box.position.x + 32.0 * pt, y), t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
 

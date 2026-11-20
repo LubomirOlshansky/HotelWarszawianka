@@ -31,6 +31,7 @@ extends Node3D
 ## (its mesh, its crowd, the same lights moved there); the city is out of view. Both are built
 ## once, on the first visit (about 13k triangles together).
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")
 const Sfx := preload("res://scripts/sfx.gd")
 
@@ -590,15 +591,14 @@ func _build_ui() -> void:
 	_ui.layer = 20
 	add_child(_ui)
 	var top := PanelContainer.new()
-	top.add_theme_stylebox_override("panel", _box(Color(0.03, 0.03, 0.04, 0.85), VIOLET))
+	top.add_theme_stylebox_override("panel", UiKit.card(pt, 10.0))  # the kit's card
 	top.position = Vector2(16, 16) * pt
 	_ui.add_child(top)
 	_title = Label.new()
-	_title.add_theme_font_size_override("font_size", int(16 * pt))
-	_title.add_theme_color_override("font_color", VIOLET)
+	UiKit.style_label(_title, "title", pt)
 	top.add_child(_title)
 	_talk = PanelContainer.new()
-	_talk.add_theme_stylebox_override("panel", _box(Color(0.03, 0.03, 0.04, 0.9), VIOLET))
+	_talk.add_theme_stylebox_override("panel", UiKit.card(pt, 10.0))
 	_talk.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_talk.position = Vector2(16 * pt, 0)
 	_talk.custom_minimum_size = Vector2(360, 0) * pt
@@ -613,7 +613,7 @@ func _build_ui() -> void:
 	row.add_child(v)
 	_who = Label.new()
 	_who.add_theme_font_size_override("font_size", int(13 * pt))
-	_who.add_theme_color_override("font_color", VIOLET)
+	_who.add_theme_color_override("font_color", UiKit.NEON_PINK)  # a speaker's name, as the HUD's notes
 	v.add_child(_who)
 	_line = Label.new()
 	_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -624,7 +624,7 @@ func _build_ui() -> void:
 	_line_en.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_line_en.custom_minimum_size.x = 340 * pt
 	_line_en.add_theme_font_size_override("font_size", int(11 * pt))
-	_line_en.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
+	_line_en.add_theme_color_override("font_color", UiKit.SUB)
 	v.add_child(_line_en)
 	var buttons := HBoxContainer.new()
 	buttons.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -652,7 +652,7 @@ func _build_ui() -> void:
 
 func _button(parent: Node, pl: String, en: String, pt: float) -> Button:
 	if hud != null and hud.has_method("_chip"):
-		var b: Button = hud._chip(parent, pl, en, VIOLET)
+		var b: Button = hud._chip(parent, pl, en)  # the kit's buttons (the beat ring stays violet)
 		b.custom_minimum_size = Vector2(96, 52) * pt
 		return b
 	var c := Button.new()
@@ -660,15 +660,6 @@ func _button(parent: Node, pl: String, en: String, pt: float) -> Button:
 	c.custom_minimum_size = Vector2(96, 52) * pt
 	parent.add_child(c)
 	return c
-
-
-static func _box(bg: Color, edge: Color) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = bg
-	s.border_color = edge
-	s.set_border_width_all(2)
-	s.set_content_margin_all(10)
-	return s
 
 
 func _draw_beat() -> void:
