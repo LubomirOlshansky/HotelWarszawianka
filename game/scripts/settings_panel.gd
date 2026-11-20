@@ -291,6 +291,7 @@ func _build() -> void:
 	var world := _rows(body, [2, 2])
 	_heading(world[0], "Pora dnia", "Time of day")
 	_segments(world[0], "time", TIME)
+	_groups["time"][3].visible = false  # F 2026-11-19: no Live, the game runs its own clock (time_of_day.gd)
 	_heading(world[1], "Tryb gry", "Game mode")
 	_segments(world[1], "wander", MODE)
 	_heading(world[2], "Pogoda", "Weather")

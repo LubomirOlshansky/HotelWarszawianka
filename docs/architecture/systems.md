@@ -146,6 +146,7 @@ in one file, `data/pacing.json`, read by the offer pacer (`pacer.gd`, tech-debt 
 | `screen_points.gd`, `access.gd` | Points, safe area, tap sizes; accessibility options. |
 | `settings.gd`, `settings_panel.gd` | Settings in `user://settings.cfg`; the panel. |
 | `full_map.gd` | Full-screen map, minimal since 2026-11-17 (F): the city, the car, the route, the questlines' dots with their names (always, dimmed in quest focus; a tap: the line, ROUTE, DETAILS), the "?" marks, the NEXT line top left and the big QUESTS button bottom right (a NEW badge). main.gd `_fill_map_list` gathers the facts and calls `set_book`; the QUESTS screen is its child. |
+| `clock_dial.gd` | The map clock's watch (F 2026-11-19): a 24-hour face with the day's sunrise and sunset; drag the hand, and `full_map.gd` moves the game clock there (`time_of_day.gd` `set_hour`). |
 | `quest_book.gd` (2026-11-17) | **The QUESTS screen's contents**, pure: `tabs(facts)` builds First steps (until 7/7), Questlines, Side jobs, Rivals and Collection, each item with its title, second line, about, facts (done counts, when, where), icon key and buttons (SHOW ON MAP / STOP TRACKING, START or CALL, RACE). Words: dialogue.json group "quest_book" (`words`, `fmt`); icons: `game/art/quest_icons/` (`ICONS`, `icon`); the beta card's tiles (`SHOWCASE`); a questline's facts (`story_facts`) and a turned-down invite's NEW mark (`mark_invite`). Check: `check_quest_book` (verify step `questbook`). |
 | `quests_screen.gd` (2026-11-17) | **The QUESTS screen** over the full map: ‹ MAP and the tabs on top, the NOW line (SHOW, QUIT twice) under them, the list on the left, the detail on the right (icon, portrait, about, facts, buttons). Draws what `QuestBook.tabs` gives, emits `acted(key, entry)` to full_map.gd (which pins, calls out, or hands a request to main.gd) and `seen(id)` for a NEW questline opened; touch drags and the pad come from full_map.gd's input. `icon_tile` is the icons' look (first10.gd's beta card uses it too). Check: `check_hud` (layout at six sizes, the flows). |
 | `notebook_page.gd`, `garage_card.gd` | Notebook tab; garage card. |
@@ -172,7 +173,7 @@ See [graphics.md](graphics.md).
 
 | Script | Owns |
 | --- | --- |
-| `time_of_day.gd` | Dawn, day, dusk, night; sun, sky, grade, city lights; global shader uniforms. |
+| `time_of_day.gd` | The game clock (30x, the sun by the date, the long golden hour) and dawn, day, dusk, night; sun, sky, grade, city lights; global shader uniforms. |
 | `game_time.gd` (F 2026-11-19) | **The time owner**: every activity's opening hours from `data/pacing.json` in one table (`hours`, `open_now`, `open_ids`), whether a friend may call now (`may_call`: the night friends call by day with `time.by_day`), the clock's jump with the look that fits (`jump`, `jump_into`: activity.gd `start` jumps a night run taken by day to its `run_hours`; story_quests.gd and main.gd's quest nights jump through it), and the map clock's words (`label`). |
 | `grades.gd` | The colour looks (Settings → Kolory: Natural, the default, Neon, Classic): overrides on `time_of_day.gd`'s looks and the post pass's grade values. |
 | `weather.gd` | Rain and wetness. |

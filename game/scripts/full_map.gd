@@ -37,9 +37,6 @@ signal teleport(at: Vector2)
 signal rival_called(rung: int)
 ## An item marked NEW was looked at on the QUESTS screen (its id, quest_book.gd): main.gd forgets it.
 signal seen(id: String)
-## F 2026-11-19: the map's clock picker set the time of day (time_of_day.gd's mode: DAY 0, DUSK 1,
-## NIGHT 2, DAWN 4); main.gd applies it as the settings' Time of day does.
-signal time_picked(mode: int)
 
 const Lang := preload("res://scripts/lang.gd")
 const MapArt := preload("res://scripts/map_art.gd")
@@ -53,6 +50,7 @@ const Hints := preload("res://scripts/hints.gd")  # 2026-11-16: the map's coach 
 const MapTrack := preload("res://scripts/map_track.gd")  # 2026-11-16: track and "?" marks
 const QuestBook := preload("res://scripts/quest_book.gd")  # 2026-11-17: the QUESTS screen's contents
 const QuestsScreen := preload("res://scripts/quests_screen.gd")
+const ClockDial := preload("res://scripts/clock_dial.gd")  # F 2026-11-19: the watch
 ## The hold to teleport: this long, the finger within HOLD_SLOP points of where it went down.
 const HOLD_S := 0.6
 const HOLD_SLOP := 12.0
@@ -134,8 +132,9 @@ var flying := false
 ## F (2026-11-07): the hospitals only matter to a rescue; their marks show only while one is on
 ## (main.gd sets it on open).
 var hospitals := false
-## () -> {hour, weekday} (time_of_day.gd `local_clock`; main.gd sets it on open): the clock top right.
-var clock: Callable
+## The time of day (time_of_day.gd; main.gd sets it): its `local_clock` is the clock top right, the
+## watch and the looks move it (`set_hour`, `set_mode`). Null in the checks: "--:--".
+var tod: Node
 ## The minimap's night (kept for hud.gd; the full map has one look day and night).
 var night := 0.0
 ## Loop 3h slice 1: districts.gd `view()` (names, label point, polygons, found, pct) and the total %.
@@ -200,6 +199,7 @@ var _next: Button
 var _clock_btn: Button
 var _picker: PanelContainer
 var _picker_open: Label
+var _dial: Control
 ## The NEXT line's thing ({} none): {"words": [pl, en], "colour", "at", "entry" (a place to pin, {}
 ## none), "id" (an item to open the screen on, "" none)}.
 var next_info: Dictionary = {}
@@ -407,6 +407,12 @@ func _build_picker() -> void:
 	_picker_open.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_picker_open.custom_minimum_size.x = 300.0 * pt
 	v.add_child(_picker_open)
+	_dial = ClockDial.new()
+	_dial.name = "clock_dial"
+	_dial.pt = pt
+	_dial.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_dial.picked.connect(_hour_picked)
+	v.add_child(_dial)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", _px(6))
 	v.add_child(row)
@@ -422,17 +428,17 @@ func _build_picker() -> void:
 
 ## The clock's words now ("PT 14:05"; "--:--" without a clock).
 func _clock_words() -> String:
-	if not clock.is_valid():
+	if tod == null:
 		return "--:--"
-	var w: Array = GameTime.label(clock.call())
+	var w: Array = GameTime.label(tod.local_clock())
 	return Lang.pick(str(w[0]), str(w[1]))
 
 
 ## "Open now: ..." for the picker, from the time owner's table.
 func _open_words() -> String:
-	if not clock.is_valid():
+	if tod == null:
 		return ""
-	var c: Dictionary = clock.call()
+	var c: Dictionary = tod.local_clock()
 	var names := PackedStringArray()
 	for id: String in GameTime.open_ids(float(c.get("hour", 12.0))):
 		var n: Array = GameTime.NAMES[id]
@@ -445,16 +451,28 @@ func _open_words() -> String:
 func _clock_tapped() -> void:
 	_picker.visible = not _picker.visible
 	_picker_open.text = _open_words()
+	if tod != null and tod.has_method("sun_times"):
+		_dial.set_time(float(tod.local_clock()["hour"]), tod.sun_times())
 	print("full map: clock %s (%s)" % ["open" if _picker.visible else "closed", _clock_words()])
 	_fit()
 
 
 func _time_tapped(mode: int) -> void:
-	time_picked.emit(mode)
+	if tod != null:
+		tod.set_mode(mode)
 	_picker.visible = false
 	_clock_btn.text = _clock_words()
 	print("full map: time picked %d, now %s" % [mode, _clock_words()])
 	_fit()
+
+
+## The watch's hand let go at `hour`: the clock moves forward there (time_of_day.gd `set_hour`).
+func _hour_picked(hour: float) -> void:
+	if tod != null:
+		tod.set_hour(hour)
+	_picker_open.text = _open_words()
+	_clock_btn.text = _clock_words()
+	print("full map: watch set %.2f, now %s" % [hour, _clock_words()])
 
 
 func _round_button(text: String, ink: Color) -> Button:

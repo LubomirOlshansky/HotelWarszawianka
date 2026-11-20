@@ -8,6 +8,11 @@ extends SceneTree
 ## - the jump: the look that fits the hour, the clock set, one toast; a run that keeps hours jumps
 ##   into them only when it starts outside them (activity.gd `start`), and its call says so;
 ## - the map clock's words.
+## - the game clock (F 2026-11-19, time_of_day.gd `start_clock`): it starts on a Friday at 14:00 in
+##   the Day look's light and runs at time.speed (30x); the sun follows the date (a June day
+##   longer than a November one); the golden hour round sunset lasts time.golden times longer
+##   and the clock's sunrise and sunset are the real ones; a look picked moves the clock forward
+##   to its hour; Night is dark, the sunset gold; the watch's hour from a point.
 ##   godot --headless --path game --script res://tools/check_game_time.gd
 
 const GameTime := preload("res://scripts/game_time.gd")
@@ -15,6 +20,7 @@ const Pacer := preload("res://scripts/pacer.gd")
 const TimeOfDay := preload("res://scripts/time_of_day.gd")
 const Activity := preload("res://scripts/activity.gd")
 const Fakes := preload("res://tools/fakes.gd")
+const ClockDial := preload("res://scripts/clock_dial.gd")
 
 
 ## A clock with the methods the jump uses.
@@ -24,6 +30,9 @@ class FakeTod extends Node:
 	var hour := 14.0
 	func set_mode(m: int, _instant := false) -> void:
 		mode = m
+	func set_hour(h: float, _instant := false) -> void:
+		mode = TimeOfDay.parse(TimeOfDay.look_at(h))
+		fixed_start = h
 	func local_clock() -> Dictionary:
 		return {"hour": fixed_start if fixed_start >= 0.0 else hour, "weekday": 5}
 
@@ -39,6 +48,59 @@ func _expect(ok: bool, what: String) -> void:
 
 func _initialize() -> void:
 	_run.call_deferred()
+
+
+## The game clock on a real TimeOfDay (its own environment, sun and post material).
+func _game_clock() -> void:
+	var t := TimeOfDay.new()
+	root.add_child(t)
+	var env := Environment.new()
+	var sun := DirectionalLight3D.new()
+	root.add_child(sun)
+	t.setup(env, sun, ShaderMaterial.new(), -50.0)
+	t.start_clock(20261120)
+	var c := t.local_clock()
+	_expect(t.game_clock and t.mode == TimeOfDay.LIVE and int(c["weekday"]) == 5 and absf(float(c["hour"]) - t.look_hour(TimeOfDay.DAY)) < 0.01,
+			"the game clock did not start on Friday in the day: %s" % [c])
+	_expect(t.look_mode() == TimeOfDay.DAY and t.sun.shadow_enabled, "the game clock's start is not the day's light")
+	_expect(is_equal_approx(t.speed, Pacer.num("time", "speed")) and t.speed >= 10.0, "the clock does not run fast (time.speed)")
+	var h0 := float(t.local_clock()["hour"])
+	t._frame(10.0)
+	var ran := (float(t.local_clock()["hour"]) - h0) * 3600.0
+	_expect(absf(ran - 10.0 * t.speed) < 1.0, "10 real s moved the clock %.0f game s, not %.0f" % [ran, 10.0 * t.speed])
+	# The seasons: Warsaw's real day lengths, about 8.5 h on 20 November and 16.8 h on 21 June.
+	var nov := t.sun_times()
+	var jun := TimeOfDay.sun_times_on(TimeOfDay.warsaw_to_utc("00:00", 20270621))
+	_expect(absf((nov.y - nov.x) - 8.5) < 0.4 and absf((jun.y - jun.x) - 16.8) < 0.4, "day lengths: November %s, June %s" % [nov, jun])
+	_expect(nov.y > 15.0 and nov.y < 16.0 and jun.y > 20.5 and jun.y < 21.5, "sunsets: November %.2f, June %.2f" % [nov.y, jun.y])
+	# The long golden hour: the clock's sunset is the real one, and the band round it is longer.
+	var band := t._band()
+	_expect(is_zero_approx(TimeOfDay.solar_shift(nov.y, nov.x, nov.y, band)) and is_zero_approx(TimeOfDay.solar_shift(nov.x, nov.x, nov.y, band)),
+			"the clock's sunrise or sunset is not the sun's")
+	var stretch := band.y / band.x
+	_expect(absf(stretch - Pacer.num("time", "golden")) < 0.01, "the golden hour lasts %.2fx, not time.golden" % stretch)
+	var before := nov.y - band.y
+	_expect(absf((before + TimeOfDay.solar_shift(before, nov.x, nov.y, band)) - (nov.y - band.x)) < 0.01,
+			"the golden band's edge is not where the sun is %.2f h before sunset" % band.x)
+	# A look picked moves the clock forward to its hour, and its light follows.
+	t.set_mode(TimeOfDay.DUSK, true)
+	_expect(absf(float(t.local_clock()["hour"]) - nov.y) < 0.02 and t.look_mode() == TimeOfDay.DUSK, "Dusk is not the sunset")
+	var dusk_sun := t.sun.light_color
+	_expect(t.sun.shadow_enabled and dusk_sun.r > dusk_sun.b, "the sunset is not golden (sun %s)" % dusk_sun)
+	t.set_mode(TimeOfDay.NIGHT, true)
+	_expect(absf(float(t.local_clock()["hour"]) - 23.0) < 0.02 and t.look_mode() == TimeOfDay.NIGHT and t.lights_on > 0.9,
+			"Night is not 23:00 with the lights on")
+	t.set_hour(10.0, true)
+	c = t.local_clock()
+	_expect(absf(float(c["hour"]) - 10.0) < 0.02 and int(c["weekday"]) == 6, "10:00 after the night is not Saturday morning: %s" % [c])
+	t.next()
+	_expect(t.look_mode() == TimeOfDay.DUSK, "N after the day is not the dusk")
+	_expect(GameTime.jump(t, null, 21.0) and absf(float(t.local_clock()["hour"]) - 21.0) < 0.02, "the jump does not move the game clock")
+	# The watch: noon at the top, 6:00 left, quarter hours.
+	_expect(is_equal_approx(ClockDial.hour_at(Vector2(0, -50)), 12.0) and is_equal_approx(ClockDial.hour_at(Vector2(-50, 0)), 6.0)
+			and is_equal_approx(ClockDial.hour_at(Vector2(0, 50)), 0.0), "the watch's hours are wrong")
+	t.free()
+	sun.free()
 
 
 func _run() -> void:
@@ -93,6 +155,7 @@ func _run() -> void:
 	_expect(w[0] == "PT 14:05" and w[1] == "Fri 14:05", "the clock's words: %s" % [w])
 	tod.free()
 	hud.free()
+	_game_clock()
 	for e: String in Pacer.errors:
 		_expect(false, "pacer: " + e)
 	if _problems == 0:

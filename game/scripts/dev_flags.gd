@@ -342,6 +342,9 @@ var tap_at := Vector2.INF
 var start_weather := 0
 var live_clock := ""
 var live_date := 0
+## F 2026-11-19: the game clock (time_of_day.gd `start_clock`, 30x, the sun by the date): on in a
+## normal launch, or with --game-clock in a test run (--time=, --clock=, --date= then set its start).
+var game_clock := false
 ## --palace-lights=ID: the Palace's event lighting forced to one row of data/palace_lights.json
 ## ("gold" for the nightly gold), whatever the date (shots).
 var palace_lights_id := ""
@@ -802,6 +805,8 @@ func parse_with(args: PackedStringArray) -> void:
 			live_clock = arg.trim_prefix("--clock=")
 		elif arg.begins_with("--date="):
 			live_date = int(arg.trim_prefix("--date="))
+		elif arg == "--game-clock":
+			game_clock = true
 		elif arg.begins_with("--palace-lights="):
 			palace_lights_id = arg.trim_prefix("--palace-lights=")
 		elif arg == "--perf":
@@ -1178,6 +1183,7 @@ func parse_with(args: PackedStringArray) -> void:
 		show_title = true
 	# Camera loop: the cinematic moments in a normal launch only (never with screenshots or a bench).
 	var normal := show_title and m.shots.is_empty() and not bench and not probe and not bench_button and not demo
+	game_clock = (game_clock or normal) and start_time != TimeOfDay.LIVE
 	if _flag_cinematic == "event":
 		# The 15 s video: the event day on, the clock 16:40 in the dusk look unless --clock says other.
 		if event_flag < 0:

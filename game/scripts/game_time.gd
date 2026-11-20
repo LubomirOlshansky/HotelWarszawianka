@@ -4,10 +4,10 @@ extends RefCounted
 ## and the three answers everything else asks: is it open now (`open_now`, `open_ids`), may its
 ## friend call now (`may_call`), and the clock's jump to its hour (`jump`, `jump_into`).
 ##
-## Game time (time_of_day.gd `local_clock`): a new game starts at Day, 14:00 on a Friday, and the
-## clock runs at real speed from the moment a look was set; Live is the real Warsaw clock. So the
-## night friends (the shisha night, the bar crawl, the racing club, Mati's raves) never called in a
-## normal session. With `time.by_day` on, they call at any hour, and the run they offer jumps the
+## Game time (time_of_day.gd `local_clock`): a new game starts at 14:00 on this week's Friday and
+## the game clock runs at 30x (time.speed: a game day in 48 real minutes, the sun by the date). At
+## real speed, before it, the night friends (the shisha night, the bar crawl, the racing club,
+## Mati's raves) never called in a normal session. With `time.by_day` on, they call at any hour, and the run they offer jumps the
 ## clock to its opening hour when the player says yes ("You wait until 21:00"), as the quest
 ## map's starts already did (story_quests.gd `skip_to`). Their call cards say so (activity.gd
 ## `_night_line`).
@@ -73,25 +73,19 @@ static func may_call(h: Vector2, hour: float, night := true) -> bool:
 	return in_hours(hour, h) or (night and BY_DAY > 0.0)
 
 
-## The fixed look whose light fits `hour` (time_of_day.gd NAMES): the jump to a night hour turns
-## the city dark too.
+## The fixed look whose light fits `hour` (time_of_day.gd `look_at`): the jump to a night hour
+## turns the city dark too.
 static func look_for(hour: float) -> String:
-	if hour >= 5.0 and hour < 8.0:
-		return "Dawn"
-	if hour >= 8.0 and hour < 18.5:
-		return "Day"
-	if hour >= 18.5 and hour < 20.5:
-		return "Dusk"
-	return "Night"
+	return TimeOfDay.look_at(hour)
 
 
-## The clock jumps to `hour` (0-24) with the look that fits it, and one toast says so. False without
-## a clock.
+## The clock jumps to `hour` (0-24; time_of_day.gd `set_hour`: on the game clock it moves forward
+## and the light follows the sun, else the look that fits) and one toast says so. False without a
+## clock.
 static func jump(tod: Node, hud: Node, hour: float) -> bool:
 	if tod == null:
 		return false
-	tod.set_mode(TimeOfDay.parse(look_for(hour)))
-	tod.fixed_start = hour
+	tod.set_hour(hour)
 	var hm := "%02d:%02d" % [int(hour), int(fmod(hour, 1.0) * 60.0)]
 	if hud != null:
 		hud.toast("Czekacie do %s." % hm, "You wait until %s." % hm)

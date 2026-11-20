@@ -6006,6 +6006,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--resume=x,z[,heading]` | save and resume: a kept spot in memory (the title forced on; with `--nosave` the resume path without a real save) |
 | `--time=live` | v0.9: the real sun for the device's clock (TIME's fourth mode) |
 | `--clock=HH:MM` / `--date=YYYYMMDD` | start Live's clock at that Warsaw time (and date; default today); loop MW-3: with a fixed look (`--time=night --clock=01:00`) the game clock starts there, the look stays |
+| `--game-clock` | F 2026-11-19: run the game clock in a test run (a normal launch always does): 30x (pacing.json time.speed), the sun by the date (`--date=`, else this week's Friday), the long golden hour; `--time=` / `--clock=` set where it starts |
 | `--weather=clear\|rain` | start dry or in the rain (default clear) |
 | `--perf` | show the performance overlay (loop 2e: four lines: fps, frame time, worst, cap · CPU process + physics + draw, GPU, memory · draw calls by pass · objects, triangles) |
 | `--quality=auto\|low\|medium\|high\|ultra\|experimental` | the quality for this run (not saved; loop G1: default Auto, the level `tiers.gd` picks for the device; 0–3 are Low–Ultra; `experimental`/`exp` by name only, F 2026-11-10: Ultra plus the trailer's extras, never saved even from Settings) |

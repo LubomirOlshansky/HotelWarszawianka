@@ -1814,6 +1814,8 @@ func _build_world() -> void:
 	if flags.live_clock != "" and flags.start_time != TimeOfDay.LIVE:
 		var hm := flags.live_clock.split(":")
 		tod.fixed_start = clampf(float(hm[0]) + (float(hm[1]) / 60.0 if hm.size() > 1 else 0.0), 0.0, 23.99)
+	if flags.game_clock:  # F 2026-11-19: one game clock at 30x, the sun by the date (time_of_day.gd)
+		tod.start_clock(flags.live_date, flags.start_time, tod.fixed_start)
 	# Loop MW-5: PÓŁNOC FM reads the game clock; the radio follows it until the player picks.
 	radio.clock = func() -> Array:
 		var c := tod.local_clock()
@@ -4785,7 +4787,7 @@ func _open_full_map() -> void:
 	_pause.hold(PauseReasons.MAP)
 	hud.open_full_map(Vector2(pos.x, pos.z), yaw, found)
 	hud.full_map.hospitals = missions != null and missions.has_target()  # only a rescue needs them
-	hud.full_map.clock = tod.local_clock  # the map's clock and its picker (F 2026-11-19, game_time.gd)
+	hud.full_map.tod = tod  # the map's clock, its watch and its looks (F 2026-11-19, game_time.gd)
 	if fullmap_span > 0.0:
 		hud.full_map.show_span(fullmap_span)
 		fullmap_span = 0.0
@@ -4912,7 +4914,6 @@ func _wire_full_map() -> void:
 		if wallet != null and wallet.intro.erase(QuestBook.NEW_KEY + id.trim_prefix("story_")):
 			wallet.save())  # a questline that invited the player was looked at in QUESTS
 	hud.full_map.can_teleport = _teleport_refusal
-	hud.full_map.time_picked.connect(func(m: int) -> void: _on_setting("time", m))  # the map clock's picker
 
 
 ## G12 part 2: what the ZADANIA card lists now (quest_lines.gd entries). AUTO: the kebab stands,
@@ -5175,7 +5176,7 @@ func _settings_state() -> Dictionary:
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
 			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
 			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view,
-			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
+			"weather": weather.state, "time": tod.look_mode(), "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
 			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "sensitivity": settings.sensitivity,
 			"text_large": int(settings.text_large), "calm": int(settings.calm), "color_safe": int(settings.color_safe),
