@@ -73,8 +73,9 @@ var perf := false
 const FPS := [60, 30]
 var fps := 60
 ## The follow-camera loop (2026-10-30): the driving view's height in metres, the player's zoom
-## (follow_camera.gd VIEWS; 80 is DEFAULT_SIZE).
-var view := 80.0
+## (follow_camera.gd VIEWS). The start view is 65 m (F, 2026-11-20: "start with a little bit closer
+## look, not so far"), one step in from the 80 m DEFAULT_SIZE the bench and the helicopter keep.
+var view := 65.0
 ## F, 2026-11-07: the camera's angle over the ground in degrees (follow_camera.gd PITCHES; 30, the
 ## game's look, is the default). Settings → Obraz, key "angle".
 var pitch := FollowCamera.DEFAULT_PITCH
