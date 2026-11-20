@@ -47,6 +47,13 @@ extends SceneTree
 ##     gated end, inside the line, CityBarriers.GATE_RISE m over the line, and nothing else over it; the
 ##     leaf on its side of the line, off the line's own segment, not past the line's far end; a wall's
 ##     gap the same; under classic the gates change nothing (triangles and faces as the line without them);
+##   10 W9 (walls doc 6.8, game/scripts/wall_marks.gd): every character of game/data/wall_marks.json is in
+##     the pixel font and its lines fit (a slogan at most 15 characters, a banner line 11); the atlas holds
+##     every cell inside the image, none over another; on a 600 m precast wall under typed marks stand off
+##     the wall's face by their lift, under its top and over the ground, the same on a second build, none
+##     under classic; none across a gap; on a hoarding a banner per face; and on the whole map no line has
+##     more slogans than its length in 150 m windows (at least one) or two closer than 150 m, and the
+##     slogans are at most the marked walls' length over 150 m;
 ##   8 with `--paths` (verify step `barrierpaths`, the prebuilt city needed): in each of the
 ##     sectors (check_colliders.gd's ten; `--all` every sector) the runtime build in the look the
 ##     prebuilt city was baked in (map/sectors/city.stamp) has the prebuilt sector's city mesh
@@ -58,6 +65,8 @@ const Solidity := preload("res://scripts/solidity.gd")
 const CityBarriers := preload("res://scripts/city_barriers.gd")
 const Chunked := preload("res://scripts/chunked_surface.gd")
 const PanelRule := preload("res://scripts/panel_rule.gd")
+const WallMarks := preload("res://scripts/wall_marks.gd")
+const PixelFont := preload("res://scripts/pixel_font.gd")
 const MapBuilder := preload("res://scripts/map_builder.gd")
 const PANEL_RHYTHMS := [2.0, 4.0]
 ## 9 (W8): how far a piece's own end shape (rail_lite's last post, a wall's end) may reach into a gap.
@@ -112,8 +121,11 @@ func _initialize() -> void:
 	var panels := {}
 	_panels(map)
 	_gates(map)
+	var marks_out := _marks(map)
 	if data is Dictionary:
 		counts = _whole(map, data)
+		counts["marks"] = _whole_marks(map, data)
+		counts["marks synthetic"] = marks_out
 		panels = _whole_panels(map, data)
 	map.free()
 	Solidity.set_barrier_look(&"classic")
@@ -715,6 +727,7 @@ func _paths(every: bool) -> void:
 		keys = PATH_SECTORS
 	var pieces := 0
 	var verts := 0
+	var quads := 0
 	for key in keys:
 		var built: Node3D = runtime.build_sector(key)
 		var a := _sector_counts(built)
@@ -730,11 +743,12 @@ func _paths(every: bool) -> void:
 			problems.append("8 %s (%s): runtime %s, prebuilt %s" % [key, look, a, b])
 		pieces += int(a["panel pieces"])
 		verts += int(a["vertices"])
+		quads += int(a["slogan quads"])
 	runtime.free()
 	Solidity.set_barrier_look(&"classic")
 	if problems.is_empty():
-		print("check_barrier_look: OK (paths: %d sectors in the baked look %s, %d city mesh vertices, %d panel pieces, the same on both)" % [
-				keys.size(), look, verts, pieces])
+		print("check_barrier_look: OK (paths: %d sectors in the baked look %s, %d city mesh vertices, %d panel pieces, %d slogan and banner quads, the same on both)" % [
+				keys.size(), look, verts, pieces, quads])
 		quit(0)
 	else:
 		for p in problems:
@@ -743,11 +757,13 @@ func _paths(every: bool) -> void:
 		quit(1)
 
 
-## 8: a sector's mesh vertices (every MeshInstance3D's surfaces) and its Panels' pieces.
+## 8: a sector's mesh vertices (every MeshInstance3D's surfaces), its Panels' pieces and (W9) its
+## Slogans' quads.
 func _sector_counts(sector: Node) -> Dictionary:
 	var verts := 0
 	var pieces := 0
 	var nodes := 0
+	var quads := 0
 	for n in sector.find_children("*", "", true, false):
 		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
 			var m := (n as MeshInstance3D).mesh
@@ -755,7 +771,165 @@ func _sector_counts(sector: Node) -> Dictionary:
 				var arr := m.surface_get_arrays(s)
 				if arr[Mesh.ARRAY_VERTEX] is PackedVector3Array:
 					verts += (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
+					if str(n.name).begins_with("Slogans"):
+						quads += (arr[Mesh.ARRAY_VERTEX] as PackedVector3Array).size() / 6
 		elif n is MultiMeshInstance3D and str(n.name).begins_with("Panels"):
 			nodes += 1
 			pieces += (n as MultiMeshInstance3D).multimesh.instance_count
-	return {"vertices": verts, "panel pieces": pieces, "panel nodes": nodes}
+	return {"vertices": verts, "panel pieces": pieces, "panel nodes": nodes, "slogan quads": quads}
+
+
+## 10 (W9): the words, the atlas and one wall's marks on the flat map.
+func _marks(map: Node3D) -> Dictionary:
+	var WM := WallMarks
+	var texts: Dictionary = WM.texts()
+	var out := {}
+	for kind: String in ["slogans", "banners"]:
+		for t: Dictionary in texts.get(kind, []):
+			var lines: Array = [str(t["pl"])] if kind == "slogans" else t["lines"]
+			for ln: Variant in lines:
+				for ch in str(ln):
+					if ch != " " and PixelFont.char_width(ch) == 0:
+						problems.append("10 %s %s: '%s' is not in the pixel font" % [kind, t["id"], ch])
+				var cap := 15 if kind == "slogans" else 11
+				if str(ln).length() > cap:
+					problems.append("10 %s %s: %d characters (at most %d)" % [kind, t["id"], str(ln).length(), cap])
+	var at: Dictionary = WM.atlas()
+	var img: Image = at["image"]
+	var rects: Array[Rect2i] = []
+	for kind: String in ["slogans", "banners"]:
+		for key: String in at[kind]:
+			var r: Rect2i = at[kind][key]
+			if r.position.x < 0 or r.position.y < 0 or r.end.x > img.get_width() or r.end.y > img.get_height():
+				problems.append("10 atlas cell %s outside the image" % key)
+			for o: Rect2i in rects:
+				if o.intersects(r):
+					problems.append("10 atlas cell %s overlaps another" % key)
+			rects.append(r)
+	out["atlas"] = "%dx%d, %d cells" % [img.get_width(), img.get_height(), rects.size()]
+	# One 600 m precast wall (a slogan or two, patches, stains) under typed, built twice, and under classic.
+	var wall := _line("wall", [4000.0, 4000.0, 4600.0, 4000.0], {"ty": "wall_precast", "g": [[100.0, 4.0, 0]]})
+	var b: RefCounted = map.barriers
+	Solidity.set_barrier_look(&"typed")
+	map.data = {"lines": [wall]}
+	map._in_sector = false
+	var plain := Chunked.new()
+	b.marks_on = false
+	map._solids = {}
+	b.build_barriers(plain)
+	b.marks_on = true
+	var first := Chunked.new()
+	map._solids = {}
+	b.build_barriers(first)
+	var counts: Dictionary = (b.mark_counts as Dictionary).duplicate()
+	var tiles: int = (b.mark_tiles as Dictionary).size()
+	var log1: Array = (b.slogan_log as Array).duplicate(true)
+	var second := Chunked.new()
+	map._solids = {}
+	b.build_barriers(second)
+	if first.vertex_count != second.vertex_count or var_to_str(log1) != var_to_str(b.slogan_log):
+		problems.append("10 the same wall built twice differs (%d and %d vertices)" % [first.vertex_count, second.vertex_count])
+	if first.vertex_count <= plain.vertex_count or int(counts.get("graffiti", 0)) + int(counts.get("stain", 0)) == 0:
+		problems.append("10 a 600 m precast wall got no marks (%d vertices with, %d without; %s)" % [first.vertex_count, plain.vertex_count, counts])
+	var row := Solidity.look_row(&"wall_precast")
+	var hw := float(row["thick"]) * 0.5
+	var near := INF
+	var far := 0.0
+	var top := -INF
+	var low := INF
+	# What the marks added stays on the face's side: between lift and the longest reach, above ground.
+	var extra_verts: Array[Vector3] = []
+	var seen := {}
+	for mesh: ArrayMesh in plain.meshes():
+		for si in mesh.get_surface_count():
+			for v: Vector3 in mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]:
+				seen[v] = true
+	for mesh: ArrayMesh in first.meshes():
+		for si in mesh.get_surface_count():
+			for v: Vector3 in mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]:
+				if not seen.has(v):
+					extra_verts.append(v)
+	var in_gap := 0
+	for v: Vector3 in extra_verts:
+		if v.x > 4100.0 and v.x < 4104.0:
+			in_gap += 1
+		var off := absf(v.z - 4000.0)
+		near = minf(near, off)
+		far = maxf(far, off)
+		top = maxf(top, v.y)
+		low = minf(low, v.y)
+	if in_gap > 0:
+		problems.append("10 %d mark vertices stand in the gap of the precast wall" % in_gap)
+	if not extra_verts.is_empty():
+		if near < hw + 0.01 or far > hw + 0.1 or low < 0.0 or top > float(row["h"]) + 0.05:
+			problems.append("10 precast marks reach %.3f to %.3f m off the line (face at %.3f), from %.2f to %.2f m up (wall %.2f)" % [
+					near, far, hw, low, top, float(row["h"])])
+	out["precast wall"] = {"vertices": first.vertex_count - plain.vertex_count, "counts": counts, "poster tiles": tiles}
+	# Classic: nothing.
+	Solidity.set_barrier_look(&"classic")
+	var classic := Chunked.new()
+	map._solids = {}
+	b.build_barriers(classic)
+	if not (b.mark_counts as Dictionary).is_empty() or not (b.mark_tiles as Dictionary).is_empty():
+		problems.append("10 classic made marks: %s" % b.mark_counts)
+	# A hoarding: a banner on each face.
+	var hoard := _line("fence", [4000.0, 4100.0, 4008.0, 4100.0], {"ty": "hoarding", "sc": "S"})
+	for look: StringName in [&"typed", &"panels"]:
+		Solidity.set_barrier_look(look)
+		map.data = {"lines": [hoard]}
+		map._solids = {}
+		b.build_barriers(Chunked.new())
+		if int(b.mark_counts.get("banner", 0)) != 2:
+			problems.append("10 a 8 m hoarding under %s got %s banners, want 2" % [look, b.mark_counts.get("banner", 0)])
+	Solidity.set_barrier_look(&"typed")
+	map.data = {}
+	map._solids = {}
+	return out
+
+
+## 10: the whole map's marks on the flat map under typed and panels (the same), and the slogans' rule.
+func _whole_marks(map: Node3D, data: Dictionary) -> Dictionary:
+	var out := {}
+	var b: RefCounted = map.barriers
+	var first := {}
+	for look: StringName in [&"typed", &"panels"]:
+		Solidity.set_barrier_look(look)
+		map.data = data
+		map._solids = {}
+		b.build_barriers(Chunked.new())
+		var counts: Dictionary = (b.mark_counts as Dictionary).duplicate()
+		var quads := 0
+		for k: Vector2i in b.mark_tiles:
+			quads += b.mark_tiles[k].quads
+		counts["poster quads"] = quads
+		counts["poster tiles"] = (b.mark_tiles as Dictionary).size()
+		if look == &"typed":
+			first = counts
+			var per_line := {}
+			var totals := {}
+			for e: Array in b.slogan_log:
+				per_line[e[0]] = (per_line.get(e[0], []) as Array) + [float(e[1])]
+				totals[e[0]] = float(e[2])
+			var wall_m := 0.0
+			for l: Dictionary in data.get("lines", []):
+				if str(l.get("ty", "")) in (Solidity.marks_table().get("slogan", {}).get("share", {}) as Dictionary):
+					var pts: PackedVector2Array = map._pts(l["p"])
+					for i in pts.size() - 1:
+						wall_m += pts[i].distance_to(pts[i + 1])
+			for id: String in per_line:
+				var ss: Array = per_line[id]
+				ss.sort()
+				if ss.size() > maxi(1, ceili(float(totals[id]) / 150.0)):
+					problems.append("10 line %s has %d slogans in %.0f m" % [id, ss.size(), totals[id]])
+				for i in range(1, ss.size()):
+					if float(ss[i]) - float(ss[i - 1]) < 150.0 - 0.001:
+						problems.append("10 line %s: two slogans %.0f m apart" % [id, float(ss[i]) - float(ss[i - 1])])
+			if float(b.slogan_log.size()) > wall_m / 150.0:
+				problems.append("10 %d slogans on %.0f m of slogan walls (one per 150 m at most)" % [b.slogan_log.size(), wall_m])
+			out["slogan walls m"] = roundi(wall_m)
+		elif var_to_str(counts) != var_to_str(first):
+			problems.append("10 marks under panels %s, under typed %s" % [counts, first])
+	out["counts"] = first
+	map.data = {}
+	map._solids = {}
+	return out
