@@ -439,8 +439,37 @@ func _init() -> void:
 	dark = Color("#2b2c2f")
 
 
-## main.gd sets graph, traffic, hud, bubbles, map, car, wallet, tod, autopilot and
-## ghost_pace before this.
+## Wires the street racers from the game (activity.gd `install`; main.gd's `_build_life` until
+## TD-4 b11). Never off where they join: `_build_life` runs only with the traffic. --autopilot
+## drives their races, --ghost-pace sets its speed.
+func install(ctx: GameCtx) -> bool:
+	super(ctx)
+	autopilot = ctx.flags.autopilot
+	if ctx.flags.ghost_pace > 0.0:
+		ghost_pace = ctx.flags.ghost_pace
+	tod = ctx.tod  # loop 3h slice 3: the final waits for the night
+	night_now = ctx.night_now  # first hour step 5: the sixth win's NOC
+	graph = ctx.graph as LaneGraph
+	traffic = ctx.traffic as Traffic
+	bubbles = ctx.bubbles
+	car = ctx.car
+	return true
+
+
+## Their setup reads the map data too: the finishes and the Trzy mosty route.
+func setup_in(ctx: GameCtx) -> void:
+	setup(ctx.world, ctx.data)
+
+
+## After the join (main.gd's `_build_life` until TD-4 b11): --ladder=N, or --trzy-mosty (every
+## rung), presets the ladder for this run (loop 3h slice 3).
+func joined(ctx: GameCtx) -> void:
+	if ctx.flags.ladder_flag >= 0 or ctx.flags.trzy_mosty_flag:
+		preset_ladder(ctx.flags.ladder_flag if ctx.flags.ladder_flag >= 0 else Ladder.RUNGS.size())
+
+
+## `install` (or a check, by hand) sets graph, traffic, hud, bubbles, map, car, wallet, tod,
+## autopilot and ghost_pace before this.
 func setup(world: Node3D, data := {}) -> void:
 	_rng.seed = 7
 	_home_rng.seed = 11  # its own dice: the races' (`_rng`) draw as before

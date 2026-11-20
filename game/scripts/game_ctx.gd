@@ -77,3 +77,6 @@ var take_off: Callable
 var focus: Callable
 ## Puts the camera's focus at a point (a test start that moves the player at once).
 var focus_at: Callable
+## The clock to 22:00 at once, as CZEKAM DO 21:00 does it (main.gd's story skip): the street
+## racers' sixth win offers the night (NOC).
+var night_now: Callable
