@@ -87,9 +87,9 @@ is 12, and a touch target is at least 44 pt.
 | --- | --- | --- |
 | 1 | `ui_kit.gd`, the ratchet. hud.gd, settings, notebook, photo mode, bubbles, quests and the map alias their copies to the kit (same values, no visible change) | #952 |
 | 1b | The Theme on the root window (hud.gd `_ready`); settings, notebook, photo mode and bubbles drawn with the builders: the settings card loses its gold rail, button words in capitals, the photo shutter is gold, bubbles and photo plates take the kit's corners | #952 |
-| 2 | The HUD: pills, chips, call view, challenge card, job card, toasts | |
-| 3 | Map and quests: one gold and one red, the chosen row gold on every tab, the legend (after #949) | |
-| 4 | Garage, end card, title buttons, club and the police balloon | |
+| 2 | The HUD: chips and the context button in capitals with the kit's corners and strong edge, pressed in gold tint; the race call to action a card with the gold edge (the rival's colour only round the flag); the radio ticker's rail the brand pink; the wallet's money gold; one gold, one red, one green (QUESTION_GOLD, LENS_RED, HIDE_GREEN, LEAD_INK on the kit) | steps 2-4 PR |
+| 3 | Map and quests: one gold and one red; QUESTS, TRACK and the tracked NEXT the gold PRIMARY; the map's plates and the legend the kit card (no gold rail); every chosen row gold on every tab, chosen tabs SELECTED; CALL MATI a SECONDARY, quit DANGER | steps 2-4 PR |
+| 4 | Every HUD card: gold capital title, its first button the one gold PRIMARY (not for stacked equal answers); garage title gold, its tabs and tiles on the kit; title screen buttons kit buttons (language chosen = SELECTED, START OVER = DANGER), loading bar the brand neon; club and shisha lounge panels the kit card. Police balloon left for later (portrait art) | steps 2-4 PR |
 
 F decided on 2026-11-19 that the plates over the full map use the dark card too, the legend
 included, so there is no paper variant.

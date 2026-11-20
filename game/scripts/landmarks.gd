@@ -872,6 +872,30 @@ const INFO := {
 	"bulwary_bary": ["Kontenery na bulwarach",
 			"Kontenery z okienkiem: piwo, lemoniada, zapiekanki. Leżak obok zawsze zajęty.",
 			"Containers with a hatch: beer, lemonade, zapiekanki. The deck chair next to it is always taken."],
+	"pawilon_tanca": ["Pawilon Tańca",
+			"Biały pawilon nad bulwarem z napisem MUZEUM na dachu i cienkoliniowymi muralami; przy nim Palomka z białymi krzesłami.",
+			"A white pavilion above the boulevard with MUZEUM on its roof and fine-line murals; Palomka's white chairs beside it."],
+	"zachodni_brzezek": ["Zachodni Brzeżek",
+			"Bar z wielkim tarasem przy Wioślarskiej: szary beton, białe litery, palmy w beczkach i lampiony nad Wisłą.",
+			"A bar with a big terrace on Wioślarska: grey concrete, white letters, palms in barrels and bulbs above the Vistula."],
+	"plyta_desantu": ["Płyta Desantu",
+			"Piaszczysta plaża pod Mostem Poniatowskiego: trzy bary z leżakami, parasolami i pomostem prosto z desantu.",
+			"The sandy beach under Most Poniatowskiego: three bars with deck chairs, parasols and a dock straight off the landing."],
+	"barka_nowa_falka": ["Nowa Falka",
+			"Długa czarna barka z piaskowym pokładem, białymi parasolami i stolikami przed Pawilonem Tańca.",
+			"A long dark barge with a sand-coloured deck, white umbrellas and tables in front of the Dance Pavilion."],
+	"barka_zanurzenie": ["Zanurzenie",
+			"Barka pod płóciennym dachem: paletowe sofy, lampiony i kraftowe piwo kołyszące się przy trapie.",
+			"A canopied barge: pallet sofas, lanterns and craft beer swaying by the gangplank."],
+	"barka_wirek": ["Wirek",
+			"Drewniana platforma na wodzie naprzeciw Schodków: leżaki, palety i industrialne lampy.",
+			"A timber platform on the water facing the Steps: deck chairs, pallets and industrial lamps."],
+	"barka_kalmar": ["Kalmar",
+			"Pływająca plaża obok Dworca Wodnego: piasek pod stopami, leżaki i bar z białego muru.",
+			"A floating beach next to Dworzec Wodny: sand underfoot, loungers and a whitewashed bar."],
+	"barka_barkas": ["Barkas",
+			"Biała barka z płaskim dachem i dwiema scenami; latem koncerty i kino pod gołym niebem.",
+			"A white flat-topped barge with two stages; free concerts and open-air cinema in summer."],
 	"barka_kaskada": ["Kaskadka",
 			"Długa czarna barka koncertowa: industrial, minimalizm i bas słyszalny na Pradze.",
 			"A long black concert barge: industrial, minimal, and bass you can hear in Praga."],
@@ -1305,6 +1329,13 @@ func _find_sites() -> void:
 	# The boulevards' dressing (2026-11-02, spec docs/landmarks/specs/bulwary.md).
 	_find_bulwar_dress()
 	_find_bulwary_pool()
+	# Schodki nad Wisłą (2026-11-19, spec docs/landmarks/specs/schodki_wisla.md): the seating steps' band.
+	_find_schodki_wisla()
+	# The boulevards, phase C (2026-11-19): the dance pavilion with Palomka, the bar barges.
+	_find_pawilon_tanca()
+	_find_zachodni_brzezek()
+	_find_bbc_barges()
+	_find_plyta_desantu()
 	_find_srodmiescie()
 	# The railway S3c-e (2026-11-02): the WKD stops, from the Mac photo gather.
 	_find_wkd()
@@ -1954,6 +1985,17 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"bulwary_basen":
 				_id = 0  # the children's corner: no card, not on the picking grid
 				_build_bulwary_pool(s)
+			"schodki_wisla":
+				_id = 0  # ground-level steps: no card, not on the picking grid
+				_build_schodki_wisla(s)
+			"pawilon_tanca":
+				_build_pawilon_tanca(s)
+			"zachodni_brzezek":
+				_build_zachodni_brzezek(s)
+			"plyta_desantu":
+				_build_plyta_desantu(s)
+			"barka_nowa_falka", "barka_zanurzenie", "barka_wirek", "barka_kalmar", "barka_barkas":
+				_build_bbc_barge(s)
 			"srodmiescie":
 				_build_srodmiescie(s)
 			"wkd_srodmiescie":

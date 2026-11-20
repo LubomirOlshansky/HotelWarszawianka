@@ -2927,6 +2927,26 @@
       }
     ]
   ],
+  "mandat_bulwar": [
+    ["Mandat za piwo: 100 zł. Zachód słońca: bezcenny.", "Beer fine: 100 zł. The sunset: priceless."],
+    ["Panie władzo, to Kubuś!", "Officer, it's apple juice!"],
+    ["Pan to pije, czy pan tylko trzyma dla kolegi?", "Are you drinking that, or just holding it for a friend?"],
+    ["Imię, nazwisko i skąd ten kapsel?", "Name, surname and where did that bottle cap come from?"],
+    ["Przy Wiśle też obowiązuje prawo. Nawet o zachodzie.", "The law applies by the Vistula too. Even at sunset."],
+    ["Kwitek wypisany. Zachód słońca gratis.", "Ticket written. Sunset free of charge."],
+    ["Tylko ostrzeżenie. Ale proszę zapamiętać ten wzrok.", "Just a warning. But do remember that look."],
+    ["Najpierw mandat, potem zdjęcie na pamiątkę.", "Ticket first, souvenir photo after."]
+  ],
+  "policja_bulwar": [
+    ["Szkło do kosza, panowie.", "Glass in the bin, gents."],
+    ["Muzyka może być. Byle ciszej niż mewy.", "Music's fine. Just quieter than the seagulls."],
+    ["Pies na smyczy, pies na smyczy... mój też.", "Dog on a lead, dog on a lead... mine too."],
+    ["Spokojnie, tylko patrzymy. I trochę zazdrościmy.", "Easy, we're only looking. And a bit envious."],
+    ["Z góry widać wszystko, nawet kto zabrał ostatni koc.", "You can see everything from up here, even who took the last blanket.", {"only": "steps"}],
+    ["Ktoś gra na gitarze od trzech godzin. Nie przerywamy.", "Someone's been strumming that guitar for three hours. We're not stopping them.", {"only": "steps"}],
+    ["Straż Miejska. Rolki, hulajnogi, rowery: tylko nie naraz.", "City Guard. Skates, scooters, bikes: just not all at once.", {"only": "straz"}],
+    ["Bulwar jest dla wszystkich. Ławki też.", "The boulevard is for everyone. Benches too.", {"only": "straz"}]
+  ],
   "dog_walkers": [
     [
       "On nie gryzie. On tylko ocenia.",
