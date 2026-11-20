@@ -6813,6 +6813,20 @@
     ["Parkowanie równoległe za mnie? Dzięki, prawie wyszło.", "Parallel parking done for me? Thanks, nearly worked."],
     ["Bilet za szybą był! Na pchanie też trzeba?", "The ticket was on the dash! Do I need one for shoving too?"]
   ],
+  "port_praski": [
+    ["Port budują od 1919. Śluza była w 2020. Statki? Cierpliwości.", "They've built this port since 1919. The lock came in 2020. Ships? Patience."],
+    ["Sto lat portu bez śluzy. Bobry nie narzekały.", "A hundred years of port with no lock. The beavers didn't mind."],
+    ["Na płocie piszą: „Statki wkrótce”. Mój dziadek też czytał.", "The fence says \"Ships soon\". My grandad read it too."],
+    ["Za tym płotem będą Doki. Albo dalej płot. Zobaczymy.", "Behind that fence: the Docks. Or more fence. We'll see."],
+    ["Mieszkam w porcie i nie mam łódki. Mam rower.", "I live in a port and I don't own a boat. I own a bike."],
+    ["Kładka do centrum: dziesięć minut i jesteś na Powiślu.", "The footbridge to the centre: ten minutes and you're in Powiśle."],
+    ["Na kładce wszyscy robią zdjęcia. Nikt nie idzie dalej.", "On the footbridge everyone takes photos. Nobody walks on."],
+    ["Mówią na nią Agrafka. Spina dwa brzegi i trzyma.", "They call it the Safety Pin. It pins two banks together."],
+    ["Tu kiedyś stały hurtownie. Teraz stoją kawiarnie.", "Wholesalers stood here once. Now cafés do."],
+    ["Mały Mordor nad wodą. Lunch z widokiem na śluzę.", "A little office Mordor by the water. Lunch with a lock view."],
+    ["Bóbr znowu podgryzł drzewko. Ma tu dłuższy staż ode mnie.", "The beaver chewed a sapling again. He's been here longer than me."],
+    ["Prom na Pragę? Tak, nazywa się kładka.", "A ferry to Praga? Yes, it's called the footbridge."]
+  ],
   "students": [
     ["Kolokwium jest jutro? Myślałem, że w przyszłym semestrze.", "The test is tomorrow? I thought it was next semester."],
     ["Mam notatki z wykładu. Znaczy: zdjęcie tablicy. Rozmazane.", "I've got the lecture notes. Well, a photo of the board. Blurry."],
