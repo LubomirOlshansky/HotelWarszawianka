@@ -69,6 +69,10 @@ var _eggs: Array[Dictionary] = []
 var _signs: Array[Dictionary] = []
 var _blocked := {}          # 8 m cell -> true where a parked car or a tree stands
 var _t := 0.0
+## The taxis on the Party House's inner road (_build_gaulle_lawn).
+var _inner_mm: MultiMesh
+var _inner_path := PackedVector2Array()
+var _inner_len := 0.0
 ## One thing talks at a time: a sign waits while an egg speaks, and the other way round.
 var _quiet := 0.0
 
@@ -319,8 +323,13 @@ const LAWN_CHAIRS := [
 	[-152.3, 279.0, 0], [-162.5, 281.3, 1], [-160.3, 280.9, 1], [-158.1, 280.5, 1], [-156.0, 280.8, 1],
 	[-166.5, 283.2, 1], [-164.4, 282.7, 0], [-169.6, 284.3, 1], [-155.5, 267.9, 1],
 ]
-## The inner road's east kerb, where the taxis wait (the service way, offset to its statue side).
-const TAXI_RANK := [[-171.6, 265.6, 1], [-175.4, 268.9, 0], [-177.4, 273.6, 1], [-177.6, 279.0, 0]]
+## The cobbled inner road in front of the Party House (OSM's service way), the way the taxis drive
+## it (F, 2026-11-20: "cars parked on the pavement, make them drive by this road").
+const INNER_ROAD := [-158.9, 258.4, -166.3, 260.6, -173.5, 263.2, -176.4, 265.2, -178.4, 267.6, -179.7, 269.8,
+		-180.5, 273.0, -180.7, 276.9, -179.5, 281.1, -177.7, 285.1]
+const INNER_TAXIS := 3
+const INNER_SPEED := 6.5
+const INNER_GAP := 17.0
 const LAMP_SPOTS := [[-149.0, 281.5], [-161.5, 285.0], [-174.4, 281.5], [-157.5, 265.4]]
 
 
@@ -338,29 +347,64 @@ func _build_gaulle_lawn() -> void:
 	chairs.mesh = Props.deckchairs(spots, 515)
 	chairs.material_override = Models.material()
 	add_child(chairs)
-	# The taxis: one MultiMesh of the taxi family (the city taxi and Podwózka), parked along
-	# the inner road, nose to the north-west like the cars in F's Street View.
+	# The taxis: one MultiMesh of the taxi family (the city taxi and Podwózka) driving the inner
+	# road one after another, each coming back to its start (_inner_taxis).
+	_inner_path.clear()
+	for i in range(0, INNER_ROAD.size() - 1, 2):
+		_inner_path.append(Vector2(INNER_ROAD[i], INNER_ROAD[i + 1]))
+	_inner_len = 0.0
+	for i in range(1, _inner_path.size()):
+		_inner_len += _inner_path[i - 1].distance_to(_inner_path[i])
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_custom_data = true
 	mm.mesh = Models.traffic_mesh(1)
-	mm.instance_count = TAXI_RANK.size()
-	var paints := [Color("#f2f2ee"), Color("#1c1d20"), Color("#e9e9e6"), Color("#24324a")]
-	for i in TAXI_RANK.size():
-		var t: Array = TAXI_RANK[i]
-		var p := Vector2(float(t[0]), float(t[1]))
-		var nxt: Vector2 = Vector2(TAXI_RANK[mini(i + 1, TAXI_RANK.size() - 1)][0], TAXI_RANK[mini(i + 1, TAXI_RANK.size() - 1)][1])
-		var prv: Vector2 = Vector2(TAXI_RANK[maxi(i - 1, 0)][0], TAXI_RANK[maxi(i - 1, 0)][1])
-		var dir := (nxt - prv).normalized()
-		var yaw := atan2(-dir.x, -dir.y)
-		mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, yaw), Vector3(p.x, map.ground_height(p.x, p.y), p.y)))
+	mm.instance_count = INNER_TAXIS
+	var paints := [Color("#f2f2ee"), Color("#1c1d20"), Color("#24324a")]
+	for i in INNER_TAXIS:
 		var paint: Color = paints[i % paints.size()]
-		mm.set_instance_custom_data(i, Color(paint.r, paint.g, paint.b, float(t[2])))
+		mm.set_instance_custom_data(i, Color(paint.r, paint.g, paint.b, float(i % 2)))
+	_inner_mm = mm
+	# The road's own paving: red-brown brick in a herringbone (F's Street View), as bands of two
+	# tones every half metre across a ribbon over the asphalt.
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var bricks := [Color("#8a5848"), Color("#7a4a3c"), Color("#94624f")]
+	var run := 0.0
+	for k in range(1, _inner_path.size()):
+		var a := _inner_path[k - 1]
+		var b := _inner_path[k]
+		var e := (b - a).normalized()
+		var nrm := Vector2(-e.y, e.x) * 2.4
+		var seg := a.distance_to(b)
+		var n := maxi(1, int(seg / 0.5))
+		for j in n:
+			var p0 := a + e * seg * j / n
+			var p1 := a + e * seg * (j + 1) / n
+			var col: Color = bricks[int(run / 0.5) % bricks.size()]
+			run += seg / n
+			var q := [p0 - nrm, p1 - nrm, p1 + nrm, p0 + nrm]
+			var ys := []
+			for c: Vector2 in q:
+				ys.append(map.ground_height(c.x, c.y) + 0.07)
+			for idx in [0, 2, 1, 0, 3, 2]:
+				st.set_color(col)
+				st.set_normal(Vector3.UP)
+				st.set_uv(Vector2(Models.FIXED, 0.0))
+				st.add_vertex(Vector3(q[idx].x, ys[idx], q[idx].y))
+	var paving := MeshInstance3D.new()
+	paving.name = "InnerRoadPaving"
+	paving.mesh = st.commit()
+	paving.material_override = Models.material()
+	paving.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(paving)
 	var taxis := MultiMeshInstance3D.new()
-	taxis.name = "TaxiRank"
+	taxis.name = "InnerRoadTaxis"
 	taxis.multimesh = mm
 	taxis.material_override = Models.material()
+	taxis.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(taxis)
+	_inner_taxis(0.0)
 	var lamps := MultiMesh.new()
 	lamps.transform_format = MultiMesh.TRANSFORM_3D
 	lamps.mesh = Props.candelabra()
@@ -373,6 +417,33 @@ func _build_gaulle_lawn() -> void:
 	lmi.multimesh = lamps
 	lmi.material_override = Models.material()
 	add_child(lmi)
+
+
+## The inner road's taxis: each `INNER_GAP` m behind the one before, at `INNER_SPEED`, round the
+## road and back to its start (out of sight under the next car's length). Skipped far from the player.
+func _inner_taxis(dt: float) -> void:
+	if _inner_mm == null or _inner_len <= 0.0:
+		return
+	if Vector2(player.x - _inner_path[0].x, player.z - _inner_path[0].y).length() > 400.0 and dt > 0.0:
+		return
+	var loop := maxf(_inner_len + 8.0, INNER_GAP * INNER_TAXIS)
+	for i in INNER_TAXIS:
+		var s := fposmod(_t * INNER_SPEED - i * INNER_GAP, loop)
+		if s > _inner_len:
+			_inner_mm.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * 0.001), Vector3(0, -50, 0)))
+			continue
+		var at := _inner_path[0]
+		var dir := Vector2.UP
+		var run := 0.0
+		for k in range(1, _inner_path.size()):
+			var seg := _inner_path[k - 1].distance_to(_inner_path[k])
+			if run + seg >= s:
+				dir = (_inner_path[k] - _inner_path[k - 1]).normalized()
+				at = _inner_path[k - 1] + dir * (s - run)
+				break
+			run += seg
+		var yaw := atan2(-dir.x, -dir.y)
+		_inner_mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, yaw), Vector3(at.x, map.ground_height(at.x, at.y), at.y)))
 
 
 ## The planted island round the palm (Props.palm_garden), when the palm stands where the
@@ -1058,6 +1129,7 @@ func _process(dt: float) -> void:
 	_t += dt
 	_pigeons(dt)
 	_barriers(dt)
+	_inner_taxis(dt)
 	_crowd(dt)
 	_quiet = maxf(0.0, _quiet - dt)
 	for e in _eggs:
