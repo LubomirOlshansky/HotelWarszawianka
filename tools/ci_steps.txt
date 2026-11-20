@@ -19,6 +19,7 @@
 
 activity             quick
 architecture         quick
+barriergates         quick
 barrierlook          quick
 barrierpaths         smoke
 blockeaves           quick
