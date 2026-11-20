@@ -245,7 +245,13 @@ func start_clock(date := 0, m := DAY, hour := -1.0) -> void:
 	mode = LIVE
 	_game_utc = warsaw_to_utc("12:00", date)
 	_sun_day = -1
-	set_hour(hour if hour >= 0.0 else look_hour(m), true)
+	var h := hour if hour >= 0.0 else look_hour(m)
+	if m == DAY and h < 12.0:
+		# The Day start (11:00, F 2026-11-20) is a morning: from the noon base `set_hour` would move
+		# it to tomorrow, a Saturday. Base the day at midnight instead; the other looks keep noon.
+		_game_utc = warsaw_to_utc("00:00", date)
+		_sun_day = -1
+	set_hour(h, true)
 
 
 ## The clock moves forward to `hour` (0-24) today, or tomorrow if that hour has passed (a few
