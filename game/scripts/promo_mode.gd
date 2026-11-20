@@ -435,8 +435,8 @@ func _build() -> void:
 	_readout_box.position = safe.position + Vector2(8.0, 8.0) * _pt  # `_place_panel` centres it
 	_readout_box.mouse_filter = Control.MOUSE_FILTER_STOP
 	_readout_box.gui_input.connect(func(e: InputEvent) -> void:
-		if (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) \
-				or (e is InputEventScreenTouch and e.pressed):
+		# A touch arrives as a touch and as its mouse copy: take the mouse one only (once).
+		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 			_copy())
 	_layer.add_child(_readout_box)
 	_readout = Label.new()
