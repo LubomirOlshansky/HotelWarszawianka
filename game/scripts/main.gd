@@ -2601,32 +2601,12 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 	# "Dżemini" (trend_job.gd): the MLASK sticker goes on DŻEMINI KEBAB's wall.
 	if trend_job != null:
 		trend_job.storefronts = storefronts
-	# Loop jobs-2: the Leżak round-up, at the zones storefronts.gd painted (an activity of the kit).
-	if jobs != null:
-		var ru := RoundupJob.new()
-		ru.name = "RoundupJob"
-		ru.hud = hud
-		ru.dialogue = dialogue
-		ru.wallet = wallet
-		ru.map = map
-		ru.car = car
-		ru.tod = tod
-		ru.jobs = jobs
-		ru.store = storefronts
-		ru.autopilot = flags.autopilot
-		ru.force = flags.roundup_flag
-		ru.log_on = flags.parody_log or flags.roundup_flag
-		# In the frame just before jobs.gd, as when jobs.gd stepped it first.
-		add_child(ru)
-		move_child(ru, jobs.get_index())
-		ru.setup(world)
-		# The director says when it may offer itself, with the round-up's own test for everything
-		# outside the kit (jobs.gd's: nothing else on, no kebab or słoiki of its own).
-		activities.add(ru, func() -> bool: return jobs._free() and not jobs.own_busy())
-		jobs.roundup = ru
-		if flags.roundup_flag:
-			ru.start_at_nearest()
-			cam_focus = car.global_position
+	# Loop jobs-2: the Leżak round-up at the zones storefronts.gd painted (roundup_job.gd wires itself;
+	# none without the side jobs), under main.gd in the frame just before jobs.gd, as when jobs.gd
+	# stepped it first. The director says when it may offer itself, with the round-up's own test for
+	# everything outside the kit (jobs.gd's: nothing else on, no kebab or słoiki of its own).
+	_add(_install(RoundupJob.new(), self, jobs.get_index() if jobs != null else -1),
+			func() -> bool: return jobs._free() and not jobs.own_busy())
 
 
 # --- loop MW-3: the night and the river's crowds --------------------------------------------
@@ -3574,6 +3554,7 @@ func _build_ctx() -> GameCtx:
 	_ctx.life = life
 	_ctx.crowds = crowds
 	_ctx.notes = notes
+	_ctx.storefronts = storefronts
 	_ctx.car = car
 	_ctx.heli = heli
 	_ctx.tod = tod
