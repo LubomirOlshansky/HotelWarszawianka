@@ -15,7 +15,7 @@ const WORDS := ["KEBAB 24H", "BAR MLECZNY", "APTEKA", "KWIATY", "HOTEL", "KANTOR
 ## The landmarks loop: words only the landmarks wear (never a shop's), after WORDS in the atlas:
 ## the parody of the brand on Warsaw Spire's crown, the mall by Rondo Radosława's.
 const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA", "CHILTON", "INTERKONTI", "N", "O", "W", "T", "E", "L", "BANK POLSKA", "PEPEO ŻUBR", "ERZATZ",
-		"METROPOLKA", "ENELMEDIK", "ACORN", "HOTELS", "--",
+		"METROPOLKA", "HOTEL AHOJ", "PORT PRASKI", "STATKI WKRÓTCE", "ENELMEDIK", "ACORN", "HOTELS", "--",
 		# First scene item 3: the Eastern Wall's stores (parodies of their roof names).
 		"JUNIOREK", "SAWKA", "WARSIK", "ATOMIK 24H",
 		# Junior's hanging cube and the rooftop box beside it (F's photos, 2026-11-15).
@@ -111,6 +111,9 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# The Vistula boulevards' bar pavilions and containers (docs/landmarks/specs/bulwary.md):
 		# parody bar names and what the hatches sell.
 		"CUDAK", "POMOSTEK", "RZECZKA", "LEMONIADA", "ZAPIEKANKI",
+		# Phase C (2026-11-19): the kiosk row before Pawilon Tańca, Palomka (a parody of Paloma)
+		# and the bar barges' parody names (the pavilion's TANIEC and Zachodni Brzeżek's letters are geometry).
+		"GOFRY", "KAWA", "PALOMKA", "NOWA FALKA", "ZANURZENIE", "WIREK", "KALMAR", "BARKAS", "POMOST 411", "FALKA", "WODNIK",
 		# Towarowa 22 built as finished (2026-11-03): the drone port, the superblock's name and the
 		# gilded last crane's plaque (the "Warsaw of the future" jokes).
 		"WARSZAWA 2050", "DRONOPORT", "TOWAROWA 22", "OSTATNI ŻURAW WOLI",

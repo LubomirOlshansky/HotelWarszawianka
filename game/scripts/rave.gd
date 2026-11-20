@@ -277,6 +277,7 @@ func install(ctx: GameCtx) -> bool:
 	if ctx.traffic == null or ctx.graph == null or ctx.flags.rave_flag == "0":
 		return false
 	super(ctx)
+	run_hours = NIGHT_HOURS
 	name = "Rave"
 	dialogue = ctx.dialogue
 	graph = ctx.graph as LaneGraph
@@ -759,9 +760,11 @@ func _now() -> Dictionary:
 	return calendar.call() if calendar.is_valid() else {"hour": 1.5, "weekday": 6}
 
 
+## By day and on a weekday too (game_time.gd `by_day`, F 2026-11-19): a yes jumps the clock to the
+## night (`run_hours`; main.gd `_rave_night` makes it Friday's).
 func _tease_window() -> bool:
 	var c := _now()
-	return tease_on(float(c["hour"]), int(c["weekday"]))
+	return tease_on(float(c["hour"]), int(c["weekday"])) or GameTime.may_call(TEASE_HOURS, float(c["hour"]))
 
 
 ## Busy with this night: "smola" the club, anything else the secret rave (the two questlines of

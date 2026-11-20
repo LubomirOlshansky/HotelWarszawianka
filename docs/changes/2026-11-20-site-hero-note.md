@@ -1,0 +1,1 @@
+- The website's top section no longer carries the "Free. No ads, no purchases." line under the button.

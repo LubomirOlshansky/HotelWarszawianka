@@ -746,6 +746,8 @@ func _p_chain() -> void:
 	_ok(ok_out and _r._auto_button() == 1, "three misses: OUT")
 	_ok(_h.card == "ODPADASZ! Trzy pudła." and _h.accent == BoatRace.FAIL and _h.buttons == 2, "the ODPADASZ card in FAIL, 2 buttons")
 	_ok(_h.banner == "ODPADASZ!", "the banner ODPADASZ!")
+	_ok(_h.cues.count("count") == 3 and _h.cues.count("go") >= 1 and _h.cues[_h.cues.size() - 1] == "fail",
+			"3, 2, 1 beep once each, START! goes, OUT fails (%s)" % str(_h.cues))
 	var w0: float = _r.wave_t
 	_fr(BoatRace.CARD_LIFE + 2.0)
 	_ok(_r.stage == BoatRace.Stage.OUT and _h.card == "ODPADASZ! Trzy pudła.", "the result card has no life: still up CARD_LIFE + 2 s later")

@@ -5539,6 +5539,29 @@ R 6.9 → 7.8. Nothing changes in the classic look (the per-sector hashes are ma
 draws the planters 0.5 m, the castle garden's hedges at their mapped 3-5 m and the 6 m school fence
 as a net.
 
+**Barrier gates (walls look W8, 2026-11-20)**: `tools/barrier_gates.py` is a post-pass on main's map
+(TD-25; last in `bake_osm.py` and in `tools/check_post_passes.py`; verify step `barriergates` runs its
+`--selftest` and `--check`; stamp `barrier_gates`, v2). On fence, wall and hedge lines of class S or H
+without a hazard reason it writes `g` ([[s, w, leaf], ...]: a gap s metres along the line, w long, where
+a `paths` or service `roads` centre line crosses it, strictly or through a point both share, OSM's gate
+node; w = (the way's width + 0.4 m) over the crossing's sine, at least 0.5; never at a deck or in a
+tunnel) and `ge` ([start, end]: 1 where the line's end faces an opening the bake already cut across a
+way, `clear_carriageways` for drives, object_fixes L4 for footways: two ends of one kind facing each
+other, feet within 3 m, neither more than 0.15 m inside the way's width). Line ids, pieces and panel
+indices stay as they are. On main's map: 761 lines, 326 gaps (834 m), all by footways (0 by service
+roads: every line was already cut out of a drive), 556 gate ends (244 by paths, 312 by service roads),
+0 leaves. The leaf rule (open leaves at drives, `leaf` ±1 and `ge` ±2 on the yard side) failed its
+photo check (6 gates of 14 service openings the street photos showed: the rest open car-park mouths,
+a plaza drive, a barrier arm, a roller shutter, low lawn fences) and is off (`LEAVES = False`); the
+footway gaps passed (19 of 20, the one wrong a closed gate with a no-entry sign at Port Czerniakowski).
+128 footways only end on a line: no gap. `check_map_data.py` `GATES_EXPECTED` records the counts (by
+paths and service roads from the stamp). The game reads the keys only under `barrier_look` `typed` and
+`panels` (`city_barriers.gd`: the line drawn as its pieces between gaps, each with `_soft_run` and
+`_panel_run` at its own metre, so soft segments and panel indices are the whole line's; posts 0.3 m
+taller than the line at each gap's edge and each `ge` end, inside the line, no own collider: the line's
+collider holds them and the openings keep their width), and not on the stadium's railing (#808, its own
+gates) or a line drawn by a placed style. Classic ignores both keys: its per-sector hashes are main's.
+
 **Trees and fences off the water and the roads (F, 2026-11-08)**: `tools/object_audit.py` rules T1 (a
 scanned tree's trunk in a water area, a sandbar excepted), T2 (on the drawn asphalt at grade, check_streets
 S1's test, not on an island or a median) and L6 (a fence or hedge more than `WET_IN` 0.6 m inside a water
@@ -5951,6 +5974,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--soft` | settings rows (2026-11-14): the fences and hedges break for this run (step 7, `soft_things.gd`; step 8a: and the parked cars are pushed, the one switch for every soft thing) whatever Settings → Świat → Łamliwe płoty says; the setting is off by default (every fence and hedge hard, the colliders put back as each sector loads: `harden`, the same faces as `--no-soft`), and turning it in the panel applies live. `--no-soft` wins over it. `check_lane_drive.gd` takes it too (its default is hard, as the game's; route set A's drive log, verify step `drivelog`, passes it; `--wander` implies it). A release build reads no flags |
 | `--barriers=classic\|typed\|panels` | W2 of the walls look (2026-11-15, docs/design/walls-true-to-life.md 6.1; `panels` W4, 2026-11-16, 6.4: typed, with the six rows the palette marks `panel` drawn as instanced 2 m panels, one `Panels` MultiMesh a sector in `panel.gdshader`, the typed colliders; a runtime city on an Adreno 6xx draws them typed, `gpu_quirks.gd` panels): the runtime city's walls, fences and hedges in that look over the palette's `barrier_look` (`game/data/object_palette.json`, `classic` by default: the `types` rows, main's drawing bit for bit; `typed`: each generic line from its type's `looks` row, `city_barriers.gd` `_typed` and `rail_lite_along`), set into `solidity.gd` before the city is built (`dev_flags.gd`). `tools/bake_city.gd` takes it too (`-- --barriers=typed`) and writes the look into `map/sectors/city.stamp`; on the prebuilt path the look is what was baked, and a run asking for another prints `barriers: the prebuilt city is baked classic; --barriers is ignored on this path`. The city checks `check_solids`, `check_soft_things`, `check_colliders`, `check_lane_drive` and `check_streaming` (which passes it to its game runs) take it as well. What collides and what breaks stays: the same soft lines, the colliders at the drawn height. A release build reads no flags |
 | `--push-parked=X,Z` | the city objects plan, step 8a (2026-11-15), for shots: with `--soft`, the parked car nearest X,Z (within 40 m, in its bay) slides off sideways at 7 m/s as a push would send it, once its sector is in (`soft_things.gd` `push_near`, the walls' cast and the lane rule as for a real push); prints `push-parked: ID`. A release build reads no flags |
+| `--smash-fence=X,Z[,FRAME[,DEG]][+X,Z...]` | W6 of the walls look (2026-11-19), for shots: with `--soft`, at frame FRAME (default 60) the soft fence or hedge nearest X,Z (within 15 m) breaks as a car crossing it there would (two panels: the memory, the debris, the sound, `broke`), thrown toward DEG degrees (0 is +x, 90 is +z; default 90), so a `--shots=` strip shows the panel before, just after and what stays (under the `panels` look: down, torn or a stub; `soft_things.gd` `smash_near`, `panel_states.gd`); with `--cams=`, the k-th smash belongs to the k-th camera and its FRAME counts from that camera's start, as its shots do; prints `smash-fence: N panels ...`. A release build reads no flags |
 | `--wander` | `check_lane_drive.gd` only, the city objects plan, step 7 (2026-11-14): no routes; the car is driven at every S fence and hedge line within 10 m of a ground lane, through it and back out (reversing, then turning), and each line gets a verdict (ok, miss, trap, fall, sink, water); `--box=` limits it, `--write=FILE` writes a TSV, `--prebuilt` on the phone's path. A trap or fall is made hard with a HARD verdict in its street's `decisions` (`tools/street_pass.py --apply`) or parked as an Open Question |
 | `--colliders` | the city objects plan, step 4 (2026-11-14): every collider with a solid class drawn as a translucent skin in the colour of its class's planned answer (`collider_view.gd`: hard red, smash yellow, push blue, ride green, the invisible pocket walls magenta; the map's edge walls left out), on both city paths, for shots in street sweeps and for F (`tools/shots.sh ... -- --colliders`). Rule R2's check is `game/tools/check_colliders.gd` (verify step `colliders`). A release build reads no flags |
 | `--lane-assist=on\|off` | beta values (2026-11-04): the lane assist "Asysta pasa" (`lane_assist.gd`, Classic only) for this run, whatever Settings → Jazda says (off by default) |
@@ -6008,6 +6032,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--resume=x,z[,heading]` | save and resume: a kept spot in memory (the title forced on; with `--nosave` the resume path without a real save) |
 | `--time=live` | v0.9: the real sun for the device's clock (TIME's fourth mode) |
 | `--clock=HH:MM` / `--date=YYYYMMDD` | start Live's clock at that Warsaw time (and date; default today); loop MW-3: with a fixed look (`--time=night --clock=01:00`) the game clock starts there, the look stays |
+| `--game-clock` | F 2026-11-19: run the game clock in a test run (a normal launch always does): 30x (pacing.json time.speed), the sun by the date (`--date=`, else this week's Friday), the long golden hour; `--time=` / `--clock=` set where it starts |
 | `--weather=clear\|rain` | start dry or in the rain (default clear) |
 | `--perf` | show the performance overlay (loop 2e: four lines: fps, frame time, worst, cap · CPU process + physics + draw, GPU, memory · draw calls by pass · objects, triangles) |
 | `--quality=auto\|low\|medium\|high\|ultra\|experimental` | the quality for this run (not saved; loop G1: default Auto, the level `tiers.gd` picks for the device; 0–3 are Low–Ultra; `experimental`/`exp` by name only, F 2026-11-10: Ultra plus the trailer's extras, never saved even from Settings) |
@@ -6065,6 +6090,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--crowd=0\|1\|2` | loop MW-3: the night and river crowds off (nothing built, no cost), normal (default) or doubled; the Low tier halves them |
 | `--night-log` | loop MW-3: print `night:` lines: the sites at the start, a summary every minute (`night: 01:00 day 6 · queues … smola 24 … · rejections 1 · car lines 0 · dawn walkers 30 · roof 0, steps 24, plan_c 28 · police on`), each rejection, line, police unit and the dawn routes |
 | `--life=0\|1\|2` | loop MW-4: everyday life (dogs, riders, runners, Kolka, Hyrax, the Wiralek fascias and the "Na czasie" job) off (nothing built), normal (default) or doubled; the Low tier halves it |
+| `--blvd-t=S` | Schodki nad Wisłą Phase B (2026-11-19): the steps' life (patrol, walkers, queues, scooters: scripts/boulevard_life.gd) starts S seconds into its loops, so a shot at the steps finds the patrol where you aim the camera (the loops are closed-form in the clock; `--time=dusk` is a Friday 19:30, `--time=day` a Friday 14:00: Policja with a dog and a second pair / Straż Miejska) |
 | `--dogs-log` | loop MW-4: print `dogs:` lines: the minute's summary (`dogs: 07:30 day 5 · 10 walkers (Powiśle / Plac Zbawiciela ×2) · 2 at trees · barks 0 · horn lines 0`), each bark and horn line |
 | `--trend-log` | loop MW-4: print `trend:` lines: each slot's day and queue at the start and on every change (`trend: slot 1 day 3 queue 20 (CZEKOLADA Z PUSTYNI, wiralek_zbawiciela)`), Lukrownia on Fat Thursday, the slots seen for E18, and `trend job:` lines |
 | `--life-log` | loop MW-4: print `life:` lines: the index, the minute's summary (riders, runners, Kolka, Hyrax, bells, the Zając), the bell, E28's follow, the Zając |

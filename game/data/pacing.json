@@ -1,10 +1,20 @@
 {
 	"_about": "When the game offers the next thing: every number that says when a call may ring or an offer may come, in seconds of play unless it says hours. [a, b] seconds means a random time between a and b; hours [from, to] may run past midnight (17 to 2). Each source keeps its own countdown and reads its numbers here (pacer.gd). How long a card stays up, distances, and the offers that come from driving past a place (deliveries, the round-up, rivals' challenges, friends met in person) have no clock and are not here. check_pacing.gd checks this file.",
 	"calls": {
-		"_note": "Every friend's call: at least gap s after the last call of anyone, settle s into a calm spell (after a result, a chase or a quest), and quiet s after a run of any activity ended (the ride app's requests and Bartek's calls wait for quiet too). Whoever rang last lets a call that is due and waiting go first (variety). A call the player asked for does not wait.",
-		"gap": 60,
-		"settle": 8,
-		"quiet": 30
+		"_note": "Every friend's call: at least gap s after the last call of anyone ended (answered), decline_gap s after one the player turned down or let ring out, decline_max s after two or more no's in a row (an answer resets it), settle s into a calm spell (after a result, a chase or a quest), and quiet s after a run of any activity ended. Every card that comes by itself (a call, a ride request, a drive-past order, the guide's cards) also waits spacing s after the last card closed, and quiet s after a run ended. Whoever rang last lets a call that is due and waiting go first (variety). A call the player asked for does not wait. F 2026-11-19: a few calls in 10 s, one minute between calls too fast.",
+		"gap": 150,
+		"settle": 15,
+		"quiet": 45,
+		"spacing": 25,
+		"decline_gap": 300,
+		"decline_max": 600
+	},
+	"time": {
+		"_note": "The game clock (game_time.gd). by_day 1: the night friends (shisha, bar crawl, racing club, Mati's raves) call at any hour, and saying yes jumps the clock to their opening hour; 0: they call only in their hours. F 2026-11-19: show the night activities by day too, the time changes when the player picks the quest. The game clock (time_of_day.gd, F 2026-11-19): speed 30 = one game day in 48 real minutes, one game hour in 2; the sun by the game's date in Warsaw (a new game starts at 14:00 on this week's Friday); golden 2.5 = the hour and a half round sunrise and sunset lasts 2.5 times longer than in life (like GTA), taken from midday and midnight; look_every = the light is worked out again every this many real seconds.",
+		"by_day": 1,
+		"speed": 30,
+		"golden": 2.5,
+		"look_every": 1
 	},
 	"rescue": {
 		"_note": "The rescue line (WEZWANIE): the first call this long after the start, the next this long after a rescue ends or is skipped.",

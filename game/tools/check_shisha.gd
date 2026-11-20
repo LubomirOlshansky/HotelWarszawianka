@@ -29,6 +29,7 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/check_shisha.gd [-- --verbose]
 
 const Shisha := preload("res://scripts/shisha.gd")
+const GameTime := preload("res://scripts/game_time.gd")
 const Lounge := preload("res://scripts/lounge.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
@@ -445,7 +446,14 @@ func _play(digest: PackedStringArray) -> void:
 	_step(2.0)
 	_ok(c.call_in < first - 1.5 and c.call_in > first - 2.5, "the call's clock counts in the evening (%.2f of %.2f)" % [c.call_in, first])
 	var left: float = c.call_in
+	# By day it counts too (game_time.gd `by_day`, F 2026-11-19: a yes jumps the clock); the hours
+	# rule alone below.
 	_hour = 10.0
+	GameTime.BY_DAY = 1.0
+	_step(2.0)
+	_ok(c.call_in < left - 1.5, "by day with time.by_day the call's clock does not count")
+	left = c.call_in
+	GameTime.BY_DAY = 0.0
 	_step(2.0)
 	_ok(c.call_in == left, "not by day")
 	_hour = 1.0
@@ -464,6 +472,7 @@ func _play(digest: PackedStringArray) -> void:
 	_step(2.0)
 	_ok(c.call_in == left, "not when the timer is off (a test run)")
 	c.auto = true
+	GameTime.BY_DAY = 1.0  # pacing.json's (check_game_time)
 	c.call_in = 0.5
 	_step(1.0)
 	_ok(c.phase == Activity.Phase.RING and "IVAN" in _hud.card and _hud.card_is(c), "it rings when the clock is out: Ivan's call, the night's own card (%s)" % _hud.card)

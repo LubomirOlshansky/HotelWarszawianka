@@ -28,6 +28,7 @@ extends CanvasLayer
 ## Loop 2b: time spent in this script's per-frame work since the bench last read it (µs).
 var spent_usec := 0
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Chatter := preload("res://scripts/chatter.gd")
 const Access := preload("res://scripts/access.gd")
 const Sfx := preload("res://scripts/sfx.gd")
@@ -45,12 +46,12 @@ const Messages := preload("res://scripts/messages.gd")  # the message director (
 const CLASSIC := 1
 
 ## Loop 2e: the HUD's type scale, in points. Body text is 13 pt or more, labels 11 pt.
-const T_BANNER := 44.0
-const T_CLOCK := 22.0
-const T_TITLE := 17.0
-const T_BODY := 15.0
-const T_SUB := 13.0
-const T_LABEL := 11.0
+const T_BANNER := UiKit.T_BANNER
+const T_CLOCK := UiKit.T_CLOCK
+const T_TITLE := UiKit.T_TITLE
+const T_BODY := UiKit.T_BODY
+const T_SUB := UiKit.T_SUB
+const T_LABEL := UiKit.T_LABEL
 ## Loop 2e: the layout, in points. TOUCH is Apple's smallest comfortable tap; EDGE is kept from
 ## the safe area's sides; the top row starts ROW_Y down and is ROW_H tall.
 const TOUCH := 44.0
@@ -89,8 +90,8 @@ const ARROW_STEP := 96.0
 const ARROWS_BRAKE_R := 36.0
 const ARROWS_BRAKE_REACH := 44.0
 ## The see-through plate of the arrows layout (the city shows through, as in the racers).
-const GLASS := Color(0.07, 0.06, 0.1, 0.34)
-const GLASS_EDGE := Color(1, 1, 1, 0.42)
+const GLASS := UiKit.GLASS
+const GLASS_EDGE := UiKit.GLASS_EDGE
 const PAD_R := 34.0
 const PAD_REACH := 40.0
 ## G13 (the upgrade shop): the nitro's disc (52 pt across), left of BRAKE (inward, its lower edge
@@ -131,14 +132,14 @@ const WAITS := ["ticker", "note", "info", "perf"]
 const FIT_STEP := 0.05
 ## A two-finger twist this far (radians) turns a fixed camera 90°.
 const TWIST := 0.7
-const INK := Color("#fbf7ee")
-const SUB := Color("#c9c2d8")
-const ACCENT := Color("#ffd23f")
-const OUTLINE := Color("#1d1b19")
+const INK := UiKit.INK
+const SUB := UiKit.SUB
+const ACCENT := UiKit.GOLD
+const OUTLINE := UiKit.OUTLINE
 ## Loop 2e: the one card recipe for every HUD surface (the settings panel's): near-black violet,
 ## at least 90 % opaque, so no surface takes its colour from the street behind it.
-const CARD_BG := Color(0.07, 0.06, 0.1, 0.94)
-const CARD_EDGE := Color(1, 1, 1, 0.16)
+const CARD_BG := UiKit.CARD
+const CARD_EDGE := UiKit.EDGE
 ## Card buttons: the English word the game passes in -> the Polish one shown over it.
 const WORDS := {
 	"ACCEPT": "PRZYJMIJ", "SKIP": "POMIŃ", "LATER": "PÓŹNIEJ", "NEXT CALL": "NASTĘPNE",
@@ -269,7 +270,7 @@ const CARD_ART_GAP := 10.0
 const CARD_LEFT_W := 380.0
 ## The lead button of a card (`set_card_lead`): its height in plain buttons, and its words' colour on the gold.
 const LEAD_TALL := 1.4
-const LEAD_INK := Color("#1b1405")
+const LEAD_INK := UiKit.ON_GOLD
 var _card_face: Control
 var _card_face_tex: Texture2D
 var _card_face_letter := ""
@@ -456,9 +457,9 @@ var _strip_plate: StyleBoxFlat
 ## rooster for an off-screen chaser, the lizak paddle over a speed trap's officer), the chasers
 ## and known traps on the minimap, and panels other scripts lay out here (the pull-over card).
 const POLICE_BLUE := Color("#1f4fd8")
-const SCENE_AMBER := Color("#ffb020")
+const SCENE_AMBER := UiKit.HEAT
 const LENS_BLUE := Color("#3d7bff")
-const LENS_RED := Color("#ff3b3b")
+const LENS_RED := UiKit.ALERT
 var _police_pill: PanelContainer
 var _police_pl: Label
 var _police_en: Label
@@ -468,10 +469,10 @@ var _police_en: Label
 var _police_gap: Control
 var _gap_share := 0.0
 var _gap_mode := 0
-const GAP_GOLD := Color("#ffd23f")
+const GAP_GOLD := UiKit.GOLD
 const GAP_SEARCH := Color("#9fb4d8")
 ## Hiding spots blinking on the minimap during a chase (police.gd `_hides_near`).
-const HIDE_GREEN := Color("#5fd38a")
+const HIDE_GREEN := UiKit.GO
 var _hide_marks := PackedVector2Array()
 var _koguty: Control
 var _koguty_lit := 0
@@ -574,6 +575,9 @@ func _ready() -> void:
 	var m := ScreenPoints.measure(_screen)
 	pt = m["pt"]
 	_safe = m["safe"]
+	# The UI kit as the whole window's theme: a plain Button, Panel or slider wears the kit
+	# (docs/design/ui-kit.md); scripts' own overrides still win.
+	get_tree().root.theme = UiKit.theme(pt)
 
 	_pad = Control.new()
 	_pad.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -589,7 +593,7 @@ func _ready() -> void:
 	add_child(_police_fx)
 	_strip_plate = StyleBoxFlat.new()
 	_strip_plate.bg_color = CARD_BG
-	_strip_plate.border_color = Color(1, 1, 1, 0.3)
+	_strip_plate.border_color = UiKit.EDGE_STRONG
 	_strip_plate.set_border_width_all(maxi(1, roundi(1.2 * pt)))
 
 	# The top row: the gear (loop 2a), the speed, the context button, RADIO and HELI / AUTO.
@@ -734,7 +738,7 @@ func _panel_box(radius := 10.0, margin := 12.0) -> StyleBoxFlat:
 func _box(bg: Color, border: Color, width: float) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
-	s.set_corner_radius_all(roundi(10.0 * pt))
+	s.set_corner_radius_all(roundi(UiKit.R_CARD * pt))
 	s.border_color = border
 	s.set_border_width_all(maxi(1, roundi(width * pt)))
 	s.set_content_margin_all(4.0 * pt)
@@ -747,8 +751,8 @@ func _chip(parent: Node, pl: String, en: String, accent := Color(0, 0, 0, 0)) ->
 	var b := Button.new()
 	b.focus_mode = Control.FOCUS_NONE
 	var lit := accent.a > 0.0
-	var normal := _box(CARD_BG, accent if lit else Color(1, 1, 1, 0.22), 2.0 if lit else 1.0)
-	var pressed := _box(Color(1, 0.82, 0.25, 0.3), ACCENT, 2.0)
+	var normal := _box(CARD_BG, accent if lit else UiKit.EDGE_STRONG, 2.0 if lit else 1.0)
+	var pressed := _box(UiKit.GOLD_TINT, ACCENT, 2.0)
 	for s in ["normal", "hover", "disabled"]:
 		b.add_theme_stylebox_override(s, normal)
 	for s in ["pressed", "hover_pressed"]:
@@ -762,11 +766,22 @@ func _chip(parent: Node, pl: String, en: String, accent := Color(0, 0, 0, 0)) ->
 	for t in [[T_BODY, accent if lit else INK], [T_LABEL, SUB]]:
 		var l := _label(t[0], t[1])
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.uppercase = true  # the kit's button words are capitals
 		words.add_child(l)
 	b.add_child(words)
 	parent.add_child(b)
 	_set_chip(b, pl, en)
 	return b
+
+
+## A chip made the card's PRIMARY button (docs/design/ui-kit.md): gold fill, dark words.
+func _make_primary(b: Button) -> void:
+	var boxes := UiKit.button_boxes(UiKit.Kind.PRIMARY, pt)
+	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		b.add_theme_stylebox_override(st, boxes[st])
+	for l in b.get_child(0).get_children():
+		(l as Label).add_theme_color_override("font_color", UiKit.ON_GOLD)
+		(l as Label).add_theme_constant_override("outline_size", 0)
 
 
 ## New words on a chip; its width follows them (at least 64 pt).
@@ -780,8 +795,8 @@ func _set_chip(b: Button, pl: String, en: String, min_width := 64.0) -> void:
 	low.text = en
 	low.visible = en != ""
 	var font := ThemeDB.fallback_font
-	var w := maxf(font.get_string_size(pl, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_BODY)).x,
-			font.get_string_size(en, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_LABEL)).x)
+	var w := maxf(font.get_string_size(pl.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_BODY)).x,
+			font.get_string_size(en.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_LABEL)).x)
 	b.custom_minimum_size = Vector2(maxf(w + 24.0 * pt, min_width * pt), TOUCH * pt * (LEAD_TALL if b.has_meta("lead") else 1.0))
 	b.size = b.custom_minimum_size
 	_mark()
@@ -1250,7 +1265,7 @@ func _style_radio_plate() -> void:
 func _draw_skip() -> void:
 	var sz := _skip_button.size
 	var held := _skip_button.is_pressed()
-	var box := _box(Color(1, 0.82, 0.25, 0.3) if held else CARD_BG, ACCENT if held else Color(1, 1, 1, 0.22), 2.0 if held else 1.0)
+	var box := _box(UiKit.GOLD_TINT if held else CARD_BG, ACCENT if held else UiKit.EDGE_STRONG, 2.0 if held else 1.0)
 	box.corner_radius_top_left = 0
 	box.corner_radius_bottom_left = 0
 	_skip_button.draw_style_box(box, Rect2(Vector2.ZERO, sz))
@@ -1500,13 +1515,13 @@ func _fit_bench_card() -> void:
 
 ## The now-playing panel: bottom left, above the bottom edge, out of the way of the pedals.
 func _build_ticker() -> void:
-	_ticker_style = _panel_box(8.0, 6.0)
+	_ticker_style = _panel_box(UiKit.R_CARD, 6.0)
 	_ticker_style.content_margin_left = 12.0 * pt
 	_ticker_style.content_margin_right = 12.0 * pt
 	# Only the left edge takes the station's colour (the card recipe keeps colour off the rest).
 	_ticker_style.set_border_width_all(0)
 	_ticker_style.border_width_left = roundi(4.0 * pt)
-	_ticker_style.border_color = Color("#ff5fc8")
+	_ticker_style.border_color = UiKit.NEON_PINK  # the radio is the brand neon
 	_ticker = PanelContainer.new()
 	_ticker.name = "ticker"
 	_ticker.add_theme_stylebox_override("panel", _ticker_style)
@@ -1517,7 +1532,7 @@ func _build_ticker() -> void:
 	_ticker.add_child(rows)
 	_ticker_label = _label(T_BODY, INK)
 	rows.add_child(_ticker_label)
-	_ticker_sub = _label(T_SUB, Color("#d9d2e6"))
+	_ticker_sub = _label(T_SUB, SUB)
 	rows.add_child(_ticker_sub)
 	add_child(_ticker)
 
@@ -1807,6 +1822,9 @@ func _build_mission_panels() -> void:
 func show_card(title: String, body: String, buttons: PackedStringArray, accent: Color, bottom := false,
 		title_en := "", body_en := "", stacked := false) -> void:
 	accent = Access.tint(accent)  # colour-safe (access.gd)
+	messages.card_seen()  # the next offer that comes by itself waits OFFER_SPACING (messages.gd)
+	if messages.call_open() and (buttons.is_empty() or not buttons[0].begins_with("ODBIERZ")):
+		messages.call_closed(true)  # the caller's offer follows an answer (an autopilot's too)
 	_card_owner = null  # a new card is nobody's until its maker calls own_card
 	_drop_card_art()  # ... and has no picture until its maker gives it one
 	_set_card_x(-1)  # ... and no ✕ until its maker asks for one (`set_card_close`)
@@ -1828,7 +1846,10 @@ func show_card(title: String, body: String, buttons: PackedStringArray, accent: 
 	if not buttons.is_empty() and buttons[0].begins_with("ODBIERZ"):
 		messages.call_rang()  # an incoming call (ODBIERZ / ODRZUĆ): the next caller waits CALL_GAP
 	_card_title.text = title
-	_card_title.add_theme_color_override("font_color", accent)
+	# The kit (docs/design/ui-kit.md): every card title is gold capitals; the caller's accent
+	# stays on what the card is about (its pin, its ring), not on the words.
+	_card_title.add_theme_color_override("font_color", ACCENT)
+	_card_title.uppercase = true
 	_card_title_en.text = title_en
 	_card_title_en.visible = title_en != ""
 	_card_body.text = body
@@ -1853,6 +1874,8 @@ func show_card(title: String, body: String, buttons: PackedStringArray, accent: 
 		b.name = "button%d" % i
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(func(): _press_card(i))
+		if i == 0 and not stacked:
+			_make_primary(b)  # the card's main action is the one gold button (the kit)
 	_card.reset_size()
 	_show(_card, true)
 	_show(_status, false)
@@ -1875,6 +1898,11 @@ func card_button_text(index: int) -> String:
 
 
 func hide_card() -> void:
+	if card_showing():
+		# A call's card taken away unanswered (rung out, or its caller gave up) is a no (messages.gd
+		# `call_closed`: the next call waits longer); any card going starts the offer spacing again.
+		messages.call_closed(false)
+		messages.card_seen()
 	_card_owner = null
 	_show(_card, false)
 	_drop_card_art()
@@ -2028,6 +2056,8 @@ func card_showing() -> bool:
 
 ## A button of the card was pressed: to the card's owner, or to every listener when it has none.
 func _press_card(index: int) -> void:
+	# A call's card: the first button answers (ODBIERZ), any other turns it down (messages.gd).
+	messages.call_closed(index == 0)
 	if _card_owner != null and is_instance_valid(_card_owner):
 		_card_owner.card_pressed(index)
 	else:
@@ -2333,6 +2363,33 @@ func show_challenge(text: String, accent: Color, gloss := "flash your lights to 
 
 func hide_challenge() -> void:
 	_show(_challenge, false)
+
+
+## The game telling you something (sound engine plan step 1): one interface sound of Sfx.UI's
+## feedback set, by meaning: "count" and "go" (a start), "checkpoint" (a ring or bridge passed),
+## "win" and "fail" (a result), "tick" (a clock's last seconds, `tick_clock`), "step" (a note: a
+## step, a chapter, a find), "offer" (a job on a card), "ping" (the next place of a run). The one
+## place an activity sounds its feedback, so a check's HUD (fakes.gd) hears it too.
+## `hush` (the drag's focus) quiets words, not these: the drag's lights and result still sound.
+func cue(n: String) -> void:
+	Sfx.ui(n)
+
+
+## The whole second a run's clock showed last in its final TICK_FROM s (-1 above them).
+var _tick_at := -1
+const TICK_FROM := 10
+
+
+## A run's clock that counts down, `left` seconds to go (each frame): a "tick" as each of its
+## last TICK_FROM whole seconds starts.
+func tick_clock(left: float) -> void:
+	var s := ceili(left)
+	if s > TICK_FROM or left <= 0.0:
+		_tick_at = -1
+		return
+	if s != _tick_at:
+		_tick_at = s
+		cue("tick")
 
 
 ## A big line across the middle of the screen: the race countdown.
@@ -2968,7 +3025,7 @@ func notebook_changed() -> void:
 ## once as triangles round (0, 0) (`_question_pts`, rebuilt when the point size changes); each
 ## mark is that array moved (one Transform2D on the packed array, no per-pixel script work).
 const QUESTION := ["###", "..#", ".##", "...", ".#."]
-const QUESTION_GOLD := Color("#f0b429")
+const QUESTION_GOLD := UiKit.GOLD  # the one gold (was #f0b429)
 var _question_pts := PackedVector2Array()
 var _question_cols := PackedColorArray()
 var _question_pt := 0.0
@@ -3141,7 +3198,7 @@ func _build_wallet() -> void:
 	rows.add_theme_constant_override("separation", roundi(2.0 * pt))
 	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_note.add_child(rows)
-	_note_title = _label(T_SUB, Color("#ff4fd8"))
+	_note_title = _label(T_SUB, UiKit.NEON_PINK)
 	rows.add_child(_note_title)
 	_note_body = _label(T_SUB, INK)
 	_wrap(_note_body, NOTE_W - 20.0)
@@ -3210,9 +3267,9 @@ func _draw_wallet() -> void:
 	var gain := _wallet_flash > WALLET_FLASH - 1.6
 	var money := _money_text()
 	var base := Vector2(x, y + fs * 0.36)
-	var colour := Color("#ffe27a")
+	var colour := ACCENT
 	if gain:
-		colour = Color(0.55, 1.0, 0.6).lerp(Color("#ffe27a"), 0.5 + 0.5 * sin(_wallet_flash * 12.0))
+		colour = Color(0.55, 1.0, 0.6).lerp(ACCENT, 0.5 + 0.5 * sin(_wallet_flash * 12.0))
 	w.draw_string(font, base, money, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, colour)
 	x += maxf(font.get_string_size(money, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x,
 			font.get_string_size(_money(_wallet_zl), HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x) + 10.0 * pt
@@ -3225,7 +3282,7 @@ func _draw_wallet() -> void:
 		star.append(c + Vector2(cos(a), sin(a)) * (7.2 if k % 2 == 0 else 3.2) * pt)
 		outer.append(c + Vector2(cos(a), sin(a)) * (8.8 if k % 2 == 0 else 4.3) * pt)
 	w.draw_colored_polygon(outer, OUTLINE)
-	w.draw_colored_polygon(star, Color("#ff4fd8"))
+	w.draw_colored_polygon(star, UiKit.NEON_PINK)
 	var resp := str(_wallet_respect)
 	base = Vector2(x + 20.0 * pt, y + fs * 0.36)
 	w.draw_string(font, base, resp, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color("#ffd0f4"))
@@ -3254,6 +3311,7 @@ func show_note(title: String, body: String, colour: Color, priority := Messages.
 
 
 func _show_note_now(title: String, body: String, colour: Color) -> void:
+	cue("step")
 	colour = Access.tint(colour)  # colour-safe (access.gd)
 	_set_note_width()  # landmark card fix
 	_note_title.text = title
@@ -4947,10 +5005,19 @@ func call_ok() -> bool:
 	return messages.call_ok()
 
 
-## The quiet time after a finish is on (messages.gd `quiet`): the ride app's requests and Bartek's
+## The quiet time after a finish is on (messages.gd `quiet`), or the last card is under OFFER_SPACING s
+## back (`spaced`, F 2026-11-19): the ride app's requests and Bartek's
 ## calls, which do not ask `call_ok`, wait for it too (TD-3).
 func offers_quiet() -> bool:
-	return messages.quiet()
+	messages.tick(0.0, context_now())
+	return messages.quiet() or not messages.spaced()
+
+
+## An offer that comes by itself may show now (messages.gd `offer_ok`): free roam, settled, OFFER_SPACING
+## s after the last card, past the quiet time; no call gap (main.gd `_free_block`, the guide's cards).
+func offer_ok() -> bool:
+	messages.tick(0.0, context_now())
+	return messages.offer_ok()
 
 
 ## The player pressed RADIO (or its next key, or R): the caption that comes next shows even in a chase.
@@ -5034,8 +5101,7 @@ func keep_clear_rects() -> Array[Rect2]:
 ## The challenge chip made a call to action: a filled plate, the chequered flag on its left, the
 ## words moved right of it.
 func _build_cta() -> void:
-	_cta_plate = _box(CARD_BG, ACCENT, 3.0)
-	_cta_plate.set_corner_radius_all(roundi(14.0 * pt))
+	_cta_plate = _box(CARD_BG, ACCENT, 2.0)  # the kit: a card with the gold edge of an action
 	for st in ["normal", "hover", "disabled"]:
 		_challenge.add_theme_stylebox_override(st, _cta_plate)
 	var words := _challenge.get_child(0) as Control
@@ -5061,11 +5127,11 @@ func _set_cta(title: String, sub: String, accent: Color) -> void:
 		return
 	_cta_accent = accent
 	top.text = title
-	top.add_theme_color_override("font_color", Color.WHITE)
+	top.add_theme_color_override("font_color", INK)
 	low.text = sub
 	low.visible = sub != ""
-	_cta_plate.bg_color = Color(accent.darkened(0.62), 0.97)
-	_cta_plate.border_color = accent
+	# The kit (docs/design/ui-kit.md): the plate stays the card with the gold edge of an action;
+	# the rival's own colour shows only round the flag.
 	var font := ThemeDB.fallback_font
 	var w := maxf(font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_TITLE * Access.text_scale)).x,
 			font.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_SUB * Access.text_scale)).x)
@@ -5084,6 +5150,6 @@ func _draw_cta_flag() -> void:
 	_challenge.draw_rect(Rect2(x0 - 2.0 * pt, y0, 2.0 * pt, cell * 6.0), INK)
 	for row in 3:
 		for col in 4:
-			var c := INK if (row + col) % 2 == 0 else Color(0.08, 0.07, 0.1)
+			var c := INK if (row + col) % 2 == 0 else UiKit.CARD_SOLID
 			_challenge.draw_rect(Rect2(x0 + col * cell, y0 + row * cell, cell, cell), c)
 	_challenge.draw_rect(Rect2(x0, y0, cell * 4.0, cell * 3.0), _cta_accent, false, maxf(1.0, pt * 0.6))

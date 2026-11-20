@@ -282,6 +282,8 @@ var dogs_log := false
 var trend_log := false
 var life_log := false
 var life_soak := false
+## --blvd-t=S: the Vistula steps' life (boulevard_life.gd) starts S s into its loops.
+var blvd_t0 := 0.0
 var zajac_flag := false
 var trend_day_flag := -1
 var trend_job_flag := 0
@@ -350,6 +352,9 @@ var tap_at := Vector2.INF
 var start_weather := 0
 var live_clock := ""
 var live_date := 0
+## F 2026-11-19: the game clock (time_of_day.gd `start_clock`, 30x, the sun by the date): on in a
+## normal launch, or with --game-clock in a test run (--time=, --clock=, --date= then set its start).
+var game_clock := false
 ## --palace-lights=ID: the Palace's event lighting forced to one row of data/palace_lights.json
 ## ("gold" for the nightly gold), whatever the date (shots).
 var palace_lights_id := ""
@@ -394,6 +399,13 @@ var _flag_barriers := &""
 ## --push-parked=X,Z (step 8a, for shots; needs --soft): the parked car nearest X,Z slides off its bay
 ## sideways as a push would send it, once its sector is in (main.gd, `soft_things.gd` `push_near`).
 var _flag_push_parked := Vector2.INF
+## --smash-fence=X,Z[,FRAME[,DEG]][+X,Z...] (W6 of the walls look, for shots; needs --soft): at frame
+## FRAME (default 60) the soft fence or hedge nearest X,Z (within 15 m) breaks as a car crossing it
+## there would break it (two panels, the debris, the sound), thrown toward DEG degrees (0 +x, 90 +z;
+## default 90), so a `--shots=` strip shows before, just after and what stays (main.gd,
+## `soft_things.gd` `smash_near`). With --cams, the k-th smash is the k-th camera's, its FRAME counted
+## from that camera's start as its shots are.
+var _flag_smash_fence: Array[Vector4] = []
 var _flag_traffic := -1
 var _flag_fixed := false
 var _flag_perf := false
@@ -477,7 +489,7 @@ func parse() -> void:
 ## The test flags whose runs call the test harness (TD-4 a2, dev_harness.gd), by the value each sets:
 ## --bench, --probe, --cam-log, --cam-test=, --lineup, --teleport-test, --quest-quit=, --contacts=,
 ## --tram-watch=, --drive-into-water=, --clicks=, --drag=, --stops=, --spots=, --stream-pass=,
-## --stream-soak=, --shots=, --ram-test and --egg=. main.gd loads the harness once both parsers
+## --stream-soak=, --shots=, --ram-test, --egg=, --push-parked= and --smash-fence=. main.gd loads the harness once both parsers
 ## have run (`parse()`, then `parse_stream()`), only when one of them is on. --nosave, --notitle,
 ## --clock=, --autopilot and every other flag set none of them, so those runs play with no harness,
 ## as a release build always does (its list is empty, release.gd). `check_dev_flags` checks this
@@ -487,7 +499,7 @@ func wants_harness() -> bool:
 			or contacts_to != "" or tram_watch >= 0 or _water_test_at != Vector2.INF \
 			or not clicks.is_empty() or not drags.is_empty() or not stops.is_empty() or not _spots.is_empty() \
 			or _pass_kind != "" or m._soak_minutes > 0.0 or not m.shots.is_empty() or m.cam_test != "" \
-			or m.ram_test != 0 or not m._egg.is_empty()
+			or m.ram_test != 0 or not m._egg.is_empty() or _flag_push_parked != Vector2.INF or _flag_smash_fence.size() > 0
 
 
 ## The flags of `args`, in their order.
@@ -649,6 +661,13 @@ func parse_with(args: PackedStringArray) -> void:
 			# barrier_look. The prebuilt city is the look it was baked in (`note_barrier_look`).
 			_flag_barriers = StringName(arg.trim_prefix("--barriers="))
 			Solidity.set_barrier_look(_flag_barriers)
+		elif arg.begins_with("--smash-fence="):
+			for one in arg.trim_prefix("--smash-fence=").split("+"):
+				var sf := one.split_floats(",")
+				if sf.size() < 2:
+					push_error("--smash-fence: '%s' is not X,Z[,FRAME[,DEG]] joined with +" % arg)
+					break
+				_flag_smash_fence.append(Vector4(sf[0], sf[1], sf[2] if sf.size() > 2 else 60.0, sf[3] if sf.size() > 3 else 90.0))
 		elif arg.begins_with("--push-parked="):
 			var pp := arg.trim_prefix("--push-parked=").split_floats(",")
 			_flag_push_parked = Vector2(pp[0], pp[1])
@@ -810,6 +829,8 @@ func parse_with(args: PackedStringArray) -> void:
 			live_clock = arg.trim_prefix("--clock=")
 		elif arg.begins_with("--date="):
 			live_date = int(arg.trim_prefix("--date="))
+		elif arg == "--game-clock":
+			game_clock = true
 		elif arg.begins_with("--palace-lights="):
 			palace_lights_id = arg.trim_prefix("--palace-lights=")
 		elif arg == "--perf":
@@ -1027,6 +1048,8 @@ func parse_with(args: PackedStringArray) -> void:
 			dogs_log = true
 		elif arg == "--trend-log":
 			trend_log = true
+		elif arg.begins_with("--blvd-t="):
+			blvd_t0 = float(arg.trim_prefix("--blvd-t="))
 		elif arg == "--life-log":
 			life_log = true
 		elif arg == "--life-soak":
@@ -1194,6 +1217,7 @@ func parse_with(args: PackedStringArray) -> void:
 		show_title = true
 	# Camera loop: the cinematic moments in a normal launch only (never with screenshots or a bench).
 	var normal := show_title and m.shots.is_empty() and not bench and not probe and not bench_button and not demo
+	game_clock = (game_clock or normal) and start_time != TimeOfDay.LIVE
 	if _flag_cinematic == "event":
 		# The 15 s video: the event day on, the clock 16:40 in the dusk look unless --clock says other.
 		if event_flag < 0:

@@ -786,7 +786,9 @@ func _fire(id: String) -> void:
 		"beta":
 			# Over another card (the delivery's result) it waits a tick; without a HUD it is made.
 			if hud != null:
-				if hud.cards_up():
+				# ... and a breath after it (F 2026-11-19: no cards back to back; the beta card is the
+				# guide's own explanation, so it does not wait the quiet time after the delivery).
+				if hud.cards_up() or not hud.messages.spaced():
 					return
 				_show_beta()
 		"choice":
@@ -803,6 +805,9 @@ func _fire(id: String) -> void:
 				_choice_halina = false
 				_show_choice()
 		"race":
+			# Halina's flash is an offer: it waits like one (hud.gd `offer_ok`, F 2026-11-19).
+			if hud != null and not hud.offer_ok():
+				return
 			ok = rivals != null and rivals.call_first()
 		"trap":
 			if police != null:
@@ -822,6 +827,8 @@ func _fire(id: String) -> void:
 				var words: Array = LINES["tape"] if _cassette() >= 0 else LINES["tape_ground"]
 				hud.toast(words[0], words[1])
 		"ride":
+			if hud != null and not hud.offer_ok():
+				return  # the request is a card: it waits like any offer (F 2026-11-19)
 			var ride: Variant = jobs.get("rides") if jobs != null else null
 			ok = ride is Node and ride.has_method("offer_now") and bool(ride.call("offer_now"))
 			if ok and hud != null:

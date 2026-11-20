@@ -22,6 +22,7 @@ extends SceneTree
 ## Prints `check_bar_crawl: OK`, or the problems and their count (exit 1). About a second.
 ##   godot --headless --path game --script res://tools/check_bar_crawl.gd
 
+const GameTime := preload("res://scripts/game_time.gd")
 const BarCrawl := preload("res://scripts/bar_crawl.gd")
 const Activity := preload("res://scripts/activity.gd")
 const Activities := preload("res://scripts/activities.gd")
@@ -258,6 +259,8 @@ func _play() -> void:
 	_expect("the call's clock counts at night", c.call_in < first - 1.5 and c.call_in > first - 2.5, true)
 	var left: float = c.call_in
 	_hour = 13.0
+	_expect("by day with time.by_day the call may come (F 2026-11-19)", c._hours_now(), true)
+	GameTime.BY_DAY = 0.0  # the hours rule alone, to the ring
 	_run(2.0)
 	_expect("not by day", c.call_in, left)
 	_hour = 23.0
@@ -269,6 +272,7 @@ func _play() -> void:
 	_run(2.0)
 	_expect("not when the timer is off (a test run)", c.call_in, left)
 	c.auto = true
+	GameTime.BY_DAY = 1.0  # pacing.json's (check_game_time)
 	c.call_in = 0.5
 	_run(1.0)
 	_expect("it rings when the clock is out", c.phase, Activity.Phase.RING)

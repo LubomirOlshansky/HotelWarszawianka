@@ -55,6 +55,26 @@ const PUSH_FROM := 1.0
 const PUSH_FULL := 5.0
 const EFFORT_RATE := 0.05
 const PUSH_MISTAKES := 1.5
+## Catch-up (F 2026-11-19, phone, build 12: "when I go full speed the rival should speed up, even
+## faster than 100 to 150 km/h, to stay on the tail; more hardcore"; F chose catch-up for every
+## rival on a decision card). This one knob DOES follow the player, against the rule above: a rival
+## more than CATCH_FROM s behind the player drives faster than its own pace on a straight, rising
+## to its profile's `catch` (ladder.gd; CATCH_MAX when it has none) from CATCH_FULL s behind,
+## past the road's racing speed and the car's own top (`d.race_boost`, traffic.gd), up to
+## CATCH_TOP m/s at most (traffic.gd RACE_BOOST_TOP). The boost comes on fast (CATCH_RATE a second) and goes as fast once it is
+## back within CATCH_FROM s, so it closes the gap to the player's tail and never passes by itself:
+## from there it is its own skill again, and a player who keeps driving clean stays ahead. Corners
+## and traffic still hold it, though it brakes and corners harder too while boosted (its brakes
+## times the boost, traffic.gd; its grip `race_corner` times the boost up to GRIP_EFFORT_MOST):
+## against the race bench's pro (the best a real player does) the straights alone left every rung
+## 1 to 6 s behind, with the brakes and grip 1 to 2.5 s (Halina's first race 4 s). An easier rematch
+## takes CATCH_EASE times its ease off the boost.
+const CATCH_FROM := 0.5
+const CATCH_FULL := 2.5
+const CATCH_MAX := 1.6
+const CATCH_RATE := 0.4
+const CATCH_TOP := Traffic.RACE_BOOST_TOP
+const CATCH_EASE := 3.0
 ## The time gap is the metres between the cars over the rival's own usual speed: this share of
 ## its straight-line speed on a main road (a town route's bends and junctions; the bench's
 ## clear-road races average 0.8), so a rival's seconds are its own and not the player's.
@@ -71,6 +91,9 @@ class Pace:
 	var effort := 1.0
 	var lo := 1.0
 	var hi := 1.0
+	## The catch-up boost now (CATCH_* above) and the most it reached this race.
+	var boost := 1.0
+	var boost_hi := 1.0
 
 
 ## One car in the race.
@@ -415,7 +438,7 @@ func rank(player_left: float) -> void:
 		if not r.started or r.home:
 			continue
 		r.left = metres_left(r)
-		pace_tick(r.effort, r.d, float(r.stats.get("mistake", 0.0)), r.left, player_left)
+		pace_tick(r.effort, r.d, float(r.stats.get("mistake", 0.0)), r.left, player_left, catch_of(r.stats, r.ease))
 
 
 ## The place of a car with `metres` of course left: 1 + the racers home + those with less left.
@@ -528,6 +551,18 @@ static func effort_of(lead_s: float) -> float:
 	return lerpf(1.0, EFFORT_PUSH, smoothstep(PUSH_FROM, PUSH_FULL, -lead_s))
 
 
+## Catch-up (CATCH_* above): the most a rival with racer stats `stats` (ladder.gd: its `catch`,
+## CATCH_MAX without) and an easier rematch's `ease` (Ladder.ease_of) speeds up when far behind.
+static func catch_of(stats: Dictionary, ease := 0.0) -> float:
+	var most := float(stats.get("catch", CATCH_MAX))
+	return 1.0 + maxf(most - 1.0, 0.0) * maxf(1.0 - CATCH_EASE * ease, 0.0)
+
+
+## The catch-up a rival `lead_s` seconds ahead of the player (< 0: behind) wants, up to `most`.
+static func boost_of(lead_s: float, most: float) -> float:
+	return lerpf(1.0, most, smoothstep(CATCH_FROM, CATCH_FULL, -lead_s))
+
+
 ## The rival's own usual speed (m/s) for the time gap (GAP_PACE above), from its car's top speed
 ## `top` (m/s) and its skill's share of the road's speed.
 static func own_pace(top: float, share: float) -> float:
@@ -561,6 +596,7 @@ static func arm_racer(d, stats: Dictionary, pace: Vector2, top: float, cuts: Dic
 	d.race_lat = float(stats["lat"])
 	d.race_effort = 1.0
 	d.race_corner = 1.0
+	d.race_boost = 1.0
 	d.race_still = 0.0
 	d.race_passes = 0
 	# Human rivals: shortcuts, mistakes, wrong turns, blocking (ladder.gd's personality).
@@ -586,16 +622,22 @@ static func arm_racer(d, stats: Dictionary, pace: Vector2, top: float, cuts: Dic
 ## player's speed, and the effort never takes the car past its own top speed: on a straight it
 ## is cut to 1 / share (`d.race_effort`), in a corner it is whole (`d.race_corner`: grip is the
 ## car's to use at any speed, so a rival at the road's full speed still pushes through the bends).
-static func pace_tick(pace: Pace, d, mistake: float, rival_left: float, player_left: float) -> float:
+static func pace_tick(pace: Pace, d, mistake: float, rival_left: float, player_left: float, catch_most := 1.0) -> float:
 	if pace.route_total <= 0.0 and player_left < INF:
 		pace.route_total = maxf(player_left, rival_left)
 	var want := 1.0
+	var boost := 1.0
 	if rival_left < INF and player_left < INF:
-		want = effort_of((player_left - rival_left) / own_pace(d.race_top, d.race_share))
+		var lead_s := (player_left - rival_left) / own_pace(d.race_top, d.race_share)
+		want = effort_of(lead_s)
+		boost = boost_of(lead_s, catch_most)
 	pace.effort = move_toward(pace.effort, want, EFFORT_RATE * 0.2)
+	pace.boost = move_toward(pace.boost, boost, CATCH_RATE * 0.2)
+	pace.boost_hi = maxf(pace.boost_hi, pace.boost)
+	d.race_boost = pace.boost
 	var effort := minf(pace.effort, 1.0 / maxf(d.race_share, 0.01))
 	d.race_effort = effort
-	d.race_corner = pace.effort
+	d.race_corner = pace.effort * pace.boost
 	d.race_mistake = mistake * lerpf(1.0, PUSH_MISTAKES, clampf((pace.effort - 1.0) / (EFFORT_PUSH - 1.0), 0.0, 1.0))
 	pace.lo = minf(pace.lo, effort)
 	pace.hi = maxf(pace.hi, effort)

@@ -209,7 +209,7 @@ var life: Node3D
 ## crowds.gd (the PISTACJA site and its drop); may be null.
 var crowds: Node
 var stage := Stage.NONE
-## The places' points (main.gd hands them in before `setup`).
+## The places' points by id (the notebook's, `install` hands them in before `setup`).
 var places := {}
 ## Set by the game each frame (no offers from the helicopter, the title screen or the bench).
 var flying := false
@@ -228,7 +228,7 @@ var mission_on := false:
 ## Onto the arcade court (main.gd `_enter_padel`, padel_match.gd) with {partner, rivals, hour, flew,
 ## seed}; its end comes back through `arcade_done`. Unset (the checks): the card match.
 var enter_padel: Callable
-## The game clock's hour for the arcade's light (main.gd sets it).
+## The game clock's hour for the arcade's light (the ctx's `hour`, from `install`).
 var hour_now: Callable
 ## --trend-job=4: the drop never ends (the test run).
 var force_drop := false
@@ -334,6 +334,39 @@ static func offers(st: Dictionary, hour: float) -> bool:
 	return int(st.get("day", 8)) < CityLife.CYCLE and hour >= float(CityLife.SHOP_HOURS[0]) and hour < float(CityLife.SHOP_HOURS[1])
 
 
+## Wires the trend job from the game (activity.gd `install`; main.gd's `_build_city_life` until
+## TD-4 b9). None without the side jobs (no lane graph). --autopilot drives its runs, --trend-log
+## logs them. `enter_padel`, `egg` and `quiet` are main.gd's hooks, set after the join (the padel
+## court, the easter eggs and Spacer are main.gd's).
+func install(ctx: GameCtx) -> bool:
+	if ctx.jobs == null:
+		return false
+	super(ctx)
+	name = "TrendJob"
+	autopilot = ctx.flags.autopilot
+	log_on = ctx.flags.trend_log
+	dialogue = ctx.dialogue
+	rivals = ctx.rivals
+	jobs = ctx.jobs
+	rides = ctx.rides
+	graph = ctx.graph as LaneGraph
+	car = ctx.car
+	life = ctx.life
+	crowds = ctx.crowds
+	for p: Dictionary in ctx.notes.places:
+		places[str(p["id"])] = p["at"]
+	hour_now = ctx.hour
+	return true
+
+
+## After the join (main.gd's `_build_city_life` until TD-4 b9): the deliveries learn of it, so the
+## two never run at once (jobs.gd `trend`).
+func joined(ctx: GameCtx) -> void:
+	ctx.jobs.trend = self
+
+
+## `install` hands in the nodes (hud, dialogue, wallet, rivals, jobs, rides, graph, map, car, life,
+## crowds), the places and the clock's hour before this.
 func setup(world: Node3D) -> void:
 	tag = "trend job"
 	colour = COLOUR

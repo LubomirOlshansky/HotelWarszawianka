@@ -110,6 +110,36 @@ static func pick_depots(zone_list: Array, spacing: float) -> Array[int]:
 	return out
 
 
+## Wires the round-up from the game (activity.gd `install`; main.gd's `_build_storefronts` until
+## TD-4 b10). None without the side jobs (its rings are their markers, its test is theirs).
+## --autopilot drives its runs, --roundup offers it at the depot nearest the car and logs it, as
+## --parody-log does.
+func install(ctx: GameCtx) -> bool:
+	if ctx.jobs == null:
+		return false
+	super(ctx)
+	name = "RoundupJob"
+	dialogue = ctx.dialogue
+	car = ctx.car
+	tod = ctx.tod
+	jobs = ctx.jobs
+	store = ctx.storefronts
+	autopilot = ctx.flags.autopilot
+	force = ctx.flags.roundup_flag
+	log_on = ctx.flags.parody_log or ctx.flags.roundup_flag
+	return true
+
+
+## After the join (main.gd's `_build_storefronts` until TD-4 b10): the deliveries learn of it, for
+## their minimap squares and their pointer (jobs.gd `roundup`), and --roundup's test start: the car
+## at the nearest depot, the card up, the camera with it.
+func joined(ctx: GameCtx) -> void:
+	ctx.jobs.roundup = self
+	if ctx.flags.roundup_flag:
+		start_at_nearest()
+		ctx.focus_at.call(ctx.car.global_position)
+
+
 func setup(world: Node3D) -> void:
 	tag = "roundup"
 	colour = COLOUR
@@ -401,6 +431,7 @@ func _result() -> void:
 	var quote := "„%s”\n" % l[0] if not l.is_empty() else ""
 	var quote_en := "\"%s\"\n" % l[1] if not l.is_empty() else ""
 	var mm := "%d:%02d" % [int(secs) / 60, int(secs) % 60]
+	hud.cue("win")
 	show_card(["ZEBRANE · %d LEŻAKÓW · +%d zł" % [unloaded, int(r["zl"])], "Rounded up · %d Leżaks · +%d zł" % [unloaded, int(r["zl"])]],
 			["%s%d × %d zł%s, +%d szacunku · czas %s" % [quote, unloaded, PER,
 			(" + %d zł premii" % int(r["bonus"])) if int(r["bonus"]) > 0 else "", int(r["respect"]), mm],

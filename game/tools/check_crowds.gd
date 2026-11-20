@@ -24,6 +24,8 @@ extends SceneTree
 ##   9. F's asks (2026-10-30): Level 26 stands on the tower (its place inside a building part of
 ##      100 m or more in the map data), its door queue on a footway, the roof ring on a synthetic
 ##      tower (every ray on the facade or at most a cell outside it, one height).
+##  11. Kładka Abakanowicz (2026-11-20): its two crowd sites from the map's stamp, every sitter on a seat
+##      row over the walk and every stander on it, inside the deck's widest strip.
 ## Prints "check_crowds: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_crowds.gd [-- --verbose]
 
@@ -82,6 +84,8 @@ func _run() -> void:
 	# terrace (its plan from the hotel's outline alone) must stay a crowd site there too.
 	var bare := {"landmarks": (data as Dictionary).get("landmarks", [])}
 	_expect(not Crowds.Landmarks.loretka_plan(bare).is_empty(), "LORETKA's terrace has no plan without the building parts (the prebuilt index)")
+	_check_bars(c, data)
+	_check_kladka(c, data)
 	_check_door(c, dlg)
 	var cost := _check_dawn(c, data)
 	_check_office(c, data, dlg)
@@ -173,12 +177,12 @@ func _check_rules() -> void:
 				if n < 0 or n > 24:
 					problems.append("queue %s at %.1f day %d: %d (0-24)" % [curve, h * 0.5, d, n])
 	# The steps: hour × month × rain, sunset 1.0.
-	var steps: Array = [[19.5, 7, false, 80], [14.0, 7, false, 24], [10.0, 7, false, 8], [23.0, 7, false, 56], [1.0, 7, false, 24],
-			[3.0, 7, false, 4], [19.5, 7, true, 8], [19.5, 11, false, 4], [19.5, 5, false, 56], [19.5, 4, false, 24], [18.0, 7, false, 48]]
+	var steps: Array = [[19.5, 7, false, 180], [14.0, 7, false, 54], [10.0, 7, false, 18], [23.0, 7, false, 126], [1.0, 7, false, 54],
+			[3.0, 7, false, 9], [19.5, 7, true, 18], [19.5, 11, false, 9], [19.5, 5, false, 126], [19.5, 4, false, 54], [18.0, 7, false, 108]]
 	for r: Array in steps:
 		var got := Crowds.steps_count(float(r[0]), int(r[1]), bool(r[2]), 19.5)
 		_expect(got == int(r[3]), "steps at %.1f month %d rain %s: %d (want %d)" % [r[0], r[1], r[2], got, r[3]])
-	_expect(Crowds.steps_count(21.0, 7, false, 21.0) == 80, "Live's sunset at 21:00: the steps full")
+	_expect(Crowds.steps_count(21.0, 7, false, 21.0) == 180, "Live's sunset at 21:00: the steps full")
 	var prev := 0.0
 	for k in 8:
 		var v := Crowds.steps_curve(18.0 + k * 0.25, 19.75)
@@ -186,7 +190,7 @@ func _check_rules() -> void:
 		prev = v
 	for h in 48:
 		var n := Crowds.steps_count(h * 0.5, 7, false, 19.5, 2.0)
-		_expect(n <= 160, "steps doubled at %.1f: %d (≤ 160)" % [h * 0.5, n])
+		_expect(n <= 360, "steps doubled at %.1f: %d (≤ 360)" % [h * 0.5, n])
 	_expect(Crowds.guitar_on(24, 19.5) and not Crowds.guitar_on(6, 19.5) and not Crowds.guitar_on(24, 10.0), "the guitarist's rule")
 	# Plac Zbawiciela: Fri/Sat nights in summer.
 	_expect(roundi(40 * Crowds.plan_c_level(23.0, 5, 7, false)) == 40, "Plan C Friday 23:00: 40")
@@ -422,12 +426,149 @@ func _check_sites(c: Crowds) -> void:
 		if verbose:
 			print("  %s: door %s, %.1f m from the place, line of %d" % [s["id"], s["door"], (s["door"] as Vector2).distance_to(s["at"]), line.size()])
 	var steps: Dictionary = c.sites[c.by_id["schodki_kopernik"]]
-	_expect((steps["slots"] as Array).size() >= Crowds.STEPS_MAX, "the steps: %d slots for 80" % (steps["slots"] as Array).size())
+	_expect((steps["slots"] as Array).size() >= Crowds.STEPS_MAX, "the steps: %d slots for 180" % (steps["slots"] as Array).size())
 	var sq: Dictionary = c.sites[c.by_id["plan_c"]]
 	_expect((sq["slots"] as Array).size() >= Crowds.PLAN_C_MAX, "Plan C: %d slots for 40" % (sq["slots"] as Array).size())
 
 
 # 5. -------------------------------------------------------------------------------------------
+
+# 11. -------------------------------------------------------------------------------------------
+
+## Phase D (2026-11-19, F: "the terraces and barges are empty"): the boulevard bars' guests, kind `bar`
+## (river.gd `bulwar_bar_plans`): ten sites with plans on the full map and on the prebuilt index's data, the
+## peak sums to at most 220 figures (+0 draw calls: they share their cell's MultiMesh), staff first, the
+## summer-evening curve, the barges busier on a Friday and Saturday, thin in rain, empty in the morning;
+## and the steps' props (one MultiMesh of at most PROPS_MAX boxes) that go with their sitters.
+func _check_bars(c: Crowds, data: Dictionary) -> void:
+	var total := 0
+	for id: String in Crowds.BAR_MAX:
+		_expect(c.by_id.has(id), "bar site %s missing (no plan from the map data)" % id)
+		if not c.by_id.has(id):
+			continue
+		var s: Dictionary = c.sites[c.by_id[id]]
+		var slots: Array = s["slots"]
+		var staff := int(s["staff_n"])
+		_expect(int(s["max"]) <= Crowds.BAR_MAX[id] and int(s["max"]) >= 6, "%s: max %d (cap %d, at least 6 seats)" % [id, s["max"], Crowds.BAR_MAX[id]])
+		_expect(slots.size() >= int(s["max"]) and staff >= 1 and staff <= 2, "%s: %d slots, %d staff" % [id, slots.size(), staff])
+		for k in staff:
+			_expect(int((slots[k] as Dictionary)["pose"]) == Crowds.STAND, "%s: staff %d sits" % [id, k])
+		for sl: Dictionary in slots:
+			_expect(sl.has("y") and not is_nan(float(sl["y"])), "%s: a slot without a height" % id)
+		total += int(s["max"])
+	_expect(total <= 220, "the bars' peak figures %d (want at most 220)" % total)
+	var live := Crowds.bar_level
+	_expect(live.call(20.0, 5, 7, false, true) == 1.0 and live.call(20.0, 5, 7, false, false) == 1.0, "a Friday evening in July is the peak")
+	_expect(live.call(20.0, 3, 7, false, true) < live.call(20.0, 5, 7, false, true) and live.call(20.0, 3, 7, false, false) == 1.0,
+			"a barge on a Wednesday evening is thinner, the terrace is not")
+	_expect(live.call(13.0, 3, 7, false, false) > 0.0 and live.call(13.0, 3, 7, false, false) < live.call(20.0, 3, 7, false, false), "lunch is moderate")
+	_expect(live.call(9.0, 5, 7, false, true) == 0.0 and live.call(4.0, 5, 7, false, true) == 0.0, "nothing in the morning")
+	_expect(live.call(20.0, 5, 7, true, true) <= 0.2 and live.call(20.0, 5, 1, false, true) < 0.3, "thin in rain and in January")
+	_expect(live.call(0.5, 6, 7, false, true) > 0.8, "the small hours after a Friday are still full")
+	_expect(Crowds.bar_count(50, 2, 0.0) == 0 and Crowds.bar_count(50, 2, 0.01) == 2 and Crowds.bar_count(50, 2, 1.0) == 50, "bar_count: staff first, the cap last")
+	# The prebuilt index's data has the same ten plans (the prebuilt city has no builder at run time).
+	var idx: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://map/index.json")) if FileAccess.file_exists("res://map/index.json") else null
+	if idx is Dictionary:
+		var plans: Dictionary = Crowds.Landmarks.bulwar_bar_plans(idx, func(_x: float, _z: float) -> float: return 0.0, Callable())
+		for id: String in Crowds.BAR_MAX:
+			_expect(plans.has(id), "bar plan %s missing on the prebuilt index's data" % id)
+	# The steps' props: all anchored to a slot, under the cap, boxes of sane size; fewer when the crowd drops.
+	var steps: Dictionary = c.sites[c.by_id["schodki_kopernik"]]
+	var props: Array = steps["props"]
+	_expect(props.size() >= 40 and props.size() <= Crowds.PROPS_MAX, "the steps' props: %d (want 40-%d)" % [props.size(), Crowds.PROPS_MAX])
+	var lit := 0
+	var blankets := 0
+	for pr: Array in props:
+		_expect(int(pr[0]) < (steps["slots"] as Array).size(), "a prop anchored past the slots")
+		var sz: Vector3 = pr[4]
+		_expect(sz.x <= 4.5 and sz.y <= 0.5 and sz.z <= 1.5, "a prop of %s" % sz)
+		if float(pr[6]) > 0.0:
+			lit += 1
+		if sz.x > 1.0:
+			blankets += 1
+	_expect(lit >= 1 and blankets >= 3, "the props: %d lit speaker dots, %d blankets" % [lit, blankets])
+	var early := 0
+	var all := 0
+	for pr: Array in props:
+		all += 1
+		if int(pr[0]) < 20:
+			early += 1
+	_expect(early < all, "the props are tied to their sitters (%d of %d anchored in the first 20 slots)" % [early, all])
+	# The mandat's target (boulevard_life.gd fine_target): a seated group within the stop's reach.
+	var tg: Dictionary = Crowds.steps_fine
+	_expect(not tg.is_empty() and float(tg["len"]) <= 7.5 and int(tg["need"]) <= 24, "the mandat's target group: %s" % [tg])
+	if not tg.is_empty():
+		var Blvd := Crowds.BoulevardLife
+		var wlen := float(tg["len"])
+		var seen_stand := false
+		var tt := 0.0
+		while tt < Blvd.cycle_time():
+			var fp := Blvd.patrol_pose(tt, 0.0)
+			var ft := float(fp["fine_t"])
+			if ft >= 0.0 and Blvd.fine_writing(ft, wlen):
+				var fig: Array = (Blvd.patrol_figures(tt, "policja", 1, tg)["figs"] as Array)[0]
+				var stand: Vector2 = tg["stand"]
+				_expect((fig[0] as Vector2).distance_to(stand) < 0.05 and absf(float(fig[1]) - float(tg["look"])) < 0.01,
+						"the officer writing at %s, want %s" % [fig[0], stand])
+				_expect(stand.distance_to(tg["sitter"]) > 0.79 and stand.distance_to(tg["sitter"]) < 0.81, "stops 0.8 m from the sitter")
+				seen_stand = true
+				break
+			tt += 0.25
+		_expect(seen_stand, "the officer never reaches the group")
+		# Nobody there yet: no fine at all.
+		var off := Blvd.patrol_figures(100.0, "policja", 1, {"off": true})
+		_expect(((off["figs"] as Array)[0][0] as Vector2).distance_to(Blvd.on_route(Blvd.PATROL_U.x)) > 0.0, "the {off} patrol still walks")
+	if verbose:
+		print("  bars: %d figures at the peak, %d props, mandat path %s" % [total, props.size(), tg.get("len", -1.0)])
+
+
+# 11. -------------------------------------------------------------------------------------------
+
+## Kładka Abakanowicz (F, 2026-11-20): its two crowd sites from the map's stamp (Landmarks.kladka_plan),
+## sitters on the seat rows above the walk, standers on the walk, all inside the deck's widest strip;
+## the evening's peak fills a half to its max, nobody at 03:00.
+func _check_kladka(c: Crowds, data: Dictionary) -> void:
+	var st: Dictionary = data.get("kladka", {})
+	if int(st.get("v", 0)) < 1:
+		problems.append("kladka: the map has no footbridge stamp (python3 -I tools/kladka.py)")
+		return
+	var line := Crowds.Landmarks._kl_triples(st["line"])
+	var cum := Crowds.Landmarks._kl_cumulate(line)
+	var half := float(st["half"])
+	var wide := half
+	for b: Array in st["bays"]:
+		wide = maxf(wide, half + float(b[3]))
+	var total := 0
+	var sit := 0
+	for id: String in Crowds.KLADKA_IDS:
+		if not c.by_id.has(id):
+			problems.append("kladka: no crowd site %s" % id)
+			continue
+		var s: Dictionary = c.sites[int(c.by_id[id])]
+		var slots: Array = s["slots"]
+		_expect(slots.size() >= int(s["max"]) and int(s["max"]) >= 30, "kladka: %s has %d spots for %d people" % [id, slots.size(), int(s["max"])])
+		total += int(s["max"])
+		for sl: Dictionary in slots:
+			var p: Vector2 = sl["p"]
+			var best := INF
+			var y0 := 0.0
+			for k in line.size() - 1:
+				var a := Vector2(line[k].x, line[k].z)
+				var b := Vector2(line[k + 1].x, line[k + 1].z)
+				var q := Geometry2D.get_closest_point_to_segment(p, a, b)
+				if q.distance_to(p) < best:
+					best = q.distance_to(p)
+					y0 = lerpf(line[k].y, line[k + 1].y, a.distance_to(q) / maxf(a.distance_to(b), 0.001))
+			var up := float(sl["y"]) - y0
+			if int(sl["pose"]) == Crowds.SIT:
+				sit += 1
+				_expect(best <= wide and up >= 0.4 and up <= 2.0, "kladka: a sitter %.1f m off the line, %.2f m over the walk" % [best, up])
+			else:
+				_expect(best <= half - 0.2 and absf(up) <= 0.3, "kladka: a stander %.1f m off the line, %.2f m over the walk" % [best, up])
+	_expect(sit >= 60, "kladka: %d sitters (want the bays' seats full of people)" % sit)
+	if verbose:
+		print("  kladka: %d people at the peak, %d sitting spots, line %.0f m" % [total, sit, cum[cum.size() - 1]])
+
 
 # 10. -------------------------------------------------------------------------------------------
 

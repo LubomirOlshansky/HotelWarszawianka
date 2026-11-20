@@ -116,8 +116,16 @@ var jingle_playing := false
 var _orders: Array = []
 ## Per station: where it is in its order. Tuning back to a station starts that track again.
 var _pos: Array[int] = []
-## Loaded track streams by file (the resource cache keeps them; this skips the lookup).
+## Loaded track streams by file: only each station's track at its place in the order (tuning
+## back starts it at once) and the tuned station's next one. Before (housekeeping, 2026-11-19)
+## every song a drive had played stayed here, up to the whole 16 MB of Ogg.
 var _streams := {}
+## The next track's file, read on a loader thread while the current one plays (a 2-3 MB file
+## read on the main thread at a track change was a hitch); "" when none is asked.
+var _ahead := ""
+## Earlier look-ahead requests not taken (a skip or a tune past them): collected once finished,
+## so the loader lets them go.
+var _stale: Array[String] = []
 ## Headless runs (tests) have no audio device: the dummy driver never mixes, so a
 ## playing stream would never be released. The radio keeps its state but stays silent.
 var _silent := DisplayServer.get_name() == "headless"
@@ -150,6 +158,15 @@ func _exit_tree() -> void:
 	_jingle.stop()
 	_jingle.stream = null
 	_static.stop()
+	# And a look-ahead still on the loader thread would outlive the tree: take it.
+	var left: Array[String] = _stale.duplicate()
+	if _ahead != "":
+		left.append(_ahead)
+	for f in left:
+		ResourceLoader.load_threaded_get(f)
+	_stale.clear()
+	_ahead = ""
+	_streams.clear()
 
 
 # --- the stations ---------------------------------------------------------------------
@@ -294,6 +311,7 @@ func _play_current(join_middle: bool) -> void:
 	_player.stream = stream
 	_track_t = 0.0
 	_apply_level()
+	_look_ahead()
 	if _silent or stream == null:
 		return
 	var from := 0.0
@@ -305,8 +323,58 @@ func _play_current(join_middle: bool) -> void:
 func _stream_of(track: Dictionary) -> AudioStream:
 	var file: String = track["file"]
 	if not _streams.has(file):
-		_streams[file] = load(file)
+		var got: AudioStream = null
+		if file == _ahead:
+			# Read ahead: done by now in all but a quick skip (then this waits for the rest).
+			got = ResourceLoader.load_threaded_get(file) as AudioStream
+			_ahead = ""
+		_streams[file] = got if got != null else load(file)
 	return _streams[file]
+
+
+## After a track starts: lets go of the streams no station is on, and asks the loader thread
+## for the tuned station's next track.
+func _look_ahead() -> void:
+	var keep := {}
+	for si in stations.size():
+		var order: Array = _orders[si]
+		if not order.is_empty():
+			keep[stations[si]["tracks"][order[_pos[si]]]["file"]] = true
+	var next := next_file()
+	if next != "":
+		keep[next] = true
+	for f: String in _streams.keys():
+		if not keep.has(f):
+			_streams.erase(f)
+	for i in range(_stale.size() - 1, -1, -1):
+		if ResourceLoader.load_threaded_get_status(_stale[i]) != ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			ResourceLoader.load_threaded_get(_stale[i])
+			_stale.remove_at(i)
+	if next == _ahead or _streams.has(next):
+		return
+	if _ahead != "":
+		_stale.append(_ahead)
+	_ahead = next
+	if next != "" and ResourceLoader.load_threaded_request(next) != OK:
+		_ahead = ""
+
+
+## The file of the tuned station's next unlocked track after the current one ("" when Off or
+## when it is the same track: a single track loops).
+func next_file() -> String:
+	if station < 0:
+		return ""
+	var order: Array = _orders[station]
+	for k in range(1, order.size()):
+		var ti: int = order[(_pos[station] + k) % order.size()]
+		if is_unlocked(station, ti):
+			return stations[station]["tracks"][ti]["file"]
+	return ""
+
+
+## The streams held now (check_radio: at most one per station and the next one).
+func held_streams() -> Array:
+	return _streams.keys()
 
 
 ## The track ran out (never emitted for a looping single track): the next one starts.
