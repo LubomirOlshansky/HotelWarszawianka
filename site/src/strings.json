@@ -156,19 +156,19 @@
    },
    {
     "id": "rivals",
-    "img": "card-rivals",
+    "img": "card-rivals-start",
     "crop": "right",
     "w": 1920,
     "h": 884,
     "en": {
      "name": "Rivals",
      "line": "Six street racers, and a boat race under four bridges with a jet ski in it.",
-     "alt": "A street race to the Palace at dusk in the game: the small car second in a pack, 467 m to go"
+     "alt": "The start of a street race to the Palace at dusk in the game: the small orange car beside the purple rival, START! on screen, Seba z Pragi talking, 467 m to go"
     },
     "pl": {
      "name": "Rywale",
      "line": "Sześciu ulicznych rywali i wyścig łodzi pod czterema mostami, z jednym skuterem wodnym.",
-     "alt": "Wyścig uliczny do Pałacu o zmierzchu w grze: małe auto drugie w stawce, zostało 467 m"
+     "alt": "Start wyścigu ulicznego do Pałacu o zmierzchu w grze: małe pomarańczowe auto obok fioletowego rywala, napis START!, mówi Seba z Pragi, do mety 467 m"
     }
    },
    {
