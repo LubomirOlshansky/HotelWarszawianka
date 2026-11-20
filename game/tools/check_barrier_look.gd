@@ -52,7 +52,8 @@ extends SceneTree
 ##     every cell inside the image, none over another; on a 600 m precast wall under typed marks stand off
 ##     the wall's face by their lift, under its top and over the ground, the same on a second build, none
 ##     under classic; none across a gap or over its gate posts; on a hoarding a banner per face under
-##     typed, none under panels (its sheets are panel pieces that fall); and on the whole map no line has
+##     typed, none under panels (its sheets are panel pieces that fall); a 3 km wall and a hoarding built
+##     sector by sector get the whole build's slogan and banner quads; and on the whole map no line has
 ##     more slogans than its length in 150 m windows (at least one) or two closer than 150 m, the
 ##     slogans are at most the marked walls' length over 150 m, a slogan with an `area` stands in it,
 ##     and panels draw what typed draws but the banners;
@@ -870,6 +871,28 @@ func _marks(map: Node3D) -> Dictionary:
 			problems.append("10 precast marks reach %.3f to %.3f m off the line (face at %.3f), from %.2f to %.2f m up (wall %.2f)" % [
 					near, far, hw, low, top, float(row["h"])])
 	out["precast wall"] = {"vertices": first.vertex_count - plain.vertex_count, "counts": counts, "poster tiles": tiles}
+	# The same slogans and banners whether the city is built whole or sector by sector: a 3 km precast
+	# wall across seven sectors and a hoarding across a sector edge, built whole and then as each sector
+	# (only the quads whose middle is in it), the sectors' quads together the whole's, vertex for vertex.
+	var long := _line("wall", [4000.0, 4000.0, 7000.0, 4000.0], {"ty": "wall_precast"})
+	var edge := _line("fence", [4604.0, 4050.0, 4612.0, 4050.0], {"ty": "hoarding", "sc": "S"})
+	map.data = {"lines": [long, edge]}
+	map._solids = {}
+	b.build_barriers(Chunked.new())
+	var whole := _mark_quads(b)
+	var parts: Array[String] = []
+	for i in range(7, 14):
+		map._in_sector = true
+		map._sector = Vector2i(i, 7)
+		map._sector_rect = Rect2(Vector2(i, 7) * MapBuilder.SECTOR, Vector2.ONE * MapBuilder.SECTOR)
+		map._solids = {}
+		b.build_barriers(Chunked.new())
+		parts.append_array(_mark_quads(b))
+	map._in_sector = false
+	parts.sort()
+	if whole.size() < 6 or var_to_str(parts) != var_to_str(whole):
+		problems.append("10 slogans and banners built by sector (%d quads) are not the whole build's (%d)" % [parts.size(), whole.size()])
+	out["by sector"] = "%d quads, the same as the whole build" % whole.size()
 	# Classic: nothing.
 	Solidity.set_barrier_look(&"classic")
 	var classic := Chunked.new()
@@ -890,6 +913,17 @@ func _marks(map: Node3D) -> Dictionary:
 	Solidity.set_barrier_look(&"typed")
 	map.data = {}
 	map._solids = {}
+	return out
+
+
+## 10: the slogan and banner quads of the last build_barriers, each its six vertices and UVs as text, sorted.
+func _mark_quads(b: RefCounted) -> Array[String]:
+	var out: Array[String] = []
+	for key: Vector2i in b.mark_tiles:
+		var t = b.mark_tiles[key]
+		for q in t.quads:
+			out.append(var_to_str([key, t.verts.slice(q * 6, q * 6 + 6), t.uvs.slice(q * 6, q * 6 + 6)]))
+	out.sort()
 	return out
 
 

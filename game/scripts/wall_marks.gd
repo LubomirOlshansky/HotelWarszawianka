@@ -530,9 +530,12 @@ static func _slogans(ctx: Dictionary) -> void:
 		if s0 + qw * 0.5 - last < win:
 			continue
 		var mid := _point(best, s0 + qw * 0.5)
+		# Placed: the next window keeps its distance from it whether or not this build holds its quad (a
+		# sector build only keeps the quads whose middle is in it), so the line's slogans are the same in
+		# every sector and in the whole city.
+		last = s0 + qw * 0.5
 		if not _put(cb, best, s0, s0 + qw, y0, y0 + qh, side, float(ctx["hw"]) + float(tab["lift"]), _uv(r, img)):
 			continue
-		last = s0 + qw * 0.5
 		cb.mark_counts["slogan"] = int(cb.mark_counts.get("slogan", 0)) + 1
 		cb.slogan_log.append([str(ctx["id"]), s0 + qw * 0.5, total, str(pick[2]), mid, where])
 
