@@ -72,7 +72,7 @@ const JM_ROWS := [
 	[92.0, 113.0, -3.0, -1, Hut.FOOD, 3.0, []],
 ]
 ## Huts not in a row: [u, v, quarter, kind]. The three turned to the annex's plaza.
-const JM_HUTS := [[56.5, 10.0, 1, Hut.WHITE], [56.5, 13.7, 1, Hut.BIG], [56.5, 17.4, 1, Hut.RED]]
+const JM_HUTS := [[56.5, 10.0, 1, Hut.WHITE], [56.5, 13.7, 1, Hut.TIMBER], [56.5, 17.4, 1, Hut.RED]]
 
 ## The strings of bulbs zig-zagging over the aisles: [u0, u1, v_a, v_b, step along u].
 const JM_STRINGS := [[146.0, 195.0, 25.6, 33.0, 5.0], [119.0, 193.0, 33.0, 40.0, 5.0],
@@ -309,11 +309,11 @@ func _jm_drape(u0: float, u1: float, v0: float, v1: float) -> void:
 					Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
 	# The car park's old bay lines, white, across the aisles of the main market.
 	if u0 > 110.0:
-		for vl: float in [3.0, 17.0, 49.0, 65.0]:
+		for vl: float in [17.0, 49.0, 65.0]:
 			var uu := u0 + 2.0
 			while uu < u1 - 2.0:
 				var g := _jm_ground(uu, vl)
-				_ubox(uu - 0.06, uu + 0.06, vl - 2.4, vl + 2.4, g + JM_LIFT, g + JM_LIFT + 0.02, Color("#c9c9c4"), M_STONE)
+				_ubox(uu - 0.06, uu + 0.06, vl - 2.4, vl + 2.4, g + JM_LIFT, g + JM_LIFT + 0.05, Color("#c9c9c4"), M_STONE)
 				uu += 2.6
 
 
@@ -353,17 +353,17 @@ func _jm_hut(u: float, v: float, quarter: int, kind: int, n: int) -> void:
 	# The counter: the open front lit from inside (goods by day, a warm glow at night), the shelf.
 	var top := g + eave - 0.3
 	_ubox(-hu + 0.22, hu - 0.22, -hv - 0.03, -hv, g + 1.05, top, JM_GLOW, M_LAMP)
-	_ubox(-hu, hu, -hv - 0.4, -hv, g + 0.95, g + 1.06, JM_TIMBER, M_STONE)
+	_ubox(-hu, hu, -hv - 0.4, -hv, g + 0.93, g + 1.03, JM_TIMBER, M_STONE)
 	var goods := [Color("#c23b2e"), Color("#e7c14a"), Color("#3d7a4a"), Color("#f3efe6"), Color("#7a4a8c")]
 	for k in 2:
 		var gu := -hu * 0.5 + float(k) * hu
 		var col: Color = goods[(n + k) % goods.size()]
-		_ubox(gu - 0.22, gu + 0.22, -hv - 0.32, -hv - 0.08, g + 1.06, g + 1.3 + 0.1 * float((n + k) % 3), col, M_STONE)
+		_ubox(gu - 0.22, gu + 0.22, -hv - 0.32, -hv - 0.08, g + 1.03, g + 1.3 + 0.1 * float((n + k) % 3), col, M_STONE)
 	# The roof, overhanging the counter.
 	_gable(hu + 0.15, -hu - 0.15, 0.0, hv + 0.4, g + eave, rise, wall, roof, true)
 	# Trim: corner posts, the eave beam, the plinth.
 	for su: float in [-hu, hu - 0.12]:
-		_ubox(su, su + 0.12, -hv - 0.03, hv + 0.03, g, g + eave, trim, M_STONE)
+		_ubox(su, su + 0.12, -hv - 0.03, hv + 0.03, g, g + eave - 0.05, trim, M_STONE)
 	_ubox(-hu, hu, -hv - 0.05, -hv, g + eave - 0.14, g + eave, trim, M_STONE)
 	_ubox(-hu, hu, -hv - 0.05, -hv, g, g + 0.18, trim, M_STONE)
 	if kind == Hut.TIMBER or kind == Hut.BIG:
@@ -543,8 +543,8 @@ func _jm_snowman(u: float, v: float) -> void:
 		var ym := (y0 + y1) * 0.5
 		_frustum(_circle(c, r * 0.55, 10), y0, _circle(c, r, 10), ym, JM_LED)
 		_frustum(_circle(c, r, 10), ym, _circle(c, r * 0.5, 10), y1, JM_LED, JM_LED)
-	_prism(_circle(c, 0.6, 10), g + 3.65, g + 3.72, JM_TRIM, JM_TRIM)
-	_prism(_circle(c, 0.36, 10), g + 3.72, g + 4.3, JM_TRIM, JM_TRIM)
+	_prism(_circle(c, 0.6, 10), g + 3.68, g + 3.76, JM_TRIM, JM_TRIM)
+	_prism(_circle(c, 0.36, 10), g + 3.76, g + 4.3, JM_TRIM, JM_TRIM)
 	_jm_bar(u, v - 0.45, g + 3.2, u, v - 0.95, g + 3.15, 0.12, Color("#e87a24"))
 	_collide(_circle(c, 1.0, 8))
 
@@ -649,9 +649,9 @@ func _jm_redbar(u: float, v: float, hu: float, hv: float, word: String) -> void:
 	_ubox(-hu + 0.3, hu - 0.3, -hv - 0.03, -hv, g + 1.05, g + 2.5, JM_GLOW, M_LAMP)
 	_ubox(-hu - 0.03, -hu, -hv + 0.3, hv - 0.3, g + 1.05, g + 2.5, JM_GLOW, M_LAMP)
 	_ubox(hu, hu + 0.03, -hv + 0.3, hv - 0.3, g + 1.05, g + 2.5, JM_GLOW, M_LAMP)
-	_ubox(-hu, hu, -hv - 0.45, -hv, g + 0.95, g + 1.06, JM_WHITE, M_STONE)
+	_ubox(-hu, hu, -hv - 0.45, -hv, g + 0.93, g + 1.03, JM_WHITE, M_STONE)
 	for su: float in [-hu, hu - 0.14]:
-		_ubox(su, su + 0.14, -hv - 0.04, hv + 0.04, g, g + h, JM_WHITE, M_STONE)
+		_ubox(su, su + 0.14, -hv - 0.04, hv + 0.04, g, g + h - 0.05, JM_WHITE, M_STONE)
 	_gable(hu + 0.25, -hu - 0.25, 0.0, hv + 0.45, g + h, 1.2, JM_RED, Color("#7a1c20"), true)
 	_no_roof = true
 	_jm_bar(-hu - 0.2, -hv - 0.42, g + h - 0.15, hu + 0.2, -hv - 0.42, g + h - 0.15, 0.07, JM_BULB, M_LAMP)
@@ -767,7 +767,7 @@ func _jm_hexbar(at: Vector2) -> void:
 			var b := pts[(k + 1) % 6]
 			_beam(Vector3(a.x, ring[1], a.y), Vector3(b.x, ring[1], b.y), 0.08, JM_BULB, false, M_LAMP)
 	_no_roof = false
-	_jm_star(Vector3(c.x, g + 8.3, c.y), 0.6, Vector3(_a.x, 0.0, _a.y), JM_GOLD)
+	_jm_star(Vector3(c.x, g + 8.05, c.y), 0.6, Vector3(_a.x, 0.0, _a.y), JM_GOLD)
 	_collide(_circle(c, 3.4, 6))
 
 
@@ -778,16 +778,16 @@ func _jm_stage(at: Vector2) -> void:
 	var hu := 7.0
 	var hv := 3.5
 	_lbox(0.0, 0.4, hu, hv - 0.4, g, g + 0.9, Color("#3a3c40"), M_STONE, Color("#4a4c50"))
-	_lbox(0.0, hv - 0.15, hu, 0.15, g + 0.9, g + 5.0, Color("#c8d4f0"), M_PAVILION + 0.5, Color("#e8e8e4"))
+	_lbox(0.0, hv - 0.15, hu, 0.15, g + 0.9, g + 4.92, Color("#c8d4f0"), M_PAVILION + 0.5, Color("#e8e8e4"))
 	for su: float in [-hu + 0.15, hu - 0.15]:
-		_lbox(su, 0.0, 0.15, hv, g, g + 5.0, JM_WHITE, M_STONE, JM_WHITE)
+		_lbox(su, 0.0, 0.15, hv, g, g + 4.97, JM_WHITE, M_STONE, JM_WHITE)
 	_lbox(0.0, 0.0, hu + 0.2, hv + 0.2, g + 5.0, g + 5.5, JM_WHITE, M_STONE, Color("#dcdad4"))
 	_no_roof = true
 	_jm_bar(-hu, -hv - 0.25, g + 4.8, hu, -hv - 0.25, g + 4.8, 0.22, JM_LED, M_LAMP)
 	for su: float in [-hu, hu]:
 		_jm_bar(su, -hv - 0.25, g + 0.9, su, -hv - 0.25, g + 4.8, 0.14, JM_LED, M_LAMP)
 	_no_roof = false
-	_jm_word("SCENA", 0.0, -hv - 0.25, g + 5.7, 1.1, JM_GOLD, M_LAMP)
+	_jm_word("SCENA", 0.0, -hv - 0.2, g + 5.5, 1.1, JM_GOLD, M_LAMP)
 	_collide(_rect(0.0, 0.0, hu + 0.2, hv + 0.2))
 	_jm_frame()
 	_jm_ledtree(at.x - 9.0, at.y - 3.0, 3.8)
@@ -819,8 +819,8 @@ func _jm_fence(u0: float, u1: float, v: float, gaps: Array) -> void:
 			var g0 := _jm_ground(u, v)
 			var g1 := _jm_ground(nu, v)
 			_jm_bar(u, v, g0, u, v, g0 + 1.2, 0.08, JM_WIRE)
-			_jm_bar(u, v, g0 + 1.15, nu, v, g1 + 1.15, 0.05, JM_WIRE)
-			_jm_bar(u, v, g0 + 0.15, nu, v, g1 + 0.15, 0.05, JM_WIRE)
+			_jm_bar(u, v, g0 + 1.15, nu, v, g1 + 1.15, 0.1, JM_WIRE)
+			_jm_bar(u, v, g0 + 0.15, nu, v, g1 + 0.15, 0.1, JM_WIRE)
 			_ubox(u, nu, v - 0.02, v + 0.02, minf(g0, g1) + 0.15, minf(g0, g1) + 1.15, Color("#55595d"), M_STONE)
 			_collide(_urect(u, nu, v - 0.1, v + 0.1))
 		u = nu
@@ -845,7 +845,10 @@ func _jm_greeting(u: float, v: float) -> void:
 	_jm_word("ŚWIĄT", 0.0, 0.0, g + 1.0, 2.0, JM_GOLD, M_LAMP)
 	var hw := 5.2
 	for s: float in [-1.0, 1.0]:
-		_jm_bar(s * hw, 0.06, g, s * hw, 0.06, g + 4.5, 0.12, JM_WIRE)
+		_ubox(s * hw - 0.06, s * hw + 0.06, 0.0, 0.12, g, g + 4.6, JM_WIRE, M_STONE)
+	# The rails the letters stand on, post to post.
+	_ubox(-hw, hw, -0.02, 0.1, g + 0.88, g + 1.0, JM_WIRE, M_STONE)
+	_ubox(-hw, hw, -0.02, 0.1, g + 3.18, g + 3.3, JM_WIRE, M_STONE)
 	var prev := Vector2(-hw, 4.5)
 	for k in range(1, 15):
 		var t := float(k) / 14.0
@@ -856,8 +859,9 @@ func _jm_greeting(u: float, v: float) -> void:
 	for k in 7:
 		var t := (float(k) + 0.5) / 7.0
 		var x := lerpf(-hw + 0.4, hw - 0.4, t)
-		var y := 4.5 + 1.2 * sin(PI * t) + 0.6 + 0.2 * float(k % 2)
-		_jm_star(_jm_p(x, 0.0, g + y), 0.5 if k % 2 == 0 else 0.34, Vector3(_a.x, 0.0, _a.y), JM_BLUE)
+		var sr := 0.5 if k % 2 == 0 else 0.34
+		var y := 4.5 + 1.2 * sin(PI * t) + sr * 0.75
+		_jm_star(_jm_p(x, 0.0, g + y), sr, Vector3(_a.x, 0.0, _a.y), JM_BLUE)
 	_no_roof = false
 	_collide(_rect(0.0, 0.0, hw + 0.1, 0.3))
 	_jm_frame()
@@ -887,8 +891,8 @@ func _jm_bigstar(u: float, v: float, r: float) -> void:
 	_jm_frame()
 	var g := _jm_ground(u, v)
 	_no_roof = true
-	_jm_bar(u, v, g, u, v, g + 1.2, 0.12, JM_WIRE)
 	var cy := g + 1.2 + r
+	_jm_bar(u, v + 0.08, g, u, v + 0.08, cy, 0.12, JM_WIRE)
 	var prev := Vector2.ZERO
 	for k in 11:
 		var t := PI * 0.5 + TAU * float(k) / 10.0
@@ -911,11 +915,11 @@ func _jm_tower(at: Vector2) -> void:
 	_prism(_circle(c, 5.0, 16), g, g + 0.6, Color("#d6d2ca"), Color("#c6c0b5"), M_STONE, M_STONE)
 	_prism(_circle(c, 1.6, 8), g + 0.6, g + 2.2, Color("#3a3c40"), Color("#3a3c40"), M_STONE, M_STONE)
 	_no_roof = true
-	var ring := _circle(c, 4.95, 16)
+	var ring := _circle(c, 4.75, 16)
 	for k in ring.size():
 		var a := ring[k]
 		var b := ring[(k + 1) % ring.size()]
-		_beam(Vector3(a.x, g + 0.62, a.y), Vector3(b.x, g + 0.62, b.y), 0.08, JM_RAINBOW[k % 7], false, M_LAMP)
+		_beam(Vector3(a.x, g + 0.66, a.y), Vector3(b.x, g + 0.66, b.y), 0.08, JM_RAINBOW[k % 7], false, M_LAMP)
 		_beam(Vector3(a.x, g + 0.6, a.y), Vector3(a.x, g + 1.7, a.y), 0.06, JM_WIRE, false)
 		_beam(Vector3(a.x, g + 1.7, a.y), Vector3(b.x, g + 1.7, b.y), 0.06, JM_WIRE, false)
 	_no_roof = false
@@ -1011,7 +1015,7 @@ func _jm_tree_ride(at: Vector2) -> void:
 			var b := rim[(j + 1) % rim.size()]
 			_beam(Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), 0.08, JM_BULB, false, M_LAMP)
 		_no_roof = false
-	_jm_star(Vector3(c.x, g + 9.6, c.y), 0.6, Vector3(_a.x, 0.0, _a.y), JM_GOLD)
+	_jm_star(Vector3(c.x, g + 9.0, c.y), 0.6, Vector3(_a.x, 0.0, _a.y), JM_GOLD)
 	for k in 8:
 		var t := TAU * float(k) / 8.0
 		var d := Vector2(cos(t), sin(t))
