@@ -1,0 +1,23 @@
+{
+	"_about": "W9 of the walls look (docs/design/walls-true-to-life.md 6.8): the words on the city's walls, in the 5x7 pixel font (game/scripts/pixel_font.gd), drawn into one atlas by game/scripts/wall_marks.gd. Polish only on the wall (UPPERCASE, correct diacritics); `en` is the gloss for the review (warsaw-tone skill: affectionate, invented, no real brand, club, person or slur). `slogans`: one line each, at most 14 letters; `on` the looks rows whose walls may carry it (the palette's `marks.slogan.share` rows). `banners`: developer hoarding banners, `lines` one to two lines of at most 11 letters, the invented developer's slogans; no real developer, brand or price.",
+	"slogans": [
+		{"id": "praga", "pl": "PRAGA ŻYJE", "en": "PRAGA LIVES", "on": ["wall_precast", "wall_stone"]},
+		{"id": "wola", "pl": "WOLA NASZA", "en": "WOLA IS OURS", "on": ["wall_precast"]},
+		{"id": "tubylem", "pl": "TU BYŁEM", "en": "I WAS HERE", "on": ["wall_precast", "wall_stone"]},
+		{"id": "noc", "pl": "NOC NASZA", "en": "THE NIGHT IS OURS", "on": ["wall_precast", "wall_stone"]},
+		{"id": "golebie", "pl": "GOŁĘBIE RZĄDZĄ", "en": "THE PIGEONS RULE", "on": ["wall_precast", "wall_stone"]},
+		{"id": "remont", "pl": "REMONT TRWA", "en": "ROADWORKS GO ON", "on": ["wall_precast"]},
+		{"id": "korek", "pl": "WIECZNY KOREK", "en": "THE ETERNAL JAM", "on": ["wall_precast", "wall_stone"]},
+		{"id": "bulwary", "pl": "BULWARY NASZE", "en": "THE BOULEVARDS ARE OURS", "on": ["wall_stone"]},
+		{"id": "stolica", "pl": "STOLICA GRA", "en": "THE CAPITAL PLAYS", "on": ["wall_precast", "wall_stone"]},
+		{"id": "zastolice", "pl": "ZA STOLICĘ", "en": "FOR THE CAPITAL", "on": ["wall_precast", "wall_stone"]},
+		{"id": "kebab", "pl": "KEBAB TO MIŁOŚĆ", "en": "KEBAB IS LOVE", "on": ["wall_precast"]}
+	],
+	"banners": [
+		{"id": "przyszlosc", "lines": ["BUDUJEMY", "PRZYSZŁOŚĆ"], "pl": "BUDUJEMY PRZYSZŁOŚĆ", "en": "WE BUILD THE FUTURE"},
+		{"id": "cena", "lines": ["ZAPYTAJ", "O CENĘ"], "pl": "ZAPYTAJ O CENĘ", "en": "ASK ABOUT THE PRICE"},
+		{"id": "pieknie", "lines": ["TU BĘDZIE", "PIĘKNIE"], "pl": "TU BĘDZIE PIĘKNIE", "en": "IT WILL BE LOVELY HERE"},
+		{"id": "beton", "lines": ["ZAUFAJ", "BETONOWI"], "pl": "ZAUFAJ BETONOWI", "en": "TRUST THE CONCRETE"},
+		{"id": "marzen", "lines": ["OSIEDLE", "MARZEŃ"], "pl": "OSIEDLE MARZEŃ", "en": "ESTATE OF DREAMS"}
+	]
+}

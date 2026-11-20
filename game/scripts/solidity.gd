@@ -180,6 +180,13 @@ static func debris_colour(kind: String) -> Color:
 	return Color(str(table.get(kind, table.get("metal", "#3b3f44"))))
 
 
+## W9 of the walls look (walls doc 6.8): the palette's `marks` table (graffiti, stain, ivy, slogan,
+## banner: shares by looks row, sizes and colours; the palette's "_marks" says what each key means).
+## Read-only data for wall_marks.gd.
+static func marks_table() -> Dictionary:
+	return _looks["marks"]
+
+
 ## W2: the palette's looks and its `barrier_look`, checked as `_load_types` checks the types: a row
 ## without an id or a draw, or an id twice, is reported and left out; a key outside BARRIER_LOOKS
 ## is reported and read as classic.
@@ -188,7 +195,7 @@ static func _load_looks() -> Dictionary:
 	var rows := {}
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(PALETTE)) if FileAccess.file_exists(PALETTE) else null
 	if not parsed is Dictionary:
-		return {"list": list, "row": rows, "key": "classic", "debris": {}}
+		return {"list": list, "row": rows, "key": "classic", "debris": {}, "marks": {}}
 	var key := str((parsed as Dictionary).get("barrier_look", "classic"))
 	if not StringName(key) in BARRIER_LOOKS:
 		push_error("solidity: %s barrier_look %s is not one of %s: classic" % [PALETTE, key, BARRIER_LOOKS])
@@ -202,7 +209,9 @@ static func _load_looks() -> Dictionary:
 		list.append(id)
 		rows[id] = row
 	var debris: Variant = (parsed as Dictionary).get("debris", {})
-	return {"list": list, "row": rows, "key": key, "debris": debris if debris is Dictionary else {}}
+	var marks: Variant = (parsed as Dictionary).get("marks", {})
+	return {"list": list, "row": rows, "key": key, "debris": debris if debris is Dictionary else {},
+			"marks": marks if marks is Dictionary else {}}
 
 
 ## The palette's types, checked: a row without an id or a draw, or an id twice, is reported

@@ -31,6 +31,8 @@ const CityBarriers := preload("res://scripts/city_barriers.gd")
 ## W4 of the walls look: the panels' numbers and rows texture, and their MultiMesh buffers.
 const PanelRule := preload("res://scripts/panel_rule.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
+## W9 of the walls look: the marks on walls (graffiti, stains, ivy, slogans, banners) and their atlas.
+const WallMarks := preload("res://scripts/wall_marks.gd")
 ## Pasaż Wiecha's white Y masts stand in place of the map's lamps there (first_scene.gd PASAZ).
 const FirstScene := preload("res://scripts/first_scene.gd")
 ## Tile size for instanced things (trees, lamps, parked cars). Loop 2b: 512 m (was 256): one
@@ -691,6 +693,7 @@ func _build_parts(marks, roofs_only: bool) -> void:
 	_build_platforms(walls)
 	barriers.build_barriers(walls)
 	_build_panels()
+	_build_marks()
 	_uv2 = Vector2(0.5, -1.0)
 	_build_pkin_bushes(walls)
 	_uv2 = Vector2.ZERO
@@ -10539,6 +10542,13 @@ func _make_shared() -> void:
 	_shared["panel"] = panel_material
 	_shared["panel_box"] = panel_box()
 	fade_materials.append(panel_material)
+	# W9: the walls' slogans and banners: poster.gdshader with the atlas WallMarks draws (only under a
+	# look with marks: a classic city has no atlas).
+	if Solidity.barrier_look() != &"classic":
+		var marks_material := ShaderMaterial.new()
+		marks_material.shader = load("res://shaders/poster.gdshader")
+		marks_material.set_shader_parameter("poster", WallMarks.atlas_texture())
+		_shared["wall_marks"] = marks_material
 
 	var halo := ShaderMaterial.new()
 	halo.shader = load("res://shaders/glow.gdshader")
@@ -10722,6 +10732,36 @@ func _build_panels() -> void:
 		else:
 			mmi.set_meta(&"panels", t.meta())
 		_out.add_child(mmi)
+
+
+## W9 (walls doc 6.8): the slogan and banner quads of the last build_barriers (city_barriers.gd
+## `mark_tiles`; none unless the barrier look is typed or panels) as one MeshInstance3D per 512 m tile,
+## `Slogans` under the sector's root (or `Slogans_i_j` under the map, the whole city in one build): one
+## surface, poster.gdshader's shared material (`wall_marks`), no shadow. One draw call a sector with any
+## in view; none for a sector without a slogan or banner.
+func _build_marks() -> void:
+	var tiles: Dictionary = barriers.mark_tiles
+	if tiles.is_empty():
+		return
+	_make_shared()
+	for key: Vector2i in tiles:
+		var t = tiles[key]
+		if t.quads == 0:
+			continue
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = t.verts
+		arrays[Mesh.ARRAY_NORMAL] = t.norms
+		arrays[Mesh.ARRAY_TEX_UV] = t.uvs
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		var mi := MeshInstance3D.new()
+		mi.name = "Slogans" if _in_sector else "Slogans_%d_%d" % [key.x, key.y]
+		mi.mesh = mesh
+		mi.material_override = _shared["wall_marks"]
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.set_meta(&"slogan_quads", t.quads)
+		_out.add_child(mi)
 
 
 func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], colours: Array[Color],

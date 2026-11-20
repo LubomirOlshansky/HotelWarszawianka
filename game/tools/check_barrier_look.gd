@@ -185,7 +185,10 @@ func _build(map: Node3D, lines: Array, look: StringName) -> Array:
 	map.data = {"lines": lines}
 	map._solids = {}
 	var st := Chunked.new()
+	# W9: the synthetic cases count the line's own triangles; the marks have case 10.
+	map.barriers.marks_on = false
 	map.barriers.build_barriers(st)
+	map.barriers.marks_on = true
 	var faces := {}
 	for cls: StringName in map._solids:
 		faces[cls] = (map._solids[cls] as PackedVector3Array).size() / 3
@@ -270,7 +273,9 @@ func _kit(map: Node3D) -> void:
 			Solidity.set_barrier_look(&"typed")
 			map.data = {"lines": [l]}
 			map._solids = {}
+			b.marks_on = false
 			b.build_barriers(st)
+			b.marks_on = true
 			var panels := _build(map, [l], &"panels")
 			map._solids = {}
 			var slab := Chunked.new()
