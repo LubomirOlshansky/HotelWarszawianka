@@ -27,6 +27,9 @@ var m: Main
 ## The result is out (on iOS the app doesn't stop at once after quit()).
 var _bench_done := false
 var _spot_i := 0
+## --push-parked: the shot's push was made (once); --smash-fence: the smashes made so far.
+var _push_parked_done := false
+var _smash_done := 0
 var _sweep_i := 0
 var _rig_path := PackedVector2Array()
 var _rig_s := 0.0
@@ -1119,3 +1122,23 @@ func _pass_event() -> void:
 		var p := m._vehicle_position()
 		m._queue_look(Vector3(p.x, m.map.ground_height(p.x, p.z), p.z), Vector3(t.x, m.map.ground_height(t.x, t.y), t.y))
 		print("stream pass: look at %.0f, %.0f at frame %d (%s)" % [t.x, t.y, m.frame, _pass_tally()])
+
+
+## --push-parked and --smash-fence (step 8a's and W6's shots; main.gd's frame): the push once the
+## sector's cars are in; the next smash once its camera spot is on and its frame (from that spot's
+## start) has come.
+func _soft_shots_frame() -> void:
+	if m.soft_things == null:
+		return
+	if not _push_parked_done and m.flags._flag_push_parked != Vector2.INF and m.soft_things.car_count() > 0:
+		_push_parked_done = true
+		var pushed_id := m.soft_things.push_near(m.flags._flag_push_parked, 7.0)
+		print("push-parked: %s" % (pushed_id if pushed_id != "" else "no parked car near %s can move" % m.flags._flag_push_parked))
+	var smashes: Array[Vector4] = m.flags._flag_smash_fence
+	if _smash_done >= smashes.size() or _spot_i != _smash_done or m.frame - _spot_base < int(smashes[_spot_i].z):
+		return
+	var sf := smashes[_spot_i]
+	_smash_done += 1
+	var n := m.soft_things.smash_near(Vector2(sf.x, sf.y), Vector2.from_angle(deg_to_rad(sf.w)), 15.0)
+	print("smash-fence: %d panels near %.0f, %.0f at frame %d (%d panel pieces written so far)" % [n, sf.x, sf.y, m.frame,
+			m.panel_states.writes])

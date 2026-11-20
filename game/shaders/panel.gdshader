@@ -16,6 +16,11 @@ shader_type spatial;
 // (map_builder.gd fade_materials). The time of day and the rain are the shared globals.
 // Everything is step, mix and max: one `if` holds the discard (Adreno 6xx's budget, gpu_quirks.gd,
 // tools/check_shader_budget.gd).
+// W6 (walls doc 7): INSTANCE_CUSTOM.z is the panel's state, written by scripts/panel_states.gd when
+// a panel breaks: 0 whole; 1 down (the transform lays the box on the ground, here it is a shade
+// darker; its height is the y axis' length, as it no longer points up); 2 torn (the fill gone,
+// posts and rails standing, a hole whatever `holes` says); 3 stub (the box squashed to STUB of its
+// height in vertex(), a closed top, in STUB_COLOUR).
 render_mode cull_disabled, specular_disabled;
 
 #include "res://shaders/common.gdshaderinc"
@@ -42,6 +47,10 @@ const float SINK = 0.3;
 // At night a row's colours are lifted this far toward grey, so black bars do not vanish on the
 // dark ground (walls doc 6.4).
 const float NIGHT_LIFT = 0.15;
+// W6: a fallen panel's shade, and a hedge's stub: its share of the height and its colour (sRGB).
+const float DOWN_SHADE = 0.7;
+const float STUB = 0.25;
+const vec3 STUB_COLOUR = vec3(0.36, 0.27, 0.17);
 
 const float BAYER[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
 
@@ -56,6 +65,8 @@ varying flat vec4 foot;
 varying flat vec4 shape;
 // The panel's height over its foot, and the line's seed.
 varying flat vec2 h_seed;
+// W6: the state as flags, down, torn and stub (1 or 0).
+varying flat vec3 broken;
 
 void vertex() {
 	int r = int(INSTANCE_CUSTOM.x + 0.5);
@@ -65,6 +76,12 @@ void vertex() {
 	vec4 t3 = texelFetch(rows, ivec2(3, r), 0);
 	vec4 t5 = texelFetch(rows, ivec2(5, r), 0);
 	float seed = INSTANCE_CUSTOM.w;
+	float state = INSTANCE_CUSTOM.z;
+	broken = vec3(step(abs(state - 1.0), 0.5), step(abs(state - 2.0), 0.5), step(2.5, state));
+	// The box's height: its y axis' length (a fallen panel's y lies along the ground).
+	float tall = length(MODEL_MATRIX[1].xyz);
+	// A stub: the box squashed so its top stands STUB of the panel's height over the foot.
+	VERTEX.y *= mix(1.0, (STUB * (tall - SINK) + SINK) / max(tall, 1e-3), broken.z);
 	// The alt colours by the seed, as city_barriers.gd _typed picks them.
 	vec3 c = mix(t0.rgb, t2.rgb, step(seed, t2.a));
 	c = mix(c, t1.rgb, step(seed, t1.a));
@@ -73,8 +90,8 @@ void vertex() {
 	post_col = vec4(srgb_to_linear(mix(t5.rgb, vec3(0.5), lift)), t5.a);
 	foot = vec4(srgb_to_linear(mix(t3.rgb, vec3(0.5), lift)), t3.a);
 	shape = texelFetch(rows, ivec2(4, r), 0);
-	h_seed = vec2(MODEL_MATRIX[1].y - SINK, seed);
-	uvm = vec2(INSTANCE_CUSTOM.y + VERTEX.x * length(MODEL_MATRIX[0].xz), VERTEX.y * MODEL_MATRIX[1].y - SINK);
+	h_seed = vec2(tall - SINK, seed);
+	uvm = vec2(INSTANCE_CUSTOM.y + VERTEX.x * length(MODEL_MATRIX[0].xz), VERTEX.y * tall - SINK);
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
@@ -102,7 +119,7 @@ void fragment() {
 	float keep = step(hash12(grid + vec2(h_seed.y * 17.0, 0.0)), 1.0 - colour.a);
 	float ribs = max(post_col.a, 1e-3);
 	float rib = step(0.001, post_col.a) * step(abs(fract(v / ribs + 0.5) - 0.5) * ribs, MIN_PX * pxv * 0.5);
-	float fill = mix(max(keep, rib), bar, step(0.001, shape.w));
+	float fill = mix(max(keep, rib), bar, step(0.001, shape.w)) * (1.0 - broken.y);
 	float solid = max(max(at_foot, post), max(max(top, low), fill));
 
 	vec3 col = mix(colour.rgb, post_col.rgb, post * (1.0 - at_foot));
@@ -113,13 +130,16 @@ void fragment() {
 	col *= 1.0 - wetness * (0.3 * step(v, foot.a + 0.15) + 0.15 * top);
 	// No holes: what would be a gap takes the ground's tone by the row's openness.
 	col = mix(col, mix(col, ground_tone, colour.a), (1.0 - solid) * (1.0 - holes));
+	// W6: fallen a shade darker; a stub brown.
+	col *= mix(1.0, DOWN_SHADE, broken.x);
+	col = mix(col, srgb_to_linear(STUB_COLOUR), broken.z);
 
 	// The see-through hole round the car (foliage.gdshader's).
 	float d = length(VERTEX.xy - car_view.xy);
 	float fade = smoothstep(fade_radius, fade_radius * 0.5 - 0.001, d) * step(car_view.z + 0.5, VERTEX.z);
 	ivec2 p = ivec2(FRAGCOORD.xy) % 4;
 	float threshold = (BAYER[p.y * 4 + p.x] + 0.5) / 16.0;
-	float gone = max(step(threshold, fade * 0.92), (1.0 - solid) * step(0.5, holes));
+	float gone = max(step(threshold, fade * 0.92), (1.0 - solid) * max(step(0.5, holes), broken.y));
 	if (gone > 0.5) {
 		discard;
 	}

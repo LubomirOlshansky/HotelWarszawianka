@@ -33,7 +33,11 @@ extends Node
 ## oldest out of sight is repaired first) and repaired, unseen, once it is more than REPAIR_FAR m
 ## from the car, out of the camera's view, and REPAIR_AFTER s of play (or a dawn) have passed since
 ## it broke. Nothing is saved: a new launch starts with a whole city. Version 1 look: the debris
-## flies and the fence stays drawn (section 5.5, way 1).
+## flies and the fence stays drawn (section 5.5, way 1). W6 of the walls look (walls-true-to-life.md 7):
+## under the `panels` look panel_states.gd (main.gd wires it to `broke` and `repaired`) shows the
+## panel down, torn or a stub; this node still only keeps the state. The debris' colour is its line's
+## `debris` (the looks row's: metal, wood, sheet, leaf; the soft list's "mats") in the palette's
+## "debris" table (Solidity.debris_colour).
 ##
 ## `no_soft` on (main.gd: Settings → Łamliwe płoty off, the default since 2026-11-14, or `--no-soft`):
 ## nothing is swept, and every loaded sector's soft lines get their colliders back (`harden`: the very
@@ -103,7 +107,6 @@ const REPAIR_EVERY := 1.0
 const DEBRIS_AMOUNT := 18
 const DEBRIS_LIFE := 1.1
 const DEBRIS_GAP := 0.08
-const DEBRIS_COLOUR := {"metal": Color("#3b3f44"), "wood": Color("#8a6a43"), "hedge": Color("#4d7a35")}
 ## Step 8a, the parked cars: half width and half length of the box (map_builder.gd PARKED_FOOT) and its
 ## height; nothing is pushed slower than CAR_MIN_SPEED (m/s: a creep still moves it, a little), nor by
 ## less than PUSH_INTO m/s into its face (a brush); the lane rule looks for a free rest in REST_STEP m
@@ -205,7 +208,8 @@ var _sectors := {}
 ## Sector key -> its root, every loaded sector with a soft list (swept or hardened), so `set_soft`
 ## can turn the ones already loaded over.
 var _roots := {}
-## Line id -> its material ("metal", "wood", "hedge"), for the sound and the debris.
+## Line id -> its debris ("metal", "wood", "sheet", "leaf": W6, the looks row's), for the sound and
+## the burst.
 var _mat_of := {}
 ## "id#panel" -> [clock, dawns, at, id, panel], oldest first.
 var _broken := {}
@@ -793,7 +797,7 @@ func broken_count() -> int:
 	return _broken.size()
 
 
-## The material of line `id` ("metal", "wood", "hedge"), for its sound.
+## The debris of line `id` ("metal", "wood", "sheet", "leaf"; W6: its looks row's), for its sound.
 func material_of(id: String) -> String:
 	return String(_mat_of.get(id, "metal"))
 
@@ -1534,6 +1538,55 @@ func push_near(at: Vector2, speed: float) -> String:
 	return ""
 
 
+## W6 of the walls look, for shots (main.gd `--smash-fence=X,Z,...`): the soft line nearest `at`
+## (within `r` m, in the sectors swept now) breaks as a car crossing it there would break it: the
+## panel under that point and the one after it, each through the very path a sweep takes (the memory,
+## the debris, `broke`, thrown along `way` square to the line, to the side `way` points). The panels
+## broken (0: no line near, or every one there broken already).
+func smash_near(at: Vector2, way: Vector2, r: float, speed := 12.0) -> int:
+	var best := []
+	var best_d := r
+	for key: Vector2i in _sectors:
+		var soft: Dictionary = _sectors[key]["soft"]
+		var segs: PackedFloat64Array = soft["segs"]
+		for o in range(0, segs.size(), CityBarriers.SOFT_STRIDE):
+			var a := Vector2(segs[o + 1], segs[o + 2])
+			var b := Vector2(segs[o + 3], segs[o + 4])
+			var q := Geometry2D.get_closest_point_to_segment(at, a, b)
+			if q.distance_to(at) < best_d:
+				best_d = q.distance_to(at)
+				best = [soft, o, q]
+	if best.is_empty():
+		return 0
+	var soft: Dictionary = best[0]
+	var segs: PackedFloat64Array = soft["segs"]
+	var o: int = best[1]
+	var a := Vector2(segs[o + 1], segs[o + 2])
+	var b := Vector2(segs[o + 3], segs[o + 4])
+	var length := maxf(a.distance_to(b), 0.001)
+	var line := int(segs[o])
+	var id := String((soft["ids"] as PackedStringArray)[line])
+	var kind := StringName((soft["kinds"] as PackedStringArray)[line])
+	var side := Vector2(-(b - a).y, (b - a).x) / length
+	var dir := side if side.dot(way) >= 0.0 else -side
+	var p0 := floori((segs[o + 9] + a.distance_to(best[2])) / CityBarriers.PANEL)
+	var n := 0
+	for panel in [p0, p0 + 1]:
+		var key := "%s#%d" % [id, panel]
+		if _broken.has(key) or panel >= int((soft["panels"] as PackedInt32Array)[line]):
+			continue
+		var t := clampf(((panel + 0.5) * CityBarriers.PANEL - segs[o + 9]) / length, 0.0, 1.0)
+		var at2 := a.lerp(b, t)
+		var p := Vector3(at2.x, lerpf(segs[o + 5], segs[o + 6], t), at2.y)
+		_remember(key, id, panel, p)
+		panels_broken += 1
+		_debris_wait = 0.0
+		_burst(p, Vector3(dir.x, 0.0, dir.y), String(_mat_of.get(id, "metal")))
+		broke.emit(id, panel, kind, p, Vector3(dir.x, 0.0, dir.y), speed)
+		n += 1
+	return n
+
+
 ## Step 8a: how many parked cars are swept now (own, in the loaded sectors), and how many off their bays.
 func car_count() -> int:
 	var n := 0
@@ -1556,7 +1609,7 @@ func _burst(at: Vector3, dir: Vector3, mat: String) -> void:
 		_debris = _make_debris()
 		add_child(_debris)
 	var pm := _debris.process_material as ParticleProcessMaterial
-	pm.color = DEBRIS_COLOUR.get(mat, DEBRIS_COLOUR["metal"])
+	pm.color = Solidity.debris_colour(mat)
 	pm.direction = (dir + Vector3(0, 0.9, 0)).normalized()
 	_debris.global_position = at + Vector3(0, 0.6, 0)
 	_debris.visible = true

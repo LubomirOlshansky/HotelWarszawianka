@@ -606,6 +606,8 @@ var _contacts: RefCounted
 const SoftThings := preload("res://scripts/soft_things.gd")
 const CityBarriers := preload("res://scripts/city_barriers.gd")
 var soft_things: SoftThings
+## W6 of the walls look: the broken panels shown (panel_states.gd; soft_things' events, `_on_sector_ready`).
+var panel_states := preload("res://scripts/panel_states.gd").new()
 ## Step 7's feedback: the last smash sound, buzz and bubble (game seconds), so a fence taken
 ## lengthwise is one noise, not twenty.
 var _smash_sound_t := -10.0
@@ -622,8 +624,6 @@ const PUSH_SOUND_GAP := 0.2
 const PUSH_SAY_GAP := 25.0
 const PUSH_SAY_CHANCE := 0.35
 const PUSH_BUBBLE := Color("#f0b35a")
-## --push-parked (dev_flags.gd): the shot's push was made (once).
-var _push_parked_done := false
 ## Also written by a command-line flag (dev_flags.gd).
 var fullmap_span := 0.0
 ## --quest-pick=N (tests, shots): the full map opens at the start, the QUESTS screen on its first
@@ -1436,6 +1436,7 @@ func _build_world() -> void:
 		data = map.build(MAP_PATH, building_mat, flat_mat)
 		map.open_maps_whole()  # loop 3d-2b: every sector's map slices on the GPU at once
 		soft_things.add_sector(map)  # step 7: the whole city's soft lines
+		panel_states.add_sector(map)  # W6: the whole city's Panels_i_j
 	await _load_mark(0.1)
 	_ctx.world = world
 	_ctx.data = data
@@ -5370,6 +5371,7 @@ func _build_soft_things(world: Node3D) -> void:
 	world.add_child(soft_things)
 	soft_things.broke.connect(_on_soft_broke)
 	soft_things.pushed.connect(_on_car_pushed)
+	panel_states.attach(soft_things)
 	print("soft things: fences, hedges and parked cars %s (%s)" % ["breakable" if _soft_on() else "hard",
 			"--no-soft" if flags._no_soft else ("--soft" if flags._flag_soft else "the setting")])
 
@@ -5460,9 +5462,9 @@ func _on_soft_broke(id: String, _panel: int, kind: StringName, at: Vector3, _dir
 	if now - _smash_sound_t < SMASH_SOUND_GAP:
 		return
 	_smash_sound_t = now
-	var mat := soft_things.material_of(id)
+	var mat := soft_things.material_of(id)  # W6: the looks row's debris (metal, wood, sheet, leaf)
 	if sfx != null:
-		sfx.play_at("smash_hedge" if mat == "hedge" else ("smash_fence_wood" if mat == "wood" else "smash_fence_metal"), at,
+		sfx.play_at("smash_hedge" if mat == "leaf" else ("smash_fence_wood" if mat == "wood" else "smash_fence_metal"), at,
 				clampf((speed - 12.0) * 0.25, -4.0, 2.0))
 	Access.buzz(25, 0.25)
 	if dialogue != null and now - _smash_said_t > SMASH_SAY_GAP and randf() < SMASH_SAY_CHANCE:
@@ -5759,10 +5761,8 @@ func _process(dt: float) -> void:
 	_water_frame(dt)
 	_stuck_offer_frame()  # G14's "later": POMOC DROGOWA on the context button when stuck
 	_hints_frame(dt)  # first hour step 6: a hint when the player needs one
-	if not _push_parked_done and flags._flag_push_parked != Vector2.INF and soft_things != null and soft_things.car_count() > 0:
-		_push_parked_done = true
-		var pushed_id := soft_things.push_near(flags._flag_push_parked, 7.0)
-		print("push-parked: %s" % (pushed_id if pushed_id != "" else "no parked car near %s can move" % flags._flag_push_parked))
+	if flags._flag_push_parked != Vector2.INF or flags._flag_smash_fence.size() > 0:
+		if harness != null: harness._soft_shots_frame()  # step 8a's and W6's shots
 	Haptics.tick(dt, not flying and absf(car.forward_speed) > 3.0)
 	if flags.autopilot or _bench_ghost != null:
 		_autopilot(dt)
@@ -7265,6 +7265,7 @@ func _city_nodes() -> Array[Node]:
 func _on_sector_ready(root: Node3D) -> void:
 	if soft_things != null:
 		soft_things.add_sector(root)  # step 7: its soft lines (or, --no-soft, their colliders back)
+		panel_states.add_sector(root)  # W6: its panels, the broken ones shown again
 	# Loop MW-2: the storefronts first (the neon atlas, a Neon holder of their own goes in below).
 	if storefronts != null:
 		storefronts.on_sector_ready(root)

@@ -388,6 +388,13 @@ var _flag_barriers := &""
 ## --push-parked=X,Z (step 8a, for shots; needs --soft): the parked car nearest X,Z slides off its bay
 ## sideways as a push would send it, once its sector is in (main.gd, `soft_things.gd` `push_near`).
 var _flag_push_parked := Vector2.INF
+## --smash-fence=X,Z[,FRAME[,DEG]][+X,Z...] (W6 of the walls look, for shots; needs --soft): at frame
+## FRAME (default 60) the soft fence or hedge nearest X,Z (within 15 m) breaks as a car crossing it
+## there would break it (two panels, the debris, the sound), thrown toward DEG degrees (0 +x, 90 +z;
+## default 90), so a `--shots=` strip shows before, just after and what stays (main.gd,
+## `soft_things.gd` `smash_near`). With --cams, the k-th smash is the k-th camera's, its FRAME counted
+## from that camera's start as its shots are.
+var _flag_smash_fence: Array[Vector4] = []
 var _flag_traffic := -1
 var _flag_fixed := false
 var _flag_perf := false
@@ -471,7 +478,7 @@ func parse() -> void:
 ## The test flags whose runs call the test harness (TD-4 a2, dev_harness.gd), by the value each sets:
 ## --bench, --probe, --cam-log, --cam-test=, --lineup, --teleport-test, --quest-quit=, --contacts=,
 ## --tram-watch=, --drive-into-water=, --clicks=, --drag=, --stops=, --spots=, --stream-pass=,
-## --stream-soak=, --shots=, --ram-test and --egg=. main.gd loads the harness once both parsers
+## --stream-soak=, --shots=, --ram-test, --egg=, --push-parked= and --smash-fence=. main.gd loads the harness once both parsers
 ## have run (`parse()`, then `parse_stream()`), only when one of them is on. --nosave, --notitle,
 ## --clock=, --autopilot and every other flag set none of them, so those runs play with no harness,
 ## as a release build always does (its list is empty, release.gd). `check_dev_flags` checks this
@@ -481,7 +488,7 @@ func wants_harness() -> bool:
 			or contacts_to != "" or tram_watch >= 0 or _water_test_at != Vector2.INF \
 			or not clicks.is_empty() or not drags.is_empty() or not stops.is_empty() or not _spots.is_empty() \
 			or _pass_kind != "" or m._soak_minutes > 0.0 or not m.shots.is_empty() or m.cam_test != "" \
-			or m.ram_test != 0 or not m._egg.is_empty()
+			or m.ram_test != 0 or not m._egg.is_empty() or _flag_push_parked != Vector2.INF or _flag_smash_fence.size() > 0
 
 
 ## The flags of `args`, in their order.
@@ -643,6 +650,13 @@ func parse_with(args: PackedStringArray) -> void:
 			# barrier_look. The prebuilt city is the look it was baked in (`note_barrier_look`).
 			_flag_barriers = StringName(arg.trim_prefix("--barriers="))
 			Solidity.set_barrier_look(_flag_barriers)
+		elif arg.begins_with("--smash-fence="):
+			for one in arg.trim_prefix("--smash-fence=").split("+"):
+				var sf := one.split_floats(",")
+				if sf.size() < 2:
+					push_error("--smash-fence: '%s' is not X,Z[,FRAME[,DEG]] joined with +" % arg)
+					break
+				_flag_smash_fence.append(Vector4(sf[0], sf[1], sf[2] if sf.size() > 2 else 60.0, sf[3] if sf.size() > 3 else 90.0))
 		elif arg.begins_with("--push-parked="):
 			var pp := arg.trim_prefix("--push-parked=").split_floats(",")
 			_flag_push_parked = Vector2(pp[0], pp[1])
