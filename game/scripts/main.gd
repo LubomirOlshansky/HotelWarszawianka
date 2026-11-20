@@ -1941,27 +1941,11 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	print("centrum lim: %d busy pavement points" % busy)
 	traffic.bumped_driver.connect(dialogue.on_driver_bumped)
 	traffic.blocked_by_player.connect(dialogue.on_driver_blocked)
-	rivals = Rivals.new()
-	add_child(rivals)
-	rivals.autopilot = flags.autopilot
-	if flags.ghost_pace > 0.0:
-		rivals.ghost_pace = flags.ghost_pace
-	rivals.wallet = wallet
-	rivals.tod = tod  # loop 3h slice 3: the final waits for the night
-	rivals.night_now = func() -> void: _story_skip_to(22.0)  # first hour step 5: the sixth win's NOC
-	rivals.graph = graph
-	rivals.traffic = traffic
-	rivals.hud = hud
-	rivals.bubbles = bubbles
-	rivals.map = map
-	rivals.car = car
-	rivals.setup(world, data)
-	# The director keeps one activity of the kit at a time; the race's own tests for the air, the
-	# rescue and the cards stay in rivals.gd (`world_free` would refuse the guide's first race).
-	activities.add(rivals, func() -> bool: return true)
+	# The street racers (rivals.gd wires itself; its setup reads the map data), under main.gd. The
+	# director keeps one activity of the kit at a time; the race's own tests for the air, the rescue
+	# and the cards stay in rivals.gd (`world_free` would refuse the guide's first race).
+	rivals = _join(Rivals.new(), self, func() -> bool: return true) as Rivals
 	await LoadYield.tick("rivals.setup")
-	if flags.ladder_flag >= 0 or flags.trzy_mosty_flag:
-		rivals.preset_ladder(flags.ladder_flag if flags.ladder_flag >= 0 else Ladder.RUNGS.size())  # loop 3h slice 3
 	print("living city: %d lanes, %d trams in %d ms" % [graph.lane_count, trams.trams.size(), Time.get_ticks_msec() - t0])
 	if flags.bench:
 		_clear_bench_result()
@@ -3569,6 +3553,7 @@ func _build_ctx() -> GameCtx:
 	_ctx.take_off = func() -> void: _take_off(Heli.CRUISE)
 	_ctx.focus = func() -> Vector3: return cam_focus
 	_ctx.focus_at = func(p: Vector3) -> void: cam_focus = p
+	_ctx.night_now = func() -> void: _story_skip_to(22.0)
 	return _ctx
 
 
