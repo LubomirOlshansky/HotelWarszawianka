@@ -2128,6 +2128,25 @@ const SUNKEN := [
 			Vector2(-1367.1, 480.1), Vector2(-1370.6, 481.5), Vector2(-1374.2, 483.1), Vector2(-1377.8, 484.9),
 			Vector2(-1381.3, 486.7), Vector2(-1386.7, 484.5), Vector2(-1385.4, 482.7), Vector2(-1384.1, 480.7),
 			Vector2(-1383.0, 478.8)]},
+	# Schodki nad Wisłą (F, 2026-11-19; plan /schodki/PLAN.md, spec docs/landmarks/specs/schodki_wisla.md):
+	# the concrete seating steps along the left bank, ~195 m, which OSM maps only as 12 narrow walking
+	# flights (the grid between them is a smooth slope). Measured from terrain.json and the bake's
+	# `steps` and `shore` (local frame: C (445, -862), along-river u (0.665, 0.747), water v (0.747, -0.665)):
+	# the flights' tops lie on a line v = -5.9 + 0.039 (u + 10) where the grid is -17.7..-17.9 m (-18.2..-18.4
+	# west of u -36), their feet at the shore; the quay at the shore line is the grid's -21.9..-22.2 m, 1.1-1.3
+	# over the river (-23.1, the water is drawn on the ground). So: the top edge on that line, `hb` -21.9, ten
+	# rows of 0.41 m (`rows`), the ring's water side the shore line 0.4 m inland (the shore stone stands on it),
+	# the rows ending 2-3 m before it (`b` on the foot line v = 4.5 + 0.0436 (u + 36)), the quay flat past `b`.
+	# Two entries: the shore turns at u -36..-55 (v 7 -> 2), so the band west of it has its own a-b axis, its top
+	# `at` the east one's so the two share one height. The site `schodki_wisla` (landmarks/river.gd) draws them.
+	{"key": "schodki_wisla", "site": "schodki_wisla", "style": "seats", "sub": 10, "hb": -21.9, "rows": 10,
+		"a": Vector2(458.2, -840.3), "b": Vector2(466.6, -848.5),
+		"ring": [Vector2(415.9, -884.3), Vector2(513.1, -783.3), Vector2(523.6, -792.8), Vector2(508.0, -810.6),
+			Vector2(490.7, -826.9), Vector2(426.0, -893.3)]},
+	{"key": "schodki_wisla_w", "site": "schodki_wisla", "style": "seats", "sub": 10, "hb": -21.9, "rows": 10,
+		"at": Vector2(458.2, -840.3), "a": Vector2(394.8, -904.3), "b": Vector2(401.8, -911.7),
+		"ring": [Vector2(373.0, -925.1), Vector2(415.8, -884.2), Vector2(426.0, -893.3), Vector2(410.1, -904.0),
+			Vector2(382.6, -933.7)]},
 ]
 ## Grid nodes held up to the street (the 10 m grid's pit at Złote Tarasy's plaza pulled the upper
 ## terrace, the stair's sides and the station forecourt down into a crater): [node, at least m].
@@ -2217,7 +2236,7 @@ static func sunk_entry(e: Dictionary, ha: float, step: float) -> Dictionary:
 		wide = wl[0] if not wl.is_empty() else ring
 	return {"key": e["key"], "ring": ring, "grown": grown, "wide": wide, "box": box, "a": e["a"], "b": e["b"], "ha": ha, "hb": hb, "sub": sub,
 			"site": e.get("site", "sunken"), "style": e.get("style", "rail"), "walk": PackedVector2Array(e.get("walk", [])),
-			"rim": float(e.get("rim", -INF)), "tile": e.get("tile", Color(0, 0, 0, 0)),
+			"rows": int(e.get("rows", 0)), "rim": float(e.get("rim", -INF)), "tile": e.get("tile", Color(0, 0, 0, 0)),
 			"floor": e.get("floor", Color(0, 0, 0, 0)), "rise": float(e.get("rise", -1.0))}
 
 

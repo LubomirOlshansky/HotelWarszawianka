@@ -3836,6 +3836,7 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 	life.dogs_log = flags.dogs_log
 	life.trend_log = flags.trend_log
 	life.life_log = flags.life_log
+	life.blvd_t0 = flags.blvd_t0
 	life.pedzik_on = not flags.no_parodies
 	# Loop couriers: the kerb riders ride the lane graph; the couriers wait at the kebab stands; the
 	# courier race's challenger is one of them.

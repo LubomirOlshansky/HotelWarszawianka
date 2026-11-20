@@ -274,6 +274,8 @@ var dogs_log := false
 var trend_log := false
 var life_log := false
 var life_soak := false
+## --blvd-t=S: the Vistula steps' life (boulevard_life.gd) starts S s into its loops.
+var blvd_t0 := 0.0
 var zajac_flag := false
 var trend_day_flag := -1
 var trend_job_flag := 0
@@ -1011,6 +1013,8 @@ func parse_with(args: PackedStringArray) -> void:
 			dogs_log = true
 		elif arg == "--trend-log":
 			trend_log = true
+		elif arg.begins_with("--blvd-t="):
+			blvd_t0 = float(arg.trim_prefix("--blvd-t="))
 		elif arg == "--life-log":
 			life_log = true
 		elif arg == "--life-soak":
