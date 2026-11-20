@@ -739,7 +739,13 @@ func set_districts(view: Array[Dictionary], total: int, syrenki_found := 0, syre
 	# F 2026-11-20 ("looks bad"): the fog was each unfound district alone, so two touching ones
 	# darkened their overlap twice (the dark squares) and every edge was a hard line. Now the
 	# districts are merged into one shape (one tone), and a few insets of it add a soft ramp.
-	var shapes: Array[PackedVector2Array] = []
+	var found_polys: Array[PackedVector2Array] = []
+	for d in districts:
+		if d["found"]:
+			for poly: PackedVector2Array in d["polys"]:
+				found_polys.append(poly)
+	var shapes: Array[PackedVector2Array] = []  # the merged unfound districts (the insets' source)
+	var pieces: Array[PackedVector2Array] = []  # the fill: unfound minus the others minus the found, no overlap, no holes
 	for d in districts:
 		if d["found"]:
 			continue
@@ -748,31 +754,96 @@ func set_districts(view: Array[Dictionary], total: int, syrenki_found := 0, syre
 			if bounds.has_area():
 				parts = Geometry2D.intersect_polygons(poly, frame)
 			for part in parts:
-				var merged := false
-				for k in shapes.size():
-					var u := Geometry2D.merge_polygons(shapes[k], part)
-					if u.size() == 1:  # they touched: one shape now
-						shapes[k] = u[0]
-						merged = true
-						break
-				if not merged:
-					shapes.append(part)
+				var fresh: Array[PackedVector2Array] = [part]
+				for e in pieces:
+					fresh = _minus_all(fresh, e)
+				pieces.append_array(fresh)
+				shapes.append(part)
+	shapes = _union_all(shapes)
+	for f in found_polys:  # a found district is never under fog, even one the unfound ones surround
+		pieces = _minus_all(pieces, f)
+	for piece in pieces:
+		for i in Geometry2D.triangulate_polygon(piece):
+			_fog.append(piece[i])
 	_fog_soft.clear()
 	for shape in shapes:
 		if Geometry2D.is_polygon_clockwise(shape):
 			continue  # a hole's outline, not a shape
-		for i in Geometry2D.triangulate_polygon(shape):
-			_fog.append(shape[i])
 		for step in FOG_RAMP:
-			var inner := PackedVector2Array()
+			var rings: Array[PackedVector2Array] = []
 			for ring in Geometry2D.offset_polygon(shape, -step, Geometry2D.JOIN_ROUND):
-				if Geometry2D.is_polygon_clockwise(ring):
-					continue
+				if not Geometry2D.is_polygon_clockwise(ring):
+					rings.append(ring)
+			for f in found_polys:
+				rings = _minus_all(rings, f)
+			var inner := PackedVector2Array()
+			for ring in rings:
 				for i in Geometry2D.triangulate_polygon(ring):
 					inner.append(ring[i])
 			_fog_soft.append(inner)
 	if not _built:
 		return
+
+## The shapes with every touching pair merged into one (repeat until none is left). A ring the
+## merge closes round a hole comes back with the hole too: only the outline is kept (the hole is
+## cut out again where the found districts are taken off).
+static func _union_all(shapes: Array[PackedVector2Array]) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = shapes.duplicate()
+	var again := true
+	while again:
+		again = false
+		for i in out.size():
+			for j in range(i + 1, out.size()):
+				var outers: Array[PackedVector2Array] = []
+				for r in Geometry2D.merge_polygons(out[i], out[j]):
+					if not Geometry2D.is_polygon_clockwise(r):
+						outers.append(r)
+				if outers.size() == 1:
+					out[i] = outers[0]
+					out.remove_at(j)
+					again = true
+					break
+			if again:
+				break
+	return out
+
+
+## Every shape of `shapes` minus `cut`, as solid outlines (no holes: triangulation has none).
+static func _minus_all(shapes: Array[PackedVector2Array], cut: PackedVector2Array) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = []
+	for s in shapes:
+		out.append_array(_minus(s, cut, 0))
+	return out
+
+
+## `s` minus `c`. When `c` lies inside `s` the result has a hole, which a triangle fill can't show:
+## then `s` is cut in two along the line through `c`'s middle first, so `c` becomes a notch of each half.
+static func _minus(s: PackedVector2Array, c: PackedVector2Array, depth: int) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = []
+	var holey := false
+	for r in Geometry2D.clip_polygons(s, c):
+		if Geometry2D.is_polygon_clockwise(r):
+			holey = true
+		else:
+			out.append(r)
+	if not holey or depth >= 2:
+		return out
+	var lo := INF
+	var hi := -INF
+	for v in c:
+		lo = minf(lo, v.y)
+		hi = maxf(hi, v.y)
+	var cy := (lo + hi) * 0.5
+	var halves: Array[PackedVector2Array] = [
+		PackedVector2Array([Vector2(-1e7, -1e7), Vector2(1e7, -1e7), Vector2(1e7, cy), Vector2(-1e7, cy)]),
+		PackedVector2Array([Vector2(-1e7, cy), Vector2(1e7, cy), Vector2(1e7, 1e7), Vector2(-1e7, 1e7)])]
+	var res: Array[PackedVector2Array] = []
+	for h in halves:
+		for p in Geometry2D.intersect_polygons(s, h):
+			if not Geometry2D.is_polygon_clockwise(p):
+				res.append_array(_minus(p, c, depth + 1))
+	return res
+
 
 ## The main line's star (INF: none), from the registry.
 func _main_at() -> Vector2:
