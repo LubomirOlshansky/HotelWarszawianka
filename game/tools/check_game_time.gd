@@ -23,6 +23,7 @@ const Fakes := preload("res://tools/fakes.gd")
 const UiKit := preload("res://scripts/ui_kit.gd")
 const ClockDial := preload("res://scripts/clock_dial.gd")
 const FullMap := preload("res://scripts/full_map.gd")
+const Shots := preload("res://scripts/camera_shots.gd")
 
 
 ## A clock with the methods the jump uses.
@@ -65,6 +66,13 @@ func _game_clock() -> void:
 	_expect(t.game_clock and t.mode == TimeOfDay.LIVE and int(c["weekday"]) == 5 and absf(float(c["hour"]) - t.look_hour(TimeOfDay.DAY)) < 0.01,
 			"the game clock did not start on Friday in the day: %s" % [c])
 	_expect(t.look_mode() == TimeOfDay.DAY and t.sun.shadow_enabled, "the game clock's start is not the day's light")
+	# F 2026-11-20: the opening's morning ends on the clock's own 11:00 start, no jump after the car appears.
+	_expect(absf(float(c["hour"]) - TimeOfDay.DAY_START_HOUR) < 0.01, "a new game's clock does not start at DAY_START_HOUR: %s" % [c])
+	_expect(t.wake(Shots.OPEN_TIME), "the opening's morning did not start on the game clock")
+	t._frame(Shots.OPEN_TIME + 0.1)
+	var after := float(t.local_clock()["hour"])
+	_expect(not t.waking() and absf(after - TimeOfDay.DAY_START_HOUR) < (Shots.OPEN_TIME + 1.0) * t.speed / 3600.0,
+			"the clock is at %.2f after the morning, not about %.0f:00 (a jump when the car appears)" % [after, TimeOfDay.DAY_START_HOUR])
 	_expect(is_equal_approx(t.speed, Pacer.num("time", "speed")) and t.speed >= 10.0, "the clock does not run fast (time.speed)")
 	var h0 := float(t.local_clock()["hour"])
 	t._frame(10.0)
