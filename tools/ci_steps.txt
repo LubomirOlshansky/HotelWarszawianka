@@ -147,6 +147,7 @@ police-soak          local     slow
 portbridge           roads
 postpasses           quick
 prebuilt             smoke
+promo                quick
 questbook            quick
 questlines           smoke
 race                 local     slow
