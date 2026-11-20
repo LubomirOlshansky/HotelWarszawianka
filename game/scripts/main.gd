@@ -1828,6 +1828,8 @@ func _build_world() -> void:
 	if flags.live_clock != "" and flags.start_time != TimeOfDay.LIVE:
 		var hm := flags.live_clock.split(":")
 		tod.fixed_start = clampf(float(hm[0]) + (float(hm[1]) / 60.0 if hm.size() > 1 else 0.0), 0.0, 23.99)
+	if flags.game_clock:  # F 2026-11-19: one game clock at 30x, the sun by the date (time_of_day.gd)
+		tod.start_clock(flags.live_date, flags.start_time, tod.fixed_start)
 	# Loop MW-5: PÓŁNOC FM reads the game clock; the radio follows it until the player picks.
 	radio.clock = func() -> Array:
 		var c := tod.local_clock()
@@ -2599,32 +2601,12 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 	# "Dżemini" (trend_job.gd): the MLASK sticker goes on DŻEMINI KEBAB's wall.
 	if trend_job != null:
 		trend_job.storefronts = storefronts
-	# Loop jobs-2: the Leżak round-up, at the zones storefronts.gd painted (an activity of the kit).
-	if jobs != null:
-		var ru := RoundupJob.new()
-		ru.name = "RoundupJob"
-		ru.hud = hud
-		ru.dialogue = dialogue
-		ru.wallet = wallet
-		ru.map = map
-		ru.car = car
-		ru.tod = tod
-		ru.jobs = jobs
-		ru.store = storefronts
-		ru.autopilot = flags.autopilot
-		ru.force = flags.roundup_flag
-		ru.log_on = flags.parody_log or flags.roundup_flag
-		# In the frame just before jobs.gd, as when jobs.gd stepped it first.
-		add_child(ru)
-		move_child(ru, jobs.get_index())
-		ru.setup(world)
-		# The director says when it may offer itself, with the round-up's own test for everything
-		# outside the kit (jobs.gd's: nothing else on, no kebab or słoiki of its own).
-		activities.add(ru, func() -> bool: return jobs._free() and not jobs.own_busy())
-		jobs.roundup = ru
-		if flags.roundup_flag:
-			ru.start_at_nearest()
-			cam_focus = car.global_position
+	# Loop jobs-2: the Leżak round-up at the zones storefronts.gd painted (roundup_job.gd wires itself;
+	# none without the side jobs), under main.gd in the frame just before jobs.gd, as when jobs.gd
+	# stepped it first. The director says when it may offer itself, with the round-up's own test for
+	# everything outside the kit (jobs.gd's: nothing else on, no kebab or słoiki of its own).
+	_add(_install(RoundupJob.new(), self, jobs.get_index() if jobs != null else -1),
+			func() -> bool: return jobs._free() and not jobs.own_busy())
 
 
 # --- loop MW-3: the night and the river's crowds --------------------------------------------
@@ -3565,9 +3547,14 @@ func _build_ctx() -> GameCtx:
 	_ctx.graph = graph
 	_ctx.traffic = traffic
 	_ctx.jobs = jobs
+	_ctx.rides = rides
 	_ctx.police = police
 	_ctx.rivals = rivals
 	_ctx.weather = weather
+	_ctx.life = life
+	_ctx.crowds = crowds
+	_ctx.notes = notes
+	_ctx.storefronts = storefronts
 	_ctx.car = car
 	_ctx.heli = heli
 	_ctx.tod = tod
@@ -3786,31 +3773,13 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 							func() -> bool: return int(site["n"]) >= 2)
 	if rides != null:
 		rides.hurry_to = life.hurry_target
-	if jobs != null:
-		trend_job = TrendJob.new()
-		trend_job.name = "TrendJob"
-		trend_job.autopilot = flags.autopilot
-		trend_job.log_on = flags.trend_log
-		trend_job.hud = hud
-		trend_job.dialogue = dialogue
-		trend_job.wallet = wallet
-		trend_job.rivals = rivals
-		trend_job.jobs = jobs
-		trend_job.rides = rides
-		trend_job.graph = graph
-		trend_job.map = map
-		trend_job.car = car
-		trend_job.life = life
-		trend_job.crowds = crowds
-		trend_job.places = at
-		add_child(trend_job)
-		trend_job.setup(world)
-		# The director counts it among the activities (one of the kit at a time); the job's own
-		# `_free` holds every rule for what is outside the kit, so its test here is "yes".
-		activities.add(trend_job, func() -> bool: return true)
-		jobs.trend = trend_job
+	# The "Na czasie" job (trend_job.gd) wires itself; none without the side jobs. The director
+	# counts it among the activities (one of the kit at a time); the job's own `_free` holds every
+	# rule for what is outside the kit, so its test here is "yes". The padel court, the egg and
+	# Spacer's quiet are main.gd's own, so their hooks stay here.
+	trend_job = _join(TrendJob.new(), self, func() -> bool: return true) as TrendJob
+	if trend_job != null:
 		trend_job.enter_padel = _enter_padel
-		trend_job.hour_now = func() -> float: return float(tod.local_clock()["hour"])
 		if flags.padel_flag >= 0.0:
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
 				_enter_padel({"partner": "Kuba", "rivals": TrendJob.ARCADE_RIVALS, "hour": flags.padel_flag, "seed": 3}, true))
@@ -4677,7 +4646,7 @@ func _open_full_map() -> void:
 	_pause.hold(PauseReasons.MAP)
 	hud.open_full_map(Vector2(pos.x, pos.z), yaw, found)
 	hud.full_map.hospitals = missions != null and missions.has_target()  # only a rescue needs them
-	hud.full_map.clock = tod.local_clock  # the map's clock and its picker (F 2026-11-19, game_time.gd)
+	hud.full_map.tod = tod  # the map's clock, its watch and its looks (F 2026-11-19, game_time.gd)
 	if fullmap_span > 0.0:
 		hud.full_map.show_span(fullmap_span)
 		fullmap_span = 0.0
@@ -4804,7 +4773,6 @@ func _wire_full_map() -> void:
 		if wallet != null and wallet.intro.erase(QuestBook.NEW_KEY + id.trim_prefix("story_")):
 			wallet.save())  # a questline that invited the player was looked at in QUESTS
 	hud.full_map.can_teleport = _teleport_refusal
-	hud.full_map.time_picked.connect(func(m: int) -> void: _on_setting("time", m))  # the map clock's picker
 
 
 ## G12 part 2: what the ZADANIA card lists now (quest_lines.gd entries). AUTO: the kebab stands,
@@ -5067,7 +5035,7 @@ func _settings_state() -> Dictionary:
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
 			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
 			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view,
-			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
+			"weather": weather.state, "time": tod.look_mode(), "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
 			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "sensitivity": settings.sensitivity,
 			"text_large": int(settings.text_large), "calm": int(settings.calm), "color_safe": int(settings.color_safe),

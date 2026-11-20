@@ -353,45 +353,26 @@ def landing(strings: dict, lang: str) -> str:
     else:
         values["hero_video"] = values["hero_button"] = ""
 
-    # The two platform buttons: iPhone is live; Android is the Play slot (android_live in strings.json).
-    ios_btn = f'<a class="btn btn-primary" data-for="ios" href="/go/ios"><svg aria-hidden="true"><use href="#i-apple"/></svg>{values["cta_ios"]}</a>'
-    if live:
-        and_btn = (f'<a class="btn btn-primary" data-for="android" href="{e(android_url)}"><svg aria-hidden="true">'
-                   f'<use href="#i-play"/></svg>{values["cta_android_b"]}</a>')
-        stk_and = f'<a class="btn btn-primary stk-a" href="{e(android_url)}">{values["sticky_android_b"]}</a>'
-    else:
-        and_btn = (f'<a class="btn btn-ghost" data-for="android" href="#android"><svg aria-hidden="true">'
-                   f'<use href="#i-play"/></svg>{values["cta_android_a"]}</a>')
-        stk_and = f'<a class="btn btn-ghost stk-a" href="#android">{values["sticky_android_a"]}</a>'
-    values["hero_ctas"] = f"      {ios_btn}\n      {and_btn}"
-    values["sticky_buttons"] = (f'  <a class="btn btn-primary stk-i" href="/go/ios">{values["sticky_ios"]}</a>\n  {stk_and}')
-
-    # The Android card: a real button when live, else one email field that posts to the same Formspree form.
-    vulkan = f'<p class="small">{values["and_vulkan"]}</p>'
-    if live:
-        values["android_card"] = (
-            f'      <div class="plat-card" id="android">\n        <h3><svg aria-hidden="true"><use href="#i-play"/></svg>{values["and_title"]}</h3>\n'
-            f'        <p>{values["and_text_b"]}</p>\n'
-            f'        <a class="btn btn-primary" href="{e(android_url)}">{values["and_btn_b"]}<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>\n'
-            f'        {vulkan}\n      </div>')
-    else:
-        values["android_card"] = (
-            f'      <div class="plat-card" id="android">\n        <h3><svg aria-hidden="true"><use href="#i-play"/></svg>{values["and_title"]}</h3>\n'
-            f'        <p>{values["and_text_a"]}</p>\n'
-            f'        <form class="notify" id="notify" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="email">\n'
-            f'          <label for="n-email">{values["n_email"]}</label>\n'
-            f'          <div class="notify-row"><input id="n-email" name="email" type="email" required autocomplete="email" inputmode="email" aria-describedby="n-email-err">'
-            f'<button class="btn btn-ghost send" type="submit">{values["and_btn_a"]}</button></div>\n'
-            f'          <p class="err" id="n-email-err" aria-live="polite"></p>\n'
-            f'          <input type="hidden" name="_subject" value="Around Warsaw: Android beta, notify">\n'
-            f'          <input type="hidden" name="platform" value="Android">\n'
-            f'          <input type="hidden" name="source" value="aroundwarsaw.app ({lang}) android notify">\n'
-            f'          <div class="hp" aria-hidden="true"><label for="n-gotcha">Leave empty</label><input id="n-gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>\n'
-            f'          <p class="status" role="status" aria-live="polite" data-ok="{values["n_ok"]}" data-fail="{values["f_fail"]}" '
-            f'data-need-email="{values["f_need_email"]}" data-bad-email="{values["f_bad_email"]}" data-sending="{values["f_sending"]}"></p>\n'
-            f'          <p class="small">{values["and_privacy"]}</p>\n'
-            f'        </form>\n        {vulkan}\n      </div>')
-    values["qr_svg"] = qr_svg(GO_IOS_QR, t["qr_alt"])
+    # No store links while the beta is closed: one "open beta soon" button to the subscribe card (#beta).
+    values["hero_ctas"] = f'      <a class="btn btn-primary" href="#beta">{values["cta_ios"]}</a>'
+    values["sticky_buttons"] = f'  <a class="btn btn-primary" href="#beta">{values["sticky_ios"]}</a>'
+    values["android_card"] = (
+        f'    <div class="plat-card soon" id="soon">\n        <h3>{values["and_title"]}</h3>\n'
+        f'        <p>{values["and_text_a"]}</p>\n'
+        f'        <form class="notify" id="notify" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="email">\n'
+        f'          <label for="n-email">{values["n_email"]}</label>\n'
+        f'          <div class="notify-row"><input id="n-email" name="email" type="email" required autocomplete="email" inputmode="email" aria-describedby="n-email-err">'
+        f'<button class="btn btn-primary send" type="submit">{values["and_btn_a"]}</button></div>\n'
+        f'          <p class="err" id="n-email-err" aria-live="polite"></p>\n'
+        f'          <input type="hidden" name="_subject" value="Around Warsaw: open beta, notify me">\n'
+        f'          <input type="hidden" name="platform" value="—">\n'
+        f'          <input type="hidden" name="source" value="aroundwarsaw.app ({lang}) beta notify">\n'
+        f'          <div class="hp" aria-hidden="true"><label for="n-gotcha">Leave empty</label><input id="n-gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>\n'
+        f'          <p class="status" role="status" aria-live="polite" data-ok="{values["n_ok"]}" data-fail="{values["f_fail"]}" '
+        f'data-need-email="{values["f_need_email"]}" data-bad-email="{values["f_bad_email"]}" data-sending="{values["f_sending"]}"></p>\n'
+        f'          <p class="small">{values["and_privacy"]}</p>\n'
+        f'        </form>\n      </div>')
+    values["qr_svg"] = ""
 
     # The city: four full-bleed chapters; Wisła carries the day/night slider under it.
     chap = []

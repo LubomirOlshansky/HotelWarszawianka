@@ -43,7 +43,7 @@ const SELF := "res://tools/check_dev_flags.gd"
 ## The values the parser's tail decides for every run (the governor, the timers of a normal
 ## launch, the cinematic moments): not flags, so an empty list may set them.
 const RUN_DECISIONS := ["_governor_on", "_crash_auto", "_rave_auto", "_shisha_auto", "_meet_auto",
-		"_ev_auto", "_crawl_auto", "_image_write", "cinematic_flyin", "cinematic_look", "start_station"]
+		"_ev_auto", "_crawl_auto", "_image_write", "cinematic_flyin", "cinematic_look", "start_station", "game_clock"]
 ## The lists that must play with no harness: a tester's launch and the whole-game runs of the
 ## proofs and of Autopilot (their flags without a test flag).
 const NO_HARNESS_LISTS := [

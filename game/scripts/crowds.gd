@@ -349,6 +349,8 @@ const PORT_PRASKI := {
 	"chill_port_steps": [Vector2(642.0, -1544.0), 14, 14.0],
 	"chill_port_walk": [Vector2(672.0, -1556.0), 10, 12.0],
 	"chill_port_lock": [Vector2(585.0, -1552.0), 8, 12.0],
+	# Pomnik Kościuszkowców's plaza: people on the ledges watching the skaters (2026-11-20).
+	"chill_kosc_ledges": [Vector2(452.0, -1556.0), 8, 8.0],
 }
 ## Nowy Świat pass 2 (2026-11-02): the café street's pavements, people at the terraces and between
 ## the shops, on the chill curve (a lunch crowd that fills towards a long evening). id -> [spot (the

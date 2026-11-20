@@ -28,7 +28,7 @@ var radio: Node
 ## The city's sounds (city_sounds.gd): an activity's crowds and their beat at its spots. Null when
 ## the notebook's places did not load.
 var city_sounds: Node
-## The traffic's lane graph, null with --no-traffic.
+## The lane graph (centrum.json's `graph`): there with --no-traffic too (the side jobs ride it).
 var graph: RefCounted
 ## The traffic, null with --no-traffic.
 var traffic: Node3D
@@ -37,10 +37,22 @@ var traffic: Node3D
 var jobs: Node
 ## The police (police.gd), null with --no-police.
 var police: Node
+## Podwózka (rides.gd), null without a lane graph: the trend job keeps out of its rides.
+var rides: Node
 ## The street racers (rivals.gd), null with --no-traffic: the side jobs ask who is racing.
 var rivals: Node
 ## The weather (weather.gd): Podwózka's passengers and its pay read the rain.
 var weather: Node
+## Everyday life (city_life.gd): the trend slots and their doors. Null with --life=0 or without the
+## notebook's places.
+var life: Node3D
+## The trend queues (crowds.gd): the PISTACJA drop, the padel court and DŻEMINI's line. May be null.
+var crowds: Node
+## The notebook (notebook.gd): its places (`places`, each with its `id` and its point `at`).
+var notes: Node
+## The storefronts (storefronts.gd): their parking zones are the round-up's depots and their Leżaks
+## what it rounds up. Null with --no-parodies or without the notebook's places.
+var storefronts: Node
 var car: CharacterBody3D
 ## The helicopter (heli.gd).
 var heli: Node3D
