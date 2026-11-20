@@ -8,7 +8,7 @@ breaks things most often.
 ```
 data/raw/ (OSM extract, GUGiK LoD2 sheets, terrain, orthophoto; gitignored)
    │ tools/bake_all.sh → bake_osm.py, bake_gugik.py, bake_terrain.py, bake_structures.py,
-   │                     bake_ao.py, bake_lights.py, bake_water.py, fixes (road_fixes, lane_tapers, object_fixes ..., parked_thin)
+   │                     bake_ao.py, bake_lights.py, bake_water.py, fixes (road_fixes, lane_tapers, object_fixes ..., parked_thin, barrier_gates)
    ▼
 game/map/centrum.json, ao.bin, lights.bin, water.bin   (committed: the ODbL database)
 game/map/lod2.*, terrain.json                          (derived; the "map pack" release asset)
@@ -27,6 +27,9 @@ sectors/s_<i>_<j>.scn, proxies.scn, index.res, shared/*.res   (the prebuilt city
 - The last pass of `bake_osm.py` is `tools/object_types.py` (city objects plan step 5): each barrier
   line's type, class, hazard and height by setting are decided here, in the bake, never at run time;
   `tools/overlay_object_types.py` draws the type plot and the 20-sample check's contact sheets.
+  After it (and `parked_thin`) runs `tools/barrier_gates.py` (walls look W8): the gaps where a footway
+  crosses a line (`g`) and the gate ends at the openings the bake cut (`ge`), read by the game only
+  under `barrier_look` typed and panels.
 - Roads the 10 m ground grid tears (an embankment or a cutting smeared into the asphalt, the
   ground poking through it) get a ground profile of their own from `tools/road_profiles.py`: one
   table entry a place, applied by `bake_osm.py` after `lane_tapers.py` (and on a baked map).

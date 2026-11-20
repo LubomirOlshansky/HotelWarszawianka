@@ -550,6 +550,52 @@ Ranked by how much each makes the city read as Warsaw at the default zoom, with 
 Not planned: scrape marks on hard walls, lamps on gate piers (a light each), true glass
 transparency for noise screens (a blended material), textures of bricks or boards.
 
+### 6.7 Gates and gaps (W8)
+
+**Built in W8 (2026-11-20)**, behind `barrier_look` `typed` and `panels` (the key stays `classic`):
+
+- The pass `tools/barrier_gates.py` (TD-25: stamp-guarded, last in `bake_osm.py`, in
+  `tools/check_post_passes.py`, verify step `barriergates`) writes on S and H fences, walls and
+  hedges without a hazard reason: `g`, the gaps where a footway, cycleway or crossing's centre line
+  crosses the line (strictly, or through OSM's gate node: a vertex both share, the way going on to
+  both sides), the way's width + 0.4 m over the crossing's sine; and `ge`, a gate post at a line's
+  end that faces an opening the bake already cut across a way (`clear_carriageways` for drives,
+  object_fixes L4 for footways). Not at a deck or in a tunnel; line ids, pieces and panel indices
+  stay. Main's map: 761 lines, 326 gaps (834 m), all by footways; 0 by service roads (every line was
+  already cut out of the drives); 556 gate ends, 244 by paths and 312 by service roads.
+- A footway that only ends on a line (128) gets no gap. An end more than 0.15 m inside the way's
+  width gets no post (66 path ends).
+- The photo check (street photos nearest each point, walls-research/w8/photos/): the footway gaps
+  19 right of 20 judged (the wrong one a closed gate with a no-entry sign at Port Czerniakowski); the
+  open leaves at drives failed: of 14 service openings the photos showed, 6 are gates and 8 are open
+  car-park mouths, a plaza drive, a barrier arm, a roller shutter, low lawn fences. So no leaves:
+  `LEAVES = False` in the pass, the drives get posts only. The leaf rule (two open leaves swung back
+  against the line on the yard side, the side the drive runs on for longer) stays behind the switch,
+  for a better test (OSM's `barrier=gate` nodes, which the map does not keep yet).
+- `city_barriers.gd`: a line with a typed look and gates is drawn as its pieces between the gaps,
+  each the old way, with `_soft_run` and `_panel_run` at the piece's own metre (soft segments and
+  panel indices are the whole line's); posts (`_gate_kit`) at each gap's edge and each `ge` end,
+  0.3 m taller than the line, 0.14 m square (on a wall its thickness + 0.08, in the wall's colour
+  lightened), centred half their width inside the line, from 0.2 m under the ground. They file no
+  collider of their own: the line's collider holds them and stops at the gap, so the car's openings
+  keep their width. Not on the stadium's railing (#808, its own gates) nor on lines drawn by a placed
+  or site style. Classic ignores `g` and `ge`: its per-sector hashes are main's on both paths.
+- Drawn on the whole map (flat build): 710 lines, 311 gaps, 1,033 posts. Barrier triangles typed
+  842,210 -> 852,264, panels 340,118 -> 352,534 (panel pieces 110,185 -> 109,655); collider faces of
+  walls 41,324 -> 41,268; typed city mesh vertices (both paths) 27,226,683 -> 27,256,845.
+- The car: route set A with the sloppy driver under typed, 228 -> 229 contacts and 15 = 15 dead stops;
+  the one more is a scrape along Okopowa's tram railing split in two by the physics' numerics (with
+  only one gap 368 m away taken out the run is main's, byte for byte). The 30 fence contacts are
+  along main streets (Prosta, Towarowa, Okopowa, Poniatowskiego ...), none at a path or a drive, so
+  gates cannot move them.
+- The wander run (typed): traps 0 -> 0; 1,613 -> 1,608 lines tested (5 tested where a gap now is),
+  ok 1,548 -> 1,544, miss 65 -> 64.
+- Draw calls at the five probe views: typed equal; panels equal but the helicopter's main pass, 124 ->
+  123. Prebuilt sectors +0.05 % (typed and panels). `check_solids` TOTAL_TYPED unchanged (46,459).
+- Shots (walls-research/w8/shots/): a Wola yard's footway, LO Batorego's drive on Myśliwiecka, Park
+  Ujazdowski's railing (Pole Mokotowskie is south of the map), an iron gate between piers (line
+  114), the mesh fence by the stadium: gaps and posts read at 26 m; the same on both paths.
+
 ## 7. Broken looks: the seam with the drivable-city plan
 
 `soft_things.gd` (merged, #776) keeps each broken panel by the line's stable id and the panel's
@@ -687,7 +733,7 @@ boulevards (`--at=-560,-1950`).
 | **W5** | Panels for every light type (12a) | the other light rows as panels (`green_fence`, `low_lawn`, `ball_net`, `wood`, `hoarding`, `hedge_tall`, `chain_posts`, `post_row`, `stadium_fence`, `bars_pier`); `sag` and `leafy` tops; alt colours | the palette, `panel.gdshader`, `city_barriers.gd` | Opus for the shader, Sonnet (`object-modeler`) for rows and shots | as W4; no light line drawn in the city mesh under `panels` except `draw: keep`; the art-director accepts the shot set against section 4 | hedges without a shadow: do they sit on the ground |
 | **W6** | Broken panels (12b) | `panel_states.gd`; states and transforms on `broke` and `repaired`; sectors that come in; debris colour from the row | `soft_things.gd` (owner of the events, unchanged signals), `main.gd` (wiring), new `panel_states.gd` (a row in `systems.md`), `check_soft_things` extended | Opus | every `broken` kind of section 7 shown in a shot at the stadium; a panel broken, driven away from and back to is still down; after `repair_near` it stands; soft off: zero state writes in a 3-minute soak; script time per hit under 0.1 ms | the feel of a fence that falls (PHONE-CHECK line 5 again) |
 | **W7** | The heavy kit (9b) | `wall_kit`: foot, cap, bays, piers, proud posts, end pieces; noise screens; `bars_pier` piers with diamond colliders; the boulevards' top rail; retaining walls' coping | `city_barriers.gd`, the palette | Opus for the builder, Sonnet for rows and shots | draw calls unchanged; barrier triangles at most +0.7 M city-wide; main-pass triangles under the ceilings at the four views; prebuilt sectors at most +6 %; the sloppy table: no new dead stop, none at a pier | nothing new; the frame is in the BENCH line |
-| **W8** | Gates and gaps | a pass `barrier_gates`: where a `paths` or service `roads` centre line crosses a line, a gap of the way's width plus 0.4 m, written as `g` on the line; the builder leaves the gap and stands two posts 0.3 m taller, with open leaves for a drive | `tools/barrier_gates.py` (in `bake_osm.py` and `check_post_passes.py`), `city_barriers.gd` | Opus (`map-engineer`) | the pass idempotent; gaps counted in `check_map_data.py`; the wander run finds no new trap; the sloppy table's fence contacts go down | nothing |
+| **W8** | Gates and gaps | a pass `barrier_gates`: where a `paths` or service `roads` centre line crosses a line, a gap of the way's width plus 0.4 m, written as `g` on the line; the builder leaves the gap and stands two posts 0.3 m taller, with open leaves for a drive. **As built (2026-11-20):** no service road crosses a line on the map (the bake already cuts lines out of drives, `bake_structures.clear_carriageways`), so the pass marks the line ends facing those openings (`ge`) for gate posts; the leaves are off because their photo check failed (8 of 14 service openings are no gate: car-park mouths, plaza drives, a barrier arm), parked behind a switch until OpenStreetMap's `barrier=gate` nodes are read | `tools/barrier_gates.py` (in `bake_osm.py` and `check_post_passes.py`), `city_barriers.gd` | Opus (`map-engineer`) | the pass idempotent; gaps counted in `check_map_data.py`; the wander run finds no new trap; the sloppy table's fence contacts go down | nothing |
 | **W9** | Marks | graffiti patches and slogans, hoarding banners, ivy, stains (6.6 rows 10 to 12), by seed and by the row's `marks`; text by the warsaw-tone skill | `city_barriers.gd` (patches), `props.gd`'s posters for slogans and banners, `game/data` for the texts | Sonnet; PixelLab inside the loop's limit; the art-director accepts | draw calls at most +1 per sector with a slogan in view, 0 if the poster item is shared; at most one slogan per 150 m of wall | nothing |
 | **W10** | Sweeps and the ratchet (16) | the street-pass skill writes a type per line; the default share only goes down; when `barrier_look` has left `classic` for two builds, the `types` rows and the classic drawing are deleted | `tools/street_pass.py`, `check_map_data.py`, the palette | Sonnet; the sweep skill | per street | nothing |
 

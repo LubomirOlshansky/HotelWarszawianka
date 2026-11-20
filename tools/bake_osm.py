@@ -582,6 +582,12 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # as they finally stand, as on main's map (tools/parked_thin.py; the same code runs on a baked map).
     import parked_thin
     print("parked_thin: " + parked_thin.apply(out, map_dir))
+    # Walls look W8 (2026-11-20): gates and gaps. Where a path or a service drive crosses a fence, wall
+    # or hedge, a gap (`g`) on the line; where the bake already cut one (clear_carriageways, object_fixes
+    # L4), gate posts and a drive's open leaves at the line ends facing it (`ge`); last, on the lines'
+    # final classes, as on main's map (tools/barrier_gates.py; drawn only under typed and panels).
+    import barrier_gates
+    print("barrier_gates: " + barrier_gates.apply(out, map_dir))
     with open(dst, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"tunnels: {len(tunnel_roads)} tunnel roads, {len(out['tunnels']['pieces'])} pieces, "
