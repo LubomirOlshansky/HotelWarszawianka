@@ -50,6 +50,9 @@ var life: Node3D
 var crowds: Node
 ## The notebook (notebook.gd): its places (`places`, each with its `id` and its point `at`).
 var notes: Node
+## The storefronts (storefronts.gd): their parking zones are the round-up's depots and their Leżaks
+## what it rounds up. Null with --no-parodies or without the notebook's places.
+var storefronts: Node
 var car: CharacterBody3D
 ## The helicopter (heli.gd).
 var heli: Node3D
