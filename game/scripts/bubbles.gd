@@ -21,6 +21,7 @@ extends Control
 ## face on the left (Portraits: the portrait, or their initial on a disc in their colour), so the
 ## player sees who is talking, not only a name; ambient chatter and shouts stay name-only.
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")
 const Access := preload("res://scripts/access.gd")
 const Chatter := preload("res://scripts/chatter.gd")
@@ -54,9 +55,9 @@ const TAIL := 10.0
 ## PT-9: the longest tail, in points: a bubble that had to move away from its speaker still points at it.
 const REACH := 150.0
 ## The HUD's card recipe (hud.gd CARD_BG) and its text colours.
-const CARD_BG := Color(0.07, 0.06, 0.1, 0.94)
-const INK := Color("#fbf7ee")
-const SUB := Color("#c9c2d8")
+const CARD_BG := UiKit.CARD
+const INK := UiKit.INK
+const SUB := UiKit.SUB
 
 var _bubbles: Array[Dictionary] = []
 var _tags: Array[Dictionary] = []
@@ -72,12 +73,12 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel = StyleBoxFlat.new()
 	_panel.bg_color = CARD_BG
-	_panel.border_color = Color(1, 1, 1, 0.3)
+	_panel.border_color = UiKit.EDGE_STRONG
 	_panel.set_border_width_all(maxi(1, roundi(1.0 * pt)))
-	_panel.set_corner_radius_all(roundi(8.0 * pt))
+	_panel.set_corner_radius_all(roundi(UiKit.R_CARD * pt))
 	_tag_box = StyleBoxFlat.new()
 	_tag_box.bg_color = CARD_BG
-	_tag_box.set_corner_radius_all(roundi(4.0 * pt))
+	_tag_box.set_corner_radius_all(roundi(UiKit.R_SMALL * pt))
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # the 256 px portraits drawn at ~30 pt
 
 
@@ -90,7 +91,7 @@ func _px(points: float) -> int:
 ## the chatter budget (chatter.gd: QUEST by default, POLICE, REACTION, AMBIENT) and `key` narrows a
 ## reaction ("bump", "near_miss"). Returns whether it shows.
 func say(anchor: Variant, speaker: String, line: String, subtitle := "", seconds := 4.0,
-		accent := Color("#ffd23f"), height := 2.6, kind := Chatter.QUEST, key := "") -> bool:
+		accent := UiKit.GOLD, height := 2.6, kind := Chatter.QUEST, key := "") -> bool:
 	if quiet_all:
 		return false
 	var replacing := is_talking(anchor)
@@ -173,14 +174,14 @@ func _sense() -> void:
 ## `say` for ambient chatter: dropped while the player drives fast (G16), while the car struggles,
 ## while a card is up, or inside the budget's gap (chatter.gd).
 func say_ambient(anchor: Variant, speaker: String, line: String, subtitle := "", seconds := 4.0,
-		accent := Color("#ffd23f"), height := 2.6) -> bool:
+		accent := UiKit.GOLD, height := 2.6) -> bool:
 	return say(anchor, speaker, line, subtitle, seconds, accent, height, Chatter.AMBIENT)
 
 
 ## `say` for someone reacting to the player (a shout, a near miss, a horn): one in
 ## Chatter.REACTION_WINDOW s, and none while the car struggles.
 func say_reaction(anchor: Variant, speaker: String, line: String, subtitle := "", seconds := 4.0,
-		accent := Color("#ffd23f"), height := 2.6, key := "") -> bool:
+		accent := UiKit.GOLD, height := 2.6, key := "") -> bool:
 	return say(anchor, speaker, line, subtitle, seconds, accent, height, Chatter.REACTION, key)
 
 
@@ -493,7 +494,7 @@ func _draw_bubble(b: Dictionary, font: Font, at: Vector2, rect: Rect2, m: Dictio
 	var out: Vector2 = geo[1]
 	var side := Vector2(-out.y, out.x) * 5.0 * pt
 	draw_colored_polygon(PackedVector2Array([foot - side * 1.3, foot + side * 1.3, tip + (tip - foot).normalized() * 1.2 * pt]),
-			Color(1, 1, 1, 0.3 * alpha))
+			Color(UiKit.EDGE_STRONG, 0.3 * alpha))
 	# The style box draws at once, so one shared box can change alpha per bubble.
 	_panel.bg_color.a = CARD_BG.a * alpha
 	_panel.border_color.a = 0.3 * alpha

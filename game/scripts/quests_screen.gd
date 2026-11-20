@@ -23,6 +23,7 @@ signal quit_quest
 ## An item marked NEW was looked at (its id): main.gd forgets the mark.
 signal seen(id: String)
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const QuestBook := preload("res://scripts/quest_book.gd")
 const Lang := preload("res://scripts/lang.gd")
 const Portraits := preload("res://scripts/portraits.gd")
@@ -41,11 +42,11 @@ const FACE := 56.0
 const T_TITLE := 17.0
 const T_SUB := 13.0
 const T_BIG := 20.0
-const GOLD := Color("#ffd23f")
-const INK := Color("#1a1622")
-const CREAM := Color("#fbf7ee")
-const MUTED := Color("#c9c2d8")
-const NEW_RED := Color("#ff4f6d")
+const GOLD := UiKit.GOLD
+const INK := UiKit.ON_GOLD
+const CREAM := UiKit.INK
+const MUTED := UiKit.SUB
+const NEW_RED := UiKit.ALERT
 const QUIT_COLOUR := Color("#ff5a5a")
 ## A second tap on QUIT within this long quits.
 const QUIT_ARM := 3.0

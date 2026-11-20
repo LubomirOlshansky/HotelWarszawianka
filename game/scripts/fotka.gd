@@ -14,6 +14,7 @@ extends Node
 ## Cost: nothing while closed. The UI (a CanvasLayer of a few Controls) is built at the first
 ## open and hidden after; the camera is not current, so it draws nothing; no _process.
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")
 
 signal opened
@@ -32,11 +33,11 @@ const KADR_REACH := 300.0
 const KADR_RESPECT := 20
 ## The subject's point above the ground (m): the middle of a view of it.
 const SUBJECT_LIFT := 8.0
-const ACCENT := Color("#ffd23f")
-const INK := Color("#fbf7ee")
-const SUB := Color("#c9c2d8")
-const CARD_BG := Color(0.07, 0.06, 0.1, 0.94)
-const KADR_COLOUR := Color("#1ae6ff")
+const ACCENT := UiKit.GOLD
+const INK := UiKit.INK
+const SUB := UiKit.SUB
+const CARD_BG := UiKit.CARD
+const KADR_COLOUR := UiKit.NEON_CYAN  # the brand cyan (was #1ae6ff)
 const T_TITLE := 17.0
 const T_BODY := 15.0
 const T_SUB := 13.0
@@ -226,7 +227,7 @@ func _label(text: String, points: float, colour: Color) -> Label:
 	l.text = text
 	l.add_theme_font_size_override("font_size", _px(points))
 	l.add_theme_color_override("font_color", colour)
-	l.add_theme_color_override("font_outline_color", Color(0.05, 0.04, 0.08))
+	l.add_theme_color_override("font_outline_color", UiKit.OUTLINE)
 	l.add_theme_constant_override("outline_size", _px(2.5))
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
@@ -238,20 +239,19 @@ func _button(name: String, pl: String, en: String, size_pt: Vector2, round := fa
 	b.custom_minimum_size = size_pt * pt
 	b.size = size_pt * pt
 	b.focus_mode = Control.FOCUS_NONE
-	for st: String in ["normal", "hover", "pressed", "focus"]:
-		var s := StyleBoxFlat.new()
-		s.bg_color = CARD_BG if st != "pressed" else Color(0.2, 0.18, 0.1, 0.96)
-		s.set_corner_radius_all(_px(size_pt.y * 0.5 if round else 10.0))
-		s.border_color = ACCENT if round else Color(1, 1, 1, 0.22)
-		s.set_border_width_all(_px(3.0 if round else 1.0))
-		b.add_theme_stylebox_override(st, s)
+	# The kit's buttons (docs/design/ui-kit.md): the shutter is the card's one PRIMARY (gold).
+	UiKit.style_button(b, UiKit.Kind.PRIMARY if round else UiKit.Kind.SECONDARY, pt, T_BODY,
+			UiKit.R_PILL if round else UiKit.R_CARD)
 	var words := VBoxContainer.new()
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	words.alignment = BoxContainer.ALIGNMENT_CENTER
 	words.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	words.add_theme_constant_override("separation", 0)
-	var a := _label(Lang.pick(pl, en), T_BODY, INK)  # one language (lang.gd)
+	var a := _label(Lang.pick(pl, en), T_BODY, UiKit.button_ink(UiKit.Kind.PRIMARY if round else UiKit.Kind.SECONDARY))  # one language (lang.gd)
 	a.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	a.uppercase = true
+	if round:
+		a.add_theme_constant_override("outline_size", 0)  # dark words on gold need no outline
 	words.add_child(a)
 	b.add_child(words)
 	_buttons[name] = b
@@ -293,12 +293,7 @@ func build_ui() -> void:
 	_root.add_child(zout)
 	var plate := PanelContainer.new()
 	plate.name = "fotka_hint"
-	var ps := StyleBoxFlat.new()
-	ps.bg_color = CARD_BG
-	ps.set_corner_radius_all(_px(10))
-	ps.set_content_margin_all(8.0 * pt)
-	ps.border_color = ACCENT
-	ps.border_width_left = _px(3)
+	var ps := UiKit.card(pt, 8.0)
 	plate.add_theme_stylebox_override("panel", ps)
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var lines := VBoxContainer.new()
