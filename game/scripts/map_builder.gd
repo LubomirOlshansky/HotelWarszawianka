@@ -10438,8 +10438,7 @@ func _build_trees() -> void:
 	lifted.append_array(real_trunks)
 	var no_colours: Array[Color] = []
 	_tree_multimesh(_shared["trunk"], _shared["trunk_mat"], lifted, no_colours)
-	_shadow_twins(_tree_multimesh(_shared["broadleaf"], leaf_material, broad, broad_col, broad_kind),
-			_shared["broadleaf_shadow"])
+	_tree_multimesh(_shared["broadleaf"], leaf_material, broad, broad_col, broad_kind, null, &"", _shared["broadleaf_shadow"])
 	_tree_multimesh(_shared["conifer"], leaf_material, needle, needle_col, needle_kind)
 
 
@@ -10731,7 +10730,7 @@ func _build_panels() -> void:
 
 
 func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], colours: Array[Color],
-		custom: Array[Color] = [], parent: Node = null, tag := &"") -> Array[MultiMeshInstance3D]:
+		custom: Array[Color] = [], parent: Node = null, tag := &"", shadow_mesh: Mesh = null) -> Array[MultiMeshInstance3D]:
 	var made: Array[MultiMeshInstance3D] = []
 	# One MultiMesh per tile, so off-screen tiles are skipped.
 	var tiles := {}
@@ -10745,27 +10744,19 @@ func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], 
 		if _in_sector and key != _sector and note_reach == 0:
 			continue  # loop 3c: another sector's tile (step 4's check keeps the tiles round it)
 		var members: Array = tiles[key]
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.use_colors = not colours.is_empty()
-		mm.use_custom_data = not custom.is_empty()
-		mm.mesh = mesh
-		mm.instance_count = members.size()
-		var box := AABB(spots[members[0]].origin, Vector3.ZERO)
-		for k in members.size():
-			var i: int = members[k]
-			mm.set_instance_transform(k, spots[i])
-			box = box.expand(spots[i].origin)
-			if mm.use_colors:
-				mm.set_instance_color(k, colours[i])
-			if mm.use_custom_data:
-				mm.set_instance_custom_data(k, custom[i])
-		# Saved MultiMeshes don't recompute their bounds on load (the prebuilt city
-		# would cull every tile), so store them explicitly.
-		mm.custom_aabb = box.grow(20.0)  # trees thread: a 16.8 m crown with its lean
+		var mm := _tile_multimesh(mesh, spots, colours, custom, members)
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.material_override = material
+		if shadow_mesh != null:
+			# Perf thread (2026-11-19): the tile's shadow twin, the same instances with `shadow_mesh`,
+			# drawing only into the shadow map; the tile itself stops casting (the note above `set_tree_detail`).
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var twin := MultiMeshInstance3D.new()
+			twin.multimesh = _tile_multimesh(shadow_mesh, spots, colours, custom, members)
+			twin.material_override = material
+			twin.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+			(parent if parent != null else _out).add_child(twin)
 		if tag != &"":
 			mmi.set_meta(tag, key)  # step 8a: the parked cars' tile (soft_things.gd moves a pushed one)
 		if note_solids:
@@ -10781,7 +10772,7 @@ func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], 
 
 ## A faceted crown: an icosahedron cut once (an icosphere), stretched a little, flat-shaded.
 ## Perf thread: `cut` false keeps the 20 faces (the simple crown, `set_tree_detail`); `limbs` false
-## leaves the limbs out (with `cut` false: the crowns' shadow twins, `_shadow_twins`).
+## leaves the limbs out (with `cut` false: the crowns' shadow twins, `_tree_multimesh`'s shadow_mesh).
 func _broadleaf_mesh(cut := true, limbs := true) -> ArrayMesh:
 	var t := (1.0 + sqrt(5.0)) / 2.0
 	var v := [Vector3(-1, t, 0), Vector3(1, t, 0), Vector3(-1, -t, 0), Vector3(1, -t, 0),
@@ -10836,6 +10827,33 @@ func _broadleaf_mesh(cut := true, limbs := true) -> ArrayMesh:
 	return st.commit()
 
 
+## One tile's MultiMesh: `members` (indices into the arrays) with their transforms, colours and
+## custom data, and its bounds. Only setters: it runs on the streamer's thread too, where a
+## RenderingServer getter (MultiMesh.buffer) would wait on the main thread and hang (the perf
+## thread's first twins did, 2026-11-20: check_height_threads and the runtime runs timed out).
+func _tile_multimesh(mesh: Mesh, spots: Array[Transform3D], colours: Array[Color], custom: Array[Color],
+		members: Array) -> MultiMesh:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = not colours.is_empty()
+	mm.use_custom_data = not custom.is_empty()
+	mm.mesh = mesh
+	mm.instance_count = members.size()
+	var box := AABB(spots[members[0]].origin, Vector3.ZERO)
+	for k in members.size():
+		var i: int = members[k]
+		mm.set_instance_transform(k, spots[i])
+		box = box.expand(spots[i].origin)
+		if mm.use_colors:
+			mm.set_instance_color(k, colours[i])
+		if mm.use_custom_data:
+			mm.set_instance_custom_data(k, custom[i])
+	# Saved MultiMeshes don't recompute their bounds on load (the prebuilt city
+	# would cull every tile), so store them explicitly.
+	mm.custom_aabb = box.grow(20.0)  # trees thread: a 16.8 m crown with its lean
+	return mm
+
+
 ## Perf thread (2026-11-19): the crowns' sun shadows from the old 20-face crown with no limbs. The
 ## cut crown and its six limbs are 116 triangles a tree, a quarter of the frame's triangles at the
 ## spawn, and on the iPhone 11 the shadow pass alone was 11 fps at Ultra. ArrayMesh.shadow_mesh
@@ -10844,31 +10862,7 @@ func _broadleaf_mesh(cut := true, limbs := true) -> ArrayMesh:
 ## simple mesh, drawing only into the shadow map, and the tile itself stops casting. Same draw
 ## calls in each pass; the shadow keeps the kind's silhouette (the shader bends the 12 corners too),
 ## a little coarser; a bare tree's limbs cast none. iPhone 11, Ultra: 41.8 → 43.8 fps (45.8 with
-## the simple crowns of `set_tree_detail`).
-func _shadow_twins(made: Array[MultiMeshInstance3D], mesh: Mesh) -> void:
-	if mesh == null:
-		return
-	for mmi: MultiMeshInstance3D in made:
-		var src := mmi.multimesh
-		var mm := MultiMesh.new()
-		mm.transform_format = src.transform_format
-		mm.use_colors = src.use_colors
-		mm.use_custom_data = src.use_custom_data
-		mm.instance_count = src.instance_count
-		mm.custom_aabb = src.custom_aabb
-		mm.mesh = mesh
-		# The same instances: the buffer as it is (a headless run keeps no MultiMesh data: then none).
-		var buf := src.buffer
-		var floats := src.instance_count * (12 + (4 if src.use_colors else 0) + (4 if src.use_custom_data else 0))
-		if buf.size() == floats:
-			mm.buffer = buf
-		var twin := MultiMeshInstance3D.new()
-		twin.multimesh = mm
-		twin.material_override = mmi.material_override
-		twin.transform = mmi.transform
-		twin.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
-		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mmi.get_parent().add_child(twin)
+## the simple crowns of `set_tree_detail`). Built in `_tree_multimesh` (its `shadow_mesh`).
 
 
 ## Perf thread (2026-11-19): the crowns' detail, swapped in the shared mesh so every tile (built or
