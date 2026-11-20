@@ -366,6 +366,9 @@
 # Bridge cycle paths (2026-11-08): `cyclehang` runs tools/cycle_hang.py --check (Most Łazienkowski's
 # cycle bridges hang 4 m under the road deck, as on F's photos, and come down to their ramps; needs
 # terrain.json from the map pack).
+# Kładka Abakanowicz (F, 2026-11-20): `kladka` runs tools/kladka.py --check (the footbridge's deck
+# pieces tagged, its seating bays, the living street's asphalt hidden, 7 supports with the Warsaw
+# meridian between the second and third from Praga; no map beyond centrum.json, CI too).
 # Port Czerniakowski's footbridge (2026-11-08): `portbridge` runs tools/port_bridge.py --check (the
 # mouth's bridge by Majami Wawa is one flat railed deck joining the boulevard's paths, the finished
 # construction lot north-west of it has no site fences).
@@ -1061,6 +1064,15 @@ for s in $want; do
 			case $code in
 				0) row PASS "zamekramps" $secs "$(grep '^zamek_ramps: ' $logs/zamekramps.log | tail -1)" ;;
 				*) row FAIL "zamekramps" $secs "$(grep '^zamek_ramps: ' $logs/zamekramps.log | tail -1) ($logs/zamekramps.log)" ;;
+			esac ;;
+		kladka)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/kladka.py --check > $logs/kladka.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "kladka" $secs "$(grep '^kladka: ' $logs/kladka.log | tail -1)" ;;
+				*) row FAIL "kladka" $secs "$(grep '^kladka: ' $logs/kladka.log | tail -1) ($logs/kladka.log)" ;;
 			esac ;;
 		defiladobelisk)
 			t0=$EPOCHREALTIME

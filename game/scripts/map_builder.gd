@@ -348,9 +348,10 @@ func setup_streamed(index: Dictionary, building_mat: ShaderMaterial, flat_mat: S
 	index_data = index
 	# `areas`: the lawns of the University Library's roof garden (landmarks.gd _find_buw);
 	# `platforms`: Powiśle's canopies stand on its platforms (landmarks.gd _find_powisle).
+	# `kladka`: the footbridge's layout (tools/kladka.py; landmarks/kladka.gd).
 	_marks = Landmarks.new(self, {"landmarks": index.get("landmarks", []), "towers": index.get("towers", []),
 			"buildings": index.get("site_parts", []), "areas": index.get("areas", []),
-			"platforms": index.get("platforms", [])})
+			"platforms": index.get("platforms", []), "kladka": index.get("kladka", {})})
 	landmark_info = _marks.info
 	_pick.resize(_roof_nx * _roof_nz * 2)
 	_pick.fill(0)
@@ -1717,6 +1718,22 @@ func _decks_at(x: float, z: float, feet = null) -> PackedFloat32Array:
 	return out
 
 
+## Whether (x, z) lies on Kładka Abakanowicz or within 2 m of its edge (tools/kladka.py's `kl` pieces):
+## what the bake stood on the living street it was (lamp posts) does not stand there.
+func _on_kladka(x: float, z: float) -> bool:
+	var p := Vector2(x, z)
+	for d: Dictionary in _decks:
+		if int(d["kl"]) == 0 or not (d["box"] as Rect2).grow(2.0).has_point(p):
+			continue
+		var pts: PackedVector2Array = d["pts"]
+		for k in pts.size() - 1:
+			var ab := pts[k + 1] - pts[k]
+			var u := clampf((p - pts[k]).dot(ab) / maxf(ab.length_squared(), 0.000001), 0.0, 1.0)
+			if p.distance_to(pts[k] + ab * u) < maxf(float(d["l"]), float(d["r"])) + 2.0:
+				return true
+	return false
+
+
 ## The height of deck group g at a point (its nearest piece, projected onto it), or the
 ## terrain for g < 0. Things baked onto a bridge (markings, kerbs, tram tracks) use it.
 ## PT-18: the nearest point of deck group g's centrelines to p (p itself when there is none).
@@ -1990,14 +2007,16 @@ func _load_decks() -> void:
 		# A street's slab over a short tunnel (`st`) keeps the bake's level: its footways are the
 		# street's pavement, not a footbridge held clear of the catenary (Plac Zawiszy, F 2026-11-16:
 		# they stood 0.5 m proud of the slab between the tram and the carriageways).
-		if String(piece["k"]) == "path" and int(piece.get("st", 0)) != 1:
+		# The footbridge's pieces (tools/kladka.py `kl`) keep the bake's profile: its bays lie on the
+		# main deck's line at the main deck's heights, and the landmark is built on them.
+		if String(piece["k"]) == "path" and int(piece.get("st", 0)) != 1 and int(piece.get("kl", 0)) == 0:
 			_lift_sagging_deck(pts, cum, hs)
 			_lift_rail_footbridge(pts, cum, hs)
 		_decks.append({"pts": pts, "cum": cum, "h": hs, "l": float(piece["l"]),
 				"r": float(piece["r"]), "g": int(piece["g"]), "k": String(piece["k"]),
 				"o": PackedByteArray(piece.get("o", [])), "box": box.grow(reach),
 				"rail": String(piece.get("rail", "")), "lp": PackedFloat32Array(piece.get("lp", [])),
-				"st": int(piece.get("st", 0)) == 1})
+				"st": int(piece.get("st", 0)) == 1, "kl": int(piece.get("kl", 0))})
 
 
 # --- sunken places ---------------------------------------------------------------------------
@@ -8135,6 +8154,8 @@ func _build_bridge_structures(st) -> void:
 		var d: Dictionary = _decks[di]
 		if _in_sector and not (d["box"] as Rect2).grow(8.0).intersects(_sector_rect):
 			continue  # loop 3c: none of this piece reaches the sector being built
+		if int(d["kl"]) > 0:
+			continue  # Kładka Abakanowicz (tools/kladka.py): the landmark `kladka` draws its deck, railings and girder
 		var pts: PackedVector2Array = d["pts"]
 		var hs: PackedFloat32Array = d["h"]
 		var outer: PackedByteArray = d["o"]
@@ -8265,6 +8286,8 @@ func _build_bridge_structures(st) -> void:
 ## and, for the ones that reach the ground, solid from the ground up (one concave shape,
 ## like the walls).
 func _pier(st, p: Dictionary, col: Color) -> void:
+	if int(p.get("kl", 0)) > 0:
+		return  # one of Kładka Abakanowicz's seven supports: the landmark `kladka` draws it and its collider
 	var c := Vector2(float(p["c"][0]), float(p["c"][1]))
 	var dir := Vector2(float(p["d"][0]), float(p["d"][1]))
 	var y0 := float(p["y"][0])
@@ -10926,6 +10949,8 @@ func _build_street_furniture() -> void:
 	for i in range(0, _extra_lamps.size() - 2, 3):
 		var x := _extra_lamps[i]
 		var z := _extra_lamps[i + 1]
+		if _on_kladka(x, z):
+			continue  # Kładka Abakanowicz has no lamp posts: its light is the LED under the handrails
 		var t := Transform3D(Basis(Vector3.UP, _extra_lamps[i + 2]), Vector3(x, ground_height(x, z), z))
 		spots.append(t)
 		var head := t * Vector3(1.2, 0.0, 0.0)

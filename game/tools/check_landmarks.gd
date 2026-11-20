@@ -105,6 +105,8 @@ func _check() -> int:
 		var need := 6 if info["key"] == "swieto" else (8 if info["key"] == "powisle_towers" else 10)
 		if str(info["key"]).begins_with("barka_") or info["key"] == "dworzec_wodny":
 			need = 5  # Dworzec Wodny floats at the boulevard's edge like the barges
+		if info["key"] == "kladka":
+			need = 6  # the footbridge (2026-11-20): rays over the river pass under its deck between the supports
 		if tap != k or hits < need:
 			failures += 1
 	# Roof rescues that the landmarks' outlines now give (the rescue line's own search, rescue_places.gd).

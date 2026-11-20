@@ -2927,6 +2927,22 @@
       }
     ]
   ],
+  "kladka": [
+    ["Kładka donikąd? Dla mnie to kładka do kebaba.", "Bridge to nowhere? For me it's the bridge to the kebab."],
+    ["Stoję na południku. Jedną nogą na wschodzie, drugą na zachodzie.", "I'm on the meridian. One foot in the east, one in the west."],
+    ["120 milionów za most bez aut. Najlepiej wydane pieniądze w mieście.", "120 million for a bridge with no cars. Best money the city ever spent."],
+    ["Dzwonek, proszę! To nie jest droga szybkiego ruchu!", "Ring your bell! This is not an expressway!"],
+    ["Rowerzysta zwalnia, pieszy się dziwi. Cuda na kładce.", "A cyclist slowing down, a pedestrian amazed. Miracles on the bridge."],
+    ["Gdzie tu jest kosz? Dobra, niosę do domu.", "Where's a bin around here? Fine, I'm taking it home."],
+    ["Siadamy na schodkach. Wisła za darmo, zachód słońca też.", "Let's sit on the steps. The Vistula is free, and so is the sunset."],
+    ["Po drugiej stronie Praga. Paszport masz?", "Praga's on the other side. Got your passport?"],
+    ["Kiedyś tu pływał prom. Teraz są ławki i hulajnogi.", "A ferry used to cross here. Now there are benches and scooters."],
+    ["Mamo, czemu tu nie ma samochodów? Bo tu jest ładnie, synku.", "Mum, why are there no cars here? Because it's nice here, sweetie."],
+    ["Pierwszy tydzień: dwieście tysięcy ludzi. Ja byłem trzy razy.", "First week: two hundred thousand people. I came three times."],
+    ["Selfie z Zamkiem, selfie ze Stadionem. Kładka robi za statyw.", "A selfie with the Castle, a selfie with the Stadium. The bridge is my tripod."],
+    ["Nie skacz do Wisły. Ona wcale nie jest taka ciepła, jak wygląda.", "Don't jump into the Vistula. It's not as warm as it looks."],
+    ["Most tylko dla ludzi. W Warszawie? Dziwne uczucie.", "A bridge just for people. In Warsaw? Strange feeling."]
+  ],
   "mandat_bulwar": [
     ["Mandat za piwo: 100 zł. Zachód słońca: bezcenny.", "Beer fine: 100 zł. The sunset: priceless."],
     ["Panie władzo, to Kubuś!", "Officer, it's apple juice!"],
