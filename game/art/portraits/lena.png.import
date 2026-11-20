@@ -1,20 +1,12 @@
 [remap]
-
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d03k6umxpuf2a"
-path="res://.godot/imported/lena.png-dca2674701a7136083c55125d803a49e.ctex"
 metadata={
 "vram_texture": false
 }
-
 [deps]
-
 source_file="res://art/portraits/lena.png"
-dest_files=["res://.godot/imported/lena.png-dca2674701a7136083c55125d803a49e.ctex"]
-
 [params]
-
 compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7

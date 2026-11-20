@@ -1,20 +1,12 @@
 [remap]
-
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dthxk13tydpe5"
-path="res://.godot/imported/mirek.png-2e0bf18b88eaa07019dd0830acd81cb7.ctex"
 metadata={
 "vram_texture": false
 }
-
 [deps]
-
 source_file="res://art/portraits/mirek.png"
-dest_files=["res://.godot/imported/mirek.png-2e0bf18b88eaa07019dd0830acd81cb7.ctex"]
-
 [params]
-
 compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7

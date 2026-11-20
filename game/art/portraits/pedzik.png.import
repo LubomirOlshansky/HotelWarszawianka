@@ -1,20 +1,12 @@
 [remap]
-
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://laku3ok6ix5g"
-path="res://.godot/imported/pedzik.png-296e653e4e295f60b704b8e9481e674a.ctex"
 metadata={
 "vram_texture": false
 }
-
 [deps]
-
 source_file="res://art/portraits/pedzik.png"
-dest_files=["res://.godot/imported/pedzik.png-296e653e4e295f60b704b8e9481e674a.ctex"]
-
 [params]
-
 compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7

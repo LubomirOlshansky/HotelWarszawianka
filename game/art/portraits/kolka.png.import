@@ -1,20 +1,12 @@
 [remap]
-
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bcwg7ch0ghkgh"
-path="res://.godot/imported/kolka.png-27d33f5975499ecbdbb5786489ef8f06.ctex"
 metadata={
 "vram_texture": false
 }
-
 [deps]
-
 source_file="res://art/portraits/kolka.png"
-dest_files=["res://.godot/imported/kolka.png-27d33f5975499ecbdbb5786489ef8f06.ctex"]
-
 [params]
-
 compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7

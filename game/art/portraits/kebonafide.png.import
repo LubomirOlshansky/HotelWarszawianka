@@ -1,20 +1,12 @@
 [remap]
-
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dt6n45saylo85"
-path="res://.godot/imported/kebonafide.png-074a1567023eb96faa39f74f52c70e7e.ctex"
 metadata={
 "vram_texture": false
 }
-
 [deps]
-
 source_file="res://art/portraits/kebonafide.png"
-dest_files=["res://.godot/imported/kebonafide.png-074a1567023eb96faa39f74f52c70e7e.ctex"]
-
 [params]
-
 compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7

@@ -1,20 +1,12 @@
 [remap]
-
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://chf4xyu8tray3"
-path="res://.godot/imported/dj_espresso.png-544c788a5f1198a9d133f7f1380c1dec.ctex"
 metadata={
 "vram_texture": false
 }
-
 [deps]
-
 source_file="res://art/portraits/dj_espresso.png"
-dest_files=["res://.godot/imported/dj_espresso.png-544c788a5f1198a9d133f7f1380c1dec.ctex"]
-
 [params]
-
 compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
