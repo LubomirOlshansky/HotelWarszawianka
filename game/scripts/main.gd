@@ -2507,65 +2507,18 @@ func _end_phone_bench(done: bool) -> void:
 
 ## The side jobs (kebab stands, the słoiki run) and the easter eggs.
 func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
-	var nodes := {"hud": hud, "bubbles": bubbles, "dialogue": dialogue, "wallet": wallet, "missions": missions,
-			"rivals": rivals, "graph": graph, "traffic": traffic, "map": map, "car": car, "tod": tod}
-	jobs = Jobs.new()
-	jobs.autopilot = flags.autopilot
-	jobs.craft_plain = flags.craft_plain
-	if flags.start_heat >= 0.0:
-		jobs.start_heat = flags.start_heat
-	jobs.hud = hud
-	jobs.bubbles = bubbles
-	jobs.dialogue = dialogue
-	jobs.wallet = wallet
-	jobs.rivals = rivals
-	jobs.graph = graph
-	jobs.traffic = traffic
-	jobs.map = map
-	jobs.car = car
-	jobs.tod = tod
-	jobs.map_data = data
-	add_child(jobs)
-	jobs.setup(world)
+	# The deliveries and Podwózka (jobs.gd, rides.gd: each wires itself) set up in one order (the
+	# deliveries first: Podwózka picks its addresses from theirs) and join the director in the other
+	# (Podwózka first). Each one's own `_free` holds every rule for what is outside the kit, so the
+	# test the director gets here is "yes".
+	jobs = _install(Jobs.new(), self) as Jobs
 	add_child(preload("res://scripts/target_route.gd").new(hud, graph))  # the road route to any target (TD-13)
-	if flags.solo_site != "":
-		jobs.clear_stands()  # a landmark alone (--solo): no kebab stand beside it
-	# --- loop 2d-1: Podwózka, the app-taxi side job (and the GPS moments of the app-taxis) ---
-	rides = Rides.new()
-	rides.autopilot = flags.autopilot
-	rides.ignore_app = flags.ignore_app
-	rides.log_on = flags.parody_log
-	rides.force_quirk = flags.ride_quirk
-	rides.force_passenger = flags.ride_passenger
-	rides.force_story = flags.ride_story
-	rides.force_answer = flags.ride_answer
-	rides.start_stars = flags.ride_stars
-	rides.gps_first = flags.gps_in
-	rides.hud = hud
-	rides.bubbles = bubbles
-	rides.dialogue = dialogue
-	rides.wallet = wallet
-	rides.rivals = rivals
-	rides.jobs = jobs
-	rides.graph = graph
-	rides.traffic = traffic
-	rides.map = map
-	rides.car = car
-	rides.tod = tod
-	rides.weather = weather
-	rides.map_data = data
-	add_child(rides)
-	nodes["jobs"] = jobs
-	nodes["weather"] = weather
-	rides.setup(world)
-	# The director counts it among the activities (one of the kit at a time); the ride's own
-	# `_free` holds every rule for what is outside the kit, so its test here is "yes".
-	activities.add(rides, func() -> bool: return true)
-	# The deliveries are of the kit too (jobs.gd): the director counts them (`job_on`, the M and K
-	# keys, the door as the target). Their own `_free` holds every rule for when one may start.
-	activities.add(jobs, func() -> bool: return true)
-	jobs.rides = rides
-	# --- end loop 2d-1 ---
+	rides = _install(Rides.new(), self) as Rides
+	_add(rides, func() -> bool: return true)
+	_add(jobs, func() -> bool: return true)
+	var nodes := {"hud": hud, "bubbles": bubbles, "dialogue": dialogue, "wallet": wallet, "missions": missions,
+			"rivals": rivals, "graph": graph, "traffic": traffic, "map": map, "car": car, "tod": tod,
+			"jobs": jobs, "weather": weather}
 	eggs = Eggs.new()
 	eggs.day = flags.barrier_day
 	eggs.force_street = flags.barrier_force
@@ -3613,6 +3566,8 @@ func _build_ctx() -> GameCtx:
 	_ctx.traffic = traffic
 	_ctx.jobs = jobs
 	_ctx.police = police
+	_ctx.rivals = rivals
+	_ctx.weather = weather
 	_ctx.car = car
 	_ctx.heli = heli
 	_ctx.tod = tod

@@ -221,8 +221,35 @@ var first_gone := false
 signal first_dropped(reason: String)
 
 
-## main.gd hands in the nodes (hud, bubbles, dialogue, wallet, rivals, graph, traffic,
-## map, car, tod) and `map_data` before this.
+## Wires the deliveries from the game (activity.gd `install`; main.gd's `_build_side_jobs` until TD-4
+## b8). main.gd builds the side jobs only with a lane graph. Podwózka (rides.gd) installs right
+## after: it picks its addresses from these. `start_heat` keeps its default unless --heat= sets it.
+func install(ctx: GameCtx) -> bool:
+	super(ctx)
+	autopilot = ctx.flags.autopilot
+	craft_plain = ctx.flags.craft_plain
+	if ctx.flags.start_heat >= 0.0:
+		start_heat = ctx.flags.start_heat
+	bubbles = ctx.bubbles
+	dialogue = ctx.dialogue
+	rivals = ctx.rivals
+	graph = ctx.graph as LaneGraph
+	traffic = ctx.traffic
+	car = ctx.car
+	tod = ctx.tod
+	map_data = ctx.data
+	return true
+
+
+## After the join (main.gd's `_build_side_jobs` until TD-4 b8): a landmark alone (--solo) has no
+## kebab stand beside it.
+func joined(ctx: GameCtx) -> void:
+	if ctx.flags.solo_site != "":
+		clear_stands()
+
+
+## `install` hands in the nodes (hud, bubbles, dialogue, wallet, rivals, graph, traffic, map, car,
+## tod) and `map_data` before this.
 func setup(world: Node3D) -> void:
 	tag = "jobs"
 	colour = KEBAB_COLOUR
