@@ -3534,7 +3534,7 @@ func _build_pasta(site: Dictionary) -> void:
 ## storeys, the heavy cornice at 26 m and a set-back attic of small windows; the two corner blocks
 ## (the Bracka end and the Nowy Świat corner) rise two storeys more, the east one with the relief
 ## frieze under its top; the gilded monogram over the middle of the Jerozolimskie front between two
-## pilasters. The roof signs of the two institutions in it are left out (real marks).
+## pilasters. On the roof the energy group's signs, as the parody PEGE (F, 2026-11-20).
 ## Frame: u along the Jerozolimskie front from its west end, +v out of it (north). Spec bgk.md.
 const BGK_AT := Vector2(-262.0, 312.0)       # a point in the outline (OSM relation 71489)
 const BGK_O := Vector2(-298.0, 301.0)        # the front's west end
@@ -3639,6 +3639,30 @@ func _build_bgk(site: Dictionary) -> void:
 	_mode = M_STONE
 	var mono := _w(mu, 0.1)
 	_disc(Vector3(mono.x, g + 11.2, mono.y), Vector3(_b.x, 0.0, _b.y), 1.0, 10, BGK_GILT)
+	# The roof signs (F, 2026-11-20: "add some sign to the bank like real"; his Street View, Apr
+	# 2026): the energy group's mark in blue italic capitals with its red and blue swoosh over
+	# them on the Bracka corner block, its full name in blue along the attic beside it. As a
+	# parody: PEGE, Polska Grupa Energiczna.
+	var out3 := Vector3(_b.x, 0.0, _b.y)
+	var blue := Color(0.16, 0.32, 0.72)
+	var k_m := 7.5 / Neon.length_of("PEGE")
+	var mp := _w(6.0, -0.4)
+	var y_m := g + BGK_TOWER - 1.0
+	signs.append(["PEGE", Vector3(mp.x, y_m + 0.3, mp.y), out3, k_m, blue])
+	var arc_h := y_m + 0.3 + Neon.ROW_H * Neon.PIXEL * k_m + 0.4
+	for band: Array in [[0.0, Color(0.86, 0.13, 0.2)], [0.45, blue]]:
+		var prev := Vector3.INF
+		for k in 9:
+			var t := float(k) / 8.0
+			var q := _w(6.0 - 4.2 + 8.4 * t, -0.5)
+			var p3 := Vector3(q.x, arc_h + float(band[0]) + 1.3 * sin(PI * (0.15 + 0.8 * t)), q.y)
+			if prev != Vector3.INF:
+				_beam(prev, p3, 0.32, band[1], true, M_LAMP)
+			prev = p3
+	var name_pl := "POLSKA GRUPA ENERGICZNA"
+	var k_n := 22.0 / Neon.length_of(name_pl)
+	var np := _w(30.0, -1.7)
+	signs.append([name_pl, Vector3(np.x, g + BGK_ATTIC + 0.1, np.y), out3, k_n, blue])
 	_collide_raw(site)
 
 
