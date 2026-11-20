@@ -1,0 +1,17 @@
+- A graphics level you pick by hand now stays: Experimental no longer drops back to Ultra by itself, and it is remembered for the next launch. If a level is too heavy for the phone, the game says so once instead.
+- Android phones with an older Adreno graphics chip (like the Nothing Phone 1) now start on Low graphics, which runs much smoother there.
+- Trees are simpler below Experimental graphics (the same kinds and colours, more angular crowns) and cast their shadows from a simple shape, so older iPhones run smoother.
+- The anonymous play stats now also say how long the game took to load and how smooth it runs after ten minutes.
+
+## Backlog
+- fixed: Experimental fell back to Ultra on the governor's first GPU drop (a single 0.5-1 s stall was enough) and was never saved (F 2026-11-19); a manual level is now kept (the governor acts only for Auto), a one-time "heavy here" toast after a minute of over 10 % missed refreshes, Experimental saved with a crash guard (settings.gd quality_pending, quality_keep.gd)
+- fixed: Auto picked High on the Nothing Phone 1 (17.6 fps); Adreno 5xx/6xx now start at Low (28.5 fps on the bench route; tiers.gd for_device)
+- fixed: the trees by kind (#857) cost the iPhone 11 at Ultra 41.8 fps against 47.3 with the old crowns; now the 20-face crown with its limbs below Experimental (map_builder.gd `set_tree_detail`, `--gfx=fine_trees=true` for the cut one) and the crowns' shadows from twin shadow-only tiles of the 20-face crown: 45.8 fps twice (43.8 with the shadows alone); shadow pass 0.69 → 0.57 M triangles, main pass 0.68 → 0.62 M at the spawn. Auto's High on the iPhone 11 stays 60.0 (1% low 47.0-48.5 → 48.4-49.1)
+- fixed: play stats: `session_start.load_ms` (launch to the start's sectors in), `fps_sample` twice (2 and 10 minutes) with `minute`, `quality`, `scale`, `flying`, and `frame_cap` 60 on an iPhone (it read 0)
+- found: per-option costs (`--gfx=`, bench route, cool phone). iPhone 11 at Ultra (x1, 41.8 fps): x2 image 60.0, no sun shadows 52.9, shadow map 2048 42.6, no small shadows 42.1, no reflections 42.9, no limbs 41.8, less traffic and people 40.6, x2 + MSAA 2x 58.7, x2 + MSAA 4x 58.6. iPhone 16 Pro Max at Experimental (x1, 37.3): x2 with every other extra 60.0 / 59.9, shadow map 4096 42.2, hard shadows 39.2, MSAA 2x 39.7, no MSAA 41.1; Ultra 60.0, Ultra + MSAA 4x 60.0. Nothing Phone at High (17.6): x3 22.1, no shadows 19.9, the rest within noise. The image's pixels and the shadow pass's geometry are the costs; shadow map size, softness, small shadows, reflections and the limbs are not
+- found: iPhone 11 at Ultra on the bench route: 53.5 / 51.5 fps on 2026-11-11, 41.7 / 41.8 on 2026-11-19, 47.3 with the old 20-face crowns; the trees were half the drop, the rest is other new content
+- found: F's call: a level with every Experimental extra at the x2 image (60 fps on the 16 Pro Max), with the full image as its own choice for shots and trailers (the website's shots use Experimental at full resolution)
+- found: ArrayMesh.shadow_mesh does nothing for the trees: Godot's Mobile renderer uses it only for materials that keep the shared shadow material, and foliage.gdshader moves its vertices; the crowns' shadows come from twin MultiMeshes instead (map_builder.gd `_shadow_twins`)
+
+## Roadmap
+- added: "Graphics options page: per-option switches on top of the levels (image, MSAA, shadows, trees, city life, frame cap), from docs/design/graphics-and-perf-plan.md 2.4; --gfx= is its engine"

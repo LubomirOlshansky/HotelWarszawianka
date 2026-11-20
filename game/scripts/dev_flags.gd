@@ -831,6 +831,10 @@ func parse_with(args: PackedStringArray) -> void:
 			sound_check = true
 		elif arg.begins_with("--quality="):
 			_flag_quality = Tiers.parse(arg.trim_prefix("--quality="))
+		elif arg.begins_with("--gfx="):
+			# Perf thread (2026-11-19): per-option overrides on top of the quality level,
+			# "key=value,..." (tiers.gd value, parse_overrides): --gfx=scale=2,msaa=4,shadow_size=2048.
+			Tiers.overrides = Tiers.parse_overrides(arg.trim_prefix("--gfx="))
 		elif arg.begins_with("--model="):
 			_flag_model = arg.trim_prefix("--model=")
 		elif arg.begins_with("--last-session="):

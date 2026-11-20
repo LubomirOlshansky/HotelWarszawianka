@@ -115,8 +115,24 @@ func _log() -> void:
 	s.begin()
 	_expect(s.tracked.is_empty(), "an OFF run tracked")
 	s.setup(true, false, true, "log", {"platform": "Linux"})
+	s.load_ms = 4321
 	s.begin()
 	_expect(_names(s).has("session_start"), "no session_start")
+	_expect(int(s.tracked.back()["props"].get("load_ms", -1)) == 4321 and s.load_ms == 0, "session_start's load_ms: %s" % s.tracked.back())
+	# Perf thread: two fps samples, at 2 and 10 minutes of play, with the level, the image's scale and the cap.
+	s.quality_now = func() -> String: return "High"
+	s.image_scale = func() -> int: return 2
+	s.frame_cap = func() -> int: return 60
+	for t: float in [121.0, 601.0, 1300.0]:
+		s._play = t
+		for i in PlayStats.FPS_WINDOW + 1:
+			s._second()
+	var samples := s.tracked.filter(func(e: Dictionary) -> bool: return e["event"] == "fps_sample")
+	_expect(samples.size() == 2, "fps samples: %d, wanted 2" % samples.size())
+	if samples.size() == 2:
+		var p0: Dictionary = samples[0]["props"]
+		_expect(int(p0["minute"]) == 2 and int(samples[1]["props"]["minute"]) == 10 and p0["quality"] == "high"
+				and int(p0["scale"]) == 2 and int(p0["frame_cap"]) == 60, "fps_sample's props: %s" % p0)
 	s._on_setting("traffic", 2)
 	s._on_setting("master", 0.4)
 	_expect(_names(s).count("setting") == 1, "settings counted: %d (traffic yes, a volume slider no)" % _names(s).count("setting"))

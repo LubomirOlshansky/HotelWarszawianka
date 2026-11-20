@@ -124,6 +124,9 @@ var season := "autumn"
 var data: Dictionary
 ## Tree crowns; the game feeds it the car position so crowns can open up around the car.
 @export_storage var leaf_material: ShaderMaterial
+## Perf thread (2026-11-19): the broadleaf crowns' shared mesh (map/shared/broadleaf.res in the prebuilt
+## city: every tile draws this one resource), so `set_tree_detail` can swap its surface at runtime.
+@export_storage var broadleaf_mesh: ArrayMesh
 ## The materials the game updates every frame (car position for the see-through hole).
 @export_storage var building_material: ShaderMaterial
 @export_storage var flat_material: ShaderMaterial
@@ -10435,7 +10438,8 @@ func _build_trees() -> void:
 	lifted.append_array(real_trunks)
 	var no_colours: Array[Color] = []
 	_tree_multimesh(_shared["trunk"], _shared["trunk_mat"], lifted, no_colours)
-	_tree_multimesh(_shared["broadleaf"], leaf_material, broad, broad_col, broad_kind)
+	_shadow_twins(_tree_multimesh(_shared["broadleaf"], leaf_material, broad, broad_col, broad_kind),
+			_shared["broadleaf_shadow"])
 	_tree_multimesh(_shared["conifer"], leaf_material, needle, needle_col, needle_kind)
 
 
@@ -10464,6 +10468,8 @@ func _make_shared() -> void:
 	trunk_mat.set_shader_parameter("tint", Vector3(0.369, 0.275, 0.212))  # #5e4636
 	_shared["trunk_mat"] = trunk_mat
 	_shared["broadleaf"] = _broadleaf_mesh()
+	_shared["broadleaf_shadow"] = _broadleaf_mesh(false, false)
+	broadleaf_mesh = _shared["broadleaf"]
 	_shared["conifer"] = _conifer_mesh()
 
 	var metal := StandardMaterial3D.new()
@@ -10774,7 +10780,9 @@ func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], 
 
 
 ## A faceted crown: an icosahedron cut once (an icosphere), stretched a little, flat-shaded.
-func _broadleaf_mesh() -> ArrayMesh:
+## Perf thread: `cut` false keeps the 20 faces (the simple crown, `set_tree_detail`); `limbs` false
+## leaves the limbs out (with `cut` false: the crowns' shadow twins, `_shadow_twins`).
+func _broadleaf_mesh(cut := true, limbs := true) -> ArrayMesh:
 	var t := (1.0 + sqrt(5.0)) / 2.0
 	var v := [Vector3(-1, t, 0), Vector3(1, t, 0), Vector3(-1, -t, 0), Vector3(1, -t, 0),
 			Vector3(0, -1, t), Vector3(0, 1, t), Vector3(0, -1, -t), Vector3(0, 1, -t),
@@ -10794,6 +10802,9 @@ func _broadleaf_mesh() -> ArrayMesh:
 		var ab := (a + b).normalized()
 		var bc := (b + c).normalized()
 		var ca := (c + a).normalized()
+		if not cut:
+			tris.append([a, b, c])
+			continue
 		tris.append_array([[a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]])
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -10812,6 +10823,8 @@ func _broadleaf_mesh() -> ArrayMesh:
 	# and five limbs from the crown's foot (Fable's review: six rods, 36 triangles). The shader
 	# moves their centre lines into the kind's silhouette and gives them a width in world metres;
 	# hidden in a full crown, they show as it thins and are the whole of a bare tree.
+	if not limbs:
+		return st.commit()
 	var foot := Vector3(0, 1.7, 0)
 	_limb(st, foot - Vector3(0, 0.4, 0), Vector3(0.1, 6.5, -0.05), 0.17, 0.06)
 	for k in 5:
@@ -10821,6 +10834,59 @@ func _broadleaf_mesh() -> ArrayMesh:
 		var tip := Vector3(0, 5.0 + 0.5 * (k % 2), 0) + out * 2.1
 		_limb(st, start, tip, 0.12, 0.04)
 	return st.commit()
+
+
+## Perf thread (2026-11-19): the crowns' sun shadows from the old 20-face crown with no limbs. The
+## cut crown and its six limbs are 116 triangles a tree, a quarter of the frame's triangles at the
+## spawn, and on the iPhone 11 the shadow pass alone was 11 fps at Ultra. ArrayMesh.shadow_mesh
+## can't do it: Godot uses it only for materials that keep the shared shadow material, and
+## foliage.gdshader moves its vertices. So each crown tile gets a twin: the same instances with the
+## simple mesh, drawing only into the shadow map, and the tile itself stops casting. Same draw
+## calls in each pass; the shadow keeps the kind's silhouette (the shader bends the 12 corners too),
+## a little coarser; a bare tree's limbs cast none. iPhone 11, Ultra: 41.8 → 43.8 fps (45.8 with
+## the simple crowns of `set_tree_detail`).
+func _shadow_twins(made: Array[MultiMeshInstance3D], mesh: Mesh) -> void:
+	if mesh == null:
+		return
+	for mmi: MultiMeshInstance3D in made:
+		var src := mmi.multimesh
+		var mm := MultiMesh.new()
+		mm.transform_format = src.transform_format
+		mm.use_colors = src.use_colors
+		mm.use_custom_data = src.use_custom_data
+		mm.instance_count = src.instance_count
+		mm.custom_aabb = src.custom_aabb
+		mm.mesh = mesh
+		# The same instances: the buffer as it is (a headless run keeps no MultiMesh data: then none).
+		var buf := src.buffer
+		var floats := src.instance_count * (12 + (4 if src.use_colors else 0) + (4 if src.use_custom_data else 0))
+		if buf.size() == floats:
+			mm.buffer = buf
+		var twin := MultiMeshInstance3D.new()
+		twin.multimesh = mm
+		twin.material_override = mmi.material_override
+		twin.transform = mmi.transform
+		twin.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.get_parent().add_child(twin)
+
+
+## Perf thread (2026-11-19): the crowns' detail, swapped in the shared mesh so every tile (built or
+## prebuilt, loaded now or later) follows: `fine` the cut crown (80 faces) with its limbs, 116
+## triangles a tree (the trees thread's); else the 20-face crown with its limbs, 56. The shader's
+## kinds, colours and silhouettes stay (it bends the 12 corners too, more coarsely). -1 until set.
+var _tree_fine := -1
+
+
+func set_tree_detail(fine: bool) -> void:
+	if broadleaf_mesh == null or _tree_fine == int(fine):
+		return
+	_tree_fine = int(fine)
+	var src := _broadleaf_mesh(fine, true)
+	broadleaf_mesh.clear_surfaces()
+	broadleaf_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, src.surface_get_arrays(0), [], {},
+			src.surface_get_format(0) & ~Mesh.ARRAY_FORMAT_VERTEX & ~Mesh.ARRAY_FORMAT_NORMAL & ~Mesh.ARRAY_FORMAT_TEX_UV \
+			& ~Mesh.ARRAY_FORMAT_COLOR & ~Mesh.ARRAY_FORMAT_CUSTOM0 & ~Mesh.ARRAY_FORMAT_TANGENT)
 
 
 ## Trees thread: a three-sided rod from a to b for the crown's limbs, its half width ra at a and rb

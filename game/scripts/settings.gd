@@ -62,7 +62,13 @@ var traffic := DEFAULT_TRAFFIC
 const AUTO := -1
 const HIGH := 2
 const ULTRA := 3
+const EXPERIMENTAL := 4
 var quality := AUTO
+## Perf thread (2026-11-19): Experimental is saved like any level. quality_keep.gd sets this before a
+## launch at Experimental and clears it after 10 s of frames; a launch that finds it still set (the
+## last one never got going: a crash on the 8192 shadow map) loads Ultra instead, once (`quality_guarded`).
+var quality_pending := false
+var quality_guarded := false
 ## 0..1 each: everything, the radio (Music bus), the effects (SFX and Ambience buses).
 var master := 1.0
 var music := 1.0
@@ -168,7 +174,12 @@ func load_file() -> void:
 	if saved_scheme == 2:  # Fixed camera was Point's still-camera twin: Classic with the camera off
 		classic_follow = false
 	traffic = clampi(int(cfg.get_value("world", "traffic", traffic)), 0, TRAFFIC.size() - 1)
-	quality = clampi(int(cfg.get_value("world", "quality", quality)), AUTO, ULTRA)
+	quality = clampi(int(cfg.get_value("world", "quality", quality)), AUTO, EXPERIMENTAL)
+	quality_pending = bool(cfg.get_value("world", "quality_pending", false))
+	if quality_pending and quality == EXPERIMENTAL:
+		quality = ULTRA
+		quality_pending = false
+		quality_guarded = true
 	if quality == HIGH and not cfg.has_section_key("world", "tiers"):
 		quality = AUTO
 	master = clampf(float(cfg.get_value("sound", "master", master)), 0.0, 1.0)
@@ -230,6 +241,7 @@ func save() -> void:
 	cfg.set_value("controls", "classic_default", 1)
 	cfg.set_value("world", "traffic", traffic)
 	cfg.set_value("world", "quality", quality)
+	cfg.set_value("world", "quality_pending", quality_pending)
 	cfg.set_value("world", "tiers", 1)
 	cfg.set_value("sound", "master", snappedf(master, 0.01))
 	cfg.set_value("sound", "music", snappedf(music, 0.01))

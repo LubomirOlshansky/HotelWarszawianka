@@ -10,7 +10,7 @@ play statistics, which you can turn off in Settings.
 - **Anonymous play statistics (beta).** To see how many people play, whether they come back,
   how long they play and where the game is confusing or slow, the game sends short anonymous
   events: a session started or ended (with minutes played and kilometres driven), a job or race
-  started or finished, a district or secret found, a setting changed, the frame rate. Each copy
+  started or finished, a district or secret found, a setting changed, the frame rate and how long the game took to load. Each copy
   of the game has a random ID made on your phone, not linked to you or to your device's own
   identifiers. Your IP address is discarded on arrival and the phone's model (for example "iPhone 16 Pro") is sent so we know which phones the game must run on, but no language list. The events go to PostHog (EU Cloud, servers in Frankfurt), are used only to improve the
   game, are never sold or used for advertising, and are kept for at most one year.
