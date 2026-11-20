@@ -17,6 +17,10 @@ extends RefCounted
 ## W5 (walls doc 10): every light row but the tram's railing is a panel row; the stadium's own
 ## railing (#808, `stadium_fence_line`) is panels too under `panels`, and only there; a row whose
 ## posts are `in_mesh` (bars_pier's piers until W7) keeps its posts in the city mesh.
+## W7 (walls doc 6.5, the heavy kit): under typed and panels a heavy or low slab row is drawn by
+## `wall_kit` (foot, bays, cap, piers, proud posts, end pieces, a parapet's rail, a stone wall's top
+## rail) and a row with piers (bars_pier) gets its plinth and piers from `_pier_fence_kit`, with a
+## diamond collider per pier on a soft line; every other collider is the one W2 to W6 filed.
 ##
 ## A RefCounted the map makes once (map_builder.gd `barriers`), with the map as its reference, the
 ## way landmarks.gd is called: the map swaps `data` for every sector it builds, and the caches here
@@ -207,6 +211,8 @@ var default_lines := 0
 ## Empty under classic and typed.
 var panel_tiles := {}
 var panel_pieces := 0
+## W7: the pier diamonds the last build_barriers filed (`_pier_diamond`; check_barrier_look counts them).
+var kit_diamonds := 0
 ## W4: the metres drawn along the line so far (a panel piece's start; the same count as
 ## `_soft_run`, which soft_things.gd's panels are cut by), and a serial per line (two lines with
 ## one stable id stay two entries in a tile).
@@ -324,12 +330,17 @@ func wall_along(st, poly: PackedVector2Array, width: float, height: float, col: 
 			var n := Vector3(corners[(k + 1) % 4].x - corners[k].x, 0, corners[(k + 1) % 4].y - corners[k].y).cross(Vector3.UP).normalized()
 			map._quad(st, bottom[k], bottom[(k + 1) % 4], top[(k + 1) % 4], top[k], -n, col.darkened(0.08))
 		if collide:
-			var faces := slab_faces(a, b, hw, ga, gb, height)
-			if _soft_line.is_empty():
-				map._solid(cls, faces, {"same": true, "h": height})
-			else:
-				_soft_seg(cls, faces, a, b, hw, ga, gb, height)
+			_slab_solid(cls, a, b, hw, ga, gb, height)
 			_soft_run += d.length()
+
+
+## A slab's collider from a to b (`slab_faces`), filed under `cls`, or the soft line's segment.
+func _slab_solid(cls: StringName, a: Vector2, b: Vector2, hw: float, ga: float, gb: float, height: float) -> void:
+	var faces := slab_faces(a, b, hw, ga, gb, height)
+	if _soft_line.is_empty():
+		map._solid(cls, faces, {"same": true, "h": height})
+	else:
+		_soft_seg(cls, faces, a, b, hw, ga, gb, height)
 
 
 ## The two long faces of a slab's collider from a to b (half width `hw`, its foot `ga`, `gb` on
@@ -546,8 +557,9 @@ const LITE_LOW_RAIL := 0.35
 ## `map._uv2`. The colliders are railing_along's: one `rail_faces` per segment at `height`, or the
 ## soft line's segment (`hw` 0), with `_soft_run` advanced the same way, so a typed city has the
 ## same soft lines, ids, panels and segments as the classic one.
+## W7: with `kit` (a row with piers, `_pier_fence_kit` drew them and the plinth) no posts and no foot.
 func rail_lite_along(st, poly: PackedVector2Array, row: Dictionary, height: float, colour: Color, collide: bool,
-		cls: StringName) -> void:
+		cls: StringName, kit := false) -> void:
 	var post: Dictionary = row.get("post", {})
 	var every := float(post.get("every", 0.0))
 	var pw := float(post.get("w", 0.0)) * 0.5
@@ -555,7 +567,10 @@ func rail_lite_along(st, poly: PackedVector2Array, row: Dictionary, height: floa
 	var rails := int(row.get("rails", 0))
 	var foot: Dictionary = row.get("foot", {})
 	var foot_h := float(foot.get("h", 0.0))
-	if foot_h > 0.0:
+	# W7: `kit`, the heavy kit stands the posts (piers) and the foot (a plinth): the rails alone.
+	if kit:
+		every = 0.0
+	if foot_h > 0.0 and not kit:
 		var foot_col := Color(str(foot["colour"])) if foot.has("colour") else colour.darkened(float(foot.get("darken", 0.0)))
 		wall_along(st, poly, LITE_FOOT, foot_h, foot_col, false, cls)
 	var run := 0.0
@@ -610,6 +625,369 @@ func _lite_post(st, p: Vector2, y: float, dir: Vector2, pw: float, foot_h: float
 	for d: Vector2 in [dir * pw, Vector2(-dir.y, dir.x) * pw]:
 		map._quad(st, Vector3(p.x - d.x, y + foot_h, p.y - d.y), Vector3(p.x + d.x, y + foot_h, p.y + d.y),
 				Vector3(p.x + d.x, y + height, p.y + d.y), Vector3(p.x - d.x, y + height, p.y - d.y), n, col)
+
+
+## W7 (walls doc 6.5): the heavy kit's own shape, the same for every row (the rows hold the rest):
+## how far it reaches into the ground (wall_along's slabs: 0.3 m), how far a pier and a proud post
+## rise over the wall's top, a proud post's stand-off where the row gives none, how much darker a
+## post is than its wall where the row gives it no colour (so the rhythm reads), how much lighter
+## a pier's top is where the row has no cap, a plinth's thickness where the row gives none, and the
+## sharpest corner that is mitred (the cosine of half the turn: past 120 degrees the sides just meet).
+const KIT_SINK := 0.3
+const KIT_PIER_RISE := 0.15
+const KIT_POST_RISE := 0.08
+const KIT_PROUD := 0.03
+const KIT_POST_SHADE := 0.1
+const KIT_TOP_LIGHT := 0.1
+const KIT_PLINTH := 0.3
+const KIT_MITRE_MIN := 0.5
+## W7: a parapet's or a top rail's posts (m wide), as rail_lite's thin posts.
+const KIT_RAIL_POST := 0.05
+## W7: a pier's collider on a soft line: a square this wide (m) turned 45 degrees to the line, so a
+## car that clips a pier is turned into the bay instead of stopped (walls doc 6.5, F's answer 1).
+const KIT_DIAMOND := 0.5
+## No top face (`_kit_box`).
+const NO_TOP := Color(0, 0, 0, 0)
+
+
+## W7: whether a typed `slab` row is drawn by the heavy kit: a heavy or low row with a foot, a cap,
+## bays or piers (walls doc 6.2's heavy columns). The light slabs (hedges, boards, hoardings) are not.
+static func kit_row(row: Dictionary) -> bool:
+	return str(row.get("family", "")) != "light" and (row.has("foot") or row.has("cap") or row.has("bay") or row.has("pier"))
+
+
+## W7 (walls doc 6.5): a heavy row's line `poly` (its `look` from `_typed`) as shaped geometry in the
+## city mesh, vertex colour on the building shader's prop path (`map._uv2`, as every barrier): the
+## foot band, the body cut into bays a shade step apart, the cap with its overhang (with none, a
+## band: a noise screen's pale top), the piers or proud posts at the bays' joints with one at each
+## end of the run (the end piece; a run with neither gets end faces), a parapet's rail on posts
+## over its upstand, a stone wall's top rail where the bake's hazard reason is in the row's
+## `top_rail.hz`. The colliders are wall_along's at the row's thickness and the line's height,
+## face for face, with `_soft_run` advanced as wall_along advances it (`_slab_colliders`).
+func wall_kit(st, poly: PackedVector2Array, look: Dictionary, collide: bool, cls: StringName) -> void:
+	var row: Dictionary = look["row"]
+	var height := float(look["h"])
+	var k := _kit_spec(row, height, look["colour"], int(look.get("alt", -1)))
+	var top_rail: Dictionary = row.get("top_rail", {})
+	if not top_rail.is_empty() and str(look.get("hz", "")) in (top_rail.get("hz", []) as Array):
+		k["top_rail"] = top_rail
+	_kit_draw(st, poly, k)
+	_slab_colliders(poly, float(row["thick"]) * 0.5, height, collide, cls)
+
+
+## W7: wall_along's colliders alone along `poly`: the same faces in the same order.
+func _slab_colliders(poly: PackedVector2Array, hw: float, height: float, collide: bool, cls: StringName) -> void:
+	if not collide:
+		return
+	for i in poly.size() - 1:
+		var a := poly[i]
+		var b := poly[i + 1]
+		var d := b - a
+		if d.length() < 0.05:
+			continue
+		_slab_solid(cls, a, b, hw, map.terrain_height(a.x, a.y), map.terrain_height(b.x, b.y), height)
+		_soft_run += d.length()
+
+
+## W7: a pier-and-iron fence's stone part along `poly` (a light row with a `pier`: bars_pier): the
+## plinth (the row's foot, KIT_PLINTH thick unless the foot says) and a pier every `pier.every` m
+## and at the run's end, rising KIT_PIER_RISE over the fence's `height`. What stands between the
+## piers is the row's rails (typed) or its panels. On a soft line each pier files a diamond
+## collider (KIT_DIAMOND, class wall): the panel falls, the piers stand.
+func _pier_fence_kit(st, poly: PackedVector2Array, row: Dictionary, height: float) -> void:
+	var foot: Dictionary = row.get("foot", {})
+	var pier: Dictionary = row["pier"]
+	var fc := Color(str(foot["colour"])) if foot.has("colour") else Color(str(row["colour"]))
+	var k := _kit_spec({"thick": float(foot.get("thick", KIT_PLINTH))}, minf(float(foot.get("h", 0.0)), height), fc, -1)
+	k["pier_every"] = float(pier["every"])
+	k["pier_w"] = float(pier["w"])
+	k["pier_col"] = Color(str(pier["colour"])) if pier.has("colour") else fc
+	k["pier_top"] = height + KIT_PIER_RISE
+	k["pier_top_col"] = (k["pier_col"] as Color).lightened(KIT_TOP_LIGHT)
+	k["diamonds"] = not _soft_line.is_empty()
+	_kit_draw(st, poly, k)
+
+
+## W7: the kit's numbers for a row at `height` in `colour` (`alt`: the alt colour the line took, -1
+## its own; a cap's own `alt` goes with it): see `_kit_draw`.
+func _kit_spec(row: Dictionary, height: float, colour: Color, alt: int) -> Dictionary:
+	var k := {"hw": float(row["thick"]) * 0.5, "h": height, "col": colour, "foot_h": 0.0, "foot_col": colour,
+			"cap": "", "cap_h": 0.0, "cap_over": 0.0, "cap_col": colour, "upstand": 0.0, "rail_col": colour,
+			"rail_every": 0.0, "bay_len": 0.0, "bay_step": 0.0, "pier_every": 0.0, "pier_w": 0.0, "pier_col": colour,
+			"pier_top": height + KIT_PIER_RISE, "pier_top_col": colour.lightened(KIT_TOP_LIGHT), "post_w": 0.0,
+			"post_proud": KIT_PROUD, "post_col": colour.darkened(KIT_POST_SHADE), "diamonds": false, "top_rail": {}}
+	var cap: Dictionary = row.get("cap", {})
+	if cap.has("upstand"):
+		k["cap"] = "upstand"
+		k["upstand"] = minf(float(cap["upstand"]), height)
+		k["rail_col"] = Color(str(cap.get("rail_colour", row.get("colour"))))
+		k["rail_every"] = float(cap.get("rail_post_every", 2.0))
+	elif cap.has("h"):
+		k["cap_h"] = minf(float(cap["h"]), height * 0.5)
+		k["cap_over"] = float(cap.get("over", 0.0))
+		k["cap"] = "over" if float(k["cap_over"]) > 0.0 else "band"
+		var cc := colour.lightened(float(cap.get("lighten", 0.0)))
+		if cap.has("colour"):
+			cc = Color(str(cap["alt"] if alt >= 0 and cap.has("alt") else cap["colour"]))
+		k["cap_col"] = cc
+		k["pier_top_col"] = cc
+	var body_hi: float = k["upstand"] if k["cap"] == "upstand" else height - float(k["cap_h"])
+	var foot: Dictionary = row.get("foot", {})
+	if float(foot.get("h", 0.0)) > 0.0:
+		k["foot_h"] = minf(float(foot["h"]), body_hi * 0.5)
+		k["foot_col"] = Color(str(foot["colour"])) if foot.has("colour") else colour.darkened(float(foot.get("darken", 0.0)))
+	var bay: Dictionary = row.get("bay", {})
+	k["bay_len"] = float(bay.get("len", 0.0))
+	k["bay_step"] = float(bay.get("step", 0.0))
+	if float(bay.get("post_w", 0.0)) > 0.0 and float(k["bay_len"]) > 0.0:
+		k["post_w"] = float(bay["post_w"])
+		k["post_proud"] = float(bay.get("proud", KIT_PROUD))
+		if bay.has("post_colour"):
+			k["post_col"] = Color(str(bay["post_colour"]))
+	var pier: Dictionary = row.get("pier", {})
+	if float(pier.get("every", 0.0)) > 0.0 and float(pier.get("w", 0.0)) > 0.0:
+		k["pier_every"] = float(pier["every"])
+		k["pier_w"] = float(pier["w"])
+		if pier.has("colour"):
+			k["pier_col"] = Color(str(pier["colour"]))
+	return k
+
+
+## W7: the kit along `poly` by spec `k` (`_kit_spec`), into the city mesh `st`. The long faces are
+## mitred at the line's corners (no end faces inside a run, no notch at an outer corner); the
+## rhythm (bays, piers, posts) runs on along the whole run as rail_lite's posts do. All the
+## vertical faces are shaded as wall_along shades its sides (darkened 0.08), the tops not.
+func _kit_draw(st, poly: PackedVector2Array, k: Dictionary) -> void:
+	var pts := PackedVector2Array()
+	for p in poly:
+		if pts.is_empty() or pts[pts.size() - 1].distance_to(p) >= 0.05:
+			pts.append(p)
+	var n := pts.size()
+	if n < 2:
+		return
+	# A closed ring (its last point on its first): ends on its first point exactly, its last
+	# segment no shorter than any other.
+	var closed := n > 3 and pts[0].distance_to(pts[n - 1]) < 0.1
+	if closed:
+		pts.remove_at(n - 1)
+		while pts.size() > 2 and pts[pts.size() - 1].distance_to(pts[0]) < 0.05:
+			pts.remove_at(pts.size() - 1)
+		pts.append(pts[0])
+		n = pts.size()
+		closed = n > 3
+	var g := PackedFloat32Array()
+	for p in pts:
+		g.append(map.terrain_height(p.x, p.y))
+	# Each segment's normal, and the offsets (per metre of half width) at its two ends: the mitre
+	# shared with the next segment, or its own normal at an open end or a corner too sharp.
+	var dirs := PackedVector2Array()
+	var norms := PackedVector2Array()
+	for i in n - 1:
+		var d := (pts[i + 1] - pts[i]).normalized()
+		dirs.append(d)
+		norms.append(Vector2(-d.y, d.x))
+	var oa := PackedVector2Array()
+	var ob := PackedVector2Array()
+	for i in n - 1:
+		var s := norms[i]
+		var e := norms[i]
+		if i > 0 or closed:
+			s = _mitre(norms[posmod(i - 1, n - 1)], norms[i], s)
+		if i < n - 2 or closed:
+			e = _mitre(norms[i], norms[(i + 1) % (n - 1)], e)
+		oa.append(s)
+		ob.append(e)
+	var hw: float = k["hw"]
+	var h: float = k["h"]
+	var col: Color = k["col"]
+	var foot_h: float = k["foot_h"]
+	var cap: String = k["cap"]
+	var cap_h: float = k["cap_h"]
+	var body_lo := foot_h if foot_h > 0.0 else -KIT_SINK
+	var body_hi: float = k["upstand"] if cap == "upstand" else h - cap_h
+	var body_top := col if cap == "" or cap == "upstand" else NO_TOP
+	var bay_len: float = k["bay_len"]
+	var step: float = k["bay_step"]
+	var cut := bay_len > 0.0 and step > 0.0
+	var tr: Dictionary = k["top_rail"]
+	var run := 0.0
+	for i in n - 1:
+		var a := pts[i]
+		var b := pts[i + 1]
+		var length := a.distance_to(b)
+		if h > 0.0:
+			if foot_h > 0.0:
+				_kit_box(st, a, b, g[i], g[i + 1], oa[i], ob[i], 0.0, 1.0, hw, -KIT_SINK, foot_h, k["foot_col"], NO_TOP)
+			# The body, bay by bay: every other bay `step` darker.
+			var bay := floori(run / bay_len) if cut else 0
+			while true:
+				var s0 := maxf(run, bay * bay_len) if cut else run
+				var s1 := minf(run + length, (bay + 1) * bay_len) if cut else run + length
+				if s1 - s0 > 0.01:
+					var bc := col.darkened(step) if cut and bay % 2 == 1 else col
+					_kit_box(st, a, b, g[i], g[i + 1], oa[i], ob[i], (s0 - run) / length, (s1 - run) / length, hw, body_lo,
+							body_hi, bc, bc if body_top.a > 0.0 else NO_TOP)
+				if not cut or (bay + 1) * bay_len >= run + length:
+					break
+				bay += 1
+			if cap == "over":
+				_kit_box(st, a, b, g[i], g[i + 1], oa[i], ob[i], 0.0, 1.0, hw + float(k["cap_over"]), h - cap_h, h, k["cap_col"], k["cap_col"])
+			elif cap == "band":
+				_kit_box(st, a, b, g[i], g[i + 1], oa[i], ob[i], 0.0, 1.0, hw, h - cap_h, h, k["cap_col"], k["cap_col"])
+		var nrm := Vector3(norms[i].x, 0.0, norms[i].y)
+		if cap == "upstand":
+			_kit_rail(st, a, b, g[i], g[i + 1], h, nrm, k["rail_col"])
+		if not tr.is_empty():
+			_kit_rail(st, a, b, g[i], g[i + 1], h + float(tr["h"]), nrm, Color(str(tr["colour"])))
+		run += length
+	var piers: float = k["pier_every"]
+	var posts: float = bay_len if float(k["post_w"]) > 0.0 else 0.0
+	# The run's two ends: a pier or a post stands there (the end piece), else end faces close it.
+	if not closed and h > 0.0 and piers <= 0.0 and posts <= 0.0:
+		for e: Array in [[pts[0], g[0], oa[0], -dirs[0]], [pts[n - 1], g[n - 1], ob[n - 2], dirs[n - 2]]]:
+			var p: Vector2 = e[0]
+			var ge: float = e[1]
+			var o: Vector2 = e[2]
+			var out: Vector2 = e[3]
+			if foot_h > 0.0:
+				_kit_end(st, p, ge, o, hw, -KIT_SINK, foot_h, out, k["foot_col"])
+			_kit_end(st, p, ge, o, hw, body_lo, body_hi, out, col)
+			if cap == "over":
+				_kit_end(st, p, ge, o, hw + float(k["cap_over"]), h - cap_h, h, out, k["cap_col"])
+			elif cap == "band":
+				_kit_end(st, p, ge, o, hw, h - cap_h, h, out, k["cap_col"])
+	if piers > 0.0:
+		var across := maxf(float(k["pier_w"]), hw * 2.0 + KIT_PROUD * 2.0)
+		for m: Array in _kit_marks(pts, g, dirs, piers, closed):
+			_kit_block(st, m[0], m[1], m[2], k["pier_w"], across, -KIT_SINK, k["pier_top"], k["pier_col"], k["pier_top_col"])
+			if k["diamonds"]:
+				_pier_diamond(m[0], m[1], m[2], float(k["pier_top"]))
+	if posts > 0.0:
+		var across := hw * 2.0 + float(k["post_proud"]) * 2.0
+		for m: Array in _kit_marks(pts, g, dirs, posts, closed):
+			_kit_block(st, m[0], m[1], m[2], k["post_w"], across, -KIT_SINK, h + KIT_POST_RISE, k["post_col"], k["post_col"])
+	if cap == "upstand":
+		for m: Array in _kit_marks(pts, g, dirs, float(k["rail_every"]), closed):
+			var d: Vector2 = m[2]
+			_lite_post(st, m[0], m[1], d, KIT_RAIL_POST * 0.5, k["upstand"], h, Vector3(-d.y, 0.0, d.x), k["rail_col"])
+	if not tr.is_empty():
+		for m: Array in _kit_marks(pts, g, dirs, float(tr.get("every", 2.0)), closed):
+			var d: Vector2 = m[2]
+			_lite_post(st, m[0], m[1], d, KIT_RAIL_POST * 0.5, h, h + float(tr["h"]), Vector3(-d.y, 0.0, d.x), Color(str(tr["colour"])))
+
+
+## W7: the offset (per metre of half width) at a corner between two segments with unit normals `n0`
+## and `n1`: the mitre, or `own` where the corner is sharper than KIT_MITRE_MIN allows.
+static func _mitre(n0: Vector2, n1: Vector2, own: Vector2) -> Vector2:
+	var m := n0 + n1
+	if m.length_squared() < 1e-8:
+		return own
+	m = m.normalized()
+	var c := m.dot(n0)
+	return own if c < KIT_MITRE_MIN else m / c
+
+
+## W7: the places along a run (points `pts`, ground `g`, segment directions `dirs`) of a rhythm every
+## `every` m from its start, and its last point unless one stands within 0.05 m of it (a closed
+## ring: not again at its start): [point, ground, direction] each.
+func _kit_marks(pts: PackedVector2Array, g: PackedFloat32Array, dirs: PackedVector2Array, every: float, closed: bool) -> Array:
+	var out: Array = []
+	if every <= 0.0:
+		return out
+	var run := 0.0
+	var next := 0.0
+	var last := Vector2(INF, INF)
+	for i in pts.size() - 1:
+		var length := pts[i].distance_to(pts[i + 1])
+		while next <= run + length + 1e-4:
+			var t := clampf((next - run) / length, 0.0, 1.0)
+			var p := pts[i].lerp(pts[i + 1], t)
+			if not (closed and i == pts.size() - 2 and p.distance_to(pts[0]) < 0.05):
+				out.append([p, lerpf(g[i], g[i + 1], t), dirs[i]])
+				last = p
+			next += every
+		run += length
+	var end := pts[pts.size() - 1]
+	if not closed and last.distance_to(end) > 0.05:
+		out.append([end, g[g.size() - 1], dirs[dirs.size() - 1]])
+	return out
+
+
+## W7: the long faces of stretch t0..t1 of a kit segment a..b (ground `ga`, `gb`; offsets `oa`, `ob`
+## per metre of half width): a box `w` half wide from `lo` to `hi` over the ground, both sides in
+## `col` darkened 0.08, its top in `top` (NO_TOP: none).
+func _kit_box(st, a: Vector2, b: Vector2, ga: float, gb: float, oa: Vector2, ob: Vector2, t0: float, t1: float, w: float,
+		lo: float, hi: float, col: Color, top: Color) -> void:
+	var p0 := a.lerp(b, t0)
+	var p1 := a.lerp(b, t1)
+	var o0 := oa.lerp(ob, t0) * w
+	var o1 := oa.lerp(ob, t1) * w
+	var g0 := lerpf(ga, gb, t0)
+	var g1 := lerpf(ga, gb, t1)
+	var d := (b - a).normalized()
+	var nrm := Vector3(-d.y, 0.0, d.x)
+	var face := col.darkened(0.08)
+	for sgn: float in [1.0, -1.0]:
+		var q0 := p0 + o0 * sgn
+		var q1 := p1 + o1 * sgn
+		map._quad(st, Vector3(q0.x, g0 + lo, q0.y), Vector3(q1.x, g1 + lo, q1.y), Vector3(q1.x, g1 + hi, q1.y),
+				Vector3(q0.x, g0 + hi, q0.y), nrm * sgn, face)
+	if top.a > 0.0:
+		map._quad(st, Vector3(p0.x + o0.x, g0 + hi, p0.y + o0.y), Vector3(p1.x + o1.x, g1 + hi, p1.y + o1.y),
+				Vector3(p1.x - o1.x, g1 + hi, p1.y - o1.y), Vector3(p0.x - o0.x, g0 + hi, p0.y - o0.y), Vector3.UP, top)
+
+
+## W7: an end face across a run's end `p` (ground `g`, offset `o` per metre of half width), `w` half
+## wide from `lo` to `hi`, facing `out`.
+func _kit_end(st, p: Vector2, g: float, o: Vector2, w: float, lo: float, hi: float, out: Vector2, col: Color) -> void:
+	var q0 := p + o * w
+	var q1 := p - o * w
+	map._quad(st, Vector3(q0.x, g + lo, q0.y), Vector3(q1.x, g + lo, q1.y), Vector3(q1.x, g + hi, q1.y),
+			Vector3(q0.x, g + hi, q0.y), Vector3(out.x, 0.0, out.y), col.darkened(0.08))
+
+
+## W7: a pier or a proud post at `p` (ground `g`): a block `along` x `across` turned to the line
+## (`dir`), from `lo` to `hi` over the ground: its four sides in `col` darkened 0.08 and its top.
+func _kit_block(st, p: Vector2, g: float, dir: Vector2, along: float, across: float, lo: float, hi: float, col: Color,
+		top: Color) -> void:
+	var u := dir * along * 0.5
+	var v := Vector2(-dir.y, dir.x) * across * 0.5
+	var c: Array[Vector2] = [p - u - v, p + u - v, p + u + v, p - u + v]
+	var face := col.darkened(0.08)
+	for i in 4:
+		var c0 := c[i]
+		var c1 := c[(i + 1) % 4]
+		var m := ((c0 + c1) * 0.5 - p).normalized()
+		map._quad(st, Vector3(c0.x, g + lo, c0.y), Vector3(c1.x, g + lo, c1.y), Vector3(c1.x, g + hi, c1.y),
+				Vector3(c0.x, g + hi, c0.y), Vector3(m.x, 0.0, m.y), face)
+	map._quad(st, Vector3(c[0].x, g + hi, c[0].y), Vector3(c[1].x, g + hi, c[1].y), Vector3(c[2].x, g + hi, c[2].y),
+			Vector3(c[3].x, g + hi, c[3].y), Vector3.UP, top)
+
+
+## W7: a rail along a..b (ground `ga`, `gb`) with its top `top` over the ground: one upright quad
+## LITE_RAIL tall on the line, as rail_lite's.
+func _kit_rail(st, a: Vector2, b: Vector2, ga: float, gb: float, top: float, n: Vector3, col: Color) -> void:
+	var y0 := top - LITE_RAIL
+	map._quad(st, Vector3(a.x, ga + y0, a.y), Vector3(b.x, gb + y0, b.y), Vector3(b.x, gb + top, b.y),
+			Vector3(a.x, ga + top, a.y), n, col)
+
+
+## W7: a pier's diamond collider at `p` (ground `g`, the line's `dir`): a KIT_DIAMOND m square turned
+## 45 degrees to the line, its four faces from 0.3 m under the ground to `height` + 1.5 m as a
+## slab's (`slab_faces`), filed as class wall. Its corners stand 0.1 m past the drawn pier's faces:
+## a car meets a point, not a face, and is turned along the line.
+func _pier_diamond(p: Vector2, g: float, dir: Vector2, height: float) -> void:
+	var r := KIT_DIAMOND * sqrt(0.5)
+	var across := Vector2(-dir.y, dir.x)
+	var c: Array[Vector2] = [p + dir * r, p + across * r, p - dir * r, p - across * r]
+	var up := Vector3(0.0, height + 1.5, 0.0)
+	var faces := PackedVector3Array()
+	for i in 4:
+		var p0 := Vector3(c[i].x, g - 0.3, c[i].y)
+		var p1 := Vector3(c[(i + 1) % 4].x, g - 0.3, c[(i + 1) % 4].y)
+		faces.append_array([p0, p1, p1 + up, p0, p1 + up, p0 + up])
+	map._solid(&"wall", faces, {"h": height})
+	kit_diamonds += 1
 
 
 func _load_object_overrides() -> void:
@@ -1212,6 +1590,7 @@ func build_barriers(st) -> void:
 	panel_tiles = {}
 	panel_pieces = 0
 	_panel_serial = 0
+	kit_diamonds = 0
 	var typed_on := Solidity.barrier_look() != &"classic"
 	# W4: panels, unless this GPU gets the typed look instead (gpu_quirks.gd).
 	var panels_on := Solidity.barrier_look() == &"panels" and GpuQuirks.panels()
@@ -1351,15 +1730,24 @@ func build_barriers(st) -> void:
 
 ## One piece of a barrier line: in classic `style` with wall_along as ever, or (W2) by `look`, the
 ## line's `_typed` drawing: a slab at the row's thickness, or posts and rails (`rail_lite_along`).
+## W7: a heavy or low slab row by the heavy kit (`wall_kit`); a row with piers gets them and its
+## plinth from `_pier_fence_kit`, its rails from rail_lite_along without its posts and foot.
 func _draw_piece(st, piece: PackedVector2Array, style: Array, look: Dictionary, solid: bool, cls: StringName) -> void:
 	if look.is_empty():
 		wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
 	elif look.has("panel"):
 		panel_along(st, piece, look, solid, cls)
 	elif look["draw"] == &"slab":
-		wall_along(st, piece, float((look["row"] as Dictionary)["thick"]), float(look["h"]), look["colour"], solid, cls)
+		if kit_row(look["row"]):
+			wall_kit(st, piece, look, solid, cls)
+		else:
+			wall_along(st, piece, float((look["row"] as Dictionary)["thick"]), float(look["h"]), look["colour"], solid, cls)
 	else:
-		rail_lite_along(st, piece, look["row"], float(look["h"]), look["colour"], solid, cls)
+		# W7: a row with piers (bars_pier) stands its plinth and piers by the kit, its rails between.
+		var piers := (look["row"] as Dictionary).has("pier")
+		if piers:
+			_pier_fence_kit(st, piece, look["row"], float(look["h"]))
+		rail_lite_along(st, piece, look["row"], float(look["h"]), look["colour"], solid, cls, piers)
 
 
 ## W4 (walls doc 6.4): a panel line's piece `poly` (a line, or one piece of it between stair gaps
@@ -1371,12 +1759,16 @@ func _draw_piece(st, piece: PackedVector2Array, style: Array, look: Dictionary, 
 ## colliders and soft lines.
 ## W5: a row whose posts are `in_mesh` (bars_pier) keeps them in the city mesh `st` as typed draws
 ## them (`_mesh_posts`); its panels draw no posts (panel_rule.gd row_texels).
+## W7: a row with piers (bars_pier) stands its piers and plinth by the kit (`_pier_fence_kit`) as
+## typed does, in the same order before the line's colliders, so the two looks file the same faces.
 func panel_along(st, poly: PackedVector2Array, look: Dictionary, collide: bool, cls: StringName) -> void:
 	var row: Dictionary = look["row"]
 	var slab: bool = look["draw"] == &"slab"
 	var height := float(look["h"])
 	var thick := float(row["thick"])
-	if bool((row.get("post", {}) as Dictionary).get("in_mesh", false)):
+	if row.has("pier"):
+		_pier_fence_kit(st, poly, row, height)
+	elif bool((row.get("post", {}) as Dictionary).get("in_mesh", false)):
 		_mesh_posts(st, poly, row, height, look["colour"])
 	for i in poly.size() - 1:
 		var a := poly[i]
@@ -1541,16 +1933,20 @@ func _typed(l: Dictionary, generic: bool) -> Dictionary:
 		h = clampf(h, float(row["h_range"][0]), float(row["h_range"][1]))
 	var colour := Color(str(row["colour"]))
 	var alt: Array = row.get("alt", [])
+	var picked := -1
 	if not alt.is_empty():
 		var pick := posmod(hash(barrier_id(l["k"], l["p"])), 1000)
 		var upto := 0.0
-		for a: Array in alt:
-			upto += float(a[1]) * 1000.0
+		for i in alt.size():
+			upto += float(alt[i][1]) * 1000.0
 			if pick < upto:
-				colour = Color(str(a[0]))
+				colour = Color(str(alt[i][0]))
+				picked = i
 				break
 	_count_look(draw)
-	return {"draw": draw, "row": row, "h": h, "colour": colour}
+	# W7: which alt colour the line took (-1: the row's own; a cap's `alt` goes with it) and the
+	# bake's hazard reason (a stone wall's top rail stands over water or a drop).
+	return {"draw": draw, "row": row, "h": h, "colour": colour, "alt": picked, "hz": str(l.get("hz", ""))}
 
 
 ## W2: one more line (or rail piece) under `what` in `look_counts`.

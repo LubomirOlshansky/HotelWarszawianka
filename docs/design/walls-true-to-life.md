@@ -489,6 +489,43 @@ dead stop.
 
 No new material and no shader change. Cost: triangles only (section 8).
 
+**Built in W7 (2026-11-20)**, behind `barrier_look` `typed` and `panels` (the key stays `classic`):
+
+- `city_barriers.gd` `wall_kit` draws every heavy or low `slab` row that has a foot, a cap, bays or
+  piers (the nine of 6.2: `wall_plaster`, `wall_brick`, `wall_precast`, `wall_stone`,
+  `noise_screen`, `gabion`, `glass_screen`, `parapet_concrete`, `low_wall`) from the row's numbers,
+  the same under `typed` and `panels`: the foot a band of the face `darken` darker; the body cut
+  into bays, every other one `step` darker (no cut where `step` is 0); the cap a coping `over`
+  wider each side in its colour (`wall_plaster`'s `alt` cap with the line's alt colour,
+  `low_wall`'s the line's colour lightened); with `over` 0 a band of the face (the noise screen's
+  pale 1 m top); `parapet_concrete` its 0.8 m upstand and a rail on posts every 2 m to 1.1 m;
+  piers (`wall_brick`: 0.5 m every 3.5 m, rising 0.15 m, capped in the cap's colour) and proud
+  posts at the bays' joints (`wall_precast` 0.15 m, 0.03 proud, 0.08 m over the top, a shade
+  darker; `noise_screen` and `glass_screen` steel grey); at each end of a run a pier or a post
+  (the end piece), else end faces; the long faces mitred at corners (up to a 120 degree turn), so
+  a run has no inner end faces and no notch outside a corner. The kit's own shape is in
+  constants (`KIT_*`); the rest is the row's.
+- The end piece is a pier or a post, never a sloped end: step 10 of the objects plan (collider
+  tapers) has not run, so there is no taper to follow yet.
+- `bars_pier` (`_pier_fence_kit`): its row gains `pier` (every 4 m, 0.5 m square, the plinth's
+  `#b8b0a0`) and a plinth thickness (`foot.thick` 0.3): the plinth is a slab in the city mesh and
+  the piers rise 0.15 m over the iron; between them the rails (typed) or W5's panels (whose own
+  foot band stands inside the plinth). On a soft line each pier files a diamond collider (0.5 m
+  square turned 45 degrees, class `wall`, from 0.3 m under the ground to 1.5 m over the pier);
+  none on a hard line or with the soft switch off (so `--no-soft` files main's faces). The three
+  `bars_pier` lines on the map are inside the landmark guard, so today none stands.
+- `wall_stone`'s `top_rail` (a 0.9 m rail on posts every 2 m) stands where the line's `hz` is in
+  the row's list (water, drop): 8 lines by the river. Wybrzeże Gdańskie's boulevard walls have no
+  `hz` (the bake writes one on a wall only when a hazard made it hard, and a 2 m wall is hard by
+  its height), so they get no rail though the photos show one: an open question.
+- Retaining walls (`map_builder.gd` `_build_walls`): under a look other than classic the coping
+  gets a lip 0.06 m out of the face and 0.15 m deep.
+- Colliders: every wall's are `wall_along`'s at the row's thickness and the line's height, face
+  for face (`check_barrier_look` 3), and the pier diamonds; nothing else changed.
+- Cost (the whole map built on a flat map): barrier triangles typed 688,324 -> 842,210, panels
+  186,162 -> 340,118 (+0.154 M each, the gate +0.7 M); typed city mesh vertices (both paths)
+  26,694,768 -> 27,225,948; draw calls unchanged at the four probe views and at night.
+
 ### 6.6 The details, ranked
 
 Ranked by how much each makes the city read as Warsaw at the default zoom, with what it costs.

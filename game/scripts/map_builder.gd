@@ -2434,6 +2434,12 @@ const WALL_CONCRETE := Color("#a59f95")
 const WALL_COPING := Color("#c9c4b8")
 const WALL_TUNNEL := Color("#6e6a63")
 const WALL_PARAPET := 0.9
+## W7 of the walls look (walls doc 4.2, 6.5: the retaining walls' looks are the heavy kit's last
+## item): under a look other than classic (solidity.gd barrier_look) the coping has a lip, its
+## outer edge WALL_LIP m proud of the face and WALL_LIP_H m deep, so a retaining wall reads capped
+## from the road below. Classic draws the walls as ever.
+const WALL_LIP := 0.06
+const WALL_LIP_H := 0.15
 
 
 func _build_walls(st) -> void:
@@ -2441,6 +2447,7 @@ func _build_walls(st) -> void:
 		_build_fill_sides(st)
 		return
 	_uv2 = Vector2(0.5, -1.0)
+	var lip := Solidity.barrier_look() != &"classic"
 	# PT-40: the Poniatowski towers' zones (the sectors' files leave them in the index).
 	var towers: Array = data.get("towers", index_data.get("towers", []))
 	for w: Dictionary in data["walls"]:
@@ -2473,6 +2480,13 @@ func _build_walls(st) -> void:
 			if not tunnel:
 				_quad(st, Vector3(a.x, ta + lift, a.y), Vector3(b.x, tb + lift, b.y), Vector3(bi.x, tb + lift, bi.y),
 						Vector3(ai.x, ta + lift, ai.y), Vector3.UP, WALL_COPING)
+				if lip:
+					var ao := a + out * WALL_LIP
+					var bo := b + out * WALL_LIP
+					_quad(st, Vector3(ao.x, ta + lift - WALL_LIP_H, ao.y), Vector3(bo.x, tb + lift - WALL_LIP_H, bo.y),
+							Vector3(bo.x, tb + lift, bo.y), Vector3(ao.x, ta + lift, ao.y), n, WALL_COPING.darkened(0.08))
+					_quad(st, Vector3(a.x, ta + lift, a.y), Vector3(b.x, tb + lift, b.y), Vector3(bo.x, tb + lift, bo.y),
+							Vector3(ao.x, ta + lift, ao.y), Vector3.UP, WALL_COPING)
 			if lift > 0.0:
 				_quad(st, Vector3(ai.x, ta - 0.05, ai.y), Vector3(bi.x, tb - 0.05, bi.y), Vector3(bi.x, tb + lift, bi.y),
 						Vector3(ai.x, ta + lift, ai.y), -n, face.lightened(0.08))
