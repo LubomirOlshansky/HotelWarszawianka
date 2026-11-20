@@ -3065,8 +3065,9 @@ const VITKAC_GROUND := 5.0     # the shop-window storey's top
 const VITKAC_FLOOR := 4.2      # the five storeys over it
 const VITKAC_EAVE := 26.0      # the stone body's top (OSM: 26 m, the glass top to 31)
 const VITKAC_TOP := 30.4       # the set-back glass storey's roof
-const VITKAC_WALL := Color("#5a5b5c")
-const VITKAC_BAND := Color("#6d6e70")
+const VITKAC_WALL := Color("#4e4f52")   # the speckled dark granite (F's photo, 2026-11-20)
+const VITKAC_CORNER_R := 7.0   # the big curves of its corners
+const VITKAC_BAND := Color("#5d5e61")
 const VITKAC_BASE := Color("#3f4042")
 const VITKAC_GLASS := Color("#2c3238")
 const VITKAC_SHOP := Color("#c9b48c")   # warm-lit shop windows behind the glass
@@ -3140,48 +3141,146 @@ func _find_bracka() -> void:
 
 
 func _build_vitkac(site: Dictionary) -> void:
-	var ring: PackedVector2Array = site["ring"]
-	_g = _ground_under(ring)
+	# F, 2026-11-20 ("Vitkac built bad, build it from photos, and the roof with the bar"; his
+	# Street View from Al. Jerozolimskie, Apr 2026): a speckled dark granite block whose corners
+	# are big curves, its storeys ribbons of dark glass wrapping round them between stone bands,
+	# stone fins every few metres across the ribbons, a few big framed windows stacked at the
+	# Jerozolimskie corner, a ground floor all shop glass, and on the roof a set-back glass storey
+	# behind a glass balustrade, with the roof bar's terrace (parasols, sofas, planters) on the
+	# Jerozolimskie end and small trees along Bracka.
+	var raw: PackedVector2Array = site["ring"]
+	_g = _ground_under(raw)
 	var g := _g
 	var none := Color(0, 0, 0, 0)
-	# Windows first (7 cm proud), so the walls behind them stay whole: the shop windows, then the
-	# big square windows of the five storeys.
-	_bays(ring, 0.5, VITKAC_GROUND - 0.6, 4.2, 3.6, VITKAC_SHOP)
-	for k in 5:
-		var y0 := VITKAC_GROUND + VITKAC_FLOOR * k + 0.9
-		_bays(ring, y0, y0 + 2.5, 3.8, 2.5, VITKAC_GLASS)
-	_prism(ring, g - 0.6, g + VITKAC_GROUND, VITKAC_BASE, none, M_STONE)
+	# The rounded body: the outline pulled in and pushed out again with round joins, which turns
+	# every convex corner into a curve of VITKAC_CORNER_R.
+	var ring := raw
+	var shrunk := Geometry2D.offset_polygon(raw, -VITKAC_CORNER_R, Geometry2D.JOIN_MITER)
+	if not shrunk.is_empty():
+		var rounded := Geometry2D.offset_polygon(_largest(shrunk), VITKAC_CORNER_R, Geometry2D.JOIN_ROUND)
+		if not rounded.is_empty():
+			ring = _simplify(_largest(rounded), 0.25)
+	# The Jerozolimskie end: the ring's points facing north, for the corner windows and the bar.
+	var north := Vector2(-0.30855, -0.95123)
+	var c := _centre(ring)
+	var far := c
+	for q in ring:
+		if (q - c).dot(north) > (far - c).dot(north):
+			far = q
+	# The ground floor: shop glass set 0.4 m back under the stone, warm shop windows on it, slim
+	# dark mullions.
+	var shop := _largest(Geometry2D.offset_polygon(ring, -0.4, Geometry2D.JOIN_ROUND))
+	_prism(shop, g - 0.6, g + VITKAC_GROUND, VITKAC_GLASS, none, M_GLASS)
+	_bays(shop, 0.4, VITKAC_GROUND - 0.5, 4.0, 3.5, VITKAC_SHOP)
+	_mullions(shop, g, g + VITKAC_GROUND, 2.0, 0.09, VITKAC_BASE)
+	_soffit(ring, g + VITKAC_GROUND, VITKAC_BASE)
+	# The stone body over it, and per storey a glass ribbon 2 m tall, a hair proud, with stone
+	# fins across it every 3.6 m (the photos' panels).
 	_prism(ring, g + VITKAC_GROUND, g + VITKAC_EAVE, VITKAC_WALL, none, M_STONE)
-	# The horizontal banding: a proud band at every floor line, a deeper one over the shops.
-	_band(ring, 0.3, g + VITKAC_GROUND - 0.2, g + VITKAC_GROUND + 0.5, VITKAC_BAND)
-	for k in range(1, 5):
-		var y := g + VITKAC_GROUND + VITKAC_FLOOR * k
-		_band(ring, 0.12, y + 0.1, y + 0.45, VITKAC_BAND)
+	for k in 5:
+		var y0 := g + VITKAC_GROUND + VITKAC_FLOOR * k + 1.0
+		_band(ring, 0.05, y0, y0 + 2.1, VITKAC_GLASS, M_GLASS)
+		_bays(ring, y0 - g - 0.05, y0 - g + 2.15, 3.6, 0.45, VITKAC_WALL)
+	# The big framed windows stacked by the Jerozolimskie corner: three storeys of one tall pane
+	# each, in a lighter frame (the photo's right-hand bays).
+	for side: float in [-1.0, 1.0]:
+		var tangent := Vector2(-north.y, north.x) * side
+		var at := far + tangent * 9.0
+		var o := _nearest_out(ring, at)
+		var p := _nearest_on(ring, at) + o * 0.12
+		var e := Vector2(-o.y, o.x)
+		for k in range(1, 4):
+			var y0 := g + VITKAC_GROUND + VITKAC_FLOOR * k + 0.5
+			_mode = M_STONE
+			_wall(p - e * 2.6, p + e * 2.6, y0 - 0.2, y0 + 3.4, o, VITKAC_BAND)
+			_mode = M_GLASS
+			_wall(p - e * 2.3 + o * 0.03, p + e * 2.3 + o * 0.03, y0, y0 + 3.2, o, VITKAC_TOP_GLASS)
 	_mode = M_STONE
+	# The roof: the stone body's top, a parapet with a glass balustrade on it.
 	_cap(ring, g + VITKAC_EAVE, VITKAC_ROOF)
-	_parapet(ring, g + VITKAC_EAVE, 1.0, VITKAC_BAND)
-	# The set-back glass storey and its roof.
-	var top := _simplify(_largest(Geometry2D.offset_polygon(ring, -2.4, Geometry2D.JOIN_MITER)), 0.4)
+	_parapet(ring, g + VITKAC_EAVE, 0.6, VITKAC_BAND)
+	_mode = M_GLASS
+	_band(_largest(Geometry2D.offset_polygon(ring, -0.15, Geometry2D.JOIN_ROUND)), 0.0, g + VITKAC_EAVE + 0.6,
+			g + VITKAC_EAVE + 1.5, VITKAC_TOP_GLASS.lightened(0.25), M_GLASS)
+	_mode = M_STONE
+	# The set-back glass storey (the restaurant and bar), lit warm at night, its flat roof
+	# overhanging a little.
+	var top := _simplify(_largest(Geometry2D.offset_polygon(ring, -4.0, Geometry2D.JOIN_ROUND)), 0.4)
 	if top.size() >= 3:
-		_prism(top, g + VITKAC_EAVE, g + VITKAC_TOP, VITKAC_TOP_GLASS, VITKAC_ROOF.darkened(0.1), M_GLASS, M_STONE)
-		_parapet(top, g + VITKAC_TOP, 0.5, VITKAC_BAND)
+		_prism(top, g + VITKAC_EAVE, g + VITKAC_TOP, VITKAC_TOP_GLASS, none, M_PAVILION)
+		_mullions(top, g + VITKAC_EAVE, g + VITKAC_TOP, 1.8, 0.05, VITKAC_BASE)
+		var lid := _largest(Geometry2D.offset_polygon(top, 0.6, Geometry2D.JOIN_ROUND))
+		_prism(lid, g + VITKAC_TOP, g + VITKAC_TOP + 0.45, VITKAC_BASE, VITKAC_ROOF.darkened(0.1), M_STONE, M_STONE)
+	# The bar's terrace on the Jerozolimskie end, between the glass storey and the balustrade:
+	# cream parasols over low tables, dark sofas, square planters.
+	var deck := far - north * 2.2
+	var tdir := Vector2(-north.y, north.x)
+	for k in range(-3, 4):
+		var q := deck + tdir * k * 3.4
+		if not Geometry2D.is_point_in_polygon(q, ring) or (top.size() >= 3 and Geometry2D.is_point_in_polygon(q, top)):
+			continue
+		var y := g + VITKAC_EAVE
+		_beam(Vector3(q.x, y, q.y), Vector3(q.x, y + 2.3, q.y), 0.08, VITKAC_BASE)
+		_frustum(_circle(q, 1.4, 8), y + 2.2, _circle(q, 0.1, 8), y + 2.7, Color("#efe9dc"), Color("#efe9dc"))
+		_prism(_circle(q, 0.4, 8), y, y + 0.7, Color("#3a3a3c"), Color("#d9d2c4"), M_STONE, M_STONE)
+		var sofa := q + north * 1.0
+		_prism(_rect_at(sofa, tdir, 1.9, 0.8), y, y + 0.45, Color("#2b2b2e"), Color("#3a3a3e"), M_STONE, M_STONE)
+		if k % 2 == 0:
+			var pl := q - tdir * 1.7
+			_prism(_rect_at(pl, tdir, 0.8, 0.8), y, y + 0.7, VITKAC_BASE, Color("#4f3f2f"), M_STONE, M_STONE)
+			_frustum(_circle(pl, 0.5, 6), y + 0.7, _circle(pl, 0.1, 6), y + 1.9, DOM_LEAF, DOM_LEAF)
 	# The terrace's small trees along the Bracka side.
 	var a: Vector2 = VITKAC_BRACKA[0]
 	var b: Vector2 = VITKAC_BRACKA[1]
-	var e := (b - a).normalized()
-	var inward := -_out(ring, a, b)
+	var e2 := (b - a).normalized()
+	var inward := -_out(raw, a, b)
 	var length := a.distance_to(b)
-	var t := 5.0
-	while t < length - 3.0:
-		_varso_tree(a + e * t + inward * 1.2, g + VITKAC_EAVE, 2.8, 0.9)
+	var t := 12.0
+	while t < length - 8.0:
+		_varso_tree(a + e2 * t + inward * 2.0, g + VITKAC_EAVE, 2.8, 0.9)
 		t += 7.5
-	# The name on the Bracka front, high up, and over the round south end.
+	# The name on the Bracka front, high up.
 	var word := "VIPKAC"
-	var out := _out(ring, a, b)
-	var mid := (a + b) * 0.5 + out * 0.05
+	var out := _out(raw, a, b)
+	var mid := (a + b) * 0.5 + out * 0.15
 	var k2 := 9.0 / Neon.length_of(word)
-	signs.append([word, Vector3(mid.x, g + VITKAC_EAVE - 4.2, mid.y), Vector3(out.x, 0.0, out.y), k2, Color(1.0, 0.92, 0.75)])
+	signs.append([word, Vector3(mid.x, g + VITKAC_EAVE - 3.6, mid.y), Vector3(out.x, 0.0, out.y), k2, Color(1.0, 0.92, 0.75)])
 	_collide_raw(site)
+
+
+## The outward normal of `ring`'s edge nearest to p.
+func _nearest_out(ring: PackedVector2Array, p: Vector2) -> Vector2:
+	var best := INF
+	var o := Vector2.UP
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var q := Geometry2D.get_closest_point_to_segment(p, a, b)
+		if q.distance_to(p) < best and a.distance_to(b) > 0.3:
+			best = q.distance_to(p)
+			o = _out(ring, a, b)
+	return o
+
+
+## The point of `ring`'s outline nearest to p.
+func _nearest_on(ring: PackedVector2Array, p: Vector2) -> Vector2:
+	var best := INF
+	var r := p
+	for i in ring.size():
+		var q := Geometry2D.get_closest_point_to_segment(p, ring[i], ring[(i + 1) % ring.size()])
+		if q.distance_to(p) < best:
+			best = q.distance_to(p)
+			r = q
+	return r
+
+
+## A rectangle `l` long along `dir` and `w` across, centred at c.
+func _rect_at(c: Vector2, dir: Vector2, l: float, w: float) -> PackedVector2Array:
+	var d := dir.normalized()
+	var n := Vector2(-d.y, d.x)
+	var hl := d * l * 0.5
+	var hw := n * w * 0.5
+	return PackedVector2Array([c - hl - hw, c + hl - hw, c + hl + hw, c - hl + hw])
 
 
 func _build_jablkowscy(site: Dictionary) -> void:
@@ -3553,13 +3652,24 @@ const BGK_FRIEZE := Color("#b3b0a6")
 const BGK_WINDOW := Color("#4a3a36")   # dark brown frames and glass, seen together
 const BGK_GILT := Color("#c8b070")
 const BGK_ROOF := Color("#6f7173")
+## Points in the two stray roof parts (min height 23.1 m) by the Bracka-Mysia corner.
+const BGK_STRAY_PARTS := [Vector2(-289.0, 357.0), Vector2(-312.0, 364.0)]
 
 
 func _find_bgk() -> void:
 	var q := _tallest_at(BGK_AT)
 	if q.size() < 3 or not Geometry2D.is_point_in_polygon(BGK_O.lerp(BGK_O + BGK_A * BGK_FRONT, 0.5) + Vector2(-BGK_A.y, BGK_A.x) * 3.0, q):
 		return
-	_add_site("bgk", [_largest(Geometry2D.offset_polygon(q, 1.5, Geometry2D.JOIN_MITER))])
+	var zone: Array = [_largest(Geometry2D.offset_polygon(q, 1.5, Geometry2D.JOIN_MITER))]
+	# F, 2026-11-20 ("two towers on Bracka between the bank and Vitkac, what is that?"): two small
+	# OpenStreetMap parts mapped 23-27 m up at the Bracka-Mysia corner, which the city drew as
+	# whole towers from the ground. The site replaces them (nothing is built there).
+	for at: Vector2 in BGK_STRAY_PARTS:
+		for bd in data.get("buildings", []):
+			var part := _pts(bd["p"])
+			if float(bd.get("mh", 0.0)) > 20.0 and part.size() >= 3 and Geometry2D.is_point_in_polygon(at, part):
+				zone.append(_largest(Geometry2D.offset_polygon(part, 0.3, Geometry2D.JOIN_MITER)))
+	_add_site("bgk", zone)
 	if not sites.is_empty() and sites[-1]["key"] == "bgk":
 		sites[-1]["ring"] = _simplify(q, 0.4)
 		sites[-1]["raw"] = q
