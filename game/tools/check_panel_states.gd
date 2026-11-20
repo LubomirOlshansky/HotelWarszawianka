@@ -38,6 +38,7 @@ const PanelRule := preload("res://scripts/panel_rule.gd")
 ## W5: the sectors and, in each, the rows whose soft lines are driven through (one line each).
 const SECTORS := {
 	Vector2i(3, -1): [&"stadium_fence", &"green_fence", &"low_lawn", &"chain_link"],
+	Vector2i(3, -2): [&"ball_net"],
 	Vector2i(-5, -1): [&"wood"],
 	Vector2i(-5, 1): [&"hoarding"],
 }
