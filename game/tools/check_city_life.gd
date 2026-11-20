@@ -779,6 +779,17 @@ func _check_boulevard_rules() -> void:
 		scoots += int(r[2] == 0)
 	_expect(riders.size() == 6 and scoots == 4 and Blvd.rider_figures(300.0, 23.0).is_empty(), "riders %d (%d scooters)" % [riders.size(), scoots])
 	_expect(riders.size() <= CityLife.SCOOT_CAP, "more riders than the scooters' MultiMesh holds")
+	# The skaters at Pomnik Kościuszkowców: four by day, none at night, all on the plaza west of the
+	# monument (never in its plinth), and room for them beside the riders in the one MultiMesh.
+	var skaters := CityLife.skater_figures(300.0, 15.0)
+	_expect(skaters.size() == CityLife.SKATERS.size() and CityLife.skater_figures(300.0, 23.5).is_empty(), "skaters %d by day" % skaters.size())
+	_expect(riders.size() + skaters.size() <= CityLife.SCOOT_CAP, "more riders and skaters than the scooters' MultiMesh holds")
+	for st in 120:
+		for f: Array in CityLife.skater_figures(st * 0.5, 15.0):
+			var d := (f[0] as Vector2) - CityLife.SKATE_C
+			var su := d.dot(CityLife.SKATE_A)
+			_expect(su > 7.0 and su < 45.0 and absf(d.dot(Vector2(-CityLife.SKATE_A.y, CityLife.SKATE_A.x))) < 10.0 or su >= 1.5 and su < 45.0 and absf(float(f[4])) < 1.0, "a skater off the plaza at t %.1f" % (st * 0.5))
+			_expect(float(f[4]) >= 0.0 and float(f[4]) < 0.8 and int(f[2]) == CityLife.SKATER, "a skater's lift %.2f or shape" % float(f[4]))
 	# The words.
 	var words: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
 	var lines: Array = words.get("policja_bulwar", [])

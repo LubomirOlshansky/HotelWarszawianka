@@ -1217,3 +1217,106 @@ func _pp_fence(line: PackedVector2Array) -> void:
 			var y: float = map.terrain_height((a.x + b.x) * 0.5, (a.y + b.y) * 0.5)
 			_usign("PORT PRASKI", w * 0.3, 0.12, y + 0.8, _b, 11.0, 1.5, Color("#f4f6f8"))
 			_usign("STATKI WKRÓTCE", w * 0.7, -0.12, y + 0.8, -_b, 14.0, 1.5, Color("#f4f6f8"))
+
+
+# --- Pomnik Kościuszkowców (F 2026-11-20: "it's there", with the skaters round it) ---------------
+
+## The monument's plinth outline on the plaza (OSM's plaza keeps it as a notch) and the soldier's
+## facing: west, to the left bank, the way the division tried to cross in September 1944.
+const KOSC_PLINTH := [Vector2(474.0, -1551.0), Vector2(461.0, -1548.0), Vector2(460.0, -1554.0), Vector2(472.0, -1557.0)]
+const KOSC_AT := Vector2(466.7, -1552.5)
+const KOSC_A := Vector2(-0.974, 0.225)
+const KOSC_BRONZE := Color("#55604f")   # the green-grey patina of the bridge photos
+const KOSC_GRANITE := Color("#77736d")
+const KOSC_PAVING := Color("#b9b4aa")
+## The skaters' granite ledges on the plaza, west of the monument: [u, v, half length, half width].
+const KOSC_LEDGES := [[11.0, -7.5, 5.0, 0.45], [11.0, 7.5, 5.0, 0.45], [24.0, 0.0, 3.5, 0.45]]
+
+
+func _find_kosciuszkowcy() -> void:
+	_add_site("kosciuszkowcy", [PackedVector2Array(KOSC_PLINTH)])
+
+
+## Pomnik Kościuszkowców (Andrzej Kasten and Bogusław Chyliński, 1985), from the Mapillary
+## photos from the bridge ramp (refs/kosciuszkowcy): a 12 m bronze soldier on a dark granite
+## plinth, 16 m in all, striding west to the river, his left arm flung up and out with the hand
+## open (Warsaw calls it "Pięć piw proszę", five beers please), the PPSh at his right hip, the
+## hood over his helmet and a cape that sweeps back and to his right like a sail down to the
+## plinth. Round it the granite plaza, the skaters' ledges.
+func _build_kosciuszkowcy(_site: Dictionary) -> void:
+	_mon_frame(KOSC_AT, KOSC_A)
+	var g := _ground_under(PackedVector2Array(KOSC_PLINTH))
+	_g = g
+	# the plinth: a step all round, then the dark granite block, a little narrower at its top
+	_lbox(0.0, 0.0, 7.4, 3.9, g - 0.3, g + 0.35, KOSC_PAVING.darkened(0.08), M_STONE, KOSC_PAVING)
+	_mode = M_STONE
+	_frustum(_rect(0.0, 0.0, 6.4, 3.0), g + 0.35, _rect(0.0, 0.0, 6.04, 2.73), g + 3.8, KOSC_GRANITE, KOSC_GRANITE.lightened(0.05))
+	_lbox(0.0, 0.0, 6.15, 2.85, g + 3.7, g + 4.0, KOSC_GRANITE.darkened(0.12), M_STONE, KOSC_GRANITE.lightened(0.05))
+	var y := g + 4.0
+	var bz := KOSC_BRONZE
+	var k := 12.0 / 3.3
+	# the legs: the left one forward and bent, the right one stretched back
+	_beam(_mon_p(0.1 * k, -0.15 * k, y + 1.55 * k), _mon_p(0.75 * k, -0.2 * k, y + 0.85 * k), 0.27 * k, bz)
+	_beam(_mon_p(0.75 * k, -0.2 * k, y + 0.85 * k), _mon_p(0.85 * k, -0.22 * k, y + 0.05 * k), 0.25 * k, bz)
+	_beam(_mon_p(-0.05 * k, 0.15 * k, y + 1.55 * k), _mon_p(-0.75 * k, 0.2 * k, y + 0.05 * k), 0.26 * k, bz)
+	_lbox(0.9 * k, -0.22 * k, 0.2 * k, 0.1 * k, y, y + 0.12 * k, bz)
+	_lbox(-0.72 * k, 0.2 * k, 0.2 * k, 0.1 * k, y, y + 0.12 * k, bz)
+	# the body, leaning into the stride; the hooded head with the helmet's brim
+	_frustum(_rect(0.1 * k, 0.0, 0.26 * k, 0.33 * k), y + 1.45 * k, _rect(0.32 * k, 0.0, 0.22 * k, 0.36 * k), y + 2.55 * k, bz, bz)
+	_beam(_mon_p(0.36 * k, 0.0, y + 2.5 * k), _mon_p(0.42 * k, 0.0, y + 2.68 * k), 0.15 * k, bz)
+	_frustum(_rect(0.44 * k, 0.0, 0.17 * k, 0.16 * k), y + 2.66 * k, _rect(0.4 * k, 0.0, 0.1 * k, 0.1 * k), y + 3.05 * k, bz.darkened(0.06), bz)
+	_lbox(0.5 * k, 0.0, 0.2 * k, 0.19 * k, y + 2.8 * k, y + 2.84 * k, bz.darkened(0.1))
+	# the left arm flung up and out, the open hand: five fingers (five beers)
+	var shoulder := _mon_p(0.36 * k, -0.34 * k, y + 2.45 * k)
+	var wrist := _mon_p(1.15 * k, -1.05 * k, y + 3.45 * k)
+	_beam(shoulder, wrist, 0.13 * k, bz)
+	for f in 5:
+		var spread := -0.5 + 0.25 * f
+		var tip := _mon_p((1.15 + 0.22 * cos(spread)) * k, (-1.05 - 0.22 * sin(spread + 0.8)) * k, y + (3.45 + 0.2 + 0.05 * f) * k)
+		_beam(wrist, tip, 0.035 * k, bz)
+	# the right arm down to the hip and the PPSh: the barrel forward, the drum under it
+	var rs := _mon_p(0.3 * k, 0.36 * k, y + 2.4 * k)
+	var rh := _mon_p(0.42 * k, 0.42 * k, y + 1.7 * k)
+	_beam(rs, rh, 0.12 * k, bz)
+	_beam(_mon_p(0.1 * k, 0.42 * k, y + 1.62 * k), _mon_p(1.05 * k, 0.4 * k, y + 1.82 * k), 0.07 * k, bz.darkened(0.12))
+	_mode = M_STONE
+	_frustum(_circle(_w(0.55 * k, 0.42 * k), 0.13 * k, 8), y + 1.45 * k, _circle(_w(0.55 * k, 0.42 * k), 0.13 * k, 8), y + 1.62 * k, bz.darkened(0.12), bz.darkened(0.12))
+	# the cape: from the hood and both shoulders back and out to his right, a sail down to the plinth
+	var cb := bz.darkened(0.08)
+	var hood := _mon_p(0.25 * k, 0.0, y + 3.0 * k)
+	var sl := _mon_p(0.2 * k, -0.4 * k, y + 2.5 * k)
+	var sr := _mon_p(0.2 * k, 0.4 * k, y + 2.5 * k)
+	var far_top := _mon_p(-1.1 * k, 1.25 * k, y + 2.75 * k)
+	var far_low := _mon_p(-1.35 * k, 1.55 * k, y + 0.35 * k)
+	var back_low := _mon_p(-1.0 * k, -0.3 * k, y + 0.25 * k)
+	var mid := _mon_p(-1.25 * k, 0.55 * k, y + 1.4 * k)
+	# the cape's bulk: a second, darker fold behind the sail, so it reads as a heavy wedge from the
+	# side too and not as one sheet (the bridge photos: a trapezoid as wide as the man is tall)
+	var fold_top := _mon_p(-1.45 * k, 1.0 * k, y + 2.35 * k)
+	var fold_low := _mon_p(-1.6 * k, 1.2 * k, y + 0.3 * k)
+	var nape := _mon_p(-0.4 * k, 0.5 * k, y + 2.4 * k)
+	var crest := _mon_p(-0.45 * k, 0.6 * k, y + 2.95 * k)
+	# each quad as two triangles with their own normals (the cloth's quads are not flat)
+	var cloth := [[hood, sr, far_top, crest, cb], [sr, far_top, far_low, mid, cb],
+			[hood, crest, mid, sl, cb.lightened(0.04)], [crest, far_top, mid, mid, cb.lightened(0.04)],
+			[sl, mid, far_low, back_low, cb.lightened(0.02)],
+			[sl, back_low, _mon_p(0.0, -0.35 * k, y + 1.3 * k), _mon_p(0.1 * k, -0.4 * k, y + 2.2 * k), cb],
+			[sr, far_top, fold_top, nape, cb.darkened(0.1)], [far_top, far_low, fold_low, fold_top, cb.darkened(0.14)],
+			[nape, fold_top, fold_low, back_low, cb.darkened(0.1)]]
+	for q: Array in cloth:
+		var pa: Vector3 = q[0]
+		var pb: Vector3 = q[1]
+		var pc: Vector3 = q[2]
+		var pd: Vector3 = q[3]
+		_tri(pa, pb, pc, (pb - pa).cross(pc - pa).normalized(), q[4], Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+		if pd != pc:
+			_tri(pa, pc, pd, (pc - pa).cross(pd - pa).normalized(), q[4], Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	# the skaters' ledges: low granite blocks on the plaza in front of him
+	for l: Array in KOSC_LEDGES:
+		var lu: float = l[0]
+		var lv: float = l[1]
+		var lg: float = map.terrain_height(_w(lu, lv).x, _w(lu, lv).y)
+		_lbox(lu, lv, float(l[2]), float(l[3]), lg - 0.2, lg + 0.45, KOSC_GRANITE.lightened(0.12), M_STONE, KOSC_GRANITE.lightened(0.2))
+		_collide(_rect(lu, lv, float(l[2]), float(l[3])))
+	_collide(_rect(0.0, 0.0, 6.4, 3.0))
+	_mode = M_STONE
