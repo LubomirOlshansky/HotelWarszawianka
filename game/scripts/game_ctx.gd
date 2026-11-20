@@ -37,6 +37,10 @@ var traffic: Node3D
 var jobs: Node
 ## The police (police.gd), null with --no-police.
 var police: Node
+## The street racers (rivals.gd), null with --no-traffic: the side jobs ask who is racing.
+var rivals: Node
+## The weather (weather.gd): Podwózka's passengers and its pay read the rain.
+var weather: Node
 var car: CharacterBody3D
 ## The helicopter (heli.gd).
 var heli: Node3D

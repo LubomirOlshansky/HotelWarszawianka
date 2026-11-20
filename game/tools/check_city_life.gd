@@ -31,6 +31,7 @@ const EggBook := preload("res://scripts/egg_book.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const Props := preload("res://scripts/props.gd")
 const Blvd := preload("res://scripts/boulevard_life.gd")
+const Kladka := preload("res://scripts/kladka_life.gd")
 const Pedestrians := preload("res://scripts/pedestrians.gd")
 const Fakes := preload("res://tools/fakes.gd")
 
@@ -79,13 +80,14 @@ func _run() -> void:
 		quit(1)
 		return
 	_check_eggs(book)
+	_check_kladka_rules(data)
 	await _check_city(book, data)
 	book.queue_free()
 	await process_frame
 	if problems.is_empty():
-		print("check_city_life: OK (dog hours and caps, riders, runners, Kolka; horn %s; trend cycle on synthetic dates, sync every %d cycles; pay %s; Zając once; Fat Thursday %s; eggs E16 E18 E19 E20 E27 E28 E29 E30 E34 once each; dogs %d tris; city %s; the armchair man %s, his way %s; steps' life (Schodki Phase B): %s; %s)" % [
+		print("check_city_life: OK (dog hours and caps, riders, runners, Kolka; horn %s; trend cycle on synthetic dates, sync every %d cycles; pay %s; Zając once; Fat Thursday %s; eggs E16 E18 E19 E20 E27 E28 E29 E30 E34 once each; dogs %d tris; city %s; the armchair man %s, his way %s; steps' life (Schodki Phase B): %s; %s; the footbridge's life: %s)" % [
 				_summary.get("horn", "?"), CityLife.SYNC_EVERY, _summary.get("pay", "?"), _summary.get("fat", "?"),
-				_summary.get("tris", 0), _summary.get("city", "?"), _summary.get("armchair", "?"), _summary.get("armchair_city", "?"), _summary.get("blvd", "?"), _summary.get("blvd_paving", "?")])
+				_summary.get("tris", 0), _summary.get("city", "?"), _summary.get("armchair", "?"), _summary.get("armchair_city", "?"), _summary.get("blvd", "?"), _summary.get("blvd_paving", "?"), _summary.get("kladka", "?")])
 		quit(0)
 	else:
 		for p in problems:
@@ -651,6 +653,42 @@ func _check_city(nb: Notebook, data: Dictionary) -> void:
 			n_dogs, float(kolka.get("len", 0.0)), int((life.get("_docks") as Array)[0]["n"]) if not (life.get("_docks") as Array).is_empty() else 0, per_s]
 	life.queue_free()
 	dlg.queue_free()
+
+
+## Kładka Abakanowicz (scripts/kladka_life.gd, F 2026-11-20): from the map's stamp, the walkers and riders
+## on the walk (within its half width, the riders EDGE m in), up from 6:00 to 1:00 and more in the evening,
+## a cyclist among the riders, no more than the scooters' MultiMesh holds; the `kladka` words.
+func _check_kladka_rules(data: Dictionary) -> void:
+	Kladka.setup(data.get("kladka", {}))
+	if Kladka.centre() == Vector2.INF:
+		problems.append("kladka life: no footbridge in the map")
+		return
+	var eve := Kladka.walker_figures(500.0, 20.0)
+	var noon := Kladka.walker_figures(500.0, 12.0)
+	_expect(eve.size() >= 12 and noon.size() >= 8 and Kladka.walker_figures(500.0, 3.0).is_empty(),
+			"kladka life: walkers %d at 20:00, %d at noon" % [eve.size(), noon.size()])
+	var riders := Kladka.rider_figures(300.0, 20.0)
+	var cyc := 0
+	for r: Array in riders:
+		cyc += int(int(r[2]) == CityLife.CYCLIST)
+	_expect(riders.size() <= CityLife.SCOOT_CAP and cyc >= 2, "kladka life: %d riders (%d cyclists)" % [riders.size(), cyc])
+	var half := float(data["kladka"]["half"])
+	for tt in [0.0, 41.0, 333.0, 1777.0]:
+		for f: Array in Kladka.walker_figures(tt, 20.0) + Kladka.walker_figures(tt, 12.0) + Kladka.rider_figures(tt, 20.0):
+			var p: Vector2 = f[0]
+			var off := INF
+			for s in range(0, int(Kladka.total()) + 1, 2):
+				off = minf(off, p.distance_to(Kladka.at(float(s), 0.0)))
+			_expect(off <= half - 0.1, "kladka life: a figure %.1f m off the line at t %.0f" % [off, tt])
+	_expect(Kladka.near(Kladka.centre(), 20.0) and not Kladka.near(Kladka.centre() + Vector2(400, 0), 20.0)
+			and not Kladka.near(Kladka.centre(), 3.0), "kladka life: near and its hours")
+	_expect(Kladka.centre().distance_to(Blvd.C) > Kladka.NEAR_R + Blvd.NEAR_R, "kladka life: its view range meets the steps' (one at a time)")
+	var words: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
+	var lines: Array = words.get("kladka", [])
+	_expect(lines.size() >= 10, "kladka: %d lines" % lines.size())
+	for l: Array in lines:
+		_expect(str(l[0]).length() <= 70 and str(l[1]) != "", "kladka: a line over 70 characters or without English: %s" % str(l[0]))
+	_summary["kladka"] = "%d walkers at 20:00, %d riders (%d cyclists), %d lines" % [eve.size(), riders.size(), cyc, lines.size()]
 
 
 ## Schodki nad Wisłą Phase B (scripts/boulevard_life.gd): the patrol's hours, pairs and its poses along a

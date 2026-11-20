@@ -1,4 +1,4 @@
-extends "res://scripts/landmarks/praga.gd"
+extends "res://scripts/landmarks/kladka.gd"
 ## v0.8 "Landmarks": the buildings that make it Warsaw at a glance, built in code
 ## from the real footprints and heights in centrum.json (OpenStreetMap outlines and
 ## building parts, which carry `height` / `min_height`) instead of their GUGiK LoD2 or
@@ -617,6 +617,9 @@ const INFO := {
 	"flaga": ["Flaga na rondzie Radosława",
 			"Biało-czerwona na maszcie wysokim na prawie 58 m.",
 			"The white-and-red on a mast almost 58 m tall."],
+	"kladka": ["Kładka Abakanowicz",
+			"452 metry z Karowej na Pragę, otwarta w 2024. Mówili: kładka donikąd. Pierwszy tydzień: 200 tysięcy ludzi idących donikąd. Samochodów zero, schodki do siedzenia, a czerwona linia to południk.",
+			"452 metres from Karowa to Praga, opened in 2024. They called it the bridge to nowhere. First week: 200,000 people walking to nowhere. Zero cars, steps to sit on, and the red line is the meridian."],
 	"swieto": ["Most Świętokrzyski",
 			"Most wantowy z 2000 roku: jeden pylon, wanty w jednej płaszczyźnie.",
 			"A cable-stayed bridge of 2000: one pylon, its stays in one plane."],
@@ -692,6 +695,12 @@ const INFO := {
 	"florian": ["Katedra św. Floriana",
 			"Neogotycka katedra na Pradze, 1888–1904. Dwie wieże po 75 m widać z drugiego brzegu Wisły.",
 			"Praga's neo-Gothic cathedral, 1888–1904. Its two 75 m spires are seen from across the Vistula."],
+	"port_praski": ["Port Praski",
+			"Port budowany od 1919 roku, bez śluzy aż do 2017. Dziś kamienice, a doki wciąż za płotem.",
+			"A port dug from 1919 with no lock until 2017. Now tenements, the docks still behind a fence."],
+	"pp_basin": ["Basen Portu Praskiego",
+			"Śluza, wieża i bulwar. Statków na razie brak, bobry są.",
+			"A lock, a tower and a boulevard. No ships yet, beavers yes."],
 	"bazar": ["Bazar Różyckiego",
 			"Najstarszy bazar Warszawy, od 1882 roku. Stare budy obok nowych zielonych pawilonów. Kupisz tu wszystko.",
 			"Warsaw's oldest market, since 1882. Old sheds face the new green kiosks. Everything is for sale."],
@@ -1252,6 +1261,7 @@ func _find_sites() -> void:
 	_find_bridge()
 	_find_flag()
 	_find_swieto()
+	_find_kladka()
 	# The museum and Plac Piłsudskiego loop (2026-10-31): the square's edges.
 	_find_plac()
 	_find_pawilony()
@@ -1415,6 +1425,7 @@ func _find_sites() -> void:
 	# Praga (2026-11-02, the Mac's photo reports): St Florian's cathedral and Bazar Różyckiego.
 	_find_florian()
 	_find_bazar()
+	_find_port_praski()
 	# Stacja Filtrów (F, 2026-11-06): the water tower and Starynkiewicz's bust.
 	_add_site("filtry", [_circle(FT_C, FT_R + 1.0, 28)])
 	if not sites.is_empty() and sites[-1]["key"] == "filtry":
@@ -1669,6 +1680,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_bellona(s)
 			"flaga":
 				_build_flag(s)
+			"kladka":
+				_build_kladka(s)
 			"swieto":
 				_build_swieto(s)
 			"muzeum":
@@ -2012,6 +2025,10 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_florian(s)
 			"bazar":
 				_build_bazar(s)
+			"port_praski":
+				_build_port_praski(s)
+			"pp_basin":
+				_build_pp_basin(s)
 			"syrenka_powisle":
 				_build_syrenka_powisle(s)
 			"dworzec_wodny":

@@ -88,6 +88,13 @@ const FOOT_REACH := 40.0
 ## The steps' crowd at its peak (F, 2026-11-19: the whole 195 m band, was 80 on a shore-distance fan).
 const STEPS_MAX := 180
 const STEPS_KEYS := ["schodki_wisla", "schodki_wisla_w"]
+## Kładka Abakanowicz (F, 2026-11-20: "people sit there like on the steps"): the footbridge's seated
+## bays and its railing (Landmarks.kladka_plan), kind `kladka`, two sites (the Powiśle half and the Praga
+## half: the bridge is 450 m long, so each half comes up within ACTIVE_R of its own middle). The most each half shows at its peak, on
+## the steps' evening curve.
+const KLADKA_IDS := ["kladka_w", "kladka_e"]
+const KLADKA_SPLIT := 250.0
+const KLADKA_MAX := {"kladka_w": 90, "kladka_e": 50}
 ## Phase D (2026-11-19, F: "the terraces and barges are empty"): the boulevard bars' guests, kind `bar`
 ## (landmarks river.gd `bulwar_bar_plans`: the seats the Phase C builders lay). The most each site
 ## shows at its peak, staff included (the plan's seats are more; the rest stay empty): in all 218.
@@ -333,6 +340,15 @@ const BULWARY := {
 	"chill_bulwary_7": [Vector2(590.0, -680.0), 24, 32.0],
 	"chill_bulwary_8": [Vector2(640.0, -632.0), 18, 30.0],
 	"chill_bulwary_9": [Vector2(690.0, -590.0), 16, 30.0],
+}
+## Port Praski (F 2026-11-20: "people sit there like on the boulevards, cyclists, everyone"): the
+## basin's boulevard in front of Sierakowskiego 1-3, its timber seating steps and the quay lane by
+## the lock (praga.gd PP_WALK, PP_SEAT_STEPS). id -> [spot, most people, radius]; on the chill curve,
+## they talk the "port_praski" lines, and city_life doubles the riders near them like the boulevards.
+const PORT_PRASKI := {
+	"chill_port_steps": [Vector2(642.0, -1544.0), 14, 14.0],
+	"chill_port_walk": [Vector2(672.0, -1556.0), 10, 12.0],
+	"chill_port_lock": [Vector2(585.0, -1552.0), 8, 12.0],
 }
 ## Nowy Świat pass 2 (2026-11-02): the café street's pavements, people at the terraces and between
 ## the shops, on the chill curve (a lunch crowd that fills towards a long evening). id -> [spot (the
@@ -1217,12 +1233,16 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 		# At the seating band's middle (SUNKEN `schodki_wisla`), not the places.json point.
 		var band := Landmarks.schodki_plan(MapBuilderData.sunk_spec(STEPS_KEYS[0]))
 		_add_site({"id": STEPS_ID, "kind": "steps", "at": band["centre"] if band["stair"] != "" else at[STEPS_ID], "max": STEPS_MAX})
+	_add_kladka(data.get("kladka", {}))
 	var yards := CHILL.duplicate()
 	yards.merge(BULWARY)
 	yards.merge(NOWY_SWIAT)
 	for cid: String in yards:
 		var cs: Array = yards[cid]
 		_add_site({"id": cid, "kind": "chill", "at": cs[0], "max": int(cs[1]), "radius": float(cs[2])})
+	for qid: String in PORT_PRASKI:
+		var qs: Array = PORT_PRASKI[qid]
+		_add_site({"id": qid, "kind": "chill", "at": qs[0], "max": int(qs[1]), "radius": float(qs[2]), "talk": "port_praski"})
 	for pid: String in NOWOGRODZKA:
 		var ps: Array = NOWOGRODZKA[pid]
 		_add_site({"id": pid, "kind": "chill", "pub": true, "sit": false, "at": ps[0], "max": int(ps[1]), "radius": float(ps[2])})
@@ -1449,6 +1469,69 @@ func _add_stops(data: Dictionary) -> void:
 			other += 1
 
 
+## The footbridge's two crowds (KLADKA_IDS) from the map's stamp: the seated groups and the railing's
+## standers of each half, mixed (a standing one after every fourth sitter) in a seeded order, so a
+## bigger crowd adds whole groups. Nothing when the map has no bridge.
+func _add_kladka(st: Dictionary) -> void:
+	var plan := Landmarks.kladka_plan(st)
+	if (plan["seats"] as Array).is_empty():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2803
+	var line := Landmarks._kl_triples(st["line"])
+	var cum := Landmarks._kl_cumulate(line)
+	for half in 2:
+		var groups := {}
+		var stand: Array = []
+		for st_: Array in plan["seats"]:
+			if (_kl_s(line, cum, st_[0]) < KLADKA_SPLIT) != (half == 0):
+				continue
+			var gid := int(st_[3])
+			if not groups.has(gid):
+				groups[gid] = [rng.randf(), []]
+			(groups[gid][1] as Array).append({"p": st_[0], "pose": SIT, "yaw": float(st_[1]), "y": float(st_[2]),
+					"shirt": BRIGHT[rng.randi() % BRIGHT.size()]})
+		for st_: Array in plan["standing"]:
+			if (_kl_s(line, cum, st_[0]) < KLADKA_SPLIT) != (half == 0):
+				continue
+			stand.append([rng.randf(), {"p": st_[0], "pose": STAND, "yaw": float(st_[1]), "y": float(st_[2]),
+					"shirt": BRIGHT[rng.randi() % BRIGHT.size()]}])
+		var order: Array = groups.values()
+		order.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
+		stand.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
+		var slots: Array = []
+		var qi := 0
+		for g: Array in order:
+			for sl: Dictionary in g[1]:
+				slots.append(sl)
+				if slots.size() % 5 == 0 and qi < stand.size():
+					slots.append((stand[qi] as Array)[1])
+					qi += 1
+		while qi < stand.size():
+			slots.append((stand[qi] as Array)[1])
+			qi += 1
+		if slots.is_empty():
+			continue
+		var c := Vector2.ZERO
+		for sl: Dictionary in slots:
+			c += sl["p"] as Vector2
+		var id: String = KLADKA_IDS[half]
+		_add_site({"id": id, "kind": "kladka", "at": c / slots.size(), "max": mini(int(KLADKA_MAX[id]), slots.size()),
+				"slots": slots})
+
+
+## Where along the footbridge's line (m from the Powiśle end) the point p is: its nearest station's.
+static func _kl_s(line: PackedVector3Array, cum: PackedFloat32Array, p: Vector2) -> float:
+	var best := INF
+	var at := 0.0
+	for i in line.size():
+		var d := p.distance_squared_to(Vector2(line[i].x, line[i].z))
+		if d < best:
+			best = d
+			at = cum[i]
+	return at
+
+
 func _add_site(s: Dictionary) -> void:
 	s["n"] = 0
 	s["want"] = 0
@@ -1589,7 +1672,7 @@ func _place_site(s: Dictionary) -> void:
 			_place_view(s)
 		"deck":
 			_place_deck(s)
-		"meet":
+		"meet", "kladka":
 			s["door"] = s["at"]
 
 
@@ -2348,7 +2431,7 @@ func _figures(s: Dictionary) -> Array:
 				var gp: Vector2 = s["guitar"]
 				var gy := float(s["guitar_y"]) if not is_nan(float(s.get("guitar_y", NAN))) else _ground(gp).y
 				out.append([Vector3(gp.x, gy, gp.y), atan2(-face.x, -face.y), SIT, GUITAR_SHIRT, 0.0])
-		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe", "view", "view_dj", "bar":
+		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe", "view", "view_dj", "bar", "kladka":
 			var slots: Array = s["slots"]
 			for k in mini(n, slots.size()):
 				var sl: Dictionary = slots[k]
@@ -2508,6 +2591,8 @@ func tick(step: float) -> void:
 			"steps":
 				steps_lvl = steps_level(hour, month, rain, sunset)
 				want = roundi(STEPS_MAX * k * steps_lvl)
+			"kladka":
+				want = roundi(int(s["max"]) * k * steps_level(hour, month, rain, sunset))
 			"plan_c":
 				plan_lvl = plan_c_level(hour, weekday, month, rain)
 				want = roundi(PLAN_C_MAX * k * plan_lvl)

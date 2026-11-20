@@ -28,7 +28,8 @@ campus_cart.gd                          the University guards' cart on a fixed c
 pedestrians.gd  walkers on footways in one MultiMesh, plus fixed "slots" other systems rent
      ├─ crowds.gd        queues, roof crowds, river people (still figures, same mesh); kind `bar` seats the boulevard bars (Landmarks.bulwar_bar_plans), the steps site also owns their props MultiMesh (steps_props.gdshader) and the mandat target (`steps_fine`)
      ├─ city_life.gd     dog walkers, cyclists, runners, Hyrax, the Wiralek trend cycle
-     │   └─ boulevard_life.gd  the Vistula steps' life: police/Straż patrol with a dog, walkers, queues, scooters (closed-form poses)
+     │   ├─ boulevard_life.gd  the Vistula steps' life: police/Straż patrol with a dog, walkers, queues, scooters (closed-form poses)
+     │   └─ kladka_life.gd     the footbridge's walkers, cyclists, scooters (closed-form poses on the bridge's line)
      ├─ packs.gd         running clubs and coffee crowds
      ├─ fans.gd          football fans on match evenings
      └─ wellness.gd      sound healing, yoga and other park circles
@@ -188,6 +189,12 @@ traffic Driver because the campus paths are not in the lane graph.
   `city_life.gd` writes them into guest slots (`BLVD_BIT` in `_shown`, 7.5 Hz), the dog MultiMesh and
   one small `Scooters` MultiMesh (the bike family's four shapes were taken: +1 draw call). Not
   Beehave: one fixed loop per figure. Lines: `policja_bulwar` (`say_ambient`).
+- **Kładka Abakanowicz life** (`kladka_life.gd`, 2026-11-20): the same pattern on the footbridge's
+  line (the map's `kladka` stamp): walkers, joggers, families, cyclists (the `Scooters` family's
+  third shape, +0 draw calls), scooters and a rollerblader. `city_life.gd` runs it on the steps'
+  bit and slots when the view is near the bridge instead (the two lie 620 m apart). The sitters on
+  the seating bays and the railing's standers are crowds.gd kind `kladka` (two sites, the steps'
+  evening curve). Lines: `kladka` (`say_ambient`). Not Beehave, not Dialogue Manager.
 - **Reactions** go through bubbles and the chatter budget (`say_reaction`, `say_ambient`), never a
   private cooldown.
 

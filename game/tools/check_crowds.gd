@@ -24,6 +24,8 @@ extends SceneTree
 ##   9. F's asks (2026-10-30): Level 26 stands on the tower (its place inside a building part of
 ##      100 m or more in the map data), its door queue on a footway, the roof ring on a synthetic
 ##      tower (every ray on the facade or at most a cell outside it, one height).
+##  11. Kładka Abakanowicz (2026-11-20): its two crowd sites from the map's stamp, every sitter on a seat
+##      row over the walk and every stander on it, inside the deck's widest strip.
 ## Prints "check_crowds: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_crowds.gd [-- --verbose]
 
@@ -83,6 +85,7 @@ func _run() -> void:
 	var bare := {"landmarks": (data as Dictionary).get("landmarks", [])}
 	_expect(not Crowds.Landmarks.loretka_plan(bare).is_empty(), "LORETKA's terrace has no plan without the building parts (the prebuilt index)")
 	_check_bars(c, data)
+	_check_kladka(c, data)
 	_check_door(c, dlg)
 	var cost := _check_dawn(c, data)
 	_check_office(c, data, dlg)
@@ -517,6 +520,54 @@ func _check_bars(c: Crowds, data: Dictionary) -> void:
 		_expect(((off["figs"] as Array)[0][0] as Vector2).distance_to(Blvd.on_route(Blvd.PATROL_U.x)) > 0.0, "the {off} patrol still walks")
 	if verbose:
 		print("  bars: %d figures at the peak, %d props, mandat path %s" % [total, props.size(), tg.get("len", -1.0)])
+
+
+# 11. -------------------------------------------------------------------------------------------
+
+## Kładka Abakanowicz (F, 2026-11-20): its two crowd sites from the map's stamp (Landmarks.kladka_plan),
+## sitters on the seat rows above the walk, standers on the walk, all inside the deck's widest strip;
+## the evening's peak fills a half to its max, nobody at 03:00.
+func _check_kladka(c: Crowds, data: Dictionary) -> void:
+	var st: Dictionary = data.get("kladka", {})
+	if int(st.get("v", 0)) < 1:
+		problems.append("kladka: the map has no footbridge stamp (python3 -I tools/kladka.py)")
+		return
+	var line := Crowds.Landmarks._kl_triples(st["line"])
+	var cum := Crowds.Landmarks._kl_cumulate(line)
+	var half := float(st["half"])
+	var wide := half
+	for b: Array in st["bays"]:
+		wide = maxf(wide, half + float(b[3]))
+	var total := 0
+	var sit := 0
+	for id: String in Crowds.KLADKA_IDS:
+		if not c.by_id.has(id):
+			problems.append("kladka: no crowd site %s" % id)
+			continue
+		var s: Dictionary = c.sites[int(c.by_id[id])]
+		var slots: Array = s["slots"]
+		_expect(slots.size() >= int(s["max"]) and int(s["max"]) >= 30, "kladka: %s has %d spots for %d people" % [id, slots.size(), int(s["max"])])
+		total += int(s["max"])
+		for sl: Dictionary in slots:
+			var p: Vector2 = sl["p"]
+			var best := INF
+			var y0 := 0.0
+			for k in line.size() - 1:
+				var a := Vector2(line[k].x, line[k].z)
+				var b := Vector2(line[k + 1].x, line[k + 1].z)
+				var q := Geometry2D.get_closest_point_to_segment(p, a, b)
+				if q.distance_to(p) < best:
+					best = q.distance_to(p)
+					y0 = lerpf(line[k].y, line[k + 1].y, a.distance_to(q) / maxf(a.distance_to(b), 0.001))
+			var up := float(sl["y"]) - y0
+			if int(sl["pose"]) == Crowds.SIT:
+				sit += 1
+				_expect(best <= wide and up >= 0.4 and up <= 2.0, "kladka: a sitter %.1f m off the line, %.2f m over the walk" % [best, up])
+			else:
+				_expect(best <= half - 0.2 and absf(up) <= 0.3, "kladka: a stander %.1f m off the line, %.2f m over the walk" % [best, up])
+	_expect(sit >= 60, "kladka: %d sitters (want the bays' seats full of people)" % sit)
+	if verbose:
+		print("  kladka: %d people at the peak, %d sitting spots, line %.0f m" % [total, sit, cum[cum.size() - 1]])
 
 
 # 10. -------------------------------------------------------------------------------------------

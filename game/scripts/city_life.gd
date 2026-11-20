@@ -43,6 +43,7 @@ const Crowds := preload("res://scripts/crowds.gd")
 const EggBook := preload("res://scripts/egg_book.gd")
 const Pedestrians := preload("res://scripts/pedestrians.gd")
 const BoulevardLife := preload("res://scripts/boulevard_life.gd")
+const KladkaLife := preload("res://scripts/kladka_life.gd")
 const Props := preload("res://scripts/props.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 
@@ -201,10 +202,14 @@ const ARM_BIT := 1 << 30
 ## (BLVD_SIG_SHIFT) so a count that changed writes everything.
 const BLVD_BIT := 1 << 29
 const BLVD_SIG_SHIFT := 31
-## The scooters' and rollerbladers' own MultiMesh: instances (the riders in boulevard_life.gd are 6).
+## Kładka Abakanowicz (kladka_life.gd, F 2026-11-20) rides the same bit and slots: its walkers and
+## riders are up when the view is within KladkaLife.NEAR_R of the bridge's middle (the two places
+## lie 600 m apart, so one of them is near at a time).
+## The scooters' and rollerbladers' own MultiMesh: instances (the riders in boulevard_life.gd are 6,
+## on the footbridge 7).
 const SCOOT_CAP := 8
-## A scooter (0) or a rollerblader (1) as a family mesh shape.
-enum { SCOOTER, BLADER }
+## A scooter (0), a rollerblader (1) or a cyclist (2, the footbridge's) as a family mesh shape.
+enum { SCOOTER, BLADER, CYCLIST }
 const ARM_SHIRT := Color("#c96b2c")
 ## Pale yellow, mint, white (never the jobs' orange).
 const KOLKA_TOPS := ["#fff3a6", "#b8f0d8", "#f7f7f2", "#fff8c9", "#c9f5e6", "#eef9b0"]
@@ -428,6 +433,8 @@ var _heights := {}
 var _stops := {}
 var _dogs: Array[Mover] = []
 var _riders: Array[Mover] = []
+## The boulevard spots the riders double near: Crowds.BULWARY and Crowds.PORT_PRASKI.
+var _blvd_spots: Dictionary = Crowds.BULWARY.merged(Crowds.PORT_PRASKI)
 ## The view is on the Vistula boulevards (Crowds.BULWARY): more and faster riders.
 var _on_blvd := false
 ## Schodki Phase B: the scooters' MultiMesh, the guest slot the steps' people start at (-1: none)
@@ -438,6 +445,11 @@ var _scoot_buf := PackedFloat32Array()
 var _blvd_slot := -1
 var _blvd_dog := -1
 var _blvd_line_t := 0.0
+## Which of the two is up now (set by _blvd_near): the steps' life, the footbridge's.
+var _blvd_on := false
+var _kl_on := false
+## The footbridge's passers-by's lines said (check_life reads it).
+var kladka_lines := 0
 var blvd_lines := 0
 ## The mandat captions said, and the patrol passing last fined (so a passing is told once).
 var blvd_fines := 0
@@ -861,9 +873,11 @@ func setup(places: Array, data: Dictionary, seed_value := 4404) -> void:
 			_zones.append(_at[id])
 		if "runners" in (_tags[id] as Array) or "promenade" in (_tags[id] as Array):
 			_run_zones.append(_at[id])
+	KladkaLife.setup(data.get("kladka", {}))
 	# F's ask: dog walkers (twice as many) and fast riders on the Vistula boulevards.
-	for id: String in Crowds.BULWARY:
-		_zones.append(Crowds.BULWARY[id][0])
+	# Port Praski's basin boulevard counts as a boulevard too (F 2026-11-20: "cyclists, everyone").
+	for id: String in _blvd_spots:
+		_zones.append(_blvd_spots[id][0])
 	for poi: Dictionary in data.get("pois", []):
 		if str(poi.get("k", "")) == "park":
 			_run_zones.append(Vector2(float(poi["x"]), float(poi["z"])))
@@ -1317,9 +1331,9 @@ static func bike_mesh() -> ArrayMesh:
 	return family_mesh(parts, [commuter, rowerilo, cargo, parked])
 
 
-## The boulevard's scooter riders (Schodki Phase B), facing -z, a family of two: an e-scooter (a thin
+## The boulevard's scooter riders (Schodki Phase B), facing -z, a family of three: an e-scooter (a thin
 ## deck on two small wheels, a stem and a bar, the rider upright on the deck) and a rollerblader (the
-## same rider, feet in skates, leaning forward, arms out). The rider's shirt is the instance colour.
+## same rider, feet in skates, leaning forward, arms out), and the footbridge's cyclist (kladka_life.gd). The rider's shirt is the instance colour.
 ## The bike family's four shapes are all taken, so this is its own small MultiMesh (+1 draw call).
 static func scooter_mesh() -> ArrayMesh:
 	var tyre := [Models.TYRE, Models.FIXED]
@@ -1348,7 +1362,17 @@ static func scooter_mesh() -> ArrayMesh:
 			[Vector3(0, 1.69, -0.18), Vector3(0.26, 0.07, 0.27)],
 			[Vector3(-0.11, 0.07, -0.22), Vector3(0.12, 0.13, 0.4)], [Vector3(0.11, 0.07, 0.24), Vector3(0.12, 0.13, 0.4)],
 			[Vector3(-0.34, 1.05, -0.05), Vector3(0.1, 0.1, 0.5)], [Vector3(0.34, 1.05, -0.2), Vector3(0.1, 0.1, 0.5)]]
-	return family_mesh(parts, [scooter, blader])
+	# The footbridge's cyclist (2026-11-20): the wheels big, the deck as the top tube, the stem as the
+	# fork, the rider seated and leaning to the bar, the skates as the pedals.
+	var cyclist := [[Vector3(0, 0.34, -0.55), Vector3(0.05, 0.68, 0.68)], [Vector3(0, 0.34, 0.5), Vector3(0.05, 0.68, 0.68)],
+			[Vector3(0, 0.66, -0.02), Vector3(0.06, 0.06, 0.92)], [Vector3(0, 0.62, -0.5), Vector3(0.05, 0.6, 0.05)],
+			[Vector3(0, 0.98, -0.46), Vector3(0.5, 0.04, 0.04)],
+			[Vector3(-0.11, 0.62, 0.1), Vector3(0.13, 0.62, 0.15)], [Vector3(0.11, 0.52, -0.02), Vector3(0.13, 0.62, 0.15)],
+			[Vector3(0, 1.2, 0.08), Vector3(0.4, 0.56, 0.26)], [Vector3(0, 1.6, -0.12), Vector3(0.24, 0.24, 0.24)],
+			[Vector3(0, 1.74, -0.1), Vector3(0.26, 0.07, 0.27)],
+			[Vector3(-0.12, 0.28, 0.02), Vector3(0.1, 0.05, 0.16)], [Vector3(0.12, 0.42, -0.06), Vector3(0.1, 0.05, 0.16)],
+			[Vector3(-0.22, 1.12, -0.22), Vector3(0.09, 0.09, 0.48)], [Vector3(0.22, 1.12, -0.22), Vector3(0.09, 0.09, 0.48)]]
+	return family_mesh(parts, [scooter, blader, cyclist])
 
 
 ## A sign: a dark board with lines of the pixel font (lit at night: actor.gdshader's LIT_SIGN)
@@ -1671,8 +1695,8 @@ func tick(step: float) -> void:
 			zone = true
 			break
 	var blvd := false
-	for id: String in Crowds.BULWARY:
-		if eye.distance_to(Crowds.BULWARY[id][0]) < Crowds.BULWARY_R + float(Crowds.BULWARY[id][2]):
+	for id: String in _blvd_spots:
+		if eye.distance_to(_blvd_spots[id][0]) < Crowds.BULWARY_R + float(_blvd_spots[id][2]):
 			blvd = true
 			break
 	_on_blvd = blvd
@@ -2939,13 +2963,15 @@ func _hyrax_loop() -> void:
 
 ## The view is near the steps and the street life is up at this hour.
 func _blvd_near(eye: Vector2) -> bool:
-	return amount > 0.0 and BoulevardLife.active(_hour) and eye.distance_to(BoulevardLife.C) < BoulevardLife.NEAR_R
+	_blvd_on = amount > 0.0 and BoulevardLife.active(_hour) and eye.distance_to(BoulevardLife.C) < BoulevardLife.NEAR_R
+	_kl_on = amount > 0.0 and not _blvd_on and KladkaLife.near(eye, _hour)
+	return _blvd_on or _kl_on
 
 
 ## The patrol's figures and dog now: BoulevardLife.patrol_figures for the hour's kind and pairs
 ## ({"figs": [], "dog": []} when nobody patrols).
 func _blvd_pose() -> Dictionary:
-	var kind := BoulevardLife.patrol_kind(_hour)
+	var kind := BoulevardLife.patrol_kind(_hour) if _blvd_on else ""
 	if kind == "":
 		return {"figs": [], "dog": []}
 	return BoulevardLife.patrol_figures(t + blvd_t0, kind, BoulevardLife.patrol_pairs(_hour, _weekday), _blvd_target())
@@ -2964,17 +2990,31 @@ func _blvd_target() -> Dictionary:
 func _blvd_sig() -> int:
 	var pose := _blvd_pose()
 	return (pose["figs"] as Array).size() | (1 if not (pose["dog"] as Array).is_empty() else 0) << 4 \
-			| BoulevardLife.walker_figures(0.0, _hour).size() << 5 | BoulevardLife.rider_figures(0.0, _hour).size() << 11
+			| _walkers_now(0.0).size() << 5 | _riders_now(0.0).size() << 11 | int(_kl_on) << 17
+
+
+## The walkers of the place that is up now (the steps' or the footbridge's), at clock `at_t`.
+func _walkers_now(at_t: float) -> Array:
+	if _kl_on:
+		return KladkaLife.walker_figures(at_t, _hour)
+	return BoulevardLife.walker_figures(at_t, _hour) if _blvd_on else []
+
+
+## The riders of the place that is up now, at clock `at_t`.
+func _riders_now(at_t: float) -> Array:
+	if _kl_on:
+		return KladkaLife.rider_figures(at_t, _hour)
+	return BoulevardLife.rider_figures(at_t, _hour) if _blvd_on else []
 
 
 ## The patrol's and the walkers' people into the step's guest lists (`_fig`), at their poses now.
 ## Returns nothing; the dog and the scooters have their own writes.
 func _blvd_people() -> void:
-	var lists: Array = [(_blvd_pose()["figs"] as Array), BoulevardLife.walker_figures(t + blvd_t0, _hour)]
+	var lists: Array = [(_blvd_pose()["figs"] as Array), _walkers_now(t + blvd_t0)]
 	for list: Array in lists:
 		for f: Array in list:
 			var q := f[0] as Vector2
-			_fig(Vector3(q.x, _ground(q), q.y), float(f[1]), f[2] as Color, float(f[3]), f[4] as Vector3)
+			_fig(Vector3(q.x, _life_y(q), q.y), float(f[1]), f[2] as Color, float(f[3]), f[4] as Vector3)
 
 
 ## Between full writes: the steps' people, dog and scooters at their poses now (people and the dog
@@ -3001,13 +3041,13 @@ func _blvd_step() -> void:
 ## The scooters and rollerbladers into their MultiMesh at their poses now (none when the steps' life
 ## is not shown).
 func _write_scooters() -> void:
-	var list: Array = BoulevardLife.rider_figures(t + blvd_t0, _hour) if _shown & BLVD_BIT else []
+	var list: Array = _riders_now(t + blvd_t0) if _shown & BLVD_BIT else []
 	var n := mini(list.size(), SCOOT_CAP)
 	var box := AABB()
 	for i in n:
 		var f: Array = list[i]
 		var q := f[0] as Vector2
-		var at := Vector3(q.x, _ground(q), q.y)
+		var at := Vector3(q.x, _life_y(q), q.y)
 		put(_scoot_buf, i, at, float(f[1]), Vector3.ONE, f[3] as Color, float(f[2]))
 		box = AABB(at, Vector3.ZERO) if i == 0 else box.expand(at)
 	_scoot_mm.visible_instance_count = n
@@ -3022,6 +3062,9 @@ func _write_scooters() -> void:
 func _blvd_talk(eye: Vector2, step: float) -> void:
 	_blvd_line_t -= step
 	if dialogue == null:
+		return
+	if _kl_on:
+		_kl_talk(eye)
 		return
 	var kind := BoulevardLife.patrol_kind(_hour)
 	if kind == "":
@@ -3056,8 +3099,30 @@ func _blvd_talk(eye: Vector2, step: float) -> void:
 	blvd_lines += 1
 
 
+## The footbridge: a passer-by near the view says a line of `kladka` now and then (the bridge's lore:
+## the bridge to nowhere, the meridian, the bins, the cyclists), over their head.
+func _kl_talk(eye: Vector2) -> void:
+	if _blvd_line_t > 0.0:
+		return
+	var figs := KladkaLife.walker_figures(t + blvd_t0, _hour)
+	figs.append_array(KladkaLife.rider_figures(t + blvd_t0, _hour))
+	var q := KladkaLife.nearest(figs, eye)
+	if q == Vector2.INF or q.distance_to(eye) > KladkaLife.LINE_R:
+		return
+	_blvd_line_t = KladkaLife.LINE_GAP * _rng.randf_range(0.8, 1.3)
+	var spot := Vector3(q.x, KladkaLife.walk_y(q) + 2.2, q.y)
+	dialogue.say_ambient(func() -> Vector3: return spot, "", "kladka", "", 4.0, BUBBLE, 2.2)
+	kladka_lines += 1
+
+
 func _ground(p: Vector2) -> float:
 	return map.deck_height(-1, p.x, p.y) if map != null else 0.0
+
+
+## The height a steps' or footbridge figure stands at: the footbridge's walk when that life is up
+## (the terrain under it is the river), else the ground.
+func _life_y(p: Vector2) -> float:
+	return KladkaLife.walk_y(p) if _kl_on else _ground(p)
 
 
 # --- Kolka and the Zając -----------------------------------------------------------------------

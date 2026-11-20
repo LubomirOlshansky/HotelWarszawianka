@@ -136,6 +136,8 @@ SITE_PAD = 12.0
 # Building kinds landmarks.gd finds wherever they lie (the barges, 2026-11-01: _find_barges).
 SITE_KINDS = ("boat", "houseboat")
 SITE_AREAS = [
+    (370.0, -1745.0, 690.0, -1575.0),     # Port Praski's tenement blocks (praga.gd PP_BLOCKS)
+    (495.0, -1510.0, 632.0, -1403.0),     # and its basin's tower, pump houses and sheds (PP_BASIN)
     (-1360.0, -262.0, -1275.0, -225.0),     # Próżna's two south tenements (landmarks.gd _find_prozna, F's photos 2026-11-08)
     (-1345.0, -1790.0, -1200.0, -1690.0),   # Sąd Najwyższy's colonnade (landmarks.gd SN_BOX: unnamed OSM columns)
     (-270.0, -1510.0, -20.0, -1260.0),      # the boulevards' bar pavilions (landmarks.gd BULWAR_PAW_BOX)
