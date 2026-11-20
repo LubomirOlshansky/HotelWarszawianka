@@ -270,7 +270,7 @@ const CARD_ART_GAP := 10.0
 const CARD_LEFT_W := 380.0
 ## The lead button of a card (`set_card_lead`): its height in plain buttons, and its words' colour on the gold.
 const LEAD_TALL := 1.4
-const LEAD_INK := Color("#1b1405")
+const LEAD_INK := UiKit.ON_GOLD
 var _card_face: Control
 var _card_face_tex: Texture2D
 var _card_face_letter := ""
@@ -459,7 +459,7 @@ var _strip_plate: StyleBoxFlat
 const POLICE_BLUE := Color("#1f4fd8")
 const SCENE_AMBER := UiKit.HEAT
 const LENS_BLUE := Color("#3d7bff")
-const LENS_RED := Color("#ff3b3b")
+const LENS_RED := UiKit.ALERT
 var _police_pill: PanelContainer
 var _police_pl: Label
 var _police_en: Label
@@ -472,7 +472,7 @@ var _gap_mode := 0
 const GAP_GOLD := UiKit.GOLD
 const GAP_SEARCH := Color("#9fb4d8")
 ## Hiding spots blinking on the minimap during a chase (police.gd `_hides_near`).
-const HIDE_GREEN := Color("#5fd38a")
+const HIDE_GREEN := UiKit.GO
 var _hide_marks := PackedVector2Array()
 var _koguty: Control
 var _koguty_lit := 0
@@ -593,7 +593,7 @@ func _ready() -> void:
 	add_child(_police_fx)
 	_strip_plate = StyleBoxFlat.new()
 	_strip_plate.bg_color = CARD_BG
-	_strip_plate.border_color = Color(1, 1, 1, 0.3)
+	_strip_plate.border_color = UiKit.EDGE_STRONG
 	_strip_plate.set_border_width_all(maxi(1, roundi(1.2 * pt)))
 
 	# The top row: the gear (loop 2a), the speed, the context button, RADIO and HELI / AUTO.
@@ -738,7 +738,7 @@ func _panel_box(radius := 10.0, margin := 12.0) -> StyleBoxFlat:
 func _box(bg: Color, border: Color, width: float) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
-	s.set_corner_radius_all(roundi(10.0 * pt))
+	s.set_corner_radius_all(roundi(UiKit.R_CARD * pt))
 	s.border_color = border
 	s.set_border_width_all(maxi(1, roundi(width * pt)))
 	s.set_content_margin_all(4.0 * pt)
@@ -751,8 +751,8 @@ func _chip(parent: Node, pl: String, en: String, accent := Color(0, 0, 0, 0)) ->
 	var b := Button.new()
 	b.focus_mode = Control.FOCUS_NONE
 	var lit := accent.a > 0.0
-	var normal := _box(CARD_BG, accent if lit else Color(1, 1, 1, 0.22), 2.0 if lit else 1.0)
-	var pressed := _box(Color(1, 0.82, 0.25, 0.3), ACCENT, 2.0)
+	var normal := _box(CARD_BG, accent if lit else UiKit.EDGE_STRONG, 2.0 if lit else 1.0)
+	var pressed := _box(UiKit.GOLD_TINT, ACCENT, 2.0)
 	for s in ["normal", "hover", "disabled"]:
 		b.add_theme_stylebox_override(s, normal)
 	for s in ["pressed", "hover_pressed"]:
@@ -766,11 +766,22 @@ func _chip(parent: Node, pl: String, en: String, accent := Color(0, 0, 0, 0)) ->
 	for t in [[T_BODY, accent if lit else INK], [T_LABEL, SUB]]:
 		var l := _label(t[0], t[1])
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.uppercase = true  # the kit's button words are capitals
 		words.add_child(l)
 	b.add_child(words)
 	parent.add_child(b)
 	_set_chip(b, pl, en)
 	return b
+
+
+## A chip made the card's PRIMARY button (docs/design/ui-kit.md): gold fill, dark words.
+func _make_primary(b: Button) -> void:
+	var boxes := UiKit.button_boxes(UiKit.Kind.PRIMARY, pt)
+	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		b.add_theme_stylebox_override(st, boxes[st])
+	for l in b.get_child(0).get_children():
+		(l as Label).add_theme_color_override("font_color", UiKit.ON_GOLD)
+		(l as Label).add_theme_constant_override("outline_size", 0)
 
 
 ## New words on a chip; its width follows them (at least 64 pt).
@@ -784,8 +795,8 @@ func _set_chip(b: Button, pl: String, en: String, min_width := 64.0) -> void:
 	low.text = en
 	low.visible = en != ""
 	var font := ThemeDB.fallback_font
-	var w := maxf(font.get_string_size(pl, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_BODY)).x,
-			font.get_string_size(en, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_LABEL)).x)
+	var w := maxf(font.get_string_size(pl.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_BODY)).x,
+			font.get_string_size(en.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_LABEL)).x)
 	b.custom_minimum_size = Vector2(maxf(w + 24.0 * pt, min_width * pt), TOUCH * pt * (LEAD_TALL if b.has_meta("lead") else 1.0))
 	b.size = b.custom_minimum_size
 	_mark()
@@ -1254,7 +1265,7 @@ func _style_radio_plate() -> void:
 func _draw_skip() -> void:
 	var sz := _skip_button.size
 	var held := _skip_button.is_pressed()
-	var box := _box(Color(1, 0.82, 0.25, 0.3) if held else CARD_BG, ACCENT if held else Color(1, 1, 1, 0.22), 2.0 if held else 1.0)
+	var box := _box(UiKit.GOLD_TINT if held else CARD_BG, ACCENT if held else UiKit.EDGE_STRONG, 2.0 if held else 1.0)
 	box.corner_radius_top_left = 0
 	box.corner_radius_bottom_left = 0
 	_skip_button.draw_style_box(box, Rect2(Vector2.ZERO, sz))
@@ -1504,13 +1515,13 @@ func _fit_bench_card() -> void:
 
 ## The now-playing panel: bottom left, above the bottom edge, out of the way of the pedals.
 func _build_ticker() -> void:
-	_ticker_style = _panel_box(8.0, 6.0)
+	_ticker_style = _panel_box(UiKit.R_CARD, 6.0)
 	_ticker_style.content_margin_left = 12.0 * pt
 	_ticker_style.content_margin_right = 12.0 * pt
 	# Only the left edge takes the station's colour (the card recipe keeps colour off the rest).
 	_ticker_style.set_border_width_all(0)
 	_ticker_style.border_width_left = roundi(4.0 * pt)
-	_ticker_style.border_color = Color("#ff5fc8")
+	_ticker_style.border_color = UiKit.NEON_PINK  # the radio is the brand neon
 	_ticker = PanelContainer.new()
 	_ticker.name = "ticker"
 	_ticker.add_theme_stylebox_override("panel", _ticker_style)
@@ -1521,7 +1532,7 @@ func _build_ticker() -> void:
 	_ticker.add_child(rows)
 	_ticker_label = _label(T_BODY, INK)
 	rows.add_child(_ticker_label)
-	_ticker_sub = _label(T_SUB, Color("#d9d2e6"))
+	_ticker_sub = _label(T_SUB, SUB)
 	rows.add_child(_ticker_sub)
 	add_child(_ticker)
 
@@ -1835,7 +1846,10 @@ func show_card(title: String, body: String, buttons: PackedStringArray, accent: 
 	if not buttons.is_empty() and buttons[0].begins_with("ODBIERZ"):
 		messages.call_rang()  # an incoming call (ODBIERZ / ODRZUĆ): the next caller waits CALL_GAP
 	_card_title.text = title
-	_card_title.add_theme_color_override("font_color", accent)
+	# The kit (docs/design/ui-kit.md): every card title is gold capitals; the caller's accent
+	# stays on what the card is about (its pin, its ring), not on the words.
+	_card_title.add_theme_color_override("font_color", ACCENT)
+	_card_title.uppercase = true
 	_card_title_en.text = title_en
 	_card_title_en.visible = title_en != ""
 	_card_body.text = body
@@ -1860,6 +1874,8 @@ func show_card(title: String, body: String, buttons: PackedStringArray, accent: 
 		b.name = "button%d" % i
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(func(): _press_card(i))
+		if i == 0 and not stacked:
+			_make_primary(b)  # the card's main action is the one gold button (the kit)
 	_card.reset_size()
 	_show(_card, true)
 	_show(_status, false)
@@ -3009,7 +3025,7 @@ func notebook_changed() -> void:
 ## once as triangles round (0, 0) (`_question_pts`, rebuilt when the point size changes); each
 ## mark is that array moved (one Transform2D on the packed array, no per-pixel script work).
 const QUESTION := ["###", "..#", ".##", "...", ".#."]
-const QUESTION_GOLD := Color("#f0b429")
+const QUESTION_GOLD := UiKit.GOLD  # the one gold (was #f0b429)
 var _question_pts := PackedVector2Array()
 var _question_cols := PackedColorArray()
 var _question_pt := 0.0
@@ -3182,7 +3198,7 @@ func _build_wallet() -> void:
 	rows.add_theme_constant_override("separation", roundi(2.0 * pt))
 	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_note.add_child(rows)
-	_note_title = _label(T_SUB, Color("#ff4fd8"))
+	_note_title = _label(T_SUB, UiKit.NEON_PINK)
 	rows.add_child(_note_title)
 	_note_body = _label(T_SUB, INK)
 	_wrap(_note_body, NOTE_W - 20.0)
@@ -3251,9 +3267,9 @@ func _draw_wallet() -> void:
 	var gain := _wallet_flash > WALLET_FLASH - 1.6
 	var money := _money_text()
 	var base := Vector2(x, y + fs * 0.36)
-	var colour := Color("#ffe27a")
+	var colour := ACCENT
 	if gain:
-		colour = Color(0.55, 1.0, 0.6).lerp(Color("#ffe27a"), 0.5 + 0.5 * sin(_wallet_flash * 12.0))
+		colour = Color(0.55, 1.0, 0.6).lerp(ACCENT, 0.5 + 0.5 * sin(_wallet_flash * 12.0))
 	w.draw_string(font, base, money, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, colour)
 	x += maxf(font.get_string_size(money, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x,
 			font.get_string_size(_money(_wallet_zl), HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x) + 10.0 * pt
@@ -3266,7 +3282,7 @@ func _draw_wallet() -> void:
 		star.append(c + Vector2(cos(a), sin(a)) * (7.2 if k % 2 == 0 else 3.2) * pt)
 		outer.append(c + Vector2(cos(a), sin(a)) * (8.8 if k % 2 == 0 else 4.3) * pt)
 	w.draw_colored_polygon(outer, OUTLINE)
-	w.draw_colored_polygon(star, Color("#ff4fd8"))
+	w.draw_colored_polygon(star, UiKit.NEON_PINK)
 	var resp := str(_wallet_respect)
 	base = Vector2(x + 20.0 * pt, y + fs * 0.36)
 	w.draw_string(font, base, resp, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color("#ffd0f4"))
@@ -5085,8 +5101,7 @@ func keep_clear_rects() -> Array[Rect2]:
 ## The challenge chip made a call to action: a filled plate, the chequered flag on its left, the
 ## words moved right of it.
 func _build_cta() -> void:
-	_cta_plate = _box(CARD_BG, ACCENT, 3.0)
-	_cta_plate.set_corner_radius_all(roundi(14.0 * pt))
+	_cta_plate = _box(CARD_BG, ACCENT, 2.0)  # the kit: a card with the gold edge of an action
 	for st in ["normal", "hover", "disabled"]:
 		_challenge.add_theme_stylebox_override(st, _cta_plate)
 	var words := _challenge.get_child(0) as Control
@@ -5112,11 +5127,11 @@ func _set_cta(title: String, sub: String, accent: Color) -> void:
 		return
 	_cta_accent = accent
 	top.text = title
-	top.add_theme_color_override("font_color", Color.WHITE)
+	top.add_theme_color_override("font_color", INK)
 	low.text = sub
 	low.visible = sub != ""
-	_cta_plate.bg_color = Color(accent.darkened(0.62), 0.97)
-	_cta_plate.border_color = accent
+	# The kit (docs/design/ui-kit.md): the plate stays the card with the gold edge of an action;
+	# the rival's own colour shows only round the flag.
 	var font := ThemeDB.fallback_font
 	var w := maxf(font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_TITLE * Access.text_scale)).x,
 			font.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_SUB * Access.text_scale)).x)
@@ -5135,6 +5150,6 @@ func _draw_cta_flag() -> void:
 	_challenge.draw_rect(Rect2(x0 - 2.0 * pt, y0, 2.0 * pt, cell * 6.0), INK)
 	for row in 3:
 		for col in 4:
-			var c := INK if (row + col) % 2 == 0 else Color(0.08, 0.07, 0.1)
+			var c := INK if (row + col) % 2 == 0 else UiKit.CARD_SOLID
 			_challenge.draw_rect(Rect2(x0 + col * cell, y0 + row * cell, cell, cell), c)
 	_challenge.draw_rect(Rect2(x0, y0, cell * 4.0, cell * 3.0), _cta_accent, false, maxf(1.0, pt * 0.6))
