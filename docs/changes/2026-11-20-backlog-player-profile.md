@@ -1,0 +1,2 @@
+## Backlog
+- found: first start asks the player for a name and an avatar (F 2026-11-20): the name and a picked or generated avatar show on the start screen and in the game, and become the player's profile for the future online leaderboard (the leaderboard is already in the backlog under the taxi rework). A generated avatar could use the same pixel-portrait style as the speaker portraits (an ElevenLabs trial gave a matching 256 px bust, one generation about 190 credits).
