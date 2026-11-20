@@ -12,10 +12,11 @@ extends RefCounted
 const DIR := "res://art/portraits/"
 ## A name whose face file has a longer key (the only Kuba who calls is the padel one).
 const ALIAS := {"kuba": "kuba_padel", "bogdan": "bogdan_tenis", "sierzant": "sierzant_bogdan", "straznik": "henio",
-		"mistrz": "pan_dymek", "taksiarz": "taksiarz_zbyszek", "sloik": "sloik", "mordor": "mordor_mike", "trener": "trener_dominik", "dj": "club_dj"}
+		"mistrz": "pan_dymek", "taksiarz": "taksiarz_zbyszek", "sloik": "sloik", "mordor": "mordor_mike", "trener": "trener_dominik", "dj": "club_dj",
+		"bartek": "bartek_padel", "posterunkowy": "kacper", "zbyszek": "pan_zbyszek"}
 ## First words that are not a name on their own: the file key is this word and the next ("Pani Halina" ->
 ## pani_halina, "Pan Kołek" -> pan_kolek, "Bulwar Bartek" -> bulwar_bartek).
-const TITLES := ["pan", "pani", "bulwar"]
+const TITLES := ["pan", "pani", "bulwar", "dj"]
 
 ## Speakers that are not a person (the sat-nav, a lift, the player, a crowd): their lines keep the
 ## name only, no face. Compared on `key` (first word, plain, lower case).
