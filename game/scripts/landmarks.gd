@@ -692,6 +692,12 @@ const INFO := {
 	"florian": ["Katedra św. Floriana",
 			"Neogotycka katedra na Pradze, 1888–1904. Dwie wieże po 75 m widać z drugiego brzegu Wisły.",
 			"Praga's neo-Gothic cathedral, 1888–1904. Its two 75 m spires are seen from across the Vistula."],
+	"port_praski": ["Port Praski",
+			"Port budowany od 1919 roku, bez śluzy aż do 2017. Dziś kamienice, a doki wciąż za płotem.",
+			"A port dug from 1919 with no lock until 2017. Now tenements, the docks still behind a fence."],
+	"pp_basin": ["Basen Portu Praskiego",
+			"Śluza, wieża i bulwar. Statków na razie brak, bobry są.",
+			"A lock, a tower and a boulevard. No ships yet, beavers yes."],
 	"bazar": ["Bazar Różyckiego",
 			"Najstarszy bazar Warszawy, od 1882 roku. Stare budy obok nowych zielonych pawilonów. Kupisz tu wszystko.",
 			"Warsaw's oldest market, since 1882. Old sheds face the new green kiosks. Everything is for sale."],
@@ -1384,6 +1390,7 @@ func _find_sites() -> void:
 	# Praga (2026-11-02, the Mac's photo reports): St Florian's cathedral and Bazar Różyckiego.
 	_find_florian()
 	_find_bazar()
+	_find_port_praski()
 	# Stacja Filtrów (F, 2026-11-06): the water tower and Starynkiewicz's bust.
 	_add_site("filtry", [_circle(FT_C, FT_R + 1.0, 28)])
 	if not sites.is_empty() and sites[-1]["key"] == "filtry":
@@ -1970,6 +1977,10 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_florian(s)
 			"bazar":
 				_build_bazar(s)
+			"port_praski":
+				_build_port_praski(s)
+			"pp_basin":
+				_build_pp_basin(s)
 			"syrenka_powisle":
 				_build_syrenka_powisle(s)
 			"dworzec_wodny":

@@ -317,6 +317,15 @@ const BULWARY := {
 	"chill_bulwary_8": [Vector2(640.0, -632.0), 18, 30.0],
 	"chill_bulwary_9": [Vector2(690.0, -590.0), 16, 30.0],
 }
+## Port Praski (F 2026-11-20: "people sit there like on the boulevards, cyclists, everyone"): the
+## basin's boulevard in front of Sierakowskiego 1-3, its timber seating steps and the quay lane by
+## the lock (praga.gd PP_WALK, PP_SEAT_STEPS). id -> [spot, most people, radius]; on the chill curve,
+## they talk the "port_praski" lines, and city_life doubles the riders near them like the boulevards.
+const PORT_PRASKI := {
+	"chill_port_steps": [Vector2(642.0, -1544.0), 14, 14.0],
+	"chill_port_walk": [Vector2(672.0, -1556.0), 10, 12.0],
+	"chill_port_lock": [Vector2(585.0, -1552.0), 8, 12.0],
+}
 ## Nowy Świat pass 2 (2026-11-02): the café street's pavements, people at the terraces and between
 ## the shops, on the chill curve (a lunch crowd that fills towards a long evening). id -> [spot (the
 ## café terraces the street details put on its pavement), most people, radius]. The same machinery
@@ -1162,6 +1171,9 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 	for cid: String in yards:
 		var cs: Array = yards[cid]
 		_add_site({"id": cid, "kind": "chill", "at": cs[0], "max": int(cs[1]), "radius": float(cs[2])})
+	for qid: String in PORT_PRASKI:
+		var qs: Array = PORT_PRASKI[qid]
+		_add_site({"id": qid, "kind": "chill", "at": qs[0], "max": int(qs[1]), "radius": float(qs[2]), "talk": "port_praski"})
 	for pid: String in NOWOGRODZKA:
 		var ps: Array = NOWOGRODZKA[pid]
 		_add_site({"id": pid, "kind": "chill", "pub": true, "sit": false, "at": ps[0], "max": int(ps[1]), "radius": float(ps[2])})

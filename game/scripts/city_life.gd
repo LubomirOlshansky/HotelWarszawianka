@@ -417,6 +417,8 @@ var _heights := {}
 var _stops := {}
 var _dogs: Array[Mover] = []
 var _riders: Array[Mover] = []
+## The boulevard spots the riders double near: Crowds.BULWARY and Crowds.PORT_PRASKI.
+var _blvd_spots: Dictionary = Crowds.BULWARY.merged(Crowds.PORT_PRASKI)
 ## The view is on the Vistula boulevards (Crowds.BULWARY): more and faster riders.
 var _on_blvd := false
 var _pedziks: Array[Mover] = []
@@ -837,8 +839,9 @@ func setup(places: Array, data: Dictionary, seed_value := 4404) -> void:
 		if "runners" in (_tags[id] as Array) or "promenade" in (_tags[id] as Array):
 			_run_zones.append(_at[id])
 	# F's ask: dog walkers (twice as many) and fast riders on the Vistula boulevards.
-	for id: String in Crowds.BULWARY:
-		_zones.append(Crowds.BULWARY[id][0])
+	# Port Praski's basin boulevard counts as a boulevard too (F 2026-11-20: "cyclists, everyone").
+	for id: String in _blvd_spots:
+		_zones.append(_blvd_spots[id][0])
 	for poi: Dictionary in data.get("pois", []):
 		if str(poi.get("k", "")) == "park":
 			_run_zones.append(Vector2(float(poi["x"]), float(poi["z"])))
@@ -1608,8 +1611,8 @@ func tick(step: float) -> void:
 			zone = true
 			break
 	var blvd := false
-	for id: String in Crowds.BULWARY:
-		if eye.distance_to(Crowds.BULWARY[id][0]) < Crowds.BULWARY_R + float(Crowds.BULWARY[id][2]):
+	for id: String in _blvd_spots:
+		if eye.distance_to(_blvd_spots[id][0]) < Crowds.BULWARY_R + float(_blvd_spots[id][2]):
 			blvd = true
 			break
 	_on_blvd = blvd

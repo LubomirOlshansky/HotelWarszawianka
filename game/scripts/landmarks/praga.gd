@@ -575,3 +575,647 @@ func _bazar_row(q: PackedVector2Array) -> void:
 						_lbox(cu, edge + sv * 0.75, 0.35, 0.28, g, g + 0.55, BAZAR_CRATE, M_STONE, BAZAR_CRATE.lightened(0.1))
 				_collide(piece)
 		u = u1
+
+
+# --- Port Praski (F, 2026-11-20; spec docs/landmarks/specs/port_praski.md) -----------------------
+
+## Port Praski, the Praga bank's river port: dug from 1919, never finished, closed in 1980 and a
+## fenced wasteland for forty years; since 2016 a housing quarter in a "Praga tenement" style.
+## Each new block (APA, ADS: 7-8 storeys, 24-27 m) has its fronts cut into tenement-wide
+## sections, each in its own material: dark red clinker, grey-brown brick, cream limestone,
+## copper-framed loggias, sandstone (refs/port-praski: 90 Mapillary photos 2025-26, Bryła's view
+## of Sierakowskiego 1-3 over the basin). OpenStreetMap maps them as plain outlines, newer than
+## GUGiK's 2018 survey (no LoD2), so the site rebuilds every one of them, found by the vertex
+## mean of its outline: [mean, look]. Looks: "row" the tenement sections, "latarnia" the brown
+## tower with stacked timber loggias on Okrzei, "works" Krowia 6 (the restored red-brick works
+## with its glass storey, the brick-and-glass tower behind it), "minter" the Minter tenement on
+## Okrzei (1860-63, Korczak's school, a hotel from 2026: HOTEL AHOJ), "garden" the courtyard deck.
+const PP_BLOCKS := [
+	[Vector2(380.9, -1582.1), "latarnia"],  # Latarnia, Okrzei / Wybrzeże Szczecińskie (2016)
+	[Vector2(417.7, -1611.9), "row"],       # Port, Okrzei 2 (2016)
+	[Vector2(485.7, -1598.5), "row"],       # Port II, the basin side (2016-21)
+	[Vector2(518.3, -1630.3), "row"],       # Port II on Krowia
+	[Vector2(546.4, -1661.1), "works"],     # Krowia 6
+	[Vector2(519.8, -1683.6), "row"],       # Krowia / Okrzei
+	[Vector2(580.2, -1681.9), "row"],       # Sierakowskiego 4
+	[Vector2(607.6, -1616.0), "row"],       # Sierakowskiego 5, round its garden court
+	[Vector2(642.4, -1583.0), "row"],       # Sierakowskiego 1-3 on the quay (2024)
+	[Vector2(665.9, -1692.7), "row"],       # Sierakowskiego 2, round its garden deck
+	[Vector2(636.3, -1740.2), "row"],       # Sierakowskiego / Okrzei
+	[Vector2(453.3, -1646.6), "minter"],    # the Minter tenement, Okrzei
+	[Vector2(681.9, -1682.0), "garden"],    # Sierakowskiego 2's courtyard deck (over its garage)
+]
+## The basin's own buildings, the same way: the lock's control tower (red brick, a glass room
+## on top) and its two pump houses at the lock's heads, and the long white sheds on the south
+## pier (the rowing and rescue station's, photo 1668958797675054).
+const PP_BASIN := [
+	[Vector2(500.1, -1504.1), "tower"],
+	[Vector2(504.5, -1483.0), "pump"],
+	[Vector2(544.4, -1492.7), "pump"],
+	[Vector2(552.5, -1449.4), "pier"],
+	[Vector2(577.2, -1428.4), "pier"],
+	[Vector2(592.2, -1412.5), "pier"],
+	[Vector2(627.5, -1407.3), "pier"],
+]
+## How near an outline's vertex mean must lie to a listed one (metres).
+const PP_FIND := 2.0
+## The tenement sections: [wall, facade seed (building.gdshader facade(): storey 3.0-3.2 m, the
+## window rhythm), trim (the joints, ledges and slabs)]. Read off the photos: Port II's clinker
+## and limestone, Sierakowskiego 1-3's cream stone, red brick and copper loggias.
+const PP_LOOKS := [
+	[Color("#8a4434"), 0.18, Color("#6b3328")],   # 0 dark red clinker, wide French windows
+	[Color("#857565"), 0.43, Color("#695c50")],   # 1 grey-brown brick
+	[Color("#d9d0c0"), 0.31, Color("#bcb2a1")],   # 2 cream limestone, stone ledges
+	[Color("#5c3f33"), 0.73, Color("#a0663f")],   # 3 copper loggias: a dark wall behind copper frames
+	[Color("#a8553d"), 0.86, Color("#85412f")],   # 4 red brick
+	[Color("#c9b79a"), 0.985, Color("#ab9a7f")],  # 5 sandstone
+]
+const PP_SECTION := 11.5        # a tenement section's width along a front (metres, about)
+const PP_ROOF := Color("#a9a8a2")
+const PP_GREEN_ROOF := Color("#7f9658")
+const PP_GLASS := Color("#9fb6c0")    # the balconies' glass fronts
+const PP_SLAB := Color("#cfcac0")     # their slabs
+const PP_BRICK := Color("#a34f39")    # Krowia 6 and the lock's red brick
+const PP_BRICK_TRIM := Color("#c2735b")
+const PP_MINTER := Color("#d8c39a")   # the Minter tenement's warm plaster
+const PP_TIMBER := Color("#8a5a3a")   # Latarnia's loggia frames
+
+
+func _pp_mean(q: PackedVector2Array) -> Vector2:
+	var s := Vector2.ZERO
+	for p in q:
+		s += p
+	return s / maxf(q.size(), 1)
+
+
+func _find_port_praski() -> void:
+	var parts: Array = []
+	var zone: Array[PackedVector2Array] = []
+	var basin: Array = []
+	var bzone: Array[PackedVector2Array] = []
+	for bld in data["buildings"]:
+		var q := _pts(bld["p"])
+		if q.size() < 3:
+			continue
+		var m := _pp_mean(q)
+		if m.x < 360.0 or m.x > 700.0 or m.y < -1760.0 or m.y > -1395.0:
+			continue
+		for spec: Array in PP_BLOCKS:
+			if m.distance_to(spec[0]) < PP_FIND:
+				parts.append([q, float(bld["h"]), str(spec[1])])
+				zone.append(q)
+				# A bent outline's centre can lie outside it (the plain block would stay and
+				# z-fight the model): its hull joins the zone (Sierakowskiego 2's hull holds
+				# the courtyard deck, which is ours too).
+				var hull := Geometry2D.convex_hull(q)
+				if hull.size() >= 4:
+					zone.append(hull)
+		for spec: Array in PP_BASIN:
+			if m.distance_to(spec[0]) < PP_FIND:
+				basin.append([q, float(bld["h"]), str(spec[1])])
+				bzone.append(q)
+	if not parts.is_empty():
+		_add_site("port_praski", zone)
+		if not sites.is_empty() and sites[-1]["key"] == "port_praski":
+			sites[-1]["parts"] = parts
+	# The basin's site reaches the quay, the hoarding and the lock as well as its buildings.
+	var reach: Array[PackedVector2Array] = []
+	reach.append(_box_poly(Rect2(488.0, -1640.0, 545.0, 245.0)))
+	_add_site("pp_basin", bzone if not bzone.is_empty() else reach)
+	if not sites.is_empty() and sites[-1]["key"] == "pp_basin":
+		sites[-1]["parts"] = basin
+		sites[-1]["box"] = _box_of(reach + bzone)
+
+
+# --- the new blocks ---
+
+func _build_port_praski(site: Dictionary) -> void:
+	_pp_rings.clear()
+	for p: Array in site["parts"]:
+		_pp_rings.append(p[0])
+	for p: Array in site["parts"]:
+		var raw: PackedVector2Array = p[0]
+		_pp_self = raw
+		var ring := _simplify(raw, 0.25)
+		if ring.size() < 3 or absf(_area(ring)) < 20.0:
+			continue
+		if Geometry2D.is_polygon_clockwise(ring):
+			ring.reverse()
+		var g := _ground_under(ring)
+		_g = g
+		var look: String = p[2]
+		match look:
+			"latarnia":
+				_pp_row(ring, g, float(p[1]), [3])
+			"works":
+				_pp_works(ring, g, float(p[1]))
+			"minter":
+				_pp_minter(ring, g)
+			"garden":
+				_pp_garden(ring, g)
+				continue
+			_:
+				_pp_row(ring, g, float(p[1]), [])
+		_collide(raw)
+		pocket_rings.append(raw)
+	_mode = M_STONE
+
+
+## Every part's outline while Port Praski builds, and the one building now: a wall that stands
+## against a neighbour (OSM's shared party walls) is inside the block and is left out, or the two
+## back-to-back walls flicker.
+var _pp_rings: Array[PackedVector2Array] = []
+var _pp_self := PackedVector2Array()
+
+
+func _pp_party_wall(p: Vector2) -> bool:
+	for r in _pp_rings:
+		if r != _pp_self and Geometry2D.is_point_in_polygon(p, r):
+			return true
+	return false
+
+
+## A seeded 0..1 for a section (the same every run and every sector).
+func _pp_rand(p: Vector2, salt: int) -> float:
+	return _bazar_rand(p * 0.37, salt + 101)
+
+
+## A box standing on a front: from p0 to p1 along it, d0 to d1 metres out (`o` the outward
+## normal), y0 to y1; its sides and top (its foot never shows).
+func _pp_band(p0: Vector2, p1: Vector2, o: Vector2, d0: float, d1: float, y0: float, y1: float, col: Color) -> void:
+	var poly := PackedVector2Array([p0 + o * d0, p1 + o * d0, p1 + o * d1, p0 + o * d1])
+	if Geometry2D.is_polygon_clockwise(poly):
+		poly.reverse()
+	_prism(poly, y0, y1, col, col.lightened(0.04), M_STONE, M_STONE)
+
+
+## A block in tenement sections (the "row" look): every front cut into sections about
+## PP_SECTION wide, each its own look (PP_LOOKS, seeded by its place; `only` limits the looks),
+## its own window rhythm (the facade shader's seed, shops on the ground floor), its own parapet
+## height (the row's broken skyline), joints between the sections, stone ledges on the limestone,
+## copper or timber frames round the loggias, glass balconies on some brick sections.
+func _pp_row(ring: PackedVector2Array, g: float, h: float, only: Array) -> void:
+	var top := g + h
+	var run := 0.0
+	var last := -1
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var length := a.distance_to(b)
+		if length < 0.05:
+			continue
+		var o := _out(ring, a, b)
+		var t := (b - a) / length
+		var n := maxi(1, roundi(length / PP_SECTION))
+		for k in n:
+			var s0 := a + t * (length * k / n)
+			var s1 := a + t * (length * (k + 1) / n)
+			var mid := (s0 + s1) * 0.5
+			var pick := int(_pp_rand(mid, 1) * 6.0) % 6
+			if not only.is_empty():
+				pick = int(only[0])
+			elif pick == last:
+				pick = (pick + 1 + int(_pp_rand(mid, 2) * 4.0)) % 6
+			last = pick
+			var look: Array = PP_LOOKS[pick]
+			var wall: Color = look[0]
+			var trim: Color = look[2]
+			if not only.is_empty():
+				trim = PP_TIMBER
+			var seed: float = look[1]
+			var seg := s0.distance_to(s1)
+			if _pp_party_wall(mid + o * 0.4):
+				continue
+			_mode = seed
+			_wall(s0, s1, g - 0.3, top, o, wall, run + length * k / n)
+			_mode = M_STONE
+			if seg < 4.0:
+				continue
+			# The broken skyline: a section's parapet 0, 0.9 or 1.8 m over the roof.
+			var lift: float = [0.0, 0.0, 0.9, 1.8][int(_pp_rand(mid, 3) * 4.0) % 4] if only.is_empty() else 0.0
+			if lift > 0.0:
+				_pp_band(s0, s1, o, -0.35, 0.0, top, top + lift, wall)
+			# The joint before each section (a pier in the next one's trim, a little proud).
+			if k > 0 or i > 0:
+				_pp_band(s0 - t * 0.22, s0 + t * 0.22, o, 0.0, 0.16, g + 3.2, top + lift, trim)
+			var fh := 3.0 + 0.7 * fposmod(seed * 7.13, 1.0)
+			var floors := floori(h / fh)
+			match pick:
+				2:
+					# limestone: a ledge every second storey and a cornice
+					var j := 2
+					while j < floors:
+						_pp_band(s0, s1, o, 0.0, 0.14, g + j * fh - 0.12, g + j * fh + 0.06, trim)
+						j += 2
+					_pp_band(s0, s1, o, 0.0, 0.3, top + lift - 0.45, top + lift, trim)
+				3:
+					# loggias: frames at every floor slab and at both ends of the section
+					for j in range(1, floors + 1):
+						_pp_band(s0 + t * 0.2, s1 - t * 0.2, o, 0.0, 0.75, g + j * fh - 0.28, g + j * fh, trim)
+					for e: Vector2 in [s0 + t * 0.2, s1 - t * 0.45]:
+						_pp_band(e, e + t * 0.25, o, 0.0, 0.75, g + fh, top + lift, trim)
+				_:
+					if (pick == 0 or pick == 1 or pick == 4) and _pp_rand(mid, 4) < 0.55 and seg >= 7.0:
+						_pp_balconies(s0, s1, o, run + length * k / n, seed, g, floors, fh)
+		run += length
+	_mode = M_STONE
+	_cap(ring, top, PP_ROOF)
+	# A big roof: a planted patch and a plant room (the photos' green roofs, rooftop masts).
+	if absf(_area(ring)) > 700.0:
+		var c := _centre(ring)
+		if Geometry2D.is_point_in_polygon(c, ring) and _dist_to_ring(c, ring) > 6.0:
+			_prism(_square(c, 2.2), top, top + 2.4, Color("#8f8e89"), Color("#7d7c77"), M_STONE, M_STONE)
+			var d := Vector2(4.5, 0.0) if _dist_to_ring(c + Vector2(4.5, 0.0), ring) > 4.0 else Vector2(0.0, 4.5)
+			if _dist_to_ring(c + d, ring) > 4.0:
+				_prism(_square(c + d, 2.6), top, top + 0.35, PP_ROOF.darkened(0.1), PP_GREEN_ROOF, M_STONE, M_STONE)
+
+
+## Glass balconies on a brick section: one under every other window of the facade shader's grid
+## (its window centres are at (k + 0.5) * spacing along the run), on every storey over the shops.
+func _pp_balconies(s0: Vector2, s1: Vector2, o: Vector2, run0: float, seed: float, g: float, floors: int, fh: float) -> void:
+	var sp := 2.2 + 1.4 * fposmod(seed * 3.71, 1.0)
+	var t := (s1 - s0).normalized()
+	var seg := s0.distance_to(s1)
+	var k := ceili(run0 / sp - 0.5)
+	while true:
+		var u := (k + 0.5) * sp - run0
+		k += 1
+		if u > seg - 1.2:
+			break
+		if u < 1.2 or k % 2 == 0:
+			continue
+		var c := s0 + t * u
+		for j in range(1, floors):
+			var y := g + j * fh
+			_pp_band(c - t * 0.95, c + t * 0.95, o, 0.0, 1.2, y - 0.16, y, PP_SLAB)
+			_wall(c - t * 0.95 + o * 1.2, c + t * 0.95 + o * 1.2, y, y + 1.0, o, PP_GLASS)
+
+
+## Krowia 6: the restored red-brick works (three tall storeys, arched windows, a glass and white
+## storey on top) along the street fronts that face the corner of Krowia (photos 1572343553967513,
+## 1227635669243797), and behind it the tower (brick and glass, terraces) up to the outline's height.
+func _pp_works(ring: PackedVector2Array, g: float, h: float) -> void:
+	var corner := Vector2(552.6, -1623.0)   # where the photos were taken from
+	var towards := (corner - _centre(ring)).normalized()
+	var strips: Array[PackedVector2Array] = []
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var o := _out(ring, a, b)
+		if a.distance_to(b) >= 8.0 and o.dot(towards) > 0.35:
+			var s := PackedVector2Array([a + o * 0.5, b + o * 0.5, b - o * 13.0, a - o * 13.0])
+			if Geometry2D.is_polygon_clockwise(s):
+				s.reverse()
+			strips.append(s)
+	# The strips of two facing edges overlap at their corner: one outline for them all first, so
+	# no two old pieces stand in each other (coplanar walls and tops flicker).
+	var merged: Array[PackedVector2Array] = []
+	for s in strips:
+		var cur := s
+		var rest: Array[PackedVector2Array] = []
+		for m in merged:
+			var u := Geometry2D.merge_polygons(cur, m)
+			var outer: Array[PackedVector2Array] = []
+			for q in u:
+				if not Geometry2D.is_polygon_clockwise(q):
+					outer.append(q)
+			if outer.size() == 1:
+				cur = outer[0]
+			else:
+				rest.append(m)
+		rest.append(cur)
+		merged = rest
+	var old: Array[PackedVector2Array] = []
+	for s in merged:
+		for r in Geometry2D.intersect_polygons(ring, s):
+			if r.size() >= 3 and not Geometry2D.is_polygon_clockwise(r) and absf(_area(r)) > 40.0:
+				old.append(r)
+	var tower: Array[PackedVector2Array] = [ring]
+	for r in old:
+		var next: Array[PackedVector2Array] = []
+		for piece in tower:
+			for q in Geometry2D.clip_polygons(piece, _grown(r, 0.06)):
+				if q.size() >= 3 and not Geometry2D.is_polygon_clockwise(q):
+					next.append(q)
+		tower = next
+	for piece in tower:
+		if absf(_area(piece)) < 30.0:
+			continue
+		_pp_row(_simplify(piece, 0.2), g, h, [1])
+	var y1 := g + 13.8
+	for r in old:
+		var piece := _simplify(r, 0.2)
+		_prism(piece, g - 0.3, y1, PP_BRICK, Color(0, 0, 0, 0), M_STONE)
+		for i in piece.size():
+			var a := piece[i]
+			var b := piece[(i + 1) % piece.size()]
+			var length := a.distance_to(b)
+			if length < 5.0 or _dist_to_ring((a + b) * 0.5, ring) > 0.4:
+				continue
+			kit_front(a, b)
+			if _out(piece, a, b).dot(_b) < 0.0:
+				kit_front(b, a)
+			var bays := maxi(1, floori(length / 3.1))
+			kit_window_grid(0.9, length - 0.9, bays, [g + 0.9, g + 5.4, g + 9.6], [3.0, 2.9, 2.7], Win.ARCHED,
+					PP_BRICK_TRIM, PAL_GLASS_DARK, 0.62)
+			kit_ledge(0.0, length, g + 4.6, 0.22, PP_BRICK_TRIM)
+		_ring_slab(piece, y1 - 0.5, y1, 0.35, PP_BRICK_TRIM)
+		# the glass storey set back on it, white-framed
+		var top := _largest(Geometry2D.offset_polygon(piece, -1.4, Geometry2D.JOIN_MITER))
+		if top.size() >= 3:
+			_prism(top, y1, y1 + 3.2, PP_GLASS.darkened(0.15), Color(0, 0, 0, 0), M_PAVILION + 0.5)
+			_ring_slab(top, y1 + 3.2, y1 + 3.6, 0.3, Color("#eceae4"))
+			_cap(top, y1 + 3.6, Color("#e4e2dc"))
+
+
+## The Minter tenement (Okrzei, 1860-63, the Praga gymnasium where Korczak sat his finals; the
+## AC hotel from 2026, here HOTEL AHOJ): four tall storeys in warm plaster, the typed tenement
+## facade (rusticated shop floor, tall windows, a heavy cornice), a hotel sign on the Okrzei front.
+func _pp_minter(ring: PackedVector2Array, g: float) -> void:
+	var h := 18.2
+	_prism(ring, g - 0.3, g + h, PP_MINTER, Color(0, 0, 0, 0), 1.0 + 0.6 / 4.0)
+	kit_cornice_ring(ring, g + h - 0.2, PP_MINTER.lightened(0.06), 0.45, 0.6)
+	_mode = M_STONE
+	_cap(ring, g + h + 0.25, PAL_ROOF_GREY)
+	var okrzei := Vector2(459.5, -1671.8)
+	var i := _edge_facing(ring, (okrzei - _centre(ring)).normalized(), 10.0)
+	if i >= 0:
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var w := kit_front(a, b)
+		if _out(ring, a, b).dot(_b) < 0.0:
+			w = kit_front(b, a)
+		_usign("HOTEL AHOJ", w * 0.5, 0.25, g + h - 2.6, _b, minf(w * 0.6, 12.0), 1.4, Color("#f2e6c8"))
+
+
+## Sierakowskiego 2's courtyard deck over its garage: a planted podium with paths and three trees.
+func _pp_garden(ring: PackedVector2Array, g: float) -> void:
+	_prism(ring, g - 0.3, g + 1.1, Color("#8f8a80"), PP_GREEN_ROOF, M_STONE, M_STONE)
+	var c := _centre(ring)
+	for k in 3:
+		var p := c + Vector2.from_angle(TAU * k / 3.0 + 0.4) * 9.0
+		if Geometry2D.is_point_in_polygon(p, ring) and _dist_to_ring(p, ring) > 2.5:
+			_varso_tree(p, g + 1.1, 5.5, 2.2)
+	_collide(ring)
+
+
+# --- the basin: the open quay, the railing, the lock, the pier, the Doki hoarding ---
+
+## The north quay's water edge from the lock to the basin's end, 0.6 m inland (read off the
+## water map, x every 20 m): the railing runs along it.
+const PP_QUAY := [Vector2(550.0, -1527.4), Vector2(560.0, -1530.4), Vector2(580.0, -1535.4), Vector2(600.0, -1540.4),
+		Vector2(620.0, -1536.6), Vector2(640.0, -1539.4), Vector2(660.0, -1542.4), Vector2(676.0, -1546.0),
+		Vector2(684.0, -1551.4), Vector2(700.0, -1551.4), Vector2(720.0, -1552.4), Vector2(740.0, -1551.4),
+		Vector2(760.0, -1549.4), Vector2(780.0, -1546.4), Vector2(800.0, -1542.4), Vector2(820.0, -1538.4),
+		Vector2(860.0, -1528.4), Vector2(900.0, -1519.4), Vector2(940.0, -1510.4), Vector2(980.0, -1501.4),
+		Vector2(1020.0, -1491.4), Vector2(1060.0, -1482.4)]
+## The open stretch of the new boulevard (October 2024, in front of Sierakowskiego 1-3): between
+## the quay street's kerb and the water.
+const PP_WALK := [Vector2(620.0, -1554.0), Vector2(637.0, -1553.2), Vector2(655.0, -1555.0), Vector2(677.0, -1559.0),
+		Vector2(686.0, -1561.0), Vector2(686.5, -1551.6), Vector2(676.0, -1546.4), Vector2(660.0, -1542.8),
+		Vector2(640.0, -1539.8), Vector2(620.0, -1537.0)]
+## Its red-brick herringbone square at the east end (photo 1030459645977956).
+const PP_HERRING := [Vector2(664.0, -1556.6), Vector2(685.5, -1560.6), Vector2(686.0, -1552.0), Vector2(668.0, -1545.0)]
+## The timber seating steps down to the water (from, to along the quay).
+const PP_SEAT_STEPS := [Vector2(631.0, -1538.2), Vector2(653.0, -1541.0)]
+## The lock in the basin's mouth (2017-20): its chamber's axis from the west head to the east
+## head, and the chamber's half width (the water map's channel, 8-10 m).
+const PP_LOCK_A := Vector2(492.0, -1494.0)
+const PP_LOCK_B := Vector2(548.0, -1506.0)
+const PP_LOCK_HALF := 5.2
+## The Doki building site's hoarding, black and blue "signal flags" with PORT PRASKI (photos
+## 1006907995018108, 1030459645977956, 1499668478205423): round the quay's green west of the open
+## stretch, and from the quay street's end east along the whole north quay. Kept off every road.
+const PP_FENCE_W := [Vector2(560.0, -1606.0), Vector2(586.0, -1586.0), Vector2(616.0, -1556.0), Vector2(619.0, -1545.0)]
+const PP_FENCE_E := [Vector2(690.0, -1626.0), Vector2(689.0, -1566.0), Vector2(700.0, -1556.0), Vector2(720.0, -1557.0),
+		Vector2(740.0, -1556.0), Vector2(760.0, -1554.0), Vector2(780.0, -1551.0), Vector2(800.0, -1547.0),
+		Vector2(820.0, -1543.0), Vector2(860.0, -1533.0), Vector2(900.0, -1524.0), Vector2(940.0, -1515.0),
+		Vector2(980.0, -1506.0), Vector2(1020.0, -1496.0)]
+const PP_FENCE_COLS := [Color("#151a22"), Color("#1f6fd0"), Color("#5ab7ea"), Color("#0e3b75"), Color("#151a22"), Color("#2a86d8")]
+const PP_RAIL := Color("#24272a")
+const PP_PAVE := Color("#b9b6ae")
+const PP_HERRING_COL := Color("#8d6a5c")
+const PP_CONCRETE := Color("#dcdad3")
+
+
+func _build_pp_basin(site: Dictionary) -> void:
+	# The pier's sheds stand wall to wall (OSM splits one long shed): one outline for those that
+	# touch, so no party wall, slab or roof is drawn twice.
+	var parts: Array = []
+	var sheds: Array[PackedVector2Array] = []
+	for p: Array in site["parts"]:
+		if str(p[2]) == "tower" or str(p[2]) == "pump":
+			parts.append(p)
+			continue
+		var cur: PackedVector2Array = _grown(p[0], 0.05)
+		var rest: Array[PackedVector2Array] = []
+		for m in sheds:
+			var outer: Array[PackedVector2Array] = []
+			for q in Geometry2D.merge_polygons(cur, m):
+				if not Geometry2D.is_polygon_clockwise(q):
+					outer.append(q)
+			if outer.size() == 1:
+				cur = outer[0]
+			else:
+				rest.append(m)
+		rest.append(cur)
+		sheds = rest
+	for m in sheds:
+		parts.append([m, 7.4, "shed"])
+	for p: Array in parts:
+		var raw: PackedVector2Array = p[0]
+		var ring := _simplify(raw, 0.2)
+		if ring.size() < 3:
+			continue
+		if Geometry2D.is_polygon_clockwise(ring):
+			ring.reverse()
+		var g := _ground_under(ring)
+		_g = g
+		match str(p[2]):
+			"tower":
+				# red brick to 7.5 m, the glass control room, a white roof slab over it
+				_prism(ring, g - 0.3, g + 7.5, PP_BRICK, Color(0, 0, 0, 0), M_STONE)
+				_ring_slab(ring, g + 7.2, g + 7.6, 0.25, PP_CONCRETE)
+				_prism(ring, g + 7.6, g + 10.4, PP_GLASS.darkened(0.2), Color(0, 0, 0, 0), M_PAVILION + 0.5)
+				_ring_slab(ring, g + 10.4, g + 10.9, 0.45, PP_CONCRETE)
+				_cap(ring, g + 10.9, PP_CONCRETE.darkened(0.05))
+			"pump":
+				_prism(ring, g - 0.3, g + 4.4, PP_BRICK, PAL_ROOF_GREY, M_STONE, M_STONE)
+				_ring_slab(ring, g + 4.1, g + 4.5, 0.2, PP_CONCRETE)
+			_:
+				# the pier's sheds: white render, two blue window bands, a flat roof
+				_prism(ring, g - 0.3, g + 7.4, Color("#e8e6df"), Color(0, 0, 0, 0), M_STONE)
+				_ring_slab(ring, g + 1.0, g + 2.5, 0.05, Color("#3d6b97"))
+				_ring_slab(ring, g + 4.3, g + 6.1, 0.05, Color("#3d6b97"))
+				_ring_slab(ring, g + 7.1, g + 7.6, 0.2, PP_CONCRETE)
+				_cap(ring, g + 7.6, PAL_ROOF_PALE)
+		_collide(raw)
+		pocket_rings.append(raw)
+	_pp_walk()
+	_pp_railing()
+	_pp_lock()
+	_pp_fence(PackedVector2Array(PP_FENCE_W))
+	_pp_fence(PackedVector2Array(PP_FENCE_E))
+	_mode = M_STONE
+
+
+## A flat paving laid on the terrain (each corner 6 cm over its own ground): no wall, no roof grid.
+func _pp_drape(poly: PackedVector2Array, col: Color, lift := 0.06) -> void:
+	var ids := Geometry2D.triangulate_polygon(poly)
+	var keep := _no_roof
+	_no_roof = true
+	_mode = M_STONE
+	for k in range(0, ids.size(), 3):
+		var q: Array[Vector3] = []
+		for m in 3:
+			var p := poly[ids[k + m]]
+			q.append(Vector3(p.x, map.terrain_height(p.x, p.y) + lift, p.y))
+		_tri(q[0], q[1], q[2], Vector3.UP, col, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	_no_roof = keep
+
+
+## The open boulevard: grey block paving, the herringbone square, lamps with a hooked arm, wooden
+## benches facing the water, and the timber steps people sit on, down to the water.
+func _pp_walk() -> void:
+	var walk := PackedVector2Array(PP_WALK)
+	if Geometry2D.is_polygon_clockwise(walk):
+		walk.reverse()
+	_pp_drape(walk, PP_PAVE)
+	var sq := PackedVector2Array(PP_HERRING)
+	if Geometry2D.is_polygon_clockwise(sq):
+		sq.reverse()
+	_pp_drape(sq, PP_HERRING_COL, 0.09)
+	# lamps along the land side, benches along the water side
+	var lamps := [Vector2(624.0, -1551.0), Vector2(642.0, -1551.4), Vector2(660.0, -1554.0), Vector2(678.0, -1557.0)]
+	for p: Vector2 in lamps:
+		var y: float = map.terrain_height(p.x, p.y)
+		_prism(_square(p, 0.09), y, y + 6.0, Color("#8e9396"), Color(0, 0, 0, 0), M_STONE)
+		_pp_band(p, p + Vector2(0.0, 1.6), Vector2(1.0, 0.0), -0.05, 0.05, y + 5.8, y + 6.0, Color("#8e9396"))
+		_prism(_square(p + Vector2(0.0, 1.5), 0.22), y + 5.55, y + 5.85, Color("#fff1c8"), Color("#8e9396"), M_LAMP, M_STONE)
+	for k in 4:
+		var p := Vector2(624.0 + k * 13.5, 0.0)
+		p.y = -1541.5 - (p.x - 620.0) * 0.13
+		if p.x > 629.0 and p.x < 655.0:
+			continue  # the steps are there
+		var y: float = map.terrain_height(p.x, p.y)
+		var t := Vector2(1.0, 0.13).normalized()
+		var o := Vector2(t.y, -t.x)   # the back away from the water
+		_pp_band(p - t * 1.0, p + t * 1.0, -o, -0.25, 0.25, y + 0.42, y + 0.5, PAL_TIMBER)
+		_pp_band(p - t * 1.0, p + t * 1.0, -o, -0.3, -0.24, y + 0.5, y + 0.95, PAL_TIMBER)
+		for e: Vector2 in [p - t * 0.85, p + t * 0.75]:
+			_pp_band(e, e + t * 0.1, -o, -0.25, 0.25, y, y + 0.42, PP_RAIL)
+	# the seating steps: three timber tiers down from the quay towards the water, 0.45 m each
+	var a: Vector2 = PP_SEAT_STEPS[0]
+	var b: Vector2 = PP_SEAT_STEPS[1]
+	var tt := (b - a).normalized()
+	var water := Vector2(tt.y, -tt.x)
+	if water.y < 0.0:
+		water = -water   # the water lies south of the quay (+z)
+	var g := minf(map.terrain_height(a.x, a.y), map.terrain_height(b.x, b.y))
+	var wl: float = map.terrain_height((a.x + b.x) * 0.5 + water.x * 6.0, (a.y + b.y) * 0.5 + water.y * 6.0)
+	for k in 4:
+		var y := g - 0.45 * k
+		if y < wl + 0.3:
+			break
+		_pp_band(a, b, water, -0.6 + k * 0.9, 0.3 + k * 0.9, minf(wl, y - 1.0), y, PAL_TIMBER if k % 2 == 0 else PAL_TIMBER.darkened(0.12))
+
+
+## The black railing along the quay: a top rail and a post every 3 m (none at the steps).
+func _pp_railing() -> void:
+	for i in PP_QUAY.size() - 1:
+		var a: Vector2 = PP_QUAY[i]
+		var b: Vector2 = PP_QUAY[i + 1]
+		var length := a.distance_to(b)
+		var t := (b - a) / length
+		var o := Vector2(t.y, -t.x)
+		var n := maxi(1, roundi(length / 3.0))
+		for k in n:
+			var p0 := a + t * (length * k / n)
+			var p1 := a + t * (length * (k + 1) / n)
+			var m := (p0 + p1) * 0.5
+			if m.x > PP_SEAT_STEPS[0].x - 0.5 and m.x < PP_SEAT_STEPS[1].x + 0.5:
+				continue
+			var y0: float = map.terrain_height(p0.x, p0.y)
+			var y1: float = map.terrain_height(p1.x, p1.y)
+			var y := minf(y0, y1)
+			_pp_band(p0, p1, o, -0.03, 0.03, y + 1.0, y + 1.08, PP_RAIL)
+			_pp_band(p0, p0 + t * 0.06, o, -0.03, 0.03, y0 - 0.1, y0 + 1.0, PP_RAIL)
+			_pp_band(p0, p1, o, -0.015, 0.015, y + 0.12, y + 0.18, PP_RAIL)
+
+
+## The lock: white concrete walls along both sides of the chamber, its two heads' striped gates
+## (yellow and black, under the deck's level) and a pontoon with the rescue boats inside it.
+func _pp_lock() -> void:
+	var t := (PP_LOCK_B - PP_LOCK_A).normalized()
+	var o := Vector2(-t.y, t.x)
+	var c := (PP_LOCK_A + PP_LOCK_B) * 0.5
+	var wl: float = map.terrain_height(c.x, c.y)
+	for s: float in [-1.0, 1.0]:
+		var e0 := PP_LOCK_A + o * s * PP_LOCK_HALF
+		var e1 := PP_LOCK_B + o * s * PP_LOCK_HALF
+		var gy := maxf(map.terrain_height(e0.x + o.x * s * 3.0, e0.y + o.y * s * 3.0), map.terrain_height(e1.x + o.x * s * 3.0, e1.y + o.y * s * 3.0))
+		_pp_band(e0, e1, o * s, 0.0, 1.4, wl - 0.5, gy + 0.35, PP_CONCRETE)
+	for u: float in [3.0, PP_LOCK_A.distance_to(PP_LOCK_B) - 3.0]:
+		var p := PP_LOCK_A + t * u
+		var gy: float = map.terrain_height(p.x + o.x * (PP_LOCK_HALF + 3.0), p.y + o.y * (PP_LOCK_HALF + 3.0))
+		var n := 6
+		for k in n:
+			var v0 := -PP_LOCK_HALF + 2.0 * PP_LOCK_HALF * k / n
+			var v1 := -PP_LOCK_HALF + 2.0 * PP_LOCK_HALF * (k + 1) / n
+			_pp_band(p + o * v0 - t * 0.6, p + o * v1 - t * 0.6, t, 0.0, 1.2, wl - 0.3, gy - 0.4,
+					Color("#e8c22c") if k % 2 == 0 else Color("#1d1d1f"))
+		# the walkway over the gate
+		_pp_band(p - o * (PP_LOCK_HALF + 1.4) - t * 0.9, p + o * (PP_LOCK_HALF + 1.4) - t * 0.9, t, 0.0, 1.8, gy - 0.4, gy - 0.1, PP_CONCRETE)
+	# the pontoon by the north quay just inside the basin, two small boats on it
+	var pa := Vector2(556.0, -1524.0)
+	var pt := Vector2(0.95, 0.31).normalized()
+	var po := Vector2(pt.y, -pt.x)
+	var pw: float = map.terrain_height(pa.x + 4.0, pa.y + 4.0)
+	_pp_band(pa, pa + pt * 18.0, po, -1.2, 1.2, pw - 0.2, pw + 0.45, Color("#9a9c9a"))
+	for k in 2:
+		var bc := pa + pt * (5.0 + k * 8.0) - po * 2.9
+		var hull := PackedVector2Array([bc - pt * 2.8 - po * 1.0, bc + pt * 2.0 - po * 1.0, bc + pt * 3.1, bc + pt * 2.0 + po * 1.0, bc - pt * 2.8 + po * 1.0])
+		if Geometry2D.is_polygon_clockwise(hull):
+			hull.reverse()
+		var paint := Color("#d9372e") if k == 0 else Color("#2b5fa8")
+		_prism(hull, pw - 0.3, pw + 0.55, paint, Color("#efefea"), M_STONE, M_STONE)
+		_prism(_square(bc - pt * 0.6, 0.75), pw + 0.55, pw + 1.6, Color("#f2f2ee"), paint, M_STONE, M_STONE)
+
+
+## A hoarding along a polyline: 2.5 m panels in the black and blues of the signal flags, a
+## lighter diamond on some, a post at each corner, and PORT PRASKI in white on the longest runs.
+func _pp_fence(line: PackedVector2Array) -> void:
+	var k := 0
+	for i in line.size() - 1:
+		var a := line[i]
+		var b := line[i + 1]
+		var length := a.distance_to(b)
+		var t := (b - a) / length
+		var o := Vector2(t.y, -t.x)
+		var n := maxi(1, roundi(length / 2.5))
+		for j in n:
+			var p0 := a + t * (length * j / n)
+			var p1 := a + t * (length * (j + 1) / n)
+			var y := minf(map.terrain_height(p0.x, p0.y), map.terrain_height(p1.x, p1.y))
+			var col: Color = PP_FENCE_COLS[int(_pp_rand(p0, 7) * PP_FENCE_COLS.size()) % PP_FENCE_COLS.size()]
+			_pp_band(p0, p1, o, -0.04, 0.04, y - 0.1, y + 3.0, col)
+			if _pp_rand(p0, 8) < 0.35:
+				# a motif: a pale diamond (two triangles) on both faces
+				var m := (p0 + p1) * 0.5
+				var lit := Color("#c9e6f7") if col.v < 0.3 else Color("#101318")
+				for s: float in [-1.0, 1.0]:
+					var f := m + o * s * 0.075
+					var nn := Vector3(o.x * s, 0.0, o.y * s)
+					var l := f - t * 0.7
+					var r := f + t * 0.7
+					_quad(Vector3(l.x, y + 1.25, l.y), Vector3(f.x, y + 0.55, f.y), Vector3(r.x, y + 1.25, r.y), Vector3(f.x, y + 1.95, f.y), nn, lit)
+			k += 1
+		_pp_band(a - t * 0.06, a + t * 0.06, o, -0.08, 0.08, map.terrain_height(a.x, a.y) - 0.1, map.terrain_height(a.x, a.y) + 3.2, PP_RAIL)
+		var ring := PackedVector2Array([a - o * 0.08, b - o * 0.08, b + o * 0.08, a + o * 0.08])
+		_collide(ring)
+		# the words on the long runs, both faces (the water's side reads a joke)
+		if length > 35.0:
+			var w := kit_front(a, b)
+			var y: float = map.terrain_height((a.x + b.x) * 0.5, (a.y + b.y) * 0.5)
+			_usign("PORT PRASKI", w * 0.3, 0.12, y + 0.8, _b, 11.0, 1.5, Color("#f4f6f8"))
+			_usign("STATKI WKRÓTCE", w * 0.7, -0.12, y + 0.8, -_b, 14.0, 1.5, Color("#f4f6f8"))
