@@ -69,6 +69,12 @@ var _s := PackedFloat32Array()
 var _dir := PackedFloat32Array()
 var _speed := PackedFloat32Array()
 var _off := PackedFloat32Array()
+## F's scooter chaos (2026-11-19, docs/design/kukuryznik.md): a walker's leap out of a Kukuryźnik's
+## way, its time left (s) and the side offset it jumps to.
+var _jump := PackedFloat32Array()
+var _jump_to := PackedFloat32Array()
+const JUMP_T := 0.45
+const JUMP_H := 0.32
 var _phase := PackedFloat32Array()
 var _alive := PackedByteArray()
 var _pos := PackedVector3Array()
@@ -220,6 +226,8 @@ func setup(map_node: Node3D, camera: Camera3D, traffic_node: Node3D, data: Dicti
 	_dir.resize(MAX)
 	_speed.resize(MAX)
 	_off.resize(MAX)
+	_jump.resize(MAX)
+	_jump_to.resize(MAX)
 	_phase.resize(MAX)
 	_alive.resize(MAX)
 	_alive.fill(0)
@@ -517,6 +525,34 @@ func startle(at: Vector2, r: float) -> int:
 	return n
 
 
+## F's scooter chaos (2026-11-19): walkers within `r` m of a Kukuryźnik at `at` heading `dir` (unit)
+## and ahead of it leap to the far side of their footway (a hop of JUMP_H, JUMP_T s), and the ones
+## walking into it turn round. Returns how many leapt (the shout's chance is the caller's).
+func leap(at: Vector2, dir: Vector2, r: float) -> int:
+	var n := 0
+	var side := Vector2(-dir.y, dir.x)
+	for k in MAX:
+		if _alive[k] == 0 or _jump[k] > 0.0:
+			continue
+		var q := Vector2(_pos[k].x, _pos[k].z)
+		var d := q - at
+		if d.length_squared() > r * r or d.dot(dir) < -0.5:
+			continue
+		var i := _path[k]
+		var w := _width[i] * 0.45
+		# Away from the scooter's line: to the side the walker is already on, as far as the footway goes.
+		var here := _at(i, _s[k], _off[k])
+		var more := _at(i, _s[k], _off[k] + 0.5)
+		var out := 1.0 if (more - here).dot(side) * signf(d.dot(side) + 0.001) > 0.0 else -1.0
+		_jump_to[k] = clampf(_off[k] + out * 1.2, -w, w)
+		_jump[k] = JUMP_T
+		var ahead := _at(i, clampf(_s[k] + _dir[k], _lo[i], _hi[i]))
+		if ahead.distance_squared_to(at) < q.distance_squared_to(at):
+			_dir[k] = -_dir[k]
+		n += 1
+	return n
+
+
 func _process(dt: float) -> void:
 	if dt <= 0.0 or _first.is_empty():
 		return
@@ -646,6 +682,7 @@ func _spawn_on(i: int, s: float, centre: Vector2, right: Vector2, ahead: Vector2
 	_dir[n] = dir if dir != 0.0 else (1.0 if _rng.randf() < 0.5 else -1.0)
 	_speed[n] = _rng.randf_range(1.0, 1.6)
 	_off[n] = off
+	_jump[n] = 0.0
 	_phase[n] = _rng.randf() * TAU
 	_pos[n] = Vector3(q.x, y, q.y)
 	var shirt := Color(SHIRTS[_rng.randi() % SHIRTS.size()])
@@ -694,9 +731,15 @@ func _walk(n: int, dt: float) -> void:
 			_dir[n] = -_dir[n]
 			s = clampf(s, _lo[i], _hi[i])
 	_s[n] = s
+	var hop := 0.0
+	if _jump[n] > 0.0:
+		var jt := maxf(0.0, _jump[n] - dt)
+		_jump[n] = jt
+		_off[n] = move_toward(_off[n], _jump_to[n], dt * 4.0)
+		hop = sin(PI * (1.0 - jt / JUMP_T)) * JUMP_H
 	var q := _at(i, s, _off[n])
 	_phase[n] += dt * 9.0
-	var y := _height(i, s, q) + absf(sin(_phase[n])) * 0.05
+	var y := _height(i, s, q) + absf(sin(_phase[n])) * 0.05 + hop
 	var step := Vector2(q.x - _pos[n].x, q.y - _pos[n].z)
 	var yaw := atan2(-step.x, -step.y) if step.length_squared() > 0.000001 else 0.0
 	_pos[n] = Vector3(q.x, y, q.y)

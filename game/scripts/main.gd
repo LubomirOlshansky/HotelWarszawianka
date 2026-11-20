@@ -3716,6 +3716,8 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 	if flags.life_flag == 0 or notes == null or not notes.ready_ok:
 		return
 	life = CityLife.new()
+	life.gang_at = flags.scoot_gang  # --scoot-gang (videos)
+	life.gang_dir = flags.scoot_gang_dir
 	life.name = "CityLife"
 	life.map = map
 	life.dialogue = dialogue
