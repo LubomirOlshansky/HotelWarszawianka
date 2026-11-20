@@ -21,6 +21,7 @@ const Controls := preload("res://scripts/drive_controls.gd")
 const FollowCamera := preload("res://scripts/follow_camera.gd")
 const Settings := preload("res://scripts/settings.gd")
 const Tiers := preload("res://scripts/tiers.gd")
+const MacMode := preload("res://scripts/mac_mode.gd")
 const Police := preload("res://scripts/police.gd")
 const CityBarriers := preload("res://scripts/city_barriers.gd")
 const Solidity := preload("res://scripts/solidity.gd")
@@ -606,6 +607,10 @@ func parse_with(args: PackedStringArray) -> void:
 			hide_hud = true
 		elif arg == "--no-touch":
 			no_touch = true  # desktop: --no-touch
+		elif arg == "--mac" or arg == "--mac=on":
+			MacMode.forced = 1  # Mac step 1: the Mac rules on any computer (mac_mode.gd)
+		elif arg == "--mac=off":
+			MacMode.forced = 0
 		elif arg == "--no-input":
 			# Loop 3d-1: a test render ignores every key, click and touch (check_streaming's windows
 			# take the focus for minutes: keys typed elsewhere toggled the time, the overlay, the radio).

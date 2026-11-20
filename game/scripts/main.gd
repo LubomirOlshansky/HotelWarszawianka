@@ -126,6 +126,7 @@ const CrashFx := preload("res://scripts/crash_fx.gd")
 const MoneyPop := preload("res://scripts/money_pop.gd")
 const Haptics := preload("res://scripts/haptics.gd")
 const Tiers := preload("res://scripts/tiers.gd")
+const MacMode := preload("res://scripts/mac_mode.gd")  # Mac step 1: the iPhone app on a Mac
 const Governor := preload("res://scripts/governor.gd")
 ## Loop 3g-1: the police (police.gd; its block below, "loop 3g-1: the police").
 const Police := preload("res://scripts/police.gd")
@@ -4435,6 +4436,9 @@ func _load_settings() -> void:
 		camera_pitch = -settings.pitch
 	top_down = top_down or settings.camera_view == FollowCamera.VIEW_TOP_DOWN  # --topdown, or DEV's
 	model_name = flags._flag_model if flags._flag_model != "" else OS.get_model_name()
+	# Mac step 1 (mac_mode.gd): the iPhone app on a Mac picks and draws as a computer.
+	Tiers.mac = MacMode.active()
+	print(MacMode.describe())
 	auto_quality = Tiers.for_device(model_name, RenderingServer.get_video_adapter_name() if flags._flag_model == "" else "")
 	quality_choice = flags._flag_quality if flags._flag_quality != -2 else settings.quality
 	quality = auto_quality if quality_choice == Tiers.AUTO else quality_choice
@@ -6859,13 +6863,17 @@ func _pad_command(what: String) -> void:
 			_open_settings()
 
 
-## The gamepad loop: the pad used last hides the touch pedals and pads (and the HUD speaks of the
+## The gamepad loop (and Mac step 1's keyboard): the pad used last hides the touch pedals and pads (and the HUD speaks of the
 ## pad's buttons); a finger on the screen brings them back at once (hud.gd `_input`).
 func _note_pad(event: InputEvent) -> void:
 	var was := Gamepad.in_use()
 	Gamepad.note(event)
 	if hud != null and Gamepad.in_use() != was:
 		hud.set_pad_mode(Gamepad.in_use(), flags.no_touch)
+	# Mac step 1 (mac_mode.gd): a key that plays hides the touch pads (the HUD speaks of the
+	# keys); a finger or a click brings them back (hud.gd `_input`).
+	if hud != null and not hud.keys_mode and MacMode.keys_hide_pads() and MacMode.is_play_key(event):
+		hud.set_keys_mode(true, flags.no_touch)
 
 
 func _screen_to_world(s: Vector2) -> Vector3:

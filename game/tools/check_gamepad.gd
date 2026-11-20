@@ -421,6 +421,31 @@ func _context(hud: CanvasLayer) -> void:
 	if hud._pedal_rects().size() < 2:  # BRAKE and the nitro (the touch horn is gone, F 2026-11-10)
 		fails.append("P16 a finger back: only %d pedal rects" % hud._pedal_rects().size())
 	hud.set_nitro(false, 1.0)
+	# P17, Mac step 1 (mac_mode.gd): a key hides the touch pads like the pad does, names M on the
+	# pill and Shift under the nitro's tank; a click brings them back; the pad takes over from it.
+	hud.set_keys_mode(true, false)
+	hud.show_pill("KASETA", "time tape", "tape")
+	if not hud.touch_off or not top.text.begins_with("M · "):
+		fails.append("P17 keys mode: touch_off %s, pill \"%s\"" % [hud.touch_off, top.text])
+	hud.set_nitro(true, 0.5)
+	if hud._pedal_rects().size() != 1:
+		fails.append("P17 keys mode with the nitro: pedal rects %s" % [hud._pedal_rects()])
+	var click := InputEventMouseButton.new()
+	click.pressed = true
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.position = Vector2(5, 5)
+	hud._input(click)
+	if hud.keys_mode or hud.touch_off or top.text.begins_with("M · "):
+		fails.append("P17 a click did not bring the pads back: keys %s, touch_off %s, pill \"%s\"" % [hud.keys_mode, hud.touch_off, top.text])
+	hud.set_keys_mode(true, false)
+	hud.set_pad_mode(true, false)
+	if hud.keys_mode or not top.text.begins_with("A · "):
+		fails.append("P17 the pad did not take over from the keys: \"%s\"" % top.text)
+	hud.set_pad_mode(false, false)
+	hud.set_nitro(false, 1.0)
+	hud.hide_pill()
+	if not FileAccess.get_file_as_string("res://scripts/main.gd").contains("hud.set_keys_mode(true, flags.no_touch)"):
+		fails.append("P17 main.gd _note_pad no longer turns keys mode on")
 	# main.gd: A answers a card first, then the context button, then the rescue line's own A.
 	var main_text := FileAccess.get_file_as_string("res://scripts/main.gd")
 	var body := main_text.substr(main_text.find("func _primary("), 700)
