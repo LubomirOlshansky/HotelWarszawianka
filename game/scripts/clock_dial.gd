@@ -11,7 +11,7 @@ signal picked(hour: float)
 ## The face's size in points.
 const SIZE := 190.0
 const DAY_INK := Color("#f3d98a")
-const NIGHT_INK := Color("#1d2150")
+const NIGHT_INK := Color("#33408f")
 const GOLD := Color("#ffb347")
 const FACE := Color("#0f1230")
 const HAND := Color("#fbf7ee")
@@ -95,4 +95,6 @@ func _draw() -> void:
 	var hm := "%02d:%02d" % [int(hour), int(round(fmod(hour, 1.0) * 60.0)) % 60]
 	var big := int(round(20.0 * pt))
 	var hs := font.get_string_size(hm, HORIZONTAL_ALIGNMENT_CENTER, -1, big)
-	draw_string(font, c + Vector2(-hs.x * 0.5, r * 0.42), hm, HORIZONTAL_ALIGNMENT_CENTER, -1, big, HAND)
+	var at := c + Vector2(-hs.x * 0.5, r * 0.3)
+	draw_rect(Rect2(at + Vector2(-6.0 * pt, -hs.y * 0.8), Vector2(hs.x + 12.0 * pt, hs.y)), FACE)  # over the hand
+	draw_string(font, at, hm, HORIZONTAL_ALIGNMENT_CENTER, -1, big, HAND)
