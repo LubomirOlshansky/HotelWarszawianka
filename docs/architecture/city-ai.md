@@ -128,7 +128,9 @@ skill, not from the player's speed. All eight steps are built (race-ai.md sectio
   kit is on; `request_up`: no other's request card is up beside the road). The camera does not
   turn to look at the finish (`target_source` "race") and the race is the main line's target while the
   guide runs or when it is the final or the next rung's race (`main_target`, `main_race`). The script keeps the rivals, the challenge, the words, the pay, the talk,
-  the ghost and the player's checkpoints.
+  the ghost and the player's checkpoints. It wires itself (TD-4 b11): `install` takes its fields from the
+  game's ctx, `setup_in` gives `setup` the map data (the finishes, the Trzy mosty route), and `joined`
+  makes `--ladder` and `--trzy-mosty`'s preset.
 - The night club's pack race (`street_meet.gd`, `ladder.gd` `CLUB`) races on the session too
   (step 6b part 1b): a plan, a racing line, shortcuts and lights each, and no report. The
   autopilot's ghost and Halina's roll-up behind the car before the first race (`call_first`)
