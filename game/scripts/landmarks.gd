@@ -1,4 +1,4 @@
-extends "res://scripts/landmarks/kladka.gd"
+extends "res://scripts/landmarks/karowa.gd"
 ## v0.8 "Landmarks": the buildings that make it Warsaw at a glance, built in code
 ## from the real footprints and heights in centrum.json (OpenStreetMap outlines and
 ## building parts, which carry `height` / `min_height`) instead of their GUGiK LoD2 or
@@ -620,6 +620,12 @@ const INFO := {
 	"kladka": ["Kładka Abakanowicz",
 			"452 metry z Karowej na Pragę, otwarta w 2024. Mówili: kładka donikąd. Pierwszy tydzień: 200 tysięcy ludzi idących donikąd. Samochodów zero, schodki do siedzenia, a czerwona linia to południk.",
 			"452 metres from Karowa to Praga, opened in 2024. They called it the bridge to nowhere. First week: 200,000 people walking to nowhere. Zero cars, steps to sit on, and the red line is the meridian."],
+	"wiadukt_markiewicza": ["Wiadukt Markiewicza",
+			"1904: Karowa zawraca i przejeżdża nad sobą. Syrena Woydygi patrzy w dół, a w grudniu Barbórka robi tu Kryterium Asów i cała Warszawa stoi przy balustradzie.",
+			"1904: Karowa turns back and drives over itself. Woydyga's mermaid looks down, and every December the Barbórka rally runs its Kryterium Asów here while all of Warsaw leans on the balustrade."],
+	"szaja": ["Pomnik Krzysztofa „Szayi” Szaykowskiego",
+			"Głos Kryterium Asów na Karowej przez lata. To on nazwał tę ulicę Panią Karową.",
+			"The voice of the Kryterium Asów on Karowa for years. He was the one who named this street Lady Karowa."],
 	"swieto": ["Most Świętokrzyski",
 			"Most wantowy z 2000 roku: jeden pylon, wanty w jednej płaszczyźnie.",
 			"A cable-stayed bridge of 2000: one pylon, its stays in one plane."],
@@ -1262,6 +1268,9 @@ func _find_sites() -> void:
 	_find_flag()
 	_find_swieto()
 	_find_kladka()
+	# Karowa's serpentine (F, 2026-11-20): Wiadukt Markiewicza and the memorial to "Szaya".
+	_find_markiewicz()
+	_find_szaja()
 	# The museum and Plac Piłsudskiego loop (2026-10-31): the square's edges.
 	_find_plac()
 	_find_pawilony()
@@ -1682,6 +1691,10 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_flag(s)
 			"kladka":
 				_build_kladka(s)
+			"wiadukt_markiewicza":
+				_build_markiewicz(s)
+			"szaja":
+				_build_szaja(s)
 			"swieto":
 				_build_swieto(s)
 			"muzeum":

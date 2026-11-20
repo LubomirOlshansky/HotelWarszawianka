@@ -305,6 +305,8 @@ const BUDGET := {
 	"stadium": 4750,
 	"swieto": 240,
 	"kladka": 8000,  # 2026-11-20 Kładka Abakanowicz from F's photos: 451 m deck, seating bays, rails, 7 supports (measured 5944)
+	"wiadukt_markiewicza": 8000,  # 2026-11-20 Wiadukt Markiewicza from F's photos: the ring, two vaults, balustrades, 8 obelisks, Syrena, the group
+	"szaja": 60,  # 2026-11-20 the memorial to Krzysztof "Szaya" Szaykowski (a default until F's photo)
 	"teatr": 820,  # 2026-11-08 photo pass (top-50 T06): ten columns, pediment, quadriga: 705 tris
 	# Plac Bankowy, Filharmonia, Teatr Polski (the Mac photo reports, 2026-11-02): fronts on kept skins.
 	"ratusz": 2500,

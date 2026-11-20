@@ -296,6 +296,53 @@ vec3 wz_frame(vec2 wp) {
 	return best;
 }
 
+// Karowa's serpentine (F, 2026-11-20; docs/landmarks/specs/wiadukt_markiewicza.md): from the
+// viaduct's west end over Wiadukt Markiewicza, round the loop, through the two arches and down to
+// the bend at the escarpment's foot, the carriageway is granite setts in segmental arcs (the
+// "fish scale" the 2006-07 restoration found under the asphalt; Mapillary 2019-2025), the paint
+// kept (the double line under the arches). Four lines of the map (KR_LINE, as WZ_LINE: x, z, the
+// setts' half width; a 0 starts a line square, a negative half breaks it from the next), drawn by
+// the W-Z slip roads' setts. The box test keeps the cost off every other fragment.
+const vec4 KR_BOX = vec4(-363.0, -270.0, -990.0, -879.0);   // x0, x1, z0, z1
+const int KR_N = 52;
+const vec3 KR_LINE[52] = vec3[52](
+	vec3(-337.6, -934.8, 0.00), vec3(-337.6, -934.8, 3.40), vec3(-348.8, -945.9, 3.40), vec3(-357.4, -958.5, 3.40),
+	vec3(-358.4, -964.1, 3.40), vec3(-357.5, -970.0, 3.40), vec3(-352.7, -977.3, 3.40), vec3(-347.3, -981.7, 3.40),
+	vec3(-340.7, -984.0, 3.40), vec3(-337.2, -984.2, 3.40), vec3(-329.8, -982.5, 3.40), vec3(-323.7, -978.1, 3.40),
+	vec3(-321.3, -975.2, 3.40), vec3(-301.0, -938.4, 3.40), vec3(-299.1, -933.5, 3.40), vec3(-298.5, -928.1, 3.40),
+	vec3(-300.0, -921.6, 3.40), vec3(-305.8, -913.1, 3.40), vec3(-314.5, -905.8, 3.40), vec3(-327.0, -900.2, 3.40),
+	vec3(-335.0, -899.3, 3.40), vec3(-344.1, -902.3, 3.40), vec3(-349.7, -907.2, 3.40), vec3(-355.8, -916.1, 3.40),
+	vec3(-355.8, -916.1, -1.00), vec3(-337.6, -934.8, 0.00), vec3(-337.6, -934.8, 2.90), vec3(-325.2, -911.4, 2.90),
+	vec3(-316.1, -889.9, 2.90), vec3(-312.5, -885.6, 2.90), vec3(-309.8, -884.6, 2.90), vec3(-304.5, -884.5, 2.90),
+	vec3(-299.2, -886.8, 2.90), vec3(-288.9, -896.2, 2.90), vec3(-282.9, -907.2, 2.90), vec3(-282.9, -907.2, -1.00),
+	vec3(-282.9, -907.2, 0.00), vec3(-282.9, -907.2, 2.90), vec3(-288.9, -906.7, 2.90), vec3(-296.3, -908.2, 2.90),
+	vec3(-312.8, -920.9, 2.90), vec3(-337.6, -934.8, 2.90), vec3(-337.6, -934.8, -1.00), vec3(-293.0, -974.5, 0.00),
+	vec3(-293.0, -974.5, 3.75), vec3(-280.4, -949.5, 3.75), vec3(-276.0, -935.1, 3.75), vec3(-275.5, -925.3, 3.75),
+	vec3(-276.3, -921.6, 3.75), vec3(-279.9, -912.2, 3.75), vec3(-282.9, -907.2, 3.75), vec3(-282.9, -907.2, -1.00));
+
+// Karowa's frame at wp (as wz_frame; -1e4 in z outside the box).
+vec3 kr_frame(vec2 wp) {
+	vec3 best = vec3(0.0, 0.0, -1e4);
+	if (any(bvec4(wp.x < KR_BOX.x, wp.x > KR_BOX.y, wp.y < KR_BOX.z, wp.y > KR_BOX.w))) {
+		return best;
+	}
+	float run = 0.0;
+	for (int i = 0; i < KR_N - 1; i++) {
+		vec3 a = KR_LINE[i];
+		vec3 b = KR_LINE[i + 1];
+		vec2 ab = b.xy - a.xy;
+		float len = max(length(ab), 1e-3);
+		vec2 dir = ab / len;
+		float t = clamp(dot(wp - a.xy, dir), 0.0, len);
+		vec2 off = wp - a.xy - dir * t;
+		float inside = mix(a.z, b.z, t / len) - length(off);
+		float take = step(best.z, inside);
+		best = mix(best, vec3(run + t, dir.x * off.y - dir.y * off.x, inside), take);
+		run += len;
+	}
+	return best;
+}
+
 // Plac Piłsudskiego (photos, 2026-11-02; docs/landmarks/photo-reports/pilsudskiego.md): the paved
 // field is grey granite slabs in ~6 m squares, a chequer of lighter and darker panels outlined by
 // darker grey bands (the drone photo). The map has it as bare ground crossed by footpaths; inside
@@ -391,6 +438,9 @@ void fragment() {
 		float grain = hash12(floor(wp * 6.0));
 		float patch = smoothstep(0.63, 0.7, value_noise(wp * 0.11 + 3.7));
 		shade = 0.95 + 0.07 * grain - 0.06 * patch + 0.04 * n1;
+		if (wz.z <= 0.0) {
+			wz = kr_frame(wp);  // Karowa's serpentine: the same setts (its paint stays: id 6 only)
+		}
 		if (wz.z > 0.0) {
 			// Trasa W-Z's slip roads: 0.16 x 0.14 m setts in arcs WZ_ARC wide (each arc's rows bow
 			// towards the road's start), bluish and warm greys with a few pink stones, sand joints;

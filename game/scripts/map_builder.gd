@@ -1734,6 +1734,40 @@ func _on_kladka(x: float, z: float) -> bool:
 	return false
 
 
+## Whether every point of a plan line lies on Wiadukt Markiewicza's ring (landmarks/karowa.gd
+## `mk_covers`): the bake's deck, walls and portals there are left to the landmark.
+static func _on_markiewicz(pts: PackedVector2Array) -> bool:
+	if pts.is_empty():
+		return false
+	for p in pts:
+		if not Landmarks.mk_covers(p):
+			return false
+	return true
+
+
+## Karowa's serpentine (F, 2026-11-20): its lamps are the cast-iron lanterns of the Royal Route, as
+## on Krakowskie Przedmieście (Mapillary 2019-2025), from the viaduct's west end down the loop and
+## the lower road to the bend at the escarpment's foot. Points [x, z] of the street's line.
+const KAROWA_LANTERNS := [Vector2(-358.0, -918.0), Vector2(-345.0, -903.0), Vector2(-330.0, -899.0),
+		Vector2(-308.0, -910.0), Vector2(-298.0, -930.0), Vector2(-305.0, -960.0), Vector2(-330.0, -984.0),
+		Vector2(-352.0, -976.0), Vector2(-358.0, -962.0), Vector2(-348.0, -945.0), Vector2(-338.0, -935.0),
+		Vector2(-322.0, -905.0), Vector2(-316.0, -888.0), Vector2(-296.0, -886.0), Vector2(-283.0, -907.0),
+		Vector2(-276.0, -930.0), Vector2(-280.0, -950.0), Vector2(-293.0, -974.0)]
+const KAROWA_LANTERN_REACH := 9.0
+
+
+## Whether a lamp at `at` stands by Karowa's serpentine (KAROWA_LANTERNS).
+static func _on_karowa(at: Vector2) -> bool:
+	if at.x < -375.0 or at.x > -265.0 or at.y < -995.0 or at.y > -875.0:
+		return false
+	for i in KAROWA_LANTERNS.size() - 1:
+		var a: Vector2 = KAROWA_LANTERNS[i]
+		var b: Vector2 = KAROWA_LANTERNS[i + 1]
+		if Geometry2D.get_closest_point_to_segment(at, a, b).distance_to(at) < KAROWA_LANTERN_REACH:
+			return true
+	return false
+
+
 ## The height of deck group g at a point (its nearest piece, projected onto it), or the
 ## terrain for g < 0. Things baked onto a bridge (markings, kerbs, tram tracks) use it.
 ## PT-18: the nearest point of deck group g's centrelines to p (p itself when there is none).
@@ -2445,6 +2479,8 @@ func _build_walls(st) -> void:
 	var towers: Array = data.get("towers", index_data.get("towers", []))
 	for w: Dictionary in data["walls"]:
 		var pts := _pts(w["p"])
+		if _on_markiewicz(pts):
+			continue  # Wiadukt Markiewicza's faces and passages (landmarks/karowa.gd) and their colliders
 		var tops: Array = w["t"]
 		var lows: Array = w["b"]
 		var flags: Array = w["f"]
@@ -2539,6 +2575,8 @@ func _build_portals(st) -> void:
 	_uv2 = Vector2(0.5, -1.0)
 	for f: Dictionary in data.get("tunnels", {}).get("frames", []):
 		var c := Vector2(float(f["c"][0]), float(f["c"][1]))
+		if Landmarks.mk_covers(c, 1.0):
+			continue  # the arches of Wiadukt Markiewicza (landmarks/karowa.gd) are its mouths
 		var d := Vector2(float(f["d"][0]), float(f["d"][1]))
 		var side := Vector2(-d.y, d.x)
 		var w := float(f["w"])
@@ -8157,6 +8195,8 @@ func _build_bridge_structures(st) -> void:
 		if int(d["kl"]) > 0:
 			continue  # Kładka Abakanowicz (tools/kladka.py): the landmark `kladka` draws its deck, railings and girder
 		var pts: PackedVector2Array = d["pts"]
+		if _on_markiewicz(pts):
+			continue  # Wiadukt Markiewicza: the landmark `wiadukt_markiewicza` draws its deck, faces and balustrades
 		var hs: PackedFloat32Array = d["h"]
 		var outer: PackedByteArray = d["o"]
 		var piers: bool = d["k"] in ["road", "rail"]
@@ -10932,12 +10972,14 @@ func _build_street_furniture() -> void:
 		var z := float(list[i + 1])
 		if FirstScene.on_pasaz(Vector2(x, z)):
 			continue  # first_scene.gd's Y mast stands here
+		if Landmarks.mk_covers(Vector2(x, z), 1.0):
+			continue  # Wiadukt Markiewicza is lit by its own obelisk lamps (landmarks/karowa.gd)
 		var t := Transform3D(Basis(Vector3.UP, fposmod(x * 0.37 + z * 0.11, TAU)), Vector3(x, terrain_height(x, z), z))
 		if Vector2(x, z).distance_to(Vector2(CANDELABRAS.x, CANDELABRAS.y)) < CANDELABRAS.z:
 			candelabras.append(t)
 			candelabra_glows.append(SODIUM_GLOW)
 			continue
-		if _on_royal_route(x, z, royal):
+		if _on_royal_route(x, z, royal) or _on_karowa(Vector2(x, z)):
 			lanterns.append(t)
 			lantern_glows.append(SODIUM_GLOW if _sodium_at(x, z) else LED_GLOW)
 			continue
@@ -10951,6 +10993,8 @@ func _build_street_furniture() -> void:
 		var z := _extra_lamps[i + 1]
 		if _on_kladka(x, z):
 			continue  # Kładka Abakanowicz has no lamp posts: its light is the LED under the handrails
+		if Landmarks.mk_covers(Vector2(x, z), 1.0):
+			continue  # Wiadukt Markiewicza is lit by its own obelisk lamps
 		var t := Transform3D(Basis(Vector3.UP, _extra_lamps[i + 2]), Vector3(x, ground_height(x, z), z))
 		spots.append(t)
 		var head := t * Vector3(1.2, 0.0, 0.0)
