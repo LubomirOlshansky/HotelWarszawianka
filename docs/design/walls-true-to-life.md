@@ -593,8 +593,8 @@ transparency for noise screens (a blended material), textures of bricks or board
 - Draw calls at the five probe views: typed equal; panels equal but the helicopter's main pass, 124 ->
   123. Prebuilt sectors +0.05 % (typed and panels). `check_solids` TOTAL_TYPED unchanged (46,459).
 - Shots (walls-research/w8/shots/): a Wola yard's footway, LO Batorego's drive on Myśliwiecka, Park
-  Ujazdowski's railing (Pole Mokotowskie is south of the map), an iron gate between piers by
-  Mokotowska, the mesh fence by the stadium: gaps and posts read at 26 m; the same on both paths.
+  Ujazdowski's railing (Pole Mokotowskie is south of the map), an iron gate between piers (line
+  114), the mesh fence by the stadium: gaps and posts read at 26 m; the same on both paths.
 
 ## 7. Broken looks: the seam with the drivable-city plan
 
