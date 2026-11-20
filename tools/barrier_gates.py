@@ -22,18 +22,18 @@ G) and that carry no hazard reason `hz` (a gap there would let the car fall):
          the line, strictly or through a point both share (OpenStreetMap's gate node: the way's
          vertex on the line, the way going on to both sides). w = (the way's width + GAP_PAD) over
          the sine of the crossing angle (at least SIN_MIN), so the clear width straight across the
-         way is its width + GAP_PAD; gaps that touch merge. `leaf` is 0 for a path; for a service
-         road +1 or -1, the side of the line (+1: the left of the line's own direction, x, z ->
-         (-dz, dx)) where its two open leaves lie, swung back against it.
+         way is its width + GAP_PAD; gaps that touch merge. `leaf` is 0 (LEAVES off: the photo check);
+         with LEAVES on, a service road's gap has +1 or -1, the side of the line (+1: the left of
+         the line's own direction, x, z -> (-dz, dx)) where its two open leaves lie.
     ge   [start, end]: what stands at the line's first and last point. RULE OPEN: the end faces an
          opening the bake already cut (bake_structures.clear_carriageways cuts every line out of a
          drivable carriageway or lane, object_fixes L4 out of a footway or zebra): it lies within
          the way's half width + OPEN_REACH m of a way's centre line, its last segment points at it,
          and the end of another S or H line of the same kind faces it from the other side, the two
          feet on the centre line within OPEN_PAIR m, neither more than EDGE_TOL m inside the way's
-         width. 0 nothing, 1 a gate post (a path), +2 or -2 a
-         gate post with an open leaf swung back against the line on its left (+) or right (-) side
-         (a service road). The key is written only on a line with a gate at one end at least.
+         width. 0 nothing, 1 a gate post; with LEAVES on, a service road's end has +2 or -2, a gate post
+         with an open leaf swung back against the line on its left (+) or right (-) side. The key is
+         written only on a line with a gate at one end at least.
 
 Not on a crossing at a bridge deck or in a tunnel (the way's `dk`, a bridge road: the way and the line
 at different heights), not on a hazard line. A path that only ends on a line gets nothing (it does not
@@ -48,7 +48,7 @@ lie along the line on the yard side. Classic ignores both keys, so the classic c
 
 The stamp `barrier_gates`: {"v": VERSION, "lines": lines with a gate, "gaps": gaps, "gap_m": metres,
 "ends": gate ends, "leaves": ends and gaps with leaves, "by": {"gap_path", "gap_service", "open_path",
-"open_service"}}. bake_osm.py runs `apply` last; tools/check_post_passes.py runs it on main's map.
+"open_service"}} (by the way that made each gate: a path or a service road). bake_osm.py runs `apply` last; tools/check_post_passes.py runs it on main's map.
 After it: tools/bake_street_details.py and tools/bake_park_details.py (their stamps hash `lines`; the
 placements do not read the gates), tools/bake_sectors.py, bake_city.gd. Standard library only.
 """
@@ -62,7 +62,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
 
 KEY = "barrier_gates"
-VERSION = 1
+VERSION = 2          # 2: leaves off (LEAVES), service gates get posts only
 KINDS = ("fence", "wall", "hedge")
 CLASSES = ("S", "H")
 GAP_PAD = 0.4       # m: a gap is the way's width and this much (the brief; object_fixes GATE_PAD)
@@ -74,6 +74,12 @@ OPEN_REACH = 1.5    # m: a line's end within the way's half width and this of it
 OPEN_PAIR = 3.0     # m: the two ends' feet on the centre line this near: one opening
 EDGE_TOL = 0.15     # m: an end further inside the way's width than this gets no gate (a post there would
                     # stand in the way; the bake's cut leaves a fence end up to 0.09 m inside a drive's width)
+# The photo check of W8 (20 service-road openings on street photos, walls-research/w8/): 6 showed a
+# gate there, 8 an open car-park mouth, a plaza drive, a barrier arm, a roller shutter or a low lawn
+# fence, 6 no view; under 16 of 20, so the rule "a service opening is a gate with open leaves" is off
+# (the coordinator's rule for W8: drop the leaves, keep the posts). True writes leaves again: `leaf`
+# +1/-1 on service gaps and +2/-2 on service ends.
+LEAVES = False
 CELL = 16.0
 PATH_KINDS = ("foot", "cycle", "zebra", "cyclecross")
 
@@ -258,12 +264,13 @@ def plan_gaps(line, cr, ways):
             b = L
         if b - a <= 0.0:
             continue
-        out.append(([round(a, 2), round(b - a, 2), yard], kind))
+        out.append(([round(a, 2), round(b - a, 2), yard if LEAVES and kind == "service" else 0], kind))
     return out
 
 
 def plan_opens(d, ways, wgrid):
-    """{line index: [start, end]} for the line ends facing an opening across a way."""
+    """{line index: [start, end]} for the line ends facing an opening across a way, and
+    {(line index, end): the way's kind}."""
     lines = d.get("lines", [])
     ends = Grid()
     info = {}
@@ -311,9 +318,11 @@ def plan_opens(d, ways, wgrid):
                         found[(c[1], c[2])] = (kind, wi, k, a, b)
                     break
     out = {}
+    kinds = {}
     for (i, e), (kind, wi, k, a, b) in found.items():
         v = 1
-        if kind == "service":
+        kinds[(i, e)] = kind
+        if kind == "service" and LEAVES:
             # Leaves on the yard side of the line, against it: which side of the line that is.
             wpts = ways[wi][2]
             p, _ = info[(i, e)]
@@ -325,12 +334,13 @@ def plan_opens(d, ways, wgrid):
             la, lb = (lp[0], lp[1]) if e == 0 else (lp[-2], lp[-1])
             v = 2 if side(far, la, lb) > 0 else -2
         out.setdefault(i, [0, 0])[e] = v
-    return out
+    return out, kinds
 
 
 def plan(d):
     """{line index: {"g": [...], "ge": [...]}} and the counts, from the lines and ways alone (the
-    gates already on the map are not read, so a plan of a gated map is the plan of the clean one)."""
+    gates already on the map are not read, so a plan of a gated map is the plan of the clean one).
+    The third value names the way behind each gate: {(line, "g", n) or (line, "ge", end): kind}."""
     ways = ways_of(d)
     wgrid = Grid()
     for wi, (kind, ww, pts, deck) in enumerate(ways):
@@ -341,6 +351,7 @@ def plan(d):
     gap_m = 0.0
     gaps = 0
     leaves = 0
+    tags = {}
     for i, l in enumerate(d.get("lines", [])):
         if not eligible(l):
             continue
@@ -351,12 +362,13 @@ def plan(d):
         g = plan_gaps(line, cr, ways)
         if g:
             res.setdefault(i, {})["g"] = [x for x, _ in g]
-            for x, kind in g:
-                by["gap_" + kind] += 1
+            for n, (x, kind) in enumerate(g):
+                tags[(i, "g", n)] = "service" if kind == "service" else "path"
+                by["gap_" + tags[(i, "g", n)]] += 1
                 gaps += 1
                 gap_m += x[1]
                 leaves += x[2] != 0
-    opens = plan_opens(d, ways, wgrid)
+    opens, kinds = plan_opens(d, ways, wgrid)
     ends = 0
     for i, ge in opens.items():
         # An end a gap already reaches has no end left to stand a post on.
@@ -369,14 +381,15 @@ def plan(d):
         if not any(ge):
             continue
         res.setdefault(i, {})["ge"] = ge
-        for v in ge:
+        for e, v in enumerate(ge):
             if v:
                 ends += 1
-                by["open_service" if abs(v) == 2 else "open_path"] += 1
+                tags[(i, "ge", e)] = "service" if kinds[(i, e)] == "service" else "path"
+                by["open_" + tags[(i, "ge", e)]] += 1
                 leaves += abs(v) == 2
     counts = {"lines": len(res), "gaps": gaps, "gap_m": round(gap_m, 1), "ends": ends, "leaves": leaves,
               "by": dict(sorted(by.items()))}
-    return res, counts
+    return res, counts, tags
 
 
 def summary(c):
@@ -401,12 +414,12 @@ def apply(d, map_dir=None, force=False):
     stamp = d.get(KEY) or {}
     if int(stamp.get("v", 0)) >= VERSION and not force:
         return "already gated (%s)" % summary(stamp)
-    res, counts = plan(d)
+    res, counts, _ = plan(d)
     write(d, res, counts)
     return summary(counts)
 
 
-def rows_of(d, res):
+def rows_of(d, res, tags):
     """One row per gate for the photo sheet (overlay_object_types.py sheet): the line's fields and the
     gate's point."""
     out = []
@@ -424,13 +437,13 @@ def rows_of(d, res):
             return line[-1]
         base = {"i": i, "k": l["k"], "ty": l.get("ty", ""), "tc": l.get("tc", ""), "sc": l.get("sc", ""),
                 "hz": l.get("hz", ""), "L": round(L, 1), "h": l.get("h", l.get("hs", ""))}
-        for s, w, leaf in v.get("g", []):
+        for n, (s, w, leaf) in enumerate(v.get("g", [])):
             x, z = at(s + w * 0.5)
-            out.append(dict(base, rule="gap_service" if leaf else "gap_path", x=round(x, 1), z=round(z, 1), w=w))
+            out.append(dict(base, rule="gap_" + tags[(i, "g", n)], x=round(x, 1), z=round(z, 1), w=w))
         for e, val in enumerate(v.get("ge", [])):
             if val:
                 x, z = line[0] if e == 0 else line[-1]
-                out.append(dict(base, rule="open_service" if abs(val) == 2 else "open_path", x=round(x, 1), z=round(z, 1), end=e))
+                out.append(dict(base, rule="open_" + tags[(i, "ge", e)], x=round(x, 1), z=round(z, 1), end=e))
     return out
 
 
@@ -441,7 +454,7 @@ def check(map_dir):
     if int(stamp.get("v", 0)) < VERSION:
         print("barrier_gates: FAIL (the map has no %s stamp v%d)" % (KEY, VERSION))
         return 1
-    res, counts = plan(d)
+    res, counts, _ = plan(d)
     have = {i: {k: l[k] for k in ("g", "ge") if k in l} for i, l in enumerate(d.get("lines", [])) if "g" in l or "ge" in l}
     bad = [i for i in set(have) | set(res) if have.get(i) != res.get(i)]
     print("barrier_gates: " + summary(counts))
@@ -483,25 +496,34 @@ def selftest():
     ok("no leaves on a path", [x[2] for x in l0.get("g", [])], [0, 0, 0])
     ok("hazard line", "g" in d["lines"][1], False)
     ok("R line", "g" in d["lines"][2], False)
-    ok("drive opening", (d["lines"][3].get("ge"), d["lines"][4].get("ge")) in (([0, 2], [0, -2]), ([0, -2], [0, 2])), True)
-    # The yard is south (+z: the drive runs 40 m that way, 2 m north): line 3 runs east, its left is
-    # (-dz, dx) = (0, 1), +z: +2. Line 4 runs west, its left is -z: -2.
-    ok("yard side", (d["lines"][3].get("ge"), d["lines"][4].get("ge")), ([0, 2], [0, -2]))
+    ok("drive opening (posts only)", (d["lines"][3].get("ge"), d["lines"][4].get("ge")), ([0, 1], [0, 1]))
     ok("path opening", (d["lines"][5].get("ge"), d["lines"][6].get("ge")), ([0, 1], [1, 0]))
     ok("no ge without a gate", any("ge" in d["lines"][i] for i in (0, 1, 2)), False)
     st = d[KEY]
     ok("stamp", (st["v"], st["gaps"], st["ends"], st["leaves"], st["by"]),
-       (VERSION, 3, 4, 2, {"gap_path": 3, "open_path": 2, "open_service": 2}))
+       (VERSION, 3, 4, 0, {"gap_path": 3, "open_path": 2, "open_service": 2}))
     snap = json.dumps(d, sort_keys=True)
     ok("second run", apply(d).startswith("already gated"), True)
     ok("second run changes nothing", json.dumps(d, sort_keys=True), snap)
     apply(d, force=True)
     ok("forced run gives the same", json.dumps(d, sort_keys=True), snap)
-    # A service road through a fence: a gap with leaves on the yard side.
+    # A service road through a fence: a gap, no leaves; counted as a service road's.
     d2 = {"paths": [], "roads": [{"k": "service", "w": 3.0, "p": [5.0, -2.0, 5.0, 30.0]}],
           "lines": [fence([0.0, 0.0, 10.0, 0.0])]}
     apply(d2)
-    ok("service gap", d2["lines"][0].get("g"), [[3.3, 3.4, 1]])
+    ok("service gap", (d2["lines"][0].get("g"), d2[KEY]["by"]), ([[3.3, 3.4, 0]], {"gap_service": 1}))
+    # LEAVES on (the rule kept for a later photo check): leaves on the yard side. The yard is south
+    # (+z: the drive runs 40 m that way, 2 m north): line 3 runs east, its left is (-dz, dx) = (0, 1),
+    # +z: +2. Line 4 runs west, its left is -z: -2.
+    global LEAVES
+    LEAVES = True
+    try:
+        apply(d2, force=True)
+        ok("service gap with leaves", d2["lines"][0].get("g"), [[3.3, 3.4, 1]])
+        apply(d, force=True)
+        ok("yard side", (d["lines"][3].get("ge"), d["lines"][4].get("ge")), ([0, 2], [0, -2]))
+    finally:
+        LEAVES = False
     for b in bad:
         print("  " + b)
     print("barrier_gates selftest: %s (%s)" % ("OK" if not bad else "FAIL", msg))
@@ -520,9 +542,9 @@ def main(argv):
     with open(path, encoding="utf-8") as f:
         d = json.load(f)
     if "dry" in opt or "list" in opt or "rows" in opt:
-        res, counts = plan(d)
+        res, counts, tags = plan(d)
         print("barrier_gates (dry): " + summary(counts))
-        rows = rows_of(d, res)
+        rows = rows_of(d, res, tags)
         if "list" in opt:
             for r in rows:
                 print("  %-12s line %5d %-6s %-14s %s  (%.1f, %.1f)" % (r["rule"], r["i"], r["k"], r["ty"], r["sc"], r["x"], r["z"]))

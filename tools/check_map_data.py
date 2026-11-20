@@ -110,9 +110,9 @@ ALL_DEFAULT_MAX = 11.5
 # `g` and `ge` (recorded on purpose; a change to the rules or the lines changes them): 761 lines;
 # 326 gaps (834 m) where a footway crosses a fence, wall or hedge at OSM's gate node (object_fixes L4's
 # strict test never saw them; 0 by a service road: clear_carriageways already cut every line out of a
-# drive); 556 gate ends at the openings the bake cut, 244 by paths (posts) and 312 by service roads
-# (posts and open leaves).
-GATES_EXPECTED = {"lines": 761, "gaps": 326, "gap_m": 834.4, "ends": 556, "leaves": 312}
+# drive); 556 gate ends at the openings the bake cut, 244 by paths and 312 by service roads, all
+# posts: 0 leaves (the photo check put 6 of 20 service openings as gates, under 16; LEAVES is off).
+GATES_EXPECTED = {"lines": 761, "gaps": 326, "gap_m": 834.4, "ends": 556, "leaves": 0}
 # docs/DEMO.md 7 row 7: the lane graph's strongly connected share at least this.
 SCC_SHARE = 0.95
 
@@ -244,15 +244,15 @@ def barrier_types(data, report):
 
 def barrier_gates(data, report):
     """W8 of the walls look (tools/barrier_gates.py): the gaps and gate ends on the lines, counted from
-    the lines themselves, against GATES_EXPECTED; by paths and by service roads. Before the map has the
-    pass (its stamp `barrier_gates` missing) this says so and passes."""
+    the lines themselves, against GATES_EXPECTED; by paths and by service roads from the pass's stamp
+    (the line keeps no record of the way), which must add up to the same gaps and ends. Before the map
+    has the pass (its stamp `barrier_gates` missing) this says so and passes."""
     stamp = data.get("barrier_gates")
     if not stamp:
         report("OK", "barrier gates", "not in this centrum.json yet (bake_osm.py runs tools/barrier_gates.py)")
         return
     lines = gaps = ends = leaves = 0
     gap_m = 0.0
-    by = {}
     for l in data.get("lines", []):
         if "g" not in l and "ge" not in l:
             continue
@@ -261,19 +261,20 @@ def barrier_gates(data, report):
             gaps += 1
             gap_m += w
             leaves += leaf != 0
-            k = "gap_service" if leaf else "gap_path"
-            by[k] = by.get(k, 0) + 1
         for v in l.get("ge", []):
             if v:
                 ends += 1
                 leaves += abs(v) == 2
-                k = "open_service" if abs(v) == 2 else "open_path"
-                by[k] = by.get(k, 0) + 1
+    by = stamp.get("by", {})
     got = {"lines": lines, "gaps": gaps, "gap_m": round(gap_m, 1), "ends": ends, "leaves": leaves}
-    report("OK" if got == GATES_EXPECTED else "FAIL", "barrier gates",
-           "%d lines, %d gaps %.0f m, %d gate ends, %d with leaves (by %s)%s" % (
+    sums = (by.get("gap_path", 0) + by.get("gap_service", 0) == gaps
+            and by.get("open_path", 0) + by.get("open_service", 0) == ends)
+    good = got == GATES_EXPECTED and sums
+    report("OK" if good else "FAIL", "barrier gates",
+           "%d lines, %d gaps %.0f m, %d gate ends, %d with leaves (by %s)%s%s" % (
                lines, gaps, gap_m, ends, leaves, ", ".join("%s %d" % kv for kv in sorted(by.items())),
-               "" if got == GATES_EXPECTED else "; expected %s" % GATES_EXPECTED))
+               "" if got == GATES_EXPECTED else "; expected %s" % GATES_EXPECTED,
+               "" if sums else "; the stamp's by does not add up to the gaps and ends"))
 
 
 def sha256_file(path):
