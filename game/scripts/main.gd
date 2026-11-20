@@ -1272,9 +1272,8 @@ func _fly_in() -> void:
 		_opening_audio.sounds = sfx
 		add_child(_opening_audio)
 		_opening_audio.start(radio)
-		# The morning (F, 2026-11-16): the city wakes up while the camera flies in. It loaded in the
-		# Day look under the title (the shadows' pipelines are warm); the night comes at the tap.
-		tod.wake(CameraShots.OPEN_TIME)
+		# F, 2026-11-20: no night and no clock jump: the flight is in the Day look at 11:00 from the
+		# first frame (the morning, tod.wake, is not played; the 2026-11-16 night-to-day was dropped).
 		moments.opening(vehicle.global_position, cam_yaw, camera_pitch,
 				PackedStringArray(["Śródmieście · Plac Defilad", "the centre of Warsaw"]))
 		return

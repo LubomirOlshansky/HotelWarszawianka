@@ -8,7 +8,7 @@ extends SceneTree
 ## - the jump: the look that fits the hour, the clock set, one toast; a run that keeps hours jumps
 ##   into them only when it starts outside them (activity.gd `start`), and its call says so;
 ## - the map clock's words.
-## - the game clock (F 2026-11-19, time_of_day.gd `start_clock`): it starts on a Friday at 14:00 in
+## - the game clock (F 2026-11-19, time_of_day.gd `start_clock`): it starts on a Friday at 11:00 (DAY_START_HOUR) in
 ##   the Day look's light and runs at time.speed (30x); the sun follows the date (a June day
 ##   longer than a November one); the golden hour round sunset lasts time.golden times longer
 ##   and the clock's sunrise and sunset are the real ones; a look picked moves the clock forward
