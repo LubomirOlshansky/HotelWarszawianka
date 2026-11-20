@@ -304,7 +304,7 @@ const BUDGET := {
 	"wkd_ochota": 650,  # the stair has up to 40 steps on the real ground (6 on the flat stub)
 	"stadium": 4750,
 	"swieto": 240,
-	"ateneum": 5200,  # 2026-11-21 the whole Ateneum block from F's photos: L of two wings, rounded colonnaded corner, bays, attic, ATENEUM sign (measured 5720)
+	"ateneum": 5200,  # 2026-11-21 the whole Ateneum block from F's photos: L of two wings, rounded colonnaded corner, bays, attic, ATENEUM sign (measured 4973: up from 800 for the first single-wing version on purpose, the whole block is two wings and a corner)
 	"lipowa1a": 900,  # 2026-11-21 copper storeys, loggias on Lipowa, solid copper end, roof terrace (from the BUW thread's version, F: "i like")
 	"kladka": 8000,  # 2026-11-20 Kładka Abakanowicz from F's photos: 451 m deck, seating bays, rails, 7 supports (measured 5944)
 	"teatr": 820,  # 2026-11-08 photo pass (top-50 T06): ten columns, pediment, quadriga: 705 tris
