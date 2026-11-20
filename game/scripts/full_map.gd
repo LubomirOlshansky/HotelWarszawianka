@@ -185,6 +185,12 @@ var _pinch := 0.0
 ## Loop 3h slice 1: the fog's triangles (map points, three a triangle: the districts not
 ## discovered yet, clipped to the map's bounds).
 var _fog := PackedVector2Array()
+## The soft edge: the fog's merged shapes shrunk by FOG_RAMP metres each, one triangle list a step
+## (each adds a little tone, so the fog thickens from its border inward).
+var _fog_soft: Array[PackedVector2Array] = []
+const FOG_RAMP := [45.0, 100.0, 170.0]
+const FOG_A0 := 0.14  ## the fog's tone at its very edge
+const FOG_A_STEP := 0.07  ## what each inset adds (the whole: 0.14 + 3 × 0.07 = 0.35)
 ## The quest pin (main.gd `quest_pin`: an entry with a place; {} none): drawn gold, the NEXT line's.
 var quest_pick: Dictionary = {}
 ## 2026-11-17: the QUESTS screen's facts (main.gd `_fill_map_list`, `set_book`), the tabs built from
@@ -477,6 +483,10 @@ func _clock_tapped() -> void:
 func _show_time() -> void:
 	_clock_btn.text = _clock_words()
 	UiKit.style_button(_clock_btn, UiKit.Kind.SELECTED if _picker.visible else UiKit.Kind.SECONDARY, pt, T_SUB + 2.0, UiKit.R_PILL)
+	# F 2026-11-20: a pill over the map is a solid dark card, never see-through (open: gold edge).
+	var edge := UiKit.GOLD if _picker.visible else UiKit.EDGE_STRONG
+	for st in ["normal", "hover", "pressed", "hover_pressed"]:
+		_clock_btn.add_theme_stylebox_override(st, UiKit.box(UiKit.CARD_SOLID, edge, pt, UiKit.R_PILL, 1.5 if _picker.visible else 1.0, 4.0))
 	_clock_icon.queue_redraw()
 	if tod == null or not tod.has_method("sun_times"):
 		return
@@ -623,6 +633,7 @@ func _fit() -> void:
 		_picker.reset_size()
 		_picker.size = _picker.get_combined_minimum_size()
 		_picker.position = Vector2(s.end.x - m - _picker.size.x, _close.position.y + _close.size.y + m)
+	_quests_btn.visible = not _picker.visible  # the time card owns the corner while it is open
 	_quests_btn.size = _quests_btn.custom_minimum_size
 	_quests_btn.position = s.end - Vector2(m, m) - _quests_btn.size
 	_badge.size = _badge.custom_minimum_size
@@ -725,6 +736,10 @@ func set_districts(view: Array[Dictionary], total: int, syrenki_found := 0, syre
 			Vector2(bounds.position.x, bounds.end.y)])
 	if outline.size() >= 3:
 		frame = outline  # map north's L
+	# F 2026-11-20 ("looks bad"): the fog was each unfound district alone, so two touching ones
+	# darkened their overlap twice (the dark squares) and every edge was a hard line. Now the
+	# districts are merged into one shape (one tone), and a few insets of it add a soft ramp.
+	var shapes: Array[PackedVector2Array] = []
 	for d in districts:
 		if d["found"]:
 			continue
@@ -733,9 +748,29 @@ func set_districts(view: Array[Dictionary], total: int, syrenki_found := 0, syre
 			if bounds.has_area():
 				parts = Geometry2D.intersect_polygons(poly, frame)
 			for part in parts:
-				var tris := Geometry2D.triangulate_polygon(part)
-				for i in tris:
-					_fog.append(part[i])
+				var merged := false
+				for k in shapes.size():
+					var u := Geometry2D.merge_polygons(shapes[k], part)
+					if u.size() == 1:  # they touched: one shape now
+						shapes[k] = u[0]
+						merged = true
+						break
+				if not merged:
+					shapes.append(part)
+	_fog_soft.clear()
+	for shape in shapes:
+		if Geometry2D.is_polygon_clockwise(shape):
+			continue  # a hole's outline, not a shape
+		for i in Geometry2D.triangulate_polygon(shape):
+			_fog.append(shape[i])
+		for step in FOG_RAMP:
+			var inner := PackedVector2Array()
+			for ring in Geometry2D.offset_polygon(shape, -step, Geometry2D.JOIN_ROUND):
+				if Geometry2D.is_polygon_clockwise(ring):
+					continue
+				for i in Geometry2D.triangulate_polygon(ring):
+					inner.append(ring[i])
+			_fog_soft.append(inner)
 	if not _built:
 		return
 
@@ -1075,9 +1110,13 @@ func _paint() -> void:
 	var view := Rect2(Vector2.ZERO, _view()).grow(20.0 * pt)
 	hud._tri_begin()
 	# Loop 3h slice 1: the districts not discovered yet, under a light fog.
-	var fog := Color(0.12, 0.13, 0.2, 0.34)
+	var fog := Color(0.12, 0.13, 0.2, FOG_A0)
 	for i in range(0, _fog.size() - 2, 3):
 		hud._tri(to_screen(_fog[i]), to_screen(_fog[i + 1]), to_screen(_fog[i + 2]), fog, fog, fog)
+	var fog_step := Color(0.12, 0.13, 0.2, FOG_A_STEP)
+	for tris in _fog_soft:
+		for i in range(0, tris.size() - 2, 3):
+			hud._tri(to_screen(tris[i]), to_screen(tris[i + 1]), to_screen(tris[i + 2]), fog_step, fog_step, fog_step)
 	# The landmarks, printed small on the map (no pins since 2026-11-07): the most important first;
 	# one that would touch one already drawn is left out (they come back as it zooms in).
 	var r := ICON_R * pt
@@ -1235,7 +1274,7 @@ func _paint() -> void:
 	# out (it comes back as it zooms in).
 	if _view().y / ppm > NAMES_M:
 		fs = _px(T_SUB + 1.0)
-	var taken: Array[Rect2] = []
+	var taken: Array[Rect2] = [_legend_rect(legend).grow(4.0 * pt)]  # no name is printed under the legend card
 	for i in districts.size():
 		var dd := districts[i]
 		if not dd["found"]:
@@ -1436,7 +1475,7 @@ func _coach_frame(dt: float) -> void:
 ## the hold.
 func _place_coach() -> void:
 	var id := hints.coach if hints != null else ""
-	_coach.visible = id != "" and _built and not _screen.visible
+	_coach.visible = id != "" and _built and not _screen.visible and not _picker.visible
 	if not _coach.visible:
 		return
 	var lbl := (_coach.get_child(0) as VBoxContainer).get_child(0) as Label
