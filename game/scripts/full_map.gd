@@ -41,6 +41,7 @@ signal seen(id: String)
 ## NIGHT 2, DAWN 4); main.gd applies it as the settings' Time of day does.
 signal time_picked(mode: int)
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")
 const MapArt := preload("res://scripts/map_art.gd")
 const MapIcons := preload("res://scripts/map_icons.gd")
@@ -90,7 +91,7 @@ const NEXT_W := 330.0
 const FOCUS_DIM := 0.45
 ## The legend's row height (points; F 2026-11-19).
 const LEGEND_ROW := 20.0
-const NEW_RED := Color("#ff4f6d")
+const NEW_RED := UiKit.ALERT
 
 ## Set by hud.gd before the first open.
 var hud: CanvasLayer

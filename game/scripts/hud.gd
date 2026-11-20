@@ -28,6 +28,7 @@ extends CanvasLayer
 ## Loop 2b: time spent in this script's per-frame work since the bench last read it (µs).
 var spent_usec := 0
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Chatter := preload("res://scripts/chatter.gd")
 const Access := preload("res://scripts/access.gd")
 const Sfx := preload("res://scripts/sfx.gd")
@@ -45,12 +46,12 @@ const Messages := preload("res://scripts/messages.gd")  # the message director (
 const CLASSIC := 1
 
 ## Loop 2e: the HUD's type scale, in points. Body text is 13 pt or more, labels 11 pt.
-const T_BANNER := 44.0
-const T_CLOCK := 22.0
-const T_TITLE := 17.0
-const T_BODY := 15.0
-const T_SUB := 13.0
-const T_LABEL := 11.0
+const T_BANNER := UiKit.T_BANNER
+const T_CLOCK := UiKit.T_CLOCK
+const T_TITLE := UiKit.T_TITLE
+const T_BODY := UiKit.T_BODY
+const T_SUB := UiKit.T_SUB
+const T_LABEL := UiKit.T_LABEL
 ## Loop 2e: the layout, in points. TOUCH is Apple's smallest comfortable tap; EDGE is kept from
 ## the safe area's sides; the top row starts ROW_Y down and is ROW_H tall.
 const TOUCH := 44.0
@@ -89,8 +90,8 @@ const ARROW_STEP := 96.0
 const ARROWS_BRAKE_R := 36.0
 const ARROWS_BRAKE_REACH := 44.0
 ## The see-through plate of the arrows layout (the city shows through, as in the racers).
-const GLASS := Color(0.07, 0.06, 0.1, 0.34)
-const GLASS_EDGE := Color(1, 1, 1, 0.42)
+const GLASS := UiKit.GLASS
+const GLASS_EDGE := UiKit.GLASS_EDGE
 const PAD_R := 34.0
 const PAD_REACH := 40.0
 ## G13 (the upgrade shop): the nitro's disc (52 pt across), left of BRAKE (inward, its lower edge
@@ -131,14 +132,14 @@ const WAITS := ["ticker", "note", "info", "perf"]
 const FIT_STEP := 0.05
 ## A two-finger twist this far (radians) turns a fixed camera 90°.
 const TWIST := 0.7
-const INK := Color("#fbf7ee")
-const SUB := Color("#c9c2d8")
-const ACCENT := Color("#ffd23f")
-const OUTLINE := Color("#1d1b19")
+const INK := UiKit.INK
+const SUB := UiKit.SUB
+const ACCENT := UiKit.GOLD
+const OUTLINE := UiKit.OUTLINE
 ## Loop 2e: the one card recipe for every HUD surface (the settings panel's): near-black violet,
 ## at least 90 % opaque, so no surface takes its colour from the street behind it.
-const CARD_BG := Color(0.07, 0.06, 0.1, 0.94)
-const CARD_EDGE := Color(1, 1, 1, 0.16)
+const CARD_BG := UiKit.CARD
+const CARD_EDGE := UiKit.EDGE
 ## Card buttons: the English word the game passes in -> the Polish one shown over it.
 const WORDS := {
 	"ACCEPT": "PRZYJMIJ", "SKIP": "POMIŃ", "LATER": "PÓŹNIEJ", "NEXT CALL": "NASTĘPNE",
@@ -456,7 +457,7 @@ var _strip_plate: StyleBoxFlat
 ## rooster for an off-screen chaser, the lizak paddle over a speed trap's officer), the chasers
 ## and known traps on the minimap, and panels other scripts lay out here (the pull-over card).
 const POLICE_BLUE := Color("#1f4fd8")
-const SCENE_AMBER := Color("#ffb020")
+const SCENE_AMBER := UiKit.HEAT
 const LENS_BLUE := Color("#3d7bff")
 const LENS_RED := Color("#ff3b3b")
 var _police_pill: PanelContainer
@@ -468,7 +469,7 @@ var _police_en: Label
 var _police_gap: Control
 var _gap_share := 0.0
 var _gap_mode := 0
-const GAP_GOLD := Color("#ffd23f")
+const GAP_GOLD := UiKit.GOLD
 const GAP_SEARCH := Color("#9fb4d8")
 ## Hiding spots blinking on the minimap during a chase (police.gd `_hides_near`).
 const HIDE_GREEN := Color("#5fd38a")
@@ -574,6 +575,9 @@ func _ready() -> void:
 	var m := ScreenPoints.measure(_screen)
 	pt = m["pt"]
 	_safe = m["safe"]
+	# The UI kit as the whole window's theme: a plain Button, Panel or slider wears the kit
+	# (docs/design/ui-kit.md); scripts' own overrides still win.
+	get_tree().root.theme = UiKit.theme(pt)
 
 	_pad = Control.new()
 	_pad.set_anchors_preset(Control.PRESET_FULL_RECT)
