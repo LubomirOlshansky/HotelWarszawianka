@@ -55,6 +55,8 @@ static func measure(size: Vector2) -> Dictionary:
 	var phone := false
 	if OS.has_feature("mobile"):
 		pt = maxf(DisplayServer.screen_get_scale(), 1.0)
+		if OS.has_feature("android"):
+			pt = android_pt(DisplayServer.screen_get_dpi(), pt)
 		var screen := DisplayServer.screen_get_size()
 		var area := DisplayServer.get_display_safe_area()
 		# The safe area is in the screen's pixels; the viewport may differ (k = 1 when it doesn't).
@@ -75,3 +77,14 @@ static func measure(size: Vector2) -> Dictionary:
 		pt = maxf(pt, size.y / MacMode.MAC_POINTS_TALL)
 	var safe := Rect2(Vector2(insets.x, insets.z), size - Vector2(insets.x + insets.y, insets.z + insets.w))
 	return {"pt": pt, "safe": safe, "insets": insets, "phone": phone}
+
+
+## Perf thread (F 2026-11-20, "why are the controls smaller on Android"): Godot's Android screen
+## scale is the density capped by the screen over an 800x600 window (Samsung A56, 1080 px tall at
+## 450 dpi: min(2.81, 1080 / 600) = 1.8), so the HUD came out 40 % smaller than on an iPhone (3.0).
+## An Android dp is 1/160 inch, an iOS point about 1/163: the density, dpi / 160, is the same unit.
+## `scale` (Godot's) stays when the dpi is unknown.
+static func android_pt(dpi: int, scale: float) -> float:
+	if dpi < 120:
+		return scale
+	return clampf(dpi / 160.0, 1.0, 4.0)

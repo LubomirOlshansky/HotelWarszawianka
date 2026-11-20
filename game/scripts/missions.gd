@@ -102,6 +102,27 @@ var _want_peacock := false
 var _offer_life := 0.0
 
 
+## Wires the rescue line from the game (activity.gd `install`; main.gd's `_build_world` until TD-4
+## b12): the base gives it the HUD, the wallet, the map and the clock. Never off: every run has it.
+## G12: the calls that come in by themselves follow the vehicle, except under --mission. The person's
+## line hangs over the vehicle's cabin (`vehicle_anchor`), higher over the helicopter.
+func install(ctx: GameCtx) -> bool:
+	super(ctx)
+	line_split = ctx.flags.start_mission == 0  # G12: calls follow the vehicle (quest_lines.gd)
+	player = ctx.car.global_position
+	var vehicle_now := ctx.vehicle
+	vehicle_anchor = func() -> Vector3:
+		var v: Array = vehicle_now.call()
+		return (v[0] as Vector3) + Vector3(0, 4.0 if v[2] else 2.2, 0)
+	return true
+
+
+## Its setup takes frames (the places of each kind), so main.gd awaits `setup` itself right after the
+## install, as before (`_install` does not wait).
+func setup_in(_ctx: GameCtx) -> void:
+	pass
+
+
 ## The places from `data` (the map's roads, landmarks and pois), the two beacons in `world`, the
 ## HUD's buttons. Not the kit's `setup(world)`: the line has no beacon of the kit's and no clock of
 ## its own; it is ticked by main.gd (`tick`) at its old place in the frame.
