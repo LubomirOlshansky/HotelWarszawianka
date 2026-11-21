@@ -80,7 +80,11 @@ digits=$(( ${#first_png} - ${#pattern} - 4 ))
 first=$(( skip * fps ))
 first=${first%.*}
 ffmpeg -v error -y -framerate $fps -start_number $first -i "$frames/${pattern}%0${digits}d.png" \
-	-frames:v $(( ${secs%.*} * fps )) -c:v libx264 -preset slow -crf 14 -pix_fmt yuv420p -an $out/$name.mp4
+	-frames:v $(( ${secs%.*} * fps )) -vf "scale=out_color_matrix=bt709" -c:v libx264 -preset slow -crf 14 -pix_fmt yuv420p \
+	-colorspace bt709 -color_primaries bt709 -color_trc bt709 -an $out/$name.mp4
+# A take can freeze at random (window not redrawn, two Godots at once): count the frames that move.
+moving=$(ffmpeg -i $out/$name.mp4 -vf "mpdecimate=hi=256:lo=64:frac=0.1,showinfo" -f null - 2>&1 | grep -c "Parsed_showinfo.*pts_time")
+echo "clip: $name moving frames $moving of $(( ${secs%.*} * fps ))"
 ffmpeg -v error -y -i $out/$name.mp4 -vf "fps=8/${secs},scale=-2:480,tile=8x1" -frames:v 1 $out/$name-sheet.png
 rm -rf $frames
 print -r -- "$out/$name.mp4 (${w}x${h}, ${secs} s at $fps fps, $(( $(date +%s) - start )) s to render)"
