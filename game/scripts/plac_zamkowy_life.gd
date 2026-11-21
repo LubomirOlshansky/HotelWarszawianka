@@ -16,6 +16,7 @@ const Models := preload("res://scripts/models.gd")
 const Props := preload("res://scripts/props.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
+const DevFlags := preload("res://scripts/dev_flags.gd")
 
 ## The square's middle, and how far from it the player must be for any of this to run.
 const CENTRE := Vector2(-713.0, -1484.0)
@@ -42,6 +43,13 @@ var flying := false
 ## up when this runs out (seconds; below zero, never).
 var keep_awake := false
 var flush_in := -1.0
+
+
+## --pigeons-at=T (videos): keep the flock awake and burst it up T s after the start.
+func use_flags(f: DevFlags) -> void:
+	if f.pigeons_at > 0.0:
+		keep_awake = true
+		flush_in = f.pigeons_at
 ## How long the last update took, for --bench.
 var last_usec := 0
 

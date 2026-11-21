@@ -1517,26 +1517,7 @@ func _build_world() -> void:
 	heli.set_map(map)  # map north: the L-shaped outline, not the bounding box
 	world.add_child(heli)
 	heli.landed.connect(_on_heli_landed)
-	if flags.promo_heli.size() >= 5:
-		var ph := flags.promo_heli
-		promo_heli = Heli.new()
-		promo_heli.name = "PromoHeli"
-		promo_heli.ground_height = map.ground_height
-		promo_heli.top_height = map.top_height
-		promo_heli.tallest_near = map.tallest_near
-		promo_heli.set_map(map)
-		world.add_child(promo_heli)
-		var go := Vector2(ph[2] - ph[0], ph[3] - ph[1])
-		promo_heli.place(Vector3(ph[0], map.ground_height(ph[0], ph[1]) + ph[4], ph[1]), atan2(-go.x, -go.y), ph[4])
-		promo_heli.auto_to = Vector2(ph[2], ph[3])
-		promo_heli.searchlight = false
-		promo_heli.add_nav_lights()
-		print("promo heli: from %s to %s, %.0f m up, %.0f%% speed" % [promo_heli.global_position, promo_heli.auto_to, ph[4], promo_heli.auto_share * 100.0])
-		if ph.size() >= 6:
-			promo_heli.auto_share = ph[5]
-		if ph.size() >= 7:
-			# A wide night frame shows a 12 m helicopter as a few dark pixels: a promo may draw it bigger.
-			promo_heli.scale = Vector3.ONE * ph[6]
+	promo_heli = PromoMode.make_heli(flags.promo_heli, map, world)  # --promo-heli (videos), or null
 
 	cam = Camera3D.new()
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -1946,10 +1927,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	trams.traffic = traffic
 	traffic.trams = trams
 	_first_scene_trams()
-	if flags.promo_delay > 0.0:
-		get_tree().create_timer(flags.promo_delay, false).timeout.connect(_promo_traffic)
-	else:
-		_promo_traffic()
+	PromoMode.traffic_on_cue(flags, get_tree(), trams, traffic, graph)  # --promo-at (videos)
 	trains = Trains.new()
 	world.add_child(trains)
 	trains.setup(map, data)
@@ -2042,48 +2020,6 @@ const FIRST_UP_V := 7.0
 const FIRST_DOWN_V := 8.0
 ## How long the first seconds' bell may wait for a tram to pass the car, after the camera lands.
 const FIRST_BELL_S := 20.0
-## --promo-at=X,Z,T (videos): trams[0] up Marszałkowska, trams[1] east along the Aleje two
-## seconds later, a bus up Marszałkowska and a patrol car east along the Aleje, each placed so it
-## passes X,Z about T s after the start (buses keep their lane).
-const PROMO_TRAM_V := 8.0
-const PROMO_BUS_V := 9.0
-const PROMO_POLICE_V := 11.0
-const ALEJE_EAST := Vector2(0.937, -0.349)
-func _promo_traffic() -> void:
-	var at := flags.promo_at
-	if at == Vector2.INF or trams == null or trams.trams.size() < 2:
-		return
-	var t := flags.promo_t
-	traffic.steady_buses = true
-	var parts := flags.promo_parts
-	var up := false
-	var east := false
-	if "tram-up" in parts:
-		up = trams.place_near(trams.trams[0], at, -PROMO_TRAM_V * t, MARSZALKOWSKA_NORTH, PROMO_TRAM_V)
-	if "tram-east" in parts:
-		east = trams.place_near(trams.trams[1], at, -PROMO_TRAM_V * (t + 2.0), ALEJE_EAST, PROMO_TRAM_V)
-	var bus := false
-	# F (2026-11-21): the bus east along the Aleje behind the patrol car (up Nowy Świat it changed
-	# its line at the rondo at the end of the take).
-	var lane := graph.snap(at - ALEJE_EAST * (PROMO_BUS_V * (t + 4.0)), 30.0, ALEJE_EAST, true, true, true)
-	if not lane.is_empty() and "bus" in parts:
-		var d := traffic.add_bus(int(lane[0]), int(lane[1]), float(lane[2]))
-		if d != null:
-			d.v = PROMO_BUS_V
-			bus = true
-	# F (2026-11-21, the palm teaser): a patrol car driving through too, east along the Aleje.
-	var patrol := false
-	var pl := graph.snap(at - ALEJE_EAST * (PROMO_POLICE_V * (t + 1.5)), 30.0, ALEJE_EAST, true, true, true)
-	if not pl.is_empty() and "police" in parts:
-		var p := traffic.add_police(int(pl[0]), int(pl[1]), float(pl[2]))
-		if p != null:
-			p.patrol = true
-			p.persistent = false
-			p.v = PROMO_POLICE_V
-			patrol = true
-	print("promo: at %s in %.1f s: tram up %s, tram east %s, bus %s, patrol %s" % [at, t, up, east, bus, patrol])
-
-
 func _first_scene_trams(lead := 0.0) -> void:
 	var at := Vector2(car.global_position.x, car.global_position.z)
 	if flying or not FIRST_SCENE.has_point(at) or trams == null or trams.trams.size() < 2:
@@ -2223,8 +2159,9 @@ func _apply_traffic() -> void:
 			traffic.density = density
 	if walkers != null:
 		walkers.limit = maxi(4, roundi(float(Tiers.value(quality, "people")) * float(Settings.PEOPLE[traffic_level]) * float(Governor.PEOPLE[governor.cpu])))
-		if flags.people > 0:
-			walkers.limit = mini(flags.people, Pedestrians.MAX)
+		var want_people := flags.people  # --people=N (videos)
+		if want_people > 0:
+			walkers.limit = mini(want_people, Pedestrians.MAX)
 
 
 ## Loop G1: the governor's clock, seconds since the game started.
@@ -2587,9 +2524,7 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	zamkowy_life = PlacZamkowyLife.new()
 	world.add_child(zamkowy_life)
 	zamkowy_life.setup(map)
-	if flags.pigeons_at > 0.0:
-		zamkowy_life.keep_awake = true
-		zamkowy_life.flush_in = flags.pigeons_at
+	zamkowy_life.use_flags(flags)  # --pigeons-at (videos)
 
 
 # --- loop MW-1: MOJA WARSZAWA, the notebook --------------------------------------------------
@@ -3762,8 +3697,7 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 	if flags.life_flag == 0 or notes == null or not notes.ready_ok:
 		return
 	life = CityLife.new()
-	life.gang_at = flags.scoot_gang  # --scoot-gang (videos)
-	life.gang_dir = flags.scoot_gang_dir
+	life.use_flags(flags)  # --scoot-gang (videos)
 	life.name = "CityLife"
 	life.map = map
 	life.dialogue = dialogue

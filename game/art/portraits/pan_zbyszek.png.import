@@ -1,12 +1,20 @@
 [remap]
+
 importer="texture"
 type="CompressedTexture2D"
+uid="uid://cj2efboaoboq1"
+path="res://.godot/imported/pan_zbyszek.png-4ec0051b29b7ec83b6214e22756c5a5a.ctex"
 metadata={
 "vram_texture": false
 }
+
 [deps]
+
 source_file="res://art/portraits/pan_zbyszek.png"
+dest_files=["res://.godot/imported/pan_zbyszek.png-4ec0051b29b7ec83b6214e22756c5a5a.ctex"]
+
 [params]
+
 compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7

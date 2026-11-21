@@ -48,6 +48,7 @@ const JarmarkLife := preload("res://scripts/jarmark_life.gd")
 const Props := preload("res://scripts/props.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const ScooterZones := preload("res://scripts/scooter_zones.gd")
+const DevFlags := preload("res://scripts/dev_flags.gd")
 
 ## Seconds between two ticks of the logic, and between two moves of the movers.
 const TICK := 0.5
@@ -1839,6 +1840,12 @@ func _fire(id: String) -> bool:
 ## start, riding the path's way (DIR 1) or against it (-1). Videos only.
 var gang_at := Vector3(0.0, 0.0, -1.0)
 var gang_dir := 1.0
+
+
+## --scoot-gang=X,Z[,T[,DIR]] (videos): main.gd hands the flags over; the pack waits for gang_at.z s.
+func use_flags(f: DevFlags) -> void:
+	gang_at = f.scoot_gang
+	gang_dir = f.scoot_gang_dir
 const GANG_TEASER_N := 5
 
 

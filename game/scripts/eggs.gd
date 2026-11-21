@@ -319,12 +319,10 @@ const PALM_BEDS := [
 ## palm, a few taxis waiting along the inner road, and the plaza's five-lantern lamps. Three
 ## draw calls; static (the deckchair sitters don't move).
 const LAWN_CHAIRS := [
-	# [x, z, sitter] on the lawn east of the statue (centrum.json's grass, its steps kept clear)
-	[-160.5, 270.5, 1], [-158.6, 270.0, 1], [-156.4, 269.8, 0], [-154.3, 271.0, 1], [-152.5, 272.5, 1],
-	[-161.0, 274.0, 1], [-158.9, 273.6, 1], [-156.8, 273.4, 1], [-154.6, 274.4, 0], [-152.2, 275.8, 1],
-	[-150.4, 277.0, 1], [-160.9, 277.6, 0], [-158.6, 277.2, 1], [-156.5, 277.0, 1], [-154.3, 277.9, 1],
-	[-152.3, 279.0, 0], [-162.5, 281.3, 1], [-160.3, 280.9, 1], [-158.1, 280.5, 1], [-156.0, 280.8, 1],
-	[-166.5, 283.2, 1], [-164.4, 282.7, 0], [-169.6, 284.3, 1], [-155.5, 267.9, 1],
+	# [x, z, sitter] on the lawn east of the statue (centrum.json's grass, its steps kept clear).
+	# F (2026-11-21, before main): "less people on the lawn, a few left and a few deckchairs".
+	[-158.6, 270.0, 1], [-154.3, 271.0, 0], [-158.9, 273.6, 1], [-152.2, 275.8, 1],
+	[-156.5, 277.0, 0], [-160.3, 280.9, 1], [-164.4, 282.7, 0],
 ]
 ## The cobbled inner road in front of the Party House (OSM's service way), the way the taxis drive
 ## it (F, 2026-11-20: "cars parked on the pavement, make them drive by this road").
@@ -348,13 +346,6 @@ func _build_gaulle_lawn() -> void:
 		# Facing the palm across the rondo, each turned a little its own way.
 		var yaw := atan2(-to.x, -to.y) + sin(p.x * 1.7 + p.y) * 0.35 + PI
 		spots.append([p.x, p.y, yaw, map.ground_height(p.x, p.y), int(c[2])])
-		# F (2026-11-21, "more people near the Zamieszanie", then "a little less on the
-		# deckchairs"): a second chair after every other one, taken, kept inside the rows' own
-		# span of the lawn.
-		var q := p + Vector2(1.05, 1.75)
-		if ci % 2 == 0 and q.x < -151.0 and q.y < 282.0:
-			var yaw_q := atan2(-(palm - q).normalized().x, -(palm - q).normalized().y) + cos(q.x * 1.3 - q.y) * 0.4 + PI
-			spots.append([q.x, q.y, yaw_q, map.ground_height(q.x, q.y), 1])
 	var chairs := MeshInstance3D.new()
 	chairs.name = "LawnChairs"
 	chairs.mesh = Props.deckchairs(spots, 515)
