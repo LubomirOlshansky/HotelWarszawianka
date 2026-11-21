@@ -91,6 +91,7 @@ const EggBook := preload("res://scripts/egg_book.gd")
 const Tape := preload("res://scripts/tape.gd")
 const Spacer := preload("res://scripts/spacer.gd")
 const Fotka := preload("res://scripts/fotka.gd")
+const PromoMode := preload("res://scripts/promo_mode.gd")
 ## Loop 3h slice 1: the demo's districts (discovery, "?" marks, completion).
 const Districts := preload("res://scripts/districts.gd")
 ## Loop 3h slice 2: the 20 Syrenki (collectibles).
@@ -388,6 +389,8 @@ var play_stats: PlayStats
 var tape: Tape
 var spacer: Spacer
 var fotka: Fotka
+## F 2026-11-20: Promo Mode (promo_mode.gd), the trailer's framing tools; off by default.
+var promo: PromoMode
 ## Where the car stood when Fotka opened (Transform3D.IDENTITY: not open): put back on close, so
 ## nothing that happened while the camera was away (a push from traffic) leaves it elsewhere.
 var _fotka_car := Transform3D.IDENTITY
@@ -1274,6 +1277,7 @@ func _fly_in() -> void:
 		_opening_audio.start(radio)
 		# The morning (F, 2026-11-16): the city wakes up while the camera flies in. It loaded in the
 		# Day look under the title (the shadows' pipelines are warm); the night comes at the tap.
+		# F, 2026-11-20: it stays, and ends on the game clock's 11:00 (no jump to 14:00 after it).
 		tod.wake(CameraShots.OPEN_TIME)
 		moments.opening(vehicle.global_position, cam_yaw, camera_pitch,
 				PackedStringArray(["Śródmieście · Plac Defilad", "the centre of Warsaw"]))
@@ -1574,12 +1578,11 @@ func _build_world() -> void:
 	hud.tapped.connect(_on_tap)
 	_set_flying(false)
 
-	missions = Missions.new()
-	missions.line_split = flags.start_mission == 0  # G12: calls follow the vehicle (quest_lines.gd)
-	add_child(missions)
+	# The rescue line (missions.gd wires itself), under main.gd. Its setup takes frames (the places of
+	# each kind), so it is awaited here; it joins the director last (after the round-up, below).
+	missions = _install(Missions.new(), self)
 	await missions.setup(map, data, world, hud)
 	await LoadYield.tick("missions")
-	missions.player = car.global_position
 	# Speech bubbles (anyone can talk) and everybody's lines.
 	bubbles = Bubbles.new()
 	bubbles.pt = hud.pt
@@ -1609,9 +1612,7 @@ func _build_world() -> void:
 	dialogue.radio = radio
 	add_child(dialogue)
 	radio.station_changed.connect(dialogue.on_station_changed)
-	missions.wallet = wallet
-	missions.dialogue = dialogue
-	missions.vehicle_anchor = func() -> Vector3: return _vehicle_position() + Vector3(0, 4.0 if flying else 2.2, 0)
+	missions.dialogue = dialogue  # the rescue line's lines: dialogue.gd is made after its install
 	hud.set_wallet(wallet.zl, wallet.respect)
 	wallet.changed.connect(hud.set_wallet)
 	wallet.changed.connect(func(_zl: int, _respect: int, gained: int) -> void:
@@ -1799,7 +1800,7 @@ func _build_world() -> void:
 	# other activities' runs hold or restart its calls through the director (activity.gd
 	# `rescue_calls`). Its own test for the world: none (its calls have their own holds, `_held`, and
 	# ring in the air too); the kit's rule, one at a time, is what M and the HELI list ask (`free_now`).
-	activities.add(missions, func() -> bool: return true)
+	_add(missions, func() -> bool: return true)
 	_build_packs(data, world)
 	await LoadYield.tick("_build_packs")
 	_build_fans(data, world)
@@ -1941,27 +1942,11 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	print("centrum lim: %d busy pavement points" % busy)
 	traffic.bumped_driver.connect(dialogue.on_driver_bumped)
 	traffic.blocked_by_player.connect(dialogue.on_driver_blocked)
-	rivals = Rivals.new()
-	add_child(rivals)
-	rivals.autopilot = flags.autopilot
-	if flags.ghost_pace > 0.0:
-		rivals.ghost_pace = flags.ghost_pace
-	rivals.wallet = wallet
-	rivals.tod = tod  # loop 3h slice 3: the final waits for the night
-	rivals.night_now = func() -> void: _story_skip_to(22.0)  # first hour step 5: the sixth win's NOC
-	rivals.graph = graph
-	rivals.traffic = traffic
-	rivals.hud = hud
-	rivals.bubbles = bubbles
-	rivals.map = map
-	rivals.car = car
-	rivals.setup(world, data)
-	# The director keeps one activity of the kit at a time; the race's own tests for the air, the
-	# rescue and the cards stay in rivals.gd (`world_free` would refuse the guide's first race).
-	activities.add(rivals, func() -> bool: return true)
+	# The street racers (rivals.gd wires itself; its setup reads the map data), under main.gd. The
+	# director keeps one activity of the kit at a time; the race's own tests for the air, the rescue
+	# and the cards stay in rivals.gd (`world_free` would refuse the guide's first race).
+	rivals = _join(Rivals.new(), self, func() -> bool: return true) as Rivals
 	await LoadYield.tick("rivals.setup")
-	if flags.ladder_flag >= 0 or flags.trzy_mosty_flag:
-		rivals.preset_ladder(flags.ladder_flag if flags.ladder_flag >= 0 else Ladder.RUNGS.size())  # loop 3h slice 3
 	print("living city: %d lanes, %d trams in %d ms" % [graph.lane_count, trams.trams.size(), Time.get_ticks_msec() - t0])
 	if flags.bench:
 		_clear_bench_result()
@@ -2601,32 +2586,12 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 	# "Dżemini" (trend_job.gd): the MLASK sticker goes on DŻEMINI KEBAB's wall.
 	if trend_job != null:
 		trend_job.storefronts = storefronts
-	# Loop jobs-2: the Leżak round-up, at the zones storefronts.gd painted (an activity of the kit).
-	if jobs != null:
-		var ru := RoundupJob.new()
-		ru.name = "RoundupJob"
-		ru.hud = hud
-		ru.dialogue = dialogue
-		ru.wallet = wallet
-		ru.map = map
-		ru.car = car
-		ru.tod = tod
-		ru.jobs = jobs
-		ru.store = storefronts
-		ru.autopilot = flags.autopilot
-		ru.force = flags.roundup_flag
-		ru.log_on = flags.parody_log or flags.roundup_flag
-		# In the frame just before jobs.gd, as when jobs.gd stepped it first.
-		add_child(ru)
-		move_child(ru, jobs.get_index())
-		ru.setup(world)
-		# The director says when it may offer itself, with the round-up's own test for everything
-		# outside the kit (jobs.gd's: nothing else on, no kebab or słoiki of its own).
-		activities.add(ru, func() -> bool: return jobs._free() and not jobs.own_busy())
-		jobs.roundup = ru
-		if flags.roundup_flag:
-			ru.start_at_nearest()
-			cam_focus = car.global_position
+	# Loop jobs-2: the Leżak round-up at the zones storefronts.gd painted (roundup_job.gd wires itself;
+	# none without the side jobs), under main.gd in the frame just before jobs.gd, as when jobs.gd
+	# stepped it first. The director says when it may offer itself, with the round-up's own test for
+	# everything outside the kit (jobs.gd's: nothing else on, no kebab or słoiki of its own).
+	_add(_install(RoundupJob.new(), self, jobs.get_index() if jobs != null else -1),
+			func() -> bool: return jobs._free() and not jobs.own_busy())
 
 
 # --- loop MW-3: the night and the river's crowds --------------------------------------------
@@ -3574,6 +3539,7 @@ func _build_ctx() -> GameCtx:
 	_ctx.life = life
 	_ctx.crowds = crowds
 	_ctx.notes = notes
+	_ctx.storefronts = storefronts
 	_ctx.car = car
 	_ctx.heli = heli
 	_ctx.tod = tod
@@ -3588,6 +3554,7 @@ func _build_ctx() -> GameCtx:
 	_ctx.take_off = func() -> void: _take_off(Heli.CRUISE)
 	_ctx.focus = func() -> Vector3: return cam_focus
 	_ctx.focus_at = func(p: Vector3) -> void: cam_focus = p
+	_ctx.night_now = func() -> void: _story_skip_to(22.0)
 	return _ctx
 
 
@@ -4105,6 +4072,14 @@ func _build_moments(data: Dictionary, world: Node3D) -> void:
 	add_child(fotka)
 	fotka.setup(places, spots)
 	fotka.closed.connect(_on_fotka_closed)
+	promo = PromoMode.new()
+	promo.name = "PromoMode"
+	promo.game = self
+	add_child(promo)
+	promo.set_process(false)
+	promo.set_process_input(false)
+	promo.set_on(settings.promo or flags.promo_flag != "")
+	promo.use_flag(flags.promo_flag)
 	if hud.settings_panel != null:
 		var page: Control = hud.settings_panel.get("notebook_page")
 		hud.settings_panel.set("notebook_eggs", egg_book)
@@ -4711,6 +4686,8 @@ func _fill_map_list(entries: Array) -> void:
 		for id: String in FirstSteps.IDS:
 			var name: Array = FirstSteps.name_of(id)
 			f["steps"].append({"id": id, "pl": name[0], "en": name[1], "done": not id in left, "entry": _step_entry(id, by_group, here)})
+	if wallet != null:
+		f["taxi"] = Rides.Rules.account(wallet.keep, int(wallet.jobs.get("podwozka", 0)))  # the taxi app's account (F 2026-11-20)
 	if stories != null:
 		f["stories"] = QuestBook.story_facts(stories.defs, stories.clock.call(), intro)
 	if rivals != null and rivals.ladder != null and wallet != null:
@@ -5053,7 +5030,7 @@ func _settings_state() -> Dictionary:
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
 			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
-			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view,
+			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on),
 			"weather": weather.state, "time": tod.look_mode(), "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
 			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "sensitivity": settings.sensitivity,
@@ -5149,6 +5126,9 @@ func _on_setting(key: String, value: Variant) -> void:
 			camera_pitch = -settings.pitch
 		"camera_view":
 			_set_view(int(value))
+		"promo":
+			settings.promo = int(value) == 1
+			promo.set_on(settings.promo)
 		"bench":
 			_start_phone_bench.call_deferred()
 			return
@@ -5400,6 +5380,8 @@ func _on_car_pushed(_id: String, at: Vector3, _dir: Vector3, speed: float) -> vo
 func _on_soft_broke(id: String, _panel: int, kind: StringName, at: Vector3, _dir: Vector3, speed: float) -> void:
 	if wallet != null:
 		wallet.count_smash(String(kind))
+	if rides != null:
+		rides.smashed(speed)  # the taxi passenger's quip (F 2026-11-20)
 	var now := _clock_s()
 	if now - _smash_sound_t < SMASH_SOUND_GAP:
 		return
@@ -6384,7 +6366,7 @@ func _read_input(dt: float) -> void:
 	# Loop MW-6: Fotka holds the car (and the helicopter) still; the city goes on. Parked, not
 	# just braking: a held brake at a standstill reverses (car.gd), and the car backed into the
 	# buildings behind it for as long as Fotka was open (F, 2026-11-01).
-	if fotka != null and fotka.is_open():
+	if (fotka != null and fotka.is_open()) or (promo != null and promo.holds_car()):
 		car.target_dir = Vector3.ZERO
 		car.steer = 0.0
 		car.throttle = 0.0
@@ -6936,6 +6918,8 @@ func _update_camera(dt: float) -> void:
 		cam.global_transform = Transform3D(cb, club.centre + cb.z * 120.0)
 		cam.far = 300.0
 		return
+	if promo != null and promo.frame(dt):
+		return  # Promo Mode (promo_mode.gd) placed the camera
 	if flags.free_cam:
 		_update_free_camera()
 		return

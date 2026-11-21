@@ -54,6 +54,7 @@ func _initialize() -> void:
 	_flow(points)
 	_v1(points)
 	_fog(points)
+	_fog_hole()
 	_cost(d)
 	d.free()
 	if _problems == 0:
@@ -244,6 +245,36 @@ func _fog(points: Dictionary) -> void:
 	fm.free()
 	d.free()
 	w.free()
+
+
+## A found district the unfound ones surround must stay clear of fog (a merged shape has a hole there).
+func _fog_hole() -> void:
+	var box := func(x0: float, y0: float, x1: float, y1: float, found: bool) -> Dictionary:
+		return {"found": found, "polys": [PackedVector2Array([Vector2(x0, y0), Vector2(x1, y0), Vector2(x1, y1), Vector2(x0, y1)])]}
+	for sides in [4, 3]:
+		var view: Array[Dictionary] = [box.call(-200, -200, 200, 200, true),
+				box.call(-600, -200, -200, 200, false), box.call(200, -200, 600, 200, false),
+				box.call(-600, -600, 600, -200, false)]
+		if sides == 4:
+			view.append(box.call(-600, 200, 600, 600, false))
+		var fm := FullMap.new()
+		fm.bounds = Rect2(-700, -700, 1400, 1400)
+		fm.set_districts(view, 0)
+		var inside := 0
+		var edge_fogged := false
+		for i in range(0, fm._fog.size() - 2, 3):
+			var tri := PackedVector2Array([fm._fog[i], fm._fog[i + 1], fm._fog[i + 2]])
+			if Geometry2D.is_point_in_polygon(Vector2.ZERO, tri):
+				inside += 1
+			if Geometry2D.is_point_in_polygon(Vector2(-400, 0), tri):
+				edge_fogged = true
+		_expect(inside == 0, "%d districts around a found one: its centre is under %d fog triangles" % [sides, inside])
+		_expect(edge_fogged and not fm._fog.is_empty(), "%d districts around a found one: the unfound ones are fogged" % sides)
+		for layer in fm._fog_soft:
+			for i in range(0, layer.size() - 2, 3):
+				_expect(not Geometry2D.is_point_in_polygon(Vector2.ZERO, PackedVector2Array([layer[i], layer[i + 1], layer[i + 2]])),
+						"%d districts around a found one: a soft inset covers its centre" % sides)
+		fm.free()
 
 
 func _cost(d: Districts) -> void:

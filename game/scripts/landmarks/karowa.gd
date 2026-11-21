@@ -1,4 +1,4 @@
-extends "res://scripts/landmarks/kladka.gd"
+extends "res://scripts/landmarks/powisle2.gd"
 ## Karowa's serpentine (F, 2026-11-20; spec docs/landmarks/specs/wiadukt_markiewicza.md). One link of
 ## landmarks.gd's base chain (TD-10): it may use this file, common.gd and the facade kit, never
 ## another area.
@@ -35,6 +35,8 @@ const MK_A0 := 12.0
 const MK_A1 := 92.0
 const MK_ARCH: Array[float] = [37.9, 68.3]
 const MK_ARCH_HW := 5.95
+## How far from the ring the passages' approach walls are taken out (mk_approach).
+const MK_APPROACH := 13.0
 ## The deck's walk height: MK_DECK.y at bearing MK_DECK.x, rising MK_DECK.z a degree westwards
 ## (the map's road piece, -3.43 at 16.2 to -2.46 at 88.6).
 const MK_DECK := Vector3(16.2, -3.43, 0.0134)
@@ -80,6 +82,27 @@ static func mk_covers(p: Vector2, grow := 0.0) -> bool:
 	var a := rad_to_deg(atan2(d.y, d.x))
 	var pad := rad_to_deg((1.0 + grow) / r)
 	return a >= MK_A0 - pad and a <= MK_A1 + pad
+
+
+## Whether plan line pts is one of the retaining walls the bake runs out of the passages' mouths
+## (into the pit and along the lower road, within MK_APPROACH of the ring): F (2026-11-21) asked
+## for them gone on both sides so the drive under the viaduct is easier; the slopes stay.
+static func mk_approach(pts: PackedVector2Array) -> bool:
+	if pts.is_empty():
+		return false
+	for p in pts:
+		var d := p - MK_C
+		var r := d.length()
+		if r < MK_IN - MK_APPROACH or r > MK_OUT + MK_APPROACH:
+			return false
+		var a := rad_to_deg(atan2(d.y, d.x))
+		var near := false
+		for phi: float in MK_ARCH:
+			if absf(a - phi) < 12.0:
+				near = true
+		if not near:
+			return false
+	return true
 
 
 ## Whether every point of a flat [x, z, x, z ...] line lies on the ring.

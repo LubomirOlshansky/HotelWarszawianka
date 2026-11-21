@@ -14,6 +14,12 @@ extends SceneTree
 ##     10 a segment) and the same collider faces as railing_along at that height; `slab` makes what
 ##     wall_along makes at the row's thickness and the line's height; `none` makes nothing; `keep`,
 ##     an unknown type and a line a rule gave its look (`st`) make what classic makes;
+##     W7 (walls doc 6.5): every heavy or low `slab` row with a foot, cap, bays or piers is drawn by the
+##     heavy kit (city_barriers.gd wall_kit), the same under typed and panels: more triangles than
+##     wall_along's slab, nothing under its sink, over its top but its piers, posts and rails, or
+##     further from the line than its cap, posts and piers reach; every other bay a step darker; a
+##     stone wall over water gets its top rail; and the very collider faces wall_along files at the
+##     row's thickness and the line's height, in the same order;
 ##   4 the same line built twice gets the same `alt` colour, and the colour follows its stable id;
 ##   5 the whole map's lines built under typed on the flat map: none drawn classic for want of a
 ##     row (`unknown`) and none in barrier_default; the count of lines per draw kind is printed;
@@ -25,13 +31,22 @@ extends SceneTree
 ##     under classic and typed no piece is made; the whole city's build (no sector) makes its
 ##     `Panels_i_j` node with the pieces and the panel material; W5: the same for a line of every
 ##     light row (bars_pier's `in_mesh` posts: rail_lite_along's 4 triangles a post in the city mesh,
-##     nothing else); a row not marked panel (deck_railing) stays typed; the stadium's railing (#808)
+##     nothing else; W7: its plinth and piers, `_pier_fence_kit`'s triangles, and on a soft line a
+##     diamond collider of class wall per pier, none on a hard line or with the soft switch off); a row not marked panel (deck_railing) stays typed; the stadium's railing (#808)
 ##     is classic under typed and, under panels, pieces of its row at its types row's height with
 ##     the classic railing's colliders and no triangle in the city mesh;
 ##   7 W4: the whole map under panels on the flat map: the collider faces per class are typed's,
 ##     face for face (the cars meet the same fences), every line of a panel row is drawn as
 ##     panels and none of another; the pieces are printed; W5: the light-family lines still drawn
 ##     in the city mesh are named by type (`mesh_light`), and none is of a type outside MESH_LIGHT;
+##   9 W8 (walls doc 6.6 row 9, tools/barrier_gates.py): a 20 m fence with a gap (`g`) and gate ends
+##     (`ge`: a post at its start, a post and an open leaf at its end), a soft and a hard one, under
+##     typed and panels on the flat map: no triangle, collider face, soft segment or panel piece inside
+##     the gap; the pieces after it keep their panel index (metres / 2 along the whole line) and run;
+##     the soft list's panels are the whole line's; a gate post at each of the gap's edges and at each
+##     gated end, inside the line, CityBarriers.GATE_RISE m over the line, and nothing else over it; the
+##     leaf on its side of the line, off the line's own segment, not past the line's far end; a wall's
+##     gap the same; under classic the gates change nothing (triangles and faces as the line without them);
 ##   8 with `--paths` (verify step `barrierpaths`, the prebuilt city needed): in each of the
 ##     sectors (check_colliders.gd's ten; `--all` every sector) the runtime build in the look the
 ##     prebuilt city was baked in (map/sectors/city.stamp) has the prebuilt sector's city mesh
@@ -45,6 +60,8 @@ const Chunked := preload("res://scripts/chunked_surface.gd")
 const PanelRule := preload("res://scripts/panel_rule.gd")
 const MapBuilder := preload("res://scripts/map_builder.gd")
 const PANEL_RHYTHMS := [2.0, 4.0]
+## 9 (W8): how far a piece's own end shape (rail_lite's last post, a wall's end) may reach into a gap.
+const END_IN := 0.1
 ## 7 (W5): the light types whose lines may still be drawn in the city mesh under panels: the tram's
 ## railing (`draw: keep`: the placed tram_railing, a hard rail by the tracks). Every other light line
 ## is panels (bars_pier's posts stand in the mesh as part of its panel line, W7's piers).
@@ -94,6 +111,7 @@ func _initialize() -> void:
 	var counts := {}
 	var panels := {}
 	_panels(map)
+	_gates(map)
 	if data is Dictionary:
 		counts = _whole(map, data)
 		panels = _whole_panels(map, data)
@@ -215,6 +233,7 @@ func _kinds(map: Node3D) -> void:
 	map.barriers.wall_along(st, pts, float(hedge["thick"]), 0.7, Color(str(hedge["colour"])), true, &"hedge")
 	if int(got[0]) != st.vertex_count / 3 or (got[1] as Dictionary).get(&"hedge") != map._solids.get(&"hedge"):
 		problems.append("3 slab: %d triangles %s, wall_along makes %d" % [got[0], got[2], st.vertex_count / 3])
+	_kit(map)
 	# none: nothing.
 	got = _build(map, [_line("fence", p, {"ty": "removed"})], &"typed")
 	if int(got[0]) != 0 or not (got[1] as Dictionary).is_empty():
@@ -226,6 +245,86 @@ func _kinds(map: Node3D) -> void:
 		if typed[0] != classic[0] or typed[1] != classic[1]:
 			problems.append("3 %s: typed makes %d triangles %s, classic %d %s" % [extra, typed[0], typed[2], classic[0], classic[2]])
 	map._in_sector = false
+
+
+## 3 (W7): the heavy kit, a line of every kit row on the flat map (a corner, so it mitres; 19 m, so
+## the rhythm repeats): see the header.
+func _kit(map: Node3D) -> void:
+	var p := [3000.0, 3000.0, 3012.0, 3000.0, 3012.0, 3007.0]
+	var pts := PackedVector2Array([Vector2(3000, 3000), Vector2(3012, 3000), Vector2(3012, 3007)])
+	var b: RefCounted = map.barriers
+	var kits := 0
+	for id: StringName in Solidity.looks():
+		var row := Solidity.look_row(id)
+		if str(row.get("draw", "")) != "slab" or not CityBarriers.kit_row(row):
+			continue
+		kits += 1
+		var h := float(row["h"])
+		var hw := float(row["thick"]) * 0.5
+		for hz: String in ["", "water"]:
+			var l := _line("wall", p, {"ty": str(id)} if hz == "" else {"ty": str(id), "hz": hz})
+			var look: Dictionary = b._typed(l, true)
+			var colour: Color = look["colour"]
+			var typed := _build(map, [l], &"typed")
+			var st := Chunked.new()
+			Solidity.set_barrier_look(&"typed")
+			map.data = {"lines": [l]}
+			map._solids = {}
+			b.build_barriers(st)
+			var panels := _build(map, [l], &"panels")
+			map._solids = {}
+			var slab := Chunked.new()
+			b.wall_along(slab, pts, float(row["thick"]), h, colour, true, &"wall")
+			if typed[1] != map._solids:
+				problems.append("3 kit %s: collider faces %s, wall_along files %d" % [id, typed[2],
+						(map._solids.get(&"wall", PackedVector3Array()) as PackedVector3Array).size() / 3])
+			if panels[0] != typed[0] or panels[1] != typed[1]:
+				problems.append("3 kit %s: panels %d triangles %s, typed %d %s" % [id, panels[0], panels[2], typed[0], typed[2]])
+			if int(typed[0]) <= slab.vertex_count / 3:
+				problems.append("3 kit %s: %d triangles, the plain slab %d" % [id, typed[0], slab.vertex_count / 3])
+			var pier: Dictionary = row.get("pier", {})
+			var bay: Dictionary = row.get("bay", {})
+			var cap: Dictionary = row.get("cap", {})
+			var rail: Dictionary = row.get("top_rail", {})
+			var railed := hz != "" and hz in (rail.get("hz", []) as Array)
+			var top := h + (CityBarriers.KIT_PIER_RISE if not pier.is_empty() else (CityBarriers.KIT_POST_RISE if bay.has("post_w") else 0.0))
+			if railed:
+				top = maxf(top, h + float(rail["h"]))
+			var reach := maxf(hw + float(cap.get("over", 0.0)), hw + float(bay.get("proud", CityBarriers.KIT_PROUD)))
+			reach = maxf(reach, float(pier.get("w", 0.0)) * 0.71) * 1.415
+			var lo := INF
+			var hi := -INF
+			var far := 0.0
+			var colours: Array[Color] = []
+			for mesh: ArrayMesh in st.meshes():
+				for si in mesh.get_surface_count():
+					var arrays := mesh.surface_get_arrays(si)
+					for v: Vector3 in arrays[Mesh.ARRAY_VERTEX]:
+						lo = minf(lo, v.y)
+						hi = maxf(hi, v.y)
+						far = maxf(far, CityBarriers._dist_to_line(Vector2(v.x, v.z), pts))
+					for c: Color in arrays[Mesh.ARRAY_COLOR]:
+						if not _has_colour(colours, c):
+							colours.append(c)
+			if lo < -CityBarriers.KIT_SINK - 1e-3 or hi > top + 1e-3 or far > reach + 1e-3:
+				problems.append("3 kit %s%s: drawn from %.2f to %.2f m, %.2f m off the line; want %.2f to %.2f, %.2f" % [id,
+						" (hz %s)" % hz if hz != "" else "", lo, hi, far, -CityBarriers.KIT_SINK, top, reach])
+			if railed and absf(hi - (h + float(rail["h"]))) > 1e-3:
+				problems.append("3 kit %s over %s: no top rail (the top at %.2f m)" % [id, hz, hi])
+			var step := float(bay.get("step", 0.0))
+			if step > 0.0 and not (_has_colour(colours, colour.darkened(0.08)) and _has_colour(colours, colour.darkened(step).darkened(0.08))):
+				problems.append("3 kit %s: the bays are not a step %.2f apart (%d colours)" % [id, step, colours.size()])
+	if kits < 9:
+		problems.append("3 kit: %d rows drawn by the heavy kit, want the nine heavy and low slab rows" % kits)
+	map._solids = {}
+
+
+## Whether `list` holds `c` to within the 8 bits a vertex colour keeps.
+static func _has_colour(list: Array[Color], c: Color) -> bool:
+	for x in list:
+		if absf(x.r - c.r) < 0.006 and absf(x.g - c.g) < 0.006 and absf(x.b - c.b) < 0.006:
+			return true
+	return false
 
 
 ## 4: the alt colour is the line's, every time, and follows its id.
@@ -256,6 +355,8 @@ func _whole(map: Node3D, data: Dictionary) -> Dictionary:
 		problems.append("5 %d lines drawn classic for want of a looks row" % counts["unknown"])
 	if int(map.barriers.default_lines) > 0:
 		problems.append("5 %d lines drawn in barrier_default" % map.barriers.default_lines)
+	# 9 (W8): the map's gates as drawn (the lines with a typed look): printed.
+	counts["gates"] = (map.barriers.gate_counts as Dictionary).duplicate()
 	map._solids = {}
 	map.data = {}
 	return counts
@@ -283,6 +384,7 @@ func _panels(map: Node3D) -> void:
 			var l := _line(str(case[0]), p, extra)
 			var typed := _build(map, [l], &"typed")
 			var typed_soft: Dictionary = b.soft_data()
+			var typed_diamonds: int = b.kit_diamonds
 			if not (b.panel_tiles as Dictionary).is_empty():
 				problems.append("6 %s: typed made panel pieces" % case[1])
 			var classic := _build(map, [l], &"classic")
@@ -292,7 +394,22 @@ func _panels(map: Node3D) -> void:
 			var what := "%s %s (%s)" % [case[0], case[1], sc]
 			var lrow := Solidity.look_row(StringName(str(case[1])))
 			var mesh_tris := 0
-			if bool((lrow.get("post", {}) as Dictionary).get("in_mesh", false)):
+			if lrow.has("pier"):
+				# W7: the plinth and piers in the city mesh; a pier diamond each on a soft line only.
+				var pe := float(lrow["pier"]["every"])
+				var marks := floori(8.2 / pe) + 1 + (1 if fmod(8.2, pe) > 0.05 else 0)
+				var kst := Chunked.new()
+				b._soft_line = {}
+				b._pier_fence_kit(kst, PackedVector2Array([Vector2(3000, 3000), Vector2(3005, 3000), Vector2(3005, 3003.2)]),
+						lrow, float(lrow["h"]))
+				map._solids = {}
+				mesh_tris = kst.vertex_count / 3
+				var want_d := marks if sc == "S" else 0
+				var walls := (typed[1] as Dictionary).get(&"wall", PackedVector3Array()) as PackedVector3Array
+				if typed_diamonds != want_d or walls.size() != want_d * 24:
+					problems.append("6 %s (%s): %d pier diamonds, %d wall faces; want %d and %d" % [case[1], sc, typed_diamonds,
+							walls.size() / 3, want_d, want_d * 8])
+			elif bool((lrow.get("post", {}) as Dictionary).get("in_mesh", false)):
 				var pe := float(lrow["post"]["every"])
 				mesh_tris = 4 * (floori(8.2 / pe) + 1 + (1 if fmod(8.2, pe) > 0.05 else 0))
 			if int(panels[0]) != mesh_tris:
@@ -339,6 +456,12 @@ func _panels(map: Node3D) -> void:
 				problems.append("6 %s: a hard line in the soft meta %s" % [what, ids])
 			if soft and typed_soft.is_empty():
 				problems.append("6 %s: the line is not soft (the case tests nothing)" % what)
+	# W7: a soft pier-and-iron line with the soft switch off: hard, and no pier diamond.
+	CityBarriers.soft_off = true
+	var hard := _build(map, [_line("fence", p, {"ty": "bars_pier", "sc": "S"})], &"typed")
+	CityBarriers.soft_off = false
+	if int(b.kit_diamonds) != 0 or (hard[1] as Dictionary).has(&"wall"):
+		problems.append("6 bars_pier: %d pier diamonds with the soft switch off" % b.kit_diamonds)
 	# A row not marked panel (deck_railing, heavy) stays typed under panels.
 	var deck := _line("fence", p, {"ty": "deck_railing"})
 	var lt := _build(map, [deck], &"typed")
@@ -361,6 +484,127 @@ func _panels(map: Node3D) -> void:
 		map.remove_child(node)
 		node.free()
 	map._out = null
+	map._in_sector = false
+	map._sector = Vector2i.ZERO
+
+
+## 9 (W8): the gates on a flat synthetic line: see the header.
+func _gates(map: Node3D) -> void:
+	map._in_sector = true
+	map._sector_rect = Rect2(2560.0, 2560.0, 512.0, 512.0)
+	map._sector = Vector2i(5, 5)
+	var b: RefCounted = map.barriers
+	var p := [3000.0, 3000.0, 3012.0, 3000.0, 3020.0, 3000.0]
+	var g0 := 7.0
+	var g1 := 9.4
+	var gates := {"g": [[g0, g1 - g0, 0]], "ge": [1, 2]}
+	for case: Array in [["fence", "fence_plain", "S"], ["fence", "bars_black", "H"], ["hedge", "hedge_low", "S"], ["wall", "wall_precast", "H"]]:
+		var what := "%s %s (%s)" % case
+		var bare := _line(str(case[0]), p, {"ty": case[1], "sc": case[2]})
+		var gated := bare.duplicate(true)
+		gated.merge(gates, true)
+		# Classic ignores the gates.
+		var cb := _build(map, [bare], &"classic")
+		var cg := _build(map, [gated], &"classic")
+		if cb[0] != cg[0] or cb[1] != cg[1]:
+			problems.append("9 %s: classic draws the gates (%d triangles %s, %d %s without)" % [what, cg[0], cg[2], cb[0], cb[2]])
+		var row := Solidity.look_row(StringName(str(case[1])))
+		var h := float(row["h"])
+		for look: StringName in [&"typed", &"panels"]:
+			Solidity.set_barrier_look(look)
+			map.data = {"lines": [gated]}
+			map._solids = {}
+			var st := Chunked.new()
+			b.build_barriers(st)
+			Solidity.set_barrier_look(&"typed")
+			var tag := "%s %s" % [what, look]
+			var eps := 1e-3
+			var post_w := maxf(CityBarriers.GATE_POST_W, float(row.get("thick", 0.0)) + CityBarriers.GATE_POST_PROUD) if case[0] == "wall" \
+					else CityBarriers.GATE_POST_W
+			# Triangles: none inside the gap (a piece's own end shape, a post's or a wall end's half width,
+			# may reach END_IN m into it, as at any line's end); over the line's height only the posts,
+			# wholly inside the line at the gap's edges and the gated ends, GATE_RISE over it.
+			var tops := {0.0: -INF, g0: -INF, g1: -INF, 20.0: -INF}
+			var in_gap := 0
+			var odd := 0
+			for mesh: ArrayMesh in st.meshes():
+				for si in mesh.get_surface_count():
+					var verts: PackedVector3Array = mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]
+					for v: Vector3 in verts:
+						var s := v.x - 3000.0
+						if s > g0 + END_IN and s < g1 - END_IN:
+							in_gap += 1
+						if s < -END_IN or s > 20.0 + END_IN:
+							odd += 1
+						if v.y > h + 0.2 + eps:
+							var near := false
+							for edge: float in tops:
+								var inner := edge + (post_w if edge == g1 or edge == 0.0 else -post_w)
+								if s >= minf(edge, inner) - eps and s <= maxf(edge, inner) + eps:
+									tops[edge] = maxf(float(tops[edge]), v.y)
+									near = true
+							if not near:
+								odd += 1
+			if in_gap > 0 or odd > 0:
+				problems.append("9 %s: %d vertices in the gap, %d over the line's height off a post or past its ends" % [tag, in_gap, odd])
+			for edge: float in tops:
+				if absf(float(tops[edge]) - (h + CityBarriers.GATE_RISE)) > eps:
+					problems.append("9 %s: the post at %.1f m stands %.2f m, want %.2f" % [tag, edge, tops[edge], h + CityBarriers.GATE_RISE])
+			# Collider faces and soft segments: none inside the gap.
+			for cls: StringName in map._solids:
+				var faces: PackedVector3Array = map._solids[cls]
+				for v: Vector3 in faces:
+					if v.x - 3000.0 > g0 + END_IN and v.x - 3000.0 < g1 - END_IN:
+						problems.append("9 %s: a %s collider vertex in the gap at %.2f m" % [tag, cls, v.x - 3000.0])
+						break
+			var soft: Dictionary = b.soft_data()
+			if case[2] == "S" and case[0] != "wall":
+				if soft.is_empty():
+					problems.append("9 %s: the line is not soft (the case tests nothing)" % tag)
+				else:
+					var segs: PackedFloat64Array = soft["segs"]
+					for k in range(0, segs.size(), CityBarriers.SOFT_STRIDE):
+						var ax := segs[k + 1] - 3000.0
+						var bx := segs[k + 3] - 3000.0
+						if maxf(ax, bx) > g0 + END_IN and minf(ax, bx) < g1 - END_IN:
+							problems.append("9 %s: a soft segment %.2f..%.2f m in the gap" % [tag, ax, bx])
+						if absf(segs[k + 9] - ax) > eps:
+							problems.append("9 %s: the soft segment at %.2f m says it starts %.2f m along the line" % [tag, ax, segs[k + 9]])
+					if (soft["panels"] as PackedInt32Array) != PackedInt32Array([10]):
+						problems.append("9 %s: the soft line's panels %s, want the whole line's [10]" % [tag, soft["panels"]])
+			# Panels: no piece in the gap; each piece's panel index metres / 2 along the whole line.
+			if look == &"panels" and bool(row.get("panel", false)):
+				var tiles: Dictionary = b.panel_tiles
+				if not tiles.has(Vector2i(5, 5)):
+					problems.append("9 %s: no panel pieces" % tag)
+				else:
+					var t = tiles[Vector2i(5, 5)]
+					for k in (t.buf.size() / CityBarriers.PANEL_FLOATS):
+						var o: int = k * CityBarriers.PANEL_FLOATS
+						var x0: float = t.buf[o + 3] - 3000.0
+						var x1: float = x0 + t.buf[o]
+						var run: float = t.buf[o + 13]
+						if x1 > g0 + END_IN and x0 < g1 - END_IN:
+							problems.append("9 %s: a panel piece %.2f..%.2f m in the gap" % [tag, x0, x1])
+						if absf(run - x0) > eps or int(t.panel[k]) != floori(x0 / CityBarriers.PANEL + 1e-6):
+							problems.append("9 %s: the piece at %.2f m has run %.2f, panel %d" % [tag, x0, run, t.panel[k]])
+			# The leaf: at the end gate (2: the left side, +z for a line running +x), off the line, inside it.
+			var leaf := 0
+			var left := 0
+			for mesh: ArrayMesh in st.meshes():
+				for si in mesh.get_surface_count():
+					var arrays := mesh.surface_get_arrays(si)
+					var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+					var cols: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+					for vi in verts.size():
+						if cols[vi].is_equal_approx(CityBarriers.GATE_LEAF):
+							leaf += 1
+							left += 1 if verts[vi].z > 3000.0 + float(row.get("thick", 0.0)) * 0.5 else 0
+							if verts[vi].x < 3020.0 - CityBarriers.GATE_LEAF_LEN - post_w - eps:
+								problems.append("9 %s: the leaf reaches %.2f m along the line" % [tag, verts[vi].x - 3000.0])
+								break
+			if leaf == 0 or left != leaf:
+				problems.append("9 %s: %d leaf vertices, %d on its side" % [tag, leaf, left])
 	map._in_sector = false
 	map._sector = Vector2i.ZERO
 

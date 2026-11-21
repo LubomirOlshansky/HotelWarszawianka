@@ -3,6 +3,7 @@
 
 ## Backlog
 - fixed: the bake's flat deck slab, tunnel portals and side walls at Karowa's loop (the viaduct read as a plain overpass)
+- fixed: the retaining walls at the arches' mouths that narrowed the drive under the viaduct; the setts' fine noise at phone size (W-Z slip roads too)
 - found: the Szaya memorial's real place and look wait for a photo (QUESTIONS.md)
 
 ## Roadmap

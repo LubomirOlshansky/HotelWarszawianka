@@ -257,7 +257,7 @@ class FakeHud extends CanvasLayer:
 
 
 class FakeBubbles extends Control:
-	func say(_anchor: Variant, _speaker: String, _line: String, _sub := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _k := 0, _key := "") -> bool:
+	func say(_anchor: Variant, _speaker: String, _line: String, _sub := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _k := 0, _key := "", _small := false) -> bool:
 		return true
 	func allows(_k: int, _key := "") -> bool:
 		return true

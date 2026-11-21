@@ -450,13 +450,21 @@ void fragment() {
 			vec2 q = mix(vec2(wz.y / 0.16, (wz.x + WZ_ARC * 0.7 * arc * arc) / 0.14), vec2(wz.x / 0.3, wz.z / 0.22), gut);
 			q.x += 0.5 * mod(floor(q.y), 2.0);
 			vec2 f = abs(fract(q) - 0.5);
-			float joint = min(step(0.4, f.x) + step(0.38, f.y) + step(0.47, abs(arc)) * (1.0 - gut), 1.0);
-			float pick = hash12(floor(q) + floor(wz.y / WZ_ARC) * 17.0);
+			// F (2026-11-21): one stone is a pixel or less from the game's camera, and the hard
+			// joints and per-stone greys turned to noise (and crawl as the camera moves). Where a
+			// stone is under ~2 pixels they fade to a calm mottle of three-stone patches; the arcs
+			// (1.8 m) stay, drawn wider with a soft edge, so the fish scale reads from the camera.
+			float fine = 1.0 - smoothstep(0.45, 0.9, max(fwidth(q.x), fwidth(q.y)));
+			float aw = max(fwidth(arc), 0.002) * 1.5;
+			float arc_line = smoothstep(0.44 - aw, 0.44 + aw, abs(arc)) * (1.0 - gut) * 0.8;
+			float joint = mix(0.28, min(step(0.4, f.x) + step(0.38, f.y), 1.0), fine);
+			joint = max(joint, arc_line);
+			float pick = mix(0.25 + 0.5 * hash12(floor(q / 3.0) + floor(wz.y / WZ_ARC) * 17.0), hash12(floor(q) + floor(wz.y / WZ_ARC) * 17.0), fine);
 			vec3 stone = mix(vec3(0.5, 0.52, 0.55), vec3(0.6, 0.58, 0.56), smoothstep(0.2, 0.8, pick));
 			stone = mix(stone, vec3(0.63, 0.55, 0.52), step(0.92, pick));
 			stone = mix(stone, vec3(0.44, 0.45, 0.47), gut);
 			base = srgb_to_linear(mix(stone, vec3(0.42, 0.4, 0.37), joint * 0.7));
-			shade = 0.9 + 0.18 * hash12(floor(q) + 5.7) - 0.1 * joint;
+			shade = 0.9 + mix(0.09, 0.18 * hash12(floor(q) + 5.7), fine) - 0.1 * joint;
 		} else if (any(bvec2(kp_setts_at(wp) > 0.5, pz_dist(wp) < PZ_HALF + 0.35))) {
 			// Granite setts, 0.12 x 0.1 m in rows broken like bricks; each stone its own grey
 			// or warm pink; dark joints.

@@ -50,6 +50,9 @@ var life: Node3D
 var crowds: Node
 ## The notebook (notebook.gd): its places (`places`, each with its `id` and its point `at`).
 var notes: Node
+## The storefronts (storefronts.gd): their parking zones are the round-up's depots and their Leżaks
+## what it rounds up. Null with --no-parodies or without the notebook's places.
+var storefronts: Node
 var car: CharacterBody3D
 ## The helicopter (heli.gd).
 var heli: Node3D
@@ -74,3 +77,6 @@ var take_off: Callable
 var focus: Callable
 ## Puts the camera's focus at a point (a test start that moves the player at once).
 var focus_at: Callable
+## The clock to 22:00 at once, as CZEKAM DO 21:00 does it (main.gd's story skip): the street
+## racers' sixth win offers the night (NOC).
+var night_now: Callable

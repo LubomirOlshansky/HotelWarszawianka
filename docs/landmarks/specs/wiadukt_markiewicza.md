@@ -51,10 +51,13 @@ Route lanterns are one more MultiMesh in the one sector that had none: rendered 
 ## 6. Ground and night
 map_builder.gd and city_barriers.gd leave the ring to this model (`Landmarks.mk_covers`): the
 bake's deck slab and parapets, the tunnel portals and side walls, the deck's railings and lamps.
-The guard lines along the roadway keep their colliders (drawn as kerbs). Colliders: the faces and
+The guard lines along the roadway keep their colliders (drawn as kerbs). The bake's four retaining walls at
+the passages' mouths (in the pit and along the lower road) are left out too (`mk_approach`, F
+2026-11-21: an easier drive under the viaduct). Colliders: the faces and
 the passages' sides (struct_wall), the balustrades (guard_deck). Karowa over the viaduct,
 round the loop, through the arches and down to the bend at the escarpment's foot gets granite
-setts in segmental arcs (ground shader, KR_LINE) and the Royal Route's cast-iron lanterns instead
+setts in segmental arcs (ground shader, KR_LINE); a stone under about two pixels fades to a calm
+mottle of three-stone patches so the phone shows no noise or crawl, the arcs stay and the Royal Route's cast-iron lanterns instead
 of the modern street lamps (map_builder KAROWA_LANTERNS). At night the obelisk lanterns glow.
 
 ## 7. Detail level and budget

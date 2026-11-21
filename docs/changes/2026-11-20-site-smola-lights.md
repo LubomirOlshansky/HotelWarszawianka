@@ -1,0 +1,1 @@
+- The website now shows the Smoła club with its lights moving: beams, lasers and the strobe over the dance floor.

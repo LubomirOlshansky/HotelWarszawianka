@@ -5539,6 +5539,29 @@ R 6.9 → 7.8. Nothing changes in the classic look (the per-sector hashes are ma
 draws the planters 0.5 m, the castle garden's hedges at their mapped 3-5 m and the 6 m school fence
 as a net.
 
+**Barrier gates (walls look W8, 2026-11-20)**: `tools/barrier_gates.py` is a post-pass on main's map
+(TD-25; last in `bake_osm.py` and in `tools/check_post_passes.py`; verify step `barriergates` runs its
+`--selftest` and `--check`; stamp `barrier_gates`, v2). On fence, wall and hedge lines of class S or H
+without a hazard reason it writes `g` ([[s, w, leaf], ...]: a gap s metres along the line, w long, where
+a `paths` or service `roads` centre line crosses it, strictly or through a point both share, OSM's gate
+node; w = (the way's width + 0.4 m) over the crossing's sine, at least 0.5; never at a deck or in a
+tunnel) and `ge` ([start, end]: 1 where the line's end faces an opening the bake already cut across a
+way, `clear_carriageways` for drives, object_fixes L4 for footways: two ends of one kind facing each
+other, feet within 3 m, neither more than 0.15 m inside the way's width). Line ids, pieces and panel
+indices stay as they are. On main's map: 761 lines, 326 gaps (834 m), all by footways (0 by service
+roads: every line was already cut out of a drive), 556 gate ends (244 by paths, 312 by service roads),
+0 leaves. The leaf rule (open leaves at drives, `leaf` ±1 and `ge` ±2 on the yard side) failed its
+photo check (6 gates of 14 service openings the street photos showed: the rest open car-park mouths,
+a plaza drive, a barrier arm, a roller shutter, low lawn fences) and is off (`LEAVES = False`); the
+footway gaps passed (19 of 20, the one wrong a closed gate with a no-entry sign at Port Czerniakowski).
+128 footways only end on a line: no gap. `check_map_data.py` `GATES_EXPECTED` records the counts (by
+paths and service roads from the stamp). The game reads the keys only under `barrier_look` `typed` and
+`panels` (`city_barriers.gd`: the line drawn as its pieces between gaps, each with `_soft_run` and
+`_panel_run` at its own metre, so soft segments and panel indices are the whole line's; posts 0.3 m
+taller than the line at each gap's edge and each `ge` end, inside the line, no own collider: the line's
+collider holds them and the openings keep their width), and not on the stadium's railing (#808, its own
+gates) or a line drawn by a placed style. Classic ignores both keys: its per-sector hashes are main's.
+
 **Trees and fences off the water and the roads (F, 2026-11-08)**: `tools/object_audit.py` rules T1 (a
 scanned tree's trunk in a water area, a sandbar excepted), T2 (on the drawn asphalt at grade, check_streets
 S1's test, not on an island or a median) and L6 (a fence or hedge more than `WET_IN` 0.6 m inside a water
@@ -6061,6 +6084,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--fotka` / `--photo` | loop MW-6: open Fotka at the start (screenshots of the photo mode) |
 | `--kadr=<n\|id>` | loop MW-6: Fotka open at that Kadr spot (`kadr.json`, 1-15 or `k07`), in its look, aimed at its subject, a photo 2 s later; implies `--photo-log` |
 | `--fotka-shot=S` | loop MW-6: with `--fotka`, take a photo S s after it opens |
+| `--promo` / `--promo=free,lock,grid,ghost,nohud,clean,panel,16:9,9:16,4:5,1:1` | F 2026-11-20: Promo Mode on for the run (promo_mode.gd; the DEV setting "Promo mode"), with those switches set: the free camera, the locked yaw, the thirds grid, the HUD invisible or hidden, the panel hidden or open, a frame guide. Its COPY gives the `--cam= --yaw= --pitch= --size= --game-clock --clock= --date=` that render the same frame |
 | `--photo-log` | loop MW-6: print `fotka:` lines (open, close, `fotka: saved user://photos/... (WxH)`) and `kadr:` lines (`kadr: n ok (<id> ...)` or `kadr: none (why)`) |
 | `--crowd=0\|1\|2` | loop MW-3: the night and river crowds off (nothing built, no cost), normal (default) or doubled; the Low tier halves them |
 | `--night-log` | loop MW-3: print `night:` lines: the sites at the start, a summary every minute (`night: 01:00 day 6 · queues … smola 24 … · rejections 1 · car lines 0 · dawn walkers 30 · roof 0, steps 24, plan_c 28 · police on`), each rejection, line, police unit and the dawn routes |
