@@ -7082,6 +7082,9 @@ func _apply_cam(i: int) -> void:
 		base_size = c["size"]
 
 
+## How high over the focus the free camera's bottom edge stays (m): above the tallest ground near it.
+const FREE_CAM_CLEAR := 80.0
+
 ## --cam: the free camera's frame (see free_cam): the view fixed on its point.
 func _update_free_camera() -> void:
 	var focus := _free_cam_at
@@ -7092,10 +7095,17 @@ func _update_free_camera() -> void:
 	cam_focus = focus
 	cam_yaw_target = cam_yaw
 	_view_size = base_size
-	var xf := FollowCamera.free_view(focus, cam_yaw, _view_pitch(), _view_size, CAMERA_DISTANCE)
+	# F (2026-11-21, the stadium reel: a blue strip under the frame): a wide, shallow view's bottom
+	# edge started below the ground, so the ground nearest the screen's foot lay behind the near
+	# plane and the sky's colour showed. Back far enough that the bottom edge stays FREE_CAM_CLEAR m
+	# over the focus (an orthographic view looks the same from any distance).
+	var sp := sin(deg_to_rad(maxf(absf(_view_pitch()), 5.0)))
+	var cp := cos(deg_to_rad(_view_pitch()))
+	var dist := maxf(CAMERA_DISTANCE, (0.5 * _view_size * cp + FREE_CAM_CLEAR) / sp)
+	var xf := FollowCamera.free_view(focus, cam_yaw, _view_pitch(), _view_size, dist)
 	cam.size = _view_size
 	cam.global_transform = Transform3D(xf.basis, _snap_to_pixels(xf.origin, xf.basis, _view_size))
-	cam.far = _camera_far(maxf(CAMERA_DISTANCE, cam.size * 1.6), _view_size)
+	cam.far = _camera_far(maxf(dist, cam.size * 1.6), _view_size)
 
 
 ## A point moved onto the pixel grid of a view `size` m tall turned `basis` (across and up the
