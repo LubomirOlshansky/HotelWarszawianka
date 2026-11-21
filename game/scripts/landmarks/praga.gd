@@ -126,6 +126,13 @@ static func _median3(a: float, b: float, c: float) -> float:
 ## 55-63 m, needle 30-100 m, over the street round it).
 ## The promenade's inner and outer edges, in inner-mast radii (the concourse glass is at 0.935).
 const PROM_FROM := 0.955
+## F's night photos (2026-11-21): the spikes' tip lamps and the rim's line of light (pale by day).
+const STADIUM_TIP := Color(0.96, 0.97, 1.0)
+const STADIUM_RIM_LIGHT := Color(0.84, 0.87, 0.92)
+const STADIUM_LAMP := Color("#fff1cf")
+## The stairs' light lines (pale sand by day, warm at night), on the mapped stairs within STAIR_REACH m of the centre.
+const STADIUM_STAIR := Color("#e6cf9a")
+const STAIR_REACH := 270.0
 const PROM_TO := 1.04
 
 
@@ -262,6 +269,35 @@ func _build_stadium(site: Dictionary) -> void:
 		var ko := (a1 + b1) * 0.5 - c
 		_quad(Vector3(a1.x, ka, a1.y), Vector3(b1.x, kb, b1.y), Vector3(b1.x, deck[k1], b1.y), Vector3(a1.x, deck[k], a1.y),
 				Vector3(ko.x, 0.0, ko.y).normalized(), Color("#a9a59b"))
+	# F's night photos (2026-11-21): lamp posts round the promenade's outer edge, one every
+	# other mast, and lines of warm light across the mapped stairs down the embankment.
+	for k in range(0, n, 2):
+		var lp: Vector2 = c + ((inner[k] as Vector2) - c) * (PROM_TO - 0.008)
+		_prism(_circle(lp, 0.12, 4), deck[k], deck[k] + 4.6, Color("#3a3c40"), Color("#3a3c40"), M_STONE, M_STONE)
+		_prism(_circle(lp, 0.32, 4), deck[k] + 4.6, deck[k] + 5.0, STADIUM_LAMP, STADIUM_LAMP, M_LAMP, M_LAMP)
+	_mode = M_LAMP
+	for st: Dictionary in data.get("steps", []):
+		var sp: Array = st["p"]
+		var w := float(st.get("w", 0.0))
+		if sp.size() < 4 or w < 7.0:
+			continue
+		var s0 := Vector2(float(sp[0]), float(sp[1]))
+		var s1 := Vector2(float(sp[sp.size() - 2]), float(sp[sp.size() - 1]))
+		if (s0 + s1).distance_to(c * 2.0) > STAIR_REACH * 2.0:
+			continue
+		var run_len := s0.distance_to(s1)
+		var e := (s1 - s0) / maxf(run_len, 0.01)
+		var half := Vector2(-e.y, e.x) * w * 0.42
+		var t := 0.8
+		while t < run_len - 0.5:
+			var m0 := s0 + e * t
+			var m1 := m0 + e * 0.22
+			var y0: float = map.ground_height(m0.x, m0.y) + 0.07
+			var y1: float = map.ground_height(m1.x, m1.y) + 0.07
+			_quad(Vector3(m0.x - half.x, y0, m0.y - half.y), Vector3(m0.x + half.x, y0, m0.y + half.y),
+					Vector3(m1.x + half.x, y1, m1.y + half.y), Vector3(m1.x - half.x, y1, m1.y - half.y), Vector3.UP, STADIUM_STAIR)
+			t += 1.8
+	_mode = M_STONE
 	# The roof: the raised rim (its outer face over the skin, its inner face sloping to the
 	# membrane), its soffit back to the skin's top, then the membrane down to the open middle
 	# in panels.
@@ -276,6 +312,13 @@ func _build_stadium(site: Dictionary) -> void:
 				(Vector3.UP * 1.5 - on * 2.2).normalized(), Color("#c9ccd1"))
 		_quad(Vector3(edge[k].x, roof_y - 1.6, edge[k].y), Vector3(edge[k1].x, roof_y - 1.6, edge[k1].y),
 				Vector3(top[k1].x, skin_top, top[k1].y), Vector3(top[k].x, skin_top, top[k].y), Vector3.DOWN, Color("#9da1a8"))
+		# F's night photos (2026-11-21): a line of light along the rim's foot, its own grey by day.
+		var e0 := edge[k] + (edge[k] - c).normalized() * 0.05
+		var e1 := edge[k1] + (edge[k1] - c).normalized() * 0.05
+		_mode = M_LAMP
+		_quad(Vector3(e0.x, roof_y - 1.6, e0.y), Vector3(e1.x, roof_y - 1.6, e1.y),
+				Vector3(e1.x, roof_y - 1.0, e1.y), Vector3(e0.x, roof_y - 1.0, e0.y), on, STADIUM_RIM_LIGHT)
+		_mode = M_STONE
 	_mode = M_MEMBRANE
 	var hole_y := roof_y - 3.5
 	for k in n:
@@ -367,6 +410,9 @@ func _build_stadium(site: Dictionary) -> void:
 		# The spike over the rim, thicker: the stadium's silhouette from the street.
 		var s0 := a.lerp(b, (rim_y - 1.0 - a.y) / (b.y - a.y))
 		_beam(s0, b + (b - a).normalized() * 0.4, 1.0, Color("#f2f3f5"))
+		# F's night photos (2026-11-21): a white lamp on every spike's tip.
+		var tip := b + (b - a).normalized() * 0.4
+		_prism(_circle(Vector2(tip.x, tip.z), 0.6, 4), tip.y - 0.2, tip.y + 0.9, STADIUM_TIP, STADIUM_TIP, M_LAMP, M_LAMP)
 	# The needle (mapped 30-100 m): a white spindle through a dark hub ring where the cables
 	# meet (37-43 m, 15.6 m across), the folded roof stored in a white drum above it (55-63 m,
 	# 21 m across), and a red light on its tip; a cable from the hub to every third mast's

@@ -800,7 +800,8 @@ vec3 weave(float u, float h, float top, out vec3 glow) {
 	vec3 gap = srgb_to_linear(vec3(0.16, 0.15, 0.17));
 	float f = clamp(((row + 0.5) * ph / max(top, 1.0) - 0.15) / 0.85, 0.0, 1.0);
 	float p_silver = mix(0.17, 0.88, f);
-	float n = hash12(vec2(col_i, row) + 0.37);
+	// F's night photos (2026-11-21): the colours run in blocks of two panels side by side.
+	float n = hash12(vec2(floor(col_i * 0.5), row) + 0.37);
 	vec3 c = n < p_silver ? silver : red;
 	// The mesh catches the light unevenly: panel by panel, and darker at its lower edge.
 	c *= (0.88 + 0.16 * hash12(vec2(col_i, row) + 5.11)) * (0.9 + 0.1 * fy);
@@ -809,7 +810,8 @@ vec3 weave(float u, float h, float top, out vec3 glow) {
 	}
 	if (lights_on > 0.001) {
 		// Lit from inside at night: the red panels glow, the silver ones catch the light.
-		glow = (c == gap ? vec3(0.0) : c * (c.r > c.g * 2.0 ? 1.6 : 0.9)) * 0.75;
+		// F's night photos (2026-11-21): the white panels glow a cool bright white, the red ones a deep red.
+		glow = (c == gap ? vec3(0.0) : (c.r > c.g * 2.0 ? c * 1.7 : c * vec3(1.2, 1.3, 1.45))) * 0.8;
 	}
 	return c;
 }

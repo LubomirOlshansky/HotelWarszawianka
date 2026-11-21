@@ -145,7 +145,7 @@ const BUDGET := {
 	"cosmopolitan": 420,  # 2026-11-08 photo rebuild (F)
 	"plac_grzybowski": 1500,  # 2026-11-08 photo build (F): 1429 tris, the cascade field is 48 blocks
 	"prozna": 5100,  # 2026-11-08 photo build (F): 5014 tris, 1,300 of them the 90 bollards
-	"dom_partii": 8000,  # 2026-11-12 rebuilt whole from F's photos: 5202 tris; 2026-11-19 the arcade, terrace, cafés and tables (F's photos): 7225 tris, +0 draw calls
+	"dom_partii": 12400,  # 2026-11-21 teaser 4 (F): café guests and dogs at the tables: 10297 tris; earlier: 2026-11-12 rebuilt whole from F's photos: 5202 tris; 2026-11-19 the arcade, terrace, cafés and tables: 7225 tris, +0 draw calls
 	"eon41": 1300,  # 2026-11-13 photo rebuild (F): the power company's L-block, curve, medallions, glass tower, lantern
 	"asp37": 1600,  # 2026-11-13 the Academy of Fine Arts: the 1914 school and JEMS's wing
 	"deski": 2300,
@@ -302,7 +302,7 @@ const BUDGET := {
 	"srodmiescie": 580,
 	"wkd_srodmiescie": 460,
 	"wkd_ochota": 650,  # the stair has up to 40 steps on the real ground (6 on the flat stub)
-	"stadium": 4750,
+	"stadium": 7100,  # 2026-11-21 teaser 5 (F's night photos): mast-tip lamps, the rim's light line, promenade lamps, stair light lines: 5886 tris
 	"swieto": 240,
 	"kladka": 8000,  # 2026-11-20 Kładka Abakanowicz from F's photos: 451 m deck, seating bays, rails, 7 supports (measured 5944)
 	"teatr": 820,  # 2026-11-08 photo pass (top-50 T06): ten columns, pediment, quadriga: 705 tris
