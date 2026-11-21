@@ -2214,6 +2214,15 @@ const SUNKEN := [
 		"at": Vector2(458.2, -840.3), "a": Vector2(394.8, -904.3), "b": Vector2(401.8, -911.7),
 		"ring": [Vector2(373.0, -925.1), Vector2(415.8, -884.2), Vector2(426.0, -893.3), Vector2(410.1, -904.0),
 			Vector2(382.6, -933.7)]},
+	# The Arka, Stadion Narodowy's east entrance (F's photos, 2026-11-21: "the ground that goes to the
+	# entrance is flat ground"): a level cut into the embankment, narrowing from the plaza to the
+	# headwall with the arch (landmarks/praga.gd _stadium_arka), between granite cheek walls under the
+	# two flights. The 10 m grid drew it as a slope rising to the headwall. The ring: the cut's floor
+	# between the cheeks (OSM's slivers beside the flights), from 1 m out on the plaza to just behind
+	# the headwall's slab; the floor the grid's own at the mouth. Its site is the stadium's.
+	{"key": "arka_cut", "site": "stadium", "style": "parapet", "sub": 10, "hb": -17.1,
+		"a": Vector2(1650.0, -703.5), "b": Vector2(1650.0, -703.5),
+		"ring": [Vector2(1643.6, -716.2), Vector2(1658.7, -690.9), Vector2(1629.3, -682.7), Vector2(1621.8, -695.4)]},
 ]
 ## Grid nodes held up to the street (the 10 m grid's pit at Złote Tarasy's plaza pulled the upper
 ## terrace, the stair's sides and the station forecourt down into a crater): [node, at least m].

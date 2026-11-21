@@ -302,7 +302,7 @@ const BUDGET := {
 	"srodmiescie": 580,
 	"wkd_srodmiescie": 460,
 	"wkd_ochota": 650,  # the stair has up to 40 steps on the real ground (6 on the flat stub)
-	"stadium": 9000,  # 2026-11-21 teaser 5 (F's drone photo): a lit line on every step, lit stair edges, the east gate portal: 7622 tris; F's night photos: mast-tip lamps, the rim's light line, promenade lamps, stair light lines: 5886 tris
+	"stadium": 9300,  # 2026-11-21 the Arka's level cut (SUNKEN arka_cut: cheek walls, parapets): measured ~9080;  # 2026-11-21 teaser 5 (F's drone photo): a lit line on every step, lit stair edges, the east gate portal: 7622 tris; F's night photos: mast-tip lamps, the rim's light line, promenade lamps, stair light lines: 5886 tris
 	"swieto": 240,
 	"ateneum": 5200,  # 2026-11-21 the whole Ateneum block from F's photos: L of two wings, rounded colonnaded corner, bays, attic, ATENEUM sign (measured 4973: up from 800 for the first single-wing version on purpose, the whole block is two wings and a corner)
 	"lipowa1a": 900,  # 2026-11-21 copper storeys, loggias on Lipowa, solid copper end, roof terrace (from the BUW thread's version, F: "i like")
