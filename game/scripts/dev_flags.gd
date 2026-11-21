@@ -107,9 +107,9 @@ var demo := false
 ## world direction (x east, z south) the whole run, for screenshots of the clamp along the map's
 ## outline (ZERO: off).
 var heli_stick := Vector2.ZERO
-## Teaser 5 (F, 2026-11-21), --promo-heli=X,Z,TX,TZ,ALT[,SHARE]: a second helicopter for a promo
-## shot, starting ALT m over (X, Z) and flying itself towards (TX, Z) at SHARE of top speed
-## (0.6), its beacon, strobe and searchlight on at night. Empty: none.
+## Teaser 5 (F, 2026-11-21), --promo-heli=X,Z,TX,TZ,ALT[,SHARE[,SCALE]]: a second helicopter for a
+## promo shot, starting ALT m over (X, Z) and flying itself towards (TX, TZ) at SHARE of top speed
+## (0.6), drawn SCALE times its size (1), its beacon, strobe and searchlight on at night. Empty: none.
 var promo_heli := PackedFloat32Array()
 var out_dir := "user://"
 ## --spots: [name, Vector2 x/z, heading or INF] per camera; one run shoots them all, the city

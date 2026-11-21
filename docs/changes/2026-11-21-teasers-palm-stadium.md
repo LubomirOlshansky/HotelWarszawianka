@@ -3,7 +3,7 @@
 - Most Poniatowskiego's towers are floodlit at night.
 - Stadion Narodowy's surroundings light up like the drone photos: a glowing line on every step of the stairs, lamp posts with pools of light along the paths round it and the east avenue, and a lit portal in the east gate's broad flight.
 - The Party House courtyard by the bar has deckchairs, a little stage with a screen and a crowd; the taxis by the de Gaulle monument wait at their rank instead of popping in and out.
-- Promo shots can fly in a second helicopter (--promo-heli, beacon and strobe only, no searchlight); with --promo-at a patrol car drives through and buses keep their lane.
+- Promo shots can fly in a second helicopter (--promo-heli: beacon, strobe, position lights and a lit cockpit, no searchlight, drawn bigger if asked); with --promo-at a patrol car drives through and buses keep their lane.
 - No bikes, couriers or scooters ride through the Party House entrance and courtyard: people sit there.
 
 ## Backlog
