@@ -1612,7 +1612,8 @@ static func _jarmark_pack() -> Array:
 			out.append([at, face, part])
 			if rng.randf() < 0.45:
 				out.append([at + face * 0.75, -face, part])
-			d += rng.randf_range(0.28, 0.6)
+			# Thinner than the first pass: jarmark_life.gd's promo strollers walk between them.
+			d += rng.randf_range(0.5, 1.1)
 	return out
 
 

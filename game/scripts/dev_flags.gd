@@ -1133,6 +1133,9 @@ func parse_with(args: PackedStringArray) -> void:
 			preload("res://scripts/crowds.gd").promo_jarmark = promo_dress.has("jarmark")
 			TimeOfDay.promo_night = promo_dress.has("jarmark")
 			preload("res://scripts/street_details.gd").november = promo_dress.has("jarmark")
+			if promo_dress.has("jarmark"):
+				# The market's strollers (jarmark_life.gd promo_walkers) ride the guest slots.
+				preload("res://scripts/pedestrians.gd").GUESTS = 720
 			if promo_dress.has("jarmark") and season == "":
 				# Late November (F 2026-11-21): the leaves are down, no green or orange crowns.
 				RenderingServer.global_shader_parameter_set("tree_season", Vector4(1, 1, 0, 0))

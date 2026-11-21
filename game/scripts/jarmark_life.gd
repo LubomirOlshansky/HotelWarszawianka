@@ -58,14 +58,39 @@ static func lift(p: Vector2) -> float:
 	return Market.jarmark_lift(p)
 
 
+## The promo's strollers (crowds.gd promo_jarmark, F 2026-11-21 "why are people standing, can
+## they move"): ~260 groups over every aisle, same form as WALKERS, made once from a fixed seed.
+static var _promo: Array = []
+const PROMO_GROUPS := 260
+const PROMO_SHIRTS := ["#7a1f26", "#e7e2d6", "#344a2e", "#1c1d22", "#4a5a8a", "#8a7a62", "#2f6fb5", "#d8432f",
+		"#e0b23a", "#c25a2a", "#f2efe8", "#7a4fa8", "#3b8f5a", "#e57aa0", "#5aa9c9", "#c9a25a", "#2c3440", "#b23a48"]
+
+
+## The strollers in use: WALKERS, or the promo's crowd.
+static func walkers() -> Array:
+	if not Crowds.promo_jarmark:
+		return WALKERS
+	if _promo.is_empty():
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 2611
+		for i in PROMO_GROUPS:
+			var r := rng.randf()
+			var kind := "single" if r < 0.3 else ("couple" if r < 0.72 else "family")
+			_promo.append([kind, rng.randi() % AISLES.size(), rng.randf(), rng.randf_range(0.45, 0.95),
+					rng.randf_range(-0.9, 0.9), PROMO_SHIRTS[rng.randi() % PROMO_SHIRTS.size()],
+					PROMO_SHIRTS[rng.randi() % PROMO_SHIRTS.size()]])
+	return _promo
+
+
 ## The strollers' figures at clock `t` and `hour`: [position (map x, z), yaw, shirt, trousers, scale].
 static func walker_figures(t: float, hour: float) -> Array:
 	var out: Array = []
-	var n := roundi(WALKERS.size() * Crowds.jarmark_level(hour, false))
+	var list := walkers()
+	var n := roundi(list.size() * Crowds.jarmark_level(hour, false))
 	var a := Market.JM_AXIS.normalized()
 	var b := Vector2(-a.y, a.x)
 	for i in n:
-		var w: Array = WALKERS[i]
+		var w: Array = list[i]
 		var ai: Array = AISLES[int(w[1])]
 		var p0 := Vector2(float(ai[0]), float(ai[1]))
 		var p1 := Vector2(float(ai[2]), float(ai[3]))

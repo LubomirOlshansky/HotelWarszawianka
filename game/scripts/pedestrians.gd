@@ -15,7 +15,9 @@ const MAX := 60
 const FIXED := 12
 ## Loop MW-4: guests (city_life.gd: the dog walkers, runners, Kolka, the Hyrax loop, the dog's
 ## photographers) after the fixed people, written by their owner (`set_guest`): +0 draw calls.
-const GUESTS := 48
+## A static var, not a const: the Jarmark promo (--promo-dress=jarmark) raises it for its
+## hundreds of strollers before the people are built. Players' games keep 48.
+static var GUESTS := 48
 ## The night-buses loop: people waiting at the bus stops (buses.gd `set_stop`), after the guests:
 ## +0 draw calls.
 const STOPS := 16
