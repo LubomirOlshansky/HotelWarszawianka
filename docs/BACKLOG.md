@@ -3,6 +3,13 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
+## Automatic Play uploads need a service account key (F, 2026-11-21)
+
+`tools/release.sh` uploads iOS builds to TestFlight by itself, but the Play upload needs a Play
+service account JSON key that only F can create (docs/store/release.md, "Keys"). Until then it
+leaves the AAB in ~/Downloads for a manual upload in Play Console. Optional: an App Store Connect
+API key, so iOS uploads work without the Xcode sign-in.
+
 ## Fill the shared photo store (2026-11-13, building-pipeline-review item 3)
 
 `tools/refs_store.py` and the store `/mnt/project-files/refs/` exist. The Mac's `refs/` and F's three photo folders were copied in on 2026-11-13 (3,103 files; F's folders sit under `_f/` and are tied to slugs in `ALIASES.tsv`).
