@@ -256,7 +256,7 @@ func setup(debug: bool, persistent: bool, setting_on: bool, flag: String, supers
 		var s := slug(str(supers[k]))
 		if not s.is_empty() and k != "platform":
 			_supers[k] = s
-	if is_mac_model(model):
+	if _supers["platform"] == "mac_ios_app":
 		_supers["device_name"] = "mac_ios_app"
 	_supers["test_device"] = _test_device
 	if mode == Mode.SEND:
