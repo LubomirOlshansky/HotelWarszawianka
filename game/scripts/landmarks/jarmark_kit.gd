@@ -394,6 +394,37 @@ class Ctx extends RefCounted:
 			tri(cc + e3 * half, cc + e3 * half + ring_pts[k], cc + e3 * half + ring_pts[j], cap, mode, e3)
 			tri(cc - e3 * half, cc - e3 * half + ring_pts[j], cc - e3 * half + ring_pts[k], cap, mode, -e3)
 
+	## A polyline in the u-y plane at local v = lv: pts are (u, y); beams of width `wd`, optionally closed.
+	func poly(pts: Array, lv: float, wd: float, col: Color, closed := false, mode := M_LAMP) -> void:
+		var n := pts.size()
+		for i in (n if closed else n - 1):
+			var a: Vector2 = pts[i]
+			var d: Vector2 = pts[(i + 1) % n]
+			lbeam(Vector3(a.x, lv, a.y), Vector3(d.x, lv, d.y), wd, col, mode)
+
+	## Bulbs every `step` m along a polyline in the u-y plane.
+	func poly_bulbs(pts: Array, lv: float, step: float, sz: float, col: Color) -> void:
+		for i in pts.size() - 1:
+			var a: Vector2 = pts[i]
+			var d: Vector2 = pts[i + 1]
+			var cnt := maxi(1, int(round(a.distance_to(d) / step)))
+			for k in cnt:
+				var q := a.lerp(d, float(k) / float(cnt))
+				lbulb(q.x, lv, q.y, sz, col)
+
+	## A snowman at local (lu, lv), `k` the scale (1 = 2.5 m): white lit balls, black hat, orange nose.
+	func snowman_at(lu: float, lv: float, k: float) -> void:
+		var white := Color("#d8dee8")
+		sphere(lu, lv, 0.6 * k, 0.6 * k, 12, 6, white, M_LAMP)
+		sphere(lu, lv, 1.5 * k, 0.45 * k, 10, 5, white, M_LAMP)
+		sphere(lu, lv, 2.15 * k, 0.32 * k, 10, 5, white, M_LAMP)
+		prism(lu, lv, 0.34 * k, 10, 2.38 * k, 2.42 * k, WIRE, WIRE)
+		prism(lu, lv, 0.2 * k, 10, 2.42 * k, 2.75 * k, WIRE, WIRE)
+		prism(lu, lv, 0.4 * k, 10, 1.9 * k, 2.0 * k, Color("#c01c28"))
+		lbeam(Vector3(lu, lv - 0.3 * k, 2.15 * k), Vector3(lu, lv - 0.7 * k, 2.1 * k), 0.07 * k, Color("#e87a24"))
+		lbeam(Vector3(lu - 0.4 * k, lv, 1.6 * k), Vector3(lu - 0.95 * k, lv, 1.95 * k), 0.05 * k, WOOD)
+		lbeam(Vector3(lu + 0.4 * k, lv, 1.6 * k), Vector3(lu + 0.95 * k, lv, 1.95 * k), 0.05 * k, WOOD)
+
 	func done() -> void:
 		b._no_roof = false
 		b._mode = M_STONE
@@ -1503,13 +1534,75 @@ static func booth(b, at: Vector2, yaw := 0.0, g := NAN, kind := 0) -> void:
 	c.done()
 
 
-## A white service cabin (WC, staff, medical, security, office): `size` the half sizes (u, v), 2.5 m high,
-## a dark door and a small pink sign on the front (local -v).
-static func cabin(b, at: Vector2, yaw := 0.0, g := NAN, size := Vector2(1.5, 1.2)) -> void:
+## A service cabin: `size` the half sizes (u, v), 2.5 m high, front local -v. `kind`: Cabin.WC (a pink
+## and a blue sign, two doors), STAFF (a green band), MEDICAL (a lit green cross), SECURITY (a dark
+## blue band), OFFICE (a row of lit windows), INFO (a small open kiosk: lit counter, awning).
+enum Cabin { WC, STAFF, MEDICAL, SECURITY, OFFICE, INFO }
+
+
+static func cabin(b, at: Vector2, yaw := 0.0, g := NAN, size := Vector2(1.5, 1.2), kind := Cabin.WC) -> void:
 	var c := Ctx.new(b, at, yaw, g)
-	c.box(-size.x, size.x, -size.y, size.y, 0.0, 2.5, Color("#ececf0"), Color("#c9c9c4"))
-	c.rect_panel(-size.x * 0.5, -size.y - 0.01, -PI * 0.5, 0.8, 0.0, 2.0, Color("#6a6a72"), M_STONE)
-	c.rect_panel(size.x * 0.4, -size.y - 0.01, -PI * 0.5, 0.35, 1.4, 1.9, Color("#f06a9a"), M_LAMP)
+	var hu := size.x
+	var hv := size.y
+	var fy := -hv - 0.01
+	if kind == Cabin.INFO:
+		c.box(-hu, hu, -hv, hv, 0.0, 2.5, Color("#ececf0"), Color("#9a9a9e"))
+		c.rect_panel(0.0, fy, -PI * 0.5, hu * 1.5, 1.0, 2.0, Color("#ffd9a0"), M_LAMP)
+		c.box(-hu, hu, -hv - 0.5, -hv, 0.95, 1.05, WOOD)
+		c.quad(c.p(-hu - 0.1, -hv, 2.4), c.p(hu + 0.1, -hv, 2.4), c.p(hu + 0.1, -hv - 0.8, 2.65), c.p(-hu - 0.1, -hv - 0.8, 2.65), Color("#2a58b0"), M_STONE, Vector3.ZERO, true)
+		c.round_panel(hu * 0.7, fy - 0.002, -PI * 0.5, 0.18, 2.1, 8, Color("#2a58b0"), M_LAMP)
+		c.done()
+		return
+	c.box(-hu, hu, -hv, hv, 0.0, 2.5, Color("#ececf0"), Color("#c9c9c4"))
+	match kind:
+		Cabin.WC:
+			c.rect_panel(-hu * 0.5, fy, -PI * 0.5, 0.8, 0.0, 2.0, Color("#6a6a72"), M_STONE)
+			c.rect_panel(hu * 0.5, fy, -PI * 0.5, 0.8, 0.0, 2.0, Color("#6a6a72"), M_STONE)
+			c.rect_panel(-hu * 0.5, fy - 0.002, -PI * 0.5, 0.4, 2.05, 2.4, Color("#f06a9a"), M_LAMP)
+			c.rect_panel(hu * 0.5, fy - 0.002, -PI * 0.5, 0.4, 2.05, 2.4, Color("#4a8ae0"), M_LAMP)
+		Cabin.STAFF:
+			c.rect_panel(-hu * 0.5, fy, -PI * 0.5, 0.8, 0.0, 2.0, Color("#6a6a72"), M_STONE)
+			c.rect_panel(0.0, fy - 0.002, -PI * 0.5, hu * 2.0, 2.1, 2.4, Color("#3a9a5a"), M_STONE)
+		Cabin.MEDICAL:
+			c.rect_panel(-hu * 0.5, fy, -PI * 0.5, 0.8, 0.0, 2.0, Color("#6a6a72"), M_STONE)
+			c.rect_panel(hu * 0.5, fy - 0.002, -PI * 0.5, 0.2, 1.1, 2.0, Color("#3acf6a"), M_LAMP)
+			c.rect_panel(hu * 0.5, fy - 0.002, -PI * 0.5, 0.8, 1.4, 1.7, Color("#3acf6a"), M_LAMP)
+		Cabin.SECURITY:
+			c.rect_panel(-hu * 0.5, fy, -PI * 0.5, 0.8, 0.0, 2.0, Color("#6a6a72"), M_STONE)
+			c.rect_panel(0.0, fy - 0.002, -PI * 0.5, hu * 2.0, 2.1, 2.4, Color("#26407a"), M_STONE)
+			c.rect_panel(hu * 0.5, fy - 0.002, -PI * 0.5, 0.7, 1.0, 1.7, Color("#ffd9a0"), M_LAMP)
+		Cabin.OFFICE:
+			for k in 3:
+				c.rect_panel(-hu * 0.6 + hu * 0.6 * float(k), fy - 0.002, -PI * 0.5, 0.6, 1.1, 1.9, Color("#ffd9a0"), M_LAMP)
+	c.done()
+
+
+## A cash machine (blue and orange), a wrapper of `booth` kind 2.
+static func cash_machine(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
+	booth(b, at, yaw, g, 2)
+
+
+## A photo booth (white, pink graphic), a wrapper of `booth` kind 0.
+static func photo_booth(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
+	booth(b, at, yaw, g, 0)
+
+
+## Bins: `kind` 0 a street bin (0.5 x 0.5 x 1 m, dark green with a lid and a lit band), 1 the waste
+## container group (a 5 x 3.5 m grey paving with four 1.3 m containers: grey, yellow, black, green,
+## sloped lids). The group's front is local -v.
+static func bins(b, at: Vector2, yaw := 0.0, g := NAN, kind := 0) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	if kind == 0:
+		c.box(-0.25, 0.25, -0.25, 0.25, 0.0, 0.95, Color("#2f5a3c"), Color("#25452e"))
+		c.box(-0.28, 0.28, -0.28, 0.28, 0.95, 1.05, Color("#26282e"))
+		c.rect_panel(0.0, -0.26, -PI * 0.5, 0.3, 0.55, 0.75, Color("#ffd9a0"), M_LAMP)
+	else:
+		c.box(-2.5, 2.5, -1.75, 1.75, 0.0, 0.06, Color("#9a9a98"))
+		var cols := [Color("#8a8d92"), Color("#e8c030"), Color("#2a2c30"), Color("#3a8a4a")]
+		for k in 4:
+			var cu := -1.8 + 1.2 * float(k)
+			c.box(cu - 0.55, cu + 0.55, 0.0, 1.0, 0.06, 1.1, cols[k])
+			c.surface(cu - 0.58, cu + 0.58, -0.05, 1.05, 1, 1, func(_u: float, v: float) -> float: return 1.1 + 0.18 * (1.0 - v), cols[k].darkened(0.2))
 	c.done()
 
 
@@ -1753,4 +1846,345 @@ static func led_figure(b, at: Vector2, yaw := 0.0, g := NAN, kind := 0) -> void:
 				c.lbeam(mid - perp, tip, 0.06, led, M_LAMP)
 				c.lbulb(tip.x, tip.y, tip.z, 0.1, WHITE)
 	c.noroof(false)
+	c.done()
+
+
+# ---------------------------------------------------------------------------------------------
+# 13. Small details of the official map (round 6)
+# ---------------------------------------------------------------------------------------------
+
+## The market's warm white (the lighting decision, 2026-11-21: about 85 % of the light).
+const WARM := Color("#ffd9a0")
+
+
+## A white LED arch, 4 m wide and 4 m high, two concentric outlines (r 2.0 and 1.75) of bulbs and
+## lamp lines, legs to the ground; several in a row (every 3 m along u) make the tunnel. Plane: u-y.
+static func light_arch(b, at: Vector2, yaw := 0.0, g := NAN, col := WARM) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	c.noroof(true)
+	for r: float in [2.0, 1.75]:
+		var pts: Array = [Vector2(-r, 0.0)]
+		for k in range(0, 17):
+			var a := PI - PI * float(k) / 16.0
+			pts.append(Vector2(cos(a) * r, 2.0 + sin(a) * (r + 0.0)))
+		pts.append(Vector2(r, 0.0))
+		c.poly(pts, 0.0, 0.05, col)
+		c.poly_bulbs(pts, 0.0, 0.32, 0.06, WHITE)
+	c.noroof(false)
+	c.done()
+
+
+## A giant lit bauble (about 2 m) on a low plinth, with a gold cap and a hook: `color` red (default) or
+## gold. No yaw (it is round).
+static func ornament_ball(b, at: Vector2, g := NAN, color := Color("#d6252c")) -> void:
+	var c := Ctx.new(b, at, 0.0, g)
+	c.prism(0, 0, 0.7, 12, 0.0, 0.3, Color("#2a2c30"), Color("#3a3c44"))
+	c.sphere(0, 0, 1.4, 1.0, 14, 8, color.darkened(0.3), M_LAMP)
+	c.prism(0, 0, 0.3, 10, 2.35, 2.62, GOLD, GOLD.lightened(0.1))
+	c.noroof(true)
+	var prev := Vector3(0.12, 0.0, 2.62)
+	for k in range(1, 9):
+		var a := PI * float(k) / 8.0
+		var q := Vector3(0.12 * cos(a), 0.0, 2.62 + 0.3 * sin(a))
+		c.lbeam(prev, q, 0.05, GOLD)
+		prev = q
+	c.noroof(false)
+	c.done()
+
+
+## A gold wire reindeer, about 2 m (antlers to 2.1 m), outlined in lamp lines in the u-y plane,
+## facing local +u: oval body, neck, head, two-pronged antlers, four legs, a tail.
+static func reindeer(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	c.noroof(true)
+	var gold := Color("#e8b030")
+	var body: Array = []
+	for k in 13:
+		var a := TAU * float(k) / 12.0
+		body.append(Vector2(cos(a) * 0.7, 1.0 + sin(a) * 0.33))
+	c.poly(body, 0.0, 0.04, gold)
+	c.poly([Vector2(0.55, 1.2), Vector2(0.78, 1.6), Vector2(0.92, 1.66)], 0.0, 0.04, gold)
+	c.poly([Vector2(0.55, 1.05), Vector2(0.72, 1.45), Vector2(0.88, 1.5)], 0.0, 0.04, gold)
+	var head: Array = []
+	for k in 9:
+		var a := TAU * float(k) / 8.0
+		head.append(Vector2(1.0 + cos(a) * 0.17, 1.72 + sin(a) * 0.12))
+	c.poly(head, 0.0, 0.04, gold)
+	c.poly([Vector2(1.14, 1.68), Vector2(1.32, 1.6)], 0.0, 0.04, gold)
+	c.poly([Vector2(0.95, 1.82), Vector2(0.9, 2.1), Vector2(0.78, 2.2)], 0.0, 0.04, gold)
+	c.poly([Vector2(0.9, 2.0), Vector2(1.05, 2.1)], 0.0, 0.04, gold)
+	c.poly([Vector2(1.02, 1.82), Vector2(1.08, 2.1), Vector2(1.2, 2.2)], 0.0, 0.04, gold)
+	c.poly([Vector2(1.08, 2.0), Vector2(0.95, 2.1)], 0.0, 0.04, gold)
+	for lx: float in [0.45, 0.28, -0.4, -0.55]:
+		c.poly([Vector2(lx, 0.72), Vector2(lx + 0.03, 0.35), Vector2(lx, 0.0)], 0.0, 0.04, gold)
+	c.poly([Vector2(-0.68, 1.1), Vector2(-0.9, 1.25)], 0.0, 0.04, gold)
+	c.poly_bulbs(body, 0.0, 0.45, 0.05, WARM)
+	c.lbulb(1.1, 0.0, 1.74, 0.07, Color("#ff4a3a"))
+	c.noroof(false)
+	c.done()
+
+
+## A big lit gift box (`size` m a side, `color`) with a gold ribbon on both axes and a bow on top.
+static func gift_box(b, at: Vector2, yaw := 0.0, g := NAN, size := 1.6, color := Color("#c01c28")) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	var h := size * 0.5
+	c.box(-h, h, -h, h, 0.0, size, color.darkened(0.3), color.darkened(0.2), M_LAMP)
+	var rb := 0.12 * size
+	c.box(-rb, rb, -h - 0.02, h + 0.02, 0.0, size + 0.02, GOLD, GOLD, M_LAMP)
+	c.box(-h - 0.02, h + 0.02, -rb, rb, 0.0, size + 0.02, GOLD, GOLD, M_LAMP)
+	c.pbox(-0.3 * size, 0.0, 0.4, 0.25 * size, 0.08 * size, size, size + 0.22 * size, GOLD, CLEAR, M_LAMP)
+	c.pbox(0.3 * size, 0.0, -0.4, 0.25 * size, 0.08 * size, size, size + 0.22 * size, GOLD, CLEAR, M_LAMP)
+	c.box(-0.08 * size, 0.08 * size, -0.08 * size, 0.08 * size, size, size + 0.16 * size, GOLD.darkened(0.1), CLEAR, M_LAMP)
+	c.done()
+
+
+## A dome tent, 8 m across (r 4, 3.2 m high), blue-white lit (M_LAMP), eight white ribs
+## and a base ring. No yaw.
+static func blue_dome(b, at: Vector2, g := NAN) -> void:
+	var c := Ctx.new(b, at, 0.0, g)
+	var skin := Color("#3c5088")
+	var rings := 6
+	for i in rings:
+		var a0 := (PI * 0.5) * float(i) / float(rings)
+		var a1 := (PI * 0.5) * float(i + 1) / float(rings)
+		c.frustum(0, 0, 4.0 * cos(a0), 4.0 * sin(a0) * 0.8, maxf(4.0 * cos(a1), 0.0), 4.0 * sin(a1) * 0.8, 16, skin.darkened(0.15 * float(i) / float(rings)), CLEAR, M_LAMP)
+	c.noroof(true)
+	for k in 8:
+		var a := TAU * float(k) / 8.0
+		var prev := Vector3(cos(a) * 4.05, sin(a) * 4.05, 0.0)
+		for i in range(1, rings + 1):
+			var e := (PI * 0.5) * float(i) / float(rings)
+			var q := Vector3(cos(a) * 4.05 * cos(e), sin(a) * 4.05 * cos(e), 4.05 * sin(e) * 0.8)
+			c.lbeam(prev, q, 0.1, Color("#f2f6ff"), M_LAMP)
+			prev = q
+	c.prism(0, 0, 4.05, 16, 0.0, 0.2, Color("#d8e2f4"), CLEAR, M_LAMP)
+	c.noroof(false)
+	c.done()
+
+
+## The beer garden, 14 x 10 m: dark decking, a grey fence (posts every 1.5 m, two rails) with warm bulbs
+## on top and a gap at local -v, six wooden tables with two benches each, and a bare tree in the back
+## corner.
+static func beer_garden(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	var grey := Color("#7a7d82")
+	c.box(-7.0, 7.0, -5.0, 5.0, 0.0, 0.1, Color("#4a3a2c"))
+	c.noroof(true)
+	var corners: Array = [Vector2(-7, -5), Vector2(7, -5), Vector2(7, 5), Vector2(-7, 5)]
+	for i in 4:
+		var a: Vector2 = corners[i]
+		var d: Vector2 = corners[(i + 1) % 4]
+		var cnt := int(a.distance_to(d) / 1.5)
+		for k in cnt + 1:
+			var q := a.lerp(d, float(k) / float(cnt))
+			if i == 0 and absf(q.x) < 1.6:
+				continue
+			c.pbox(q.x, q.y, 0.0, 0.06, 0.06, 0.1, 1.3, grey)
+			c.lbulb(q.x, q.y, 1.38, 0.07, WARM)
+		for h: float in [0.55, 1.05]:
+			if i == 0:
+				c.lbeam(Vector3(-7, -5, h), Vector3(-1.6, -5, h), 0.05, grey, M_STONE)
+				c.lbeam(Vector3(1.6, -5, h), Vector3(7, -5, h), 0.05, grey, M_STONE)
+			else:
+				c.lbeam(Vector3(a.x, a.y, h), Vector3(d.x, d.y, h), 0.05, grey, M_STONE)
+	c.noroof(false)
+	for ix in 3:
+		for iz in 2:
+			var tx := -4.0 + 4.0 * float(ix)
+			var tz := -1.8 + 3.2 * float(iz)
+			c.box(tx - 1.0, tx + 1.0, tz - 0.4, tz + 0.4, 0.7, 0.78, WOOD.lightened(0.15))
+			for sx: float in [-0.8, 0.8]:
+				c.pbox(tx + sx, tz, 0.0, 0.05, 0.3, 0.1, 0.7, WOOD.darkened(0.2))
+			for sz: float in [-0.75, 0.75]:
+				c.box(tx - 1.0, tx + 1.0, tz + sz - 0.18, tz + sz + 0.18, 0.4, 0.46, WOOD)
+	# A bare tree: trunk and two levels of branches.
+	c.noroof(true)
+	c.lbeam(Vector3(5.5, 3.8, 0.1), Vector3(5.5, 3.8, 3.2), 0.28, Color("#4a3a2c"), M_STONE)
+	for k in 5:
+		var a := TAU * float(k) / 5.0
+		var tip := Vector3(5.5 + cos(a) * 1.4, 3.8 + sin(a) * 1.4, 4.6)
+		c.lbeam(Vector3(5.5, 3.8, 2.6), tip, 0.12, Color("#4a3a2c"), M_STONE)
+		c.lbeam(tip, Vector3(5.5 + cos(a) * 1.9, 3.8 + sin(a) * 1.9, 5.2), 0.07, Color("#4a3a2c"), M_STONE)
+	c.noroof(false)
+	c.done()
+
+
+## The Santa sleigh scene, 8 x 6 m: a red base, a red sleigh (runners curling up at the front, a body
+## with a curved back and a white seat, gold trim), two white lit trees and a lit snowman.
+static func sleigh_scene(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	var red := Color("#c03030")
+	c.box(-4.0, 4.0, -3.0, 3.0, 0.0, 0.15, red)
+	for sd: float in [-0.7, 0.7]:
+		c.poly([Vector2(-1.5, 0.35), Vector2(0.9, 0.35), Vector2(1.6, 0.55), Vector2(1.9, 1.0)], sd, 0.12, GOLD.darkened(0.15), false, M_STONE)
+	c.box(-1.4, 1.3, -0.8, 0.8, 0.45, 0.9, red.darkened(0.1), red)
+	c.box(-1.4, -1.1, -0.8, 0.8, 0.9, 1.9, red)
+	c.box(-1.1, 1.0, -0.6, 0.6, 0.9, 1.0, Color("#f2f0ea"))
+	c.box(-1.42, 1.32, -0.82, 0.82, 0.78, 0.86, GOLD, CLEAR, M_LAMP)
+	c.fir(-3.0, 1.8, 4.6, true, true, SNOW)
+	c.fir(2.8, 2.2, 3.4, true, true, SNOW)
+	c.snowman_at(3.0, -1.8, 1.0)
+	c.done()
+
+
+## A white vaulted tent (the three white tents, the big hall 20 x 12 m): `length` along u, `width`
+## across (default 0.6 x length), vault height 0.4 x width up to 5 m. White glow inside (M_LAMP),
+## blue ribs every 2.5 m, the two ends closed with white arches.
+static func white_tent(b, at: Vector2, yaw := 0.0, g := NAN, length := 10.0, width := -1.0) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	var w := width if width > 0.0 else length * 0.6
+	var hw := w * 0.5
+	var h := minf(w * 0.4, 5.0)
+	var hl := length * 0.5
+	var segs := 14
+	var skin := Color("#566274")
+	var rib := Color("#2a3a7a")
+	var ribs := maxi(2, int(length / 2.5))
+	var arc := func(i: int) -> Vector2:
+		var a := PI * float(i) / float(segs)
+		return Vector2(-cos(a) * hw, 0.3 + sin(a) * h)
+	for i in segs:
+		var p0: Vector2 = arc.call(i)
+		var p1: Vector2 = arc.call(i + 1)
+		c.quad(c.p(-hl, p0.x, p0.y), c.p(hl, p0.x, p0.y), c.p(hl, p1.x, p1.y), c.p(-hl, p1.x, p1.y), skin, M_LAMP, Vector3.ZERO, true)
+		for sd: float in [-1.0, 1.0]:
+			c.tri(c.p(sd * hl, 0.0, 0.3), c.p(sd * hl, p0.x, p0.y), c.p(sd * hl, p1.x, p1.y), skin.lightened(0.08), M_LAMP, Vector3(c.u.x * sd, 0.0, c.u.y * sd))
+	c.noroof(true)
+	for k in ribs + 1:
+		var ru := -hl + length * float(k) / float(ribs)
+		var pts: Array = []
+		for i in segs + 1:
+			var q: Vector2 = arc.call(i)
+			pts.append(q)
+		for i in segs:
+			var q0: Vector2 = pts[i]
+			var q1: Vector2 = pts[i + 1]
+			c.lbeam(Vector3(ru, q0.x, q0.y + 0.03), Vector3(ru, q1.x, q1.y + 0.03), 0.14, rib, M_STONE)
+	c.lbeam(Vector3(-hl, -hw, 0.3), Vector3(hl, -hw, 0.3), 0.14, rib, M_STONE)
+	c.lbeam(Vector3(-hl, hw, 0.3), Vector3(hl, hw, 0.3), 0.14, rib, M_STONE)
+	c.noroof(false)
+	c.done()
+
+
+## A blue-roofed arcade pavilion, 16 x 6 m, front local -v: white square piers every 2 m with eight warm
+## arched openings and a bar counter, a pitched blue roof (eave 3.6 m, ridge 5.2 m) and a small white
+## tower at the +u end with a red pyramid cap (to 6.6 m).
+static func blue_pavilion(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	c.box(-8.0, 8.0, -3.0, 3.0, 0.0, 0.2, Color("#9a9a98"))
+	c.box(-8.0, 8.0, 2.6, 3.0, 0.2, 3.6, Color("#e8e8ec"))
+	for k in 9:
+		c.box(-8.0 + 2.0 * float(k) - 0.2, -8.0 + 2.0 * float(k) + 0.2, -3.0, -2.6, 0.2, 3.6, WHITE)
+	for k in 8:
+		var cu := -7.0 + 2.0 * float(k)
+		c.arch_panel(cu, 2.58, -PI * 0.5, 1.4, 0.3, 3.0, WARM, M_LAMP)
+	c.box(-7.5, 7.5, -2.0, -1.5, 0.2, 1.05, WOOD, Color("#d9b27a"))
+	c.gable(8.0, 3.0, 3.6, 1.6, WHITE, Color("#2a58b0"), Color("#1e4088"), 0.4, 0.6)
+	c.noroof(true)
+	for k in 17:
+		c.lbulb(-8.0 + 1.0 * float(k), -3.55, 3.5, 0.07, WARM)
+	c.noroof(false)
+	c.box(5.6, 7.4, -0.9, 0.9, 3.6, 5.6, WHITE)
+	c.frustum(6.5, 0.0, 1.45, 5.6, 0.0, 7.0, 4, Color("#c03030"), CLEAR, M_STONE, -1.0, PI * 0.25)
+	c.arch_panel(6.5, -0.92, -PI * 0.5, 0.6, 4.0, 5.2, WARM, M_LAMP)
+	c.done()
+
+
+## The Palace's corner tree: a tall (8 m) lit tree of five tiers of white-blue LED (M_LAMP) with warm
+## bulbs on the tier edges and a red lit bauble on top. No yaw.
+static func palace_corner_tree(b, at: Vector2, g := NAN) -> void:
+	var c := Ctx.new(b, at, 0.0, g)
+	c.prism(0, 0, 0.25, 6, 0.0, 1.0, WOOD.darkened(0.2))
+	for k in 5:
+		var y0 := 0.8 + 1.35 * float(k)
+		var r0 := 2.3 - 0.4 * float(k)
+		c.frustum(0, 0, r0, y0, r0 * 0.2, y0 + 1.9, 10, Color("#8fa4d8"), CLEAR, M_LAMP_BLUE)
+		c.noroof(true)
+		c.bulb_ring(0, 0, r0 * 0.95, y0 + 0.05, 12, 0.08, [WARM], M_LAMP, 0.2 * float(k))
+		c.noroof(false)
+	c.sphere(0, 0, 8.15, 0.45, 10, 5, Color("#8a1a20"), M_LAMP)
+	c.done()
+
+
+## The red GRZANIEC container booth (the generic word only): 6 x 2.5 x 2.8 m, red (#B8282A), a wide
+## lit open counter (4.8 m), the word in gold bulb letters across the lower front, and a fir garland
+## with red and gold baubles and warm bulbs round the roof edge. Front local -v.
+static func grzaniec_booth(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	var red := Color("#b8282a")
+	c.box(-3.0, 3.0, -1.25, 1.25, 0.0, 2.8, red, red.darkened(0.3))
+	for k in 20:
+		c.pbox(-2.85 + 0.3 * float(k), -1.26, 0.0, 0.03, 0.02, 0.1, 2.7, red.darkened(0.25))
+	c.rect_panel(0.0, -1.27, -PI * 0.5, 4.8, 1.0, 2.35, Color("#2a1a14"), M_STONE)
+	c.rect_panel(0.0, -1.28, -PI * 0.5, 4.6, 1.1, 2.3, WARM, M_LAMP)
+	c.box(-2.5, 2.5, -1.9, -1.27, 0.95, 1.05, WOOD)
+	c.noroof(true)
+	bulb_word(c, "GRZANIEC", 0.0, -1.3, 0.2, 0.62, Color("#ffd070"), 0.04)
+	var corners: Array = [Vector2(-3.05, -1.3), Vector2(3.05, -1.3), Vector2(3.05, 1.3), Vector2(-3.05, 1.3)]
+	for i in 4:
+		var a: Vector2 = corners[i]
+		var d: Vector2 = corners[(i + 1) % 4]
+		c.lbeam(Vector3(a.x, a.y, 2.85), Vector3(d.x, d.y, 2.85), 0.3, FIR)
+		var cnt := int(a.distance_to(d) / 0.5)
+		for k in cnt:
+			var q := a.lerp(d, float(k) / float(cnt))
+			var bc := Color("#d6252c") if k % 2 == 0 else Color("#e0b030")
+			c.sphere(q.x, q.y, 3.0, 0.13, 6, 3, bc)
+			c.lbulb(q.x + 0.12, q.y, 2.98, 0.05, WARM)
+	c.noroof(false)
+	c.done()
+
+
+## A blue-white LED walk-through arch shaped like a tall tiered Christmas tree (6 m high, 4 m wide),
+## two parallel outlines 0.5 m apart tied at the corners, a heart-shaped opening (about 2 m) at the
+## bottom, blue lines with white bulb tips and a small gold star on top.
+static func led_tree_arch(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	c.noroof(true)
+	var blue := Color("#6a8cff")
+	var left: Array = [Vector2(-2.0, 0.0), Vector2(-0.95, 2.2), Vector2(-1.45, 2.2), Vector2(-0.65, 3.9), Vector2(-1.05, 3.9), Vector2(-0.3, 5.4), Vector2(0.0, 6.0)]
+	var outline: Array = left.duplicate()
+	for i in range(left.size() - 2, -1, -1):
+		var q: Vector2 = left[i]
+		outline.append(Vector2(-q.x, q.y))
+	var heart: Array = []
+	for k in 17:
+		var t := TAU * float(k) / 16.0
+		var x := 16.0 * pow(sin(t), 3.0)
+		var y := 13.0 * cos(t) - 5.0 * cos(2.0 * t) - 2.0 * cos(3.0 * t) - cos(4.0 * t)
+		heart.append(Vector2(x, y) * 0.062 + Vector2(0.0, 1.35))
+	for lv: float in [-0.25, 0.25]:
+		c.poly(outline, lv, 0.07, blue)
+		c.poly(heart, lv, 0.06, Color("#cfe0ff"))
+		c.poly([Vector2(-1.05, 2.2), Vector2(1.05, 2.2)], lv, 0.05, blue)
+		c.poly([Vector2(-0.75, 3.9), Vector2(0.75, 3.9)], lv, 0.05, blue)
+		for q in outline:
+			var qq: Vector2 = q
+			c.lbulb(qq.x, lv, qq.y, 0.1, WHITE)
+		c.poly_bulbs(outline, lv, 0.5, 0.05, Color("#9ab8ff"))
+	for q in outline:
+		var qq: Vector2 = q
+		c.lbeam(Vector3(qq.x, -0.25, qq.y), Vector3(qq.x, 0.25, qq.y), 0.05, blue)
+	b._mode = M_LAMP
+	b._jm_star(c.p(0, 0, 6.5), 0.45, Vector3(c.u.x, 0.0, c.u.y), Color("#e8b030"))
+	c.noroof(false)
+	c.done()
+
+
+## A snowman (`size` m tall, default 2.5): three white lit balls, a black hat, an orange nose, a red
+## scarf and two stick arms. No front: it looks towards local -v.
+static func snowman(b, at: Vector2, yaw := 0.0, g := NAN, size := 2.5) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	c.snowman_at(0.0, 0.0, size / 2.5)
+	c.done()
+
+
+## A yellow bench (the yellow seats round the tree): 1.9 m long, seat facing local -v, backrest at +v.
+static func yellow_bench(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	var y := Color("#e9b62c")
+	c.box(-0.95, 0.95, -0.25, 0.25, 0.4, 0.5, y, y.lightened(0.1))
+	c.box(-0.95, 0.95, 0.2, 0.27, 0.5, 0.95, y)
+	for sx: float in [-0.8, 0.8]:
+		c.box(sx - 0.06, sx + 0.06, -0.2, 0.2, 0.0, 0.4, Color("#9a7a2a"))
 	c.done()
