@@ -722,6 +722,9 @@ func sync(state: Dictionary) -> void:
 	_set_auto_name(str(state.get("auto", _auto_name)))
 	for key in _groups:
 		_select(key, int(values.get(key, 0)))
+	# Perf thread: Experimental is saved now, so a saved Experimental shows even before DEV opens.
+	if _groups.has("quality") and int(values.get("quality", 0)) == QUALITY.size() - 1:
+		(_groups["quality"][QUALITY.size() - 1] as Button).visible = true
 	for key in _stepbars:
 		_values[key] = int(values.get(key, 0))
 		(_stepbars[key] as Control).queue_redraw()

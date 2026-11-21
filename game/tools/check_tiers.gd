@@ -140,6 +140,7 @@ func _initialize() -> void:
 	_check_sharp()
 	_check_back_off()
 	_check_experimental()
+	_check_overrides()
 
 	if problems.is_empty():
 		print("check_tiers: OK (%d model ids, %d screens, %d comparisons with loop 2b, %d phones for Auto's sharp image)" % [
@@ -296,3 +297,31 @@ func _check_experimental() -> void:
 		problems.append("describe Experimental: \"%s\"" % Tiers.describe(Tiers.EXPERIMENTAL, Tiers.EXPERIMENTAL, "iPhone17,2", 1))
 	print("experimental: opt-in on %d model ids, x1 on %d screens x %d styles, extras only there" % [
 			SCREENS.size() + MODELS.size(), IMAGES.size(), LINES.size()])
+
+
+## Perf thread (2026-11-19): --gfx= overrides win over the level's row at every level, parse
+## their values, set the image's scale exactly, and leave the tables alone when cleared; Auto on an
+## Adreno 5xx/6xx is Low.
+func _check_overrides() -> void:
+	var o := Tiers.parse_overrides("scale=2,msaa=4,shadow_size=2048,small_shadows=off,soft=0,rain=0.5,aniso=16,bad")
+	var want := {"scale": 2, "msaa": Viewport.MSAA_4X, "shadow_size": 2048, "small_shadows": false, "soft": 0,
+			"rain": 0.5, "aniso": Viewport.ANISOTROPY_16X}
+	for k: String in want:
+		if not o.has(k) or o[k] != want[k]:
+			problems.append("--gfx= parsed %s as %s, wanted %s" % [k, o.get(k), want[k]])
+	if o.size() != want.size():
+		problems.append("--gfx= kept %d keys, wanted %d (a pair without = is dropped)" % [o.size(), want.size()])
+	Tiers.overrides = o
+	for q in Tiers.QUALITY.size():
+		if int(Tiers.value(q, "shadow_size")) != 2048 or bool(Tiers.value(q, "small_shadows")) or int(Tiers.extra(q, "msaa")) != Viewport.MSAA_4X:
+			problems.append("%s: an override did not win" % Tiers.NAMES[q])
+		if Tiers.image_scale(Vector2(2868, 1320), 480.0, q) != 2 or Tiers.own_scale(Vector2(1792, 828), 480.0, q) != 2:
+			problems.append("%s: scale=2 not exact" % Tiers.NAMES[q])
+	Tiers.overrides = {}
+	if int(Tiers.value(Tiers.ULTRA, "shadow_size")) != 4096 or Tiers.image_scale(Vector2(1792, 828), 480.0, Tiers.ULTRA) != 1:
+		problems.append("cleared overrides: Ultra no longer its own row")
+	for pair: Array in [["A063", "Adreno (TM) 642L", Tiers.LOW], ["SM-S918B", "Adreno (TM) 740", Tiers.HIGH],
+			["iPhone17,2", "Apple A18 Pro GPU", Tiers.ULTRA], ["A063", "", Tiers.HIGH], ["X", "Adreno (TM) 530", Tiers.LOW]]:
+		if Tiers.for_device(pair[0], pair[1]) != pair[2]:
+			problems.append("for_device %s / %s: %s, wanted %s" % [pair[0], pair[1], Tiers.NAMES[Tiers.for_device(pair[0], pair[1])], Tiers.NAMES[pair[2]]])
+	print("overrides: --gfx= parsed, wins at %d levels, cleared again; Auto on an old Adreno is Low" % Tiers.QUALITY.size())

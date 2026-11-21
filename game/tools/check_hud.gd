@@ -80,6 +80,16 @@ func _initialize() -> void:
 	_run()
 
 
+## Perf thread (2026-11-20): an Android phone's points come from its density (dpi / 160), not
+## Godot's capped screen scale (the Samsung A56's 1.8 made the HUD 40 % smaller than an iPhone's).
+func _check_android_points() -> void:
+	var sp: GDScript = load("res://scripts/screen_points.gd")
+	for c: Array in [[450, 1.8, 2.8125], [420, 1.8, 2.625], [0, 1.8, 1.8], [800, 1.8, 4.0]]:
+		var got: float = sp.android_pt(int(c[0]), float(c[1]))
+		if not is_equal_approx(got, float(c[2])):
+			problems.append("android_pt(%d dpi, scale %.1f) = %.3f, wanted %.3f" % [c[0], c[1], got, c[2]])
+
+
 ## G16: while driving fast ambient bubbles are dropped and ambient toasts come one per 20 s.
 func _check_quiet_driving() -> void:
 	var hud: CanvasLayer = Hud.new()
@@ -203,6 +213,7 @@ func _run() -> void:
 	var states := 0
 	for screen in SCREENS:
 		states += await _check_screen(screen)
+	_check_android_points()
 	_check_quiet_driving()
 	_check_offers_wait()
 	_check_faces()

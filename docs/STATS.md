@@ -42,9 +42,9 @@ of git (CLAUDE.md: no keys in tracked files).
 
 | Event | Properties | Answers |
 | --- | --- | --- |
-| `session_start` | fresh_save, resumed, zl | sessions, new vs returning |
+| `session_start` | fresh_save, resumed, zl, load_ms (a launch: milliseconds from the engine's start to the start's sectors in; 0 after a resume) | sessions, new vs returning, load time by phone |
 | `session_end` | minutes_played, km_driven, zl_earned, runs_done, heli_pct | play time, what a session holds |
-| `fps_sample` | avg_fps, low_fps, draw_calls, frame_cap | the phone's frame rate in the wild (once, 120 s in) |
+| `fps_sample` | avg_fps, low_fps, draw_calls, frame_cap (60 on an iPhone), minute, quality (the level drawn, a slug), scale (image pixels: 1 full, 2 half), flying | the phone's frame rate in the wild (twice: 2 and 10 minutes into play, so a phone that slows as it warms shows) |
 | `guide_beat` | beat, how, t_play_s | the first-hour funnel (first10.gd beats) |
 | `activity_start` / `activity_end` | activity, job, how (done/quit/timeout/ended), duration_s, t_play_s | which jobs and quests are played and finished |
 | `chase_end` | how, t_play_s | police chases |

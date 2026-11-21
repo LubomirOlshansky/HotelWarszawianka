@@ -124,6 +124,12 @@ var season := "autumn"
 var data: Dictionary
 ## Tree crowns; the game feeds it the car position so crowns can open up around the car.
 @export_storage var leaf_material: ShaderMaterial
+## Perf thread (2026-11-19): the broadleaf crowns' shared mesh (map/shared/broadleaf.res in the prebuilt
+## city: every tile draws this one resource), so `set_tree_detail` can swap its surface at runtime.
+## Not stored in index.res: a new dependency there leaves one more of the engine's load tokens at
+## exit (TD-22, the boot run's 21; 22 on CI, 2026-11-21); the prebuilt city loads it by path instead.
+var broadleaf_mesh: ArrayMesh
+const BROADLEAF_RES := "res://map/shared/broadleaf.res"
 ## The materials the game updates every frame (car position for the see-through hole).
 @export_storage var building_material: ShaderMaterial
 @export_storage var flat_material: ShaderMaterial
@@ -10534,7 +10540,7 @@ func _build_trees() -> void:
 	lifted.append_array(real_trunks)
 	var no_colours: Array[Color] = []
 	_tree_multimesh(_shared["trunk"], _shared["trunk_mat"], lifted, no_colours)
-	_tree_multimesh(_shared["broadleaf"], leaf_material, broad, broad_col, broad_kind)
+	_tree_multimesh(_shared["broadleaf"], leaf_material, broad, broad_col, broad_kind, null, &"", _shared["broadleaf_shadow"])
 	_tree_multimesh(_shared["conifer"], leaf_material, needle, needle_col, needle_kind)
 
 
@@ -10563,6 +10569,8 @@ func _make_shared() -> void:
 	trunk_mat.set_shader_parameter("tint", Vector3(0.369, 0.275, 0.212))  # #5e4636
 	_shared["trunk_mat"] = trunk_mat
 	_shared["broadleaf"] = _broadleaf_mesh()
+	_shared["broadleaf_shadow"] = _broadleaf_mesh(false, false)
+	broadleaf_mesh = _shared["broadleaf"]
 	_shared["conifer"] = _conifer_mesh()
 
 	var metal := StandardMaterial3D.new()
@@ -10824,7 +10832,7 @@ func _build_panels() -> void:
 
 
 func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], colours: Array[Color],
-		custom: Array[Color] = [], parent: Node = null, tag := &"") -> Array[MultiMeshInstance3D]:
+		custom: Array[Color] = [], parent: Node = null, tag := &"", shadow_mesh: Mesh = null) -> Array[MultiMeshInstance3D]:
 	var made: Array[MultiMeshInstance3D] = []
 	# One MultiMesh per tile, so off-screen tiles are skipped.
 	var tiles := {}
@@ -10838,27 +10846,19 @@ func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], 
 		if _in_sector and key != _sector and note_reach == 0:
 			continue  # loop 3c: another sector's tile (step 4's check keeps the tiles round it)
 		var members: Array = tiles[key]
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.use_colors = not colours.is_empty()
-		mm.use_custom_data = not custom.is_empty()
-		mm.mesh = mesh
-		mm.instance_count = members.size()
-		var box := AABB(spots[members[0]].origin, Vector3.ZERO)
-		for k in members.size():
-			var i: int = members[k]
-			mm.set_instance_transform(k, spots[i])
-			box = box.expand(spots[i].origin)
-			if mm.use_colors:
-				mm.set_instance_color(k, colours[i])
-			if mm.use_custom_data:
-				mm.set_instance_custom_data(k, custom[i])
-		# Saved MultiMeshes don't recompute their bounds on load (the prebuilt city
-		# would cull every tile), so store them explicitly.
-		mm.custom_aabb = box.grow(20.0)  # trees thread: a 16.8 m crown with its lean
+		var mm := _tile_multimesh(mesh, spots, colours, custom, members)
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.material_override = material
+		if shadow_mesh != null:
+			# Perf thread (2026-11-19): the tile's shadow twin, the same instances with `shadow_mesh`,
+			# drawing only into the shadow map; the tile itself stops casting (the note above `set_tree_detail`).
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var twin := MultiMeshInstance3D.new()
+			twin.multimesh = _tile_multimesh(shadow_mesh, spots, colours, custom, members)
+			twin.material_override = material
+			twin.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+			(parent if parent != null else _out).add_child(twin)
 		if tag != &"":
 			mmi.set_meta(tag, key)  # step 8a: the parked cars' tile (soft_things.gd moves a pushed one)
 		if note_solids:
@@ -10873,7 +10873,9 @@ func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], 
 
 
 ## A faceted crown: an icosahedron cut once (an icosphere), stretched a little, flat-shaded.
-func _broadleaf_mesh() -> ArrayMesh:
+## Perf thread: `cut` false keeps the 20 faces (the simple crown, `set_tree_detail`); `limbs` false
+## leaves the limbs out (with `cut` false: the crowns' shadow twins, `_tree_multimesh`'s shadow_mesh).
+func _broadleaf_mesh(cut := true, limbs := true) -> ArrayMesh:
 	var t := (1.0 + sqrt(5.0)) / 2.0
 	var v := [Vector3(-1, t, 0), Vector3(1, t, 0), Vector3(-1, -t, 0), Vector3(1, -t, 0),
 			Vector3(0, -1, t), Vector3(0, 1, t), Vector3(0, -1, -t), Vector3(0, 1, -t),
@@ -10893,6 +10895,9 @@ func _broadleaf_mesh() -> ArrayMesh:
 		var ab := (a + b).normalized()
 		var bc := (b + c).normalized()
 		var ca := (c + a).normalized()
+		if not cut:
+			tris.append([a, b, c])
+			continue
 		tris.append_array([[a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]])
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -10911,6 +10916,8 @@ func _broadleaf_mesh() -> ArrayMesh:
 	# and five limbs from the crown's foot (Fable's review: six rods, 36 triangles). The shader
 	# moves their centre lines into the kind's silhouette and gives them a width in world metres;
 	# hidden in a full crown, they show as it thins and are the whole of a bare tree.
+	if not limbs:
+		return st.commit()
 	var foot := Vector3(0, 1.7, 0)
 	_limb(st, foot - Vector3(0, 0.4, 0), Vector3(0.1, 6.5, -0.05), 0.17, 0.06)
 	for k in 5:
@@ -10920,6 +10927,64 @@ func _broadleaf_mesh() -> ArrayMesh:
 		var tip := Vector3(0, 5.0 + 0.5 * (k % 2), 0) + out * 2.1
 		_limb(st, start, tip, 0.12, 0.04)
 	return st.commit()
+
+
+## One tile's MultiMesh: `members` (indices into the arrays) with their transforms, colours and
+## custom data, and its bounds. Only setters: it runs on the streamer's thread too, where a
+## RenderingServer getter (MultiMesh.buffer) would wait on the main thread and hang (the perf
+## thread's first twins did, 2026-11-20: check_height_threads and the runtime runs timed out).
+func _tile_multimesh(mesh: Mesh, spots: Array[Transform3D], colours: Array[Color], custom: Array[Color],
+		members: Array) -> MultiMesh:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = not colours.is_empty()
+	mm.use_custom_data = not custom.is_empty()
+	mm.mesh = mesh
+	mm.instance_count = members.size()
+	var box := AABB(spots[members[0]].origin, Vector3.ZERO)
+	for k in members.size():
+		var i: int = members[k]
+		mm.set_instance_transform(k, spots[i])
+		box = box.expand(spots[i].origin)
+		if mm.use_colors:
+			mm.set_instance_color(k, colours[i])
+		if mm.use_custom_data:
+			mm.set_instance_custom_data(k, custom[i])
+	# Saved MultiMeshes don't recompute their bounds on load (the prebuilt city
+	# would cull every tile), so store them explicitly.
+	mm.custom_aabb = box.grow(20.0)  # trees thread: a 16.8 m crown with its lean
+	return mm
+
+
+## Perf thread (2026-11-19): the crowns' sun shadows from the old 20-face crown with no limbs. The
+## cut crown and its six limbs are 116 triangles a tree, a quarter of the frame's triangles at the
+## spawn, and on the iPhone 11 the shadow pass alone was 11 fps at Ultra. ArrayMesh.shadow_mesh
+## can't do it: Godot uses it only for materials that keep the shared shadow material, and
+## foliage.gdshader moves its vertices. So each crown tile gets a twin: the same instances with the
+## simple mesh, drawing only into the shadow map, and the tile itself stops casting. Same draw
+## calls in each pass; the shadow keeps the kind's silhouette (the shader bends the 12 corners too),
+## a little coarser; a bare tree's limbs cast none. iPhone 11, Ultra: 41.8 → 43.8 fps (45.8 with
+## the simple crowns of `set_tree_detail`). Built in `_tree_multimesh` (its `shadow_mesh`).
+
+
+## Perf thread (2026-11-19): the crowns' detail, swapped in the shared mesh so every tile (built or
+## prebuilt, loaded now or later) follows: `fine` the cut crown (80 faces) with its limbs, 116
+## triangles a tree (the trees thread's); else the 20-face crown with its limbs, 56. The shader's
+## kinds, colours and silhouettes stay (it bends the 12 corners too, more coarsely). -1 until set.
+var _tree_fine := -1
+
+
+func set_tree_detail(fine: bool) -> void:
+	if broadleaf_mesh == null and ResourceLoader.exists(BROADLEAF_RES):
+		broadleaf_mesh = load(BROADLEAF_RES) as ArrayMesh  # the prebuilt city's (the sectors share this one)
+	if broadleaf_mesh == null or _tree_fine == int(fine):
+		return
+	_tree_fine = int(fine)
+	var src := _broadleaf_mesh(fine, true)
+	broadleaf_mesh.clear_surfaces()
+	broadleaf_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, src.surface_get_arrays(0), [], {},
+			src.surface_get_format(0) & ~Mesh.ARRAY_FORMAT_VERTEX & ~Mesh.ARRAY_FORMAT_NORMAL & ~Mesh.ARRAY_FORMAT_TEX_UV \
+			& ~Mesh.ARRAY_FORMAT_COLOR & ~Mesh.ARRAY_FORMAT_CUSTOM0 & ~Mesh.ARRAY_FORMAT_TANGENT)
 
 
 ## Trees thread: a three-sided rod from a to b for the crown's limbs, its half width ra at a and rb

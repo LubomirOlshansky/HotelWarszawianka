@@ -34,8 +34,9 @@ const PostHogConfigScript := preload("res://addons/posthog/posthog_config.gd")
 const KEY_PATH := "res://data/stats_key.json"
 const HOST := "https://eu.i.posthog.com"
 const TICK := 1.0
-## fps_sample: taken once a session, this many seconds into play, from the last FPS_WINDOW seconds.
-const FPS_AT := 120.0
+## fps_sample: taken twice a session, at these seconds into play (perf thread 2026-11-19: the second
+## one shows a phone that slows as it warms), from the last FPS_WINDOW seconds.
+const FPS_AT := [120.0, 600.0]
 const FPS_WINDOW := 10
 ## A jump of the car longer than this in one tick is a teleport or a respawn, not driving (metres).
 const JUMP := 80.0
@@ -46,10 +47,11 @@ enum Mode { OFF, LOG, SEND }
 
 ## The white list: event -> {property: type}. Anything else is dropped (`clean`).
 const EVENTS := {
-	"session_start": {"fresh_save": TYPE_BOOL, "resumed": TYPE_BOOL, "zl": TYPE_INT},
+	"session_start": {"fresh_save": TYPE_BOOL, "resumed": TYPE_BOOL, "zl": TYPE_INT, "load_ms": TYPE_INT},
 	"session_end": {"minutes_played": TYPE_FLOAT, "km_driven": TYPE_FLOAT, "zl_earned": TYPE_INT, "runs_done": TYPE_INT,
 			"heli_pct": TYPE_INT},
-	"fps_sample": {"avg_fps": TYPE_FLOAT, "low_fps": TYPE_FLOAT, "draw_calls": TYPE_INT, "frame_cap": TYPE_INT},
+	"fps_sample": {"avg_fps": TYPE_FLOAT, "low_fps": TYPE_FLOAT, "draw_calls": TYPE_INT, "frame_cap": TYPE_INT,
+			"minute": TYPE_INT, "quality": TYPE_STRING, "scale": TYPE_INT, "flying": TYPE_BOOL},
 	"guide_beat": {"beat": TYPE_STRING, "how": TYPE_STRING, "t_play_s": TYPE_INT},
 	"activity_start": {"activity": TYPE_STRING, "job": TYPE_BOOL, "t_play_s": TYPE_INT},
 	"activity_end": {"activity": TYPE_STRING, "job": TYPE_BOOL, "how": TYPE_STRING, "duration_s": TYPE_INT, "t_play_s": TYPE_INT},
@@ -96,6 +98,13 @@ var wallet: Node
 var car: Node3D
 ## True while the player flies (main.gd's `flying`).
 var is_flying: Callable = func() -> bool: return false
+## Perf thread (2026-11-19), from main.gd's `look`: the level drawn now ("High", "Experimental"),
+## the image's screen pixels per image pixel, the frame cap (60 on an iPhone, where Engine.max_fps
+## is 0); and the launch's milliseconds from the engine's start to the start's sectors in (0: none).
+var quality_now: Callable = func() -> String: return ""
+var image_scale: Callable = func() -> int: return 0
+var frame_cap: Callable = func() -> int: return Engine.max_fps
+var load_ms := 0
 
 var _sdk: Node
 var _setting_on := true
@@ -109,7 +118,7 @@ var _fly_s := 0.0
 var _zl0 := 0
 var _runs := 0
 var _fps: Array[float] = []
-var _fps_sent := false
+var _fps_sent := 0
 var _supers: Dictionary = {}
 var _key: Dictionary = {}
 
@@ -248,6 +257,11 @@ func watch(ctx: Dictionary) -> void:
 	car = ctx.get("car")
 	if ctx.get("is_flying") is Callable:
 		is_flying = ctx["is_flying"]
+	if ctx.get("look") is Callable:  # main.gd: [the level's name, the image's scale, the frame cap]
+		var look: Callable = ctx["look"]
+		quality_now = func() -> String: return str(look.call()[0])
+		image_scale = func() -> int: return int(look.call()[1])
+		frame_cap = func() -> int: return int(look.call()[2])
 	var activities: Object = ctx.get("activities")
 	if activities != null and activities.has_signal("run_started"):
 		activities.run_started.connect(_on_run_started)
@@ -305,7 +319,8 @@ func begin(resumed := false) -> void:
 	if not resumed:
 		_play = 0.0
 	var fresh: bool = wallet != null and wallet.has_method("has_progress") and not wallet.has_progress()
-	track("session_start", {"fresh_save": fresh, "resumed": resumed, "zl": _zl0})
+	track("session_start", {"fresh_save": fresh, "resumed": resumed, "zl": _zl0, "load_ms": load_ms})
+	load_ms = 0  # a resume after the background is not a launch
 	if _pending_note != "":
 		track("save_problem", {"kind": _pending_note})
 		_pending_note = ""
@@ -426,16 +441,17 @@ func _second() -> void:
 		_last_pos = p
 	else:
 		_last_pos = Vector3.INF
-	if _fps_sent:
+	if _fps_sent >= FPS_AT.size():
 		return
 	_fps.append(Engine.get_frames_per_second())
 	if _fps.size() > FPS_WINDOW:
 		_fps.pop_front()
-	if _play >= FPS_AT and _fps.size() >= FPS_WINDOW:
-		_fps_sent = true
+	if _play >= float(FPS_AT[_fps_sent]) and _fps.size() >= FPS_WINDOW:
+		_fps_sent += 1
 		var total := 0.0
 		for f in _fps:
 			total += f
 		track("fps_sample", {"avg_fps": total / _fps.size(), "low_fps": _fps.min(),
 				"draw_calls": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
-				"frame_cap": Engine.max_fps})
+				"frame_cap": int(frame_cap.call()), "minute": int(_play / 60.0), "quality": str(quality_now.call()),
+				"scale": int(image_scale.call()), "flying": flying})

@@ -187,6 +187,7 @@ const Hints := preload("res://scripts/hints.gd")
 const FirstSteps := preload("res://scripts/first_steps.gd")
 const MapTrack := preload("res://scripts/map_track.gd")
 const PlayStats := preload("res://scripts/play_stats.gd")
+const QualityKeep := preload("res://scripts/quality_keep.gd")
 const StopAssist := preload("res://scripts/stop_assist.gd")
 const MainLine := preload("res://scripts/main_line.gd")
 const MainNudge := preload("res://scripts/main_nudge.gd")
@@ -386,6 +387,7 @@ var hints: Hints
 var _hints_t := 0.0
 ## The beta's anonymous play stats (play_stats.gd, docs/STATS.md): it listens to the systems' signals.
 var play_stats: PlayStats
+var _keep := QualityKeep.new()  # perf thread: manual levels kept, Experimental saved (quality_keep.gd)
 var tape: Tape
 var spacer: Spacer
 var fotka: Fotka
@@ -968,6 +970,7 @@ func _title_frame() -> void:
 		_title_pending = maxi(_title_pending, streamer.pending())
 		title.progress = maxf(title.progress, LOAD_BUILT + (1.0 - LOAD_BUILT) * (1.0 - float(streamer.pending()) / float(_title_pending)))
 	if streamer == null or streamer.idle() or Time.get_ticks_msec() - _title_wait_t > TITLE_WAIT_MS:
+		if play_stats != null and play_stats.load_ms == 0: play_stats.load_ms = Time.get_ticks_msec()  # perf thread: the launch's load time
 		print("title: the start's sectors in after %d ms%s" % [Time.get_ticks_msec() - _title_wait_t,
 				"" if streamer == null or streamer.idle() else " (not all: the wait's limit)"])
 		_title_wait_t = -1
@@ -2069,15 +2072,13 @@ func _build_sound(data: Dictionary, world: Node3D) -> void:
 func _set_quality(choice: int) -> void:
 	quality_choice = clampi(choice, Tiers.AUTO, Tiers.EXPERIMENTAL)
 	quality = auto_quality if quality_choice == Tiers.AUTO else quality_choice
-	if settings.quality != quality_choice and _started and quality_choice != Tiers.EXPERIMENTAL:
-		settings.quality = quality_choice
-		settings.save()
-	var qs: Dictionary = QUALITY[quality]
-	tod.shadows_allowed = qs["shadows"]
-	tod.glow_allowed = qs["glow"]
+	if settings.quality != quality_choice and _started: _keep.chosen(self)  # perf thread: saved, Experimental too (quality_keep.gd)
+	tod.shadows_allowed = bool(Tiers.value(quality, "shadows"))
+	tod.glow_allowed = bool(Tiers.value(quality, "glow"))
 	if map != null and map.leaf_material != null:
-		map.leaf_material.set_shader_parameter("limbs", 1.0 if qs.get("tree_limbs", true) else 0.0)
-	if map != null and map.panel_material != null: map.panel_material.set_shader_parameter("holes", 1.0 if qs.get("panel_holes", true) else 0.0)
+		map.leaf_material.set_shader_parameter("limbs", 1.0 if Tiers.value(quality, "tree_limbs", true) else 0.0)
+	if map != null: map.set_tree_detail(bool(Tiers.value(quality, "fine_trees", false)))  # perf thread: simple crowns below Experimental
+	if map != null and map.panel_material != null: map.panel_material.set_shader_parameter("holes", 1.0 if Tiers.value(quality, "panel_holes", true) else 0.0)
 	if crowds != null:
 		crowds.amount = _crowd_scale()
 		crowds.refresh()
@@ -2091,10 +2092,11 @@ func _set_quality(choice: int) -> void:
 		wellness.amount = _crowd_scale()
 	if life != null:
 		life.amount = float(flags.life_flag) * (0.5 if quality == Tiers.LOW else 1.0)
-	RenderingServer.directional_shadow_atlas_set_size(qs["shadow_size"], true)
+	RenderingServer.directional_shadow_atlas_set_size(int(Tiers.value(quality, "shadow_size")), true)
 	_apply_experimental()
+	_keep.applied()
 	tod.refresh()
-	weather.density = qs["rain"]
+	weather.density = float(Tiers.value(quality, "rain"))
 	weather.refresh()
 	governor.restart(_clock_s())
 	_apply_extras()
@@ -2108,24 +2110,11 @@ func _set_quality(choice: int) -> void:
 func _apply_experimental() -> void:
 	var on := quality == Tiers.EXPERIMENTAL
 	sv.msaa_3d = Tiers.extra(quality, "msaa")
-	sv.anisotropic_filtering_level = Tiers.extra(quality, "aniso") if on else _sv_aniso
+	sv.anisotropic_filtering_level = Tiers.extra(quality, "aniso") if on or Tiers.overrides.has("aniso") else _sv_aniso
 	sv.mesh_lod_threshold = Tiers.extra(quality, "lod")
 	RenderingServer.directional_soft_shadow_filter_set_quality(Tiers.extra(quality, "soft"))
 	if on:
 		print("quality: Experimental's extras on · full-resolution image, %d sun shadow map with soft edges, MSAA 4x, 16x anisotropic, every mesh at full detail" % int(QUALITY[quality]["shadow_size"]))
-
-
-## Experimental: the governor's first GPU drop there (frames late with the GPU the cause) steps
-## the session back to Ultra (not saved: the saved choice never was Experimental), with a toast so
-## the tester knows the phone couldn't hold it. A CPU drop stays the governor's own business.
-func _experimental_drop(line: String) -> bool:
-	if quality != Tiers.EXPERIMENTAL or governor.gpu >= Governor.TOP:
-		return false
-	print("quality: Experimental too heavy here (%s) · back to Ultra for this session" % line.trim_prefix("governor: "))
-	_set_quality(Tiers.ULTRA)
-	if hud != null:
-		hud.toast("Eksperymentalna za ciężka: wracam do Ultra", "Experimental was too heavy: back to Ultra · Settings → Obraz")
-	return true
 
 
 ## Loop G1: the quality's extras as they are now: the level's own, less what the governor took
@@ -2134,9 +2123,8 @@ func _experimental_drop(line: String) -> bool:
 ## view rule, WIDE_VIEW). Never the pixel size, the shadow map, glow, landmarks, the ghost, the
 ## river or the night lights.
 func _apply_extras() -> void:
-	var qs: Dictionary = QUALITY[quality]
-	post_mat.set_shader_parameter("reflect_steps", ceili(int(qs["reflect"]) * float(Governor.REFLECT[governor.gpu])))
-	var cast: bool = qs["small_shadows"] and Governor.SMALL_SHADOWS[governor.gpu] and not _wide
+	post_mat.set_shader_parameter("reflect_steps", ceili(int(Tiers.value(quality, "reflect")) * float(Governor.REFLECT[governor.gpu])))
+	var cast: bool = bool(Tiers.value(quality, "small_shadows")) and Governor.SMALL_SHADOWS[governor.gpu] and not _wide
 	if int(cast) != _small_cast:
 		_small_cast = int(cast)
 		get_tree().call_group(MapBuilder.SMALL_CASTERS, "set_cast_shadows_setting",
@@ -2149,11 +2137,11 @@ func _apply_extras() -> void:
 ## CPU level keeps.
 func _apply_traffic() -> void:
 	if traffic != null:
-		var density := float(Settings.TRAFFIC[traffic_level]) * float(QUALITY[quality]["traffic"]) * float(Governor.TRAFFIC[governor.cpu])
+		var density := float(Settings.TRAFFIC[traffic_level]) * float(Tiers.value(quality, "traffic")) * float(Governor.TRAFFIC[governor.cpu])
 		if not is_equal_approx(traffic.density, density):
 			traffic.density = density
 	if walkers != null:
-		walkers.limit = maxi(4, roundi(float(QUALITY[quality]["people"]) * float(Settings.PEOPLE[traffic_level]) * float(Governor.PEOPLE[governor.cpu])))
+		walkers.limit = maxi(4, roundi(float(Tiers.value(quality, "people")) * float(Settings.PEOPLE[traffic_level]) * float(Governor.PEOPLE[governor.cpu])))
 
 
 ## Loop G1: the governor's clock, seconds since the game started.
@@ -2170,14 +2158,14 @@ func _govern() -> void:
 		print("governor: view %s (%.0f m%s) · small things' sun shadows %s" % ["wide" if wide else "back in",
 				cam.size, ", flying" if flying else "", "off" if wide else "as the quality sets them"])
 		_apply_extras()
-	governor.held = not flags._governor_on or title != null or _phone_bench or ((flags.bench or flags.probe) and flags._flag_governor != 1)
+	governor.held = not flags._governor_on or title != null or _phone_bench or ((flags.bench or flags.probe) or quality_choice != Tiers.AUTO) and flags._flag_governor != 1
+	_keep.frame(self, get_process_delta_time())  # perf thread: a manual level is kept, with a note (quality_keep.gd)
 	governor.frame(_stats.last_ms, _stats.last_cpu)
 	var now := _clock_s()
 	var line := governor.tick(now, _wide)
 	if line != "":
 		print("%s · at %.1f s" % [line, now - _stress_t0 / 1000.0])
-		if not _experimental_drop(line):
-			_apply_extras()
+		_apply_extras()
 	# Loop G1b: the session's verdict on Auto's image (cheap until one is due); with
 	# --governor=log the tally's minutes too.
 	if governor.track and _image_verdict != "struggled" and (governor.struggled()
@@ -2341,7 +2329,7 @@ func _bench_header(kind: String) -> PackedStringArray:
 				RenderingServer.get_current_rendering_method(), OS.get_processor_name()],
 		"screen %dx%d @ %.0f Hz · image %dx%d (×%d) · view %.0f m · quality %s · traffic %s · %s · %s · cap %s · %s" % [
 				screen.x, screen.y, hz, sv.size.x, sv.size.y, view.stretch_shrink, base_size,
-				Tiers.describe(quality_choice, quality, model_name, 0, _image_mode()),
+				Tiers.describe(quality_choice, quality, model_name, 0, _image_mode()) + (" · gfx %s" % Tiers.overrides if not Tiers.overrides.is_empty() else ""),
 				Settings.TRAFFIC_NAMES[traffic_level], TimeOfDay.NAMES[tod.mode], Weather.NAMES[weather.state],
 				_cap_name(), Controls.NAMES[controls.scheme]],
 		"thermal state: not readable from Godot; a phone that warms up shows it as falling fps per 10 s",
@@ -2852,7 +2840,7 @@ func _build_play_stats() -> void:
 			"controls": controls.scheme})
 	play_stats.watch({"wallet": wallet, "car": car, "is_flying": func() -> bool: return flying, "activities": activities,
 			"police": police, "first10": first10, "districts": districts, "egg_book": egg_book, "garage": garage,
-			"heli": heli, "radio": radio, "panel": hud.settings_panel, "save_note": wallet.load_note})
+			"heli": heli, "radio": radio, "panel": hud.settings_panel, "save_note": wallet.load_note, "look": func() -> Array: return [Tiers.NAMES[quality], view.stretch_shrink, _cap]})
 
 
 func _build_first10() -> void:
@@ -4456,9 +4444,10 @@ func _load_settings() -> void:
 		camera_pitch = -settings.pitch
 	top_down = top_down or settings.camera_view == FollowCamera.VIEW_TOP_DOWN  # --topdown, or DEV's
 	model_name = flags._flag_model if flags._flag_model != "" else OS.get_model_name()
-	auto_quality = Tiers.for_model(model_name)
+	auto_quality = Tiers.for_device(model_name, RenderingServer.get_video_adapter_name() if flags._flag_model == "" else "")
 	quality_choice = flags._flag_quality if flags._flag_quality != -2 else settings.quality
 	quality = auto_quality if quality_choice == Tiers.AUTO else quality_choice
+	_keep.launch(self)
 	print("quality: %s · Auto picks %s for %s" % [Tiers.describe(quality_choice, quality, model_name),
 			Tiers.NAMES[auto_quality], model_name])
 	# Loop G1b: Auto's sharp image or its fallback, from the saved state (or --last-session=).
@@ -7199,7 +7188,7 @@ func _on_sector_ready(root: Node3D) -> void:
 	if buses != null:
 		buses.on_sector_ready(root)  # the night-buses loop: the sector's shelters become stops
 	var lit := tod != null and tod.lights_on > 0.001
-	var small: bool = _small_cast == 1 if _small_cast >= 0 else bool(QUALITY[quality]["small_shadows"])
+	var small: bool = _small_cast == 1 if _small_cast >= 0 else bool(Tiers.value(quality, "small_shadows"))
 	var cast := GeometryInstance3D.SHADOW_CASTING_SETTING_ON if small else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# Sweep 2 x loop 3c: each sector holds its own "Neon" node (not the map's root, where
 	# _neon_materials looks), so its signs' shared material joins the ghost's list here.
