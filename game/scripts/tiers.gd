@@ -225,8 +225,8 @@ static var full_image := false
 
 
 static func image_scale(size: Vector2, lines: float, quality: int) -> int:
-	if full_image and not overrides.has("scale"):
-		return 1
+	if (full_image or bool(value(quality, "full", false))) and not overrides.has("scale"):
+		return 1  # the screen's own pixels: no budget (Settings' Full, or --gfx=full=true)
 	if overrides.has("scale"):
 		return maxi(1, int(overrides["scale"]))
 	var k := own_scale(size, lines, quality)

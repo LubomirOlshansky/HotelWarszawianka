@@ -302,6 +302,10 @@ func _check_experimental() -> void:
 		if Tiers.image_scale(Vector2(1792, 828), 480.0, q) != 1 or Tiers.image_scale(Vector2(2868, 1320), 170.0, q) != 1:
 			problems.append("%s: the Full image is not x1" % Tiers.NAMES[q])
 	Tiers.full_image = false
+	Tiers.overrides = {"full": true}
+	if Tiers.image_scale(Vector2(2868, 1320), 480.0, Tiers.EXPERIMENTAL) != 1:
+		problems.append("--gfx=full=true is not x1 (the budget still binds)")
+	Tiers.overrides = {}
 	# The extras: MSAA and soft shadows on Ultra and Max; LOD 0, 16x anisotropic and the detailed trees on Max only.
 	for q in Tiers.QUALITY.size():
 		var top := q >= Tiers.ULTRA
