@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Around Warsaw · a small-car game about living in Warsaw</title>
-<meta name="description" content="A free arcade game in the real centre of Warsaw: one small car, kebab runs at 3 a.m., rescues and city lore. Free open beta, no ads, no purchases.">
+<meta name="description" content="A free arcade game for iPhone and Android in the real centre of Warsaw: one small car, kebab runs at 3 a.m., rescues and city lore. Free open beta, no ads, no purchases.">
 <meta name="theme-color" content="#0b0d24">
 <meta name="color-scheme" content="dark">
 <link rel="canonical" href="https://aroundwarsaw.app/">
@@ -19,7 +19,7 @@
 <meta property="og:site_name" content="Around Warsaw">
 <meta property="og:url" content="https://aroundwarsaw.app/">
 <meta property="og:title" content="Around Warsaw · a small-car game about living in Warsaw">
-<meta property="og:description" content="A free arcade game in the real centre of Warsaw: one small car, kebab runs at 3 a.m., rescues and city lore. Free open beta, no ads, no purchases.">
+<meta property="og:description" content="A free arcade game for iPhone and Android in the real centre of Warsaw: one small car, kebab runs at 3 a.m., rescues and city lore. Free open beta, no ads, no purchases.">
 <meta property="og:locale" content="en_GB">
 <meta property="og:image" content="https://aroundwarsaw.app/img/og.jpg">
 <meta property="og:image:width" content="1200">
@@ -65,6 +65,7 @@
   <div class="hero-in wrap">
     <h1 id="title">Around<br>Warsaw</h1>
     <p class="hook">The real centre of Warsaw, one small car, and a kebab going cold.</p>
+    <p class="plats">A free game for iPhone and Android</p>
     <div class="cta">
       <a class="btn btn-primary" href="#beta">Open beta soon: get notified</a>
     </div>
@@ -134,11 +135,11 @@
   <div class="wrap grow-in">
     <h2 id="grow-title">New every day.</h2>
     <p class="lede">Around Warsaw started on 27 October 2026 and has changed every day since. This is the latest:</p>
-    <p class="grow-date">Last update: <time datetime="2026-11-20">20 November 2026</time></p>
+    <p class="grow-date">Last update: <time datetime="2026-11-21">21 November 2026</time></p>
     <ul class="grow-list" lang="en">
-      <li>The driving screen, the map, the quests screen, the garage, the title screen and the clubs now share one look: dark cards, one gold for…</li>
-      <li>Every card&#x27;s main action is one gold button, and card titles are gold.</li>
-      <li>The website now shows the Smoła club with its lights moving: beams, lasers and the strobe over the dance floor.</li>
+      <li>In the typed walls look, fourteen walls and fences checked on street photos now look like the real ones: Plac Grzybowski&#x27;s planter edges…</li>
+      <li>Walls in the typed look gain marks: spray patches and a few painted words on precast and boulevard walls, drip stains under copings, ivy…</li>
+      <li>The website&#x27;s &quot;open beta&quot; signup now asks which phone you have (iPhone or Android), the website says in the first screen that this is a…</li>
     </ul>
     <p><a class="more" href="/progress/">See everything that changed<svg aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
   </div>
@@ -155,12 +156,16 @@
     <div class="plat-card soon" id="soon">
         <h3>Open beta soon</h3>
         <p>Be among the first to drive. One email, the day it opens.</p>
-        <form class="notify" id="notify" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="email">
+        <form class="notify" id="notify" action="/api/signup" method="POST" novalidate data-need="email">
+          <fieldset class="topics platform">
+            <legend>Your phone</legend>
+            <label><input type="radio" name="platform" value="iPhone" checked><span>iPhone</span></label>
+            <label><input type="radio" name="platform" value="Android"><span>Android</span></label>
+          </fieldset>
           <label for="n-email">Email</label>
           <div class="notify-row"><input id="n-email" name="email" type="email" required autocomplete="email" inputmode="email" aria-describedby="n-email-err"><button class="btn btn-primary send" type="submit">Notify me</button></div>
           <p class="err" id="n-email-err" aria-live="polite"></p>
           <input type="hidden" name="_subject" value="Around Warsaw: open beta, notify me">
-          <input type="hidden" name="platform" value="—">
           <input type="hidden" name="source" value="aroundwarsaw.app (en) beta notify">
           <div class="hp" aria-hidden="true"><label for="n-gotcha">Leave empty</label><input id="n-gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>
           <p class="status" role="status" aria-live="polite" data-ok="Got it. One email, the day the beta opens." data-fail="That didn&#x27;t go through. Try again, or write on Telegram." data-need-email="Add your email so I can write back." data-bad-email="That email doesn&#x27;t look right." data-sending="Sending…"></p>
@@ -170,7 +175,7 @@
     </div>
     <details class="write" open>
       <summary>Got an idea to add, or something to fix? Tell me</summary>
-      <form class="form" id="form" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="message">
+      <form class="form" id="form" action="/api/feedback" method="POST" novalidate data-need="message">
         <fieldset class="topics">
           <legend>What is it about?</legend>
           <label><input type="radio" name="topic" value="Idea: add" checked><span>Add something</span></label>
@@ -197,7 +202,7 @@
         <input type="hidden" name="_subject" id="subject" value="Around Warsaw: Idea: add">
         <div class="hp" aria-hidden="true"><label for="_gotcha">Leave empty</label><input id="_gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>
         <button class="btn btn-primary send" type="submit">Send<svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
-        <p class="legal">Sent through Formspree straight to the developer. Your email is used only to reply. <a href="/privacy/">Privacy</a>.</p>
+        <p class="legal">Sent straight to the developer. Your email is used only to reply. <a href="/privacy/">Privacy</a>.</p>
         <p class="status" role="status" aria-live="polite" data-ok="Thanks! It&#x27;s on its way." data-fail="That didn&#x27;t go through. Try again, or write on Telegram." data-need-email="Add your email so I can write back." data-bad-email="That email doesn&#x27;t look right." data-need-msg="Write a few words first." data-sending="Sending…"></p>
       </form>
     </details>

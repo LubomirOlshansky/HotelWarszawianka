@@ -5031,7 +5031,17 @@ func _settings_state() -> Dictionary:
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
 			"lane_assist": int(car.lane_assist if car != null else settings.lane_assist),
 			"pads": settings.pads if hud == null else (0 if hud.arrows_layout else 1),
-			"left_handed": int(settings.left_handed), "lang": maxi(0, Lang.CODES.find(Lang.code)), "stats": int(settings.stats)}
+			"left_handed": int(settings.left_handed), "lang": maxi(0, Lang.CODES.find(Lang.code)), "stats": int(settings.stats),
+			"where": _feedback_where()}
+
+
+## Where the player is, for the feedback card (feedback.gd): "Śródmieście · car at -120, 340 · 14:05".
+func _feedback_where() -> String:
+	if car == null or not _started:
+		return ""
+	var p := _vehicle_position()
+	return "%s · %s at %.0f, %.0f · %s" % [districts.current if districts != null and districts.current != "" else "no district",
+			"helicopter" if flying else "car", p.x, p.z, TimeOfDay.NAMES[tod.mode]]
 
 
 ## The save's line on the title screen: "1 240 zł · respekt 87" in the chosen language.

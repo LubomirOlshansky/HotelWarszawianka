@@ -12,10 +12,15 @@
   // "android_live": true in src/strings.json (site/README.md, "Google Play slot").
   "vars": { "IOS_URL": "https://testflight.apple.com/join/dKEKRncj", "ANDROID_URL": "https://play.google.com/store/apps/details?id=com.olshanskysoft.nocnawarszawa" },
   "analytics_engine_datasets": [{ "binding": "CLICKS", "dataset": "aroundwarsaw_clicks" }],
+  // The forms (forms.js): signups and feedback in D1, mailed to the game's inbox through Email Routing
+  // (the destination must be verified in the dashboard: Email -> Email Routing -> Destination addresses).
+  // Secrets, set once with `npx wrangler secret put`: ADMIN_TOKEN (read the rows), IP_SALT (optional).
+  "d1_databases": [{ "binding": "DB", "database_name": "aroundwarsaw-forms", "database_id": "f94addbe-5de8-4aac-ab0f-5a1d2a2b5290" }],
+  "send_email": [{ "name": "EMAIL", "destination_address": "aroundwarsaw@gmail.com" }],
   "observability": { "enabled": true },
   "assets": {
     "binding": "ASSETS",
-    "run_worker_first": ["/go/*"],
+    "run_worker_first": ["/go/*", "/api/*"],
     "directory": "./public",
     "not_found_handling": "404-page",
     "html_handling": "auto-trailing-slash"

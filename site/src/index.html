@@ -65,6 +65,7 @@
   <div class="hero-in wrap">
     <h1 id="title">Around<br>Warsaw</h1>
     <p class="hook">{{hero_hook}}</p>
+    <p class="plats">{{hero_platforms}}</p>
     <div class="cta">
 {{hero_ctas}}
     </div>
@@ -125,7 +126,7 @@
     </div>
     <details class="write" open>
       <summary>{{feedback_summary}}</summary>
-      <form class="form" id="form" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="message">
+      <form class="form" id="form" action="{{form_action}}" method="POST" novalidate data-need="message">
         <fieldset class="topics">
           <legend>{{f_topic}}</legend>
 {{topics}}
