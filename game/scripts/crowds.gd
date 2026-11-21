@@ -2403,6 +2403,7 @@ func _build_drawing() -> void:
 		# The market's bulbs light the crowd under them (actor.gdshader `fill`).
 		for mat: ShaderMaterial in [_still_mat, _walk_mat]:
 			mat.set_shader_parameter("fill", Vector3(1.0, 0.78, 0.55) * 0.85)
+			mat.set_shader_parameter("vary", 1.0)
 	var cap := {}
 	for s in sites:
 		var c: Vector2i = s["cell"]

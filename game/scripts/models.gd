@@ -31,6 +31,8 @@ const LIT_WINDOW := 5.0
 const LIT_SIGN := 6.0
 const BLINK := 7.0
 const HERO := 8.0
+## A person's hair (actor.gdshader `vary`: the promo's people get a colour, cut and hat each).
+const HAIR := 9.0
 ## Loop 2c: added to UV.x on a family mesh's vertices (actor.gdshader then reads CUSTOM0..2).
 const MORPH := 16.0
 
@@ -1402,5 +1404,5 @@ static func person_mesh() -> ArrayMesh:
 	for side in [-1.0, 1.0]:
 		box(st, Vector3(0.29 * side, 1.12, 0), Vector3(0.12, 0.56, 0.16), Color.WHITE, PAINT)
 	box(st, Vector3(0, 1.58, 0), Vector3(0.26, 0.26, 0.26), Color("#e2b48c"))
-	box(st, Vector3(0, 1.72, 0.02), Vector3(0.28, 0.08, 0.3), Color("#4a3426"))
+	box(st, Vector3(0, 1.72, 0.02), Vector3(0.28, 0.08, 0.3), Color("#4a3426"), HAIR)
 	return st.commit()

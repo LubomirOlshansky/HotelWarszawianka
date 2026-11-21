@@ -90,7 +90,7 @@ void fragment() {
 			bc = tree_colour(COLOR.r);
 		}
 		ALBEDO = bc * 0.5;
-		e = bc * mix(9.0, 3.0, d * d);
+		e = bc * mix(5.0, 2.0, d * d);  // was 9 to 3: blown, glossy halos (F 2026-11-21)
 	} else if (mode > 20.5 && mode < 21.5) {
 		e = col * 0.4;
 	} else if (mode > 21.5 && mode < 22.5) {
@@ -101,7 +101,7 @@ void fragment() {
 	} else if (mode > 22.5 && mode < 23.5) {
 		e = col * 1.15;
 	} else if (mode > 23.5 && mode < 24.5) {
-		e = col * 2.6;
+		e = col * 1.8;
 	} else if (mode > 25.5 && mode < 26.5) {
 		float x = abs(disc.x);
 		float band = x < 0.35 ? 1.0 : (x < 0.7 ? 0.62 : 0.3);

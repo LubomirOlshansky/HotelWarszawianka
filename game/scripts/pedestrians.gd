@@ -18,6 +18,9 @@ const FIXED := 12
 ## A static var, not a const: the Jarmark promo (--promo-dress=jarmark) raises it for its
 ## hundreds of strollers before the people are built. Players' games keep 48.
 static var GUESTS := 48
+## The Jarmark promo: the walkers get the crowd's warm fill and varied hair and heights
+## (actor.gdshader `fill`, `vary`), set by dev_flags.gd before the people are built.
+static var promo_people := false
 ## The night-buses loop: people waiting at the bus stops (buses.gd `set_stop`), after the guests:
 ## +0 draw calls.
 const STOPS := 16
@@ -250,6 +253,9 @@ func setup(map_node: Node3D, camera: Camera3D, traffic_node: Node3D, data: Dicti
 	_scene_buf.fill(0.0)
 	var mat := Models.material().duplicate() as ShaderMaterial
 	mat.set_shader_parameter("walk", 0.16)
+	if promo_people:
+		mat.set_shader_parameter("vary", 1.0)
+		mat.set_shader_parameter("fill", Vector3(1.0, 0.78, 0.55) * 0.85)
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = _mm
 	mmi.material_override = mat

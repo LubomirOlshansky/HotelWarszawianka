@@ -719,7 +719,7 @@ func _apply(look: Dictionary) -> void:
 		var k := clampf((lights_on - 0.5) * 2.0, 0.0, 1.0)
 		env.glow_enabled = glow_allowed
 		env.glow_hdr_threshold = lerpf(0.62, 1.0, k)
-		env.glow_intensity = lerpf(env.glow_intensity, 1.15, k)
+		env.glow_intensity = lerpf(env.glow_intensity, 0.8, k)  # 1.15 read glossy at 2x (F 2026-11-21)
 		# A glow level is a fraction of the image: under --ss=2 one level up keeps the halo's size.
 		var up := 1 if Tiers.capture_scale >= 2 else 0
 		for lv in range(1, 8):

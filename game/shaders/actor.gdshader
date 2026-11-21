@@ -35,6 +35,15 @@ uniform float sway = 0.0;
 // Promo fill (crowds.gd, --promo-dress=jarmark, F 2026-11-21 "people look black"): the market's
 // string lights are not in the city's lamp map, so its crowd gets their warm light here, at night.
 uniform vec3 fill = vec3(0.0);
+// Promo people variety (F 2026-11-21 "different clothes, long and short hair, different heights"):
+// 1 on the Jarmark promo's crowd and pedestrians. Each figure, from a hash of its colours, gets a
+// height (0.9-1.08), a hair colour and a cut (short, long down the back, or a winter hat). 0 in a
+// player's game: the hair (part 9) keeps its vertex colour and nobody changes height.
+uniform float vary = 0.0;
+const vec3 HAIR[6] = vec3[](vec3(0.08, 0.06, 0.05), vec3(0.29, 0.2, 0.15), vec3(0.55, 0.42, 0.26),
+		vec3(0.78, 0.66, 0.44), vec3(0.62, 0.6, 0.58), vec3(0.5, 0.22, 0.1));
+const vec3 HATS[6] = vec3[](vec3(0.7, 0.08, 0.1), vec3(0.92, 0.9, 0.86), vec3(0.1, 0.14, 0.3),
+		vec3(0.15, 0.4, 0.25), vec3(0.85, 0.6, 0.2), vec3(0.45, 0.3, 0.6));
 varying vec3 world_pos;
 varying vec3 tint;
 varying vec3 glow;
@@ -71,6 +80,27 @@ void vertex() {
 	}
 	vec3 c = srgb_to_linear(COLOR.rgb);
 	int part = int(code + 0.5);
+	if (vary > 0.5) {
+		float hsh = fract(sin(dot(INSTANCE_CUSTOM, vec4(12.9898, 78.233, 37.719, 4.581))) * 43758.5453);
+		float hsh2 = fract(hsh * 17.13 + 0.37);
+		if (part == 9) {
+			if (hsh2 < 0.3) {
+				// A winter hat: taller, in a knit colour.
+				if (VERTEX.y > 1.73) {
+					VERTEX.y += 0.12;
+				}
+				c = srgb_to_linear(HATS[int(hsh * 6.0) % 6]);
+			} else {
+				c = srgb_to_linear(HAIR[int(hsh * 6.0) % 6]);
+				if (hsh2 > 0.62 && VERTEX.z > 0.0 && VERTEX.y < 1.72) {
+					// Long hair down the back to the shoulders.
+					VERTEX.y -= 0.3;
+					VERTEX.x *= 1.1;
+				}
+			}
+		}
+		VERTEX *= mix(0.9, 1.08, hsh2);
+	}
 	glow = vec3(0.0);
 	blink = 0.0;
 	siren = vec3(0.0);
@@ -91,6 +121,8 @@ void vertex() {
 	} else if (part == 7) {
 		glow = c * 4.0;
 		blink = 1.0 + UV.y;
+	} else if (part == 9) {
+		// The hair: its own colour unless `vary` picked one above.
 	} else if (part == 8) {
 		// A touch more orange than the paint: a saturated red tops out at a low luma, so
 		// the glow needs some green to climb clear of the road (kept red-orange, hue ~13
