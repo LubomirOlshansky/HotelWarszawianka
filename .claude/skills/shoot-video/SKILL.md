@@ -7,7 +7,7 @@ argument-hint: "[reel|trailer|site] [shot names]"
 # Shooting video of the game
 
 The picture always comes from the game itself, rendered offline with Godot's Movie Maker
-(`--write-movie`), so `--quality=experimental` never stutters and every frame is exact. Art that
+(`--write-movie`), so the game's own frame rate never shows in the clip. It does NOT prove the picture moved: on 2026-11-21 Experimental takes stalled on the start camera and Movie Maker repeated that frame; clip.sh now fails such a take. Until that is fixed, shoot Reels at `--quality=ultra --lines=1920` (already full resolution) and use Experimental only after a 2 s smoke take passes. Art that
 is not the game (the logo, the end card, the background) is drawn in code: `tools/reel/card.html`,
 a WebGL port of the game's title screen (title.gdshader, the palm, the chrome wordmark in Open Sans)
 rendered by Chromium; F chose that look on 2026-11-19 over a separate synthwave design. No image generator.
