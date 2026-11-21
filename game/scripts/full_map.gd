@@ -38,6 +38,7 @@ signal rival_called(rung: int)
 ## An item marked NEW was looked at on the QUESTS screen (its id, quest_book.gd): main.gd forgets it.
 signal seen(id: String)
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")
 const MapArt := preload("res://scripts/map_art.gd")
 const MapIcons := preload("res://scripts/map_icons.gd")
@@ -50,6 +51,7 @@ const Hints := preload("res://scripts/hints.gd")  # 2026-11-16: the map's coach 
 const MapTrack := preload("res://scripts/map_track.gd")  # 2026-11-16: track and "?" marks
 const QuestBook := preload("res://scripts/quest_book.gd")  # 2026-11-17: the QUESTS screen's contents
 const QuestsScreen := preload("res://scripts/quests_screen.gd")
+const ClockDial := preload("res://scripts/clock_dial.gd")  # F 2026-11-19: the watch
 ## The hold to teleport: this long, the finger within HOLD_SLOP points of where it went down.
 const HOLD_S := 0.6
 const HOLD_SLOP := 12.0
@@ -69,7 +71,11 @@ const MINOR_M := 2600.0
 ## The closest zoom: this many metres across the screen's height; the start: START_M.
 const NEAR_M := 250.0
 const START_M := 1400.0
-const GOLD := Color("#f0b429")
+const GOLD := UiKit.GOLD  # the one gold (was #f0b429; docs/design/ui-kit.md)
+const GameTime := preload("res://scripts/game_time.gd")
+## The clock picker's choices, in the day's order: [time_of_day.gd mode, Polish, English].
+## No Live here (F 2026-11-19: the game has its own clock).
+const TIME_PICKS := [[4, "Świt", "Dawn"], [0, "Dzień", "Day"], [1, "Zmierzch", "Dusk"], [2, "Noc", "Night"]]
 const ARROW := Color("#d8432f")
 ## Type sizes in points (hud.gd's).
 const T_TITLE := 17.0
@@ -81,7 +87,9 @@ const NEXT_H := 44.0
 const NEXT_W := 330.0
 ## A questline's dot and name while something runs (quest focus): drawn this small and this faint.
 const FOCUS_DIM := 0.45
-const NEW_RED := Color("#ff4f6d")
+## The legend's row height (points; F 2026-11-19).
+const LEGEND_ROW := 20.0
+const NEW_RED := UiKit.ALERT
 
 ## Set by hud.gd before the first open.
 var hud: CanvasLayer
@@ -125,6 +133,9 @@ var flying := false
 ## F (2026-11-07): the hospitals only matter to a rescue; their marks show only while one is on
 ## (main.gd sets it on open).
 var hospitals := false
+## The time of day (time_of_day.gd; main.gd sets it): its `local_clock` is the clock top right, the
+## watch and the looks move it (`set_hour`, `set_mode`). Null in the checks: "--:--".
+var tod: Node
 ## The minimap's night (kept for hud.gd; the full map has one look day and night).
 var night := 0.0
 ## Loop 3h slice 1: districts.gd `view()` (names, label point, polygons, found, pct) and the total %.
@@ -174,6 +185,12 @@ var _pinch := 0.0
 ## Loop 3h slice 1: the fog's triangles (map points, three a triangle: the districts not
 ## discovered yet, clipped to the map's bounds).
 var _fog := PackedVector2Array()
+## The soft edge: the fog's merged shapes shrunk by FOG_RAMP metres each, one triangle list a step
+## (each adds a little tone, so the fog thickens from its border inward).
+var _fog_soft: Array[PackedVector2Array] = []
+const FOG_RAMP := [45.0, 100.0, 170.0]
+const FOG_A0 := 0.14  ## the fog's tone at its very edge
+const FOG_A_STEP := 0.07  ## what each inset adds (the whole: 0.14 + 3 × 0.07 = 0.35)
 ## The quest pin (main.gd `quest_pin`: an entry with a place; {} none): drawn gold, the NEXT line's.
 var quest_pick: Dictionary = {}
 ## 2026-11-17: the QUESTS screen's facts (main.gd `_fill_map_list`, `set_book`), the tabs built from
@@ -184,6 +201,14 @@ var _screen: QuestsScreen
 var _quests_btn: Button
 var _badge: Label
 var _next: Button
+## F 2026-11-19 ("add the clock to the map", "when the user clicks the time show a clock where they
+## can change it"): the clock left of the ✕, and its picker under it (what is open now, the looks).
+var _clock_btn: Button
+var _picker: PanelContainer
+var _picker_open: Label
+var _dial: Control
+var _clock_icon: Control
+var _time_buttons: Array[Button] = []
 ## The NEXT line's thing ({} none): {"words": [pl, en], "colour", "at", "entry" (a place to pin, {}
 ## none), "id" (an item to open the screen on, "" none)}.
 var next_info: Dictionary = {}
@@ -256,10 +281,26 @@ func _build() -> void:
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_overlay.draw.connect(_paint)
 	add_child(_overlay)
-	_close = _round_button("✕", Color("#fbf7ee"))
+	_close = _round_button("✕", UiKit.INK)
 	_close.name = "close"
 	_close.pressed.connect(close)
 	add_child(_close)
+	_clock_btn = _round_button("", UiKit.INK)
+	_clock_btn.name = "clock"
+	_clock_btn.add_theme_font_size_override("font_size", _px(T_SUB + 2.0))
+	_clock_btn.alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_clock_btn.pressed.connect(_clock_tapped)
+	# F 2026-11-20: a sun or a moon left of the time (clock_dial.gd draws both)
+	_clock_icon = Control.new()
+	_clock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_clock_icon.draw.connect(func() -> void:
+		var c: Dictionary = tod.local_clock() if tod != null else {}
+		var night := tod != null and tod.has_method("sun_times") \
+				and ClockDial.phase(float(c.get("hour", 12.0)), tod.sun_times()) == "clock_night"
+		ClockDial.draw_sun_or_moon(_clock_icon, _clock_icon.size * 0.5, 7.0 * pt, night, pt))
+	_clock_btn.add_child(_clock_icon)
+	add_child(_clock_btn)
+	_build_picker()
 	_next = Button.new()
 	_next.name = "next"
 	_next.focus_mode = Control.FOCUS_NONE
@@ -276,17 +317,12 @@ func _build() -> void:
 	_quests_btn.text = Lang.pick(str(qw[0]), str(qw[1]))
 	_quests_btn.custom_minimum_size = Vector2(QUESTS_W, QUESTS_H) * pt
 	_quests_btn.add_theme_font_size_override("font_size", _px(T_TITLE + 3.0))
-	for k in ["font_color", "font_hover_color", "font_pressed_color"]:
-		_quests_btn.add_theme_color_override(k, Color("#1a1622"))
-	for st in ["normal", "hover", "pressed", "focus"]:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color("#ffd23f").darkened(0.18) if st == "pressed" else Color("#ffd23f")
-		sb.set_corner_radius_all(_px(14))
-		sb.border_color = Color("#1a1622")
-		sb.set_border_width_all(_px(3))
-		sb.shadow_color = Color(0, 0, 0, 0.45)
+	# The kit's PRIMARY button (docs/design/ui-kit.md), lifted off the map by a shadow.
+	UiKit.style_button(_quests_btn, UiKit.Kind.PRIMARY, pt, T_TITLE + 3.0)
+	for st in ["normal", "hover", "pressed", "hover_pressed"]:
+		var sb := _quests_btn.get_theme_stylebox(st) as StyleBoxFlat
+		sb.shadow_color = Color(UiKit.CARD_SOLID, 0.45)
 		sb.shadow_size = _px(6)
-		_quests_btn.add_theme_stylebox_override(st, sb)
 	_quests_btn.pressed.connect(func() -> void: open_screen())
 	add_child(_quests_btn)
 	_badge = Label.new()
@@ -295,11 +331,11 @@ func _build() -> void:
 	_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_badge.add_theme_font_size_override("font_size", _px(T_SUB + 1.0))
-	_badge.add_theme_color_override("font_color", Color.WHITE)
+	_badge.add_theme_color_override("font_color", UiKit.INK)
 	var bb := StyleBoxFlat.new()
 	bb.bg_color = NEW_RED
 	bb.set_corner_radius_all(_px(13))
-	bb.border_color = Color("#1a1622")
+	bb.border_color = UiKit.ON_GOLD
 	bb.set_border_width_all(_px(2))
 	_badge.add_theme_stylebox_override("normal", bb)
 	_badge.custom_minimum_size = Vector2(26.0, 26.0) * pt
@@ -334,12 +370,8 @@ func _build() -> void:
 
 
 func _box(alpha: float) -> StyleBoxFlat:
-	var b := StyleBoxFlat.new()
-	b.bg_color = Color(0.07, 0.06, 0.1, alpha)
-	b.set_corner_radius_all(_px(12))
-	b.set_content_margin_all(10.0 * pt)
-	b.border_color = Color("#ffd23f")
-	b.border_width_left = _px(3)
+	var b := UiKit.card(pt, 10.0)  # the kit's card (no gold rail)
+	b.bg_color = Color(UiKit.CARD, alpha)
 	return b
 
 
@@ -357,13 +389,132 @@ func _card(lines: Array, sizes: Array) -> PanelContainer:
 		var l := Label.new()
 		l.text = lines[i]
 		l.add_theme_font_size_override("font_size", _px(sizes[i]))
-		l.add_theme_color_override("font_color", Color("#ffd23f") if i == 0 and sizes[i] == T_TITLE else
-				(Color("#fbf7ee") if i == 0 else Color("#c9c2d8")))
+		l.add_theme_color_override("font_color", UiKit.GOLD if i == 0 and sizes[i] == T_TITLE else
+				(UiKit.INK if i == 0 else UiKit.SUB))
 		v.add_child(l)
 	return p
 
 
 ## A square 48 pt button on the map's dark card look (the ✕).
+## The clock's picker: a dark card with "what is open now" and one button per look.
+func _build_picker() -> void:
+	_picker = PanelContainer.new()
+	_picker.name = "time_picker"
+	_picker.add_theme_stylebox_override("panel", _box(0.95))
+	_picker.visible = false
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", _px(6))
+	_picker.add_child(v)
+	var title := Label.new()
+	var tw: Array = QuestBook.words("clock_title")
+	title.text = Lang.pick(str(tw[0]), str(tw[1]))
+	title.add_theme_font_size_override("font_size", _px(T_TITLE))
+	title.add_theme_color_override("font_color", UiKit.GOLD)
+	v.add_child(title)
+	_picker_open = Label.new()
+	_picker_open.add_theme_font_size_override("font_size", _px(T_SUB))
+	_picker_open.add_theme_color_override("font_color", UiKit.SUB)
+	_picker_open.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_picker_open.custom_minimum_size.x = 300.0 * pt
+	v.add_child(_picker_open)
+	_dial = ClockDial.new()
+	_dial.name = "clock_dial"
+	_dial.pt = pt
+	_dial.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_dial.picked.connect(_hour_picked)
+	v.add_child(_dial)
+	var hint := Label.new()
+	var hw: Array = QuestBook.words("clock_drag")
+	hint.text = Lang.pick(str(hw[0]), str(hw[1]))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiKit.style_label(hint, "sub", pt)
+	v.add_child(hint)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", _px(6))
+	v.add_child(row)
+	# F 2026-11-20 (the kit's rules): the looks are SECONDARY buttons, the one the sun makes now
+	# SELECTED (`_show_time`); no gold PRIMARY on this card.
+	for pick: Array in TIME_PICKS:
+		var b := Button.new()
+		b.text = Lang.pick(str(pick[1]), str(pick[2])).to_upper()
+		b.focus_mode = Control.FOCUS_NONE
+		b.custom_minimum_size = Vector2(64.0, 44.0) * pt
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.name = "time_%d" % int(pick[0])
+		b.set_meta("mode", int(pick[0]))
+		b.pressed.connect(_time_tapped.bind(int(pick[0])))
+		row.add_child(b)
+		_time_buttons.append(b)
+	add_child(_picker)
+
+
+## The clock's words now ("PT 14:05"; "--:--" without a clock).
+func _clock_words() -> String:
+	if tod == null:
+		return "--:--"
+	var w: Array = GameTime.label(tod.local_clock())
+	return Lang.pick(str(w[0]), str(w[1]))
+
+
+## "Open now: ..." for the picker, from the time owner's table.
+func _open_words() -> String:
+	if tod == null:
+		return ""
+	var c: Dictionary = tod.local_clock()
+	var names := PackedStringArray()
+	for id: String in GameTime.open_ids(float(c.get("hour", 12.0))):
+		var n: Array = GameTime.NAMES[id]
+		names.append(Lang.pick(str(n[0]), str(n[1])))
+	var none: Array = QuestBook.words("clock_none")
+	var w: Array = QuestBook.fmt("clock_open", [", ".join(names) if not names.is_empty() else Lang.pick(str(none[0]), str(none[1]))])
+	return Lang.pick(str(w[0]), str(w[1]))
+
+
+func _clock_tapped() -> void:
+	_picker.visible = not _picker.visible
+	_picker_open.text = _open_words()
+	_show_time()
+	print("full map: clock %s (%s)" % ["open" if _picker.visible else "closed", _clock_words()])
+	_fit()
+
+
+## The clock now on the watch, the clock button (SELECTED while its picker is open, its sun or
+## moon) and the look buttons (the look the sun makes now SELECTED).
+func _show_time() -> void:
+	_clock_btn.text = _clock_words()
+	UiKit.style_button(_clock_btn, UiKit.Kind.SELECTED if _picker.visible else UiKit.Kind.SECONDARY, pt, T_SUB + 2.0, UiKit.R_PILL)
+	# F 2026-11-20: a pill over the map is a solid dark card, never see-through (open: gold edge).
+	var edge := UiKit.GOLD if _picker.visible else UiKit.EDGE_STRONG
+	for st in ["normal", "hover", "pressed", "hover_pressed"]:
+		_clock_btn.add_theme_stylebox_override(st, UiKit.box(UiKit.CARD_SOLID, edge, pt, UiKit.R_PILL, 1.5 if _picker.visible else 1.0, 4.0))
+	_clock_icon.queue_redraw()
+	if tod == null or not tod.has_method("sun_times"):
+		return
+	var c: Dictionary = tod.local_clock()
+	_dial.set_time(float(c["hour"]), tod.sun_times(), GameTime.DAYS[clampi(int(c.get("weekday", 5)) - 1, 0, 6)])
+	var now: int = tod.look_mode()
+	for b: Button in _time_buttons:
+		UiKit.style_button(b, UiKit.Kind.SELECTED if int(b.get_meta("mode")) == now else UiKit.Kind.SECONDARY, pt, T_SUB)
+
+
+func _time_tapped(mode: int) -> void:
+	if tod != null:
+		tod.set_mode(mode)
+	_picker.visible = false
+	_show_time()
+	print("full map: time picked %d, now %s" % [mode, _clock_words()])
+	_fit()
+
+
+## The watch's hand let go at `hour`: the clock moves forward there (time_of_day.gd `set_hour`).
+func _hour_picked(hour: float) -> void:
+	if tod != null:
+		tod.set_hour(hour)
+	_picker_open.text = _open_words()
+	_show_time()
+	print("full map: watch set %.2f, now %s" % [hour, _clock_words()])
+
+
 func _round_button(text: String, ink: Color) -> Button:
 	var b := Button.new()
 	b.text = text
@@ -384,15 +535,7 @@ func _gold_button(text: String) -> Button:
 	b.visible = false
 	b.custom_minimum_size = Vector2(110.0, 48.0) * pt
 	b.add_theme_font_size_override("font_size", _px(T_SUB + 1.0))
-	for k in ["font_color", "font_hover_color", "font_pressed_color"]:
-		b.add_theme_color_override(k, Color("#1a1622"))
-	for st in ["normal", "hover", "pressed", "focus"]:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = GOLD.darkened(0.2) if st == "pressed" else GOLD
-		sb.set_corner_radius_all(_px(8))
-		sb.content_margin_left = 12.0 * pt
-		sb.content_margin_right = 12.0 * pt
-		b.add_theme_stylebox_override(st, sb)
+	UiKit.style_button(b, UiKit.Kind.PRIMARY, pt, T_SUB + 1.0)
 	return b
 
 
@@ -414,6 +557,8 @@ func open(at: Vector2, yaw: float) -> void:
 	_hold_index = -1
 	_note_t = 0.0
 	_note.visible = false
+	_picker.visible = false
+	_show_time()
 	_did_quests = false
 	_did_hold = false
 	_did_pin = false
@@ -477,19 +622,32 @@ func _fit() -> void:
 	var m := 8.0 * pt
 	_close.size = _close.custom_minimum_size
 	_close.position = Vector2(s.end.x - m - _close.size.x, s.position.y + m)
+	_clock_btn.text = _clock_words()
+	_clock_btn.size = Vector2.ZERO
+	_clock_btn.size = Vector2(maxf(_clock_btn.get_combined_minimum_size().x + 22.0 * pt, 112.0 * pt), _close.size.y)
+	_clock_icon.position = Vector2(8.0 * pt, 0.0)
+	_clock_icon.size = Vector2(22.0 * pt, _clock_btn.size.y)
+	_clock_icon.queue_redraw()
+	_clock_btn.position = Vector2(_close.position.x - m - _clock_btn.size.x, _close.position.y)
+	if _picker.visible:
+		_picker.reset_size()
+		_picker.size = _picker.get_combined_minimum_size()
+		_picker.position = Vector2(s.end.x - m - _picker.size.x, _close.position.y + _close.size.y + m)
+	_quests_btn.visible = not _picker.visible  # the time card owns the corner while it is open
 	_quests_btn.size = _quests_btn.custom_minimum_size
 	_quests_btn.position = s.end - Vector2(m, m) - _quests_btn.size
 	_badge.size = _badge.custom_minimum_size
 	_badge.position = Vector2(_quests_btn.size.x - _badge.size.x * 0.7, -_badge.size.y * 0.3)
 	if _next.visible:
-		var room := _close.position.x - m - (s.position.x + m)
+		var room := _clock_btn.position.x - m - (s.position.x + m)
 		# Its words' width (the button clips them, so its own minimum is none), at least a touch target.
 		var want := _next.get_theme_font("font").get_string_size(_next.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
 				_next.get_theme_font_size("font_size")).x + _next.get_theme_stylebox("normal").get_minimum_size().x + 4.0
 		_next.size = Vector2(clampf(want, NEXT_H * pt, maxf(NEXT_H * pt, minf(NEXT_W * pt, room))), NEXT_H * pt)
 		_next.position = s.position + Vector2(m, m)
 	if _note.visible:
-		var room_w := _quests_btn.position.x - m - (s.position.x + m)
+		var lg_w := _legend_rect(_legend_rows()).size.x + m
+		var room_w := _quests_btn.position.x - m - (s.position.x + m + lg_w)
 		var nl := (_note.get_child(0) as VBoxContainer).get_child(0) as Label
 		nl.autowrap_mode = TextServer.AUTOWRAP_OFF
 		nl.custom_minimum_size.x = 0.0
@@ -498,7 +656,7 @@ func _fit() -> void:
 			nl.custom_minimum_size.x = room_w - 24.0 * pt
 		_note.reset_size()
 		_note.size = _note.get_combined_minimum_size()
-		_note.position = Vector2(s.position.x + m + maxf(0.0, (room_w - _note.size.x) * 0.5), s.end.y - m - _note.size.y)
+		_note.position = Vector2(s.position.x + m + lg_w + maxf(0.0, (room_w - _note.size.x) * 0.5), s.end.y - m - _note.size.y)
 	var bx := _note.position.x
 	for b: Button in [_offer, _details]:
 		if b.visible:
@@ -540,7 +698,9 @@ func to_screen(p: Vector2) -> Vector2:
 func rects() -> Dictionary:
 	if not _built:
 		return {}
-	var out := {"close": _close.get_global_rect(), "quests": _quests_btn.get_global_rect()}
+	var out := {"close": _close.get_global_rect(), "quests": _quests_btn.get_global_rect(), "clock": _clock_btn.get_global_rect()}
+	if _picker.visible:
+		out["picker"] = _picker.get_global_rect()
 	if _next.visible:
 		out["next"] = _next.get_global_rect()
 	if _note.visible:
@@ -576,6 +736,16 @@ func set_districts(view: Array[Dictionary], total: int, syrenki_found := 0, syre
 			Vector2(bounds.position.x, bounds.end.y)])
 	if outline.size() >= 3:
 		frame = outline  # map north's L
+	# F 2026-11-20 ("looks bad"): the fog was each unfound district alone, so two touching ones
+	# darkened their overlap twice (the dark squares) and every edge was a hard line. Now the
+	# districts are merged into one shape (one tone), and a few insets of it add a soft ramp.
+	var found_polys: Array[PackedVector2Array] = []
+	for d in districts:
+		if d["found"]:
+			for poly: PackedVector2Array in d["polys"]:
+				found_polys.append(poly)
+	var shapes: Array[PackedVector2Array] = []  # the merged unfound districts (the insets' source)
+	var pieces: Array[PackedVector2Array] = []  # the fill: unfound minus the others minus the found, no overlap, no holes
 	for d in districts:
 		if d["found"]:
 			continue
@@ -584,11 +754,96 @@ func set_districts(view: Array[Dictionary], total: int, syrenki_found := 0, syre
 			if bounds.has_area():
 				parts = Geometry2D.intersect_polygons(poly, frame)
 			for part in parts:
-				var tris := Geometry2D.triangulate_polygon(part)
-				for i in tris:
-					_fog.append(part[i])
+				var fresh: Array[PackedVector2Array] = [part]
+				for e in pieces:
+					fresh = _minus_all(fresh, e)
+				pieces.append_array(fresh)
+				shapes.append(part)
+	shapes = _union_all(shapes)
+	for f in found_polys:  # a found district is never under fog, even one the unfound ones surround
+		pieces = _minus_all(pieces, f)
+	for piece in pieces:
+		for i in Geometry2D.triangulate_polygon(piece):
+			_fog.append(piece[i])
+	_fog_soft.clear()
+	for shape in shapes:
+		if Geometry2D.is_polygon_clockwise(shape):
+			continue  # a hole's outline, not a shape
+		for step in FOG_RAMP:
+			var rings: Array[PackedVector2Array] = []
+			for ring in Geometry2D.offset_polygon(shape, -step, Geometry2D.JOIN_ROUND):
+				if not Geometry2D.is_polygon_clockwise(ring):
+					rings.append(ring)
+			for f in found_polys:
+				rings = _minus_all(rings, f)
+			var inner := PackedVector2Array()
+			for ring in rings:
+				for i in Geometry2D.triangulate_polygon(ring):
+					inner.append(ring[i])
+			_fog_soft.append(inner)
 	if not _built:
 		return
+
+## The shapes with every touching pair merged into one (repeat until none is left). A ring the
+## merge closes round a hole comes back with the hole too: only the outline is kept (the hole is
+## cut out again where the found districts are taken off).
+static func _union_all(shapes: Array[PackedVector2Array]) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = shapes.duplicate()
+	var again := true
+	while again:
+		again = false
+		for i in out.size():
+			for j in range(i + 1, out.size()):
+				var outers: Array[PackedVector2Array] = []
+				for r in Geometry2D.merge_polygons(out[i], out[j]):
+					if not Geometry2D.is_polygon_clockwise(r):
+						outers.append(r)
+				if outers.size() == 1:
+					out[i] = outers[0]
+					out.remove_at(j)
+					again = true
+					break
+			if again:
+				break
+	return out
+
+
+## Every shape of `shapes` minus `cut`, as solid outlines (no holes: triangulation has none).
+static func _minus_all(shapes: Array[PackedVector2Array], cut: PackedVector2Array) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = []
+	for s in shapes:
+		out.append_array(_minus(s, cut, 0))
+	return out
+
+
+## `s` minus `c`. When `c` lies inside `s` the result has a hole, which a triangle fill can't show:
+## then `s` is cut in two along the line through `c`'s middle first, so `c` becomes a notch of each half.
+static func _minus(s: PackedVector2Array, c: PackedVector2Array, depth: int) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = []
+	var holey := false
+	for r in Geometry2D.clip_polygons(s, c):
+		if Geometry2D.is_polygon_clockwise(r):
+			holey = true
+		else:
+			out.append(r)
+	if not holey or depth >= 2:
+		return out
+	var lo := INF
+	var hi := -INF
+	for v in c:
+		lo = minf(lo, v.y)
+		hi = maxf(hi, v.y)
+	var cy := (lo + hi) * 0.5
+	var halves: Array[PackedVector2Array] = [
+		PackedVector2Array([Vector2(-1e7, -1e7), Vector2(1e7, -1e7), Vector2(1e7, cy), Vector2(-1e7, cy)]),
+		PackedVector2Array([Vector2(-1e7, cy), Vector2(1e7, cy), Vector2(1e7, 1e7), Vector2(-1e7, 1e7)])]
+	var res: Array[PackedVector2Array] = []
+	for h in halves:
+		for p in Geometry2D.intersect_polygons(s, h):
+			if not Geometry2D.is_polygon_clockwise(p):
+				res.append_array(_minus(p, c, depth + 1))
+	return res
+
 
 ## The main line's star (INF: none), from the registry.
 func _main_at() -> Vector2:
@@ -676,15 +931,18 @@ func _next_of() -> Dictionary:
 
 func _style_next(col: Color, tracked: bool) -> void:
 	for k in ["font_color", "font_hover_color", "font_pressed_color"]:
-		_next.add_theme_color_override(k, Color("#1a1622") if tracked else Color("#fbf7ee"))
+		_next.add_theme_color_override(k, UiKit.ON_GOLD if tracked else UiKit.INK)
+	# The kit: tracked is the gold PRIMARY, otherwise the card; the quest's own colour is gone
+	# from the plate (its pin on the map carries it).
+	var boxes := UiKit.button_boxes(UiKit.Kind.PRIMARY, pt) if tracked else {
+		"normal": UiKit.card(pt, 0.0), "hover": UiKit.card(pt, 0.0), "pressed": UiKit.row(pt, true, 0.0)}
+	boxes["focus"] = boxes["normal"]
 	for st in ["normal", "hover", "pressed", "focus"]:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = (GOLD if st != "pressed" else GOLD.darkened(0.2)) if tracked else (col.darkened(0.55) if st == "pressed" else Color(0.07, 0.06, 0.1, 0.92))
-		sb.set_corner_radius_all(_px(10))
-		sb.border_color = col
-		sb.border_width_left = _px(6)
+		var sb := (boxes[st] as StyleBoxFlat).duplicate() as StyleBoxFlat
 		sb.content_margin_left = 12.0 * pt
 		sb.content_margin_right = 12.0 * pt
+		sb.content_margin_top = 4.0 * pt
+		sb.content_margin_bottom = 4.0 * pt
 		_next.add_theme_stylebox_override(st, sb)
 
 
@@ -923,9 +1181,13 @@ func _paint() -> void:
 	var view := Rect2(Vector2.ZERO, _view()).grow(20.0 * pt)
 	hud._tri_begin()
 	# Loop 3h slice 1: the districts not discovered yet, under a light fog.
-	var fog := Color(0.12, 0.13, 0.2, 0.34)
+	var fog := Color(0.12, 0.13, 0.2, FOG_A0)
 	for i in range(0, _fog.size() - 2, 3):
 		hud._tri(to_screen(_fog[i]), to_screen(_fog[i + 1]), to_screen(_fog[i + 2]), fog, fog, fog)
+	var fog_step := Color(0.12, 0.13, 0.2, FOG_A_STEP)
+	for tris in _fog_soft:
+		for i in range(0, tris.size() - 2, 3):
+			hud._tri(to_screen(tris[i]), to_screen(tris[i + 1]), to_screen(tris[i + 2]), fog_step, fog_step, fog_step)
 	# The landmarks, printed small on the map (no pins since 2026-11-07): the most important first;
 	# one that would touch one already drawn is left out (they come back as it zooms in).
 	var r := ICON_R * pt
@@ -1064,14 +1326,17 @@ func _paint() -> void:
 			hud._tri_quad(h + u * r0, h + u * r1, h + v * r1, h + v * r0, [col, col, col, col])
 		hud._tri_fan(h, 4.0 * pt, 0.0, TAU, hud.OUTLINE)
 		hud._tri_fan(h, 2.6 * pt, 0.0, TAU, GOLD)
+	var legend := _legend_rows()
+	_legend_marks(legend)
 	hud._tri_flush(o)
 	var font := ThemeDB.fallback_font
+	_legend_text(o, font, legend)
 	var qs := _px(T_SUB + 3.0)
 	for i in unknown_at.size():
 		var at := to_screen(unknown_at[i])
 		if view.has_point(at):
 			var qw := font.get_string_size("?", HORIZONTAL_ALIGNMENT_LEFT, -1, qs).x
-			o.draw_string(font, at + Vector2(-qw * 0.5, qs * 0.36), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, qs, Color("#1a1622"))
+			o.draw_string(font, at + Vector2(-qw * 0.5, qs * 0.36), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, qs, UiKit.ON_GOLD)
 	# Loop 3h slice 1: each discovered district's name and per cent at its label: big, spaced
 	# capitals in its own tint's deep shade, a cream outline.
 	var fs := _px(T_TITLE)
@@ -1080,7 +1345,7 @@ func _paint() -> void:
 	# out (it comes back as it zooms in).
 	if _view().y / ppm > NAMES_M:
 		fs = _px(T_SUB + 1.0)
-	var taken: Array[Rect2] = []
+	var taken: Array[Rect2] = [_legend_rect(legend).grow(4.0 * pt)]  # no name is printed under the legend card
 	for i in districts.size():
 		var dd := districts[i]
 		if not dd["found"]:
@@ -1149,6 +1414,76 @@ func _paint() -> void:
 		o.draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, Color(0.16, 0.14, 0.2, 0.95))
 
 
+## F (2026-11-19): a small legend bottom left, so the marks read at a glance and the hold to jump is
+## said once, quietly: the main quest's star, a questline's "!", a side job's square, and the hold.
+## Rows: {"words": [pl, en], "kind": "main"|"story"|"job"|"hold"}. Drawn in the batch (no node).
+func _legend_rows() -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	for pair: Array in [["main", "legend_main"], ["story", "legend_story"], ["job", "legend_job"]]:
+		rows.append({"kind": pair[0], "words": QuestBook.words(pair[1])})
+	var hw: Array = QuestBook.words("legend_hold_pad" if Gamepad.in_use() else "legend_hold")
+	if Gamepad.in_use():
+		hw = [Gamepad.fmt(str(hw[0])), Gamepad.fmt(str(hw[1]))]
+	rows.append({"kind": "hold", "words": hw})
+	return rows
+
+
+## The legend's box in px: bottom left of the safe area, as wide as its longest line.
+func _legend_rect(rows: Array[Dictionary]) -> Rect2:
+	var s := safe if safe.has_area() else Rect2(Vector2.ZERO, _view())
+	var font := ThemeDB.fallback_font
+	var fs := _px(T_SUB - 1.0)
+	var w := 0.0
+	for r in rows:
+		var t := Lang.pick(str(r["words"][0]), str(r["words"][1]))
+		w = maxf(w, font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	var size := Vector2(w + 44.0 * pt, rows.size() * LEGEND_ROW * pt + 12.0 * pt)
+	var m := 8.0 * pt
+	return Rect2(Vector2(s.position.x + m, s.end.y - m - size.y), size)
+
+
+func _legend_marks(rows: Array[Dictionary]) -> void:
+	var box := _legend_rect(rows)
+	hud._tri_rect(box, UiKit.CARD)  # the dark card (F 2026-11-19: dark cards everywhere)
+	var edge := UiKit.EDGE
+	var ew := maxf(1.0, pt)
+	hud._tri_rect(Rect2(box.position, Vector2(box.size.x, ew)), edge)
+	hud._tri_rect(Rect2(box.position + Vector2(0, box.size.y - ew), Vector2(box.size.x, ew)), edge)
+	hud._tri_rect(Rect2(box.position, Vector2(ew, box.size.y)), edge)
+	hud._tri_rect(Rect2(box.position + Vector2(box.size.x - ew, 0), Vector2(ew, box.size.y)), edge)
+	for i in rows.size():
+		var at := box.position + Vector2(17.0 * pt, 6.0 * pt + (i + 0.5) * LEGEND_ROW * pt)
+		match str(rows[i]["kind"]):
+			"main":
+				hud.main_star(at, 1.0, true)
+			"story":
+				hud._tri_fan(at, 5.6 * pt, 0.0, TAU, hud.OUTLINE)
+				hud._tri_fan(at, 4.6 * pt, 0.0, TAU, Color(1, 1, 1, 0.97))
+				hud._tri_fan(at, 3.6 * pt, 0.0, TAU, Color("#e0527a"))
+				var w := 1.2 * pt
+				hud._tri_rect(Rect2(at + Vector2(-w * 0.5, -2.4 * pt), Vector2(w, 2.8 * pt)), Color.WHITE)
+				hud._tri_rect(Rect2(at + Vector2(-w * 0.5, 1.2 * pt), Vector2(w, w)), Color.WHITE)
+			"job":
+				hud.poi_mark(at, 4.6 * pt, Color("#ff8a3d"), MapIcons.POI_SQUARE)
+			"hold":
+				for j in 24:
+					var u := Vector2.from_angle(TAU * j / 24.0)
+					var v := Vector2.from_angle(TAU * (j + 1) / 24.0)
+					var col := Color(GOLD, 0.95 if j < 16 else 0.35)
+					hud._tri_quad(at + u * 4.4 * pt, at + u * 6.4 * pt, at + v * 6.4 * pt, at + v * 4.4 * pt, [col, col, col, col])
+				hud._tri_fan(at, 2.0 * pt, 0.0, TAU, GOLD)
+
+
+func _legend_text(o: Control, font: Font, rows: Array[Dictionary]) -> void:
+	var box := _legend_rect(rows)
+	var fs := _px(T_SUB - 1.0)
+	for i in rows.size():
+		var t := Lang.pick(str(rows[i]["words"][0]), str(rows[i]["words"][1]))
+		var y := box.position.y + 6.0 * pt + (i + 0.5) * LEGEND_ROW * pt + fs * 0.35
+		var col := UiKit.GOLD if str(rows[i]["kind"]) == "hold" else UiKit.INK
+		o.draw_string(font, Vector2(box.position.x + 32.0 * pt, y), t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+
+
 ## The map point (m) under a screen point (px).
 func to_map(p: Vector2) -> Vector2:
 	return centre + (p - _view() * 0.5) / ppm
@@ -1211,7 +1546,7 @@ func _coach_frame(dt: float) -> void:
 ## the hold.
 func _place_coach() -> void:
 	var id := hints.coach if hints != null else ""
-	_coach.visible = id != "" and _built and not _screen.visible
+	_coach.visible = id != "" and _built and not _screen.visible and not _picker.visible
 	if not _coach.visible:
 		return
 	var lbl := (_coach.get_child(0) as VBoxContainer).get_child(0) as Label
@@ -1375,7 +1710,7 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventScreenTouch:
 		var t := event as InputEventScreenTouch
 		if t.pressed:
-			for b: Control in [_close, _quests_btn, _next, _offer, _details]:
+			for b: Control in [_close, _clock_btn, _picker, _quests_btn, _next, _offer, _details]:
 				if b.visible and b.get_global_rect().has_point(t.position):
 					return  # the button takes it
 			_touches[t.index] = t.position

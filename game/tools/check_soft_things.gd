@@ -152,7 +152,7 @@ func _expect(ok: bool, what: String) -> void:
 ## A fence (or hedge) along x from x0 to x1 at z, its foot at y0, `panels` of 2 m.
 static func _line(kind: String, x0: float, x1: float, z: float, y0 := 0.0, height := 1.6, id := "test") -> Dictionary:
 	var length := x1 - x0
-	return {"ids": PackedStringArray([id]), "kinds": PackedStringArray([kind]), "mats": PackedStringArray(["hedge" if kind == "hedge" else "metal"]),
+	return {"ids": PackedStringArray([id]), "kinds": PackedStringArray([kind]), "mats": PackedStringArray(["leaf" if kind == "hedge" else "metal"]),
 			"panels": PackedInt32Array([ceili(length / CityBarriers.PANEL)]),
 			"segs": PackedFloat64Array([0.0, x0, z, x1, z, y0, y0, 0.05, height, 0.0, 1.0])}
 

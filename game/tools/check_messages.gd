@@ -127,6 +127,35 @@ func _check_calls() -> void:
 	_expect(m.quiet() and not m.call_ok(), "a call may ring inside CALL_QUIET after a finish")
 	m.tick(1.0, Messages.FREE)
 	_expect(not m.quiet() and m.call_ok(), "no call after the quiet time")
+	# F 2026-11-19 ("a few calls in 10 seconds"; "1 minute between calls is too fast"): the gap is
+	# at least two minutes and counts from the call's end; every card spaces the next offer; a no
+	# makes the next call wait longer, two no's longer still, an answer resets it.
+	_expect(Messages.CALL_GAP >= 120.0 and Messages.OFFER_SPACING >= 20.0, "the gap or the spacing is too short")
+	_expect(Messages.DECLINE_GAP > Messages.CALL_GAP and Messages.DECLINE_MAX >= Messages.DECLINE_GAP, "a no doesn't slow the calls")
+	m.call_rang()
+	m.tick(60.0, Messages.FREE)
+	m.call_closed(false)  # rang a minute, then turned down
+	_expect(m.declines == 1 and not m.call_ok(), "a call may ring right after a no")
+	m.tick(Messages.CALL_GAP + 1.0, Messages.FREE)
+	_expect(not m.call_ok() and m.offer_ok(), "after a no the next call waits only CALL_GAP (or offers wait for it)")
+	m.tick(Messages.DECLINE_GAP - Messages.CALL_GAP, Messages.FREE)
+	_expect(m.call_ok(), "no call DECLINE_GAP after a no")
+	m.call_rang()
+	m.call_closed(false)
+	_expect(m.declines == 2 and is_equal_approx(m.gap_now(), Messages.DECLINE_MAX), "two no's don't wait DECLINE_MAX")
+	m.call_rang()
+	m.call_closed(true)
+	_expect(m.declines == 0 and is_equal_approx(m.gap_now(), Messages.CALL_GAP), "an answer doesn't reset the no's")
+	m.tick(Messages.CALL_GAP + 1.0, Messages.FREE)
+	m.card_seen()  # any card, a result or a ride request
+	m.tick(Messages.OFFER_SPACING - 1.0, Messages.FREE)
+	_expect(not m.offer_ok() and not m.call_ok(), "an offer or a call came inside OFFER_SPACING of a card")
+	m.tick(1.0, Messages.FREE)
+	_expect(m.offer_ok() and m.call_ok(), "nothing may come after the spacing")
+	# The rescue pill counts from its ring and is never a no.
+	m.call_rang(false)
+	m.call_closed(false)
+	_expect(m.declines == 0, "the rescue pill counted as a no")
 
 
 func _tick(hud: CanvasLayer, b: Control, seconds: float) -> void:
@@ -209,7 +238,10 @@ func _check_hud() -> void:
 	for i in 20:
 		rescue.tick(0.1, Vector3.ZERO, 0.0, false)
 	_expect(rescue.state == Missions.State.CLOSED, "a rescue rang 2 s after a friend's call")
-	_tick(hud, b, Messages.CALL_GAP + 1.0)
+	# Ivan's card went unanswered: a no, so the next call waits DECLINE_GAP (F 2026-11-19).
+	_expect(hud.messages.declines == 1 and is_equal_approx(hud.messages.gap_now(), Messages.DECLINE_GAP),
+			"a call taken away unanswered didn't count as a no (gap %.0f s)" % hud.messages.gap_now())
+	_tick(hud, b, hud.messages.gap_now() + 1.0)
 	var before: int = hud.messages.calls
 	rescue.tick(0.1, Vector3.ZERO, 0.0, false)
 	_expect(rescue.state == Missions.State.RINGING, "the waiting rescue never rang once calls were allowed")
@@ -217,11 +249,16 @@ func _check_hud() -> void:
 	rescue.free()
 	hud.hide_pill()
 	# The phone view of a call (show_call, PR #650) counts as a call too.
-	_tick(hud, b, Messages.CALL_GAP + 1.0)
-	_expect(hud.call_ok(), "no call allowed a minute after the rescue")
+	_tick(hud, b, hud.messages.gap_now() + 1.0)
+	_expect(hud.call_ok(), "no call allowed a gap after the rescue")
 	hud.show_call("Ivan", "Wpadniesz?", Color("#ffb020"), "Coming by?")
 	_expect(not hud.call_ok(), "the phone view's call didn't count as a call")
+	_expect(not hud.offer_ok() and hud.offers_quiet(), "an offer may come over a ringing call")
+	hud._press_card(0)  # answered: the no's are forgotten
+	_expect(hud.messages.declines == 0 and not hud.messages.call_open(), "an answered call still counts as open or as a no")
 	hud.hide_card()
+	_tick(hud, b, Messages.OFFER_SPACING + 1.0)
+	_expect(hud.offer_ok() and not hud.offers_quiet() and not hud.call_ok(), "after the spacing an offer may come, a call may not")
 
 	# Two toasts: the second waits until the first was glanced at.
 	hud.clear_all()

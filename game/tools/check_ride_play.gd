@@ -591,6 +591,7 @@ func _rig(full := true, kept := {}, opts := {}) -> void:
 	clubs = []
 	hurry = Vector2.INF
 	q = Rides.new()
+	q.ask_cards = true  # the question card is off in the game (2026-11-20); its tests drive it
 	q.autopilot = false
 	q.log_on = bool(opts.get("log_on", false))
 	if opts.has("gps_first"):
@@ -1647,35 +1648,36 @@ func _e_talk(n: int) -> void:
 
 
 func _e_driving(n: int) -> void:
-	# A bump: not at 4 m/s, at 5 m/s half a star, its toast 3 s after the last penalty.
+	# A bump: not at 5.5 m/s, at 7 m/s half a star, its toast 3 s after the last penalty (F 2026-11-20: the
+	# penalties are 5 s apart, 1.5 stars at most, and need a harder hit than before).
 	var r := _ride_ready(n)
-	_bump(4.0)
+	_bump(5.5)
 	_secs(3.2)
-	_ok(hud.count == "★★★★★ 5,0" and q.drive_toasts == 0, "a bump at 4 m/s cost something: %s" % hud.count)
+	_ok(hud.count == "★★★★★ 5,0" and q.drive_toasts == 0, "a bump at 5.5 m/s cost something: %s" % hud.count)
 	var toasts := _toast_n()
-	_bump(5.0)
+	_bump(7.0)
 	_frame()
-	_ok(hud.count == "★★★★½ 4,5", "a bump at 5 m/s: the count reads %s" % hud.count)
+	_ok(hud.count == "★★★★½ 4,5", "a bump at 7 m/s: the count reads %s" % hud.count)
 	_secs(2.8)
 	_ok(q.drive_toasts == 0 and _toast_n() == toasts, "the drive toast came before 2.9 s of quiet")
 	_secs(0.3)
 	_ok(q.drive_toasts == 1 and _last_toast() == "−½ ★ · stłuczka" and _last_toast_en() == "−½ star · bump", "the drive toast: %s / %s" % [_last_toast(), _last_toast_en()])
-	# Two bumps 2.1 s apart: one toast.
+	# Two bumps 5.1 s apart: two penalties, each with its own toast.
 	r = _ride_ready(n)
 	toasts = _toast_n()
-	_bump(5.0)
-	_secs(2.1)
-	_bump(5.0)
+	_bump(7.0)
+	_secs(5.1)
+	_bump(7.0)
 	_secs(3.1)
-	_ok(q.drive_toasts == 1 and _toast_n() == toasts + 1 and _last_toast() == "−1 ★ · stłuczki" and _last_toast_en() == "−1 star · bumps",
-			"two bumps, one toast: %s / %s" % [_last_toast(), _last_toast_en()])
-	# A second bump 1.9 s after the first costs nothing.
+	_ok(q.drive_toasts == 2 and _toast_n() == toasts + 2 and _last_toast() == "−½ ★ · stłuczka" and hud.count == "★★★★ 4,0",
+			"two bumps 5.1 s apart, two toasts: %s / %d / %s" % [_last_toast(), q.drive_toasts, hud.count])
+	# A second bump 4.9 s after the first costs nothing.
 	r = _ride_ready(n)
-	_bump(5.0)
-	_secs(1.9)
-	_bump(5.0)
+	_bump(7.0)
+	_secs(4.9)
+	_bump(7.0)
 	_frame()
-	_ok(hud.count == "★★★★½ 4,5", "a second bump 1.9 s after the first cost something: %s" % hud.count)
+	_ok(hud.count == "★★★★½ 4,5", "a second bump 4.9 s after the first cost something: %s" % hud.count)
 	# Harsh braking: 20 m/s to 0 in 0.5 s.
 	r = _ride_ready(n)
 	_fwd = 20.0
@@ -1695,25 +1697,25 @@ func _e_driving(n: int) -> void:
 		_frame()
 	_secs(3.2)
 	_ok(_last_toast() == "−½ ★ · zakręt" and _last_toast_en() == "−½ star · fast corner", "a fast corner: %s / %s" % [_last_toast(), _last_toast_en()])
-	# A bump and a braking in one toast.
+	# A bump and a braking 5.1 s later: one toast each.
 	r = _ride_ready(n)
 	_fwd = 20.0
 	_secs(0.5)
-	_bump(5.0)
-	_secs(2.1)
+	_bump(7.0)
+	_secs(5.1)
 	for i in 30:
 		_fwd = 20.0 - 20.0 * float(i + 1) / 30.0
 		_frame()
 	_secs(3.2)
-	_ok(q.drive_toasts == 1 and _last_toast() == "−1 ★ · stłuczka, hamowanie" and _last_toast_en() == "−1 star · bump, harsh braking",
-			"a bump and a braking in one toast: %s / %s" % [_last_toast(), _last_toast_en()])
-	# Never more than 2 stars lost that way.
+	_ok(q.drive_toasts == 2 and _last_toast() == "−½ ★ · hamowanie" and _last_toast_en() == "−½ star · harsh braking" and hud.count == "★★★★ 4,0",
+			"a bump and a braking: %s / %s / %d" % [_last_toast(), _last_toast_en(), q.drive_toasts])
+	# Never more than 1.5 stars lost that way.
 	r = _ride_ready(n)
 	for i in 6:
 		_bump(8.0)
-		_secs(2.1)
+		_secs(5.1)
 	_secs(3.2)
-	_ok(hud.count == "★★★ 3,0", "driving cost more than 2 stars: %s" % hud.count)
+	_ok(hud.count == "★★★½ 3,5", "driving cost more than 1.5 stars: %s" % hud.count)
 	# Not measured in the air or on the autopilot.
 	r = _ride_ready(n)
 	_fly = true
@@ -1736,7 +1738,7 @@ func _e_driving(n: int) -> void:
 	_ok(q.drive_toasts == 0, "the driving was measured on the autopilot")
 	# A penalty whose toast waits when the ride ends is never shown.
 	r = _ride_ready(n)
-	_bump(5.0)
+	_bump(7.0)
 	_secs(0.5)
 	_arrive(r)
 	var dt0: int = q.drive_toasts
@@ -1766,20 +1768,20 @@ func _e_driving(n: int) -> void:
 	toasts = _toast_n()
 	q.on_pulled_over()
 	_ok(_toast_n() == toasts, "a pull-over on the result card cost something")
-	# Late: 15 s past the ETA, again at 30 and 45 s, no more.
+	# Late: 25 s past the ETA, again at 50 s, no more (was 15 s, three times).
 	r = _ride_ready(n)
 	var eta := _eta(r)
 	var late := 0
-	for k in [14.7, 29.7, 44.7, 59.7, 74.7]:
+	for k in [24.7, 49.7, 74.7, 99.7, 124.7]:
 		q._rules.clock = eta + float(k)
 		_secs(0.6)
 		late = 0
 		for tt in hud.toasts:
 			if tt.ends_with("spóźnienie"):
 				late += 1
-	_ok(late == 3 and hud.toasts.has("−½ ★ · spóźnienie") and hud.toasts_en.has("−½ star · late"), "lateness cost %d toasts in all, want 3" % late)
+	_ok(late == 2 and hud.toasts.has("−½ ★ · spóźnienie") and hud.toasts_en.has("−½ star · late"), "lateness cost %d toasts in all, want 2" % late)
 	_frame()
-	_ok(hud.count == "★★★½ 3,5", "lateness cost at most 1.5: %s" % hud.count)
+	_ok(hud.count == "★★★★ 4,0", "lateness cost at most 1.0: %s" % hud.count)
 
 
 ## Pay and the result card, case by case.
@@ -1852,12 +1854,12 @@ func _e_pay(n: int) -> void:
 			"during": func(_r: Dictionary) -> void: q.on_pulled_over()})
 	_pay_case(n, 4.0, {"name": "after a bump", "tag": "4", "start": 4.0, "why": "jazda −½, przed czasem +½",
 			"during": func(_r: Dictionary) -> void:
-				_bump(6.0)
+				_bump(7.0)
 				_frame()})
 	# Late: the half star for being early is lost, lateness costs.
 	_pay_case(n, 4.0, {"name": "late by 20 s", "start": 4.5, "tag": "4", "why": "spóźnienie −½",
 			"during": func(r: Dictionary) -> void:
-				q._rules.clock = _eta(r) + 14.9
+				q._rules.clock = _eta(r) + 24.9
 				_secs(0.3)})
 
 
@@ -2276,6 +2278,7 @@ func _until_ride(cond: Callable, s: float) -> float:
 func _story_ride(id: String, cfg := {}) -> Dictionary:
 	_rig(true, cfg.get("kept", {}))
 	q.force_story = id
+	q.ask_cards = bool(cfg.get("ask", true))
 	if cfg.has("start_stars"):
 		q.start_stars = float(cfg["start_stars"])
 	_request(9)
@@ -2296,6 +2299,7 @@ func _h_stories() -> void:
 		_story_play(str(pl[0]), int(pl[1]), str(pl[2]))
 	_story_waits()
 	_story_foreign()
+	_story_small_talk()
 	_story_dice(ids)
 
 
@@ -2365,7 +2369,7 @@ func _story_play(id: String, idx: int, mode: String) -> void:
 		var door := _v2(r["ring"])
 		_at(door + Vector2(120.0, 0.0), 9.0)
 		_secs(0.2)
-		q._rules.clock = eta + 14.7
+		q._rules.clock = eta + 24.7
 		_secs(0.6)
 		_ok(hud.toasts.has("−½ ★ · spóźnienie") and q._asking, "%s: lateness cost nothing under the question" % what)
 		_ok(hud.status_title == "", "%s: the status line came back under the question" % what)
@@ -2431,6 +2435,54 @@ func _story_play(id: String, idx: int, mode: String) -> void:
 
 
 ## The question's 10 s; a stranger's card over it; the order of the stories.
+## F 2026-11-20: a story ride is small talk, with no question: three small lines, the ride's own ending,
+## the passenger's quip when the car crashes, and the taxi app's account.
+func _story_small_talk() -> void:
+	var id := str(_stories[0]["id"])
+	var st := _story_of(id)
+	var lines: Array = st["lines"]
+	var r := _story_ride(id, {"ask": false})
+	_until_ride(func() -> bool: return q.story_lines >= 3, 40.0)
+	_ok(bubbles.said == [lines[0][0], lines[1][0], lines[2][0]] and bubbles.smalls == [true, true, true], "small talk: three lines, set small: %s %s" % [bubbles.said, bubbles.smalls])
+	_secs(40.0)
+	_ok(not q._asking and hud.card == "" and q._beat == 4 and q.story_answers == 0, "small talk: no question came (%s)" % hud.card)
+	# A crash: a small quip; a tap does not; not twice inside 9 s; again after.
+	var said0 := _count_said("podwozka_passenger:crash")
+	_bump(1.0)
+	_ok(_count_said("podwozka_passenger:crash") == said0, "a tap at 1 m/s drew a quip")
+	_bump(5.0)
+	_ok(_count_said("podwozka_passenger:crash") == said0 + 1 and dialogue.smalls.back() and q.crash_lines == 1, "the crash drew no small quip")
+	_secs(3.0)
+	_bump(5.0)
+	_ok(_count_said("podwozka_passenger:crash") == said0 + 1, "a second quip came inside 9 s")
+	_secs(7.0)
+	q.smashed(8.0)  # a fence broken through counts too
+	_ok(_count_said("podwozka_passenger:crash") == said0 + 2 and q.crash_lines == 2, "no quip for the fence after 9 s")
+	bubbles.talking = true
+	_secs(10.0)
+	q.smashed(8.0)
+	bubbles.talking = false
+	_ok(q.crash_lines == 2, "a quip over another bubble")
+	# The ending is the ride's: a clean ride gets the first answer's tip; the taxi app's account adds it up.
+	var money: int = wallet.money
+	_arrive(r)
+	_secs(2.7)
+	var tip := int(st["answers"][0]["tip"])
+	var p := _pay(float(r["road"]), 5.0, false, false, false, 0, tip)
+	_ok(wallet.money == money + int(p["total"]), "small talk: paid %d, want %d (the first ending's tip %d)" % [wallet.money - money, p["total"], tip])
+	_ok(hud.body.begins_with("%s: %s\n" % [str(r["name"]), st["answers"][0]["outro"][0]]), "small talk: the first ending's outro on the card: %s" % hud.body)
+	_ok(int(wallet.keep.get("podwozka_earned", 0)) == int(p["total"]) and int(wallet.keep.get("podwozka_best", 0)) == int(p["total"]), "the account: %s" % wallet.keep)
+	# A poorly driven ride (3 stars, 3.5 with the early half star) gets the other ending: no tip.
+	var r2 := _story_ride(id, {"ask": false, "start_stars": 3.0, "kept": wallet.keep})
+	_until_ride(func() -> bool: return q.story_lines >= 3, 40.0)
+	var money2: int = wallet.money
+	_arrive(r2)
+	_secs(2.7)
+	var p2 := _pay(float(r2["road"]), 3.5, false, false, false, 0, int(st["answers"][1]["tip"]))
+	_ok(wallet.money == money2 + int(p2["total"]), "small talk, a 3.5-star ride: paid %d, want %d" % [wallet.money - money2, p2["total"]])
+	_ok(int(wallet.keep.get("podwozka_earned", 0)) == int(p["total"]) + int(p2["total"]), "the account adds the second ride: %s" % wallet.keep)
+
+
 func _story_waits() -> void:
 	var id := str(_stories[3]["id"])
 	var r := _story_ride(id)
@@ -4033,7 +4085,7 @@ func _after_stop(pause: String) -> Array:
 	var out: Array = []
 	if pause == "fly":
 		_fly = true
-		_secs(2.6)
+		_secs(5.3)
 		_fly = false
 		for i in 4:
 			_frame()
@@ -4097,9 +4149,9 @@ func _s_steps() -> void:
 		for i in 30:
 			_fwd = 20.0 - 20.0 * float(i + 1) / 30.0
 			_frame()
-		_secs(1.0)
+		_secs(5.1)
 	_secs(3.3)
-	_ok(q.drive_toasts == 1 and _last_toast() == "−1 ★ · hamowania" and _last_toast_en() == "−1 star · harsh braking", "two harsh brakings: %s / %s" % [_last_toast(), _last_toast_en()])
+	_ok(q.drive_toasts == 2 and _last_toast() == "−½ ★ · hamowanie" and _last_toast_en() == "−½ star · harsh braking", "two harsh brakings 5 s apart: %s / %s" % [_last_toast(), _last_toast_en()])
 	_ride_ready(n)
 	for k in 2:
 		_fwd = 12.0
@@ -4107,9 +4159,9 @@ func _s_steps() -> void:
 		for i in 30:
 			_yaw += 1.0 / 30.0
 			_frame()
-		_secs(1.0)
+		_secs(5.1)
 	_secs(3.3)
-	_ok(q.drive_toasts == 1 and _last_toast() == "−1 ★ · zakręty" and _last_toast_en() == "−1 star · fast corners", "two fast corners: %s / %s" % [_last_toast(), _last_toast_en()])
+	_ok(q.drive_toasts == 2 and _last_toast() == "−½ ★ · zakręt" and _last_toast_en() == "−½ star · fast corner", "two fast corners 5 s apart: %s / %s" % [_last_toast(), _last_toast_en()])
 	# On the way to the passenger the driving is not measured at all.
 	_rig()
 	q.force_story = "none"
@@ -4393,22 +4445,23 @@ func _t_misc() -> void:
 	_abort()
 	# What a drive toast carries from one to the next.
 	r = _ride_ready(n)
-	_bump(5.0)
+	_bump(7.0)
 	_secs(3.2)
 	_ok(q.drive_toasts == 1 and _last_toast() == "−½ ★ · stłuczka", "the first bump: %s" % _last_toast())
-	_bump(5.0)
+	_secs(2.0)
+	_bump(7.0)
 	_secs(3.2)
 	_ok(q.drive_toasts == 2 and _last_toast() == "−½ ★ · stłuczka" and _last_toast_en() == "−½ star · bump", "the second bump's toast: %s / %s" % [_last_toast(), _last_toast_en()])
 	r = _ride_ready(n)
-	_bump(5.0)
-	_secs(2.1)
-	_bump(5.0)
+	_bump(7.0)
+	_secs(5.1)
+	_bump(7.0)
 	_secs(2.8)
-	_ok(q.drive_toasts == 0, "the toast of two bumps came less than 3 s after the second")
+	_ok(q.drive_toasts == 1, "the second toast came less than 3 s after the second bump")
 	_secs(0.3)
-	_ok(q.drive_toasts == 1, "the toast of two bumps did not come")
+	_ok(q.drive_toasts == 2, "the second toast did not come")
 	r = _ride_ready(n)
-	_bump(5.0)
+	_bump(7.0)
 	_secs(0.5)
 	_arrive(r)
 	_secs(4.0)

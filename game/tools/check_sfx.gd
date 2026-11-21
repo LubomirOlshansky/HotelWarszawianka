@@ -11,12 +11,13 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/check_sfx.gd
 
 ## Loop MW-5: club_leak and busker are the city sounds' loops (city_sounds.gd); loop MW-3: crowd_murmur and
-## steps_guitar the crowds' (crowds.gd).
+## steps_guitar the crowds' (crowds.gd); traffic_car, traffic_bus and traffic_tram the traffic's
+## (traffic_sounds.gd).
 const Sfx := preload("res://scripts/sfx.gd")
 const LOOPS := ["engine_idle", "engine_mid", "engine_high", "tyre_roll", "tyre_wet", "tyre_squeal", "rotor",
 		"city_day", "city_night", "rain", "police_siren", "club_leak", "busker", "crowd_murmur", "steps_guitar",
 		"queue_chatter", "amb_river", "amb_park", "amb_square", "amb_yard", "fan_chant", "gong_bowls", "techno_thump",
-		"jazz_trio", "bike_roll", "bike_freewheel", "lift_hum"]
+		"jazz_trio", "bike_roll", "bike_freewheel", "lift_hum", "traffic_car", "traffic_bus", "traffic_tram"]
 
 
 func _initialize() -> void:
@@ -140,7 +141,7 @@ func _private_players(dir_path: String, out: Array[String]) -> void:
 		_private_players(dir_path + "/" + d, out)
 	for f in dir.get_files():
 		# The radio owns its tuning static and the padel court its own bed (venues keep their sound).
-		if not f.ends_with(".gd") or f in ["sfx.gd", "city_sounds.gd", "radio.gd", "padel_match.gd"]:
+		if not f.ends_with(".gd") or f in ["sfx.gd", "city_sounds.gd", "traffic_sounds.gd", "radio.gd", "padel_match.gd"]:
 			continue
 		var n := 0
 		for line in FileAccess.get_file_as_string(dir_path + "/" + f).split("\n"):
@@ -149,3 +150,9 @@ func _private_players(dir_path: String, out: Array[String]) -> void:
 				continue
 			if line.contains("res://audio/ui/") or line.contains("res://audio/sfx/"):
 				out.append("%s/%s:%d loads a sound file itself: use Sfx.ui(name), sfx.play(name) or sfx.play_at(name, at)" % [dir_path, f, n])
+			# The feedback set (hud.gd `cue`): every name asked for is an interface sound.
+			var at := line.find(".cue(\"")
+			if at >= 0:
+				var name := line.substr(at + 6).get_slice("\"", 0)
+				if not Sfx.UI.has(name):
+					out.append("%s/%s:%d cues \"%s\", which is not in Sfx.UI" % [dir_path, f, n, name])

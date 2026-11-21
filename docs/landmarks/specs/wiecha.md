@@ -88,3 +88,15 @@ masts and furniture are in first_scene.gd's one mesh (~90 triangles a mast).
 | bollards | rows of 5 across the pasaż | 0.9 m | both ends | actors' material | 3 ground |
 
 F's look check (2026-11-03): slabs light warm grey with balcony bands (slabs.md); Y masts taller and stouter (props.gd add_y_mast); a Christmas tree for a winter event is in BACKLOG.
+
+## 9. Night life (2026-11-19, F's "Warsaw 3 a.m." teaser)
+
+`_wiecha_life` in `landmarks/centre.gd`, one pass per pavilion, all in the site's one mesh (+0 draw
+calls, 2346 tris measured, budget 2500). Per bay between two frames (2.2 m): about 70 % are lit
+window displays (M_LAMP pane in one of five warm or cool tints, with a dark shelf), the rest stay
+dark and shut; on the pasaż-facing front a few bays get a striped awning; each longer face carries
+a small light-box word on the fascia (parody words from neon_signs.gd). The first pavilion's front
+holds the 24 h kebab hatch: a hot orange window over a counter, an awning, a two-sided blade sign
+"KEBAB 24H" and a string of bulbs. No crowd site: the pavilions lie outside the crowds' start box
+(x > -880), so customers at the hatch need a place for them there first (BACKLOG).
+Not done: umbrellas (the teaser thread's), a night café terrace, reflections beyond the ground shader's lamp pools.

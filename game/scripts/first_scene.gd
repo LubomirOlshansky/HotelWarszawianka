@@ -81,6 +81,11 @@ const ITEMS := [
 	["planter", 20.0, 74.6, "#e63946"],
 	["cafe", -57.0, 89.5, "#f4f2ec"], ["cafe", -51.0, 89.5, "#f4f2ec"], ["cafe", -45.5, 89.5, "#f4f2ec"],
 	["planter", -48.0, 85.0, "#9b5de5"],
+	# Widok 26's café terrace on the pasaż (F's photos, 2026-11-19): parasols and planters in front of
+	# the dark-brown fast-food fronts at the corner of Aleje Jerozolimskie.
+	["planter", -132.0, 70.4, "#e07a5f"],
+	["cafe", -137.0, 69.8, "#f4f2ec"], ["cafe", -143.0, 69.8, "#f4f2ec"], ["cafe", -149.0, 69.8, "#f4f2ec"],
+	["planter", -154.0, 70.4, "#ffd23f"], ["planter", -160.0, 70.4, "#9b5de5"],
 	["bollards_x", -167.0, 67.5, ""], ["bollards_x", 113.0, 67.5, ""],
 ]
 ## Pasaż Wiecha in the frame above, [s0, s1, t0, t1]: from Aleje Jerozolimskie to the north end

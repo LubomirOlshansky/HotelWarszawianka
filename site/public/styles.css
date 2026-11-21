@@ -336,3 +336,4 @@ html[data-os="android"] .stk-i { display: none; }
   .radio-roll p[aria-hidden] { display: none; }
   .btn, .stk, .hero-video, .chap-video { transition: none; }
 }
+.plat.soon-wrap { grid-template-columns: minmax(0, 560px); }

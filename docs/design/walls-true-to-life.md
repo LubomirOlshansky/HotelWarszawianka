@@ -424,6 +424,50 @@ Rows marked `slab` use `wall_along` as today, with the row's numbers.
   a range in metres hides everything; none is set); the Adreno 6xx fallback reaches only the
   runtime city (a prebuilt city baked `panels` has no typed fences to fall back to).
 
+**Built in W5 (2026-11-20)**, behind `barrier_look` `panels` (the palette's key stays `classic`):
+
+- Every light row but `rail_tram` carries `"panel": true`: the six of W4 and `green_fence`,
+  `low_lawn`, `ball_net`, `wood`, `hoarding`, `hedge_tall`, `chain_posts`, `post_row`,
+  `stadium_fence` and `bars_pier`, their numbers as the rows have them (none changed). Under
+  `panels` no light line is drawn in the city mesh but the tram's railing (`draw: keep`, 181 lines,
+  a hard rail; `check_barrier_look` 7 names them) and `bars_pier`'s posts: its row's `post.in_mesh`
+  keeps them in the city mesh where typed stands them (the piers until W7), its panels hold the iron
+  between, so a fallen panel leaves them standing. `chain_posts` and `post_row` have no line on
+  the map yet.
+- `stadium_fence` (#808) keeps its classic railing under `classic` and `typed`; under `panels` its
+  19 lines are panels of its row at the types row's 2.3 m, posts every 1.5 m 0.06 wide (the row's
+  new `post`, railing_along's), the 0.4 m dark band, bars 0.12; their colliders and soft list are
+  railing_along's, face for face (`check_barrier_look` 6); the gates are drawn as ever.
+- `panel.gdshader`: `sag` lowers the top rail and the fill under it by 4 t (1 - t) x 8 cm between
+  posts; `leafy` cuts the leaves' top by a value noise of the seed (at most 0.15 m, 0.3 m cells)
+  and darkens the lowest 0.2 m by 0.75; a hedge's top face sits 0.15 m lower so its sides' leafy
+  edge stands over it. A row `open` 0.1 or less (wood, hoarding, the hedges) is closed: no holes,
+  its bars drawn as joints 0.72 darker. A row with a `leaf` colour (green_fence) has leaves on
+  1 - open of its fill's cells, in front of its bars. Alt colours by the seed as in W4 (hoarding's
+  two). Its count stays 3 of the cap 200; `building.gdshader` unchanged from main (503 of 505).
+- The pixel rule at a grazing view: a panel seen nearly end-on (a fence running almost along the
+  view) has a pixel footprint metres long one way and centimetres the other, and W4's floors took
+  the long side (`fwidth`), so every post, rail and bar was a pixel wide and together they filled
+  the panel: a solid dark band (Pole Mokotowskie's lawn edge). The floors (never the bar spacing
+  or the fill's cell) are now capped at `GRAZE` (2) times the footprint's narrow side; a face along
+  u or v (the top, the ends) keeps W4's. Seen at 45 degrees or more nothing changes, pixel for
+  pixel; at 4 to 6 degrees a third less is dark; the lawn edge's band went from 8 to 10 pixels
+  wide to 4 to 6, a railing with its posts (typed: 2 to 4).
+- Broken (section 7): `gap` is state 4, the box squashed to a point in `vertex()` (no fragment, no
+  discard); a wood row's gap is state 5, the box laid down as a fallen panel and only two boards of
+  it kept (at 0.6 and 1.35 m of the panel); `flat` lies down as `down`, the face the car saw up;
+  `stub` (green_fence, hedge_tall) the low brown box, solid; `torn` (ball_net) and `down`
+  (stadium_fence, bars_pier) as W6. `bars_pier`'s three lines are within the landmark guard, so
+  they never break today. `check_panel_states` drives through stadium_fence, chain_link,
+  green_fence, low_lawn (the stadium's grounds), ball_net, wood and hoarding on both paths.
+- 110,185 pieces city-wide in 102 sectors, 5,435 of the 5,438 lines of the panel rows (the three
+  left are left out in every look, before any drawing: a site wall, the Palace's forecourt, the
+  tribune, the river or a street pass's REMOVE); prebuilt sectors 186.2 MB
+  (classic 187.2, typed 190.2).
+- Draw calls (probe, prebuilt, `panels` against `typed`): main pass +3 at the spawn, +2 at the
+  river view, +3 zoomed out, +3 from the helicopter, +3 at night; shadow pass +0 (-1 zoomed out);
+  a broken panel (boards, gap) adds none.
+
 Why not the other ways: more patterns in `building.gdshader` has no room; bars as real geometry
 for 190 km is about 4 million triangles and cannot fall over; a photo texture per type shows
 nothing at this pixel size and adds a material per type; alpha blending needs sorting and costs
@@ -444,6 +488,43 @@ class `wall`. A car that clips it is turned into the bay instead of stopped. Thi
 dead stop.
 
 No new material and no shader change. Cost: triangles only (section 8).
+
+**Built in W7 (2026-11-20)**, behind `barrier_look` `typed` and `panels` (the key stays `classic`):
+
+- `city_barriers.gd` `wall_kit` draws every heavy or low `slab` row that has a foot, a cap, bays or
+  piers (the nine of 6.2: `wall_plaster`, `wall_brick`, `wall_precast`, `wall_stone`,
+  `noise_screen`, `gabion`, `glass_screen`, `parapet_concrete`, `low_wall`) from the row's numbers,
+  the same under `typed` and `panels`: the foot a band of the face `darken` darker; the body cut
+  into bays, every other one `step` darker (no cut where `step` is 0); the cap a coping `over`
+  wider each side in its colour (`wall_plaster`'s `alt` cap with the line's alt colour,
+  `low_wall`'s the line's colour lightened); with `over` 0 a band of the face (the noise screen's
+  pale 1 m top); `parapet_concrete` its 0.8 m upstand and a rail on posts every 2 m to 1.1 m;
+  piers (`wall_brick`: 0.5 m every 3.5 m, rising 0.15 m, capped in the cap's colour) and proud
+  posts at the bays' joints (`wall_precast` 0.15 m, 0.03 proud, 0.08 m over the top, a shade
+  darker; `noise_screen` and `glass_screen` steel grey); at each end of a run a pier or a post
+  (the end piece), else end faces; the long faces mitred at corners (up to a 120 degree turn), so
+  a run has no inner end faces and no notch outside a corner. The kit's own shape is in
+  constants (`KIT_*`); the rest is the row's.
+- The end piece is a pier or a post, never a sloped end: step 10 of the objects plan (collider
+  tapers) has not run, so there is no taper to follow yet.
+- `bars_pier` (`_pier_fence_kit`): its row gains `pier` (every 4 m, 0.5 m square, the plinth's
+  `#b8b0a0`) and a plinth thickness (`foot.thick` 0.3): the plinth is a slab in the city mesh and
+  the piers rise 0.15 m over the iron; between them the rails (typed) or W5's panels (whose own
+  foot band stands inside the plinth). On a soft line each pier files a diamond collider (0.5 m
+  square turned 45 degrees, class `wall`, from 0.3 m under the ground to 1.5 m over the pier);
+  none on a hard line or with the soft switch off (so `--no-soft` files main's faces). The three
+  `bars_pier` lines on the map are inside the landmark guard, so today none stands.
+- `wall_stone`'s `top_rail` (a 0.9 m rail on posts every 2 m) stands where the line's `hz` is in
+  the row's list (water, drop): 8 lines by the river. Wybrzeże Gdańskie's boulevard walls have no
+  `hz` (the bake writes one on a wall only when a hazard made it hard, and a 2 m wall is hard by
+  its height), so they get no rail though the photos show one: an open question.
+- Retaining walls (`map_builder.gd` `_build_walls`): under a look other than classic the coping
+  gets a lip 0.06 m out of the face and 0.15 m deep.
+- Colliders: every wall's are `wall_along`'s at the row's thickness and the line's height, face
+  for face (`check_barrier_look` 3), and the pier diamonds; nothing else changed.
+- Cost (the whole map built on a flat map): barrier triangles typed 688,324 -> 842,210, panels
+  186,162 -> 340,118 (+0.154 M each, the gate +0.7 M); typed city mesh vertices (both paths)
+  26,694,768 -> 27,225,948; draw calls unchanged at the four probe views and at night.
 
 ### 6.6 The details, ranked
 
@@ -468,6 +549,52 @@ Ranked by how much each makes the city read as Warsaw at the default zoom, with 
 
 Not planned: scrape marks on hard walls, lamps on gate piers (a light each), true glass
 transparency for noise screens (a blended material), textures of bricks or boards.
+
+### 6.7 Gates and gaps (W8)
+
+**Built in W8 (2026-11-20)**, behind `barrier_look` `typed` and `panels` (the key stays `classic`):
+
+- The pass `tools/barrier_gates.py` (TD-25: stamp-guarded, last in `bake_osm.py`, in
+  `tools/check_post_passes.py`, verify step `barriergates`) writes on S and H fences, walls and
+  hedges without a hazard reason: `g`, the gaps where a footway, cycleway or crossing's centre line
+  crosses the line (strictly, or through OSM's gate node: a vertex both share, the way going on to
+  both sides), the way's width + 0.4 m over the crossing's sine; and `ge`, a gate post at a line's
+  end that faces an opening the bake already cut across a way (`clear_carriageways` for drives,
+  object_fixes L4 for footways). Not at a deck or in a tunnel; line ids, pieces and panel indices
+  stay. Main's map: 761 lines, 326 gaps (834 m), all by footways; 0 by service roads (every line was
+  already cut out of the drives); 556 gate ends, 244 by paths and 312 by service roads.
+- A footway that only ends on a line (128) gets no gap. An end more than 0.15 m inside the way's
+  width gets no post (66 path ends).
+- The photo check (street photos nearest each point, walls-research/w8/photos/): the footway gaps
+  19 right of 20 judged (the wrong one a closed gate with a no-entry sign at Port Czerniakowski); the
+  open leaves at drives failed: of 14 service openings the photos showed, 6 are gates and 8 are open
+  car-park mouths, a plaza drive, a barrier arm, a roller shutter, low lawn fences. So no leaves:
+  `LEAVES = False` in the pass, the drives get posts only. The leaf rule (two open leaves swung back
+  against the line on the yard side, the side the drive runs on for longer) stays behind the switch,
+  for a better test (OSM's `barrier=gate` nodes, which the map does not keep yet).
+- `city_barriers.gd`: a line with a typed look and gates is drawn as its pieces between the gaps,
+  each the old way, with `_soft_run` and `_panel_run` at the piece's own metre (soft segments and
+  panel indices are the whole line's); posts (`_gate_kit`) at each gap's edge and each `ge` end,
+  0.3 m taller than the line, 0.14 m square (on a wall its thickness + 0.08, in the wall's colour
+  lightened), centred half their width inside the line, from 0.2 m under the ground. They file no
+  collider of their own: the line's collider holds them and stops at the gap, so the car's openings
+  keep their width. Not on the stadium's railing (#808, its own gates) nor on lines drawn by a placed
+  or site style. Classic ignores `g` and `ge`: its per-sector hashes are main's on both paths.
+- Drawn on the whole map (flat build): 710 lines, 311 gaps, 1,033 posts. Barrier triangles typed
+  842,210 -> 852,264, panels 340,118 -> 352,534 (panel pieces 110,185 -> 109,655); collider faces of
+  walls 41,324 -> 41,268; typed city mesh vertices (both paths) 27,226,683 -> 27,256,845.
+- The car: route set A with the sloppy driver under typed, 228 -> 229 contacts and 15 = 15 dead stops;
+  the one more is a scrape along Okopowa's tram railing split in two by the physics' numerics (with
+  only one gap 368 m away taken out the run is main's, byte for byte). The 30 fence contacts are
+  along main streets (Prosta, Towarowa, Okopowa, Poniatowskiego ...), none at a path or a drive, so
+  gates cannot move them.
+- The wander run (typed): traps 0 -> 0; 1,613 -> 1,608 lines tested (5 tested where a gap now is),
+  ok 1,548 -> 1,544, miss 65 -> 64.
+- Draw calls at the five probe views: typed equal; panels equal but the helicopter's main pass, 124 ->
+  123. Prebuilt sectors +0.05 % (typed and panels). `check_solids` TOTAL_TYPED unchanged (46,459).
+- Shots (walls-research/w8/shots/): a Wola yard's footway, LO Batorego's drive on Myśliwiecka, Park
+  Ujazdowski's railing (Pole Mokotowskie is south of the map), an iron gate between piers (line
+  114), the mesh fence by the stadium: gaps and posts read at 26 m; the same on both paths.
 
 ## 7. Broken looks: the seam with the drivable-city plan
 
@@ -499,6 +626,32 @@ How it is wired (W6):
   table; the sound stays a row of `Sfx.SHOTS` picked by `debris`.
 - With the soft switch off nothing breaks, so no state is ever written. Panels are drawn the
   same either way.
+
+**Built in W6 (2026-11-19)**, behind `barrier_look` `panels` (the palette's key stays `classic`):
+
+- `game/scripts/panel_states.gd` (main.gd `panel_states.attach(soft_things)`, `_on_sector_ready`;
+  the whole city's `Panels_i_j` on `--monolithic`). States in the custom data's third float: down
+  1 (`fence_plain`, `bars_black`, `mesh_panel`, `rail_street`; `flat` will lie down the same), torn
+  2 (`chain_link`), stub 3 (`hedge_low`; `gap` takes the slot until W5 draws it). A `down` piece's
+  box is laid with its height along the ground on the side the car went, turned up to 7 degrees by
+  a hash of the line and panel, its thickness standing, 4 cm over the ground at its foot; the posts
+  of the neighbours stand.
+- `panel.gdshader`: the box's height is its y axis' length (a fallen box's y lies flat); down a
+  shade darker (0.7); torn drops the fill (bars or stipple) and keeps posts and rails, a hole even
+  where `holes` is off; stub squashes the box in `vertex()` to a quarter of the height (a closed
+  top) in a brown (#5c452b). Its count stays 3 of the cap 200; `building.gdshader` 501 of 505.
+- The baked buffer is read once a tile, on its first write. On a RenderingDevice (the phone) the
+  read is asynchronous (`buffer_get_data_async` on the MultiMesh's own buffer: a synchronous read
+  stalled 1 to 2.3 ms on the cloud's software renderer) and the tile's writes follow it, two
+  frames after the hit, behind the debris; then a write is one instance's 64 bytes
+  (`buffer_update`). A write made inside the read's answer is accepted and lost (Godot 4.7.2,
+  Mobile), so they are deferred. Elsewhere (Compatibility, headless) the MultiMesh path. A hit's
+  script time: 10 to 11 µs median, 14 to 20 µs at the 95th centile (`check_panel_states` S5).
+- Debris colour and the smash sound by the looks row's `debris` (the palette's `debris` table:
+  metal, wood and leaf the old colours, sheet new); under every look this changes 484
+  `green_fence` lines (leaves and the hedge's sound, metal before) and 4 `hoarding` lines (a light
+  sheet and the metal sound, wood before).
+- `check_panel_states` (verify `panelstates`); `--smash-fence=` for shots.
 
 ## 8. Cost on the phone
 
@@ -580,7 +733,7 @@ boulevards (`--at=-560,-1950`).
 | **W5** | Panels for every light type (12a) | the other light rows as panels (`green_fence`, `low_lawn`, `ball_net`, `wood`, `hoarding`, `hedge_tall`, `chain_posts`, `post_row`, `stadium_fence`, `bars_pier`); `sag` and `leafy` tops; alt colours | the palette, `panel.gdshader`, `city_barriers.gd` | Opus for the shader, Sonnet (`object-modeler`) for rows and shots | as W4; no light line drawn in the city mesh under `panels` except `draw: keep`; the art-director accepts the shot set against section 4 | hedges without a shadow: do they sit on the ground |
 | **W6** | Broken panels (12b) | `panel_states.gd`; states and transforms on `broke` and `repaired`; sectors that come in; debris colour from the row | `soft_things.gd` (owner of the events, unchanged signals), `main.gd` (wiring), new `panel_states.gd` (a row in `systems.md`), `check_soft_things` extended | Opus | every `broken` kind of section 7 shown in a shot at the stadium; a panel broken, driven away from and back to is still down; after `repair_near` it stands; soft off: zero state writes in a 3-minute soak; script time per hit under 0.1 ms | the feel of a fence that falls (PHONE-CHECK line 5 again) |
 | **W7** | The heavy kit (9b) | `wall_kit`: foot, cap, bays, piers, proud posts, end pieces; noise screens; `bars_pier` piers with diamond colliders; the boulevards' top rail; retaining walls' coping | `city_barriers.gd`, the palette | Opus for the builder, Sonnet for rows and shots | draw calls unchanged; barrier triangles at most +0.7 M city-wide; main-pass triangles under the ceilings at the four views; prebuilt sectors at most +6 %; the sloppy table: no new dead stop, none at a pier | nothing new; the frame is in the BENCH line |
-| **W8** | Gates and gaps | a pass `barrier_gates`: where a `paths` or service `roads` centre line crosses a line, a gap of the way's width plus 0.4 m, written as `g` on the line; the builder leaves the gap and stands two posts 0.3 m taller, with open leaves for a drive | `tools/barrier_gates.py` (in `bake_osm.py` and `check_post_passes.py`), `city_barriers.gd` | Opus (`map-engineer`) | the pass idempotent; gaps counted in `check_map_data.py`; the wander run finds no new trap; the sloppy table's fence contacts go down | nothing |
+| **W8** | Gates and gaps | a pass `barrier_gates`: where a `paths` or service `roads` centre line crosses a line, a gap of the way's width plus 0.4 m, written as `g` on the line; the builder leaves the gap and stands two posts 0.3 m taller, with open leaves for a drive. **As built (2026-11-20):** no service road crosses a line on the map (the bake already cuts lines out of drives, `bake_structures.clear_carriageways`), so the pass marks the line ends facing those openings (`ge`) for gate posts; the leaves are off because their photo check failed (8 of 14 service openings are no gate: car-park mouths, plaza drives, a barrier arm), parked behind a switch until OpenStreetMap's `barrier=gate` nodes are read | `tools/barrier_gates.py` (in `bake_osm.py` and `check_post_passes.py`), `city_barriers.gd` | Opus (`map-engineer`) | the pass idempotent; gaps counted in `check_map_data.py`; the wander run finds no new trap; the sloppy table's fence contacts go down | nothing |
 | **W9** | Marks | graffiti patches and slogans, hoarding banners, ivy, stains (6.6 rows 10 to 12), by seed and by the row's `marks`; text by the warsaw-tone skill | `city_barriers.gd` (patches), `props.gd`'s posters for slogans and banners, `game/data` for the texts | Sonnet; PixelLab inside the loop's limit; the art-director accepts | draw calls at most +1 per sector with a slogan in view, 0 if the poster item is shared; at most one slogan per 150 m of wall | nothing |
 | **W10** | Sweeps and the ratchet (16) | the street-pass skill writes a type per line; the default share only goes down; when `barrier_look` has left `classic` for two builds, the `types` rows and the classic drawing are deleted | `tools/street_pass.py`, `check_map_data.py`, the palette | Sonnet; the sweep skill | per street | nothing |
 

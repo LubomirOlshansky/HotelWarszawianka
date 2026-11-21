@@ -20,6 +20,7 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/check_quest_book.gd
 
 const QuestBook := preload("res://scripts/quest_book.gd")
+const Rules := preload("res://scripts/ride_rules.gd")
 const Lines := preload("res://scripts/quest_lines.gd")
 const FirstSteps := preload("res://scripts/first_steps.gd")
 const Ladder := preload("res://scripts/ladder.gd")
@@ -124,6 +125,18 @@ func _tabs(f: Dictionary) -> void:
 	keys = empty.map(func(t: Dictionary) -> String: return str(t["key"]))
 	_expect(keys == QuestBook.ALWAYS, "with nothing known the three that always show: %s" % [keys])
 	_expect(str(empty[1]["head"][1]) != "", "an empty side jobs tab says why")
+	# F 2026-11-20: the taxi app's account is a tab of its own once main.gd hands the fact over.
+	var h := f.duplicate(true)
+	var keep := {}
+	Rules.record(keep, 80, 2)
+	Rules.record(keep, 40, 0)
+	h["taxi"] = Rules.account(keep, 2)
+	var with_taxi := QuestBook.tabs(h)
+	keys = with_taxi.map(func(t: Dictionary) -> String: return str(t["key"]))
+	_expect(keys == ["steps", "stories", "jobs", "taxi", "rivals"], "the taxi app's tab sits after the side jobs: %s" % [keys])
+	var taxi: Dictionary = with_taxi[3]["items"][0]
+	_expect(taxi["facts"].size() == 7 and str(taxi["facts"][0][1][0]) == "120 zł" and str(taxi["facts"][1][1][0]) == "60 zł" and str(taxi["facts"][2][1][1]).contains("4.87"),
+			"the account: earned 120 zł, average 60 zł, the new driver's 4.87: %s" % [taxi["facts"]])
 
 
 func _steps(f: Dictionary) -> void:

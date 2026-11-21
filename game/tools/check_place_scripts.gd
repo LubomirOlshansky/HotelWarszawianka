@@ -30,18 +30,19 @@ const TILE_AT := 4000
 ## exist today are a ratchet. The check fails when a count goes ABOVE it and says so when it went
 ## below. Measured 2026-11-13.
 const KNOWN := {
-	"first_scene": {"zfight": 837, "float": 15},
+	"first_scene": {"zfight": 951, "float": 15},  # 2026-11-19: Widok 26's terrace (3 cafe sets, 3 planters) adds 114, the same coplanar faces as the other cafe sets
 	"skwer_zlota": {"zfight": 168},
 	"centralny_ramp": {"zfight": 68, "float": 133},
 	"patelnia": {"zfight": 317, "float": 634},
 	"plac_pieciu_rogow": {"zfight": 470, "degenerate": 24, "float": 5},
 	"tarasy_screen": {"float": 1},
 	"spire_motion": {"float": 271},  # 2026-11-15: the night lines and LED band lie on the tower's glass (landmarks.gd), not on this mesh
-	"street_details": {"zfight": 7163, "float": 7},
+	"street_details": {"zfight": 7091, "float": 7},
 	"ratusz_hub": {"zfight": 271, "degenerate": 8, "float": 382},
 	"park_details": {"zfight": 2357, "float": 3602},
 	"tamka": {"zfight": 364, "float": 20},
 	"towarowa22_life": {"zfight": 1206, "float": 1510},  # 2026-11-16: props.gd's cafe sets, benches and people (shared pieces: boxes that meet and stand on their feet) on the flat stub
+	"bulwar_food": {"zfight": 12},  # 2026-11-19: the food truck's hidden chassis and floor boxes overlap (under the body, not visible)
 	"light_garden": {"float": 3},  # the dandelion clocks' bulb tips on their spikes (2026-11-15; 7 before the flower rebuild)
 	"trasa_wz": {"zfight": 249, "float": 128},  # 2026-11-15: the walls, rails and stairs keep set heights (walls and steps are sector-only data) and the kiosk front hangs on the map's kiosk, so on the flat stub the pilaster feet meet and the rails and the front stand off the ground
 }

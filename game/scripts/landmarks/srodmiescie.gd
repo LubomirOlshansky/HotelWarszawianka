@@ -315,6 +315,15 @@ const DOM_BOARD := Color("#f2f2ee")
 const DOM_SIGN := Color(0.95, 0.97, 1.0)
 const DOM_ZUBR := Color(0.86, 0.13, 0.2)
 const DOM_WISTULA := Color(0.22, 0.3, 0.62)
+const DOM_NAVY := Color(0.14, 0.18, 0.36)
+const DOM_SOFFIT := Color("#a9a59c")
+const DOM_TABLE := Color("#3b3a38")
+const DOM_CHAIR := Color("#c9a24a")
+const DOM_TERRACE := 0.75                  # the arcade's terrace over the plaza: five steps
+const DOM_STEPS := Vector2(21.0, 53.0)     # the steps' span (u), between the two stone drums
+const DOM_TERRACE_V := -6.5                # the terrace's edge (v), in front of the towers' fronts
+const DOM_LOGGIAS := [Vector2(DOM_WING, 24.3), Vector2(51.2, DOM_LEN - DOM_WING)]  # the deep end bays (u)
+const DOM_LOGGIA_BACK := 9.0               # their back wall (v)
 
 
 func _find_dom_partii() -> void:
@@ -322,6 +331,14 @@ func _find_dom_partii() -> void:
 	if outline.size() < 3:
 		return
 	_add_site("dom_partii", [_largest(Geometry2D.offset_polygon(outline, 0.5, Geometry2D.JOIN_MITER))])
+	# The front's terrace and steps (`_dp_arcade`) stay clear of the plaza's mapped trees.
+	var a := DOM_A.normalized()
+	var b := Vector2(-a.y, a.x)
+	var t := PackedVector2Array()
+	for q: Vector2 in [Vector2(-1.0, DOM_TERRACE_V - 3.0), Vector2(DOM_LEN + 1.0, DOM_TERRACE_V - 3.0),
+			Vector2(DOM_LEN + 1.0, DOM_BODY_V[0].x), Vector2(-1.0, DOM_BODY_V[0].x)]:
+		t.append(DOM_NW + a * q.x + b * q.y)
+	tree_free.append([t, 0.0, _box_of([t])])
 
 
 ## Evenly spaced bay middles from a to b, `n` bays, each giving `per` windows `gap` apart.
@@ -401,6 +418,141 @@ func _dp_ring_ledge(r: Rect2, proud: float, y0: float, y1: float, col: Color) ->
 	_strip(ring, grown, _g + y1, col)
 
 
+## A café table with two chairs at (u, v) on the floor y (absolute).
+func _dp_table(u: float, v: float, y: float) -> void:
+	_lbox(u, v, 0.05, 0.05, y, y + 0.72, DOM_TABLE, M_STONE)
+	_lbox(u, v, 0.38, 0.38, y + 0.72, y + 0.77, DOM_TABLE, M_STONE)
+	for s: float in [-1.0, 1.0]:
+		_lbox(u + s * 0.72, v, 0.22, 0.22, y + 0.2, y + 0.46, DOM_CHAIR, M_STONE)
+		_lbox(u + s * 0.92, v, 0.03, 0.22, y + 0.46, y + 0.95, DOM_CHAIR, M_STONE)
+
+
+## A clipped ball tree in a square granite planter at (u, v) on the floor y (the towers' fronts).
+func _dp_topiary(u: float, v: float, y: float) -> void:
+	_lbox(u, v, 0.5, 0.5, y, y + 0.8, DOM_GRANITE, M_STONE, DOM_SHADE)
+	_lbox(u, v, 0.04, 0.04, y + 0.8, y + 2.0, DOM_DOOR, M_STONE)
+	var c := _w(u, v)
+	_frustum(_circle(c, 0.15, 6), y + 1.85, _circle(c, 0.62, 6), y + 2.3, DOM_LEAF)
+	_frustum(_circle(c, 0.62, 6), y + 2.3, _circle(c, 0.18, 6), y + 2.85, DOM_LEAF.lightened(0.08), DOM_LEAF.lightened(0.12))
+
+
+## The front's ground floor from F's photos (2026-11-19: the front from the plaza, the terrace at
+## dusk, the corner from the statue): the colonnade stands on a stone terrace five steps over the
+## plaza, edged by a low wall that ends in two round drums by the steps; the two glass bays are
+## cafés (parodies: SZARLOTKA and the cocktail bar's neon Z, ZAMIESZAJ), the two end bays deep
+## loggias whose back walls hold a beer bar (CUDA NA PATYKU) and a door; the middle bay goes
+## through to the courtyard down steps. A dark soffit with lamps, lanterns on the piers, café
+## tables in the loggias and along the terrace, planters, and clipped ball trees before the
+## towers' stone-panelled ground floors. The terrace collides: cars stay on the plaza.
+func _dp_arcade(g: float, pave: float) -> void:
+	var tt := g + DOM_TERRACE
+	var foot := g - 4.5
+	var u0 := DOM_WING
+	var u1 := DOM_LEN - DOM_WING
+	var body: Vector2 = DOM_BODY_V[0]
+	_mode = M_STONE
+	# The terrace and the arcade's floor: one slab from the plaza's edge into the courtyard's mouth.
+	var terrace := Rect2(-0.3, DOM_TERRACE_V, DOM_LEN + 0.6, body.x - DOM_TERRACE_V)
+	_prism(_lrect(terrace), foot, tt, DOM_SHADE, DOM_PAVING, M_STONE, M_STONE)
+	var deck := Rect2(u0, body.x, u1 - u0, body.y - body.x)
+	_prism(_lrect(deck), foot, tt, DOM_SHADE, DOM_FIELD.darkened(0.12), M_STONE, M_STONE)
+	_collide(_lrect(terrace))
+	_collide(_lrect(deck))
+	# The low wall on the terrace's edge either side of the steps, ending in the round drums.
+	var lip := DOM_TERRACE_V + 0.2
+	for span: Vector2 in [Vector2(-0.3, DOM_STEPS.x - 1.5), Vector2(DOM_STEPS.y + 1.5, DOM_LEN + 0.3)]:
+		_lbox((span.x + span.y) * 0.5, lip, (span.y - span.x) * 0.5, 0.2, tt - 0.05, tt + 0.4, DOM_LEDGE, M_STONE, DOM_STONE)
+	for du: float in [DOM_STEPS.x - 1.5, DOM_STEPS.y + 1.5]:
+		var c := _w(du, DOM_TERRACE_V + 1.2)
+		_prism(_circle(c, 1.5, 12), foot, tt + 0.55, DOM_LEDGE, DOM_STONE, M_STONE, M_STONE)
+		_collide(_circle(c, 1.5, 8))
+	# The steps down to the plaza, five of 15 cm, each 40 cm deep.
+	for k in 5:
+		var d := 0.4 * (5 - k)
+		var top := g + DOM_TERRACE * (k + 1) / 6.0
+		_prism(_lrect(Rect2(DOM_STEPS.x, DOM_TERRACE_V - d, DOM_STEPS.y - DOM_STEPS.x, d)), foot, top,
+				DOM_SHADE, DOM_PAVING.darkened(0.03 * (k % 2)), M_STONE, M_STONE)
+	_collide(_lrect(Rect2(DOM_STEPS.x, DOM_TERRACE_V - 2.0, DOM_STEPS.y - DOM_STEPS.x, 2.0)))
+	# The middle bay's steps down into the courtyard (when the courtyard is lower).
+	var drop := tt - pave
+	if drop > 0.2:
+		var n := clampi(roundi(drop / 0.15), 2, 8)
+		for k in n:
+			var d := 0.4 * (n - k)
+			_prism(_lrect(Rect2(DOM_PIERS[1] + 0.7, body.y, DOM_PIERS[2] - DOM_PIERS[1] - 1.4, d)), pave - 0.3,
+					tt - drop * (n - k) / (n + 1.0), DOM_SHADE, DOM_PAVING, M_STONE, M_STONE)
+	# The soffit: the bodies' undersides, shaded, with a lamp in each bay (warm at night).
+	for bv: Vector2 in DOM_BODY_V:
+		var r := _lrect(Rect2(u0, bv.x, u1 - u0, bv.y - bv.x))
+		var y := g + DOM_GF - 0.01
+		_quad(Vector3(r[0].x, y, r[0].y), Vector3(r[1].x, y, r[1].y), Vector3(r[2].x, y, r[2].y), Vector3(r[3].x, y, r[3].y),
+				Vector3.DOWN, DOM_SOFFIT)
+	_mode = M_LAMP
+	var bays := [u0] + DOM_PIERS + [u1]
+	for k in bays.size() - 1:
+		var mu := (float(bays[k]) + float(bays[k + 1])) * 0.5
+		for lv: float in [body.x + 2.5, body.x + 7.0]:
+			var c := _rect(mu, lv, 0.4, 0.4)
+			var y := g + DOM_GF - 0.04
+			_quad(Vector3(c[0].x, y, c[0].y), Vector3(c[1].x, y, c[1].y), Vector3(c[2].x, y, c[2].y), Vector3(c[3].x, y, c[3].y),
+					Vector3.DOWN, DOM_LAMP)
+	# A lantern on each pier's plaza face.
+	for pu: float in DOM_PIERS:
+		_lbox(pu, body.x - 0.05, 0.14, 0.1, g + 3.3, g + 3.85, DOM_LAMP, M_LAMP, DOM_IRON)
+	_mode = M_STONE
+	# The cafés: mullions on the glass, the signs, planters before them.
+	var front_v := body.x + 1.6
+	for i in DOM_LOBBIES.size():
+		var lb: Vector2 = DOM_LOBBIES[i]
+		var p0 := Vector2(lb.x, front_v)
+		var p1 := Vector2(lb.y, front_v)
+		var w := lb.y - lb.x
+		for k in range(0, 4):
+			_dp_strip(p0, p1, Vector2(0.0, -1.0), w * k / 3.0, 0.14, 0.06, DOM_TERRACE, DOM_GF, DOM_IRON)
+		_dp_strip(p0, p1, Vector2(0.0, -1.0), w * 0.5, w, 0.06, DOM_TERRACE + 2.9, DOM_TERRACE + 3.0, DOM_IRON)
+		for pu: float in [lb.x + 1.0, lb.y - 1.0]:
+			_lbox(pu, body.x + 0.9, 0.45, 0.45, tt, tt + 0.7, DOM_GRANITE, M_STONE, DOM_SHADE)
+			var c := _w(pu, body.x + 0.9)
+			_frustum(_circle(c, 0.6, 6), tt + 0.7, _circle(c, 0.1, 6), tt + 2.4, DOM_LEAF, DOM_LEAF)
+		var mid := _w((lb.x + lb.y) * 0.5, front_v)
+		var out := Vector3(-_b.x, 0.0, -_b.y)
+		if i == 0:
+			# The cocktail bar: its tall neon Z behind the glass, the name over it.
+			signs.append(["Z", Vector3(mid.x, tt + 1.2, mid.y), out, 0.95, DOM_SIGN])
+			signs.append(["ZAMIESZAJ", Vector3(mid.x, g + DOM_GF - 1.55, mid.y), out, 5.6 / Neon.length_of("ZAMIESZAJ"), DOM_SIGN])
+		else:
+			signs.append(["SZARLOTKA", Vector3(mid.x, g + DOM_GF - 1.55, mid.y), out, 6.0 / Neon.length_of("SZARLOTKA"),
+					Color(1.0, 0.82, 0.55)])
+	# The loggias: a back wall with a door and two windows, a lantern each side; tables.
+	for i in DOM_LOGGIAS.size():
+		var lg: Vector2 = DOM_LOGGIAS[i]
+		var span := Rect2(lg.x, DOM_LOGGIA_BACK, lg.y - lg.x, body.y - DOM_LOGGIA_BACK)
+		_prism(_lrect(span), tt - 0.1, g + DOM_GF, DOM_STONE.darkened(0.06), Color(0, 0, 0, 0), M_STONE)
+		var p0 := Vector2(lg.x, DOM_LOGGIA_BACK)
+		var p1 := Vector2(lg.y, DOM_LOGGIA_BACK)
+		var w := lg.y - lg.x
+		_dp_panes(p0, p1, Vector2(0.0, -1.0), [w * 0.5], [DOM_TERRACE], 1.8, 2.9, DOM_DOOR, 0.05)
+		_dp_panes(p0, p1, Vector2(0.0, -1.0), [w * 0.2, w * 0.8], [DOM_TERRACE + 0.5], 1.6, 2.6, DOM_LOBBY, 0.05)
+		_mode = M_LAMP
+		for s: float in [-1.6, 1.6]:
+			_dp_strip(p0, p1, Vector2(0.0, -1.0), w * 0.5 + s, 0.22, 0.25, DOM_TERRACE + 2.3, DOM_TERRACE + 2.8, DOM_LAMP)
+		_mode = M_STONE
+		if i == 1:
+			# Its name hangs in the bay's mouth, under the balcony, where the plaza sees it.
+			var mid := _w(lg.x + w * 0.5, body.x - 0.3)
+			signs.append(["CUDA NA PATYKU", Vector3(mid.x, g + DOM_GF - 1.45, mid.y), Vector3(-_b.x, 0.0, -_b.y),
+					8.0 / Neon.length_of("CUDA NA PATYKU"), Color(1.0, 0.68, 0.22)])
+		for tu: float in [lg.x + w * 0.27, lg.x + w * 0.73]:
+			for tv: float in [body.x + 1.6, body.x + 4.6]:
+				_dp_table(tu, tv, tt)
+	# Café tables along the terrace before the arcade, leaving the steps' middle free.
+	for tu: float in [16.5, 20.0, 23.5, 27.0, 30.5, 45.0, 48.5, 52.0, 55.5, 59.0]:
+		_dp_table(tu, body.x - 2.2, tt)
+	# Clipped ball trees before the towers.
+	for tu: float in [2.2, 5.5, 8.8, 12.1, DOM_LEN - 12.1, DOM_LEN - 8.8, DOM_LEN - 5.5, DOM_LEN - 2.2]:
+		_dp_topiary(tu, -1.3, tt)
+
+
 func _build_dom_partii(_site: Dictionary) -> void:
 	_o = DOM_NW
 	_a = DOM_A.normalized()
@@ -448,7 +600,14 @@ func _build_dom_partii(_site: Dictionary) -> void:
 			var fo := Vector2(0.0, -1.0) if v < 1.0 else Vector2(0.0, 1.0)
 			_dp_panes(f0, f1, fo, [2.9, 7.1, 11.3], storeys, 1.3, 2.3, DOM_GLASS)
 			_dp_panes(f0, f1, fo, _spread(0.0, DOM_WING, 5), attic, 0.75, 0.75, DOM_GLASS)
-			_dp_panes(f0, f1, fo, [7.1], [0.0], 2.4, 3.2, DOM_DOOR, 0.12)
+			if v > 1.0:
+				_dp_panes(f0, f1, fo, [7.1], [0.0], 2.4, 3.2, DOM_DOOR, 0.12)
+			else:
+				# The plaza's towers have no door: their ground floor is big stone panels, four
+				# across and two high (F's photos, 2026-11-19).
+				for k in range(1, 4):
+					_dp_strip(f0, f1, fo, DOM_WING * k / 4.0, 0.1, 0.03, 0.9, DOM_GF - 0.35, DOM_SHADE)
+				_dp_strip(f0, f1, fo, DOM_WING * 0.5, DOM_WING - 0.2, 0.03, DOM_GF * 0.5 + 0.2, DOM_GF * 0.5 + 0.3, DOM_SHADE)
 		# The courtyard face: eighteen bays of paired windows; on the ground floor a portal in every
 		# third bay (a dark door in a stone frame, a lamp each side), a window in the rest.
 		var c0 := Vector2(inner_u, DOM_BODY_V[0].y)
@@ -594,15 +753,22 @@ func _build_dom_partii(_site: Dictionary) -> void:
 		var c := _w(pl.x, pl.y)
 		_frustum(_circle(c, 0.55, 6), pave + 0.75, _circle(c, 0.08, 6), pave + 2.3, DOM_LEAF, DOM_LEAF)
 
+	_dp_arcade(g, pave)
+
 	# --- the roof signs (parodies) ------------------------------------------------------------
 	var wing_top := g + DOM_WING_TOP
-	# ROBUR in white tubes over the north-west tower, on its north and west fronts.
+	# ROBUR in navy letters on a white board over the Nowy Świat tower, on its plaza and street
+	# fronts (the real board is white with dark serif letters, F's photos 2026-11-19).
 	var k_r := 1.5
+	var r_len := Neon.length_of("ROBUR") * k_r
+	var r_h := Neon.ROW_H * Neon.PIXEL * k_r
+	_lbox(r_len * 0.5 + 2.5, 0.35, r_len * 0.5 + 0.4, 0.1, wing_top, wing_top + r_h + 0.9, DOM_BOARD, M_STONE, DOM_SHADE)
+	_lbox(0.35, r_len * 0.5 + 2.5, 0.1, r_len * 0.5 + 0.4, wing_top, wing_top + r_h + 0.9, DOM_BOARD, M_STONE, DOM_SHADE)
 	for f: Array in [[_a, -_b], [_b, -_a]]:
 		var along: Vector2 = f[0]
 		var o: Vector2 = f[1]
-		var mid := DOM_NW + along * (Neon.length_of("ROBUR") * k_r * 0.5 + 2.5) - o * 0.6
-		signs.append(["ROBUR", Vector3(mid.x, wing_top + 0.6, mid.y), Vector3(o.x, 0.0, o.y), k_r, DOM_SIGN])
+		var mid := DOM_NW + along * (r_len * 0.5 + 2.5) - o * 0.6
+		signs.append(["ROBUR", Vector3(mid.x, wing_top + 0.45, mid.y), Vector3(o.x, 0.0, o.y), k_r, DOM_NAVY])
 	# PEPEO ŻUBR on a white board over the north-east tower's front.
 	var bu := DOM_LEN - DOM_WING * 0.5
 	_lbox(bu, 1.2, 6.0, 0.25, wing_top, wing_top + 3.4, DOM_BOARD, M_STONE, DOM_SHADE)
@@ -1027,8 +1193,17 @@ const MP_ROOF := Color("#7b7a76")
 const MP_PLANT := Color("#a9a8a2")
 const MP_GLASS := Color("#2f3a42")
 const MP_CREAM := Color("#e6dfcf")
-const MP_BOX := Color("#f2f2ee")
+## The light box: M_LAMP glows its colour x2.4 at night, so a light grey reads as a lit white panel
+## without blooming over the green letters (#f2f2ee blew out and the letters went pale).
+const MP_BOX := Color("#a8aca6")
 const MP_GREEN := Color(0.18, 1.0, 0.36)
+## The street block (game/data/street_blocks, #495) that is this hotel: it stood in the same outline as a
+## second model, and its triangles (a white frame round a dark green panel at the roof edge, among others)
+## stood in front of the light box's lower half and over the letters, in both city paths (F, 2026-11-19:
+## "fixed so many times, still wrong"). This site builds the hotel whole, so `_find_blocks` skips it.
+const MP_BLOCK := "28759009"
+## How far the light box's bottom stands over the main roof (clear of the 2 m roof structures).
+const MP_SIGN_LIFT := 2.4
 
 
 func _build_metropol_sign(site: Dictionary) -> void:
@@ -1128,12 +1303,18 @@ func _build_metropol_sign(site: Dictionary) -> void:
 		var th := Neon.ROW_H * Neon.PIXEL * k
 		var board_h := th * 1.5
 		# On two posts over the roof structures (up to 2 m above the main roof) and flush with the face.
-		var base := top + 2.4
-		_lbox(0.0, 0.2, width * 0.5, 0.25, base, base + board_h, MP_BOX, M_STONE, MP_BOX.darkened(0.08))
+		# The box is a light box (M_LAMP): white by day, lit from inside at night, so the green
+		# letters stand on a white panel as in F's photos and never float on the dark (2026-11-19:
+		# in M_STONE it went as dark as the roof at night and only the letters showed).
+		var base := top + MP_SIGN_LIFT
+		_lbox(0.0, 0.2, width * 0.5, 0.25, base, base + board_h, MP_BOX, M_LAMP, Color("#e6e6e0"))
 		for pu: float in [-width * 0.35, width * 0.35]:
 			_lbox(pu, 0.0, 0.2, 0.2, top, base, MP_PLANT, M_STONE, MP_PLANT)
-		var c := _w(0.0, 0.52)
-		signs.append(["METROPOLKA", Vector3(c.x, base + board_h * 0.5, c.y), Vector3(out.x, 0.0, out.y), k, MP_GREEN])
+		# A landmark sign's point is the middle of the letters' BOTTOM edge (map_builder
+		# _build_landmark_signs adds half their height and 0.4 m out): the letters' row (th tall)
+		# sits in the box's middle, 0.03 m in front of its face (0.45 m out).
+		var c := _w(0.0, 0.08)
+		signs.append(["METROPOLKA", Vector3(c.x, base + (board_h - th) * 0.5, c.y), Vector3(out.x, 0.0, out.y), k, MP_GREEN])
 	_collide(_simplify(outline, 0.3))
 	_mode = M_STONE
 

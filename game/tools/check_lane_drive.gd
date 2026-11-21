@@ -83,6 +83,7 @@ const ContactLog := preload("res://scripts/contact_log.gd")
 const DriveControls := preload("res://scripts/drive_controls.gd")
 const LaneAssist := preload("res://scripts/lane_assist.gd")
 const SoftThings := preload("res://scripts/soft_things.gd")
+const PanelStates := preload("res://scripts/panel_states.gd")
 const CityBarriers := preload("res://scripts/city_barriers.gd")
 ## --links: the metres of street before a link and of the way on after it, the most a link's
 ## drive may stray from its curve (m), and the frames it may touch something fixed.
@@ -221,6 +222,9 @@ var _ep0 := 0
 var _total_m := 0.0
 ## Step 7: the soft things; --soft (breakable) and --no-soft (built hard).
 var soft: SoftThings
+## W6 of the walls look: the broken panels shown, as main.gd wires them (its writes are counted: none
+## with the fences hard).
+var panel_states := PanelStates.new()
 var soft_on := false
 var no_soft := false
 ## --wander's state: the sector keys to visit, the one now, the loaded sectors (key: root), the
@@ -300,6 +304,7 @@ func _initialize() -> void:
 	soft = SoftThings.new()
 	soft.no_soft = not soft_on
 	root.add_child(soft)
+	panel_states.attach(soft)
 	# The index first (the lane graph needs only it), then just the sectors within REACH of a route.
 	if prebuilt:
 		map = (load(SectorStreamer.INDEX_SCENE) as PackedScene).instantiate()
@@ -383,6 +388,7 @@ func _initialize() -> void:
 				if prebuilt else map.build_sector(key)
 		map.add_child(sector)
 		soft.add_sector(sector)
+		panel_states.add_sector(sector)
 		n += 1
 	if not prebuilt:
 		map.measure_sectors()
@@ -928,8 +934,8 @@ func _finish() -> void:
 		var sp: Array[String] = []
 		for k: String in clog.soft_counts:
 			sp.append("%s %d" % [k, clog.soft_counts[k]])
-		print("check_lane_drive: soft things: %d smashes (%s), %d panels broken" % [_smashes(),
-				", ".join(sp), soft.panels_broken])
+		print("check_lane_drive: soft things: %d smashes (%s), %d panels broken; panel_states: %d hits, %d pieces written" % [
+				_smashes(), ", ".join(sp), soft.panels_broken, panel_states.hits, panel_states.writes])
 		if soft_on:
 			print("check_lane_drive: parked cars: %d pushes, %d walls (%d by the lane rule), %d chain pushes, %d towed" % [
 					soft.pushes, soft.wedges, soft.lane_wedges, soft.chains, soft.towed])
@@ -979,6 +985,7 @@ func _w_load(key: Vector2i) -> Node3D:
 			if prebuilt else map.build_sector(key)
 	map.add_child(sector)
 	soft.add_sector(sector)
+	panel_states.add_sector(sector)
 	_w_loaded[key] = sector
 	return sector
 

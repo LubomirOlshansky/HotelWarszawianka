@@ -42,6 +42,7 @@ const Beacon := preload("res://scripts/beacon.gd")
 const Lines := preload("res://scripts/quest_lines.gd")
 const MapMarkers := preload("res://scripts/map_markers.gd")
 const Lang := preload("res://scripts/lang.gd")
+const GameTime := preload("res://scripts/game_time.gd")
 
 ## Within this many metres of a start (and slower than GREET_KMH) the friend walks up.
 const GREET_R := 30.0
@@ -339,13 +340,7 @@ static func open_hour(def: Dictionary) -> float:
 ## The fixed look (time_of_day.gd NAMES) whose light fits `hour`: the jump to a night quest's
 ## opening hour turns the city dark too.
 static func look_for(hour: float) -> String:
-	if hour >= 5.0 and hour < 8.0:
-		return "Dawn"
-	if hour >= 8.0 and hour < 18.5:
-		return "Day"
-	if hour >= 18.5 and hour < 20.5:
-		return "Dusk"
-	return "Night"
+	return GameTime.look_for(hour)  # the time owner's (F 2026-11-19)
 
 
 ## The closed card's buttons: wait for the opening hour (when the clock can jump) or just OK.

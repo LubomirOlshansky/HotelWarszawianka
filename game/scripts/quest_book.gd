@@ -18,6 +18,9 @@ extends RefCounted
 ##               nearest first, "new" ones (invited, not opened here yet) on top;
 ##   jobs        SIDE JOBS: one entry per kind of job on offer now (the nearest place of
 ##               that kind), with how many the player has done (wallet.gd `jobs`);
+##   taxi        PODWÓZKA: the taxi app's driver account (F 2026-11-20): earned ever, the average fare,
+##               the rating, rides, best ride and streaks (ride_rules.gd `account`); only when main.gd
+##               hands over the `taxi` fact;
 ##   rivals      RIVALS: the Six (ladder.gd) and the final;
 ##   collection  COLLECTION: districts, Syrenki, tapes, places found.
 ##
@@ -33,11 +36,12 @@ const Lines := preload("res://scripts/quest_lines.gd")
 const FirstSteps := preload("res://scripts/first_steps.gd")
 const Ladder := preload("res://scripts/ladder.gd")
 const StoryQuests := preload("res://scripts/story_quests.gd")
+const Rules := preload("res://scripts/ride_rules.gd")
 
 const DIALOGUE_PATH := "res://data/dialogue.json"
 const GROUP := "quest_book"
 ## The tabs, in the order the screen shows them.
-const TABS := ["steps", "stories", "jobs", "rivals", "collection"]
+const TABS := ["steps", "stories", "jobs", "taxi", "rivals", "collection"]
 ## The tabs that show even when empty.
 const ALWAYS := ["stories", "jobs", "rivals"]
 ## The side jobs' kinds, in the tab's order, and the wallet.gd `jobs` key that counts each ("" none).
@@ -138,7 +142,7 @@ static func mark_invite(intro: Dictionary, defs: Array, id: String) -> Array:
 ##   steps: [{"id", "pl", "en", "done", "entry"}] all seven in order (first_steps.gd), [] once done;
 ##   friends: the friends call now (the third First step);
 ##   stories: [{"id", "pl", "en", "who", "blurb", "hello", "colour", "at", "open", "when", "new"}];
-##   jobs: wallet.gd `jobs`; rivals: ladder.gd `chips`; final: [text, state] (ladder `rows`' last);
+##   jobs: wallet.gd `jobs`; taxi: ride_rules.gd `account` ({} none); rivals: ladder.gd `chips`; final: [text, state] (ladder `rows`' last);
 ##   night: the final's night button shows; districts: [{"name_pl", "name_en", "found", "pct"}];
 ##   total: the districts' per cent; syrenki, tapes, places: [found, of].
 static func tabs(f: Dictionary) -> Array[Dictionary]:
@@ -168,6 +172,10 @@ static func tabs(f: Dictionary) -> Array[Dictionary]:
 				t["items"] = _jobs(f.get("entries", []), car, str(f.get("tracked", "")), f.get("jobs", {}))
 				if (t["items"] as Array).is_empty():
 					t["head"] = words("busy") if not (f.get("now", {}) as Dictionary).is_empty() else words("empty")
+			"taxi":
+				if (f.get("taxi", {}) as Dictionary).is_empty():
+					continue
+				t["items"] = _taxi(f["taxi"])
 			"rivals":
 				t["items"] = _rivals(f.get("rivals", []), f.get("final", []), bool(f.get("night", false)), f.get("entries", []), car)
 				var won := 0
@@ -359,6 +367,25 @@ static func _jobs(entries: Array, car: Vector2, tracked: String, jobs: Dictionar
 		it["buttons"] = _place_buttons(e, tracked, start_words)
 		out.append(it)
 	return out
+
+
+## The taxi app's driver account: one entry, the numbers of ride_rules.gd `account` (also what a later
+## online leaderboard reads).
+static func _taxi(a: Dictionary) -> Array:
+	var it := _item("taxi_account", "taxi", words("taxi_title"), Color("#4fd8c4"), "ride")
+	it["about"] = words("taxi_about")
+	var stars := Rules.stars_text(float(a["rating"])).split(" ")[0] + " " + Rules.num(float(a["rating"]), 2)
+	var stars_en := Rules.stars_text(float(a["rating"])).split(" ")[0] + " " + Rules.num(float(a["rating"]), 2, false)
+	var earned := fmt("v_zl", [int(a["earned"])])
+	it["sub"] = ["%s · %s" % [earned[0], stars], "%s · %s" % [earned[1], stars_en]]
+	it["facts"] = [[words("f_earned"), earned],
+			[words("f_avg_fare"), fmt("v_zl", [int(a["average"])])],
+			[words("f_rating"), [stars, stars_en]],
+			[words("f_rides"), fmt("v_times", [int(a["rides"])])],
+			[words("f_best_ride"), fmt("v_zl", [int(a["best"])])],
+			[words("f_streak"), fmt("v_times", [int(a["streak"])])],
+			[words("f_best_streak"), fmt("v_times", [int(a["best_streak"])])]]
+	return [it]
 
 
 ## The Six as ladder.gd's chips say (won, open, locked) and the final's line.

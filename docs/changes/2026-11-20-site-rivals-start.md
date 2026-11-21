@@ -1,0 +1,1 @@
+- The Rivals picture on the website now shows the start of a street race: START! on screen and the rival car right next to yours.

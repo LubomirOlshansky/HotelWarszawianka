@@ -32,6 +32,7 @@ extends SceneTree
 ## Prints "check_street_meet: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --fixed-fps 60 --script res://tools/check_street_meet.gd [-- --verbose]
 
+const GameTime := preload("res://scripts/game_time.gd")
 const Meet := preload("res://scripts/street_meet.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Story := preload("res://scripts/story_quests.gd")
@@ -83,6 +84,7 @@ class Driver extends RefCounted:
 	var race_lat := 0.0
 	var race_effort := 0.0
 	var race_corner := 0.0
+	var race_boost := 1.0
 	var race_still := 0.0
 	var race_passes := 0
 	var race_mistake := 0.0
@@ -803,6 +805,10 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_hour = 12.0
 	var t0: float = m.call_in
 	_frames(2.0)
+	_ok(m.call_in < t0 - 1.5, "by day (12 h) with time.by_day the clock stands (F 2026-11-19: Darek calls by day too)")
+	GameTime.BY_DAY = 0.0  # the hours rule alone, to the end of this block
+	t0 = m.call_in
+	_frames(2.0)
 	_ok(m.call_in == t0, "by day (12 h) the clock stands")
 	_hour = 23.0
 	_world_free = false
@@ -821,6 +827,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_frames(2.0)
 	_ok(m.call_in < t0 - 1.5, "with force it counts by day")
 	m.force = false
+	GameTime.BY_DAY = 1.0  # pacing.json's (check_game_time)
 	_hour = 23.0
 	m.call_in = 0.4
 	_hud.toasts.clear()

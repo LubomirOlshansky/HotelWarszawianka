@@ -32,7 +32,7 @@ after the scale-up, so they stay sharp and need no 3D transparency.
 | `foliage.gdshader` | Tree crowns and the parked cars' paint. Trees: the kind (instance custom r, `map_builder.gd` TreeKind) bends the crown into its silhouette; the leaves left come from the shader global `tree_season` and the kind's row of `tree_look` (`map_builder.gd` TREE_LOOK): full, thin (the whole crown fading evenly towards twig brown, no patches, no discard) or bare (a warm brown twig crown keeping 18 % of its leaf tint, short limbs, UV 1, 1, width in world metres from CUSTOM0); nothing seasonal in the instance data; `limbs` 0 on Low (`tiers.gd` tree_limbs) |
 | `fixture.gdshader`, `glow.gdshader`, `neon.gdshader` | Lamps, additive light cones, neon signs (night only) |
 | `map_edge.gdshader` | Land past the map edge |
-| `panel.gdshader` | W4 of the walls look: the light fences and low hedges as instanced 2 m panels (one `Panels` MultiMesh a sector, `barrier_look` `panels` only): posts, rails, bars and a tint fill by the pixel rule (`panel_rule.gd`), the row's numbers from a rows texture, `discard` holes (`tiers.gd` panel_holes), no shadow; 3 of the lit budget |
+| `panel.gdshader` | W4 and W5 of the walls look: every light fence and hedge (W5: all light rows but the tram's railing) as instanced 2 m panels (one `Panels` MultiMesh a sector, `barrier_look` `panels` only): posts, rails, bars and a tint fill by the pixel rule (`panel_rule.gd`), the row's numbers from a rows texture, `discard` holes (`tiers.gd` panel_holes), no shadow; W5: sagging and leafy tops, closed rows (wood, hoarding, hedges) with joints and no holes, leaves on a green fence, the gap (squashed in vertex) and a wood gap's two boards; 3 of the lit budget |
 | `poster.gdshader`, `led_screen.gdshader`, `spire_*.gdshader`, `event_fog.gdshader` | Single landmarks and events |
 | `post.gdshader`, `vhs.gdshader` | Full-screen passes |
 | `title.gdshader`, `chrome.gdshader`, `solo.gdshader` | Title screen, wordmark, landmark review look |
@@ -59,7 +59,7 @@ rain reads these, never its own copy.
   Measure with `--probe` at 2868x1320 on the Mobile renderer.
 - **Scripts**: all systems about 1 ms a frame on the Mac at the spawn.
 - **Adreno shader budget**: the Android driver fails to link fragment shaders past a
-  control-flow ceiling. The lite building shader stands at 501 of 505 (2026-11-13; `check_shader_budget` prints the number, trust it over this line), and 15 of the 16 skin slots are taken (slot 1 is free). Prefer `step`, `mix`,
+  control-flow ceiling. The lite building shader stands at 503 of 505 (2026-11-19; `check_shader_budget` prints the number, trust it over this line), and all 16 skin slots are taken (slot 1 went to Warsaw UNIT's Dragon Skin, `S_SCALES`). Prefer `step`, `mix`,
   ternaries and `all()`/`any()` over `if`; run `check_shader_budget.gd`. The next shader change to
   building must slim it first.
 - **Streaming**: a frame that loads a sector at most 33 ms; the main thread per frame at most 3 ms.

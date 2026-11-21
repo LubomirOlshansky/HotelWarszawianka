@@ -23,6 +23,7 @@ signal quit_quest
 ## An item marked NEW was looked at (its id): main.gd forgets the mark.
 signal seen(id: String)
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const QuestBook := preload("res://scripts/quest_book.gd")
 const Lang := preload("res://scripts/lang.gd")
 const Portraits := preload("res://scripts/portraits.gd")
@@ -41,12 +42,12 @@ const FACE := 56.0
 const T_TITLE := 17.0
 const T_SUB := 13.0
 const T_BIG := 20.0
-const GOLD := Color("#ffd23f")
-const INK := Color("#1a1622")
-const CREAM := Color("#fbf7ee")
-const MUTED := Color("#c9c2d8")
-const NEW_RED := Color("#ff4f6d")
-const QUIT_COLOUR := Color("#ff5a5a")
+const GOLD := UiKit.GOLD
+const INK := UiKit.ON_GOLD
+const CREAM := UiKit.INK
+const MUTED := UiKit.SUB
+const NEW_RED := UiKit.ALERT
+const QUIT_COLOUR := UiKit.ALERT  # one red (was #ff5a5a)
 ## A second tap on QUIT within this long quits.
 const QUIT_ARM := 3.0
 ## A finger that moved further than this (pt) was a drag, not a tap.
@@ -100,7 +101,7 @@ func _build() -> void:
 	_built = true
 	_bg = ColorRect.new()
 	_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_bg.color = Color(0.07, 0.06, 0.1, 0.97)
+	_bg.color = Color(UiKit.CARD, 0.97)
 	_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_bg)
 	var bw: Array = QuestBook.words("b_back")
@@ -134,7 +135,7 @@ func _build() -> void:
 	_list_scroll.add_child(_list)
 	_detail = PanelContainer.new()
 	_detail.name = "detail"
-	_detail.add_theme_stylebox_override("panel", _panel(Color(0.12, 0.11, 0.17, 0.96), GOLD))
+	_detail.add_theme_stylebox_override("panel", _panel(UiKit.RAISED, GOLD))
 	add_child(_detail)
 	var dv := VBoxContainer.new()
 	dv.add_theme_constant_override("separation", _px(8))
@@ -228,7 +229,7 @@ func _fill() -> void:
 		if int(t["new"]) > 0:
 			title += "  •%d" % int(t["new"])
 		var on := str(t["key"]) == tab
-		var b := _button(title, on, NEW_RED if int(t["new"]) > 0 and not on else GOLD)
+		var b := _button(title, on, NEW_RED if int(t["new"]) > 0 and not on else GOLD, true)
 		b.name = "tab_" + str(t["key"])
 		b.pressed.connect(_tab_tapped.bind(str(t["key"])))
 		_tab_row.add_child(b)
@@ -287,7 +288,7 @@ func _fill_now() -> void:
 	if not _now.visible:
 		return
 	var col := Access.tint(now_entry.get("colour", GOLD))
-	_now.add_theme_stylebox_override("panel", _panel(Color(0.12, 0.11, 0.17, 0.96), col))
+	_now.add_theme_stylebox_override("panel", _panel(UiKit.RAISED, col))
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", _px(8))
 	_now.add_child(h)
@@ -578,13 +579,9 @@ func pad(button: int) -> bool:
 # --- the parts -----------------------------------------------------------------------------------
 
 func _panel(bg: Color, rim: Color) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.set_corner_radius_all(_px(10))
-	sb.set_content_margin_all(12.0 * pt)
-	sb.border_color = rim
-	sb.border_width_left = _px(4)
-	return sb
+	# The kit (docs/design/ui-kit.md): a plain panel with the thin edge; `rim` no longer paints a
+	# rail (the icon's frame carries the kind's colour).
+	return UiKit.box(bg, UiKit.EDGE if rim.a > 0.0 else rim, pt, UiKit.R_CARD, UiKit.EDGE_W, 12.0)
 
 
 func _label(text: String, size: float, colour: Color) -> Label:
@@ -596,24 +593,24 @@ func _label(text: String, size: float, colour: Color) -> Label:
 	return l
 
 
-## A button TAB_H tall: gold and filled (`strong`), or dark with `rim` round it.
-func _button(text: String, strong: bool, rim: Color) -> Button:
+## A button TAB_H tall: gold and filled (`strong`; a chosen `tab` is SELECTED), or dark with `rim` round it.
+func _button(text: String, strong: bool, rim: Color, tab := false) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(TAB_H, TAB_H) * pt
 	b.add_theme_font_size_override("font_size", _px(T_SUB + 1.0))
-	var c := Access.tint(rim)
-	for k in ["font_color", "font_hover_color", "font_pressed_color"]:
-		b.add_theme_color_override(k, INK if strong else CREAM)
-	for st in ["normal", "hover", "pressed", "focus"]:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = (c.darkened(0.2) if st == "pressed" else c) if strong else (c.darkened(0.6) if st == "pressed" else Color(0.12, 0.11, 0.17, 0.95))
-		sb.set_corner_radius_all(_px(8))
-		sb.border_color = c
-		sb.set_border_width_all(_px(2))
+	# The kit's buttons: `strong` is the gold PRIMARY (a chosen tab, the main action), the quit
+	# button DANGER, the rest SECONDARY; a tab with NEW in it keeps a red edge.
+	var kind := (UiKit.Kind.SELECTED if tab else UiKit.Kind.PRIMARY) if strong else (UiKit.Kind.DANGER if rim == QUIT_COLOUR else UiKit.Kind.SECONDARY)
+	UiKit.style_button(b, kind, pt, T_SUB + 1.0)
+	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		var sb := (b.get_theme_stylebox(st) as StyleBoxFlat).duplicate() as StyleBoxFlat
 		sb.content_margin_left = 12.0 * pt
 		sb.content_margin_right = 12.0 * pt
+		if kind == UiKit.Kind.SECONDARY and rim == NEW_RED and st != "pressed" and st != "hover_pressed":
+			sb.border_color = Access.tint(NEW_RED)
+			sb.set_border_width_all(maxi(1, _px(1.0)))
 		b.add_theme_stylebox_override(st, sb)
 	return b
 
@@ -624,17 +621,10 @@ func _row(it: Dictionary, on: bool) -> Button:
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(LIST_MIN, ROW_H) * pt
 	b.clip_contents = true
-	var col := Access.tint(it["colour"])
+	# The kit's row (docs/design/ui-kit.md): raised, the picked one gold on every tab (was the
+	# kind's colour, crimson on QUESTLINES and gold on FIRST STEPS).
 	for st in ["normal", "hover", "pressed", "focus"]:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = col.darkened(0.62) if on or st == "pressed" else Color(0.12, 0.11, 0.17, 0.92)
-		sb.set_corner_radius_all(_px(8))
-		sb.border_color = col if on else col.darkened(0.3)
-		sb.border_width_left = _px(5)
-		if on:
-			sb.set_border_width_all(_px(2))
-			sb.border_width_left = _px(5)
-		b.add_theme_stylebox_override(st, sb)
+		b.add_theme_stylebox_override(st, UiKit.row(pt, on or st == "pressed", 0.0))
 	var h := HBoxContainer.new()
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

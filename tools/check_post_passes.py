@@ -7,7 +7,7 @@ that list in the same change.
 Usage: python3 -I tools/check_post_passes.py [MAP_DIR] [--only=a,b] [--verbose]
 
 bake_osm.py ends with passes that each run on a finished map (road_fixes, lane_tapers,
-zamek_ramps, defilad_obelisk, object_fixes, ..., lane_links, object_types, parked_thin last) and the same code is re-run on main's map whenever its rules
+zamek_ramps, defilad_obelisk, object_fixes, ..., lane_links, object_types, parked_thin, barrier_gates last) and the same code is re-run on main's map whenever its rules
 change. A pass that is not idempotent drifts the map every time it is run, so a re-bake and a
 re-run disagree. This runs each pass once, alone, on a fresh copy of MAP_DIR/centrum.json (default
 game/map; nothing is written) and fails when the map changed. It needs no raw data, only
@@ -29,12 +29,13 @@ def canon(d):
 
 
 def passes(map_dir):
-    import road_fixes, lane_tapers, zamek_ramps, defilad_obelisk, object_fixes, road_profiles, rail_covers, lane_links, parked_thin, object_types
+    import road_fixes, lane_tapers, zamek_ramps, defilad_obelisk, kladka, object_fixes, road_profiles, rail_covers, lane_links, parked_thin, object_types, barrier_gates
     return [
         ("road_fixes", lambda d: road_fixes.apply(d)),
         ("lane_tapers", lambda d: lane_tapers.apply(d)),
         ("zamek_ramps", lambda d: zamek_ramps.apply(d, map_dir)),
         ("defilad_obelisk", lambda d: defilad_obelisk.apply(d, map_dir)),
+        ("kladka", lambda d: kladka.apply(d, map_dir)),
         ("object_fixes", lambda d: object_fixes.apply(d)),
         ("road_profiles", lambda d: road_profiles.apply(d, map_dir)),
         ("rail_covers", lambda d: rail_covers.apply(d, map_dir)),
@@ -42,6 +43,8 @@ def passes(map_dir):
         # W3 of the walls look (TD-25): on a typed map only its v2 fixes run, once (the stamp's v)
         ("object_types", lambda d: object_types.apply(d, map_dir)),
         ("parked_thin", lambda d: parked_thin.apply(d, map_dir)),
+        # W8 of the walls look (TD-25): the gates and gaps, last (they read the lines' final sc and hz)
+        ("barrier_gates", lambda d: barrier_gates.apply(d, map_dir)),
     ]
 
 

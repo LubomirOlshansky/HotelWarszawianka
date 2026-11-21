@@ -28,9 +28,10 @@ extends "res://scripts/activity.gd"
 ## kit); during the quest the kit's beacon as the pickup ring, on the way to the lounge a second
 ## ring at the door (`set_mark`).
 ##
-## Flags (main.gd): --shisha-call (Ivan rings now), --shisha-meet (he gets in now, the rest as
-## after a pickup), --shisha-door (both in, the car 25 m from the lounge's entrance), --shisha-lounge
-## (straight into the lounge), --shisha=0 (none), --shisha-log.
+## Flags (dev_flags.gd; `install` and `joined` read them, main.gd the lounge's two): --shisha-call
+## (Ivan rings now), --shisha-meet (he gets in now, the rest as after a pickup), --shisha-door (both
+## in, the car 25 m from the lounge's entrance), --shisha-lounge (straight into the lounge),
+## --shisha=0 (none), --shisha-log.
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Notebook := preload("res://scripts/notebook.gd")
@@ -79,6 +80,9 @@ const BUBBLE_S := 3.2
 const PAY := 120
 const RESPECT := 30
 const RESULT_LIFE := 14.0
+## The hidden start: "+" held this long anywhere rings Ivan (main.gd `_shisha_secret`, F 2026-11-10;
+## the --shisha-hold test start holds it 2 s, then this and half a second more).
+const SECRET_HOLD_S := 4.0
 
 
 ## The run's stages (the kit's phases come first: idle, the call, the offer).
@@ -136,7 +140,75 @@ func _init() -> void:
 	clock = func() -> float: return 20.0
 
 
+## Wires the shisha night from the game (activity.gd `install`; main.gd's `_build_shisha` until TD-4
+## b7). None with --no-traffic or --shisha=0. `car` stays unset: the quest reads the car through
+## `vehicle`. `enter_lounge` is main.gd's hook, set after the join (the lounge's room is main.gd's).
+func install(ctx: GameCtx) -> bool:
+	if ctx.traffic == null or ctx.graph == null or ctx.flags.shisha_flag == "0":
+		return false
+	super(ctx)
+	name = "Shisha"
+	dialogue = ctx.dialogue
+	graph = ctx.graph as LaneGraph
+	origin = ctx.data.get("origin", [52.234, 21.024])
+	log_on = ctx.flags.shisha_log
+	auto = ctx.flags._shisha_auto
+	autopilot = ctx.flags.autopilot
+	vehicle = ctx.vehicle
+	clock = ctx.hour
+	return true
+
+
+## After the join (main.gd's `_build_shisha` until TD-4 b7): the test starts, at the moment main.gd
+## made them. --shisha-call rings a second in; --shisha-meet puts the car at Ivan's kerb and he gets
+## in; --shisha-hold plays the hidden start two seconds in; --shisha-door and --shisha-arrive have
+## both friends in, the car up Emilii Plater from the lounge or stopped at its kerb. The lounge's own
+## two (--shisha-lounge, --shisha-terrace) stay main.gd's, with its room.
+func joined(ctx: GameCtx) -> void:
+	var how: String = ctx.flags.shisha_flag
+	var c: Node3D = ctx.car
+	match how:
+		"call":
+			get_tree().create_timer(1.0).timeout.connect(func() -> void: ring())
+		"meet":
+			# The car at Ivan's kerb, as a player meeting him in person (Autopilot 2026-11-08: it
+			# started at the spawn, 1.3 km off).
+			get_tree().create_timer(1.0).timeout.connect(func() -> void:
+				var k: Vector3 = home["at"]
+				c.global_position = Vector3(k.x, map.ground_height(k.x, k.z), k.z)
+				c.reset_physics_interpolation()
+				meet())
+		"hold":
+			# The hidden start played by itself, far from Ivan's block (it works anywhere): "+" held
+			# 2 s (must not ring), then 4.5 s (rings), as the zoom button or the + key sends it.
+			get_tree().create_timer(2.0).timeout.connect(func() -> void:
+				for held: float in [2.0, SECRET_HOLD_S + 0.5]:
+					hud.zoom_in_key(true)
+					await get_tree().create_timer(held).timeout
+					hud.zoom_in_key(false)
+					print("shisha hold test: %.1f s, state %s" % [held, Phase.keys()[phase]])
+					await get_tree().create_timer(1.0).timeout)
+		"door", "arrive":
+			# Both friends in, the car 25 m up Emilii Plater from the lounge's kerb, facing it: the
+			# shots of the entrance's two rings (F 2026-11-11: "I don't see how to enter"). "arrive":
+			# the car stopped in the kerb ring, so they walk in and the lounge plays itself (the
+			# door, the lift, the three choices at the table, the mini-game).
+			get_tree().create_timer(1.0).timeout.connect(func() -> void:
+				meet()
+				_board_bogdan()
+				var k: Dictionary = door
+				var yaw: float = k["yaw"]
+				var back := 25.0 if how == "door" else 0.0
+				var p: Vector3 = k["at"] - Vector3(sin(yaw), 0.0, cos(yaw)) * back
+				c.global_position = Vector3(p.x, map.ground_height(p.x, p.z), p.z)
+				c.rotation.y = yaw + PI
+				c.vel = Vector3.ZERO
+				c.forward_speed = 0.0
+				c.reset_physics_interpolation())
+
+
 func setup(world: Node3D) -> void:
+	run_hours = HOURS
 	super.setup(world)
 	if rng_seed >= 0:
 		_rng.seed = rng_seed
@@ -277,7 +349,8 @@ func _tick(dt: float) -> void:
 	_at = v[0]
 	_kmh = v[1]
 	_play(_due)
-	if phase == Phase.IDLE and auto and _may_call() and open_at(float(clock.call())):
+	# By day too (game_time.gd `by_day`, F 2026-11-19): a yes jumps the clock to HOURS (`run_hours`).
+	if phase == Phase.IDLE and auto and _may_call() and GameTime.may_call(HOURS, float(clock.call())):
 		call_in -= _due
 		# Not again straight after its own call while another's waits (TD-3's variety): retry.
 		if call_in <= 0.0 and not (_ring_turn() and ring()):

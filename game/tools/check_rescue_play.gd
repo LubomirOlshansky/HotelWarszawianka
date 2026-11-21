@@ -101,7 +101,7 @@ class RescueMap extends Fakes.FlatMap:
 class RescueMessages extends RefCounted:
 	var calls := 0
 
-	func call_rang() -> void:
+	func call_rang(_card := true) -> void:  # messages.gd's (the pill passes false)
 		calls += 1
 
 
