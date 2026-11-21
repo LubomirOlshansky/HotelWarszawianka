@@ -407,7 +407,7 @@ const TOWER_NAVY := Color("#1e3a8a")
 const TOWER_GREY := Color("#8a8a90")
 const TOWER_MAST := Color("#2a3a9a")
 const TOWER_PINK := Color("#f07070")
-const TOWER_HUB := Color("#d98c3a")
+const TOWER_HUB := Color("#d9962e")
 ## The mast: 30 m (the coordinator's second reading of the sprites: 26-30 m; the spec leaves it open, the wheel hub at TOWER_TOP 26).
 const TOWER_H := 30.0
 const CHAIRS := [Color("#f2c230"), Color("#e03a2a"), Color("#5a8cff"), Color("#4cb050")]
@@ -439,11 +439,14 @@ static func tower_static(b, at: Vector2, yaw := 0.0, g := NAN, tilt := -PI * 0.5
 	c.frustum(0, 0, 2.3, 0.8, 1.0, 2.2, 16, TOWER_NAVY, CLEAR)
 	c.bulb_ring(0, 0, 2.0, 1.05, 16, 0.12, [Color(0.3, 0.5, 1.0)], M_LAMP, 0.1)
 	c.bulb_ring(0, 0, 1.7, 1.55, 12, 0.1, [Color(0.5, 0.65, 1.0)], M_LAMP, 0.2)
+	# The mast: a lit blue tube, four bright blue vertical LED lines, and a few pink-magenta segments.
 	c.prism(0, 0, 0.7, 8, 2.2, TOWER_H, TOWER_MAST, CLEAR, M_LAMP)
+	for seg in [[7.0, 8.6], [14.0, 15.4], [21.0, 22.6], [27.0, 28.2]]:
+		c.prism(0, 0, 0.73, 8, seg[0], seg[1], Color("#e0309a"), CLEAR, M_LAMP)
 	c.noroof(true)
-	for k in 8:
-		var q := c.ring(0, 0, 0.74, 8, 0.0)[k]
-		c.beam(Vector3(q.x, c.g + 2.2, q.y), Vector3(q.x, c.g + TOWER_H, q.y), 0.08, WHITE, M_LAMP)
+	var mr := c.ring(0, 0, 0.76, 8, 0.0)
+	for k in [0, 2, 4, 6]:
+		c.beam(Vector3(mr[k].x, c.g + 2.2, mr[k].y), Vector3(mr[k].x, c.g + TOWER_H, mr[k].y), 0.1, Color("#6a96ff"), M_LAMP)
 	c.noroof(false)
 	# The disc on top: a stem, then a pink-red lamp disc tilted towards the camera.
 	c.prism(0, 0, 0.45, 8, TOWER_H, TOWER_H + 1.1, TOWER_MAST.darkened(0.2))
@@ -461,6 +464,11 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 	c.noroof(true)
 	var yc := rest  # keep TOWER_TOP unless the shader's TOWER_DROP changes with it
 	c.sphere(0, 0, yc, 1.8, 12, 6, TOWER_HUB, M_LAMP)
+	# About thirty red LED dots over the hub (a golden-angle spread).
+	for q in 30:
+		var phi := acos(1.0 - 2.0 * (float(q) + 0.5) / 30.0)
+		var th := float(q) * 2.39996
+		c.lbulb(sin(phi) * cos(th) * 1.86, sin(phi) * sin(th) * 1.86, yc + cos(phi) * 1.86, 0.12, Color("#ff2a2a"))
 	var n := 20
 	var rim_prev := Vector3.ZERO
 	var first := Vector3.ZERO
@@ -469,7 +477,7 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 		var d := Vector2(cos(t), sin(t))
 		var hub := Vector3(d.x * 1.7, d.y * 1.7, yc + 0.35)
 		var tip := Vector3(d.x * 6.0, d.y * 6.0, yc - 0.25)
-		c.lbeam(Vector3(hub.x, hub.y, hub.z), Vector3(tip.x, tip.y, tip.z), 0.1, WHITE, M_LAMP)
+		c.lbeam(Vector3(hub.x, hub.y, hub.z), Vector3(tip.x, tip.y, tip.z), 0.17, WHITE, M_LAMP)
 		var inner := Vector3(d.x * 3.7, d.y * 3.7, yc + 0.05)
 		if j > 0:
 			c.lbeam(Vector3(rim_prev.x, rim_prev.y, rim_prev.z), Vector3(tip.x, tip.y, tip.z), 0.14, WHITE, M_LAMP)
@@ -549,7 +557,7 @@ static func tree_ride_static(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
 
 ## The tree carousel's turning part (F's photos): the 11 m fir of wide flat sheet-metal fronds (green,
 ## seven whorls of nine, drooping 35 degrees, ragged) each with a thin white snow strip on top
-## and tiny purple-white LED dots, up to 16 glossy red and gold baubles (1.5 m low to 0.8 m high) hanging
+## and tiny purple-white LED dots, up to 16 glossy red and gold baubles (2.4 m low to 0.8 m high); lit violet-blue at night hanging
 ## off them, a gold star, and eight yellow-gold drum gondolas round the base.
 static func tree_ride_spin(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
 	var c := Ctx.new(b, at, yaw, g)
@@ -557,15 +565,17 @@ static func tree_ride_spin(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
 	c.prism(0, 0, 0.32, 8, 0.35, TREE_H, WOOD.darkened(0.25))
 	var whorls := 7
 	var droop := deg_to_rad(35.0)
-	var frond := Color("#2a6a38")
-	var led := Color(0.78, 0.7, 1.0)
+	# At night the whole tree glows violet-blue (F's photos): the fronds are a dim M_LAMP blue-violet
+	# (the colour is the strength) under dense violet LED dots.
+	var frond := Color("#1c2470")
+	var led_cols := [Color("#7a5cff"), Color("#5a6bff")]
 	var placed: Array = []  # [x, y, z, r] of the baubles so far: no two overlap
 	var per_whorl := [3, 2, 2, 2, 2, 3, 2]
 	for k in whorls:
 		var t := float(k) / float(whorls - 1)
 		var y := lerpf(4.3, 10.0, t)
 		var len0 := lerpf(4.2, 0.9, t)
-		c.frustum(0, 0, len0 * cos(droop) * 0.55, y - len0 * sin(droop) * 0.5, 0.15, y + 0.9, 10, frond.darkened(0.45))
+		c.frustum(0, 0, len0 * cos(droop) * 0.55, y - len0 * sin(droop) * 0.5, 0.15, y + 0.9, 10, frond.darkened(0.5), CLEAR, M_LAMP)
 		var count := 9
 		for j in count:
 			var h := float((j * 7 + k * 13) % 10) / 10.0
@@ -577,21 +587,23 @@ static func tree_ride_spin(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
 			var root := Vector3(d.x * 0.25, d.y * 0.25, y + 0.1)
 			var tip := Vector3(d.x * run, d.y * run, y - len * sin(dp))
 			var wd := 0.45 + 0.75 * clampf(len / 4.2, 0.0, 1.0)
-			c.slab(c.p(root.x, root.y, root.z), c.p(tip.x, tip.y, tip.z), wd, wd * 0.3, 0.1, frond if (j + k) % 2 == 0 else frond.lightened(0.07))
+			c.slab(c.p(root.x, root.y, root.z), c.p(tip.x, tip.y, tip.z), wd, wd * 0.3, 0.1, frond if (j + k) % 2 == 0 else frond.lightened(0.12), M_LAMP)
 			# A thinner snow strip along the upper edge (about a third of the frond's width).
 			var s0 := root.lerp(tip, 0.15)
 			var s1 := root.lerp(tip, 0.95)
 			c.slab(c.p(s0.x, s0.y, s0.z + 0.085), c.p(s1.x, s1.y, s1.z + 0.085), wd * 0.33, wd * 0.18, 0.08, Color("#f2f5f8"))
-			for f in [0.3, 0.45, 0.6, 0.75, 0.9]:
-				var q := root.lerp(tip, float(f))
-				var side := Vector2(-d.y, d.x) * wd * 0.28 * (1.0 if int(float(f) * 20.0) % 2 == 0 else -1.0)
-				c.lbulb(q.x + side.x, q.y + side.y, q.z + 0.1, 0.05, led)
+			# Dense violet-blue LED dots on both halves of the frond (nine each).
+			for q_i in 9:
+				var f := 0.22 + 0.085 * float(q_i)
+				var q := root.lerp(tip, f)
+				var side := Vector2(-d.y, d.x) * wd * 0.3 * (1.0 if q_i % 2 == 0 else -1.0)
+				c.lbulb(q.x + side.x, q.y + side.y, q.z + 0.1, 0.06, led_cols[(q_i + j) % 2])
 			# A big glossy bauble, 1.5 m wide low down to 0.8 m near the top, clear of the others and the floor.
 			var m: int = per_whorl[k]
 			if (j * m) % count < m and placed.size() < 16:
-				var br := lerpf(0.75, 0.4, t)
-				var q := root.lerp(tip, 0.7)
-				var cz := q.z - 0.3 - br
+				var br := lerpf(1.2, 0.4, t)  # the lowest up to 2.4 m wide
+				var q := root.lerp(tip, 0.5 if k == 0 else 0.7)
+				var cz := q.z - 0.2 - br
 				var ok := cz > 0.35 + br + 0.15
 				for pl in placed:
 					if Vector3(pl[0], pl[1], pl[2]).distance_to(Vector3(q.x, q.y, cz)) < float(pl[3]) + br + 0.15:
@@ -604,8 +616,22 @@ static func tree_ride_spin(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
 	# The crown: a small cone and the gold star (two crossed).
 	c.frustum(0, 0, 0.55, 10.0, 0.0, 11.5, 8, frond)
 	b._mode = M_LAMP
-	b._jm_star(c.p(0, 0, 11.9), 0.85, Vector3(c.u.x, 0.0, c.u.y), Color("#e8b030"))
-	b._jm_star(c.p(0, 0, 11.9), 0.85, Vector3(c.v.x, 0.0, c.v.y), Color("#e8b030"))
+	b._jm_star(c.p(0, 0, 12.2), 1.25, Vector3(c.u.x, 0.0, c.u.y), Color("#e8b030"))
+	b._jm_star(c.p(0, 0, 12.2), 1.25, Vector3(c.v.x, 0.0, c.v.y), Color("#e8b030"))
+	# The star's outline in warm bulbs, in both planes.
+	for pl in 2:
+		var prev := Vector2.ZERO
+		for q in 11:
+			var ang := PI * 0.5 + TAU * float(q) / 10.0
+			var rr := 1.35 if q % 2 == 0 else 0.58
+			var pt := Vector2(cos(ang), sin(ang)) * rr
+			var lu := pt.x if pl == 0 else 0.0
+			var lv := pt.x if pl == 1 else 0.0
+			c.lbulb(lu, lv, 12.2 + pt.y, 0.13, Color("#ffd878"))
+			if q > 0:
+				var mid := (pt + prev) * 0.5
+				c.lbulb(mid.x if pl == 0 else 0.0, mid.x if pl == 1 else 0.0, 12.2 + mid.y, 0.1, Color("#ffd878"))
+			prev = pt
 	# Six yellow-gold drum gondolas round the base, on their sides, on short rods.
 	for j in 6:
 		var a := TAU * float(j) / 6.0 + TAU / 12.0
@@ -691,6 +717,17 @@ static func kurant(b, at: Vector2, yaw := 0.0, g := NAN, strings := true, fan :=
 				c.rect_panel(ox, oy, out, r * 0.72, y + 0.2, y + 2.2, red, M_STONE)
 				c.panel(ox2, oy2, out, _star_pts(0.6, y + 1.5), Color("#e4a0a0"), M_STONE)
 				c.round_panel(ox2, oy2, out, 0.22, y + 0.7, 8, Color("#e8c070"), M_STONE)
+		# At night the tiers glow soft green (F's photos): lit green strips under the garland and above
+		# the foot of every tier, and a green panel on the plain white tiers.
+		var green := Color("#2fa860")
+		for k in 8:
+			var out := rot + TAU * (float(k) + 0.5) / 8.0
+			var gx := cos(out) * (ap + 0.05)
+			var gy := sin(out) * (ap + 0.05)
+			c.rect_panel(gx, gy, out, r * 0.7, y + 2.0, y + 2.28, green, M_LAMP)
+			c.rect_panel(gx, gy, out, r * 0.7, y + 0.06, y + 0.3, green, M_LAMP)
+			if t == 2:
+				c.rect_panel(gx, gy, out, r * 0.6, y + 0.5, y + 1.8, green.darkened(0.35), M_LAMP)
 		# The garland round the tier's top edge: 0.35 m of fir, red and gold baubles, warm bulbs.
 		c.noroof(true)
 		var gr := c.ring(0, 0, r + 0.12, 8, rot)
@@ -727,7 +764,7 @@ static func kurant_spin(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
 	var y0 := 13.4
 	var y1 := 15.4
 	var red := Color("#b8282a")
-	c.frustum(0, 0, 1.2, y0, 2.2, y1, 6, red, red.darkened(0.2))
+	c.frustum(0, 0, 1.2, y0, 2.2, y1, 6, red.darkened(0.25), red.darkened(0.4), M_LAMP)  # lit red at night
 	var a := c.ring(0, 0, 1.2, 6, 0.0)
 	var t := c.ring(0, 0, 2.2, 6, 0.0)
 	c.noroof(true)
@@ -1523,7 +1560,7 @@ const HUT_FLAP := Color("#d4d0ca")
 ## upper shutter propped up as an awning (hu*2 x 0.6 m, 20 degrees up from the eave), the lower one
 ## down as a counter (flat at 1.0 m, 0.5 m), two side flaps (0.6 x 1.2 m at 45 degrees), three plank
 ## grooves on each side and the back wall, multicolour bulbs (red, yellow, green, white) along both
-## eaves and up the rakes, and (`snow`) a white patch on the roof. Costs about 320 triangles.
+## eaves and up the rakes, a thick fir garland with warm bulbs up both front rakes, red velvet drapes under the eave and a red bow at the apex, and (`snow`) a white patch on the roof. Costs about 320 triangles.
 static func hut_extras(b, at: Vector2, yaw := 0.0, g := NAN, hu := 1.6, hv := 1.15, eave := 2.3, rise := 0.95,
 		snow := false, grooves := true, bulbs := true, seed := 0) -> void:
 	var c := Ctx.new(b, at, yaw, g)
@@ -1538,6 +1575,28 @@ static func hut_extras(b, at: Vector2, yaw := 0.0, g := NAN, hu := 1.6, hv := 1.
 		var ex := sd * (hu + 0.6 * cos(PI * 0.25))
 		var ez := -hv - 0.04 - 0.6 * sin(PI * 0.25)
 		c.quad(c.p(hx, -hv - 0.04, 1.0), c.p(ex, ez, 1.0), c.p(ex, ez, 2.2), c.p(hx, -hv - 0.04, 2.2), HUT_FLAP, M_STONE, Vector3.ZERO, true)
+	# A thick fir garland up both rakes of the front slope, warm bulbs on it.
+	c.noroof(true)
+	for sd: float in [-1.0, 1.0]:
+		var gx := sd * (hu + 0.17)
+		c.lbeam(Vector3(gx, -(hv + 0.4), eave + 0.02), Vector3(gx, 0.0, eave + rise + 0.03), 0.2, FIR)
+		for k in 7:
+			var t := float(k) / 6.0
+			c.lbulb(gx - sd * 0.03, -(hv + 0.4) * (1.0 - t), eave + rise * t + 0.15, 0.06, Color("#ffcf80"))
+	# Red velvet drapes under the eave (four swags) and a red bow at the apex.
+	var dw := hu * 0.5
+	for k in 4:
+		var cu := -hu + dw * (float(k) + 0.5)
+		c.panel(cu, -(hv + 0.28), -PI * 0.5, [Vector2(-dw * 0.5, eave - 0.02), Vector2(dw * 0.5, eave - 0.02), Vector2(dw * 0.32, eave - 0.3),
+				Vector2(0.0, eave - 0.42), Vector2(-dw * 0.32, eave - 0.3)], Color("#a01822"), M_STONE, true)
+	var bow := Color("#c01c28")
+	var bz := eave + rise + 0.1
+	c.pbox(0.0, -0.05, 0.0, 0.1, 0.07, bz - 0.07, bz + 0.1, bow.darkened(0.15))
+	c.pbox(-0.28, -0.05, 0.5, 0.22, 0.07, bz - 0.04, bz + 0.1, bow)
+	c.pbox(0.28, -0.05, -0.5, 0.22, 0.07, bz - 0.04, bz + 0.1, bow)
+	c.quad(c.p(-0.1, -0.1, bz - 0.05), c.p(-0.02, -0.1, bz - 0.05), c.p(-0.05, -0.4, bz - 0.42), c.p(-0.17, -0.4, bz - 0.42), bow, M_STONE, Vector3.ZERO, true)
+	c.quad(c.p(0.02, -0.1, bz - 0.05), c.p(0.1, -0.1, bz - 0.05), c.p(0.17, -0.4, bz - 0.42), c.p(0.05, -0.4, bz - 0.42), bow, M_STONE, Vector3.ZERO, true)
+	c.noroof(false)
 	if grooves:
 		var groove := Color("#8a8680")
 		for k in 3:
