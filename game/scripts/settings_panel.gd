@@ -351,17 +351,19 @@ func _build() -> void:
 	about.name = "credits"
 	about.pressed.connect(show_credits)
 	about_row.add_child(about)
-	# F 2026-11-21: in-game feedback (feedback.gd) beside LICENCJE, on the first page of the card
-	# (a row of its own made the card taller than check_hud's phone sizes allow).
-	var feedback_button := _word_button("OPINIA", "FEEDBACK")
-	feedback_button.name = "feedback"
-	feedback_button.pressed.connect(_open_feedback)
-	about_row.add_child(feedback_button)
 	var tips_button := _word_button("PORADY", "TIPS")
 	tips_button.name = "tips"
 	tips_button.pressed.connect(show_tips)
-	tips_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	sound[0].add_child(tips_button)  # under the volumes: beside LICENCJE the page grew too wide for the phone
+	# F 2026-11-21: in-game feedback (feedback.gd) beside PORADY under the volumes: the volume rows are
+	# wider than two buttons, so the card keeps its size (beside LICENCJE it grew too wide for check_hud).
+	var help_row := HBoxContainer.new()
+	help_row.add_theme_constant_override("separation", _px(6))
+	sound[0].add_child(help_row)
+	help_row.add_child(tips_button)
+	var feedback_button := _word_button("OPINIA", "FEEDBACK")
+	feedback_button.name = "feedback"
+	feedback_button.pressed.connect(_open_feedback)
+	help_row.add_child(feedback_button)
 	# The error trap (tech-debt TD-14): this run's errors and last lines onto the clipboard
 	# (main.gd). Only in our own debug builds (`report_on`).
 	if report_on:
