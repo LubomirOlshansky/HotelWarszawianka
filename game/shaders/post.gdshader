@@ -14,6 +14,14 @@ render_mode unshaded, fog_disabled, depth_test_disabled, depth_draw_never, cull_
 // night, smeared a little along the ray (rough water, wet asphalt). Steps per pixel
 // are the quality setting's (0 switches it off). Then the rain: three layers of
 // one-pixel streaks falling at a slant, drifting with the view a little.
+//
+// Promo snow (weather.gd set_snow, --snow=COVER,FALL, Promo Mode's SNOW): a light cover on
+// everything that faces up (roofs, stall tops, tree crowns, ledges, hats, lawns) from the same
+// neighbour normal, in patches anchored to the world and dithered to the pixel grid; trodden
+// plazas and pavements keep less, ploughed roads little, water none. It takes its light from the
+// pixel it covers (warm under the string lights, blue-grey in the dark). Then flakes: three
+// layers of one- and two-pixel dots drifting down and sideways, catching the light behind them.
+// Both are off (one branch each) unless the flag or the promo button turns them on.
 
 #include "res://shaders/common.gdshaderinc"
 #include "res://shaders/ghost.gdshaderinc"
@@ -54,6 +62,8 @@ uniform int reflect_steps = 10;
 uniform float rain = 0.0;
 uniform vec2 rain_shift = vec2(0.0);
 global uniform float wetness;
+global uniform float snow_cover;
+uniform float snowfall = 0.0;
 global uniform float daylight;
 global uniform float lights_on;
 
@@ -113,6 +123,22 @@ float rain_layer(vec2 frag, vec2 cell_size, float speed, float len, float slant,
 	float y0 = (cell.y + hash(cell + seed + 3.1) * (1.0 - len / cell_size.y)) * cell_size.y;
 	float on = step(abs(p.x - x0), 0.5) * step(y0, p.y) * step(p.y, y0 + len);
 	return on * (0.45 + 0.55 * (p.y - y0) / len);
+}
+
+// Snowflakes of one layer: in some cells a `size`-pixel dot, falling at `speed` px/s and
+// swaying sideways by up to `sway` px, each row on its own phase.
+float snow_layer(vec2 frag, float cell, float speed, float sway, float density, float size, float seed) {
+	vec2 p = frag;
+	p.y -= TIME * speed;
+	float row = floor(p.y / cell);
+	p.x += sin(TIME * (0.6 + 0.5 * hash(vec2(row, seed))) + hash(vec2(seed, row)) * 6.283) * sway + TIME * speed * 0.12;
+	vec2 c = floor(p / cell);
+	if (hash(c + seed) > density) {
+		return 0.0;
+	}
+	vec2 o = (c + 0.2 + 0.6 * vec2(hash(c + seed + 1.7), hash(c + seed + 3.1))) * cell;
+	vec2 d = abs(p - o);
+	return step(d.x, size * 0.5) * step(d.y, size * 0.5) * (0.55 + 0.45 * hash(c + seed + 5.3));
 }
 
 void fragment() {
@@ -199,6 +225,46 @@ void fragment() {
 			}
 		}
 	}
+	if (snow_cover > 0.0 && texture(depth_tex, SCREEN_UV).r > 0.0 && jump < 4.0) {
+		// Promo snow: up-facing pixels whiten in world-anchored patches.
+		vec3 sn_view = normalize(cross(vr - vl, vu - vd));
+		vec3 sn = (INV_VIEW_MATRIX * vec4(sn_view, 0.0)).xyz;
+		float up = abs(sn.y);
+		vec3 sw = (INV_VIEW_MATRIX * vec4(vc, 1.0)).xyz;
+		vec4 ssurf = city_surface_at(sw.xz);
+		float flat_ground = smoothstep(0.96, 0.99, up);
+		float s_water = smoothstep(0.66, 0.8, ssurf.b);
+		float s_road = smoothstep(0.3, 0.45, ssurf.b) * (1.0 - s_water);
+		float s_paving = smoothstep(0.12, 0.22, ssurf.b) * (1.0 - smoothstep(0.3, 0.45, ssurf.b));
+		// How much of this surface keeps snow: lawns, roofs, crowns all; trodden paving a share
+		// (white rims and lanes of slush); roads only broken patches; water nothing. Only flat
+		// ground counts as a road: a pitched stall roof over the plaza keeps its white.
+		float keep = 1.0 - flat_ground * (s_road * 0.82 + s_paving * 0.45 + s_water);
+		// Fresh light snow lies whole on roofs and lawns and in patches where people walk:
+		// a threshold on world noise (solid shapes with a one-pixel dithered rim), lowered by
+		// the cover and by how well the surface keeps it.
+		float patch = value_noise(sw.xz * 0.45 + 3.7) * 0.65 + value_noise(sw.xz * 1.7 + 9.1) * 0.35;
+		ivec2 sbp = ivec2(FRAGCOORD.xy) % 4;
+		float sd = (BAYER[sbp.y * 4 + sbp.x] + 0.5) / 16.0 - 0.5;
+		float face = smoothstep(0.42, 0.75, up);
+		float hold = snow_cover * keep * face;
+		float cover = step(1.0 - hold * 1.7, patch + sd * 0.05);
+		if (cover > 0.0) {
+			float sl = dot(col, vec3(0.299, 0.587, 0.114));
+			// The light on this spot, from what is drawn there: snow is brighter than the roof
+			// or asphalt it hides, and keeps the colour of the light (sodium, LEDs, neon).
+			// Grey, not the grass's green or the asphalt's blue under it; the street lamps' map
+			// adds their own colour (sodium warm, LED cold).
+			vec2 lamp = city_light_at(sw.xz) * (255.0 / 160.0) * lights_on;
+			vec3 lit = mix(vec3(sl), col, 0.06) * mix(3.0, 1.9, daylight)
+					+ (vec3(1.0, 0.62, 0.3) * lamp.r + vec3(0.75, 0.82, 1.0) * lamp.g) * 0.35;
+			vec3 day_snow = vec3(0.80, 0.83, 0.88) * mix(0.62, 1.0, smoothstep(0.04, 0.3, sl));
+			vec3 night_snow = vec3(0.085, 0.095, 0.13);
+			vec3 snow_col = max(mix(night_snow, day_snow, daylight), lit);
+			snow_col = min(snow_col, vec3(1.15));
+			col = mix(col, snow_col, 0.92);
+		}
+	}
 	if (sky_amount > 0.0 && texture(depth_tex, SCREEN_UV).r <= 0.0) {
 		// Nothing drawn here (reversed depth: the far plane is 0): the sky.
 		col = mix(col, sky(SCREEN_UV, FRAGCOORD.xy), sky_amount);
@@ -240,6 +306,20 @@ void fragment() {
 				+ rain_layer(f + rain_shift, vec2(11.0, 70.0), 460.0, 13.0, 0.22, 0.4 * rain, 13.0);
 		vec3 drop = mix(vec3(0.42, 0.46, 0.62), vec3(0.78, 0.82, 0.88), daylight);
 		col = mix(col, drop, clamp(s, 0.0, 1.0) * 0.55);
+	}
+
+	if (snowfall > 0.0) {
+		// Snowfall: a faint veil by day, and three layers of flakes (far: small, slow, many;
+		// near: two-pixel, faster, few), drifting with the view; they take the light behind them.
+		col = mix(col, vec3(0.62, 0.64, 0.7), 0.06 * snowfall * daylight);
+		vec2 f = FRAGCOORD.xy;
+		float far = snow_layer(f + rain_shift * 0.3, 8.0, 14.0, 2.5, 0.45 * snowfall, 1.0, 2.0);
+		float mid = snow_layer(f + rain_shift * 0.6, 14.0, 24.0, 4.0, 0.4 * snowfall, 2.0, 8.0);
+		float near = snow_layer(f + rain_shift, 30.0, 40.0, 8.0, 0.3 * snowfall, 3.0, 14.0);
+		float fl = clamp(far * 0.5 + mid * 0.75 + near, 0.0, 1.0);
+		float bl = dot(col, vec3(0.299, 0.587, 0.114));
+		vec3 flake = mix(vec3(0.5, 0.53, 0.62), vec3(0.95, 0.97, 1.0), daylight) + col * 0.5 + vec3(bl * 0.35);
+		col = mix(col, flake, fl * 0.9);
 	}
 
 	if (levels > 0.5) {

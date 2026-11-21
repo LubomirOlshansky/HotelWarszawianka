@@ -346,6 +346,9 @@ var _flag_vhs := false
 ## --tap=X,Y: tap that screen pixel at frame 60, as if a finger did (landmark cards).
 var tap_at := Vector2.INF
 var start_weather := 0
+## --snow=COVER[,FALL] (0..1 each; one number sets both): promo snow on roofs, crowns and lawns,
+## and falling flakes (weather.gd set_snow). For the Christmas market Reel; off by default.
+var start_snow := Vector2.ZERO
 var live_clock := ""
 var live_date := 0
 ## F 2026-11-19: the game clock (time_of_day.gd `start_clock`, 30x, the sun by the date): on in a
@@ -823,6 +826,8 @@ func parse_with(args: PackedStringArray) -> void:
 		elif arg.begins_with("--tap="):
 			var xy := arg.trim_prefix("--tap=").split(",")
 			tap_at = Vector2(float(xy[0]), float(xy[1]))
+		elif arg.begins_with("--snow="):
+			start_snow = Weather.parse_snow(arg.trim_prefix("--snow="))
 		elif arg.begins_with("--weather="):
 			start_weather = Weather.parse(arg.trim_prefix("--weather="))
 		elif arg.begins_with("--clock="):

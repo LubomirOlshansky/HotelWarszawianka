@@ -379,6 +379,8 @@ func shot_flags() -> String:
 			parts.append("--date=%d" % d)
 	if game.weather != null and game.weather.state != 0:
 		parts.append("--weather=rain")
+	if game.weather != null and game.weather.snow_flag() != "":
+		parts.append(game.weather.snow_flag())
 	return " ".join(parts)
 
 
@@ -570,6 +572,13 @@ func _build() -> void:
 	_button(r, "guide", "FULL", func() -> void:
 		guide = (guide + 1) % GUIDES.size()
 		_refresh())
+	r = _row(b, "SNOW")
+	_button(r, "snow", "OFF", func() -> void:
+		if game.weather != null:
+			var i: int = (game.weather.snow_step() + 1) % game.weather.SNOW_STEPS.size()
+			var st: Vector2 = game.weather.SNOW_STEPS[i]
+			game.weather.set_snow(st.x, st.y)
+		_refresh())
 	r = _row(b, "")
 	_button(r, "clean", "CLEAN", func() -> void:
 		clean = true
@@ -751,6 +760,9 @@ func _refresh() -> void:
 	_mark("guide", guide != 0)
 	(_buttons["hud"] as Button).text = ["HUD", "GHOST", "NO HUD"][hud_show]
 	(_buttons["guide"] as Button).text = str(GUIDES[guide][0])
+	if game.weather != null:
+		(_buttons["snow"] as Button).text = str(game.weather.SNOW_NAMES[game.weather.snow_step()])
+		_mark("snow", game.weather.snow_step() != 0)
 	(_buttons["speed"] as Button).text = _speed_word()
 	(_buttons["rotate"] as Button).text = "HORIZONTAL" if portrait else "VERTICAL"
 	_overlay.queue_redraw()

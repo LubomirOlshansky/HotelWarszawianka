@@ -1841,6 +1841,8 @@ func _build_world() -> void:
 		return [TimeOfDay.NAMES[tod.mode], c["hour"]]
 	radio.check_air(true)
 	weather.set_state(flags.start_weather, true)
+	if flags.start_snow != Vector2.ZERO:
+		weather.set_snow(flags.start_snow.x, flags.start_snow.y)
 	_set_vhs(vhs)
 	_set_perf(show_perf)
 	# Camera loop: a following camera starts behind the vehicle (it used to start on the 45°
@@ -5761,8 +5763,8 @@ func _process(dt: float) -> void:
 		sfx.mode = _sound_mode()
 		sfx.focus = cam_focus
 		sfx.yaw = cam_yaw
-	if weather.amount > 0.0:
-		# The rain streaks drift with the view a little (parallax), in image pixels.
+	if weather.amount > 0.0 or weather.snowfall > 0.0:
+		# The rain streaks (and promo snowflakes) drift with the view a little (parallax), in image pixels.
 		var px := float(maxi(sv.size.y, 1)) / cam.size
 		var b := cam.global_transform.basis
 		post_mat.set_shader_parameter("rain_shift", Vector2(cam_focus.dot(b.x), -cam_focus.dot(b.y)) * px)
