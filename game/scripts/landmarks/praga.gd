@@ -190,8 +190,10 @@ func _build_stadium(site: Dictionary) -> void:
 		var vo: Vector2 = outer[k]
 		var d := vi - c
 		base.append(c + d * 0.965)
-		mid.append(vi + (vo - vi) * 0.25)
-		top.append(vi + (vo - vi) * 0.62)
+		# F's photos (2026-11-21): the white masts stand clear in front of the skin all the way up,
+		# so the basket leans a little less than the masts (it was 0.25 / 0.62: they hid in it).
+		mid.append(vi + (vo - vi) * 0.13)
+		top.append(vi + (vo - vi) * 0.52)
 		edge.append(vo + (vo - c).normalized() * 1.5)
 		inset.append(vo - (vo - c).normalized() * 1.5)
 		foot.append(map.terrain_height(vi.x, vi.y) - 1.0)
