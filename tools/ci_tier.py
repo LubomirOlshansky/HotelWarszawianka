@@ -89,9 +89,14 @@ CODE = [
 # `water` (12 min) moved to the roads group; `firstlife` joined runs; `tunnelcut`,
 # `roadworks-prebuilt`, `oldtowndrive` and `railsignals` (under a minute together) joined smoke:
 # they read the sector split or the terrain, which the quick job doesn't have.
+# 2026-11-21 (#980, the Jarmark market): every runtime-city build got slower and the roads shard's
+# runtime steps grew 1.5 to 1.9 times on that run (drive 511 -> 873 s, stuckspots 292 -> 560 s,
+# water 575 s -> stopped at the 900 s step limit; 41 min of checks after a 15 min setup), so
+# `water` got a shard of its own and the map job's step limit went to 1500 s (verify.yml).
 FULL_SHARDS = [
     ("smoke and landmarks", ["smoke", "landmarks"]),
-    ("roads, drive and water", ["roads"]),
+    ("roads and drive", ["roads"]),
+    ("water", ["water"]),
     ("drape and ground", ["ground"]),
     ("runs", ["runs"]),
 ]
