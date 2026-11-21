@@ -73,36 +73,32 @@ func _star_table() -> void:
 	var r := Rules.new()
 	r.begin(100.0)
 	_expect("a new ride's stars", r.stars(), 5.0)
-	_expect("a bump at 3.9 m/s is free", r.drive_event("bump", 3.9), false)
-	_expect("a bump at 4.5 m/s costs", r.drive_event("bump", 4.5), true)
+	_expect("a bump at 5.9 m/s is free", r.drive_event("bump", 5.9), false)
+	_expect("a bump at 6.5 m/s costs", r.drive_event("bump", 6.5), true)
 	_expect("after one bump", r.stars(), 4.5)
-	r.tick(1.0)
-	_expect("braking hard 1 s after the bump waits (2 s apart)", r.drive_event("brake", 25.0), false)
+	r.tick(4.0)
+	_expect("braking hard 4 s after the bump waits (5 s apart)", r.drive_event("brake", 30.0), false)
 	r.tick(1.1)
-	_expect("braking at 18 m/s² is free", r.drive_event("brake", 18.0), false)
-	_expect("braking at 19 m/s² costs", r.drive_event("brake", 19.0), true)
-	r.tick(2.05)
-	_expect("a corner at 15 m/s² is free", r.drive_event("corner", 15.0), false)
-	_expect("a corner at 16 m/s² costs", r.drive_event("corner", 16.0), true)
-	r.tick(2.05)
-	_expect("the fourth driving half star", r.drive_event("bump", 9.0), true)
-	_expect("after four", r.stars(), 3.0)
-	r.tick(2.05)
-	_expect("driving costs at most 2.0", r.drive_event("bump", 9.0), false)
-	_expect("still", r.stars(), 3.0)
+	_expect("braking at 22 m/s² is free", r.drive_event("brake", 22.0), false)
+	_expect("braking at 23 m/s² costs", r.drive_event("brake", 23.0), true)
+	r.tick(5.05)
+	_expect("a corner at 19 m/s² is free", r.drive_event("corner", 19.0), false)
+	_expect("a corner at 20 m/s² costs", r.drive_event("corner", 20.0), true)
+	_expect("after three", r.stars(), 3.5)
+	r.tick(5.05)
+	_expect("driving costs at most 1.5", r.drive_event("bump", 9.0), false)
+	_expect("still", r.stars(), 3.5)
 
 	var late := Rules.new()
 	late.begin(60.0)
-	late.tick(74.9)
-	_expect("14.9 s past the ETA is free", late.stars(), 5.0)
-	_expect("15 s past the ETA costs half a star", late.tick(0.2), true)
-	_expect("15 s late", late.stars(), 4.5)
-	late.tick(15.0)
-	_expect("30 s late", late.stars(), 4.0)
-	late.tick(15.0)
-	_expect("45 s late", late.stars(), 3.5)
+	late.tick(84.9)
+	_expect("24.9 s past the ETA is free", late.stars(), 5.0)
+	_expect("25 s past the ETA costs half a star", late.tick(0.2), true)
+	_expect("25 s late", late.stars(), 4.5)
+	late.tick(25.0)
+	_expect("50 s late", late.stars(), 4.0)
 	late.tick(200.0)
-	_expect("lateness costs at most 1.5", late.stars(), 3.5)
+	_expect("lateness costs at most 1.0", late.stars(), 4.0)
 
 	var police := Rules.new()
 	police.begin(100.0)
@@ -121,7 +117,7 @@ func _star_table() -> void:
 	_expect("past 0.8 of the ETA is not early", slow.arrive(), false)
 	var bumped := Rules.new()
 	bumped.begin(100.0)
-	bumped.drive_event("bump", 6.0)
+	bumped.drive_event("bump", 7.0)
 	_expect("a believer's leg earns half a star", bumped.follow(), true)
 	_expect("once", bumped.follow(), false)
 	_expect("bump then the app's leg", bumped.stars(), 5.0)
@@ -325,6 +321,50 @@ func _stories() -> void:
 	var invest := Rules.pay(1800.0, 5.0, false, false, false, 0, -20)
 	_expect("an investment of 20 zł takes the 12 zł tip, not the fare", int(invest["total"]), int(plain["fare"]))
 	_expect("the result card says the story tip", String(Rules.result_text({"stars": 5.0, "pay": talk, "rating": 4.9})[1]).contains("rozmowa 12"), true)
+	_small_talk(all)
+	_account()
+
+
+## F 2026-11-20: no question on a story ride; the ride picks the ending. A good ride (4.5 stars or more)
+## gets the answer that pays more, a worse one the answer that pays less, but never one that costs money.
+func _small_talk(all: Array) -> void:
+	var mordor: Dictionary = Stories.pick(all, [], RandomNumberGenerator.new(), false, "mordor")
+	_expect("a good ride gets the better ending (the 12 zł tip)", Stories.ending(mordor, 5.0), 0)
+	_expect("a 4.5 ride still does", Stories.ending(mordor, 4.5), 0)
+	_expect("a poor ride gets the other ending (no tip)", Stories.ending(mordor, 4.0), 1)
+	var startup: Dictionary = Stories.pick(all, [], RandomNumberGenerator.new(), false, "startup")
+	_expect("the startup's investment is not asked of a good ride", Stories.ending(startup, 5.0), 1)
+	_expect("nor of a poor one", Stories.ending(startup, 3.0), 1)
+	_expect("a story with no answers has no ending", Stories.ending({}, 5.0), -1)
+	# Every line is small talk: short enough to read at a glance.
+	for st: Dictionary in all:
+		for l: Array in st["lines"]:
+			_expect("%s: a small-talk line of at most 70 characters: %s" % [st["id"], l[0]], String(l[0]).length() <= 70, true)
+	# The passenger's crash quips: a dozen short lines in both languages.
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
+	var crash := 0
+	for l: Variant in (d as Dictionary)["podwozka_passenger"]:
+		if l is Array and l.size() > 2 and l[2] is Dictionary and l[2].get("only", "") == "crash":
+			crash += 1
+			_expect("a crash quip of at most 45 characters: %s" % l[0], String(l[0]).length() <= 45 and String(l[1]).length() <= 50, true)
+	_expect("at least ten crash quips", crash >= 10, true)
+
+
+## F 2026-11-20: the taxi app's account, and what an online leaderboard reads later.
+func _account() -> void:
+	var keep := {}
+	_expect("a new save has earned nothing", int(Rules.account(keep, 0)["earned"]), 0)
+	_expect("and averages nothing, without dividing by zero", int(Rules.account(keep, 0)["average"]), 0)
+	Rules.record(keep, 66, 1)
+	Rules.record(keep, 40, 2)
+	Rules.record(keep, -5, 0)
+	var a := Rules.account(keep, 3)
+	_expect("earned adds the rides up (a negative pay counts nothing)", int(a["earned"]), 106)
+	_expect("the best ride", int(a["best"]), 66)
+	_expect("the best streak is kept when the streak ends", int(a["best_streak"]), 2)
+	_expect("the average fare", int(a["average"]), 35)
+	keep["podwozka_ratings"] = [5.0, 4.0]
+	_expect("the rating is the player's, 18 new rides counting 4,87", snappedf(float(Rules.account(keep, 2)["rating"]), 0.001), snappedf((5.0 + 4.0 + 18.0 * 4.87) / 20.0, 0.001))
 
 
 func _escape(t: String) -> String:
