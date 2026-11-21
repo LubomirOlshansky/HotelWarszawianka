@@ -1,4 +1,4 @@
-- The website's "open beta" signup now asks which phone you have (iPhone or Android), the website says in the first screen that this is a free game for iPhone and Android, and the game has a OPINIA / WRITE TO THE AUTHOR button in Settings that sends your message (and an email, if you want a reply) straight to the author.
+- The website's "open beta" signup now asks which phone you have (iPhone or Android), the website says in the first screen that this is a free game for iPhone and Android, and the game has an OPINIA / FEEDBACK button in Settings that sends your message (and an email, if you want a reply) straight to the author.
 
 - The site's Worker can now take the signup and the feedback itself (stored in a Cloudflare database and mailed to the game's inbox, no monthly cap); it goes live after F's word.
 
