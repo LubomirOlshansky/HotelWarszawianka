@@ -295,6 +295,13 @@ MONTHS_PL = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipc
 
 # Phones show the wide shots as a 4:3 crop (the hero, the chapters, day/night): a 1920 x 884 frame
 # cropped to 4:3 fills the width with 61% of the picture, so the browser must ask for 163vw.
+# Where the site's forms post. "formspree": the Around Warsaw project's Formspree forms (live today).
+# "own": the Worker's /api/* (site/forms.js, D1 + email). One line to switch after a deploy of the Worker.
+FORMS = "formspree"
+FORM_ACTIONS = {
+    "formspree": {"signup": "https://formspree.io/f/xjyweqgn", "feedback": "https://formspree.io/f/xjyweqgn"},
+    "own": {"signup": "/api/signup", "feedback": "/api/feedback"},
+}
 PHONE_43 = "(max-width: 700px) 163vw, 100vw"
 
 
@@ -354,12 +361,13 @@ def landing(strings: dict, lang: str) -> str:
         values["hero_video"] = values["hero_button"] = ""
 
     # No store links while the beta is closed: one "open beta soon" button to the subscribe card (#beta).
+    values["form_action"] = FORM_ACTIONS[FORMS]["feedback"]
     values["hero_ctas"] = f'      <a class="btn btn-primary" href="#beta">{values["cta_ios"]}</a>'
     values["sticky_buttons"] = f'  <a class="btn btn-primary" href="#beta">{values["sticky_ios"]}</a>'
     values["android_card"] = (
         f'    <div class="plat-card soon" id="soon">\n        <h3>{values["and_title"]}</h3>\n'
         f'        <p>{values["and_text_a"]}</p>\n'
-        f'        <form class="notify" id="notify" action="https://formspree.io/f/xjyweqgn" method="POST" novalidate data-need="email">\n'
+        f'        <form class="notify" id="notify" action="{FORM_ACTIONS[FORMS]["signup"]}" method="POST" novalidate data-need="email">\n'
         f'          <fieldset class="topics platform">\n            <legend>{values["f_platform"]}</legend>\n'
         f'            <label><input type="radio" name="platform" value="iPhone" checked><span>iPhone</span></label>\n'
         f'            <label><input type="radio" name="platform" value="Android"><span>Android</span></label>\n          </fieldset>\n'

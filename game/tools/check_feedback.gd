@@ -36,8 +36,10 @@ func _initialize() -> void:
 			problems.append("email '%s' is accepted" % bad)
 	if Feedback.accepts("works fine", "me@example.com") != "":
 		problems.append("a good email is refused")
-	if not Feedback.FORM_URL.begins_with("https://formspree.io/f/"):
-		problems.append("the form url is not a Formspree https url")
+	if not (Feedback.FORM_URL in [Feedback.OWN_URL] or Feedback.FORM_URL.begins_with("https://formspree.io/f/")):
+		problems.append("the form url is neither the Formspree form nor our own https endpoint")
+	if not Feedback.OWN_URL.begins_with("https://aroundwarsaw.app/api/"):
+		problems.append("OWN_URL is not on aroundwarsaw.app/api")
 	for r in ["short", "email", "wait", "fail", "sending", "ok"]:
 		for code in [Lang.PL, Lang.EN]:
 			Lang.code = code

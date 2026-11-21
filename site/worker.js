@@ -1,4 +1,5 @@
-// Counts clicks on the store buttons, then redirects. Everything else is the static site.
+// Counts clicks on the store buttons, then redirects; takes the beta signup and the feedback
+// (/api/signup, /api/feedback: stored in D1, mailed to the game's inbox); everything else is the static site.
 //
 //   /go/ios      -> IOS_URL     (App Store / TestFlight link, set in wrangler.jsonc)
 //   /go/android  -> ANDROID_URL (Google Play link)
@@ -10,11 +11,16 @@
 // Where to read it: dashboard -> Workers & Pages -> aroundwarsaw -> Logs (one line per click)
 // and the Analytics Engine dataset "aroundwarsaw_clicks" (see site/README.md).
 
+import { EmailMessage } from "cloudflare:email";
+import { handleForm, handleAdmin } from "./forms.js";
+
 const TARGETS = { ios: "IOS_URL", android: "ANDROID_URL" };
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === "/api/signup" || url.pathname === "/api/feedback") return handleForm(request, env, ctx, url, EmailMessage);
+    if (url.pathname === "/api/admin/submissions") return handleAdmin(request, env, url);
     const m = url.pathname.match(/^\/go\/(ios|android)\/?$/);
     if (!m) return env.ASSETS.fetch(request);
 
