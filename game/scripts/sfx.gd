@@ -229,6 +229,8 @@ var _rotor := 0.0
 var _lift_on := false
 var _hit_wait := 0.0
 var _horn_wait := 0.0
+## Seconds until a tram bell may ring again anywhere (trams.gd already spaces each tram by 8 s).
+var _tram_bell_wait := 0.0
 var _jar_wait := 0.0
 var _event_wait := 12.0
 ## The district bed now (a LOOPS name, "" for none): set_district.
@@ -534,6 +536,7 @@ func _process(dt: float) -> void:
 	_t += dt
 	_hit_wait -= dt
 	_horn_wait -= dt
+	_tram_bell_wait -= dt
 	_jar_wait -= dt
 	_soft_t = maxf(0.0, _soft_t - dt)
 	_listener.global_transform = Transform3D(Basis(Vector3.UP, deg_to_rad(yaw)), focus + Vector3.UP * LISTENER_UP)
@@ -762,8 +765,13 @@ func jars(kind: int) -> void:
 	play("jar_break" if kind == 1 else "jar_clink", _rng.randf_range(-3.0, 0.0))
 
 
-## A tram rings as it leaves a stop or at a car on its track.
+## A tram rings as it leaves a stop or at a car on its track. Two takes (the synth two-tone and
+## the recorded "dzyń dzyń" tram_bell_2, 2026-11-21), and never two bells within 3 s of each other
+## so a busy crossing does not clang.
 func tram_bell(at: Vector3) -> void:
+	if _tram_bell_wait > 0.0:
+		return
+	_tram_bell_wait = 3.0
 	_play3("tram_bell", at, 0.0)
 
 
