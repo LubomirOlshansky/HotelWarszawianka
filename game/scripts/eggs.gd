@@ -331,6 +331,8 @@ const INNER_ROAD := [-158.9, 258.4, -166.3, 260.6, -173.5, 263.2, -176.4, 265.2,
 const INNER_TAXIS := 3
 const INNER_SPEED := 6.5
 const INNER_GAP := 17.0
+## The taxis stand at the rank (F, 2026-11-21) rather than drive the loop.
+const INNER_RANK := true
 const LAMP_SPOTS := [[-149.0, 281.5], [-161.5, 285.0], [-174.4, 281.5], [-157.5, 265.4]]
 
 
@@ -477,7 +479,9 @@ func _inner_taxis(dt: float) -> void:
 		return
 	var loop := maxf(_inner_len + 8.0, INNER_GAP * INNER_TAXIS)
 	for i in INNER_TAXIS:
-		var s := fposmod(_t * INNER_SPEED - i * INNER_GAP, loop)
+		# F (2026-11-21, teaser 4: "the taxis by the monument appear and disappear"): they wait at
+		# the rank, nose to tail, instead of looping round and popping out at the road's end.
+		var s := clampf(_inner_len * 0.55 - i * 6.0, 2.0, _inner_len - 2.0) if INNER_RANK else fposmod(_t * INNER_SPEED - i * INNER_GAP, loop)
 		if s > _inner_len:
 			_inner_mm.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * 0.001), Vector3(0, -50, 0)))
 			continue

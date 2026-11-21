@@ -238,6 +238,8 @@ var _xray: Node3D
 const DECK_XRAY_EVERY := 4
 var _deck_hid := false
 var heli: Node3D
+## Teaser 5 (F, 2026-11-21): the promo shot's second helicopter (--promo-heli), or null.
+var promo_heli: Node3D
 var missions: Node
 var hud: CanvasLayer
 ## The living city (absent with --no-traffic): lane graph, traffic, trams,
@@ -1507,6 +1509,20 @@ func _build_world() -> void:
 	heli.set_map(map)  # map north: the L-shaped outline, not the bounding box
 	world.add_child(heli)
 	heli.landed.connect(_on_heli_landed)
+	if flags.promo_heli.size() >= 5:
+		var ph := flags.promo_heli
+		promo_heli = Heli.new()
+		promo_heli.name = "PromoHeli"
+		promo_heli.ground_height = map.ground_height
+		promo_heli.top_height = map.top_height
+		promo_heli.tallest_near = map.tallest_near
+		promo_heli.set_map(map)
+		world.add_child(promo_heli)
+		var go := Vector2(ph[2] - ph[0], ph[3] - ph[1])
+		promo_heli.place(Vector3(ph[0], map.ground_height(ph[0], ph[1]) + ph[4], ph[1]), atan2(-go.x, -go.y), ph[4])
+		promo_heli.auto_to = Vector2(ph[2], ph[3])
+		if ph.size() >= 6:
+			promo_heli.auto_share = ph[5]
 
 	cam = Camera3D.new()
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -5786,6 +5802,8 @@ func _process(dt: float) -> void:
 		zamkowy_life.tick(pos, heli.vel if flying else car.vel, flying)
 	car.lights = tod.lights_on
 	heli.lights = tod.lights_on
+	if promo_heli != null:
+		promo_heli.lights = tod.lights_on
 	car.wet = weather.wet
 	if sfx != null:
 		sfx.flying = flying

@@ -470,6 +470,76 @@ func _dp_guests(u: float, v: float, y: float) -> void:
 		_lbox(du + f * 0.34, dv, 0.1, 0.03, y + 0.16, y + 0.2, dc, M_STONE)
 
 
+## F (2026-11-21, teaser 4, his photos of the courtyard at night): the courtyard lives. Rows of
+## deckchairs either side of the fountain, most taken, facing a low stage with a screen and a
+## row of blue lights before the far body's middle bay (the summer bar's events; its parody name
+## OLDTWICE in neon over it), and people standing about in twos and threes. Boxes and beams in
+## the landmark's mesh (+0 draw calls), the same guests every bake (picked by place).
+func _dp_courtyard_life(y: float) -> void:
+	var shirts := [Color("#f2efe8"), Color("#2f6fb5"), Color("#e0b23a"), Color("#3b8f5a"), Color("#e57aa0"),
+			Color("#d8432f"), Color("#5aa9c9"), Color("#2b2c2f"), Color("#c96b2c"), Color("#7a4fa8")]
+	var legs := [Color("#2b3a55"), Color("#3a3a3d"), Color("#c9b38c"), Color("#5a6a7a")]
+	var skins := [Color("#e9c4a6"), Color("#d8a684"), Color("#b98262"), Color("#f0d2b8")]
+	var slings := [Color("#e8742a"), Color("#26365a"), Color("#e8742a"), Color("#d9d6cf")]
+	var frame_c := Color("#c9a26a")
+	var up := Vector3.UP
+	# The stage before the far body (v ~ 70), its screen and blue lights, and the bar's neon.
+	var su := DOM_FOUNTAIN_UV.x
+	_lbox(su, 70.2, 4.5, 1.6, y, y + 0.6, Color("#1e1f22"), M_STONE)
+	_lbox(su, 71.5, 1.6, 0.12, y + 0.6, y + 4.2, Color("#26292e"), M_STONE)
+	_mode = M_LAMP
+	for k in 9:
+		_lbox(su - 4.0 + k, 68.55, 0.18, 0.05, y + 0.35, y + 0.5, Color(0.35, 0.45, 1.0), M_LAMP)
+	_mode = M_STONE
+	var mid := _w(su, DOM_BODY_V[1].x - 0.3)
+	signs.append(["OLDTWICE", Vector3(mid.x, y + 6.4, mid.y), Vector3(_b.x, 0.0, _b.y), 5.0 / Neon.length_of("OLDTWICE"), Color(0.55, 0.62, 1.0)])
+	# The deckchairs: rows either side of the fountain, facing the stage (+v).
+	var n := 0
+	for side: float in [-1.0, 1.0]:
+		for row in 7:
+			for col in 3:
+				var u := su + side * (7.5 + col * 2.4 + (row % 2) * 0.6)
+				var v := 26.0 + row * 5.4
+				var h := absf(fposmod(sin(u * 12.9898 + v * 78.233) * 43758.5453, 1.0))
+				if h > 0.86:
+					continue
+				n += 1
+				var f := func(du: float, dy: float, dv: float) -> Vector3:
+					var q := _w(u + du, v + dv)
+					return Vector3(q.x, y + dy, q.y)
+				var sl: Color = slings[int(h * 37.0) % slings.size()]
+				for x: float in [-0.3, 0.3]:
+					_beam(f.call(x, 0.0, -0.55), f.call(x, 0.95, 0.15), 0.06, frame_c)
+				_beam(f.call(0.0, 0.92, 0.12), f.call(0.0, 0.3, -0.45), 0.58, sl)
+				if h > 0.7:
+					continue  # an empty chair
+				var shirt: Color = shirts[int(h * 97.0) % shirts.size()]
+				var leg: Color = legs[int(h * 53.0) % legs.size()]
+				var skin: Color = skins[int(h * 31.0) % skins.size()]
+				_beam(f.call(0.0, 0.5, -0.25), f.call(0.0, 1.0, 0.08), 0.44, shirt)
+				_lbox(u, v + 0.12, 0.12, 0.12, y + 1.05, y + 1.3, skin, M_STONE)
+				for x: float in [-0.11, 0.11]:
+					_beam(f.call(x, 0.45, -0.25), f.call(x, 0.5, -0.78), 0.16, leg)
+					_beam(f.call(x, 0.5, -0.78), f.call(x, 0.05, -1.0), 0.13, leg)
+	# People standing in twos and threes between the rows and by the stage.
+	var groups := [Vector2(su - 3.5, 30.0), Vector2(su + 3.5, 38.0), Vector2(su - 3.0, 58.5), Vector2(su + 3.2, 62.0),
+			Vector2(su - 9.0, 66.0), Vector2(su + 9.5, 66.5), Vector2(su - 16.0, 24.0), Vector2(su + 16.5, 47.0)]
+	for gi in groups.size():
+		var gc: Vector2 = groups[gi]
+		for j in 2 + gi % 2:
+			var a := TAU * j / (2.0 + gi % 2) + gi
+			var pu := gc.x + cos(a) * 0.55
+			var pv := gc.y + sin(a) * 0.55
+			var h := absf(fposmod(sin(pu * 7.13 + pv * 3.77) * 43758.5453, 1.0))
+			var shirt: Color = shirts[int(h * 97.0) % shirts.size()]
+			var leg: Color = legs[int(h * 53.0) % legs.size()]
+			var skin: Color = skins[int(h * 31.0) % skins.size()]
+			_lbox(pu, pv, 0.16, 0.1, y, y + 0.86, leg, M_STONE)
+			_lbox(pu, pv, 0.21, 0.13, y + 0.86, y + 1.48, shirt, M_STONE)
+			_lbox(pu, pv, 0.11, 0.11, y + 1.5, y + 1.75, skin, M_STONE)
+	print("dom_partii: %d deckchairs in the courtyard" % n)
+
+
 ## A clipped ball tree in a square granite planter at (u, v) on the floor y (the towers' fronts).
 func _dp_topiary(u: float, v: float, y: float) -> void:
 	_lbox(u, v, 0.5, 0.5, y, y + 0.8, DOM_GRANITE, M_STONE, DOM_SHADE)
@@ -796,6 +866,7 @@ func _build_dom_partii(_site: Dictionary) -> void:
 		var c := _w(pl.x, pl.y)
 		_frustum(_circle(c, 0.55, 6), pave + 0.75, _circle(c, 0.08, 6), pave + 2.3, DOM_LEAF, DOM_LEAF)
 
+	_dp_courtyard_life(pave + 0.07)
 	_dp_arcade(g, pave)
 
 	# --- the roof signs (parodies) ------------------------------------------------------------

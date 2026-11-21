@@ -76,6 +76,10 @@ var blocked := false
 
 ## 0..1, how far the city's lights are on; the game sets it every frame.
 var lights := 0.0
+## A promo shot's helicopter (main.gd --promo-heli) flies itself towards this point (x, z) at
+## auto_share of top speed and hovers there; INF: steered by the game's input as usual.
+var auto_to := Vector2.INF
+var auto_share := 0.6
 var _beacon: StandardMaterial3D
 var _strobe: StandardMaterial3D
 var _search: MeshInstance3D
@@ -130,6 +134,9 @@ func _physics_process(dt: float) -> void:
 
 func _step(dt: float) -> void:
 	var p := global_position
+	if auto_to != Vector2.INF:
+		var to := auto_to - Vector2(p.x, p.z)
+		input_dir = Vector3(to.x, 0.0, to.y).normalized() * auto_share if to.length() > 8.0 else Vector3.ZERO
 	var before := vel
 	# A heavy machine, not a cursor: ease towards the wanted velocity.
 	var want := Vector3.ZERO if landing else input_dir.limit_length(1.0) * MAX_SPEED * (1.0 - LOAD_SLOW * sling)

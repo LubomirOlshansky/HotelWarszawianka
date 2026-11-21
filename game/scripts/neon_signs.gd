@@ -58,7 +58,7 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"WISTULA",
 		# Its arcade's cafés and bars (parodies, F 2026-11-19): the bakery-bistro, the cocktail
 		# bar (its neon Z is the "Z" below) and the craft-beer bar.
-		"SZARLOTKA", "ZAMIESZAJ", "CUDA NA PATYKU",
+		"SZARLOTKA", "ZAMIESZAJ", "OLDTWICE", "CUDA NA PATYKU",
 		# The power company's red roof sign on Wybrzeże Kościuszkowskie 41 (F's photos, 2026-11-13).
 		"ELEKTRON",
 		# HOTEL PIURE's rooftop date bar (G3).

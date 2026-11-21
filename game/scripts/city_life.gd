@@ -2454,7 +2454,14 @@ func _heights_of(pset: String, i: int) -> PackedFloat32Array:
 	var dk := _foot_dk[i] if pset == "foot" else _cyc_dk[i]
 	var h := PackedFloat32Array()
 	for q in pts:
-		h.append(map.deck_height(dk, q.x, q.y) if map != null else 0.0)
+		var y: float = map.deck_height(dk, q.x, q.y) if map != null else 0.0
+		# F (2026-11-21, teaser 4): a path over a low built floor (the Party House's terrace, 0.75 m
+		# up) rides on it, not through it; anything higher than a step-up is a building, left alone.
+		if map != null:
+			var top: float = map.roof_height(q.x, q.y)
+			if top - y > 0.15 and top - y < 1.2:
+				y = top
+		h.append(y)
 	_heights[key] = h
 	return h
 

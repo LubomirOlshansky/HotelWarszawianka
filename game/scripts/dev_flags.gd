@@ -104,6 +104,10 @@ var demo := false
 ## world direction (x east, z south) the whole run, for screenshots of the clamp along the map's
 ## outline (ZERO: off).
 var heli_stick := Vector2.ZERO
+## Teaser 5 (F, 2026-11-21), --promo-heli=X,Z,TX,TZ,ALT[,SHARE]: a second helicopter for a promo
+## shot, starting ALT m over (X, Z) and flying itself towards (TX, Z) at SHARE of top speed
+## (0.6), its beacon, strobe and searchlight on at night. Empty: none.
+var promo_heli := PackedFloat32Array()
 var out_dir := "user://"
 ## --spots: [name, Vector2 x/z, heading or INF] per camera; one run shoots them all, the city
 ## built once (a street pass needs 6-10 cameras; a launch per camera cost ~70 s each).
@@ -644,6 +648,9 @@ func parse_with(args: PackedStringArray) -> void:
 			stats_flag = arg.trim_prefix("--stats=")
 		elif arg == "--heli":
 			start_flying = true
+		elif arg.begins_with("--promo-heli="):
+			for v in arg.trim_prefix("--promo-heli=").split(","):
+				promo_heli.append(float(v))
 		elif arg.begins_with("--heli-stick="):
 			var hs := arg.trim_prefix("--heli-stick=").split(",")
 			if hs.size() == 2:
