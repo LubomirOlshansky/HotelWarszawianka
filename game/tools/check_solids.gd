@@ -53,7 +53,9 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## 2026-11-19, Hotel Metropol (#942): -74 faces (46710 → 46636), the street block blk_28759009 (#495) on the
 ## hotel's outline is no longer built (a second model over METROPOLKA); the hotel's own site keeps its walls.
 ## TOTAL_TYPED 46533 → 46459 the same way (each its own `--record` on a fresh bake after merging #933).
-const TOTAL := 46636
+## 2026-11-21, Teatr Ateneum as the whole L-block and Lipowa 1A (#988): -49 faces (46636 → 46587), the 47 m
+## strip and the block's old masses under the theatre give way to its own ring; TOTAL_TYPED 46459 → 46406 the same way.
+const TOTAL := 46587
 ## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
@@ -69,7 +71,7 @@ const TOTAL := 46636
 ## --barriers=typed` on the gated map: 46459, unchanged (of the 16 gaps in these six sectors 13 cut
 ## soft fences, which file no faces; the walls' 3 sit on OSM's gate node, a vertex, so the segments on
 ## each side are shorter but as many; the gate posts file none). TOTAL (classic) ignores the gates.
-const TOTAL_TYPED := 46459
+const TOTAL_TYPED := 46406
 
 var problems: Array[String] = []
 var verbose := false

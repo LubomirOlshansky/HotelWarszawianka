@@ -62,6 +62,7 @@ fails if a script is in neither page, so add a row when you add a file.
 | `landmarks/ujazdow.gd` | Landmark area: Ujazdów and Łazienkowska: Zamek Ujazdowski, Legia's ground, WTS DeSki, the Sejm, Stacja Filtrów. Uses only itself, `common.gd` and the kit. |
 | `landmarks/praga.gd` | Landmark area: Praga: Stadion Narodowy and Bazar Różyckiego. Uses only itself, `common.gd` and the kit. |
 | `landmarks/kladka.gd` | Landmark area: Kładka Abakanowicz, the footbridge from Karowa to Port Praski (2026-11-20): deck, seating bays, railings with the LED strip, rust girder, seven supports, the meridian line, from the map's `kladka` stamp (`tools/kladka.py`); `kladka_plan` gives crowds.gd its seats and railing spots. Uses only itself, `common.gd` and the kit. |
+| `landmarks/powisle2.gd` | Landmark area: Teatr Ateneum (the Jaracza front on the 20.8 m house; the porch stays tamka.gd's) and Lipowa 1A (white base, glass floors between teal fins, roof terrace), 2026-11-20. Uses only itself, `common.gd` and the kit. |
 | `landmarks/fronts.gd` | Landmark area: the kept skins (SKINS), the street blocks with modelled fronts, the photo fronts and the single houses' fronts. Uses only itself, `common.gd` and the kit. |
 | `models.gd` | Meshes of everything that moves (cars, buses, trams, people) and shared materials. |
 | `props.gd`, `park_props_life.gd`, `park_props_play.gd`, `park_props_water.gd` | Box-built props in the actors' material, one surface. |

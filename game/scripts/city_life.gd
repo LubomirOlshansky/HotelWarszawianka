@@ -46,6 +46,7 @@ const BoulevardLife := preload("res://scripts/boulevard_life.gd")
 const KladkaLife := preload("res://scripts/kladka_life.gd")
 const Props := preload("res://scripts/props.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
+const ScooterZones := preload("res://scripts/scooter_zones.gd")
 
 ## Seconds between two ticks of the logic, and between two moves of the movers.
 const TICK := 0.5
@@ -67,6 +68,67 @@ const RIDER_K := 1
 const RUNNER_K := 2
 ## Loop MW-2: a Pędzik courier (a rider in its own MultiMesh).
 const PEDZIK_K := 3
+## F's scooter chaos (2026-11-19, docs/design/kukuryznik.md): a Kukuryźnik rider (the parody of the
+## fat-tyre e-scooters of the "kukiriniarze" memes), in a MultiMesh of its own.
+const SCOOT_K := 4
+## The Kukuryźnik family's shapes: one rider (a speaker on the bar), two on one deck, the wipeout
+## (the scooter on its side, the rider sitting by it, phone up) and the stop (standing beside it,
+## phone at the ear: the call to mum, the kebab-stand gang). A wheelie is the solo shape pitched up.
+const SC_SOLO := 0
+const SC_DUO := 1
+const SC_GLEBA := 2
+const SC_PHONE := 3
+## Instances: riders, the mob and the gang together.
+const KUK_CAP := 14
+## Riders near the view by the hour: [from, to, count] (after school and the evening the most).
+const SCOOT_HOURS := [[0.0, 2.5, 2], [7.0, 14.0, 1], [14.0, 22.0, 4], [22.0, 24.0, 3]]
+## 36-54 km/h on a path or a kerb; an overtake goes up to SCOOT_TOP (100 km/h, the viral clip).
+const SCOOT_V := Vector2(10.0, 15.0)
+const SCOOT_TOP := 27.8
+## Where a new one rides: the kerb edge of a road, else a footway (the rest on the cycle paths).
+const SCOOT_KERB := 0.35
+const SCOOT_FOOT := 0.25
+const SCOOT_DUO_SHARE := 0.25
+const SCOOT_WHEELIE := 0.15
+const WHEELIE_PITCH := 0.28
+const HOODIES := ["#1d1f24", "#2b2c2f", "#4a4d52", "#6b6f3a", "#e8e4d8", "#c8282a", "#2f6fb5", "#b8f03a"]
+const SCOOT_BUBBLE := Color("#ff8a1f")
+## Walkers within LEAP_R m of the point LEAP_AHEAD m ahead of a rider on a footway leap aside
+## (LEAP_R_EDGE beside a cycle path or a kerb: only the ones right at its edge); a shout at most
+## every SHOUT_GAP s.
+const LEAP_R := 3.5
+const LEAP_R_EDGE := 1.6
+const LEAP_AHEAD := 3.0
+const SHOUT_GAP := 18.0
+## The overtake: a kerb rider within OVERTAKE_R m behind the car going its way at OVERTAKE_KMH or
+## more speeds up to the car's speed + OVERTAKE_PLUS m/s, passes, says his line; past OVERTAKE_DROP m
+## (or the car slow) he is back to his own speed.
+const OVERTAKE_R := 16.0
+const OVERTAKE_KMH := 25.0
+const OVERTAKE_PLUS := 4.0
+const OVERTAKE_DROP := 40.0
+## The encounters (one at a time, every ENC_GAP s): a rider ENC_NEAR m from the view wipes out
+## (GLEBA_T s on the ground) or stops for a call (MAMA_T s).
+const ENC_GAP := Vector2(90.0, 200.0)
+const ENC_NEAR := Vector2(12.0, 80.0)
+const GLEBA_SHARE := 0.55
+const GLEBA_T := 7.0
+const MAMA_T := 9.0
+## The Kukuryźnik Mob: a column of MOB_N at night (MOB_HOURS), MOB_GAP_M m apart, at most every
+## MOB_EVERY s, for MOB_LIFE s at most.
+const MOB_HOURS := [[22.5, 24.0], [0.0, 2.0]]
+const MOB_N := Vector2i(5, 7)
+const MOB_GAP_M := 4.5
+const MOB_EVERY := 600.0
+const MOB_LIFE := 120.0
+const MOB_R := Vector2(40.0, 110.0)
+## The gang at a kebab stand at night (one stand in three, by the day): GANG_SPOTS beside the kiosk,
+## their scooters by them; a line when the car rolls by within GANG_TALK_R m under 25 km/h.
+const GANG_SPOTS := [Vector2(5.4, -0.9), Vector2(-5.4, -0.9), Vector2(6.6, -1.4)]
+const GANG_TALK_R := 9.0
+const GANG_GAP := 60.0
+## KEBAB FM's host on them, at most every SC_RADIO_GAP s, once one was seen near the car.
+const SC_RADIO_GAP := 420.0
 ## Movers live within NEAR_R m of the view's focus; they start SPAWN_R m from it.
 const NEAR_R := 200.0
 const SPAWN_R := Vector2(25.0, 150.0)
@@ -341,6 +403,14 @@ class Mover:
 	var hop := 0.0
 	var calm := 0.0
 	var want_off := 0.0
+	## F's scooter chaos: a Kukuryźnik's stop (s left: a wipeout or a call), his shape between
+	## them, the wheelie, the speed before an overtake (0: none), his line said, in the mob.
+	var stun := 0.0
+	var base := 0
+	var wheelie := false
+	var boost := 0.0
+	var said := false
+	var mob := false
 
 
 var map: Node3D
@@ -420,6 +490,19 @@ var met_riders := 0
 ## Loop MW-2: Pędzik couriers met (within 10 m) and their near-miss bubbles.
 var met_pedzik := 0
 var pedzik_lines := 0
+## F's scooter chaos: the Kukuryźniks' counts (the check and the log); KEBAB FM is the dialogue's
+## radio unless a check sets its own here.
+var radio: Node
+var met_scoots := 0
+var scoot_leaps := 0
+var scoot_shouts := 0
+var scoot_overtakes := 0
+var scoot_glebas := 0
+var scoot_mamas := 0
+var scoot_mobs := 0
+var scoot_lines := 0
+var scoot_dodges := 0
+var scoot_radio := 0
 ## The slots' state now: {day, trend, cycle, queue, word} each (slot_state).
 var slots_now: Array[Dictionary] = []
 ## The slots' doors and their facade's outward side (from crowds.gd's sites), Vector2 each.
@@ -479,6 +562,22 @@ var blvd_t0 := 0.0
 var _pedziks: Array[Mover] = []
 ## Loop couriers: the kerb riders (Pędzik too: their slots in the Pedzik MultiMesh follow _pedziks').
 var _kerbers: Array[Mover] = []
+## F's scooter chaos: the Kukuryźnik riders, the mob (its slots after theirs), its way at each
+## junction (edge -> the next edge the first one took), its start; the gang ([at, yaw, shirt]).
+var _scoots: Array[Mover] = []
+var _mob: Array[Mover] = []
+var _mob_next := {}
+var _mob_t := -MOB_EVERY
+var _gang: Array = []
+var _gang_sig := 0
+var _gang_spots := {}
+var _gang_t := -GANG_GAP
+var _shout_t := -SHOUT_GAP
+var _enc_t := 60.0
+var _sc_radio_t := -SC_RADIO_GAP * 0.5
+var _seen_sc := false
+var _seen_mob := false
+var _sc_zones := ScooterZones.new()
 ## Road edge -> a cycle path runs beside it (_cycle_path_beside).
 var _beside_cache := {}
 ## Loop couriers: the couriers waiting at the stands near the view ([stand, at, yaw] each, after the
@@ -521,6 +620,11 @@ var _ped_buf := PackedFloat32Array()
 var _ped_box := AABB()
 var _peds_moved := false
 var _pedzik_t := -INF
+var _sc_mm: MultiMesh
+var _sc_mmi: MultiMeshInstance3D
+var _sc_buf := PackedFloat32Array()
+var _sc_box := AABB()
+var _sc_moved := false
 var _bike_buf := PackedFloat32Array()
 var _fascias: Array[MeshInstance3D] = []
 var _fascia_key: Array[String] = []
@@ -1490,6 +1594,10 @@ func _build_drawing() -> void:
 	_ped_buf.resize(PEDZIK_CAP * 16)
 	_ped_buf.fill(0.0)
 	_ped_mmi = _new_mmi(_ped_mm, "Pedzik")
+	_sc_mm = _new_mm(kukuryznik_mesh(), KUK_CAP)
+	_sc_buf.resize(KUK_CAP * 16)
+	_sc_buf.fill(0.0)
+	_sc_mmi = _new_mmi(_sc_mm, "Kukuryznik")
 	_scoot_mm = _new_mm(scooter_mesh(), SCOOT_CAP)
 	_scoot_buf.resize(SCOOT_CAP * 16)
 	_scoot_buf.fill(0.0)
@@ -1788,6 +1896,8 @@ func tick(step: float) -> void:
 	_keep(_pedziks, pedzik_count(_hour, amount) if pedzik_on else 0, "pedzik", eye, car2)
 	_keep(_kerbers, kerb_count(_hour, amount) if pedzik_on and graph != null else 0, "kerb", eye, car2)
 	_keep(_runners, runner_count(_hour, run_zone, amount), "runner", eye, car2)
+	_keep(_scoots, scoot_count(_hour, amount) if pedzik_on else 0, "scoot", eye, car2)
+	_keep_mob(eye)
 	_shown_now = _shown_bits(eye)
 	# Who is on screen, for the step's rate: inside the view's ground rectangle and VIS_MARGIN
 	# (traffic.gd's, read once), else on_screen per mover (without either: all are).
@@ -1801,7 +1911,7 @@ func tick(step: float) -> void:
 		vr = view.view_right
 		va = view.view_ahead
 		vh = (view.view_half as Vector2) + Vector2.ONE * VIS_MARGIN
-	for list: Array[Mover] in [_dogs, _riders, _runners, _pedziks, _kerbers]:
+	for list: Array[Mover] in [_dogs, _riders, _runners, _pedziks, _kerbers, _scoots, _mob]:
 		for m in list:
 			if view != null:
 				var q := m.p2 - vc
@@ -1849,9 +1959,11 @@ func tick(step: float) -> void:
 		_banner.visible = hyrax and eye.distance_to(_hyrax["at"]) < FASCIA_R
 	var was := _active
 	_active = not _dogs.is_empty() or not _riders.is_empty() or not _runners.is_empty() or not _pedziks.is_empty() or near_fixed or kolka_near \
-			or not _kerbers.is_empty() or not _waiting.is_empty()
+			or not _kerbers.is_empty() or not _waiting.is_empty() or not _scoots.is_empty() or not _mob.is_empty() or not _gang.is_empty()
 	if was and not _active:
 		_hide_all()
+	if pedzik_on:
+		_scoot_tick(eye, veh, step)
 	if not veh[2] and vp != Vector3.INF:
 		_bell_tick(p2, float(veh[1]), step)
 		_follow_tick(p2, float(veh[1]), step)
@@ -2014,6 +2126,8 @@ func _hide_all() -> void:
 	_bike_mmi.visible = false
 	_ped_mm.visible_instance_count = 0
 	_ped_mmi.visible = false
+	_sc_mm.visible_instance_count = 0
+	_sc_mmi.visible = false
 	_scoot_mm.visible_instance_count = 0
 	_scoot_mmi.visible = false
 	_gbuf.fill(0.0)
@@ -2055,7 +2169,11 @@ func _seen(m: Mover) -> bool:
 func _spawn(kind: String, eye: Vector2) -> Mover:
 	if kind == "kerb":
 		return _spawn_kerb(eye)
-	var pset := "cyc" if kind == "rider" or (kind == "pedzik" and _rng.randf() >= PEDZIK_FOOT) else "foot"
+	var roll := _rng.randf()
+	if kind == "scoot" and roll < SCOOT_KERB and graph != null:
+		return _spawn_kerb(eye, "scoot")
+	var pset := "cyc" if kind == "rider" or (kind == "pedzik" and _rng.randf() >= PEDZIK_FOOT) \
+			or (kind == "scoot" and roll >= SCOOT_KERB + SCOOT_FOOT) else "foot"
 	var grid: Dictionary = _foot_grid if pset == "foot" else _cyc_grid
 	var list: Array[PackedVector2Array] = _foot if pset == "foot" else _cyc
 	var a := _rng.randf() * TAU
@@ -2073,7 +2191,7 @@ func _spawn(kind: String, eye: Vector2) -> Mover:
 		return null
 	var m := Mover.new()
 	m.kind = kind
-	m.kd = DOG_K if kind == "dog" else (RIDER_K if kind == "rider" else (PEDZIK_K if kind == "pedzik" else RUNNER_K))
+	m.kd = DOG_K if kind == "dog" else (RIDER_K if kind == "rider" else (PEDZIK_K if kind == "pedzik" else (SCOOT_K if kind == "scoot" else RUNNER_K)))
 	m.pset = pset
 	m.i = i
 	m.s = _rng.randf_range(0.0, length)
@@ -2108,6 +2226,10 @@ func _spawn(kind: String, eye: Vector2) -> Mover:
 			m.v = _rng.randf_range(PEDZIK_V.x, PEDZIK_V.y)
 			m.off = _rng.randf_range(-0.3, 0.3)
 			m.want_off = m.off
+		"scoot":
+			m.off = _rng.randf_range(-0.3, 0.3)
+			m.want_off = m.off
+			_dress_scoot(m)
 		"runner":
 			m.v = _rng.randf_range(2.7, 3.3)
 			m.off = _rng.randf_range(-0.5, 0.5)
@@ -2119,8 +2241,10 @@ func _spawn(kind: String, eye: Vector2) -> Mover:
 
 ## Loop couriers: a kerb rider SPAWN_R from `eye`, on the kerb edge of a lane graph road there (null
 ## when the cell has none he takes).
-func _spawn_kerb(eye: Vector2) -> Mover:
+func _spawn_kerb(eye: Vector2, kind := "kerb", reach := Vector2.ZERO) -> Mover:
 	var r := _rng.randf_range(8.0, 35.0) if kerb_close else _rng.randf_range(SPAWN_R.x, SPAWN_R.y)
+	if reach != Vector2.ZERO:
+		r = _rng.randf_range(reach.x, reach.y)
 	var at := eye + Vector2.from_angle(_rng.randf() * TAU) * r
 	var cands: PackedInt32Array = graph.grid.get(LaneGraph.cell_key(at), PackedInt32Array())
 	if cands.is_empty():
@@ -2129,10 +2253,12 @@ func _spawn_kerb(eye: Vector2) -> Mover:
 	if not _kerb_edge(e):
 		return null
 	var m := Mover.new()
-	m.kind = "kerb"
-	m.kd = PEDZIK_K
+	m.kind = kind
+	m.kd = SCOOT_K if kind == "scoot" else PEDZIK_K
 	m.pset = "kerb"
 	m.v = _rng.randf_range(PEDZIK_V.x, PEDZIK_V.y)
+	if kind == "scoot":
+		_dress_scoot(m)
 	_kerb_path(m, e, Vector2.INF, 0.0)
 	m.s = _rng.randf_range(0.0, m.length)
 	_place_mover(m)
@@ -2251,6 +2377,10 @@ func _next_kerb(m: Mover, over: float) -> void:
 		m.s = m.length
 		return
 	var f: int = picks[_rng.randi() % picks.size()]
+	if m.mob:
+		# The Kukuryźnik Mob keeps together: each takes the way the first one took here.
+		f = int(_mob_next.get(e, f))
+		_mob_next[e] = f
 	_kerb_path(m, f, m.pts[m.pts.size() - 1], m.h[m.h.size() - 1])
 	m.s = clampf(over, 0.0, m.length)
 
@@ -2454,6 +2584,8 @@ func _move(dt: float) -> void:
 	_step_list(_runners, RUNNER_K, dt, eye, car2, ahead, full)
 	_step_list(_pedziks, PEDZIK_K, dt, eye, car2, ahead, full)
 	_step_list(_kerbers, PEDZIK_K, dt, eye, car2, ahead, full, _pedziks.size())
+	_step_list(_scoots, SCOOT_K, dt, eye, car2, ahead, full)
+	_step_list(_mob, SCOOT_K, dt, eye, car2, ahead, full, _scoots.size())
 	# Loop jobs-2: the chair goes where the man is.
 	if _shown_now & ARM_BIT and _arm_on and _chair != null:
 		var pose := armchair_pose()
@@ -2535,15 +2667,17 @@ func _step_dogs(dt: float, eye: Vector2, car2: Vector2, ahead: Vector2, full: bo
 ## Loop couriers: `base` is a Pędzik list's first slot in the Pedzik MultiMesh (the kerb riders' come
 ## after the path riders'); a Pędzik rider dodges the car's path (_dodge_step) and may be in a hop.
 func _step_list(list: Array[Mover], kd: int, dt: float, eye: Vector2, car2: Vector2, ahead: Vector2, full: bool, base := 0) -> void:
-	var rider := kd == RIDER_K or kd == PEDZIK_K
-	var ped := kd == PEDZIK_K
+	var scoot := kd == SCOOT_K
+	var rider := kd == RIDER_K or kd == PEDZIK_K or scoot
+	# A Pędzik and a Kukuryźnik dodge the car's path the same way.
+	var ped := kd == PEDZIK_K or scoot
 	var slot0 := base if ped else (_dock_n if rider else _dogs.size())
 	var moved := false
 	var has_car := car2 != Vector2.INF
 	var car_r2 := FAR_CAR * FAR_CAR
 	var far2 := FAR_MOVE * FAR_MOVE
 	# Loop couriers: the car's path matters to a Pędzik within this (his and its way in DODGE_T s).
-	var dodge_r := PEDZIK_MISS + (_car_v.length() + PEDZIK_V.y) * DODGE_T
+	var dodge_r := PEDZIK_MISS + (_car_v.length() + (SCOOT_TOP if scoot else PEDZIK_V.y)) * DODGE_T
 	var dodge_r2 := dodge_r * dodge_r
 	for idx in list.size():
 		var m: Mover = list[idx]
@@ -2558,6 +2692,16 @@ func _step_list(list: Array[Mover], kd: int, dt: float, eye: Vector2, car2: Vect
 				continue
 		var mdt := dt + m.acc
 		m.acc = 0.0
+		if scoot and m.stun > 0.0:
+			# A Kukuryźnik on the ground or on the phone: still, until the time is up or the car
+			# comes close (then he is up and off).
+			m.stun = maxf(0.0, m.stun - mdt)
+			if has_car and p0.distance_squared_to(car2) < 36.0:
+				m.stun = 0.0
+			if m.stun <= 0.0:
+				m.shape = m.base
+				_full = true
+			continue
 		var s0 := m.s
 		var s1 := s0 + m.v * mdt * m.dir
 		var near := has_car and p0.distance_squared_to(car2) < _reach2
@@ -2565,7 +2709,9 @@ func _step_list(list: Array[Mover], kd: int, dt: float, eye: Vector2, car2: Vect
 		# Loop couriers: a Pędzik's dodge (his side offset steering to its target, the hop's clock).
 		var steer := false
 		if ped:
-			if has_car and p0.distance_squared_to(car2) < dodge_r2:
+			# A Kukuryźnik overtaking the car means to pass it close: no dodge (the clearing below
+			# still keeps him off it).
+			if has_car and p0.distance_squared_to(car2) < dodge_r2 and not (scoot and m.boost > 0.0):
 				_dodge_step(m, car2)
 			elif m.dodge != DODGE_NONE:
 				m.dodge = DODGE_NONE
@@ -2593,7 +2739,12 @@ func _step_list(list: Array[Mover], kd: int, dt: float, eye: Vector2, car2: Vect
 		if near:
 			_clear_mover(m, kd, car2, ahead)
 		if not full:
-			if ped:
+			if scoot:
+				if slot0 + idx < KUK_CAP:
+					var sp := m.p3 + Vector3(0.0, hop_height(m.hop), 0.0) if m.hop > 0.0 else m.p3
+					put_scoot(_sc_buf, slot0 + idx, sp, m.yaw, m.shirt, m.shape, m.wheelie)
+					_sc_box = _sc_box.expand(sp)
+			elif ped:
 				if slot0 + idx < PEDZIK_CAP:
 					var hp := m.p3 + Vector3(0.0, hop_height(m.hop), 0.0) if m.hop > 0.0 else m.p3
 					put(_ped_buf, slot0 + idx, hp, m.yaw, Vector3.ONE, Color.WHITE, 0.0)
@@ -2605,7 +2756,9 @@ func _step_list(list: Array[Mover], kd: int, dt: float, eye: Vector2, car2: Vect
 				put(_gbuf, slot0 + idx, m.p3, m.yaw, Vector3.ONE, m.shirt, m.tr)
 			moved = true
 	if moved:
-		if ped:
+		if scoot:
+			_sc_moved = true
+		elif ped:
 			_peds_moved = true
 		elif rider:
 			_bikes_moved = true
@@ -2632,16 +2785,26 @@ func _dodge_step(m: Mover, car2: Vector2) -> void:
 		return
 	var d := dodge(gap, _room(m))
 	m.dodge = d
+	var sc := m.kd == SCOOT_K
+	if sc:
+		scoot_dodges += 1
 	if d == DODGE_SWERVE:
-		pedzik_swerves += 1
+		if not sc:
+			pedzik_swerves += 1
 		if m.ke >= 0:
 			m.want_off = KERB_IN + SWERVE_OUT
 	else:
-		pedzik_hops += 1
+		if not sc:
+			pedzik_hops += 1
 		m.hop = HOP_T
 	if pedzik_log:
 		print("pedzik: a %s %s at %.0f, %.0f (the car's path %.1f m off, %.0f km/h)" % ["kerb rider" if m.ke >= 0 else "rider",
 				"swerves" if d == DODGE_SWERVE else "hops", m.p2.x, m.p2.y, gap, _car_kmh])
+	if sc:
+		if says_near_miss(t, _pedzik_t, _car_kmh):
+			_pedzik_t = t
+			_scoot_say(m, "near_miss", true)
+		return
 	_near_miss(m)
 
 
@@ -2711,6 +2874,9 @@ func _clear_mover(m: Mover, kd: int, car2: Vector2, ahead: Vector2, count := tru
 			met_riders += 1
 		elif kd == PEDZIK_K:
 			met_pedzik += 1
+		elif kd == SCOOT_K:
+			met_scoots += 1
+			_seen_sc = true
 
 
 ## What is shown besides the movers (the tick's, as bits): the Hyrax cordon, the influencer, the
@@ -2758,6 +2924,10 @@ func _write_moved(car2: Vector2) -> void:
 		_peds_moved = false
 		InstanceBuffers.send(_ped_mm.get_rid(), _ped_buf)
 		_ped_mm.custom_aabb = _ped_box.grow(1.5).expand(_ped_box.end + Vector3(0, 2.2, 0))
+	if _sc_moved:
+		_sc_moved = false
+		InstanceBuffers.send(_sc_mm.get_rid(), _sc_buf)
+		_sc_mm.custom_aabb = _sc_box.grow(1.5).expand(_sc_box.end + Vector3(0, 2.4, 0))
 	if _kolka_slot >= 0:
 		_kolka_step(car2)
 	if _arm_slot >= 0:
@@ -2888,6 +3058,7 @@ func _write_all(eye: Vector2, car2: Vector2) -> void:
 		InstanceBuffers.send(_ped_mm.get_rid(), _ped_buf)
 		_ped_mm.custom_aabb = pbox.grow(1.5).expand(pbox.end + Vector3(0, 2.2, 0))
 	_ped_mmi.visible = pn > 0
+	_write_scoots()
 	_write_scooters()
 	_write_guests(eye, car2, hyrax, infl, aport_near)
 
@@ -3663,6 +3834,393 @@ func _soak_frame(dt: float) -> void:
 		car.global_position = Vector3(np.x, map.ground_height(np.x, np.y) + 0.05, np.y)
 		car.rotation.y = atan2(-to.x, -to.y)
 		car.set("vel", Vector3(to.x / d, 0.0, to.y / d) * 7.0)
+
+
+# --- F's scooter chaos: the Kukuryźniks (docs/design/kukuryznik.md) ------------------------------
+
+## Kukuryźnik riders near the view at `hour` (SCOOT_HOURS), times `k` (the life amount).
+static func scoot_count(hour: float, k := 1.0) -> int:
+	for w: Array in SCOOT_HOURS:
+		if hour >= float(w[0]) and hour < float(w[1]):
+			return roundi(float(w[2]) * k)
+	return 0
+
+
+## A new rider's shape from a roll: two on one deck SCOOT_DUO_SHARE of the time, else alone.
+static func scoot_shape(roll: float) -> int:
+	return SC_DUO if roll < SCOOT_DUO_SHARE else SC_SOLO
+
+
+## The gang hangs about kebab stand `stand` on day `day` at night: one stand in three, a new set
+## every day.
+static func gang_on(stand: int, day: int, hour: float) -> bool:
+	return pedzik_night(hour) and posmod(stand + day, 3) == 0
+
+
+## The Kukuryźnik Mob may start: its hours (MOB_HOURS) and MOB_EVERY s since the last one.
+static func mob_due(now: float, last: float, hour: float) -> bool:
+	return in_hours(MOB_HOURS, hour) and now - last >= MOB_EVERY
+
+
+## A kerb rider goes for the overtake: the car at OVERTAKE_KMH or more, going his way (`along`, the
+## dot of the two headings, over 0.85), him behind it (`behind`) within OVERTAKE_R m.
+static func wants_overtake(kmh: float, along: float, behind: bool, dist: float) -> bool:
+	return kmh >= OVERTAKE_KMH and along > 0.85 and behind and dist <= OVERTAKE_R
+
+
+## A new rider's look and speed: the hoodie, alone or two of them, a wheelie now and then.
+func _dress_scoot(m: Mover) -> void:
+	m.v = _rng.randf_range(SCOOT_V.x, SCOOT_V.y)
+	m.shirt = Color(HOODIES[_rng.randi() % HOODIES.size()])
+	m.shape = scoot_shape(_rng.randf())
+	m.base = m.shape
+	m.wheelie = m.shape == SC_SOLO and _rng.randf() < SCOOT_WHEELIE
+
+
+## The mob goes when it is far from the view or has been out MOB_LIFE s (the ones in sight stay).
+func _keep_mob(eye: Vector2) -> void:
+	if _mob.is_empty():
+		return
+	var old := t - _mob_t > MOB_LIFE
+	for i in range(_mob.size() - 1, -1, -1):
+		var m: Mover = _mob[i]
+		if m.p2.distance_to(eye) > NEAR_R or m.v <= 0.0 or (old and not _seen(m)):
+			_mob.remove_at(i)
+			_full = true
+	if _mob.is_empty():
+		_mob_next.clear()
+
+
+## The Kukuryźnik Mob: MOB_N riders in a column on one road's kerb MOB_R m from the view, the
+## first one's line; KEBAB FM hears of it. No road found: it tries again in 20 s.
+func _start_mob(eye: Vector2) -> void:
+	_mob_t = t - MOB_EVERY + 20.0
+	var n := _rng.randi_range(MOB_N.x, MOB_N.y)
+	var span := (n - 1) * MOB_GAP_M
+	var lead: Mover = null
+	for k in 6:
+		lead = _spawn_kerb(eye, "scoot", MOB_R)
+		if lead != null and lead.length >= span + 6.0:
+			break
+		lead = null
+	if lead == null:
+		return
+	_mob_t = t
+	_mob_next.clear()
+	lead.s = _rng.randf_range(span, lead.length)
+	var v := _rng.randf_range(SCOOT_V.x, SCOOT_V.y)
+	for k in n:
+		var m := lead if k == 0 else Mover.new()
+		if k > 0:
+			m.kind = "scoot"
+			m.kd = SCOOT_K
+			m.pset = "kerb"
+			_dress_scoot(m)
+			_kerb_path(m, lead.ke, Vector2.INF, 0.0)
+			m.s = lead.s - k * MOB_GAP_M
+			m.off = _rng.randf_range(-0.25, 0.25)
+			m.want_off = m.off
+		m.v = v
+		m.mob = true
+		_place_mover(m)
+		_mob.append(m)
+	_full = true
+	scoot_mobs += 1
+	_seen_mob = true
+	_scoot_say(lead, "mob", false)
+	if life_log:
+		print("life: the Kukuryznik Mob, %d riders at %.0f, %.0f" % [n, lead.p2.x, lead.p2.y])
+
+
+## The Kukuryźniks' 2 Hz part: the gang at the stands, the mob, the walkers leaping out of their
+## way (and a shout), the overtakes, the encounters, KEBAB FM.
+func _scoot_tick(eye: Vector2, veh: Array, step: float) -> void:
+	var vp: Vector3 = veh[0]
+	var ground := vp != Vector3.INF and not bool(veh[2])
+	var car2 := Vector2(vp.x, vp.z) if ground else Vector2.INF
+	var kmh := float(veh[1]) if ground else 0.0
+	var cv := Vector2.ZERO
+	if ground and veh.size() > 5 and veh[5] is Vector3:
+		cv = Vector2((veh[5] as Vector3).x, (veh[5] as Vector3).z)
+	_gang_tick(eye, car2, kmh)
+	if _mob.is_empty() and graph != null and mob_due(t, _mob_t, _hour):
+		_start_mob(eye)
+	for list: Array[Mover] in [_scoots, _mob]:
+		for m in list:
+			if m.stun > 0.0:
+				continue
+			var dir := m.udir * m.dir
+			if walkers != null and m.vis:
+				var r := LEAP_R if m.pset == "foot" else LEAP_R_EDGE
+				var n := int(walkers.leap(m.p2 + dir * LEAP_AHEAD, dir, r))
+				if n > 0:
+					scoot_leaps += n
+					_shout(m)
+			if ground and m.ke >= 0:
+				_overtake(m, car2, cv, kmh)
+	_enc_t -= step
+	if _enc_t <= 0.0:
+		_encounter(eye, car2)
+	_scoot_radio()
+
+
+## A walker who leapt shouts after the rider (once per SHOUT_GAP s), where he was.
+func _shout(m: Mover) -> void:
+	if t - _shout_t < SHOUT_GAP:
+		return
+	_shout_t = t
+	scoot_shouts += 1
+	if dialogue == null:
+		return
+	var at := m.p3 - Vector3(m.udir.x, 0.0, m.udir.y) * m.dir * 1.5 + Vector3(0, 2.0, 0)
+	var tag := "zone" if _sc_zones.at(m.p2.x, m.p2.y) != "" else ""
+	dialogue.say_ambient(at, "", "kukuryznik_walker", tag, 3.5, Color("#f2efe8"), 2.0, tag != "")
+
+
+## The overtake (the viral clip of a scooter passing a car at 100): a kerb rider behind the car
+## going its way speeds past it and says his line; well past it, or the car slow, his own speed.
+func _overtake(m: Mover, car2: Vector2, cv: Vector2, kmh: float) -> void:
+	var rel := m.p2 - car2
+	var d := rel.length()
+	var dir := m.udir * m.dir
+	var speed := cv.length()
+	if m.boost > 0.0:
+		if d > OVERTAKE_DROP or kmh < OVERTAKE_KMH * 0.6:
+			m.v = m.boost
+			m.boost = 0.0
+			return
+		m.v = minf(SCOOT_TOP, speed + OVERTAKE_PLUS)
+		if not m.said and rel.dot(dir) > 0.0 and d < 10.0:
+			m.said = true
+			_scoot_say(m, "overtake", true)
+		return
+	if speed < 0.5:
+		return
+	if wants_overtake(kmh, dir.dot(cv / speed), rel.dot(dir) < 0.0, d):
+		m.boost = m.v
+		m.v = minf(SCOOT_TOP, speed + OVERTAKE_PLUS)
+		scoot_overtakes += 1
+		_seen_sc = true
+		if life_log:
+			print("life: a Kukuryznik overtakes the car at %.0f km/h" % (m.v * 3.6))
+
+
+## One encounter: a rider in sight ENC_NEAR m from the view (not by the car) wipes out or stops to
+## call his mum, with his line. None fits: another look in 10 s.
+func _encounter(eye: Vector2, car2: Vector2) -> void:
+	var pick: Mover = null
+	for m in _scoots:
+		if m.stun > 0.0 or not m.vis or m.boost > 0.0:
+			continue
+		var de := m.p2.distance_to(eye)
+		if de < ENC_NEAR.x or de > ENC_NEAR.y:
+			continue
+		if car2 != Vector2.INF and m.p2.distance_to(car2) < 12.0:
+			continue
+		pick = m
+		break
+	if pick == null:
+		_enc_t = 10.0
+		return
+	_enc_t = _rng.randf_range(ENC_GAP.x, ENC_GAP.y)
+	var gleba := _rng.randf() < GLEBA_SHARE
+	pick.stun = GLEBA_T if gleba else MAMA_T
+	pick.shape = SC_GLEBA if gleba else SC_PHONE
+	pick.wheelie = false
+	pick.hop = 0.0
+	_full = true
+	if gleba:
+		scoot_glebas += 1
+	else:
+		scoot_mamas += 1
+	_seen_sc = true
+	_scoot_say(pick, "gleba" if gleba else "mama", false)
+	if life_log:
+		print("life: a Kukuryznik %s at %.0f, %.0f" % ["wipes out" if gleba else "calls his mum", pick.p2.x, pick.p2.y])
+
+
+## The gang at the kebab stands near the view at night (gang_on): their spots, written when the
+## set changes; the car rolling by slowly gets a line (once per GANG_GAP s).
+func _gang_tick(eye: Vector2, car2: Vector2, kmh: float) -> void:
+	var list: Array = []
+	var sig := 0
+	if not stands.is_empty() and pedzik_night(_hour):
+		var day := days_now()
+		for i in stands.size():
+			if not gang_on(i, day, _hour):
+				continue
+			var at: Vector3 = stands[i][0]
+			if eye.distance_to(Vector2(at.x, at.z)) > NEAR_R:
+				continue
+			for sp: Array in _gang_spots_of(i):
+				list.append(sp)
+				sig = (sig * 31 + i * 7 + list.size()) % 1000000007
+	if sig != _gang_sig or list.size() != _gang.size():
+		_gang_sig = sig
+		_gang = list
+		_full = true
+	if car2 == Vector2.INF or kmh > 25.0 or t - _gang_t < GANG_GAP:
+		return
+	for g: Array in _gang:
+		var gp: Vector3 = g[0]
+		if Vector2(gp.x, gp.z).distance_to(car2) <= GANG_TALK_R:
+			_gang_t = t
+			scoot_lines += 1
+			if dialogue != null:
+				dialogue.say_reaction(gp + Vector3(0, 2.2, 0), "", "kukuryznik", "gang", 4.0, SCOOT_BUBBLE, 2.2, true, "kukuryznik_gang")
+			return
+
+
+## Stand i's gang: GANG_SPOTS beside the kiosk with no roof over them and no lane under them, each
+## [at, yaw, hoodie] (worked out once).
+func _gang_spots_of(i: int) -> Array:
+	if _gang_spots.has(i):
+		return _gang_spots[i]
+	var at: Vector3 = stands[i][0]
+	var yaw: float = stands[i][1]
+	var b := Basis(Vector3.UP, yaw)
+	var out: Array = []
+	for k in GANG_SPOTS.size():
+		var o: Vector2 = GANG_SPOTS[k]
+		var p3 := at + b * Vector3(o.x, 0.0, o.y)
+		if map != null:
+			if map.roof_height(p3.x, p3.z) - map.ground_height(p3.x, p3.z) > 1.0:
+				continue
+			p3.y = map.ground_height(p3.x, p3.z)
+		if graph != null and not graph.snap(Vector2(p3.x, p3.z), 1.8).is_empty():
+			continue
+		out.append([p3, yaw + (0.5 if k % 2 == 0 else -0.5), Color(HOODIES[(i * 3 + k) % HOODIES.size()])])
+	_gang_spots[i] = out
+	return out
+
+
+## A Kukuryźnik's line over his head (`reaction`: to the player, else ambient chatter).
+func _scoot_say(m: Mover, tag: String, reaction: bool) -> void:
+	scoot_lines += 1
+	if dialogue == null:
+		return
+	var anchor := func() -> Vector3: return m.p3 + Vector3(0, 2.2, 0)
+	if reaction:
+		dialogue.say_reaction(anchor, "", "kukuryznik", tag, 3.5, SCOOT_BUBBLE, 2.2, true, "kukuryznik_" + tag)
+	else:
+		dialogue.say_ambient(anchor, "", "kukuryznik", tag, 4.0, SCOOT_BUBBLE, 2.2, true)
+
+
+## KEBAB FM's host on the Kukuryźniks (radio_host "kukuryznik", the mob's own "kukuryznik_mob"),
+## once one was seen by the car, at most every SC_RADIO_GAP s, with the radio on.
+func _scoot_radio() -> void:
+	if dialogue == null or not (_seen_sc or _seen_mob):
+		return
+	var r: Node = radio if radio != null else dialogue.get("radio")
+	if r == null or t - _sc_radio_t < SC_RADIO_GAP or int(r.get("station")) < 0:
+		return
+	var tag := "kukuryznik_mob" if _seen_mob else "kukuryznik"
+	var l: Array = dialogue.line("radio_host", tag, true)
+	if l.is_empty() or dialogue.notes(l).get("only", "") != tag:
+		return
+	_sc_radio_t = t
+	_seen_sc = false
+	_seen_mob = false
+	scoot_radio += 1
+	r.announce(String(l[0]), String(l[1]))
+
+
+## Every Kukuryźnik instance: the riders, the mob, then the gang (standing, phone in hand).
+func _write_scoots() -> void:
+	_sc_moved = false
+	var n := 0
+	var box := AABB()
+	for list: Array[Mover] in [_scoots, _mob]:
+		for m in list:
+			if n >= KUK_CAP:
+				break
+			var sp := m.p3 + Vector3(0.0, hop_height(m.hop), 0.0) if m.hop > 0.0 else m.p3
+			put_scoot(_sc_buf, n, sp, m.yaw, m.shirt, m.shape, m.wheelie)
+			box = AABB(sp, Vector3.ZERO) if n == 0 else box.expand(sp)
+			n += 1
+	for g: Array in _gang:
+		if n >= KUK_CAP:
+			break
+		put_scoot(_sc_buf, n, g[0], float(g[1]), g[2], SC_PHONE, false)
+		box = AABB(g[0], Vector3.ZERO) if n == 0 else box.expand(g[0])
+		n += 1
+	_sc_box = box
+	_sc_mm.visible_instance_count = n
+	if n > 0:
+		InstanceBuffers.send(_sc_mm.get_rid(), _sc_buf)
+		_sc_mm.custom_aabb = box.grow(1.5).expand(box.end + Vector3(0, 2.4, 0))
+	_sc_mmi.visible = n > 0
+
+
+## One Kukuryźnik into `buf` at `i`: put's, and a wheelie pitched up WHEELIE_PITCH on the back
+## wheel (lifted so that wheel stays on the ground).
+static func put_scoot(buf: PackedFloat32Array, i: int, at: Vector3, yaw: float, paint: Color, shape: int, wheelie: bool) -> void:
+	put(buf, i, at, yaw, Vector3.ONE, paint, shape)
+	if not wheelie:
+		return
+	var bas := Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, WHEELIE_PITCH)
+	var b := i * 16
+	for r in 3:
+		buf[b + r * 4] = bas.x[r]
+		buf[b + r * 4 + 1] = bas.y[r]
+		buf[b + r * 4 + 2] = bas.z[r]
+	buf[b + 7] = at.y + 0.6 * sin(WHEELIE_PITCH)
+
+
+## "3 near · 1 mob · met 4 · leaps 6 (2 shouts) · overtakes 1 · wipeouts 1 · calls 0 · lines 3 · radio 0".
+func scoot_summary() -> String:
+	return "%d near · %d mob · %d gang · met %d · leaps %d (%d shouts) · overtakes %d · wipeouts %d · calls %d · dodges %d · lines %d · radio %d" % [
+			_scoots.size(), _mob.size(), _gang.size(), met_scoots, scoot_leaps, scoot_shouts, scoot_overtakes, scoot_glebas,
+			scoot_mamas, scoot_dodges, scoot_lines, scoot_radio]
+
+
+## The Kukuryźnik, facing -z: a fat-tyre scooter with a glowing deck strip and lamp, and its rider
+## in a hoodie (the instance colour), hood up. Four shapes (SC_*): alone with a speaker on the bar,
+## two on one deck (the second holds the speaker up), the wipeout (on its side, the rider sitting
+## by it filming), the stop (upright, the rider beside it, phone at his ear). ≤ 204 triangles.
+static func kukuryznik_mesh() -> ArrayMesh:
+	var deck := [Color("#2a2c30"), Models.FIXED]
+	var tyre := [Models.TYRE, Models.FIXED]
+	var metal := [Color("#3a3b3f"), Models.FIXED]
+	var led := [Color("#3df0ff"), Models.LIT_SIGN]
+	var lamp := [Color("#fff4d6"), Models.LIT_SIGN]
+	var legs := [Color("#2b2c2f"), Models.FIXED]
+	var hoodie := [Color.WHITE, Models.PAINT]
+	var skin := [Color("#e2b48c"), Models.FIXED]
+	var tee := [Color("#e8e4d8"), Models.FIXED]
+	var speaker := [Color("#ff3df0"), Models.LIT_SIGN]
+	var parts := [deck, tyre, tyre, metal, metal, led, lamp, legs, legs, hoodie, hoodie, skin, hoodie, legs, tee, skin, speaker]
+	var Z := [Vector3.ZERO, Vector3.ZERO]
+	# The scooter upright: deck, fat wheels, stem, bar, the strip under the deck, the lamp.
+	var up := [[Vector3(0, 0.24, 0.04), Vector3(0.26, 0.1, 0.95)], [Vector3(0, 0.19, -0.52), Vector3(0.16, 0.38, 0.38)],
+			[Vector3(0, 0.19, 0.56), Vector3(0.16, 0.38, 0.38)], [Vector3(0, 0.72, -0.52), Vector3(0.06, 1.0, 0.06)],
+			[Vector3(0, 1.2, -0.5), Vector3(0.62, 0.05, 0.05)], [Vector3(0, 0.17, 0.04), Vector3(0.29, 0.03, 0.88)],
+			[Vector3(0, 1.02, -0.57), Vector3(0.12, 0.09, 0.04)]]
+	# The rider standing on the deck, leaning in: legs one before the other, hoodie, arms to the bar,
+	# head, hood up.
+	var rider := [[Vector3(-0.08, 0.68, -0.08), Vector3(0.14, 0.8, 0.16)], [Vector3(0.08, 0.68, 0.22), Vector3(0.14, 0.8, 0.16)],
+			[Vector3(0, 1.34, 0.08), Vector3(0.42, 0.56, 0.28)], [Vector3(0, 1.3, -0.24), Vector3(0.5, 0.1, 0.5)],
+			[Vector3(0, 1.74, 0.02), Vector3(0.24, 0.24, 0.24)], [Vector3(0, 1.8, 0.07), Vector3(0.3, 0.22, 0.28)]]
+	var bar_speaker := [Vector3(0.2, 1.27, -0.5), Vector3(0.14, 0.1, 0.1)]
+	var solo := up + rider + [Z, Z, Z, bar_speaker]
+	# The second one on the back of the deck, the speaker held up.
+	var duo := up + rider + [[Vector3(0, 0.68, 0.46), Vector3(0.26, 0.8, 0.16)], [Vector3(0, 1.3, 0.46), Vector3(0.4, 0.52, 0.26)],
+			[Vector3(0, 1.7, 0.46), Vector3(0.24, 0.24, 0.24)], [Vector3(0.28, 1.72, 0.42), Vector3(0.14, 0.12, 0.12)]]
+	# The wipeout: the scooter on its side, the rider sitting on the kerb by it, phone up.
+	var down := [[Vector3(0.3, 0.13, 0.04), Vector3(0.1, 0.26, 0.95)], [Vector3(0.3, 0.08, -0.52), Vector3(0.38, 0.16, 0.38)],
+			[Vector3(0.3, 0.08, 0.56), Vector3(0.38, 0.16, 0.38)], [Vector3(-0.2, 0.06, -0.52), Vector3(1.0, 0.06, 0.06)],
+			[Vector3(-0.68, 0.06, -0.5), Vector3(0.05, 0.05, 0.62)], [Vector3(0.42, 0.13, 0.04), Vector3(0.03, 0.29, 0.88)],
+			[Vector3(-0.5, 0.06, -0.57), Vector3(0.09, 0.12, 0.04)]]
+	var sitting := [[Vector3(-0.55, 0.09, -0.15), Vector3(0.14, 0.16, 0.7)], [Vector3(-0.35, 0.09, -0.15), Vector3(0.14, 0.16, 0.7)],
+			[Vector3(-0.45, 0.46, 0.26), Vector3(0.42, 0.56, 0.28)], [Vector3(-0.45, 0.62, 0.0), Vector3(0.5, 0.1, 0.4)],
+			[Vector3(-0.45, 0.88, 0.24), Vector3(0.24, 0.24, 0.24)], [Vector3(-0.45, 0.94, 0.29), Vector3(0.3, 0.22, 0.28)]]
+	var gleba := down + sitting + [Z, Z, Z, [Vector3(-0.45, 0.82, -0.2), Vector3(0.1, 0.16, 0.03)]]
+	# The stop: upright, the rider a step to its right, one hand to his ear with the phone.
+	var standing := [[Vector3(0.5, 0.47, 0.1), Vector3(0.14, 0.94, 0.16)], [Vector3(0.7, 0.47, 0.1), Vector3(0.14, 0.94, 0.16)],
+			[Vector3(0.6, 1.22, 0.1), Vector3(0.42, 0.56, 0.28)], [Vector3(0.84, 1.45, 0.08), Vector3(0.1, 0.42, 0.1)],
+			[Vector3(0.6, 1.62, 0.08), Vector3(0.24, 0.24, 0.24)], [Vector3(0.6, 1.68, 0.13), Vector3(0.3, 0.22, 0.28)]]
+	var phone := up + standing + [Z, Z, Z, [Vector3(0.75, 1.64, 0.02), Vector3(0.04, 0.15, 0.08)]]
+	return family_mesh(parts, [solo, duo, gleba, phone])
 
 
 func _exit_tree() -> void:
