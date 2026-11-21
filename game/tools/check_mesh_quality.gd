@@ -138,7 +138,7 @@ const BUDGET := {
 	"blekitny": 1850,  # 2026-11-15 photo pass (1521 tris): mirror glass, the glass barrel vault, the helipad box, the screen and the antennas
 	"bridge": 700,
 	"grzybowska77": 2000,
-	"buw": 9000,  # 2026-11-13 pass 4 from F's photos (copper frieze and letters, ribbed vault, ivy fronts, pink lattice, drums, dome, Collegium Iuridicum IV, lower garden): 8672 tris, +0 draw calls
+	"buw": 10600,  # 2026-11-20 pass 5 (rotunda dome and lookout drum on the corner, stair, funnel oculus, mound, pizzeria terrace and gate pier): 10391 tris, +0 draw calls; pass 4 was 8672
 	"central": 340,
 	"centralna": 1650,
 	"chalubinskiego8": 1520,

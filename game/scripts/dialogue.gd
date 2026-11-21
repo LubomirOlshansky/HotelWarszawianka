@@ -114,7 +114,7 @@ func notes(l: Array) -> Dictionary:
 ## the chatter budget (chatter.gd, QUEST by default); a line the budget drops is not used up and
 ## gives [].
 func say(anchor: Variant, speaker: String, group: String, tag := "", seconds := 4.0,
-		accent := Color("#ffd23f"), height := 2.6, prefer := false, kind := Chatter.QUEST, key := "") -> Array:
+		accent := Color("#ffd23f"), height := 2.6, prefer := false, kind := Chatter.QUEST, key := "", small := false) -> Array:
 	if bubbles != null:
 		if kind == Chatter.AMBIENT and bubbles.muted():
 			return []  # G16
@@ -123,7 +123,7 @@ func say(anchor: Variant, speaker: String, group: String, tag := "", seconds := 
 	var l := line(group, tag, prefer)
 	if l.is_empty() or bubbles == null:
 		return l
-	if not bubbles.say(anchor, speaker, l[0], l[1], seconds, accent, height, kind, key):
+	if not bubbles.say(anchor, speaker, l[0], l[1], seconds, accent, height, kind, key, small):
 		return []
 	return l
 

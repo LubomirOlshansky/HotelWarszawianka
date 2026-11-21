@@ -439,7 +439,9 @@ static func _distance(size: float) -> float:
 ## follow view itself. Static and pure: check_opening.gd samples it without a scene.
 static func open_view(e: float, ground: float, yaw: float, follow_xf: Transform3D, follow_size: float) -> Dictionary:
 	e = clampf(e, 0.0, 1.0)
-	var u := e * e * e * (e * (e * 6.0 - 15.0) + 10.0)  # smootherstep: still at both ends
+	# Still only at the end (F, 2026-11-20: a still camera under the Palace at the start): half
+	# smootherstep, half a sine that moves from the first frame.
+	var u := 0.5 * (e * e * e * (e * (e * 6.0 - 15.0) + 10.0)) + 0.5 * sin(e * PI * 0.5)
 	var keys: Array[Dictionary] = []
 	for k: Dictionary in OPEN_KEYS:
 		var at: Vector2 = k["at"]
