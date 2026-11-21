@@ -49,6 +49,10 @@ var promo_t := 6.0
 ## --pigeons-at=T (videos, F 2026-11-19 "the pigeons fly up during the video"): Plac Zamkowy's
 ## square stays awake wherever the player is, and its flock bursts up T s after the start.
 var pigeons_at := -1.0
+## --scoot-gang=X,Z[,T[,DIR]] (videos, F 2026-11-21): a Kukuryźnik pack on the footway nearest
+## (X, Z), T s after the start (default 3), riding the path's way or against it (DIR -1).
+var scoot_gang := Vector3(0.0, 0.0, -1.0)
+var scoot_gang_dir := 1.0
 ## --season=summer|autumn (videos, F 2026-11-20 "trees can be green like summer not yellow"): the
 ## trees' shader global `tree_season` until the season module (trees plan S1) sets it from the date.
 var season := ""
@@ -1003,6 +1007,11 @@ func parse_with(args: PackedStringArray) -> void:
 			# x the summer-to-autumn turn, y the fall of leaves (project.godot holds mid-November).
 			var look := Vector4(0, 0, 0, 0) if season == "summer" else Vector4(1, 0.5, 0, 0)
 			RenderingServer.global_shader_parameter_set("tree_season", look)
+		elif arg.begins_with("--scoot-gang="):
+			var sg := arg.trim_prefix("--scoot-gang=").split(",")
+			if sg.size() >= 2:
+				scoot_gang = Vector3(float(sg[0]), float(sg[1]), float(sg[2]) if sg.size() > 2 else 3.0)
+				scoot_gang_dir = float(sg[3]) if sg.size() > 3 else 1.0
 		elif arg.begins_with("--pigeons-at="):
 			pigeons_at = maxf(0.01, float(arg.trim_prefix("--pigeons-at=")))
 		elif arg.begins_with("--train="):
