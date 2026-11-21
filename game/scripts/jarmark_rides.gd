@@ -10,6 +10,10 @@ extends "res://scripts/place.gd"
 ## turns each part about its own axis from TIME.
 
 const Kit := preload("res://scripts/landmarks/jarmark.gd")
+## The real market's object kit: with --promo-dress=jarmark its rides turn here instead of the old ones
+## (jarmark_promo.gd builds their still parts and carves the old ones out of the city's sectors).
+const JK := preload("res://scripts/landmarks/jarmark_kit.gd")
+const Promo := preload("res://scripts/jarmark_promo.gd")
 const SHADER := "res://shaders/jarmark_rides.gdshader"
 ## The rides, as the shader numbers them.
 const TOWER := 0
@@ -17,6 +21,11 @@ const CAROUSEL := 1
 const HORSE := 2
 const TEACUPS := 3
 const TREE_RIDE := 4
+## The promo kit's tree carousel (1 rev in 50 s) and the kurant's crown (1 rev in 15 s).
+const KIT_TREE := 5
+const KURANT := 6
+## The promo's M_LAMP gain (the shader's default is the city's 2.4): bulbs and lines, not blobs.
+const PROMO_LAMP_GAIN := 1.35
 
 var mesh_instance: MeshInstance3D
 
@@ -31,12 +40,27 @@ func build() -> void:
 	var uv2s := PackedVector2Array()
 	var lo := Vector3(INF, INF, INF)
 	var hi := -lo
-	var batches: Array = [[TOWER, Kit.JM_TOWER, func() -> void: kit._jm_tower_spin(Kit.JM_TOWER)],
-			[CAROUSEL, Kit.JM_CAROUSEL, func() -> void: kit._jm_carousel_spin(Kit.JM_CAROUSEL, -1)],
-			[TEACUPS, Kit.JM_TEACUPS, func() -> void: kit._jm_teacups_spin(Kit.JM_TEACUPS)],
-			[TREE_RIDE, Kit.JM_TREE_RIDE, func() -> void: kit._jm_tree_ride_spin(Kit.JM_TREE_RIDE)]]
-	for k in 12:
-		batches.append([HORSE + float(k) / 12.0, Kit.JM_CAROUSEL, func() -> void: kit._jm_carousel_spin(Kit.JM_CAROUSEL, k)])
+	var promo := (ctx.get("promo_dress", PackedStringArray()) as PackedStringArray).has("jarmark")
+	var batches: Array = []
+	if promo:
+		# The kit's rides (jarmark_kit.gd), on the grounds jarmark_promo.gd builds their still parts on.
+		var yaw := Promo.KIT_YAW
+		var w := func(at: Vector2) -> Vector2: return Kit._jm_world(at.x, at.y)
+		batches = [[TOWER, Kit.JM_TOWER, func() -> void: JK.tower_spin(kit, w.call(Kit.JM_TOWER), yaw, Promo.kit_ground(map, Kit.JM_TOWER, "tower"))],
+				[CAROUSEL, Kit.JM_CAROUSEL, func() -> void: JK.venetian_spin(kit, w.call(Kit.JM_CAROUSEL), -1, yaw, Promo.kit_ground(map, Kit.JM_CAROUSEL, "carousel"))],
+				[TEACUPS, Kit.JM_TEACUPS, func() -> void: JK.teacups_spin(kit, w.call(Kit.JM_TEACUPS), yaw, Promo.kit_ground(map, Kit.JM_TEACUPS, "teacups"))],
+				[KIT_TREE, Kit.JM_TREE, func() -> void: JK.tree_ride_spin(kit, w.call(Kit.JM_TREE), yaw, Promo.kit_ground(map, Kit.JM_TREE, "tree"))],
+				[KURANT, Kit.JM_KURANT, func() -> void: JK.kurant_spin(kit, w.call(Kit.JM_KURANT), yaw, Promo.kit_ground(map, Kit.JM_KURANT, "kurant"))]]
+		for k in 12:
+			batches.append([HORSE + float(k) / 12.0, Kit.JM_CAROUSEL,
+					func() -> void: JK.venetian_spin(kit, w.call(Kit.JM_CAROUSEL), k, yaw, Promo.kit_ground(map, Kit.JM_CAROUSEL, "carousel"))])
+	else:
+		batches = [[TOWER, Kit.JM_TOWER, func() -> void: kit._jm_tower_spin(Kit.JM_TOWER)],
+				[CAROUSEL, Kit.JM_CAROUSEL, func() -> void: kit._jm_carousel_spin(Kit.JM_CAROUSEL, -1)],
+				[TEACUPS, Kit.JM_TEACUPS, func() -> void: kit._jm_teacups_spin(Kit.JM_TEACUPS)],
+				[TREE_RIDE, Kit.JM_TREE_RIDE, func() -> void: kit._jm_tree_ride_spin(Kit.JM_TREE_RIDE)]]
+		for k in 12:
+			batches.append([HORSE + float(k) / 12.0, Kit.JM_CAROUSEL, func() -> void: kit._jm_carousel_spin(Kit.JM_CAROUSEL, k)])
 	for b: Array in batches:
 		var st := SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -76,6 +100,9 @@ func build() -> void:
 	mesh_instance.custom_aabb = AABB(lo, hi - lo)
 	var mat := ShaderMaterial.new()
 	mat.shader = load(SHADER)
+	if promo:
+		mat.set_shader_parameter("lamp_gain", PROMO_LAMP_GAIN)
+		mat.set_shader_parameter("zoom_dim", 0.35)
 	mesh_instance.material_override = mat
 	part(mesh_instance)
 	count = batches.size()

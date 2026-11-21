@@ -52,7 +52,8 @@ const TABLE: Array[Dictionary] = [
 	{"key": "pkin_hoardings", "script": "res://scripts/pkin_hoardings.gd", "node": "PkinHoardings", "tris": 6000, "own": 0},
 	{"key": "tamka", "script": "res://scripts/tamka.gd", "node": "Tamka", "tris": 138300, "own": 1},
 	{"key": "bulwar_food", "script": "res://scripts/bulwar_food.gd", "node": "BulwarFood", "tris": 1900, "own": 0},
-	{"key": "jarmark_rides", "script": "res://scripts/jarmark_rides.gd", "node": "JarmarkRides", "tris": 4500, "own": 1,
+	# 16500: with --promo-dress=jarmark (and in check_place_scripts) the kit's rides turn here (13.7k); the game's own ~3.8k.
+	{"key": "jarmark_rides", "script": "res://scripts/jarmark_rides.gd", "node": "JarmarkRides", "tris": 16500, "own": 1,
 			"solo": ["jarmark"]},
 	{"key": "jarmark_promo", "script": "res://scripts/jarmark_promo.gd", "node": "JarmarkPromo", "tris": 900000, "own": 1,
 			"solo": ["jarmark"], "promo": "jarmark"},

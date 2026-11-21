@@ -81,7 +81,8 @@ void vertex() {
 	vec3 c = srgb_to_linear(COLOR.rgb);
 	int part = int(code + 0.5);
 	if (vary > 0.5) {
-		float hsh = fract(sin(dot(INSTANCE_CUSTOM, vec4(12.9898, 78.233, 37.719, 4.581))) * 43758.5453);
+		// The figure's own number too (look check 1: people in one palette colour all came out alike).
+		float hsh = fract(sin(dot(INSTANCE_CUSTOM, vec4(12.9898, 78.233, 37.719, 4.581)) + float(INSTANCE_ID) * 0.7317) * 43758.5453);
 		float hsh2 = fract(hsh * 17.13 + 0.37);
 		if (part == 9) {
 			if (hsh2 < 0.3) {
@@ -106,6 +107,10 @@ void vertex() {
 	siren = vec3(0.0);
 	if (part == 0) {
 		c *= srgb_to_linear(INSTANCE_CUSTOM.rgb);
+		if (vary > 0.5) {
+			// No two coats of one colour quite the same: a little lighter or darker per figure.
+			c *= mix(0.78, 1.15, fract(float(INSTANCE_ID) * 0.6180339));
+		}
 	} else if (part == 2) {
 		c = srgb_to_linear(TROUSERS[int(clamp(fract(INSTANCE_CUSTOM.a) * 4.0, 0.0, 3.0))]);
 	} else if (part == 3) {

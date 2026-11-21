@@ -64,8 +64,7 @@ static func lift(p: Vector2) -> float:
 ## they move"): ~260 groups over every aisle, same form as WALKERS, made once from a fixed seed.
 static var _promo: Array = []
 const PROMO_GROUPS := 260
-const PROMO_SHIRTS := ["#7a1f26", "#e7e2d6", "#344a2e", "#1c1d22", "#4a5a8a", "#8a7a62", "#2f6fb5", "#d8432f",
-		"#e0b23a", "#c25a2a", "#f2efe8", "#7a4fa8", "#3b8f5a", "#e57aa0", "#5aa9c9", "#c9a25a", "#2c3440", "#b23a48"]
+## Their coats: crowds.gd WINTER_COATS (mostly dark, as the real crowd).
 
 
 ## The strollers in use: WALKERS, or the promo's crowd.
@@ -79,8 +78,8 @@ static func walkers() -> Array:
 			var r := rng.randf()
 			var kind := "single" if r < 0.3 else ("couple" if r < 0.72 else "family")
 			_promo.append([kind, rng.randi() % AISLES.size(), rng.randf(), rng.randf_range(0.45, 0.95),
-					rng.randf_range(-0.9, 0.9), PROMO_SHIRTS[rng.randi() % PROMO_SHIRTS.size()],
-					PROMO_SHIRTS[rng.randi() % PROMO_SHIRTS.size()]])
+					rng.randf_range(-0.9, 0.9), Crowds.WINTER_COATS[rng.randi() % Crowds.WINTER_COATS.size()],
+					Crowds.WINTER_COATS[rng.randi() % Crowds.WINTER_COATS.size()]])
 	return _promo
 
 

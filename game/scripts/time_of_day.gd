@@ -150,6 +150,12 @@ static var speed_override := 0.0
 ## the lights bloom (the HDR bulbs over the glow threshold, not the lit facades and lawns), the
 ## ambient and the sky's fill drop, the grade's contrast rises, as the drone reels' black ground.
 static var promo_night := false
+## The promo's glow intensity as the look set it, and its share by the view's zoom (jarmark_promo.gd
+## sets it each frame: the glow is screen-space, so a close-up's bulbs fill far more pixels and haze white;
+## F 2026-11-21: full on a wide drone shot, about 40 % under a 60 m view).
+static var promo_glow_base := 0.0
+static var promo_glow_share := 1.0
+static var promo_env: Environment
 var _game_utc := 0.0
 var _golden := 1.0
 var _look_every := 10.0
@@ -720,11 +726,21 @@ func _apply(look: Dictionary) -> void:
 		env.glow_enabled = glow_allowed
 		env.glow_hdr_threshold = lerpf(0.62, 1.0, k)
 		env.glow_intensity = lerpf(env.glow_intensity, 0.8, k)  # 1.15 read glossy at 2x (F 2026-11-21)
+		promo_glow_base = env.glow_intensity
+		promo_env = env
+		env.glow_intensity = promo_glow_base * promo_glow_share
 		# A glow level is a fraction of the image: under --ss=2 one level up keeps the halo's size.
 		var up := 1 if Tiers.capture_scale >= 2 else 0
 		for lv in range(1, 8):
 			env.set_glow_level(lv - 1, 1.0 if lv >= 3 + up and lv <= 6 + up else 0.0)
-		env.ambient_light_energy *= lerpf(1.0, 0.4, k)
+		# Night, not dusk (F's look check 1, 2026-11-21: the ground read blue-grey): the ambient and the
+		# moon well down, so the ground between the lit rows is dark and only the strings' pools are warm;
+		# a navy sky (lighting-decision.md: #101a3b over, lighter towards the horizon), never black.
+		env.ambient_light_energy *= lerpf(1.0, 0.22, k)
+		sun.light_energy *= lerpf(1.0, 0.38, k)
+		env.background_color = env.background_color.lerp(Color("#0b1238"), k)
+		post.set_shader_parameter("sky_top", _linear3((look["sky_top"] as Color).lerp(Color("#0d1640"), k)))
+		post.set_shader_parameter("sky_bottom", _linear3((look["sky_bottom"] as Color).lerp(Color("#2c3c8e"), k)))
 		post.set_shader_parameter("g_contrast", float(look["g_contrast"]) * lerpf(1.0, 1.25, k))
 		post.set_shader_parameter("g_lift", (look["g_lift"] as Vector3) * (1.0 - k))
 	var lit := lights_on > 0.001

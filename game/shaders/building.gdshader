@@ -41,6 +41,9 @@ uniform int ghost_debug = 0;
 // hands' angles in radians, clockwise from twelve, for the time in Warsaw.
 uniform vec2 clock_hands = vec2(5.32, 1.05);
 uniform float windows = 1.0;
+// M_LAMP's emission: 2.4 in the game; the Jarmark promo (jarmark_promo.gd, --promo-dress=jarmark) lowers it
+// on the city's shared material so its bulbs and LED figures read as lines, not blobs.
+uniform float lamp_gain = 2.4;
 // The floodlit landmark: x, z of its centre and a radius (map_builder.gd, from the
 // Palace of Culture's outline); only its sandstone walls light up.
 uniform vec4 floodlit = vec4(0.0, 0.0, -1.0, 0.0);
@@ -975,7 +978,7 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 	} else if (mode == M_LAMP) {
 		if (lights_on > 0.001) {
 			// param 0.5: a neon tube on a metal piece (Cedet's loop): its own colour by day, blue at night.
-			glow = (param > 0.25 ? vec3(0.17, 0.34, 1.0) : col) * 2.4;
+			glow = (param > 0.25 ? vec3(0.17, 0.34, 1.0) : col) * lamp_gain;
 		}
 		return col;
 	} else if (mode == M_MEMBRANE) {

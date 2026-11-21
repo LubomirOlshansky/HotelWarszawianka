@@ -570,6 +570,11 @@ const WEEKDAY := [0.2, 0.2, 0.2, 0.6, 1.0, 1.0, 0.3]
 const STEPS_HOURS := [[10.0, 0.1], [14.0, 0.3], [18.0, 0.6], [23.0, 0.7], [25.0, 0.3], [27.0, 0.05]]
 ## The queue's and the dawn crowd's blacks; the steps' and the square's colours (pedestrians').
 const DARK := ["#1f1f22", "#2b2c2f", "#33302e", "#25272d", "#3a3b3f", "#1c2230", "#2a2433"]
+## The Jarmark promo's crowd (F's look check 1, 2026-11-21: "real crowds are mostly dark coats"): black,
+## navy, charcoal and grey first, beige and camel, a few red, green and mustard ones.
+const WINTER_COATS := ["#1a1a1d", "#232428", "#1c2436", "#243050", "#1a1a1d", "#2b2c30", "#33353a", "#4a4c52", "#6b6d72",
+		"#1c2436", "#2a2622", "#b8a488", "#9c8a70", "#a07a4a", "#7a1f26", "#a83232", "#2f4a36", "#3e5a3a", "#4a3426",
+		"#23262e", "#3a3f4a", "#d8d0c0", "#b08a2a", "#5a2a3a"]
 const BRIGHT := ["#d8432f", "#2f6fb5", "#e0b23a", "#3b8f5a", "#f2efe8", "#7a4fa8", "#e57aa0", "#c96b2c", "#5aa9c9", "#e8e4d8"]
 const OFFICER_SHIRT := Color("#e8f23a")
 const OFFICER_TROUSERS := 0.1
@@ -1571,7 +1576,7 @@ func _add_jarmark() -> void:
 			var p: Vector2 = e[0]
 			var d: Vector2 = e[1]
 			slots.append({"p": p, "y": _ground(p).y + Landmarks.jarmark_lift(p), "pose": STAND, "yaw": atan2(-d.x, -d.y),
-					"shirt": BRIGHT[rng.randi() % BRIGHT.size()]})
+					"shirt": WINTER_COATS[rng.randi() % WINTER_COATS.size()] if promo_jarmark else BRIGHT[rng.randi() % BRIGHT.size()]})
 			c += p
 		if slots.is_empty():
 			continue

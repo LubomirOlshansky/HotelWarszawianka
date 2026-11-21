@@ -52,6 +52,15 @@ vec4 lamp_pool(vec2 xz, vec2 frag) {
 	return vec4((lm.r * SODIUM_POOL + lm.g * LED) / max(s, 1e-4), level);
 }
 
+// The Jarmark promo's pools (--promo-dress=jarmark, ground.gdshader `pool_soft`): a smooth falloff with
+// no bands or dither, smaller (only a lamp's inner few metres), same colour.
+vec4 lamp_pool_soft(vec2 xz) {
+	vec2 lm = city_light_at(xz) * (255.0 / 160.0);
+	float s = lm.r + lm.g;
+	float level = smoothstep(0.25, 1.15, s);
+	return vec4((lm.r * SODIUM_POOL + lm.g * LED) / max(s, 1e-4), level * level * 0.6);
+}
+
 // What a lamp pool adds to a surface of colour `surf` (linear) at the pool's band:
 // lit like before (the surface's colour times the lamp's, a little light even on dark
 // asphalt), capped so its top band stays under POOL_CAP. `multiply` (grass, cycle lanes,

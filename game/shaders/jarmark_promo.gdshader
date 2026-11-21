@@ -5,8 +5,10 @@ shader_type spatial;
 //   22 the tower's LED mast sleeve, UV2.y its height 0-1: cyan above, violet-magenta below, the
 //      boundary cycling up and down, with a white chase
 //   23 a cool-white glow (the glass barrels)        24 gold wire
-//   26 lit paving, UV.x across the band -1..1: three hard warm bands
+//   26 lit paving, UV.x across the band -1..1, UV.y along it: a soft warm pool
 //   27 a warm-white counter                         0 plain
+//   3 the kit's plain surfaces (jarmark_kit.gd M_STONE), 10 its lit ones (M_LAMP, 10.5 blue at night),
+//      at `lamp_gain` (the kit's rides, the kurant, the tower's mast, the dimmed LED figures)
 //   30 a bulb, 31 a tree bulb, 32 a pagoda bulb (COLOR.r their phase): camera-facing discs, UV the corner, UV2.y the
 //      radius; never under ~1.3 px (a 5 cm bulb at a 100 m view is a third of a pixel), HDR core
 // Everything glows only once the city's lights are on (the mast at a third by day).
@@ -18,15 +20,25 @@ render_mode cull_disabled;
 global uniform float lights_on;
 // The bulb's least radius in image pixels (1.3 x the --ss capture scale, jarmark_promo.gd).
 uniform float px_floor = 1.3;
+// F's look check 1 (2026-11-21): the aisles read nearly white; every bulb about 40 % down, the kit's lit
+// surfaces under the city's 2.4 (grade D: soft highlights, matte).
+uniform float bulb_gain = 0.6;
+uniform float lamp_gain = 1.1;
 
 varying float mode;
 varying float phase;
 varying vec2 disc;
+// 1 on a wide view (110 m tall or more), down to 0 under 60 m: close-ups glow less (F 2026-11-21).
+varying float wide;
 
 void vertex() {
 	mode = UV2.x;
 	phase = UV2.y;
 	disc = UV;
+	wide = smoothstep(60.0, 110.0, 2.0 / PROJECTION_MATRIX[1][1]);
+	if (PROJECTION_MATRIX[3][3] < 0.5) {
+		wide = 0.6;
+	}
 	if (mode > 29.5) {
 		// Ortho: the view's height in metres is 2 / P[1][1]; a pixel is that over the viewport's height.
 		float px = 2.0 / PROJECTION_MATRIX[1][1] / VIEWPORT_SIZE.y;
@@ -44,12 +56,13 @@ void vertex() {
 }
 
 vec3 mast_colour(float h) {
-	// F's drone photos (2026-11-21): cyan at the top, violet-magenta below, the boundary cycling up
-	// and down the mast, with a white chase.
-	float edge = 0.55 + 0.3 * sin(TIME * 0.5);
-	vec3 c = mix(vec3(0.78, 0.16, 0.95), vec3(0.13, 0.85, 1.0), smoothstep(edge - 0.15, edge + 0.15, h));
-	float chase = smoothstep(0.93, 1.0, sin((h * 14.0 - TIME * 1.6) * 3.14159) * 0.5 + 0.5);
-	return mix(c, vec3(1.0), chase * 0.5);
+	// F's look check 1 (2026-11-21, his photo of the ride): a cobalt column (#2a46ff), never cyan,
+	// with white and pink chasers running up it.
+	vec3 c = vec3(0.023, 0.06, 1.0);
+	float run = h * 14.0 - TIME * 1.6;
+	float chase = smoothstep(0.9, 1.0, sin(run * 3.14159) * 0.5 + 0.5);
+	vec3 tip = mod(floor(run), 2.0) < 0.5 ? vec3(1.0) : vec3(1.0, 0.35, 0.62);
+	return mix(c, tip, chase * 0.75);
 }
 
 vec3 tree_colour(float p) {
@@ -79,7 +92,8 @@ void fragment() {
 			bc = tree_colour(COLOR.r);
 		}
 		ALBEDO = bc * 0.5;
-		e = bc * mix(5.0, 2.0, d * d);  // was 9 to 3: blown, glossy halos (F 2026-11-21)
+		// Close up a tight bright core, the rim dark: a small distinct dot with a small halo.
+		e = bc * mix(5.0, mix(0.6, 2.0, wide), smoothstep(0.0, 1.0, d * d)) * bulb_gain * mix(0.5, 1.0, wide);  // was 9 to 3: blown, glossy halos (F 2026-11-21)
 	} else if (mode > 20.5 && mode < 21.5) {
 		e = col * 0.4;
 	} else if (mode > 21.5 && mode < 22.5) {
@@ -88,16 +102,21 @@ void fragment() {
 		e = m * 2.2;
 		on = max(on, 0.35);
 	} else if (mode > 22.5 && mode < 23.5) {
-		e = col * 1.15;
+		e = col * 0.4;  // was 1.15: the metro tubes washed white over the tree (look check 1)
 	} else if (mode > 23.5 && mode < 24.5) {
 		e = col * 1.8;
 	} else if (mode > 25.5 && mode < 26.5) {
-		float x = abs(disc.x);
-		float band = x < 0.35 ? 1.0 : (x < 0.7 ? 0.62 : 0.3);
+		// A soft pool (look check 1: no hard bands): bright under the crown, fading across the aisle
+		// and towards both ends (UV.y along it).
+		float band = (1.0 - 0.85 * smoothstep(0.1, 1.0, abs(disc.x))) * (1.0 - smoothstep(0.35, 1.0, abs(disc.y)));
 		ALBEDO = col * 0.6;
 		e = vec3(1.0, 0.66, 0.4) * 0.28 * band;
 	} else if (mode > 26.5 && mode < 27.5) {
-		e = col * 1.1;
+		// A warm lit interior, not a light box (F 2026-11-21): under the glow threshold, darker up top.
+		ALBEDO = col * 0.35;
+		e = col * 0.42 * mix(0.75, 1.0, wide);
+	} else if (mode > 9.5 && mode < 11.0) {
+		e = (fract(mode) > 0.25 ? vec3(0.17, 0.34, 1.0) : col) * lamp_gain * mix(0.65, 1.0, wide);
 	}
 	EMISSION = e * on;
 }

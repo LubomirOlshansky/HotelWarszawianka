@@ -694,6 +694,10 @@ func _spawn_on(i: int, s: float, centre: Vector2, right: Vector2, ahead: Vector2
 	_phase[n] = _rng.randf() * TAU
 	_pos[n] = Vector3(q.x, y, q.y)
 	var shirt := Color(SHIRTS[_rng.randi() % SHIRTS.size()])
+	if promo_people:
+		# The Jarmark promo: winter coats, mostly dark (crowds.gd WINTER_COATS; loaded, crowds.gd preloads this).
+		var coats: Array = (load("res://scripts/crowds.gd") as GDScript).get_script_constant_map()["WINTER_COATS"]
+		shirt = Color(str(coats[_rng.randi() % coats.size()]))
 	var b := n * 16
 	_buf[b + 12] = shirt.r
 	_buf[b + 13] = shirt.g

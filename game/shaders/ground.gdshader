@@ -34,6 +34,8 @@ shader_type spatial;
 
 #include "res://shaders/common.gdshaderinc"
 #include "res://shaders/night.gdshaderinc"
+// The Jarmark promo (jarmark_promo.gd, --promo-dress=jarmark): smooth, smaller lamp pools, grey on grass.
+uniform float pool_soft = 0.0;
 #include "res://shaders/ghost.gdshaderinc"
 #include "res://shaders/tunnel_cut.gdshaderinc"
 
@@ -695,8 +697,14 @@ void fragment() {
 		if (id == 3) {
 			glow = lamp_columns(wp, away, 1.6) * 0.7 * (under_deck ? 0.3 : 1.0);
 		} else {
-			vec4 pool = lamp_pool(wp, FRAGCOORD.xy);
-			glow = pool_glow(base * shade * mix(1.0, ao, 0.6), pool, any(bvec3(id == 1, id == 5, id == 11))) * (under_deck ? 0.05 : 1.0);
+			vec4 pool = pool_soft > 0.5 ? lamp_pool_soft(wp) : lamp_pool(wp, FRAGCOORD.xy);
+			vec3 under = base * shade * mix(1.0, ao, 0.6);
+			bool grassy = any(bvec3(id == 1, id == 5, id == 11));
+			if (pool_soft > 0.5 && grassy) {
+				// The promo: a lamp on grass greys and warms it rather than lighting it green.
+				under = mix(under, vec3(dot(under, LUMA)), 0.6);
+			}
+			glow = pool_glow(under, pool, grassy) * (under_deck ? 0.05 : 1.0);
 			if (sheen > 0.0) {
 				glow += lamp_reflection(wp, away, 1.4, 0.4) * min(sheen * 2.2, 1.0) * 0.8;
 			}
