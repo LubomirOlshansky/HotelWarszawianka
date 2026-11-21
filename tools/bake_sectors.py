@@ -629,6 +629,9 @@ def main(map_dir):
         if bld.get("kind") in SITE_KINDS or any(a[0] <= cx <= a[2] and a[1] <= cz <= a[3] for a in named + SITE_AREAS):
             site_parts.append(bld)
     index["site_parts"] = site_parts
+    # The broad flights (landmarks/praga.gd lights the stadium's stairs; the prebuilt city's landmarks
+    # get no sector data, so they ride in the index).
+    index["steps_wide"] = [st for st in data.get("steps", []) if float(st.get("w", 0.0)) >= 7.0 and len(st["p"]) >= 4]
     index["sectors"] = {"size": SECTOR, "margin": MARGIN, "point_margin": POINT_MARGIN,
                         "i": [grid.i0, grid.i1], "j": [grid.j0, grid.j1],
                         "keys": [list(k) for k in keys]}

@@ -351,7 +351,8 @@ func setup_streamed(index: Dictionary, building_mat: ShaderMaterial, flat_mat: S
 	# `kladka`: the footbridge's layout (tools/kladka.py; landmarks/kladka.gd).
 	_marks = Landmarks.new(self, {"landmarks": index.get("landmarks", []), "towers": index.get("towers", []),
 			"buildings": index.get("site_parts", []), "areas": index.get("areas", []),
-			"platforms": index.get("platforms", []), "kladka": index.get("kladka", {})})
+			"platforms": index.get("platforms", []), "kladka": index.get("kladka", {}),
+			"steps": index.get("steps_wide", [])})
 	landmark_info = _marks.info
 	_pick.resize(_roof_nx * _roof_nz * 2)
 	_pick.fill(0)
