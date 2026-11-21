@@ -571,7 +571,7 @@ func show_dev() -> void:
 ## settings.gd keep them as ever; only where they sit changed.
 func _dev_page(body: Control) -> Control:
 	var at := _pages.size()
-	var dev := _rows(body, [3, 3, 4])
+	var dev := _rows(body, [3, 3, 4, 1])
 	_heading(dev[0], "Kamera za autem", "Camera follows the car")
 	_segments(dev[0], "camera", CAMERA)
 	_heading(dev[1], "Prowadzenie", "Handling")
@@ -604,7 +604,10 @@ func _dev_page(body: Control) -> Control:
 	# F 2026-11-20: Promo Mode (promo_mode.gd): framing tools for the trailer and the Reels.
 	_heading(dev[9], "Tryb promo", "Promo mode")
 	_segments(dev[9], "promo", ON_OFF)
-	for key: String in ["camera", "lane_assist", "zones", "soft_fences", "perf", "promo"]:
+	# Stats thread 2026-11-21: the tester's own phone, so the anonymous stats can leave it out.
+	_heading(dev[10], "Urządzenie testowe (statystyki)", "Test device (stats)")
+	_segments(dev[10], "test_device", ON_OFF)
+	for key: String in ["camera", "lane_assist", "zones", "soft_fences", "perf", "promo", "test_device"]:
 		for b: Button in _groups[key]:
 			b.custom_minimum_size.x = touch * 1.05
 	var page := _pages[at]

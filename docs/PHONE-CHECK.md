@@ -135,6 +135,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | # | Do | Look for | From |
 | --- | --- | --- | --- |
 | 16 | Settings → BENCH, run it | the numbers against the last build's | budgets |
+| 15zn | DEV (tap the version 7 times) → last row "Urządzenie testowe (statystyki) · Test device (stats)" → On, play a minute, background the app; then force-quit mid-drive and relaunch | the row shows and holds its value after a restart? in PostHog the events carry `test_device = true`, the force-quit session arrives next launch as `session_end how=lost` and `session_start crashed_before = true` | stats gaps #997 |
 | 17 | Drive across the map for three minutes without stopping | streets that come in late, a hole in the ground, heat | #732 |
 | 18 | Take Mati's Smoła quest and watch the dialogue panel for a minute (BENCH on) | one line at a time at the bottom centre, no frame-time dip when a line starts, no toast over its words | #899 |
 | 19 | At the Smoła door, read the first question | the card says BRAMKARZ with his face, the dark bouncer figure stands at the door | #899 |
