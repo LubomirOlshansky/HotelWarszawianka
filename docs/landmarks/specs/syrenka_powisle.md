@@ -78,7 +78,7 @@ mirror's light strips and mist jets glow (syrenka_plaza.gd).
 
 ## 7. Detail level and budget
 
-L2. Budget 1400 triangles (`check_mesh_quality.gd`); built 980 on the turntable's flat map.
+L2. Budget 1400 triangles (`check_mesh_quality.gd`); built 1076 on the turntable's flat map.
 Turntable: `tools/turntable.sh syrenka_powisle`.
 
 ## 8. Parts table
