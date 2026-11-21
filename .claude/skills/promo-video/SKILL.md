@@ -72,6 +72,39 @@ it falls in and is towed, and the shot moves. Always pass `--at=X,Z` on a road w
 Several notes in one message: apply them all in the first take, then offer one variant per note
 that was a guess. One change per variant is the only way F can say which one he likes.
 
+## The whole workflow (how the teaser thread worked, 2026-11-19..21)
+
+F's round trip, every time: **frame + note → scene fixes → rebake → check stills (before/after) → takes A/B/C → F picks → cut.**
+
+1. **Scene fixes come first when the note is about the world, not the camera.** "No mopeds at the
+   entrance", "buses keep their lane", "add a police car", "people chilling inside", "lights by the
+   stairs" are code or data changes (promo-only flags like `--promo-at`, `--scoot-gang`, `--people`,
+   `--promo-heli` are the pattern: a shot-only switch, never a change for players unless F asks).
+   Do them in the cloud on the piece's branch; the architecture rules apply (one owner, change note).
+   Model from F's photos (skill `model-from-photos`); a shot-only prop must not cost players frames.
+2. **Cloud check render before the Mac** (catches broken code, ~15 min): Godot 4.7.2 + xvfb + lavapipe,
+   660x1170, one still. Never judge looks on it, only "does it run and is the thing there".
+3. **Before/after stills on the Mac, same camera.** Shoot the BEFORE stills on the old bake *before*
+   fetching the new commit, then update, import (`godot --headless --path game --import --quit`),
+   `python3 -I tools/bake_sectors.py`, `godot --path game --resolution 320x180 --script
+   res://tools/bake_city.gd` (with a renderer), then the AFTER stills with the identical cameras.
+   **One camera per run**: with several `--cams` in one run the clock advances and later cameras change
+   light. Sheets: `tools/promo_sheet.sh BEFORE AFTER` (before left, after right). If a camera has to
+   move, re-shoot both sides with the new one.
+4. **Takes as a batch.** `tools/promo_batch.sh docs/promo/PIECE.takes` (copy `example-palm.takes`):
+   one COPY frame, shared options, one line per variant. A take F has seen is never overwritten: new
+   name (A2 → A3). Say in the reply which note each variant answers.
+5. **Always `godot --path game`** (a run without it popped a "no main scene" alert on F's screen).
+   Every run `--nosave` and quits.
+6. **Priority changes mid-run** (F reorders: "palm first, then stadium"): send the reorder to the
+   running Mac session as a new instruction, say which step it finishes first, and keep the list in
+   the checklist. Do not stop a render that is almost done.
+7. **Mac etiquette.** One Mac user at a time. Do not touch other threads' worktrees or Xcode builds,
+   and never kill a godot process that is not yours. Use the brief in `mac-brief.md`.
+8. **Delivery.** While a Remote Control session runs, the thread's folder tools are withheld: end the
+   session, stage the files (`/mnt/project-files/teasers/<piece>/`), attach them to the reply, and tell
+   the coordinator "Mac free" so the next shoot can start.
+
 ## Jarmark Warszawski (Christmas market by PKiN, first use)
 
 On Plac Defilad, south of the museum by Marszałkowska. Day and night, rides turning, crowds
