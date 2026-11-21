@@ -893,6 +893,20 @@ class Walkers extends Node3D:
 		startled += 1
 		return 0
 
+	## pedestrians.gd's leap for a Kukuryźnik: how many leapt (`leap_answer`, 0 by default), counted.
+	var leaps := 0
+	var leap_answer := 0
+
+	func leap(_at: Vector2, _dir: Vector2, _r: float) -> int:
+		leaps += 1
+		return leap_answer
+
+	## pedestrians.gd's guest slots (city life's walkers and runners): taken, not drawn.
+	var guest_takes := 0
+
+	func take_guests(_buf: PackedFloat32Array) -> void:
+		guest_takes += 1
+
 
 ## tape.gd for a check with no tape (TD-11 group 3): the then cards stamped, by id.
 class Tape extends Node3D:
