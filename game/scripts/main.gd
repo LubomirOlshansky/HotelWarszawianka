@@ -241,6 +241,8 @@ var _xray: Node3D
 const DECK_XRAY_EVERY := 4
 var _deck_hid := false
 var heli: Node3D
+## Teaser 5 (F, 2026-11-21): the promo shot's second helicopter (--promo-heli), or null.
+var promo_heli: Node3D
 var missions: Node
 var hud: CanvasLayer
 ## The living city (absent with --no-traffic): lane graph, traffic, trams,
@@ -1440,6 +1442,8 @@ func _build_world() -> void:
 				works.free()
 	else:
 		map = MapBuilder.new()
+		if flags.season == "summer":
+			map.season = "summer"  # the runtime proxies' leaf colours (dev_flags --season)
 		world.add_child(map)
 		data = map.build(MAP_PATH, building_mat, flat_mat)
 		map.open_maps_whole()  # loop 3d-2b: every sector's map slices on the GPU at once
@@ -1513,6 +1517,20 @@ func _build_world() -> void:
 	heli.set_map(map)  # map north: the L-shaped outline, not the bounding box
 	world.add_child(heli)
 	heli.landed.connect(_on_heli_landed)
+	if flags.promo_heli.size() >= 5:
+		var ph := flags.promo_heli
+		promo_heli = Heli.new()
+		promo_heli.name = "PromoHeli"
+		promo_heli.ground_height = map.ground_height
+		promo_heli.top_height = map.top_height
+		promo_heli.tallest_near = map.tallest_near
+		promo_heli.set_map(map)
+		world.add_child(promo_heli)
+		var go := Vector2(ph[2] - ph[0], ph[3] - ph[1])
+		promo_heli.place(Vector3(ph[0], map.ground_height(ph[0], ph[1]) + ph[4], ph[1]), atan2(-go.x, -go.y), ph[4])
+		promo_heli.auto_to = Vector2(ph[2], ph[3])
+		if ph.size() >= 6:
+			promo_heli.auto_share = ph[5]
 
 	cam = Camera3D.new()
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -1922,6 +1940,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	trams.traffic = traffic
 	traffic.trams = trams
 	_first_scene_trams()
+	_promo_traffic()
 	trains = Trains.new()
 	world.add_child(trains)
 	trains.setup(map, data)
@@ -1931,6 +1950,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	if flags.train_at != Vector2.INF:
 		trains.place_near(flags.train_at, flags.train_kind)
 	walkers = Pedestrians.new()
+	walkers.weather = weather
 	world.add_child(walkers)
 	await walkers.setup(map, cam, traffic, data)
 	await LoadYield.tick("walkers.setup")
@@ -1944,6 +1964,10 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	# tram stop in front of it, busy at every hour.
 	busy = walkers.add_busy(LIM_BUSY_O, LIM_BUSY_S, LIM_BUSY_T, LIM_BUSY_BANDS, LIM_BUSY_BOX)
 	print("centrum lim: %d busy pavement points" % busy)
+	# F (2026-11-21, teaser 4: "more pedestrians waiting and walking"): the pavements round Rondo
+	# de Gaulle'a, the palm's footways and crossings, busy too.
+	busy = walkers.add_busy(GAULLE_BUSY_O, Vector2(1, 0), Vector2(0, 1), GAULLE_BUSY_BANDS, GAULLE_BUSY_BOX)
+	print("rondo de gaulle: %d busy pavement points" % busy)
 	traffic.bumped_driver.connect(dialogue.on_driver_bumped)
 	traffic.blocked_by_player.connect(dialogue.on_driver_blocked)
 	# The street racers (rivals.gd wires itself; its setup reads the map data), under main.gd. The
@@ -1999,11 +2023,36 @@ const LIM_BUSY_S := Vector2(0.946, -0.325)
 const LIM_BUSY_T := Vector2(-0.325, -0.946)
 const LIM_BUSY_BANDS := [[-15.0, 160.0, -7.0, 14.0], [-45.0, 70.0, 14.0, 45.0]]
 const LIM_BUSY_BOX := Rect2(-1480.0, 600.0, 230.0, 130.0)
+const GAULLE_BUSY_O := Vector2(-213.9, 238.5)
+const GAULLE_BUSY_BANDS := [[-80.0, 80.0, -80.0, 80.0]]
+const GAULLE_BUSY_BOX := Rect2(-310.0, 150.0, 200.0, 190.0)
 const MARSZALKOWSKA_NORTH := Vector2(-0.349, -0.937)
 const FIRST_UP_V := 7.0
 const FIRST_DOWN_V := 8.0
 ## How long the first seconds' bell may wait for a tram to pass the car, after the camera lands.
 const FIRST_BELL_S := 20.0
+## --promo-at=X,Z,T (videos): trams[0] up Marszałkowska, trams[1] east along the Aleje two
+## seconds later, and a bus up Marszałkowska, each placed so it passes X,Z about T s after the start.
+const PROMO_TRAM_V := 8.0
+const PROMO_BUS_V := 9.0
+const ALEJE_EAST := Vector2(0.937, -0.349)
+func _promo_traffic() -> void:
+	var at := flags.promo_at
+	if at == Vector2.INF or trams == null or trams.trams.size() < 2:
+		return
+	var t := flags.promo_t
+	var up := trams.place_near(trams.trams[0], at, -PROMO_TRAM_V * t, MARSZALKOWSKA_NORTH, PROMO_TRAM_V)
+	var east := trams.place_near(trams.trams[1], at, -PROMO_TRAM_V * (t + 2.0), ALEJE_EAST, PROMO_TRAM_V)
+	var bus := false
+	var lane := graph.snap(at - MARSZALKOWSKA_NORTH * (PROMO_BUS_V * (t + 1.0)), 30.0, MARSZALKOWSKA_NORTH, true, true, true)
+	if not lane.is_empty():
+		var d := traffic.add_bus(int(lane[0]), int(lane[1]), float(lane[2]))
+		if d != null:
+			d.v = PROMO_BUS_V
+			bus = true
+	print("promo: at %s in %.1f s: tram up %s, tram east %s, bus %s" % [at, t, up, east, bus])
+
+
 func _first_scene_trams(lead := 0.0) -> void:
 	var at := Vector2(car.global_position.x, car.global_position.z)
 	if flying or not FIRST_SCENE.has_point(at) or trams == null or trams.trams.size() < 2:
@@ -2143,6 +2192,8 @@ func _apply_traffic() -> void:
 			traffic.density = density
 	if walkers != null:
 		walkers.limit = maxi(4, roundi(float(Tiers.value(quality, "people")) * float(Settings.PEOPLE[traffic_level]) * float(Governor.PEOPLE[governor.cpu])))
+		if flags.people > 0:
+			walkers.limit = mini(flags.people, Pedestrians.MAX)
 
 
 ## Loop G1: the governor's clock, seconds since the game started.
@@ -2505,6 +2556,9 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	zamkowy_life = PlacZamkowyLife.new()
 	world.add_child(zamkowy_life)
 	zamkowy_life.setup(map)
+	if flags.pigeons_at > 0.0:
+		zamkowy_life.keep_awake = true
+		zamkowy_life.flush_in = flags.pigeons_at
 
 
 # --- loop MW-1: MOJA WARSZAWA, the notebook --------------------------------------------------
@@ -2598,6 +2652,7 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 	crowds.police = police
 	crowds.sounds = city_sounds
 	crowds.log_on = flags.night_log
+	crowds.weather = weather
 	crowds.amount = _crowd_scale()
 	crowds.meet_on = flags.loud_flag != 0
 	crowds.clock = tod.local_clock
@@ -3676,6 +3731,8 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 	if flags.life_flag == 0 or notes == null or not notes.ready_ok:
 		return
 	life = CityLife.new()
+	life.gang_at = flags.scoot_gang  # --scoot-gang (videos)
+	life.gang_dir = flags.scoot_gang_dir
 	life.name = "CityLife"
 	life.map = map
 	life.dialogue = dialogue
@@ -5755,6 +5812,8 @@ func _process(dt: float) -> void:
 		zamkowy_life.tick(pos, heli.vel if flying else car.vel, flying)
 	car.lights = tod.lights_on
 	heli.lights = tod.lights_on
+	if promo_heli != null:
+		promo_heli.lights = tod.lights_on
 	car.wet = weather.wet
 	if sfx != null:
 		sfx.flying = flying

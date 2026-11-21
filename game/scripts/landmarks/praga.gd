@@ -126,6 +126,26 @@ static func _median3(a: float, b: float, c: float) -> float:
 ## 55-63 m, needle 30-100 m, over the street round it).
 ## The promenade's inner and outer edges, in inner-mast radii (the concourse glass is at 0.935).
 const PROM_FROM := 0.955
+## F's night photos (2026-11-21): the spikes' tip lamps and the rim's line of light (pale by day).
+const STADIUM_TIP := Color(0.96, 0.97, 1.0)
+const STADIUM_RIM_LIGHT := Color(0.84, 0.87, 0.92)
+const STADIUM_LAMP := Color("#fff1cf")
+## The stairs' light lines (pale sand by day, warm at night), on the mapped stairs within STAIR_REACH m of the centre.
+const STADIUM_STAIR := Color("#f0b45a")
+const STAIR_REACH := 270.0
+## The stairs' light lines: one per step (F's drone photo, 2026-11-21).
+const STAIR_STEP := 0.6
+## The lines ride over the stone treads (map_builder rounds the ground up to whole risers of
+## 0.16 m): at ground level they were hidden under the treads in checkered bits.
+const STAIR_LIFT := 0.2
+## F's drone photo (2026-11-21): the broad flights up the embankment at the ends of the
+## avenues have a lit portal in their middle, a passage into the bank under the promenade.
+const PORTAL_STAIR_W := 20.0
+const PORTAL_W := 9.0
+## Only a long flight has one (the short wide ones are landings at the promenade).
+const PORTAL_MIN_RUN := 10.0
+const PORTAL_CONCRETE := Color("#b9b6ae")
+const PORTAL_GLOW := Color("#ffd89a")
 const PROM_TO := 1.04
 
 
@@ -183,8 +203,10 @@ func _build_stadium(site: Dictionary) -> void:
 		var vo: Vector2 = outer[k]
 		var d := vi - c
 		base.append(c + d * 0.965)
-		mid.append(vi + (vo - vi) * 0.25)
-		top.append(vi + (vo - vi) * 0.62)
+		# F's photos (2026-11-21): the white masts stand clear in front of the skin all the way up,
+		# so the basket leans a little less than the masts (it was 0.25 / 0.62: they hid in it).
+		mid.append(vi + (vo - vi) * 0.13)
+		top.append(vi + (vo - vi) * 0.52)
 		edge.append(vo + (vo - c).normalized() * 1.5)
 		inset.append(vo - (vo - c).normalized() * 1.5)
 		foot.append(map.terrain_height(vi.x, vi.y) - 1.0)
@@ -262,6 +284,63 @@ func _build_stadium(site: Dictionary) -> void:
 		var ko := (a1 + b1) * 0.5 - c
 		_quad(Vector3(a1.x, ka, a1.y), Vector3(b1.x, kb, b1.y), Vector3(b1.x, deck[k1], b1.y), Vector3(a1.x, deck[k], a1.y),
 				Vector3(ko.x, 0.0, ko.y).normalized(), Color("#a9a59b"))
+	# F's night photos (2026-11-21): lamp posts round the promenade's outer edge, one every
+	# other mast, and lines of warm light across the mapped stairs down the embankment.
+	for k in range(0, n, 2):
+		var lp: Vector2 = c + ((inner[k] as Vector2) - c) * (PROM_TO - 0.008)
+		_prism(_circle(lp, 0.12, 4), deck[k], deck[k] + 4.6, Color("#3a3c40"), Color("#3a3c40"), M_STONE, M_STONE)
+		_prism(_circle(lp, 0.32, 4), deck[k] + 4.6, deck[k] + 5.0, STADIUM_LAMP, STADIUM_LAMP, M_LAMP, M_LAMP)
+	_mode = M_LAMP
+	for st: Dictionary in data.get("steps", []):
+		var sp: Array = st["p"]
+		var w := float(st.get("w", 0.0))
+		if sp.size() < 4 or w < 7.0:
+			continue
+		var s0 := Vector2(float(sp[0]), float(sp[1]))
+		var s1 := Vector2(float(sp[sp.size() - 2]), float(sp[sp.size() - 1]))
+		if (s0 + s1).distance_to(c * 2.0) > STAIR_REACH * 2.0:
+			continue
+		var run_len := s0.distance_to(s1)
+		var e := (s1 - s0) / maxf(run_len, 0.01)
+		var side := Vector2(-e.y, e.x)
+		var half := side * w * 0.44
+		# F's drone photo (2026-11-21): every step's nosing glows, so a flight reads as a
+		# block of gold lines from the air; a lit strip runs down both of its edges.
+		var t := 0.3
+		while t < run_len - 0.2:
+			var m0 := s0 + e * t
+			var m1 := m0 + e * 0.2
+			var y0: float = map.ground_height(m0.x, m0.y) + STAIR_LIFT
+			var y1: float = map.ground_height(m1.x, m1.y) + STAIR_LIFT
+			if w >= PORTAL_STAIR_W and run_len >= PORTAL_MIN_RUN:
+				# The portal's block covers the flight's middle: a line on each side of it.
+				var gap := side * PORTAL_W * 0.5 + side * 0.6
+				for sg in [-1.0, 1.0]:
+					var g0: Vector2 = gap * sg
+					var g1: Vector2 = half * sg
+					_quad(Vector3(m0.x + g0.x, y0, m0.y + g0.y), Vector3(m0.x + g1.x, y0, m0.y + g1.y),
+							Vector3(m1.x + g1.x, y1, m1.y + g1.y), Vector3(m1.x + g0.x, y1, m1.y + g0.y), Vector3.UP, STADIUM_STAIR)
+			else:
+				_quad(Vector3(m0.x - half.x, y0, m0.y - half.y), Vector3(m0.x + half.x, y0, m0.y + half.y),
+						Vector3(m1.x + half.x, y1, m1.y + half.y), Vector3(m1.x - half.x, y1, m1.y - half.y), Vector3.UP, STADIUM_STAIR)
+			t += STAIR_STEP
+		for sgn in [-1.0, 1.0]:
+			var o0: Vector2 = side * (w * 0.5 - 0.15) * sgn
+			var o1: Vector2 = side * (w * 0.5 - 0.5) * sgn
+			var k := 0.0
+			while k < run_len - 0.01:
+				var k2 := minf(k + 3.0, run_len)
+				var q0 := s0 + e * k
+				var q1 := s0 + e * k2
+				var h0: float = map.ground_height(q0.x, q0.y) + STAIR_LIFT + 0.18
+				var h1: float = map.ground_height(q1.x, q1.y) + STAIR_LIFT + 0.18
+				_quad(Vector3(q0.x + o0.x, h0, q0.y + o0.y), Vector3(q0.x + o1.x, h0, q0.y + o1.y),
+						Vector3(q1.x + o1.x, h1, q1.y + o1.y), Vector3(q1.x + o0.x, h1, q1.y + o0.y), Vector3.UP, STADIUM_STAIR)
+				k = k2
+		if w >= PORTAL_STAIR_W and run_len >= PORTAL_MIN_RUN:
+			_stadium_portal(s0, s1, w)
+			_mode = M_LAMP
+	_mode = M_STONE
 	# The roof: the raised rim (its outer face over the skin, its inner face sloping to the
 	# membrane), its soffit back to the skin's top, then the membrane down to the open middle
 	# in panels.
@@ -276,6 +355,13 @@ func _build_stadium(site: Dictionary) -> void:
 				(Vector3.UP * 1.5 - on * 2.2).normalized(), Color("#c9ccd1"))
 		_quad(Vector3(edge[k].x, roof_y - 1.6, edge[k].y), Vector3(edge[k1].x, roof_y - 1.6, edge[k1].y),
 				Vector3(top[k1].x, skin_top, top[k1].y), Vector3(top[k].x, skin_top, top[k].y), Vector3.DOWN, Color("#9da1a8"))
+		# F's night photos (2026-11-21): a line of light along the rim's foot, its own grey by day.
+		var e0 := edge[k] + (edge[k] - c).normalized() * 0.05
+		var e1 := edge[k1] + (edge[k1] - c).normalized() * 0.05
+		_mode = M_LAMP
+		_quad(Vector3(e0.x, roof_y - 1.6, e0.y), Vector3(e1.x, roof_y - 1.6, e1.y),
+				Vector3(e1.x, roof_y - 1.0, e1.y), Vector3(e0.x, roof_y - 1.0, e0.y), on, STADIUM_RIM_LIGHT)
+		_mode = M_STONE
 	_mode = M_MEMBRANE
 	var hole_y := roof_y - 3.5
 	for k in n:
@@ -367,6 +453,9 @@ func _build_stadium(site: Dictionary) -> void:
 		# The spike over the rim, thicker: the stadium's silhouette from the street.
 		var s0 := a.lerp(b, (rim_y - 1.0 - a.y) / (b.y - a.y))
 		_beam(s0, b + (b - a).normalized() * 0.4, 1.0, Color("#f2f3f5"))
+		# F's night photos (2026-11-21): a white lamp on every spike's tip.
+		var tip := b + (b - a).normalized() * 0.4
+		_prism(_circle(Vector2(tip.x, tip.z), 0.6, 4), tip.y - 0.2, tip.y + 0.9, STADIUM_TIP, STADIUM_TIP, M_LAMP, M_LAMP)
 	# The needle (mapped 30-100 m): a white spindle through a dark hub ring where the cables
 	# meet (37-43 m, 15.6 m across), the folded roof stored in a white drum above it (55-63 m,
 	# 21 m across), and a red light on its tip; a cable from the hub to every third mast's
@@ -1319,4 +1408,33 @@ func _build_kosciuszkowcy(_site: Dictionary) -> void:
 		_lbox(lu, lv, float(l[2]), float(l[3]), lg - 0.2, lg + 0.45, KOSC_GRANITE.lightened(0.12), M_STONE, KOSC_GRANITE.lightened(0.2))
 		_collide(_rect(lu, lv, float(l[2]), float(l[3])))
 	_collide(_rect(0.0, 0.0, 6.4, 3.0))
+	_mode = M_STONE
+
+
+## The portal in a broad flight (s0 its foot, s1 its head, w wide): a concrete block over the
+## flight's middle from the foot to the head, its front a warm lit opening into the bank.
+func _stadium_portal(s0: Vector2, s1: Vector2, w: float) -> void:
+	var run_len := s0.distance_to(s1)
+	if run_len < PORTAL_MIN_RUN:
+		return
+	if map.ground_height(s1.x, s1.y) < map.ground_height(s0.x, s0.y):
+		var sw := s0
+		s0 = s1
+		s1 = sw
+	var e := (s1 - s0) / run_len
+	var side := Vector2(-e.y, e.x) * PORTAL_W * 0.5
+	var foot: float = map.ground_height(s0.x, s0.y)
+	var head: float = maxf(map.ground_height(s1.x, s1.y), foot + 3.6)
+	var poly := PackedVector2Array([s0 - side - e * 0.4, s0 + side - e * 0.4, s1 + side, s1 - side])
+	_prism(poly, foot - 0.4, head + 0.25, PORTAL_CONCRETE, PORTAL_CONCRETE.darkened(0.08), M_STONE, M_STONE)
+	# The opening on the block's front, inset from its edges, glowing warm at night (dark glass by day it reads as a doorway).
+	var f := s0 - e * 0.46
+	var o := side * 0.78
+	var top := foot + minf(head - foot - 0.7, 4.2)
+	_mode = M_LAMP
+	_quad(Vector3(f.x - o.x, foot, f.y - o.y), Vector3(f.x + o.x, foot, f.y + o.y),
+			Vector3(f.x + o.x, top, f.y + o.y), Vector3(f.x - o.x, top, f.y - o.y), Vector3(-e.x, 0.0, -e.y), PORTAL_GLOW)
+	# A lit line under the block's head beam, as in the photo.
+	_quad(Vector3(f.x - side.x, top + 0.35, f.y - side.y), Vector3(f.x + side.x, top + 0.35, f.y + side.y),
+			Vector3(f.x + side.x, top + 0.5, f.y + side.y), Vector3(f.x - side.x, top + 0.5, f.y - side.y), Vector3(-e.x, 0.0, -e.y), PORTAL_GLOW)
 	_mode = M_STONE

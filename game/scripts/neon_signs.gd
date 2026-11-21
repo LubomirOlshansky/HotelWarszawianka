@@ -14,7 +14,7 @@ const PixelFont := preload("res://scripts/pixel_font.gd")
 const WORDS := ["KEBAB 24H", "BAR MLECZNY", "APTEKA", "KWIATY", "HOTEL", "KANTOR", "PIZZA", "KLUB", "NOCNY"]
 ## The landmarks loop: words only the landmarks wear (never a shop's), after WORDS in the atlas:
 ## the parody of the brand on Warsaw Spire's crown, the mall by Rondo Radosława's.
-const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA", "CHILTON", "INTERKONTI", "N", "O", "W", "T", "E", "L", "BANK POLSKA", "PEPEO ŻUBR", "ERZATZ",
+const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA", "CHILTON", "INTERKONTI", "N", "O", "W", "T", "E", "L", "BANK POLSKA", "PEPEO ŻUBR", "ŻUBR", "ERZATZ",
 		"METROPOLKA", "HOTEL AHOJ", "PORT PRASKI", "STATKI WKRÓTCE", "ENELMEDIK", "ACORN", "HOTELS", "--",
 		# First scene item 3: the Eastern Wall's stores (parodies of their roof names).
 		"JUNIOREK", "SAWKA", "WARSIK", "ATOMIK 24H",
@@ -58,7 +58,7 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"WISTULA",
 		# Its arcade's cafés and bars (parodies, F 2026-11-19): the bakery-bistro, the cocktail
 		# bar (its neon Z is the "Z" below) and the craft-beer bar.
-		"SZARLOTKA", "ZAMIESZAJ", "CUDA NA PATYKU",
+		"SZARLOTKA", "ZAMIESZAJ", "OLDTWICE", "CUDA NA PATYKU",
 		# The power company's red roof sign on Wybrzeże Kościuszkowskie 41 (F's photos, 2026-11-13).
 		"ELEKTRON",
 		# HOTEL PIURE's rooftop date bar (G3).

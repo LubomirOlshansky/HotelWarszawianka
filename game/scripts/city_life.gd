@@ -1606,6 +1606,10 @@ func _build_drawing() -> void:
 	_scoot_buf.resize(SCOOT_CAP * 16)
 	_scoot_buf.fill(0.0)
 	_scoot_mmi = _new_mmi(_scoot_mm, "Scooters")
+	_sc_mm = _new_mm(kuk_mesh(), KUK_CAP)
+	_sc_buf.resize(KUK_CAP * 16)
+	_sc_buf.fill(0.0)
+	_sc_mmi = _new_mmi(_sc_mm, "Kukuryznik")
 	_gbuf.resize(Pedestrians.GUESTS * 16)
 	_gbuf.fill(0.0)
 	# Loop jobs-2: the armchair on the man's head (shown only near him).
@@ -1830,6 +1834,47 @@ func _fire(id: String) -> bool:
 
 # --- the logic -------------------------------------------------------------------------------
 
+## Teaser 4 (F, 2026-11-21: "the kukuryźniarze gang going on the pavement somewhere"):
+## `--scoot-gang=X,Z[,T[,DIR]]` puts a pack of riders on the footway nearest (X, Z) T s after the
+## start, riding the path's way (DIR 1) or against it (-1). Videos only.
+var gang_at := Vector3(0.0, 0.0, -1.0)
+var gang_dir := 1.0
+const GANG_TEASER_N := 5
+
+
+## The teaser's pack (gang_at): GANG_TEASER_N riders on one footway near `at`, two abreast,
+## 3.2 m apart, a little slower than on a cycle path. In the mob's list, so they stay MOB_LIFE s.
+func force_gang(at: Vector2, n: int, dir: float) -> void:
+	var hit := _nearest_on("foot", at, 40.0)
+	if hit.is_empty():
+		push_warning("--scoot-gang: no footway within 40 m of %s" % at)
+		return
+	var i: int = hit[0]
+	var j: int = hit[1]
+	var cum := _cum_of("foot", i)
+	var s0: float = cum[j] + _foot[i][j].distance_to(hit[2])
+	var v := _rng.randf_range(SCOOT_V.x, SCOOT_V.y) * 0.55
+	_mob_t = t
+	for k in n:
+		var m := Mover.new()
+		m.kind = "scoot"
+		m.kd = SCOOT_K
+		m.pset = "foot"
+		m.i = i
+		m.dir = signf(dir) if dir != 0.0 else 1.0
+		m.s = clampf(s0 - m.dir * k * 3.2, 0.0, cum[cum.size() - 1])
+		m.v = v
+		m.off = -0.45 if k % 2 == 0 else 0.45
+		m.want_off = m.off
+		_dress_scoot(m)
+		m.p2 = _foot[i][0]
+		m.p3 = Vector3(m.p2.x, 0.0, m.p2.y)
+		_place_mover(m)
+		_mob.append(m)
+	_full = true
+	print("life: the teaser's Kukuryznik pack, %d riders at %.0f, %.0f" % [n, hit[2].x, hit[2].y])
+
+
 func _process(dt: float) -> void:
 	if dt <= 0.0 or not clock.is_valid():
 		return
@@ -1839,6 +1884,9 @@ func _process(dt: float) -> void:
 		WorkerThreadPool.wait_for_task_completion(_index_task)
 		_index_task = -1
 		_finish_index()
+	if gang_at.z >= 0.0 and t >= gang_at.z and not _foot.is_empty():
+		force_gang(Vector2(gang_at.x, gang_at.y), GANG_TEASER_N, gang_dir)
+		gang_at.z = -1.0
 	_tick_t += dt
 	if _tick_t >= TICK:
 		var step := _tick_t
@@ -2134,6 +2182,8 @@ func _hide_all() -> void:
 	_sc_mmi.visible = false
 	_scoot_mm.visible_instance_count = 0
 	_scoot_mmi.visible = false
+	_sc_mm.visible_instance_count = 0
+	_sc_mmi.visible = false
 	_gbuf.fill(0.0)
 	if walkers != null:
 		walkers.take_guests(_gbuf)
@@ -2414,7 +2464,14 @@ func _heights_of(pset: String, i: int) -> PackedFloat32Array:
 	var dk := _foot_dk[i] if pset == "foot" else _cyc_dk[i]
 	var h := PackedFloat32Array()
 	for q in pts:
-		h.append(map.deck_height(dk, q.x, q.y) if map != null else 0.0)
+		var y: float = map.deck_height(dk, q.x, q.y) if map != null else 0.0
+		# F (2026-11-21, teaser 4): a path over a low built floor (the Party House's terrace, 0.75 m
+		# up) rides on it, not through it; anything higher than a step-up is a building, left alone.
+		if map != null:
+			var top: float = map.roof_height(q.x, q.y)
+			if top - y > 0.15 and top - y < 1.2:
+				y = top
+		h.append(y)
 	_heights[key] = h
 	return h
 
@@ -3064,6 +3121,7 @@ func _write_all(eye: Vector2, car2: Vector2) -> void:
 	_ped_mmi.visible = pn > 0
 	_write_scoots()
 	_write_scooters()
+	_write_scoots()
 	_write_guests(eye, car2, hyrax, infl, aport_near)
 
 

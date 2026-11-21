@@ -42,6 +42,24 @@ var _flag_pitch := false
 var zone_cap_flag := -1
 ## --train=X,Z: a train put on the track nearest that point at the start (shots).
 var train_at := Vector2.INF
+## --promo-at=X,Z[,T] (videos, F 2026-11-19 "run the tram and the bus on one video"): two trams
+## (one up Marszałkowska, one along the Aleje) and a bus put so they reach that point T s (default 6)
+## after the start, rolling.
+var promo_at := Vector2.INF
+var promo_t := 6.0
+## --pigeons-at=T (videos, F 2026-11-19 "the pigeons fly up during the video"): Plac Zamkowy's
+## square stays awake wherever the player is, and its flock bursts up T s after the start.
+var pigeons_at := -1.0
+## --scoot-gang=X,Z[,T[,DIR]] (videos, F 2026-11-21): a Kukuryźnik pack on the footway nearest
+## (X, Z), T s after the start (default 3), riding the path's way or against it (DIR -1).
+var scoot_gang := Vector3(0.0, 0.0, -1.0)
+var scoot_gang_dir := 1.0
+## --people=N (videos, F 2026-11-21: "more pedestrians"): the walkers' target, whatever the
+## quality and traffic level say (never above pedestrians.gd MAX); -1: the settings decide.
+var people := -1
+## --season=summer|autumn (videos, F 2026-11-20 "trees can be green like summer not yellow"): the
+## trees' shader global `tree_season` until the season module (trees plan S1) sets it from the date.
+var season := ""
 ## --train=X,Z,K: that train of kind K (trains.gd KINDS: 0 Koleje Mazowe, 1 SKiM, 2 the
 ## long-distance one).
 var train_kind := -1
@@ -87,6 +105,10 @@ var demo := false
 ## world direction (x east, z south) the whole run, for screenshots of the clamp along the map's
 ## outline (ZERO: off).
 var heli_stick := Vector2.ZERO
+## Teaser 5 (F, 2026-11-21), --promo-heli=X,Z,TX,TZ,ALT[,SHARE]: a second helicopter for a promo
+## shot, starting ALT m over (X, Z) and flying itself towards (TX, Z) at SHARE of top speed
+## (0.6), its beacon, strobe and searchlight on at night. Empty: none.
+var promo_heli := PackedFloat32Array()
 var out_dir := "user://"
 ## --spots: [name, Vector2 x/z, heading or INF] per camera; one run shoots them all, the city
 ## built once (a street pass needs 6-10 cameras; a launch per camera cost ~70 s each).
@@ -634,6 +656,9 @@ func parse_with(args: PackedStringArray) -> void:
 			stats_flag = arg.trim_prefix("--stats=")
 		elif arg == "--heli":
 			start_flying = true
+		elif arg.begins_with("--promo-heli="):
+			for v in arg.trim_prefix("--promo-heli=").split(","):
+				promo_heli.append(float(v))
 		elif arg.begins_with("--heli-stick="):
 			var hs := arg.trim_prefix("--heli-stick=").split(",")
 			if hs.size() == 2:
@@ -993,6 +1018,26 @@ func parse_with(args: PackedStringArray) -> void:
 			crazy_log = true
 		elif arg == "--old-tram" or arg.begins_with("--old-tram="):
 			old_tram_flag = "follow" if arg == "--old-tram=follow" else "now"
+		elif arg.begins_with("--promo-at="):
+			var pa := arg.trim_prefix("--promo-at=").split(",")
+			if pa.size() >= 2:
+				promo_at = Vector2(float(pa[0]), float(pa[1]))
+			if pa.size() >= 3:
+				promo_t = float(pa[2])
+		elif arg.begins_with("--season="):
+			season = arg.trim_prefix("--season=")
+			# x the summer-to-autumn turn, y the fall of leaves (project.godot holds mid-November).
+			var look := Vector4(0, 0, 0, 0) if season == "summer" else Vector4(1, 0.5, 0, 0)
+			RenderingServer.global_shader_parameter_set("tree_season", look)
+		elif arg.begins_with("--people="):
+			people = int(arg.trim_prefix("--people="))
+		elif arg.begins_with("--scoot-gang="):
+			var sg := arg.trim_prefix("--scoot-gang=").split(",")
+			if sg.size() >= 2:
+				scoot_gang = Vector3(float(sg[0]), float(sg[1]), float(sg[2]) if sg.size() > 2 else 3.0)
+				scoot_gang_dir = float(sg[3]) if sg.size() > 3 else 1.0
+		elif arg.begins_with("--pigeons-at="):
+			pigeons_at = maxf(0.01, float(arg.trim_prefix("--pigeons-at=")))
 		elif arg.begins_with("--train="):
 			var xz := arg.trim_prefix("--train=").split(",")
 			if xz.size() >= 2:

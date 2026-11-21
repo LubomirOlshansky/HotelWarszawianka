@@ -5926,6 +5926,11 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 
 | Option | Effect |
 | --- | --- |
+| `--promo-at=X,Z[,T]` | videos: two trams (one up Marszałkowska, one east along the Aleje two seconds later) and a bus up Marszałkowska, placed rolling so they pass X,Z about T s (default 6) after the start; prints `promo:` (F, 2026-11-19, teaser 2) |
+| `--pigeons-at=T` | videos: Plac Zamkowy's tourists and pigeons stay awake wherever the player is, and the flock bursts up T s after the start (F, 2026-11-19, teaser 3) |
+| `--season=summer` | videos: green summer crowns (shader global `tree_season`), until the season module sets it from the date (F, 2026-11-20, teaser 4) |
+| `--scoot-gang=X,Z[,T[,DIR]]` | videos: a pack of five Kukuryźnik riders on the footway nearest (X, Z), T s after the start (default 3), DIR -1 against the path (F, 2026-11-21, teaser 4) |
+| `--people=N` | videos: the walkers' target N whatever the quality and traffic level (at most pedestrians.gd MAX, 60) (F, 2026-11-21, teaser 4) |
 | `--palace-lights=ID` | the Palace of Culture's night lighting forced to one row of `data/palace_lights.json` (`independence`, `parade`, `christmas`...; `gold` the nightly gold), whatever the date (2026-11-07) |
 | `--demo` | the car drives by itself; with `--heli` the helicopter flies a slow circle |
 | `--shots=60,240` / `--out=DIR` | save screenshots at those frames (counted from when the city is built), then quit (sweep 2: the sounds are stopped 0.15 s before, so a windowed run no longer ends with leaked audio streams). The window never takes the keyboard focus, as with `--no-input`, and a run that ends before a shot prints `shots: missing [frames]` with the game and engine frame and the pause state (2026-10-30) |
@@ -5960,6 +5965,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--lite-shaders` | 2026-11-08: the Adreno 6xx shaders on any GPU (`gpu_quirks.gd`: building.gdshader without its specular lobe), to see on the Mac what the Nothing Phone 1 draws |
 | `--stats=log\|send\|off` | the beta's play stats (play_stats.gd, docs/STATS.md): `log` prints each event as `play_stats: <event> <json>` and sends none (check `stats`), `send` sends from a debug build when `game/data/stats_key.json` is there (a device test), `off` none. Without it a debug build sends nothing |
 | `--heli` | start in the helicopter |
+| `--promo-heli=X,Z,TX,TZ,ALT[,SHARE]` | teaser 5 (F, 2026-11-21): a second helicopter for a promo shot, ALT m over (X, Z), flying itself towards (TX, TZ) at SHARE of top speed (0.6), its lights on at night |
 | `--heli-stick=X,Z` | the L-shaped map loop (2026-10-31): the helicopter's stick held towards that world direction (x east, z south; length up to 1) the whole run, for screenshots of the clamp along the map's outline (with `--heli --at=`) |
 | `--heli-alt=M` | loop 3d-2b: start in the helicopter M metres over the ground, placed there at once (360 = its highest; the memory and far-level probes) |
 | `--mission=N` | start rescue call N at once (N = 1, 5, 9… streets, 2, 6… roofs, 3, 7… river, 4, 8… parks) |

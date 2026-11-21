@@ -294,6 +294,106 @@ def street_lamps(roads, lamps, blocked, taken, decks, trams, kerb_of, spacing=ST
 
 
 
+# F's drone photos of Stadion Narodowy at night (2026-11-21): lamp posts line every path round
+# the stadium's foot and its avenues, on the plaza between the embankment and the streets.
+# OpenStreetMap maps almost none there. A lamp every STADIUM_SPACING along each footway between
+# STADIUM_RING (metres from the bowl's centre), beside the path, LED-white like the photos.
+STADIUM_RING = (150.0, 265.0)
+STADIUM_SPACING = 16.0
+STADIUM_SIDE = 1.6
+AVENUE_REACH = 120.0
+
+
+def stadium_centre(buildings):
+    """The bowl's centre: the middle of the 72 inner masts (50 m, from the ground, under 2.5 m
+    across), as landmarks/praga.gd finds them. None if they are not mapped."""
+    pts = []
+    for b in buildings:
+        q = b["p"]
+        xs, zs = q[0::2], q[1::2]
+        if len(xs) < 3 or abs(float(b["h"]) - 50.0) >= 0.5 or float(b["mh"]) >= 0.5:
+            continue
+        cx, cz = sum(xs) / len(xs), sum(zs) / len(zs)
+        if not (1250 < cx < 1700 and -820 < cz < -370):
+            continue
+        if math.hypot(max(xs) - min(xs), max(zs) - min(zs)) > 2.5:
+            continue
+        pts.append((cx, cz))
+    if len(pts) < 24:
+        return None
+    return (sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
+
+
+def stadium_lamps(osm, lamps, blocked, taken):
+    """Lamp posts along the footways round the stadium: (x, z, arm angle), the arm over the path."""
+    c = stadium_centre(osm["buildings"])
+    if c is None:
+        return []
+    have = [(lamps[i], lamps[i + 1]) for i in range(0, len(lamps) - 1, 2)] + [(q[0], q[1]) for q in taken]
+    out = []
+
+    def free(x, z):
+        return all(math.hypot(x - a, z - b) > STADIUM_SPACING * 0.6 for a, b in have + [(q[0], q[1]) for q in out])
+    for p in osm["paths"]:
+        if p.get("k") != "foot":
+            continue
+        q = list(zip(p["p"][0::2], p["p"][1::2]))
+        half = float(p.get("w", 2.2)) * 0.5 + STADIUM_SIDE
+        t = STADIUM_SPACING * 0.5
+        side = 1.0
+        for (ax, az), (bx, bz) in zip(q, q[1:]):
+            seg = math.hypot(bx - ax, bz - az)
+            if seg < 0.01:
+                continue
+            ux, uz = (bx - ax) / seg, (bz - az) / seg
+            while t < seg:
+                mx, mz = ax + ux * t, az + uz * t
+                r = math.hypot(mx - c[0], mz - c[1])
+                if STADIUM_RING[0] <= r <= STADIUM_RING[1]:
+                    nx, nz = -uz * side, ux * side
+                    px, pz = mx + nx * half, mz + nz * half
+                    if not blocked(px, pz) and free(px, pz):
+                        out.append((px, pz, math.atan2(nz, -nx)))
+                    side = -side
+                t += STADIUM_SPACING
+            t -= seg
+    # The avenue to a broad flight (Stadion's east gate, F's photos): two rows of lamps along
+    # the service way that ends at the flight's foot, the flight's width apart.
+    for st in osm.get("steps", []):
+        w = float(st.get("w", 0.0))
+        sp = st["p"]
+        if w < 20.0 or math.hypot(sp[-2] - sp[0], sp[-1] - sp[1]) < 10.0:
+            continue
+        ends = [(sp[0], sp[1]), (sp[-2], sp[-1])]
+        for rd in osm["roads"]:
+            if rd.get("k") != "service" or rd.get("bridge"):
+                continue
+            q = list(zip(rd["p"][0::2], rd["p"][1::2]))
+            if not any(math.hypot(q[0][0] - ex, q[0][1] - ez) < 15.0 for ex, ez in ends):
+                if any(math.hypot(q[-1][0] - ex, q[-1][1] - ez) < 15.0 for ex, ez in ends):
+                    q.reverse()
+                else:
+                    continue
+            walked = 0.0
+            t = STADIUM_SPACING * 0.5
+            for (ax, az), (bx, bz) in zip(q, q[1:]):
+                seg = math.hypot(bx - ax, bz - az)
+                if seg < 0.01:
+                    continue
+                ux, uz = (bx - ax) / seg, (bz - az) / seg
+                while t < seg and walked + t < AVENUE_REACH:
+                    mx, mz = ax + ux * t, az + uz * t
+                    for side in (-1.0, 1.0):
+                        nx, nz = -uz * side, ux * side
+                        px, pz = mx + nx * w * 0.5, mz + nz * w * 0.5
+                        if not blocked(px, pz) and free(px, pz):
+                            out.append((px, pz, math.atan2(nz, -nx)))
+                    t += STADIUM_SPACING
+                t -= seg
+                walked += seg
+    return out
+
+
 def main(map_dir):
     osm = json.load(open(os.path.join(map_dir, "centrum.json"), encoding="utf-8"))
     lod2 = json.load(open(os.path.join(map_dir, "lod2.json")))
@@ -400,8 +500,11 @@ def main(map_dir):
     for (px, pz, a, name) in abut:
         todo.append((px, pz, a, "sodium"))
     streets = [q[:3] for q in streets + abut]
+    stadium = stadium_lamps(osm, lamps, lamp_blocked, added + streets)
+    for (px, pz, a) in stadium:
+        todo.append((px, pz, a, "led"))
     n_bridge = len(added)
-    added = added + streets
+    added = added + streets + stadium
     counts = {"sodium": 0, "led": 0}
     for (px, pz, a, fixed) in todo:
         # The head hangs out along the arm: Basis(UP, a) turns +X to (cos a, -sin a).
@@ -485,7 +588,7 @@ def main(map_dir):
         for (px, pz, a) in added:
             f.write(struct.pack("<fff", px, pz, a))
     print(f"lights {w}x{h} at {PX} m/px: {counts['sodium']} sodium, {counts['led']} LED lamps "
-          f"({n_bridge} added on bridges, {len(added) - n_bridge} on unlit main streets), {100.0 * lit / (w * h):.1f}% of the map lit")
+          f"({n_bridge} added on bridges, {len(added) - n_bridge - len(stadium)} on unlit main streets, {len(stadium)} round the stadium), {100.0 * lit / (w * h):.1f}% of the map lit")
 
 
 if __name__ == "__main__":

@@ -7505,13 +7505,40 @@ func _build_surfaces(st) -> void:
 		if _dk >= 0:
 			_fill(st, _pts(a["p"]), y, Color(style[0]))
 		elif a["k"] == "ballast":
-			for part in _cut_out(_pts(a["p"]), platforms):
+			# Where a carriageway crosses the tracks they lie in the road's own paving, not on
+			# stones (F, 2026-11-20, the tracks across Rondo de Gaulle'a): cut those out too.
+			for part in _cut_out(_pts(a["p"]), platforms + _carriage_polys(a["p"])):
 				_fill_on_grid(st, part, y, Color(style[0]))
 		else:
 			_fill_on_grid(st, _pts(a["p"]), y, Color(style[0]))
 	_dk = -1
 	_build_pkin_ground(st)
 	_layer = L_GROUND
+
+
+## The street carriageways (centrum.json `carriage` of a road class; not the service ways, nor the
+## emergency and no-entry areas painted over the tracks) that overlap the outline `flat`, as
+## [box, polygon] for _cut_out.
+const CROSSING_KINDS := ["primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link",
+		"residential", "unclassified"]
+func _carriage_polys(flat: Array) -> Array:
+	var poly := _pts(flat)
+	var box := Rect2(poly[0], Vector2.ZERO)
+	for q in poly:
+		box = box.expand(q)
+	var out := []
+	for c in data.get("carriage", []):
+		if not String(c.get("k", "")) in CROSSING_KINDS:
+			continue
+		var q := _pts(c["p"])
+		if q.size() < 3:
+			continue
+		var cb := Rect2(q[0], Vector2.ZERO)
+		for p in q:
+			cb = cb.expand(p)
+		if cb.intersects(box):
+			out.append([cb, q])
+	return out
 
 
 ## OSM's railway platforms (0.9 m) as outlines with their boxes. The ballast (landuse=railway)
