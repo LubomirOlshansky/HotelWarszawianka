@@ -299,7 +299,7 @@ def street_lamps(roads, lamps, blocked, taken, decks, trams, kerb_of, spacing=ST
 # OpenStreetMap maps almost none there. A lamp every STADIUM_SPACING along each footway between
 # STADIUM_RING (metres from the bowl's centre), beside the path, LED-white like the photos.
 STADIUM_RING = (150.0, 265.0)
-STADIUM_SPACING = 16.0
+STADIUM_SPACING = 10.0
 STADIUM_SIDE = 1.6
 AVENUE_REACH = 120.0
 
