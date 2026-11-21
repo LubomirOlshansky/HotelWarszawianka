@@ -44,6 +44,7 @@ const EggBook := preload("res://scripts/egg_book.gd")
 const Pedestrians := preload("res://scripts/pedestrians.gd")
 const BoulevardLife := preload("res://scripts/boulevard_life.gd")
 const KladkaLife := preload("res://scripts/kladka_life.gd")
+const JarmarkLife := preload("res://scripts/jarmark_life.gd")
 const Props := preload("res://scripts/props.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 
@@ -468,6 +469,9 @@ var _blvd_line_t := 0.0
 ## Which of the two is up now (set by _blvd_near): the steps' life, the footbridge's.
 var _blvd_on := false
 var _kl_on := false
+## Jarmark Warszawski (jarmark_life.gd, F 2026-11-20) rides the same bit and slots: its strollers are
+## up when the view is within JarmarkLife.NEAR_R of the market and it is open (far from both others).
+var _jm_on := false
 ## The footbridge's passers-by's lines said (check_life reads it).
 var kladka_lines := 0
 var blvd_lines := 0
@@ -3046,7 +3050,8 @@ func _hyrax_loop() -> void:
 func _blvd_near(eye: Vector2) -> bool:
 	_blvd_on = amount > 0.0 and BoulevardLife.active(_hour) and eye.distance_to(BoulevardLife.C) < BoulevardLife.NEAR_R
 	_kl_on = amount > 0.0 and not _blvd_on and KladkaLife.near(eye, _hour)
-	return _blvd_on or _kl_on
+	_jm_on = amount > 0.0 and not _blvd_on and not _kl_on and JarmarkLife.near(eye, _hour)
+	return _blvd_on or _kl_on or _jm_on
 
 
 ## The patrol's figures and dog now: BoulevardLife.patrol_figures for the hour's kind and pairs
@@ -3071,13 +3076,15 @@ func _blvd_target() -> Dictionary:
 func _blvd_sig() -> int:
 	var pose := _blvd_pose()
 	return (pose["figs"] as Array).size() | (1 if not (pose["dog"] as Array).is_empty() else 0) << 4 \
-			| _walkers_now(0.0).size() << 5 | _riders_now(0.0).size() << 11 | int(_kl_on) << 17
+			| _walkers_now(0.0).size() << 5 | _riders_now(0.0).size() << 11 | int(_kl_on) << 17 | int(_jm_on) << 18
 
 
 ## The walkers of the place that is up now (the steps' or the footbridge's), at clock `at_t`.
 func _walkers_now(at_t: float) -> Array:
 	if _kl_on:
 		return KladkaLife.walker_figures(at_t, _hour)
+	if _jm_on:
+		return JarmarkLife.walker_figures(at_t, _hour)
 	return BoulevardLife.walker_figures(at_t, _hour) if _blvd_on else []
 
 
@@ -3150,6 +3157,8 @@ func _blvd_talk(eye: Vector2, step: float) -> void:
 	if _kl_on:
 		_kl_talk(eye)
 		return
+	if _jm_on:
+		return
 	var kind := BoulevardLife.patrol_kind(_hour)
 	if kind == "":
 		return
@@ -3206,6 +3215,8 @@ func _ground(p: Vector2) -> float:
 ## The height a steps' or footbridge figure stands at: the footbridge's walk when that life is up
 ## (the terrain under it is the river), else the ground.
 func _life_y(p: Vector2) -> float:
+	if _jm_on:
+		return _ground(p) + JarmarkLife.lift(p)
 	return KladkaLife.walk_y(p) if _kl_on else _ground(p)
 
 

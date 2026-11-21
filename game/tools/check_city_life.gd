@@ -32,6 +32,7 @@ const Wallet := preload("res://scripts/wallet.gd")
 const Props := preload("res://scripts/props.gd")
 const Blvd := preload("res://scripts/boulevard_life.gd")
 const Kladka := preload("res://scripts/kladka_life.gd")
+const Jarmark := preload("res://scripts/jarmark_life.gd")
 const Pedestrians := preload("res://scripts/pedestrians.gd")
 const Fakes := preload("res://tools/fakes.gd")
 
@@ -81,13 +82,14 @@ func _run() -> void:
 		return
 	_check_eggs(book)
 	_check_kladka_rules(data)
+	_check_jarmark_rules()
 	await _check_city(book, data)
 	book.queue_free()
 	await process_frame
 	if problems.is_empty():
-		print("check_city_life: OK (dog hours and caps, riders, runners, Kolka; horn %s; trend cycle on synthetic dates, sync every %d cycles; pay %s; Zając once; Fat Thursday %s; eggs E16 E18 E19 E20 E27 E28 E29 E30 E34 once each; dogs %d tris; city %s; the armchair man %s, his way %s; steps' life (Schodki Phase B): %s; %s; the footbridge's life: %s)" % [
+		print("check_city_life: OK (dog hours and caps, riders, runners, Kolka; horn %s; trend cycle on synthetic dates, sync every %d cycles; pay %s; Zając once; Fat Thursday %s; eggs E16 E18 E19 E20 E27 E28 E29 E30 E34 once each; dogs %d tris; city %s; the armchair man %s, his way %s; steps' life (Schodki Phase B): %s; %s; the footbridge's life: %s; the market's strollers: %s)" % [
 				_summary.get("horn", "?"), CityLife.SYNC_EVERY, _summary.get("pay", "?"), _summary.get("fat", "?"),
-				_summary.get("tris", 0), _summary.get("city", "?"), _summary.get("armchair", "?"), _summary.get("armchair_city", "?"), _summary.get("blvd", "?"), _summary.get("blvd_paving", "?"), _summary.get("kladka", "?")])
+				_summary.get("tris", 0), _summary.get("city", "?"), _summary.get("armchair", "?"), _summary.get("armchair_city", "?"), _summary.get("blvd", "?"), _summary.get("blvd_paving", "?"), _summary.get("kladka", "?"), _summary.get("jarmark", "?")])
 		quit(0)
 	else:
 		for p in problems:
@@ -690,6 +692,35 @@ func _check_kladka_rules(data: Dictionary) -> void:
 		_expect(str(l[0]).length() <= 70 and str(l[1]) != "", "kladka: a line over 70 characters or without English: %s" % str(l[0]))
 	_summary["kladka"] = "%d walkers at 20:00, %d riders (%d cyclists), %d lines" % [eve.size(), riders.size(), cyc, lines.size()]
 
+
+## Jarmark Warszawski's strollers (scripts/jarmark_life.gd): how many by the market's hours, nobody
+## outside 11:00-22:00, every figure on its aisle (within its half width of the line), its view range
+## clear of the steps' and the footbridge's (one place at a time on the same guest slots).
+func _check_jarmark_rules() -> void:
+	var eve := Jarmark.walker_figures(500.0, 19.0)
+	var noon := Jarmark.walker_figures(500.0, 12.0)
+	_expect(eve.size() >= 35 and eve.size() < 64 and noon.size() >= 12 and noon.size() < eve.size()
+			and Jarmark.walker_figures(500.0, 23.0).is_empty() and Jarmark.walker_figures(500.0, 9.0).is_empty(),
+			"jarmark life: strollers %d at 19:00, %d at noon" % [eve.size(), noon.size()])
+	var a := Jarmark.Market.JM_AXIS.normalized()
+	var b := Vector2(-a.y, a.x)
+	var o := Jarmark.Market.JM_O
+	for tt in [0.0, 41.0, 333.0, 1777.0]:
+		for f: Array in Jarmark.walker_figures(tt, 19.0):
+			var q: Vector2 = (f[0] as Vector2) - o
+			var uv := Vector2(q.dot(a), q.dot(b))
+			var off := INF
+			for ai: Array in Jarmark.AISLES:
+				var p0 := Vector2(float(ai[0]), float(ai[1]))
+				var p1 := Vector2(float(ai[2]), float(ai[3]))
+				var cl := Geometry2D.get_closest_point_to_segment(uv, p0, p1)
+				off = minf(off, uv.distance_to(cl) - float(ai[4]))
+			_expect(off <= 0.6, "jarmark life: a stroller %.1f m off its aisle at t %.0f" % [off, tt])
+	var c := Jarmark.centre()
+	_expect(Jarmark.near(c, 19.0) and not Jarmark.near(c + Vector2(400, 0), 19.0) and not Jarmark.near(c, 23.0),
+			"jarmark life: near and its hours")
+	_expect(c.distance_to(Blvd.C) > Jarmark.NEAR_R + Blvd.NEAR_R, "jarmark life: its view range meets the steps'")
+	_summary["jarmark"] = "%d at 19:00, %d at noon" % [eve.size(), noon.size()]
 
 ## Schodki nad Wisłą Phase B (scripts/boulevard_life.gd): the patrol's hours, pairs and its poses along a
 ## whole cycle (the ends, the speed, the pauses of 5-10 s facing the water), the walkers' and riders'

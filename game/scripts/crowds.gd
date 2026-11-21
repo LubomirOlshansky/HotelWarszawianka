@@ -94,9 +94,10 @@ const STEPS_KEYS := ["schodki_wisla", "schodki_wisla_w"]
 ## the steps' evening curve.
 ## Jarmark Warszawski (F, 2026-11-20: the market "like for the best trailer"): its shoppers at the
 ## chalets' counters, round the tree and queueing at the rides (Landmarks.jarmark_plan), kind `jarmark`,
-## two sites (the main market, and the annex with Plac Centralny). Open 11:00-22:00, busiest after dark.
+## two sites (the main market, and the annex with Plac Centralny). Open 11:00-22:00, busiest after dark;
+## packed for the trailer (F: "tons of people"), the strollers in the aisles are jarmark_life.gd.
 const JARMARK_IDS := ["jarmark_main", "jarmark_annex"]
-const JARMARK_MAX := {"jarmark_main": 150, "jarmark_annex": 70}
+const JARMARK_MAX := {"jarmark_main": 360, "jarmark_annex": 150}
 const KLADKA_IDS := ["kladka_w", "kladka_e"]
 const KLADKA_SPLIT := 250.0
 const KLADKA_MAX := {"kladka_w": 90, "kladka_e": 50}

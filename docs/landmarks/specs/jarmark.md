@@ -90,7 +90,7 @@ is there until 22:00 and gone by the night look's 23:00.
 
 ## Detail level and budget
 
-L3, budget 76000 triangles (71,973 built). This is an exception to the L3 cap of 8000: the site
+L3, budget 76000 triangles (69,003 built; the rides' turning parts, 3,680, are jarmark_rides.gd). This is an exception to the L3 cap of 8000: the site
 is a whole 160 by 90 m market plus Plac Centralny, over 200 stalls and their light strings, built
 as one mesh (+0 draw calls over the old site). F asked for it at trailer quality (2026-11-20).
 
@@ -116,5 +116,9 @@ as one mesh (+0 draw calls over the old site). F asked for it at trailer quality
 
 - The elves' labyrinth and the Christmas-tree carousel's exact place on Plac Centralny are guesses
   (no photo shows them from above).
-- No crowds yet; the market reads empty in a still. A crowd zone for the aisles is the next step
-  for the trailer.
+- Moving parts: `jarmark_rides.gd` (a place, one mesh in `shaders/jarmark_rides.gdshader`): the tower's
+  carrier turns and runs down to load on a 150 s cycle, the carousel turns with bobbing horses, the
+  teacups and the tree carousel turn; riders on all. The turntable shows the static market only.
+- People: crowds.gd `jarmark` sites (up to 360 + 150 standing at counters, round the tree, in the
+  queues, in pairs at the aisles' sides) and `jarmark_life.gd` (up to 41 strollers in the aisles).
+- Not done: market sounds (carousel music, the murmur).

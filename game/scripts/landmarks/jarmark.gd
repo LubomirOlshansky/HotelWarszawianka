@@ -93,6 +93,13 @@ const JM_GREENHOUSE := [199.5, 10.0, 29.0]
 ## The market's ground: the car park's asphalt under the main market, the annex's east end.
 const JM_PAVED := [[115.0, 198.0, -15.0, 76.0], [89.0, 115.0, -15.0, 31.0]]
 const JM_LIFT := 0.28
+## The tower carousel's carrier at its top (metres over the ground); jarmark_rides.gd runs it down to the base.
+const TOWER_TOP := 26.0
+## How far the carrier comes down to load: the chairs (6 m under it) stop just over the base.
+const TOWER_DROP := 18.9
+## The riders' coats (the reels: dark winter coats, a few bright ones).
+const JM_SHIRTS := [Color("#2c3440"), Color("#7a1f26"), Color("#e7e2d6"), Color("#344a2e"), Color("#1c1d22"),
+		Color("#c25a2a"), Color("#4a5a8a"), Color("#8a7a62")]
 
 
 func _jm_frame() -> void:
@@ -193,17 +200,17 @@ static func jarmark_plan() -> Array:
 		var hv := 1.0 if h[3] == Hut.FOOD else 1.15
 		var c := _jm_world(h[0], h[1])
 		var part := 0 if float(h[0]) > 114.0 else 1
-		for k in [0, 1, 2]:
-			if k == 2 and int(h[4]) % 3 != 0:
+		for k in [0, 1, 2, 3]:
+			if k == 3 and int(h[4]) % 2 != 0:
 				continue
-			var off := rng.randf_range(-1.1, 1.1)
+			var off := rng.randf_range(-1.3, 1.3)
 			var p: Vector2 = c - bv * (hv + rng.randf_range(0.75, 1.3)) + au * off
 			out.append([p, bv.rotated(rng.randf_range(-0.4, 0.4)), part])
-	for k in 14:
-		var t := TAU * (float(k) + rng.randf()) / 14.0
+	for k in 26:
+		var t := TAU * (float(k) + rng.randf()) / 26.0
 		var d := (a * cos(t) + b * sin(t))
 		out.append([_jm_world(JM_TREE.x, JM_TREE.y) + d * rng.randf_range(8.3, 11.0), -d, 0])
-	for ride: Array in [[JM_CAROUSEL, 7.5, 10, 0], [JM_TOWER, 6.0, 10, 1], [JM_TEACUPS, 6.8, 6, 1], [JM_TREE_RIDE, 5.4, 5, 1]]:
+	for ride: Array in [[JM_CAROUSEL, 7.5, 18, 0], [JM_TOWER, 6.0, 16, 1], [JM_TEACUPS, 6.8, 10, 1], [JM_TREE_RIDE, 5.4, 9, 1]]:
 		var rc: Vector2 = ride[0]
 		for k in int(ride[2]):
 			var t := -PI * 0.5 + rng.randf_range(-1.2, 1.2)
@@ -212,10 +219,18 @@ static func jarmark_plan() -> Array:
 	for s: Array in JM_STRINGS:
 		var u := float(s[0]) + 2.0
 		while u < float(s[1]) - 2.0:
-			var v := lerpf(float(s[2]), float(s[3]), rng.randf_range(0.35, 0.65))
+			# To one side of the aisle (the strollers of jarmark_life.gd keep to its middle).
+			var f := rng.randf_range(0.28, 0.36)
+			var v := lerpf(float(s[2]), float(s[3]), f if rng.randf() < 0.5 else 1.0 - f)
 			var t := rng.randf() * TAU
-			out.append([_jm_world(u, v), Vector2(cos(t), sin(t)), 0 if u > 114.0 else 1])
-			u += rng.randf_range(3.0, 7.0)
+			var at := _jm_world(u, v)
+			var part := 0 if u > 114.0 else 1
+			out.append([at, Vector2(cos(t), sin(t)), part])
+			# Half the time a friend: two who stopped to talk, face to face.
+			if rng.randf() < 0.5:
+				var d := Vector2(cos(t), sin(t))
+				out.append([at + d * 0.8, -d, part])
+			u += rng.randf_range(2.2, 4.5)
 	return out
 
 
@@ -597,38 +612,6 @@ func _jm_carousel(at: Vector2) -> void:
 	_g = g
 	_prism(_circle(c, 6.0, 16), g, g + 0.45, Color("#7a2228"), Color("#d8c9a6"), M_STONE, M_STONE)
 	_prism(_circle(c, 1.3, 8), g + 0.45, g + 4.0, Color("#c99a48"), Color("#c99a48"), M_LAMP, M_STONE)
-	var posts := _circle(c, 5.5, 16)
-	for p: Vector2 in posts:
-		_beam(Vector3(p.x, g + 0.45, p.y), Vector3(p.x, g + 4.0, p.y), 0.16, JM_GOLD)
-	for k in 12:
-		var t := TAU * float(k) / 12.0
-		var r := 4.2 if k % 2 == 0 else 2.9
-		var p := c + Vector2(cos(t), sin(t)) * r
-		var d := Vector2(-sin(t), cos(t))
-		var hy := g + 1.4 + 0.3 * float(k % 3)
-		_beam(Vector3(p.x, g + 0.45, p.y), Vector3(p.x, g + 4.0, p.y), 0.06, JM_GOLD)
-		var tail := p - d * 0.55
-		var head := p + d * 0.55
-		_beam(Vector3(tail.x, hy, tail.y), Vector3(head.x, hy, head.y), 0.42, Color("#f4f1ea"))
-		_beam(Vector3(head.x, hy, head.y), Vector3(head.x + d.x * 0.25, hy + 0.55, head.y + d.y * 0.25), 0.22, Color("#f4f1ea"))
-		_beam(Vector3(p.x, hy + 0.2, p.y), Vector3(p.x, hy + 0.3, p.y), 0.44, [JM_RED, JM_BLUE, JM_GOLD][k % 3])
-	# The canopy: the lit valance, then the cone in alternating stripes, the finial.
-	var rim := _circle(c, 6.5, 16)
-	_prism(rim, g + 3.9, g + 4.35, Color("#f3dfa8"), Color(0, 0, 0, 0), M_LAMP, M_STONE)
-	var apex := Vector3(c.x, g + 6.8, c.y)
-	_mode = M_STONE
-	for k in rim.size():
-		var a := rim[k]
-		var b := rim[(k + 1) % rim.size()]
-		var pa := Vector3(a.x, g + 4.35, a.y)
-		var pb := Vector3(b.x, g + 4.35, b.y)
-		var nrm := (pb - pa).cross(apex - pa).normalized()
-		if Vector2(nrm.x, nrm.z).dot((a + b) * 0.5 - c) < 0.0:
-			nrm = -nrm
-		_tri(pa, pb, apex, nrm, Color("#efe6d2") if k % 2 == 0 else Color("#b3262d"), Vector2(-1, -1), Vector2(-1, -1),
-				Vector2(-1, -1), -1.0)
-	_frustum(_circle(c, 0.35, 8), g + 6.6, _circle(c, 0.12, 8), g + 7.6, JM_GOLD, JM_GOLD)
-	_prism(_circle(c, 0.22, 6), g + 7.6, g + 7.95, JM_BULB, JM_BULB, M_LAMP, M_LAMP)
 	_collide(_circle(c, 6.4, 12))
 	# The strings fanning out from the top to poles 15 m round, skipping the side of the huts.
 	for k in 12:
@@ -639,6 +622,50 @@ func _jm_carousel(at: Vector2) -> void:
 		var top := _jm_pole(p.x, p.y, 4.0)
 		_jm_string(Vector3(c.x, g + 6.9, c.y), top, 0.6)
 
+
+## The Venetian carousel's turning part (jarmark_rides.gd turns it in its shader): `part` -1 the
+## gold posts, the canopy with its lit valance and finial; 0-11 one horse on its pole, a rider on
+## seven of them (the horses bob, so each is its own batch).
+func _jm_carousel_spin(at: Vector2, part: int) -> void:
+	_jm_frame()
+	var c := _w(at.x, at.y)
+	var g: float = map.terrain_height(c.x, c.y)
+	_g = g
+	_no_roof = true
+	if part < 0:
+		for p: Vector2 in _circle(c, 5.5, 16):
+			_beam(Vector3(p.x, g + 0.45, p.y), Vector3(p.x, g + 4.0, p.y), 0.16, JM_GOLD, false)
+		var rim := _circle(c, 6.5, 16)
+		_prism(rim, g + 3.9, g + 4.35, Color("#f3dfa8"), Color(0, 0, 0, 0), M_LAMP, M_STONE)
+		var apex := Vector3(c.x, g + 6.8, c.y)
+		_mode = M_STONE
+		for k in rim.size():
+			var a := rim[k]
+			var b := rim[(k + 1) % rim.size()]
+			var pa := Vector3(a.x, g + 4.35, a.y)
+			var pb := Vector3(b.x, g + 4.35, b.y)
+			var nrm := (pb - pa).cross(apex - pa).normalized()
+			if Vector2(nrm.x, nrm.z).dot((a + b) * 0.5 - c) < 0.0:
+				nrm = -nrm
+			_tri(pa, pb, apex, nrm, Color("#efe6d2") if k % 2 == 0 else Color("#b3262d"), Vector2(-1, -1), Vector2(-1, -1),
+					Vector2(-1, -1), -1.0, false)
+		_frustum(_circle(c, 0.35, 8), g + 6.6, _circle(c, 0.12, 8), g + 7.6, JM_GOLD, JM_GOLD)
+		_prism(_circle(c, 0.22, 6), g + 7.6, g + 7.95, JM_BULB, JM_BULB, M_LAMP, M_LAMP)
+		return
+	var k := part
+	var t := TAU * float(k) / 12.0
+	var r := 4.2 if k % 2 == 0 else 2.9
+	var p := c + Vector2(cos(t), sin(t)) * r
+	var d := Vector2(-sin(t), cos(t))
+	var hy := g + 1.4 + 0.3 * float(k % 3)
+	_beam(Vector3(p.x, g + 0.45, p.y), Vector3(p.x, g + 4.0, p.y), 0.06, JM_GOLD, false)
+	var tail := p - d * 0.55
+	var head := p + d * 0.55
+	_beam(Vector3(tail.x, hy, tail.y), Vector3(head.x, hy, head.y), 0.42, Color("#f4f1ea"), false)
+	_beam(Vector3(head.x, hy, head.y), Vector3(head.x + d.x * 0.25, hy + 0.55, head.y + d.y * 0.25), 0.22, Color("#f4f1ea"), false)
+	_beam(Vector3(p.x, hy + 0.2, p.y), Vector3(p.x, hy + 0.3, p.y), 0.44, [JM_RED, JM_BLUE, JM_GOLD][k % 3], false)
+	if k % 12 in [0, 1, 3, 4, 6, 8, 10]:
+		_jm_rider(p - d * 0.1, d, hy + 0.3, k)
 
 ## A red stand (the sausage stand, the mulled-wine bar): a red box with white trim, counters lit on
 ## three sides, a dark red gable roof, and its word in white on a red board on two posts above.
@@ -940,13 +967,24 @@ func _jm_tower(at: Vector2) -> void:
 		_beam(Vector3(p.x, top + 1.3, p.y), Vector3(p.x, top + 2.2, p.y), 0.16, JM_GOLD, false, M_LAMP)
 	_no_roof = false
 	_prism(_circle(c, 0.5, 8), top + 1.3, top + 2.4, JM_GOLD, JM_GOLD, M_LAMP, M_LAMP)
-	# The carrier: a gold bowl under a gold dome, bulbs round its belly.
-	var yc := g + 26.0
+	_collide(_circle(c, 5.0, 12))
+	# The ticket booth.
+	_jm_hut(at.x + 7.5, at.y - 2.0, 3, Hut.RED, 0)
+
+
+## The tower carousel's carrier (jarmark_rides.gd turns it and runs it up and down the mast): a
+## gold bowl under a gold dome, bulbs round its belly, sixteen lit spokes, the chairs on their
+## chains swung out to 10 m, a rider in twelve of them. Built at the top (26 m).
+func _jm_tower_spin(at: Vector2) -> void:
+	_jm_frame()
+	var c := _w(at.x, at.y)
+	var g: float = map.terrain_height(c.x, c.y)
+	_g = g
+	_no_roof = true
+	var yc := g + TOWER_TOP
 	_frustum(_circle(c, 1.0, 16), yc - 2.0, _circle(c, 3.4, 16), yc, JM_GOLD)
 	_frustum(_circle(c, 3.4, 16), yc, _circle(c, 1.0, 16), yc + 1.4, JM_GOLD, JM_GOLD)
-	_no_roof = true
-	var belly := _circle(c, 3.0, 16)
-	for p: Vector2 in belly:
+	for p: Vector2 in _circle(c, 3.0, 16):
 		_prism(_circle(p, 0.1, 4), yc - 0.6, yc - 0.4, JM_LED, JM_LED, M_LAMP, M_LAMP)
 	var chair_cols := [JM_YELLOW, JM_RED, JM_BLUE, Color("#3fb24f")]
 	for j in 16:
@@ -965,10 +1003,8 @@ func _jm_tower(at: Vector2) -> void:
 		var col: Color = chair_cols[j % 4]
 		_pow_box(seat, Vector2(-d.y, d.x), 0.3, 0.28, sy, sy + 0.12, col, col, M_LAMP)
 		_pow_box(seat - d * 0.26, Vector2(-d.y, d.x), 0.3, 0.04, sy, sy + 0.6, col, col, M_LAMP)
-	_no_roof = false
-	_collide(_circle(c, 5.0, 12))
-	# The ticket booth.
-	_jm_hut(at.x + 7.5, at.y - 2.0, 3, Hut.RED, 0)
+		if j % 4 != 3:
+			_jm_rider(seat - d * 0.08, Vector2(-d.y, d.x), sy + 0.12, j)
 
 
 ## The teacups (the PIK article's list): a blue platform with a lit rim, six white cups with blue
@@ -980,13 +1016,6 @@ func _jm_teacups(at: Vector2) -> void:
 	_g = g
 	_prism(_circle(c, 6.0, 16), g, g + 0.35, Color("#2e5fa8"), Color("#e6ecf4"), M_STONE, M_STONE)
 	_prism(_circle(c, 6.03, 16), g + 0.2, g + 0.32, JM_LED, Color(0, 0, 0, 0), M_LAMP, M_STONE)
-	for k in 6:
-		var t := TAU * float(k) / 6.0
-		var p := c + Vector2(cos(t), sin(t)) * 3.9
-		var col := Color("#f4f2ee")
-		_prism(_circle(p, 1.3, 12), g + 0.35, g + 0.45, Color("#3a6fc0"), Color("#3a6fc0"), M_STONE, M_STONE)
-		_frustum(_circle(p, 0.75, 12), g + 0.45, _circle(p, 1.15, 12), g + 1.35, col, Color("#7a4a30"))
-		_prism(_circle(p, 1.17, 12), g + 1.05, g + 1.2, Color("#3a6fc0"), Color(0, 0, 0, 0), M_STONE, M_STONE)
 	_frustum(_circle(c, 1.0, 12), g + 0.35, _circle(c, 1.7, 12), g + 1.6, Color("#f4f2ee"))
 	_frustum(_circle(c, 1.7, 12), g + 1.6, _circle(c, 0.9, 12), g + 2.8, Color("#f4f2ee"), Color("#f4f2ee"))
 	_prism(_circle(c, 0.25, 8), g + 2.8, g + 3.2, Color("#3a6fc0"), Color("#3a6fc0"), M_STONE, M_STONE)
@@ -994,6 +1023,25 @@ func _jm_teacups(at: Vector2) -> void:
 	_beam(_jm_p(at.x - 1.6, at.y, g + 2.3), _jm_p(at.x - 2.2, at.y, g + 1.7), 0.18, Color("#3a6fc0"))
 	_collide(_circle(c, 6.0, 12))
 
+
+## The teacups' turning part (jarmark_rides.gd): six white cups with blue bands on their saucers,
+## two riders in each, going round the teapot.
+func _jm_teacups_spin(at: Vector2) -> void:
+	_jm_frame()
+	var c := _w(at.x, at.y)
+	var g: float = map.terrain_height(c.x, c.y)
+	_g = g
+	_no_roof = true
+	for k in 6:
+		var t := TAU * float(k) / 6.0
+		var p := c + Vector2(cos(t), sin(t)) * 3.9
+		var col := Color("#f4f2ee")
+		_prism(_circle(p, 1.3, 12), g + 0.35, g + 0.45, Color("#3a6fc0"), Color("#3a6fc0"), M_STONE, M_STONE)
+		_frustum(_circle(p, 0.75, 12), g + 0.45, _circle(p, 1.15, 12), g + 1.35, col, Color("#7a4a30"))
+		_prism(_circle(p, 1.17, 12), g + 1.05, g + 1.2, Color("#3a6fc0"), Color(0, 0, 0, 0), M_STONE, M_STONE)
+		var d := Vector2(cos(t + 0.7 * k), sin(t + 0.7 * k))
+		_jm_rider(p + d * 0.4, Vector2(-d.y, d.x), g + 0.75, k * 2)
+		_jm_rider(p - d * 0.4, Vector2(-d.y, d.x), g + 0.75, k * 2 + 1)
 
 ## The Christmas-tree carousel: a red floor, little red sleighs hanging from a green tree-shaped
 ## canopy in three tiers with lit rims, a star on top.
@@ -1004,26 +1052,46 @@ func _jm_tree_ride(at: Vector2) -> void:
 	_g = g
 	_prism(_circle(c, 4.6, 16), g, g + 0.35, JM_RED, Color("#e2d6be"), M_STONE, M_STONE)
 	_prism(_circle(c, 0.5, 8), g + 0.35, g + 3.2, JM_TIMBER, JM_TIMBER, M_STONE, M_STONE)
+	_collide(_circle(c, 4.6, 12))
+
+
+## The Christmas-tree carousel's turning part (jarmark_rides.gd): the tree-shaped canopy in three
+## tiers with lit rims, the star, and eight little red sleighs on gold rods, a child in five.
+func _jm_tree_ride_spin(at: Vector2) -> void:
+	_jm_frame()
+	var c := _w(at.x, at.y)
+	var g: float = map.terrain_height(c.x, c.y)
+	_g = g
+	_no_roof = true
 	for k in 3:
 		var y0 := g + 3.0 + k * 1.7
 		var r0 := 4.8 - 1.3 * k
 		_frustum(_circle(c, r0, 16), y0, _circle(c, r0 * 0.35, 16), y0 + 2.2, JM_FIR, JM_FIR)
 		var rim := _circle(c, r0, 16)
-		_no_roof = true
 		for j in rim.size():
 			var a := rim[j]
 			var b := rim[(j + 1) % rim.size()]
 			_beam(Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), 0.08, JM_BULB, false, M_LAMP)
-		_no_roof = false
 	_jm_star(Vector3(c.x, g + 9.0, c.y), 0.6, Vector3(_a.x, 0.0, _a.y), JM_GOLD)
 	for k in 8:
 		var t := TAU * float(k) / 8.0
 		var d := Vector2(cos(t), sin(t))
 		var p := c + d * 3.5
-		_beam(Vector3(p.x, g + 3.0, p.y), Vector3(p.x, g + 1.5, p.y), 0.04, JM_GOLD)
+		_beam(Vector3(p.x, g + 3.0, p.y), Vector3(p.x, g + 1.5, p.y), 0.04, JM_GOLD, false)
 		_pow_box(p, Vector2(-d.y, d.x), 0.55, 0.35, g + 0.8, g + 1.5, JM_RED, Color("#7a1c20"))
-	_collide(_circle(c, 4.6, 12))
+		if k % 8 in [0, 2, 3, 5, 6]:
+			_jm_rider(p, Vector2(-d.y, d.x), g + 1.0, k + 3, 0.7)
 
+
+## A rider (jarmark_rides.gd's rides): a shirt and a head, `n` picks the colours, `s` scales a child.
+func _jm_rider(p: Vector2, d: Vector2, y: float, n: int, s := 1.0) -> void:
+	var shirt: Color = JM_SHIRTS[n % JM_SHIRTS.size()]
+	var skin: Color = [Color("#e8c4a4"), Color("#d6a882"), Color("#b98463"), Color("#f0d2b8")][n % 4]
+	var hair: Color = [Color("#2a2420"), Color("#6b4a2e"), Color("#c9a25a"), Color("#3a2a22"), Color("#d8d4cc")][n % 5]
+	if n % 3 == 0:
+		hair = [JM_RED, Color("#f4f2ee"), JM_BLUE][n % 9 / 3]  # a winter hat
+	_pow_box(p, d, 0.19 * s, 0.12 * s, y, y + 0.52 * s, shirt, shirt)
+	_pow_box(p, d, 0.1 * s, 0.1 * s, y + 0.52 * s, y + 0.74 * s, skin, hair)
 
 ## Santa's house: a log cabin with snow on the roof, a red door, warm windows, a brick chimney and
 ## DOM MIKOŁAJA in gold over the door, facing the field (-u... turned to face +v towards the rides).
