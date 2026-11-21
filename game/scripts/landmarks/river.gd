@@ -2639,7 +2639,7 @@ const BBC_CHAIR := Color("#f1efe8")
 
 ## Pawilon Tańca i Innych Sztuk Performatywnych (Wybrzeże Kościuszkowskie 22): OSM's `Pawilon
 ## Tańca` outline, a 57 x 20 m box. Its height is F's aerial photo (~8 m), not the bake's 14 m.
-const TN_H := 8.0
+const TN_H := 10.5  # F 2026-11-20, the photos: a tall white box, people about a sixth of it (was 8 m)
 const TN_BODY := Color("#f2f1ec")
 const TN_UNITS := [[-8.0, -2.0, 3.0, 1.6, 1.3], [4.0, 2.5, 2.2, 1.5, 1.8], [15.0, -3.0, 1.4, 1.1, 2.4],
 		[-20.0, 3.0, 1.6, 1.0, 1.1], [22.0, 2.0, 1.2, 1.2, 1.6]]
@@ -2779,6 +2779,8 @@ func _bbc_wn(wall: Array) -> Vector3:
 
 
 var _bbc_lvl := 0
+## The murals' heights are drawn for an 8 m wall; `_bbc_murals` stretches them up the taller box.
+var _bbc_ys := 1.0
 
 
 ## A polyline of paint on a wall, `w` thick, `pts` as (c, height over g). Each polyline stands at
@@ -2791,8 +2793,9 @@ func _bbc_poly(wall: Array, g: float, pts: Array, w: float, col: Color) -> void:
 	# One ribbon: the points joined with mitres (so the pieces share their edges and never overlap).
 	var p: Array[Vector2] = []
 	for q: Vector2 in pts:
-		if p.is_empty() or q.distance_to(p[p.size() - 1]) >= 0.02:
-			p.append(q)
+		var qs := Vector2(q.x, q.y * _bbc_ys)
+		if p.is_empty() or qs.distance_to(p[p.size() - 1]) >= 0.02:
+			p.append(qs)
 	if p.size() < 2:
 		return
 	var left: Array[Vector2] = []
@@ -2896,6 +2899,12 @@ func _bbc_globe(wall: Array, g: float, cc: float, cy: float, rc: float, ry: floa
 ## red cone and the black flower; the street long face blue springs, a red circle, a net cone and a flower;
 ## the end face (Palomka's) springs, a red circle and a blue and red net cone. Windows are painted round.
 func _bbc_murals(g: float, hu: float, hv: float) -> void:
+	_bbc_ys = TN_H / 8.0
+	_bbc_murals_drawn(g, hu, hv)
+	_bbc_ys = 1.0
+
+
+func _bbc_murals_drawn(g: float, hu: float, hv: float) -> void:
 	var blue := Color("#2c4f9c")
 	var red := Color("#cf3340")
 	var black := Color("#1e1f22")

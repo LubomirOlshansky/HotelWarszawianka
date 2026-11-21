@@ -34,6 +34,7 @@ const GpsMoments := preload("res://scripts/gps_moments.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Jobs := preload("res://scripts/jobs.gd")
 const Stories := preload("res://scripts/taxi_stories.gd")
+const Chatter := preload("res://scripts/chatter.gd")
 
 ## Teal: the passengers' job colour (the słoiki run's).
 const COLOUR := Color("#4fd8c4")
@@ -78,6 +79,9 @@ const OFFER_LIFE := 10.0
 static var HOLD_GAP: float = Pacer.num("rides", "hold_gap")
 const PILL_DELAY := 1.2
 const CHAT_GAP := Vector2(25.0, 40.0)
+## A crash the passenger comments on: its closing speed (m/s), and the gap between two comments (ride seconds).
+const CRASH_SPEED := 2.5
+const CRASH_GAP := 9.0
 ## The river spots: a waypoint RIVER_INLAND m in from the water's edge, dry for RIVER_DRY m all
 ## round, at most RIVER_ROAD m from a road (straight and clear). The water's edge comes from the
 ## map's global water test (shore_distance), sampled every SCAN m, SCAN_ROWS rows a frame (loop
@@ -145,6 +149,12 @@ var _stories: Array = []
 var _beat := 0
 var _beat_since := 0.0
 var _asking := false
+var _crash_at := -INF
+## Crash comments said (tools/check_ride_play.gd).
+var crash_lines := 0
+## F 2026-11-20: a story ride is small talk (three small bubbles) and no question to answer while
+## driving. True brings the old two-answer question card back (tools/check_ride_play.gd tests it).
+var ask_cards := false
 ## Story lines said and questions answered (tools/check_rides.gd, the logs).
 var story_lines := 0
 var story_answers := 0
@@ -542,6 +552,23 @@ func _step(dt: float) -> void:
 func _on_bump(_collider: Object, speed: float) -> void:
 	if stage == Stage.RIDE and _rules.drive_event("bump", speed):
 		_drive_note("bump %.1f m/s" % speed, ["stłuczka", "stłuczki", "bump", "bumps"])
+	smashed(speed)
+
+
+## F 2026-11-20: the passenger's short, funny line when the car crashes (a bump from CRASH_SPEED m/s,
+## or main.gd's fence or hedge broken through at that speed): at most one every CRASH_GAP s of the
+## ride, never over a story line or the question. The words are dialogue.json podwozka_passenger "crash".
+func smashed(speed: float) -> void:
+	if stage != Stage.RIDE or speed < CRASH_SPEED or _asking or flying or _rules.clock - _crash_at < CRASH_GAP:
+		return
+	if bubbles.is_talking(car):
+		return
+	var said: Array = dialogue.say(car, _ride["name"], "podwozka_passenger", "crash", 3.0, COLOUR, 2.4, true, Chatter.QUEST, "", true)
+	if said.is_empty():
+		return
+	_crash_at = _rules.clock
+	crash_lines += 1
+	_log("crash %.1f m/s: %s says a line" % [speed, _ride["name"]])
 
 
 # --- offers --------------------------------------------------------------------------------------
@@ -982,6 +1009,7 @@ func _board() -> void:
 	_beat = 0
 	_beat_since = 0.0
 	_asking = false
+	_crash_at = -INF
 	_ride["answer"] = -1
 	var st: Dictionary = _ride.get("story", {})
 	if not st.is_empty():
@@ -1260,11 +1288,13 @@ func _story_tick(dt: float, d: float) -> void:
 		return
 	if _beat < 3:
 		var l: Array = st["lines"][_beat]
-		if bubbles.say(car, _ride["name"], l[0], l[1], 4.5, COLOUR, 2.4):
+		if bubbles.say(car, _ride["name"], l[0], l[1], 4.5, COLOUR, 2.4, Chatter.QUEST, "", not ask_cards):
 			_beat += 1
 			_beat_since = 0.0
 			story_lines += 1
 			_log("story %s line %d at %d%% of the way, %.0f s in" % [st["id"], _beat, roundi(done * 100.0), _rules.clock])
+	elif not ask_cards:
+		_beat = 4  # the small talk is over; the ending comes with the result card (`Stories.ending`)
 	elif not flying and not hud.cards_up():
 		_ask(done)
 
@@ -1376,6 +1406,8 @@ func _arrive() -> void:
 	var final := _rules.final()
 	_log("arrived at %s in %.1f s (ETA %.0f s): stars %.1f" % [_ride["dest"], _rules.clock, _rules.eta, final])
 	var streak := int(wallet.keep.get("podwozka_streak", 0))
+	if not ask_cards and not (_ride.get("story", {}) as Dictionary).is_empty():
+		_ride["answer"] = Stories.ending(_ride["story"], final)  # no question on the way: the ride picks the ending
 	var answer: Dictionary = _story_answer()
 	var pay := Rules.pay(_ride["road"], final, _ride["night"], _ride["rain"], _ride["type"] == "hurry", streak,
 			int(answer.get("tip", 0)))
@@ -1383,6 +1415,7 @@ func _arrive() -> void:
 	var history: Array = wallet.keep.get("podwozka_ratings", [])
 	wallet.keep["podwozka_ratings"] = Rules.pushed(history, final)
 	wallet.keep["podwozka_streak"] = int(pay["streak_after"])
+	Rules.record(wallet.keep, int(pay["total"]), int(pay["streak_after"]))  # the taxi app's account (earned ever)
 	var zl_before: int = wallet.zl
 	wallet.pay(int(pay["total"]), int(pay["respect"]), "podwozka")
 	var mood := "police" if _rules.pulled_over else ("5" if final >= 5.0 else ("4" if final >= 4.0 else "low"))
