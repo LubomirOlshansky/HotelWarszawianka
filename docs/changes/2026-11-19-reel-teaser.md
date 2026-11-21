@@ -6,7 +6,7 @@
 ## Roadmap
 - added: "Social teaser (Reels 5 s) and the synthwave logo"
 
-## Umbrellas in the rain (teaser 2)
+**Umbrellas in the rain (teaser 2)**
 
 - seen: in the rain every pedestrian and every crowd figure walks under an umbrella in the colour of their shirt.
 - fixed: F's teaser 2 (Warsaw at 3 a.m. in the rain) asked for "people going with umbrellas".
@@ -16,7 +16,7 @@
 - cost: +1 draw call per shown people MultiMesh while it rains (the walkers, plus each visible crowd
   cell), none when dry. Bench in the rain on the Mac before merge.
 
-## Ride-hail cars and a fuller rainy evening (teaser 2 final)
+**Ride-hail cars and a fuller rainy evening (teaser 2 final)**
 
 - seen: Podwózka, the app taxi, now drives an electric crossover and the city taxi a hybrid liftback; a few more of them on the main streets; Pasaż Wiecha has people out in the evening, and the rain thins the streets less now that everyone has an umbrella.
 - fixed: F (20:19 UTC) asked for Uber/Bolt-like cars (a Tesla Model Y and a Toyota Prius, as
@@ -27,14 +27,14 @@
   for the street, 0.3 for the pubs). Owner: crowds.gd's sites, models.gd's taxi family.
 - cost: no new draw call; up to 36 more crowd figures near Pasaż Wiecha in the evening.
 
-## Trams and a bus on cue for videos
+**Trams and a bus on cue for videos**
 
 - seen: nothing in a normal game; video shots can now have a tram and a bus pass a chosen spot.
 - fixed: F (21:07 UTC): "run the tram and the bus on one video". `--promo-at=X,Z[,T]` (main.gd
   `_promo_traffic`, dev_flags.gd) uses trams.gd `place_near` (as the first scene does) and
   traffic.gd `add_bus`. Owner: the trams' and traffic's own placement calls, no new system.
 
-## Rondo de Gaulle'a, as it is now (F, 2026-11-20)
+**Rondo de Gaulle'a, as it is now (F, 2026-11-20)**
 
 - Player-visible: the palm on Rondo de Gaulle'a looks like today's date palm (diamond-cut trunk, a full crown of stiff fronds, orange dates) with no neon; its island is planted with grasses, verbena, catmint and sage after the city's 2026 greening; people lie in deckchairs on the lawn by the de Gaulle statue; taxis wait on the inner road; the Party House plaza has its five-lantern lamps; the bank's board (PEPEO ŻUBR) is on the Nowy Świat tower.
 - Found: the island's greening (ZDM, Sept–Nov 2026) replaced about 500 m² of concrete; the palm is not moved (a move to the Partisan Monument corner is only planned with a 2030s rail stop).
