@@ -5539,6 +5539,23 @@ R 6.9 → 7.8. Nothing changes in the classic look (the per-sector hashes are ma
 draws the planters 0.5 m, the castle garden's hedges at their mapped 3-5 m and the 6 m school fence
 as a net.
 
+**The first wall sweep (walls look W10a, 2026-11-21)**: a sweep's TYPE decision (`["TYPE", ty, why,
+photo, date]` by stable id, in a street's or a place's `decisions` in `docs/streets/streets.json`;
+`places` holds the sweeps that are not one street) goes through `tools/street_pass.py --apply` into
+`game/data/road_objects.json` `types` (the hand-kept entries stay) and reaches `centrum.json` through
+`object_types.py`'s guarded `fix_types` (`id_type`), with no re-bake: the sweep raises
+`object_types.VERSION` by one (3), so the pass runs once more on main's map; its stamp's `fixes` add up.
+The first sweep judged 237 lines within 150 m of eight places and the fountain park by street photos
+(the verdict table is in the walls-research folder, outside the repo): 14 typed, 39 kept, 182 CHECK
+(no photo or the line not in view), 2 with no palette row (Koszykowa's graphite slat fence, kept).
+The 14: Plac Grzybowski's five plastered walls that are planter edges (`low_wall`, 0.5 m, R), the bar
+fences by the square, on Prosta and by the boulevards' car park (`bars_black`), the Filters' fences on
+Koszykowa and Raszyńska (`bars_pier`), Al. Poniatowskiego's two kerb railings by the stadium
+(`rail_street`), the car park by the Towarowa railway (`mesh_panel`) and the fountain park's long
+basin (`basin_rim`, no top rail). Default share 11.47 → 11.29 % of 278.3 km (fences 9.08 → 9.04 %):
+`ALL_DEFAULT_MAX` 11.3 and `FENCE_DEFAULT_MAX` 9.1. Class km H 80.3 → 79.2, S 190.2 → 190.8,
+R 7.8 → 8.2. The game reads `sc` only for fences and hedges, whose class did not change.
+
 **Barrier gates (walls look W8, 2026-11-20)**: `tools/barrier_gates.py` is a post-pass on main's map
 (TD-25; last in `bake_osm.py` and in `tools/check_post_passes.py`; verify step `barriergates` runs its
 `--selftest` and `--check`; stamp `barrier_gates`, v2). On fence, wall and hedge lines of class S or H
