@@ -50,7 +50,10 @@ func _find_stadium() -> void:
 	var zone := PackedVector2Array()
 	for v in outer:
 		zone.append(centre + (v - centre) * 1.08)
-	_add_site("stadium", [zone])
+	# The Arka's cut (F's photos, 2026-11-21): OSM's slivers of "building" along its cheek walls, the
+	# headwall's strip and the flights' outlines stood as boxes in the cut; the site draws them.
+	var arka_zone := PackedVector2Array([Vector2(1636.6, -728.1), Vector2(1665.1, -679.9), Vector2(1638.9, -664.4), Vector2(1610.3, -712.5)])
+	_add_site("stadium", [zone, arka_zone])
 	sites[-1]["inner"] = inner
 	sites[-1]["outer"] = outer
 	sites[-1]["centre"] = centre
@@ -157,13 +160,13 @@ const PORTAL_GLOW := Color("#ffd89a")
 ## wall's half width and top, the opening's half width and the springing of its arch.
 const ARKA_AT := Vector2(1650.0, -703.5)
 const ARKA_OUT := Vector2(0.86, -0.51)
-const ARKA_HALF := 10.0
+const ARKA_HALF := 9.0
 const ARKA_TOP := 10.5
 const ARKA_OPEN := 5.0
 const ARKA_RIM := 0.9
 const ARKA_DEPTH := 1.5
 ## Where the headwall stands: this far back along the cut from ARKA_AT (the terrain rises there).
-const ARKA_BACK := 23.0
+const ARKA_BACK := 25.5
 const ARKA_SPRING := 4.0
 const ARKA_RISE := 3.5
 const ARKA_GRANITE := Color("#6e655a")
@@ -1550,26 +1553,33 @@ func _stadium_arka() -> void:
 		if i > 0:
 			_tri(at.call(j0.x, ARKA_SPRING, 1.2), at.call(j1.x, j1.y, 1.2), at.call(j0.x, j0.y, 1.2), n3, PORTAL_GLOW,
 					Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
-	# F (2026-11-21): the road to the Arka is a curve, not a straight strip. A dark asphalt road, 8 m
-	# wide, one sweeping bend: it meets the doorway square, then swings 11 m to the side on its way to the plaza.
+	# F (2026-11-21): the road to the Arka. A dark asphalt road, 8 m
+	# wide, straight, as F's aerial photo shows: it runs down the middle of the cut square into the doorway.
 	_mode = M_STONE
-	var road_len := ARKA_BACK + 22.0
+	var road_len := ARKA_BACK - 1.3  # to the cut's mouth: the plaza's own road goes on from there
 	var rd0 := 0.0
 	while rd0 < road_len:
 		var rd1 := minf(rd0 + 1.5, road_len)
 		var rp := []
 		for rt: float in [rd0, rd1]:
 			var k := rt / road_len
-			var off := 11.0 * smoothstep(0.12, 1.0, k)
+			var off := 0.0
 			var c0 := a + e * (1.3 + rt) + side * off
 			rp.append(c0)
 		var r0: Vector2 = rp[0]
 		var r1: Vector2 = rp[1]
 		var ry0: float = map.ground_height(r0.x, r0.y) + 0.07
 		var ry1: float = map.ground_height(r1.x, r1.y) + 0.07
-		_quad(Vector3(r0.x - side.x * 4.0, ry0, r0.y - side.y * 4.0), Vector3(r0.x + side.x * 4.0, ry0, r0.y + side.y * 4.0),
-				Vector3(r1.x + side.x * 4.0, ry1, r1.y + side.y * 4.0), Vector3(r1.x - side.x * 4.0, ry1, r1.y - side.y * 4.0), Vector3.UP, Color("#2a2c31"))
+		_quad(Vector3(r0.x - side.x * 5.0, ry0, r0.y - side.y * 5.0), Vector3(r0.x + side.x * 5.0, ry0, r0.y + side.y * 5.0),
+				Vector3(r1.x + side.x * 5.0, ry1, r1.y + side.y * 5.0), Vector3(r1.x - side.x * 5.0, ry1, r1.y - side.y * 5.0), Vector3.UP, Color("#2a2c31"))
 		rd0 = rd1
+	# The cut's cheek walls and their granite parapets (map_builder SUNKEN `arka_cut`: its floor is level).
+	_no_roof = true
+	for sk: Dictionary in map._sunk:
+		if str(sk.get("site", "")) == "stadium":
+			_sunk_edges(sk)
+	_no_roof = false
+	_mode = M_STONE
 	# Lamp posts at the top corners of the two flights that frame the entrance (F's night photo).
 	for sg in [-1.0, 1.0]:
 		var lq: Vector2 = a - e * 6.0 + side * (ARKA_HALF + 7.0) * sg
