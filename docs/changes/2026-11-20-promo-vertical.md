@@ -4,4 +4,4 @@
 - fixed: a portrait screen would have drawn a much coarser image (the image scale is measured on the screen's height): main.gd `_apply_style` now measures the short side, so portrait keeps the landscape image's sharpness and pixel count
 
 ## Roadmap
-- ticks nothing new ("Promo tools for the trailer (Promo Mode)" is ticked)
+- ticks nothing new (phone check: PHONE-CHECK 15zl; ("Promo tools for the trailer (Promo Mode)" is ticked); no portrait build goes to TestFlight or Play without F's own yes
