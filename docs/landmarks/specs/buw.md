@@ -187,3 +187,32 @@ day with the cassette, and Dobra at night.
 | paths | the deck between the south beds | 2.5 m | `BUW_PATHS` | M_STONE #a9a799 | 6 garden parts |
 | vents | 4 drums | r ~1.6 m | the NE band (mapped) | M_STONE #557f6b | 5 green band |
 | court | prism + green cap + skylight | Collegium Iuridicum II, 10 m | the south notch | M_GLASS, M_STONE #5f8f4a, M_GLASS_ROOF | 6 garden parts |
+
+## Pass 5 (F, 2026-11-20): the lookout corner, the oculus, the mound, Boskajola
+
+Sources: F's two game shots and four photos (the corner from Wybrzeże with people on the drum, the
+drone view over the drum façade, the view from the platform to the stadium, the skyline view over
+the garden), image-search sheets read in the Mac's browser (the platform's mesh floor and stair,
+the coin binocular, the oculus funnel, the round corner from Lipowa), the street photos of the
+Wisłostrada tunnel's mouth and of the MUZEUM pavilion with Paloma. Photos stay in
+/mnt/project-files/refs/buw/photos/, never in git.
+
+| id | shape | size | position | material | feature |
+| --- | --- | --- | --- | --- | --- |
+| rotunda walls | glass wall, teal posts every 1.6 m, transoms, ivy | the arc's edges | the outline's round corner (`BUW_ROUND_C`, r 4.5 m) | M_GLASS #5c8f83, M_STONE #2f7a6c | the corner's glass bays |
+| band chamfer | the band's ring | the arc to one chord | `_buw_chamfer` | as the band | no hole at the corner |
+| rotunda dome | 5 frustums of a quarter ellipse, 12 meridian ribs, 2 ring ribs | r 6 m at the walls' top to r 3 m, 1 m over the deck | centre 1.5 m in from the arc's (`BUW_LOOKOUT`) | M_STONE #5f9f86, ribs #2f6250 | the ribbed glass dome |
+| drum | prism + rim band + 10 seams | r 3 m, 1 to 3.3 m over the deck | on the dome | M_STONE #8e989a, floor #5d6466 | the steel drum |
+| railing | mesh ring both sides, tube handrail, open at the stair | 1.05 m | the floor's edge | #a9c9b4, tube #6f8fae | the platform's railing |
+| binocular | post + orange head | 1.4 m | the river side of the floor | #e0782e | the coin telescope |
+| stair | 13 grating treads, 2 stringers, mesh rails, a post | 1.5 m wide, 6.4 m run, 3.2 m rise | into the garden along OSM's footway | #5d6466, #8e989a | the steel stair |
+| oculus | paving ring, copper rim, 3-ring glass funnel with 16 ribs, dark floor, mesh railing | r 8.2 m, 5.5 m deep, foot 0.42 r | the mapped round (the deck open over it) | M_STONE #5d7fa3 / #b9cad6, ribs #2e5c4a | the funnel skylight |
+| mound | 5 rings of a dome over the hill's ellipse, ivy facets, a dark opening on top | 22 x 34 m, 6.5 m | `BUW_MOUND` | ivy greens, red patches | the ivy hill |
+| Boskajola | paving, black rail, 4 white square umbrellas, tables, chairs, sign | 14 x 4.4 m | Lipowa pavement by the corner | #f1eee6, #b8b1a3 | the pizzeria (parody of Boscaiola) |
+| gate pier | stone box, cornice, attic, arched niches both sides | 2.4 x 1.7 x 4 m | the corner, 3 m out | #ddd3bd, niche #5b5348 | the old gate pier |
+
+Elsewhere in the same change: the Wisłostrada tunnel's north mouth (map_builder `_wislostrada_portal`:
+one beige portal over both carriageways, the pier between, a fascia, green lane signs, a grass lid
+under the ground over the first 14 m where the terrain's cells fell away), the MUZEUM pavilion 10.5 m
+tall (was 8) with its murals stretched up. The house "with the green front" F named is not
+changed: which one is unclear (docs/QUESTIONS.md).

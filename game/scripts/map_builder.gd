@@ -2583,7 +2583,86 @@ func _build_portals(st) -> void:
 		var b := head - d * 0.5 + side * (w * 0.5 + 1.2)
 		_solid(&"portal", [Vector3(a.x, y + PORTAL_MOUTH, a.y), Vector3(b.x, y + PORTAL_MOUTH, b.y), Vector3(b.x, top + 1.6, b.y),
 				Vector3(a.x, y + PORTAL_MOUTH, a.y), Vector3(b.x, top + 1.6, b.y), Vector3(a.x, top + 1.6, a.y)])
+	_wislostrada_portal(st)
 	_uv2 = Vector2.ZERO
+
+
+## The Wisłostrada tunnel's north mouth by the University Library (F, 2026-11-20, the street photos):
+## one wide beige concrete portal over both carriageways, not two frames. The pier between the two
+## mouths, a fascia band along the whole headwall, the green lane signs over each lane, and the grass
+## lid over the tunnel's first metres: the terrain's cells over the mouth fell away in a sawtooth and
+## showed the dark under it (the hole F saw). Only these two frames (PORTAL_WISLA_AT).
+const PORTAL_WISLA_AT := Vector2(157.4, -1052.0)
+const PORTAL_WISLA_BEIGE := Color("#cfc2a4")
+const PORTAL_WISLA_SIGN := Color("#1f6b4a")
+const PORTAL_LID := 14.0
+const PORTAL_LID_GRASS := Color("#87af7a")  # renders like the terrain grass beside it
+
+
+func _wislostrada_portal(st) -> void:
+	var frames: Array = []
+	for f: Dictionary in data.get("tunnels", {}).get("frames", []):
+		if Vector2(float(f["c"][0]), float(f["c"][1])).distance_to(PORTAL_WISLA_AT) < 12.0:
+			frames.append(f)
+	if frames.size() != 2:
+		return
+	var d := Vector2(float(frames[0]["d"][0]), float(frames[0]["d"][1])).normalized()
+	var side := Vector2(-d.y, d.x)
+	var basis := Basis(Vector3.UP, atan2(-d.x, -d.y))
+	var lo := INF
+	var hi := -INF
+	var y := INF
+	var top := -INF
+	var o := Vector2(float(frames[0]["c"][0]), float(frames[0]["c"][1]))
+	var lid := PackedVector2Array()
+	var mouths: Array[Vector2] = []  # (offset across, half width)
+	for f: Dictionary in frames:
+		var c := Vector2(float(f["c"][0]), float(f["c"][1]))
+		var w := float(f["w"])
+		var s := (c - o).dot(side)
+		lo = minf(lo, s - w * 0.5 - 1.2)
+		hi = maxf(hi, s + w * 0.5 + 1.2)
+		y = minf(y, float(f["y"]))
+		top = maxf(top, maxf(float(f["top"]), float(f["y"]) + PORTAL_MOUTH + 0.8) + 0.6)
+		mouths.append(Vector2(s, w * 0.5))
+		for sg: float in [-1.0, 1.0]:
+			for along: float in [-0.1, PORTAL_LID]:
+				lid.append(c + d * along + side * sg * (w * 0.5 + 1.8))
+	var at := func(s: float, along: float) -> Vector2:
+		return o + side * s + d * along
+	# the pier between the mouths, from the road to the headwall's top
+	mouths.sort_custom(func(m0: Vector2, m1: Vector2) -> bool: return m0.x < m1.x)
+	var g0 := mouths[0].x + mouths[0].y + 0.6
+	var g1 := mouths[1].x - mouths[1].y - 0.6
+	if g1 > g0:
+		var pc: Vector2 = at.call((g0 + g1) * 0.5, 0.5)
+		_box_oriented(st, Vector3(pc.x, (y - 0.5 + top) * 0.5, pc.y), basis, Vector3(g1 - g0, top - y + 0.5, 1.0), PORTAL_WISLA_BEIGE)
+	# the fascia along the whole front and a coping on top
+	var fc: Vector2 = at.call((lo + hi) * 0.5, -0.05)
+	_box_oriented(st, Vector3(fc.x, y + PORTAL_MOUTH + 0.7, fc.y), basis, Vector3(hi - lo, 1.6, 0.2), PORTAL_WISLA_BEIGE)
+	var cc: Vector2 = at.call((lo + hi) * 0.5, 0.4)
+	_box_oriented(st, Vector3(cc.x, top + 0.15, cc.y), basis, Vector3(hi - lo + 0.4, 0.3, 1.4), PORTAL_WISLA_BEIGE.lightened(0.08))
+	# the green lane signs over each lane, a white arrow on each
+	for m: Vector2 in mouths:
+		var lanes := maxi(2, roundi(m.y * 2.0 / 3.5))
+		for k in lanes:
+			var s := m.x - m.y + (float(k) + 0.5) * m.y * 2.0 / float(lanes)
+			var p: Vector2 = at.call(s, -0.2)
+			_box_oriented(st, Vector3(p.x, y + PORTAL_MOUTH + 0.75, p.y), basis, Vector3(0.9, 0.9, 0.12), PORTAL_WISLA_SIGN)
+			var q: Vector2 = at.call(s, -0.27)
+			_box_oriented(st, Vector3(q.x, y + PORTAL_MOUTH + 0.72, q.y), basis, Vector3(0.14, 0.5, 0.04), Color(0.95, 0.96, 0.94))
+	# the grass lid over the tunnel's first metres, just under the ground there: it shows only where
+	# the terrain's cells fell away
+	var hull := Geometry2D.convex_hull(lid)
+	if hull.size() > 3:
+		hull.resize(hull.size() - 1)
+		var tri := Geometry2D.triangulate_polygon(hull)
+		for k in range(0, tri.size(), 3):
+			var p0 := hull[tri[k]]
+			var p1 := hull[tri[k + 1]]
+			var p2 := hull[tri[k + 2]]
+			var h := top - 0.35
+			_tri(st, Vector3(p0.x, h, p0.y), Vector3(p1.x, h, p1.y), Vector3(p2.x, h, p2.y), Vector3.UP, PORTAL_LID_GRASS)
 
 
 ## The railway cutting west of Centralna (rail_cut.gd, F 2026-11-06): its banks in grass and its

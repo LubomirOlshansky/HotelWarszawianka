@@ -30,7 +30,7 @@ STYLEBOX = re.compile(r"StyleBoxFlat\.new\(\)")
 # move to a named palette of that scene.
 BASELINE = {
     "hud.gd": 64,
-    "full_map.gd": 11,
+    "full_map.gd": 10,
     "quests_screen.gd": 1,
     "settings_panel.gd": 0,
     "garage_card.gd": 0,

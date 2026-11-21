@@ -434,9 +434,12 @@ class Dialogue extends Node:
 	var no_lines := false
 	## "group:tag" to a Dictionary `line` appends to the words it answers (dialogue.gd's note on a line).
 	var line_notes := {}
+	## Whether each `say` asked for the small bubble, in step with `said`.
+	var smalls: Array[bool] = []
 
-	func say(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color("#ffd23f"), h := 2.6, p := false, k := Chatter.QUEST, key := "") -> Array:
+	func say(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color("#ffd23f"), h := 2.6, p := false, k := Chatter.QUEST, key := "", small := false) -> Array:
 		said.append(group + ":" + tag)
+		smalls.append(small)
 		groups.append(group)
 		tags.append(tag)
 		kinds.append(k)
@@ -504,8 +507,9 @@ class Bubbles extends Control:
 	func is_talking(_anchor: Variant) -> bool:
 		return talking
 
-	func say(_anchor: Variant, _who: String, pl: String, _en := "", s := 4.0, c := Color("#ffd23f"), _h := 2.6, k := Chatter.QUEST, key := "") -> bool:
+	func say(_anchor: Variant, _who: String, pl: String, _en := "", s := 4.0, c := Color("#ffd23f"), _h := 2.6, k := Chatter.QUEST, key := "", small := false) -> bool:
 		if ok:
+			smalls.append(small)
 			said.append(pl)
 			durations.append(s)
 			colours.append(c)
@@ -513,7 +517,8 @@ class Bubbles extends Control:
 			keys.append(key)
 		return ok
 
-	## Each bubble's class in the chatter budget and its key, in step with `said`.
+	## Each bubble's class in the chatter budget and its key, in step with `said`; and whether it was set small.
+	var smalls: Array[bool] = []
 	var kinds: Array[int] = []
 	var keys: Array[String] = []
 
@@ -887,6 +892,20 @@ class Walkers extends Node3D:
 	func startle(_at: Vector2, _r: float) -> int:
 		startled += 1
 		return 0
+
+	## pedestrians.gd's leap for a Kukuryźnik: how many leapt (`leap_answer`, 0 by default), counted.
+	var leaps := 0
+	var leap_answer := 0
+
+	func leap(_at: Vector2, _dir: Vector2, _r: float) -> int:
+		leaps += 1
+		return leap_answer
+
+	## pedestrians.gd's guest slots (city life's walkers and runners): taken, not drawn.
+	var guest_takes := 0
+
+	func take_guests(_buf: PackedFloat32Array) -> void:
+		guest_takes += 1
 
 
 ## tape.gd for a check with no tape (TD-11 group 3): the then cards stamped, by id.

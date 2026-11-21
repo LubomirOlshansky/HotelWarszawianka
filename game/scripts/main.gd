@@ -1280,6 +1280,7 @@ func _fly_in() -> void:
 		_opening_audio.start(radio)
 		# The morning (F, 2026-11-16): the city wakes up while the camera flies in. It loaded in the
 		# Day look under the title (the shadows' pipelines are warm); the night comes at the tap.
+		# F, 2026-11-20: it stays, and ends on the game clock's 11:00 (no jump to 14:00 after it).
 		tod.wake(CameraShots.OPEN_TIME)
 		moments.opening(vehicle.global_position, cam_yaw, camera_pitch,
 				PackedStringArray(["Śródmieście · Plac Defilad", "the centre of Warsaw"]))
@@ -4674,6 +4675,8 @@ func _fill_map_list(entries: Array) -> void:
 		for id: String in FirstSteps.IDS:
 			var name: Array = FirstSteps.name_of(id)
 			f["steps"].append({"id": id, "pl": name[0], "en": name[1], "done": not id in left, "entry": _step_entry(id, by_group, here)})
+	if wallet != null:
+		f["taxi"] = Rides.Rules.account(wallet.keep, int(wallet.jobs.get("podwozka", 0)))  # the taxi app's account (F 2026-11-20)
 	if stories != null:
 		f["stories"] = QuestBook.story_facts(stories.defs, stories.clock.call(), intro)
 	if rivals != null and rivals.ladder != null and wallet != null:
@@ -5366,6 +5369,8 @@ func _on_car_pushed(_id: String, at: Vector3, _dir: Vector3, speed: float) -> vo
 func _on_soft_broke(id: String, _panel: int, kind: StringName, at: Vector3, _dir: Vector3, speed: float) -> void:
 	if wallet != null:
 		wallet.count_smash(String(kind))
+	if rides != null:
+		rides.smashed(speed)  # the taxi passenger's quip (F 2026-11-20)
 	var now := _clock_s()
 	if now - _smash_sound_t < SMASH_SOUND_GAP:
 		return
@@ -5631,6 +5636,7 @@ func _paused_frame() -> void:
 func _apply_style() -> void:
 	var style: Dictionary = STYLES[style_index]
 	var screen := get_viewport().get_visible_rect().size
+	screen = Vector2(maxf(screen.x, screen.y), minf(screen.x, screen.y))  # Promo Mode's VERTICAL: the landscape image
 	# Loop G1: the quality's step and budget (tiers.gd image_scale); --lines= is exact.
 	if flags.lines_override > 0:
 		view.stretch_shrink = maxi(1, floori(screen.y / flags.lines_override))

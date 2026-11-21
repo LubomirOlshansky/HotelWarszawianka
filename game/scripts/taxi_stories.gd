@@ -20,7 +20,9 @@ const AT_SECONDS := [3.0, 13.0, 23.0, 32.0]
 ## The first line waits at least FIRST seconds after boarding; later beats GAP after the last.
 const FIRST := 3.0
 const GAP := 7.5
-## The question card waits this long for an answer; the autopilot answers after AUTO.
+## A ride that ends on this many stars or more gets the story's better ending (`ending`).
+const GOOD := 4.5
+## The question card (the choice between two answers) waits this long for an answer; the autopilot answers after AUTO.
 const ASK_LIFE := 10.0
 const AUTO := 2.0
 ## No answer: the passenger lets it go.
@@ -56,6 +58,24 @@ static func pick(stories: Array, seen: Array, rng: RandomNumberGenerator, night:
 		if fresh.is_empty():
 			fresh = fits
 	return fresh[rng.randi() % fresh.size()]
+
+
+## F 2026-11-20 ("no choosing while driving"): a story ride no longer stops for a question. The
+## passenger says the lines as small talk, and how the ride went picks the ending: a ride that ended
+## on 4.5 stars or more gets the answer that pays more (the passenger liked the drive), a worse one
+## the answer that pays less, unless that one costs the player money (the startup's "investment" is a
+## thank-you for a good ride only). The index (0 or 1) into the story's `answers`.
+static func ending(st: Dictionary, stars_final: float) -> int:
+	var a: Array = st.get("answers", [])
+	if a.size() < 2:
+		return -1
+	var t0 := int(a[0].get("tip", 0))
+	var t1 := int(a[1].get("tip", 0))
+	var rich := 0 if t0 >= t1 else 1
+	if stars_final >= GOOD:
+		return rich
+	var poor := 1 - rich
+	return poor if int(a[poor].get("tip", 0)) >= 0 else rich
 
 
 ## `seen` with `id` heard now (moved to the end), at most `keep` long.
