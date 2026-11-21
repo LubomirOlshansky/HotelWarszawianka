@@ -1542,6 +1542,19 @@ func _stadium_arka() -> void:
 		var j0: Vector2 = arch[i]
 		var j1: Vector2 = arch[i + 1]
 		_quad(at.call(j0.x, ARKA_SPRING, 1.2), at.call(j1.x, ARKA_SPRING, 1.2), at.call(j1.x, j1.y, 1.2), at.call(j0.x, j0.y, 1.2), n3, PORTAL_GLOW)
+	# F (2026-11-21): the road runs down the cut into the arch. A dark asphalt strip, 8 m wide, from the
+	# doorway out to the plaza (the mapped service road is 3 m and the cut's floor reads as pale paving).
+	_mode = M_STONE
+	var rd0 := 0.0
+	while rd0 < ARKA_BACK + 22.0:
+		var rd1 := rd0 + 2.0
+		var r0 := a + e * (1.3 + rd0)
+		var r1 := a + e * (1.3 + rd1)
+		var ry0: float = map.ground_height(r0.x, r0.y) + 0.07
+		var ry1: float = map.ground_height(r1.x, r1.y) + 0.07
+		_quad(Vector3(r0.x - side.x * 4.0, ry0, r0.y - side.y * 4.0), Vector3(r0.x + side.x * 4.0, ry0, r0.y + side.y * 4.0),
+				Vector3(r1.x + side.x * 4.0, ry1, r1.y + side.y * 4.0), Vector3(r1.x - side.x * 4.0, ry1, r1.y - side.y * 4.0), Vector3.UP, Color("#2a2c31"))
+		rd0 = rd1
 	# Lamp posts at the top corners of the two flights that frame the entrance (F's night photo).
 	for sg in [-1.0, 1.0]:
 		var lq: Vector2 = a - e * 6.0 + side * (ARKA_HALF + 7.0) * sg
