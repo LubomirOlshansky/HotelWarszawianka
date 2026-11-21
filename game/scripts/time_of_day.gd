@@ -14,6 +14,17 @@ extends Node
 ## shadows and a low sun doesn't throw them across the whole map. Rechecked every
 ## 10 s. The weather (weather.gd) greys the light and softens the shadows in rain;
 ## the quality setting can switch shadows and glow off.
+##
+## F 2026-11-19, the game clock (`start_clock`): one clock for the whole game, no Live and no
+## fixed looks in a normal launch. It runs at pacing.json time.speed (30x: a game day in 48 real
+## minutes) from 14:00 on this week's Friday; the sun stands where it would over Warsaw on that
+## date (Live's machinery, so winter days are short and summer ones long), and the hour and a half
+## round sunrise and sunset lasts time.golden times longer (2.5x, like GTA's golden hour), taken
+## from midday and midnight (`solar_shift`). Between the full day and the blue hour a golden look
+## (the opening's sunrise, the sun turned to its azimuth) holds the low sun and long shadows. The
+## light is worked out every time.look_every real seconds. Picking a look (settings, the map's
+## clock, the N key, GameTime.jump) moves the clock forward to that look's hour (`set_hour`).
+## Test runs keep the fixed looks unless --game-clock (dev_flags.gd `game_clock`).
 
 ## Loop 2b: time spent in this script's per-frame work since the bench last read it (µs).
 var spent_usec := 0
@@ -22,8 +33,12 @@ signal changed(mode: int)
 ## The lights went on (lights_on > 0) or off: night-only nodes show or hide.
 signal lights_switched(on: bool)
 
+const Pacer := preload("res://scripts/pacer.gd")
+
 ## Loop MW-3: DAWN (Świt) after LIVE, so the saved and the existing indices keep their meaning.
 enum { DAY, DUSK, NIGHT, LIVE, DAWN }
+## The Day look's hour, where a new game's clock starts.
+const DAY_START_HOUR := 11.0
 const NAMES := ["Day", "Dusk", "Night", "Live", "Dawn"]
 const BLEND := 1.5
 const LAT := 52.23
@@ -123,6 +138,16 @@ var _look_ms := Time.get_ticks_msec()
 ## Loop MW-3: --clock=HH:MM with a fixed look: the hour its clock starts from (-1: the look's own,
 ## vision.md 4.5). Cleared when the look changes.
 var fixed_start := -1.0
+## F 2026-11-19: the game clock is on (`start_clock`); it runs `speed` game seconds a real second
+## and stands at `_game_utc` (Unix seconds UTC, read by now_utc). Sunrise and sunset (local hours)
+## per game day, worked out once a day.
+var game_clock := false
+var speed := 1.0
+var _game_utc := 0.0
+var _golden := 1.0
+var _look_every := 10.0
+var _sun_day := -1
+var _sun_times := Vector2(6.0, 18.0)
 ## Landmarks 0.3: `--solo` shots keep this plain background (alpha 0: the look's own sky).
 var plain_background := Color(0, 0, 0, 0)
 
@@ -177,6 +202,10 @@ static func parse(text: String) -> int:
 
 ## Switches to a mode, blending over BLEND seconds unless `instant`.
 func set_mode(m: int, instant := false) -> void:
+	if game_clock:
+		if m % NAMES.size() != LIVE:
+			set_hour(look_hour(m % NAMES.size()), instant)
+		return
 	_wake_t = -1.0
 	_blend_len = BLEND
 	mode = m % NAMES.size()
@@ -192,7 +221,195 @@ func set_mode(m: int, instant := false) -> void:
 
 
 func next() -> void:
+	if game_clock:
+		var order := [DAWN, DAY, DUSK, NIGHT]
+		set_mode(order[(order.find(look_mode()) + 1) % order.size()])
+		return
 	set_mode(mode + 1)
+
+
+## F 2026-11-19: the game clock starts at `hour` (0-24; -1: look `m`'s, `look_hour`) on `date`
+## (YYYYMMDD; 0: the Friday of this week, so the stories' Friday holds) and runs from here (main.gd,
+## a normal launch or --game-clock). The look follows the sun at once.
+func start_clock(date := 0, m := DAY, hour := -1.0) -> void:
+	if date <= 0:
+		var today := Time.get_unix_time_from_system()
+		var d := Time.get_datetime_dict_from_unix_time(int(today) + warsaw_offset(today))
+		var back := (int(d["weekday"]) - 5 + 7) % 7
+		var fri := Time.get_datetime_dict_from_unix_time(int(today) + warsaw_offset(today) - back * 86400)
+		date = int(fri["year"]) * 10000 + int(fri["month"]) * 100 + int(fri["day"])
+	game_clock = true
+	speed = Pacer.num("time", "speed")
+	_golden = Pacer.num("time", "golden")
+	_look_every = Pacer.num("time", "look_every")
+	mode = LIVE
+	_game_utc = warsaw_to_utc("12:00", date)
+	_sun_day = -1
+	var h := hour if hour >= 0.0 else look_hour(m)
+	if m == DAY and h < 12.0:
+		# The Day start (11:00, F 2026-11-20) is a morning: from the noon base `set_hour` would move
+		# it to tomorrow, a Saturday. Base the day at midnight instead; the other looks keep noon.
+		_game_utc = warsaw_to_utc("00:00", date)
+		_sun_day = -1
+	set_hour(h, true)
+
+
+## The clock moves forward to `hour` (0-24) today, or tomorrow if that hour has passed (a few
+## minutes back still counts as now): the look blends in over BLEND s unless `instant`. Without
+## the game clock: the look that fits the hour (`look_at`), its clock started there (loop MW-3).
+func set_hour(hour: float, instant := false) -> void:
+	hour = fposmod(hour, 24.0)
+	if not game_clock:
+		set_mode(parse(look_at(hour)), instant)
+		fixed_start = hour
+		return
+	_wake_t = -1.0
+	_blend_len = BLEND
+	var off := warsaw_offset(_game_utc)
+	var local := _game_utc + off
+	var target := floorf(local / 86400.0) * 86400.0 + hour * 3600.0
+	if target < local - 600.0:
+		target += 86400.0
+	_game_utc = target - off
+	_from = _current()
+	_to = _live_look()
+	_live_wait = _look_every
+	_t = 1.0 if instant else 0.0
+	if instant:
+		_apply(_to)
+	changed.emit(mode)
+
+
+## Promo Mode (promo_mode.gd, through game_time.gd `nudge`): the clock moves by `minutes`, back
+## as well as forward (set_hour only goes forward), and the light follows at once. Without the game
+## clock: the look that fits the new hour.
+func shift_clock(minutes: float) -> void:
+	if not game_clock:
+		set_hour(float(local_clock()["hour"]) + minutes / 60.0, true)
+		return
+	_game_utc += minutes * 60.0
+	_wake_t = -1.0
+	_from = _current()
+	_to = _live_look()
+	_live_wait = _look_every
+	_t = 1.0
+	_apply(_to)
+	changed.emit(mode)
+
+
+## The fixed look whose light fits `hour` (game_time.gd `look_for` asks it): Dawn 5-8, Day to
+## 18:30, Dusk to 20:30, else Night.
+static func look_at(hour: float) -> String:
+	if hour >= 5.0 and hour < 8.0:
+		return "Dawn"
+	if hour >= 8.0 and hour < 18.5:
+		return "Day"
+	if hour >= 18.5 and hour < 20.5:
+		return "Dusk"
+	return "Night"
+
+
+## The hour a look stands for on the game clock's date: Dawn the sunrise, Dusk the sunset (the
+## golden hour turning blue), Night 23:00, Day DAY_START_HOUR (11:00, F 2026-11-20: the game starts at
+## 11 from the first frame, no jump to 14) kept clear of the golden hours (a winter day
+## is short). Without the game clock, the fixed looks' hours.
+func look_hour(m: int) -> float:
+	if not game_clock:
+		return float([11.0, 19.5, 1.5, 14.0, 5.75][m % NAMES.size()])
+	var st := sun_times()
+	var g := _band().y
+	match m:
+		DAWN:
+			return st.x
+		DUSK:
+			return st.y
+		NIGHT:
+			return 23.0
+	var lo := st.x + g + 0.5
+	var hi := st.y - g - 1.0
+	return clampf(DAY_START_HOUR, lo, hi) if lo <= hi else (st.x + st.y) * 0.5
+
+
+## The look for the menus and the stories: the mode, or on the game clock the look the sun makes
+## now (Day above 10 degrees, Dawn or Dusk to 6 below by the morning or the afternoon, Night).
+func look_mode() -> int:
+	if not game_clock:
+		return mode
+	if sun_elevation >= 10.0:
+		return DAY
+	if sun_elevation >= -6.0:
+		return DAWN if sun_azimuth < 180.0 else DUSK
+	return NIGHT
+
+
+## Sunrise and sunset of the game clock's day (Warsaw local hours, the sun's rim at -0.833
+## degrees), worked out once a day.
+func sun_times() -> Vector2:
+	var off := warsaw_offset(_game_utc)
+	var day := int(floorf((_game_utc + off) / 86400.0))
+	if day != _sun_day:
+		_sun_day = day
+		_sun_times = sun_times_on(day * 86400.0 - off)
+	return _sun_times
+
+
+## Sunrise and sunset (local hours after `midnight_utc`, the local midnight as Unix UTC): the
+## crossings of -0.833 degrees, found on a 10-minute walk and narrowed by halving.
+static func sun_times_on(midnight_utc: float) -> Vector2:
+	var out := Vector2(6.0, 18.0)
+	var found := 0
+	var prev := sun_position(midnight_utc).x + 0.833
+	for i in range(1, 145):
+		var t := midnight_utc + i * 600.0
+		var e := sun_position(t).x + 0.833
+		if (prev < 0.0) != (e < 0.0):
+			var a := t - 600.0
+			var b := t
+			for _k in 12:
+				var mid := (a + b) * 0.5
+				if (sun_position(mid).x + 0.833 < 0.0) == (prev < 0.0):
+					a = mid
+				else:
+					b = mid
+			var h := ((a + b) * 0.5 - midnight_utc) / 3600.0
+			if prev < 0.0:
+				out.x = h
+			else:
+				out.y = h
+			found += 1
+		prev = e
+	return out if found >= 2 else Vector2(6.0, 18.0)
+
+
+## The golden band round sunrise and sunset: Vector2(real hours each side, game hours each side).
+## 0.75 real hours each side last `_golden` times longer, kept short enough that the day and the
+## night between them still last an hour.
+func _band() -> Vector2:
+	var st := sun_times()
+	var day := st.y - st.x
+	var g := minf(0.75 * _golden, minf((day - 1.0) * 0.5, (23.0 - day) * 0.5))
+	return Vector2(minf(0.75, g), maxf(g, 0.0))
+
+
+## Game time is not the sun's time: the long golden hour (F 2026-11-19, like GTA). How many hours
+## the sun stands ahead of (or behind) the game clock at local hour `h`: the clock's sunrise and
+## sunset are the real ones, the band round each is stretched and the rest squeezed, piecewise
+## straight. Static and pure (check_game_time.gd).
+static func solar_shift(h: float, sunrise: float, sunset: float, band: Vector2) -> float:
+	var b := band.x
+	var g := band.y
+	if g <= b or b <= 0.0:
+		return 0.0
+	var d := sunset - sunrise
+	var x := fposmod(h - sunrise, 24.0)
+	var knots := [[0.0, 0.0], [g, b], [d - g, d - b], [d, d], [d + g, d + b], [24.0 - g, 24.0 - b], [24.0, 24.0]]
+	for i in range(knots.size() - 1):
+		var a: Array = knots[i]
+		var c: Array = knots[i + 1]
+		if x <= float(c[0]):
+			var k := (x - float(a[0])) / maxf(float(c[0]) - float(a[0]), 0.0001)
+			return lerpf(float(a[1]), float(c[1]), k) - x
+	return 0.0
 
 
 ## Rain (weather.gd, 0..1): greyer light, softer shadows. Applied on top of the look.
@@ -217,15 +434,19 @@ func _frame(dt: float) -> void:
 		_wake_t += dt
 		if _wake_t >= _wake_len:
 			_wake_t = -1.0
-			_t = 1.0
-			_apply(_to)
+			# the game clock's look comes in from the morning's last (the Day look) over BLEND s
+			_from = _looks[DAY]
+			_t = 0.0 if game_clock else 1.0
+			_apply(_current())
 		else:
 			_apply(_wake_look())
 		return
+	if game_clock:
+		_game_utc += dt * speed
 	if mode == LIVE:
 		_live_wait -= dt
 		if _live_wait <= 0.0:
-			_live_wait = 10.0
+			_live_wait = _look_every
 			_to = _live_look()
 			if _t >= 1.0:
 				_apply(_to)
@@ -258,12 +479,12 @@ static func _blend(from: Dictionary, to: Dictionary, k: float) -> Dictionary:
 ## The opening's morning (WAKE_KEYS): from Night to the Day look over `seconds`, the night at once.
 ## Only from the Day look (a normal launch's), so a --time= run keeps its look; false otherwise.
 func wake(seconds: float) -> bool:
-	if mode != DAY or seconds <= 0.0:
+	if (mode != DAY and not game_clock) or seconds <= 0.0:
 		return false
 	_wake_len = seconds
 	_wake_t = 0.0
 	_from = _looks[DAY]
-	_to = _looks[DAY]
+	_to = _live_look() if game_clock else _looks[DAY]
 	_t = 1.0
 	_apply(_wake_look())
 	return true
@@ -305,7 +526,11 @@ static func morning(looks: Array, e: float) -> Dictionary:
 ## Live: the three looks blended by the real sun's elevation, the sun turned to its
 ## azimuth (the light shines along -Z: yaw = 180 - azimuth; pitch = -elevation).
 func _live_look() -> Dictionary:
-	var sp := sun_position(now_utc())
+	var t := now_utc()
+	if game_clock:
+		var st := sun_times()
+		t += solar_shift(fposmod((t + warsaw_offset(t)) / 3600.0, 24.0), st.x, st.y, _band()) * 3600.0
+	var sp := sun_position(t)
 	sun_elevation = sp.x
 	sun_azimuth = sp.y
 	var e := sp.x
@@ -314,6 +539,8 @@ func _live_look() -> Dictionary:
 	day["sun_yaw"] = 180.0 - sp.y
 	day["sun_pitch"] = -clampf(e, LIVE_PITCH.x, LIVE_PITCH.y)
 	dusk["sun_yaw"] = 180.0 - sp.y
+	if game_clock:
+		return golden_look(day, dusk, _looks[SUNRISE_LOOK], _looks[NIGHT], sp)
 	if e >= 10.0:
 		return day
 	if e >= -2.0:
@@ -323,9 +550,30 @@ func _live_look() -> Dictionary:
 	return _looks[NIGHT].duplicate()
 
 
-## Now, as Unix seconds UTC: the device's clock, or the --clock/--date start plus the
-## time since the game started.
+## The game clock's look for the sun at `sp` (elevation, azimuth): Day above 14 degrees, then the
+## golden light (`golden`: the opening's sunrise, low and warm, long shadows) down to 4, into the
+## blue hour (`dusk`) by 3 below the horizon, and Night from 10 below. Static and pure.
+static func golden_look(day: Dictionary, dusk: Dictionary, golden: Dictionary, night: Dictionary, sp: Vector2) -> Dictionary:
+	var e := sp.x
+	var gold := golden.duplicate()
+	gold["sun_yaw"] = 180.0 - sp.y
+	gold["sun_pitch"] = -clampf(e, 16.0, 30.0)
+	if e >= 14.0:
+		return day
+	if e >= 4.0:
+		return _blend(day, gold, smoothstep(14.0, 4.0, e))
+	if e >= -3.0:
+		return _blend(gold, dusk, smoothstep(4.0, -3.0, e))
+	if e >= -10.0:
+		return _blend(dusk, night, smoothstep(-3.0, -10.0, e))
+	return night.duplicate()
+
+
+## Now, as Unix seconds UTC: the game clock's moment (F 2026-11-19), the device's clock, or the
+## --clock/--date start plus the time since the game started.
 func now_utc() -> float:
+	if game_clock:
+		return _game_utc
 	if clock_start >= 0.0:
 		return clock_start + (Time.get_ticks_msec() - _started_ms) * 0.001
 	return Time.get_unix_time_from_system()

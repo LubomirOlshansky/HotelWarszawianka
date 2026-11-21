@@ -19,6 +19,7 @@
 
 activity             quick
 architecture         quick
+barriergates         quick
 barrierlook          quick
 barrierpaths         smoke
 blockeaves           quick
@@ -72,6 +73,7 @@ firstlife            runs
 fixes                quick
 freecam              quick
 gamepad              quick
+gametime             quick
 garage               quick
 governor             quick
 grades               quick
@@ -89,6 +91,7 @@ jobs2                quick
 juice                quick
 kebab                local     slow
 kinotour             quick
+kladka               quick
 kukuryznik           quick
 ladder               quick
 landmarks            landmarks
@@ -108,6 +111,7 @@ markers              quick
 meet                 quick
 meshq                quick
 messages             quick
+metropol             quick
 mixer                quick
 models               quick
 monumentmesh         quick
@@ -126,6 +130,7 @@ packs                quick
 padel                quick
 palacelights         quick
 panelrule            quick
+panelstates          smoke
 parkdetails          quick
 parkedthin           quick
 parkmesh             quick
@@ -143,6 +148,7 @@ police-soak          local     slow
 portbridge           roads
 postpasses           quick
 prebuilt             smoke
+promo                quick
 questbook            quick
 questlines           smoke
 race                 local     slow
@@ -224,6 +230,7 @@ trendjob             quick
 trzy-mosty           local     slow
 tunnelcut            smoke
 turntable           quick
+uikit                quick
 water                roads     slow
 water-prebuilt       smoke     slow
 wellness             quick

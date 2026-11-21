@@ -54,6 +54,12 @@
 # fences and hedges the car smashes through (soft_things.gd) on pure cases (the swept box, the cost per
 # panel and its cap, grinding, rule B's repair, the contact log's soft line), then the soft lists of four
 # sectors the same on both city paths and `--no-soft`'s restore exact (~1 min).
+# `panelstates` runs game/tools/check_panel_states.gd (W6 of the walls look, 2026-11-19): the broken
+# panels shown (panel_states.gd) on the stadium's sector built `panels`, both city paths (the prebuilt
+# one, or the runtime sector through a .scn when the prebuilt city is another look): a hit sets the right
+# pieces (down, torn, stub), still down after the sector leaves and comes back, `repair_near` and
+# `reset` put the baked buffer back float for float, soft off writes nothing, a hit's script time
+# under 0.1 ms, nothing under `typed` (~30 s).
 # `deckxray` runs game/tools/check_deck_xray.gd (GAMEPLAY_PLAN 0.3, 2026-11-03): the car's x-ray is on
 # under a bridge or viaduct deck (Trasa Łazienkowska) and off on top of one and on open streets.
 # `tunnelcut` runs game/tools/check_tunnel_cut.gd (F, 2026-11-08): in every tunnel the ground that
@@ -351,6 +357,10 @@
 # Dworzec Centralny's car park ramp (F, 2026-11-08): `centralnyramp` runs tools/centralny_ramp.py
 # --check (the service tunnel under Aleja Jana Pawła II is a drive: its tunnel, portal and frame, the
 # way out from the portal, no garage door across it; no map beyond centrum.json, CI too).
+# Walls look W8 (2026-11-20): `barriergates` runs tools/barrier_gates.py --selftest (the gate rules on
+# synthetic lines) and --check (the map carries the gates its rules give: gaps where a path or a
+# service drive crosses a fence, wall or hedge, gate posts at the openings the bake cut; no map beyond
+# centrum.json, CI too).
 # City objects plan step 5 (2026-11-14): `objecttypes` runs tools/object_types.py --selftest (the
 # barrier type rules on synthetic lines, the OSM reader in both formats, its copies of the wall
 # builder's hand lists against city_barriers.gd; no map, CI too).
@@ -363,6 +373,9 @@
 # Bridge cycle paths (2026-11-08): `cyclehang` runs tools/cycle_hang.py --check (Most Łazienkowski's
 # cycle bridges hang 4 m under the road deck, as on F's photos, and come down to their ramps; needs
 # terrain.json from the map pack).
+# Kładka Abakanowicz (F, 2026-11-20): `kladka` runs tools/kladka.py --check (the footbridge's deck
+# pieces tagged, its seating bays, the living street's asphalt hidden, 7 supports with the Warsaw
+# meridian between the second and third from Praga; no map beyond centrum.json, CI too).
 # Port Czerniakowski's footbridge (2026-11-08): `portbridge` runs tools/port_bridge.py --check (the
 # mouth's bridge by Majami Wawa is one flat railed deck joining the boulevard's paths, the finished
 # construction lot north-west of it has no site fences).
@@ -1059,6 +1072,15 @@ for s in $want; do
 				0) row PASS "zamekramps" $secs "$(grep '^zamek_ramps: ' $logs/zamekramps.log | tail -1)" ;;
 				*) row FAIL "zamekramps" $secs "$(grep '^zamek_ramps: ' $logs/zamekramps.log | tail -1) ($logs/zamekramps.log)" ;;
 			esac ;;
+		kladka)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/kladka.py --check > $logs/kladka.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "kladka" $secs "$(grep '^kladka: ' $logs/kladka.log | tail -1)" ;;
+				*) row FAIL "kladka" $secs "$(grep '^kladka: ' $logs/kladka.log | tail -1) ($logs/kladka.log)" ;;
+			esac ;;
 		defiladobelisk)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/defilad_obelisk.py --check > $logs/defiladobelisk.log 2>&1
@@ -1148,6 +1170,16 @@ for s in $want; do
 			case $code in
 				0) row PASS "tramstops" $secs "$(grep '^tramstops: ' $logs/tramstops.log | tail -1)" ;;
 				*) row FAIL "tramstops" $secs "$(grep '^tramstops: ' $logs/tramstops.log | head -1) ($logs/tramstops.log)" ;;
+			esac ;;
+		barriergates)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/barrier_gates.py --selftest > $logs/barriergates.log 2>&1 && \
+				python3 -I $ROOT/tools/barrier_gates.py --check >> $logs/barriergates.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "barriergates" $secs "$(grep '^barrier_gates: [0-9]' $logs/barriergates.log | tail -1)" ;;
+				*) row FAIL "barriergates" $secs "$(grep -m1 'FAIL' $logs/barriergates.log) ($logs/barriergates.log)" ;;
 			esac ;;
 		objecttypes)
 			t0=$EPOCHREALTIME
@@ -1277,6 +1309,19 @@ for s in $want; do
 				0) row PASS "facadekit" $secs "check_facade_kit: OK · $counts" ;;
 				*) row FAIL "facadekit" $secs "$(grep '^check_facade_kit: ' $logs/facadekit.log | tail -1) · $counts ($logs/facadekit.log)" ;;
 			esac ;;
+		# The UI kit's ratchet (2026-11-19, docs/design/ui-kit.md): the UI scripts' own colour literals
+		# only fall, and the kit keeps the tokens the doc names (tools/check_ui_kit.py; no map, ~0.1 s).
+		uikit)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/check_ui_kit.py > $logs/uikit.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			counts=$(grep -m1 '^check_ui_kit counts:' $logs/uikit.log)
+			counts=${counts#check_ui_kit counts: }
+			case $code in
+				0) row PASS "uikit" $secs "check_ui_kit: OK · $counts" ;;
+				*) row FAIL "uikit" $secs "$(grep '^check_ui_kit: ' $logs/uikit.log | tail -1) · $counts ($logs/uikit.log)" ;;
+			esac ;;
 		# Landmark specs (LANDMARKS 0.4): every docs/landmarks/specs/*.md has all eight sections, a
 		# detail level, a triangle budget and a filled parts table (tools/check_spec.py; ~0.1 s).
 		spec)
@@ -1354,6 +1399,7 @@ for s in $want; do
 		solids) skip_prebuilt solids || check solids '^solids:' --script res://tools/check_solids.gd ;;
 		colliders) check colliders '^check_colliders:' --script res://tools/check_colliders.gd ;;
 		softthings) skip_prebuilt softthings || check softthings '^check_soft_things:' --script res://tools/check_soft_things.gd ;;
+		panelstates) check panelstates '^check_panel_states:' --script res://tools/check_panel_states.gd ;;
 		deckxray) check deckxray '^check_deck_xray:' --script res://tools/check_deck_xray.gd ;;
 		tunnelcut) check tunnelcut '^check_tunnel_cut:' --script res://tools/check_tunnel_cut.gd ;;
 		lanedrive) check lanedrive '^check_lane_drive:' --fixed-fps 60 --script res://tools/check_lane_drive.gd ;;
@@ -1528,6 +1574,11 @@ for s in $want; do
 		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		targetroute) check targetroute '^check_target_route:' --script res://tools/check_target_route.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
+		# The time owner (game_time.gd, F 2026-11-19): hours, the night friends by day, the clock's jump.
+		gametime) check gametime '^check_game_time:' --script res://tools/check_game_time.gd ;;
+		# Promo Mode (promo_mode.gd, F 2026-11-20): the clock's -15 / +15, the car and free cameras, the
+		# saved shots and COPY's flags (no map; CI too).
+		promo) check promo '^check_promo:' --script res://tools/check_promo.gd ;;
 		endcard) check endcard '^end_card:' --script res://tools/check_end_card.gd ;;
 		# First hour step 6: the hints in play, the loading tips, the spotlight (no map).
 		hints) check hints '^check_hints:' --script res://tools/check_hints.gd ;;
@@ -1550,6 +1601,9 @@ for s in $want; do
 		# The museum and Plac loop: Muzeum Narodowe, Hotel Europejski and the Tomb from centrum.json
 		# alone (found, what they replace, triangles, one material, cards; no terrain or sectors).
 		sites) check sites '^check_sites:' --script res://tools/check_sites.gd ;;
+		# Hotel Metropol's METROPOLKA (srodmiescie.gd): on the real outline's street face, a lit light box
+		# behind the letters, the letters inside its face (F, 2026-11-19: "fixed so many times").
+		metropol) check metropol '^check_metropol:' --script res://tools/check_metropol.gd ;;
 		palacelights) check palacelights '^check_palace_lights:' --script res://tools/check_palace_lights.gd ;;
 		meshq) check meshq '^check_mesh_quality:' --script res://tools/check_mesh_quality.gd ;;
 		sfx) check sfx '^sfx:' --script res://tools/check_sfx.gd ;;

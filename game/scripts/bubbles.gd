@@ -21,6 +21,7 @@ extends Control
 ## face on the left (Portraits: the portrait, or their initial on a disc in their colour), so the
 ## player sees who is talking, not only a name; ambient chatter and shouts stay name-only.
 
+const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")
 const Access := preload("res://scripts/access.gd")
 const Chatter := preload("res://scripts/chatter.gd")
@@ -39,6 +40,9 @@ const FADE := 0.35
 const LINE_SIZE := 15.0
 const SUB_SIZE := 13.0
 const NAME_SIZE := 11.0
+## F 2026-11-20: a small-talk bubble (a taxi passenger's chat while the player drives) is set this much
+## smaller and narrower, so it can be read at a glance.
+const SMALL := 0.8
 ## F 2026-11-11: the speaker's face beside a quest line, in points, and the gap to the text.
 const FACE := 30.0
 const FACE_GAP := 6.0
@@ -54,9 +58,9 @@ const TAIL := 10.0
 ## PT-9: the longest tail, in points: a bubble that had to move away from its speaker still points at it.
 const REACH := 150.0
 ## The HUD's card recipe (hud.gd CARD_BG) and its text colours.
-const CARD_BG := Color(0.07, 0.06, 0.1, 0.94)
-const INK := Color("#fbf7ee")
-const SUB := Color("#c9c2d8")
+const CARD_BG := UiKit.CARD
+const INK := UiKit.INK
+const SUB := UiKit.SUB
 
 var _bubbles: Array[Dictionary] = []
 var _tags: Array[Dictionary] = []
@@ -72,12 +76,12 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel = StyleBoxFlat.new()
 	_panel.bg_color = CARD_BG
-	_panel.border_color = Color(1, 1, 1, 0.3)
+	_panel.border_color = UiKit.EDGE_STRONG
 	_panel.set_border_width_all(maxi(1, roundi(1.0 * pt)))
-	_panel.set_corner_radius_all(roundi(8.0 * pt))
+	_panel.set_corner_radius_all(roundi(UiKit.R_CARD * pt))
 	_tag_box = StyleBoxFlat.new()
 	_tag_box.bg_color = CARD_BG
-	_tag_box.set_corner_radius_all(roundi(4.0 * pt))
+	_tag_box.set_corner_radius_all(roundi(UiKit.R_SMALL * pt))
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # the 256 px portraits drawn at ~30 pt
 
 
@@ -90,7 +94,7 @@ func _px(points: float) -> int:
 ## the chatter budget (chatter.gd: QUEST by default, POLICE, REACTION, AMBIENT) and `key` narrows a
 ## reaction ("bump", "near_miss"). Returns whether it shows.
 func say(anchor: Variant, speaker: String, line: String, subtitle := "", seconds := 4.0,
-		accent := Color("#ffd23f"), height := 2.6, kind := Chatter.QUEST, key := "") -> bool:
+		accent := UiKit.GOLD, height := 2.6, kind := Chatter.QUEST, key := "", small := false) -> bool:
 	if quiet_all:
 		return false
 	var replacing := is_talking(anchor)
@@ -109,7 +113,7 @@ func say(anchor: Variant, speaker: String, line: String, subtitle := "", seconds
 	var typing := line.length() / TYPE_RATE
 	var b := {"anchor": anchor, "speaker": speaker, "line": line, "sub": subtitle, "age": 0.0,
 			"life": typing + maxf(seconds, Chatter.read_time(line + subtitle)), "typing": typing, "accent": accent, "height": height, "kind": kind,
-			"face": kind in [Chatter.QUEST, Chatter.POLICE] and Portraits.has_face(speaker)}
+			"face": kind in [Chatter.QUEST, Chatter.POLICE] and Portraits.has_face(speaker), "small": small}
 	if b["face"]:
 		b["tex"] = Portraits.face(speaker)
 		b["letter"] = Portraits.initial(speaker)
@@ -173,14 +177,14 @@ func _sense() -> void:
 ## `say` for ambient chatter: dropped while the player drives fast (G16), while the car struggles,
 ## while a card is up, or inside the budget's gap (chatter.gd).
 func say_ambient(anchor: Variant, speaker: String, line: String, subtitle := "", seconds := 4.0,
-		accent := Color("#ffd23f"), height := 2.6) -> bool:
+		accent := UiKit.GOLD, height := 2.6) -> bool:
 	return say(anchor, speaker, line, subtitle, seconds, accent, height, Chatter.AMBIENT)
 
 
 ## `say` for someone reacting to the player (a shout, a near miss, a horn): one in
 ## Chatter.REACTION_WINDOW s, and none while the car struggles.
 func say_reaction(anchor: Variant, speaker: String, line: String, subtitle := "", seconds := 4.0,
-		accent := Color("#ffd23f"), height := 2.6, key := "") -> bool:
+		accent := UiKit.GOLD, height := 2.6, key := "") -> bool:
 	return say(anchor, speaker, line, subtitle, seconds, accent, height, Chatter.REACTION, key)
 
 
@@ -189,12 +193,13 @@ func say_reaction(anchor: Variant, speaker: String, line: String, subtitle := ""
 func _measure(b: Dictionary, width: float) -> Dictionary:
 	var font := ThemeDB.fallback_font
 	var w := width * pt
-	var line_size := font.get_multiline_string_size(b["line"], HORIZONTAL_ALIGNMENT_LEFT, w, _px(LINE_SIZE))
+	var k := SMALL if bool(b.get("small", false)) else 1.0
+	var line_size := font.get_multiline_string_size(b["line"], HORIZONTAL_ALIGNMENT_LEFT, w, _px(LINE_SIZE * k))
 	var sub_size := Vector2.ZERO
 	if b["sub"] != "":
-		sub_size = font.get_multiline_string_size(b["sub"], HORIZONTAL_ALIGNMENT_LEFT, w, _px(SUB_SIZE))
-	var name_h := font.get_height(_px(NAME_SIZE)) if b["speaker"] != "" else 0.0
-	var name_w := font.get_string_size(String(b["speaker"]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, _px(NAME_SIZE)).x
+		sub_size = font.get_multiline_string_size(b["sub"], HORIZONTAL_ALIGNMENT_LEFT, w, _px(SUB_SIZE * k))
+	var name_h := font.get_height(_px(NAME_SIZE * k)) if b["speaker"] != "" else 0.0
+	var name_w := font.get_string_size(String(b["speaker"]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, _px(NAME_SIZE * k)).x
 	var size := Vector2(maxf(line_size.x, maxf(sub_size.x, name_w)),
 			name_h + line_size.y + (sub_size.y + 2.0 * pt if b["sub"] != "" else 0.0)) + Vector2.ONE * PAD * pt * 2.0
 	if b.get("face", false):
@@ -493,7 +498,7 @@ func _draw_bubble(b: Dictionary, font: Font, at: Vector2, rect: Rect2, m: Dictio
 	var out: Vector2 = geo[1]
 	var side := Vector2(-out.y, out.x) * 5.0 * pt
 	draw_colored_polygon(PackedVector2Array([foot - side * 1.3, foot + side * 1.3, tip + (tip - foot).normalized() * 1.2 * pt]),
-			Color(1, 1, 1, 0.3 * alpha))
+			Color(UiKit.EDGE_STRONG, 0.3 * alpha))
 	# The style box draws at once, so one shared box can change alpha per bubble.
 	_panel.bg_color.a = CARD_BG.a * alpha
 	_panel.border_color.a = 0.3 * alpha
@@ -510,19 +515,20 @@ func _draw_bubble(b: Dictionary, font: Font, at: Vector2, rect: Rect2, m: Dictio
 		x += (FACE + FACE_GAP) * pt
 		w -= (FACE + FACE_GAP) * pt
 	if b["speaker"] != "":
-		var fs := _px(NAME_SIZE)
+		var k := SMALL if bool(b.get("small", false)) else 1.0
+		var fs := _px(NAME_SIZE * k)
 		draw_string(font, Vector2(x, y + font.get_ascent(fs)), b["speaker"].to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
 				Color(accent.lerp(Color.WHITE, 0.15), alpha))
 		y += float(m["name_h"])
 	var line: String = b["line"]
-	var ls := _px(LINE_SIZE)
+	var ls := _px(LINE_SIZE * (SMALL if bool(b.get("small", false)) else 1.0))
 	if age < float(b["typing"]):
 		_draw_typing(font, Vector2(x, y), line, int(age * TYPE_RATE), w + 1.0, ls, Color(INK, alpha))
 	else:
 		draw_multiline_string(font, Vector2(x, y + font.get_ascent(ls)), line, HORIZONTAL_ALIGNMENT_LEFT, w + 1.0, ls, -1, Color(INK, alpha))
 	y += float(m["line_h"]) + 2.0 * pt
 	if b["sub"] != "" and age >= float(b["typing"]) * 0.5:
-		var ss := _px(SUB_SIZE)
+		var ss := _px(SUB_SIZE * (SMALL if bool(b.get("small", false)) else 1.0))
 		draw_multiline_string(font, Vector2(x, y + font.get_ascent(ss)), b["sub"], HORIZONTAL_ALIGNMENT_LEFT, w + 1.0, ss, -1, Color(SUB, alpha))
 
 

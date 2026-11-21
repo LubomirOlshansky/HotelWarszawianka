@@ -117,7 +117,7 @@ func _check_rules() -> void:
 # 2. ------------------------------------------------------------------------------------------
 
 func _check_mesh() -> void:
-	var mesh := CityLife.scooter_mesh()
+	var mesh := CityLife.kukuryznik_mesh()
 	var tris := 0
 	for s in mesh.get_surface_count():
 		var arr := mesh.surface_get_arrays(s)
@@ -235,7 +235,7 @@ func _check_city(nb: Notebook, data: Dictionary) -> void:
 		kerb += int(int(m.ke) >= 0)
 	life.call("_move", CityLife.MOVE_TICK)
 	var mm: MultiMesh = life.get("_sc_mm")
-	_expect(mm.visible_instance_count == mini(scoots.size(), CityLife.SCOOT_CAP), "the Kukuryznik MultiMesh draws %d (want %d)" % [
+	_expect(mm.visible_instance_count == mini(scoots.size(), CityLife.KUK_CAP), "the Kukuryznik MultiMesh draws %d (want %d)" % [
 			mm.visible_instance_count, scoots.size()])
 	# The walkers ahead leap (the fake says one did every time): the shouts at most every SHOUT_GAP s.
 	walkers.leap_answer = 1
@@ -321,7 +321,7 @@ func _check_city(nb: Notebook, data: Dictionary) -> void:
 	life.call("_write_all", Vector2(eye.x, eye.z), Vector2.INF)
 	var movers: int = (life.get("_scoots") as Array).size() + (life.get("_mob") as Array).size()
 	var buf: PackedFloat32Array = life.get("_sc_buf")
-	if movers < CityLife.SCOOT_CAP and not gang.is_empty():
+	if movers < CityLife.KUK_CAP and not gang.is_empty():
 		_expect(absf(buf[movers * 16 + 15] - CityLife.SC_PHONE) < 0.01, "the gang drawn in shape %.1f (want the stop's)" % buf[movers * 16 + 15])
 	if not gang.is_empty():
 		var gp: Vector3 = gang[0][0]

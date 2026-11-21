@@ -26,9 +26,11 @@ trams.gd, tram_fleet.gd, old_tram.gd   trams on the baked rails, same lights as 
 trains.gd                               trains on the baked railway tracks
 campus_cart.gd                          the University guards' cart on a fixed campus ring
 pedestrians.gd  walkers on footways in one MultiMesh, plus fixed "slots" other systems rent
-     ├─ crowds.gd        queues, roof crowds, river people (still figures, same mesh)
+     ├─ crowds.gd        queues, roof crowds, river people (still figures, same mesh); kind `bar` seats the boulevard bars (Landmarks.bulwar_bar_plans), the steps site also owns their props MultiMesh (steps_props.gdshader) and the mandat target (`steps_fine`)
      ├─ city_life.gd     dog walkers, cyclists, runners, Hyrax, the Wiralek trend cycle,
      │                   the Kukuryźnik e-scooter riders (docs/design/kukuryznik.md)
+     │   ├─ boulevard_life.gd  the Vistula steps' life: police/Straż patrol with a dog, walkers, queues, scooters (closed-form poses)
+     │   └─ kladka_life.gd     the footbridge's walkers, cyclists, scooters (closed-form poses on the bridge's line)
      ├─ packs.gd         running clubs and coffee crowds
      ├─ fans.gd          football fans on match evenings
      └─ wellness.gd      sound healing, yoga and other park circles
@@ -127,7 +129,9 @@ skill, not from the player's speed. All eight steps are built (race-ai.md sectio
   kit is on; `request_up`: no other's request card is up beside the road). The camera does not
   turn to look at the finish (`target_source` "race") and the race is the main line's target while the
   guide runs or when it is the final or the next rung's race (`main_target`, `main_race`). The script keeps the rivals, the challenge, the words, the pay, the talk,
-  the ghost and the player's checkpoints.
+  the ghost and the player's checkpoints. It wires itself (TD-4 b11): `install` takes its fields from the
+  game's ctx, `setup_in` gives `setup` the map data (the finishes, the Trzy mosty route), and `joined`
+  makes `--ladder` and `--trzy-mosty`'s preset.
 - The night club's pack race (`street_meet.gd`, `ladder.gd` `CLUB`) races on the session too
   (step 6b part 1b): a plan, a racing line, shortcuts and lights each, and no report. The
   autopilot's ghost and Halina's roll-up behind the car before the first race (`call_first`)
@@ -184,6 +188,18 @@ traffic Driver because the campus paths are not in the lane graph.
   material. They switch on by the game clock and place (`hours`, weekdays).
 - **The leap** (`leap`, F's scooter chaos): walkers ahead of a Kukuryźnik hop to the far side of their
   footway; the shout is city_life.gd's, through the chatter budget.
+- **Schodki nad Wisłą life** (`boulevard_life.gd`, 2026-11-19): pure closed-form poses (a function
+  of the clock, no state) for a Policja or Straż Miejska patrol (with a dog at night), evening and
+  day walkers, the food queues and scooter/rollerblade riders along the Vistula steps by Kopernik.
+  `city_life.gd` writes them into guest slots (`BLVD_BIT` in `_shown`, 7.5 Hz), the dog MultiMesh and
+  one small `Scooters` MultiMesh (the bike family's four shapes were taken: +1 draw call). Not
+  Beehave: one fixed loop per figure. Lines: `policja_bulwar` (`say_ambient`).
+- **Kładka Abakanowicz life** (`kladka_life.gd`, 2026-11-20): the same pattern on the footbridge's
+  line (the map's `kladka` stamp): walkers, joggers, families, cyclists (the `Scooters` family's
+  third shape, +0 draw calls), scooters and a rollerblader. `city_life.gd` runs it on the steps'
+  bit and slots when the view is near the bridge instead (the two lie 620 m apart). The sitters on
+  the seating bays and the railing's standers are crowds.gd kind `kladka` (two sites, the steps'
+  evening curve). Lines: `kladka` (`say_ambient`). Not Beehave, not Dialogue Manager.
 - **Reactions** go through bubbles and the chatter budget (`say_reaction`, `say_ambient`), never a
   private cooldown.
 

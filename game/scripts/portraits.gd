@@ -12,7 +12,8 @@ extends RefCounted
 const DIR := "res://art/portraits/"
 ## A name whose face file has a longer key (the only Kuba who calls is the padel one).
 const ALIAS := {"kuba": "kuba_padel", "bogdan": "bogdan_tenis", "sierzant": "sierzant_bogdan", "straznik": "henio",
-		"mistrz": "pan_dymek", "taksiarz": "taksiarz_zbyszek", "sloik": "sloik", "mordor": "mordor_mike", "trener": "trener_dominik", "dj": "club_dj"}
+		"mistrz": "pan_dymek", "taksiarz": "taksiarz_zbyszek", "sloik": "sloik", "mordor": "mordor_mike", "trener": "trener_dominik", "dj": "club_dj",
+		"bartek": "bartek_padel", "posterunkowy": "kacper", "zbyszek": "pan_zbyszek"}
 ## First words that are not a name on their own: the file key is this word and the next ("Pani Halina" ->
 ## pani_halina, "Pan Kołek" -> pan_kolek, "Bulwar Bartek" -> bulwar_bartek).
 const TITLES := ["pan", "pani", "bulwar"]
@@ -24,6 +25,9 @@ const NO_FACE := ["ty", "you", "nawigacja", "start", "kebab", "podwozka", "winda
 		# F 2026-11-16: things that talk (eggs.gd) get no portrait, only people and heroes do
 		"palma", "golab", "barierka", "patelnia", "syrenka", "pan_paw"]
 
+## Whole names whose first word alone would give another face ("DJ na patio" stays the club's DJ).
+const FULL := {"dj espresso": "dj_espresso"}
+
 static var _cache := {}
 
 
@@ -31,6 +35,9 @@ static var _cache := {}
 static func face(who: String) -> Texture2D:
 	var k := key(who)
 	k = String(ALIAS.get(k, k))
+	for full: String in FULL:
+		if plain(who).to_lower().begins_with(full):
+			k = String(FULL[full])
 	if k == "":
 		return null
 	if not _cache.has(k):

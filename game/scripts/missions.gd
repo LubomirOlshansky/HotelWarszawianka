@@ -102,6 +102,27 @@ var _want_peacock := false
 var _offer_life := 0.0
 
 
+## Wires the rescue line from the game (activity.gd `install`; main.gd's `_build_world` until TD-4
+## b12): the base gives it the HUD, the wallet, the map and the clock. Never off: every run has it.
+## G12: the calls that come in by themselves follow the vehicle, except under --mission. The person's
+## line hangs over the vehicle's cabin (`vehicle_anchor`), higher over the helicopter.
+func install(ctx: GameCtx) -> bool:
+	super(ctx)
+	line_split = ctx.flags.start_mission == 0  # G12: calls follow the vehicle (quest_lines.gd)
+	player = ctx.car.global_position
+	var vehicle_now := ctx.vehicle
+	vehicle_anchor = func() -> Vector3:
+		var v: Array = vehicle_now.call()
+		return (v[0] as Vector3) + Vector3(0, 4.0 if v[2] else 2.2, 0)
+	return true
+
+
+## Its setup takes frames (the places of each kind), so main.gd awaits `setup` itself right after the
+## install, as before (`_install` does not wait).
+func setup_in(_ctx: GameCtx) -> void:
+	pass
+
+
 ## The places from `data` (the map's roads, landmarks and pois), the two beacons in `world`, the
 ## HUD's buttons. Not the kit's `setup(world)`: the line has no beacon of the kit's and no clock of
 ## its own; it is ticked by main.gd (`tick`) at its old place in the frame.
@@ -344,7 +365,7 @@ func _show_ring() -> void:
 	state = State.RINGING
 	card_life = INF  # the pill waits until pressed
 	if hud.get("messages") != null:
-		hud.messages.call_rang()
+		hud.messages.call_rang(false)  # the pill waits until pressed: its gap counts from the ring
 	hud.show_pill("WEZWANIE", "rescue call")
 	if hud.pad_mode:
 		hud.toast(Gamepad.fmt("Wezwanie ratunkowe! {a}: odbierz."), Gamepad.fmt("A rescue call came in: {a} to answer."))
@@ -509,6 +530,7 @@ func _run_tick(dt: float) -> void:
 	var flying := _flying
 	if not calls_off:
 		_time_left -= dt
+		hud.tick_clock(_time_left)
 	if _time_left <= 0.0:
 		_finish(false, ["Czas minął. Przejęła inna załoga.", "Out of time. Another crew took over."])
 		return
@@ -601,6 +623,7 @@ func _finish(success: bool, why: Array) -> void:
 				"Safe and sound at the hospital: time, score and pay above.")
 		hud.own_card(self)
 		Access.buzz(120, 0.8)
+		hud.cue("win")
 		if dialogue != null:
 			dialogue.say(_dropoff, "Ratownik", "rescue_done", "peacock" if _mission.get("peacock", false) else "", 5.0, _dropoff_colour(), 3.6)
 	else:
@@ -610,6 +633,7 @@ func _finish(success: bool, why: Array) -> void:
 				PackedStringArray(["TRY AGAIN", "NEXT CALL", "FREE ROAM"]), FAIL_COLOUR, false, "Too late",
 				"%s Score total %d." % [why[1], total_score])
 		hud.own_card(self)
+		hud.cue("fail")
 
 
 ## The call for mission n: a place of its kind a short trip from the player

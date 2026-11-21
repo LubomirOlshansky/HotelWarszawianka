@@ -168,6 +168,18 @@ static func look_row(ty: StringName) -> Dictionary:
 	return (_looks["row"] as Dictionary).get(ty, {})
 
 
+## W6 of the walls look (walls doc 7): what a broken panel of type `ty` throws, its looks row's
+## `debris` ("metal", "wood", "sheet", "leaf"), or "" for a type with no row or no `debris`.
+static func debris_of(ty: StringName) -> String:
+	return str(look_row(ty).get("debris", ""))
+
+
+## W6: the colour of debris `kind` (the palette's "debris" table; an unknown kind is metal's).
+static func debris_colour(kind: String) -> Color:
+	var table: Dictionary = _looks["debris"]
+	return Color(str(table.get(kind, table.get("metal", "#3b3f44"))))
+
+
 ## W2: the palette's looks and its `barrier_look`, checked as `_load_types` checks the types: a row
 ## without an id or a draw, or an id twice, is reported and left out; a key outside BARRIER_LOOKS
 ## is reported and read as classic.
@@ -176,7 +188,7 @@ static func _load_looks() -> Dictionary:
 	var rows := {}
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(PALETTE)) if FileAccess.file_exists(PALETTE) else null
 	if not parsed is Dictionary:
-		return {"list": list, "row": rows, "key": "classic"}
+		return {"list": list, "row": rows, "key": "classic", "debris": {}}
 	var key := str((parsed as Dictionary).get("barrier_look", "classic"))
 	if not StringName(key) in BARRIER_LOOKS:
 		push_error("solidity: %s barrier_look %s is not one of %s: classic" % [PALETTE, key, BARRIER_LOOKS])
@@ -189,7 +201,8 @@ static func _load_looks() -> Dictionary:
 		(row as Dictionary).make_read_only()
 		list.append(id)
 		rows[id] = row
-	return {"list": list, "row": rows, "key": key}
+	var debris: Variant = (parsed as Dictionary).get("debris", {})
+	return {"list": list, "row": rows, "key": key, "debris": debris if debris is Dictionary else {}}
 
 
 ## The palette's types, checked: a row without an id or a draw, or an id twice, is reported
