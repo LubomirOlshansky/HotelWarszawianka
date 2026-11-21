@@ -47,13 +47,13 @@ const MODELS := {
 	"arm64": Tiers.HIGH, "x86_64": Tiers.HIGH, "GenericDevice": Tiers.HIGH, "": Tiers.HIGH,
 	"iPhone": Tiers.HIGH, "iPhone12": Tiers.HIGH, "iPhoneX,1": Tiers.HIGH,
 }
-## Screen -> the Sharp image at Low, Medium, High, Ultra, Experimental (F 2026-11-10: the screen's
-## own pixels).
+## Screen -> the Sharp image at Low, Medium, High, Ultra, Max (perf thread, F 2026-11-20: Ultra and Max
+## keep High's budget, x2 on every phone; the Image switch's Full is the screen's own pixels).
 const IMAGES := {
-	Vector2i(1792, 828): [Vector2i(896, 414), Vector2i(896, 414), Vector2i(896, 414), Vector2i(1792, 828), Vector2i(1792, 828)],
-	Vector2i(2532, 1170): [Vector2i(844, 390), Vector2i(844, 390), Vector2i(1266, 585), Vector2i(1266, 585), Vector2i(2532, 1170)],
-	Vector2i(2868, 1320): [Vector2i(956, 440), Vector2i(956, 440), Vector2i(1434, 660), Vector2i(1434, 660), Vector2i(2868, 1320)],
-	Vector2i(1334, 750): [Vector2i(667, 375), Vector2i(667, 375), Vector2i(667, 375), Vector2i(1334, 750), Vector2i(1334, 750)],
+	Vector2i(1792, 828): [Vector2i(896, 414), Vector2i(896, 414), Vector2i(896, 414), Vector2i(896, 414), Vector2i(896, 414)],
+	Vector2i(2532, 1170): [Vector2i(844, 390), Vector2i(844, 390), Vector2i(1266, 585), Vector2i(1266, 585), Vector2i(1266, 585)],
+	Vector2i(2868, 1320): [Vector2i(956, 440), Vector2i(956, 440), Vector2i(1434, 660), Vector2i(1434, 660), Vector2i(1434, 660)],
+	Vector2i(1334, 750): [Vector2i(667, 375), Vector2i(667, 375), Vector2i(667, 375), Vector2i(667, 375), Vector2i(667, 375)],
 }
 ## main.gd STYLES' lines: Sharp, Fine, Clean, Chunky.
 const LINES := [480.0, 360.0, 240.0, 170.0]
@@ -197,8 +197,8 @@ func _check_sharp() -> void:
 			problems.append("Auto on %s %s: %s %dx%d, wanted %s %dx%d" % [c[0], "sharp" if c[1] else "fallback",
 					Tiers.NAMES[level], img.x, img.y, Tiers.NAMES[c[2]], c[3].x, c[3].y])
 	var eleven := Vector2(1792, 828)
-	if Tiers.image_scale(eleven, LINES[0], Tiers.HIGH) != 2 or Tiers.image_scale(eleven, LINES[0], Tiers.ULTRA) != 1:
-		problems.append("manual levels on the iPhone 11: Wysoka x%d (wanted 2), Ultra x%d (wanted 1)" % [
+	if Tiers.image_scale(eleven, LINES[0], Tiers.HIGH) != 2 or Tiers.image_scale(eleven, LINES[0], Tiers.ULTRA) != 2:
+		problems.append("manual levels on the iPhone 11: Wysoka x%d (wanted 2), Ultra x%d (wanted 2)" % [
 				Tiers.image_scale(eleven, LINES[0], Tiers.HIGH), Tiers.image_scale(eleven, LINES[0], Tiers.ULTRA)])
 	for d in [[Tiers.describe(Tiers.AUTO, Tiers.HIGH, "iPhone12,1", 1, "sharp"), "Auto→High ×1 sharp (iPhone12,1)"],
 			[Tiers.describe(Tiers.AUTO, Tiers.HIGH, "iPhone12,1", 2, "fallback"), "Auto→High ×2 fallback (iPhone12,1)"],
@@ -289,19 +289,39 @@ func _check_experimental() -> void:
 	for model: String in MODELS:
 		if Tiers.for_model(model) == Tiers.EXPERIMENTAL:
 			problems.append("Auto picks Experimental on %s" % model)
+	# Perf thread (F 2026-11-20): Max (was Experimental) draws the style's own scale like High and
+	# Ultra (no budget), and the Image switch's Full draws x1 on any level.
 	for screen: Vector2i in IMAGES:
 		for lines in LINES:
-			if Tiers.image_scale(Vector2(screen), lines, Tiers.EXPERIMENTAL) != 1:
-				problems.append("Experimental at %dx%d, %.0f lines: x%d, wanted x1" % [screen.x, screen.y, lines,
-						Tiers.image_scale(Vector2(screen), lines, Tiers.EXPERIMENTAL)])
+			var ultra := Tiers.image_scale(Vector2(screen), lines, Tiers.ULTRA)
+			if Tiers.image_scale(Vector2(screen), lines, Tiers.EXPERIMENTAL) != ultra:
+				problems.append("Max at %dx%d, %.0f lines: x%d, wanted Ultra's x%d" % [screen.x, screen.y, lines,
+						Tiers.image_scale(Vector2(screen), lines, Tiers.EXPERIMENTAL), ultra])
+	Tiers.full_image = true
 	for q in Tiers.QUALITY.size():
-		var on := q == Tiers.EXPERIMENTAL
-		if (int(Tiers.extra(q, "msaa")) != Viewport.MSAA_DISABLED) != on or (float(Tiers.extra(q, "lod")) < 1.0) != on \
-				or (int(Tiers.extra(q, "soft")) != RenderingServer.SHADOW_QUALITY_HARD) != on or bool(Tiers.extra(q, "full")) != on:
-			problems.append("%s: the trailer's extras %s" % [Tiers.NAMES[q], "missing" if on else "where only Experimental has them"])
-	if Tiers.describe(Tiers.EXPERIMENTAL, Tiers.EXPERIMENTAL, "iPhone17,2", 1) != "Experimental ×1":
-		problems.append("describe Experimental: \"%s\"" % Tiers.describe(Tiers.EXPERIMENTAL, Tiers.EXPERIMENTAL, "iPhone17,2", 1))
-	print("experimental: opt-in on %d model ids, x1 on %d screens x %d styles, extras only there" % [
+		if Tiers.image_scale(Vector2(1792, 828), 480.0, q) != 1 or Tiers.image_scale(Vector2(2868, 1320), 170.0, q) != 1:
+			problems.append("%s: the Full image is not x1" % Tiers.NAMES[q])
+	Tiers.full_image = false
+	Tiers.overrides = {"full": true}
+	if Tiers.image_scale(Vector2(2868, 1320), 480.0, Tiers.EXPERIMENTAL) != 1:
+		problems.append("--gfx=full=true is not x1 (the budget still binds)")
+	Tiers.overrides = {}
+	# The extras: MSAA and soft shadows on Ultra and Max; LOD 0, 16x anisotropic and the detailed trees on Max only.
+	for q in Tiers.QUALITY.size():
+		var top := q >= Tiers.ULTRA
+		var mx := q == Tiers.EXPERIMENTAL
+		if (int(Tiers.extra(q, "msaa")) != Viewport.MSAA_DISABLED) != top \
+				or (int(Tiers.extra(q, "soft")) != RenderingServer.SHADOW_QUALITY_HARD) != top \
+				or (float(Tiers.extra(q, "lod")) < 1.0) != mx or bool(Tiers.value(q, "fine_trees", false)) != mx:
+			problems.append("%s: the extras are not as the perf thread set them" % Tiers.NAMES[q])
+	# Ultra keeps High's budget: x2 on the iPhone 11 (it was x1 at 41.8 fps).
+	if Tiers.image_scale(Vector2(1792, 828), 480.0, Tiers.ULTRA) != 2:
+		problems.append("Ultra on the iPhone 11: x%d, wanted x2" % Tiers.image_scale(Vector2(1792, 828), 480.0, Tiers.ULTRA))
+	if int(Tiers.value(Tiers.LOW, "cap", 0)) != 30 or int(Tiers.value(Tiers.HIGH, "cap", 0)) != 0:
+		problems.append("the frame cap: Low %s, High %s (wanted 30, none)" % [Tiers.value(Tiers.LOW, "cap", 0), Tiers.value(Tiers.HIGH, "cap", 0)])
+	if Tiers.describe(Tiers.EXPERIMENTAL, Tiers.EXPERIMENTAL, "iPhone17,2", 2) != "Max ×2" or Tiers.parse("max") != Tiers.EXPERIMENTAL:
+		problems.append("describe Max: \"%s\"" % Tiers.describe(Tiers.EXPERIMENTAL, Tiers.EXPERIMENTAL, "iPhone17,2", 2))
+	print("max: opt-in on %d model ids, its own scale on %d screens x %d styles, Full x1 everywhere, the extras by level" % [
 			SCREENS.size() + MODELS.size(), IMAGES.size(), LINES.size()])
 
 
@@ -324,7 +344,7 @@ func _check_overrides() -> void:
 		if Tiers.image_scale(Vector2(2868, 1320), 480.0, q) != 2 or Tiers.own_scale(Vector2(1792, 828), 480.0, q) != 2:
 			problems.append("%s: scale=2 not exact" % Tiers.NAMES[q])
 	Tiers.overrides = {}
-	if int(Tiers.value(Tiers.ULTRA, "shadow_size")) != 4096 or Tiers.image_scale(Vector2(1792, 828), 480.0, Tiers.ULTRA) != 1:
+	if int(Tiers.value(Tiers.ULTRA, "shadow_size")) != 4096 or Tiers.image_scale(Vector2(1792, 828), 480.0, Tiers.ULTRA) != 2:
 		problems.append("cleared overrides: Ultra no longer its own row")
 	for pair: Array in [["A063", "Adreno (TM) 642L", Tiers.LOW], ["SM-S918B", "Adreno (TM) 740", Tiers.HIGH],
 			["iPhone17,2", "Apple A18 Pro GPU", Tiers.ULTRA], ["A063", "", Tiers.HIGH], ["X", "Adreno (TM) 530", Tiers.LOW]]:
@@ -366,7 +386,8 @@ func _check_mac() -> void:
 		problems.append("mac: --gfx= overrides no longer win")
 	Tiers.overrides = {}
 	Tiers.mac = false
-	if Tiers.image_scale(Vector2(3024, 1964), 480.0, Tiers.ULTRA) != 4 or int(Tiers.extra(Tiers.ULTRA, "msaa")) != Viewport.MSAA_DISABLED:
+	# The phone's rules (perf thread 2026-11-20: Ultra has MSAA 4x on a phone too; High none).
+	if Tiers.image_scale(Vector2(3024, 1964), 480.0, Tiers.ULTRA) != 4 or int(Tiers.extra(Tiers.HIGH, "msaa")) != Viewport.MSAA_DISABLED:
 		problems.append("mac off: the phone's rules did not come back")
 	# The keys that hide the touch pads, the presses that bring them back.
 	for row: Array in [[KEY_W, true], [KEY_M, true], [KEY_LEFT, true], [KEY_SPACE, true], [KEY_ESCAPE, false],

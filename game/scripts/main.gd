@@ -2115,7 +2115,7 @@ func _apply_experimental() -> void:
 	sv.mesh_lod_threshold = Tiers.extra(quality, "lod")
 	RenderingServer.directional_soft_shadow_filter_set_quality(Tiers.extra(quality, "soft"))
 	if on:
-		print("quality: Experimental's extras on · full-resolution image, %d sun shadow map with soft edges, MSAA 4x, 16x anisotropic, every mesh at full detail" % int(QUALITY[quality]["shadow_size"]))
+		print("quality: Max's extras on · %d sun shadow map with soft edges, MSAA 4x, 16x anisotropic, every mesh at full detail, the detailed trees" % int(QUALITY[quality]["shadow_size"]))
 
 
 ## Loop G1: the quality's extras as they are now: the level's own, less what the governor took
@@ -2304,6 +2304,8 @@ func _update_perf(dt: float) -> void:
 ## of it paced worse (7.8 % of frames a little late against 4.6 %); 30 uses Engine.max_fps.
 func _apply_fps() -> void:
 	var cap: int = settings.fps
+	var lv := int(Tiers.value(quality, "cap", 0))  # perf thread: Low runs at 30 (tiers.gd `cap`)
+	if lv > 0 and cap > lv: cap = lv
 	if flags._flag_fps >= 0:
 		cap = flags._flag_fps
 	if flags.bench or flags.probe or DisplayServer.get_name() == "headless":
@@ -4452,6 +4454,7 @@ func _load_settings() -> void:
 	quality_choice = flags._flag_quality if flags._flag_quality != -2 else settings.quality
 	quality = auto_quality if quality_choice == Tiers.AUTO else quality_choice
 	_keep.launch(self)
+	Tiers.full_image = settings.image_full
 	print("quality: %s · Auto picks %s for %s" % [Tiers.describe(quality_choice, quality, model_name),
 			Tiers.NAMES[auto_quality], model_name])
 	# Loop G1b: Auto's sharp image or its fallback, from the saved state (or --last-session=).
@@ -5018,7 +5021,7 @@ func _settings_state() -> Dictionary:
 	if flags.lines_override <= 0 and Tiers.budget_binds(get_viewport().get_visible_rect().size, STYLES[style_index]["lines"], auto_quality):
 		auto_name += " ostry" if auto_sharp else " ×%d" % Tiers.image_scale(get_viewport().get_visible_rect().size,
 				STYLES[style_index]["lines"], auto_quality)
-	return {"controls": controls.scheme, "follow": follow, "traffic": traffic_level, "quality": quality_choice + 1,
+	return {"controls": controls.scheme, "follow": follow, "traffic": traffic_level, "quality": quality_choice + 1, "image": int(settings.image_full),
 			"auto": auto_name,
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
@@ -5117,6 +5120,11 @@ func _on_setting(key: String, value: Variant) -> void:
 			_apply_traffic()
 		"quality":
 			_set_quality(int(value) - 1)
+			_apply_fps()  # perf thread: a level's own cap (Low: 30)
+		"image":  # perf thread (F 2026-11-20): Obraz Piksel / Pełny, the screen's own pixels on any level
+			settings.image_full = int(value) == 1
+			Tiers.full_image = settings.image_full
+			_apply_style()
 		"perf":
 			settings.perf = int(value) == 1
 			_set_perf(settings.perf)

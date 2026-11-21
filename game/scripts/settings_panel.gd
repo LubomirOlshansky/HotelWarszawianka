@@ -90,7 +90,10 @@ const TRAFFIC := [["Pustawo", "Almost empty"], ["Mało", "Low"], ["Normalnie", "
 ## F 2026-11-10: Experimental after Ultra (tiers.gd: Ultra plus the trailer's extras, to test on the
 ## phone; this session only, never saved).
 const QUALITY := [["Auto", "auto"], ["Niska", "Low"], ["Średnia", "Medium"], ["Wysoka", "High"], ["Ultra", "Ultra"],
-		["Eksperyment", "Experimental"]]
+		["Maks", "Max"]]
+## Perf thread (F 2026-11-20): the 3D image, the pixel look's own (x2 on a phone) or the screen's own
+## pixels (settings.gd image_full, tiers.gd full_image).
+const IMAGE := [["Piksel", "Pixel"], ["Pełny", "Full"]]
 const ON_OFF := [["Wył.", "Off"], ["Wł.", "On"]]
 ## F 2026-11-17: DEV's camera view (settings.gd `camera_view`).
 const CAMERA_VIEW := [["Normalny", "Normal"], ["Z góry", "Top"], ["Z lotu", "Aerial"]]
@@ -117,7 +120,7 @@ var safe := Rect2()
 ## The RAPORT button on the sound page (the error trap, TD-14): our own debug builds have it,
 ## testers' builds do not (F, 2026-11-12).
 var report_on := OS.is_debug_build()
-## The DEV page was opened in this run (`_dev_tap`): Experimental quality shows on Obraz too.
+## The DEV page was opened in this run (`_dev_tap`).
 var dev_on := false
 var _dev_taps := 0
 var _dev_tap_ms := -100000
@@ -301,7 +304,7 @@ func _build() -> void:
 	# 2026-11-01 (F): the Style picker is gone (always the sharp image); the old VHS tape is now
 	# the "Retro" vaporwave filter (vhs.gdshader), the one switch left in the first row.
 	# F (2026-11-07): the camera's angle beside Retro (follow_camera.gd PITCHES, key "angle").
-	var picture := _rows(body, [3, 1, 2])
+	var picture := _rows(body, [3, 1, 3])
 	_heading(picture[0], "Retro · vaporwave", "Retro filter")
 	_segments(picture[0], "vhs", ON_OFF)
 	_heading(picture[1], "Kąt kamery", "Camera angle")
@@ -319,9 +322,10 @@ func _build() -> void:
 	var quality := QUALITY.duplicate(true)
 	quality[0] = ["Auto · %s" % _auto_name, "Auto · %s" % _auto_name]
 	_segments(picture[3], "quality", quality)
-	_groups["quality"][QUALITY.size() - 1].visible = dev_on  # Experimental: DEV only (it heats the phone)
 	_heading(picture[4], "Klatki na sekundę", "Frame rate")
 	_segments(picture[4], "fps", FPS)
+	_heading(picture[5], "Obraz", "Image")
+	_segments(picture[5], "image", IMAGE)
 	# Loop MW-6: the photo mode (fotka.gd), from the pause card. (The overlay and TEST are on DEV.)
 	var photo := _word_button("FOTKA", "PHOTO")
 	photo.name = "fotka"
@@ -329,7 +333,7 @@ func _build() -> void:
 	photo.pressed.connect(func():
 		close()
 		changed.emit("fotka", 1))
-	picture[5].add_child(photo)
+	picture[6].add_child(photo)
 	# Dźwięk · Sound.
 	var sound := _page(body, 2)
 	for l in LEVELS:
@@ -566,12 +570,12 @@ func dev_tap() -> bool:
 	return true
 
 
-## Opens the DEV page (and from now on Experimental quality shows on Obraz).
+## Opens the DEV page. (Max quality, once Experimental behind DEV, is on Obraz for everyone since
+## the perf thread, F 2026-11-20.)
 func show_dev() -> void:
 	dev_on = true
 	if not _built:
 		return
-	(_groups["quality"][QUALITY.size() - 1] as Button).visible = true
 	set_tab(DEV_PAGE)
 	if Gamepad.in_use():
 		pad_focus()
@@ -738,9 +742,6 @@ func sync(state: Dictionary) -> void:
 	_set_auto_name(str(state.get("auto", _auto_name)))
 	for key in _groups:
 		_select(key, int(values.get(key, 0)))
-	# Perf thread: Experimental is saved now, so a saved Experimental shows even before DEV opens.
-	if _groups.has("quality") and int(values.get("quality", 0)) == QUALITY.size() - 1:
-		(_groups["quality"][QUALITY.size() - 1] as Button).visible = true
 	for key in _stepbars:
 		_values[key] = int(values.get(key, 0))
 		(_stepbars[key] as Control).queue_redraw()
