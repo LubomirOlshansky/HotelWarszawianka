@@ -37,6 +37,10 @@ SECONDS and --skip are whole seconds. **Always pass `--lines=` equal to the vide
 Reels): the style draws a fixed line count (Sharp 480), so a tall frame without it is blown-up blocks.
 Also pass `--governor=off`: otherwise the frame governor drops Experimental to Ultra mid-render.
 Use a flag ARRAY in zsh (`Q=(--nohud ...)`), never a string, or the flags are silently dropped. `--preview` renders at half size and High for framing rounds.
+**Reels are 30 fps** (F, 2026-11-21: "for Instagram we need 30 only"): leave `--fps` at 30; 60 only for a trailer
+that F asked for in 60. **One Godot on the Mac at a time** (ask the coordinator who holds the Mac); run each
+take under `caffeinate -dimsu` with the Godot window uncovered: a covered or sleeping window makes Movie
+Maker repeat the last frame, and two Godots at once froze whole takes.
 
 Flags that make shots (full table: `grep '^| \`--' docs/archive/DEVELOPMENT-full.md`):
 `--at=X,Z --heading=DEG` place the car (x east, z south, heading clockwise from north);
@@ -93,5 +97,8 @@ badge rules do not cover TestFlight or open testing). Real platform names only a
    blocks, no ghosting, light right for the time.
 2. Contact sheet of the cut (`ffmpeg -i OUT.mp4 -vf "fps=6,scale=180:-2,tile=10x3" -frames:v 1 sheet.png`) and
    `ffprobe` the streams: 1080x1920, 30 fps, h264 + aac 48 kHz.
+   **Frozen-frame check on every take** (a 30 s palm take came out static after 6 s and the sheet hid it):
+   `ffmpeg -i TAKE.mp4 -vf "mpdecimate=hi=256:lo=64:frac=0.1,showinfo" -f null - 2>&1 | grep -c "Parsed_showinfo.*pts_time"`
+   must be close to the frame count (30 s at 30 fps = 900); far below means re-shoot, never deliver.
 3. Show F the draft (attach the MP4) before calling it final; name what only his phone shows
    (how Instagram's UI covers it, the sound).
