@@ -1224,7 +1224,13 @@ func parse_with(args: PackedStringArray) -> void:
 			live_clock = "16:40"
 		if start_time == TimeOfDay.DAY:
 			start_time = TimeOfDay.DUSK
-	cinematic_flyin = normal or _flag_cinematic in ["all", "flyin", "opening", "event"]
+	if _flag_cinematic == "jarmark":
+		# The Jarmark reel: blue hour at the market unless --clock says other.
+		if live_clock == "":
+			live_clock = "18:30"
+		if start_time == TimeOfDay.DAY:
+			start_time = TimeOfDay.DUSK
+	cinematic_flyin = normal or _flag_cinematic in ["all", "flyin", "opening", "event", "jarmark"]
 	cinematic_look = normal or _flag_cinematic in ["all", "look"]
 	# Loop G1: the governor runs in a normal launch; test runs hold it so they repeat.
 	var test_run := DisplayServer.get_name() == "headless" or not m.shots.is_empty() or bench or probe or autopilot \

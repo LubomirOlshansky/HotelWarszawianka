@@ -74,6 +74,177 @@ const CAPTION_FADE := 0.6
 const EVENT_TIME := 15.0
 const CARD_IN := 13.5
 const CARD_FADE := 0.7
+## The Jarmark reel's shots (see docs/design/jarmark-reel.md): dur s each, keys as EVENT_KEYS with t from 0.
+const REEL_SHOTS: Array[Dictionary] = [
+	# 01 wide push-in, Palace upper left, tilting down (the opening)
+	{"dur": 6.0, "keys": [
+		{"t": 0, "at": Vector2(-1175, 185), "up": 0, "size": 400, "yaw": 52, "pitch": -28},
+		{"t": 2, "at": Vector2(-1135, 180), "up": 0, "size": 300, "yaw": 50, "pitch": -29},
+		{"t": 6, "at": Vector2(-1080, 185), "up": 0, "size": 150, "yaw": 42, "pitch": -36},
+	]},
+	# 02 pull-back reveal from the tower to the wide (the loop's end)
+	{"dur": 6.0, "keys": [
+		{"t": 0, "at": Vector2(-1080, 185), "up": 0, "size": 150, "yaw": 42, "pitch": -36},
+		{"t": 4, "at": Vector2(-1130, 182), "up": 0, "size": 300, "yaw": 50, "pitch": -29},
+		{"t": 6, "at": Vector2(-1175, 185), "up": 0, "size": 400, "yaw": 52, "pitch": -28},
+	]},
+	# 03 tree orbit, half turn
+	{"dur": 7.0, "keys": [
+		{"t": 0, "at": Vector2(-981, 229), "up": 4, "size": 55, "yaw": 20, "pitch": -28},
+		{"t": 7, "at": Vector2(-981, 229), "up": 4, "size": 55, "yaw": 200, "pitch": -28},
+	]},
+	# 04 tower ride high orbit with a slow zoom in
+	{"dur": 7.0, "keys": [
+		{"t": 0, "at": Vector2(-1069, 177), "up": 25, "size": 110, "yaw": 0, "pitch": -22},
+		{"t": 7, "at": Vector2(-1069, 177), "up": 25, "size": 70, "yaw": 160, "pitch": -22},
+	]},
+	# 05 top-down turn over the huts
+	{"dur": 6.0, "keys": [
+		{"t": 0, "at": Vector2(-1000, 235), "up": 0, "size": 110, "yaw": 140, "pitch": -65},
+		{"t": 6, "at": Vector2(-1000, 235), "up": 0, "size": 95, "yaw": 100, "pitch": -68},
+	]},
+	# 06 low push-in down the aisle
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-1002, 305), "up": 0, "size": 26, "yaw": 140, "pitch": -13},
+		{"t": 5, "at": Vector2(-990, 250), "up": 0, "size": 22, "yaw": 142, "pitch": -15},
+	]},
+	# 07 carousel orbit
+	{"dur": 6.0, "keys": [
+		{"t": 0, "at": Vector2(-970, 262), "up": 4, "size": 42, "yaw": 90, "pitch": -26},
+		{"t": 6, "at": Vector2(-970, 262), "up": 4, "size": 36, "yaw": 200, "pitch": -24},
+	]},
+	# 08 rise and tilt reveal from the tree up to the Palace
+	{"dur": 6.0, "keys": [
+		{"t": 0, "at": Vector2(-981, 229), "up": 2, "size": 28, "yaw": 150, "pitch": -10},
+		{"t": 6, "at": Vector2(-1060, 195), "up": 40, "size": 150, "yaw": 140, "pitch": -33},
+	]},
+	# 09 lateral truck along the stalls
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-1040, 255), "up": 0, "size": 24, "yaw": 140, "pitch": -15},
+		{"t": 5, "at": Vector2(-995, 266), "up": 0, "size": 24, "yaw": 140, "pitch": -15},
+	]},
+	# 10 crane down into the crowd at the tree
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-981, 229), "up": 25, "size": 90, "yaw": 160, "pitch": -38},
+		{"t": 5, "at": Vector2(-981, 229), "up": 3, "size": 34, "yaw": 160, "pitch": -18},
+	]},
+	# 11 stage approach
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-1038, 271), "up": 0, "size": 60, "yaw": 150, "pitch": -22},
+		{"t": 5, "at": Vector2(-1038, 271), "up": 0, "size": 34, "yaw": 150, "pitch": -20},
+	]},
+	# 12 teacups and Santa's house orbit
+	{"dur": 6.0, "keys": [
+		{"t": 0, "at": Vector2(-1061, 198), "up": 4, "size": 44, "yaw": 200, "pitch": -26},
+		{"t": 6, "at": Vector2(-1061, 198), "up": 4, "size": 40, "yaw": 290, "pitch": -26},
+	]},
+	# 13 fly-over, Palace to the market
+	{"dur": 7.0, "keys": [
+		{"t": 0, "at": Vector2(-1180, 160), "up": 0, "size": 100, "yaw": 50, "pitch": -30},
+		{"t": 7, "at": Vector2(-1000, 235), "up": 0, "size": 100, "yaw": 50, "pitch": -30},
+	]},
+	# 14 fly-over back, market to the Palace
+	{"dur": 7.0, "keys": [
+		{"t": 0, "at": Vector2(-1000, 235), "up": 0, "size": 110, "yaw": 235, "pitch": -28},
+		{"t": 7, "at": Vector2(-1180, 160), "up": 0, "size": 110, "yaw": 235, "pitch": -28},
+	]},
+	# 15 high wide orbit
+	{"dur": 8.0, "keys": [
+		{"t": 0, "at": Vector2(-1050, 200), "up": 0, "size": 380, "yaw": 20, "pitch": -32},
+		{"t": 8, "at": Vector2(-1050, 200), "up": 0, "size": 380, "yaw": 120, "pitch": -32},
+	]},
+	# 16 slow zoom in on the Palace from the market
+	{"dur": 6.0, "keys": [
+		{"t": 0, "at": Vector2(-1195, 155), "up": 60, "size": 230, "yaw": 140, "pitch": -20},
+		{"t": 6, "at": Vector2(-1195, 155), "up": 60, "size": 120, "yaw": 140, "pitch": -20},
+	]},
+	# 17 hall and metro canopy, slow zoom out
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-970, 290), "up": 0, "size": 28, "yaw": 150, "pitch": -24},
+		{"t": 5, "at": Vector2(-970, 290), "up": 0, "size": 70, "yaw": 150, "pitch": -26},
+	]},
+	# 18 top-down tilt-up
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-1000, 235), "up": 0, "size": 130, "yaw": 140, "pitch": -80},
+		{"t": 5, "at": Vector2(-1000, 235), "up": 0, "size": 120, "yaw": 140, "pitch": -36},
+	]},
+	# 19 tree zoom out from the star
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-981, 229), "up": 10, "size": 24, "yaw": 170, "pitch": -14},
+		{"t": 5, "at": Vector2(-981, 229), "up": 6, "size": 64, "yaw": 170, "pitch": -26},
+	]},
+	# 20 tower ride seen from below
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-1069, 177), "up": 8, "size": 30, "yaw": 60, "pitch": -8},
+		{"t": 5, "at": Vector2(-1069, 177), "up": 8, "size": 36, "yaw": 100, "pitch": -10},
+	]},
+	# 21 Santa and the tree ride, gentle push
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-1043, 180), "up": 0, "size": 36, "yaw": 160, "pitch": -24},
+		{"t": 5, "at": Vector2(-1043, 180), "up": 0, "size": 26, "yaw": 160, "pitch": -22},
+	]},
+	# 22 far wide from the east, low and long
+	{"dur": 6.0, "keys": [
+		{"t": 0, "at": Vector2(-900, 240), "up": 0, "size": 700, "yaw": 240, "pitch": -14},
+		{"t": 6, "at": Vector2(-930, 238), "up": 0, "size": 560, "yaw": 236, "pitch": -16},
+	]},
+	# 23 diagonal fly over the huts
+	{"dur": 6.0, "keys": [
+		{"t": 0, "at": Vector2(-1030, 300), "up": 0, "size": 55, "yaw": 120, "pitch": -30},
+		{"t": 6, "at": Vector2(-960, 215), "up": 0, "size": 55, "yaw": 120, "pitch": -30},
+	]},
+	# 24 carousel close and low
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-970, 262), "up": 3, "size": 22, "yaw": 60, "pitch": -10},
+		{"t": 5, "at": Vector2(-970, 262), "up": 3, "size": 22, "yaw": 110, "pitch": -12},
+	]},
+	# 25 tree close-up rise to the star
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-981, 229), "up": 2, "size": 22, "yaw": 170, "pitch": -12},
+		{"t": 5, "at": Vector2(-981, 229), "up": 16, "size": 26, "yaw": 170, "pitch": -14},
+	]},
+	# 26 reverse wide orbit
+	{"dur": 8.0, "keys": [
+		{"t": 0, "at": Vector2(-1050, 200), "up": 0, "size": 170, "yaw": 200, "pitch": -32},
+		{"t": 8, "at": Vector2(-1050, 200), "up": 0, "size": 170, "yaw": 20, "pitch": -32},
+	]},
+	# 27 Palace tower and the market, vertical reveal
+	{"dur": 6.0, "keys": [
+		{"t": 0, "at": Vector2(-1190, 170), "up": 20, "size": 160, "yaw": 120, "pitch": -8},
+		{"t": 6, "at": Vector2(-1190, 170), "up": 90, "size": 260, "yaw": 100, "pitch": -30},
+	]},
+	# 28 closing key (same as the opening)
+	{"dur": 4.0, "keys": [
+		{"t": 0, "at": Vector2(-1175, 185), "up": 0, "size": 400, "yaw": 52, "pitch": -28},
+		{"t": 4, "at": Vector2(-1175, 185), "up": 0, "size": 400, "yaw": 52, "pitch": -28},
+	]},
+	# 29 F's still 1: the Palace and the market wide, slow push
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-1195, 155.2), "up": 0, "size": 566, "yaw": 52.5, "pitch": -28.6},
+		{"t": 5.0, "at": Vector2(-1195, 155.2), "up": 0, "size": 480, "yaw": 47, "pitch": -30},
+	]},
+	# 30 F's still 2: the rainbow tower and the market, drifting in
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-1039.9, 205.6), "up": 0, "size": 192.7, "yaw": 48.1, "pitch": -21.1},
+		{"t": 5.0, "at": Vector2(-1039.9, 205.6), "up": 0, "size": 150, "yaw": 55, "pitch": -23},
+	]},
+	# 31 F's still 3: low over the shops towards the Palace
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-904.8, 298.5), "up": 0, "size": 134.5, "yaw": 234.4, "pitch": -10.2},
+		{"t": 5.0, "at": Vector2(-904.8, 298.5), "up": 0, "size": 110, "yaw": 226, "pitch": -14},
+	]},
+	# 32 F's still 4: the stalls and the tower from the side
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-1090.2, 165.4), "up": 0, "size": 119.8, "yaw": 41, "pitch": -12.9},
+		{"t": 5.0, "at": Vector2(-1090.2, 165.4), "up": 0, "size": 100, "yaw": 50, "pitch": -17},
+	]},
+	# 33 F's still 5: the string lights and the sign, close
+	{"dur": 5.0, "keys": [
+		{"t": 0, "at": Vector2(-987.1, 266), "up": 0, "size": 52.2, "yaw": 142.5, "pitch": -23.4},
+		{"t": 5.0, "at": Vector2(-987.1, 266), "up": 0, "size": 42, "yaw": 150, "pitch": -24},
+	]},
+]
+
 const EVENT_KEYS: Array[Dictionary] = [
 	{"t": 0.0, "at": Vector2(-1214.0, 247.0), "up": 110.0, "size": 430.0, "yaw": 135.0, "pitch": -30.0},
 	{"t": 1.0, "at": Vector2(-1214.0, 247.0), "up": 110.0, "size": 425.0, "yaw": 135.0, "pitch": -30.0},
@@ -99,6 +270,8 @@ var event_tick: Callable
 var event_ground: Callable
 ## -1 plays the take; >= 0 freezes it at that second (stills for checking the path).
 var _event_freeze := -1.0
+## True while the Jarmark reel (REEL_SHOTS) plays in the EVENT state.
+var reel := false
 var follow_pcam: Node3D
 var shot_pcam: Node3D
 var mid_pcam: Node3D
@@ -201,8 +374,9 @@ func opening(car: Vector3, yaw: float, pitch: float, caption: PackedStringArray 
 
 ## The 11 listopada video: the take from t = 0 (or frozen at `freeze` s for a still). The HUD
 ## and the car are hidden by main.gd. `card` (PL, EN) is the title card shown at the end.
-func event(ground: Callable, tick: Callable, card: PackedStringArray, freeze := -1.0) -> void:
+func event(ground: Callable, tick: Callable, card: PackedStringArray, freeze := -1.0, as_reel := false) -> void:
 	_age = 0.0
+	reel = as_reel
 	event_ground = ground
 	event_tick = tick
 	_event_freeze = freeze
@@ -210,7 +384,8 @@ func event(ground: Callable, tick: Callable, card: PackedStringArray, freeze := 
 		moment = "event"
 		state = EVENT
 		_leg = maxf(freeze, 0.0)
-		_make_event_card(card)
+		if card.size() > 0:
+			_make_event_card(card)
 		print("camera: event take, %.0f s%s" % [EVENT_TIME, " (frozen at %.1f s)" % freeze if freeze >= 0.0 else ""])
 
 
@@ -535,15 +710,41 @@ static func _cr3(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, t: float) -
 ## The take's view at second `t`: a Catmull-Rom curve through EVENT_KEYS by their times (the size in
 ## log space), the focus's height from `ground` (a Callable x, z -> m). Static and pure.
 static func event_view(t: float, ground: Callable) -> Dictionary:
-	t = clampf(t, 0.0, EVENT_TIME)
-	var n := EVENT_KEYS.size() - 1
+	return keys_view(EVENT_KEYS, t, EVENT_TIME, ground)
+
+
+## The Jarmark reel (--cinematic=jarmark): REEL_SHOTS are played one after the other with hard cuts;
+## the view at second `t` of the whole reel (shot's index too). Static and pure.
+static func reel_view(t: float, ground: Callable) -> Dictionary:
+	t = clampf(t, 0.0, reel_time())
+	var at := 0.0
+	for i in REEL_SHOTS.size():
+		var d := float(REEL_SHOTS[i]["dur"])
+		if t < at + d or i == REEL_SHOTS.size() - 1:
+			var v := keys_view(REEL_SHOTS[i]["keys"], t - at, d, ground)
+			v["shot"] = i
+			return v
+		at += d
+	return {}
+
+
+static func reel_time() -> float:
+	var sum := 0.0
+	for sh in REEL_SHOTS:
+		sum += float(sh["dur"])
+	return sum
+
+
+static func keys_view(keys: Array, t: float, total: float, ground: Callable) -> Dictionary:
+	t = clampf(t, 0.0, total)
+	var n := keys.size() - 1
 	var seg := 0
-	while seg < n - 1 and t >= float(EVENT_KEYS[seg + 1]["t"]):
+	while seg < n - 1 and t >= float(keys[seg + 1]["t"]):
 		seg += 1
-	var k1: Dictionary = EVENT_KEYS[seg]
-	var k2: Dictionary = EVENT_KEYS[seg + 1]
-	var k0: Dictionary = EVENT_KEYS[maxi(seg - 1, 0)]
-	var k3: Dictionary = EVENT_KEYS[mini(seg + 2, n)]
+	var k1: Dictionary = keys[seg]
+	var k2: Dictionary = keys[seg + 1]
+	var k0: Dictionary = keys[maxi(seg - 1, 0)]
+	var k3: Dictionary = keys[mini(seg + 2, n)]
 	var u := clampf((t - float(k1["t"])) / (float(k2["t"]) - float(k1["t"])), 0.0, 1.0)
 	var ks := [k0, k1, k2, k3]
 	var fx := _cr(_k(ks[0], "at").x, _k(ks[1], "at").x, _k(ks[2], "at").x, _k(ks[3], "at").x, u)
@@ -562,16 +763,18 @@ static func _k(k: Dictionary, key: String) -> Vector2:
 
 
 func _event_frame(dt: float) -> void:
+	var total := reel_time() if reel else EVENT_TIME
 	if _event_freeze < 0.0:
-		_leg = minf(_leg + dt, EVENT_TIME)
-	var v := event_view(_leg, event_ground)
+		_leg = minf(_leg + dt, total)
+	var v := reel_view(_leg, event_ground) if reel else event_view(_leg, event_ground)
 	var cam: Camera3D = host.get_parent()
 	cam.size = v["size"]
 	cam.global_transform = v["xf"]
 	if event_tick.is_valid():
 		event_tick.call(_leg, v["focus"])
 	if _caption_box != null:
-		_caption_box.modulate.a = clampf((_leg - CARD_IN) / CARD_FADE, 0.0, 1.0)
+		var card_in := total - 4.0 if reel else CARD_IN
+		_caption_box.modulate.a = clampf((_leg - card_in) / CARD_FADE, 0.0, 1.0)
 
 
 ## The title card, centred: "11 LISTOPADA" big, the game's name and "za darmo" under it. Drawn by the
@@ -594,10 +797,18 @@ func _make_event_card(lines: PackedStringArray) -> void:
 	big.variation_embolden = 1.1
 	big.variation_transform = Transform2D(Vector2(1.0, 0.0), Vector2(-0.2, 1.0), Vector2.ZERO)
 	big.spacing_glyph = int(h * 0.012)
-	var title := _caption_label(lines[0] if lines.size() > 0 else "11 LISTOPADA", big, h * 0.13, Color.WHITE)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_caption_box.add_child(title)
-	var sub := _caption_label(lines[1] if lines.size() > 1 else "Around Warsaw · za darmo", ThemeDB.fallback_font, h * 0.045, Color("#ffd2d2"))
+	# A title may hold line breaks (the Jarmark reel's two lines); the size fits the screen's width too.
+	var w := get_viewport().get_visible_rect().size.x
+	var title_lines := (lines[0] if lines.size() > 0 else "11 LISTOPADA").split("\n")
+	var longest := 1
+	for tl in title_lines:
+		longest = maxi(longest, tl.length())
+	var title_px := minf(h * 0.13, w * 0.74 / (float(longest) * 0.78))
+	for tl in title_lines:
+		var title := _caption_label(tl, big, title_px, Color.WHITE)
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_caption_box.add_child(title)
+	var sub := _caption_label(lines[1] if lines.size() > 1 else "Around Warsaw · za darmo", ThemeDB.fallback_font, minf(h * 0.045, w * 0.046), Color("#ffd2d2"))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_caption_box.add_child(sub)
 

@@ -1265,7 +1265,7 @@ func _opening_due() -> bool:
 ## Camera loop: the fly-in from over the city down to the car (camera_shots.gd), or the opening
 ## flyover on a first launch.
 func _fly_in() -> void:
-	if flags._flag_cinematic == "event":
+	if flags._flag_cinematic in ["event", "jarmark"]:
 		_event_take()
 		return
 	var vehicle: Node3D = heli if flying else car
@@ -1308,6 +1308,12 @@ func _event_take() -> void:
 			last[0] = focus
 			streamer.finish_view(focus, cam)
 	var ground := func(x: float, z: float) -> float: return map.ground_height(x, z)
+	if flags._flag_cinematic == "jarmark":
+		# November: the trees bare (the shader global the seasons note describes), no title card (the
+		# reel's titles are put on in the edit).
+		RenderingServer.global_shader_parameter_set("tree_season", Vector4(1.0, 1.0, 0.0, 0.0))
+		moments.event(ground, tick, PackedStringArray(), flags.event_t, true)
+		return
 	moments.event(ground, tick, PackedStringArray(["11 LISTOPADA", "Around Warsaw · za darmo"]), flags.event_t)
 
 
