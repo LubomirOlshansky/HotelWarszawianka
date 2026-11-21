@@ -135,6 +135,7 @@ in one file, `data/pacing.json`, read by the offer pacer (`pacer.gd`, tech-debt 
 | `first_steps.gd` | The First steps list (first hour, step 3): the seven steps, their rewards, the save's `fs_` keys, the rows for the map's list. Pure. |
 | `hints.gd` (first hour step 6) | **The hints in play**: six short hints that show only to a player who has not done the thing, once (the ring's twice), never in a race, a chase, a scripted moment or under a card (`decide`, pure; `tick`, five times a second from main.gd `_hints_frame`); the words in `data/tips.json`, what was shown in the save's [intro] (`hint_<id>`), the ring and words on screen hud.gd's `spotlight`. `done_tags` tells the title which loading tips to put last. |
 | `spacer.gd`, `fotka.gd` | Wander mode (nothing comes by itself); photo mode. |
+| `promo_mode.gd` (F 2026-11-20) | Promo Mode, a DEV tool for framing trailer and Reels shots (Settings → DEV, `settings.promo`, off by default; `--promo[=free,grid,...]`): owns the main camera while on (`frame`, asked first by main.gd `_update_camera`; the streamer follows its focus), a CAR camera with its own yaw offset, tilt and view, a FREE camera that flies (drag, pinch, twist, eased GLIDE and SPIN; the car parked through `holds_car`), the clock's -15 / +15 and speed (through `game_time.gd` `nudge`), the readout, frame guides, thirds grid, HUD ghost / hidden, saved shots (`settings.promo_shots`) and COPY's game flags. Nothing built or run while off. |
 
 ## 5. Feedback: HUD, words and sound
 
@@ -182,7 +183,7 @@ See [graphics.md](graphics.md).
 | Script | Owns |
 | --- | --- |
 | `time_of_day.gd` | The game clock (30x, the sun by the date, the long golden hour) and dawn, day, dusk, night; sun, sky, grade, city lights; global shader uniforms. |
-| `game_time.gd` (F 2026-11-19) | **The time owner**: every activity's opening hours from `data/pacing.json` in one table (`hours`, `open_now`, `open_ids`), whether a friend may call now (`may_call`: the night friends call by day with `time.by_day`), the clock's jump with the look that fits (`jump`, `jump_into`: activity.gd `start` jumps a night run taken by day to its `run_hours`; story_quests.gd and main.gd's quest nights jump through it), and the map clock's words (`label`). |
+| `game_time.gd` (F 2026-11-19) | **The time owner**: every activity's opening hours from `data/pacing.json` in one table (`hours`, `open_now`, `open_ids`), whether a friend may call now (`may_call`: the night friends call by day with `time.by_day`), the clock's jump with the look that fits (`jump`, `jump_into`; Promo Mode's `nudge` moves it a quarter hour either way: activity.gd `start` jumps a night run taken by day to its `run_hours`; story_quests.gd and main.gd's quest nights jump through it), and the map clock's words (`label`). |
 | `grades.gd` | The colour looks (Settings → Kolory: Natural, the default, Neon, Classic): overrides on `time_of_day.gd`'s looks and the post pass's grade values. |
 | `weather.gd` | Rain and wetness. |
 | `tiers.gd` | Quality levels and what Auto picks per device. |
