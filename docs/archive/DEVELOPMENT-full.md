@@ -6085,6 +6085,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--fotka` / `--photo` | loop MW-6: open Fotka at the start (screenshots of the photo mode) |
 | `--kadr=<n\|id>` | loop MW-6: Fotka open at that Kadr spot (`kadr.json`, 1-15 or `k07`), in its look, aimed at its subject, a photo 2 s later; implies `--photo-log` |
 | `--fotka-shot=S` | loop MW-6: with `--fotka`, take a photo S s after it opens |
+| `--promo` / `--promo=free,lock,grid,ghost,nohud,clean,panel,16:9,9:16,4:5,1:1` | F 2026-11-20: Promo Mode on for the run (promo_mode.gd; the DEV setting "Promo mode"), with those switches set: the free camera, the locked yaw, the thirds grid, the HUD invisible or hidden, the panel hidden or open, a frame guide. Its COPY gives the `--cam= --yaw= --pitch= --size= --game-clock --clock= --date=` that render the same frame |
 | `--photo-log` | loop MW-6: print `fotka:` lines (open, close, `fotka: saved user://photos/... (WxH)`) and `kadr:` lines (`kadr: n ok (<id> ...)` or `kadr: none (why)`) |
 | `--crowd=0\|1\|2` | loop MW-3: the night and river crowds off (nothing built, no cost), normal (default) or doubled; the Low tier halves them |
 | `--night-log` | loop MW-3: print `night:` lines: the sites at the start, a summary every minute (`night: 01:00 day 6 · queues … smola 24 … · rejections 1 · car lines 0 · dawn walkers 30 · roof 0, steps 24, plan_c 28 · police on`), each rejection, line, police unit and the dawn routes |

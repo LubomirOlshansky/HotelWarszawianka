@@ -375,7 +375,8 @@ const BUDGET := {
 ## shader's windows on purpose (UV2.x a seed 0..1 or the typed tenement 1.x), the way a street
 ## block's `facade` walls do (fronts.gd _build_block): they go into the same building surface, so no
 ## draw call of their own; any plain triangle more than that number still fails.
-const KNOWN := {"port_praski": {"plain": 750}, "towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}, "tr": {"zfight": 8}}  # tr: 8 coplanar triangles in crane 1's A-frame legs at 36 m, not found (hidden in a lattice, never seen)
+## dom_chlopa "plain": the one wall quad (works.gd _dch_fill_front) over its south-west front, the same way.
+const KNOWN := {"port_praski": {"plain": 750}, "dom_chlopa": {"plain": 2}, "towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}, "tr": {"zfight": 8}}  # tr: 8 coplanar triangles in crane 1's A-frame legs at 36 m, not found (hidden in a lattice, never seen)
 
 var _probe: MeshProbe
 var problems: Array[String] = []

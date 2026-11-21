@@ -181,6 +181,9 @@ var tape_log := false
 var spacer_flag := -1
 var spacer_hint := -1.0
 var fotka_flag := false
+## --promo[=free,grid,ghost,nohud,clean,panel,9:16,4:5,1:1,16:9]: Promo Mode on for the run
+## (promo_mode.gd `use_flag`; the DEV setting's "promo"), with those of its switches set.
+var promo_flag := ""
 var kadr_flag := ""
 var photo_log := false
 ## --egg=e37: the street today's roadworks must be on (eggs.gd `force_street`).
@@ -1124,6 +1127,8 @@ func parse_with(args: PackedStringArray) -> void:
 			zone_cap_flag = 0
 		elif arg.begins_with("--spacer-hint="):
 			spacer_hint = float(arg.trim_prefix("--spacer-hint="))
+		elif arg == "--promo" or arg.begins_with("--promo="):
+			promo_flag = "on" if arg == "--promo" else arg.trim_prefix("--promo=")
 		elif arg == "--fotka" or arg == "--photo":
 			fotka_flag = true
 		elif arg.begins_with("--kadr="):

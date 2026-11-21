@@ -88,6 +88,10 @@ var pitch := FollowCamera.DEFAULT_PITCH
 ## (main.gd `top_down`: straight down, north up), 2 aerial (the website's high view). DEV →
 ## "Widok kamery · Camera view", key "camera_view".
 var camera_view := FollowCamera.VIEW_NORMAL
+## F 2026-11-20: Promo Mode (promo_mode.gd), DEV → "Tryb promo · Promo mode", key "promo"; off by
+## default. `promo_shots`: its saved frames, "x,y,z,yaw,pitch,size,hour,date" each.
+var promo := false
+var promo_shots := PackedStringArray()
 ## Loop 2e: main.gd STYLES (Sharp, Fine, Clean, Chunky) and the VHS overlay.
 var style := 0
 var vhs := false
@@ -197,6 +201,8 @@ func load_file() -> void:
 	if not pitch in FollowCamera.PITCHES:
 		pitch = FollowCamera.DEFAULT_PITCH
 	camera_view = clampi(int(cfg.get_value("display", "camera_view", camera_view)), 0, FollowCamera.VIEW_AERIAL)
+	promo = bool(cfg.get_value("debug", "promo", promo))
+	promo_shots = PackedStringArray(cfg.get_value("debug", "promo_shots", promo_shots))
 	wander = bool(cfg.get_value("game", "wander", wander))
 	wander_offered = bool(cfg.get_value("game", "wander_offered", wander_offered))
 	zone_cap = bool(cfg.get_value("game", "zone_cap", zone_cap))
@@ -254,6 +260,8 @@ func save() -> void:
 	cfg.set_value("display", "view", view)
 	cfg.set_value("display", "pitch", pitch)
 	cfg.set_value("display", "camera_view", camera_view)
+	cfg.set_value("debug", "promo", promo)
+	cfg.set_value("debug", "promo_shots", promo_shots)
 	cfg.set_value("game", "wander", wander)
 	cfg.set_value("game", "wander_offered", wander_offered)
 	cfg.set_value("game", "zone_cap", zone_cap)
