@@ -1941,7 +1941,10 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	trams.traffic = traffic
 	traffic.trams = trams
 	_first_scene_trams()
-	_promo_traffic()
+	if flags.promo_delay > 0.0:
+		get_tree().create_timer(flags.promo_delay, false).timeout.connect(_promo_traffic)
+	else:
+		_promo_traffic()
 	trains = Trains.new()
 	world.add_child(trains)
 	trains.setup(map, data)

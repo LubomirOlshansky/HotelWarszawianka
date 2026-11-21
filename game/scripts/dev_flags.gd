@@ -49,6 +49,9 @@ var promo_at := Vector2.INF
 ## tram-east, bus, police (default all; "police" alone leaves the trams and buses to the traffic).
 var promo_parts := PackedStringArray(["tram-up", "tram-east", "bus", "police"])
 var promo_t := 6.0
+## --promo-delay=S (F 2026-11-21, the palm reel): place --promo-at's actors S s after the start
+## instead of at load, so they still cross a clip whose head (--skip) is long.
+var promo_delay := 0.0
 ## --pigeons-at=T (videos, F 2026-11-19 "the pigeons fly up during the video"): Plac Zamkowy's
 ## square stays awake wherever the player is, and its flock bursts up T s after the start.
 var pigeons_at := -1.0
@@ -1009,6 +1012,8 @@ func parse_with(args: PackedStringArray) -> void:
 			crazy_log = true
 		elif arg == "--old-tram" or arg.begins_with("--old-tram="):
 			old_tram_flag = "follow" if arg == "--old-tram=follow" else "now"
+		elif arg.begins_with("--promo-delay="):
+			promo_delay = float(arg.trim_prefix("--promo-delay="))
 		elif arg.begins_with("--promo-parts="):
 			promo_parts = PackedStringArray(arg.trim_prefix("--promo-parts=").split(","))
 		elif arg.begins_with("--promo-at="):

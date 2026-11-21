@@ -5965,6 +5965,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--lite-shaders` | 2026-11-08: the Adreno 6xx shaders on any GPU (`gpu_quirks.gd`: building.gdshader without its specular lobe), to see on the Mac what the Nothing Phone 1 draws |
 | `--stats=log\|send\|off` | the beta's play stats (play_stats.gd, docs/STATS.md): `log` prints each event as `play_stats: <event> <json>` and sends none (check `stats`), `send` sends from a debug build when `game/data/stats_key.json` is there (a device test), `off` none. Without it a debug build sends nothing |
 | `--heli` | start in the helicopter |
+| `--promo-delay=S` | F 2026-11-21: place the `--promo-at` actors S s after the start (a long `--skip` clip) |
 | `--promo-parts=LIST` | F 2026-11-21: which `--promo-at` actors come (tram-up, tram-east, bus, police; default all) |
 | `--promo-heli=X,Z,TX,TZ,ALT[,SHARE[,SCALE]]` | teaser 5 (F, 2026-11-21): a second helicopter for a promo shot, ALT m over (X, Z), flying itself towards (TX, TZ) at SHARE of top speed (0.6), drawn SCALE times its size (1), its beacon and strobe on at night, no searchlight |
 | `--heli-stick=X,Z` | the L-shaped map loop (2026-10-31): the helicopter's stick held towards that world direction (x east, z south; length up to 1) the whole run, for screenshots of the clamp along the map's outline (with `--heli --at=`) |
