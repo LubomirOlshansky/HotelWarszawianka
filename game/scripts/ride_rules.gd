@@ -3,8 +3,8 @@ extends RefCounted
 ## defaults), apart from the scene so tools/check_rides.gd can feed them synthetic events.
 ##
 ## One of these lives for each ride (rides.gd): the live star rating starts at 5.0 and loses
-## half a star for a hard bump, harsh braking or a fast corner (2 s apart, at most 2.0 in all),
-## half a star for each 15 s past the ETA (at most 1.5) and one star for a police pull-over; it
+## half a star for a hard bump, harsh braking or a fast corner (5 s apart, at most 1.5 in all),
+## half a star for each 25 s past the ETA (at most 1.0) and one star for a police pull-over; it
 ## gains half a star for arriving within 0.8 of the ETA and, with a GPS believer, for driving the
 ## app's silly leg. The final rating is rounded to the nearest half, 1.0 to 5.0. The statics are
 ## the pay (15 zł + 9 zł a km, the MNOŻNIK: night ×1.5, rain ×1.2; the tip by stars; the 5-star
@@ -16,14 +16,17 @@ const Lang := preload("res://scripts/lang.gd")
 ## The live rating's events (thresholds milder than the słoiki's 16 / 14 m/s²).
 const START := 5.0
 const DRIVE_STEP := 0.5
-const DRIVE_GAP := 2.0
-const DRIVE_CAP := 2.0
-const BUMP_FREE := 4.0      # closing speed, m/s
-const BRAKE_FREE := 18.0    # m/s²
-const CORNER_FREE := 15.0   # lateral m/s²
-const LATE_EVERY := 15.0
+## F 2026-11-20 ("make the rating not fall so fast during the ride"): the driving penalties come at
+## most every 5 s (was 2), stop at 1.5 in all (was 2.0), need a harder bump / brake / corner than
+## before (was 4 / 18 / 15), and lateness costs a half star per 25 s (was 15), at most 1.0 (was 1.5).
+const DRIVE_GAP := 5.0
+const DRIVE_CAP := 1.5
+const BUMP_FREE := 6.0      # closing speed, m/s
+const BRAKE_FREE := 22.0    # m/s²
+const CORNER_FREE := 19.0   # lateral m/s²
+const LATE_EVERY := 25.0
 const LATE_STEP := 0.5
-const LATE_CAP := 1.5
+const LATE_CAP := 1.0
 const POLICE := 1.0
 const EARLY := 0.8
 const BONUS := 0.5
@@ -217,6 +220,33 @@ static func rating(history: Array) -> float:
 	for i in range(history.size() - n, history.size()):
 		sum += float(history[i])
 	return sum / HISTORY
+
+
+## F 2026-11-20 (the taxi app's account, and the numbers a later online leaderboard reads): what the
+## wallet keeps for the driver, in `keep` (wallet.gd): "podwozka_earned" (złoty earned on rides, ever:
+## unlike the wallet's own money it never goes down when the player spends), "podwozka_best" (the best
+## single ride) and "podwozka_best_streak" (the longest run of 5-star rides). `rides` is wallet.jobs'
+## count of rides done.
+const KEY_EARNED := "podwozka_earned"
+const KEY_BEST := "podwozka_best"
+const KEY_BEST_STREAK := "podwozka_best_streak"
+
+
+## One finished ride into the account: its pay (never below zero), and the streak it ended on.
+static func record(keep: Dictionary, total: int, streak_after: int) -> void:
+	var zl := maxi(total, 0)
+	keep[KEY_EARNED] = int(keep.get(KEY_EARNED, 0)) + zl
+	keep[KEY_BEST] = maxi(int(keep.get(KEY_BEST, 0)), zl)
+	keep[KEY_BEST_STREAK] = maxi(int(keep.get(KEY_BEST_STREAK, 0)), streak_after)
+
+
+## The driver's account for the taxi app (the QUESTS screen's tab) and the leaderboard row later:
+## {earned, rides, average (zł a ride, rounded), best, rating (the player's), streak, best_streak}.
+static func account(keep: Dictionary, rides: int) -> Dictionary:
+	var earned := int(keep.get(KEY_EARNED, 0))
+	return {"earned": earned, "rides": rides, "average": roundi(float(earned) / rides) if rides > 0 else 0,
+			"best": int(keep.get(KEY_BEST, 0)), "rating": rating(keep.get("podwozka_ratings", [])),
+			"streak": int(keep.get("podwozka_streak", 0)), "best_streak": int(keep.get(KEY_BEST_STREAK, 0))}
 
 
 ## The history with one more ride, the oldest dropped past HISTORY.
