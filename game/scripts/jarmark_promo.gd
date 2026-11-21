@@ -137,14 +137,14 @@ func _process(_dt: float) -> void:
 		return
 	var view_m := cam.size if cam.projection == Camera3D.PROJECTION_ORTHOGONAL else 80.0
 	var wide := smoothstep(60.0, 110.0, view_m)
-	var share := lerpf(0.4, 1.0, wide)
+	var share := lerpf(0.65, 1.0, wide)  # was 0.4: too dark (F 2026-11-22)
 	if absf(share - TimeOfDay.promo_glow_share) < 0.005:
 		return
 	TimeOfDay.promo_glow_share = share
 	if TimeOfDay.promo_env != null and TimeOfDay.promo_glow_base > 0.0:
 		TimeOfDay.promo_env.glow_intensity = TimeOfDay.promo_glow_base * share
 	if "building_material" in map and map.get("building_material") is ShaderMaterial:
-		(map.get("building_material") as ShaderMaterial).set_shader_parameter("lamp_gain", CITY_LAMP_GAIN * lerpf(0.65, 1.0, wide))
+		(map.get("building_material") as ShaderMaterial).set_shader_parameter("lamp_gain", CITY_LAMP_GAIN * lerpf(0.8, 1.0, wide))
 
 
 ## The ground a kit object stands on at market point (u, v): the terrain, plus the asphalt's lift on
