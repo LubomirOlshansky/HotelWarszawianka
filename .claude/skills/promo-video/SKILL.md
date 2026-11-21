@@ -46,7 +46,9 @@ the line into the thread with a note. This skill turns that into a take. It sits
 `--nohud --no-touch --no-ghost`, 60 fps, silent, the window always on top (clip.sh: macOS stops
 drawing a hidden window and the clip repeats frames), and **the size rule: Promo VIEW is the whole
 phone screen height, a 1080x1920 clip shows VIEW x 0.818** (2347/2868; F's first takes showed 18%
-more than his 9:16 frame). `--view-scale=1` for 16:9 and 4:5.
+more than his 9:16 frame). `--view-scale=1` for 16:9 and 4:5. The general rule: size = VIEW x
+(height of F's yellow 9:16 frame in px / phone screen height in px); the palm's VIEW 143.4 gave
+117.3, and F then asked for a wider 135 (use `--wider=` on top, or `--size` directly with `--view-scale=1`).
 
 **Water gotcha:** a focus over water (the Vistula, the stadium bank) spawns the car under the camera,
 it falls in and is towed, and the shot moves. Always pass `--at=X,Z` on a road within about 300 m.
@@ -91,7 +93,10 @@ F's round trip, every time: **frame + note → scene fixes → rebake → check 
    **One camera per run**: with several `--cams` in one run the clock advances and later cameras change
    light. Sheets: `tools/promo_sheet.sh BEFORE AFTER` (before left, after right). If a camera has to
    move, re-shoot both sides with the new one.
-4. **Takes as a batch.** `tools/promo_batch.sh docs/promo/PIECE.takes` (copy `example-palm.takes`):
+4. **Preview before every take set.** Run `--preview` (half size, High) and look at the contact sheet
+   first: in the last hours two or three takes came out as the map screen or at the wrong time of day,
+   and a re-run fixed them. Only then the full-size takes.
+4b. **Takes as a batch.** `tools/promo_batch.sh docs/promo/PIECE.takes` (copy `example-palm.takes`):
    one COPY frame, shared options, one line per variant. A take F has seen is never overwritten: new
    name (A2 → A3). Say in the reply which note each variant answers.
 5. **Always `godot --path game`** (a run without it popped a "no main scene" alert on F's screen).
@@ -99,7 +104,9 @@ F's round trip, every time: **frame + note → scene fixes → rebake → check 
 6. **Priority changes mid-run** (F reorders: "palm first, then stadium"): send the reorder to the
    running Mac session as a new instruction, say which step it finishes first, and keep the list in
    the checklist. Do not stop a render that is almost done.
-7. **Mac etiquette.** One Mac user at a time. Do not touch other threads' worktrees or Xcode builds,
+7. **Mac etiquette.** One Mac user at a time: two threads cannot render at once (the GPU and the
+   always-on-top window collide), so Mac shoots queue; ask the coordinator who has it. Takes land
+   in `~/Documents/aroundwarsaw-teaser/<pieceN>/` named takeA3, takeB3 ... (new number per round). Do not touch other threads' worktrees or Xcode builds,
    and never kill a godot process that is not yours. Use the brief in `mac-brief.md`.
 8. **Delivery.** While a Remote Control session runs, the thread's folder tools are withheld: end the
    session, stage the files (`/mnt/project-files/teasers/<piece>/`), attach them to the reply, and tell
