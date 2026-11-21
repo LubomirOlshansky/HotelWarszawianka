@@ -51,13 +51,13 @@ save each as WebP at 1920 px and 960 px wide (quality about 82), put them in
 
 ## The form
 
-It posts to Formspree form `mykaeqjp` (the same form as Stillplace's contact page), with the
-subject `Around Warsaw: <topic>` and `source: aroundwarsaw.app (en|pl)`, so the messages are
-easy to filter. Topics: feedback, something broke, an idea; the
-phone type rides along. The Android "tell me when" email field posts to the same form with
-`_subject` "Around Warsaw: Android beta, notify" and `platform` Android. To give the site its own form, create one in Formspree and change the
-`action` in `src/index.html`. If the Formspree form is restricted to certain domains, add
-`aroundwarsaw.app`.
+Both forms post to the Around Warsaw project's own Formspree form "Website beta signup" (`xjyweqgn`;
+the in-game feedback card posts to "In-game feedback", `maeodgey`, see `game/scripts/feedback.gd`). The feedback
+form sends the subject `Around Warsaw: <topic>` and `source: aroundwarsaw.app (en|pl)`, so the messages are
+easy to filter. Topics: feedback, something broke, an idea; the phone type rides along. The beta signup
+("notify") posts the email, `platform` (iPhone or Android, preselected from the visitor's phone) and the
+`_subject` "Around Warsaw: open beta, notify me". Free plan: Formspree caps submissions per month. If a form is
+restricted to certain domains, add `aroundwarsaw.app`.
 
 ## Deploy
 

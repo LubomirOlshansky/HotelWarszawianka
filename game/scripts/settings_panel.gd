@@ -67,6 +67,7 @@ const DEV_TAPS := 7
 const DEV_TAP_GAP := 1.5
 const SOUND_TAB := 3
 const Credits := preload("res://scripts/credits.gd")
+const Feedback := preload("res://scripts/feedback.gd")  # the feedback card (F 2026-11-21)
 const NotebookPage := preload("res://scripts/notebook_page.gd")
 const Gamepad := preload("res://scripts/gamepad.gd")  # the gamepad loop
 ## Loop 2e: the camera choice, explicit (it was the CAM button, easy to switch off unnoticed):
@@ -137,6 +138,9 @@ var _built := false
 ## Loop G1: the level Auto picked on this device (the state's "auto", in English), shown under
 ## the Auto button.
 var _auto_name := "High"
+## Where the player is, for the feedback card (main.gd `_settings_state` "where").
+var _where := ""
+var _feedback: Feedback
 ## Loop MW-1: the notebook (notebook.gd; set before the panel first opens), its page, the
 ## card's title and line under it (they say MOJA WARSZAWA on the notebook's tab), the
 ## settings pages' size and a --notebook= target to show.
@@ -338,6 +342,13 @@ func _build() -> void:
 	# credits because it is about the game, not about the drive or the picture.
 	_heading(sound[1], "Anonimowa statystyka", "Anonymous stats")
 	_segments(sound[1], "stats", ON_OFF)
+	# F 2026-11-21: in-game feedback (feedback.gd), visible on the first page of the card.
+	_heading(sound[1], "Opinia", "Feedback")
+	var feedback_button := _word_button("NAPISZ DO AUTORA", "WRITE TO THE AUTHOR")
+	feedback_button.name = "feedback"
+	feedback_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	feedback_button.pressed.connect(_open_feedback)
+	sound[1].add_child(feedback_button)
 	# DEMO 3j: the credits and licences (credits.gd), a page of their own opened from here.
 	_heading(sound[1], "O grze", "About")
 	var about_row := HBoxContainer.new()
@@ -713,6 +724,7 @@ func focus_target() -> Button:
 func sync(state: Dictionary) -> void:
 	if not _built:
 		return
+	_where = str(state.get("where", _where))
 	var scheme := int(state.get("controls", 1))  # Classic, the default (settings.gd DEFAULT_CONTROLS)
 	var follow := bool(state.get("follow", scheme != 2))
 	var values := state.duplicate()
@@ -732,6 +744,19 @@ func sync(state: Dictionary) -> void:
 		_values[key] = float(state.get(key, 1.0))
 		(_bars[key] as Control).queue_redraw()
 	_say(int(state.get("pads", 1)))
+
+
+## F 2026-11-21: the feedback card over the panel (feedback.gd posts it to the author's form).
+func _open_feedback() -> void:
+	if _feedback == null:
+		_feedback = Feedback.new()
+		_feedback.name = "FeedbackCard"
+		_feedback.pt = pt
+		_feedback.safe = safe
+		add_child(_feedback)
+		_feedback.visible = false
+	_feedback.where = _where
+	_feedback.open()
 
 
 func close() -> void:

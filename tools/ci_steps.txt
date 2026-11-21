@@ -66,6 +66,7 @@ evtow                quick
 facadekit            quick
 fakes                quick
 fans                 quick
+feedback             quick
 finite               smoke
 first10              quick
 first10-run          local     slow

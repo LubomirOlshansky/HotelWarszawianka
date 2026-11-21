@@ -85,6 +85,7 @@ section { padding: clamp(56px, 8vw, 104px) 0; }
 .hero-in > * { max-width: 34rem; margin-left: auto; width: 100%; }
 h1 { margin: 0; font-size: clamp(3.6rem, 10vw, 6rem); line-height: 0.9; font-weight: 700; color: #fff; }
 .hook { margin-top: 20px; margin-bottom: 0; font-size: clamp(18px, 1.9vw, 21px); line-height: 1.5; color: var(--ink); }
+.plats { margin: 8px 0 0; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); opacity: .85; }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
 .cta .btn { flex: 1 1 auto; white-space: nowrap; }
 html[data-os="android"] .cta [data-for="android"] { order: -1; }

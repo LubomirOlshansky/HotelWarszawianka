@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Around Warsaw · gra z małym autem o życiu w Warszawie</title>
-<meta name="description" content="Darmowa gra zręcznościowa w prawdziwym centrum Warszawy: małe auto, kebab o trzeciej, ratunek i miejska historia. Otwarta beta, bez reklam i zakupów.">
+<meta name="description" content="Darmowa gra zręcznościowa na iPhone&#x27;a i Androida w prawdziwym centrum Warszawy: małe auto, kebab o trzeciej, ratunek i miejska historia. Otwarta beta, bez reklam i zakupów.">
 <meta name="theme-color" content="#0b0d24">
 <meta name="color-scheme" content="dark">
 <link rel="canonical" href="https://aroundwarsaw.app/pl/">
@@ -19,7 +19,7 @@
 <meta property="og:site_name" content="Around Warsaw">
 <meta property="og:url" content="https://aroundwarsaw.app/pl/">
 <meta property="og:title" content="Around Warsaw · gra z małym autem o życiu w Warszawie">
-<meta property="og:description" content="Darmowa gra zręcznościowa w prawdziwym centrum Warszawy: małe auto, kebab o trzeciej, ratunek i miejska historia. Otwarta beta, bez reklam i zakupów.">
+<meta property="og:description" content="Darmowa gra zręcznościowa na iPhone&#x27;a i Androida w prawdziwym centrum Warszawy: małe auto, kebab o trzeciej, ratunek i miejska historia. Otwarta beta, bez reklam i zakupów.">
 <meta property="og:locale" content="pl_PL">
 <meta property="og:image" content="https://aroundwarsaw.app/img/og.jpg">
 <meta property="og:image:width" content="1200">
@@ -65,6 +65,7 @@
   <div class="hero-in wrap">
     <h1 id="title">Around<br>Warsaw</h1>
     <p class="hook">Prawdziwe centrum Warszawy, małe auto i kebab, który stygnie.</p>
+    <p class="plats">Darmowa gra na iPhone&#x27;a i Androida</p>
     <div class="cta">
       <a class="btn btn-primary" href="#beta">Otwarta beta wkrótce: daj znać</a>
     </div>
@@ -134,11 +135,11 @@
   <div class="wrap grow-in">
     <h2 id="grow-title">Nowe codziennie.</h2>
     <p class="lede">Around Warsaw powstało 27 października 2026 i zmienia się codziennie. Oto najnowsze (po angielsku):</p>
-    <p class="grow-date">Ostatnia zmiana: <time datetime="2026-11-20">20 listopada 2026</time></p>
+    <p class="grow-date">Ostatnia zmiana: <time datetime="2026-11-21">21 listopada 2026</time></p>
     <ul class="grow-list" lang="en">
-      <li>The driving screen, the map, the quests screen, the garage, the title screen and the clubs now share one look: dark cards, one gold for…</li>
-      <li>Every card&#x27;s main action is one gold button, and card titles are gold.</li>
-      <li>The website now shows the Smoła club with its lights moving: beams, lasers and the strobe over the dance floor.</li>
+      <li>Walls in the typed look gain marks: spray patches and a few painted words on precast and boulevard walls, drip stains under copings, ivy…</li>
+      <li>Karowa&#x27;s curved stone viaduct, Wiadukt Markiewicza, is built from photos: cream arches you drive under, balustrades with obelisk lamps, the…</li>
+      <li>A small memorial to Krzysztof &quot;Szaya&quot; Szaykowski, the voice of Karowa&#x27;s rally night, stands by the loop.</li>
     </ul>
     <p><a class="more" href="/progress/">Zobacz wszystko, co się zmieniło<svg aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
   </div>
@@ -155,12 +156,16 @@
     <div class="plat-card soon" id="soon">
         <h3>Otwarta beta wkrótce</h3>
         <p>Zajedź jako jeden z pierwszych. Jeden e-mail, w dniu otwarcia.</p>
-        <form class="notify" id="notify" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="email">
+        <form class="notify" id="notify" action="https://formspree.io/f/xjyweqgn" method="POST" novalidate data-need="email">
+          <fieldset class="topics platform">
+            <legend>Twój telefon</legend>
+            <label><input type="radio" name="platform" value="iPhone" checked><span>iPhone</span></label>
+            <label><input type="radio" name="platform" value="Android"><span>Android</span></label>
+          </fieldset>
           <label for="n-email">E-mail</label>
           <div class="notify-row"><input id="n-email" name="email" type="email" required autocomplete="email" inputmode="email" aria-describedby="n-email-err"><button class="btn btn-primary send" type="submit">Powiadom mnie</button></div>
           <p class="err" id="n-email-err" aria-live="polite"></p>
           <input type="hidden" name="_subject" value="Around Warsaw: open beta, notify me">
-          <input type="hidden" name="platform" value="—">
           <input type="hidden" name="source" value="aroundwarsaw.app (pl) beta notify">
           <div class="hp" aria-hidden="true"><label for="n-gotcha">Leave empty</label><input id="n-gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>
           <p class="status" role="status" aria-live="polite" data-ok="Mam. Jeden e-mail, w dniu otwarcia bety." data-fail="Nie udało się wysłać. Spróbuj jeszcze raz albo napisz na Telegramie." data-need-email="Dodaj e-mail, żebym mógł odpisać." data-bad-email="Ten e-mail wygląda na niepoprawny." data-sending="Wysyłam…"></p>
@@ -170,7 +175,7 @@
     </div>
     <details class="write" open>
       <summary>Masz pomysł, co dodać, albo co naprawić? Napisz</summary>
-      <form class="form" id="form" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="message">
+      <form class="form" id="form" action="https://formspree.io/f/xjyweqgn" method="POST" novalidate data-need="message">
         <fieldset class="topics">
           <legend>W jakiej sprawie?</legend>
           <label><input type="radio" name="topic" value="Idea: add" checked><span>Dodaj coś</span></label>

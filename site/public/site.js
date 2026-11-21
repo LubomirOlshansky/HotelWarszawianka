@@ -11,6 +11,9 @@
   de.dataset.os = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? "ios"
     : /Android/.test(ua) ? "android" : "other";
 
+  // The beta signup preselects the visitor's phone (iPhone is the default in the markup).
+  if (de.dataset.os === "android") { var ap = $("#notify input[name=platform][value=Android]"); if (ap) ap.checked = true; }
+
   // Forms: #form (feedback) and #notify (the Android "tell me when" email), both to Formspree.
   var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   all("form[data-need]").forEach(function (f) {

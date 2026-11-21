@@ -1430,6 +1430,8 @@ for s in $want; do
 		settings) check settings '^settings:' --script res://tools/check_settings.gd ;;
 		# DEMO 3j: no testing flags in a release build; the credits and licences page (no map; CI too).
 		credits) check credits '^check_credits:' --script res://tools/check_credits.gd ;;
+		# In-game feedback (feedback.gd, F 2026-11-21): the payload, the message and email checks (no map, no network; CI too).
+		feedback) check feedback '^check_feedback:' --script res://tools/check_feedback.gd ;;
 		# 2026-11-02: the language choice (lang.gd): one language on every screen, in Polish and in English.
 		language) check language '^check_language:' --script res://tools/check_language.gd ;;
 		# Loop G1: model id -> tier, the pixel image at the phones' sizes; the governor's rules.
