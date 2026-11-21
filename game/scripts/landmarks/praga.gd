@@ -146,6 +146,18 @@ const PORTAL_W := 9.0
 const PORTAL_MIN_RUN := 10.0
 const PORTAL_CONCRETE := Color("#b9b6ae")
 const PORTAL_GLOW := Color("#ffd89a")
+## The Arka (F's photos, 2026-11-21): the road tunnel under the stadium's east plaza, between its
+## two stair blocks (OSM service road 2156). The mouth's centre, the way out (east), the front
+## wall's half width and top, the opening's half width and the springing of its arch.
+const ARKA_AT := Vector2(1650.0, -703.5)
+const ARKA_OUT := Vector2(0.86, -0.51)
+const ARKA_HALF := 6.0
+const ARKA_TOP := 5.2
+const ARKA_OPEN := 3.6
+const ARKA_SPRING := 1.6
+const ARKA_RISE := 2.6
+const ARKA_GRANITE := Color("#6e655a")
+const ARKA_WHITE := Color("#e9e6df")
 const PROM_TO := 1.04
 
 
@@ -341,6 +353,7 @@ func _build_stadium(site: Dictionary) -> void:
 			_stadium_portal(s0, s1, w)
 			_mode = M_LAMP
 	_mode = M_STONE
+	_stadium_arka()
 	# The roof: the raised rim (its outer face over the skin, its inner face sloping to the
 	# membrane), its soffit back to the skin's top, then the membrane down to the open middle
 	# in panels.
@@ -1437,4 +1450,60 @@ func _stadium_portal(s0: Vector2, s1: Vector2, w: float) -> void:
 	# A lit line under the block's head beam, as in the photo.
 	_quad(Vector3(f.x - side.x, top + 0.35, f.y - side.y), Vector3(f.x + side.x, top + 0.35, f.y + side.y),
 			Vector3(f.x + side.x, top + 0.5, f.y + side.y), Vector3(f.x - side.x, top + 0.5, f.y - side.y), Vector3(-e.x, 0.0, -e.y), PORTAL_GLOW)
+	_mode = M_STONE
+
+
+## The Arka (F, 2026-11-21: "this entrance"): the road tunnel's mouth under the east plaza. A
+## granite front wall the plaza's height, a thick white band round a low wide arch, the tunnel's
+## lit glass inside, and the plaza's deck carried back over the cut so the road goes under it.
+func _stadium_arka() -> void:
+	var e := ARKA_OUT.normalized()
+	var side := Vector2(-e.y, e.x)
+	var g: float = map.ground_height(ARKA_AT.x, ARKA_AT.y)
+	var top := g + ARKA_TOP
+	var n3 := Vector3(e.x, 0.0, e.y)
+	var a := ARKA_AT
+	# The deck over the cut, 22 m back, and the wall's thickness.
+	var back := a - e * 22.0
+	_prism(PackedVector2Array([a - side * ARKA_HALF, a + side * ARKA_HALF, back + side * ARKA_HALF, back - side * ARKA_HALF]),
+			top - 0.6, top, ARKA_GRANITE, PORTAL_CONCRETE, M_STONE, M_STONE)
+	# The arch: points along a low ellipse from one springing to the other.
+	var segs := 10
+	var arch: Array[Vector2] = []  # (across, up) on the wall
+	for i in segs + 1:
+		var ang := PI * float(i) / float(segs)
+		arch.append(Vector2(-cos(ang) * ARKA_OPEN, ARKA_SPRING + sin(ang) * ARKA_RISE))
+	var f := a + e * 0.05
+	var at := func(u: float, v: float, d: float) -> Vector3:
+		var q: Vector2 = f + side * u - e * d
+		return Vector3(q.x, g + v, q.y)
+	# The front wall round the opening: the piers, then the spandrel above each arch segment.
+	_quad(at.call(-ARKA_HALF, -0.3, 0.0), at.call(-ARKA_OPEN - 0.5, -0.3, 0.0), at.call(-ARKA_OPEN - 0.5, ARKA_TOP, 0.0),
+			at.call(-ARKA_HALF, ARKA_TOP, 0.0), n3, ARKA_GRANITE)
+	_quad(at.call(ARKA_OPEN + 0.5, -0.3, 0.0), at.call(ARKA_HALF, -0.3, 0.0), at.call(ARKA_HALF, ARKA_TOP, 0.0),
+			at.call(ARKA_OPEN + 0.5, ARKA_TOP, 0.0), n3, ARKA_GRANITE)
+	for i in segs:
+		var p0: Vector2 = arch[i] * Vector2((ARKA_OPEN + 0.5) / ARKA_OPEN, 1.0) + Vector2(0.0, 0.5 * sin(PI * float(i) / float(segs)))
+		var p1: Vector2 = arch[i + 1] * Vector2((ARKA_OPEN + 0.5) / ARKA_OPEN, 1.0) + Vector2(0.0, 0.5 * sin(PI * float(i + 1) / float(segs)))
+		_quad(at.call(p0.x, p0.y, 0.0), at.call(p1.x, p1.y, 0.0), at.call(p1.x, ARKA_TOP, 0.0), at.call(p0.x, ARKA_TOP, 0.0), n3, ARKA_GRANITE)
+	# The white band: between the opening's edge and the wall's edge, its legs down to the road.
+	for i in segs:
+		var i0: Vector2 = arch[i]
+		var i1: Vector2 = arch[i + 1]
+		var o0: Vector2 = i0 * Vector2((ARKA_OPEN + 0.5) / ARKA_OPEN, 1.0) + Vector2(0.0, 0.5 * sin(PI * float(i) / float(segs)))
+		var o1: Vector2 = i1 * Vector2((ARKA_OPEN + 0.5) / ARKA_OPEN, 1.0) + Vector2(0.0, 0.5 * sin(PI * float(i + 1) / float(segs)))
+		_quad(at.call(i0.x, i0.y, -0.02), at.call(i1.x, i1.y, -0.02), at.call(o1.x, o1.y, -0.02), at.call(o0.x, o0.y, -0.02), n3, ARKA_WHITE)
+	for sg in [-1.0, 1.0]:
+		var u0: float = sg * ARKA_OPEN
+		var u1: float = sg * (ARKA_OPEN + 0.5)
+		_quad(at.call(minf(u0, u1), 0.0, -0.02), at.call(maxf(u0, u1), 0.0, -0.02), at.call(maxf(u0, u1), ARKA_SPRING, -0.02),
+				at.call(minf(u0, u1), ARKA_SPRING, -0.02), n3, ARKA_WHITE)
+	# The tunnel's lit inside, set back: the glass front under the arch, warm at night.
+	_mode = M_LAMP
+	_quad(at.call(-ARKA_OPEN, 0.0, 1.2), at.call(ARKA_OPEN, 0.0, 1.2), at.call(ARKA_OPEN, ARKA_SPRING, 1.2),
+			at.call(-ARKA_OPEN, ARKA_SPRING, 1.2), n3, PORTAL_GLOW)
+	for i in segs:
+		var i0: Vector2 = arch[i]
+		var i1: Vector2 = arch[i + 1]
+		_quad(at.call(i0.x, ARKA_SPRING, 1.2), at.call(i1.x, ARKA_SPRING, 1.2), at.call(i1.x, i1.y, 1.2), at.call(i0.x, i0.y, 1.2), n3, PORTAL_GLOW)
 	_mode = M_STONE
