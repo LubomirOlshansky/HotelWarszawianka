@@ -26,6 +26,14 @@ extends Node
 ##   goes to the next saved one, COPY (or a tap on the readout) puts the game flags that render the
 ##   same frame on the clipboard (`--cam=X,Y,Z --yaw= --pitch= --size= --game-clock --clock=
 ##   --date=`), for tools/shots.sh or a Movie Maker clip at 1080x1920 on the Mac.
+## - VERTICAL / HORIZONTAL (F 2026-11-20: "for vertical reels all the interface ... can change to
+##   horizontal or vertical"): the screen itself turns to portrait and back (`set_portrait`), the
+##   panel moves to the bottom, the guide goes to 9:16 and the view keeps its metres per pixel (the
+##   view's height grows with the screen's); PROMO OFF turns it back. The phone's image keeps its
+##   landscape sharpness (main.gd `_apply_style` measures the short side). On the iPhone it needs a
+##   build that allows portrait (tools/export_ios.sh --portrait, the `promo_portrait` feature):
+##   iOS stops an app that turns to an orientation its Info.plist does not list, and the players'
+##   builds stay landscape only. On a Mac the window turns.
 ## The camera is orthographic (docs/architecture/decisions.md): there is no field of view; the
 ## view's height in metres is its zoom (the readout's VIEW, the copied --size).
 
@@ -87,6 +95,8 @@ var speed_i := GAME_SPEED
 var move := Vector3.ZERO
 var shot_i := -1
 var log_on := true
+## The screen turned to portrait (`set_portrait`).
+var portrait := false
 
 var _move_now := Vector3.ZERO
 var _glide := Vector2.ZERO
@@ -108,6 +118,7 @@ var _readout_t := 0.0
 var _corner_taps := 0
 var _corner_ms := 0
 var _pt := 1.0
+var _last_h := 0.0
 
 
 ## Promo Mode on or off (settings.gd `promo`); the camera starts on the car either way.
@@ -129,6 +140,7 @@ func set_on(value: bool) -> void:
 		_apply_speed()
 		_refresh()
 	else:
+		set_portrait(false)
 		if _layer != null:
 			_layer.visible = false
 		_held.clear()
@@ -160,11 +172,45 @@ func use_flag(text: String) -> void:
 			"nohud": hud_show = HudShow.HIDE
 			"clean": clean = true
 			"panel": _panel_open = true
+			"vertical": set_portrait(true)
 			var g:
 				for i in GUIDES.size():
 					if GUIDES[i][0] == g:
 						guide = i
 	_apply_hud()
+	_refresh()
+
+
+## Whether this build may turn the screen: a phone build only with the `promo_portrait` feature
+## (tools/export_ios.sh --portrait, which also lists portrait in the Info.plist, or iOS stops the
+## app), so the players' iPhone and Android builds never turn; a Mac turns its window.
+static func can_turn() -> bool:
+	return not OS.has_feature("mobile") or OS.has_feature("promo_portrait")
+
+
+## VERTICAL (true) or HORIZONTAL: the phone's screen turns (DisplayServer orientation; back to the
+## game's sensor landscape), a Mac's window turns (fitted to the screen); a headless run only
+## lays the panel out for the new screen when its size changes. The guide follows: 9:16 for
+## portrait, the full screen back.
+func set_portrait(value: bool) -> void:
+	if value == portrait or (value and not can_turn()):
+		return
+	portrait = value
+	if OS.has_feature("mobile"):
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT if portrait else DisplayServer.SCREEN_SENSOR_LANDSCAPE)
+	elif DisplayServer.get_name() != "headless":
+		var w := Vector2(DisplayServer.window_get_size())
+		if (w.y > w.x) != portrait:
+			var turned := Vector2(w.y, w.x)
+			var room := Vector2(DisplayServer.screen_get_usable_rect().size) * 0.95
+			var fit := minf(1.0, minf(room.x / turned.x, room.y / turned.y))
+			DisplayServer.window_set_size(Vector2i(turned * fit))
+	if portrait and guide == 0:
+		guide = 2  # 9:16
+	elif not portrait and guide == 2:
+		guide = 0
+	_log("promo: %s" % ("vertical" if portrait else "horizontal"))
+	_place_panel()
 	_refresh()
 
 
@@ -450,6 +496,8 @@ func _build() -> void:
 	_layer.add_child(_strip)
 	_button(_strip, "minus15", "-15 MIN", func() -> void: _nudge(-15.0))
 	_button(_strip, "plus15", "+15 MIN", func() -> void: _nudge(15.0), UiKit.Kind.PRIMARY)
+	_button(_strip, "rotate", "VERTICAL", func() -> void: set_portrait(not portrait))
+	(_buttons["rotate"] as Button).visible = can_turn()
 	_button(_strip, "panel", "PROMO", func() -> void:
 		_panel_open = not _panel_open
 		_refresh())
@@ -554,9 +602,22 @@ func _place_panel() -> void:
 	if _panel == null:
 		return
 	var safe: Rect2 = game.hud.safe_rect() if game.hud != null else Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
+	# The screen turned (VERTICAL): the view's height in metres grows with the screen's, so a
+	# metre keeps its pixels and the frame its scale.
+	var h := get_viewport().get_visible_rect().size.y
+	if _last_h > 0.0 and absf(h - _last_h) > 1.0:
+		size = clampf(size * h / _last_h, SIZE.x, SIZE.y)
+	_last_h = h
 	_panel.reset_size()
+	_panel.scale = Vector2.ONE
 	var s := _panel.get_combined_minimum_size()
-	_panel.position = Vector2(safe.end.x - s.x - 8.0 * _pt, maxf(safe.position.y + 8.0 * _pt, safe.get_center().y - s.y * 0.5))
+	if safe.size.y > safe.size.x:
+		# Portrait: the panel at the bottom, centred, shrunk to the width if it must be.
+		var k := minf(1.0, (safe.size.x - 8.0 * _pt) / s.x)
+		_panel.scale = Vector2(k, k)
+		_panel.position = Vector2(safe.get_center().x - s.x * k * 0.5, safe.end.y - s.y * k - 8.0 * _pt)
+	else:
+		_panel.position = Vector2(safe.end.x - s.x - 8.0 * _pt, maxf(safe.position.y + 8.0 * _pt, safe.get_center().y - s.y * 0.5))
 	# The readout top left (over the minimap: the panel takes the right), the clock's strip under it.
 	_readout_box.reset_size()
 	var r := _readout_box.get_combined_minimum_size()
@@ -668,7 +729,7 @@ func _refresh() -> void:
 	var sun := "sun %+.1f°" % float(game.tod.sun_elevation) if game.tod != null and game.tod.game_clock else "fixed look"
 	lines.append("%s  %s  %s  %s" % [_clock_text(), _date_text(), sun,
 			"rain" if game.weather != null and game.weather.state != 0 else "dry"])
-	var cam_word := "FREE" if cam_mode == Cam.FREE else ("CAR LOCK" if yaw_lock else "CAR %+.0f°" % yaw_offset)
+	var cam_word := ("VERT " if portrait else "") + ("FREE" if cam_mode == Cam.FREE else ("CAR LOCK" if yaw_lock else "CAR %+.0f°" % yaw_offset))
 	lines.append("%s  clock %s  %s  %dx%d" % [cam_word, _speed_word(), GUIDES[guide][0], int(screen.x), int(screen.y)])
 	if move != Vector3.ZERO:
 		lines.append("GLIDE %+.3f %+.3f  SPIN %+.1f°/s" % [move.x, move.y, move.z])
@@ -691,6 +752,7 @@ func _refresh() -> void:
 	(_buttons["hud"] as Button).text = ["HUD", "GHOST", "NO HUD"][hud_show]
 	(_buttons["guide"] as Button).text = str(GUIDES[guide][0])
 	(_buttons["speed"] as Button).text = _speed_word()
+	(_buttons["rotate"] as Button).text = "HORIZONTAL" if portrait else "VERTICAL"
 	_overlay.queue_redraw()
 
 

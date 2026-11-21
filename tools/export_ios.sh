@@ -1,6 +1,14 @@
 #!/bin/zsh
 # Prebuild the city, then export the Godot project as an Xcode project in build/ios.
+#   tools/export_ios.sh [--portrait]
+# --portrait: a build for framing Reels (Promo Mode's VERTICAL, promo_mode.gd `set_portrait`):
+# its Info.plist lists portrait too and the export carries the `promo_portrait` feature. iOS
+# stops an app that turns to an orientation its Info.plist lacks, so the players' builds (no
+# flag) stay landscape only, launch screen included; play stays landscape either way
+# (project.godot's sensor landscape).
 set -e
+portrait=0
+[[ ${1:-} == --portrait ]] && portrait=1
 cd "${0:A:h}/../game"
 # The Autopilot playtest autoload must never ship (tools/autopilot.sh).
 if grep -q '^AutopilotPlaytest=' project.godot; then
@@ -20,6 +28,13 @@ python3 -I ../tools/bake_sectors.py map > /dev/null
 # leave the prebuilt city without trees, cars or AO. This opens a window for a moment.
 godot --path . --resolution 320x180 --script res://tools/bake_city.gd
 mkdir -p ../build/ios
+if (( portrait )); then
+	cp export_presets.cfg ../build/ios/export_presets.cfg.keep
+	trap 'mv ../build/ios/export_presets.cfg.keep export_presets.cfg' EXIT
+	# The iOS preset is the first: its custom_features carry the feature for the export only.
+	perl -0pi -e 's/(name="iOS"\n(?:.*\n)*?custom_features=)""/$1"promo_portrait"/' export_presets.cfg
+	grep -q 'custom_features="promo_portrait"' export_presets.cfg || { echo "no iOS custom_features to set" >&2; exit 1; }
+fi
 godot --headless --path . --export-debug "iOS" ../build/ios/NocnaWarszawa.ipa
 # Loop 2b: Xcode's Run button attaches the debugger and, by default, Metal API validation and
 # GPU frame capture, which make every draw call several times slower on the phone. Switch both
@@ -33,6 +48,13 @@ fi
 for plist in ../build/ios/NocnaWarszawa/*Info.plist(N); do
 	plutil -replace CFBundleDisplayName -string "Around Warsaw" $plist
 	plutil -replace CFBundleName -string "Around Warsaw" $plist
+	if (( portrait )); then
+		plutil -replace UISupportedInterfaceOrientations -json \
+			'["UIInterfaceOrientationLandscapeRight","UIInterfaceOrientationLandscapeLeft","UIInterfaceOrientationPortrait"]' $plist
+	fi
 done
+if (( portrait )); then
+	echo "Portrait build (Promo Mode's VERTICAL): not for TestFlight or the App Store."
+fi
 echo "Open build/ios/NocnaWarszawa.xcodeproj in Xcode and press Run."
 echo "For frame-rate numbers, start the game from the iPhone's home screen (no debugger attached)."
