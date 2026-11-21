@@ -376,6 +376,24 @@ class Ctx extends RefCounted:
 				var cl := col2 if (col2.a > 0.0 and i % 2 == 1) else col
 				quad(a, bb, cc, d, cl, M_STONE, nn, true)
 
+	## A cylinder lying on its side: axis along local angle `ang`, radius r, half length `half`, centre
+	## (lu, lv) at height yc; round sides in `col`, both end discs in `cap`.
+	func drum(lu: float, lv: float, ang: float, r: float, half: float, yc: float, n: int, col: Color, cap: Color, mode := M_STONE) -> void:
+		var e := dir(ang)
+		var f := Vector2(-e.y, e.x)
+		var cc := p(lu, lv, yc)
+		var e3 := Vector3(e.x, 0.0, e.y)
+		var ring_pts: Array[Vector3] = []
+		for k in n:
+			var a := TAU * float(k) / float(n)
+			ring_pts.append(Vector3(f.x * cos(a), sin(a), f.y * cos(a)) * r)
+		for k in n:
+			var j := (k + 1) % n
+			var nn := (ring_pts[k] + ring_pts[j]).normalized()
+			quad(cc - e3 * half + ring_pts[k], cc - e3 * half + ring_pts[j], cc + e3 * half + ring_pts[j], cc + e3 * half + ring_pts[k], col, mode, nn)
+			tri(cc + e3 * half, cc + e3 * half + ring_pts[k], cc + e3 * half + ring_pts[j], cap, mode, e3)
+			tri(cc - e3 * half, cc - e3 * half + ring_pts[j], cc - e3 * half + ring_pts[k], cap, mode, -e3)
+
 	func done() -> void:
 		b._no_roof = false
 		b._mode = M_STONE
@@ -489,7 +507,7 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 # ---------------------------------------------------------------------------------------------
 
 const TREE_FLOOR := Color("#5a8a30")
-const TREE_H := 9.0
+const TREE_H := 11.0
 const BAUBLE := [Color("#d6252c"), Color("#e8b030"), Color("#d6252c"), Color("#f4efe6")]
 
 
@@ -524,68 +542,79 @@ static func tree_ride_static(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
 		c.pbox(cos(a) * 4.5, sin(a) * 4.5, a, 0.09, 0.09, 0.35, 1.05, WOOD.darkened(0.2), WOOD)
 	c.bulb_ring(0, 0, 4.5, 1.12, 24, 0.07, [LED, BULB], M_LAMP)
 	c.noroof(false)
+	# A big gold drum prop by the fence (on its side, as in F's photo).
+	c.drum(2.9, 3.3, 0.9, 0.9, 0.5, 1.25, 14, Color("#d8a830"), Color("#efe2a8"))
 	c.done()
 
 
-## The tree carousel's turning part: the 9 m fir (a trunk and seven whorls of nine drooping, ragged,
-## 0.9 m wide flat branches at 35 degrees, each with a snow strip on top and warm-white bulbs with
-## some red and gold along it, a dark fill cone just inside the tips, about twenty red baubles, a
-## gold star) and eight red-and-white gondolas at the rim. Broad at the bottom (tips out to ~4 m).
+## The tree carousel's turning part (F's photos): the 11 m fir of wide flat sheet-metal fronds (green,
+## seven whorls of nine, drooping 35 degrees, ragged) each with a thin white snow strip on top
+## and tiny purple-white LED dots, up to 16 glossy red and gold baubles (1.5 m low to 0.8 m high) hanging
+## off them, a gold star, and eight yellow-gold drum gondolas round the base.
 static func tree_ride_spin(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
 	var c := Ctx.new(b, at, yaw, g)
 	c.noroof(true)
 	c.prism(0, 0, 0.32, 8, 0.35, TREE_H, WOOD.darkened(0.25))
 	var whorls := 7
 	var droop := deg_to_rad(35.0)
-	var bulb_cols := [BULB, BULB, Color("#e03a2a"), BULB, Color("#e8b030"), BULB, LED]
-	var baubles := 0
+	var frond := Color("#2a6a38")
+	var led := Color(0.78, 0.7, 1.0)
+	var placed: Array = []  # [x, y, z, r] of the baubles so far: no two overlap
+	var per_whorl := [3, 2, 2, 2, 2, 3, 2]
 	for k in whorls:
 		var t := float(k) / float(whorls - 1)
-		var y := lerpf(3.7, 8.3, t)
-		var len0 := lerpf(4.6, 1.0, t)
-		# A dark cone inside the whorl, a little short of the tips.
-		c.frustum(0, 0, len0 * cos(droop) * 0.8, y - len0 * sin(droop) * 0.75, 0.15, y + 0.9, 12, FIR.darkened(0.35))
+		var y := lerpf(4.3, 10.0, t)
+		var len0 := lerpf(4.2, 0.9, t)
+		c.frustum(0, 0, len0 * cos(droop) * 0.55, y - len0 * sin(droop) * 0.5, 0.15, y + 0.9, 10, frond.darkened(0.45))
 		var count := 9
 		for j in count:
 			var h := float((j * 7 + k * 13) % 10) / 10.0
 			var len := len0 * (0.82 + 0.3 * h)
-			var a := TAU * (float(j) + 0.5 * float(k % 2)) / float(count) + 0.5 * float(k) + 0.12 * (h - 0.5)
+			var a := TAU * float(j) / float(count) + 0.62 * float(k) + 0.12 * (h - 0.5)  # the boughs spiral up the trunk
 			var dp := droop + deg_to_rad(8.0) * (h - 0.5)
 			var d := Vector2(cos(a), sin(a))
 			var run := len * cos(dp)
 			var root := Vector3(d.x * 0.25, d.y * 0.25, y + 0.1)
 			var tip := Vector3(d.x * run, d.y * run, y - len * sin(dp))
-			var wd := 0.35 + 0.55 * clampf(len / 4.6, 0.0, 1.0)
-			c.slab(c.p(root.x, root.y, root.z), c.p(tip.x, tip.y, tip.z), wd, wd * 0.35, 0.14, FIR if (j + k) % 2 == 0 else FIR.lightened(0.08))
-			# The snow strip on top.
-			var s0 := root.lerp(tip, 0.25)
-			var s1 := root.lerp(tip, 0.92)
-			c.slab(c.p(s0.x, s0.y, s0.z + 0.085), c.p(s1.x, s1.y, s1.z + 0.085), wd * 0.32, wd * 0.2, 0.04, Color("#eef2f6"))
-			# Bulbs along the branch: warm white, some red and gold.
-			for f in [0.4, 0.62, 0.84, 1.0]:
+			var wd := 0.45 + 0.75 * clampf(len / 4.2, 0.0, 1.0)
+			c.slab(c.p(root.x, root.y, root.z), c.p(tip.x, tip.y, tip.z), wd, wd * 0.3, 0.1, frond if (j + k) % 2 == 0 else frond.lightened(0.07))
+			# A thinner snow strip along the upper edge (about a third of the frond's width).
+			var s0 := root.lerp(tip, 0.15)
+			var s1 := root.lerp(tip, 0.95)
+			c.slab(c.p(s0.x, s0.y, s0.z + 0.085), c.p(s1.x, s1.y, s1.z + 0.085), wd * 0.33, wd * 0.18, 0.08, Color("#f2f5f8"))
+			for f in [0.3, 0.45, 0.6, 0.75, 0.9]:
 				var q := root.lerp(tip, float(f))
-				c.lbulb(q.x, q.y, q.z + 0.14, 0.09, bulb_cols[(j + k + int(float(f) * 5.0)) % bulb_cols.size()])
-			if baubles < 21 and (j * 3 + k) % 3 == 0:
-				var q := root.lerp(tip, 0.75)
-				c.sphere(q.x, q.y, q.z - 0.3, 0.2, 6, 3, BAUBLE[baubles % 3], M_STONE)
-				baubles += 1
-	# The crown: a small cone and the gold star (two crossed, as the market's other tree).
-	c.frustum(0, 0, 0.55, 8.0, 0.0, 9.5, 8, FIR)
+				var side := Vector2(-d.y, d.x) * wd * 0.28 * (1.0 if int(float(f) * 20.0) % 2 == 0 else -1.0)
+				c.lbulb(q.x + side.x, q.y + side.y, q.z + 0.1, 0.05, led)
+			# A big glossy bauble, 1.5 m wide low down to 0.8 m near the top, clear of the others and the floor.
+			var m: int = per_whorl[k]
+			if (j * m) % count < m and placed.size() < 16:
+				var br := lerpf(0.75, 0.4, t)
+				var q := root.lerp(tip, 0.7)
+				var cz := q.z - 0.3 - br
+				var ok := cz > 0.35 + br + 0.15
+				for pl in placed:
+					if Vector3(pl[0], pl[1], pl[2]).distance_to(Vector3(q.x, q.y, cz)) < float(pl[3]) + br + 0.15:
+						ok = false
+				if ok:
+					placed.append([q.x, q.y, cz, br])
+					var bcol: Color = Color("#d6252c") if (placed.size() % 3 != 0) else Color("#e0b030")
+					c.lbeam(Vector3(q.x, q.y, q.z), Vector3(q.x, q.y, cz + br), 0.04, WIRE)
+					c.sphere(q.x, q.y, cz, br, 10, 5, bcol, M_STONE)
+	# The crown: a small cone and the gold star (two crossed).
+	c.frustum(0, 0, 0.55, 10.0, 0.0, 11.5, 8, frond)
 	b._mode = M_LAMP
-	b._jm_star(c.p(0, 0, 9.9), 0.75, Vector3(c.u.x, 0.0, c.u.y), Color("#e8b030"))
-	b._jm_star(c.p(0, 0, 9.9), 0.75, Vector3(c.v.x, 0.0, c.v.y), Color("#e8b030"))
-	# Eight gondolas at the rim on short rods from the lowest tips: red below the belt, white above.
-	for j in 8:
-		var a := TAU * float(j) / 8.0 + TAU / 16.0
+	b._jm_star(c.p(0, 0, 11.9), 0.85, Vector3(c.u.x, 0.0, c.u.y), Color("#e8b030"))
+	b._jm_star(c.p(0, 0, 11.9), 0.85, Vector3(c.v.x, 0.0, c.v.y), Color("#e8b030"))
+	# Six yellow-gold drum gondolas round the base, on their sides, on short rods.
+	for j in 6:
+		var a := TAU * float(j) / 6.0 + TAU / 12.0
 		var d := Vector2(cos(a), sin(a))
-		var gx := d.x * 4.15
-		var gy := d.y * 4.15
-		c.lbeam(Vector3(gx, gy, 1.5), Vector3(gx, gy, 1.1), 0.04, WIRE)
-		c.frustum(gx, gy, 0.32, 0.45, 0.55, 0.8, 10, SNOW, CLEAR)
-		c.frustum(gx, gy, 0.55, 0.8, 0.36, 1.1, 10, RED, RED.lightened(0.15))
-		c.frustum(gx, gy, 0.32, 0.45, 0.0, 0.35, 10, RED.darkened(0.1))
-		c.prism(gx, gy, 0.575, 10, 0.78, 0.82, BULB, CLEAR, M_LAMP)
-		c.rider(gx + d.x * 0.1, gy + d.y * 0.1, a + PI * 0.5, 0.85, j + 2, 0.7)
+		var gx := d.x * 4.1
+		var gy := d.y * 4.1
+		c.lbeam(Vector3(gx, gy, 1.6), Vector3(gx, gy, 1.1), 0.04, WIRE)
+		c.drum(gx, gy, a + PI * 0.5, 0.55, 0.3, 0.8, 12, Color("#d8a830"), Color("#efe2a8"))
+		c.rider(gx, gy, a + PI * 0.5, 1.05, j + 2, 0.6)
 	c.done()
 
 
@@ -601,76 +630,130 @@ const KURANT_WARM := Color("#ffc98a")
 const KURANT_BULB := Color(1.0, 0.86, 0.6)
 
 
-## The kurant: an octagonal bar (r 3.6, 2.4 m, cream, a lit hatch on four faces) under a wide green
-## skirt roof (r 4.8 down to r 2.4, light and dark faces, eight white ribs); out of it a white
-## four-tier octagonal tower (r 2.2 / 1.9 / 1.6 / 1.3, an arched warm opening on every face, a
-## green band over each tier) to about 9 m, a cream double-pyramid cap, bulbs on every tier edge, and
-## (`strings`) twelve light strings fanning from the top to poles `fan` m round.
+## The kurant (F's photos): a white octagonal bar (r 3.6, 2.4 m) with a red front panel under a lit
+## hatch (three gold bars, no words), a wide low dark-grey skirt roof (r 4.8 at 2.6 m to r 2.4 at
+## 3.3 m), and four stepped octagonal tiers (r 2.5 / 2.2 / 1.9 / 1.6, 2.4 m each: 5 m across at the
+## foot, to 12.9 m): white planked walls with a dark-grey post at every corner; dark-grey louvred
+## shutters on the lowest; red printed panels (a snowflake and a balloon) on the second and fourth; a
+## thick fir garland (0.35 m) with red and gold baubles and warm bulbs round every tier edge; a dark
+## collar to 13.4 m. The red six-sided turning crown on top (to 15.4 m) is `kurant_spin`. `strings`:
+## twelve bulb strings fan from the top to poles `fan` m round.
 static func kurant(b, at: Vector2, yaw := 0.0, g := NAN, strings := true, fan := 13.0) -> void:
 	var c := Ctx.new(b, at, yaw, g)
 	var rot := PI / 8.0  # a flat face towards local +u
-	c.prism(0, 0, 3.6, 8, 0.0, 2.4, KURANT_CREAM, KURANT_CREAM.darkened(0.15), M_STONE, M_STONE, rot)
-	c.prism(0, 0, 3.75, 8, 0.0, 0.3, KURANT_CREAM.darkened(0.25), CLEAR, M_STONE, -1.0, rot)
-	# The bar's lit hatches: a warm opening and a counter shelf on the four main faces.
+	var post := Color("#3a3d42")
+	var red := Color("#b8282a")
+	c.prism(0, 0, 3.6, 8, 0.0, 2.4, WHITE, Color("#4a4c50"), M_STONE, M_STONE, rot)
 	var apo := 3.6 * cos(PI / 8.0)
 	for k in 8:
 		var out := rot + TAU * (float(k) + 0.5) / 8.0
+		var ox := cos(out)
+		var oy := sin(out)
 		if k % 2 == 0:
-			var f := c.dir(out)
-			c.rect_panel(f.x * 0.0 + cos(out) * (apo + 0.03), sin(out) * (apo + 0.03), out, 1.9, 1.0, 2.1, KURANT_WARM, M_LAMP)
-			c.pbox(cos(out) * (apo + 0.22), sin(out) * (apo + 0.22), out + PI * 0.5, 1.05, 0.2, 0.95, 1.05, WOOD)
-	# The skirt roof and its underside: wide and low (r 4.8 at 2.6 m to r 2.4 at 3.3 m).
-	c.disc(0, 0, 4.8, 8, 2.6, KURANT_GREEN_D.darkened(0.4), M_STONE, false, rot)
-	c.frustum(0, 0, 4.8, 2.6, 2.4, 3.3, 8, KURANT_GREEN, CLEAR, M_STONE, -1.0, rot, KURANT_GREEN_D)
+			c.rect_panel(ox * (apo + 0.03), oy * (apo + 0.03), out, 1.9, 1.05, 2.1, KURANT_WARM, M_LAMP)
+			c.pbox(ox * (apo + 0.22), oy * (apo + 0.22), out + PI * 0.5, 1.05, 0.2, 0.95, 1.05, WOOD)
+			c.rect_panel(ox * (apo + 0.03), oy * (apo + 0.03), out, 1.9, 0.12, 0.92, red, M_STONE)
+			for q in 3:
+				c.rect_panel(ox * (apo + 0.05), oy * (apo + 0.05), out, 1.3 - 0.25 * float(q), 0.3 + 0.2 * float(q), 0.36 + 0.2 * float(q), GOLD, M_STONE)
+		var cc := rot + TAU * float(k) / 8.0
+		c.pbox(cos(cc) * 3.62, sin(cc) * 3.62, cc, 0.07, 0.07, 0.0, 2.4, post)
+	var roof := Color("#3c3e44")
+	c.disc(0, 0, 4.8, 8, 2.6, roof.darkened(0.5), M_STONE, false, rot)
+	c.frustum(0, 0, 4.8, 2.6, 2.4, 3.3, 8, roof, CLEAR, M_STONE, -1.0, rot, roof.darkened(0.25))
 	c.noroof(true)
 	var outer := c.ring(0, 0, 4.8, 8, rot)
 	for k in 8:
-		c.beam(Vector3(outer[k].x, c.g + 2.6, outer[k].y), c.p(cos(rot + TAU * float(k) / 8.0) * 2.4, sin(rot + TAU * float(k) / 8.0) * 2.4, 3.3),
-				0.1, WHITE)
 		var j := (k + 1) % 8
-		c.beam(Vector3(outer[k].x, c.g + 2.6, outer[k].y), Vector3(outer[j].x, c.g + 2.6, outer[j].y), 0.1, WHITE)
+		c.beam(Vector3(outer[k].x, c.g + 2.6, outer[k].y), Vector3(outer[j].x, c.g + 2.6, outer[j].y), 0.1, Color("#8a8c92"))
 		c.bulb(Vector3(outer[k].x, c.g + 2.45, outer[k].y), 0.11, KURANT_BULB)
 		var mid := (outer[k] + outer[j]) * 0.5
 		c.bulb(Vector3(mid.x, c.g + 2.45, mid.y), 0.11, KURANT_BULB)
 	c.noroof(false)
-	# The tower: four cream-white tiers, a thin green band over each, to about 9 m.
-	var radii := [2.0, 1.75, 1.45, 1.15]
+	var radii := [2.5, 2.2, 1.9, 1.6]
 	var y := 3.3
 	for t in 4:
 		var r: float = radii[t]
-		c.prism(0, 0, r, 8, y, y + 1.25, WHITE, CLEAR, M_STONE, -1.0, rot)
 		var ap := r * cos(PI / 8.0)
+		c.prism(0, 0, r, 8, y, y + 2.4, WHITE, CLEAR, M_STONE, -1.0, rot)
 		for k in 8:
+			var cc := rot + TAU * float(k) / 8.0
+			c.pbox(cos(cc) * (r + 0.02), sin(cc) * (r + 0.02), cc, 0.07, 0.07, y, y + 2.4, post)
 			var out := rot + TAU * (float(k) + 0.5) / 8.0
-			c.arch_panel(cos(out) * (ap + 0.03), sin(out) * (ap + 0.03), out, 0.55, y + 0.25, y + 1.05, KURANT_WARM, M_LAMP)
-		# The band: a thin green roof lip, only a little wider than the wall.
-		var nxt: float = radii[t + 1] if t < 3 else 0.9
-		c.frustum(0, 0, r + 0.15, y + 1.25, nxt + 0.05, y + 1.37, 8, KURANT_GREEN, CLEAR, M_STONE, -1.0, rot, KURANT_GREEN_D)
+			var ox := cos(out) * (ap + 0.03)
+			var oy := sin(out) * (ap + 0.03)
+			var ox2 := cos(out) * (ap + 0.045)
+			var oy2 := sin(out) * (ap + 0.045)
+			if t == 0:
+				c.rect_panel(ox, oy, out, r * 0.62, y + 0.45, y + 1.85, Color("#3a3c42"), M_STONE)
+				for q in 6:
+					c.rect_panel(ox2, oy2, out, r * 0.6, y + 0.58 + 0.2 * float(q), y + 0.63 + 0.2 * float(q), Color("#5a5d64"), M_STONE)
+			elif t % 2 == 1:
+				c.rect_panel(ox, oy, out, r * 0.72, y + 0.2, y + 2.2, red, M_STONE)
+				c.panel(ox2, oy2, out, _star_pts(0.6, y + 1.5), Color("#e4a0a0"), M_STONE)
+				c.round_panel(ox2, oy2, out, 0.22, y + 0.7, 8, Color("#e8c070"), M_STONE)
+		# The garland round the tier's top edge: 0.35 m of fir, red and gold baubles, warm bulbs.
 		c.noroof(true)
-		c.bulb_ring(0, 0, r + 0.15, y + 1.22, 16, 0.09, [KURANT_BULB], M_LAMP, rot)
+		var gr := c.ring(0, 0, r + 0.12, 8, rot)
+		for k in 8:
+			var j := (k + 1) % 8
+			c.beam(Vector3(gr[k].x, c.g + y + 2.4, gr[k].y), Vector3(gr[j].x, c.g + y + 2.4, gr[j].y), 0.35, FIR)
+		for k in 16:
+			var a := TAU * (float(k) + 0.5) / 16.0
+			var bc := Color("#d6252c") if k % 2 == 0 else Color("#e0b030")
+			c.sphere(cos(a) * (r + 0.28), sin(a) * (r + 0.28), y + 2.42, 0.15, 6, 3, bc)
+			c.lbulb(cos(a + 0.2) * (r + 0.3), sin(a + 0.2) * (r + 0.3), y + 2.48, 0.06, KURANT_BULB)
 		c.noroof(false)
-		y += 1.37
-	# The cap: a cream square box roof, a little tilted (front edge 0.5 m, back edge 0.9 m).
-	var cy := y
-	c.prism(0, 0, 0.6, 4, cy, cy + 0.15, KURANT_CAP.darkened(0.1), CLEAR, M_STONE, -1.0, PI * 0.25)
-	var hc := 0.95
-	var capc := KURANT_CAP.lightened(0.06)
-	c.quad(c.p(-hc, -hc, cy + 0.15), c.p(hc, -hc, cy + 0.15), c.p(hc, -hc, cy + 0.7), c.p(-hc, -hc, cy + 0.7), capc, M_STONE, Vector3.ZERO, true)
-	c.quad(c.p(hc, hc, cy + 0.15), c.p(-hc, hc, cy + 0.15), c.p(-hc, hc, cy + 1.1), c.p(hc, hc, cy + 1.1), capc.darkened(0.08), M_STONE, Vector3.ZERO, true)
-	c.quad(c.p(-hc, hc, cy + 0.15), c.p(-hc, -hc, cy + 0.15), c.p(-hc, -hc, cy + 0.7), c.p(-hc, hc, cy + 1.1), capc.darkened(0.04), M_STONE, Vector3.ZERO, true)
-	c.quad(c.p(hc, -hc, cy + 0.15), c.p(hc, hc, cy + 0.15), c.p(hc, hc, cy + 1.1), c.p(hc, -hc, cy + 0.7), capc.darkened(0.04), M_STONE, Vector3.ZERO, true)
-	c.quad(c.p(-hc, -hc, cy + 0.7), c.p(hc, -hc, cy + 0.7), c.p(hc, hc, cy + 1.1), c.p(-hc, hc, cy + 1.1), capc.lightened(0.1), M_STONE, Vector3.UP, true)
-	y = cy - 0.8
+		y += 2.4
+	# The dark collar under the crown.
+	c.prism(0, 0, 1.3, 6, y, y + 0.5, post, Color("#2a2c30"))
 	if strings:
-		var top := c.p(0, 0, y + 1.9)
+		var top := c.p(0, 0, y + 2.5)
 		for k in 12:
 			var a := TAU * (float(k) + 0.5) / 12.0
 			var pw := c.w(cos(a) * fan, sin(a) * fan)
 			var pg: float = float(b.map.terrain_height(pw.x, pw.y))
 			c.beam(Vector3(pw.x, pg, pw.y), Vector3(pw.x, pg + 4.0, pw.y), 0.09, WIRE)
 			c.noroof(true)
-			c.string(top, Vector3(pw.x, pg + 4.0, pw.y), 0.6)
+			c.string(top, Vector3(pw.x, pg + 4.0, pw.y), 0.9)
 			c.noroof(false)
+	c.done()
+
+
+## The kurant's turning crown (F's photos): a six-sided box wider at the top (r 1.2 at 13.4 m to r 2.2
+## at 15.4 m), red faces with white edges and a lighter white snowflake on each. Turn it slowly
+## about `at` (the rides shader: about one revolution in 12-20 s, a new ride number).
+static func kurant_spin(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	var y0 := 13.4
+	var y1 := 15.4
+	var red := Color("#b8282a")
+	c.frustum(0, 0, 1.2, y0, 2.2, y1, 6, red, red.darkened(0.2))
+	var a := c.ring(0, 0, 1.2, 6, 0.0)
+	var t := c.ring(0, 0, 2.2, 6, 0.0)
+	c.noroof(true)
+	for k in 6:
+		var j := (k + 1) % 6
+		var pa := Vector3(a[k].x, c.g + y0, a[k].y)
+		var pb := Vector3(a[j].x, c.g + y0, a[j].y)
+		var pc := Vector3(t[j].x, c.g + y1, t[j].y)
+		var pd := Vector3(t[k].x, c.g + y1, t[k].y)
+		c.beam(pa, pd, 0.1, WHITE)
+		c.beam(pd, pc, 0.1, WHITE)
+		# A snowflake on the face, lying in its plane, lifted out a little.
+		var cen := (pa + pb + pc + pd) * 0.25
+		var tx := (pb - pa).normalized()
+		var sy := ((pd + pc) * 0.5 - (pa + pb) * 0.5).normalized()
+		var nn := tx.cross(sy)
+		if Vector2(nn.x, nn.z).dot(Vector2(cen.x - c.o.x, cen.z - c.o.y)) < 0.0:
+			nn = -nn
+		var pts: Array[Vector3] = []
+		for q in 12:
+			var ang := TAU * float(q) / 12.0
+			var rr := 0.7 if q % 2 == 0 else 0.28
+			pts.append(cen + nn * 0.03 + tx * cos(ang) * rr + sy * sin(ang) * rr)
+		for q in 12:
+			c.tri(cen + nn * 0.03, pts[q], pts[(q + 1) % 12], Color("#f4f0e8"), M_STONE, nn)
+	c.noroof(false)
 	c.done()
 
 
