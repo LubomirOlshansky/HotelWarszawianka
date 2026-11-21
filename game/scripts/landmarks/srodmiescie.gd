@@ -762,7 +762,7 @@ func _build_dom_partii(_site: Dictionary) -> void:
 	# stands on this tower, his Street View photos).
 	# F 2026-11-21: "Bank Pepeo" was too big; "maybe only Żubr", smaller, as his phone shot.
 	var top_sign := "ŻUBR"
-	var k_r := 1.15
+	var k_r := 1.4
 	var r_len := Neon.length_of(top_sign) * k_r
 	var r_h := Neon.ROW_H * Neon.PIXEL * k_r
 	_lbox(r_len * 0.5 + 2.5, 0.35, r_len * 0.5 + 0.4, 0.1, wing_top, wing_top + r_h + 0.9, DOM_BOARD, M_STONE, DOM_SHADE)
