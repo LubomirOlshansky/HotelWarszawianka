@@ -1277,6 +1277,7 @@ func _fly_in() -> void:
 		_opening_audio.start(radio)
 		# The morning (F, 2026-11-16): the city wakes up while the camera flies in. It loaded in the
 		# Day look under the title (the shadows' pipelines are warm); the night comes at the tap.
+		# F, 2026-11-20: it stays, and ends on the game clock's 11:00 (no jump to 14:00 after it).
 		tod.wake(CameraShots.OPEN_TIME)
 		moments.opening(vehicle.global_position, cam_yaw, camera_pitch,
 				PackedStringArray(["Śródmieście · Plac Defilad", "the centre of Warsaw"]))

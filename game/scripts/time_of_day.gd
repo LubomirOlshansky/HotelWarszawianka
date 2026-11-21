@@ -37,6 +37,8 @@ const Pacer := preload("res://scripts/pacer.gd")
 
 ## Loop MW-3: DAWN (Świt) after LIVE, so the saved and the existing indices keep their meaning.
 enum { DAY, DUSK, NIGHT, LIVE, DAWN }
+## The Day look's hour, where a new game's clock starts.
+const DAY_START_HOUR := 11.0
 const NAMES := ["Day", "Dusk", "Night", "Live", "Dawn"]
 const BLEND := 1.5
 const LAT := 52.23
@@ -243,7 +245,13 @@ func start_clock(date := 0, m := DAY, hour := -1.0) -> void:
 	mode = LIVE
 	_game_utc = warsaw_to_utc("12:00", date)
 	_sun_day = -1
-	set_hour(hour if hour >= 0.0 else look_hour(m), true)
+	var h := hour if hour >= 0.0 else look_hour(m)
+	if m == DAY and h < 12.0:
+		# The Day start (11:00, F 2026-11-20) is a morning: from the noon base `set_hour` would move
+		# it to tomorrow, a Saturday. Base the day at midnight instead; the other looks keep noon.
+		_game_utc = warsaw_to_utc("00:00", date)
+		_sun_day = -1
+	set_hour(h, true)
 
 
 ## The clock moves forward to `hour` (0-24) today, or tomorrow if that hour has passed (a few
@@ -302,11 +310,12 @@ static func look_at(hour: float) -> String:
 
 
 ## The hour a look stands for on the game clock's date: Dawn the sunrise, Dusk the sunset (the
-## golden hour turning blue), Night 23:00, Day 14:00 kept clear of the golden hours (a winter day
+## golden hour turning blue), Night 23:00, Day DAY_START_HOUR (11:00, F 2026-11-20: the game starts at
+## 11 from the first frame, no jump to 14) kept clear of the golden hours (a winter day
 ## is short). Without the game clock, the fixed looks' hours.
 func look_hour(m: int) -> float:
 	if not game_clock:
-		return float([14.0, 19.5, 1.5, 14.0, 5.75][m % NAMES.size()])
+		return float([11.0, 19.5, 1.5, 14.0, 5.75][m % NAMES.size()])
 	var st := sun_times()
 	var g := _band().y
 	match m:
@@ -318,7 +327,7 @@ func look_hour(m: int) -> float:
 			return 23.0
 	var lo := st.x + g + 0.5
 	var hi := st.y - g - 1.0
-	return clampf(14.0, lo, hi) if lo <= hi else (st.x + st.y) * 0.5
+	return clampf(DAY_START_HOUR, lo, hi) if lo <= hi else (st.x + st.y) * 0.5
 
 
 ## The look for the menus and the stories: the mode, or on the game clock the look the sun makes
