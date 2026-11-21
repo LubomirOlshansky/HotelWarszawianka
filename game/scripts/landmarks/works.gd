@@ -1119,6 +1119,8 @@ func _build_dom_chlopa(site: Dictionary) -> void:
 		if p.distance_to(q) < 0.3:
 			continue
 		_dch_waves(p, q, _out(ring, p, q), g + DCH_TOP, drop[k])
+	# --- the south-west front's upper floors (the 40 m edge from DCH_GAP_A to DCH_GAP_B)
+	_dch_fill_front(ring, g)
 	# --- the signs, in the front's frame
 	_o = DCH_O
 	_a = DCH_A
@@ -1169,6 +1171,49 @@ func _build_dom_chlopa(site: Dictionary) -> void:
 		var u := DCH_CASINO_U0 + 1.0 + pw * float(k)
 		_ubox(u + 0.08, u + pw - 0.08, 0.0, 0.12, g + 0.1, g + 4.2, DCH_CASINO_PANELS[k], M_LAMP)
 	_mode = M_STONE
+
+
+## The baked block (street_blocks/2250406.bin) has the ground floor and the 2 m at each end of
+## this 40 m front and nothing over the ground floor between, while LoD2's roof (kept, lifted to
+## the coping by _lift_block_roof) stands at full height behind it: from outside the front reads
+## as a hole in the wall under a floating roof (F, 2026-11-20). The floors are filled here with
+## the block's own `facade` wall (its cream and its windows, the block's seed), from the ground
+## floor's top to the coping, flush with the outline.
+const DCH_GAP_A := Vector2(-592.2, 16.5)
+const DCH_GAP_B := Vector2(-630.2, 29.4)
+const DCH_BLOCK := "2250406"
+const DCH_FLOOR_TOP := 6.6    # a little under the ground floor's top (6.8), so no crack shows
+const DCH_FACADE := Color("#d8d5be")
+
+
+func _dch_fill_front(ring: PackedVector2Array, g: float) -> void:
+	var n := ring.size()
+	for k in n:
+		var a := ring[k]
+		var b := ring[(k + 1) % n]
+		if a.distance_to(DCH_GAP_A) > 0.5 or b.distance_to(DCH_GAP_B) > 0.5:
+			continue
+		var out := _out(ring, a, b)
+		var nrm := Vector3(out.x, 0.0, out.y)
+		var y0 := g + DCH_FLOOR_TOP
+		var y1 := g + DCH_TOP
+		var l := a.distance_to(b)
+		var t := Vector2(-nrm.z, nrm.x).normalized()
+		# the facade shader's windows run by (distance along the wall, height over the ground),
+		# as _build_block gives them
+		var ua := Vector2(a.dot(t), DCH_FLOOR_TOP)
+		var ub := Vector2(b.dot(t), DCH_FLOOR_TOP)
+		var uc := Vector2(b.dot(t), DCH_TOP)
+		var ud := Vector2(a.dot(t), DCH_TOP)
+		var pa := Vector3(a.x, y0, a.y)
+		var pb := Vector3(b.x, y0, b.y)
+		var pc := Vector3(b.x, y1, b.y)
+		var pd := Vector3(a.x, y1, a.y)
+		_mode = fposmod(float(DCH_BLOCK.hash() % 1000) / 1000.0, 1.0) * 0.98 + 0.01
+		_tri(pa, pb, pc, nrm, DCH_FACADE, ua, ub, uc, DCH_TOP, false)
+		_tri(pa, pc, pd, nrm, DCH_FACADE, ua, uc, ud, DCH_TOP, false)
+		_mode = M_STONE
+		return
 
 
 ## One street front's roof edge from a to b: shallow arcs over the coping at y, a cream band

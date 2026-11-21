@@ -571,7 +571,7 @@ func show_dev() -> void:
 ## settings.gd keep them as ever; only where they sit changed.
 func _dev_page(body: Control) -> Control:
 	var at := _pages.size()
-	var dev := _rows(body, [3, 3, 3])
+	var dev := _rows(body, [3, 3, 4])
 	_heading(dev[0], "Kamera za autem", "Camera follows the car")
 	_segments(dev[0], "camera", CAMERA)
 	_heading(dev[1], "Prowadzenie", "Handling")
@@ -601,7 +601,10 @@ func _dev_page(body: Control) -> Control:
 	# F 2026-11-17: the camera view (follow_camera.gd VIEW_*): the game's, top-down, aerial.
 	_heading(dev[8], "Widok kamery", "Camera view")
 	_segments(dev[8], "camera_view", CAMERA_VIEW)
-	for key: String in ["camera", "lane_assist", "zones", "soft_fences", "perf"]:
+	# F 2026-11-20: Promo Mode (promo_mode.gd): framing tools for the trailer and the Reels.
+	_heading(dev[9], "Tryb promo", "Promo mode")
+	_segments(dev[9], "promo", ON_OFF)
+	for key: String in ["camera", "lane_assist", "zones", "soft_fences", "perf", "promo"]:
 		for b: Button in _groups[key]:
 			b.custom_minimum_size.x = touch * 1.05
 	var page := _pages[at]

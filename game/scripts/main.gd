@@ -91,6 +91,7 @@ const EggBook := preload("res://scripts/egg_book.gd")
 const Tape := preload("res://scripts/tape.gd")
 const Spacer := preload("res://scripts/spacer.gd")
 const Fotka := preload("res://scripts/fotka.gd")
+const PromoMode := preload("res://scripts/promo_mode.gd")
 ## Loop 3h slice 1: the demo's districts (discovery, "?" marks, completion).
 const Districts := preload("res://scripts/districts.gd")
 ## Loop 3h slice 2: the 20 Syrenki (collectibles).
@@ -391,6 +392,8 @@ var _keep := QualityKeep.new()  # perf thread: manual levels kept, Experimental 
 var tape: Tape
 var spacer: Spacer
 var fotka: Fotka
+## F 2026-11-20: Promo Mode (promo_mode.gd), the trailer's framing tools; off by default.
+var promo: PromoMode
 ## Where the car stood when Fotka opened (Transform3D.IDENTITY: not open): put back on close, so
 ## nothing that happened while the camera was away (a push from traffic) leaves it elsewhere.
 var _fotka_car := Transform3D.IDENTITY
@@ -1278,6 +1281,7 @@ func _fly_in() -> void:
 		_opening_audio.start(radio)
 		# The morning (F, 2026-11-16): the city wakes up while the camera flies in. It loaded in the
 		# Day look under the title (the shadows' pipelines are warm); the night comes at the tap.
+		# F, 2026-11-20: it stays, and ends on the game clock's 11:00 (no jump to 14:00 after it).
 		tod.wake(CameraShots.OPEN_TIME)
 		moments.opening(vehicle.global_position, cam_yaw, camera_pitch,
 				PackedStringArray(["Śródmieście · Plac Defilad", "the centre of Warsaw"]))
@@ -4057,6 +4061,14 @@ func _build_moments(data: Dictionary, world: Node3D) -> void:
 	add_child(fotka)
 	fotka.setup(places, spots)
 	fotka.closed.connect(_on_fotka_closed)
+	promo = PromoMode.new()
+	promo.name = "PromoMode"
+	promo.game = self
+	add_child(promo)
+	promo.set_process(false)
+	promo.set_process_input(false)
+	promo.set_on(settings.promo or flags.promo_flag != "")
+	promo.use_flag(flags.promo_flag)
 	if hud.settings_panel != null:
 		var page: Control = hud.settings_panel.get("notebook_page")
 		hud.settings_panel.set("notebook_eggs", egg_book)
@@ -4667,6 +4679,8 @@ func _fill_map_list(entries: Array) -> void:
 		for id: String in FirstSteps.IDS:
 			var name: Array = FirstSteps.name_of(id)
 			f["steps"].append({"id": id, "pl": name[0], "en": name[1], "done": not id in left, "entry": _step_entry(id, by_group, here)})
+	if wallet != null:
+		f["taxi"] = Rides.Rules.account(wallet.keep, int(wallet.jobs.get("podwozka", 0)))  # the taxi app's account (F 2026-11-20)
 	if stories != null:
 		f["stories"] = QuestBook.story_facts(stories.defs, stories.clock.call(), intro)
 	if rivals != null and rivals.ladder != null and wallet != null:
@@ -5009,7 +5023,7 @@ func _settings_state() -> Dictionary:
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
 			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
-			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view,
+			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on),
 			"weather": weather.state, "time": tod.look_mode(), "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
 			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "sensitivity": settings.sensitivity,
@@ -5105,6 +5119,9 @@ func _on_setting(key: String, value: Variant) -> void:
 			camera_pitch = -settings.pitch
 		"camera_view":
 			_set_view(int(value))
+		"promo":
+			settings.promo = int(value) == 1
+			promo.set_on(settings.promo)
 		"bench":
 			_start_phone_bench.call_deferred()
 			return
@@ -5356,6 +5373,8 @@ func _on_car_pushed(_id: String, at: Vector3, _dir: Vector3, speed: float) -> vo
 func _on_soft_broke(id: String, _panel: int, kind: StringName, at: Vector3, _dir: Vector3, speed: float) -> void:
 	if wallet != null:
 		wallet.count_smash(String(kind))
+	if rides != null:
+		rides.smashed(speed)  # the taxi passenger's quip (F 2026-11-20)
 	var now := _clock_s()
 	if now - _smash_sound_t < SMASH_SOUND_GAP:
 		return
@@ -5621,6 +5640,7 @@ func _paused_frame() -> void:
 func _apply_style() -> void:
 	var style: Dictionary = STYLES[style_index]
 	var screen := get_viewport().get_visible_rect().size
+	screen = Vector2(maxf(screen.x, screen.y), minf(screen.x, screen.y))  # Promo Mode's VERTICAL: the landscape image
 	# Loop G1: the quality's step and budget (tiers.gd image_scale); --lines= is exact.
 	if flags.lines_override > 0:
 		view.stretch_shrink = maxi(1, floori(screen.y / flags.lines_override))
@@ -6340,7 +6360,7 @@ func _read_input(dt: float) -> void:
 	# Loop MW-6: Fotka holds the car (and the helicopter) still; the city goes on. Parked, not
 	# just braking: a held brake at a standstill reverses (car.gd), and the car backed into the
 	# buildings behind it for as long as Fotka was open (F, 2026-11-01).
-	if fotka != null and fotka.is_open():
+	if (fotka != null and fotka.is_open()) or (promo != null and promo.holds_car()):
 		car.target_dir = Vector3.ZERO
 		car.steer = 0.0
 		car.throttle = 0.0
@@ -6896,6 +6916,8 @@ func _update_camera(dt: float) -> void:
 		cam.global_transform = Transform3D(cb, club.centre + cb.z * 120.0)
 		cam.far = 300.0
 		return
+	if promo != null and promo.frame(dt):
+		return  # Promo Mode (promo_mode.gd) placed the camera
 	if flags.free_cam:
 		_update_free_camera()
 		return
