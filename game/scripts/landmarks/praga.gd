@@ -131,10 +131,13 @@ const STADIUM_TIP := Color(0.96, 0.97, 1.0)
 const STADIUM_RIM_LIGHT := Color(0.84, 0.87, 0.92)
 const STADIUM_LAMP := Color("#fff1cf")
 ## The stairs' light lines (pale sand by day, warm at night), on the mapped stairs within STAIR_REACH m of the centre.
-const STADIUM_STAIR := Color("#f0b45a")
+const STADIUM_STAIR := Color("#ffc46a")
 const STAIR_REACH := 270.0
 ## The stairs' light lines: one per step (F's drone photo, 2026-11-21).
 const STAIR_STEP := 0.6
+## F (2026-11-21): the flights read as dark slabs with thin stripes from the heli's 485 m view.
+## Each line is now over half the step, so a flight reads as a glowing ladder.
+const STAIR_LINE := 0.36
 ## The lines ride over the stone treads (map_builder rounds the ground up to whole risers of
 ## 0.16 m): at ground level they were hidden under the treads in checkered bits.
 const STAIR_LIFT := 0.2
@@ -315,7 +318,7 @@ func _build_stadium(site: Dictionary) -> void:
 		var run_len := s0.distance_to(s1)
 		var e := (s1 - s0) / maxf(run_len, 0.01)
 		var side := Vector2(-e.y, e.x)
-		var half := side * w * 0.44
+		var half := side * w * 0.47
 		# F's drone photo (2026-11-21): every step's nosing glows, so a flight reads as a
 		# block of gold lines from the air; a lit strip runs down both of its edges.
 		var t := 0.3
