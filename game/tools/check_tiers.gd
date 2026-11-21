@@ -386,7 +386,8 @@ func _check_mac() -> void:
 		problems.append("mac: --gfx= overrides no longer win")
 	Tiers.overrides = {}
 	Tiers.mac = false
-	if Tiers.image_scale(Vector2(3024, 1964), 480.0, Tiers.ULTRA) != 4 or int(Tiers.extra(Tiers.ULTRA, "msaa")) != Viewport.MSAA_DISABLED:
+	# The phone's rules (perf thread 2026-11-20: Ultra has MSAA 4x on a phone too; High none).
+	if Tiers.image_scale(Vector2(3024, 1964), 480.0, Tiers.ULTRA) != 4 or int(Tiers.extra(Tiers.HIGH, "msaa")) != Viewport.MSAA_DISABLED:
 		problems.append("mac off: the phone's rules did not come back")
 	# The keys that hide the touch pads, the presses that bring them back.
 	for row: Array in [[KEY_W, true], [KEY_M, true], [KEY_LEFT, true], [KEY_SPACE, true], [KEY_ESCAPE, false],

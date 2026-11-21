@@ -246,6 +246,10 @@ static func own_scale(size: Vector2, lines: float, quality: int) -> int:
 	if full_image or bool(value(quality, "full", false)):
 		return 1
 	if mac:
+		# Max on a Mac is the screen's own pixels (the Mac thread's rule: an M4 Pro holds it at 90
+		# fps); on a phone Max is x2 (the perf thread's levels, 2026-11-20).
+		if quality == EXPERIMENTAL:
+			return 1
 		return mac_scale(size) + int(value(quality, "step"))
 	return maxi(1, floori(size.y / lines)) + int(value(quality, "step"))
 
