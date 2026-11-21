@@ -1607,10 +1607,6 @@ func _build_drawing() -> void:
 	_scoot_buf.resize(SCOOT_CAP * 16)
 	_scoot_buf.fill(0.0)
 	_scoot_mmi = _new_mmi(_scoot_mm, "Scooters")
-	_sc_mm = _new_mm(kukuryznik_mesh(), KUK_CAP)
-	_sc_buf.resize(KUK_CAP * 16)
-	_sc_buf.fill(0.0)
-	_sc_mmi = _new_mmi(_sc_mm, "Kukuryznik")
 	_gbuf.resize(Pedestrians.GUESTS * 16)
 	_gbuf.fill(0.0)
 	# Loop jobs-2: the armchair on the man's head (shown only near him).
