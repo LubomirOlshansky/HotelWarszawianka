@@ -215,7 +215,7 @@ func _fly_checks() -> int:
 		elif info["key"] == "dtc":
 			alt = 10.0  # the 17.5 m stores share roof cells with the Eastern Wall's 70 m slabs behind them
 		elif info["key"] == "syrenka_powisle" or info["key"] == "dworzec_wodny":
-			alt = 3.0  # the statue stands 5 m, the water station's roof 4 m: a 6 m heli flies over them
+			alt = 3.0  # the statue stands 6.4 m, the water station's roof 4 m: a 6 m heli flies over them
 		elif info["key"] == "schodki_wisla":
 			alt = 12.0  # ground-level steps; the way in from the river passes the 7.2 m bar barges moored before them
 		elif info["key"] == "defilad_ramp":
