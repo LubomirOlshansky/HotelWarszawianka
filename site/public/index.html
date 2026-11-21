@@ -137,9 +137,9 @@
     <p class="lede">Around Warsaw started on 27 October 2026 and has changed every day since. This is the latest:</p>
     <p class="grow-date">Last update: <time datetime="2026-11-21">21 November 2026</time></p>
     <ul class="grow-list" lang="en">
+      <li>In the typed walls look, fourteen walls and fences checked on street photos now look like the real ones: Plac Grzybowski&#x27;s planter edges…</li>
       <li>Walls in the typed look gain marks: spray patches and a few painted words on precast and boulevard walls, drip stains under copings, ivy…</li>
       <li>The website&#x27;s &quot;open beta&quot; signup now asks which phone you have (iPhone or Android), the website says in the first screen that this is a…</li>
-      <li>Karowa&#x27;s curved stone viaduct, Wiadukt Markiewicza, is built from photos: cream arches you drive under, balustrades with obelisk lamps, the…</li>
     </ul>
     <p><a class="more" href="/progress/">See everything that changed<svg aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
   </div>
@@ -156,7 +156,7 @@
     <div class="plat-card soon" id="soon">
         <h3>Open beta soon</h3>
         <p>Be among the first to drive. One email, the day it opens.</p>
-        <form class="notify" id="notify" action="https://formspree.io/f/xjyweqgn" method="POST" novalidate data-need="email">
+        <form class="notify" id="notify" action="/api/signup" method="POST" novalidate data-need="email">
           <fieldset class="topics platform">
             <legend>Your phone</legend>
             <label><input type="radio" name="platform" value="iPhone" checked><span>iPhone</span></label>
@@ -175,7 +175,7 @@
     </div>
     <details class="write" open>
       <summary>Got an idea to add, or something to fix? Tell me</summary>
-      <form class="form" id="form" action="https://formspree.io/f/xjyweqgn" method="POST" novalidate data-need="message">
+      <form class="form" id="form" action="/api/feedback" method="POST" novalidate data-need="message">
         <fieldset class="topics">
           <legend>What is it about?</legend>
           <label><input type="radio" name="topic" value="Idea: add" checked><span>Add something</span></label>
@@ -202,7 +202,7 @@
         <input type="hidden" name="_subject" id="subject" value="Around Warsaw: Idea: add">
         <div class="hp" aria-hidden="true"><label for="_gotcha">Leave empty</label><input id="_gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>
         <button class="btn btn-primary send" type="submit">Send<svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
-        <p class="legal">Sent through Formspree straight to the developer. Your email is used only to reply. <a href="/privacy/">Privacy</a>.</p>
+        <p class="legal">Sent straight to the developer. Your email is used only to reply. <a href="/privacy/">Privacy</a>.</p>
         <p class="status" role="status" aria-live="polite" data-ok="Thanks! It&#x27;s on its way." data-fail="That didn&#x27;t go through. Try again, or write on Telegram." data-need-email="Add your email so I can write back." data-bad-email="That email doesn&#x27;t look right." data-need-msg="Write a few words first." data-sending="Sending…"></p>
       </form>
     </details>

@@ -137,9 +137,9 @@
     <p class="lede">Around Warsaw powstało 27 października 2026 i zmienia się codziennie. Oto najnowsze (po angielsku):</p>
     <p class="grow-date">Ostatnia zmiana: <time datetime="2026-11-21">21 listopada 2026</time></p>
     <ul class="grow-list" lang="en">
+      <li>In the typed walls look, fourteen walls and fences checked on street photos now look like the real ones: Plac Grzybowski&#x27;s planter edges…</li>
       <li>Walls in the typed look gain marks: spray patches and a few painted words on precast and boulevard walls, drip stains under copings, ivy…</li>
       <li>The website&#x27;s &quot;open beta&quot; signup now asks which phone you have (iPhone or Android), the website says in the first screen that this is a…</li>
-      <li>Karowa&#x27;s curved stone viaduct, Wiadukt Markiewicza, is built from photos: cream arches you drive under, balustrades with obelisk lamps, the…</li>
     </ul>
     <p><a class="more" href="/progress/">Zobacz wszystko, co się zmieniło<svg aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
   </div>
@@ -156,7 +156,7 @@
     <div class="plat-card soon" id="soon">
         <h3>Otwarta beta wkrótce</h3>
         <p>Zajedź jako jeden z pierwszych. Jeden e-mail, w dniu otwarcia.</p>
-        <form class="notify" id="notify" action="https://formspree.io/f/xjyweqgn" method="POST" novalidate data-need="email">
+        <form class="notify" id="notify" action="/api/signup" method="POST" novalidate data-need="email">
           <fieldset class="topics platform">
             <legend>Twój telefon</legend>
             <label><input type="radio" name="platform" value="iPhone" checked><span>iPhone</span></label>
@@ -175,7 +175,7 @@
     </div>
     <details class="write" open>
       <summary>Masz pomysł, co dodać, albo co naprawić? Napisz</summary>
-      <form class="form" id="form" action="https://formspree.io/f/xjyweqgn" method="POST" novalidate data-need="message">
+      <form class="form" id="form" action="/api/feedback" method="POST" novalidate data-need="message">
         <fieldset class="topics">
           <legend>W jakiej sprawie?</legend>
           <label><input type="radio" name="topic" value="Idea: add" checked><span>Dodaj coś</span></label>
@@ -202,7 +202,7 @@
         <input type="hidden" name="_subject" id="subject" value="Around Warsaw: Idea: add">
         <div class="hp" aria-hidden="true"><label for="_gotcha">Leave empty</label><input id="_gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>
         <button class="btn btn-primary send" type="submit">Wyślij<svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
-        <p class="legal">Wysyłane przez Formspree prosto do autora. E-mail służy tylko do odpowiedzi. <a href="/privacy/">Prywatność</a>.</p>
+        <p class="legal">Wysyłane prosto do autora. E-mail służy tylko do odpowiedzi. <a href="/privacy/">Prywatność</a>.</p>
         <p class="status" role="status" aria-live="polite" data-ok="Dzięki! Już leci." data-fail="Nie udało się wysłać. Spróbuj jeszcze raz albo napisz na Telegramie." data-need-email="Dodaj e-mail, żebym mógł odpisać." data-bad-email="Ten e-mail wygląda na niepoprawny." data-need-msg="Napisz najpierw kilka słów." data-sending="Wysyłam…"></p>
       </form>
     </details>

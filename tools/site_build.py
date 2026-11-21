@@ -297,7 +297,7 @@ MONTHS_PL = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipc
 # cropped to 4:3 fills the width with 61% of the picture, so the browser must ask for 163vw.
 # Where the site's forms post. "formspree": the Around Warsaw project's Formspree forms (live today).
 # "own": the Worker's /api/* (site/forms.js, D1 + email). One line to switch after a deploy of the Worker.
-FORMS = "formspree"
+FORMS = "own"
 FORM_ACTIONS = {
     "formspree": {"signup": "https://formspree.io/f/xjyweqgn", "feedback": "https://formspree.io/f/xjyweqgn"},
     "own": {"signup": "/api/signup", "feedback": "/api/feedback"},

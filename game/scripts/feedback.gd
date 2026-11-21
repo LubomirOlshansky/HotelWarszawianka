@@ -14,10 +14,10 @@ const Lang := preload("res://scripts/lang.gd")
 signal closed
 
 const WORDS := "res://data/feedback.json"
-## Where the card posts. Today the Formspree form "In-game feedback"; the site's own Worker
-## (site/forms.js, D1 + email) takes the same JSON at OWN_URL once it is deployed: change FORM_URL to it.
+## Where the card posts: the site's own Worker (site/forms.js, D1 + email). The Formspree form
+## "In-game feedback" (maeodgey) took the same JSON before the Worker was deployed (2026-11-21).
 const OWN_URL := "https://aroundwarsaw.app/api/feedback"
-const FORM_URL := "https://formspree.io/f/maeodgey"
+const FORM_URL := OWN_URL
 const MESSAGE_MIN := 3
 const MESSAGE_MAX := 2000
 const EMAIL_MAX := 200
