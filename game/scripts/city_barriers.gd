@@ -1609,6 +1609,8 @@ func build_barriers(st) -> void:
 			continue
 		if map._in_trybuna(l["p"]):
 			continue
+		if (l["k"] == "fence" or l["k"] == "wall") and map._on_markiewicz(map._pts(l["p"])):
+			continue  # Wiadukt Markiewicza's balustrades and their colliders are the landmark's (landmarks/karowa.gd)
 		if l["k"] == "fence" and _over_river(l["p"]):
 			continue
 		var style: Array = _placed(str(l["k"]))
@@ -2198,6 +2200,9 @@ func build_guard_rails(st) -> void:
 		var poly: PackedVector2Array = map._pts(g["p"])
 		var dk := int(g.get("dk", -1))
 		var guard := &"guard_deck" if dk >= 0 else &"guard_ground"
+		# On Wiadukt Markiewicza the guard lines are the roadway's kerbs (landmarks/karowa.gd draws them):
+		# no rail, the collider kept.
+		var kerb_only: bool = dk >= 0 and map._on_markiewicz(poly)
 		var run := 0.0
 		var next_post := 0.0
 		for i in poly.size() - 1:
@@ -2210,6 +2215,11 @@ func build_guard_rails(st) -> void:
 			var side := Vector2(-dir.y, dir.x) * 0.06
 			var ga: float = map.deck_height(dk, a.x, a.y)
 			var gb: float = map.deck_height(dk, b.x, b.y)
+			if kerb_only:
+				run += length
+				map._solid(guard, [Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb - 0.3, b.y), Vector3(b.x, gb + 1.6, b.y),
+						Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb + 1.6, b.y), Vector3(a.x, ga + 1.6, a.y)], {"site": "wiadukt_markiewicza"})
+				continue
 			# The beam: two faces and a top, 0.55-0.85 m up.
 			var n := Vector3(side.x, 0, side.y).normalized()
 			for sgn in [1.0, -1.0]:
