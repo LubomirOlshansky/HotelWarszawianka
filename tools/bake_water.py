@@ -31,6 +31,22 @@ import sys
 PX = 2.0
 RIVER_AREA = 20000.0
 NONE, PAVING, ROAD, STILL, RIVER = 0, 64, 128, 192, 255
+# Fountains that are a water mirror on flush granite (a point inside each ring): they reflect like
+# still water but are no water to drive into. The same list as map_builder.gd's DRY_FOUNTAINS.
+DRY_FOUNTAINS = [(515.0, -660.5)]
+
+
+def inside(pt, poly):
+    """Whether point pt lies inside polygon poly (even-odd rule)."""
+    x, z = pt
+    hit = False
+    j = len(poly) - 1
+    for i in range(len(poly)):
+        (xi, zi), (xj, zj) = poly[i], poly[j]
+        if (zi > z) != (zj > z) and x < (xj - xi) * (z - zi) / (zj - zi) + xi:
+            hit = not hit
+        j = i
+    return hit
 
 
 def ring(flat):
@@ -191,6 +207,9 @@ def main(map_dir):
     for s in data.get("surfaces", []):
         if s["k"] == "fountain":
             poly = ring(s["p"])
+            if any(inside(q, poly) for q in DRY_FOUNTAINS):
+                g.fill(kind, poly, STILL)  # a water mirror: it reflects, but it is dry ground
+                continue
             g.fill(water, poly, 1)
             g.fill(kind, poly, STILL)
     # Bridge decks: their top is a road or a footway; the height goes into A.

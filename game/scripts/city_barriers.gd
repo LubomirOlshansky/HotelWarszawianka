@@ -86,6 +86,8 @@ const SITE_WALLS := [
 	# The University's escarpment wall over Powiśle: the site `uw_skarpa` builds it in brick (2026-11-15).
 	[Vector2(-210.5, -650.9), ""],
 	[Vector2(-1639.7, -1217.3), ""],
+	# The riverside Syrenka's basin wall (F, 2026-11-20): the site `syrenka_powisle` builds the basin and its front wall.
+	[Vector2(552.3, -686.7), ""],
 	[Vector2(-1667.0, -1217.7), "balustrade_white"],
 	[Vector2(-1657.7, -1219.1), "balustrade_white"],
 	[Vector2(-1644.7, -1190.0), "balustrade_white"],

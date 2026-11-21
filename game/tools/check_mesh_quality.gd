@@ -151,7 +151,7 @@ const BUDGET := {
 	"deski": 2300,
 	"rynek": 3100,
 	"syrenka": 480,
-	"syrenka_powisle": 260,
+	"syrenka_powisle": 1400,  # 2026-11-20: rebuilt at its real spot with the basin, the wall, the spouts and the slopes
 	"dworzec_wodny": 310,
 	"kaskada": 260,
 	"dtc": 2250,

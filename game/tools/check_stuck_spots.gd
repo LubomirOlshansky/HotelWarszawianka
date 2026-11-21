@@ -198,6 +198,12 @@ const SPOTS := [
 	[875.0, -66.0, 340.0, 12.0, 3.0, 0.5, "PT-54 Poniatowski ramp loop, held north-north-west into the pocket", 340.0, false, -12.5],
 	[885.0, -66.0, 10.0, 12.0, 3.0, 0.5, "PT-54 Poniatowski ramp loop, held north-north-east into the pocket", 10.0, false, -12.5],
 	[860.0, -70.0, 30.0, 12.0, 3.0, 0.5, "PT-54 Poniatowski ramp loop, the west mouth, held north-east", 30.0, false, -12.5],
+	# The Syrenka plaza's water mirror (2026-11-21, F's photos): flush wet granite with jets and light
+	# strips, dry ground (map_builder.gd DRY_FOUNTAINS): the car drives on it, along and across, and off.
+	[501.0, -648.7, 49.0, 8.0, 1.5, 0.5, "Syrenka plaza's water mirror, along it down towards the river (the statue's basin stops it further on)", 49.0],
+	[507.4, -670.2, 139.0, 7.0, 3.0, 0.5, "Syrenka plaza's water mirror, across it towards the metro", 139.0],
+	[530.3, -672.9, 229.0, 7.0, 3.0, 0.5, "Syrenka plaza's water mirror, from the statue's side up along it", 229.0],
+	[523.2, -652.1, 319.0, 7.0, 3.0, 0.5, "Syrenka plaza's water mirror, across it and off on to the plaza", 319.0],
 ]
 ## PT-41: [x, z, the level a car drives at there, what]: drive_height must give it within SEAM_TOL m.
 const SEAMS := [

@@ -1528,6 +1528,10 @@ func _load_metros(pois: Array) -> void:
 		var open_stairs := str(p.get("st", "")) == "Centrum" and ref in CENTRUM_OPEN_STAIRS
 		if open_stairs:
 			form = "steps"  # F, 2026-11-09: these four are a bare stair, no glass pavilion
+		# Centrum Nauki Kopernik's ref 1 on the upper boulevard by the Syrenka (F's photo, 2026-11-21):
+		# the wide escalator pit with the tall granite slab beside it (props.gd _metro_escalator_pit).
+		if str(p.get("st", "")) == "Centrum Nauki Kopernik" and ref == "1":
+			form = "escalator_pit"
 		# Świętokrzyska's entrances on the Marszałkowska side keep the older green M1 glass.
 		if form == "tent" and str(p.get("st", "")) == "Świętokrzyska" and x > -1075.0:
 			form = "tent_green"

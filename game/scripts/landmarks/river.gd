@@ -50,14 +50,34 @@ func _find_towers() -> void:
 
 # --- The Powiśle boulevards: the riverside Syrenka, Dworzec Wodny, Kaskada (2026-11-01) -----------
 
-## The Powiśle Syrenka (spec docs/landmarks/specs/syrenka_powisle.md): the baked "syrenka" point
-## is where the egg stands (the boulevard footway nearest the foot of Tamka, stepped towards the
-## water as eggs.gd does: 600, -697), facing the Vistula. The statue is hers now; eggs.gd keeps
-## only the trigger and the floodlight.
-const POWISLE_SYRENKA := Vector2(600.0, -697.0)
-const POWISLE_SYRENKA_YAW := -0.861
-const POWISLE_PLINTH := Color("#b9b2a2")
-const POWISLE_PLINTH_HI := Color("#d3ccbb")
+## The Powiśle Syrenka (spec docs/landmarks/specs/syrenka_powisle.md; rebuilt 2026-11-20 from F's
+## photos, the GUGiK orthophoto and the monument's record): she stands at the edge of the upper
+## boulevard by Centrum Nauki Kopernik, over Tunel Wisłostrady, where the ground drops to the
+## lower boulevard by the river, 17 m north-west of the metro's stair. Ludwika Nitschowa's 2.75 m
+## bronze on a pedestal of three sandstone blocks in a sandstone fountain basin (6 m in all); the
+## basin's front is a sandstone wall down the slope with three bronze spouts in arched niches
+## that pour into a dark water strip at its foot, cobbled slopes either side. Measured on the
+## orthophoto (52.24027 N, 21.03209 E) and OSM's basin (the mapped `water` ring and its stone
+## wall, 10.2 x 4.8 m: the frame below is that ring's centre and axes, so the basin covers the map's
+## pond); she faces down the slope, to the river and the bridge. Until 2026-11-20 she stood 48 m
+## east on the lower promenade, where the bake's guessed point (OSM maps no artwork there) had
+## put her egg.
+const POWISLE_SYRENKA := Vector2(550.8, -692.0)
+## Down the slope (u: to the lower boulevard and the river) and along the edge (v: her right).
+const POWISLE_SYRENKA_FWD := Vector2(0.755, -0.656)
+const POWISLE_SYRENKA_YAW := -0.855  # atan2(-fwd.x, -fwd.y), as eggs.gd turns her node
+const POWISLE_SAND := Color("#cdb48a")
+const POWISLE_SAND_HI := Color("#dcc8a2")
+const POWISLE_SAND_LO := Color("#b39a73")
+const POWISLE_JOINT := Color("#9a8462")
+const POWISLE_SETTS := Color("#5d5f63")
+const POWISLE_WATER := Color("#3f6f86")
+const POWISLE_SPILL := Color("#bfe6f2")
+## The basin (u from the back to the front wall's face, v half width) and the wall's foot.
+const POWISLE_BASIN_U0 := -2.45
+const POWISLE_BASIN_U1 := 2.45
+const POWISLE_HALF_V := 5.15
+const POWISLE_FRONT_U := 3.7
 const WODNY_REACH := 60.0
 const WODNY_AT := Vector2(632.0, -680.0)
 const KASKADA_AT := Vector2(755.0, -521.0)
@@ -67,7 +87,11 @@ const BOAT_GLASS := Color("#9dc0cc")
 
 
 func _find_bulwary() -> void:
-	_add_site("syrenka_powisle", [_circle(POWISLE_SYRENKA, 1.6, 8)])
+	_o = POWISLE_SYRENKA
+	_a = POWISLE_SYRENKA_FWD
+	_b = Vector2(-_a.y, _a.x)
+	_add_site("syrenka_powisle", [_rect((POWISLE_BASIN_U0 + POWISLE_FRONT_U + 2.6) * 0.5, 0.0,
+			(POWISLE_FRONT_U + 2.6 - POWISLE_BASIN_U0) * 0.5, POWISLE_HALF_V + 3.6)])
 	var wodny := _landmark_near("Dworzec Wodny", WODNY_AT, WODNY_REACH)
 	if wodny.size() >= 3:
 		_add_site("dworzec_wodny", [wodny])
@@ -76,59 +100,181 @@ func _find_bulwary() -> void:
 		_add_site("kaskada", [kaskada])
 
 
-## The statue on a low stone plinth: a footing slab, a block, a cap, then the bronze mermaid
-## 1.6 times life size (it must read from the camera), sword and shield both raised.
+## The monument: the basin on the upper level (sandstone rim, water lit cool at night), the three
+## pedestal blocks and the bronze, the front wall down to the lower ground with its spouts and
+## the water strip, and the cobbled slopes either side draped on the ground.
 func _build_syrenka_powisle(_site: Dictionary) -> void:
-	var c := POWISLE_SYRENKA
-	_g = map.terrain_height(c.x, c.y)
-	var g := _g
-	_mode = M_STONE
-	_o = c
-	_a = Vector2(-sin(POWISLE_SYRENKA_YAW), -cos(POWISLE_SYRENKA_YAW))
+	_o = POWISLE_SYRENKA
+	_a = POWISLE_SYRENKA_FWD
 	_b = Vector2(-_a.y, _a.x)
-	_lbox(0.0, 0.0, 1.25, 1.05, g - 0.3, g + 0.22, POWISLE_PLINTH.darkened(0.08), M_STONE, POWISLE_PLINTH)
-	_lbox(0.0, 0.0, 0.85, 0.7, g + 0.22, g + 1.15, POWISLE_PLINTH, M_STONE, POWISLE_PLINTH_HI)
-	_lbox(0.0, 0.0, 1.0, 0.85, g + 1.15, g + 1.38, POWISLE_PLINTH_HI, M_STONE, POWISLE_PLINTH_HI.lightened(0.04))
-	_syrenka_powisle_figure(g + 1.38)
-	_collide(_rect(0.0, 0.0, 1.25, 1.05))
+	_walls.clear()
+	_caps.clear()
+	var at := func(u: float, v: float) -> float:
+		var p := _w(u, v)
+		return map.terrain_height(p.x, p.y)
+	# The upper boulevard's height behind the basin, the lower one at the wall's foot.
+	var g: float = maxf(at.call(POWISLE_BASIN_U0 - 0.6, 0.0), at.call(0.0, 0.0))
+	var foot: float = minf(at.call(POWISLE_FRONT_U + 0.4, 0.0), g - 0.9)
+	_g = g
+	var hv := POWISLE_HALF_V
+	var water := g + 0.18
+	var rim := g + 0.5
+	_mode = M_STONE
+	# The basin: a sandstone body under the water (it hides the ground's slope), the rim round it.
+	var bu0 := POWISLE_BASIN_U0
+	var bu1 := POWISLE_BASIN_U1
+	var bc := (bu0 + bu1) * 0.5
+	var bh := (bu1 - bu0) * 0.5
+	_lbox(bc, 0.0, bh, hv, foot - 0.3, water, POWISLE_SAND_LO, M_STONE, POWISLE_WATER)
+	_lbox(bu0 + 0.2, 0.0, 0.2, hv, water - 0.05, rim, POWISLE_SAND, M_STONE, POWISLE_SAND_HI)
+	for s: float in [-1.0, 1.0]:
+		_lbox(bc, s * (hv - 0.2), bh - 0.4, 0.2, water - 0.05, rim, POWISLE_SAND, M_STONE, POWISLE_SAND_HI)
+	# The front: a lower sandstone ledge (the basin spills over it), then the wall down to the foot.
+	var fu := POWISLE_FRONT_U
+	var ledge := g - 0.35
+	_lbox((bu1 + fu) * 0.5, 0.0, (fu - bu1) * 0.5, hv, foot - 0.3, ledge, POWISLE_SAND, M_STONE, POWISLE_SAND_HI)
+	_lbox(bu1 + 0.15, 0.0, 0.15, hv, ledge, rim - 0.12, POWISLE_SAND, M_STONE, POWISLE_SAND_HI)
+	# The ashlar courses on the wall's face, a hair proud of it.
+	var face := Vector2(_a.x, _a.y)
+	var y := foot + 0.45
+	var course := 0
+	while y < ledge - 0.1:
+		var off := 0.0 if course % 2 == 0 else 0.6
+		_wall(_w(fu + 0.012, -hv), _w(fu + 0.012, hv), y - 0.025, y + 0.025, face, POWISLE_JOINT)
+		for k in range(0, 10):
+			var vv := -hv + 0.6 + off + k * 1.2
+			if vv < hv - 0.1:
+				_wall(_w(fu + 0.012, vv - 0.02), _w(fu + 0.012, vv + 0.02), y + 0.025, minf(y + 0.45, ledge), face, POWISLE_JOINT)
+		y += 0.47
+		course += 1
+	# Three arched niches with a bronze spout each, the water pouring into the strip below (lit at
+	# night, as the spouts are). A thin sill caps the wall.
+	_lbox(fu + 0.06, 0.0, 0.08, hv + 0.06, ledge - 0.1, ledge + 0.02, POWISLE_SAND_HI)
+	for k in 3:
+		var vv := -2.6 + k * 2.6
+		var n0 := foot + 0.1
+		var n1 := minf(foot + 1.0, ledge - 0.2)
+		_wall(_w(fu + 0.02, vv - 0.32), _w(fu + 0.02, vv + 0.32), n0, n1, face, POWISLE_SAND_LO.darkened(0.45))
+		_wall(_w(fu + 0.02, vv - 0.22), _w(fu + 0.02, vv + 0.22), n1, n1 + 0.14, face, POWISLE_SAND_LO.darkened(0.45))
+		var lip := n1 - 0.12
+		_beam(Vector3(_w(fu, vv).x, lip, _w(fu, vv).y), Vector3(_w(fu + 0.3, vv).x, lip - 0.03, _w(fu + 0.3, vv).y), 0.1, RYNEK_BRONZE_SHADE)
+		var spill := _w(fu + 0.42, vv)
+		_beam(Vector3(spill.x, lip - 0.05, spill.y), Vector3(_w(fu + 0.55, vv).x, foot + 0.06, _w(fu + 0.55, vv).y), 0.12, POWISLE_SPILL, false, M_LAMP)
+	# The water strip at the foot: dark wet granite with a cool sheen, draped on the ground.
+	_no_roof = true
+	_drape(fu, fu + 2.4, -hv, hv, 0.035, POWISLE_WATER.darkened(0.35), 0.6, 0.0)
+	# The cobbled slopes either side of the wall, from the hedges at the basin's ends down to the lower boulevard.
+	for s: float in [-1.0, 1.0]:
+		_drape(-0.8, fu + 2.4, s * hv, s * (hv + 3.4), 0.05, POWISLE_SETTS, 0.5, 0.08)
+	_no_roof = false
+	# The pedestal: a footing, the tall block, the cap; then the bronze rock with its waves.
+	var pu := -0.3
+	_lbox(pu, 0.0, 1.4, 1.2, water - 0.05, g + 1.0, POWISLE_SAND, M_STONE, POWISLE_SAND_HI)
+	_lbox(pu, 0.0, 0.95, 0.8, g + 1.0, g + 2.55, POWISLE_SAND_HI, M_STONE, POWISLE_SAND_HI)
+	_lbox(pu, 0.0, 1.1, 0.95, g + 2.55, g + 2.85, POWISLE_SAND, M_STONE, POWISLE_SAND_HI.lightened(0.04))
+	_lbox(pu, 0.0, 0.88, 0.68, g + 2.85, g + 3.3, RYNEK_BRONZE_SHADE, M_STONE, RYNEK_BRONZE)
+	for k in 3:
+		var wu := pu + 0.89
+		_beam(Vector3(_w(wu, -0.6 + k * 0.6).x, g + 2.95 + k * 0.08, _w(wu, -0.6 + k * 0.6).y),
+				Vector3(_w(wu, -0.3 + k * 0.6).x, g + 3.12, _w(wu, -0.3 + k * 0.6).y), 0.05, RYNEK_BRONZE_HI)
+	# The basin's ring of small jets round the footing (Google Maps photo at dusk, 2023): short
+	# white plumes out of the water, lit at night as the spouts are.
+	for k in 12:
+		var ang := TAU * float(k) / 12.0
+		var jp := _w(pu + 1.9 * cos(ang), 3.4 * sin(ang))
+		_beam(Vector3(jp.x, water, jp.y), Vector3(jp.x, water + 0.45 + 0.15 * float(k % 2), jp.y), 0.07, POWISLE_SPILL, false, M_LAMP)
+	var keep_o := _o
+	_o = _w(pu, 0.0)
+	_syrenka_powisle_figure(g + 3.3)
+	_o = keep_o
+	_collide(_rect((bu0 + fu) * 0.5, 0.0, (fu - bu0) * 0.5, hv))
 
 
-## The bronze: the tail coiled and rising to the hips with its flukes thrown up behind, the
-## torso, the head with long hair, the right arm (v negative) raising the sword high and
-## a little back, the left arm lifting the round shield to her shoulder, facing out.
-## `y` is the plinth's top; the local frame is _o/_a/_b (u forward, towards the water).
+## A sheet laid on the ground over the local box u0..u1 x v0..v1, `lift` m over it, in 1 m cells:
+## `col`, every other cell's shade `chk` darker (setts) and, when `rows` > 0, a lighter joint
+## line along v every `rows` of a cell. Not solid, not in the roof grid (the caller sets _no_roof).
+func _drape(u0: float, u1: float, v0: float, v1: float, lift: float, col: Color, cell: float, chk: float) -> void:
+	var nu := maxi(1, ceili(absf(u1 - u0) / cell))
+	var nv := maxi(1, ceili(absf(v1 - v0) / cell))
+	var keep := _mode
+	_mode = M_STONE
+	for i in nu:
+		for j in nv:
+			var ua := lerpf(u0, u1, float(i) / nu)
+			var ub := lerpf(u0, u1, float(i + 1) / nu)
+			var va := lerpf(v0, v1, float(j) / nv)
+			var vb := lerpf(v0, v1, float(j + 1) / nv)
+			var q: Array[Vector3] = []
+			for uv: Vector2 in [Vector2(ua, va), Vector2(ub, va), Vector2(ub, vb), Vector2(ua, vb)]:
+				var p := _w(uv.x, uv.y)
+				q.append(Vector3(p.x, map.terrain_height(p.x, p.y) + lift, p.y))
+			var shade := col if (i + j) % 2 == 0 else col.darkened(chk)
+			var n := (q[1] - q[0]).cross(q[3] - q[0]).normalized()
+			if n.y < 0.0:
+				n = -n
+			_quad(q[0], q[1], q[2], q[3], n, shade)
+	_mode = keep
+
+
+## The bronze, 2.75 m as cast, drawn 1.15 times so she reads from the camera: kneeling on her
+## scaled tail on the wave rock, the tail sweeping round to her left and up behind into a broad
+## fan; the round shield (the eagle in its face) on her left forearm before her hip; the right arm
+## raised with the broad straight sword held level over her head, the blade to her left; the hair
+## in a bun at the nape. `y` is the rock's top; the frame is _o/_a/_b (u forward, v her right).
 func _syrenka_powisle_figure(y: float) -> void:
 	var bz := RYNEK_BRONZE
+	var sh := RYNEK_BRONZE_SHADE
+	var dp := RYNEK_BRONZE_DEEP
+	var hi := RYNEK_BRONZE_HI
 	var none := Color(0, 0, 0, 0)
+	var k := 1.15
 	var pt := func(u: float, v: float, h: float) -> Vector3:
-		var w := _w(u, v)
-		return Vector3(w.x, y + h, w.y)
-	_beam(pt.call(0.1, 0.35, 0.05), pt.call(0.3, 0.5, 0.38), 0.5, RYNEK_BRONZE_SHADE)
-	_beam(pt.call(0.3, 0.5, 0.38), pt.call(-0.1, 0.3, 0.72), 0.46, bz)
-	_beam(pt.call(-0.1, 0.3, 0.72), pt.call(-0.2, -0.1, 1.0), 0.42, RYNEK_BRONZE_SHADE)
-	_beam(pt.call(-0.2, -0.1, 1.0), pt.call(0.0, 0.0, 1.3), 0.36, bz)
-	_beam(pt.call(0.1, 0.35, 0.05), pt.call(-0.5, 0.7, 0.85), 0.13, RYNEK_BRONZE_DEEP)
-	_beam(pt.call(0.1, 0.35, 0.05), pt.call(-0.6, 0.2, 0.95), 0.13, RYNEK_BRONZE_DEEP)
+		var w := _w(u * k, v * k)
+		return Vector3(w.x, y + h * k, w.y)
+	# The fish body: from the hips down and forward onto the rock, then round her left side and
+	# up behind her into the fan.
+	_beam(pt.call(0.0, 0.0, 0.95), pt.call(0.18, 0.05, 0.45), 0.5 * k, sh)
+	_beam(pt.call(0.18, 0.05, 0.45), pt.call(0.12, -0.15, 0.12), 0.46 * k, bz)
+	_beam(pt.call(0.12, -0.15, 0.12), pt.call(-0.25, -0.45, 0.12), 0.38 * k, sh)
+	_beam(pt.call(-0.25, -0.45, 0.12), pt.call(-0.5, -0.45, 0.55), 0.3 * k, bz)
+	_beam(pt.call(-0.5, -0.45, 0.55), pt.call(-0.55, -0.35, 1.0), 0.22 * k, sh)
+	# The fan: ribbed fins spread up and out from the tail's end.
+	var root: Vector3 = pt.call(-0.55, -0.35, 1.0)
+	for f in 5:
+		var t := float(f) / 4.0
+		_beam(root, pt.call(-0.75 + 0.1 * t, -0.75 + 0.7 * t, 1.55 - 0.15 * absf(t - 0.5)), 0.1 * k, hi if f % 2 == 0 else bz)
+	# Scales: a few lighter bands across the fish body.
+	for s in 3:
+		var hs := 0.3 + s * 0.2
+		_beam(pt.call(0.08, -0.3, hs), pt.call(0.08, 0.28, hs), 0.04 * k, hi)
+	# Hips, waist, chest and shoulders.
 	_mode = M_STONE
-	_frustum(_rect(0.0, 0.0, 0.2, 0.26), y + 1.25, _rect(0.0, 0.0, 0.22, 0.3), y + 1.6, bz)
-	_frustum(_rect(0.0, 0.0, 0.22, 0.3), y + 1.6, _rect(0.0, 0.0, 0.17, 0.25), y + 1.82, bz.lightened(0.04), bz)
-	_prism(_rect(0.0, 0.0, 0.06, 0.06), y + 1.82, y + 1.92, bz, none, M_STONE)
-	_prism(_rect(0.02, 0.0, 0.11, 0.1), y + 1.92, y + 2.18, bz.lightened(0.05), bz, M_STONE, M_STONE)
-	_prism(_rect(-0.1, 0.0, 0.09, 0.14), y + 1.94, y + 2.24, RYNEK_BRONZE_DEEP, RYNEK_BRONZE_DEEP, M_STONE, M_STONE)
-	_beam(pt.call(-0.14, 0.0, 2.05), pt.call(-0.45, 0.05, 1.35), 0.2, RYNEK_BRONZE_DEEP)
-	# The sword arm: up past the head, the blade leaning back, a guard under it.
-	_beam(pt.call(0.0, -0.3, 1.72), pt.call(0.04, -0.55, 2.1), 0.14, bz)
-	_beam(pt.call(0.04, -0.55, 2.1), pt.call(0.0, -0.5, 2.6), 0.13, bz)
-	_lbox(0.0, -0.5, 0.05, 0.3, y + 2.56, y + 2.64, RYNEK_BRONZE_SHADE, M_STONE)
-	_beam(pt.call(0.0, -0.5, 2.6), pt.call(-0.2, -0.5, 3.75), 0.07, RYNEK_BRONZE_HI)
-	# The shield arm: bent up, the shield at her shoulder, turned out to the water.
-	_beam(pt.call(0.0, 0.3, 1.72), pt.call(0.25, 0.55, 1.88), 0.14, bz)
-	var hand: Vector3 = pt.call(0.45, 0.5, 2.15)
-	_beam(pt.call(0.25, 0.55, 1.88), hand, 0.13, bz)
-	var face := Vector3(_a.x, 0.0, _a.y)
-	_disc(hand, face, 0.5, 12, RYNEK_BRONZE_SHADE)
-	_disc(hand + face * 0.03, face, 0.39, 12, RYNEK_BRONZE_HI)
-	_disc(hand + face * 0.06, face, 0.12, 8, RYNEK_BRONZE_DEEP)
+	var fr := func(cu: float, cv: float, hu: float, hv: float) -> PackedVector2Array:
+		return _rect(cu * k, cv * k, hu * k, hv * k)
+	_frustum(fr.call(0.0, 0.0, 0.17, 0.24), y + 0.9 * k, fr.call(0.0, 0.0, 0.14, 0.19), y + 1.3 * k, bz)
+	_frustum(fr.call(0.0, 0.0, 0.14, 0.19), y + 1.3 * k, fr.call(0.01, 0.0, 0.16, 0.23), y + 1.72 * k, bz.lightened(0.04), bz)
+	_frustum(fr.call(0.01, 0.0, 0.16, 0.23), y + 1.72 * k, fr.call(0.0, 0.0, 0.12, 0.26), y + 1.88 * k, bz, bz)
+	# Breasts, a touch of shade under them.
+	for s: float in [-0.1, 0.1]:
+		_beam(pt.call(0.12, s, 1.6), pt.call(0.2, s, 1.58), 0.11 * k, bz.lightened(0.06))
+	# Neck, head, the bun at her nape.
+	_prism(fr.call(0.0, 0.0, 0.05, 0.05), y + 1.88 * k, y + 1.98 * k, bz, none, M_STONE)
+	_prism(fr.call(0.02, 0.0, 0.1, 0.09), y + 1.98 * k, y + 2.24 * k, bz.lightened(0.05), dp, M_STONE, M_STONE)
+	_beam(pt.call(-0.1, 0.0, 2.04), pt.call(-0.16, 0.0, 2.16), 0.13 * k, dp)
+	# The right arm: up past her head to the fist; the sword level over her head, blade to her left.
+	var fist: Vector3 = pt.call(-0.02, 0.12, 2.62)
+	_beam(pt.call(0.0, 0.26, 1.84), pt.call(-0.04, 0.36, 2.2), 0.1 * k, bz)
+	_beam(pt.call(-0.04, 0.36, 2.2), fist, 0.09 * k, bz)
+	_beam(fist + Vector3.UP * 0.02, pt.call(-0.02, -0.95, 2.66), 0.1 * k, hi)
+	_beam(fist, pt.call(-0.02, 0.28, 2.6), 0.05 * k, sh)
+	# The left arm down to the shield, held before her left hip, the face turned out.
+	var hand: Vector3 = pt.call(0.22, -0.3, 1.3)
+	_beam(pt.call(0.0, -0.26, 1.84), pt.call(0.08, -0.36, 1.5), 0.1 * k, bz)
+	_beam(pt.call(0.08, -0.36, 1.5), hand, 0.09 * k, bz)
+	var out := (Vector3(_a.x, 0.0, _a.y) * 0.9 - Vector3(_b.x, 0.0, _b.y) * 0.35).normalized()
+	_disc(hand + out * 0.04, out, 0.46 * k, 14, sh)
+	_disc(hand + out * 0.07, out, 0.38 * k, 14, bz)
+	_disc(hand + out * 0.09, out, 0.14 * k, 8, hi)
 
 
 ## A mapped outline's long axis: the local frame (_o centre, _a along the long side, _b across)
