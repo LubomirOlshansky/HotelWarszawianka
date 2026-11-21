@@ -1522,6 +1522,7 @@ func _build_world() -> void:
 		promo_heli.place(Vector3(ph[0], map.ground_height(ph[0], ph[1]) + ph[4], ph[1]), atan2(-go.x, -go.y), ph[4])
 		promo_heli.auto_to = Vector2(ph[2], ph[3])
 		promo_heli.searchlight = false
+		print("promo heli: from %s to %s, %.0f m up, %.0f%% speed" % [promo_heli.global_position, promo_heli.auto_to, ph[4], promo_heli.auto_share * 100.0])
 		if ph.size() >= 6:
 			promo_heli.auto_share = ph[5]
 
