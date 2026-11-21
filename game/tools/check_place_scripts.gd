@@ -74,8 +74,9 @@ func _initialize() -> void:
 		print("check_place_scripts: 1 problem\n  map/centrum.json missing or unreadable")
 		quit(1)
 		return
+	# Every promo dressing too (places.gd "promo" rows), so the promo scripts are built and held to a budget.
 	var ctx := {"data": data, "dialogue": null, "clock": Callable(), "focus": Callable(),
-			"vehicle": Callable(), "logs": {}}
+			"vehicle": Callable(), "logs": {}, "promo_dress": PackedStringArray(["jarmark"])}
 	_table_and_scripts()
 	_main_has_no_hooks()
 	var map := Fakes.BuilderMap.new()
@@ -189,7 +190,7 @@ func _phone(whole: Dictionary, facts: Dictionary) -> void:
 	if phone.problem != "":
 		problems.append("the phone's map: " + phone.problem)
 	var ctx := {"data": phone.index_data, "dialogue": null, "clock": Callable(), "focus": Callable(),
-			"vehicle": Callable(), "logs": {}}
+			"vehicle": Callable(), "logs": {}, "promo_dress": PackedStringArray(["jarmark"])}
 	var places := Places.new()
 	places.build(phone, ctx, "")
 	var short := 0

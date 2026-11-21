@@ -1267,7 +1267,7 @@ func _opening_due() -> bool:
 ## Camera loop: the fly-in from over the city down to the car (camera_shots.gd), or the opening
 ## flyover on a first launch.
 func _fly_in() -> void:
-	if flags._flag_cinematic == "event":
+	if flags._flag_cinematic == "event" or flags.reel_file != "":
 		_event_take()
 		return
 	var vehicle: Node3D = heli if flying else car
@@ -1310,6 +1310,13 @@ func _event_take() -> void:
 			last[0] = focus
 			streamer.finish_view(focus, cam)
 	var ground := func(x: float, z: float) -> float: return map.ground_height(x, z)
+	if flags.reel_file != "":
+		# --reel: a promo take from a shot list (camera_shots.gd load_reel), no title card (the cut adds it).
+		if not moments.load_reel(flags.reel_file):
+			push_error("--reel: cannot read the shot list '%s'" % flags.reel_file)
+			return
+		moments.event(ground, tick, PackedStringArray(), flags.event_t)
+		return
 	moments.event(ground, tick, PackedStringArray(["11 LISTOPADA", "Around Warsaw · za darmo"]), flags.event_t)
 
 
@@ -1859,6 +1866,8 @@ func _build_world() -> void:
 		return [TimeOfDay.NAMES[tod.mode], c["hour"]]
 	radio.check_air(true)
 	weather.set_state(flags.start_weather, true)
+	if flags.start_snow != Vector2.ZERO:
+		weather.set_snow(flags.start_snow.x, flags.start_snow.y)
 	_set_vhs(vhs)
 	_set_perf(show_perf)
 	# Camera loop: a following camera starts behind the vehicle (it used to start on the 45°
@@ -2002,6 +2011,7 @@ func _build_places(data: Dictionary, world: Node3D) -> void:
 		"focus": func() -> Vector3: return cam_focus,
 		"vehicle": vehicle_now,
 		"logs": {"tamka": flags.tamka_log},
+		"promo_dress": flags.promo_dress,
 	}
 	await places.build(map, ctx, flags.solo_site)
 
@@ -5820,8 +5830,8 @@ func _process(dt: float) -> void:
 		sfx.mode = _sound_mode()
 		sfx.focus = cam_focus
 		sfx.yaw = cam_yaw
-	if weather.amount > 0.0:
-		# The rain streaks drift with the view a little (parallax), in image pixels.
+	if weather.amount > 0.0 or weather.snowfall > 0.0:
+		# The rain streaks (and promo snowflakes) drift with the view a little (parallax), in image pixels.
 		var px := float(maxi(sv.size.y, 1)) / cam.size
 		var b := cam.global_transform.basis
 		post_mat.set_shader_parameter("rain_shift", Vector2(cam_focus.dot(b.x), -cam_focus.dot(b.y)) * px)
@@ -7080,6 +7090,8 @@ func _apply_cam(i: int) -> void:
 		camera_pitch = c["pitch"]
 	if not is_nan(c["size"]):
 		base_size = c["size"]
+	if c.has("up"):
+		flags.cam_lift = c["up"]  # --reel-stills: the shot list's focus height over the ground
 
 
 ## --cam: the free camera's frame (see free_cam): the view fixed on its point.

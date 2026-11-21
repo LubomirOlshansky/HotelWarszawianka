@@ -98,6 +98,9 @@ const STEPS_KEYS := ["schodki_wisla", "schodki_wisla_w"]
 ## packed for the trailer (F: "tons of people"), the strollers in the aisles are jarmark_life.gd.
 const JARMARK_IDS := ["jarmark_main", "jarmark_annex"]
 const JARMARK_MAX := {"jarmark_main": 360, "jarmark_annex": 150}
+## --promo-dress=jarmark (promo videos only): the aisles packed shoulder to shoulder as the drone
+## reels show them after dark, on top of the plan (`_jarmark_pack`). Never in a player's game.
+static var promo_jarmark := false
 const KLADKA_IDS := ["kladka_w", "kladka_e"]
 const KLADKA_SPLIT := 250.0
 const KLADKA_MAX := {"kladka_w": 90, "kladka_e": 50}
@@ -1557,6 +1560,8 @@ func _add_jarmark() -> void:
 	var plan: Array = Landmarks.jarmark_plan()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1120
+	if promo_jarmark:
+		plan = plan + _jarmark_pack()
 	for part in 2:
 		var slots: Array = []
 		var c := Vector2.ZERO
@@ -1576,8 +1581,39 @@ func _add_jarmark() -> void:
 		for i: int in order:
 			mixed.append(slots[i])
 		var id: String = JARMARK_IDS[part]
-		_add_site({"id": id, "kind": "jarmark", "at": c / slots.size(), "max": mini(int(JARMARK_MAX[id]), mixed.size()),
+		var most := int(JARMARK_MAX[id]) * (12 if promo_jarmark else 1)
+		_add_site({"id": id, "kind": "jarmark", "at": c / slots.size(), "max": mini(most, mixed.size()),
 				"slots": mixed})
+
+
+## The promo crowd (promo_jarmark): people every ~0.9 m along every aisle of jarmark_life.gd, across
+## its width, in twos and threes facing each other or the stalls. Same plan form as jarmark_plan.
+static func _jarmark_pack() -> Array:
+	var out: Array = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2412
+	var a := Landmarks.JM_AXIS.normalized()
+	var b := Vector2(-a.y, a.x)
+	# Loaded, not preloaded: jarmark_life.gd preloads this script.
+	var aisles: Array = (load("res://scripts/jarmark_life.gd") as GDScript).get_script_constant_map()["AISLES"]
+	for ai: Array in aisles:
+		var p0 := Landmarks._jm_world(ai[0], ai[1])
+		var p1 := Landmarks._jm_world(ai[2], ai[3])
+		var along := (p1 - p0).normalized()
+		var side := Vector2(-along.y, along.x)
+		var half := float(ai[4]) + 1.0
+		var part := 0 if float(ai[0]) > 114.0 or float(ai[2]) > 114.0 else 1
+		var d := 0.0
+		var length := p0.distance_to(p1)
+		while d < length:
+			var at := p0 + along * d + side * rng.randf_range(-half, half)
+			var t := rng.randf() * TAU
+			var face := Vector2(cos(t), sin(t))
+			out.append([at, face, part])
+			if rng.randf() < 0.45:
+				out.append([at + face * 0.75, -face, part])
+			d += rng.randf_range(0.28, 0.6)
+	return out
 
 
 ## How full the market is (0..1): shut before 11:00 and after 22:00, filling through the afternoon,

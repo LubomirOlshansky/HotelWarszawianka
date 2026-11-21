@@ -11,6 +11,7 @@ const MapBuilder := preload("res://scripts/map_builder.gd")
 const Car := preload("res://scripts/car.gd")
 const Heli := preload("res://scripts/heli.gd")
 const TimeOfDay := preload("res://scripts/time_of_day.gd")
+const CameraShots := preload("res://scripts/camera_shots.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const EggBook := preload("res://scripts/egg_book.gd")
 const Tape := preload("res://scripts/tape.gd")
@@ -270,8 +271,14 @@ var packs_now := false
 var packs_log := false
 var event_flag := -1
 var event_smoke := 1
-## --event-t=SEC: with --cinematic=event, freeze the take at that second (stills for the path check).
+## --event-t=SEC: with --cinematic=event or --reel, freeze the take at that second (stills for the path check).
 var event_t := -1.0
+## --reel=FILE.json: a promo take from a shot list (camera_shots.gd load_reel: shots of keyed camera
+## moves, hard cuts between them), on the event take's clock. Promo videos only (skill promo-video).
+var reel_file := ""
+## --promo-dress=jarmark[,...]: the promo-video dressings to build (places.gd rows with "promo":
+## jarmark_promo.gd's roof bulbs, light tents, the cycling mast). Promo videos only.
+var promo_dress := PackedStringArray()
 var event_log := false
 ## --stats=log|send|off: the play stats (play_stats.gd) for this run: log prints every event and
 ## sends none (the check), send sends from a debug build (a test against the PostHog project), off
@@ -368,6 +375,9 @@ var _flag_vhs := false
 ## --tap=X,Y: tap that screen pixel at frame 60, as if a finger did (landmark cards).
 var tap_at := Vector2.INF
 var start_weather := 0
+## --snow=COVER[,FALL] (0..1 each; one number sets both): promo snow on roofs, crowns and lawns,
+## and falling flakes (weather.gd set_snow). For the Christmas market Reel; off by default.
+var start_snow := Vector2.ZERO
 var live_clock := ""
 var live_date := 0
 ## F 2026-11-19: the game clock (time_of_day.gd `start_clock`, 30x, the sun by the date): on in a
@@ -848,6 +858,8 @@ func parse_with(args: PackedStringArray) -> void:
 		elif arg.begins_with("--tap="):
 			var xy := arg.trim_prefix("--tap=").split(",")
 			tap_at = Vector2(float(xy[0]), float(xy[1]))
+		elif arg.begins_with("--snow="):
+			start_snow = Weather.parse_snow(arg.trim_prefix("--snow="))
 		elif arg.begins_with("--weather="):
 			start_weather = Weather.parse(arg.trim_prefix("--weather="))
 		elif arg.begins_with("--clock="):
@@ -862,6 +874,18 @@ func parse_with(args: PackedStringArray) -> void:
 			_flag_perf = true
 		elif arg == "--sound-check":
 			sound_check = true
+		elif arg == "--trailer":
+			# Trailer mode (F 2026-11-21, "a graphic mode with the maximum we can get for the
+			# trailer"): Experimental (full-resolution image, 8192 soft sun shadows, MSAA 4x, 16x
+			# anisotropic, every mesh at full detail), the governor off so nothing steps down
+			# mid-take, the sharpest style lines and no see-through ghost. Desktop capture only:
+			# a phone can't hold it. A later --quality / --lines / --governor still wins.
+			if _flag_quality < 0:
+				_flag_quality = Tiers.EXPERIMENTAL
+			_flag_governor = 0
+			if lines_override == 0:
+				lines_override = 1920
+			no_ghost = true
 		elif arg.begins_with("--quality="):
 			_flag_quality = Tiers.parse(arg.trim_prefix("--quality="))
 		elif arg.begins_with("--gfx="):
@@ -1027,7 +1051,7 @@ func parse_with(args: PackedStringArray) -> void:
 		elif arg.begins_with("--season="):
 			season = arg.trim_prefix("--season=")
 			# x the summer-to-autumn turn, y the fall of leaves (project.godot holds mid-November).
-			var look := Vector4(0, 0, 0, 0) if season == "summer" else Vector4(1, 0.5, 0, 0)
+			var look := Vector4(0, 0, 0, 0) if season == "summer" else (Vector4(1, 1, 0, 0) if season == "winter" else Vector4(1, 0.5, 0, 0))
 			RenderingServer.global_shader_parameter_set("tree_season", look)
 		elif arg.begins_with("--people="):
 			people = int(arg.trim_prefix("--people="))
@@ -1068,6 +1092,53 @@ func parse_with(args: PackedStringArray) -> void:
 			event_log = true
 		elif arg.begins_with("--event-t="):
 			event_t = maxf(0.0, float(arg.trim_prefix("--event-t=")))
+		elif arg.begins_with("--reel-stills="):
+			# --reel-stills=FILE.json@T,T,...: one free-camera shot per time of the shot list (the
+			# --cams machinery, a whole reel checked in one run); a time "all" is every 0.5 s.
+			var rs := arg.trim_prefix("--reel-stills=").split("@")
+			var shots := CameraShots.read_reel(rs[0])
+			if shots.is_empty() or rs.size() != 2:
+				push_error("--reel-stills: '%s' is not FILE.json@T,T,... with a readable shot list" % arg)
+			else:
+				var times := PackedFloat32Array()
+				var total := 0.0
+				for sh: Dictionary in shots:
+					total += float(sh["dur"])
+				if rs[1] == "all":
+					var t := 0.25
+					while t < total:
+						times.append(t)
+						t += 0.5
+				else:
+					for x in rs[1].split(","):
+						times.append(float(x))
+				for t in times:
+					var pose := CameraShots.reel_pose(t, shots)
+					var at: Vector2 = pose["at"]
+					_cams.append({"name": "r%05.2f" % t, "at": Vector3(at.x, NAN, at.y), "yaw": pose["yaw"],
+							"pitch": pose["pitch"], "size": pose["size"], "up": pose["up"]})
+					shot_spots.append(["r%05.2f" % t, at, INF])
+				free_cam = true
+				no_ghost = true
+				_flag_yaw = true
+				_flag_pitch = true
+				_flag_size = true
+				m.start_at = Vector3(_cams[0]["at"].x, 0.0, _cams[0]["at"].z)
+				m._apply_cam(0)
+		elif arg.begins_with("--clock-speed="):
+			# A promo timelapse (the market's lights coming on): game seconds per real second.
+			TimeOfDay.speed_override = maxf(0.0, float(arg.trim_prefix("--clock-speed=")))
+		elif arg.begins_with("--promo-dress="):
+			promo_dress = arg.trim_prefix("--promo-dress=").split(",", false)
+			preload("res://scripts/crowds.gd").promo_jarmark = promo_dress.has("jarmark")
+			TimeOfDay.promo_night = promo_dress.has("jarmark")
+			preload("res://scripts/street_details.gd").november = promo_dress.has("jarmark")
+			if promo_dress.has("jarmark") and season == "":
+				# Late November (F 2026-11-21): the leaves are down, no green or orange crowns.
+				RenderingServer.global_shader_parameter_set("tree_season", Vector4(1, 1, 0, 0))
+		elif arg.begins_with("--reel="):
+			reel_file = arg.trim_prefix("--reel=")
+			no_ghost = true
 		elif arg.begins_with("--fans-phase="):
 			fans_phase = arg.trim_prefix("--fans-phase=")
 		elif arg.begins_with("--fans-result="):
@@ -1269,7 +1340,7 @@ func parse_with(args: PackedStringArray) -> void:
 			live_clock = "16:40"
 		if start_time == TimeOfDay.DAY:
 			start_time = TimeOfDay.DUSK
-	cinematic_flyin = normal or _flag_cinematic in ["all", "flyin", "opening", "event"]
+	cinematic_flyin = normal or _flag_cinematic in ["all", "flyin", "opening", "event"] or reel_file != ""
 	cinematic_look = normal or _flag_cinematic in ["all", "look"]
 	# Loop G1: the governor runs in a normal launch; test runs hold it so they repeat.
 	var test_run := DisplayServer.get_name() == "headless" or not m.shots.is_empty() or bench or probe or autopilot \

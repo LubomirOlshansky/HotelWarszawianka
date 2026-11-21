@@ -33,6 +33,8 @@ const CELL := MapBuilderRef.SECTOR
 ##   own    how many draw items of its own (`Place.part` meshes) the place may add
 ##   solo   optional: the `--solo=` site keys the place is still built for (every other place is
 ##          skipped while a solo site is set)
+##   promo  optional: a promo-video dressing, built only when the run's --promo-dress= names it
+##          (ctx "promo_dress"); never in a player's game, so outside the budgets the check holds
 const TABLE: Array[Dictionary] = [
 	{"key": "first_scene", "script": "res://scripts/first_scene.gd", "node": "FirstScene", "tris": 19800, "own": 0},
 	{"key": "skwer_zlota", "script": "res://scripts/skwer_zlota.gd", "node": "SkwerZlota", "tris": 5300, "own": 0},
@@ -52,6 +54,8 @@ const TABLE: Array[Dictionary] = [
 	{"key": "bulwar_food", "script": "res://scripts/bulwar_food.gd", "node": "BulwarFood", "tris": 1900, "own": 0},
 	{"key": "jarmark_rides", "script": "res://scripts/jarmark_rides.gd", "node": "JarmarkRides", "tris": 4500, "own": 1,
 			"solo": ["jarmark"]},
+	{"key": "jarmark_promo", "script": "res://scripts/jarmark_promo.gd", "node": "JarmarkPromo", "tris": 900000, "own": 1,
+			"solo": ["jarmark"], "promo": "jarmark"},
 	{"key": "syrenka_plaza", "script": "res://scripts/syrenka_plaza.gd", "node": "SyrenkaPlaza", "tris": 4000, "own": 0},
 	{"key": "towarowa22_life", "script": "res://scripts/towarowa22_life.gd", "node": "Towarowa22Life", "tris": 20800, "own": 0,
 			"solo": ["towarowa22"]},
@@ -80,6 +84,8 @@ func build(map: Node3D, ctx: Dictionary, solo_site := "") -> void:
 	var own_all := 0
 	for row: Dictionary in TABLE:
 		if solo_site != "" and not (row.get("solo", []) as Array).has(solo_site):
+			continue
+		if row.has("promo") and not (ctx.get("promo_dress", PackedStringArray()) as PackedStringArray).has(row["promo"]):
 			continue
 		var t0 := Time.get_ticks_usec()
 		var place := (load(row["script"]) as GDScript).new() as Node3D

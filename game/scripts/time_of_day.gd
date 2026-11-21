@@ -143,6 +143,12 @@ var fixed_start := -1.0
 ## per game day, worked out once a day.
 var game_clock := false
 var speed := 1.0
+## --clock-speed=N (promo timelapses): the game clock's speed for this run over pacing.json's.
+static var speed_override := 0.0
+## --promo-dress=jarmark (promo videos only, the art director's fix 1, 2026-11-21): at night only
+## the lights bloom (the HDR bulbs over the glow threshold, not the lit facades and lawns), the
+## ambient and the sky's fill drop, the grade's contrast rises, as the drone reels' black ground.
+static var promo_night := false
 var _game_utc := 0.0
 var _golden := 1.0
 var _look_every := 10.0
@@ -239,9 +245,9 @@ func start_clock(date := 0, m := DAY, hour := -1.0) -> void:
 		var fri := Time.get_datetime_dict_from_unix_time(int(today) + warsaw_offset(today) - back * 86400)
 		date = int(fri["year"]) * 10000 + int(fri["month"]) * 100 + int(fri["day"])
 	game_clock = true
-	speed = Pacer.num("time", "speed")
+	speed = speed_override if speed_override > 0.0 else Pacer.num("time", "speed")
 	_golden = Pacer.num("time", "golden")
-	_look_every = Pacer.num("time", "look_every")
+	_look_every = 0.05 if speed_override > 0.0 else Pacer.num("time", "look_every")
 	mode = LIVE
 	_game_utc = warsaw_to_utc("12:00", date)
 	_sun_day = -1
@@ -708,6 +714,16 @@ func _apply(look: Dictionary) -> void:
 		env.glow_bloom = 0.0
 		env.glow_hdr_threshold = 0.62
 		env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
+	if promo_night and lights_on > 0.5:
+		var k := clampf((lights_on - 0.5) * 2.0, 0.0, 1.0)
+		env.glow_enabled = glow_allowed
+		env.glow_hdr_threshold = lerpf(0.62, 1.0, k)
+		env.glow_intensity = lerpf(env.glow_intensity, 1.15, k)
+		for lv in range(1, 8):
+			env.set_glow_level(lv - 1, 1.0 if lv >= 3 and lv <= 6 else 0.0)
+		env.ambient_light_energy *= lerpf(1.0, 0.4, k)
+		post.set_shader_parameter("g_contrast", float(look["g_contrast"]) * lerpf(1.0, 1.25, k))
+		post.set_shader_parameter("g_lift", (look["g_lift"] as Vector3) * (1.0 - k))
 	var lit := lights_on > 0.001
 	if lit != _lit:
 		_lit = lit

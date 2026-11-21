@@ -1,0 +1,8 @@
+{
+  "about": "The lights-on timelapse (Df9-olHig27): F's wide frame 1 pushed in slowly while the sky goes deep blue and the market switches on. Run with --clock=15:20 --clock-speed=540 (6 s = 54 game minutes).",
+  "shots": [
+    {"name": "lights-on", "dur": 6.0, "ease": "linear", "keys": [
+      {"t": 0.0, "x": -1120.0, "z": 185.0, "up": 8.0, "size": 300.0, "yaw": 54.0, "pitch": -24.0},
+      {"t": 6.0, "x": -1095.0, "z": 195.0, "up": 6.0, "size": 255.0, "yaw": 50.0, "pitch": -23.0}]}
+  ]
+}

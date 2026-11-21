@@ -203,6 +203,7 @@ func opening(car: Vector3, yaw: float, pitch: float, caption: PackedStringArray 
 ## and the car are hidden by main.gd. `card` (PL, EN) is the title card shown at the end.
 func event(ground: Callable, tick: Callable, card: PackedStringArray, freeze := -1.0) -> void:
 	_age = 0.0
+	var length := reel_time if not reel_shots.is_empty() else EVENT_TIME
 	event_ground = ground
 	event_tick = tick
 	_event_freeze = freeze
@@ -210,8 +211,10 @@ func event(ground: Callable, tick: Callable, card: PackedStringArray, freeze := 
 		moment = "event"
 		state = EVENT
 		_leg = maxf(freeze, 0.0)
-		_make_event_card(card)
-		print("camera: event take, %.0f s%s" % [EVENT_TIME, " (frozen at %.1f s)" % freeze if freeze >= 0.0 else ""])
+		if not card.is_empty():
+			_make_event_card(card)
+		print("camera: %s take, %.1f s%s" % ["reel" if not reel_shots.is_empty() else "event", length,
+				" (frozen at %.1f s)" % freeze if freeze >= 0.0 else ""])
 
 
 ## A look at a new target and back: `car` and `target` on the ground, the follow camera's `yaw`,
@@ -561,10 +564,124 @@ static func _k(k: Dictionary, key: String) -> Vector2:
 	return k[key]
 
 
+# --- promo reels (--reel=FILE.json) ------------------------------------------------------------
+
+## The loaded shot list: [{name, dur, ease, keys: [{t, at, up, size, yaw, pitch}]}], hard cuts
+## between shots, the keys' t from the shot's start. Empty: the 11 listopada take.
+var reel_shots: Array = []
+var reel_time := 0.0
+
+
+## Read a shot list (promo videos, skill promo-video): {"shots": [{"name", "dur", "ease"
+## ("inout" default, "in", "out", "linear"), "keys": [{"t", "x", "z", "up", "size", "yaw",
+## "pitch"}]}]}, two keys at least per shot, yaw unwrapped (390, not 30, to keep turning). False
+## when the file is missing or a shot is not in that form.
+func load_reel(path: String) -> bool:
+	reel_shots = read_reel(path)
+	reel_time = 0.0
+	for sh: Dictionary in reel_shots:
+		reel_time += float(sh["dur"])
+	return not reel_shots.is_empty()
+
+
+## The shot list from its JSON form ([] when any shot is malformed). Static and pure.
+static func parse_reel(shots: Array) -> Array:
+	var out: Array = []
+	for sh: Variant in shots:
+		if not sh is Dictionary or not (sh as Dictionary).get("keys") is Array or (sh["keys"] as Array).size() < 2:
+			return []
+		var keys: Array[Dictionary] = []
+		for k: Variant in sh["keys"]:
+			if not k is Dictionary:
+				return []
+			var kd: Dictionary = k
+			for f: String in ["t", "x", "z", "up", "size", "yaw", "pitch"]:
+				if not (kd.get(f) is float or kd.get(f) is int):
+					return []
+			keys.append({"t": float(kd["t"]), "at": Vector2(float(kd["x"]), float(kd["z"])), "up": float(kd["up"]),
+					"size": float(kd["size"]), "yaw": float(kd["yaw"]), "pitch": float(kd["pitch"])})
+		var dur := float(sh.get("dur", keys[-1]["t"]))
+		if dur <= 0.0:
+			return []
+		out.append({"name": str(sh.get("name", "shot%d" % out.size())), "dur": dur,
+				"ease": str(sh.get("ease", "inout")), "keys": keys})
+	return out
+
+
+## The reel's view at second `t`: reel_pose's frame, the focus's height from `ground`.
+static func reel_view(t: float, shots: Array, ground: Callable) -> Dictionary:
+	var p := reel_pose(t, shots)
+	var at: Vector2 = p["at"]
+	var g := float(ground.call(at.x, at.y)) if ground.is_valid() else 0.0
+	var focus := Vector3(at.x, g + float(p["up"]), at.y)
+	return {"xf": _view(focus, p["size"], p["yaw"], p["pitch"]), "size": p["size"], "focus": focus}
+
+
+## The reel's pose at second `t` (no ground needed: --reel-stills builds --cams from it): the shot
+## it falls in, its own clock eased (a slow start and a slow stop, like a gimbal operator), then a
+## Catmull-Rom curve through its keys, the size in log space. {at, up, size, yaw, pitch, shot}.
+static func reel_pose(t: float, shots: Array) -> Dictionary:
+	var start := 0.0
+	var idx := shots.size() - 1
+	for i in shots.size():
+		if t < start + float(shots[i]["dur"]):
+			idx = i
+			break
+		start += float(shots[i]["dur"])
+	if idx == shots.size() - 1:
+		start = 0.0
+		for i in shots.size() - 1:
+			start += float(shots[i]["dur"])
+	var sh: Dictionary = shots[idx]
+	var keys: Array = sh["keys"]
+	var dur: float = sh["dur"]
+	var e := clampf((t - start) / dur, 0.0, 1.0)
+	match str(sh["ease"]):
+		"in":
+			e = e * e
+		"out":
+			e = 1.0 - (1.0 - e) * (1.0 - e)
+		"linear":
+			pass
+		_:
+			e = lerpf(e, e * e * (3.0 - 2.0 * e), 0.7)
+	var p := keys_pose(e * dur, keys)
+	p["shot"] = sh["name"]
+	return p
+
+
+## A Catmull-Rom curve through `keys` (t, at, up, size, yaw, pitch) at second `t`, the size in log
+## space: {at, up, size, yaw, pitch}. Static and pure.
+static func keys_pose(t: float, keys: Array) -> Dictionary:
+	var n := keys.size() - 1
+	t = clampf(t, float(keys[0]["t"]), float(keys[n]["t"]))
+	var seg := 0
+	while seg < n - 1 and t >= float(keys[seg + 1]["t"]):
+		seg += 1
+	var ks: Array = [keys[maxi(seg - 1, 0)], keys[seg], keys[seg + 1], keys[mini(seg + 2, n)]]
+	var span := float(ks[2]["t"]) - float(ks[1]["t"])
+	var u := clampf((t - float(ks[1]["t"])) / span, 0.0, 1.0) if span > 0.0 else 1.0
+	var fx := _cr(_k(ks[0], "at").x, _k(ks[1], "at").x, _k(ks[2], "at").x, _k(ks[3], "at").x, u)
+	var fz := _cr(_k(ks[0], "at").y, _k(ks[1], "at").y, _k(ks[2], "at").y, _k(ks[3], "at").y, u)
+	return {"at": Vector2(fx, fz), "up": _cr(ks[0]["up"], ks[1]["up"], ks[2]["up"], ks[3]["up"], u),
+			"size": exp(_cr(log(ks[0]["size"]), log(ks[1]["size"]), log(ks[2]["size"]), log(ks[3]["size"]), u)),
+			"yaw": _cr(ks[0]["yaw"], ks[1]["yaw"], ks[2]["yaw"], ks[3]["yaw"], u),
+			"pitch": _cr(ks[0]["pitch"], ks[1]["pitch"], ks[2]["pitch"], ks[3]["pitch"], u)}
+
+
+## A shot list file read (no node needed): [] when missing or malformed.
+static func read_reel(path: String) -> Array:
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not data is Dictionary or not (data as Dictionary).get("shots") is Array:
+		return []
+	return parse_reel(data["shots"])
+
+
 func _event_frame(dt: float) -> void:
+	var reel := not reel_shots.is_empty()
 	if _event_freeze < 0.0:
-		_leg = minf(_leg + dt, EVENT_TIME)
-	var v := event_view(_leg, event_ground)
+		_leg = minf(_leg + dt, reel_time if reel else EVENT_TIME)
+	var v := reel_view(_leg, reel_shots, event_ground) if reel else event_view(_leg, event_ground)
 	var cam: Camera3D = host.get_parent()
 	cam.size = v["size"]
 	cam.global_transform = v["xf"]

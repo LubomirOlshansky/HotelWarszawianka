@@ -30,6 +30,12 @@ const ON_PLATFORM := "platform"
 var meshes := 0
 
 
+## Late-November promo shots (--promo-dress=jarmark, F 2026-11-21 "remove the summer terraces"):
+## the café tables under parasols and the ice-cream carts stay in for the season.
+static var november := false
+const SUMMER_KINDS := ["cafe", "cart"]
+
+
 ## The baked items: [kind, x, z, yaw, colour] arrays, [] when the file is missing.
 static func load_items() -> Array:
 	if not FileAccess.file_exists(FILE):
@@ -42,6 +48,8 @@ static func load_items() -> Array:
 
 ## Adds one item's pieces to `st` at `xf` (a pad first for the tall kinds).
 static func add_item(st: SurfaceTool, kind: String, xf: Transform3D, colour: String) -> void:
+	if november and SUMMER_KINDS.has(kind):
+		return
 	if PAD.has(kind):
 		Props.add_contact_pad(st, xf, PAD[kind])
 	match kind:

@@ -25,6 +25,15 @@ var wet := 0.0
 var density := 1.0
 var tod: Node
 var post: ShaderMaterial
+## Promo snow (F 2026-11-21, the Christmas market Reel): `snow_cover` 0..1 whitens what faces up
+## (shader global, read by the post pass), `snowfall` 0..1 the flakes. Set only by --snow= and
+## Promo Mode's SNOW button, never by the game itself yet (seasons plan W1 makes it a state);
+## both 0 cost one branch each in post.gdshader. Not saved.
+var snow_cover := 0.0
+var snowfall := 0.0
+## Promo Mode's SNOW button steps through these (cover, fall): off, light, light + falling, more.
+const SNOW_STEPS: Array[Vector2] = [Vector2(0.0, 0.0), Vector2(0.45, 0.0), Vector2(0.45, 0.6), Vector2(0.8, 1.0)]
+const SNOW_NAMES := ["OFF", "LIGHT", "FALLING", "HEAVY"]
 
 
 static func parse(text: String) -> int:
@@ -62,10 +71,41 @@ func _frame(dt: float) -> void:
 func _apply() -> void:
 	RenderingServer.global_shader_parameter_set("wetness", wet)
 	RenderingServer.global_shader_parameter_set("rain", amount)
+	RenderingServer.global_shader_parameter_set("snow_cover", snow_cover)
 	if post != null:
 		post.set_shader_parameter("rain", amount * density)
+		post.set_shader_parameter("snowfall", snowfall * density)
 	if tod != null:
 		tod.set_weather(amount)
+
+
+## Promo snow: the cover and the flakes at once (see `snow_cover`).
+func set_snow(cover: float, fall: float) -> void:
+	snow_cover = clampf(cover, 0.0, 1.0)
+	snowfall = clampf(fall, 0.0, 1.0)
+	_apply()
+
+
+## The index in SNOW_STEPS nearest the current snow, for Promo Mode's button label.
+func snow_step() -> int:
+	var best := 0
+	for i in SNOW_STEPS.size():
+		if Vector2(snow_cover, snowfall).distance_to(SNOW_STEPS[i]) < Vector2(snow_cover, snowfall).distance_to(SNOW_STEPS[best]):
+			best = i
+	return best
+
+
+## "--snow=C,F" for the shot flags, or "" when there is no snow.
+func snow_flag() -> String:
+	if snow_cover <= 0.0 and snowfall <= 0.0:
+		return ""
+	return "--snow=%.2f,%.2f" % [snow_cover, snowfall]
+
+
+static func parse_snow(text: String) -> Vector2:
+	var p := text.split(",")
+	var c := clampf(float(p[0]), 0.0, 1.0)
+	return Vector2(c, clampf(float(p[1]), 0.0, 1.0) if p.size() > 1 else c)
 
 
 ## Re-applies the current state (after the quality changed the streaks' density).
