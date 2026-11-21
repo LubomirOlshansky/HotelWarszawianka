@@ -30,6 +30,9 @@ var pocket_rings: Array[PackedVector2Array] = []
 var _r2 := {}
 ## Circles ([centre, radius]) no tree may grow in: a landmark's overhang (Powiśle's saucer).
 var tree_free: Array = []
+## Plans ([ring, its box], world x, z) no parked car stands in: a market or a fair on a car park
+## (Jarmark Warszawski on Plac Defilad), read by map_builder's parked cars on both city paths.
+var parked_free: Array = []
 ## F's look check (2026-11-03): kept LoD2 parts a model replaces above a height, for map_builder
 ## `_top_lod2`: [ring (world x, z), metres over the ground at `at`, at]. Set while finding the
 ## sites, so the LoD2 pass (before `build`) sees them.

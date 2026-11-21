@@ -1,4 +1,4 @@
-extends "res://scripts/landmarks/kladka.gd"
+extends "res://scripts/landmarks/jarmark.gd"
 ## Powiśle, second part (F, 2026-11-20): Teatr Ateneum and Lipowa 1A. One link of landmarks.gd's
 ## base chain (TD-10): it may use this file, common.gd and the facade kit, never another area.
 ##

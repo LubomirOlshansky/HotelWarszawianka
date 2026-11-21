@@ -50,6 +50,8 @@ const TABLE: Array[Dictionary] = [
 	{"key": "pkin_hoardings", "script": "res://scripts/pkin_hoardings.gd", "node": "PkinHoardings", "tris": 6000, "own": 0},
 	{"key": "tamka", "script": "res://scripts/tamka.gd", "node": "Tamka", "tris": 138300, "own": 1},
 	{"key": "bulwar_food", "script": "res://scripts/bulwar_food.gd", "node": "BulwarFood", "tris": 1900, "own": 0},
+	{"key": "jarmark_rides", "script": "res://scripts/jarmark_rides.gd", "node": "JarmarkRides", "tris": 4500, "own": 1,
+			"solo": ["jarmark"]},
 	{"key": "syrenka_plaza", "script": "res://scripts/syrenka_plaza.gd", "node": "SyrenkaPlaza", "tris": 4000, "own": 0},
 	{"key": "towarowa22_life", "script": "res://scripts/towarowa22_life.gd", "node": "Towarowa22Life", "tris": 20800, "own": 0,
 			"solo": ["towarowa22"]},

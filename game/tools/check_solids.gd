@@ -55,7 +55,12 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## TOTAL_TYPED 46533 → 46459 the same way (each its own `--record` on a fresh bake after merging #933).
 ## 2026-11-21, Teatr Ateneum as the whole L-block and Lipowa 1A (#988): -49 faces (46636 → 46587), the 47 m
 ## strip and the block's old masses under the theatre give way to its own ring; TOTAL_TYPED 46459 → 46406 the same way.
-const TOTAL := 46587
+## 2026-11-21, Jarmark Warszawski 2026 (#980): +1127 faces (46636 → 47763), the finished market's chalets, stands,
+## rides' bases and the tree platform on Plac Defilad and Plac Centralny (the car park's parked cars cleared under
+## it); TOTAL_TYPED 46459 → 47586 the same way (each its own `--record` on a fresh bake of the branch).
+## Merged (main 1d3a3ff with #988, then #980): both measured again with their own `--record` on a fresh bake
+## of the merge: TOTAL 47714 (46636 - 49 + 1127), TOTAL_TYPED 47533 (46459 - 53 + 1127).
+const TOTAL := 47714
 ## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
@@ -71,7 +76,7 @@ const TOTAL := 46587
 ## --barriers=typed` on the gated map: 46459, unchanged (of the 16 gaps in these six sectors 13 cut
 ## soft fences, which file no faces; the walls' 3 sit on OSM's gate node, a vertex, so the segments on
 ## each side are shorter but as many; the gate posts file none). TOTAL (classic) ignores the gates.
-const TOTAL_TYPED := 46406
+const TOTAL_TYPED := 47533
 
 var problems: Array[String] = []
 var verbose := false
