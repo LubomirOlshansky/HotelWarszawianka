@@ -1,0 +1,54 @@
+{
+ "short": {
+  "pl": "Napisz choć kilka słów.",
+  "en": "Write a few words."
+ },
+ "email": {
+  "pl": "Ten e-mail wygląda źle. Zostaw go pustym, jeśli nie chcesz odpowiedzi.",
+  "en": "That email looks wrong. Leave it empty if you do not want a reply."
+ },
+ "wait": {
+  "pl": "Wysłane przed chwilą. Poczekaj chwilę.",
+  "en": "Sent a moment ago. Wait a little."
+ },
+ "fail": {
+  "pl": "Nie udało się wysłać. Sprawdź internet i spróbuj jeszcze raz.",
+  "en": "Could not send. Check the internet and try again."
+ },
+ "sending": {
+  "pl": "Wysyłam…",
+  "en": "Sending…"
+ },
+ "ok": {
+  "pl": "Dzięki! Przeczytam.",
+  "en": "Thank you! I will read it."
+ },
+ "title": {
+  "pl": "OPINIA",
+  "en": "FEEDBACK"
+ },
+ "lead": {
+  "pl": "Co działa, co się psuje, czego brakuje? Pisz po polsku albo po angielsku.",
+  "en": "What works, what breaks, what is missing? Write in Polish or English."
+ },
+ "placeholder": {
+  "pl": "Twoja wiadomość",
+  "en": "Your message"
+ },
+ "email_placeholder": {
+  "pl": "E-mail do odpowiedzi (nie musisz)",
+  "en": "Email for a reply (optional)"
+ },
+ "note": {
+  "pl": "Poleci do autora razem z modelem telefonu, wersją gry i miejscem w mieście. E-mail służy tylko do odpowiedzi.",
+  "en": "It goes to the author with your phone model, the game's version and where you were in the city. The email is used only to reply."
+ },
+ "close": {
+  "pl": "ZAMKNIJ",
+  "en": "CLOSE"
+ },
+ "send": {
+  "pl": "WYŚLIJ",
+  "en": "SEND"
+ }
+}
