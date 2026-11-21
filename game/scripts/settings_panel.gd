@@ -342,13 +342,6 @@ func _build() -> void:
 	# credits because it is about the game, not about the drive or the picture.
 	_heading(sound[1], "Anonimowa statystyka", "Anonymous stats")
 	_segments(sound[1], "stats", ON_OFF)
-	# F 2026-11-21: in-game feedback (feedback.gd), visible on the first page of the card.
-	_heading(sound[1], "Opinia", "Feedback")
-	var feedback_button := _word_button("NAPISZ DO AUTORA", "WRITE TO THE AUTHOR")
-	feedback_button.name = "feedback"
-	feedback_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	feedback_button.pressed.connect(_open_feedback)
-	sound[1].add_child(feedback_button)
 	# DEMO 3j: the credits and licences (credits.gd), a page of their own opened from here.
 	_heading(sound[1], "O grze", "About")
 	var about_row := HBoxContainer.new()
@@ -358,6 +351,12 @@ func _build() -> void:
 	about.name = "credits"
 	about.pressed.connect(show_credits)
 	about_row.add_child(about)
+	# F 2026-11-21: in-game feedback (feedback.gd) beside LICENCJE, on the first page of the card
+	# (a row of its own made the card taller than check_hud's phone sizes allow).
+	var feedback_button := _word_button("OPINIA", "FEEDBACK")
+	feedback_button.name = "feedback"
+	feedback_button.pressed.connect(_open_feedback)
+	about_row.add_child(feedback_button)
 	var tips_button := _word_button("PORADY", "TIPS")
 	tips_button.name = "tips"
 	tips_button.pressed.connect(show_tips)

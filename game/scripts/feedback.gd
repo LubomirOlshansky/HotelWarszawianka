@@ -1,4 +1,4 @@
-## In-game feedback (F 2026-11-21): Settings → Dźwięk → NAPISZ DO AUTORA opens this card; the player writes a
+## In-game feedback (F 2026-11-21): Settings → Dźwięk → OPINIA opens this card; the player writes a
 ## message (and, if they like, an email to be answered at), and it is posted as JSON to the
 ## Formspree form "In-game feedback" of the Around Warsaw project, which mails it to the author.
 ## The payload carries the build, the device model, the language and where in the city the player
