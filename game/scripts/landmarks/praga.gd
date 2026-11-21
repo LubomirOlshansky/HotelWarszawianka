@@ -131,10 +131,13 @@ const STADIUM_TIP := Color(0.96, 0.97, 1.0)
 const STADIUM_RIM_LIGHT := Color(0.84, 0.87, 0.92)
 const STADIUM_LAMP := Color("#fff1cf")
 ## The stairs' light lines (pale sand by day, warm at night), on the mapped stairs within STAIR_REACH m of the centre.
-const STADIUM_STAIR := Color("#e6cf9a")
+const STADIUM_STAIR := Color("#f0b45a")
 const STAIR_REACH := 270.0
 ## The stairs' light lines: one per step (F's drone photo, 2026-11-21).
 const STAIR_STEP := 0.6
+## The lines ride over the stone treads (map_builder rounds the ground up to whole risers of
+## 0.16 m): at ground level they were hidden under the treads in checkered bits.
+const STAIR_LIFT := 0.2
 ## F's drone photo (2026-11-21): the broad flights up the embankment at the ends of the
 ## avenues have a lit portal in their middle, a passage into the bank under the promenade.
 const PORTAL_STAIR_W := 20.0
@@ -307,8 +310,8 @@ func _build_stadium(site: Dictionary) -> void:
 		while t < run_len - 0.2:
 			var m0 := s0 + e * t
 			var m1 := m0 + e * 0.2
-			var y0: float = map.ground_height(m0.x, m0.y) + 0.07
-			var y1: float = map.ground_height(m1.x, m1.y) + 0.07
+			var y0: float = map.ground_height(m0.x, m0.y) + STAIR_LIFT
+			var y1: float = map.ground_height(m1.x, m1.y) + STAIR_LIFT
 			if w >= PORTAL_STAIR_W and run_len >= PORTAL_MIN_RUN:
 				# The portal's block covers the flight's middle: a line on each side of it.
 				var gap := side * PORTAL_W * 0.5 + side * 0.6
@@ -329,8 +332,8 @@ func _build_stadium(site: Dictionary) -> void:
 				var k2 := minf(k + 3.0, run_len)
 				var q0 := s0 + e * k
 				var q1 := s0 + e * k2
-				var h0: float = map.ground_height(q0.x, q0.y) + 0.1
-				var h1: float = map.ground_height(q1.x, q1.y) + 0.1
+				var h0: float = map.ground_height(q0.x, q0.y) + STAIR_LIFT + 0.18
+				var h1: float = map.ground_height(q1.x, q1.y) + STAIR_LIFT + 0.18
 				_quad(Vector3(q0.x + o0.x, h0, q0.y + o0.y), Vector3(q0.x + o1.x, h0, q0.y + o1.y),
 						Vector3(q1.x + o1.x, h1, q1.y + o1.y), Vector3(q1.x + o0.x, h1, q1.y + o0.y), Vector3.UP, STADIUM_STAIR)
 				k = k2
