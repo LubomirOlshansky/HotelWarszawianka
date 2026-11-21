@@ -15,6 +15,8 @@ const WORDS := ["KEBAB 24H", "BAR MLECZNY", "APTEKA", "KWIATY", "HOTEL", "KANTOR
 ## The landmarks loop: words only the landmarks wear (never a shop's), after WORDS in the atlas:
 ## the parody of the brand on Warsaw Spire's crown, the mall by Rondo Radosława's.
 const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA", "CHILTON", "INTERKONTI", "N", "O", "W", "T", "E", "L", "BANK POLSKA", "PEPEO ŻUBR", "ŻUBR", "ERZATZ",
+		# BGK's roof (F, 2026-11-20): the energy group as the parody PEGE, its name in two words.
+		"PEGE", "POLSKA GRUPA", "ENERGICZNA",
 		"METROPOLKA", "HOTEL AHOJ", "PORT PRASKI", "STATKI WKRÓTCE", "ENELMEDIK", "ACORN", "HOTELS", "--",
 		# First scene item 3: the Eastern Wall's stores (parodies of their roof names).
 		"JUNIOREK", "SAWKA", "WARSIK", "ATOMIK 24H",

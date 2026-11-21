@@ -3286,8 +3286,10 @@ func _build_vitkac(site: Dictionary) -> void:
 	# dark mullions.
 	var shop := _largest(Geometry2D.offset_polygon(ring, -0.4, Geometry2D.JOIN_ROUND))
 	_prism(shop, g - 0.6, g + VITKAC_GROUND, VITKAC_GLASS, none, M_GLASS)
-	_bays(shop, 0.4, VITKAC_GROUND - 0.5, 4.0, 3.5, VITKAC_SHOP)
-	_mullions(shop, g, g + VITKAC_GROUND, 2.0, 0.09, VITKAC_BASE)
+	# Bays on the simplified ring: on the round join's short, nearly straight pieces two neighbouring
+	# bays overlapped in one plane (check_mesh_quality zfight at the Bracka corner).
+	_bays(_simplify(shop, 0.4), 0.4, VITKAC_GROUND - 0.5, 4.0, 3.5, VITKAC_SHOP)
+	_mullions(shop, g, g + VITKAC_GROUND, 2.0, 0.15, VITKAC_BASE)  # in front of the 0.07-proud shop windows (0.09 fought them)
 	_soffit(ring, g + VITKAC_GROUND, VITKAC_BASE)
 	# The stone body over it, and per storey a glass ribbon 2 m tall, a hair proud, with stone
 	# fins across it every 3.6 m (the photos' panels).
@@ -3883,11 +3885,22 @@ func _build_bgk(site: Dictionary) -> void:
 			var p3 := Vector3(q.x, arc_h + float(band[0]) + 1.3 * sin(PI * (0.15 + 0.8 * t)), q.y)
 			if prev != Vector3.INF:
 				_beam(prev, p3, 0.32, band[1], true, M_LAMP)
+			# The swoosh's ends stand on slim posts from the roof (no floating sign): one post per end,
+			# up to the upper band, through the lower band's end.
+			if (k == 0 or k == 8) and float(band[0]) > 0.0:
+				_beam(Vector3(p3.x, y_m - 0.4, p3.z), p3, 0.12, Color(0.18, 0.19, 0.21))
 			prev = p3
-	var name_pl := "POLSKA GRUPA ENERGICZNA"
-	var k_n := 22.0 / Neon.length_of(name_pl)
+	# The full name is wider than the neon atlas's row (ATLAS_W), so it is two words side by side,
+	# laid out along the sign's own reading direction at one scale, 22 m in all.
+	var k_n := 22.0 / Neon.length_of("POLSKA GRUPA ENERGICZNA")
 	var np := _w(30.0, -1.7)
-	signs.append([name_pl, Vector3(np.x, g + BGK_ATTIC + 0.1, np.y), out3, k_n, blue])
+	var mid := Vector3(np.x, g + BGK_ATTIC + 0.1, np.y)
+	var read := Neon.place("POLSKA GRUPA", mid, out3).basis.x.normalized()
+	var half := 0.5 * k_n * Neon.length_of("POLSKA GRUPA ENERGICZNA")
+	var w1 := k_n * Neon.length_of("POLSKA GRUPA")
+	var w2 := k_n * Neon.length_of("ENERGICZNA")
+	signs.append(["POLSKA GRUPA", mid - read * (half - 0.5 * w1), out3, k_n, blue])
+	signs.append(["ENERGICZNA", mid + read * (half - 0.5 * w2), out3, k_n, blue])
 	_collide_raw(site)
 
 
