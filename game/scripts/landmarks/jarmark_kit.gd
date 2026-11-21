@@ -1553,16 +1553,19 @@ static func entrance_board(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
 const HUT_ROOF_DARK := Color("#323438")
 const HUT_ROOF_ORANGE := Color("#af5f05")
 const HUT_FLAP := Color("#d4d0ca")
+## The real reels: the eave and rake bulbs are warm white (the official map's multicolour is illustration).
+const HUT_BULB_WARM := Color("#ffd9a0")
 
 
 ## What the official huts have that jarmark.gd's `_jm_hut` doesn't, laid on a chalet of half sizes
 ## hu x hv (default the white 3.2 x 2.3 m one, eave 2.3 m, roof rise 0.95), front local -v: the
 ## upper shutter propped up as an awning (hu*2 x 0.6 m, 20 degrees up from the eave), the lower one
 ## down as a counter (flat at 1.0 m, 0.5 m), two side flaps (0.6 x 1.2 m at 45 degrees), three plank
-## grooves on each side and the back wall, multicolour bulbs (red, yellow, green, white) along both
+## grooves on each side and the back wall, warm-white bulbs (#FFD9A0; `multicolour` brings back the map's red, yellow, green, white) along both
 ## eaves and up the rakes, a thick fir garland with warm bulbs up both front rakes, red velvet drapes under the eave and a red bow at the apex, and (`snow`) a white patch on the roof. Costs about 320 triangles.
 static func hut_extras(b, at: Vector2, yaw := 0.0, g := NAN, hu := 1.6, hv := 1.15, eave := 2.3, rise := 0.95,
-		snow := false, grooves := true, bulbs := true, seed := 0) -> void:
+		snow := false, grooves := true, bulbs := true, seed := 0, multicolour := false) -> void:
+	var cols: Array = MULTI if multicolour else [HUT_BULB_WARM]
 	var c := Ctx.new(b, at, yaw, g)
 	# The upper flap, up as an awning, and the lower flap, down as a counter.
 	var a20 := deg_to_rad(20.0)
@@ -1611,13 +1614,13 @@ static func hut_extras(b, at: Vector2, yaw := 0.0, g := NAN, hu := 1.6, hv := 1.
 		for k in range(0, int(hu * 2.0 / 0.5) + 1):
 			var cu := -hu - 0.1 + 0.5 * float(k)
 			for ev: float in [-hv - 0.42, hv + 0.42]:
-				c.lbulb(cu, ev, eave - 0.1, 0.055, MULTI[n % 4])
+				c.lbulb(cu, ev, eave - 0.1, 0.055, cols[n % cols.size()])
 				n += 1
 		for sd: float in [-1.0, 1.0]:
 			for k in 4:
 				var t := float(k + 1) / 5.0
 				for sl: float in [-1.0, 1.0]:
-					c.lbulb(sd * (hu + 0.15), sl * (hv + 0.4) * (1.0 - t), eave + rise * t - 0.02, 0.055, MULTI[n % 4])
+					c.lbulb(sd * (hu + 0.15), sl * (hv + 0.4) * (1.0 - t), eave + rise * t - 0.02, 0.055, cols[n % cols.size()])
 					n += 1
 		c.noroof(false)
 	if snow:
@@ -1639,7 +1642,7 @@ static func hut_extras(b, at: Vector2, yaw := 0.0, g := NAN, hu := 1.6, hv := 1.
 ## A full chalet with the upgrade (for sites that don't use `_jm_hut`): white box 3.2 x 2.3 m, a lit
 ## counter opening, a gable roof along the front in `roof` (default dark `HUT_ROOF_DARK`; pass
 ## `HUT_ROOF_ORANGE` for the official orange) and everything `hut_extras` adds.
-static func hut(b, at: Vector2, yaw := 0.0, g := NAN, roof := HUT_ROOF_DARK, snow := false, seed := 0) -> void:
+static func hut(b, at: Vector2, yaw := 0.0, g := NAN, roof := HUT_ROOF_DARK, snow := false, seed := 0, multicolour := false) -> void:
 	var c := Ctx.new(b, at, yaw, g)
 	var hu := 1.6
 	var hv := 1.15
@@ -1650,7 +1653,104 @@ static func hut(b, at: Vector2, yaw := 0.0, g := NAN, roof := HUT_ROOF_DARK, sno
 	c.box(-hu, hu, -hv - 0.4, -hv, 0.93, 1.03, Color("#6b4a2e"))
 	c.gable(hu, hv, eave, rise, JM_WHITE_KIT, roof, roof.darkened(0.2), 0.15, 0.4)
 	c.done()
-	hut_extras(b, at, yaw, c.g, hu, hv, eave, rise, snow, true, true, seed)
+	hut_extras(b, at, yaw, c.g, hu, hv, eave, rise, snow, true, true, seed, multicolour)
 
 
 const JM_WHITE_KIT := Color("#f2f0ea")
+
+
+# ---------------------------------------------------------------------------------------------
+# 12. The greeting sign and the LED figures
+# ---------------------------------------------------------------------------------------------
+
+const SIGN_GOLD := Color("#ffe6a8")
+
+
+## A word in bulb dots (the pixel font's glyphs, one lit bulb per pixel) on the -v face, centred on
+## local u = `cu`, its body's bottom at height y, `h` tall. Left to right runs along -u (the reader
+## faces +v), as `_jm_word`.
+static func bulb_word(c: Ctx, text: String, cu: float, lv: float, y: float, h: float, col: Color, size: float) -> void:
+	var sx := h / 7.0
+	var width := 0.0
+	for ch in text:
+		width += (int(c.b._pow_glyph_w(ch)) + 1) * sx
+	width -= sx
+	var at := cu + width * 0.5
+	for ch in text:
+		if ch != " ":
+			for q: Vector2i in c.b._pow_glyph(ch):
+				var row := 2 + 6 - q.y  # PixelFont.BODY + 6 - y: the body's bottom row is 0
+				c.lbulb(at - float(q.x) * sx, lv, y + float(row) * sx, size, col)
+		at -= (int(c.b._pow_glyph_w(ch)) + 1) * sx
+
+
+## The greeting sign: about 8 m wide on a low dark base, a dark board with "WESOŁYCH" small and
+## "ŚWIĄT" big in gold-white bulb dots (the pixel font; capitals, as the market's other sign), small
+## blue stars and white snowflakes above. Reads from local -v.
+static func wesolych_swiat_sign(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	c.noroof(true)
+	c.box(-4.3, 4.3, -0.4, 0.5, 0.0, 0.45, Color("#26282e"), Color("#3a3c44"))
+	c.box(-4.0, 4.0, 0.0, 0.12, 0.45, 5.2, Color("#171a26"))
+	for sx: float in [-4.05, 4.05]:
+		c.pbox(sx, 0.05, 0.0, 0.09, 0.09, 0.45, 5.4, Color("#2a2c32"))
+	bulb_word(c, "WESOŁYCH", 0.0, -0.06, 3.5, 1.0, SIGN_GOLD, 0.05)
+	bulb_word(c, "ŚWIĄT", 0.0, -0.06, 1.0, 1.75, SIGN_GOLD, 0.085)
+	for k in 7:
+		var cu := -3.6 + 1.2 * float(k)
+		var cy := 5.95 + 0.25 * sin(PI * float(k) / 6.0)
+		if k % 2 == 0:
+			b._mode = M_LAMP
+			b._jm_star(c.p(cu, -0.06, cy), 0.42, Vector3(c.u.x, 0.0, c.u.y), Color("#5a8cff"))
+		else:
+			for arm in 3:
+				var a := PI * float(arm) / 3.0
+				c.lbeam(Vector3(cu + cos(a) * 0.4, -0.06, cy + sin(a) * 0.4), Vector3(cu - cos(a) * 0.4, -0.06, cy - sin(a) * 0.4), 0.05, WHITE, M_LAMP)
+			c.lbulb(cu, -0.06, cy, 0.07, WHITE)
+	c.noroof(false)
+	c.done()
+
+
+## An LED figure, lit white: `kind` 0 a fir outline 4 m tall on a pole (two crossed planes, three
+## tiers of bulbs), `kind` 1 a pair of angel wings 2.5 m tall on a short stand (six feathers a
+## side, facing local -v).
+static func led_figure(b, at: Vector2, yaw := 0.0, g := NAN, kind := 0) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	c.noroof(true)
+	var led := Color(0.9, 0.94, 1.0)
+	if kind == 0:
+		c.lbeam(Vector3(0, 0, 0), Vector3(0, 0, 1.4), 0.1, WIRE)
+		for plane in 2:
+			var tiers := [[1.0, 2.5, 1.25], [1.9, 3.3, 0.95], [2.8, 4.0, 0.62]]
+			for tr in tiers:
+				var y0: float = tr[0]
+				var y1: float = tr[1]
+				var hw: float = tr[2]
+				var pts := [Vector3(-hw, 0, y0), Vector3(hw, 0, y0), Vector3(0, 0, y1)]
+				for i in 3:
+					var p0: Vector3 = pts[i]
+					var p1: Vector3 = pts[(i + 1) % 3]
+					if plane == 1:
+						p0 = Vector3(p0.y, p0.x, p0.z)
+						p1 = Vector3(p1.y, p1.x, p1.z)
+					c.lbeam(p0, p1, 0.07, led, M_LAMP)
+					c.lbulb(p0.x, p0.y, p0.z, 0.09, WHITE)
+		c.lbulb(0, 0, 4.1, 0.14, Color("#ffe9a0"))
+	else:
+		c.lbeam(Vector3(0, 0, 0), Vector3(0, 0, 0.7), 0.1, WIRE)
+		for sx: float in [-1.0, 1.0]:
+			var base := Vector3(sx * 0.3, 0.0, 0.9)
+			for i in 6:
+				var ang := deg_to_rad(lerpf(14.0, 82.0, float(i) / 5.0))
+				var len := 1.7 - 0.1 * float(i)
+				var d := Vector3(sx * sin(ang), 0.0, cos(ang))
+				var perp := Vector3(cos(ang) * sx, 0.0, -sin(ang)).normalized() * 0.16
+				var tip := base + d * len
+				var mid := base + d * len * 0.55
+				c.lbeam(base, mid + perp, 0.06, led, M_LAMP)
+				c.lbeam(mid + perp, tip, 0.06, led, M_LAMP)
+				c.lbeam(base, mid - perp, 0.06, led, M_LAMP)
+				c.lbeam(mid - perp, tip, 0.06, led, M_LAMP)
+				c.lbulb(tip.x, tip.y, tip.z, 0.1, WHITE)
+	c.noroof(false)
+	c.done()
