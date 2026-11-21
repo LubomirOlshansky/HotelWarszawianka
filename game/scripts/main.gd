@@ -1943,6 +1943,10 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	# tram stop in front of it, busy at every hour.
 	busy = walkers.add_busy(LIM_BUSY_O, LIM_BUSY_S, LIM_BUSY_T, LIM_BUSY_BANDS, LIM_BUSY_BOX)
 	print("centrum lim: %d busy pavement points" % busy)
+	# F (2026-11-21, teaser 4: "more pedestrians waiting and walking"): the pavements round Rondo
+	# de Gaulle'a, the palm's footways and crossings, busy too.
+	busy = walkers.add_busy(GAULLE_BUSY_O, Vector2(1, 0), Vector2(0, 1), GAULLE_BUSY_BANDS, GAULLE_BUSY_BOX)
+	print("rondo de gaulle: %d busy pavement points" % busy)
 	traffic.bumped_driver.connect(dialogue.on_driver_bumped)
 	traffic.blocked_by_player.connect(dialogue.on_driver_blocked)
 	# The street racers (rivals.gd wires itself; its setup reads the map data), under main.gd. The
@@ -1998,6 +2002,9 @@ const LIM_BUSY_S := Vector2(0.946, -0.325)
 const LIM_BUSY_T := Vector2(-0.325, -0.946)
 const LIM_BUSY_BANDS := [[-15.0, 160.0, -7.0, 14.0], [-45.0, 70.0, 14.0, 45.0]]
 const LIM_BUSY_BOX := Rect2(-1480.0, 600.0, 230.0, 130.0)
+const GAULLE_BUSY_O := Vector2(-213.9, 238.5)
+const GAULLE_BUSY_BANDS := [[-80.0, 80.0, -80.0, 80.0]]
+const GAULLE_BUSY_BOX := Rect2(-310.0, 150.0, 200.0, 190.0)
 const MARSZALKOWSKA_NORTH := Vector2(-0.349, -0.937)
 const FIRST_UP_V := 7.0
 const FIRST_DOWN_V := 8.0
@@ -2179,6 +2186,8 @@ func _apply_traffic() -> void:
 			traffic.density = density
 	if walkers != null:
 		walkers.limit = maxi(4, roundi(float(QUALITY[quality]["people"]) * float(Settings.PEOPLE[traffic_level]) * float(Governor.PEOPLE[governor.cpu])))
+		if flags.people > 0:
+			walkers.limit = mini(flags.people, Pedestrians.MAX)
 
 
 ## Loop G1: the governor's clock, seconds since the game started.

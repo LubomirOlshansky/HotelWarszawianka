@@ -53,6 +53,9 @@ var pigeons_at := -1.0
 ## (X, Z), T s after the start (default 3), riding the path's way or against it (DIR -1).
 var scoot_gang := Vector3(0.0, 0.0, -1.0)
 var scoot_gang_dir := 1.0
+## --people=N (videos, F 2026-11-21: "more pedestrians"): the walkers' target, whatever the
+## quality and traffic level say (never above pedestrians.gd MAX); -1: the settings decide.
+var people := -1
 ## --season=summer|autumn (videos, F 2026-11-20 "trees can be green like summer not yellow"): the
 ## trees' shader global `tree_season` until the season module (trees plan S1) sets it from the date.
 var season := ""
@@ -1007,6 +1010,8 @@ func parse_with(args: PackedStringArray) -> void:
 			# x the summer-to-autumn turn, y the fall of leaves (project.godot holds mid-November).
 			var look := Vector4(0, 0, 0, 0) if season == "summer" else Vector4(1, 0.5, 0, 0)
 			RenderingServer.global_shader_parameter_set("tree_season", look)
+		elif arg.begins_with("--people="):
+			people = int(arg.trim_prefix("--people="))
 		elif arg.begins_with("--scoot-gang="):
 			var sg := arg.trim_prefix("--scoot-gang=").split(",")
 			if sg.size() >= 2:

@@ -425,6 +425,49 @@ func _dp_table(u: float, v: float, y: float) -> void:
 	for s: float in [-1.0, 1.0]:
 		_lbox(u + s * 0.72, v, 0.22, 0.22, y + 0.2, y + 0.46, DOM_CHAIR, M_STONE)
 		_lbox(u + s * 0.92, v, 0.03, 0.22, y + 0.46, y + 0.95, DOM_CHAIR, M_STONE)
+	_dp_guests(u, v, y)
+
+
+## F (2026-11-21, teaser 4: "some sitting at the Zamieszanie tables, some with dogs"): most chairs
+## taken, the guests leaning in over the table, and a dog lying by one table in three. Picked by
+## the table's place (the same guests every bake), boxes in the landmark's own mesh (+0 draw calls).
+func _dp_guests(u: float, v: float, y: float) -> void:
+	var h := absf(fposmod(sin(u * 12.9898 + v * 78.233) * 43758.5453, 1.0))
+	var shirts := [Color("#f2efe8"), Color("#2f6fb5"), Color("#e0b23a"), Color("#3b8f5a"), Color("#e57aa0"),
+			Color("#d8432f"), Color("#5aa9c9"), Color("#2b2c2f"), Color("#c96b2c"), Color("#7a4fa8")]
+	var legs := [Color("#2b3a55"), Color("#3a3a3d"), Color("#c9b38c"), Color("#5a6a7a")]
+	var skins := [Color("#e9c4a6"), Color("#d8a684"), Color("#b98262"), Color("#f0d2b8")]
+	var hairs := [Color("#3a2a20"), Color("#1e1a18"), Color("#d9c27a"), Color("#8a5a3a")]
+	var k := 0
+	for s: float in [-1.0, 1.0]:
+		k += 1
+		var r := fposmod(h * (7.0 + k * 3.0), 1.0)
+		if r > 0.78:
+			continue  # an empty chair
+		var shirt: Color = shirts[int(r * 97.0) % shirts.size()]
+		var leg: Color = legs[int(r * 53.0) % legs.size()]
+		var skin: Color = skins[int(r * 31.0) % skins.size()]
+		var hair: Color = hairs[int(r * 71.0) % hairs.size()]
+		for side: float in [-0.09, 0.09]:
+			_lbox(u + s * 0.48, v + side, 0.05, 0.06, y, y + 0.46, leg, M_STONE)
+		_lbox(u + s * 0.6, v, 0.16, 0.15, y + 0.46, y + 0.6, leg, M_STONE)
+		_lbox(u + s * 0.77, v, 0.11, 0.19, y + 0.6, y + 1.14, shirt, M_STONE)
+		for side: float in [-0.19, 0.19]:
+			_lbox(u + s * 0.7, v + side, 0.045, 0.045, y + 0.8, y + 1.1, shirt, M_STONE)
+			_lbox(u + s * 0.54, v + side * 0.8, 0.14, 0.04, y + 0.77, y + 0.83, skin, M_STONE)
+		_lbox(u + s * 0.75, v, 0.1, 0.1, y + 1.17, y + 1.39, skin, M_STONE)
+		_lbox(u + s * 0.78, v, 0.105, 0.105, y + 1.36, y + 1.43, hair, M_STONE)
+	if h < 0.36:
+		# A dog lying by the table, its head up towards the guests.
+		var dogs := [Color("#c9a26a"), Color("#2b2522"), Color("#8a5a3a"), Color("#e8e2d6")]
+		var dc: Color = dogs[int(h * 40.0) % dogs.size()]
+		var du := u + (0.35 if h < 0.18 else -0.35)
+		var dv := v - 0.72
+		var f := 1.0 if h < 0.18 else -1.0
+		_lbox(du, dv, 0.3, 0.12, y, y + 0.24, dc, M_STONE)
+		_lbox(du - f * 0.36, dv, 0.09, 0.08, y + 0.14, y + 0.36, dc, M_STONE)
+		_lbox(du - f * 0.44, dv, 0.06, 0.05, y + 0.18, y + 0.28, dc.darkened(0.25), M_STONE)
+		_lbox(du + f * 0.34, dv, 0.1, 0.03, y + 0.16, y + 0.2, dc, M_STONE)
 
 
 ## A clipped ball tree in a square granite planter at (u, v) on the floor y (the towers' fronts).

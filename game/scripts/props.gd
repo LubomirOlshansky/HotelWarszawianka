@@ -290,6 +290,48 @@ static func deckchairs(spots: Array, seed_n: int) -> ArrayMesh:
 	return st.commit()
 
 
+## People standing and waiting (the rondo's zebras, eggs.gd `_build_waiting`): legs, a summer
+## shirt, arms down or a phone up, a head and hair; now and then a dog sitting at their side.
+## `spots` are [x, z, yaw, ground y, dog (0/1)] in world space, facing their -Z after `yaw`.
+static func standers(spots: Array, seed_n: int) -> ArrayMesh:
+	var st := _begin()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_n
+	var shirts := [Color("#f2efe8"), Color("#2f6fb5"), Color("#e0b23a"), Color("#3b8f5a"), Color("#e57aa0"),
+			Color("#d8432f"), Color("#5aa9c9"), Color("#2b2c2f"), Color("#f2d13a"), Color("#c96b2c"), Color("#7a4fa8")]
+	var legs := [Color("#2b3a55"), Color("#3a3a3d"), Color("#c9b38c"), Color("#5a6a7a"), Color("#1e1f22")]
+	var skins := [Color("#e9c4a6"), Color("#d8a684"), Color("#b98262"), Color("#f0d2b8")]
+	var hairs := [Color("#3a2a20"), Color("#1e1a18"), Color("#d9c27a"), Color("#8a5a3a"), Color("#b0aaa0")]
+	var dogs := [Color("#c9a26a"), Color("#2b2522"), Color("#8a5a3a"), Color("#e8e2d6")]
+	for sp: Array in spots:
+		var b := Basis(Vector3.UP, float(sp[2]))
+		var o := Vector3(float(sp[0]), float(sp[3]), float(sp[1]))
+		var k := rng.randf_range(0.92, 1.06)
+		var shirt: Color = shirts[rng.randi() % shirts.size()]
+		var leg: Color = legs[rng.randi() % legs.size()]
+		var skin: Color = skins[rng.randi() % skins.size()]
+		for x: float in [-0.1, 0.1]:
+			obox(st, o + b * Vector3(x, 0.43 * k, 0.0), b, Vector3(0.14, 0.86 * k, 0.16), leg)
+		obox(st, o + b * Vector3(0.0, 1.16 * k, 0.0), b, Vector3(0.42, 0.62 * k, 0.24), shirt)
+		var phone := rng.randf() < 0.35
+		obox(st, o + b * Vector3(-0.26, 1.13 * k, 0.0), b, Vector3(0.1, 0.58 * k, 0.11), shirt if rng.randf() < 0.5 else skin)
+		if phone:
+			obox(st, o + b * Vector3(0.18, 1.12 * k, -0.2), b, Vector3(0.1, 0.1, 0.34), skin)
+			obox(st, o + b * Vector3(0.12, 1.2 * k, -0.36), b, Vector3(0.08, 0.14, 0.02), Color("#1e1f22"))
+		else:
+			obox(st, o + b * Vector3(0.26, 1.13 * k, 0.0), b, Vector3(0.1, 0.58 * k, 0.11), shirt if rng.randf() < 0.5 else skin)
+		obox(st, o + b * Vector3(0.0, 1.61 * k, 0.0), b, Vector3(0.22, 0.26, 0.22), skin)
+		obox(st, o + b * Vector3(0.0, 1.76 * k, 0.02), b, Vector3(0.24, 0.08, 0.25), hairs[rng.randi() % hairs.size()])
+		if int(sp[4]) == 1:
+			# A dog sitting at the left, looking the same way.
+			var dc: Color = dogs[rng.randi() % dogs.size()]
+			obox(st, o + b * Vector3(-0.55, 0.2, 0.1), b, Vector3(0.24, 0.4, 0.3), dc)
+			obox(st, o + b * Vector3(-0.55, 0.45, -0.05), b, Vector3(0.18, 0.18, 0.24), dc)
+			obox(st, o + b * Vector3(-0.55, 0.42, -0.2), b, Vector3(0.1, 0.09, 0.1), dc.darkened(0.25))
+			beam(st, o + b * Vector3(-0.3, 0.95 * k, 0.0), o + b * Vector3(-0.55, 0.42, -0.02), 0.02, 0.02, Color("#d8432f"))
+	return st.commit()
+
+
 ## The Party House plaza's lamp (F's photos, 2026-11-20): a tall pale grey-blue fluted post
 ## about 6 m, five black lanterns with white glass on a crown of curled arms (one in the
 ## middle, four round it), lit at night.

@@ -123,6 +123,7 @@ func setup(nodes: Dictionary, data: Dictionary) -> void:
 			pois[p["k"]] = p
 	var palm := _build_palm(data)
 	_build_gaulle_lawn()
+	_build_waiting(data)
 	var square := _defilad(data, pois)
 	if square != Vector2.INF:
 		_build_pigeons(square)
@@ -336,16 +337,18 @@ const LAMP_SPOTS := [[-149.0, 281.5], [-161.5, 285.0], [-174.4, 281.5], [-157.5,
 func _build_gaulle_lawn() -> void:
 	var palm := Vector2(-213.9, 238.5)
 	var spots: Array = []
-	for c: Array in LAWN_CHAIRS:
+	for ci in LAWN_CHAIRS.size():
+		var c: Array = LAWN_CHAIRS[ci]
 		var p := Vector2(float(c[0]), float(c[1]))
 		var to := (palm - p).normalized()
 		# Facing the palm across the rondo, each turned a little its own way.
 		var yaw := atan2(-to.x, -to.y) + sin(p.x * 1.7 + p.y) * 0.35 + PI
 		spots.append([p.x, p.y, yaw, map.ground_height(p.x, p.y), int(c[2])])
-		# F (2026-11-21, "more people near the Zamieszanie"): a second chair between each pair
-		# of the rows, every one taken, kept inside the rows' own span of the lawn.
+		# F (2026-11-21, "more people near the Zamieszanie", then "a little less on the
+		# deckchairs"): a second chair after every other one, taken, kept inside the rows' own
+		# span of the lawn.
 		var q := p + Vector2(1.05, 1.75)
-		if q.x < -151.0 and q.y < 282.0:
+		if ci % 2 == 0 and q.x < -151.0 and q.y < 282.0:
 			var yaw_q := atan2(-(palm - q).normalized().x, -(palm - q).normalized().y) + cos(q.x * 1.3 - q.y) * 0.4 + PI
 			spots.append([q.x, q.y, yaw_q, map.ground_height(q.x, q.y), 1])
 	var chairs := MeshInstance3D.new()
@@ -423,6 +426,46 @@ func _build_gaulle_lawn() -> void:
 	lmi.multimesh = lamps
 	lmi.material_override = Models.material()
 	add_child(lmi)
+
+
+## F (2026-11-21, teaser 4: "more pedestrians waiting and walking"): people waiting at the
+## kerb of every zebra round Rondo de Gaulle'a (centrum.json's `zebra` paths within WAIT_REACH m
+## of the palm), two to four at each end a step back from the stripes, facing across, now and then
+## one with a dog. One static mesh (+1 draw call), the walkers' own crowd stays as it is.
+const WAIT_REACH := 95.0
+func _build_waiting(data: Dictionary) -> void:
+	var palm := Vector2(-213.9, 238.5)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2111
+	var spots: Array = []
+	for w: Dictionary in data.get("paths", []):
+		if str(w.get("k", "")) != "zebra":
+			continue
+		var pts: Array = w["p"]
+		if pts.size() < 4:
+			continue
+		var a := Vector2(float(pts[0]), float(pts[1]))
+		var b := Vector2(float(pts[pts.size() - 2]), float(pts[pts.size() - 1]))
+		if (a + b).distance_to(palm * 2.0) > WAIT_REACH * 2.0 or a.distance_to(b) < 6.0:
+			continue
+		for end: Array in [[a, b], [b, a]]:
+			var at: Vector2 = end[0]
+			var across: Vector2 = (end[1] - at).normalized()
+			var side := Vector2(-across.y, across.x)
+			var n := rng.randi_range(2, 4)
+			for i in n:
+				var p := at - across * rng.randf_range(0.9, 2.0) + side * rng.randf_range(-1.8, 1.8)
+				var yaw := atan2(-across.x, -across.y) + PI + rng.randf_range(-0.4, 0.4)
+				var dog := 1 if rng.randf() < 0.18 else 0
+				spots.append([p.x, p.y, yaw, map.ground_height(p.x, p.y), dog])
+	if spots.is_empty():
+		return
+	var mi := MeshInstance3D.new()
+	mi.name = "ZebraWaiting"
+	mi.mesh = Props.standers(spots, 2111)
+	mi.material_override = Models.material()
+	add_child(mi)
+	print("eggs: %d people waiting at the rondo's zebras" % spots.size())
 
 
 ## The inner road's taxis: each `INNER_GAP` m behind the one before, at `INNER_SPEED`, round the
