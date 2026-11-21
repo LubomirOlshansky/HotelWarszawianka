@@ -92,6 +92,15 @@ static func jump(tod: Node, hud: Node, hour: float) -> bool:
 	return true
 
 
+## Promo Mode's -15 / +15 (promo_mode.gd): the clock moves by `minutes`, either way, with no
+## toast (the promo readout shows the time). False without a clock.
+static func nudge(tod: Node, minutes: float) -> bool:
+	if tod == null:
+		return false
+	tod.shift_clock(minutes)
+	return true
+
+
 ## A run that keeps hours `h` starts: outside them the clock jumps to their opening (a few minutes
 ## in, so the hour is inside). True when it jumped.
 static func jump_into(tod: Node, hud: Node, h: Vector2) -> bool:
