@@ -181,10 +181,11 @@ func use_flag(text: String) -> void:
 	_refresh()
 
 
-## Whether this build may turn the screen: an iPhone build must list portrait in its Info.plist
-## (tools/export_ios.sh --portrait adds it and the `promo_portrait` feature), or iOS stops the app.
+## Whether this build may turn the screen: a phone build only with the `promo_portrait` feature
+## (tools/export_ios.sh --portrait, which also lists portrait in the Info.plist, or iOS stops the
+## app), so the players' iPhone and Android builds never turn; a Mac turns its window.
 static func can_turn() -> bool:
-	return OS.get_name() != "iOS" or OS.has_feature("promo_portrait")
+	return not OS.has_feature("mobile") or OS.has_feature("promo_portrait")
 
 
 ## VERTICAL (true) or HORIZONTAL: the phone's screen turns (DisplayServer orientation; back to the
