@@ -63,9 +63,14 @@ trap 'rm -f -- "$ROOT/game/override.cfg"' EXIT INT TERM
 print -r -- "[display]
 window/size/viewport_width=$w
 window/size/viewport_height=$h
-window/size/window_width_override=$w
-window/size/window_height_override=$h
-window/size/always_on_top=true" > $ROOT/game/override.cfg
+window/size/window_width_override=$(( w / 2 ))
+window/size/window_height_override=$(( h / 2 ))
+window/size/always_on_top=true
+window/stretch/mode=\"viewport\"
+window/stretch/aspect=\"keep\"" > $ROOT/game/override.cfg
+# stretch viewport + a half-size window (2026-11-21, stadium take): the game draws a 1080x1920 root
+# viewport whatever the window, so a window macOS clamps to the screen (1834 rows under the menu bar)
+# no longer leaves a blue strip at the bottom of the recorded frame.
 # always_on_top (2026-11-19, teaser 2): macOS skips drawing a hidden window, so a clip shot behind
 # another full-screen app wrote the same frame for ~45 frames at a time (Movie Maker repeats it).
 
