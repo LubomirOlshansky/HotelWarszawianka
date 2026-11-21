@@ -80,6 +80,9 @@ var lights := 0.0
 ## auto_share of top speed and hovers there; INF: steered by the game's input as usual.
 var auto_to := Vector2.INF
 var auto_share := 0.6
+## False: no searchlight beam or pool at night (the promo helicopter, F 2026-11-21: only its
+## beacon and strobe as it approaches).
+var searchlight := true
 var _beacon: StandardMaterial3D
 var _strobe: StandardMaterial3D
 var _search: MeshInstance3D
@@ -366,8 +369,8 @@ func _glow_box(size: Vector3, pos: Vector3, colour: Color) -> StandardMaterial3D
 ## Blinks the beacon and strobe and lays the searchlight on the ground at night.
 func _update_lights(dt: float, x: float, z: float) -> void:
 	var night := lights > 0.001
-	_search.visible = night
-	_search_beam.visible = night
+	_search.visible = night and searchlight
+	_search_beam.visible = night and searchlight
 	if not night:
 		_beacon.emission_energy_multiplier = 0.0
 		_strobe.emission_energy_multiplier = 0.0

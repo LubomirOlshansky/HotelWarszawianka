@@ -1521,6 +1521,7 @@ func _build_world() -> void:
 		var go := Vector2(ph[2] - ph[0], ph[3] - ph[1])
 		promo_heli.place(Vector3(ph[0], map.ground_height(ph[0], ph[1]) + ph[4], ph[1]), atan2(-go.x, -go.y), ph[4])
 		promo_heli.auto_to = Vector2(ph[2], ph[3])
+		promo_heli.searchlight = false
 		if ph.size() >= 6:
 			promo_heli.auto_share = ph[5]
 
