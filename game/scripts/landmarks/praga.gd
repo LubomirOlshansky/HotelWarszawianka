@@ -143,7 +143,7 @@ const STAIR_RAIL := 0.95
 const STADIUM_RAIL := Color("#f2822a")
 ## The lines ride over the stone treads (map_builder rounds the ground up to whole risers of
 ## 0.16 m): at ground level they were hidden under the treads in checkered bits.
-const STAIR_LIFT := 0.34
+const STAIR_LIFT := 0.19
 ## F's drone photo (2026-11-21): the broad flights up the embankment at the ends of the
 ## avenues have a lit portal in their middle, a passage into the bank under the promenade.
 const PORTAL_STAIR_W := 20.0
@@ -363,16 +363,16 @@ func _build_stadium(site: Dictionary) -> void:
 				var k2 := minf(k + 3.0, run_len)
 				var q0 := s0 + e * k
 				var q1 := s0 + e * k2
-				var h0: float = map.ground_height(q0.x, q0.y) + STAIR_LIFT + 0.18
-				var h1: float = map.ground_height(q1.x, q1.y) + STAIR_LIFT + 0.18
-				_quad(Vector3(q0.x + o0.x, h0, q0.y + o0.y), Vector3(q0.x + o1.x, h0, q0.y + o1.y),
-						Vector3(q1.x + o1.x, h1, q1.y + o1.y), Vector3(q1.x + o0.x, h1, q1.y + o0.y), Vector3.UP, STADIUM_STAIR)
+				var h0: float = map.ground_height(q0.x, q0.y) + STAIR_LIFT
+				var h1: float = map.ground_height(q1.x, q1.y) + STAIR_LIFT
 				# F (2026-11-21): the handrails glow along the whole flight, at hand height, so each
 				# flight reads from the air as a bright diagonal.
-				var r0: Vector2 = side * (w * 0.5 - 0.3) * sgn
-				var rw: Vector2 = side * 0.18
-				_quad(Vector3(q0.x + r0.x - rw.x, h0 + STAIR_RAIL, q0.y + r0.y - rw.y), Vector3(q0.x + r0.x + rw.x, h0 + STAIR_RAIL, q0.y + r0.y + rw.y),
-						Vector3(q1.x + r0.x + rw.x, h1 + STAIR_RAIL, q1.y + r0.y + rw.y), Vector3(q1.x + r0.x - rw.x, h1 + STAIR_RAIL, q1.y + r0.y - rw.y), Vector3.UP, STADIUM_RAIL)
+				# A lit ribbon on the rail's inner face ties it to the tread (its foot lies on the ground), so the rail does not float.
+				_quad(Vector3(q0.x + o0.x, h0 + STAIR_RAIL, q0.y + o0.y), Vector3(q0.x + o1.x, h0 + STAIR_RAIL, q0.y + o1.y),
+						Vector3(q1.x + o1.x, h1 + STAIR_RAIL, q1.y + o1.y), Vector3(q1.x + o0.x, h1 + STAIR_RAIL, q1.y + o0.y), Vector3.UP, STADIUM_RAIL)
+				_quad(Vector3(q0.x + o1.x, h0, q0.y + o1.y), Vector3(q1.x + o1.x, h1, q1.y + o1.y),
+						Vector3(q1.x + o1.x, h1 + STAIR_RAIL, q1.y + o1.y), Vector3(q0.x + o1.x, h0 + STAIR_RAIL, q0.y + o1.y),
+						Vector3(-side.x * sgn, 0.0, -side.y * sgn), STADIUM_RAIL)
 				k = k2
 		if w >= PORTAL_STAIR_W and run_len >= PORTAL_MIN_RUN:
 			_stadium_portal(s0, s1, w)
@@ -1543,7 +1543,13 @@ func _stadium_arka() -> void:
 	for i in segs:
 		var j0: Vector2 = arch[i]
 		var j1: Vector2 = arch[i + 1]
-		_quad(at.call(j0.x, ARKA_SPRING, 1.2), at.call(j1.x, ARKA_SPRING, 1.2), at.call(j1.x, j1.y, 1.2), at.call(j0.x, j0.y, 1.2), n3, PORTAL_GLOW)
+		# Two triangles, the one that would have zero area at a springing left out.
+		if i < segs - 1:
+			_tri(at.call(j0.x, ARKA_SPRING, 1.2), at.call(j1.x, ARKA_SPRING, 1.2), at.call(j1.x, j1.y, 1.2), n3, PORTAL_GLOW,
+					Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+		if i > 0:
+			_tri(at.call(j0.x, ARKA_SPRING, 1.2), at.call(j1.x, j1.y, 1.2), at.call(j0.x, j0.y, 1.2), n3, PORTAL_GLOW,
+					Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
 	# F (2026-11-21): the road to the Arka is a curve, not a straight strip. A dark asphalt road, 8 m
 	# wide, one sweeping bend: it meets the doorway square, then swings 11 m to the side on its way to the plaza.
 	_mode = M_STONE
