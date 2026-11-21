@@ -2838,7 +2838,7 @@ func _build_play_stats() -> void:
 	add_child(play_stats)
 	play_stats.setup(OS.is_debug_build(), wallet.persistent and settings.persistent, settings.stats, flags.stats_flag,
 			{"platform": OS.get_name(), "lang": Lang.code, "quality_tier": Tiers.NAMES[auto_quality] if quality_choice == Tiers.AUTO else Tiers.NAMES[quality_choice],
-			"controls": controls.scheme})
+			"controls": controls.scheme, "test_device": settings.test_device})
 	play_stats.watch({"wallet": wallet, "car": car, "is_flying": func() -> bool: return flying, "activities": activities,
 			"police": police, "first10": first10, "districts": districts, "egg_book": egg_book, "garage": garage,
 			"heli": heli, "radio": radio, "panel": hud.settings_panel, "save_note": wallet.load_note, "look": func() -> Array: return [Tiers.NAMES[quality], view.stretch_shrink, _cap]})
@@ -5023,7 +5023,7 @@ func _settings_state() -> Dictionary:
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
 			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
-			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on),
+			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on), "test_device": int(settings.test_device),
 			"weather": weather.state, "time": tod.look_mode(), "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
 			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "sensitivity": settings.sensitivity,
@@ -5122,6 +5122,9 @@ func _on_setting(key: String, value: Variant) -> void:
 		"promo":
 			settings.promo = int(value) == 1
 			promo.set_on(settings.promo)
+		"test_device":
+			settings.test_device = int(value) == 1
+			play_stats.set_test_device(settings.test_device)
 		"bench":
 			_start_phone_bench.call_deferred()
 			return

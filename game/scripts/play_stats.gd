@@ -47,12 +47,16 @@ enum Mode { OFF, LOG, SEND }
 
 ## The white list: event -> {property: type}. Anything else is dropped (`clean`).
 const EVENTS := {
-	"session_start": {"fresh_save": TYPE_BOOL, "resumed": TYPE_BOOL, "zl": TYPE_INT, "load_ms": TYPE_INT},
+	"session_start": {"fresh_save": TYPE_BOOL, "resumed": TYPE_BOOL, "zl": TYPE_INT, "load_ms": TYPE_INT,
+			"title_ms": TYPE_INT, "quality": TYPE_STRING, "crashed_before": TYPE_BOOL},
 	"session_end": {"minutes_played": TYPE_FLOAT, "km_driven": TYPE_FLOAT, "zl_earned": TYPE_INT, "runs_done": TYPE_INT,
-			"heli_pct": TYPE_INT},
+			"heli_pct": TYPE_INT, "how": TYPE_STRING},
 	"fps_sample": {"avg_fps": TYPE_FLOAT, "low_fps": TYPE_FLOAT, "draw_calls": TYPE_INT, "frame_cap": TYPE_INT,
 			"minute": TYPE_INT, "quality": TYPE_STRING, "scale": TYPE_INT, "flying": TYPE_BOOL},
 	"guide_beat": {"beat": TYPE_STRING, "how": TYPE_STRING, "t_play_s": TYPE_INT},
+	## The funnel's bookends (stats thread 2026-11-21): the first job's start and its end (stage
+	## start / end, once per install; `how` as activity_end), so a drop between the beats and the first job shows.
+	"first_job": {"stage": TYPE_STRING, "activity": TYPE_STRING, "how": TYPE_STRING, "t_play_s": TYPE_INT},
 	"activity_start": {"activity": TYPE_STRING, "job": TYPE_BOOL, "t_play_s": TYPE_INT},
 	"activity_end": {"activity": TYPE_STRING, "job": TYPE_BOOL, "how": TYPE_STRING, "duration_s": TYPE_INT, "t_play_s": TYPE_INT},
 	"chase_end": {"how": TYPE_STRING, "t_play_s": TYPE_INT},
@@ -85,6 +89,15 @@ const IPHONES := {
 	"iPhone17,2": "iphone_16_pro_max", "iPhone17,3": "iphone_16", "iPhone17,4": "iphone_16_plus", "iPhone17,5": "iphone_16e",
 	"iPhone18,1": "iphone_17_pro", "iPhone18,2": "iphone_17_pro_max", "iPhone18,3": "iphone_17", "iPhone18,4": "iphone_air",
 }
+## Where the iOS app runs on a Mac (Apple silicon "iPhone app on Mac"): Godot reports the model as
+## iPhone99,x / iPad99,x there. They are tagged `platform=mac_ios_app`.
+const MAC_PREFIXES := ["iphone99,", "ipad99,", "mac", "macbook", "imac"]
+## Written every CHECKPOINT seconds while a session runs, deleted when it ends in order (`pause`): a file
+## still there at the next launch is a session that was killed or crashed in the foreground.
+const CHECKPOINT_PATH := "user://play_stats_session.json"
+const CHECKPOINT := 15.0
+## The settings flag file for F's own devices: the DEV page's "test device" toggle sets
+## settings `test_device`; PostHog's filter drops events with `test_device = true`.
 ## A string property: a short slug, so no free text (a name, a sentence) can leave by mistake.
 const SLUG_MAX := 32
 
@@ -121,6 +134,10 @@ var _fps: Array[float] = []
 var _fps_sent := 0
 var _supers: Dictionary = {}
 var _key: Dictionary = {}
+var _checkpoint_t := 0.0
+## A session found unfinished at launch (`_recover`): the next `begin` says so.
+var _crashed_before := false
+var _test_device := false
 
 
 ## The rule for this run (pure: check_stats tests it). `flag`: --stats= ("", "log", "send", "off").
@@ -155,6 +172,24 @@ static func device_name(model: String) -> String:
 	if IPHONES.has(model):
 		return str(IPHONES[model])
 	return slug(model.replace(",", "."))
+
+
+## True when the model code is a Mac running the iPhone/iPad app (pure).
+static func is_mac_model(model: String) -> bool:
+	var m := model.to_lower()
+	for p: String in MAC_PREFIXES:
+		if m.begins_with(p):
+			return true
+	return false
+
+
+## The `platform` super property (pure): "ios", "android", "mac_ios_app" (an iOS app on a Mac), or the
+## engine's name lower-cased.
+static func platform_for(os_name: String, model: String) -> String:
+	var n := os_name.to_lower()
+	if n == "ios" and is_mac_model(model):
+		return "mac_ios_app"
+	return n
 
 
 ## The white list applied (pure): {} with "event" missing when the event is not on it.
@@ -200,13 +235,30 @@ func setup(debug: bool, persistent: bool, setting_on: bool, flag: String, supers
 	_setting_on = setting_on
 	mode = mode_for(debug, persistent, setting_on, flag, not _key.is_empty())
 	_supers = {}
-	var dn := device_name(OS.get_model_name())
+	var model := OS.get_model_name()
+	var dn := device_name(model)
 	if not dn.is_empty():
 		_supers["device_name"] = dn
+	# Stats thread 2026-11-21: the model and OS version are always set (the SDK's `$device_model` was
+	# empty before 18 Nov and on the lifecycle events), as plain slugs beside the SDK's own.
+	var ms := slug(model.replace(",", "."))
+	if not ms.is_empty():
+		_supers["device_model"] = ms
+	var osv := slug(OS.get_version().replace(" ", "_"))
+	if not osv.is_empty():
+		_supers["os_version"] = osv
+	var os_name := OS.get_name()
+	_supers["platform"] = platform_for(os_name, model)
 	for k: String in supers:
+		if supers[k] is bool:
+			_test_device = bool(supers[k]) if k == "test_device" else _test_device
+			continue
 		var s := slug(str(supers[k]))
-		if not s.is_empty():
+		if not s.is_empty() and k != "platform":
 			_supers[k] = s
+	if is_mac_model(model):
+		_supers["device_name"] = "mac_ios_app"
+	_supers["test_device"] = _test_device
 	if mode == Mode.SEND:
 		_start_sdk()
 	set_process(mode != Mode.OFF)
@@ -243,10 +295,23 @@ func _start_sdk() -> void:
 		_sdk.register(k, _supers[k])
 
 
+## DEV → "Test device (stats)": F's own devices, so PostHog can filter them out.
+func set_test_device(on: bool) -> void:
+	_test_device = on
+	_supers["test_device"] = on
+	if _sdk != null:
+		_sdk.register("test_device", on)
+
+
 func _before_send(event: Dictionary) -> Variant:
 	var p: Dictionary = event.get("properties", {})
 	for k: String in STRIPPED:
 		p.erase(k)
+	# The SDK's own startup events (Application Installed / Opened) are captured before `register`:
+	# the supers go on every event from here, so the model and platform are never missing.
+	for k: String in _supers:
+		if not p.has(k):
+			p[k] = _supers[k]
 	event["properties"] = p
 	return event
 
@@ -319,7 +384,14 @@ func begin(resumed := false) -> void:
 	if not resumed:
 		_play = 0.0
 	var fresh: bool = wallet != null and wallet.has_method("has_progress") and not wallet.has_progress()
-	track("session_start", {"fresh_save": fresh, "resumed": resumed, "zl": _zl0, "load_ms": load_ms})
+	_recover()
+	# title_ms: engine start to the tap on "tap to drive" (a launch only; 0 after a resume).
+	track("session_start", {"fresh_save": fresh, "resumed": resumed, "zl": _zl0, "load_ms": load_ms,
+			"title_ms": 0 if resumed else Time.get_ticks_msec(), "quality": str(quality_now.call()),
+			"crashed_before": _crashed_before})
+	_crashed_before = false
+	_checkpoint_t = 0.0
+	_write_checkpoint()
 	load_ms = 0  # a resume after the background is not a launch
 	if _pending_note != "":
 		track("save_problem", {"kind": _pending_note})
@@ -331,10 +403,11 @@ func pause() -> void:
 	if mode == Mode.OFF or not _begun or _ended:
 		return
 	_ended = true
+	_drop_checkpoint()  # ended in order: the session_end below is queued on the disk
 	var minutes := _play / 60.0
 	track("session_end", {"minutes_played": minutes, "km_driven": _km / 1000.0,
 			"zl_earned": (int(wallet.zl) - _zl0) if wallet != null else 0, "runs_done": _runs,
-			"heli_pct": int(round(100.0 * _fly_s / maxf(_play, 1.0)))})
+			"heli_pct": int(round(100.0 * _fly_s / maxf(_play, 1.0))), "how": "end"})
 	flush()
 
 
@@ -342,6 +415,41 @@ func pause() -> void:
 func resume() -> void:
 	if _begun and _ended:
 		begin(true)
+
+
+## A session file from an earlier run, still there: that run was killed or crashed in the foreground
+## (an end in order deletes it, `pause`). Its play time so far is sent as a session_end `how=lost`, so
+## play length is not missing for the sessions that never reached a pause.
+func _recover() -> void:
+	if not FileAccess.file_exists(CHECKPOINT_PATH):
+		return
+	var json := JSON.new()
+	var ok := json.parse(FileAccess.get_file_as_string(CHECKPOINT_PATH)) == OK
+	_drop_checkpoint()
+	if not ok or not json.data is Dictionary:
+		return
+	var d: Dictionary = json.data
+	_crashed_before = true
+	track("session_end", {"minutes_played": float(d.get("play", 0.0)) / 60.0, "km_driven": float(d.get("km", 0.0)) / 1000.0,
+			"zl_earned": int(d.get("zl", 0)), "runs_done": int(d.get("runs", 0)),
+			"heli_pct": int(d.get("heli_pct", 0)), "how": "lost"})
+
+
+func _write_checkpoint() -> void:
+	if mode == Mode.OFF:
+		return
+	var f := FileAccess.open(CHECKPOINT_PATH, FileAccess.WRITE)
+	if f == null:
+		return
+	f.store_string(JSON.stringify({"play": _play, "km": _km, "runs": _runs,
+			"zl": (int(wallet.zl) - _zl0) if wallet != null else 0,
+			"heli_pct": int(round(100.0 * _fly_s / maxf(_play, 1.0)))}))
+	f.close()
+
+
+func _drop_checkpoint() -> void:
+	if FileAccess.file_exists(CHECKPOINT_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(CHECKPOINT_PATH))
 
 
 func flush() -> void:
@@ -398,11 +506,43 @@ func track(event: String, props: Dictionary) -> void:
 		_sdk.capture(e["event"], e["props"])
 
 
+## The once-per-install funnel marks ("first_job" start / end), kept in a tiny file beside the SDK's.
+const STATE_PATH := "user://play_stats_state.json"
+
+
+func _state() -> Dictionary:
+	if not FileAccess.file_exists(STATE_PATH):
+		return {}
+	var json := JSON.new()
+	if json.parse(FileAccess.get_file_as_string(STATE_PATH)) == OK and json.data is Dictionary:
+		return json.data
+	return {}
+
+
+## True the first time `mark` is asked for (and remembers it).
+func _first_time(mark: String) -> bool:
+	if mode == Mode.OFF:
+		return false
+	var d := _state()
+	if d.has(mark):
+		return false
+	d[mark] = true
+	var f := FileAccess.open(STATE_PATH, FileAccess.WRITE)
+	if f != null:
+		f.store_string(JSON.stringify(d))
+		f.close()
+	return true
+
+
 func _on_run_started(a: Object) -> void:
+	if bool(a.get("is_job")) and _first_time("job_start"):
+		track("first_job", {"stage": "start", "activity": str(a.get("tag")), "t_play_s": _play})
 	track("activity_start", {"activity": str(a.get("tag")), "job": bool(a.get("is_job")), "t_play_s": _play})
 
 
 func _on_run_ended(a: Object, how: String, seconds: float) -> void:
+	if bool(a.get("is_job")) and how == "done" and _first_time("job_done"):
+		track("first_job", {"stage": "end", "activity": str(a.get("tag")), "how": how, "t_play_s": _play})
 	if how == "done":
 		_runs += 1
 	track("activity_end", {"activity": str(a.get("tag")), "job": bool(a.get("is_job")), "how": how,
@@ -425,6 +565,11 @@ func _process(dt: float) -> void:
 		return
 	_tick -= TICK
 	_second()
+	_checkpoint_t += TICK
+	if _checkpoint_t >= CHECKPOINT:
+		_checkpoint_t = 0.0
+		_write_checkpoint()
+		flush()  # what is queued leaves now, not only at the SDK's 30 s timer or a pause
 
 
 ## Once a second: the distance, the time in the air, the frame-rate sample.
