@@ -126,7 +126,10 @@ var data: Dictionary
 @export_storage var leaf_material: ShaderMaterial
 ## Perf thread (2026-11-19): the broadleaf crowns' shared mesh (map/shared/broadleaf.res in the prebuilt
 ## city: every tile draws this one resource), so `set_tree_detail` can swap its surface at runtime.
-@export_storage var broadleaf_mesh: ArrayMesh
+## Not stored in index.res: a new dependency there leaves one more of the engine's load tokens at
+## exit (TD-22, the boot run's 21; 22 on CI, 2026-11-21); the prebuilt city loads it by path instead.
+var broadleaf_mesh: ArrayMesh
+const BROADLEAF_RES := "res://map/shared/broadleaf.res"
 ## The materials the game updates every frame (car position for the see-through hole).
 @export_storage var building_material: ShaderMaterial
 @export_storage var flat_material: ShaderMaterial
@@ -10873,6 +10876,8 @@ var _tree_fine := -1
 
 
 func set_tree_detail(fine: bool) -> void:
+	if broadleaf_mesh == null and ResourceLoader.exists(BROADLEAF_RES):
+		broadleaf_mesh = load(BROADLEAF_RES) as ArrayMesh  # the prebuilt city's (the sectors share this one)
 	if broadleaf_mesh == null or _tree_fine == int(fine):
 		return
 	_tree_fine = int(fine)
