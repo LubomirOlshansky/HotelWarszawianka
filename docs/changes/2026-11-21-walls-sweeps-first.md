@@ -1,4 +1,4 @@
-- In the typed walls look, fourteen walls and fences checked on street photos now look like the real ones: Plac Grzybowski's planter edges are knee-high, the Filters on Koszykowa have iron bars between piers, the fountain basin in the Powiśle park has a low rim, and kerb railings, bar fences and mesh panels stand where the photos show them.
+- In the typed walls look, fourteen walls and fences checked on street photos now look like the real ones: Plac Grzybowski's planter edges are knee-high, the Filters on Koszykowa have iron bars between piers, the fountain basin in the Powiśle park has a stone rim instead of a railing over the water, and kerb railings, bar fences and mesh panels stand where the photos show them.
 
 ## Backlog
 - found: the boulevards' wall on Wybrzeże Gdańskie gets no steel top rail, because the rail is drawn only on a wall marked as standing over water or a drop; a rule that marks the boulevard wall's edge would add it (a rule, not a sweep type)
