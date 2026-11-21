@@ -186,6 +186,7 @@ See [graphics.md](graphics.md).
 | `grades.gd` | The colour looks (Settings → Kolory: Natural, the default, Neon, Classic): overrides on `time_of_day.gd`'s looks and the post pass's grade values. |
 | `weather.gd` | Rain and wetness. |
 | `tiers.gd` | Quality levels and what Auto picks per device. |
+| `mac_mode.gd` | The iPhone app on a Mac: detection, `--mac`, the keys that hide the touch pads (tiers.gd and screen_points.gd read it). |
 | `governor.gd` | Steps extras down when frames run late, back up when calm. Acts only for Auto (perf thread 2026-11-19). |
 | `quality_keep.gd` | A level picked by hand is kept: the one "heavy here" note, Experimental saved with its crash guard, the `--gfx=` overrides line. |
 | `gpu_quirks.gd` | Per-GPU workarounds (Adreno 6xx lite building shader; W4: `panels()`, false there, so a runtime city draws the panel fences typed). |

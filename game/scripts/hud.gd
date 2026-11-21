@@ -41,6 +41,7 @@ const MainLine := preload("res://scripts/main_line.gd")
 const MapIcons := preload("res://scripts/map_icons.gd")
 const MapMarkers := preload("res://scripts/map_markers.gd")
 const ScreenPoints := preload("res://scripts/screen_points.gd")
+const MacMode := preload("res://scripts/mac_mode.gd")  # Mac step 1: keys mode
 const Messages := preload("res://scripts/messages.gd")  # the message director (docs/design/hud-messages.md)
 ## drive_controls.gd's schemes (POINT, CLASSIC, FIXED).
 const CLASSIC := 1
@@ -1326,6 +1327,10 @@ func _label_pill() -> void:
 	if pad_mode:
 		pl = "%s · %s" % [Gamepad.key("a"), pl]
 		en = "%s · %s" % [Gamepad.key("a"), en] if en != "" else ""
+	elif keys_mode:
+		# Mac step 1: M presses it (main.gd `_primary`), as the pad's A does.
+		pl = "M · " + pl
+		en = "M · " + en if en != "" else ""
 	_set_chip(_pill, pl, en, 96.0)
 
 
@@ -3557,7 +3562,7 @@ func _nitro_centre() -> Vector2:
 ## G13c leftover (2026-11-03): the pad is in use and the nitro bought: its disc stays as the
 ## tank's gauge (the touch pedals are gone; LB / RB burn it).
 func _pad_nitro_shown() -> bool:
-	return pad_mode and touch_off and nitro_owned and not flying and not _pedals_hidden
+	return (pad_mode or keys_mode) and touch_off and nitro_owned and not flying and not _pedals_hidden
 
 
 ## G13: a touch at `p` is on the nitro's disc.
@@ -3736,9 +3741,12 @@ func _input(event: InputEvent) -> void:
 	if pad_mode and event is InputEventScreenTouch and event.is_pressed():
 		# The gamepad loop: a finger takes over from the pad, pedals and all, on this very touch.
 		pad_mode = false
-		set_touch_off(_touch_base)
+		set_touch_off(keys_mode or _touch_base)
 		if _pill.visible:
 			_label_pill()
+	if keys_mode and MacMode.is_touch(event):
+		# Mac step 1: a finger or a click takes over from the keyboard, on this very press.
+		set_keys_mode(false, _touch_base)
 	if (event is InputEventScreenTouch or event is InputEventMouseButton or event is InputEventKey \
 			or event is InputEventJoypadButton) and event.is_pressed():
 		input_ms = maxi(1, Time.get_ticks_msec())  # loop 3h slice 4: the ghost finger goes
@@ -4250,7 +4258,7 @@ func _draw_pad() -> void:
 		var nc := _nitro_centre()
 		_draw_nitro(nc, false)
 		var font := ThemeDB.fallback_font
-		var words := Gamepad.fmt("{lb} / {rb}")
+		var words := Gamepad.fmt("{lb} / {rb}") if pad_mode else "Shift"
 		var fs := _px(T_LABEL)
 		var w := font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		_pad.draw_string(font, nc + Vector2(-w * 0.5, NITRO_R * pt + fs + 2.0 * pt), words, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, SUB)
@@ -4945,7 +4953,26 @@ func set_pad_mode(on: bool, touch_base: bool) -> void:
 	if on == pad_mode:
 		return
 	pad_mode = on
-	set_touch_off(on or touch_base)
+	if on:
+		keys_mode = false
+	set_touch_off(on or keys_mode or touch_base)
+	if _pill.visible:
+		_label_pill()
+
+
+## Mac step 1 (F 2026-11-20, mac_mode.gd): true while the keyboard played last (main.gd
+## `_note_pad`, on a phone, tablet or Mac build): the touch pedals and pads are off the screen as
+## with the pad, and the hints name the keys (the --no-touch lines). A finger or a click brings
+## them back (`_input`).
+var keys_mode := false
+
+
+func set_keys_mode(on: bool, touch_base: bool) -> void:
+	_touch_base = touch_base
+	if on == keys_mode:
+		return
+	keys_mode = on
+	set_touch_off(on or pad_mode or touch_base)
 	if _pill.visible:
 		_label_pill()
 # --- end desktop: --no-touch -----------------------------------------------------------------

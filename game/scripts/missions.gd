@@ -369,6 +369,8 @@ func _show_ring() -> void:
 	hud.show_pill("WEZWANIE", "rescue call")
 	if hud.pad_mode:
 		hud.toast(Gamepad.fmt("Wezwanie ratunkowe! {a}: odbierz."), Gamepad.fmt("A rescue call came in: {a} to answer."))
+	elif hud.get("keys_mode"):
+		hud.toast("Wezwanie ratunkowe! M: odbierz.", "A rescue call came in: M to answer.")
 	else:
 		hud.toast("Wezwanie ratunkowe!", "A rescue call came in: tap the button at the top.")
 	# Sweep 2: the buzz is timed so the phone's log shows the call's hitch is gone (it was

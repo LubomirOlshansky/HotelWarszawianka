@@ -79,6 +79,8 @@ const EXTRA_DEFAULTS := {"full": false, "msaa": Viewport.MSAA_DISABLED, "lod": 1
 ## A level's value for one of Experimental's extras (EXTRA_DEFAULTS on the others; "aniso" has
 ## no default here: main.gd keeps the SubViewport's own).
 static func extra(quality: int, key: String) -> Variant:
+	if mac and key == "msaa" and quality >= HIGH and not overrides.has(key):
+		return maxi(int(value(quality, key, EXTRA_DEFAULTS[key])), MAC_MSAA)
 	return value(quality, key, EXTRA_DEFAULTS.get(key))
 
 
@@ -160,9 +162,41 @@ static func for_model(model: String) -> int:
 ## 5xx/6xx GPU (`adapter`, e.g. "Adreno (TM) 642L": the Nothing Phone 1 did 17.6 fps at High, 22.8
 ## at Medium, 28.5 at Low on the bench route) starts at Low. "" (a --model= run) skips the GPU rule.
 static func for_device(model: String, adapter: String) -> int:
+	if mac:
+		return for_mac(adapter)
 	if GpuQuirks.is_old_adreno(adapter):
 		return LOW
 	return for_model(model)
+
+
+## Mac step 1 (F 2026-11-20; mac_mode.gd): the iPhone app on a Mac. main.gd sets it from
+## MacMode.active() before the level is picked. There the image is no phone's: every level below
+## Experimental draws `mac_scale` (2 screen pixels a pixel, Low and Medium their step coarser)
+## instead of the style's lines and the level's budget, and High and up add MSAA 4x (the edges a
+## 2x image shows that the pixel look hid). The perf thread's numbers (M4 Pro, 2026-11-20):
+## Ultra x2 145 fps, Experimental at 3024x1890 90 fps; an M2 MacBook Air is still owed a run.
+static var mac := false
+const MAC_MSAA := Viewport.MSAA_4X
+## The most megapixels a Mac's image may have: a 16" MacBook's 3456x2234 window at x2 is 1.93 MP;
+## a 4K screen (3840x2160, 2.07 MP at x2) goes to x3.
+const MAC_BUDGET := 2.0
+
+
+## The level Auto picks on a Mac from its GPU's name: a base M1 or M2 ("Apple M1", "Apple M2",
+## the MacBook Air's 7 to 10 GPU cores) High, every other (Pro, Max, Ultra, M3 and newer) Ultra.
+static func for_mac(adapter: String) -> int:
+	return HIGH if adapter in ["Apple M1", "Apple M2"] else ULTRA
+
+
+## A Mac's image scale for a window `size`: 2, coarser until the image fits MAC_BUDGET; 1 in a
+## window under 800 pixels tall (a phone-sized window on a non-Retina screen).
+static func mac_scale(size: Vector2) -> int:
+	if size.y < 800.0:
+		return 1
+	var k := 2
+	while k < 64 and floorf(size.x / k) * floorf(size.y / k) > MAC_BUDGET * 1e6:
+		k += 1
+	return k
 
 
 ## Whole screen pixels per image pixel for a screen `size` (pixels), a style's `lines` and a
@@ -173,6 +207,8 @@ static func image_scale(size: Vector2, lines: float, quality: int) -> int:
 	if overrides.has("scale"):
 		return maxi(1, int(overrides["scale"]))
 	var k := own_scale(size, lines, quality)
+	if mac:
+		return k  # the Mac's own budget (mac_scale)
 	var budget := float(value(quality, "budget")) * 1e6
 	while k < 64 and floorf(size.x / k) * floorf(size.y / k) > budget:
 		k += 1
@@ -186,6 +222,8 @@ static func own_scale(size: Vector2, lines: float, quality: int) -> int:
 		return maxi(1, int(overrides["scale"]))
 	if bool(value(quality, "full", false)):
 		return 1
+	if mac:
+		return mac_scale(size) + int(value(quality, "step"))
 	return maxi(1, floori(size.y / lines)) + int(value(quality, "step"))
 
 

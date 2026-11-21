@@ -16,6 +16,8 @@ extends RefCounted
 ##   s["pt"]    pixels per point
 ##   s["safe"]  the safe area in pixels (Rect2)
 
+const MacMode := preload("res://scripts/mac_mode.gd")
+
 ## Width x height in pixels (landscape) -> [pixels per point, left, right, top, bottom
 ## insets in points]. iPhones from the X on; the SE has no insets.
 const PHONES := {
@@ -68,6 +70,11 @@ static func measure(size: Vector2) -> Dictionary:
 			pt = p[0]
 			insets = Vector4(p[1], p[2], p[3], p[4]) * pt
 			phone = true
+	if MacMode.active():
+		# Mac step 1 (mac_mode.gd): a laptop is seen from twice a phone's distance; its window is
+		# taken as at most MAC_POINTS_TALL points tall (982 pt on a 14" MacBook drew the HUD half
+		# the size it is on the phone), never under the window's own scale.
+		pt = maxf(pt, size.y / MacMode.MAC_POINTS_TALL)
 	var safe := Rect2(Vector2(insets.x, insets.z), size - Vector2(insets.x + insets.y, insets.z + insets.w))
 	return {"pt": pt, "safe": safe, "insets": insets, "phone": phone}
 
