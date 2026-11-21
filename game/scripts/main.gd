@@ -2020,7 +2020,9 @@ const LIM_BUSY_T := Vector2(-0.325, -0.946)
 const LIM_BUSY_BANDS := [[-15.0, 160.0, -7.0, 14.0], [-45.0, 70.0, 14.0, 45.0]]
 const LIM_BUSY_BOX := Rect2(-1480.0, 600.0, 230.0, 130.0)
 const GAULLE_BUSY_O := Vector2(-213.9, 238.5)
-const GAULLE_BUSY_BANDS := [[-80.0, 80.0, -80.0, 80.0]]
+## Not the Party House's terrace and drums (F 2026-11-21: a walker went up its wall): the band
+## stops 30 m east of the palm north of z +30.
+const GAULLE_BUSY_BANDS := [[-80.0, 80.0, -80.0, 30.0], [-80.0, 50.0, 30.0, 80.0]]
 const GAULLE_BUSY_BOX := Rect2(-310.0, 150.0, 200.0, 190.0)
 const MARSZALKOWSKA_NORTH := Vector2(-0.349, -0.937)
 const FIRST_UP_V := 7.0
@@ -2043,7 +2045,9 @@ func _promo_traffic() -> void:
 	var up := trams.place_near(trams.trams[0], at, -PROMO_TRAM_V * t, MARSZALKOWSKA_NORTH, PROMO_TRAM_V)
 	var east := trams.place_near(trams.trams[1], at, -PROMO_TRAM_V * (t + 2.0), ALEJE_EAST, PROMO_TRAM_V)
 	var bus := false
-	var lane := graph.snap(at - MARSZALKOWSKA_NORTH * (PROMO_BUS_V * (t + 1.0)), 30.0, MARSZALKOWSKA_NORTH, true, true, true)
+	# F (2026-11-21): the bus east along the Aleje behind the patrol car (up Nowy Świat it changed
+	# its line at the rondo at the end of the take).
+	var lane := graph.snap(at - ALEJE_EAST * (PROMO_BUS_V * (t + 4.0)), 30.0, ALEJE_EAST, true, true, true)
 	if not lane.is_empty():
 		var d := traffic.add_bus(int(lane[0]), int(lane[1]), float(lane[2]))
 		if d != null:

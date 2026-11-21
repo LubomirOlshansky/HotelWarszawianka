@@ -458,7 +458,7 @@ func _build_waiting(data: Dictionary) -> void:
 			for i in n:
 				var p := at - across * rng.randf_range(0.9, 2.0) + side * rng.randf_range(-1.8, 1.8)
 				var yaw := atan2(-across.x, -across.y) + PI + rng.randf_range(-0.4, 0.4)
-				var dog := 1 if rng.randf() < 0.18 else 0
+				var dog := 1 if rng.randf() < 0.4 else 0
 				spots.append([p.x, p.y, yaw, map.ground_height(p.x, p.y), dog])
 	if spots.is_empty():
 		return

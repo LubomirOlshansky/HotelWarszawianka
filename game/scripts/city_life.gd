@@ -2210,11 +2210,11 @@ func _seen(m: Mover) -> bool:
 
 
 ## A new mover on a footway (a dog walker, a runner) or a cycle path (a rider) SPAWN_R from `eye`.
-## F (2026-11-21, the palm teaser): no bikes, couriers or scooters through the Party House's
-## entrance, terrace and courtyard (Centrum Bankowo-Finansowe, Nowy Świat 6/12): people sit and
-## chill there. Its outline's four corners, grown QUIET_GROW m.
+## F (2026-11-21, the palm teaser): no bikes, couriers, scooters, runners or dog walkers through
+## the Party House's entrance, terrace and courtyard (Centrum Bankowo-Finansowe, Nowy Świat 6/12):
+## people sit and chill there (they rode up the terrace's drums and steps). Its outline's four corners, grown QUIET_GROW m.
 const QUIET_ZONES := [[Vector2(-88.7, 273.2), Vector2(-63.1, 360.2), Vector2(-135.2, 381.4), Vector2(-161.1, 294.6)]]
-const QUIET_GROW := 12.0
+const QUIET_GROW := 20.0
 var _quiet: Array[PackedVector2Array] = []
 
 
@@ -2251,7 +2251,7 @@ func _spawn(kind: String, eye: Vector2) -> Mover:
 		return null
 	var i := cands[_rng.randi() % cands.size()]
 	var pts := list[i]
-	if kind in ["rider", "pedzik", "scoot"] and _crosses_quiet(pts):
+	if _crosses_quiet(pts):
 		return null
 	var cum := _cum_of(pset, i)
 	var length := cum[cum.size() - 1]
@@ -2479,12 +2479,6 @@ func _heights_of(pset: String, i: int) -> PackedFloat32Array:
 	var h := PackedFloat32Array()
 	for q in pts:
 		var y: float = map.deck_height(dk, q.x, q.y) if map != null else 0.0
-		# F (2026-11-21, teaser 4): a path over a low built floor (the Party House's terrace, 0.75 m
-		# up) rides on it, not through it; anything higher than a step-up is a building, left alone.
-		if map != null:
-			var top: float = map.roof_height(q.x, q.y)
-			if top - y > 0.15 and top - y < 1.2:
-				y = top
 		h.append(y)
 	_heights[key] = h
 	return h
