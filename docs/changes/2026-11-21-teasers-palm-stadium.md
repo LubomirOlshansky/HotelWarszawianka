@@ -6,6 +6,9 @@
 - Wide, shallow camera views no longer show a blue strip at the bottom.
 
 ## Backlog
+- found: rain thins the streets less on purpose (F's umbrella brief): crowds.gd `RAIN_OUT` 0.6 (was 0.3 for the pubs, 0.5x for the street); check_crowds follows that constant
+- found: tighten check_mesh_quality's stadium budget (9000) to its real count once its 2 degenerate and 280 floating triangles are fixed
+- found: the Party House's ZAMĘT venue sign is gone (it floated off the corner); the building wears ZAMIESZAJ
 - fixed: the stadium's lit stairs never drew (the landmarks got no stairs data), so the flights were dark
 - fixed: a wide, shallow free-camera view showed the sky's colour under the frame (the nearest ground fell behind the near plane)
 - found: Experimental takes on the Mac sometimes stall on the start camera (Movie Maker repeats one frame); --skip=8 and a fresh restart help, tools/clip.sh now fails such a take
