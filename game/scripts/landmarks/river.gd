@@ -177,6 +177,12 @@ func _build_syrenka_powisle(_site: Dictionary) -> void:
 		var wu := pu + 0.89
 		_beam(Vector3(_w(wu, -0.6 + k * 0.6).x, g + 2.95 + k * 0.08, _w(wu, -0.6 + k * 0.6).y),
 				Vector3(_w(wu, -0.3 + k * 0.6).x, g + 3.12, _w(wu, -0.3 + k * 0.6).y), 0.05, RYNEK_BRONZE_HI)
+	# The basin's ring of small jets round the footing (Google Maps photo at dusk, 2023): short
+	# white plumes out of the water, lit at night as the spouts are.
+	for k in 12:
+		var ang := TAU * float(k) / 12.0
+		var jp := _w(pu + 1.9 * cos(ang), 3.4 * sin(ang))
+		_beam(Vector3(jp.x, water, jp.y), Vector3(jp.x, water + 0.45 + 0.15 * float(k % 2), jp.y), 0.07, POWISLE_SPILL, false, M_LAMP)
 	var keep_o := _o
 	_o = _w(pu, 0.0)
 	_syrenka_powisle_figure(g + 3.3)

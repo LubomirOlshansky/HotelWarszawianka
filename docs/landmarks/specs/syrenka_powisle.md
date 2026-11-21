@@ -73,8 +73,8 @@ No new material or draw call.
 Card "Syrenka na Powiślu" (PL and EN). The car meets one collision ring round the basin and the
 wall (u -2.45..3.7, v ±5.15). The cobbled slopes (v ±5.15..8.55, from u -0.8) and the water strip (u 3.7..6.1) are
 draped 0.035-0.05 m over the ground in 0.5-0.6 m cells. At night the spouts' water glows, the egg's
-cool floodlight (eggs.gd, now at her measured spot, 5.2 m up) lights her, and the plaza's lamp
-field leads to her (syrenka_plaza.gd).
+cool floodlight (eggs.gd, now at her measured spot, 5.2 m up) lights her, and behind her the water
+mirror's light strips and mist jets glow (syrenka_plaza.gd).
 
 ## 7. Detail level and budget
 

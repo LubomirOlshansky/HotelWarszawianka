@@ -7301,7 +7301,25 @@ const SURFACE_STYLE := {
 	"parking": ["#55595f", 6.0],
 	"playground": ["#c98a64", 13.0],
 	"fountain": ["#5ea8d8", 3.0],
+	# A dry fountain (DRY_FOUNTAINS): dark wet granite in 2.4 m slabs, walked and driven on.
+	"mirror": ["#41474d", 2.0],
 }
+
+
+## Fountains that are a water mirror, not a basin: a film of water on flush granite with mist jets
+## (a point inside each ring). Drawn as dark slabs, no shore and no water (tools/bake_water.py
+## keeps the same list): the Syrenka's "Fontanna" on the upper Vistula boulevard (F, 2026-11-21;
+## its jets and lights are syrenka_plaza.gd's).
+const DRY_FOUNTAINS: Array[Vector2] = [Vector2(515.0, -660.5)]
+
+
+## Whether fountain ring `p` (flat x, z pairs) is one of DRY_FOUNTAINS.
+func is_dry_fountain(p: Array) -> bool:
+	var ring := _pts(p)
+	for q in DRY_FOUNTAINS:
+		if Geometry2D.is_point_in_polygon(q, ring):
+			return true
+	return false
 
 
 ## Each surface kind's height over Y_AREA + 0.01, 2 mm apart (Plac Defilad, F 2026-11-09: the
@@ -7345,6 +7363,8 @@ func _build_surfaces(st) -> void:
 	var platforms := _rail_platform_polys()
 	for a in data.get("surfaces", []):
 		var style: Array = SURFACE_STYLE.get(a["k"], ["#cfc7b5", 0.0])
+		if a["k"] == "fountain" and is_dry_fountain(a["p"]):
+			style = SURFACE_STYLE["mirror"]
 		if a["k"] == "paving" and _is_lawn_carpet(a["p"]):
 			style = [LAWN_CARPET, style[1]]
 		_layer = float(style[1])
@@ -8368,7 +8388,7 @@ func _build_banks(st) -> void:
 		_shore_lines = _find_shore_lines()
 	_shore_fountains = 0
 	for s in data.get("surfaces", []):
-		if s["k"] != "fountain":
+		if s["k"] != "fountain" or is_dry_fountain(s["p"]):
 			continue
 		var ring := _pts(s["p"])
 		if ring.size() < 3:
