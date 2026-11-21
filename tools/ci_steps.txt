@@ -92,6 +92,7 @@ juice                quick
 kebab                local     slow
 kinotour             quick
 kladka               quick
+kukuryznik           quick
 ladder               quick
 landmarks            landmarks
 laneassist           quick
