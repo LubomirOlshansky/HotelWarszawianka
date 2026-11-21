@@ -261,6 +261,36 @@ in `/mnt/project-files/walls-research/w3/`:
 - The default share: 11.9 % to 11.5 % (fences 9.1 %), the new ratchets in `check_map_data.py`. The
   9 % aim needed the bollard-row rule (parked in `docs/QUESTIONS.md`).
 
+**Built in W10a (2026-11-21)**, the sweep path and the first sweep; verdict table, photos and sheets
+in `/mnt/project-files/walls-research/w10a/`:
+
+- **The path.** A sweep's TYPE decision, `{id: ["TYPE", ty, why, photo, date]}`, sits in a street's
+  `decisions` or in a place's (`places` in `docs/streets/streets.json`: slug, title, `at`, `r`,
+  `decisions`, for sweeps that are not one street). `tools/street_pass.py --apply` checks it (the type
+  is drawn and has a `looks` row, the id is on the map with its kind, a reason, a photo, an ISO date)
+  and writes it to `game/data/road_objects.json` `types` as `[ty, "street pass SLUG: why (photo,
+  date)"]`, keeping the hand-kept entries; streets still at the `baseline` stage are left out.
+  `object_types.py`'s guarded `fix_types` (rule `id_type`) carries it into `centrum.json` with no
+  re-bake: a sweep that adds or changes a `types` entry raises `VERSION` by one (3 now), so the pass
+  runs once more on main's map; the stamp's `fixes` add up. `street_pass.py --check` and the
+  verify step `overrides` fail while an entry has not reached the map. A TYPE cannot set a height:
+  `hs` is the type's default where OSM maps none, OSM's `h` stays.
+- **The first sweep**: 237 lines within 150 m of the Stadion Narodowy, the Rotunda, Plac
+  Grzybowski, Prosta by Wronia, the school on Twarda, the Filters, the boulevards and the Towarowa
+  railway, and the fountain park's basin, judged on Mapillary and Panoramax photos (newest first):
+  14 typed, 39 KEEP, 182 CHECK (no photo within 30 m or the line not in view; yard and gap walls
+  mostly), 2 with no palette row (Koszykowa's graphite metal-slat fence, kept as `wall_precast` and
+  `chain_link`). Typed: Plac Grzybowski's five plastered walls that are planter edges (`low_wall`,
+  0.5 m, R); the fences by the square, on Prosta and by the boulevards' car park (`bars_black`); the
+  Filters' fences on Koszykowa and Raszyńska (`bars_pier`); Al. Poniatowskiego's two kerb railings
+  by the stadium (`rail_street`); the car park by the Towarowa railway (`mesh_panel`); the fountain
+  park's long basin (`basin_rim`: no top rail over the water any more).
+- The default share: 11.47 % to 11.29 % (fences 9.08 % to 9.04 %); ratchets 11.3 and 9.1.
+- Not by a type, parked: the boulevards' top rail (their wall is `wall_stone` without `hz`, and the
+  rail is drawn only where `hz` is water or drop); the basin's mapped 1.0 m height (the rim is
+  about 0.4 m); the stadium's #808 line by Al. Poniatowskiego wears a dark sheet hoarding in the
+  2026 photos (kept `stadium_fence`); a rust-red bar colour has no row.
+
 ## 6. How a type is drawn
 
 ### 6.1 The palette owns the look, and one key picks it
