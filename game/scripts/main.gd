@@ -2027,15 +2027,18 @@ const FIRST_DOWN_V := 8.0
 ## How long the first seconds' bell may wait for a tram to pass the car, after the camera lands.
 const FIRST_BELL_S := 20.0
 ## --promo-at=X,Z,T (videos): trams[0] up Marszałkowska, trams[1] east along the Aleje two
-## seconds later, and a bus up Marszałkowska, each placed so it passes X,Z about T s after the start.
+## seconds later, a bus up Marszałkowska and a patrol car east along the Aleje, each placed so it
+## passes X,Z about T s after the start (buses keep their lane).
 const PROMO_TRAM_V := 8.0
 const PROMO_BUS_V := 9.0
+const PROMO_POLICE_V := 11.0
 const ALEJE_EAST := Vector2(0.937, -0.349)
 func _promo_traffic() -> void:
 	var at := flags.promo_at
 	if at == Vector2.INF or trams == null or trams.trams.size() < 2:
 		return
 	var t := flags.promo_t
+	traffic.steady_buses = true
 	var up := trams.place_near(trams.trams[0], at, -PROMO_TRAM_V * t, MARSZALKOWSKA_NORTH, PROMO_TRAM_V)
 	var east := trams.place_near(trams.trams[1], at, -PROMO_TRAM_V * (t + 2.0), ALEJE_EAST, PROMO_TRAM_V)
 	var bus := false
@@ -2045,7 +2048,17 @@ func _promo_traffic() -> void:
 		if d != null:
 			d.v = PROMO_BUS_V
 			bus = true
-	print("promo: at %s in %.1f s: tram up %s, tram east %s, bus %s" % [at, t, up, east, bus])
+	# F (2026-11-21, the palm teaser): a patrol car driving through too, east along the Aleje.
+	var patrol := false
+	var pl := graph.snap(at - ALEJE_EAST * (PROMO_POLICE_V * (t + 1.5)), 30.0, ALEJE_EAST, true, true, true)
+	if not pl.is_empty():
+		var p := traffic.add_police(int(pl[0]), int(pl[1]), float(pl[2]))
+		if p != null:
+			p.patrol = true
+			p.persistent = false
+			p.v = PROMO_POLICE_V
+			patrol = true
+	print("promo: at %s in %.1f s: tram up %s, tram east %s, bus %s, patrol %s" % [at, t, up, east, bus, patrol])
 
 
 func _first_scene_trams(lead := 0.0) -> void:

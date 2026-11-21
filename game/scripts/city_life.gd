@@ -2210,6 +2210,28 @@ func _seen(m: Mover) -> bool:
 
 
 ## A new mover on a footway (a dog walker, a runner) or a cycle path (a rider) SPAWN_R from `eye`.
+## F (2026-11-21, the palm teaser): no bikes, couriers or scooters through the Party House's
+## entrance, terrace and courtyard (Centrum Bankowo-Finansowe, Nowy Świat 6/12): people sit and
+## chill there. Its outline's four corners, grown QUIET_GROW m.
+const QUIET_ZONES := [[Vector2(-88.7, 273.2), Vector2(-63.1, 360.2), Vector2(-135.2, 381.4), Vector2(-161.1, 294.6)]]
+const QUIET_GROW := 12.0
+var _quiet: Array[PackedVector2Array] = []
+
+
+## True if a path has a point in a quiet zone (no wheels there).
+func _crosses_quiet(pts: PackedVector2Array) -> bool:
+	if _quiet.is_empty():
+		for z: Array in QUIET_ZONES:
+			var poly := PackedVector2Array(z)
+			var grown := Geometry2D.offset_polygon(poly, QUIET_GROW, Geometry2D.JOIN_MITER)
+			_quiet.append(grown[0] if not grown.is_empty() else poly)
+	for q in pts:
+		for z in _quiet:
+			if Geometry2D.is_point_in_polygon(q, z):
+				return true
+	return false
+
+
 func _spawn(kind: String, eye: Vector2) -> Mover:
 	if kind == "kerb":
 		return _spawn_kerb(eye)
@@ -2229,6 +2251,8 @@ func _spawn(kind: String, eye: Vector2) -> Mover:
 		return null
 	var i := cands[_rng.randi() % cands.size()]
 	var pts := list[i]
+	if kind in ["rider", "pedzik", "scoot"] and _crosses_quiet(pts):
+		return null
 	var cum := _cum_of(pset, i)
 	var length := cum[cum.size() - 1]
 	if length < 8.0:
