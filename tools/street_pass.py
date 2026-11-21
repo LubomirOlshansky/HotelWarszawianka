@@ -37,10 +37,21 @@ The checks (docs/design/operation-unslop.md section 4):
 Score per block: 100 minus the weighted open findings (WEIGHTS), never below 0.
 --apply writes game/data/road_objects.json (the barriers whose verdict changes how they are drawn:
 REMOVE, or RETEXTURE / REPLACE with a style, or HARD: a fence or hedge the car smashes through
-(step 7, soft_things.gd) kept solid, a trap the `--wander` run found) from every record;
+(step 7, soft_things.gd) kept solid, a trap the `--wander` run found) from every record past the
+`baseline` stage (a baseline's verdicts are the rules' own, not yet reviewed);
 map_builder.gd reads it.
 A street's `decisions` ({id: [verdict, style, why]}) are hand calls from evidence; they win over
 the rules ("F: ..." for F's own calls).
+Wall sweeps (walls doc docs/design/walls-true-to-life.md 5, W10): a decision can also name a line's
+type, `{id: ["TYPE", ty, why, photo, date]}` (photo: the evidence's URL or file, date YYYY-MM-DD when
+it was taken), in a street's `decisions` or in a place's (`places` in streets.json: slug, title,
+`at` [x, z], `r` metres, `decisions`; a review place swept for its walls, not scored as a street).
+A TYPE decision does not change the object's verdict. --apply writes every TYPE decision into
+road_objects.json `types` ({id: [ty, "street pass SLUG: why (photo, date)"]}) beside the hand-kept
+entries (W3's stadium lines), which it keeps; tools/object_types.py (a guarded pass, its VERSION
+raised by the sweep) then types the line in centrum.json. A ty must be one of object_types.TYPES
+with a `looks` row in the palette, and the id one barrier line of that kind in the map. --check
+fails while a TYPE decision has not reached road_objects.json or the map.
 --check is a ratchet: a check's open count may never grow over the record's. --evidence adds the
 newest street-level photo date per block (Mapillary, needs MAPILLARY_TOKEN; network) to the record.
 Standard library only.
@@ -473,6 +484,8 @@ def classify(d, sd):
             metro = any(math.hypot(at[0] - q[0], at[1] - q[1]) < 12.0 for q in subways)
             style = "balustrade" if metro else "balustrade_rail"
         hand = sd.get("decisions", {}).get(stable_id(cls, kind, outline))
+        if hand and hand[0] == TYPE:
+            hand = None   # a wall sweep's type (--apply writes it to `types`), not a drawing verdict
         if hand:
             verdict, style, why = hand[0], hand[1], "hand call: " + hand[2]
             rule = "F" if hand[2].startswith("F:") else "hand"
@@ -720,8 +733,57 @@ def spots(sd):
     return 0
 
 
+TYPE = "TYPE"            # a wall sweep's decision: the line's type by id (see the docstring)
+SWEEP_PREFIX = "street pass "   # how --apply marks the `types` entries it writes (the rest are hand-kept)
+
+
+def type_decisions(doc):
+    """Every TYPE decision of the street records and the places: [(slug, id, ty, why, photo, date)]."""
+    out = []
+    for sd in doc.get("streets", []) + doc.get("places", []):
+        for bid, dec in sorted(sd.get("decisions", {}).items()):
+            if dec and dec[0] == TYPE:
+                out.append((sd["slug"],) + (bid,) + tuple((list(dec[1:]) + ["", "", "", ""])[:4]))
+    return out
+
+
+def type_problems(doc, d):
+    """What is wrong with the TYPE decisions against object_types.TYPES, the palette's looks and the
+    map's lines (`d`): a list of strings, empty when every decision can be applied."""
+    import object_types as OT
+    pal = json.load(open(os.path.join(ROOT, "game", "data", "object_palette.json"), encoding="utf-8"))
+    looks = {r["id"] for r in pal.get("looks", [])}
+    lines = {}
+    for l in d.get("lines", []):
+        if l.get("k") in OT.KINDS:
+            lines.setdefault(OT.stable_id(l["k"], l["p"]), []).append(l)
+    bad, seen = [], {}
+    for slug, bid, ty, why, photo, date in type_decisions(doc):
+        where = f"{slug} {bid}"
+        if bid in seen and seen[bid] != ty:
+            bad.append(f"{where}: two sweeps name {seen[bid]} and {ty}")
+        seen[bid] = ty
+        if ty not in OT.TYPES or OT.TYPES[ty][0] == "ghost":
+            bad.append(f"{where}: {ty} is not a drawn type of tools/object_types.py TYPES")
+        if ty not in looks:
+            bad.append(f"{where}: {ty} has no looks row in game/data/object_palette.json")
+        if bid not in lines:
+            bad.append(f"{where}: no wall, fence or hedge with this id in the map")
+        elif bid.split(":")[1] != lines[bid][0]["k"]:
+            bad.append(f"{where}: the id's kind is not the line's")
+        if len(str(why)) < 10:
+            bad.append(f"{where}: no reason")
+        if not photo:
+            bad.append(f"{where}: no photo (a type changes only on a photo someone judged)")
+        try:
+            datetime.date.fromisoformat(str(date))
+        except ValueError:
+            bad.append(f"{where}: the photo's date {date!r} is not YYYY-MM-DD")
+    return bad
+
+
 ## game/data/road_objects.json's own description (--apply writes it).
-ABOUT_OBJECTS = "tools/street_pass.py --apply: per-barrier verdicts from the street records (docs/streets/), read by city_barriers.gd build_barriers (OBJECT_OVERRIDES). Do not edit `items` by hand: change the street's record or its `decisions` in docs/streets/streets.json and re-run. `hard_lines` ({stable id: reason}) is kept by hand and carried over by --apply: fences and hedges the bake classed S that stay hard wherever they are (the city objects plan, step 7: the `check_lane_drive.gd --wander` run's traps, rule R6). `types` ({stable id: [type, reason]}) is kept by hand and carried over too: a line's type (`ty`) by id, read by tools/object_types.py fix_types (W3 of the walls look: the stadium's lines, city objects plan 4)."
+ABOUT_OBJECTS = "tools/street_pass.py --apply: per-barrier verdicts from the street records (docs/streets/), read by city_barriers.gd build_barriers (OBJECT_OVERRIDES). Do not edit `items` by hand: change the street's record or its `decisions` in docs/streets/streets.json and re-run. `hard_lines` ({stable id: reason}) is kept by hand and carried over by --apply: fences and hedges the bake classed S that stay hard wherever they are (the city objects plan, step 7: the `check_lane_drive.gd --wander` run's traps, rule R6). `types` ({stable id: [type, reason]}) is a line's type (`ty`) by id, read by tools/object_types.py fix_types: the hand-kept entries (W3 of the walls look: the stadium's lines, city objects plan 4) are carried over, and the entries whose reason starts with 'street pass ' are written from the wall sweeps' TYPE decisions in docs/streets/streets.json (W10; raise tools/object_types.py VERSION after a change so the guarded pass types the map)."
 
 
 def main():
@@ -740,12 +802,26 @@ def main():
         print("street_pass: no map data (tools/map_pack.py fetch or tools/setup_map.sh)")
         return 2
     d = json.load(open(map_path, encoding="utf-8"))
+    doc = json.load(open(DEFS, encoding="utf-8"))
     if "--apply" in opt:
+        bad = type_problems(doc, d)
+        if bad:
+            print("\n".join("street_pass: TYPE " + b for b in bad))
+            print(f"street_pass: FAIL ({len(bad)} TYPE decisions cannot be applied; nothing written)")
+            return 1
         # game/data/road_objects.json: every recorded verdict that changes how a barrier is drawn.
+        # W10a (2026-11-21): only from streets past the `baseline` stage. A baseline record holds the
+        # rules' automatic verdicts nobody has looked at yet (skill step 1; the evidence and the audit
+        # come after it): applying them would change the city where no one decided (main's file had
+        # none of the four the jerozolimskie-centrum baseline names).
         items = {}
+        unreviewed = []
         for sd in defs:
             path = os.path.join(OUT_DIR, sd["slug"] + ".json")
             if not os.path.exists(path):
+                continue
+            if sd.get("stage", "baseline") == "baseline":
+                unreviewed.append(sd["slug"])
                 continue
             for o in json.load(open(path, encoding="utf-8")).get("objects", []):
                 if o["status"] == "owned" or o["cls"] != "barrier":
@@ -756,17 +832,47 @@ def main():
         # Step 7: the hand-kept `hard_lines` (soft lines kept hard by id) are carried over as they are;
         # W3: and the hand-kept `types` (a line's type by id, tools/object_types.py fix_types).
         old = json.load(open(out, encoding="utf-8")) if os.path.exists(out) else {}
-        hard, types = old.get("hard_lines", {}), old.get("types", {})
+        hard = old.get("hard_lines", {})
+        # W10: the hand-kept types stay; the sweep-written ones are written again from the decisions
+        types = {k: v for k, v in old.get("types", {}).items() if not str(v[1]).startswith(SWEEP_PREFIX)}
+        n_hand = len(types)
+        for slug, bid, ty, why, photo, date in type_decisions(doc):
+            if bid in types and not str(types[bid][1]).startswith(SWEEP_PREFIX):
+                print(f"street_pass: {slug} {bid}: the sweep's {ty} replaces the hand-kept {types[bid][0]}")
+            types[bid] = [ty, f"{SWEEP_PREFIX}{slug}: {why} ({photo}, {date})"]
         with open(out, "w", encoding="utf-8") as fh:
             json.dump({"_about": ABOUT_OBJECTS, "items": dict(sorted(items.items())), "hard_lines": dict(sorted(hard.items())),
                        "types": dict(sorted(types.items()))},
                       fh, ensure_ascii=False, indent=1)
             fh.write("\n")
-        print(f"street_pass: {len(items)} barrier overrides -> game/data/road_objects.json")
+        if unreviewed:
+            print(f"street_pass: verdicts of streets at the baseline stage left out (not reviewed): {', '.join(unreviewed)}")
+        print(f"street_pass: {len(items)} barrier overrides, {len(types)} types ({n_hand} hand-kept, "
+              f"{len(types) - n_hand} from sweeps) -> game/data/road_objects.json")
         return 0
     if "--check" in opt:
         bad = []
         n = 0
+        # W10: every wall sweep's TYPE decision is valid, in road_objects.json and on the map
+        import object_types as OT
+        tb = type_problems(doc, d)
+        ro = os.path.join(ROOT, "game", "data", "road_objects.json")
+        have = json.load(open(ro, encoding="utf-8")).get("types", {}) if os.path.exists(ro) else {}
+        on_map = {}
+        for l in d.get("lines", []):
+            if l.get("k") in OT.KINDS:
+                on_map.setdefault(OT.stable_id(l["k"], l["p"]), set()).add(l.get("ty"))
+        dec = type_decisions(doc)
+        for slug, bid, ty, *_ in dec:
+            if (have.get(bid) or [None])[0] != ty:
+                tb.append(f"{slug} {bid}: {ty} is not in road_objects.json types (run --apply)")
+            elif on_map.get(bid) != {ty}:
+                tb.append(f"{slug} {bid}: the map has {sorted(on_map.get(bid, []))}, not {ty} (raise tools/object_types.py VERSION, run it)")
+        for k, v in have.items():
+            if str(v[1]).startswith(SWEEP_PREFIX) and not any(k == bid for _, bid, *_ in dec):
+                tb.append(f"{k}: a sweep's type in road_objects.json with no decision (run --apply)")
+        bad += ["TYPE " + b for b in tb]
+        print(f"street_pass types: {len(dec)} TYPE decisions, {len(tb)} problems")
         for sd in defs:
             path = os.path.join(OUT_DIR, sd["slug"] + ".json")
             if not os.path.exists(path):
