@@ -133,6 +133,24 @@ Every object gets a verdict (KEEP, RETEXTURE, REPLACE, SOFTEN, REMOVE, CHECK, A/
 - F's object rule: signs, poles, junction boxes, cones and CCTV are logged, never placed. A/B
   items (feel calls such as solid or soft median fences) go to F on the phone.
 
+## 3b. Wall sweeps: a line's type by id (walls doc section 5, W10)
+
+A wall, fence or hedge whose type (`ty`, tools/object_types.py) the photos show to be wrong gets
+a TYPE decision: `"<stable id>": ["TYPE", "<ty>", "<what the photo shows>", "<photo URL or file>",
+"<YYYY-MM-DD the photo was taken>"]`, in the street's `decisions`, or in a place's (`places` in
+streets.json: `slug`, `title`, `at` [x, z], `r`, `decisions`) when the line is not on a street with
+a record (a square, a yard, a riverbank). Rules:
+- one line per decision, only on a photo you looked at (newest first; date recorded); KEEP and
+  CHECK lines go into the sweep's verdict table, not into streets.json;
+- the type is one of object_types.TYPES with a `looks` row in the palette; when no row fits what
+  the photo shows, stop and ask (a new row is a design call), never pick the nearest;
+- then `street_pass.py --apply` (writes road_objects.json `types`; the hand-kept entries stay),
+  raise `VERSION` in tools/object_types.py by one (the guarded pass runs once more on main's map),
+  `python3 -I tools/object_types.py apply` (only the decided lines change: check the diff of
+  `lines`), `street_pass.py --check` and `check_post_passes.py`, then the map chain (bake_sectors,
+  bake_city with a renderer, check_map_data: the default share only goes down, record it);
+- a stable id two lines share (an OSM outline mapped twice) types both: say so in the reason.
+
 ## 4. Fix, in this order
 
 The cause map (also printed by `--dump` and by a failing `--check`):
