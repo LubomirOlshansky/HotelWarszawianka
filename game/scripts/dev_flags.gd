@@ -45,6 +45,9 @@ var train_at := Vector2.INF
 ## (one up Marszałkowska, one along the Aleje) and a bus put so they reach that point T s (default 6)
 ## after the start, rolling.
 var promo_at := Vector2.INF
+## --promo-parts=LIST (F 2026-11-21, the palm teaser): which of --promo-at's actors come: tram-up,
+## tram-east, bus, police (default all; "police" alone leaves the trams and buses to the traffic).
+var promo_parts := PackedStringArray(["tram-up", "tram-east", "bus", "police"])
 var promo_t := 6.0
 ## --pigeons-at=T (videos, F 2026-11-19 "the pigeons fly up during the video"): Plac Zamkowy's
 ## square stays awake wherever the player is, and its flock bursts up T s after the start.
@@ -1006,6 +1009,8 @@ func parse_with(args: PackedStringArray) -> void:
 			crazy_log = true
 		elif arg == "--old-tram" or arg.begins_with("--old-tram="):
 			old_tram_flag = "follow" if arg == "--old-tram=follow" else "now"
+		elif arg.begins_with("--promo-parts="):
+			promo_parts = PackedStringArray(arg.trim_prefix("--promo-parts=").split(","))
 		elif arg.begins_with("--promo-at="):
 			var pa := arg.trim_prefix("--promo-at=").split(",")
 			if pa.size() >= 2:
