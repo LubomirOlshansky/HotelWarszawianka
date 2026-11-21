@@ -5642,6 +5642,7 @@ func _paused_frame() -> void:
 func _apply_style() -> void:
 	var style: Dictionary = STYLES[style_index]
 	var screen := get_viewport().get_visible_rect().size
+	screen = Vector2(maxf(screen.x, screen.y), minf(screen.x, screen.y))  # Promo Mode's VERTICAL: the landscape image
 	# Loop G1: the quality's step and budget (tiers.gd image_scale); --lines= is exact.
 	if flags.lines_override > 0:
 		view.stretch_shrink = maxi(1, floori(screen.y / flags.lines_override))

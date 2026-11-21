@@ -11,6 +11,8 @@ extends SceneTree
 ##   Promo Mode off gives the game its own speed and camera back;
 ## - a saved shot comes back exactly with NEXT, and COPY's flags render the same frame (--cam is
 ##   the focus, follow_camera.gd `parse_free` reads it; --pitch is the game's minus the tilt);
+## - VERTICAL takes the 9:16 guide and keeps the view's metres per pixel as the screen turns,
+##   HORIZONTAL and PROMO OFF turn it back;
 ## - --promo=free,grid,9:16 sets those switches.
 ##   godot --headless --path game --script res://tools/check_promo.gd
 
@@ -214,9 +216,25 @@ func _promo() -> void:
 	_expect(p.cam_mode == PromoMode.Cam.FREE and p.grid and str(PromoMode.GUIDES[p.guide][0]) == "9:16" \
 			and p.hud_show == PromoMode.HudShow.GHOST, "--promo=free,grid,9:16,ghost did not set them")
 
-	# Off: the game's camera, speed and car back.
+	# VERTICAL: the guide goes 9:16, the view keeps its metres per pixel when the screen's height
+	# changes, HORIZONTAL brings the full screen back.
+	_expect(PromoMode.can_turn(), "a desktop build may not turn")
+	p.guide = 0
+	p.set_portrait(true)
+	_expect(p.portrait and str(PromoMode.GUIDES[p.guide][0]) == "9:16" and (p._buttons["rotate"] as Button).text == "HORIZONTAL",
+			"VERTICAL did not take the 9:16 guide or its button")
+	p.size = 80.0
+	p._last_h = p.get_viewport().get_visible_rect().size.y * 0.5
+	p._place_panel()
+	_expect(is_equal_approx(p.size, 160.0), "a screen twice as tall did not double the view's height (%.1f m)" % p.size)
+	p.set_portrait(false)
+	_expect(not p.portrait and p.guide == 0, "HORIZONTAL did not bring the full screen back")
+	p.set_portrait(true)
+
+	# Off: the game's camera, speed and car back (and the screen landscape).
 	var cuts := g.cuts
 	p.set_on(false)
 	_expect(not p.frame(0.016) and not p.holds_car() and g.cuts == cuts + 1, "off did not give the camera back")
 	_expect(is_equal_approx(g.tod.speed, Pacer.num("time", "speed")), "off left the clock at %.0fx" % g.tod.speed)
 	_expect(is_equal_approx(g.camera_pitch, -g.settings.pitch), "off left the tilt at %.1f" % g.camera_pitch)
+	_expect(not p.portrait, "off left the screen vertical")
