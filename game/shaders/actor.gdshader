@@ -32,6 +32,9 @@ uniform float walk = 0.0;
 // Event flags (event_day.gd, 11 listopada): the cloth (UV.y = 2) ripples in the wind, more the
 // further it is from the pole; every other material leaves this at 0.
 uniform float sway = 0.0;
+// Promo fill (crowds.gd, --promo-dress=jarmark, F 2026-11-21 "people look black"): the market's
+// string lights are not in the city's lamp map, so its crowd gets their warm light here, at night.
+uniform vec3 fill = vec3(0.0);
 varying vec3 world_pos;
 varying vec3 tint;
 varying vec3 glow;
@@ -120,7 +123,7 @@ void fragment() {
 			// On a little over half the time, about once a second.
 			g *= step(0.42, fract(TIME * 1.15 + blink - 1.0));
 		}
-		em = (g + tint * lamp_light(world_pos.xz) * 1.4) * lights_on;
+		em = (g + tint * lamp_light(world_pos.xz) * 1.4 + tint * fill) * lights_on;
 	}
 	if (siren.x > 0.5) {
 		// Loop 3g-1 SIREN: a lit lens glows (by day too); an unlit one is dim but keeps its hue.

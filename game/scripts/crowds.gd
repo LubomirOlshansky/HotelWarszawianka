@@ -2398,6 +2398,10 @@ func _build_drawing() -> void:
 	_still_mat.set_shader_parameter("walk", 0.0)
 	_walk_mat = Models.material().duplicate() as ShaderMaterial
 	_walk_mat.set_shader_parameter("walk", 0.16)
+	if promo_jarmark:
+		# The market's bulbs light the crowd under them (actor.gdshader `fill`).
+		for mat: ShaderMaterial in [_still_mat, _walk_mat]:
+			mat.set_shader_parameter("fill", Vector3(1.0, 0.78, 0.55) * 0.85)
 	var cap := {}
 	for s in sites:
 		var c: Vector2i = s["cell"]
