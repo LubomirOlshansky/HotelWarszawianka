@@ -91,6 +91,7 @@ const EggBook := preload("res://scripts/egg_book.gd")
 const Tape := preload("res://scripts/tape.gd")
 const Spacer := preload("res://scripts/spacer.gd")
 const Fotka := preload("res://scripts/fotka.gd")
+const PromoMode := preload("res://scripts/promo_mode.gd")
 ## Loop 3h slice 1: the demo's districts (discovery, "?" marks, completion).
 const Districts := preload("res://scripts/districts.gd")
 ## Loop 3h slice 2: the 20 Syrenki (collectibles).
@@ -126,6 +127,7 @@ const CrashFx := preload("res://scripts/crash_fx.gd")
 const MoneyPop := preload("res://scripts/money_pop.gd")
 const Haptics := preload("res://scripts/haptics.gd")
 const Tiers := preload("res://scripts/tiers.gd")
+const MacMode := preload("res://scripts/mac_mode.gd")  # Mac step 1: the iPhone app on a Mac
 const Governor := preload("res://scripts/governor.gd")
 ## Loop 3g-1: the police (police.gd; its block below, "loop 3g-1: the police").
 const Police := preload("res://scripts/police.gd")
@@ -186,6 +188,7 @@ const Hints := preload("res://scripts/hints.gd")
 const FirstSteps := preload("res://scripts/first_steps.gd")
 const MapTrack := preload("res://scripts/map_track.gd")
 const PlayStats := preload("res://scripts/play_stats.gd")
+const QualityKeep := preload("res://scripts/quality_keep.gd")
 const StopAssist := preload("res://scripts/stop_assist.gd")
 const MainLine := preload("res://scripts/main_line.gd")
 const MainNudge := preload("res://scripts/main_nudge.gd")
@@ -387,9 +390,12 @@ var hints: Hints
 var _hints_t := 0.0
 ## The beta's anonymous play stats (play_stats.gd, docs/STATS.md): it listens to the systems' signals.
 var play_stats: PlayStats
+var _keep := QualityKeep.new()  # perf thread: manual levels kept, Experimental saved (quality_keep.gd)
 var tape: Tape
 var spacer: Spacer
 var fotka: Fotka
+## F 2026-11-20: Promo Mode (promo_mode.gd), the trailer's framing tools; off by default.
+var promo: PromoMode
 ## Where the car stood when Fotka opened (Transform3D.IDENTITY: not open): put back on close, so
 ## nothing that happened while the camera was away (a push from traffic) leaves it elsewhere.
 var _fotka_car := Transform3D.IDENTITY
@@ -967,6 +973,7 @@ func _title_frame() -> void:
 		_title_pending = maxi(_title_pending, streamer.pending())
 		title.progress = maxf(title.progress, LOAD_BUILT + (1.0 - LOAD_BUILT) * (1.0 - float(streamer.pending()) / float(_title_pending)))
 	if streamer == null or streamer.idle() or Time.get_ticks_msec() - _title_wait_t > TITLE_WAIT_MS:
+		if play_stats != null and play_stats.load_ms == 0: play_stats.load_ms = Time.get_ticks_msec()  # perf thread: the launch's load time
 		print("title: the start's sectors in after %d ms%s" % [Time.get_ticks_msec() - _title_wait_t,
 				"" if streamer == null or streamer.idle() else " (not all: the wait's limit)"])
 		_title_wait_t = -1
@@ -1276,6 +1283,7 @@ func _fly_in() -> void:
 		_opening_audio.start(radio)
 		# The morning (F, 2026-11-16): the city wakes up while the camera flies in. It loaded in the
 		# Day look under the title (the shadows' pipelines are warm); the night comes at the tap.
+		# F, 2026-11-20: it stays, and ends on the game clock's 11:00 (no jump to 14:00 after it).
 		tod.wake(CameraShots.OPEN_TIME)
 		moments.opening(vehicle.global_position, cam_yaw, camera_pitch,
 				PackedStringArray(["Śródmieście · Plac Defilad", "the centre of Warsaw"]))
@@ -1598,12 +1606,11 @@ func _build_world() -> void:
 	hud.tapped.connect(_on_tap)
 	_set_flying(false)
 
-	missions = Missions.new()
-	missions.line_split = flags.start_mission == 0  # G12: calls follow the vehicle (quest_lines.gd)
-	add_child(missions)
+	# The rescue line (missions.gd wires itself), under main.gd. Its setup takes frames (the places of
+	# each kind), so it is awaited here; it joins the director last (after the round-up, below).
+	missions = _install(Missions.new(), self)
 	await missions.setup(map, data, world, hud)
 	await LoadYield.tick("missions")
-	missions.player = car.global_position
 	# Speech bubbles (anyone can talk) and everybody's lines.
 	bubbles = Bubbles.new()
 	bubbles.pt = hud.pt
@@ -1633,9 +1640,7 @@ func _build_world() -> void:
 	dialogue.radio = radio
 	add_child(dialogue)
 	radio.station_changed.connect(dialogue.on_station_changed)
-	missions.wallet = wallet
-	missions.dialogue = dialogue
-	missions.vehicle_anchor = func() -> Vector3: return _vehicle_position() + Vector3(0, 4.0 if flying else 2.2, 0)
+	missions.dialogue = dialogue  # the rescue line's lines: dialogue.gd is made after its install
 	hud.set_wallet(wallet.zl, wallet.respect)
 	wallet.changed.connect(hud.set_wallet)
 	wallet.changed.connect(func(_zl: int, _respect: int, gained: int) -> void:
@@ -1823,7 +1828,7 @@ func _build_world() -> void:
 	# other activities' runs hold or restart its calls through the director (activity.gd
 	# `rescue_calls`). Its own test for the world: none (its calls have their own holds, `_held`, and
 	# ring in the air too); the kit's rule, one at a time, is what M and the HELI list ask (`free_now`).
-	activities.add(missions, func() -> bool: return true)
+	_add(missions, func() -> bool: return true)
 	_build_packs(data, world)
 	await LoadYield.tick("_build_packs")
 	_build_fans(data, world)
@@ -2148,15 +2153,13 @@ func _build_sound(data: Dictionary, world: Node3D) -> void:
 func _set_quality(choice: int) -> void:
 	quality_choice = clampi(choice, Tiers.AUTO, Tiers.EXPERIMENTAL)
 	quality = auto_quality if quality_choice == Tiers.AUTO else quality_choice
-	if settings.quality != quality_choice and _started and quality_choice != Tiers.EXPERIMENTAL:
-		settings.quality = quality_choice
-		settings.save()
-	var qs: Dictionary = QUALITY[quality]
-	tod.shadows_allowed = qs["shadows"]
-	tod.glow_allowed = qs["glow"]
+	if settings.quality != quality_choice and _started: _keep.chosen(self)  # perf thread: saved, Experimental too (quality_keep.gd)
+	tod.shadows_allowed = bool(Tiers.value(quality, "shadows"))
+	tod.glow_allowed = bool(Tiers.value(quality, "glow"))
 	if map != null and map.leaf_material != null:
-		map.leaf_material.set_shader_parameter("limbs", 1.0 if qs.get("tree_limbs", true) else 0.0)
-	if map != null and map.panel_material != null: map.panel_material.set_shader_parameter("holes", 1.0 if qs.get("panel_holes", true) else 0.0)
+		map.leaf_material.set_shader_parameter("limbs", 1.0 if Tiers.value(quality, "tree_limbs", true) else 0.0)
+	if map != null: map.set_tree_detail(bool(Tiers.value(quality, "fine_trees", false)))  # perf thread: simple crowns below Experimental
+	if map != null and map.panel_material != null: map.panel_material.set_shader_parameter("holes", 1.0 if Tiers.value(quality, "panel_holes", true) else 0.0)
 	if crowds != null:
 		crowds.amount = _crowd_scale()
 		crowds.refresh()
@@ -2170,10 +2173,11 @@ func _set_quality(choice: int) -> void:
 		wellness.amount = _crowd_scale()
 	if life != null:
 		life.amount = float(flags.life_flag) * (0.5 if quality == Tiers.LOW else 1.0)
-	RenderingServer.directional_shadow_atlas_set_size(qs["shadow_size"], true)
+	RenderingServer.directional_shadow_atlas_set_size(int(Tiers.value(quality, "shadow_size")), true)
 	_apply_experimental()
+	_keep.applied()
 	tod.refresh()
-	weather.density = qs["rain"]
+	weather.density = float(Tiers.value(quality, "rain"))
 	weather.refresh()
 	governor.restart(_clock_s())
 	_apply_extras()
@@ -2187,24 +2191,11 @@ func _set_quality(choice: int) -> void:
 func _apply_experimental() -> void:
 	var on := quality == Tiers.EXPERIMENTAL
 	sv.msaa_3d = Tiers.extra(quality, "msaa")
-	sv.anisotropic_filtering_level = Tiers.extra(quality, "aniso") if on else _sv_aniso
+	sv.anisotropic_filtering_level = Tiers.extra(quality, "aniso") if on or Tiers.overrides.has("aniso") else _sv_aniso
 	sv.mesh_lod_threshold = Tiers.extra(quality, "lod")
 	RenderingServer.directional_soft_shadow_filter_set_quality(Tiers.extra(quality, "soft"))
 	if on:
 		print("quality: Experimental's extras on · full-resolution image, %d sun shadow map with soft edges, MSAA 4x, 16x anisotropic, every mesh at full detail" % int(QUALITY[quality]["shadow_size"]))
-
-
-## Experimental: the governor's first GPU drop there (frames late with the GPU the cause) steps
-## the session back to Ultra (not saved: the saved choice never was Experimental), with a toast so
-## the tester knows the phone couldn't hold it. A CPU drop stays the governor's own business.
-func _experimental_drop(line: String) -> bool:
-	if quality != Tiers.EXPERIMENTAL or governor.gpu >= Governor.TOP:
-		return false
-	print("quality: Experimental too heavy here (%s) · back to Ultra for this session" % line.trim_prefix("governor: "))
-	_set_quality(Tiers.ULTRA)
-	if hud != null:
-		hud.toast("Eksperymentalna za ciężka: wracam do Ultra", "Experimental was too heavy: back to Ultra · Settings → Obraz")
-	return true
 
 
 ## Loop G1: the quality's extras as they are now: the level's own, less what the governor took
@@ -2213,9 +2204,8 @@ func _experimental_drop(line: String) -> bool:
 ## view rule, WIDE_VIEW). Never the pixel size, the shadow map, glow, landmarks, the ghost, the
 ## river or the night lights.
 func _apply_extras() -> void:
-	var qs: Dictionary = QUALITY[quality]
-	post_mat.set_shader_parameter("reflect_steps", ceili(int(qs["reflect"]) * float(Governor.REFLECT[governor.gpu])))
-	var cast: bool = qs["small_shadows"] and Governor.SMALL_SHADOWS[governor.gpu] and not _wide
+	post_mat.set_shader_parameter("reflect_steps", ceili(int(Tiers.value(quality, "reflect")) * float(Governor.REFLECT[governor.gpu])))
+	var cast: bool = bool(Tiers.value(quality, "small_shadows")) and Governor.SMALL_SHADOWS[governor.gpu] and not _wide
 	if int(cast) != _small_cast:
 		_small_cast = int(cast)
 		get_tree().call_group(MapBuilder.SMALL_CASTERS, "set_cast_shadows_setting",
@@ -2228,11 +2218,11 @@ func _apply_extras() -> void:
 ## CPU level keeps.
 func _apply_traffic() -> void:
 	if traffic != null:
-		var density := float(Settings.TRAFFIC[traffic_level]) * float(QUALITY[quality]["traffic"]) * float(Governor.TRAFFIC[governor.cpu])
+		var density := float(Settings.TRAFFIC[traffic_level]) * float(Tiers.value(quality, "traffic")) * float(Governor.TRAFFIC[governor.cpu])
 		if not is_equal_approx(traffic.density, density):
 			traffic.density = density
 	if walkers != null:
-		walkers.limit = maxi(4, roundi(float(QUALITY[quality]["people"]) * float(Settings.PEOPLE[traffic_level]) * float(Governor.PEOPLE[governor.cpu])))
+		walkers.limit = maxi(4, roundi(float(Tiers.value(quality, "people")) * float(Settings.PEOPLE[traffic_level]) * float(Governor.PEOPLE[governor.cpu])))
 		if flags.people > 0:
 			walkers.limit = mini(flags.people, Pedestrians.MAX)
 
@@ -2251,14 +2241,14 @@ func _govern() -> void:
 		print("governor: view %s (%.0f m%s) · small things' sun shadows %s" % ["wide" if wide else "back in",
 				cam.size, ", flying" if flying else "", "off" if wide else "as the quality sets them"])
 		_apply_extras()
-	governor.held = not flags._governor_on or title != null or _phone_bench or ((flags.bench or flags.probe) and flags._flag_governor != 1)
+	governor.held = not flags._governor_on or title != null or _phone_bench or ((flags.bench or flags.probe) or quality_choice != Tiers.AUTO) and flags._flag_governor != 1
+	_keep.frame(self, get_process_delta_time())  # perf thread: a manual level is kept, with a note (quality_keep.gd)
 	governor.frame(_stats.last_ms, _stats.last_cpu)
 	var now := _clock_s()
 	var line := governor.tick(now, _wide)
 	if line != "":
 		print("%s · at %.1f s" % [line, now - _stress_t0 / 1000.0])
-		if not _experimental_drop(line):
-			_apply_extras()
+		_apply_extras()
 	# Loop G1b: the session's verdict on Auto's image (cheap until one is due); with
 	# --governor=log the tally's minutes too.
 	if governor.track and _image_verdict != "struggled" and (governor.struggled()
@@ -2422,7 +2412,7 @@ func _bench_header(kind: String) -> PackedStringArray:
 				RenderingServer.get_current_rendering_method(), OS.get_processor_name()],
 		"screen %dx%d @ %.0f Hz · image %dx%d (×%d) · view %.0f m · quality %s · traffic %s · %s · %s · cap %s · %s" % [
 				screen.x, screen.y, hz, sv.size.x, sv.size.y, view.stretch_shrink, base_size,
-				Tiers.describe(quality_choice, quality, model_name, 0, _image_mode()),
+				Tiers.describe(quality_choice, quality, model_name, 0, _image_mode()) + (" · gfx %s" % Tiers.overrides if not Tiers.overrides.is_empty() else ""),
 				Settings.TRAFFIC_NAMES[traffic_level], TimeOfDay.NAMES[tod.mode], Weather.NAMES[weather.state],
 				_cap_name(), Controls.NAMES[controls.scheme]],
 		"thermal state: not readable from Godot; a phone that warms up shows it as falling fps per 10 s",
@@ -2934,10 +2924,10 @@ func _build_play_stats() -> void:
 	add_child(play_stats)
 	play_stats.setup(OS.is_debug_build(), wallet.persistent and settings.persistent, settings.stats, flags.stats_flag,
 			{"platform": OS.get_name(), "lang": Lang.code, "quality_tier": Tiers.NAMES[auto_quality] if quality_choice == Tiers.AUTO else Tiers.NAMES[quality_choice],
-			"controls": controls.scheme})
+			"controls": controls.scheme, "test_device": settings.test_device})
 	play_stats.watch({"wallet": wallet, "car": car, "is_flying": func() -> bool: return flying, "activities": activities,
 			"police": police, "first10": first10, "districts": districts, "egg_book": egg_book, "garage": garage,
-			"heli": heli, "radio": radio, "panel": hud.settings_panel, "save_note": wallet.load_note})
+			"heli": heli, "radio": radio, "panel": hud.settings_panel, "save_note": wallet.load_note, "look": func() -> Array: return [Tiers.NAMES[quality], view.stretch_shrink, _cap]})
 
 
 func _build_first10() -> void:
@@ -4159,6 +4149,14 @@ func _build_moments(data: Dictionary, world: Node3D) -> void:
 	add_child(fotka)
 	fotka.setup(places, spots)
 	fotka.closed.connect(_on_fotka_closed)
+	promo = PromoMode.new()
+	promo.name = "PromoMode"
+	promo.game = self
+	add_child(promo)
+	promo.set_process(false)
+	promo.set_process_input(false)
+	promo.set_on(settings.promo or flags.promo_flag != "")
+	promo.use_flag(flags.promo_flag)
 	if hud.settings_panel != null:
 		var page: Control = hud.settings_panel.get("notebook_page")
 		hud.settings_panel.set("notebook_eggs", egg_book)
@@ -4535,9 +4533,13 @@ func _load_settings() -> void:
 		camera_pitch = -settings.pitch
 	top_down = top_down or settings.camera_view == FollowCamera.VIEW_TOP_DOWN  # --topdown, or DEV's
 	model_name = flags._flag_model if flags._flag_model != "" else OS.get_model_name()
-	auto_quality = Tiers.for_model(model_name)
+	# Mac step 1 (mac_mode.gd): the iPhone app on a Mac picks and draws as a computer.
+	Tiers.mac = MacMode.active()
+	print(MacMode.describe())
+	auto_quality = Tiers.for_device(model_name, RenderingServer.get_video_adapter_name() if flags._flag_model == "" else "")
 	quality_choice = flags._flag_quality if flags._flag_quality != -2 else settings.quality
 	quality = auto_quality if quality_choice == Tiers.AUTO else quality_choice
+	_keep.launch(self)
 	print("quality: %s · Auto picks %s for %s" % [Tiers.describe(quality_choice, quality, model_name),
 			Tiers.NAMES[auto_quality], model_name])
 	# Loop G1b: Auto's sharp image or its fallback, from the saved state (or --last-session=).
@@ -4765,6 +4767,8 @@ func _fill_map_list(entries: Array) -> void:
 		for id: String in FirstSteps.IDS:
 			var name: Array = FirstSteps.name_of(id)
 			f["steps"].append({"id": id, "pl": name[0], "en": name[1], "done": not id in left, "entry": _step_entry(id, by_group, here)})
+	if wallet != null:
+		f["taxi"] = Rides.Rules.account(wallet.keep, int(wallet.jobs.get("podwozka", 0)))  # the taxi app's account (F 2026-11-20)
 	if stories != null:
 		f["stories"] = QuestBook.story_facts(stories.defs, stories.clock.call(), intro)
 	if rivals != null and rivals.ladder != null and wallet != null:
@@ -5107,7 +5111,7 @@ func _settings_state() -> Dictionary:
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
 			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
-			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view,
+			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on), "test_device": int(settings.test_device),
 			"weather": weather.state, "time": tod.look_mode(), "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
 			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "sensitivity": settings.sensitivity,
@@ -5203,6 +5207,12 @@ func _on_setting(key: String, value: Variant) -> void:
 			camera_pitch = -settings.pitch
 		"camera_view":
 			_set_view(int(value))
+		"promo":
+			settings.promo = int(value) == 1
+			promo.set_on(settings.promo)
+		"test_device":
+			settings.test_device = int(value) == 1
+			play_stats.set_test_device(settings.test_device)
 		"bench":
 			_start_phone_bench.call_deferred()
 			return
@@ -5454,6 +5464,8 @@ func _on_car_pushed(_id: String, at: Vector3, _dir: Vector3, speed: float) -> vo
 func _on_soft_broke(id: String, _panel: int, kind: StringName, at: Vector3, _dir: Vector3, speed: float) -> void:
 	if wallet != null:
 		wallet.count_smash(String(kind))
+	if rides != null:
+		rides.smashed(speed)  # the taxi passenger's quip (F 2026-11-20)
 	var now := _clock_s()
 	if now - _smash_sound_t < SMASH_SOUND_GAP:
 		return
@@ -5719,6 +5731,7 @@ func _paused_frame() -> void:
 func _apply_style() -> void:
 	var style: Dictionary = STYLES[style_index]
 	var screen := get_viewport().get_visible_rect().size
+	screen = Vector2(maxf(screen.x, screen.y), minf(screen.x, screen.y))  # Promo Mode's VERTICAL: the landscape image
 	# Loop G1: the quality's step and budget (tiers.gd image_scale); --lines= is exact.
 	if flags.lines_override > 0:
 		view.stretch_shrink = maxi(1, floori(screen.y / flags.lines_override))
@@ -5879,6 +5892,8 @@ func _process(dt: float) -> void:
 	if flags.no_ghost or top_down:
 		hole = 0.0  # --no-ghost: the see-through hole is off too
 	building_mat.set_shader_parameter("fade_radius", hole)
+	for m: ShaderMaterial in _wall_marks_material():  # W9: the words on walls go with their wall
+		m.set_shader_parameter("fade_radius", hole)
 	_update_ghost(pos, car_view)
 	for m in map.fade_materials:
 		m.set_shader_parameter("car_view", car_view)
@@ -5886,7 +5901,9 @@ func _process(dt: float) -> void:
 	# Loop MW-6: Fotka's photo shows the city whole (no see-through hole, no ghost).
 	if fotka != null and fotka.is_open():
 		building_mat.set_shader_parameter("fade_radius", 0.0)
-		for m: ShaderMaterial in [building_mat, map.flat_material, post_mat] + _neon_materials():
+		for m: ShaderMaterial in _wall_marks_material():
+			m.set_shader_parameter("fade_radius", 0.0)
+		for m: ShaderMaterial in [building_mat, map.flat_material, post_mat] + _neon_materials() + _wall_marks_material():
 			m.set_shader_parameter("occlusion_radius", 0.0)
 		for m in map.fade_materials:
 			m.set_shader_parameter("fade_radius", 0.0)
@@ -5926,7 +5943,7 @@ func _update_ghost(pos: Vector3, car_view: Vector3) -> void:
 	var ghost_r := clampf(cam.size * 0.22, 14.0, 50.0) * (0.6 if flying else 1.0)
 	if flags.no_ghost or top_down:
 		ghost_r = 0.0
-	for m: ShaderMaterial in [building_mat, map.flat_material, post_mat] + _neon_materials():  # sweep 2: + neon
+	for m: ShaderMaterial in [building_mat, map.flat_material, post_mat] + _neon_materials() + _wall_marks_material():  # sweep 2: + neon; W9: + the words on walls
 		m.set_shader_parameter("car_view", car_view)
 		m.set_shader_parameter("occluder", occ)
 		m.set_shader_parameter("occlusion_radius", ghost_r)
@@ -5990,6 +6007,17 @@ func _update_tunnel_cut(pos: Vector3) -> bool:
 ## the first ghost update on either city path; empty when the map has no signs.
 var _neon_mats: Array[ShaderMaterial] = []
 var _neon_found := false
+
+
+## W9 of the walls look: the walls' slogans and banners (map_builder.gd `marks_material`,
+## wall_mark.gdshader), holed and ghosted with the building material so a word goes with its wall;
+## none under the classic look.
+func _wall_marks_material() -> Array[ShaderMaterial]:
+	var out: Array[ShaderMaterial] = []
+	var m: Variant = map.get("marks_material") if map != null else null
+	if m is ShaderMaterial:
+		out.append(m)
+	return out
 
 
 func _neon_materials() -> Array[ShaderMaterial]:
@@ -6440,7 +6468,7 @@ func _read_input(dt: float) -> void:
 	# Loop MW-6: Fotka holds the car (and the helicopter) still; the city goes on. Parked, not
 	# just braking: a held brake at a standstill reverses (car.gd), and the car backed into the
 	# buildings behind it for as long as Fotka was open (F, 2026-11-01).
-	if fotka != null and fotka.is_open():
+	if (fotka != null and fotka.is_open()) or (promo != null and promo.holds_car()):
 		car.target_dir = Vector3.ZERO
 		car.steer = 0.0
 		car.throttle = 0.0
@@ -6960,13 +6988,17 @@ func _pad_command(what: String) -> void:
 			_open_settings()
 
 
-## The gamepad loop: the pad used last hides the touch pedals and pads (and the HUD speaks of the
+## The gamepad loop (and Mac step 1's keyboard): the pad used last hides the touch pedals and pads (and the HUD speaks of the
 ## pad's buttons); a finger on the screen brings them back at once (hud.gd `_input`).
 func _note_pad(event: InputEvent) -> void:
 	var was := Gamepad.in_use()
 	Gamepad.note(event)
 	if hud != null and Gamepad.in_use() != was:
 		hud.set_pad_mode(Gamepad.in_use(), flags.no_touch)
+	# Mac step 1 (mac_mode.gd): a key that plays hides the touch pads (the HUD speaks of the
+	# keys); a finger or a click brings them back (hud.gd `_input`).
+	if hud != null and not hud.keys_mode and MacMode.keys_hide_pads() and MacMode.is_play_key(event):
+		hud.set_keys_mode(true, flags.no_touch)
 
 
 func _screen_to_world(s: Vector2) -> Vector3:
@@ -6992,6 +7024,8 @@ func _update_camera(dt: float) -> void:
 		cam.global_transform = Transform3D(cb, club.centre + cb.z * 120.0)
 		cam.far = 300.0
 		return
+	if promo != null and promo.frame(dt):
+		return  # Promo Mode (promo_mode.gd) placed the camera
 	if flags.free_cam:
 		_update_free_camera()
 		return
@@ -7280,7 +7314,7 @@ func _on_sector_ready(root: Node3D) -> void:
 	if buses != null:
 		buses.on_sector_ready(root)  # the night-buses loop: the sector's shelters become stops
 	var lit := tod != null and tod.lights_on > 0.001
-	var small: bool = _small_cast == 1 if _small_cast >= 0 else bool(QUALITY[quality]["small_shadows"])
+	var small: bool = _small_cast == 1 if _small_cast >= 0 else bool(Tiers.value(quality, "small_shadows"))
 	var cast := GeometryInstance3D.SHADOW_CASTING_SETTING_ON if small else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# Sweep 2 x loop 3c: each sector holds its own "Neon" node (not the map's root, where
 	# _neon_materials looks), so its signs' shared material joins the ghost's list here.

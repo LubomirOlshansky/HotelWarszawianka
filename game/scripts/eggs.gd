@@ -25,6 +25,7 @@ const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const PixelFont := preload("res://scripts/pixel_font.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Wallet := preload("res://scripts/wallet.gd")
+const River := preload("res://scripts/landmarks/river.gd")
 
 const EGG_COLOUR := Color("#ff4fd8")
 const NEAR := 30.0
@@ -131,8 +132,9 @@ func setup(nodes: Dictionary, data: Dictionary) -> void:
 	if pois.has("patelnia"):
 		_build_crowd(Vector2(pois["patelnia"]["x"], pois["patelnia"]["z"]))
 	if pois.has("syrenka"):
-		var s: Dictionary = pois["syrenka"]
-		_build_mermaid(Vector3(s["x"], 0.0, s["z"]), float(s.get("yaw", 0.0)))
+		# The statue's measured spot (landmarks/river.gd, 2026-11-20): the bake's point is a guess
+		# on the lower promenade (OSM maps no artwork there), 48 m from where she stands.
+		_build_mermaid(Vector3(River.POWISLE_SYRENKA.x, 0.0, River.POWISLE_SYRENKA.y), River.POWISLE_SYRENKA_YAW)
 	_build_billboards(data, palm)
 	_build_column_posters(data)
 	var where := PackedStringArray()
@@ -907,15 +909,7 @@ func _crowd(dt: float) -> void:
 # --- the Mermaid ------------------------------------------------------------------------
 
 func _build_mermaid(at: Vector3, yaw: float) -> void:
-	# The baked spot faces the water: step towards it to the first spot clear of
-	# trees and lanes (not further: the flood wall along the river is not in the
-	# roof grid, and she must stay on the promenade side of it).
-	var toward := Vector2(-sin(yaw), -cos(yaw))
-	for k in 12:
-		var p := Vector2(at.x, at.z) + toward * (k * 2.0)
-		if _open(p, 2.0, 8.0, true):
-			at = Vector3(p.x, 0.0, p.y)
-			break
+	# The statue's own spot (no search for room: the monument is the landmark site's, solid itself).
 	at.y = map.ground_height(at.x, at.z)
 	var node := Node3D.new()
 	add_child(node)
@@ -935,7 +929,7 @@ func _build_mermaid(at: Vector3, yaw: float) -> void:
 	var halo := MeshInstance3D.new()
 	halo.mesh = Props.halo(6.5, Color(0.45, 0.95, 1.0, 0.45))
 	halo.material_override = Props.glow_material(true, 1.5)
-	halo.position = Vector3(0, 3.6, 0)
+	halo.position = Vector3(0, 5.2, 0)  # round the bronze, 3.3 m up on her pedestal
 	halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	halo.visible = false
 	halo.add_to_group("night_lights")

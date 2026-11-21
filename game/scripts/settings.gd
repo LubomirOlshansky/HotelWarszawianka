@@ -62,7 +62,13 @@ var traffic := DEFAULT_TRAFFIC
 const AUTO := -1
 const HIGH := 2
 const ULTRA := 3
+const EXPERIMENTAL := 4
 var quality := AUTO
+## Perf thread (2026-11-19): Experimental is saved like any level. quality_keep.gd sets this before a
+## launch at Experimental and clears it after 10 s of frames; a launch that finds it still set (the
+## last one never got going: a crash on the 8192 shadow map) loads Ultra instead, once (`quality_guarded`).
+var quality_pending := false
+var quality_guarded := false
 ## 0..1 each: everything, the radio (Music bus), the effects (SFX and Ambience buses).
 var master := 1.0
 var music := 1.0
@@ -73,8 +79,9 @@ var perf := false
 const FPS := [60, 30]
 var fps := 60
 ## The follow-camera loop (2026-10-30): the driving view's height in metres, the player's zoom
-## (follow_camera.gd VIEWS; 80 is DEFAULT_SIZE).
-var view := 80.0
+## (follow_camera.gd VIEWS). The start view is 65 m (F, 2026-11-20: "start with a little bit closer
+## look, not so far"), one step in from the 80 m DEFAULT_SIZE the bench and the helicopter keep.
+var view := 65.0
 ## F, 2026-11-07: the camera's angle over the ground in degrees (follow_camera.gd PITCHES; 30, the
 ## game's look, is the default). Settings → Obraz, key "angle".
 var pitch := FollowCamera.DEFAULT_PITCH
@@ -82,6 +89,13 @@ var pitch := FollowCamera.DEFAULT_PITCH
 ## (main.gd `top_down`: straight down, north up), 2 aerial (the website's high view). DEV →
 ## "Widok kamery · Camera view", key "camera_view".
 var camera_view := FollowCamera.VIEW_NORMAL
+## F 2026-11-20: Promo Mode (promo_mode.gd), DEV → "Tryb promo · Promo mode", key "promo"; off by
+## default. `promo_shots`: its saved frames, "x,y,z,yaw,pitch,size,hour,date" each.
+var promo := false
+## Stats thread 2026-11-21: DEV → "Test device (stats)": marks this device's events `test_device=true` so PostHog can
+## filter F's own devices out (play_stats.gd). Off by default, key "test_device".
+var test_device := false
+var promo_shots := PackedStringArray()
 ## Loop 2e: main.gd STYLES (Sharp, Fine, Clean, Chunky) and the VHS overlay.
 var style := 0
 var vhs := false
@@ -168,7 +182,12 @@ func load_file() -> void:
 	if saved_scheme == 2:  # Fixed camera was Point's still-camera twin: Classic with the camera off
 		classic_follow = false
 	traffic = clampi(int(cfg.get_value("world", "traffic", traffic)), 0, TRAFFIC.size() - 1)
-	quality = clampi(int(cfg.get_value("world", "quality", quality)), AUTO, ULTRA)
+	quality = clampi(int(cfg.get_value("world", "quality", quality)), AUTO, EXPERIMENTAL)
+	quality_pending = bool(cfg.get_value("world", "quality_pending", false))
+	if quality_pending and quality == EXPERIMENTAL:
+		quality = ULTRA
+		quality_pending = false
+		quality_guarded = true
 	if quality == HIGH and not cfg.has_section_key("world", "tiers"):
 		quality = AUTO
 	master = clampf(float(cfg.get_value("sound", "master", master)), 0.0, 1.0)
@@ -186,6 +205,9 @@ func load_file() -> void:
 	if not pitch in FollowCamera.PITCHES:
 		pitch = FollowCamera.DEFAULT_PITCH
 	camera_view = clampi(int(cfg.get_value("display", "camera_view", camera_view)), 0, FollowCamera.VIEW_AERIAL)
+	promo = bool(cfg.get_value("debug", "promo", promo))
+	test_device = bool(cfg.get_value("debug", "test_device", test_device))
+	promo_shots = PackedStringArray(cfg.get_value("debug", "promo_shots", promo_shots))
 	wander = bool(cfg.get_value("game", "wander", wander))
 	wander_offered = bool(cfg.get_value("game", "wander_offered", wander_offered))
 	zone_cap = bool(cfg.get_value("game", "zone_cap", zone_cap))
@@ -230,6 +252,7 @@ func save() -> void:
 	cfg.set_value("controls", "classic_default", 1)
 	cfg.set_value("world", "traffic", traffic)
 	cfg.set_value("world", "quality", quality)
+	cfg.set_value("world", "quality_pending", quality_pending)
 	cfg.set_value("world", "tiers", 1)
 	cfg.set_value("sound", "master", snappedf(master, 0.01))
 	cfg.set_value("sound", "music", snappedf(music, 0.01))
@@ -242,6 +265,9 @@ func save() -> void:
 	cfg.set_value("display", "view", view)
 	cfg.set_value("display", "pitch", pitch)
 	cfg.set_value("display", "camera_view", camera_view)
+	cfg.set_value("debug", "promo", promo)
+	cfg.set_value("debug", "test_device", test_device)
+	cfg.set_value("debug", "promo_shots", promo_shots)
 	cfg.set_value("game", "wander", wander)
 	cfg.set_value("game", "wander_offered", wander_offered)
 	cfg.set_value("game", "zone_cap", zone_cap)

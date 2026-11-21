@@ -46,9 +46,11 @@ const QUALITY := [
 		"reflect": 16, "traffic": 1.0, "people": 60, "small_shadows": true},
 	{"name": "Experimental", "step": 0, "budget": 99.0, "shadows": true, "shadow_size": 8192, "glow": true, "rain": 1.0,
 		"reflect": 16, "traffic": 1.0, "people": 60, "small_shadows": true,
-		"full": true, "msaa": Viewport.MSAA_4X, "aniso": Viewport.ANISOTROPY_16X, "lod": 0.0,
+		"full": true, "fine_trees": true, "msaa": Viewport.MSAA_4X, "aniso": Viewport.ANISOTROPY_16X, "lod": 0.0,
 		"soft": RenderingServer.SHADOW_QUALITY_SOFT_HIGH},
 ]
+## Perf thread (2026-11-19): `fine_trees` true (Experimental only; missing means false) draws the cut
+## 80-face crowns (map_builder.gd set_tree_detail), the others the 20-face crown with its limbs.
 ## Trees thread (2026-11-15): `tree_limbs` false (Low) hides the crowns' limbs (foliage.gdshader
 ## `limbs`): a bare tree is its haze and trunk, 36 fewer triangles a crown. Missing means true.
 ## W4 of the walls look (docs/design/walls-true-to-life.md 9): `panel_holes` false makes the
@@ -77,8 +79,59 @@ const EXTRA_DEFAULTS := {"full": false, "msaa": Viewport.MSAA_DISABLED, "lod": 1
 ## A level's value for one of Experimental's extras (EXTRA_DEFAULTS on the others; "aniso" has
 ## no default here: main.gd keeps the SubViewport's own).
 static func extra(quality: int, key: String) -> Variant:
+	if mac and key == "msaa" and quality >= HIGH and not overrides.has(key):
+		return maxi(int(value(quality, key, EXTRA_DEFAULTS[key])), MAC_MSAA)
+	return value(quality, key, EXTRA_DEFAULTS.get(key))
+
+
+## Perf thread (2026-11-19): one option's value at a level, with the per-option overrides on top
+## (`overrides`, key → value: today the --gfx= test flag, dev_flags.gd; the graphics options page
+## later, docs/design/graphics-and-perf-plan.md 2.4). An override wins at every level, so one
+## option can be measured or set on its own; missing keys fall back to the level's row, then to
+## `fallback`. Keys are QUALITY's (shadows, shadow_size, glow, rain, reflect, traffic, people,
+## small_shadows, tree_limbs, panel_holes, fine_trees, step, budget, full, msaa, aniso, lod, soft)
+## plus `scale`: the image's whole screen pixels per image pixel, exact (no style, step or budget).
+static var overrides: Dictionary = {}
+
+
+static func value(quality: int, key: String, fallback: Variant = null) -> Variant:
+	if overrides.has(key):
+		return overrides[key]
 	var q: Dictionary = QUALITY[clampi(quality, 0, QUALITY.size() - 1)]
-	return q.get(key, EXTRA_DEFAULTS.get(key))
+	return q.get(key, fallback)
+
+
+## The --gfx= flag's text, "key=value,key=value", as overrides: true/false/on/off as bools,
+## numbers as int or float, msaa as 0/2/4/8 (Viewport.MSAA_*), soft as 0 (hard) to 5
+## (RenderingServer.SHADOW_QUALITY_*), aniso as 0/2/4/8/16. A pair without "=" is dropped.
+const MSAA_BY_SAMPLES := {0: Viewport.MSAA_DISABLED, 2: Viewport.MSAA_2X, 4: Viewport.MSAA_4X, 8: Viewport.MSAA_8X}
+const ANISO_BY_TAPS := {0: Viewport.ANISOTROPY_DISABLED, 2: Viewport.ANISOTROPY_2X, 4: Viewport.ANISOTROPY_4X,
+		8: Viewport.ANISOTROPY_8X, 16: Viewport.ANISOTROPY_16X}
+
+
+static func parse_overrides(text: String) -> Dictionary:
+	var out := {}
+	for pair: String in text.split(",", false):
+		var kv := pair.split("=", false)
+		if kv.size() != 2:
+			continue
+		var key := kv[0].strip_edges()
+		var raw := kv[1].strip_edges().to_lower()
+		var v: Variant = raw
+		if raw in ["true", "on", "yes"]:
+			v = true
+		elif raw in ["false", "off", "no"]:
+			v = false
+		elif raw.is_valid_int():
+			v = int(raw)
+		elif raw.is_valid_float():
+			v = float(raw)
+		if key == "msaa" and v is int:
+			v = MSAA_BY_SAMPLES.get(v, Viewport.MSAA_DISABLED)
+		elif key == "aniso" and v is int:
+			v = ANISO_BY_TAPS.get(v, Viewport.ANISOTROPY_DISABLED)
+		out[key] = v
+	return out
 
 
 ## The level Auto picks for a model id (graphics.md 4.1): iPhone 8 / X (`iPhone10,x`, A11) Low,
@@ -105,14 +158,58 @@ static func for_model(model: String) -> int:
 	return ULTRA
 
 
+## Perf thread (2026-11-19): the level Auto picks for this device: for_model, except an Adreno
+## 5xx/6xx GPU (`adapter`, e.g. "Adreno (TM) 642L": the Nothing Phone 1 did 17.6 fps at High, 22.8
+## at Medium, 28.5 at Low on the bench route) starts at Low. "" (a --model= run) skips the GPU rule.
+static func for_device(model: String, adapter: String) -> int:
+	if mac:
+		return for_mac(adapter)
+	if GpuQuirks.is_old_adreno(adapter):
+		return LOW
+	return for_model(model)
+
+
+## Mac step 1 (F 2026-11-20; mac_mode.gd): the iPhone app on a Mac. main.gd sets it from
+## MacMode.active() before the level is picked. There the image is no phone's: every level below
+## Experimental draws `mac_scale` (2 screen pixels a pixel, Low and Medium their step coarser)
+## instead of the style's lines and the level's budget, and High and up add MSAA 4x (the edges a
+## 2x image shows that the pixel look hid). The perf thread's numbers (M4 Pro, 2026-11-20):
+## Ultra x2 145 fps, Experimental at 3024x1890 90 fps; an M2 MacBook Air is still owed a run.
+static var mac := false
+const MAC_MSAA := Viewport.MSAA_4X
+## The most megapixels a Mac's image may have: a 16" MacBook's 3456x2234 window at x2 is 1.93 MP;
+## a 4K screen (3840x2160, 2.07 MP at x2) goes to x3.
+const MAC_BUDGET := 2.0
+
+
+## The level Auto picks on a Mac from its GPU's name: a base M1 or M2 ("Apple M1", "Apple M2",
+## the MacBook Air's 7 to 10 GPU cores) High, every other (Pro, Max, Ultra, M3 and newer) Ultra.
+static func for_mac(adapter: String) -> int:
+	return HIGH if adapter in ["Apple M1", "Apple M2"] else ULTRA
+
+
+## A Mac's image scale for a window `size`: 2, coarser until the image fits MAC_BUDGET; 1 in a
+## window under 800 pixels tall (a phone-sized window on a non-Retina screen).
+static func mac_scale(size: Vector2) -> int:
+	if size.y < 800.0:
+		return 1
+	var k := 2
+	while k < 64 and floorf(size.x / k) * floorf(size.y / k) > MAC_BUDGET * 1e6:
+		k += 1
+	return k
+
+
 ## Whole screen pixels per image pixel for a screen `size` (pixels), a style's `lines` and a
 ## quality level: the style's own scale, the level's step coarser, then coarser until the
 ## image (the screen's size divided by it, as SubViewportContainer.stretch_shrink rounds it)
 ## fits the level's budget.
 static func image_scale(size: Vector2, lines: float, quality: int) -> int:
-	var q: Dictionary = QUALITY[clampi(quality, 0, QUALITY.size() - 1)]
+	if overrides.has("scale"):
+		return maxi(1, int(overrides["scale"]))
 	var k := own_scale(size, lines, quality)
-	var budget := float(q["budget"]) * 1e6
+	if mac:
+		return k  # the Mac's own budget (mac_scale)
+	var budget := float(value(quality, "budget")) * 1e6
 	while k < 64 and floorf(size.x / k) * floorf(size.y / k) > budget:
 		k += 1
 	return k
@@ -121,10 +218,13 @@ static func image_scale(size: Vector2, lines: float, quality: int) -> int:
 ## Loop G1b: the style's own scale at a level, before the budget: the most whole screen pixels
 ## that keep the style's lines (at least 1), the level's step coarser.
 static func own_scale(size: Vector2, lines: float, quality: int) -> int:
-	var q: Dictionary = QUALITY[clampi(quality, 0, QUALITY.size() - 1)]
-	if bool(q.get("full", false)):
+	if overrides.has("scale"):
+		return maxi(1, int(overrides["scale"]))
+	if bool(value(quality, "full", false)):
 		return 1
-	return maxi(1, floori(size.y / lines)) + int(q["step"])
+	if mac:
+		return mac_scale(size) + int(value(quality, "step"))
+	return maxi(1, floori(size.y / lines)) + int(value(quality, "step"))
 
 
 ## Loop G1b: whether the level's budget makes this image coarser than the style's own scale (on

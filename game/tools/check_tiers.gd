@@ -21,11 +21,16 @@ extends SceneTree
 ##     nothing, a calm verdict then a struggle in one session is the struggle; a phone that can't
 ##     hold the sharp image spends at most 1 launch in 17 on it after the wait is capped;
 ##   - the state from an old, empty or hand-edited file is cleaned (no fallback, the wait 2..16);
-##   - the bench card's and log's quality text (describe).
+##   - the bench card's and log's quality text (describe);
+## Mac step 1 (mac_mode.gd): the iPhone app on a Mac is told from a phone, an iPad and native
+## macOS; there Auto is Ultra (High on a base M1 / M2), every level below Experimental draws x2
+## (Low / Medium x3) inside 2 MP, High and up with MSAA 4x; an override still wins; the keys
+## that hide the touch pads and the presses that bring them back.
 ## Prints `check_tiers: OK` (exit 0) or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_tiers.gd
 
 const Tiers := preload("res://scripts/tiers.gd")
+const MacMode := preload("res://scripts/mac_mode.gd")
 
 ## Model id -> the level Auto picks.
 const MODELS := {
@@ -140,6 +145,8 @@ func _initialize() -> void:
 	_check_sharp()
 	_check_back_off()
 	_check_experimental()
+	_check_overrides()
+	_check_mac()
 
 	if problems.is_empty():
 		print("check_tiers: OK (%d model ids, %d screens, %d comparisons with loop 2b, %d phones for Auto's sharp image)" % [
@@ -296,3 +303,90 @@ func _check_experimental() -> void:
 		problems.append("describe Experimental: \"%s\"" % Tiers.describe(Tiers.EXPERIMENTAL, Tiers.EXPERIMENTAL, "iPhone17,2", 1))
 	print("experimental: opt-in on %d model ids, x1 on %d screens x %d styles, extras only there" % [
 			SCREENS.size() + MODELS.size(), IMAGES.size(), LINES.size()])
+
+
+## Perf thread (2026-11-19): --gfx= overrides win over the level's row at every level, parse
+## their values, set the image's scale exactly, and leave the tables alone when cleared; Auto on an
+## Adreno 5xx/6xx is Low.
+func _check_overrides() -> void:
+	var o := Tiers.parse_overrides("scale=2,msaa=4,shadow_size=2048,small_shadows=off,soft=0,rain=0.5,aniso=16,bad")
+	var want := {"scale": 2, "msaa": Viewport.MSAA_4X, "shadow_size": 2048, "small_shadows": false, "soft": 0,
+			"rain": 0.5, "aniso": Viewport.ANISOTROPY_16X}
+	for k: String in want:
+		if not o.has(k) or o[k] != want[k]:
+			problems.append("--gfx= parsed %s as %s, wanted %s" % [k, o.get(k), want[k]])
+	if o.size() != want.size():
+		problems.append("--gfx= kept %d keys, wanted %d (a pair without = is dropped)" % [o.size(), want.size()])
+	Tiers.overrides = o
+	for q in Tiers.QUALITY.size():
+		if int(Tiers.value(q, "shadow_size")) != 2048 or bool(Tiers.value(q, "small_shadows")) or int(Tiers.extra(q, "msaa")) != Viewport.MSAA_4X:
+			problems.append("%s: an override did not win" % Tiers.NAMES[q])
+		if Tiers.image_scale(Vector2(2868, 1320), 480.0, q) != 2 or Tiers.own_scale(Vector2(1792, 828), 480.0, q) != 2:
+			problems.append("%s: scale=2 not exact" % Tiers.NAMES[q])
+	Tiers.overrides = {}
+	if int(Tiers.value(Tiers.ULTRA, "shadow_size")) != 4096 or Tiers.image_scale(Vector2(1792, 828), 480.0, Tiers.ULTRA) != 1:
+		problems.append("cleared overrides: Ultra no longer its own row")
+	for pair: Array in [["A063", "Adreno (TM) 642L", Tiers.LOW], ["SM-S918B", "Adreno (TM) 740", Tiers.HIGH],
+			["iPhone17,2", "Apple A18 Pro GPU", Tiers.ULTRA], ["A063", "", Tiers.HIGH], ["X", "Adreno (TM) 530", Tiers.LOW]]:
+		if Tiers.for_device(pair[0], pair[1]) != pair[2]:
+			problems.append("for_device %s / %s: %s, wanted %s" % [pair[0], pair[1], Tiers.NAMES[Tiers.for_device(pair[0], pair[1])], Tiers.NAMES[pair[2]]])
+	print("overrides: --gfx= parsed, wins at %d levels, cleared again; Auto on an old Adreno is Low" % Tiers.QUALITY.size())
+
+
+## Mac step 1: the iPhone app on a Mac (mac_mode.gd detect, tiers.gd's `mac` rules).
+func _check_mac() -> void:
+	for row: Array in [
+			["iOS", "arm64", "Apple M4 Pro", true], ["iOS", "MacBookPro18,3", "", true], ["iOS", "x86_64", "", true],
+			["iOS", "iPhone17,2", "Apple A18 Pro GPU", false], ["iOS", "iPad16,3", "Apple M4", false],
+			["macOS", "MacBookPro18,3", "Apple M4 Pro", false], ["Android", "A063", "Adreno (TM) 642L", false]]:
+		if MacMode.detect(row[0], row[1], row[2]) != row[3]:
+			problems.append("mac detect %s / %s / %s: wanted %s" % row)
+	Tiers.mac = true
+	for pair: Array in [["Apple M4 Pro", Tiers.ULTRA], ["Apple M2", Tiers.HIGH], ["Apple M1", Tiers.HIGH],
+			["Apple M3", Tiers.ULTRA], ["Apple M2 Max", Tiers.ULTRA]]:
+		if Tiers.for_device("arm64", pair[0]) != pair[1]:
+			problems.append("mac Auto on %s: %s, wanted %s" % [pair[0], Tiers.NAMES[Tiers.for_device("arm64", pair[0])], Tiers.NAMES[pair[1]]])
+	# A 14" MacBook full screen, a 16", a 4K screen, a phone-sized window.
+	var want := {Vector2i(3024, 1964): [3, 3, 2, 2, 1], Vector2i(3456, 2234): [3, 3, 2, 2, 1],
+			Vector2i(3840, 2160): [4, 4, 3, 3, 1], Vector2i(1704, 786): [2, 2, 1, 1, 1]}
+	for screen: Vector2i in want:
+		for q in Tiers.QUALITY.size():
+			var k := Tiers.image_scale(Vector2(screen), 480.0, q)
+			var a := Tiers.auto_scale(Vector2(screen), 480.0, q, true)
+			if k != want[screen][q] or a != k:
+				problems.append("mac %dx%d %s: x%d (Auto x%d), wanted x%d" % [screen.x, screen.y, Tiers.NAMES[q], k, a, want[screen][q]])
+			if q < Tiers.EXPERIMENTAL and floorf(screen.x / float(k)) * floorf(screen.y / float(k)) > Tiers.MAC_BUDGET * 1e6:
+				problems.append("mac %dx%d %s: over the Mac's budget" % [screen.x, screen.y, Tiers.NAMES[q]])
+	for q in Tiers.QUALITY.size():
+		var msaa := int(Tiers.extra(q, "msaa"))
+		if msaa != (Viewport.MSAA_4X if q >= Tiers.HIGH else Viewport.MSAA_DISABLED):
+			problems.append("mac %s: msaa %d" % [Tiers.NAMES[q], msaa])
+	Tiers.overrides = {"msaa": Viewport.MSAA_DISABLED, "scale": 1}
+	if int(Tiers.extra(Tiers.ULTRA, "msaa")) != Viewport.MSAA_DISABLED or Tiers.image_scale(Vector2(3024, 1964), 480.0, Tiers.ULTRA) != 1:
+		problems.append("mac: --gfx= overrides no longer win")
+	Tiers.overrides = {}
+	Tiers.mac = false
+	if Tiers.image_scale(Vector2(3024, 1964), 480.0, Tiers.ULTRA) != 4 or int(Tiers.extra(Tiers.ULTRA, "msaa")) != Viewport.MSAA_DISABLED:
+		problems.append("mac off: the phone's rules did not come back")
+	# The keys that hide the touch pads, the presses that bring them back.
+	for row: Array in [[KEY_W, true], [KEY_M, true], [KEY_LEFT, true], [KEY_SPACE, true], [KEY_ESCAPE, false],
+			[KEY_BACK, false], [KEY_VOLUMEUP, false], [KEY_SHIFT, false]]:
+		var e := InputEventKey.new()
+		e.physical_keycode = row[0]
+		e.pressed = true
+		if MacMode.is_play_key(e) != row[1]:
+			problems.append("mac: key %s hides the pads: wanted %s" % [OS.get_keycode_string(row[0]), row[1]])
+		e.echo = true
+		if MacMode.is_play_key(e):
+			problems.append("mac: a repeat counted as a key press")
+	var touch := InputEventScreenTouch.new()
+	touch.pressed = true
+	var click := InputEventMouseButton.new()
+	click.pressed = true
+	click.button_index = MOUSE_BUTTON_LEFT
+	var wheel := InputEventMouseButton.new()
+	wheel.pressed = true
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	if not MacMode.is_touch(touch) or not MacMode.is_touch(click) or MacMode.is_touch(wheel):
+		problems.append("mac: a touch or click brings the pads back, the wheel doesn't")
+	print("mac: detection, Auto, x2 inside %.0f MP with MSAA 4x, overrides, keys and touches checked" % Tiers.MAC_BUDGET)

@@ -27,6 +27,8 @@ fence or hedge), `ty` (the typed look, the stadium's railing) and `hs` (the type
         (W3 of the walls look, 2026-11-15): on a map v1 already typed and with no --osm (main's
         map, TD-25) only the type fixes run (fix_types: types by id from road_objects.json `types`,
         tall fences and hedges by OSM's height, the squares' planter edges), once: the stamp's v.
+        Version 3 (W10a, 2026-11-21): the same rules, run again for the wall sweeps' types by id;
+        each sweep that changes `types` raises VERSION (see VERSION below).
         --retype types every line from the start again (the map's evidence alone without --osm).
         A post-pass: tools/check_post_passes.py runs it on the committed map.
     python3 -I tools/object_types.py fetch [--out=data/raw/osm/object_context.json]
@@ -62,7 +64,13 @@ MAP_DIR = os.path.join(ROOT, "game", "map")
 CTX_FILE = os.path.join(ROOT, "data", "raw", "osm", "object_context.json")
 # 2 (W3 of the walls look, 2026-11-15): the type fixes from the photos, fix_types() below, run on the
 # typed lines (main's map, or v1's output in a from-scratch bake)
-VERSION = 2
+# 3 (W10a, 2026-11-21): the first wall sweep's types by id (road_objects.json `types`, written by
+# tools/street_pass.py --apply from the sweep records' TYPE decisions). The rules are v2's; a sweep
+# that adds or changes a `types` entry raises VERSION by one so the guarded pass runs again on main's
+# map, the way W3 brought the stadium's ids in (fix_types is idempotent without the guard: on a map
+# at the old version with no new entry only the stamp changes). check_object_overrides.gd (verify
+# `overrides`) and street_pass.py --check fail while an entry has not reached centrum.json.
+VERSION = 3
 KEY = "object_types"
 KINDS = ("fence", "wall", "hedge")
 LON0, LAT0 = 21.0240, 52.2340
@@ -109,7 +117,9 @@ RIDE_BELOW, SMASH_BELOW = 0.6, 1.2
 # point. They stay there until the builder reads `ty`; --selftest checks these copies against it.
 SITE_WALLS = [
     ((-210.5, -650.9), ""),  # the UW escarpment: OSM's grey 2 m wall, left out under the brick wall (uw_skarpa)
-    ((-1639.7, -1217.3), ""), ((-1667.0, -1217.7), "balustrade_white"), ((-1657.7, -1219.1), "balustrade_white"),
+    ((-1639.7, -1217.3), ""),
+    ((552.3, -686.7), ""),  # the Syrenka's basin wall on Powiśle, built by its site (syrenka_powisle)
+    ((-1667.0, -1217.7), "balustrade_white"), ((-1657.7, -1219.1), "balustrade_white"),
     ((-1644.7, -1190.0), "balustrade_white"), ((-1656.4, -1197.6), "balustrade_white"),
     ((-1624.6, -1230.3), "balustrade_rail"), ((-1621.2, -1219.2), "balustrade_rail"),
     ((-1625.5, -1232.3), "balustrade_rail"), ((-1628.1, -1232.1), "balustrade_rail"),
@@ -1102,7 +1112,9 @@ def fix_types(d, rows=None, types=None):
     after_default = sum(length(pairs(l["p"])) for l in d.get("lines", []) if l.get("k") in KINDS and l.get("tc") == "default")
     stamp = dict(stamp)
     stamp["v"] = VERSION
-    stamp["fixes"] = dict(sorted(counts.items()))
+    # the lines each rule changed over every version run on this map (a v3 run on main's v2 map adds
+    # its id_type lines to W3's counts; a from-scratch bake counts them in one run)
+    stamp["fixes"] = dict(sorted((collections.Counter(stamp.get("fixes") or {}) + counts).items()))
     d[KEY] = stamp
     return "v2 fixes: %s lines (%s m); default %.1f -> %.1f km" % (
         dict(sorted(counts.items())), ", ".join("%s %d" % (r, m) for r, m in sorted(metres.items())) or "none",
@@ -1364,6 +1376,19 @@ def selftest():
     fix_types(d2, None, types={sid: "stadium_fence"})
     check("v2 idempotent", json.dumps(d2["lines"], sort_keys=True) == before and d2[KEY]["fixes"] == {}, True)
     check("v2 types known", all(t in TYPES for t in ("post_row", "stadium_fence", "ball_net", "hedge_tall", "low_wall")), True)
+    # W10a: a sweep's new id on a map typed at the previous version (main's map): the guarded pass runs
+    # once more, changes that line alone, adds to the stamp's counts, then stands still
+    d2[KEY] = {"v": VERSION - 1, "fixes": {"id_type": 1}}
+    sid2 = stable_id("wall", [10, 20, 30, 20])
+    want_types = {sid: "stadium_fence", sid2: "wall_stone"}
+    before = [dict(l) for l in d2["lines"]]
+    fix_types(d2, None, types=want_types)
+    changed = [n for n, (a, b) in enumerate(zip(before, d2["lines"])) if a != b]
+    check("sweep id changes its line alone", changed, [0])
+    check("sweep id type", (d2["lines"][0]["ty"], d2["lines"][0]["tc"], d2["lines"][0]["sc"], d2["lines"][0].get("hs")),
+          ("wall_stone", "tag", "H", 2.0))
+    check("sweep stamp", d2[KEY], {"v": VERSION, "fixes": {"id_type": 2}})
+    check("sweep second run", fix_types(d2, None, types=want_types).startswith("v2 fixes: already applied"), True)
     # the hand lists against the wall builder's
     src = open(os.path.join(ROOT, "game", "scripts", "city_barriers.gd"), encoding="utf-8").read()
     gd_site = re.findall(r'\[Vector2\(([-\d.]+), ([-\d.]+)\), "([a-z_]*)"\]', src.split("const SITE_WALLS")[1].split("\n]")[0])

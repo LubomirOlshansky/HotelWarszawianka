@@ -30,6 +30,8 @@ extends RefCounted
 
 const Solidity := preload("res://scripts/solidity.gd")
 const PanelRule := preload("res://scripts/panel_rule.gd")
+## W9 of the walls look: graffiti, stains, ivy, slogans and banners (called from build_barriers).
+const WallMarks := preload("res://scripts/wall_marks.gd")
 
 ## Operation Unslop's per-object decisions (tools/street_pass.py --apply writes them from the street
 ## records): {"items": {id: [verdict, style]}}. The id is road-objects.md's stable id: class, kind
@@ -86,6 +88,8 @@ const SITE_WALLS := [
 	# The University's escarpment wall over Powiśle: the site `uw_skarpa` builds it in brick (2026-11-15).
 	[Vector2(-210.5, -650.9), ""],
 	[Vector2(-1639.7, -1217.3), ""],
+	# The riverside Syrenka's basin wall (F, 2026-11-20): the site `syrenka_powisle` builds the basin and its front wall.
+	[Vector2(552.3, -686.7), ""],
 	[Vector2(-1667.0, -1217.7), "balustrade_white"],
 	[Vector2(-1657.7, -1219.1), "balustrade_white"],
 	[Vector2(-1644.7, -1190.0), "balustrade_white"],
@@ -215,6 +219,18 @@ var panel_pieces := 0
 var kit_diamonds := 0
 ## W8: the last build_barriers' gated lines, gaps, gate posts and open leaves (check_barrier_look prints them).
 var gate_counts := {}
+## W9 (walls doc 6.8): the last build_barriers' marks. `mark_tiles`: per 512 m tile (Vector2i, the sector's
+## key) the slogan and banner quads (wall_marks.gd Tile; none unless the look is typed or panels);
+## `mark_counts`: lines marked, patches by kind ("graffiti", "stain", "ivy"), "slogan", "banner" and the
+## colour quads' triangles ("tris"); `slogan_log`: per slogan [line id, metres along the line, the line's
+## length, the text's id, the point] (check_barrier_look's one-per-150-m rule). A sector build counts
+## the colour quads of every line it draws (the city mesh keeps the ones whose centre is in it) and the
+## poster quads inside it.
+var mark_tiles := {}
+var mark_counts := {}
+var slogan_log: Array = []
+## W9: false for a test that wants the lines without their marks (the synthetic cases of check_barrier_look).
+var marks_on := true
 ## W4: the metres drawn along the line so far (a panel piece's start; the same count as
 ## `_soft_run`, which soft_things.gd's panels are cut by), and a serial per line (two lines with
 ## one stable id stay two entries in a tile).
@@ -1594,6 +1610,9 @@ func build_barriers(st) -> void:
 	_panel_serial = 0
 	kit_diamonds = 0
 	gate_counts = {"lines": 0, "gaps": 0, "posts": 0, "leaves": 0}
+	mark_tiles = {}
+	mark_counts = {}
+	slogan_log = []
 	var typed_on := Solidity.barrier_look() != &"classic"
 	# W4: panels, unless this GPU gets the typed look instead (gpu_quirks.gd).
 	var panels_on := Solidity.barrier_look() == &"panels" and GpuQuirks.panels()
@@ -1607,6 +1626,8 @@ func build_barriers(st) -> void:
 			continue
 		if map._in_trybuna(l["p"]):
 			continue
+		if (l["k"] == "fence" or l["k"] == "wall") and map._on_markiewicz(map._pts(l["p"])):
+			continue  # Wiadukt Markiewicza's balustrades and their colliders are the landmark's (landmarks/karowa.gd)
 		if l["k"] == "fence" and _over_river(l["p"]):
 			continue
 		var style: Array = _placed(str(l["k"]))
@@ -1714,6 +1735,9 @@ func build_barriers(st) -> void:
 		else:
 			_draw_line(st, l, pts, style, look, solid, cls)
 		_soft_line = {}
+		# W9: the line's marks (graffiti, stains, ivy, slogans, banners) where it has a typed look.
+		if marks_on and typed_on and not look.is_empty() and look["draw"] == &"slab" and not stadium_fence_line(l):
+			WallMarks.draw(self, st, l, pts, look)
 	_pocket_hedges(st)
 	_stadium_gates(st, gate_segs)
 	map._uv2 = Vector2.ZERO
@@ -2196,6 +2220,9 @@ func build_guard_rails(st) -> void:
 		var poly: PackedVector2Array = map._pts(g["p"])
 		var dk := int(g.get("dk", -1))
 		var guard := &"guard_deck" if dk >= 0 else &"guard_ground"
+		# On Wiadukt Markiewicza the guard lines are the roadway's kerbs (landmarks/karowa.gd draws them):
+		# no rail, the collider kept.
+		var kerb_only: bool = dk >= 0 and map._on_markiewicz(poly)
 		var run := 0.0
 		var next_post := 0.0
 		for i in poly.size() - 1:
@@ -2208,6 +2235,11 @@ func build_guard_rails(st) -> void:
 			var side := Vector2(-dir.y, dir.x) * 0.06
 			var ga: float = map.deck_height(dk, a.x, a.y)
 			var gb: float = map.deck_height(dk, b.x, b.y)
+			if kerb_only:
+				run += length
+				map._solid(guard, [Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb - 0.3, b.y), Vector3(b.x, gb + 1.6, b.y),
+						Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb + 1.6, b.y), Vector3(a.x, ga + 1.6, a.y)], {"site": "wiadukt_markiewicza"})
+				continue
 			# The beam: two faces and a top, 0.55-0.85 m up.
 			var n := Vector3(side.x, 0, side.y).normalized()
 			for sgn in [1.0, -1.0]:

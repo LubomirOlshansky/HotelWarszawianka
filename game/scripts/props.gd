@@ -791,6 +791,9 @@ static func add_metro_entrance(st: SurfaceTool, xf: Transform3D, form := "canopy
 	var glass := Color("#a8cde6")
 	var granite := Color("#8d8b86")
 	var concrete := Color("#9a978f")
+	if form == "escalator_pit":
+		_metro_escalator_pit(st, xf)
+		return
 	if form == "post":
 		# Only the red M post: the stair and the glass belong to a landmark site (Metro Centrum's big
 		# pavilion by the Palace's park, landmarks/centre.gd `_glass_pavilion`).
@@ -911,6 +914,97 @@ static func add_metro_entrance(st: SurfaceTool, xf: Transform3D, form := "canopy
 				_xbox(st, xf, c + Vector3(x, 1.35, z), Vector3(0.1, 2.7, 0.1), steel)
 		_xbox(st, xf, c + Vector3(0, 2.72, 0), Vector3(1.5, 0.12, 1.5), steel)
 		_xbox(st, xf, c + Vector3(0, 0.95, -0.67), Vector3(0.9, 1.9, 0.04), Color("#3a3e45"))
+
+
+## Centrum Nauki Kopernik's entrance on the upper boulevard by the Syrenka (F's photo, 2026-11-21,
+## and Street View of 2017; local frame as add_metro_entrance's, open front -z, down towards +z):
+## a wide open pit of black granite, a stair with steel handrails on the +x side (towards the
+## statue) and one escalator with a tall curled stainless balustrade on the -x side, the far end
+## running in under a slab, a glass rail in green steel round it; on the -x side the lift's tall
+## block of pale granite tiles (over OSM's elevator housing) with a rounded front, a vent grille
+## and a glass fin, and on the +x side the roundel on its leaning pole beside a timber pillar.
+static func _metro_escalator_pit(st: SurfaceTool, xf: Transform3D) -> void:
+	var black := Color("#24262a")
+	var steel := Color("#c3c8cd")
+	var dark := Color("#1d1f24")
+	var green := Color("#43574c")
+	var glass := Color("#b6d6d8")
+	var pale := Color("#c8c9c6")
+	var pale_lo := Color("#aeb0ad")
+	var hw := 2.6
+	var z0 := -2.6
+	var z1 := 6.0
+	var zc := (z0 + z1) * 0.5
+	var zl := z1 - z0
+	# The well (Street View, 2017): a wide stair on the +x side (towards the statue) with steel
+	# handrails at both walls and down its middle, one escalator on the -x side; the far end runs
+	# in under a slab level with the paving, the station's dark mouth beneath it.
+	_xbox(st, xf, Vector3(0, 0.02, zc), Vector3(hw * 2.0, 0.03, zl), dark)
+	for i in 17:
+		var k := float(i) / 16.0
+		var zz := z0 + 0.25 + i * 0.44
+		_xbox(st, xf, Vector3(1.0, 0.04, zz), Vector3(3.2, 0.02, 0.22), Color("#8d9095").lerp(Color("#2a2c31"), k))
+		_xbox(st, xf, Vector3(-1.7, 0.045, zz), Vector3(1.1, 0.02, 0.16), Color("#9ea3a8").lerp(Color("#34373c"), k))
+	_xbox(st, xf, Vector3(0, 0.12, z1 - 1.0), Vector3(hw * 2.0, 0.24, 2.2), Color("#3a3d42"))
+	_xbox(st, xf, Vector3(0.0, 0.03, z1 - 2.15), Vector3(hw * 2.0 - 0.4, 0.04, 0.12), Color("#e3b23c"))
+	for x in [hw - 0.12, 1.0, -0.6]:
+		for z in [z0 + 0.4, zc - 0.6, z1 - 2.4]:
+			_xbox(st, xf, Vector3(x, 0.45, z), Vector3(0.05, 0.9, 0.05), steel)
+		_xbox(st, xf, Vector3(x, 0.92, zc - 1.0), Vector3(0.06, 0.05, zl - 3.0), steel)
+		_xbox(st, xf, Vector3(x, 0.62, zc - 1.0), Vector3(0.05, 0.04, zl - 3.0), steel)
+	# The escalator's stainless balustrade: a tall rounded rail on a black granite plinth, curling
+	# down to the paving at the mouth; the pit's own walls are black granite with a flush coping.
+	for x in [-hw + 0.15, -0.75]:
+		_xbox(st, xf, Vector3(x, 0.45, zc), Vector3(0.28, 0.9, zl - 2.2), black)
+		_xbox(st, xf, Vector3(x, 1.0, zc), Vector3(0.2, 0.2, zl - 2.2), steel)
+		var curl: Array[Vector3] = []
+		for j in 5:
+			var a := PI * 0.5 * float(j) / 4.0
+			curl.append(Vector3(x, 0.1 + 0.9 * cos(a), z0 + 1.1 - 0.9 * sin(a)))
+		for j in 4:
+			_xbeam(st, xf, curl[j], curl[j + 1], 0.2, 0.2, steel)
+	for x in [-hw - 0.15, hw + 0.15]:
+		_xbox(st, xf, Vector3(x, 0.02, zc), Vector3(0.3, 0.05, zl), black)
+	# The glass rail round the far end and down both sides, in green steel.
+	for seg: Array in [[Vector3(-hw - 0.15, 0, z0 + 2.2), Vector3(-hw - 0.15, 0, z1)],
+			[Vector3(hw + 0.15, 0, z0 + 2.2), Vector3(hw + 0.15, 0, z1)],
+			[Vector3(-hw - 0.15, 0, z1 + 0.1), Vector3(hw + 0.15, 0, z1 + 0.1)]]:
+		var a: Vector3 = seg[0]
+		var b: Vector3 = seg[1]
+		_xbeam(st, xf, a + Vector3(0, 0.55, 0), b + Vector3(0, 0.55, 0), 0.04, 1.0, glass, LIT_WINDOW)
+		_xbeam(st, xf, a + Vector3(0, 1.08, 0), b + Vector3(0, 1.08, 0), 0.08, 0.06, green)
+		var n := maxi(2, int(a.distance_to(b) / 1.6) + 1)
+		for i in n:
+			var q := a.lerp(b, float(i) / float(n - 1))
+			_xbox(st, xf, q + Vector3(0, 0.55, 0), Vector3(0.08, 1.1, 0.08), green)
+	# The lift's tall block beside the pit (OSM's elevator housing, 6.4 x 3.8 m, 7 m off the stair's
+	# line): pale granite tiles in courses, the front end rounded by two chamfers, a vent grille high
+	# on the side facing the pit, and a glass fin on steel arms standing out at its far end.
+	var sx := -7.0
+	_xbox(st, xf, Vector3(sx, 3.5, 3.2), Vector3(3.8, 7.0, 6.0), pale)
+	_xbox(st, xf, Vector3(sx, 3.45, -0.05), Vector3(3.0, 6.9, 0.5), pale_lo)
+	_xbox(st, xf, Vector3(sx, 3.4, -0.4), Vector3(1.8, 6.8, 0.3), pale_lo)
+	for y in [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]:
+		_xbox(st, xf, Vector3(sx, y, 3.2), Vector3(3.84, 0.03, 6.04), pale_lo)
+	_xbox(st, xf, Vector3(sx + 1.92, 5.8, 1.6), Vector3(0.04, 0.6, 0.9), dark)
+	_xbox(st, xf, Vector3(sx + 2.4, 2.2, 5.8), Vector3(0.9, 3.4, 0.05), glass, LIT_WINDOW)
+	for y in [1.1, 2.2, 3.3]:
+		_xbox(st, xf, Vector3(sx + 2.1, y, 5.78), Vector3(0.6, 0.06, 0.06), steel)
+	# On the left: the timber pillar and the roundel on its leaning steel pole.
+	var pole := Vector3(hw + 0.9, 0, -2.2)
+	_xbox(st, xf, pole + Vector3(-0.55, 1.9, 0.1), Vector3(0.24, 3.8, 0.24), Color("#7a4a2c"))
+	_xbeam(st, xf, pole, pole + Vector3(-0.2, 3.6, 0), 0.1, 0.1, steel)
+	_xbeam(st, xf, pole + Vector3(0, 0.9, 0), pole + Vector3(0.4, 2.4, 0), 0.07, 0.07, steel)
+	var sign := pole + Vector3(-0.2, 3.6, 0)
+	var ring: Array[Vector3] = []
+	for i in 9:
+		var a := TAU * float(i) / 8.0
+		ring.append(sign + Vector3(0.55 * cos(a), 0.55 * sin(a), 0))
+	for i in 8:
+		_xbeam(st, xf, ring[i], ring[i + 1], 0.12, 0.06, Color("#cfd3d6"))
+	_xbox(st, xf, sign, Vector3(0.78, 0.78, 0.06), Color("#f2c418"), LIT_SIGN)
+	_xbox(st, xf, sign + Vector3(0, 0, -0.035), Vector3(0.56, 0.56, 0.02), Color("#d22b22"), LIT_SIGN)
+	_metro_m(st, xf, sign, 0.07, [-1.0, 1.0], 0.09)
 
 
 ## The M post at the front right of an entrance: a 3.4 m pole, a 0.9 m red square, the M on both faces.

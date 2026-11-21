@@ -138,7 +138,7 @@ const BUDGET := {
 	"blekitny": 1850,  # 2026-11-15 photo pass (1521 tris): mirror glass, the glass barrel vault, the helipad box, the screen and the antennas
 	"bridge": 700,
 	"grzybowska77": 2000,
-	"buw": 9000,  # 2026-11-13 pass 4 from F's photos (copper frieze and letters, ribbed vault, ivy fronts, pink lattice, drums, dome, Collegium Iuridicum IV, lower garden): 8672 tris, +0 draw calls
+	"buw": 10600,  # 2026-11-20 pass 5 (rotunda dome and lookout drum on the corner, stair, funnel oculus, mound, pizzeria terrace and gate pier): 10391 tris, +0 draw calls; pass 4 was 8672
 	"central": 340,
 	"centralna": 1650,
 	"chalubinskiego8": 1520,
@@ -151,7 +151,7 @@ const BUDGET := {
 	"deski": 2300,
 	"rynek": 3100,
 	"syrenka": 480,
-	"syrenka_powisle": 260,
+	"syrenka_powisle": 1400,  # 2026-11-20: rebuilt at its real spot with the basin, the wall, the spouts and the slopes
 	"dworzec_wodny": 310,
 	"kaskada": 260,
 	"dtc": 2250,
@@ -236,7 +236,7 @@ const BUDGET := {
 	"spire": 6600,  # 2026-11-06 photo rebuild (F), 6151 tris (vase, steel crown ring, drum): steel columns, canopy bow, Spire B/C crowns and eaves, plaza kerbs, channel, 26 trees; +0 draw calls
 	"tr": 6500,  # 2026-11-15 rebuild from F's 13 photos: concrete shell with red formwork and rebar, two lattice cranes, flags, yard
 	"nozyce": 700,  # the gold scissors on their granite plinth (F's photo, 2026-11-15)
-	"jarmark": 7000,  # the Christmas market being set up on Plac Defilad (F's photos, 2026-11-15): huts, planters, tree, fence
+	"jarmark": 76000,  # 2026-11-20 the finished Jarmark Warszawski 2026 (F, for the trailer), 69,003 tris: over 200 stalls, the LED tree, the 38 m tower carousel, the Venetian carousel, bulb strings over every aisle; an exception to the L3 cap, a whole 160 by 90 m market in one site, +0 draw calls (one mesh)
 	"obeliski": 600,  # the two 1955 granite obelisks by the Palace and their exit hatches (F, 2026-11-15, 2026-11-17)
 	"tower75": 220,
 	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
@@ -304,7 +304,11 @@ const BUDGET := {
 	"wkd_ochota": 650,  # the stair has up to 40 steps on the real ground (6 on the flat stub)
 	"stadium": 9000,  # 2026-11-21 teaser 5 (F's drone photo): a lit line on every step, lit stair edges, the east gate portal: 7622 tris; F's night photos: mast-tip lamps, the rim's light line, promenade lamps, stair light lines: 5886 tris
 	"swieto": 240,
+	"ateneum": 5200,  # 2026-11-21 the whole Ateneum block from F's photos: L of two wings, rounded colonnaded corner, bays, attic, ATENEUM sign (measured 4973: up from 800 for the first single-wing version on purpose, the whole block is two wings and a corner)
+	"lipowa1a": 900,  # 2026-11-21 copper storeys, loggias on Lipowa, solid copper end, roof terrace (from the BUW thread's version, F: "i like")
 	"kladka": 8000,  # 2026-11-20 Kładka Abakanowicz from F's photos: 451 m deck, seating bays, rails, 7 supports (measured 5944)
+	"wiadukt_markiewicza": 8000,  # 2026-11-20 Wiadukt Markiewicza from F's photos: the ring, two vaults, balustrades, 8 obelisks, Syrena, the group
+	"szaja": 60,  # 2026-11-20 the memorial to Krzysztof "Szaya" Szaykowski (a default until F's photo)
 	"teatr": 820,  # 2026-11-08 photo pass (top-50 T06): ten columns, pediment, quadriga: 705 tris
 	# Plac Bankowy, Filharmonia, Teatr Polski (the Mac photo reports, 2026-11-02): fronts on kept skins.
 	"ratusz": 2500,
@@ -375,7 +379,8 @@ const BUDGET := {
 ## shader's windows on purpose (UV2.x a seed 0..1 or the typed tenement 1.x), the way a street
 ## block's `facade` walls do (fronts.gd _build_block): they go into the same building surface, so no
 ## draw call of their own; any plain triangle more than that number still fails.
-const KNOWN := {"port_praski": {"plain": 750}, "towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}, "tr": {"zfight": 8}}  # tr: 8 coplanar triangles in crane 1's A-frame legs at 36 m, not found (hidden in a lattice, never seen)
+## dom_chlopa "plain": the one wall quad (works.gd _dch_fill_front) over its south-west front, the same way.
+const KNOWN := {"lipowa1a": {"zfight": 2}, "port_praski": {"plain": 750}, "dom_chlopa": {"plain": 2}, "towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}, "tr": {"zfight": 8}}  # lipowa1a: 2 coplanar triangles where two cornice slabs meet at the base corners (12 m up, never seen); tr: 8 coplanar triangles in crane 1's A-frame legs at 36 m, not found (hidden in a lattice, never seen)
 
 var _probe: MeshProbe
 var problems: Array[String] = []

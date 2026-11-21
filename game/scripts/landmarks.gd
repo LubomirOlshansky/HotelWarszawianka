@@ -1,4 +1,4 @@
-extends "res://scripts/landmarks/kladka.gd"
+extends "res://scripts/landmarks/karowa.gd"
 ## v0.8 "Landmarks": the buildings that make it Warsaw at a glance, built in code
 ## from the real footprints and heights in centrum.json (OpenStreetMap outlines and
 ## building parts, which carry `height` / `min_height`) instead of their GUGiK LoD2 or
@@ -620,6 +620,12 @@ const INFO := {
 	"kladka": ["Kładka Abakanowicz",
 			"452 metry z Karowej na Pragę, otwarta w 2024. Mówili: kładka donikąd. Pierwszy tydzień: 200 tysięcy ludzi idących donikąd. Samochodów zero, schodki do siedzenia, a czerwona linia to południk.",
 			"452 metres from Karowa to Praga, opened in 2024. They called it the bridge to nowhere. First week: 200,000 people walking to nowhere. Zero cars, steps to sit on, and the red line is the meridian."],
+	"wiadukt_markiewicza": ["Wiadukt Markiewicza",
+			"1904: Karowa zawraca i przejeżdża nad sobą. Syrena Woydygi patrzy w dół, a w grudniu Barbórka robi tu Kryterium Asów i cała Warszawa stoi przy balustradzie.",
+			"1904: Karowa turns back and drives over itself. Woydyga's mermaid looks down, and every December the Barbórka rally runs its Kryterium Asów here while all of Warsaw leans on the balustrade."],
+	"szaja": ["Pomnik Krzysztofa „Szayi” Szaykowskiego",
+			"Głos Kryterium Asów na Karowej przez lata. To on nazwał tę ulicę Panią Karową.",
+			"The voice of the Kryterium Asów on Karowa for years. He was the one who named this street Lady Karowa."],
 	"swieto": ["Most Świętokrzyski",
 			"Most wantowy z 2000 roku: jeden pylon, wanty w jednej płaszczyźnie.",
 			"A cable-stayed bridge of 2000: one pylon, its stays in one plane."],
@@ -642,8 +648,8 @@ const INFO := {
 			"Z mieczem i tarczą, jak w herbie miasta. Stoi w fontannie pośrodku Rynku i pilnuje Warszawy.",
 			"With her sword and shield, as on the city's coat of arms. She stands in the fountain in the middle of the square and watches over Warsaw."],
 	"syrenka_powisle": ["Syrenka na Powiślu",
-			"Brązowa, z 1939 roku, dłuta Ludwiki Nitschowej. Z mieczem i tarczą patrzy na Wisłę z bulwaru u stóp Tamki.",
-			"Bronze, of 1939, by Ludwika Nitschowa. Sword and shield up, she watches the Vistula from the boulevard at the foot of Tamka."],
+			"Brązowa, z 1939 roku, dłuta Ludwiki Nitschowej. Z mieczem nad głową stoi w fontannie na skraju bulwaru i patrzy na Wisłę. Nocą prowadzą do niej światła w bruku.",
+			"Bronze, of 1939, by Ludwika Nitschowa. Sword over her head, she stands in her fountain at the boulevard's edge and watches the Vistula. At night the lights in the paving lead to her."],
 	"dworzec_wodny": ["Dworzec Wodny",
 			"Niski pawilon na nabrzeżu: szkło i drewno nad samą Wisłą.",
 			"A low pavilion on the quay: glass and timber right over the Vistula."],
@@ -710,6 +716,12 @@ const INFO := {
 	"teresy": ["Kościół św. Teresy od Dzieciątka Jezus",
 			"Jasny kościół parafialny przy Tamce, z wysokimi łukowymi oknami, okrągłym oknem i wielkim portalem.",
 			"A light parish church on Tamka, with tall arched windows, a round window and a big arched porch."],
+	"ateneum": ["Teatr Ateneum",
+			"Szary dom teatru przy Jaracza, z kolumnowym portykiem i kolorowym napisem nad wejściem.",
+			"The theatre's grey house on Jaracza, with a columned porch and the colourful name over the door."],
+	"lipowa1a": ["Lipowa 1A",
+			"Siedmiopiętrowy dom na Lipowej, naprzeciwko Biblioteki: biały cokół, szkło i zielonkawe żebra, taras na dachu.",
+			"A seven-storey house on Lipowa across from the Library: white base, glass and teal fins, a roof terrace."],
 	"flisac": ["Flisac, Tamka 2",
 			"Apartamentowiec przy moście Świętokrzyskim: jasny kamienny szkielet, tarasy na dachu i kawa na rogu.",
 			"The apartment block by the Świętokrzyski bridge: a light stone grid, roof terraces and coffee on the corner."],
@@ -740,9 +752,9 @@ const INFO := {
 	"nozyce": ["Złote nożyce",
 			"Wielkie złote nożyce na granitowym cokole przed białym muzeum.",
 			"Giant gold scissors on a granite plinth in front of the white museum."],
-	"jarmark": ["Jarmark na placu Defilad",
-			"Świąteczne budki, choinka i płotek. Jeszcze się rozstawia.",
-			"The Christmas market on Plac Defilad: huts, a big tree, a fence. Still going up."],
+	"jarmark": ["Jarmark Warszawski",
+			"Ponad 200 budek pod Pałacem, grzaniec, wielka choinka, karuzela wenecka, filiżanki i wieża z krzesełkami na placu Centralnym. Do 6 stycznia.",
+			"Over 200 huts under the Palace: mulled wine, the big tree, a Venetian carousel, teacups and a chair-swing tower on Plac Centralny. Until 6 January."],
 	"obeliski": ["Obeliski przy Pałacu",
 			"Dwa granitowe obeliski z 1955 roku, po 12 metrów, w półkolach od strony Marszałkowskiej; obok nich wyjścia ewakuacyjne z podziemi Pałacu. Z czterech zostały dwa.",
 			"Two 12 m granite obelisks of 1955 in the semicircles on the Marszałkowska side, beside the emergency exits from the Palace's underground. Two of the four survive."],
@@ -1112,6 +1124,10 @@ static func tower_colour(key: String, fallback: Color) -> Color:
 		return TERESY_BRICK
 	if key == "flisac":
 		return FLISAC_STONE
+	if key == "ateneum":
+		return ATE_WALL
+	if key == "lipowa1a":
+		return L1A_WHITE
 	if key == "vitkac":
 		return VITKAC_WALL
 	if key == "dom_partii":
@@ -1265,6 +1281,12 @@ func _find_sites() -> void:
 	_find_flag()
 	_find_swieto()
 	_find_kladka()
+	# Teatr Ateneum and Lipowa 1A (F, 2026-11-20).
+	_find_ateneum()
+	_find_lipowa1a()
+	# Karowa's serpentine (F, 2026-11-20): Wiadukt Markiewicza and the memorial to "Szaya".
+	_find_markiewicz()
+	_find_szaja()
 	# The museum and Plac Piłsudskiego loop (2026-10-31): the square's edges.
 	_find_plac()
 	_find_pawilony()
@@ -1686,6 +1708,14 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_flag(s)
 			"kladka":
 				_build_kladka(s)
+			"ateneum":
+				_build_ateneum(s)
+			"lipowa1a":
+				_build_lipowa1a(s)
+			"wiadukt_markiewicza":
+				_build_markiewicz(s)
+			"szaja":
+				_build_szaja(s)
 			"swieto":
 				_build_swieto(s)
 			"muzeum":

@@ -31,6 +31,8 @@ const CityBarriers := preload("res://scripts/city_barriers.gd")
 ## W4 of the walls look: the panels' numbers and rows texture, and their MultiMesh buffers.
 const PanelRule := preload("res://scripts/panel_rule.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
+## W9 of the walls look: the marks on walls (graffiti, stains, ivy, slogans, banners) and their atlas.
+const WallMarks := preload("res://scripts/wall_marks.gd")
 ## Pasaż Wiecha's white Y masts stand in place of the map's lamps there (first_scene.gd PASAZ).
 const FirstScene := preload("res://scripts/first_scene.gd")
 ## Tile size for instanced things (trees, lamps, parked cars). Loop 2b: 512 m (was 256): one
@@ -124,6 +126,12 @@ var season := "autumn"
 var data: Dictionary
 ## Tree crowns; the game feeds it the car position so crowns can open up around the car.
 @export_storage var leaf_material: ShaderMaterial
+## Perf thread (2026-11-19): the broadleaf crowns' shared mesh (map/shared/broadleaf.res in the prebuilt
+## city: every tile draws this one resource), so `set_tree_detail` can swap its surface at runtime.
+## Not stored in index.res: a new dependency there leaves one more of the engine's load tokens at
+## exit (TD-22, the boot run's 21; 22 on CI, 2026-11-21); the prebuilt city loads it by path instead.
+var broadleaf_mesh: ArrayMesh
+const BROADLEAF_RES := "res://map/shared/broadleaf.res"
 ## The materials the game updates every frame (car position for the see-through hole).
 @export_storage var building_material: ShaderMaterial
 @export_storage var flat_material: ShaderMaterial
@@ -132,6 +140,10 @@ var data: Dictionary
 @export_storage var panel_material: ShaderMaterial
 ## Every material that opens a see-through hole around the car (trees, parked cars, panels).
 @export_storage var fade_materials: Array[ShaderMaterial] = []
+## W9 of the walls look: the walls' slogans and banners (wall_mark.gdshader, `_build_marks`; null under
+## classic). main.gd gives it the building material's see-through hole and ghost, so a word goes with
+## the wall it is painted on.
+@export_storage var marks_material: ShaderMaterial
 ## F (2026-11-08): the materials of what stands on the ground over a tunnel and goes with the
 ## tunnel cutaway (tunnel_cut.gdshaderinc): the trees' crowns and trunks, the street lamps and their
 ## halos, the benches and bins. The ground's (flat_material) and the buildings' are set beside them.
@@ -691,6 +703,7 @@ func _build_parts(marks, roofs_only: bool) -> void:
 	_build_platforms(walls)
 	barriers.build_barriers(walls)
 	_build_panels()
+	_build_marks()
 	_uv2 = Vector2(0.5, -1.0)
 	_build_pkin_bushes(walls)
 	_uv2 = Vector2.ZERO
@@ -1734,6 +1747,40 @@ func _on_kladka(x: float, z: float) -> bool:
 	return false
 
 
+## Whether every point of a plan line lies on Wiadukt Markiewicza's ring (landmarks/karowa.gd
+## `mk_covers`): the bake's deck, walls and portals there are left to the landmark.
+static func _on_markiewicz(pts: PackedVector2Array) -> bool:
+	if pts.is_empty():
+		return false
+	for p in pts:
+		if not Landmarks.mk_covers(p):
+			return false
+	return true
+
+
+## Karowa's serpentine (F, 2026-11-20): its lamps are the cast-iron lanterns of the Royal Route, as
+## on Krakowskie Przedmieście (Mapillary 2019-2025), from the viaduct's west end down the loop and
+## the lower road to the bend at the escarpment's foot. Points [x, z] of the street's line.
+const KAROWA_LANTERNS := [Vector2(-358.0, -918.0), Vector2(-345.0, -903.0), Vector2(-330.0, -899.0),
+		Vector2(-308.0, -910.0), Vector2(-298.0, -930.0), Vector2(-305.0, -960.0), Vector2(-330.0, -984.0),
+		Vector2(-352.0, -976.0), Vector2(-358.0, -962.0), Vector2(-348.0, -945.0), Vector2(-338.0, -935.0),
+		Vector2(-322.0, -905.0), Vector2(-316.0, -888.0), Vector2(-296.0, -886.0), Vector2(-283.0, -907.0),
+		Vector2(-276.0, -930.0), Vector2(-280.0, -950.0), Vector2(-293.0, -974.0)]
+const KAROWA_LANTERN_REACH := 9.0
+
+
+## Whether a lamp at `at` stands by Karowa's serpentine (KAROWA_LANTERNS).
+static func _on_karowa(at: Vector2) -> bool:
+	if at.x < -375.0 or at.x > -265.0 or at.y < -995.0 or at.y > -875.0:
+		return false
+	for i in KAROWA_LANTERNS.size() - 1:
+		var a: Vector2 = KAROWA_LANTERNS[i]
+		var b: Vector2 = KAROWA_LANTERNS[i + 1]
+		if Geometry2D.get_closest_point_to_segment(at, a, b).distance_to(at) < KAROWA_LANTERN_REACH:
+			return true
+	return false
+
+
 ## The height of deck group g at a point (its nearest piece, projected onto it), or the
 ## terrain for g < 0. Things baked onto a bridge (markings, kerbs, tram tracks) use it.
 ## PT-18: the nearest point of deck group g's centrelines to p (p itself when there is none).
@@ -2452,6 +2499,10 @@ func _build_walls(st) -> void:
 	var towers: Array = data.get("towers", index_data.get("towers", []))
 	for w: Dictionary in data["walls"]:
 		var pts := _pts(w["p"])
+		if _on_markiewicz(pts):
+			continue  # Wiadukt Markiewicza's faces and passages (landmarks/karowa.gd) and their colliders
+		if Landmarks.mk_approach(pts):
+			continue  # F (2026-11-21): no retaining walls at the mouths of Wiadukt Markiewicza's passages
 		var tops: Array = w["t"]
 		var lows: Array = w["b"]
 		var flags: Array = w["f"]
@@ -2553,6 +2604,8 @@ func _build_portals(st) -> void:
 	_uv2 = Vector2(0.5, -1.0)
 	for f: Dictionary in data.get("tunnels", {}).get("frames", []):
 		var c := Vector2(float(f["c"][0]), float(f["c"][1]))
+		if Landmarks.mk_covers(c, 1.0):
+			continue  # the arches of Wiadukt Markiewicza (landmarks/karowa.gd) are its mouths
 		var d := Vector2(float(f["d"][0]), float(f["d"][1]))
 		var side := Vector2(-d.y, d.x)
 		var w := float(f["w"])
@@ -2577,7 +2630,86 @@ func _build_portals(st) -> void:
 		var b := head - d * 0.5 + side * (w * 0.5 + 1.2)
 		_solid(&"portal", [Vector3(a.x, y + PORTAL_MOUTH, a.y), Vector3(b.x, y + PORTAL_MOUTH, b.y), Vector3(b.x, top + 1.6, b.y),
 				Vector3(a.x, y + PORTAL_MOUTH, a.y), Vector3(b.x, top + 1.6, b.y), Vector3(a.x, top + 1.6, a.y)])
+	_wislostrada_portal(st)
 	_uv2 = Vector2.ZERO
+
+
+## The Wisłostrada tunnel's north mouth by the University Library (F, 2026-11-20, the street photos):
+## one wide beige concrete portal over both carriageways, not two frames. The pier between the two
+## mouths, a fascia band along the whole headwall, the green lane signs over each lane, and the grass
+## lid over the tunnel's first metres: the terrain's cells over the mouth fell away in a sawtooth and
+## showed the dark under it (the hole F saw). Only these two frames (PORTAL_WISLA_AT).
+const PORTAL_WISLA_AT := Vector2(157.4, -1052.0)
+const PORTAL_WISLA_BEIGE := Color("#cfc2a4")
+const PORTAL_WISLA_SIGN := Color("#1f6b4a")
+const PORTAL_LID := 14.0
+const PORTAL_LID_GRASS := Color("#87af7a")  # renders like the terrain grass beside it
+
+
+func _wislostrada_portal(st) -> void:
+	var frames: Array = []
+	for f: Dictionary in data.get("tunnels", {}).get("frames", []):
+		if Vector2(float(f["c"][0]), float(f["c"][1])).distance_to(PORTAL_WISLA_AT) < 12.0:
+			frames.append(f)
+	if frames.size() != 2:
+		return
+	var d := Vector2(float(frames[0]["d"][0]), float(frames[0]["d"][1])).normalized()
+	var side := Vector2(-d.y, d.x)
+	var basis := Basis(Vector3.UP, atan2(-d.x, -d.y))
+	var lo := INF
+	var hi := -INF
+	var y := INF
+	var top := -INF
+	var o := Vector2(float(frames[0]["c"][0]), float(frames[0]["c"][1]))
+	var lid := PackedVector2Array()
+	var mouths: Array[Vector2] = []  # (offset across, half width)
+	for f: Dictionary in frames:
+		var c := Vector2(float(f["c"][0]), float(f["c"][1]))
+		var w := float(f["w"])
+		var s := (c - o).dot(side)
+		lo = minf(lo, s - w * 0.5 - 1.2)
+		hi = maxf(hi, s + w * 0.5 + 1.2)
+		y = minf(y, float(f["y"]))
+		top = maxf(top, maxf(float(f["top"]), float(f["y"]) + PORTAL_MOUTH + 0.8) + 0.6)
+		mouths.append(Vector2(s, w * 0.5))
+		for sg: float in [-1.0, 1.0]:
+			for along: float in [-0.1, PORTAL_LID]:
+				lid.append(c + d * along + side * sg * (w * 0.5 + 1.8))
+	var at := func(s: float, along: float) -> Vector2:
+		return o + side * s + d * along
+	# the pier between the mouths, from the road to the headwall's top
+	mouths.sort_custom(func(m0: Vector2, m1: Vector2) -> bool: return m0.x < m1.x)
+	var g0 := mouths[0].x + mouths[0].y + 0.6
+	var g1 := mouths[1].x - mouths[1].y - 0.6
+	if g1 > g0:
+		var pc: Vector2 = at.call((g0 + g1) * 0.5, 0.5)
+		_box_oriented(st, Vector3(pc.x, (y - 0.5 + top) * 0.5, pc.y), basis, Vector3(g1 - g0, top - y + 0.5, 1.0), PORTAL_WISLA_BEIGE)
+	# the fascia along the whole front and a coping on top
+	var fc: Vector2 = at.call((lo + hi) * 0.5, -0.05)
+	_box_oriented(st, Vector3(fc.x, y + PORTAL_MOUTH + 0.7, fc.y), basis, Vector3(hi - lo, 1.6, 0.2), PORTAL_WISLA_BEIGE)
+	var cc: Vector2 = at.call((lo + hi) * 0.5, 0.4)
+	_box_oriented(st, Vector3(cc.x, top + 0.15, cc.y), basis, Vector3(hi - lo + 0.4, 0.3, 1.4), PORTAL_WISLA_BEIGE.lightened(0.08))
+	# the green lane signs over each lane, a white arrow on each
+	for m: Vector2 in mouths:
+		var lanes := maxi(2, roundi(m.y * 2.0 / 3.5))
+		for k in lanes:
+			var s := m.x - m.y + (float(k) + 0.5) * m.y * 2.0 / float(lanes)
+			var p: Vector2 = at.call(s, -0.2)
+			_box_oriented(st, Vector3(p.x, y + PORTAL_MOUTH + 0.75, p.y), basis, Vector3(0.9, 0.9, 0.12), PORTAL_WISLA_SIGN)
+			var q: Vector2 = at.call(s, -0.27)
+			_box_oriented(st, Vector3(q.x, y + PORTAL_MOUTH + 0.72, q.y), basis, Vector3(0.14, 0.5, 0.04), Color(0.95, 0.96, 0.94))
+	# the grass lid over the tunnel's first metres, just under the ground there: it shows only where
+	# the terrain's cells fell away
+	var hull := Geometry2D.convex_hull(lid)
+	if hull.size() > 3:
+		hull.resize(hull.size() - 1)
+		var tri := Geometry2D.triangulate_polygon(hull)
+		for k in range(0, tri.size(), 3):
+			var p0 := hull[tri[k]]
+			var p1 := hull[tri[k + 1]]
+			var p2 := hull[tri[k + 2]]
+			var h := top - 0.35
+			_tri(st, Vector3(p0.x, h, p0.y), Vector3(p1.x, h, p1.y), Vector3(p2.x, h, p2.y), Vector3.UP, PORTAL_LID_GRASS)
 
 
 ## The railway cutting west of Centralna (rail_cut.gd, F 2026-11-06): its banks in grass and its
@@ -7301,7 +7433,25 @@ const SURFACE_STYLE := {
 	"parking": ["#55595f", 6.0],
 	"playground": ["#c98a64", 13.0],
 	"fountain": ["#5ea8d8", 3.0],
+	# A dry fountain (DRY_FOUNTAINS): dark wet granite in 2.4 m slabs, walked and driven on.
+	"mirror": ["#41474d", 2.0],
 }
+
+
+## Fountains that are a water mirror, not a basin: a film of water on flush granite with mist jets
+## (a point inside each ring). Drawn as dark slabs, no shore and no water (tools/bake_water.py
+## keeps the same list): the Syrenka's "Fontanna" on the upper Vistula boulevard (F, 2026-11-21;
+## its jets and lights are syrenka_plaza.gd's).
+const DRY_FOUNTAINS: Array[Vector2] = [Vector2(515.0, -660.5)]
+
+
+## Whether fountain ring `p` (flat x, z pairs) is one of DRY_FOUNTAINS.
+func is_dry_fountain(p: Array) -> bool:
+	var ring := _pts(p)
+	for q in DRY_FOUNTAINS:
+		if Geometry2D.is_point_in_polygon(q, ring):
+			return true
+	return false
 
 
 ## Each surface kind's height over Y_AREA + 0.01, 2 mm apart (Plac Defilad, F 2026-11-09: the
@@ -7345,6 +7495,8 @@ func _build_surfaces(st) -> void:
 	var platforms := _rail_platform_polys()
 	for a in data.get("surfaces", []):
 		var style: Array = SURFACE_STYLE.get(a["k"], ["#cfc7b5", 0.0])
+		if a["k"] == "fountain" and is_dry_fountain(a["p"]):
+			style = SURFACE_STYLE["mirror"]
 		if a["k"] == "paving" and _is_lawn_carpet(a["p"]):
 			style = [LAWN_CARPET, style[1]]
 		_layer = float(style[1])
@@ -8198,6 +8350,8 @@ func _build_bridge_structures(st) -> void:
 		if int(d["kl"]) > 0:
 			continue  # Kładka Abakanowicz (tools/kladka.py): the landmark `kladka` draws its deck, railings and girder
 		var pts: PackedVector2Array = d["pts"]
+		if _on_markiewicz(pts):
+			continue  # Wiadukt Markiewicza: the landmark `wiadukt_markiewicza` draws its deck, faces and balustrades
 		var hs: PackedFloat32Array = d["h"]
 		var outer: PackedByteArray = d["o"]
 		var piers: bool = d["k"] in ["road", "rail"]
@@ -8395,7 +8549,7 @@ func _build_banks(st) -> void:
 		_shore_lines = _find_shore_lines()
 	_shore_fountains = 0
 	for s in data.get("surfaces", []):
-		if s["k"] != "fountain":
+		if s["k"] != "fountain" or is_dry_fountain(s["p"]):
 			continue
 		var ring := _pts(s["p"])
 		if ring.size() < 3:
@@ -10283,6 +10437,17 @@ func _tree_blocked(x: float, z: float) -> bool:
 	return false
 
 
+## A landmark keeps this spot clear of parked cars (landmarks.gd parked_free: the Christmas market
+## on Plac Defilad's car park).
+func _parked_blocked(x: float, z: float) -> bool:
+	if _marks == null:
+		return false
+	for c: Array in _marks.parked_free:
+		if (c[1] as Rect2).has_point(Vector2(x, z)) and Geometry2D.is_point_in_polygon(Vector2(x, z), c[0]):
+			return true
+	return false
+
+
 ## Trees thread (F, 2026-11-15: "all our trees look the same"): the kinds of tree the crowns
 ## take. Each is a silhouette (foliage.gdshader `crown_shape`, from the same crown mesh: no new
 ## draw call). The kind rides in the instance's custom data (r = kind / 16, g = a seed); nothing
@@ -10462,7 +10627,7 @@ func _build_trees() -> void:
 	lifted.append_array(real_trunks)
 	var no_colours: Array[Color] = []
 	_tree_multimesh(_shared["trunk"], _shared["trunk_mat"], lifted, no_colours)
-	_tree_multimesh(_shared["broadleaf"], leaf_material, broad, broad_col, broad_kind)
+	_tree_multimesh(_shared["broadleaf"], leaf_material, broad, broad_col, broad_kind, null, &"", _shared["broadleaf_shadow"])
 	_tree_multimesh(_shared["conifer"], leaf_material, needle, needle_col, needle_kind)
 
 
@@ -10491,6 +10656,8 @@ func _make_shared() -> void:
 	trunk_mat.set_shader_parameter("tint", Vector3(0.369, 0.275, 0.212))  # #5e4636
 	_shared["trunk_mat"] = trunk_mat
 	_shared["broadleaf"] = _broadleaf_mesh()
+	_shared["broadleaf_shadow"] = _broadleaf_mesh(false, false)
+	broadleaf_mesh = _shared["broadleaf"]
 	_shared["conifer"] = _conifer_mesh()
 
 	var metal := StandardMaterial3D.new()
@@ -10566,6 +10733,14 @@ func _make_shared() -> void:
 	_shared["panel"] = panel_material
 	_shared["panel_box"] = panel_box()
 	fade_materials.append(panel_material)
+	# W9: the walls' slogans and banners: wall_mark.gdshader with the atlas WallMarks draws (only under
+	# a look with marks: a classic city has no atlas).
+	marks_material = null
+	if Solidity.barrier_look() != &"classic":
+		marks_material = ShaderMaterial.new()
+		marks_material.shader = load("res://shaders/wall_mark.gdshader")
+		marks_material.set_shader_parameter("poster", WallMarks.atlas_texture())
+		_shared["wall_marks"] = marks_material
 
 	var halo := ShaderMaterial.new()
 	halo.shader = load("res://shaders/glow.gdshader")
@@ -10751,8 +10926,38 @@ func _build_panels() -> void:
 		_out.add_child(mmi)
 
 
+## W9 (walls doc 6.8): the slogan and banner quads of the last build_barriers (city_barriers.gd
+## `mark_tiles`; none unless the barrier look is typed or panels) as one MeshInstance3D per 512 m tile,
+## `Slogans` under the sector's root (or `Slogans_i_j` under the map, the whole city in one build): one
+## surface, wall_mark.gdshader's shared material (`wall_marks`, `marks_material`), no shadow. One draw
+## call a sector with any in view; none for a sector without a slogan or banner.
+func _build_marks() -> void:
+	var tiles: Dictionary = barriers.mark_tiles
+	if tiles.is_empty():
+		return
+	_make_shared()
+	for key: Vector2i in tiles:
+		var t = tiles[key]
+		if t.quads == 0:
+			continue
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = t.verts
+		arrays[Mesh.ARRAY_NORMAL] = t.norms
+		arrays[Mesh.ARRAY_TEX_UV] = t.uvs
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		var mi := MeshInstance3D.new()
+		mi.name = "Slogans" if _in_sector else "Slogans_%d_%d" % [key.x, key.y]
+		mi.mesh = mesh
+		mi.material_override = _shared["wall_marks"]
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.set_meta(&"slogan_quads", t.quads)
+		_out.add_child(mi)
+
+
 func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], colours: Array[Color],
-		custom: Array[Color] = [], parent: Node = null, tag := &"") -> Array[MultiMeshInstance3D]:
+		custom: Array[Color] = [], parent: Node = null, tag := &"", shadow_mesh: Mesh = null) -> Array[MultiMeshInstance3D]:
 	var made: Array[MultiMeshInstance3D] = []
 	# One MultiMesh per tile, so off-screen tiles are skipped.
 	var tiles := {}
@@ -10766,27 +10971,19 @@ func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], 
 		if _in_sector and key != _sector and note_reach == 0:
 			continue  # loop 3c: another sector's tile (step 4's check keeps the tiles round it)
 		var members: Array = tiles[key]
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.use_colors = not colours.is_empty()
-		mm.use_custom_data = not custom.is_empty()
-		mm.mesh = mesh
-		mm.instance_count = members.size()
-		var box := AABB(spots[members[0]].origin, Vector3.ZERO)
-		for k in members.size():
-			var i: int = members[k]
-			mm.set_instance_transform(k, spots[i])
-			box = box.expand(spots[i].origin)
-			if mm.use_colors:
-				mm.set_instance_color(k, colours[i])
-			if mm.use_custom_data:
-				mm.set_instance_custom_data(k, custom[i])
-		# Saved MultiMeshes don't recompute their bounds on load (the prebuilt city
-		# would cull every tile), so store them explicitly.
-		mm.custom_aabb = box.grow(20.0)  # trees thread: a 16.8 m crown with its lean
+		var mm := _tile_multimesh(mesh, spots, colours, custom, members)
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.material_override = material
+		if shadow_mesh != null:
+			# Perf thread (2026-11-19): the tile's shadow twin, the same instances with `shadow_mesh`,
+			# drawing only into the shadow map; the tile itself stops casting (the note above `set_tree_detail`).
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var twin := MultiMeshInstance3D.new()
+			twin.multimesh = _tile_multimesh(shadow_mesh, spots, colours, custom, members)
+			twin.material_override = material
+			twin.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+			(parent if parent != null else _out).add_child(twin)
 		if tag != &"":
 			mmi.set_meta(tag, key)  # step 8a: the parked cars' tile (soft_things.gd moves a pushed one)
 		if note_solids:
@@ -10801,7 +10998,9 @@ func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], 
 
 
 ## A faceted crown: an icosahedron cut once (an icosphere), stretched a little, flat-shaded.
-func _broadleaf_mesh() -> ArrayMesh:
+## Perf thread: `cut` false keeps the 20 faces (the simple crown, `set_tree_detail`); `limbs` false
+## leaves the limbs out (with `cut` false: the crowns' shadow twins, `_tree_multimesh`'s shadow_mesh).
+func _broadleaf_mesh(cut := true, limbs := true) -> ArrayMesh:
 	var t := (1.0 + sqrt(5.0)) / 2.0
 	var v := [Vector3(-1, t, 0), Vector3(1, t, 0), Vector3(-1, -t, 0), Vector3(1, -t, 0),
 			Vector3(0, -1, t), Vector3(0, 1, t), Vector3(0, -1, -t), Vector3(0, 1, -t),
@@ -10821,6 +11020,9 @@ func _broadleaf_mesh() -> ArrayMesh:
 		var ab := (a + b).normalized()
 		var bc := (b + c).normalized()
 		var ca := (c + a).normalized()
+		if not cut:
+			tris.append([a, b, c])
+			continue
 		tris.append_array([[a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]])
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -10839,6 +11041,8 @@ func _broadleaf_mesh() -> ArrayMesh:
 	# and five limbs from the crown's foot (Fable's review: six rods, 36 triangles). The shader
 	# moves their centre lines into the kind's silhouette and gives them a width in world metres;
 	# hidden in a full crown, they show as it thins and are the whole of a bare tree.
+	if not limbs:
+		return st.commit()
 	var foot := Vector3(0, 1.7, 0)
 	_limb(st, foot - Vector3(0, 0.4, 0), Vector3(0.1, 6.5, -0.05), 0.17, 0.06)
 	for k in 5:
@@ -10848,6 +11052,64 @@ func _broadleaf_mesh() -> ArrayMesh:
 		var tip := Vector3(0, 5.0 + 0.5 * (k % 2), 0) + out * 2.1
 		_limb(st, start, tip, 0.12, 0.04)
 	return st.commit()
+
+
+## One tile's MultiMesh: `members` (indices into the arrays) with their transforms, colours and
+## custom data, and its bounds. Only setters: it runs on the streamer's thread too, where a
+## RenderingServer getter (MultiMesh.buffer) would wait on the main thread and hang (the perf
+## thread's first twins did, 2026-11-20: check_height_threads and the runtime runs timed out).
+func _tile_multimesh(mesh: Mesh, spots: Array[Transform3D], colours: Array[Color], custom: Array[Color],
+		members: Array) -> MultiMesh:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = not colours.is_empty()
+	mm.use_custom_data = not custom.is_empty()
+	mm.mesh = mesh
+	mm.instance_count = members.size()
+	var box := AABB(spots[members[0]].origin, Vector3.ZERO)
+	for k in members.size():
+		var i: int = members[k]
+		mm.set_instance_transform(k, spots[i])
+		box = box.expand(spots[i].origin)
+		if mm.use_colors:
+			mm.set_instance_color(k, colours[i])
+		if mm.use_custom_data:
+			mm.set_instance_custom_data(k, custom[i])
+	# Saved MultiMeshes don't recompute their bounds on load (the prebuilt city
+	# would cull every tile), so store them explicitly.
+	mm.custom_aabb = box.grow(20.0)  # trees thread: a 16.8 m crown with its lean
+	return mm
+
+
+## Perf thread (2026-11-19): the crowns' sun shadows from the old 20-face crown with no limbs. The
+## cut crown and its six limbs are 116 triangles a tree, a quarter of the frame's triangles at the
+## spawn, and on the iPhone 11 the shadow pass alone was 11 fps at Ultra. ArrayMesh.shadow_mesh
+## can't do it: Godot uses it only for materials that keep the shared shadow material, and
+## foliage.gdshader moves its vertices. So each crown tile gets a twin: the same instances with the
+## simple mesh, drawing only into the shadow map, and the tile itself stops casting. Same draw
+## calls in each pass; the shadow keeps the kind's silhouette (the shader bends the 12 corners too),
+## a little coarser; a bare tree's limbs cast none. iPhone 11, Ultra: 41.8 → 43.8 fps (45.8 with
+## the simple crowns of `set_tree_detail`). Built in `_tree_multimesh` (its `shadow_mesh`).
+
+
+## Perf thread (2026-11-19): the crowns' detail, swapped in the shared mesh so every tile (built or
+## prebuilt, loaded now or later) follows: `fine` the cut crown (80 faces) with its limbs, 116
+## triangles a tree (the trees thread's); else the 20-face crown with its limbs, 56. The shader's
+## kinds, colours and silhouettes stay (it bends the 12 corners too, more coarsely). -1 until set.
+var _tree_fine := -1
+
+
+func set_tree_detail(fine: bool) -> void:
+	if broadleaf_mesh == null and ResourceLoader.exists(BROADLEAF_RES):
+		broadleaf_mesh = load(BROADLEAF_RES) as ArrayMesh  # the prebuilt city's (the sectors share this one)
+	if broadleaf_mesh == null or _tree_fine == int(fine):
+		return
+	_tree_fine = int(fine)
+	var src := _broadleaf_mesh(fine, true)
+	broadleaf_mesh.clear_surfaces()
+	broadleaf_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, src.surface_get_arrays(0), [], {},
+			src.surface_get_format(0) & ~Mesh.ARRAY_FORMAT_VERTEX & ~Mesh.ARRAY_FORMAT_NORMAL & ~Mesh.ARRAY_FORMAT_TEX_UV \
+			& ~Mesh.ARRAY_FORMAT_COLOR & ~Mesh.ARRAY_FORMAT_CUSTOM0 & ~Mesh.ARRAY_FORMAT_TANGENT)
 
 
 ## Trees thread: a three-sided rod from a to b for the crown's limbs, its half width ra at a and rb
@@ -10973,12 +11235,14 @@ func _build_street_furniture() -> void:
 		var z := float(list[i + 1])
 		if FirstScene.on_pasaz(Vector2(x, z)):
 			continue  # first_scene.gd's Y mast stands here
+		if Landmarks.mk_covers(Vector2(x, z), 1.0):
+			continue  # Wiadukt Markiewicza is lit by its own obelisk lamps (landmarks/karowa.gd)
 		var t := Transform3D(Basis(Vector3.UP, fposmod(x * 0.37 + z * 0.11, TAU)), Vector3(x, terrain_height(x, z), z))
 		if Vector2(x, z).distance_to(Vector2(CANDELABRAS.x, CANDELABRAS.y)) < CANDELABRAS.z:
 			candelabras.append(t)
 			candelabra_glows.append(SODIUM_GLOW)
 			continue
-		if _on_royal_route(x, z, royal):
+		if _on_royal_route(x, z, royal) or _on_karowa(Vector2(x, z)):
 			lanterns.append(t)
 			lantern_glows.append(SODIUM_GLOW if _sodium_at(x, z) else LED_GLOW)
 			continue
@@ -10992,6 +11256,8 @@ func _build_street_furniture() -> void:
 		var z := _extra_lamps[i + 1]
 		if _on_kladka(x, z):
 			continue  # Kładka Abakanowicz has no lamp posts: its light is the LED under the handrails
+		if Landmarks.mk_covers(Vector2(x, z), 1.0):
+			continue  # Wiadukt Markiewicza is lit by its own obelisk lamps
 		var t := Transform3D(Basis(Vector3.UP, _extra_lamps[i + 2]), Vector3(x, ground_height(x, z), z))
 		spots.append(t)
 		var head := t * Vector3(1.2, 0.0, 0.0)
@@ -11056,6 +11322,8 @@ func _build_street_furniture() -> void:
 	for i in range(0, list.size() - 3, 4):
 		var x := float(list[i])
 		var z := float(list[i + 1])
+		if _parked_blocked(x, z):
+			continue
 		spots.append(Transform3D(Basis(Vector3.UP, float(list[i + 2])), Vector3(x, terrain_height(x, z), z)))
 		paints.append(Color(CAR_PAINT[int(list[i + 3]) % CAR_PAINT.size()]))
 	for mmi in _tree_multimesh(_shared["parked"], _shared["car_paint"], spots, paints, [], null, PARKED_TILE):

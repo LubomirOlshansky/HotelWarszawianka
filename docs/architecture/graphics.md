@@ -34,6 +34,7 @@ after the scale-up, so they stay sharp and need no 3D transparency.
 | `map_edge.gdshader` | Land past the map edge |
 | `panel.gdshader` | W4 and W5 of the walls look: every light fence and hedge (W5: all light rows but the tram's railing) as instanced 2 m panels (one `Panels` MultiMesh a sector, `barrier_look` `panels` only): posts, rails, bars and a tint fill by the pixel rule (`panel_rule.gd`), the row's numbers from a rows texture, `discard` holes (`tiers.gd` panel_holes), no shadow; W5: sagging and leafy tops, closed rows (wood, hoarding, hedges) with joints and no holes, leaves on a green fence, the gap (squashed in vertex) and a wood gap's two boards; 3 of the lit budget |
 | `poster.gdshader`, `led_screen.gdshader`, `spire_*.gdshader`, `event_fog.gdshader` | Single landmarks and events |
+| `wall_mark.gdshader` | W9 of the walls look: the words painted on walls and the hoardings' banners (one `Slogans` mesh a sector, `barrier_look` `typed` and `panels` only; `wall_marks.gd` draws the atlas): poster.gdshader's day look with no emission (paint darkens at night with its wall), holed and ghosted with the wall as building.gdshader is (`main.gd` sets its values); no shadow; 14 of the lit budget |
 | `post.gdshader`, `vhs.gdshader` | Full-screen passes |
 | `title.gdshader`, `chrome.gdshader`, `solo.gdshader` | Title screen, wordmark, landmark review look |
 | `common`, `night`, `city_maps`, `ghost`, `tunnel_cut` `.gdshaderinc` | Shared code: noise macros, time of day, baked AO / light / surface maps, the see-through ghost, the tunnel cutaway |

@@ -164,7 +164,9 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"STARY BAKS", "MODERATO", "SUSHI", "BISTRO", "LUNCH", "PIEKARNIA", "RAMEN", "KAWA",
 		# The HUB (F's photos, 2026-11-19): The Roof bar ("on the roof"), the hotels and the
 		# office tenants as parodies, and the HUB's own name at its door.
-		"NA DACHU", "KORONA PLAZA", "KORONA", "PLAZA", "HOLIDEJ INN", "ORAKEL", "STANDARD CZARTER", "HUB"]
+		"NA DACHU", "KORONA PLAZA", "KORONA", "PLAZA", "HOLIDEJ INN", "ORAKEL", "STANDARD CZARTER", "HUB",
+		# The University Library's pizzeria under the lookout (F, 2026-11-20): a parody of its name.
+		"BOSKAJOLA"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)

@@ -261,6 +261,40 @@ in `/mnt/project-files/walls-research/w3/`:
 - The default share: 11.9 % to 11.5 % (fences 9.1 %), the new ratchets in `check_map_data.py`. The
   9 % aim needed the bollard-row rule (parked in `docs/QUESTIONS.md`).
 
+**Built in W10a (2026-11-21)**, the sweep path and the first sweep; verdict table, photos and sheets
+in `/mnt/project-files/walls-research/w10a/`:
+
+- **The path.** A sweep's TYPE decision, `{id: ["TYPE", ty, why, photo, date]}`, sits in a street's
+  `decisions` or in a place's (`places` in `docs/streets/streets.json`: slug, title, `at`, `r`,
+  `decisions`, for sweeps that are not one street). `tools/street_pass.py --apply` checks it (the type
+  is drawn and has a `looks` row, the id is on the map with its kind, a reason, a photo, an ISO date)
+  and writes it to `game/data/road_objects.json` `types` as `[ty, "street pass SLUG: why (photo,
+  date)"]`, keeping the hand-kept entries; streets still at the `baseline` stage are left out.
+  `object_types.py`'s guarded `fix_types` (rule `id_type`) carries it into `centrum.json` with no
+  re-bake: a sweep that adds or changes a `types` entry raises `VERSION` by one (3 now), so the pass
+  runs once more on main's map; the stamp's `fixes` add up. `street_pass.py --check` and the
+  verify step `overrides` fail while an entry has not reached the map. A TYPE cannot set a height:
+  `hs` is the type's default where OSM maps none, OSM's `h` stays.
+- **The first sweep**: 237 lines within 150 m of the Stadion Narodowy, the Rotunda, Plac
+  Grzybowski, Prosta by Wronia, the school on Twarda, the Filters, the boulevards and the Towarowa
+  railway, and the fountain park's basin, judged on Mapillary and Panoramax photos (newest first):
+  14 typed, 39 KEEP, 182 CHECK (no photo within 30 m or the line not in view; yard and gap walls
+  mostly), 2 with no palette row (Koszykowa's graphite metal-slat fence, kept as `wall_precast` and
+  `chain_link`). Typed: Plac Grzybowski's five plastered walls that are planter edges (`low_wall`,
+  0.5 m, R); the fences by the square, on Prosta and by the boulevards' car park (`bars_black`); the
+  Filters' fences on Koszykowa and Raszyńska (`bars_pier`); Al. Poniatowskiego's two kerb railings
+  by the stadium (`rail_street`); the car park by the Towarowa railway (`mesh_panel`); the fountain
+  park's long basin (`basin_rim`: no top rail over the water any more).
+- The default share: 11.47 % to 11.29 % (fences 9.08 % to 9.04 %); ratchets 11.3 and 9.1.
+- Measured against main on the same code: the classic per-sector hashes are main's on both paths
+  (no classic change); nodes in view and their kinds are main's at the five probe views under
+  `typed` and `panels` (no new draw call); the sloppy set A table is main's (229 contacts, 15 dead
+  stops); typed city vertices 12,240 fewer; check_solids totals unchanged.
+- Not by a type, parked: the boulevards' top rail (their wall is `wall_stone` without `hz`, and the
+  rail is drawn only where `hz` is water or drop); the basin's mapped 1.0 m height (the rim is
+  about 0.4 m); the stadium's #808 line by Al. Poniatowskiego wears a dark sheet hoarding in the
+  2026 photos (kept `stadium_fence`); a rust-red bar colour has no row.
+
 ## 6. How a type is drawn
 
 ### 6.1 The palette owns the look, and one key picks it
@@ -652,6 +686,16 @@ How it is wired (W6):
   `green_fence` lines (leaves and the hedge's sound, metal before) and 4 `hoarding` lines (a light
   sheet and the metal sound, wood before).
 - `check_panel_states` (verify `panelstates`); `--smash-fence=` for shots.
+
+### 6.8 Marks (W9)
+
+**Built in W9 (2026-11-20)**, behind `barrier_look` `typed` and `panels` (the key stays `classic`):
+
+- `game/scripts/wall_marks.gd`, called by `city_barriers.gd` for each line drawn by a heavy slab row or the hoarding, from the palette's new `marks` table (shares by row, sizes, colours) and the rows' `marks` lists (`wall_stone` gained `poster`, `hoarding` `banner`). Places are a hash of the line's stable id and its metres along the line's own points: the same on both paths and every run. None within 0.3 m of a corner or an end, nor of a W8 gap, a gate post (its width back from the opening) or a gate leaf; graffiti and slogans never on a landmark-guarded line.
+- Colour quads in the city mesh (vertex colour, prop path, no draw call), 1.5 to 2.5 cm off the face, both faces: `graffiti` (a muted spray patch 1 to 4 m by 0.4 to 1.4 m, with a bright inner block or a dark tag bar), `stain` (drip stripes under the coping), `ivy` (a mantle over the top, the cap's face and a stepped skirt). The bake has no setting for a wall (railway land, Wola works), so the graffiti share is flat per row (precast 0.5, stone 0.2, plaster 0.1 per 20 m and face): found, a bake pass that tags lines by setting.
+- Slogans and banners: words in `game/data/wall_marks.json` drawn with `pixel_font.gd` into one 512 x 64 atlas (128 KB), quads of one `Slogans` MeshInstance3D per sector (the existing poster items are built per object in `eggs.gd`, so not shared): one draw call a sector with a slogan or banner in view. A slogan is a painted word on a repainted patch of the wall's own colour, one per 150 m window of a line at most and never two closer than 150 m on a line; a district's words only on its own walls (`areas`: PRAGA ŻYJE on the right bank, WOLA NASZA in Wola, BULWARY NASZE on the left bank's river strip). Only four hoardings (21 m) are on the map: eight banners under `typed`; under `panels` a hoarding is panel pieces that fall flat when broken, so it carries none (a banner would stand in the air).
+- On the real map (typed, the whole city, landmark guards): 806 graffiti patches, 17,153 drips, 467 ivy clumps, 55 slogans and 8 banners. Cost: 41,266 more city-mesh triangles (graffiti 4 each, 3,224; drips 2 each, 34,306; ivy 8 each, 3,736), 123,798 vertices (+0.45 %); 63 slogan and banner quads in 36 sectors' `Slogans` meshes; the atlas 128 KB in memory (512 x 64 RGBA8, no mipmaps; 7.5 KB in `map/shared/wall_marks.res`); prebuilt sectors +0.38 % (222.76 MB against W8's 221.92). Draw calls +1 only where a sector with a slogan or banner is in view (of the five probe views, the zoomed river view: `s_1_-1`); the shadow pass +0. Colliders, soft lines and panel pieces are the same with the marks on and off in every sector (typed and panels).
+- Shader `game/shaders/wall_mark.gdshader`: poster.gdshader's look by day (nearest filtering, the cloud shading) with no emission, so at night the paint darkens with its wall (6.6 row 13: nothing glows); holed and ghosted with the wall (building.gdshader's see-through hole and the occlusion ghost on the same dither; `main.gd` sets them on `map_builder.gd` `marks_material`). `poster.gdshader` is unchanged. The barrier walls take no street-lamp light (they are on the building shader's prop path), so at night a wall and its words are lit by the moon and the car's own lamp alike.
 
 ## 8. Cost on the phone
 

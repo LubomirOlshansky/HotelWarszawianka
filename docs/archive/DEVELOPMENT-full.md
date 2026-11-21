@@ -5539,6 +5539,23 @@ R 6.9 → 7.8. Nothing changes in the classic look (the per-sector hashes are ma
 draws the planters 0.5 m, the castle garden's hedges at their mapped 3-5 m and the 6 m school fence
 as a net.
 
+**The first wall sweep (walls look W10a, 2026-11-21)**: a sweep's TYPE decision (`["TYPE", ty, why,
+photo, date]` by stable id, in a street's or a place's `decisions` in `docs/streets/streets.json`;
+`places` holds the sweeps that are not one street) goes through `tools/street_pass.py --apply` into
+`game/data/road_objects.json` `types` (the hand-kept entries stay) and reaches `centrum.json` through
+`object_types.py`'s guarded `fix_types` (`id_type`), with no re-bake: the sweep raises
+`object_types.VERSION` by one (3), so the pass runs once more on main's map; its stamp's `fixes` add up.
+The first sweep judged 237 lines within 150 m of eight places and the fountain park by street photos
+(the verdict table is in the walls-research folder, outside the repo): 14 typed, 39 kept, 182 CHECK
+(no photo or the line not in view), 2 with no palette row (Koszykowa's graphite slat fence, kept).
+The 14: Plac Grzybowski's five plastered walls that are planter edges (`low_wall`, 0.5 m, R), the bar
+fences by the square, on Prosta and by the boulevards' car park (`bars_black`), the Filters' fences on
+Koszykowa and Raszyńska (`bars_pier`), Al. Poniatowskiego's two kerb railings by the stadium
+(`rail_street`), the car park by the Towarowa railway (`mesh_panel`) and the fountain park's long
+basin (`basin_rim`, no top rail). Default share 11.47 → 11.29 % of 278.3 km (fences 9.08 → 9.04 %):
+`ALL_DEFAULT_MAX` 11.3 and `FENCE_DEFAULT_MAX` 9.1. Class km H 80.3 → 79.2, S 190.2 → 190.8,
+R 7.8 → 8.2. The game reads `sc` only for fences and hedges, whose class did not change.
+
 **Barrier gates (walls look W8, 2026-11-20)**: `tools/barrier_gates.py` is a post-pass on main's map
 (TD-25; last in `bake_osm.py` and in `tools/check_post_passes.py`; verify step `barriergates` runs its
 `--selftest` and `--check`; stamp `barrier_gates`, v2). On fence, wall and hedge lines of class S or H
@@ -6041,7 +6058,9 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--game-clock` | F 2026-11-19: run the game clock in a test run (a normal launch always does): 30x (pacing.json time.speed), the sun by the date (`--date=`, else this week's Friday), the long golden hour; `--time=` / `--clock=` set where it starts |
 | `--weather=clear\|rain` | start dry or in the rain (default clear) |
 | `--perf` | show the performance overlay (loop 2e: four lines: fps, frame time, worst, cap · CPU process + physics + draw, GPU, memory · draw calls by pass · objects, triangles) |
-| `--quality=auto\|low\|medium\|high\|ultra\|experimental` | the quality for this run (not saved; loop G1: default Auto, the level `tiers.gd` picks for the device; 0–3 are Low–Ultra; `experimental`/`exp` by name only, F 2026-11-10: Ultra plus the trailer's extras, never saved even from Settings) |
+| `--quality=auto\|low\|medium\|high\|ultra\|experimental` | the quality for this run (not saved; loop G1: default Auto, the level `tiers.gd` picks for the device; 0–3 are Low–Ultra; `experimental`/`exp` by name only, F 2026-11-10: Ultra plus the trailer's extras; saved from Settings since 2026-11-19, with a guard that falls back to Ultra once after a launch that never got going) |
+| `--gfx=key=value,...` | per-option overrides on top of the quality level, for this run (perf thread 2026-11-19, `tiers.gd value`/`parse_overrides`): any key of `Tiers.QUALITY` (`shadows`, `shadow_size`, `soft` 0-5, `small_shadows`, `reflect`, `glow`, `rain`, `traffic`, `people`, `tree_limbs`, `fine_trees`, `panel_holes`, `step`, `budget`, `full`, `msaa` 0/2/4/8, `aniso` 0-16, `lod`) plus `scale`, the image's exact screen pixels per image pixel. The bench card's quality line names them |
+| `--mac` / `--mac=off` | Mac step 1 (2026-11-20, `mac_mode.gd`): the rules of the iPhone app on a Mac on any computer, or off on one: Auto Ultra (High on a base M1 / M2), the image x2 inside 2 MP (Low / Medium x3) with MSAA 4x from High up, the HUD at least the window's height / 600 px a point, and a letter, arrow or space key hides the touch pads (a touch or click brings them back). Every launch logs `mac: on/off · OS · model · GPU`. `--gfx=` still wins |
 | `--model=ID` | loop G1: pick Auto's level as if on that device (`--model=iPhone12,1` is the iPhone 11: High; since loop G1b Auto draws it sharp, 1792×828 ×1, and 896×414 ×2 in the fallback; `iPhone17,2` the Pro Max: Ultra) |
 | `--last-session=struggled\|calm` | loop G1b: start Auto as if the last session at the sharp image struggled (this launch is the ×2 fallback) or was calm (the sharp image), whatever the settings file says; nothing of it is written. The `quality:` lines say what Auto picked and why (`quality: Auto→High ×1 sharp (iPhone12,1) · image 1792x828`, `quality: Auto→High ×2 fallback (last session: GPU extras down 74 s of 410) · …`) |
 | `--governor=on\|off\|log` | loop G1: the frame governor on or off for this run (default: on in a normal launch, held in test runs, the bench, the probe and the BENCH minute; `on` lets it act in those too); `log` is on plus a `governor status:` line every 5 s (loop G1b: with the session's tally where Auto's sharp rule applies) and a `governor minute N:` line per counted minute (fps, missed refreshes, GPU-bound ones, GPU extras down) |
@@ -6092,6 +6111,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--fotka` / `--photo` | loop MW-6: open Fotka at the start (screenshots of the photo mode) |
 | `--kadr=<n\|id>` | loop MW-6: Fotka open at that Kadr spot (`kadr.json`, 1-15 or `k07`), in its look, aimed at its subject, a photo 2 s later; implies `--photo-log` |
 | `--fotka-shot=S` | loop MW-6: with `--fotka`, take a photo S s after it opens |
+| `--promo` / `--promo=free,lock,grid,ghost,nohud,clean,panel,vertical,16:9,9:16,4:5,1:1` | F 2026-11-20: Promo Mode on for the run (promo_mode.gd; the DEV setting "Promo mode"), with those switches set: the free camera, the locked yaw, the thirds grid, the HUD invisible or hidden, the panel hidden or open, a frame guide, the screen turned to portrait (`vertical`; a windowed run turns its window). Its COPY gives the `--cam= --yaw= --pitch= --size= --game-clock --clock= --date=` that render the same frame |
 | `--photo-log` | loop MW-6: print `fotka:` lines (open, close, `fotka: saved user://photos/... (WxH)`) and `kadr:` lines (`kadr: n ok (<id> ...)` or `kadr: none (why)`) |
 | `--crowd=0\|1\|2` | loop MW-3: the night and river crowds off (nothing built, no cost), normal (default) or doubled; the Low tier halves them |
 | `--night-log` | loop MW-3: print `night:` lines: the sites at the start, a summary every minute (`night: 01:00 day 6 · queues … smola 24 … · rejections 1 · car lines 0 · dawn walkers 30 · roof 0, steps 24, plan_c 28 · police on`), each rejection, line, police unit and the dawn routes |

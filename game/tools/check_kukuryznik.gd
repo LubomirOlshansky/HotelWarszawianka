@@ -117,7 +117,7 @@ func _check_rules() -> void:
 # 2. ------------------------------------------------------------------------------------------
 
 func _check_mesh() -> void:
-	var mesh := CityLife.kuk_mesh()
+	var mesh := CityLife.kukuryznik_mesh()
 	var tris := 0
 	for s in mesh.get_surface_count():
 		var arr := mesh.surface_get_arrays(s)

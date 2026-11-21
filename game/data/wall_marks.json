@@ -1,0 +1,28 @@
+{
+	"_about": "W9 of the walls look (docs/design/walls-true-to-life.md 6.8): the words on the city's walls, in the 5x7 pixel font (game/scripts/pixel_font.gd), drawn into one atlas by game/scripts/wall_marks.gd. Polish only on the wall (UPPERCASE, correct diacritics); `en` is the gloss for the review (warsaw-tone skill: original, affectionate, invented, no real brand, club, firm, development, person or slur). `slogans`: one line each, at most 15 letters; `on` the looks rows whose walls may carry it (the palette's `marks.slogan.share` rows); `area` (optional) the name of a polygon in `areas` the slogan's wall must stand in (a district's name on its own walls). `banners`: developer hoarding banners, `lines` one to two lines of at most 11 letters, the invented developer's slogans; no real developer, brand or price. `areas`: polygons in map metres (x, z pairs, +x east, +z south), rough on purpose: `praga` the right bank east of the Vistula's right edge (the river's outline in centrum.json `areas`, water, every 200 m, extended north and south along its course); `wola` west of Aleja Jana Pawła II and north of Aleje Jerozolimskie (their centre lines in centrum.json `roads`); `bulwary` the left bank's strip along the river from north of the Old Town to the Łazienkowski bridge, from 300 m inland to 60 m out over the water's left edge (the river's outline every 200 m).",
+	"slogans": [
+		{"id": "praga", "pl": "PRAGA ŻYJE", "en": "PRAGA LIVES", "on": ["wall_precast", "wall_stone"], "area": "praga"},
+		{"id": "wola", "pl": "WOLA NASZA", "en": "WOLA IS OURS", "on": ["wall_precast"], "area": "wola"},
+		{"id": "tubylem", "pl": "TU BYŁEM", "en": "I WAS HERE", "on": ["wall_precast", "wall_stone"]},
+		{"id": "noc", "pl": "NOC NASZA", "en": "THE NIGHT IS OURS", "on": ["wall_precast", "wall_stone"]},
+		{"id": "golebie", "pl": "GOŁĘBIE RZĄDZĄ", "en": "THE PIGEONS RULE", "on": ["wall_precast", "wall_stone"]},
+		{"id": "remont", "pl": "REMONT TRWA", "en": "ROADWORKS GO ON", "on": ["wall_precast"]},
+		{"id": "korek", "pl": "WIECZNY KOREK", "en": "THE ETERNAL JAM", "on": ["wall_precast", "wall_stone"]},
+		{"id": "bulwary", "pl": "BULWARY NASZE", "en": "THE BOULEVARDS ARE OURS", "on": ["wall_stone"], "area": "bulwary"},
+		{"id": "stolica", "pl": "STOLICA GRA", "en": "THE CAPITAL PLAYS", "on": ["wall_precast", "wall_stone"]},
+		{"id": "zastolice", "pl": "ZA STOLICĘ", "en": "FOR THE CAPITAL", "on": ["wall_precast", "wall_stone"]},
+		{"id": "kebab", "pl": "KEBAB TO MIŁOŚĆ", "en": "KEBAB IS LOVE", "on": ["wall_precast"]}
+	],
+	"banners": [
+		{"id": "ostatnie", "lines": ["OSTATNIE", "MIESZKANIA"], "pl": "OSTATNIE MIESZKANIA", "en": "THE LAST FLATS LEFT (as ever)"},
+		{"id": "cena", "lines": ["ZAPYTAJ", "O CENĘ"], "pl": "ZAPYTAJ O CENĘ", "en": "ASK ABOUT THE PRICE"},
+		{"id": "pieknie", "lines": ["TU BĘDZIE", "PIĘKNIE"], "pl": "TU BĘDZIE PIĘKNIE", "en": "IT WILL BE LOVELY HERE"},
+		{"id": "beton", "lines": ["ZAUFAJ", "BETONOWI"], "pl": "ZAUFAJ BETONOWI", "en": "TRUST THE CONCRETE"},
+		{"id": "widok", "lines": ["APARTAMENTY", "Z WIDOKIEM"], "pl": "APARTAMENTY Z WIDOKIEM", "en": "APARTMENTS WITH A VIEW (of the next block)"}
+	],
+	"areas": {
+		"praga": [-560, -2800, -350, -2100, 49, -1700, 91, -1500, 362, -1300, 558, -1100, 714, -900, 982, -700, 1058, -500, 1164, -300, 1280, -100, 1411, 100, 1542, 300, 1684, 500, 1729, 700, 1850, 1000, 1990, 1400, 2100, 1800, 2300, 1800, 2300, -2800],
+		"wola": [-2936, -2800, -2789, -2252, -2504, -1694, -2245, -1167, -2027, -757, -1903, -539, -1802, -67, -1616, 395, -1540, 700, -2145, 902, -2530, 1054, -2852, 1210, -3200, 1380, -3200, -2800],
+		"bulwary": [-894, -2050, -588, -1700, -533, -1500, -338, -1300, -102, -1100, 117, -900, 306, -700, 455, -500, 595, -300, 718, -100, 1078, -100, 955, -300, 815, -500, 666, -700, 477, -900, 258, -1100, 22, -1300, -173, -1500, -228, -1700, -534, -2050]
+	}
+}

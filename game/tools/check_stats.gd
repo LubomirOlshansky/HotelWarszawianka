@@ -104,6 +104,10 @@ func _device() -> void:
 	_expect(PlayStats.device_name("iPhone99,1") == "iphone99.1", "an unknown iPhone code: %s" % PlayStats.device_name("iPhone99,1"))
 	_expect(PlayStats.device_name("SM-S918B") == "sm-s918b", "an Android model code: %s" % PlayStats.device_name("SM-S918B"))
 	_expect(PlayStats.device_name("A phone with a very long name that is no slug at all") == "", "a long model was sent")
+	_expect(PlayStats.platform_for("iOS", "iPhone99,10") == "mac_ios_app", "an iPhone app on a Mac is not mac_ios_app")
+	_expect(PlayStats.platform_for("iOS", "iPhone17,2") == "ios" and PlayStats.platform_for("Android", "SM-S918B") == "android", "platform_for iOS/Android")
+	_expect(PlayStats.platform_for("macOS", "MacBookPro18,1") == "macos", "a native Mac build is macos")
+	_expect(PlayStats.is_mac_model("iPad99,2") and not PlayStats.is_mac_model("iPad13,1"), "is_mac_model")
 	_expect(not PlayStats.STRIPPED.has("$device_model") and PlayStats.STRIPPED.has("$locale"), "STRIPPED is not just the locale")
 
 
@@ -115,13 +119,31 @@ func _log() -> void:
 	s.begin()
 	_expect(s.tracked.is_empty(), "an OFF run tracked")
 	s.setup(true, false, true, "log", {"platform": "Linux"})
+	s.load_ms = 4321
 	s.begin()
 	_expect(_names(s).has("session_start"), "no session_start")
+	_expect(int(s.tracked.back()["props"].get("load_ms", -1)) == 4321 and s.load_ms == 0, "session_start's load_ms: %s" % s.tracked.back())
+	# Perf thread: two fps samples, at 2 and 10 minutes of play, with the level, the image's scale and the cap.
+	s.quality_now = func() -> String: return "High"
+	s.image_scale = func() -> int: return 2
+	s.frame_cap = func() -> int: return 60
+	for t: float in [121.0, 601.0, 1300.0]:
+		s._play = t
+		for i in PlayStats.FPS_WINDOW + 1:
+			s._second()
+	var samples := s.tracked.filter(func(e: Dictionary) -> bool: return e["event"] == "fps_sample")
+	_expect(samples.size() == 2, "fps samples: %d, wanted 2" % samples.size())
+	if samples.size() == 2:
+		var p0: Dictionary = samples[0]["props"]
+		_expect(int(p0["minute"]) == 2 and int(samples[1]["props"]["minute"]) == 10 and p0["quality"] == "high"
+				and int(p0["scale"]) == 2 and int(p0["frame_cap"]) == 60, "fps_sample's props: %s" % p0)
 	s._on_setting("traffic", 2)
 	s._on_setting("master", 0.4)
 	_expect(_names(s).count("setting") == 1, "settings counted: %d (traffic yes, a volume slider no)" % _names(s).count("setting"))
+	_expect(FileAccess.file_exists(PlayStats.CHECKPOINT_PATH), "no session checkpoint while playing")
 	s.pause()
 	s.pause()
+	_expect(not FileAccess.file_exists(PlayStats.CHECKPOINT_PATH), "the checkpoint stayed after an end in order")
 	_expect(_names(s).count("session_end") == 1, "session_end %d times" % _names(s).count("session_end"))
 	s.resume()
 	_expect(_names(s).count("session_start") == 2, "resume did not start a new stretch")
@@ -132,6 +154,21 @@ func _log() -> void:
 	s.pause()
 	_expect(s.tracked.size() == n and s.mode == PlayStats.Mode.OFF, "events tracked after the setting went off")
 	s.queue_free()
+	# A killed session leaves its checkpoint: the next launch says session_end how=lost and crashed_before.
+	var f := FileAccess.open(PlayStats.CHECKPOINT_PATH, FileAccess.WRITE)
+	f.store_string("{\"play\": 600.0, \"km\": 2500.0, \"runs\": 2, \"zl\": 40, \"heli_pct\": 10}")
+	f.close()
+	var t: PlayStats = PlayStats.new()
+	root.add_child(t)
+	t.setup(true, false, true, "log", {})
+	t.begin()
+	var lost := t.tracked.filter(func(e: Dictionary) -> bool: return e["event"] == "session_end")
+	_expect(lost.size() == 1 and lost[0]["props"].get("how") == "lost" and float(lost[0]["props"].get("minutes_played", 0)) == 10.0, "a lost session was not recovered: %s" % [lost])
+	_expect(bool(t.tracked.back()["props"].get("crashed_before", false)), "session_start did not carry crashed_before")
+	t.pause()
+	t.queue_free()
+	var g := PlayStats.clean("first_job", {"stage": "start", "activity": "Bar Crawl", "t_play_s": 5})
+	_expect(not g.is_empty() and g["props"].get("stage") == "start", "first_job is not on the list")
 
 
 func _names(s: PlayStats) -> Array:

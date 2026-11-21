@@ -186,6 +186,8 @@ traffic Driver because the campus paths are not in the lane graph.
   `set_scene` (crash scenes). The slot ranges are agreed by hand today (tech-debt TD-6).
 - **Crowds, packs, fans, wellness** draw still or looping figures in the same person mesh and
   material. They switch on by the game clock and place (`hours`, weekdays).
+- **The leap** (`leap`, F's scooter chaos): walkers ahead of a Kukuryźnik hop to the far side of their
+  footway; the shout is city_life.gd's, through the chatter budget.
 - **Schodki nad Wisłą life** (`boulevard_life.gd`, 2026-11-19): pure closed-form poses (a function
   of the clock, no state) for a Policja or Straż Miejska patrol (with a dog at night), evening and
   day walkers, the food queues and scooter/rollerblade riders along the Vistula steps by Kopernik.

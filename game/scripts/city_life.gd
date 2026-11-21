@@ -44,6 +44,7 @@ const EggBook := preload("res://scripts/egg_book.gd")
 const Pedestrians := preload("res://scripts/pedestrians.gd")
 const BoulevardLife := preload("res://scripts/boulevard_life.gd")
 const KladkaLife := preload("res://scripts/kladka_life.gd")
+const JarmarkLife := preload("res://scripts/jarmark_life.gd")
 const Props := preload("res://scripts/props.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const ScooterZones := preload("res://scripts/scooter_zones.gd")
@@ -551,6 +552,9 @@ var _blvd_line_t := 0.0
 ## Which of the two is up now (set by _blvd_near): the steps' life, the footbridge's.
 var _blvd_on := false
 var _kl_on := false
+## Jarmark Warszawski (jarmark_life.gd, F 2026-11-20) rides the same bit and slots: its strollers are
+## up when the view is within JarmarkLife.NEAR_R of the market and it is open (far from both others).
+var _jm_on := false
 ## The footbridge's passers-by's lines said (check_life reads it).
 var kladka_lines := 0
 var blvd_lines := 0
@@ -1594,11 +1598,15 @@ func _build_drawing() -> void:
 	_ped_buf.resize(PEDZIK_CAP * 16)
 	_ped_buf.fill(0.0)
 	_ped_mmi = _new_mmi(_ped_mm, "Pedzik")
+	_sc_mm = _new_mm(kukuryznik_mesh(), KUK_CAP)
+	_sc_buf.resize(KUK_CAP * 16)
+	_sc_buf.fill(0.0)
+	_sc_mmi = _new_mmi(_sc_mm, "Kukuryznik")
 	_scoot_mm = _new_mm(scooter_mesh(), SCOOT_CAP)
 	_scoot_buf.resize(SCOOT_CAP * 16)
 	_scoot_buf.fill(0.0)
 	_scoot_mmi = _new_mmi(_scoot_mm, "Scooters")
-	_sc_mm = _new_mm(kuk_mesh(), KUK_CAP)
+	_sc_mm = _new_mm(kukuryznik_mesh(), KUK_CAP)
 	_sc_buf.resize(KUK_CAP * 16)
 	_sc_buf.fill(0.0)
 	_sc_mmi = _new_mmi(_sc_mm, "Kukuryznik")
@@ -2170,6 +2178,8 @@ func _hide_all() -> void:
 	_bike_mmi.visible = false
 	_ped_mm.visible_instance_count = 0
 	_ped_mmi.visible = false
+	_sc_mm.visible_instance_count = 0
+	_sc_mmi.visible = false
 	_scoot_mm.visible_instance_count = 0
 	_scoot_mmi.visible = false
 	_sc_mm.visible_instance_count = 0
@@ -3127,6 +3137,7 @@ func _write_all(eye: Vector2, car2: Vector2) -> void:
 		InstanceBuffers.send(_ped_mm.get_rid(), _ped_buf)
 		_ped_mm.custom_aabb = pbox.grow(1.5).expand(pbox.end + Vector3(0, 2.2, 0))
 	_ped_mmi.visible = pn > 0
+	_write_scoots()
 	_write_scooters()
 	_write_scoots()
 	_write_guests(eye, car2, hyrax, infl, aport_near)
@@ -3286,7 +3297,8 @@ func _hyrax_loop() -> void:
 func _blvd_near(eye: Vector2) -> bool:
 	_blvd_on = amount > 0.0 and BoulevardLife.active(_hour) and eye.distance_to(BoulevardLife.C) < BoulevardLife.NEAR_R
 	_kl_on = amount > 0.0 and not _blvd_on and KladkaLife.near(eye, _hour)
-	return _blvd_on or _kl_on
+	_jm_on = amount > 0.0 and not _blvd_on and not _kl_on and JarmarkLife.near(eye, _hour)
+	return _blvd_on or _kl_on or _jm_on
 
 
 ## The patrol's figures and dog now: BoulevardLife.patrol_figures for the hour's kind and pairs
@@ -3311,13 +3323,15 @@ func _blvd_target() -> Dictionary:
 func _blvd_sig() -> int:
 	var pose := _blvd_pose()
 	return (pose["figs"] as Array).size() | (1 if not (pose["dog"] as Array).is_empty() else 0) << 4 \
-			| _walkers_now(0.0).size() << 5 | _riders_now(0.0).size() << 11 | int(_kl_on) << 17
+			| _walkers_now(0.0).size() << 5 | _riders_now(0.0).size() << 11 | int(_kl_on) << 17 | int(_jm_on) << 18
 
 
 ## The walkers of the place that is up now (the steps' or the footbridge's), at clock `at_t`.
 func _walkers_now(at_t: float) -> Array:
 	if _kl_on:
 		return KladkaLife.walker_figures(at_t, _hour)
+	if _jm_on:
+		return JarmarkLife.walker_figures(at_t, _hour)
 	return BoulevardLife.walker_figures(at_t, _hour) if _blvd_on else []
 
 
@@ -3390,6 +3404,8 @@ func _blvd_talk(eye: Vector2, step: float) -> void:
 	if _kl_on:
 		_kl_talk(eye)
 		return
+	if _jm_on:
+		return
 	var kind := BoulevardLife.patrol_kind(_hour)
 	if kind == "":
 		return
@@ -3446,6 +3462,8 @@ func _ground(p: Vector2) -> float:
 ## The height a steps' or footbridge figure stands at: the footbridge's walk when that life is up
 ## (the terrain under it is the river), else the ground.
 func _life_y(p: Vector2) -> float:
+	if _jm_on:
+		return _ground(p) + JarmarkLife.lift(p)
 	return KladkaLife.walk_y(p) if _kl_on else _ground(p)
 
 
@@ -4247,7 +4265,7 @@ func scoot_summary() -> String:
 ## in a hoodie (the instance colour), hood up. Four shapes (SC_*): alone with a speaker on the bar,
 ## two on one deck (the second holds the speaker up), the wipeout (on its side, the rider sitting
 ## by it filming), the stop (upright, the rider beside it, phone at his ear). ≤ 204 triangles.
-static func kuk_mesh() -> ArrayMesh:
+static func kukuryznik_mesh() -> ArrayMesh:
 	var deck := [Color("#2a2c30"), Models.FIXED]
 	var tyre := [Models.TYRE, Models.FIXED]
 	var metal := [Color("#3a3b3f"), Models.FIXED]

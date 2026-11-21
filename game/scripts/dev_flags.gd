@@ -21,6 +21,7 @@ const Controls := preload("res://scripts/drive_controls.gd")
 const FollowCamera := preload("res://scripts/follow_camera.gd")
 const Settings := preload("res://scripts/settings.gd")
 const Tiers := preload("res://scripts/tiers.gd")
+const MacMode := preload("res://scripts/mac_mode.gd")
 const Police := preload("res://scripts/police.gd")
 const CityBarriers := preload("res://scripts/city_barriers.gd")
 const Solidity := preload("res://scripts/solidity.gd")
@@ -209,6 +210,9 @@ var tape_log := false
 var spacer_flag := -1
 var spacer_hint := -1.0
 var fotka_flag := false
+## --promo[=free,grid,ghost,nohud,clean,panel,9:16,4:5,1:1,16:9]: Promo Mode on for the run
+## (promo_mode.gd `use_flag`; the DEV setting's "promo"), with those of its switches set.
+var promo_flag := ""
 var kadr_flag := ""
 var photo_log := false
 ## --egg=e37: the street today's roadworks must be on (eggs.gd `force_street`).
@@ -634,6 +638,10 @@ func parse_with(args: PackedStringArray) -> void:
 			hide_hud = true
 		elif arg == "--no-touch":
 			no_touch = true  # desktop: --no-touch
+		elif arg == "--mac" or arg == "--mac=on":
+			MacMode.forced = 1  # Mac step 1: the Mac rules on any computer (mac_mode.gd)
+		elif arg == "--mac=off":
+			MacMode.forced = 0
 		elif arg == "--no-input":
 			# Loop 3d-1: a test render ignores every key, click and touch (check_streaming's windows
 			# take the focus for minutes: keys typed elsewhere toggled the time, the overlay, the radio).
@@ -862,6 +870,10 @@ func parse_with(args: PackedStringArray) -> void:
 			sound_check = true
 		elif arg.begins_with("--quality="):
 			_flag_quality = Tiers.parse(arg.trim_prefix("--quality="))
+		elif arg.begins_with("--gfx="):
+			# Perf thread (2026-11-19): per-option overrides on top of the quality level,
+			# "key=value,..." (tiers.gd value, parse_overrides): --gfx=scale=2,msaa=4,shadow_size=2048.
+			Tiers.overrides = Tiers.parse_overrides(arg.trim_prefix("--gfx="))
 		elif arg.begins_with("--model="):
 			_flag_model = arg.trim_prefix("--model=")
 		elif arg.begins_with("--last-session="):
@@ -1175,6 +1187,8 @@ func parse_with(args: PackedStringArray) -> void:
 			zone_cap_flag = 0
 		elif arg.begins_with("--spacer-hint="):
 			spacer_hint = float(arg.trim_prefix("--spacer-hint="))
+		elif arg == "--promo" or arg.begins_with("--promo="):
+			promo_flag = "on" if arg == "--promo" else arg.trim_prefix("--promo=")
 		elif arg == "--fotka" or arg == "--photo":
 			fotka_flag = true
 		elif arg.begins_with("--kadr="):
