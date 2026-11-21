@@ -286,6 +286,10 @@ in `/mnt/project-files/walls-research/w10a/`:
   by the stadium (`rail_street`); the car park by the Towarowa railway (`mesh_panel`); the fountain
   park's long basin (`basin_rim`: no top rail over the water any more).
 - The default share: 11.47 % to 11.29 % (fences 9.08 % to 9.04 %); ratchets 11.3 and 9.1.
+- Measured against main on the same code: the classic per-sector hashes are main's on both paths
+  (no classic change); nodes in view and their kinds are main's at the five probe views under
+  `typed` and `panels` (no new draw call); the sloppy set A table is main's (229 contacts, 15 dead
+  stops); typed city vertices 12,240 fewer; check_solids totals unchanged.
 - Not by a type, parked: the boulevards' top rail (their wall is `wall_stone` without `hz`, and the
   rail is drawn only where `hz` is water or drop); the basin's mapped 1.0 m height (the rim is
   about 0.4 m); the stadium's #808 line by Al. Poniatowskiego wears a dark sheet hoarding in the
