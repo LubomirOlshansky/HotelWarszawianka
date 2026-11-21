@@ -11237,6 +11237,8 @@ func _build_street_furniture() -> void:
 			continue  # first_scene.gd's Y mast stands here
 		if Landmarks.mk_covers(Vector2(x, z), 1.0):
 			continue  # Wiadukt Markiewicza is lit by its own obelisk lamps (landmarks/karowa.gd)
+		if Landmarks.jarmark_lift(Vector2(x, z)) > 0.0:
+			continue  # Jarmark Warszawski's car park: the market is lit by its strings and counters
 		var t := Transform3D(Basis(Vector3.UP, fposmod(x * 0.37 + z * 0.11, TAU)), Vector3(x, terrain_height(x, z), z))
 		if Vector2(x, z).distance_to(Vector2(CANDELABRAS.x, CANDELABRAS.y)) < CANDELABRAS.z:
 			candelabras.append(t)

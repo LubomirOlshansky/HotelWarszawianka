@@ -2,8 +2,8 @@ shader_type spatial;
 // The Jarmark promo dressing (jarmark_promo.gd, --promo-dress=jarmark; promo videos only, never a
 // player's game). UV2.x the material code:
 //   21 a softly lit surface (the striped awnings under their bulbs)
-//   22 the tower's LED mast sleeve, UV2.y its height 0-1: one colour at a time over the whole mast
-//      (cyan, candy stripes, green, magenta, white; 5 s each, 0.6 s crossfades) with a white chase
+//   22 the tower's LED mast sleeve, UV2.y its height 0-1: cyan above, violet-magenta below, the
+//      boundary cycling up and down, with a white chase
 //   23 a cool-white glow (the glass barrels)        24 gold wire
 //   26 lit paving, UV.x across the band -1..1: three hard warm bands
 //   27 a warm-white counter                         0 plain
@@ -44,30 +44,19 @@ void vertex() {
 }
 
 vec3 mast_colour(float h) {
-	float t = TIME / 5.0;
-	float k = mod(floor(t), 5.0);
-	float f = smoothstep(0.88, 1.0, fract(t));
-	vec3 c0;
-	vec3 c1;
-	// 0 cyan, 1 candy (red/white stripes 1 m), 2 green, 3 magenta, 4 white
-	float stripe = step(0.5, fract(h * 38.0));
-	vec3 candy = mix(vec3(1.0, 0.05, 0.08), vec3(1.0), stripe);
-	vec3 cols[5] = vec3[5](vec3(0.13, 0.85, 1.0), candy, vec3(0.24, 1.0, 0.42), vec3(1.0, 0.18, 0.82), vec3(1.0));
-	c0 = cols[int(k)];
-	c1 = cols[int(mod(k + 1.0, 5.0))];
-	vec3 c = mix(c0, c1, f);
+	// F's drone photos (2026-11-21): cyan at the top, violet-magenta below, the boundary cycling up
+	// and down the mast, with a white chase.
+	float edge = 0.55 + 0.3 * sin(TIME * 0.5);
+	vec3 c = mix(vec3(0.78, 0.16, 0.95), vec3(0.13, 0.85, 1.0), smoothstep(edge - 0.15, edge + 0.15, h));
 	float chase = smoothstep(0.93, 1.0, sin((h * 14.0 - TIME * 1.6) * 3.14159) * 0.5 + 0.5);
 	return mix(c, vec3(1.0), chase * 0.5);
 }
 
 vec3 tree_colour(float p) {
-	// violet, blue, cyan-green, 8 s each, rippling down the tree by the bulb's phase
-	float t = TIME / 8.0 - p;
-	float k = mod(floor(t), 3.0);
-	float f = smoothstep(0.8, 1.0, fract(t));
-	vec3 cols[3] = vec3[3](vec3(0.56, 0.36, 1.0), vec3(0.23, 0.42, 1.0), vec3(0.24, 1.0, 0.78));
-	vec3 c = mix(cols[int(k)], cols[int(mod(k + 1.0, 3.0))], f);
-	return c;
+	// blue-white to violet and back (F's photos: blue-white at the opening, violet later), 10 s a
+	// way, rippling down the tree by the bulb's phase
+	float f = smoothstep(0.2, 0.8, 0.5 + 0.5 * sin((TIME / 10.0 - p) * 3.14159));
+	return mix(vec3(0.72, 0.82, 1.0), vec3(0.45, 0.25, 1.0), f);
 }
 
 void fragment() {

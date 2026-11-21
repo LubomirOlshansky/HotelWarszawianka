@@ -8,16 +8,19 @@ extends "res://scripts/place.gd"
 ## first pass (2026-11-21), in one mesh with its own shader (shaders/jarmark_promo.gdshader):
 ##  - bulbs as camera-facing discs never smaller than ~1.3 pixels (a 5 cm bulb is under a pixel at a
 ##    promo view), HDR so the glow pass blooms them into the reels' chains of dots;
-##  - every chalet's roof outlined in warm bulbs (eaves, rakes, ridge), drops under the front eave,
-##    warm-white counters (#ffc98a, not fast-food yellow), striped awnings on a third;
+##  - one amber bulb line on every chalet's roof edges (front eave and rakes; the roofs dark: F's
+##    drone photos, 2026-11-21, "warm lines on a dark ground"), warm-white counters (#ffc98a, not
+##    fast-food yellow), striped awnings on a third;
 ##  - the aisles: a chain of 7 m poles every 12 m down each aisle's middle with a white globe crown,
 ##    strings from the crown to both rows' front eaves, scalloped swags crown to crown, and the
-##    paving under them lit warm in three hard bands (the drone's "carpet of light");
+##    paving lit warm in three hard bands in a pool under each crown only, dark between;
 ##  - the car park's bay lines covered;
-##  - the tower carousel's LED mast one colour at a time (cyan, candy stripes, green, magenta,
-##    white), a blue LED ring round its base;
-##  - the big tree dark fir under a violet LED net cycling violet, blue, cyan-green;
-##  - Metro Centrum's glass pavilion and the greenhouse tunnel glowing cool white between their ribs;
+##  - the tower carousel's LED mast cyan above and violet-magenta below, cycling, a blue LED ring
+##    round its base;
+##  - the big tree dark fir under an LED net cycling blue-white to violet;
+##  - Metro Centrum's glass pavilion glowing warm, its two glass tubes in the market white-green;
+##  - the kurant's tiered pagoda by the tubes, fans of strings from its crown, the carousel's and
+##    the tree's tops to the ground (lighting-decision.md);
 ##  - gold wire reindeer and tall warm light cones by the tree.
 ## The kit (landmarks/jarmark.gd) places it all in the market's own frame, so it sits on the model.
 
@@ -44,8 +47,6 @@ const PAGODA_BULB := 32.0
 const WARM := Color(1.0, 0.78, 0.48)
 const WHITE_BULB := Color(1.0, 0.92, 0.78)
 const GLOBE := Color(1.0, 0.97, 0.9)
-const PINK := Color(1.0, 0.1, 0.55)
-const CYAN := Color(0.2, 0.85, 1.0)
 const STRIPE_RED := Color("#c8202a")
 const STRIPE_WHITE := Color("#f4efe6")
 const COUNTER_WARM := Color("#ffc98a")
@@ -72,8 +73,9 @@ func build() -> void:
 	_mast()
 	_tree_net()
 	_pavilion_glow()
-	_greenhouse_glow()
+	_tube_glow()
 	_pagoda()
+	_ride_fans()
 	_figures()
 	kit._jm_frame()
 	var mesh := _st.commit()
@@ -155,22 +157,12 @@ func _hut_lights(u: float, v: float, quarter: int, kind: int, n: int) -> void:
 	var ov := hv + 0.42
 	var y := g + eave + 0.04
 	var ridge := g + eave + rise + 0.06
-	var col := WHITE_BULB if n % 3 == 0 else WARM
-	# The eaves front and back, the ridge, the rakes.
-	_bulb_line(_hp(-ou, -ov, y), _hp(ou, -ov, y), 0.22, 0.05, col, 0.0, false)
-	_bulb_line(_hp(-ou, ov, y), _hp(ou, ov, y), 0.3, 0.045, col, 0.0, false)
-	_bulb_line(_hp(-ou, 0.0, ridge), _hp(ou, 0.0, ridge), 0.3, 0.045, col, 0.0, false)
+	# One amber line on the roof's edges, the roof itself dark (F's drone photos, 2026-11-21: warm
+	# lines on a dark ground): the front eave and the two front rakes.
+	var col := WARM
+	_bulb_line(_hp(-ou, -ov, y), _hp(ou, -ov, y), 0.25, 0.05, col, 0.0, false)
 	for su: float in [-ou, ou]:
-		_bulb_line(_hp(su, -ov, y), _hp(su, 0.0, ridge), 0.22, 0.045, col, 0.0, false)
-		_bulb_line(_hp(su, ov, y), _hp(su, 0.0, ridge), 0.3, 0.045, col, 0.0, false)
-	# Drops under the front eave (the reels' curtains).
-	if kind != Kit.Hut.FOOD and n % 2 == 0:
-		var k := 0
-		var su := -hu
-		while su <= hu + 0.01:
-			_bulb(_hp(su, -ov + 0.02, y - 0.25 - 0.2 * float(k % 3)), 0.045, col)
-			su += 0.4
-			k += 1
+		_bulb_line(_hp(su, -ov, y), _hp(su, 0.0, ridge), 0.25, 0.045, col, 0.0, false)
 	# The counter's glow, warm white, over the model's yellow (just in front of it).
 	_q(_hp(-hu + 0.22, -hv - 0.05, g + 1.05), _hp(hu - 0.22, -hv - 0.05, g + 1.05),
 			_hp(hu - 0.22, -hv - 0.05, g + eave - 0.3), _hp(-hu + 0.22, -hv - 0.05, g + eave - 0.3), COUNTER_WARM, COUNTER)
@@ -190,15 +182,6 @@ func _hut_lights(u: float, v: float, quarter: int, kind: int, n: int) -> void:
 			kit._mode = SOFT
 			kit._tri(b0, b1, mid, (b1 - b0).cross(Vector3.UP).normalized(), c, Vector2(-1, -1), Vector2(-1, -1),
 					Vector2(-1, -1), -1.0, false)
-	# Pink and cyan stars on some fronts (the reels' accents).
-	if n % 7 == 2 or n % 11 == 5:
-		var acc := PINK if n % 2 == 0 else CYAN
-		var cy := g + eave - 0.55
-		for k in 10:
-			var t := TAU * float(k) / 10.0
-			var rr := 0.34 if k % 2 == 0 else 0.16
-			var w2: Vector2 = kit._w(cos(t) * rr, -hv - 0.07)
-			_bulb(Vector3(w2.x, cy + sin(t) * rr, w2.y), 0.05, acc)
 	kit._jm_frame()
 
 
@@ -206,9 +189,13 @@ func _hut_lights(u: float, v: float, quarter: int, kind: int, n: int) -> void:
 ## the reels show none.
 func _bay_lines() -> void:
 	kit._jm_frame()
-	for vl: float in [17.0, 49.0, 65.0]:
-		var uu := 117.0
-		while uu < 196.0:
+	var paved: Array = Kit.JM_PAVED[0]
+	for vl: float in Kit.JM_BAYS:
+		var uu: float = paved[0] + 2.0
+		while uu < float(paved[1]) - 2.0:
+			if not Kit.jm_clear(uu, vl, 2.5):
+				uu += 2.6
+				continue
 			var g: float = kit._jm_ground(uu, vl) + Kit.JM_LIFT + 0.07
 			_q(_hp(uu - 0.15, vl - 2.5, g), _hp(uu + 0.15, vl - 2.5, g), _hp(uu + 0.15, vl + 2.5, g), _hp(uu - 0.15, vl + 2.5, g),
 					ASPHALT, PLAIN)
@@ -227,7 +214,6 @@ func _aisles() -> void:
 		var vb: float = s[3]
 		var vm := (va + vb) * 0.5
 		var half := absf(vb - va) * 0.5
-		_floor_band(u0, u1, vm, half)
 		var n := maxi(1, roundi((u1 - u0) / 12.0))
 		var prev := Vector3.INF
 		for k in n + 1:
@@ -237,6 +223,10 @@ func _aisles() -> void:
 			var g: float = map.terrain_height(at.x, at.y) + Kit.JM_LIFT
 			var top := Vector3(at.x, g + 7.0, at.y)
 			kit._beam(Vector3(at.x, g, at.y), top, 0.12, Color("#1c1d20"), false, PLAIN)
+			# A warm pool under the crown only; between the pools the paving stays dark.
+			# Pools no wider than half the gap to the next crown, so neighbours never overlap.
+			var pr := minf(4.0, (u1 - u0 - 6.0) / float(n) * 0.5 - 0.05)
+			_floor_band(maxf(u - pr, u0), minf(u + pr, u1), vm, half)
 			for j in 5:
 				var t := TAU * float(j) / 5.0
 				_bulb(top + Vector3(cos(t) * 0.42, 0.15, sin(t) * 0.42), 0.26, GLOBE)
@@ -252,8 +242,9 @@ func _aisles() -> void:
 			prev = top
 
 
-## The paving under an aisle lit warm by its strings: three hard bands out from the middle line
-## (the art bible's lamp pools), 3 cm over the asphalt, in 4 m pieces draped on the ground.
+## The paving under a crown of strings lit warm: three hard bands out from the aisle's middle line
+## (the art bible's lamp pools), 3 cm over the asphalt, in 4 m pieces draped on the ground; only
+## under each crown (F's drone photos: pools, not a carpet).
 func _floor_band(u0: float, u1: float, vm: float, half: float) -> void:
 	kit._jm_frame()
 	var w := minf(half + 0.6, 3.6)
@@ -381,27 +372,27 @@ func _pavilion_glow() -> void:
 			Color(0.34, 0.33, 0.3), 1.0)
 
 
-## The greenhouse tunnel at the market's south end (jarmark.gd `_jm_greenhouse`, r 2.6): a soft
-## warm glow under the glow threshold, so it no longer blooms white (F 2026-11-21).
-func _greenhouse_glow() -> void:
-	kit._jm_frame()
-	var u: float = Kit.JM_GREENHOUSE[0]
-	var v0: float = Kit.JM_GREENHOUSE[1]
-	var v1: float = Kit.JM_GREENHOUSE[2]
-	var c: Vector2 = kit._w(u, (v0 + v1) * 0.5)
-	var b: Vector2 = Kit.JM_AXIS.normalized()
-	var along := Vector2(-b.y, b.x)
-	_barrel_glow(c, along, v1 - v0, 2.68, kit._jm_ground(u, (v0 + v1) * 0.5) + 0.4,
-			Color(0.42, 0.38, 0.32))
+## Metro Centrum's two glass tubes in the market (centre.gd METRO_TUBES, built as `_glass_barrel`: the
+## long side q0-q1, the vault half the width less 15 cm, 1 m up): a soft white-green glow, one of the
+## few cool accents (F's drone photos; the drone frame's lit "greenhouse" by the tree is the north one).
+func _tube_glow() -> void:
+	for q: Array in Centre.METRO_TUBES:
+		var q0: Vector2 = q[0]
+		var q1: Vector2 = q[1]
+		var length := q0.distance_to(q1)
+		var c: Vector2 = (q0 + q1 + (q[2] as Vector2) + (q[3] as Vector2)) * 0.25
+		var r := q1.distance_to(q[2]) * 0.5 - 0.2
+		_barrel_glow(c, (q1 - q0) / length, length - 0.2, r, map.terrain_height(c.x, c.y) + 1.0, Color(0.5, 0.66, 0.56))
 
 
-## The tiered "pagoda" (the organiser's day reel DfxopUFN7Fs 0:10, the drone's metro.png at night)
-## over the model's red hexagonal bar (jarmark.gd `_jm_hexbar`, JM_HEXBAR): a glass hexagonal kiosk
+## The tiered "pagoda", the kurant (the organiser's day reel DfxopUFN7Fs 0:10, the drone's metro.png
+## at night, the official map's kurant by the metro tubes) over the model's red hexagonal bar, its
+## stand-in (jarmark.gd `_jm_hexbar` at JM_KURANT), until the kit's kurant replaces both: a glass hexagonal kiosk
 ## lit warm, a red patterned drum, three white tiers with green bands, a red upturned crown on a
 ## stem, about 12.6 m; at night every tier's edge in LED bulbs turning green and red.
 func _pagoda() -> void:
 	kit._jm_frame()
-	var c: Vector2 = kit._w(Kit.JM_HEXBAR.x, Kit.JM_HEXBAR.y)
+	var c: Vector2 = kit._w(Kit.JM_KURANT.x, Kit.JM_KURANT.y)
 	var g: float = map.terrain_height(c.x, c.y) + Kit.JM_LIFT
 	var white := Color("#eeeae2")
 	var red := Color("#b3242c")
@@ -437,6 +428,37 @@ func _pagoda() -> void:
 		var b := Vector3(crown[(k + 1) % 4].x, g + 12.6, crown[(k + 1) % 4].y)
 		_bulb_line(a, b, 0.22, 0.06, WARM, 0.0, false)
 	_bulb(Vector3(c.x, g + 13.2, c.y), 0.35, Color(1.0, 0.82, 0.4))
+	# The maypole (drone-wide-palace.png, pyramid-real.png): strings of warm bulbs from under the
+	# crown down to 2.4 m poles 12 m round, where they stand clear of the chalets and the tubes.
+	for k in 18:
+		var t := TAU * float(k) / 18.0
+		var at: Vector2 = Kit.JM_KURANT + Vector2(cos(t), sin(t)) * 12.0
+		if at.y < -8.5 or not Kit.jm_clear(at.x, at.y, 0.4) or (absf(at.x - 225.5) < 4.0 and at.y > 15.5):
+			continue
+		var w: Vector2 = kit._w(at.x, at.y)
+		var gw: float = map.terrain_height(w.x, w.y) + Kit.JM_LIFT
+		kit._beam(Vector3(w.x, gw, w.y), Vector3(w.x, gw + 2.4, w.y), 0.07, Color("#1c1d20"), false, PLAIN)
+		_bulb_line(Vector3(c.x, g + 10.8, c.y), Vector3(w.x, gw + 2.4, w.y), 0.35, 0.05, WARM if k % 2 == 0 else WHITE_BULB, 0.5)
+
+
+## The fans of warm strings from the tall rides' tops to poles round them (lighting-decision.md: the
+## carousel, the kurant (in `_pagoda`), the tree): [centre, top over the ground, radius, strings].
+func _ride_fans() -> void:
+	for f: Array in [[Kit.JM_CAROUSEL, 7.4, 13.0, 14], [Kit.JM_TREE, 12.5, 13.5, 16]]:
+		var at0: Vector2 = f[0]
+		kit._jm_frame()
+		var c: Vector2 = kit._w(at0.x, at0.y)
+		var top := Vector3(c.x, map.terrain_height(c.x, c.y) + float(f[1]), c.y)
+		for k in int(f[3]):
+			var t := TAU * (float(k) + 0.5) / float(f[3])
+			var at: Vector2 = at0 + Vector2(cos(t), sin(t)) * float(f[2])
+			# Clear of the chalets, inside the market's fence, off the Palace's forecourt road.
+			if at.y < -8.5 or at.y > 133.0 or not Kit.jm_clear(at.x, at.y, 0.4) or not _clear_of_huts(at):
+				continue
+			var w: Vector2 = kit._w(at.x, at.y)
+			var gw: float = map.terrain_height(w.x, w.y) + Kit.JM_LIFT
+			kit._beam(Vector3(w.x, gw, w.y), Vector3(w.x, gw + 2.6, w.y), 0.07, Color("#1c1d20"), false, PLAIN)
+			_bulb_line(top, Vector3(w.x, gw + 2.6, w.y), 0.35, 0.05, WARM if k % 3 != 1 else WHITE_BULB, 0.6)
 
 
 ## Gold wire reindeer by the tree and the entrance (the reel's frames 6-7), and tall warm light
@@ -445,7 +467,7 @@ func _figures() -> void:
 	var deer := [[0.0, 0.9], [0.2, 1.3], [1.4, 1.35], [1.7, 1.6], [1.9, 2.3], [2.1, 2.2], [1.9, 1.55], [1.6, 1.0],
 			[1.5, 0.0], [1.35, 0.95], [0.4, 0.95], [0.3, 0.0], [0.15, 0.9], [0.0, 0.9]]
 	var antler := [[1.9, 2.3], [1.8, 2.8], [2.0, 2.6], [2.2, 3.0], [2.1, 2.2]]
-	for spot: Array in [[124.0, 2.0, 1.0], [120.5, 6.0, -1.0], [146.0, -7.5, 1.0], [99.0, -12.0, 1.0]]:
+	for spot: Array in [[185.0, -2.0, 1.0], [208.0, 2.5, -1.0], [152.0, -2.0, 1.0], [88.0, 10.0, 1.0]]:
 		kit._jm_frame()
 		var g: float = kit._jm_ground(spot[0], spot[1]) + Kit.JM_LIFT
 		for shape: Array in [deer, antler]:
@@ -460,9 +482,9 @@ func _figures() -> void:
 				_bulb_line(wa, wb, 0.2, 0.05, Color(1.0, 0.82, 0.42), 0.0, false)
 	for k in 8:
 		var t := TAU * (float(k) + 0.25) / 8.0
-		if absf(wrapf(t - PI * 1.5, -PI, PI)) < 0.45:
-			continue
 		var at: Vector2 = Kit.JM_TREE + Vector2(cos(t), sin(t)) * 12.5
+		if not _clear_of_huts(at):
+			continue
 		kit._jm_frame()
 		var c: Vector2 = kit._w(at.x, at.y)
 		var g: float = map.terrain_height(c.x, c.y) + Kit.JM_LIFT
@@ -472,3 +494,11 @@ func _figures() -> void:
 			var r := 0.75 * (1.0 - f)
 			_bulb(Vector3(c.x + cos(a) * r, g + f * 3.2, c.y + sin(a) * r), 0.05, WARM)
 		_bulb(Vector3(c.x, g + 3.35, c.y), 0.16, Color(1.0, 0.82, 0.4))
+
+
+## Is a spot of the market's plan clear of every chalet by a metre?
+func _clear_of_huts(at: Vector2) -> bool:
+	for h: Array in Kit.JM_HUT_LIST:
+		if absf(at.x - float(h[0])) < 3.2 and absf(at.y - float(h[1])) < 2.8:
+			return false
+	return true

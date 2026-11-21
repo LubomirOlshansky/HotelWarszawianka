@@ -1602,7 +1602,7 @@ static func _jarmark_pack() -> Array:
 		var along := (p1 - p0).normalized()
 		var side := Vector2(-along.y, along.x)
 		var half := float(ai[4]) + 1.0
-		var part := 0 if float(ai[0]) > 114.0 or float(ai[2]) > 114.0 else 1
+		var part := 0 if float(ai[0]) >= Landmarks.JM_SPLIT_U or float(ai[2]) >= Landmarks.JM_SPLIT_U else 1
 		var d := 0.0
 		var length := p0.distance_to(p1)
 		while d < length:
