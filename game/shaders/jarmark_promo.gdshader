@@ -16,6 +16,8 @@ render_mode cull_disabled;
 #include "res://shaders/common.gdshaderinc"
 
 global uniform float lights_on;
+// The bulb's least radius in image pixels (1.3 x the --ss capture scale, jarmark_promo.gd).
+uniform float px_floor = 1.3;
 
 varying float mode;
 varying float phase;
@@ -33,7 +35,7 @@ void vertex() {
 			float depth = -(MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).z;
 			px = 2.0 * depth / PROJECTION_MATRIX[1][1] / VIEWPORT_SIZE.y;
 		}
-		float r = max(UV2.y, 1.3 * px);
+		float r = max(UV2.y, px_floor * px);
 		vec3 right = INV_VIEW_MATRIX[0].xyz;
 		vec3 up = INV_VIEW_MATRIX[1].xyz;
 		VERTEX += (right * UV.x + up * UV.y) * r;

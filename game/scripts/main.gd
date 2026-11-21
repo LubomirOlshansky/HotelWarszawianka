@@ -2173,6 +2173,12 @@ func _apply_experimental() -> void:
 	sv.anisotropic_filtering_level = Tiers.extra(quality, "aniso") if on or Tiers.overrides.has("aniso") else _sv_aniso
 	sv.mesh_lod_threshold = Tiers.extra(quality, "lod")
 	RenderingServer.directional_soft_shadow_filter_set_quality(Tiers.extra(quality, "soft"))
+	if flags.trailer:
+		# Capture only (Fable's trailer spec): a static dither against banding in the night sky,
+		# smooth glow halos, sharper textures under supersampling.
+		sv.use_debanding = true
+		sv.texture_mipmap_bias = -0.5 if Tiers.capture_scale >= 2 else 0.0
+		RenderingServer.environment_glow_set_use_bicubic_upscale(true)
 	if on:
 		print("quality: Experimental's extras on · full-resolution image, %d sun shadow map with soft edges, MSAA 4x, 16x anisotropic, every mesh at full detail" % int(QUALITY[quality]["shadow_size"]))
 
@@ -5720,6 +5726,7 @@ func _apply_style() -> void:
 	post_mat.set_shader_parameter("outline_strength", style["outline"])
 	post_mat.set_shader_parameter("levels", style["levels"])
 	post_mat.set_shader_parameter("saturation", style["saturation"])
+	post_mat.set_shader_parameter("px_scale", float(Tiers.capture_scale))
 	# Loop G1b: the governor's tally counts only at Auto's image; the `quality:` line when it changes.
 	var mode := _image_mode()
 	governor.track = mode != ""

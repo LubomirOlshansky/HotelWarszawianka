@@ -92,6 +92,10 @@ static func extra(quality: int, key: String) -> Variant:
 ## small_shadows, tree_limbs, panel_holes, fine_trees, step, budget, full, msaa, aniso, lod, soft)
 ## plus `scale`: the image's whole screen pixels per image pixel, exact (no style, step or budget).
 static var overrides: Dictionary = {}
+## Trailer capture (--ss=N): the frame is rendered N times larger and scaled down in the encode.
+## Pixel-sized effects (the post pass's outlines, rain and flakes, the promo bulbs' floor, the
+## glow levels) follow it so they keep their size in the video's pixels. 1 in a player's game.
+static var capture_scale := 1
 
 
 static func value(quality: int, key: String, fallback: Variant = null) -> Variant:

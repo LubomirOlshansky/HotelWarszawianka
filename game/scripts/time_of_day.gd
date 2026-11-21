@@ -34,6 +34,7 @@ signal changed(mode: int)
 signal lights_switched(on: bool)
 
 const Pacer := preload("res://scripts/pacer.gd")
+const Tiers := preload("res://scripts/tiers.gd")
 
 ## Loop MW-3: DAWN (Świt) after LIVE, so the saved and the existing indices keep their meaning.
 enum { DAY, DUSK, NIGHT, LIVE, DAWN }
@@ -719,8 +720,10 @@ func _apply(look: Dictionary) -> void:
 		env.glow_enabled = glow_allowed
 		env.glow_hdr_threshold = lerpf(0.62, 1.0, k)
 		env.glow_intensity = lerpf(env.glow_intensity, 1.15, k)
+		# A glow level is a fraction of the image: under --ss=2 one level up keeps the halo's size.
+		var up := 1 if Tiers.capture_scale >= 2 else 0
 		for lv in range(1, 8):
-			env.set_glow_level(lv - 1, 1.0 if lv >= 3 and lv <= 6 else 0.0)
+			env.set_glow_level(lv - 1, 1.0 if lv >= 3 + up and lv <= 6 + up else 0.0)
 		env.ambient_light_energy *= lerpf(1.0, 0.4, k)
 		post.set_shader_parameter("g_contrast", float(look["g_contrast"]) * lerpf(1.0, 1.25, k))
 		post.set_shader_parameter("g_lift", (look["g_lift"] as Vector3) * (1.0 - k))

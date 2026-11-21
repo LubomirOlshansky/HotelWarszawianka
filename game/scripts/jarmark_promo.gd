@@ -24,6 +24,7 @@ extends "res://scripts/place.gd"
 const Kit := preload("res://scripts/landmarks/jarmark.gd")
 const Centre := preload("res://scripts/landmarks/centre.gd")
 const SHADER := "res://shaders/jarmark_promo.gdshader"
+const Tiers := preload("res://scripts/tiers.gd")
 
 ## Material codes (UV2.x) the shader reads. Meshes: a softly lit surface, the tower's cycling LED
 ## sleeve (UV2.y its height 0-1), a cool glow, gold wire, the lit paving (UV.x across the band -1..1),
@@ -85,6 +86,8 @@ func build() -> void:
 	mesh_instance.custom_aabb = box
 	var mat := ShaderMaterial.new()
 	mat.shader = load(SHADER)
+	# The floor in the video's pixels: --ss=N draws N image pixels a video pixel.
+	mat.set_shader_parameter("px_floor", 1.3 * Tiers.capture_scale)
 	mesh_instance.material_override = mat
 	part(mesh_instance)
 	count = bulbs

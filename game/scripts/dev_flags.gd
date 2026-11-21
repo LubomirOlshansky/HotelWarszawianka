@@ -115,6 +115,8 @@ var out_dir := "user://"
 ## built once (a street pass needs 6-10 cameras; a launch per camera cost ~70 s each).
 var shot_spots: Array = []
 var lines_override := 0
+## --trailer: main.gd _apply_experimental adds the capture-only extras (debanding, bicubic glow).
+var trailer := false
 var hide_hud := false
 ## Desktop: --no-touch (trailer loop, 2026-10-29): the HUD without its touch-only controls (the
 ## pedals, the stick, the helicopter's pads) and the title without its "tap to drive" prompt,
@@ -878,14 +880,17 @@ func parse_with(args: PackedStringArray) -> void:
 			# Trailer mode (F 2026-11-21, "a graphic mode with the maximum we can get for the
 			# trailer"): Experimental (full-resolution image, 8192 soft sun shadows, MSAA 4x, 16x
 			# anisotropic, every mesh at full detail), the governor off so nothing steps down
-			# mid-take, the sharpest style lines and no see-through ghost. Desktop capture only:
+			# mid-take and no see-through ghost; with --ss=2 a supersampled frame (tools/clip.sh). Desktop capture only:
 			# a phone can't hold it. A later --quality / --lines / --governor still wins.
 			if _flag_quality < 0:
 				_flag_quality = Tiers.EXPERIMENTAL
 			_flag_governor = 0
-			if lines_override == 0:
-				lines_override = 1920
+			# No --lines: Experimental's `full` is already scale 1 at any size (Fable's trailer
+			# spec, 2026-11-21: 1920 lines would halve a 2160x3840 supersampled frame).
+			trailer = true
 			no_ghost = true
+		elif arg.begins_with("--ss="):
+			Tiers.capture_scale = clampi(int(arg.trim_prefix("--ss=")), 1, 4)
 		elif arg.begins_with("--quality="):
 			_flag_quality = Tiers.parse(arg.trim_prefix("--quality="))
 		elif arg.begins_with("--gfx="):

@@ -45,6 +45,7 @@ const KNOWN := {
 	"bulwar_food": {"zfight": 12},  # 2026-11-19: the food truck's hidden chassis and floor boxes overlap (under the body, not visible)
 	"light_garden": {"float": 3},  # the dandelion clocks' bulb tips on their spikes (2026-11-15; 7 before the flower rebuild)
 	"jarmark_rides": {"float": 270},  # 2026-11-21: the turning parts hang on the market's static mast and bases (landmarks/jarmark.gd): the tower's carrier and chairs 20-26 m up, the canopies and sleighs on their poles
+	"jarmark_promo": {"degenerate": 64082, "float": 653},  # 2026-11-21 promo only: the bulbs are 4 vertices at their centre spread into camera-facing discs by jarmark_promo.gdshader, hung on wires
 	"trasa_wz": {"zfight": 249, "float": 128},  # 2026-11-15: the walls, rails and stairs keep set heights (walls and steps are sector-only data) and the kiosk front hangs on the map's kiosk, so on the flat stub the pilaster feet meet and the rails and the front stand off the ground
 }
 

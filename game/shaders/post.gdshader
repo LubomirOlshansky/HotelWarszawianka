@@ -29,6 +29,9 @@ render_mode unshaded, fog_disabled, depth_test_disabled, depth_draw_never, cull_
 uniform sampler2D screen_tex : hint_screen_texture, filter_nearest;
 uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
 uniform float outline_strength = 0.55;
+// --ss: image pixels per video pixel (tiers.gd capture_scale), so outlines, rain and flakes keep
+// their size in a supersampled trailer frame. 1 in a player's game.
+uniform float px_scale = 1.0;
 uniform float depth_threshold = 1.5;
 uniform float levels = 0.0;
 uniform float saturation = 1.05;
@@ -142,7 +145,7 @@ float snow_layer(vec2 frag, float cell, float speed, float sway, float density, 
 }
 
 void fragment() {
-	vec2 px = 1.0 / VIEWPORT_SIZE;
+	vec2 px = px_scale / VIEWPORT_SIZE;
 	vec3 col = texture(screen_tex, SCREEN_UV).rgb;
 
 	vec3 vc = view_pos(SCREEN_UV, INV_PROJECTION_MATRIX);
@@ -267,7 +270,7 @@ void fragment() {
 	}
 	if (sky_amount > 0.0 && texture(depth_tex, SCREEN_UV).r <= 0.0) {
 		// Nothing drawn here (reversed depth: the far plane is 0): the sky.
-		col = mix(col, sky(SCREEN_UV, FRAGCOORD.xy), sky_amount);
+		col = mix(col, sky(SCREEN_UV, FRAGCOORD.xy / px_scale), sky_amount);
 	}
 	col = mix(col, col * 0.32, edge * outline_strength);
 
@@ -300,7 +303,7 @@ void fragment() {
 		// Rain: a grey veil by day, and three layers of falling streaks (far: short,
 		// slow, many; near: long, fast, few), drifting with the view.
 		col = mix(col, vec3(luma) * 0.92 + 0.02, 0.18 * rain * daylight);
-		vec2 f = FRAGCOORD.xy;
+		vec2 f = FRAGCOORD.xy / px_scale;
 		float s = rain_layer(f + rain_shift * 0.35, vec2(5.0, 34.0), 220.0, 5.0, 0.18, 0.55 * rain, 1.0) * 0.45
 				+ rain_layer(f + rain_shift * 0.6, vec2(7.0, 48.0), 320.0, 8.0, 0.2, 0.5 * rain, 7.0) * 0.7
 				+ rain_layer(f + rain_shift, vec2(11.0, 70.0), 460.0, 13.0, 0.22, 0.4 * rain, 13.0);
@@ -312,7 +315,7 @@ void fragment() {
 		// Snowfall: a faint veil by day, and three layers of flakes (far: small, slow, many;
 		// near: two-pixel, faster, few), drifting with the view; they take the light behind them.
 		col = mix(col, vec3(0.62, 0.64, 0.7), 0.06 * snowfall * daylight);
-		vec2 f = FRAGCOORD.xy;
+		vec2 f = FRAGCOORD.xy / px_scale;
 		float far = snow_layer(f + rain_shift * 0.3, 8.0, 14.0, 2.5, 0.45 * snowfall, 1.0, 2.0);
 		float mid = snow_layer(f + rain_shift * 0.6, 14.0, 24.0, 4.0, 0.4 * snowfall, 2.0, 8.0);
 		float near = snow_layer(f + rain_shift, 30.0, 40.0, 8.0, 0.3 * snowfall, 3.0, 14.0);
