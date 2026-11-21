@@ -344,8 +344,8 @@ func _build_stadium(site: Dictionary) -> void:
 		while t < run_len - 0.2:
 			var m0 := s0 + e * t
 			var m1 := m0 + e * 0.2
-			var y0: float = map.ground_height(m0.x, m0.y) + STAIR_LIFT
-			var y1: float = map.ground_height(m1.x, m1.y) + STAIR_LIFT
+			var y0: float = _stair_top(m0, side * w * 0.5) + STAIR_LIFT
+			var y1: float = _stair_top(m1, side * w * 0.5) + STAIR_LIFT
 			if w >= PORTAL_STAIR_W and run_len >= PORTAL_MIN_RUN:
 				# The portal's block covers the flight's middle: a line on each side of it.
 				var gap := side * PORTAL_W * 0.5 + side * 0.6
@@ -366,8 +366,8 @@ func _build_stadium(site: Dictionary) -> void:
 				var k2 := minf(k + 3.0, run_len)
 				var q0 := s0 + e * k
 				var q1 := s0 + e * k2
-				var h0: float = map.ground_height(q0.x, q0.y) + STAIR_LIFT
-				var h1: float = map.ground_height(q1.x, q1.y) + STAIR_LIFT
+				var h0: float = _stair_top(q0, side * w * 0.5) + STAIR_LIFT
+				var h1: float = _stair_top(q1, side * w * 0.5) + STAIR_LIFT
 				# F (2026-11-21): the handrails glow along the whole flight, at hand height, so each
 				# flight reads from the air as a bright diagonal.
 				# A lit ribbon on the rail's inner face ties it to the tread (its foot lies on the ground), so the rail does not float.
@@ -382,6 +382,7 @@ func _build_stadium(site: Dictionary) -> void:
 			_mode = M_LAMP
 	_mode = M_STONE
 	_stadium_arka()
+
 	# The roof: the raised rim (its outer face over the skin, its inner face sloping to the
 	# membrane), its soffit back to the skin's top, then the membrane down to the open middle
 	# in panels.
@@ -1587,3 +1588,12 @@ func _stadium_arka() -> void:
 		_prism(_circle(lq, 0.12, 4), ly, ly + 4.6, Color("#3a3c40"), Color("#3a3c40"), M_STONE, M_STONE)
 		_prism(_circle(lq, 0.32, 4), ly + 4.6, ly + 5.0, STADIUM_LAMP, STADIUM_LAMP, M_LAMP, M_LAMP)
 	_mode = M_STONE
+
+
+## The ground's highest point across a flight at p (centre and both edges, `half` the half-width):
+## the city's stone flight (map_builder._stair_flight) lays its treads at or over that, so a lit
+## line at the centre's ground sank under every other tread (F, 2026-11-21: "the lighting on the
+## stairs is a little broken").
+func _stair_top(p: Vector2, half: Vector2) -> float:
+	return maxf(map.ground_height(p.x, p.y), maxf(map.ground_height(p.x + half.x, p.y + half.y),
+			map.ground_height(p.x - half.x, p.y - half.y)))

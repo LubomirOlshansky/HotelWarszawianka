@@ -2220,7 +2220,7 @@ const SUNKEN := [
 	# two flights. The 10 m grid drew it as a slope rising to the headwall. The ring: the cut's floor
 	# between the cheeks (OSM's slivers beside the flights), from 1 m out on the plaza to just behind
 	# the headwall's slab; the floor the grid's own at the mouth. Its site is the stadium's.
-	{"key": "arka_cut", "site": "stadium", "style": "parapet", "sub": 10, "hb": -17.1,
+	{"key": "arka_cut", "site": "stadium", "style": "parapet", "sub": 10, "hb": -17.1, "bare": true,
 		"a": Vector2(1650.0, -703.5), "b": Vector2(1650.0, -703.5),
 		"ring": [Vector2(1643.6, -716.2), Vector2(1658.7, -690.9), Vector2(1629.3, -682.7), Vector2(1621.8, -695.4)]},
 ]
@@ -2313,7 +2313,8 @@ static func sunk_entry(e: Dictionary, ha: float, step: float) -> Dictionary:
 	return {"key": e["key"], "ring": ring, "grown": grown, "wide": wide, "box": box, "a": e["a"], "b": e["b"], "ha": ha, "hb": hb, "sub": sub,
 			"site": e.get("site", "sunken"), "style": e.get("style", "rail"), "walk": PackedVector2Array(e.get("walk", [])),
 			"rows": int(e.get("rows", 0)), "rim": float(e.get("rim", -INF)), "tile": e.get("tile", Color(0, 0, 0, 0)),
-			"floor": e.get("floor", Color(0, 0, 0, 0)), "rise": float(e.get("rise", -1.0))}
+			"floor": e.get("floor", Color(0, 0, 0, 0)), "rise": float(e.get("rise", -1.0)),
+			"bare": bool(e.get("bare", false))}
 
 
 ## A sunken ring's floor at a point (its ring, or `grown` its ring grown for the drawn ground),
@@ -2328,6 +2329,29 @@ func sunk_floor(x: float, z: float, grown := false) -> float:
 			continue
 		best = minf(best, sunk_level(sk, p))
 	return best
+
+
+## True when plan point (x, z) lies in a SUNKEN ring's grown outline (its drawn floor).
+func _in_sunk_grown(x: float, z: float) -> bool:
+	var p := Vector2(x, z)
+	if _sunk.is_empty() or not _sunk_box.has_point(p):
+		return false
+	for sk: Dictionary in _sunk:
+		if (sk["box"] as Rect2).has_point(p) and Geometry2D.is_point_in_polygon(p, sk["grown"]):
+			return true
+	return false
+
+
+## True when plan point p lies in a "bare" SUNKEN ring's grown outline: a paved cut whose floor
+## carries no lawn (the Arka's approach, F's photos 2026-11-21). Green fills skip it.
+func _in_bare(p: Vector2) -> bool:
+	if _sunk.is_empty() or not _sunk_box.has_point(p):
+		return false
+	for sk: Dictionary in _sunk:
+		if sk.get("bare", false) and (sk["box"] as Rect2).has_point(p) \
+				and Geometry2D.is_point_in_polygon(p, sk["grown"]):
+			return true
+	return false
 
 
 ## The floor of sunken ring `sk` at plan point p (from its stair's top to its foot, flat past them).
@@ -5955,7 +5979,11 @@ func _emit_draped(st, a: Vector3, b: Vector3, c: Vector3, col: Color) -> bool:
 		if _on_grid and _dk < 0 and _tn < 0:
 			# Never under the drawn ground (map round 2: the drawn ground, which follows an
 			# apron in its sub-cells).
-			h = maxf(h, _drawn_height(v.x, v.z))
+			# Inside a SUNKEN ring the drawn ground is the ring's floor, under the grid: a fill
+			# there lies on that floor (at the Arka's cut the embankment's grass stood up over
+			# the floor in spikes along the cheek walls, F 2026-11-21).
+			var drawn := _drawn_height(v.x, v.z)
+			h = drawn if _in_sunk_grown(v.x, v.z) else maxf(h, drawn)
 		p[k] = Vector3(v.x, h + v.y, v.z)
 	if ((p[1] - p[0]).cross(p[2] - p[0]).dot(Vector3.UP) > 0.0) == CLOCKWISE_FRONT:
 		p = [p[0], p[2], p[1]]
@@ -6086,6 +6114,8 @@ func _fill_grid_cells(st, poly: PackedVector2Array, y: float, col: Color) -> voi
 									var p1 := piece[pidx[t + 1]]
 									var p2 := piece[pidx[t + 2]]
 									if absf((p1 - p0).cross(p2 - p0)) < 0.0002:
+										continue
+									if _layer == L_GREEN and _in_bare((p0 + p1 + p2) / 3.0):
 										continue
 									_emit_draped(st, Vector3(p0.x, y, p0.y), Vector3(p1.x, y, p1.y), Vector3(p2.x, y, p2.y), col)
 				continue
