@@ -336,7 +336,8 @@ const TRENDY := {
 ## notebook places; same venue code.
 const HYPE := {
 	"bar_newtwice": [52.23065, 21.02253],
-	"bar_zamet": [52.23140, 21.02195],
+	# bar_zamet (ZAMĘT) left out (F, teaser 4, 2026-11-21: its sign floated off the Party House's
+	# corner); the Party House model wears the bar's own neon, ZAMIESZAJ (landmarks/srodmiescie.gd).
 	"bar_przegrywki": [52.23045, 21.02205],
 	"hotel_piure": [52.23102, 21.01510],
 	"koszta_marszalkowska": [52.2305, 21.0110],
