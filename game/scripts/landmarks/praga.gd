@@ -131,7 +131,7 @@ const STADIUM_TIP := Color(0.96, 0.97, 1.0)
 const STADIUM_RIM_LIGHT := Color(0.84, 0.87, 0.92)
 const STADIUM_LAMP := Color("#fff1cf")
 ## The stairs' light lines (pale sand by day, warm at night), on the mapped stairs within STAIR_REACH m of the centre.
-const STADIUM_STAIR := Color("#f08a22")
+const STADIUM_STAIR := Color("#e0701a")
 const STAIR_REACH := 270.0
 ## The stairs' light lines: one per step (F's drone photo, 2026-11-21).
 const STAIR_STEP := 0.6
@@ -140,7 +140,7 @@ const STAIR_STEP := 0.6
 const STAIR_LINE := 0.36
 ## The handrail light: its height over the treads and its bright warm white (F's night photo).
 const STAIR_RAIL := 0.95
-const STADIUM_RAIL := Color("#ff9a38")
+const STADIUM_RAIL := Color("#f2822a")
 ## The lines ride over the stone treads (map_builder rounds the ground up to whole risers of
 ## 0.16 m): at ground level they were hidden under the treads in checkered bits.
 const STAIR_LIFT := 0.34
@@ -1523,7 +1523,9 @@ func _stadium_arka() -> void:
 		var o0: Vector2 = out_arch[i]
 		var o1: Vector2 = out_arch[i + 1]
 		_quad(at.call(o0.x, o0.y, 0.0), at.call(o1.x, o1.y, 0.0), at.call(o1.x, ARKA_TOP, 0.0), at.call(o0.x, ARKA_TOP, 0.0), n3, ARKA_GRANITE)
-	# The white rim, proud of the wall, with its legs down to the ground.
+	# The white rim, proud of the wall, with its legs down to the ground; it glows at night so it reads
+	# from the wide frame.
+	_mode = M_LAMP
 	for i in segs:
 		var i0: Vector2 = arch[i]
 		var i1: Vector2 = arch[i + 1]
