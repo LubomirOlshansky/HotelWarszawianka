@@ -39,6 +39,8 @@ const RED := Color("#c8342a")
 const FIR := Color("#2e5a2e")
 const WOOD := Color("#7a4a20")
 ## The market's multicolour bulbs: red, yellow, green, white (the official huts).
+const RAINBOW := [Color("#e8333a"), Color("#f08a24"), Color("#f2d230"), Color("#4cc35a"), Color("#2fa8e0"),
+		Color("#3a5be0"), Color("#9a4ad8")]
 const MULTI := [Color("#e03a2a"), Color("#f2c230"), Color("#4cb050"), Color("#f4efe6")]
 
 
@@ -596,10 +598,11 @@ static func tree_ride_spin(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
 	c.prism(0, 0, 0.32, 8, 0.35, TREE_H, WOOD.darkened(0.25))
 	var whorls := 7
 	var droop := deg_to_rad(35.0)
-	# At night the whole tree glows violet-blue (F's photos): the fronds are a dim M_LAMP blue-violet
-	# (the colour is the strength) under dense violet LED dots.
-	var frond := Color("#1c2470")
-	var led_cols := [Color("#7a5cff"), Color("#5a6bff")]
+	# At night the tree stays green under its own floodlights (F on site, 2026-11-22: green sheet
+	# fronds, white snow, cold white and pale blue LED dots); the fronds are a dim M_LAMP green (the
+	# colour is the strength).
+	var frond := Color("#17704a")
+	var led_cols := [Color("#e8f0ff"), Color("#8fb0ff")]
 	var placed: Array = []  # [x, y, z, r] of the baubles so far: no two overlap
 	var per_whorl := [3, 2, 2, 2, 2, 3, 2]
 	for k in whorls:
@@ -663,15 +666,34 @@ static func tree_ride_spin(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
 				var mid := (pt + prev) * 0.5
 				c.lbulb(mid.x if pl == 0 else 0.0, mid.x if pl == 1 else 0.0, 12.2 + mid.y, 0.1, Color("#ffd878"))
 			prev = pt
-	# Six yellow-gold drum gondolas round the base, on their sides, on short rods.
+	# The gondolas are the tree's big toys (F 2026-11-22, on site: "people inside the toys"): six
+	# glossy baubles 2 m wide, gold and red, open all round at chest height (a white cage band) so the
+	# two riders show, hung off the lowest boughs; three ride low by the floor, three up in the boughs.
 	for j in 6:
 		var a := TAU * float(j) / 6.0 + TAU / 12.0
 		var d := Vector2(cos(a), sin(a))
-		var gx := d.x * 4.1
-		var gy := d.y * 4.1
-		c.lbeam(Vector3(gx, gy, 1.6), Vector3(gx, gy, 1.1), 0.04, WIRE)
-		c.drum(gx, gy, a + PI * 0.5, 0.55, 0.3, 0.8, 12, Color("#d8a830"), Color("#efe2a8"))
-		c.rider(gx, gy, a + PI * 0.5, 1.05, j + 2, 0.6)
+		var low := j % 2 == 0
+		var rr := 3.75 if low else 3.3
+		var gx := d.x * rr
+		var gy := d.y * rr
+		var cz := 1.45 if low else 4.0
+		var col: Color = Color("#e0b030") if j % 3 != 1 else Color("#d6252c")
+		var hang := cz + 1.0
+		c.lbeam(Vector3(gx, gy, hang + (1.2 if low else 0.6)), Vector3(gx, gy, hang), 0.06, WIRE)
+		# The bowl (the bauble's lower half) and its cap (the upper third), a gap between.
+		c.frustum(gx, gy, 0.35, cz - 0.98, 0.78, cz - 0.6, 12, col, col)
+		c.frustum(gx, gy, 0.78, cz - 0.6, 1.0, cz - 0.05, 12, col, WHITE)
+		c.frustum(gx, gy, 0.98, cz + 0.45, 0.72, cz + 0.8, 12, col, col)
+		c.frustum(gx, gy, 0.72, cz + 0.8, 0.2, cz + 1.0, 12, col, col)
+		c.disc(gx, gy, 0.96, 12, cz + 0.44, WHITE, M_STONE)
+		# The white cage band: four bars joining bowl and cap.
+		for q in 4:
+			var qa := a + PI * 0.25 + TAU * float(q) / 4.0
+			c.lbeam(Vector3(gx + cos(qa) * 0.97, gy + sin(qa) * 0.97, cz - 0.05), Vector3(gx + cos(qa) * 0.97, gy + sin(qa) * 0.97, cz + 0.45), 0.06, WHITE)
+		c.bulb_ring(gx, gy, 1.0, cz - 0.05, 10, 0.06, [BULB], M_LAMP)
+		var s := Vector2(-d.y, d.x) * 0.3
+		c.rider(gx + s.x, gy + s.y, a, cz - 0.55, j * 2 + 2, 0.65)
+		c.rider(gx - s.x, gy - s.y, a, cz - 0.55, j * 2 + 3, 0.65)
 	c.done()
 
 
@@ -1038,14 +1060,15 @@ static func teacups_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true) -
 # ---------------------------------------------------------------------------------------------
 
 const CASTLE_STONE := Color("#b8a891")  # the spec's #B5ADA0, warmed
-const CASTLE_MERLON := Color("#b5621f")
-const CASTLE_WARM := Color("#ffc98a")
+const CASTLE_MERLON := Color("#cfc8bc")  # stone, as the walls (F on site, 2026-11-22)
+const CASTLE_WARM := Color("#ff5a32")  # the windows glow red-orange behind candle chandeliers
 const CASTLE_BLUE := Color("#2a58b0")
+const CASTLE_FLAG := Color("#1f2b5c")  # navy swallowtail flags, plain
 
 
 ## The castle stage (the official P1-K, a plain castle: no brand mark): 7.5 x 7 m, grey stone, four
-## towers 1.8 m square and 7 m tall with orange-brown merlons, a 5 m wall between them, arched warm
-## windows, a blue shield with a plain gold diamond on the front wall, red pennants on the towers,
+## towers 1.8 m square and 7 m tall with stone merlons, a 5 m wall between them, arched red-lit
+## windows, a blue shield with a plain gold diamond on the front wall, navy flags on the towers,
 ## fir garlands, and in front (local -v) a wooden counter with blue panels under a lean-to orange
 ## roof and a small fir at each corner.
 static func castle_stage(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
@@ -1072,8 +1095,8 @@ static func castle_stage(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
 				c.pbox(mu, mv, 0.0, 0.2, 0.2, 7.0, 7.4, CASTLE_STONE, CASTLE_MERLON)
 			# A pole and a red pennant.
 			c.lbeam(Vector3(cu, cv, 7.0), Vector3(cu, cv, 9.0), 0.06, WIRE)
-			c.panel(cu, cv, 0.0, [Vector2(0, 8.9), Vector2(0, 8.3), Vector2(1.1, 8.6)], Color("#d02424"), M_STONE, true, 0.0)
-			c.panel(cu, cv, PI * 0.5, [Vector2(0, 8.9), Vector2(0, 8.3), Vector2(1.1, 8.6)], Color("#d02424"), M_STONE, true, 0.0)
+			c.panel(cu, cv, 0.0, [Vector2(0, 8.9), Vector2(0, 8.3), Vector2(1.1, 8.6)], CASTLE_FLAG, M_STONE, true, 0.0)
+			c.panel(cu, cv, PI * 0.5, [Vector2(0, 8.9), Vector2(0, 8.3), Vector2(1.1, 8.6)], CASTLE_FLAG, M_STONE, true, 0.0)
 			# The tower's arched window, on the faces that look out.
 			c.arch_panel(cu, cv + sz * 0.93, sz * PI * 0.5, 0.75, 3.3, 5.3, CASTLE_WARM, M_LAMP)
 			c.arch_panel(cu, cv + sz * 0.93, sz * PI * 0.5, 0.45, 5.6, 6.6, CASTLE_WARM, M_LAMP)
@@ -1266,55 +1289,149 @@ const FUN_CYAN := Color("#33d9ff")
 const FUN_SKY := Color("#7cc8f0")
 
 
-## The Fun House: a two-storey trailer-front 14 x 5 x 5.5 m (white-grey walls, a blue band), a wavy
-## sky-blue and white parapet (eight bumps), two rows of lit windows (magenta and cyan) with blue
-## arched doors below, a plain neon bar over the doors, two stair ramps, two palms, and the red-and-
-## white striped lighthouse (r 1.1, 8 m, red cone roof) at the +u end. Front is local -v.
+## Santa's Workshop (the official map's plac zabaw; F's photos on site, 2026-11-22): a two-deck
+## walk-through funhouse trailer 16 x 6 m by the Palace's north-east wing. The lower deck is a navy
+## body with rainbow arrow panels and a striped ramp in; the upper deck an open gallery behind a
+## white rail under striped arches; over it a sign band, "SANTA'S" in red neon and "WORKSHOP" in white
+## bulbs, and five square LED boards on poles with rainbow Christmas-bulb pictures. A palm with a
+## climbing Santa at the -u end, the HOLIDAY ride (a trailer, a Santa on a surfboard over a gift-box
+## base) beside it, the blue ticket booth, small firs in front, floodlights washing it green and
+## magenta. Front is local -v.
 static func fun_house(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
 	var c := Ctx.new(b, at, yaw, g)
-	c.box(-8.5, 8.5, -4.8, 3.0, 0.0, 0.12, Color("#d9c9a8"))
-	c.box(-7.0, 7.0, -2.5, 2.5, 0.12, 5.5, Color("#e4e4e8"), Color("#9a9aa2"))
-	c.box(-7.02, 7.02, -2.52, 2.52, 2.5, 3.1, Color("#3aa0d8"))
-	c.box(-7.02, 7.02, -2.52, 2.52, 0.12, 0.5, Color("#3a3a46"))
-	# The wavy parapet: a sine-profile strip along both long edges (eight waves), white and sky-blue.
-	for ev: float in [-2.4, 2.4]:
-		for k in 40:
-			var cu := -6.9 + 0.35 * float(k)
-			var hgt := 0.25 + 0.6 * absf(sin(PI * (cu + 7.0) / 1.75))
-			c.box(cu - 0.175, cu + 0.175, ev - 0.08, ev + 0.08, 5.5, 5.5 + hgt, WHITE if (k / 5) % 2 == 0 else FUN_SKY)
-	c.box(-7.0, 7.0, -2.5, -2.0, 5.5, 5.6, FUN_SKY)
-	# Windows up, arched doors down.
+	var navy := Color("#1b2350")
+	c.box(-9.0, 9.0, -5.2, 3.4, 0.0, 0.12, Color("#3a3c44"))
+	# The lower deck: a navy body, a dark skirt, rainbow arrow panels and lit doors.
+	c.box(-8.0, 8.0, -3.0, 3.0, 0.12, 2.8, navy, Color("#2a2e3a"))
+	c.box(-8.02, 8.02, -3.02, 3.02, 0.12, 0.55, Color("#15151c"))
+	for k in 8:
+		var cu := -7.0 + 2.0 * float(k)
+		var col: Color = RAINBOW[k % RAINBOW.size()]
+		c.panel(cu, -3.04, -PI * 0.5, [Vector2(-0.7, 0.9), Vector2(0.2, 0.9), Vector2(0.2, 0.65), Vector2(0.75, 1.5),
+				Vector2(0.2, 2.35), Vector2(0.2, 2.1), Vector2(-0.7, 2.1)], col, M_LAMP)
+	for cu: float in [-3.0, 3.0]:
+		c.rect_panel(cu, -3.05, -PI * 0.5, 1.3, 0.55, 2.5, Color("#ffd6f2"), M_LAMP)
+	# The upper deck: a floor, a back wall with windows, the white rail and striped arches.
+	c.box(-8.0, 8.0, -3.0, 3.0, 2.8, 2.95, Color("#c9ccd6"))
+	c.box(-8.0, 8.0, 1.6, 3.0, 2.95, 5.3, Color("#e6e3ea"), Color("#9a9aa2"))
 	for k in 7:
-		var cu := -5.25 + 1.75 * float(k)
-		c.rect_panel(cu, -2.54, -PI * 0.5, 0.9, 3.5, 4.5, FUN_MAGENTA if k % 2 == 0 else FUN_CYAN, M_LAMP)
-		c.rect_panel(cu, -2.55, -PI * 0.5, 1.1, 3.4, 4.6, Color("#33333c"), M_STONE)
-	for k in 4:
-		var cu := -5.25 + 3.5 * float(k)
-		c.arch_panel(cu, -2.54, -PI * 0.5, 1.3, 0.12, 2.3, Color("#2a78d0"), M_STONE)
-		c.arch_panel(cu, -2.55, -PI * 0.5, 0.9, 0.12, 2.0, Color("#ffd0f0"), M_LAMP)
-	# The neon bar and its cyan trim.
-	c.rect_panel(0.0, -2.56, -PI * 0.5, 8.0, 2.45, 2.75, FUN_MAGENTA, M_LAMP)
-	c.rect_panel(0.0, -2.56, -PI * 0.5, 8.0, 2.8, 2.88, FUN_CYAN, M_LAMP)
-	# Stair ramps and the end ramp.
-	for sd: float in [-1.0, 1.0]:
-		for s in 4:
-			c.box(sd * 3.5 - 0.9, sd * 3.5 + 0.9, -4.8 + 0.6 * float(s), -3.6, 0.12, 0.12 + 0.25 * float(4 - s), Color("#c9b48a"))
-	# The lighthouse.
-	for band in 6:
-		var y0 := 0.12 + 1.15 * float(band)
-		c.prism(7.9, 0.0, 1.1, 8, y0, y0 + 1.15, RED if band % 2 == 0 else WHITE)
-	c.frustum(7.9, 0.0, 1.35, 7.0, 0.0, 8.6, 8, RED.darkened(0.1))
-	c.prism(7.9, 0.0, 1.0, 8, 7.0, 7.1, WHITE)
-	c.rect_panel(7.9, -1.12, -PI * 0.5, 0.5, 6.0, 6.8, Color("#ffe9a0"), M_LAMP)
-	# Two palms and two speaker poles.
-	for sx: float in [-3.6, 3.6]:
-		c.lbeam(Vector3(sx, -3.9, 0.12), Vector3(sx + 0.3, -3.9, 3.4), 0.22, Color("#8a6a3a"))
-		for k in 7:
-			var a := TAU * float(k) / 7.0
-			c.slab(c.p(sx + 0.3, -3.9, 3.4), c.p(sx + 0.3 + cos(a) * 1.7, -3.9 + sin(a) * 1.7, 2.8), 0.5, 0.15, 0.04, Color("#3a9a4a"))
-	for sx: float in [-6.5, 6.5]:
-		c.lbeam(Vector3(sx, -4.2, 0.12), Vector3(sx, -4.2, 4.0), 0.1, WIRE)
-		c.box(sx - 0.25, sx + 0.25, -4.45, -3.95, 3.3, 4.0, Color("#26262c"))
+		var cu := -6.0 + 2.0 * float(k)
+		c.arch_panel(cu, 1.58, -PI * 0.5, 1.2, 3.3, 4.8, FUN_CYAN if k % 2 == 0 else FUN_MAGENTA, M_LAMP)
+	c.noroof(true)
+	for k in 33:
+		var cu := -8.0 + 0.5 * float(k)
+		c.pbox(cu, -2.95, 0.0, 0.03, 0.03, 2.95, 4.0, WHITE)
+	c.lbeam(Vector3(-8.0, -2.95, 4.0), Vector3(8.0, -2.95, 4.0), 0.08, WHITE)
+	c.lbeam(Vector3(-8.0, -2.95, 3.45), Vector3(8.0, -2.95, 3.45), 0.05, WHITE)
+	# The striped arches over the gallery (red and white), on posts at the front edge.
+	for k in 5:
+		var cu := -6.4 + 3.2 * float(k)
+		for q in 8:
+			var a0 := PI * float(q) / 8.0
+			var a1 := PI * float(q + 1) / 8.0
+			c.lbeam(Vector3(cu + cos(a0) * 1.5, -2.95, 4.0 + sin(a0) * 1.3), Vector3(cu + cos(a1) * 1.5, -2.95, 4.0 + sin(a1) * 1.3),
+					0.16, RED if q % 2 == 0 else WHITE)
+		# A punching bag hanging in each arch.
+		c.lbeam(Vector3(cu, -2.6, 5.2), Vector3(cu, -2.6, 4.4), 0.03, WIRE)
+		c.prism(cu, -2.6, 0.22, 8, 3.6, 4.4, RED if k % 2 == 0 else Color("#2a6fd0"))
+	c.noroof(false)
+	# The roof and the sign band over it.
+	c.box(-8.1, 8.1, -0.5, 3.1, 5.3, 5.5, Color("#2a2e3a"))
+	c.box(-7.6, 7.6, -0.4, -0.2, 5.5, 7.6, Color("#14141c"))
+	c.noroof(true)
+	bulb_word(c, "WORKSHOP", -3.1, -0.5, 5.9, 1.1, Color(1.0, 0.95, 0.8), 0.07)
+	c.box(1.4, 7.4, -0.43, -0.4, 5.65, 7.45, Color("#5a0d1a"))
+	c.word("SANTA'S", 4.4, -0.5, 6.05, 1.0, Color("#ff2a3a"), M_LAMP)
+	# A string of chaser bulbs along the sign band's top and the roof edge.
+	for k in 39:
+		var cu := -7.6 + 0.4 * float(k)
+		c.lbulb(cu, -0.5, 7.65, 0.09, MULTI[k % 4])
+		c.lbulb(cu, -3.1, 5.45, 0.08, MULTI[(k + 2) % 4])
+	# Five LED boards on poles: dark squares with a ring of rainbow Christmas bulbs and a big bulb in the middle.
+	for k in 5:
+		var cu := -7.4 + 3.7 * float(k)
+		var y0 := 7.8 + 0.4 * float(k % 2)
+		c.lbeam(Vector3(cu, -0.3, 5.5), Vector3(cu, -0.3, y0), 0.08, WIRE)
+		c.box(cu - 0.8, cu + 0.8, -0.42, -0.3, y0, y0 + 1.6, Color("#101018"))
+		for q in 9:
+			var qa := TAU * float(q) / 9.0
+			c.lbulb(cu + cos(qa) * 0.55, -0.46, y0 + 0.8 + sin(qa) * 0.55, 0.12, RAINBOW[(q + k) % RAINBOW.size()])
+		c.lbulb(cu, -0.46, y0 + 0.8, 0.22, RAINBOW[(k * 2) % RAINBOW.size()])
+	c.noroof(false)
+	# The striped ramp up to the upper deck at the +u end, and the exit slide at the -u end.
+	for s_i in 6:
+		c.box(8.0, 9.4, -2.8 + 0.8 * float(s_i), -2.0 + 0.8 * float(s_i), 0.12, 0.12 + 0.47 * float(s_i + 1),
+				RED if s_i % 2 == 0 else WHITE)
+	c.slab(c.p(-8.0, -1.5, 2.9), c.p(-10.2, -1.5, 0.3), 1.1, 1.1, 0.15, Color("#ffd23a"))
+	# The palm with Santa climbing it (-u end, in front).
+	c.lbeam(Vector3(-8.6, -4.2, 0.12), Vector3(-8.3, -4.2, 7.5), 0.3, Color("#8a6a3a"))
+	for k in 8:
+		var a := TAU * float(k) / 8.0
+		c.slab(c.p(-8.3, -4.2, 7.5), c.p(-8.3 + cos(a) * 2.2, -4.2 + sin(a) * 2.2, 6.6), 0.6, 0.15, 0.05, Color("#3a9a4a"))
+	c.box(-8.75, -8.15, -4.65, -4.35, 4.6, 5.5, RED)
+	c.sphere(-8.45, -4.55, 5.75, 0.25, 8, 4, Color("#f2d6c0"))
+	c.frustum(-8.45, -4.55, 0.24, 5.9, 0.0, 6.4, 8, RED)
+	# Small firs in front, floodlights in the corners.
+	for k in 6:
+		c.fir(-6.0 + 2.4 * float(k), -4.4, 1.6 + 0.3 * float(k % 2))
+	for fl in [[-8.8, -5.0, Color(0.2, 1.0, 0.35)], [8.8, -5.0, Color(1.0, 0.2, 0.7)], [0.0, -5.1, Color(0.3, 0.45, 1.0)]]:
+		c.box(fl[0] - 0.25, fl[0] + 0.25, fl[1] - 0.15, fl[1] + 0.15, 0.12, 0.5, Color("#202024"))
+		c.rect_panel(fl[0], fl[1] + 0.16, PI * 0.5, 0.4, 0.2, 0.45, fl[2], M_LAMP)
+	c.done()
+	holiday_ride(b, c.w(13.5, -1.0), yaw, g)
+	ticket_booth_fireworks(b, c.w(11.2, -4.6), yaw, g)
+
+
+## The HOLIDAY ride beside the Workshop: a low trailer (6 x 3 m) painted as a stack of gift boxes, a
+## big Santa on a surfboard over it (the board tilted up, his arms out), the plain word HOLIDAY in
+## white bulbs on a red board, LED arrow strips along the sides. Front is local -v.
+static func holiday_ride(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	c.box(-3.0, 3.0, -1.5, 1.5, 0.0, 1.4, Color("#2a6fd0"), Color("#3a3c44"))
+	for k in 3:
+		var cu := -2.0 + 2.0 * float(k)
+		var col: Color = [RED, Color("#33b04a"), Color("#e8b030")][k]
+		c.box(cu - 0.9, cu + 0.9, -1.55, -1.5, 0.2, 1.3, col)
+		c.box(cu - 0.1, cu + 0.1, -1.58, -1.55, 0.2, 1.3, WHITE)
+	c.noroof(true)
+	for k in 15:
+		c.lbulb(-2.8 + 0.4 * float(k), -1.6, 1.45, 0.08, Color(0.2, 1.0, 0.4) if k % 2 == 0 else Color(1.0, 0.9, 0.3))
+	c.noroof(false)
+	# The surfboard on a post, tilted, and Santa on it.
+	c.lbeam(Vector3(0.0, 0.0, 1.4), Vector3(0.0, 0.0, 3.2), 0.25, Color("#9a9aa2"))
+	c.slab(c.p(-2.2, 0.0, 3.0), c.p(2.4, 0.0, 3.8), 1.0, 0.9, 0.18, Color("#ffd23a"))
+	c.prism(0.2, 0.0, 0.55, 10, 3.5, 4.7, RED)
+	c.box(-0.25, 0.65, -0.3, 0.3, 3.4, 3.9, Color("#1a1a20"))
+	c.sphere(0.2, 0.0, 5.05, 0.38, 10, 5, Color("#f2d6c0"))
+	c.sphere(0.2, -0.15, 4.85, 0.32, 8, 4, WHITE)
+	c.frustum(0.2, 0.0, 0.38, 5.25, 0.0, 5.95, 8, RED)
+	c.sphere(0.0, 0.0, 6.0, 0.12, 6, 3, WHITE)
+	c.lbeam(Vector3(0.2, 0.0, 4.5), Vector3(-1.2, 0.0, 5.2), 0.18, RED)
+	c.lbeam(Vector3(0.2, 0.0, 4.5), Vector3(1.6, 0.0, 5.1), 0.18, RED)
+	# The HOLIDAY board.
+	c.box(-2.2, 2.2, 1.3, 1.45, 1.4, 2.6, RED.darkened(0.2))
+	c.noroof(true)
+	bulb_word(c, "HOLIDAY", 0.0, 1.25, 1.65, 0.75, Color(1.0, 0.95, 0.8), 0.06)
+	c.noroof(false)
+	c.done()
+
+
+## The small ticket booth: a 2 x 2 m blue box with firework bursts painted on its sides (lit panels at
+## night), a counter window and a row of green LED dots along its roof edge. Front is local -v.
+static func ticket_booth_fireworks(b, at: Vector2, yaw := 0.0, g := NAN) -> void:
+	var c := Ctx.new(b, at, yaw, g)
+	c.box(-1.0, 1.0, -1.0, 1.0, 0.0, 2.5, Color("#2a5ab8"), Color("#2a2e3a"))
+	c.rect_panel(0.0, -1.02, -PI * 0.5, 1.1, 1.0, 1.9, Color("#ffd8a0"), M_LAMP)
+	for side: float in [-1.0, 1.0]:
+		for q in 7:
+			var a := PI * 0.15 + PI * 0.7 * float(q) / 6.0
+			var o := side * 1.02
+			c.panel(o, 0.0, 0.0 if side > 0.0 else PI, [Vector2(0.0, 0.8), Vector2(cos(a) * 0.75 - 0.05, 0.8 + sin(a) * 0.75),
+					Vector2(cos(a) * 0.75 + 0.05, 0.8 + sin(a) * 0.75)], RAINBOW[q % RAINBOW.size()], M_LAMP)
+	c.noroof(true)
+	for k in 10:
+		c.lbulb(-0.9 + 0.2 * float(k), -1.05, 2.45, 0.06, Color(0.2, 1.0, 0.4))
+	c.noroof(false)
 	c.done()
 
 
