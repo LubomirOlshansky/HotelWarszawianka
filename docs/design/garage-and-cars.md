@@ -53,12 +53,12 @@ one thing that makes the car feel different, shown as an icon on its card.
 | 3 | **Mazgaj MX-5 Kabrio** | Mazda MX-5 (cabrio) | 550 zł | 1.05 | 1.05 | 1.15 | 1.15 | 1.05 | C | Roof down: the driver shows; respect +10 % on rides by day (roof goes up in rain) |
 | 4 | **Ołdi A6 Ałroud** | Audi A6 allroad | 700 zł | 1.12 | 1.05 | 1.00 | 0.95 | 1.00 | C | High body: grass, cobbles and kerbs slow it half as much |
 | 5 | **Ołdi TT** | Audi TT (exists) | 900 zł (was 1,500) | 1.20 | 1.20 | 1.10 | 1.05 | 1.05 | B | none |
-| 6 | **Bawara M3** (F's own name) | BMW M3 E36 | 1,100 zł | 1.22 | 1.25 | 0.95 | 1.10 | 1.05 | B | Rear-drive: easy drifts, drifts fill nitro ×2 |
+| 6 | **Bawarka M3** (F's "bavara"; the game already calls Darek's car Bawarka) | BMW M3 E36 | 1,100 zł | 1.22 | 1.25 | 0.95 | 1.10 | 1.05 | B | Rear-drive: easy drifts, drifts fill nitro ×2 |
 | 7 | **Iżera** ("Polski elektryk. Zapowiadany od lat. Przyjechał.") | Izera EV | 1,300 zł | 1.12 | 1.45 | 1.05 | 1.00 | 1.10 | B | Instant pull, a quiet hum; braking refills nitro (regen) |
 | 8 | **Łamborgini Kurakan** | Lamborghini Huracán | 2,400 zł | 1.40 | 1.45 | 1.20 | 1.10 | 1.20 | A | Loud: pedestrians turn their heads, police notice sooner |
 
 - **Time to buy** at ~20 zł a minute: Łanos 10 min, Bolonez 15, Mazgaj 30, Ałroud 35, TT 45,
-  Bawara 55, Iżera 65, Kurakan about 2 hours. A full main line buys any one of the first seven.
+  Bawarka 55, Iżera 65, Kurakan about 2 hours. A full main line buys any one of the first seven.
 - **Class** is a letter from the car's numbers *with its parts*: D, C, B, A, S (only a fully
   tuned Kurakan, or a tuned B car, reaches S). Shown as a badge everywhere.
 - **Owned cars stay owned**; switching is free. No selling in v1 (it adds a menu and a way to
@@ -94,7 +94,7 @@ one thing that makes the car feel different, shown as an icon on its card.
 
 **The rule.** The player's handling profile (Settings → Jazda: Cruise, Sport, Realnie) stays the
 base: it says *how arcade* the driving is. A car is a **feel preset on top of it**: multipliers on
-the profile's numbers, so a Bawara in Cruise is still a calm city car, only with its own
+the profile's numbers, so a Bawarka in Cruise is still a calm city car, only with its own
 character, and in Sport it really slides. Nothing a car does may break the city rules (lane
 assist, the stop assist, kerbs, collisions, the tow): the collision box stays one size for all.
 
@@ -105,7 +105,7 @@ assist, the stop assist, kerbs, collisions, the tow): the collision box stays on
 | Steering response | `steer_time` | how fast the car answers the thumb (go-kart vs bus) |
 | Turn at low / high speed | `turn_cap`, `turn_pull`, `turn_floor` | tight in the streets vs calm on the avenues |
 | Grip and slide | `grip`, `drift_grip` | holds the line vs the tail steps out when braking in a bend |
-| Power slide (new) | – | rear-drive: full gas in a slow bend kicks the tail out (Bawara, Bolonez) |
+| Power slide (new) | – | rear-drive: full gas in a slow bend kicks the tail out (Bawarka, Bolonez) |
 | Pull curve (new) | `accel`, `onset`, one fade with speed | EV: everything at once, then fades; turbo: kicks in mid-range; old engine: slow build |
 | Brakes | `brake_decel` (Realnie: `GR_BRAKE`) | stopping distance |
 | Weight | yaw lag (`YAW_LAG`), load transfer (Realnie only) | heavy cars turn in a beat late and lean |
@@ -124,7 +124,7 @@ garage card says, in Polish with English):
 | Mazgaj MX-5 | 0.7 (go-kart) | 1.2 | 1.15, flat | light, even | 1.05 | very light / leans 0.6 | "Gokart z dachem w bagażniku." |
 | Ołdi A6 Ałroud | 1.1 | 0.95 | 1.0 | strong low down | 1.0 | heavy, lag 1.3 / leans 1.3 | "Krawężnik? Jaki krawężnik?" |
 | Ołdi TT | 0.9 | 1.05 | 1.1, never slides (quattro) | even | 1.05 | planted / leans 0.7 | "Przyklejony do asfaltu." |
-| Bawara M3 | 0.9 | 1.1 | 0.95, slides on brakes and power | strong mid | 1.05 | medium / leans 0.9 | "Tylny napęd. Gaz w zakręcie = bokiem." |
+| Bawarka M3 | 0.9 | 1.1 | 0.95, slides on brakes and power | strong mid | 1.05 | medium / leans 0.9 | "Tylny napęd. Gaz w zakręcie = bokiem." |
 | Iżera | 1.0 | 1.0 | 1.05 | instant, fades past 100 km/h; strong regen off the gas | 1.1 | heavy but low, lag 1.2 / leans 0.6 | "Cicho, szybko, od zera." |
 | Łamborgini Kurakan | 0.75 (sharp) | 1.1 | 1.2, nervous at top speed | violent | 1.2 | low / leans 0.5 | "Dużo konia. Uważaj na tramwaje." |
 
@@ -150,7 +150,7 @@ iPhone and the thread copies the numbers into `upgrades.gd`.
    butla" 200 zł and "Trzecia butla" 300 zł give 2 and 3. Shown as 1-3 segments round the disc.
 4. **Refill**: an empty bottle fills in 20 s of driving, faster when you drive like an arcade
    hero: a near miss +15 %, a second of drift +10 %, a jump +20 %, a clean overtake in a race +10 %
-   (Bawara, Bolonez, Iżera perks above). A full bottle pops with a short "pling" and a buzz.
+   (Bawarka, Bolonez, Iżera perks above). A full bottle pops with a short "pling" and a buzz.
 5. **Feel**: the camera pulls back a little and widens, short speed lines, the flames and whoosh we
    have, a short buzz.
 6. **Pad and keyboard**: LB/RB tap and Shift tap fire one bottle (the same rule).
@@ -203,7 +203,7 @@ touch target 44 pt or more, the gamepad works on every row.
 
 ## 8. Questions for F (each has a default that gets built if nobody answers)
 
-1. **Names**: Dejwu Łanos, FSŁ Bolonez Karo, Mazgaj MX-5 Kabrio, Ołdi A6 Ałroud, Ołdi TT, Bawara M3,
+1. **Names**: Dejwu Łanos, FSŁ Bolonez Karo, Mazgaj MX-5 Kabrio, Ołdi A6 Ałroud, Ołdi TT, Bawarka M3,
    Iżera, Łamborgini Kurakan. *Default: these.*
 2. **Parts per car or shared?** *Default: per car (NFS).*
 3. **Buy only at Mirek's, or also from MOJE AUTO anywhere?** *Default: buy at Mirek's (the place
@@ -241,7 +241,7 @@ thread's go and a green `gate`.
    lane change at 50 (peak slip, settle time), a 6-cone slalom 18 m apart, a 90° corner at full
    lock at 25 km/h, full gas in a slow bend (the power slide). It prints one "feel card" table
    and fails when a car leaves its band or the **order** breaks (the Mazgaj fastest through the
-   slalom of the cheap cars, the TT slides least, the Bawara and Bolonez most, the Iżera first to
+   slalom of the cheap cars, the TT slides least, the Bawarka and Bolonez most, the Iżera first to
    50 km/h, the Kurakan fastest overall). Cruise keeps F's G4 rule: no car slides more than
    CRUISE_SLIP in a lane change at 50 km/h unless the player asks for it (brake or power in a bend).
 2. **Every car drives the city**: `check_lane_drive` (13 routes, the real car steered along the
