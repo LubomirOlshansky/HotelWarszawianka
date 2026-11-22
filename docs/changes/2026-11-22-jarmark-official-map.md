@@ -6,3 +6,6 @@
 ## Backlog
 - fixed: Widok Towers was one plain glass box
 - fixed: street lamps stood in the market's aisles
+- found: the Jarmark site mesh is 190,815 triangles (2.75x before); no TestFlight or Play build from main until the iPhone bench near the Palace is done (F's yes for the device run)
+- found: 1,235 coplanar triangle pairs on the chalet fronts about 1 m up (check_mesh_quality KNOWN); trace and fix
+- found: list the Jarmark's top triangle contributors (bulbs and strings, chalets, rides) and a cheap cut if the bench is tight
