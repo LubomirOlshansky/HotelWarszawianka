@@ -35,6 +35,10 @@ if (( portrait )); then
 	perl -0pi -e 's/(name="iOS"\n(?:.*\n)*?custom_features=)""/$1"promo_portrait"/' export_presets.cfg
 	grep -q 'custom_features="promo_portrait"' export_presets.cfg || { echo "no iOS custom_features to set" >&2; exit 1; }
 fi
+# Perf thread (2026-11-23): the build's number and commit for the play stats (play_stats.gd
+# BUILD_STAMP; PostHog's app_build said "0.1" for every build). Gitignored, made at each export.
+ios_build=$(awk '/^\[preset\.0\.options\]/{f=1} f&&/^application\/version=/{gsub(/.*="|"/,""); print; exit}' export_presets.cfg)
+print -r -- "{\"build\": \"${ios_build:-dev}\", \"commit\": \"$(git -C .. rev-parse --short HEAD 2>/dev/null || cat ../COMMIT 2>/dev/null)\"}" > data/build_stamp.json
 godot --headless --path . --export-debug "iOS" ../build/ios/NocnaWarszawa.ipa
 # Loop 2b: Xcode's Run button attaches the debugger and, by default, Metal API validation and
 # GPU frame capture, which make every draw call several times slower on the phone. Switch both

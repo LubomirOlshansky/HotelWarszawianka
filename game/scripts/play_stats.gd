@@ -32,6 +32,10 @@ const PostHogConfigScript := preload("res://addons/posthog/posthog_config.gd")
 
 ## The project's token and host, written on the Mac (gitignored; data/*.json goes into the export).
 const KEY_PATH := "res://data/stats_key.json"
+## Perf thread (2026-11-23): written by tools/export_ios.sh and export_android.sh at each export
+## ({"build": the iOS build number or Android version code, "commit"}), gitignored; missing in a
+## run from the editor or a check ("dev").
+const BUILD_STAMP := "res://data/build_stamp.json"
 const HOST := "https://eu.i.posthog.com"
 const TICK := 1.0
 ## fps_sample: taken twice a session, at these seconds into play (perf thread 2026-11-19: the second
@@ -217,6 +221,16 @@ static func clean(event: String, props: Dictionary) -> Dictionary:
 
 
 ## Reads the token file; {} without one.
+## "0.1 (14, 839dfd2)": the version, the build and its commit (PostHog's app_build).
+static func build_name(path := BUILD_STAMP) -> String:
+	var version := str(ProjectSettings.get_setting("application/config/version", ""))
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(path)) if FileAccess.file_exists(path) else null
+	if not d is Dictionary:
+		return version + " (dev)"
+	var commit := str((d as Dictionary).get("commit", ""))
+	return "%s (%s%s)" % [version, str((d as Dictionary).get("build", "dev")), ", " + commit if commit != "" else ""]
+
+
 static func read_key(path := KEY_PATH) -> Dictionary:
 	if not FileAccess.file_exists(path):
 		return {}
@@ -278,7 +292,7 @@ func _start_sdk() -> void:
 	c.send_default_person_properties_for_flags = false
 	c.flush_on_quit = false  # main.gd's _notification flushes; the SDK must not own the quit
 	c.capture_application_lifecycle_events = true
-	c.app_build = str(ProjectSettings.get_setting("application/config/version", ""))
+	c.app_build = build_name()
 	c.before_send = _before_send
 	_sdk = PostHogScript.new()
 	_sdk.name = "PostHog"

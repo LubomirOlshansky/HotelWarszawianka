@@ -181,7 +181,24 @@ static func for_device(model: String, adapter: String) -> int:
 		return for_mac(adapter)
 	if GpuQuirks.is_old_adreno(adapter):
 		return LOW
+	var android := android_level(adapter)
+	if android >= 0:
+		return android
 	return for_model(model)
+
+
+## Perf thread (2026-11-23, the beta's PostHog fps samples): an Android phone's level by its GPU's
+## name, -1 for a GPU that is no phone's. Adreno 7xx and up and Samsung's Xclipse hold High (Galaxy
+## S24 56.8 fps, A56 58.6); Mali, PowerVR and the rest start at Medium (Motorola edge 40, Mali-G77:
+## 27.2 at High); Immortalis (the Mali flagships) High. An old Adreno is Low (`for_device`). Every
+## Auto level can still step down a level after a session that struggled (quality_keep.gd).
+static func android_level(adapter: String) -> int:
+	var a := adapter.to_lower()
+	if a.contains("adreno") or a.contains("xclipse") or a.contains("immortalis"):
+		return HIGH
+	if a.contains("mali") or a.contains("powervr") or a.contains("maleoon"):
+		return MEDIUM
+	return -1
 
 
 ## Mac step 1 (F 2026-11-20; mac_mode.gd): the iPhone app on a Mac. main.gd sets it from

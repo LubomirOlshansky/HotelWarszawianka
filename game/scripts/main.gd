@@ -4472,7 +4472,7 @@ func _load_settings() -> void:
 	# Mac step 1 (mac_mode.gd): the iPhone app on a Mac picks and draws as a computer.
 	Tiers.mac = MacMode.active()
 	print(MacMode.describe())
-	auto_quality = Tiers.for_device(model_name, RenderingServer.get_video_adapter_name() if flags._flag_model == "" else "")
+	auto_quality = _keep.auto_level(self, Tiers.for_device(model_name, RenderingServer.get_video_adapter_name() if flags._flag_model == "" else ""))
 	quality_choice = flags._flag_quality if flags._flag_quality != -2 else settings.quality
 	quality = auto_quality if quality_choice == Tiers.AUTO else quality_choice
 	_keep.launch(self)

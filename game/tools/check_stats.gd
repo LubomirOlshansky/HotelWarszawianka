@@ -100,6 +100,8 @@ func _key() -> void:
 
 
 func _device() -> void:
+	# Perf thread (2026-11-23): app_build names the build when the export wrote its stamp.
+	_expect(PlayStats.build_name("res://no/such/stamp.json").ends_with(" (dev)"), "no stamp: %s" % PlayStats.build_name("res://no/such/stamp.json"))
 	_expect(PlayStats.device_name("iPhone17,2") == "iphone_16_pro_max", "iPhone17,2 is not the 16 Pro Max")
 	_expect(PlayStats.device_name("iPhone99,1") == "iphone99.1", "an unknown iPhone code: %s" % PlayStats.device_name("iPhone99,1"))
 	_expect(PlayStats.device_name("SM-S918B") == "sm-s918b", "an Android model code: %s" % PlayStats.device_name("SM-S918B"))
