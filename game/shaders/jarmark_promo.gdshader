@@ -22,7 +22,7 @@ global uniform float lights_on;
 uniform float px_floor = 1.3;
 // F's look check 1 (2026-11-21): the aisles read nearly white; every bulb about 40 % down, the kit's lit
 // surfaces under the city's 2.4 (grade D: soft highlights, matte).
-uniform float bulb_gain = 0.8;  // was 0.6: too dark (F 2026-11-22)
+uniform float bulb_gain = 0.9;  // was 0.6: too dark (F 2026-11-22)
 uniform float lamp_gain = 1.1;
 
 varying float mode;
@@ -110,11 +110,11 @@ void fragment() {
 		// and towards both ends (UV.y along it).
 		float band = (1.0 - 0.85 * smoothstep(0.1, 1.0, abs(disc.x))) * (1.0 - smoothstep(0.35, 1.0, abs(disc.y)));
 		ALBEDO = col * 0.6;
-		e = vec3(1.0, 0.66, 0.4) * 0.4 * band;
+		e = vec3(1.0, 0.7, 0.45) * 0.6 * band;
 	} else if (mode > 26.5 && mode < 27.5) {
 		// A warm lit interior, not a light box (F 2026-11-21): under the glow threshold, darker up top.
 		ALBEDO = col * 0.35;
-		e = col * 0.62 * mix(0.8, 1.0, wide);  // was 0.42: too dark (F 2026-11-22)
+		e = col * 0.8 * mix(0.85, 1.0, wide);  // was 0.42: too dark (F 2026-11-22)
 	} else if (mode > 9.5 && mode < 11.0) {
 		e = (fract(mode) > 0.25 ? vec3(0.17, 0.34, 1.0) : col) * lamp_gain * mix(0.8, 1.0, wide);
 	}

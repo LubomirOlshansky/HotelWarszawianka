@@ -137,7 +137,7 @@ func _process(_dt: float) -> void:
 		return
 	var view_m := cam.size if cam.projection == Camera3D.PROJECTION_ORTHOGONAL else 80.0
 	var wide := smoothstep(60.0, 110.0, view_m)
-	var share := lerpf(0.65, 1.0, wide)  # was 0.4: too dark (F 2026-11-22)
+	var share := lerpf(0.72, 1.0, wide)  # was 0.4: too dark (F 2026-11-22)
 	if absf(share - TimeOfDay.promo_glow_share) < 0.005:
 		return
 	TimeOfDay.promo_glow_share = share

@@ -736,8 +736,8 @@ func _apply(look: Dictionary) -> void:
 		# Night, not dusk (F's look check 1, 2026-11-21: the ground read blue-grey): the ambient and the
 		# moon well down, so the ground between the lit rows is dark and only the strings' pools are warm;
 		# a navy sky (lighting-decision.md: #101a3b over, lighter towards the horizon), never black.
-		env.ambient_light_energy *= lerpf(1.0, 0.33, k)
-		sun.light_energy *= lerpf(1.0, 0.52, k)
+		env.ambient_light_energy *= lerpf(1.0, 0.5, k)
+		sun.light_energy *= lerpf(1.0, 0.72, k)
 		env.background_color = env.background_color.lerp(Color("#0b1238"), k)
 		post.set_shader_parameter("sky_top", _linear3((look["sky_top"] as Color).lerp(Color("#0d1640"), k)))
 		post.set_shader_parameter("sky_bottom", _linear3((look["sky_bottom"] as Color).lerp(Color("#2c3c8e"), k)))
