@@ -774,8 +774,8 @@ func _make_ride(n: int, e: int, s: float, from: Vector2, lo: float, hi: float) -
 		var dist := graph.distances_from(graph.e_b[r["p_e"]])
 		for f in rivals.get("_finishes"):
 			# Nobody asks to be taken to the far end of a bridge, or to the map's edge (the
-			# L-shaped outline's, lane_graph.gd `in_play`: TARGET_PAD m in).
-			if String(f["name"]).contains("Most") or not graph.in_play(graph.node_pos[int(f["node"])]):
+			# L-shaped outline's, the jobs' pad: lane_graph.gd TARGET_PAD m in).
+			if String(f["name"]).contains("Most") or not map.in_map(graph.node_pos[int(f["node"])], -LaneGraph.TARGET_PAD):
 				continue
 			var road: float = graph.e_len[r["p_e"]] - float(r["p_s"]) + dist[int(f["node"])]
 			if road >= RIDE_MIN and road <= RIDE_MAX:
