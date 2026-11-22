@@ -156,6 +156,10 @@ var cam_lift := 0.0
 ## --cam-car; no occlusion ghost. follow_camera.gd parse_free / free_view.
 var free_cam := false
 var _free_cam_car := false
+## --cam-move=VX,VZ,VYAW,VSIZE[,VPITCH] (promo takes, F 2026-11-22: drone moves and flyovers): the
+## --cam frame drifts at these rates per second (metres, degrees, metres of view height, degrees),
+## starting when the city is ready (main.gd prints "cam-move: start frame N"), eased in over 0.6 s.
+var cam_move := PackedFloat32Array()
 ## --cams=NAME:X,Y,Z,YAW,PITCH,SIZE+NAME2:...: one run, several free cameras, one shot each
 ## (files NAME_FFFF.png; the --spots machinery moves the car under each). follow_camera.gd parse_cams.
 var _cams: Array = []
@@ -616,6 +620,11 @@ func parse_with(args: PackedStringArray) -> void:
 				no_ghost = true
 				if not _has_arg("--at="):
 					m.start_at = Vector3(fc[0], 0.0, fc[2])
+		elif arg.begins_with("--cam-move="):
+			cam_move = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0])
+			var parts := arg.trim_prefix("--cam-move=").split(",")
+			for i in mini(parts.size(), 5):
+				cam_move[i] = float(parts[i])
 		elif arg == "--cam-car":
 			_free_cam_car = true
 		elif arg.begins_with("--cams="):

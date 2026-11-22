@@ -333,6 +333,9 @@ const COLLIDER_VIEW := "res://scripts/collider_view.gd"
 var start_in_tunnel := false
 ## Also written by a command-line flag (dev_flags.gd).
 var _free_cam_at := Vector3.ZERO
+## --cam-move: on once the city is ready, and the seconds it has been moving.
+var _cam_move_on := false
+var _cam_move_t := 0.0
 ## The ghosted footprint's sunlight: given back in full above GHOST_SUN_HIGH degrees of
 ## sun, none below GHOST_SUN_LOW; GHOST_SUN_SCALE matches it to the renderer's sun
 ## (measured: with 1.8 a ghosted footprint behind the Palace read 154.7 against 159.3 for
@@ -1950,6 +1953,9 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	traffic.trams = trams
 	_first_scene_trams()
 	_promo_traffic()
+	if flags.cam_move.size() == 5:
+		_cam_move_on = true
+		print("cam-move: start frame %d" % Engine.get_frames_drawn())
 	trains = Trains.new()
 	world.add_child(trains)
 	trains.setup(map, data)
@@ -7108,10 +7114,22 @@ func _update_free_camera() -> void:
 		focus.y = map.ground_height(focus.x, focus.z)
 	focus.y += flags.cam_lift
 	car.visible = flags._free_cam_car
-	cam_focus = focus
-	cam_yaw_target = cam_yaw
+	var yaw := cam_yaw
+	var pitch := _view_pitch()
 	_view_size = base_size
-	var xf := FollowCamera.free_view(focus, cam_yaw, _view_pitch(), _view_size, CAMERA_DISTANCE)
+	if _cam_move_on:
+		# The promo drone move (--cam-move): eased in over 0.6 s, then steady.
+		_cam_move_t += get_process_delta_time()
+		var t := _cam_move_t
+		var te := t * t / 1.2 if t < 0.6 else t - 0.3
+		var mv := flags.cam_move
+		focus += Vector3(mv[0], 0.0, mv[1]) * te
+		yaw += mv[2] * te
+		_view_size = maxf(5.0, base_size + mv[3] * te)
+		pitch = clampf(pitch + mv[4] * te, -89.0, -5.0)
+	cam_focus = focus
+	cam_yaw_target = yaw
+	var xf := FollowCamera.free_view(focus, yaw, pitch, _view_size, CAMERA_DISTANCE)
 	cam.size = _view_size
 	cam.global_transform = Transform3D(xf.basis, _snap_to_pixels(xf.origin, xf.basis, _view_size))
 	cam.far = _camera_far(maxf(CAMERA_DISTANCE, cam.size * 1.6), _view_size)
