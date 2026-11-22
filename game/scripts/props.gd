@@ -1535,7 +1535,7 @@ static func add_y_mast(st: SurfaceTool, xf: Transform3D) -> void:
 		_xbox(st, xf, Vector3(0, 6.46, side * 0.68), Vector3(0.26, 0.03, 0.22), Color("#fff6e0"), LIT_SIGN)
 	_xbox(st, xf, Vector3(0.24, 1.5, 0), Vector3(0.04, 0.6, 0.3), Color("#d9d9d4"))
 	_xbox(st, xf, Vector3(-0.235, 2.6, 0), Vector3(0.03, 0.4, 0.4), Color("#fafaf7"))
-	_xbox(st, xf, Vector3(-0.255, 2.6, 0), Vector3(0.01, 0.26, 0.26), Color("#c8242b"))
+	_xbox(st, xf, Vector3(-0.27, 2.6, 0), Vector3(0.01, 0.26, 0.26), Color("#c8242b"))  # 2.5 cm proud of the white plate (no flicker)
 	for side: float in [-1.0, 1.0]:
 		_xbeam(st, xf, Vector3(0, 7.1, 0), Vector3(0, 11.0, side * 1.8), 0.24, 0.18, white)
 		var tilt := Basis(Vector3.RIGHT, -side * 0.12)
