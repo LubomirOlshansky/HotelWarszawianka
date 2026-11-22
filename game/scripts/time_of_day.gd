@@ -741,8 +741,8 @@ func _apply(look: Dictionary) -> void:
 		env.background_color = env.background_color.lerp(Color("#0b1238"), k)
 		post.set_shader_parameter("sky_top", _linear3((look["sky_top"] as Color).lerp(Color("#0d1640"), k)))
 		post.set_shader_parameter("sky_bottom", _linear3((look["sky_bottom"] as Color).lerp(Color("#2c3c8e"), k)))
-		post.set_shader_parameter("g_contrast", float(look["g_contrast"]) * lerpf(1.0, 1.25, k))
-		post.set_shader_parameter("g_lift", (look["g_lift"] as Vector3) * (1.0 - k))
+		post.set_shader_parameter("g_contrast", float(look["g_contrast"]) * lerpf(1.0, 1.08, k))  # was 1.25: crushed the darks (F 2026-11-22 "too dark")
+		post.set_shader_parameter("g_lift", (look["g_lift"] as Vector3) * (1.0 - 0.4 * k))
 	var lit := lights_on > 0.001
 	if lit != _lit:
 		_lit = lit
