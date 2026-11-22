@@ -10,6 +10,40 @@ stadium floor (two grass islands, a figure-eight-like loop, smoke, flame jets, s
 kept at `/mnt/project-files/refs/drift-narodowy/` (never in the repo). **A plan for F's approval;
 nothing is built yet.** It builds on `docs/design/garage-and-cars.md` (the cars' feel, 4b).
 
+## 0. The revised plan (2026-11-22, after the Opus review)
+
+**This section wins over everything below it.**
+
+1. **A drift mode, only in the stadium**: a `drift_mode` branch in `car.gd` (like `weighty`), the maths in
+   a pure static `drift_model.gd`, on only inside the scene. No drift state in city driving (lane
+   assist, the wall rules and `check_lane_drive` stay untouched), no city practice pad yet.
+2. **RĘCZNY takes BRAKE's plate**, not the nitro's: the thumb rocks GAS ↔ RĘCZNY without lifting
+   (the existing GAS ↔ BRAKE roll), the left-handed layout mirrors it; BRAKE moves to the small slot.
+   Pad: the shoulders. Point controls: the stick is the line, the full assist sets the angle. The
+   assist setting has an "auto gas" choice.
+3. **A venue owner** for scenes off the map (`inside`, `centre`, `view_size`, what stops while you are
+   inside: streaming, traffic, police, the minimap) instead of a fourth copy of the club's pattern in
+   main.gd; no entry during a chase.
+4. **Shorter event**: qualifying (best of 2 runs, instant retry with a Lena line), then one final
+   tandem against „Hrabia" (2 runs, his recorded line). About 6 minutes. Top 4, the second track
+   (Wielka Pętla), Thursday practice, the notebook page and the replay camera come later.
+5. **One score**: the chain with banking; the three judges' cards only show its three parts.
+6. **Numbers**: RĘCZNY tap at 30 km/h or more with the wheel turned opens the angle in ~0.3 s; the
+   full assist holds 20-45°, a spin at 75°; off the gas it straightens in 1.2 s; a transition 0.6 s;
+   runs 30-35 s. Smoke at most 64 puffs (2.5 m, 1.2 s, alpha ~0.35, unshaded); a crowd of at most
+   2,000 in one MultiMesh; about 15 draw calls with both cars (not 10).
+7. **Names and jokes**: the event "Puchar Bokiem", the sponsor parody "Bycze Skrzydło" (no can of
+   any shape); the copied memes (the anime inertia-drift line, the Eurobeat lyric) are cut by the
+   warsaw-tone rule 1 (original writing only); kept: Lena's pierogi deliveries, the pickle jar,
+   the commentator's wall line, the fan who paid to breathe tyres, our own Eurobeat-style loop. Bjørn's
+   line is about winter, not his country.
+8. **The prize**: the drift setup for the Bawarka 325 in Darek's WNRC colours (the road Bawarka 325
+   can be bought at Mirek's).
+
+Phases: D0 drift model + `drift_score.gd` + `check_drift` + a line recorder → D1 the venue owner,
+the stadium and Ósemka (smoke, marks, camera; the near stands cut away) with a bench → D2 the short
+event (the call, Hrabia's line, the prize). After the garage's C1a.
+
 ## 1. The real thing
 
 - **Drift Masters Grand Finale at PGE Narodowy** (Red Bull, every September since 2019): a track laid

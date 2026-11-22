@@ -9,6 +9,70 @@ the map with your car, what you bought and a way to switch cars; and a normal ni
 you have to take your thumb off the gas to use it. **This is a plan for F's approval. Nothing is
 built yet.**
 
+## 0. The revised plan (2026-11-22, after the Opus review; F: "critique it with Opus, revise, implement")
+
+**This section wins over everything below it.** The sections below are kept as the first draft and
+the reasons. What the review found and what changed:
+
+1. **Rivals stop copying the player's car** (the review's #1): today rivals race at the player's
+   top speed (`rivals.gd` `player_top`, the pack race in `street_meet.gd`), so a better car wins
+   nothing. They get a fixed top, the stock hatch's 30 m/s: a stock hatch races exactly as today,
+   a better car gains. Done **before any car is sold** (phase R1, race bench before and after).
+   The drag and the police chase stay as they are for now.
+2. **One handling slider instead of the Cruise/Sport modes** (F 22:43: "the default steering is too
+   dull, I set Sport at once; we have sensitivity, so why the modes; make it better by default, a
+   slider from Cruise to sharper, maybe slides, maybe not, it must get on with the car tuning"):
+   Settings → Jazda gets one slider **„Charakter jazdy": Spokojny ↔ Sportowy** that blends the Cruise
+   and Sport numbers (grip, turn, steering speed, gas bite) and folds the old sensitivity in. The
+   default sits at about two thirds, close to Sport. Slides only open on the last third (so the
+   left end keeps F's G4 rule "a city, not a racer"); Realnie stays a separate switch. Each car's
+   feel multiplies whatever the slider gives, so cars and the slider get on. Saves move over: Cruise
+   → 0.35, Sport → 1.0, the old sensitivity into the same slider's steering part. (Phase H1.)
+3. **Only knobs a player can see from the 80 m camera** (#2, #3): top speed, the pull curve (bite
+   and fade), the turning circle, steering speed in three bands, the tail slide (only on the slider's
+   sporty end), and **the engine sound per car** (the strongest cue). Cut: brakes as a part, body
+   lean per car, weight per car, grip on the calm end.
+4. **Nitro** (#4): tap fires a 2.5 s bottle; the kit stays **350 zł with 2 bottles**, each refills in
+   12 s, a 3rd bottle 300 zł; owners keep what they paid for (they get 2 bottles). In Classic the disc
+   moves **above GAS** and a swipe up from GAS (40 pt or more) fires it; in Point and Fixed it stays
+   where it is. The drag: a tap before the green waits for the green (no false start), and the BIEG
+   shift keeps its place. Pad LB/RB tap, Shift tap. Near-miss refills are deferred (no detector yet).
+5. **Tuning stays shared by every car** (#8; no save migration): Silnik (engine) and "Zawieszenie i
+   opony" (the tyres, now grip +8 % and turn +4 % a level) at today's prices; Turbo later. Per-car
+   tuning, class badges, the test drive and most perks are deferred; two cheap perks stay (the
+   Ałroud shrugs off kerbs, the electric car's quiet hum).
+6. **Cars and prices** (the review's numbers; speed ceiling kept at today's ~190 km/h with nitro):
+
+| Car | Price | Top | Pull | Turn | Slide (sporty end) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Hatchback z paskami | free | 1.00 | 1.00 | 1.00 | 1.0 |
+| Dejwu Łanos | 200 zł | 1.00 | 0.85 | 1.12 | 1.0 |
+| FSŁ Bolonez Karo | 300 zł | 1.03 | 0.85 | 0.88 | more |
+| Mazgaj Kabrio | 550 zł | 1.02 | 1.05 | 1.20 | 1.0 |
+| Ołdi Ałroud | 700 zł | 1.08 | 1.00 | 0.90 | 1.0 |
+| Ołdi TT | 1,000 zł (was 1,500: owners get 500 back) | 1.12 | 1.20 | 1.05 | less |
+| Bawarka 325 | 1,200 zł | 1.15 | 1.25 | 1.05 | more |
+| Prąd-Pol Cichobieg (electric) | 1,400 zł | 1.08 | 1.50, instant, fades | 1.00 | 1.0 |
+| Łamborgini Kurakan | 2,800 zł | 1.22 | 1.50 | 1.00 | 1.0 |
+
+   Names lost their real model codes (M3, MX-5, A6) and the electric car is no longer a near-copy of
+   a state EV project. Stripes are per car (a Bolonez has none).
+7. **Screens**: the garage card gets the turning car (a SubViewport with its own small world) and
+   tabs AUTA / TUNING / LAKIER; MOJE AUTO is a 44 pt chip on the full map (not a second big button);
+   switch cars only when stopped with nothing on. One language at a time through `Lang.pick` (not
+   Polish over English).
+8. **The lot**: a `Places.TABLE` row beside today's ring on Twarda (no ring move, no re-bake); the
+   workshop and Komis u Mirka modelled after the screens.
+
+**Order (one PR each; PRs touching car.gd go one after another):** N1 nitro → H1 handling slider →
+R1 rivals' fixed top → C1a cars' feel, roster, sound, Car lab, `check_car_feel` → C1b the bodies
+(turntable sheets) → G1 garage card with the viewer → G2 MOJE AUTO → Autopilot P21-P23 → the lot →
+the drift (docs/design/drift-narodowy.md section 0). The estimates below are optimistic: about 1.5×.
+
+**Defaults built unless F says otherwise:** a better car wins races more easily (fixed rival top);
+tuning shared; you can buy a road Bawarka 325 and the drift prize is its drift setup in Darek's
+colours; in the calm half of the slider cars differ only by speed, pull, turning and sound.
+
 ## 1. What is there today (main 04e52e9)
 
 - **Warsztat u Mirka** (`garage.gd`, card `garage_card.gd`): a dashed ring on Twarda
