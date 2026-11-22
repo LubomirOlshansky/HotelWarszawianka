@@ -81,7 +81,7 @@ fails if a script is in neither page, so add a row when you add a file.
 | `monuments.gd` | Statues, plaques and benches from OSM. |
 | `map_edge.gd`, `edge_roadworks.gd` | Land past the map edge, roadworks closing roads at the edge. |
 | `rail_cut.gd`, `rail_yard.gd`, `station_lines.gd` | Railway cutting, platforms, platform centre lines. |
-| `spire_motion.gd`, `tarasy_screen.gd`, `palace_lights.gd` | Animated landmark parts (Spire ticker and fountains, Złote Tarasy screen: both places with `part` meshes in their own material; Palace lighting by date). |
+| `spire_motion.gd`, `tarasy_screen.gd`, `arkadia_screen.gd`, `palace_lights.gd` | Animated landmark parts (Spire ticker and fountains, Złote Tarasy screen, Arkadia's promo screen on the same LED shader: places with `part` meshes in their own material; Palace lighting by date). |
 | `jarmark_rides.gd` | The Jarmark rides turning (2026-11-20): the tower carousel's carrier (round and up and down the mast), the Venetian carousel with bobbing horses, the teacups and the tree carousel, with riders; a place (`Places.TABLE`) with one `part` mesh built by the market's kit (`landmarks/jarmark.gd` `_jm_*_spin`), turned in `shaders/jarmark_rides.gdshader` from TIME: one draw call, no per-frame script. |
 | `ped_zones.gd`, `scooter_zones.gd` | Pedestrian zones and e-scooter zones as point tests. |
 | `districts.gd` | Which district a point is in; district discovery. |

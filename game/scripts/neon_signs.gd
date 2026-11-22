@@ -67,7 +67,7 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"LORETKA",
 		# Arkadka from F's photos (2026-11-03): Westfield as "west field" in Polish, the
 		# hypermarket, the DIY store and the cinema on the sign tower.
-		"ZACHODNIE", "POLE", "KARFUREK", "MERLINEK", "KINO SITKO",
+		"ZACHODNIE", "POLE", "KARFUREK", "GEOBENT",
 		# The railway (docs/design/railway.md, S2): the round pavilion's letters at Powiśle.
 		"WARSZAWA", "POWIŚLE",
 		# F's photos (2026-11-06): the round pavilion's letters one box each (the ones N, O, W, T, E, L
