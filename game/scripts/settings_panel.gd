@@ -105,8 +105,9 @@ const ANGLE := [["30°", "30°"], ["40°", "40°"], ["50°", "50°"]]
 const FPS := [["60 płynnie", "60 smooth"], ["30 bateria", "30 battery"]]
 ## Loop MW-6: the game's mode (settings.gd `wander`).
 const MODE := [["Miasto", "City"], ["Spacer", "Wander"]]
-## G4: the car's handling (settings.gd `handling`, car.gd PROFILES).
-const HANDLING := [["Spokojnie", "Cruise"], ["Sportowo", "Sport"], ["Realnie", "Grounded"]]
+## H1: the Realnie switch on the DEV page (settings.gd `handling`: 0 off, 1 the car with weight);
+## Cruise to Sport is the „Charakter jazdy" slider on Jazda now.
+const HANDLING := [["Zwykle", "Arcade"], ["Realnie", "Grounded"]]
 ## Phase 0.2: the city's chattiness (settings.gd `chatter`, chatter.gd GAPS).
 const CHATTER := [["Mało", "Quiet"], ["Średnio", "Some"], ["Dużo", "Lots"]]
 ## Settings rows (F 2026-11-14): the car's collision answer (settings.gd `collide`, collide_rules.gd
@@ -269,7 +270,12 @@ func _build() -> void:
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size.x = 240.0 * pt
 		drive[0].add_child(l)
-	_level(drive[0], "sensitivity", "Czułość", "Steering", 120.0)
+	# H1 (F 2026-11-22): one slider for the handling, calm on the left, sharp on the right; the
+	# slides only open on its last third (car.gd set_character).
+	_level(drive[0], "character", "Charakter jazdy", "Handling", 120.0)
+	var ends := _text(Lang.pick("← spokojnie · ostro, z poślizgiem →", "← calm · sharp, with slides →"), T_SUB, SUB)
+	ends.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	drive[0].add_child(ends)
 	# First hour step 6 (the Fable critique's beta settings, F 2026-11-15): our own A/B switches
 	# (handling, the follow camera, the lane assist, the 20 km/h zones, collisions, smashable
 	# fences, the city's chattiness, the overlay and TEST) live on the DEV page (`_dev_page`,

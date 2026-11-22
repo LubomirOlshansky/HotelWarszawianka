@@ -11,7 +11,8 @@ extends SceneTree
 ## the camera angle (`pitch`) round-trip; an angle that isn't a choice loads as 30°. Settings rows
 ## (2026-11-14): a missing file has the collision answer v1 (`collide` 0) and the fences hard
 ## (`soft_fences` off); mid and breakable round-trip; a hand-edited preset out of range is clamped. The real
-## user://settings.cfg is never touched. Deletes its scratch files.
+## user://settings.cfg is never touched. H1 (2026-11-22): a save from before „Charakter jazdy" moves over
+## (Sport to 1, Cruise to the default, Grounded to Realnie, the sensitivity's offset halved). Deletes its scratch files.
 ##   godot --headless --path game --script res://tools/check_settings.gd
 
 const Settings := preload("res://scripts/settings.gd")
@@ -30,7 +31,7 @@ func _initialize() -> void:
 	fresh.load_file()
 	var defaults := fresh.controls == 1 and fresh.traffic == Settings.DEFAULT_TRAFFIC and fresh.quality == Settings.AUTO \
 			and fresh.master == 1.0 and fresh.music == 1.0 and fresh.effects == 1.0 and not fresh.perf and fresh.classic_follow \
-			and fresh.fps == 60 and fresh.style == 0 and not fresh.vhs and not fresh.zone_cap and fresh.handling == 0 and is_equal_approx(fresh.sensitivity, 0.5) \
+			and fresh.fps == 60 and fresh.style == 0 and not fresh.vhs and not fresh.zone_cap and fresh.handling == 0 and is_equal_approx(fresh.character, Settings.CHARACTER_DEFAULT) \
 			and not fresh.text_large and not fresh.calm and not fresh.color_safe and fresh.vibration and fresh.stop_assist \
 			and not fresh.left_handed and fresh.lane_assist and fresh.pads == Settings.PADS_SLIDER and fresh.view == 65.0 and fresh.pitch == 30.0 and fresh.camera_view == 0 \
 			and fresh.collide == Settings.DEFAULT_COLLIDE and fresh.soft_fences == Settings.DEFAULT_SOFT
@@ -107,7 +108,7 @@ func _initialize() -> void:
 	a.handling = 1
 	a.collide = 3  # firm and hard fences by choice (mid and breakable are the defaults since 2026-11-16) survive
 	a.soft_fences = false
-	a.sensitivity = 0.8
+	a.character = 0.8
 	a.text_large = true
 	a.calm = true
 	a.color_safe = true
@@ -125,6 +126,20 @@ func _initialize() -> void:
 	b.load_file()
 	var same := a.summary() == b.summary() and b.classic_follow == a.classic_follow and b.view == 40.0 and b.pitch == 50.0 and b.camera_view == 2 \
 			and not b.lane_assist and b.pads == Settings.PADS_ARROWS and b.collide == 3 and not b.soft_fences and b.grade == 1
+	# H1: saves from before the „Charakter jazdy" slider: Sport is its right end, Cruise the new
+	# default, Grounded Realnie, and a moved sensitivity shifts it by half its offset.
+	for row: Array in [[1, 0.5, 1.0, 0], [0, 0.5, Settings.CHARACTER_DEFAULT, 0], [2, 0.5, Settings.CHARACTER_DEFAULT, 1], [0, 0.9, Settings.CHARACTER_DEFAULT + 0.2, 0]]:
+		var old := ConfigFile.new()
+		old.set_value("game", "handling", row[0])
+		old.set_value("game", "sensitivity", row[1])
+		old.save(SCRATCH_OLD)
+		var m := Settings.new()
+		m.path = SCRATCH_OLD
+		m.load_file()
+		if not is_equal_approx(m.character, float(row[2])) or m.handling != int(row[3]):
+			print("check_settings: an old save %s loads as character %.2f handling %d" % [row, m.character, m.handling])
+			ok = false
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SCRATCH_OLD))
 	# F 2026-11-13: a save from before the arrows (lane assist off, no `lane_assist_default`, no
 	# `pads`) loads with the lane assist on; F 2026-11-14: and the slider.
 	var cfg_la := ConfigFile.new()

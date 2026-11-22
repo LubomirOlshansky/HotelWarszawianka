@@ -140,11 +140,26 @@ var _brake_build := 0.0
 var _pitch_v := 0.0
 var _roll_v := 0.0
 var handling := Handling.CRUISE
-## F (2026-11-01): "adjustments of the car's reactions, like the sensitivity of the driving" (Settings
-## → Jazda, settings.gd `sensitivity` 0..1, 0.5 the profile as is). A multiplier on how hard the
-## wheel turns the car and how fast it answers: SENS_MIN at the slider's left end, SENS_MAX at its right.
-const SENS_MIN := 0.6
-const SENS_MAX := 1.4
+## H1 (F 2026-11-22: "the default steering is too dull, I set Sport at once; we have sensitivity, so
+## why the modes; one slider from Cruise to sharper, maybe slides, maybe not, and it must get on
+## with the car's tuning"): one slider, „Charakter jazdy" (settings.gd `character` 0..1, Settings →
+## Jazda), replaces the Cruise/Sport modes and the old sensitivity. Along it:
+## - 0 .. CRUISE_AT: Cruise's numbers with the steering's gain from GAIN_LOW up to 1 (calmer than
+##   Cruise ever was, for whoever wants it);
+## - CRUISE_AT .. STEER_FULL: the steering (turn limit, pull, pivot, speed, the gas's bite) blends
+##   from Cruise's to Sport's; the tyres keep Cruise's grip, so the car turns sharp and stays planted;
+## - SLIDE_FROM .. 1: the tail's grip blends to Sport's, so the slides only open on the sporty end
+##   (F's G4 rule "a city, not a racer" stays true for the rest of the slider). 1 is Sport exactly.
+## The setting's default (settings.gd CHARACTER_DEFAULT) turns about two thirds of the way to Sport with Cruise's grip;
+## a fresh car (no setting yet, the checks) starts at CRUISE_AT, Cruise's numbers as before.
+## Realnie (GROUNDED) stays its own switch with its own numbers; the slider's gain still applies.
+## The tuning (grip_mult) and, later, each car's own feel multiply whatever the slider gives.
+const CRUISE_AT := 0.35
+const STEER_FULL := 0.8
+const SLIDE_FROM := 0.7
+const GAIN_LOW := 0.7
+var character := CRUISE_AT
+## How hard the wheel turns the car and how fast it answers (1 from CRUISE_AT up; see above).
 var steer_gain := 1.0
 ## G13 (the upgrade shop, garage.gd / upgrades.gd): the model on the road ("hatch", or "tt", the
 ## "Ołdi TT" parody), the tuning multipliers (engine: top speed and pull, tyres: grip) and nitro.
@@ -1235,11 +1250,6 @@ func reset_motion() -> void:
 	_ghosted.clear()
 
 
-## F: the steering sensitivity slider (0..1, 0.5 = 1.0) sets `steer_gain`.
-func set_sensitivity(level: float) -> void:
-	steer_gain = lerpf(SENS_MIN, SENS_MAX, clampf(level, 0.0, 1.0))
-
-
 ## The --handling= flag's word (cruise, sport, grounded, or the number) as a Handling; -1 if unknown.
 static func parse_handling(word: String) -> int:
 	match word.to_lower():
@@ -1252,12 +1262,56 @@ static func parse_handling(word: String) -> int:
 	return -1
 
 
-## G4: switch the handling profile (see PROFILES); anything else goes with the numbers it sets.
+## G4: switch the handling profile for a test run or the --handling= flag: CRUISE and SPORT are the
+## slider's CRUISE_AT and right end (H1), GROUNDED is Realnie at the slider's place now.
 func set_handling(h: int) -> void:
-	handling = (h if h in PROFILES else Handling.CRUISE) as Handling
-	var p: Dictionary = PROFILES[handling]
-	for k: String in p:
-		set(k, p[k])
+	match h:
+		Handling.SPORT:
+			set_character(1.0, false)
+		Handling.GROUNDED:
+			set_character(character, true)
+		_:
+			set_character(CRUISE_AT, false)
+
+
+## H1: the „Charakter jazdy" slider (0..1, see CRUISE_AT) and the Realnie switch. `handling` follows:
+## GROUNDED with Realnie, SPORT once the tail loosens (past SLIDE_FROM), else CRUISE (the collision
+## answer's profile, collide_rules.gd).
+func set_character(level: float, realnie := false) -> void:
+	character = clampf(level, 0.0, 1.0)
+	if realnie:
+		handling = Handling.GROUNDED
+	else:
+		handling = Handling.SPORT if character > SLIDE_FROM else Handling.CRUISE
+	_apply_handling()
+
+
+## H1: the steering's share of the way from Cruise to Sport, the tail grip's share and the gain at
+## `level` (see CRUISE_AT). Static, so the checks and the settings card read the same curve.
+static func character_blend(level: float) -> Vector3:
+	var c := clampf(level, 0.0, 1.0)
+	var steer := clampf((c - CRUISE_AT) / (STEER_FULL - CRUISE_AT), 0.0, 1.0)
+	var slide := clampf((c - SLIDE_FROM) / (1.0 - SLIDE_FROM), 0.0, 1.0)
+	var gain := lerpf(GAIN_LOW, 1.0, clampf(c / CRUISE_AT, 0.0, 1.0))
+	return Vector3(steer, slide, gain)
+
+
+## Writes the numbers for `handling` and `character` (see PROFILES and CRUISE_AT), then the tuning.
+func _apply_handling() -> void:
+	var b := character_blend(character)
+	steer_gain = b.z
+	if handling == Handling.GROUNDED:
+		var g: Dictionary = PROFILES[Handling.GROUNDED]
+		for k: String in g:
+			set(k, g[k])
+	else:
+		var cr: Dictionary = PROFILES[Handling.CRUISE]
+		var sp: Dictionary = PROFILES[Handling.SPORT]
+		for k: String in cr:
+			if k == "weighty":
+				set(k, false)
+			else:
+				set(k, lerpf(float(cr[k]), float(sp[k]), b.y if k == "grip" or k == "drift_grip" else b.x))
 	grip *= grip_mult
 	drift_grip *= grip_mult
 
@@ -1275,7 +1329,7 @@ func set_tuning(top: float, pull: float, grip_x: float) -> void:
 	top_mult = top
 	accel_mult = pull
 	grip_mult = grip_x
-	set_handling(handling)
+	_apply_handling()
 
 
 ## G13: the model on the road: the three body meshes are made again once (a swap, no new node).

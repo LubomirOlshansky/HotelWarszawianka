@@ -114,11 +114,15 @@ var wander_offered := false
 ## pill, off by default (driving made easier); Settings → JAZDA turns it on. The guards stand in
 ## the zones either way, and the footway clamp is not part of it.
 var zone_cap := false
-## G4: car.gd Handling (0 Cruise, the default; 1 Sport, the loop 2a feel; 2 Grounded, the car with
-## weight, F 2026-11-04 "too arcade"). Settings → Jazda, key "handling".
+## H1 (F 2026-11-22): the Realnie switch, the car with weight (car.gd GROUNDED, F 2026-11-04 "too
+## arcade"): 0 off (the default), 1 on. DEV page, key "handling" (before H1 it held 0 Cruise,
+## 1 Sport, 2 Grounded; `load` moves those saves over).
 var handling := 0
-## Steering sensitivity 0..1 (0.5 = the profile as is; car.gd set_sensitivity). Settings → Jazda, key "sensitivity".
-var sensitivity := 0.5
+## H1: „Charakter jazdy" 0..1, Spokojnie to Sportowo (car.gd set_character, CRUISE_AT), one slider
+## for what Cruise/Sport and the sensitivity did. Settings → Jazda, key "character".
+## About two thirds of the way to Sport's steering, with Cruise's grip (car.gd CRUISE_AT).
+const CHARACTER_DEFAULT := 0.65
+var character := CHARACTER_DEFAULT
 ## Beta values (2026-11-04): the lane assist (lane_assist.gd), Classic only. Settings → Jazda, key
 ## "lane_assist". On by default since 2026-11-13 (F: "A + lane assist", with the fixed arrows: an
 ## arrow is all or nothing, so between taps the lane holds the car straight); a save from before
@@ -215,8 +219,13 @@ func load_file() -> void:
 	wander = bool(cfg.get_value("game", "wander", wander))
 	wander_offered = bool(cfg.get_value("game", "wander_offered", wander_offered))
 	zone_cap = bool(cfg.get_value("game", "zone_cap", zone_cap))
-	handling = clampi(int(cfg.get_value("game", "handling", handling)), 0, 2)
-	sensitivity = clampf(float(cfg.get_value("game", "sensitivity", sensitivity)), 0.0, 1.0)
+	if cfg.has_section_key("game", "character"):
+		handling = clampi(int(cfg.get_value("game", "handling", handling)), 0, 1)
+		character = clampf(float(cfg.get_value("game", "character", character)), 0.0, 1.0)
+	else:
+		character = migrate_character(int(cfg.get_value("game", "handling", 0)),
+				float(cfg.get_value("game", "sensitivity", 0.5)))
+		handling = 1 if int(cfg.get_value("game", "handling", 0)) == 2 else 0
 	lane_assist = bool(cfg.get_value("game", "lane_assist", lane_assist))
 	if not cfg.has_section_key("game", "lane_assist_default"):
 		lane_assist = true
@@ -277,7 +286,7 @@ func save() -> void:
 	cfg.set_value("game", "wander_offered", wander_offered)
 	cfg.set_value("game", "zone_cap", zone_cap)
 	cfg.set_value("game", "handling", handling)
-	cfg.set_value("game", "sensitivity", snappedf(sensitivity, 0.05))
+	cfg.set_value("game", "character", snappedf(character, 0.05))
 	cfg.set_value("game", "lane_assist", lane_assist)
 	cfg.set_value("game", "lane_assist_default", 1)
 	cfg.set_value("game", "collide_default", 1)
@@ -299,9 +308,9 @@ func save() -> void:
 
 
 func summary() -> String:
-	return "controls %d pads %d, classic camera %s, traffic %s, quality %s, volume %.0f/%.0f/%.0f %%, perf %s, %d fps, style %d, vhs %s, camera view %d, zone cap %s, handling %d sens %.2f lane %s chatter %d, collide %d soft fences %s stats %s, access large %s calm %s colour-safe %s vibration %s assist %s left-handed %s, auto image %s" % [
+	return "controls %d pads %d, classic camera %s, traffic %s, quality %s, volume %.0f/%.0f/%.0f %%, perf %s, %d fps, style %d, vhs %s, camera view %d, zone cap %s, handling %d character %.2f lane %s chatter %d, collide %d soft fences %s stats %s, access large %s calm %s colour-safe %s vibration %s assist %s left-handed %s, auto image %s" % [
 			controls, pads, "follow" if classic_follow else "fixed", TRAFFIC_NAMES[traffic], "auto" if quality == AUTO else str(quality),
-			master * 100.0, music * 100.0, effects * 100.0, perf, fps, style, vhs, camera_view, zone_cap, handling, sensitivity, lane_assist, chatter, collide, soft_fences, stats, text_large, calm, color_safe, vibration, stop_assist, left_handed, image_summary()]
+			master * 100.0, music * 100.0, effects * 100.0, perf, fps, style, vhs, camera_view, zone_cap, handling, character, lane_assist, chatter, collide, soft_fences, stats, text_large, calm, color_safe, vibration, stop_assist, left_handed, image_summary()]
 
 
 ## Loop G1b: "sharp", "sharp, on trial 1/4" or "fallback, calm 1/2 (GPU extras down 74 s)".
@@ -317,3 +326,12 @@ func image_summary() -> String:
 static func parse_traffic(v: String) -> int:
 	var k := TRAFFIC_KEYS.find(v.to_lower())
 	return k if k >= 0 else clampi(int(v), 0, TRAFFIC.size() - 1)
+
+
+## H1: a save from before the slider (handling 0 Cruise, 1 Sport, 2 Grounded; sensitivity 0..1, 0.5
+## as is) as „Charakter jazdy": Sport is the slider's right end; Cruise was the default nobody chose
+## (the modes sat on the DEV page), so it starts at the new default; Grounded keeps the default under
+## Realnie. A moved sensitivity shifts the slider by half its offset.
+static func migrate_character(old_handling: int, old_sensitivity: float) -> float:
+	var c := 1.0 if old_handling == 1 else CHARACTER_DEFAULT
+	return clampf(snappedf(c + (clampf(old_sensitivity, 0.0, 1.0) - 0.5) * 0.5, 0.05), 0.0, 1.0)

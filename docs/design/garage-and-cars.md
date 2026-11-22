@@ -26,8 +26,12 @@ the reasons. What the review found and what changed:
    and Sport numbers (grip, turn, steering speed, gas bite) and folds the old sensitivity in. The
    default sits at about two thirds, close to Sport. Slides only open on the last third (so the
    left end keeps F's G4 rule "a city, not a racer"); Realnie stays a separate switch. Each car's
-   feel multiplies whatever the slider gives, so cars and the slider get on. Saves move over: Cruise
-   → 0.35, Sport → 1.0, the old sensitivity into the same slider's steering part. (Phase H1.)
+   feel multiplies whatever the slider gives, so cars and the slider get on. Saves move over: Sport
+   → 1.0, Cruise → the new default 0.65 (built: Cruise was the default nobody chose, since the modes
+   sat on the DEV page; 0.35 is still Cruise's exact numbers), Grounded → Realnie, a moved
+   sensitivity shifts the slider by half its offset. (Phase H1, built 2026-11-22: car.gd
+   `set_character`, 0..0.35 calmer than Cruise, 0.35 Cruise, 0.35..0.8 the steering to Sport's,
+   0.7..1 the tail's grip to Sport's, 1 Sport.)
 3. **Only knobs a player can see from the 80 m camera** (#2, #3): top speed, the pull curve (bite
    and fade), the turning circle, steering speed in three bands, the tail slide (only on the slider's
    sporty end), and **the engine sound per car** (the strongest cue). Cut: brakes as a part, body
@@ -69,9 +73,69 @@ R1 rivals' fixed top → C1a cars' feel, roster, sound, Car lab, `check_car_feel
 (turntable sheets) → G1 garage card with the viewer → G2 MOJE AUTO → Autopilot P21-P23 → the lot →
 the drift (docs/design/drift-narodowy.md section 0). The estimates below are optimistic: about 1.5×.
 
-**Defaults built unless F says otherwise:** a better car wins races more easily (fixed rival top);
+**Defaults built unless F says otherwise:** race classes (section 0a; the fixed rival top is cut);
 tuning shared; you can buy a road Bawarka 325 and the drift prize is its drift setup in Darek's
 colours; in the calm half of the slider cars differ only by speed, pull, turning and sound.
+
+## 0a. Balance: race classes (F 2026-11-23 00:29 Warsaw, after the revised plan)
+
+F: "the chases, the police and so on need balancing: if you buy a fast car it mustn't stop being
+fun to race; the rivals should adapt somehow, because if you buy and tune you overtake everyone
+easily; maybe some races you can win with the starter car and some only once you tune it."
+
+**The Opus critique of both ways we have:**
+- *Today* (rivals.gd `player_top`, street_meet.gd `_player_top`, police.gd `chase_top`): every rival
+  and patrol races at a share of **your** car's top. Races never get boring, but a bought car or an
+  engine level buys nothing in a race, so the garage is cosmetics; and Mike (share 1.0) can never
+  be faster than you, so a "hard" race is impossible to make.
+- *Section 0 #1 (R1, a fixed 30 m/s)*: upgrades finally count, but after the first engine level
+  every ladder race is a walk, so F's worry is right. Cut.
+- What arcade racers do: a car rating and **race classes** (Need for Speed's performance rating,
+  Forza's D-C-B-A-S classes, Asphalt's car tiers, Midnight Club's class-locked tournaments): each
+  race has its own class and its rivals bring cars of that class; your upgrades open the next
+  classes, and the old races stay winnable easily but pay little. The rubber band (our catch-up,
+  #948) keeps any race close at the end, it does not decide who is faster.
+
+**Built from this (replaces R1):**
+1. **Your car's class** from one number, *Moc* = top × engine + 0.15 × (pull × engine − 1):
+   **D** below 1.05, **C** below 1.13, **B** below 1.22, **A** below 1.32, **S** from 1.32. Shown as
+   a letter badge on the garage card, MOJE AUTO and the race card ("Klasa C"). Examples with
+   today's numbers: the hatch D; hatch + engine 1 C; hatch + engine 3 B; Ołdi TT B, with engine 3 A;
+   Łamborgini Kurakan A, with engine 2 or 3 S.
+2. **Each race has a class** and its rivals drive at that class's top, not yours: D 30, C 32.5,
+   B 35, A 37.5, S 40 m/s, times the rival's own `share` (Halina 0.775 ... Mike 1.0), so the ladder
+   keeps its order. The catch-up stays (CATCH_TOP 42 m/s).
+   - Ladder: Halina **D**, Słoik **D**, Bartek **C**, Seba **C**, Zbyszek **B**, Mike **A**, the
+     final **A**. The first two are the starter car's races (F 2026-11-10: the first race stays a
+     real race you can lose); Bartek and Seba want an engine level; Mike wants a real car.
+   - The race meets (pack race) climb a class a night; Trzy mosty A; free duels at your class.
+3. **Racing below your class**: allowed, never locked. The rivals answer one class up ("Halina też
+   coś podkręciła", a line on the card) and the pay drops by a third for each class you are above
+   the race (respect for a first win stays whole). One class over: an even race again, two or more:
+   an easy win that pays little. So a tuned car is a reason to go up, not a way to farm.
+4. **Racing above your class**: allowed too; the card says "Twoje auto: C · wyścig: B" in amber and
+   Mirek says it'd be quicker with a better engine. Catch-up never helps the player (it is only for
+   rivals), so it is honestly hard.
+5. **The police**: a patrol already matches your car (`chase_top` = 0.8 × your top, 0.7 once they
+   tire). That stays: the police are not a race to win with top speed. A better car still helps a
+   chase through pull, turning and the nitro (the burn is left out of the patrols' top on purpose).
+   New: from class A the chase calls one fast unit after 20 s, so a supercar can't simply hold the
+   throttle and vanish; nothing changes below A.
+6. **The drag**: Tadek and the drag rivals get a class too (D now, the meet's later nights C and
+   B), with times scaled by class, instead of fixed times a tuned car always beats.
+7. **Rewards scale up with the class** (D 1×, C 1.3×, B 1.7×, A 2.2×, S 3× the race's pay), so a
+   new car pays itself back in its own class, and the prices in section 0 #6 stay.
+
+**Tests:** `check_race_class` (the class of every car and tune from the numbers above; a race's
+rival top by class; the over-class step and pay); `tools/race_bench.sh` with a player in each class
+against each rung (marks: the starter car beats Halina and Słoik in a clean run, loses to Mike by
+more than 5 s; a class-A car beats Mike on a clean run; a car two classes over wins by more than
+10 s); Autopilot P21-P23 get a class column; the phone check (does a tuned car feel worth it, is the
+old race still fun one class over).
+
+**Order:** N1 → H1 → **R1 classes** (the badge, the race class, the over-class step, the bench) →
+C1a ... as in section 0. The police fast unit and the drag classes come with R1 if small, else
+right after it.
 
 ## 1. What is there today (main 04e52e9)
 
