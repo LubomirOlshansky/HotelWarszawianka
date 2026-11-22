@@ -499,12 +499,13 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 	var c := Ctx.new(b, at, yaw, g)
 	c.noroof(true)
 	var yc := rest  # keep TOWER_TOP unless the shader's TOWER_DROP changes with it
-	c.sphere(0, 0, yc, 1.8, 12, 6, TOWER_HUB, M_LAMP)
+	# flyer (F's video): a pink-white hub with bigger white dots, steady instead of flickering red specks.
+	c.sphere(0, 0, yc, 1.8, 12, 6, Color("#f2c9d8") if flyer else TOWER_HUB, M_LAMP)
 	# About thirty red LED dots over the hub (a golden-angle spread).
 	for q in 30:
 		var phi := acos(1.0 - 2.0 * (float(q) + 0.5) / 30.0)
 		var th := float(q) * 2.39996
-		c.lbulb(sin(phi) * cos(th) * 1.86, sin(phi) * sin(th) * 1.86, yc + cos(phi) * 1.86, 0.12, Color("#ff2a2a"))
+		c.lbulb(sin(phi) * cos(th) * 1.86, sin(phi) * sin(th) * 1.86, yc + cos(phi) * 1.86, 0.22 if flyer else 0.12, LED if flyer else Color("#ff2a2a"))
 	var n := 20
 	var rim_prev := Vector3.ZERO
 	var first := Vector3.ZERO

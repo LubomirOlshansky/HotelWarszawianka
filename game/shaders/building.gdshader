@@ -745,7 +745,30 @@ vec3 monument(vec3 col, float u, float h, float top, out vec3 glow) {
 	if (mod(bay, 4.0) < 1.0) {
 		return col * 1.07; // pilaster
 	}
-	if (all(bvec3(abs(fx - 0.5) < 0.19, fy > 0.22, fy < 0.86))) {
+	// The windows change from band to band, as on the real Palace (F 2026-11-22, his video: "some
+	// longer, some shorter"): every two floors of a wall pick tall, usual, short or one window over
+	// both floors; under the cornice they are small attic ones. The same for the whole band, so the
+	// rows stay level round the tiers.
+	float fl = floor(h / fh);
+	float r = hash12(vec2(floor(fl / 2.0), floor(top) * 0.37 + 2.0));
+	float wy = fy;
+	vec2 span = vec2(0.22, 0.86);
+	float hw = 0.19;
+	if (r < 0.2) {
+		wy = fract(h / (fh * 2.0));   // one window over two floors
+		span = vec2(0.11, 0.93);
+		hw = 0.17;
+	} else if (r < 0.45) {
+		span = vec2(0.12, 0.93);      // tall
+	} else if (r > 0.8) {
+		span = vec2(0.36, 0.78);      // short
+		hw = 0.21;
+	}
+	if (all(bvec2(top > 3.0, h > top - fh * 1.3))) {
+		wy = fy;
+		span = vec2(0.42, 0.76);      // attic
+	}
+	if (all(bvec3(abs(fx - 0.5) < hw, wy > span.x, wy < span.y))) {
 		vec2 cell = vec2(bay, floor(h / fh));
 		float pane = hash12(cell * 1.7 + 3.1);
 		vec3 dark = mix(srgb_to_linear(vec3(0.2, 0.22, 0.27)), srgb_to_linear(vec3(0.42, 0.47, 0.55)), pane * pane);
@@ -1023,7 +1046,12 @@ vec3 floodlight(vec3 col, float h, float top, float lamp_a) {
 	}
 	float l = dot(col, vec3(0.3, 0.59, 0.11));
 	vec3 stone = mix(col, vec3(l), 0.75);
-	return stone * tint * (shape * 1.25 + edge) * 2.4;
+	// Lit from below (F 2026-11-22, his video of the green Palace): the projectors on each terrace
+	// wash the wall bright at its foot and it fades into the dark well before the next cornice, so
+	// the tiers read one over another instead of one flat colour.
+	float wash = mix(0.3, 1.0, smoothstep(1.0, 40.0, top - h));
+	float tier_e = mix(0.55, 1.0, smoothstep(22.0, 70.0, top));
+	return stone * tint * (wash * wash * tier_e * 1.6 + edge * 0.5) * 1.3;
 }
 
 // The roofs lane (docs/design/roofs.md, RF1): a thin line every `period` metres along x,
