@@ -2,7 +2,7 @@
 
 Last updated: 21 November 2026
 
-Around Warsaw is a free game. It collects no personal data unless you choose to send it
+Around Warsaw is a game. It collects no personal data unless you choose to send it
 yourself (the beta signup on the website or the feedback card in the game, below). During the
 beta it sends anonymous play statistics, which you can turn off in Settings.
 
@@ -51,7 +51,7 @@ Questions: write to us through the Support page (https://aroundwarsaw.app/suppor
 
 ## Polityka prywatności (po polsku)
 
-Around Warsaw to darmowa gra. Nie zbiera danych osobowych, chyba że sam je wyślesz (zapis do bety
+Around Warsaw to gra. Nie zbiera danych osobowych, chyba że sam je wyślesz (zapis do bety
 na stronie albo karta opinii w grze, niżej). W czasie bety wysyła anonimowe statystyki gry, które
 można wyłączyć w Ustawieniach.
 
