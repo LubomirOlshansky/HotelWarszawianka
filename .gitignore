@@ -67,3 +67,5 @@ game/map/terrain.json
 # The play stats' PostHog project token (play_stats.gd, docs/STATS.md): written on the Mac only,
 # goes into builds made there (data/*.json is in the export), never committed
 game/data/stats_key.json
+docs/teaser/*.m4a
+docs/teaser2/*.m4a

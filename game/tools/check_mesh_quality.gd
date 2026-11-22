@@ -113,7 +113,7 @@ const BUDGET := {
 	"polonia": 1450,
 	"ujazdowski": 1650,
 	"sobieski": 1500,
-	"vitkac": 1400,
+	"vitkac": 2600,  # 2026-11-21 teaser 4 (F's photo): rounded granite corners, glass ribbons, shop glass and mullions, the glass top storey and its bar terrace: 2403 tris
 	"jablkowscy": 1450,
 	"sheraton": 2400,
 	"bgk": 2700,
@@ -145,7 +145,7 @@ const BUDGET := {
 	"cosmopolitan": 420,  # 2026-11-08 photo rebuild (F)
 	"plac_grzybowski": 1500,  # 2026-11-08 photo build (F): 1429 tris, the cascade field is 48 blocks
 	"prozna": 5100,  # 2026-11-08 photo build (F): 5014 tris, 1,300 of them the 90 bollards
-	"dom_partii": 8000,  # 2026-11-12 rebuilt whole from F's photos: 5202 tris; 2026-11-19 the arcade, terrace, cafés and tables (F's photos): 7225 tris, +0 draw calls
+	"dom_partii": 14300,  # 2026-11-21 teaser 4 (F): café guests and dogs at the tables, then the courtyard by the bar (deckchairs, a stage, crowds): 13593 tris; earlier: 2026-11-12 rebuilt whole from F's photos: 5202 tris; 2026-11-19 the arcade, terrace, cafés and tables: 7225 tris, +0 draw calls
 	"eon41": 1300,  # 2026-11-13 photo rebuild (F): the power company's L-block, curve, medallions, glass tower, lantern
 	"asp37": 1600,  # 2026-11-13 the Academy of Fine Arts: the 1914 school and JEMS's wing
 	"deski": 2300,
@@ -302,7 +302,7 @@ const BUDGET := {
 	"srodmiescie": 580,
 	"wkd_srodmiescie": 460,
 	"wkd_ochota": 650,  # the stair has up to 40 steps on the real ground (6 on the flat stub)
-	"stadium": 4750,
+	"stadium": 9300,  # 2026-11-21 the Arka's level cut (SUNKEN arka_cut: cheek walls, parapets): 9052 tris; teaser 5, the stadium thread (lit stairs, rails, path lamps, the Arka): 8638 tris; F's drone photo: a lit line on every step, lit stair edges, the east gate portal: 7622 tris; F's night photos: mast-tip lamps, the rim's light line, promenade lamps, stair light lines: 5886 tris
 	"swieto": 240,
 	"ateneum": 5200,  # 2026-11-21 the whole Ateneum block from F's photos: L of two wings, rounded colonnaded corner, bays, attic, ATENEUM sign (measured 4973: up from 800 for the first single-wing version on purpose, the whole block is two wings and a corner)
 	"lipowa1a": 900,  # 2026-11-21 copper storeys, loggias on Lipowa, solid copper end, roof terrace (from the BUW thread's version, F: "i like")

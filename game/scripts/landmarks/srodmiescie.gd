@@ -273,8 +273,8 @@ func _gaulle_figure(y: float, h: float) -> void:
 ##   ones under the cornice; a long balcony with an iron railing over the front colonnade;
 ## - the courtyard: pale granite slabs with a dark key border, the wavy fountain round the mapped
 ##   pool (a granite rim lit underneath by a warm strip at night, five jets), planters;
-## - the roof signs (parodies): ROBUR over the north-west tower (the oak in Latin again), PEPEO
-##   ŻUBR on a white board on the north-east tower, WISTULA in letters on the front body.
+## - the roof signs (parodies): ŻUBR on a white board over the north-west tower (F, 2026-11-20),
+##   ROBUR (the oak in Latin) on the north-east tower, WISTULA in letters on the front body.
 ## The car drives through the colonnade into the courtyard (the piers, the lobbies, the wings and
 ## the fountain's rim collide). Frame: u east along the front from the north-west corner, v south
 ## into the block.
@@ -425,6 +425,119 @@ func _dp_table(u: float, v: float, y: float) -> void:
 	for s: float in [-1.0, 1.0]:
 		_lbox(u + s * 0.72, v, 0.22, 0.22, y + 0.2, y + 0.46, DOM_CHAIR, M_STONE)
 		_lbox(u + s * 0.92, v, 0.03, 0.22, y + 0.46, y + 0.95, DOM_CHAIR, M_STONE)
+	_dp_guests(u, v, y)
+
+
+## F (2026-11-21, teaser 4: "some sitting at the Zamieszanie tables, some with dogs"): most chairs
+## taken, the guests leaning in over the table, and a dog lying by one table in three. Picked by
+## the table's place (the same guests every bake), boxes in the landmark's own mesh (+0 draw calls).
+func _dp_guests(u: float, v: float, y: float) -> void:
+	var h := absf(fposmod(sin(u * 12.9898 + v * 78.233) * 43758.5453, 1.0))
+	var shirts := [Color("#f2efe8"), Color("#2f6fb5"), Color("#e0b23a"), Color("#3b8f5a"), Color("#e57aa0"),
+			Color("#d8432f"), Color("#5aa9c9"), Color("#2b2c2f"), Color("#c96b2c"), Color("#7a4fa8")]
+	var legs := [Color("#2b3a55"), Color("#3a3a3d"), Color("#c9b38c"), Color("#5a6a7a")]
+	var skins := [Color("#e9c4a6"), Color("#d8a684"), Color("#b98262"), Color("#f0d2b8")]
+	var hairs := [Color("#3a2a20"), Color("#1e1a18"), Color("#d9c27a"), Color("#8a5a3a")]
+	var k := 0
+	for s: float in [-1.0, 1.0]:
+		k += 1
+		var r := fposmod(h * (7.0 + k * 3.0), 1.0)
+		if r > 0.78:
+			continue  # an empty chair
+		var shirt: Color = shirts[int(r * 97.0) % shirts.size()]
+		var leg: Color = legs[int(r * 53.0) % legs.size()]
+		var skin: Color = skins[int(r * 31.0) % skins.size()]
+		var hair: Color = hairs[int(r * 71.0) % hairs.size()]
+		for side: float in [-0.09, 0.09]:
+			_lbox(u + s * 0.48, v + side, 0.05, 0.06, y, y + 0.46, leg, M_STONE)
+		_lbox(u + s * 0.6, v, 0.16, 0.15, y + 0.46, y + 0.6, leg, M_STONE)
+		_lbox(u + s * 0.77, v, 0.11, 0.19, y + 0.6, y + 1.14, shirt, M_STONE)
+		for side: float in [-0.19, 0.19]:
+			_lbox(u + s * 0.7, v + side, 0.045, 0.045, y + 0.8, y + 1.1, shirt, M_STONE)
+			_lbox(u + s * 0.54, v + side * 0.8, 0.14, 0.04, y + 0.77, y + 0.83, skin, M_STONE)
+		_lbox(u + s * 0.75, v, 0.1, 0.1, y + 1.17, y + 1.39, skin, M_STONE)
+		_lbox(u + s * 0.78, v, 0.105, 0.105, y + 1.36, y + 1.43, hair, M_STONE)
+	if h < 0.36:
+		# A dog lying by the table, its head up towards the guests.
+		var dogs := [Color("#c9a26a"), Color("#2b2522"), Color("#8a5a3a"), Color("#e8e2d6")]
+		var dc: Color = dogs[int(h * 40.0) % dogs.size()]
+		var du := u + (0.35 if h < 0.18 else -0.35)
+		var dv := v - 0.72
+		var f := 1.0 if h < 0.18 else -1.0
+		_lbox(du, dv, 0.3, 0.12, y, y + 0.24, dc, M_STONE)
+		_lbox(du - f * 0.36, dv, 0.09, 0.08, y + 0.14, y + 0.36, dc, M_STONE)
+		_lbox(du - f * 0.44, dv, 0.06, 0.05, y + 0.18, y + 0.28, dc.darkened(0.25), M_STONE)
+		_lbox(du + f * 0.34, dv, 0.1, 0.03, y + 0.16, y + 0.2, dc, M_STONE)
+
+
+## F (2026-11-21, teaser 4, his photos of the courtyard at night): the courtyard lives. Rows of
+## deckchairs either side of the fountain, most taken, facing a low stage with a screen and a
+## row of blue lights before the far body's middle bay (the summer bar's events; its parody name
+## OLDTWICE in neon over it), and people standing about in twos and threes. Boxes and beams in
+## the landmark's mesh (+0 draw calls), the same guests every bake (picked by place).
+func _dp_courtyard_life(y: float) -> void:
+	var shirts := [Color("#f2efe8"), Color("#2f6fb5"), Color("#e0b23a"), Color("#3b8f5a"), Color("#e57aa0"),
+			Color("#d8432f"), Color("#5aa9c9"), Color("#2b2c2f"), Color("#c96b2c"), Color("#7a4fa8")]
+	var legs := [Color("#2b3a55"), Color("#3a3a3d"), Color("#c9b38c"), Color("#5a6a7a")]
+	var skins := [Color("#e9c4a6"), Color("#d8a684"), Color("#b98262"), Color("#f0d2b8")]
+	var slings := [Color("#e8742a"), Color("#26365a"), Color("#e8742a"), Color("#d9d6cf")]
+	var frame_c := Color("#c9a26a")
+	var up := Vector3.UP
+	# The stage before the far body (v ~ 70), its screen and blue lights, and the bar's neon.
+	var su := DOM_FOUNTAIN_UV.x
+	_lbox(su, 70.2, 4.5, 1.6, y, y + 0.6, Color("#1e1f22"), M_STONE)
+	_lbox(su, 71.5, 1.6, 0.12, y + 0.6, y + 4.2, Color("#26292e"), M_STONE)
+	_mode = M_LAMP
+	for k in 9:
+		_lbox(su - 4.0 + k, 68.55, 0.18, 0.05, y + 0.35, y + 0.5, Color(0.35, 0.45, 1.0), M_LAMP)
+	_mode = M_STONE
+	var mid := _w(su, DOM_BODY_V[1].x - 0.3)
+	signs.append(["OLDTWICE", Vector3(mid.x, y + 6.4, mid.y), Vector3(_b.x, 0.0, _b.y), 5.0 / Neon.length_of("OLDTWICE"), Color(0.55, 0.62, 1.0)])
+	# The deckchairs: rows either side of the fountain, facing the stage (+v).
+	var n := 0
+	for side: float in [-1.0, 1.0]:
+		for row in 7:
+			for col in 3:
+				var u := su + side * (7.5 + col * 2.4 + (row % 2) * 0.6)
+				var v := 26.0 + row * 5.4
+				var h := absf(fposmod(sin(u * 12.9898 + v * 78.233) * 43758.5453, 1.0))
+				if h > 0.86:
+					continue
+				n += 1
+				var f := func(du: float, dy: float, dv: float) -> Vector3:
+					var q := _w(u + du, v + dv)
+					return Vector3(q.x, y + dy, q.y)
+				var sl: Color = slings[int(h * 37.0) % slings.size()]
+				for x: float in [-0.3, 0.3]:
+					_beam(f.call(x, 0.0, -0.55), f.call(x, 0.95, 0.15), 0.06, frame_c)
+				_beam(f.call(0.0, 0.92, 0.12), f.call(0.0, 0.3, -0.45), 0.58, sl)
+				if h > 0.7:
+					continue  # an empty chair
+				var shirt: Color = shirts[int(h * 97.0) % shirts.size()]
+				var leg: Color = legs[int(h * 53.0) % legs.size()]
+				var skin: Color = skins[int(h * 31.0) % skins.size()]
+				_beam(f.call(0.0, 0.5, -0.25), f.call(0.0, 1.0, 0.08), 0.44, shirt)
+				_lbox(u, v + 0.12, 0.12, 0.12, y + 1.05, y + 1.3, skin, M_STONE)
+				for x: float in [-0.11, 0.11]:
+					_beam(f.call(x, 0.45, -0.25), f.call(x, 0.5, -0.78), 0.16, leg)
+					_beam(f.call(x, 0.5, -0.78), f.call(x, 0.05, -1.0), 0.13, leg)
+	# People standing in twos and threes between the rows and by the stage.
+	var groups := [Vector2(su - 3.5, 30.0), Vector2(su + 3.5, 38.0), Vector2(su - 3.0, 58.5), Vector2(su + 3.2, 62.0),
+			Vector2(su - 9.0, 66.0), Vector2(su + 9.5, 66.5), Vector2(su - 16.0, 24.0), Vector2(su + 16.5, 47.0)]
+	for gi in groups.size():
+		var gc: Vector2 = groups[gi]
+		for j in 2 + gi % 2:
+			var a := TAU * j / (2.0 + gi % 2) + gi
+			var pu := gc.x + cos(a) * 0.55
+			var pv := gc.y + sin(a) * 0.55
+			var h := absf(fposmod(sin(pu * 7.13 + pv * 3.77) * 43758.5453, 1.0))
+			var shirt: Color = shirts[int(h * 97.0) % shirts.size()]
+			var leg: Color = legs[int(h * 53.0) % legs.size()]
+			var skin: Color = skins[int(h * 31.0) % skins.size()]
+			_lbox(pu, pv, 0.16, 0.1, y, y + 0.86, leg, M_STONE)
+			_lbox(pu, pv, 0.21, 0.13, y + 0.86, y + 1.48, shirt, M_STONE)
+			_lbox(pu, pv, 0.11, 0.11, y + 1.5, y + 1.75, skin, M_STONE)
+	print("dom_partii: %d deckchairs in the courtyard" % n)
 
 
 ## A clipped ball tree in a square granite planter at (u, v) on the floor y (the towers' fronts).
@@ -753,14 +866,18 @@ func _build_dom_partii(_site: Dictionary) -> void:
 		var c := _w(pl.x, pl.y)
 		_frustum(_circle(c, 0.55, 6), pave + 0.75, _circle(c, 0.08, 6), pave + 2.3, DOM_LEAF, DOM_LEAF)
 
+	_dp_courtyard_life(pave + 0.07)
 	_dp_arcade(g, pave)
 
 	# --- the roof signs (parodies) ------------------------------------------------------------
 	var wing_top := g + DOM_WING_TOP
-	# ROBUR in navy letters on a white board over the Nowy Świat tower, on its plaza and street
-	# fronts (the real board is white with dark serif letters, F's photos 2026-11-19).
-	var k_r := 1.5
-	var r_len := Neon.length_of("ROBUR") * k_r
+	# PEPEO ŻUBR in red letters on a white board over the Nowy Świat tower, on its plaza and
+	# street fronts (F, 2026-11-20: "make Bank Pekao": the bank's white board with the red bison
+	# stands on this tower, his Street View photos).
+	# F 2026-11-21: "Bank Pepeo" was too big; "maybe only Żubr", smaller, as his phone shot.
+	var top_sign := "ŻUBR"
+	var k_r := 1.4
+	var r_len := Neon.length_of(top_sign) * k_r
 	var r_h := Neon.ROW_H * Neon.PIXEL * k_r
 	_lbox(r_len * 0.5 + 2.5, 0.35, r_len * 0.5 + 0.4, 0.1, wing_top, wing_top + r_h + 0.9, DOM_BOARD, M_STONE, DOM_SHADE)
 	_lbox(0.35, r_len * 0.5 + 2.5, 0.1, r_len * 0.5 + 0.4, wing_top, wing_top + r_h + 0.9, DOM_BOARD, M_STONE, DOM_SHADE)
@@ -768,13 +885,13 @@ func _build_dom_partii(_site: Dictionary) -> void:
 		var along: Vector2 = f[0]
 		var o: Vector2 = f[1]
 		var mid := DOM_NW + along * (r_len * 0.5 + 2.5) - o * 0.6
-		signs.append(["ROBUR", Vector3(mid.x, wing_top + 0.45, mid.y), Vector3(o.x, 0.0, o.y), k_r, DOM_NAVY])
-	# PEPEO ŻUBR on a white board over the north-east tower's front.
+		signs.append([top_sign, Vector3(mid.x, wing_top + 0.45, mid.y), Vector3(o.x, 0.0, o.y), k_r, DOM_ZUBR])
+	# ROBUR (the oak in Latin) in navy letters on a white board over the north-east tower's front.
 	var bu := DOM_LEN - DOM_WING * 0.5
 	_lbox(bu, 1.2, 6.0, 0.25, wing_top, wing_top + 3.4, DOM_BOARD, M_STONE, DOM_SHADE)
-	var k_z := 10.6 / Neon.length_of("PEPEO ŻUBR")
+	var k_z := minf(1.5, 10.6 / Neon.length_of("ROBUR"))
 	var zp := _w(bu, 0.9)
-	signs.append(["PEPEO ŻUBR", Vector3(zp.x, wing_top + 0.5, zp.y), Vector3(-_b.x, 0.0, -_b.y), k_z, DOM_ZUBR])
+	signs.append(["ROBUR", Vector3(zp.x, wing_top + 0.5, zp.y), Vector3(-_b.x, 0.0, -_b.y), k_z, DOM_NAVY])
 	# WISTULA in letters on the front body's roof.
 	var k_w := 11.0 / Neon.length_of("WISTULA")
 	var wp := _w(DOM_LEN * 0.5, DOM_BODY_V[0].x + 1.2)
@@ -3063,8 +3180,9 @@ const VITKAC_GROUND := 5.0     # the shop-window storey's top
 const VITKAC_FLOOR := 4.2      # the five storeys over it
 const VITKAC_EAVE := 26.0      # the stone body's top (OSM: 26 m, the glass top to 31)
 const VITKAC_TOP := 30.4       # the set-back glass storey's roof
-const VITKAC_WALL := Color("#5a5b5c")
-const VITKAC_BAND := Color("#6d6e70")
+const VITKAC_WALL := Color("#4e4f52")   # the speckled dark granite (F's photo, 2026-11-20)
+const VITKAC_CORNER_R := 7.0   # the big curves of its corners
+const VITKAC_BAND := Color("#5d5e61")
 const VITKAC_BASE := Color("#3f4042")
 const VITKAC_GLASS := Color("#2c3238")
 const VITKAC_SHOP := Color("#c9b48c")   # warm-lit shop windows behind the glass
@@ -3138,48 +3256,148 @@ func _find_bracka() -> void:
 
 
 func _build_vitkac(site: Dictionary) -> void:
-	var ring: PackedVector2Array = site["ring"]
-	_g = _ground_under(ring)
+	# F, 2026-11-20 ("Vitkac built bad, build it from photos, and the roof with the bar"; his
+	# Street View from Al. Jerozolimskie, Apr 2026): a speckled dark granite block whose corners
+	# are big curves, its storeys ribbons of dark glass wrapping round them between stone bands,
+	# stone fins every few metres across the ribbons, a few big framed windows stacked at the
+	# Jerozolimskie corner, a ground floor all shop glass, and on the roof a set-back glass storey
+	# behind a glass balustrade, with the roof bar's terrace (parasols, sofas, planters) on the
+	# Jerozolimskie end and small trees along Bracka.
+	var raw: PackedVector2Array = site["ring"]
+	_g = _ground_under(raw)
 	var g := _g
 	var none := Color(0, 0, 0, 0)
-	# Windows first (7 cm proud), so the walls behind them stay whole: the shop windows, then the
-	# big square windows of the five storeys.
-	_bays(ring, 0.5, VITKAC_GROUND - 0.6, 4.2, 3.6, VITKAC_SHOP)
-	for k in 5:
-		var y0 := VITKAC_GROUND + VITKAC_FLOOR * k + 0.9
-		_bays(ring, y0, y0 + 2.5, 3.8, 2.5, VITKAC_GLASS)
-	_prism(ring, g - 0.6, g + VITKAC_GROUND, VITKAC_BASE, none, M_STONE)
+	# The rounded body: the outline pulled in and pushed out again with round joins, which turns
+	# every convex corner into a curve of VITKAC_CORNER_R.
+	var ring := raw
+	var shrunk := Geometry2D.offset_polygon(raw, -VITKAC_CORNER_R, Geometry2D.JOIN_MITER)
+	if not shrunk.is_empty():
+		var rounded := Geometry2D.offset_polygon(_largest(shrunk), VITKAC_CORNER_R, Geometry2D.JOIN_ROUND)
+		if not rounded.is_empty():
+			ring = _simplify(_largest(rounded), 0.25)
+	# The Jerozolimskie end: the ring's points facing north, for the corner windows and the bar.
+	var north := Vector2(-0.30855, -0.95123)
+	var c := _centre(ring)
+	var far := c
+	for q in ring:
+		if (q - c).dot(north) > (far - c).dot(north):
+			far = q
+	# The ground floor: shop glass set 0.4 m back under the stone, warm shop windows on it, slim
+	# dark mullions.
+	var shop := _largest(Geometry2D.offset_polygon(ring, -0.4, Geometry2D.JOIN_ROUND))
+	_prism(shop, g - 0.6, g + VITKAC_GROUND, VITKAC_GLASS, none, M_GLASS)
+	# Bays on the simplified ring: on the round join's short, nearly straight pieces two neighbouring
+	# bays overlapped in one plane (check_mesh_quality zfight at the Bracka corner).
+	_bays(_simplify(shop, 0.4), 0.4, VITKAC_GROUND - 0.5, 4.0, 3.5, VITKAC_SHOP)
+	_mullions(shop, g, g + VITKAC_GROUND, 2.0, 0.15, VITKAC_BASE)  # in front of the 0.07-proud shop windows (0.09 fought them)
+	_soffit(ring, g + VITKAC_GROUND, VITKAC_BASE)
+	# The stone body over it, and per storey a glass ribbon 2 m tall, a hair proud, with stone
+	# fins across it every 3.6 m (the photos' panels).
 	_prism(ring, g + VITKAC_GROUND, g + VITKAC_EAVE, VITKAC_WALL, none, M_STONE)
-	# The horizontal banding: a proud band at every floor line, a deeper one over the shops.
-	_band(ring, 0.3, g + VITKAC_GROUND - 0.2, g + VITKAC_GROUND + 0.5, VITKAC_BAND)
-	for k in range(1, 5):
-		var y := g + VITKAC_GROUND + VITKAC_FLOOR * k
-		_band(ring, 0.12, y + 0.1, y + 0.45, VITKAC_BAND)
+	for k in 5:
+		var y0 := g + VITKAC_GROUND + VITKAC_FLOOR * k + 1.0
+		_band(ring, 0.05, y0, y0 + 2.1, VITKAC_GLASS, M_GLASS)
+		_bays(ring, y0 - g - 0.05, y0 - g + 2.15, 3.6, 0.45, VITKAC_WALL)
+	# The big framed windows stacked by the Jerozolimskie corner: three storeys of one tall pane
+	# each, in a lighter frame (the photo's right-hand bays).
+	for side: float in [-1.0, 1.0]:
+		var tangent := Vector2(-north.y, north.x) * side
+		var at := far + tangent * 9.0
+		var o := _nearest_out(ring, at)
+		var p := _nearest_on(ring, at) + o * 0.12
+		var e := Vector2(-o.y, o.x)
+		for k in range(1, 4):
+			var y0 := g + VITKAC_GROUND + VITKAC_FLOOR * k + 0.5
+			_mode = M_STONE
+			_wall(p - e * 2.6, p + e * 2.6, y0 - 0.2, y0 + 3.4, o, VITKAC_BAND)
+			_mode = M_GLASS
+			_wall(p - e * 2.3 + o * 0.03, p + e * 2.3 + o * 0.03, y0, y0 + 3.2, o, VITKAC_TOP_GLASS)
 	_mode = M_STONE
+	# The roof: the stone body's top, a parapet with a glass balustrade on it.
 	_cap(ring, g + VITKAC_EAVE, VITKAC_ROOF)
-	_parapet(ring, g + VITKAC_EAVE, 1.0, VITKAC_BAND)
-	# The set-back glass storey and its roof.
-	var top := _simplify(_largest(Geometry2D.offset_polygon(ring, -2.4, Geometry2D.JOIN_MITER)), 0.4)
+	_parapet(ring, g + VITKAC_EAVE, 0.6, VITKAC_BAND)
+	_mode = M_GLASS
+	_band(_largest(Geometry2D.offset_polygon(ring, -0.15, Geometry2D.JOIN_ROUND)), 0.0, g + VITKAC_EAVE + 0.6,
+			g + VITKAC_EAVE + 1.5, VITKAC_TOP_GLASS.lightened(0.25), M_GLASS)
+	_mode = M_STONE
+	# The set-back glass storey (the restaurant and bar), lit warm at night, its flat roof
+	# overhanging a little.
+	var top := _simplify(_largest(Geometry2D.offset_polygon(ring, -4.0, Geometry2D.JOIN_ROUND)), 0.4)
 	if top.size() >= 3:
-		_prism(top, g + VITKAC_EAVE, g + VITKAC_TOP, VITKAC_TOP_GLASS, VITKAC_ROOF.darkened(0.1), M_GLASS, M_STONE)
-		_parapet(top, g + VITKAC_TOP, 0.5, VITKAC_BAND)
+		_prism(top, g + VITKAC_EAVE, g + VITKAC_TOP, VITKAC_TOP_GLASS, none, M_PAVILION)
+		_mullions(top, g + VITKAC_EAVE, g + VITKAC_TOP, 1.8, 0.05, VITKAC_BASE)
+		var lid := _largest(Geometry2D.offset_polygon(top, 0.6, Geometry2D.JOIN_ROUND))
+		_prism(lid, g + VITKAC_TOP, g + VITKAC_TOP + 0.45, VITKAC_BASE, VITKAC_ROOF.darkened(0.1), M_STONE, M_STONE)
+	# The bar's terrace on the Jerozolimskie end, between the glass storey and the balustrade:
+	# cream parasols over low tables, dark sofas, square planters.
+	var deck := far - north * 2.2
+	var tdir := Vector2(-north.y, north.x)
+	for k in range(-3, 4):
+		var q := deck + tdir * k * 3.4
+		if not Geometry2D.is_point_in_polygon(q, ring) or (top.size() >= 3 and Geometry2D.is_point_in_polygon(q, top)):
+			continue
+		var y := g + VITKAC_EAVE
+		_beam(Vector3(q.x, y, q.y), Vector3(q.x, y + 2.3, q.y), 0.08, VITKAC_BASE)
+		_frustum(_circle(q, 1.4, 8), y + 2.2, _circle(q, 0.1, 8), y + 2.7, Color("#efe9dc"), Color("#efe9dc"))
+		_prism(_circle(q, 0.4, 8), y, y + 0.7, Color("#3a3a3c"), Color("#d9d2c4"), M_STONE, M_STONE)
+		var sofa := q + north * 1.0
+		_prism(_rect_at(sofa, tdir, 1.9, 0.8), y, y + 0.45, Color("#2b2b2e"), Color("#3a3a3e"), M_STONE, M_STONE)
+		if k % 2 == 0:
+			var pl := q - tdir * 1.7
+			_prism(_rect_at(pl, tdir, 0.8, 0.8), y, y + 0.7, VITKAC_BASE, Color("#4f3f2f"), M_STONE, M_STONE)
+			_frustum(_circle(pl, 0.5, 6), y + 0.7, _circle(pl, 0.1, 6), y + 1.9, DOM_LEAF, DOM_LEAF)
 	# The terrace's small trees along the Bracka side.
 	var a: Vector2 = VITKAC_BRACKA[0]
 	var b: Vector2 = VITKAC_BRACKA[1]
-	var e := (b - a).normalized()
-	var inward := -_out(ring, a, b)
+	var e2 := (b - a).normalized()
+	var inward := -_out(raw, a, b)
 	var length := a.distance_to(b)
-	var t := 5.0
-	while t < length - 3.0:
-		_varso_tree(a + e * t + inward * 1.2, g + VITKAC_EAVE, 2.8, 0.9)
+	var t := 12.0
+	while t < length - 8.0:
+		_varso_tree(a + e2 * t + inward * 2.0, g + VITKAC_EAVE, 2.8, 0.9)
 		t += 7.5
-	# The name on the Bracka front, high up, and over the round south end.
+	# The name on the Bracka front, high up.
 	var word := "VIPKAC"
-	var out := _out(ring, a, b)
-	var mid := (a + b) * 0.5 + out * 0.05
+	var out := _out(raw, a, b)
+	var mid := (a + b) * 0.5 + out * 0.15
 	var k2 := 9.0 / Neon.length_of(word)
-	signs.append([word, Vector3(mid.x, g + VITKAC_EAVE - 4.2, mid.y), Vector3(out.x, 0.0, out.y), k2, Color(1.0, 0.92, 0.75)])
+	signs.append([word, Vector3(mid.x, g + VITKAC_EAVE - 3.6, mid.y), Vector3(out.x, 0.0, out.y), k2, Color(1.0, 0.92, 0.75)])
 	_collide_raw(site)
+
+
+## The outward normal of `ring`'s edge nearest to p.
+func _nearest_out(ring: PackedVector2Array, p: Vector2) -> Vector2:
+	var best := INF
+	var o := Vector2.UP
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var q := Geometry2D.get_closest_point_to_segment(p, a, b)
+		if q.distance_to(p) < best and a.distance_to(b) > 0.3:
+			best = q.distance_to(p)
+			o = _out(ring, a, b)
+	return o
+
+
+## The point of `ring`'s outline nearest to p.
+func _nearest_on(ring: PackedVector2Array, p: Vector2) -> Vector2:
+	var best := INF
+	var r := p
+	for i in ring.size():
+		var q := Geometry2D.get_closest_point_to_segment(p, ring[i], ring[(i + 1) % ring.size()])
+		if q.distance_to(p) < best:
+			best = q.distance_to(p)
+			r = q
+	return r
+
+
+## A rectangle `l` long along `dir` and `w` across, centred at c.
+func _rect_at(c: Vector2, dir: Vector2, l: float, w: float) -> PackedVector2Array:
+	var d := dir.normalized()
+	var n := Vector2(-d.y, d.x)
+	var hl := d * l * 0.5
+	var hw := n * w * 0.5
+	return PackedVector2Array([c - hl - hw, c + hl - hw, c + hl + hw, c - hl + hw])
 
 
 func _build_jablkowscy(site: Dictionary) -> void:
@@ -3532,7 +3750,7 @@ func _build_pasta(site: Dictionary) -> void:
 ## storeys, the heavy cornice at 26 m and a set-back attic of small windows; the two corner blocks
 ## (the Bracka end and the Nowy Świat corner) rise two storeys more, the east one with the relief
 ## frieze under its top; the gilded monogram over the middle of the Jerozolimskie front between two
-## pilasters. The roof signs of the two institutions in it are left out (real marks).
+## pilasters. On the roof the energy group's signs, as the parody PEGE (F, 2026-11-20).
 ## Frame: u along the Jerozolimskie front from its west end, +v out of it (north). Spec bgk.md.
 const BGK_AT := Vector2(-262.0, 312.0)       # a point in the outline (OSM relation 71489)
 const BGK_O := Vector2(-298.0, 301.0)        # the front's west end
@@ -3551,13 +3769,24 @@ const BGK_FRIEZE := Color("#b3b0a6")
 const BGK_WINDOW := Color("#4a3a36")   # dark brown frames and glass, seen together
 const BGK_GILT := Color("#c8b070")
 const BGK_ROOF := Color("#6f7173")
+## Points in the two stray roof parts (min height 23.1 m) by the Bracka-Mysia corner.
+const BGK_STRAY_PARTS := [Vector2(-289.0, 357.0), Vector2(-312.0, 364.0)]
 
 
 func _find_bgk() -> void:
 	var q := _tallest_at(BGK_AT)
 	if q.size() < 3 or not Geometry2D.is_point_in_polygon(BGK_O.lerp(BGK_O + BGK_A * BGK_FRONT, 0.5) + Vector2(-BGK_A.y, BGK_A.x) * 3.0, q):
 		return
-	_add_site("bgk", [_largest(Geometry2D.offset_polygon(q, 1.5, Geometry2D.JOIN_MITER))])
+	var zone: Array = [_largest(Geometry2D.offset_polygon(q, 1.5, Geometry2D.JOIN_MITER))]
+	# F, 2026-11-20 ("two towers on Bracka between the bank and Vitkac, what is that?"): two small
+	# OpenStreetMap parts mapped 23-27 m up at the Bracka-Mysia corner, which the city drew as
+	# whole towers from the ground. The site replaces them (nothing is built there).
+	for at: Vector2 in BGK_STRAY_PARTS:
+		for bd in data.get("buildings", []):
+			var part := _pts(bd["p"])
+			if float(bd.get("mh", 0.0)) > 20.0 and part.size() >= 3 and Geometry2D.is_point_in_polygon(at, part):
+				zone.append(_largest(Geometry2D.offset_polygon(part, 0.3, Geometry2D.JOIN_MITER)))
+	_add_site("bgk", zone)
 	if not sites.is_empty() and sites[-1]["key"] == "bgk":
 		sites[-1]["ring"] = _simplify(q, 0.4)
 		sites[-1]["raw"] = q
@@ -3637,6 +3866,41 @@ func _build_bgk(site: Dictionary) -> void:
 	_mode = M_STONE
 	var mono := _w(mu, 0.1)
 	_disc(Vector3(mono.x, g + 11.2, mono.y), Vector3(_b.x, 0.0, _b.y), 1.0, 10, BGK_GILT)
+	# The roof signs (F, 2026-11-20: "add some sign to the bank like real"; his Street View, Apr
+	# 2026): the energy group's mark in blue italic capitals with its red and blue swoosh over
+	# them on the Bracka corner block, its full name in blue along the attic beside it. As a
+	# parody: PEGE, Polska Grupa Energiczna.
+	var out3 := Vector3(_b.x, 0.0, _b.y)
+	var blue := Color(0.16, 0.32, 0.72)
+	var k_m := 7.5 / Neon.length_of("PEGE")
+	var mp := _w(6.0, -0.4)
+	var y_m := g + BGK_TOWER - 1.0
+	signs.append(["PEGE", Vector3(mp.x, y_m + 0.3, mp.y), out3, k_m, blue])
+	var arc_h := y_m + 0.3 + Neon.ROW_H * Neon.PIXEL * k_m + 0.4
+	for band: Array in [[0.0, Color(0.86, 0.13, 0.2)], [0.45, blue]]:
+		var prev := Vector3.INF
+		for k in 9:
+			var t := float(k) / 8.0
+			var q := _w(6.0 - 4.2 + 8.4 * t, -0.5)
+			var p3 := Vector3(q.x, arc_h + float(band[0]) + 1.3 * sin(PI * (0.15 + 0.8 * t)), q.y)
+			if prev != Vector3.INF:
+				_beam(prev, p3, 0.32, band[1], true, M_LAMP)
+			# The swoosh's ends stand on slim posts from the roof (no floating sign): one post per end,
+			# up to the upper band, through the lower band's end.
+			if (k == 0 or k == 8) and float(band[0]) > 0.0:
+				_beam(Vector3(p3.x, y_m - 0.4, p3.z), p3, 0.12, Color(0.18, 0.19, 0.21))
+			prev = p3
+	# The full name is wider than the neon atlas's row (ATLAS_W), so it is two words side by side,
+	# laid out along the sign's own reading direction at one scale, 22 m in all.
+	var k_n := 22.0 / Neon.length_of("POLSKA GRUPA ENERGICZNA")
+	var np := _w(30.0, -1.7)
+	var mid := Vector3(np.x, g + BGK_ATTIC + 0.1, np.y)
+	var read := Neon.place("POLSKA GRUPA", mid, out3).basis.x.normalized()
+	var half := 0.5 * k_n * Neon.length_of("POLSKA GRUPA ENERGICZNA")
+	var w1 := k_n * Neon.length_of("POLSKA GRUPA")
+	var w2 := k_n * Neon.length_of("ENERGICZNA")
+	signs.append(["POLSKA GRUPA", mid - read * (half - 0.5 * w1), out3, k_n, blue])
+	signs.append(["ENERGICZNA", mid + read * (half - 0.5 * w2), out3, k_n, blue])
 	_collide_raw(site)
 
 

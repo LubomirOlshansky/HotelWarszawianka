@@ -814,6 +814,9 @@ var visible_count := 0
 ## 0 = none), how far from the player a new one may appear (the chase cooldown: 200 m), and the
 ## seconds before the next may come (police.gd sets it when one leaves the band).
 var police_target := 0
+## Promo shots (main.gd --promo-at, F 2026-11-21): buses keep their lane (a lane change mid-shot
+## read as a bus jumping sideways).
+var steady_buses := false
 var police_min_dist := 0.0
 var patrol_wait := 20.0
 ## Patrol cars spawned so far (every third is the van).
@@ -1998,6 +2001,8 @@ func _give_way_to_sirens() -> void:
 
 ## Loop 3g-1: moves to lane `k` of its road if it is free alongside (giving way).
 func _change_lane_to(d: Driver, k: int) -> void:
+	if steady_buses and d.kind == Kind.BUS:
+		return
 	var e := d.edge
 	if graph.e_s1[e] - d.s < 18.0 or _line_busy(d):
 		return
@@ -3952,6 +3957,8 @@ func _pass_lanes(e: int, rev: int, s: float, out: float) -> PackedByteArray:
 ## Moves to the neighbouring lane with the most room ahead (more than `room`
 ## metres, nobody alongside), if the road has one. The car slides across.
 func _change_lane(d: Driver, room_needed: float, near := 18.0) -> bool:
+	if steady_buses and d.kind == Kind.BUS:
+		return false
 	var e := d.edge
 	if d.in_conn or graph.e_s1[e] - d.s < near or _line_busy(d):
 		return false

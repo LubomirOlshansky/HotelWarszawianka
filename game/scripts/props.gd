@@ -114,50 +114,281 @@ static func kebab_stand() -> ArrayMesh:
 
 # --- the palm -------------------------------------------------------------------------
 
-## The palm on Rondo de Gaulle'a: a ringed, gently curving trunk about 13 m tall on
-## a round-ish plinth, a crown of drooping fronds, a few coconuts, and a pink neon
-## ring and four uplights round the plinth that glow at night.
+## The palm on Rondo de Gaulle'a as it stands today (F's photo, Aug 2026; Joanna Rajkowska's
+## artificial date palm, its crown restored in Oct 2026): a straight trunk about 13 m tall
+## clad in diamond-cut leaf bases in two browns, a full round crown of some forty stiff
+## feathered fronds (upright ones in the middle, the lowest drooping), orange date clusters
+## under the crown, on a low dark granite ring in its grass. No neon and no uplights (F,
+## 2026-11-20: "remove this glowing from palma").
 static func palm() -> ArrayMesh:
 	var st := _begin()
-	var stone := Color("#bdb6aa")
-	box(st, Vector3(0, 0.3, 0), Vector3(2.4, 0.6, 1.2), stone)
-	box(st, Vector3(0, 0.3, 0), Vector3(1.2, 0.6, 2.4), stone)
-	box(st, Vector3(0, 0.3, 0), Vector3(2.0, 0.6, 2.0), stone)
-	var pink := Color("#ff4fd8")
-	box(st, Vector3(0, 0.66, 0), Vector3(2.5, 0.07, 0.07), pink, LIT_SIGN)
-	box(st, Vector3(0, 0.66, 0), Vector3(0.07, 0.07, 2.5), pink, LIT_SIGN)
-	for c in [Vector3(1.05, 0.66, 1.05), Vector3(-1.05, 0.66, 1.05), Vector3(1.05, 0.66, -1.05), Vector3(-1.05, 0.66, -1.05)]:
-		box(st, c, Vector3(0.18, 0.12, 0.18), Color("#fff3c4"), HEAD_LAMP)
-	# Trunk: rings alternating two browns, leaning a little and widening at the foot.
-	var segs := 16
+	var granite := Color("#5d5c5a")
+	for r in [Vector3(1.7, 0.3, 0.75), Vector3(0.75, 0.3, 1.7), Vector3(1.4, 0.3, 1.4)]:
+		box(st, Vector3(0, 0.15, 0), r, granite)
+	box(st, Vector3(0, 0.31, 0), Vector3(1.2, 0.04, 1.2), Color("#4a3a2a"))
+	# The trunk: a core and, every 0.72 m, a ring of leaf bases turned 45 degrees from the one
+	# below, so the sides read as the diamond pattern of a date palm.
+	var segs := 18
 	var top := Vector3.ZERO
+	var core := Color("#6e5136")
+	var scales := [Color("#9b7a52"), Color("#84653f")]
 	for i in segs:
 		var t := float(i) / segs
-		var lean := Vector3(0.9 * t * t, 0, -0.35 * t * t)
-		var y := 0.6 + i * 0.78
-		var wd := lerpf(0.78, 0.5, t)
-		box(st, Vector3(0, y + 0.39, 0) + lean, Vector3(wd, 0.8, wd), Color("#8b6c4a") if i % 2 == 0 else Color("#a2825b"))
-		top = Vector3(0, y + 0.8, 0) + lean
-	box(st, top + Vector3(0, 0.15, 0), Vector3(0.7, 0.4, 0.7), Color("#6f8a3a"))
-	# Coconuts.
-	for a in [0.3, 2.4, 4.4]:
-		box(st, top + Vector3(cos(a) * 0.38, -0.25, sin(a) * 0.38), Vector3(0.3, 0.3, 0.3), Color("#6b4a2b"))
-	# Fronds: chains of leaf boxes rising, then drooping, around the crown.
-	var greens := [Color("#3f8f3a"), Color("#4f9e3f"), Color("#5aa845"), Color("#3b7f36")]
-	var n := 9
-	for k in n:
-		var a := TAU * k / n + 0.2
-		var dir := Vector3(cos(a), 0, sin(a))
-		var p := top + Vector3(0, 0.2, 0)
-		var pitch := 0.75 - 0.15 * (k % 2)
-		for j in 6:
-			var length := 1.0
-			var step := (dir * cos(pitch) + Vector3.UP * sin(pitch)) * length
-			var q := p + step
-			beam(st, p, q, 0.85 - j * 0.1, 0.1, greens[(k + j) % greens.size()])
-			p = q
-			pitch -= 0.38
+		var lean := Vector3(0.25 * t * t, 0, -0.1 * t * t)
+		var y := 0.3 + i * 0.72
+		box(st, Vector3(0, y + 0.36, 0) + lean, Vector3(0.6, 0.74, 0.6), core)
+		var turn := Basis(Vector3.UP, PI * 0.25 * (i % 2))
+		obox(st, Vector3(0, y + 0.4, 0) + lean, turn, Vector3(0.84, 0.62, 0.84), scales[i % 2])
+		top = Vector3(0, y + 0.74, 0) + lean
+	# The crown's heart: old frond bases, darker, a little wider than the trunk.
+	box(st, top + Vector3(0, 0.25, 0), Vector3(1.0, 0.7, 1.0), Color("#5b4a2e"))
+	box(st, top + Vector3(0, 0.7, 0), Vector3(0.7, 0.4, 0.7), Color("#3f5a2c"))
+	# The dates: orange-brown clusters hanging under the crown.
+	for k in 7:
+		var a := TAU * k / 7.0 + 0.4
+		var c := top + Vector3(cos(a) * 0.62, -0.25 - 0.15 * (k % 2), sin(a) * 0.62)
+		box(st, c, Vector3(0.34, 0.55, 0.34), Color("#c8742a") if k % 2 == 0 else Color("#a85a22"))
+	# The fronds: four rings, upright to drooping; each a flat feathered blade (wide, flat) and
+	# its midrib keel (narrow, upright) in two segments, the outer one bending down.
+	var greens := [Color("#2f5a2e"), Color("#3a6b34"), Color("#45793a"), Color("#36632f")]
+	var rings := [[70.0, 7, 3.9], [40.0, 11, 4.4], [8.0, 12, 4.6], [-28.0, 10, 4.2]]
+	var hub := top + Vector3(0, 0.6, 0)
+	var n := 0
+	for ring: Array in rings:
+		var count := int(ring[1])
+		for k in count:
+			var az := TAU * (k + 0.5 * (n % 2)) / count + 0.15 * n
+			var el := deg_to_rad(float(ring[0]) + 6.0 * sin(k * 2.3))
+			var dir := Vector3(cos(az) * cos(el), sin(el), sin(az) * cos(el))
+			var length := float(ring[2])
+			var mid := hub + dir * length * 0.55
+			var bent := (dir + Vector3(0, -0.45, 0)).normalized()
+			var tip := mid + bent * length * 0.45
+			var col: Color = greens[(k + n) % greens.size()]
+			if float(ring[0]) < 0.0:
+				col = col.lerp(Color("#6f7a3a"), 0.35)
+			beam(st, hub, mid, 0.95, 0.05, col)
+			beam(st, mid, tip, 0.7, 0.05, col.darkened(0.08))
+			var keel := dir.cross(Vector3.UP).normalized()
+			if keel.length_squared() < 0.01:
+				keel = Vector3.RIGHT
+			beam(st, hub, mid, 0.32, 0.05, col.darkened(0.15), keel)
+			beam(st, mid, tip, 0.22, 0.05, col.darkened(0.2), keel)
+		n += 1
 	return st.commit()
+
+
+## The island round the palm after its 2026 greening (ZDM, Sept-Nov 2026: about 500 m2 of
+## concrete gave way to some 7,000 perennials and bulbs): a planted bed over each half of the
+## island, low mounds of feather grass (pale gold) and verbena (violet), the rest catmint and
+## sage (lavender, blue-violet) in drifts. `beds` are the islands' outlines (world x, z),
+## `ground` gives the ground height under a point, `keep` (centre, radius) stays clear for the
+## palm's grass ring. One mesh, the vertex-coloured material.
+static func palm_garden(beds: Array, ground: Callable, keep: Vector3, seed_n: int) -> ArrayMesh:
+	var st := _begin()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_n
+	var soil := Color("#5a4a36")
+	var leaf := Color("#6d8a52")
+	var stipa := [Color("#d8c98e"), Color("#cdbb7c"), Color("#e2d6a2")]
+	var violet := [Color("#8a5bb5"), Color("#7a68c4"), Color("#a07ccf"), Color("#6f5aa8")]
+	for poly: PackedVector2Array in beds:
+		var lift := 0.16
+		var tris := Geometry2D.triangulate_polygon(poly)
+		for k in range(0, tris.size(), 3):
+			for j in [0, 1, 2]:
+				var p := poly[tris[k + j]]
+				st.set_color(soil.lerp(leaf, 0.55))
+				st.set_normal(Vector3.UP)
+				st.set_uv(Vector2(FIXED, 0.0))
+				st.add_vertex(Vector3(p.x, float(ground.call(p)) + lift, p.y))
+		# The kerb of the bed: a low dark edge round it.
+		for k in poly.size():
+			var a := poly[k]
+			var b := poly[(k + 1) % poly.size()]
+			var ya := float(ground.call(a))
+			beam(st, Vector3(a.x, ya + 0.1, a.y), Vector3(b.x, ya + 0.1, b.y), 0.2, 0.2, Color("#8f8c86"))
+		var box2 := Rect2(poly[0], Vector2.ZERO)
+		for p in poly:
+			box2 = box2.expand(p)
+		var area := absf(_area(poly))
+		# Mounds: a few low domes of feather grass with a verbena cap.
+		for m in maxi(2, int(area / 60.0)):
+			var c := _inside(poly, box2, rng, keep, 2.2)
+			if c == Vector2.INF:
+				continue
+			var y := float(ground.call(c)) + lift
+			var r := rng.randf_range(1.6, 2.6)
+			for layer in 3:
+				var rr := r * (1.0 - layer * 0.3)
+				var hh := 0.22
+				box(st, Vector3(c.x, y + hh * (layer + 0.5), c.y), Vector3(rr * 2.0, hh, rr * 1.6), leaf.darkened(0.05 * layer))
+			for q in 14:
+				var a := rng.randf() * TAU
+				var d := sqrt(rng.randf()) * r * 0.9
+				var p := c + Vector2(cos(a), sin(a) * 0.8) * d
+				var top := y + 0.66 - d / r * 0.5
+				var tuft: Color = stipa[q % 3] if q % 3 != 0 else violet[q % 4]
+				box(st, Vector3(p.x, top + 0.2, p.y), Vector3(0.45, 0.4 + rng.randf() * 0.25, 0.45), tuft)
+		# Drifts of catmint and sage over the rest, and some grass tufts.
+		for q in int(area * 2.2):
+			var p := _inside(poly, box2, rng, keep, 0.4)
+			if p == Vector2.INF:
+				continue
+			var y := float(ground.call(p)) + lift
+			var drift := sin(p.x * 0.35) * cos(p.y * 0.3)
+			var col: Color = violet[rng.randi() % 4] if drift > -0.2 else stipa[rng.randi() % 3]
+			if rng.randf() < 0.3:
+				col = leaf.lightened(0.1)
+			var h := rng.randf_range(0.2, 0.5)
+			box(st, Vector3(p.x, y + h * 0.5, p.y), Vector3(0.42, h, 0.42), col)
+	return st.commit()
+
+
+## Deckchairs on the lawn by the de Gaulle statue, where people sit out the summer evenings
+## by the Party House (F's photos, 2026-11-20): an orange folding frame and a black sling
+## (the sponsor's logo left off), and in most of them someone lying back, in a summer shirt.
+## `spots` are [x, z, yaw, ground y, sitter (0/1)] in world space, `seed_n` picks the shirts.
+static func deckchairs(spots: Array, seed_n: int) -> ArrayMesh:
+	var st := _begin()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_n
+	var frame := Color("#e8742a")
+	var sling := Color("#1e1f22")
+	var shirts := [Color("#f2efe8"), Color("#2f6fb5"), Color("#e0b23a"), Color("#3b8f5a"), Color("#e57aa0"),
+			Color("#d8432f"), Color("#5aa9c9"), Color("#2b2c2f"), Color("#f2d13a"), Color("#c96b2c")]
+	var legs := [Color("#2b3a55"), Color("#3a3a3d"), Color("#c9b38c"), Color("#5a6a7a")]
+	var skins := [Color("#e9c4a6"), Color("#d8a684"), Color("#b98262"), Color("#f0d2b8")]
+	for sp: Array in spots:
+		var b := Basis(Vector3.UP, float(sp[2]))
+		var o := Vector3(float(sp[0]), float(sp[3]), float(sp[1]))
+		var f := func(x: float, y: float, z: float) -> Vector3: return o + b * Vector3(x, y, z)
+		# Frame: two side rails sloping from the back foot up to the top, the front legs.
+		for side in [-0.3, 0.3]:
+			beam(st, f.call(side, 0.0, 0.55), f.call(side, 0.95, -0.15), 0.06, 0.06, frame)
+			beam(st, f.call(side, 0.0, -0.55), f.call(side, 0.45, 0.2), 0.06, 0.06, frame)
+		beam(st, f.call(-0.3, 0.95, -0.15), f.call(0.3, 0.95, -0.15), 0.06, 0.06, frame)
+		# The sling: a dark cloth from the top bar down to the seat's front.
+		beam(st, f.call(0.0, 0.92, -0.12), f.call(0.0, 0.3, 0.45), 0.58, 0.04, sling)
+		beam(st, f.call(0.0, 0.3, 0.45), f.call(0.0, 0.42, 0.72), 0.58, 0.04, sling)
+		if int(sp[4]) == 0:
+			continue
+		# Someone lying back: the torso along the sling, the head at its top, the thighs to the
+		# seat's front, the shins down to the grass.
+		var shirt: Color = shirts[rng.randi() % shirts.size()]
+		var trousers: Color = legs[rng.randi() % legs.size()]
+		var skin: Color = skins[rng.randi() % skins.size()]
+		beam(st, f.call(0.0, 0.5, 0.25), f.call(0.0, 1.02, -0.08), 0.44, 0.24, shirt)
+		box(st, f.call(0.0, 1.18, -0.12), Vector3(0.24, 0.26, 0.24), skin)
+		box(st, f.call(0.0, 1.31, -0.12), Vector3(0.25, 0.08, 0.25), Color("#3a2a20") if rng.randf() < 0.7 else Color("#d9c27a"))
+		for side in [-0.11, 0.11]:
+			beam(st, f.call(side, 0.45, 0.25), f.call(side, 0.5, 0.78), 0.17, 0.17, trousers)
+			beam(st, f.call(side, 0.5, 0.78), f.call(side, 0.06, 1.0), 0.14, 0.14, trousers if rng.randf() < 0.5 else skin)
+		# An arm on the rail, the other in the lap (a phone, a drink).
+		beam(st, f.call(0.24, 0.92, -0.02), f.call(0.3, 0.62, 0.3), 0.11, 0.11, skin)
+		beam(st, f.call(-0.24, 0.92, -0.02), f.call(-0.08, 0.58, 0.32), 0.11, 0.11, skin)
+	return st.commit()
+
+
+## People standing and waiting (the rondo's zebras, eggs.gd `_build_waiting`): legs, a summer
+## shirt, arms down or a phone up, a head and hair; now and then a dog sitting at their side.
+## `spots` are [x, z, yaw, ground y, dog (0/1)] in world space, facing their -Z after `yaw`.
+static func standers(spots: Array, seed_n: int) -> ArrayMesh:
+	var st := _begin()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_n
+	var shirts := [Color("#f2efe8"), Color("#2f6fb5"), Color("#e0b23a"), Color("#3b8f5a"), Color("#e57aa0"),
+			Color("#d8432f"), Color("#5aa9c9"), Color("#2b2c2f"), Color("#f2d13a"), Color("#c96b2c"), Color("#7a4fa8")]
+	var legs := [Color("#2b3a55"), Color("#3a3a3d"), Color("#c9b38c"), Color("#5a6a7a"), Color("#1e1f22")]
+	var skins := [Color("#e9c4a6"), Color("#d8a684"), Color("#b98262"), Color("#f0d2b8")]
+	var hairs := [Color("#3a2a20"), Color("#1e1a18"), Color("#d9c27a"), Color("#8a5a3a"), Color("#b0aaa0")]
+	var dogs := [Color("#c9a26a"), Color("#2b2522"), Color("#8a5a3a"), Color("#e8e2d6")]
+	for sp: Array in spots:
+		var b := Basis(Vector3.UP, float(sp[2]))
+		var o := Vector3(float(sp[0]), float(sp[3]), float(sp[1]))
+		var k := rng.randf_range(0.92, 1.06)
+		var shirt: Color = shirts[rng.randi() % shirts.size()]
+		var leg: Color = legs[rng.randi() % legs.size()]
+		var skin: Color = skins[rng.randi() % skins.size()]
+		for x: float in [-0.1, 0.1]:
+			obox(st, o + b * Vector3(x, 0.43 * k, 0.0), b, Vector3(0.14, 0.86 * k, 0.16), leg)
+		obox(st, o + b * Vector3(0.0, 1.16 * k, 0.0), b, Vector3(0.42, 0.62 * k, 0.24), shirt)
+		var phone := rng.randf() < 0.35
+		obox(st, o + b * Vector3(-0.26, 1.13 * k, 0.0), b, Vector3(0.1, 0.58 * k, 0.11), shirt if rng.randf() < 0.5 else skin)
+		if phone:
+			obox(st, o + b * Vector3(0.18, 1.12 * k, -0.2), b, Vector3(0.1, 0.1, 0.34), skin)
+			obox(st, o + b * Vector3(0.12, 1.2 * k, -0.36), b, Vector3(0.08, 0.14, 0.02), Color("#1e1f22"))
+		else:
+			obox(st, o + b * Vector3(0.26, 1.13 * k, 0.0), b, Vector3(0.1, 0.58 * k, 0.11), shirt if rng.randf() < 0.5 else skin)
+		obox(st, o + b * Vector3(0.0, 1.61 * k, 0.0), b, Vector3(0.22, 0.26, 0.22), skin)
+		obox(st, o + b * Vector3(0.0, 1.76 * k, 0.02), b, Vector3(0.24, 0.08, 0.25), hairs[rng.randi() % hairs.size()])
+		if int(sp[4]) == 1:
+			# A dog sitting at the left, looking the same way.
+			var dc: Color = dogs[rng.randi() % dogs.size()]
+			obox(st, o + b * Vector3(-0.55, 0.2, 0.1), b, Vector3(0.24, 0.4, 0.3), dc)
+			obox(st, o + b * Vector3(-0.55, 0.45, -0.05), b, Vector3(0.18, 0.18, 0.24), dc)
+			obox(st, o + b * Vector3(-0.55, 0.42, -0.2), b, Vector3(0.1, 0.09, 0.1), dc.darkened(0.25))
+			beam(st, o + b * Vector3(-0.3, 0.95 * k, 0.0), o + b * Vector3(-0.55, 0.42, -0.02), 0.02, 0.02, Color("#d8432f"))
+	return st.commit()
+
+
+## The Party House plaza's lamp (F's photos, 2026-11-20): a tall pale grey-blue fluted post
+## about 6 m, five black lanterns with white glass on a crown of curled arms (one in the
+## middle, four round it), lit at night.
+static func candelabra() -> ArrayMesh:
+	var st := _begin()
+	var post := Color("#a9b4bd")
+	var lantern := Color("#232427")
+	var glass := Color("#f3efe2")
+	box(st, Vector3(0, 0.2, 0), Vector3(0.7, 0.4, 0.7), post.darkened(0.15))
+	box(st, Vector3(0, 0.55, 0), Vector3(0.45, 0.3, 0.45), post)
+	box(st, Vector3(0, 3.0, 0), Vector3(0.24, 4.8, 0.24), post)
+	box(st, Vector3(0, 5.45, 0), Vector3(0.34, 0.2, 0.34), post.darkened(0.1))
+	var heads := [Vector3(0, 6.3, 0)]
+	for k in 4:
+		var a := TAU * k / 4.0 + PI * 0.25
+		var tip := Vector3(cos(a) * 0.95, 5.75, sin(a) * 0.95)
+		beam(st, Vector3(0, 5.5, 0), tip + Vector3(0, -0.15, 0), 0.08, 0.08, post)
+		heads.append(tip + Vector3(0, 0.25, 0))
+	box(st, Vector3(0, 5.95, 0), Vector3(0.1, 0.5, 0.1), post)
+	for h: Vector3 in heads:
+		box(st, h + Vector3(0, -0.4, 0), Vector3(0.3, 0.1, 0.3), lantern)
+		box(st, h, Vector3(0.38, 0.7, 0.38), glass, HEAD_LAMP)
+		for cx in [-0.19, 0.19]:
+			for cz in [-0.19, 0.19]:
+				box(st, h + Vector3(cx, 0.0, cz), Vector3(0.05, 0.72, 0.05), lantern)
+		box(st, h + Vector3(0, 0.42, 0), Vector3(0.5, 0.14, 0.5), lantern)
+		box(st, h + Vector3(0, 0.58, 0), Vector3(0.14, 0.2, 0.14), lantern)
+	return st.commit()
+
+
+static func _area(poly: PackedVector2Array) -> float:
+	var s := 0.0
+	for k in poly.size():
+		var a := poly[k]
+		var b := poly[(k + 1) % poly.size()]
+		s += a.x * b.y - b.x * a.y
+	return s * 0.5
+
+
+## A random point inside `poly`, `margin` in from its edge and clear of `keep` (x, z, radius);
+## INF after a few misses.
+static func _inside(poly: PackedVector2Array, box2: Rect2, rng: RandomNumberGenerator, keep: Vector3, margin: float) -> Vector2:
+	for tries in 30:
+		var p := Vector2(rng.randf_range(box2.position.x, box2.end.x), rng.randf_range(box2.position.y, box2.end.y))
+		if not Geometry2D.is_point_in_polygon(p, poly):
+			continue
+		if p.distance_to(Vector2(keep.x, keep.y)) < keep.z + margin:
+			continue
+		var ok := true
+		for k in poly.size():
+			var q := Geometry2D.get_closest_point_to_segment(p, poly[k], poly[(k + 1) % poly.size()])
+			if q.distance_to(p) < margin:
+				ok = false
+				break
+		if ok:
+			return p
+	return Vector2.INF
 
 
 # --- pigeons -----------------------------------------------------------------------------

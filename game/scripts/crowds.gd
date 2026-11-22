@@ -383,6 +383,15 @@ const NOWOGRODZKA := {
 	"pub_nowo_22": [Vector2(-680.0, 528.0), 14, 16.0],
 	"pub_nowo_27": [Vector2(-695.0, 547.0), 10, 14.0],
 }
+## Pasaż Wiecha's evening (F, 2026-11-19: "more people on the pasaż"): Zodiak's café, the square
+## between the pavilions and Wars, and the walk past the kebab windows, on the `pub` curve (the
+## pasaż is busiest after 20:00). Same shape as NOWOGRODZKA; the spots are footway, checked
+## against centrum.json's buildings.
+const WIECHA_NIGHT := {
+	"pub_wiecha_zodiak": [Vector2(-815.0, 285.0), 14, 12.0],
+	"pub_wiecha_square": [Vector2(-835.0, 275.0), 12, 12.0],
+	"pub_wiecha_mid": [Vector2(-845.0, 240.0), 10, 12.0],
+}
 ## Wilcza and Poznańska's bars (street-by-street, 2026-11-03): people with a glass and a cigarette on the
 ## pavement in front of the bars, on the `pub` curve like NOWOGRODZKA. id -> [spot (game coordinates),
 ## most people, radius]. The fascias are storefronts.gd's WILCZA.
@@ -606,6 +615,8 @@ var paint: Callable
 var egg: Callable
 ## --crowd=: 0 none (this node isn't built), 1 normal, 2 double; the Low tier halves it.
 var amount := 1.0
+## The weather (main.gd's Weather): in the rain every figure carries an umbrella (Models.umbrella_twin).
+var weather: Node
 ## City-life satire #1: the car meet's crowd (main.gd: off with --loud=0).
 var meet_on := true
 ## --night-log: queues, rejections, the dawn walkers each minute and every event.
@@ -646,6 +657,10 @@ var _still_mat: ShaderMaterial
 var _walk_mat: ShaderMaterial
 var _walk_mm: MultiMesh
 var _walk_mmi: MultiMeshInstance3D
+## The figures' umbrellas: one twin per cell (in `_cells`) and the walkers' (Models.umbrella_twin).
+var _walk_umb: MultiMeshInstance3D
+## Whether it rained at the last frame: a change shows or hides every cell's umbrellas.
+var _wet_was := false
 var _walk_buf := PackedFloat32Array()
 var _walk_box := Rect2()
 ## Phase D: the steps' props, ONE MultiMesh (+1 draw call, only while the steps are on screen).
@@ -951,12 +966,16 @@ static func campus_level(hour: float, weekday: int, month: int, rain: bool) -> f
 	return lvl * (0.4 if rain else 1.0)
 
 
+## The share of the street and pub people still out in the rain (2026-11-19: everyone carries an
+## umbrella now, Models.umbrella_twin, so the rain thins them less; it was a third) *guess*.
+const RAIN_OUT := 0.6
+
 ## Nowogrodzka's pub crowd level 0..1: the `pub` curve × PUB_WEEKDAY (past midnight counts as the
-## evening before, as the clubs do); winter keeps 60 % (they smoke outside in the snow), rain 0.3
-## (under the doorways) *guess*.
+## evening before, as the clubs do); winter keeps 60 % (they smoke outside in the snow), rain RAIN_OUT
+## (umbrellas, doorways) *guess*.
 static func pub_level(hour: float, weekday: int, month: int, rain: bool) -> float:
 	return minf(curve_at("pub", hour) * float(PUB_WEEKDAY[night_day(hour, weekday) - 1]) * maxf(month_factor(month), 0.6)
-			* (0.3 if rain else 1.0), 1.0)
+			* (RAIN_OUT if rain else 1.0), 1.0)
 
 
 ## Mazowiecka's club crowd level 0..1: the `club` curve × WEEKDAY (past midnight counts as the
@@ -974,9 +993,9 @@ static func theatre_level(hour: float, weekday: int, rain: bool) -> float:
 
 
 ## First scene item 6: the start's street level 0..1 (FIRST_SCENE): the `street` curve, winter keeps
-## 60 % (people still buy papers and coffee), rain a third *guess*.
+## 60 % (people still buy papers and coffee), rain RAIN_OUT.
 static func street_level(hour: float, month: int, rain: bool) -> float:
-	return curve_at("street", hour) * maxf(month_factor(month), 0.6) * (0.35 if rain else 1.0)
+	return curve_at("street", hour) * maxf(month_factor(month), 0.6) * (RAIN_OUT if rain else 1.0)
 
 
 ## KROWA 2.0's line now: [people, "kolejka"]. Open 8:00-18:00, 26 at lunch (12-15), 10 otherwise.
@@ -1255,6 +1274,9 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 	for pid: String in NOWOGRODZKA:
 		var ps: Array = NOWOGRODZKA[pid]
 		_add_site({"id": pid, "kind": "chill", "pub": true, "sit": false, "at": ps[0], "max": int(ps[1]), "radius": float(ps[2])})
+	for pid: String in WIECHA_NIGHT:
+		var ws: Array = WIECHA_NIGHT[pid]
+		_add_site({"id": pid, "kind": "chill", "pub": true, "sit": false, "at": ws[0], "max": int(ws[1]), "radius": float(ws[2])})
 	for wid: String in WILCZA:
 		var ws: Array = WILCZA[wid]
 		_add_site({"id": wid, "kind": "chill", "pub": true, "sit": false, "at": ws[0], "max": int(ws[1]), "radius": float(ws[2])})
@@ -2363,7 +2385,7 @@ func _build_drawing() -> void:
 		var buf := PackedFloat32Array()
 		buf.resize(int(cap[c]) * 16)
 		buf.fill(0.0)
-		_cells[c] = {"mmi": mmi, "mm": mm, "buf": buf, "cap": int(cap[c]), "dirty": false}
+		_cells[c] = {"mmi": mmi, "mm": mm, "buf": buf, "cap": int(cap[c]), "dirty": false, "umb": Models.umbrella_twin(mmi)}
 	_props_mm = MultiMesh.new()
 	_props_mm.transform_format = MultiMesh.TRANSFORM_3D
 	_props_mm.use_custom_data = true
@@ -2403,6 +2425,7 @@ func _build_drawing() -> void:
 	_walk_mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_walk_mmi.visible = false
 	add_child(_walk_mmi)
+	_walk_umb = Models.umbrella_twin(_walk_mmi)
 
 
 ## Writes one figure into `buf` at instance `i`: standing, sitting (lower and longer) or broad.
@@ -2502,6 +2525,11 @@ func _ground(p: Vector2) -> Vector3:
 	return Vector3(p.x, map.deck_height(-1, p.x, p.y) if map != null else 0.0, p.y)
 
 
+## True while it rains enough for umbrellas (the same line as the pedestrians').
+func _raining() -> bool:
+	return weather != null and float(weather.get("amount")) > 0.2
+
+
 ## Phase D: writes the steps' props whose anchor sitter is there (`n` of the slots) into the one MultiMesh,
 ## or none while the steps are off screen. A box is a unit cube scaled by `size`, turned by `yaw`.
 func _redraw_props(s: Dictionary, near: bool) -> void:
@@ -2573,6 +2601,7 @@ func _redraw() -> void:
 			mm.custom_aabb = box.grow(1.0).expand(box.end + Vector3(0, 2.5, 0))
 		mm.visible_instance_count = n
 		(cell["mmi"] as MultiMeshInstance3D).visible = n > 0
+		Models.rain_sync(cell["umb"], cell["mmi"], _raining(), buf if n > 0 else PackedFloat32Array())
 
 
 # --- the logic -----------------------------------------------------------------------------
@@ -2589,6 +2618,11 @@ func _process(dt: float) -> void:
 	var t0 := Time.get_ticks_usec()
 	t += dt
 	_tick_t += dt
+	var wet := _raining()
+	if wet != _wet_was:
+		_wet_was = wet
+		for c: Vector2i in _cells:
+			Models.rain_sync(_cells[c]["umb"], _cells[c]["mmi"], wet)
 	if _route_task >= 0 and WorkerThreadPool.is_task_completed(_route_task):
 		WorkerThreadPool.wait_for_task_completion(_route_task)
 		_route_task = -1
@@ -3345,6 +3379,7 @@ func _move_walkers() -> void:
 	if not box_now.grow(ACTIVE_R).has_point(Vector2(eye.x, eye.z)):
 		if _walk_mmi.visible:
 			_walk_mmi.visible = false
+			Models.rain_sync(_walk_umb, _walk_mmi, false)
 		return
 	var n := mini(walkers.size(), _walk_mm.instance_count)
 	var box := AABB()
@@ -3361,6 +3396,7 @@ func _move_walkers() -> void:
 		InstanceBuffers.send(_walk_mm.get_rid(), _walk_buf)
 		_walk_mm.custom_aabb = box.grow(1.0).expand(box.end + Vector3(0, 2.5, 0))
 	_walk_mmi.visible = n > 0
+	Models.rain_sync(_walk_umb, _walk_mmi, _raining(), _walk_buf if n > 0 else PackedFloat32Array())
 
 
 ## The dawn crowd's routes: A* over the footways and crossings (`paths`: [PackedVector2Array,
