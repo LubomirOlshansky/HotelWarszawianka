@@ -22,7 +22,7 @@ global uniform float lights_on;
 uniform float px_floor = 1.3;
 // F's look check 1 (2026-11-21): the aisles read nearly white; every bulb about 40 % down, the kit's lit
 // surfaces under the city's 2.4 (grade D: soft highlights, matte).
-uniform float bulb_gain = 1.0;  // was 0.6: too dark (F 2026-11-22)
+uniform float bulb_gain = 1.15;  // F 2026-11-22 photos: the strings are the brightest thing  // was 0.6: too dark (F 2026-11-22)
 uniform float lamp_gain = 1.1;
 
 varying float mode;
