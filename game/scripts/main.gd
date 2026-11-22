@@ -3491,7 +3491,8 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "lounge inside"
 	if title != null or _phone_bench or _bench_ghost != null:
 		return "title/bench"
-	# First hour, step 3: the guide holds the friends' calls until 3 First steps (or 12 minutes),
+	# First hour, step 3: the guide holds the friends' calls until 3 First steps (or 3 minutes of play,
+	# F 2026-11-22: a player who skips the steps gets the calls too),
 	# then one new friend at a time (first10.gd `friends_wait`); before, it held them all its run.
 	if first10 != null and first10.friends_wait() and not guide_ok:
 		return "first-10 guide"
@@ -4657,7 +4658,7 @@ func _fill_map_list(entries: Array) -> void:
 	var intro: Dictionary = wallet.intro if wallet != null else {}
 	var f := {"car": here, "entries": entries, "jobs": wallet.jobs if wallet != null else {},
 			"now": entries[0] if not entries.is_empty() and str(entries[0]["action"]) == Lines.NOW else {},
-			"friends": FirstSteps.count(intro) >= FirstSteps.NOTICED_AT, "steps": [], "stories": []}
+			"friends": first10 == null or first10.friends_open(), "steps": [], "stories": []}
 	var by_group := {}
 	for e: Dictionary in entries:
 		if str(e["action"]) != Lines.NOW:
