@@ -24,6 +24,8 @@ uniform float px_floor = 1.3;
 // surfaces under the city's 2.4 (grade D: soft highlights, matte).
 uniform float bulb_gain = 1.15;  // F 2026-11-22 photos: the strings are the brightest thing  // was 0.6: too dark (F 2026-11-22)
 uniform float lamp_gain = 1.1;
+// --promo-mast=stripes (F's video 2026-11-22, the ride against the Palace): red and blue bands with white chasers.
+uniform float mast_stripes = 0.0;
 
 varying float mode;
 varying float phase;
@@ -62,6 +64,11 @@ vec3 mast_colour(float h) {
 	float run = h * 14.0 - TIME * 1.6;
 	float chase = smoothstep(0.9, 1.0, sin(run * 3.14159) * 0.5 + 0.5);
 	vec3 tip = mod(floor(run), 2.0) < 0.5 ? vec3(1.0) : vec3(1.0, 0.35, 0.62);
+	if (mast_stripes > 0.5) {
+		// Nine bands up the mast, red and blue in turn (F's video: red at the top), white dots chasing up.
+		c = mod(floor((1.0 - h) * 9.0), 2.0) < 0.5 ? vec3(1.0, 0.06, 0.05) : vec3(0.05, 0.12, 1.0);
+		tip = vec3(1.0);
+	}
 	return mix(c, tip, chase * 0.75);
 }
 

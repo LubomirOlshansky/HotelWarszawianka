@@ -120,6 +120,9 @@ func build() -> void:
 	mat.shader = load(SHADER)
 	# The floor in the video's pixels: --ss=N draws N image pixels a video pixel.
 	mat.set_shader_parameter("px_floor", 1.3 * Tiers.capture_scale)
+	# --promo-mast=stripes (F's phone video, 2026-11-22): the ride's mast in red and blue bands, for the
+	# match cut from the real ride to the game.
+	mat.set_shader_parameter("mast_stripes", 1.0 if OS.get_cmdline_user_args().has("--promo-mast=stripes") else 0.0)
 	mesh_instance.material_override = mat
 	part(mesh_instance)
 	count = bulbs

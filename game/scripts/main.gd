@@ -7117,6 +7117,9 @@ func _update_free_camera() -> void:
 	var yaw := cam_yaw
 	var pitch := _view_pitch()
 	_view_size = base_size
+	if not flags.persp.is_empty():
+		_update_persp_camera()
+		return
 	if _cam_move_on:
 		# The promo drone move (--cam-move): eased in over 0.6 s, then steady.
 		_cam_move_t += get_process_delta_time()
@@ -7133,6 +7136,28 @@ func _update_free_camera() -> void:
 	cam.size = _view_size
 	cam.global_transform = Transform3D(xf.basis, _snap_to_pixels(xf.origin, xf.basis, _view_size))
 	cam.far = _camera_far(maxf(CAMERA_DISTANCE, cam.size * 1.6), _view_size)
+
+
+## --persp (promo only): the phone-like perspective camera on the ground, panning VYAW degrees a second
+## round the eye once the city is ready (the --cam-move clock).
+func _update_persp_camera() -> void:
+	var p := flags.persp
+	var eye := Vector3(p[0], map.ground_height(p[0], p[2]) + p[1], p[2])
+	var look := Vector3(p[3], map.ground_height(p[3], p[5]) + p[4], p[5])
+	if _cam_move_on:
+		_cam_move_t += get_process_delta_time()
+		var t := maxf(0.0, _cam_move_t - flags.cam_move[5])
+		var te := t * t / 1.2 if t < 0.6 else t - 0.3
+		var d := look - eye
+		var turned := Vector2(d.x, d.z).rotated(deg_to_rad(-p[7] * te))
+		look = eye + Vector3(turned.x, d.y, turned.y)
+	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+	cam.fov = p[6]
+	cam.near = 0.2
+	cam.far = 4000.0
+	cam.global_transform = Transform3D(Basis.looking_at(look - eye, Vector3.UP), eye)
+	cam_focus = look
+	_view_size = 300.0
 
 
 ## A point moved onto the pixel grid of a view `size` m tall turned `basis` (across and up the
