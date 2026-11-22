@@ -2786,7 +2786,13 @@ func _build_msn(_site: Dictionary) -> void:
 	for w: Vector3 in MSN_WELLS:
 		wells.append(_rect(w.x, w.y, w.z, w.z))
 	_mode = M_GLASS_ROOF
-	_cap_holes(_rect(0.0, 0.0, MSN_HU - MSN_SKY_EDGE, MSN_HV - MSN_SKY_EDGE), wells, g + MSN_H, MSN_SKY_GLASS)
+	var sky_col := MSN_SKY_GLASS
+	if preload("res://scripts/time_of_day.gd").promo_night:
+		# The Jarmark promo (F 2026-11-22, his night photo from the Palace): the roof reads dark
+		# grey at night, not a lit gold field; plain stone, no inner glow.
+		_mode = M_STONE
+		sky_col = Color("#3b3e44")
+	_cap_holes(_rect(0.0, 0.0, MSN_HU - MSN_SKY_EDGE, MSN_HV - MSN_SKY_EDGE), wells, g + MSN_H, sky_col)
 	_mode = M_STONE
 	_cap_holes(box, wells, g + MSN_H, MSN_ROOF)
 	# wells: open courts cut into the roof, 4 m deep, their floors in shade.
