@@ -85,7 +85,7 @@ func _build() -> void:
 	_title.text = str(garage.NAME[0]).to_upper()
 	names.add_child(_title)
 	_title_en = hud._label(hud.T_LABEL, hud.SUB)
-	_title_en.text = "%s, Praga" % garage.STREET
+	_title_en.text = "%s, %s" % [garage.STREET, garage.DISTRICT]
 	names.add_child(_title_en)
 	_tab_paint = hud._chip(head, "LAKIER", "Paint")
 	_tab_paint.name = "tab_paint"

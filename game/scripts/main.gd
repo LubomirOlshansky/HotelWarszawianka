@@ -518,7 +518,7 @@ var fans: Fans
 var event_day: EventDay
 ## Wellness circles (wellness.gd); flags --wellness=0 (none), --wellness-now (every spot on at any hour), --wellness-log.
 var wellness: Wellness
-## The garage loop (garage.gd): Warsztat u Mirka on Brzeska; flags --paint=<id> (the car starts in
+## The garage loop (garage.gd): Warsztat u Mirka on Twarda; flags --paint=<id> (the car starts in
 ## that paint, owned for the run), --garage (the car in the garage's ring, the card open; the
 ## garage shown whatever the wallet), --garage-log (`garage:` lines).
 var garage: Garage
@@ -2900,7 +2900,7 @@ func _build_first10() -> void:
 		first10.race_at = 1.0
 
 
-## Warsztat u Mirka (garage.gd): its ring on Brzeska, the car's saved paint (or --paint), the card
+## Warsztat u Mirka (garage.gd): its ring on Twarda, the car's saved paint (or --paint), the card
 ## that pauses the game like the settings card.
 func _build_garage(world: Node3D) -> void:
 	garage = Garage.new()
