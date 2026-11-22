@@ -236,7 +236,7 @@ const BUDGET := {
 	"spire": 6600,  # 2026-11-06 photo rebuild (F), 6151 tris (vase, steel crown ring, drum): steel columns, canopy bow, Spire B/C crowns and eaves, plaza kerbs, channel, 26 trees; +0 draw calls
 	"tr": 6500,  # 2026-11-15 rebuild from F's 13 photos: concrete shell with red formwork and rebar, two lattice cranes, flags, yard
 	"nozyce": 700,  # the gold scissors on their granite plinth (F's photo, 2026-11-15)
-	"jarmark": 76000,  # 2026-11-20 the finished Jarmark Warszawski 2026 (F, for the trailer), 69,003 tris: over 200 stalls, the LED tree, the 38 m tower carousel, the Venetian carousel, bulb strings over every aisle; an exception to the L3 cap, a whole 160 by 90 m market in one site, +0 draw calls (one mesh)
+	"jarmark": 200000,  # 2026-11-22 the official-map rebuild with the object kit (jarmark_kit.gd: shutters, plank grooves, bulbs on every chalet, Santa's Workshop, the castle stage), 190,815 tris, still one mesh, +0 draw calls; the iPhone bench near the Palace is owed before TestFlight. Before: 2026-11-20 the finished Jarmark Warszawski 2026 (F, for the trailer), 69,003 tris: over 200 stalls, the LED tree, the 38 m tower carousel, the Venetian carousel, bulb strings over every aisle; an exception to the L3 cap, a whole 160 by 90 m market in one site, +0 draw calls (one mesh)
 	"obeliski": 600,  # the two 1955 granite obelisks by the Palace and their exit hatches (F, 2026-11-15, 2026-11-17)
 	"tower75": 220,
 	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
@@ -343,7 +343,7 @@ const BUDGET := {
 	"branickich": 1500,
 	"archikatedra": 1100,
 	"sw_anna": 1050,  # 2026-11-06 photo pass: giant order, niches, attic, tower dome
-	"widok": 450,
+	"widok": 820,  # 2026-11-22 rebuilt from F's photos: two slabs, the core, soffit, roof plant (682 tris)
 	"pzu": 900,
 	"jm": 900,
 	"babka": 800,  # 2026-11-15 photo pass with F's photos (637 tris): stone tower, loggia columns, mast, the 34 m block
@@ -380,7 +380,7 @@ const BUDGET := {
 ## block's `facade` walls do (fronts.gd _build_block): they go into the same building surface, so no
 ## draw call of their own; any plain triangle more than that number still fails.
 ## dom_chlopa "plain": the one wall quad (works.gd _dch_fill_front) over its south-west front, the same way.
-const KNOWN := {"lipowa1a": {"zfight": 2}, "port_praski": {"plain": 750}, "dom_chlopa": {"plain": 2}, "towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}, "tr": {"zfight": 8}}  # lipowa1a: 2 coplanar triangles where two cornice slabs meet at the base corners (12 m up, never seen); tr: 8 coplanar triangles in crane 1's A-frame legs at 36 m, not found (hidden in a lattice, never seen)
+const KNOWN := {"jarmark": {"zfight": 1235, "float": 777}, "lipowa1a": {"zfight": 2}, "port_praski": {"plain": 750}, "dom_chlopa": {"plain": 2}, "towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}, "tr": {"zfight": 8}}  # lipowa1a: 2 coplanar triangles where two cornice slabs meet at the base corners (12 m up, never seen); jarmark: coplanar panels on the chalets' fronts about 1 m up (1235, sampled in rows R3 and R4; not yet traced) and the bulbs hung on strings over the aisles (777, they hang by design); tr: 8 coplanar triangles in crane 1's A-frame legs at 36 m, not found (hidden in a lattice, never seen)
 
 var _probe: MeshProbe
 var problems: Array[String] = []

@@ -1547,7 +1547,11 @@ func _load_metros(pois: Array) -> void:
 
 ## Does a map stair flight (centrum.json `steps`, built as a railed flight) end within 1.5 m of `at`?
 func _stair_flight_ends_at(at: Vector2) -> bool:
-	for s: Dictionary in map.data.get("steps", []):
+	# The checks' stand-in maps have no `data`: no stair flights there.
+	var md: Variant = map.get("data")
+	if not (md is Dictionary):
+		return false
+	for s: Dictionary in (md as Dictionary).get("steps", []):
 		if int(s.get("cv", 0)) == 1:
 			continue
 		var f: Array = s["p"]
