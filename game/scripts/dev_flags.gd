@@ -1143,6 +1143,10 @@ func parse_with(args: PackedStringArray) -> void:
 		elif arg.begins_with("--clock-speed="):
 			# A promo timelapse (the market's lights coming on): game seconds per real second.
 			TimeOfDay.speed_override = maxf(0.0, float(arg.trim_prefix("--clock-speed=")))
+		elif arg.begins_with("--promo-glow="):
+			# One promo take's extra glow (F 2026-11-22, the top-down fly-over: "add some glow or light for
+			# it, for that one only"): a factor on the promo night's glow, 1 = as set.
+			TimeOfDay.promo_glow_gain = maxf(0.0, float(arg.trim_prefix("--promo-glow=")))
 		elif arg.begins_with("--promo-dress="):
 			promo_dress = arg.trim_prefix("--promo-dress=").split(",", false)
 			preload("res://scripts/crowds.gd").promo_jarmark = promo_dress.has("jarmark")
@@ -1150,7 +1154,7 @@ func parse_with(args: PackedStringArray) -> void:
 			preload("res://scripts/street_details.gd").november = promo_dress.has("jarmark")
 			if promo_dress.has("jarmark"):
 				# The market's strollers (jarmark_life.gd promo_walkers) ride the guest slots.
-				preload("res://scripts/pedestrians.gd").GUESTS = 720
+				preload("res://scripts/pedestrians.gd").GUESTS = 800
 				preload("res://scripts/pedestrians.gd").promo_people = true
 			if promo_dress.has("jarmark") and season == "":
 				# Late November (F 2026-11-21): the leaves are down, no green or orange crowns.

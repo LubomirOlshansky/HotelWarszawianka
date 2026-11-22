@@ -14,13 +14,15 @@ FROM=${2:-}
 mkdir -p $OUT
 GRADE="eq=saturation=0.95,curves=all='0/0.035 0.5/0.5 0.85/0.80 1/0.90',format=yuv420p"
 started=$([[ -z $FROM ]] && echo 1 || echo 0)
-grep -v '^#' $ROOT/${SHOTS:-docs/jarmark-promo/shots.tsv} | while IFS=$'\t' read -r name secs cam yaw pitch size move; do
+grep -v '^#' $ROOT/${SHOTS:-docs/jarmark-promo/shots.tsv} | while IFS=$'\t' read -r name secs cam yaw pitch size move extra; do
 	[[ $started == 0 && $name != $FROM ]] && continue
 	started=1
 	[[ -s $OUT/$name.mp4 ]] && { print "skip $name (done)"; continue; }
 	typeset -a flags=(--cam=$cam --yaw=$yaw --pitch=$pitch --size=$size --trailer --quality=experimental
 		--lines=1920 --sectors=all --game-clock --date=20261121 --clock=20:30 --nohud --no-touch --no-ghost --promo-dress=jarmark)
 	[[ -n $move ]] && flags+=(--cam-move=$move)
+	# An 8th column: that take's own extra flags, space-separated (e.g. --promo-glow=1.5).
+	[[ -n $extra ]] && flags+=(${=extra})
 	for try in 1 2; do
 		if CLIP_RUNTIME=1 $ROOT/tools/clip.sh $name 1080x1920 $secs --skip=8 -- $flags </dev/null; then
 			ffmpeg -v error -y -i $ROOT/build/clips/$name.mp4 -vf "$GRADE" -c:v libx264 -preset slow -crf 16 \

@@ -141,6 +141,7 @@ func _process(_dt: float) -> void:
 	# Far drone shots with the Palace (F 2026-11-22, pack 2): thousands of tiny bulbs haze the frame, so
 	# the glow eases to 80 % on views 180 to 400 m tall: visible, not bright.
 	share *= lerpf(1.0, 0.8, smoothstep(180.0, 400.0, view_m))
+	share *= TimeOfDay.promo_glow_gain
 	if absf(share - TimeOfDay.promo_glow_share) < 0.005:
 		return
 	TimeOfDay.promo_glow_share = share

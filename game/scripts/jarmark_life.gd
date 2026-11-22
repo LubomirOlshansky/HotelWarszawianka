@@ -80,7 +80,53 @@ static func walkers() -> Array:
 			_promo.append([kind, rng.randi() % AISLES.size(), rng.randf(), rng.randf_range(0.45, 0.95),
 					rng.randf_range(-0.9, 0.9), Crowds.WINTER_COATS[rng.randi() % Crowds.WINTER_COATS.size()],
 					Crowds.WINTER_COATS[rng.randi() % Crowds.WINTER_COATS.size()]])
+		_add_wanderers(rng)
 	return _promo
+
+
+## The promo's wanderers (F 2026-11-22, the tree push-in: "in real life they are scattered everywhere
+## and walk", "don't overdo it"): PROMO_WANDER groups off the aisles' straight lines, each on a path of
+## its own given as an 8th entry [u0, v0, u1, v1, 0]: slanting across an aisle from one side to the
+## other, or a chord round the tree, the Venetian carousel or the tower, outside their queues and
+## clear of the nearest stalls (jarmark.gd kit, 2026-11-22). The standing crowd stays as it was.
+const PROMO_WANDER := 80
+## [centre u, v, inner r, outer r] of the rings walked round (clear to the next object, measured).
+const WANDER_RINGS := [[197.0, 9.5, 12.0, 15.5], [134.8, 124.4, 10.0, 13.5], [137.7, 63.2, 9.0, 11.5]]
+
+
+static func _add_wanderers(rng: RandomNumberGenerator) -> void:
+	for i in PROMO_WANDER:
+		var path: Array
+		if i % 5 < 3:
+			# Across an aisle on a slant: from one edge to the other over 5-14 m of its length.
+			var ai: Array = AISLES[rng.randi() % AISLES.size()]
+			var p0 := Vector2(float(ai[0]), float(ai[1]))
+			var p1 := Vector2(float(ai[2]), float(ai[3]))
+			var length := p0.distance_to(p1)
+			var along := (p1 - p0) / maxf(length, 1.0)
+			var side := Vector2(-along.y, along.x)
+			var run := minf(rng.randf_range(5.0, 14.0), length)
+			var s0 := rng.randf_range(0.0, length - run)
+			var half := float(ai[4]) * 0.85
+			var flip := 1.0 if rng.randf() < 0.5 else -1.0
+			var a0 := p0 + along * s0 + side * half * flip
+			var a1 := p0 + along * (s0 + run) - side * half * flip
+			path = [a0.x, a0.y, a1.x, a1.y, 0.0]
+		else:
+			# A chord round a ride or the tree: 25-45 degrees of a ring.
+			var ring: Array = WANDER_RINGS[rng.randi() % WANDER_RINGS.size()]
+			var r := rng.randf_range(float(ring[2]), float(ring[3]))
+			var t0 := rng.randf() * TAU
+			var t1 := t0 + deg_to_rad(rng.randf_range(25.0, 45.0)) * (1.0 if rng.randf() < 0.5 else -1.0)
+			var c := Vector2(float(ring[0]), float(ring[1]))
+			var a0 := c + Vector2(cos(t0), sin(t0)) * r
+			var a1 := c + Vector2(cos(t1), sin(t1)) * r
+			path = [a0.x, a0.y, a1.x, a1.y, 0.0]
+		var r2 := rng.randf()
+		var kind := "single" if r2 < 0.4 else ("couple" if r2 < 0.85 else "family")
+		_promo.append([kind, 0, rng.randf(), rng.randf_range(0.5, 0.9), 0.0,
+				Crowds.WINTER_COATS[rng.randi() % Crowds.WINTER_COATS.size()],
+				Crowds.WINTER_COATS[rng.randi() % Crowds.WINTER_COATS.size()], path])
 
 
 ## The strollers' figures at clock `t` and `hour`: [position (map x, z), yaw, shirt, trousers, scale].
@@ -92,7 +138,7 @@ static func walker_figures(t: float, hour: float) -> Array:
 	var b := Vector2(-a.y, a.x)
 	for i in n:
 		var w: Array = list[i]
-		var ai: Array = AISLES[int(w[1])]
+		var ai: Array = w[7] if w.size() > 7 else AISLES[int(w[1])]
 		var p0 := Vector2(float(ai[0]), float(ai[1]))
 		var p1 := Vector2(float(ai[2]), float(ai[3]))
 		var length := maxf(p0.distance_to(p1), 1.0)

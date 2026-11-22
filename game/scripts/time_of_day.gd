@@ -155,6 +155,8 @@ static var promo_night := false
 ## F 2026-11-21: full on a wide drone shot, about 40 % under a 60 m view).
 static var promo_glow_base := 0.0
 static var promo_glow_share := 1.0
+## --promo-glow=K: one take's extra glow on top of the view rule (jarmark_promo.gd _process).
+static var promo_glow_gain := 1.0
 static var promo_env: Environment
 var _game_utc := 0.0
 var _golden := 1.0

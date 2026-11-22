@@ -1619,6 +1619,29 @@ static func _jarmark_pack() -> Array:
 				out.append([at + face * 0.75, -face, part])
 			# Thinner than the first pass: jarmark_life.gd's promo strollers walk between them.
 			d += rng.randf_range(0.5, 1.1)
+	out.append_array(_tower_queue(rng, a, b))
+	return out
+
+
+## The tower carousel's long line (F 2026-11-22: "in real life there's a huge queue to the carousel
+## that lifts people"): two rows doubling back between the tower and the cross aisle at v 52 (clear
+## of stalls, the maze and the photo booths there, measured), [u0, u1, v]: the near row walks up to
+## the tower's gate at u 137.7, the far row feeds it from the east end. About 55 people at 0.6-0.75 m.
+const TOWER_QUEUE := [[124.0, 136.5, 57.2], [146.0, 124.0, 55.9]]
+
+
+static func _tower_queue(rng: RandomNumberGenerator, a: Vector2, b: Vector2) -> Array:
+	var out: Array = []
+	for row: Array in TOWER_QUEUE:
+		var u0 := float(row[0])
+		var u1 := float(row[1])
+		var way := signf(u1 - u0)
+		var face := a * way
+		var u := u0
+		while (u1 - u) * way > 0.0:
+			var at := Landmarks._jm_world(u, float(row[2]) + rng.randf_range(-0.18, 0.18))
+			out.append([at, face.rotated(rng.randf_range(-0.35, 0.35)), 1])
+			u += way * rng.randf_range(0.6, 0.75)
 	return out
 
 
