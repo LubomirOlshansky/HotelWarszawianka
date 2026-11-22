@@ -168,7 +168,12 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# office tenants as parodies, and the HUB's own name at its door.
 		"NA DACHU", "KORONA PLAZA", "KORONA", "PLAZA", "HOLIDEJ INN", "ORAKEL", "STANDARD CZARTER", "HUB",
 		# The University Library's pizzeria under the lookout (F, 2026-11-20): a parody of its name.
-		"BOSKAJOLA"]
+		"BOSKAJOLA",
+		# Pasaż Wiecha's cafés and shops (F, 2026-11-22: OSM and the photos), parodies: the loft
+		# restaurant, the vegan bar, the bubble tea, the grill, the jars, the pierogi, the sushi, the
+		# Czech pub, Scena Relax's café and pizzeria, the café on Zgoda.
+		"STRYCH", "WEGE FUD", "AUREOLA TEA", "BLISKI ZACHÓD", "SŁOICZEK", "PIEROŻKARNIA", "KISIEL SUSHI",
+		"PO CZESKU", "KAWIARNIA RELAKS", "WŁOSKI ZASTÓJ", "KOSMOSIK"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)

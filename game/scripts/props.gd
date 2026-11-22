@@ -1522,9 +1522,20 @@ static func add_ad_column(st: SurfaceTool, xf: Transform3D, poster: Color) -> vo
 static func add_y_mast(st: SurfaceTool, xf: Transform3D) -> void:
 	# F's look check (2026-11-03): the white Y masts come first on the pasaż, so they stand as
 	# in the photo: a stout pole to 7.4 m, two thick arms out to 11 m, long wide lamp blades.
+	# F's Christmas photos (2026-11-22, the mast close up): a square pole on a grey concrete foot, a
+	# pair of floodlights across the pasaż at 6.5 m on a short bar, a service hatch and a white
+	# no-cycling plate low on the pole.
 	var white := Color("#f2f2ee")
-	_xbox(st, xf, Vector3(0, 0.2, 0), Vector3(0.6, 0.4, 0.6), Color("#5d6166"))
-	_xbox(st, xf, Vector3(0, 3.7, 0), Vector3(0.36, 7.4, 0.36), white)
+	_xbox(st, xf, Vector3(0, 0.3, 0), Vector3(0.8, 0.6, 0.8), Color("#9a9c98"))
+	_xbox(st, xf, Vector3(0, 0.66, 0), Vector3(0.56, 0.12, 0.56), Color("#5d6166"))
+	_xbox(st, xf, Vector3(0, 3.7, 0), Vector3(0.44, 7.4, 0.44), white)
+	_xbox(st, xf, Vector3(0, 6.55, 0), Vector3(0.1, 0.1, 1.3), Color("#8d9196"))
+	for side: float in [-1.0, 1.0]:
+		_xbox(st, xf, Vector3(0, 6.55, side * 0.68), Vector3(0.32, 0.16, 0.28), Color("#3c4046"))
+		_xbox(st, xf, Vector3(0, 6.46, side * 0.68), Vector3(0.26, 0.03, 0.22), Color("#fff6e0"), LIT_SIGN)
+	_xbox(st, xf, Vector3(0.24, 1.5, 0), Vector3(0.04, 0.6, 0.3), Color("#d9d9d4"))
+	_xbox(st, xf, Vector3(-0.235, 2.6, 0), Vector3(0.03, 0.4, 0.4), Color("#fafaf7"))
+	_xbox(st, xf, Vector3(-0.255, 2.6, 0), Vector3(0.01, 0.26, 0.26), Color("#c8242b"))
 	for side: float in [-1.0, 1.0]:
 		_xbeam(st, xf, Vector3(0, 7.1, 0), Vector3(0, 11.0, side * 1.8), 0.24, 0.18, white)
 		var tilt := Basis(Vector3.RIGHT, -side * 0.12)

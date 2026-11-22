@@ -4450,6 +4450,27 @@ const WIECHA_WIDOK := 3      # Widok 26, the corner of the pasaż and Aleje Jero
 const WIECHA_BROWN := Color("#3b2b24")
 const WIECHA_FOOD := ["ATOMIK 24H", "KEBAB 24H", "PIZZA", "NOCNY", "KEBAB 24H"]
 const WIECHA_KEBAB_AT := 0   # the outline (in WIECHA_AT order) that carries the kebab hatch
+## The pasaż's real cafés and shops on the pavilions' fronts (F, 2026-11-22: "add the cafés and signs
+## that are there"), from OpenStreetMap's shops and F's and the opening night's photos, as parodies
+## (warsaw-tone): outline (WIECHA_AT order) -> [s (first_scene.gd's frame: metres north along
+## Marszałkowska), half width, word, tube colour, the lit display's colour, a string of bulbs]. A bay
+## inside a shop's span is always lit in its colour; the fascia carries its word instead of the
+## generic one. Złota 11's row, south to north: a loft restaurant, a vegan bar, a bubble-tea bar, a
+## Middle-Eastern grill, the home-cooking restaurant in jars (green neon), a pierogi bar and the
+## kebab hatch; Kiseki's sushi on the square at Chmielna.
+const WIECHA_SHOPS := {
+	0: [[-32.6, 2.4, "STRYCH", Color(1.0, 0.78, 0.4), Color("#f2c27a"), true],
+		[-27.6, 2.4, "WEGE FUD", Color(0.35, 1.0, 0.45), Color("#c8e8a0"), true],
+		[-22.6, 2.4, "AUREOLA TEA", Color(1.0, 0.45, 0.75), Color("#f2b8d0"), false],
+		[-13.2, 3.6, "BLISKI ZACHÓD", Color(1.0, 0.72, 0.2), Color("#f6d090"), true],
+		[-2.0, 4.4, "SŁOICZEK", Color(0.25, 1.0, 0.4), Color("#f6dcae"), true],
+		[9.2, 3.6, "PIEROŻKARNIA", Color(1.0, 0.35, 0.3), Color("#f2c27a"), true]],
+	1: [[-52.7, 7.0, "KISIEL SUSHI", Color(1.0, 0.25, 0.3), Color("#f0d8b0"), true]],
+}
+## The kebab hatch's place on its outline, s in the same frame (Złota 11's kebab bar, OSM).
+const WIECHA_KEBAB_S := 21.4
+const WIECHA_FS_O := Vector2(-937.0, 210.1)   # first_scene.gd FRAME_O / FRAME_S (read-only here)
+const WIECHA_FS_S := Vector2(-0.34917, -0.93706)
 
 
 ## One pavilion's night life. `idx` seeds the pattern, so it never changes between builds.
@@ -4468,9 +4489,25 @@ func _wiecha_life(outline: PackedVector2Array, idx: int, g: float) -> void:
 		var bay := len / float(n)
 		var on_front := i == front
 		var hatch := (n - 1) / 2 if (on_front and idx == WIECHA_KEBAB_AT) else -1
+		var shops: Array = WIECHA_SHOPS.get(idx, []) if on_front else []
+		if hatch >= 0:
+			# The hatch at the real kebab bar's bay (the nearest to WIECHA_KEBAB_S).
+			var best := INF
+			for k in n:
+				var ds := absf((a + d * bay * (float(k) + 0.5) - WIECHA_FS_O).dot(WIECHA_FS_S) - WIECHA_KEBAB_S)
+				if ds < best:
+					best = ds
+					hatch = k
 		for k in n:
 			var h := (idx * 7 + i * 5 + k * 3 + (idx ^ k) * 11) % 10
 			var c := a + d * bay * (float(k) + 0.5)
+			var shop: Array = []
+			var bs := (c - WIECHA_FS_O).dot(WIECHA_FS_S)
+			for sh: Array in shops:
+				if absf(bs - float(sh[0])) <= float(sh[1]):
+					shop = sh
+			if not shop.is_empty() and k != hatch:
+				h = 0
 			var half := bay * 0.5 - 0.14
 			var p0 := c - d * half + o * 0.03
 			var p1 := c + d * half + o * 0.03
@@ -4488,7 +4525,7 @@ func _wiecha_life(outline: PackedVector2Array, idx: int, g: float) -> void:
 				continue
 			if h >= 7:
 				continue   # shut: its dark glass stays dark
-			var glow: Color = WIECHA_DISPLAYS[(idx + i + k) % WIECHA_DISPLAYS.size()]
+			var glow: Color = WIECHA_DISPLAYS[(idx + i + k) % WIECHA_DISPLAYS.size()] if shop.is_empty() else shop[4]
 			_quad(Vector3(p0.x, g + 0.55, p0.y), Vector3(p1.x, g + 0.55, p1.y), Vector3(p1.x, g + 2.6, p1.y),
 					Vector3(p0.x, g + 2.6, p0.y), nrm, glow.darkened(0.4))
 			# A shelf and a dark row of goods across the lit pane.
@@ -4497,8 +4534,22 @@ func _wiecha_life(outline: PackedVector2Array, idx: int, g: float) -> void:
 			var s1 := c + d * half + o * 0.06
 			_quad(Vector3(s0.x, g + 1.25, s0.y), Vector3(s1.x, g + 1.25, s1.y), Vector3(s1.x, g + 1.4, s1.y),
 					Vector3(s0.x, g + 1.4, s0.y), nrm, WIECHA_FRAME)
-			if h < 3 and on_front:
+			if h < 3 and on_front and shop.is_empty():
 				_awning(a, d, o, c, bay, g, WIECHA_AWNINGS[(idx + k) % WIECHA_AWNINGS.size()])
+		# The named shops: the word over its span on the fascia, a string of warm bulbs under it.
+		for sh: Array in shops:
+			var t0 := (float(sh[0]) - (a - WIECHA_FS_O).dot(WIECHA_FS_S)) / d.dot(WIECHA_FS_S)
+			if t0 < 0.0 or t0 > len:
+				continue
+			var m := a + d * t0 + o * (WIECHA_OVER + 0.02)
+			var word: String = sh[2]
+			var kk := minf(0.42 / (Neon.ROW_H * Neon.PIXEL), float(sh[1]) * 1.7 / Neon.length_of(word))
+			signs.append([word, Vector3(m.x, g + WIECHA_LOW + 0.02, m.y), Vector3(o.x, 0.0, o.y), kk, sh[3]])
+			if bool(sh[5]):
+				var f0 := a + d * (t0 - float(sh[1]) + 0.2) + o * (WIECHA_OVER + 0.25)
+				var f1 := a + d * (t0 + float(sh[1]) - 0.2) + o * (WIECHA_OVER + 0.25)
+				_pow_festoon(Vector3(f0.x, g + WIECHA_LOW - 0.05, f0.y), Vector3(f1.x, g + WIECHA_LOW - 0.05, f1.y), 0.3,
+						maxi(3, roundi(float(sh[1]) * 1.6)))
 		# Widok 26: a big parody fast-food name on the white band over each longer face.
 		if idx == WIECHA_WIDOK and len >= 6.0:
 			var fw: String = WIECHA_FOOD[i % WIECHA_FOOD.size()]
@@ -4507,7 +4558,7 @@ func _wiecha_life(outline: PackedVector2Array, idx: int, g: float) -> void:
 			signs.append([fw, Vector3(fm.x, g + WIECHA_LOW + WIECHA_FASCIA + 0.45, fm.y), Vector3(o.x, 0.0, o.y), fk,
 					Neon.colour_for(fw, float(i) * 0.41)])
 		# A light-box word on the fascia of the longer faces (the fascia reaches out WIECHA_OVER m).
-		if len >= 6.0 and not (idx == WIECHA_KEBAB_AT and on_front):
+		if len >= 6.0 and not (idx == WIECHA_KEBAB_AT and on_front) and shops.is_empty():
 			var word: String = WIECHA_WORDS[(idx * 3 + i) % WIECHA_WORDS.size()]
 			var m := (a + b) * 0.5 + o * (WIECHA_OVER + 0.02)
 			var kk := minf(0.36 / (Neon.ROW_H * Neon.PIXEL), 3.2 / Neon.length_of(word))

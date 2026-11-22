@@ -848,6 +848,9 @@ const INFO := {
 	"wiecha": ["Pasaż Wiecha",
 			"Deptak za Domami Towarowymi Centrum, nazwany na cześć Stefana Wiecheckiego „Wiecha”. Pawilony z witrynami pod blokami.",
 			"The walkway behind the Eastern Wall's stores, named after the writer Stefan Wiechecki, \"Wiech\". Shop pavilions under the slabs."],
+	"wiecha_swieta": ["Święta w Pasażu Wiecha",
+			"Spadające gwiazdy na każdej latarni, piernikowy ludzik, przez którego się przechodzi, neonowa choinka i bombki, w których można usiąść. Do Trzech Króli.",
+			"Shooting stars on every lamp mast, a gingerbread man you walk through, a neon fir and baubles you can sit in. Until Epiphany."],
 	"ochota": ["Warszawa Ochota",
 			"Dworzec z 1963 roku: szklana kasa na moście nad wykopem pod betonowym siodłem paraboloidy.",
 			"A 1963 station: a glass ticket hall on a bridge over the cutting, under a concrete saddle roof."],
@@ -1336,6 +1339,8 @@ func _find_sites() -> void:
 	_find_pijana()
 	# First scene items 4-5 (2026-11-02, the Mac photo report dt_pawilony): Pasaż Wiecha's pavilions.
 	_find_wiecha()
+	# F's photos and the opening night's Instagram (2026-11-22): the pasaż's Christmas lights.
+	_find_wiecha_swieta()
 	# F's photos (2026-11-06): SOWA CLUB and CITY 25, the neon glass pavilion on Al. Jerozolimskie.
 	_find_sowa()
 	# Skwer Linearny na Złotej (F's photo, 2026-11-02): Dom pod Orłami over the new square.
@@ -1971,6 +1976,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_pijana(s)
 			"wiecha":
 				_build_wiecha(s)
+			"wiecha_swieta":
+				_build_wiecha_swieta(s)
 			"orly":
 				_build_orly(s)
 			"hotel_warszawa":

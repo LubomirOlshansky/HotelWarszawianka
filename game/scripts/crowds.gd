@@ -98,6 +98,11 @@ const STEPS_KEYS := ["schodki_wisla", "schodki_wisla_w"]
 ## packed for the trailer (F: "tons of people"), the strollers in the aisles are jarmark_life.gd.
 const JARMARK_IDS := ["jarmark_main", "jarmark_annex"]
 const JARMARK_MAX := {"jarmark_main": 360, "jarmark_annex": 150}
+## Pasaż Wiecha at Christmas (F, 2026-11-22): people taking photos at the decorations and in twos at
+## the café fronts (Landmarks.wiecha_plan), kind `wiecha`, one site; scattered, never a crowd (F: "not
+## overdone"). Its strollers are wiecha_life.gd.
+const WIECHA_ID := "wiecha_swieta"
+const WIECHA_MAX := 44
 const KLADKA_IDS := ["kladka_w", "kladka_e"]
 const KLADKA_SPLIT := 250.0
 const KLADKA_MAX := {"kladka_w": 90, "kladka_e": 50}
@@ -1262,6 +1267,7 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 		_add_site({"id": STEPS_ID, "kind": "steps", "at": band["centre"] if band["stair"] != "" else at[STEPS_ID], "max": STEPS_MAX})
 	_add_kladka(data.get("kladka", {}))
 	_add_jarmark()
+	_add_wiecha()
 	var yards := CHILL.duplicate()
 	yards.merge(BULWARY)
 	yards.merge(NOWY_SWIAT)
@@ -1580,6 +1586,46 @@ func _add_jarmark() -> void:
 				"slots": mixed})
 
 
+## The pasaż's standing people from its plan, in a seeded order so a smaller crowd still spreads over
+## every decoration.
+func _add_wiecha() -> void:
+	var plan: Array = Landmarks.wiecha_plan()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2211
+	var slots: Array = []
+	var c := Vector2.ZERO
+	for e: Array in plan:
+		var p: Vector2 = e[0]
+		var d: Vector2 = e[1]
+		slots.append({"p": p, "y": _ground(p).y, "pose": STAND, "yaw": atan2(-d.x, -d.y),
+				"shirt": BRIGHT[rng.randi() % BRIGHT.size()]})
+		c += p
+	if slots.is_empty():
+		return
+	var order := range(slots.size())
+	_shuffle(order, rng)
+	var mixed: Array = []
+	for i: int in order:
+		mixed.append(slots[i])
+	_add_site({"id": WIECHA_ID, "kind": "wiecha", "at": c / slots.size(), "max": mini(WIECHA_MAX, mixed.size()),
+			"slots": mixed})
+
+
+## How busy the pasaż is (0..1): a few from 9:00, the afternoon's shoppers, fullest from dusk to 21:00
+## when the lights are on, thinning to 23:00; a third in the rain.
+static func wiecha_level(hour: float, rain: bool) -> float:
+	var lvl := 0.0
+	if hour >= 9.0 and hour < 23.5:
+		lvl = 0.3
+		if hour >= 12.0:
+			lvl = 0.55
+		if hour >= 15.5 and hour < 21.0:
+			lvl = 1.0
+		elif hour >= 21.0:
+			lvl = 0.5
+	return lvl * (0.35 if rain else 1.0)
+
+
 ## How full the market is (0..1): shut before 11:00 and after 22:00, filling through the afternoon,
 ## fullest from dusk to 21:00 (the reels: packed aisles after dark), a third in the rain.
 static func jarmark_level(hour: float, rain: bool) -> float:
@@ -1749,7 +1795,7 @@ func _place_site(s: Dictionary) -> void:
 			_place_view(s)
 		"deck":
 			_place_deck(s)
-		"meet", "kladka", "jarmark":
+		"meet", "kladka", "jarmark", "wiecha":
 			s["door"] = s["at"]
 
 
@@ -2509,7 +2555,7 @@ func _figures(s: Dictionary) -> Array:
 				var gp: Vector2 = s["guitar"]
 				var gy := float(s["guitar_y"]) if not is_nan(float(s.get("guitar_y", NAN))) else _ground(gp).y
 				out.append([Vector3(gp.x, gy, gp.y), atan2(-face.x, -face.y), SIT, GUITAR_SHIRT, 0.0])
-		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe", "view", "view_dj", "bar", "kladka", "jarmark":
+		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe", "view", "view_dj", "bar", "kladka", "jarmark", "wiecha":
 			var slots: Array = s["slots"]
 			for k in mini(n, slots.size()):
 				var sl: Dictionary = slots[k]
@@ -2684,6 +2730,8 @@ func tick(step: float) -> void:
 				want = roundi(int(s["max"]) * k * steps_level(hour, month, rain, sunset))
 			"jarmark":
 				want = roundi(int(s["max"]) * k * jarmark_level(hour, rain))
+			"wiecha":
+				want = roundi(int(s["max"]) * k * wiecha_level(hour, rain))
 			"plan_c":
 				plan_lvl = plan_c_level(hour, weekday, month, rain)
 				want = roundi(PLAN_C_MAX * k * plan_lvl)
