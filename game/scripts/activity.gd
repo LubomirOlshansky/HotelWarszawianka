@@ -262,7 +262,7 @@ func set_target(at: Vector2, person := false, ring_at := Vector3.INF, radius := 
 	if phase == Phase.RUN and _beacon != null and _beacon.visible and Vector2(_target.x, _target.z).distance_to(at) > PING_MOVE:
 		hud.cue("ping")
 	_target = Vector3(at.x, _ground(at), at.y)
-	_beacon.visible = true
+	_beacon.visible = not Beacon.capture_run()
 	_beacon.place(_target if ring_at == Vector3.INF else ring_at, radius if radius > 0.0 else arrive - 0.5, true, person)
 
 

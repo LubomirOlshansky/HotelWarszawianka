@@ -23,6 +23,20 @@ const CHEQUER_WHITE := Color("#f4f1ea")
 
 enum Pattern { SOLID, DASHED, CHEQUER }
 
+## Trailer takes (--trailer or --promo-dress, F 2026-11-22: "no quest starts in the video") show no
+## mission markers: every beacon stays hidden for the whole run.
+static var _capture := -1
+
+
+static func capture_run() -> bool:
+	if _capture < 0:
+		_capture = 0
+		for a: String in OS.get_cmdline_user_args():
+			if a == "--trailer" or a.begins_with("--promo-dress"):
+				_capture = 1
+	return _capture == 1
+
+
 var waving := true
 ## The ring's shape under colour-safe (see above); set it before or after `setup`.
 var pattern := Pattern.SOLID:
@@ -114,7 +128,7 @@ func place(at: Vector3, radius: float, column := true, person := true) -> void:
 	_ring.visible = column
 	_column.visible = column
 	_person.visible = person
-	visible = true
+	visible = not capture_run()
 
 
 func _process(dt: float) -> void:
