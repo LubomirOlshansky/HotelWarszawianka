@@ -95,10 +95,12 @@ const GLASS := UiKit.GLASS
 const GLASS_EDGE := UiKit.GLASS_EDGE
 const PAD_R := 34.0
 const PAD_REACH := 40.0
-## G13 (the upgrade shop): the nitro's disc (52 pt across), left of BRAKE (inward, its lower edge
-## level with the brake's), clear of it by NITRO_CLEAR pt so the right column above the pedals
-## stays free for the side cards; shown once the nitro is bought; its ring is the tank. (F
-## 2026-11-10: the touch horn that stood here is gone; the horn is the B key and L3 on a pad.)
+## G13 (the upgrade shop): the nitro's disc (52 pt across), shown once the nitro is bought; its ring
+## is the kit, one segment a bottle. N1 (F 2026-11-22: "you have to take your thumb off the gas"):
+## in Classic it stands right above GAS, NITRO_CLEAR pt clear of it, so the gas thumb slides up onto
+## it (the slide fires a bottle and keeps the gas on) or taps it; in Point and Fixed (no GAS) it
+## stays left of BRAKE as before. (F 2026-11-10: the touch horn that stood here is gone; the horn is
+## the B key and L3 on a pad.)
 const NITRO_R := 26.0
 const NITRO_REACH := 31.0
 const NITRO_CLEAR := 14.0
@@ -440,6 +442,11 @@ var _brake_index := -1
 var nitro_owned := false
 var nitro_charge := 1.0
 var nitro_held := false
+## N1: the kit's bottles (the ring's segments) and whether one burns now (the disc lights).
+var nitro_bottles := 2
+var nitro_burning := false
+## N1: `--pedal=nitro` (shots of the flame): main.gd fires a full bottle whenever none burns.
+var nitro_pulse := false
 var _nitro_index := -1
 ## Touches that are neither the stick nor the pedals; two of them make a pinch (or a twist).
 var _free_touches := {}
@@ -3474,7 +3481,12 @@ func _gas_on_pill() -> bool:
 
 
 func _gas_centre() -> Vector2:
-	return _side(Vector2(_safe.end.x - 58.0 * pt, _safe.end.y - 52.0 * pt))
+	return _side(_gas_right())
+
+
+## Where GAS is in the right-handed layout (the left-handed one mirrors it: `_side`).
+func _gas_right() -> Vector2:
+	return Vector2(_safe.end.x - 58.0 * pt, _safe.end.y - 52.0 * pt)
 
 
 ## The brake's touch radius (a little larger than drawn).
@@ -3552,9 +3564,12 @@ func _on_pedals(p: Vector2) -> bool:
 			or _on_nitro(p) or _on_arrow(p) != 0
 
 
-## G13: the nitro's centre, left of BRAKE (right of it in the left-handed layout; none in the
+## G13: the nitro's centre. N1: in Classic right above GAS (the gas thumb slides up onto it); in
+## Point and Fixed left of BRAKE as before (mirrored in the left-handed layout; none in the
 ## helicopter).
 func _nitro_centre() -> Vector2:
+	if scheme == CLASSIC:
+		return _side(_gas_right() + Vector2(0.0, -(GAS_R + NITRO_CLEAR + NITRO_R)) * pt)
 	var r := _brake_r()
 	return _side(_brake_right() + Vector2(-(r + NITRO_CLEAR + NITRO_R), r - NITRO_R) * pt)
 
@@ -3570,12 +3585,14 @@ func _on_nitro(p: Vector2) -> bool:
 	return nitro_owned and not touch_off and not flying and not _pedals_hidden and p.distance_to(_nitro_centre()) < NITRO_REACH * pt
 
 
-## G13: the nitro's state from the car (main.gd, every frame): owned (the disc shows) and the tank.
-## The disc redraws only when the ring would move by a visible step.
-func set_nitro(owned: bool, charge: float) -> void:
+## G13: the nitro's state from the car (main.gd, every frame): owned (the disc shows), the kit's
+## fill, N1's bottles and whether one burns. The disc redraws only when it would visibly change.
+func set_nitro(owned: bool, charge: float, bottles := 2, burning := false) -> void:
 	var q := roundf(charge * 48.0) / 48.0
-	if owned == nitro_owned and is_equal_approx(q, nitro_charge):
+	if owned == nitro_owned and is_equal_approx(q, nitro_charge) and bottles == nitro_bottles and burning == nitro_burning:
 		return
+	nitro_bottles = maxi(1, bottles)
+	nitro_burning = burning
 	if not owned:
 		nitro_held = false
 		_nitro_index = -1
@@ -3639,6 +3656,7 @@ func hold_pedal(which: String) -> void:
 		_gas_index = 98
 		gas = true
 		nitro_held = true
+		nitro_pulse = true  # N1: a tap fires one bottle; main.gd keeps one burning for the shots
 	_pad.queue_redraw()
 
 
@@ -3887,6 +3905,19 @@ func _input(event: InputEvent) -> void:
 				steer_right = true
 				_pad.queue_redraw()
 		elif scheme == CLASSIC and not flying and (drag.index == _gas_index or drag.index == _brake_index):
+			# N1: the gas thumb slid up onto the nitro (it stands right above GAS): a bottle fires
+			# (the press is the tap; car.gd) and the gas stays on; sliding back down lets it go.
+			if drag.index == _gas_index:
+				var on_n := _on_nitro(drag.position)
+				if on_n and _nitro_index == -1:
+					_nitro_index = drag.index
+					nitro_held = true
+					nitro_pressed.emit()
+					_pad.queue_redraw()
+				elif not on_n and _nitro_index == drag.index:
+					_nitro_index = -1
+					nitro_held = false
+					_pad.queue_redraw()
 			# A thumb sliding from one pedal to the other switches pedals without lifting.
 			var to_gas := drag.position.distance_to(_gas_centre())
 			var to_brake := drag.position.distance_to(_brake_centre())
@@ -4372,22 +4403,33 @@ func _pedal_plate(rect: Rect2, held: bool, grooves: int) -> void:
 		_pad.draw_line(Vector2(rect.position.x + 10.0 * pt, y), Vector2(rect.end.x - 10.0 * pt, y), ridge, 2.0 * pt)
 
 
-## G13: the nitro on its plate: a lightning bolt, in a ring that is the tank (orange while it can
-## burn, grey while it refills, bright while held), one triangle array (one 2D draw call).
+## G13: the nitro on its plate: a lightning bolt in a ring that is the kit. N1: the ring is cut into
+## one segment a bottle (a full bottle orange, the one refilling grey as it fills), the plate lights
+## while a bottle burns; one triangle array (one 2D draw call). `held`: the finger is on it.
 func _draw_nitro(c: Vector2, held: bool) -> void:
 	var pts := PackedVector2Array()
 	var cols := PackedColorArray()
 	var idx := PackedInt32Array()
 	var r := NITRO_R * pt
-	var ready := nitro_charge >= 0.25
-	var hot := Color(1.0, 0.55, 0.12) if ready else Color(0.6, 0.6, 0.62)
+	var n := maxi(1, nitro_bottles)
+	var full := nitro_charge * n
+	var ready := full >= 0.999
+	var hot := Color(1.0, 0.55, 0.12)
+	var lit := nitro_burning or (held and ready)
 	_arr_disc(pts, cols, idx, c, r, CARD_BG)
-	if held and nitro_charge > 0.0:
+	if lit:
 		_arr_disc(pts, cols, idx, c, r, Color(1.0, 0.55, 0.12, 0.32))
-	_arr_ring(pts, cols, idx, c, r - 3.0 * pt, r, 0.0, TAU, 40, Color(1, 1, 1, 0.14))
-	if nitro_charge > 0.01:
-		_arr_ring(pts, cols, idx, c, r - 3.0 * pt, r, -PI * 0.5, -PI * 0.5 + TAU * nitro_charge, maxi(3, roundi(40.0 * nitro_charge)), hot)
-	var ink := ACCENT if held and nitro_charge > 0.0 else (INK if ready else SUB)
+	var gap := 0.22 if n > 1 else 0.0
+	var span := TAU / n
+	for k in n:
+		var a0 := -PI * 0.5 + span * k + gap * 0.5
+		var a1 := a0 + span - gap
+		_arr_ring(pts, cols, idx, c, r - 3.0 * pt, r, a0, a1, 14, Color(1, 1, 1, 0.14))
+		var f := clampf(full - k, 0.0, 1.0)
+		if f > 0.01:
+			_arr_ring(pts, cols, idx, c, r - 3.5 * pt, r, a0, lerpf(a0, a1, f), maxi(2, roundi(14.0 * f)),
+					hot if f >= 0.999 else Color(0.6, 0.6, 0.62))
+	var ink := ACCENT if lit else (INK if ready else SUB)
 	_arr_fan(pts, cols, idx, [c + Vector2(3, -10) * pt, c + Vector2(-5, 2) * pt, c + Vector2(1, 2) * pt], ink)
 	_arr_fan(pts, cols, idx, [c + Vector2(-3, 10) * pt, c + Vector2(5, -2) * pt, c + Vector2(-1, -2) * pt], ink)
 	RenderingServer.canvas_item_add_triangle_array(_pad.get_canvas_item(), idx, pts, cols)

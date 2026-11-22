@@ -160,20 +160,37 @@ const BIKE_PULL := 0.8
 var top_mult := 1.0
 var accel_mult := 1.0
 var grip_mult := 1.0
-## NITRO ("Kebab Boost"): bought at the garage. Held, it opens the gas fully and lifts the top speed by
-## NITRO_TOP and the pull by NITRO_ACCEL for NITRO_SECONDS of a full tank; the tank refills in
-## NITRO_REFILL s once released, and one that ran dry waits for the button to be let go.
+## NITRO ("Kebab Boost"): bought at the garage. N1 (F 2026-11-22: "you have to take your thumb off
+## the gas to use it; I want a normal nitro, one tap and a few seconds"): a **tap** fires one bottle,
+## which burns NITRO_BURN s with the gas held for you (top speed ×NITRO_TOP, pull ×NITRO_ACCEL);
+## holding the button longer adds nothing, BRAKE ends the burn early (what is left of that bottle
+## stays). The kit holds `nitro_bottles` bottles (NITRO_BOTTLES), shown as segments of the disc's
+## ring; an empty bottle refills in NITRO_REFILL s while nothing burns. `nitro_charge` is the whole
+## kit's fill (0..1, a bottle is 1 / nitro_bottles of it), so a loan (the drag) still fills it with
+## 1.0. A tap that cannot fire yet (parked, a bottle not full, `nitro_wait` on the drag's line) is
+## kept NITRO_KEEP s, or for as long as `nitro_wait` holds it, and fires the moment it can: a tap
+## a moment before the green goes off with the green, never as a false start.
 const NITRO_TOP := 1.3
 const NITRO_ACCEL := 2.2
-const NITRO_SECONDS := 3.5
-const NITRO_REFILL := 20.0
-const NITRO_MIN := 0.25
+const NITRO_BURN := 2.5
+const NITRO_REFILL := 12.0
+const NITRO_BOTTLES := 2
+const NITRO_KEEP := 0.6
 var nitro_owned := false
-## The button (hud.gd's, Shift, or LB / RB on a pad) is held.
+## The bottles the kit holds (garage: 2; a third later).
+var nitro_bottles := NITRO_BOTTLES
+## The button (hud.gd's disc or a swipe up from GAS, Shift, or LB / RB on a pad) is down: its press
+## (the change from up to down) is the tap.
 var nitro_hold := false
 var nitro_on := false
 var nitro_charge := 1.0
-var _nitro_dry := false
+## The drag's line (street_meet.gd hold_car): a tap waits here until the run starts.
+var nitro_wait := false
+## A tap waiting to fire (s left; INF while `nitro_wait` holds it), the burn's seconds left, and
+## the button as it was last step.
+var nitro_queued := 0.0
+var _nitro_burn := 0.0
+var _nitro_was := false
 ## Point-to-steer: heading error (rad) to yaw rate (rad/s), and the yaw damping.
 @export var point_gain := 6.0
 @export var yaw_damping := 0.4
@@ -1295,22 +1312,47 @@ func parked_copy() -> Node3D:
 	return root
 
 
-## NITRO's tank: drains while it burns, refills when it does not (see NITRO_*).
+## N1: the nitro's taps, burn and refill (see NITRO_*).
 func _nitro_tick(dt: float) -> void:
-	if not nitro_hold:
-		_nitro_dry = false
-	var want := model != "bike" and nitro_owned and nitro_hold and not _nitro_dry and not parked and not in_water \
-			and nitro_charge > 0.0 and (nitro_on or nitro_charge >= NITRO_MIN)
-	if want:
-		if not nitro_on:
-			nitro_started.emit()
+	var can := model != "bike" and nitro_owned and not in_water
+	if nitro_hold and not _nitro_was and can:
+		nitro_queued = NITRO_KEEP
+	_nitro_was = nitro_hold
+	if not can:
+		nitro_queued = 0.0
+	elif nitro_wait and nitro_queued > 0.0:
+		nitro_queued = INF
+	elif nitro_queued > 0.0:
+		nitro_queued = maxf(0.0, (NITRO_KEEP if is_inf(nitro_queued) else nitro_queued) - dt)
+	var n := float(maxi(1, nitro_bottles))
+	if _nitro_burn <= 0.0 and nitro_queued > 0.0 and not nitro_wait and not parked and can \
+			and nitro_charge * n >= 0.999:
+		nitro_queued = 0.0
+		_nitro_burn = NITRO_BURN
+		nitro_started.emit()
+	if _nitro_burn > 0.0 and (not can or braking or parked):
+		_nitro_burn = 0.0
+	if _nitro_burn > 0.0:
 		nitro_on = true
-		nitro_charge = maxf(0.0, nitro_charge - dt / NITRO_SECONDS)
+		var step := minf(dt, _nitro_burn)
+		_nitro_burn -= step
+		nitro_charge = maxf(0.0, nitro_charge - step / (NITRO_BURN * n))
 		if nitro_charge <= 0.0:
-			_nitro_dry = true
+			_nitro_burn = 0.0
 	else:
 		nitro_on = false
-		nitro_charge = minf(1.0, nitro_charge + dt / NITRO_REFILL)
+		nitro_charge = minf(1.0, nitro_charge + dt / (NITRO_REFILL * n))
+
+
+## N1: a tap from code (the same as a press of the button): fires a bottle as soon as it can.
+func nitro_fire() -> void:
+	if nitro_owned and model != "bike":
+		nitro_queued = NITRO_KEEP
+
+
+## N1: whole bottles ready to fire now (for the HUD and the checks).
+func nitro_ready() -> int:
+	return floori(nitro_charge * float(maxi(1, nitro_bottles)) + 0.001)
 
 
 ## The most the car turns (rad/s) at `v` m/s: turn_cap when slow, turn_pull / v + turn_floor

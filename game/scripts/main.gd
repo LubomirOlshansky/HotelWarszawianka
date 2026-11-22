@@ -2935,8 +2935,8 @@ func _build_garage(world: Node3D) -> void:
 		garage.preset_upgrades(flags.upgrades_flag)
 	garage.upgraded.connect(func(id: String) -> void:
 		if id == "nitro":
-			hud.toast(Gamepad.fmt("Nitro gotowe: przytrzymaj błyskawicę przy hamulcu (Shift, {lb} / {rb} na padzie)."),
-					Gamepad.fmt("Nitro fitted: hold the bolt by the brake (Shift, {lb} / {rb} on a pad).")))
+			hud.toast(Gamepad.fmt("Nitro gotowe: stuknij błyskawicę albo przesuń kciuk z gazu w górę. Dwie butle (Shift, {lb} / {rb} na padzie)."),
+					Gamepad.fmt("Nitro fitted: tap the bolt or slide your thumb up from the gas. Two bottles (Shift, {lb} / {rb} on a pad).")))
 	if flags.garage_flag:
 		_put_at_garage()
 	garage.opened.connect(func() -> void:
@@ -6482,10 +6482,13 @@ func _read_input(dt: float) -> void:
 	if meet != null: meet.hold_car(car)
 	if rivals != null: rivals.hold_car(car)
 	_lane_tick(dt)
-	# G13: the nitro (bought at the garage): the disc by the horn, Shift on a keyboard, LB or RB on a
-	# pad. Not N: N switches the time of day, so holding it for the nitro also turned day to dusk.
+	# G13: the nitro (bought at the garage): the disc, Shift on a keyboard, LB or RB on a pad (N1: the
+	# press is a tap that fires a bottle; car.gd). Not N: N switches the time of day.
 	car.nitro_hold = car.nitro_owned and (hud.nitro_held or Input.is_physical_key_pressed(KEY_SHIFT) or Gamepad.nitro())
-	hud.set_nitro(car.nitro_owned, car.nitro_charge)
+	if hud.nitro_pulse and car.nitro_owned and not car.nitro_on:
+		car.nitro_charge = 1.0  # --pedal=nitro: one bottle after another, for shots of the flame
+		car.nitro_fire()
+	hud.set_nitro(car.nitro_owned, car.nitro_charge, car.nitro_bottles, car.nitro_on)
 	# Loop 3g-1: a pull-over holds the car; the police's test drivers (--police-auto, --trap with
 	# --pedal=gas, the soak's roaming autopilot) drive it.
 	if police != null and police.control_car(car, dt):

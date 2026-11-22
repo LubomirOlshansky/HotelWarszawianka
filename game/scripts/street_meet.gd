@@ -2107,9 +2107,12 @@ func hold_car(c: Node) -> void:
 	hold_inputs(c, strip)
 	if stage == Stage.LINE:
 		# The launch: the gas revs the engine, the car stays on the line (no false start by gas).
+		# N1: a nitro tap on the line waits for the green (car.gd `nitro_wait`), never a false start.
 		_rev_gas = float(c.throttle) > 0.05 or bool(c.nitro_on)
 		c.throttle = 0.0
 		c.nitro_on = false
+		if "nitro_wait" in c:
+			c.nitro_wait = true
 
 
 ## hold_car's inputs for a car on a strip ({start, dir, right} as Vector2s), static for the check.
@@ -2152,6 +2155,8 @@ func _drag_frame(dt: float) -> void:
 			_tree.green = true
 			_tree.queue_redraw()
 			stage = Stage.DRAG
+			if "nitro_wait" in car:
+				car.nitro_wait = false  # N1: a tap kept on the line fires with the green
 			_drag_t = 0.0
 			_tacho.staging = false
 			_launch(launch_grade(_revs))
@@ -2329,6 +2334,8 @@ func _restore_car() -> void:
 		return
 	car.top_mult = _top_was
 	car.accel_mult = _accel_was
+	if "nitro_wait" in car:
+		car.nitro_wait = false
 	if LOAN and not _nitro_was:
 		car.nitro_owned = false
 		car.nitro_on = false

@@ -6201,7 +6201,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--paint=<id>` | garage loop: the car starts in that paint (`red`, `cream`, `green`, `blue`, `yellow`, `black`, `pink`, `gold`), owned for the run (use with `--nosave`) |
 | `--garage` / `--garage=ring` | garage loop: start in Warsztat u Mirka's ring on Brzeska, the garage shown whatever the wallet, the paint card open a moment in (free roam, no title; implies `--garage-log`); `=ring`: 16 m short of the ring, no card |
 | `--garage=parts` | G13: like `--garage`, the card opens on the parts tab ("Części i auta") |
-| `--pedal=nitro` | G13b: gas and the nitro disc held (with `--upgrades=nitro`), for shots of the tail flame |
+| `--pedal=nitro` | G13b: gas and the nitro disc held (with `--upgrades=nitro`), for shots of the tail flame; N1: a full bottle fires again whenever none burns |
 | `--upgrades=all\|tt\|nitro` | G13: the car starts with the Ołdi TT, the nitro, and (all) tyres and engine at level 3, owned for the run (use with `--nosave`); the nitro is the N / Shift key or the bolt disc by the horn |
 | `--garage-log` | garage loop: print `garage:` lines: the place, the card opening and closing, each buy and switch |
 | `--club=<id>` | loop MW-3: start at that club (`lusterko`, `smola`, `jasna_0`, `lombard`, `milosc_hipoteczna`, or its name): the car on the lane nearest its door (within 60 m), free roam, no title |
