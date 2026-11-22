@@ -18,18 +18,20 @@ extends "res://scripts/place.gd"
 const Pixel := preload("res://scripts/pixel_font.gd")
 
 ## Skylight's outline at its south-east corner (centrum.json "Skylight"), walked so the screen's
-## right is the viewer's right (from the south-east): two points on the curved south face (the short
+## right is the viewer's right (from the south-east): three points on the curved south face (the
 ## return, stopping short of the grey block over the entrance, which hid the screen's old wide face
 ## from the street; F, 2026-11-21: "out of the visible area"), the corner, and the north end of the
 ## straight east face on Emilii Plater (F drew it there: the wide face runs to the end of the tower).
-const WALL := [Vector2(-1360.2, 429.0), Vector2(-1356.6, 425.7), Vector2(-1354.6, 423.5),
-		Vector2(-1361.9, 403.2)]
+## F's second look (2026-11-22, "move right but cut left"): the return keeps the curve's whole
+## visible stretch, from the grey block's east edge (-1367.7, 433.4) round to the corner.
+const WALL := [Vector2(-1367.7, 433.4), Vector2(-1360.2, 429.0), Vector2(-1356.6, 425.7),
+		Vector2(-1354.6, 423.5), Vector2(-1361.9, 403.2)]
 ## Which point of WALL is the tower's corner (the return ends there, the wide face begins).
-const CORNER_AT := 2
+const CORNER_AT := 3
 ## How far each WALL point is pushed off the wall: the curve's points clear its bulge between them and
 ## Skylight's glazed belt (stepped out ~0.4 m at 20-33 m); the straight east face less. The corner's
 ## entry is unused (CORNER_OFFSETS).
-const OFFSETS := [1.2, 1.2, 1.2, 0.8]
+const OFFSETS := [1.0, 1.2, 1.2, 1.2, 0.8]
 ## The corner point pushes out along the two neighbouring faces' offset lines instead (their offsets).
 const CORNER_OFFSETS := [1.2, 0.8]
 const BOTTOM := 11.5        # metres above the ground at the corner: over the lobby's 5 m canopy
