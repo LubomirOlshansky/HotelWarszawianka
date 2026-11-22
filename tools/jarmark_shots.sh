@@ -3,7 +3,7 @@
 # 1080x1920 30 fps take with the trailer look on the runtime city, graded (grade D) into OUT, a
 # contact sheet, and one reel cut from the picks. Promo branch only.
 #
-#   tools/jarmark_shots.sh OUT [FIRST_ROW_NAME]
+#   tools/jarmark_shots.sh OUT [FIRST_ROW_NAME]   (SHOTS=docs/jarmark-promo/shots-pack2.tsv for pack 2)
 #
 # A take that fails clip.sh's freeze guard is retried once. Done takes are skipped on a rerun.
 emulate -L zsh
@@ -14,12 +14,12 @@ FROM=${2:-}
 mkdir -p $OUT
 GRADE="eq=saturation=0.95,curves=all='0/0.035 0.5/0.5 0.85/0.80 1/0.90',format=yuv420p"
 started=$([[ -z $FROM ]] && echo 1 || echo 0)
-grep -v '^#' $ROOT/docs/jarmark-promo/shots.tsv | while IFS=$'\t' read -r name secs cam yaw pitch size move; do
+grep -v '^#' $ROOT/${SHOTS:-docs/jarmark-promo/shots.tsv} | while IFS=$'\t' read -r name secs cam yaw pitch size move; do
 	[[ $started == 0 && $name != $FROM ]] && continue
 	started=1
 	[[ -s $OUT/$name.mp4 ]] && { print "skip $name (done)"; continue; }
 	typeset -a flags=(--cam=$cam --yaw=$yaw --pitch=$pitch --size=$size --trailer --quality=experimental
-		--lines=1920 --game-clock --date=20261121 --clock=20:30 --nohud --no-touch --no-ghost --promo-dress=jarmark)
+		--lines=1920 --sectors=all --game-clock --date=20261121 --clock=20:30 --nohud --no-touch --no-ghost --promo-dress=jarmark)
 	[[ -n $move ]] && flags+=(--cam-move=$move)
 	for try in 1 2; do
 		if CLIP_RUNTIME=1 $ROOT/tools/clip.sh $name 1080x1920 $secs --skip=8 -- $flags </dev/null; then
