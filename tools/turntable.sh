@@ -17,7 +17,8 @@
 # KEY_turntable.png; the last line printed is the sheet's path and the legend.
 # Every run passes --nosave and quits by itself. With no display (Linux) it runs under xvfb-run.
 # Extra game flags after `--` go to every run (e.g. `-- --prebuilt`). A look that fails prints
-# MISSING with its log's last error; the sheet then has dark tiles for it.
+# MISSING with its log's last error; the sheet then has dark tiles for it. A look that came back short
+# is re-run once alone, and the last lines warn when any tile is still missing.
 
 emulate -L zsh
 setopt extendedglob
@@ -80,17 +81,33 @@ fi
 grep -m1 '^site_cams:' $out/site_cams.log
 
 # 2. one game run per look, in parallel
-for look in $looks; do
-	cams=(${(s:+:)cams_all})
-	[[ $look != lit ]] && cams=(${(M)cams:#(lo_|top)*})
-	tmp=$out/.tmp_$look
+look_cams() {
+	local -a c=(${(s:+:)cams_all})
+	[[ $1 != lit ]] && c=(${(M)c:#(lo_|top)*})
+	print -r -- ${(j:+:)c}
+}
+run_look() {
+	local look=$1 tmp=$out/.tmp_$1
 	rm -rf $tmp; mkdir -p $tmp
 	( cd $GAME && $wrap perl -e 'alarm shift; exec @ARGV or die "cannot run $ARGV[0]: $!\n"' 600 \
 		$GODOT --path . --resolution $tile --fixed-fps 60 --quit-after $(( FRAME + 3000 )) \
 		-- --nosave --nohud --no-traffic --quality=low --time=day --shots=$FRAME --out=$tmp \
-		--solo=$key --solo-look=$look --lift=$lift "--cams=${(j:+:)cams}" $extra ) > $tmp/log.txt 2>&1 &
+		--solo=$key --solo-look=$look --lift=$lift "--cams=$(look_cams $look)" $extra ) > $tmp/log.txt 2>&1
+}
+for look in $looks; do
+	run_look $look &
 done
 wait
+# 2b. A run sometimes stops with "shots: missing" and writes few or no frames (2026-11-21, three
+# sheets with dark tiles). Re-run each short look once, alone, before pasting the sheet.
+for look in $looks; do
+	want=${#${(s:+:)$(look_cams $look)}}
+	got=($out/.tmp_$look/*_$(printf '%04d' $FRAME).png(N))
+	if (( $#got < want )); then
+		print -r -- "look $look: $#got of $want frames, re-running it alone"
+		run_look $look
+	fi
+done
 
 # 3. the sheet: rows lit lo, lit hi, flat lo, sil lo, then the tops
 files=()
@@ -122,5 +139,8 @@ done
 sheet=$out/${key}_turntable.png
 guard 120 $GODOT --headless --path $GAME --script res://tools/shot_sheet.gd -- --out=$sheet --cols=8 $files > $out/shot_sheet.log 2>&1
 grep -E '^shot_sheet: (missing|none)' $out/shot_sheet.log
+dark=0
+for f in $files; do [[ -f $f ]] || dark=$(( dark + 1 )); done
+(( dark )) && print -r -- "WARNING: $dark of $#files tiles are missing (dark on the sheet): re-run before judging the model"
 [[ -f $sheet ]] || { print -r -- "no sheet: $(tail -2 $out/shot_sheet.log)"; exit 1; }
 printf '%s  (%.0f s)  rows: lit lo (pitch -25), lit hi (-50), flat lo, sil lo, tops lit|flat|sil; columns: yaw 0 45 90 135 180 225 270 315\n' $sheet $(( EPOCHREALTIME - t0 ))
