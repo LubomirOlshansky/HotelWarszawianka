@@ -88,7 +88,7 @@
 		"hold_gap": 30
 	},
 	"first_steps": {
-		"_note": "The first hour's guide (first10.gd, first hour step 3): the beta card (the activities, SEE QUESTS) beta_after s after the first delivery (or the kebab let go), beta_latest s at the latest; the one choice card choice_after_beta s of free driving after it and choice_after s after the first delivery (or the first kebab let go), choice_latest s at the latest; the next First steps intro after next_gap s of free driving and next_gap s after the last one. Friends' calls wait for friends_steps ticked steps (a count, not seconds) or friends_after s, then at most one new friend every new_friend_gap s while the guide runs.",
+		"_note": "The first hour's guide (first10.gd, first hour step 3): the beta card (the activities, SEE QUESTS) beta_after s after the first delivery (or the kebab let go), beta_latest s at the latest; the one choice card choice_after_beta s of free driving after it and choice_after s after the first delivery (or the first kebab let go), choice_latest s at the latest; the next First steps intro after next_gap s of free driving and next_gap s after the last one. Friends' calls wait for friends_steps ticked steps (a count, not seconds) or friends_after s of play, then at most one new friend every new_friend_gap s while the guide runs; once open they stay open in later sessions. F 2026-11-22: a player who skips the First steps and just drives must get calls too, so friends_after is 3 minutes (was 12); each friend's own first_call and the calls gap keep it calm.",
 		"beta_after": 4,
 		"beta_latest": 120,
 		"choice_after_beta": 8,
@@ -96,7 +96,7 @@
 		"choice_latest": 150,
 		"next_gap": 40,
 		"friends_steps": 3,
-		"friends_after": 720,
+		"friends_after": 180,
 		"new_friend_gap": 240
 	},
 	"trend": {
