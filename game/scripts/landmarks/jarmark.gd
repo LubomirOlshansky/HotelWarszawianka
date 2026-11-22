@@ -340,7 +340,7 @@ const JM_TEACUPS := Vector2(101.3, 25.8)
 const JM_TREE_RIDE := JM_TREE
 const JM_SANTA := Vector2(246.6, 71.5)
 ## The kurant, the tiered Christmas pyramid (pyramid-real.png, the drone's frames): until the kit's
-## model stands here, the red hexagonal bar is its stand-in (and the promo's tiered pagoda over it).
+## model stands here, the red hexagonal bar is its stand-in.
 const JM_KURANT := Vector2(243.4, 7.2)
 const JM_HEXBAR := JM_KURANT
 ## The south gate's sign and GRZANIEC booth (F's drone img4); the LED hat stands 16 m towards the
@@ -365,7 +365,7 @@ const JM_LINES := [[158.0, 0.0, 60.0], [259.0, -3.0, 80.0], [90.5, 46.0, 95.0]]
 
 ## The market's ground: the car park's asphalt under the main market (over its lawn islands).
 const JM_PAVED := [[147.0, 263.0, -9.5, 93.0]]
-## The car park's old bay lines that still show in the aisles (v; jarmark_promo.gd covers them).
+## The car park's old bay lines that still show in the aisles (v).
 const JM_BAYS := [17.0, 40.0, 60.0]
 const JM_LIFT := 0.28
 ## The tower carousel's carrier at its top (metres over the ground); jarmark_rides.gd runs it down to the base.
