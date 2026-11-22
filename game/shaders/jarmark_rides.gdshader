@@ -17,6 +17,9 @@ uniform float lamp_gain = 2.4;
 // The promo's close-ups glow less (0 in the game): this share of the emission goes under a 60 m view.
 uniform float zoom_dim = 0.0;
 varying float wide;
+// --promo-ride-t=SEC (promo only, F's swing video 2026-11-22): seconds added to the tower's cycle, so a
+// take finds the carrier part way up the mast at the match cut.
+uniform float tower_t0 = 0.0;
 
 const float CYCLE = 150.0;
 const float LOAD = 20.0;
@@ -29,7 +32,7 @@ void vertex() {
 	float ride = floor(UV2.y + 0.001);
 	float phase = fract(UV2.y) * 6.2832;
 	// The cycle starts 60 s in, so a fresh game (a trailer's first shot) finds the chairs up and turning.
-	float tt = TIME + 60.0;
+	float tt = TIME + 60.0 + tower_t0;
 	float tau = mod(tt, CYCLE);
 	// The tower stands still while it loads; its angle counts only the turning time.
 	float run = floor(tt / CYCLE) * (CYCLE - LOAD) + max(tau - LOAD, 0.0);

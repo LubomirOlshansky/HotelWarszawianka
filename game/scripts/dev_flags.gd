@@ -161,11 +161,12 @@ var _free_cam_car := false
 ## starting when the city is ready (main.gd prints "cam-move: start frame N") plus DELAY seconds
 ## (= clip.sh --skip, so the move starts on the take's first frame), eased in over 0.6 s.
 var cam_move := PackedFloat32Array()
-## --persp=EX,EY,EZ,LX,LY,LZ,FOV[,VYAW] (promo only, F 2026-11-22: "phone video turns into the game, same
+## --persp=EX,EY,EZ,LX,LY,LZ,FOV[,VYAW[,NEAR]] (promo only, F 2026-11-22: "phone video turns into the game, same
 ## place"): a perspective camera like a phone's on the ground instead of the game's orthographic view. The
 ## eye at (EX, EZ) EY m over the ground, looking at (LX, LZ) LY m up, FOV the vertical field of view in
 ## degrees (an iPhone's main camera in portrait about 70), VYAW a slow pan in degrees a second round the
-## eye (from when the city is ready, as --cam-move). Turns on the free camera at the look point.
+## eye (from when the city is ready, as --cam-move), NEAR the near clip in m (default 0.2; more clears
+## the walkers and huts right round the eye that the real camera stood clear of). Turns on the free camera at the look point.
 var persp := PackedFloat32Array()
 ## --cams=NAME:X,Y,Z,YAW,PITCH,SIZE+NAME2:...: one run, several free cameras, one shot each
 ## (files NAME_FFFF.png; the --spots machinery moves the car under each). follow_camera.gd parse_cams.
@@ -630,10 +631,10 @@ func parse_with(args: PackedStringArray) -> void:
 		elif arg.begins_with("--persp="):
 			var pp := arg.trim_prefix("--persp=").split(",")
 			if pp.size() < 7:
-				push_error("--persp: '%s' is not EX,EY,EZ,LX,LY,LZ,FOV[,VYAW]" % arg)
+				push_error("--persp: '%s' is not EX,EY,EZ,LX,LY,LZ,FOV[,VYAW[,NEAR]]" % arg)
 			else:
-				persp = PackedFloat32Array([0, 0, 0, 0, 0, 0, 0, 0])
-				for i in mini(pp.size(), 8):
+				persp = PackedFloat32Array([0, 0, 0, 0, 0, 0, 0, 0, 0.2])
+				for i in mini(pp.size(), 9):
 					persp[i] = float(pp[i])
 				free_cam = true
 				no_ghost = true

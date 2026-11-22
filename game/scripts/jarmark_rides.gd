@@ -46,7 +46,9 @@ func build() -> void:
 		# The kit's rides (jarmark_kit.gd), on the grounds jarmark_promo.gd builds their still parts on.
 		var yaw := Promo.KIT_YAW
 		var w := func(at: Vector2) -> Vector2: return Kit._jm_world(at.x, at.y)
-		batches = [[TOWER, Kit.JM_TOWER, func() -> void: JK.tower_spin(kit, w.call(Kit.JM_TOWER), yaw, Promo.kit_ground(map, Kit.JM_TOWER, "tower"))],
+		# --promo-flyer (F's phone video, 2026-11-22): the chairs flown out as the real ride at full speed.
+		var flyer := OS.get_cmdline_user_args().has("--promo-flyer")
+		batches = [[TOWER, Kit.JM_TOWER, func() -> void: JK.tower_spin(kit, w.call(Kit.JM_TOWER), yaw, Promo.kit_ground(map, Kit.JM_TOWER, "tower"), true, JK.TOWER_TOP, flyer)],
 				[CAROUSEL, Kit.JM_CAROUSEL, func() -> void: JK.venetian_spin(kit, w.call(Kit.JM_CAROUSEL), -1, yaw, Promo.kit_ground(map, Kit.JM_CAROUSEL, "carousel"))],
 				[TEACUPS, Kit.JM_TEACUPS, func() -> void: JK.teacups_spin(kit, w.call(Kit.JM_TEACUPS), yaw, Promo.kit_ground(map, Kit.JM_TEACUPS, "teacups"))],
 				[KIT_TREE, Kit.JM_TREE, func() -> void: JK.tree_ride_spin(kit, w.call(Kit.JM_TREE), yaw, Promo.kit_ground(map, Kit.JM_TREE, "tree"))],
@@ -103,6 +105,9 @@ func build() -> void:
 	if promo:
 		mat.set_shader_parameter("lamp_gain", PROMO_LAMP_GAIN)
 		mat.set_shader_parameter("zoom_dim", 0.35)
+		for a: String in OS.get_cmdline_user_args():
+			if a.begins_with("--promo-ride-t="):
+				mat.set_shader_parameter("tower_t0", float(a.trim_prefix("--promo-ride-t=")))
 	mesh_instance.material_override = mat
 	part(mesh_instance)
 	count = batches.size()

@@ -7153,7 +7153,7 @@ func _update_persp_camera() -> void:
 		look = eye + Vector3(turned.x, d.y, turned.y)
 	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
 	cam.fov = p[6]
-	cam.near = 0.2
+	cam.near = p[8]
 	cam.far = 4000.0
 	cam.global_transform = Transform3D(Basis.looking_at(look - eye, Vector3.UP), eye)
 	cam_focus = look
