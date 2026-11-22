@@ -1,7 +1,8 @@
 extends Node3D
 ## The garage loop (2026-10-31; docs/DEMO.md 6.2's 10:00 beat and 6.3 "Progression", checklist
-## F4): "Warsztat u Mirka", a street workshop on Brzeska in Praga (an invented business on a real
-## street; Mirek is an invented type). The złoty buy paint jobs for the hatchback; the eggs found
+## F4): "Warsztat u Mirka", a street workshop on Twarda in Śródmieście (an invented business on a
+## real street; Mirek is an invented type). It moved from Brzeska in Praga, 3 km from the start, to
+## about 600 m west of it on 2026-11-22 (F: "капец далеко"). The złoty buy paint jobs for the hatchback; the eggs found
 ## open a gold one.
 ##  - **The place**: a dashed ring on the street (jobs.gd's pull-in look, in GARAGE_COLOUR) at the
 ##    lane graph's point nearest SPOT, a diamond on the minimap and the full map. It shows once the
@@ -30,10 +31,14 @@ const GarageCard := preload("res://scripts/garage_card.gd")
 ## G13: the second tab, "Części i auta" (a faster car, nitro, tyres and engine): upgrades.gd.
 const Upgrades := preload("res://scripts/upgrades.gd")
 
-## The workshop's spot: a point on Brzeska (map metres) near which the ring goes on the street.
-const SPOT := Vector2(1321.0, -1947.6)
+## The workshop's spot: a point on Twarda (map metres), on the wide two-way stretch between Plac
+## Grzybowski and Emilii Plater, near which the ring goes on the street: ~590 m from the guided start
+## (first10.gd START), ~450 m from the first stand (jobs.gd FIRST_STAND), ~720 m from the map's spawn.
+const SPOT := Vector2(-1505.0, -135.0)
 const NAME := ["Warsztat u Mirka", "Mirek's garage"]
-const STREET := "Brzeska"
+const STREET := "Twarda"
+## The district on the card under the name (garage_card.gd).
+const DISTRICT := "Śródmieście"
 const GARAGE_COLOUR := Color("#5aa0ff")
 ## Stop in this ring (m) under this speed (m/s) and the card opens; leave COOL m to open it again.
 const RING := 6.0
