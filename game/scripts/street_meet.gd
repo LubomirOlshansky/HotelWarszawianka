@@ -2285,7 +2285,9 @@ func _drag_end(won: bool, how: String) -> void:
 		get_tree().create_timer(2.0).timeout.connect(func() -> void: _tree.visible = false)
 	hud.cue("win" if won else "fail")
 	var pay: Array = DRAG_PAY if won else DRAG_LOSE
-	if wallet != null:
+	# A jump start or a run off the strip is no run: nothing paid, nothing counted (before, the
+	# loser's respect and a job tick for a tap of the gas on the line, again with every REWANŻ).
+	if wallet != null and how not in ["false", "off"]:
 		wallet.pay(int(pay[0]), int(pay[1]), "meet_drag")
 		if won:
 			wallet.keep["wnrc_member"] = true

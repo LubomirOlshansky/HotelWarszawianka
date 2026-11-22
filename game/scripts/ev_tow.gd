@@ -675,6 +675,10 @@ static func can_hook(flat: float, above: float, speed: float) -> bool:
 
 
 func _hook() -> void:
+	# A landing begun over the car sinks the helicopter through the hook band: hooked, it must not
+	# go on and touch down with the car on the rope (H can't cancel it once carrying).
+	if "landing" in heli:
+		heli.landing = false
 	_release_lane(job)
 	_set_body(_body, false)
 	hang = job["at"] + Vector3(0, SIZE.y, 0)

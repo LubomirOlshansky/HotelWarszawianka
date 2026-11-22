@@ -1082,9 +1082,12 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 			and is_equal_approx(_car.top_mult, Meet.DRAG_TOP * float(Meet.GEARS[0])), "REWANŻ: the car back on the line, the tree, the loan, first gear")
 	var dir: Vector2 = m.strip["dir"]
 	var right: Vector2 = m.strip["right"]
+	money = _wallet.money
+	respect = _wallet.respect
 	_car.global_position += Vector3(dir.x, 0.0, dir.y) * 2.0
 	_frames(0.1)
 	_ok(m.stage == Meet.Stage.RESULT and _hud.card == "FALSTART" and m._tree.visible and m._tree.red and _hud.buttons == 2, "a false start: FALSTART, the tree still up")
+	_ok(_wallet.money == money and _wallet.respect == respect, "a false start pays nothing (no respect to farm with REWANŻ)")
 	_tune("the false start")
 	await _real(2.1)
 	_ok(not m._tree.visible, "the tree goes 2 s later")

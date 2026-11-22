@@ -6935,6 +6935,8 @@
     ["Lot · kaseta na dachu BUW", "Fly · a mixtape on the BUW roof", {"only": "choice_fly"}],
     ["NASTĘPNY: %s · %d zł", "Next: %s · %d zł", {"only": "next_rival"}],
     ["%s czeka w kole", "%s waits in the ring", {"only": "next_waits"}],
+    ["Najpierw zgub policję, potem rewanż.", "Lose the police first, then the rematch.", {"only": "rematch_chase"}],
+    ["Meta jest pod bramą: zawróć i przepłyń przez nią!", "The finish is under the arch: turn round and go through it!", {"only": "finish_arch"}],
     ["Miasto cię zauważyło. Nowy lakier u Mirka.", "The city has noticed you. New paint at Mirek's.", {"only": "noticed"}],
     ["PIERWSZE KROKI ZALICZONE", "First steps done", {"only": "all_title"}],
     ["Znasz już całe miasto. Lakier „Żółty jak tramwaj” czeka u Mirka, +100 respektu. Teraz szóstka rywali.", "You know the whole city now. Tram yellow paint waits at Mirek's, +100 respect. Now the six rivals.", {"only": "all_body"}],

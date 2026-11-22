@@ -398,8 +398,8 @@ func _refresh(quiet := false) -> void:
 	if on and not quiet and not force and hud != null and wallet != null and not bool(wallet.keep.get("garage_told", false)):
 		wallet.keep["garage_told"] = true
 		wallet.save()
-		hud.toast("Warsztat u Mirka otwarty: Brzeska, Praga. Lakier za złotówki.",
-				"Mirek's garage is open: Brzeska, Praga. Paint jobs for złoty.")
+		hud.toast("Warsztat u Mirka otwarty: Twarda, Śródmieście. Lakier za złotówki.",
+				"Mirek's garage is open: Twarda, Śródmieście. Paint jobs for złoty.")
 		if log_on:
 			print("garage: shown (the first earnings)")
 

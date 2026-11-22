@@ -1119,7 +1119,7 @@ func offer_dzemini(force := false) -> bool:
 	_asked = {"title": ["📞 MROŻULO DZWONI", "Mrożulo is calling"],
 			"body": ["„Siema, tu Mrożulo! Na Świętokrzyskiej otworzyli DŻEMINI KEBAB, mięso kroi agent AI. Kup mi jednego i przywieź do vana, póki ciepły!”",
 			"\"Hi, Mrożulo here! DŻEMINI KEBAB just opened on Świętokrzyska, an AI agent carves the meat. Get me one and bring it to my van while it's warm!\""],
-			"buttons": PackedStringArray(["JADĘ", "NIE TERAZ"]), "face": "Mrożulo"}
+			"buttons": PackedStringArray(["JADĘ|ON MY WAY", "NIE TERAZ|NOT NOW"]), "face": "Mrożulo"}
 	_offer()
 	hud.ticker_out()
 	if log_on:
@@ -1668,7 +1668,7 @@ func offer_kawa_call(force := false) -> bool:
 	colour = CoffeeRun.COLOUR
 	var txt := CoffeeRun.call_text()
 	_asked = {"title": [str(txt[0]), "%s is calling" % CoffeeRun.CALLER], "body": [str(txt[1]), str(txt[2])],
-			"buttons": PackedStringArray(["JADĘ", "NIE TERAZ"]), "face": CoffeeRun.CALLER}
+			"buttons": PackedStringArray(["JADĘ|ON MY WAY", "NIE TERAZ|NOT NOW"]), "face": CoffeeRun.CALLER}
 	_offer()
 	hud.ticker_out()
 	if log_on:

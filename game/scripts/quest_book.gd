@@ -50,7 +50,7 @@ const JOB_COUNT := {"kebab": "kebab", "ride": "podwozka", "call": "rescue", "slo
 		"trend": "trend", "mlask": "trend", "drop": "trend", "peacock": "", "cassette": "", "garage": ""}
 ## A questline's wallet.gd `jobs` key, where its runs are counted on their own ("" none: the coffee
 ## run and padel are paid as "trend", with the other trend jobs).
-const STORY_COUNT := {"boat": "boat_race", "rave": "rave", "dekalog": "dekalog", "kino": "kino", "meet": "meet_race",
+const STORY_COUNT := {"boat": "boat_race", "rave": "rave", "dekalog": "dekalog_tour", "kino": "kino_tour", "meet": "meet_race",
 		"tesla": "ev_tow"}
 ## Each item's icon (game/art/quest_icons/<name>.png, made with Codex on 2026-11-17 for F's ask "an
 ## icon for each quest"): by questline id, job group, First step id or tab. A missing file draws the
