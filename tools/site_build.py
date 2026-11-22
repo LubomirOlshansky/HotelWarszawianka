@@ -424,7 +424,7 @@ def landing(strings: dict, lang: str) -> str:
 
     # New every day: the newest changelog day, three lines (the same source as /progress/).
     cl = changelog()
-    days = cl.days()
+    days = cl.highlights()
     newest = days[0]
     lines = [x for d in days[:3] for x in d["lines"]][:3]
     d0 = datetime.date.fromisoformat(newest["date"])
@@ -462,11 +462,11 @@ def progress_page() -> str:
     cl = changelog()
     intro = (
         "<h1>Progress · Postępy</h1>\n"
-        "<p>What was added or improved in Around Warsaw, day by day, newest first. "
-        "Co dodano albo poprawiono, dzień po dniu.</p>\n"
+        "<p>The best of what is new in Around Warsaw, newest first. "
+        "Najważniejsze nowości w Around Warsaw, od najnowszych.</p>\n"
         )
     return PAGE.format(title="Progress · Postępy", extra="",
-                       description="What's new in Around Warsaw, day by day: what was added or improved, and the backlog.",
+                       description="What's new in Around Warsaw: the best of each day, short.",
                        body=intro + cl.html_days())
 
 
