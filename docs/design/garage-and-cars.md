@@ -90,6 +90,56 @@ one thing that makes the car feel different, shown as an icon on its card.
   (Cruise, Sport, Grounded) exactly like the others.
 - Existing paint prices stay (50-150 zł).
 
+## 4b. How each car drives (F 2026-11-22: "work the car control out well, so different cars feel different")
+
+**The rule.** The player's handling profile (Settings → Jazda: Cruise, Sport, Realnie) stays the
+base: it says *how arcade* the driving is. A car is a **feel preset on top of it**: multipliers on
+the profile's numbers, so a Bawara in Cruise is still a calm city car, only with its own
+character, and in Sport it really slides. Nothing a car does may break the city rules (lane
+assist, the stop assist, kerbs, collisions, the tow): the collision box stays one size for all.
+
+**The knobs** (car.gd has most of them already, per profile; today one car shares them all):
+
+| Knob | car.gd today | What the player feels |
+| --- | --- | --- |
+| Steering response | `steer_time` | how fast the car answers the thumb (go-kart vs bus) |
+| Turn at low / high speed | `turn_cap`, `turn_pull`, `turn_floor` | tight in the streets vs calm on the avenues |
+| Grip and slide | `grip`, `drift_grip` | holds the line vs the tail steps out when braking in a bend |
+| Power slide (new) | – | rear-drive: full gas in a slow bend kicks the tail out (Bawara, Bolonez) |
+| Pull curve (new) | `accel`, `onset`, one fade with speed | EV: everything at once, then fades; turbo: kicks in mid-range; old engine: slow build |
+| Brakes | `brake_decel` (Realnie: `GR_BRAKE`) | stopping distance |
+| Weight | yaw lag (`YAW_LAG`), load transfer (Realnie only) | heavy cars turn in a beat late and lean |
+| Body lean (all profiles) | body spring, Realnie only today | the body rolls in bends and dips under braking: the strongest cue from the iso camera |
+| Rough ground | kerb and grass drag (`KERB_*`) | Ałroud shrugs off kerbs, grass and cobbles |
+| Sound and camera | engine pitch, tyre squeal, camera lead at speed | the Kurakan screams and the view pulls back; the Iżera hums |
+
+**The cars' feel** (multipliers on the profile; 1 = the hatch; the one-line "feel" is what the
+garage card says, in Polish with English):
+
+| Car | Steer response | Turn | Grip / slide | Pull curve | Brake | Weight / lean | Feel line |
+| --- | ---: | ---: | --- | --- | ---: | --- | --- |
+| Hatchback | 1.0 | 1.0 | 1.0 | even | 1.0 | 1.0 / 1.0 | "Uczciwy. Jedzie tam, gdzie patrzysz." |
+| Dejwu Łanos | 0.85 (quick) | 1.08 | 1.0, soft | weak, even | 0.95 | light / leans 1.4 | "Lekki i nerwowy, ale wybacza." |
+| FSŁ Bolonez Karo | 1.25 (slow) | 0.92 | 0.9, tail out on brakes | slow build | 0.9 | heavy, lag 1.4 / leans 1.6 | "Płynie jak statek. Tył ma własne zdanie." |
+| Mazgaj MX-5 | 0.7 (go-kart) | 1.2 | 1.15, flat | light, even | 1.05 | very light / leans 0.6 | "Gokart z dachem w bagażniku." |
+| Ołdi A6 Ałroud | 1.1 | 0.95 | 1.0 | strong low down | 1.0 | heavy, lag 1.3 / leans 1.3 | "Krawężnik? Jaki krawężnik?" |
+| Ołdi TT | 0.9 | 1.05 | 1.1, never slides (quattro) | even | 1.05 | planted / leans 0.7 | "Przyklejony do asfaltu." |
+| Bawara M3 | 0.9 | 1.1 | 0.95, slides on brakes and power | strong mid | 1.05 | medium / leans 0.9 | "Tylny napęd. Gaz w zakręcie = bokiem." |
+| Iżera | 1.0 | 1.0 | 1.05 | instant, fades past 100 km/h; strong regen off the gas | 1.1 | heavy but low, lag 1.2 / leans 0.6 | "Cicho, szybko, od zera." |
+| Łamborgini Kurakan | 0.75 (sharp) | 1.1 | 1.2, nervous at top speed | violent | 1.2 | low / leans 0.5 | "Dużo konia. Uważaj na tramwaje." |
+
+**Tuning changes the feel too**, not only the numbers: Zawieszenie levels cut lean and yaw lag
+(-15 % a level) and add grip; Turbo moves the pull curve's kick earlier; Hamulce shorten the stop.
+A maxed Bolonez still floats, only less.
+
+**Readable for the player**: the card shows the 4 bars, the class and the one feel line; and
+**JAZDA PRÓBNA** (test drive, as in the NFS showrooms): from the garage, 60 s in any car round
+the nearby blocks, then back to the lot. You buy what you have felt.
+
+**Tuning on the phone (DEV)**: a "Car lab" card in the DEV settings (F keeps DEV visible): the
+car's knobs as sliders, live, with the numbers written to the log, so F can tune the feel on the
+iPhone and the thread copies the numbers into `upgrades.gd`.
+
 ## 5. Nitro: tap, bottles, earned by driving
 
 1. **A tap fires one bottle**: 2.5 s of boost (top ×1.3, pull ×2.2 as today). While a bottle burns
@@ -169,18 +219,49 @@ touch target 44 pt or more, the gamepad works on every row.
 | Phase | What | Model | Size | Checks |
 | --- | --- | --- | --- | --- |
 | **P0** | Nitro: tap, bottles, disc above GAS, refill from near misses/drift/air, pad and keys, the drag | Opus (feel) | 1 PR, ~1 day | new `check_nitro`, `check_gamepad`, street meet drag check; full DoD, bench (per-frame), phone feel |
-| **P1a** | Cars and tuning data: `upgrades.gd` roster, per-car parts, class, `turn_mult`/`brake_mult`, perks, save migration (copy the old levels, TT refund 600 zł with Mirek's line) | Opus | 1 PR, ~1 day | `check_garage` grows; lanedrive and steering stay on the hatch |
+| **P1a** | Cars, feel and tuning: `upgrades.gd` roster, per-car feel presets on the profile (4b), the power slide, pull curves, body lean in every profile, per-car parts, class, perks, `--car`/`--tune`/`--car-log`, the Car lab (DEV), save migration (copy the old levels, TT refund 600 zł with Mirek's line) | Opus | 1-2 PRs, ~2-3 days | new `check_car_feel`, `check_garage`, lanedrive/steering/grounded per car, race bench, police chase pace (9b) |
 | **P1b** | The 8 bodies in `models.gd` (cabrio part), Level-3 parts on the body | Sonnet object-modeler, Opus accepts | 1 PR, ~1-2 days | turntable sheet per car, shots, bench |
-| **P2** | Car viewer + the garage card's three tabs | Sonnet with this spec | 1 PR, ~1-2 days | card shots at phone size, gamepad |
+| **P2** | Car viewer + the garage card's three tabs + JAZDA PRÓBNA | Sonnet with this spec | 1 PR, ~1-2 days | card shots at phone size, gamepad |
+| **AP** | Autopilot rows P21-P23 on F's Mac after P0-P3 land (9b.4) | Opus thread on the Mac | ~1 evening | PT-n rows, fix threads |
 | **P3** | MOJE AUTO from the full map and Settings | Sonnet | 1 PR, ~1 day | shots, check the switch rule |
 | **P4** | The workshop and the komis lot at Twarda × Emilii Plater | Sonnet modeler, Opus directs | 1-2 PRs, ~2 days (Mac shots, bench) | turntable, prebuilt and runtime city, bench |
 | **P5** | Races value the car: a rival level per race (F's call, question 4) | Opus | 1 PR | race bench before/after (`tools/race_bench.sh`), the racer rules |
 | later | Looks: rims, spoilers, underglow (BACKLOG), plates; selling cars | Sonnet | | |
 
 P0 goes first (F's pain today, touches nothing else). P1a → P1b → P2 → P3 in order; P4 can run
-beside them in the map lane. About 8-11 thread-days in all. Any change to `traffic.gd`,
+beside them in the map lane. About 10-14 thread-days in all, plus an Autopilot evening. Any change to `traffic.gd`,
 `race_session.gd`, `race_planner.gd` or `rivals.gd` reruns the race bench. Merges: the audit
 thread's go and a green `gate`.
+
+## 9b. Testing the feel (headless, then Autopilot, then the phone)
+
+1. **`check_car_feel.gd`** (new, joins `tools/verify.sh`): the real car script on the flat test
+   ground, every car × every profile, the same manoeuvres a car magazine runs: 0-100 km/h, top
+   speed, 100-0 braking distance, the turning circle at 30 km/h, the most sideways pull at 60, a
+   lane change at 50 (peak slip, settle time), a 6-cone slalom 18 m apart, a 90° corner at full
+   lock at 25 km/h, full gas in a slow bend (the power slide). It prints one "feel card" table
+   and fails when a car leaves its band or the **order** breaks (the Mazgaj fastest through the
+   slalom of the cheap cars, the TT slides least, the Bawara and Bolonez most, the Iżera first to
+   50 km/h, the Kurakan fastest overall). Cruise keeps F's G4 rule: no car slides more than
+   CRUISE_SLIP in a lane change at 50 km/h unless the player asks for it (brake or power in a bend).
+2. **Every car drives the city**: `check_lane_drive` (13 routes, the real car steered along the
+   lanes), `check_steering` and `check_grounded` run for each car (`--car=<id>`, new flag, with
+   `--tune=0..3`): no stall, no unstick, no sink, lane assist holds.
+3. **Races and the police**: `tools/race_bench.sh` with the slowest and the fastest car (rivals
+   take the player's top today), and `check_police` "chase pace" with the Kurakan.
+4. **Autopilot on F's Mac** (F asked for it, 2026-11-22; docs/PLAYTEST.md, new rows; one car per
+   run to stay under the Mac's ~6 min limit; the decision model bills F's Aura account):
+   - **P21 Car feel tour**: each car (`--car=`, stock and `--tune=3`) drives the same ~3 min loop
+     Twarda → Emilii Plater → Świętokrzyska → Marszałkowska → Rondo Dmowskiego → Jerozolimskie →
+     back, Classic controls. The log gives speed, slip, kerb hits, contacts and stops (`--car-log`);
+     Autopilot says which car was hardest and where it got stuck.
+   - **P22 Nitro**: taps on Wisłostrada and in a race, bottles and refills, any fire by mistake.
+   - **P23 Garage and MOJE AUTO**: buy, switch, test drive, turn the car, every button, leave.
+   - **P17 again** with the Łanos and the Kurakan: is the race still close?
+   Autopilot gives the place and the symptom; any stop a player could make goes to a cloud fix
+   thread with a headless repro (the 2026-11-08 lesson).
+5. **The phone**: PHONE-CHECK rows, one per car, F's word on each feel line; the Car lab numbers
+   go back into the code.
 
 ## 10. What only the phone can show
 
