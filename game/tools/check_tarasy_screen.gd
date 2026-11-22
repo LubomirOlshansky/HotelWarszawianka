@@ -1,7 +1,7 @@
 extends SceneTree
-## The 3D corner screen at Złote Tarasy (tarasy_screen.gd): an L of flat faces (three short ones on the curve, the wide chord, the return) round Skylight's
-## south-east corner (F, 2026-11-11). The strip builds as one surface, 30-42 m round, the wide face
-## longer than the return and the two at a corner (not a curve: their normals 60-120 degrees apart),
+## The 3D corner screen at Złote Tarasy (tarasy_screen.gd): an L of flat faces (a short return on the curve, the wide east face) round Skylight's
+## south-east corner (F, 2026-11-11; moved onto the east face 2026-11-21). The strip builds as one surface, 26-42 m round, the wide face
+## (after the corner, 18 m or more) longer than the return and the two at a corner (not a curve: their normals 60-120 degrees apart),
 ## each point within 2 m of the tower's mapped wall, the box between 10 and 27 m up (over the
 ## lobby's canopy, under the glazed belt's top), and its shader loads. No map needed (flat ground).
 ##   godot --headless --path game --script res://tools/check_tarasy_screen.gd
@@ -21,8 +21,8 @@ func _init() -> void:
 	var s := TarasyScreen.new()
 	s.build()
 	_expect(s.mesh_instance != null and s.mesh_instance.mesh.get_surface_count() == 1, "not one surface")
-	_expect(s.length > 30.0 and s.length < 42.0, "length %.1f m" % s.length)
-	_expect(s.corner > s.length - s.corner, "the wide face (%.1f m) is not the longer one" % s.corner)
+	_expect(s.length > 26.0 and s.length < 42.0, "length %.1f m" % s.length)
+	_expect(s.length - s.corner > s.corner and s.length - s.corner >= 18.0, "the wide face (%.1f m) is not the longer one" % (s.length - s.corner))
 	var o := TarasyScreen.outline()
 	for i in o[0].size():
 		_expect((o[0][i] as Vector2).distance_to(TarasyScreen.WALL[i]) < 2.0, "point %d off the wall" % i)

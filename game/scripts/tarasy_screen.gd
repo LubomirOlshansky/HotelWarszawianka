@@ -2,10 +2,11 @@ extends "res://scripts/place.gd"
 ## The 3D screen at Złote Tarasy, moved and squared off from F's photos (2026-11-11: "this screen in
 ## the game is a curve, maybe it has an L shape on the edge of the building, maybe you put it in the
 ## wrong place"): the big LED screen wraps Skylight's south-east corner over the street entrance, an
-## L of flat faces (F, 2026-11-15: longer to the left, along the curved face, as in his photos:
-## three short faces there), a wide one facing the station and the crossing (south-east) and a narrower
-## return facing Emilii Plater (east-north-east), from about 11.5 to 25 m up (F's photos, refs/skylight
-## 06: the "WOW" panels' place). Its anamorphic loop floats out of the frame: a tabby cat leaning
+## L of flat faces. F, 2026-11-21 (screenshots, the place drawn in red): the old wide face along the
+## curved south face sat behind the grey block over the entrance and read as cut off, so the wide
+## face now runs the whole straight east face on Emilii Plater, flush with the wall from the corner
+## to the tower's north end, with a short return round the corner onto the curve (south-east), from
+## about 11.5 to 25 m up. Its anamorphic loop floats out of the frame: a tabby cat leaning
 ## out (F's photo), the game's own promo (AROUND WARSAW over a skyline), and the NOSE. agency's promo
 ## (F asked for it by name). No real brand is on it.
 ## Two quads along the corner (flat, each with its own normal: the shader's parallax keeps each face
@@ -16,20 +17,21 @@ extends "res://scripts/place.gd"
 
 const Pixel := preload("res://scripts/pixel_font.gd")
 
-## Skylight's outline at its south-east corner (centrum.json "Skylight"): the south-east end of the
-## curved south face, the corner, and a point on the straight east end. Walked so the screen's right
-## is the viewer's right (from the south-east).
-const WALL := [Vector2(-1377.4, 438.2), Vector2(-1371.7, 436.0), Vector2(-1367.7, 433.4),
-		Vector2(-1354.6, 423.5), Vector2(-1357.65, 415.03)]
-## Which point of WALL is the tower's corner (the wide face ends there, the return begins).
-const CORNER_AT := 3
-## How far each WALL point is pushed off the wall: the long chord at the corner bulges 1 m past the
-## wall, the points on the curve (F, 2026-11-15: the real screen runs further along the curved face
-## on the left than the L did) less; all clear Skylight's glazed belt (stepped out ~0.4 m at
-## 20-33 m). The corner's entry is unused (CORNER_OFFSETS).
-const OFFSETS := [1.2, 1.4, 1.6, 1.6, 0.8]
+## Skylight's outline at its south-east corner (centrum.json "Skylight"), walked so the screen's
+## right is the viewer's right (from the south-east): two points on the curved south face (the short
+## return, stopping short of the grey block over the entrance, which hid the screen's old wide face
+## from the street; F, 2026-11-21: "out of the visible area"), the corner, and the north end of the
+## straight east face on Emilii Plater (F drew it there: the wide face runs to the end of the tower).
+const WALL := [Vector2(-1360.2, 429.0), Vector2(-1356.6, 425.7), Vector2(-1354.6, 423.5),
+		Vector2(-1361.9, 403.2)]
+## Which point of WALL is the tower's corner (the return ends there, the wide face begins).
+const CORNER_AT := 2
+## How far each WALL point is pushed off the wall: the curve's points clear its bulge between them and
+## Skylight's glazed belt (stepped out ~0.4 m at 20-33 m); the straight east face less. The corner's
+## entry is unused (CORNER_OFFSETS).
+const OFFSETS := [1.2, 1.2, 1.2, 0.8]
 ## The corner point pushes out along the two neighbouring faces' offset lines instead (their offsets).
-const CORNER_OFFSETS := [1.6, 0.8]
+const CORNER_OFFSETS := [1.2, 0.8]
 const BOTTOM := 11.5        # metres above the ground at the corner: over the lobby's 5 m canopy
 const HEIGHT := 13.5        # the box's height (to 25 m)
 const MARGIN := 2.6         # the mesh below the box, for what hangs out of it
@@ -38,7 +40,7 @@ const SHADER := "res://shaders/led_screen.gdshader"
 const LINES := ["AROUND", "WARSAW", "NOSE."]
 
 var length := 0.0
-var corner := 0.0           # metres along the screen to the corner (the wide face's length)
+var corner := 0.0           # metres along the screen to the corner (the return's length)
 var mesh_instance: MeshInstance3D
 
 
@@ -105,13 +107,21 @@ func build() -> void:
 	mesh_instance.name = "TarasyScreen"
 	mesh_instance.mesh = st.commit()
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mesh_instance.custom_aabb = AABB(Vector3(-1384, y0, 408), Vector3(32, MARGIN + HEIGHT, 34))
-	var tex := _words_texture()
+	var lo := Vector2(INF, INF)
+	var hi := -lo
+	for q: Vector2 in pts:
+		lo = lo.min(q)
+		hi = hi.max(q)
+	mesh_instance.custom_aabb = AABB(Vector3(lo.x - 1.0, y0, lo.y - 1.0), Vector3(hi.x - lo.x + 2.0, MARGIN + HEIGHT, hi.y - lo.y + 2.0))
+	var tex := words_texture()
 	var mat := ShaderMaterial.new()
 	mat.shader = load(SHADER)
 	mat.set_shader_parameter("size", Vector2(length, HEIGHT))
 	mat.set_shader_parameter("margin", MARGIN)
-	mat.set_shader_parameter("corner", corner)
+	# The scenes centre on the wider of the two sides of the corner, the tail and the Palace on the other.
+	var wide_last := length - corner > corner
+	mat.set_shader_parameter("hero", corner + (length - corner) * 0.5 if wide_last else corner * 0.5)
+	mat.set_shader_parameter("aside", corner * 0.5 if wide_last else corner + (length - corner) * 0.5)
 	mat.set_shader_parameter("words", tex)
 	mat.set_shader_parameter("words_px", Vector2(tex.get_width(), tex.get_height()))
 	mat.set_shader_parameter("line_px", float(Pixel.LINE))
@@ -123,7 +133,7 @@ func build() -> void:
 
 ## The words as one image (red channel = lit): a line of the font a row of LINE texels, each line
 ## centred, one pixel of the font a texel; a texel of padding at the top.
-func _words_texture() -> ImageTexture:
+static func words_texture() -> ImageTexture:
 	var wide := 0
 	for l: String in LINES:
 		wide = maxi(wide, Pixel.width(l))
