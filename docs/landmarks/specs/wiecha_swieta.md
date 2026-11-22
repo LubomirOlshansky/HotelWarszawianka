@@ -82,7 +82,7 @@ round the decorations, the stores' side one through the gingerbread man. Both fo
 ## 9. Detail level and budget
 
 L3 for the hero pieces (the stars, the tunnel, the fir), L1 for the curtains and shapes. Triangle
-budget 31000 (measured 26,230; `check_mesh_quality.gd`): an exception to the L3 cap, as Jarmark's,
+budget 27000 (measured 26,230; `check_mesh_quality.gd`): an exception to the L3 cap, as Jarmark's,
 since it is a whole 250 m street of decorations in one site, 22 stars alone about 14,000; +0 draw
 calls.
 
