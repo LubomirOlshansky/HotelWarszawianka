@@ -1,0 +1,7 @@
+Display fonts for the teaser card (F, 2026-11-19 round 3: "more stylish"), each SIL Open Font License 1.1
+(https://openfontlicense.org), the latin subset downloaded from Google Fonts 2026-11-19:
+- Mr Dafoe (mrdafoe.woff2): Copyright 2011 Sudtipos.
+- Yellowtail (yellowtail.woff2): Copyright 2010 Astigmatic One Eye Typographic Institute.
+- Russo One (russoone.woff2): Copyright 2011 Jovanny Lemonad.
+- Audiowide (audiowide.woff2): Copyright 2012 Astigmatic One Eye Typographic Institute.
+- Orbitron (orbitron.woff2, weight 900): Copyright 2018 The Orbitron Project Authors.

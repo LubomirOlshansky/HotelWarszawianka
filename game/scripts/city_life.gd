@@ -48,6 +48,7 @@ const JarmarkLife := preload("res://scripts/jarmark_life.gd")
 const Props := preload("res://scripts/props.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const ScooterZones := preload("res://scripts/scooter_zones.gd")
+const DevFlags := preload("res://scripts/dev_flags.gd")
 
 ## Seconds between two ticks of the logic, and between two moves of the movers.
 const TICK := 0.5
@@ -1830,6 +1831,53 @@ func _fire(id: String) -> bool:
 
 # --- the logic -------------------------------------------------------------------------------
 
+## Teaser 4 (F, 2026-11-21: "the kukuryźniarze gang going on the pavement somewhere"):
+## `--scoot-gang=X,Z[,T[,DIR]]` puts a pack of riders on the footway nearest (X, Z) T s after the
+## start, riding the path's way (DIR 1) or against it (-1). Videos only.
+var gang_at := Vector3(0.0, 0.0, -1.0)
+var gang_dir := 1.0
+
+
+## --scoot-gang=X,Z[,T[,DIR]] (videos): main.gd hands the flags over; the pack waits for gang_at.z s.
+func use_flags(f: DevFlags) -> void:
+	gang_at = f.scoot_gang
+	gang_dir = f.scoot_gang_dir
+const GANG_TEASER_N := 5
+
+
+## The teaser's pack (gang_at): GANG_TEASER_N riders on one footway near `at`, two abreast,
+## 3.2 m apart, a little slower than on a cycle path. In the mob's list, so they stay MOB_LIFE s.
+func force_gang(at: Vector2, n: int, dir: float) -> void:
+	var hit := _nearest_on("foot", at, 40.0)
+	if hit.is_empty():
+		push_warning("--scoot-gang: no footway within 40 m of %s" % at)
+		return
+	var i: int = hit[0]
+	var j: int = hit[1]
+	var cum := _cum_of("foot", i)
+	var s0: float = cum[j] + _foot[i][j].distance_to(hit[2])
+	var v := _rng.randf_range(SCOOT_V.x, SCOOT_V.y) * 0.55
+	_mob_t = t
+	for k in n:
+		var m := Mover.new()
+		m.kind = "scoot"
+		m.kd = SCOOT_K
+		m.pset = "foot"
+		m.i = i
+		m.dir = signf(dir) if dir != 0.0 else 1.0
+		m.s = clampf(s0 - m.dir * k * 3.2, 0.0, cum[cum.size() - 1])
+		m.v = v
+		m.off = -0.45 if k % 2 == 0 else 0.45
+		m.want_off = m.off
+		_dress_scoot(m)
+		m.p2 = _foot[i][0]
+		m.p3 = Vector3(m.p2.x, 0.0, m.p2.y)
+		_place_mover(m)
+		_mob.append(m)
+	_full = true
+	print("life: the teaser's Kukuryznik pack, %d riders at %.0f, %.0f" % [n, hit[2].x, hit[2].y])
+
+
 func _process(dt: float) -> void:
 	if dt <= 0.0 or not clock.is_valid():
 		return
@@ -1839,6 +1887,9 @@ func _process(dt: float) -> void:
 		WorkerThreadPool.wait_for_task_completion(_index_task)
 		_index_task = -1
 		_finish_index()
+	if gang_at.z >= 0.0 and t >= gang_at.z and not _foot.is_empty():
+		force_gang(Vector2(gang_at.x, gang_at.y), GANG_TEASER_N, gang_dir)
+		gang_at.z = -1.0
 	_tick_t += dt
 	if _tick_t >= TICK:
 		var step := _tick_t
@@ -2134,6 +2185,8 @@ func _hide_all() -> void:
 	_sc_mmi.visible = false
 	_scoot_mm.visible_instance_count = 0
 	_scoot_mmi.visible = false
+	_sc_mm.visible_instance_count = 0
+	_sc_mmi.visible = false
 	_gbuf.fill(0.0)
 	if walkers != null:
 		walkers.take_guests(_gbuf)
@@ -2170,6 +2223,28 @@ func _seen(m: Mover) -> bool:
 
 
 ## A new mover on a footway (a dog walker, a runner) or a cycle path (a rider) SPAWN_R from `eye`.
+## F (2026-11-21, the palm teaser): no bikes, couriers, scooters, runners or dog walkers through
+## the Party House's entrance, terrace and courtyard (Centrum Bankowo-Finansowe, Nowy Świat 6/12):
+## people sit and chill there (they rode up the terrace's drums and steps). Its outline's four corners, grown QUIET_GROW m.
+const QUIET_ZONES := [[Vector2(-88.7, 273.2), Vector2(-63.1, 360.2), Vector2(-135.2, 381.4), Vector2(-161.1, 294.6)]]
+const QUIET_GROW := 20.0
+var _quiet: Array[PackedVector2Array] = []
+
+
+## True if a path has a point in a quiet zone (no wheels there).
+func _crosses_quiet(pts: PackedVector2Array) -> bool:
+	if _quiet.is_empty():
+		for z: Array in QUIET_ZONES:
+			var poly := PackedVector2Array(z)
+			var grown := Geometry2D.offset_polygon(poly, QUIET_GROW, Geometry2D.JOIN_MITER)
+			_quiet.append(grown[0] if not grown.is_empty() else poly)
+	for q in pts:
+		for z in _quiet:
+			if Geometry2D.is_point_in_polygon(q, z):
+				return true
+	return false
+
+
 func _spawn(kind: String, eye: Vector2) -> Mover:
 	if kind == "kerb":
 		return _spawn_kerb(eye)
@@ -2189,6 +2264,8 @@ func _spawn(kind: String, eye: Vector2) -> Mover:
 		return null
 	var i := cands[_rng.randi() % cands.size()]
 	var pts := list[i]
+	if _crosses_quiet(pts):
+		return null
 	var cum := _cum_of(pset, i)
 	var length := cum[cum.size() - 1]
 	if length < 8.0:
@@ -2414,7 +2491,8 @@ func _heights_of(pset: String, i: int) -> PackedFloat32Array:
 	var dk := _foot_dk[i] if pset == "foot" else _cyc_dk[i]
 	var h := PackedFloat32Array()
 	for q in pts:
-		h.append(map.deck_height(dk, q.x, q.y) if map != null else 0.0)
+		var y: float = map.deck_height(dk, q.x, q.y) if map != null else 0.0
+		h.append(y)
 	_heights[key] = h
 	return h
 
@@ -3064,6 +3142,7 @@ func _write_all(eye: Vector2, car2: Vector2) -> void:
 	_ped_mmi.visible = pn > 0
 	_write_scoots()
 	_write_scooters()
+	_write_scoots()
 	_write_guests(eye, car2, hyrax, infl, aport_near)
 
 

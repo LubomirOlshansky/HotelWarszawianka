@@ -76,6 +76,25 @@ var blocked := false
 
 ## 0..1, how far the city's lights are on; the game sets it every frame.
 var lights := 0.0
+## A promo shot's helicopter (main.gd --promo-heli) flies itself towards this point (x, z) at
+## auto_share of top speed and hovers there; INF: steered by the game's input as usual.
+var auto_to := Vector2.INF
+var auto_share := 0.6
+## False: no searchlight beam or pool at night (the promo helicopter, F 2026-11-21: only its
+## beacon and strobe as it approaches).
+var searchlight := true
+## Steady night lights (add_nav_lights): the promo helicopter's position lights and lit cockpit.
+var _nav: Array[StandardMaterial3D] = []
+
+
+## The promo helicopter (F 2026-11-21): red and green position lights on the sides, a white one on
+## the tail and a warm lit cockpit, steady at night, so it reads in a wide night frame without a
+## searchlight.
+func add_nav_lights() -> void:
+	_nav.append(_glow_box(Vector3(0.35, 0.22, 0.35), Vector3(-1.15, 0.1, 0.2), Color("#ff3020")))
+	_nav.append(_glow_box(Vector3(0.35, 0.22, 0.35), Vector3(1.15, 0.1, 0.2), Color("#2aff6a")))
+	_nav.append(_glow_box(Vector3(0.3, 0.3, 0.3), Vector3(0, 1.2, 7.0), Color("#f4f6ff")))
+	_nav.append(_glow_box(Vector3(1.3, 0.7, 0.12), Vector3(0, 0.35, -2.05), Color("#ffd690")))
 var _beacon: StandardMaterial3D
 var _strobe: StandardMaterial3D
 var _search: MeshInstance3D
@@ -130,6 +149,9 @@ func _physics_process(dt: float) -> void:
 
 func _step(dt: float) -> void:
 	var p := global_position
+	if auto_to != Vector2.INF:
+		var to := auto_to - Vector2(p.x, p.z)
+		input_dir = Vector3(to.x, 0.0, to.y).normalized() * auto_share if to.length() > 8.0 else Vector3.ZERO
 	var before := vel
 	# A heavy machine, not a cursor: ease towards the wanted velocity.
 	var want := Vector3.ZERO if landing else input_dir.limit_length(1.0) * MAX_SPEED * (1.0 - LOAD_SLOW * sling)
@@ -359,8 +381,10 @@ func _glow_box(size: Vector3, pos: Vector3, colour: Color) -> StandardMaterial3D
 ## Blinks the beacon and strobe and lays the searchlight on the ground at night.
 func _update_lights(dt: float, x: float, z: float) -> void:
 	var night := lights > 0.001
-	_search.visible = night
-	_search_beam.visible = night
+	_search.visible = night and searchlight
+	_search_beam.visible = night and searchlight
+	for m: StandardMaterial3D in _nav:
+		m.emission_energy_multiplier = 4.0 if night else 0.0
 	if not night:
 		_beacon.emission_energy_multiplier = 0.0
 		_strobe.emission_energy_multiplier = 0.0

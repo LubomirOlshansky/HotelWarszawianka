@@ -200,6 +200,8 @@ traffic Driver because the campus paths are not in the lane graph.
   bit and slots when the view is near the bridge instead (the two lie 620 m apart). The sitters on
   the seating bays and the railing's standers are crowds.gd kind `kladka` (two sites, the steps'
   evening curve). Lines: `kladka` (`say_ambient`). Not Beehave, not Dialogue Manager.
+- **The leap** (`leap`, F's scooter chaos): walkers ahead of a Kukuryźnik hop to the far side of their
+  footway; the shout is city_life.gd's, through the chatter budget.
 - **Reactions** go through bubbles and the chatter budget (`say_reaction`, `say_ambient`), never a
   private cooldown.
 

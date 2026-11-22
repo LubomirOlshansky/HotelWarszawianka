@@ -70,6 +70,10 @@ var _eggs: Array[Dictionary] = []
 var _signs: Array[Dictionary] = []
 var _blocked := {}          # 8 m cell -> true where a parked car or a tree stands
 var _t := 0.0
+## The taxis on the Party House's inner road (_build_gaulle_lawn).
+var _inner_mm: MultiMesh
+var _inner_path := PackedVector2Array()
+var _inner_len := 0.0
 ## One thing talks at a time: a sign waits while an egg speaks, and the other way round.
 var _quiet := 0.0
 
@@ -119,6 +123,8 @@ func setup(nodes: Dictionary, data: Dictionary) -> void:
 		if not pois.has(p["k"]):
 			pois[p["k"]] = p
 	var palm := _build_palm(data)
+	_build_gaulle_lawn()
+	_build_waiting(data)
 	var square := _defilad(data, pois)
 	if square != Vector2.INF:
 		_build_pigeons(square)
@@ -287,22 +293,7 @@ func _place_palm(spot: Vector2) -> Vector3:
 	add_child(palm)
 	palm.global_position = at
 	palm.rotation.y = 0.6
-	# Uplights at night: a pink-violet wash up the trunk, a glow in the crown.
-	var wash := MeshInstance3D.new()
-	wash.mesh = _uplight(13.5, 2.6, Color(1.0, 0.25, 0.75, 0.32), Color(0.55, 0.3, 1.0, 0.0))
-	wash.material_override = Props.glow_material(false, 0.6)
-	wash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	palm.add_child(wash)
-	for h in [[0.8, 4.0, Color(1.0, 0.3, 0.8, 0.6)], [13.4, 10.0, Color(0.65, 0.35, 1.0, 0.6)]]:
-		var halo := MeshInstance3D.new()
-		halo.mesh = Props.halo(h[1], h[2])
-		halo.material_override = Props.glow_material(true, 1.5)
-		halo.position = Vector3(0.6, h[0], -0.2)
-		halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		palm.add_child(halo)
-	for c3 in palm.get_children():
-		c3.visible = false
-		c3.add_to_group("night_lights")
+	_build_palm_garden(spot)
 	var anchor := Node3D.new()
 	add_child(anchor)
 	anchor.global_position = at + Vector3(0.6, 0, -0.2)
@@ -310,19 +301,222 @@ func _place_palm(spot: Vector2) -> Vector3:
 	return at
 
 
-## Light washing up a trunk: two crossed vertical quads, bright at the foot, fading up.
-static func _uplight(height: float, width: float, low: Color, high: Color) -> ArrayMesh:
+## The island's two halves round the palm (centrum.json's kerbs and the tram ballast's edge
+## near the scanned palm, 2026-11-20): planted since the autumn 2026 greening.
+const PALM_BEDS := [
+	[-232.0, 246.6, -231.4, 242.4, -230.2, 240.0, -227.5, 237.2, -223.4, 235.1, -218.0, 233.7,
+			-212.1, 233.2, -209.4, 233.7, -207.2, 234.6, -205.1, 236.0, -204.6, 238.5, -205.6, 240.1,
+			-203.6, 240.8],
+	[-201.2, 245.6, -200.7, 247.6, -200.6, 250.0, -200.7, 251.5, -202.6, 254.8, -204.6, 256.6,
+			-207.6, 258.1, -212.9, 259.2, -218.1, 259.8, -222.7, 259.9, -224.7, 259.1, -226.4, 258.2,
+			-227.9, 257.0, -229.0, 255.4],
+]
+
+
+## The lawn by the de Gaulle statue and the cobbled inner road in front of the Party House
+## (F, 2026-11-20: "a lot of people chilling there on summer evenings", "taxis on the inner road
+## near the monument", "these lamps"): deckchairs with people in them on the lawn, facing the
+## palm, a few taxis waiting along the inner road, and the plaza's five-lantern lamps. Three
+## draw calls; static (the deckchair sitters don't move).
+const LAWN_CHAIRS := [
+	# [x, z, sitter] on the lawn east of the statue (centrum.json's grass, its steps kept clear).
+	# F (2026-11-21, before main): "less people on the lawn, a few left and a few deckchairs".
+	[-158.6, 270.0, 1], [-154.3, 271.0, 0], [-158.9, 273.6, 1], [-152.2, 275.8, 1],
+	[-156.5, 277.0, 0], [-160.3, 280.9, 1], [-164.4, 282.7, 0],
+]
+## The cobbled inner road in front of the Party House (OSM's service way), the way the taxis drive
+## it (F, 2026-11-20: "cars parked on the pavement, make them drive by this road").
+const INNER_ROAD := [-158.9, 258.4, -166.3, 260.6, -173.5, 263.2, -176.4, 265.2, -178.4, 267.6, -179.7, 269.8,
+		-180.5, 273.0, -180.7, 276.9, -179.5, 281.1, -177.7, 285.1]
+const INNER_TAXIS := 3
+const INNER_SPEED := 6.5
+const INNER_GAP := 17.0
+## The taxis stand at the rank (F, 2026-11-21) rather than drive the loop.
+const INNER_RANK := true
+const LAMP_SPOTS := [[-149.0, 281.5], [-161.5, 285.0], [-174.4, 281.5], [-157.5, 265.4]]
+
+
+func _build_gaulle_lawn() -> void:
+	var palm := Vector2(-213.9, 238.5)
+	var spots: Array = []
+	for ci in LAWN_CHAIRS.size():
+		var c: Array = LAWN_CHAIRS[ci]
+		var p := Vector2(float(c[0]), float(c[1]))
+		var to := (palm - p).normalized()
+		# Facing the palm across the rondo, each turned a little its own way.
+		var yaw := atan2(-to.x, -to.y) + sin(p.x * 1.7 + p.y) * 0.35 + PI
+		spots.append([p.x, p.y, yaw, map.ground_height(p.x, p.y), int(c[2])])
+	var chairs := MeshInstance3D.new()
+	chairs.name = "LawnChairs"
+	chairs.mesh = Props.deckchairs(spots, 515)
+	chairs.material_override = Models.material()
+	add_child(chairs)
+	# The taxis: one MultiMesh of the taxi family (the city taxi and Podwózka) driving the inner
+	# road one after another, each coming back to its start (_inner_taxis).
+	_inner_path.clear()
+	for i in range(0, INNER_ROAD.size() - 1, 2):
+		_inner_path.append(Vector2(INNER_ROAD[i], INNER_ROAD[i + 1]))
+	_inner_len = 0.0
+	for i in range(1, _inner_path.size()):
+		_inner_len += _inner_path[i - 1].distance_to(_inner_path[i])
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_custom_data = true
+	mm.mesh = Models.traffic_mesh(1)
+	mm.instance_count = INNER_TAXIS
+	var paints := [Color("#f2f2ee"), Color("#1c1d20"), Color("#24324a")]
+	for i in INNER_TAXIS:
+		var paint: Color = paints[i % paints.size()]
+		mm.set_instance_custom_data(i, Color(paint.r, paint.g, paint.b, float(i % 2)))
+	_inner_mm = mm
+	# The road's own paving: red-brown brick in a herringbone (F's Street View), as bands of two
+	# tones every half metre across a ribbon over the asphalt.
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for axis in [Vector3.RIGHT, Vector3.BACK]:
-		var w: Vector3 = axis * width * 0.5
-		var up := Vector3(0, height, 0)
-		var base := Vector3(0, 0.6, 0)
-		for v in [[base - w, low], [base + w, low], [base + w + up, high], [base - w, low], [base + w + up, high], [base - w + up, high]]:
-			st.set_color(v[1])
-			st.set_uv(Vector2(0.5, 0.5))
-			st.add_vertex(v[0])
-	return st.commit()
+	var bricks := [Color("#8a5848"), Color("#7a4a3c"), Color("#94624f")]
+	var run := 0.0
+	for k in range(1, _inner_path.size()):
+		var a := _inner_path[k - 1]
+		var b := _inner_path[k]
+		var e := (b - a).normalized()
+		var nrm := Vector2(-e.y, e.x) * 2.4
+		var seg := a.distance_to(b)
+		var n := maxi(1, int(seg / 0.5))
+		for j in n:
+			var p0 := a + e * seg * j / n
+			var p1 := a + e * seg * (j + 1) / n
+			var col: Color = bricks[int(run / 0.5) % bricks.size()]
+			run += seg / n
+			var q := [p0 - nrm, p1 - nrm, p1 + nrm, p0 + nrm]
+			var ys := []
+			for c: Vector2 in q:
+				ys.append(map.ground_height(c.x, c.y) + 0.07)
+			for idx in [0, 2, 1, 0, 3, 2]:
+				st.set_color(col)
+				st.set_normal(Vector3.UP)
+				st.set_uv(Vector2(Models.FIXED, 0.0))
+				st.add_vertex(Vector3(q[idx].x, ys[idx], q[idx].y))
+	var paving := MeshInstance3D.new()
+	paving.name = "InnerRoadPaving"
+	paving.mesh = st.commit()
+	paving.material_override = Models.material()
+	paving.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(paving)
+	var taxis := MultiMeshInstance3D.new()
+	taxis.name = "InnerRoadTaxis"
+	taxis.multimesh = mm
+	taxis.material_override = Models.material()
+	taxis.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	add_child(taxis)
+	_inner_taxis(0.0)
+	var lamps := MultiMesh.new()
+	lamps.transform_format = MultiMesh.TRANSFORM_3D
+	lamps.mesh = Props.candelabra()
+	lamps.instance_count = LAMP_SPOTS.size()
+	for i in LAMP_SPOTS.size():
+		var l: Array = LAMP_SPOTS[i]
+		lamps.set_instance_transform(i, Transform3D(Basis.IDENTITY, _on_ground(Vector2(float(l[0]), float(l[1])))))
+	var lmi := MultiMeshInstance3D.new()
+	lmi.name = "PlazaLamps"
+	lmi.multimesh = lamps
+	lmi.material_override = Models.material()
+	add_child(lmi)
+
+
+## F (2026-11-21, teaser 4: "more pedestrians waiting and walking"): people waiting at the
+## kerb of every zebra round Rondo de Gaulle'a (centrum.json's `zebra` paths within WAIT_REACH m
+## of the palm), two to four at each end a step back from the stripes, facing across, now and then
+## one with a dog. One static mesh (+1 draw call), the walkers' own crowd stays as it is.
+const WAIT_REACH := 95.0
+func _build_waiting(data: Dictionary) -> void:
+	var palm := Vector2(-213.9, 238.5)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2111
+	var spots: Array = []
+	for w: Dictionary in data.get("paths", []):
+		if str(w.get("k", "")) != "zebra":
+			continue
+		var pts: Array = w["p"]
+		if pts.size() < 4:
+			continue
+		var a := Vector2(float(pts[0]), float(pts[1]))
+		var b := Vector2(float(pts[pts.size() - 2]), float(pts[pts.size() - 1]))
+		if (a + b).distance_to(palm * 2.0) > WAIT_REACH * 2.0 or a.distance_to(b) < 6.0:
+			continue
+		for end: Array in [[a, b], [b, a]]:
+			var at: Vector2 = end[0]
+			var across: Vector2 = (end[1] - at).normalized()
+			var side := Vector2(-across.y, across.x)
+			var n := rng.randi_range(2, 4)
+			for i in n:
+				var p := at - across * rng.randf_range(0.9, 2.0) + side * rng.randf_range(-1.8, 1.8)
+				var yaw := atan2(-across.x, -across.y) + PI + rng.randf_range(-0.4, 0.4)
+				var dog := 1 if rng.randf() < 0.4 else 0
+				spots.append([p.x, p.y, yaw, map.ground_height(p.x, p.y), dog])
+	if spots.is_empty():
+		return
+	var mi := MeshInstance3D.new()
+	mi.name = "ZebraWaiting"
+	mi.mesh = Props.standers(spots, 2111)
+	mi.material_override = Models.material()
+	add_child(mi)
+	print("eggs: %d people waiting at the rondo's zebras" % spots.size())
+
+
+## The inner road's taxis: each `INNER_GAP` m behind the one before, at `INNER_SPEED`, round the
+## road and back to its start (out of sight under the next car's length). Skipped far from the player.
+func _inner_taxis(dt: float) -> void:
+	if _inner_mm == null or _inner_len <= 0.0:
+		return
+	if Vector2(player.x - _inner_path[0].x, player.z - _inner_path[0].y).length() > 400.0 and dt > 0.0:
+		return
+	var loop := maxf(_inner_len + 8.0, INNER_GAP * INNER_TAXIS)
+	for i in INNER_TAXIS:
+		# F (2026-11-21, teaser 4: "the taxis by the monument appear and disappear"): they wait at
+		# the rank, nose to tail, instead of looping round and popping out at the road's end.
+		var s := clampf(_inner_len * 0.55 - i * 6.0, 2.0, _inner_len - 2.0) if INNER_RANK else fposmod(_t * INNER_SPEED - i * INNER_GAP, loop)
+		if s > _inner_len:
+			_inner_mm.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * 0.001), Vector3(0, -50, 0)))
+			continue
+		var at := _inner_path[0]
+		var dir := Vector2.UP
+		var run := 0.0
+		for k in range(1, _inner_path.size()):
+			var seg := _inner_path[k - 1].distance_to(_inner_path[k])
+			if run + seg >= s:
+				dir = (_inner_path[k] - _inner_path[k - 1]).normalized()
+				at = _inner_path[k - 1] + dir * (s - run)
+				break
+			run += seg
+		var yaw := atan2(-dir.x, -dir.y)
+		_inner_mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, yaw), Vector3(at.x, map.ground_height(at.x, at.y), at.y)))
+
+
+## The planted island round the palm (Props.palm_garden), when the palm stands where the
+## laser scan put it (the beds are drawn round that spot).
+func _build_palm_garden(spot: Vector2) -> void:
+	if spot.distance_to(Vector2(-213.9, 238.5)) > 3.0:
+		return
+	var beds: Array = []
+	for flat: Array in PALM_BEDS:
+		var poly := PackedVector2Array()
+		for i in range(0, flat.size() - 1, 2):
+			poly.append(Vector2(flat[i], flat[i + 1]))
+		if Geometry2D.is_polygon_clockwise(poly):
+			poly.reverse()
+		beds.append(poly)
+	# The north half's straight side is the ballast's edge: close it along the tracks.
+	var north: PackedVector2Array = beds[0]
+	north.append(Vector2(-231.9, 249.5))
+	if Geometry2D.is_polygon_clockwise(north):
+		north.reverse()
+	beds[0] = north
+	var garden := MeshInstance3D.new()
+	garden.name = "PalmGarden"
+	garden.mesh = Props.palm_garden(beds, func(p: Vector2) -> float: return map.ground_height(p.x, p.y),
+			Vector3(spot.x, spot.y, 3.4), 2002)
+	garden.material_override = Models.material()
+	add_child(garden)
 
 
 # --- pigeons -------------------------------------------------------------------------
@@ -973,6 +1167,7 @@ func _process(dt: float) -> void:
 	_t += dt
 	_pigeons(dt)
 	_barriers(dt)
+	_inner_taxis(dt)
 	_crowd(dt)
 	_quiet = maxf(0.0, _quiet - dt)
 	for e in _eggs:

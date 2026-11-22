@@ -818,6 +818,9 @@ func _build_tower(site: Dictionary) -> void:
 	if spec["key"] == "spektrum":
 		_build_spektrum(zone, spec)
 		return
+	if spec["key"] == "widok":
+		_build_widok(zone)
+		return
 	_g = _ground_under(zone)
 	var g := _g
 	var glass := Color(spec["glass"])
@@ -4272,8 +4275,9 @@ func _arkadia_tower(g: float) -> void:
 		signs.append(["ZACHODNIE", Vector3(at.x, g + 46.3, at.y), n3, 0.72, ARKADIA_RED])
 		signs.append(["POLE", Vector3(at.x, g + 44.6, at.y), n3, 0.72, ARKADIA_RED])
 		signs.append(["ARKADKA", Vector3(at.x, g + 43.2, at.y), n3, 0.5, ARKADIA_WHITE])
-	# Logo panels on the plaza (south) and entrance (east) faces: KARFUREK, MERLINEK's green
-	# roof, KINO SITKO (parodies of the hypermarket, the DIY store and the cinema).
+	# Logo panels on the plaza (south) and entrance (east) faces: KARFUREK (the hypermarket's
+	# parody), then where the real tower has the DIY store's green roof and the cinema's name (F's
+	# night photos, 2026-11-21), the GeoBent mark over its name and the NOSE AGENCY's blue word.
 	for d: Vector2 in [Vector2(0.0, 1.0), Vector2(1.0, 0.0)]:
 		var n3 := Vector3(d.x, 0.0, d.y)
 		var side := Vector2(-d.y, d.x)
@@ -4282,21 +4286,44 @@ func _arkadia_tower(g: float) -> void:
 		_prism(pan, g + 33.0, g + 37.6, Color("#f4f4f2"), Color("#f4f4f2"), M_STONE, M_STONE)
 		var lo := at + d * 0.32
 		signs.append(["KARFUREK", Vector3(lo.x, g + 34.6, lo.y), n3, 0.55, Color(0.15, 0.35, 1.0)])
-		# MERLINEK: a green triangle (a roof) over its name.
-		var a3 := at + d * 0.35
-		var p0 := a3 - side * 3.0
-		var p1 := a3 + side * 3.0
-		_mode = M_LAMP
-		_tri(Vector3(p0.x, g + 27.0, p0.y), Vector3(p1.x, g + 27.0, p1.y), Vector3(a3.x, g + 31.4, a3.y), n3, Color("#3fae49"),
-				Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0, false)
-		signs.append(["MERLINEK", Vector3(lo.x, g + 25.2, lo.y), n3, 0.45, Color(0.3, 0.9, 0.35)])
-		signs.append(["KINO SITKO", Vector3(lo.x, g + 20.4, lo.y), n3, 0.5, Color(1.0, 0.55, 0.1)])
-	# The big screen on the base's plaza face, a lit panel with an advert.
+		_arkadia_geobent(at + d * 0.35, side, n3, g + 29.2)
+		signs.append(["GEOBENT", Vector3(lo.x, g + 25.4, lo.y), n3, 0.5, SpireMotion.GEO_BLUE])
+		signs.append(["NOSE AGENCY", Vector3(lo.x, g + 20.4, lo.y), n3, 0.5, Color(0.3, 0.55, 1.0)])
+	# The big screen on the base's plaza face: a dark box the screen hangs on; the screen itself,
+	# the game's AROUND WARSAW promo, is arkadia_screen.gd (its own shader, built at runtime).
+	# On the plaza's own ground (the mall's `g` is the lowest point under its whole outline, metres
+	# below the plaza), the ground arkadia_screen.gd stands the screen on.
 	var sc := t + Vector2(1.2, 6.2)
-	_prism(PackedVector2Array([sc + Vector2(-4.6, 0.0), sc + Vector2(4.6, 0.0), sc + Vector2(4.6, 0.6), sc + Vector2(-4.6, 0.6)]),
-			g + 2.6, g + 13.2, Color("#d93d8e"), Color("#333333"), M_LAMP, M_STONE)
-	signs.append(["PROMOCJA", Vector3(sc.x, g + 7.0, sc.y + 0.65), Vector3(0.0, 0.0, 1.0), 0.55, ARKADIA_WHITE])
+	var gs: float = map.ground_height(sc.x, sc.y + 0.65)
+	_prism(PackedVector2Array([sc + Vector2(-6.7, 0.0), sc + Vector2(6.7, 0.0), sc + Vector2(6.7, 0.6), sc + Vector2(-6.7, 0.6)]),
+			gs + 4.4, gs + 12.9, Color("#1c1d24"), Color("#333333"), M_STONE, M_STONE)
 	_collide(_rect(0.0, 0.0, 6.0, 6.0))
+
+
+## The GeoBent mark in lit panels (spire_motion.gd's LOGO, F's screenshot of geobent.pl): a flat
+## open diamond, orange on its upper left and navy on its right, over an orange chevron and a navy
+## one, the three layers of a stack; `at` its middle, `side` along the face, 6 m across.
+func _arkadia_geobent(at: Vector2, side: Vector2, n3: Vector3, y: float) -> void:
+	var orange := SpireMotion.GEO_ORANGE
+	var navy := SpireMotion.GEO_BLUE
+	var none := Vector2(-1, -1)
+	_mode = M_LAMP
+	var pt := func(u: float, v: float) -> Vector3:
+		var q := at + side * u
+		return Vector3(q.x, y + v, q.y)
+	# The diamond: a top half (orange left, navy right) and the front half in navy.
+	_tri(pt.call(-3.0, 0.0), pt.call(0.0, 0.0), pt.call(0.0, 1.6), n3, orange, none, none, none, -1.0, false)
+	_tri(pt.call(0.0, 0.0), pt.call(3.0, 0.0), pt.call(0.0, 1.6), n3, navy, none, none, none, -1.0, false)
+	_tri(pt.call(-3.0, 0.0), pt.call(0.0, -1.2), pt.call(0.0, 0.0), n3, navy, none, none, none, -1.0, false)
+	_tri(pt.call(0.0, -1.2), pt.call(3.0, 0.0), pt.call(0.0, 0.0), n3, navy.darkened(0.2), none, none, none, -1.0, false)
+	# The two chevrons under it, each a band 0.4 m thick.
+	for k in 2:
+		var v0 := -1.7 - k * 0.75
+		var col := orange if k == 0 else navy
+		_tri(pt.call(-3.0, v0 + 1.2), pt.call(0.0, v0), pt.call(-3.0, v0 + 0.8), n3, col, none, none, none, -1.0, false)
+		_tri(pt.call(-3.0, v0 + 0.8), pt.call(0.0, v0), pt.call(0.0, v0 - 0.4), n3, col, none, none, none, -1.0, false)
+		_tri(pt.call(0.0, v0), pt.call(3.0, v0 + 1.2), pt.call(3.0, v0 + 0.8), n3, col, none, none, none, -1.0, false)
+		_tri(pt.call(0.0, v0), pt.call(3.0, v0 + 0.8), pt.call(0.0, v0 - 0.4), n3, col, none, none, none, -1.0, false)
 
 
 ## The rotunda on the brick wing's corner (photos 4, 8): a glass ground floor under yellow café
@@ -6257,3 +6284,118 @@ func _build_cosmopolitan(zone: PackedVector2Array, spec: Dictionary) -> void:
 func _poly_union_box(a: PackedVector2Array, b: PackedVector2Array) -> PackedVector2Array:
 	var u := Geometry2D.merge_polygons(a, b)
 	return u[0] if u.size() >= 1 else a
+
+
+## Widok Towers (Al. Jerozolimskie 44, 2021, 95 m), rebuilt from F's photos and night refs
+## (2026-11-22, refs/widok): not one box but two slabs of dark reflective glass in a white
+## aluminium grid, turned a little to each other, the north-west one to 95 m and the south-east
+## one lower (~84 m), with the circulation core between them as a recessed silver slot a storey
+## over the lower slab. The upper floors overhang a dark glass ground floor lit warm at night;
+## both roofs carry a white parapet and grey plant, red aviation lights on the high one; the
+## low podium wings keep their mapped shapes with a green roof on the Jerozolimskie corner.
+const WIDOK_HIGH := 95.0
+const WIDOK_LOW := 84.0
+const WIDOK_CORE := 87.0
+const WIDOK_LIFT := 7.0                    ## the overhang's underside
+const WIDOK_GLASS := Color("#4f6878")      ## dark reflective glass (the article: black panes)
+const WIDOK_CORE_GLASS := Color("#93a1aa") ## the core's slot, silver
+const WIDOK_ROOF := Color("#c9ccce")
+const WIDOK_BASE := Color("#2e3a42")
+const WIDOK_PODIUM := Color("#56656e")
+const WIDOK_GREEN := Color("#5d7247")
+## The slot's two edges on the map (the outline's notches, east and west).
+const WIDOK_SLOT_N := [Vector2(-750.2, 372.4), Vector2(-768.9, 378.5)]
+const WIDOK_SLOT_S := [Vector2(-749.4, 378.5), Vector2(-767.0, 383.3)]
+
+
+func _build_widok(zone: PackedVector2Array) -> void:
+	_g = _ground_under(zone)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var grid := M_SKIN + float(S_GRID) / 16.0
+	var parts := _parts_in(zone, func(b: Dictionary) -> bool: return float(b["h"]) > float(b["mh"]) + 0.5)
+	var body := PackedVector2Array()
+	var base := PackedVector2Array()
+	for b in parts:
+		var poly := _pts(b["p"])
+		var h := float(b["h"])
+		if h > 90.0:
+			if float(b["mh"]) < 0.5:
+				base = poly
+			body = poly if body.is_empty() else _widok_merge(body, poly)
+			continue
+		if h > 20.0:
+			continue  # a sliver of the core, built whole below
+		if _box_of([poly]).size.length() < 3.0:
+			# the canopy's slim posts along the front
+			_prism(_circle(_centre(poly), 0.25, 8), g - 0.4, g + h, WIDOK_ROOF, WIDOK_ROOF, M_STONE, M_STONE)
+			continue
+		var top := WIDOK_GREEN if h > 14.0 else WIDOK_ROOF.darkened(0.2)
+		var mode := M_STONE if str(b.get("kind", "")) == "service" else M_SKIN + float(S_DARK) / 16.0
+		_prism(poly, g + float(b["mh"]) - (0.4 if float(b["mh"]) < 0.5 else 0.0), g + h, WIDOK_PODIUM, top, mode, M_STONE)
+		_collide(poly)
+	if body.size() < 3:
+		push_warning("landmarks: Widok Towers' mapped tower is missing")
+		return
+	# The ground floor under the overhang: dark glass a metre in, lit warm at night.
+	if base.size() >= 3:
+		var lobby := Geometry2D.offset_polygon(base, -1.0)
+		_prism(lobby[0] if lobby.size() == 1 else base, g - 0.4, g + WIDOK_LIFT, WIDOK_BASE, none, M_PAVILION, M_STONE)
+		_collide(base)
+	var n_side := _widok_half(WIDOK_SLOT_N[0], WIDOK_SLOT_N[1], true)
+	var s_side := _widok_half(WIDOK_SLOT_S[0], WIDOK_SLOT_S[1], false)
+	var high := _widok_cut(body, n_side)
+	var low := _widok_cut(body, s_side)
+	var core := _widok_cut(_widok_cut(body, _widok_half(WIDOK_SLOT_N[0], WIDOK_SLOT_N[1], false)),
+			_widok_half(WIDOK_SLOT_S[0], WIDOK_SLOT_S[1], true))
+	_soffit(body, g + WIDOK_LIFT, WIDOK_ROOF.darkened(0.3))
+	for slab: Array in [[high, WIDOK_HIGH, Vector2(16.0, 9.0)], [low, WIDOK_LOW, Vector2(11.0, 7.0)]]:
+		var poly: PackedVector2Array = slab[0]
+		if poly.size() < 3:
+			continue
+		var top := g + float(slab[1])
+		_prism(poly, g + WIDOK_LIFT, top, WIDOK_GLASS, WIDOK_ROOF, grid, M_STONE)
+		_tower_roof(poly, top, WIDOK_ROOF, slab[2])
+	if core.size() >= 3:
+		var inset := Geometry2D.offset_polygon(core, -1.2, Geometry2D.JOIN_MITER)
+		var c: PackedVector2Array = inset[0] if inset.size() == 1 else core
+		_prism(c, g + WIDOK_LIFT, g + WIDOK_CORE, WIDOK_CORE_GLASS, WIDOK_ROOF, M_SKIN + float(S_BANDS) / 16.0, M_STONE)
+	_collide(body)
+	if high.size() >= 3:
+		var roof_y := func(_q: Vector2) -> float: return g + WIDOK_HIGH + 1.5
+		_aviation(high, roof_y)
+
+
+## The two outlines joined (the tower's mapped part and its overhanging strips).
+func _widok_merge(a: PackedVector2Array, b: PackedVector2Array) -> PackedVector2Array:
+	var m := Geometry2D.merge_polygons(Geometry2D.offset_polygon(a, 0.05)[0], Geometry2D.offset_polygon(b, 0.05)[0])
+	var best := a
+	var area := 0.0
+	for r in m:
+		if not Geometry2D.is_polygon_clockwise(r) or m.size() == 1:
+			var ar := absf(_area(r))
+			if ar > area:
+				area = ar
+				best = r
+	return best
+
+
+## A big square on one side of the line a-b: `north` the side towards -z.
+func _widok_half(a: Vector2, b: Vector2, north: bool) -> PackedVector2Array:
+	var d := (b - a).normalized()
+	var n := Vector2(-d.y, d.x)
+	if (n.y < 0.0) != north:
+		n = -n
+	return PackedVector2Array([a - d * 200.0, b + d * 200.0, b + d * 200.0 + n * 200.0, a - d * 200.0 + n * 200.0])
+
+
+## `poly` clipped to `half`, the largest piece.
+func _widok_cut(poly: PackedVector2Array, half: PackedVector2Array) -> PackedVector2Array:
+	var best := PackedVector2Array()
+	var area := 0.0
+	for r in Geometry2D.intersect_polygons(poly, half):
+		var ar := absf(_area(r))
+		if ar > area:
+			area = ar
+			best = r
+	return best

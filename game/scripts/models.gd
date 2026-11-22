@@ -20,6 +20,7 @@ extends RefCounted
 ## have shrinks to a point in that shape (Shape.hide()).
 
 const PixelFont := preload("res://scripts/pixel_font.gd")
+const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 
 const PAINT := 0.0
 const FIXED := 1.0
@@ -64,10 +65,10 @@ const TRAFFIC := [
 			"paint": ["#2b2c2f", "#e9e9e6", "#6f7378", "#5d6b4e", "#24324a", "#8c8f94"]},
 	],
 	[
-		{"name": "taxi", "share": 0.5, "size": Vector3(1.8, 1.7, 4.6),
+		{"name": "taxi", "share": 0.5, "size": Vector3(1.78, 1.7, 4.6),
 			"paint": ["#f2f2ee", "#e9e9e6", "#d6d8da"]},
-		{"name": "podwozka", "share": 0.5, "size": Vector3(1.74, 2.0, 3.95),
-			"paint": ["#2b2c2f", "#6f7378", "#b8bcc0", "#e9e9e6", "#24324a"]},
+		{"name": "podwozka", "share": 0.5, "size": Vector3(1.92, 2.2, 4.75),
+			"paint": ["#f2f2ee", "#1c1d20", "#6f7378", "#b8bcc0", "#e9e9e6", "#24324a"]},
 		# City-life satire #1 (loud_cars.gd): never a random taxi (share 0); traffic.gd makes a
 		# few of its cars loud ones in this shape. Loud paints, none of them the player's red
 		# and orange or the police's blue: lime, acid yellow, violet, matte black, teal, pearl,
@@ -106,6 +107,7 @@ const AMBULANCE_RED := Color("#d9262c")
 
 static var _material: ShaderMaterial
 static var _glow_material: ShaderMaterial
+static var _umbrella: ArrayMesh
 
 
 ## Loop 2c: the triangles of a model before they become a mesh, flat-shaded, with each
@@ -534,6 +536,22 @@ static func spec(name: String) -> Dictionary:
 					"cowl_z": -0.35, "cowl_y": 0.78, "belt_z": 1.3, "belt_y": 0.84, "tail_y": 0.86, "tail_in": 0.1,
 					"roof_y": 1.12, "roof_z0": 0.15, "roof_z1": 0.72, "gw0": 0.86, "gw1": 0.6, "r": 0.34,
 					"axle_f": -1.42, "axle_r": 1.4, "bp": 0.62}, true)
+		"liftback":
+			# The city taxi (2026-11-19, F: "toyota prius"): Warsaw's taxis are mostly hybrid
+			# liftbacks, no marque: a low wedge nose, a long raked windscreen, the roof's peak
+			# forward, one long sloping rear pane down to a high, cut-off tail.
+			p.merge({"L": 4.6, "W": 0.88, "sill": 0.3, "bump_f": 0.5, "bump_r": 0.6, "nose": 0.74, "nose_in": 0.18,
+					"cowl_z": -1.02, "cowl_y": 0.92, "belt_z": 2.1, "belt_y": 1.03, "tail_y": 1.03, "tail_in": 0.04,
+					"roof_y": 1.46, "roof_z0": -0.38, "roof_z1": 0.42, "gw0": 0.84, "gw1": 0.68, "r": 0.31,
+					"axle_f": -1.4, "axle_r": 1.36, "bp": 0.5}, true)
+		"crossover":
+			# Podwózka's car (2026-11-19, F: "tesla y"): an electric crossover, no marque: a smooth
+			# rounded nose with no grille height, a tall body, a fastback roof falling in one curve
+			# to a short tail.
+			p.merge({"L": 4.75, "W": 0.95, "sill": 0.4, "bump_f": 0.62, "bump_r": 0.68, "nose": 0.9, "nose_in": 0.22,
+					"cowl_z": -1.0, "cowl_y": 1.06, "belt_z": 2.12, "belt_y": 1.1, "tail_y": 1.1, "tail_in": 0.08,
+					"roof_y": 1.64, "roof_z0": -0.2, "roof_z1": 0.72, "gw0": 0.9, "gw1": 0.72, "r": 0.37,
+					"axle_f": -1.45, "axle_r": 1.45, "bp": 0.48}, true)
 		"city car":
 			p.merge({"L": 3.4, "W": 0.8, "sill": 0.3, "bump_f": 0.52, "bump_r": 0.52, "nose": 0.82, "nose_in": 0.14,
 					"cowl_z": -0.85, "cowl_y": 0.98, "belt_z": 1.48, "belt_y": 1.0, "tail_y": 0.98, "tail_in": 0.04,
@@ -632,8 +650,8 @@ static func traffic_mesh(kind: int) -> ArrayMesh:
 	return bus_mesh()
 
 
-## The city taxi (an invented livery: a white saloon with a yellow band of dark squares along
-## the doors and a lit yellow roof sign) or Podwózka, the app taxi (parodies.md 3.1: a hatch
+## The city taxi (an invented livery: a white hybrid liftback with a yellow band of dark squares along
+## the doors and a lit yellow roof sign) or Podwózka, the app taxi (parodies.md 3.1: an electric crossover
 ## in its own paint with a phone standing on the roof, its screen lit). City-life satire #1
 ## (loud_cars.gd, 2026-11-02): `which` 2 is the loud supercar that shares the taxis' MultiMesh
 ## (no draw call of its own): a low, wide wedge with no badge and no marque, a carbon wing on
@@ -650,7 +668,7 @@ const TAXI_PASAT := 3
 static func _taxi(which: int) -> Shape:
 	var s := Shape.new()
 	var city := which == TAXI_CITY
-	var p := spec(["saloon", "hatch", "supercar", "estate"][which])
+	var p := spec(["liftback", "crossover", "supercar", "estate"][which])
 	_vehicle(s, p, fin(Color.WHITE, PAINT))
 	var roof_y: float = p["roof_y"]
 	var mid := Vector3(0.0, roof_y - 0.2, (p["roof_z0"] + p["roof_z1"]) * 0.5)
@@ -1302,6 +1320,80 @@ static func tram_mesh(cab: bool, rear := false) -> ArrayMesh:
 
 
 ## A pedestrian 1.75 m tall: trousers (palette), shirt (instance paint), skin, hair.
+## A rain umbrella over a person (F, 2026-11-19, teaser 2: "model the people with umbrellas"):
+## an eight-panel canopy in the instance's shirt colour (PAINT, alternate panels a shade darker,
+## a darker underside) on a dark shaft in the right hand, in person_mesh's space. Drawn by
+## umbrella_twin's MultiMesh from the people's own instance buffer, only while it rains.
+static func umbrella_mesh() -> ArrayMesh:
+	if _umbrella != null:
+		return _umbrella
+	var st := _begin()
+	box(st, Vector3(0.22, 1.66, 0.06), Vector3(0.035, 0.9, 0.035), Color("#1c1c22"), FIXED)
+	var top := Vector3(0.12, 2.24, 0.04)
+	const R := 0.6
+	const RIM := 2.02
+	for k in 8:
+		var a0 := TAU * k / 8.0
+		var a1 := TAU * (k + 1) / 8.0
+		var p0 := Vector3(top.x + cos(a0) * R, RIM, top.z + sin(a0) * R)
+		var p1 := Vector3(top.x + cos(a1) * R, RIM, top.z + sin(a1) * R)
+		var n := (p0 - top).cross(p1 - top).normalized()
+		if n.y < 0.0:
+			n = -n
+		var shade := 1.0 if k % 2 == 0 else 0.82
+		for face in [1.0, -1.0]:
+			var tri: Array[Vector3] = [top, p0, p1]
+			var fn: Vector3 = n * face
+			if (tri[1] - tri[0]).cross(tri[2] - tri[0]).dot(fn) > 0.0:
+				tri = [top, p1, p0]
+			var c := Color(shade, shade, shade) if face > 0.0 else Color(0.45, 0.45, 0.45)
+			for v in tri:
+				st.set_color(c)
+				st.set_normal(fn)
+				st.set_uv(Vector2(PAINT, 0.0))
+				st.add_vertex(v)
+	box(st, top + Vector3(0, 0.05, 0), Vector3(0.04, 0.1, 0.04), Color("#1c1c22"), FIXED)
+	_umbrella = st.commit()
+	return _umbrella
+
+
+## A hidden twin of a people MultiMeshInstance3D (already in the tree) that draws umbrella_mesh
+## from the same instance buffer: send it the buffer the people get and call `rain_sync`. +1 draw
+## call while it rains and people are shown, none otherwise.
+static func umbrella_twin(src: MultiMeshInstance3D) -> MultiMeshInstance3D:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_custom_data = true
+	InstanceBuffers.prepare(mm)
+	mm.mesh = umbrella_mesh()
+	mm.instance_count = src.multimesh.instance_count
+	mm.custom_aabb = src.multimesh.custom_aabb
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = src.name + "Umbrellas"
+	mmi.multimesh = mm
+	mmi.material_override = src.material_override
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	mmi.visible = false
+	src.get_parent().add_child(mmi)
+	return mmi
+
+
+## Keeps an umbrella twin in step with its people: shown when they are and it rains, the same
+## visible count and box. Sends `buf` too when given (whenever the people's buffer is sent, rain or
+## not, so the umbrellas are in place the moment the rain starts).
+static func rain_sync(twin: MultiMeshInstance3D, src: MultiMeshInstance3D, raining: bool, buf := PackedFloat32Array()) -> void:
+	if twin == null:
+		return
+	var on := raining and src.visible and src.is_visible_in_tree()
+	if not buf.is_empty():
+		InstanceBuffers.send(twin.multimesh.get_rid(), buf)
+	twin.multimesh.visible_instance_count = src.multimesh.visible_instance_count
+	twin.multimesh.custom_aabb = src.multimesh.custom_aabb
+	if twin.visible != on:
+		twin.visible = on
+
+
 static func person_mesh() -> ArrayMesh:
 	var st := _begin()
 	for side in [-1.0, 1.0]:

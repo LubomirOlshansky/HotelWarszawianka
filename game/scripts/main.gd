@@ -241,6 +241,8 @@ var _xray: Node3D
 const DECK_XRAY_EVERY := 4
 var _deck_hid := false
 var heli: Node3D
+## Teaser 5 (F, 2026-11-21): the promo shot's second helicopter (--promo-heli), or null.
+var promo_heli: Node3D
 var missions: Node
 var hud: CanvasLayer
 ## The living city (absent with --no-traffic): lane graph, traffic, trams,
@@ -516,7 +518,7 @@ var fans: Fans
 var event_day: EventDay
 ## Wellness circles (wellness.gd); flags --wellness=0 (none), --wellness-now (every spot on at any hour), --wellness-log.
 var wellness: Wellness
-## The garage loop (garage.gd): Warsztat u Mirka on Brzeska; flags --paint=<id> (the car starts in
+## The garage loop (garage.gd): Warsztat u Mirka on Twarda; flags --paint=<id> (the car starts in
 ## that paint, owned for the run), --garage (the car in the garage's ring, the card open; the
 ## garage shown whatever the wallet), --garage-log (`garage:` lines).
 var garage: Garage
@@ -1440,6 +1442,8 @@ func _build_world() -> void:
 				works.free()
 	else:
 		map = MapBuilder.new()
+		if flags.season == "summer":
+			map.season = "summer"  # the runtime proxies' leaf colours (dev_flags --season)
 		world.add_child(map)
 		data = map.build(MAP_PATH, building_mat, flat_mat)
 		map.open_maps_whole()  # loop 3d-2b: every sector's map slices on the GPU at once
@@ -1513,6 +1517,7 @@ func _build_world() -> void:
 	heli.set_map(map)  # map north: the L-shaped outline, not the bounding box
 	world.add_child(heli)
 	heli.landed.connect(_on_heli_landed)
+	promo_heli = PromoMode.make_heli(flags.promo_heli, map, world)  # --promo-heli (videos), or null
 
 	cam = Camera3D.new()
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -1922,6 +1927,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	trams.traffic = traffic
 	traffic.trams = trams
 	_first_scene_trams()
+	PromoMode.traffic_on_cue(flags, get_tree(), trams, traffic, graph)  # --promo-at (videos)
 	trains = Trains.new()
 	world.add_child(trains)
 	trains.setup(map, data)
@@ -1931,6 +1937,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	if flags.train_at != Vector2.INF:
 		trains.place_near(flags.train_at, flags.train_kind)
 	walkers = Pedestrians.new()
+	walkers.weather = weather
 	world.add_child(walkers)
 	await walkers.setup(map, cam, traffic, data)
 	await LoadYield.tick("walkers.setup")
@@ -1944,6 +1951,10 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	# tram stop in front of it, busy at every hour.
 	busy = walkers.add_busy(LIM_BUSY_O, LIM_BUSY_S, LIM_BUSY_T, LIM_BUSY_BANDS, LIM_BUSY_BOX)
 	print("centrum lim: %d busy pavement points" % busy)
+	# F (2026-11-21, teaser 4: "more pedestrians waiting and walking"): the pavements round Rondo
+	# de Gaulle'a, the palm's footways and crossings, busy too.
+	busy = walkers.add_busy(GAULLE_BUSY_O, Vector2(1, 0), Vector2(0, 1), GAULLE_BUSY_BANDS, GAULLE_BUSY_BOX)
+	print("rondo de gaulle: %d busy pavement points" % busy)
 	traffic.bumped_driver.connect(dialogue.on_driver_bumped)
 	traffic.blocked_by_player.connect(dialogue.on_driver_blocked)
 	# The street racers (rivals.gd wires itself; its setup reads the map data), under main.gd. The
@@ -1999,6 +2010,11 @@ const LIM_BUSY_S := Vector2(0.946, -0.325)
 const LIM_BUSY_T := Vector2(-0.325, -0.946)
 const LIM_BUSY_BANDS := [[-15.0, 160.0, -7.0, 14.0], [-45.0, 70.0, 14.0, 45.0]]
 const LIM_BUSY_BOX := Rect2(-1480.0, 600.0, 230.0, 130.0)
+const GAULLE_BUSY_O := Vector2(-213.9, 238.5)
+## Not the Party House's terrace and drums (F 2026-11-21: a walker went up its wall): the band
+## stops 30 m east of the palm north of z +30.
+const GAULLE_BUSY_BANDS := [[-80.0, 80.0, -80.0, 30.0], [-80.0, 50.0, 30.0, 80.0]]
+const GAULLE_BUSY_BOX := Rect2(-310.0, 150.0, 200.0, 190.0)
 const MARSZALKOWSKA_NORTH := Vector2(-0.349, -0.937)
 const FIRST_UP_V := 7.0
 const FIRST_DOWN_V := 8.0
@@ -2143,6 +2159,9 @@ func _apply_traffic() -> void:
 			traffic.density = density
 	if walkers != null:
 		walkers.limit = maxi(4, roundi(float(Tiers.value(quality, "people")) * float(Settings.PEOPLE[traffic_level]) * float(Governor.PEOPLE[governor.cpu])))
+		var want_people := flags.people  # --people=N (videos)
+		if want_people > 0:
+			walkers.limit = mini(want_people, Pedestrians.MAX)
 
 
 ## Loop G1: the governor's clock, seconds since the game started.
@@ -2507,6 +2526,7 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	zamkowy_life = PlacZamkowyLife.new()
 	world.add_child(zamkowy_life)
 	zamkowy_life.setup(map)
+	zamkowy_life.use_flags(flags)  # --pigeons-at (videos)
 
 
 # --- loop MW-1: MOJA WARSZAWA, the notebook --------------------------------------------------
@@ -2600,6 +2620,7 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 	crowds.police = police
 	crowds.sounds = city_sounds
 	crowds.log_on = flags.night_log
+	crowds.weather = weather
 	crowds.amount = _crowd_scale()
 	crowds.meet_on = flags.loud_flag != 0
 	crowds.clock = tod.local_clock
@@ -2879,7 +2900,7 @@ func _build_first10() -> void:
 		first10.race_at = 1.0
 
 
-## Warsztat u Mirka (garage.gd): its ring on Brzeska, the car's saved paint (or --paint), the card
+## Warsztat u Mirka (garage.gd): its ring on Twarda, the car's saved paint (or --paint), the card
 ## that pauses the game like the settings card.
 func _build_garage(world: Node3D) -> void:
 	garage = Garage.new()
@@ -3678,6 +3699,7 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 	if flags.life_flag == 0 or notes == null or not notes.ready_ok:
 		return
 	life = CityLife.new()
+	life.use_flags(flags)  # --scoot-gang (videos)
 	life.name = "CityLife"
 	life.map = map
 	life.dialogue = dialogue
@@ -5776,6 +5798,8 @@ func _process(dt: float) -> void:
 		zamkowy_life.tick(pos, heli.vel if flying else car.vel, flying)
 	car.lights = tod.lights_on
 	heli.lights = tod.lights_on
+	if promo_heli != null:
+		promo_heli.lights = tod.lights_on
 	car.wet = weather.wet
 	if sfx != null:
 		sfx.flying = flying
@@ -7044,6 +7068,9 @@ func _apply_cam(i: int) -> void:
 		base_size = c["size"]
 
 
+## How high over the focus the free camera's bottom edge stays (m): above the tallest ground near it.
+const FREE_CAM_CLEAR := 80.0
+
 ## --cam: the free camera's frame (see free_cam): the view fixed on its point.
 func _update_free_camera() -> void:
 	var focus := _free_cam_at
@@ -7054,10 +7081,17 @@ func _update_free_camera() -> void:
 	cam_focus = focus
 	cam_yaw_target = cam_yaw
 	_view_size = base_size
-	var xf := FollowCamera.free_view(focus, cam_yaw, _view_pitch(), _view_size, CAMERA_DISTANCE)
+	# F (2026-11-21, the stadium reel: a blue strip under the frame): a wide, shallow view's bottom
+	# edge started below the ground, so the ground nearest the screen's foot lay behind the near
+	# plane and the sky's colour showed. Back far enough that the bottom edge stays FREE_CAM_CLEAR m
+	# over the focus (an orthographic view looks the same from any distance).
+	var sp := sin(deg_to_rad(maxf(absf(_view_pitch()), 5.0)))
+	var cp := cos(deg_to_rad(_view_pitch()))
+	var dist := maxf(CAMERA_DISTANCE, (0.5 * _view_size * cp + FREE_CAM_CLEAR) / sp)
+	var xf := FollowCamera.free_view(focus, cam_yaw, _view_pitch(), _view_size, dist)
 	cam.size = _view_size
 	cam.global_transform = Transform3D(xf.basis, _snap_to_pixels(xf.origin, xf.basis, _view_size))
-	cam.far = _camera_far(maxf(CAMERA_DISTANCE, cam.size * 1.6), _view_size)
+	cam.far = _camera_far(maxf(dist, cam.size * 1.6), _view_size)
 
 
 ## A point moved onto the pixel grid of a view `size` m tall turned `basis` (across and up the
