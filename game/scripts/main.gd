@@ -794,7 +794,7 @@ func _ready() -> void:
 		if start_index < 0:
 			push_warning("--station=%s: no such station in radio.json" % flags.station_flag)
 	# First scene item 7: a first launch hears the song from its first bar.
-	radio.from_top = flags.show_title and First10.guide_due(wallet)
+	radio.from_top = flags.show_title and First10.first_launch(wallet)
 	radio.tune(start_index, true)
 	print("save: %s (%s)" % [wallet.summary(), ProjectSettings.globalize_path(Wallet.PATH) if not flags.no_save else "not saved"])
 	_resume_start()  # save and resume: the car where the last session left it
@@ -1020,7 +1020,9 @@ func _resume_start() -> void:
 	# F (2026-11-17): while the guide is still due (a fresh save: the first launch, or one quit
 	# before the first job) the opening starts at the Palace and the car at First10.START, never
 	# at a spot a first session left behind. `--resume` (the tests) still places it.
-	if flags.resume_flag.is_empty() and First10.guide_due(wallet):
+	# 2026-11-22: the guide's first launch only (First10.first_launch); a later session of an
+	# unfinished guide starts where it left off.
+	if flags.resume_flag.is_empty() and First10.first_launch(wallet):
 		print("resume: a fresh save, the opening starts at the Palace")
 		return
 	start_at = spot[0]
@@ -1261,7 +1263,7 @@ var _opening_audio: Node
 func _opening_due() -> bool:
 	if flags._flag_cinematic == "opening":
 		return true
-	return flags.cinematic_flyin and not flying and flags._flag_cinematic == "" and first10 != null and first10.guide
+	return flags.cinematic_flyin and not flying and flags._flag_cinematic == "" and first10 != null and first10.opening
 
 
 ## Camera loop: the fly-in from over the city down to the car (camera_shots.gd), or the opening
@@ -2687,7 +2689,7 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 func _guide_start() -> void:
 	if start_at != Vector3.INF or start_heading != INF or not (flags.first10_flag or flags.show_title):
 		return
-	if not First10.guide_due(wallet):
+	if not First10.first_launch(wallet):
 		return
 	start_at = Vector3(First10.START.x, 0.0, First10.START.y)
 	start_heading = First10.START_HEADING
@@ -4237,7 +4239,7 @@ func _radio_greeting() -> void:
 	# opening flyover: the first-10 guide is due), never on every launch.
 	# F (2026-11-05): every later launch gets her spoken greeting (greeting_clips.gd) instead; the
 	# first start and a new game keep the opening line only.
-	var later := first10 == null or not first10.guide
+	var later := first10 == null or not first10.opening
 	await get_tree().create_timer(4.0).timeout
 	if not is_inside_tree() or radio == null or dialogue == null:
 		return

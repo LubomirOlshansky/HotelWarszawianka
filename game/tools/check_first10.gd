@@ -4,7 +4,10 @@ extends SceneTree
 ## - the beats a replay must see are the finger, the stand, the order, the choice card and the nine
 ##   intros, each window holds the first hour's time ("First hour for the beta", the hour as it
 ##   would play), and the windows are in order;
-## - `guide_due` only on a fresh save (a job, złoty, a rung or a finished guide: never);
+## - `guide_due` only on a fresh save (a job, złoty, a rung or a finished guide: never), or on one
+##   where the guide began and has not finished (złoty earned since: still on); `first_launch` only
+##   until the opening was seen; `restored` brings an earlier session's beats back (the kebab arrow
+##   with no order counts as let go), so nothing is made twice;
 ## - players on a synthetic clock through `decide` and `met` (the director's rules) with a toy city
 ##   (a delivery takes 75 s, a race 60 s, a rescue 90 s, ...): an ordinary player (touches at once,
 ##   orders at 0:35, picks RACE, does what each intro offers) gets the choice card CHOICE_AFTER s
@@ -137,8 +140,38 @@ func _due() -> void:
 	w.ladder["halina"] = 20261031
 	_expect(not First10.guide_due(w), "a rung beaten: no guide")
 	_expect(not First10.guide_due(null), "no wallet: no guide")
+	# 2026-11-22: a guide once begun carries on in later sessions, whatever was earned since.
+	w.ladder.clear()
+	w.intro.clear()
+	_expect(First10.first_launch(w), "a fresh save: the first launch (the opening)")
+	w.intro[First10.GUIDE_KEY] = 20261122
+	w.intro[First10.OPENED_KEY] = 20261122
+	_expect(not First10.first_launch(w), "the opening seen: no flyover, no Palace start again")
+	w.zl = 50
+	w.jobs["kebab"] = 1
+	_expect(First10.guide_due(w), "a guide begun carries on with a kebab and 50 zł in the save")
+	_expect(not First10.first_launch(w), "... but not as a first launch")
+	w.intro["done"] = 20261122
+	_expect(not First10.guide_due(w), "a begun guide ends at done")
+	var r := First10.restored({"finger": 1, "stand": 1, "fs_heli": 1, "beta_pick": 2, "guide": 1})
+	_expect(r.has("finger") and r.has("stand") and r.has("lure") and not r.has("order"),
+			"restored: finger, stand, and the kebab let go with no order: %s" % [r])
+	_expect(not r.has("fs_heli") and not r.has("beta_pick") and not r.has("guide"), "restored: beats only: %s" % [r])
+	r = First10.restored({"finger": 1, "stand": 1, "order": 1, "beta": 1, "choice": 1, "race": 1})
+	_expect(not r.has("lure") and r.has("choice") and r.has("race"), "restored: an order taken is not a kebab let go: %s" % [r])
+	# The restored beats are not made again; the next intro comes after NEXT_GAP s of free driving.
+	var f := {"free": true, "free_for": 0.0, "input": false, "delivered_t": -1.0, "want": [], "ways": {}}
+	for id: String in r:
+		f["ways"][id] = "saved"
+	var now := First10.RESTORED_AT + 1.0
+	var out := First10.decide(now, f, r)
+	_expect(not "finger" in out and not "stand" in out and not "beta" in out and not "choice" in out,
+			"a resumed session makes no beat again: %s" % [out])
+	f["free_for"] = First10.NEXT_GAP
+	out = First10.decide(now + First10.NEXT_GAP, f, r)
+	_expect(out == ["trap"], "a resumed session (the race restored, nothing earned yet): the police next after NEXT_GAP s: %s" % [out])
 	w.free()
-	_summary.append("fresh saves only")
+	_summary.append("fresh saves, then resumed")
 
 
 ## A toy city for `decide` and `met`: the player's plan and how long things take.
@@ -575,6 +608,8 @@ func _beta() -> void:
 	_expect(First10.BETA_AFTER < First10.CHOICE_AFTER and First10.BETA_LATEST < First10.CHOICE_LATEST, "pacing.json: the beta card before the choice card (%.0f < %.0f, %.0f < %.0f)"
 			% [First10.BETA_AFTER, First10.CHOICE_AFTER, First10.BETA_LATEST, First10.CHOICE_LATEST])
 	var w := First10.beta_words()
+	_expect(not "kebab" in str(w["body"][1]).to_lower(), "the beta card without a kebab delivered says nothing of one: %s" % [w["body"]])
+	_expect("kebab" in str(First10.beta_words(true)["body"][1]).to_lower(), "... and with one: \"just a kebab\"")
 	_expect((w["buttons"] as PackedStringArray).size() == 2, "the beta card: SEE QUESTS and DRIVE ON: %s" % [w["buttons"]])
 	for k: String in ["title", "body"]:
 		var pair: Array = w[k]

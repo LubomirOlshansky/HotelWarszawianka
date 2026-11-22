@@ -28,7 +28,7 @@ const Ladder := preload("res://scripts/ladder.gd")
 ## The keys the code asks for besides the ones built from ids (tab_*, job_*, step_*_about ...).
 const KEYS := ["quests", "new", "next", "tracked", "invite", "invite_later", "quit", "quit_sure", "empty", "busy",
 		"b_map", "b_untrack", "b_phone", "b_start", "b_race", "b_race_any", "b_night", "b_back", "b_route",
-		"b_details", "b_show_quests", "b_show_drive", "show_title", "show_body", "pad_map", "v_zl",
+		"b_details", "b_show_quests", "b_show_drive", "show_title", "show_body", "show_body_open", "pad_map", "v_zl",
 		"steps_head", "stories_head", "friends_wait", "rivals_head", "final", "final_about", "rival_about",
 		"r_step", "r_step3", "r_step7", "v_step_done", "v_any", "v_hours", "v_closed", "v_open", "v_times",
 		"v_not_yet", "v_no_start", "v_on_request", "v_found", "f_done", "f_reward", "f_where", "f_with",
