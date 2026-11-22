@@ -10529,7 +10529,10 @@ func _promo_uplight(x: float, z: float, h: float) -> float:
 	var v := d.dot(Vector2(-a.y, a.x))
 	if u < 50.0 or u > 128.0 or v < 25.0 or v > 115.0:
 		return 0.0
-	return 0.9 if fposmod(h * 13.7, 1.0) < 0.3 else 0.4
+	var pick := fposmod(h * 13.7, 1.0)
+	if pick > 0.55:
+		return 0.0  # about half stay dark: a few spotlights, not a whole grove
+	return 0.9 if pick < 0.15 else 0.4
 
 
 ## The instance colour: only the tree's own (a little lighter or darker, warmer or cooler); the

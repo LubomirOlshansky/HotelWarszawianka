@@ -233,8 +233,11 @@ void fragment() {
 	if (lights_on > 0.001) {
 		EMISSION = col * lamp_light(world_pos.xz) * (1.0 - smoothstep(1.5, 8.5, lift_h)) * 2.0 * lights_on;
 		if (uplight > 0.1) {
-			vec3 hue = uplight > 0.65 ? vec3(1.0, 0.08, 0.22) : vec3(0.12, 1.0, 0.3);
-			EMISSION += hue * (0.25 + 0.75 * (1.0 - smoothstep(1.5, 7.5, lift_h))) * 0.55 * lights_on;  // was 0.9: flat and too strong (look check 3)
+			// Lit from below (look check 3: flat neon lollipops): deeper hues, bright at the underside,
+			// falling off to almost nothing at the top.
+			vec3 hue = uplight > 0.65 ? vec3(0.75, 0.05, 0.12) : vec3(0.22, 0.85, 0.12);
+			float under = 1.0 - smoothstep(1.5, 6.5, lift_h);
+			EMISSION += hue * (0.06 + 0.6 * under * under) * 0.45 * lights_on;
 		}
 	}
 
