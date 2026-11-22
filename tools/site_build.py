@@ -220,7 +220,7 @@ on the store buttons are counted as a number per button and country, with nothin
 message) to our own server on Cloudflare, which keeps it in a database and mails it to the
 developer's inbox; a one-way hash of your IP address and your country are kept only to stop
 abuse. The email is used only to send a beta invite or to reply, and is deleted on request
-(write on Telegram, @olshansky93, or through the Support page).</p>
+(write through the Support page).</p>
 <p>aroundwarsaw.app nie używa ciasteczek ani skryptów śledzących. Stronę serwuje Cloudflare,
 który przetwarza zwykłe dane żądań (np. adresy IP) wyłącznie po to, by ją dostarczyć i chronić,
 i pokazuje autorowi anonimowe sumy (odwiedziny dziennie, kraj). Kliknięcia przycisków sklepów
@@ -229,7 +229,7 @@ Formularze zapisu do bety i opinii wysyłają to, co wpiszesz (e-mail, rodzaj te
 wiadomość), na nasz serwer w Cloudflare, który zapisuje to w bazie i wysyła do skrzynki autora;
 jednokierunkowy skrót adresu IP i kraj są przechowywane tylko po to, by ograniczyć nadużycia.
 E-mail służy tylko do wysłania zaproszenia do bety albo odpowiedzi i zostanie usunięty na prośbę
-(napisz na Telegramie, @olshansky93, albo przez stronę Wsparcie).</p>
+(napisz przez stronę Wsparcie).</p>
 """
 
 
