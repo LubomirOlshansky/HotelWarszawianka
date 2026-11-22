@@ -99,7 +99,7 @@
  ],
  "quests": {
   "frame": {
-   "img": "quests-screen",
+   "img": "quests-screen-new",
    "w": 1920,
    "h": 884
   },
