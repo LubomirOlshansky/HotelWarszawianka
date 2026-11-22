@@ -27,6 +27,8 @@ varying vec3 world_pos;
 // Height of the vertex above the tree's (or parked car's) foot, for the lamp light.
 varying float lift_h;
 varying vec3 paint;
+// The Jarmark promo's coloured uplights (map_builder `_promo_uplight`): 0 none, 0.4 green, 0.9 red.
+varying float uplight;
 // Trees thread (2026-11-15): the leaves left on this crown (1 full, 0 bare), worked out in vertex()
 // from the season and the kind; parked cars and trunks keep 1. And 1 on the crown's limbs (UV 1, 1
 // in map_builder.gd _broadleaf_mesh): bark, no lumps, dapple or holes.
@@ -142,6 +144,7 @@ void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	lift_h = VERTEX.y;
 	paint = COLOR.rgb * tint;
+	uplight = INSTANCE_CUSTOM.b;
 	leaves = 1.0;
 	bark = 0.0;
 	holes = 0.0;
@@ -229,6 +232,10 @@ void fragment() {
 	SPECULAR = 0.15;
 	if (lights_on > 0.001) {
 		EMISSION = col * lamp_light(world_pos.xz) * (1.0 - smoothstep(1.5, 8.5, lift_h)) * 2.0 * lights_on;
+		if (uplight > 0.1) {
+			vec3 hue = uplight > 0.65 ? vec3(1.0, 0.08, 0.22) : vec3(0.12, 1.0, 0.3);
+			EMISSION += hue * (0.25 + 0.75 * (1.0 - smoothstep(1.5, 7.5, lift_h))) * 0.9 * lights_on;
+		}
 	}
 
 	float d = length(VERTEX.xy - car_view.xy);
