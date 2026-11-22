@@ -438,8 +438,8 @@ func _tube_glow() -> void:
 		var q1: Vector2 = q[1]
 		var length := q0.distance_to(q1)
 		var c: Vector2 = (q0 + q1 + (q[2] as Vector2) + (q[3] as Vector2)) * 0.25
-		var r := q1.distance_to(q[2]) * 0.5 - 0.2
-		_barrel_glow(c, (q1 - q0) / length, length - 0.2, r, map.terrain_height(c.x, c.y) + 1.0, Color(0.78, 0.94, 0.84))  # brighter white-green (F 2026-11-22: light the metro entrances as in the reels)
+		var r := q1.distance_to(q[2]) * 0.5 + 0.06  # just outside the glass shell (was -0.2: the shell hid the glow, look check 2)
+		_barrel_glow(c, (q1 - q0) / length, length + 0.1, r, map.terrain_height(c.x, c.y) + 1.0, Color(0.78, 0.94, 0.84))  # brighter white-green (F 2026-11-22: light the metro entrances as in the reels)
 
 
 ## The kurant's maypole (drone-wide-palace.png, pyramid-real.png; the kit's kurant stands in
