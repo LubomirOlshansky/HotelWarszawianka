@@ -725,7 +725,7 @@ func _apply(look: Dictionary) -> void:
 		var k := clampf((lights_on - 0.5) * 2.0, 0.0, 1.0)
 		env.glow_enabled = glow_allowed
 		env.glow_hdr_threshold = lerpf(0.62, 1.0, k)
-		env.glow_intensity = lerpf(env.glow_intensity, 0.8, k)  # 1.15 read glossy at 2x (F 2026-11-21)
+		env.glow_intensity = lerpf(env.glow_intensity, 0.95, k)  # 1.15 read glossy at 2x (F 2026-11-21)
 		promo_glow_base = env.glow_intensity
 		promo_env = env
 		env.glow_intensity = promo_glow_base * promo_glow_share

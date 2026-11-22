@@ -22,7 +22,7 @@ global uniform float lights_on;
 uniform float px_floor = 1.3;
 // F's look check 1 (2026-11-21): the aisles read nearly white; every bulb about 40 % down, the kit's lit
 // surfaces under the city's 2.4 (grade D: soft highlights, matte).
-uniform float bulb_gain = 0.9;  // was 0.6: too dark (F 2026-11-22)
+uniform float bulb_gain = 1.0;  // was 0.6: too dark (F 2026-11-22)
 uniform float lamp_gain = 1.1;
 
 varying float mode;
@@ -102,7 +102,7 @@ void fragment() {
 		e = m * 2.2;
 		on = max(on, 0.35);
 	} else if (mode > 22.5 && mode < 23.5) {
-		e = col * 0.4;  // was 1.15: the metro tubes washed white over the tree (look check 1)
+		e = col * 0.85;  // F 2026-11-22: lit like the reels; was 0.4, before that 1.15: the metro tubes washed white over the tree (look check 1)
 	} else if (mode > 23.5 && mode < 24.5) {
 		e = col * 1.8;
 	} else if (mode > 25.5 && mode < 26.5) {

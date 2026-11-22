@@ -137,7 +137,7 @@ func _process(_dt: float) -> void:
 		return
 	var view_m := cam.size if cam.projection == Camera3D.PROJECTION_ORTHOGONAL else 80.0
 	var wide := smoothstep(60.0, 110.0, view_m)
-	var share := lerpf(0.72, 1.0, wide)  # was 0.4: too dark (F 2026-11-22)
+	var share := lerpf(0.82, 1.0, wide)  # was 0.4: too dark (F 2026-11-22)
 	if absf(share - TimeOfDay.promo_glow_share) < 0.005:
 		return
 	TimeOfDay.promo_glow_share = share
@@ -426,7 +426,7 @@ func _pavilion_glow() -> void:
 	var hw: float = (q[0] as Vector2).distance_to(q[1]) * 0.5
 	var c := (mouth + far) * 0.5
 	_barrel_glow(c, (mouth - far) / length, length - 0.2, hw - 0.05, map.terrain_height(c.x, c.y) + 1.1,
-			Color(0.34, 0.33, 0.3), 1.0)
+			Color(0.55, 0.53, 0.47), 1.0)  # was 0.34: a little brighter (F 2026-11-22)
 
 
 ## Metro Centrum's two glass tubes in the market (centre.gd METRO_TUBES, built as `_glass_barrel`: the
@@ -439,7 +439,7 @@ func _tube_glow() -> void:
 		var length := q0.distance_to(q1)
 		var c: Vector2 = (q0 + q1 + (q[2] as Vector2) + (q[3] as Vector2)) * 0.25
 		var r := q1.distance_to(q[2]) * 0.5 - 0.2
-		_barrel_glow(c, (q1 - q0) / length, length - 0.2, r, map.terrain_height(c.x, c.y) + 1.0, Color(0.5, 0.66, 0.56))
+		_barrel_glow(c, (q1 - q0) / length, length - 0.2, r, map.terrain_height(c.x, c.y) + 1.0, Color(0.78, 0.94, 0.84))  # brighter white-green (F 2026-11-22: light the metro entrances as in the reels)
 
 
 ## The kurant's maypole (drone-wide-palace.png, pyramid-real.png; the kit's kurant stands in
