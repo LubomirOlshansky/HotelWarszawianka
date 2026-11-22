@@ -5361,6 +5361,13 @@ ceiling for a default view).
 | Loop G1: TEST · BENCH at Auto on the iPhone 11 (High, 896×414) and the Pro Max (Ultra, 1434×660), 60 fps cap | 60 fps, 1 % low 56.6 / 57.3, 0 missed refreshes | 60, 0 missed refreshes, 1 % low ≥ 55 | 60, 0 missed refreshes, 1 % low ≥ 55 |
 | Loop G1b: the iPhone 11 at Auto, now High ×1 sharp (1792×828): BENCH minute, and a 15-minute day drive with the governor on (missed refreshes, governor changes) | BENCH 60 fps, 0 missed, 1 % low 54.4 / 58.7 (cool / warm); drive 60.0 every minute, 5 missed in 17.7 min, 0 governor changes | 60, 0 missed refreshes, 1 % low ≥ 55; the drive with no struggle verdict | 60, 0 missed refreshes, 1 % low ≥ 55; the drive with no struggle verdict (else the content costs the iPhone 11 its sharp default) |
 
+**Jarmark Warszawski 2026 (2026-11-22, #1006).** The market at the Palace is one site mesh of
+190,815 triangles (was 69,003; `check_mesh_quality` budget 192,000), +0 draw calls. That is a
+large share of the main-pass triangle ceiling in any view of the Palace. No TestFlight or Play
+build from a main that holds it until the iPhone bench near the Palace is done (needs F's yes for
+the device run). If the bench is tight, the cut is a segment-count change in `jarmark_kit.gd`
+(bulbs on strings and chalets first).
+
 **The bench's window (performance lane, 2026-10-30).** On macOS 27 a small window waits about
 4 ms in the draw/present step whatever is drawn: at the default 1280×720 the bench's frame
 reads 5.6–6.3 ms (main-thread "draw" 4.0–4.6 ms) both before and after loop 3d-1, while at

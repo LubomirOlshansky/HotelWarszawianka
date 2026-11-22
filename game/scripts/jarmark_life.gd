@@ -15,14 +15,16 @@ const Crowds := preload("res://scripts/crowds.gd")
 
 ## The view this near the market's middle (m) brings the strollers up.
 const NEAR_R := 260.0
-const CENTRE_UV := Vector2(140.0, 30.0)
-## The aisles: [u0, v0, u1, v1, half width (m)]: along u under the strings, the cross aisles along v,
-## the tree plaza's walk and the annex.
+const CENTRE_UV := Vector2(175.0, 45.0)
+## The aisles: [u0, v0, u1, v1, half width (m)]: along u between the rows' fronts under the strings
+## (jarmark.gd JM_STRINGS), the cross aisles along v, the tree's square, Plac Centralny's walks. The
+## first twelve are the ones WALKERS use.
 const AISLES := [
-	[150.0, 29.3, 194.0, 29.3, 1.2], [120.0, 36.5, 192.0, 36.5, 1.2], [119.0, 49.8, 194.0, 49.8, 2.6],
-	[119.0, 65.8, 194.0, 65.8, 2.6], [144.0, 14.0, 144.0, 70.0, 1.4], [169.5, 14.0, 169.5, 70.0, 1.4],
-	[118.0, -5.0, 196.0, -5.0, 2.4], [118.0, 15.0, 160.0, 15.0, 2.0], [93.0, 1.0, 113.0, 1.0, 1.4],
-	[93.0, 17.0, 113.0, 17.0, 3.0], [62.0, 17.0, 90.0, 17.0, 3.0], [70.0, 35.0, 70.0, 62.0, 3.0],
+	[152.0, 79.5, 218.0, 79.5, 2.0], [222.0, 80.2, 250.0, 80.2, 2.4], [150.0, 60.2, 250.0, 60.2, 3.0],
+	[164.0, 40.0, 230.0, 40.0, 3.0], [158.0, 0.0, 158.0, 60.0, 1.4], [259.0, -3.0, 259.0, 80.0, 1.4],
+	[207.0, -1.6, 252.0, -1.6, 1.6], [166.0, 20.6, 181.0, 20.6, 1.8], [96.0, 124.5, 127.0, 124.5, 3.0],
+	[209.0, 15.5, 233.0, 15.5, 1.6], [41.0, 28.0, 93.0, 28.0, 2.2], [90.5, 46.0, 90.5, 95.0, 1.6],
+	[150.0, 11.5, 180.0, 11.5, 1.8], [105.0, 52.0, 150.0, 52.0, 2.0],
 ]
 ## The strollers: [kind, aisle, phase 0..1, speed m/s, lane (-1..1 of the half width), shirt, shirt2].
 ## In the order they come out as the market fills (the first third walk from opening time).
