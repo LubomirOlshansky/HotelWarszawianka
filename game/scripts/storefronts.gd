@@ -1528,6 +1528,11 @@ func _load_metros(pois: Array) -> void:
 		var open_stairs := str(p.get("st", "")) == "Centrum" and ref in CENTRUM_OPEN_STAIRS
 		if open_stairs:
 			form = "steps"  # F, 2026-11-09: these four are a bare stair, no glass pavilion
+			# F 2026-11-21 ("two in one"): where the map already builds this stair as a railed flight
+			# (map_builder _build_stair_flights, an OSM `steps` way ending at the entrance), the
+			# prop's own treads and balustrade doubled it: only the red M post stays.
+			if _stair_flight_ends_at(Vector2(x, z)):
+				form = "post"
 		# Centrum Nauki Kopernik's ref 1 on the upper boulevard by the Syrenka (F's photo, 2026-11-21):
 		# the wide escalator pit with the tall granite slab beside it (props.gd _metro_escalator_pit).
 		if str(p.get("st", "")) == "Centrum Nauki Kopernik" and ref == "1":
@@ -1538,6 +1543,20 @@ func _load_metros(pois: Array) -> void:
 		metros.append({"at": Vector3(x, map.ground_height(x, z), z), "yaw": float(p["yaw"]), "station": str(p.get("st", "")),
 				"ref": str(p.get("ref", "")), "key": key_of(Vector2(x, z)), "form": form,
 				"lift": not open_stairs and (int(absf(x * 7.0 + z * 13.0)) % 5) < 3})
+
+
+## Does a map stair flight (centrum.json `steps`, built as a railed flight) end within 1.5 m of `at`?
+func _stair_flight_ends_at(at: Vector2) -> bool:
+	for s: Dictionary in map.data.get("steps", []):
+		if int(s.get("cv", 0)) == 1:
+			continue
+		var f: Array = s["p"]
+		if f.size() < 4:
+			continue
+		for q: Vector2 in [Vector2(float(f[0]), float(f[1])), Vector2(float(f[f.size() - 2]), float(f[f.size() - 1]))]:
+			if q.distance_to(at) < 1.5:
+				return true
+	return false
 
 
 ## The Ratusz-Arsenał station (OSM's name on its entrances).
