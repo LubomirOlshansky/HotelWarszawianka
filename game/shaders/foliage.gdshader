@@ -234,7 +234,7 @@ void fragment() {
 		EMISSION = col * lamp_light(world_pos.xz) * (1.0 - smoothstep(1.5, 8.5, lift_h)) * 2.0 * lights_on;
 		if (uplight > 0.1) {
 			vec3 hue = uplight > 0.65 ? vec3(1.0, 0.08, 0.22) : vec3(0.12, 1.0, 0.3);
-			EMISSION += hue * (0.25 + 0.75 * (1.0 - smoothstep(1.5, 7.5, lift_h))) * 0.9 * lights_on;
+			EMISSION += hue * (0.25 + 0.75 * (1.0 - smoothstep(1.5, 7.5, lift_h))) * 0.55 * lights_on;  // was 0.9: flat and too strong (look check 3)
 		}
 	}
 
