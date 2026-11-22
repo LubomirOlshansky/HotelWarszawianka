@@ -267,8 +267,13 @@ func _build() -> void:
 		l.custom_minimum_size.x = 240.0 * pt
 		drive[0].add_child(l)
 	_level(drive[0], "sensitivity", "Czułość", "Steering", 120.0)
+	# F 2026-11-22: the lane assist is a player setting, not a DEV one (key "lane_assist", settings.gd).
+	_heading(drive[0], "Asysta pasa", "Lane assist")
+	_segments(drive[0], "lane_assist", ON_OFF)
+	for b: Button in _groups["lane_assist"]:
+		b.custom_minimum_size.x = touch * 1.05
 	# First hour step 6 (the Fable critique's beta settings, F 2026-11-15): our own A/B switches
-	# (handling, the follow camera, the lane assist, the 20 km/h zones, collisions, smashable
+	# (handling, the follow camera, the 20 km/h zones, collisions, smashable
 	# fences, the city's chattiness, the overlay and TEST) live on the DEV page (`_dev_page`,
 	# seven taps on the version under the title), so every tester drives the same car; the
 	# player's own preferences stay on the tabs. Jazda keeps the rescue, the controls and the
@@ -578,25 +583,23 @@ func show_dev() -> void:
 ## settings.gd keep them as ever; only where they sit changed.
 func _dev_page(body: Control) -> Control:
 	var at := _pages.size()
-	var dev := _rows(body, [3, 3, 4, 1])
+	var dev := _rows(body, [2, 3, 4, 1])
 	_heading(dev[0], "Kamera za autem", "Camera follows the car")
 	_segments(dev[0], "camera", CAMERA)
 	_heading(dev[1], "Prowadzenie", "Handling")
 	_segments(dev[1], "handling", HANDLING)
-	_heading(dev[2], "Asysta pasa", "Lane assist")
-	_segments(dev[2], "lane_assist", ON_OFF)
-	_heading(dev[3], "Strefy 20 km/h", "20 km/h zones")
-	_segments(dev[3], "zones", ON_OFF)
-	_heading(dev[4], "Zderzenia", "Collisions")
-	_segments(dev[4], "collide", COLLIDE)
-	_heading(dev[5], "Łamliwe płoty", "Smashable fences")
-	_segments(dev[5], "soft_fences", ON_OFF)
-	_heading(dev[6], "Gadatliwość miasta", "City chattiness")
-	_segments(dev[6], "chatter", CHATTER)
-	_heading(dev[7], "Licznik wydajności", "Performance overlay")
+	_heading(dev[2], "Strefy 20 km/h", "20 km/h zones")
+	_segments(dev[2], "zones", ON_OFF)
+	_heading(dev[3], "Zderzenia", "Collisions")
+	_segments(dev[3], "collide", COLLIDE)
+	_heading(dev[4], "Łamliwe płoty", "Smashable fences")
+	_segments(dev[4], "soft_fences", ON_OFF)
+	_heading(dev[5], "Gadatliwość miasta", "City chattiness")
+	_segments(dev[5], "chatter", CHATTER)
+	_heading(dev[6], "Licznik wydajności", "Performance overlay")
 	var perf_row := HBoxContainer.new()
 	perf_row.add_theme_constant_override("separation", _px(6))
-	dev[7].add_child(perf_row)
+	dev[6].add_child(perf_row)
 	_segments(perf_row, "perf", ON_OFF)
 	# Loop 2b: a minute on the bench route, then a result card to copy (main.gd).
 	var bench := _word_button("TEST", "BENCH")
@@ -606,15 +609,15 @@ func _dev_page(body: Control) -> Control:
 		changed.emit("bench", 1))
 	perf_row.add_child(bench)
 	# F 2026-11-17: the camera view (follow_camera.gd VIEW_*): the game's, top-down, aerial.
-	_heading(dev[8], "Widok kamery", "Camera view")
-	_segments(dev[8], "camera_view", CAMERA_VIEW)
+	_heading(dev[7], "Widok kamery", "Camera view")
+	_segments(dev[7], "camera_view", CAMERA_VIEW)
 	# F 2026-11-20: Promo Mode (promo_mode.gd): framing tools for the trailer and the Reels.
-	_heading(dev[9], "Tryb promo", "Promo mode")
-	_segments(dev[9], "promo", ON_OFF)
+	_heading(dev[8], "Tryb promo", "Promo mode")
+	_segments(dev[8], "promo", ON_OFF)
 	# Stats thread 2026-11-21: the tester's own phone, so the anonymous stats can leave it out.
-	_heading(dev[10], "Urządzenie testowe (statystyki)", "Test device (stats)")
-	_segments(dev[10], "test_device", ON_OFF)
-	for key: String in ["camera", "lane_assist", "zones", "soft_fences", "perf", "promo", "test_device"]:
+	_heading(dev[9], "Urządzenie testowe (statystyki)", "Test device (stats)")
+	_segments(dev[9], "test_device", ON_OFF)
+	for key: String in ["camera", "zones", "soft_fences", "perf", "promo", "test_device"]:
 		for b: Button in _groups[key]:
 			b.custom_minimum_size.x = touch * 1.05
 	var page := _pages[at]
