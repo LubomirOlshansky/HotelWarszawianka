@@ -227,15 +227,6 @@ func _build() -> void:
 		b.pressed.connect(set_tab.bind(i))
 		head.add_child(b)
 		_tabs.append(b)
-	# F 2026-11-22: DEV is a tab of its own, last in the row (it was a button in Jazda's second column).
-	# It is tab button 6 and opens page DEV_PAGE; the other pages keep their indexes.
-	var dev_tab := _word_button("DEV", "DEV")
-	dev_tab.toggle_mode = true
-	dev_tab.name = "tab_dev"
-	_tighten(dev_tab, "DEV", "DEV")
-	dev_tab.pressed.connect(show_dev)
-	head.add_child(dev_tab)
-	_tabs.append(dev_tab)
 	var x := _flat_button("✕", 22)
 	x.name = "close"
 	x.custom_minimum_size = Vector2(touch, touch)
@@ -248,7 +239,7 @@ func _build() -> void:
 	_body = body
 
 	# Jazda · Driving.
-	var drive := _page(body, 1)
+	var drive := _page(body, 2)
 	# G14 (F, 2026-11-01): the two rescue buttons at the top of the first tab, where they are found:
 	# the tow onto the nearest road, and a new game (two taps: the second wipes the progress).
 	var rescue := HBoxContainer.new()
@@ -276,16 +267,30 @@ func _build() -> void:
 		l.custom_minimum_size.x = 240.0 * pt
 		drive[0].add_child(l)
 	_level(drive[0], "sensitivity", "Czułość", "Steering", 120.0)
-	# F 2026-11-22: the lane assist is a player setting, not a DEV one (key "lane_assist", settings.gd).
-	_heading(drive[0], "Asysta pasa", "Lane assist")
-	_segments(drive[0], "lane_assist", ON_OFF)
-	for b: Button in _groups["lane_assist"]:
-		b.custom_minimum_size.x = touch * 1.05
 	# First hour step 6 (the Fable critique's beta settings, F 2026-11-15): our own A/B switches
 	# (handling, the follow camera, the 20 km/h zones, collisions, smashable
 	# fences, the city's chattiness, the overlay and TEST) live on the DEV page (`_dev_page`,
 	# seven taps on the version under the title), so every tester drives the same car; the
-	# player's own preferences stay on the tabs. DEV is the last tab (F 2026-11-22).
+	# player's own preferences stay on the tabs. Jazda keeps the rescue, the controls and the
+	# steering in its first column; the second shows what DEV holds.
+	# F 2026-11-22: the lane assist is a player setting, not a DEV one (key "lane_assist", settings.gd),
+	# at the top of the second column (the first is full on a 375 pt phone).
+	_heading(drive[1], "Asysta pasa", "Lane assist")
+	_segments(drive[1], "lane_assist", ON_OFF)
+	for b: Button in _groups["lane_assist"]:
+		b.custom_minimum_size.x = touch * 1.05
+	_heading(drive[1], "Ustawienia testów", "Test settings")
+	var dev_note := _text(Lang.pick("Prowadzenie, kamera, zderzenia i łamliwe płoty: na stronie DEV.",
+			"Handling, camera, collisions and smashable fences: on the DEV page."), T_SUB, SUB)
+	dev_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dev_note.custom_minimum_size.x = 200.0 * pt
+	drive[1].add_child(dev_note)
+	# F 2026-11-16 (TestFlight build 12): the DEV page shows to every tester, one tap from here (the
+	# seven taps on the version still open it too).
+	var open_dev := _word_button("DEV", "OPEN DEV")
+	open_dev.name = "open_dev"
+	open_dev.pressed.connect(show_dev)
+	drive[1].add_child(open_dev)
 	# Świat · World: the time of day and the weather; the traffic. (The Spacer game mode was removed 2026-11-22, F.)
 	var world := _rows(body, [2, 1])
 	_heading(world[0], "Pora dnia", "Time of day")
@@ -493,7 +498,7 @@ func set_tab(i: int) -> void:
 		dev_on = true
 	if not _built:
 		return
-	var lit := SOUND_TAB if _tab == CREDITS_PAGE or _tab == TIPS_PAGE else (TABS.size() if _tab == DEV_PAGE else _tab)
+	var lit := SOUND_TAB if _tab == CREDITS_PAGE or _tab == TIPS_PAGE else (-1 if _tab == DEV_PAGE else _tab)
 	for k in _pages.size():
 		_pages[k].visible = k == _tab
 	for k in _tabs.size():
@@ -715,7 +720,7 @@ func pad_focus() -> void:
 
 ## The button the pad's focus starts on: the open tab's.
 func focus_target() -> Button:
-	return _tabs[SOUND_TAB if _tab == CREDITS_PAGE or _tab == TIPS_PAGE else (TABS.size() if _tab == DEV_PAGE else _tab)]
+	return _tabs[SOUND_TAB if _tab == CREDITS_PAGE or _tab == TIPS_PAGE else (0 if _tab == DEV_PAGE else _tab)]
 
 
 ## The current values again (after a change that moves another row: Classic's camera).
