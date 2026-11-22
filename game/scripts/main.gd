@@ -1038,7 +1038,11 @@ func _put_at_resume() -> void:
 		return
 	var lane := _lane_spot(car.global_position, _resume_yaw)
 	if lane.is_empty() or Vector2((lane[0] as Vector3).x, (lane[0] as Vector3).z).distance_to(Vector2(start_at.x, start_at.z)) > 60.0:
-		print("resume: no lane near the kept spot, back to the start")
+		# 2026-11-22 (F: "closing the game sometimes throws me back to the start"): the nearest
+		# lane anywhere (a park, a square, a beach), not the map's spawn across town.
+		lane = _node_spot(car.global_position)
+		print("resume: no lane near the kept spot, %s" % ("the nearest junction's lane" if not lane.is_empty() else "back to the start"))
+	if lane.is_empty():
 		car.global_transform = _spawn
 	else:
 		car.global_position = lane[0]
