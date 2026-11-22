@@ -12,7 +12,7 @@ This page is the map.
         │  size from tiers.gd: whole-pixel scale `view.stretch_shrink`
         ▼
 post.gdshader on that image: outlines where depth jumps, colour levels, saturation
-        │  (optional vhs.gdshader: the Retro filter)
+        │  (vhs.gdshader: the KASETA tape pulse only)
         ▼
 scaled up with sharp pixels to the screen
         ▼

@@ -224,7 +224,7 @@ func _ui() -> void:
 			"bounds": [-900.0, -600.0, 900.0, 600.0], "landmarks": []})
 	await process_frame
 	var state := {"controls": 0, "follow": true, "traffic": 2, "quality": 0, "auto": "Medium", "master": 1.0, "music": 0.5,
-			"effects": 1.0, "perf": 0, "fps": 0, "style": 0, "vhs": 0, "weather": 0, "time": 0}
+			"effects": 1.0, "perf": 0, "fps": 0, "style": 0, "weather": 0, "time": 0}
 
 	# P9
 	var panel: Control = hud.settings_panel

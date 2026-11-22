@@ -11,14 +11,13 @@ extends Control
 ##     "Kamera za autem · Camera follows the car" On / Off (the old CAM button, now with its
 ##     state in view; Point with the camera off is the Fixed camera scheme);
 ##   Świat · World: Time of day (the old TIME button), Weather (RAIN), Traffic;
-##   Obraz · Picture: Retro and the camera angle (F, 2026-11-07: 30°, 40°, 50°), Quality (loop G1: Auto, the default, then Low, Medium,
-##     High, Ultra, Experimental; Auto's English line names the level it picked here), VHS tape (VHS), Frame
+##   Obraz · Picture: the camera angle (F, 2026-11-07: 30°, 40°, 50°), Quality (loop G1: Auto, the default, then Low, Medium,
+##     High, Ultra, Experimental; Auto's English line names the level it picked here), Frame
 ##     rate, the performance overlay and the TEST bench;
 ##   Dźwięk · Sound: volume, radio, effects (− and + in tenths, or drag along the bar).
 ## Loop MW-1: a fifth tab, ZESZYT · notebook: MOJA WARSZAWA, the city notebook
 ## (notebook_page.gd); the card's title says MOJA WARSZAWA there, with the count found.
-## Loop MW-6: Jazda gets "Tryb gry · Game mode" (Miasto / Spacer: vision.md 4.3) under the camera,
-## and Obraz the FOTKA button beside TEST (closes the card and opens the photo mode: fotka.gd).
+## Loop MW-6: Obraz gets the FOTKA button beside TEST (closes the card and opens the photo mode: fotka.gd).
 ## F's asks (2026-10-30): Jazda gets "Strefy piesze 20 km/h · Pedestrian zones 20 km/h" Off / On
 ## under the mode (settings.gd `zone_cap`, off by default: key "zones").
 ## Settings rows (F 2026-11-14): Świat in three rows gets "Łamliwe płoty · Smashable fences"
@@ -103,8 +102,6 @@ const GRADE := [["Natura", "Natural"], ["Neon", "Neon"], ["Klasyk", "Classic"]]
 const ANGLE := [["30°", "30°"], ["40°", "40°"], ["50°", "50°"]]
 ## Loop 2b: frames per second (settings.gd FPS: 60, 30) and the benchmark button.
 const FPS := [["60 płynnie", "60 smooth"], ["30 bateria", "30 battery"]]
-## Loop MW-6: the game's mode (settings.gd `wander`).
-const MODE := [["Miasto", "City"], ["Spacer", "Wander"]]
 ## G4: the car's handling (settings.gd `handling`, car.gd PROFILES).
 const HANDLING := [["Spokojnie", "Cruise"], ["Sportowo", "Sport"], ["Realnie", "Grounded"]]
 ## Phase 0.2: the city's chattiness (settings.gd `chatter`, chatter.gd GAPS).
@@ -288,44 +285,38 @@ func _build() -> void:
 	open_dev.name = "open_dev"
 	open_dev.pressed.connect(show_dev)
 	drive[1].add_child(open_dev)
-	# Świat · World: the time of day and the mode; the weather and the traffic.
-	var world := _rows(body, [2, 2])
+	# Świat · World: the time of day and the weather; the traffic. (The Spacer game mode was removed 2026-11-22, F.)
+	var world := _rows(body, [2, 1])
 	_heading(world[0], "Pora dnia", "Time of day")
 	_segments(world[0], "time", TIME)
 	_groups["time"][3].visible = false  # F 2026-11-19: no Live, the game runs its own clock (time_of_day.gd)
-	_heading(world[1], "Tryb gry", "Game mode")
-	_segments(world[1], "wander", MODE)
-	_heading(world[2], "Pogoda", "Weather")
-	_segments(world[2], "weather", WEATHER)
-	_heading(world[3], "Ruch uliczny", "Traffic")
-	_steps(world[3], "traffic", TRAFFIC)
+	_heading(world[1], "Pogoda", "Weather")
+	_segments(world[1], "weather", WEATHER)
+	_heading(world[2], "Ruch uliczny", "Traffic")
+	_steps(world[2], "traffic", TRAFFIC)
 	# Obraz · Picture. Loop G1: in three rows (Quality's five choices made the two columns too
-	# wide for the SE): Style and VHS; Quality; Frame rate and the overlay with TEST.
-	# 2026-11-01 (F): the Style picker is gone (always the sharp image); the old VHS tape is now
-	# the "Retro" vaporwave filter (vhs.gdshader), the one switch left in the first row.
-	# F (2026-11-07): the camera's angle beside Retro (follow_camera.gd PITCHES, key "angle").
-	var picture := _rows(body, [3, 1, 3])
-	_heading(picture[0], "Retro · vaporwave", "Retro filter")
-	_segments(picture[0], "vhs", ON_OFF)
-	_heading(picture[1], "Kąt kamery", "Camera angle")
-	_segments(picture[1], "angle", ANGLE)
+	# wide for the SE): the camera angle and colours; Quality; Frame rate and the overlay with TEST.
+	# 2026-11-01 (F): the Style picker is gone (always the sharp image). 2026-11-22 (F): the Retro
+	# filter switch is gone too (it did not work on phones). Camera angle: follow_camera.gd PITCHES, key "angle".
+	var picture := _rows(body, [2, 1, 3])
+	_heading(picture[0], "Kąt kamery", "Camera angle")
+	_segments(picture[0], "angle", ANGLE)
 	# F (2026-11-15): the colour look (grades.gd SETTING, key "grade"), beside them.
-	_heading(picture[2], "Kolory", "Colours")
-	_segments(picture[2], "grade", GRADE)
-	# Three pickers in one row: narrower buttons (still over 44 pt) keep the card's width.
-	for key: String in ["vhs", "angle"]:
-		for b: Button in _groups[key]:
-			b.custom_minimum_size.x = touch * 1.05
+	_heading(picture[1], "Kolory", "Colours")
+	_segments(picture[1], "grade", GRADE)
+	# Two pickers in one row: narrower buttons (still over 44 pt) keep the card's width.
+	for b: Button in _groups["angle"]:
+		b.custom_minimum_size.x = touch * 1.05
 	for b: Button in _groups["grade"]:
 		b.custom_minimum_size.x = touch * 1.6
-	_heading(picture[3], "Jakość obrazu", "Quality")
+	_heading(picture[2], "Jakość obrazu", "Quality")
 	var quality := QUALITY.duplicate(true)
 	quality[0] = ["Auto · %s" % _auto_name, "Auto · %s" % _auto_name]
-	_segments(picture[3], "quality", quality)
-	_heading(picture[4], "Klatki na sekundę", "Frame rate")
-	_segments(picture[4], "fps", FPS)
-	_heading(picture[5], "Obraz", "Image")
-	_segments(picture[5], "image", IMAGE)
+	_segments(picture[2], "quality", quality)
+	_heading(picture[3], "Klatki na sekundę", "Frame rate")
+	_segments(picture[3], "fps", FPS)
+	_heading(picture[4], "Obraz", "Image")
+	_segments(picture[4], "image", IMAGE)
 	# Loop MW-6: the photo mode (fotka.gd), from the pause card. (The overlay and TEST are on DEV.)
 	var photo := _word_button("FOTKA", "PHOTO")
 	photo.name = "fotka"
@@ -333,7 +324,7 @@ func _build() -> void:
 	photo.pressed.connect(func():
 		close()
 		changed.emit("fotka", 1))
-	picture[6].add_child(photo)
+	picture[5].add_child(photo)
 	# Dźwięk · Sound.
 	var sound := _page(body, 2)
 	for l in LEVELS:
@@ -688,7 +679,7 @@ func refresh_notebook() -> void:
 
 ## Shows the panel with the current values: {controls (the scheme), follow, traffic, quality
 ## (0 Auto, 1-4 Low..Ultra), auto (the level Auto picked, by name), master, music, effects,
-## perf, fps, style, vhs, weather, time}.
+## perf, fps, style, weather, time}.
 func open(state: Dictionary) -> void:
 	if not _built:
 		_auto_name = str(state.get("auto", _auto_name))
