@@ -78,7 +78,7 @@ total=$(( (skip + secs) * fps + 2 ))
 total=${total%.*}
 start=$(date +%s)
 # perl alarm: macOS has no timeout(1). 20 min is far more than any clip needs.
-caffeinate -dimsu perl -e 'alarm shift; exec @ARGV' 1200 $GODOT --path $ROOT/game --fixed-fps $fps --quit-after $total \
+caffeinate -dimsu perl -e 'alarm shift; exec @ARGV' ${CLIP_ALARM:-1200} $GODOT --path $ROOT/game --fixed-fps $fps --quit-after $total \
 	--write-movie $frames/f.png -- $game > $out/$name.log 2>&1 || true
 first_png=$(ls $frames | grep -E '[0-9]+\.png$' | head -1)
 if [[ -z $first_png ]]; then

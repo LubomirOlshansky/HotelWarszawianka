@@ -1953,7 +1953,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	traffic.trams = trams
 	_first_scene_trams()
 	_promo_traffic()
-	if flags.cam_move.size() == 5:
+	if flags.cam_move.size() == 6:
 		_cam_move_on = true
 		print("cam-move: start frame %d" % Engine.get_frames_drawn())
 	trains = Trains.new()
@@ -7120,7 +7120,7 @@ func _update_free_camera() -> void:
 	if _cam_move_on:
 		# The promo drone move (--cam-move): eased in over 0.6 s, then steady.
 		_cam_move_t += get_process_delta_time()
-		var t := _cam_move_t
+		var t := maxf(0.0, _cam_move_t - flags.cam_move[5])
 		var te := t * t / 1.2 if t < 0.6 else t - 0.3
 		var mv := flags.cam_move
 		focus += Vector3(mv[0], 0.0, mv[1]) * te
