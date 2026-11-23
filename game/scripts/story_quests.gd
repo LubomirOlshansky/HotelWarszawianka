@@ -32,8 +32,9 @@ extends Node
 ##   [] any day; a night past midnight counts as the day before, as rave.gd's night_day),
 ##   call: Callable() -> bool (phone now), meet: Callable() -> bool (start in person, here),
 ##   busy: Callable() -> bool (under way), idle: Callable() -> bool (can start now: not ringing,
-##   not cooling down after a card), jump: bool (outside its hours the friend still says hello with
-##   WCHODZĘ, and the clock jumps to the opening hour on the tap: the night meet, F 2026-11-08).
+##   not cooling down after a card), jump: bool (default true: outside its hours the friend still
+##   says hello with WCHODZĘ, and the clock jumps to the opening hour on the tap: the night meet,
+##   F 2026-11-08, then every questline with hours, F 2026-11-22; false: the CZEKAM card).
 ##
 ## Cost: a 0.25 s timer; one shared start beacon (ring, column, waving friend: about 10 draw calls)
 ## shown only within BEACON_R of the nearest start, never during a quest.
@@ -312,12 +313,18 @@ func _greet(i: int) -> void:
 	var who: Array = d["who"]
 	var title_pl := "👋 %s" % str(who[0]).to_upper()
 	var title_en := "%s, in person" % who[1]
-	var jump := bool(d.get("jump", false)) and skip_to.is_valid() and open_hour(d) >= 0.0
-	if open_at(d, float(c[0]), int(c[1])) or jump:
+	var open := open_at(d, float(c[0]), int(c[1]))
+	if open or jumps(d, skip_to.is_valid()):
 		var hello: Array = d["hello"]
-		hud.show_side_card(title_pl, str(hello[0]), PackedStringArray(["WCHODZĘ!|I'M IN!", "NIE TERAZ|NOT NOW"]),
-				d["colour"], title_en, str(hello[1]), false, str(who[1]))
-		_log("%s: %s walks up (open)" % [d["id"], who[1]])
+		var pl := str(hello[0])
+		var en := str(hello[1])
+		if not open:  # F 2026-11-22: taken by day, the clock skips to its hour on the tap
+			var later: Array = _later_words(d)
+			pl = "%s\n%s" % [pl, later[0]]
+			en = "%s\n%s" % [en, later[1]]
+		hud.show_side_card(title_pl, pl, PackedStringArray(["WCHODZĘ!|I'M IN!", "NIE TERAZ|NOT NOW"]),
+				d["colour"], title_en, en, false, str(who[1]))
+		_log("%s: %s walks up (%s)" % [d["id"], who[1], "open" if open else "closed, the clock jumps on yes"])
 	else:
 		var closed: Array = d["closed"]
 		var pl := "%s (%s)" % [closed[0], when_text(d, true)]
@@ -328,6 +335,21 @@ func _greet(i: int) -> void:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
 			if greeting == i:
 				hud.card_pressed.emit(0))
+
+
+## Outside its hours the friend still says hello with WCHODZĘ and the tap skips the clock to the
+## opening hour (F 2026-11-22: "if I drive up by day I can still take it, the time changes", for
+## every questline with hours, not only the night meet). A def may opt out with "jump": false;
+## without a clock to skip (`can_skip` false) it only says when to come back.
+static func jumps(def: Dictionary, can_skip: bool) -> bool:
+	return bool(def.get("jump", true)) and can_skip and open_hour(def) >= 0.0
+
+
+## The hello's extra line outside the hours: "O 21:00? Powiedz tak, a zegar przeskoczy." [pl, en]
+## (the quest book's `hello_later`; a night friend's call by day says `call_night`).
+static func _later_words(def: Dictionary) -> Array:
+	var qb: GDScript = load("res://scripts/quest_book.gd")
+	return qb.fmt("hello_later", ["%d:00" % int(open_hour(def))])
 
 
 ## The hour a closed questline opens (a few minutes past its first hour, so the clock is inside the

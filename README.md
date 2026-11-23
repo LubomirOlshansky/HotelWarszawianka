@@ -23,7 +23,7 @@ Website and beta sign-up: **[aroundwarsaw.app](https://aroundwarsaw.app)**.
 - **Gentle police.** Speed traps, a wave of the *lizak* and a talking-to; never a game over.
 - **A living city.** Traffic that keeps to its lights, trams, pedestrians and pigeons in no hurry.
 - **Day, dusk, night and rain**, or Live time with the real sun over Warsaw: neon, lamp light,
-  wet streets and an optional VHS tape.
+  wet streets.
 - **A car radio** (KEBAB FM, RONDO FM, MORDOR FM) and a city that talks back, Polish above
   English. Brands appear only as parodies.
 - **Made for the phone.** 60 fps on an iPhone 11, three touch control schemes, no ads, no
@@ -57,7 +57,7 @@ Stadium. Coming on the road to the 1.0 demo ([docs/ROADMAP.md](docs/ROADMAP.md))
 | Car ↔ helicopter | HELI / AUTO, top right | H (climb Space, sink Shift) |
 | Radio | RADIO, top right | R |
 | Zoom | pinch | mouse wheel |
-| Time of day, rain, VHS | Settings (the gear) | N, O, V |
+| Time of day, rain | Settings (the gear) | N, O |
 | Settings | the gear, top left | Esc |
 | A landmark's card | tap it | click it |
 

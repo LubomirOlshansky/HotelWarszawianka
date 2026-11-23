@@ -271,7 +271,7 @@ func _check_panel(code: String) -> void:
 			"fps": 0, "weather": 0, "time": 0, "lang": Lang.CODES.find(code)})
 	var pairs: Array = []
 	for group in [SettingsPanel.CAMERA, SettingsPanel.TIME, SettingsPanel.WEATHER, SettingsPanel.TRAFFIC,
-			SettingsPanel.ON_OFF, SettingsPanel.FPS, SettingsPanel.MODE, SettingsPanel.CONTROLS_SAY, SettingsPanel.TABS]:
+			SettingsPanel.ON_OFF, SettingsPanel.FPS, SettingsPanel.CONTROLS_SAY, SettingsPanel.TABS]:
 		pairs.append_array(group)
 	for tab in 6:
 		panel.set_tab(tab)
