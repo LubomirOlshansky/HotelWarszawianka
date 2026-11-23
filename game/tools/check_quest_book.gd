@@ -30,7 +30,7 @@ const KEYS := ["quests", "new", "next", "tracked", "invite", "invite_later", "qu
 		"b_map", "b_untrack", "b_phone", "b_start", "b_race", "b_race_any", "b_night", "b_back", "b_route",
 		"b_details", "b_show_quests", "b_show_drive", "show_title", "show_body", "pad_map", "v_zl",
 		"steps_head", "stories_head", "friends_wait", "rivals_head", "final", "final_about", "rival_about",
-		"r_step", "r_step3", "r_step7", "v_step_done", "v_any", "v_hours", "v_closed", "v_open", "v_times",
+		"r_step", "r_step3", "r_step7", "v_step_done", "v_any", "v_hours", "v_closed", "hello_later", "call_night", "v_open", "v_times",
 		"v_not_yet", "v_no_start", "v_on_request", "v_found", "f_done", "f_reward", "f_where", "f_with",
 		"f_when", "f_nearest", "f_stake", "f_skill", "f_turf", "f_found", "v_rival_won", "v_rival_open",
 		"v_rival_locked", "col_districts", "col_districts_about", "col_syrenki", "col_syrenki_about",
@@ -174,7 +174,7 @@ func _stories(f: Dictionary) -> void:
 	_expect(QuestBook.find(QuestBook.tabs(f), "nope") == ["", -1], "find: none")
 	var g := f.duplicate(true)
 	g["friends"] = false
-	_expect(QuestBook.tabs(g)[1]["head"] == QuestBook.words("friends_wait"), "before the third step the questlines say the friends call later")
+	_expect(QuestBook.tabs(g)[1]["head"] == QuestBook.words("friends_wait"), "before the friends open the questlines say the friends call later")
 
 
 func _jobs(f: Dictionary) -> void:
