@@ -150,8 +150,11 @@ const DEFAULT_RACER := {"share": 0.82, "race_accel": 10.5, "brake": 9.0, "lat": 
 ## whole ladder from Halina to Zbyszek was retuned (docs/design/race-ai.md 6): Mike already uses the
 ## car's whole top speed, so the rest were brought up to him, each 3 to 6 % quicker than the one below.
 ## Its `catch` (race_session.gd CATCH_*, F 2026-11-19): the guided first race chases a player who
-## pulls away, but less than every other rival (CATCH_MAX); the other profiles have no `catch`.
-const FIRST_RACER := {"catch": 1.55, "share": 0.76, "race_accel": 9.4, "brake": 6.5, "lat": 11.4, "knows": 1.0, "caution": 1.0,
+## pulls away. F's playtest of 2026-11-22 ("Halina's race I did easily"): her gentle day now drives
+## her rung's own numbers (share, off the line, brakes, grip) and the whole catch-up (CATCH_MAX,
+## it was 1.55); what is still gentle is that she counts all of the town's traffic and goes round
+## every narrow one-way (`caution` 1.0 against 0.8).
+const FIRST_RACER := {"catch": 1.6, "share": 0.775, "race_accel": 9.8, "brake": 7.0, "lat": 11.8, "knows": 1.0, "caution": 1.0,
 		"cuts": 0.3, "yards": 1.0, "narrow": 3.5, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false,
 		"dare": 2.5, "indicate": 3.0, "flash": 0.0, "home": ["powisle", "srodmiescie", "trakt"]}
 ## Racer AI step 6b (street_meet.gd, the race from Plac Defilad to meet 2): the night club's eight

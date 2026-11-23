@@ -272,7 +272,14 @@ who does not know the town, keeps the clear roads' way by Jaracza.
 **A wrong turn** (Słoik) comes from the plan too: a road that costs him 4 to 15 s more than his
 best way, and never the way back. The old rule took the second shortest road in metres. With a
 plan to bring him back that cost him a second or less, and on the bench he came home in front of
-Bartek.
+Bartek. Since F's playtest of 2026-11-22 (Słoik up Krucza from Aleje Jerozolimskie, round at its end
+and back down it: it read as a broken car) the road costs 4 to 9 s and its way on never turns
+back within 120 m (`race_planner.gd` `_turns_back`: no hairpin at one junction or across a short
+median link; round a block is fine), the cheapest such road is taken; at a crossroads with none,
+the slip is his satnav's doubt instead: he brakes to a stop with his hazards on for
+`traffic.gd` `WRONG_DOUBT` (10 s of coasting and standing, 6 to 8 s lost on the bench's
+courses, about what the old wrong turn cost). Halina's gentle day drives her rung's numbers and
+the whole catch-up since the same playtest; only her caution in traffic stays gentler.
 
 **One finish line for both cars** (`RacePlanner.ends`, `Rivals.home_at`, `traffic.gd`
 `end_from`). A street race ends when a car comes within 16 m of the finish (`FINISH_RADIUS`), and
@@ -793,7 +800,7 @@ came with step 3's route planner.
   "more hardcore": rivals should speed up, even past 100 to 150 km/h, to stay on the tail. F
   chose catch-up for every rival on a decision card. So this one knob does follow the player,
   against the rule of this section: a rival more than 0.5 s behind drives faster on a straight,
-  rising to `catch` times its speed there (1.6; Halina's gentle day 1.55) from 2.5 s behind, past
+  rising to `catch` times its speed there (1.6, Halina's gentle day too since 2026-11-22) from 2.5 s behind, past
   the road's racing speed and the car's own top, up to 42 m/s (151 km/h). It comes on within
   about a second and goes as fast once the rival is back within 0.5 s, so it closes the gap to the
   player's tail (on the bench a flat-out player keeps Halina 1.5 to 2 s behind on her rung,

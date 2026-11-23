@@ -2773,8 +2773,10 @@ static func _run(r: Dictionary) -> float:
 ## Tamka, 9.4 s on Leszczyńska, 9.5 s on Marszałkowska). It is partly bad luck, not pace: the ladder marks
 ## (Skill ladder, Ladder curve) compare a rival's pace, `_run` less this for each wrong turn it takes
 ## (about half the loss: it is what Słoik is, one lost turn a race, as well as luck, and on the short
-## Marszałkowska course the whole loss would put him behind Halina).
-const WRONG_TURN_COST := 4.0
+## Marszałkowska course the whole loss would put him behind Halina). Since F's playtest of 2026-11-22
+## his slip is a stop in doubt at a crossroads (traffic.gd WRONG_DOUBT) where a wrong road would end
+## in a U-turn: 8.0 s on Tamka, 6.4 s on Marszałkowska against the race without it; this is 3 s.
+const WRONG_TURN_COST := 3.0
 
 
 ## A race's time as pace: `_run` without the seconds a rung's wrong turns are allowed to cost.
