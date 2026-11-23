@@ -15,29 +15,45 @@ Site key `level26_club` in `game/scripts/landmarks.gd`, built by `_build_level26
 
 From the mapped parts in `centrum.json`: the main roof part at 112 m (traced round the drum and the 116 m east block), the drum 112 to 116 m (about 24 m across), the east block to 116 m. The terrace is the main roof's part within 13.5 m of the drum's wall, on the tower's round end side (`L26_ROUND_END`, cut 0.3 drum radii past its centre): about the real 450 m2. The far half of the roof stays the map's plain roof.
 
-## 3. Parts
+## 3. Facade
 
-| id | part | size | material |
-| --- | --- | --- | --- |
-| L-1 | timber deck | 0.12 m on the 112 m roof | M_STONE #6f5b4b / #7d6754 |
-| L-2 | glass railing on the outer edges | 1.25 m, posts every 2 m, steel top rail | M_STONE #cfe2e6, #c9ccd0 |
-| L-3 | foot strip of the railing | 0.14 m, both faces | M_LAMP #ff7a2e |
-| L-4 | drum glazing | deck to 1.3 m under the top | M_GLASS #34485f |
-| L-5 | drum light band | 0.5 m | M_LAMP #ff4a32 |
-| L-6 | white fascia | 1.8 m (covers the drum's parapet), 0.3 m proud | M_STONE #c4c8cb |
-| L-7 | mast | 10.4 m, red and white, red tip lamp | M_STONE, M_LAMP |
-| L-8 | festoon strings and posts | posts 3 m every 8 m of railing | `_pow_festoon` bulbs |
-| L-9 | lanterns | two per string, 0.28 to 0.34 m | M_LAMP #ff9446 |
-| L-10 | lounge groups | cube table with a candle, three deck chairs | M_STONE #f3f1ea, frame #b08a5e |
-| L-11 | birches | white planter, white trunk, light green crown | M_STONE |
-| L-12 | DJ stage | platform, desk with a lit front, truss 4.5 m with five coloured heads, two speakers | M_STONE, M_LAMP |
-| L-13 | bar | an arc of six counter pieces along the drum, lit front, lit shelves on the drum | M_STONE, M_LAMP |
-| L-14 | name | LEVEL 26 in copper on the fascia, towards the round end and away | landmark neon |
+The tower's body stays the map's building (its blue glass and white frame are not rebuilt here). The drum's face: dark glass from the deck to 1.3 m under its top, a red light band, then a pale fascia 1.8 m tall standing 0.3 m proud that covers the map's parapet, with LEVEL 26 in copper on it (L-02, aerial).
 
-## 4. People
+## 4. Roof
+
+The terrace deck on the 112 m main roof, round-end half only; the drum's roof stays the map's flat roof with a dark coping ring at the fascia's top and the red-and-white mast on it. The rest of the main roof stays the map's plain roof (`_no_roof`).
+
+## 5. Colour and material
+
+Landmark material codes only: M_STONE for timber, white, steel and canvas; M_GLASS for the drum's glazing; M_LAMP for the orange railing strip, the red band, lanterns, the bar and the DJ's lights. Colours: deck #6f5b4b / #7d6754, white #c4c8cb, glow #ff7a2e, red band #ff4a32, lanterns #ff9446, copper name, coping and inner wall #3d4247.
+
+## 6. Ground and night
+
+The club sits on the roof, so its ground is the min ground under the roof part plus the deck (map parts stand on the min ground under their own polygon). At night the railing's foot strip glows orange on both faces, the festoons and lanterns light the deck, the drum's band glows red, the bar and DJ truss are lit; the fascia is dim, not white (L-02).
+
+## 7. Parts table
+
+| id | shape | size | position | material | feature |
+| --- | --- | --- | --- | --- | --- |
+| L-1 | timber deck prism | 0.12 m on the 112 m roof | main roof within 13.5 m of the drum, round-end half | M_STONE #6f5b4b / #7d6754 | the terrace (Identity 1) |
+| L-2 | glass railing with posts and top rail | 1.25 m, posts every 2 m | the deck's outer edges | M_STONE #cfe2e6, #c9ccd0 | the edge at the tower's face (Identity 2) |
+| L-3 | light strip | 0.14 m, both faces | foot of the railing | M_LAMP #ff7a2e | the orange night glow (Identity 2) |
+| L-4 | drum glazing ring | deck to 1.3 m under the top | the crown drum's wall | M_GLASS #34485f | the club room (Identity 6) |
+| L-5 | light band ring | 0.5 m | drum, above the glazing | M_LAMP #ff4a32 | the red band at night (Identity 6) |
+| L-6 | fascia ring with coping | 1.8 m, 0.3 m proud | drum top, over the map's parapet | M_STONE #c4c8cb, #3d4247 | the white fascia (Identity 6) |
+| L-7 | segmented mast | 10.4 m, tip lamp | drum roof | M_STONE, M_LAMP | the red-and-white mast (Identity 6) |
+| L-8 | festoon strings and posts | posts 3 m every 8 m | drum fascia to the railing | `_pow_festoon` bulbs | the festoons (Identity 3) |
+| L-9 | lanterns | two per string, 0.28 to 0.34 m | under the strings | M_LAMP #ff9446 | orange paper lanterns (Identity 3) |
+| L-10 | lounge groups | cube table, candle, three deck chairs | 13 groups on a 3.4 m grid on the deck | M_STONE #f3f1ea, frame #b08a5e | white deck chairs (Identity 4) |
+| L-11 | birches in planters | about 3 m | between string posts along the railing | M_STONE | young birches (Identity 4) |
+| L-12 | DJ stage with truss | platform, desk, truss 4.5 m, five heads, two speakers | the round end (`L26_ROUND_END`) | M_STONE, M_LAMP | the DJ (Identity 5) |
+| L-13 | bar arc | six counter pieces, lit shelves | along the drum on the far side | M_STONE, M_LAMP | the bar (Identity 5) |
+| L-14 | name sign | two words on the fascia | towards the round end and away | landmark neon, copper | LEVEL 26 (Identity 6) |
+
+## 8. People
 
 crowds.gd: `level_26_lounge` (kind `view`, the deck chairs, 16:00 to 01:00, fuller on Friday and Saturday and in summer, thin in rain) and `level_26` (kind `roof`, the club's curve 22:00 to 03:00: the DJ, then the dance floor and the bar's drinkers from the plan). The parapet ring and the violet band are not used when the plan is there. The door queue at the ground floor is unchanged.
 
-## 5. Budget
+## 9. Detail level and budget
 
-L3, one building mesh, +0 draw calls, no new material. Measured 5753 triangles (budget 6900 in check_mesh_quality).
+Detail level L3, one building mesh, +0 draw calls, no new material. Triangle budget 6900 (measured 5753, set in check_mesh_quality).
