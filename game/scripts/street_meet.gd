@@ -5,7 +5,7 @@ extends "res://scripts/activity.gd"
 ## (his car: the Bawarka 3.2, a parody of a Bavarian saloon) rings: the club meets tonight on Plac
 ## Defilad. ODBIERZ / ODRZUĆ, then JADĘ! / NIE DZIŚ.
 ##
-## **Meet 1, Plac Defilad** (MEETS[0], the plaza east of the Palace). Six tuned cars parked in a
+## **Meet 1, Plac Defilad** (MEETS[0], the plaza east of the Palace, north-east of the Christmas market). Six tuned cars parked in a
 ## ring with neon under them, Darek's Bawarka, a ring of people with their phones out, and in the
 ## middle Lena „Bokiem" spinning donuts in her Porszę 912 (a parody of a Stuttgart coupe): tyre
 ## smoke and a circle of black marks. Stop in the gap of the ring (the beacon): the club talks
@@ -95,8 +95,14 @@ const MOTTO := ["Ćwiartka nie kłamie.", "The quarter mile doesn't lie."]
 ## found the old spot south of the stadium cut by two fences through the ring, so the second meet
 ## moved to the paving round the stadium with the most room from fences, roads, trees and the car
 ## park's parked cars, about 15 m; check_street_meet.gd keeps both rings clear of fences and walls).
+## Meet 1 stood east of the Palace among the Christmas market's chalets once the market was built
+## (F 2026-11-22): it moved about 25 m east, to the paving between the market's north-east corner
+## and Marszałkowska, 19 m clear all round (check_street_meet.gd also keeps it clear of the market).
+## The Palace's west forecourt was tried first: the club's pack then leaves by Emilii Plater and
+## jams four wide at its first left turn (race bench Pack order); from here it leaves by
+## Marszałkowska as before.
 const MEETS := [
-	{"id": "defilad", "name": ["Plac Defilad", "Plac Defilad"], "ll": [52.232327, 21.008892]},
+	{"id": "defilad", "name": ["Plac Defilad", "Plac Defilad"], "ll": [52.232447, 21.009215]},
 	{"id": "narodowy", "name": ["Parking pod Narodowym", "The car park by the National Stadium"], "ll": [52.241117, 21.043449]},
 ]
 ## Where Darek waits in person (the questline's start pin, story_quests.gd): the kerb of Parkingowa

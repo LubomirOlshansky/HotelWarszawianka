@@ -17,8 +17,8 @@ extends SceneTree
 ##      slots clear of the gap, the strip found and long enough, straight on the southbound lane;
 ##      the questline's start found on Parkingowa, past the start beacon's reach from the spawn
 ##      (out of the first view) and under 700 m from it;
-##   8. the rings clear (F 2026-11-08, meet 2 stood among fences): no fence, wall, guard rail or
-##      building within RING_R + 4 m of a meet's middle;
+##   8. the rings clear (F 2026-11-08, meet 2 stood among fences): no fence, wall, guard rail,
+##      building, landmark or Christmas market chalet or ride within RING_R + 4 m of a meet's middle;
 ##   9. the drag's tacho dial rises with the revs and the gate mesh is one surface; the count reads
 ##      3, 2, 1, START!;
 ##  10. the play: a real Meet on the real lane graph, a fixed seed, driven a frame at a time against
@@ -36,6 +36,7 @@ const GameTime := preload("res://scripts/game_time.gd")
 const Meet := preload("res://scripts/street_meet.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Story := preload("res://scripts/story_quests.gd")
+const Market := preload("res://scripts/landmarks/jarmark.gd")
 const Car := preload("res://scripts/car.gd")
 const Activity := preload("res://scripts/activity.gd")
 const Activities := preload("res://scripts/activities.gd")
@@ -523,7 +524,7 @@ func _check_clear(data: Dictionary, digest: PackedStringArray) -> void:
 		var c := Meet.Notebook.project(origin, float(ll[0]), float(ll[1]))
 		var near := INF
 		var what := ""
-		for key: String in ["lines", "guards", "walls", "buildings"]:
+		for key: String in ["lines", "guards", "walls", "buildings", "landmarks"]:
 			for item: Variant in data.get(key, []):
 				var p: Array = item["p"] if item is Dictionary else item
 				if p.size() < 4 or absf(float(p[0]) - c.x) > 600.0 or absf(float(p[1]) - c.y) > 600.0:
@@ -533,6 +534,19 @@ func _check_clear(data: Dictionary, digest: PackedStringArray) -> void:
 					if dd < near:
 						near = dd
 						what = "%s %s" % [key, item.get("k", item.get("kind", "")) if item is Dictionary else ""]
+		# The Christmas market by the Palace (landmarks/jarmark.gd, always up): its chalets and rides
+		# (F 2026-11-22: meet 1's ring had stood among its chalets since the market was built).
+		for h: Array in Market._jm_huts():
+			var dd := c.distance_to(Market._jm_world(float(h[0]), float(h[1]))) - 2.8
+			if dd < near:
+				near = dd
+				what = "Jarmark chalet"
+		for ride: Vector2 in [Market.JM_TREE, Market.JM_CAROUSEL, Market.JM_TOWER, Market.JM_TEACUPS, Market.JM_SANTA,
+				Market.JM_KURANT, Market.JM_STAGE, Market.JM_FOODZONE]:
+			var dd := c.distance_to(Market._jm_world(ride.x, ride.y)) - 8.0
+			if dd < near:
+				near = dd
+				what = "Jarmark ride or stage"
 		if near < reach:
 			problems.append("meet %s: a %s %.1f m from the middle (want %.0f m clear)" % [row["id"], what, near, reach])
 	digest.append("rings clear")

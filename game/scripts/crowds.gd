@@ -10,7 +10,9 @@ extends Node3D
 ##    `reject` bubble); the car at the door (< 10 km/h within 8 m) gets the bouncer's `car` line
 ##    once per club per night (the garage loop: painted black, the `car_black` line; at Lusterko's
 ##    door on a Friday or Saturday night, 23:00-06:00, egg E01 through `egg`, `door_egg`);
-##  - **Level 26's roof crowd** on the tower's top at its place (vision's roof curve), when the
+##  - **Level 26's roof crowd** (since 2026-11-22 the DJ, dancers and drinkers of landmarks'
+##    level26_plan on the terrace, and the deck chairs' loungers, `level_26_lounge`; the rest of
+##    this item is the fallback without the model) on the tower's top (vision's roof curve), when the
 ##    roof grid says the tower is there; F's asks (2026-10-30): the place's anchor moved onto the
 ##    tower (places.json `near`), the figures stand by the parapet of the roof grid's outline
 ##    (`roof_ring`: 48 rays round the top floors), a short queue waits at the
@@ -288,6 +290,11 @@ const ROOF_ID := "level_26"
 ## roof ring's rays, the band's place under the roof (m) and its colour.
 const ROOF_DOOR_ID := "level_26_door"
 const ROOF_DOOR_MAX := 8
+## F (2026-11-22, Level 26 rebuilt from F's photos: landmarks level26_plan): the deck chairs'
+## loungers from the late afternoon to the night (the sunset crowd of the day photos), and the
+## `level_26` roof crowd on the model's dance floor and at its bar instead of the parapet.
+const L26_LOUNGE_ID := "level_26_lounge"
+const L26_LOUNGE_HOURS := Vector2(16.0, 1.0)
 const RING_RAYS := 48
 const RING_TOP := 1.0
 const RING_H := 2.0
@@ -799,9 +806,9 @@ static func jazz_level(hour: float, weekday: int, month: int, rain: bool) -> flo
 ## THE WJU (0..1 of the seats, `dj`: of the dancers): the lounge from noon to 02:00, half
 ## full in the afternoon, full in the evening; the dance floor from 19:00 filling over two hours;
 ## Friday and Saturday fuller, out of season and in rain thinner. 0 outside the hours.
-static func view_level(hour: float, weekday: int, month: int, rain: bool, dj: bool) -> float:
+static func view_level(hour: float, weekday: int, month: int, rain: bool, dj: bool, own := Vector2(-1.0, -1.0)) -> float:
 	var h := fmod(hour + 24.0, 24.0)
-	var hours := VIEW_DJ_HOURS if dj else VIEW_HOURS
+	var hours := own if own.x >= 0.0 else (VIEW_DJ_HOURS if dj else VIEW_HOURS)
 	if not (h >= hours.x or h < hours.y):
 		return 0.0
 	var lvl := 1.0 if weekday == 5 or weekday == 6 else 0.6
@@ -1245,8 +1252,16 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 	_add_site({"id": JAZZ_ID, "kind": "jazz", "at": jazz["centre"], "max": JAZZ_BAND + (jazz["chairs"] as Array).size()
 			+ (jazz["standing"] as Array).size(), "plan": jazz})
 	_add_site({"id": JAZZ_CAFE_ID, "kind": "jazz_cafe", "at": Landmarks.POW_LOW_C, "max": (jazz["seats"] as Array).size(), "plan": jazz})
+	var l26 := Landmarks.level26_plan(data)
+	if not l26.is_empty():
+		_add_site({"id": L26_LOUNGE_ID, "kind": "view", "at": l26["centre"], "max": (l26["layout"]["seats"] as Array).size(),
+				"plan": l26, "hours": L26_LOUNGE_HOURS})
 	if at.has(ROOF_ID):
-		_add_site({"id": ROOF_ID, "kind": "roof", "at": at[ROOF_ID], "max": ROOF_MAX, "curve": "roof"})
+		if l26.is_empty():
+			_add_site({"id": ROOF_ID, "kind": "roof", "at": at[ROOF_ID], "max": ROOF_MAX, "curve": "roof"})
+		else:
+			_add_site({"id": ROOF_ID, "kind": "roof", "at": at[ROOF_ID], "max": 1 + (l26["layout"]["dancers"] as Array).size(),
+					"curve": "roof", "plan": l26})
 		_add_site({"id": ROOF_DOOR_ID, "kind": "queue", "at": at[ROOF_ID], "max": ROOF_DOOR_MAX, "curve": "roof",
 				"police": false, "dawn": false})
 	for id: String in DECKS:
@@ -2208,6 +2223,9 @@ func _place_roof(s: Dictionary) -> void:
 	s["door"] = at
 	if map == null:
 		return
+	if s.has("plan"):
+		_place_l26(s)
+		return
 	var top: float = map.roof_height(at.x, at.y)
 	var ground: float = map.ground_height(at.x, at.y)
 	if top - ground < 40.0:
@@ -2238,6 +2256,31 @@ func _place_roof(s: Dictionary) -> void:
 		_build_ring(ring, at)
 	print("crowds: %s on a roof %.0f m over the ground, %d spots at the parapet, %s" % [s["id"], top - ground, slots.size(),
 			"the band of light round %d m of facade" % roundi(_ring_len(ring)) if _ring != null else "no band (%d rays)" % ring.size()])
+
+
+## Level 26 from F's photos (2026-11-22, landmarks level26_plan): the DJ first at the desk, then
+## the dancers before the stage and the drinkers at the bar in a seeded order, on the model's deck
+## (its height over the lowest ground under the tower's outline, as the model's). No parapet ring
+## and no violet band: the model's own lights (the railing's strip, the lanterns) glow instead.
+func _place_l26(s: Dictionary) -> void:
+	var plan: Dictionary = s["plan"]
+	var lay: Dictionary = plan["layout"]
+	var g := INF
+	for q: Vector2 in plan["outline"]:
+		g = minf(g, map.terrain_height(q.x, q.y))
+	var y := g + float(plan["deck_h"])
+	var face: Vector2 = lay["dj_face"]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2627
+	var crowd: Array = []
+	for st: Array in lay["dancers"]:
+		var d: Vector2 = st[1]
+		crowd.append({"p": st[0], "y": y, "pose": STAND, "yaw": atan2(-d.x, -d.y) + rng.randf_range(-0.35, 0.35),
+				"shirt": DARK[rng.randi() % DARK.size()] if rng.randf() < 0.6 else BRIGHT[rng.randi() % BRIGHT.size()]})
+	_shuffle(crowd, rng)
+	s["slots"] = [{"p": lay["dj"], "y": y, "pose": STAND, "yaw": atan2(-face.x, -face.y), "shirt": VIEW_DJ_SHIRT}] + crowd
+	s["top"] = y
+	print("crowds: %s on the terrace %.0f m up, %d spots (the DJ, the dance floor, the bar)" % [s["id"], y - g, (s["slots"] as Array).size()])
 
 
 ## An observation deck's spots (F's asks, 2026-11-01), every second one in a seeded order, each
@@ -2716,7 +2759,8 @@ func tick(step: float) -> void:
 			"bar":
 				want = bar_count(int(s["max"]), int(s.get("staff_n", 0)), bar_level(hour, weekday, month, rain, bool(s["barge"])), k)
 			"view":
-				want = mini(roundi(int(s["max"]) * k * view_level(hour, weekday, month, rain, false)), int(s["max"]))
+				want = mini(roundi(int(s["max"]) * k * view_level(hour, weekday, month, rain, false, s.get("hours", Vector2(-1.0, -1.0)))),
+						int(s["max"]))
 			"view_dj":
 				var lvl := view_level(hour, weekday, month, rain, true)
 				want = 0 if lvl <= 0.0 else mini(1 + roundi((int(s["max"]) - 1) * k * lvl), int(s["max"]))

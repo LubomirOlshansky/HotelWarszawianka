@@ -152,6 +152,9 @@ func _bake() -> Error:
 	# The exported game keeps only the game's part of the index: what the builder alone reads (its
 	# derived grids are in the map node by now) stays in index.json for the runtime path.
 	var game_data: Dictionary = map.index_data.duplicate()
+	# The rooftop clubs' crowds (crowds.gd, landmarks level26_plan and spektrum_plan) read their
+	# towers' parts in the game too: those few stay, as `plan_parts`.
+	game_data["plan_parts"] = Landmarks.plan_parts(game_data)
 	for k in BUILDER_ONLY:
 		game_data.erase(k)
 	# The memory loop: saved with its coordinates packed (scripts/index_pack.gd).
