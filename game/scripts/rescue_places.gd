@@ -21,8 +21,9 @@ const ROOF_PARODIES := {"puro": "Hotel Piure", "caffè nero": "Green Caffè Nerw
 const ROOF_LOW := 6.0        # cassettes.gd: a roof for a cassette is at least this high
 const OPEN_RADIUS := 4.5     # street spots need this much open sky for the helicopter
 ## Map north: rescue spots keep this far inside the map's outline (map_builder.gd `in_map`; it was
-## the bounding box shrunk by as much, which let a spot fall in the corner left outside).
-const EDGE_PAD := 40.0
+## the bounding box shrunk by as much, which let a spot fall in the corner left outside). The jobs'
+## pad since 2026-11-22 (lane_graph.gd TARGET_PAD, was 40 m): no call to the very end of the map.
+const EDGE_PAD: float = preload("res://scripts/lane_graph.gd").TARGET_PAD
 ## DEMO 6.3: the Łazienki peacock. Łazienki itself lies just south of the demo map; its peacocks
 ## wander north over Agrykola and Ujazdów, so one ends up on a roof by Park Ujazdowski: the first of
 ## these buildings with a roof the helicopter can land on (else the nearest roof rescue within

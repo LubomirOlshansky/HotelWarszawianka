@@ -409,6 +409,9 @@ static func pick_car_spot(g: LaneGraph, from: Vector2, lo: float, hi: float, rng
 			if not fits(g, e):
 				continue
 			var s := clampf(g.project(e, q), g.e_s0[e] + CrashScenes.END_ROOM, g.e_s1[e] - CrashScenes.END_ROOM)
+			# Never at the map's edge (lane_graph.gd `in_play`).
+			if not g.in_play(g.point_at(e, s)):
+				continue
 			return {"e": e, "lane": g.e_lanes[e] - 1, "s": s}
 	return {}
 
