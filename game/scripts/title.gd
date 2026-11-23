@@ -146,7 +146,7 @@ func _ready() -> void:
 	_bar_plate.name = "loading_bar"
 	_bar_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var plate := StyleBoxFlat.new()
-	plate.bg_color = Color(1.0, 1.0, 1.0, 0.18)
+	plate.bg_color = UiKit.EDGE  # a thin pale track
 	plate.set_corner_radius_all(4)
 	_bar_plate.add_theme_stylebox_override("panel", plate)
 	_root.add_child(_bar_plate)
