@@ -1073,8 +1073,11 @@ func _notification(what: int) -> void:
 			wallet.flush()
 		if _trap != null:
 			_trap.mark()  # so far this session ended in order (error_trap.gd)
-		if play_stats != null:
-			play_stats.pause()  # the session's summary, sent now or from the disk queue next launch
+		# The session's summary, sent now or from the disk queue next launch: only when the app
+		# leaves (the background, a close). A focus loss alone (iOS Control Center, a system
+		# alert, the Android shade, a Mac window switch) ended a session too and began a new one.
+		if play_stats != null and what != NOTIFICATION_APPLICATION_FOCUS_OUT:
+			play_stats.pause()
 	elif what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		# Android's back button (project.godot `quit_on_go_back` off: before, it closed the game at
 		# once, from anywhere, without the save's flush). On a paused screen (the full map closes
@@ -1085,7 +1088,7 @@ func _notification(what: int) -> void:
 	elif what in [NOTIFICATION_APPLICATION_RESUMED, NOTIFICATION_APPLICATION_FOCUS_IN]:
 		# iOS stops the haptic engine in the background: start it again now, not in a crash's frame.
 		Haptics.warm()
-		if play_stats != null:
+		if play_stats != null and what == NOTIFICATION_APPLICATION_RESUMED:
 			play_stats.resume()
 
 

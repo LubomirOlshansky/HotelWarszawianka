@@ -128,6 +128,8 @@ var _tick := 0.0
 var _last_pos := Vector3.INF
 var _km := 0.0
 var _fly_s := 0.0
+## `_play` when this stretch began (begin): the launch, or the last resume from the background.
+var _play0 := 0.0
 var _zl0 := 0
 var _runs := 0
 var _fps: Array[float] = []
@@ -383,6 +385,7 @@ func begin(resumed := false) -> void:
 	_zl0 = int(wallet.zl) if wallet != null else 0
 	if not resumed:
 		_play = 0.0
+	_play0 = _play  # this stretch's start: session_end counts from here, not from the launch
 	var fresh: bool = wallet != null and wallet.has_method("has_progress") and not wallet.has_progress()
 	_recover()
 	# title_ms: engine start to the tap on "tap to drive" (a launch only; 0 after a resume).
@@ -404,11 +407,17 @@ func pause() -> void:
 		return
 	_ended = true
 	_drop_checkpoint()  # ended in order: the session_end below is queued on the disk
-	var minutes := _play / 60.0
+	var minutes := _stretch() / 60.0
 	track("session_end", {"minutes_played": minutes, "km_driven": _km / 1000.0,
 			"zl_earned": (int(wallet.zl) - _zl0) if wallet != null else 0, "runs_done": _runs,
-			"heli_pct": int(round(100.0 * _fly_s / maxf(_play, 1.0))), "how": "end"})
+			"heli_pct": int(round(100.0 * _fly_s / maxf(_stretch(), 1.0))), "how": "end"})
 	flush()
+
+
+## This stretch of play in seconds (since the launch or the last resume): what one session_end
+## counts, so the stretches of one launch add up to its play and never count a minute twice.
+func _stretch() -> float:
+	return maxf(_play - _play0, 0.0)
 
 
 ## Back from the background: a new stretch of play (the play clock goes on).
@@ -441,9 +450,9 @@ func _write_checkpoint() -> void:
 	var f := FileAccess.open(CHECKPOINT_PATH, FileAccess.WRITE)
 	if f == null:
 		return
-	f.store_string(JSON.stringify({"play": _play, "km": _km, "runs": _runs,
+	f.store_string(JSON.stringify({"play": _stretch(), "km": _km, "runs": _runs,
 			"zl": (int(wallet.zl) - _zl0) if wallet != null else 0,
-			"heli_pct": int(round(100.0 * _fly_s / maxf(_play, 1.0)))}))
+			"heli_pct": int(round(100.0 * _fly_s / maxf(_stretch(), 1.0)))}))
 	f.close()
 
 
@@ -543,7 +552,7 @@ func _on_run_started(a: Object) -> void:
 func _on_run_ended(a: Object, how: String, seconds: float) -> void:
 	if bool(a.get("is_job")) and how == "done" and _first_time("job_done"):
 		track("first_job", {"stage": "end", "activity": str(a.get("tag")), "how": how, "t_play_s": _play})
-	if how == "done":
+	if how in ["done", "won", "lost"]:  # a race's end says who won (rivals.gd)
 		_runs += 1
 	track("activity_end", {"activity": str(a.get("tag")), "job": bool(a.get("is_job")), "how": how,
 			"duration_s": seconds, "t_play_s": _play})
