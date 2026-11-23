@@ -42,7 +42,7 @@ const BUDGET := {
 	"szarytki": 300,  # 2026-11-15: the Sisters of Charity's turret (the mass is LoD2's)
 	"gigantami": 4000,
 	"filtry": 3000,
-	"level26_club": 860,
+	"level26_club": 6900,  # 2026-11-22: rebuilt from F's photos: the terrace round the drum, railing, lanterns, deck chairs, birches, DJ truss, bar (measured 5753)
 	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
@@ -247,7 +247,8 @@ const BUDGET := {
 	"brama": 100,
 	"equator": 120,
 	"equator2": 120,
-	"wiecha": 2500,  # 2026-11-19 night life (lit displays, awnings, kebab hatch, bulbs)
+	"wiecha": 3700,  # 2026-11-19 night life (lit displays, awnings, kebab hatch, bulbs); 2026-11-22 the cafés' own lit bays, words and bulb strings (3,042)
+	"wiecha_swieta": 27000,  # 2026-11-22 Pasaż Wiecha at Christmas (F's photos): 22 shooting stars on the masts, the gingerbread tunnel, the neon fir, bauble benches, two photo frames, LED curtains, 26,230 tris; +0 draw calls (one mesh)
 	"orly": 1600,
 	"hotel_warszawa": 2300,
 	"cedet": 2300,

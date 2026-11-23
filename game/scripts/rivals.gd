@@ -734,9 +734,25 @@ func _can_abort() -> bool:
 ## (the run ends when it is pressed); otherwise the kit's.
 func drop(by_player: bool) -> void:
 	if by_player and (state == State.COUNTDOWN or state == State.RACE):
+		_end_as = "quit"
 		_finish_race(false, "You gave up.")
 		return
 	super.drop(by_player)
+
+
+## The run's end as the stats read it (activity_end `how`): "won", "lost" or "quit" (the ✕), set
+## when the race is decided; the result card's press ends the run with it (before, every race,
+## given up or not, went out as "done").
+var _end_as := ""
+
+
+func finish() -> void:
+	if _end_as == "":
+		super.finish()
+		return
+	end_how = _end_as
+	_end_as = ""
+	_end(call_cool)
 
 
 ## Loop 3h slice 3: the final's next point for the player: the next bridge's checkpoint, then the
@@ -779,6 +795,7 @@ func rung_open(i: int) -> bool:
 ## Challenges rival i at once (also the --race flag): they name a finish, count
 ## down and go.
 func start_race(i: int, finish := {}) -> void:
+	_end_as = ""
 	end_call_out()
 	_marker(false)
 	_release_seba()
@@ -1005,14 +1022,23 @@ func _speeds(d) -> void:
 
 ## The finish's margin in seconds: the one still driving needs this long at their speed now.
 ## The metres are capped by the straight line to the finish x MARGIN_DETOUR (PT-22: a route left
-## that loops round a dual carriageway made an 11 m gap read "by 47.1 s").
+## that loops round a dual carriageway made an 11 m gap read "by 47.1 s"). A player's win reads
+## the rival's own plan (its seconds to the finish from where it is) when it has one.
 func _finish_margin(won: bool) -> float:
 	if final_on:
 		return time_gap(_rival_left if won else _player_left, _v_rival if won else _v_player)
 	var goal := Vector2(_finish["pos"].x, _finish["pos"].z)
 	if won:
 		var d = _drivers[rival]
-		return time_gap(minf(_rival_left, Vector2(d.pos.x, d.pos.z).distance_to(goal) * MARGIN_DETOUR), _v_rival)
+		var by := time_gap(minf(_rival_left, Vector2(d.pos.x, d.pos.z).distance_to(goal) * MARGIN_DETOUR), _v_rival)
+		if d.plan != null:
+			# The rival's own plan knows how long it still needs from where it is, at its own racing
+			# speed. The metres over its speed this instant do not: F's playtest of 2026-11-22 read
+			# "by 44.4 s" for a Słoik 15 s behind, caught crawling round a U-turn at 3.5 m/s.
+			var own: float = d.plan.left(d.edge, d.s, float(d.v))
+			if own < INF:
+				by = own
+		return by
 	var at := Vector2(car.global_position.x, car.global_position.z)
 	return time_gap(minf(_player_remaining(), at.distance_to(goal) * MARGIN_DETOUR), _v_player)
 
@@ -1341,6 +1367,8 @@ static func _end_stop(s: String) -> String:
 
 
 func _finish_race(won: bool, why: String) -> void:
+	if _end_as == "":
+		_end_as = "won" if won else "lost"
 	if final_on:
 		_finish_final(won, why)
 		return

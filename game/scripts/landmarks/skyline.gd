@@ -1484,7 +1484,7 @@ static func spektrum_plan(data: Dictionary) -> Dictionary:
 		return {}
 	var drum := PackedVector2Array()
 	var drum_h := 0.0
-	for bld: Dictionary in data.get("buildings", data.get("site_parts", [])):
+	for bld: Dictionary in plan_parts_of(data):  # the prebuilt game's are `plan_parts` (bake_city.gd)
 		var flat: Array = bld["p"]
 		if flat.size() < 6 or str(bld.get("c", "")).to_lower() != "#637780" or float(bld.get("mh", 0.0)) > 0.5:
 			continue

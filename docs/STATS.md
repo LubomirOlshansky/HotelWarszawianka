@@ -42,12 +42,12 @@ of git (CLAUDE.md: no keys in tracked files).
 
 | Event | Properties | Answers |
 | --- | --- | --- |
-| `session_start` | fresh_save, resumed, zl, load_ms (a launch: milliseconds from the engine's start to the start's sectors in; 0 after a resume), title_ms (engine start to the tap on "tap to drive"; 0 after a resume), quality (graphics level), crashed_before (the last session never ended in order) | sessions, new vs returning, load time by phone, graphics level, crash rate |
-| `session_end` | minutes_played, km_driven, zl_earned, runs_done, heli_pct, how (`end` in order; `lost`: the session was killed or crashed in the foreground, sent at the next launch from a checkpoint file written every 15 s) | play time, what a session holds |
+| `session_start` | fresh_save, resumed (back from the background; a focus loss alone, such as Control Center, no longer ends a session from 2026-11-23), zl, load_ms (a launch: milliseconds from the engine's start to the start's sectors in; 0 after a resume), title_ms (engine start to the tap on "tap to drive"; 0 after a resume), quality (graphics level), crashed_before (the last session never ended in order) | sessions, new vs returning, load time by phone, graphics level, crash rate |
+| `session_end` | minutes_played (this stretch only: since the launch or the last return from the background, so a launch's stretches add up; from 2026-11-23), km_driven, zl_earned, runs_done, heli_pct, how (`end` in order; `lost`: the session was killed or crashed in the foreground, sent at the next launch from a checkpoint file written every 15 s) | play time, what a session holds |
 | (every event) | `$app_build` "0.1 (14, 839dfd2)": the version, the build number or Android version code and the commit, from data/build_stamp.json that tools/export_ios.sh and export_android.sh write ("0.1 (dev)" in a run from the editor) | which build a phone runs |
 | `fps_sample` | avg_fps, low_fps, draw_calls, frame_cap (60 on an iPhone), minute, quality (the level drawn, a slug), scale (image pixels: 1 full, 2 half), flying | the phone's frame rate in the wild (twice: 2 and 10 minutes into play, so a phone that slows as it warms shows) |
 | `guide_beat` | beat, how, t_play_s | the first-hour funnel (first10.gd beats) |
-| `activity_start` / `activity_end` | activity, job, how (done/quit/timeout/ended), duration_s, t_play_s | which jobs and quests are played and finished |
+| `activity_start` / `activity_end` | activity, job, how (done/quit/timeout/ended; a street race says won/lost/quit from 2026-11-23), duration_s, t_play_s | which jobs and quests are played and finished |
 | `first_job` | stage (start / end), activity, how, t_play_s (once per install each) | the drop between the guide's beats, the first job and its completion |
 | `chase_end` | how, t_play_s | police chases |
 | `discover` | kind (district/egg), id, t_play_s | exploration |

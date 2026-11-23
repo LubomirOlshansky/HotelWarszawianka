@@ -25,7 +25,7 @@ const GROUND := 0.2
 ## Sites that stand on a mapped building's roof (the building is the map's, not the site's): their
 ## parts are supported by the site's lowest level instead of the ground (LORETKA's terrace on
 ## HOTEL PIURE, F 2026-11-01).
-const ON_ROOF := ["loretka"]
+const ON_ROOF := ["loretka", "level26_club"]
 ## Sites on several mapped roofs (Varso Place's terraces on Varso 1 and 2, Krajobraz K3): a part
 ## is held up when its bottom lies on a mapped building's top under its middle (within GROUND).
 const ON_ROOFS := ["varso_place"]
