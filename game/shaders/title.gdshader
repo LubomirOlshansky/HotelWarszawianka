@@ -1,7 +1,8 @@
 shader_type canvas_item;
 // The title screen's backdrop (title.gd): a dusk sky with a striped setting sun,
 // a Warsaw skyline against it (the Palace of Culture in the middle, Varso and a
-// few towers), and a neon perspective grid rolling towards the viewer.
+// few towers), and a neon perspective grid. Still: nothing moves (F 2026-11-23: no animation on
+// the loading screen, the rolling road included).
 
 uniform float aspect = 1.7778;
 // Height of the horizon from the top, as a share of the screen.
@@ -98,9 +99,9 @@ void fragment() {
 		vec2 cell = floor(uv * vec2(aspect, 1.0) * 180.0);
 		float h = hash(cell);
 		if (h > 0.996 && t < 0.55) {
-			col += vec3(0.9, 0.85, 1.0) * (0.5 + 0.5 * sin(TIME * 2.0 + h * 50.0)) * (1.0 - t / 0.55);
+			col += vec3(0.9, 0.85, 1.0) * (0.5 + 0.5 * sin(h * 50.0)) * (1.0 - t / 0.55);
 		}
-		// The sun, striped across its lower half; the stripes drift down.
+		// The sun, striped across its lower half.
 		vec2 c = vec2(0.03, hz - 0.25);
 		float r = 0.235;
 		float d = length(p - c);
@@ -110,7 +111,7 @@ void fragment() {
 			vec3 sun = mix(SUN_TOP, SUN_BOTTOM, smoothstep(-0.9, 0.9, k));
 			bool gap = false;
 			if (k > -0.1) {
-				float band = fract(k * 5.0 - TIME * 0.22);
+				float band = fract(k * 5.0);
 				gap = band < mix(0.06, 0.5, (k + 0.1) / 1.1);
 			}
 			if (!gap) {
@@ -126,7 +127,7 @@ void fragment() {
 		col = mix(vec3(0.13, 0.03, 0.22), vec3(0.02, 0.0, 0.05), smoothstep(0.0, 1.0, t));
 		float z = 1.0 / max(t, 0.002);
 		float wx = (uv.x - 0.5) * aspect * z * 2.2;
-		float wz = z * 0.9 + TIME * 1.4;
+		float wz = z * 0.9;
 		float lx = (0.5 - abs(fract(wx) - 0.5)) / max(fwidth(wx), 1e-5);
 		float lz = (0.5 - abs(fract(wz) - 0.5)) / max(fwidth(wz), 1e-5);
 		float line = max(1.0 - smoothstep(0.0, 1.4, lx), 1.0 - smoothstep(0.0, 1.4, lz));
