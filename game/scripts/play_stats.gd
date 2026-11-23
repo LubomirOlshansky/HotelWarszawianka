@@ -69,8 +69,8 @@ const EVENTS := {
 	"stats_off": {},
 }
 ## The settings whose changes are counted (`setting`): the choices, never a slider's every step.
-const SETTING_KEYS := ["controls", "pads", "quality", "traffic", "lang", "wander", "fps", "collide", "soft_fences",
-		"handling", "vhs", "angle", "grade", "text_large", "calm", "color_safe", "vibration", "stop_assist",
+const SETTING_KEYS := ["controls", "pads", "quality", "traffic", "lang", "fps", "collide", "soft_fences",
+		"handling", "angle", "grade", "text_large", "calm", "color_safe", "vibration", "stop_assist",
 		"left_handed", "lane_assist", "chatter", "zones", "time", "weather"]
 ## The SDK's default properties that stay on the phone.
 const STRIPPED := ["$locale"]

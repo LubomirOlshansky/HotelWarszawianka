@@ -1,4 +1,4 @@
-## In-game feedback (F 2026-11-21): Settings → Dźwięk → OPINIA opens this card; the player writes a
+## In-game feedback (F 2026-11-21): Settings → the gold button at the top of the first tab opens this card; the player writes a
 ## message (and, if they like, an email to be answered at), and it is posted as JSON to the
 ## Formspree form "In-game feedback" of the Around Warsaw project, which mails it to the author.
 ## The payload carries the build, the device model, the language and where in the city the player
@@ -34,6 +34,9 @@ var _text: TextEdit
 var _email: LineEdit
 var _status: Label
 var _send: Button
+var _card: PanelContainer
+var _lead: Label
+var _note: Label
 var _last_send_ms := -1000000
 var _built := false
 
@@ -115,14 +118,67 @@ func open() -> void:
 	_status.text = ""
 	_send.disabled = false
 	visible = true
+	_layout()
 	_text.grab_focus()
 
 
 func close() -> void:
+	_hide_keyboard()
 	if _http != null:
 		_http.cancel_request()
 	visible = false
 	closed.emit()
+
+
+## Puts the on-screen keyboard away (F 2026-11-22: it covered the card and there was no way out).
+func _hide_keyboard() -> void:
+	if _text != null:
+		_text.release_focus()
+	if _email != null:
+		_email.release_focus()
+	DisplayServer.virtual_keyboard_hide()
+
+
+## The keyboard's height in viewport units (0 on desktop and when it is down).
+func _keyboard_height() -> float:
+	var kb := float(DisplayServer.virtual_keyboard_get_height())
+	if kb <= 0.0:
+		return 0.0
+	var win := maxf(float(DisplayServer.window_get_size().y), 1.0)
+	return kb * get_viewport().get_visible_rect().size.y / win
+
+
+func _process(_delta: float) -> void:
+	if visible and _built:
+		_layout()
+
+
+## F 2026-11-22: the card sits in the room above the keyboard. With the keyboard up the long
+## lead and the note go, the message box shrinks and the card is scaled to fit; the header
+## (title, SEND, ✕) is always on screen, so the card can always be sent or left.
+func _layout() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	var area := safe if safe.has_area() else Rect2(Vector2.ZERO, vp)
+	var kb := _keyboard_height()
+	var compact := kb > 0.0
+	if compact:
+		var bottom := minf(area.end.y, vp.y - kb)
+		area = Rect2(area.position, Vector2(area.size.x, maxf(bottom - area.position.y, 80.0)))
+	_lead.visible = not compact
+	_note.visible = not compact
+	_status.visible = _status.text != ""
+	_text.custom_minimum_size.y = (52.0 if compact else 130.0) * pt
+	_card.scale = Vector2.ONE
+	_card.reset_size()
+	var need := _card.get_combined_minimum_size()
+	var room := area.grow(-6.0 * pt).size
+	var k := minf(1.0, minf(room.x / maxf(need.x, 1.0), room.y / maxf(need.y, 1.0)))
+	_card.scale = Vector2(k, k)
+	_card.size = need
+	var pos := area.get_center() - need * k * 0.5
+	if compact:
+		pos.y = area.position.y + 6.0 * pt
+	_card.position = pos
 
 
 func _build() -> void:
@@ -133,26 +189,51 @@ func _build() -> void:
 	shade.color = UiKit.SCRIM
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	# A tap beside the card puts the keyboard away first, and closes the card when it is already down.
+	shade.gui_input.connect(func(e: InputEvent):
+		if e is InputEventMouseButton and (e as InputEventMouseButton).pressed:
+			if _keyboard_height() > 0.0 or _text.has_focus() or _email.has_focus():
+				_hide_keyboard()
+			else:
+				close())
 	add_child(shade)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(center)
-	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", UiKit.card(pt, 14.0))
+	_card = PanelContainer.new()
+	_card.add_theme_stylebox_override("panel", UiKit.card(pt, 14.0))
 	var width := 440.0 * pt
 	if safe.has_area():
 		width = minf(width, safe.size.x - 24.0 * pt)
-	card.custom_minimum_size.x = width
-	center.add_child(card)
+	_card.custom_minimum_size.x = width
+	_card.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_card)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", _px(8))
-	card.add_child(col)
+	_card.add_child(col)
 
-	col.add_child(_label(w("title"), 20.0, UiKit.GOLD))
-	var lead := _label(w("lead"), 13.0, UiKit.SUB)
-	lead.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	col.add_child(lead)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", _px(8))
+	col.add_child(head)
+	var title := _label(w("title"), 20.0, UiKit.GOLD)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	head.add_child(title)
+	_send = Button.new()
+	_send.name = "send"
+	_send.text = w("send")
+	_send.custom_minimum_size = Vector2(0.0, 40.0 * pt)
+	UiKit.style_button(_send, UiKit.Kind.PRIMARY, pt)
+	_send.pressed.connect(send)
+	head.add_child(_send)
+	var back := Button.new()
+	back.name = "close"
+	back.text = "✕"
+	back.custom_minimum_size = Vector2(40.0 * pt, 40.0 * pt)
+	UiKit.style_button(back, UiKit.Kind.SECONDARY, pt, 18.0)
+	back.pressed.connect(close)
+	head.add_child(back)
+
+	_lead = _label(w("lead"), 13.0, UiKit.SUB)
+	_lead.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(_lead)
 
 	_text = TextEdit.new()
 	_text.placeholder_text = w("placeholder")
@@ -169,30 +250,16 @@ func _build() -> void:
 	_email.max_length = EMAIL_MAX
 	_email.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_EMAIL_ADDRESS
 	_email.add_theme_font_size_override("font_size", _px(15.0))
+	_email.text_submitted.connect(func(_t: String): _hide_keyboard())  # the return key puts the keyboard away
 	col.add_child(_email)
 
-	var note := _label(w("note"), 11.0, UiKit.FAINT)
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	col.add_child(note)
+	_note = _label(w("note"), 11.0, UiKit.FAINT)
+	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(_note)
 
 	_status = _label("", 13.0, UiKit.GOLD)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(_status)
-
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", _px(8))
-	col.add_child(row)
-	var back := Button.new()
-	back.text = w("close")
-	UiKit.style_button(back, UiKit.Kind.SECONDARY, pt)
-	back.pressed.connect(close)
-	row.add_child(back)
-	_send = Button.new()
-	_send.text = w("send")
-	_send.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UiKit.style_button(_send, UiKit.Kind.PRIMARY, pt)
-	_send.pressed.connect(send)
-	row.add_child(_send)
 
 	_http = HTTPRequest.new()
 	_http.timeout = 15.0
@@ -226,6 +293,7 @@ func send() -> void:
 		_status.text = reason_words("fail")
 		return
 	_last_send_ms = Time.get_ticks_msec()
+	_hide_keyboard()
 	_send.disabled = true
 	_status.text = reason_words("sending")
 
