@@ -14,7 +14,8 @@ extends SceneTree
 ##   reset    reset_stall() and reset_motion() (the tows) start it again from nothing
 ##   pill     the real HUD's context button (PT-23): POMOC DROGOWA takes it from the ride app's
 ##            PODWÓZKA (up whenever a ride could be taken) and from KASETA, never from a rescue
-##            call; PODWÓZKA can't take it back while the offer is up, and can once it goes
+##            call here (PT-60: main.gd lets a stalled car's offer take a ringing call's button
+##            and puts WEZWANIE back, so the ranks stay as they are); PODWÓZKA can't take it back while the offer is up, and can once it goes
 ## Exits 1 on a problem.
 ##
 ##   godot --headless --path game --fixed-fps 60 --script res://tools/check_stuck_offer.gd
