@@ -91,14 +91,17 @@ static func can_pick(d: float, kmh: float, in_boot: int) -> bool:
 	return d <= PICK_R and kmh < PICK_KMH and in_boot < BOOT
 
 
-## The depots: zones at least `spacing` m apart, in the zones' order, the standing one left out.
-static func pick_depots(zone_list: Array, spacing: float) -> Array[int]:
+## The depots: zones at least `spacing` m apart, in the zones' order, the standing one left out,
+## and any for which `keep` (a point on the map, if given) is false: off the map's edge.
+static func pick_depots(zone_list: Array, spacing: float, keep := Callable()) -> Array[int]:
 	var out: Array[int] = []
 	for i in zone_list.size():
 		var z: Dictionary = zone_list[i]
 		if bool(z.get("standing", false)):
 			continue
 		var p := Vector2(z["at"].x, z["at"].z)
+		if keep.is_valid() and not bool(keep.call(p)):
+			continue
 		var far := true
 		for j in out:
 			var q: Dictionary = zone_list[j]
@@ -150,7 +153,7 @@ func setup(world: Node3D) -> void:
 	super.setup(world)
 	if store == null:
 		return
-	for i in pick_depots(store.zones, DEPOT_SPACING):
+	for i in pick_depots(store.zones, DEPOT_SPACING, _in_play):
 		var at: Vector3 = store.zones[i]["at"]
 		var marker: Node3D = jobs._marker(COLOUR, DEPOT_R - 1.0)
 		world.add_child(marker)
@@ -272,12 +275,24 @@ func depot_points() -> PackedVector2Array:
 	return pts
 
 
+## Whether a depot or a Leżak may be a target at p: off the map's edge (lane_graph.gd `in_play`;
+## true without the jobs' lane graph, as in a check's small city).
+func _in_play(p: Vector2) -> bool:
+	var g: Variant = jobs.get("graph") if jobs != null else null
+	return g == null or (g as Object).call("in_play", p)
+
+
 ## The card at depot i (--roundup too). False if too few Leżaks lie within reach.
 func offer(i: int) -> bool:
 	if phase != Phase.IDLE:
 		return false
 	var at: Vector3 = depots[i]["at"]
-	var near: Array[int] = store.lying_near(Vector2(at.x, at.z), REACH, WANT)
+	# The nearest WANT Leżaks that lie off the map's edge (lane_graph.gd `in_play`).
+	var near: Array[int] = []
+	for k in store.lying_near(Vector2(at.x, at.z), REACH, WANT * 4):
+		var a: Vector3 = store.scooters[k]["at"]
+		if near.size() < WANT and _in_play(Vector2(a.x, a.z)):
+			near.append(k)
 	if near.size() < AT_LEAST:
 		depots[i]["cool"] = true
 		hud.toast("Tu już posprzątane. Na dziś", "Already tidy round here. For tonight")

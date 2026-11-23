@@ -8,16 +8,26 @@ extends SceneTree
 ##      round the corner without a step back (jitter) or a stop; a push across a side slides
 ##      along it; a point inside the part (a teleport) goes out by the nearest inner side.
 ##   E2 the rescue spots (rescue_places.gd: streets, parks, the river, the hospitals) are all
-##      `in_map(p, -40)`; the count the old rectangle would have let into the corner is printed.
+##      `in_map(p, -EDGE_PAD)` (the jobs' TARGET_PAD, 80 m); the count the old rectangle would have let into the corner is printed.
 ##   E3 the minimap's mesh (hud.gd `_minimap_mesh`, the full map draws the same): no park, street or
 ##      tunnel triangle in a part left outside; the off-map ground covers each part whole; the
 ##      edge line has a vertex at the inner corner.
+##   E4 the job targets (2026-11-22, a tester's kebab order at the very end of the map): on the real
+##      lane graph, the doors jobs.gd `_pick_address` gives (the kebab orders, Podwózka, the trend
+##      job) from every kebab stand and from 60 starts by the outline, the EV tow's car
+##      (ev_tow.gd `pick_car_spot`) and the crash scenes (crash_scenes.gd `pick_spot`) from those
+##      starts, are all `in_map(p, -TARGET_PAD)` (lane_graph.gd `in_play`); every address is
+##      counted, and those the pad leaves out are printed.
 ## Prints `check_edge: OK (...)` (exit 0) or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_edge.gd
 
 const Heli := preload("res://scripts/heli.gd")
 const RescuePlaces := preload("res://scripts/rescue_places.gd")
 const Hud := preload("res://scripts/hud.gd")
+const LaneGraph := preload("res://scripts/lane_graph.gd")
+const Jobs := preload("res://scripts/jobs.gd")
+const EvTow := preload("res://scripts/ev_tow.gd")
+const CrashScenes := preload("res://scripts/crash_scenes.gd")
 
 ## The map's shape without a city: map_builder.gd's `in_map` and `map_outline` on the committed
 ## bounds and outside parts, a flat world with no roofs.
@@ -60,9 +70,10 @@ func _run() -> void:
 	var e1 := _heli(map)
 	var e2 := _missions(map, data)
 	var e3 := await _minimap(map, data)
+	var e4 := _jobs(map, data)
 	map.free()
 	if problems.is_empty():
-		print("check_edge: OK (E1 %s; E2 %s; E3 %s)" % [e1, e2, e3])
+		print("check_edge: OK (E1 %s; E2 %s; E3 %s; E4 %s)" % [e1, e2, e3, e4])
 		quit(0)
 	else:
 		for p in problems:
@@ -203,8 +214,8 @@ func _missions(map: Node3D, data: Dictionary) -> String:
 		if not map.in_map(q, -RescuePlaces.EDGE_PAD):
 			bad += 1
 			if bad <= 3:
-				problems.append("E2 a rescue spot at %s is off the map's outline (40 m in)" % q.round())
-	# What the bounding rectangle let in (the outline's corner, 40 m in): as a control.
+				problems.append("E2 a rescue spot at %s is off the map's outline (%d m in)" % [q.round(), roundi(RescuePlaces.EDGE_PAD)])
+	# What the bounding rectangle let in (the outline's corner, EDGE_PAD in): as a control.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	for i in 20000:
@@ -214,6 +225,85 @@ func _missions(map: Node3D, data: Dictionary) -> String:
 	if n == 0:
 		problems.append("E2 no rescue spots found")
 	return "%d rescue spots, %d off (the old box's area %.1f %% off the outline)" % [n, bad, old_box / 200.0]
+
+
+# --- E4 the job targets --------------------------------------------------------------------
+
+func _jobs(map: Node3D, data: Dictionary) -> String:
+	var g := LaneGraph.new(data["graph"], map)
+	var pad := LaneGraph.TARGET_PAD
+	var jobs: Jobs = Jobs.new()
+	jobs.graph = g
+	var cut := 0
+	var stands: Array[Vector2] = []
+	for p: Dictionary in data.get("pois", []):
+		match String(p["k"]):
+			"address":
+				var door: Array = p["door"]
+				var d := Vector2(door[0], door[1])
+				jobs._addresses.append({"name": p["name"], "door": d, "at": Vector2(p["x"], p["z"]),
+						"office": p.has("o"), "d": String(p.get("d", ""))})
+				if not g.in_play(d):
+					cut += 1
+			"kebab":
+				stands.append(Vector2(p["x"], p["z"]))
+	# Starts by the outline: lane points 15-150 m in, round the whole map.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var starts: Array[Vector2] = []
+	var tries := 0
+	while starts.size() < 60 and tries < 200000:
+		tries += 1
+		var q := Vector2(rng.randf_range(map.bounds.position.x, map.bounds.end.x), rng.randf_range(map.bounds.position.y, map.bounds.end.y))
+		if map.in_map(q, -15.0) and not map.in_map(q, -150.0) and not g.snap(q, 30.0).is_empty():
+			starts.append(q)
+	var froms: Array[Vector2] = stands.duplicate()
+	froms.append_array(starts)
+	var picks := 0
+	var tows := 0
+	var crashes := 0
+	for i in froms.size():
+		var from := froms[i]
+		var hit := g.snap(from, 30.0)
+		if hit.is_empty():
+			continue
+		for n in 6:
+			var r := RandomNumberGenerator.new()
+			r.seed = i * 131 + n
+			var hi: float = Jobs.ACROSS_MAX if n % 3 == 0 else Jobs.ORDER_MAX
+			var a := jobs._pick_address(hit[0], hit[2], from, Jobs.ORDER_MIN, hi, r, func(_a: Dictionary) -> bool: return true)
+			if a.is_empty():
+				continue
+			picks += 1
+			var ring: Vector3 = a["ring"]
+			if not map.in_map(Vector2(ring.x, ring.z), -pad):
+				problems.append("E4 an order from %s to %s at %s, under %d m from the map's edge" % [from.round(), a["name"], Vector2(ring.x, ring.z).round(), roundi(pad)])
+			var spot := EvTow.pick_car_spot(g, from, EvTow.CAR_FROM, EvTow.CAR_TO, r)
+			if not spot.is_empty():
+				tows += 1
+				var p := g.point_at(spot["e"], spot["s"])
+				if not map.in_map(p, -pad):
+					problems.append("E4 an EV tow's car at %s, under %d m from the map's edge" % [p.round(), roundi(pad)])
+			var cs := CrashScenes.pick_spot(g, from, Vector2.ZERO, r)
+			if not cs.is_empty():
+				crashes += 1
+				for s: float in [cs["s0"], float(cs["s0"]) + CrashScenes.SPAN]:
+					var p := g.point_at(cs["e"], s)
+					if not map.in_map(p, -pad):
+						problems.append("E4 a crash scene at %s, under %d m from the map's edge" % [p.round(), roundi(pad)])
+	if picks < froms.size():
+		problems.append("E4 only %d orders from %d starts (the pad left too few doors?)" % [picks, froms.size()])
+	jobs.free()
+	return "%d of %d addresses left out within %d m of the edge; %d orders, %d tows, %d crash scenes from %d stands and %d starts by the edge, all inside" % [
+			cut, jobs_count(data), roundi(pad), picks, tows, crashes, stands.size(), starts.size()]
+
+
+func jobs_count(data: Dictionary) -> int:
+	var n := 0
+	for p: Dictionary in data.get("pois", []):
+		if String(p["k"]) == "address":
+			n += 1
+	return n
 
 
 # --- E3 the minimap --------------------------------------------------------------------------
