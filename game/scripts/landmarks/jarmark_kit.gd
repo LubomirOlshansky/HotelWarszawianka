@@ -560,7 +560,9 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 			c.pbox(back.x, back.y, ang, 0.32, 0.04, sy, sy + 0.62, Color("#2a2d36"))
 		else:
 			# POV: the chairs in their own colours, matte, so a rider reads against them (no glow).
-			c.pbox(back.x, back.y, ang, 0.32, 0.04, sy, sy + 0.62, col if pov else (LED if flyer else col), CLEAR, M_STONE if pov else M_LAMP)
+			# POV from behind: a low back (0.3 m, the real chairs' backrest) so the rider's back, shoulders and
+			# head show over it, as the chairs ahead in F's reference reel (take l: a 0.62 m panel hid them).
+			c.pbox(back.x, back.y, ang, 0.32, 0.04, sy, sy + (0.3 if pov else 0.62), col if pov else (LED if flyer else col), CLEAR, M_STONE if pov else M_LAMP)
 		if flyer and not pov:
 			# The real chairs carry a white lamp each at night (F's video): a dot at the chain's foot.
 			c.lbulb(seat.x, seat.y, sy + 0.7, 0.22, LED)
