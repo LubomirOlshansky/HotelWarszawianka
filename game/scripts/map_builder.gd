@@ -633,6 +633,7 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		_drape_bias = 0.01
 		_cover_on = true
 		_build_areas(flat)
+		_build_portal_lids(flat)
 		_build_cut_banks(flat)
 		_cover_on = false
 		# The sandbars over the water (fill 0.02, rim 0.07, foam 0.09) and the natural banks' wet
@@ -2744,6 +2745,99 @@ func _wislostrada_portal(st) -> void:
 			var p2 := hull[tri[k + 2]]
 			var h := top - 0.35
 			_tri(st, Vector3(p0.x, h, p0.y), Vector3(p1.x, h, p1.y), Vector3(p2.x, h, p2.y), Vector3.UP, PORTAL_LID_GRASS)
+
+
+## A road tunnel's mouth under higher ground (the W-Z's under Plac Zamkowy, F 2026-11-22: "a hole by
+## the square over the tunnel"): the apron at the mouth (tools/bake_structures.py `place_aprons`)
+## holds the ground at the road's height over the tunnel's first APRON_IN metres, so the mouth stays
+## open in the height field. From above that was an open pit behind the headwall, 11 m deep down to
+## the road, the plaza's paving sunk into it, and its sides sloping in under the square. The lid is
+## the tunnel's roof there: the ground layer the square would have without the apron (the grid,
+## the approaches and profiles, never the apron, and never under the ground over the mouth), from
+## the headwall back past the pit's far slope
+## and across the apron's whole reach. It lies LID_UNDER under that surface, so it shows only where
+## the ground fell away, in the colour and shader layer of what lies over the mouth (the area there,
+## or the bare ground). Flat layer, no collision, no draw call (the flat mesh). The Wisłostrada's
+## north mouth keeps its own lid (`_wislostrada_portal`); Wiadukt Markiewicza's arches have none.
+const LID_UNDER := 0.06
+const LID_STEP := 1.0
+const LID_PAST := 5.0  ## m, the lid reaches this far inside past the apron's start (its slope, the grid's dip)
+
+
+func _build_portal_lids(st) -> void:
+	if _t_h.is_empty() or _aprons.is_empty():
+		return
+	var keep_layer := _layer
+	for f: Dictionary in data.get("tunnels", {}).get("frames", []):
+		var c := Vector2(float(f["c"][0]), float(f["c"][1]))
+		if Landmarks.mk_covers(c, 1.0) or c.distance_to(PORTAL_WISLA_AT) < 12.0:
+			continue
+		if _in_sector and not _near.grow(30.0).has_point(c):
+			continue
+		for a: PackedFloat32Array in _aprons:
+			var o := Vector2(a[0], a[1])
+			var u := Vector2(a[2], a[3])
+			var inner := a[8]
+			if inner < 1.0 or (o + u * inner).distance_to(c) > 1.0:
+				continue
+			_portal_lid(st, o, u, inner, a[6] + APRON_TAPER, a[7] + APRON_TAPER, float(f["top"]))
+	_layer = keep_layer
+
+
+## One lid over apron start `o`, outward `u`: from LID_PAST inside the start to under the headwall
+## (0.5 m inside the mouth), `left` / `right` across (the apron's left is +n, as terrain_height's).
+## Never under `top`, the ground over the mouth (the frame's): the 10 m grid itself dips over the
+## mouth (its cells reach the open cut in front), so the square's own surface there sags too.
+func _portal_lid(st, o: Vector2, u: Vector2, inner: float, left: float, right: float, top: float) -> void:
+	var n := Vector2(-u.y, u.x)
+	var mid := o + u * inner * 0.5
+	var col: Color = COL["ground"]
+	_layer = L_GROUND
+	for ar in data["areas"]:
+		var poly := _pts(ar["p"])
+		if Geometry2D.is_point_in_polygon(mid, poly):
+			var k: String = ar["k"]
+			col = COL.get(k, col)
+			_layer = L_PLAZA if k == "plaza" else (L_WATER if k == "water" else L_GREEN)
+			if k == "plaza":
+				break
+	var along0 := -LID_PAST
+	var along1 := inner - 0.5
+	var steps_a := maxi(1, ceili((along1 - along0) / LID_STEP))
+	var steps_l := maxi(1, ceili((left + right) / LID_STEP))
+	var pts: Array[PackedVector3Array] = []
+	for i in steps_a + 1:
+		var row := PackedVector3Array()
+		var al := lerpf(along0, along1, float(i) / steps_a)
+		for j in steps_l + 1:
+			var lat := lerpf(-right, left, float(j) / steps_l)
+			var p := o + u * al + n * lat
+			var h := maxf(minf(_grid_height(p.x, p.y), _fill_height(p.x, p.y)), top) - LID_UNDER
+			row.append(Vector3(p.x, h, p.y))
+		pts.append(row)
+	for i in steps_a:
+		for j in steps_l:
+			var p00 := pts[i][j]
+			var p01 := pts[i][j + 1]
+			var p10 := pts[i + 1][j]
+			var p11 := pts[i + 1][j + 1]
+			_lid_tri(st, p00, p10, p11, col)
+			_lid_tri(st, p00, p11, p01, col)
+
+
+## A lid triangle in the flat layers' vertex format (_emit_draped's: no bias, the layer id, the
+## street axes), wound to face up.
+func _lid_tri(st, a: Vector3, b: Vector3, c: Vector3, col: Color) -> void:
+	var p := [a, b, c]
+	if ((p[1] - p[0]).cross(p[2] - p[0]).dot(Vector3.UP) > 0.0) == CLOCKWISE_FRONT:
+		p = [p[0], p[2], p[1]]
+	var axis := CITY_GRID
+	for v: Vector3 in p:
+		st.set_color(col)
+		st.set_normal(Vector3.UP)
+		st.set_uv(Vector2(0.0, _layer))
+		st.set_uv2(Vector2(v.x * axis.x + v.z * axis.y, -v.x * axis.y + v.z * axis.x))
+		st.add_vertex(v)
 
 
 ## The railway cutting west of Centralna (rail_cut.gd, F 2026-11-06): its banks in grass and its
