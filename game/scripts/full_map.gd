@@ -39,6 +39,9 @@ signal teleport(at: Vector2)
 signal rival_called(rung: int)
 ## An item marked NEW was looked at on the QUESTS screen (its id, quest_book.gd): main.gd forgets it.
 signal seen(id: String)
+## Settings redesign step 2: QUESTS → Collection → OPEN NOTEBOOK; `target` is a chapter or "" (main.gd opens
+## the notebook page of the settings card).
+signal notebook(target: String)
 
 const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")
@@ -1014,6 +1017,10 @@ func _on_acted(key: String, e: Dictionary) -> void:
 		"race":
 			print("full map: rival %d called out" % int(e.get("rung", -1)))
 			rival_called.emit(int(e.get("rung", -1)))
+			close()
+		"notebook":
+			print("full map: notebook %s" % str(e.get("target", "")))
+			notebook.emit(str(e.get("target", "")))
 			close()
 		"now":
 			close_screen()

@@ -454,5 +454,10 @@ static func _collection(f: Dictionary) -> Array:
 		it["sub"] = v
 		it["done"] = int(n[0]) >= int(n[1])
 		it["facts"] = [[words("f_found"), v]]
+		# Settings redesign step 2 (F 2026-11-23): the notebook (MOJA WARSZAWA) left the settings tabs;
+		# its places and tapes open it from here (full_map.gd `notebook`, at the tapes' chapter).
+		if key != "syrenki":
+			it["buttons"].append({"key": "notebook", "words": words("b_notebook"), "gold": true,
+					"entry": {"id": "col_" + key, "target": "tape" if key == "tapes" else ""}})
 		out.append(it)
 	return out
