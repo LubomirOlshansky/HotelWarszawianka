@@ -17,7 +17,7 @@ beta it sends anonymous play statistics, which you can turn off in Settings.
   district, a position and the vehicle), and nothing else: no name, no save, no ID. These go to
   our own server on Cloudflare
   and to the author's inbox. To stop abuse we keep a one-way hash of your IP address (never the
-  address itself) and your country. We use your email only to send the beta invite or to answer
+  address itself), your country, city, region, timezone and browser language. We use your email only to send the beta invite or to answer
   you, never to sell or advertise, and delete a message and its email on request (write through
   the Support page).
 - **Anonymous play statistics (beta).** To see how many people play, whether they come back,
@@ -64,7 +64,7 @@ można wyłączyć w Ustawieniach.
   Wiadomość z gry zawiera też wersję gry, model i system telefonu, język oraz miejsce w mieście
   (dzielnica, pozycja i pojazd), i nic więcej: bez imienia, zapisu gry i identyfikatorów. Trafia
   to na nasz serwer w Cloudflare i do skrzynki autora. Żeby ograniczyć nadużycia, przechowujemy
-  jednokierunkowy skrót adresu IP (nigdy sam adres) i kraj. E-mail służy tylko do wysłania
+  jednokierunkowy skrót adresu IP (nigdy sam adres), kraj, miasto, region, strefę czasową i język przeglądarki. E-mail służy tylko do wysłania
   zaproszenia do bety albo odpowiedzi, nigdy do sprzedaży ani reklam, a wiadomość z e-mailem
   usuniemy na prośbę (napisz przez stronę Wsparcie).
 - **Anonimowe statystyki gry (beta).** Żeby wiedzieć, ile osób gra, czy wracają, jak długo grają
