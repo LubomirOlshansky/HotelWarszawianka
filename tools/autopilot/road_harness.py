@@ -10,6 +10,10 @@ What it gives every row, so no run writes (and breaks) these again:
   game/scripts/playtest_route.gd `get_drive_state` (the route the minimap draws, an aim on a lane a
   second ahead, the speed for the next bend). Never straight at the arrow through a block (PT-60);
 - the stuck rule (under 1.2 m/s for 2 s with the gas held; at 10 s reverse out and go on);
+- back to the road: off every lane for 4 s with the goal over 40 m away, the car drives back to the
+  last place it was on a lane before it follows the route again (2026-11-23, third run: after a
+  pickup on Plac Grzybowski it spent 410 s among the square's railings and planters while the aim
+  flipped between two exits);
 - the trace events the skill asks for (stops, unsticks, height jumps, under the ground), each with
   the world x, z, heading, speeds, street and the place on the road (`place`, `side_m`,
   `lane_gap_m`), which decides who fixes a stop;
@@ -37,6 +41,15 @@ STUCK_MPS = 1.2
 STUCK_AFTER_S = 2.0
 STUCK_REVERSE_AFTER_S = 10.0
 REVERSE_S = 1.6
+
+# Back to the road (2026-11-23): off a lane this long, with the goal this far, aim at the trail.
+ON_ROAD = ("lane", "lane_edge", "junction")
+OFF_BACK_S = 4.0
+OFF_BACK_GOAL_M = 40.0  # nearer: the goal itself is off the road (a stand, a passenger), go on to it
+TRAIL_STEP_M = 4.0  # a trail point every 4 m on a lane
+TRAIL_KEEP = 40
+TRAIL_REACHED_M = 3.0
+BACK_KMH = 15.0
 
 # The stop rule of the skill: from over 20 km/h to under 3 within 1 s, or under 5 for 3 s with the gas held.
 STOP_FROM_KMH = 20.0
@@ -90,6 +103,9 @@ class RoadHarness(Harness):
         self._gas = False
         self._ui_t = -999.0
         self._buttons = []
+        self._trail = []  # (x, z) of the last places on a lane, newest last
+        self._off_since = None
+        self._backing = False
         game.ret(ROUTE, "clear_route")
         game.log("harness", t=game.t, controls="classic", kerb=self.kerb, cruise_kmh=self.cruise_kmh,
                  target=self.target)
@@ -104,6 +120,7 @@ class RoadHarness(Harness):
             self._buttons = [e for e in (game.ui() or []) if e.get("kind") == "button" and e.get("enabled", True)
                              and (e.get("label") or "").strip()]
         self._events(game, st)
+        self._track_road(game, st)
         obs = {
             "_st": st,
             "_buttons": self._buttons,
@@ -116,6 +133,7 @@ class RoadHarness(Harness):
             "stuck": self.stuck_for(game) >= STUCK_AFTER_S,
             "buttons": [b.get("label") for b in self._buttons][:6],
             "flying": st.get("flying"),
+            "back_to_road": self.back_to_road(game) is not None,
         }
         obs.update(self.extra_obs(game))
         return obs
@@ -153,6 +171,33 @@ class RoadHarness(Harness):
         if float(st.get("below_ground_m") or 0.0) > UNDER_GROUND_M and not st.get("flying"):
             game.log("under_ground", t=t, below_m=st.get("below_ground_m"), **where_on_road)
         self._last = st
+
+    def _track_road(self, game, st):
+        """The trail of places on a lane, and since when the car is off every lane."""
+        if "x" not in st:
+            return
+        p = (float(st["x"]), float(st["z"]))
+        if st.get("place") in ON_ROAD:
+            self._off_since = None
+            if self._backing:
+                self._backing = False
+                game.log("back_on_road", t=game.t, x=p[0], z=p[1], street=st.get("street"), place=st.get("place"))
+            if not self._trail or _dist(self._trail[-1], p) >= TRAIL_STEP_M:
+                self._trail = (self._trail + [p])[-TRAIL_KEEP:]
+        elif self._off_since is None:
+            self._off_since = game.t
+
+    def back_to_road(self, game):
+        """The trail point to drive back to, or None while on a lane or near the goal."""
+        st = self._last or {}
+        if self._off_since is None or game.t - self._off_since < OFF_BACK_S or "x" not in st:
+            return None
+        if float(st.get("goal_m") or 1e9) < OFF_BACK_GOAL_M or st.get("pull_in"):
+            return None
+        p = (float(st["x"]), float(st["z"]))
+        while len(self._trail) > 1 and _dist(self._trail[-1], p) < TRAIL_REACHED_M:
+            self._trail.pop()  # reached and still off: the one before it
+        return self._trail[-1] if self._trail else None
 
     def stuck_for(self, game):
         return 0.0 if self._stuck_since is None else game.t - self._stuck_since
@@ -217,6 +262,16 @@ class RoadHarness(Harness):
                 r = yield from self.reverse_out(game, obs)
                 if not r:
                     return r
+                continue
+            back = self.back_to_road(game)
+            if back is not None:
+                if not self._backing:
+                    self._backing = True
+                    game.log("back_to_road", t=game.t, x=st.get("x"), z=st.get("z"), to_x=back[0], to_z=back[1],
+                             street=st.get("street"), place=st.get("place"), side_m=st.get("side_m"))
+                self._steer(game, _bearing(st, back))
+                self._pedals(game, float(st.get("speed_kmh") or 0.0), BACK_KMH)
+                yield
                 continue
             arrived = float(st.get("goal_m") or 1e9) < self.arrive_m
             want = 0.0 if arrived else float(st.get("want_kmh") or self.cruise_kmh)
@@ -300,3 +355,17 @@ class RoadHarness(Harness):
         else:
             self._release(game, "W")
             self._release(game, "S")
+
+
+def _dist(a, b):
+    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+
+
+def _bearing(st, to):
+    """Degrees from the car's nose to a point, + to the right, as playtest_route.gd's bearing_deg
+    (the car's forward on the map is (-sin yaw, -cos yaw), yaw = heading_deg)."""
+    import math
+    yaw = math.radians(float(st.get("heading_deg") or 0.0))
+    fx, fz = -math.sin(yaw), -math.cos(yaw)
+    tx, tz = to[0] - float(st["x"]), to[1] - float(st["z"])
+    return math.degrees(math.atan2(fx * tz - fz * tx, fx * tx + fz * tz))

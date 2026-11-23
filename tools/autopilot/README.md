@@ -42,7 +42,11 @@ Rows learned so far (2026-11-23):
 - A goal under 40 m straight whose way by road is over three times longer (a stand on the far
   carriageway) is driven to straight (`pull_in` in the state), as a player pulls in.
 - Pani Halina's race is not won at 70 km/h with stops (about 80 s against her 55 s on 1.5 km):
-  a race row sets `cruise_kmh = 95`.
+  a race row sets `cruise_kmh = 95` (third run: won by 22.7 s).
+- Off every lane for 4 s with the goal over 40 m away (after a pickup inside Plac Grzybowski), the
+  harness drives back along its own trail to the last lane it was on (`back_to_road`,
+  `back_on_road` in the trace), then follows the route. A goal nearer than 40 m is off the road on
+  purpose (a stand, a passenger) and is driven to as before.
 
 Autopilot takes the last `Harness` subclass in the file. Keep the plan's `done` on the game's
 state, never on which options ran, so `run_harness(restart=False)` resumes it after the 360 s
