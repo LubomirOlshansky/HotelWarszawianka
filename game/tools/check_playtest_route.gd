@@ -8,7 +8,9 @@ extends SceneTree
 ##      900 and 1600 m away) from the PT-60 spot on the Palace forecourt, off the roads, with
 ##      the car 12° off its first lane, and spends at least 90 % of the drive in a lane or at
 ##      its edge;
-##   3. with no route (no path), steer() points straight at the goal and slows near it;
+##   3. with no route (no path), steer() points straight at the goal and slows near it; a goal
+##      25 m away whose way by road is a loop round the block (the kebab stand on Marszałkowska,
+##      just passed) is pulled into straight, not driven round;
 ##   4. get_goal and get_drive_state on a stand-in /root/Main (the fields main.gd has): the HUD's
 ##      active target first, then the main line's target, and one tick's keys, with the route.
 ## Prints "check_playtest_route: OK (...)" or the problems (exit 1).
@@ -148,6 +150,17 @@ func _no_route(graph: LaneGraph) -> void:
 	var r := PlaytestRoute.steer(graph, PackedVector2Array(), at, fwd, 10.0, false, 50.0, Vector2(100.0, 0.0))
 	if bool(r["route"]) or absf(float(r["bearing_deg"]) - 90.0) > 0.5:
 		problems.append("no route: a goal due right reads %s" % r)
+	var stand := Vector2(-1073.7, -217.9)
+	var past := Vector2(-1074.0, -243.0)
+	var hit := graph.snap(past, 40.0, Vector2.ZERO, true)
+	var fwd_past := graph.direction(int(hit[0]), float(hit[2]))
+	PlaytestRoute.clear_route()
+	var loop := PlaytestRoute._route(graph, stand, past, fwd_past)
+	var pull := PlaytestRoute.steer(graph, loop, past, fwd_past, 8.0, false, 50.0, stand)
+	if not bool(pull.get("pull_in", false)) or float(pull["left_m"]) > 30.0:
+		problems.append("pull in: the stand 25 m away reads %s" % pull)
+	else:
+		digest.append("stand pulled into (%.0f m by road)" % float(pull["by_road_m"]))
 	var near := PlaytestRoute.steer(graph, PackedVector2Array(), at, fwd, 10.0, false, 50.0, Vector2(0.0, -20.0))
 	if float(near["want_kmh"]) > PlaytestRoute.ARRIVE_KMH or absf(float(near["bearing_deg"])) > 0.5:
 		problems.append("no route: a goal 20 m ahead reads %s" % near)

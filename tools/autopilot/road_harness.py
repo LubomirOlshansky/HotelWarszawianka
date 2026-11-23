@@ -181,8 +181,10 @@ class RoadHarness(Harness):
         for i, b in enumerate(free[:3]):
             opts.append(Option(f"press_button_{i + 1}", f"Tap the on-screen button '{b.get('label')}'",
                                self._press_button(b), facts={"label": b.get("label")}, max_seconds=5.0))
-        opts.append(Option("wait_here", "Stop and wait a few seconds (a card's timer, a pickup)",
-                           self.wait_here, max_seconds=12.0))
+        if obs["_buttons"] or not st.get("goal_source"):
+            # Only with a card up or nothing to drive to: offered always, Jev waited 355 s (2026-11-23).
+            opts.append(Option("wait_here", "Stop and wait a few seconds (a card's timer, a pickup)",
+                               self.wait_here, max_seconds=12.0))
         return opts + self.row_options(obs)
 
     def status(self, obs):

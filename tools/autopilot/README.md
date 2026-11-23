@@ -36,6 +36,14 @@ press: they are offered first, by label, never by their place in the list. The g
 `press_button_N` never offers HELI, the menus or the maps (2026-11-23: it pressed HELI and the car
 flew off). `arrive_m` (default 10) is how close counts as there: 4 for a stand's 7 m ring.
 
+Rows learned so far (2026-11-23):
+- The Podwózka app shows only after the guide's first kebab order: a ride row starts with the
+  kebab (or from a save past it), never waits for the app.
+- A goal under 40 m straight whose way by road is over three times longer (a stand on the far
+  carriageway) is driven to straight (`pull_in` in the state), as a player pulls in.
+- Pani Halina's race is not won at 70 km/h with stops (about 80 s against her 55 s on 1.5 km):
+  a race row sets `cruise_kmh = 95`.
+
 Autopilot takes the last `Harness` subclass in the file. Keep the plan's `done` on the game's
 state, never on which options ran, so `run_harness(restart=False)` resumes it after the 360 s
 episode cap.
