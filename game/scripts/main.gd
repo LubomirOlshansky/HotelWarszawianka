@@ -1075,6 +1075,13 @@ func _notification(what: int) -> void:
 			_trap.mark()  # so far this session ended in order (error_trap.gd)
 		if play_stats != null:
 			play_stats.pause()  # the session's summary, sent now or from the disk queue next launch
+	elif what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		# Android's back button (project.godot `quit_on_go_back` off: before, it closed the game at
+		# once, from anywhere, without the save's flush). On a paused screen (the full map closes
+		# itself, full_map.gd; settings and the garage card have their ✕) it does nothing here; in
+		# play it opens the settings card, as Escape does, where the game is paused.
+		if _started and title == null and not get_tree().paused:
+			_open_settings()
 	elif what in [NOTIFICATION_APPLICATION_RESUMED, NOTIFICATION_APPLICATION_FOCUS_IN]:
 		# iOS stops the haptic engine in the background: start it again now, not in a crash's frame.
 		Haptics.warm()
@@ -1962,6 +1969,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	# director keeps one activity of the kit at a time; the race's own tests for the air, the rescue
 	# and the cards stay in rivals.gd (`world_free` would refuse the guide's first race).
 	rivals = _join(Rivals.new(), self, func() -> bool: return true) as Rivals
+	rivals.chase_on = func() -> bool: return police != null and not police.calm()
 	await LoadYield.tick("rivals.setup")
 	print("living city: %d lanes, %d trams in %d ms" % [graph.lane_count, trams.trams.size(), Time.get_ticks_msec() - t0])
 	if flags.bench:
@@ -2922,7 +2930,7 @@ func _build_garage(world: Node3D) -> void:
 						Color("#7ad36a"), 2.2, true))
 	garage.busy = func() -> bool:
 		return flying or title != null or _phone_bench or hud.settings_open() or hud.full_map_open() \
-				or (fotka != null and fotka.is_open()) or missions.has_target() \
+				or hud.call_showing() or (fotka != null and fotka.is_open()) or missions.has_target() \
 				or (jobs != null and activities.job_on()) or (rivals != null and rivals.busy()) \
 				or (police != null and not police.calm())
 	world.add_child(garage)
@@ -6555,6 +6563,11 @@ func _follow(d) -> void:
 func _toggle_vehicle() -> void:
 	if _phone_bench:
 		return
+	# Inside the club, the lounge or the padel hall the HUD is hidden, but H and the pad's vehicle
+	# button still came here: the helicopter rose over the parked car and the player left the room
+	# in the air.
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside):
+		return
 	if flying and ev_tow != null and ev_tow.carrying():
 		hud.toast("Najpierw odstaw %s pod ładowarkę (albo ✕)" % EvTow.NAME, "Set the %s down at the charger first (or ✕)" % EvTow.NAME)
 		return
@@ -6562,7 +6575,10 @@ func _toggle_vehicle() -> void:
 	if not grounded.is_empty():
 		hud.toast(str(grounded[0]), str(grounded[1]))
 		return
-	if jobs != null and activities.job_on() and not flying:
+	# The DESKA padel call says "drive or fly" (trend_job.gd's arrival from the air, its FLY_RESPECT):
+	# the one job the helicopter may take.
+	var fly_job := trend_job != null and trend_job.padel_busy()
+	if jobs != null and activities.job_on() and not flying and not fly_job:
 		hud.toast("Najpierw dokończ kurs: zamówienie jedzie autem", "Finish the job first: it rides in the car")
 		return
 	if not flying and car.in_water:

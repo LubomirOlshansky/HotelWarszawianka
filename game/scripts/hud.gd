@@ -2455,7 +2455,9 @@ func _frame(dt: float) -> void:
 		_call_t += dt
 		_call_face.queue_redraw()
 	# The ringtone while the phone view rings (and not a moment after it is answered or gone).
-	if call_showing():
+	# Not under a paused screen (the map, settings, the garage card): the call waits there unseen,
+	# its ring-out timer stopped, so it would ring every 2.6 s for as long as the screen stays open.
+	if call_showing() and not get_tree().paused:
 		_ringing = true
 		_ring_wait -= dt
 		if _ring_wait <= 0.0:

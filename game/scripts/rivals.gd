@@ -279,6 +279,9 @@ var ghost_pace := 1.8
 var tail := -1
 ## Set by the game each frame.
 var flying := false
+## A police chase is on (main.gd sets it): REWANŻ waits for its end, since the rematch's jump back
+## to the start would shake the chase off for free (an "escaped" with its respect).
+var chase_on: Callable = func() -> bool: return false
 ## Loop MW-6: Spacer (spacer.gd): the rivals don't call out their challenge (the prompt still
 ## shows behind one; flashing the lights still starts the race).
 var quiet := false
@@ -747,6 +750,10 @@ func final_target() -> Vector3:
 ## The L key / FLASH LIGHTS button: challenge the rival in front.
 func flash() -> void:
 	if state != State.PROMPT:
+		return
+	# The chip can stay up a moment after the player got busy (a friend walking up, a rescue):
+	# no race on top of another activity.
+	if not bool(free_now.call()):
 		return
 	car.flash_lights()
 	# Loop 3h slice 3: a rival above the ladder's open rungs says no, in their own words.
@@ -1480,6 +1487,10 @@ func _card_pressed(index: int) -> void:
 ## finish. False when there is nothing to race again or something else is on.
 func rematch() -> bool:
 	if _rematch.is_empty() or state != State.CRUISE or flying:
+		return false
+	if bool(chase_on.call()):
+		var w: Array = FirstSteps.words("rematch_chase")
+		hud.toast(str(w[0]), str(w[1]))
 		return false
 	var i: int = _rematch["i"]
 	var spot: Array = _rematch["spot"]
