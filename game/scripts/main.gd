@@ -790,7 +790,7 @@ func _ready() -> void:
 		if start_index < 0:
 			push_warning("--station=%s: no such station in radio.json" % flags.station_flag)
 	# First scene item 7: a first launch hears the song from its first bar.
-	radio.from_top = flags.show_title and First10.guide_due(wallet)
+	radio.from_top = flags.show_title and First10.first_launch(wallet)
 	radio.tune(start_index, true)
 	print("save: %s (%s)" % [wallet.summary(), ProjectSettings.globalize_path(Wallet.PATH) if not flags.no_save else "not saved"])
 	_resume_start()  # save and resume: the car where the last session left it
@@ -1016,7 +1016,9 @@ func _resume_start() -> void:
 	# F (2026-11-17): while the guide is still due (a fresh save: the first launch, or one quit
 	# before the first job) the opening starts at the Palace and the car at First10.START, never
 	# at a spot a first session left behind. `--resume` (the tests) still places it.
-	if flags.resume_flag.is_empty() and First10.guide_due(wallet):
+	# 2026-11-22: the guide's first launch only (First10.first_launch); a later session of an
+	# unfinished guide starts where it left off.
+	if flags.resume_flag.is_empty() and First10.first_launch(wallet):
 		print("resume: a fresh save, the opening starts at the Palace")
 		return
 	start_at = spot[0]
@@ -1032,7 +1034,11 @@ func _put_at_resume() -> void:
 		return
 	var lane := _lane_spot(car.global_position, _resume_yaw)
 	if lane.is_empty() or Vector2((lane[0] as Vector3).x, (lane[0] as Vector3).z).distance_to(Vector2(start_at.x, start_at.z)) > 60.0:
-		print("resume: no lane near the kept spot, back to the start")
+		# 2026-11-22 (F: "closing the game sometimes throws me back to the start"): the nearest
+		# lane anywhere (a park, a square, a beach), not the map's spawn across town.
+		lane = _node_spot(car.global_position)
+		print("resume: no lane near the kept spot, %s" % ("the nearest junction's lane" if not lane.is_empty() else "back to the start"))
+	if lane.is_empty():
 		car.global_transform = _spawn
 	else:
 		car.global_position = lane[0]
@@ -1069,6 +1075,13 @@ func _notification(what: int) -> void:
 			_trap.mark()  # so far this session ended in order (error_trap.gd)
 		if play_stats != null:
 			play_stats.pause()  # the session's summary, sent now or from the disk queue next launch
+	elif what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		# Android's back button (project.godot `quit_on_go_back` off: before, it closed the game at
+		# once, from anywhere, without the save's flush). On a paused screen (the full map closes
+		# itself, full_map.gd; settings and the garage card have their ✕) it does nothing here; in
+		# play it opens the settings card, as Escape does, where the game is paused.
+		if _started and title == null and not get_tree().paused:
+			_open_settings()
 	elif what in [NOTIFICATION_APPLICATION_RESUMED, NOTIFICATION_APPLICATION_FOCUS_IN]:
 		# iOS stops the haptic engine in the background: start it again now, not in a crash's frame.
 		Haptics.warm()
@@ -1257,7 +1270,7 @@ var _opening_audio: Node
 func _opening_due() -> bool:
 	if flags._flag_cinematic == "opening":
 		return true
-	return flags.cinematic_flyin and not flying and flags._flag_cinematic == "" and first10 != null and first10.guide
+	return flags.cinematic_flyin and not flying and flags._flag_cinematic == "" and first10 != null and first10.opening
 
 
 ## Camera loop: the fly-in from over the city down to the car (camera_shots.gd), or the opening
@@ -1460,9 +1473,10 @@ func _build_world() -> void:
 	ped_zones = PedZones.new(data.get("ped_zones", []))
 	car = Car.new()
 	car.ground_height = map.drive_height
-	car.set_sensitivity(settings.sensitivity)
-	# G4: Cruise by default, Sport or Grounded from Settings → Jazda (--handling= for a run).
-	car.set_handling(settings.handling if flags._flag_handling < 0 else flags._flag_handling)
+	# H1: „Charakter jazdy" and Realnie from the settings (--handling= cruise/sport/grounded for a run).
+	car.set_character(settings.character, settings.handling == 1)
+	if flags._flag_handling >= 0:
+		car.set_handling(flags._flag_handling)
 	car.collide = _collide_preset()
 	car.lane_assist = settings.lane_assist if flags._flag_lane < 0 else flags._flag_lane == 1
 	world.add_child(car)
@@ -1956,6 +1970,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	# director keeps one activity of the kit at a time; the race's own tests for the air, the rescue
 	# and the cards stay in rivals.gd (`world_free` would refuse the guide's first race).
 	rivals = _join(Rivals.new(), self, func() -> bool: return true) as Rivals
+	rivals.chase_on = func() -> bool: return police != null and not police.calm()
 	await LoadYield.tick("rivals.setup")
 	print("living city: %d lanes, %d trams in %d ms" % [graph.lane_count, trams.trams.size(), Time.get_ticks_msec() - t0])
 	if flags.bench:
@@ -2682,7 +2697,7 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 func _guide_start() -> void:
 	if start_at != Vector3.INF or start_heading != INF or not (flags.first10_flag or flags.show_title):
 		return
-	if not First10.guide_due(wallet):
+	if not First10.first_launch(wallet):
 		return
 	start_at = Vector3(First10.START.x, 0.0, First10.START.y)
 	start_heading = First10.START_HEADING
@@ -2916,7 +2931,7 @@ func _build_garage(world: Node3D) -> void:
 						Color("#7ad36a"), 2.2, true))
 	garage.busy = func() -> bool:
 		return flying or title != null or _phone_bench or hud.settings_open() or hud.full_map_open() \
-				or (fotka != null and fotka.is_open()) or missions.has_target() \
+				or hud.call_showing() or (fotka != null and fotka.is_open()) or missions.has_target() \
 				or (jobs != null and activities.job_on()) or (rivals != null and rivals.busy()) \
 				or (police != null and not police.calm())
 	world.add_child(garage)
@@ -2930,8 +2945,8 @@ func _build_garage(world: Node3D) -> void:
 		garage.preset_upgrades(flags.upgrades_flag)
 	garage.upgraded.connect(func(id: String) -> void:
 		if id == "nitro":
-			hud.toast(Gamepad.fmt("Nitro gotowe: przytrzymaj błyskawicę przy hamulcu (Shift, {lb} / {rb} na padzie)."),
-					Gamepad.fmt("Nitro fitted: hold the bolt by the brake (Shift, {lb} / {rb} on a pad).")))
+			hud.toast(Gamepad.fmt("Nitro gotowe: stuknij błyskawicę albo przesuń kciuk z gazu w górę. Dwie butle (Shift, {lb} / {rb} na padzie)."),
+					Gamepad.fmt("Nitro fitted: tap the bolt or slide your thumb up from the gas. Two bottles (Shift, {lb} / {rb} on a pad).")))
 	if flags.garage_flag:
 		_put_at_garage()
 	garage.opened.connect(func() -> void:
@@ -4205,7 +4220,7 @@ func _radio_greeting() -> void:
 	# opening flyover: the first-10 guide is due), never on every launch.
 	# F (2026-11-05): every later launch gets her spoken greeting (greeting_clips.gd) instead; the
 	# first start and a new game keep the opening line only.
-	var later := first10 == null or not first10.guide
+	var later := first10 == null or not first10.opening
 	await get_tree().create_timer(4.0).timeout
 	if not is_inside_tree() or radio == null or dialogue == null:
 		return
@@ -5015,7 +5030,7 @@ func _settings_state() -> Dictionary:
 			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on), "test_device": int(settings.test_device),
 			"weather": weather.state, "time": tod.look_mode(), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
-			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "sensitivity": settings.sensitivity,
+			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "character": settings.character,
 			"text_large": int(settings.text_large), "calm": int(settings.calm), "color_safe": int(settings.color_safe),
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
 			"lane_assist": int(car.lane_assist if car != null else settings.lane_assist),
@@ -5133,12 +5148,12 @@ func _on_setting(key: String, value: Variant) -> void:
 		"new_game":
 			_on_new_game.call_deferred()  # G14: NOWA GRA in the settings (confirmed by two taps)
 			return
-		"sensitivity":
-			settings.sensitivity = clampf(float(value), 0.0, 1.0)
-			car.set_sensitivity(settings.sensitivity)
+		"character":
+			settings.character = clampf(float(value), 0.0, 1.0)
+			car.set_character(settings.character, settings.handling == 1)
 		"handling":
-			settings.handling = clampi(int(value), 0, 2)
-			car.set_handling(settings.handling)
+			settings.handling = clampi(int(value), 0, 1)
+			car.set_character(settings.character, settings.handling == 1)
 		"collide":
 			# Settings rows (F 2026-11-14): the collision answer, live (the car reads it each contact).
 			settings.collide = clampi(int(value), 0, Settings.COLLIDE_PRESETS - 1)
@@ -6418,10 +6433,13 @@ func _read_input(dt: float) -> void:
 	if meet != null: meet.hold_car(car)
 	if rivals != null: rivals.hold_car(car)
 	_lane_tick(dt)
-	# G13: the nitro (bought at the garage): the disc by the horn, Shift on a keyboard, LB or RB on a
-	# pad. Not N: N switches the time of day, so holding it for the nitro also turned day to dusk.
+	# G13: the nitro (bought at the garage): the disc, Shift on a keyboard, LB or RB on a pad (N1: the
+	# press is a tap that fires a bottle; car.gd). Not N: N switches the time of day.
 	car.nitro_hold = car.nitro_owned and (hud.nitro_held or Input.is_physical_key_pressed(KEY_SHIFT) or Gamepad.nitro())
-	hud.set_nitro(car.nitro_owned, car.nitro_charge)
+	if hud.nitro_pulse and car.nitro_owned and not car.nitro_on:
+		car.nitro_charge = 1.0  # --pedal=nitro: one bottle after another, for shots of the flame
+		car.nitro_fire()
+	hud.set_nitro(car.nitro_owned, car.nitro_charge, car.nitro_bottles, car.nitro_on)
 	# Loop 3g-1: a pull-over holds the car; the police's test drivers (--police-auto, --trap with
 	# --pedal=gas, the soak's roaming autopilot) drive it.
 	if police != null and police.control_car(car, dt):
@@ -6549,6 +6567,11 @@ func _follow(d) -> void:
 func _toggle_vehicle() -> void:
 	if _phone_bench:
 		return
+	# Inside the club, the lounge or the padel hall the HUD is hidden, but H and the pad's vehicle
+	# button still came here: the helicopter rose over the parked car and the player left the room
+	# in the air.
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside):
+		return
 	if flying and ev_tow != null and ev_tow.carrying():
 		hud.toast("Najpierw odstaw %s pod ładowarkę (albo ✕)" % EvTow.NAME, "Set the %s down at the charger first (or ✕)" % EvTow.NAME)
 		return
@@ -6556,7 +6579,10 @@ func _toggle_vehicle() -> void:
 	if not grounded.is_empty():
 		hud.toast(str(grounded[0]), str(grounded[1]))
 		return
-	if jobs != null and activities.job_on() and not flying:
+	# The DESKA padel call says "drive or fly" (trend_job.gd's arrival from the air, its FLY_RESPECT):
+	# the one job the helicopter may take.
+	var fly_job := trend_job != null and trend_job.padel_busy()
+	if jobs != null and activities.job_on() and not flying and not fly_job:
 		hud.toast("Najpierw dokończ kurs: zamówienie jedzie autem", "Finish the job first: it rides in the car")
 		return
 	if not flying and car.in_water:

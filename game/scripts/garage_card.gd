@@ -192,7 +192,7 @@ func _item(id: String, width: float) -> Button:
 	b.add_child(box)
 	var name_l: Label = hud._label(hud.T_SUB, hud.INK)
 	name_l.name = "name"
-	name_l.text = str(row["name"][0])
+	name_l.text = Lang.pick(str(row["name"][0]), str(row["name"][1]))
 	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_l.clip_text = true
 	name_l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -301,7 +301,7 @@ func _refresh() -> void:
 	_grid.visible = not on_parts
 	_parts.visible = on_parts
 	_stats.visible = on_parts
-	_stats_en.visible = on_parts
+	_stats_en.visible = on_parts and Lang.code == Lang.EN
 	for t: Array in [[_tab_paint, "paint"], [_tab_parts, "parts"]]:
 		var tb: Button = t[0]
 		var tstyle: StyleBoxFlat = hud._box(UiKit.GOLD_TINT if tab == t[1] else hud.CARD_BG, hud.ACCENT if tab == t[1] else UiKit.EDGE_STRONG, 2.0 if tab == t[1] else 1.0)
@@ -373,17 +373,17 @@ func _refresh_parts() -> void:
 		var row: Dictionary = U.find(id)
 		var price := b.find_child("price", true, false) as Label
 		var name_l := b.find_child("name", true, false) as Label
-		name_l.text = str(row["name"][0])
+		name_l.text = Lang.pick(str(row["name"][0]), str(row["name"][1]))
 		match r:
 			"on":
-				price.text = "na aucie · on"
+				price.text = Lang.pick("na aucie", "on the car")
 			"switch", "owned":
-				price.text = "masz · yours"
+				price.text = Lang.pick("masz", "yours")
 			"max":
-				price.text = "poziom %d/%d · max" % [U.MAX_LEVEL, U.MAX_LEVEL]
+				price.text = Lang.pick("poziom %d/%d", "level %d/%d") % [U.MAX_LEVEL, U.MAX_LEVEL]
 			_:
 				if U.kind(id) == "part":
-					price.text = "poz. %d → %d · %s" % [U.level(st["tune"], id), U.level(st["tune"], id) + 1, w.money(U.price(id, st["tune"]))]
+					price.text = Lang.pick("poz. %d → %d · %s", "lvl %d → %d · %s") % [U.level(st["tune"], id), U.level(st["tune"], id) + 1, w.money(U.price(id, st["tune"]))]
 				else:
 					price.text = w.money(U.price(id, st["tune"]))
 		var lit := id == picked_item
@@ -396,8 +396,9 @@ func _refresh_parts() -> void:
 	var after: Dictionary = U.stats_after(picked_item, st)
 	var rule: String = garage.item_rule_now(picked_item)
 	var shows_after: bool = rule in ["buy", "short", "switch"]
-	_stats.text = _stat_line(now, after if shows_after else now)
-	_stats_en.text = "top speed · pull · grip · nitro (now → after buying)"
+	_stats.text = _stat_line(now, after if shows_after else now, Lang.code == Lang.EN)
+	# The key to the numbers, in English only (the Polish line's labels say it already).
+	_stats_en.text = Lang.pick("", "top speed · pull · grip · nitro (now → after buying)")
 	var row2: Dictionary = U.find(picked_item)
 	var name_pl := str(row2["name"][0])
 	var name_en := str(row2["name"][1])
@@ -425,10 +426,10 @@ func _refresh_parts() -> void:
 
 
 ## The stat card's line: top speed, pull and grip now (and after the item picked, when it changes them).
-## One line: the English gloss under it is fixed (`_stats_en`).
-static func _stat_line(now: Dictionary, after: Dictionary) -> String:
+## One line, in the game's language (`en`); the key to it is the line under it (`_stats_en`).
+static func _stat_line(now: Dictionary, after: Dictionary, en := false) -> String:
 	var parts: Array[String] = []
-	var labels := ["", "przysp. ", "przyczep. "]
+	var labels := ["", "pull ", "grip "] if en else ["", "przysp. ", "przyczep. "]
 	var keys := ["top_kmh", "pull", "grip"]
 	for i in 3:
 		var a: float = float(now[keys[i]])
@@ -439,7 +440,7 @@ static func _stat_line(now: Dictionary, after: Dictionary) -> String:
 		if not is_equal_approx(a, b):
 			txt += " → " + (fmt % b)
 		parts.append(txt + unit)
-	parts.append("nitro %s" % ("tak" if bool(after["nitro"]) else "nie"))
+	parts.append("nitro %s" % (("yes" if en else "tak") if bool(after["nitro"]) else ("no" if en else "nie")))
 	return " · ".join(parts)
 
 

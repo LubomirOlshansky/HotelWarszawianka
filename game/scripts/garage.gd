@@ -352,7 +352,7 @@ func apply_car() -> void:
 	if str(wallet.car) != car.model:
 		car.set_model(str(wallet.car))
 	if hud != null and hud.has_method("set_nitro"):
-		hud.set_nitro(car.nitro_owned, car.nitro_charge)
+		hud.set_nitro(car.nitro_owned, car.nitro_charge, car.nitro_bottles, car.nitro_on)
 
 
 ## --upgrades=all: every car, the nitro and every part at level 3, for this run (with --nosave nothing
@@ -398,8 +398,8 @@ func _refresh(quiet := false) -> void:
 	if on and not quiet and not force and hud != null and wallet != null and not bool(wallet.keep.get("garage_told", false)):
 		wallet.keep["garage_told"] = true
 		wallet.save()
-		hud.toast("Warsztat u Mirka otwarty: Brzeska, Praga. Lakier za złotówki.",
-				"Mirek's garage is open: Brzeska, Praga. Paint jobs for złoty.")
+		hud.toast("Warsztat u Mirka otwarty: Twarda, rzut beretem. Lakier za złotówki.",
+				"Mirek's garage is open: on Twarda, just round the corner. Paint jobs for złoty.")
 		if log_on:
 			print("garage: shown (the first earnings)")
 

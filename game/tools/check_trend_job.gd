@@ -1766,7 +1766,7 @@ func _i_dzemini() -> void:
 	_ok(hud.side and hud.card_is(tj) and hud.card == "📞 MROŻULO DZWONI" and hud.card_en == "Mrożulo is calling" and tj.phase == Activity.Phase.OFFER, "Mrożulo's call is a request card")
 	_ok(hud.body == "„Siema, tu Mrożulo! Na Świętokrzyskiej otworzyli DŻEMINI KEBAB, mięso kroi agent AI. Kup mi jednego i przywieź do vana, póki ciepły!”" \
 			and hud.body_en == "\"Hi, Mrożulo here! DŻEMINI KEBAB just opened on Świętokrzyska, an AI agent carves the meat. Get me one and bring it to my van while it's warm!\"", "the call's words")
-	_ok(hud.button_words == PackedStringArray(["JADĘ", "NIE TERAZ"]) and hud.face == "Mrożulo" and hud.accent == ORANGE and is_equal_approx(tj._dz_at, tj._played + 900.0), "the buttons, his face, orange, the next call 900 s away")
+	_ok(hud.button_words == PackedStringArray(["JADĘ|ON MY WAY", "NIE TERAZ|NOT NOW"]) and hud.face == "Mrożulo" and hud.accent == ORANGE and is_equal_approx(tj._dz_at, tj._played + 900.0), "the buttons, his face, orange, the next call 900 s away")
 	_press(1)
 	# Not when quiet (unforced), nor with no kerb by the shop (forced).
 	tj.quiet = true
@@ -2018,7 +2018,7 @@ func _j_kawa() -> void:
 	_ok(_until_phase(Activity.Phase.OFFER, 0.6), "Zuzia's call at noon, 300 m from the dock")
 	var txt: Array = CoffeeRun.call_text()
 	_ok(hud.side and hud.card_is(tj) and hud.card == "📞 ZUZIA DZWONI" and hud.card == txt[0] and hud.card_en == "Zuzia is calling" and hud.body == txt[1] and hud.body_en == txt[2], "the call card: Zuzia's text")
-	_ok(hud.button_words == PackedStringArray(["JADĘ", "NIE TERAZ"]) and hud.face == "Zuzia" and hud.accent == BROWN and is_equal_approx(tj._kawa_at, tj._played + 1500.0), "the buttons, her face, brown, the next call 1500 s away")
+	_ok(hud.button_words == PackedStringArray(["JADĘ|ON MY WAY", "NIE TERAZ|NOT NOW"]) and hud.face == "Zuzia" and hud.accent == BROWN and is_equal_approx(tj._kawa_at, tj._played + 1500.0), "the buttons, her face, brown, the next call 1500 s away")
 	var c0 := calls.closed
 	_press(0)
 	_ok(_in_stage(Trend.Stage.DELIVER) and _sub() == "dock" and _near(tj.target_position(), _terrain(DOCK)) and tj.target_colour() == BROWN, "JADĘ: the dock leg, the dock at the terrain height, the brown target")

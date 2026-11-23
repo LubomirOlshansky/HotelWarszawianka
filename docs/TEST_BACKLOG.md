@@ -42,6 +42,27 @@ Order: fixes waiting for proof, then what F asked about, then the plan rows neve
 - [ ] T35 First hour step 6 (this thread's PRs): the card's ✕ on the choice card; each hint once, never in a race or a chase (stop in the ring, reverse, the minimap, HELI on a roof call, the first flight, the tow when stuck); the loading tips at 1266x585 and 16:9; the Tips page; the DEV page after 7 taps on the version and its toggles gone from the normal tabs · 2026-11-16 (main 9379f6c1, Mac runs 20261116-170026 and -172652, plus cloud shots): title tips rotate every 4.0 s while the city builds (1266x585); all six hints show by `--hint=ID`, one at a time, ring on the right control, no overlap with the wallet or the radio (forced `--hint=climb` on the ground puts its words at the screen middle under the car's ▼: on the ground only, decide() fires it only in flight); Settings tabs carry none of the DEV switches, the 375 pt card fits; Tips and DEV pages render clean (cloud, after the `--settings-tab=7/8` fix). Open: the choice card's ✕ and each hint's timing in real play (the editor's ~185 s city build eats the 6-minute Autopilot budget; check_hud covers the ✕), `--no-hints`.
 - [ ] T36 P21 end to end: the whole first hour as a new player, in rows of under 6 minutes (one per step above), on the latest main after all six steps merge
 
+## 2b. Before and after the open beta (bug sweep 2026-11-23, F: "think what to run with Autopilot")
+
+In this order; each under 6 minutes of play on the latest main. P = priority (1 first). Rows marked
+"fix" prove a fix of the beta bug-sweep PR; the others go where the code reading could not.
+
+- [ ] T37 (P1, fix) Boat race: cross the finish line beside the arch on purpose, then turn and go through it: one "turn round" toast, the finish counts, the result card, the way back to the car
+- [ ] T38 (P1) Rival race won, lost, given up with ✕ and REWANŻ, then the next rival: one pay per race, no rival left driving after the card, no old status bar or beacon, the race clock reset (T34's stale "0:59.0" seen in the log)
+- [ ] T39 (P1, fix) A race seen by a patrol: during the chase press REWANŻ on the lose card: the "lose the police first" toast, no jump; the chase ends normally
+- [ ] T40 (P1) Save and resume: earn money, buy a garage paint, quit mid-job and relaunch: money and paint kept, no job left half on, the car on a road (not in the river or on a roof)
+- [ ] T41 (P1) Helicopter: take off, fly to Varso and the map edge, land on a rescue roof, land in the street; every landing gives the car back and the controls work (P8, P15, T21, T25 still open)
+- [ ] T42 (P2, fix) EV tow: hover over the TESŁO and press HELI to land: it hooks and the landing stops; set it down at the charger, paid once
+- [ ] T43 (P2, fix) The DESKA padel call: take it, press HELI, fly to the court: the arrival from the air, +respect, the match starts; then a normal kebab order still refuses HELI
+- [ ] T44 (P2) Police from a calm start: speed past a trap, a pull-over talk, a ram chase escaped and one caught: the chase always ends, the HUD bar goes, no fine or negative money
+- [ ] T45 (P2) Night meet: false start, then REWANŻ three times: no respect paid for a false start (fix), the drag tree and the result card each time
+- [ ] T46 (P2) Menus while a call rings: open the full map, settings, the garage ring: no ringtone under them (fix), the call still waiting when they close
+- [ ] T47 (P2) Each questline's first beat from QUESTS → WĄTKI → "phone the friend", one per run, with a friend standing by the car at the same time: no card hidden by another, no questline stuck "on"
+- [ ] T48 (P3) Tours (Dekalog, cinema) to the end: QUESTS shows them done (fix)
+- [ ] T49 (P3) The club, the lounge, the padel hall: enter, press H and the pad's vehicle button: nothing happens (fix); leave by the door into the car
+- [ ] T50 (P3) A 15-minute free drive in English after the first hour: any Polish-only card, button or toast (the garage PARTS tab and two calls fixed)
+- [ ] T51 (P3) The rest of P4/P5/P11: the Old Town core, the W-Z and Wisłostrada tunnels driven inside, the Poniatowskiego deck
+
 ## 3. Plan rows never run or left open
 
 - [ ] T17 P1 the other start streets (only Marszałkowska driven) · run -103535: Emilii Plater, Bracka, Krucza clean; Chmielna, Mokotowska still open · run -110225: Mokotowska clean bar one stop at -111,612; Chmielna open
