@@ -39,9 +39,9 @@ extends Node
 ## day); an old save with progress never sees it, so it never locks anything for a returning player.
 ##
 ## **First steps** (first_steps.gd, any save): the seven steps tick here from the facts, each with
-## its reward; the third opens the friends' calls (`friends_wait`: until FRIENDS_STEPS steps or
-## FRIENDS_AFTER s, then at most one new friend every NEW_FRIEND_GAP s while the guide runs; main.gd
-## `_free_block`), all seven bring the "First steps done" card. With steps left, WHAT_NEXT s of free
+## its reward; the third opens the friends' calls early (`friends_wait`: until FRIENDS_STEPS steps or
+## FRIENDS_AFTER s of just driving, saved as FRIENDS_KEY for later sessions, then at most one new
+## friend every NEW_FRIEND_GAP s while the guide runs; main.gd `_free_block`), all seven bring the "First steps done" card. With steps left, WHAT_NEXT s of free
 ## driving bring the gold arrow to the nearest one that has a place, for WHAT_NEXT_SHOW s.
 ##
 ## **The end card** (any save): once `Ladder.final_won()` (the "Trzy mosty" win, `trzy_mosty` in
@@ -120,10 +120,14 @@ const CHOICE_HALINA_WAIT := 12.0
 ## Seconds of free driving, and since the last intro, before the next intro.
 static var NEXT_GAP: float = Pacer.num("first_steps", "next_gap")
 ## The friends' calls (main.gd `_free_block`) wait for FRIENDS_STEPS ticked steps or FRIENDS_AFTER s
-## of play, then at most one new friend every NEW_FRIEND_GAP s while the guide runs.
+## of play, then at most one new friend every NEW_FRIEND_GAP s while the guide runs. F 2026-11-22: a
+## player who skips the First steps and just drives must get the calls too (they are how the
+## questlines are found), so FRIENDS_AFTER is a few minutes (was 12), and once open they stay open
+## in later sessions (FRIENDS_KEY saved in [intro]).
 static var FRIENDS_STEPS: float = Pacer.num("first_steps", "friends_steps")
 static var FRIENDS_AFTER: float = Pacer.num("first_steps", "friends_after")
 static var NEW_FRIEND_GAP: float = Pacer.num("first_steps", "new_friend_gap")
+const FRIENDS_KEY := "friends_open"
 ## A friend's call yields to the guide's next intro once the player has been free this long (the
 ## intro itself comes at NEXT_GAP s).
 const FRIENDS_YIELD := 20.0
@@ -462,8 +466,10 @@ static func judge(done: Dictionary, ways: Dictionary) -> Array[String]:
 ## call at `friend_t` (-1: none yet); `intro_next`: one of the guide's intros waits and the player has
 ## been free FRIENDS_YIELD s, so it goes first (one thing at a time: the replay of 2026-11-15 took
 ## Szymek's boat race between two intros and Mirek's garage never came in its window).
-static func friends_held(steps: int, now: float, friend_t: float, intro_next := false) -> bool:
-	if steps < int(FRIENDS_STEPS) and now < FRIENDS_AFTER:
+## `opened`: an earlier session already opened them (FRIENDS_KEY in [intro]), so a player who only
+## drives in short sessions is not held again each time (F 2026-11-22).
+static func friends_held(steps: int, now: float, friend_t: float, intro_next := false, opened := false) -> bool:
+	if not opened and steps < int(FRIENDS_STEPS) and now < FRIENDS_AFTER:
 		return true
 	if intro_next:
 		return true
@@ -573,7 +579,29 @@ func steps_done() -> int:
 ## NEW_FRIEND_GAP s after each new friend's first call.
 ## Before step 3 the whole guide held them (it ran about ten minutes).
 func friends_wait() -> bool:
-	return guide_on() and friends_held(steps_done(), t, _friend_t, _intro_next)
+	return guide_on() and friends_held(steps_done(), t, _friend_t, _intro_next, _friends_saved())
+
+
+## The friends may call at all (the QUESTLINES tab's head, main.gd `_fill_map_list`): no guide, or
+## FRIENDS_STEPS steps, FRIENDS_AFTER s of play, or an earlier session opened them. The one-at-a-time
+## spacing after that is `friends_wait`'s.
+func friends_open() -> bool:
+	return not guide_on() or _friends_saved() or steps_done() >= int(FRIENDS_STEPS) or t >= FRIENDS_AFTER
+
+
+func _friends_saved() -> bool:
+	return wallet != null and wallet.intro.has(FRIENDS_KEY)
+
+
+## The friends opened in this session (steps or time): saved, so the next session doesn't hold them.
+func _friends_save() -> void:
+	if wallet == null or not guide_on() or _friends_saved():
+		return
+	if steps_done() < int(FRIENDS_STEPS) and t < FRIENDS_AFTER:
+		return
+	wallet.intro[FRIENDS_KEY] = _today()
+	wallet.save()
+	print("first10: the friends may call (%d steps, %.1f s)" % [steps_done(), t])
 
 
 ## An activity of the kit's phone rang (main.gd, the director's `rang`): `tag` names it. A friend
@@ -593,6 +621,7 @@ func tick() -> void:
 	_free_for = _free_for + TICK if f["free"] else 0.0
 	f["free_for"] = _free_for
 	_steps_tick(f)
+	_friends_save()
 	f["steps"] = FirstSteps.done(wallet.intro) if wallet != null else []
 	if guide and not fired.has("done"):
 		for id in met(f):
