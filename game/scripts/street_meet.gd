@@ -1708,6 +1708,15 @@ func _race_off(r: Dictionary) -> void:
 		r["lamps"] = lamps
 
 
+## R1 race classes: the pack race climbs a class a night (ladder.gd club_class) and its racers come
+## one class up against a faster car (class_top), instead of racing at the player's own top.
+func _pack_top() -> float:
+	var pc := 0
+	if car != null and "top_mult" in car and "accel_mult" in car:
+		pc = Ladder.car_class(float(car.top_mult), float(car.accel_mult))
+	return Ladder.class_top(Ladder.club_class(nights), pc)
+
+
 func _player_top() -> float:
 	if car != null and "max_speed" in car and "top_mult" in car:
 		return float(car.max_speed) * float(car.top_mult)
@@ -1738,7 +1747,7 @@ func _race_prepare() -> void:
 	for r in _racers:
 		var k := int(r.get("glow", 0))
 		r["r"] = _race.add(r["d"], String(r["name"]), Ladder.club(k), Ladder.CLUB_PACE,
-				{"top": _player_top(), "dice": hash("%s/%d" % [r["name"], nights]), "from": int(meets[0]["door"]["e"])})
+				{"top": _pack_top(), "dice": hash("%s/%d" % [r["name"], nights]), "from": int(meets[0]["door"]["e"])})
 	_race.prepare()
 	_race_t = 0.0
 	_rank_t = 0.0
@@ -2113,9 +2122,12 @@ func hold_car(c: Node) -> void:
 	hold_inputs(c, strip)
 	if stage == Stage.LINE:
 		# The launch: the gas revs the engine, the car stays on the line (no false start by gas).
+		# N1: a nitro tap on the line waits for the green (car.gd `nitro_wait`), never a false start.
 		_rev_gas = float(c.throttle) > 0.05 or bool(c.nitro_on)
 		c.throttle = 0.0
 		c.nitro_on = false
+		if "nitro_wait" in c:
+			c.nitro_wait = true
 
 
 ## hold_car's inputs for a car on a strip ({start, dir, right} as Vector2s), static for the check.
@@ -2158,6 +2170,8 @@ func _drag_frame(dt: float) -> void:
 			_tree.green = true
 			_tree.queue_redraw()
 			stage = Stage.DRAG
+			if "nitro_wait" in car:
+				car.nitro_wait = false  # N1: a tap kept on the line fires with the green
 			_drag_t = 0.0
 			_tacho.staging = false
 			_launch(launch_grade(_revs))
@@ -2291,7 +2305,9 @@ func _drag_end(won: bool, how: String) -> void:
 		get_tree().create_timer(2.0).timeout.connect(func() -> void: _tree.visible = false)
 	hud.cue("win" if won else "fail")
 	var pay: Array = DRAG_PAY if won else DRAG_LOSE
-	if wallet != null:
+	# A jump start or a run off the strip is no run: nothing paid, nothing counted (before, the
+	# loser's respect and a job tick for a tap of the gas on the line, again with every REWANŻ).
+	if wallet != null and how not in ["false", "off"]:
 		wallet.pay(int(pay[0]), int(pay[1]), "meet_drag")
 		if won:
 			wallet.keep["wnrc_member"] = true
@@ -2335,6 +2351,8 @@ func _restore_car() -> void:
 		return
 	car.top_mult = _top_was
 	car.accel_mult = _accel_was
+	if "nitro_wait" in car:
+		car.nitro_wait = false
 	if LOAN and not _nitro_was:
 		car.nitro_owned = false
 		car.nitro_on = false
