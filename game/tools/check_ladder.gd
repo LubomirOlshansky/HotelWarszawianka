@@ -161,8 +161,10 @@ func _data() -> void:
 		_expect(is_equal_approx(float(row["block"]), float(Traffic.CRAZY_BLOCK[i + 1])) and is_equal_approx(float(row["mistake"]), float(Traffic.CRAZY_MISTAKE[i + 1])),
 				"the crazy driver %d: block %.2f, mistake %.2f (traffic.gd CRAZY_BLOCK, CRAZY_MISTAKE)" % [i + 1, row["block"], row["mistake"]])
 		_expect(int(row["wrong"]) == 0 and (float(row["hops"]) == 0.0) == (i + 1 != 3), "the crazy driver %d: wrong %d, hops %.1f (a hop for the Pasatini only)" % [i + 1, row["wrong"], row["hops"]])
+	# F's playtest of 2026-11-22: the gentle day drives her rung's numbers (only her caution is gentler).
 	for k: String in ["share", "race_accel", "brake", "lat"]:
-		_expect(float(Ladder.FIRST_RACER[k]) < float(Ladder.racer(0)[k]), "the gentle day's %s is not under her rung's" % k)
+		_expect(float(Ladder.FIRST_RACER[k]) <= float(Ladder.racer(0)[k]), "the gentle day's %s is over her rung's" % k)
+	_expect(float(Ladder.FIRST_RACER["caution"]) >= float(Ladder.racer(0)["caution"]), "the gentle day is less careful in traffic than her rung")
 	_expect(Ladder.SHARE_MIN * RaceSession.EFFORT_EASE >= RaceBench.CRAWL_SHARE,
 			"the slowest racer at its least effort is under the bench's crawl line: %.2f x %.2f < %.2f" % [Ladder.SHARE_MIN, RaceSession.EFFORT_EASE, RaceBench.CRAWL_SHARE])
 	# An easier rematch: EASE_STEP a loss in a row, EASE_MAX at most, on the straights and in the corners.

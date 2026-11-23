@@ -813,8 +813,9 @@ func _effort() -> void:
 		RaceSession.pace_tick(chase_pace, chase, 0.1, 1000.0 + RaceSession.own_pace(chase.race_top, chase.race_share) * RaceSession.CATCH_FROM * 0.9, 1000.0, RaceSession.catch_of(Ladder.racer(5)))
 	_expect(is_equal_approx(chase.race_boost, 1.0), "on the player's tail (within CATCH_FROM s) the boost is gone: %.2f" % chase.race_boost)
 	_expect(RaceSession.boost_of(0.0, RaceSession.CATCH_MAX) == 1.0 and RaceSession.boost_of(5.0, RaceSession.CATCH_MAX) == 1.0, "level or ahead: no boost")
-	_expect(RaceSession.catch_of(Ladder.FIRST_RACER) < RaceSession.CATCH_MAX and RaceSession.catch_of(Ladder.FIRST_RACER) > 1.0,
-			"Halina's gentle day chases, but less: %.2f" % RaceSession.catch_of(Ladder.FIRST_RACER))
+	# F's playtest of 2026-11-22 ("Halina's race I did easily"): her gentle day chases as hard as any rival.
+	_expect(is_equal_approx(RaceSession.catch_of(Ladder.FIRST_RACER), RaceSession.CATCH_MAX),
+			"Halina's gentle day chases like the others: %.2f" % RaceSession.catch_of(Ladder.FIRST_RACER))
 	_expect(RaceSession.catch_of(Ladder.racer(0), 0.1) < RaceSession.catch_of(Ladder.racer(0)), "an easier rematch chases less")
 	pace = RaceSession.Pace.new()
 	for i in 200:
