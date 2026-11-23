@@ -16,7 +16,8 @@ extends Control
 ##     rate, the performance overlay and the TEST bench;
 ##   Dźwięk · Sound: volume, radio, effects (− and + in tenths, or drag along the bar).
 ## Loop MW-1: a fifth tab, ZESZYT · notebook: MOJA WARSZAWA, the city notebook
-## (notebook_page.gd); the card's title says MOJA WARSZAWA there, with the count found.
+## (notebook_page.gd); the card's title says MOJA WARSZAWA there, with the count found. Since the
+## settings redesign step 2 it is a page without a tab, opened from QUESTS → Collection (show_notebook).
 ## Loop MW-6: Obraz gets the FOTKA button beside TEST (closes the card and opens the photo mode: fotka.gd).
 ## F's asks (2026-10-30): Jazda gets "Strefy piesze 20 km/h · Pedestrian zones 20 km/h" Off / On
 ## under the mode (settings.gd `zone_cap`, off by default: key "zones").
@@ -46,7 +47,8 @@ const T_LABEL := UiKit.T_LABEL
 ## Loop MW-1: the notebook tab's title size (hud.gd T_TITLE).
 const T_NOTES := UiKit.T_TITLE
 
-const TABS := [["JAZDA", "driving"], ["ŚWIAT", "world"], ["OBRAZ", "picture"], ["DŹWIĘK", "sound"], ["ZESZYT", "notebook"], ["DOSTĘP", "access"]]
+## Settings redesign step 2 (F 2026-11-23): ZESZYT left the tabs; the notebook page opens from QUESTS → Collection.
+const TABS := [["JAZDA", "driving"], ["ŚWIAT", "world"], ["OBRAZ", "picture"], ["DŹWIĘK", "sound"], ["DOSTĘP", "access"]]
 ## Settings redesign step 1 (F 2026-11-23): the pages by name, in the order `_build` makes them.
 ## Everything outside this script (`set_page`, --settings-tab=NAME, the checks) names a page; the
 ## numbers below follow from this list, so the redesign can reorder tabs in one place. The tabs are

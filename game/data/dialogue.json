@@ -7092,6 +7092,7 @@
     ["Kasety", "Tapes", {"only": "col_tapes"}],
     ["Mixtape'y dla miejskiego radia, na dachach i w zaułkach.", "Mixtapes for the city radio, on rooftops and in back streets.", {"only": "col_tapes_about"}],
     ["Miejsca z notesu", "Notebook places", {"only": "col_places"}],
+    ["OTWÓRZ ZESZYT", "OPEN NOTEBOOK", {"only": "b_notebook"}],
     ["Ciekawe miejsca z notesu. Podjedź, a się odhaczą.", "Interesting places from your notebook. Drive by and they get ticked off.", {"only": "col_places_about"}],
     ["Zaprasza: %s", "Invites you: %s", {"only": "invite"}],
     ["Dziś wieczorem, o %s? Powiedz tak, a zegar przeskoczy.", "Tonight at %s? Say yes and the clock skips ahead.", {"only": "call_night"}],
