@@ -24,6 +24,8 @@ extends Control
 ## line and offers ROUTE (its start becomes the pin) and DETAILS (the screen on that questline).
 
 signal closed
+## G2 (F 2026-11-23): MOJE AUTO tapped: the map closes and the car screen opens (main.gd).
+signal my_car
 ## A place became the quest pin, or a request was taken (its entry, quest_lines.gd `entry`; {}: the
 ## pin was taken off). main.gd `_on_quest_picked`.
 signal quest_picked(entry: Dictionary)
@@ -199,6 +201,8 @@ var book: Dictionary = {}
 var tabs: Array = []
 var _screen: QuestsScreen
 var _quests_btn: Button
+## G2: the MOJE AUTO chip, over the QUESTS button.
+var _car_btn: Button
 var _badge: Label
 var _next: Button
 ## F 2026-11-19 ("add the clock to the map", "when the user clicks the time show a clock where they
@@ -325,6 +329,17 @@ func _build() -> void:
 		sb.shadow_size = _px(6)
 	_quests_btn.pressed.connect(func() -> void: open_screen())
 	add_child(_quests_btn)
+	_car_btn = Button.new()
+	_car_btn.name = "my_car"
+	_car_btn.focus_mode = Control.FOCUS_NONE
+	_car_btn.text = Lang.pick("MOJE AUTO", "MY CAR")
+	_car_btn.custom_minimum_size = Vector2(QUESTS_W, 44.0) * pt
+	UiKit.style_button(_car_btn, UiKit.Kind.SECONDARY, pt, T_SUB + 1.0)
+	_car_btn.add_theme_color_override("font_color", UiKit.NEON_CYAN)
+	_car_btn.pressed.connect(func() -> void:
+		close()
+		my_car.emit())
+	add_child(_car_btn)
 	_badge = Label.new()
 	_badge.name = "badge"
 	_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -636,6 +651,9 @@ func _fit() -> void:
 	_quests_btn.visible = not _picker.visible  # the time card owns the corner while it is open
 	_quests_btn.size = _quests_btn.custom_minimum_size
 	_quests_btn.position = s.end - Vector2(m, m) - _quests_btn.size
+	_car_btn.visible = _quests_btn.visible
+	_car_btn.size = _car_btn.custom_minimum_size
+	_car_btn.position = _quests_btn.position - Vector2(0.0, m + _car_btn.size.y)
 	_badge.size = _badge.custom_minimum_size
 	_badge.position = Vector2(_quests_btn.size.x - _badge.size.x * 0.7, -_badge.size.y * 0.3)
 	if _next.visible:
@@ -698,7 +716,8 @@ func to_screen(p: Vector2) -> Vector2:
 func rects() -> Dictionary:
 	if not _built:
 		return {}
-	var out := {"close": _close.get_global_rect(), "quests": _quests_btn.get_global_rect(), "clock": _clock_btn.get_global_rect()}
+	var out := {"close": _close.get_global_rect(), "quests": _quests_btn.get_global_rect(), "clock": _clock_btn.get_global_rect(),
+			"my_car": _car_btn.get_global_rect()}
 	if _picker.visible:
 		out["picker"] = _picker.get_global_rect()
 	if _next.visible:

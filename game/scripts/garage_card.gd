@@ -5,6 +5,11 @@ extends Control
 ## line, the paints as swatches in two rows of five (each 44 pt or more: the colour, its Polish
 ## name, the price or "masz" / "na aucie"), then the action for the swatch picked (buy, switch,
 ## or why not) and WYJAZD · Drive off. Polish over English throughout. Built at the first open.
+## G1 (F 2026-11-23, docs/design/garage-and-cars.md 0b, the night-garage look): the card is the
+## right-hand panel of the car screen; the left is the car itself on a turntable in a night box
+## (car_stage.gd), wearing the paint or the car picked. The head shows the car's class (ladder.gd
+## car_class: a neon letter, "C → B" when the item picked would lift it) and four stat bars
+## (top speed, pull, grip, nitro: now in white, what a buy adds in cyan).
 ## G13: two tabs in the header, LAKIER (the paints) and CZĘŚCI I AUTA (the Ołdi TT, the nitro, tyres
 ## and engine: upgrades.gd, six cells in two columns), with a stat card (top speed, pull, grip now
 ## -> after buying the item picked) in place of the paints; the same action button buys it.
@@ -15,9 +20,19 @@ const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/u
 signal closed
 
 const Gamepad := preload("res://scripts/gamepad.gd")  # the gamepad follow-ups
+const CarStage := preload("res://scripts/car_stage.gd")  # G1: the car in the night box
+const Ladder := preload("res://scripts/ladder.gd")  # R1: the car's class
 
-## The swatches' size in points (at least 44 tall: the touch rule).
+## The swatches' size in points (at least 44 tall: the touch rule); G1: the width follows the panel's.
 const SWATCH := Vector2(114.0, 58.0)
+## G1: the panel's share of the safe area's width, its least and most width (pt), and the gap to the stage.
+const SWATCH_G1_H := 48.0
+const PANEL_SHARE := 0.46
+const PANEL_MIN := 330.0
+const PANEL_MAX := 470.0
+const STAGE_GAP := 10.0
+## G1: the class letters' colours (D .. S) on the badge.
+const CLASS_COLOURS := [UiKit.SUB, UiKit.GO, UiKit.NEON_CYAN, UiKit.NEON_PINK, UiKit.GOLD]
 const GAP := 6.0
 ## Swatches per row (loop 3h slice 2: ten paints in two rows of five).
 const COLUMNS := 5
@@ -34,6 +49,11 @@ var tab := "paint"
 var picked_item := "tt"
 
 var _built := false
+## G1: the car in the night box, the class badge and the stat bars; the panel's inner width (pt).
+var stage: SubViewportContainer
+var _badge: Label
+var _bars: Control
+var _inner := 520.0
 ## The dim over the HUD and the city behind the card (drawn by this Control, `_draw`).
 const DIM := UiKit.SCRIM
 var _card: PanelContainer
@@ -67,9 +87,15 @@ func _hud() -> CanvasLayer:
 func _build() -> void:
 	_built = true
 	var hud := _hud()
+	var vw := (safe.size.x if safe.has_area() else get_viewport_rect().size.x) / pt
+	_inner = clampf(vw * PANEL_SHARE, PANEL_MIN, PANEL_MAX) - 24.0
+	stage = CarStage.new()
+	stage.name = "stage"
+	add_child(stage)
 	_card = PanelContainer.new()
 	_card.name = "card"
 	_card.add_theme_stylebox_override("panel", hud._panel_box(12.0, 12.0))
+	_card.custom_minimum_size.x = (_inner + 24.0) * pt
 	add_child(_card)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", roundi(6.0 * pt))
@@ -87,19 +113,38 @@ func _build() -> void:
 	_title_en = hud._label(hud.T_LABEL, hud.SUB)
 	_title_en.text = "%s, %s" % [garage.STREET, garage.DISTRICT]
 	names.add_child(_title_en)
+	_title_en.visible = false  # G1: the stage's back wall says where; the panel keeps its height
+	_badge = hud._label(hud.T_TITLE, CLASS_COLOURS[0])
+	_badge.name = "class"
+	_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	head.add_child(_badge)
+	_money = hud._label(hud.T_BODY, hud.ACCENT)
+	_money.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_money.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	head.add_child(_money)
+	_bars = StatBars.new()
+	_bars.name = "bars"
+	_bars.pt = pt
+	_bars.names = [garage.line("bar_top"), garage.line("bar_pull"), garage.line("bar_grip"), garage.line("bar_nitro")]
+	_bars.custom_minimum_size = Vector2(_inner, StatBars.ROW * 2.0) * pt
+	col.add_child(_bars)
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", roundi(GAP * pt))
+	col.add_child(tabs)
+	head = tabs
 	_tab_paint = hud._chip(head, "LAKIER", "Paint")
 	_tab_paint.name = "tab_paint"
 	_tab_paint.pressed.connect(func() -> void: show_tab("paint"))
 	_tab_parts = hud._chip(head, "CZĘŚCI I AUTA", "Parts and cars")
 	_tab_parts.name = "tab_parts"
 	_tab_parts.pressed.connect(func() -> void: show_tab("parts"))
-	_money = hud._label(hud.T_BODY, hud.ACCENT)
-	_money.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_money.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(_money)
-	var width := SWATCH.x * COLUMNS + GAP * (COLUMNS - 1)
+	for t: Button in [_tab_paint, _tab_parts]:
+		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var width := _inner
 	_line = hud._label(hud.T_SUB, hud.INK)
 	hud._wrap(_line, width)
+	_line.max_lines_visible = 2  # G1: the panel is narrower; Mirek keeps it to two lines
+	_line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	col.add_child(_line)
 	_line_en = hud._label(hud.T_LABEL, hud.SUB)
 	hud._wrap(_line_en, width)
@@ -112,7 +157,7 @@ func _build() -> void:
 	for p: Dictionary in garage.PAINTS:
 		_swatches[str(p["id"])] = _swatch(p)
 	_parts = GridContainer.new()
-	_parts.columns = 2
+	_parts.columns = 3  # G1: three across in the narrower panel
 	_parts.add_theme_constant_override("h_separation", roundi(GAP * pt))
 	_parts.add_theme_constant_override("v_separation", roundi(GAP * pt))
 	col.add_child(_parts)
@@ -142,7 +187,7 @@ func _swatch(p: Dictionary) -> Button:
 	var b := Button.new()
 	b.name = "paint_%s" % p["id"]
 	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = SWATCH * pt
+	b.custom_minimum_size = Vector2(maxf(44.0, (_inner - GAP * (COLUMNS - 1)) / COLUMNS), SWATCH_G1_H) * pt
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	var box := VBoxContainer.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -151,7 +196,7 @@ func _swatch(p: Dictionary) -> Button:
 	b.add_child(box)
 	var chip := ColorRect.new()
 	chip.color = p["paint"]
-	chip.custom_minimum_size = Vector2(0.0, 14.0 * pt)
+	chip.custom_minimum_size = Vector2(0.0, 9.0 * pt)
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(chip)
 	var stripe := ColorRect.new()
@@ -182,7 +227,7 @@ func _item(id: String, width: float) -> Button:
 	var b := Button.new()
 	b.name = "item_%s" % id
 	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2((width - GAP) * 0.5, 46.0) * pt
+	b.custom_minimum_size = Vector2((width - GAP * 2.0) / 3.0, 46.0) * pt
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	var box := VBoxContainer.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -217,6 +262,8 @@ func show_tab(t: String) -> void:
 ## A shop cell tapped: it is picked, and Mirek says what it is (its blurb) or why not.
 func pick_item(id: String) -> void:
 	picked_item = id
+	if stage != null:
+		stage.focus("engine" if id == "engine" else ("tyres" if id == "tyres" else ("nitro" if id == "nitro" else "")))
 	var row: Dictionary = garage.Upgrades.find(id)
 	_line.text = str((row["blurb"] as Array)[0])
 	_line_en.text = str((row["blurb"] as Array)[1])
@@ -224,12 +271,14 @@ func pick_item(id: String) -> void:
 
 
 ## Opens on the paint the car wears, with Mirek's hello.
-func open(start_tab := "paint") -> void:
+func open(start_tab := "paint", mode := "garage") -> void:
 	if not _built:
 		_build()
+	stage.set_mode(mode)
+	_title.text = Lang.pick("MOJE AUTO", "MY CAR") if mode == "mine" else str(garage.NAME[0]).to_upper()
 	picked = garage.current()
 	tab = start_tab
-	_say("parts" if tab == "parts" else "hello")
+	_say("mine" if mode == "mine" else ("parts" if tab == "parts" else "hello"))
 	_refresh()
 	visible = true
 	_place.call_deferred()
@@ -245,6 +294,8 @@ func open(start_tab := "paint") -> void:
 func close() -> void:
 	Gamepad.drop_focus(self)
 	visible = false
+	if stage != null:
+		stage.visible = false
 
 
 func is_open() -> bool:
@@ -300,8 +351,9 @@ func _refresh() -> void:
 	var on_parts := tab == "parts"
 	_grid.visible = not on_parts
 	_parts.visible = on_parts
-	_stats.visible = on_parts
-	_stats_en.visible = on_parts and Lang.code == Lang.EN
+	_stats.visible = false  # G1: the bars say it; the line stays for the log
+	_stats_en.visible = false
+	_refresh_look()
 	for t: Array in [[_tab_paint, "paint"], [_tab_parts, "parts"]]:
 		var tb: Button = t[0]
 		var tstyle: StyleBoxFlat = hud._box(UiKit.GOLD_TINT if tab == t[1] else hud.CARD_BG, hud.ACCENT if tab == t[1] else UiKit.EDGE_STRONG, 2.0 if tab == t[1] else 1.0)
@@ -358,7 +410,40 @@ func _refresh() -> void:
 				hud._set_chip(_action, "ZA %d SEKRETÓW" % int(p2["eggs"]), "Find %d easter eggs" % int(p2["eggs"]))
 			_action.disabled = true
 	_action.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_mine_gate(garage.rule_now(picked))
 	_place()
+
+
+## G2: from the full map (MOJE AUTO) the shop's buys wait for the workshop: the action says where.
+func _mine_gate(rule: String) -> void:
+	if garage.mode == "mine" and rule in ["buy", "short"]:
+		_hud()._set_chip(_action, "KUP U MIRKA · TWARDA", "Buy it at Mirek's on Twarda")
+		_action.disabled = true
+
+
+## G1: the stage wears the paint picked (or the car picked on the parts tab), and the badge and bars
+## show the car's numbers now and after the item picked.
+func _refresh_look() -> void:
+	var U: GDScript = garage.Upgrades
+	var st: Dictionary = garage.shop_state()
+	var now: Dictionary = U.stats(str(st["car"]), st["tune"], bool(st["nitro"]))
+	var after := now
+	var car_id := str(st["car"])
+	if tab == "parts" and garage.item_rule_now(picked_item) in ["buy", "short", "switch"]:
+		after = U.stats_after(picked_item, st)
+		if U.kind(picked_item) == "car":
+			car_id = picked_item
+	var p: Dictionary = garage.find(picked if tab == "paint" else garage.current())
+	if p.is_empty():
+		p = garage.find(garage.current())
+	if stage != null and not p.is_empty():
+		stage.set_car("player_tt" if car_id == "tt" else "player", p["paint"], p["stripe"])
+		stage.visible = visible
+	var c0 := Ladder.car_class(float(now["top_mult"]), float(now["pull"]))
+	var c1 := Ladder.car_class(float(after["top_mult"]), float(after["pull"]))
+	_badge.text = (Lang.pick("KL. %s", "CL. %s") % Ladder.CLASS_NAMES[c0]) + ("" if c1 == c0 else " → %s" % Ladder.CLASS_NAMES[c1])
+	_badge.add_theme_color_override("font_color", CLASS_COLOURS[c1])
+	(_bars as StatBars).show_stats(now, after)
 
 
 ## G13: the parts tab: each cell's state, the stat card, the action for the cell picked.
@@ -423,6 +508,7 @@ func _refresh_parts() -> void:
 			hud._set_chip(_action, "BRAKUJE %s" % w.money(miss).to_upper(), "%s short" % _money_en(miss))
 			_action.disabled = true
 	_action.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_mine_gate(rule)
 
 
 ## The stat card's line: top speed, pull and grip now (and after the item picked, when it changes them).
@@ -464,7 +550,15 @@ func _place() -> void:
 	var s := _card.get_combined_minimum_size()
 	_card.size = s
 	var r := safe if safe.has_area() else get_viewport_rect()
-	_card.position = (r.position + (r.size - s) * 0.5).round()
+	# G1: the panel on the right, the car on the left in the rest of the safe area.
+	_card.position = Vector2(r.end.x - s.x, r.position.y + (r.size.y - s.y) * 0.5).round()
+	if stage != null:
+		# The stage fills the screen behind the panel; its camera slides the car into the rest.
+		var full := get_viewport_rect().size
+		stage.position = Vector2.ZERO
+		stage.size = full
+		stage.panel_share = clampf((full.x - _card.position.x + STAGE_GAP * pt) / maxf(full.x, 1.0), 0.0, 0.7)
+		stage.visible = visible
 
 
 func _draw() -> void:
@@ -492,3 +586,43 @@ func _unhandled_input(event: InputEvent) -> void:
 	if visible and (event.is_action_pressed("ui_cancel") or Gamepad.closes(event)):
 		get_viewport().set_input_as_handled()
 		closed.emit()
+
+
+## G1: four stat bars (top speed, pull, grip, nitro): the car now in white, what
+## the item picked adds in cyan, what a switch loses in pink. Drawn, no nodes per bar.
+class StatBars extends Control:
+	const ROW := 21.0
+	## The bars' names [pl, en] (dialogue.json "garage": bar_top, bar_pull, bar_grip, bar_nitro).
+	var names: Array = [["", ""], ["", ""], ["", ""], ["", ""]]
+	## What fills a bar: 160 km/h, pull ×2, grip ×1.5, the nitro kit.
+	const FULL := [160.0, 2.0, 1.5, 1.0]
+	var pt := 1.0
+	var _now: Array[float] = [0.0, 0.0, 0.0, 0.0]
+	var _after: Array[float] = [0.0, 0.0, 0.0, 0.0]
+
+	func show_stats(now: Dictionary, after: Dictionary) -> void:
+		var keys := ["top_kmh", "pull", "grip", "nitro"]
+		for i in 4:
+			_now[i] = clampf(float(now[keys[i]]) / float(FULL[i]), 0.0, 1.0)
+			_after[i] = clampf(float(after[keys[i]]) / float(FULL[i]), 0.0, 1.0)
+		queue_redraw()
+
+	## Two columns of two: each name over its bar.
+	func _draw() -> void:
+		var font := get_theme_default_font()
+		var fs := roundi(UiKit.T_LABEL * pt)
+		var h := 5.0 * pt
+		var col_w := (size.x - 12.0 * pt) * 0.5
+		for i in 4:
+			var x0 := (i % 2) * (col_w + 12.0 * pt)
+			var y0 := (i / 2) * ROW * pt
+			draw_string(font, Vector2(x0, y0 + fs), Lang.pick(str(names[i][0]), str(names[i][1])), HORIZONTAL_ALIGNMENT_LEFT, col_w, fs, UiKit.SUB)
+			var bar := Rect2(x0, y0 + fs + 4.0 * pt, col_w, h)
+			draw_rect(bar, UiKit.DIM)
+			var a := _now[i]
+			var b := _after[i]
+			draw_rect(Rect2(bar.position.x, bar.position.y, col_w * minf(a, b), h), UiKit.INK)
+			if b > a + 0.001:
+				draw_rect(Rect2(bar.position.x + col_w * a, bar.position.y, col_w * (b - a), h), UiKit.NEON_CYAN)
+			elif a > b + 0.001:
+				draw_rect(Rect2(bar.position.x + col_w * b, bar.position.y, col_w * (a - b), h), UiKit.NEON_PINK)
