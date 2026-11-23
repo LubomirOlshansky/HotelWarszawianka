@@ -537,15 +537,15 @@ func _check_screen(screen: Vector2i) -> int:
 	hud.open_settings({"controls": 1, "follow": false, "traffic": 2, "quality": 0, "auto": "Medium ostry", "master": 1.0, "music": 0.5,
 			"effects": 1.0, "perf": 0, "fps": 0, "style": 0, "weather": 0, "time": 0})
 	var panel: Control = hud.settings_panel
-	# Loop MW-1: the tabs (access last, index 5; DEMO 3j: 6 the credits page), then the notebook with a found
-	# card open and one not found yet.
-	var views := [0, 1, 2, 3, 5, 6, 4, "lusterko", "milosc_hipoteczna", "eggs", "e07", "e03", "e40", "tape", "t_defilad_2012",
+	# Loop MW-1: the tabs and the credits page (settings_panel.gd PAGES, by name), then the notebook with a
+	# found card open and one not found yet.
+	var views := ["page:driving", "page:world", "page:picture", "page:sound", "page:access", "page:credits", "page:notebook", "lusterko", "milosc_hipoteczna", "eggs", "e07", "e03", "e40", "tape", "t_defilad_2012",
 			"t_stadion_2010", "kadr", "k01", "k10"]
 	for t in views:
-		if t is String:
-			panel.show_notebook(t)
+		if str(t).begins_with("page:"):
+			panel.set_page(str(t).trim_prefix("page:"))
 		else:
-			panel.set_tab(t)
+			panel.show_notebook(t)
 		await process_frame
 		await process_frame
 		var where := "%s settings tab %s" % [tag, t]

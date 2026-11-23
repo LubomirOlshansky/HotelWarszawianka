@@ -365,11 +365,11 @@ func _dev() -> void:
 		for t in SettingsPanel.TABS.size():
 			_expect(not panel._pages[t].is_ancestor_of(b), "DEV: %s is not on tab %d" % [key, t])
 	_expect(dev_page.is_ancestor_of(dev_page.find_child("bench", true, false)), "DEV: TEST is on the DEV page")
-	panel.set_tab(0)
+	panel.set_page("driving")
 	_expect(panel.dev_tap() and panel._tab == SettingsPanel.DEV_PAGE, "DEV: one tap opens it again in the same run")
 	vp.queue_free()
 	await process_frame
-	# --settings-tab=7 and =8 ask for a page past the tabs before the panel is built (main.gd's
+	# --settings-tab=tips and =dev ask for a page past the tabs before the panel is built (main.gd's
 	# start): the panel must open on that page, not on the last tab.
 	for page: int in [SettingsPanel.TIPS_PAGE, SettingsPanel.DEV_PAGE]:
 		var early := SubViewport.new()

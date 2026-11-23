@@ -241,7 +241,7 @@ func _ui() -> void:
 	await process_frame
 	if panel.get("_tab") != wrapi(tab0 + 1, 0, panel.TABS.size()) or root.gui_get_focus_owner() != tabs[panel.get("_tab")]:
 		fails.append("P9 RB: tab %d -> %d, focus %s" % [tab0, panel.get("_tab"), root.gui_get_focus_owner()])
-	panel.set_tab(3)  # DŹWIĘK, the volumes
+	panel.set_page("sound")  # DŹWIĘK, the volumes
 	await process_frame
 	var bar: Control = (panel.get("_bars") as Dictionary)["music"]
 	var got := []

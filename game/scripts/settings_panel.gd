@@ -47,24 +47,24 @@ const T_LABEL := UiKit.T_LABEL
 const T_NOTES := UiKit.T_TITLE
 
 const TABS := [["JAZDA", "driving"], ["ŚWIAT", "world"], ["OBRAZ", "picture"], ["DŹWIĘK", "sound"], ["ZESZYT", "notebook"], ["DOSTĘP", "access"]]
-## Loop MW-1: the notebook's tab. The accessibility tab comes last (index 5) so the notebook keeps
-## its index 4.
-const NOTEBOOK_TAB := 4
-const ACCESS_TAB := 5
-## DEMO 3j: the credits page, after the tabs' pages; no tab of its own (DŹWIĘK → LICENCJE opens it,
-## and its tab stays lit).
-const CREDITS_PAGE := 6
-## First hour step 6: DŹWIĘK → PORADY, every loading tip in one list (game/data/tips.json), so a
-## tip that flashed by on the title is not lost.
-const TIPS_PAGE := 7
+## Settings redesign step 1 (F 2026-11-23): the pages by name, in the order `_build` makes them.
+## Everything outside this script (`set_page`, --settings-tab=NAME, the checks) names a page; the
+## numbers below follow from this list, so the redesign can reorder tabs in one place. The tabs are
+## the TABS keys; credits (DŹWIĘK → LICENCJE), tips (DŹWIĘK → PORADY, game/data/tips.json) and DEV
+## (the Fable critique, F 2026-11-15: our A/B switches, DEV_TAPS taps on the version, each within
+## DEV_TAP_GAP s of the last; once open in a run, one tap opens it again) have no tab of their own.
+const PAGES := ["driving", "world", "picture", "sound", "notebook", "access", "credits", "tips", "dev"]
+## The tab that stays lit on a page without a tab of its own (credits and tips under DŹWIĘK).
+const PAGE_TAB := {"credits": "sound", "tips": "sound"}
+static var NOTEBOOK_TAB: int = PAGES.find("notebook")
+static var ACCESS_TAB: int = PAGES.find("access")
+static var CREDITS_PAGE: int = PAGES.find("credits")
+static var TIPS_PAGE: int = PAGES.find("tips")
+static var DEV_PAGE: int = PAGES.find("dev")
+static var SOUND_TAB: int = PAGES.find("sound")
 const TIPS_FILE := "res://data/tips.json"
-## First hour step 6 (the Fable critique, F 2026-11-15): the DEV page, our A/B switches out of the
-## testers' way. It opens after DEV_TAPS taps on the version under the title, each within
-## DEV_TAP_GAP s of the last; once open in a run, one tap opens it again.
-const DEV_PAGE := 8
 const DEV_TAPS := 7
 const DEV_TAP_GAP := 1.5
-const SOUND_TAB := 3
 const Credits := preload("res://scripts/credits.gd")
 const Feedback := preload("res://scripts/feedback.gd")  # the feedback card (F 2026-11-21)
 const NotebookPage := preload("res://scripts/notebook_page.gd")
@@ -225,7 +225,7 @@ func _build() -> void:
 		b.toggle_mode = true
 		b.name = "tab_%s" % TABS[i][1]
 		_tighten(b, TABS[i][0], String(TABS[i][1]).to_upper())
-		b.pressed.connect(set_tab.bind(i))
+		b.pressed.connect(set_page.bind(String(TABS[i][1])))
 		head.add_child(b)
 		_tabs.append(b)
 	var x := _flat_button("✕", 22)
@@ -427,6 +427,8 @@ func _build() -> void:
 	_credits_page(body)
 	_tips_page(body)
 	_pages.append(dev)
+	if _pages.size() != PAGES.size():
+		push_error("settings_panel: %d pages built for the %d PAGES names" % [_pages.size(), PAGES.size()])
 	if _target != "":
 		notebook_page.show_target(_target)
 	set_tab(_tab)
@@ -497,16 +499,42 @@ func _rows(parent: Control, cells: Array[int]) -> Array[VBoxContainer]:
 	return out
 
 
-## Shows tab `i` (0 Driving, 1 World, 2 Picture, 3 Sound, 4 Notebook, 5 Access; 6 the credits page).
+## The page called `key` (PAGES), or a page number as text ("4"); an unknown name opens the first tab.
+static func page_of(key: String) -> int:
+	if key.is_valid_int():
+		return clampi(int(key), 0, PAGES.size() - 1)
+	return maxi(0, PAGES.find(key))
+
+
+## Shows the page called `key` (PAGES: driving, world, picture, sound, notebook, access, credits, tips, dev).
+func set_page(key: String) -> void:
+	set_tab(page_of(key))
+
+
+## The name of the page on show (PAGES).
+func page() -> String:
+	return PAGES[_tab]
+
+
+## The index in `_tabs` (TABS) of the tab lit for page `i`, or -1 (DEV has no tab).
+func _tab_button(i: int) -> int:
+	var key: String = PAGE_TAB.get(PAGES[i], PAGES[i])
+	for k in TABS.size():
+		if TABS[k][1] == key:
+			return k
+	return -1
+
+
+## Shows page `i` of PAGES (set_page by name is the way in from outside).
 func set_tab(i: int) -> void:
 	# The pages past the tabs (credits, tips, DEV) can be asked for before the panel is built
-	# (--settings-tab=6..8); `_build` shows the page asked for. Opening DEV by any road turns it on.
-	_tab = clampi(i, 0, DEV_PAGE)
+	# (--settings-tab=credits/tips/dev); `_build` shows the page asked for. Opening DEV by any road turns it on.
+	_tab = clampi(i, 0, PAGES.size() - 1)
 	if _tab == DEV_PAGE:
 		dev_on = true
 	if not _built:
 		return
-	var lit := SOUND_TAB if _tab == CREDITS_PAGE or _tab == TIPS_PAGE else (-1 if _tab == DEV_PAGE else _tab)
+	var lit := _tab_button(_tab)
 	for k in _pages.size():
 		_pages[k].visible = k == _tab
 	for k in _tabs.size():
@@ -728,7 +756,7 @@ func pad_focus() -> void:
 
 ## The button the pad's focus starts on: the open tab's.
 func focus_target() -> Button:
-	return _tabs[SOUND_TAB if _tab == CREDITS_PAGE or _tab == TIPS_PAGE else (0 if _tab == DEV_PAGE else _tab)]
+	return _tabs[maxi(0, _tab_button(_tab))]
 
 
 ## The current values again (after a change that moves another row: Classic's camera).
@@ -821,7 +849,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	var b := event as InputEventJoypadButton
 	if b != null and b.pressed and b.button_index in [JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER]:
 		var step := -1 if b.button_index == JOY_BUTTON_LEFT_SHOULDER else 1
-		set_tab(wrapi(_tab + step, 0, TABS.size()))
+		set_page(String(TABS[wrapi(maxi(0, _tab_button(_tab)) + step, 0, TABS.size())][1]))
 		pad_focus()
 		get_viewport().set_input_as_handled()
 
