@@ -7,7 +7,6 @@ extends "res://scripts/landmarks/churches.gd"
 ## common.gd, then the areas in the order of landmarks.gd's `extends` chain), so code here may use
 ## this file, common.gd and the facade kit, never another area: a helper two areas need goes to
 ## common.gd.
-const VIOLET_SIGN := Color(0.62, 0.25, 1.0)  # Level 26's neon, as neon_signs.gd VIOLET
 
 
 # --- MDM (the landmarks loop, street furniture) --------------------------------------------------
@@ -1549,158 +1548,469 @@ func _build_loretka(_site: Dictionary) -> void:
 	_no_roof = keep_roof
 
 
-## Level 26 (F, 2026-11-01), the rooftop club on the Atlas Tower: on the roof of the tower's crown
-## (the 4 m top storey OSM maps over the main roof, 116 m) a dark timber deck inside a glass
-## balustrade, a bar with a glowing back wall at one end, the DJ booth under a lighting truss with an
-## LED wall and speaker stacks at the other, lounge sofas between, planters, festoon lamps on posts
-## and the name LEVEL 26 in violet neon. The people are crowds.gd's roof crowd (`level_26`), the bass
-## city_sounds.gd's `club` tag, the hours places.json's. Everything is drawn with `_no_roof`, so the
-## roof grid (where the crowd stands, where the violet band hangs) stays the tower's own.
-func _build_level26_club(_site: Dictionary) -> void:
-	var outline := _landmark("Atlas Tower")
-	var crown := PackedVector2Array()
-	var crown_h := 0.0
+## Level 26 (the parody of the real Level 27; F 2026-11-01, rebuilt from F's photos 2026-11-22,
+## docs/landmarks/specs/level26.md), the club on the Atlas Tower, Al. Jerozolimskie 123A. Not on
+## the crown's top as before: the terrace runs round the round club room (the crown drum, 112 to
+## 116 m, the club's indoor part) on the main roof, out to the glass railing at the tower's edge
+## and its round end. On it: a timber deck, the glass railing with an orange light strip at its
+## foot, festoon strings from the drum's top to posts at the railing with orange paper lanterns
+## hung under them, white deck chairs round white cube tables, birches in white planters, the DJ
+## stage under an aluminium truss in the round end with its dance floor before it, the bar along
+## the drum; the drum dressed in dark glass with a red light band and a white fascia, the
+## red-and-white mast on its roof and the name LEVEL 26 in copper on the fascia. `level26_plan`
+## is the one layout for the model and for crowds.gd (the loungers in the chairs, the DJ and the
+## dancers). Everything is drawn with `_no_roof`: the roof grid stays the tower's own.
+const L26_TOWER := "Atlas Tower"
+const L26_REACH := 13.5          ## the terrace's reach out from the drum's wall (m)
+const L26_DECK_T := 0.12         ## the deck's thickness over the mapped roof
+## The tower's round end from the drum (OSM: the arc's centre north-north-west of the drum's):
+## the terrace is that half of the main roof (the real one is about 450 m2, the aerial photo's
+## white railing runs round the round end), the DJ stands in it; the roof's far half stays plant.
+const L26_ROUND_END := Vector2(-0.46, -0.89)
+const L26_BACK := 0.3            ## the terrace reaches this many drum radii past the drum's centre
+const L26_DECK := Color("#6f5b4b")
+const L26_DECK_TOP := Color("#7d6754")
+const L26_GLASS := Color("#cfe2e6")
+const L26_STEEL := Color("#c9ccd0")
+const L26_GLOW := Color("#ff7a2e")    ## the railing's foot strip and the lanterns: orange at night
+const L26_LANTERN := Color("#ff9446")
+const L26_RED := Color("#ff4a32")     ## the drum's light band (red at night, copper by day)
+const L26_WHITE := Color("#c4c8cb")   ## the fascia: a step under white, so it does not blaze at night
+const L26_DRUM_GLASS := Color("#34485f")
+const L26_CANVAS := Color("#f3f1ea")
+const L26_WOOD := Color("#b08a5e")
+const L26_BIRCH := Color("#e9e5dc")
+const L26_LEAVES := Color("#8db35a")
+const L26_COPPER := Color(1.0, 0.62, 0.32)
+
+
+## The terrace's plan, from the map data (the tower's outline and parts, or the streamed index's
+## `site_parts`): the drum's centre and radius, the heights over the ground (the roof, the drum's
+## top), the deck polygon (the main roof's part round the drum, cut at L26_REACH from its wall),
+## its outer edges (where the railing stands) and the layout. {} when the tower is not there.
+static func level26_plan(data: Dictionary) -> Dictionary:
+	var outline := PackedVector2Array()
+	for l: Dictionary in data.get("landmarks", []):
+		if str(l.get("name", "")) == L26_TOWER:
+			outline = _l26_pts(l["p"])
+	if outline.size() < 3:
+		return {}
+	var parts := plan_parts_of(data)
+	var drum := PackedVector2Array()
+	var drum_h := 0.0
 	var best := 0.0
-	for bld in _parts_in(outline, func(b: Dictionary) -> bool: return float(b["h"]) >= 100.0 and float(b["mh"]) >= 100.0):
-		var q := _pts(bld["p"])
-		if absf(_area(q)) > best:
-			best = absf(_area(q))
-			crown = q
-			crown_h = float(bld["h"])
-	if crown.size() < 3 or best < 150.0:
-		return
-	var g := _ground_under(outline)
-	var y := g + crown_h
-	var deck := _largest(Geometry2D.offset_polygon(crown, -1.8, Geometry2D.JOIN_MITER))
-	if deck.size() < 3:
-		return
-	var keep_roof := _no_roof
-	_no_roof = true
-	var none := Color(0, 0, 0, 0)
-	var violet := Color("#a35cff")
-	var pink := Color("#ff3d9a")
-	var cyan := Color("#35e0ff")
-	var warm := Color("#ffc873")
-	var dark := Color("#1f1c26")
-	# The deck's axes: along its longest edge (d) and across (n); its extent along each.
-	var d := Vector2(1, 0)
-	var longest := 0.0
+	var cands: Array = []
+	for bld: Dictionary in parts:
+		var q := _l26_pts(bld["p"])
+		if q.size() < 3:
+			continue
+		var mid := Vector2.ZERO
+		for p in q:
+			mid += p
+		mid /= float(q.size())
+		if not Geometry2D.is_point_in_polygon(mid, outline):
+			continue
+		var a := absf(_l26_area(q))
+		cands.append([q, float(bld.get("h", 0.0)), float(bld.get("mh", 0.0)), a])
+		if float(bld.get("mh", 0.0)) >= 60.0 and float(bld.get("h", 0.0)) >= 60.0 and a > best:
+			best = a
+			drum = q
+			drum_h = float(bld.get("h", 0.0))
+	if drum.size() < 3 or best < 150.0:
+		return {}
+	# The main roof: the largest part under the drum's top that rises from low down; the walls:
+	# the parts standing as high as the drum (the tower's east block), no deck against them.
+	var roof := PackedVector2Array()
+	var roof_h := 0.0
+	best = 0.0
+	var walls: Array = []
+	for cd: Array in cands:
+		if float(cd[2]) >= 60.0 or float(cd[3]) < 30.0:
+			continue
+		if float(cd[1]) >= drum_h - 0.5:
+			walls.append(cd[0])
+		elif float(cd[1]) >= drum_h - 12.0 and float(cd[3]) > best:
+			best = float(cd[3])
+			roof = cd[0]
+			roof_h = float(cd[1])
+	if roof.size() < 3:
+		return {}
+	var c := Vector2.ZERO
+	for q in drum:
+		c += q
+	c /= float(drum.size())
+	var r := 0.0  # the outermost point: the dressing goes round the drum, never into it
+	for q in drum:
+		r = maxf(r, q.distance_to(c))
+	var deck := PackedVector2Array()
+	var shrunk := Geometry2D.offset_polygon(roof, -0.35, Geometry2D.JOIN_MITER)
+	var fwd := L26_ROUND_END.normalized()
+	var across := Vector2(-fwd.y, fwd.x)
+	var cut := c - fwd * (r * L26_BACK)
+	var half := PackedVector2Array([cut - across * 80.0, cut + across * 80.0, cut + across * 80.0 + fwd * 80.0,
+			cut - across * 80.0 + fwd * 80.0])
+	for s: PackedVector2Array in shrunk:
+		for piece: PackedVector2Array in Geometry2D.intersect_polygons(s, _l26_circle(c, r + L26_REACH, 48)):
+			for part: PackedVector2Array in Geometry2D.intersect_polygons(piece, half):
+				if absf(_l26_area(part)) > absf(_l26_area(deck)):
+					deck = part
+	if absf(_l26_area(deck)) < 150.0:
+		return {}
+	# The railing's edges: not along the drum, not along the walls.
+	var rail: Array = []
 	for i in deck.size():
-		var e := deck[(i + 1) % deck.size()] - deck[i]
-		if e.length() > longest:
-			longest = e.length()
-			d = e.normalized()
-	var n := Vector2(-d.y, d.x)
-	var c0 := _centre(deck)
-	var u0 := INF
-	var u1 := -INF
-	var v0 := INF
-	var v1 := -INF
-	for q in deck:
-		var r := q - c0
-		u0 = minf(u0, r.dot(d))
-		u1 = maxf(u1, r.dot(d))
-		v0 = minf(v0, r.dot(n))
-		v1 = maxf(v1, r.dot(n))
-	var inner := _largest(Geometry2D.offset_polygon(deck, -0.5, Geometry2D.JOIN_MITER))
-	if inner.size() < 3:
-		inner = deck
-	# A rectangle `hu` long along `axis` and `hv` across, centred on a point.
-	var orect := func(c: Vector2, axis: Vector2, hu: float, hv: float) -> PackedVector2Array:
-		var m := Vector2(-axis.y, axis.x)
-		return PackedVector2Array([c - axis * hu - m * hv, c + axis * hu - m * hv, c + axis * hu + m * hv, c - axis * hu + m * hv])
-	var fits := func(r: PackedVector2Array) -> bool:
-		for q in r:
-			if not Geometry2D.is_point_in_polygon(q, inner):
+		var a := deck[i]
+		var b := deck[(i + 1) % deck.size()]
+		var mid := (a + b) * 0.5
+		if mid.distance_to(c) < r + 1.0:
+			continue
+		var e := (b - a).normalized()
+		var n := Vector2(-e.y, e.x)
+		if Geometry2D.is_point_in_polygon(mid + n * 0.2, deck):
+			n = -n
+		var walled := false
+		for w: PackedVector2Array in walls:
+			if Geometry2D.is_point_in_polygon(mid + n * 0.8, w):
+				walled = true
+		if not walled:
+			rail.append([a, b, n])
+	# `outline` is the roof part's: the map stands every part on the lowest ground under itself
+	# (map_builder), so the deck's height is its, not the tower outline's.
+	return {"outline": roof, "tower": outline, "drum": drum, "centre": c, "r": r, "roof_h": roof_h, "drum_h": drum_h,
+			"deck": deck, "rail": rail,
+			"deck_h": roof_h + L26_DECK_T, "layout": level26_layout(c, r, deck, rail)}
+
+
+## Where things stand on the deck (shared by the model and the crowd): the DJ in the deepest part
+## (the round end) facing the drum, the dancers between the DJ and the drum facing the DJ, the bar
+## along the drum on the far side, lounge groups (a cube table, three deck chairs facing it) round
+## the rest, the birches and the string posts along the railing. Seats and dancers are [spot,
+## facing].
+static func level26_layout(c: Vector2, r: float, deck: PackedVector2Array, rail: Array) -> Dictionary:
+	var clear := func(p: Vector2, rad: float) -> bool:
+		if not Geometry2D.is_point_in_polygon(p, deck):
+			return false
+		for i in deck.size():
+			var q := Geometry2D.get_closest_point_to_segment(p, deck[i], deck[(i + 1) % deck.size()])
+			if q.distance_to(p) < rad:
 				return false
 		return true
-	# The floor, then the glass balustrade round it.
-	_mode = M_STONE
-	_prism(deck, y, y + 0.12, Color("#4a3a30"), Color("#5a4636"), M_STONE, M_STONE)
-	# A hidden shaft down inside the tower's walls, so the deck is one piece with the ground
-	# (check_mesh_quality's float test: nothing hangs in the air).
-	_prism(_square(c0, 0.15), g - 0.5, y + 0.06, Color("#4a3a30"), none, M_STONE, M_STONE)
-	_parapet(deck, y + 0.12, 1.1, Color("#b9d3e3"))
-	y += 0.12
-	# Where things stand: fractions of the deck's extent, nudged across until they fit.
-	var spot := func(uf: float, vf: float, hu: float, hv: float, axis: Vector2) -> Vector2:
-		for k in [0.0, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0, 4.0, -4.0]:
-			var p: Vector2 = c0 + d * lerpf(u0, u1, uf) + n * (lerpf(v0, v1, vf) + k)
-			if fits.call(orect.call(p, axis, hu, hv)):
-				return p
-		return Vector2(INF, INF)
-	# The bar at the low end, its front toward the deck (+d).
-	var bar: Vector2 = spot.call(0.14, 0.5, 0.9, 3.4, n)
-	if bar.x < INF:
-		_prism(orect.call(bar, n, 3.3, 0.55), y, y + 1.1, dark, Color("#3a3446"), M_STONE, M_STONE)
-		_prism(orect.call(bar + d * 0.57, n, 3.1, 0.03), y + 0.25, y + 0.85, violet, violet, M_LAMP, M_LAMP)
-		_prism(orect.call(bar - d * 1.4, n, 3.3, 0.15), y, y + 2.3, dark, dark.lightened(0.1), M_STONE, M_STONE)
-		for k in 3:
-			_prism(orect.call(bar - d * 1.24, n, 3.0, 0.03), y + 1.0 + 0.5 * k, y + 1.08 + 0.5 * k,
-					[pink, cyan, violet][k], [pink, cyan, violet][k], M_LAMP, M_LAMP)
-		for k in 6:
-			_prism(_square(bar + d * 1.25 + n * (-2.5 + k), 0.22), y, y + 0.78, Color("#2b2733"), pink if k % 2 == 0 else cyan,
-					M_STONE, M_LAMP)
-	# The DJ booth at the high end, under a truss, facing the deck (-d).
-	var dj: Vector2 = spot.call(0.86, 0.5, 1.4, 2.4, n)
-	if dj.x < INF:
-		_prism(orect.call(dj, n, 1.7, 0.6), y, y + 1.15, dark, Color("#3a3446"), M_STONE, M_STONE)
-		_prism(orect.call(dj - d * 0.61, n, 1.5, 0.03), y + 0.2, y + 1.0, cyan, cyan, M_LAMP, M_LAMP)
-		_prism(orect.call(dj + d * 1.5, n, 2.4, 0.1), y + 0.9, y + 3.9, pink, pink, M_LAMP, M_LAMP)
-		for su: float in [-1.0, 1.0]:
-			_prism(_square(dj + n * (su * 2.7) - d * 0.3, 0.1), y, y + 4.2, Color("#8a8f98"), Color("#8a8f98"), M_STONE, M_STONE)
-			_prism(orect.call(dj + n * (su * 3.9) + d * 0.3, d, 0.45, 0.45), y, y + 2.0, Color("#15141a"), Color("#26242d"), M_STONE, M_STONE)
-		_prism(orect.call(dj - d * 0.3, n, 2.8, 0.1), y + 4.0, y + 4.25, Color("#8a8f98"), Color("#8a8f98"), M_STONE, M_STONE)
-		for k in 5:
-			_prism(_square(dj - d * 0.45 + n * (-2.2 + 1.1 * k), 0.18), y + 3.6, y + 4.0, [pink, cyan, violet, warm, pink][k],
-					[pink, cyan, violet, warm, pink][k], M_LAMP, M_LAMP)
-	# Lounge sofas and tables between, in two rows.
-	var seat := [[0.36, 0.22], [0.36, 0.78], [0.62, 0.22], [0.62, 0.78]]
-	for s in seat:
-		var p: Vector2 = spot.call(float(s[0]), float(s[1]), 1.2, 1.0, d)
-		if p.x >= INF:
-			continue
-		var face := (c0 - p).dot(n)
-		var f := n * (1.0 if face > 0.0 else -1.0)
-		_prism(orect.call(p, d, 1.1, 0.45), y, y + 0.5, Color("#3a2a55"), Color("#5a3d88"), M_STONE, M_STONE)
-		_prism(orect.call(p - f * 0.5, d, 1.1, 0.12), y + 0.5, y + 0.95, Color("#3a2a55"), Color("#4a3470"), M_STONE, M_STONE)
-		var t := p + f * 1.5
-		_prism(_square(t, 0.4), y, y + 0.4, dark, Color("#3a3446"), M_STONE, M_STONE)
-		_prism(_square(t, 0.1), y + 0.4, y + 0.55, warm, warm, M_LAMP, M_LAMP)
-	# Planters along both long sides.
-	for uf: float in [0.25, 0.5, 0.75]:
-		for vf: float in [0.04, 0.96]:
-			var p: Vector2 = spot.call(uf, vf, 0.8, 0.3, d)
-			if p.x < INF:
-				_prism(orect.call(p, d, 0.8, 0.3), y, y + 0.6, Color("#5a4a3a"), Color("#2f6b3a"), M_STONE, M_STONE)
-				_prism(orect.call(p, d, 0.65, 0.22), y + 0.6, y + 1.5, Color("#2f6b3a"), Color("#3e8a4a"), M_STONE, M_STONE)
-	# Festoon lamps: posts about every 9 m on the inner ring, a warm bulb on each and two between.
-	var ring_len := 0.0
-	for i in inner.size():
-		ring_len += inner[i].distance_to(inner[(i + 1) % inner.size()])
-	var posts: Array[Vector2] = []
-	var step := maxf(ring_len / maxf(roundf(ring_len / 9.0), 4.0), 4.0)
+	# How far out the deck goes in each direction (36 rays), from the drum's wall.
+	var reach: Array[float] = []
+	for k in 36:
+		var d := Vector2.from_angle(TAU * float(k) / 36.0)
+		var out := 0.0
+		var seen := false
+		for s in 64:
+			var p := c + d * (r + 0.3 + 0.25 * float(s))
+			if Geometry2D.is_point_in_polygon(p, deck):
+				seen = true
+				out = 0.3 + 0.25 * float(s)
+			elif seen:
+				break
+		reach.append(out)
+	var deep := posmod(int(roundf(L26_ROUND_END.angle() / TAU * 36.0)), 36)
+	var dj_dir := Vector2.from_angle(TAU * float(deep) / 36.0)
+	var dj := c + dj_dir * (r + maxf(reach[deep] - 2.4, 3.0))
+	var dj_face := -dj_dir
+	var side := Vector2(-dj_face.y, dj_face.x)
+	var dancers: Array = []
+	for row in 4:
+		for col in 7:
+			var p := dj + dj_face * (2.3 + 0.95 * float(row)) + side * (float(col) - 3.0) * 0.9 \
+					+ side * (0.3 if row % 2 == 1 else 0.0)
+			if p.distance_to(c) > r + 0.9 and clear.call(p, 0.45):
+				dancers.append([p, (dj - p).normalized()])
+	# The bar: on the side away from the DJ where the deck is at least 5 m deep.
+	var bar_k := -1
+	var far := -1.0
+	for k in 36:
+		var off := absf(angle_difference(TAU * float(k) / 36.0, TAU * float(deep) / 36.0))
+		if reach[k] >= 5.0 and reach[(k + 1) % 36] >= 4.0 and reach[(k + 35) % 36] >= 4.0 and off > far:
+			far = off
+			bar_k = k
+	var bar_t := TAU * float(bar_k) / 36.0 if bar_k >= 0 else TAU * float(deep) / 36.0 + PI
+	var drinkers: Array = []
+	for j in 7:
+		var t := bar_t + (float(j) - 3.0) * 0.07
+		var p := c + Vector2.from_angle(t) * (r + 2.9 + 0.35 * float(j % 2))
+		if clear.call(p, 0.4):
+			drinkers.append([p, (c - p).normalized()])
+	# The lounge: groups on a 3.4 m grid turned to the round end, wherever one fits clear of the
+	# edges, the drum, the dance floor and the bar (the day photo's deck chairs fill the deck).
+	var groups: Array = []
+	var seats: Array = []
+	var bar_at := c + Vector2.from_angle(bar_t) * (r + 1.6)
+	var gu := -dj_face
+	var gv := Vector2(-gu.y, gu.x)
+	for iu in range(-9, 10):
+		for iv in range(-9, 10):
+			var p := c + gu * (3.4 * float(iu)) + gv * (3.4 * float(iv) + (1.7 if iu % 2 != 0 else 0.0))
+			if p.distance_to(c) < r + 2.2 or p.distance_to(dj) < 6.5 or p.distance_to(bar_at) < 3.5:
+				continue
+			if not clear.call(p, 1.25):
+				continue
+			var crowded := false
+			for st: Array in dancers:
+				if (st[0] as Vector2).distance_to(p) < 1.8:
+					crowded = true
+			if crowded:
+				continue
+			var t := (p - c).angle()
+			groups.append([p, t])
+			for k in 3:
+				var a := t + PI + (float(k) - 1.0) * 1.15
+				var q := p + Vector2.from_angle(a) * 1.0
+				seats.append([q, (p - q).normalized()])
+	# Along the railing: the string posts every 8 m, a birch half way between.
+	var posts: Array = []
+	var birches: Array = []
 	var walked := 0.0
-	var next := 0.0
-	for i in inner.size():
-		var a := inner[i]
-		var b := inner[(i + 1) % inner.size()]
+	var next := 2.0
+	for e: Array in rail:
+		var a: Vector2 = e[0]
+		var b: Vector2 = e[1]
+		var n: Vector2 = e[2]
 		var el := a.distance_to(b)
-		while next <= walked + el and posts.size() < 16:
-			posts.append(a.lerp(b, (next - walked) / maxf(el, 0.001)))
-			next += step
+		while next <= walked + el:
+			var p := a.lerp(b, (next - walked) / maxf(el, 0.001)) - n * 0.35
+			if posts.size() % 2 == 0:
+				posts.append(p)
+			else:
+				var bp: Vector2 = p - n * 0.6
+				if bp.distance_to(dj) > 4.5 and clear.call(bp, 0.4):
+					birches.append(bp)
+				posts.append(p)
+			next += 4.0
 		walked += el
+	var keep: Array = []
 	for k in posts.size():
-		var p: Vector2 = posts[k]
-		_prism(_square(p, 0.06), y, y + 2.9, Color("#4a4a52"), Color("#4a4a52"), M_STONE, M_STONE)
-		_prism(_square(p, 0.15), y + 2.9, y + 3.2, warm, warm, M_LAMP, M_LAMP)
-		_prism(_square(p, 0.1), y + 2.3, y + 2.5, warm, warm, M_LAMP, M_LAMP)
-	# The name, in violet, standing on the crown's south and east edges.
-	_crown_signs(crown, y + 2.6, "LEVEL 26", VIOLET_SIGN, 0.0, 0.5)
+		if k % 2 == 0:
+			keep.append(posts[k])
+	return {"dj": dj, "dj_face": dj_face, "dancers": dancers + drinkers, "bar_t": bar_t, "groups": groups,
+			"seats": seats, "posts": keep, "birches": birches}
+
+
+## The building parts a club's plan reads: the whole map's, the streamed index's `site_parts`,
+## or in the prebuilt game the few `plan_parts` tools/bake_city.gd keeps (`plan_parts`).
+static func plan_parts_of(data: Dictionary) -> Array:
+	for key: String in ["buildings", "site_parts", "plan_parts"]:
+		var list: Array = data.get(key, [])
+		if not list.is_empty():
+			return list
+	return []
+
+
+## The parts standing in the rooftop clubs' towers (Level 26's Atlas Tower, THE WJU's Spektrum
+## Tower), for the prebuilt index (tools/bake_city.gd drops `site_parts`).
+static func plan_parts(data: Dictionary) -> Array:
+	var boxes: Array[Rect2] = []
+	for l: Dictionary in data.get("landmarks", []):
+		if str(l.get("name", "")) in [L26_TOWER, "Spektrum Tower"]:
+			var q := _l26_pts(l["p"])
+			var box := Rect2(q[0], Vector2.ZERO)
+			for p in q:
+				box = box.expand(p)
+			boxes.append(box.grow(2.0))
+	var out: Array = []
+	for bld: Dictionary in data.get("site_parts", data.get("buildings", [])):
+		var flat: Array = bld["p"]
+		if flat.size() < 6:
+			continue
+		var at := Vector2(float(flat[0]), float(flat[1]))
+		for box in boxes:
+			if box.has_point(at):
+				out.append(bld)
+				break
+	return out
+
+
+static func _l26_pts(flat: Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in range(0, flat.size() - 1, 2):
+		out.append(Vector2(float(flat[i]), float(flat[i + 1])))
+	return out
+
+
+static func _l26_area(q: PackedVector2Array) -> float:
+	var a := 0.0
+	for i in q.size():
+		a += q[i].cross(q[(i + 1) % q.size()])
+	return a * 0.5
+
+
+static func _l26_circle(c: Vector2, r: float, n: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for k in n:
+		out.append(c + Vector2.from_angle(TAU * float(k) / float(n)) * r)
+	return out
+
+
+func _build_level26_club(_site: Dictionary) -> void:
+	var plan := level26_plan(data)
+	if plan.is_empty():
+		return
+	var g := _ground_under(plan["outline"])
+	var gd := _ground_under(plan["drum"])
+	var c: Vector2 = plan["centre"]
+	var r: float = plan["r"]
+	var deck: PackedVector2Array = plan["deck"]
+	var y0 := g + float(plan["roof_h"])
+	var y := g + float(plan["deck_h"])
+	var top := gd + float(plan["drum_h"])
+	var lay: Dictionary = plan["layout"]
+	var keep_roof := _no_roof
+	var keep := _mode
+	_no_roof = true
+	_mode = M_STONE
+	# The deck: timber tiles on the mapped roof.
+	_prism(deck, y0, y, L26_DECK, L26_DECK_TOP, M_STONE, M_STONE)
+	# The drum: dark glass, the light band, the white fascia; the mast on its roof.
+	var n := 36
+	var ring := _circle(c, r + 0.12, n)
+	var fas := _circle(c, r + 0.3, n)
+	for k in n:
+		var a := ring[k]
+		var b := ring[(k + 1) % n]
+		var out := ((a + b) * 0.5 - c).normalized()
+		_mode = M_GLASS
+		_wall(a, b, y, top - 1.3, out, L26_DRUM_GLASS, float(k) * a.distance_to(b))
+		_mode = M_LAMP
+		_wall(a, b, top - 1.3, top - 0.8, out, L26_RED)
+	_prism(fas, top - 0.8, top + 1.0, L26_WHITE, Color(0, 0, 0, 0), M_STONE, M_STONE)
+	var fas_in := _circle(c, r - 0.15, n)
+	for k in n:
+		var a := fas_in[k]
+		var b := fas_in[(k + 1) % n]
+		_wall(b, a, top - 0.1, top + 1.0, (c - (a + b) * 0.5).normalized(), Color("#3d4247"))
+	_cap_holes(fas, [fas_in], top + 1.0, Color("#3d4247"))  # a dark coping: a pale top blazed at night
+	_mode = M_STONE
+	var mast := c + (c - (lay["dj"] as Vector2)).normalized() * (r * 0.35)
+	for s in 8:
+		var col := Color("#d8382c") if s % 2 == 0 else Color("#f2f2ef")
+		_beam(Vector3(mast.x, top + 1.3 * s, mast.y), Vector3(mast.x, top + 1.3 * (s + 1), mast.y), 0.32 - 0.02 * s, col)
+	_prism(_square(mast, 0.12), top + 10.4, top + 10.65, Color("#ff3020"), Color("#ff3020"), M_LAMP, M_LAMP)
+	# The glass railing on the outer edges: posts every 2 m, glass both sides, a steel top rail,
+	# the orange strip at its foot.
+	for e: Array in plan["rail"]:
+		var a: Vector2 = e[0]
+		var b: Vector2 = e[1]
+		var o: Vector2 = e[2]
+		var el := a.distance_to(b)
+		if el < 0.05:
+			continue
+		var pa := a - o * 0.15
+		var pb := b - o * 0.15
+		_wall(pa, pb, y, y + 1.25, o, L26_GLASS)
+		_wall(pb, pa, y, y + 1.25, -o, L26_GLASS.darkened(0.12))
+		_mode = M_LAMP
+		_wall(pa - o * 0.03, pb - o * 0.03, y, y + 0.14, -o, L26_GLOW)
+		_wall(pa + o * 0.03, pb + o * 0.03, y, y + 0.14, o, L26_GLOW)
+		_mode = M_STONE
+		_beam(Vector3(pa.x, y + 1.28, pa.y), Vector3(pb.x, y + 1.28, pb.y), 0.07, L26_STEEL)
+		var steps := maxi(int(el / 2.0), 1)
+		for s in steps + 1:
+			if s == steps and el < 0.6:
+				break
+			var p := pa.lerp(pb, float(s) / float(steps))
+			_prism(_square(p, 0.045), y, y + 1.28, L26_STEEL, Color(0, 0, 0, 0), M_STONE)
+	# The bar along the drum: a dark counter in an arc with a lit front, the lit shelves behind.
+	var bar_t: float = lay["bar_t"]
+	for j in 6:
+		var t0 := bar_t + (float(j) - 3.0) * 0.075
+		var t1 := t0 + 0.075
+		var a := c + Vector2.from_angle(t0) * (r + 1.9)
+		var b := c + Vector2.from_angle(t1) * (r + 1.9)
+		var i0 := c + Vector2.from_angle(t0) * (r + 1.3)
+		var i1 := c + Vector2.from_angle(t1) * (r + 1.3)
+		_prism(PackedVector2Array([i0, a, b, i1]), y, y + 1.1, Color("#3a2b22"), Color("#e8e2d6"), M_STONE, M_STONE)
+		var o := ((a + b) * 0.5 - c).normalized()
+		_mode = M_LAMP
+		_wall(a + o * 0.02, b + o * 0.02, y + 0.15, y + 0.3, o, L26_GLOW)
+		var s0 := c + Vector2.from_angle(t0) * (r + 0.2)
+		var s1 := c + Vector2.from_angle(t1) * (r + 0.2)
+		_wall(s0, s1, y + 1.0, y + 2.3, o, Color("#ffb35c"))
+		_mode = M_STONE
+	# The DJ's stage in the round end: a low platform, the desk with its lit front, speakers on
+	# stands, the aluminium truss over it with coloured heads.
+	_o = lay["dj"]
+	_a = lay["dj_face"]
+	_b = Vector2(-_a.y, _a.x)
+	_lbox(-0.3, 0.0, 1.5, 2.6, y, y + 0.3, Color("#232326"), M_STONE, Color("#2c2c30"))
+	_lbox(0.4, 0.0, 0.35, 1.0, y + 0.3, y + 1.3, Color("#18181b"), M_STONE, Color("#2a2a2e"))
+	_lbox(0.76, 0.0, 0.02, 0.9, y + 0.45, y + 1.15, L26_GLOW, M_LAMP)
+	for v: float in [-2.3, 2.3]:
+		_lbox(-1.4, v, 0.17, 0.17, y + 0.3, y + 4.2, L26_STEEL, M_STONE)
+		_lbox(0.6, v, 0.17, 0.17, y + 0.3, y + 4.2, L26_STEEL, M_STONE)
+		_lbox(-0.4, v, 1.17, 0.17, y + 4.2, y + 4.5, L26_STEEL, M_STONE)
+		_lbox(0.9, v * 1.15, 0.3, 0.3, y + 0.3, y + 1.9, Color("#161618"), M_STONE)
+	_lbox(-1.4, 0.0, 0.17, 2.47, y + 4.2, y + 4.5, L26_STEEL, M_STONE)
+	_lbox(0.6, 0.0, 0.17, 2.47, y + 4.2, y + 4.5, L26_STEEL, M_STONE)
+	var heads := [Color("#ff3fb4"), Color("#4fd8ff"), Color("#ffb04a"), Color("#a35cff"), Color("#ff3fb4")]
+	for h in heads.size():
+		_lbox(0.6, -1.8 + 0.9 * float(h), 0.14, 0.14, y + 3.85, y + 4.2, heads[h], M_LAMP)
+	# The lounge: white deck chairs on wooden frames round white cube tables with a candle.
+	for gr: Array in lay["groups"]:
+		var p: Vector2 = gr[0]
+		_prism(_square(p, 0.28), y, y + 0.48, L26_CANVAS, L26_CANVAS, M_STONE, M_STONE)
+		_prism(_square(p, 0.06), y + 0.48, y + 0.6, Color("#ffd27a"), Color("#ffd27a"), M_LAMP, M_LAMP)
+	for st: Array in lay["seats"]:
+		_l26_deckchair(st[0], st[1], y)
+	# Birches in white planters along the railing.
+	var bk := 0
+	for bp: Vector2 in lay["birches"]:
+		_prism(_square(bp, 0.45), y, y + 0.8, Color("#f2f1ec"), Color("#4a3a2c"), M_STONE, M_STONE)
+		var h := 3.3 + 0.35 * float(bk % 3)
+		_beam(Vector3(bp.x, y + 0.75, bp.y), Vector3(bp.x + 0.1, y + h, bp.y + 0.05), 0.12, L26_BIRCH)
+		_frustum(_circle(bp, 0.95, 7), y + 1.5, _circle(bp, 0.45, 7), y + h + 0.3, L26_LEAVES.darkened(0.05 * float(bk % 3)),
+				L26_LEAVES.lightened(0.08))
+		bk += 1
+	# The festoon strings from the drum's fascia to posts at the railing, the lanterns under them.
+	var lk := 0
+	for pp: Vector2 in lay["posts"]:
+		_prism(_square(pp, 0.05), y, y + 3.0, Color("#3a3b3e"), Color(0, 0, 0, 0), M_STONE)
+		var d := (pp - c).normalized()
+		var from := c + d * (r + 0.32)
+		var p0 := Vector3(from.x, top - 0.5, from.y)
+		var p1 := Vector3(pp.x, y + 3.0, pp.y)
+		_pow_festoon(p0, p1, 0.5, 6)
+		for t: float in [0.38, 0.68]:
+			var at := p0.lerp(p1, t) - Vector3.UP * 0.5 * 4.0 * t * (1.0 - t)
+			var drop := 0.5 + 0.35 * float(lk % 3)
+			_beam(at, at - Vector3.UP * drop, 0.02, POW_DARK, false)
+			var lc := Vector2(at.x, at.z)
+			var ly := at.y - drop
+			var rad := 0.28 + 0.06 * float(lk % 2)
+			_prism(_circle(lc, rad, 6), ly - rad * 1.6, ly, L26_LANTERN, L26_LANTERN, M_LAMP, M_LAMP)
+			_prism(_circle(lc, rad * 0.6, 6), ly - rad * 1.6 - 0.12, ly - rad * 1.6, L26_LANTERN, L26_LANTERN, M_LAMP, M_LAMP)
+			lk += 1
+	# The name in copper on the fascia, facing the deck's round end and the other way.
+	var dj_dir := -(lay["dj_face"] as Vector2)
+	for d: Vector2 in [dj_dir, -dj_dir]:
+		var kk := 7.0 / Neon.length_of("LEVEL 26")
+		var sy := top + 0.1 - Neon.ROW_H * Neon.PIXEL * kk * 0.5
+		var at := c + d * (r + 0.36)
+		signs.append(["LEVEL 26", Vector3(at.x, sy, at.y), Vector3(d.x, 0.0, d.y), kk, L26_COPPER])
+	_mode = keep
 	_no_roof = keep_roof
 
 
-# --- Filharmonia Narodowa and Teatr Polski ----------------------------------------------------
+## A deck chair: a white canvas sling between two wooden side rails, the foot on the deck and the
+## back raised, its sitter facing `face`.
+func _l26_deckchair(p: Vector2, face: Vector2, y: float) -> void:
+	var s := Vector2(-face.y, face.x) * 0.27
+	var foot := p + face * 0.5
+	var mid := p
+	var back := p - face * 0.45
+	var v := func(q: Vector2, h: float) -> Vector3:
+		return Vector3(q.x, y + h, q.y)
+	_two_sided(v.call(foot - s, 0.32), v.call(foot + s, 0.32), v.call(mid + s, 0.2), v.call(mid - s, 0.2), L26_CANVAS)
+	_two_sided(v.call(mid - s, 0.2), v.call(mid + s, 0.2), v.call(back + s, 0.82), v.call(back - s, 0.82), L26_CANVAS)
+	for side: float in [-1.0, 1.0]:
+		var q := s * side * 1.12
+		_beam(v.call(foot + face * 0.12 + q, 0.0), v.call(back - face * 0.08 + q, 0.88), 0.05, L26_WOOD)
+		_beam(v.call(back - face * 0.35 + q, 0.0), v.call(mid + q, 0.36), 0.05, L26_WOOD)
+
 
 ## Plac Zbawiciela's colonnades (MDM, 1950s; F's photos 2026-11-13: the curved arcades round the
 ## roundabout with the cafés under them): OpenStreetMap maps each as a 7.6 m "roof" part, which the

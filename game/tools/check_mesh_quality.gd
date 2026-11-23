@@ -42,7 +42,7 @@ const BUDGET := {
 	"szarytki": 300,  # 2026-11-15: the Sisters of Charity's turret (the mass is LoD2's)
 	"gigantami": 4000,
 	"filtry": 3000,
-	"level26_club": 860,
+	"level26_club": 6900,  # 2026-11-22: rebuilt from F's photos: the terrace round the drum, railing, lanterns, deck chairs, birches, DJ truss, bar (measured 5753)
 	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
