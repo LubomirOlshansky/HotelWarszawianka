@@ -374,8 +374,55 @@ func _mast() -> void:
 	for k in ring2.size():
 		var a := ring2[k]
 		_bulb(Vector3(a.x, g + 0.45, a.y), 0.12, Color(0.16, 0.36, 1.0))
+	if OS.get_cmdline_user_args().has("--promo-flyer"):
+		# F's swing video (2026-11-22): no star in that frame (F: "take the star away"), the ride's
+		# SPACE FLYER ticket booth by its foot instead.
+		_space_flyer_booth()
+		return
 	# The big outline star beside it (top.png: left of the tower), cool white.
 	_outline_star(Vector2(Kit.JM_TOWER.x + 9.0, Kit.JM_TOWER.y - 6.0), 2.2, 4.0)
+
+
+## The swing's ticket booth in F's video (--promo-flyer, 2026-11-23): a dark kiosk 2.6 x 2 m, 2.4 m
+## high, right in front of the ride's foot as his phone saw it, a lit window on its front and the
+## SPACE FLYER sign over it in red bulbs, both turned to the swing reel's camera.
+const FLYER_BOOTH := Vector2(-1027.2, 246.7)
+## The booth's front faces the swing reel's eye (--persp at -1000.6, 260.7).
+const FLYER_EYE := Vector2(-1000.64, 260.67)
+
+
+func _space_flyer_booth() -> void:
+	kit._jm_frame()
+	var c := FLYER_BOOTH
+	var g: float = map.terrain_height(c.x, c.y)
+	var f := (FLYER_EYE - c).normalized()      # front, towards the camera
+	var r := Vector2(-f.y, f.x)                # along the front
+	var hw := 1.3
+	var hd := 1.0
+	var top := g + 2.4
+	var dark := Color("#1c1d22")
+	var corner := func(su: float, sv: float, y: float) -> Vector3:
+		var p := c + r * su * hw + f * sv * hd
+		return Vector3(p.x, y, p.y)
+	# The walls and the roof.
+	for side: Array in [[1, -1, 1, 1], [-1, 1, -1, -1], [-1, 1, 1, 1], [1, -1, -1, -1]]:
+		var a: Vector3 = corner.call(float(side[0]), float(side[2]), g)
+		var b: Vector3 = corner.call(float(side[1]), float(side[3]), g)
+		_q(a, b, b + Vector3.UP * 2.4, a + Vector3.UP * 2.4, dark, PLAIN)
+	_q(corner.call(-1.0, -1.0, top), corner.call(1.0, -1.0, top), corner.call(1.0, 1.0, top), corner.call(-1.0, 1.0, top), dark, PLAIN)
+	# The lit ticket window on the front.
+	var w0: Vector3 = corner.call(-0.6, 1.02, g + 1.0)
+	var w1: Vector3 = corner.call(0.6, 1.02, g + 1.0)
+	_q(w0, w1, w1 + Vector3.UP * 0.9, w0 + Vector3.UP * 0.9, Color(1.0, 0.86, 0.62), 10.0)
+	# The sign board on the roof and its letters, two lines, reading left to right from the camera.
+	var s0: Vector3 = corner.call(-1.0, 0.9, top)
+	var s1: Vector3 = corner.call(1.0, 0.9, top)
+	_q(s0, s1, s1 + Vector3.UP * 1.5, s0 + Vector3.UP * 1.5, Color("#101014"), PLAIN)
+	var front := c + f * (hd * 0.9 + 0.08)
+	var yaw := r.angle()
+	var red := Color(1.0, 0.1, 0.2) * 1.6
+	_bulb_word(front, yaw, g, "SPACE", 0.0, 3.2, 0.62, red)
+	_bulb_word(front, yaw, g, "FLYER", 0.0, 2.5, 0.62, red)
 
 
 ## A five-pointed star outline of bulbs, radius r, its centre `up` m over the ground at local (u, v),
