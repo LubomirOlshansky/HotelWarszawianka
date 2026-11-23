@@ -446,6 +446,8 @@ const TOWER_H := 30.0
 ## --pov-swing (main.gd POV_CHAIR): the empty chair the eye rides, and the other chains' softer white.
 const POV_CHAIR := 3
 const POV_METAL := Color(0.55, 0.57, 0.62)
+const POV_JACKETS := [Color("#f2efe8"), Color("#ffd23a"), Color("#ff5a5a"), Color("#7fd0ff"), Color("#c9f06a"), Color("#ffa0c8")]
+const POV_HATS := [Color("#d8262b"), Color("#f4f2ee"), Color("#2a4fd0"), Color("#1d1d22")]
 const CHAIRS := [Color("#f2c230"), Color("#e03a2a"), Color("#5a8cff"), Color("#4cb050")]
 
 
@@ -546,8 +548,14 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 					WIRE if (own or not flyer) else (POV_METAL if pov else LED), M_STONE if (own or not flyer or pov) else M_LAMP)
 		var col: Color = CHAIRS[j % 4]
 		var ang := t + PI * 0.5
+		# POV (F 2026-11-23: "why do their legs hang sideways, not forward"): the real chairs face the way
+		# they fly, along the rim (tang), not out from the mast.
+		var face := d
+		if pov:
+			ang = t
+			face = tang
 		c.pbox(seat.x, seat.y, ang, 0.32, 0.27, sy, sy + 0.12, Color("#2a2d36"))
-		var back := seat - d * 0.25
+		var back := seat - face * 0.25
 		if pov and j == POV_CHAIR:
 			c.pbox(back.x, back.y, ang, 0.32, 0.04, sy, sy + 0.62, Color("#2a2d36"))
 		else:
@@ -559,13 +567,21 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 		if riders and j % 4 != 3:
 			# The POV take sees the riders from 3 m (F: "make the person clearer, so it reads as a swing"):
 			# a size up, and legs hanging over the seat's front in jeans.
-			var rs := 1.3 if pov else 1.0
-			c.rider(seat.x - d.x * 0.05, seat.y - d.y * 0.05, ang, sy + 0.12, j, rs)
+			if pov:
+				# A light winter jacket and a face under a hat, so the rider reads against the night.
+				var rp := seat - face * 0.05
+				var jac: Color = POV_JACKETS[j % POV_JACKETS.size()]
+				c.pbox(rp.x, rp.y, ang, 0.25, 0.16, sy + 0.12, sy + 0.8, jac, jac.lightened(0.1))
+				c.pbox(rp.x, rp.y, ang, 0.13, 0.13, sy + 0.8, sy + 1.06, Color("#e8c4a4"), POV_HATS[j % POV_HATS.size()])
+				c.pbox(rp.x, rp.y, ang, 0.14, 0.14, sy + 1.06, sy + 1.14, POV_HATS[j % POV_HATS.size()])
+			else:
+				c.rider(seat.x - face.x * 0.05, seat.y - face.y * 0.05, ang, sy + 0.12, j)
 			if pov:
 				for sd: float in [-1.0, 1.0]:
-					var lp := seat + d * 0.3 + tang * sd * 0.09
+					var side := Vector2(-face.y, face.x)
+					var lp := seat + face * 0.3 + side * sd * 0.09
 					c.pbox(lp.x, lp.y, ang, 0.06, 0.07, sy - 0.42, sy + 0.12, Color("#7f98bd"))
-					c.pbox(lp.x + d.x * 0.05, lp.y + d.y * 0.05, ang, 0.07, 0.11, sy - 0.5, sy - 0.42, Color("#151518"))
+					c.pbox(lp.x + face.x * 0.05, lp.y + face.y * 0.05, ang, 0.07, 0.11, sy - 0.5, sy - 0.42, Color("#151518"))
 	# Close the rim.
 	c.lbeam(Vector3(rim_prev.x, rim_prev.y, rim_prev.z), Vector3(first.x, first.y, first.z), 0.14, POV_METAL if pov else WHITE, M_STONE if pov else M_LAMP)
 	# The second, smaller LED ring.

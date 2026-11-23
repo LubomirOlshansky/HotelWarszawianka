@@ -1,3 +1,3 @@
 # F 2026-11-23: first-person ride on the tower carousel (a 'yes it would be good' reel; ref instagram.com/reel/Df7_ldBM0xe: a phone in a chair, night, looking out and down past the next chair, the Palace red, the market below). F's notes on the a-c stills: look FORWARD along the swing (riders and chairs ahead), legs in frame, more people spread round the plaza, a bit more glow.
 # --pov-swing=T0,LOOK,PITCH,FOV: T0 0 = chairs up and turning (a full turn in ~6 s), LOOK degrees from along-the-swing to outwards. cam/yaw/... are placeholders (the pov camera replaces them). name	secs	cam	yaw	pitch	size	cam_move	extra
-pov-swing-k-matte	6	-1034.3,251.2	0	-45	100	0,0,0,0,0,8	--pov-swing=0,8,15,80 --promo-flyer --promo-glow=1.5
+pov-swing-l-facing	6	-1034.3,251.2	0	-45	100	0,0,0,0,0,8	--pov-swing=0,8,15,80 --promo-flyer --promo-glow=1.5
