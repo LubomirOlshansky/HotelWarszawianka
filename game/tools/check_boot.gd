@@ -33,9 +33,9 @@ const SFX := "res://scripts/sfx.gd"
 ## Every script loaded before the first frame (22 ms together in a release build, 2026-11-12).
 ## Adding one here is a decision: it and everything it preloads delay the title. ui_kit.gd (2026-11-20,
 ## UI kit step 4): the title's buttons are kit buttons; it preloads nothing, only constants and builders.
-## loading_pkin.gd (2026-11-22, F): the title's loading bar as the Palace lit floor by floor; it
+## loading_syrenka.gd (2026-11-23, F): the title's loading bar as the Syrenka filling with gold; it
 ## preloads nothing, a Control that draws a polygon.
-const BOOT_SCRIPTS: Array[String] = ["boot.gd", "error_trap.gd", "follow_camera.gd", "lang.gd", "loading_pkin.gd",
+const BOOT_SCRIPTS: Array[String] = ["boot.gd", "error_trap.gd", "follow_camera.gd", "lang.gd", "loading_syrenka.gd",
 		"release.gd", "safe_file.gd", "settings.gd", "tiers.gd", "title.gd", "ui_kit.gd"]
 
 var _problems := 0

@@ -86,9 +86,9 @@ var progress := 0.0
 ## The share the next report will reach: the bar creeps towards it between two reports.
 var cap := 0.0
 var _shown := 0.0
-## F 2026-11-20: the loading bar is the Palace of Culture lit floor by floor (loading_pkin.gd).
-const LoadingPkin := preload("res://scripts/loading_pkin.gd")
-var _bar_plate: LoadingPkin
+## F 2026-11-23: the loading bar is the Syrenka filling with gold (loading_syrenka.gd).
+const LoadingSyrenka := preload("res://scripts/loading_syrenka.gd")
+var _bar_plate: LoadingSyrenka
 ## The loading tips (tips.json `tips`), in the order they show; the one up now, and for how long.
 var tips: Array = []
 var _tip: Label
@@ -141,8 +141,8 @@ func _ready() -> void:
 	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(TIPS_FILE))
 	if d is Dictionary:
 		tips = (d as Dictionary).get("tips", [])
-	_bar_plate = LoadingPkin.new()
-	_bar_plate.name = "loading_pkin"
+	_bar_plate = LoadingSyrenka.new()
+	_bar_plate.name = "loading_syrenka"
 	_root.add_child(_bar_plate)
 	_new_btn = _make_button()
 	_yes_btn = _make_button()
@@ -245,7 +245,7 @@ func _layout() -> void:
 	_prompt_pl.position = Vector2(_safe.position.x, bottom - ps * 1.0)
 	_prompt.size = Vector2(_safe.size.x, ps * 1.5)
 	_prompt.position = Vector2(_safe.position.x, bottom - ps * 2.4)
-	# The loading PKiN just over the prompt: 16 % of the height, the Palace's own proportions.
+	# The loading Syrenka just over the prompt: 16 % of the height, her own proportions.
 	var bar_h := maxf(h * 0.16, 48.0)
 	_bar_plate.size = Vector2(bar_h * 0.62, bar_h)
 	_bar_plate.position = Vector2(size.x * 0.5 - _bar_plate.size.x * 0.5, bottom - ps * 2.4 - bar_h - ps * 0.35)
@@ -375,7 +375,7 @@ func _set_tip() -> void:
 	_tip.add_theme_font_size_override("font_size", fs)
 
 
-## The loading PKiN at the share shown now (loading_pkin.gd).
+## The loading Syrenka at the share shown now (loading_syrenka.gd).
 func _set_bar() -> void:
 	_bar_plate.share = clampf(_shown, 0.0, 1.0)
 	_bar_plate.queue_redraw()
