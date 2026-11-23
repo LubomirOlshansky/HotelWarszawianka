@@ -555,7 +555,10 @@ func setup(want_guide: bool) -> void:
 	if police != null and police.has_signal("chase_ended"):
 		police.chase_ended.connect(_on_police_end)
 	if garage != null and garage.has_signal("opened"):
-		garage.opened.connect(func() -> void: _garage_opened = true)
+		# G2: MOJE AUTO opens the same card from the map; only a visit at Mirek's ticks the step.
+		garage.opened.connect(func() -> void:
+			if str(garage.get("mode")) != "mine":
+				_garage_opened = true)
 	if guide:
 		# What an earlier session's intros let go stays let go.
 		if missions != null:

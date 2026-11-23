@@ -66,8 +66,16 @@ func _ready() -> void:
 	add_child(_vp)
 	_build_room()
 	_set_car_meshes()
-	visibility_changed.connect(func() -> void:
-		_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS if is_visible_in_tree() else SubViewport.UPDATE_DISABLED)
+	visibility_changed.connect(_update_mode)
+
+
+## The stage draws only while the card shows it AND the game is paused under it (audit, #1023):
+## a card left visible over a running city would cost a second 3D frame.
+func _update_mode() -> void:
+	var on := is_visible_in_tree() and is_inside_tree() and get_tree().paused
+	var want := SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED
+	if _vp.render_target_update_mode != want:
+		_vp.render_target_update_mode = want
 
 
 ## The workshop, the lot or MOJE AUTO (MODE_WORDS): the stencil on the back wall.
@@ -101,6 +109,7 @@ func yaw() -> float:
 
 
 func _process(dt: float) -> void:
+	_update_mode()
 	if not is_visible_in_tree() or _car_root == null:
 		return
 	if _drag:
