@@ -3323,6 +3323,34 @@
   ],
   "garage": [
     [
+      "PRĘDKOŚĆ",
+      "TOP SPEED",
+      {
+        "only": "bar_top"
+      }
+    ],
+    [
+      "PRZYSPIESZENIE",
+      "PULL",
+      {
+        "only": "bar_pull"
+      }
+    ],
+    [
+      "PRZYCZEPNOŚĆ",
+      "GRIP",
+      {
+        "only": "bar_grip"
+      }
+    ],
+    [
+      "NITRO",
+      "NITRO",
+      {
+        "only": "bar_nitro"
+      }
+    ],
+    [
       "Pod maskę zajrzymy. Kasa na ladę.",
       "We'll look under the bonnet. Cash on the counter.",
       {
