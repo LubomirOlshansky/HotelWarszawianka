@@ -11,14 +11,13 @@ extends Control
 ##     "Kamera za autem · Camera follows the car" On / Off (the old CAM button, now with its
 ##     state in view; Point with the camera off is the Fixed camera scheme);
 ##   Świat · World: Time of day (the old TIME button), Weather (RAIN), Traffic;
-##   Obraz · Picture: Retro and the camera angle (F, 2026-11-07: 30°, 40°, 50°), Quality (loop G1: Auto, the default, then Low, Medium,
-##     High, Ultra, Experimental; Auto's English line names the level it picked here), VHS tape (VHS), Frame
+##   Obraz · Picture: the camera angle (F, 2026-11-07: 30°, 40°, 50°), Quality (loop G1: Auto, the default, then Low, Medium,
+##     High, Ultra, Experimental; Auto's English line names the level it picked here), Frame
 ##     rate, the performance overlay and the TEST bench;
 ##   Dźwięk · Sound: volume, radio, effects (− and + in tenths, or drag along the bar).
 ## Loop MW-1: a fifth tab, ZESZYT · notebook: MOJA WARSZAWA, the city notebook
 ## (notebook_page.gd); the card's title says MOJA WARSZAWA there, with the count found.
-## Loop MW-6: Jazda gets "Tryb gry · Game mode" (Miasto / Spacer: vision.md 4.3) under the camera,
-## and Obraz the FOTKA button beside TEST (closes the card and opens the photo mode: fotka.gd).
+## Loop MW-6: Obraz gets the FOTKA button beside TEST (closes the card and opens the photo mode: fotka.gd).
 ## F's asks (2026-10-30): Jazda gets "Strefy piesze 20 km/h · Pedestrian zones 20 km/h" Off / On
 ## under the mode (settings.gd `zone_cap`, off by default: key "zones").
 ## Settings rows (F 2026-11-14): Świat in three rows gets "Łamliwe płoty · Smashable fences"
@@ -103,8 +102,6 @@ const GRADE := [["Natura", "Natural"], ["Neon", "Neon"], ["Klasyk", "Classic"]]
 const ANGLE := [["30°", "30°"], ["40°", "40°"], ["50°", "50°"]]
 ## Loop 2b: frames per second (settings.gd FPS: 60, 30) and the benchmark button.
 const FPS := [["60 płynnie", "60 smooth"], ["30 bateria", "30 battery"]]
-## Loop MW-6: the game's mode (settings.gd `wander`).
-const MODE := [["Miasto", "City"], ["Spacer", "Wander"]]
 ## G4: the car's handling (settings.gd `handling`, car.gd PROFILES).
 const HANDLING := [["Spokojnie", "Cruise"], ["Sportowo", "Sport"], ["Realnie", "Grounded"]]
 ## Phase 0.2: the city's chattiness (settings.gd `chatter`, chatter.gd GAPS).
@@ -271,11 +268,17 @@ func _build() -> void:
 		drive[0].add_child(l)
 	_level(drive[0], "sensitivity", "Czułość", "Steering", 120.0)
 	# First hour step 6 (the Fable critique's beta settings, F 2026-11-15): our own A/B switches
-	# (handling, the follow camera, the lane assist, the 20 km/h zones, collisions, smashable
+	# (handling, the follow camera, the 20 km/h zones, collisions, smashable
 	# fences, the city's chattiness, the overlay and TEST) live on the DEV page (`_dev_page`,
 	# seven taps on the version under the title), so every tester drives the same car; the
 	# player's own preferences stay on the tabs. Jazda keeps the rescue, the controls and the
 	# steering in its first column; the second shows what DEV holds.
+	# F 2026-11-22: the lane assist is a player setting, not a DEV one (key "lane_assist", settings.gd),
+	# at the top of the second column (the first is full on a 375 pt phone).
+	_heading(drive[1], "Asysta pasa", "Lane assist")
+	_segments(drive[1], "lane_assist", ON_OFF)
+	for b: Button in _groups["lane_assist"]:
+		b.custom_minimum_size.x = touch * 1.05
 	_heading(drive[1], "Ustawienia testów", "Test settings")
 	var dev_note := _text(Lang.pick("Prowadzenie, kamera, zderzenia i łamliwe płoty: na stronie DEV.",
 			"Handling, camera, collisions and smashable fences: on the DEV page."), T_SUB, SUB)
@@ -288,44 +291,38 @@ func _build() -> void:
 	open_dev.name = "open_dev"
 	open_dev.pressed.connect(show_dev)
 	drive[1].add_child(open_dev)
-	# Świat · World: the time of day and the mode; the weather and the traffic.
-	var world := _rows(body, [2, 2])
+	# Świat · World: the time of day and the weather; the traffic. (The Spacer game mode was removed 2026-11-22, F.)
+	var world := _rows(body, [2, 1])
 	_heading(world[0], "Pora dnia", "Time of day")
 	_segments(world[0], "time", TIME)
 	_groups["time"][3].visible = false  # F 2026-11-19: no Live, the game runs its own clock (time_of_day.gd)
-	_heading(world[1], "Tryb gry", "Game mode")
-	_segments(world[1], "wander", MODE)
-	_heading(world[2], "Pogoda", "Weather")
-	_segments(world[2], "weather", WEATHER)
-	_heading(world[3], "Ruch uliczny", "Traffic")
-	_steps(world[3], "traffic", TRAFFIC)
+	_heading(world[1], "Pogoda", "Weather")
+	_segments(world[1], "weather", WEATHER)
+	_heading(world[2], "Ruch uliczny", "Traffic")
+	_steps(world[2], "traffic", TRAFFIC)
 	# Obraz · Picture. Loop G1: in three rows (Quality's five choices made the two columns too
-	# wide for the SE): Style and VHS; Quality; Frame rate and the overlay with TEST.
-	# 2026-11-01 (F): the Style picker is gone (always the sharp image); the old VHS tape is now
-	# the "Retro" vaporwave filter (vhs.gdshader), the one switch left in the first row.
-	# F (2026-11-07): the camera's angle beside Retro (follow_camera.gd PITCHES, key "angle").
-	var picture := _rows(body, [3, 1, 3])
-	_heading(picture[0], "Retro · vaporwave", "Retro filter")
-	_segments(picture[0], "vhs", ON_OFF)
-	_heading(picture[1], "Kąt kamery", "Camera angle")
-	_segments(picture[1], "angle", ANGLE)
+	# wide for the SE): the camera angle and colours; Quality; Frame rate and the overlay with TEST.
+	# 2026-11-01 (F): the Style picker is gone (always the sharp image). 2026-11-22 (F): the Retro
+	# filter switch is gone too (it did not work on phones). Camera angle: follow_camera.gd PITCHES, key "angle".
+	var picture := _rows(body, [2, 1, 3])
+	_heading(picture[0], "Kąt kamery", "Camera angle")
+	_segments(picture[0], "angle", ANGLE)
 	# F (2026-11-15): the colour look (grades.gd SETTING, key "grade"), beside them.
-	_heading(picture[2], "Kolory", "Colours")
-	_segments(picture[2], "grade", GRADE)
-	# Three pickers in one row: narrower buttons (still over 44 pt) keep the card's width.
-	for key: String in ["vhs", "angle"]:
-		for b: Button in _groups[key]:
-			b.custom_minimum_size.x = touch * 1.05
+	_heading(picture[1], "Kolory", "Colours")
+	_segments(picture[1], "grade", GRADE)
+	# Two pickers in one row: narrower buttons (still over 44 pt) keep the card's width.
+	for b: Button in _groups["angle"]:
+		b.custom_minimum_size.x = touch * 1.05
 	for b: Button in _groups["grade"]:
 		b.custom_minimum_size.x = touch * 1.6
-	_heading(picture[3], "Jakość obrazu", "Quality")
+	_heading(picture[2], "Jakość obrazu", "Quality")
 	var quality := QUALITY.duplicate(true)
 	quality[0] = ["Auto · %s" % _auto_name, "Auto · %s" % _auto_name]
-	_segments(picture[3], "quality", quality)
-	_heading(picture[4], "Klatki na sekundę", "Frame rate")
-	_segments(picture[4], "fps", FPS)
-	_heading(picture[5], "Obraz", "Image")
-	_segments(picture[5], "image", IMAGE)
+	_segments(picture[2], "quality", quality)
+	_heading(picture[3], "Klatki na sekundę", "Frame rate")
+	_segments(picture[3], "fps", FPS)
+	_heading(picture[4], "Obraz", "Image")
+	_segments(picture[4], "image", IMAGE)
 	# Loop MW-6: the photo mode (fotka.gd), from the pause card. (The overlay and TEST are on DEV.)
 	var photo := _word_button("FOTKA", "PHOTO")
 	photo.name = "fotka"
@@ -333,7 +330,7 @@ func _build() -> void:
 	photo.pressed.connect(func():
 		close()
 		changed.emit("fotka", 1))
-	picture[6].add_child(photo)
+	picture[5].add_child(photo)
 	# Dźwięk · Sound.
 	var sound := _page(body, 2)
 	for l in LEVELS:
@@ -587,25 +584,23 @@ func show_dev() -> void:
 ## settings.gd keep them as ever; only where they sit changed.
 func _dev_page(body: Control) -> Control:
 	var at := _pages.size()
-	var dev := _rows(body, [3, 3, 4, 1])
+	var dev := _rows(body, [2, 3, 4, 1])
 	_heading(dev[0], "Kamera za autem", "Camera follows the car")
 	_segments(dev[0], "camera", CAMERA)
 	_heading(dev[1], "Prowadzenie", "Handling")
 	_segments(dev[1], "handling", HANDLING)
-	_heading(dev[2], "Asysta pasa", "Lane assist")
-	_segments(dev[2], "lane_assist", ON_OFF)
-	_heading(dev[3], "Strefy 20 km/h", "20 km/h zones")
-	_segments(dev[3], "zones", ON_OFF)
-	_heading(dev[4], "Zderzenia", "Collisions")
-	_segments(dev[4], "collide", COLLIDE)
-	_heading(dev[5], "Łamliwe płoty", "Smashable fences")
-	_segments(dev[5], "soft_fences", ON_OFF)
-	_heading(dev[6], "Gadatliwość miasta", "City chattiness")
-	_segments(dev[6], "chatter", CHATTER)
-	_heading(dev[7], "Licznik wydajności", "Performance overlay")
+	_heading(dev[2], "Strefy 20 km/h", "20 km/h zones")
+	_segments(dev[2], "zones", ON_OFF)
+	_heading(dev[3], "Zderzenia", "Collisions")
+	_segments(dev[3], "collide", COLLIDE)
+	_heading(dev[4], "Łamliwe płoty", "Smashable fences")
+	_segments(dev[4], "soft_fences", ON_OFF)
+	_heading(dev[5], "Gadatliwość miasta", "City chattiness")
+	_segments(dev[5], "chatter", CHATTER)
+	_heading(dev[6], "Licznik wydajności", "Performance overlay")
 	var perf_row := HBoxContainer.new()
 	perf_row.add_theme_constant_override("separation", _px(6))
-	dev[7].add_child(perf_row)
+	dev[6].add_child(perf_row)
 	_segments(perf_row, "perf", ON_OFF)
 	# Loop 2b: a minute on the bench route, then a result card to copy (main.gd).
 	var bench := _word_button("TEST", "BENCH")
@@ -615,15 +610,15 @@ func _dev_page(body: Control) -> Control:
 		changed.emit("bench", 1))
 	perf_row.add_child(bench)
 	# F 2026-11-17: the camera view (follow_camera.gd VIEW_*): the game's, top-down, aerial.
-	_heading(dev[8], "Widok kamery", "Camera view")
-	_segments(dev[8], "camera_view", CAMERA_VIEW)
+	_heading(dev[7], "Widok kamery", "Camera view")
+	_segments(dev[7], "camera_view", CAMERA_VIEW)
 	# F 2026-11-20: Promo Mode (promo_mode.gd): framing tools for the trailer and the Reels.
-	_heading(dev[9], "Tryb promo", "Promo mode")
-	_segments(dev[9], "promo", ON_OFF)
+	_heading(dev[8], "Tryb promo", "Promo mode")
+	_segments(dev[8], "promo", ON_OFF)
 	# Stats thread 2026-11-21: the tester's own phone, so the anonymous stats can leave it out.
-	_heading(dev[10], "Urządzenie testowe (statystyki)", "Test device (stats)")
-	_segments(dev[10], "test_device", ON_OFF)
-	for key: String in ["camera", "lane_assist", "zones", "soft_fences", "perf", "promo", "test_device"]:
+	_heading(dev[9], "Urządzenie testowe (statystyki)", "Test device (stats)")
+	_segments(dev[9], "test_device", ON_OFF)
+	for key: String in ["camera", "zones", "soft_fences", "perf", "promo", "test_device"]:
 		for b: Button in _groups[key]:
 			b.custom_minimum_size.x = touch * 1.05
 	var page := _pages[at]
@@ -688,7 +683,7 @@ func refresh_notebook() -> void:
 
 ## Shows the panel with the current values: {controls (the scheme), follow, traffic, quality
 ## (0 Auto, 1-4 Low..Ultra), auto (the level Auto picked, by name), master, music, effects,
-## perf, fps, style, vhs, weather, time}.
+## perf, fps, style, weather, time}.
 func open(state: Dictionary) -> void:
 	if not _built:
 		_auto_name = str(state.get("auto", _auto_name))

@@ -881,8 +881,6 @@ ACTIVITIES = [
      "A photo mode with 15 spots that want a certain light."),
     ("kaseta", "KASETA, the time tape", "game/scripts/tape.gd", [], "", "kaseta",
      "Play the tape at a place to see and hear what stood there in another year."),
-    ("spacer", "Spacer, wander mode", "game/scripts/spacer.gd", [], "", None,
-     "Nothing comes by itself: just drive and discover."),
     ("heli", "The helicopter", "game/scripts/heli.gd", [], "--heli", "skyline",
      "Swap the car for a helicopter: fly over the city, land on roofs, rescue from above."),
 ]
@@ -1171,7 +1169,7 @@ def page_parodies(site: Site) -> None:
 
 SYSTEM_GROUPS = [
     ("Activities", ["missions", "jobs", "rides", "ride_rules", "trend_job", "rivals", "gps_moments", "wallet", "police", "police/police_unit", "police/guards", "police/guard_unit", "police/police_talk", "police/police_tree", "police/police_balloon"]),
-    ("Moja Warszawa (the city's soul)", ["notebook", "notebook_page", "eggs", "egg_book", "fotka", "spacer", "tape", "crowds", "city_life", "city_sounds", "radio"]),
+    ("Moja Warszawa (the city's soul)", ["notebook", "notebook_page", "eggs", "egg_book", "fotka", "tape", "crowds", "city_life", "city_sounds", "radio"]),
     ("Driving, flying and the camera", ["car", "drive_controls", "follow_camera", "camera_shots", "heli", "skids", "tunnel_xray"]),
     ("The living city", ["traffic", "trams", "pedestrians", "ped_zones", "lane_graph", "landmarks", "neon_signs", "props", "models", "time_of_day", "weather"]),
     ("Screen, sound and settings", ["hud", "settings", "settings_panel", "bubbles", "dialogue", "title", "splash", "sfx", "pixel_font", "screen_points", "beacon"]),
