@@ -567,15 +567,8 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 		if riders and j % 4 != 3:
 			# The POV take sees the riders from 3 m (F: "make the person clearer, so it reads as a swing"):
 			# a size up, and legs hanging over the seat's front in jeans.
-			if pov:
-				# A light winter jacket and a face under a hat, so the rider reads against the night.
-				var rp := seat - face * 0.05
-				var jac: Color = POV_JACKETS[j % POV_JACKETS.size()]
-				c.pbox(rp.x, rp.y, ang, 0.25, 0.16, sy + 0.12, sy + 0.8, jac, jac.lightened(0.1))
-				c.pbox(rp.x, rp.y, ang, 0.13, 0.13, sy + 0.8, sy + 1.06, Color("#e8c4a4"), POV_HATS[j % POV_HATS.size()])
-				c.pbox(rp.x, rp.y, ang, 0.14, 0.14, sy + 1.06, sy + 1.14, POV_HATS[j % POV_HATS.size()])
-			else:
-				c.rider(seat.x - face.x * 0.05, seat.y - face.y * 0.05, ang, sy + 0.12, j)
+			# F (2026-11-23): the riders as in take k, a size up in the POV.
+			c.rider(seat.x - face.x * 0.05, seat.y - face.y * 0.05, ang, sy + 0.12, j, 1.3 if pov else 1.0)
 			if pov:
 				for sd: float in [-1.0, 1.0]:
 					var side := Vector2(-face.y, face.x)
