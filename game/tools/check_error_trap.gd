@@ -251,12 +251,12 @@ func _button() -> void:
 	await process_frame
 	panel.changed.connect(func(key: String, value: Variant): _asked.append([key, value]))
 	panel.open({"controls": 0, "master": 1.0, "music": 1.0, "effects": 1.0})
-	panel.set_page("sound")
+	panel.set_page("general")
 	await process_frame
 	await process_frame
 	var report := panel.find_child("report", true, false) as Button
 	var credits := panel.find_child("credits", true, false) as Button
-	_expect(report != null and report.is_visible_in_tree(), "the sound page has the RAPORT button")
+	_expect(report != null and report.is_visible_in_tree(), "the general page has the RAPORT button")
 	if report != null and credits != null:
 		var card: Rect2 = panel.card_rect()
 		_expect(card.encloses(report.get_global_rect()) and card.encloses(credits.get_global_rect()),
@@ -275,7 +275,7 @@ func _button() -> void:
 	root.add_child(plain)
 	await process_frame
 	plain.open({"controls": 0, "master": 1.0, "music": 1.0, "effects": 1.0})
-	plain.set_tab(3)
+	plain.set_page("general")
 	await process_frame
 	await process_frame
 	var only := plain.find_child("credits", true, false) as Button

@@ -23,7 +23,7 @@ const Hud := preload("res://scripts/hud.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const SettingsPanel := preload("res://scripts/settings_panel.gd")
 ## The A/B switches that live on the DEV page only (the Fable critique's list).
-const DEV_KEYS := ["camera", "handling", "zones", "collide", "soft_fences", "chatter", "perf", "camera_view"]
+const DEV_KEYS := ["camera", "handling", "zones", "collide", "soft_fences", "chatter", "perf", "camera_view", "time", "fps", "image"]
 const SCREENS := [Vector2i(2532, 1170), Vector2i(1334, 750), Vector2i(1280, 720), Vector2i(2868, 1320)]
 
 var _problems := 0
@@ -362,10 +362,11 @@ func _dev() -> void:
 	for key: String in DEV_KEYS:
 		var b: Button = panel._groups[key][0]
 		_expect(dev_page.is_ancestor_of(b), "DEV: %s is on the DEV page" % key)
-		for t in SettingsPanel.TABS.size():
-			_expect(not panel._pages[t].is_ancestor_of(b), "DEV: %s is not on tab %d" % [key, t])
+		for t: Array in SettingsPanel.TABS:
+			if t[1] != "dev":
+				_expect(not panel._pages[SettingsPanel.page_of(t[1])].is_ancestor_of(b), "DEV: %s is not on tab %s" % [key, t[1]])
 	_expect(dev_page.is_ancestor_of(dev_page.find_child("bench", true, false)), "DEV: TEST is on the DEV page")
-	panel.set_page("driving")
+	panel.set_page("game")
 	_expect(panel.dev_tap() and panel._tab == SettingsPanel.DEV_PAGE, "DEV: one tap opens it again in the same run")
 	vp.queue_free()
 	await process_frame
