@@ -7132,6 +7132,42 @@ const _JmPromo := preload("res://scripts/jarmark_promo.gd")
 const POV_CHAIR := 3
 var _pov_rides: MeshInstance3D = null
 var _pov_t := 0.0
+var _pov_legs: Node3D = null
+
+
+## The POV rider's legs (eye at the origin, looking -z): jeans thighs to the seat's edge, shins
+## hanging, light trainers. Lit as the city (night: the market's lights pick them out).
+func _make_pov_legs() -> Node3D:
+	var root := Node3D.new()
+	root.name = "PovLegs"
+	var jeans := StandardMaterial3D.new()
+	jeans.albedo_color = Color("#2b3a5c")
+	jeans.roughness = 0.9
+	var shoe := StandardMaterial3D.new()
+	shoe.albedo_color = Color("#e8e4dc")
+	shoe.roughness = 0.7
+	for sx: float in [-0.12, 0.12]:
+		# Leaning back in the chair, legs out over the footrest: in view from a 12-16 degree look down.
+		var hip := Vector3(sx, -0.82, -0.12)
+		var knee := Vector3(sx * 1.1, -0.76, -0.6)
+		var ankle := Vector3(sx * 1.2, -0.98, -1.0)
+		root.add_child(_pov_limb(hip, knee, 0.16, jeans))
+		root.add_child(_pov_limb(knee, ankle, 0.13, jeans))
+		root.add_child(_pov_limb(ankle + Vector3(0, 0.02, 0.04), ankle + Vector3(0, 0.06, -0.22), 0.12, shoe))
+	return root
+
+
+## A box `w` thick from `a` to `b` (local), for the POV legs.
+func _pov_limb(a: Vector3, b: Vector3, w: float, mat: Material) -> MeshInstance3D:
+	var m := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(w, w, a.distance_to(b))
+	box.material = mat
+	m.mesh = box
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var mid := (a + b) * 0.5
+	m.transform = Transform3D(Basis.looking_at(b - a, Vector3.UP), mid)
+	return m
 
 
 ## --pov-swing (promo only): the eye in an empty chair of the Jarmark tower carousel. The chair's place
@@ -7165,16 +7201,25 @@ func _update_pov_swing() -> void:
 	var ahead := Vector2(-s * r.x - c * r.y, c * r.x - s * r.y).normalized()
 	var seat_y := g + _JmKit.TOWER_TOP - 6.3 + 0.12 - (1.0 - up) * _JmKit.TOWER_DROP
 	var eye2 := axis + rr + outw * 0.05
-	var eye := Vector3(eye2.x, seat_y + 0.85, eye2.y)
+	var eye := Vector3(eye2.x, seat_y + 0.95, eye2.y)
 	var la := deg_to_rad(pv[1])
 	var look2 := (ahead * cos(la) + outw * sin(la)).normalized()
 	var pitch := deg_to_rad(pv[2])
 	var dir := Vector3(look2.x * cos(pitch), -sin(pitch), look2.y * cos(pitch))
+	# The chair hangs out on its chains: the rider's "up" leans in towards the hub (F 2026-11-23 ref reel: a tilted horizon).
+	var lean := deg_to_rad(14.0)
+	var up_t := Vector3(-outw.x * sin(lean), cos(lean), -outw.y * sin(lean))
 	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
 	cam.fov = pv[3]
-	cam.near = 0.1
+	cam.near = 0.08
 	cam.far = 4000.0
-	cam.global_transform = Transform3D(Basis.looking_at(dir, Vector3.UP), eye)
+	cam.global_transform = Transform3D(Basis.looking_at(dir, up_t), eye)
+	# The rider's own legs over the seat's front (F: "the legs, draw them in"), facing along the swing.
+	if _pov_legs == null:
+		_pov_legs = _make_pov_legs()
+		cam.get_parent().add_child(_pov_legs)
+	var flat := Vector3(ahead.x, 0.0, ahead.y)
+	_pov_legs.global_transform = Transform3D(Basis.looking_at(flat, up_t), eye)
 	cam_focus = eye + dir * 40.0
 	_view_size = 300.0
 

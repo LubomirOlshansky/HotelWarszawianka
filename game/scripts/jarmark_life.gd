@@ -94,10 +94,19 @@ const PROMO_WANDER := 80
 const WANDER_RINGS := [[197.0, 9.5, 12.0, 15.5], [134.8, 124.4, 10.0, 13.5], [137.7, 63.2, 9.0, 11.5]]
 
 
+## The swing POV take (--pov-swing, F 2026-11-23: "more people nearby, spread out, families, bustle"):
+## this many more groups walking chords round the tower's plaza, seen from its chairs.
+const POV_EXTRA := 70
+const POV_RING := [137.7, 63.2, 11.5, 22.0]
+
+
 static func _add_wanderers(rng: RandomNumberGenerator) -> void:
-	for i in PROMO_WANDER:
+	var pov := false
+	for a: String in OS.get_cmdline_user_args():
+		pov = pov or a.begins_with("--pov-swing")
+	for i in PROMO_WANDER + (POV_EXTRA if pov else 0):
 		var path: Array
-		if i % 5 < 3:
+		if i % 5 < 3 and i < PROMO_WANDER:
 			# Across an aisle on a slant: from one edge to the other over 5-14 m of its length.
 			var ai: Array = AISLES[rng.randi() % AISLES.size()]
 			var p0 := Vector2(float(ai[0]), float(ai[1]))
@@ -114,7 +123,7 @@ static func _add_wanderers(rng: RandomNumberGenerator) -> void:
 			path = [a0.x, a0.y, a1.x, a1.y, 0.0]
 		else:
 			# A chord round a ride or the tree: 25-45 degrees of a ring.
-			var ring: Array = WANDER_RINGS[rng.randi() % WANDER_RINGS.size()]
+			var ring: Array = WANDER_RINGS[rng.randi() % WANDER_RINGS.size()] if i < PROMO_WANDER else POV_RING
 			var r := rng.randf_range(float(ring[2]), float(ring[3]))
 			var t0 := rng.randf() * TAU
 			var t1 := t0 + deg_to_rad(rng.randf_range(25.0, 45.0)) * (1.0 if rng.randf() < 0.5 else -1.0)
@@ -124,6 +133,8 @@ static func _add_wanderers(rng: RandomNumberGenerator) -> void:
 			path = [a0.x, a0.y, a1.x, a1.y, 0.0]
 		var r2 := rng.randf()
 		var kind := "single" if r2 < 0.4 else ("couple" if r2 < 0.85 else "family")
+		if i >= PROMO_WANDER:
+			kind = "single" if r2 < 0.25 else ("couple" if r2 < 0.6 else "family")
 		_promo.append([kind, 0, rng.randf(), rng.randf_range(0.5, 0.9), 0.0,
 				Crowds.WINTER_COATS[rng.randi() % Crowds.WINTER_COATS.size()],
 				Crowds.WINTER_COATS[rng.randi() % Crowds.WINTER_COATS.size()], path])
