@@ -923,7 +923,8 @@ func _pick_address(e: int, s: float, from: Vector2, lo: float, hi: float, rng: R
 	var list: Array[Dictionary] = []
 	for a in _addresses:
 		var d: float = (a["door"] as Vector2).distance_to(from)
-		if d >= lo * 0.55 and d <= hi and test.call(a):
+		# 2026-11-22: never a door at the map's edge (lane_graph.gd `in_play`, TARGET_PAD m in).
+		if d >= lo * 0.55 and d <= hi and graph.in_play(a["door"]) and test.call(a):
 			list.append(a)
 	# Shuffle with the order's own random numbers.
 	if aim <= 0.0:

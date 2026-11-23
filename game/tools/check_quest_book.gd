@@ -174,7 +174,7 @@ func _stories(f: Dictionary) -> void:
 	_expect(QuestBook.find(QuestBook.tabs(f), "nope") == ["", -1], "find: none")
 	var g := f.duplicate(true)
 	g["friends"] = false
-	_expect(QuestBook.tabs(g)[1]["head"] == QuestBook.words("friends_wait"), "before the third step the questlines say the friends call later")
+	_expect(QuestBook.tabs(g)[1]["head"] == QuestBook.words("friends_wait"), "before the friends open the questlines say the friends call later")
 
 
 func _jobs(f: Dictionary) -> void:
