@@ -346,6 +346,12 @@ func _check_overrides() -> void:
 	Tiers.overrides = {}
 	if int(Tiers.value(Tiers.ULTRA, "shadow_size")) != 4096 or Tiers.image_scale(Vector2(1792, 828), 480.0, Tiers.ULTRA) != 2:
 		problems.append("cleared overrides: Ultra no longer its own row")
+	# Perf thread (2026-11-23): Android by its GPU: Mali and PowerVR Medium, Adreno 7xx, Xclipse and
+	# Immortalis High.
+	for pair: Array in [["motorola edge 40", "Mali-G77 MC9", Tiers.MEDIUM], ["SM-S926B", "Samsung Xclipse 940", Tiers.HIGH],
+			["X", "Immortalis-G715", Tiers.HIGH], ["X", "PowerVR B-Series BXM-8-256", Tiers.MEDIUM], ["X", "llvmpipe (LLVM 15.0.7, 256 bits)", Tiers.HIGH]]:
+		if Tiers.for_device(pair[0], pair[1]) != pair[2]:
+			problems.append("for_device %s / %s: %s, wanted %s" % [pair[0], pair[1], Tiers.NAMES[Tiers.for_device(pair[0], pair[1])], Tiers.NAMES[pair[2]]])
 	for pair: Array in [["A063", "Adreno (TM) 642L", Tiers.LOW], ["SM-S918B", "Adreno (TM) 740", Tiers.HIGH],
 			["iPhone17,2", "Apple A18 Pro GPU", Tiers.ULTRA], ["A063", "", Tiers.HIGH], ["X", "Adreno (TM) 530", Tiers.LOW]]:
 		if Tiers.for_device(pair[0], pair[1]) != pair[2]:

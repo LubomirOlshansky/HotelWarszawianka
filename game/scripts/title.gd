@@ -86,8 +86,9 @@ var progress := 0.0
 ## The share the next report will reach: the bar creeps towards it between two reports.
 var cap := 0.0
 var _shown := 0.0
-var _bar_plate: Panel
-var _bar_fill: ColorRect
+## F 2026-11-23: the loading bar is the Syrenka filling with gold (loading_syrenka.gd).
+const LoadingSyrenka := preload("res://scripts/loading_syrenka.gd")
+var _bar_plate: LoadingSyrenka
 ## The loading tips (tips.json `tips`), in the order they show; the one up now, and for how long.
 var tips: Array = []
 var _tip: Label
@@ -140,19 +141,9 @@ func _ready() -> void:
 	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(TIPS_FILE))
 	if d is Dictionary:
 		tips = (d as Dictionary).get("tips", [])
-	_bar_plate = Panel.new()
-	_bar_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var plate := StyleBoxFlat.new()
-	plate.bg_color = UiKit.CARD
-	plate.border_color = UiKit.NEON_CYAN  # the loading bar is the brand neon
-	plate.set_border_width_all(2)
-	plate.set_corner_radius_all(3)
-	_bar_plate.add_theme_stylebox_override("panel", plate)
+	_bar_plate = LoadingSyrenka.new()
+	_bar_plate.name = "loading_syrenka"
 	_root.add_child(_bar_plate)
-	_bar_fill = ColorRect.new()
-	_bar_fill.color = UiKit.NEON_PINK
-	_bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_bar_plate.add_child(_bar_fill)
 	_new_btn = _make_button()
 	_yes_btn = _make_button()
 	_no_btn = _make_button()
@@ -254,9 +245,9 @@ func _layout() -> void:
 	_prompt_pl.position = Vector2(_safe.position.x, bottom - ps * 1.0)
 	_prompt.size = Vector2(_safe.size.x, ps * 1.5)
 	_prompt.position = Vector2(_safe.position.x, bottom - ps * 2.4)
-	# The loading bar just over the prompt: a third of the safe width, ~2 % of the height.
-	var bar_h := maxf(h * 0.02, 8.0)
-	_bar_plate.size = Vector2(_safe.size.x * 0.34, bar_h)
+	# The loading Syrenka just over the prompt: 16 % of the height, her own proportions.
+	var bar_h := maxf(h * 0.16, 48.0)
+	_bar_plate.size = Vector2(bar_h * 0.62, bar_h)
 	_bar_plate.position = Vector2(size.x * 0.5 - _bar_plate.size.x * 0.5, bottom - ps * 2.4 - bar_h - ps * 0.35)
 	_set_bar()
 	# Save and resume: the save's line just under the prompt's English, the NOWA GRA button in
@@ -384,11 +375,10 @@ func _set_tip() -> void:
 	_tip.add_theme_font_size_override("font_size", fs)
 
 
-## The loading bar's fill (2 px inside the plate's edge).
+## The loading Syrenka at the share shown now (loading_syrenka.gd).
 func _set_bar() -> void:
-	var inner := _bar_plate.size - Vector2(4.0, 4.0)
-	_bar_fill.position = Vector2(2.0, 2.0)
-	_bar_fill.size = Vector2(maxf(inner.x * clampf(_shown, 0.0, 1.0), 0.0), maxf(inner.y, 0.0))
+	_bar_plate.share = clampf(_shown, 0.0, 1.0)
+	_bar_plate.queue_redraw()
 
 
 ## Lays the title out again with its words as they are now (main.gd, when it takes over the
