@@ -7143,17 +7143,17 @@ func _make_pov_legs() -> Node3D:
 	# F's reference reel (2026-11-23): light washed jeans and black boots, which read against the dark
 	# ground; a faint glow of their own so the night doesn't turn them into black blobs.
 	var jeans := StandardMaterial3D.new()
-	jeans.albedo_color = Color("#9db3cf")
+	jeans.albedo_color = Color("#a9bfdc")
 	jeans.roughness = 0.95
 	jeans.emission_enabled = true
-	jeans.emission = Color("#6f86a6")
-	jeans.emission_energy_multiplier = 0.35
+	jeans.emission = Color("#7f98bd")
+	jeans.emission_energy_multiplier = 0.9
 	var shoe := StandardMaterial3D.new()
 	shoe.albedo_color = Color("#16161a")
 	shoe.roughness = 0.35
 	shoe.emission_enabled = true
 	shoe.emission = Color("#2a2a33")
-	shoe.emission_energy_multiplier = 0.4
+	shoe.emission_energy_multiplier = 0.6
 	for sx: float in [-0.12, 0.12]:
 		# Leaning back in the chair, legs out over the footrest: in view from a 12-16 degree look down.
 		# Only the shins and boots peek in at the frame's foot from a forward look (F: "a bit of legs,
