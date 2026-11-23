@@ -25,7 +25,12 @@ ROUTE = "res://scripts/playtest_route.gd"
 # W is the gas, S brakes and reverses from a standstill.
 STEER_DEADBAND = 6.0  # degrees either side of the aim with no steering key held
 BRAKE_OVER_KMH = 8.0  # brake (S) only this far over the wanted speed, and only while moving forward
-ARRIVE_M = 10.0  # the goal counts as reached this close (straight line)
+ARRIVE_M = 10.0  # the goal counts as reached this close (straight line); a row sets `arrive_m`
+
+# Buttons never pressed by the generic option: they leave the row (the helicopter, menus, maps).
+# Hunt 2026-11-23: press_button_N pressed HELI and the car flew off. A row presses what it means by
+# its label with `press_label`.
+SKIP_BUTTONS = ("HELI", "MENU", "MAPA", "MAP", "USTAWIENIA", "SETTINGS", "PAUZA", "PAUSE", "✕", "X")
 
 # The stuck rule of the skill (section 2).
 STUCK_MPS = 1.2
@@ -54,6 +59,10 @@ class RoadHarness(Harness):
     kerb = False  # drive the kerb-side lane (a second pass: PT-40, a stop only on the kerb lane)
     cruise_kmh = 50.0
     target = None  # (x, z) Godot metres of the row's own goal; None: the arrow's (get_goal)
+    arrive_m = ARRIVE_M  # a stand's ring is 7 m: 4 m stops inside it (hunt 2026-11-23)
+    # Labels (any case, a part is enough) the row wants pressed when they show, in order of
+    # preference, e.g. ("START", "AKCEPTUJ", "ACCEPT"): offered as `press_wanted` (urgent).
+    want_labels = ()
 
     # --- the row's hooks -------------------------------------------------------------------------
 
@@ -104,7 +113,7 @@ class RoadHarness(Harness):
             "goal": st.get("goal_source") or "none",
             "goal_by_road_m": st.get("left_m"),
             "goal_straight_m": st.get("goal_m"),
-            "stuck": self._stuck_since is not None,
+            "stuck": self.stuck_for(game) >= STUCK_AFTER_S,
             "buttons": [b.get("label") for b in self._buttons][:6],
             "flying": st.get("flying"),
         }
@@ -163,7 +172,13 @@ class RoadHarness(Harness):
         if obs["stuck"]:
             opts.append(Option("reverse_out", "Back out of what the car is pinned against, then drive on",
                                self.reverse_out, urgent=True, interruptible=False, max_seconds=6.0))
-        for i, b in enumerate(obs["_buttons"][:3]):
+        wanted = self.wanted_button(obs["_buttons"])
+        if wanted is not None:
+            opts.append(Option("press_wanted", f"Tap '{wanted.get('label')}', the button this row is after",
+                               self._press_button(wanted), facts={"label": wanted.get("label")}, urgent=True,
+                               max_seconds=5.0))
+        free = [b for b in obs["_buttons"] if not self._skipped(b)]
+        for i, b in enumerate(free[:3]):
             opts.append(Option(f"press_button_{i + 1}", f"Tap the on-screen button '{b.get('label')}'",
                                self._press_button(b), facts={"label": b.get("label")}, max_seconds=5.0))
         opts.append(Option("wait_here", "Stop and wait a few seconds (a card's timer, a pickup)",
@@ -172,6 +187,19 @@ class RoadHarness(Harness):
 
     def status(self, obs):
         return self.row_status(obs)
+
+    @staticmethod
+    def _skipped(button):
+        label = (button.get("label") or "").strip().upper()
+        return any(label == k or label.startswith(k + " ") for k in SKIP_BUTTONS)
+
+    def wanted_button(self, buttons):
+        """The first shown button whose label holds one of `want_labels` (in their order), or None."""
+        for want in self.want_labels:
+            for b in buttons:
+                if want.upper() in (b.get("label") or "").upper():
+                    return b
+        return None
 
     # --- executors -------------------------------------------------------------------------------
 
@@ -188,7 +216,7 @@ class RoadHarness(Harness):
                 if not r:
                     return r
                 continue
-            arrived = float(st.get("goal_m") or 1e9) < ARRIVE_M
+            arrived = float(st.get("goal_m") or 1e9) < self.arrive_m
             want = 0.0 if arrived else float(st.get("want_kmh") or self.cruise_kmh)
             self._steer(game, float(st.get("bearing_deg") or 0.0))
             self._pedals(game, float(st.get("speed_kmh") or 0.0), want)
