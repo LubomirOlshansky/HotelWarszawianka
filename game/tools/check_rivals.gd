@@ -34,6 +34,7 @@ extends SceneTree
 ## "check_rivals: PROBLEMS" (exit 1). `-- --only=A,C` runs some of the parts (a debugging aid).
 ##   godot --headless --path game --script res://tools/check_rivals.gd
 
+const Lang := preload("res://scripts/lang.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Traffic := preload("res://scripts/traffic.gd")
 const Activity := preload("res://scripts/activity.gd")
@@ -1644,7 +1645,9 @@ func _o_six() -> void:
 	_vel = Vector3.ZERO
 	_ok(_reach(1, 120), "28 m ahead of a standing car: the RACE prompt")
 	_eq(_rv.rival, MIKE, "the prompt is Mike's")
-	_ok(_hud.challenge.ends_with(" ••••••"), "the prompt shows Mike's six pips (%s)" % _hud.challenge)
+	_ok(_hud.challenge.contains(" ••••••"), "the prompt shows Mike's six pips (%s)" % _hud.challenge)
+	# R1: and his race's class A with the starter car's D beside it.
+	_ok(_hud.challenge.ends_with(" A (%s D)" % Lang.pick("TY", "YOU")), "the prompt shows Mike's class and the car's (%s)" % _hud.challenge)
 	_rv.flash()
 	_eq(int(_rv.state), 2, "the flash at Mike starts the challenge, no refusal")
 	_ok(_reach(3, 400), "Mike's countdown")

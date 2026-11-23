@@ -1476,9 +1476,10 @@ func _build_world() -> void:
 	ped_zones = PedZones.new(data.get("ped_zones", []))
 	car = Car.new()
 	car.ground_height = map.drive_height
-	car.set_sensitivity(settings.sensitivity)
-	# G4: Cruise by default, Sport or Grounded from Settings → Jazda (--handling= for a run).
-	car.set_handling(settings.handling if flags._flag_handling < 0 else flags._flag_handling)
+	# H1: „Charakter jazdy" and Realnie from the settings (--handling= cruise/sport/grounded for a run).
+	car.set_character(settings.character, settings.handling == 1)
+	if flags._flag_handling >= 0:
+		car.set_handling(flags._flag_handling)
 	car.collide = _collide_preset()
 	car.lane_assist = settings.lane_assist if flags._flag_lane < 0 else flags._flag_lane == 1
 	world.add_child(car)
@@ -2947,8 +2948,8 @@ func _build_garage(world: Node3D) -> void:
 		garage.preset_upgrades(flags.upgrades_flag)
 	garage.upgraded.connect(func(id: String) -> void:
 		if id == "nitro":
-			hud.toast(Gamepad.fmt("Nitro gotowe: przytrzymaj błyskawicę przy hamulcu (Shift, {lb} / {rb} na padzie)."),
-					Gamepad.fmt("Nitro fitted: hold the bolt by the brake (Shift, {lb} / {rb} on a pad).")))
+			hud.toast(Gamepad.fmt("Nitro gotowe: stuknij błyskawicę albo przesuń kciuk z gazu w górę. Dwie butle (Shift, {lb} / {rb} na padzie)."),
+					Gamepad.fmt("Nitro fitted: tap the bolt or slide your thumb up from the gas. Two bottles (Shift, {lb} / {rb} on a pad).")))
 	if flags.garage_flag:
 		_put_at_garage()
 	garage.opened.connect(func() -> void:
@@ -5032,7 +5033,7 @@ func _settings_state() -> Dictionary:
 			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on), "test_device": int(settings.test_device),
 			"weather": weather.state, "time": tod.look_mode(), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
-			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "sensitivity": settings.sensitivity,
+			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "character": settings.character,
 			"text_large": int(settings.text_large), "calm": int(settings.calm), "color_safe": int(settings.color_safe),
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
 			"lane_assist": int(car.lane_assist if car != null else settings.lane_assist),
@@ -5150,12 +5151,12 @@ func _on_setting(key: String, value: Variant) -> void:
 		"new_game":
 			_on_new_game.call_deferred()  # G14: NOWA GRA in the settings (confirmed by two taps)
 			return
-		"sensitivity":
-			settings.sensitivity = clampf(float(value), 0.0, 1.0)
-			car.set_sensitivity(settings.sensitivity)
+		"character":
+			settings.character = clampf(float(value), 0.0, 1.0)
+			car.set_character(settings.character, settings.handling == 1)
 		"handling":
-			settings.handling = clampi(int(value), 0, 2)
-			car.set_handling(settings.handling)
+			settings.handling = clampi(int(value), 0, 1)
+			car.set_character(settings.character, settings.handling == 1)
 		"collide":
 			# Settings rows (F 2026-11-14): the collision answer, live (the car reads it each contact).
 			settings.collide = clampi(int(value), 0, Settings.COLLIDE_PRESETS - 1)
@@ -6435,10 +6436,13 @@ func _read_input(dt: float) -> void:
 	if meet != null: meet.hold_car(car)
 	if rivals != null: rivals.hold_car(car)
 	_lane_tick(dt)
-	# G13: the nitro (bought at the garage): the disc by the horn, Shift on a keyboard, LB or RB on a
-	# pad. Not N: N switches the time of day, so holding it for the nitro also turned day to dusk.
+	# G13: the nitro (bought at the garage): the disc, Shift on a keyboard, LB or RB on a pad (N1: the
+	# press is a tap that fires a bottle; car.gd). Not N: N switches the time of day.
 	car.nitro_hold = car.nitro_owned and (hud.nitro_held or Input.is_physical_key_pressed(KEY_SHIFT) or Gamepad.nitro())
-	hud.set_nitro(car.nitro_owned, car.nitro_charge)
+	if hud.nitro_pulse and car.nitro_owned and not car.nitro_on:
+		car.nitro_charge = 1.0  # --pedal=nitro: one bottle after another, for shots of the flame
+		car.nitro_fire()
+	hud.set_nitro(car.nitro_owned, car.nitro_charge, car.nitro_bottles, car.nitro_on)
 	# Loop 3g-1: a pull-over holds the car; the police's test drivers (--police-auto, --trap with
 	# --pedal=gas, the soak's roaming autopilot) drive it.
 	if police != null and police.control_car(car, dt):

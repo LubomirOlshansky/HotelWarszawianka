@@ -299,6 +299,9 @@ func _check_screen(screen: Vector2i) -> int:
 			hud.set_scheme(1 if state.begins_with("car, Classic") else 0)
 			hud.set_arrows_layout(state != "car, Classic slider")  # F 2026-11-13 arrows; the slider is the default since 2026-11-14
 			hud.set_flying(state == "helicopter")
+			# N1: the nitro is owned in the car states, so its disc (above GAS in Classic) is
+			# checked against every panel, the pedals and the safe area like the rest.
+			hud.set_nitro(state.begins_with("car, "), 1.0, 2, false)
 			if state == "helicopter":
 				hud.set_speed(88, 45)
 			else:
