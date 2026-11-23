@@ -556,28 +556,29 @@ def beta_page(strings: dict, lang: str) -> str:
                   hero=b["hero"], hero_w=str(b["hero_w"]), hero_h=str(b["hero_h"]), fb_bg=b.get("fb_bg", "city-night"),
                   testing_url=e(b["testing_url"]), email=e(b["email"]))
 
+    def shot(kind: str, i: int, m: dict, label: str) -> str:
+        """A real phone screenshot when one exists (site/public/img/beta/<kind>-<n>[-<lang>].webp,
+        portrait), else the drawn screen."""
+        for name in (f"{kind}-{i + 1}-{lang}", f"{kind}-{i + 1}"):
+            if (SITE / "public" / "img" / "beta" / f"{name}.webp").exists():
+                return f'<img class="shot" src="/img/beta/{name}.webp" alt="{e(label)}" width="390" height="844" loading="lazy" decoding="async">'
+        return mock(m, label)
+
     def steps(key: str, kind: str) -> str:
         return "\n".join(
-            f'          <li class="step"><figure>{mock(m, f"{title}: {body}")}</figure>'
+            f'          <li class="step"><figure>{shot(kind, i, m, f"{title}: {body}")}</figure>'
             f'<div><h4><span class="n">{i + 1}</span>{e(title)}</h4><p>{e(body)}</p></div></li>'
             for i, ((title, body), m) in enumerate(zip(t[key], BETA_MOCKS[kind])))
 
     values["ios_steps"] = steps("ios_steps", "ios")
     values["and_steps"] = steps("and_steps", "android")
     values["start"] = "\n".join(f'      <li><h4>{e(a)}</h4><p>{e(c)}</p></li>' for a, c in t["start"])
-    values["controls"] = "\n".join(f'      <div><dt>{e(a)}</dt><dd>{e(c)}</dd></div>' for a, c in t["controls"])
-    values["fb_want"] = "\n".join(f"          <li>{e(x)}</li>" for x in t["fb_want"])
+
     def way(c: str) -> str:
         return f'<a href="mailto:{e(c)}">{e(c)}</a>' if "@" in c else e(c)
 
-    values["fb_ways"] = "\n".join(f'          <div><dt>{e(a)}</dt><dd>{way(c)}</dd></div>' for a, c in t["fb_ways"])
-    values["known"] = "\n".join(f"        <li>{e(x)}</li>" for x in t["known"])
-    values["faq"] = "\n".join(f'      <details class="qa"><summary>{e(q)}</summary><p>{e(a)}</p></details>' for q, a in t["faq"])
-    gold = "WRITE TO THE AUTHOR" if lang == "en" else "NAPISZ DO AUTORA"
-    values["mock_feedback"] = mock({"bar": "Settings" if lang == "en" else "Ustawienia", "icon": "aw",
-                                    "title": ["Around Warsaw"], "rows": ["Picture" if lang == "en" else "Grafika",
-                                                                         "Driving" if lang == "en" else "Jazda"],
-                                    "button": gold}, t["fb_ways"][0][1])
+    values["fb_ways"] = "\n".join(f'      <div><dt>{e(a)}</dt><dd>{way(c)}</dd></div>' for a, c in t["fb_ways"])
+    values["faq"] = "\n".join(f'    <details class="qa"><summary>{e(q)}</summary><p>{e(a)}</p></details>' for q, a in t["faq"])
     values["feedback_form"] = feedback_form(strings, lang)
     return fill((SITE / "src" / "beta.html").read_text(encoding="utf-8"), values)
 
