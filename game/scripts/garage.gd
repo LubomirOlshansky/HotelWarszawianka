@@ -432,7 +432,12 @@ func tick() -> void:
 
 
 ## The card opens (main.gd pauses the game under it: `opened`).
-func open_card(start_tab := "paint") -> void:
+## G2: "garage" at Mirek's ring (buy, tune, paint), "mine" from the full map's MOJE AUTO (look and
+## switch what is owned; buying waits for the workshop), "lot" for the car lot (later).
+var mode := "garage"
+
+
+func open_card(start_tab := "paint", how := "garage") -> void:
 	if _open or hud == null:
 		return
 	_open = true
@@ -448,7 +453,8 @@ func open_card(start_tab := "paint") -> void:
 	hud.move_child(card, -1)
 	card.pt = hud.pt
 	card.safe = hud.safe_rect()
-	card.open(start_tab)
+	mode = how
+	card.open(start_tab, how)
 	if log_on:
 		print("garage: the card open (%d zł, paint %s, owned %s, eggs %d)" % [wallet.zl, current(), owned().keys(), eggs_now()])
 	opened.emit()

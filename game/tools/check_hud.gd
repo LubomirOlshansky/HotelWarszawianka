@@ -1219,6 +1219,18 @@ func _check_garage(vp: SubViewport, hud: CanvasLayer, tag: String) -> int:
 	await process_frame
 	if g.card.visible or g.is_open():
 		problems.append("%s garage card: WYJAZD did not close it" % tag)
+	# G2: MOJE AUTO from the full map: the same card, its title, buys wait for the workshop.
+	w.tune = {}
+	w.zl = 12345
+	g.open_card("parts", "mine")
+	g.card.pick_item("engine")
+	await process_frame
+	var act := g.card.get("_action") as Button
+	if not act.disabled or g.mode != "mine" or not (g.card.get("_title") as Label).text in ["MOJE AUTO", "MY CAR"]:
+		problems.append("%s MOJE AUTO: a buy is not held for the workshop (%s)" % [tag, act.disabled])
+	if not g.card.stage.visible or g.card.stage.mode != "mine":
+		problems.append("%s MOJE AUTO: the stage is not up in its own mode" % tag)
+	g.close_card()
 	g.card.queue_free()
 	g.queue_free()
 	d.queue_free()
