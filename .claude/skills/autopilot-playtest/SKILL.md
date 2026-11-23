@@ -76,8 +76,11 @@ per event, to its trace file:
 - Time limits on elapsed episode time, never on the game clock that keeps running. **Waits run
   on real time too**: a wait on the game clock freezes while the pause card is open (PT-42 was
   that, not a bug).
-- Drive by waypoints along real streets (the road data in `game/map`, the codex), not compass
-  headings: players follow streets.
+- **Start from the shared harness**, `tools/autopilot/road_harness.py` (its README): it drives by
+  road to the arrow on the lane graph (`game/scripts/playtest_route.gd` over `rc`, one call a
+  tick), keeps the stuck rule and writes the events below with the place on the road. Players
+  follow streets: never steer straight at the arrow (PT-60 pinned the car on the Palace forecourt
+  that way, and rows 5-6 never got done). A row only adds its plan and its own reads.
 - **Teleports only to reach the row**: `--at=` or the map teleport may put the car at the start
   of the area, never next to the goal. The drive *is* the test: the padel run found PT-31 (no
   car route from Solec) only because it drove; the 11-08 padel re-test teleported to the club

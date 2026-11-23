@@ -1589,6 +1589,9 @@ for s in $want; do
 		maptrack) check maptrack '^check_map_track:' --script res://tools/check_map_track.gd ;;
 		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		targetroute) check targetroute '^check_target_route:' --script res://tools/check_target_route.gd ;;
+		# 2026-11-23: the Autopilot hunts' road route (playtest_route.gd): where on the road, three drives by
+		# road from the PT-60 spot, the rc entry points on a stand-in Main (headless, ~10 s).
+		playtestroute) check playtestroute '^check_playtest_route:' --script res://tools/check_playtest_route.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		# The time owner (game_time.gd, F 2026-11-19): hours, the night friends by day, the clock's jump.
 		gametime) check gametime '^check_game_time:' --script res://tools/check_game_time.gd ;;

@@ -143,6 +143,7 @@ photofronts          quick
 places               quick
 placescripts         quick
 placzamkowy          quick
+playtestroute        quick
 plain                runs
 pois                 roads
 police               quick
