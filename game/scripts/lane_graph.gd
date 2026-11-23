@@ -292,6 +292,23 @@ func _clearance(e: int, s: float, at: Vector2, out: Vector2) -> float:
 	return worst
 
 
+## How far inside the map's outline every job or rescue target keeps (m): a pickup, a door, a
+## tow, a crash scene, a Leżak or a rescue spot. A tester got a kebab order at the very end of the
+## map (2026-11-22): a door 5 m from the outline, behind the edge roadworks (CLOSE_IN 12 m in),
+## with the land past the edge (map_edge.gd) for a view. 80 m keeps the target in the drawn city
+## with a street or two of it beyond, at the camera's zoom.
+const TARGET_PAD := 80.0
+
+
+## Whether a job's target may stand at p: TARGET_PAD inside the outline (map_builder.gd `in_map`).
+## Every place a job picks asks this (jobs.gd `_pick_address`, rides.gd, ev_tow.gd, crash_scenes.gd,
+## roundup_job.gd; rescue_places.gd keeps the same pad). True on a map without an outline (a check's).
+func in_play(p: Vector2) -> bool:
+	if _map == null or not _map.has_method("in_map") or _map.bounds.size == Vector2.ZERO:
+		return true
+	return _map.in_map(p, -TARGET_PAD)
+
+
 ## Whether a point lies in the band at the map's edge where the roadworks stand (no traffic starts there).
 func in_works_band(p: Vector2) -> bool:
 	return _map != null and _map.has_method("in_map") and _map.bounds.size != Vector2.ZERO \
