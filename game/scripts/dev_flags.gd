@@ -165,8 +165,15 @@ var cam_move := PackedFloat32Array()
 ## place"): a perspective camera like a phone's on the ground instead of the game's orthographic view. The
 ## eye at (EX, EZ) EY m over the ground, looking at (LX, LZ) LY m up, FOV the vertical field of view in
 ## degrees (an iPhone's main camera in portrait about 70), VYAW a slow pan in degrees a second round the
-## eye (from when the city is ready, as --cam-move). Turns on the free camera at the look point.
+## eye (from when the city is ready, as --cam-move), then VX,VY,VZ the drone's flight in m/s (eye and look
+## move together; F 2026-11-22, "copy these flyovers" from a drone reel). Turns on the free camera at the look point.
 var persp := PackedFloat32Array()
+## --pov-swing=T0[,LOOK,PITCH,FOV] (promo only, F 2026-11-23: "first view from the high carousel, from the
+## eyes of the person"): the eye rides an empty chair of the Jarmark tower carousel (jarmark_rides.gd). T0 is
+## the ride's clock at the take's start (the rides shader then runs on this clock, not TIME: 0 = chairs up
+## and turning, 125 = rising off the ground), LOOK degrees from straight ahead (along the swing) towards
+## outwards, PITCH degrees down, FOV vertical degrees. Needs --promo-dress=jarmark.
+var pov_swing := PackedFloat32Array()
 ## --cams=NAME:X,Y,Z,YAW,PITCH,SIZE+NAME2:...: one run, several free cameras, one shot each
 ## (files NAME_FFFF.png; the --spots machinery moves the car under each). follow_camera.gd parse_cams.
 var _cams: Array = []
@@ -630,10 +637,10 @@ func parse_with(args: PackedStringArray) -> void:
 		elif arg.begins_with("--persp="):
 			var pp := arg.trim_prefix("--persp=").split(",")
 			if pp.size() < 7:
-				push_error("--persp: '%s' is not EX,EY,EZ,LX,LY,LZ,FOV[,VYAW]" % arg)
+				push_error("--persp: '%s' is not EX,EY,EZ,LX,LY,LZ,FOV[,VYAW[,VX,VY,VZ]]" % arg)
 			else:
-				persp = PackedFloat32Array([0, 0, 0, 0, 0, 0, 0, 0])
-				for i in mini(pp.size(), 8):
+				persp = PackedFloat32Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+				for i in mini(pp.size(), 11):
 					persp[i] = float(pp[i])
 				free_cam = true
 				no_ghost = true
@@ -642,6 +649,20 @@ func parse_with(args: PackedStringArray) -> void:
 					m.start_at = Vector3(persp[0], 0.0, persp[2])
 				if cam_move.is_empty():
 					cam_move = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+		elif arg.begins_with("--pov-swing="):
+			var ps := arg.trim_prefix("--pov-swing=").split(",")
+			pov_swing = PackedFloat32Array([0.0, 60.0, 12.0, 75.0])
+			for i in mini(ps.size(), 4):
+				pov_swing[i] = float(ps[i])
+			# The tower carousel (jarmark.gd JM_TOWER), as a --persp eye and look the camera then replaces.
+			persp = PackedFloat32Array([-1034.3, 20.0, 251.2, -1034.3, 20.0, 241.2, pov_swing[3], 0, 0, 0, 0])
+			free_cam = true
+			no_ghost = true
+			m._free_cam_at = Vector3(-1034.3, NAN, 251.2)
+			if not _has_arg("--at="):
+				m.start_at = Vector3(-1034.3, 0.0, 251.2)
+			if cam_move.is_empty():
+				cam_move = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 		elif arg.begins_with("--cam-move="):
 			cam_move = PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 			var parts := arg.trim_prefix("--cam-move=").split(",")

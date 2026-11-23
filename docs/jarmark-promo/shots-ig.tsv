@@ -1,0 +1,14 @@
+# F 2026-11-23: copy the drone fly-overs of the reel instagram.com/reel/DgDe4S9sbta (refs/jarmark-2026/f-flyover-reel-DgDe4S9sbta),
+# perspective (--persp, a drone lens), blue hour. Eye/look are market uv + height; jarmark_shots.sh reads only name..extra. name	secs	cam	yaw	pitch	size	cam_move	extra
+ig01-palace-wide	6	-1184.3,239.5	0	-45	100	0,0,0,0,0,8	--persp=-825.9,60.0,113.2,-1184.3,70.0,239.5,50,0,-3.76,0.00,1.38 --palace-lights=st_patrick
+ig02-low-rows	6	-991.1,301.7	0	-45	100	0,0,0,0,0,8	--persp=-930.0,18.0,279.3,-991.1,0.0,301.7,55,0,0.69,0.00,1.88 --palace-lights=st_patrick
+ig03-centrum-traffic	6	-964.6,286.7	0	-45	100	0,0,0,0,0,8	--persp=-879.9,45.0,314.2,-964.6,0.0,286.7,55,0,-0.69,0.00,-1.88 --palace-lights=st_patrick
+ig04-tower-reveal	6	-1111.5,292.6	0	-45	100	0,0,0,0,0,8	--persp=-895.1,50.0,229.2,-1111.5,30.0,292.6,50,0,1.38,0.00,3.76 --palace-lights=st_patrick
+ig05-swing-top	6	-1034.3,251.2	0	-45	100	0,0,0,0,0,8	--persp=-1026.3,45.0,234.7,-1034.3,0.0,251.2,55,0,0.00,1.50,0.00 --palace-lights=st_patrick
+ig06-market-high	6	-1027.1,261.6	0	-45	100	0,0,0,0,0,8	--persp=-875.9,90.0,238.1,-1027.1,0.0,261.6,50,0,-2.82,0.00,1.03 --palace-lights=st_patrick
+ig07-palace-push	6	-1213.5,247.0	0	-45	100	0,0,0,0,0,8	--persp=-761.9,100.0,84.4,-1213.5,90.0,247.0,45,0,-4.69,0.00,1.72 --palace-lights=st_patrick
+ig08-crowd-topdown	6	-1010.8,308.9	0	-45	100	0,0,0,0,0,8	--persp=-1008.0,40.0,307.9,-1010.8,0.0,308.9,55,0,0.34,0.00,0.94 --palace-lights=st_patrick
+ig09-huts-slide	6	-1025.5,207.8	0	-45	100	0,0,0,0,0,8	--persp=-969.2,25.0,187.1,-1025.5,0.0,207.8,55,0,-0.69,0.00,-1.88 --palace-lights=st_patrick
+ig10-palace-front-swing	6	-1059.7,259.8	0	-45	100	0,0,0,0,0,8	--persp=-937.7,40.0,215.0,-1059.7,15.0,259.8,50,0,1.88,0.00,-0.69 --palace-lights=st_patrick
+ig11-tree-overhead	6	-963.5,288.4	0	-45	100	0,0,0,0,0,8	--persp=-917.0,55.0,271.3,-963.5,0.0,288.4,50,0,-1.88,0.00,0.69 --palace-lights=st_patrick
+ig12-wide-pan	6	-1027.1,261.6	0	-45	100	0,0,0,0,0,8	--persp=-806.4,80.0,340.4,-1027.1,0.0,261.6,50,2,0.00,0.00,0.00 --palace-lights=st_patrick

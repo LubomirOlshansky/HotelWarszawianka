@@ -24,26 +24,29 @@ const float RISE = 30.0;
 const float DROP = 18.9;   // jarmark.gd TOWER_DROP
 
 varying float mode;
+// --pov-swing (main.gd): the ride clock the camera riding a chair follows; below 0 the engine's TIME.
+uniform float clock = -1.0;
 
 void vertex() {
+	float T = clock >= 0.0 ? clock : TIME;
 	float ride = floor(UV2.y + 0.001);
 	float phase = fract(UV2.y) * 6.2832;
 	// The cycle starts 60 s in, so a fresh game (a trailer's first shot) finds the chairs up and turning.
-	float tt = TIME + 60.0;
+	float tt = T + 60.0;
 	float tau = mod(tt, CYCLE);
 	// The tower stands still while it loads; its angle counts only the turning time.
 	float run = floor(tt / CYCLE) * (CYCLE - LOAD) + max(tau - LOAD, 0.0);
 	float up = smoothstep(LOAD, LOAD + RISE, tau) * (1.0 - smoothstep(CYCLE - RISE, CYCLE, tau));
 	float tower = step(ride, 0.5);
 	float speed = ride < 0.5 ? 1.05 : (ride < 2.5 ? 0.45 : (ride < 3.5 ? -0.6 : (ride < 4.5 ? 0.5 : (ride < 5.5 ? 0.12566 : 0.41888))));
-	float ang = mix(TIME * speed, run * speed, tower);
+	float ang = mix(T * speed, run * speed, tower);
 	float c = cos(ang);
 	float s = sin(ang);
 	vec2 r = VERTEX.xz - UV;
 	VERTEX.xz = UV + vec2(c * r.x - s * r.y, s * r.x + c * r.y);
 	NORMAL.xz = vec2(c * NORMAL.x - s * NORMAL.z, s * NORMAL.x + c * NORMAL.z);
 	VERTEX.y -= tower * (1.0 - up) * DROP;
-	VERTEX.y += step(1.5, ride) * step(ride, 2.5) * 0.22 * sin(TIME * 1.9 + phase);
+	VERTEX.y += step(1.5, ride) * step(ride, 2.5) * 0.22 * sin(T * 1.9 + phase);
 	mode = UV2.x;
 	wide = PROJECTION_MATRIX[3][3] < 0.5 ? 0.6 : smoothstep(60.0, 110.0, 2.0 / PROJECTION_MATRIX[1][1]);
 }

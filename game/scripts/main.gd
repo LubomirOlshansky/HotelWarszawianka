@@ -7141,6 +7141,9 @@ func _update_free_camera() -> void:
 ## --persp (promo only): the phone-like perspective camera on the ground, panning VYAW degrees a second
 ## round the eye once the city is ready (the --cam-move clock).
 func _update_persp_camera() -> void:
+	if not flags.pov_swing.is_empty():
+		_update_pov_swing()
+		return
 	var p := flags.persp
 	var eye := Vector3(p[0], map.ground_height(p[0], p[2]) + p[1], p[2])
 	var look := Vector3(p[3], map.ground_height(p[3], p[5]) + p[4], p[5])
@@ -7148,6 +7151,9 @@ func _update_persp_camera() -> void:
 		_cam_move_t += get_process_delta_time()
 		var t := maxf(0.0, _cam_move_t - flags.cam_move[5])
 		var te := t * t / 1.2 if t < 0.6 else t - 0.3
+		var fly := Vector3(p[8], p[9], p[10]) * te
+		eye += fly
+		look += fly
 		var d := look - eye
 		var turned := Vector2(d.x, d.z).rotated(deg_to_rad(-p[7] * te))
 		look = eye + Vector3(turned.x, d.y, turned.y)
@@ -7157,6 +7163,59 @@ func _update_persp_camera() -> void:
 	cam.far = 4000.0
 	cam.global_transform = Transform3D(Basis.looking_at(look - eye, Vector3.UP), eye)
 	cam_focus = look
+	_view_size = 300.0
+
+
+const _JmKit := preload("res://scripts/landmarks/jarmark.gd")
+const _JmPromo := preload("res://scripts/jarmark_promo.gd")
+## The tower carousel's chair the eye rides (jarmark_kit.gd tower_spin: every 4th chair, j % 4 == 3, is empty).
+const POV_CHAIR := 3
+var _pov_rides: MeshInstance3D = null
+var _pov_t := 0.0
+
+
+## --pov-swing (promo only): the eye in an empty chair of the Jarmark tower carousel. The chair's place
+## follows shaders/jarmark_rides.gdshader on one clock (T0 + the --cam-move clock) that this also hands
+## the rides' material, so the camera and the ride can't drift apart.
+func _update_pov_swing() -> void:
+	var pv := flags.pov_swing
+	if _cam_move_on:
+		_pov_t += get_process_delta_time()
+	var clock := pv[0] + _pov_t
+	if _pov_rides == null:
+		_pov_rides = get_tree().root.find_child("JarmarkRides", true, false) as MeshInstance3D
+	if _pov_rides != null and _pov_rides.material_override is ShaderMaterial:
+		(_pov_rides.material_override as ShaderMaterial).set_shader_parameter("clock", clock)
+	# The shader's tower motion (CYCLE 150, LOAD 20, RISE 30, speed 1.05, DROP).
+	var tt := clock + 60.0
+	var tau := fmod(tt, 150.0)
+	var run := floorf(tt / 150.0) * 130.0 + maxf(tau - 20.0, 0.0)
+	var up := smoothstep(20.0, 50.0, tau) * (1.0 - smoothstep(120.0, 150.0, tau))
+	var ang := run * 1.05
+	var axis := _JmKit._jm_world(_JmKit.JM_TOWER.x, _JmKit.JM_TOWER.y)
+	var g := _JmPromo.kit_ground(map, _JmKit.JM_TOWER, "tower")
+	var u := Vector2.from_angle(_JmPromo.KIT_YAW)
+	var v := Vector2(-u.y, u.x)
+	var t := TAU * (float(POV_CHAIR) + 0.5) / 20.0
+	var r := (u * cos(t) + v * sin(t)) * 8.3
+	var c := cos(ang)
+	var s := sin(ang)
+	var rr := Vector2(c * r.x - s * r.y, s * r.x + c * r.y)
+	var outw := rr.normalized()
+	var ahead := Vector2(-s * r.x - c * r.y, c * r.x - s * r.y).normalized()
+	var seat_y := g + _JmKit.TOWER_TOP - 6.3 + 0.12 - (1.0 - up) * _JmKit.TOWER_DROP
+	var eye2 := axis + rr + outw * 0.05
+	var eye := Vector3(eye2.x, seat_y + 0.85, eye2.y)
+	var la := deg_to_rad(pv[1])
+	var look2 := (ahead * cos(la) + outw * sin(la)).normalized()
+	var pitch := deg_to_rad(pv[2])
+	var dir := Vector3(look2.x * cos(pitch), -sin(pitch), look2.y * cos(pitch))
+	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+	cam.fov = pv[3]
+	cam.near = 0.1
+	cam.far = 4000.0
+	cam.global_transform = Transform3D(Basis.looking_at(dir, Vector3.UP), eye)
+	cam_focus = eye + dir * 40.0
 	_view_size = 300.0
 
 
