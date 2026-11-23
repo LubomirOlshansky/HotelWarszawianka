@@ -11,6 +11,9 @@
   de.dataset.os = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? "ios"
     : /Android/.test(ua) ? "android" : "other";
 
+  // The beta signup preselects the visitor's phone (iPhone is the default in the markup).
+  if (de.dataset.os === "android") { var ap = $("#notify input[name=platform][value=Android]"); if (ap) ap.checked = true; }
+
   // Forms: #form (feedback) and #notify (the Android "tell me when" email), both to Formspree.
   var EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   all("form[data-need]").forEach(function (f) {
@@ -40,7 +43,9 @@
       if (!check()) { ($("[aria-invalid=true]", f) || email).focus(); return; }
       send.disabled = true;
       say(st.dataset.sending);
-      fetch(f.action, { method: "POST", body: new FormData(f), headers: { Accept: "application/json" } })
+      var fd = new FormData(f);
+      try { fd.set("lang", navigator.language || ""); fd.set("tz", Intl.DateTimeFormat().resolvedOptions().timeZone || ""); } catch (_) { /* optional */ }
+      fetch(f.action, { method: "POST", body: fd, headers: { Accept: "application/json" } })
         .then(function (r) {
           if (!r.ok) throw 0;
           var s = subj.value; f.reset(); subj.value = s;

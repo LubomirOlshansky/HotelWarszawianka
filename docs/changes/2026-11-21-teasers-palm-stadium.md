@@ -1,14 +1,22 @@
-- Rondo de Gaulle'a is livelier: people sit at the Party House café tables (some with dogs), wait at every zebra and fill the pavements round the palm.
-- Stadion Narodowy at night: lamps on the mast tips, a line of light under the roof, lamps round the promenade and lit stairs; the masts now stand in front of the red-and-white skin.
+- Rondo de Gaulle'a as it is today: the date palm without neon on a planted island, a few deckchairs on the lawn by the de Gaulle statue, taxis waiting at their rank on the brick inner road, the plaza's five-lantern lamps, and people at the Party House café tables (some with dogs) and at every zebra.
+- Round the rondo: Vitkac with rounded granite corners and glass ribbons, BGK's roof sign, and BANK PEPEO and ŻUBR on the Party House.
+- Stadion Narodowy at night: lamps on the mast tips, a line of light under the roof, warm light on every step of the stairs with glowing handrails, lamps every 10 m along the curved paths, and the Arka entrance at the end of its sunken road with a tall white-rimmed arch and lit doors.
 - Most Poniatowskiego's towers are floodlit at night.
-- Stadion Narodowy's surroundings light up like the drone photos: a glowing line on every step of the stairs, lamp posts with pools of light along the paths round it and the east avenue, and a lit portal in the east gate's broad flight.
-- The Party House courtyard by the bar has deckchairs, a little stage with a screen and a crowd; the taxis by the de Gaulle monument wait at their rank instead of popping in and out.
-- Promo shots can fly in a second helicopter (--promo-heli).
+- In the rain everyone walks under an umbrella; Pasaż Wiecha has people out in the evening; the app taxi and the city taxi drive newer cars.
+- Wide, shallow camera views no longer show a blue strip at the bottom.
 
 ## Backlog
+- found: rain thins the streets less on purpose (F's umbrella brief): crowds.gd `RAIN_OUT` 0.6 (was 0.3 for the pubs, 0.5x for the street); check_crowds follows that constant
+- found: the Party House's ZAMĘT venue sign is gone (it floated off the corner); the building wears ZAMIESZAJ
+- fixed: the stadium's lit stairs never drew (the landmarks got no stairs data), so the flights were dark
+- fixed: a wide, shallow free-camera view showed the sky's colour under the frame (the nearest ground fell behind the near plane)
+- found: Experimental takes on the Mac sometimes stall on the start camera (Movie Maker repeats one frame); --skip=8 and a fresh restart help, tools/clip.sh now fails such a take
 - found: the Nowy Świat / Smolna zebra by the palm sits in a darker junction patch with a pavement wedge on one side (needs the road design pass on that corner)
-- found: riders on low built floors (the Party House terrace) were drawn inside the steps; paths now ride on floors up to 1.2 m
 - found: the curved Solec 24 slab (Muzeum Azji i Pacyfiku) has no building colour in OSM, so it is generic grey-blue by day; real walls are white (needs a colour override in the bake)
-- found: a Promo Mode COPY whose focus is over water drops the car in the river (towed, the shot moves); pass --at= to a road
+- found: a Promo Mode COPY whose focus is over water drops the car in the river; pass --at= to a road
+- found: the grass slope round the Arka is bare (no shrub rows); the kiosk beside the stairs is a plain box
+- found: the full trailer still waits on its Mac re-render (draft PRs #640/#655)
 
 ## Roadmap
+- ticked: "Stadium night lighting"
+- added: "Social teasers (Reels) and the synthwave logo"

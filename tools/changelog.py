@@ -189,14 +189,66 @@ def inline(text: str) -> str:
     return re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", r'<a href="\2">\1</a>', t)
 
 
-def html_days(heading: str = "h2") -> str:
-    """The days as HTML: a heading, a count, the short lines."""
+# Lines that talk about how the game is built or run, not about what a player sees (2026-11-22, F:
+# the site's changelog is short and for players, no technical backlog).
+TECHNICAL = re.compile(
+    r"\b(bench\w*|fps|msaa|draw calls?|CI|checks?|scripts?|bakes?|re-?bak\w*|refactor\w*|wiring|TD-\d+|PRs?|"
+    r"pull requests?|workers?|cloudflare|formspree|database|endpoints?|flags?|debug\w*|dev|prebuilt|sectors?|"
+    r"shaders?|LoD\d?|memory|crash data|analytics|posthog|telemetry|statistics|privacy|signup|"
+    r"websites?|sites?|typed look|typed|GUGiK|OSM|godot|autopilot|playtests?|CPU|GPU|pipeline|"
+    r"nothing a player|build|code|tests?|logs?|metrics?|dashboard|backlog|roadmap|workflow|deploy\w*)\b|--\w|#\d{2,}", re.I)
+
+
+def short_line(text: str, limit: int = 150) -> str | None:
+    """One changelog line cut to whole sentences within the limit, or to a clean clause; None if it cannot."""
+    text = re.sub(r"\*\*|`", "", text)
+    text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
+    text = text.split(" / ")[0]  # bilingual lines: the first language only
+    parts = re.split(r"(?<=[.!?])(?<!\bal\.)(?<!\bul\.)(?<!\bpl\.)\s+", text)
+    sent = ""
+    for part in parts:
+        if len(sent) + len(part) + 1 > limit and sent:
+            break
+        sent = (sent + " " + part).strip()
+    sent = sent.rstrip(".!? ,;:")
+    if len(sent) > limit:
+        head = sent[:limit]
+        cut = max(head.rfind(", "), head.rfind(" and "), head.rfind("; "), head.rfind(": "))
+        if cut < 50:
+            return None
+        sent = head[:cut].rstrip(" ,;:")
+    if sent.count("(") != sent.count(")") or sent.count('"') % 2:
+        return None
+    return sent + "."
+
+
+def highlights(per_day: int = 3, max_days: int = 12) -> list[dict]:
+    """Newest first: {date, label, lines} with only short, player-facing lines; days with none are left out."""
     out = []
     for day in days():
-        n = day["updates"]
-        count = f' <span class="day-count">{n} update{"s" if n != 1 else ""}</span>' if n else ""
+        if not day["written"]:
+            continue
+        keep: list[str] = []
+        for ln in day["lines"]:
+            if TECHNICAL.search(ln):
+                continue
+            s = short_line(ln)
+            if s and s not in keep:
+                keep.append(s)
+        keep = keep[:per_day]
+        if keep:
+            out.append({"date": day["date"], "label": day["label"], "lines": keep})
+        if len(out) == max_days:
+            break
+    return out
+
+
+def html_days(heading: str = "h2") -> str:
+    """The days as HTML: a heading and a few short lines."""
+    out = []
+    for day in highlights():
         items = "".join(f"<li>{inline(x)}</li>" for x in day["lines"])
-        out.append(f'<{heading} id="d{day["date"]}">{day["label"]}{count}</{heading}>\n<ul class="day">{items}</ul>')
+        out.append(f'<{heading} id="d{day["date"]}">{day["label"]}</{heading}>\n<ul class="day">{items}</ul>')
     return "\n".join(out)
 
 

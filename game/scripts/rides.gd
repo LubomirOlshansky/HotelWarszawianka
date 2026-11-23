@@ -749,6 +749,9 @@ func _make_ride(n: int, e: int, s: float, from: Vector2, lo: float, hi: float) -
 		if rng.randf() < 0.4:
 			side = -side  # across the street
 		k = jobs._kerb(c + side * 6.0, c + side * 12.0, 3.5, [1.4, 2.2, 3.0])
+		# The walk along the street never takes the passenger out to the map's edge.
+		if not k.is_empty() and not graph.in_play(k["spot"]):
+			k = {}
 	if k.is_empty():
 		offset = false
 		k = jobs._kerb(door, pick["at"], 3.5, [1.4, 2.2, 3.0])
@@ -770,9 +773,9 @@ func _make_ride(n: int, e: int, s: float, from: Vector2, lo: float, hi: float) -
 	if rivals != null and rng.randf() < NAMED_SHARE:
 		var dist := graph.distances_from(graph.e_b[r["p_e"]])
 		for f in rivals.get("_finishes"):
-			# Nobody asks to be taken to the far end of a bridge, or to the map's edge (map north:
-			# the L-shaped outline's, 40 m in).
-			if String(f["name"]).contains("Most") or not map.in_map(graph.node_pos[int(f["node"])], -40.0):
+			# Nobody asks to be taken to the far end of a bridge, or to the map's edge (the
+			# L-shaped outline's, the jobs' pad: lane_graph.gd TARGET_PAD m in).
+			if String(f["name"]).contains("Most") or not map.in_map(graph.node_pos[int(f["node"])], -LaneGraph.TARGET_PAD):
 				continue
 			var road: float = graph.e_len[r["p_e"]] - float(r["p_s"]) + dist[int(f["node"])]
 			if road >= RIDE_MIN and road <= RIDE_MAX:

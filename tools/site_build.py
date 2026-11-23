@@ -216,18 +216,20 @@ PRIVACY_SITE = """<h2>This website · Ta strona</h2>
 <p>aroundwarsaw.app sets no cookies and runs no tracking scripts. It is served by
 Cloudflare, which handles ordinary request data (such as IP addresses) only to deliver and
 protect the site, and shows the developer anonymous totals (visits per day, country). Clicks
-on the store buttons are counted as a number per button and country, with nothing about you. The beta and feedback form sends what you type (your email, phone type and
-message) through Formspree to the developer's inbox. The email is used only to send a beta
-invite or to reply, and is deleted on request (write on Telegram, @olshansky93, or through the
-same form).</p>
+on the store buttons are counted as a number per button and country, with nothing about you. The beta signup and feedback forms send what you type (your email, phone type and
+message) to our own server on Cloudflare, which keeps it in a database and mails it to the
+developer's inbox; a one-way hash of your IP address, your country, city, region, timezone and browser language are kept only to stop
+abuse. The email is used only to send a beta invite or to reply, and is deleted on request
+(write through the Support page).</p>
 <p>aroundwarsaw.app nie używa ciasteczek ani skryptów śledzących. Stronę serwuje Cloudflare,
 który przetwarza zwykłe dane żądań (np. adresy IP) wyłącznie po to, by ją dostarczyć i chronić,
 i pokazuje autorowi anonimowe sumy (odwiedziny dziennie, kraj). Kliknięcia przycisków sklepów
 są liczone jako liczba na przycisk i kraj, bez żadnych danych o Tobie.
-Formularz bety i opinii wysyła to, co wpiszesz (e-mail, rodzaj telefonu, wiadomość), przez
-Formspree do skrzynki autora. E-mail służy tylko do wysłania zaproszenia do bety albo
-odpowiedzi i zostanie usunięty na prośbę (napisz na Telegramie, @olshansky93, albo przez ten
-sam formularz).</p>
+Formularze zapisu do bety i opinii wysyłają to, co wpiszesz (e-mail, rodzaj telefonu,
+wiadomość), na nasz serwer w Cloudflare, który zapisuje to w bazie i wysyła do skrzynki autora;
+jednokierunkowy skrót adresu IP, kraj, miasto, region, strefa czasowa i język przeglądarki są przechowywane tylko po to, by ograniczyć nadużycia.
+E-mail służy tylko do wysłania zaproszenia do bety albo odpowiedzi i zostanie usunięty na prośbę
+(napisz przez stronę Wsparcie).</p>
 """
 
 
@@ -295,6 +297,13 @@ MONTHS_PL = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipc
 
 # Phones show the wide shots as a 4:3 crop (the hero, the chapters, day/night): a 1920 x 884 frame
 # cropped to 4:3 fills the width with 61% of the picture, so the browser must ask for 163vw.
+# Where the site's forms post. "formspree": the Around Warsaw project's Formspree forms (live today).
+# "own": the Worker's /api/* (site/forms.js, D1 + email). One line to switch after a deploy of the Worker.
+FORMS = "own"
+FORM_ACTIONS = {
+    "formspree": {"signup": "https://formspree.io/f/xjyweqgn", "feedback": "https://formspree.io/f/xjyweqgn"},
+    "own": {"signup": "/api/signup", "feedback": "/api/feedback"},
+}
 PHONE_43 = "(max-width: 700px) 163vw, 100vw"
 
 
@@ -354,18 +363,21 @@ def landing(strings: dict, lang: str) -> str:
         values["hero_video"] = values["hero_button"] = ""
 
     # No store links while the beta is closed: one "open beta soon" button to the subscribe card (#beta).
+    values["form_action"] = FORM_ACTIONS[FORMS]["feedback"]
     values["hero_ctas"] = f'      <a class="btn btn-primary" href="#beta">{values["cta_ios"]}</a>'
     values["sticky_buttons"] = f'  <a class="btn btn-primary" href="#beta">{values["sticky_ios"]}</a>'
     values["android_card"] = (
         f'    <div class="plat-card soon" id="soon">\n        <h3>{values["and_title"]}</h3>\n'
         f'        <p>{values["and_text_a"]}</p>\n'
-        f'        <form class="notify" id="notify" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="email">\n'
+        f'        <form class="notify" id="notify" action="{FORM_ACTIONS[FORMS]["signup"]}" method="POST" novalidate data-need="email">\n'
+        f'          <fieldset class="topics platform">\n            <legend>{values["f_platform"]}</legend>\n'
+        f'            <label><input type="radio" name="platform" value="iPhone" checked><span>iPhone</span></label>\n'
+        f'            <label><input type="radio" name="platform" value="Android"><span>Android</span></label>\n          </fieldset>\n'
         f'          <label for="n-email">{values["n_email"]}</label>\n'
         f'          <div class="notify-row"><input id="n-email" name="email" type="email" required autocomplete="email" inputmode="email" aria-describedby="n-email-err">'
         f'<button class="btn btn-primary send" type="submit">{values["and_btn_a"]}</button></div>\n'
         f'          <p class="err" id="n-email-err" aria-live="polite"></p>\n'
         f'          <input type="hidden" name="_subject" value="Around Warsaw: open beta, notify me">\n'
-        f'          <input type="hidden" name="platform" value="—">\n'
         f'          <input type="hidden" name="source" value="aroundwarsaw.app ({lang}) beta notify">\n'
         f'          <div class="hp" aria-hidden="true"><label for="n-gotcha">Leave empty</label><input id="n-gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>\n'
         f'          <p class="status" role="status" aria-live="polite" data-ok="{values["n_ok"]}" data-fail="{values["f_fail"]}" '
@@ -412,7 +424,7 @@ def landing(strings: dict, lang: str) -> str:
 
     # New every day: the newest changelog day, three lines (the same source as /progress/).
     cl = changelog()
-    days = cl.days()
+    days = cl.highlights()
     newest = days[0]
     lines = [x for d in days[:3] for x in d["lines"]][:3]
     d0 = datetime.date.fromisoformat(newest["date"])
@@ -450,11 +462,11 @@ def progress_page() -> str:
     cl = changelog()
     intro = (
         "<h1>Progress · Postępy</h1>\n"
-        "<p>What was added or improved in Around Warsaw, day by day, newest first. "
-        "Co dodano albo poprawiono, dzień po dniu.</p>\n"
+        "<p>The best of what is new in Around Warsaw, newest first. "
+        "Najważniejsze nowości w Around Warsaw, od najnowszych.</p>\n"
         )
     return PAGE.format(title="Progress · Postępy", extra="",
-                       description="What's new in Around Warsaw, day by day: what was added or improved, and the backlog.",
+                       description="What's new in Around Warsaw: the best of each day, short.",
                        body=intro + cl.html_days())
 
 

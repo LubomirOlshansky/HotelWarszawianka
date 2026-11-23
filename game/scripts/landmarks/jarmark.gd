@@ -365,7 +365,10 @@ const JM_LINES := [[158.0, 0.0, 60.0], [259.0, -3.0, 80.0], [90.5, 46.0, 95.0]]
 
 ## The market's ground: the car park's asphalt under the main market (over its lawn islands).
 const JM_PAVED := [[147.0, 263.0, -9.5, 93.0]]
-## The car park's old bay lines that still show in the aisles (v; jarmark_promo.gd covers them).
+## Kept clear of parked cars besides JM_PAVED: the Plac Centralny part, [u0, u1, v0, v1] (its chalets, rides
+## and kit objects span u 14-147, v -24-135; v from -9.5 so Marszałkowska's own parking lane stays).
+const JM_PARK_FREE := [[10.0, 147.0, -9.5, 140.0]]
+## The car park's old bay lines that still show in the aisles (v).
 const JM_BAYS := [17.0, 40.0, 60.0]
 const JM_LIFT := 0.28
 ## The tower carousel's carrier at its top (metres over the ground); jarmark_rides.gd runs it down to the base.
@@ -508,6 +511,11 @@ func _find_jarmark() -> void:
 		var ring := _urect(p[0], p[1], p[2], p[3])
 		parked_free.append([ring, _box_of([ring])])
 		tree_free.append([ring, 0.0, _box_of([ring])])
+	# The Plac Centralny part too (F 2026-11-23, Play 14: "cars parked right in the market by the
+	# swings"): its rides, the Workshop and the chalets by the museum stand where cars park the rest of the year.
+	for p: Array in JM_PARK_FREE:
+		var ring := _urect(p[0], p[1], p[2], p[3])
+		parked_free.append([ring, _box_of([ring])])
 	for c: Array in [[JM_TOWER, 12.5], [JM_TEACUPS, 7.0], [JM_CAROUSEL, 7.5], [JM_SANTA, 5.0]]:
 		tree_free.append([_w(c[0].x, c[0].y), c[1]])
 	# The chalets on Plac Centralny stand on its paving, among its planted trees.

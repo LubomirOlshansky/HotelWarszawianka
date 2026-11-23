@@ -95,3 +95,5 @@ SHOTS="zamek:1:7" AMBIENCE=ambience-7s-vapor1-dry.m4a docs/teaser2/cut.sh build/
 
 First cut's notes: the pigeons are tiny at size 185 (a closer re-shoot reads better); the Palace frame
 has the round glass building in front, not behind; `most` has a dark car park and river.
+
+The audio files (`*.m4a`) are kept out of the repository: copies are in the project files at teaser/repo-audio/. Put them back beside this file before running cut.sh.

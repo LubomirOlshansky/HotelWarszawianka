@@ -7,7 +7,8 @@
 #   quick      no map needed, not even the sector split (game/map/index.json): the quick job has
 #              only what is committed; every code and content change (~8 min together)
 #   smoke      the prebuilt city (the phone's path) and the short map checks (~8 min after the bake)
-#   roads      road rules, the runtime drive and the runtime water check (full set only)
+#   roads      road rules and the runtime drive (full set only)
+#   water      the runtime water check, a shard of its own (full set only)
 #   ground     drape and ground (full set only)
 #   landmarks  the landmark check (joins a landmark change; full set otherwise)
 #   runs       the runtime game runs (full set only; each rebuilds the city, ~7 min in CI)
@@ -66,6 +67,7 @@ evtow                quick
 facadekit            quick
 fakes                quick
 fans                 quick
+feedback             quick
 finite               smoke
 first10              quick
 first10-run          local     slow
@@ -137,6 +139,7 @@ parkmesh             quick
 parodies             quick
 pause                quick
 pause-run            smoke
+photofronts          quick
 places               quick
 placescripts         quick
 placzamkowy          quick
@@ -231,7 +234,7 @@ trzy-mosty           local     slow
 tunnelcut            smoke
 turntable           quick
 uikit                quick
-water                roads     slow
+water                water     slow
 water-prebuilt       smoke     slow
 wellness             quick
 zaglebie             quick

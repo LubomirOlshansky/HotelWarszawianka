@@ -50,7 +50,10 @@ func _find_stadium() -> void:
 	var zone := PackedVector2Array()
 	for v in outer:
 		zone.append(centre + (v - centre) * 1.08)
-	_add_site("stadium", [zone])
+	# The Arka's cut (F's photos, 2026-11-21): OSM's slivers of "building" along its cheek walls, the
+	# headwall's strip and the flights' outlines stood as boxes in the cut; the site draws them.
+	var arka_zone := PackedVector2Array([Vector2(1636.6, -728.1), Vector2(1665.1, -679.9), Vector2(1638.9, -664.4), Vector2(1610.3, -712.5)])
+	_add_site("stadium", [zone, arka_zone])
 	sites[-1]["inner"] = inner
 	sites[-1]["outer"] = outer
 	sites[-1]["centre"] = centre
@@ -131,13 +134,19 @@ const STADIUM_TIP := Color(0.96, 0.97, 1.0)
 const STADIUM_RIM_LIGHT := Color(0.84, 0.87, 0.92)
 const STADIUM_LAMP := Color("#fff1cf")
 ## The stairs' light lines (pale sand by day, warm at night), on the mapped stairs within STAIR_REACH m of the centre.
-const STADIUM_STAIR := Color("#f0b45a")
+const STADIUM_STAIR := Color("#e0701a")
 const STAIR_REACH := 270.0
 ## The stairs' light lines: one per step (F's drone photo, 2026-11-21).
 const STAIR_STEP := 0.6
+## F (2026-11-21): the flights read as dark slabs with thin stripes from the heli's 485 m view.
+## Each line is now over half the step, so a flight reads as a glowing ladder.
+const STAIR_LINE := 0.36
+## The handrail light: its height over the treads and its bright warm white (F's night photo).
+const STAIR_RAIL := 0.95
+const STADIUM_RAIL := Color("#f2822a")
 ## The lines ride over the stone treads (map_builder rounds the ground up to whole risers of
 ## 0.16 m): at ground level they were hidden under the treads in checkered bits.
-const STAIR_LIFT := 0.2
+const STAIR_LIFT := 0.19
 ## F's drone photo (2026-11-21): the broad flights up the embankment at the ends of the
 ## avenues have a lit portal in their middle, a passage into the bank under the promenade.
 const PORTAL_STAIR_W := 20.0
@@ -146,6 +155,22 @@ const PORTAL_W := 9.0
 const PORTAL_MIN_RUN := 10.0
 const PORTAL_CONCRETE := Color("#b9b6ae")
 const PORTAL_GLOW := Color("#ffd89a")
+## The Arka (F's photos, 2026-11-21): the road tunnel under the stadium's east plaza, between its
+## two stair blocks (OSM service road 2156). The mouth's centre, the way out (east), the front
+## wall's half width and top, the opening's half width and the springing of its arch.
+const ARKA_AT := Vector2(1650.0, -703.5)
+const ARKA_OUT := Vector2(0.86, -0.51)
+const ARKA_HALF := 9.0
+const ARKA_TOP := 10.5
+const ARKA_OPEN := 5.0
+const ARKA_RIM := 0.9
+const ARKA_DEPTH := 1.5
+## Where the headwall stands: this far back along the cut from ARKA_AT (the terrain rises there).
+const ARKA_BACK := 25.5
+const ARKA_SPRING := 4.0
+const ARKA_RISE := 3.5
+const ARKA_GRANITE := Color("#6e655a")
+const ARKA_WHITE := Color("#e9e6df")
 const PROM_TO := 1.04
 
 
@@ -290,7 +315,16 @@ func _build_stadium(site: Dictionary) -> void:
 		var lp: Vector2 = c + ((inner[k] as Vector2) - c) * (PROM_TO - 0.008)
 		_prism(_circle(lp, 0.12, 4), deck[k], deck[k] + 4.6, Color("#3a3c40"), Color("#3a3c40"), M_STONE, M_STONE)
 		_prism(_circle(lp, 0.32, 4), deck[k] + 4.6, deck[k] + 5.0, STADIUM_LAMP, STADIUM_LAMP, M_LAMP, M_LAMP)
+	# F's drone photo: a warm line of light along the promenade's outer edge, at the facade's foot.
 	_mode = M_LAMP
+	for k in n:
+		var k1 := (k + 1) % n
+		var ea: Vector2 = c + ((inner[k] as Vector2) - c) * PROM_TO
+		var eb: Vector2 = c + ((inner[k1] as Vector2) - c) * PROM_TO
+		var ia: Vector2 = c + ((inner[k] as Vector2) - c) * (PROM_TO - 0.006)
+		var ib: Vector2 = c + ((inner[k1] as Vector2) - c) * (PROM_TO - 0.006)
+		_quad(Vector3(ia.x, deck[k] + 0.05, ia.y), Vector3(ib.x, deck[k1] + 0.05, ib.y),
+				Vector3(eb.x, deck[k1] + 0.05, eb.y), Vector3(ea.x, deck[k] + 0.05, ea.y), Vector3.UP, STADIUM_STAIR)
 	for st: Dictionary in data.get("steps", []):
 		var sp: Array = st["p"]
 		var w := float(st.get("w", 0.0))
@@ -303,15 +337,15 @@ func _build_stadium(site: Dictionary) -> void:
 		var run_len := s0.distance_to(s1)
 		var e := (s1 - s0) / maxf(run_len, 0.01)
 		var side := Vector2(-e.y, e.x)
-		var half := side * w * 0.44
+		var half := side * w * 0.47
 		# F's drone photo (2026-11-21): every step's nosing glows, so a flight reads as a
 		# block of gold lines from the air; a lit strip runs down both of its edges.
 		var t := 0.3
 		while t < run_len - 0.2:
 			var m0 := s0 + e * t
 			var m1 := m0 + e * 0.2
-			var y0: float = map.ground_height(m0.x, m0.y) + STAIR_LIFT
-			var y1: float = map.ground_height(m1.x, m1.y) + STAIR_LIFT
+			var y0: float = _stair_top(m0, side * w * 0.5) + STAIR_LIFT
+			var y1: float = _stair_top(m1, side * w * 0.5) + STAIR_LIFT
 			if w >= PORTAL_STAIR_W and run_len >= PORTAL_MIN_RUN:
 				# The portal's block covers the flight's middle: a line on each side of it.
 				var gap := side * PORTAL_W * 0.5 + side * 0.6
@@ -332,15 +366,23 @@ func _build_stadium(site: Dictionary) -> void:
 				var k2 := minf(k + 3.0, run_len)
 				var q0 := s0 + e * k
 				var q1 := s0 + e * k2
-				var h0: float = map.ground_height(q0.x, q0.y) + STAIR_LIFT + 0.18
-				var h1: float = map.ground_height(q1.x, q1.y) + STAIR_LIFT + 0.18
-				_quad(Vector3(q0.x + o0.x, h0, q0.y + o0.y), Vector3(q0.x + o1.x, h0, q0.y + o1.y),
-						Vector3(q1.x + o1.x, h1, q1.y + o1.y), Vector3(q1.x + o0.x, h1, q1.y + o0.y), Vector3.UP, STADIUM_STAIR)
+				var h0: float = _stair_top(q0, side * w * 0.5) + STAIR_LIFT
+				var h1: float = _stair_top(q1, side * w * 0.5) + STAIR_LIFT
+				# F (2026-11-21): the handrails glow along the whole flight, at hand height, so each
+				# flight reads from the air as a bright diagonal.
+				# A lit ribbon on the rail's inner face ties it to the tread (its foot lies on the ground), so the rail does not float.
+				_quad(Vector3(q0.x + o0.x, h0 + STAIR_RAIL, q0.y + o0.y), Vector3(q0.x + o1.x, h0 + STAIR_RAIL, q0.y + o1.y),
+						Vector3(q1.x + o1.x, h1 + STAIR_RAIL, q1.y + o1.y), Vector3(q1.x + o0.x, h1 + STAIR_RAIL, q1.y + o0.y), Vector3.UP, STADIUM_RAIL)
+				_quad(Vector3(q0.x + o1.x, h0, q0.y + o1.y), Vector3(q1.x + o1.x, h1, q1.y + o1.y),
+						Vector3(q1.x + o1.x, h1 + STAIR_RAIL, q1.y + o1.y), Vector3(q0.x + o1.x, h0 + STAIR_RAIL, q0.y + o1.y),
+						Vector3(-side.x * sgn, 0.0, -side.y * sgn), STADIUM_RAIL)
 				k = k2
 		if w >= PORTAL_STAIR_W and run_len >= PORTAL_MIN_RUN:
 			_stadium_portal(s0, s1, w)
 			_mode = M_LAMP
 	_mode = M_STONE
+	_stadium_arka()
+
 	# The roof: the raised rim (its outer face over the skin, its inner face sloping to the
 	# membrane), its soffit back to the skin's top, then the membrane down to the open middle
 	# in panels.
@@ -1438,3 +1480,120 @@ func _stadium_portal(s0: Vector2, s1: Vector2, w: float) -> void:
 	_quad(Vector3(f.x - side.x, top + 0.35, f.y - side.y), Vector3(f.x + side.x, top + 0.35, f.y + side.y),
 			Vector3(f.x + side.x, top + 0.5, f.y + side.y), Vector3(f.x - side.x, top + 0.5, f.y - side.y), Vector3(-e.x, 0.0, -e.y), PORTAL_GLOW)
 	_mode = M_STONE
+
+
+## The Arka (F's photos, 2026-11-21): the stadium's east pedestrian entrance, a granite headwall at the
+## foot of the embankment, at the end of the sunken service road (OSM 2156) that runs down the cut,
+## with a tall white-rimmed arch and lit glass doors, the stair flights running up on both sides.
+## The wall closes the cut: its top is level with the terrace the flights climb to.
+func _stadium_arka() -> void:
+	var e := ARKA_OUT.normalized()
+	var side := Vector2(-e.y, e.x)
+	var a := ARKA_AT - e * ARKA_BACK
+	var g: float = map.ground_height(a.x + e.x * 2.0, a.y + e.y * 2.0)
+	var n3 := Vector3(e.x, 0.0, e.y)
+	# The slab behind the doorway's recess (1.3 m deep, so the lit glass shows through the arch),
+	# and a cap over the recess.
+	var front := a - e * 1.3
+	var back := a - e * (1.3 + ARKA_DEPTH)
+	_prism(PackedVector2Array([front - side * ARKA_HALF, front + side * ARKA_HALF, back + side * ARKA_HALF, back - side * ARKA_HALF]),
+			g - 3.0, g + ARKA_TOP, ARKA_GRANITE, PORTAL_CONCRETE, M_STONE, M_STONE)
+	var cap0 := a + e * 0.05
+	_quad(Vector3(cap0.x - side.x * ARKA_HALF, g + ARKA_TOP, cap0.y - side.y * ARKA_HALF), Vector3(cap0.x + side.x * ARKA_HALF, g + ARKA_TOP, cap0.y + side.y * ARKA_HALF),
+			Vector3(front.x + side.x * ARKA_HALF, g + ARKA_TOP, front.y + side.y * ARKA_HALF), Vector3(front.x - side.x * ARKA_HALF, g + ARKA_TOP, front.y - side.y * ARKA_HALF), Vector3.UP, PORTAL_CONCRETE)
+	# The arch: points along an ellipse from one springing to the other (across, up).
+	var segs := 14
+	var arch: Array[Vector2] = []
+	for i in segs + 1:
+		var ang := PI * float(i) / float(segs)
+		arch.append(Vector2(-cos(ang) * ARKA_OPEN, ARKA_SPRING + sin(ang) * ARKA_RISE))
+	var f := a + e * 0.05
+	var at := func(u: float, v: float, d: float) -> Vector3:
+		var q: Vector2 = f + side * u - e * d
+		return Vector3(q.x, g + v, q.y)
+	# The rim's outer edge: the arch pushed out by ARKA_RIM (from its centre).
+	var rim := func(p: Vector2) -> Vector2:
+		var c := Vector2(0.0, ARKA_SPRING)
+		return c + (p - c) * ((p - c).length() + ARKA_RIM) / maxf((p - c).length(), 0.01)
+	# The headwall's face round the rim: the piers, then the spandrel above each arch segment.
+	var out_arch: Array[Vector2] = []
+	for q: Vector2 in arch:
+		out_arch.append(rim.call(q))
+	_quad(at.call(-ARKA_HALF, -0.3, 0.0), at.call(out_arch[0].x, -0.3, 0.0), at.call(out_arch[0].x, ARKA_TOP, 0.0),
+			at.call(-ARKA_HALF, ARKA_TOP, 0.0), n3, ARKA_GRANITE)
+	_quad(at.call(out_arch[segs].x, -0.3, 0.0), at.call(ARKA_HALF, -0.3, 0.0), at.call(ARKA_HALF, ARKA_TOP, 0.0),
+			at.call(out_arch[segs].x, ARKA_TOP, 0.0), n3, ARKA_GRANITE)
+	for i in segs:
+		var o0: Vector2 = out_arch[i]
+		var o1: Vector2 = out_arch[i + 1]
+		_quad(at.call(o0.x, o0.y, 0.0), at.call(o1.x, o1.y, 0.0), at.call(o1.x, ARKA_TOP, 0.0), at.call(o0.x, ARKA_TOP, 0.0), n3, ARKA_GRANITE)
+	# The white rim, proud of the wall, with its legs down to the ground; it glows at night so it reads
+	# from the wide frame.
+	_mode = M_LAMP
+	for i in segs:
+		var i0: Vector2 = arch[i]
+		var i1: Vector2 = arch[i + 1]
+		_quad(at.call(i0.x, i0.y, -0.2), at.call(i1.x, i1.y, -0.2), at.call(out_arch[i + 1].x, out_arch[i + 1].y, -0.2),
+				at.call(out_arch[i].x, out_arch[i].y, -0.2), n3, ARKA_WHITE)
+	for sg in [-1.0, 1.0]:
+		var u0: float = sg * ARKA_OPEN
+		var u1: float = sg * (ARKA_OPEN + ARKA_RIM)
+		_quad(at.call(minf(u0, u1), 0.0, -0.2), at.call(maxf(u0, u1), 0.0, -0.2), at.call(maxf(u0, u1), ARKA_SPRING, -0.2),
+				at.call(minf(u0, u1), ARKA_SPRING, -0.2), n3, ARKA_WHITE)
+	# The doors: a lit glass front set back under the arch, warm at night.
+	_mode = M_LAMP
+	_quad(at.call(-ARKA_OPEN, 0.0, 1.2), at.call(ARKA_OPEN, 0.0, 1.2), at.call(ARKA_OPEN, ARKA_SPRING, 1.2),
+			at.call(-ARKA_OPEN, ARKA_SPRING, 1.2), n3, PORTAL_GLOW)
+	for i in segs:
+		var j0: Vector2 = arch[i]
+		var j1: Vector2 = arch[i + 1]
+		# Two triangles, the one that would have zero area at a springing left out.
+		if i < segs - 1:
+			_tri(at.call(j0.x, ARKA_SPRING, 1.2), at.call(j1.x, ARKA_SPRING, 1.2), at.call(j1.x, j1.y, 1.2), n3, PORTAL_GLOW,
+					Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+		if i > 0:
+			_tri(at.call(j0.x, ARKA_SPRING, 1.2), at.call(j1.x, j1.y, 1.2), at.call(j0.x, j0.y, 1.2), n3, PORTAL_GLOW,
+					Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	# F (2026-11-21): the road to the Arka. A dark asphalt road, 8 m
+	# wide, straight, as F's aerial photo shows: it runs down the middle of the cut square into the doorway.
+	_mode = M_STONE
+	var road_len := ARKA_BACK - 1.3  # to the cut's mouth: the plaza's own road goes on from there
+	var rd0 := 0.0
+	while rd0 < road_len:
+		var rd1 := minf(rd0 + 1.5, road_len)
+		var rp := []
+		for rt: float in [rd0, rd1]:
+			var k := rt / road_len
+			var off := 0.0
+			var c0 := a + e * (1.3 + rt) + side * off
+			rp.append(c0)
+		var r0: Vector2 = rp[0]
+		var r1: Vector2 = rp[1]
+		var ry0: float = map.ground_height(r0.x, r0.y) + 0.07
+		var ry1: float = map.ground_height(r1.x, r1.y) + 0.07
+		_quad(Vector3(r0.x - side.x * 5.0, ry0, r0.y - side.y * 5.0), Vector3(r0.x + side.x * 5.0, ry0, r0.y + side.y * 5.0),
+				Vector3(r1.x + side.x * 5.0, ry1, r1.y + side.y * 5.0), Vector3(r1.x - side.x * 5.0, ry1, r1.y - side.y * 5.0), Vector3.UP, Color("#2a2c31"))
+		rd0 = rd1
+	# The cut's cheek walls and their granite parapets (map_builder SUNKEN `arka_cut`: its floor is level).
+	_no_roof = true
+	for sk: Dictionary in map._sunk:
+		if str(sk.get("site", "")) == "stadium":
+			_sunk_edges(sk)
+	_no_roof = false
+	_mode = M_STONE
+	# Lamp posts at the top corners of the two flights that frame the entrance (F's night photo).
+	for sg in [-1.0, 1.0]:
+		var lq: Vector2 = a - e * 6.0 + side * (ARKA_HALF + 7.0) * sg
+		var ly: float = map.ground_height(lq.x, lq.y)
+		_prism(_circle(lq, 0.12, 4), ly, ly + 4.6, Color("#3a3c40"), Color("#3a3c40"), M_STONE, M_STONE)
+		_prism(_circle(lq, 0.32, 4), ly + 4.6, ly + 5.0, STADIUM_LAMP, STADIUM_LAMP, M_LAMP, M_LAMP)
+	_mode = M_STONE
+
+
+## The ground's highest point across a flight at p (centre and both edges, `half` the half-width):
+## the city's stone flight (map_builder._stair_flight) lays its treads at or over that, so a lit
+## line at the centre's ground sank under every other tread (F, 2026-11-21: "the lighting on the
+## stairs is a little broken").
+func _stair_top(p: Vector2, half: Vector2) -> float:
+	return maxf(map.ground_height(p.x, p.y), maxf(map.ground_height(p.x + half.x, p.y + half.y),
+			map.ground_height(p.x - half.x, p.y - half.y)))

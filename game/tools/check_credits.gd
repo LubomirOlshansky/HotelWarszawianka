@@ -131,11 +131,11 @@ func _check_panel() -> void:
 	await process_frame
 	var size_before: Rect2 = panel.card_rect()
 	var buttons: Dictionary = panel.button_rects()
-	panel.set_tab(3)
+	panel.set_page("general")
 	await process_frame
 	var about := panel.find_child("credits", true, false) as Button
 	if about == null:
-		problems.append("the DŹWIĘK tab has no LICENCJE button")
+		problems.append("the OGÓLNE tab has no LICENCJE button")
 	else:
 		about.pressed.emit()
 		await process_frame
@@ -147,7 +147,7 @@ func _check_panel() -> void:
 			problems.append("the credits page's title is %s, not O GRZE" % title)
 		if not panel.card_rect().size.is_equal_approx(size_before.size):
 			problems.append("the card changed size on the credits page: %s -> %s" % [size_before.size, panel.card_rect().size])
-		panel.set_tab(0)
+		panel.set_page("game")
 		await process_frame
 		if page != null and page.is_visible_in_tree():
 			problems.append("a tab did not leave the credits page")

@@ -45,9 +45,11 @@ const Pedestrians := preload("res://scripts/pedestrians.gd")
 const BoulevardLife := preload("res://scripts/boulevard_life.gd")
 const KladkaLife := preload("res://scripts/kladka_life.gd")
 const JarmarkLife := preload("res://scripts/jarmark_life.gd")
+const WiechaLife := preload("res://scripts/wiecha_life.gd")
 const Props := preload("res://scripts/props.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const ScooterZones := preload("res://scripts/scooter_zones.gd")
+const DevFlags := preload("res://scripts/dev_flags.gd")
 
 ## Seconds between two ticks of the logic, and between two moves of the movers.
 const TICK := 0.5
@@ -555,6 +557,9 @@ var _kl_on := false
 ## Jarmark Warszawski (jarmark_life.gd, F 2026-11-20) rides the same bit and slots: its strollers are
 ## up when the view is within JarmarkLife.NEAR_R of the market and it is open (far from both others).
 var _jm_on := false
+## Pasaż Wiecha at Christmas (wiecha_life.gd, F 2026-11-22) the same way; the market and the pasaż are
+## 150 m apart, so when both are near the nearer one's strollers walk.
+var _wx_on := false
 ## The footbridge's passers-by's lines said (check_life reads it).
 var kladka_lines := 0
 var blvd_lines := 0
@@ -1835,6 +1840,12 @@ func _fire(id: String) -> bool:
 ## start, riding the path's way (DIR 1) or against it (-1). Videos only.
 var gang_at := Vector3(0.0, 0.0, -1.0)
 var gang_dir := 1.0
+
+
+## --scoot-gang=X,Z[,T[,DIR]] (videos): main.gd hands the flags over; the pack waits for gang_at.z s.
+func use_flags(f: DevFlags) -> void:
+	gang_at = f.scoot_gang
+	gang_dir = f.scoot_gang_dir
 const GANG_TEASER_N := 5
 
 
@@ -2214,6 +2225,28 @@ func _seen(m: Mover) -> bool:
 
 
 ## A new mover on a footway (a dog walker, a runner) or a cycle path (a rider) SPAWN_R from `eye`.
+## F (2026-11-21, the palm teaser): no bikes, couriers, scooters, runners or dog walkers through
+## the Party House's entrance, terrace and courtyard (Centrum Bankowo-Finansowe, Nowy Świat 6/12):
+## people sit and chill there (they rode up the terrace's drums and steps). Its outline's four corners, grown QUIET_GROW m.
+const QUIET_ZONES := [[Vector2(-88.7, 273.2), Vector2(-63.1, 360.2), Vector2(-135.2, 381.4), Vector2(-161.1, 294.6)]]
+const QUIET_GROW := 20.0
+var _quiet: Array[PackedVector2Array] = []
+
+
+## True if a path has a point in a quiet zone (no wheels there).
+func _crosses_quiet(pts: PackedVector2Array) -> bool:
+	if _quiet.is_empty():
+		for z: Array in QUIET_ZONES:
+			var poly := PackedVector2Array(z)
+			var grown := Geometry2D.offset_polygon(poly, QUIET_GROW, Geometry2D.JOIN_MITER)
+			_quiet.append(grown[0] if not grown.is_empty() else poly)
+	for q in pts:
+		for z in _quiet:
+			if Geometry2D.is_point_in_polygon(q, z):
+				return true
+	return false
+
+
 func _spawn(kind: String, eye: Vector2) -> Mover:
 	if kind == "kerb":
 		return _spawn_kerb(eye)
@@ -2233,6 +2266,8 @@ func _spawn(kind: String, eye: Vector2) -> Mover:
 		return null
 	var i := cands[_rng.randi() % cands.size()]
 	var pts := list[i]
+	if _crosses_quiet(pts):
+		return null
 	var cum := _cum_of(pset, i)
 	var length := cum[cum.size() - 1]
 	if length < 8.0:
@@ -2459,12 +2494,6 @@ func _heights_of(pset: String, i: int) -> PackedFloat32Array:
 	var h := PackedFloat32Array()
 	for q in pts:
 		var y: float = map.deck_height(dk, q.x, q.y) if map != null else 0.0
-		# F (2026-11-21, teaser 4): a path over a low built floor (the Party House's terrace, 0.75 m
-		# up) rides on it, not through it; anything higher than a step-up is a building, left alone.
-		if map != null:
-			var top: float = map.roof_height(q.x, q.y)
-			if top - y > 0.15 and top - y < 1.2:
-				y = top
 		h.append(y)
 	_heights[key] = h
 	return h
@@ -3273,8 +3302,11 @@ func _hyrax_loop() -> void:
 func _blvd_near(eye: Vector2) -> bool:
 	_blvd_on = amount > 0.0 and BoulevardLife.active(_hour) and eye.distance_to(BoulevardLife.C) < BoulevardLife.NEAR_R
 	_kl_on = amount > 0.0 and not _blvd_on and KladkaLife.near(eye, _hour)
-	_jm_on = amount > 0.0 and not _blvd_on and not _kl_on and JarmarkLife.near(eye, _hour)
-	return _blvd_on or _kl_on or _jm_on
+	var wx_near := amount > 0.0 and not _blvd_on and not _kl_on and WiechaLife.near(eye, _hour)
+	_jm_on = amount > 0.0 and not _blvd_on and not _kl_on and JarmarkLife.near(eye, _hour) \
+			and not (wx_near and eye.distance_to(WiechaLife.centre()) < eye.distance_to(JarmarkLife.centre()))
+	_wx_on = wx_near and not _jm_on
+	return _blvd_on or _kl_on or _jm_on or _wx_on
 
 
 ## The patrol's figures and dog now: BoulevardLife.patrol_figures for the hour's kind and pairs
@@ -3299,7 +3331,7 @@ func _blvd_target() -> Dictionary:
 func _blvd_sig() -> int:
 	var pose := _blvd_pose()
 	return (pose["figs"] as Array).size() | (1 if not (pose["dog"] as Array).is_empty() else 0) << 4 \
-			| _walkers_now(0.0).size() << 5 | _riders_now(0.0).size() << 11 | int(_kl_on) << 17 | int(_jm_on) << 18
+			| _walkers_now(0.0).size() << 5 | _riders_now(0.0).size() << 11 | int(_kl_on) << 17 | int(_jm_on) << 18 | int(_wx_on) << 19
 
 
 ## The walkers of the place that is up now (the steps' or the footbridge's), at clock `at_t`.
@@ -3308,6 +3340,8 @@ func _walkers_now(at_t: float) -> Array:
 		return KladkaLife.walker_figures(at_t, _hour)
 	if _jm_on:
 		return JarmarkLife.walker_figures(at_t, _hour)
+	if _wx_on:
+		return WiechaLife.walker_figures(at_t, _hour)
 	return BoulevardLife.walker_figures(at_t, _hour) if _blvd_on else []
 
 
@@ -3380,7 +3414,7 @@ func _blvd_talk(eye: Vector2, step: float) -> void:
 	if _kl_on:
 		_kl_talk(eye)
 		return
-	if _jm_on:
+	if _jm_on or _wx_on:
 		return
 	var kind := BoulevardLife.patrol_kind(_hour)
 	if kind == "":

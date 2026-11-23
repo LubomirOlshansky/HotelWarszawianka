@@ -512,35 +512,88 @@ func _check_shop_car() -> void:
 	car.set_handling(Car.Handling.CRUISE)
 	g.choose_item("hatch")
 	_expect("car back on the hatch", str(car.get("model")), "hatch")
-	# Nitro: not owned = never on; owned: held burns the tank in NITRO_SECONDS, a dry tank waits for
-	# the button to be let go, then it refills in NITRO_REFILL s.
-	car.set("nitro_hold", true)
+	# N1 nitro: not owned = never on; owned: a press (the tap) fires one bottle for NITRO_BURN s,
+	# holding adds nothing, the next press fires the next bottle, an empty kit stays off, a bottle
+	# refills in NITRO_REFILL s, BRAKE ends a burn and keeps the rest, a press on the drag's line
+	# (`nitro_wait`) waits for the green, a press while parked is kept only NITRO_KEEP s.
+	var press := func() -> void:
+		car.set("nitro_hold", false)
+		car.call("_nitro_tick", 0.0)
+		car.set("nitro_hold", true)
+	press.call()
 	car.call("_nitro_tick", 0.1)
 	_expect("nitro without owning", bool(car.get("nitro_on")), false)
 	g.choose_item("nitro")
 	_expect("car owns the nitro", bool(car.get("nitro_owned")), true)
+	_expect("the kit holds two bottles", int(car.get("nitro_bottles")), 2)
 	var lit := [0]
 	car.connect("nitro_started", func() -> void: lit[0] += 1)
+	car.set("nitro_charge", 1.0)
+	press.call()
 	car.call("_nitro_tick", 0.1)
-	_expect("nitro on", bool(car.get("nitro_on")), true)
+	_expect("nitro on after a tap", bool(car.get("nitro_on")), true)
 	car.call("_nitro_tick", 0.1)
 	_expect("nitro_started fires once per burn (G13b)", lit[0], 1)
 	if absf(float(car.call("top_speed")) - float(car.get("max_speed")) * Car.NITRO_TOP) > 0.01:
 		problems.append("car: top speed %.1f with the nitro on" % float(car.call("top_speed")))
-	var t := 0.0
+	var t := 0.2
 	while bool(car.get("nitro_on")) and t < 10.0:
-		car.call("_nitro_tick", 0.05)
+		car.call("_nitro_tick", 0.05)  # the button stays held: it adds nothing
 		t += 0.05
-	if absf(t - Car.NITRO_SECONDS) > 0.3:
-		problems.append("car: the tank burned %.1f s (want %.1f)" % [t, Car.NITRO_SECONDS])
-	for i in 600:
-		car.call("_nitro_tick", 0.05)  # held on, dry: stays off
-	_expect("a dry tank, button held", bool(car.get("nitro_on")), false)
+	if absf(t - Car.NITRO_BURN) > 0.15:
+		problems.append("car: a bottle burned %.2f s, button held (want %.1f)" % [t, Car.NITRO_BURN])
+	_expect("one bottle left after a burn", int(car.call("nitro_ready")), 1)
+	press.call()
+	car.call("_nitro_tick", 0.05)
+	_expect("the second tap fires the second bottle", bool(car.get("nitro_on")), true)
+	for i in int(Car.NITRO_BURN / 0.05) + 4:
+		car.call("_nitro_tick", 0.05)
+	_expect("both bottles burned", int(car.call("nitro_ready")), 0)
+	press.call()
+	car.call("_nitro_tick", 0.05)
+	_expect("an empty kit stays off", bool(car.get("nitro_on")), false)
 	car.set("nitro_hold", false)
-	for i in int(Car.NITRO_REFILL / 0.05) + 20:
+	for i in int(Car.NITRO_REFILL / 0.05) + 4:
+		car.call("_nitro_tick", 0.05)
+	_expect("a bottle refills in NITRO_REFILL s", int(car.call("nitro_ready")), 1)
+	for i in int(Car.NITRO_REFILL / 0.05) + 4:
 		car.call("_nitro_tick", 0.05)
 	if float(car.get("nitro_charge")) < 0.999:
-		problems.append("car: the tank is at %.2f after %.0f s" % [float(car.get("nitro_charge")), Car.NITRO_REFILL])
+		problems.append("car: the kit is at %.2f after %.0f s" % [float(car.get("nitro_charge")), 2.0 * Car.NITRO_REFILL])
+	_expect("lit once a bottle", lit[0], 2)
+	# BRAKE ends the burn; what is left of the bottle stays.
+	press.call()
+	car.call("_nitro_tick", 0.5)
+	car.set("braking", true)
+	car.call("_nitro_tick", 0.05)
+	car.set("braking", false)
+	_expect("BRAKE ends the burn", bool(car.get("nitro_on")), false)
+	var left := float(car.get("nitro_charge"))
+	if left < 0.75:
+		problems.append("car: a burn braked after 0.5 s left the kit at %.2f (want the rest kept)" % left)
+	car.set("nitro_charge", 1.0)
+	# The drag's line: a tap waits for the green, however long, then fires.
+	car.set("nitro_wait", true)
+	press.call()
+	for i in 100:
+		car.call("_nitro_tick", 0.05)
+	_expect("a tap on the line waits", bool(car.get("nitro_on")), false)
+	car.set("nitro_wait", false)
+	car.call("_nitro_tick", 0.05)
+	_expect("the kept tap fires with the green", bool(car.get("nitro_on")), true)
+	for i in int(Car.NITRO_BURN / 0.05) + 4:
+		car.call("_nitro_tick", 0.05)
+	car.set("nitro_charge", 1.0)
+	# Parked: a tap is kept only NITRO_KEEP s.
+	car.set("parked", true)
+	press.call()
+	for i in int(Car.NITRO_KEEP / 0.05) + 6:
+		car.call("_nitro_tick", 0.05)
+	car.set("parked", false)
+	car.call("_nitro_tick", 0.05)
+	_expect("an old tap from a stop does not fire later", bool(car.get("nitro_on")), false)
+	car.set("nitro_hold", false)
+	car.call("_nitro_tick", 0.0)
 	# A run on the gas, 12 s: the TT is quicker than the hatch, the nitro quicker still.
 	var tops := {}
 	for run in [["hatch", false], ["tt", false], ["hatch", true], ["tt", true]]:

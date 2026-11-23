@@ -5361,6 +5361,13 @@ ceiling for a default view).
 | Loop G1: TEST · BENCH at Auto on the iPhone 11 (High, 896×414) and the Pro Max (Ultra, 1434×660), 60 fps cap | 60 fps, 1 % low 56.6 / 57.3, 0 missed refreshes | 60, 0 missed refreshes, 1 % low ≥ 55 | 60, 0 missed refreshes, 1 % low ≥ 55 |
 | Loop G1b: the iPhone 11 at Auto, now High ×1 sharp (1792×828): BENCH minute, and a 15-minute day drive with the governor on (missed refreshes, governor changes) | BENCH 60 fps, 0 missed, 1 % low 54.4 / 58.7 (cool / warm); drive 60.0 every minute, 5 missed in 17.7 min, 0 governor changes | 60, 0 missed refreshes, 1 % low ≥ 55; the drive with no struggle verdict | 60, 0 missed refreshes, 1 % low ≥ 55; the drive with no struggle verdict (else the content costs the iPhone 11 its sharp default) |
 
+**Jarmark Warszawski 2026 (2026-11-22, #1006).** The market at the Palace is one site mesh of
+190,815 triangles (was 69,003; `check_mesh_quality` budget 192,000), +0 draw calls. That is a
+large share of the main-pass triangle ceiling in any view of the Palace. No TestFlight or Play
+build from a main that holds it until the iPhone bench near the Palace is done (needs F's yes for
+the device run). If the bench is tight, the cut is a segment-count change in `jarmark_kit.gd`
+(bulbs on strings and chalets first).
+
 **The bench's window (performance lane, 2026-10-30).** On macOS 27 a small window waits about
 4 ms in the draw/present step whatever is drawn: at the default 1280×720 the bench's frame
 reads 5.6–6.3 ms (main-thread "draw" 4.0–4.6 ms) both before and after loop 3d-1, while at
@@ -5538,6 +5545,23 @@ the default share went from 11.9 % to 11.5 % of 278.8 km (fences 9.1 %): `check_
 R 6.9 → 7.8. Nothing changes in the classic look (the per-sector hashes are main's); the typed look
 draws the planters 0.5 m, the castle garden's hedges at their mapped 3-5 m and the 6 m school fence
 as a net.
+
+**The first wall sweep (walls look W10a, 2026-11-21)**: a sweep's TYPE decision (`["TYPE", ty, why,
+photo, date]` by stable id, in a street's or a place's `decisions` in `docs/streets/streets.json`;
+`places` holds the sweeps that are not one street) goes through `tools/street_pass.py --apply` into
+`game/data/road_objects.json` `types` (the hand-kept entries stay) and reaches `centrum.json` through
+`object_types.py`'s guarded `fix_types` (`id_type`), with no re-bake: the sweep raises
+`object_types.VERSION` by one (3), so the pass runs once more on main's map; its stamp's `fixes` add up.
+The first sweep judged 237 lines within 150 m of eight places and the fountain park by street photos
+(the verdict table is in the walls-research folder, outside the repo): 14 typed, 39 kept, 182 CHECK
+(no photo or the line not in view), 2 with no palette row (Koszykowa's graphite slat fence, kept).
+The 14: Plac Grzybowski's five plastered walls that are planter edges (`low_wall`, 0.5 m, R), the bar
+fences by the square, on Prosta and by the boulevards' car park (`bars_black`), the Filters' fences on
+Koszykowa and Raszyńska (`bars_pier`), Al. Poniatowskiego's two kerb railings by the stadium
+(`rail_street`), the car park by the Towarowa railway (`mesh_panel`) and the fountain park's long
+basin (`basin_rim`, no top rail). Default share 11.47 → 11.29 % of 278.3 km (fences 9.08 → 9.04 %):
+`ALL_DEFAULT_MAX` 11.3 and `FENCE_DEFAULT_MAX` 9.1. Class km H 80.3 → 79.2, S 190.2 → 190.8,
+R 7.8 → 8.2. The game reads `sc` only for fences and hedges, whose class did not change.
 
 **Barrier gates (walls look W8, 2026-11-20)**: `tools/barrier_gates.py` is a post-pass on main's map
 (TD-25; last in `bake_osm.py` and in `tools/check_post_passes.py`; verify step `barriergates` runs its
@@ -5965,13 +5989,15 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--lite-shaders` | 2026-11-08: the Adreno 6xx shaders on any GPU (`gpu_quirks.gd`: building.gdshader without its specular lobe), to see on the Mac what the Nothing Phone 1 draws |
 | `--stats=log\|send\|off` | the beta's play stats (play_stats.gd, docs/STATS.md): `log` prints each event as `play_stats: <event> <json>` and sends none (check `stats`), `send` sends from a debug build when `game/data/stats_key.json` is there (a device test), `off` none. Without it a debug build sends nothing |
 | `--heli` | start in the helicopter |
-| `--promo-heli=X,Z,TX,TZ,ALT[,SHARE]` | teaser 5 (F, 2026-11-21): a second helicopter for a promo shot, ALT m over (X, Z), flying itself towards (TX, TZ) at SHARE of top speed (0.6), its lights on at night |
+| `--promo-delay=S` | F 2026-11-21: place the `--promo-at` actors S s after the start (a long `--skip` clip) |
+| `--promo-parts=LIST` | F 2026-11-21: which `--promo-at` actors come (tram-up, tram-east, bus, police; default all) |
+| `--promo-heli=X,Z,TX,TZ,ALT[,SHARE[,SCALE]]` | teaser 5 (F, 2026-11-21): a second helicopter for a promo shot, ALT m over (X, Z), flying itself towards (TX, TZ) at SHARE of top speed (0.6), drawn SCALE times its size (1), its beacon and strobe on at night, no searchlight |
 | `--heli-stick=X,Z` | the L-shaped map loop (2026-10-31): the helicopter's stick held towards that world direction (x east, z south; length up to 1) the whole run, for screenshots of the clamp along the map's outline (with `--heli --at=`) |
 | `--heli-alt=M` | loop 3d-2b: start in the helicopter M metres over the ground, placed there at once (360 = its highest; the memory and far-level probes) |
 | `--mission=N` | start rescue call N at once (N = 1, 5, 9… streets, 2, 6… roofs, 3, 7… river, 4, 8… parks) |
 | `--autopilot` | testing aid: fly (or, ghosting through walls, drive) to each mission target, or to the target of the activity of the kit that is on (a tour's pickup and stops); in a race or a side job, drive the route; with `--rival`, tail the rival |
 | `--ghost-pace=X` | testing aid (street races, 2026-11-04): the autopilot's speed factor in a race (default 1.8, an average player; 2.4 a quick one; `racer`: a skilled player in traffic.gd's racer mode at the car's top), for the race-AI runs (`tools/race_ai.sh`) |
-| `--handling=cruise\|sport\|grounded` | Grounded handling (2026-11-08): drive this run in that profile (car.gd PROFILES), whatever Settings → Jazda says; `check_lane_drive.gd` takes it too |
+| `--handling=cruise\|sport\|grounded` | Grounded handling (2026-11-08): drive this run in that profile (car.gd PROFILES), whatever Settings → Jazda says; `check_lane_drive.gd` takes it too. Since H1 (2026-11-22) cruise and sport are the „Charakter jazdy" slider's 0.35 and 1, grounded is Realnie at the slider's place |
 | `--collide=v1\|soft\|mid\|firm` | the city objects plan, step 6 (2026-11-14): the car's collision answer (`collide_rules.gd`). `v1` (the default, no flag) is today's answer bit for bit; `soft`, `mid`, `firm` the v2 answer: a hit turns the speed along the wall keeping 97 / 90 / 80 % at a graze (less the harder it is met), a head-on hit kicks the nose 35-50° to the freer side once, a T-boned traffic car slides off its line, a tram or bus answers as a wall, ghosting through traffic after 0.8 s in Cruise. Since 2026-11-14 also Settings → Świat → Zderzenia (Klasyka = v1, the default; Miękko, Średnio, Twardo), applied live; the flag sets the run's start over the setting. `check_lane_drive.gd` and `check_steering.gd` take it too |
 | `--contacts=FILE` | the city objects plan, step 3 (2026-11-14): write the car's contact log (`contact_log.gd`: one line per contact episode, its solid class, speed in and kept, angle, street, `dead_stop` / `unstick` / `tow`; a `drive` line per street leg) to FILE during the run, Autopilot's too; `python3 -I tools/drive_report.py FILE` makes the table. `check_lane_drive.gd` takes it too, with `--driver=careful\|sloppy`, `--set=A`, `--seed=N`, `--assist=on\|off` and `--dry` (item 1 of docs/design/drivable-city-build.md). A release build reads no flags |
 | `--no-soft` | the city objects plan, step 7 (2026-11-14): the city as before step 7, every fence and hedge solid (step 8a: and every parked car: their colliders, `Solid_parked`, are always filed and stay on; no `soft_cars` list): the runtime builder files the S lines' colliders again (`city_barriers.gd` `soft_off`) and the prebuilt sectors get them back from their `soft` lists (`soft_things.gd` `harden`, the same faces); nothing breaks. Since 2026-11-14 it also wins over Settings → Świat → Łamliwe płoty for the whole run (the toggle is saved but the fences stay hard: the runtime sectors have no soft list to turn breakable). For A/B runs and the hash proof (`dump_hashes.gd`). `check_lane_drive.gd` takes it too. A release build reads no flags |
@@ -6039,7 +6065,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--game-clock` | F 2026-11-19: run the game clock in a test run (a normal launch always does): 30x (pacing.json time.speed), the sun by the date (`--date=`, else this week's Friday), the long golden hour; `--time=` / `--clock=` set where it starts |
 | `--weather=clear\|rain` | start dry or in the rain (default clear) |
 | `--perf` | show the performance overlay (loop 2e: four lines: fps, frame time, worst, cap · CPU process + physics + draw, GPU, memory · draw calls by pass · objects, triangles) |
-| `--quality=auto\|low\|medium\|high\|ultra\|experimental` | the quality for this run (not saved; loop G1: default Auto, the level `tiers.gd` picks for the device; 0–3 are Low–Ultra; `experimental`/`exp` by name only, F 2026-11-10: Ultra plus the trailer's extras; saved from Settings since 2026-11-19, with a guard that falls back to Ultra once after a launch that never got going) |
+| `--quality=auto\|low\|medium\|high\|ultra\|experimental` | the quality for this run (not saved; loop G1: default Auto, the level `tiers.gd` picks for the device; 0–3 are Low–Ultra; `experimental`/`exp`/`max` by name only, F 2026-11-10: Ultra plus the trailer's extras; saved from Settings since 2026-11-19, with a guard that falls back to Ultra once after a launch that never got going; since 2026-11-20 it is Max, every extra at the x2 image, and the screen's own pixels are `--gfx=full=true` or Settings → Obraz Pełny on any level) |
 | `--gfx=key=value,...` | per-option overrides on top of the quality level, for this run (perf thread 2026-11-19, `tiers.gd value`/`parse_overrides`): any key of `Tiers.QUALITY` (`shadows`, `shadow_size`, `soft` 0-5, `small_shadows`, `reflect`, `glow`, `rain`, `traffic`, `people`, `tree_limbs`, `fine_trees`, `panel_holes`, `step`, `budget`, `full`, `msaa` 0/2/4/8, `aniso` 0-16, `lod`) plus `scale`, the image's exact screen pixels per image pixel. The bench card's quality line names them |
 | `--mac` / `--mac=off` | Mac step 1 (2026-11-20, `mac_mode.gd`): the rules of the iPhone app on a Mac on any computer, or off on one: Auto Ultra (High on a base M1 / M2), the image x2 inside 2 MP (Low / Medium x3) with MSAA 4x from High up, the HUD at least the window's height / 600 px a point, and a letter, arrow or space key hides the touch pads (a touch or click brings them back). Every launch logs `mac: on/off · OS · model · GPU`. `--gfx=` still wins |
 | `--model=ID` | loop G1: pick Auto's level as if on that device (`--model=iPhone12,1` is the iPhone 11: High; since loop G1b Auto draws it sharp, 1792×828 ×1, and 896×414 ×2 in the fallback; `iPhone17,2` the Pro Max: Ultra) |
@@ -6062,7 +6088,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--story-meet` | quest map: the friend's WCHODZĘ is pressed by itself a second after they walk up (the in-person start without a tap) |
 | `--stories-log` | quest map (`story_quests.gd`): the questlines, quest focus, the friend walking up |
 | `--map-jump=X,Z` | 2026-10-31: the full map's hold-to-teleport to X,Z at the start (prints the refusal, if any, and where the car went) |
-| `--settings-tab=N` | loop 2e: open the settings panel at tab N (0 Jazda · Driving, 1 Świat · World, 2 Obraz · Picture, 3 Dźwięk · Sound; loop MW-1: 4 Zeszyt · the notebook) |
+| `--settings-tab=NAME` | loop 2e: open the settings panel on a page by name (settings_panel.gd PAGES: game, picture, sound, access, general, dev, notebook, credits, tips; step 1 named them, step 3 regrouped the tabs, 2026-11-23; the old driving and world open game). A number still works as the page's index in PAGES |
 | `--notebook` / `--notebook=CHAPTER\|ID` | loop MW-1: open the settings card on MOJA WARSZAWA, the notebook (a chapter by id or number 1-9, or a place's card by its id; screenshots) |
 | `--found=all\|none\|CHAPTER[:K],…` | loop MW-1: the notebook's record for this run, in memory, no rewards (a chapter by id or number, `:K` its first K places; `--found=1:4,9` half of the first chapter and all of the ninth). Use with `--nosave` (a later save would keep it) |
 | `--place=ID` | loop MW-1: start at a notebook place (`places.json` id): the sectors round its hint first, then the car on the nearest lane if that is inside the place's radius, else on the place (found within a second, standing) |
@@ -6175,7 +6201,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--paint=<id>` | garage loop: the car starts in that paint (`red`, `cream`, `green`, `blue`, `yellow`, `black`, `pink`, `gold`), owned for the run (use with `--nosave`) |
 | `--garage` / `--garage=ring` | garage loop: start in Warsztat u Mirka's ring on Brzeska, the garage shown whatever the wallet, the paint card open a moment in (free roam, no title; implies `--garage-log`); `=ring`: 16 m short of the ring, no card |
 | `--garage=parts` | G13: like `--garage`, the card opens on the parts tab ("Części i auta") |
-| `--pedal=nitro` | G13b: gas and the nitro disc held (with `--upgrades=nitro`), for shots of the tail flame |
+| `--pedal=nitro` | G13b: gas and the nitro disc held (with `--upgrades=nitro`), for shots of the tail flame; N1: a full bottle fires again whenever none burns |
 | `--upgrades=all\|tt\|nitro` | G13: the car starts with the Ołdi TT, the nitro, and (all) tyres and engine at level 3, owned for the run (use with `--nosave`); the nitro is the N / Shift key or the bolt disc by the horn |
 | `--garage-log` | garage loop: print `garage:` lines: the place, the card opening and closing, each buy and switch |
 | `--club=<id>` | loop MW-3: start at that club (`lusterko`, `smola`, `jasna_0`, `lombard`, `milosc_hipoteczna`, or its name): the car on the lane nearest its door (within 60 m), free roam, no title |

@@ -47,7 +47,13 @@ var train_at := Vector2.INF
 ## (one up Marszałkowska, one along the Aleje) and a bus put so they reach that point T s (default 6)
 ## after the start, rolling.
 var promo_at := Vector2.INF
+## --promo-parts=LIST (F 2026-11-21, the palm teaser): which of --promo-at's actors come: tram-up,
+## tram-east, bus, police (default all; "police" alone leaves the trams and buses to the traffic).
+var promo_parts := PackedStringArray(["tram-up", "tram-east", "bus", "police"])
 var promo_t := 6.0
+## --promo-delay=S (F 2026-11-21, the palm reel): place --promo-at's actors S s after the start
+## instead of at load, so they still cross a clip whose head (--skip) is long.
+var promo_delay := 0.0
 ## --pigeons-at=T (videos, F 2026-11-19 "the pigeons fly up during the video"): Plac Zamkowy's
 ## square stays awake wherever the player is, and its flock bursts up T s after the start.
 var pigeons_at := -1.0
@@ -106,9 +112,9 @@ var demo := false
 ## world direction (x east, z south) the whole run, for screenshots of the clamp along the map's
 ## outline (ZERO: off).
 var heli_stick := Vector2.ZERO
-## Teaser 5 (F, 2026-11-21), --promo-heli=X,Z,TX,TZ,ALT[,SHARE]: a second helicopter for a promo
-## shot, starting ALT m over (X, Z) and flying itself towards (TX, Z) at SHARE of top speed
-## (0.6), its beacon, strobe and searchlight on at night. Empty: none.
+## Teaser 5 (F, 2026-11-21), --promo-heli=X,Z,TX,TZ,ALT[,SHARE[,SCALE]]: a second helicopter for a
+## promo shot, starting ALT m over (X, Z) and flying itself towards (TX, TZ) at SHARE of top speed
+## (0.6), drawn SCALE times its size (1), its beacon, strobe and searchlight on at night. Empty: none.
 var promo_heli := PackedFloat32Array()
 var out_dir := "user://"
 ## --spots: [name, Vector2 x/z, heading or INF] per camera; one run shoots them all, the city
@@ -222,8 +228,6 @@ var egg_log := false
 var found_eggs := ""
 var tape_flag := ""
 var tape_log := false
-var spacer_flag := -1
-var spacer_hint := -1.0
 var fotka_flag := false
 ## --promo[=free,grid,ghost,nohud,clean,panel,9:16,4:5,1:1,16:9]: Promo Mode on for the run
 ## (promo_mode.gd `use_flag`; the DEV setting's "promo"), with those of its switches set.
@@ -385,13 +389,13 @@ var crash_note_flag := false
 ## 90 s into play instead of 60).
 var free_roam := false
 ## Loop 2e: the first rescue call comes in after this many seconds of play (--call-in=S;
-## missions.gd FIRST_CALL by default); --style= and --vhs win over the saved settings.
+## missions.gd FIRST_CALL by default); --style= wins over the saved settings.
 var call_in := -1.0
-## Loop 2e: --settings-tab=N opens the settings panel at that tab (0 Driving, 1 World, 2 Picture,
-## 3 Sound) for screenshots.
-var settings_tab := 0
+## Loop 2e: --settings-tab=NAME opens the settings panel at that page for screenshots: a name of
+## settings_panel.gd PAGES (driving, world, picture, sound, notebook, access, credits, tips, dev) or,
+## as before, its number.
+var settings_tab := "game"
 var _flag_style := -1
-var _flag_vhs := false
 ## --tap=X,Y: tap that screen pixel at frame 60, as if a finger did (landmark cards).
 var tap_at := Vector2.INF
 var start_weather := 0
@@ -807,8 +811,6 @@ func parse_with(args: PackedStringArray) -> void:
 					grade_sweep.append([t, g])
 			start_time = TimeOfDay.parse(grade_sweep[0][0])
 			grade = grade_sweep[0][1]
-		elif arg == "--vhs":
-			_flag_vhs = true
 		elif arg.begins_with("--call-in="):
 			call_in = maxf(0.0, float(arg.trim_prefix("--call-in=")))
 		elif arg.begins_with("--radio="):
@@ -998,7 +1000,7 @@ func parse_with(args: PackedStringArray) -> void:
 		elif arg == "--notebook" or arg.begins_with("--notebook="):
 			# Loop MW-1: the notebook's tab at the start (a chapter, or a place's card).
 			open_settings_at_start = true
-			settings_tab = 4
+			settings_tab = "notebook"
 			notebook_open = arg.trim_prefix("--notebook").trim_prefix("=")
 		elif arg.begins_with("--found="):
 			found_spec = arg.trim_prefix("--found=")
@@ -1099,6 +1101,10 @@ func parse_with(args: PackedStringArray) -> void:
 			crazy_log = true
 		elif arg == "--old-tram" or arg.begins_with("--old-tram="):
 			old_tram_flag = "follow" if arg == "--old-tram=follow" else "now"
+		elif arg.begins_with("--promo-delay="):
+			promo_delay = float(arg.trim_prefix("--promo-delay="))
+		elif arg.begins_with("--promo-parts="):
+			promo_parts = PackedStringArray(arg.trim_prefix("--promo-parts=").split(","))
 		elif arg.begins_with("--promo-at="):
 			var pa := arg.trim_prefix("--promo-at=").split(",")
 			if pa.size() >= 2:
@@ -1303,16 +1309,10 @@ func parse_with(args: PackedStringArray) -> void:
 			tape_flag = arg.trim_prefix("--tape=")
 		elif arg == "--tape-log":
 			tape_log = true
-		elif arg == "--spacer" or arg == "--wander":
-			spacer_flag = 1
-		elif arg == "--no-spacer":
-			spacer_flag = 0
 		elif arg == "--zone-cap":
 			zone_cap_flag = 1
 		elif arg == "--no-zone-cap":
 			zone_cap_flag = 0
-		elif arg.begins_with("--spacer-hint="):
-			spacer_hint = float(arg.trim_prefix("--spacer-hint="))
 		elif arg == "--promo" or arg.begins_with("--promo="):
 			promo_flag = "on" if arg == "--promo" else arg.trim_prefix("--promo=")
 		elif arg == "--fotka" or arg == "--photo":
@@ -1326,7 +1326,7 @@ func parse_with(args: PackedStringArray) -> void:
 			photo_log = true
 		elif arg.begins_with("--settings-tab="):
 			open_settings_at_start = true
-			settings_tab = int(arg.trim_prefix("--settings-tab="))
+			settings_tab = arg.trim_prefix("--settings-tab=")
 		elif arg.begins_with("--stick="):
 			var sv2 := arg.trim_prefix("--stick=").split(",")
 			hold_stick = Vector2(float(sv2[0]), float(sv2[1])).limit_length(1.0)
@@ -1373,7 +1373,7 @@ func parse_with(args: PackedStringArray) -> void:
 	if start_ride >= 0 or place_flag != "" or roundup_flag or district_card != "" or syrenka_flag != "" or trzy_mosty_flag:
 		show_title = false  # loop 2d-1: --ride is a test run too (loop MW-1: and --place; loop 3h: --district=)
 	# Loop MW-6: and the eggs', the tape's and Fotka's flags; --egg sets its moment's time.
-	if egg_flag != "" or tape_flag != "" or fotka_flag or spacer_hint >= 0.0 or pop_flag > 0:
+	if egg_flag != "" or tape_flag != "" or fotka_flag or pop_flag > 0:
 		show_title = false
 	if first10_flag or end_card_flag or first_race_flag:
 		show_title = false  # loop 3h slice 4: --first10 and --end-card are test runs

@@ -158,7 +158,6 @@ const VENUES := {
 	"trend_rozgniot": [["ROZGNIOT"], Color(1.0, 0.55, 0.15), 2.8],
 	# Rondo de Gaulle'a and the food hype (docs/design/gaulle-and-food-hype.md G2-G4).
 	"bar_newtwice": [["NEWTWICE"], Color(1.0, 1.0, 1.0), 3.0],
-	"bar_zamet": [["ZAMĘT"], Color(1.0, 0.72, 0.12), 3.0],
 	"bar_przegrywki": [["PRZEGRYWKI"], Color(0.1, 0.9, 1.0), 2.8],
 	"hotel_piure": [["HOTEL", "PIURE"], Color(1.0, 0.62, 0.84), 3.2],
 	"koszta_marszalkowska": [["KOSZTA", "COFFEE"], KOSZTA_TUBE, 2.8],
@@ -329,7 +328,7 @@ const TRENDY := {
 	"trend_rozgniot": [52.2270, 21.0235],
 }
 ## Rondo de Gaulle'a and the food hype (docs/design/gaulle-and-food-hype.md G2-G4): the Party
-## House's bars (NEWTWICE on its south front, ZAMĘT on its north-west corner, PRZEGRYWKI the board-game
+## House's bars (NEWTWICE on its south front, PRZEGRYWKI the board-game
 ## bar on the next block), HOTEL PIURE's door on Widok (its rooftop bar LORETKA is landmarks.gd's
 ## crown sign), the coffee chains' parodies (KOSZTA COFFEE, GREEN CAFFE NERWO: one on the mapped
 ## pavilion) and KUKŁA, the crêpe place with the queue (crowds.gd `KUKLA`). Like the cafés, not
@@ -1548,7 +1547,11 @@ func _load_metros(pois: Array) -> void:
 
 ## Does a map stair flight (centrum.json `steps`, built as a railed flight) end within 1.5 m of `at`?
 func _stair_flight_ends_at(at: Vector2) -> bool:
-	for s: Dictionary in map.data.get("steps", []):
+	# The checks' stand-in maps have no `data`: no stair flights there.
+	var md: Variant = map.get("data")
+	if not (md is Dictionary):
+		return false
+	for s: Dictionary in (md as Dictionary).get("steps", []):
 		if int(s.get("cv", 0)) == 1:
 			continue
 		var f: Array = s["p"]

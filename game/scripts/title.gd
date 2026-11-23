@@ -86,6 +86,8 @@ var progress := 0.0
 ## The share the next report will reach: the bar creeps towards it between two reports.
 var cap := 0.0
 var _shown := 0.0
+## F 2026-11-23: a plain loader, no Syrenka and nothing moving but the fill: a thin pale track
+## with a cyan fill.
 var _bar_plate: Panel
 var _bar_fill: ColorRect
 ## The loading tips (tips.json `tips`), in the order they show; the one up now, and for how long.
@@ -141,16 +143,15 @@ func _ready() -> void:
 	if d is Dictionary:
 		tips = (d as Dictionary).get("tips", [])
 	_bar_plate = Panel.new()
+	_bar_plate.name = "loading_bar"
 	_bar_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var plate := StyleBoxFlat.new()
-	plate.bg_color = UiKit.CARD
-	plate.border_color = UiKit.NEON_CYAN  # the loading bar is the brand neon
-	plate.set_border_width_all(2)
-	plate.set_corner_radius_all(3)
+	plate.bg_color = UiKit.EDGE  # a thin pale track
+	plate.set_corner_radius_all(4)
 	_bar_plate.add_theme_stylebox_override("panel", plate)
 	_root.add_child(_bar_plate)
 	_bar_fill = ColorRect.new()
-	_bar_fill.color = UiKit.NEON_PINK
+	_bar_fill.color = UiKit.NEON_CYAN
 	_bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bar_plate.add_child(_bar_fill)
 	_new_btn = _make_button()
@@ -254,8 +255,8 @@ func _layout() -> void:
 	_prompt_pl.position = Vector2(_safe.position.x, bottom - ps * 1.0)
 	_prompt.size = Vector2(_safe.size.x, ps * 1.5)
 	_prompt.position = Vector2(_safe.position.x, bottom - ps * 2.4)
-	# The loading bar just over the prompt: a third of the safe width, ~2 % of the height.
-	var bar_h := maxf(h * 0.02, 8.0)
+	# The loading bar just over the prompt: a third of the safe width, ~1.5 % of the height.
+	var bar_h := maxf(h * 0.015, 6.0)
 	_bar_plate.size = Vector2(_safe.size.x * 0.34, bar_h)
 	_bar_plate.position = Vector2(size.x * 0.5 - _bar_plate.size.x * 0.5, bottom - ps * 2.4 - bar_h - ps * 0.35)
 	_set_bar()
@@ -384,10 +385,10 @@ func _set_tip() -> void:
 	_tip.add_theme_font_size_override("font_size", fs)
 
 
-## The loading bar's fill (2 px inside the plate's edge).
+## The loading bar's fill at the share shown now (1 px inside the track's edge).
 func _set_bar() -> void:
-	var inner := _bar_plate.size - Vector2(4.0, 4.0)
-	_bar_fill.position = Vector2(2.0, 2.0)
+	var inner := _bar_plate.size - Vector2(2.0, 2.0)
+	_bar_fill.position = Vector2(1.0, 1.0)
 	_bar_fill.size = Vector2(maxf(inner.x * clampf(_shown, 0.0, 1.0), 0.0), maxf(inner.y, 0.0))
 
 

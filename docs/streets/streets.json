@@ -572,5 +572,189 @@
     }
    ]
   }
+ ],
+ "places": [
+  {
+   "slug": "bulwary-wybrzeze-gdanskie",
+   "title": "The Vistula boulevards (Wybrzeże Gdańskie)",
+   "at": [
+    -560,
+    -1950
+   ],
+   "r": 150,
+   "sweep": "W10a, 2026-11-21 (verdicts: walls-research/w10a/verdicts.md)",
+   "decisions": {
+    "barrier:fence:-574:-1848": [
+     "TYPE",
+     "bars_black",
+     "the car park's fence by the boulevards: black steel bars on posts about 1.8 m, not chain-link netting",
+     "https://www.mapillary.com/app/?pKey=1849620432294977",
+     "2025-11-07"
+    ]
+   }
+  },
+  {
+   "slug": "plac-grzybowski",
+   "title": "Plac Grzybowski",
+   "at": [
+    -1410,
+    -250
+   ],
+   "r": 150,
+   "sweep": "W10a, 2026-11-21 (verdicts: walls-research/w10a/verdicts.md)",
+   "decisions": {
+    "barrier:fence:-1360:-116": [
+     "TYPE",
+     "bars_black",
+     "the fence along the yard on the street's west side: black steel bars on top of a low concrete retaining wall, not the unknown plain railing",
+     "https://www.mapillary.com/app/?pKey=180742560593952",
+     "2020-07-05"
+    ],
+    "barrier:wall:-1388:-210": [
+     "TYPE",
+     "low_wall",
+     "the long bed of grasses on the square's east side: a low granite edge about 0.4 m with lantern bollards, not a 1.6 m plaster wall",
+     "https://www.mapillary.com/app/?pKey=512977260585786",
+     "2022-08-09"
+    ],
+    "barrier:wall:-1390:-268": [
+     "TYPE",
+     "low_wall",
+     "one of the square's raised planting beds: a dark granite edge about 0.5 m with a clipped hedge on top (the 2025-10-16 photos from Grzybowska show the beds unchanged), not a 1.6 m plaster wall",
+     "https://www.mapillary.com/app/?pKey=868735633679611",
+     "2020-08-28"
+    ],
+    "barrier:wall:-1398:-284": [
+     "TYPE",
+     "low_wall",
+     "a raised planting bed's dark granite edge about 0.5 m with a wooden bench on it and a hedge behind, not a 1.6 m plaster wall",
+     "https://www.mapillary.com/app/?pKey=2852149155098314",
+     "2020-08-28"
+    ],
+    "barrier:wall:-1424:-218": [
+     "TYPE",
+     "low_wall",
+     "the curved bed along the square's west edge on Grzybowska: a long dark granite planter wall about 0.5 m with shrubs on top, not a 1.6 m plaster wall",
+     "https://www.mapillary.com/app/?pKey=1329216345540384",
+     "2025-10-16"
+    ],
+    "barrier:wall:-1430:-186": [
+     "TYPE",
+     "low_wall",
+     "the S-shaped bed at the square's north end before the church: a dark granite planter wall about 0.5 m, not a 1.6 m plaster wall",
+     "https://www.mapillary.com/app/?pKey=24761281446872692",
+     "2025-10-16"
+    ]
+   }
+  },
+  {
+   "slug": "prosta-wronia",
+   "title": "Prosta by Wronia",
+   "at": [
+    -2560,
+    440
+   ],
+   "r": 150,
+   "sweep": "W10a, 2026-11-21 (verdicts: walls-research/w10a/verdicts.md)",
+   "decisions": {
+    "barrier:fence:-2534:288": [
+     "TYPE",
+     "bars_black",
+     "the fence along the yard by Prosta's cycle path: steel bars on posts about 1.5 m (painted rust-red), not welded mesh panels",
+     "https://www.mapillary.com/app/?pKey=1615319506792428",
+     "2026-09-16"
+    ]
+   }
+  },
+  {
+   "slug": "skwer-1-dywizji-pancernej",
+   "title": "Skwer 1 Dywizji Pancernej (the fountain park)",
+   "at": [
+    662,
+    946
+   ],
+   "r": 150,
+   "sweep": "W10a, 2026-11-21 (verdicts: walls-research/w10a/verdicts.md)",
+   "decisions": {
+    "barrier:wall:654:910": [
+     "TYPE",
+     "basin_rim",
+     "the fountain park's long basin: a low pale concrete rim round the water (2009-05-07 photo 232771385312393 shows the same knee-high basin), not a stone wall with a top rail",
+     "https://www.mapillary.com/app/?pKey=314779920286909",
+     "2021-06-11"
+    ]
+   }
+  },
+  {
+   "slug": "stacja-filtrow",
+   "title": "Stacja Filtrów (Koszykowa, Raszyńska)",
+   "at": [
+    -1621,
+    1200
+   ],
+   "r": 150,
+   "sweep": "W10a, 2026-11-21 (verdicts: walls-research/w10a/verdicts.md)",
+   "decisions": {
+    "barrier:wall:-1630:1306": [
+     "TYPE",
+     "bars_pier",
+     "the Filters' fence along Raszyńska: black iron bars between cream-plastered piers on a plastered plinth, about 2.2 m; not a precast concrete fence",
+     "https://www.mapillary.com/app/?pKey=485350129382233",
+     "2020-07-01"
+    ],
+    "barrier:wall:-1790:1184": [
+     "TYPE",
+     "bars_pier",
+     "the Filters' (Stacja Filtrów) fence along Koszykowa: black iron bars between square cream-plastered piers on a plastered plinth, about 2.2 m; not a precast concrete fence",
+     "https://www.mapillary.com/app/?pKey=520881162543404",
+     "2021-08-25"
+    ]
+   }
+  },
+  {
+   "slug": "stadion-narodowy",
+   "title": "Stadion Narodowy and Al. Poniatowskiego",
+   "at": [
+    1300,
+    -420
+   ],
+   "r": 150,
+   "sweep": "W10a, 2026-11-21 (verdicts: walls-research/w10a/verdicts.md)",
+   "decisions": {
+    "barrier:fence:1516:-376": [
+     "TYPE",
+     "rail_street",
+     "the railing on the south side (OSM fence_type railing): grey galvanised bar panels on posts about 1.3 m along the pavement edge, not black bars on a foot",
+     "https://www.mapillary.com/app/?pKey=985107153987273",
+     "2026-04-22"
+    ],
+    "barrier:fence:1528:-386": [
+     "TYPE",
+     "rail_street",
+     "the kerb railing on the north side of Al. Poniatowskiego (OSM fence_type railing): grey galvanised posts, top rail and upright bars about 1.1 m at the kerb, not black bars on a foot",
+     "https://www.mapillary.com/app/?pKey=985107153987273",
+     "2026-04-22"
+    ]
+   }
+  },
+  {
+   "slug": "towarowa-tory",
+   "title": "Towarowa by the railway",
+   "at": [
+    -2660,
+    1020
+   ],
+   "r": 150,
+   "sweep": "W10a, 2026-11-21 (verdicts: walls-research/w10a/verdicts.md)",
+   "decisions": {
+    "barrier:fence:-2498:1066": [
+     "TYPE",
+     "mesh_panel",
+     "the car park's fence along the cycle path: dark green welded wire mesh panels on square posts about 1.6 m, not old chain-link netting",
+     "https://www.mapillary.com/app/?pKey=1791574184337740",
+     "2021-06-08"
+    ]
+   }
+  }
  ]
 }

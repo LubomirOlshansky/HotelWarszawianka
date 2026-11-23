@@ -299,6 +299,9 @@ func _check_screen(screen: Vector2i) -> int:
 			hud.set_scheme(1 if state.begins_with("car, Classic") else 0)
 			hud.set_arrows_layout(state != "car, Classic slider")  # F 2026-11-13 arrows; the slider is the default since 2026-11-14
 			hud.set_flying(state == "helicopter")
+			# N1: the nitro is owned in the car states, so its disc (above GAS in Classic) is
+			# checked against every panel, the pedals and the safe area like the rest.
+			hud.set_nitro(state.begins_with("car, "), 1.0, 2, false)
 			if state == "helicopter":
 				hud.set_speed(88, 45)
 			else:
@@ -532,17 +535,17 @@ func _check_screen(screen: Vector2i) -> int:
 	hud.settings_panel.notebook_tape = tape
 	hud.settings_panel.notebook_kadr = kadr
 	hud.open_settings({"controls": 1, "follow": false, "traffic": 2, "quality": 0, "auto": "Medium ostry", "master": 1.0, "music": 0.5,
-			"effects": 1.0, "perf": 0, "fps": 0, "style": 0, "vhs": 0, "weather": 0, "time": 0})
+			"effects": 1.0, "perf": 0, "fps": 0, "style": 0, "weather": 0, "time": 0})
 	var panel: Control = hud.settings_panel
-	# Loop MW-1: the tabs (access last, index 5; DEMO 3j: 6 the credits page), then the notebook with a found
-	# card open and one not found yet.
-	var views := [0, 1, 2, 3, 5, 6, 4, "lusterko", "milosc_hipoteczna", "eggs", "e07", "e03", "e40", "tape", "t_defilad_2012",
+	# Loop MW-1: the tabs and the credits page (settings_panel.gd PAGES, by name), then the notebook with a
+	# found card open and one not found yet.
+	var views := ["page:game", "page:picture", "page:sound", "page:access", "page:general", "page:dev", "page:credits", "page:notebook", "lusterko", "milosc_hipoteczna", "eggs", "e07", "e03", "e40", "tape", "t_defilad_2012",
 			"t_stadion_2010", "kadr", "k01", "k10"]
 	for t in views:
-		if t is String:
-			panel.show_notebook(t)
+		if str(t).begins_with("page:"):
+			panel.set_page(str(t).trim_prefix("page:"))
 		else:
-			panel.set_tab(t)
+			panel.show_notebook(t)
 		await process_frame
 		await process_frame
 		var where := "%s settings tab %s" % [tag, t]
@@ -1216,6 +1219,18 @@ func _check_garage(vp: SubViewport, hud: CanvasLayer, tag: String) -> int:
 	await process_frame
 	if g.card.visible or g.is_open():
 		problems.append("%s garage card: WYJAZD did not close it" % tag)
+	# G2: MOJE AUTO from the full map: the same card, its title, buys wait for the workshop.
+	w.tune = {}
+	w.zl = 12345
+	g.open_card("parts", "mine")
+	g.card.pick_item("engine")
+	await process_frame
+	var act := g.card.get("_action") as Button
+	if not act.disabled or g.mode != "mine" or not (g.card.get("_title") as Label).text in ["MOJE AUTO", "MY CAR"]:
+		problems.append("%s MOJE AUTO: a buy is not held for the workshop (%s)" % [tag, act.disabled])
+	if not g.card.stage.visible or g.card.stage.mode != "mine":
+		problems.append("%s MOJE AUTO: the stage is not up in its own mode" % tag)
+	g.close_card()
 	g.card.queue_free()
 	g.queue_free()
 	d.queue_free()

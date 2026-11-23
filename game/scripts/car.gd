@@ -140,11 +140,26 @@ var _brake_build := 0.0
 var _pitch_v := 0.0
 var _roll_v := 0.0
 var handling := Handling.CRUISE
-## F (2026-11-01): "adjustments of the car's reactions, like the sensitivity of the driving" (Settings
-## → Jazda, settings.gd `sensitivity` 0..1, 0.5 the profile as is). A multiplier on how hard the
-## wheel turns the car and how fast it answers: SENS_MIN at the slider's left end, SENS_MAX at its right.
-const SENS_MIN := 0.6
-const SENS_MAX := 1.4
+## H1 (F 2026-11-22: "the default steering is too dull, I set Sport at once; we have sensitivity, so
+## why the modes; one slider from Cruise to sharper, maybe slides, maybe not, and it must get on
+## with the car's tuning"): one slider, „Charakter jazdy" (settings.gd `character` 0..1, Settings →
+## Jazda), replaces the Cruise/Sport modes and the old sensitivity. Along it:
+## - 0 .. CRUISE_AT: Cruise's numbers with the steering's gain from GAIN_LOW up to 1 (calmer than
+##   Cruise ever was, for whoever wants it);
+## - CRUISE_AT .. STEER_FULL: the steering (turn limit, pull, pivot, speed, the gas's bite) blends
+##   from Cruise's to Sport's; the tyres keep Cruise's grip, so the car turns sharp and stays planted;
+## - SLIDE_FROM .. 1: the tail's grip blends to Sport's, so the slides only open on the sporty end
+##   (F's G4 rule "a city, not a racer" stays true for the rest of the slider). 1 is Sport exactly.
+## The setting's default (settings.gd CHARACTER_DEFAULT) turns about two thirds of the way to Sport with Cruise's grip;
+## a fresh car (no setting yet, the checks) starts at CRUISE_AT, Cruise's numbers as before.
+## Realnie (GROUNDED) stays its own switch with its own numbers; the slider's gain still applies.
+## The tuning (grip_mult) and, later, each car's own feel multiply whatever the slider gives.
+const CRUISE_AT := 0.35
+const STEER_FULL := 0.8
+const SLIDE_FROM := 0.7
+const GAIN_LOW := 0.7
+var character := CRUISE_AT
+## How hard the wheel turns the car and how fast it answers (1 from CRUISE_AT up; see above).
 var steer_gain := 1.0
 ## G13 (the upgrade shop, garage.gd / upgrades.gd): the model on the road ("hatch", or "tt", the
 ## "Ołdi TT" parody), the tuning multipliers (engine: top speed and pull, tyres: grip) and nitro.
@@ -160,20 +175,37 @@ const BIKE_PULL := 0.8
 var top_mult := 1.0
 var accel_mult := 1.0
 var grip_mult := 1.0
-## NITRO ("Kebab Boost"): bought at the garage. Held, it opens the gas fully and lifts the top speed by
-## NITRO_TOP and the pull by NITRO_ACCEL for NITRO_SECONDS of a full tank; the tank refills in
-## NITRO_REFILL s once released, and one that ran dry waits for the button to be let go.
+## NITRO ("Kebab Boost"): bought at the garage. N1 (F 2026-11-22: "you have to take your thumb off
+## the gas to use it; I want a normal nitro, one tap and a few seconds"): a **tap** fires one bottle,
+## which burns NITRO_BURN s with the gas held for you (top speed ×NITRO_TOP, pull ×NITRO_ACCEL);
+## holding the button longer adds nothing, BRAKE ends the burn early (what is left of that bottle
+## stays). The kit holds `nitro_bottles` bottles (NITRO_BOTTLES), shown as segments of the disc's
+## ring; an empty bottle refills in NITRO_REFILL s while nothing burns. `nitro_charge` is the whole
+## kit's fill (0..1, a bottle is 1 / nitro_bottles of it), so a loan (the drag) still fills it with
+## 1.0. A tap that cannot fire yet (parked, a bottle not full, `nitro_wait` on the drag's line) is
+## kept NITRO_KEEP s, or for as long as `nitro_wait` holds it, and fires the moment it can: a tap
+## a moment before the green goes off with the green, never as a false start.
 const NITRO_TOP := 1.3
 const NITRO_ACCEL := 2.2
-const NITRO_SECONDS := 3.5
-const NITRO_REFILL := 20.0
-const NITRO_MIN := 0.25
+const NITRO_BURN := 2.5
+const NITRO_REFILL := 12.0
+const NITRO_BOTTLES := 2
+const NITRO_KEEP := 0.6
 var nitro_owned := false
-## The button (hud.gd's, Shift, or LB / RB on a pad) is held.
+## The bottles the kit holds (garage: 2; a third later).
+var nitro_bottles := NITRO_BOTTLES
+## The button (hud.gd's disc or a swipe up from GAS, Shift, or LB / RB on a pad) is down: its press
+## (the change from up to down) is the tap.
 var nitro_hold := false
 var nitro_on := false
 var nitro_charge := 1.0
-var _nitro_dry := false
+## The drag's line (street_meet.gd hold_car): a tap waits here until the run starts.
+var nitro_wait := false
+## A tap waiting to fire (s left; INF while `nitro_wait` holds it), the burn's seconds left, and
+## the button as it was last step.
+var nitro_queued := 0.0
+var _nitro_burn := 0.0
+var _nitro_was := false
 ## Point-to-steer: heading error (rad) to yaw rate (rad/s), and the yaw damping.
 @export var point_gain := 6.0
 @export var yaw_damping := 0.4
@@ -1218,11 +1250,6 @@ func reset_motion() -> void:
 	_ghosted.clear()
 
 
-## F: the steering sensitivity slider (0..1, 0.5 = 1.0) sets `steer_gain`.
-func set_sensitivity(level: float) -> void:
-	steer_gain = lerpf(SENS_MIN, SENS_MAX, clampf(level, 0.0, 1.0))
-
-
 ## The --handling= flag's word (cruise, sport, grounded, or the number) as a Handling; -1 if unknown.
 static func parse_handling(word: String) -> int:
 	match word.to_lower():
@@ -1235,12 +1262,56 @@ static func parse_handling(word: String) -> int:
 	return -1
 
 
-## G4: switch the handling profile (see PROFILES); anything else goes with the numbers it sets.
+## G4: switch the handling profile for a test run or the --handling= flag: CRUISE and SPORT are the
+## slider's CRUISE_AT and right end (H1), GROUNDED is Realnie at the slider's place now.
 func set_handling(h: int) -> void:
-	handling = (h if h in PROFILES else Handling.CRUISE) as Handling
-	var p: Dictionary = PROFILES[handling]
-	for k: String in p:
-		set(k, p[k])
+	match h:
+		Handling.SPORT:
+			set_character(1.0, false)
+		Handling.GROUNDED:
+			set_character(character, true)
+		_:
+			set_character(CRUISE_AT, false)
+
+
+## H1: the „Charakter jazdy" slider (0..1, see CRUISE_AT) and the Realnie switch. `handling` follows:
+## GROUNDED with Realnie, SPORT once the tail loosens (past SLIDE_FROM), else CRUISE (the collision
+## answer's profile, collide_rules.gd).
+func set_character(level: float, realnie := false) -> void:
+	character = clampf(level, 0.0, 1.0)
+	if realnie:
+		handling = Handling.GROUNDED
+	else:
+		handling = Handling.SPORT if character > SLIDE_FROM else Handling.CRUISE
+	_apply_handling()
+
+
+## H1: the steering's share of the way from Cruise to Sport, the tail grip's share and the gain at
+## `level` (see CRUISE_AT). Static, so the checks and the settings card read the same curve.
+static func character_blend(level: float) -> Vector3:
+	var c := clampf(level, 0.0, 1.0)
+	var steer := clampf((c - CRUISE_AT) / (STEER_FULL - CRUISE_AT), 0.0, 1.0)
+	var slide := clampf((c - SLIDE_FROM) / (1.0 - SLIDE_FROM), 0.0, 1.0)
+	var gain := lerpf(GAIN_LOW, 1.0, clampf(c / CRUISE_AT, 0.0, 1.0))
+	return Vector3(steer, slide, gain)
+
+
+## Writes the numbers for `handling` and `character` (see PROFILES and CRUISE_AT), then the tuning.
+func _apply_handling() -> void:
+	var b := character_blend(character)
+	steer_gain = b.z
+	if handling == Handling.GROUNDED:
+		var g: Dictionary = PROFILES[Handling.GROUNDED]
+		for k: String in g:
+			set(k, g[k])
+	else:
+		var cr: Dictionary = PROFILES[Handling.CRUISE]
+		var sp: Dictionary = PROFILES[Handling.SPORT]
+		for k: String in cr:
+			if k == "weighty":
+				set(k, false)
+			else:
+				set(k, lerpf(float(cr[k]), float(sp[k]), b.y if k == "grip" or k == "drift_grip" else b.x))
 	grip *= grip_mult
 	drift_grip *= grip_mult
 
@@ -1258,7 +1329,7 @@ func set_tuning(top: float, pull: float, grip_x: float) -> void:
 	top_mult = top
 	accel_mult = pull
 	grip_mult = grip_x
-	set_handling(handling)
+	_apply_handling()
 
 
 ## G13: the model on the road: the three body meshes are made again once (a swap, no new node).
@@ -1295,22 +1366,47 @@ func parked_copy() -> Node3D:
 	return root
 
 
-## NITRO's tank: drains while it burns, refills when it does not (see NITRO_*).
+## N1: the nitro's taps, burn and refill (see NITRO_*).
 func _nitro_tick(dt: float) -> void:
-	if not nitro_hold:
-		_nitro_dry = false
-	var want := model != "bike" and nitro_owned and nitro_hold and not _nitro_dry and not parked and not in_water \
-			and nitro_charge > 0.0 and (nitro_on or nitro_charge >= NITRO_MIN)
-	if want:
-		if not nitro_on:
-			nitro_started.emit()
+	var can := model != "bike" and nitro_owned and not in_water
+	if nitro_hold and not _nitro_was and can:
+		nitro_queued = NITRO_KEEP
+	_nitro_was = nitro_hold
+	if not can:
+		nitro_queued = 0.0
+	elif nitro_wait and nitro_queued > 0.0:
+		nitro_queued = INF
+	elif nitro_queued > 0.0:
+		nitro_queued = maxf(0.0, (NITRO_KEEP if is_inf(nitro_queued) else nitro_queued) - dt)
+	var n := float(maxi(1, nitro_bottles))
+	if _nitro_burn <= 0.0 and nitro_queued > 0.0 and not nitro_wait and not parked and can \
+			and nitro_charge * n >= 0.999:
+		nitro_queued = 0.0
+		_nitro_burn = NITRO_BURN
+		nitro_started.emit()
+	if _nitro_burn > 0.0 and (not can or braking or parked):
+		_nitro_burn = 0.0
+	if _nitro_burn > 0.0:
 		nitro_on = true
-		nitro_charge = maxf(0.0, nitro_charge - dt / NITRO_SECONDS)
+		var step := minf(dt, _nitro_burn)
+		_nitro_burn -= step
+		nitro_charge = maxf(0.0, nitro_charge - step / (NITRO_BURN * n))
 		if nitro_charge <= 0.0:
-			_nitro_dry = true
+			_nitro_burn = 0.0
 	else:
 		nitro_on = false
-		nitro_charge = minf(1.0, nitro_charge + dt / NITRO_REFILL)
+		nitro_charge = minf(1.0, nitro_charge + dt / (NITRO_REFILL * n))
+
+
+## N1: a tap from code (the same as a press of the button): fires a bottle as soon as it can.
+func nitro_fire() -> void:
+	if nitro_owned and model != "bike":
+		nitro_queued = NITRO_KEEP
+
+
+## N1: whole bottles ready to fire now (for the HUD and the checks).
+func nitro_ready() -> int:
+	return floori(nitro_charge * float(maxi(1, nitro_bottles)) + 0.001)
 
 
 ## The most the car turns (rad/s) at `v` m/s: turn_cap when slow, turn_pull / v + turn_floor

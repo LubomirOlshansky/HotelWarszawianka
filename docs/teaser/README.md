@@ -84,3 +84,5 @@ faded out from 6.3 s (round 3: F did not like the ElevenLabs impact on the card,
 loudness -14 LUFS (Instagram's level). Made on F's ElevenLabs account for
 the game; the raw takes are in the project files (teaser/music). `music-5s.m4a` is the older
 5 s cut from the trailer's take 4.
+
+The audio files (`*.m4a`) are kept out of the repository: copies are in the project files at teaser/repo-audio/. Put them back beside this file before running cut.sh.

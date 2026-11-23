@@ -100,10 +100,16 @@ func _key() -> void:
 
 
 func _device() -> void:
+	# Perf thread (2026-11-23): app_build names the build when the export wrote its stamp.
+	_expect(PlayStats.build_name("res://no/such/stamp.json").ends_with(" (dev)"), "no stamp: %s" % PlayStats.build_name("res://no/such/stamp.json"))
 	_expect(PlayStats.device_name("iPhone17,2") == "iphone_16_pro_max", "iPhone17,2 is not the 16 Pro Max")
 	_expect(PlayStats.device_name("iPhone99,1") == "iphone99.1", "an unknown iPhone code: %s" % PlayStats.device_name("iPhone99,1"))
 	_expect(PlayStats.device_name("SM-S918B") == "sm-s918b", "an Android model code: %s" % PlayStats.device_name("SM-S918B"))
 	_expect(PlayStats.device_name("A phone with a very long name that is no slug at all") == "", "a long model was sent")
+	_expect(PlayStats.platform_for("iOS", "iPhone99,10") == "mac_ios_app", "an iPhone app on a Mac is not mac_ios_app")
+	_expect(PlayStats.platform_for("iOS", "iPhone17,2") == "ios" and PlayStats.platform_for("Android", "SM-S918B") == "android", "platform_for iOS/Android")
+	_expect(PlayStats.platform_for("macOS", "MacBookPro18,1") == "macos", "a native Mac build is macos")
+	_expect(PlayStats.is_mac_model("iPad99,2") and not PlayStats.is_mac_model("iPad13,1"), "is_mac_model")
 	_expect(not PlayStats.STRIPPED.has("$device_model") and PlayStats.STRIPPED.has("$locale"), "STRIPPED is not just the locale")
 
 
@@ -136,11 +142,20 @@ func _log() -> void:
 	s._on_setting("traffic", 2)
 	s._on_setting("master", 0.4)
 	_expect(_names(s).count("setting") == 1, "settings counted: %d (traffic yes, a volume slider no)" % _names(s).count("setting"))
+	_expect(FileAccess.file_exists(PlayStats.CHECKPOINT_PATH), "no session checkpoint while playing")
 	s.pause()
 	s.pause()
+	_expect(not FileAccess.file_exists(PlayStats.CHECKPOINT_PATH), "the checkpoint stayed after an end in order")
 	_expect(_names(s).count("session_end") == 1, "session_end %d times" % _names(s).count("session_end"))
 	s.resume()
 	_expect(_names(s).count("session_start") == 2, "resume did not start a new stretch")
+	# A resumed stretch counts its own minutes (1300 s before the background, 180 s after it).
+	s._play += 180.0
+	s.pause()
+	var ends := s.tracked.filter(func(e: Dictionary) -> bool: return e["event"] == "session_end")
+	_expect(ends.size() == 2 and is_equal_approx(float(ends[1]["props"]["minutes_played"]), 3.0),
+			"the resumed stretch's minutes_played: %s, wanted 3.0 (not the whole launch)" % [ends.back()["props"] if not ends.is_empty() else {}])
+	s.resume()
 	s.set_enabled(false)
 	_expect(_names(s).back() == "stats_off", "turning off did not say stats_off")
 	var n := s.tracked.size()
@@ -148,6 +163,21 @@ func _log() -> void:
 	s.pause()
 	_expect(s.tracked.size() == n and s.mode == PlayStats.Mode.OFF, "events tracked after the setting went off")
 	s.queue_free()
+	# A killed session leaves its checkpoint: the next launch says session_end how=lost and crashed_before.
+	var f := FileAccess.open(PlayStats.CHECKPOINT_PATH, FileAccess.WRITE)
+	f.store_string("{\"play\": 600.0, \"km\": 2500.0, \"runs\": 2, \"zl\": 40, \"heli_pct\": 10}")
+	f.close()
+	var t: PlayStats = PlayStats.new()
+	root.add_child(t)
+	t.setup(true, false, true, "log", {})
+	t.begin()
+	var lost := t.tracked.filter(func(e: Dictionary) -> bool: return e["event"] == "session_end")
+	_expect(lost.size() == 1 and lost[0]["props"].get("how") == "lost" and float(lost[0]["props"].get("minutes_played", 0)) == 10.0, "a lost session was not recovered: %s" % [lost])
+	_expect(bool(t.tracked.back()["props"].get("crashed_before", false)), "session_start did not carry crashed_before")
+	t.pause()
+	t.queue_free()
+	var g := PlayStats.clean("first_job", {"stage": "start", "activity": "Bar Crawl", "t_play_s": 5})
+	_expect(not g.is_empty() and g["props"].get("stage") == "start", "first_job is not on the list")
 
 
 func _names(s: PlayStats) -> Array:

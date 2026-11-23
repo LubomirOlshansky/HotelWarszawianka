@@ -29,7 +29,6 @@ should grow into. Design background: docs/design/quest-map.md and docs/design/ma
 | Hours and days | a questline outside its hours is dimmed in WĄTKI and its friend says when to come | each def's `hours`, `days` in `story_quests.gd` |
 | Night | minimap night palette; night-only jobs (Leżak depots, courier race) appear | `hud.gd` `_night`, each job's own hours |
 | Fresh save | the guide's targets and the main star | `first10.gd`, `main_line.gd` |
-| Spacer (wander mode) | nothing comes by itself | `spacer.gd` |
 | Progress | rungs open, the final appears, places found | `ladder.gd`, `wallet.gd`, `notebook.gd` |
 
 ## 3. How to add a marker today

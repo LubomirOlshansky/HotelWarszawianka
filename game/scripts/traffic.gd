@@ -326,6 +326,11 @@ const WRONG_SURE := 0.5
 ## street he should not have taken he lifts off for WRONG_DAZE s (the satnav thinks again) with
 ## his hazard lights on for WRONG_SHOW s (race_signals.gd).
 const WRONG_DAZE := 0.9
+## Where no wrong road leads anywhere but into a U-turn (race_planner.gd `_turns_back`; F's playtest
+## of 2026-11-22: Słoik up Krucza, round at its end and back down it, read as a broken car), the
+## satnav's doubt instead: at a crossroads he brakes for WRONG_DOUBT s with his hazards on, about
+## the seconds a wrong turn cost him, and drives on his way.
+const WRONG_DOUBT := 10.0
 const WRONG_SHOW := 2.4
 ## Step 6a, what a racer's headlight flash is read from (`held_up`): the seconds it has been
 ## within HELD_GAP m of a car going HELD_SLOWER m/s or more under the speed it wants, not in a
@@ -683,6 +688,8 @@ class Driver:
 	var hops_refused := 0
 	var mistakes := 0
 	var wrong_turns := 0
+	## The satnav's doubt is due on this street (WRONG_DOUBT; set where its way on is chosen).
+	var doubt := false
 	var blocks := 0
 	## The racing line (LINE_* above; null: none, it drives the lanes and the curves). `line_q` is
 	## its street's place among the line's streets and `line_i` the point of the line it is at;
@@ -814,6 +821,9 @@ var visible_count := 0
 ## 0 = none), how far from the player a new one may appear (the chase cooldown: 200 m), and the
 ## seconds before the next may come (police.gd sets it when one leaves the band).
 var police_target := 0
+## Promo shots (main.gd --promo-at, F 2026-11-21): buses keep their lane (a lane change mid-shot
+## read as a bus jumping sideways).
+var steady_buses := false
 var police_min_dist := 0.0
 var patrol_wait := 20.0
 ## Patrol cars spawned so far (every third is the van).
@@ -1354,8 +1364,7 @@ func _try_spawn(anywhere: bool) -> bool:
 		kind = Kind.BUS
 	elif r < 0.17:
 		kind = Kind.VAN
-	elif r < 0.31 and cls <= 1:
-		# Taxis and ride-hail cars: about one car in seven on the main streets (2026-11-19).
+	elif r < 0.27 and cls <= 1:
 		kind = Kind.TAXI
 	if _free_slots[kind].is_empty():
 		kind = Kind.CAR
@@ -1577,6 +1586,7 @@ func _start(d: Driver, e: int, lane: int, s: float) -> void:
 		d.race_dare = 1.0
 		d.race_rng = null
 	d.on_cut = false
+	d.doubt = false
 	d.hop_go = false
 	d.mistake_side = 0.0
 	d.block_t = 0.0
@@ -1999,6 +2009,8 @@ func _give_way_to_sirens() -> void:
 
 ## Loop 3g-1: moves to lane `k` of its road if it is free alongside (giving way).
 func _change_lane_to(d: Driver, k: int) -> void:
+	if steady_buses and d.kind == Kind.BUS:
+		return
 	var e := d.edge
 	if graph.e_s1[e] - d.s < 18.0 or _line_busy(d):
 		return
@@ -2212,6 +2224,7 @@ func _enter_edge(d: Driver, e: int, lane: int, s: float) -> void:
 	# Step 6a: onto the street of a wrong turn (the one chosen at `wrong_edge`'s end, not a way
 	# back onto its own street): the satnav's moment.
 	var took_wrong := d.wrong_edge >= 0 and d.wrong_edge == d.edge and e != d.edge and d.race_rng != null
+	var doubt := false
 	var on_line := d.line != null and d.conn_end < 0.0 and d.line_q + 1 < d.line.edges.size() \
 			and d.line.edges[d.line_q + 1] == e and d.line.lanes[d.line_q + 1] == lane
 	if not on_line:
@@ -2256,6 +2269,9 @@ func _enter_edge(d: Driver, e: int, lane: int, s: float) -> void:
 			if d.way_wrong[0] == 1:
 				d.wrong_edge = e
 				d.wrong_turns += 1
+			elif d.way_wrong[0] == 2:
+				d.wrong_turns += 1
+				doubt = true
 			d.way.remove_at(0)
 			d.way_cut.remove_at(0)
 			d.way_wrong.remove_at(0)
@@ -2274,6 +2290,11 @@ func _enter_edge(d: Driver, e: int, lane: int, s: float) -> void:
 		d.daze = maxf(d.daze, WRONG_DAZE)
 		d.wrong_t = WRONG_SHOW
 	_choose_next(d)
+	if doubt or d.doubt:
+		# The satnav's doubt (F's playtest of 2026-11-22): brakes, hazards on, then on its way.
+		d.doubt = false
+		d.daze = maxf(d.daze, WRONG_DOUBT)
+		d.wrong_t = WRONG_SHOW
 
 
 func _register(d: Driver, lane_id: int) -> void:
@@ -2334,16 +2355,20 @@ func _choose_way(d: Driver) -> void:
 				return
 			d.on_cut = false
 			var other: int = d.plan.wrong
-			if best >= 0 and d.race_wrong > 0 and other >= 0 and not d.way_rolled and d.route[graph.e_b[e]] > WRONG_FAR:
+			if best >= 0 and d.race_wrong > 0 and (other >= 0 or outs.size() >= 3) and not d.way_rolled and d.route[graph.e_b[e]] > WRONG_FAR:
 				# Słoik's satnav: a road that costs him seconds (Plan.WRONG_LEAST to WRONG_MOST; the
-				# plan knows the way back from anywhere). One roll a street.
+				# plan knows the way back from anywhere), or at a crossroads with none, his doubt
+				# (WRONG_DOUBT). One roll a street.
 				d.way_rolled = true
 				if _race_roll(d) < WRONG_SURE:
-					best = other
 					d.race_wrong -= 1
 					d.wrong_turns += 1
-					d.wrong_edge = e
-					_way_clear(d)
+					if other >= 0:
+						best = other
+						d.wrong_edge = e
+						_way_clear(d)
+					else:
+						d.doubt = true
 	if best >= 0:
 		pass
 	elif not d.route.is_empty():
@@ -3953,6 +3978,8 @@ func _pass_lanes(e: int, rev: int, s: float, out: float) -> PackedByteArray:
 ## Moves to the neighbouring lane with the most room ahead (more than `room`
 ## metres, nobody alongside), if the road has one. The car slides across.
 func _change_lane(d: Driver, room_needed: float, near := 18.0) -> bool:
+	if steady_buses and d.kind == Kind.BUS:
+		return false
 	var e := d.edge
 	if d.in_conn or graph.e_s1[e] - d.s < near or _line_busy(d):
 		return false
@@ -4572,7 +4599,7 @@ func _rail_at(d: Driver) -> Vector2:
 ## not made: its roll is given back).
 func _way_clear(d: Driver) -> void:
 	for wrong in d.way_wrong:
-		d.race_wrong += wrong
+		d.race_wrong += mini(wrong, 1)
 	d.way.clear()
 	d.way_cut.clear()
 	d.way_wrong.clear()
@@ -4636,14 +4663,20 @@ func _way_extend(d: Driver) -> bool:
 		var cut: bool = d.plan.chosen_cut
 		var wrong := 0
 		var other: int = d.plan.wrong
-		if d.race_wrong > 0 and other >= 0 and d.route[g.e_b[last]] > WRONG_FAR and _race_roll(d) < WRONG_SURE:
-			f = other
-			cut = false
-			wrong = 1
+		if d.race_wrong > 0 and d.route[g.e_b[last]] > WRONG_FAR and (other >= 0 or g.node_out[g.e_b[last]].size() >= 3) \
+				and _race_roll(d) < WRONG_SURE:
+			# A wrong road (1), or at a crossroads with none that does not end in a U-turn, the
+			# satnav's doubt (2: WRONG_DOUBT, on the street after it).
+			if other >= 0:
+				f = other
+				cut = false
+				wrong = 1
+			else:
+				wrong = 2
 			d.race_wrong -= 1
 		if f == d.edge or f == d.next_edge or f in d.way:
 			# Round in a ring (the way back from a wrong turn): decided when it gets there.
-			d.race_wrong += wrong
+			d.race_wrong += mini(wrong, 1)
 			return more
 		d.way.append(f)
 		d.way_cut.append(1 if cut else 0)

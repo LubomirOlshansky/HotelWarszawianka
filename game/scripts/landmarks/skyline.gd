@@ -1484,7 +1484,7 @@ static func spektrum_plan(data: Dictionary) -> Dictionary:
 		return {}
 	var drum := PackedVector2Array()
 	var drum_h := 0.0
-	for bld: Dictionary in data.get("buildings", data.get("site_parts", [])):
+	for bld: Dictionary in plan_parts_of(data):  # the prebuilt game's are `plan_parts` (bake_city.gd)
 		var flat: Array = bld["p"]
 		if flat.size() < 6 or str(bld.get("c", "")).to_lower() != "#637780" or float(bld.get("mh", 0.0)) > 0.5:
 			continue
@@ -4275,8 +4275,9 @@ func _arkadia_tower(g: float) -> void:
 		signs.append(["ZACHODNIE", Vector3(at.x, g + 46.3, at.y), n3, 0.72, ARKADIA_RED])
 		signs.append(["POLE", Vector3(at.x, g + 44.6, at.y), n3, 0.72, ARKADIA_RED])
 		signs.append(["ARKADKA", Vector3(at.x, g + 43.2, at.y), n3, 0.5, ARKADIA_WHITE])
-	# Logo panels on the plaza (south) and entrance (east) faces: KARFUREK, MERLINEK's green
-	# roof, KINO SITKO (parodies of the hypermarket, the DIY store and the cinema).
+	# Logo panels on the plaza (south) and entrance (east) faces: KARFUREK (the hypermarket's
+	# parody), then where the real tower has the DIY store's green roof and the cinema's name (F's
+	# night photos, 2026-11-21), the GeoBent mark over its name and the NOSE AGENCY's blue word.
 	for d: Vector2 in [Vector2(0.0, 1.0), Vector2(1.0, 0.0)]:
 		var n3 := Vector3(d.x, 0.0, d.y)
 		var side := Vector2(-d.y, d.x)
@@ -4285,21 +4286,44 @@ func _arkadia_tower(g: float) -> void:
 		_prism(pan, g + 33.0, g + 37.6, Color("#f4f4f2"), Color("#f4f4f2"), M_STONE, M_STONE)
 		var lo := at + d * 0.32
 		signs.append(["KARFUREK", Vector3(lo.x, g + 34.6, lo.y), n3, 0.55, Color(0.15, 0.35, 1.0)])
-		# MERLINEK: a green triangle (a roof) over its name.
-		var a3 := at + d * 0.35
-		var p0 := a3 - side * 3.0
-		var p1 := a3 + side * 3.0
-		_mode = M_LAMP
-		_tri(Vector3(p0.x, g + 27.0, p0.y), Vector3(p1.x, g + 27.0, p1.y), Vector3(a3.x, g + 31.4, a3.y), n3, Color("#3fae49"),
-				Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0, false)
-		signs.append(["MERLINEK", Vector3(lo.x, g + 25.2, lo.y), n3, 0.45, Color(0.3, 0.9, 0.35)])
-		signs.append(["KINO SITKO", Vector3(lo.x, g + 20.4, lo.y), n3, 0.5, Color(1.0, 0.55, 0.1)])
-	# The big screen on the base's plaza face, a lit panel with an advert.
+		_arkadia_geobent(at + d * 0.35, side, n3, g + 29.2)
+		signs.append(["GEOBENT", Vector3(lo.x, g + 25.4, lo.y), n3, 0.5, SpireMotion.GEO_BLUE])
+		signs.append(["NOSE AGENCY", Vector3(lo.x, g + 20.4, lo.y), n3, 0.5, Color(0.3, 0.55, 1.0)])
+	# The big screen on the base's plaza face: a dark box the screen hangs on; the screen itself,
+	# the game's AROUND WARSAW promo, is arkadia_screen.gd (its own shader, built at runtime).
+	# On the plaza's own ground (the mall's `g` is the lowest point under its whole outline, metres
+	# below the plaza), the ground arkadia_screen.gd stands the screen on.
 	var sc := t + Vector2(1.2, 6.2)
-	_prism(PackedVector2Array([sc + Vector2(-4.6, 0.0), sc + Vector2(4.6, 0.0), sc + Vector2(4.6, 0.6), sc + Vector2(-4.6, 0.6)]),
-			g + 2.6, g + 13.2, Color("#d93d8e"), Color("#333333"), M_LAMP, M_STONE)
-	signs.append(["PROMOCJA", Vector3(sc.x, g + 7.0, sc.y + 0.65), Vector3(0.0, 0.0, 1.0), 0.55, ARKADIA_WHITE])
+	var gs: float = map.ground_height(sc.x, sc.y + 0.65)
+	_prism(PackedVector2Array([sc + Vector2(-6.7, 0.0), sc + Vector2(6.7, 0.0), sc + Vector2(6.7, 0.6), sc + Vector2(-6.7, 0.6)]),
+			gs + 4.4, gs + 12.9, Color("#1c1d24"), Color("#333333"), M_STONE, M_STONE)
 	_collide(_rect(0.0, 0.0, 6.0, 6.0))
+
+
+## The GeoBent mark in lit panels (spire_motion.gd's LOGO, F's screenshot of geobent.pl): a flat
+## open diamond, orange on its upper left and navy on its right, over an orange chevron and a navy
+## one, the three layers of a stack; `at` its middle, `side` along the face, 6 m across.
+func _arkadia_geobent(at: Vector2, side: Vector2, n3: Vector3, y: float) -> void:
+	var orange := SpireMotion.GEO_ORANGE
+	var navy := SpireMotion.GEO_BLUE
+	var none := Vector2(-1, -1)
+	_mode = M_LAMP
+	var pt := func(u: float, v: float) -> Vector3:
+		var q := at + side * u
+		return Vector3(q.x, y + v, q.y)
+	# The diamond: a top half (orange left, navy right) and the front half in navy.
+	_tri(pt.call(-3.0, 0.0), pt.call(0.0, 0.0), pt.call(0.0, 1.6), n3, orange, none, none, none, -1.0, false)
+	_tri(pt.call(0.0, 0.0), pt.call(3.0, 0.0), pt.call(0.0, 1.6), n3, navy, none, none, none, -1.0, false)
+	_tri(pt.call(-3.0, 0.0), pt.call(0.0, -1.2), pt.call(0.0, 0.0), n3, navy, none, none, none, -1.0, false)
+	_tri(pt.call(0.0, -1.2), pt.call(3.0, 0.0), pt.call(0.0, 0.0), n3, navy.darkened(0.2), none, none, none, -1.0, false)
+	# The two chevrons under it, each a band 0.4 m thick.
+	for k in 2:
+		var v0 := -1.7 - k * 0.75
+		var col := orange if k == 0 else navy
+		_tri(pt.call(-3.0, v0 + 1.2), pt.call(0.0, v0), pt.call(-3.0, v0 + 0.8), n3, col, none, none, none, -1.0, false)
+		_tri(pt.call(-3.0, v0 + 0.8), pt.call(0.0, v0), pt.call(0.0, v0 - 0.4), n3, col, none, none, none, -1.0, false)
+		_tri(pt.call(0.0, v0), pt.call(3.0, v0 + 1.2), pt.call(3.0, v0 + 0.8), n3, col, none, none, none, -1.0, false)
+		_tri(pt.call(0.0, v0), pt.call(3.0, v0 + 0.8), pt.call(0.0, v0 - 0.4), n3, col, none, none, none, -1.0, false)
 
 
 ## The rotunda on the brick wing's corner (photos 4, 8): a glass ground floor under yellow café

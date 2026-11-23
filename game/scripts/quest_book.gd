@@ -50,7 +50,7 @@ const JOB_COUNT := {"kebab": "kebab", "ride": "podwozka", "call": "rescue", "slo
 		"trend": "trend", "mlask": "trend", "drop": "trend", "peacock": "", "cassette": "", "garage": ""}
 ## A questline's wallet.gd `jobs` key, where its runs are counted on their own ("" none: the coffee
 ## run and padel are paid as "trend", with the other trend jobs).
-const STORY_COUNT := {"boat": "boat_race", "rave": "rave", "dekalog": "dekalog", "kino": "kino", "meet": "meet_race",
+const STORY_COUNT := {"boat": "boat_race", "rave": "rave", "dekalog": "dekalog_tour", "kino": "kino_tour", "meet": "meet_race",
 		"tesla": "ev_tow"}
 ## Each item's icon (game/art/quest_icons/<name>.png, made with Codex on 2026-11-17 for F's ask "an
 ## icon for each quest"): by questline id, job group, First step id or tab. A missing file draws the
@@ -454,5 +454,10 @@ static func _collection(f: Dictionary) -> Array:
 		it["sub"] = v
 		it["done"] = int(n[0]) >= int(n[1])
 		it["facts"] = [[words("f_found"), v]]
+		# Settings redesign step 2 (F 2026-11-23): the notebook (MOJA WARSZAWA) left the settings tabs;
+		# its places and tapes open it from here (full_map.gd `notebook`, at the tapes' chapter).
+		if key != "syrenki":
+			it["buttons"].append({"key": "notebook", "words": words("b_notebook"), "gold": true,
+					"entry": {"id": "col_" + key, "target": "tape" if key == "tapes" else ""}})
 		out.append(it)
 	return out
