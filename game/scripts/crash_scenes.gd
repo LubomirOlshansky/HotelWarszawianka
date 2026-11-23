@@ -35,6 +35,9 @@ extends Node
 ## is pulled up onto the platform over TOW_LOAD_TIME s (moved frame by frame, `_load_step`) and
 ## the laweta takes its place as the loaded shape (Models.VAN_TOW_LOADED, the car drawn where the
 ## lifted one ended: no jump), then after TOW_LEAVE s it pulls out and drives off with the traffic.
+## Stage 3: WRECK_TOW_SHARE of the fender benders ("crash_tow") have a laweta where the ambulance
+## would stand, its operator in the paramedic's place; the car that was hit (then the hatch in
+## TOW_LOAD_PAINT) is pulled onto it the same way, and the laweta takes the wreck away.
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Models := preload("res://scripts/models.gd")
@@ -56,6 +59,10 @@ const TAXI_RADIO_TAG := "taxi_check"
 const TAXI_BUBBLE := Color("#ffd23f")
 ## The share of scenes that are an Odholowanie (a tow).
 const TOW_SHARE := 0.25
+## The share of fender benders where a laweta takes the wreck away (no ambulance), and where it
+## stands along the lane (its middle: its rear 3.1 m ahead of the hit car's front).
+const WRECK_TOW_SHARE := 0.5
+const AT_WRECK_TOW := 22.2
 ## Along the kerb lane from the scene's rear end: the abandoned car, the laweta (its middle; the
 ## truck is 6.6 m long, so its rear is 3.1 m ahead of the car's front).
 const AT_TOW_CAR := 4.2
@@ -143,6 +150,8 @@ var hushed: Callable
 var taxi_share := TAXI_SHARE
 ## The share of Odholowanie scenes (TOW_SHARE; a check sets 0 or 1).
 var tow_share := TOW_SHARE
+## The share of fender benders with a laweta (WRECK_TOW_SHARE; a check sets 0 or 1).
+var wreck_tow_share := WRECK_TOW_SHARE
 ## Odholowanie: lawetas that loaded a car and left (the checks, the log).
 var towed := 0
 
@@ -212,7 +221,7 @@ func step(dt: float) -> void:
 		_log("next scene in %.0f s" % wait)
 		return
 	_report(over)
-	if scene.get("kind", "") == "tow":
+	if scene.has("tow_truck"):
 		_tow_step(dt, dist)
 	if dist < TALK_REACH and not bool(v[2]):
 		scene["talk"] = float(scene["talk"]) - dt
@@ -275,8 +284,9 @@ static func layout(g: LaneGraph, spot: Dictionary, kind := "crash") -> Dictionar
 	var s0: float = spot["s0"]
 	var lo := g.lane_offset(e, lane)
 	var cars: Array = []
+	var last: Array = ["tow", AT_WRECK_TOW, 0.0, 0.0] if kind == "crash_tow" else ["ambulance", AT_AMBULANCE, 0.0, 0.35]
 	for row: Array in [["police", AT_POLICE, 0.0, 0.0], ["hitter", AT_HITTER, HITTER_TURN, HITTER_OFF],
-			["hit", AT_HIT, HIT_TURN, HIT_OFF], ["ambulance", AT_AMBULANCE, 0.0, 0.35]]:
+			["hit", AT_HIT, HIT_TURN, HIT_OFF], last]:
 		var s: float = s0 + float(row[1])
 		var p := g.point_at(e, s, lo + float(row[3]))
 		var d := g.direction(e, s)
@@ -394,13 +404,18 @@ static func load_path(start: Vector3, start_yaw: float, tow: Vector3, tow_yaw: f
 	return [lip.lerp(on, smoothstep(0.0, 1.0, (f - 0.65) / 0.35)), tow_yaw]
 
 
-## The people of a scene of `kind` ("crash", "taxi" or "tow").
+## The people of a scene of `kind` ("crash", "crash_tow", "taxi" or "tow"); at a crash_tow the
+## laweta's operator stands in the paramedic's place.
 static func people_of(kind: String) -> Array:
 	match kind:
 		"taxi":
 			return TAXI_PEOPLE
 		"tow":
 			return TOW_PEOPLE
+		"crash_tow":
+			var out := PEOPLE.duplicate()
+			out[3] = TOW_PEOPLE[0]
+			return out
 	return PEOPLE
 
 
@@ -412,6 +427,8 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 	if kind == "":
 		var r := _rng.randf()
 		kind = "taxi" if r < taxi_share else "tow" if r < taxi_share + tow_share else "crash"
+		if kind == "crash" and _rng.randf() < wreck_tow_share:
+			kind = "crash_tow"
 	var spot := {}
 	for attempt in 6:
 		if at != Vector2.INF:
@@ -447,6 +464,8 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 	var at_s: Dictionary = {"police": AT_TAXI_POLICE, "taxi": AT_TAXI, "car": AT_TOW_CAR, "tow": AT_TOW,
 			"hitter": AT_HITTER, "hit": AT_HIT, "ambulance": AT_AMBULANCE}
 	at_s["police"] = AT_TAXI_POLICE if kind == "taxi" else AT_POLICE
+	if kind == "crash_tow":
+		at_s["tow"] = AT_WRECK_TOW
 	for c: Array in lay["cars"]:
 		var s: float = s0 + float(at_s[c[0]])
 		var d = null
@@ -461,6 +480,9 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 		elif c[0] == "tow":
 			var tw: Array = Models.TRAFFIC[2][Models.VAN_TOW]["paint"]
 			d = traffic.add_parked_car(e, s, c[1], c[2], lane, Models.VAN_TOW, Color(tw[_rng.randi() % tw.size()]), 2)
+		elif c[0] == "hit" and kind == "crash_tow":
+			# The wreck the laweta takes: the hatch in the loaded laweta's car paint.
+			d = traffic.add_parked_car(e, s, c[1], c[2], lane, 0, Models.TOW_LOAD_PAINT)
 		elif c[0] in ["hitter", "hit"]:
 			var paint := Color(paints[_rng.randi() % paints.size()])
 			d = traffic.add_parked_car(e, s, c[1], c[2], lane, _rng.randi() % WRECK_SHAPES, paint)
@@ -473,6 +495,11 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 		if d != null:
 			drivers.append(d)
 	var who := people_of(kind)
+	var load_car = null
+	var tow_truck = null
+	if kind in ["tow", "crash_tow"]:
+		load_car = drivers[0] if kind == "tow" else drivers[drivers.size() - 2]
+		tow_truck = drivers[drivers.size() - 1]
 	if walkers != null:
 		for i in who.size():
 			var p: Vector3 = lay["people"][i][0]
@@ -481,6 +508,10 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 	var street := graph.e_name[e]
 	scene = {"e": e, "lane": lane, "s0": s0, "mid": lay["mid"], "drivers": drivers, "people": lay["people"],
 			"age": 0.0, "life": _rng.randf_range(LIFE.x, LIFE.y), "talk": 0.6, "turn": 0, "street": street, "kind": kind}
+	if tow_truck != null:
+		scene["tow_car"] = load_car
+		scene["tow_truck"] = tow_truck
+		scene["tow_at"] = s0 + float(at_s["tow"])
 	placed += 1
 	var m: Vector2 = lay["mid"]
 	_log("scene %d (%s) at %d,%d (%s, lane %d of %d, %d vehicles, %.0f m away, lives %.0f s)" % [placed, kind, roundi(m.x), roundi(m.y),
@@ -590,8 +621,8 @@ func _tow_step(dt: float, dist: float) -> void:
 
 
 func _start_load() -> void:
-	var car = scene["drivers"][0] if scene["drivers"].size() == 2 else null
-	if car == null:
+	var car = scene["tow_car"]
+	if car == null or not car.active:
 		scene["tow_stage"] = 3
 		return
 	scene["tow_stage"] = 1
@@ -603,8 +634,8 @@ func _start_load() -> void:
 ## The lift, every frame while it runs: the car moves along load_path; at the end it leaves the
 ## CAR pool and the laweta becomes the loaded shape.
 func _load_step(dt: float) -> void:
-	var car = scene["drivers"][0]
-	var tow = scene["drivers"][1]
+	var car = scene["tow_car"]
+	var tow = scene["tow_truck"]
 	scene["load_t"] = float(scene["load_t"]) + dt
 	var f := float(scene["load_t"]) / TOW_LOAD_TIME
 	var from: Array = scene["load_from"]
@@ -614,7 +645,8 @@ func _load_step(dt: float) -> void:
 	if f < 1.0:
 		return
 	traffic.drop_parked(car)
-	scene["drivers"].remove_at(0)
+	scene["drivers"].erase(car)
+	scene["tow_car"] = null
 	tow.shape = Models.VAN_TOW_LOADED
 	tow.size = Models.TRAFFIC[2][Models.VAN_TOW_LOADED]["size"]
 	scene.erase("load_t")
@@ -626,10 +658,10 @@ func _load_step(dt: float) -> void:
 ## The loaded laweta pulls out and joins the traffic (no longer the scene's: the traffic takes it
 ## back to the pool when it is far and out of sight, like any van).
 func _tow_leave() -> void:
-	var tow = scene["drivers"][-1]
+	var tow = scene["tow_truck"]
 	scene["tow_stage"] = 3
 	scene["drivers"].erase(tow)
-	traffic.unpark(tow, int(scene["e"]), int(scene["lane"]), float(scene["s0"]) + AT_TOW)
+	traffic.unpark(tow, int(scene["e"]), int(scene["lane"]), float(scene["tow_at"]))
 	tow.persistent = false
 	towed += 1
 	_log("the laweta drives off")
@@ -655,7 +687,8 @@ func _talk() -> void:
 	var turns: Array = {"taxi": TAXI_TURNS, "tow": TOW_TURNS}.get(kind, TURNS)
 	var i: int = turns[turn % turns.size()]
 	var tag: String = people_of(kind)[i][0]
-	var l: Array = dialogue.say_ambient(_anchor(i), "", {"taxi": TAXI_LINES, "tow": TOW_LINES}.get(kind, LINES), tag, 3.4,
+	var group: String = {"taxi": TAXI_LINES, "tow": TOW_LINES}.get(kind, TOW_LINES if tag == "operator" else LINES)
+	var l: Array = dialogue.say_ambient(_anchor(i), "", group, tag, 3.4,
 			{"taxi": TAXI_BUBBLE, "tow": TOW_BUBBLE}.get(kind, BUBBLE), 1.9, true)
 	if not l.is_empty():
 		_log("%s: %s" % [tag, l[0]])

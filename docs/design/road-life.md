@@ -57,9 +57,15 @@ Check: `game/tools/check_road_life.gd` (verify step `roadlife`, in CI).
   laweta turns into the loaded shape exactly where the car ended, and 7 s later it pulls out and
   drives off as ordinary traffic.
 
-## Left (stage 3, F picks)
+## Stage 3 (F, 2026-11-23: "мені всі ідеї подобаються": all of them, in this order)
 
-- The crash scene's wreck taken away by a laweta; a bus pulling out of a stop; "Pan wolny?!" free
+- **The wreck towed** (built): half the fender benders (`crash_tow`) have a laweta where the
+  ambulance would stand and its operator in the paramedic's place; when the player comes near, the
+  hit car is pulled onto it like the Odholowanie's and the laweta takes it away.
+
+## Left
+
+- A bus pulling out of a stop; "Pan wolny?!" free
   Podwózka ride from the taxi check's passenger.
 - Kontrola trzeźwości, orszak weselny, straż pożarna, Elka. Deferred: dostawczak on hazards in a
   one-lane street (traffic queues can't pass it yet). Cut: tow-ramp jump, korytarz życia in a jam.

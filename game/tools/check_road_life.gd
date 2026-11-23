@@ -28,7 +28,10 @@ extends SceneTree
 ##      laweta without overlapping, nobody inside either, the guard, the owner and the onlooker on
 ##      the footway); the lift's path starts at the car and ends where the loaded shape draws its
 ##      car; on the test road the player coming near starts the lift, the car goes back to its pool,
-##      the laweta turns loaded, pulls out and drives off as traffic, the scene's pools come back.
+##      the laweta turns loaded, pulls out and drives off as traffic, the scene's pools come back;
+##   7. stage 3, the wreck towed: a fender bender with a laweta in the ambulance's place (its
+##      operator in the paramedic's) keeps the hit car and the laweta apart on 60 real spots, and
+##      on the test road the laweta takes the hit car away the same way.
 ## Prints "check_road_life: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_road_life.gd [-- --verbose]
 
@@ -103,7 +106,9 @@ func _run() -> void:
 	await _check_hit(map, digest)
 	_check_tow_shapes(digest)
 	_check_tow_spots(g, digest)
-	await _check_tow_traffic(map, digest)
+	_check_wreck_tow_spots(g, digest)
+	await _check_tow_traffic(map, digest, "tow")
+	await _check_tow_traffic(map, digest, "crash_tow")
 	if problems.is_empty():
 		print("check_road_life: OK (%s)" % " · ".join(digest))
 		quit(0)
@@ -582,7 +587,32 @@ func _check_tow_spots(g: LaneGraph, digest: PackedStringArray) -> void:
 	digest.append("tow layout %d/60 spots" % found)
 
 
-func _check_tow_traffic(map: Node3D, digest: PackedStringArray) -> void:
+func _check_wreck_tow_spots(g: LaneGraph, digest: PackedStringArray) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 43
+	var found := 0
+	for k in 60:
+		var from := g.node_pos[rng.randi() % g.node_pos.size()]
+		var spot := CrashScenes.pick_spot(g, from, Vector2.UP.rotated(rng.randf_range(-PI, PI)), rng)
+		if spot.is_empty():
+			continue
+		found += 1
+		var lay := CrashScenes.layout(g, spot, "crash_tow")
+		var cars: Array = lay["cars"]
+		if cars.size() != 4 or cars[2][0] != "hit" or cars[3][0] != "tow":
+			problems.append("wreck tow spot %d: vehicles %s" % [k, cars.map(func(c): return c[0])])
+			continue
+		var d := g.direction(int(spot["e"]), float(spot["s0"]))
+		var gap := (Vector2(cars[3][1].x, cars[3][1].z) - Vector2(cars[2][1].x, cars[2][1].z)).dot(d)
+		if gap < (3.95 + 6.6) * 0.5 + 1.0:
+			problems.append("wreck tow spot %d: the hit car and the laweta %.1f m apart (they overlap)" % [k, gap])
+		var who := CrashScenes.people_of("crash_tow")
+		if who[3][0] != "operator" or (lay["people"] as Array).size() != who.size():
+			problems.append("wreck tow spot %d: people %s" % [k, who.map(func(p): return p[0])])
+	digest.append("wreck tow layout %d/60 spots" % found)
+
+
+func _check_tow_traffic(map: Node3D, digest: PackedStringArray, kind := "tow") -> void:
 	var made := _road(map)
 	var g: LaneGraph = made[0]
 	var traffic: Node3D = made[1]
@@ -600,19 +630,20 @@ func _check_tow_traffic(map: Node3D, digest: PackedStringArray) -> void:
 	root.add_child(cs)
 	cs.setup(5)
 	var counts0: Array = (traffic.get("_counts") as Array).duplicate()
-	if not cs.place(Vector2(440.0, 1.6), Vector2(1, 0), true, Vector2(520.0, 3.2), "tow"):
-		problems.append("tow traffic: no Odholowanie placed on the test road")
+	if not cs.place(Vector2(440.0, 1.6), Vector2(1, 0), true, Vector2(520.0, 3.2), kind):
+		problems.append("%s traffic: no scene placed on the test road" % kind)
 		return
 	var drivers: Array = cs.scene["drivers"]
-	if cs.scene.get("kind", "") != "tow" or drivers.size() != 2:
-		problems.append("tow traffic: the scene is %s with %d vehicles (want the car and the laweta)" % [cs.scene.get("kind", ""), drivers.size()])
+	# (No police stand-in here: a crash_tow has the two wrecks and the laweta.)
+	if cs.scene.get("kind", "") != kind or drivers.size() != (2 if kind == "tow" else 3) or cs.scene.get("tow_truck") == null:
+		problems.append("%s traffic: the scene is %s with %d vehicles" % [kind, cs.scene.get("kind", ""), drivers.size()])
 		return
-	var car = drivers[0]
-	var tow = drivers[1]
+	var car = cs.scene["tow_car"]
+	var tow = cs.scene["tow_truck"]
 	if car.kind != 0 or car.paint != Models.TOW_LOAD_PAINT or tow.kind != 2 or tow.shape != Models.VAN_TOW:
-		problems.append("tow traffic: car kind %d paint %s, laweta kind %d shape %d" % [car.kind, car.paint.to_html(false), tow.kind, tow.shape])
-	if (cs.walkers as Fakes.Walkers).scenes.size() != CrashScenes.TOW_PEOPLE.size():
-		problems.append("tow traffic: %d people (want %d)" % [(cs.walkers as Fakes.Walkers).scenes.size(), CrashScenes.TOW_PEOPLE.size()])
+		problems.append(kind + " traffic: car kind %d paint %s, laweta kind %d shape %d" % [car.kind, car.paint.to_html(false), tow.kind, tow.shape])
+	if (cs.walkers as Fakes.Walkers).scenes.size() != CrashScenes.people_of(kind).size():
+		problems.append("%s traffic: %d people (want %d)" % [kind, (cs.walkers as Fakes.Walkers).scenes.size(), CrashScenes.people_of(kind).size()])
 	# Far away nothing happens; near, the lift starts, ends on the platform, and the laweta goes.
 	var dt := 1.0 / 60.0
 	var start_s: float = tow.s
@@ -629,7 +660,7 @@ func _check_tow_traffic(map: Node3D, digest: PackedStringArray) -> void:
 		if car.active and loaded_at < 0.0:
 			jump = maxf(jump, before.distance_to(car.pos))
 		if t < 6.0 and cs.scene.get("tow_stage", 0) != 0:
-			problems.append("tow traffic: the lift started with the player %.0f m away" % player[0].distance_to(tow.pos))
+			problems.append(kind + " traffic: the lift started with the player %.0f m away" % player[0].distance_to(tow.pos))
 			break
 		if loaded_at < 0.0 and cs.scene.get("tow_stage", 0) >= 2:
 			loaded_at = t
@@ -638,22 +669,22 @@ func _check_tow_traffic(map: Node3D, digest: PackedStringArray) -> void:
 		if left_at > 0.0 and t > left_at + 8.0:
 			break
 	if loaded_at < 0.0:
-		problems.append("tow traffic: the car never got onto the laweta")
+		problems.append(kind + " traffic: the car never got onto the laweta")
 	elif car.active or tow.shape != Models.VAN_TOW_LOADED:
-		problems.append("tow traffic: loaded, but the car is %s and the laweta's shape %d" % ["still out" if car.active else "back", tow.shape])
+		problems.append(kind + " traffic: loaded, but the car is %s and the laweta's shape %d" % ["still out" if car.active else "back", tow.shape])
 	if jump > 0.5:
-		problems.append("tow traffic: the lifted car jumped %.2f m in a frame" % jump)
+		problems.append(kind + " traffic: the lifted car jumped %.2f m in a frame" % jump)
 	if left_at < 0.0:
-		problems.append("tow traffic: the loaded laweta never left")
+		problems.append(kind + " traffic: the loaded laweta never left")
 	elif tow.parked or tow.persistent or tow.s - start_s < 15.0:
-		problems.append("tow traffic: the laweta left but is parked %s, persistent %s, %.0f m on" % [tow.parked, tow.persistent, tow.s - start_s])
+		problems.append(kind + " traffic: the laweta left but is parked %s, persistent %s, %.0f m on" % [tow.parked, tow.persistent, tow.s - start_s])
 	cs.clear()
 	if tow.active:
 		traffic.remove(tow)
 	var counts1: Array = traffic.get("_counts")
 	if counts1[0] != counts0[0] or counts1[2] != counts0[2]:
-		problems.append("tow traffic: pools CAR %d → %d, VAN %d → %d after the scene" % [counts0[0], counts1[0], counts0[2], counts1[2]])
-	digest.append("Odholowanie: loaded %.1f s in, left %.1f s later, %.0f m on" % [loaded_at, left_at - loaded_at, tow.s - start_s])
+		problems.append(kind + " traffic: pools CAR %d → %d, VAN %d → %d after the scene" % [counts0[0], counts1[0], counts0[2], counts1[2]])
+	digest.append("%s: loaded %.1f s in, left %.1f s later, %.0f m on" % ["Odholowanie" if kind == "tow" else "wreck towed", loaded_at, left_at - loaded_at, tow.s - start_s])
 	cs.queue_free()
 	traffic.queue_free()
 	(made[2] as Node).queue_free()
