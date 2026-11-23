@@ -428,3 +428,4 @@ html[data-os="ios"] #ios, html[data-os="android"] #android { border-color: var(-
 .beta-fb .ways { margin-top: 28px; max-width: 46rem; }
 .faq-one { max-width: 760px; }
 .faq-one h2 { font-size: clamp(1.9rem, 4vw, 2.6rem); }
+.beta-hero .hero-media img { object-position: 28% 50%; }
