@@ -14,7 +14,9 @@ extends RefCounted
 
 const Tiers := preload("res://scripts/tiers.gd")
 
-const HEAVY_SHARE := 0.1
+## Perf thread (2026-11-23): 0.25, not 0.1: at 0.1 a phone at 55 fps (the Samsung A56 at High) read
+## as heavy all the time and Auto stepped it down; a quarter of the refreshes missed is about 45 fps.
+const HEAVY_SHARE := 0.25
 const HEAVY_AFTER := 60.0
 const PENDING_CLEAR_S := 10.0
 
