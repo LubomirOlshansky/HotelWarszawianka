@@ -7156,14 +7156,15 @@ func _make_pov_legs() -> Node3D:
 	shoe.emission_energy_multiplier = 0.4
 	for sx: float in [-0.12, 0.12]:
 		# Leaning back in the chair, legs out over the footrest: in view from a 12-16 degree look down.
-		var hip := Vector3(sx, -0.62, -0.05)
-		var knee := Vector3(sx * 1.25, -0.6, -0.55)
-		var ankle := Vector3(sx * 1.45, -1.0, -0.78)
-		root.add_child(_pov_limb(hip, knee, 0.17, jeans))
-		root.add_child(_pov_limb(knee, ankle, 0.15, jeans))
-		# A boot: shaft over the ankle, then the foot pointing on.
-		root.add_child(_pov_limb(ankle + Vector3(0, 0.12, 0.02), ankle + Vector3(0, -0.06, -0.02), 0.15, shoe))
-		root.add_child(_pov_limb(ankle + Vector3(0, -0.06, 0.05), ankle + Vector3(0, -0.12, -0.24), 0.13, shoe))
+		# Only the shins and boots peek in at the frame's foot from a forward look (F: "a bit of legs,
+		# not sticking into your eyes"): leaning back, legs out over the footrest.
+		var hip := Vector3(sx, -0.85, -0.1)
+		var knee := Vector3(sx * 1.1, -0.8, -0.6)
+		var ankle := Vector3(sx * 1.2, -1.02, -1.0)
+		root.add_child(_pov_limb(hip, knee, 0.13, jeans))
+		root.add_child(_pov_limb(knee, ankle, 0.11, jeans))
+		root.add_child(_pov_limb(ankle + Vector3(0, 0.08, 0.02), ankle + Vector3(0, -0.05, -0.02), 0.12, shoe))
+		root.add_child(_pov_limb(ankle + Vector3(0, -0.04, 0.04), ankle + Vector3(0, -0.08, -0.2), 0.1, shoe))
 	return root
 
 
