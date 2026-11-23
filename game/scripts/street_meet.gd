@@ -1702,6 +1702,15 @@ func _race_off(r: Dictionary) -> void:
 		r["lamps"] = lamps
 
 
+## R1 race classes: the pack race climbs a class a night (ladder.gd club_class) and its racers come
+## one class up against a faster car (class_top), instead of racing at the player's own top.
+func _pack_top() -> float:
+	var pc := 0
+	if car != null and "top_mult" in car and "accel_mult" in car:
+		pc = Ladder.car_class(float(car.top_mult), float(car.accel_mult))
+	return Ladder.class_top(Ladder.club_class(nights), pc)
+
+
 func _player_top() -> float:
 	if car != null and "max_speed" in car and "top_mult" in car:
 		return float(car.max_speed) * float(car.top_mult)
@@ -1732,7 +1741,7 @@ func _race_prepare() -> void:
 	for r in _racers:
 		var k := int(r.get("glow", 0))
 		r["r"] = _race.add(r["d"], String(r["name"]), Ladder.club(k), Ladder.CLUB_PACE,
-				{"top": _player_top(), "dice": hash("%s/%d" % [r["name"], nights]), "from": int(meets[0]["door"]["e"])})
+				{"top": _pack_top(), "dice": hash("%s/%d" % [r["name"], nights]), "from": int(meets[0]["door"]["e"])})
 	_race.prepare()
 	_race_t = 0.0
 	_rank_t = 0.0

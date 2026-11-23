@@ -98,7 +98,7 @@ easily; maybe some races you can win with the starter car and some only once you
 
 **Built from this (replaces R1):**
 1. **Your car's class** from one number, *Moc* = top × engine + 0.15 × (pull × engine − 1):
-   **D** below 1.05, **C** below 1.13, **B** below 1.22, **A** below 1.32, **S** from 1.32. Shown as
+   **D** below 1.05, **C** below 1.13, **B** below 1.22, **A** below 1.34, **S** from 1.34. Shown as
    a letter badge on the garage card, MOJE AUTO and the race card ("Klasa C"). Examples with
    today's numbers: the hatch D; hatch + engine 1 C; hatch + engine 3 B; Ołdi TT B, with engine 3 A;
    Łamborgini Kurakan A, with engine 2 or 3 S.
@@ -133,9 +133,75 @@ more than 5 s; a class-A car beats Mike on a clean run; a car two classes over w
 10 s); Autopilot P21-P23 get a class column; the phone check (does a tuned car feel worth it, is the
 old race still fun one class over).
 
+**Built in R1 (2026-11-23, F chose "rivals one class up" on the card):** points 1-4 (ladder.gd
+`car_class`, `race_class`, `class_top`, `over_pay`, `club_class`; rivals.gd and street_meet.gd use
+them; the race prompt shows "KL. C (TY D)"). Still to come: the police fast unit (5), the drag
+classes (6), the pay rising with the class (7, with C1a when cars are sold), the badge on the
+garage card and MOJE AUTO (G1, G2).
+
 **Order:** N1 → H1 → **R1 classes** (the badge, the race class, the over-class step, the bench) →
 C1a ... as in section 0. The police fast unit and the drag classes come with R1 if small, else
 right after it.
+
+## 0b. MOJE AUTO and the garage card: the night-garage look (F 2026-11-23 01:04 Warsaw)
+
+F: "MOJE AUTO should have that street-racing underground vibe, with the garage and the tuning;
+critique it with Opus and make it nice and stylish." The mood of the 2000s night-tuning racers
+(a car under coloured light in a dark garage, readable part levels, the car turning while you
+choose), made in our own look: the UI kit's dark cards (F 2026-11-19), our neon pink and cyan,
+Warsaw's own details. No layout, font, logo or art from any existing game.
+
+**One screen, three doors** (F 00:04: "the same for Mirek's garage and the car showroom, make it
+stylish"). One `car_screen.gd` (a Control with a small 3D stage) in three modes: WARSZTAT at Mirek's
+(G1: tune and paint, the workshop's work lamps and tool wall behind the car), KOMIS u Mirka on the
+lot next door (buy cars: the car on a raised plate under a price banner, the next car a swipe
+away, the lot's string of bulbs overhead) and MOJE AUTO from the full map (G2: look, switch owned
+cars when stopped, see class and stats; the shop's buttons say "U Mirka na Twardej", so there is
+still a reason to drive there). Same stage, same panel, a different back wall and buttons. The
+game pauses under it, as the garage card does today.
+
+**The stage (left 60 %, the car big):**
+- A night box: dark concrete floor with a soft wet sheen (the car's body drawn once more upside
+  down under a 70 % dark floor, the cheap mirror; no reflection probe), the back wall a roller door
+  with a faded "TWARDA 24h" stencil and a parody sticker or two (Mirek's, original art), a work
+  lamp and a tyre stack as silhouettes.
+- Light: two neon tubes (unshaded emissive strips, pink above, cyan along the floor; additive halo
+  quads, no glow pass), one warm key light; the paint you pick lights the floor's sheen.
+- The car on a slow turntable (8 s a turn); a swipe turns it, a release lets it drift on; a tap on
+  a part makes the camera ease to it (engine: the bonnet, tyres: the wheel, nitro: the boot).
+- Changing a car: a 0.4 s fade through black with the engine's own rev (car.gd's engine sound).
+
+**The panel (right 40 %, the dark card):**
+- Head: the car's name big, the class badge (a neon letter D C B A S in a hexagon, its colour by
+  class), the wallet.
+- Tabs: AUTA (the owned and the buyable cars as a strip of cards: a side silhouette, the price or
+  "masz"), TUNING (Silnik, Opony i zawieszenie, Nitro: three level pips each, the next level's
+  price), LAKIER (today's swatches).
+- Four stat bars that anyone reads at a glance: Prędkość, Przyspieszenie, Skręt, Nitro. The bar
+  now in white, what a buy adds in cyan, what a switch loses in pink; the class letter beside them
+  steps when a buy crosses an edge ("C → B" pulses once).
+- One big gold action (KUP · 120 zł / ZAŁÓŻ / JEDŹ) and WYJAZD.
+
+**The Opus critique, and the answers built into the spec above:**
+1. *A 3D viewport on the phone costs frames.* The game is paused under the screen; the stage is a
+   SubViewport with its own World3D, at 0.75 of the screen's scale, about 12 draw calls (car 3,
+   mirror 3, floor, wall, two tubes, two halos), no shadows (a baked blob under the car), and it
+   stops rendering the moment the screen closes. Bench row "car screen open" before G1 ships.
+2. *Neon needs glow, and glow is a full-screen pass.* Halo quads (a soft radial texture, additive)
+   give the look without the pass; the Mobile renderer's glow stays off.
+3. *Too dark reads as muddy on a phone outdoors.* The car is lit warm and bright; only the room is
+   dark. The panel's text keeps the kit's contrast (INK on CARD). Screenshot check by day outside
+   is a PHONE-CHECK row.
+4. *Two screens drift apart.* One script, one layout, the mode decides which buttons work.
+5. *"Underground" can slide into copying.* Our own stencil, stickers and Mirek's lines; the kit's
+   fonts and colours; no named game's HUD shapes.
+6. *Thumb reach.* The tabs and the action sit at the panel's bottom half; nothing under 44 pt.
+7. *Small phones (iPhone SE-class 16:9).* The panel takes 45 % and the car shrinks; the stats move
+   under the action.
+
+**Order change:** G1 (this screen at the garage) and G2 (the chip on the full map) come right after
+R1, with today's two cars (the hatch and the Ołdi TT); the new cars of C1a/C1b join the same AUTA
+strip as they are made.
 
 ## 1. What is there today (main 04e52e9)
 
