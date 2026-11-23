@@ -41,6 +41,7 @@ extends "res://scripts/activity.gd"
 
 const Boat := preload("res://scripts/boat.gd")
 const Models := preload("res://scripts/models.gd")
+const FirstSteps := preload("res://scripts/first_steps.gd")
 
 const COURSE := "res://data/boat_race.json"
 const COLOUR := Color("#2fb8e0")      # the Vistula's blue: the race's accent
@@ -872,6 +873,13 @@ func _check_rings(k: int) -> void:
 				_maybe_stunt(k)
 				if k == 0 and int(r["rhythm"]) > 1 and int(r["rhythm"]) <= RHYTHM_MAX:
 					hud.ambient_toast("Rytm ×%d" % int(r["rhythm"]), "Rhythm ×%d" % int(r["rhythm"]))
+		elif bool(g["finish"]) and k == 0:
+			# Over the finish line but beside the arch (the river is ~4x wider than it): not a miss
+			# that ends the rings for good (nothing was left to check, so the race never finished
+			# and only the ✕ got out); the player turns and goes through the arch.
+			var w: Array = FirstSteps.words("finish_arch")
+			hud.toast(str(w[0]), str(w[1]))
+			return
 		elif not bool(g["gold"]):
 			_miss(k, i)
 		i += 1

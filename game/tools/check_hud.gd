@@ -299,6 +299,9 @@ func _check_screen(screen: Vector2i) -> int:
 			hud.set_scheme(1 if state.begins_with("car, Classic") else 0)
 			hud.set_arrows_layout(state != "car, Classic slider")  # F 2026-11-13 arrows; the slider is the default since 2026-11-14
 			hud.set_flying(state == "helicopter")
+			# N1: the nitro is owned in the car states, so its disc (above GAS in Classic) is
+			# checked against every panel, the pedals and the safe area like the rest.
+			hud.set_nitro(state.begins_with("car, "), 1.0, 2, false)
 			if state == "helicopter":
 				hud.set_speed(88, 45)
 			else:
@@ -532,7 +535,7 @@ func _check_screen(screen: Vector2i) -> int:
 	hud.settings_panel.notebook_tape = tape
 	hud.settings_panel.notebook_kadr = kadr
 	hud.open_settings({"controls": 1, "follow": false, "traffic": 2, "quality": 0, "auto": "Medium ostry", "master": 1.0, "music": 0.5,
-			"effects": 1.0, "perf": 0, "fps": 0, "style": 0, "vhs": 0, "weather": 0, "time": 0})
+			"effects": 1.0, "perf": 0, "fps": 0, "style": 0, "weather": 0, "time": 0})
 	var panel: Control = hud.settings_panel
 	# Loop MW-1: the tabs (access last, index 5; DEMO 3j: 6 the credits page), then the notebook with a found
 	# card open and one not found yet.

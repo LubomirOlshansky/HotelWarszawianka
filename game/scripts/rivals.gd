@@ -279,6 +279,9 @@ var ghost_pace := 1.8
 var tail := -1
 ## Set by the game each frame.
 var flying := false
+## A police chase is on (main.gd sets it): REWANŻ waits for its end, since the rematch's jump back
+## to the start would shake the chase off for free (an "escaped" with its respect).
+var chase_on: Callable = func() -> bool: return false
 ## Loop MW-6: Spacer (spacer.gd): the rivals don't call out their challenge (the prompt still
 ## shows behind one; flashing the lights still starts the race).
 var quiet := false
@@ -748,6 +751,10 @@ func final_target() -> Vector3:
 func flash() -> void:
 	if state != State.PROMPT:
 		return
+	# The chip can stay up a moment after the player got busy (a friend walking up, a rescue):
+	# no race on top of another activity.
+	if not bool(free_now.call()):
+		return
 	car.flash_lights()
 	# Loop 3h slice 3: a rival above the ladder's open rungs says no, in their own words.
 	if not rung_open(rival):
@@ -854,7 +861,8 @@ func _tuning() -> Array:
 ## A new race session (race_session.gd) on the junctions `legs`, the last the finish with its
 ## circle of RaceSession.FINISH_RADIUS m round `_finish_at()`, and rival `rival` its one racer:
 ## this race's rung (`_tuning`: Halina's gentle day drives ladder.gd FIRST_RACER, an easier rematch
-## is eased), the player's car's top speed, the shortcuts its rung knows.
+## is eased), the race class's top speed (R1: ladder.gd class_top; one class up against a faster car),
+## the shortcuts its rung knows.
 func _new_session(legs: PackedInt32Array) -> void:
 	var tuning := _tuning()
 	var rung: int = tuning[0]
@@ -862,7 +870,7 @@ func _new_session(legs: PackedInt32Array) -> void:
 	_race_session.setup(graph, traffic, _planner, _cuts, _dist_to)
 	_race_session.course(legs, _finish_at(), RaceSession.FINISH_RADIUS)
 	_racer = _race_session.add(_drivers[rival], String(RIVALS[rival]["name"]), Ladder.FIRST_RACER if tuning[1] else Ladder.racer(rung),
-			Ladder.pace(rung), {"top": player_top(), "ease": tuning[2], "cuts_of": Ladder.racer(rung)})
+			Ladder.pace(rung), {"top": Ladder.class_top(Ladder.race_class(rung), player_class()), "ease": tuning[2], "cuts_of": Ladder.racer(rung)})
 	_ends = _race_session.ends
 
 
@@ -1115,7 +1123,7 @@ func _look_for_challenge() -> void:
 				hud.show_challenge("%s · ZAMKNIĘTE" % r["name"].to_upper(), LOCKED_COLOUR, "%s · LOCKED" % r["name"].to_upper(),
 						String(miss[0]), String(miss[1]))
 				return
-			var pips := _pips_of(i)
+			var pips := _pips_of(i) + _class_of(i)
 			hud.show_challenge("WYŚCIG · %s%s" % [r["name"].to_upper(), pips], r["colour"], "RACE · %s%s" % [r["name"].to_upper(), pips],
 					"Dotknij albo L: mrugnij światłami", "Tap or L: flash your lights")
 			if _stage_t - _said[i] > 40.0 and not quiet:
@@ -1378,11 +1386,18 @@ func _finish_race(won: bool, why: String) -> void:
 		# Loop 3g-2: escaping the police during the race: +20 % on the stake.
 		var bonus_pl := ""
 		var bonus_en := ""
+		# R1: a car above the race's class is paid less (a third a class, ladder.gd over_pay).
+		var share := over_pay(Ladder.rung_of(who))
+		if share < 1.0:
+			stake = roundi(stake * share)
+			var cut := roundi((1.0 - share) * 100.0)
+			bonus_pl = " · TWOJA KLASA %s: −%d %%" % [Ladder.CLASS_NAMES[player_class()], cut]
+			bonus_en = " · YOUR CLASS %s: −%d %%" % [Ladder.CLASS_NAMES[player_class()], cut]
 		if escape_bonus:
 			var base := stake
 			stake = roundi(stake * ESCAPE_BONUS)
-			bonus_pl = " · +20 % ZA UCIECZKĘ"
-			bonus_en = " · +20 % FOR THE ESCAPE"
+			bonus_pl += " · +20 % ZA UCIECZKĘ"
+			bonus_en += " · +20 % FOR THE ESCAPE"
 			print("race: +20 %% for the escape: %d → %d zł" % [base, stake])
 		var record := ""
 		var gain := Ladder.WIN_GAIN
@@ -1481,6 +1496,10 @@ func _card_pressed(index: int) -> void:
 func rematch() -> bool:
 	if _rematch.is_empty() or state != State.CRUISE or flying:
 		return false
+	if bool(chase_on.call()):
+		var w: Array = FirstSteps.words("rematch_chase")
+		hud.toast(str(w[0]), str(w[1]))
+		return false
 	var i: int = _rematch["i"]
 	var spot: Array = _rematch["spot"]
 	if int(spot[0]) < 0:
@@ -1542,7 +1561,20 @@ func _first_finish() -> Dictionary:
 	return {}
 
 
+## R1: the player's car's class (ladder.gd car_class: 0 D .. 4 S, from its model and engine).
+func player_class() -> int:
+	if car == null or not ("top_mult" in car and "accel_mult" in car):
+		return 0
+	return Ladder.car_class(float(car.top_mult), float(car.accel_mult))
+
+
+## R1: the pay's share for this car above rung `rung`'s class (ladder.gd over_pay).
+func over_pay(rung: int) -> float:
+	return Ladder.over_pay(Ladder.race_class(rung), player_class())
+
+
 ## The player's car's top speed (m/s, its model and engine; nitro left out), as police.gd's chase_top.
+## Since R1 only the --ghost-pace=racer test player drives at it; rivals race at their class's top.
 func player_top() -> float:
 	if car == null or not ("top_mult" in car and "max_speed" in car):
 		return 30.0
@@ -1937,6 +1969,17 @@ func _pips_of(i: int) -> String:
 	return " " + Ladder.pip_text(rung) if rung >= 0 else ""
 
 
+## R1: rival `i`'s race class after a space (" · KL. C"), with the player's own when it differs
+## (" · KL. C (TY B)"); "" outside the ladder. Letters, so one string serves both languages.
+func _class_of(i: int) -> String:
+	var rc := Ladder.race_class(Ladder.rung_of(str(RIVALS[i]["name"])))
+	if rc < 0:
+		return ""
+	var pc := player_class()
+	var you := "" if pc == rc else Lang.pick(" (TY %s)", " (YOU %s)") % Ladder.CLASS_NAMES[pc]
+	return Lang.pick(" · KL. %s", " · CL. %s") % Ladder.CLASS_NAMES[rc] + you
+
+
 ## RIVALS' index of the rival called `name`, or -1.
 static func index_of(name: String) -> int:
 	for i in RIVALS.size():
@@ -2323,7 +2366,7 @@ func _finish_final(won: bool, why: String) -> void:
 		ladder.note_result(Ladder.FINAL, won)
 	if won:
 		var first := ladder != null and wallet != null and not ladder.final_won()
-		var stake := Ladder.FINAL_ZL
+		var stake := roundi(Ladder.FINAL_ZL * over_pay(Ladder.FINAL))
 		var gain := Ladder.race_gain(Ladder.FINAL, first or ladder == null)
 		if escape_bonus:
 			stake = roundi(stake * ESCAPE_BONUS)
