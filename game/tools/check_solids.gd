@@ -62,7 +62,11 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## of the merge: TOTAL 47714 (46636 - 49 + 1127), TOTAL_TYPED 47533 (46459 - 53 + 1127).
 ## 2026-11-22, Jarmark from the official map and Santa's Workshop (#1006): +3 faces in (-2, 0) (47714 → 47717),
 ## the market's kit landmarks (the CI's fresh bake has both paths equal; TOTAL_TYPED not measured again here).
-const TOTAL := 47717
+## 2026-11-22 (#1008, Pasaż Wiecha at Christmas): +96 faces (47717 → 47813), the decorations' colliders
+## (the photo frames, the gingerbread tunnel's rails, the neon fir, the wire bauble, the bauble benches)
+## in sector -2,0, `--record` on a fresh bake of the branch after merging main, both paths equal;
+## TOTAL_TYPED not measured again here.
+const TOTAL := 47813
 ## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
