@@ -167,7 +167,7 @@ var _free_cam_car := false
 ## starting when the city is ready (main.gd prints "cam-move: start frame N") plus DELAY seconds
 ## (= clip.sh --skip, so the move starts on the take's first frame), eased in over 0.6 s.
 var cam_move := PackedFloat32Array()
-## --persp=EX,EY,EZ,LX,LY,LZ,FOV[,VYAW] (promo only, F 2026-11-22: "phone video turns into the game, same
+## --persp=EX,EY,EZ,LX,LY,LZ,FOV[,VYAW[,NEAR]] (promo only, F 2026-11-22: "phone video turns into the game, same
 ## place"): a perspective camera like a phone's on the ground instead of the game's orthographic view. The
 ## eye at (EX, EZ) EY m over the ground, looking at (LX, LZ) LY m up, FOV the vertical field of view in
 ## degrees (an iPhone's main camera in portrait about 70), VYAW a slow pan in degrees a second round the

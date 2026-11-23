@@ -492,16 +492,20 @@ static func tower_static(b, at: Vector2, yaw := 0.0, g := NAN, tilt := -PI * 0.5
 ## The tower ride's turning carrier (built at TOWER_TOP; the shader runs it round and down the
 ## mast): the orange sphere hub (r 1.8), twenty lit spokes to a flat white wheel (r 6, plus an
 ## inner ring), and twenty chairs hanging on chains swung out to r 8.3, a rider in three of four.
-static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, rest := TOWER_TOP) -> void:
+## `flyer` (promo only, --promo-flyer: F's phone video 2026-11-22, the swing against the Palace): the
+## spokes slant up to the rim like an umbrella and the rim is 5 m and the chairs fly out 32 degrees on 6.5 m chains, as the
+## real ride at full speed, the chains and chairs lit white as in the video at night.
+static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, rest := TOWER_TOP, flyer := false) -> void:
 	var c := Ctx.new(b, at, yaw, g)
 	c.noroof(true)
 	var yc := rest  # keep TOWER_TOP unless the shader's TOWER_DROP changes with it
-	c.sphere(0, 0, yc, 1.8, 12, 6, TOWER_HUB, M_LAMP)
+	# flyer (F's video): a pink-white hub with bigger white dots, steady instead of flickering red specks.
+	c.sphere(0, 0, yc, 1.8, 12, 6, Color("#f2c9d8") if flyer else TOWER_HUB, M_LAMP)
 	# About thirty red LED dots over the hub (a golden-angle spread).
 	for q in 30:
 		var phi := acos(1.0 - 2.0 * (float(q) + 0.5) / 30.0)
 		var th := float(q) * 2.39996
-		c.lbulb(sin(phi) * cos(th) * 1.86, sin(phi) * sin(th) * 1.86, yc + cos(phi) * 1.86, 0.12, Color("#ff2a2a"))
+		c.lbulb(sin(phi) * cos(th) * 1.86, sin(phi) * sin(th) * 1.86, yc + cos(phi) * 1.86, 0.22 if flyer else 0.12, LED if flyer else Color("#ff2a2a"))
 	var n := 20
 	var rim_prev := Vector3.ZERO
 	var first := Vector3.ZERO
@@ -509,7 +513,9 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 		var t := TAU * (float(j) + 0.5) / float(n)
 		var d := Vector2(cos(t), sin(t))
 		var hub := Vector3(d.x * 1.7, d.y * 1.7, yc + 0.35)
-		var tip := Vector3(d.x * 6.0, d.y * 6.0, yc - 0.25)
+		var rim_z := yc + 2.2 if flyer else yc - 0.25
+		var rr := 5.0 if flyer else 6.0
+		var tip := Vector3(d.x * rr, d.y * rr, rim_z)
 		c.lbeam(Vector3(hub.x, hub.y, hub.z), Vector3(tip.x, tip.y, tip.z), 0.17, WHITE, M_LAMP)
 		var inner := Vector3(d.x * 3.7, d.y * 3.7, yc + 0.05)
 		if j > 0:
@@ -517,20 +523,24 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 		else:
 			first = tip
 		rim_prev = tip
-		c.lbulb(d.x * 6.0, d.y * 6.0, yc - 0.1, 0.2, LED)
+		c.lbulb(d.x * rr, d.y * rr, rim_z + 0.15, 0.2, LED)
 		c.lbulb(inner.x, inner.y, yc + 0.1, 0.14, LED)
 		# The chair on two chains, swung out.
-		var seat := Vector2(d.x, d.y) * 8.3
+		var seat := Vector2(d.x, d.y) * (rr + 6.5 * sin(deg_to_rad(32.0)) if flyer else 8.3)
 		var tang := Vector2(-d.y, d.x)
-		var sy := yc - 6.3
+		var sy := rim_z - 6.5 * cos(deg_to_rad(32.0)) - 0.62 if flyer else yc - 6.3
 		for sd: float in [-1.0, 1.0]:
-			c.lbeam(Vector3(d.x * 6.0 + tang.x * sd * 0.25, d.y * 6.0 + tang.y * sd * 0.25, yc - 0.25),
-					Vector3(seat.x + tang.x * sd * 0.27, seat.y + tang.y * sd * 0.27, sy + 0.62), 0.04, WIRE)
+			c.lbeam(Vector3(d.x * rr + tang.x * sd * 0.25, d.y * rr + tang.y * sd * 0.25, rim_z),
+					Vector3(seat.x + tang.x * sd * 0.27, seat.y + tang.y * sd * 0.27, sy + 0.62), 0.09 if flyer else 0.04,
+					LED if flyer else WIRE, M_LAMP if flyer else M_STONE)
 		var col: Color = CHAIRS[j % 4]
 		var ang := t + PI * 0.5
 		c.pbox(seat.x, seat.y, ang, 0.32, 0.27, sy, sy + 0.12, Color("#2a2d36"))
 		var back := seat - d * 0.25
-		c.pbox(back.x, back.y, ang, 0.32, 0.04, sy, sy + 0.62, col, CLEAR, M_LAMP)
+		c.pbox(back.x, back.y, ang, 0.32, 0.04, sy, sy + 0.62, LED if flyer else col, CLEAR, M_LAMP)
+		if flyer:
+			# The real chairs carry a white lamp each at night (F's video): a dot at the chain's foot.
+			c.lbulb(seat.x, seat.y, sy + 0.7, 0.22, LED)
 		if riders and j % 4 != 3:
 			c.rider(seat.x - d.x * 0.05, seat.y - d.y * 0.05, ang, sy + 0.12, j)
 	# Close the rim.

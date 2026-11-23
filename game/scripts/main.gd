@@ -7204,13 +7204,17 @@ func _update_pov_swing() -> void:
 	var u := Vector2.from_angle(_JmPromo.KIT_YAW)
 	var v := Vector2(-u.y, u.x)
 	var t := TAU * (float(POV_CHAIR) + 0.5) / 20.0
-	var r := (u * cos(t) + v * sin(t)) * 8.3
+	# --promo-flyer (jarmark_kit.gd tower_spin): the rim 5 m and 2.2 m up, 6.5 m chains flown out 32 degrees.
+	var flyer := OS.get_cmdline_user_args().has("--promo-flyer")
+	var seat_r := 5.0 + 6.5 * sin(deg_to_rad(32.0)) if flyer else 8.3
+	var seat_dy := 2.2 - 6.5 * cos(deg_to_rad(32.0)) - 0.62 if flyer else -6.3
+	var r := (u * cos(t) + v * sin(t)) * seat_r
 	var c := cos(ang)
 	var s := sin(ang)
 	var rr := Vector2(c * r.x - s * r.y, s * r.x + c * r.y)
 	var outw := rr.normalized()
 	var ahead := Vector2(-s * r.x - c * r.y, c * r.x - s * r.y).normalized()
-	var seat_y := g + _JmKit.TOWER_TOP - 6.3 + 0.12 - (1.0 - up) * _JmKit.TOWER_DROP
+	var seat_y := g + _JmKit.TOWER_TOP + seat_dy + 0.12 - (1.0 - up) * _JmKit.TOWER_DROP
 	var eye2 := axis + rr + outw * 0.05
 	var eye := Vector3(eye2.x, seat_y + 0.95, eye2.y)
 	var la := deg_to_rad(pv[1])
@@ -7218,7 +7222,7 @@ func _update_pov_swing() -> void:
 	var pitch := deg_to_rad(pv[2])
 	var dir := Vector3(look2.x * cos(pitch), -sin(pitch), look2.y * cos(pitch))
 	# The chair hangs out on its chains: the rider's "up" leans in towards the hub (F 2026-11-23 ref reel: a tilted horizon).
-	var lean := deg_to_rad(14.0)
+	var lean := deg_to_rad(20.0 if flyer else 14.0)
 	var up_t := Vector3(-outw.x * sin(lean), cos(lean), -outw.y * sin(lean))
 	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
 	cam.fov = pv[3]
