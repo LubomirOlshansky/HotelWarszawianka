@@ -31,6 +31,11 @@ class KebabRow(RoadHarness):
         ]
 ```
 
+A row sets `want_labels` (e.g. `("START", "ACCEPT", "AKCEPTUJ")`) for the buttons it means to
+press: they are offered first, by label, never by their place in the list. The generic
+`press_button_N` never offers HELI, the menus or the maps (2026-11-23: it pressed HELI and the car
+flew off). `arrive_m` (default 10) is how close counts as there: 4 for a stand's 7 m ring.
+
 Autopilot takes the last `Harness` subclass in the file. Keep the plan's `done` on the game's
 state, never on which options ran, so `run_harness(restart=False)` resumes it after the 360 s
 episode cap.
