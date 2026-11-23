@@ -168,6 +168,17 @@ var loaded_version := 0
 var newer := false
 
 
+## Settings redesign step 5 (F 2026-11-23): OGÓLNE → PRZYWRÓĆ DOMYŚLNE. The settings panel's values
+## (settings_panel.gd rows) for the player's own settings as a fresh file has them; call it on
+## `Settings.new()`. The language, the stats choice and the DEV switches are left alone.
+func player_defaults() -> Dictionary:
+	return {"pads": pads, "character": character, "lane_assist": int(lane_assist), "weather": 0, "traffic": traffic,
+			"angle": maxi(0, FollowCamera.PITCHES.find(pitch)), "grade": grade, "quality": quality + 1,
+			"fps": maxi(0, FPS.find(fps)), "image": int(image_full), "master": master, "music": music, "effects": effects,
+			"text_large": int(text_large), "calm": int(calm), "color_safe": int(color_safe), "vibration": int(vibration),
+			"stop_assist": int(stop_assist), "left_handed": int(left_handed)}
+
+
 func load_file() -> void:
 	if not persistent:
 		return

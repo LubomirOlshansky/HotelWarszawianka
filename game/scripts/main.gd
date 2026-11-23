@@ -5195,6 +5195,13 @@ func _on_setting(key: String, value: Variant) -> void:
 			hud.apply_text_scale()
 		"lang":
 			_set_language(Lang.CODES[clampi(int(value), 0, Lang.CODES.size() - 1)])
+		"defaults":
+			# Settings redesign step 5: OGÓLNE → PRZYWRÓĆ DOMYŚLNE, each player setting back through
+			# its own case above (settings.gd player_defaults); language, stats and DEV stay.
+			var fresh: Dictionary = Settings.new().player_defaults()
+			for k: String in fresh:
+				_on_setting(k, fresh[k])
+			hud.settings_panel.sync(_settings_state())
 		"master", "music", "effects":
 			settings.set(key, float(value))
 			Sfx.set_levels(settings.master, settings.music, settings.effects)

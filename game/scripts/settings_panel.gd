@@ -378,6 +378,13 @@ func _build() -> void:
 	# default, off here at once (settings.gd `stats`, key "stats").
 	_heading(general[0], "Anonimowa statystyka", "Anonymous stats")
 	_segments(general[0], "stats", ON_OFF)
+	# Step 5 (F 2026-11-23): one way back to the defaults, two taps like NOWA GRA (main.gd "defaults";
+	# the language, the stats and DEV stay as they are).
+	_defaults_button = _word_button("PRZYWRÓĆ DOMYŚLNE", "RESTORE DEFAULTS")
+	_defaults_button.name = "defaults"
+	_defaults_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_defaults_button.pressed.connect(_on_defaults_pressed)
+	general[0].add_child(_defaults_button)
 	# DEMO 3j: the credits and licences (credits.gd), and the tips, pages of their own opened from here.
 	_heading(general[1], "O grze", "About")
 	var about_row := HBoxContainer.new()
@@ -986,6 +993,8 @@ func _flat_button(label: String, points: float) -> Button:
 ## the words.
 var _new_game_button: Button
 var _new_game_armed := false
+var _defaults_button: Button
+var _defaults_armed := false
 
 
 ## NOWA GRA in the settings: the first tap asks, the second (within 4 s) wipes the save.
@@ -998,6 +1007,22 @@ func _on_new_game_pressed() -> void:
 	_new_game_armed = false
 	close()
 	changed.emit("new_game", 1)
+
+
+## Step 5: the first tap asks, the second (within 4 s) restores the defaults.
+func _on_defaults_pressed() -> void:
+	if not _defaults_armed:
+		_defaults_armed = true
+		_set_word_button(_defaults_button, "NA PEWNO?", "SURE? TAP AGAIN")
+		get_tree().create_timer(4.0).timeout.connect(_disarm_defaults)
+		return
+	_disarm_defaults()
+	changed.emit("defaults", 1)
+
+
+func _disarm_defaults() -> void:
+	_defaults_armed = false
+	_set_word_button(_defaults_button, "PRZYWRÓĆ DOMYŚLNE", "RESTORE DEFAULTS")
 
 
 func _disarm_new_game() -> void:

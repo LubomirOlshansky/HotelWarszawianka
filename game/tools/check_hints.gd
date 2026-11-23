@@ -384,6 +384,15 @@ func _dev() -> void:
 	(panel._groups["preset"][2] as Button).pressed.emit()
 	_expect(panel._chosen("quality") == 4 and panel._chosen("fps") == 0 and panel._chosen("image") == 0 and panel._chosen("preset") == 2,
 			"presets: Najlepsza is Ultra, 60 fps, Piksel")
+	# Step 5: PRZYWRÓĆ DOMYŚLNE asks first, then asks main.gd for the defaults; every default names a row.
+	asked.clear()
+	var restore := panel.find_child("defaults", true, false) as Button
+	restore.pressed.emit()
+	_expect(asked.is_empty(), "defaults: the first tap only asks (asked %s)" % [asked])
+	restore.pressed.emit()
+	_expect(asked == [["defaults", 1]], "defaults: the second tap restores (asked %s)" % [asked])
+	for k: String in (preload("res://scripts/settings.gd").new()).player_defaults():
+		_expect(panel._groups.has(k) or panel._bars.has(k) or panel._stepbars.has(k), "defaults: %s is a settings row" % k)
 	vp.queue_free()
 	await process_frame
 	# --settings-tab=tips and =dev ask for a page past the tabs before the panel is built (main.gd's
