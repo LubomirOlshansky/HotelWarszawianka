@@ -86,6 +86,14 @@ const TRAFFIC := [
 			"paint": ["#f2f2ee", "#e9e9e6", "#d8d2c2", "#b8bcc0", "#2f4566", "#6a7487", "#4c6650"]},
 		{"name": "box van", "share": 0.4, "size": Vector3(2.1, 2.8, 5.4),
 			"paint": ["#f2f2ee", "#e9e9e6", "#d8d2c2", "#b8bcc0"]},
+		# Road life stage 2 (F, 2026-11-23: "евакуатори з машинами на дорогах"): the laweta, a
+		# tow truck with a flat platform, empty and with a car on it (_van(VAN_TOW), VAN_TOW_LOADED;
+		# crash_scenes.gd's "Odholowanie" scene loads one). Never a random van (share 0): traffic.gd
+		# makes TOW_CHANCE of its vans one with its own generator. The VAN family holds four shapes.
+		{"name": "tow truck", "share": 0.0, "size": Vector3(2.24, 2.3, 6.6),
+			"paint": ["#f2f2ee", "#e9e9e6", "#2b2c2f", "#d8d2c2"]},
+		{"name": "tow truck loaded", "share": 0.0, "size": Vector3(2.24, 2.8, 6.6),
+			"paint": ["#f2f2ee", "#e9e9e6", "#2b2c2f", "#d8d2c2"]},
 	],
 	[
 		# Shape 0 the articulated bus (buses.gd's hub ring always takes it), shape 1 the solo bus.
@@ -509,6 +517,13 @@ static func spec(name: String) -> Dictionary:
 					"roof_y": 2.08, "roof_z0": -1.22, "roof_z1": -0.55, "gw0": 0.97, "gw1": 0.9, "r": 0.34,
 					"axle_f": -1.8, "axle_r": 1.75, "bp": 0.85, "rear_pane": false,
 					"ws_v": Vector2(0.06, 0.9), "rw_v": Vector2(0.3, 0.8), "sp_v": Vector2(0.18, 0.88)}, true)
+		"tow truck":
+			# Road life stage 2: the box van's cab moved to the front of a 6.6 m chassis.
+			p.merge({"L": 6.6, "W": 0.99, "sill": 0.42, "bump_f": 0.64, "bump_r": 0.5, "nose": 0.98, "nose_in": 0.16,
+					"cowl_z": -2.45, "cowl_y": 1.12, "belt_z": -1.02, "belt_y": 1.1, "tail_y": 1.06, "tail_in": 0.0,
+					"roof_y": 2.08, "roof_z0": -1.82, "roof_z1": -1.15, "gw0": 0.97, "gw1": 0.9, "r": 0.34,
+					"axle_f": -2.4, "axle_r": 1.95, "bp": 0.85, "rear_pane": false,
+					"ws_v": Vector2(0.06, 0.9), "rw_v": Vector2(0.3, 0.8), "sp_v": Vector2(0.18, 0.88)}, true)
 		"player":
 			# The player's hatch: shorter overhangs, a lower roof with more rake, wider.
 			p.merge({"L": 4.0, "W": 0.9, "sill": 0.28, "bump_f": 0.5, "bump_r": 0.5, "nose": 0.79, "nose_in": 0.18,
@@ -646,7 +661,7 @@ static func traffic_mesh(kind: int) -> ArrayMesh:
 		1:
 			return family([_taxi(TAXI_CITY), _taxi(TAXI_APP), _taxi(TAXI_SUPERCAR), _taxi(TAXI_PASAT)])
 		2:
-			return family([_van(false), _van(true)])
+			return family([_van(VAN_PANEL), _van(VAN_BOX), _van(VAN_TOW), _van(VAN_TOW_LOADED)])
 	return bus_mesh()
 
 
@@ -732,10 +747,28 @@ static func _taxi(which: int) -> Shape:
 	return s
 
 
-## A panel van, or a box van (a short cab under a tall box that reaches over it).
-static func _van(boxed: bool) -> Shape:
+## A panel van, or a box van (a short cab under a tall box that reaches over it), or (road life
+## stage 2) the laweta: the box van's cab on a longer chassis carrying a flat aluminium platform
+## with two ramp tips at the back, a headboard behind the cab and a yellow beacon bar on its roof
+## (lit at night), empty or with a car on the platform (a hatch in TOW_LOAD_PAINT, the paint of the
+## car crash_scenes.gd's "Odholowanie" loads, so the loaded truck takes over from that car without
+## a jump). Every shape adds the same parts in the same order (family()); the box van's box and the
+## tow's platform hide where they don't belong, and the car on the platform shrinks to a point
+## (Shape.xform scaled to zero: _vehicle() shows its own parts again on its way).
+const VAN_PANEL := 0
+const VAN_BOX := 1
+const VAN_TOW := 2
+const VAN_TOW_LOADED := 3
+const TOW_LOAD_PAINT := Color("#5d6f8a")
+## The loaded car's place on the laweta (its origin: the middle of its wheels' footprint).
+const TOW_LOAD_AT := Vector3(0.0, 1.27, 1.3)
+const TOW_PLATFORM := Color("#a3a8ae")
+const TOW_BEACON := Color("#ffc21a")
+static func _van(which: int) -> Shape:
 	var s := Shape.new()
-	var p := spec("box van" if boxed else "panel van")
+	var boxed := which == VAN_BOX
+	var tow := which >= VAN_TOW
+	var p := spec("tow truck" if tow else "box van" if boxed else "panel van")
 	var paint := fin(Color.WHITE, PAINT)
 	_vehicle(s, p, paint)
 	var L: float = p["L"]
@@ -743,6 +776,42 @@ static func _van(boxed: bool) -> Shape:
 	s.box(Vector3(0.0, 1.9, (-0.36 + L * 0.5) * 0.5), Vector3(2.08, 1.72, L * 0.5 + 0.36), paint, true)
 	s.box(Vector3(0.0, 2.43, -0.8), Vector3(2.04, 0.66, 0.9), paint, true)
 	s.box(Vector3(0.0, 1.03, (-0.36 + L * 0.5) * 0.5), Vector3(2.0, 0.06, L * 0.5 + 0.3), fin(TRIM))
+	# The laweta's kit (spec("tow truck") is 6.6 m: the cab ends at z -1.0, the platform runs to
+	# the tail and a little past it).
+	s.keep_if(tow, Vector3(0.0, 1.1, 1.0))
+	var z0 := -0.95
+	var z1 := L * 0.5 + 0.12
+	var top := TOW_LOAD_AT.y
+	var alu := fin(TOW_PLATFORM)
+	var dark := fin(Color("#3a3d42"))
+	s.box(Vector3(0.0, top - 0.07, (z0 + z1) * 0.5), Vector3(2.24, 0.14, z1 - z0), alu, true)
+	for sgn: float in [-1.0, 1.0]:
+		s.box(Vector3(sgn * 1.1, top + 0.03, (z0 + z1) * 0.5), Vector3(0.06, 0.08, z1 - z0), dark)
+		# The ramp tips, sloping from the platform's end down towards the road.
+		var x0 := sgn * 0.95 - 0.28
+		var x1 := sgn * 0.95 + 0.28
+		s.quad(Vector3(x0, top, z1), Vector3(x1, top, z1), Vector3(x1, top - 0.38, z1 + 0.42),
+				Vector3(x0, top - 0.38, z1 + 0.42), alu, Vector3(0.0, 0.7, 0.7))
+		# The yellow-and-black stripes on the platform's sides.
+		s.side_rect(sgn * 1.125, sgn, top - 0.13, top - 0.03, z0 + 0.2, z1 - 0.2, fin(TOW_BEACON))
+	# The headboard behind the cab: two posts and two bars.
+	for sgn: float in [-1.0, 1.0]:
+		s.box(Vector3(sgn * 1.0, top + 0.5, z0 + 0.05), Vector3(0.09, 1.0, 0.09), dark)
+	s.box(Vector3(0.0, top + 0.97, z0 + 0.05), Vector3(2.08, 0.08, 0.09), dark)
+	s.box(Vector3(0.0, top + 0.55, z0 + 0.05), Vector3(2.08, 0.06, 0.06), dark)
+	# The beacon bar on the cab's roof.
+	var roof_y: float = p["roof_y"]
+	var roof_mid := (float(p["roof_z0"]) + float(p["roof_z1"])) * 0.5
+	s.box(Vector3(0.0, roof_y + 0.04, roof_mid), Vector3(1.3, 0.06, 0.24), dark)
+	s.box(Vector3(0.0, roof_y + 0.12, roof_mid), Vector3(1.16, 0.12, 0.2), fin(TOW_BEACON, LIT_SIGN))
+	s.show()
+	# The car on the platform (shrunk to a point unless loaded).
+	if which == VAN_TOW_LOADED:
+		s.xform = Transform3D(Basis.IDENTITY, TOW_LOAD_AT)
+	else:
+		s.xform = Transform3D(Basis.from_scale(Vector3.ZERO), Vector3(0.0, 1.1, 1.0))
+	_vehicle(s, spec("hatch"), fin(TOW_LOAD_PAINT))
+	s.xform = Transform3D.IDENTITY
 	s.show()
 	return s
 

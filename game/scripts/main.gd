@@ -3062,11 +3062,11 @@ func _build_crash_scenes() -> void:
 	add_child(crash_scenes)
 	crash_scenes.setup()
 	var xz := flags.crash_flag.split(",")
-	if flags.crash_flag in ["now", "taxi"] or xz.size() == 2:
+	if flags.crash_flag in ["now", "taxi", "tow"] or xz.size() == 2:
 		var p := car.global_position
 		var f := -car.global_transform.basis.z
 		var at := Vector2(float(xz[0]), float(xz[1])) if xz.size() == 2 else Vector2.INF
-		crash_scenes.place(Vector2(p.x, p.z), Vector2(f.x, f.z).normalized(), true, at, xz[0] if xz[0] == "taxi" else "")
+		crash_scenes.place(Vector2(p.x, p.z), Vector2(f.x, f.z).normalized(), true, at, xz[0] if xz[0] in ["taxi", "tow"] else "")
 	# Road life: the ambulance and the honk at a green, quiet in a race, a chase or the guide (the
 	# scenes wait for the same).
 	road_life = RoadLife.new()

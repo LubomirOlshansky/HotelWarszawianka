@@ -38,13 +38,28 @@ an ambulance runs, and a 4 Hz tick. One shortest-path table per hospital, made t
 
 ## Flags
 
-`--ambulance=now|on|0`, `--road-log`, `--crash=taxi` (archive flags table).
+`--ambulance=now|on|0`, `--road-log`, `--crash=taxi`, `--crash=tow` (archive flags table).
 Check: `game/tools/check_road_life.gd` (verify step `roadlife`, in CI).
 
-## Left (stage 2 and 3, F picks)
+## Stage 2 (built): the laweta
 
-- Laweta (tow truck) as a new shape of the VAN family (POLICE/CAR/TAXI families are full), empty
-  and loaded; the crash scene's wreck taken away; "Odholowanie" (a car on the pavement).
-- A bus pulling out of a stop; "Pan wolny?!" free Podwózka ride from the taxi check's passenger.
+- **Laweta** (`models.gd` `_van`, VAN family shapes 2 and 3): the box van's cab on a 6.6 m chassis
+  with an aluminium platform, ramp tips, a headboard and a yellow beacon bar lit at night; shape 3
+  carries a hatch on the platform. +0 draw calls (the VAN MultiMesh); every van carries the
+  hidden parts (1,566 vertices a van instead of the old family's count).
+- **In traffic**: 12 % of the vans the band spawns (`traffic.gd` TOW_CHANCE, its own generator so
+  the rest of the traffic's draws stay the same), half of them loaded. Never a crazy courier.
+- **Odholowanie** (`crash_scenes.gd` kind `tow`, 25 % of the roadside scenes): a hatch left half on
+  the pavement, a laweta in the kerb lane ahead of it, the operator at the ramps, a city guard
+  with the ticket, the owner running back in a bathrobe from Frogs ("Byłem pięć minut!") and an
+  onlooker filming (`dialogue.json` `tow_scene`, KEBAB FM's "tow"). When the player comes within
+  50 m the car is pulled onto the platform over 5 s (moved every frame along `load_path`), the
+  laweta turns into the loaded shape exactly where the car ended, and 7 s later it pulls out and
+  drives off as ordinary traffic.
+
+## Left (stage 3, F picks)
+
+- The crash scene's wreck taken away by a laweta; a bus pulling out of a stop; "Pan wolny?!" free
+  Podwózka ride from the taxi check's passenger.
 - Kontrola trzeźwości, orszak weselny, straż pożarna, Elka. Deferred: dostawczak on hazards in a
   one-lane street (traffic queues can't pass it yet). Cut: tow-ramp jump, korytarz życia in a jam.

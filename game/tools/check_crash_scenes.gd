@@ -239,7 +239,8 @@ func _scenes(g: LaneGraph, traffic: Node3D, map: Node3D) -> CrashScenes:
 	root.add_child(dlg)
 	root.add_child(dlg.bubbles)
 	cs.dialogue = dlg
-	cs.taxi_share = 0.0  # the fender benders here; the taxi check is check_road_life's
+	cs.taxi_share = 0.0  # the fender benders here; the taxi check and the tow are check_road_life's
+	cs.tow_share = 0.0
 	cs.set_process(false)
 	root.add_child(cs)
 	return cs

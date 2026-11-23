@@ -26,6 +26,15 @@ extends Node
 ## (dialogue.json `taxi_check`, KEBAB FM's `radio_host` tag "taxi_check"). No ambulance and no
 ## siren at a taxi check. No new scene while `hushed` says so (road_life.gd: a race, a chase, the
 ## first minutes' guide), so a race or the guide's drive never meets one.
+##
+## Road life stage 2: TOW_SHARE of scenes are an "Odholowanie": a car left half on the pavement
+## (the CAR pool's hatch in Models.TOW_LOAD_PAINT), a laweta stopped in the kerb lane ahead of it
+## (the VAN pool's shape Models.VAN_TOW: +0 draw calls), its operator at the platform, a city guard
+## writing it up and the owner running back in a bathrobe with a Frogs bag ("Byłem pięć minut!";
+## dialogue.json `tow_scene`, KEBAB FM's "tow"). When the player comes within TALK_REACH m the car
+## is pulled up onto the platform over TOW_LOAD_TIME s (moved frame by frame, `_load_step`) and
+## the laweta takes its place as the loaded shape (Models.VAN_TOW_LOADED, the car drawn where the
+## lifted one ended: no jump), then after TOW_LEAVE s it pulls out and drives off with the traffic.
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Models := preload("res://scripts/models.gd")
@@ -45,6 +54,31 @@ const TAXI_TURNS := [0, 2, 3, 0, 2, 4, 1, 3, 2, 0, 3, 4]
 const TAXI_LINES := "taxi_check"
 const TAXI_RADIO_TAG := "taxi_check"
 const TAXI_BUBBLE := Color("#ffd23f")
+## The share of scenes that are an Odholowanie (a tow).
+const TOW_SHARE := 0.25
+## Along the kerb lane from the scene's rear end: the abandoned car, the laweta (its middle; the
+## truck is 6.6 m long, so its rear is 3.1 m ahead of the car's front).
+const AT_TOW_CAR := 4.2
+const AT_TOW := 12.6
+## The abandoned car stands this far right of the kerb line's inside (half on the footway), this
+## high (the kerb), turned this much (radians).
+const TOW_CAR_SIDE := 0.05
+const TOW_CAR_UP := 0.08
+const TOW_CAR_TURN := -0.09
+## The lift: TOW_LOAD_TIME s from the kerb onto the platform; TOW_LEAVE s later the laweta goes.
+const TOW_LOAD_TIME := 5.0
+const TOW_LEAVE := 7.0
+## Where the car goes on its way up, in the laweta's own frame (its front is -z): behind the ramp
+## tips, at the platform's end, on the platform (Models.TOW_LOAD_AT).
+const TOW_FOOT := Vector3(0.0, 0.0, 5.85)
+const TOW_LIP := Vector3(0.0, 1.27, 4.3)
+## The Odholowanie's people: 0 the laweta's operator, 1 the city guard, 2 the owner, 3 an onlooker.
+const TOW_PEOPLE := [["operator", "#e8f23a", 0.3], ["guard", "#26324a", 0.1], ["owner", "#d98fb0", 0.6],
+		["gawker", "#7a4fa8", 0.5]]
+const TOW_TURNS := [1, 0, 2, 1, 2, 3, 0, 2, 1, 3, 2]
+const TOW_LINES := "tow_scene"
+const TOW_RADIO_TAG := "tow"
+const TOW_BUBBLE := Color("#ffc21a")
 ## Seconds to the first scene, between one clearing and the next, and a scene's life.
 const FIRST := Vector2(80.0, 150.0)
 const GAP := Vector2(180.0, 330.0)
@@ -107,6 +141,10 @@ var enabled := true
 var hushed: Callable
 ## The share of taxi checks (TAXI_SHARE; a check sets 0 or 1 for a kind of its own).
 var taxi_share := TAXI_SHARE
+## The share of Odholowanie scenes (TOW_SHARE; a check sets 0 or 1).
+var tow_share := TOW_SHARE
+## Odholowanie: lawetas that loaded a car and left (the checks, the log).
+var towed := 0
 
 ## Seconds to the next scene; the scene now ({} = none).
 var wait := 0.0
@@ -135,6 +173,8 @@ func _process(dt: float) -> void:
 	if dt <= 0.0 or not enabled:
 		return
 	var t0 := Time.get_ticks_usec()
+	if not scene.is_empty() and scene.has("load_t"):
+		_load_step(dt)
 	_t += dt
 	if _t >= TICK:
 		step(_t)
@@ -172,6 +212,8 @@ func step(dt: float) -> void:
 		_log("next scene in %.0f s" % wait)
 		return
 	_report(over)
+	if scene.get("kind", "") == "tow":
+		_tow_step(dt, dist)
 	if dist < TALK_REACH and not bool(v[2]):
 		scene["talk"] = float(scene["talk"]) - dt
 		if float(scene["talk"]) <= 0.0:
@@ -226,6 +268,8 @@ static func fits(g: LaneGraph, e: int) -> bool:
 static func layout(g: LaneGraph, spot: Dictionary, kind := "crash") -> Dictionary:
 	if kind == "taxi":
 		return taxi_layout(g, spot)
+	if kind == "tow":
+		return tow_layout(g, spot)
 	var e: int = spot["e"]
 	var lane: int = spot["lane"]
 	var s0: float = spot["s0"]
@@ -293,9 +337,71 @@ static func taxi_layout(g: LaneGraph, spot: Dictionary) -> Dictionary:
 	return {"cars": cars, "people": people, "mid": m}
 
 
-## The people of a scene of `kind` ("crash" or "taxi"): PEOPLE or TAXI_PEOPLE.
+## The Odholowanie at spot {e, lane, s0}: the abandoned car half on the footway, the laweta
+## ahead of it in the kerb lane on the lane's line (so it pulls straight out). The operator stands
+## by the ramp tips on the traffic side, the guard on the footway by the car with the ticket, the
+## owner running back along the footway from behind, an onlooker ahead.
+static func tow_layout(g: LaneGraph, spot: Dictionary) -> Dictionary:
+	var e: int = spot["e"]
+	var lane: int = spot["lane"]
+	var s0: float = spot["s0"]
+	var lo := g.lane_offset(e, lane)
+	var kerb := lo + g.e_lw[e] * 0.5
+	var cars: Array = []
+	var cs := s0 + AT_TOW_CAR
+	var cp := g.point_at(e, cs, kerb + TOW_CAR_SIDE)
+	var cd := g.direction(e, cs)
+	cars.append(["car", Vector3(cp.x, g.height(e, cs) + TOW_CAR_UP, cp.y), atan2(-cd.x, -cd.y) + TOW_CAR_TURN])
+	var ts := s0 + AT_TOW
+	var tp := g.point_at(e, ts, lo)
+	var td := g.direction(e, ts)
+	cars.append(["tow", Vector3(tp.x, g.height(e, ts), tp.y), atan2(-td.x, -td.y)])
+	var people: Array = []
+	# [s, metres right of the centreline, facing: 1 along, -1 back, 0 the road, 2 the kerb].
+	for row: Array in [[ts - 4.4, lo - 1.3, 2.0], [cs + 0.6, kerb + 1.7, 0.0], [cs - 5.5, kerb + 2.0, 1.0],
+			[ts + 1.5, kerb + 2.6, 0.0]]:
+		var s: float = row[0]
+		var p := g.point_at(e, s, float(row[1]))
+		var d := g.direction(e, s)
+		var face: Vector2
+		match int(row[2]):
+			1, -1:
+				face = d * float(row[2])
+			2:
+				face = Vector2(-d.y, d.x)
+			_:
+				face = Vector2(d.y, -d.x)
+		people.append([Vector3(p.x, 0.0, p.y), atan2(-face.x, -face.y)])
+	var m := g.point_at(e, s0 + (AT_TOW_CAR + AT_TOW) * 0.5, lo)
+	return {"cars": cars, "people": people, "mid": m}
+
+
+## Where the abandoned car is on its way onto the laweta at `tow` (its position and yaw), `f`
+## from 0 (still at the kerb, `start`, `start_yaw`) to 1 (on the platform, as the loaded shape
+## draws it): a slide in line behind the ramp tips, up to the platform's end, along it. Static:
+## the check follows it.
+static func load_path(start: Vector3, start_yaw: float, tow: Vector3, tow_yaw: float, f: float) -> Array:
+	var b := Basis(Vector3.UP, tow_yaw)
+	var foot := tow + b * TOW_FOOT
+	var lip := tow + b * TOW_LIP
+	var on := tow + b * Models.TOW_LOAD_AT
+	f = clampf(f, 0.0, 1.0)
+	if f < 0.3:
+		var k := smoothstep(0.0, 1.0, f / 0.3)
+		return [start.lerp(foot, k), lerp_angle(start_yaw, tow_yaw, k)]
+	if f < 0.65:
+		return [foot.lerp(lip, (f - 0.3) / 0.35), tow_yaw]
+	return [lip.lerp(on, smoothstep(0.0, 1.0, (f - 0.65) / 0.35)), tow_yaw]
+
+
+## The people of a scene of `kind` ("crash", "taxi" or "tow").
 static func people_of(kind: String) -> Array:
-	return TAXI_PEOPLE if kind == "taxi" else PEOPLE
+	match kind:
+		"taxi":
+			return TAXI_PEOPLE
+		"tow":
+			return TOW_PEOPLE
+	return PEOPLE
 
 
 ## Makes a scene near `from` (out of sight; `near`: for a test's shot, 45-80 m ahead and maybe in
@@ -304,7 +410,8 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 	if not scene.is_empty():
 		clear()
 	if kind == "":
-		kind = "taxi" if _rng.randf() < taxi_share else "crash"
+		var r := _rng.randf()
+		kind = "taxi" if r < taxi_share else "tow" if r < taxi_share + tow_share else "crash"
 	var spot := {}
 	for attempt in 6:
 		if at != Vector2.INF:
@@ -337,8 +444,9 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 	var s0: float = spot["s0"]
 	var drivers: Array = []
 	var paints: Array = Models.TRAFFIC[0][0]["paint"]
-	var at_s: Dictionary = {"police": AT_TAXI_POLICE, "taxi": AT_TAXI} if kind == "taxi" else \
-			{"police": AT_POLICE, "hitter": AT_HITTER, "hit": AT_HIT, "ambulance": AT_AMBULANCE}
+	var at_s: Dictionary = {"police": AT_TAXI_POLICE, "taxi": AT_TAXI, "car": AT_TOW_CAR, "tow": AT_TOW,
+			"hitter": AT_HITTER, "hit": AT_HIT, "ambulance": AT_AMBULANCE}
+	at_s["police"] = AT_TAXI_POLICE if kind == "taxi" else AT_POLICE
 	for c: Array in lay["cars"]:
 		var s: float = s0 + float(at_s[c[0]])
 		var d = null
@@ -347,12 +455,18 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 			var shape := _rng.randi() % 2
 			var tp: Array = Models.TRAFFIC[1][shape]["paint"]
 			d = traffic.add_parked_car(e, s, c[1], c[2], lane, shape, Color(tp[_rng.randi() % tp.size()]), 1)
+		elif c[0] == "car":
+			# The abandoned car: the hatch in the paint the loaded laweta's car is drawn in.
+			d = traffic.add_parked_car(e, s, c[1], c[2], lane, 0, Models.TOW_LOAD_PAINT)
+		elif c[0] == "tow":
+			var tw: Array = Models.TRAFFIC[2][Models.VAN_TOW]["paint"]
+			d = traffic.add_parked_car(e, s, c[1], c[2], lane, Models.VAN_TOW, Color(tw[_rng.randi() % tw.size()]), 2)
 		elif c[0] in ["hitter", "hit"]:
 			var paint := Color(paints[_rng.randi() % paints.size()])
 			d = traffic.add_parked_car(e, s, c[1], c[2], lane, _rng.randi() % WRECK_SHAPES, paint)
 		elif police != null:
 			d = police.scene_car(e, lane, s, c[1], c[2], 0 if c[0] == "police" else 2)
-		if d == null and c[0] in ["hitter", "hit", "taxi"]:
+		if d == null and c[0] in ["hitter", "hit", "taxi", "car", "tow"]:
 			for o in drivers:
 				_drop(o)
 			return false
@@ -371,7 +485,7 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 	var m: Vector2 = lay["mid"]
 	_log("scene %d (%s) at %d,%d (%s, lane %d of %d, %d vehicles, %.0f m away, lives %.0f s)" % [placed, kind, roundi(m.x), roundi(m.y),
 			street if street != "" else "a nameless road", lane, graph.e_lanes[e], drivers.size(), from.distance_to(m), scene["life"]])
-	_announce(street, TAXI_RADIO_TAG if kind == "taxi" else RADIO_TAG)
+	_announce(street, {"taxi": TAXI_RADIO_TAG, "tow": TOW_RADIO_TAG}.get(kind, RADIO_TAG))
 	return true
 
 
@@ -433,7 +547,7 @@ func _report(over: bool) -> void:
 	if hud != null:
 		hud.set_scene_mark(m)
 	if sfx != null:
-		if over or scene.get("kind", "crash") == "taxi":
+		if over or scene.get("kind", "crash") != "crash":
 			sfx.scene_siren(Vector3.INF)
 		else:
 			var amb = scene["drivers"][-1] if not scene["drivers"].is_empty() else null
@@ -462,6 +576,65 @@ func clear() -> void:
 	scene = {}
 
 
+## The Odholowanie's timeline, each tick: the lift starts when the player comes within
+## TALK_REACH m (on foot or driving; not flying over), and TOW_LEAVE s after the car is on the
+## platform the laweta pulls out into its lane and drives on as ordinary traffic.
+func _tow_step(dt: float, dist: float) -> void:
+	var stage: int = scene.get("tow_stage", 0)
+	if stage == 0 and dist < TALK_REACH and float(scene["age"]) > 2.0:
+		_start_load()
+	elif stage == 2:
+		scene["tow_wait"] = float(scene["tow_wait"]) - dt
+		if float(scene["tow_wait"]) <= 0.0:
+			_tow_leave()
+
+
+func _start_load() -> void:
+	var car = scene["drivers"][0] if scene["drivers"].size() == 2 else null
+	if car == null:
+		scene["tow_stage"] = 3
+		return
+	scene["tow_stage"] = 1
+	scene["load_t"] = 0.0
+	scene["load_from"] = [car.pos, car.yaw]
+	_log("the laweta starts loading")
+
+
+## The lift, every frame while it runs: the car moves along load_path; at the end it leaves the
+## CAR pool and the laweta becomes the loaded shape.
+func _load_step(dt: float) -> void:
+	var car = scene["drivers"][0]
+	var tow = scene["drivers"][1]
+	scene["load_t"] = float(scene["load_t"]) + dt
+	var f := float(scene["load_t"]) / TOW_LOAD_TIME
+	var from: Array = scene["load_from"]
+	var at := load_path(from[0], from[1], tow.pos, tow.yaw, f)
+	car.pos = at[0]
+	car.yaw = at[1]
+	if f < 1.0:
+		return
+	traffic.drop_parked(car)
+	scene["drivers"].remove_at(0)
+	tow.shape = Models.VAN_TOW_LOADED
+	tow.size = Models.TRAFFIC[2][Models.VAN_TOW_LOADED]["size"]
+	scene.erase("load_t")
+	scene["tow_stage"] = 2
+	scene["tow_wait"] = TOW_LEAVE
+	_log("the car is on the laweta")
+
+
+## The loaded laweta pulls out and joins the traffic (no longer the scene's: the traffic takes it
+## back to the pool when it is far and out of sight, like any van).
+func _tow_leave() -> void:
+	var tow = scene["drivers"][-1]
+	scene["tow_stage"] = 3
+	scene["drivers"].erase(tow)
+	traffic.unpark(tow, int(scene["e"]), int(scene["lane"]), float(scene["s0"]) + AT_TOW)
+	tow.persistent = false
+	towed += 1
+	_log("the laweta drives off")
+
+
 func _drop(d) -> void:
 	if d == null:
 		return
@@ -478,12 +651,12 @@ func _talk() -> void:
 		return
 	var turn: int = scene["turn"]
 	scene["turn"] = turn + 1
-	var taxi: bool = scene.get("kind", "crash") == "taxi"
-	var turns: Array = TAXI_TURNS if taxi else TURNS
+	var kind: String = scene.get("kind", "crash")
+	var turns: Array = {"taxi": TAXI_TURNS, "tow": TOW_TURNS}.get(kind, TURNS)
 	var i: int = turns[turn % turns.size()]
-	var tag: String = people_of(scene.get("kind", "crash"))[i][0]
-	var l: Array = dialogue.say_ambient(_anchor(i), "", TAXI_LINES if taxi else LINES, tag, 3.4,
-			TAXI_BUBBLE if taxi else BUBBLE, 1.9, true)
+	var tag: String = people_of(kind)[i][0]
+	var l: Array = dialogue.say_ambient(_anchor(i), "", {"taxi": TAXI_LINES, "tow": TOW_LINES}.get(kind, LINES), tag, 3.4,
+			{"taxi": TAXI_BUBBLE, "tow": TOW_BUBBLE}.get(kind, BUBBLE), 1.9, true)
 	if not l.is_empty():
 		_log("%s: %s" % [tag, l[0]])
 

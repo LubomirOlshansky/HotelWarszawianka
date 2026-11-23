@@ -119,6 +119,11 @@ const PARKED_WAIT := 1.6
 ## Their own seeded generator, so the rest of the traffic's sequence is the same as before.
 const LOUD_CHANCE := 0.12
 const LOUD_SPEED := Vector2(1.12, 1.25)
+## Road life stage 2 (docs/design/road-life.md): this share of the vans the band spawns (not the
+## crazy couriers) are a laweta, half of them with a car on the platform (models.gd VAN_TOW,
+## VAN_TOW_LOADED: the VAN MultiMesh, no draw call of its own). Their own seeded generator, so
+## the rest of the traffic's sequence (the shapes' _looks too) is as before.
+const TOW_CHANCE := 0.12
 const LOUD_ACCEL := 1.7
 ## Crazy drivers (F 2026-11-05, docs/design/crazy-drivers.md): a few of the taxis and vans the band
 ## spawns drive in racer mode with no route (racing_mode): the Szkoda Oktawia taxis (crazy 1, the
@@ -877,6 +882,8 @@ var crazy_count := 0
 var crazy_target := 3
 var pasat_count := 0
 var _crazy_rng := RandomNumberGenerator.new()
+## Road life stage 2: the lawetas' generator.
+var _tow_rng := RandomNumberGenerator.new()
 ## Loop 2c: picks the shapes, apart from _rng so where and what kind of car spawns is as before.
 var _looks := RandomNumberGenerator.new()
 var _tick := 0
@@ -987,6 +994,7 @@ func setup(lane_graph: LaneGraph, map_node: Node3D, camera: Camera3D, data: Dict
 	_looks.seed = 2027
 	_loud_rng.seed = 2028
 	_crazy_rng.seed = 2030
+	_tow_rng.seed = 2031
 	_lane_cars.resize(graph.lane_count)
 	for i in graph.lane_count:
 		_lane_cars[i] = []
@@ -1403,6 +1411,8 @@ func _try_spawn(anywhere: bool) -> bool:
 		elif kind == Kind.VAN:
 			shape = 0
 			crazy = 2
+	if kind == Kind.VAN and crazy == 0 and _tow_rng.randf() < TOW_CHANCE:
+		shape = Models.VAN_TOW if _tow_rng.randf() < 0.5 else Models.VAN_TOW_LOADED
 	var look: Dictionary = shapes[shape]
 	var size: Vector3 = look["size"]
 	if not anywhere and on_screen(Vector3(q.x, y, q.y), size.y):

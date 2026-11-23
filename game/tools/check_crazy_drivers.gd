@@ -258,12 +258,15 @@ func _check_traffic(g: LaneGraph, map: Node3D, digest: PackedStringArray) -> voi
 			for d in traffic.drivers():
 				if d.crazy <= 0:
 					continue
-				if not since.has(d):
-					since[d] = f
+				# Timed by its ride (one per crazy life: traffic.gd reuses its Driver objects, so a
+				# courier made from a Driver that was crazy before is a new one).
+				var ride = cd.route.ride_of(d) if cd.route != null else null
+				var key = ride if ride != null else d
+				if not since.has(key):
+					since[key] = f
 				if d.line != null:
 					lined[d] = true
-				if f - int(since[d]) >= 300 and cd.route != null:
-					var ride = cd.route.ride_of(d)
+				if f - int(since[key]) >= 300 and cd.route != null:
 					if ride == null or ride.fare < 0 or d.plan == null or d.route.is_empty():
 						unplanned += 1
 			for d in traffic.drivers():

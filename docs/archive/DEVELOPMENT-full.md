@@ -6155,6 +6155,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--crash=now` / `--crash=X,Z` / `--crash=on` / `--crash=0` | crash scenes (`crash_scenes.gd`): a scene now 45-130 m ahead of the car (shots; it may be in view), or on the fitting road nearest X,Z; `on`: the 3-5 minute timer in a test run too (it runs in a normal launch only); `0`: none |
 | `--crash-log` | crash scenes: print `crash:` lines: the first scene's wait, each scene (where, street, lane, vehicles, distance, life), the radio line, every bubble line, each clear and the next wait |
 | `--crash=taxi` | crash scenes: a taxi check (kontrola taksówki) now 45-130 m ahead of the car instead of a crash |
+| `--crash=tow` | crash scenes: an Odholowanie (a laweta loading a car off the pavement) now 45-130 m ahead of the car instead of a crash; it loads when the car comes within 50 m |
 | `--ambulance=now` / `--ambulance=on` / `--ambulance=0` | road life (`road_life.gd`): an ambulance on a call starts 2 s in, 40-60 m behind the car (it may be in view); `on`: the 2.5-5 minute timer in a test run too (it runs in a normal launch only); `0`: none |
 | `--road-log` | road life: print `road:` lines: each ambulance (lane, hospital, distance), in its way, blocking, thanks, hits, its end; each "Zielone!" honk |
 | `--boat-race`, `--boat-race=call` | boat race (`boat_race.gd`): Szymek rings now, whatever the time |
