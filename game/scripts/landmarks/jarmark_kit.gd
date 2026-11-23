@@ -445,7 +445,7 @@ const TOWER_HUB := Color("#d9962e")
 const TOWER_H := 30.0
 ## --pov-swing (main.gd POV_CHAIR): the empty chair the eye rides, and the other chains' softer white.
 const POV_CHAIR := 3
-const POV_CHAIN := Color(0.52, 0.55, 0.62)
+const POV_METAL := Color(0.55, 0.57, 0.62)
 const CHAIRS := [Color("#f2c230"), Color("#e03a2a"), Color("#5a8cff"), Color("#4cb050")]
 
 
@@ -522,10 +522,11 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 		var rim_z := yc + 2.2 if flyer else yc - 0.25
 		var rr := 5.0 if flyer else 6.0
 		var tip := Vector3(d.x * rr, d.y * rr, rim_z)
-		c.lbeam(Vector3(hub.x, hub.y, hub.z), Vector3(tip.x, tip.y, tip.z), 0.17, WHITE, M_LAMP)
+		# --pov-swing (F 2026-11-23: "better it doesn't glow"): from the chairs the carrier is matte metal.
+		c.lbeam(Vector3(hub.x, hub.y, hub.z), Vector3(tip.x, tip.y, tip.z), 0.17, POV_METAL if pov else WHITE, M_STONE if pov else M_LAMP)
 		var inner := Vector3(d.x * 3.7, d.y * 3.7, yc + 0.05)
 		if j > 0:
-			c.lbeam(Vector3(rim_prev.x, rim_prev.y, rim_prev.z), Vector3(tip.x, tip.y, tip.z), 0.14, WHITE, M_LAMP)
+			c.lbeam(Vector3(rim_prev.x, rim_prev.y, rim_prev.z), Vector3(tip.x, tip.y, tip.z), 0.14, POV_METAL if pov else WHITE, M_STONE if pov else M_LAMP)
 		else:
 			first = tip
 		rim_prev = tip
@@ -541,8 +542,8 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 			var own := pov and j == POV_CHAIR
 			c.lbeam(Vector3(d.x * rr + tang.x * sd * 0.25, d.y * rr + tang.y * sd * 0.25, rim_z),
 					Vector3(seat.x + tang.x * sd * 0.27, seat.y + tang.y * sd * 0.27, sy + 0.62),
-					0.035 if own else (0.09 if flyer else 0.04),
-					WIRE if (own or not flyer) else (POV_CHAIN if pov else LED), M_STONE if (own or not flyer) else M_LAMP)
+					0.035 if own else (0.05 if pov else (0.09 if flyer else 0.04)),
+					WIRE if (own or not flyer) else (POV_METAL if pov else LED), M_STONE if (own or not flyer or pov) else M_LAMP)
 		var col: Color = CHAIRS[j % 4]
 		var ang := t + PI * 0.5
 		c.pbox(seat.x, seat.y, ang, 0.32, 0.27, sy, sy + 0.12, Color("#2a2d36"))
@@ -550,8 +551,9 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 		if pov and j == POV_CHAIR:
 			c.pbox(back.x, back.y, ang, 0.32, 0.04, sy, sy + 0.62, Color("#2a2d36"))
 		else:
-			c.pbox(back.x, back.y, ang, 0.32, 0.04, sy, sy + 0.62, (POV_CHAIN if pov else LED) if flyer else col, CLEAR, M_LAMP)
-		if flyer and not (pov and j == POV_CHAIR):
+			# POV: the chairs in their own colours, matte, so a rider reads against them (no glow).
+			c.pbox(back.x, back.y, ang, 0.32, 0.04, sy, sy + 0.62, col if pov else (LED if flyer else col), CLEAR, M_STONE if pov else M_LAMP)
+		if flyer and not pov:
 			# The real chairs carry a white lamp each at night (F's video): a dot at the chain's foot.
 			c.lbulb(seat.x, seat.y, sy + 0.7, 0.22, LED)
 		if riders and j % 4 != 3:
@@ -565,7 +567,7 @@ static func tower_spin(b, at: Vector2, yaw := 0.0, g := NAN, riders := true, res
 					c.pbox(lp.x, lp.y, ang, 0.06, 0.07, sy - 0.42, sy + 0.12, Color("#7f98bd"))
 					c.pbox(lp.x + d.x * 0.05, lp.y + d.y * 0.05, ang, 0.07, 0.11, sy - 0.5, sy - 0.42, Color("#151518"))
 	# Close the rim.
-	c.lbeam(Vector3(rim_prev.x, rim_prev.y, rim_prev.z), Vector3(first.x, first.y, first.z), 0.14, WHITE, M_LAMP)
+	c.lbeam(Vector3(rim_prev.x, rim_prev.y, rim_prev.z), Vector3(first.x, first.y, first.z), 0.14, POV_METAL if pov else WHITE, M_STONE if pov else M_LAMP)
 	# The second, smaller LED ring.
 	for j in n:
 		var a := TAU * (float(j) + 0.5) / float(n)

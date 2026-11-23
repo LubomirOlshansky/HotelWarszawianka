@@ -27,11 +27,6 @@ grep -v '^#' $ROOT/${SHOTS:-docs/jarmark-promo/shots.tsv} | while IFS=$'\t' read
 		if CLIP_RUNTIME=1 $ROOT/tools/clip.sh $name 1080x1920 $secs --skip=8 -- $flags </dev/null; then
 			ffmpeg -v error -y -i $ROOT/build/clips/$name.mp4 -vf "$GRADE" -c:v libx264 -preset slow -crf 16 \
 				-colorspace bt709 -color_primaries bt709 -color_trc bt709 -movflags +faststart -an $OUT/$name.mp4 </dev/null
-			# The swing POV takes (pov-*): also a motion-blurred copy, three frames weighted 1-2-1 (F 2026-11-23:
-			# "a final with the blur and one without").
-			[[ $name == pov-* ]] && ffmpeg -v error -y -i $ROOT/build/clips/$name.mp4 -vf "tmix=frames=3:weights=1 2 1,$GRADE" \
-				-c:v libx264 -preset slow -crf 16 -colorspace bt709 -color_primaries bt709 -color_trc bt709 -movflags +faststart -an \
-				$OUT/$name-blur.mp4 </dev/null
 			rm -rf $ROOT/build/clips/$name.frames
 			print "ok $name"
 			break
