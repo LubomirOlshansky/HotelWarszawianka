@@ -358,7 +358,7 @@ Checks: `check_landmarks.gd` runs on the full map for EVERY site that has a card
 | PZU Tower | S_RIBBON (pale green-blue glass #8fb5bd; 2026-11-01, spec `pzu_jm.md`) | - | - |
 | JM Tower | S_FINS on dark navy glass, mapped grey pilasters (spec `pzu_jm.md`) | - | - |
 | Babka Tower (new 2026-11-15, "WEKTRA" top floor) | S_PUNCHED #d9d8d3 | BUILT 2026-11-15 from F's T42 photos and revised the same day from his four more (spec `babka.md`, 637 tris, budget 800): pale stone tower with punched windows, a glazed loggia column on each face, string course, red mast; the 34 m U-shaped stone office block round its foot built with it (`with` outline), cornice and roof planters | phone: the loggia column and the stone at the game's zoom, the name at night |
-Atlas Tower: the map's own tower plus the Level 26 rooftop club on its crown (landmarks.gd `_build_level26_club`, site `level26_club`). Not covered: Warsaw Towers, Prosta Tower, V Tower, Concept Tower, Sienna Center etc. (generic).
+Atlas Tower: the map's own tower plus the Level 26 rooftop club (landmarks.gd `_build_level26_club`, site `level26_club`), rebuilt from F's photos 2026-11-22 as the terrace round the crown drum on the 112 m roof (spec docs/landmarks/specs/level26.md). Not covered: Warsaw Towers, Prosta Tower, V Tower, Concept Tower, Sienna Center etc. (generic).
 
 #### 1c. Skin-only (kept LoD2/OSM massing, own wall + roof colour + facade mode; `SKINS` via `_find_skins`, `skin_at`, `_mark_zone`)
 All with a card; check_landmarks only (except where noted). Open issue common to all (BACKLOG "Left"): colour-only, no portico/gables/towers modelled.
