@@ -22,7 +22,8 @@ extends SceneTree
 ##   the hold does not (the test means something); the replay's scripted order fires at ORDER_AT; a
 ##   helicopter-only call brings the helicopter's toast at once; `judge` flags a late, a missing and
 ##   an early-fired beat;
-## - the friends' calls wait for FRIENDS_STEPS steps or FRIENDS_AFTER s, then NEW_FRIEND_GAP s after a
+## - the friends' calls wait for FRIENDS_STEPS steps or FRIENDS_AFTER s (at most 5 minutes, and not
+##   again in a later session once opened), then NEW_FRIEND_GAP s after a
 ##   new friend (`friends_held`); the First steps' rewards (money each, a paint and the friends at the
 ##   third, the card, a paint and the respect at the seventh), an old save's quiet ticks
 ##   (`from_wallet`), the rows and the header for the map's list;
@@ -634,6 +635,8 @@ func _friends() -> void:
 	_expect(First10.friends_held(steps, 400.0, 400.0 - First10.NEW_FRIEND_GAP + 1.0), "a new friend rang lately: the next waits")
 	_expect(not First10.friends_held(steps, 400.0, 400.0 - First10.NEW_FRIEND_GAP), "NEW_FRIEND_GAP s after a new friend: the next may ring")
 	_expect(First10.friends_held(steps, 400.0, -1.0, true), "an intro waits for its turn: it goes before a friend's call")
+	_expect(not First10.friends_held(0, 10.0, -1.0, false, true), "opened in an earlier session: no steps, 10 s in, they may call")
+	_expect(First10.FRIENDS_AFTER <= 300.0, "a player who skips the First steps gets calls within 5 minutes (FRIENDS_AFTER %.0f s, F 2026-11-22)" % First10.FRIENDS_AFTER)
 	_expect(First10.FRIENDS_YIELD < First10.NEXT_GAP, "a call yields before the intro is due (%.0f < %.0f s)" % [First10.FRIENDS_YIELD, First10.NEXT_GAP])
 	_expect(steps == FirstSteps.NOTICED_AT, "the friends open at the third step, the reward's party (%d, %d)" % [steps, FirstSteps.NOTICED_AT])
 	_summary.append("friends after %d steps or %.0f s, one new every %.0f s" % [steps, First10.FRIENDS_AFTER, First10.NEW_FRIEND_GAP])
