@@ -31,6 +31,12 @@ const SHARP_KMH := 20.0
 const SOFT_KMH := 32.0
 const ARRIVE_KMH := 25.0
 const ARRIVE_SLOW_M := 35.0
+## A goal this close in a straight line (m) whose way by road is NEAR_DETOUR times longer is
+## driven to straight, as a player pulls in: the kebab stand on Marszałkowska was 24.6 m from the
+## car and 1384 m by road (the far carriageway, a loop round the block), so the 2026-11-23 run
+## drove off across the city and never took the order.
+const NEAR_GOAL_M := 40.0
+const NEAR_DETOUR := 3.0
 
 static var _line: RouteLine
 static var _graph: LaneGraph
@@ -167,6 +173,15 @@ static func road_place(graph: LaneGraph, at: Vector2) -> Dictionary:
 ## heading (degrees, + right), the bend ahead and the speed for it. With no path, straight at `goal`.
 static func steer(graph: LaneGraph, path: PackedVector2Array, at: Vector2, fwd: Vector2, speed: float,
 		kerb: bool, cruise_kmh: float, goal: Vector2) -> Dictionary:
+	if path.size() >= 2 and at.distance_to(goal) < NEAR_GOAL_M:
+		var by_road := 0.0
+		for i in path.size() - 1:
+			by_road += path[i].distance_to(path[i + 1])
+		if by_road > at.distance_to(goal) * NEAR_DETOUR:
+			var r := steer(graph, PackedVector2Array(), at, fwd, speed, kerb, cruise_kmh, goal)
+			r["pull_in"] = true
+			r["by_road_m"] = snappedf(by_road, 0.1)
+			return r
 	if path.size() < 2:
 		var to := goal - at
 		return {"route": false, "left_m": snappedf(to.length(), 0.1), "aim_x": snappedf(goal.x, 0.1),
