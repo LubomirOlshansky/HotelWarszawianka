@@ -7140,20 +7140,30 @@ var _pov_legs: Node3D = null
 func _make_pov_legs() -> Node3D:
 	var root := Node3D.new()
 	root.name = "PovLegs"
+	# F's reference reel (2026-11-23): light washed jeans and black boots, which read against the dark
+	# ground; a faint glow of their own so the night doesn't turn them into black blobs.
 	var jeans := StandardMaterial3D.new()
-	jeans.albedo_color = Color("#2b3a5c")
-	jeans.roughness = 0.9
+	jeans.albedo_color = Color("#9db3cf")
+	jeans.roughness = 0.95
+	jeans.emission_enabled = true
+	jeans.emission = Color("#6f86a6")
+	jeans.emission_energy_multiplier = 0.35
 	var shoe := StandardMaterial3D.new()
-	shoe.albedo_color = Color("#e8e4dc")
-	shoe.roughness = 0.7
+	shoe.albedo_color = Color("#16161a")
+	shoe.roughness = 0.35
+	shoe.emission_enabled = true
+	shoe.emission = Color("#2a2a33")
+	shoe.emission_energy_multiplier = 0.4
 	for sx: float in [-0.12, 0.12]:
 		# Leaning back in the chair, legs out over the footrest: in view from a 12-16 degree look down.
-		var hip := Vector3(sx, -0.82, -0.12)
-		var knee := Vector3(sx * 1.1, -0.76, -0.6)
-		var ankle := Vector3(sx * 1.2, -0.98, -1.0)
-		root.add_child(_pov_limb(hip, knee, 0.16, jeans))
-		root.add_child(_pov_limb(knee, ankle, 0.13, jeans))
-		root.add_child(_pov_limb(ankle + Vector3(0, 0.02, 0.04), ankle + Vector3(0, 0.06, -0.22), 0.12, shoe))
+		var hip := Vector3(sx, -0.62, -0.05)
+		var knee := Vector3(sx * 1.25, -0.6, -0.55)
+		var ankle := Vector3(sx * 1.45, -1.0, -0.78)
+		root.add_child(_pov_limb(hip, knee, 0.17, jeans))
+		root.add_child(_pov_limb(knee, ankle, 0.15, jeans))
+		# A boot: shaft over the ankle, then the foot pointing on.
+		root.add_child(_pov_limb(ankle + Vector3(0, 0.12, 0.02), ankle + Vector3(0, -0.06, -0.02), 0.15, shoe))
+		root.add_child(_pov_limb(ankle + Vector3(0, -0.06, 0.05), ankle + Vector3(0, -0.12, -0.24), 0.13, shoe))
 	return root
 
 
