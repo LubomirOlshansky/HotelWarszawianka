@@ -368,6 +368,10 @@
 # Grodzka's ramp by the Royal Castle (F, 2026-11-13): `zamekramps` runs tools/zamek_ramps.py --check
 # (the slip road past Pałac pod Blachą up to the W-Z tunnel is one smooth climb: no pit fills or their
 # walls on it, one ground profile; no map beyond centrum.json, CI too).
+# Party-wall fronts (F, 2026-11-22): `photofronts` runs tools/photo_fronts_party.py --check (no photo
+# street front in game/data/photo_fronts.json faces straight into a neighbour 8 m or taller: a front
+# on a shared wall stood over the roofs of Krakowskie Przedmieście as a free slab; no map beyond
+# centrum.json, CI too).
 # The obelisk's semicircle north of the Palace (F, 2026-11-17): `defiladobelisk` runs
 # tools/defilad_obelisk.py --check (no mapped wall loop, service ramp, zebra or garage door left on it;
 # no map beyond centrum.json, CI too).
@@ -472,7 +476,7 @@ fi
 # Operation Unslop review (2026-11-05): the road loop ran the whole --quick (~100 steps, most start
 # the game) after every tweak. --roads keeps only the steps a road rule can break; steps not in
 # STEPS_ALL on this branch (e.g. `smooth` before the smooth-roads PR) are skipped.
-STEPS_ROADS=(map roads streets streetdetails streetpass design models overrides smooth fixes centralnyramp zamekramps objecttypes cyclehang portbridge objects tramstops drive stuckspots)
+STEPS_ROADS=(map roads streets streetdetails streetpass design models overrides smooth fixes centralnyramp zamekramps photofronts objecttypes cyclehang portbridge objects tramstops drive stuckspots)
 # Loop 3g-1: minutes of play in the police soak (P13; the full one is 10).
 SOAK_MINUTES=${NW_SOAK_MINUTES:-3}
 # Longest a single step may take, in seconds, before it is stopped (macOS has no `timeout`).
@@ -1063,6 +1067,15 @@ for s in $want; do
 			case $code in
 				0) row PASS "centralnyramp" $secs "$(grep '^centralny_ramp: ' $logs/centralnyramp.log | tail -1)" ;;
 				*) row FAIL "centralnyramp" $secs "$(grep '^centralny_ramp: ' $logs/centralnyramp.log | tail -1) ($logs/centralnyramp.log)" ;;
+			esac ;;
+		photofronts)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/photo_fronts_party.py --check > $logs/photofronts.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "photofronts" $secs "$(grep '^photo_fronts_party: ' $logs/photofronts.log | tail -1)" ;;
+				*) row FAIL "photofronts" $secs "$(grep '^photo_fronts_party: ' $logs/photofronts.log | tail -1) ($logs/photofronts.log)" ;;
 			esac ;;
 		zamekramps)
 			t0=$EPOCHREALTIME
