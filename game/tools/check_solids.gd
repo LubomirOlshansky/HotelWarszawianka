@@ -66,7 +66,9 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## (the photo frames, the gingerbread tunnel's rails, the neon fir, the wire bauble, the bauble benches)
 ## in sector -2,0, `--record` on a fresh bake of the branch after merging main, both paths equal;
 ## TOTAL_TYPED not measured again here.
-const TOTAL := 47813
+## 2026-11-23 (Jarmark parked cars, F's Play 14 report): -53 faces in (-2, 0) (47813 → 47760), the parked
+## cars on Plac Centralny cleared under the market's rides and chalets (jarmark.gd JM_PARK_FREE).
+const TOTAL := 47760
 ## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
