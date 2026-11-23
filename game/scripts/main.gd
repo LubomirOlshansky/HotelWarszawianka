@@ -1881,8 +1881,8 @@ func _build_world() -> void:
 	if flags.hold_pedal != "":
 		hud.hold_pedal(flags.hold_pedal)
 	if flags.open_settings_at_start:
-		hud.settings_panel.set_tab(flags.settings_tab)
-		if flags.settings_tab == 4:
+		hud.settings_panel.set_page(flags.settings_tab)
+		if hud.settings_panel.page() == "notebook":
 			hud.settings_panel.show_notebook(flags.notebook_open)
 		_open_settings.call_deferred()
 	elif flags.open_map_at_start:

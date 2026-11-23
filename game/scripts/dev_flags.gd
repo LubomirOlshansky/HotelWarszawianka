@@ -364,9 +364,10 @@ var free_roam := false
 ## Loop 2e: the first rescue call comes in after this many seconds of play (--call-in=S;
 ## missions.gd FIRST_CALL by default); --style= wins over the saved settings.
 var call_in := -1.0
-## Loop 2e: --settings-tab=N opens the settings panel at that tab (0 Driving, 1 World, 2 Picture,
-## 3 Sound) for screenshots.
-var settings_tab := 0
+## Loop 2e: --settings-tab=NAME opens the settings panel at that page for screenshots: a name of
+## settings_panel.gd PAGES (driving, world, picture, sound, notebook, access, credits, tips, dev) or,
+## as before, its number.
+var settings_tab := "driving"
 var _flag_style := -1
 ## --tap=X,Y: tap that screen pixel at frame 60, as if a finger did (landmark cards).
 var tap_at := Vector2.INF
@@ -918,7 +919,7 @@ func parse_with(args: PackedStringArray) -> void:
 		elif arg == "--notebook" or arg.begins_with("--notebook="):
 			# Loop MW-1: the notebook's tab at the start (a chapter, or a place's card).
 			open_settings_at_start = true
-			settings_tab = 4
+			settings_tab = "notebook"
 			notebook_open = arg.trim_prefix("--notebook").trim_prefix("=")
 		elif arg.begins_with("--found="):
 			found_spec = arg.trim_prefix("--found=")
@@ -1189,7 +1190,7 @@ func parse_with(args: PackedStringArray) -> void:
 			photo_log = true
 		elif arg.begins_with("--settings-tab="):
 			open_settings_at_start = true
-			settings_tab = int(arg.trim_prefix("--settings-tab="))
+			settings_tab = arg.trim_prefix("--settings-tab=")
 		elif arg.begins_with("--stick="):
 			var sv2 := arg.trim_prefix("--stick=").split(",")
 			hold_stick = Vector2(float(sv2[0]), float(sv2[1])).limit_length(1.0)

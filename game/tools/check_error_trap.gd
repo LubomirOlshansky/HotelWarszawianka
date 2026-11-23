@@ -251,7 +251,7 @@ func _button() -> void:
 	await process_frame
 	panel.changed.connect(func(key: String, value: Variant): _asked.append([key, value]))
 	panel.open({"controls": 0, "master": 1.0, "music": 1.0, "effects": 1.0})
-	panel.set_tab(3)
+	panel.set_page("sound")
 	await process_frame
 	await process_frame
 	var report := panel.find_child("report", true, false) as Button
