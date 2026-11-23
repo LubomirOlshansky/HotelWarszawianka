@@ -787,6 +787,9 @@ signal hop_refused(d: Driver)
 signal blocked_by_player(d: Driver)
 ## Loop 3g-1: the player's car hit a police car at `speed` m/s (police.gd: a warning or a ram).
 signal bumped_police(d: Driver, speed: float)
+## Road life stage 3: the player's car hit a car of another pool with its lights on (the fire
+## engine), at `speed` m/s lost.
+signal bumped_siren(d: Driver, speed: float)
 ## Loop 3g-1: a police car came into the band (a patrol) or left it (any police car).
 signal police_spawned(d: Driver)
 signal police_released(d: Driver)
@@ -1202,6 +1205,8 @@ func on_player_bump(collider: Object, speed := 0.0) -> void:
 			bumped_police.emit(d, speed)
 			return
 		d.daze = maxf(d.daze, lerpf(DAZE_BRUSH, DAZE, clampf((speed - BRUSH_HIT) / (FULL_HIT - BRUSH_HIT), 0.0, 1.0)))
+		if d.lights:
+			bumped_siren.emit(d, speed)
 		bumped_driver.emit(d)
 
 
@@ -1651,6 +1656,10 @@ func _release(d: Driver) -> void:
 			# Loop 3g-1: police.gd sets the pause before the next patrol (patrol_wait).
 			police_released.emit(d)
 			_police_reset(d)
+		elif d.lights:
+			# Road life stage 3: the fire engine's lights go off with it.
+			d.lights = false
+			_sirens.erase(d)
 	var at := _active.find(d)
 	if at >= 0:
 		_active[at] = _active[_active.size() - 1]
@@ -2021,7 +2030,7 @@ func _give_way_to_sirens() -> void:
 
 ## Loop 3g-1: moves to lane `k` of its road if it is free alongside (giving way).
 func _change_lane_to(d: Driver, k: int) -> void:
-	if steady_buses and d.kind == Kind.BUS:
+	if steady_buses and d.kind == Kind.BUS and not d.lights:
 		return
 	var e := d.edge
 	if graph.e_s1[e] - d.s < 18.0 or _line_busy(d):
@@ -2494,7 +2503,8 @@ func _choose_way(d: Driver) -> void:
 	d.next_reg = graph.e_lane0[best] + d.next_lane
 	# A racing rival chances some reds.
 	# The night-buses loop: a bus on a route (to a stop, the race to the Palm) never does.
-	d.run_red = not d.route.is_empty() and d.kind != Kind.BUS and (d.race_top > 0.0 or _rng.randf() < 0.6)
+	# (Road life stage 3: the fire engine, a BUS with its lights on, does.)
+	d.run_red = not d.route.is_empty() and (d.kind != Kind.BUS or d.lights) and (d.race_top > 0.0 or _rng.randf() < 0.6)
 	if d.crazy > 0:
 		d.run_red = _crazy_rng.randf() < CRAZY_RED[d.crazy]  # crazy drivers: a fresh red now and then
 
@@ -3990,7 +4000,7 @@ func _pass_lanes(e: int, rev: int, s: float, out: float) -> PackedByteArray:
 ## Moves to the neighbouring lane with the most room ahead (more than `room`
 ## metres, nobody alongside), if the road has one. The car slides across.
 func _change_lane(d: Driver, room_needed: float, near := 18.0) -> bool:
-	if steady_buses and d.kind == Kind.BUS:
+	if steady_buses and d.kind == Kind.BUS and not d.lights:
 		return false
 	var e := d.edge
 	if d.in_conn or graph.e_s1[e] - d.s < near or _line_busy(d):
@@ -4866,7 +4876,9 @@ func _write() -> void:
 		buf[b + 14] = d.paint.b
 		# Loop 3g-1: a police car's custom alpha also says its light bar's state (actor.gdshader
 		# SIREN: + 4 lights off, + 8 flashing).
-		buf[b + 15] = float(d.shape) + (0.0 if d.kind != Kind.POLICE else (8.0 if d.lights else 4.0))
+		# (Road life stage 3: so does the fire engine's, models.gd BUS_FIRE.)
+		var bar := d.kind == Kind.POLICE or (d.kind == Kind.BUS and d.shape == Models.BUS_FIRE)
+		buf[b + 15] = float(d.shape) + (0.0 if not bar else (8.0 if d.lights else 4.0))
 		_top[d.kind] = maxi(_top[d.kind], d.slot + 1)
 	for k in POOL.size():
 		# Loop 2c: draw only up to the highest slot in use (a freed slot is the next one taken,
@@ -4898,11 +4910,14 @@ static func night_bus_mesh() -> ArrayMesh:
 		return _bus_night
 	var plate := Models.fin(Color("#16171b"))
 	var lit := Models.fin(Color("#ffb21e"), Models.LIT_SIGN)
-	# One shape per bus (models.gd bus_mesh: the articulated and the solo bus), the signs placed
+	# One shape per bus (models.gd bus_mesh: the articulated and the solo bus; the fire engine gets none), the signs placed
 	# by its front (-9 or -6) and back (9 or 6).
 	var shapes: Array = []
-	for solo: bool in [false, true]:
-		var s := Models.bus_shape(solo)
+	for which in [Models.BUS_ARTIC, Models.BUS_SOLO, Models.BUS_FIRE]:
+		var solo: bool = which == Models.BUS_SOLO
+		var s := Models.bus_shape(which)
+		if which == Models.BUS_FIRE:
+			s.xform = Models.gone(Vector3(0.0, 1.5, 0.0))  # no N signs on the fire engine
 		var front := -6.0 if solo else -9.0
 		var back := 6.0 if solo else 9.0
 		# A side's "right" as seen from outside it: -z on the +x side, +z on the -x side.
@@ -4964,6 +4979,35 @@ func add_bus(e: int, lane: int, s: float) -> Driver:
 	d.core_only = false
 	d.parked = false
 	_start(d, e, lane, s)
+	d.v = 0.0
+	return d
+
+
+## Road life stage 3 (road_life.gd): the fire engine (the BUS pool's models.gd BUS_FIRE) on lane
+## (e, lane) at s, tagged "fire" so buses.gd never takes it for a stop; persistent until remove();
+## null if the pool is empty.
+func add_fire_engine(e: int, lane: int, s: float) -> Driver:
+	if _free_slots[Kind.BUS].is_empty() or _free.is_empty():
+		return null
+	var look: Dictionary = Models.TRAFFIC[Kind.BUS][Models.BUS_FIRE]
+	var d: Driver = _free.pop_back()
+	d.kind = Kind.BUS
+	d.slot = _free_slots[Kind.BUS][_free_slots[Kind.BUS].size() - 1]
+	_free_slots[Kind.BUS].resize(_free_slots[Kind.BUS].size() - 1)
+	_counts[Kind.BUS] += 1
+	d.size = look["size"]
+	d.length = d.size.z
+	d.shape = Models.BUS_FIRE
+	d.paint = Color(look["paint"][0])
+	d.speed_factor = 1.0
+	d.accel_factor = 1.0
+	d.persistent = true
+	d.ghost = false
+	d.node = null
+	d.core_only = false
+	d.parked = false
+	_start(d, e, lane, s)
+	d.tag = "fire"
 	d.v = 0.0
 	return d
 

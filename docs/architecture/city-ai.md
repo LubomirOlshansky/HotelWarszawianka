@@ -21,9 +21,11 @@ traffic.gd      every AI car: one Driver per car on the graph, drawn as one Mult
      ├─ crazy_drivers.gd voices for traffic's crazy racer-mode cars
      │    └─ crazy_route.gd  their fares: a RaceSession each, the racers' driver to a junction 0.6-1.5 km off
      ├─ crash_scenes.gd  two parked cars and a police car on a main road ahead, a taxi check, or a
-     │                   laweta loading a car off the pavement (VAN pool shapes 2-3)
+     │                   laweta loading a car off the pavement (VAN pool shapes 2-3); a taxi
+     │                   check's passenger hails the player (rides.gd offer_stranded)
      ├─ road_life.gd     the ambulance on a call behind the player (police pool shape 2, racer driver
-     │    │              to a hospital), the honk at a green (docs/design/road-life.md)
+     │    │              to a hospital) or the fire engine (BUS pool shape 2, to a fire), the honk
+     │    │              at a green (docs/design/road-life.md)
      │    └─ road_rules.gd  its pure rules: respect for giving way, blocking, a hit at fault
      └─ loud_cars.gd     a supercar meet parked by the road
 trams.gd, tram_fleet.gd, old_tram.gd   trams on the baked rails, same lights as cars

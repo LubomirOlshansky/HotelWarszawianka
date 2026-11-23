@@ -326,7 +326,7 @@ var problems: Array[String] = []
 var _n := 0
 var _sec_name := ""
 var _marks: Array[String] = []
-const PARTS := ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S"]
+const PARTS := ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T"]
 var _map: WorldMap
 var _road: RoadMap
 var _graph: LaneGraph
@@ -396,12 +396,13 @@ func _go() -> void:
 	_run_part("Q", "Q. two rides in a row", _q_pairs)
 	_run_part("R", "R. plans on the way", _r_plans)
 	_run_part("S", "S. the plans asked straight", _s_plans)
+	_run_part("T", "T. the stranded passenger", _t_stranded)
 	for part: String in PARTS:
 		if not _marks.has(part):
 			problems.append("part %s did not run to its end (a script error?)" % part)
 	if problems.is_empty():
 		# No time in the line (verify.sh's table has it), so every run prints the same one.
-		print("check_ride_play: OK (%d checks; A-S, %d frames by hand)" % [_n, _frames])
+		print("check_ride_play: OK (%d checks; A-T, %d frames by hand)" % [_n, _frames])
 		quit(0)
 	else:
 		print("check_ride_play: PROBLEMS")
@@ -3830,6 +3831,27 @@ func _s_plans() -> void:
 	_t_detour()
 	_t_misc()
 	_t_lanes()
+
+
+## Road life stage 3, "Pan wolny?!" (crash_scenes.gd): a taxi check's passenger asks for the ride
+## from where they stand: the request at once (no first two minutes), its own title, the pin
+## where they stand, no story; not "taken" until ACCEPT, then the way to them; never over a run.
+func _t_stranded() -> void:
+	_rig()
+	_at(HOME)
+	var at: Vector2 = _graph.node_pos[_node(3, 3)] + Vector2(60.0, 9.0)
+	_ok(q.offer_stranded(at), "a stranded passenger's request came up")
+	_ok(_on_offer() and not q.stranded_on(), "the stranded request is on offer, not taken")
+	var r: Dictionary = q._ride.duplicate(true)
+	_ok(bool(r.get("stranded", false)) and float(r["away"]) == 0.0, "stranded: away %s" % r.get("away"))
+	_ok(_flat(r["pin"], Vector3(at.x, 0.0, at.y)) < 0.5, "the pin is where they stand: %s" % r["pin"])
+	_ok((r["story"] as Dictionary).is_empty() and not bool(r["offset"]), "no story, no offset")
+	_ok(hud.card == "Komentarz · NOWY KURS" and hud.card_en == "A comment · New ride", "the title from podwozka_request stranded_title: %s / %s" % [hud.card, hud.card_en])
+	_ok(dialogue.line_asks.has("podwozka_request:stranded"), "the stranded note was asked for: %s" % [dialogue.line_asks])
+	_ok(not q.offer_stranded(at), "no second request over the first")
+	hud.press(0)
+	_frame()
+	_ok(_stage() == Rides.Stage.PICKUP and q.stranded_on(), "ACCEPT: the way to them, taken")
 
 
 func _zone(what: String, parks: Array, a_e: int, a_s: float, ring: Vector2) -> Dictionary:

@@ -103,7 +103,9 @@ func _run() -> void:
 	await _check_ambulance(map, digest, "aside")
 	await _check_ambulance(map, digest, "round")
 	await _check_ambulance(map, digest, "blocked")
+	await _check_ambulance(map, digest, "fire")
 	await _check_hit(map, digest)
+	await _check_fire_hit(map, digest)
 	_check_tow_shapes(digest)
 	_check_tow_spots(g, digest)
 	_check_wreck_tow_spots(g, digest)
@@ -171,29 +173,33 @@ func _check_lines(digest: PackedStringArray) -> void:
 			var only: String = (l[2] as Dictionary).get("only", "") if l.size() > 2 else ""
 			by_tag[only] = int(by_tag.get(only, 0)) + 1
 			_line_ok(group, l, banned)
-			if only in ["amb_thanks", "amb_block", "amb_hit"] and (not String(l[0]).contains("{n}") or not String(l[1]).contains("{n}")):
+			if only in ["amb_thanks", "amb_block", "amb_hit", "fire_thanks", "fire_block", "fire_hit"] and (not String(l[0]).contains("{n}") or not String(l[1]).contains("{n}")):
 				problems.append("%s: a respect toast without {n}: %s" % [group, l[0]])
 		if by_tag.has(""):
 			problems.append("%s: %d lines without a tag" % [group, by_tag[""]])
 		counts[group] = by_tag
+	for tag: String in ["hail", "hail_thanks"]:
+		if int(counts["taxi_check"].get(tag, 0)) < 2:
+			problems.append("taxi_check: %d %s lines (want 2+)" % [int(counts["taxi_check"].get(tag, 0)), tag])
 	for p: Array in CrashScenes.TAXI_PEOPLE:
 		if int(counts["taxi_check"].get(p[0], 0)) < 3:
 			problems.append("taxi_check: %d lines for %s (want 3+)" % [int(counts["taxi_check"].get(p[0], 0)), p[0]])
 	for p: Array in CrashScenes.TOW_PEOPLE:
 		if int(counts["tow_scene"].get(p[0], 0)) < 3:
 			problems.append("tow_scene: %d lines for %s (want 3+)" % [int(counts["tow_scene"].get(p[0], 0)), p[0]])
-	for tag: String in ["amb_behind", "amb_thanks", "amb_block", "amb_hit", "medic_block", "medic_hit", "medic_thanks", "green"]:
+	for tag: String in ["amb_behind", "amb_thanks", "amb_block", "amb_hit", "medic_block", "medic_hit", "medic_thanks", "green",
+			"fire_behind", "fire_thanks", "fire_block", "fire_hit", "fireman_block", "fireman_hit", "fireman_thanks"]:
 		if not counts["road_life"].has(tag):
 			problems.append("road_life: no line for %s" % tag)
 	var radio := {}
 	for l: Array in all.get("radio_host", []):
 		var only = (l[2] as Dictionary).get("only", "") if l.size() > 2 else ""
-		if only in ["taxi_check", "ambulance", "ambulance_hit", "tow"]:
+		if only in ["taxi_check", "ambulance", "ambulance_hit", "tow", "fire"]:
 			radio[only] = int(radio.get(only, 0)) + 1
 			if not String(l[0]).contains("{street}") or not String(l[1]).contains("{street}"):
 				problems.append("radio %s line without {street}: %s" % [only, l[0]])
 			_line_ok("radio_host", l, banned, 200)
-	for tag: String in ["taxi_check", "ambulance", "ambulance_hit", "tow"]:
+	for tag: String in ["taxi_check", "ambulance", "ambulance_hit", "tow", "fire"]:
 		if int(radio.get(tag, 0)) < 2:
 			problems.append("radio_host: %d %s lines (want 2+)" % [int(radio.get(tag, 0)), tag])
 	digest.append("lines taxi %d, tow %d, road %d, radio %s" % [all.get("taxi_check", []).size(), all.get("tow_scene", []).size(), all.get("road_life", []).size(), radio])
@@ -296,6 +302,35 @@ func _dialogue() -> Node:
 	return dlg
 
 
+## "Pan wolny?!": no hail far off or fast; one near and slow (the ride offered at the passenger);
+## never a second; once the ride is taken the passenger leaves the scene and says no more.
+func _check_hail(cs, offered: Array, taken: Array, digest: PackedStringArray) -> void:
+	if not cs.scene.has("hail"):
+		problems.append("hail: a taxi check with hail_share 1 has no hail")
+		return
+	var p: Vector3 = cs.scene["people"][CrashScenes.PASSENGER][0]
+	cs._hail_step([p + Vector3(40.0, 0.0, 0.0), 10.0, false])
+	cs._hail_step([p + Vector3(5.0, 0.0, 0.0), 30.0, false])
+	cs._hail_step([p + Vector3(5.0, 0.0, 0.0), 10.0, true])
+	if cs.hails != 0:
+		problems.append("hail: hailed a car far off, fast or flying")
+	cs._hail_step([p + Vector3(6.0, 0.0, 2.0), 10.0, false])
+	cs._hail_step([p + Vector3(6.0, 0.0, 2.0), 10.0, false])
+	if cs.hails != 1 or offered.size() != 1 or cs.hail_offers != 1:
+		problems.append("hail: %d hails, %d offers (want 1 each)" % [cs.hails, offered.size()])
+	elif (offered[0] as Vector2).distance_to(Vector2(p.x, p.z)) > 0.5:
+		problems.append("hail: the ride offered at %s, the passenger at %s" % [offered[0], p])
+	var walkers = cs.walkers
+	taken[0] = true
+	cs._hail_step([p + Vector3(6.0, 0.0, 2.0), 0.0, false])
+	if walkers.scenes.has(CrashScenes.PASSENGER) or not bool(cs.scene.get("gone", false)):
+		problems.append("hail: the passenger still stands at the check after the ride was taken")
+	for k in 24:
+		cs.scene["turn"] = k
+		cs._talk()
+	digest.append("hail: 1 offer near and slow, passenger gone once taken")
+
+
 func _check_taxi_traffic(map: Node3D, digest: PackedStringArray) -> void:
 	var made := _road(map)
 	var g: LaneGraph = made[0]
@@ -311,6 +346,15 @@ func _check_taxi_traffic(map: Node3D, digest: PackedStringArray) -> void:
 	cs.set_process(false)
 	root.add_child(cs)
 	cs.setup(3)
+	# Stage 3, "Pan wolny?!": the passenger always hails here; the ride's offer and its taking are
+	# stand-ins (rides.gd's own check plays offer_stranded).
+	var offered: Array = []
+	var taken := [false]
+	cs.hail_share = 1.0
+	cs.stranded = func(at: Vector2) -> bool:
+		offered.append(at)
+		return true
+	cs.stranded_on = func() -> bool: return taken[0]
 	var taxis0: int = traffic.get("_counts")[1]
 	if not cs.place(Vector2(440.0, 1.6), Vector2(1, 0), true, Vector2(520.0, 3.2), "taxi"):
 		problems.append("taxi traffic: no taxi check placed on the test road")
@@ -343,6 +387,7 @@ func _check_taxi_traffic(map: Node3D, digest: PackedStringArray) -> void:
 			break
 	if passed.size() < cars.size():
 		problems.append("taxi traffic: %d of %d cars got past in 90 s" % [passed.size(), cars.size()])
+	_check_hail(cs, offered, taken, digest)
 	if inside > 0:
 		problems.append("taxi traffic: %d frames with a car inside the taxi" % inside)
 	cs.clear()
@@ -388,6 +433,7 @@ func _life(map: Node3D, respect: int) -> Array:
 		problems.append("ambulance: install refused with traffic and police")
 	life.hospitals = [{"name": "Szpital Testowy", "pos": Vector3(1195.0, 0.0, 0.0), "children": false}]
 	life.honk_on = false
+	life.fire_share = 0.0
 	life.log_on = verbose
 	life.set_process(false)
 	root.add_child(life)
@@ -397,9 +443,10 @@ func _life(map: Node3D, respect: int) -> Array:
 
 ## The player drives east at 30 km/h in the lane by the centre line; `mode` "aside": they move to
 ## the kerb lane once warned; "round": they keep on, the road empty; "blocked": they keep on, cars
-## parked along the kerb lane from 230 to 560 m.
+## parked along the kerb lane from 230 to 560 m; "fire": as "aside" with the fire engine (stage 3).
 func _check_ambulance(map: Node3D, digest: PackedStringArray, mode: String) -> void:
-	var aside := mode == "aside"
+	var fire := mode == "fire"
+	var aside := mode == "aside" or fire
 	var t1 := Ladder.threshold(1)
 	var bits := _life(map, t1 + 40)
 	var life = bits[0]
@@ -409,6 +456,8 @@ func _check_ambulance(map: Node3D, digest: PackedStringArray, mode: String) -> v
 	var hud = bits[4]
 	var sfx = bits[5]
 	var speed: Array = bits[7]
+	if fire:
+		life.fire_share = 1.0
 	await process_frame
 	var g: LaneGraph = traffic.graph
 	if mode == "blocked":
@@ -425,12 +474,15 @@ func _check_ambulance(map: Node3D, digest: PackedStringArray, mode: String) -> v
 		problems.append("ambulance (%s): send() found no start" % mode)
 		return
 	var d = life.run["d"]
-	if d.shape != 2 or d.kind != 4 or not d.lights:
+	if fire and (d.kind != Traffic.Kind.BUS or d.shape != Models.BUS_FIRE or not d.lights or d.tag != "fire"):
+		problems.append("fire engine: kind %d shape %d lights %s tag %s (want the BUS pool's fire engine, lights on)" % [d.kind, d.shape, d.lights, d.tag])
+	elif not fire and (d.shape != 2 or d.kind != 4 or not d.lights):
 		problems.append("ambulance: kind %d shape %d lights %s (want the police pool's ambulance, lights on)" % [d.kind, d.shape, d.lights])
 	var start_gap: float = x - d.pos.x
 	var warned := false
 	var t := 0.0
 	var siren_heard := false
+	var siren_fire := false
 	var dt := 1.0 / 60.0
 	var tick := 0.0
 	while t < 120.0 and not life.run.is_empty():
@@ -452,21 +504,26 @@ func _check_ambulance(map: Node3D, digest: PackedStringArray, mode: String) -> v
 			warned = true
 		if sfx.siren != Vector3.INF:
 			siren_heard = true
-	var want: int = {"aside": Rules.THANKS_GAIN, "round": 0, "blocked": -Rules.BLOCK_LOSS}[mode]
+			siren_fire = sfx.siren_fire
+	var want: int = {"aside": Rules.THANKS_GAIN, "round": 0, "blocked": -Rules.BLOCK_LOSS, "fire": Rules.THANKS_GAIN}[mode]
 	var got: int = wallet.respect - (t1 + 40)
 	if got != want:
 		problems.append("ambulance (%s): respect %+d (want %+d; toasts %s)" % [mode, got, want, hud.toasts])
 	if not warned:
 		problems.append("ambulance (%s): no KARETKA Z TYŁU toast" % mode)
+	elif fire and not String((hud.toasts as Array)[0]).begins_with("STRAŻ"):
+		problems.append("fire engine: first toast %s (want STRAŻ Z TYŁU)" % (hud.toasts as Array)[0])
+	if siren_heard and siren_fire != fire:
+		problems.append("%s: played the %s siren" % [mode, "fire engine's" if siren_fire else "ambulance's"])
 	if not siren_heard or sfx.siren != Vector3.INF:
 		problems.append("ambulance: the siren %s" % ("never played" if not siren_heard else "still plays after the run"))
 	if not life.run.is_empty():
 		problems.append("ambulance (%s): still out after %.0f s" % [mode, t])
-	if d.active:
-		problems.append("ambulance: not back in the pool after its run")
+	if d.active and (not fire or d.persistent or d.lights):
+		problems.append("%s: not back in the pool (or let go) after its run" % ("fire engine" if fire else "ambulance"))
 	if mode != "blocked" and not life.reached:
 		problems.append("ambulance (%s): never reached the hospital" % mode)
-	digest.append("ambulance %s: started %.0f m back, %+d respect, run %.0f s" % [mode, start_gap, got, t])
+	digest.append("%s: started %.0f m back, %+d respect, run %.0f s" % ["fire engine" if fire else "ambulance " + mode, start_gap, got, t])
 	_free(bits)
 	await process_frame
 
@@ -499,6 +556,37 @@ func _check_hit(map: Node3D, digest: PackedStringArray) -> void:
 		_free(bits)
 		await process_frame
 	digest.append("hits at fault take 10 / 4 / 0 above rung 1")
+
+
+## Stage 3: the fire engine hit at fault, through traffic.gd's bumped_siren: 10 taken, once.
+func _check_fire_hit(map: Node3D, digest: PackedStringArray) -> void:
+	var r := Ladder.threshold(1) + 30
+	var bits := _life(map, r)
+	var life = bits[0]
+	var traffic: Node3D = bits[1]
+	var car: Node3D = bits[2]
+	var wallet = bits[3]
+	var hud = bits[4]
+	life.fire_share = 1.0
+	await process_frame
+	car.global_transform = Transform3D(Basis(Vector3.UP, -PI * 0.5), Vector3(400.0, 0.0, traffic.graph.lane_offset(0, 0)))
+	(bits[7] as Array)[0] = 9.0
+	if not life.send(true):
+		problems.append("fire hit: send() found no start")
+		_free(bits)
+		return
+	var d = life.run["d"]
+	d.pos = Vector3(406.0, 0.0, traffic.graph.lane_offset(0, 0))
+	d.v = 3.0
+	traffic.bumped_siren.emit(d, 7.0)
+	traffic.bumped_siren.emit(d, 7.0)
+	if r - wallet.respect != Rules.HIT_LOSS:
+		problems.append("fire hit: took %d (want %d)" % [r - wallet.respect, Rules.HIT_LOSS])
+	if not (hud.toasts as Array).any(func(x) -> bool: return String(x).begins_with("UDERZENIE W WÓZ")):
+		problems.append("fire hit: no UDERZENIE W WÓZ STRAŻY toast (%s)" % [hud.toasts])
+	_free(bits)
+	await process_frame
+	digest.append("fire engine hit takes %d" % Rules.HIT_LOSS)
 
 
 func _free(bits: Array) -> void:

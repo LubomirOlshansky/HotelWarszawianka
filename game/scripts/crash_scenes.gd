@@ -27,6 +27,12 @@ extends Node
 ## siren at a taxi check. No new scene while `hushed` says so (road_life.gd: a race, a chase, the
 ## first minutes' guide), so a race or the guide's drive never meets one.
 ##
+## Road life stage 3, "Pan wolny?!": at HAIL_SHARE of the taxi checks, when the player comes past
+## slowly (under HAIL_SPEED m/s, within HAIL_REACH m of the passenger), the passenger waves them
+## down ("hail" in `taxi_check`) and Podwózka offers their ride from right there (rides.gd
+## `offer_stranded`, through `stranded`); once it is taken the passenger leaves the scene (the
+## ride's own figure waits there).
+##
 ## Road life stage 2: TOW_SHARE of scenes are an "Odholowanie": a car left half on the pavement
 ## (the CAR pool's hatch in Models.TOW_LOAD_PAINT), a laweta stopped in the kerb lane ahead of it
 ## (the VAN pool's shape Models.VAN_TOW: +0 draw calls), its operator at the platform, a city guard
@@ -57,6 +63,12 @@ const TAXI_TURNS := [0, 2, 3, 0, 2, 4, 1, 3, 2, 0, 3, 4]
 const TAXI_LINES := "taxi_check"
 const TAXI_RADIO_TAG := "taxi_check"
 const TAXI_BUBBLE := Color("#ffd23f")
+## "Pan wolny?!": the share of taxi checks whose passenger hails the player, how near and how slow
+## the car must come, and the passenger's index in TAXI_PEOPLE.
+const HAIL_SHARE := 0.6
+const HAIL_REACH := 16.0
+const HAIL_SPEED := 4.5
+const PASSENGER := 3
 ## The share of scenes that are an Odholowanie (a tow).
 const TOW_SHARE := 0.25
 ## The share of fender benders where a laweta takes the wreck away (no ambulance), and where it
@@ -154,6 +166,16 @@ var tow_share := TOW_SHARE
 var wreck_tow_share := WRECK_TOW_SHARE
 ## Odholowanie: lawetas that loaded a car and left (the checks, the log).
 var towed := 0
+## "Pan wolny?!": the passenger's ride offered at a point (rides.gd offer_stranded: true if its
+## card is up), and whether that ride was taken (rides.gd stranded_on); empty: no hails.
+var stranded: Callable
+var stranded_on: Callable
+## The share of taxi checks whose passenger hails (HAIL_SHARE; a check sets 0 or 1), and the
+## hails made and rides offered (the checks, the log).
+var hail_share := HAIL_SHARE
+var hails := 0
+var hail_offers := 0
+var _hail_rng := RandomNumberGenerator.new()
 
 ## Seconds to the next scene; the scene now ({} = none).
 var wait := 0.0
@@ -172,8 +194,10 @@ var spent_usec := 0
 func setup(seed_value := -1) -> void:
 	if seed_value >= 0:
 		_rng.seed = seed_value
+		_hail_rng.seed = seed_value + 73
 	else:
 		_rng.randomize()
+		_hail_rng.randomize()
 	wait = _rng.randf_range(FIRST.x, FIRST.y)
 	_log("first scene in %.0f s" % wait)
 
@@ -223,6 +247,8 @@ func step(dt: float) -> void:
 	_report(over)
 	if scene.has("tow_truck"):
 		_tow_step(dt, dist)
+	if scene.has("hail"):
+		_hail_step(v)
 	if dist < TALK_REACH and not bool(v[2]):
 		scene["talk"] = float(scene["talk"]) - dt
 		if float(scene["talk"]) <= 0.0:
@@ -508,6 +534,8 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 	var street := graph.e_name[e]
 	scene = {"e": e, "lane": lane, "s0": s0, "mid": lay["mid"], "drivers": drivers, "people": lay["people"],
 			"age": 0.0, "life": _rng.randf_range(LIFE.x, LIFE.y), "talk": 0.6, "turn": 0, "street": street, "kind": kind}
+	if kind == "taxi" and stranded.is_valid() and _hail_rng.randf() < hail_share:
+		scene["hail"] = true
 	if tow_truck != null:
 		scene["tow_car"] = load_car
 		scene["tow_truck"] = tow_truck
@@ -686,12 +714,46 @@ func _talk() -> void:
 	var kind: String = scene.get("kind", "crash")
 	var turns: Array = {"taxi": TAXI_TURNS, "tow": TOW_TURNS}.get(kind, TURNS)
 	var i: int = turns[turn % turns.size()]
+	if i == PASSENGER and kind == "taxi" and bool(scene.get("gone", false)):
+		return  # the passenger left in the player's car
 	var tag: String = people_of(kind)[i][0]
 	var group: String = {"taxi": TAXI_LINES, "tow": TOW_LINES}.get(kind, TOW_LINES if tag == "operator" else LINES)
 	var l: Array = dialogue.say_ambient(_anchor(i), "", group, tag, 3.4,
 			{"taxi": TAXI_BUBBLE, "tow": TOW_BUBBLE}.get(kind, BUBBLE), 1.9, true)
 	if not l.is_empty():
 		_log("%s: %s" % [tag, l[0]])
+
+
+## "Pan wolny?!": the player's car comes past slowly near the passenger: they wave it down and
+## Podwózka offers the ride; once it is taken the passenger leaves the scene.
+func _hail_step(v: Array) -> void:
+	if bool(scene.get("gone", false)):
+		return
+	if bool(scene.get("hailed", false)):
+		if stranded_on.is_valid() and bool(stranded_on.call()):
+			scene["gone"] = true
+			if walkers != null:
+				walkers.clear_scene(PASSENGER)
+			if dialogue != null:
+				dialogue.say_ambient(_anchor(PASSENGER), "", TAXI_LINES, "hail_thanks", 3.4, TAXI_BUBBLE, 1.9, true)
+			_log("the passenger took the player's ride")
+		return
+	if bool(v[2]) or float(v[1]) / 3.6 > HAIL_SPEED:
+		return
+	var p: Vector3 = scene["people"][PASSENGER][0]
+	var me: Vector3 = v[0]
+	if Vector2(p.x, p.z).distance_to(Vector2(me.x, me.z)) > HAIL_REACH:
+		return
+	scene["hailed"] = true
+	hails += 1
+	if dialogue != null:
+		dialogue.say_ambient(_anchor(PASSENGER), "", TAXI_LINES, "hail", 3.4, TAXI_BUBBLE, 2.4, true)
+	if bool(stranded.call(Vector2(p.x, p.z))):
+		hail_offers += 1
+		scene["talk"] = maxf(float(scene["talk"]), 4.0)  # the card's turn: the others hush a moment
+		_log("the passenger hailed the player: a ride offered")
+	else:
+		_log("the passenger hailed the player: busy, no ride")
 
 
 ## Person i's anchor: a callable giving their head (one per person, so a new line replaces theirs).

@@ -20,6 +20,14 @@ extends Node
 ## only when it was the player's fault and never below the ladder rung reached, with a shout from
 ## the paramedic and the radio. Once each per ambulance.
 ##
+## **The fire engine on a call (stage 3, F 2026-11-23 "мені всі ідеї подобаються").** FIRE_SHARE of
+## the runs are a fire engine instead (the BUS pool's models.gd BUS_FIRE, traffic.gd
+## `add_fire_engine`: +0 draw calls), a little slower (FIRE_TOP), with its own slow wail (sfx.gd
+## `ambulance_siren(at, true)`) and edge mark (a red disc with a white flame), racing to a fire: a
+## graph node FIRE_RUN m ahead the way the player drives. The same rules and respect as the
+## ambulance, a firefighter's lines; a bump comes by traffic.gd `bumped_siren`. Done, it switches
+## its lights off and joins the traffic until the band lets it go out of sight.
+##
 ## **"Zielone!"** The player's car stands at a light that went green GREEN_WAIT s ago with a car
 ## behind it: that car honks (sfx.gd `horn`) and its driver shouts (dialogue.json `road_life`
 ## "green"); at most once every HONK_GAP s.
@@ -59,6 +67,14 @@ const HONK_CHANCE := 0.6
 const LINES := "road_life"
 const RADIO_GROUP := "radio_host"
 const MEDIC := Color("#ffd23f")
+## Stage 3: the share of runs that are a fire engine, its racer stats, how far its fire is (straight
+## line, m), the search bound of its one route (m), and its crew's bubble colour.
+const FIRE_SHARE := 0.35
+const FIRE_TOP := 16.5
+const FIRE_ACCEL := 2.4
+const FIRE_RUN := Vector2(500.0, 1100.0)
+const FIRE_ROUTE := 2600.0
+const FIREMAN := Color("#ff7a3d")
 
 ## Set by `install` (game_ctx.gd).
 var traffic: Node3D
@@ -92,6 +108,9 @@ var thanked := 0
 var blocked := 0
 var hits := 0
 var honks := 0
+var fires := 0
+## The fire engines' share now (a check sets 0 or 1).
+var fire_share := FIRE_SHARE
 ## The last ambulance reached its hospital (the check).
 var reached := false
 var spent_usec := 0
@@ -128,7 +147,9 @@ func install(ctx) -> bool:
 	var f = ctx.flags
 	if f != null:
 		log_on = f.road_log
-		_test_now = f.ambulance_flag == "now"
+		_test_now = f.ambulance_flag == "now" or f.ambulance_flag == "fire"
+		if f.ambulance_flag == "fire":
+			fire_share = 1.0
 		ambulance_on = f.ambulance_flag != "0" and (f._crash_auto or f.ambulance_flag != "")
 		honk_on = f._crash_auto or f.ambulance_flag != ""
 	return true
@@ -143,6 +164,8 @@ func setup(seed_value := -1) -> void:
 	_honk_wait = 30.0
 	if traffic.has_signal("bumped_police"):
 		traffic.bumped_police.connect(_on_bumped)
+	if traffic.has_signal("bumped_siren"):
+		traffic.bumped_siren.connect(_on_bumped)
 	if _test_now:
 		get_tree().create_timer(2.0).timeout.connect(func() -> void: send(true))
 	_log("first ambulance in %.0f s (%d hospitals)" % [wait, hospitals.size()])
@@ -161,7 +184,7 @@ func _process(dt: float) -> void:
 
 func _exit_tree() -> void:
 	if log_on:
-		_log("end (%d sent, %d let through, %d blocked, %d hit, %d honks)" % [sent, thanked, blocked, hits, honks])
+		_log("end (%d sent, %d of them fire engines, %d let through, %d blocked, %d hit, %d honks)" % [sent, fires, thanked, blocked, hits, honks])
 
 
 ## One tick, `dt` seconds after the last.
@@ -232,13 +255,16 @@ func _behind(e: int, s: float, back: float) -> Dictionary:
 	return {}
 
 
-## Sends an ambulance up behind the player (`near`: a test's, 40-60 m back and maybe in view).
-## True if one set off.
+## Sends an ambulance (or, FIRE_SHARE of the time, a fire engine) up behind the player (`near`: a
+## test's, 40-60 m back and maybe in view). True if one set off.
 func send(near: bool) -> bool:
 	if not run.is_empty() or police == null:
 		return false
 	var road := _player_road()
-	if road.is_empty() or hospitals.is_empty():
+	if road.is_empty():
+		return false
+	var fire := _rng.randf() < fire_share
+	if not fire and hospitals.is_empty():
 		return false
 	var back := _rng.randf_range(40.0, 60.0) if near else _rng.randf_range(AHEAD.x, AHEAD.y)
 	var start := _behind(int(road["e"]), float(road["s"]), back)
@@ -249,33 +275,42 @@ func send(near: bool) -> bool:
 	# The lane by the centre line (lane 0): the traffic pulls over to the kerb for it.
 	var lane := 0
 	var at := graph.point_at(e, s, graph.lane_offset(e, lane))
-	if not near and traffic.on_screen(Vector3(at.x, graph.height(e, s), at.y), 2.6):
+	if not near and traffic.on_screen(Vector3(at.x, graph.height(e, s), at.y), 3.4 if fire else 2.6):
 		return false
-	if not traffic.lane_free(e, lane, s - 6.0, s + 6.0, 2.0):
+	var room := 8.0 if fire else 6.0
+	if not traffic.lane_free(e, lane, s - room, s + room, 2.0):
 		return false
-	var goal := _hospital_for(e, s, road["fwd"])
+	var goal := _fire_for(e, s, road["fwd"]) if fire else _hospital_for(e, s, road["fwd"])
 	if goal.is_empty():
 		return false
-	var d = police.ambulance_car(e, lane, s)
+	var d = traffic.add_fire_engine(e, lane, s) if fire else police.ambulance_car(e, lane, s)
 	if d == null:
 		return false
-	_arm(d)
+	if fire:
+		traffic.set_lights(d, true)
+		fires += 1
+	_arm(d, fire)
 	traffic.race_to(d, int(goal["node"]), goal["dist"])
-	d.v = 12.0
+	d.v = 10.0 if fire else 12.0
 	sent += 1
-	run = {"d": d, "age": 0.0, "way_t": 0.0, "warned": false, "was_in_way": false, "thanked": false,
+	run = {"d": d, "fire": fire, "age": 0.0, "way_t": 0.0, "warned": false, "was_in_way": false, "thanked": false,
 			"blocked": false, "hit": false, "done": false, "linger": 0.0, "goal": goal["name"], "lane0": -1}
-	_log("ambulance %d from %d,%d (edge %d, %.0f m back) to %s, %.0f m by road" % [sent, roundi(at.x), roundi(at.y),
+	_log("%s %d from %d,%d (edge %d, %.0f m back) to %s, %.0f m by road" % [_what(), sent, roundi(at.x), roundi(at.y),
 			e, back, goal["name"], traffic.remaining(d)])
-	_announce(graph.e_name[e], "ambulance")
+	_announce(graph.e_name[e], "fire" if fire else "ambulance")
 	return true
 
 
+## "fire engine" or "ambulance" for the log.
+func _what() -> String:
+	return "fire engine" if bool(run.get("fire", false)) else "ambulance"
+
+
 ## The ambulance's racer stats (traffic.gd's racer mode, as a crazy driver's, but careful: no
-## blocks, no mistakes).
-func _arm(d) -> void:
-	d.race_top = TOP
-	d.race_accel = ACCEL
+## blocks, no mistakes); `fire`: the fire engine's, slower.
+func _arm(d, fire := false) -> void:
+	d.race_top = FIRE_TOP if fire else TOP
+	d.race_accel = FIRE_ACCEL if fire else ACCEL
 	d.race_lat = LAT
 	d.race_block = 0.0
 	d.race_mistake = 0.0
@@ -307,6 +342,34 @@ func _hospital_for(e: int, s: float, fwd: Vector2) -> Dictionary:
 		best_k = k
 		best = {"node": node, "dist": dist, "name": str(h.get("name", "?"))}
 	return best
+
+
+## The fire engine's fire from (e, s): a graph node FIRE_RUN m away the way the player drives
+## (`fwd`, the most ahead of a few drawn at random), at least MIN_RUN m by road and reachable
+## within FIRE_ROUTE m (one bounded shortest-path search, not kept): {node, dist, name}, or {}.
+func _fire_for(e: int, s: float, fwd: Vector2) -> Dictionary:
+	var from := graph.point_at(e, s)
+	var n_all: int = graph.node_pos.size()
+	if n_all == 0:
+		return {}
+	var picks: Array = []
+	for i in 48:
+		var n := _rng.randi() % n_all
+		var q: Vector2 = graph.node_pos[n] - from
+		var far := q.length()
+		if far < FIRE_RUN.x or far > FIRE_RUN.y or graph.node_in[n].is_empty():
+			continue
+		var k := q.normalized().dot(fwd)
+		if k > 0.3:
+			picks.append([k, n])
+	picks.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
+	for i in mini(picks.size(), 3):
+		var node: int = picks[i][1]
+		var dist := graph.distances_to(node, FIRE_ROUTE)
+		var left := graph.remaining(dist, e, s)
+		if left != INF and left >= MIN_RUN:
+			return {"node": node, "dist": dist, "name": "a fire by node %d" % node}
+	return {}
 
 
 ## The graph node nearest a hospital's door (the nearer end of the road nearest it), or -1.
@@ -350,7 +413,7 @@ func _follow(dt: float, v: Array) -> void:
 			traffic.stop_racing(d)
 			traffic.set_lights(d, false)
 			reached = there
-			_log("ambulance at %s (%.0f s)" % [run["goal"], run["age"]] if there else "ambulance gave up after %.0f s" % run["age"])
+			_log("%s at %s (%.0f s)" % [_what(), run["goal"], run["age"]] if there else "%s gave up after %.0f s" % [_what(), run["age"]])
 		elif not bool(v[2]):
 			_rules(d, amb, me, v)
 	else:
@@ -358,11 +421,12 @@ func _follow(dt: float, v: Array) -> void:
 	if (bool(run["done"]) or dist > FAR) and (not seen or float(run["linger"]) > LINGER):
 		_end("done" if bool(run["done"]) else "far")
 		return
+	var fire := bool(run["fire"])
 	if sfx != null:
-		sfx.ambulance_siren(Vector3.INF if bool(run["done"]) else d.pos + Vector3.UP * 1.6)
+		sfx.ambulance_siren(Vector3.INF if bool(run["done"]) else d.pos + Vector3.UP * (2.6 if fire else 1.6), fire)
 	if hud != null and hud.has_method("ambulance_edge"):
 		var mark := not bool(run["done"]) and not seen and dist < MARK_NEAR and project.is_valid()
-		hud.ambulance_edge(project.call(d.pos + Vector3.UP * 1.2) if mark else Vector2.INF)
+		hud.ambulance_edge(project.call(d.pos + Vector3.UP * 1.2) if mark else Vector2.INF, fire)
 
 
 ## The player's part (road_rules.gd): the warning, giving way, blocking.
@@ -380,17 +444,17 @@ func _rules(d, amb: Vector2, me: Vector2, v: Array) -> void:
 		run["way_t"] = float(run["way_t"]) + TICK
 		if not bool(run["warned"]) and rel.x < BEHIND_TOAST:
 			run["warned"] = true
-			_toast("amb_behind", 0)
+			_toast(_tag("behind"), 0)
 		var lanes: int = graph.e_lanes[d.edge] if not d.in_conn else 1
 		if not bool(run["blocked"]) and not bool(run["thanked"]) and Rules.blocking(float(run["way_t"]), pv, lanes):
 			run["blocked"] = true
 			blocked += 1
 			var took: int = wallet.lose_respect(Rules.BLOCK_LOSS, Rules.respect_floor(int(wallet.respect))) if wallet != null else 0
-			_toast("amb_block", took)
-			_shout(d, "medic_block")
+			_toast(_tag("block"), took)
+			_shout(d, _crew("block"))
 			if sfx != null:
 				sfx.horn(d.pos)
-			_log("blocked the ambulance %.1f s at %.0f km/h: -%d respect" % [run["way_t"], pv * 3.6, took])
+			_log("blocked the %s %.1f s at %.0f km/h: -%d respect" % [_what(), run["way_t"], pv * 3.6, took])
 	else:
 		run["way_t"] = 0.0
 		if bool(run["was_in_way"]) and not bool(run["thanked"]) and not bool(run["blocked"]) and not bool(run["hit"]) \
@@ -402,12 +466,23 @@ func _rules(d, amb: Vector2, me: Vector2, v: Array) -> void:
 			thanked += 1
 			if wallet != null:
 				wallet.add_respect(Rules.THANKS_GAIN)
-			_toast("amb_thanks", Rules.THANKS_GAIN)
-			_shout(d, "medic_thanks")
-			_log("let the ambulance through: +%d respect" % Rules.THANKS_GAIN)
+			_toast(_tag("thanks"), Rules.THANKS_GAIN)
+			_shout(d, _crew("thanks"))
+			_log("let the %s through: +%d respect" % [_what(), Rules.THANKS_GAIN])
 
 
-## traffic.gd's bumped_police: the player's car hit a police-pool car; ours only.
+## The road_life toast tag for `what` ("behind", "block", ...): the ambulance's or the fire engine's.
+func _tag(what: String) -> String:
+	return ("fire_" if bool(run.get("fire", false)) else "amb_") + what
+
+
+## The crew's line tag for `what`: the paramedic's or the firefighter's.
+func _crew(what: String) -> String:
+	return ("fireman_" if bool(run.get("fire", false)) else "medic_") + what
+
+
+## traffic.gd's bumped_police (the ambulance) or bumped_siren (the fire engine): the player's car
+## hit a car with its lights on; ours only.
 func _on_bumped(d, speed: float) -> void:
 	if run.is_empty() or d != run["d"] or bool(run["hit"]) or bool(run["done"]):
 		return
@@ -419,29 +494,41 @@ func _on_bumped(d, speed: float) -> void:
 	var rel := Rules.relative(Vector2(d.pos.x, d.pos.z), fwd, Vector2(p.x, p.z))
 	var pv: float = float(v[3]) if v.size() > 3 else float(v[1]) / 3.6
 	if not Rules.at_fault(speed, pv, rel, d.v):
-		_log("bumped by the ambulance (%.1f m/s lost): not the player's fault" % speed)
+		_log("bumped by the %s (%.1f m/s lost): not the player's fault" % [_what(), speed])
 		return
 	run["hit"] = true
 	hits += 1
 	var took: int = wallet.lose_respect(Rules.HIT_LOSS, Rules.respect_floor(int(wallet.respect))) if wallet != null else 0
-	_toast("amb_hit", took)
-	_shout(d, "medic_hit")
-	_announce(graph.e_name[d.edge] if d.edge >= 0 else "", "ambulance_hit")
-	_log("hit the ambulance at %.1f m/s lost: -%d respect" % [speed, took])
+	_toast(_tag("hit"), took)
+	_shout(d, _crew("hit"))
+	_announce(graph.e_name[d.edge] if d.edge >= 0 else "", "fire_hit" if bool(run["fire"]) else "ambulance_hit")
+	_log("hit the %s at %.1f m/s lost: -%d respect" % [_what(), speed, took])
 
 
-## The run ends: the siren and the mark off, the ambulance back to the pool, the next one's time.
+## The run ends: the siren and the mark off, the ambulance back to the pool (the fire engine: out
+## of sight, back to its pool; in view, lights off, it drives on as traffic until the band lets it
+## go), the next one's time.
 func _end(why: String) -> void:
 	var d = run.get("d")
+	var what := _what()
 	if sfx != null:
 		sfx.ambulance_siren(Vector3.INF)
 	if hud != null and hud.has_method("ambulance_edge"):
 		hud.ambulance_edge(Vector2.INF)
-	if d != null and d.active and police != null:
-		police.scene_leave(d)
+	if d != null and d.active:
+		if bool(run.get("fire", false)):
+			if not d.route.is_empty():
+				traffic.stop_racing(d)
+			traffic.set_lights(d, false)
+			if traffic.on_screen(d.pos, d.size.y):
+				d.persistent = false
+			else:
+				traffic.remove(d)
+		elif police != null:
+			police.scene_leave(d)
 	run = {}
 	wait = _rng.randf_range(GAP.x, GAP.y)
-	_log("ambulance run over (%s); next in %.0f s" % [why, wait])
+	_log("%s run over (%s); next in %.0f s" % [what, why, wait])
 
 
 # --- "Zielone!" ------------------------------------------------------------------------------
@@ -492,7 +579,7 @@ func _car_behind(fwd: Vector2):
 	var best = null
 	var best_d := Rules.BEHIND_NEAR + 0.001
 	for o in traffic.drivers():
-		if o.kind >= 4 or o.parked or o.v > 1.0:
+		if o.kind >= 4 or o.parked or o.v > 1.0 or o.tag == "fire":
 			continue
 		var rel := Vector2(o.pos.x, o.pos.z) - me
 		var along := rel.dot(fwd)
@@ -510,7 +597,7 @@ func _car_behind(fwd: Vector2):
 func _toast(tag: String, n: int) -> void:
 	if hud == null or dialogue == null:
 		return
-	if tag != "amb_behind" and n <= 0:
+	if not tag.ends_with("_behind") and n <= 0:
 		return  # nothing taken (at the floor): no toast saying it was
 	var l: Array = dialogue.line(LINES, tag, true)
 	if l.is_empty():
@@ -518,13 +605,14 @@ func _toast(tag: String, n: int) -> void:
 	hud.toast(String(l[0]).replace("{n}", str(n)), String(l[1]).replace("{n}", str(n)), Messages.INFO)
 
 
-## A line over driver d (the paramedic, the driver behind).
+## A line over driver d (the paramedic, the firefighter, the driver behind).
 func _shout(d, tag: String) -> void:
 	if dialogue == null:
 		return
 	var pos: Vector3 = d.pos
 	var anchor := func() -> Vector3: return d.pos if d.active else pos
-	dialogue.say_ambient(anchor, "", LINES, tag, 3.0, MEDIC, 2.9, true)
+	var high := 3.0 if not tag.begins_with("fireman") else 3.8
+	dialogue.say_ambient(anchor, "", LINES, tag, high, FIREMAN if tag.begins_with("fireman") else MEDIC, 2.9, true)
 
 
 ## KEBAB FM's host (`radio_host` lines tagged `tag`, {street} the road's name).

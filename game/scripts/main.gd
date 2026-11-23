@@ -3059,6 +3059,9 @@ func _build_crash_scenes() -> void:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
+	# Road life stage 3, "Pan wolny?!": a taxi check's passenger asks Podwózka for the ride.
+	crash_scenes.stranded = func(at: Vector2) -> bool: return rides != null and rides.offer_stranded(at)
+	crash_scenes.stranded_on = func() -> bool: return rides != null and rides.stranded_on()
 	add_child(crash_scenes)
 	crash_scenes.setup()
 	var xz := flags.crash_flag.split(",")

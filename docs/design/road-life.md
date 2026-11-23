@@ -62,10 +62,22 @@ Check: `game/tools/check_road_life.gd` (verify step `roadlife`, in CI).
 - **The wreck towed** (built): half the fender benders (`crash_tow`) have a laweta where the
   ambulance would stand and its operator in the paramedic's place; when the player comes near, the
   hit car is pulled onto it like the Odholowanie's and the laweta takes it away.
+- **The fire engine** (built): 35 % of the runs behind the player are a red fire engine instead of
+  the ambulance (the BUS family's third shape, `models.gd` BUS_FIRE: cab, white band, grey lockers,
+  roof ladder, blue light bar; +0 draw calls), a little slower (16.5 m/s top), with its own slow
+  wail (`fire_siren`, tools/make_sfx.py) and edge mark (a red disc with a white flame), racing to
+  a fire 500-1100 m ahead the way the player drives. Same respect rules as the ambulance (+3 for
+  the corridor, −3 for blocking, −10 for a hit at fault, rung floor), a firefighter's lines and
+  KEBAB FM's "fire"/"fire_hit". Done, its lights go off and it drives on as traffic.
+- **"Pan wolny?!"** (built): at 60 % of the taxi checks, when the player rolls past slowly (under
+  4.5 m/s, within 16 m), the passenger waves them down ("Pan wolny?!") and Podwózka offers their
+  ride from right there (`rides.gd` `offer_stranded`: card titled PAN WOLNY?!, the pin where they
+  stand, no story, the usual fare and stars). Once taken, the scene's passenger leaves with the
+  player and says no more.
 
 ## Left
 
-- A bus pulling out of a stop; "Pan wolny?!" free
-  Podwózka ride from the taxi check's passenger.
-- Kontrola trzeźwości, orszak weselny, straż pożarna, Elka. Deferred: dostawczak on hazards in a
+- A bus pulling out of a stop. Kontrola trzeźwości, the wedding convoy, Elka and the dostawczak
+  wait for Thursday (F, 2026-11-23 21:34).
+- Kontrola trzeźwości, orszak weselny, Elka. Deferred: dostawczak on hazards in a
   one-lane street (traffic queues can't pass it yet). Cut: tow-ramp jump, korytarz życia in a jam.

@@ -99,6 +99,9 @@ const TRAFFIC := [
 		# Shape 0 the articulated bus (buses.gd's hub ring always takes it), shape 1 the solo bus.
 		{"name": "bus", "share": 0.6, "size": Vector3(2.5, 3.2, 18.0), "paint": ["#ffffff"]},
 		{"name": "solo bus", "share": 0.4, "size": Vector3(2.5, 3.2, 12.0), "paint": ["#ffffff"]},
+		# Road life stage 3 (F, 2026-11-23): the fire engine (straż pożarna, bus_shape(BUS_FIRE)),
+		# never a random bus (share 0): road_life.gd sends one on a call (traffic.gd add_fire_engine).
+		{"name": "fire engine", "share": 0.0, "size": Vector3(2.5, 3.4, 8.4), "paint": ["#ffffff"]},
 	],
 ]
 ## Loop 2c: the parked cars' paints (map_builder.gd picks one by the bake's index): traffic's
@@ -828,16 +831,32 @@ static func _van(which: int) -> Shape:
 ## and the bellows' parts collapse out of sight. Its length is TRAFFIC's size.z (traffic.gd's
 ## LENGTH keeps the longest).
 static func bus_mesh() -> ArrayMesh:
-	return family([bus_shape(false), bus_shape(true)])
+	return family([bus_shape(BUS_ARTIC), bus_shape(BUS_SOLO), bus_shape(BUS_FIRE)])
+
+
+## The BUS family's shapes: the articulated bus, the solo bus and (road life stage 3) the fire
+## engine, which hides every bus part (shrunk to a point by Shape.xform) and adds its own.
+const BUS_ARTIC := 0
+const BUS_SOLO := 1
+const BUS_FIRE := 2
+const FIRE_RED := Color("#c4161c")
+## A Shape.xform that shrinks what follows to one point (a part this shape doesn't have, even one
+## whose builder calls show() on its way).
+static func gone(at: Vector3) -> Transform3D:
+	return Transform3D(Basis.from_scale(Vector3.ZERO), at)
 
 
 ## One of the buses (bus_mesh) as a Shape, so traffic.gd's night signs can join it.
-static func bus_shape(solo: bool) -> Shape:
+static func bus_shape(which: int) -> Shape:
+	var solo := which == BUS_SOLO
+	var fire := which == BUS_FIRE
+	# The fire engine has none of the bus: every bus part goes to one point.
+	var none := gone(Vector3(0.0, 1.5, 0.0)) if fire else Transform3D.IDENTITY
 	var s := Shape.new()
 	var red := fin(Color("#c8282a"))
 	var yellow := fin(Color("#f2c12e"))
 	var W := 1.25
-	s.xform = Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, 0.0 if solo else -3.0))
+	s.xform = none * Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, 0.0 if solo or fire else -3.0))
 	var lower := PackedVector2Array([Vector2(-5.96, 0.36), Vector2(-6.0, 0.6), Vector2(-5.98, 1.0),
 			Vector2(-5.96, 1.04), Vector2(5.97, 1.15), Vector2(5.99, 1.15), Vector2(6.0, 0.6), Vector2(5.96, 0.36)])
 	var lw := PackedFloat32Array([W, W, W, W, W, W, W, W])
@@ -875,7 +894,7 @@ static func bus_shape(solo: bool) -> Shape:
 			s.arch(sgn * (W + 0.006), sgn, z, wc, r + 0.08, 0.36, fin(WELL))
 			s.wheel(Vector3(sgn * (W + 0.02 - 0.15), wc, z), r, 0.3, 6, sgn, fin(TYRE), fin(HUB))
 	# The third door: behind the solo bus's rear axle, or behind the articulated bus's bellows.
-	s.xform = Transform3D.IDENTITY
+	s.xform = none
 	var d3 := 4.25 if solo else 4.8
 	s.side_rect(W + 0.014, 1.0, 0.42, 2.6, d3 - 0.6, d3 + 0.6, fin(Color("#2d3640")))
 	# The rear section: its own lower and upper bodies with square ends, an axle.
@@ -905,7 +924,75 @@ static func bus_shape(solo: bool) -> Shape:
 	s.box(Vector3(0.0, 1.95, 3.35), Vector3(2.3, 2.1, 0.8), bellows)
 	s.box(Vector3(0.0, 0.62, 3.35), Vector3(2.3, 0.5, 0.8), fin(TRIM))
 	s.show()
+	s.xform = Transform3D.IDENTITY if fire else gone(Vector3(0.0, 1.5, 0.0))
+	_fire_engine(s)
+	s.xform = Transform3D.IDENTITY
+	s.show()
 	return s
+
+
+## The fire engine (straż pożarna; a Polish GBA-style truck, no badge): 8.4 m, a red cab with a big
+## windscreen and a white band, a red body with grey roller-shutter lockers on both sides, a silver
+## ladder on the roof, a blue light bar on the cab and two blue beacons at the back (BLINK: with
+## traffic.gd's lights on they flash as the police's do), headlamps, tail lamps, six wheels.
+## Its front is -z.
+static func _fire_engine(s: Shape) -> void:
+	var red := fin(FIRE_RED)
+	var white := fin(Color("#f2f2ee"))
+	var W := 1.25
+	# The cab and the body (the bottoms nobody sees), the chassis under them.
+	s.box(Vector3(0.0, 0.95, -3.2), Vector3(2.5, 1.0, 2.0), red)
+	s.box(Vector3(0.0, 2.2, -3.25), Vector3(2.46, 1.5, 1.9), red)
+	s.box(Vector3(0.0, 1.85, 0.95), Vector3(2.5, 2.7, 6.5), red)
+	s.box(Vector3(0.0, 0.45, 0.4), Vector3(2.2, 0.3, 7.4), fin(TRIM))
+	# The cab's glass: the windscreen, a side window each side; the white band all round.
+	s.quad(Vector3(-1.08, 1.62, -4.206), Vector3(1.08, 1.62, -4.206), Vector3(1.08, 2.78, -4.206),
+			Vector3(-1.08, 2.78, -4.206), fin(GLASS), Vector3(0, 0, -1))
+	for sgn: float in [-1.0, 1.0]:
+		s.side_rect(sgn * (W - 0.015), sgn, 1.72, 2.7, -4.05, -3.05, fin(GLASS))
+		s.side_rect(sgn * (W + 0.006), sgn, 1.18, 1.36, -4.18, 4.18, white)
+	s.quad(Vector3(-1.25, 1.18, -4.21), Vector3(1.25, 1.18, -4.21), Vector3(1.25, 1.36, -4.21),
+			Vector3(-1.25, 1.36, -4.21), white, Vector3(0, 0, -1))
+	# The lockers: three roller shutters a side, darker lines across them.
+	var shutter := fin(Color("#b9bdc2"))
+	var line := fin(Color("#8d9298"))
+	for sgn: float in [-1.0, 1.0]:
+		for z: Vector2 in [Vector2(-2.1, -0.25), Vector2(-0.05, 1.8), Vector2(2.0, 3.95)]:
+			s.side_rect(sgn * (W + 0.012), sgn, 1.48, 3.0, z.x, z.y, shutter)
+			for y: float in [1.9, 2.3, 2.7]:
+				s.side_rect(sgn * (W + 0.018), sgn, y, y + 0.04, z.x, z.y, line)
+	# The ladder: two rails and rungs on the roof, on two low stands.
+	var alu := fin(Color("#c9ccd1"))
+	for x: float in [-0.45, 0.45]:
+		s.box(Vector3(x, 3.36, 1.0), Vector3(0.08, 0.08, 5.8), alu)
+	for k in 9:
+		s.box(Vector3(0.0, 3.36, -1.8 + k * 0.7), Vector3(0.9, 0.05, 0.06), alu)
+	for z: float in [-1.4, 3.4]:
+		s.box(Vector3(0.0, 3.26, z), Vector3(1.1, 0.12, 0.14), fin(TRIM))
+	# The light bar on the cab's roof and the beacons at the back's top corners (blue, flashing).
+	var blue := Color("#3d7bff")
+	s.box(Vector3(0.0, 3.0, -3.6), Vector3(1.7, 0.08, 0.3), fin(TRIM))
+	s.box(Vector3(-0.45, 3.1, -3.6), Vector3(0.7, 0.12, 0.26), fin(blue, BLINK, 0.0))
+	s.box(Vector3(0.45, 3.1, -3.6), Vector3(0.7, 0.12, 0.26), fin(blue, BLINK, 0.5))
+	for sgn: float in [-1.0, 1.0]:
+		s.box(Vector3(sgn * 1.05, 3.28, 4.05), Vector3(0.2, 0.16, 0.2), fin(blue, BLINK, 0.0 if sgn < 0.0 else 0.5))
+	# The front: grille, headlamps, bumper; the back: tail lamps and its bumper.
+	s.quad(Vector3(-0.62, 0.78, -4.208), Vector3(0.62, 0.78, -4.208), Vector3(0.62, 1.1, -4.208),
+			Vector3(-0.62, 1.1, -4.208), fin(GRILLE), Vector3(0, 0, -1))
+	for x: float in [-0.95, 0.95]:
+		s.quad(Vector3(x - 0.2, 0.72, -4.209), Vector3(x + 0.2, 0.72, -4.209), Vector3(x + 0.2, 0.95, -4.209),
+				Vector3(x - 0.2, 0.95, -4.209), fin(HEADLIGHT, HEAD_LAMP), Vector3(0, 0, -1))
+		s.quad(Vector3(x - 0.18, 0.7, 4.205), Vector3(x + 0.18, 0.7, 4.205), Vector3(x + 0.18, 1.0, 4.205),
+				Vector3(x - 0.18, 1.0, 4.205), fin(TAIL, TAIL_LAMP), Vector3(0, 0, 1))
+	s.box(Vector3(0.0, 0.48, -4.28), Vector3(2.55, 0.26, 0.18), fin(TRIM))
+	s.box(Vector3(0.0, 0.48, 4.25), Vector3(2.5, 0.22, 0.14), fin(TRIM))
+	# The wheels: one axle under the cab, two at the back.
+	var r := 0.5
+	var wc := r * cos(PI / 6.0)
+	for z: float in [-2.9, 2.0, 3.25]:
+		for sgn: float in [-1.0, 1.0]:
+			s.arch(sgn * (W + 0.006), sgn, z, wc, r + 0.08, 0.5, fin(WELL))
+			s.wheel(Vector3(sgn * (W + 0.02 - 0.15), wc, z), r, 0.3, 6, sgn, fin(TYRE), fin(HUB))
 
 
 ## Loop 2c, for loop 3g: the police estate and the city guards' car in one family (police.md
