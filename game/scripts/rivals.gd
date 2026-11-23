@@ -734,9 +734,25 @@ func _can_abort() -> bool:
 ## (the run ends when it is pressed); otherwise the kit's.
 func drop(by_player: bool) -> void:
 	if by_player and (state == State.COUNTDOWN or state == State.RACE):
+		_end_as = "quit"
 		_finish_race(false, "You gave up.")
 		return
 	super.drop(by_player)
+
+
+## The run's end as the stats read it (activity_end `how`): "won", "lost" or "quit" (the ✕), set
+## when the race is decided; the result card's press ends the run with it (before, every race,
+## given up or not, went out as "done").
+var _end_as := ""
+
+
+func finish() -> void:
+	if _end_as == "":
+		super.finish()
+		return
+	end_how = _end_as
+	_end_as = ""
+	_end(call_cool)
 
 
 ## Loop 3h slice 3: the final's next point for the player: the next bridge's checkpoint, then the
@@ -779,6 +795,7 @@ func rung_open(i: int) -> bool:
 ## Challenges rival i at once (also the --race flag): they name a finish, count
 ## down and go.
 func start_race(i: int, finish := {}) -> void:
+	_end_as = ""
 	end_call_out()
 	_marker(false)
 	_release_seba()
@@ -1340,6 +1357,8 @@ static func _end_stop(s: String) -> String:
 
 
 func _finish_race(won: bool, why: String) -> void:
+	if _end_as == "":
+		_end_as = "won" if won else "lost"
 	if final_on:
 		_finish_final(won, why)
 		return
