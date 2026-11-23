@@ -139,6 +139,7 @@ parkmesh             quick
 parodies             quick
 pause                quick
 pause-run            smoke
+photofronts          quick
 places               quick
 placescripts         quick
 placzamkowy          quick

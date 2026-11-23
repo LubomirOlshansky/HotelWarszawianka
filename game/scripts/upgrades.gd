@@ -6,9 +6,10 @@ extends RefCounted
 ##  - **Cars** (CARS): the striped hatch (free, the default) and the "Ołdi TT" (a parody of a
 ##    certain Bavarian coupe; 1,500 zł): a lower, wider coupe with more top speed, pull and grip.
 ##    Both drive on the player's profile, Cruise or Sport (car.gd PROFILES).
-##  - **Nitro** (NITRO, 350 zł): "Kebab Boost", a button that opens the gas and lifts the top speed
-##    and the pull for a few seconds, then refills (car.gd NITRO_*; hud.gd draws the button and its
-##    tank once it is owned; Shift on a keyboard, LB or RB on a pad).
+##  - **Nitro** (NITRO, 350 zł): "Kebab Boost", N1 (2026-11-22): two bottles; a tap fires one, which
+##    opens the gas and lifts the top speed and the pull for 2.5 s; a bottle refills in 12 s (car.gd
+##    NITRO_*; hud.gd draws the disc above GAS with a segment a bottle once it is owned; Shift on a
+##    keyboard, LB or RB on a pad).
 ##  - **Parts** (PARTS): tyres (grip) and engine (top speed and pull), levels 1 to 3, each level
 ##    dearer than the last (100-320 zł), kept for any car.
 ## Prices follow the jobs' pay (a kebab run about 35 zł, a First step 50 zł). Beta prices (F
@@ -26,7 +27,7 @@ const CARS: Array[Dictionary] = [
 ]
 const DEFAULT_CAR := "hatch"
 const NITRO := {"id": "nitro", "name": ["Nitro „Kebab Boost”", "Nitro: Kebab Boost"],
-		"blurb": ["Przycisk obok hamulca: 3,5 s mocy, potem 20 s ładowania.", "A button by the brake: 3.5 s of power, then 20 s to refill."],
+		"blurb": ["Dwie butle. Stuknij: 2,5 s mocy. Pusta butla ładuje się 12 s.", "Two bottles. Tap: 2.5 s of power. An empty bottle refills in 12 s."],
 		"price": 350}
 ## The part's id, name, what a level adds, and the price of each level.
 const PARTS: Array[Dictionary] = [

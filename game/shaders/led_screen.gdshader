@@ -1,8 +1,9 @@
 shader_type spatial;
 // The big L-shaped corner LED screen on Skylight at Złote Tarasy (tarasy_screen.gd): the "3D"
-// anamorphic kind. The mesh is two flat faces round the tower's corner (the wide one facing the
-// station, then the return facing Emilii Plater); UV is in metres (x along the screen, continuous
-// round the corner at `corner`, y up from the bottom of the box, with a margin below the box for
+// anamorphic kind. The mesh is flat faces round the tower's corner (a short return on the curved
+// face towards the station, then the wide one along Emilii Plater to the tower's end; F 2026-11-21);
+// UV is in metres (x along the screen, continuous round the corner; the scenes centre on the wide
+// face at `hero`, the tail and the Palace on the return at `aside`), y up from the bottom of the box, with a margin below the box for
 // what pops out). The picture is a little box seen through its front: a ray from the eye is
 // followed into it, so the side walls show and each layer shifts with the viewer (real parallax:
 // the cat's head leans out past the glass, its paws hang over the bottom edge). Three scenes of an
@@ -18,11 +19,14 @@ global uniform float daylight;
 
 uniform vec2 size = vec2(25.0, 13.5);     // the box in metres
 uniform float margin = 2.6;               // the mesh below the box
-uniform float corner = 16.5;              // metres along the screen to the corner (the wide face's end)
+uniform float hero = 18.5;                // metres along the screen to the wide face's middle (the scenes' centre)
+uniform float aside = 4.0;                // ... and to the narrow return's middle (the tail, the Palace)
 uniform float bezel = 0.6;                // the frame round the box
 uniform float depth = 3.2;                // the box's depth behind the glass
 uniform sampler2D words : filter_nearest, repeat_disable;
 uniform vec2 words_px = vec2(39.0, 35.0);  // the words texture in texels
+uniform float words_mpt = 0.42;            // the promo's words: metres a texel (a smaller screen, smaller words)
+uniform int only_scene = -1;               // -1: the whole loop; 1: the game's promo alone (Arkadia's screen)
 uniform float line_px = 11.0;              // texels from one line of the words to the next
 
 varying vec3 wpos;
@@ -161,7 +165,7 @@ vec4 cat_paw(vec2 p, vec2 c) {
 
 // The tail, standing up round the corner on the return face: a tabby stroke that sways.
 vec4 cat_tail(vec2 p, float ts) {
-	float tx = corner + (size.x - corner) * 0.45;
+	float tx = aside;
 	float x = tx + 1.4 * sin(p.y * 0.42 + ts * 1.5) * smoothstep(0.6, 6.0, p.y);
 	float top = 8.6 + 0.6 * sin(ts * 0.9);
 	float d = max(abs(p.x - x) - 0.6 * (1.0 - 0.25 * smoothstep(2.0, top, p.y)), p.y - top);
@@ -172,7 +176,7 @@ vec4 cat_tail(vec2 p, float ts) {
 vec4 scene_cat(vec2 m, vec2 r, float zexit, float ts, vec4 base) {
 	vec4 col = base;
 	float soft = 0.07;
-	vec2 c = vec2(corner * 0.5, size.y * 0.49);
+	vec2 c = vec2(hero, size.y * 0.49);
 	if (depth < zexit) {
 		vec2 p = m - r * depth;
 		col = vec4(cat_bg(p, ts), 1.0);
@@ -205,16 +209,16 @@ vec3 promo_bg(vec2 p, float ts) {
 	vec2 uv = p / size;
 	vec3 c = mix(vec3(0.03, 0.03, 0.14), vec3(0.34, 0.08, 0.36), smoothstep(0.05, 1.0, 1.0 - uv.y * 0.8));
 	// The striped low sun.
-	float sd = length(p - vec2(corner * 0.5, 3.2));
-	float bands = max(step(0.3, fract(p.y * 0.8 - ts * 0.15)), step(5.5, p.y));
+	float sd = length(p - vec2(hero, size.y * 0.237));
+	float bands = max(step(0.3, fract(p.y * 0.8 - ts * 0.15)), step(size.y * 0.407, p.y));
 	vec3 sun = mix(vec3(1.0, 0.25, 0.5), vec3(1.0, 0.85, 0.35), smoothstep(1.0, 8.0, p.y));
-	c = mix(c, sun, cover(sd - 6.0, 0.1) * bands);
+	c = mix(c, sun, cover(sd - size.y * 0.444, 0.1) * bands);
 	// Two neon ribbons rolling through.
-	float r1 = abs(p.y - (8.5 + 2.5 * sin(p.x * 0.25 + ts * 0.9)));
+	float r1 = abs(p.y - (size.y * 0.63 + 2.5 * sin(p.x * 0.25 + ts * 0.9)));
 	c += vec3(0.1, 0.8, 1.0) * exp(-r1 * 1.8) * 0.45;
 	// The skyline: blocks, and the Palace's steps and spire.
 	float h = 1.6 + 2.4 * hash(vec2(floor(p.x / 1.7), 3.0));
-	float d = abs(p.x - (corner + (size.x - corner) * 0.5));
+	float d = abs(p.x - aside);
 	float pal = 0.6 + 3.6 * step(d, 2.6) + 2.6 * step(d, 1.6) + 2.0 * step(d, 1.0) + 1.4 * step(d, 0.5) + 2.2 * step(d, 0.1);
 	h = max(h, pal);
 	float win = step(0.62, hash(floor(p * vec2(2.5, 3.0)))) * step(0.45, fract(p.x * 2.5)) * step(0.4, fract(p.y * 3.0));
@@ -229,17 +233,17 @@ vec4 scene_promo(vec2 m, vec2 r, float zexit, float ts, vec4 base) {
 	col = mix(col, vec4(promo_bg(p, ts), 1.0), back);
 	// AROUND over WARSAW, popped out of the glass with a dark extrusion; their shadow on the wall.
 	float bob = 0.2 * sin(ts * 1.6);
-	vec2 ca = vec2(corner * 0.5, 9.4 + bob);
-	vec2 cw = vec2(corner * 0.5, 5.0 - bob);
+	vec2 ca = vec2(hero, size.y * 0.696 + bob);
+	vec2 cw = vec2(hero, size.y * 0.37 - bob);
 	vec2 sh = p + vec2(-0.5, 0.5);
-	col.rgb *= 1.0 - 0.5 * back * max(words_at(sh, ca, 0.0, 0.42), words_at(sh, cw, 1.0, 0.42));
+	col.rgb *= 1.0 - 0.5 * back * max(words_at(sh, ca, 0.0, words_mpt), words_at(sh, cw, 1.0, words_mpt));
 	vec2 pe = m - r * -1.0;
 	vec2 pf = m - r * -1.5;
-	col = over(vec4(vec3(0.05, 0.25, 0.45), words_at(pe, ca, 0.0, 0.42)), col);
-	col = over(vec4(vec3(0.4, 0.03, 0.25), words_at(pe, cw, 1.0, 0.42)), col);
-	vec3 white = mix(vec3(1.0), vec3(0.6, 0.95, 1.0), smoothstep(8.0, 11.0, pf.y));
-	col = over(vec4(white, words_at(pf, ca, 0.0, 0.42)), col);
-	col = over(vec4(vec3(1.0, 0.35, 0.8), words_at(pf, cw, 1.0, 0.42)), col);
+	col = over(vec4(vec3(0.05, 0.25, 0.45), words_at(pe, ca, 0.0, words_mpt)), col);
+	col = over(vec4(vec3(0.4, 0.03, 0.25), words_at(pe, cw, 1.0, words_mpt)), col);
+	vec3 white = mix(vec3(1.0), vec3(0.6, 0.95, 1.0), smoothstep(size.y * 0.59, size.y * 0.81, pf.y));
+	col = over(vec4(white, words_at(pf, ca, 0.0, words_mpt)), col);
+	col = over(vec4(vec3(1.0, 0.35, 0.8), words_at(pf, cw, 1.0, words_mpt)), col);
 	return col;
 }
 
@@ -256,7 +260,7 @@ vec4 scene_nose(vec2 m, vec2 r, float zexit, float ts, vec4 base) {
 	bg = mix(bg, vec3(0.62, 0.74, 1.0), exp(-abs(p.x - mod(ts * 6.0, size.x + 8.0) + 4.0) * 0.35) * 0.35);
 	col = mix(col, vec4(bg, 1.0), back);
 	// The blocky blue word pops out of the glass and stays out, an extrusion behind it.
-	vec2 c = vec2(corner * 0.5, size.y * 0.5 + 0.2 * sin(ts * 1.3));
+	vec2 c = vec2(hero, size.y * 0.5 + 0.2 * sin(ts * 1.3));
 	float zf = -0.4 - 1.6 * smoothstep(0.0, 1.2, ts);
 	col.rgb *= 1.0 - 0.35 * back * words_at(p + vec2(-0.7, 0.7), c, 2.0, 0.6);
 	for (int k = 0; k < 4; k++) {
@@ -319,6 +323,9 @@ void fragment() {
 	float u = m.x / size.x;
 	float tt = mod(TIME - u * 0.9 + LOOP, LOOP);
 	vec4 col;
+	if (only_scene == 1) {
+		tt = SCENES.x + mod(TIME - u * 0.9, SCENES.y);
+	}
 	if (tt < SCENES.x) {
 		col = scene_cat(m, r, zexit, tt, base);
 	} else if (tt < SCENES.x + SCENES.y) {

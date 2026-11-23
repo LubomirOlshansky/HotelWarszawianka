@@ -30,7 +30,7 @@ No characters, quotes, catchphrases or memes from the films or games that inspir
 
 1. **The call** (night, 21:00-04:00, nothing else on; 4-8 minutes into a night, then 25-40 min
    apart). ODBIERZ / ODRZUĆ, then JADĘ! / NIE DZIŚ. The rescue calls pause.
-2. **Meet 1, Plac Defilad** (the plaza east of the Palace). Six tuned cars in a ring (the traffic's
+2. **Meet 1, Plac Defilad** (the plaza east of the Palace, by the Christmas market's north-east corner; 25 m further west until the market's chalets took that spot, F 2026-11-22). Six tuned cars in a ring (the traffic's
    pool cars in neon paints) with neon slabs under them, Darek's Bawarka, 16 people round the ring,
    and Lena spinning donuts in the middle: tyre smoke (22 puffs) and a circle of black marks. Stop in
    the ring's gap: six lines from Darek, Lena, Tadek and the crowd.

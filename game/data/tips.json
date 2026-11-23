@@ -17,7 +17,7 @@
 		{"tag": "ride", "pl": "Podwózka: weź pasażera i posłuchaj jego historii.", "en": "Podwózka: pick up a passenger and hear their story."},
 		{"tag": "raced", "pl": "Pokonaj wszystkich sześciu, a nocą czekają Trzy mosty.", "en": "Beat all six, and Trzy mosty waits at night."},
 		{"tag": "syrenka", "pl": "Syrenki chowają się po całym mieście. Znajdź wszystkie.", "en": "Mermaids hide all over the city. Find them all."},
-		{"tag": "", "pl": "Nocą miasto żyje inaczej. Porę dnia zmienisz w Ustawieniach.", "en": "The city lives differently at night. Settings change the hour."}
+		{"tag": "", "pl": "Nocą miasto żyje inaczej. Porę dnia przestawisz zegarem na mapie.", "en": "The city feels different at night. The map clock changes the hour."}
 	],
 	"hints": {
 		"stop": {"pl": "Zwolnij i stań w kole", "en": "Slow down and stop in the ring"},

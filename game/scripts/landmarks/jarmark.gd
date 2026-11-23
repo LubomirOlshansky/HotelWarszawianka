@@ -6,23 +6,30 @@ extends "res://scripts/landmarks/kladka.gd"
 ## gallery, the Palace's own reel of the tower carousel). Spec docs/landmarks/specs/jarmark.md.
 ##
 ## The market's frame is the museum's (MSN: u along Marszałkowska to the south-south-east, v from
-## Marszałkowska towards the Palace). Three parts, from the drone frames:
-##  - the main market on the Defilad car park (u 115-200, v -15..75): the dark asphalt with rows of
-##    gable-roofed chalets back to back, aisles between them under zig-zag strings of warm bulbs, a
-##    central line of small food stalls with yellow roofs; by Marszałkowska the big LED tree on its
-##    round platform with yellow benches and a lit snowman, the giant Santa-hat photo spot, the
-##    Venetian carousel with light strings fanning from its top, the red sausage stand, the glass
-##    greenhouse tunnel at the south end, the two-storey red hexagonal bar, and on the Palace side
-##    the lit stage and the red mulled-wine bar;
-##  - the annex south of the museum (u 40-115): the rows F photographed going up on 2026-11-15, now
-##    finished, the gold WESOŁYCH ŚWIĄT sign at the Marszałkowska entrance, light-up trees, a star;
-##  - the Plac Centralny part (u 50-86, v 40-78): the viewing tower carousel (a 38 m rainbow LED
-##    mast, the gold carrier with lit spokes and swinging chairs, the orange crown), the teacups, the
-##    Christmas-tree carousel and Santa's log cabin.
+## Marszałkowska towards the Palace). The layout is the organiser's official site map
+## (refs/jarmark-2026/official-map: jarmark.waw.pl/mapa, an oblique render with every object
+## labelled), georeferenced to this frame by a ground-plane homography on seven anchors (the south
+## obelisk, the two porticoes of the Palace's south wing, Metro Centrum's two glass tubes and its
+## pavilion, the MSN's south-east corner): 1-5 m off on the anchors, 4-17 m left out one at a time
+## (the obelisk, at the map's edge, worst). Checked against F's drone frames (2026-11-21: the
+## kurant in front of the tubes, the tree and the tower behind them). Two parts:
+##  - the main market on the Defilad car park (u 147-263, v -9..93), from the MSN's south lawn to
+##    the access road by the south obelisk: rows of gable-roofed chalets parallel to the street,
+##    facing each other across wide aisles under zig-zag strings of warm bulbs; by Marszałkowska
+##    the big tree (the tree carousel: its baubles are the cars) on a round platform ringed with
+##    yellow benches and a big lit snowman, the kurant (the tiered Christmas pyramid) by the metro
+##    tubes, a row of yellow-roofed food stalls between them; on the Palace side the castle stage,
+##    the red food-zone pavilion with its three bells, Santa's house;
+##  - the Plac Centralny part (u 50-150, v 25-140): the viewing tower carousel (a 38 m rainbow LED
+##    mast, the gold carrier with lit spokes and swinging chairs, the orange crown), the Venetian
+##    carousel by the Palace's south wing, the teacups, double rows of chalets along the promenade.
 ## Everything is the city's building surface (+0 draw calls); every light is M_LAMP (its colour by
 ## day, glowing at night; the tree's strands M_LAMP + 0.5, green by day and blue at night). The
 ## bulbs over the aisles are kept out of the roof grid. The cars that park there the rest of the
-## year are cleared (`parked_free`), and the trees in the rides' swing.
+## year are cleared (`parked_free`), and the trees under the market and in the rides' swing.
+
+## The real market's object kit (shutters, flaps, plank grooves, multicolour bulbs on every chalet).
+const JmKit := preload("res://scripts/landmarks/jarmark_kit.gd")
 
 const JM_O := Vector2(-1022.4, 100.15)
 const JM_AXIS := Vector2(0.3445, 0.9388)
@@ -47,51 +54,322 @@ const JM_RAINBOW := [Color("#e8333a"), Color("#f08a24"), Color("#f2d230"), Color
 		Color("#3a5be0"), Color("#9a4ad8")]
 
 ## Hut kinds: white with black trim, white half-timbered (black frame and cross braces), red, the
-## small dark food stall with a yellow roof, the big white chalet.
+## small dark food stall with a yellow roof, the big white chalet (a double stand on the map).
 enum Hut { WHITE, TIMBER, RED, FOOD, BIG }
 
-## The rows: [u0, u1, v, quarter (front turned from -v: 0 faces -v, 2 faces +v, -1 alternates),
-## kind (-1 mixed), step, skips ([u0, u1] where no hut stands: cross aisles, the metro pavilions)].
-const JM_ROWS := [
-	# The main market, Marszałkowska row first, then the rows back to back towards the Palace.
-	[118.0, 197.0, -11.0, 2, -1, 3.5, [[128.0, 151.0], [161.0, 169.5], [172.0, 180.0]]],
-	[146.0, 195.0, 22.0, 0, -1, 3.5, [[166.5, 172.5]]],
-	[146.0, 195.0, 25.6, 2, -1, 3.5, [[166.5, 172.5]]],
-	[119.0, 193.0, 33.0, -1, Hut.FOOD, 3.0, [[141.0, 147.0], [166.5, 172.5]]],
-	[118.0, 195.0, 40.0, 0, -1, 3.5, [[141.0, 147.0], [166.5, 172.5]]],
-	[118.0, 195.0, 43.6, 2, -1, 3.5, [[141.0, 147.0], [166.5, 172.5]]],
-	[118.0, 195.0, 56.0, 0, -1, 3.5, [[141.0, 147.0], [166.5, 172.5]]],
-	[118.0, 195.0, 59.6, 2, -1, 3.5, [[141.0, 147.0], [166.5, 172.5]]],
-	[118.0, 141.0, 72.0, 0, -1, 3.5, []],
-	[186.0, 196.0, 72.0, 0, Hut.BIG, 5.6, []],
-	# The annex by the museum (F's photos, 2026-11-15): the white rows, the half-timbered pair.
-	[41.0, 63.0, 29.0, 0, Hut.WHITE, 4.3, []],
-	[95.0, 113.0, 29.0, 0, Hut.WHITE, 4.3, []],
-	[69.0, 88.0, -11.0, 0, Hut.TIMBER, 3.7, []],
-	[72.7, 88.0, 5.0, 2, Hut.TIMBER, 3.7, []],
-	[92.0, 113.0, -3.0, -1, Hut.FOOD, 3.0, []],
+## Every chalet of the official map, [u, v, quarter (front turned from -v: 0 faces -v, 2 faces +v,
+## 1 faces +u, 3 faces -u), kind (-1 mixed)], row by row (the map's domek numbers in the comments).
+## Made from objects.json by a small script (refs/jarmark-2026/official-map; the scratch script
+## geo.py + gen.py of 2026-11-21): each hut's box bottom through the homography, half a hut back
+## from its front edge; snapped to its row's median v (a column's median u) so the rows run straight
+## along the street; a map width over 46 px (two stands in one) a BIG; fronts so that rows face each
+## other across the aisles. Moved off what stands there: domki 86-90 1.8 m south of the metro tube,
+## 91-94 1.5 m off the vent box, 71 into its row's gap; 126 dropped (inside the tree's bench ring).
+const JM_HUT_LIST := [
+	# Main market, the Palace side to the street. R1 (domki 1, 3-9) behind the stage's plaza.
+	[249.0, 85.5, 0, -1], [245.0, 85.5, 0, -1], [241.1, 85.5, 0, -1], [237.3, 85.5, 0, -1], [233.6, 85.5, 0, -1],
+	[229.6, 85.5, 0, -1], [225.8, 85.5, 0, -1], [219.9, 85.5, 0, -1],
+	# R2 (2, 10-23) facing the stage's plaza.
+	[159.4, 75.0, 2, -1], [151.1, 75.0, 2, Hut.BIG], [165.3, 75.0, 2, -1], [169.2, 75.0, 2, -1],
+	[173.4, 75.0, 2, -1], [177.3, 75.0, 2, -1], [181.4, 75.0, 2, -1], [185.4, 75.0, 2, -1], [196.9, 75.0, 2, -1],
+	[200.8, 75.0, 2, -1], [204.8, 75.0, 2, -1], [208.5, 75.0, 2, -1], [212.2, 75.0, 2, -1], [216.1, 75.0, 2, -1],
+	[221.6, 75.0, 2, -1],
+	# R3 (25-43, 186-187) and R4 (45-60) face each other; R3b (24) faces R1 beside Santa's house.
+	[249.6, 67.0, 0, -1], [245.6, 67.0, 0, -1], [241.7, 67.0, 0, -1], [237.8, 67.0, 0, -1], [234.1, 67.0, 0, -1],
+	[230.0, 67.0, 0, -1], [216.3, 67.0, 0, -1], [211.9, 67.0, 0, -1], [206.6, 67.0, 0, Hut.BIG],
+	[201.4, 67.0, 0, -1], [197.1, 67.0, 0, -1], [193.7, 67.0, 0, -1], [188.1, 67.0, 0, -1], [184.4, 67.0, 0, -1],
+	[179.3, 67.0, 0, -1], [174.9, 67.0, 0, -1], [170.2, 67.0, 0, -1], [165.7, 67.0, 0, -1], [148.9, 67.0, 0, -1],
+	[152.4, 67.0, 0, -1],
+	[237.8, 72.0, 2, Hut.BIG],
+	[165.8, 53.5, 2, -1], [170.7, 53.5, 2, -1], [175.1, 53.5, 2, -1], [181.3, 53.5, 2, Hut.BIG],
+	[186.5, 53.5, 2, -1], [197.0, 53.5, 2, Hut.BIG], [201.6, 53.5, 2, -1], [205.7, 53.5, 2, -1],
+	[209.6, 53.5, 2, -1], [222.9, 53.5, 2, -1], [227.2, 53.5, 2, -1], [232.8, 53.5, 2, Hut.BIG],
+	[239.8, 53.5, 2, Hut.BIG], [248.9, 53.5, 2, Hut.BIG],
+	# R5 (30a, 61-78) and R6 (79-85, 85a-d, 69).
+	[162.1, 46.5, 0, -1], [225.8, 46.5, 0, -1], [222.3, 46.5, 0, -1], [217.0, 46.5, 0, -1], [213.4, 46.5, 0, -1],
+	[209.4, 46.5, 0, -1], [204.4, 46.5, 0, Hut.BIG], [199.4, 46.5, 0, -1], [194.2, 46.5, 0, -1],
+	[190.8, 46.5, 0, -1], [187.3, 46.5, 0, -1], [182.1, 46.5, 0, Hut.BIG], [177.1, 46.5, 0, -1],
+	[173.4, 46.5, 0, -1], [169.6, 46.5, 0, -1], [165.5, 46.5, 0, -1],
+	[167.3, 33.0, 2, -1], [171.3, 33.0, 2, -1], [176.5, 33.0, 2, Hut.BIG], [181.3, 33.0, 2, -1],
+	[185.6, 33.0, 2, -1], [189.2, 33.0, 2, -1],
+	[203.2, 35.5, 2, -1], [208.5, 35.5, 2, -1], [221.7, 35.5, 2, -1], [225.7, 35.5, 2, -1], [229.0, 35.5, 2, -1],
+	# R7 (95-96), R8 (97-100), R8b (91-94), R8c (86-90) and R9 (101-102) round the tree's north aisle.
+	[195.3, 28.5, 0, -1], [189.6, 28.5, 0, -1],
+	[179.2, 25.0, 0, -1], [174.8, 25.0, 0, -1], [170.5, 25.0, 0, -1], [165.9, 25.0, 0, -1],
+	[209.2, 22.0, 0, Hut.BIG], [203.8, 22.0, 0, -1], [198.3, 22.0, 0, Hut.BIG],
+	[245.5, 21.5, 0, -1], [241.8, 21.5, 0, -1], [237.8, 21.5, 0, -1], [233.9, 21.5, 0, -1], [230.5, 21.5, 0, -1],
+	[174.8, 16.5, 2, -1], [179.2, 16.5, 2, -1],
+	# The yellow-roofed food stalls between the tree and the kurant: R10 (123-125), R11 (127-129), 122.
+	[220.3, 11.0, 2, Hut.FOOD], [215.1, 11.0, 2, Hut.FOOD], [210.4, 11.0, 2, Hut.FOOD],
+	[210.3, 6.5, 0, Hut.FOOD], [215.4, 6.5, 0, Hut.FOOD], [220.2, 6.5, 0, Hut.FOOD],
+	[230.1, 5.0, 0, Hut.FOOD],
+	# The two short columns: C1 (103-105) facing the tree, C2 (119-121) facing the kurant.
+	[182.0, 12.4, 1, -1], [182.0, 7.4, 1, -1], [182.0, 2.6, 1, -1],
+	[255.0, 1.8, 3, -1], [255.0, 7.5, 3, -1], [255.0, 10.9, 3, -1],
+	# R12 (106-118): the row along the street fence, facing in.
+	[185.7, -5.0, 2, -1], [190.2, -5.0, 2, -1], [195.0, -5.0, 2, -1], [199.5, -5.0, 2, -1], [204.8, -5.0, 2, -1],
+	[216.4, -5.0, 2, -1], [221.1, -5.0, 2, -1], [235.0, -5.0, 2, -1], [230.8, -5.0, 2, -1], [239.2, -5.0, 2, -1],
+	[243.2, -5.0, 2, -1], [246.8, -5.0, 2, -1], [251.3, -5.0, 2, -1],
+	# Plac Centralny: P1 (130-134, 139, 182-183) and P2 (135-141) by the Venetian carousel.
+	[115.4, 133.0, 0, -1], [110.4, 133.0, 0, -1], [105.4, 133.0, 0, -1], [94.7, 133.0, 0, -1],
+	[99.8, 133.0, 0, -1], [79.9, 133.0, 0, -1], [74.2, 133.0, 0, -1],
+	[126.6, 117.0, 2, -1], [121.8, 117.0, 2, -1], [111.7, 117.0, 2, -1], [106.8, 117.0, 2, -1],
+	[102.1, 117.0, 2, -1], [96.6, 117.0, 2, -1],
+	# The promenade: PC1 (164-172) and PC2 (173-181) back to back, PC3 (142-147) facing PC2.
+	[82.0, 49.5, 3, -1], [82.0, 55.6, 3, -1], [82.0, 62.1, 3, -1], [82.0, 68.2, 3, -1], [82.0, 74.6, 3, -1],
+	[82.0, 81.2, 3, -1], [82.0, 88.1, 3, -1], [82.0, 94.8, 3, -1],
+	[86.5, 49.2, 1, -1], [86.5, 55.4, 1, -1], [86.5, 61.8, 1, -1], [86.5, 68.1, 1, -1], [86.5, 74.5, 1, -1],
+	[86.5, 81.0, 1, -1], [86.5, 87.7, 1, -1], [86.5, 94.6, 1, -1],
+	[94.5, 75.1, 3, -1], [94.5, 69.4, 3, -1], [94.5, 63.5, 3, -1], [94.5, 57.7, 3, -1], [94.5, 52.2, 3, -1],
+	[94.5, 46.3, 3, -1],
+	# P3 (148-151) facing the teacups; P4 (158-163) and P5 (152-157) back to back along the museum's
+	# south wall (F's photos on site, 2026-11-22: the rows stand beside the wall, a planted walk between;
+	# moved 12 m along and 3 m in from the map's spot).
+	[99.3, 44.0, 0, -1], [104.3, 44.0, 0, -1], [108.4, 44.0, 0, -1], [113.4, 44.0, 0, -1],
+	[41.3, 39.5, 2, -1], [46.1, 39.5, 2, -1], [51.1, 39.5, 2, -1], [55.9, 39.5, 2, -1], [60.9, 39.5, 2, -1],
+	[65.8, 39.5, 2, -1],
+	[64.8, 35.0, 0, -1], [60.3, 35.0, 0, -1], [55.6, 35.0, 0, -1], [50.7, 35.0, 0, -1], [45.8, 35.0, 0, -1],
+	[40.8, 35.0, 0, -1],
 ]
-## Huts not in a row: [u, v, quarter, kind]. The three turned to the annex's plaza.
-const JM_HUTS := [[56.5, 10.0, 1, Hut.WHITE], [56.5, 13.7, 1, Hut.TIMBER], [56.5, 17.4, 1, Hut.RED]]
 
-## The strings of bulbs zig-zagging over the aisles: [u0, u1, v_a, v_b, step along u].
-const JM_STRINGS := [[146.0, 195.0, 25.6, 33.0, 5.0], [119.0, 193.0, 33.0, 40.0, 5.0],
-		[118.0, 195.0, 43.6, 56.0, 6.0], [118.0, 195.0, 59.6, 72.0, 6.0], [150.0, 197.0, -8.0, 0.0, 6.0],
-		[60.0, 92.0, 8.0, 27.0, 6.0], [93.0, 113.0, 0.0, 27.0, 6.0]]
+## Every other object of the official map at its georeferenced spot (u, v): the box's bottom through
+## the homography, a ride's radius back. Placeholder anchors for the kit's new models
+## (landmarks/jarmark_kit.gd wires them: the kurant, the tree carousel, the castle stage, the food
+## zone, the fun house, the bars, the photo booths...) and the source for the constants below.
+const JM_PLAN := {
+	"wejscie-01": Vector2(176.8, -8.4), "wejscie-02": Vector2(226.2, -5.6), "wejscie-03": Vector2(271.0, -9.4),
+	"wejscie-04": Vector2(161.4, 16.3), "wejscie-05": Vector2(161.1, 38.8), "wejscie-06": Vector2(91.6, 23.9),
+	"wejscie-07": Vector2(270.2, 29.4), "wejscie-08": Vector2(267.6, 73.0), "wejscie-09": Vector2(136.2, 95.7),
+	"wejscie-10": Vector2(86.4, 133.6), "metro-1": Vector2(226.5, 20.3), "metro-3": Vector2(142.4, -24.3),
+	"metro-2": Vector2(227.5, -21.4), "p2-l": Vector2(170.5, 86.7), "kontenery-na-odpady": Vector2(239.4, 88.8),
+	"wino-1": Vector2(177.6, 87.3), "strefa-gastronomiczna": Vector2(193.0, 89.2), "bar-1": Vector2(158.9, 67.8),
+	"p1-k": Vector2(205.6, 87.9), "kiosk-k1": Vector2(214.4, 86.3), "wino-4": Vector2(141.4, 44.6),
+	"wino-5": Vector2(151.3, 44.2), "bar-2": Vector2(225.2, 64.3), "wino-3": Vector2(216.1, 51.6),
+	"wino-2": Vector2(264.5, 64.4), "bar-4": Vector2(186.1, 23.2), "kiosk-k2": Vector2(265.1, 53.1),
+	"wino-6": Vector2(216.7, 21.5), "bar-3": Vector2(265.3, 41.3), "plac-zabaw": Vector2(48.6, 129.5),
+	"trybuna": Vector2(79.9, 100.8), "karuzela-wenecka": Vector2(134.8, 124.4),
+	"namiot-piernikowy": Vector2(120.0, 84.2), "fotel-mikolaja-zet": Vector2(135.5, 83.9),
+	"koszykowka-2": Vector2(152.4, 87.7), "koszykowka-1": Vector2(160.9, 87.2),
+	"labirynt-swiateczny": Vector2(118.1, 63.9), "karuzela-widokowa": Vector2(137.7, 63.2),
+	"sciana-murali": Vector2(130.3, 46.1), "karuzela-filizanki": Vector2(101.3, 25.8),
+	"carnival-2": Vector2(226.2, 72.2), "carnival-1": Vector2(231.9, 71.9), "budka-telefoniczna": Vector2(250.0, 70.9),
+	"carnival-3": Vector2(199.2, 32.4), "automaty-pluszaki": Vector2(216.4, 30.2),
+	"karuzela-choinka": Vector2(198.6, 9.8), "carnival-4": Vector2(210.5, -5.7), "kurant": Vector2(243.4, 7.2),
+	"fotobudka-1": Vector2(60.0, 135.2), "fotobudka-2": Vector2(129.8, 99.8), "bankomat-1": Vector2(129.4, 98.3),
+	"fotobudka-3": Vector2(146.2, 73.6), "fotobudka-6": Vector2(118.9, 44.9), "medycyna": Vector2(229.6, 44.8),
+	"dla-pracownikow-2": Vector2(234.9, 44.1), "ochrona": Vector2(232.0, 41.5),
+	"serwis-sprzatajacy": Vector2(235.5, 40.8), "punkt-m": Vector2(164.9, 8.6), "wc-damskie-2": Vector2(239.3, 40.8),
+	"wc-damskie-1": Vector2(241.8, 40.5), "wc-meskie-2": Vector2(245.2, 40.6), "wc-meskie-1": Vector2(247.9, 40.3),
+	"dla-pracownikow": Vector2(250.6, 40.2), "tech-supp": Vector2(166.0, -0.4), "biuro": Vector2(175.8, -0.0),
+	"fotobudka-5": Vector2(264.1, 36.7), "bankomat-2": Vector2(264.1, 34.5), "fotobudka-4": Vector2(223.6, 12.2),
+	"bankomat-3": Vector2(223.5, 5.7), "domek-mikolaja": Vector2(246.6, 70.8),
+}
+
+## Every placed object of the market by name (gen_anchors.py, 2026-11-21): [kit builder, u, v, quarter, arg].
+## The official map's labelled objects (JM_PLAN), its unlabelled decorations read by eye (+-2 m) and the
+## photo details F asked for. An empty builder is a reference point or a thing jarmark.gd builds itself;
+## "led_figure_hung" is led_figure 5 m up. `_jm_kit_objects` builds each one whose builder the kit has.
+const JM_ANCHORS := {
+	"wejscie-01": ["entrance_board", 176.8, -8.4, 0, null],
+	"wejscie-02": ["entrance_board", 226.2, -5.6, 0, null],
+	"wejscie-03": ["entrance_board", 271.0, -9.4, 0, null],
+	"wejscie-04": ["entrance_board", 161.4, 16.3, 0, null],
+	"wejscie-05": ["entrance_board", 161.1, 38.8, 0, null],
+	"wejscie-06": ["entrance_board", 91.6, 23.9, 3, null],
+	"wejscie-07": ["entrance_board", 270.2, 29.4, 1, null],
+	"wejscie-08": ["entrance_board", 267.6, 73.0, 1, null],
+	"wejscie-09": ["entrance_board", 136.2, 95.7, 2, null],
+	"wejscie-10": ["entrance_board", 86.4, 133.6, 2, null],
+	"metro-1": ["", 226.5, 20.3, 0, null],
+	"metro-3": ["", 142.4, -24.3, 0, null],
+	"metro-2": ["", 227.5, -21.4, 0, null],
+	"p2-l": ["pavilion_p2l", 170.5, 86.7, 0, null],
+	"kontenery-na-odpady": ["bins", 239.4, 88.8, 0, 1],
+	"wino-1": ["container", 177.6, 87.3, 0, 0],
+	"strefa-gastronomiczna": ["", 193.0, 89.2, 0, null],
+	"bar-1": ["", 158.9, 67.8, 0, null],
+	"p1-k": ["", 205.6, 87.9, 0, null],
+	"kiosk-k1": ["kiosk_k1", 214.4, 86.3, 0, null],
+	"wino-4": ["container", 141.4, 44.6, 0, 0],
+	"wino-5": ["container", 151.3, 44.2, 0, 0],
+	"bar-2": ["", 225.2, 64.3, 0, null],
+	"wino-3": ["container", 216.1, 51.6, 0, 0],
+	"wino-2": ["container", 264.5, 64.4, 0, 0],
+	"bar-4": ["", 186.1, 23.2, 0, null],
+	"kiosk-k2": ["container", 265.1, 53.1, 0, 2],
+	"wino-6": ["container", 216.7, 21.5, 0, 0],
+	"bar-3": ["container", 265.3, 41.3, 0, 1],
+	"plac-zabaw": ["fun_house", 48.6, 129.5, 0, null],
+	"trybuna": ["stand", 79.9, 100.8, 0, null],
+	"karuzela-wenecka": ["", 134.8, 124.4, 0, null],
+	"namiot-piernikowy": ["gingerbread_tent", 120.0, 84.2, 0, null],
+	"fotel-mikolaja-zet": ["santa_chair", 135.5, 83.9, 0, null],
+	"koszykowka-2": ["basketball", 152.4, 87.7, 0, null],
+	"koszykowka-1": ["basketball", 160.9, 87.2, 0, null],
+	"labirynt-swiateczny": ["maze", 118.1, 63.9, 0, null],
+	"karuzela-widokowa": ["", 137.7, 63.2, 0, null],
+	"sciana-murali": ["mural_wall", 130.3, 46.1, 0, null],
+	"karuzela-filizanki": ["", 101.3, 25.8, 0, null],
+	"carnival-2": ["carnival", 226.2, 72.2, 0, null],
+	"carnival-1": ["carnival", 231.9, 71.9, 0, null],
+	"budka-telefoniczna": ["booth", 250.0, 70.9, 0, 1],
+	"carnival-3": ["carnival", 199.2, 32.4, 0, null],
+	"automaty-pluszaki": ["claw_machines", 216.4, 30.2, 0, null],
+	"karuzela-choinka": ["", 198.6, 9.8, 0, null],
+	"carnival-4": ["carnival", 210.5, -5.7, 0, null],
+	"kurant": ["", 243.4, 7.2, 0, null],
+	"fotobudka-1": ["photo_booth", 60.0, 135.2, 0, null],
+	"fotobudka-2": ["photo_booth", 129.8, 99.8, 0, null],
+	"bankomat-1": ["cash_machine", 129.4, 98.3, 0, null],
+	"fotobudka-3": ["photo_booth", 146.2, 73.6, 0, null],
+	"fotobudka-6": ["photo_booth", 118.9, 44.9, 0, null],
+	"medycyna": ["cabin", 229.6, 44.8, 0, 2],
+	"dla-pracownikow-2": ["cabin", 234.9, 44.1, 0, 1],
+	"ochrona": ["cabin", 232.0, 41.5, 0, 3],
+	"serwis-sprzatajacy": ["cabin", 235.5, 40.8, 0, 1],
+	"punkt-m": ["cabin", 164.9, 8.6, 0, 5],
+	"wc-damskie-2": ["cabin", 239.3, 40.8, 0, 0],
+	"wc-damskie-1": ["cabin", 241.8, 40.5, 0, 0],
+	"wc-meskie-2": ["cabin", 245.2, 40.6, 0, 0],
+	"wc-meskie-1": ["cabin", 247.9, 40.3, 0, 0],
+	"dla-pracownikow": ["cabin", 250.6, 40.2, 0, 1],
+	"tech-supp": ["cabin", 166.0, -0.4, 0, 4],
+	"biuro": ["cabin", 175.8, -0.0, 0, 4],
+	"fotobudka-5": ["photo_booth", 264.1, 36.7, 0, null],
+	"bankomat-2": ["cash_machine", 264.1, 34.5, 0, null],
+	"fotobudka-4": ["photo_booth", 223.6, 12.2, 0, null],
+	"bankomat-3": ["cash_machine", 223.5, 5.7, 0, null],
+	"domek-mikolaja": ["", 246.6, 70.8, 0, null],
+	"light-arch-1": ["light_arch", 95.8, 8.2, 0, null],
+	"light-arch-2": ["light_arch", 96.0, -1.0, 0, null],
+	"light-arch-3": ["light_arch", 96.3, -8.3, 0, null],
+	"light-arch-4": ["light_arch", 96.7, -16.1, 0, null],
+	"light-arch-west": ["light_arch", 260.0, 99.8, 0, null],
+	"ornament-ball-1": ["ornament_ball", 207.5, 31.7, 0, null],
+	"ornament-ball-2": ["ornament_ball", 244.2, -16.2, 0, null],
+	"ornament-ball-3": ["ornament_ball", 102.2, 62.9, 0, null],
+	"reindeer-1": ["reindeer", 25.9, 131.7, 0, null],
+	"reindeer-2": ["reindeer", 68.7, -2.4, 0, null],
+	"reindeer-3": ["reindeer", 103.6, 105.4, 0, null],
+	"gift-box-1": ["gift_box", 14.0, 124.1, 0, null],
+	"gift-box-2": ["gift_box", 82.1, 2.6, 0, null],
+	"sleigh-scene": ["sleigh_scene", 263.6, 84.8, 0, null],
+	"palace-corner-tree-1": ["palace_corner_tree", 20.5, 125.1, 0, null],
+	"palace-corner-tree-2": ["palace_corner_tree", 100.8, 96.8, 0, null],
+	"lit-tree-plaza": ["palace_corner_tree", 74.9, -0.8, 0, null],
+	"lit-tree-lawn-1": ["palace_corner_tree", 253.7, 67.8, 0, null],
+	"lit-tree-lawn-2": ["palace_corner_tree", 253.8, 48.5, 0, null],
+	"lit-tree-lawn-3": ["palace_corner_tree", 258.7, 25.7, 0, null],
+	"lit-tree-lawn-4": ["palace_corner_tree", 158.1, -11.5, 0, null],
+	"lit-tree-lawn-5": ["palace_corner_tree", 64.7, 105.6, 0, null],
+	"lit-tree-lawn-6": ["palace_corner_tree", 84.3, 105.2, 0, null],
+	"wesolych-swiat-south": ["wesolych_swiat_sign", 257.0, 66.0, 1, null],
+	"grzaniec-south": ["grzaniec_booth", 260.6, 61.0, 1, null],
+	"led-tree-arch-south": ["led_tree_arch", 257.5, 50.0, 1, null],
+	"grzaniec-kurant": ["grzaniec_booth", 234.5, 7.2, 3, null],
+	"hanging-fir-1-1": ["led_figure_hung", 229.8, 80.4, 0, 0],
+	"led-fir-1-1a": ["led_figure", 229.8, 78.1, 2, 0],
+	"led-fir-1-1b": ["led_figure", 229.8, 82.7, 0, 0],
+	"hanging-fir-1-2": ["led_figure_hung", 241.2, 80.4, 0, 0],
+	"hanging-fir-2-1": ["led_figure_hung", 159.2, 79.4, 0, 0],
+	"led-fir-2-1a": ["led_figure", 159.2, 78.0, 2, 0],
+	"led-fir-2-1b": ["led_figure", 159.2, 80.8, 0, 0],
+	"hanging-fir-2-2": ["led_figure_hung", 169.5, 79.4, 0, 0],
+	"hanging-fir-2-3": ["led_figure_hung", 179.8, 79.4, 0, 0],
+	"led-angel-2-3a": ["led_figure", 179.8, 78.0, 2, 1],
+	"led-angel-2-3b": ["led_figure", 179.8, 80.8, 0, 1],
+	"hanging-fir-2-4": ["led_figure_hung", 190.2, 79.4, 0, 0],
+	"hanging-fir-2-5": ["led_figure_hung", 200.5, 79.4, 0, 0],
+	"led-fir-2-5a": ["led_figure", 200.5, 78.0, 2, 0],
+	"led-fir-2-5b": ["led_figure", 200.5, 80.8, 0, 0],
+	"hanging-fir-2-6": ["led_figure_hung", 210.8, 79.4, 0, 0],
+	"hanging-fir-3-1": ["led_figure_hung", 158.9, 60.3, 0, 0],
+	"led-fir-3-1a": ["led_figure", 158.9, 56.5, 2, 0],
+	"led-fir-3-1b": ["led_figure", 158.9, 64.1, 0, 0],
+	"hanging-fir-3-2": ["led_figure_hung", 170.6, 60.3, 0, 0],
+	"hanging-fir-3-3": ["led_figure_hung", 182.4, 60.3, 0, 0],
+	"led-angel-3-3a": ["led_figure", 182.4, 56.5, 2, 1],
+	"led-angel-3-3b": ["led_figure", 182.4, 64.1, 0, 1],
+	"hanging-fir-3-4": ["led_figure_hung", 194.1, 60.3, 0, 0],
+	"hanging-fir-3-5": ["led_figure_hung", 205.9, 60.3, 0, 0],
+	"led-fir-3-5a": ["led_figure", 205.9, 56.5, 2, 0],
+	"led-fir-3-5b": ["led_figure", 205.9, 64.1, 0, 0],
+	"hanging-fir-3-6": ["led_figure_hung", 217.6, 60.3, 0, 0],
+	"hanging-fir-3-7": ["led_figure_hung", 229.4, 60.3, 0, 0],
+	"led-angel-3-7a": ["led_figure", 229.4, 56.5, 2, 1],
+	"led-angel-3-7b": ["led_figure", 229.4, 64.1, 0, 1],
+	"hanging-fir-3-8": ["led_figure_hung", 241.1, 60.3, 0, 0],
+	"hanging-fir-4-1": ["led_figure_hung", 171.2, 39.8, 0, 0],
+	"led-fir-4-1a": ["led_figure", 171.2, 35.9, 2, 0],
+	"led-fir-4-1b": ["led_figure", 171.2, 43.7, 0, 0],
+	"hanging-fir-4-2": ["led_figure_hung", 181.8, 39.8, 0, 0],
+	"hanging-fir-5-1": ["led_figure_hung", 209.0, 41.1, 0, 0],
+	"led-fir-5-1a": ["led_figure", 209.0, 38.5, 2, 0],
+	"led-fir-5-1b": ["led_figure", 209.0, 43.7, 0, 0],
+	"hanging-fir-5-2": ["led_figure_hung", 221.0, 41.1, 0, 0],
+	"hanging-fir-6-1": ["led_figure_hung", 172.5, 20.6, 0, 0],
+	"led-fir-6-1a": ["led_figure", 172.5, 19.1, 2, 0],
+	"led-fir-6-1b": ["led_figure", 172.5, 22.1, 0, 0],
+	"hanging-fir-6-2": ["led_figure_hung", 179.5, 20.6, 0, 0],
+	"hanging-fir-7-1": ["led_figure_hung", 216.2, 15.1, 0, 0],
+	"led-fir-7-1a": ["led_figure", 216.2, 13.7, 2, 0],
+	"led-fir-7-1b": ["led_figure", 216.2, 16.5, 0, 0],
+	"hanging-fir-7-2": ["led_figure_hung", 224.8, 15.1, 0, 0],
+	"hanging-fir-8-1": ["led_figure_hung", 103.2, 125.0, 0, 0],
+	"led-fir-8-1a": ["led_figure", 103.2, 119.9, 2, 0],
+	"led-fir-8-1b": ["led_figure", 103.2, 130.1, 0, 0],
+	"hanging-fir-8-2": ["led_figure_hung", 111.5, 125.0, 0, 0],
+	"hanging-fir-8-3": ["led_figure_hung", 119.8, 125.0, 0, 0],
+	"led-angel-8-3a": ["led_figure", 119.8, 119.9, 2, 1],
+	"led-angel-8-3b": ["led_figure", 119.8, 130.1, 0, 1],
+	"hanging-fir-9-1": ["led_figure_hung", 61.5, 33.2, 0, 0],
+	"led-fir-9-1a": ["led_figure", 61.5, 31.3, 2, 0],
+	"led-fir-9-1b": ["led_figure", 61.5, 35.1, 0, 0],
+	"hanging-fir-9-2": ["led_figure_hung", 72.5, 33.2, 0, 0],
+	"hanging-fir-9-3": ["led_figure_hung", 83.5, 33.2, 0, 0],
+	"led-angel-9-3a": ["led_figure", 83.5, 31.3, 2, 1],
+	"led-angel-9-3b": ["led_figure", 83.5, 35.1, 0, 1],
+}
+
+## The rides and the big pieces (from JM_PLAN, nudged where the map's 1-5 m error put them on huts).
+const JM_TREE := Vector2(197.0, 9.5)
+const JM_CAROUSEL := Vector2(134.8, 124.4)
+const JM_TOWER := Vector2(137.7, 63.2)
+const JM_TEACUPS := Vector2(101.3, 25.8)
+## The tree is the tree carousel (the map's karuzela-choinka): its bauble cars go round its foot.
+const JM_TREE_RIDE := JM_TREE
+const JM_SANTA := Vector2(246.6, 71.5)
+## The kurant, the tiered Christmas pyramid (pyramid-real.png, the drone's frames): until the kit's
+## model stands here, the red hexagonal bar is its stand-in.
+const JM_KURANT := Vector2(243.4, 7.2)
+const JM_HEXBAR := JM_KURANT
+## The south gate's sign and GRZANIEC booth (F's drone img4); the LED hat stands 16 m towards the
+## street from it. Strings and figures keep clear of both.
+const JM_SOUTH_GATE := Vector2(258.5, 66.0)
+## The castle stage (the map's p1-k, Zamek Krakus) and the red food-zone pavilion beside it.
+const JM_STAGE := Vector2(205.6, 88.0)
+const JM_FOODZONE := Vector2(192.5, 88.5)
+## The mast the drone frame shows strings fanning from, between the tree and the kurant.
+const JM_FAN := Vector2(214.0, 1.6)
+## The main market's part of the crowds (crowds.gd: 0 from here on along u, 1 Plac Centralny).
+const JM_SPLIT_U := 147.0
+
+## The strings of bulbs zig-zagging over the aisles: [u0, u1, v_a, v_b, step along u] (v_a, v_b the
+## two rows' fronts).
+const JM_STRINGS := [[221.0, 250.0, 76.8, 84.0, 5.0], [151.0, 219.0, 76.8, 82.0, 6.0],
+		[150.0, 250.0, 55.2, 65.4, 6.0], [163.0, 190.0, 34.6, 45.0, 6.0], [200.0, 230.0, 37.2, 45.0, 6.0],
+		[166.0, 186.0, 17.8, 23.4, 5.0], [209.0, 232.0, 12.4, 17.8, 5.0], [96.0, 127.0, 118.6, 131.4, 6.0],
+		[41.0, 80.0, 23.0, 33.4, 6.0]]
 ## Straight strings along v down the cross aisles: [u, v0, v1].
-const JM_LINES := [[144.0, 28.0, 72.0], [169.5, 15.0, 72.0], [92.0, -14.0, 28.0]]
+const JM_LINES := [[158.0, 0.0, 60.0], [259.0, -3.0, 80.0], [90.5, 46.0, 95.0]]
 
-const JM_TREE := Vector2(135.0, 5.0)
-const JM_CAROUSEL := Vector2(170.0, 6.0)
-const JM_TOWER := Vector2(56.0, 70.0)
-const JM_TEACUPS := Vector2(79.0, 70.0)
-const JM_TREE_RIDE := Vector2(79.0, 48.0)
-const JM_SANTA := Vector2(56.0, 47.0)
-const JM_HEXBAR := Vector2(128.0, 24.0)
-const JM_STAGE := Vector2(155.0, 74.0)
-const JM_GREENHOUSE := [199.5, 10.0, 29.0]
-## The market's ground: the car park's asphalt under the main market, the annex's east end.
-const JM_PAVED := [[115.0, 198.0, -15.0, 76.0], [89.0, 115.0, -15.0, 31.0]]
+## The market's ground: the car park's asphalt under the main market (over its lawn islands).
+const JM_PAVED := [[147.0, 263.0, -9.5, 93.0]]
+## Kept clear of parked cars besides JM_PAVED: the Plac Centralny part, [u0, u1, v0, v1] (its chalets, rides
+## and kit objects span u 14-147, v -24-135; v from -9.5 so Marszałkowska's own parking lane stays).
+const JM_PARK_FREE := [[10.0, 147.0, -9.5, 140.0]]
+## The car park's old bay lines that still show in the aisles (v).
+const JM_BAYS := [17.0, 40.0, 60.0]
 const JM_LIFT := 0.28
 ## The tower carousel's carrier at its top (metres over the ground); jarmark_rides.gd runs it down to the base.
 const TOWER_TOP := 26.0
@@ -134,31 +412,16 @@ func _jm_at(u: float, v: float, quarter: int) -> float:
 	return _g
 
 
-## Every hut: [u, v, quarter, kind, n], the rows laid out and the single huts.
+## Every hut: [u, v, quarter, kind, n], JM_HUT_LIST with the mixed kinds dealt (white, half-timbered,
+## a red one in seven).
 static func _jm_huts() -> Array:
 	var out: Array = []
 	var n := 0
-	for r: Array in JM_ROWS:
-		var u: float = r[0]
-		var k := 0
-		while u <= float(r[1]) + 0.01:
-			var skip := false
-			for s: Array in r[6]:
-				if u > float(s[0]) - 1.8 and u < float(s[1]) + 1.8:
-					skip = true
-			if not skip:
-				var q: int = r[3]
-				if q < 0:
-					q = 0 if k % 2 == 0 else 2
-				var kind: int = r[4]
-				if kind < 0:
-					kind = Hut.RED if n % 7 == 3 else (Hut.TIMBER if n % 3 == 0 else Hut.WHITE)
-				out.append([u, float(r[2]), q, kind, n])
-				n += 1
-				k += 1
-			u += float(r[5])
-	for h: Array in JM_HUTS:
-		out.append([h[0], h[1], h[2], h[3], n])
+	for h: Array in JM_HUT_LIST:
+		var kind: int = h[3]
+		if kind < 0:
+			kind = Hut.RED if n % 7 == 3 else (Hut.TIMBER if n % 3 == 0 else Hut.WHITE)
+		out.append([float(h[0]), float(h[1]), int(h[2]), kind, n])
 		n += 1
 	return out
 
@@ -199,7 +462,7 @@ static func jarmark_plan() -> Array:
 		var bv := Vector2(-au.y, au.x)
 		var hv := 1.0 if h[3] == Hut.FOOD else 1.15
 		var c := _jm_world(h[0], h[1])
-		var part := 0 if float(h[0]) > 114.0 else 1
+		var part := 0 if float(h[0]) >= JM_SPLIT_U else 1
 		for k in [0, 1, 2, 3]:
 			if k == 3 and int(h[4]) % 2 != 0:
 				continue
@@ -210,7 +473,7 @@ static func jarmark_plan() -> Array:
 		var t := TAU * (float(k) + rng.randf()) / 26.0
 		var d := (a * cos(t) + b * sin(t))
 		out.append([_jm_world(JM_TREE.x, JM_TREE.y) + d * rng.randf_range(8.3, 11.0), -d, 0])
-	for ride: Array in [[JM_CAROUSEL, 7.5, 18, 0], [JM_TOWER, 6.0, 16, 1], [JM_TEACUPS, 6.8, 10, 1], [JM_TREE_RIDE, 5.4, 9, 1]]:
+	for ride: Array in [[JM_CAROUSEL, 7.5, 18, 1], [JM_TOWER, 6.0, 16, 1], [JM_TEACUPS, 6.8, 10, 1], [JM_TREE_RIDE, 8.0, 9, 0]]:
 		var rc: Vector2 = ride[0]
 		for k in int(ride[2]):
 			var t := -PI * 0.5 + rng.randf_range(-1.2, 1.2)
@@ -224,7 +487,7 @@ static func jarmark_plan() -> Array:
 			var v := lerpf(float(s[2]), float(s[3]), f if rng.randf() < 0.5 else 1.0 - f)
 			var t := rng.randf() * TAU
 			var at := _jm_world(u, v)
-			var part := 0 if u > 114.0 else 1
+			var part := 0 if u >= JM_SPLIT_U else 1
 			out.append([at, Vector2(cos(t), sin(t)), part])
 			# Half the time a friend: two who stopped to talk, face to face.
 			if rng.randf() < 0.5:
@@ -240,7 +503,7 @@ func _find_jarmark() -> void:
 	for h: Array in _jm_huts():
 		var big := 2.8 if h[3] == Hut.BIG else 1.9
 		zones.append(_rect(h[0], h[1], big, big))
-	for c: Vector2 in [JM_TREE, JM_CAROUSEL, JM_TOWER, JM_TEACUPS, JM_TREE_RIDE, JM_SANTA, JM_HEXBAR, JM_STAGE]:
+	for c: Vector2 in [JM_TREE, JM_CAROUSEL, JM_TOWER, JM_TEACUPS, JM_SANTA, JM_KURANT, JM_STAGE, JM_FOODZONE]:
 		zones.append(_rect(c.x, c.y, 4.0, 4.0))
 	_add_site("jarmark", zones)
 	# The cars that park on Plac Defilad the rest of the year, and the trees in the rides' way.
@@ -248,8 +511,17 @@ func _find_jarmark() -> void:
 		var ring := _urect(p[0], p[1], p[2], p[3])
 		parked_free.append([ring, _box_of([ring])])
 		tree_free.append([ring, 0.0, _box_of([ring])])
-	for c: Array in [[JM_TOWER, 12.5], [JM_TEACUPS, 7.0], [JM_TREE_RIDE, 6.0], [JM_SANTA, 5.0]]:
+	# The Plac Centralny part too (F 2026-11-23, Play 14: "cars parked right in the market by the
+	# swings"): its rides, the Workshop and the chalets by the museum stand where cars park the rest of the year.
+	for p: Array in JM_PARK_FREE:
+		var ring := _urect(p[0], p[1], p[2], p[3])
+		parked_free.append([ring, _box_of([ring])])
+	for c: Array in [[JM_TOWER, 12.5], [JM_TEACUPS, 7.0], [JM_CAROUSEL, 7.5], [JM_SANTA, 5.0]]:
 		tree_free.append([_w(c[0].x, c[0].y), c[1]])
+	# The chalets on Plac Centralny stand on its paving, among its planted trees.
+	for h: Array in _jm_huts():
+		if jarmark_lift(_w(h[0], h[1])) == 0.0:
+			tree_free.append([_w(h[0], h[1]), 2.6])
 
 
 func _build_jarmark(_site: Dictionary) -> void:
@@ -259,24 +531,28 @@ func _build_jarmark(_site: Dictionary) -> void:
 		_jm_drape(p[0], p[1], p[2], p[3])
 	for h: Array in _jm_huts():
 		_jm_hut(h[0], h[1], h[2], h[3], h[4])
-	# The tree's plaza by Marszałkowska.
+	# The tree's plaza by Marszałkowska: the platform, the ring of yellow benches (open towards the
+	# fan mast's square), the big snowman on the ring towards the Palace.
 	_jm_tree(JM_TREE)
-	for k in 14:
-		var t := TAU * (float(k) + 0.5) / 14.0
-		if absf(wrapf(t - PI * 1.5, -PI, PI)) < 0.5:
-			continue  # the gap towards the metro pavilion
+	var gap := (JM_FAN - JM_TREE).angle()
+	for k in 16:
+		var t := TAU * (float(k) + 0.5) / 16.0
+		if absf(wrapf(t - gap, -PI, PI)) < 0.45 or absf(wrapf(t - 2.4, -PI, PI)) < 0.25:
+			continue
 		_jm_bench(JM_TREE + Vector2(cos(t), sin(t)) * 9.6, t)
-	_jm_snowman(144.0, 13.0)
-	_jm_hat(152.5, -4.5)
+	_jm_snowman(JM_TREE.x + cos(2.4) * 9.9, JM_TREE.y + sin(2.4) * 9.9, 1.5)
+	_jm_hat(169.0, 6.0)
+	_jm_fan(JM_FAN)
 	_jm_carousel(JM_CAROUSEL)
-	_jm_redbar(186.5, 6.0, 3.2, 2.2, "KIEŁBASKI")
-	_jm_greenhouse(JM_GREENHOUSE[0], JM_GREENHOUSE[1], JM_GREENHOUSE[2])
-	_jm_hexbar(JM_HEXBAR)
+	_jm_redbar(186.1, 23.2, 3.2, 2.2, "KIEŁBASKI")
+	_jm_hexbar(JM_KURANT)
 	_jm_stage(JM_STAGE)
-	_jm_redbar(178.0, 74.0, 4.2, 3.0, "GRZANIEC")
+	_jm_foodzone(JM_FOODZONE)
+	_jm_redbar(158.9, 68.2, 4.2, 3.0, "GRZANIEC")
+	_jm_redbar(223.2, 67.2, 3.0, 2.0, "GRZANIEC")
 	# The red and green barrel tables in the plazas.
-	var barrels := [[122.0, 15.0], [124.0, 18.5], [149.0, 18.0], [153.0, 15.5], [181.0, 15.5], [184.0, 16.5],
-			[156.0, 64.0], [161.0, 66.0], [175.0, 66.5], [100.0, 12.0], [104.0, 15.0], [66.0, 15.0], [70.0, 21.0]]
+	var barrels := [[189.0, 83.5], [192.5, 84.0], [196.0, 83.5], [184.5, 19.0], [206.5, 15.0], [156.0, 63.0],
+			[161.0, 63.0], [221.0, 63.5], [225.5, 63.0], [95.0, 33.0], [112.0, 34.0], [120.0, 112.0], [125.0, 112.5]]
 	for i in barrels.size():
 		_jm_barrel(barrels[i][0], barrels[i][1], JM_RED if i % 2 == 0 else Color("#2f7a3c"))
 	# The light strings over the aisles.
@@ -284,24 +560,153 @@ func _build_jarmark(_site: Dictionary) -> void:
 		_jm_zigzag(s[0], s[1], s[2], s[3], s[4])
 	for l: Array in JM_LINES:
 		_jm_line(l[0], l[1], l[2])
-	# The fence along Marszałkowska with its white banners, the entrances open.
-	_jm_fence(40.0, 198.0, -17.5, [[88.0, 97.0], [128.0, 151.0], [160.0, 166.0]])
-	for bu: float in [60.0, 112.0, 182.0]:
-		_jm_banner(bu, -17.6)
-	# The gold sign and the light-up trees at the two entrances, a big star, more trees down the aisles.
-	_jm_greeting(92.5, -15.5)
-	_jm_greeting(147.0, -3.0)
-	for t: Array in [[86.0, -15.5], [99.0, -15.5], [141.0, -3.5], [153.0, 0.5], [92.0, 20.0], [92.0, 24.0],
-			[144.0, 31.0], [144.0, 49.5], [169.5, 49.5], [169.5, 64.5], [60.0, 76.0], [52.0, 56.0]]:
+	# The kit objects at their anchors: every small thing on the official map, the photo details.
+	_jm_kit_objects()
+	# The fence along Marszałkowska with its white banners and along the south access road, the
+	# entrances (the map's wejście 1, 2, 7, 8) open.
+	_jm_fence(147.0, 263.0, -9.5, [[171.5, 182.5], [219.0, 236.0]])
+	_jm_fence_v(263.0, -9.5, 93.0, [[24.0, 35.0], [67.0, 79.0]])
+	for bu: float in [158.0, 205.0, 250.0]:
+		_jm_banner(bu, -9.6)
+	# The gold sign and the light-up trees at the entrances, big stars.
+	_jm_greeting(177.0, -7.0)
+	_jm_greeting(91.5, 17.0)
+	for t: Array in [[150.5, -6.5], [168.5, -7.0], [236.5, -7.0], [261.0, 22.0], [261.0, 37.0],
+			[261.0, 81.0], [155.0, 12.0], [155.0, 21.0], [92.0, 40.0], [86.0, 13.0], [97.0, 13.0]]:
 		_jm_ledtree(t[0], t[1], 3.4)
-	_jm_bigstar(106.0, -14.5, 1.9)
-	_jm_bigstar(196.0, -13.0, 1.6)
-	# Plac Centralny: the tower, the teacups, the tree carousel, Santa's cabin.
+	_jm_bigstar(160.0, -6.5, 1.9)
+	_jm_bigstar(262.0, 50.0, 1.6)
+	# Plac Centralny: the tower, the teacups; Santa's cabin by the stage's plaza.
 	_jm_tower(JM_TOWER)
 	_jm_teacups(JM_TEACUPS)
-	_jm_tree_ride(JM_TREE_RIDE)
-	_jm_santa(JM_SANTA)
+	_jm_santa(JM_SANTA, 2)
 	_jm_frame()
+
+
+## The world place of a named anchor (JM_ANCHORS): Vector3(x, z, yaw), yaw as jarmark_kit.gd takes it
+## (the object's local u axis turned from world +x towards +z; its front is local -v, as a hut of that
+## quarter). To wire a kit builder by hand: `JmKit.name(self, Vector2(r.x, r.y), r.z)`.
+static func jm_anchor(name: String) -> Vector3:
+	var e: Array = JM_ANCHORS[name]
+	var a := JM_AXIS.normalized()
+	var p := JM_O + a * float(e[1]) + Vector2(-a.y, a.x) * float(e[2])
+	return Vector3(p.x, p.y, a.angle() + PI * 0.5 * float(e[3]))
+
+
+## Builds every JM_ANCHORS entry whose builder jarmark_kit.gd has (looked up by name, so a builder the
+## kit gains later is wired with no change here). Until the kit has them, the GRZANIEC booth falls back
+## to `_jm_redbar` and the LED tree arch to `_jm_hat`; "led_figure_hung" is led_figure 5 m up.
+func _jm_kit_objects() -> void:
+	var kit: Script = JmKit
+	var have := {}
+	for m: Dictionary in kit.get_script_method_list():
+		have[m["name"]] = m["args"]
+	for name: String in JM_ANCHORS:
+		var e: Array = JM_ANCHORS[name]
+		var bld: String = e[0]
+		if bld.is_empty():
+			continue
+		_jm_frame()
+		var r := jm_anchor(name)
+		var at := Vector2(r.x, r.y)
+		var g := NAN
+		if bld == "led_figure_hung":
+			bld = "led_figure"
+			g = map.terrain_height(at.x, at.y) + 5.0
+		if have.has(bld):
+			# Fill the builder's own arguments by name (the kit is still growing, and a few builders
+			# take no yaw): b, at, yaw, g, then the anchor's int argument for the first int one (a
+			# cabin's size before its kind keeps the default); defaults for the rest.
+			var sig: Array = have[bld]
+			var args: Array = []
+			var put_arg := e[4] == null
+			if is_nan(g) == false and not sig.any(func(d: Dictionary) -> bool: return d["name"] == "g"):
+				continue
+			for d: Dictionary in sig:
+				var an: String = d["name"]
+				if an == "b":
+					args.append(self)
+				elif an == "at":
+					args.append(at)
+				elif an == "yaw":
+					args.append(r.z)
+				elif an == "g":
+					args.append(g)
+				elif not put_arg and int(d["type"]) == TYPE_VECTOR2 and bld == "cabin":
+					args.append(Vector2(1.5, 1.2))
+				elif not put_arg and int(d["type"]) == TYPE_INT:
+					args.append(e[4])
+					put_arg = true
+				else:
+					break
+			kit.callv(bld, args)
+		elif bld == "grzaniec_booth":
+			_jm_redbar(float(e[1]), float(e[2]), 1.5, 2.6, "GRZANIEC")
+		elif bld == "led_tree_arch":
+			_jm_hat(float(e[1]), float(e[2]))
+	_jm_frame()
+
+
+## Is the spot (u, v) at least r clear of every chalet, the tree's ring and the kurant (where a pole
+## for a string may stand)?
+static func jm_clear(u: float, v: float, r: float) -> bool:
+	for h: Array in JM_HUT_LIST:
+		var hu := 2.6 if h[3] == Hut.BIG else 1.6
+		var hv := 1.5 if h[3] == Hut.BIG else 1.15
+		if int(h[2]) % 2 == 1:
+			var t := hu
+			hu = hv
+			hv = t
+		if absf(u - float(h[0])) < hu + r and absf(v - float(h[1])) < hv + r:
+			return false
+	for c: Array in [[JM_TREE, 10.2], [JM_KURANT, 7.6], [JM_STAGE, 7.5], [JM_SOUTH_GATE, 5.5],
+			[JM_SOUTH_GATE + Vector2(-1.0, -16.0), 3.0]]:
+		if Vector2(u, v).distance_to(c[0]) < float(c[1]) + r:
+			return false
+	return true
+
+
+## The mast in the square between the tree and the kurant (the drone frame): 9 m, strings of bulbs
+## fanning from its top to poles 9-11 m round, where they stand clear of the chalets.
+func _jm_fan(at: Vector2) -> void:
+	var top := _jm_pole(at.x, at.y, 9.0)
+	for k in 14:
+		var t := TAU * float(k) / 14.0
+		for rr: float in [10.5, 9.0]:
+			var p := at + Vector2(cos(t), sin(t)) * rr
+			if p.y > -8.5 and jm_clear(p.x, p.y, 0.5):
+				_jm_string(top, _jm_pole(p.x, p.y, 4.0), 0.6)
+				break
+
+
+## The red food-zone pavilion by the stage (the map's strefa gastronomiczna, the drone frame's red
+## house with three bells): a long red stand lit on its front, a white roof board with three white
+## bells and a lit rim, white parasols and fir trees before it.
+func _jm_foodzone(at: Vector2) -> void:
+	var g := _jm_at(at.x, at.y, 0)
+	var hu := 5.0
+	var hv := 2.0
+	_lbox(0.0, 0.0, hu, hv, g, g + 3.2, JM_RED, M_STONE, JM_RED.darkened(0.15))
+	_ubox(-hu + 0.4, hu - 0.4, -hv - 0.03, -hv, g + 1.05, g + 2.6, JM_GLOW, M_LAMP)
+	_ubox(-hu, hu, -hv - 0.45, -hv, g + 0.93, g + 1.03, JM_WHITE, M_STONE)
+	# The board over the front with its three bells.
+	_ubox(-hu + 0.6, hu - 0.6, -0.15, 0.15, g + 3.2, g + 5.4, JM_RED.darkened(0.1), M_STONE)
+	for su: float in [-2.6, 0.0, 2.6]:
+		var c := _w(su, -0.2)
+		_frustum(_circle(c, 0.75, 8), g + 3.45, _circle(c, 0.35, 8), g + 4.85, JM_WHITE, JM_WHITE)
+	_no_roof = true
+	_jm_bar(-hu + 0.6, -0.2, g + 5.35, hu - 0.6, -0.2, g + 5.35, 0.08, JM_BULB, M_LAMP)
+	_jm_bar(-hu, -hv - 0.42, g + 3.1, hu, -hv - 0.42, g + 3.1, 0.07, JM_BULB, M_LAMP)
+	_no_roof = false
+	_collide(_rect(0.0, 0.0, hu + 0.1, hv + 0.1))
+	_jm_frame()
+	for su: float in [-3.4, 0.0, 3.4]:
+		var c := _w(at.x + su, at.y - 4.6)
+		var gg: float = map.terrain_height(c.x, c.y)
+		_beam(Vector3(c.x, gg, c.y), Vector3(c.x, gg + 2.3, c.y), 0.06, JM_WIRE)
+		_frustum(_circle(c, 1.4, 8), gg + 2.0, _circle(c, 0.1, 8), gg + 2.6, JM_WHITE, JM_WHITE)
+	for su: float in [-hu - 0.8, hu + 0.8]:
+		_jm_ledtree(at.x + su, at.y - 1.0, 2.6)
 
 
 ## The asphalt laid over the car park and the lawns between its aisles (the drone frames show the
@@ -323,13 +728,13 @@ func _jm_drape(u0: float, u1: float, v0: float, v1: float) -> void:
 			_quad(pts[k], pts[k + 1], pts[k + cols + 2], pts[k + cols + 1], Vector3.UP, col,
 					Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
 	# The car park's old bay lines, white, across the aisles of the main market.
-	if u0 > 110.0:
-		for vl: float in [17.0, 49.0, 65.0]:
-			var uu := u0 + 2.0
-			while uu < u1 - 2.0:
+	for vl: float in JM_BAYS:
+		var uu := u0 + 2.0
+		while uu < u1 - 2.0:
+			if jm_clear(uu, vl, 2.5):
 				var g := _jm_ground(uu, vl)
 				_ubox(uu - 0.06, uu + 0.06, vl - 2.4, vl + 2.4, g + JM_LIFT, g + JM_LIFT + 0.05, Color("#c9c9c4"), M_STONE)
-				uu += 2.6
+			uu += 2.6
 
 
 ## One chalet, its front (the counter) to -v after `quarter` turns. 3.2 x 2.3 m (the food stall
@@ -403,6 +808,9 @@ func _jm_hut(u: float, v: float, quarter: int, kind: int, n: int) -> void:
 		_jm_bar(-hu - 0.1, -hv - 0.36, g + eave - 0.2, hu + 0.1, -hv - 0.36, g + eave - 0.2, 0.06, JM_BULB, M_LAMP)
 		_no_roof = false
 	_collide(_rect(0.0, 0.0, hu + 0.1, hv + 0.1))
+	# The official huts' shutters, flaps and grooves (jarmark_kit.gd); not its multicolour bulbs: the
+	# real ones are warm white (lighting-decision.md, 2026-11-21).
+	JmKit.hut_extras(self, _o, _a.angle(), g, hu, hv, eave, rise, false, true, false, n)
 	_jm_frame()
 
 
@@ -544,24 +952,25 @@ func _jm_bench(at: Vector2, t: float) -> void:
 		_pow_box(p + d * s, d, 0.06, 0.2, g, g + 0.4, Color("#9a7a2a"), Color("#9a7a2a"))
 
 
-## The snowman lit white: three balls, a black hat, a carrot nose.
-func _jm_snowman(u: float, v: float) -> void:
+## The big snowman lit white (the drone frame: on the tree's bench ring): three balls, a black hat, a
+## carrot nose; `s` scales the 3.7 m one.
+func _jm_snowman(u: float, v: float, s := 1.0) -> void:
 	_jm_frame()
 	var c := _w(u, v)
 	var g: float = map.terrain_height(c.x, c.y)
 	_g = g
 	var balls := [[1.0, 0.0, 1.7], [0.75, 1.6, 2.8], [0.52, 2.75, 3.7]]
 	for b: Array in balls:
-		var r: float = b[0]
-		var y0: float = g + float(b[1])
-		var y1: float = g + float(b[2])
+		var r: float = float(b[0]) * s
+		var y0: float = g + float(b[1]) * s
+		var y1: float = g + float(b[2]) * s
 		var ym := (y0 + y1) * 0.5
 		_frustum(_circle(c, r * 0.55, 10), y0, _circle(c, r, 10), ym, JM_LED)
 		_frustum(_circle(c, r, 10), ym, _circle(c, r * 0.5, 10), y1, JM_LED, JM_LED)
-	_prism(_circle(c, 0.6, 10), g + 3.68, g + 3.76, JM_TRIM, JM_TRIM)
-	_prism(_circle(c, 0.36, 10), g + 3.76, g + 4.3, JM_TRIM, JM_TRIM)
-	_jm_bar(u, v - 0.45, g + 3.2, u, v - 0.95, g + 3.15, 0.12, Color("#e87a24"))
-	_collide(_circle(c, 1.0, 8))
+	_prism(_circle(c, 0.6 * s, 10), g + 3.68 * s, g + 3.76 * s, JM_TRIM, JM_TRIM)
+	_prism(_circle(c, 0.36 * s, 10), g + 3.76 * s, g + 4.3 * s, JM_TRIM, JM_TRIM)
+	_jm_bar(u, v - 0.45 * s, g + 3.2 * s, u, v - 0.95 * s, g + 3.15 * s, 0.12 * s, Color("#e87a24"))
+	_collide(_circle(c, s, 8))
 
 
 ## The Santa-hat photo spot (the drone frame): a 5 m teal LED hat with a white fur rim and pompom,
@@ -604,7 +1013,7 @@ func _jm_hat(u: float, v: float) -> void:
 
 ## The Venetian carousel (frame 004): a floor on a red plinth, a ring of gold posts, white horses on
 ## gold poles, the mirrored lit drum in the middle, the striped cream-and-red canopy with its lit
-## valance and a gold finial, and light strings fanning from the top to poles round it.
+## valance and a gold finial (the strings fanning from a top are the kurant's, F 2026-11-21).
 func _jm_carousel(at: Vector2) -> void:
 	_jm_frame()
 	var c := _w(at.x, at.y)
@@ -613,14 +1022,6 @@ func _jm_carousel(at: Vector2) -> void:
 	_prism(_circle(c, 6.0, 16), g, g + 0.45, Color("#7a2228"), Color("#d8c9a6"), M_STONE, M_STONE)
 	_prism(_circle(c, 1.3, 8), g + 0.45, g + 4.0, Color("#c99a48"), Color("#c99a48"), M_LAMP, M_STONE)
 	_collide(_circle(c, 6.4, 12))
-	# The strings fanning out from the top to poles 15 m round, skipping the side of the huts.
-	for k in 12:
-		var t := TAU * (float(k) + 0.5) / 12.0
-		var p := at + Vector2(cos(t), sin(t)) * 15.0
-		if p.y > 18.5 or p.y < -9.0:
-			continue
-		var top := _jm_pole(p.x, p.y, 4.0)
-		_jm_string(Vector3(c.x, g + 6.9, c.y), top, 0.6)
 
 
 ## The Venetian carousel's turning part (jarmark_rides.gd turns it in its shader): `part` -1 the
@@ -728,51 +1129,7 @@ func _jm_word(text: String, u: float, v: float, y: float, h: float, col: Color, 
 		at -= (_pow_glyph_w(ch) + 1) * sx
 
 
-## The glass greenhouse tunnel at the south end (the drone frame): a half-round glass vault along v,
-## lit warm from inside, white ribs every 1.5 m, glass ends.
-func _jm_greenhouse(u: float, v0: float, v1: float) -> void:
-	_jm_frame()
-	var r := 2.6
-	var g := _jm_ground(u, (v0 + v1) * 0.5)
-	_g = g
-	var segs := 8
-	var keep := _mode
-	_mode = M_PAVILION + 0.75
-	var run := 0.0
-	for k in segs:
-		var t0 := PI * float(k) / segs
-		var t1 := PI * float(k + 1) / segs
-		var a0 := Vector2(u + r * cos(t0), g + r * sin(t0) + 0.4)
-		var a1 := Vector2(u + r * cos(t1), g + r * sin(t1) + 0.4)
-		var p0 := _jm_p(a0.x, v0, a0.y)
-		var p1 := _jm_p(a1.x, v0, a1.y)
-		var p2 := _jm_p(a1.x, v1, a1.y)
-		var p3 := _jm_p(a0.x, v1, a0.y)
-		var mid := (t0 + t1) * 0.5
-		var nl := Vector2(cos(mid), sin(mid))
-		var nrm := Vector3(_a.x * nl.x, nl.y, _a.y * nl.x).normalized()
-		var l := a0.distance_to(a1)
-		var len_v := v1 - v0
-		_quad(p0, p3, p2, p1, nrm, Color("#b9d2c8"), Vector2(0.0, 0.4 + run), Vector2(len_v, 0.4 + run),
-				Vector2(len_v, 0.4 + run + l), Vector2(0.0, 0.4 + run + l), 0.4 + PI * r)
-		run += l
-	_mode = keep
-	# The ribs and the knee walls.
-	var vv := v0
-	while vv <= v1 + 0.01:
-		for k in segs:
-			var t0 := PI * float(k) / segs
-			var t1 := PI * float(k + 1) / segs
-			_jm_bar(u + r * cos(t0), vv, g + 0.4 + r * sin(t0), u + r * cos(t1), vv, g + 0.4 + r * sin(t1), 0.08, JM_WHITE)
-		vv += 1.5
-	_ubox(u - r, u - r + 0.15, v0, v1, g, g + 0.4, JM_WHITE, M_STONE)
-	_ubox(u + r - 0.15, u + r, v0, v1, g, g + 0.4, JM_WHITE, M_STONE)
-	_ubox(u - r, u + r, v0 - 0.1, v0, g, g + 2.2, Color("#cfe0d8"), M_PAVILION + 0.75)
-	_ubox(u - r, u + r, v1, v1 + 0.1, g, g + 2.2, Color("#cfe0d8"), M_PAVILION + 0.75)
-	_collide(_urect(u - r, u + r, v0, v1))
-
-
-## The two-storey hexagonal bar (nm-75, nm-76): a red six-sided bar with a lit counter round it and
+## The two-storey hexagonal bar (nm-75, nm-76), the kurant's stand-in (JM_KURANT): a red six-sided bar with a lit counter round it and
 ## a white band, a smaller red storey above with its own lights, a red pyramid roof and a gold star.
 func _jm_hexbar(at: Vector2) -> void:
 	_jm_frame()
@@ -853,6 +1210,27 @@ func _jm_fence(u0: float, u1: float, v: float, gaps: Array) -> void:
 		u = nu
 
 
+## The same fence along v at u (the south end by the access road).
+func _jm_fence_v(u: float, v0: float, v1: float, gaps: Array) -> void:
+	_jm_frame()
+	var v := v0
+	while v < v1:
+		var nv := minf(v + 2.5, v1)
+		var open := false
+		for gp: Array in gaps:
+			if nv > float(gp[0]) and v < float(gp[1]):
+				open = true
+		if not open:
+			var g0 := _jm_ground(u, v)
+			var g1 := _jm_ground(u, nv)
+			_jm_bar(u, v, g0, u, v, g0 + 1.2, 0.08, JM_WIRE)
+			_jm_bar(u, v, g0 + 1.15, u, nv, g1 + 1.15, 0.1, JM_WIRE)
+			_jm_bar(u, v, g0 + 0.15, u, nv, g1 + 0.15, 0.1, JM_WIRE)
+			_ubox(u - 0.02, u + 0.02, v, nv, minf(g0, g1) + 0.15, minf(g0, g1) + 1.15, Color("#55595d"), M_STONE)
+			_collide(_urect(u - 0.1, u + 0.1, v, nv))
+		v = nv
+
+
 ## A white banner on the fence: JARMARK over WARSZAWSKI in dark red, facing the street.
 func _jm_banner(u: float, v: float) -> void:
 	_jm_frame()
@@ -864,9 +1242,9 @@ func _jm_banner(u: float, v: float) -> void:
 
 
 ## The gold WESOŁYCH ŚWIĄT sign (the drone frames): the words on a gold arched frame on two posts,
-## blue stars along the top, facing the street (-v).
-func _jm_greeting(u: float, v: float) -> void:
-	var g := _jm_at(u, v, 0)
+## blue stars along the top, facing the street (-v; turned `quarter` as a chalet).
+func _jm_greeting(u: float, v: float, quarter := 0) -> void:
+	var g := _jm_at(u, v, quarter)
 	_no_roof = true
 	_jm_word("WESOŁYCH", 0.0, 0.0, g + 3.3, 1.2, JM_GOLD, M_LAMP)
 	_jm_word("ŚWIĄT", 0.0, 0.0, g + 1.0, 2.0, JM_GOLD, M_LAMP)
@@ -894,19 +1272,19 @@ func _jm_greeting(u: float, v: float) -> void:
 	_jm_frame()
 
 
-## A light-up tree on a short pole: three tiers of white LED, glowing at night, h metres tall.
-func _jm_ledtree(u: float, v: float, h: float) -> void:
+## A light-up tree on a pole `pole` m tall: three tiers of white LED, glowing at night, h metres tall.
+func _jm_ledtree(u: float, v: float, h: float, pole := 0.8) -> void:
 	_jm_frame()
 	var c := _w(u, v)
 	var g: float = map.terrain_height(c.x, c.y)
 	_g = g
 	_no_roof = true
-	_beam(Vector3(c.x, g, c.y), Vector3(c.x, g + 0.8, c.y), 0.1, JM_WIRE)
+	_beam(Vector3(c.x, g, c.y), Vector3(c.x, g + pole, c.y), 0.1, JM_WIRE)
 	var r := h * 0.3
 	var keep := _mode
 	_mode = M_LAMP
 	for k in 3:
-		var y0 := g + 0.8 + h * 0.3 * k
+		var y0 := g + pole + h * 0.3 * k
 		var r0 := r * (1.0 - 0.28 * k)
 		_frustum(_circle(c, r0, 8), y0, _circle(c, r0 * 0.25, 8), y0 + h * 0.42, Color(0.78, 0.84, 0.92))
 	_mode = keep
@@ -1043,44 +1421,26 @@ func _jm_teacups_spin(at: Vector2) -> void:
 		_jm_rider(p + d * 0.4, Vector2(-d.y, d.x), g + 0.75, k * 2)
 		_jm_rider(p - d * 0.4, Vector2(-d.y, d.x), g + 0.75, k * 2 + 1)
 
-## The Christmas-tree carousel: a red floor, little red sleighs hanging from a green tree-shaped
-## canopy in three tiers with lit rims, a star on top.
-func _jm_tree_ride(at: Vector2) -> void:
-	_jm_frame()
-	var c := _w(at.x, at.y)
-	var g: float = map.terrain_height(c.x, c.y)
-	_g = g
-	_prism(_circle(c, 4.6, 16), g, g + 0.35, JM_RED, Color("#e2d6be"), M_STONE, M_STONE)
-	_prism(_circle(c, 0.5, 8), g + 0.35, g + 3.2, JM_TIMBER, JM_TIMBER, M_STONE, M_STONE)
-	_collide(_circle(c, 4.6, 12))
-
-
-## The Christmas-tree carousel's turning part (jarmark_rides.gd): the tree-shaped canopy in three
-## tiers with lit rims, the star, and eight little red sleighs on gold rods, a child in five.
+## The Christmas-tree carousel's turning part (jarmark_rides.gd): the big tree is the carousel (the
+## map's karuzela-choinka, the drone frame's white and red pods at its foot), so this is the ring of
+## ten bauble cars on its platform going round the trunk, red and white with a gold cap, a child in
+## six. The tree itself stands still (`_jm_tree`).
 func _jm_tree_ride_spin(at: Vector2) -> void:
 	_jm_frame()
 	var c := _w(at.x, at.y)
-	var g: float = map.terrain_height(c.x, c.y)
+	var g: float = map.terrain_height(c.x, c.y) + 0.35
 	_g = g
 	_no_roof = true
-	for k in 3:
-		var y0 := g + 3.0 + k * 1.7
-		var r0 := 4.8 - 1.3 * k
-		_frustum(_circle(c, r0, 16), y0, _circle(c, r0 * 0.35, 16), y0 + 2.2, JM_FIR, JM_FIR)
-		var rim := _circle(c, r0, 16)
-		for j in rim.size():
-			var a := rim[j]
-			var b := rim[(j + 1) % rim.size()]
-			_beam(Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), 0.08, JM_BULB, false, M_LAMP)
-	_jm_star(Vector3(c.x, g + 9.0, c.y), 0.6, Vector3(_a.x, 0.0, _a.y), JM_GOLD)
-	for k in 8:
-		var t := TAU * float(k) / 8.0
+	for k in 10:
+		var t := TAU * float(k) / 10.0
 		var d := Vector2(cos(t), sin(t))
-		var p := c + d * 3.5
-		_beam(Vector3(p.x, g + 3.0, p.y), Vector3(p.x, g + 1.5, p.y), 0.04, JM_GOLD, false)
-		_pow_box(p, Vector2(-d.y, d.x), 0.55, 0.35, g + 0.8, g + 1.5, JM_RED, Color("#7a1c20"))
-		if k % 8 in [0, 2, 3, 5, 6]:
-			_jm_rider(p, Vector2(-d.y, d.x), g + 1.0, k + 3, 0.7)
+		var p := c + d * 6.1
+		var col := JM_RED if k % 2 == 0 else Color("#f4f1ea")
+		_frustum(_circle(p, 0.35, 10), g, _circle(p, 0.62, 10), g + 0.5, col, col)
+		_frustum(_circle(p, 0.62, 10), g + 0.5, _circle(p, 0.3, 10), g + 1.15, col, col)
+		_prism(_circle(p, 0.16, 6), g + 1.15, g + 1.35, JM_GOLD, JM_GOLD, M_STONE, M_STONE)
+		if k % 5 in [0, 1, 3]:
+			_jm_rider(p, Vector2(-d.y, d.x), g + 0.45, k + 3, 0.7)
 
 
 ## A rider (jarmark_rides.gd's rides): a shirt and a head, `n` picks the colours, `s` scales a child.
@@ -1094,9 +1454,9 @@ func _jm_rider(p: Vector2, d: Vector2, y: float, n: int, s := 1.0) -> void:
 	_pow_box(p, d, 0.1 * s, 0.1 * s, y + 0.52 * s, y + 0.74 * s, skin, hair)
 
 ## Santa's house: a log cabin with snow on the roof, a red door, warm windows, a brick chimney and
-## DOM MIKOŁAJA in gold over the door, facing the field (-u... turned to face +v towards the rides).
-func _jm_santa(at: Vector2) -> void:
-	var g := _jm_at(at.x, at.y, 3)
+## DOM MIKOŁAJA in gold over the door, its front turned `quarter` from -v (as a chalet's).
+func _jm_santa(at: Vector2, quarter: int) -> void:
+	var g := _jm_at(at.x, at.y, quarter)
 	var hu := 3.0
 	var hv := 2.4
 	var logc := Color("#7a4a2a")

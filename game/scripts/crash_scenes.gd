@@ -205,6 +205,9 @@ static func pick_spot(g: LaneGraph, from: Vector2, heading: Vector2, rng: Random
 		var lo := g.e_s0[e] + END_ROOM
 		var hi := g.e_s1[e] - END_ROOM - SPAN
 		var s0 := clampf(g.project(e, q) - SPAN * 0.5, lo, hi)
+		# The whole scene stays off the map's edge (lane_graph.gd `in_play`).
+		if not g.in_play(g.point_at(e, s0)) or not g.in_play(g.point_at(e, s0 + SPAN)):
+			continue
 		return {"e": e, "lane": g.e_lanes[e] - 1, "s0": s0}
 	return {}
 

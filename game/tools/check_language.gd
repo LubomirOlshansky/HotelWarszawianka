@@ -271,10 +271,11 @@ func _check_panel(code: String) -> void:
 			"fps": 0, "weather": 0, "time": 0, "lang": Lang.CODES.find(code)})
 	var pairs: Array = []
 	for group in [SettingsPanel.CAMERA, SettingsPanel.TIME, SettingsPanel.WEATHER, SettingsPanel.TRAFFIC,
-			SettingsPanel.ON_OFF, SettingsPanel.FPS, SettingsPanel.MODE, SettingsPanel.CONTROLS_SAY, SettingsPanel.TABS]:
+			SettingsPanel.ON_OFF, SettingsPanel.FPS, SettingsPanel.CONTROLS_SAY, SettingsPanel.TABS]:
 		pairs.append_array(group)
-	for tab in 6:
-		panel.set_tab(tab)
+	for t: Array in SettingsPanel.TABS:
+		var tab := str(t[1])
+		panel.set_page(tab)
 		await process_frame
 		var text := _joined(panel)
 		for pr: Array in pairs:
@@ -286,13 +287,13 @@ func _check_panel(code: String) -> void:
 				continue
 			# Only this tab's own options are visible; a leak is the other language's word as a whole text.
 			if text.split("\n").has(hidden) and not text.split("\n").has(shown) and not _word_shared(hidden, code):
-				_fail("[%s] settings tab %d shows '%s' (the other language) instead of '%s'" % [code, tab, hidden, shown])
+				_fail("[%s] settings tab %s shows '%s' (the other language) instead of '%s'" % [code, tab, hidden, shown])
 	# The language row itself is there, with both languages named in their own tongue.
-	panel.set_tab(SettingsPanel.SOUND_TAB)
+	panel.set_page("general")
 	await process_frame
 	var sound := _joined(panel)
 	if not sound.contains("Polski") or not sound.contains("English"):
-		_fail("[%s] Settings → DŹWIĘK has no Polski / English choice" % code)
+		_fail("[%s] Settings → OGÓLNE has no Polski / English choice" % code)
 	# Heading rows are one label: no " · " pair in a heading.
 	for line in sound.split("\n"):
 		if line.to_upper() == line and " · " in line and "ENGLISH" in line:
@@ -304,7 +305,7 @@ func _check_panel(code: String) -> void:
 			"effects": 1.0, "fps": 0, "weather": 0, "time": 0, "lang": Lang.CODES.find(other)})
 	await process_frame
 	var rebuilt := _joined(panel)
-	panel.set_tab(5)  # DOSTĘP and its On / Off (first hour step 6 moved Jazda's to the DEV page)
+	panel.set_page("access")  # DOSTĘP and its On / Off (first hour step 6 moved Jazda's to the DEV page)
 	await process_frame
 	rebuilt = _joined(panel)
 	var want := "Wł." if other == Lang.PL else "On"

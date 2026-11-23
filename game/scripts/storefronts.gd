@@ -158,7 +158,6 @@ const VENUES := {
 	"trend_rozgniot": [["ROZGNIOT"], Color(1.0, 0.55, 0.15), 2.8],
 	# Rondo de Gaulle'a and the food hype (docs/design/gaulle-and-food-hype.md G2-G4).
 	"bar_newtwice": [["NEWTWICE"], Color(1.0, 1.0, 1.0), 3.0],
-	"bar_zamet": [["ZAMĘT"], Color(1.0, 0.72, 0.12), 3.0],
 	"bar_przegrywki": [["PRZEGRYWKI"], Color(0.1, 0.9, 1.0), 2.8],
 	"hotel_piure": [["HOTEL", "PIURE"], Color(1.0, 0.62, 0.84), 3.2],
 	"koszta_marszalkowska": [["KOSZTA", "COFFEE"], KOSZTA_TUBE, 2.8],
@@ -329,14 +328,15 @@ const TRENDY := {
 	"trend_rozgniot": [52.2270, 21.0235],
 }
 ## Rondo de Gaulle'a and the food hype (docs/design/gaulle-and-food-hype.md G2-G4): the Party
-## House's bars (NEWTWICE on its south front, ZAMĘT on its north-west corner, PRZEGRYWKI the board-game
+## House's bars (NEWTWICE on its south front, PRZEGRYWKI the board-game
 ## bar on the next block), HOTEL PIURE's door on Widok (its rooftop bar LORETKA is landmarks.gd's
 ## crown sign), the coffee chains' parodies (KOSZTA COFFEE, GREEN CAFFE NERWO: one on the mapped
 ## pavilion) and KUKŁA, the crêpe place with the queue (crowds.gd `KUKLA`). Like the cafés, not
 ## notebook places; same venue code.
 const HYPE := {
 	"bar_newtwice": [52.23065, 21.02253],
-	"bar_zamet": [52.23140, 21.02195],
+	# bar_zamet (ZAMĘT) left out (F, teaser 4, 2026-11-21: its sign floated off the Party House's
+	# corner); the Party House model wears the bar's own neon, ZAMIESZAJ (landmarks/srodmiescie.gd).
 	"bar_przegrywki": [52.23045, 21.02205],
 	"hotel_piure": [52.23102, 21.01510],
 	"koszta_marszalkowska": [52.2305, 21.0110],
@@ -1528,6 +1528,11 @@ func _load_metros(pois: Array) -> void:
 		var open_stairs := str(p.get("st", "")) == "Centrum" and ref in CENTRUM_OPEN_STAIRS
 		if open_stairs:
 			form = "steps"  # F, 2026-11-09: these four are a bare stair, no glass pavilion
+			# F 2026-11-21 ("two in one"): where the map already builds this stair as a railed flight
+			# (map_builder _build_stair_flights, an OSM `steps` way ending at the entrance), the
+			# prop's own treads and balustrade doubled it: only the red M post stays.
+			if _stair_flight_ends_at(Vector2(x, z)):
+				form = "post"
 		# Centrum Nauki Kopernik's ref 1 on the upper boulevard by the Syrenka (F's photo, 2026-11-21):
 		# the wide escalator pit with the tall granite slab beside it (props.gd _metro_escalator_pit).
 		if str(p.get("st", "")) == "Centrum Nauki Kopernik" and ref == "1":
@@ -1538,6 +1543,24 @@ func _load_metros(pois: Array) -> void:
 		metros.append({"at": Vector3(x, map.ground_height(x, z), z), "yaw": float(p["yaw"]), "station": str(p.get("st", "")),
 				"ref": str(p.get("ref", "")), "key": key_of(Vector2(x, z)), "form": form,
 				"lift": not open_stairs and (int(absf(x * 7.0 + z * 13.0)) % 5) < 3})
+
+
+## Does a map stair flight (centrum.json `steps`, built as a railed flight) end within 1.5 m of `at`?
+func _stair_flight_ends_at(at: Vector2) -> bool:
+	# The checks' stand-in maps have no `data`: no stair flights there.
+	var md: Variant = map.get("data")
+	if not (md is Dictionary):
+		return false
+	for s: Dictionary in (md as Dictionary).get("steps", []):
+		if int(s.get("cv", 0)) == 1:
+			continue
+		var f: Array = s["p"]
+		if f.size() < 4:
+			continue
+		for q: Vector2 in [Vector2(float(f[0]), float(f[1])), Vector2(float(f[f.size() - 2]), float(f[f.size() - 1]))]:
+			if q.distance_to(at) < 1.5:
+				return true
+	return false
 
 
 ## The Ratusz-Arsenał station (OSM's name on its entrances).

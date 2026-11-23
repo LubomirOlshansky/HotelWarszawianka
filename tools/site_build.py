@@ -216,18 +216,20 @@ PRIVACY_SITE = """<h2>This website · Ta strona</h2>
 <p>aroundwarsaw.app sets no cookies and runs no tracking scripts. It is served by
 Cloudflare, which handles ordinary request data (such as IP addresses) only to deliver and
 protect the site, and shows the developer anonymous totals (visits per day, country). Clicks
-on the store buttons are counted as a number per button and country, with nothing about you. The beta and feedback form sends what you type (your email, phone type and
-message) through Formspree to the developer's inbox. The email is used only to send a beta
-invite or to reply, and is deleted on request (write on Telegram, @olshansky93, or through the
-same form).</p>
+on the store buttons are counted as a number per button and country, with nothing about you. The beta signup and feedback forms send what you type (your email, phone type and
+message) to our own server on Cloudflare, which keeps it in a database and mails it to the
+developer's inbox; a one-way hash of your IP address, your country, city, region, timezone and browser language are kept only to stop
+abuse. The email is used only to send a beta invite or to reply, and is deleted on request
+(write through the Support page).</p>
 <p>aroundwarsaw.app nie używa ciasteczek ani skryptów śledzących. Stronę serwuje Cloudflare,
 który przetwarza zwykłe dane żądań (np. adresy IP) wyłącznie po to, by ją dostarczyć i chronić,
 i pokazuje autorowi anonimowe sumy (odwiedziny dziennie, kraj). Kliknięcia przycisków sklepów
 są liczone jako liczba na przycisk i kraj, bez żadnych danych o Tobie.
-Formularz bety i opinii wysyła to, co wpiszesz (e-mail, rodzaj telefonu, wiadomość), przez
-Formspree do skrzynki autora. E-mail służy tylko do wysłania zaproszenia do bety albo
-odpowiedzi i zostanie usunięty na prośbę (napisz na Telegramie, @olshansky93, albo przez ten
-sam formularz).</p>
+Formularze zapisu do bety i opinii wysyłają to, co wpiszesz (e-mail, rodzaj telefonu,
+wiadomość), na nasz serwer w Cloudflare, który zapisuje to w bazie i wysyła do skrzynki autora;
+jednokierunkowy skrót adresu IP, kraj, miasto, region, strefa czasowa i język przeglądarki są przechowywane tylko po to, by ograniczyć nadużycia.
+E-mail służy tylko do wysłania zaproszenia do bety albo odpowiedzi i zostanie usunięty na prośbę
+(napisz przez stronę Wsparcie).</p>
 """
 
 
@@ -422,7 +424,7 @@ def landing(strings: dict, lang: str) -> str:
 
     # New every day: the newest changelog day, three lines (the same source as /progress/).
     cl = changelog()
-    days = cl.days()
+    days = cl.highlights()
     newest = days[0]
     lines = [x for d in days[:3] for x in d["lines"]][:3]
     d0 = datetime.date.fromisoformat(newest["date"])
@@ -460,11 +462,11 @@ def progress_page() -> str:
     cl = changelog()
     intro = (
         "<h1>Progress · Postępy</h1>\n"
-        "<p>What was added or improved in Around Warsaw, day by day, newest first. "
-        "Co dodano albo poprawiono, dzień po dniu.</p>\n"
+        "<p>The best of what is new in Around Warsaw, newest first. "
+        "Najważniejsze nowości w Around Warsaw, od najnowszych.</p>\n"
         )
     return PAGE.format(title="Progress · Postępy", extra="",
-                       description="What's new in Around Warsaw, day by day: what was added or improved, and the backlog.",
+                       description="What's new in Around Warsaw: the best of each day, short.",
                        body=intro + cl.html_days())
 
 

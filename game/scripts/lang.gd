@@ -1,7 +1,7 @@
 extends RefCounted
 ## The game's language (2026-11-02, F: "Polish or English, not two simultaneously"). The game
 ## used to show every text in Polish with its English under it or beside it; now the player
-## picks ONE language, on the title screen or in Settings → DŹWIĘK → JĘZYK · Language, and every
+## picks ONE language, on the title screen or in Settings → OGÓLNE → JĘZYK · Language, and every
 ## screen shows only that one. Text is still written as a pair (Polish, English): the HUD's
 ## entry points (hud.gd `toast`, `show_card`, `ticker`, ...) and the other text widgets call
 ## `pair` / `pick`, so the secondary label is simply never filled. A text with no English

@@ -3,7 +3,7 @@
 // submissions, migrations/0001_init.sql) and mailed to the game's inbox (send_email binding EMAIL,
 // Cloudflare Email Routing; best effort: the row is kept either way).
 //
-//   POST /api/signup    email, platform (iPhone | Android), lang, source
+//   POST /api/signup    email, platform (iPhone | Android), lang (browser language), tz, source
 //   POST /api/feedback  message, email (optional), topic, platform, build, device, where, language, source
 //   GET  /api/admin/submissions?kind=signup|feedback&limit=100&format=csv   Bearer ADMIN_TOKEN (secret)
 //
@@ -77,8 +77,11 @@ export async function handleForm(request, env, ctx, url, EmailMessage) {
 
   const meta = {};
   for (const k of ["source", "build", "device", "where", "language"]) if (o[k] !== undefined) meta[k] = clip(o[k], 300);
-  const lang = clip(o.lang || o.language, 10);
+  // Where and in what language (F 2026-11-23): the browser's own language (the page sends it, else the
+  // Accept-Language header), the country from Cloudflare, and city, region and timezone into meta.
+  const lang = clip(o.lang || o.language || (request.headers.get("accept-language") || "").split(",")[0].split(";")[0], 10);
   const country = request.cf?.country || "";
+  for (const [k, v] of [["city", request.cf?.city], ["region", request.cf?.region], ["tz", request.cf?.timezone || o.tz]]) if (v) meta[k] = clip(v, 60);
   const topic = clip(o.topic, 40);
 
   const row = await env.DB.prepare(

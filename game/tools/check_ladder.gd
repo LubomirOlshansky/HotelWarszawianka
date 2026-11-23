@@ -1,4 +1,7 @@
 extends SceneTree
+## R1 race classes (F 2026-11-23): the class of each car and tune (D hatch ... S tuned Kurakan),
+## the rungs' classes (Halina and Słoik D, the starter car's), the rivals one class up against a
+## faster car and never down, the pay a third less a class over, the pack race a class a night.
 ## Loop 3h slice 3: the rival ladder (ladder.gd) and the final race's route (trzy_mosty.gd).
 ## Checks that:
 ## - the rungs are the six rivals of rivals.gd in order of stake (Halina 60 ... Mike 300, the same
@@ -70,6 +73,7 @@ func _expect(ok: bool, what: String) -> void:
 
 func _initialize() -> void:
 	_data()
+	_classes()
 	_gating()
 	_any_order()
 	_words()
@@ -84,6 +88,35 @@ func _initialize() -> void:
 	else:
 		print("check_ladder: %d problem(s)" % _problems)
 		quit(1)
+
+
+func _classes() -> void:
+	# The cars of docs/design/garage-and-cars.md 0a with no tuning and with the engine (+4 % top,
+	# +8 % pull a level, upgrades.gd PARTS).
+	var cars := [["hatch", 1.0, 1.0, 0], ["hatch + engine 1", 1.04, 1.08, 1], ["hatch + engine 3", 1.12, 1.24, 2],
+			["TT (plan)", 1.12, 1.2, 2], ["TT + engine 3", 1.12 * 1.12, 1.2 * 1.24, 3], ["Kurakan", 1.22, 1.5, 3],
+			["Kurakan + engine 2", 1.22 * 1.08, 1.5 * 1.16, 4]]
+	for c: Array in cars:
+		var got := Ladder.car_class(float(c[1]), float(c[2]))
+		_expect(got == int(c[3]), "class of %s: %s, want %s" % [c[0], Ladder.CLASS_NAMES[got], Ladder.CLASS_NAMES[int(c[3])]])
+	_expect(Ladder.race_class(0) == 0 and Ladder.race_class(1) == 0, "Halina and Słoik are not the starter car's class D")
+	var last := 0
+	for i in Ladder.RUNGS.size():
+		_expect(Ladder.race_class(i) >= last, "rung %d's class drops (%d after %d)" % [i, Ladder.race_class(i), last])
+		last = Ladder.race_class(i)
+	_expect(Ladder.race_class(Ladder.FINAL) >= last and Ladder.race_class(-1) == -1, "the final's class or the no-class race")
+	# The starter car meets the race's class; a car above it meets one class up, never more; below, as is.
+	_expect(is_equal_approx(Ladder.class_top(0, 0), 30.0), "a D race against the hatch is not today's 30 m/s")
+	_expect(Ladder.rival_class(0, 3) == 1 and Ladder.rival_class(2, 0) == 2 and Ladder.rival_class(-1, 2) == 2 and Ladder.rival_class(3, 4) == 4,
+			"the rivals' class against a faster or slower car")
+	_expect(is_equal_approx(Ladder.over_pay(1, 1), 1.0) and is_equal_approx(Ladder.over_pay(1, 0), 1.0) and is_equal_approx(Ladder.over_pay(0, 1), 2.0 / 3.0)
+			and is_equal_approx(Ladder.over_pay(0, 2), 1.0 / 3.0) and is_equal_approx(Ladder.over_pay(0, 4), 1.0 / 3.0) and is_equal_approx(Ladder.over_pay(-1, 4), 1.0),
+			"the pay a class over")
+	_expect(Ladder.club_class(1) == 0 and Ladder.club_class(2) == 1 and Ladder.club_class(9) == Ladder.CLUB_CLASS_MAX, "the pack race's class by night")
+	for k in Ladder.CLASS_TOP.size() - 1:
+		_expect(float(Ladder.CLASS_TOP[k + 1]) > float(Ladder.CLASS_TOP[k]), "class tops do not rise")
+	_expect(float(Ladder.CLASS_TOP[-1]) <= 42.0, "the S class over the catch-up's top (race_session.gd CATCH_TOP)")
+	_summary["classes"] = "%d car classes" % cars.size()
 
 
 func _fresh() -> Wallet:
@@ -161,8 +194,10 @@ func _data() -> void:
 		_expect(is_equal_approx(float(row["block"]), float(Traffic.CRAZY_BLOCK[i + 1])) and is_equal_approx(float(row["mistake"]), float(Traffic.CRAZY_MISTAKE[i + 1])),
 				"the crazy driver %d: block %.2f, mistake %.2f (traffic.gd CRAZY_BLOCK, CRAZY_MISTAKE)" % [i + 1, row["block"], row["mistake"]])
 		_expect(int(row["wrong"]) == 0 and (float(row["hops"]) == 0.0) == (i + 1 != 3), "the crazy driver %d: wrong %d, hops %.1f (a hop for the Pasatini only)" % [i + 1, row["wrong"], row["hops"]])
+	# F's playtest of 2026-11-22: the gentle day drives her rung's numbers (only her caution is gentler).
 	for k: String in ["share", "race_accel", "brake", "lat"]:
-		_expect(float(Ladder.FIRST_RACER[k]) < float(Ladder.racer(0)[k]), "the gentle day's %s is not under her rung's" % k)
+		_expect(float(Ladder.FIRST_RACER[k]) <= float(Ladder.racer(0)[k]), "the gentle day's %s is over her rung's" % k)
+	_expect(float(Ladder.FIRST_RACER["caution"]) >= float(Ladder.racer(0)["caution"]), "the gentle day is less careful in traffic than her rung")
 	_expect(Ladder.SHARE_MIN * RaceSession.EFFORT_EASE >= RaceBench.CRAWL_SHARE,
 			"the slowest racer at its least effort is under the bench's crawl line: %.2f x %.2f < %.2f" % [Ladder.SHARE_MIN, RaceSession.EFFORT_EASE, RaceBench.CRAWL_SHARE])
 	# An easier rematch: EASE_STEP a loss in a row, EASE_MAX at most, on the straights and in the corners.

@@ -4,7 +4,10 @@ extends SceneTree
 ## - the beats a replay must see are the finger, the stand, the order, the choice card and the nine
 ##   intros, each window holds the first hour's time ("First hour for the beta", the hour as it
 ##   would play), and the windows are in order;
-## - `guide_due` only on a fresh save (a job, złoty, a rung or a finished guide: never);
+## - `guide_due` only on a fresh save (a job, złoty, a rung or a finished guide: never), or on one
+##   where the guide began and has not finished (złoty earned since: still on); `first_launch` only
+##   until the opening was seen; `restored` brings an earlier session's beats back (the kebab arrow
+##   with no order counts as let go), so nothing is made twice;
 ## - players on a synthetic clock through `decide` and `met` (the director's rules) with a toy city
 ##   (a delivery takes 75 s, a race 60 s, a rescue 90 s, ...): an ordinary player (touches at once,
 ##   orders at 0:35, picks RACE, does what each intro offers) gets the choice card CHOICE_AFTER s
@@ -19,7 +22,8 @@ extends SceneTree
 ##   the hold does not (the test means something); the replay's scripted order fires at ORDER_AT; a
 ##   helicopter-only call brings the helicopter's toast at once; `judge` flags a late, a missing and
 ##   an early-fired beat;
-## - the friends' calls wait for FRIENDS_STEPS steps or FRIENDS_AFTER s, then NEW_FRIEND_GAP s after a
+## - the friends' calls wait for FRIENDS_STEPS steps or FRIENDS_AFTER s (at most 5 minutes, and not
+##   again in a later session once opened), then NEW_FRIEND_GAP s after a
 ##   new friend (`friends_held`); the First steps' rewards (money each, a paint and the friends at the
 ##   third, the card, a paint and the respect at the seventh), an old save's quiet ticks
 ##   (`from_wallet`), the rows and the header for the map's list;
@@ -137,8 +141,38 @@ func _due() -> void:
 	w.ladder["halina"] = 20261031
 	_expect(not First10.guide_due(w), "a rung beaten: no guide")
 	_expect(not First10.guide_due(null), "no wallet: no guide")
+	# 2026-11-22: a guide once begun carries on in later sessions, whatever was earned since.
+	w.ladder.clear()
+	w.intro.clear()
+	_expect(First10.first_launch(w), "a fresh save: the first launch (the opening)")
+	w.intro[First10.GUIDE_KEY] = 20261122
+	w.intro[First10.OPENED_KEY] = 20261122
+	_expect(not First10.first_launch(w), "the opening seen: no flyover, no Palace start again")
+	w.zl = 50
+	w.jobs["kebab"] = 1
+	_expect(First10.guide_due(w), "a guide begun carries on with a kebab and 50 zł in the save")
+	_expect(not First10.first_launch(w), "... but not as a first launch")
+	w.intro["done"] = 20261122
+	_expect(not First10.guide_due(w), "a begun guide ends at done")
+	var r := First10.restored({"finger": 1, "stand": 1, "fs_heli": 1, "beta_pick": 2, "guide": 1})
+	_expect(r.has("finger") and r.has("stand") and r.has("lure") and not r.has("order"),
+			"restored: finger, stand, and the kebab let go with no order: %s" % [r])
+	_expect(not r.has("fs_heli") and not r.has("beta_pick") and not r.has("guide"), "restored: beats only: %s" % [r])
+	r = First10.restored({"finger": 1, "stand": 1, "order": 1, "beta": 1, "choice": 1, "race": 1})
+	_expect(not r.has("lure") and r.has("choice") and r.has("race"), "restored: an order taken is not a kebab let go: %s" % [r])
+	# The restored beats are not made again; the next intro comes after NEXT_GAP s of free driving.
+	var f := {"free": true, "free_for": 0.0, "input": false, "delivered_t": -1.0, "want": [], "ways": {}}
+	for id: String in r:
+		f["ways"][id] = "saved"
+	var now := First10.RESTORED_AT + 1.0
+	var out := First10.decide(now, f, r)
+	_expect(not "finger" in out and not "stand" in out and not "beta" in out and not "choice" in out,
+			"a resumed session makes no beat again: %s" % [out])
+	f["free_for"] = First10.NEXT_GAP
+	out = First10.decide(now + First10.NEXT_GAP, f, r)
+	_expect(out == ["trap"], "a resumed session (the race restored, nothing earned yet): the police next after NEXT_GAP s: %s" % [out])
 	w.free()
-	_summary.append("fresh saves only")
+	_summary.append("fresh saves, then resumed")
 
 
 ## A toy city for `decide` and `met`: the player's plan and how long things take.
@@ -575,6 +609,8 @@ func _beta() -> void:
 	_expect(First10.BETA_AFTER < First10.CHOICE_AFTER and First10.BETA_LATEST < First10.CHOICE_LATEST, "pacing.json: the beta card before the choice card (%.0f < %.0f, %.0f < %.0f)"
 			% [First10.BETA_AFTER, First10.CHOICE_AFTER, First10.BETA_LATEST, First10.CHOICE_LATEST])
 	var w := First10.beta_words()
+	_expect(not "kebab" in str(w["body"][1]).to_lower(), "the beta card without a kebab delivered says nothing of one: %s" % [w["body"]])
+	_expect("kebab" in str(First10.beta_words(true)["body"][1]).to_lower(), "... and with one: \"just a kebab\"")
 	_expect((w["buttons"] as PackedStringArray).size() == 2, "the beta card: SEE QUESTS and DRIVE ON: %s" % [w["buttons"]])
 	for k: String in ["title", "body"]:
 		var pair: Array = w[k]
@@ -599,6 +635,8 @@ func _friends() -> void:
 	_expect(First10.friends_held(steps, 400.0, 400.0 - First10.NEW_FRIEND_GAP + 1.0), "a new friend rang lately: the next waits")
 	_expect(not First10.friends_held(steps, 400.0, 400.0 - First10.NEW_FRIEND_GAP), "NEW_FRIEND_GAP s after a new friend: the next may ring")
 	_expect(First10.friends_held(steps, 400.0, -1.0, true), "an intro waits for its turn: it goes before a friend's call")
+	_expect(not First10.friends_held(0, 10.0, -1.0, false, true), "opened in an earlier session: no steps, 10 s in, they may call")
+	_expect(First10.FRIENDS_AFTER <= 300.0, "a player who skips the First steps gets calls within 5 minutes (FRIENDS_AFTER %.0f s, F 2026-11-22)" % First10.FRIENDS_AFTER)
 	_expect(First10.FRIENDS_YIELD < First10.NEXT_GAP, "a call yields before the intro is due (%.0f < %.0f s)" % [First10.FRIENDS_YIELD, First10.NEXT_GAP])
 	_expect(steps == FirstSteps.NOTICED_AT, "the friends open at the third step, the reward's party (%d, %d)" % [steps, FirstSteps.NOTICED_AT])
 	_summary.append("friends after %d steps or %.0f s, one new every %.0f s" % [steps, First10.FRIENDS_AFTER, First10.NEW_FRIEND_GAP])
@@ -813,8 +851,9 @@ func _effort() -> void:
 		RaceSession.pace_tick(chase_pace, chase, 0.1, 1000.0 + RaceSession.own_pace(chase.race_top, chase.race_share) * RaceSession.CATCH_FROM * 0.9, 1000.0, RaceSession.catch_of(Ladder.racer(5)))
 	_expect(is_equal_approx(chase.race_boost, 1.0), "on the player's tail (within CATCH_FROM s) the boost is gone: %.2f" % chase.race_boost)
 	_expect(RaceSession.boost_of(0.0, RaceSession.CATCH_MAX) == 1.0 and RaceSession.boost_of(5.0, RaceSession.CATCH_MAX) == 1.0, "level or ahead: no boost")
-	_expect(RaceSession.catch_of(Ladder.FIRST_RACER) < RaceSession.CATCH_MAX and RaceSession.catch_of(Ladder.FIRST_RACER) > 1.0,
-			"Halina's gentle day chases, but less: %.2f" % RaceSession.catch_of(Ladder.FIRST_RACER))
+	# F's playtest of 2026-11-22 ("Halina's race I did easily"): her gentle day chases as hard as any rival.
+	_expect(is_equal_approx(RaceSession.catch_of(Ladder.FIRST_RACER), RaceSession.CATCH_MAX),
+			"Halina's gentle day chases like the others: %.2f" % RaceSession.catch_of(Ladder.FIRST_RACER))
 	_expect(RaceSession.catch_of(Ladder.racer(0), 0.1) < RaceSession.catch_of(Ladder.racer(0)), "an easier rematch chases less")
 	pace = RaceSession.Pace.new()
 	for i in 200:

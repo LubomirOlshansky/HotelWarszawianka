@@ -1271,8 +1271,11 @@ func _places() -> void:
 	_expect(absf(spot.x - 540.0) < 0.05 and absf(spot.z - 0.2) < 0.05, "M the middle of a bent road, on its 0.4 m piece: %s" % spot)
 	spot = await _street_spot([_vroad("Dojazd", 300.0, -50.0, 50.0, "service"), _vroad("", 400.0, -50.0, 50.0, "residential"), _vroad("B", 500.0, -50.0, 50.0)], NO_ROOFS)
 	_expect(_same(spot, Vector3(500, 0, 0)), "M no call on a service road or a road with no name: %s" % spot)
-	# The map's edge: a street 35 m inside it is left out, one 45 m inside is kept.
-	for row: Array in [["35", 1965.0, "B B B B B B B B B B B B B B B B B B B B B B B B"], ["45", 1955.0, "B A B B B A A A B B B A A A B A B A B A B A A B"]]:
+	# The map's edge: a street 5 m short of EDGE_PAD inside it is left out, one 5 m past it is kept
+	# (the pad was 40 m; the jobs' TARGET_PAD, 80 m, since 2026-11-22).
+	var pad: float = preload("res://scripts/rescue_places.gd").EDGE_PAD
+	for row: Array in [[str(roundi(pad - 5.0)), 2000.0 - pad + 5.0, "B B B B B B B B B B B B B B B B B B B B B B B B"],
+			[str(roundi(pad + 5.0)), 2000.0 - pad - 5.0, "B A B B B A A A B B B A A A B A B A B A B A A B"]]:
 		await _lab(_city([_vroad("A", row[1], -10.0, 10.0), _vroad("B", 300.0, -10.0, 10.0), _vroad("C", -1965.0, -10.0, 10.0)]), NO_ROOFS)
 		band = _street_calls(24)
 		_expect(band == row[2], "M a street %s m inside the map's edge (another 35 m inside on the far side is out): %s" % [row[0], band])

@@ -2,11 +2,24 @@
 
 Last updated: 21 November 2026
 
-Around Warsaw is a free game. It collects no personal data. During the beta it sends anonymous
-play statistics, which you can turn off in Settings.
+Around Warsaw is a game. It collects no personal data unless you choose to send it
+yourself (the beta signup on the website or the feedback card in the game, below). During the
+beta it sends anonymous play statistics, which you can turn off in Settings.
 
-- **No personal data.** The game has no accounts, no sign-in, no advertising and no tracking
-  across apps or websites. It never asks for your name, email, location or contacts.
+- **No personal data by default.** The game has no accounts, no sign-in, no advertising and no
+  tracking across apps or websites. It never asks for your name, email, location or contacts.
+  The only exceptions are the two things you send yourself, next.
+- **Beta signup and feedback (only if you send them).** On the website, the beta signup form
+  takes your email and the phone you play on (iPhone or Android). In the game, Settings →
+  Dźwięk (Sound) → "OPINIA · Feedback" opens a card where you write a message, and optionally
+  an email if you want an answer. A message sent from the game also carries the game's version,
+  your phone's model and system version, the language, and where in the city you were (a
+  district, a position and the vehicle), and nothing else: no name, no save, no ID. These go to
+  our own server on Cloudflare
+  and to the author's inbox. To stop abuse we keep a one-way hash of your IP address (never the
+  address itself), your country, city, region, timezone and browser language. We use your email only to send the beta invite or to answer
+  you, never to sell or advertise, and delete a message and its email on request (write through
+  the Support page).
 - **Anonymous play statistics (beta).** To see how many people play, whether they come back,
   how long they play and where the game is confusing or slow, the game sends short anonymous
   events: a session started or ended (with minutes played and kilometres driven), a job or race
@@ -23,8 +36,9 @@ play statistics, which you can turn off in Settings.
   statistics). It doesn't use your location, camera, microphone, contacts or files.
 - **Children.** The game is not aimed at children under 13 and knowingly collects nothing
   personal from anyone.
-- **Third parties.** The anonymous statistics are processed by PostHog on our behalf. Nothing
-  else leaves your device.
+- **Third parties.** The anonymous statistics are processed by PostHog on our behalf. Signup and
+  feedback messages are handled by Cloudflare (database and email delivery) on our behalf.
+  Nothing else leaves your device.
 
 The map comes from open data: OpenStreetMap contributors (ODbL) and GUGiK (Poland's surveying
 office). That data is built into the game; nothing about you is used with it.
@@ -37,11 +51,22 @@ Questions: write to us through the Support page (https://aroundwarsaw.app/suppor
 
 ## Polityka prywatności (po polsku)
 
-Around Warsaw to darmowa gra. Nie zbiera danych osobowych. W czasie bety wysyła anonimowe
-statystyki gry, które można wyłączyć w Ustawieniach.
+Around Warsaw to gra. Nie zbiera danych osobowych, chyba że sam je wyślesz (zapis do bety
+na stronie albo karta opinii w grze, niżej). W czasie bety wysyła anonimowe statystyki gry, które
+można wyłączyć w Ustawieniach.
 
-- **Żadnych danych osobowych.** Gra nie ma kont, logowania, reklam ani śledzenia między
-  aplikacjami i stronami. Nigdy nie pyta o imię, e-mail, lokalizację ani kontakty.
+- **Domyślnie żadnych danych osobowych.** Gra nie ma kont, logowania, reklam ani śledzenia między
+  aplikacjami i stronami. Nigdy nie pyta o imię, e-mail, lokalizację ani kontakty. Wyjątki to
+  dwie rzeczy, które wysyłasz sam, niżej.
+- **Zapis do bety i opinie (tylko jeśli je wyślesz).** Na stronie formularz bety prosi o e-mail
+  i rodzaj telefonu (iPhone albo Android). W grze Ustawienia → Dźwięk → „OPINIA · Feedback”
+  otwiera kartę, w której piszesz wiadomość i, jeśli chcesz odpowiedzi, podajesz e-mail.
+  Wiadomość z gry zawiera też wersję gry, model i system telefonu, język oraz miejsce w mieście
+  (dzielnica, pozycja i pojazd), i nic więcej: bez imienia, zapisu gry i identyfikatorów. Trafia
+  to na nasz serwer w Cloudflare i do skrzynki autora. Żeby ograniczyć nadużycia, przechowujemy
+  jednokierunkowy skrót adresu IP (nigdy sam adres), kraj, miasto, region, strefę czasową i język przeglądarki. E-mail służy tylko do wysłania
+  zaproszenia do bety albo odpowiedzi, nigdy do sprzedaży ani reklam, a wiadomość z e-mailem
+  usuniemy na prośbę (napisz przez stronę Wsparcie).
 - **Anonimowe statystyki gry (beta).** Żeby wiedzieć, ile osób gra, czy wracają, jak długo grają
   i gdzie gra jest niejasna albo wolna, gra wysyła krótkie anonimowe zdarzenia: początek i koniec
   sesji (z minutami gry i przejechanymi kilometrami), początek i koniec zlecenia lub wyścigu,
@@ -59,7 +84,8 @@ statystyki gry, które można wyłączyć w Ustawieniach.
   (statystyki). Nie korzysta z lokalizacji, aparatu, mikrofonu, kontaktów ani plików.
 - **Dzieci.** Gra nie jest przeznaczona dla dzieci poniżej 13 lat i od nikogo nie zbiera danych
   osobowych.
-- **Podmioty trzecie.** Anonimowe statystyki przetwarza w naszym imieniu PostHog. Nic innego
+- **Podmioty trzecie.** Anonimowe statystyki przetwarza w naszym imieniu PostHog. Zapisy do bety
+  i opinie obsługuje w naszym imieniu Cloudflare (baza danych i dostarczanie poczty). Nic innego
   nie opuszcza telefonu.
 
 Pytania: napisz do nas przez stronę Wsparcie (https://aroundwarsaw.app/support/).

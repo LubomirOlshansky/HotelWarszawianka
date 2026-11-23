@@ -1,0 +1,1 @@
+Open Sans (opensans-600-latin.woff2): Copyright 2020 The Open Sans Project Authors (https://github.com/googlefonts/opensans). SIL Open Font License 1.1, https://openfontlicense.org. Downloaded from Google Fonts 2026-11-19. It is the font of the game's title screen (Godot's default font).

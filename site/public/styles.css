@@ -152,16 +152,15 @@ html[data-os="android"] #ios .qr-box { display: none; }
 
 /* What you do: the game's own list. */
 .quests { background: var(--night-2); border-top: 1px solid var(--line); }
-.quests-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(32px, 6vw, 80px); align-items: start; }
+.quests-grid { display: block; }
+.quests-head { max-width: 70rem; }
 .quests-frame { margin: 32px 0 0; }
-.quests-frame img { border-radius: 14px; box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.8); width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+/* Whole frame, never cropped: the QUESTS screen and the cards are 1920 x 884 shots with HUD at the edges. */
+.quests-frame img { display: block; border-radius: 14px; box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.8); width: 100%; height: auto; aspect-ratio: 1920 / 884; }
 .quests-frame figcaption { margin-top: 10px; font-size: 14px; color: var(--ink-3); }
-.rows { list-style: none; margin: 0; padding: 0; }
-.row { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: 20px; align-items: center; padding: 20px 0; border-top: 1px solid var(--line); }
-.row:first-child { border-top: 0; padding-top: 0; }
-.row img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 10px; }
-.row-l img { object-position: 0 50%; }
-.row-r img { object-position: 100% 50%; }
+.rows { list-style: none; margin: 56px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); gap: 40px 32px; }
+.row { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.row img { display: block; width: 100%; height: auto; aspect-ratio: 1920 / 884; border-radius: 10px; }
 .row h3 { font-size: clamp(1.4rem, 2.2vw, 1.8rem); color: var(--sodium); margin-bottom: 6px; }
 .row p { margin: 0; color: var(--ink-2); }
 
@@ -275,7 +274,7 @@ html[data-os="android"] .stk-i { display: none; }
 
 @media (max-width: 900px) {
   .bar nav .wide { display: none; }
-  .quests-grid, .author-grid { grid-template-columns: 1fr; }
+  .author-grid { grid-template-columns: 1fr; }
   .plat { grid-template-columns: 1fr; }
 }
 
@@ -309,11 +308,13 @@ html[data-os="android"] .stk-i { display: none; }
   .quests-frame { margin: 24px calc(-1 * var(--gutter)) 0; }
   .quests-frame img { border-radius: 0; aspect-ratio: auto; }
   .quests-frame figcaption { padding: 0 var(--gutter); }
-  .rows { display: grid; gap: 40px; }
+  .rows { grid-template-columns: 1fr; gap: 40px; margin-top: 40px; }
   .row, .row:first-child { grid-template-columns: 1fr; gap: 0; padding: 0; border: 0; }
   .row > div { display: contents; }
   .row h3 { order: -1; font-size: 1.75rem; margin: 0 0 12px; }
-  .row img { width: calc(100% + 2 * var(--gutter)); max-width: none; margin: 0 calc(-1 * var(--gutter)); border-radius: 0; aspect-ratio: 16 / 10; }
+  .row img { width: calc(100% + 2 * var(--gutter)); max-width: none; margin: 0 calc(-1 * var(--gutter)); border-radius: 0; aspect-ratio: 16 / 10; object-fit: cover; }
+  .row-l img { object-position: 0 50%; }
+  .row-r img { object-position: 100% 50%; }
   .row-full img { aspect-ratio: auto; }
   .row p { margin-top: 12px; }
   .notify-row { flex-direction: column; }

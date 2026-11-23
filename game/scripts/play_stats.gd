@@ -32,6 +32,10 @@ const PostHogConfigScript := preload("res://addons/posthog/posthog_config.gd")
 
 ## The project's token and host, written on the Mac (gitignored; data/*.json goes into the export).
 const KEY_PATH := "res://data/stats_key.json"
+## Perf thread (2026-11-23): written by tools/export_ios.sh and export_android.sh at each export
+## ({"build": the iOS build number or Android version code, "commit"}), gitignored; missing in a
+## run from the editor or a check ("dev").
+const BUILD_STAMP := "res://data/build_stamp.json"
 const HOST := "https://eu.i.posthog.com"
 const TICK := 1.0
 ## fps_sample: taken twice a session, at these seconds into play (perf thread 2026-11-19: the second
@@ -69,8 +73,8 @@ const EVENTS := {
 	"stats_off": {},
 }
 ## The settings whose changes are counted (`setting`): the choices, never a slider's every step.
-const SETTING_KEYS := ["controls", "pads", "quality", "traffic", "lang", "wander", "fps", "collide", "soft_fences",
-		"handling", "vhs", "angle", "grade", "text_large", "calm", "color_safe", "vibration", "stop_assist",
+const SETTING_KEYS := ["controls", "pads", "quality", "traffic", "lang", "fps", "collide", "soft_fences",
+		"handling", "angle", "grade", "text_large", "calm", "color_safe", "vibration", "stop_assist",
 		"left_handed", "lane_assist", "chatter", "zones", "time", "weather"]
 ## The SDK's default properties that stay on the phone.
 const STRIPPED := ["$locale"]
@@ -128,6 +132,8 @@ var _tick := 0.0
 var _last_pos := Vector3.INF
 var _km := 0.0
 var _fly_s := 0.0
+## `_play` when this stretch began (begin): the launch, or the last resume from the background.
+var _play0 := 0.0
 var _zl0 := 0
 var _runs := 0
 var _fps: Array[float] = []
@@ -217,6 +223,16 @@ static func clean(event: String, props: Dictionary) -> Dictionary:
 
 
 ## Reads the token file; {} without one.
+## "0.1 (14, 839dfd2)": the version, the build and its commit (PostHog's app_build).
+static func build_name(path := BUILD_STAMP) -> String:
+	var version := str(ProjectSettings.get_setting("application/config/version", ""))
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(path)) if FileAccess.file_exists(path) else null
+	if not d is Dictionary:
+		return version + " (dev)"
+	var commit := str((d as Dictionary).get("commit", ""))
+	return "%s (%s%s)" % [version, str((d as Dictionary).get("build", "dev")), ", " + commit if commit != "" else ""]
+
+
 static func read_key(path := KEY_PATH) -> Dictionary:
 	if not FileAccess.file_exists(path):
 		return {}
@@ -278,7 +294,7 @@ func _start_sdk() -> void:
 	c.send_default_person_properties_for_flags = false
 	c.flush_on_quit = false  # main.gd's _notification flushes; the SDK must not own the quit
 	c.capture_application_lifecycle_events = true
-	c.app_build = str(ProjectSettings.get_setting("application/config/version", ""))
+	c.app_build = build_name()
 	c.before_send = _before_send
 	_sdk = PostHogScript.new()
 	_sdk.name = "PostHog"
@@ -383,6 +399,7 @@ func begin(resumed := false) -> void:
 	_zl0 = int(wallet.zl) if wallet != null else 0
 	if not resumed:
 		_play = 0.0
+	_play0 = _play  # this stretch's start: session_end counts from here, not from the launch
 	var fresh: bool = wallet != null and wallet.has_method("has_progress") and not wallet.has_progress()
 	_recover()
 	# title_ms: engine start to the tap on "tap to drive" (a launch only; 0 after a resume).
@@ -404,11 +421,17 @@ func pause() -> void:
 		return
 	_ended = true
 	_drop_checkpoint()  # ended in order: the session_end below is queued on the disk
-	var minutes := _play / 60.0
+	var minutes := _stretch() / 60.0
 	track("session_end", {"minutes_played": minutes, "km_driven": _km / 1000.0,
 			"zl_earned": (int(wallet.zl) - _zl0) if wallet != null else 0, "runs_done": _runs,
-			"heli_pct": int(round(100.0 * _fly_s / maxf(_play, 1.0))), "how": "end"})
+			"heli_pct": int(round(100.0 * _fly_s / maxf(_stretch(), 1.0))), "how": "end"})
 	flush()
+
+
+## This stretch of play in seconds (since the launch or the last resume): what one session_end
+## counts, so the stretches of one launch add up to its play and never count a minute twice.
+func _stretch() -> float:
+	return maxf(_play - _play0, 0.0)
 
 
 ## Back from the background: a new stretch of play (the play clock goes on).
@@ -441,9 +464,9 @@ func _write_checkpoint() -> void:
 	var f := FileAccess.open(CHECKPOINT_PATH, FileAccess.WRITE)
 	if f == null:
 		return
-	f.store_string(JSON.stringify({"play": _play, "km": _km, "runs": _runs,
+	f.store_string(JSON.stringify({"play": _stretch(), "km": _km, "runs": _runs,
 			"zl": (int(wallet.zl) - _zl0) if wallet != null else 0,
-			"heli_pct": int(round(100.0 * _fly_s / maxf(_play, 1.0)))}))
+			"heli_pct": int(round(100.0 * _fly_s / maxf(_stretch(), 1.0)))}))
 	f.close()
 
 
@@ -543,7 +566,7 @@ func _on_run_started(a: Object) -> void:
 func _on_run_ended(a: Object, how: String, seconds: float) -> void:
 	if bool(a.get("is_job")) and how == "done" and _first_time("job_done"):
 		track("first_job", {"stage": "end", "activity": str(a.get("tag")), "how": how, "t_play_s": _play})
-	if how == "done":
+	if how in ["done", "won", "lost"]:  # a race's end says who won (rivals.gd)
 		_runs += 1
 	track("activity_end", {"activity": str(a.get("tag")), "job": bool(a.get("is_job")), "how": how,
 			"duration_s": seconds, "t_play_s": _play})

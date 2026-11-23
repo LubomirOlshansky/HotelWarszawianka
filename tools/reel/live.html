@@ -1,0 +1,45 @@
+<!doctype html>
+<!--
+  Teaser 2's overlay (F, 2026-11-19: "Warsaw 3 a.m." (then "10 p.m.", F 20:19 UTC) in the website's pixel font, and then "only
+  Warsaw 3 a.m., nothing else"): a transparent 1080x1920 layer over the game footage, the words
+  typed in at the bottom of Instagram's safe area (x 60-960, y 250-1500), a soft shade under them.
+  tools/reel/render.mjs --live-frames=SECONDS calls window.frame(t) per frame.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: "Pixel"; src: url(fonts/pixelify-latin.woff2) format("woff2"); font-weight: 400 700; }
+html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+#stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: "Pixel", monospace; color: #fff; }
+.abs { position: absolute; }
+#shade { left: 0; top: 0; width: 1080px; height: 1920px; background: linear-gradient(180deg, rgba(8,6,24,0) 50%, rgba(8,6,24,0.6) 100%); }
+#title { left: 64px; top: 1360px; font-size: 76px; font-weight: 500; line-height: 1.0; color: rgba(255,255,255,0.82); text-shadow: 0 2px 6px rgba(0,0,0,0.6); white-space: pre; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="abs" id="shade"></div>
+  <div class="abs" id="title"></div>
+</div>
+<script>
+const P = new URLSearchParams(location.search);
+// ?w=1920&h=1080 (render.mjs --live-size): the landscape cut for Threads; the words keep their size
+// and sit at the same distance from the bottom-left corner.
+const W = +(P.get("w") || 1080), H = +(P.get("h") || 1920);
+const stage = document.getElementById("stage");
+stage.style.width = W + "px"; stage.style.height = H + "px";
+document.getElementById("shade").style.width = W + "px"; document.getElementById("shade").style.height = H + "px";
+document.getElementById("title").style.top = (H > W ? H - 560 : H - 250) + "px";
+const TEXT = P.get("text") || "Warsaw\n10 p.m.";  // ?text=Warsaw%0A3:30%20p.m. (teaser 4)
+const $ = (id) => document.getElementById(id);
+const k = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
+function frame(t) {
+  // F (21:04 UTC): the words stay still from the first frame to the last, no typing, no cursor.
+  $("title").innerHTML = TEXT.replace("\n", "<br>");
+}
+window.frame = frame;
+frame(+(P.get("t") || 2.5));
+</script>
+</body>
+</html>

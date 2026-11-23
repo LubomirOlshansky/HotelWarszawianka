@@ -150,8 +150,11 @@ const DEFAULT_RACER := {"share": 0.82, "race_accel": 10.5, "brake": 9.0, "lat": 
 ## whole ladder from Halina to Zbyszek was retuned (docs/design/race-ai.md 6): Mike already uses the
 ## car's whole top speed, so the rest were brought up to him, each 3 to 6 % quicker than the one below.
 ## Its `catch` (race_session.gd CATCH_*, F 2026-11-19): the guided first race chases a player who
-## pulls away, but less than every other rival (CATCH_MAX); the other profiles have no `catch`.
-const FIRST_RACER := {"catch": 1.55, "share": 0.76, "race_accel": 9.4, "brake": 6.5, "lat": 11.4, "knows": 1.0, "caution": 1.0,
+## pulls away. F's playtest of 2026-11-22 ("Halina's race I did easily"): her gentle day now drives
+## her rung's own numbers (share, off the line, brakes, grip) and the whole catch-up (CATCH_MAX,
+## it was 1.55); what is still gentle is that she counts all of the town's traffic and goes round
+## every narrow one-way (`caution` 1.0 against 0.8).
+const FIRST_RACER := {"catch": 1.6, "share": 0.775, "race_accel": 9.8, "brake": 7.0, "lat": 11.8, "knows": 1.0, "caution": 1.0,
 		"cuts": 0.3, "yards": 1.0, "narrow": 3.5, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false,
 		"dare": 2.5, "indicate": 3.0, "flash": 0.0, "home": ["powisle", "srodmiescie", "trakt"]}
 ## Racer AI step 6b (street_meet.gd, the race from Plac Defilad to meet 2): the night club's eight
@@ -344,6 +347,74 @@ static func eased(stats: Dictionary, ease: float) -> Dictionary:
 	out["share"] = maxf(float(stats["share"]) * (1.0 - ease), minf(float(stats["share"]), SHARE_MIN))
 	out["lat"] = float(stats["lat"]) * (1.0 - ease) * (1.0 - ease)
 	return out
+
+
+## R1 race classes (F 2026-11-23: "if you buy a fast car racing mustn't get boring; some races you
+## win with the starter car, some only once it is tuned"; docs/design/garage-and-cars.md 0a). A car's
+## class (0 D .. 4 S) comes from one number, its Moc (`power`: the top speed and the pull over the
+## starter car's, engine included); every race has its own class and its rivals race at that class's
+## top (CLASS_TOP m/s, times their `share`), not at the player's. A car above the race's class meets
+## rivals one class up (`rival_class`) and is paid less (`over_pay`); a car below it races as it is.
+const CLASS_NAMES := ["D", "C", "B", "A", "S"]
+const CLASS_EDGES := [1.05, 1.13, 1.22, 1.34]
+const CLASS_TOP := [30.0, 32.5, 35.0, 37.5, 40.0]
+## The rungs' classes (RUNGS order) and the final's: the first two are the starter car's races.
+const RUNG_CLASS := [0, 0, 1, 1, 2, 3]
+const FINAL_CLASS := 3
+## The pack race at the meet climbs a class a night (the first night D), up to A.
+const CLUB_CLASS_MAX := 3
+
+
+## A car's Moc: its top speed and pull as multiples of the starter car's (car.gd top_mult and
+## accel_mult: the model's and the engine's), the pull worth 0.15 of the top.
+static func power(top_x: float, pull_x: float) -> float:
+	return top_x + 0.15 * (pull_x - 1.0)
+
+
+## The class (0 D .. 4 S) of a car with these multiples (see CLASS_EDGES).
+static func car_class(top_x: float, pull_x: float) -> int:
+	var p := power(top_x, pull_x)
+	var c := 0
+	for edge: float in CLASS_EDGES:
+		if p >= edge - 0.0001:
+			c += 1
+	return c
+
+
+## The class of rung `i`'s race (FINAL the final's); -1 for a race outside the ladder (its rivals
+## race at the player's class).
+static func race_class(i: int) -> int:
+	if i == FINAL:
+		return FINAL_CLASS
+	if i < 0 or i >= RUNG_CLASS.size():
+		return -1
+	return int(RUNG_CLASS[i])
+
+
+## The class the rivals bring: the race's, one up when the player's car is above it; the player's
+## own in a race with no class (-1).
+static func rival_class(race: int, player: int) -> int:
+	if race < 0:
+		return clampi(player, 0, CLASS_TOP.size() - 1)
+	return clampi(player, race, mini(race + 1, CLASS_TOP.size() - 1))
+
+
+## The rivals' top speed (m/s) in a race of class `race` against a car of class `player`.
+static func class_top(race: int, player: int) -> float:
+	return float(CLASS_TOP[rival_class(race, player)])
+
+
+## The pay's share for a car `player` above a race of class `race`: a third less a class over, down
+## to a third (whole at or below the race's class or in a race with no class).
+static func over_pay(race: int, player: int) -> float:
+	if race < 0 or player <= race:
+		return 1.0
+	return maxf(1.0 / 3.0, 1.0 - float(player - race) / 3.0)
+
+
+## The pack race's class on meet night `night` (1 the first).
+static func club_class(night: int) -> int:
+	return clampi(night - 1, 0, CLUB_CLASS_MAX)
 
 
 ## [speed_factor, accel_factor] for rung `i` (FINAL: the final's; -1: the default).

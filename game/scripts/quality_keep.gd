@@ -14,12 +14,24 @@ extends RefCounted
 
 const Tiers := preload("res://scripts/tiers.gd")
 
-const HEAVY_SHARE := 0.1
+## Perf thread (2026-11-23): 0.25, not 0.1: at 0.1 a phone at 55 fps (the Samsung A56 at High) read
+## as heavy all the time and Auto stepped it down; a quarter of the refreshes missed is about 45 fps.
+const HEAVY_SHARE := 0.25
 const HEAVY_AFTER := 60.0
 const PENDING_CLEAR_S := 10.0
 
 var _heavy_s := 0.0
 var _heavy_said := false
+## Perf thread (2026-11-23, PostHog: a Motorola edge 40 sat at 27 fps on Auto's High): Auto's level
+## steps down one after a session that struggled (over STRUGGLE_SHARE of AUTO_TALLY seconds of
+## play with over HEAVY_SHARE of the refreshes missed, CPU or GPU alike), and back up one after
+## DROP_CALM calm sessions; settings.gd `auto_drop` and `auto_calm`, read at the next launch.
+const AUTO_TALLY := 180.0
+const STRUGGLE_SHARE := 0.25
+const DROP_CALM := 3
+var _auto_s := 0.0
+var _auto_heavy := 0.0
+var _auto_done := false
 var _clear_at := -1.0
 var _gfx_said := false
 
@@ -29,6 +41,35 @@ func launch(m: Object) -> void:
 	if m.settings.quality_guarded:
 		print("quality: the last launch at Experimental never got going · Ultra this time (settings.gd quality_pending)")
 	_arm(m)
+
+
+## Auto's level for this launch: the device's (`base`), less the steps the last sessions earned.
+func auto_level(m: Object, base: int) -> int:
+	var level := maxi(Tiers.LOW, base - int(m.settings.auto_drop))
+	if level != base:
+		print("quality: Auto steps %s down to %s (%d struggling session%s ago, %d of %d calm since)" % [
+				Tiers.NAMES[base], Tiers.NAMES[level], m.settings.auto_drop, "" if m.settings.auto_drop == 1 else "s",
+				m.settings.auto_calm, DROP_CALM])
+	return level
+
+
+## The session's verdict on Auto's level, once AUTO_TALLY seconds are counted.
+func _auto_verdict(m: Object) -> void:
+	_auto_done = true
+	var struggled := _auto_heavy > _auto_s * STRUGGLE_SHARE
+	var s: Object = m.settings
+	if struggled and m.quality > Tiers.LOW:
+		s.auto_drop = mini(int(s.auto_drop) + 1, 3)
+		s.auto_calm = 0
+	elif not struggled:
+		s.auto_calm = int(s.auto_calm) + 1
+		if int(s.auto_calm) >= DROP_CALM and int(s.auto_drop) > 0:
+			s.auto_drop = int(s.auto_drop) - 1
+			s.auto_calm = 0
+	if s.persistent:
+		s.save()
+	print("quality: Auto at %s %s (%.0f of %.0f s heavy) · the next launch steps down %d" % [Tiers.NAMES[m.quality],
+			"struggled" if struggled else "was calm", _auto_heavy, _auto_s, s.auto_drop])
 
 
 ## The player picked a level (main.gd `_set_quality`, after the start): saved, Experimental too.
@@ -53,7 +94,17 @@ func frame(m: Object, dt: float) -> void:
 		_clear_at = -1.0
 		m.settings.quality_pending = false
 		m.settings.save()
-	if _heavy_said or m.quality_choice == Tiers.AUTO or m._wide or m.flying or m.title != null or m._opening_on:
+	if m._wide or m.flying or m.title != null or m._opening_on:
+		return
+	if m.quality_choice == Tiers.AUTO:
+		if not _auto_done:
+			_auto_s += dt
+			if float(m.governor.late_share) > HEAVY_SHARE:
+				_auto_heavy += dt
+			if _auto_s >= AUTO_TALLY:
+				_auto_verdict(m)
+		return
+	if _heavy_said:
 		return
 	if float(m.governor.late_share) <= HEAVY_SHARE:
 		return

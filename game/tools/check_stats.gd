@@ -100,6 +100,8 @@ func _key() -> void:
 
 
 func _device() -> void:
+	# Perf thread (2026-11-23): app_build names the build when the export wrote its stamp.
+	_expect(PlayStats.build_name("res://no/such/stamp.json").ends_with(" (dev)"), "no stamp: %s" % PlayStats.build_name("res://no/such/stamp.json"))
 	_expect(PlayStats.device_name("iPhone17,2") == "iphone_16_pro_max", "iPhone17,2 is not the 16 Pro Max")
 	_expect(PlayStats.device_name("iPhone99,1") == "iphone99.1", "an unknown iPhone code: %s" % PlayStats.device_name("iPhone99,1"))
 	_expect(PlayStats.device_name("SM-S918B") == "sm-s918b", "an Android model code: %s" % PlayStats.device_name("SM-S918B"))
@@ -147,6 +149,13 @@ func _log() -> void:
 	_expect(_names(s).count("session_end") == 1, "session_end %d times" % _names(s).count("session_end"))
 	s.resume()
 	_expect(_names(s).count("session_start") == 2, "resume did not start a new stretch")
+	# A resumed stretch counts its own minutes (1300 s before the background, 180 s after it).
+	s._play += 180.0
+	s.pause()
+	var ends := s.tracked.filter(func(e: Dictionary) -> bool: return e["event"] == "session_end")
+	_expect(ends.size() == 2 and is_equal_approx(float(ends[1]["props"]["minutes_played"]), 3.0),
+			"the resumed stretch's minutes_played: %s, wanted 3.0 (not the whole launch)" % [ends.back()["props"] if not ends.is_empty() else {}])
+	s.resume()
 	s.set_enabled(false)
 	_expect(_names(s).back() == "stats_off", "turning off did not say stats_off")
 	var n := s.tracked.size()

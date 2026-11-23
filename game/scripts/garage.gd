@@ -1,7 +1,8 @@
 extends Node3D
 ## The garage loop (2026-10-31; docs/DEMO.md 6.2's 10:00 beat and 6.3 "Progression", checklist
-## F4): "Warsztat u Mirka", a street workshop on Brzeska in Praga (an invented business on a real
-## street; Mirek is an invented type). The złoty buy paint jobs for the hatchback; the eggs found
+## F4): "Warsztat u Mirka", a street workshop on Twarda in Śródmieście (an invented business on a
+## real street; Mirek is an invented type). It moved from Brzeska in Praga, 3 km from the start, to
+## about 600 m west of it on 2026-11-22 (F: "капец далеко"). The złoty buy paint jobs for the hatchback; the eggs found
 ## open a gold one.
 ##  - **The place**: a dashed ring on the street (jobs.gd's pull-in look, in GARAGE_COLOUR) at the
 ##    lane graph's point nearest SPOT, a diamond on the minimap and the full map. It shows once the
@@ -30,10 +31,14 @@ const GarageCard := preload("res://scripts/garage_card.gd")
 ## G13: the second tab, "Części i auta" (a faster car, nitro, tyres and engine): upgrades.gd.
 const Upgrades := preload("res://scripts/upgrades.gd")
 
-## The workshop's spot: a point on Brzeska (map metres) near which the ring goes on the street.
-const SPOT := Vector2(1321.0, -1947.6)
+## The workshop's spot: a point on Twarda (map metres), on the wide two-way stretch between Plac
+## Grzybowski and Emilii Plater, near which the ring goes on the street: ~590 m from the guided start
+## (first10.gd START), ~450 m from the first stand (jobs.gd FIRST_STAND), ~720 m from the map's spawn.
+const SPOT := Vector2(-1505.0, -135.0)
 const NAME := ["Warsztat u Mirka", "Mirek's garage"]
-const STREET := "Brzeska"
+const STREET := "Twarda"
+## The district on the card under the name (garage_card.gd).
+const DISTRICT := "Śródmieście"
 const GARAGE_COLOUR := Color("#5aa0ff")
 ## Stop in this ring (m) under this speed (m/s) and the card opens; leave COOL m to open it again.
 const RING := 6.0
@@ -347,7 +352,7 @@ func apply_car() -> void:
 	if str(wallet.car) != car.model:
 		car.set_model(str(wallet.car))
 	if hud != null and hud.has_method("set_nitro"):
-		hud.set_nitro(car.nitro_owned, car.nitro_charge)
+		hud.set_nitro(car.nitro_owned, car.nitro_charge, car.nitro_bottles, car.nitro_on)
 
 
 ## --upgrades=all: every car, the nitro and every part at level 3, for this run (with --nosave nothing
@@ -393,8 +398,8 @@ func _refresh(quiet := false) -> void:
 	if on and not quiet and not force and hud != null and wallet != null and not bool(wallet.keep.get("garage_told", false)):
 		wallet.keep["garage_told"] = true
 		wallet.save()
-		hud.toast("Warsztat u Mirka otwarty: Brzeska, Praga. Lakier za złotówki.",
-				"Mirek's garage is open: Brzeska, Praga. Paint jobs for złoty.")
+		hud.toast("Warsztat u Mirka otwarty: Twarda, rzut beretem. Lakier za złotówki.",
+				"Mirek's garage is open: on Twarda, just round the corner. Paint jobs for złoty.")
 		if log_on:
 			print("garage: shown (the first earnings)")
 
@@ -427,7 +432,12 @@ func tick() -> void:
 
 
 ## The card opens (main.gd pauses the game under it: `opened`).
-func open_card(start_tab := "paint") -> void:
+## G2: "garage" at Mirek's ring (buy, tune, paint), "mine" from the full map's MOJE AUTO (look and
+## switch what is owned; buying waits for the workshop), "lot" for the car lot (later).
+var mode := "garage"
+
+
+func open_card(start_tab := "paint", how := "garage") -> void:
 	if _open or hud == null:
 		return
 	_open = true
@@ -443,7 +453,8 @@ func open_card(start_tab := "paint") -> void:
 	hud.move_child(card, -1)
 	card.pt = hud.pt
 	card.safe = hud.safe_rect()
-	card.open(start_tab)
+	mode = how
+	card.open(start_tab, how)
 	if log_on:
 		print("garage: the card open (%d zł, paint %s, owned %s, eggs %d)" % [wallet.zl, current(), owned().keys(), eggs_now()])
 	opened.emit()
