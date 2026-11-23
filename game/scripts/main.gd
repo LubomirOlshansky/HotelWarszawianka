@@ -4762,6 +4762,7 @@ func _wire_full_map() -> void:
 	hud.full_map.quest_picked.connect(_on_quest_picked)
 	hud.full_map.quit_quest.connect(_quit_quest)
 	hud.full_map.rival_called.connect(_call_rival_out)
+	hud.full_map.my_car.connect(func() -> void: garage.open_card("parts", "mine"))  # G2: MOJE AUTO
 	hud.full_map.seen.connect(func(id: String) -> void:
 		if wallet != null and wallet.intro.erase(QuestBook.NEW_KEY + id.trim_prefix("story_")):
 			wallet.save())  # a questline that invited the player was looked at in QUESTS

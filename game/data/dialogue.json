@@ -3323,6 +3323,13 @@
   ],
   "garage": [
     [
+      "Zmiana fury za darmo. Części i nowe auta kupisz u mnie na Twardej.",
+      "Switching is free. Parts and new cars: at my place on Twarda.",
+      {
+        "only": "mine"
+      }
+    ],
+    [
       "PRĘDKOŚĆ",
       "TOP SPEED",
       {

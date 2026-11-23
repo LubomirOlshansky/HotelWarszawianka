@@ -275,9 +275,10 @@ func open(start_tab := "paint", mode := "garage") -> void:
 	if not _built:
 		_build()
 	stage.set_mode(mode)
+	_title.text = Lang.pick("MOJE AUTO", "MY CAR") if mode == "mine" else str(garage.NAME[0]).to_upper()
 	picked = garage.current()
 	tab = start_tab
-	_say("parts" if tab == "parts" else "hello")
+	_say("mine" if mode == "mine" else ("parts" if tab == "parts" else "hello"))
 	_refresh()
 	visible = true
 	_place.call_deferred()
@@ -409,7 +410,15 @@ func _refresh() -> void:
 				hud._set_chip(_action, "ZA %d SEKRETÓW" % int(p2["eggs"]), "Find %d easter eggs" % int(p2["eggs"]))
 			_action.disabled = true
 	_action.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_mine_gate(garage.rule_now(picked))
 	_place()
+
+
+## G2: from the full map (MOJE AUTO) the shop's buys wait for the workshop: the action says where.
+func _mine_gate(rule: String) -> void:
+	if garage.mode == "mine" and rule in ["buy", "short"]:
+		_hud()._set_chip(_action, "KUP U MIRKA · TWARDA", "Buy it at Mirek's on Twarda")
+		_action.disabled = true
 
 
 ## G1: the stage wears the paint picked (or the car picked on the parts tab), and the badge and bars
@@ -499,6 +508,7 @@ func _refresh_parts() -> void:
 			hud._set_chip(_action, "BRAKUJE %s" % w.money(miss).to_upper(), "%s short" % _money_en(miss))
 			_action.disabled = true
 	_action.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_mine_gate(rule)
 
 
 ## The stat card's line: top speed, pull and grip now (and after the item picked, when it changes them).
