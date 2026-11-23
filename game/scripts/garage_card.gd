@@ -32,7 +32,7 @@ const PANEL_MIN := 330.0
 const PANEL_MAX := 470.0
 const STAGE_GAP := 10.0
 ## G1: the class letters' colours (D .. S) on the badge.
-const CLASS_COLOURS := [Color("#c9c2d8"), Color("#5fd38a"), Color("#5fd4ff"), Color("#ff4fd8"), Color("#ffd23f")]
+const CLASS_COLOURS := [UiKit.SUB, UiKit.GO, UiKit.NEON_CYAN, UiKit.NEON_PINK, UiKit.GOLD]
 const GAP := 6.0
 ## Swatches per row (loop 3h slice 2: ten paints in two rows of five).
 const COLUMNS := 5
