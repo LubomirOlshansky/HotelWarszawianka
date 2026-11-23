@@ -47,6 +47,8 @@ Rows learned so far (2026-11-23):
   harness drives back along its own trail to the last lane it was on (`back_to_road`,
   `back_on_road` in the trace), then follows the route. A goal nearer than 40 m is off the road on
   purpose (a stand, a passenger) and is driven to as before.
+- An aim more than 110° off the nose at a crawl (the route turns round, fifth run after the pickup
+  on Próżna) is a three-point turn: back up with the wheels the other way, then on (`turn_round`).
 
 Autopilot takes the last `Harness` subclass in the file. Keep the plan's `done` on the game's
 state, never on which options ran, so `run_harness(restart=False)` resumes it after the 360 s

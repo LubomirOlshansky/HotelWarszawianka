@@ -10,6 +10,8 @@ What it gives every row, so no run writes (and breaks) these again:
   game/scripts/playtest_route.gd `get_drive_state` (the route the minimap draws, an aim on a lane a
   second ahead, the speed for the next bend). Never straight at the arrow through a block (PT-60);
 - the stuck rule (under 1.2 m/s for 2 s with the gas held; at 10 s reverse out and go on);
+- turning round: an aim behind the car (over 110 degrees) at a crawl is a three-point turn (back
+  up with the wheels the other way, then on), not a circle in the street;
 - back to the road: off every lane for 4 s with the goal over 40 m away, the car drives back to the
   last place it was on a lane before it follows the route again (2026-11-23, third run: after a
   pickup on Plac Grzybowski it spent 410 s among the square's railings and planters while the aim
@@ -50,6 +52,12 @@ TRAIL_STEP_M = 4.0  # a trail point every 4 m on a lane
 TRAIL_KEEP = 40
 TRAIL_REACHED_M = 3.0
 BACK_KMH = 15.0
+
+# Turning round (2026-11-23, fifth run): the route behind the car (an aim over 110 degrees off the
+# nose) is never reached by steering forward in a street; back up with the wheels the other way
+# first, as a player does a three-point turn.
+TURN_ROUND_DEG = 110.0
+TURN_ROUND_KMH = 10.0
 
 # The stop rule of the skill: from over 20 km/h to under 3 within 1 s, or under 5 for 3 s with the gas held.
 STOP_FROM_KMH = 20.0
@@ -274,8 +282,22 @@ class RoadHarness(Harness):
                 yield
                 continue
             arrived = float(st.get("goal_m") or 1e9) < self.arrive_m
+            bearing = float(st.get("bearing_deg") or 0.0)
+            if (not arrived and abs(bearing) > TURN_ROUND_DEG
+                    and float(st.get("speed_kmh") or 0.0) < TURN_ROUND_KMH):
+                game.log("turn_round", t=game.t, x=st.get("x"), z=st.get("z"), bearing_deg=bearing,
+                         street=st.get("street"), place=st.get("place"))
+                r = yield from self.reverse_out(game, obs)
+                if not r:
+                    return r
+                # then forward on full lock towards the aim, slowly
+                self._hold(game, "D" if float((self._last or {}).get("bearing_deg") or 0.0) > 0 else "A")
+                self._hold(game, "W")
+                yield from wait(game, REVERSE_S)
+                self._let_go(game)
+                continue
             want = 0.0 if arrived else float(st.get("want_kmh") or self.cruise_kmh)
-            self._steer(game, float(st.get("bearing_deg") or 0.0))
+            self._steer(game, bearing)
             self._pedals(game, float(st.get("speed_kmh") or 0.0), want)
             if arrived and float(st.get("speed_kmh") or 0.0) < STOP_TO_KMH:
                 self._let_go(game)
