@@ -144,6 +144,7 @@ places               quick
 placescripts         quick
 placzamkowy          quick
 plain                runs
+playtestroute        quick
 pois                 roads
 police               quick
 police-runs          local     slow
