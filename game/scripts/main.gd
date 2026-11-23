@@ -3155,7 +3155,7 @@ func _build_stories(world: Node3D) -> void:
 		stories.add({"id": "meet", "pl": "Nocny spot", "en": "Night meet", "who": [StreetMeet.FRIEND, StreetMeet.FRIEND],
 				"hello": ["„Siema! Dziś spot na Defiladzie. Wbijasz?”", "\"Hey! Meet's on Plac Defilad tonight. You in?\""],
 				"closed": ["„Za dnia tu tylko turyści. Wpadnij po 21.”", "\"By day it's all tourists here. Come after nine.\""],
-				"at": Vector2(g.x, g.z), "colour": StreetMeet.COLOUR, "hours": StreetMeet.NIGHT_HOURS, "days": [], "jump": true,
+				"at": Vector2(g.x, g.z), "colour": StreetMeet.COLOUR, "hours": StreetMeet.NIGHT_HOURS, "days": [],
 				"call": meet.ring, "meet": meet.meet_in_person, "busy": meet.busy, "idle": meet.idle})
 	if kino_tour != null:
 		stories.add({"id": "kino", "pl": str(kino_tour.title()[0]), "en": "Cinema tour", "who": ["Wiktor", "Wiktor"],

@@ -119,6 +119,7 @@ func _initialize() -> void:
 	# F, 2026-11-08: stopped in the night meet's ring by day, nothing could start it. A closed
 	# questline now offers to wait for its opening hour: the clock jumps, the quest starts.
 	var jumped := [-1.0]
+	s.defs[0]["jump"] = false  # the opt-out keeps the CZEKAM card (F 2026-11-22: jumping is the default)
 	s.skip_to = func(h: float) -> bool:
 		jumped[0] = h
 		hour[0] = h
@@ -142,9 +143,10 @@ func _initialize() -> void:
 	_expect("any-time questlines have no opening hour", Story.open_hour({"hours": Vector2(-1, -1)}) < 0.0)
 	_expect("looks: 21:00 Night, 14:00 Day, 19:00 Dusk, 6:00 Dawn",
 			Story.look_for(21.05) == "Night" and Story.look_for(14.05) == "Day" and Story.look_for(19.05) == "Dusk" and Story.look_for(6.05) == "Dawn")
-	# The night meet's def (jump): outside its hours the friend says hello with WCHODZĘ; the tap
+	# Every questline with hours (jump, the default since F 2026-11-22; the night meet's since
+	# 2026-11-08): outside its hours the friend says hello with WCHODZĘ and when it starts; the tap
 	# jumps the clock and starts it, no CZEKAM card.
-	s.defs[0]["jump"] = true
+	s.defs[0].erase("jump")
 	car[0] = Vector3(300, 0, 0)
 	s.step()
 	hour[0] = 23.0
@@ -152,6 +154,7 @@ func _initialize() -> void:
 	car[0] = Vector3(12, 0, 0)
 	s.step()
 	_expect("jump: closed, still WCHODZĘ: %s" % [hud.button_words], s.talking() and hud.button_words.size() == 2 and hud.button_words[0].begins_with("WCHODZĘ"))
+	_expect("jump: the hello says the hour and the skip", Story._later_words(s.defs[0])[1] == "At 7:00? Say yes and the clock skips ahead.")
 	hud.card_pressed.emit(0)
 	_expect("jump: WCHODZĘ jumps the clock and starts it", met[0] == 3 and absf(jumped[0] - 7.05) < 0.001)
 	s.defs[0]["jump"] = false
