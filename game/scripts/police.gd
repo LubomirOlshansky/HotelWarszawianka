@@ -858,6 +858,8 @@ func _on_bumped(d, speed: float) -> void:
 	if flying or speed < BUMP:
 		return
 	var u = _unit_of.get(d)
+	if u != null and u.role() == "ambulance":
+		return  # road life (road_life.gd): the ambulance's own rules, never a police offence
 	if u != null and u.role() == "crash":
 		# The crash scenes: the scene's car stays put; the offence is anyone's (a ram's chase
 		# goes to the nearest other unit).
@@ -1157,7 +1159,7 @@ func _nearest_unit():
 	var best = null
 	for u in _units:
 		# Loop 3g-2: never the guards' car (guards never call the police) nor the escort.
-		if u.driver != null and not u.role() in ["guard", "guard_follow", "escort", "club", "crash"] and (best == null or u.dist < best.dist):
+		if u.driver != null and not u.role() in ["guard", "guard_follow", "escort", "club", "crash", "ambulance"] and (best == null or u.dist < best.dist):
 			best = u
 	return best
 
@@ -1254,6 +1256,24 @@ func scene_car(e: int, lane: int, s: float, at: Vector3, yaw: float, shape: int)
 		traffic.remove(d)
 		return null
 	traffic.park(d, e, s, at, yaw, lane)
+	traffic.set_lights(d, true)
+	return d
+
+
+## Road life (road_life.gd, F 2026-11-23): an ambulance on a call, the pool's shape 2, on lane
+## (e, lane) at s, standing, its lights on (the traffic gives way). A unit of role "ambulance": it
+## sees nothing, starts nothing, is never a chaser, and a bump into it is no offence (road_life.gd
+## has its own rules); road_life.gd drives it (traffic.gd race_to) and takes it away with
+## scene_leave. Null if the pool or the units are out.
+func ambulance_car(e: int, lane: int, s: float):
+	if _free.is_empty():
+		return null
+	var d = traffic.add_police(e, lane, s, 2)
+	if d == null:
+		return null
+	if _bind(d, "ambulance") == null:
+		traffic.remove(d)
+		return null
 	traffic.set_lights(d, true)
 	return d
 

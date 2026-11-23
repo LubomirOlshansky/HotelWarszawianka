@@ -177,6 +177,7 @@ ride-police          local     slow
 rideplay             quick
 rides                quick
 rivals               quick
+roadlife             quick
 roadprofiles         smoke
 roads                roads
 roadtruth            quick

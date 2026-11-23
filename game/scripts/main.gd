@@ -135,6 +135,7 @@ const Buses := preload("res://scripts/buses.gd")
 const OldTram := preload("res://scripts/old_tram.gd")
 const CampusCart := preload("res://scripts/campus_cart.gd")
 const CrashScenes := preload("res://scripts/crash_scenes.gd")
+const RoadLife := preload("res://scripts/road_life.gd")
 ## Sekretny rave (rave.gd, F's ask 2026-11-06): LEKTI on MORDOR FM, Mati's call, the raves' rigs.
 const Rave := preload("res://scripts/rave.gd")
 ## Nocny spot (street_meet.gd, F's ask 2026-11-06): the WARSAW NIGHT RACING CLUB's meets, raids and drag.
@@ -436,6 +437,8 @@ var campus_cart: CampusCart
 ## scene 45-80 m ahead at the start, for shots), --crash=X,Z (one on the fitting road nearest that
 ## point), --crash=on (the timer in a test run too), --crash=0 (none), --crash-log.
 var crash_scenes: CrashScenes
+## Road life (road_life.gd, F 2026-11-23): the ambulance on a call, the honk at a green.
+var road_life: RoadLife
 ## Dead electric cars (ev_tow.gd, F's ask 2026-11-06): Bartek's call to carry his TESŁO to a charger
 ## under the helicopter, and stranded ones in the kerb lane. Flags --ev-call (the call rings now),
 ## --ev-tow (accepted, the helicopter over his car), --ev-tow=carry (his car already on the rope),
@@ -3023,11 +3026,21 @@ func _build_crash_scenes() -> void:
 	add_child(crash_scenes)
 	crash_scenes.setup()
 	var xz := flags.crash_flag.split(",")
-	if flags.crash_flag == "now" or xz.size() == 2:
+	if flags.crash_flag in ["now", "taxi"] or xz.size() == 2:
 		var p := car.global_position
 		var f := -car.global_transform.basis.z
 		var at := Vector2(float(xz[0]), float(xz[1])) if xz.size() == 2 else Vector2.INF
-		crash_scenes.place(Vector2(p.x, p.z), Vector2(f.x, f.z).normalized(), true, at)
+		crash_scenes.place(Vector2(p.x, p.z), Vector2(f.x, f.z).normalized(), true, at, xz[0] if xz[0] == "taxi" else "")
+	# Road life: the ambulance and the honk at a green, quiet in a race, a chase or the guide (the
+	# scenes wait for the same).
+	road_life = RoadLife.new()
+	if road_life.install(_build_ctx()):
+		road_life.name = "RoadLife"
+		road_life.hushed = func() -> bool: return police.phase != 0 or (first10 != null and first10.guide) \
+				or (activities.current() != null and activities.current().target_source() == "race")
+		crash_scenes.hushed = road_life.hushed
+		add_child(road_life)
+		road_life.setup()
 
 
 # --- the boat race ---------------------------------------------------------------------------
@@ -3518,6 +3531,8 @@ func _build_ctx() -> GameCtx:
 	_ctx.map = map
 	_ctx.radio = radio
 	_ctx.city_sounds = city_sounds
+	_ctx.sfx = sfx
+	_ctx.missions = missions
 	_ctx.graph = graph
 	_ctx.traffic = traffic
 	_ctx.jobs = jobs
@@ -6038,6 +6053,8 @@ func _make_stats() -> BenchStats:
 		b.systems["crazy drivers"] = [crazy_drivers, "spent_usec", true]  # racer AI step 6b part 3: their fares
 	if crash_scenes != null:
 		b.systems["crash scenes"] = [crash_scenes, "spent_usec", true]
+	if road_life != null:
+		b.systems["road life"] = [road_life, "spent_usec", true]
 	if old_tram != null:
 		b.systems["old tram"] = [old_tram, "spent_usec", true]  # the vintage-tram loop
 	if campus_cart != null:

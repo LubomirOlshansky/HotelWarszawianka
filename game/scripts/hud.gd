@@ -461,6 +461,9 @@ const POLICE_BLUE := Color("#1f4fd8")
 const SCENE_AMBER := UiKit.HEAT
 const LENS_BLUE := Color("#3d7bff")
 const LENS_RED := UiKit.ALERT
+## Road life: the ambulance's edge mark (models.gd AMBULANCE_YELLOW and its red).
+const AMB_YELLOW := Color("#f2cf1d")
+const AMB_RED := Color("#d9262c")
 var _police_pill: PanelContainer
 var _police_pl: Label
 var _police_en: Label
@@ -4724,6 +4727,20 @@ func _draw_police_gap() -> void:
 ## The overlay: the blue-red edge breath at `breath` (0..1; at most 10 % opacity at the very
 ## edge), the chasers' screen points (HUD pixels; one off screen gets a rooster pinned to the
 ## edge, towards it), and the lizak paddle over a trap's officer (a screen point, or INF).
+## Road life (road_life.gd): the ambulance's screen point (HUD pixels) while it is on a call near
+## the player, or INF. Off screen it gets its own mark pinned to the edge, towards it: an
+## ambulance-yellow disc with a red cross (never the police's rooster, so nobody reads it as a
+## chase).
+var _amb_edge := Vector2.INF
+
+
+func ambulance_edge(p: Vector2) -> void:
+	if p == _amb_edge:
+		return
+	_amb_edge = p
+	_police_fx.queue_redraw()
+
+
 func police_fx(breath: float, chasers: PackedVector2Array, lizak: Vector2) -> void:
 	var was := _breath > 0.0 or not _edge_roosters.is_empty() or _lizak != Vector2.INF
 	_breath = breath
@@ -4775,6 +4792,17 @@ func _draw_police_fx() -> void:
 		_tri_fan(at, 15.0 * pt, 0.0, TAU, CARD_BG)
 		_tri_ring(at, 13.0 * pt, 15.0 * pt, 0.0, TAU, LENS_BLUE if flip else LENS_RED)
 		_tri_fan(at + Vector2(0, 4.0 * pt), 8.0 * pt, PI, TAU, LENS_BLUE if flip else LENS_RED)
+	if _amb_edge != Vector2.INF and inside.size.x > 0.0 and inside.size.y > 0.0 and not inside.has_point(_amb_edge):
+		# Road life: the ambulance off screen: a yellow disc with a red cross, pulsing, at the edge.
+		var centre := inside.get_center()
+		var d := _amb_edge - centre
+		var k := minf((inside.size.x * 0.5) / maxf(absf(d.x), 0.001), (inside.size.y * 0.5) / maxf(absf(d.y), 0.001))
+		var at := centre + d * k
+		var r := (15.0 + (1.5 if flip else 0.0)) * pt
+		_tri_fan(at, r + 2.0 * pt, 0.0, TAU, OUTLINE)
+		_tri_fan(at, r, 0.0, TAU, AMB_YELLOW)
+		_tri_rect(Rect2(at - Vector2(2.5, 8.0) * pt, Vector2(5.0, 16.0) * pt), AMB_RED)
+		_tri_rect(Rect2(at - Vector2(8.0, 2.5) * pt, Vector2(16.0, 5.0) * pt), AMB_RED)
 	if _lizak != Vector2.INF:
 		# The lizak (the round stop paddle) over the officer, bobbing 2 pt at 2 Hz.
 		var bob := sin(Time.get_ticks_msec() * 0.001 * TAU * 2.0) * 2.0 * pt
@@ -4784,7 +4812,7 @@ func _draw_police_fx() -> void:
 		_tri_fan(c, 8.0 * pt, 0.0, TAU, LENS_RED)
 		_tri_fan(c, 5.0 * pt, 0.0, TAU, INK)
 	_tri_flush(o)
-	if _breath > 0.0 or not _edge_roosters.is_empty() or _lizak != Vector2.INF or _koguty_mode == 1:
+	if _breath > 0.0 or not _edge_roosters.is_empty() or _lizak != Vector2.INF or _koguty_mode == 1 or _amb_edge != Vector2.INF:
 		o.queue_redraw()
 
 

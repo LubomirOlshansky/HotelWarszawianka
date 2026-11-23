@@ -71,7 +71,8 @@ var best := {}
 var eggs := {}
 ## Loop 3g-1 (police.md section 8.4): the joke notebook ("Zeszyt pouczeń"): cautions written
 ## today and the day they belong to (yyyymmdd; a new day starts it again), and escapes ever (for
-## a later achievement). Never money: nothing the police do takes złoty or respect.
+## a later achievement). Never money: nothing the police do takes złoty or respect (road life's
+## ambulance can: `lose_respect`).
 var cautions_today := 0
 var cautions_day := 0
 var escapes_total := 0
@@ -628,6 +629,21 @@ func add_respect(gain: int) -> void:
 	save()
 	changed.emit(zl, respect, 0)
 	print("wallet: +%d respect (police) -> %d zł, respect %d" % [gain, zl, respect])
+
+
+## Road life (road_life.gd, F 2026-11-23): respect taken for a hit on an ambulance or blocking
+## one, at most `loss` and never below `least` (road_rules.gd `respect_floor`: a ladder rung the
+## player has opened stays open). Returns what was taken (0: nothing). The police still never
+## take any (the notebook below).
+func lose_respect(loss: int, least: int) -> int:
+	var take := clampi(respect - least, 0, maxi(loss, 0))
+	if take == 0:
+		return 0
+	respect -= take
+	save()
+	changed.emit(zl, respect, 0)
+	print("wallet: -%d respect (road) -> %d zł, respect %d" % [take, zl, respect])
+	return take
 
 
 ## Loop 3g-1: a caution in the joke notebook on day `today` (yyyymmdd); returns today's count.

@@ -1910,18 +1910,19 @@ func park(d: Driver, e: int, s: float, at: Vector3, yaw: float, block_lane := -1
 	d.visible = on_screen(d.pos, d.size.y)
 
 
-## The crash scenes (crash_scenes.gd): a traffic car of shape `shape` (models.gd TRAFFIC[CAR])
-## in `paint`, parked at `at` heading `yaw` and standing in lane `block_lane` of edge e at s (as
-## park()): a wreck. Kept until drop_parked(); null if the pool is out.
-func add_parked_car(e: int, s: float, at: Vector3, yaw: float, block_lane: int, shape: int, paint: Color) -> Driver:
-	if _free_slots[Kind.CAR].is_empty() or _free.is_empty():
+## The crash scenes (crash_scenes.gd): a traffic car of shape `shape` (models.gd TRAFFIC[kind],
+## a car unless `kind` says TAXI: the road life's taxi check) in `paint`, parked at `at` heading
+## `yaw` and standing in lane `block_lane` of edge e at s (as park()): a wreck, a stopped taxi.
+## Kept until drop_parked(); null if the pool is out.
+func add_parked_car(e: int, s: float, at: Vector3, yaw: float, block_lane: int, shape: int, paint: Color, kind := Kind.CAR) -> Driver:
+	if _free_slots[kind].is_empty() or _free.is_empty():
 		return null
 	var d: Driver = _free.pop_back()
-	d.kind = Kind.CAR
-	d.slot = _free_slots[Kind.CAR][_free_slots[Kind.CAR].size() - 1]
-	_free_slots[Kind.CAR].resize(_free_slots[Kind.CAR].size() - 1)
-	_counts[Kind.CAR] += 1
-	var shapes: Array = Models.TRAFFIC[Kind.CAR]
+	d.kind = kind
+	d.slot = _free_slots[kind][_free_slots[kind].size() - 1]
+	_free_slots[kind].resize(_free_slots[kind].size() - 1)
+	_counts[kind] += 1
+	var shapes: Array = Models.TRAFFIC[kind]
 	d.shape = clampi(shape, 0, shapes.size() - 1)
 	d.size = shapes[d.shape]["size"]
 	d.length = d.size.z

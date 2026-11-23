@@ -28,6 +28,10 @@ var radio: Node
 ## The city's sounds (city_sounds.gd): an activity's crowds and their beat at its spots. Null when
 ## the notebook's places did not load.
 var city_sounds: Node
+## The game's sounds (sfx.gd): road life's siren and horns.
+var sfx: Node
+## The rescue line (missions.gd): its `places` (the hospitals road life's ambulance drives to).
+var missions: Node
 ## The lane graph (centrum.json's `graph`): there with --no-traffic too (the side jobs ride it).
 var graph: RefCounted
 ## The traffic, null with --no-traffic.

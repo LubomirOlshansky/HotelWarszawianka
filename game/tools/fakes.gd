@@ -635,6 +635,15 @@ class Wallet extends Node:
 		best[key] = seconds
 		return true
 
+	## wallet.gd's `add_respect` and `lose_respect` (road life: the ambulance's rules).
+	func add_respect(gain: int) -> void:
+		respect += gain
+
+	func lose_respect(loss: int, least: int) -> int:
+		var take := clampi(respect - least, 0, maxi(loss, 0))
+		respect -= take
+		return take
+
 	## wallet.gd's `save`: how often it was asked for.
 	var saves := 0
 
@@ -859,6 +868,16 @@ class Sfx extends Node3D:
 
 	func soften_engine(_seconds: float) -> void:
 		softened += 1
+
+	## sfx.gd's `horn` and road life's `ambulance_siren`: the horns' places, the siren's last place.
+	var horns: Array = []
+	var siren := Vector3.INF
+
+	func horn(at: Vector3) -> void:
+		horns.append(at)
+
+	func ambulance_siren(at: Vector3) -> void:
+		siren = at
 
 
 ## city_sounds.gd for a check with no city sounds (TD-11 group 3): the crowds asked for, by id.

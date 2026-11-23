@@ -204,6 +204,10 @@ var bus_log := false
 var honk_frames: Array[int] = []
 var crash_flag := ""
 var crash_log := false
+## Road life (road_life.gd): --ambulance=now (one comes up behind in 2 s, 40-60 m back), =0 (none;
+## the honk at a green stays), =on (on in a test run too); --road-log prints its log.
+var ambulance_flag := ""
+var road_log := false
 var crawl_flag := ""
 var crawl_route := ""
 var crawl_group := ""
@@ -983,6 +987,10 @@ func parse_with(args: PackedStringArray) -> void:
 			ev_log = true
 		elif arg == "--crash-log":
 			crash_log = true
+		elif arg.begins_with("--ambulance="):
+			ambulance_flag = arg.trim_prefix("--ambulance=")
+		elif arg == "--road-log":
+			road_log = true
 		elif arg.begins_with("--loud="):
 			loud_flag = clampi(int(arg.trim_prefix("--loud=")), 0, 16)
 		elif arg == "--loud-log":
