@@ -14,8 +14,8 @@ extends SceneTree
 ##      rest doesn't count;
 ##   P8 the menus' ui_accept / ui_cancel / ui_up..ui_right carry the pad (A, B, the D-pad);
 ## The follow-ups (2026-11-01), on a real HUD in the root window, events through Input:
-##   P9 Settings opened by the pad focuses the open tab with the ring; RB moves to the next tab;
-##      a focused volume bar steps 0.1 on the D-pad's right and left; B closes; opened after a
+##   P9 Settings opened by the pad focuses the open tab with the ring; RB moves to the next tab and walks all six round;
+##      a focused volume bar steps 0.1 on the D-pad's right and left; DEV (a scrolling page) scrolls each focused control into view; B closes; opened after a
 ##      touch nothing takes focus;
 ##   P10 the notebook page's cursor moves to the nearest target each way, A opens a card, B (and
 ##       WRÓĆ) comes back to the card it left, nothing that way gives the focus back;
@@ -259,6 +259,35 @@ func _ui() -> void:
 	if got.size() < 2 or not is_equal_approx(float(got[-1][1]), 0.5):
 		fails.append("P9 the music bar, D-pad left: %s" % [got])
 	panel.changed.disconnect(on_change)
+	# Settings redesign step 3: RB walks all six tabs and comes round; in DEV (a scrolling page) the
+	# pad's focus brings every control into view (follow_focus).
+	var seen := []
+	panel.set_page(String(panel.TABS[0][1]))
+	await process_frame
+	for i in panel.TABS.size():
+		seen.append(panel.page())
+		_button(JOY_BUTTON_RIGHT_SHOULDER, true)
+		_button(JOY_BUTTON_RIGHT_SHOULDER, false)
+		await process_frame
+	var tab_keys := []
+	for t: Array in panel.TABS:
+		tab_keys.append(String(t[1]))
+	if seen != tab_keys or panel.page() != tab_keys[0]:
+		fails.append("P9 RB round the tabs: %s, back on %s" % [seen, panel.page()])
+	panel.set_page("dev")
+	await process_frame
+	var dev_scroll := panel.find_child("dev_page", true, false) as ScrollContainer
+	var hidden := []
+	for b in dev_scroll.find_children("*", "Button", true, false):
+		if not (b as Control).is_visible_in_tree():
+			continue
+		(b as Control).grab_focus()
+		await process_frame
+		await process_frame
+		if not dev_scroll.get_global_rect().grow(1.0).encloses((b as Control).get_global_rect()):
+			hidden.append(String(b.name))
+	if not hidden.is_empty():
+		fails.append("P9 DEV: the pad's focus left %s out of view" % [hidden])
 	_button(JOY_BUTTON_B, true)
 	_button(JOY_BUTTON_B, false)
 	await process_frame

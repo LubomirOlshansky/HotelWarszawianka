@@ -367,7 +367,7 @@ var call_in := -1.0
 ## Loop 2e: --settings-tab=NAME opens the settings panel at that page for screenshots: a name of
 ## settings_panel.gd PAGES (driving, world, picture, sound, notebook, access, credits, tips, dev) or,
 ## as before, its number.
-var settings_tab := "driving"
+var settings_tab := "game"
 var _flag_style := -1
 ## --tap=X,Y: tap that screen pixel at frame 60, as if a finger did (landmark cards).
 var tap_at := Vector2.INF

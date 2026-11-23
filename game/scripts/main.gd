@@ -32,8 +32,8 @@ extends Node
 ## water as if it had jumped the edge (the splash and the tow, printed as `water:` lines).
 ## The driving-feel loop: --ram-test drives the car into the back of a traffic car and logs the
 ## hit, the shove and how soon it gets past (`ram test:` lines).
-## Loop 2e: --call-in=S brings the first rescue call after S seconds of play, --settings-tab=N
-## opens the settings panel at tab N.
+## Loop 2e: --call-in=S brings the first rescue call after S seconds of play, --settings-tab=NAME
+## opens the settings panel on page NAME (settings_panel.gd PAGES).
 ## Camera loop: --cam-log prints the camera every 0.25 s (`cam:` lines), --cam-test=classic_turn|
 ## point_release|brake drives one camera moment in the real city (frame strips).
 ## Loop G1: --quality=auto|low|medium|high|ultra|experimental (Auto: the level for this device, tiers.gd;
@@ -1227,8 +1227,8 @@ func _crash_note() -> void:
 	if SAVE_NOTES.has(wallet.load_note):
 		await get_tree().create_timer(6.0).timeout  # after the save's note, not over it
 	hud.show_note(Lang.pick("GRA ZAMKNĘŁA SIĘ SAMA", "THE GAME CLOSED BY ITSELF"),
-			Lang.pick("Tak skończyła się ostatnia sesja. Ustawienia → Dźwięk → RAPORT kopiuje, co się stało.",
-			"That is how the last session ended. Settings → Sound → REPORT copies what happened."),
+			Lang.pick("Tak skończyła się ostatnia sesja. Ustawienia → Ogólne → RAPORT kopiuje, co się stało.",
+			"That is how the last session ended. Settings → General → REPORT copies what happened."),
 			SAVE_NOTE_COLOUR, Messages.ALERT)
 	print("trap: the player was told the last session closed by itself")
 

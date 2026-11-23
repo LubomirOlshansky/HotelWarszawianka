@@ -289,11 +289,11 @@ func _check_panel(code: String) -> void:
 			if text.split("\n").has(hidden) and not text.split("\n").has(shown) and not _word_shared(hidden, code):
 				_fail("[%s] settings tab %s shows '%s' (the other language) instead of '%s'" % [code, tab, hidden, shown])
 	# The language row itself is there, with both languages named in their own tongue.
-	panel.set_page("sound")
+	panel.set_page("general")
 	await process_frame
 	var sound := _joined(panel)
 	if not sound.contains("Polski") or not sound.contains("English"):
-		_fail("[%s] Settings → DŹWIĘK has no Polski / English choice" % code)
+		_fail("[%s] Settings → OGÓLNE has no Polski / English choice" % code)
 	# Heading rows are one label: no " · " pair in a heading.
 	for line in sound.split("\n"):
 		if line.to_upper() == line and " · " in line and "ENGLISH" in line:

@@ -3,6 +3,8 @@ extends Control
 ## pauses under it (main.gd). Polish first with the English under it, every control at least
 ## 44 pt (the iPhone guideline). Emits `changed(key, value)` for each change (main.gd applies
 ## and saves it) and `closed`.
+## Settings redesign step 3 (F 2026-11-23): the tabs are GRA, OBRAZ, DŹWIĘK, DOSTĘP, OGÓLNE and DEV
+## (TABS below); the loop notes under this line are the history of where each row came from.
 ##
 ## Loop 2e: sized in points throughout (text too: 11 pt and up), in the HUD's card recipe, and
 ## in four tabs so it fits a phone 390 pt tall without shrinking, now that the driving screen's
@@ -48,22 +50,26 @@ const T_LABEL := UiKit.T_LABEL
 const T_NOTES := UiKit.T_TITLE
 
 ## Settings redesign step 2 (F 2026-11-23): ZESZYT left the tabs; the notebook page opens from QUESTS → Collection.
-const TABS := [["JAZDA", "driving"], ["ŚWIAT", "world"], ["OBRAZ", "picture"], ["DŹWIĘK", "sound"], ["DOSTĘP", "access"]]
+## Step 3: six tabs, GRA (the rescue, the controls, the lane assist, weather and traffic), OBRAZ,
+## DŹWIĘK, DOSTĘP, OGÓLNE (language, stats, credits, tips) and DEV (our A/B switches plus the time
+## of day, the frame rate and Piksel/Pełny).
+const TABS := [["GRA", "game"], ["OBRAZ", "picture"], ["DŹWIĘK", "sound"], ["DOSTĘP", "access"], ["OGÓLNE", "general"], ["DEV", "dev"]]
 ## Settings redesign step 1 (F 2026-11-23): the pages by name, in the order `_build` makes them.
 ## Everything outside this script (`set_page`, --settings-tab=NAME, the checks) names a page; the
 ## numbers below follow from this list, so the redesign can reorder tabs in one place. The tabs are
-## the TABS keys; credits (DŹWIĘK → LICENCJE), tips (DŹWIĘK → PORADY, game/data/tips.json) and DEV
-## (the Fable critique, F 2026-11-15: our A/B switches, DEV_TAPS taps on the version, each within
-## DEV_TAP_GAP s of the last; once open in a run, one tap opens it again) have no tab of their own.
-const PAGES := ["driving", "world", "picture", "sound", "notebook", "access", "credits", "tips", "dev"]
-## The tab that stays lit on a page without a tab of its own (credits and tips under DŹWIĘK).
-const PAGE_TAB := {"credits": "sound", "tips": "sound"}
+## the TABS keys, first; the notebook (QUESTS → Kolekcja), credits (OGÓLNE → LICENCJE) and tips
+## (OGÓLNE → PORADY, game/data/tips.json) have no tab of their own. DEV (the Fable critique, F
+## 2026-11-15) has its tab since step 3; DEV_TAPS taps on the version still open it.
+const PAGES := ["game", "picture", "sound", "access", "general", "dev", "notebook", "credits", "tips"]
+## The tab that stays lit on a page without a tab of its own (credits and tips under OGÓLNE).
+const PAGE_TAB := {"credits": "general", "tips": "general"}
+## The names before step 3 (old --settings-tab values, saved shot lists): JAZDA and ŚWIAT are GRA now.
+const PAGE_ALIAS := {"driving": "game", "world": "game"}
 static var NOTEBOOK_TAB: int = PAGES.find("notebook")
 static var ACCESS_TAB: int = PAGES.find("access")
 static var CREDITS_PAGE: int = PAGES.find("credits")
 static var TIPS_PAGE: int = PAGES.find("tips")
 static var DEV_PAGE: int = PAGES.find("dev")
-static var SOUND_TAB: int = PAGES.find("sound")
 const TIPS_FILE := "res://data/tips.json"
 const DEV_TAPS := 7
 const DEV_TAP_GAP := 1.5
@@ -241,7 +247,7 @@ func _build() -> void:
 	rows.add_child(body)
 	_body = body
 
-	# Jazda · Driving.
+	# GRA · Game (settings redesign step 3, F 2026-11-23: was JAZDA and ŚWIAT).
 	var drive := _page(body, 2)
 	# G14 (F, 2026-11-01): the two rescue buttons at the top of the first tab, where they are found:
 	# the tow onto the nearest road, and a new game (two taps: the second wipes the progress).
@@ -283,44 +289,24 @@ func _build() -> void:
 	# slides only open on its last third (car.gd set_character).
 	# The ends' words sit under the name inside the row (the column is full since the feedback button).
 	_level(drive[0], "character", "Charakter jazdy", "Handling", 120.0, ["spokojnie → ostro", "calm → sharp"])
-	# First hour step 6 (the Fable critique's beta settings, F 2026-11-15): our own A/B switches
-	# (handling, the follow camera, the 20 km/h zones, collisions, smashable
-	# fences, the city's chattiness, the overlay and TEST) live on the DEV page (`_dev_page`,
-	# seven taps on the version under the title), so every tester drives the same car; the
-	# player's own preferences stay on the tabs. Jazda keeps the rescue, the controls and the
-	# steering in its first column; the second shows what DEV holds.
+	# First hour step 6 (the Fable critique's beta settings, F 2026-11-15): our own A/B switches live
+	# on DEV, so every tester drives the same car; the player's own preferences stay on the tabs.
 	# F 2026-11-22: the lane assist is a player setting, not a DEV one (key "lane_assist", settings.gd),
 	# at the top of the second column (the first is full on a 375 pt phone).
 	_heading(drive[1], "Asysta pasa", "Lane assist")
 	_segments(drive[1], "lane_assist", ON_OFF)
 	for b: Button in _groups["lane_assist"]:
 		b.custom_minimum_size.x = touch * 1.05
-	_heading(drive[1], "Ustawienia testów", "Test settings")
-	var dev_note := _text(Lang.pick("Prowadzenie, kamera, zderzenia i łamliwe płoty: na stronie DEV.",
-			"Handling, camera, collisions and smashable fences: on the DEV page."), T_SUB, SUB)
-	dev_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dev_note.custom_minimum_size.x = 200.0 * pt
-	drive[1].add_child(dev_note)
-	# F 2026-11-16 (TestFlight build 12): the DEV page shows to every tester, one tap from here (the
-	# seven taps on the version still open it too).
-	var open_dev := _word_button("DEV", "OPEN DEV")
-	open_dev.name = "open_dev"
-	open_dev.pressed.connect(show_dev)
-	drive[1].add_child(open_dev)
-	# Świat · World: the time of day and the weather; the traffic. (The Spacer game mode was removed 2026-11-22, F.)
-	var world := _rows(body, [2, 1])
-	_heading(world[0], "Pora dnia", "Time of day")
-	_segments(world[0], "time", TIME)
-	_groups["time"][3].visible = false  # F 2026-11-19: no Live, the game runs its own clock (time_of_day.gd)
-	_heading(world[1], "Pogoda", "Weather")
-	_segments(world[1], "weather", WEATHER)
-	_heading(world[2], "Ruch uliczny", "Traffic")
-	_steps(world[2], "traffic", TRAFFIC)
-	# Obraz · Picture. Loop G1: in three rows (Quality's five choices made the two columns too
-	# wide for the SE): the camera angle and colours; Quality; Frame rate and the overlay with TEST.
-	# 2026-11-01 (F): the Style picker is gone (always the sharp image). 2026-11-22 (F): the Retro
-	# filter switch is gone too (it did not work on phones). Camera angle: follow_camera.gd PITCHES, key "angle".
-	var picture := _rows(body, [2, 1, 3])
+	# The weather and the traffic (was ŚWIAT; the time of day went to DEV in step 3: the game runs
+	# its own clock, F 2026-11-19).
+	_heading(drive[1], "Pogoda", "Weather")
+	_segments(drive[1], "weather", WEATHER)
+	_heading(drive[1], "Ruch uliczny", "Traffic")
+	_steps(drive[1], "traffic", TRAFFIC, 200.0)  # narrower in GRA's second column (375 pt phones)
+	# Obraz · Picture: the camera angle and colours; Quality; the photo mode. (Frame rate and
+	# Piksel/Pełny went to DEV in step 3.) 2026-11-01 (F): the Style picker is gone; 2026-11-22 (F):
+	# the Retro filter too. Camera angle: follow_camera.gd PITCHES, key "angle".
+	var picture := _rows(body, [2, 1, 1])
 	_heading(picture[0], "Kąt kamery", "Camera angle")
 	_segments(picture[0], "angle", ANGLE)
 	# F (2026-11-15): the colour look (grades.gd SETTING, key "grade"), beside them.
@@ -335,10 +321,6 @@ func _build() -> void:
 	var quality := QUALITY.duplicate(true)
 	quality[0] = ["Auto · %s" % _auto_name, "Auto · %s" % _auto_name]
 	_segments(picture[2], "quality", quality)
-	_heading(picture[3], "Klatki na sekundę", "Frame rate")
-	_segments(picture[3], "fps", FPS)
-	_heading(picture[4], "Obraz", "Image")
-	_segments(picture[4], "image", IMAGE)
 	# Loop MW-6: the photo mode (fotka.gd), from the pause card. (The overlay and TEST are on DEV.)
 	var photo := _word_button("FOTKA", "PHOTO")
 	photo.name = "fotka"
@@ -346,48 +328,13 @@ func _build() -> void:
 	photo.pressed.connect(func():
 		close()
 		changed.emit("fotka", 1))
-	picture[5].add_child(photo)
-	# Dźwięk · Sound.
-	var sound := _page(body, 2)
+	picture[3].add_child(photo)
+	# Dźwięk · Sound: the volumes.
+	var sound := _page(body, 1)
 	for l in LEVELS:
 		_level(sound[0], l[0], l[1], l[2])
-	# 2026-11-02 (F): the language, one at a time (lang.gd): POLSKI or ENGLISH.
-	_heading(sound[1], "Język", "Language")
-	_segments(sound[1], "lang", [["Polski", "Polski"], ["English", "English"]])
-	# The beta's play stats (play_stats.gd, docs/STATS.md, F 2026-11-15): anonymous counts, on by
-	# default, off here at once (settings.gd `stats`, key "stats"). Beside the language and the
-	# credits because it is about the game, not about the drive or the picture.
-	_heading(sound[1], "Anonimowa statystyka", "Anonymous stats")
-	_segments(sound[1], "stats", ON_OFF)
-	# DEMO 3j: the credits and licences (credits.gd), a page of their own opened from here.
-	_heading(sound[1], "O grze", "About")
-	var about_row := HBoxContainer.new()
-	about_row.add_theme_constant_override("separation", _px(6))
-	sound[1].add_child(about_row)
-	var about := _word_button("LICENCJE", "CREDITS")
-	about.name = "credits"
-	about.pressed.connect(show_credits)
-	about_row.add_child(about)
-	var tips_button := _word_button("PORADY", "TIPS")
-	tips_button.name = "tips"
-	tips_button.pressed.connect(show_tips)
-	var help_row := HBoxContainer.new()
-	help_row.add_theme_constant_override("separation", _px(6))
-	sound[0].add_child(help_row)
-	help_row.add_child(tips_button)
-	# The error trap (tech-debt TD-14): this run's errors and last lines onto the clipboard
-	# (main.gd). Only in our own debug builds (`report_on`).
-	if report_on:
-		var report := _word_button("RAPORT", "REPORT")
-		report.name = "report"
-		report.pressed.connect(func():
-			close()
-			changed.emit("report", 1))
-		about_row.add_child(report)
 
-	# DOSTĘP · Access (access.gd): built here so the card is sized for it, moved after the
-	# notebook's page below (the notebook keeps tab 4).
-	var access_at := _pages.size()
+	# DOSTĘP · Access (access.gd).
 	var access := _page(body, 2)
 	_heading(access[0], "Duży tekst", "Larger text (after restart)")
 	_segments(access[0], "text_large", ON_OFF)
@@ -402,17 +349,50 @@ func _build() -> void:
 	_heading(access[1], "Dla leworęcznych", "Left-handed: pedals on the left")
 	_segments(access[1], "left_handed", ON_OFF)
 
+	# OGÓLNE · General (step 3): the language, the stats, the credits and the tips (were on DŹWIĘK).
+	var general := _page(body, 2)
+	# 2026-11-02 (F): the language, one at a time (lang.gd): POLSKI or ENGLISH.
+	_heading(general[0], "Język", "Language")
+	_segments(general[0], "lang", [["Polski", "Polski"], ["English", "English"]])
+	# The beta's play stats (play_stats.gd, docs/STATS.md, F 2026-11-15): anonymous counts, on by
+	# default, off here at once (settings.gd `stats`, key "stats").
+	_heading(general[0], "Anonimowa statystyka", "Anonymous stats")
+	_segments(general[0], "stats", ON_OFF)
+	# DEMO 3j: the credits and licences (credits.gd), and the tips, pages of their own opened from here.
+	_heading(general[1], "O grze", "About")
+	var about_row := HBoxContainer.new()
+	about_row.add_theme_constant_override("separation", _px(6))
+	general[1].add_child(about_row)
+	var about := _word_button("LICENCJE", "CREDITS")
+	about.name = "credits"
+	about.pressed.connect(show_credits)
+	about_row.add_child(about)
+	var tips_button := _word_button("PORADY", "TIPS")
+	tips_button.name = "tips"
+	tips_button.pressed.connect(show_tips)
+	about_row.add_child(tips_button)
+	# The error trap (tech-debt TD-14): this run's errors and last lines onto the clipboard
+	# (main.gd). Only in our own debug builds (`report_on`).
+	if report_on:
+		var report := _word_button("RAPORT", "REPORT")
+		report.name = "report"
+		report.pressed.connect(func():
+			close()
+			changed.emit("report", 1))
+		about_row.add_child(report)
+
 	var dev := _dev_page(body)
-	_pages.erase(dev)  # page DEV_PAGE: after the credits and the tips below
 
 	# The body is as big as the biggest page, so the card keeps its size from tab to tab.
 	var biggest := Vector2.ZERO
 	for p in _pages:
-		biggest = biggest.max(p.get_combined_minimum_size())
+		if p != dev:  # DEV scrolls inside the others' size
+			biggest = biggest.max(p.get_combined_minimum_size())
 	body.custom_minimum_size = biggest
 	for p in _pages:
 		p.size = biggest
 	_settings_size = biggest
+	dev.custom_minimum_size = biggest
 	# Loop MW-1: the notebook's page, sized on its own (the settings tabs keep their size).
 	notebook_page = NotebookPage.new()
 	notebook_page.name = "notebook"
@@ -423,13 +403,10 @@ func _build() -> void:
 	notebook_page.kadr = notebook_kadr
 	body.add_child(notebook_page)
 	_pages.append(notebook_page)
-	_pages.append(_pages[access_at])
-	_pages.remove_at(access_at)
 	notebook_page.size = notebook_page.custom_minimum_size
 	_credits_page(body)
 	_tips_page(body)
-	_pages.append(dev)
-	if _pages.size() != PAGES.size():
+	if _pages.size() != PAGES.size() or _pages[DEV_PAGE] != dev:
 		push_error("settings_panel: %d pages built for the %d PAGES names" % [_pages.size(), PAGES.size()])
 	if _target != "":
 		notebook_page.show_target(_target)
@@ -505,10 +482,10 @@ func _rows(parent: Control, cells: Array[int]) -> Array[VBoxContainer]:
 static func page_of(key: String) -> int:
 	if key.is_valid_int():
 		return clampi(int(key), 0, PAGES.size() - 1)
-	return maxi(0, PAGES.find(key))
+	return maxi(0, PAGES.find(String(PAGE_ALIAS.get(key, key))))
 
 
-## Shows the page called `key` (PAGES: driving, world, picture, sound, notebook, access, credits, tips, dev).
+## Shows the page called `key` (PAGES: game, picture, sound, access, general, dev, notebook, credits, tips).
 func set_page(key: String) -> void:
 	set_tab(page_of(key))
 
@@ -518,7 +495,7 @@ func page() -> String:
 	return PAGES[_tab]
 
 
-## The index in `_tabs` (TABS) of the tab lit for page `i`, or -1 (DEV has no tab).
+## The index in `_tabs` (TABS) of the tab lit for page `i`, or -1 (the notebook has no tab).
 func _tab_button(i: int) -> int:
 	var key: String = PAGE_TAB.get(PAGES[i], PAGES[i])
 	for k in TABS.size():
@@ -621,8 +598,15 @@ func show_dev() -> void:
 ## city's chattiness, the performance overlay and TEST. The same keys as before, so main.gd and
 ## settings.gd keep them as ever; only where they sit changed.
 func _dev_page(body: Control) -> Control:
-	var at := _pages.size()
-	var dev := _rows(body, [2, 3, 4, 1])
+	# Settings redesign step 3: DEV is a tab, so it scrolls inside the settings pages' size (it had
+	# grown wider and taller than a 375 pt phone); two settings a row.
+	var scroll := ScrollContainer.new()
+	scroll.name = "dev_page"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true  # the pad's focus brings the rows below into view
+	body.add_child(scroll)
+	var dev := _rows(scroll, [2, 2, 2, 2, 2, 2, 1])
+	_pages[_pages.size() - 1] = scroll
 	_heading(dev[0], "Kamera za autem", "Camera follows the car")
 	_segments(dev[0], "camera", CAMERA)
 	_heading(dev[1], "Prowadzenie", "Handling")
@@ -647,21 +631,28 @@ func _dev_page(body: Control) -> Control:
 		close()
 		changed.emit("bench", 1))
 	perf_row.add_child(bench)
-	# F 2026-11-17: the camera view (follow_camera.gd VIEW_*): the game's, top-down, aerial.
-	_heading(dev[7], "Widok kamery", "Camera view")
-	_segments(dev[7], "camera_view", CAMERA_VIEW)
 	# F 2026-11-20: Promo Mode (promo_mode.gd): framing tools for the trailer and the Reels.
-	_heading(dev[8], "Tryb promo", "Promo mode")
-	_segments(dev[8], "promo", ON_OFF)
+	_heading(dev[7], "Tryb promo", "Promo mode")
+	_segments(dev[7], "promo", ON_OFF)
+	# F 2026-11-17: the camera view (follow_camera.gd VIEW_*): the game's, top-down, aerial.
+	_heading(dev[8], "Widok kamery", "Camera view")
+	_segments(dev[8], "camera_view", CAMERA_VIEW)
 	# Stats thread 2026-11-21: the tester's own phone, so the anonymous stats can leave it out.
-	_heading(dev[9], "Urządzenie testowe (statystyki)", "Test device (stats)")
+	_heading(dev[9], "Urządzenie testowe", "Test device (stats)")
 	_segments(dev[9], "test_device", ON_OFF)
+	# Settings redesign step 3 (F 2026-11-23): the time of day (the game runs its own clock, F
+	# 2026-11-19, so this is a tester's jump), Piksel/Pełny and the frame rate moved here from the tabs.
+	_heading(dev[10], "Pora dnia", "Time of day")
+	_segments(dev[10], "time", TIME)
+	_groups["time"][3].visible = false  # F 2026-11-19: no Live, the game runs its own clock (time_of_day.gd)
+	_heading(dev[11], "Obraz", "Image")
+	_segments(dev[11], "image", IMAGE)
+	_heading(dev[12], "Klatki na sekundę", "Frame rate")
+	_segments(dev[12], "fps", FPS)
 	for key: String in ["camera", "zones", "soft_fences", "perf", "promo", "test_device"]:
 		for b: Button in _groups[key]:
 			b.custom_minimum_size.x = touch * 1.05
-	var page := _pages[at]
-	page.name = "dev_page"
-	return page
+	return scroll
 
 
 ## First hour step 6: shows the tips (DŹWIĘK → PORADY; any tab goes back).
@@ -825,12 +816,23 @@ func button_rects() -> Dictionary:
 		return out
 	for b in _card.find_children("*", "Button", true, false):
 		var c := b as Control
-		if c.is_visible_in_tree():
+		if c.is_visible_in_tree() and _in_view(c):
 			out[str(_card.get_path_to(c))] = c.get_global_rect()
 	# Loop MW-1: the notebook page's targets (drawn, not Buttons).
 	if notebook_page != null and notebook_page.is_visible_in_tree():
 		out.merge(notebook_page.hit_rects())
 	return out
+
+
+## False for a button scrolled out of a scrolling page's view (DEV since step 3): it is no target
+## until a drag or the pad brings it in.
+func _in_view(c: Control) -> bool:
+	var n := c.get_parent()
+	while n != null and n != _card:
+		if n is ScrollContainer:
+			return (n as Control).get_global_rect().grow(1.0).encloses(c.get_global_rect())
+		n = n.get_parent()
+	return true
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -1013,10 +1015,10 @@ func _segments(parent: Node, key: String, options: Array) -> void:
 
 
 ## A slider with one notch per option (tap or drag along the bar), the chosen words beneath.
-func _steps(parent: Node, key: String, options: Array) -> void:
+func _steps(parent: Node, key: String, options: Array, width := 260.0) -> void:
 	var bar := Control.new()
 	bar.name = "%s_slider" % key
-	bar.custom_minimum_size = Vector2(260.0 * pt, touch + 22.0 * pt)
+	bar.custom_minimum_size = Vector2(width * pt, touch + 22.0 * pt)
 	bar.mouse_filter = Control.MOUSE_FILTER_STOP
 	bar.draw.connect(_draw_steps.bind(bar, key, options))
 	bar.gui_input.connect(func(e: InputEvent):

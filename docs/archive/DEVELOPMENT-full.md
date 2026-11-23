@@ -6088,7 +6088,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--story-meet` | quest map: the friend's WCHODZĘ is pressed by itself a second after they walk up (the in-person start without a tap) |
 | `--stories-log` | quest map (`story_quests.gd`): the questlines, quest focus, the friend walking up |
 | `--map-jump=X,Z` | 2026-10-31: the full map's hold-to-teleport to X,Z at the start (prints the refusal, if any, and where the car went) |
-| `--settings-tab=NAME` | loop 2e: open the settings panel on a page by name (settings_panel.gd PAGES: driving, world, picture, sound, notebook, access, credits, tips, dev; settings redesign step 1, 2026-11-23). A number still works as the page's index in PAGES |
+| `--settings-tab=NAME` | loop 2e: open the settings panel on a page by name (settings_panel.gd PAGES: game, picture, sound, access, general, dev, notebook, credits, tips; step 1 named them, step 3 regrouped the tabs, 2026-11-23; the old driving and world open game). A number still works as the page's index in PAGES |
 | `--notebook` / `--notebook=CHAPTER\|ID` | loop MW-1: open the settings card on MOJA WARSZAWA, the notebook (a chapter by id or number 1-9, or a place's card by its id; screenshots) |
 | `--found=all\|none\|CHAPTER[:K],…` | loop MW-1: the notebook's record for this run, in memory, no rewards (a chapter by id or number, `:K` its first K places; `--found=1:4,9` half of the first chapter and all of the ninth). Use with `--nosave` (a later save would keep it) |
 | `--place=ID` | loop MW-1: start at a notebook place (`places.json` id): the sectors round its hint first, then the car on the nearest lane if that is inside the place's radius, else on the place (found within a second, standing) |
