@@ -102,8 +102,9 @@ const GRADE := [["Natura", "Natural"], ["Neon", "Neon"], ["Klasyk", "Classic"]]
 const ANGLE := [["30°", "30°"], ["40°", "40°"], ["50°", "50°"]]
 ## Loop 2b: frames per second (settings.gd FPS: 60, 30) and the benchmark button.
 const FPS := [["60 płynnie", "60 smooth"], ["30 bateria", "30 battery"]]
-## G4: the car's handling (settings.gd `handling`, car.gd PROFILES).
-const HANDLING := [["Spokojnie", "Cruise"], ["Sportowo", "Sport"], ["Realnie", "Grounded"]]
+## H1: the Realnie switch on the DEV page (settings.gd `handling`: 0 off, 1 the car with weight);
+## Cruise to Sport is the „Charakter jazdy" slider on Jazda now.
+const HANDLING := [["Zwykle", "Arcade"], ["Realnie", "Grounded"]]
 ## Phase 0.2: the city's chattiness (settings.gd `chatter`, chatter.gd GAPS).
 const CHATTER := [["Mało", "Quiet"], ["Średnio", "Some"], ["Dużo", "Lots"]]
 ## Settings rows (F 2026-11-14): the car's collision answer (settings.gd `collide`, collide_rules.gd
@@ -276,7 +277,10 @@ func _build() -> void:
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size.x = 240.0 * pt
 		drive[0].add_child(l)
-	_level(drive[0], "sensitivity", "Czułość", "Steering", 120.0)
+	# H1 (F 2026-11-22): one slider for the handling, calm on the left, sharp on the right; the
+	# slides only open on its last third (car.gd set_character).
+	# The ends' words sit under the name inside the row (the column is full since the feedback button).
+	_level(drive[0], "character", "Charakter jazdy", "Handling", 120.0, ["spokojnie → ostro", "calm → sharp"])
 	# First hour step 6 (the Fable critique's beta settings, F 2026-11-15): our own A/B switches
 	# (handling, the follow camera, the 20 km/h zones, collisions, smashable
 	# fences, the city's chattiness, the overlay and TEST) live on the DEV page (`_dev_page`,
@@ -1038,7 +1042,8 @@ func _say(pads: int) -> void:
 
 
 ## A volume: the words, −, a bar (tap or drag along it) and +.
-func _level(parent: Node, key: String, pl: String, en: String, bar_width := 200.0) -> void:
+## `sub` ([pl, en], optional): a small second line under the name, inside the row's height.
+func _level(parent: Node, key: String, pl: String, en: String, bar_width := 200.0, sub: Array = []) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", _px(8))
 	parent.add_child(row)
@@ -1048,6 +1053,8 @@ func _level(parent: Node, key: String, pl: String, en: String, bar_width := 200.
 	words.custom_minimum_size.x = 76.0 * pt
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	words.add_child(_text(Lang.pick(pl, en), T_BODY, INK))
+	if sub.size() == 2:
+		words.add_child(_text(Lang.pick(sub[0], sub[1]), T_SUB, SUB))
 	row.add_child(words)
 	var minus := _flat_button("−", 22)
 	minus.name = "%s_minus" % key

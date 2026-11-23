@@ -10,7 +10,7 @@ extends RefCounted
 ##   LT or B      brake / reverse; the helicopter sinks (LT)
 ## Buttons (one press, `command`), named after the keys they stand for:
 ##   A primary (M)     X secondary (K)     Y car / helicopter (H)
-##   LB or RB held: the nitro (Shift), once bought   right stick flicked left / right: turn the view (Q / E)
+##   LB or RB pressed: one nitro bottle (Shift)      right stick flicked left / right: turn the view (Q / E)
 ##   R3 follow camera (C)     L3 horn (B)
 ##   D-pad up / down zoom in / out (= / -)  D-pad right radio (R)     D-pad left flash lights (L)
 ##   Back / Share / View: the full map      Start / Options / Menu: Settings (Esc)
@@ -217,7 +217,7 @@ static func brake() -> bool:
 	return Input.is_action_pressed(BRAKE)
 
 
-## LB or RB held (main.gd feeds it to car.nitro_hold with the disc and Shift).
+## LB or RB held (main.gd feeds it to car.nitro_hold with the disc and Shift; N1: the press fires a bottle).
 static func nitro() -> bool:
 	return Input.is_action_pressed(NITRO)
 

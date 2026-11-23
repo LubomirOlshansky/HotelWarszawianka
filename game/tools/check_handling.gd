@@ -20,6 +20,7 @@ extends SceneTree
 
 const Car := preload("res://scripts/car.gd")
 const CollideRules := preload("res://scripts/collide_rules.gd")
+const Settings := preload("res://scripts/settings.gd")
 const KMH := 1.0 / 3.6
 ## The most sideways speed (m/s) Cruise may show in the tests below.
 const CRUISE_SLIP := 1.2
@@ -249,22 +250,37 @@ func _finish() -> bool:
 			_problems.append("Cruise %s slides %.2f m/s (limit %.1f)" % [cs["name"], cr, CRUISE_SLIP])
 		if cr > sp + 0.01:
 			_problems.append("Cruise %s slides more than Sport (%.2f vs %.2f)" % [cs["name"], cr, sp])
-	# The sensitivity slider: its left end turns less than the middle, which turns less than its right end.
-	var gains: Array[float] = []
-	for lv in [0.0, 0.5, 1.0]:
+	# H1: „Charakter jazdy" (car.gd set_character): the steering sharpens all along the slider; the
+	# default and everything left of SLIDE_FROM keep Cruise's grip (no slides); CRUISE_AT is Cruise
+	# exactly and the right end Sport exactly; a fresh car keeps gain 1.
+	var cr: Dictionary = Car.PROFILES[Car.Handling.CRUISE]
+	var spd: Dictionary = Car.PROFILES[Car.Handling.SPORT]
+	var turns: Array[float] = []
+	for lv in [0.0, Car.CRUISE_AT, Settings.CHARACTER_DEFAULT, 1.0]:
 		var sc := Car.new()
-		sc.set_sensitivity(lv)
-		gains.append(sc.max_turn(10.0) )
+		sc.set_character(lv)
+		turns.append(sc.max_turn(10.0))
+		if lv <= Car.SLIDE_FROM and (sc.grip != cr["grip"] or sc.drift_grip != cr["drift_grip"]):
+			_problems.append("character %.2f loosens the tail (grip %.1f)" % [lv, sc.grip])
+		if lv == Car.CRUISE_AT and (sc.turn_cap != cr["turn_cap"] or sc.steer_time != cr["steer_time"] or sc.steer_gain != 1.0 or sc.handling != Car.Handling.CRUISE):
+			_problems.append("character CRUISE_AT is not Cruise's numbers")
+		if lv == 1.0 and (sc.grip != spd["grip"] or sc.turn_cap != spd["turn_cap"] or sc.steer_time != spd["steer_time"] or sc.handling != Car.Handling.SPORT):
+			_problems.append("character 1 is not Sport's numbers")
+		if lv == Settings.CHARACTER_DEFAULT and sc.turn_pull < lerpf(cr["turn_pull"], spd["turn_pull"], 0.5):
+			_problems.append("the default steers less than half way to Sport (pull %.1f)" % sc.turn_pull)
 		sc.free()
-	print("  max turn at 36 km/h by sensitivity 0 / 0.5 / 1: %.2f / %.2f / %.2f rad/s" % [gains[0], gains[1], gains[2]])
-	if not (gains[0] < gains[1] and gains[1] < gains[2]):
-		_problems.append("the sensitivity slider does not order the steering (%s)" % [gains])
+	print("  max turn at 36 km/h by character 0 / Cruise / default / 1: %.2f / %.2f / %.2f / %.2f rad/s" % [turns[0], turns[1], turns[2], turns[3]])
+	if not (turns[0] < turns[1] and turns[1] < turns[2] and turns[2] <= turns[3]):
+		_problems.append("the character slider does not order the steering (%s)" % [turns])
 	var mid := Car.new()
 	if not is_equal_approx(mid.steer_gain, 1.0):
 		_problems.append("a new car's steering gain is not 1.0")
-	mid.set_sensitivity(0.5)
-	if not is_equal_approx(mid.steer_gain, 1.0):
-		_problems.append("sensitivity 0.5 is not the profile as is")
+	mid.set_character(0.9, true)
+	if not mid.weighty or mid.handling != Car.Handling.GROUNDED:
+		_problems.append("Realnie with the slider is not the car with weight")
+	mid.set_tuning(1.0, 1.0, 1.2)
+	if not is_equal_approx(mid.grip, float(Car.PROFILES[Car.Handling.GROUNDED]["grip"]) * 1.2):
+		_problems.append("the tyres' tuning does not multiply the slider's grip")
 	mid.free()
 	# The gas: a quarter push for 1 s reaches a lower speed in Cruise than in Sport.
 	var cruise_v := _pull_away(Car.Handling.CRUISE)
