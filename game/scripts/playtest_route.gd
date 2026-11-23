@@ -98,7 +98,7 @@ static func get_drive_state(x := NAN, z := NAN, kerb := false, cruise_kmh := 50.
 		out["below_ground_m"] = snappedf(float(map.drive_height(at.x, at.y, car.global_position.y)) - car.global_position.y, 0.01)
 	out.merge(road_place(graph, at))
 	var goal := Vector2(x, z)
-	var source := "harness"
+	var source := "own"
 	if is_nan(x) or is_nan(z):
 		var g := get_goal()
 		if g.is_empty():

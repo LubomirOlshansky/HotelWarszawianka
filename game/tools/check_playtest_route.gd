@@ -188,7 +188,7 @@ func _on_main(graph: LaneGraph, map: Node3D) -> void:
 	if not bool(st.get("route", false)) or float(st.get("left_m", 0.0)) < 500.0:
 		problems.append("main: no road route to the target: %s" % st)
 	var own := PlaytestRoute.get_drive_state(-1100.0, -300.0)
-	if own.get("goal_source", "") != "harness":
+	if own.get("goal_source", "") != "own":
 		problems.append("main: a harness goal reads %s" % own)
 	digest.append("rc entry points (%s)" % str(st.get("street", "")))
 	main.queue_free()

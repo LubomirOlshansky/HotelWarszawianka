@@ -39,7 +39,7 @@ episode cap.
 
 `get_drive_state` gives, every tick, the car (`x`, `z`, `y`, `heading_deg`, `speed_kmh`,
 `unsticks`), where it is on the road (`street`, `place`: lane, lane_edge, junction, kerb, off;
-`side_m`, `lane_gap_m`), the goal (`goal_source`: target, main_target, main_line or harness) and
+`side_m`, `lane_gap_m`), the goal (`goal_source`: target, main_target, main_line or own: the row's point) and
 the way by road (`left_m`, `aim_x`, `aim_z`, `bearing_deg` + right, `bend_deg`, `want_kmh`). The
 route is the one the minimap draws (`route_line.gd`), walked again from the car on every call, so
 a wrong turn is driven round, not fought. The aim sits on the lane nearest the route's line
