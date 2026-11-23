@@ -539,7 +539,7 @@ func _check_screen(screen: Vector2i) -> int:
 	var panel: Control = hud.settings_panel
 	# Loop MW-1: the tabs and the credits page (settings_panel.gd PAGES, by name), then the notebook with a
 	# found card open and one not found yet.
-	var views := ["page:game", "page:picture", "page:sound", "page:access", "page:general", "page:dev", "page:credits", "page:notebook", "lusterko", "milosc_hipoteczna", "eggs", "e07", "e03", "e40", "tape", "t_defilad_2012",
+	var views := ["page:game", "page:picture", "page:sound", "page:access", "page:general", "page:dev", "page:advanced", "page:credits", "page:notebook", "lusterko", "milosc_hipoteczna", "eggs", "e07", "e03", "e40", "tape", "t_defilad_2012",
 			"t_stadion_2010", "kadr", "k01", "k10"]
 	for t in views:
 		if str(t).begins_with("page:"):

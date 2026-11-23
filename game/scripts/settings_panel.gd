@@ -60,9 +60,10 @@ const TABS := [["GRA", "game"], ["OBRAZ", "picture"], ["DŹWIĘK", "sound"], ["D
 ## the TABS keys, first; the notebook (QUESTS → Kolekcja), credits (OGÓLNE → LICENCJE) and tips
 ## (OGÓLNE → PORADY, game/data/tips.json) have no tab of their own. DEV (the Fable critique, F
 ## 2026-11-15) has its tab since step 3; DEV_TAPS taps on the version still open it.
-const PAGES := ["game", "picture", "sound", "access", "general", "dev", "notebook", "credits", "tips"]
-## The tab that stays lit on a page without a tab of its own (credits and tips under OGÓLNE).
-const PAGE_TAB := {"credits": "general", "tips": "general"}
+const PAGES := ["game", "picture", "sound", "access", "general", "dev", "notebook", "credits", "tips", "advanced"]
+## The tab that stays lit on a page without a tab of its own (credits and tips under OGÓLNE,
+## OBRAZ → ZAAWANSOWANE under OBRAZ).
+const PAGE_TAB := {"credits": "general", "tips": "general", "advanced": "picture"}
 ## The names before step 3 (old --settings-tab values, saved shot lists): JAZDA and ŚWIAT are GRA now.
 const PAGE_ALIAS := {"driving": "game", "world": "game"}
 static var NOTEBOOK_TAB: int = PAGES.find("notebook")
@@ -70,6 +71,7 @@ static var ACCESS_TAB: int = PAGES.find("access")
 static var CREDITS_PAGE: int = PAGES.find("credits")
 static var TIPS_PAGE: int = PAGES.find("tips")
 static var DEV_PAGE: int = PAGES.find("dev")
+static var ADVANCED_PAGE: int = PAGES.find("advanced")
 const TIPS_FILE := "res://data/tips.json"
 const DEV_TAPS := 7
 const DEV_TAP_GAP := 1.5
@@ -101,6 +103,12 @@ const QUALITY := [["Auto", "auto"], ["Niska", "Low"], ["Średnia", "Medium"], ["
 ## Perf thread (F 2026-11-20): the 3D image, the pixel look's own (x2 on a phone) or the screen's own
 ## pixels (settings.gd image_full, tiers.gd full_image).
 const IMAGE := [["Piksel", "Pixel"], ["Pełny", "Full"]]
+## Settings redesign step 4 (F 2026-11-23: one simple choice, the deeper options behind
+## ZAAWANSOWANE): a preset is a view over the saved keys, not a key of its own, so nothing is
+## migrated. Each preset is [quality choice (QUALITY index), fps (FPS index), image (IMAGE index)];
+## any other mix lights WŁASNE (custom), whose tap opens the advanced page.
+const PRESET := [["Auto", "Auto"], ["Bateria", "Battery"], ["Najlepsza", "Best"], ["Własne", "Custom"]]
+const PRESET_VALUES := [[0, 0, 0], [1, 1, 0], [4, 0, 0]]
 const ON_OFF := [["Wył.", "Off"], ["Wł.", "On"]]
 ## F 2026-11-17: DEV's camera view (settings.gd `camera_view`).
 const CAMERA_VIEW := [["Normalny", "Normal"], ["Z góry", "Top"], ["Z lotu", "Aerial"]]
@@ -317,10 +325,22 @@ func _build() -> void:
 		b.custom_minimum_size.x = touch * 1.05
 	for b: Button in _groups["grade"]:
 		b.custom_minimum_size.x = touch * 1.6
+	# Step 4: the preset (Auto, Battery, Best, or Custom) and ZAAWANSOWANE for the level, the frame
+	# rate and Piksel/Pełny (the advanced page, built below).
 	_heading(picture[2], "Jakość obrazu", "Quality")
-	var quality := QUALITY.duplicate(true)
-	quality[0] = ["Auto · %s" % _auto_name, "Auto · %s" % _auto_name]
-	_segments(picture[2], "quality", quality)
+	var preset := PRESET.duplicate(true)
+	preset[0] = ["Auto · %s" % _auto_name, "Auto · %s" % _auto_name]
+	_segments(picture[2], "preset", preset)
+	for i in _groups["preset"].size():
+		var pb: Button = _groups["preset"][i]
+		for c in pb.pressed.get_connections():
+			pb.pressed.disconnect(c["callable"])
+		pb.pressed.connect(_pick_preset.bind(i))
+	var advanced := _word_button("ZAAWANSOWANE", "ADVANCED")
+	advanced.name = "advanced"
+	advanced.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	advanced.pressed.connect(show_advanced)
+	picture[3].add_child(advanced)
 	# Loop MW-6: the photo mode (fotka.gd), from the pause card. (The overlay and TEST are on DEV.)
 	var photo := _word_button("FOTKA", "PHOTO")
 	photo.name = "fotka"
@@ -406,6 +426,7 @@ func _build() -> void:
 	notebook_page.size = notebook_page.custom_minimum_size
 	_credits_page(body)
 	_tips_page(body)
+	_advanced_page(body)
 	if _pages.size() != PAGES.size() or _pages[DEV_PAGE] != dev:
 		push_error("settings_panel: %d pages built for the %d PAGES names" % [_pages.size(), PAGES.size()])
 	if _target != "":
@@ -605,7 +626,7 @@ func _dev_page(body: Control) -> Control:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.follow_focus = true  # the pad's focus brings the rows below into view
 	body.add_child(scroll)
-	var dev := _rows(scroll, [2, 2, 2, 2, 2, 2, 1])
+	var dev := _rows(scroll, [2, 2, 2, 2, 2, 1])
 	_pages[_pages.size() - 1] = scroll
 	_heading(dev[0], "Kamera za autem", "Camera follows the car")
 	_segments(dev[0], "camera", CAMERA)
@@ -641,18 +662,71 @@ func _dev_page(body: Control) -> Control:
 	_heading(dev[9], "Urządzenie testowe", "Test device (stats)")
 	_segments(dev[9], "test_device", ON_OFF)
 	# Settings redesign step 3 (F 2026-11-23): the time of day (the game runs its own clock, F
-	# 2026-11-19, so this is a tester's jump), Piksel/Pełny and the frame rate moved here from the tabs.
+	# 2026-11-19, so this is a tester's jump). (Piksel/Pełny and the frame rate: OBRAZ → ZAAWANSOWANE.)
 	_heading(dev[10], "Pora dnia", "Time of day")
 	_segments(dev[10], "time", TIME)
 	_groups["time"][3].visible = false  # F 2026-11-19: no Live, the game runs its own clock (time_of_day.gd)
-	_heading(dev[11], "Obraz", "Image")
-	_segments(dev[11], "image", IMAGE)
-	_heading(dev[12], "Klatki na sekundę", "Frame rate")
-	_segments(dev[12], "fps", FPS)
 	for key: String in ["camera", "zones", "soft_fences", "perf", "promo", "test_device"]:
 		for b: Button in _groups[key]:
 			b.custom_minimum_size.x = touch * 1.05
 	return scroll
+
+
+## Settings redesign step 4: OBRAZ → ZAAWANSOWANE, the level (QUALITY, Max included), the frame
+## rate and Piksel/Pełny, under the OBRAZ tab; any tab goes back.
+func show_advanced() -> void:
+	set_tab(ADVANCED_PAGE)
+	if Gamepad.in_use():
+		pad_focus()
+
+
+func _advanced_page(body: Control) -> void:
+	var adv := _rows(body, [1, 2])
+	var page := _pages[_pages.size() - 1]
+	page.name = "advanced_page"
+	_heading(adv[0], "Poziom grafiki", "Graphics level")
+	var quality := QUALITY.duplicate(true)
+	quality[0] = ["Auto · %s" % _auto_name, "Auto · %s" % _auto_name]
+	_segments(adv[0], "quality", quality)
+	_heading(adv[1], "Klatki na sekundę", "Frame rate")
+	_segments(adv[1], "fps", FPS)
+	_heading(adv[2], "Obraz", "Image")
+	_segments(adv[2], "image", IMAGE)
+	page.size = _settings_size
+
+
+## Step 4: a tap on a preset sets the level, the frame rate and the image together (main.gd applies
+## each key as before); WŁASNE opens the advanced page.
+func _pick_preset(i: int) -> void:
+	if i >= PRESET_VALUES.size():
+		_sync_preset()
+		show_advanced()
+		return
+	var v: Array = PRESET_VALUES[i]
+	for k in 3:
+		var key: String = ["quality", "fps", "image"][k]
+		if _chosen(key) != int(v[k]):
+			_select(key, int(v[k]))
+			changed.emit(key, int(v[k]))
+	_sync_preset()
+
+
+## The index of the lit button of `key`'s row, or -1.
+func _chosen(key: String) -> int:
+	var buttons: Array = _groups.get(key, [])
+	for k in buttons.size():
+		if (buttons[k] as Button).button_pressed:
+			return k
+	return -1
+
+
+## Lights the preset the saved level, frame rate and image match, else WŁASNE.
+func _sync_preset() -> void:
+	if not _groups.has("preset"):
+		return
+	var now := [_chosen("quality"), _chosen("fps"), _chosen("image")]
+	var at := PRESET_VALUES.find(now)
+	_select("preset", at if at >= 0 else PRESET.size() - 1)
 
 
 ## First hour step 6: shows the tips (DŹWIĘK → PORADY; any tab goes back).
@@ -765,7 +839,9 @@ func sync(state: Dictionary) -> void:
 	# Loop G1b: what Auto draws can change with the style ("High ostry" / "High ×2" / "High").
 	_set_auto_name(str(state.get("auto", _auto_name)))
 	for key in _groups:
-		_select(key, int(values.get(key, 0)))
+		if key != "preset":  # step 4: a view over quality, fps and image (_sync_preset)
+			_select(key, int(values.get(key, 0)))
+	_sync_preset()
 	for key in _stepbars:
 		_values[key] = int(values.get(key, 0))
 		(_stepbars[key] as Control).queue_redraw()
@@ -986,12 +1062,13 @@ func _set_auto_name(name: String) -> void:
 	if name == _auto_name and _built:
 		return
 	_auto_name = name
-	if not _groups.has("quality"):
-		return
-	var b: Button = _groups["quality"][0]
-	var top: Label = b.get_child(0).get_child(0)
-	top.text = "Auto · %s" % name
-	_fit_words(b, top.text, top.text)
+	for key: String in ["quality", "preset"]:
+		if not _groups.has(key):
+			continue
+		var b: Button = _groups[key][0]
+		var top: Label = b.get_child(0).get_child(0)
+		top.text = "Auto · %s" % name
+		_fit_words(b, top.text, top.text)
 	_fit()
 
 
@@ -1064,6 +1141,8 @@ func _select(key: String, index: int) -> void:
 	var buttons: Array = _groups[key]
 	for k in buttons.size():
 		(buttons[k] as Button).set_pressed_no_signal(k == index)
+	if key in ["quality", "fps", "image"]:
+		_sync_preset()
 
 
 func _say(pads: int) -> void:

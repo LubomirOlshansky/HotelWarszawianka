@@ -23,7 +23,7 @@ const Hud := preload("res://scripts/hud.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const SettingsPanel := preload("res://scripts/settings_panel.gd")
 ## The A/B switches that live on the DEV page only (the Fable critique's list).
-const DEV_KEYS := ["camera", "handling", "zones", "collide", "soft_fences", "chatter", "perf", "camera_view", "time", "fps", "image"]
+const DEV_KEYS := ["camera", "handling", "zones", "collide", "soft_fences", "chatter", "perf", "camera_view", "time"]
 const SCREENS := [Vector2i(2532, 1170), Vector2i(1334, 750), Vector2i(1280, 720), Vector2i(2868, 1320)]
 
 var _problems := 0
@@ -368,6 +368,22 @@ func _dev() -> void:
 	_expect(dev_page.is_ancestor_of(dev_page.find_child("bench", true, false)), "DEV: TEST is on the DEV page")
 	panel.set_page("game")
 	_expect(panel.dev_tap() and panel._tab == SettingsPanel.DEV_PAGE, "DEV: one tap opens it again in the same run")
+	# Settings redesign step 4: the quality presets are a view over quality, fps and image.
+	var asked := []
+	panel.changed.connect(func(k: String, v: Variant) -> void: asked.append([k, v]))
+	_expect(panel._chosen("preset") == 0, "presets: Auto, 60 fps, Piksel lights Auto (lit %d)" % panel._chosen("preset"))
+	(panel._groups["preset"][1] as Button).pressed.emit()
+	_expect(asked == [["quality", 1], ["fps", 1]] and panel._chosen("preset") == 1,
+			"presets: Bateria sets Low and 30 fps and stays lit (asked %s, lit %d)" % [asked, panel._chosen("preset")])
+	(panel._groups["quality"][3] as Button).pressed.emit()
+	_expect(panel._chosen("preset") == SettingsPanel.PRESET.size() - 1, "presets: a level of one's own lights WŁASNE")
+	(panel._groups["preset"][SettingsPanel.PRESET.size() - 1] as Button).pressed.emit()
+	_expect(panel.page() == "advanced" and panel._chosen("preset") == SettingsPanel.PRESET.size() - 1,
+			"presets: WŁASNE opens ZAAWANSOWANE and stays lit (page %s)" % panel.page())
+	_expect(SettingsPanel.TABS[panel._tab_button(panel._tab)][1] == "picture", "presets: ZAAWANSOWANE keeps OBRAZ lit")
+	(panel._groups["preset"][2] as Button).pressed.emit()
+	_expect(panel._chosen("quality") == 4 and panel._chosen("fps") == 0 and panel._chosen("image") == 0 and panel._chosen("preset") == 2,
+			"presets: Najlepsza is Ultra, 60 fps, Piksel")
 	vp.queue_free()
 	await process_frame
 	# --settings-tab=tips and =dev ask for a page past the tabs before the panel is built (main.gd's
