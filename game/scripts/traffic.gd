@@ -1067,7 +1067,8 @@ func _process(dt: float) -> void:
 	graph.clock += dt
 	_update_lamps()
 	_update_view()
-	if spawning:
+	# setup() awaits between the kinds' pools: nothing spawns before all of them exist (PT-58).
+	if spawning and _free_slots.size() >= POOL.size():
 		_manage()
 		# Loop 3g-1: patrol cars, by their own count.
 		patrol_wait -= dt
