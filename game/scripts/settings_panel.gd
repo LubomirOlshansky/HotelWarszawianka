@@ -242,6 +242,16 @@ func _build() -> void:
 	var drive := _page(body, 2)
 	# G14 (F, 2026-11-01): the two rescue buttons at the top of the first tab, where they are found:
 	# the tow onto the nearest road, and a new game (two taps: the second wipes the progress).
+	# F 2026-11-22: the feedback button moved from Dźwięk to the very top of the first tab, gold and
+	# full width with its own words, so a tester finds it without looking (feedback.gd).
+	var feedback_button := Button.new()
+	feedback_button.name = "feedback"
+	feedback_button.text = Lang.pick("✉ NAPISZ DO AUTORA · OPINIA", "✉ WRITE TO THE AUTHOR · FEEDBACK")
+	feedback_button.custom_minimum_size = Vector2(0.0, touch)
+	feedback_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UiKit.style_button(feedback_button, UiKit.Kind.PRIMARY, pt, T_BODY)
+	feedback_button.pressed.connect(_open_feedback)
+	drive[0].add_child(feedback_button)
 	var rescue := HBoxContainer.new()
 	rescue.add_theme_constant_override("separation", _px(8))
 	drive[0].add_child(rescue)
@@ -355,16 +365,10 @@ func _build() -> void:
 	var tips_button := _word_button("PORADY", "TIPS")
 	tips_button.name = "tips"
 	tips_button.pressed.connect(show_tips)
-	# F 2026-11-21: in-game feedback (feedback.gd) beside PORADY under the volumes: the volume rows are
-	# wider than two buttons, so the card keeps its size (beside LICENCJE it grew too wide for check_hud).
 	var help_row := HBoxContainer.new()
 	help_row.add_theme_constant_override("separation", _px(6))
 	sound[0].add_child(help_row)
 	help_row.add_child(tips_button)
-	var feedback_button := _word_button("OPINIA", "FEEDBACK")
-	feedback_button.name = "feedback"
-	feedback_button.pressed.connect(_open_feedback)
-	help_row.add_child(feedback_button)
 	# The error trap (tech-debt TD-14): this run's errors and last lines onto the clipboard
 	# (main.gd). Only in our own debug builds (`report_on`).
 	if report_on:
