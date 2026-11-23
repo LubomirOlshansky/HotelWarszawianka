@@ -1,7 +1,7 @@
 - The boat race's finish can no longer be missed for good: cross the line beside the arch and the game tells you to turn round and go through it.
 - Android's back button no longer closes the game: in play it opens the settings card, on the map it closes the map.
 - The phone stops ringing under the map, the settings and the garage card.
-- Mirek's garage toast names the right street (Twarda), and the garage's parts tab and two phone calls speak the game's language.
+- The garage's parts tab and two phone calls speak the game's language.
 - The DESKA padel call can be flown to, as its card says.
 - Finished Dekalog and cinema tours now count on the QUESTS screen.
 
@@ -9,7 +9,7 @@
 - fixed: boat race finish crossed outside the arch ended the rings with no finish (only ✕ got out)
 - fixed: Android back quit the app from anywhere, without the save's flush (quit_on_go_back on by default)
 - fixed: the ringtone played every 2.6 s under a paused screen while a call waited
-- fixed: garage toast "Brzeska, Praga" after the move to Twarda (#1009); garage PARTS tab Polish-only in English; "JADĘ / NIE TERAZ" untranslated on the Mrożulo and coffee-run calls
+- fixed: garage PARTS tab Polish-only in English; "JADĘ / NIE TERAZ" untranslated on the Mrożulo and coffee-run calls
 - fixed: QUESTS "done" never counted the Dekalog and cinema tours (keys dekalog_tour / kino_tour)
 - fixed: REWANŻ during a police chase teleported the player out of it for a free escape
 - fixed: a race chip tapped in the moment the player got busy started a race on top of another activity
