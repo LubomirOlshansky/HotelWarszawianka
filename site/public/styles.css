@@ -422,3 +422,9 @@ html[data-os="ios"] #ios, html[data-os="android"] #android { border-color: var(-
 .beta-hero .kicker { margin-bottom: 12px; }
 .beta-hero .cta-note { margin-top: 16px; }
 .beta-hero .hook { margin-top: 18px; }
+.guide-note { color: var(--ink-2); font-size: 15px; padding-top: 16px; border-top: 1px solid var(--line); }
+.step .shot { width: 100%; height: auto; border-radius: 14px; border: 1px solid rgba(191, 194, 234, 0.35); }
+.controls-line { margin-top: 24px !important; max-width: 46em; color: var(--ink-2); }
+.beta-fb .ways { margin-top: 28px; max-width: 46rem; }
+.faq-one { max-width: 760px; }
+.faq-one h2 { font-size: clamp(1.9rem, 4vw, 2.6rem); }

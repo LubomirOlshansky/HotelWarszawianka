@@ -73,10 +73,7 @@
         <ol class="steps">
 {{ios_steps}}
         </ol>
-        <div class="guide-notes">
-          <div><h4>{{ios_updates_title}}</h4><p>{{ios_updates}}</p></div>
-          <div><h4>{{ios_fb_title}}</h4><p>{{ios_fb}}</p></div>
-        </div>
+        <p class="guide-note">{{ios_note}}</p>
         <a class="btn btn-primary guide-btn" href="/go/ios?src=beta"><svg aria-hidden="true"><use href="#i-apple"/></svg>{{btn_ios}}</a>
       </article>
       <article class="guide" id="android" aria-labelledby="and-title">
@@ -85,28 +82,20 @@
         <ol class="steps">
 {{and_steps}}
         </ol>
-        <div class="guide-notes">
-          <div><h4>{{and_trouble_title}}</h4><p>{{and_trouble}}</p></div>
-          <div><p>{{and_leave}} <a href="{{testing_url}}" rel="noopener">{{and_testing_link}}</a></p></div>
-        </div>
+        <p class="guide-note">{{and_note}} <a href="{{testing_url}}" rel="noopener">{{and_testing_link}}</a></p>
         <a class="btn btn-primary guide-btn" href="/go/android?src=beta"><svg aria-hidden="true"><use href="#i-play"/></svg>{{btn_android}}</a>
       </article>
     </div>
-    <p class="mock-note">{{mock_note}}</p>
   </div>
 </section>
 
 <section class="beta-start" id="start" aria-labelledby="start-title">
   <div class="wrap">
     <h2 id="start-title">{{start_title}}</h2>
-    <p class="lede">{{start_lede}}</p>
     <ol class="tries">
 {{start}}
     </ol>
-    <h3 class="sub">{{controls_title}}</h3>
-    <dl class="controls">
-{{controls}}
-    </dl>
+    <p class="controls-line">{{controls_line}}</p>
   </div>
 </section>
 
@@ -118,19 +107,9 @@
     <p class="kicker">{{fb_kicker}}</p>
     <h2 id="fb-title">{{fb_title}}</h2>
     <p class="lede">{{fb_lede}}</p>
-    <div class="fb-grid">
-      <div>
-        <ul class="want">
-{{fb_want}}
-        </ul>
-        <h3 class="sub">{{fb_ways_title}}</h3>
-        <dl class="ways">
+    <dl class="ways">
 {{fb_ways}}
-        </dl>
-        <p class="small">{{fb_good}}</p>
-      </div>
-      <figure class="fb-mock">{{mock_feedback}}</figure>
-    </div>
+    </dl>
     <details class="write" open>
       <summary>{{form_summary}}</summary>
 {{feedback_form}}
@@ -138,19 +117,10 @@
   </div>
 </section>
 
-<section class="beta-faq" id="faq" aria-labelledby="known-title">
-  <div class="wrap faq-grid">
-    <div>
-      <h2 id="known-title">{{known_title}}</h2>
-      <p class="lede">{{known_lede}}</p>
-      <ul class="known">
-{{known}}
-      </ul>
-    </div>
-    <div>
-      <h2>{{faq_title}}</h2>
+<section class="beta-faq" id="faq" aria-labelledby="faq-title">
+  <div class="wrap faq-one">
+    <h2 id="faq-title">{{faq_title}}</h2>
 {{faq}}
-    </div>
   </div>
 </section>
 
