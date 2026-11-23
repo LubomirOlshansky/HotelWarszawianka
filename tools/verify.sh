@@ -95,7 +95,8 @@
 # mesh per sector and the mesh defects of every place script on the flat stub map (committed centrum.json only, CI too).
 # The L-shaped map loop: `edge` runs game/tools/check_edge.gd: the helicopter's clamp along the
 # map's outline (random moves, four flights past the inner corner), the rescue spots inside the
-# outline, the minimap's mesh over the corner left outside; centrum.json only (CI too).
+# outline, the minimap's mesh over the corner left outside, and (2026-11-22) every job target (orders,
+# rides, EV tow, crash scenes) 80 m inside the outline; centrum.json only (CI too).
 # The edge roadworks (2026-11-02): `roadworks` runs game/tools/check_edge_roadworks.gd: every road
 # leaving the map closed by roadworks, the traffic shut there, rays through the barriers, the budget;
 # centrum.json only (CI too). `roadworks-prebuilt` runs game/tools/check_edge_prebuilt.gd: the prebuilt
