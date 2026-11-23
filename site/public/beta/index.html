@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Beta guide · Around Warsaw</title>
+<meta name="description" content="How to install the Around Warsaw beta on iPhone (TestFlight) and Android (Google Play), what to try first and how to send feedback.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0b0d24">
+<meta name="color-scheme" content="dark">
+<link rel="alternate" hreflang="en" href="https://aroundwarsaw.app/beta/">
+<link rel="alternate" hreflang="pl" href="https://aroundwarsaw.app/pl/beta/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<link rel="preload" href="/fonts/pixelify-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Around Warsaw">
+<meta property="og:title" content="Beta guide · Around Warsaw">
+<meta property="og:description" content="How to install the Around Warsaw beta on iPhone (TestFlight) and Android (Google Play), what to try first and how to send feedback.">
+<meta property="og:image" content="https://aroundwarsaw.app/img/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/styles.css">
+<script src="/lang.js"></script>
+<script src="/site.js" defer></script>
+</head>
+<body class="beta-page">
+<a class="skip" href="#main">Skip to the guide</a>
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-apple" viewBox="0 0 24 24"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.1 2.5-1.8 3.1-.5 7.6 1.3 10.1.8 1.2 1.8 2.6 3.1 2.5 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.4-1-2.4-4.2zM14 5.4c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.6 2.8-1.4z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4.5 3.5C4.2 3.7 4 4.05 4 4.5v15c0 .45.2.8.5 1L12.8 12Z"/><path d="M4.5 3.5 16.3 9.7 12.8 12Z"/><path d="M4.5 20.5 16.3 14.3 12.8 12Z"/><path d="M16.3 9.7 19.6 11.4c.6.3.6.9 0 1.2l-3.3 1.7L12.8 12Z"/></g></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4.5 12h14.5M13.5 6.5 19 12l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<header class="bar">
+  <div class="bar-in">
+    <a class="brand" href="/"><img src="/favicon.svg" alt="" width="28" height="28">Around Warsaw</a>
+    <nav aria-label="Beta guide">
+      <a class="wide" href="#install">Install</a>
+      <a class="wide" href="#start">First ten minutes</a>
+      <a class="wide" href="#feedback">Feedback</a>
+      <a class="lang" href="/pl/beta/" hreflang="pl" lang="pl" data-setlang="pl" aria-label="Polski">PL</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero beta-hero" aria-labelledby="title">
+  <div class="hero-media">
+    <img src="/img/game/palace-night-exp.webp" srcset="/img/game/palace-night-exp-960.webp 960w, /img/game/palace-night-exp.webp 1920w" sizes="(max-width: 700px) 163vw, 100vw" alt="The Palace of Culture at night in the game" width="1920" height="884" fetchpriority="high">
+  </div>
+  <div class="hero-in wrap">
+    <p class="kicker">Beta guide</p>
+    <h1 id="title">Welcome to the beta</h1>
+    <p class="hook">Around Warsaw is a free driving game in the real centre of Warsaw. Thank you for testing it. Installing takes about two minutes.</p>
+    <div class="cta">
+      <a class="btn btn-primary" data-for="ios" href="/go/ios?src=beta"><svg aria-hidden="true"><use href="#i-apple"/></svg>Join on iPhone</a>
+      <a class="btn btn-primary" data-for="android" href="/go/android?src=beta"><svg aria-hidden="true"><use href="#i-play"/></svg>Join on Android</a>
+    </div>
+    <p class="cta-note">Free, no ads, no purchases. iPhone with iOS 16 or newer. Android 7 or newer with Vulkan 1.1.</p>
+  </div>
+</section>
+
+<section class="beta-install" id="install" aria-labelledby="install-title">
+  <div class="wrap">
+    <h2 id="install-title">Install</h2>
+    <p class="lede">Open this page on the phone you want to play on. Your phone&#x27;s steps are shown first.</p>
+    <div class="guides">
+      <article class="guide" id="ios" aria-labelledby="ios-title">
+        <h3 id="ios-title"><svg aria-hidden="true"><use href="#i-apple"/></svg>iPhone: TestFlight</h3>
+        <p class="guide-intro">TestFlight is Apple&#x27;s free app for testing apps before they are in the App Store.</p>
+        <ol class="steps">
+          <li class="step"><figure><svg class="mock" viewBox="0 0 150 260" role="img" aria-label="Install TestFlight: Get it from the App Store. It is free and made by Apple."><rect x="1" y="1" width="148" height="258" rx="20" class="m-frame"/><rect x="8" y="8" width="134" height="244" rx="14" class="m-screen"/><rect x="57" y="14" width="36" height="8" rx="4" class="m-notch"/><text x="75.0" y="38" class="m-bar" text-anchor="middle">App Store</text><rect x="51" y="54" width="48" height="48" rx="11" class="m-tf"/><circle cx="75" cy="78" r="9" class="m-tf-ring"/><circle cx="75" cy="78" r="3" class="m-tf-dot"/><text x="75.0" y="120" class="m-title" text-anchor="middle">TestFlight</text><text x="75.0" y="139" class="m-sub" text-anchor="middle">Apple</text><rect x="22" y="196" width="106" height="30" rx="15" class="m-btn"/><text x="75.0" y="215" class="m-btnt" text-anchor="middle">GET</text><circle cx="118" cy="224" r="8" class="m-tap"/></svg></figure><div><h4><span class="n">1</span>Install TestFlight</h4><p>Get it from the App Store. It is free and made by Apple.</p></div></li>
+          <li class="step"><figure><svg class="mock" viewBox="0 0 150 260" role="img" aria-label="Open the beta link: Tap Join on iPhone on this page, then View in TestFlight. Open it on the iPhone itself, not on a computer."><rect x="1" y="1" width="148" height="258" rx="20" class="m-frame"/><rect x="8" y="8" width="134" height="244" rx="14" class="m-screen"/><rect x="57" y="14" width="36" height="8" rx="4" class="m-notch"/><text x="75.0" y="38" class="m-bar" text-anchor="middle">testflight.apple.com</text><image href="/img/apple-touch-icon.png" x="51" y="54" width="48" height="48" class="m-icon"/><text x="75.0" y="120" class="m-title" text-anchor="middle">Join the</text><text x="75.0" y="135" class="m-title" text-anchor="middle">Around Warsaw beta</text><rect x="22" y="196" width="106" height="30" rx="15" class="m-btn"/><text x="75.0" y="215" class="m-btnt m-btnt-s" text-anchor="middle">View in TestFlight</text><circle cx="118" cy="224" r="8" class="m-tap"/></svg></figure><div><h4><span class="n">2</span>Open the beta link</h4><p>Tap Join on iPhone on this page, then View in TestFlight. Open it on the iPhone itself, not on a computer.</p></div></li>
+          <li class="step"><figure><svg class="mock" viewBox="0 0 150 260" role="img" aria-label="Accept: TestFlight shows Around Warsaw. Tap Accept."><rect x="1" y="1" width="148" height="258" rx="20" class="m-frame"/><rect x="8" y="8" width="134" height="244" rx="14" class="m-screen"/><rect x="57" y="14" width="36" height="8" rx="4" class="m-notch"/><text x="75.0" y="38" class="m-bar" text-anchor="middle">TestFlight</text><image href="/img/apple-touch-icon.png" x="51" y="54" width="48" height="48" class="m-icon"/><text x="75.0" y="120" class="m-title" text-anchor="middle">Around Warsaw</text><text x="75.0" y="139" class="m-sub" text-anchor="middle">Beta</text><rect x="22" y="196" width="106" height="30" rx="15" class="m-btn"/><text x="75.0" y="215" class="m-btnt" text-anchor="middle">Accept</text><circle cx="118" cy="224" r="8" class="m-tap"/></svg></figure><div><h4><span class="n">3</span>Accept</h4><p>TestFlight shows Around Warsaw. Tap Accept.</p></div></li>
+          <li class="step"><figure><svg class="mock" viewBox="0 0 150 260" role="img" aria-label="Install and play: Tap Install, then Open. The game is on your home screen too; the orange dot by its name means it is a beta."><rect x="1" y="1" width="148" height="258" rx="20" class="m-frame"/><rect x="8" y="8" width="134" height="244" rx="14" class="m-screen"/><rect x="57" y="14" width="36" height="8" rx="4" class="m-notch"/><text x="75.0" y="38" class="m-bar" text-anchor="middle">TestFlight</text><image href="/img/apple-touch-icon.png" x="51" y="54" width="48" height="48" class="m-icon"/><text x="75.0" y="120" class="m-title" text-anchor="middle">Around Warsaw</text><text x="75.0" y="139" class="m-sub" text-anchor="middle">Beta</text><rect x="22" y="196" width="106" height="30" rx="15" class="m-btn"/><text x="75.0" y="215" class="m-btnt" text-anchor="middle">Install</text><circle cx="118" cy="224" r="8" class="m-tap"/></svg></figure><div><h4><span class="n">4</span>Install and play</h4><p>Tap Install, then Open. The game is on your home screen too; the orange dot by its name means it is a beta.</p></div></li>
+        </ol>
+        <div class="guide-notes">
+          <div><h4>Updates</h4><p>New builds arrive in TestFlight. On the game&#x27;s page there, turn on Automatic Updates. Your progress stays when the game updates. A build stops working after 90 days, so keep it current.</p></div>
+          <div><h4>Feedback from TestFlight</h4><p>Take a screenshot while playing, tap the preview, then Share and Share Beta Feedback. Add a few words and send. If the game crashes, iPhone offers to send a report: tap Share.</p></div>
+        </div>
+        <a class="btn btn-primary guide-btn" href="/go/ios?src=beta"><svg aria-hidden="true"><use href="#i-apple"/></svg>Join on iPhone</a>
+      </article>
+      <article class="guide" id="android" aria-labelledby="and-title">
+        <h3 id="and-title"><svg aria-hidden="true"><use href="#i-play"/></svg>Android: Google Play</h3>
+        <p class="guide-intro">The beta is an open test on Google Play. Use the Google account that is signed in to Play on your phone.</p>
+        <ol class="steps">
+          <li class="step"><figure><svg class="mock" viewBox="0 0 150 260" role="img" aria-label="Open the beta link: Tap Join on Android on this page. If you see Become a tester, tap it."><rect x="1" y="1" width="148" height="258" rx="20" class="m-frame"/><rect x="8" y="8" width="134" height="244" rx="14" class="m-screen"/><rect x="57" y="14" width="36" height="8" rx="4" class="m-notch"/><text x="75.0" y="38" class="m-bar" text-anchor="middle">play.google.com</text><image href="/img/apple-touch-icon.png" x="51" y="54" width="48" height="48" class="m-icon"/><text x="75.0" y="120" class="m-title" text-anchor="middle">Around Warsaw</text><text x="75.0" y="139" class="m-sub" text-anchor="middle">Open testing</text><rect x="22" y="196" width="106" height="30" rx="15" class="m-btn"/><text x="75.0" y="215" class="m-btnt m-btnt-s" text-anchor="middle">Become a tester</text><circle cx="118" cy="224" r="8" class="m-tap"/></svg></figure><div><h4><span class="n">1</span>Open the beta link</h4><p>Tap Join on Android on this page. If you see Become a tester, tap it.</p></div></li>
+          <li class="step"><figure><svg class="mock" viewBox="0 0 150 260" role="img" aria-label="Install from Google Play: Tap Install. The listing shows that you are a tester."><rect x="1" y="1" width="148" height="258" rx="20" class="m-frame"/><rect x="8" y="8" width="134" height="244" rx="14" class="m-screen"/><rect x="57" y="14" width="36" height="8" rx="4" class="m-notch"/><text x="75.0" y="38" class="m-bar" text-anchor="middle">Google Play</text><image href="/img/apple-touch-icon.png" x="51" y="54" width="48" height="48" class="m-icon"/><text x="75.0" y="120" class="m-title" text-anchor="middle">Around Warsaw</text><text x="75.0" y="139" class="m-sub" text-anchor="middle">You&#x27;re a beta tester</text><rect x="22" y="196" width="106" height="30" rx="15" class="m-btn"/><text x="75.0" y="215" class="m-btnt" text-anchor="middle">Install</text><circle cx="118" cy="224" r="8" class="m-tap"/></svg></figure><div><h4><span class="n">2</span>Install from Google Play</h4><p>Tap Install. The listing shows that you are a tester.</p></div></li>
+          <li class="step"><figure><svg class="mock" viewBox="0 0 150 260" role="img" aria-label="Play: Open the game from Play or from your home screen. Updates come like any other app&#x27;s."><rect x="1" y="1" width="148" height="258" rx="20" class="m-frame"/><rect x="8" y="8" width="134" height="244" rx="14" class="m-screen"/><rect x="57" y="14" width="36" height="8" rx="4" class="m-notch"/><text x="75.0" y="38" class="m-bar" text-anchor="middle"></text><image href="/img/apple-touch-icon.png" x="51" y="54" width="48" height="48" class="m-icon"/><text x="75.0" y="120" class="m-title" text-anchor="middle">Around Warsaw</text><rect x="22" y="196" width="106" height="30" rx="15" class="m-btn"/><text x="75.0" y="215" class="m-btnt" text-anchor="middle">Open</text><circle cx="118" cy="224" r="8" class="m-tap"/></svg></figure><div><h4><span class="n">3</span>Play</h4><p>Open the game from Play or from your home screen. Updates come like any other app&#x27;s.</p></div></li>
+        </ol>
+        <div class="guide-notes">
+          <div><h4>Not available?</h4><p>Check which Google account is active in Play (many phones have two) and try again in a few minutes. If Play still hides the game, the phone is too old for it: the game needs Vulkan 1.1.</p></div>
+          <div><p>To leave the beta, open the testing page and tap Leave the program. <a href="https://play.google.com/apps/testing/com.olshanskysoft.nocnawarszawa" rel="noopener">Testing page</a></p></div>
+        </div>
+        <a class="btn btn-primary guide-btn" href="/go/android?src=beta"><svg aria-hidden="true"><use href="#i-play"/></svg>Join on Android</a>
+      </article>
+    </div>
+    <p class="mock-note">Simplified drawings of the screens.</p>
+  </div>
+</section>
+
+<section class="beta-start" id="start" aria-labelledby="start-title">
+  <div class="wrap">
+    <h2 id="start-title">Your first ten minutes</h2>
+    <p class="lede">Play the way you would at home, without reading ahead. That is the test we need most.</p>
+    <ol class="tries">
+      <li><h4>Start a new game</h4><p>Follow the first job and tell us where you got lost or bored.</p></li>
+      <li><h4>Take jobs</h4><p>Deliveries and rides around the centre. Is the pace fun?</p></li>
+      <li><h4>Race a local</h4><p>Was it clear where to go? Did the rival feel fair?</p></li>
+      <li><h4>Fly the helicopter</h4><p>It unlocks after your first rescue. Fly over the Vistula at night.</p></li>
+      <li><h4>Change the weather</h4><p>Night and rain are in Settings. Does it still run smoothly?</p></li>
+      <li><h4>Close and come back</h4><p>Reopen the game later. Is your progress still there?</p></li>
+    </ol>
+    <h3 class="sub">Controls</h3>
+    <dl class="controls">
+      <div><dt>Steer</dt><dd>slide on the left / right strip</dd></div>
+      <div><dt>GAS and BRAKE</dt><dd>bottom right, a thumb can slide between them</dd></div>
+      <div><dt>Zoom</dt><dd>pinch</dd></div>
+      <div><dt>Settings</dt><dd>the gear, top left: picture quality, controls, language, feedback</dd></div>
+      <div><dt>HELI and RADIO</dt><dd>top right: switch to the helicopter, change the station</dd></div>
+      <div><dt>Stuck?</dt><dd>TOW TRUCK in Settings puts you back on the road</dd></div>
+      <div><dt>Controller</dt><dd>Xbox, PlayStation or MFi pads work too</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="join beta-fb" id="feedback" aria-labelledby="fb-title">
+  <div class="join-bg">
+    <img src="/img/game/city-night.webp" srcset="/img/game/city-night-960.webp 960w, /img/game/city-night.webp 1920w" sizes="100vw" alt="" width="1920" height="884" loading="lazy" decoding="async">
+  </div>
+  <div class="wrap">
+    <p class="kicker">Your opinion matters</p>
+    <h2 id="fb-title">Ideas and bugs: write to us</h2>
+    <p class="lede">Every message is read by the developer, and many of the changes in the game started as a tester&#x27;s note. Tell us what broke, what felt wrong and what you would add.</p>
+    <div class="fb-grid">
+      <div>
+        <ul class="want">
+          <li>Where you got lost, stuck or bored</li>
+          <li>Whether driving feels good: too twitchy, too slow?</li>
+          <li>Where it got slow or hot, and your phone model</li>
+          <li>Anything that broke, with a screenshot if you can</li>
+          <li>A place in Warsaw that looks wrong</li>
+          <li>The one thing you would change</li>
+        </ul>
+        <h3 class="sub">How to send it</h3>
+        <dl class="ways">
+          <div><dt>In the game</dt><dd>Open Settings (the gear). The gold WRITE TO THE AUTHOR button is at the top. It adds the game&#x27;s version and where you were by itself.</dd></div>
+          <div><dt>The form below</dt><dd>Pick a topic, write a few words. Add your email only if you want an answer.</dd></div>
+          <div><dt>TestFlight</dt><dd>On iPhone: a screenshot, then Share Beta Feedback.</dd></div>
+          <div><dt>Email</dt><dd><a href="mailto:aroundwarsaw@gmail.com">aroundwarsaw@gmail.com</a></dd></div>
+        </dl>
+        <p class="small">A good bug report: what you did, what happened, a screenshot and your phone model.</p>
+      </div>
+      <figure class="fb-mock"><svg class="mock" viewBox="0 0 150 260" role="img" aria-label="Open Settings (the gear). The gold WRITE TO THE AUTHOR button is at the top. It adds the game&#x27;s version and where you were by itself."><rect x="1" y="1" width="148" height="258" rx="20" class="m-frame"/><rect x="8" y="8" width="134" height="244" rx="14" class="m-screen"/><rect x="57" y="14" width="36" height="8" rx="4" class="m-notch"/><text x="75.0" y="38" class="m-bar" text-anchor="middle">Settings</text><image href="/img/apple-touch-icon.png" x="51" y="54" width="48" height="48" class="m-icon"/><text x="75.0" y="120" class="m-title" text-anchor="middle">Around Warsaw</text><rect x="20" y="139" width="110" height="22" rx="6" class="m-row"/><text x="30" y="154" class="m-rowt" text-anchor="start">Picture</text><rect x="20" y="167" width="110" height="22" rx="6" class="m-row"/><text x="30" y="182" class="m-rowt" text-anchor="start">Driving</text><rect x="22" y="201" width="106" height="30" rx="15" class="m-btn"/><text x="75.0" y="220" class="m-btnt m-btnt-s" text-anchor="middle">WRITE TO THE AUTHOR</text><circle cx="118" cy="229" r="8" class="m-tap"/></svg></figure>
+    </div>
+    <details class="write" open>
+      <summary>Send feedback</summary>
+      <form class="form" id="form" action="/api/feedback" method="POST" novalidate data-need="message">
+        <fieldset class="topics">
+          <legend>What is it about?</legend>
+          <label><input type="radio" name="topic" value="Idea: add" checked><span>Add something</span></label>
+          <label><input type="radio" name="topic" value="Fix"><span>Fix something</span></label>
+          <label><input type="radio" name="topic" value="Feedback"><span>Something else</span></label>
+        </fieldset>
+        <fieldset class="topics platform">
+          <legend>Your phone</legend>
+          <label><input type="radio" name="platform" value="iPhone"><span>iPhone</span></label>
+          <label><input type="radio" name="platform" value="Android"><span>Android</span></label>
+          <label><input type="radio" name="platform" value="—" checked><span>Doesn&#x27;t matter</span></label>
+        </fieldset>
+        <div class="field">
+          <label for="email">Email <span class="opt">only if you want a reply</span></label>
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" aria-describedby="email-err">
+          <p class="err" id="email-err" aria-live="polite"></p>
+        </div>
+        <div class="field">
+          <label for="message">Message</label>
+          <textarea id="message" name="message" rows="5" maxlength="5000" aria-describedby="message-err"></textarea>
+          <p class="err" id="message-err" aria-live="polite"></p>
+        </div>
+        <input type="hidden" name="source" value="aroundwarsaw.app (en)">
+        <input type="hidden" name="_subject" id="subject" value="Around Warsaw: Idea: add">
+        <div class="hp" aria-hidden="true"><label for="_gotcha">Leave empty</label><input id="_gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>
+        <button class="btn btn-primary send" type="submit">Send<svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        <p class="legal">Sent straight to the developer. Your email is used only to reply. <a href="/privacy/">Privacy</a>.</p>
+        <p class="status" role="status" aria-live="polite" data-ok="Thanks! It&#x27;s on its way." data-fail="That didn&#x27;t go through. Try again in a moment." data-need-email="Add your email so I can write back." data-bad-email="That email doesn&#x27;t look right." data-need-msg="Write a few words first." data-sending="Sending…"></p>
+      </form>
+
+    </details>
+  </div>
+</section>
+
+<section class="beta-faq" id="faq" aria-labelledby="known-title">
+  <div class="wrap faq-grid">
+    <div>
+      <h2 id="known-title">Known issues</h2>
+      <p class="lede">No need to report these, we are on them.</p>
+      <ul class="known">
+        <li>Some buildings are still simple blocks.</li>
+        <li>On a few street corners the car can get caught. TOW TRUCK frees it.</li>
+        <li>Hot or slow phone: Settings, picture quality, choose Auto or a lower level.</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Questions</h2>
+      <details class="qa"><summary>Is it free?</summary><p>Yes. No ads and no purchases. It is a fan game about Warsaw.</p></details>
+      <details class="qa"><summary>Will I lose my progress?</summary><p>Updates keep it. Saves live only on your phone, so deleting the game deletes them.</p></details>
+      <details class="qa"><summary>Does it work on iPad?</summary><p>Yes, with the same TestFlight link. It is made for phones, so the screen is laid out for one.</p></details>
+      <details class="qa"><summary>Which languages?</summary><p>English and Polish. Switch in Settings.</p></details>
+      <details class="qa"><summary>What data does the beta send?</summary><p>Anonymous play statistics (no name, no account) and what you write in a feedback message. You can turn the statistics off in Settings.</p></details>
+      <details class="qa"><summary>The link does not open.</summary><p>On iPhone, install TestFlight first and open the link on the phone. On Android, check the Google account in Play. Still stuck? Write through the form.</p></details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot beta-foot">
+  <div class="wrap">
+    <p>Thank you for helping to build Around Warsaw.</p>
+    <p class="small"><a href="/">aroundwarsaw.app</a> · <a href="/privacy/">Privacy policy</a> · <a href="mailto:aroundwarsaw@gmail.com">aroundwarsaw@gmail.com</a></p>
+  </div>
+</footer>
+</body>
+</html>
