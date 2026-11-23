@@ -554,7 +554,8 @@ func leap(at: Vector2, dir: Vector2, r: float) -> int:
 
 
 func _process(dt: float) -> void:
-	if dt <= 0.0 or _first.is_empty():
+	# setup() awaits between the footways; _alive is sized only after them (PT-58).
+	if dt <= 0.0 or _first.is_empty() or _alive.size() < MAX:
 		return
 	var t0 := Time.get_ticks_usec()
 	# Use the traffic's view of the ground (centre, axes, half size).

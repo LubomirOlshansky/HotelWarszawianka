@@ -659,6 +659,8 @@ var levels := {}
 var t := 0.0
 
 var _cells := {}
+## True once _build_drawing has made the cells: the sites tick only after it (PT-58).
+var _drawn := false
 var _rng := RandomNumberGenerator.new()
 var _tick_t := 0.0
 var _walk_t := 0.0
@@ -2515,6 +2517,7 @@ func _build_drawing() -> void:
 	_walk_mmi.visible = false
 	add_child(_walk_mmi)
 	_walk_umb = Models.umbrella_twin(_walk_mmi)
+	_drawn = true
 
 
 ## Writes one figure into `buf` at instance `i`: standing, sitting (lower and longer) or broad.
@@ -2719,7 +2722,8 @@ func _process(dt: float) -> void:
 	if _tick_t >= TICK:
 		var step := _tick_t
 		_tick_t = 0.0
-		tick(step)
+		if _drawn:  # setup() awaits before _build_drawing makes the cells (PT-58)
+			tick(step)
 	if (dawn_on or office_on or campus_on) and not walkers.is_empty():
 		_walk_t += dt
 		if _walk_t >= WALK_TICK:
