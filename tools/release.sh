@@ -34,7 +34,9 @@
 #   release.env        ASC_KEY_ID=... and ASC_ISSUER_ID=...
 #   AuthKey_<ID>.p8    the App Store Connect API key
 #   play.json          the Google Play service account key
-# Without the ASC key the iOS upload uses Xcode's own sign-in and stops at internal TestFlight;
+# The iOS archive and export always use Xcode's own sign-in (the Mac's Apple account), never the API
+# key: the key (App Manager) cannot use cloud-managed certificates. Without the ASC key the iOS
+# upload still works but stops at internal TestFlight;
 # without play.json the AAB is left in ~/Downloads for a manual upload.
 # Also copied from this checkout: game/data/stats_key.json (the PostHog token), game/icons,
 # game/android (the Gradle template), game/map/lod2.* and terrain.json.
@@ -159,10 +161,11 @@ d=sys.argv[1]; r=lambda f: open(d+"/"+f+".txt", encoding="utf-8").read().strip()
 print(json.dumps({"default":{"whats_new":r("en-GB")},"en-US":{"whats_new":r("en-GB")},"pl":{"whats_new":r("pl-PL")}}))' $cnotes)
 		# Apple lists a build only after processing, which can lag the upload: wait up to 40 min.
 		waited=0
-		until [[ $(store_ios) == <-> ]] && (( $(store_ios) >= cios )); do
+		listed=$(store_ios)
+		until [[ $listed == <-> ]] && (( listed >= cios )); do
 			(( waited >= 2400 )) && { echo "Apple still does not list build $cios after 40 min: run --promote again later" >&2; exit 1 }
 			print "  waiting for Apple to list build $cios (${waited}s)"
-			sleep 60; waited=$(( waited + 60 ))
+			sleep 60; waited=$(( waited + 60 )); listed=$(store_ios)
 		done
 		fastlane pilot distribute --api_key_path $asc_json --app_identifier $ios_app \
 			--app_platform ios --app_version $(cand version) --build_number $cios \
