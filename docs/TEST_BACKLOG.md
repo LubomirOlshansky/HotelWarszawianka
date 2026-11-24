@@ -5,7 +5,10 @@ through until every test is done. This file is the queue; `docs/PLAYTEST.md` kee
 the case lists and the PT-n bug log. A run takes one line here: tick it, name the run, link the PT
 ids. Bugs are reported, not fixed here; each one gets its own fix thread.
 
-Each row is one Autopilot run of under 6 minutes on the Mac (`.claude/skills/autopilot-playtest`).
+Each row is one short Autopilot verify or goal on the Mac (`.claude/skills/autopilot-playtest`),
+started by its start flag (`--ride=N`, `--kebab=N`, `--race=N`, `--at=X,Z`...), one or two
+360 s episodes, the verdict read from the game's state. A row marked **headless** is a cloud
+check line, not an Autopilot run (driving routes, since 2026-11-24).
 Order: fixes waiting for proof, then what F asked about, then the plan rows never run.
 
 ## 1. Fixes waiting for proof
@@ -48,22 +51,26 @@ In this order; each under 6 minutes of play on the latest main. P = priority (1 
 "fix" prove a fix of the beta bug-sweep PR; the others go where the code reading could not.
 
 - [ ] T37 (P1, fix) Boat race: cross the finish line beside the arch on purpose, then turn and go through it: one "turn round" toast, the finish counts, the result card, the way back to the car
-- [ ] T38 (P1) Rival race won, lost, given up with ✕ and REWANŻ, then the next rival: one pay per race, no rival left driving after the card, no old status bar or beacon, the race clock reset (T34's stale "0:59.0" seen in the log)
+- [ ] T38 (P1, `--race=3`) Rival race won, lost, given up with ✕ and REWANŻ, then the next rival: one pay per race, no rival left driving after the card, no old status bar or beacon, the race clock reset (T34's stale "0:59.0" seen in the log)
 - [ ] T39 (P1, fix) A race seen by a patrol: during the chase press REWANŻ on the lose card: the "lose the police first" toast, no jump; the chase ends normally
 - [ ] T40 (P1) Save and resume: earn money, buy a garage paint, quit mid-job and relaunch: money and paint kept, no job left half on, the car on a road (not in the river or on a roof)
 - [ ] T41 (P1) Helicopter: take off, fly to Varso and the map edge, land on a rescue roof, land in the street; every landing gives the car back and the controls work (P8, P15, T21, T25 still open)
 - [ ] T42 (P2, fix) EV tow: hover over the TESŁO and press HELI to land: it hooks and the landing stops; set it down at the charger, paid once
 - [ ] T43 (P2, fix) The DESKA padel call: take it, press HELI, fly to the court: the arrival from the air, +respect, the match starts; then a normal kebab order still refuses HELI
 - [ ] T44 (P2) Police from a calm start: speed past a trap, a pull-over talk, a ram chase escaped and one caught: the chase always ends, the HUD bar goes, no fine or negative money
-- [ ] T45 (P2) Night meet: false start, then REWANŻ three times: no respect paid for a false start (fix), the drag tree and the result card each time
+- [ ] T45 (P2, `--meet=`) Night meet: false start, then REWANŻ three times: no respect paid for a false start (fix), the drag tree and the result card each time
 - [ ] T46 (P2) Menus while a call rings: open the full map, settings, the garage ring: no ringtone under them (fix), the call still waiting when they close
 - [ ] T47 (P2) Each questline's first beat from QUESTS → WĄTKI → "phone the friend", one per run, with a friend standing by the car at the same time: no card hidden by another, no questline stuck "on"
 - [ ] T48 (P3) Tours (Dekalog, cinema) to the end: QUESTS shows them done (fix)
 - [ ] T49 (P3) The club, the lounge, the padel hall: enter, press H and the pad's vehicle button: nothing happens (fix); leave by the door into the car
-- [ ] T50 (P3) A 15-minute free drive in English after the first hour: any Polish-only card, button or toast (the garage PARTS tab and two calls fixed)
-- [ ] T51 (P3) The rest of P4/P5/P11: the Old Town core, the W-Z and Wisłostrada tunnels driven inside, the Poniatowskiego deck
+- [ ] T50 (P3) English cards one by one, each from its start flag (`--kebab=N`, `--ride=N`, `--race=N`, `--garage`, the call flags): any Polish-only card, button or toast (the garage PARTS tab and two calls fixed)
+- [ ] T51 (P3, **headless**) The rest of P4/P5/P11: the Old Town core, the W-Z and Wisłostrada tunnels driven inside, the Poniatowskiego deck (`check_lane_drive` lines; Autopilot only to film a spot a line flags)
+- [ ] T52 (P1, `--ride=N`) Podwózka ride from the request: START THE RIDE by label, the drop, paid (money up, no cancel text); log pickup to START and START to the drop
+- [ ] T53 (P2, **headless**) Zielna (-1220..-1255, -320..-396) and Plac Grzybowski (-1360..-1440, -165..-325): kerb-lane and lane-centre lines with `--no-traffic`; Autopilot left the lane there in 3 runs with and without traffic
 
 ## 3. Plan rows never run or left open
+
+T17-T19, T23, T24 and T26 are driving rows: **headless** first (`check_lane_drive`, `check_drive --debug=X,Z`), Autopilot only to film a spot a line flags.
 
 - [ ] T17 P1 the other start streets (only Marszałkowska driven) · run -103535: Emilii Plater, Bracka, Krucza clean; Chmielna, Mokotowska still open · run -110225: Mokotowska clean bar one stop at -111,612; Chmielna open
 - [ ] T18 P4 Krakowskie Przedmieście, Plac Zamkowy, Old Town · run -102201: Krakowskie Przedmieście and Nowy Świat clean at 50-60 km/h; the Old Town core still open

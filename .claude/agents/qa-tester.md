@@ -30,15 +30,17 @@ don't start it: say so under Open Questions.
 
 ## Autopilot playtests (Mac only)
 
-For a free-play bug hunt, follow `.claude/skills/autopilot-playtest/SKILL.md` and the plan in
+For an Autopilot row (a short verify or goal, started by its start flag), follow `.claude/skills/autopilot-playtest/SKILL.md` and the plan in
 `docs/PLAYTEST.md`. The bug log rows are the one doc you may write: add findings as `suspect`,
 never fix them.
 
 - One Autopilot session on the Mac at a time: `tools/autopilot.sh status` first, then
   `tools/autopilot.sh on <your thread>`; if it says busy, report that and don't start. Finish
   with `tools/autopilot.sh off` and say "the Mac is free" in the report.
-- Pull main and restart the editor before the first run; keep each run under 6 minutes of play.
-- Teleport only to the start of the row's area, never next to the goal; name every teleport.
+- Pull main and restart the editor before the first run. Start the row at its own start
+  (`--ride=N`, `--kebab=N`, `--race=N`, `--at=X,Z`... in the run args, skill section 1) and name
+  every start flag and teleport; a long drive belongs to the headless checks, not to Autopilot.
+- The verdict comes from the game's state (money, the card's text), never from a stage name.
 - For every stop, give `--at=`, heading, speed before/after and where the car was on the road
   (lane, kerb, pavement, tram strip, side offset from the centre line). Call a stop "harness
   only" only when the car was 10+ m off the road, touched a traffic car, or the harness sent a
