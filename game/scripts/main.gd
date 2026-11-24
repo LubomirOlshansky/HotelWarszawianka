@@ -1621,6 +1621,7 @@ func _build_world() -> void:
 	# still counts as one (the radio host and the flavour keep quiet, notes and calls wait).
 	# M1: the rescue line counts through `_quest_running` (its target), not its two cards, as before it
 	# joined the director (the pacer, TD-3, is to settle whether its cards are a quest too).
+	hud.local_clock = func() -> Dictionary: return tod.local_clock()
 	hud.quest_on = func() -> bool:
 		return _quest_running() \
 				or (activities.busy() and activities.current() != missions) \
@@ -1755,6 +1756,8 @@ func _build_world() -> void:
 	activities.finished = hud.messages.finished
 	# First hour, step 3: a friend's phone rang (first10.gd: one new friend at a time in the guide).
 	activities.rang = func(a: Activity) -> void:
+		if not a.pill_call:
+			missions.put_off()  # a rescue call nobody took gives its place to the friend's
 		if first10 != null and not a.pill_call and not a.is_job:
 			first10.friend_rang(a.tag)
 	# LEKTI's invites, Mati's calls and the raves' rigs (rave.gd wires itself); none with --no-traffic
@@ -3512,9 +3515,9 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "first-10 guide"
 	if not ringing_ok and not hud.offer_ok():  # spacing, settle, quiet; a call's gap: activity.gd `_ring_turn`
 		return "offers: a card was up lately, or a quest or a chase is on or just ended (messages.gd)"
-	# Any card on screen, and the rescue line's call ringing on the context button (the director's
-	# `call_on_pill`) unless `ringing_ok`; its card or run is the director's (`activities.busy` below).
-	if hud.cards_up() or (activities.call_on_pill() and not ringing_ok):
+	# Any card on screen, and the rescue line's call just come to the context button (the director's
+	# `call_fresh`) unless `ringing_ok`; its card or run is the director's (`activities.busy` below).
+	if hud.cards_up() or (activities.call_fresh() and not ringing_ok):
 		return "a card or a rescue call is up"
 	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return "ride/job/trend job busy"
@@ -3625,7 +3628,7 @@ func _ev_free() -> bool:
 		return false
 	if first10 != null and first10.friends_wait():
 		return false
-	if hud.cards_up() or activities.call_on_pill() or hud.offers_quiet():
+	if hud.cards_up() or activities.call_fresh() or hud.offers_quiet():
 		return false
 	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return false
@@ -5030,7 +5033,7 @@ func _settings_state() -> Dictionary:
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index,
 			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
-			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on), "test_device": int(settings.test_device),
+			"angle": FollowCamera.PITCHES.size() if top_down else maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on), "test_device": int(settings.test_device),
 			"weather": weather.state, "time": tod.look_mode(), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
 			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "character": settings.character,
@@ -5126,8 +5129,14 @@ func _on_setting(key: String, value: Variant) -> void:
 			_apply_fps()
 		"angle":
 			# F (2026-11-07): the camera's angle (follow_camera.gd PITCHES); the camera follows next frame.
-			settings.pitch = FollowCamera.PITCHES[clampi(int(value), 0, FollowCamera.PITCHES.size() - 1)]
-			camera_pitch = -settings.pitch
+			# F (2026-11-24): the choice after the last pitch is the top-down view (`top_down`, saved as camera_view).
+			if int(value) >= FollowCamera.PITCHES.size():
+				_set_view(FollowCamera.VIEW_TOP_DOWN)
+			else:
+				settings.pitch = FollowCamera.PITCHES[clampi(int(value), 0, FollowCamera.PITCHES.size() - 1)]
+				camera_pitch = -settings.pitch
+				if top_down:
+					_set_view(FollowCamera.VIEW_NORMAL)
 		"camera_view":
 			_set_view(int(value))
 		"promo":
