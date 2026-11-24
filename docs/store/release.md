@@ -7,7 +7,7 @@ untracked bits from the checkout: `game/.godot`, `game/icons`, `game/android`,
 never touched. It bakes the city once for both platforms.
 
 ```zsh
-tools/release.sh --notes=DIR --open-beta   # gate, build, both stores, out to the outside testers
+tools/release.sh --notes=DIR --open-beta --phone-ok="F, iPhone 16 Pro Max"   # gate, build, both stores, out to the outside testers
 tools/release.sh --notes=DIR               # the same, stops at internal testing (the candidate)
 tools/release.sh --promote --phone-ok="F, iPhone 16 Pro Max"   # the candidate's own files go out
 tools/release.sh --gate-only               # only: may this commit ship?

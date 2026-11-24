@@ -3,7 +3,7 @@
 # the long overnight process is in docs/BACKLOG.md).
 #   tools/release.sh --notes=DIR               the gate, one build, internal TestFlight and Play
 #                                              internal testing; remembered as the candidate
-#   tools/release.sh --notes=DIR --open-beta   the same, then straight on to the outside testers:
+#   tools/release.sh --notes=DIR --open-beta --phone-ok="..."   the same, then straight on to the outside testers:
 #                                              "Beta test external" and Play open testing
 #   tools/release.sh --promote --phone-ok="who, which phones"
 #                                              a candidate's own files, not a rebuild, to them later
@@ -23,7 +23,7 @@
 #   --open-beta        go on to the outside testers once both uploads are in
 #   --thorough         the gate with every local step, hours (overnight)
 #   --promote          send the candidate, for the stores the candidate has (--ios / --android: only that one)
-#   --phone-ok=TEXT    --promote's record of the phone check (docs/store/release.md)
+#   --phone-ok=TEXT    the phone check's record for --promote and --open-beta (promoted.log) (docs/store/release.md)
 #   --gate-only        build folder, bake and gate, then stop
 #   --no-gate          build without the gate: internal only, never becomes a candidate
 #   --notes=DIR        what's new: en-GB.txt and pl-PL.txt (up to 500 characters each); step 1 needs it
@@ -75,6 +75,9 @@ for arg in "$@"; do
 done
 (( do_ios || do_android )) || { do_ios=1; do_android=1 }
 if (( open_beta && ( ! gate || ! upload || gate_only ) )); then echo "--open-beta needs the gate and the upload" >&2; exit 2; fi
+if (( open_beta )) && [[ -z ${phone_ok//[[:space:]]/} ]]; then
+	echo "--open-beta needs --phone-ok=\"who, which phones\" (docs/store/release.md)" >&2; exit 2
+fi
 (( gate_only && ! gate )) && { echo "--gate-only and --no-gate contradict" >&2; exit 2 }
 (( skip_bake && ! keep )) && { echo "--skip-bake needs --keep" >&2; exit 2 }
 
@@ -370,7 +373,7 @@ if (( gate && upload )); then
 		"notes=$conf/candidate-notes" > $candidate
 	if (( open_beta )); then
 		(( do_ios && do_android )) && which=() || { (( do_ios )) && which=(--ios) || which=(--android) }
-		AW_ROOT=$root zsh $self --promote $which --phone-ok="fast path: gate only, no phone check"
+		AW_ROOT=$root zsh $self --promote $which --phone-ok="$phone_ok"
 		print "\ndone: $sha"; exit 0
 	fi
 	print "\ncandidate: $sha. After the phone check: tools/release.sh --promote --phone-ok=\"...\""
