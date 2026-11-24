@@ -113,6 +113,9 @@ const CARD_W := 440.0
 ## F 2026-11-10: the phone view of an incoming call (show_call): its width, the caller's face,
 ## the round answer and decline buttons, and the face on a quest card's head.
 const CALL_W := 176.0
+## A call whose words find no room that wide (the invite and the night line under the caller's,
+## F 2026-11-24: it rang unseen) grows wider in these steps, as far as the column beside the car.
+const CALL_STEPS := [208.0, 240.0, 280.0, 320.0]
 const CALL_FACE := 44.0
 const CALL_BUTTON := 44.0
 ## The ringtone (tools/make_ui_sounds.py `ring`), again every RING_EVERY s while it rings.
@@ -285,6 +288,12 @@ var _call_box: HBoxContainer
 var _call_screen_box: PanelContainer
 var _call_screen: StyleBoxFlat
 var _call_clock: Label
+## The game's clock ({"hour": float}, main.gd: time_of_day.gd `local_clock`) for the phone's own.
+var local_clock: Callable
+## How wide the phone stands now (points, `_set_call_width`).
+var _call_w := CALL_W
+## Its words in full (a phone with no room leaves the caller's own line out, `_fit_call`).
+var _call_about_full := ""
 ## The ringtone is sounding (sfx.gd UI "ring"), so it is stopped once when the call view goes.
 var _ringing := false
 var _ring_wait := 0.0
@@ -562,6 +571,9 @@ var _wants := {}
 var _placed := {}
 var _taken: Array[Rect2] = []
 var _unplaced: Array[String] = []
+## The card found no clear spot and stands over something (`_force_card`): a layout fault for the
+## check, but never a card the player cannot see.
+var _forced: Array[String] = []
 ## Large text (2026-11-02): the panels that had to step their text down to find room at the
 ## player's larger text size, and the scale each took (reset at every layout, so a panel grows
 ## back once there is room). See `_fit_text`.
@@ -911,6 +923,10 @@ func _layout() -> void:
 	_taken.clear()
 	_placed.clear()
 	_unplaced.clear()
+	_forced.clear()
+	if _call_mode and (not is_equal_approx(_call_w, _call_base()) or _call_about.text != _call_about_full):
+		_call_about.text = _call_about_full
+		_set_call_width()  # the phone's own width first; it grows again only if it must
 	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _zoom_out_button, _zoom_in_button, _minimap, _wallet, _koguty]:
 		if c != null and c.visible:
 			_taken.append(Rect2(c.position, c.size))
@@ -946,8 +962,12 @@ func _layout() -> void:
 			_ticker.reset_size()
 			s = c.get_combined_minimum_size()
 			at = _place(c, s, _spots(c, s))
+		if at < 0 and c == _card and _call_mode:
+			at = _fit_call()
 		if at < 0 and not String(c.name) in WAITS:
 			at = _fit_text(c)
+		if at < 0 and c == _card:
+			at = _force_card()
 		c.visible = at >= 0
 		if c == _ticker:
 			_ticker_slides = at == 0
@@ -972,6 +992,72 @@ func _fit_text(c: Control) -> int:
 		if at >= 0:
 			return at
 	return -1
+
+
+## The phone view wider, a step at a time, until its words fit the column; else its own width again,
+## left of the car beside the minimap; else the same without the caller's own line (what the call is
+## for stays: the night, the quest it invites to). Returns the spot it took, or -1.
+func _fit_call() -> int:
+	var at := _widen_call()
+	if at < 0 and "\n" in _call_about_full:
+		_call_about.text = _call_about_full.substr(_call_about_full.find("\n") + 1)
+		at = _widen_call()
+	return at
+
+
+func _widen_call() -> int:
+	_set_call_width()
+	for w: float in CALL_STEPS:
+		w = minf(w, side_card_width())
+		if w <= _call_w:
+			continue
+		_set_call_width(w)
+		var s := _card.get_combined_minimum_size()
+		var at := _place(_card, s, _spots(_card, s))
+		if at >= 0:
+			return at
+	_set_call_width()
+	return _place(_card, _card.get_combined_minimum_size(), [[Vector2(_col_right, _top_y), DOWN]])
+
+
+## F 2026-11-24 ("I hear the phone and see nothing"): a card waits for the player's answer, so it is
+## never left off the screen. With no clear spot it takes the quest's status line's place (the line is
+## back when the card goes), then any spot clear of the controls, the car's included, and at the very
+## last its own spot over whatever is there. Always placed: returns 0.
+func _force_card() -> int:
+	_forced.append(String(_card.name))
+	var s := _card.get_combined_minimum_size()
+	if _placed.has(_status):
+		_taken.erase(_placed[_status])
+		_placed.erase(_status)
+		_status.visible = false
+		var at := _place(_card, s, _spots(_card, s))
+		if at < 0 and _call_mode:
+			at = _fit_call()
+			s = _card.get_combined_minimum_size()
+		if at >= 0:
+			return at
+	if _call_mode:
+		_set_call_width(minf(float(CALL_STEPS[-1]), side_card_width()))
+		s = _card.get_combined_minimum_size()
+	var cx := _safe.get_center().x - s.x * 0.5
+	var cands := _spots(_card, s)
+	cands.append_array([[Vector2(cx, _top_y), DOWN], [Vector2(_col_right, _top_y), DOWN],
+			[Vector2(_safe.end.x - EDGE * pt - s.x, _bounds.end.y - s.y), UP]])
+	var side := _card_side
+	_card_side = false  # the car's spot may be covered now
+	var k := _place(_card, s, cands)
+	_card_side = side
+	if k >= 0:
+		return 0
+	var r := Rect2(cands[0][0], s)
+	r.position.x = clampf(r.position.x, _bounds.position.x, maxf(_bounds.end.x - s.x, _bounds.position.x))
+	r.position.y = clampf(r.position.y, _bounds.position.y, maxf(_bounds.end.y - s.y, _bounds.position.y))
+	_card.position = r.position
+	_card.size = s
+	_taken.append(r)
+	_placed[_card] = r
+	return 0
 
 
 ## Every HUD label in `c` (or `c` itself) at `k` times its size on the type scale.
@@ -1145,6 +1231,13 @@ func unplaced() -> Array[String]:
 		if not n in WAITS:
 			out.append(n)
 	return out
+
+
+## For the checks: the card stands over something, with no clear spot for it (`_force_card`).
+func forced() -> Array[String]:
+	if _dirty:
+		_layout()
+	return _forced
 
 
 ## For tools/check_hud.gd: the passing panels waiting for room now.
@@ -1993,7 +2086,7 @@ func set_card_art(art: Control, left := false, below := false) -> void:
 	_card.custom_minimum_size.x = _card_art_w + more
 	_card.reset_size()
 	_layout()
-	if _unplaced.has(_card.name):
+	if _forced.has(String(_card.name)):
 		_card.custom_minimum_size.x = _card_art_w
 		var w := (_card_art_w - more) / pt - 20.0
 		_wrap(_card_body, w)
@@ -2177,15 +2270,24 @@ func _paint_phone_bar(bar: Control) -> void:
 		bar.draw_rect(Rect2(x - 26.0 * pt + k * 3.5 * pt, c.y + 3.5 * pt - h, 2.2 * pt, h), INK)
 
 
-## The phone as wide as the column beside the car allows (side_card_width, at most CALL_W),
-## its screen's words to match.
-func _set_call_width() -> void:
-	var w := minf(side_card_width(), CALL_W)
+## The phone's own width (points): as wide as the column beside the car allows, at most CALL_W.
+func _call_base() -> float:
+	return minf(side_card_width(), CALL_W)
+
+
+## The phone `w` points wide (0: its own width), its screen's words to match.
+func _set_call_width(w := 0.0) -> void:
+	if w <= 0.0:
+		w = _call_base()
+	_call_w = w
 	var screen := w - 2.0 * (4.0 + 2.0)  # the body's margin and border
 	_call_screen_box.custom_minimum_size.x = screen * pt
 	_wrap(_call_about, screen - 12.0)
 	_wrap(_call_name, screen - 12.0 - CALL_FACE - 10.0)
 	_card.custom_minimum_size.x = 0.0
+	for l: Label in [_call_about, _call_name]:
+		l.update_minimum_size()
+	_card.reset_size()
 
 
 ## An incoming call in the phone view, in the right-hand column beside the car like the side
@@ -2212,10 +2314,11 @@ func show_call(who: String, about: String, accent: Color, about_en := "", face :
 	_ring_wait = 0.0
 	_call_screen.bg_color = accent.darkened(0.78)
 	_call_screen.border_color = Color(accent, 0.35)
-	_call_clock.text = Time.get_time_string_from_system().substr(0, 5)
+	_call_clock.text = _clock_text()
 	_call_status.text = Lang.pick("dzwoni…", "calling…")
 	_call_name.text = who
 	_call_about.text = about
+	_call_about_full = about
 	_call_about.visible = about != ""
 	for b in _call_buttons.get_children():
 		_call_buttons.remove_child(b)
@@ -2232,6 +2335,14 @@ func show_call(who: String, about: String, accent: Color, about_en := "", face :
 	_show(_status, false)
 	hide_pill()
 	_mark()
+
+
+## The phone's clock: the game's time, as the map's (the device's without a game, a check's HUD).
+func _clock_text() -> String:
+	if not local_clock.is_valid():
+		return Time.get_time_string_from_system().substr(0, 5)
+	var m := posmod(floori(float(local_clock.call()["hour"]) * 60.0), 24 * 60)
+	return "%02d:%02d" % [m / 60, m % 60]
 
 
 ## True while the phone view is the card showing (the checks and the shots read it).

@@ -1621,6 +1621,7 @@ func _build_world() -> void:
 	# still counts as one (the radio host and the flavour keep quiet, notes and calls wait).
 	# M1: the rescue line counts through `_quest_running` (its target), not its two cards, as before it
 	# joined the director (the pacer, TD-3, is to settle whether its cards are a quest too).
+	hud.local_clock = func() -> Dictionary: return tod.local_clock()
 	hud.quest_on = func() -> bool:
 		return _quest_running() \
 				or (activities.busy() and activities.current() != missions) \
