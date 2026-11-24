@@ -115,7 +115,8 @@ const CAMERA_VIEW := [["Normalny", "Normal"], ["Z góry", "Top"], ["Z lotu", "Ae
 ## grades.gd SETTING, in its order.
 const GRADE := [["Natura", "Natural"], ["Neon", "Neon"], ["Klasyk", "Classic"]]
 ## F (2026-11-07): the camera's angle over the ground, follow_camera.gd PITCHES (30° the default).
-const ANGLE := [["30°", "30°"], ["40°", "40°"], ["50°", "50°"]]
+## F 2026-11-24: a fourth choice, straight down (main.gd `top_down`, the same view as DEV's "Z góry").
+const ANGLE := [["30°", "30°"], ["40°", "40°"], ["50°", "50°"], ["Z góry", "Top"]]
 ## Loop 2b: frames per second (settings.gd FPS: 60, 30) and the benchmark button.
 const FPS := [["60 płynnie", "60 smooth"], ["30 bateria", "30 battery"]]
 ## H1: the Realnie switch on the DEV page (settings.gd `handling`: 0 off, 1 the car with weight);
@@ -305,6 +306,7 @@ func _build() -> void:
 	_segments(drive[1], "lane_assist", ON_OFF)
 	for b: Button in _groups["lane_assist"]:
 		b.custom_minimum_size.x = touch * 1.05
+	(_groups["angle"][ANGLE.size() - 1] as Button).custom_minimum_size.x = touch * 1.5
 	# The weather and the traffic (was ŚWIAT; the time of day went to DEV in step 3: the game runs
 	# its own clock, F 2026-11-19).
 	_heading(drive[1], "Pogoda", "Weather")
@@ -323,6 +325,7 @@ func _build() -> void:
 	# Two pickers in one row: narrower buttons (still over 44 pt) keep the card's width.
 	for b: Button in _groups["angle"]:
 		b.custom_minimum_size.x = touch * 1.05
+	(_groups["angle"][ANGLE.size() - 1] as Button).custom_minimum_size.x = touch * 1.5
 	for b: Button in _groups["grade"]:
 		b.custom_minimum_size.x = touch * 1.6
 	# Step 4: the preset (Auto, Battery, Best, or Custom) and ZAAWANSOWANE for the level, the frame
@@ -676,6 +679,7 @@ func _dev_page(body: Control) -> Control:
 	for key: String in ["camera", "zones", "soft_fences", "perf", "promo", "test_device"]:
 		for b: Button in _groups[key]:
 			b.custom_minimum_size.x = touch * 1.05
+	(_groups["angle"][ANGLE.size() - 1] as Button).custom_minimum_size.x = touch * 1.5
 	return scroll
 
 
