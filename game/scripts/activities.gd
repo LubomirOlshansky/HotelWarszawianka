@@ -242,6 +242,19 @@ func call_on_pill(a: Activity = null) -> bool:
 	return false
 
 
+## A call has come to the context button and the player has had PILL_HOLDS s to take it or not: for that
+## long it keeps the other friends' phones quiet (main.gd `_free_block`), no longer. F 2026-11-24: it
+## waits until it is pressed, so one nobody pressed kept every friend from calling for the whole drive
+## ("10 minutes and no calls"). The friend who rings then puts it off (`rang`, main.gd).
+const PILL_HOLDS := 45.0
+
+func call_fresh() -> bool:
+	for o in list:
+		if o.pill_call and o.phase == Activity.Phase.RING and o._t < PILL_HOLDS:
+			return true
+	return false
+
+
 ## The rescue line's card or run is up (`a` aside): an activity with `pill_call` is busy.
 func rescue_busy(a: Activity = null) -> bool:
 	for o in list:

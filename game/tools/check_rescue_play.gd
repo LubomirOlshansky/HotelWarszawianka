@@ -383,6 +383,12 @@ func _kit() -> void:
 	_expect(not m.is_processing(), "P the line runs only on main.gd's tick, not by itself (set_process off)")
 	m.quiet_start(1.0)
 	_ticks(1.5)
+	_expect(d.call_fresh(), "the pill just rang: it holds the friends' calls")
+	var pill_t: float = m._t
+	m._t = d.PILL_HOLDS + 1.0
+	_expect(not d.call_fresh() and d.call_on_pill(other),
+			"a pill nobody pressed for PILL_HOLDS s no longer holds the friends' calls (it waits on)")
+	m._t = pill_t
 	_expect(int(m.state) == Missions.State.RINGING and d.call_on_pill(other) and bool(other.call_waiting.call()),
 			"P ringing: the call waits on the context button for the other activities: %d" % int(m.state))
 	_expect(not d.busy() and d.may_start(other) and not d.rescue_busy(other),
