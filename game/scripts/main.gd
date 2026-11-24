@@ -5037,7 +5037,7 @@ func _settings_state() -> Dictionary:
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index,
 			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
-			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on), "test_device": int(settings.test_device),
+			"angle": FollowCamera.PITCHES.size() if top_down else maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on), "test_device": int(settings.test_device),
 			"weather": weather.state, "time": tod.look_mode(), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
 			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "character": settings.character,
@@ -5133,8 +5133,14 @@ func _on_setting(key: String, value: Variant) -> void:
 			_apply_fps()
 		"angle":
 			# F (2026-11-07): the camera's angle (follow_camera.gd PITCHES); the camera follows next frame.
-			settings.pitch = FollowCamera.PITCHES[clampi(int(value), 0, FollowCamera.PITCHES.size() - 1)]
-			camera_pitch = -settings.pitch
+			# F (2026-11-24): the choice after the last pitch is the top-down view (`top_down`, saved as camera_view).
+			if int(value) >= FollowCamera.PITCHES.size():
+				_set_view(FollowCamera.VIEW_TOP_DOWN)
+			else:
+				settings.pitch = FollowCamera.PITCHES[clampi(int(value), 0, FollowCamera.PITCHES.size() - 1)]
+				camera_pitch = -settings.pitch
+				if top_down:
+					_set_view(FollowCamera.VIEW_NORMAL)
 		"camera_view":
 			_set_view(int(value))
 		"promo":
