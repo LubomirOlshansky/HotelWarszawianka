@@ -73,8 +73,11 @@ func setup(world: Node) -> void:
 	set_process(false)
 
 
-## `drinks` more: stronger, and the clock starts again (it begins when `go` is called).
-func add(drinks: int) -> void:
+## `drinks` more (a 5 % pint is one; a strong stout about two, the alcohol-free none): stronger,
+## and the clock starts again (it begins when `go` is called).
+func add(drinks: float) -> void:
+	if drinks <= 0.0:
+		return
 	_start = minf(1.0, maxf(amount, _start) + PER_DRINK * drinks)
 
 

@@ -24,11 +24,14 @@ const Sim := preload("res://scripts/beer_pong_sim.gd")
 const Room := preload("res://scripts/tapczan_room.gd")
 const Tipsy := preload("res://scripts/tipsy.gd")
 const Tapczan := preload("res://scripts/tapczan.gd")
+const MapMarkers := preload("res://scripts/map_markers.gd")
+const MapIcons := preload("res://scripts/map_icons.gd")
 const Activity := preload("res://scripts/activity.gd")
 const Activities := preload("res://scripts/activities.gd")
 const Fakes := preload("res://tools/fakes.gd")
 
-const UI_KEYS := ["enter", "title", "drink", "play", "leave", "pick", "back", "stake_btn", "price", "broke", "full",
+const UI_KEYS := ["enter", "title", "drink", "play", "leave", "pick", "back", "stake_btn", "broke", "full",
+		"taps_head", "tap_btn", "bill", "sip", "board",
 		"drunk_toast", "drunk_over", "won", "lost", "your_turn", "their_turn", "balls_back", "rerack", "drink_up",
 		"cup", "bounce", "rim_in", "rim_out", "miss", "cups", "drinks", "give_up", "again", "done", "quest_title"]
 const RIVAL_LINES := ["hello", "hit", "miss", "win", "lose"]
@@ -124,6 +127,44 @@ func _words() -> void:
 		_fail("tipsy: %d thoughts, want 10+" % thoughts.size())
 	for l: Variant in thoughts:
 		_pair_ok("tipsy", l, 70)
+	# The TAP LIST: about six beers, each named, styled, with ABV, glass, price, a handle colour and
+	# the barman's pick lines and the first sip's; one alcohol-free; strength grows with ABV.
+	var taps: Array = Room.taps()
+	if taps.size() < 5 or taps.size() > 8:
+		_fail("taps: %d beers, want about six" % taps.size())
+	var zero := false
+	for t: Dictionary in taps:
+		var id := str(t.get("id", ""))
+		_pair_ok(id + ".name", t.get("name"))
+		_pair_ok(id + ".style", t.get("style"))
+		if int(t.get("price", 0)) <= 0 or int(t.get("ml", 0)) <= 0 or not t.has("abv") or not t.has("handle") or int(t.get("no", 0)) <= 0:
+			_fail("tap %s: price, ml, abv, handle or number missing" % id)
+		zero = zero or float(t.get("abv", 1.0)) == 0.0
+		for k: String in ["pick", "sip"]:
+			if (t.get(k, []) as Array).is_empty():
+				_fail("tap %s: no %s lines" % [id, k])
+			for l: Variant in t.get(k, []):
+				_pair_ok("%s.%s" % [id, k], l, 150)
+	if not zero:
+		_fail("taps: no alcohol-free beer")
+	if Room.strength(Room.tap("stout")) <= Room.strength(Room.tap("lager")):
+		_fail("a stout should be stronger than the lager")
+	for l: Variant in d.get("refusals", []):
+		_pair_ok("refusals", l, 150)
+	if (d.get("refusals", []) as Array).is_empty():
+		_fail("no refusals for the broke")
+	# The memes: every board in the room has its words (Polish pixel lines, the tap's pair).
+	var memes := {}
+	for m: Dictionary in d.get("memes", []):
+		memes[str(m.get("id", ""))] = m
+		_pair_ok("meme." + str(m.get("id", "")), m.get("say"), 150)
+		if (m.get("world", []) as Array).is_empty():
+			_fail("meme %s: no world lines" % m.get("id", ""))
+	for mb: Array in Room.meme_boards():
+		if not memes.has(str(mb[0])):
+			_fail("meme board %s: no words in data" % mb[0])
+	if not memes.has("wall"):
+		_fail("meme wall: no words for BREW ENJOY EMPTY REPEAT")
 
 
 # --- 2. the rules --------------------------------------------------------------------------------
@@ -301,7 +342,7 @@ func _room_and_door() -> void:
 	var tris := 0
 	for i in mesh.get_surface_count():
 		tris += (mesh.surface_get_arrays(i)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size() / 3
-	if tris <= 0 or tris > 20000:
+	if tris <= 0 or tris > 30000:
 		_fail("room mesh: %d triangles" % tris)
 	print("check_tapczan: room mesh %d triangles" % tris)
 	var world := Node3D.new()
@@ -359,11 +400,30 @@ func _room_and_door() -> void:
 		_fail("the pill should take the player in (phase %d, inside %s)" % [t.phase, t.inside()])
 	if hud.pill_shown(Tapczan.PILL):
 		_fail("inside: the pill should go")
+	# The TAP LIST: WYPIJ PIWKO opens it; a beer's price goes out of the wallet and onto the bill;
+	# short of money is a refusal with nothing poured; the alcohol-free adds no tipsiness.
 	t.room.drink()
-	if wallet.money != 100 - Room.PINT or t.room.pints != 1:
-		_fail("a pint: %d zl left, %d pints" % [wallet.money, t.room.pints])
+	if not t.room._taps.visible:
+		_fail("WYPIJ PIWKO should open the tap list")
+	var stout := Room.tap("stout")
+	var price := int(stout.get("price", 0))
+	if not t.room.order("stout") or wallet.money != 100 - price or t.room.pints != 1 or t.room.bill != price:
+		_fail("a stout: %d zl left, %d pints, bill %d" % [wallet.money, t.room.pints, t.room.bill])
+	if t.room._taps.visible:
+		_fail("a pick should close the tap list")
+	if t.room._bill.text.find(str(price)) < 0:
+		_fail("the bill line should show %d zł: %s" % [price, t.room._bill.text])
+	var before := t.tipsy._start
+	if not t.room.order("zero") or not is_equal_approx(t.tipsy._start, before):
+		_fail("the alcohol-free should pour and add nothing to the tipsy spell")
+	var spent := price + int(Room.tap("zero").get("price", 0))
+	var keep := wallet.money
+	wallet.money = 5
+	if t.room.order("neipa") or wallet.money != 5 or t.room.pints != 2 or t.room.bill != spent:
+		_fail("short of money: a refusal, nothing poured")
+	wallet.money = keep
 	t._on_pong(true, 120, 2)
-	if wallet.money != 100 - Room.PINT + 120 or not "pong" in wallet.kinds:
+	if wallet.money != keep + 120 or not "pong" in wallet.kinds:
 		_fail("a won game should pay its stake: %d zl" % wallet.money)
 	t.room.leave()
 	if t.phase != Activity.Phase.IDLE or t.inside() or not hud.visible or car.process_mode != Node.PROCESS_MODE_INHERIT:
@@ -375,5 +435,14 @@ func _room_and_door() -> void:
 		_fail("the QUESTS entry: %s" % e)
 	if not hud.markers.has("tapczan:door"):
 		_fail("the maps' mark at the door")
+	else:
+		# F 2026-11-24: permanent on both maps, a beer mug named THE TAPCZAN (not in quest focus).
+		var mk: Dictionary = hud.markers.owned("tapczan")[0]
+		if int(mk["shape"]) != MapIcons.POI_MUG or str((mk["extra"] as Dictionary).get("name", "")) != "THE TAPCZAN":
+			_fail("the pub's mark: a mug named THE TAPCZAN, got %s" % mk)
+		for ctx in [MapMarkers.Context.FREE, MapMarkers.Context.AIR]:
+			for view in [MapMarkers.View.MINIMAP, MapMarkers.View.FULL_MAP]:
+				if not MapMarkers.shows(int(mk["layer"]), view, ctx):
+					_fail("the pub's mark should show on both maps, free and in the air")
 	t.tipsy._stop()
 	t.room.queue_free()

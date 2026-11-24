@@ -11,13 +11,26 @@ to go into.
    pill says **WEJDŹ / GO IN**. No call, no quest, any hour. The maps carry the pub's mark
    (SERVICE layer, group `crawl`), and QUESTS lists it under SIDE JOBS as "Rajd Kraftowy · THE
    TAPCZAN" with SHOW ON MAP and the number of crawls done.
-2. **Inside** (a cutaway like Smoła's): old brick, the bar along the back wall with sixteen lit taps
-   and the chalk menu, the gold bottle-cap sign, barrels, five long tables with regulars on the
-   benches (they lean and lift their glasses), the beer pong table at the front with tonight's three
-   rivals. Tap a person for a line (barman Kuba, the beard who brews in the bathtub, Polibuda
-   students, backpackers, a couple on a date, the rivals' hellos). Three buttons:
-   - **WYPIJ PIWKO**: a pint, 16 zł (the first of a visit is on the house when the player is broke;
-     the bar stops at four). Each pint makes the drive after it tipsy.
+2. **Inside** (a cutaway like Smoła's), rebuilt from the real pub's photos (second pass,
+   2026-11-24): the curved bar with its copper-edged wooden top over rubble stone piers and dark
+   slate panels, two long chrome tap pipes with arched ends (a coloured handle per tap, glowing amber
+   glasses on top), the row of amber glass lamps and lit bottle shelves on the brick behind, the
+   black soffit following the curve with the numbered chalk tap list, black leather stools on wooden
+   legs, the porthole in the brick, BREW ENJOY EMPTY REPEAT on the grey concrete (the first letters,
+   BEER, in white), the steel mezzanine with its cable railing over the arched way out, the black
+   ceiling's edge and the silver ducts, dark slate tiles, square wooden tables with wooden chairs,
+   the pong table at the front with tonight's three rivals. Craft-beer memes hang as chalkboards
+   ("Piwo nie ma być smaczne, ma być DRUGIE", "Chmiel, Honor, Ojczyzna", "NEIPA: mętne jak moje
+   plany", "Kraftowe 28 zł za 0,3, ale z duszą", "Nie ma jasnego. Jest lager z nutą nostalgii"); a
+   tap on a board or the wall reads it in Polish with English. Tap a person for a line. Three buttons:
+   - **WYPIJ PIWKO**: the **tap list**, six beers in two columns (name, price, style, ABV, glass):
+     Mętna Sprawa (NEIPA 6,5%, 28 zł), Chmiel, Honor, Ojczyzna (West Coast IPA 7%, 26 zł), Czarna
+     Owca z Pragi (imperial stout 11%, 32 zł), Kwaśna Mina (raspberry sour 4,2%, 24 zł), Dla Teścia
+     (lager 4,8%, 16 zł) and Trzeźwy Kierowca (alcohol-free, 12 zł). A pick: the price out of the
+     wallet and onto the visit's **bill** (the amber line under the title, with the wallet), the
+     barman's sommelier-style answer, the first sip's line 2.4 s later. A beer's strength for the
+     drive after it is ABV / 5 drinks (the stout about two, the zero none). Short of the price: one
+     of the barman's refusals, nothing poured. The bar stops at four glasses a visit.
    - **ZAGRAJ**: the rival card, then beer pong.
    - **WYJDŹ**: back to the car.
 3. **Beer pong** (2D over the room, drawn from behind the player's end):
@@ -46,11 +59,12 @@ to go into.
 | Part | Script | Notes |
 | --- | --- | --- |
 | The door, the run, pay, QUESTS row, map mark | `tapczan.gd` | an activity of the kit with no call: `_idle_tick` puts the ring (`set_mark`) and the pill; the pill's `start` is the run; `_ended` gives back the HUD and the car and starts the tipsy spell; `rescue_calls` HOLD |
-| The room | `tapczan_room.gd` | one mesh (about 6k triangles), one MultiMesh of people, the panel; built on the first visit at (9000, 0, -9000) |
+| The room, the tap list, the bill | `tapczan_room.gd` | one mesh (about 16k triangles, the chalk's pixel text merged into runs), one MultiMesh of people, the panel, the tap list and the bill line; built on the first visit at (9000, 0, -9000); no lights of its own |
 | Beer pong's rules and ball | `beer_pong_sim.gd` | pure; the flight is integrated at 120 Hz once per throw; the aim's preview traces into one reused array |
 | Beer pong's view and touch | `beer_pong.gd` | `_draw` only, a fixed perspective; nothing allocated per frame |
 | The drive after | `tipsy.gd`, `shaders/tipsy.gdshader` | the overlay lives in the city's SubViewport (the HUD stays sharp); hidden and `_process` off when sober; car.gd `tipsy_pull` |
-| Words | `game/data/tapczan.json` | every on-screen line, [Polish, English] |
+| Words | `game/data/tapczan.json` | every on-screen line, [Polish, English]; `taps` (the tap list), `refusals`, `memes` (the boards' pixel lines and their tap) |
+| The map mark | `tapczan.gd` `setup` | the registry's SERVICE layer (map_markers.gd), shape `POI_MUG`, `extra.name` "THE TAPCZAN": both maps, from the start, quiet in quest focus like the garage |
 
 main.gd: the join line, the camera's `room_view` branch and `sway`, "on foot" for the sounds and no
 helicopter while inside, and the QUESTS entry (11 lines). Check: `game/tools/check_tapczan.gd` (verify
@@ -63,7 +77,7 @@ the rivals' quips follow the game's events, so `data/tapczan.json` line bags are
 
 ## Decided for now (park list)
 
-- The pint price (16 zł), the stakes (80/120/150 zł) and the skills are first guesses for the phone
+- The tap prices (12-32 zł), ABV / 5 as drinks, the stakes (80/120/150 zł) and the skills are first guesses for the phone
   feel test (PHONE-CHECK 15zzi).
 - Drinks do not lead to police or fines: the tipsy minute is a comic wobble, not a crime mechanic.
   The App Store age rating's "alcohol references" answer needs F's look before the next submission.

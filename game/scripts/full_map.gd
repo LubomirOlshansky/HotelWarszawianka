@@ -1276,7 +1276,11 @@ func _paint() -> void:
 	for i in (service["at"] as PackedVector2Array).size():
 		var g := to_screen((service["at"] as PackedVector2Array)[i])
 		if view.has_point(g):
-			hud._tri_diamond(g, 6.5 * pt, (service["colour"] as PackedColorArray)[i])
+			var sshape := (service["shape"] as PackedInt32Array)[i]
+			if sshape == MapIcons.POI_MUG:
+				hud.poi_mark(g, 6.0 * pt, (service["colour"] as PackedColorArray)[i], sshape)
+			else:
+				hud._tri_diamond(g, 6.5 * pt, (service["colour"] as PackedColorArray)[i])
 	# Loop 3h slice 3's diamond at the final's start is the main line's star now.
 	var targets := markers.shown(MapMarkers.Layer.TARGET, MapMarkers.View.FULL_MAP, ctx)
 	for i in (targets["at"] as PackedVector2Array).size():
@@ -1422,6 +1426,21 @@ func _paint() -> void:
 		var a := FOCUS_DIM if focus else 1.0
 		o.draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, _px(5), Color(0.11, 0.1, 0.14, 0.95 * a))
 		o.draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, Color(col.lightened(0.35), a))
+	# The service marks' names (THE TAPCZAN's mug, any zoom): coloured text like the badges' names.
+	var svc := markers.shown(MapMarkers.Layer.SERVICE, MapMarkers.View.FULL_MAP, ctx)
+	for i in (svc["at"] as PackedVector2Array).size():
+		var text := str((svc["extra"][i] as Dictionary).get("name", ""))
+		if text == "":
+			continue
+		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns).x
+		var p := to_screen((svc["at"] as PackedVector2Array)[i]) + Vector2(-w * 0.5, 10.0 * pt + ns)
+		var box := Rect2(p - Vector2(0.0, ns), Vector2(w, ns * 1.3)).grow(2.0 * pt)
+		if not view.has_point(p):
+			continue
+		taken.append(box)
+		var col := Access.tint((svc["colour"] as PackedColorArray)[i])
+		o.draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, _px(5), Color(0.11, 0.1, 0.14, 0.95))
+		o.draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, col.lightened(0.35))
 	for ic in named:
 		var text: String = ic["pl"]
 		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns).x

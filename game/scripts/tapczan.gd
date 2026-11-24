@@ -7,8 +7,9 @@ extends "res://scripts/activity.gd"
 ##     (`set_mark`, amber), and once the car stops at the kerb within PILL_R m of it the context pill
 ##     says WEJDŹ / GO IN;
 ##   - the run: inside (tapczan_room.gd): the HUD aside, the car waiting with its process off, the
-##     camera on the room (main.gd asks `room_view`); WYPIJ PIWKO, ZAGRAJ (beer pong, beer_pong.gd)
-##     and WYJDŹ; a won game pays its stake (wallet kind "pong"); the run ends at WYJDŹ;
+##     camera on the room (main.gd asks `room_view`); WYPIJ PIWKO (the TAP LIST: a beer's price on
+##     the bill and out of the wallet, its strength into the tipsy spell), ZAGRAJ (beer pong,
+##     beer_pong.gd) and WYJDŹ; a won game pays its stake (wallet kind "pong"); the run ends at WYJDŹ;
 ##   - after: every pint and every cup the rival took makes the drive after it tipsy (tipsy.gd,
 ##     about a minute, fading).
 ## The bar crawl's "Kraftowa" starts at the same door (bar_crawl.gd); QUESTS lists the pub under
@@ -16,6 +17,7 @@ extends "res://scripts/activity.gd"
 ## maps show its mark (SERVICE layer, group "crawl").
 ##
 ## Flags (dev_flags.gd): --tapczan=0 (none), --tapczan=in (straight in, the room's panel to use),
+## --tapczan=taps (straight in with the TAP LIST open, for shots),
 ## --tapczan=pong (straight in, a pint and a self-playing game against the first rival, then out:
 ## the tipsy drive), --tapczan=drunk (the tipsy minute at once), --tapczan-log.
 ##
@@ -24,6 +26,7 @@ extends "res://scripts/activity.gd"
 const Room := preload("res://scripts/tapczan_room.gd")
 const Tipsy := preload("res://scripts/tipsy.gd")
 const MapMarkers := preload("res://scripts/map_markers.gd")
+const MapIcons := preload("res://scripts/map_icons.gd")
 const QuestLines := preload("res://scripts/quest_lines.gd")
 
 ## The front of Sienkiewicza 4 (landmarks/srodmiescie.gd TPZ_FRONT_A, _B: map x, z) and the door's
@@ -50,6 +53,7 @@ var _poll := 0.0
 var _flag := ""
 var _mark_on := false
 var _pong_won := 0
+var _ctx_hide_hud := false
 
 
 func install(ctx: GameCtx) -> bool:
@@ -64,6 +68,7 @@ func install(ctx: GameCtx) -> bool:
 	dark = AMBER_D
 	rescue_calls = RescueCalls.HOLD
 	log_on = bool(ctx.flags.tapczan_log) if "tapczan_log" in ctx.flags else false
+	_ctx_hide_hud = bool(ctx.flags.hide_hud) if "hide_hud" in ctx.flags else false
 	autopilot = ctx.flags.autopilot
 	vehicle = ctx.vehicle
 	clock = ctx.hour
@@ -80,9 +85,11 @@ func setup(world: Node3D) -> void:
 	room.hud = hud
 	room.wallet = wallet
 	room.log_on = log_on
+	# --nohud (shots of the room alone): the room's own panel stays hidden too.
+	room.panel_off = bool(_ctx_hide_hud)
 	add_child(room)
 	room.left.connect(_on_left)
-	room.drank.connect(func() -> void: tipsy.add(1))
+	room.drank.connect(func(drinks: float) -> void: tipsy.add(drinks))
 	room.pong_over.connect(_on_pong)
 	tipsy = Tipsy.new()
 	tipsy.name = "Tipsy"
@@ -96,7 +103,9 @@ func setup(world: Node3D) -> void:
 			start())
 	if hud.get("markers") != null:
 		var d := door()
-		hud.markers.put("tapczan:door", MapMarkers.Layer.SERVICE, d, AMBER, 0, "crawl")
+		# F 2026-11-24: a permanent mark on both maps, a beer mug named THE TAPCZAN (SERVICE layer).
+		hud.markers.put_all("tapczan", [{"key": "door", "layer": MapMarkers.Layer.SERVICE, "at": d, "colour": AMBER,
+				"shape": MapIcons.POI_MUG, "group": "crawl", "extra": {"name": "THE TAPCZAN"}}])
 
 
 ## Test starts at the join: straight in, a self-playing game, or the tipsy minute.
@@ -104,14 +113,16 @@ func joined(ctx: GameCtx) -> void:
 	cam = ctx.world.get_viewport().get_camera_3d() if ctx.world != null else null
 	room.cam = cam
 	match _flag:
-		"in", "pong":
+		"in", "pong", "taps":
 			room.auto_play = _flag == "pong"
 			get_tree().create_timer(1.5).timeout.connect(func() -> void:
 				if phase == Phase.IDLE:
-					start())
+					start()
+				if _flag == "taps":
+					room.drink())
 		"drunk":
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
-				tipsy.add(3)
+				tipsy.add(3.0)
 				tipsy.go())
 
 

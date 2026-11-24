@@ -7241,9 +7241,9 @@ const HZ_CHAMFER := 5.5                     # each leg of the chamfer, along the
 const HZ_EAVE := 18.85
 const HZ_TOP := 20.8
 const HZ_DEPTH := 2.0
-const HZ_WHITE := Color("#f1f0eb")
-const HZ_TRIM := Color("#e4e3de")
-const HZ_PLINTH := Color("#9ea0a1")
+const HZ_WHITE := Color("#e4d9b8")      # soiled warm cream stucco (photos 1, 4)
+const HZ_TRIM := Color("#ebe2c8")
+const HZ_PLINTH := Color("#b8a688")     # unpainted sandstone
 const HZ_BRICK := Color("#a5523e")
 const HZ_GOLD := Color("#c9ac6a")
 const HZ_YELLOW := Color(1.0, 0.86, 0.3)
@@ -7295,13 +7295,16 @@ func _find_harczyk() -> void:
 
 ## A dormer in the current front's frame, standing on the mansard: red brick cheeks, a window, a
 ## white gable over it.
-func _hz_dormer(u: float, g: float, wide: float, rise: float) -> void:
+func _hz_dormer(u: float, g: float, wide: float, rise: float, cheek: float) -> void:
 	var y := g + HZ_EAVE
-	_kbox(u - wide, u + wide, -HZ_DEPTH + 0.05, -0.45, y + 0.05, y + 2.05, HZ_BRICK)
+	# brick panel between the gables, then a round-headed gable (a wave skyline) with an arched pane
+	_kbox(u - cheek, u + cheek, -HZ_DEPTH + 0.05, -0.45, y + 0.05, y + 2.05, HZ_BRICK)
 	var keep := _face
 	kit_face(-0.45)
-	kit_window(u, y + 0.75, 1.0, Win.PLAIN, HZ_WHITE, PAL_GLASS_DARK, wide * 0.6)
-	kit_pediment(u, wide, y + 2.05, rise, HZ_WHITE, PAL_ROOF_DARK, 0.4)
+	var at := _w(u, _face)
+	var spring := y + 1.7 + rise * 0.4
+	_arch_panel(at, _a, _b, wide, y + 0.05, spring, HZ_WHITE, 0.06, M_STONE)
+	_arch_panel(at, _a, _b, wide * 0.55, y + 0.6, spring - 0.25, PAL_GLASS_DARK, 0.1, M_STONE)
 	kit_face(keep)
 
 
@@ -7336,9 +7339,16 @@ func _hz_mansard(ring: PackedVector2Array, pts: Array[Vector2], y0: float, rise:
 	return band
 
 
+## A shop opening with a round head: a trim arch behind the dark glass, 3.05 m tall in all.
+func _hz_shop(u: float, g: float, hw: float) -> void:
+	var at := _w(u, _face)
+	_arch_panel(at, _a, _b, hw + 0.15, g + 0.7, g + 3.8 - hw, HZ_TRIM, 0.03, M_STONE)
+	_arch_panel(at, _a, _b, hw, g + 0.75, g + 3.8 - hw - 0.05, PAL_GLASS_DARK, 0.07, M_STONE)
+
+
 ## One front's windows, balconies and dormers; `bays` windows across, `bal` the bays with a
 ## balcony on the 3rd floor, `ground` what stands on the street level (called with the frame set).
-func _hz_front(le: float, bays: int, bal: Array, g: float, crown := -1) -> Array[float]:
+func _hz_front(le: float, bays: int, bal: Array, g: float, crown := -1, mid_only := false) -> Array[float]:
 	var cs: Array[float] = []
 	for i in bays:
 		cs.append((float(i) + 0.5) * le / float(bays))
@@ -7348,12 +7358,14 @@ func _hz_front(le: float, bays: int, bal: Array, g: float, crown := -1) -> Array
 	kit_cornice(0.0, le, g + 18.4, HZ_WHITE, 0.45, 0.9)
 	for ci in cs.size():
 		var u := cs[ci]
+		_hz_dormer(u, g, 1.15 if ci == crown else 0.78, 1.6 if ci == crown else 0.8, minf(le / float(bays) * 0.5 - 0.1, 1.9))
+		if mid_only and ci != crown:
+			continue
 		kit_window(u, g + HZ_SILLS[0], HZ_HEIGHTS[0], Win.HOODED, HZ_TRIM, PAL_GLASS_DARK, 0.85)
 		kit_window(u, g + HZ_SILLS[1], HZ_HEIGHTS[1], Win.ARCHED, HZ_TRIM, PAL_GLASS_DARK, 0.65)
 		kit_window(u, g + HZ_SILLS[2], HZ_HEIGHTS[2], Win.SILL_HEAD, HZ_TRIM, PAL_GLASS_DARK, 0.65)
 		kit_window(u, g + HZ_SILLS[3], HZ_HEIGHTS[3], Win.SILL, HZ_TRIM, PAL_GLASS_DARK, 0.65)
 		kit_window(u, g + HZ_SILLS[4], HZ_HEIGHTS[4], Win.SILL_HEAD, HZ_TRIM, PAL_GLASS_DARK, 0.6)
-		_hz_dormer(u, g, 1.15 if ci == crown else 0.78, 1.6 if ci == crown else 0.8)
 	for b: int in bal:
 		kit_balcony(cs[b], g + HZ_SILLS[2], 0.95, Balcony.STONE, HZ_WHITE, HZ_TRIM, 0.95)
 	return cs
@@ -7394,21 +7406,22 @@ func _build_harczyk(site: Dictionary) -> void:
 			_kbox(cs[i] - 1.6, cs[i] + 1.6, 0.0, 0.12, g + 3.55, g + 4.3, HZ_GOLD)
 			_usign("REJNA", cs[i], 0.14, g + 3.85, _b, 2.6, 0.4, Color(0.2, 0.15, 0.08))
 		else:
-			kit_shop_bay(cs[i], g + 0.75, g + 3.8, 1.3, HZ_TRIM, PAL_GLASS_DARK)
+			_hz_shop(cs[i], g, 1.3)
 	_usign("LIMONKA", cs[7], 0.2, g + 4.0, _b, 2.0, 0.34, HZ_YELLOW)
 	# Jasna: the second long front.
 	var lj := kit_front(j0, k2)
 	var cj := _hz_front(lj, 7, [1, 5], g)
 	for u in cj:
-		kit_shop_bay(u, g + 0.75, g + 3.8, 1.3, HZ_TRIM, PAL_GLASS_DARK)
+		_hz_shop(u, g, 1.3)
 	# The chamfer: three narrow bays, the stack of balconies on the middle one, the crown gable.
 	var lk := kit_front(k2, k1)
-	var cc := _hz_front(lk, 3, [], g, 1)
-	for y: float in HZ_SILLS.slice(1, 4):
-		kit_balcony(cc[1], g + y, 1.0, Balcony.STONE, HZ_WHITE, HZ_TRIM, 1.0)
-	kit_balcony(cc[1], g + HZ_SILLS[0], 1.3, Balcony.STONE, HZ_WHITE, HZ_TRIM, 0.9)
-	kit_shop_bay(cc[0], g + 0.75, g + 3.8, 1.0, HZ_TRIM, PAL_GLASS_DARK)
-	kit_shop_bay(cc[2], g + 0.75, g + 3.8, 1.0, HZ_TRIM, PAL_GLASS_DARK)
+	var cc := _hz_front(lk, 3, [], g, 1, true)
+	# One window a floor; balconies alternate: wide at floor 1, small at floors 3 and 5 (photos 1, 4).
+	kit_balcony(cc[1], g + HZ_SILLS[0], 1.3, Balcony.STONE, HZ_TRIM.lightened(0.35), HZ_PLINTH, 0.9)
+	kit_balcony(cc[1], g + HZ_SILLS[2], 0.85, Balcony.STONE, HZ_TRIM.lightened(0.35), HZ_PLINTH, 0.8)
+	kit_balcony(cc[1], g + HZ_SILLS[4], 0.85, Balcony.STONE, HZ_TRIM.lightened(0.35), HZ_PLINTH, 0.8)
+	_hz_shop(cc[0], g, 1.0)
+	_hz_shop(cc[2], g, 1.0)
 	kit_door(cc[1], g + 0.1, 3.4, 1.1, HZ_TRIM, PAL_DARK_DOOR, true)
 	# The sides and the yards: plain panes, but not on the party walls (no. 4, the bank's office).
 	var rows: Array = [g + 1.3, g + 5.1, g + 8.0, g + 10.9, g + 13.8, g + 16.6]
