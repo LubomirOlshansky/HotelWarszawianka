@@ -172,6 +172,11 @@
 # the call's hours, the clock and the pay, and (since it is an activity of the kit, 2026-11-12) a
 # whole crawl played against the shared stand-ins. `crawl-run` (full set only) plays the Klasyczna
 # in the whole game with the autopilot: the pickup, three bars, the pay.
+# THE TAPCZAN phase 2 (2026-11-24): `tapczan` runs game/tools/check_tapczan.gd: data/tapczan.json's
+# words (pairs, no brand), the beer pong rules (racks, aim, bounce, rim, balls back, re-rack, drinks
+# and sway, Pani Gienia's late skill) and 300 seeded games, the tipsy fade and pull, the room's mesh,
+# the door's ring and WEJDŹ pill on the kit with stand-ins. `tapczan-run` (full set only) plays it
+# in the whole game: in, a pint, a self-playing game, out to the tipsy drive.
 # Sekretny rave (2026-11-06): `rave` runs game/tools/check_rave.gd: the cone, booth and club-room meshes,
 # LEKTI's, Mati's, the door's and the club's lines (no brand), the rave clock, the door's three
 # questions, the lights' poses, the spots and Smoła on the real lane graph; centrum.json only (CI too).
@@ -1526,6 +1531,9 @@ for s in $want; do
 		devflags) check devflags '^check_dev_flags:' --script res://tools/check_dev_flags.gd ;;
 		# Bar crawl: the groups' lines (no brand), the routes' stops on the map, the hours, clock and pay.
 		crawl) check crawl '^check_bar_crawl:' --script res://tools/check_bar_crawl.gd ;;
+		# THE TAPCZAN, phase 2: the words, the beer pong rules and 300 seeded games, the tipsy fade, the
+		# room's mesh, the door's ring and WEJDŹ pill, the pint, the stake, WYJDŹ.
+		tapczan) check tapczan '^check_tapczan:' --script res://tools/check_tapczan.gd ;;
 		# Dead electric cars: the TESŁO, the lines, the sling, the chargers on the real graph.
 		evtow) check evtow '^check_ev_tow:' --script res://tools/check_ev_tow.gd ;;
 		# City-life satire #1: the loud cars and the Browary meet.
@@ -1675,6 +1683,8 @@ for s in $want; do
 		# the Klasyczna's three bars with their stays, the pay. In the cloud the group was at the
 		# last bar 2 min 38 s after boarding (about 12,000 frames with the call and the pickup).
 		crawl-run) game crawl 20000 '^crawl: end: made it, 3/3 bars' --crawl-call --crawl-log --crawl-route=klasyczna --autopilot ;;
+		# THE TAPCZAN in the whole game: straight in, a pint, a self-playing beer pong game, out to the tipsy drive.
+		tapczan-run) game tapczan 12000 '^tapczan: out: won' --tapczan=pong --tapczan-log ;;
 		shisha-run) game shisha 30000 '^shisha: done: smoke' --shisha-call --shisha-log --autopilot ;;
 		# Loop 2d-1 x 3g-1: a pull-over 25 s into that ride takes exactly one star (police.gd calls
 		# rides.on_pulled_over() when the conversation ends), on the prebuilt city.

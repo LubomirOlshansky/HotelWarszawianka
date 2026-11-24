@@ -216,6 +216,8 @@ stuckspots           roads
 stuckspots-prebuilt  smoke     slow
 syrenki              quick
 tamka                quick
+tapczan              quick
+tapczan-run          local     slow
 tape                 quick
 tapers               quick
 tarasyscreen         quick

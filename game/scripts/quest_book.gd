@@ -45,9 +45,9 @@ const TABS := ["steps", "stories", "jobs", "taxi", "rivals", "collection"]
 ## The tabs that show even when empty.
 const ALWAYS := ["stories", "jobs", "rivals"]
 ## The side jobs' kinds, in the tab's order, and the wallet.gd `jobs` key that counts each ("" none).
-const JOB_KINDS := ["kebab", "ride", "call", "sloik", "lezak", "trend", "mlask", "drop", "peacock", "cassette", "garage"]
+const JOB_KINDS := ["kebab", "ride", "call", "sloik", "lezak", "trend", "mlask", "drop", "peacock", "cassette", "garage", "crawl"]
 const JOB_COUNT := {"kebab": "kebab", "ride": "podwozka", "call": "rescue", "sloik": "sloik", "lezak": "roundup",
-		"trend": "trend", "mlask": "trend", "drop": "trend", "peacock": "", "cassette": "", "garage": ""}
+		"trend": "trend", "mlask": "trend", "drop": "trend", "peacock": "", "cassette": "", "garage": "", "crawl": "crawl"}
 ## A questline's wallet.gd `jobs` key, where its runs are counted on their own ("" none: the coffee
 ## run and padel are paid as "trend", with the other trend jobs).
 const STORY_COUNT := {"boat": "boat_race", "rave": "rave", "dekalog": "dekalog_tour", "kino": "kino_tour", "meet": "meet_race",
@@ -59,7 +59,7 @@ const ICON_DIR := "res://art/quest_icons/"
 ## The wallet intro key prefix that marks a questline NEW in QUESTS (a turned-down invite, `mark_invite`).
 const NEW_KEY := "qnew_"
 const ICONS := {"kebab": "kebab", "ride": "ride", "call": "rescue", "rescue": "rescue", "sloik": "jars", "lezak": "scooter",
-		"trend": "trend", "mlask": "foodvan", "drop": "drop", "peacock": "peacock", "cassette": "cassette", "garage": "garage",
+		"trend": "trend", "mlask": "foodvan", "drop": "drop", "peacock": "peacock", "cassette": "cassette", "garage": "garage", "crawl": "club",
 		"boat": "boat", "rave": "rave", "smola": "club", "dekalog": "film_tour", "kawa": "coffee", "padel": "padel",
 		"meet": "meet", "kino": "cinema", "tesla": "ev_tow", "race": "rivals", "rivals": "rivals", "final": "rivals",
 		"heli": "heli", "police": "police", "districts": "collection", "syrenki": "collection", "tapes": "cassette",
