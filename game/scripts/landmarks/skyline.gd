@@ -2221,6 +2221,9 @@ func _tower_roof(poly: PackedVector2Array, y: float, col: Color, plant: Vector2,
 			_wall(a + o * 0.1, b + o * 0.1, top - 0.4, top, o, col)  # the silver coping
 	else:
 		_prism(poly, y, top, col, Color(0, 0, 0, 0), M_STONE)
+		# The deck inside the parapet: without it the tower's top was an open box (F, 2026-11-24:
+		# Cosmopolitan and the Warsaw Financial Centre showed the podium through their roofs).
+		_cap(poly, y - 0.05, col.darkened(0.05))
 	var inner := Geometry2D.offset_polygon(poly, -0.3)
 	if inner.size() == 1:
 		var r := inner[0]
