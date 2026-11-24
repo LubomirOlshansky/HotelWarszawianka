@@ -679,7 +679,6 @@ func _dev_page(body: Control) -> Control:
 	for key: String in ["camera", "zones", "soft_fences", "perf", "promo", "test_device"]:
 		for b: Button in _groups[key]:
 			b.custom_minimum_size.x = touch * 1.05
-	(_groups["angle"][ANGLE.size() - 1] as Button).custom_minimum_size.x = touch * 1.5
 	return scroll
 
 
