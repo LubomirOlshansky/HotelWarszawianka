@@ -187,6 +187,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 15zu | On the Android phone: in play press back; open the full map and press back; on the settings card press back | back in play opens the settings card (the game pauses), on the map back closes the map, nothing ever closes the game; relaunch shows no "lost session" | beta bug sweep |
 | 15zv | Let a call ring, open the full map (or settings) for 10 s, close it; then take the DESKA padel call and press HELI | the ringing stops while the map is open and comes back with the call when it closes; HELI takes off during the padel call and the court takes you from the air | beta bug sweep |
 | 15zza | Play 3 minutes, swipe to the home screen for 10 s, come back, play 2 more minutes, pull Control Center down and up, then background again; look at PostHog live events | two session_end events (about 3 and 2 minutes, not 3 and 5), two session_start (the second resumed=true), nothing from Control Center; a street race lost or given up shows activity_end how lost or quit | stats stretches #1022 |
+| 15zzh | Settings → Obraz → "Kąt kamery": tap "Z góry", close settings and drive a few streets, then tap 30° | the row of four buttons fits on a 375 pt phone with nothing cut; the camera looks straight down, north up, and the car stays easy to steer and read from above; 30° brings the normal view back; the choice is kept after a restart | top-down angle, PR #1043 |
 
 ## Answers F owes that are not looks
 
