@@ -13,13 +13,24 @@ extends SceneTree
 
 const Hud := preload("res://scripts/hud.gd")
 const Bubbles := preload("res://scripts/bubbles.gd")
+const Meet := preload("res://scripts/street_meet.gd")
+const Rave := preload("res://scripts/rave.gd")
+const Boat := preload("res://scripts/boat_race.gd")
+const Shisha := preload("res://scripts/shisha.gd")
 const SCREENS := [Vector2i(2868, 1320), Vector2i(2532, 1170), Vector2i(1920, 1080), Vector2i(1334, 750)]
-## [caller, words]: Darek by day as F got it, Mati by day, a plain call.
-const CALLS := [["Darek „Bawarka”|Darek \"Bawarka\"", "Kumpel od aut. O swojej Bawarce mówi „ona”.\nDziś wieczorem, o 21:00? Powiedz tak, a zegar przeskoczy.\nZaprasza: Nocny spot"],
-		["Mati", "Kumpel z osiedla. Wie o imprezie, zanim powstała.\nDziś wieczorem, o 22:00? Powiedz tak, a zegar przeskoczy.\nZaprasza: Sekretny rave"],
-		["Szymek", "Kumpel z przystani. Ma motorówkę i zero cierpliwości."]]
+## The callers, each the game's own script so a line added to a call is measured here at once
+## (`Activity._show_ring` by day): [script, questline id, its name, its night hours].
+var CALLS := [[Meet, "meet", "Nocny spot", Meet.NIGHT_HOURS], [Rave, "rave", "Sekretny rave", Rave.NIGHT_HOURS],
+		[Boat, "boat", "Wyścig", Vector2(-1.0, -1.0)], [Shisha, "", "", Shisha.HOURS]]
+
+
+## Two in the afternoon, so a night run's call carries its night line.
+class Day extends Node:
+	func local_clock() -> Dictionary:
+		return {"hour": 14.0}
 const OFFER := "„Słuchaj, Wyścig! Pan Zdzisiek wyciągnął Złotą Rybkę, Kamil swój skuter. Płyniemy z Portu Czerniakowskiego pod Śląsko-Dąbrowski, przez kółka. Trzy pudła i odpadasz. Wchodzisz?”"
 
+var _day := Day.new()
 var problems: Array[String] = []
 var states := 0
 
@@ -35,7 +46,20 @@ func _run() -> void:
 	for p in problems:
 		print("  PROBLEM " + p)
 	print("check_call_cards: %s" % ("OK (%d states)" % states if problems.is_empty() else "%d problems" % problems.size()))
+	_day.free()
 	quit(0 if problems.is_empty() else 1)
+
+
+## The game's own ring of `c` (a CALLS row) on this HUD.
+func _ring(hud: CanvasLayer, c: Array) -> void:
+	var a: Node = (c[0] as GDScript).new()
+	a.hud = hud
+	a.clock_node = _day
+	a.run_hours = c[3]
+	if c[1] != "":
+		a.invites[c[1]] = [c[2], c[2]]
+	a._show_ring()
+	a.free()
 
 
 func _check_screen(screen: Vector2i) -> void:
@@ -72,7 +96,7 @@ func _check_screen(screen: Vector2i) -> void:
 			if talk:
 				bubbles.say(Vector3(100, 300, 0), "Mati", "Pierwsza linia, całkiem długa, o imprezie na Smolnej.", "A long first line.")
 			if k < CALLS.size():
-				hud.show_call(CALLS[k][0], CALLS[k][1], Color.RED, CALLS[k][1])
+				_ring(hud, CALLS[k])
 			elif k == CALLS.size():
 				hud.show_side_card("SZYMEK", OFFER, PackedStringArray(["PŁYNĘ!|I'M IN", "NIE DZIŚ|NOT TODAY"]), Color.RED, "Szymek", OFFER, false, "Szymek")
 			else:

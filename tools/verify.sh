@@ -820,6 +820,28 @@ police_soak() {
 	fi
 }
 
+# F 2026-11-24 ("10 minutes and no calls"): NW_CALLS_SOAK_MINUTES of play (default 15) with nobody
+# pressing anything; a friend must ring (`friend call: X rings`, activities.gd) though the rescue call
+# waits on its button unanswered.
+calls_soak() {
+	local mins=${NW_CALLS_SOAK_MINUTES:-15}
+	local t0=$EPOCHREALTIME frames=$(( mins * 3600 )) logf=$logs/run_calls-soak.log code
+	( cd $GAME && limited $STEP_LIMIT $GODOT --headless --path . --fixed-fps 60 --quit-after $frames \
+		-- --nosave --notitle ) > $logf 2>&1
+	code=$?
+	local secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+	local np=$(problems $logf | wc -l | tr -d ' ')
+	local n=$(grep -c '^friend call: ' $logf) w=$(grep -c '^rescue call ringing' $logf)
+	local label="run: calls soak $mins min"
+	if (( code != 0 || np > 0 )); then
+		row FAIL "$label" $secs "exit $code, $np error/warning lines: $(problems $logf | head -1 | cut -c1-100) ($logf)"
+	elif (( w == 0 || n == 0 )); then
+		row FAIL "$label" $secs "$n friends' calls, $w rescue calls ($logf)"
+	else
+		row PASS "$label" $secs "$n friends' calls, $w rescue calls"
+	fi
+}
+
 # Loop MW-4 (vision 5's acceptance): the car driven at the dog walkers and riders for
 # NW_LIFE_SOAK_MINUTES of play (default 10) on a Friday dusk; passes with no errors, some met and
 # no dog, walker or rider ever inside the car's footprint (`life: soak done ... overlaps 0`).
@@ -1606,6 +1628,7 @@ for s in $want; do
 		hints) check hints '^check_hints:' --script res://tools/check_hints.gd ;;
 		opening) check opening '^opening:' --script res://tools/check_opening.gd ;;
 		life-soak) life_soak ;;
+		calls-soak) calls_soak ;;
 		# Loop 2d-1: Podwózka's star and pay tables, the streak and the cancel rules, its lines.
 		rides) check rides '^check_rides:' --script res://tools/check_rides.gd ;;
 		# Podwózka played on the activity kit (fake HUD, small city, the autopilot over the engine's own frames).
