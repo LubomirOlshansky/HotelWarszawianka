@@ -306,7 +306,6 @@ func _build() -> void:
 	_segments(drive[1], "lane_assist", ON_OFF)
 	for b: Button in _groups["lane_assist"]:
 		b.custom_minimum_size.x = touch * 1.05
-	(_groups["angle"][ANGLE.size() - 1] as Button).custom_minimum_size.x = touch * 1.5
 	# The weather and the traffic (was ŚWIAT; the time of day went to DEV in step 3: the game runs
 	# its own clock, F 2026-11-19).
 	_heading(drive[1], "Pogoda", "Weather")
