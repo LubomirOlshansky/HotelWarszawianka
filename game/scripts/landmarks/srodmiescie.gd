@@ -5158,6 +5158,9 @@ const S38_FONT := {
 	"T": ["###", ".#.", ".#.", ".#.", ".#."], "L": ["#..", "#..", "#..", "#..", "###"],
 	"I": ["###", ".#.", ".#.", ".#.", "###"], "3": ["###", "..#", "###", "..#", "###"],
 	"8": ["###", "#.#", "###", "#.#", "###"],
+	# THE TAPCZAN's umbrellas (KOLKA-KOLA).
+	"K": ["#.#", "#.#", "##.", "#.#", "#.#"], "O": ["###", "#.#", "#.#", "#.#", "###"],
+	"A": ["###", "#.#", "###", "#.#", "#.#"], "-": ["...", "...", "###", "...", "..."],
 }
 var _sm_run := 0.0
 
@@ -6777,3 +6780,268 @@ func _build_politechnika(_site: Dictionary) -> void:
 		_prism(_circle(_w(pu, face + 1.0), 0.75, 6), g + 4.6, g + 5.3, PW_GLOBE, PW_GLOBE, M_LAMP, M_LAMP)
 		_prism(_circle(_w(pu, face + 1.0), 0.3, 6), g + 5.3, g + 6.0, PW_GLOBE, PW_GLOBE, M_LAMP, M_LAMP)
 	_collide(_rect(0.0, face * 0.5, hw, face * 0.5))
+
+
+# --- THE TAPCZAN, the craft-beer pub on Sienkiewicza 4 (F's photos, 2026-11-24) -------------------
+# Spec docs/landmarks/specs/tapczan.md. A parody of the real pub's name (a "tapczan" is a sofa bed:
+# the pub you end up sleeping on); the real name is in data/brand_denylist.json. The house is
+# LoD2's and stays; this site dresses its street level and puts the summer terrace on the pavement.
+
+## The front of Sienkiewicza 4 on the street (OpenStreetMap's outline, west corner to east), and
+## where the pub's street level runs along it (u from the west corner, m).
+const TPZ_FRONT_A := Vector2(-789.1, -46.2)
+const TPZ_FRONT_B := Vector2(-763.1, -56.4)
+const TPZ_U0 := 0.4
+const TPZ_U1 := 12.8
+## The terrace (pallet deck) on the pavement: u along the front, v out of it; the kerb of the
+## carriageway stands at v ~6.5 (Sienkiewicza's centreline at v 10, 7 m wide).
+const TPZ_DECK := Rect2(0.3, 2.0, 12.4, 4.1)
+const TPZ_DECK_H := 0.16
+const TPZ_GF := 4.3          # the street level's height (the ledge over the glazing)
+const TPZ_CREAM := Color("#e6dccb")
+const TPZ_LEDGE := Color("#efe7d8")
+const TPZ_STONE := Color("#8e8b84")
+const TPZ_STONE_D := Color("#6f6c66")
+const TPZ_FRAME := Color("#5c6166")
+const TPZ_GLASS := Color("#2c3338")
+const TPZ_VENT := Color("#c9ccce")
+const TPZ_BLACK := Color("#18181a")
+const TPZ_GOLD := Color("#c9a45a")
+const TPZ_NEON := Color(1.0, 0.8, 0.42)
+const TPZ_PINE := Color("#e2c591")
+const TPZ_PINE_D := Color("#b99a66")
+const TPZ_TABLE := Color("#8a6a48")
+const TPZ_CHAIR := Color("#202124")
+const TPZ_UMB := Color("#2a2b30")
+const TPZ_LEAF := Color("#5f8f3a")
+const TPZ_LEAF_D := Color("#467a2c")
+const TPZ_HERB := Color("#6fae45")
+## The two square umbrellas: centre u, v, half size, the canopy's rim and apex over the deck.
+const TPZ_UMBRELLAS := [[3.4, 3.9, 1.9], [9.5, 3.9, 1.9]]
+const TPZ_UMB_RIM := 2.35
+const TPZ_UMB_APEX := 3.0
+## The tables: two rows along the front, [u, v]; four chairs round each, folding, black.
+const TPZ_TABLES := [[1.6, 3.0], [4.3, 3.0], [7.1, 3.0], [10.2, 3.0],
+		[2.6, 4.7], [5.6, 4.7], [8.4, 4.7]]
+## The parody on the umbrellas' valances (the real ones carry a cola maker's script).
+const TPZ_UMB_WORD := "KOLKA-KOLA"
+
+
+func _find_tapczan() -> void:
+	var a := (TPZ_FRONT_B - TPZ_FRONT_A).normalized()
+	var b := Vector2(-a.y, a.x)
+	var at := func(u: float, v: float) -> Vector2: return TPZ_FRONT_A + a * u + b * v
+	var zone := PackedVector2Array([at.call(-0.2, -0.7), at.call(13.2, -0.7), at.call(13.2, 6.4), at.call(-0.2, 6.4)])
+	_add_site("tapczan", [zone])
+
+
+## The frame on the front: u east along it from the west corner, v out to the street.
+func _tpz_frame() -> void:
+	_o = TPZ_FRONT_A
+	_a = (TPZ_FRONT_B - TPZ_FRONT_A).normalized()
+	_b = Vector2(-_a.y, _a.x)
+
+
+## A thin bar between two points (a leg, a brace), drawn as a slim box: square section `r`.
+func _tpz_bar(p0: Vector3, p1: Vector3, r: float, col: Color) -> void:
+	var d := p1 - p0
+	if d.length() < 0.01:
+		return
+	var side := d.cross(Vector3.UP)
+	if side.length() < 0.001:
+		side = Vector3(_a.x, 0.0, _a.y)
+	side = side.normalized() * r
+	var up := side.cross(d).normalized() * r
+	var c := [p0 - side - up, p0 + side - up, p0 + side + up, p0 - side + up]
+	var e := [p1 - side - up, p1 + side - up, p1 + side + up, p1 - side + up]
+	_mode = M_STONE
+	for k in 4:
+		var q0: Vector3 = c[k]
+		var q1: Vector3 = c[(k + 1) % 4]
+		var mid := (q0 + q1) * 0.5 - p0
+		var n := (mid - d * (mid.dot(d) / d.length_squared())).normalized()
+		_quad(q0, q1, e[(k + 1) % 4], e[k], n, col)
+
+
+## A rough carved stone panel on the wall (the Art Deco reliefs between the bays): a flat slab
+## and a field of chiselled bumps in two greys, set from a seed so it stays put.
+func _tpz_relief(u0: float, u1: float, y0: float, y1: float, seed: float) -> void:
+	_ubox(u0, u1, 0.02, 0.1, y0, y1, TPZ_STONE, M_STONE, TPZ_STONE)
+	var cols := maxi(2, roundi((u1 - u0) / 0.32))
+	var rows := maxi(2, roundi((y1 - y0) / 0.3))
+	var du := (u1 - u0 - 0.12) / cols
+	var dy := (y1 - y0 - 0.12) / rows
+	for i in cols:
+		for j in rows:
+			var h := fposmod(sin(seed * 7.1 + i * 12.9898 + j * 78.233) * 43758.5453, 1.0)
+			if h < 0.3:
+				continue
+			var cu := u0 + 0.06 + (i + 0.5) * du + (h - 0.5) * 0.08
+			var cy := y0 + 0.06 + (j + 0.5) * dy
+			var col := TPZ_STONE_D if h > 0.7 else TPZ_STONE.lightened(0.08)
+			_ubox(cu - du * 0.36, cu + du * 0.36, 0.1, 0.13 + 0.05 * h, cy - dy * 0.34, cy + dy * 0.34, col, M_STONE, col)
+
+
+## One glazed bay of the street level: a grey frame, the glass (warm inside at night), a transom of
+## louvred vents over it; `open` leaves the doors folded back on the dark bar inside.
+func _tpz_bay(u0: float, u1: float, g: float, open: bool) -> void:
+	var top := g + TPZ_GF - 0.35
+	var tr := top - 0.75
+	_ubox(u0, u1, -0.25, 0.02, g, top, TPZ_FRAME, M_STONE, TPZ_FRAME)   # the reveal and frame
+	if open:
+		_ubox(u0 + 0.1, u1 - 0.1, 0.02, 0.04, g + 0.02, tr - 0.08, Color("#1d1a18"), M_PAVILION)
+		for s: float in [u0 + 0.22, u1 - 0.22]:   # the folded doors' edges
+			_ubox(s - 0.08, s + 0.08, 0.02, 0.5, g + 0.02, tr - 0.08, TPZ_FRAME.darkened(0.2))
+	else:
+		_ubox(u0 + 0.1, u1 - 0.1, 0.02, 0.04, g + 0.08, tr - 0.08, TPZ_GLASS, M_PAVILION)
+		var m := (u0 + u1) * 0.5
+		_ubox(m - 0.04, m + 0.04, 0.04, 0.08, g + 0.08, tr - 0.08, TPZ_FRAME)
+	_ubox(u0 + 0.05, u1 - 0.05, 0.02, 0.09, tr - 0.08, tr, TPZ_FRAME)   # the transom bar
+	var vents := 2
+	var vw := (u1 - u0 - 0.3) / vents
+	for k in vents:
+		var vu := u0 + 0.15 + vw * k
+		_ubox(vu + 0.06, vu + vw - 0.06, 0.02, 0.05, tr + 0.08, top - 0.1, TPZ_VENT)
+		for s in 4:
+			var sy := tr + 0.14 + s * 0.12
+			_ubox(vu + 0.1, vu + vw - 0.1, 0.05, 0.08, sy, sy + 0.04, TPZ_VENT.darkened(0.25))
+
+
+## A black folding chair at (u, v), facing `face` (a local unit vector towards its table).
+func _tpz_chair(u: float, v: float, face: Vector2, f: float) -> void:
+	var fw := _a * face.x + _b * face.y
+	var sd := Vector2(-fw.y, fw.x)
+	var c := _w(u, v)
+	var pt := func(s: float, t: float, y: float) -> Vector3:
+		var p := c + sd * s + fw * t
+		return Vector3(p.x, y, p.y)
+	var seat_y := f + 0.45
+	_mode = M_STONE
+	var seat := PackedVector2Array([c + sd * -0.2 + fw * -0.19, c + sd * 0.2 + fw * -0.19, c + sd * 0.2 + fw * 0.2, c + sd * -0.2 + fw * 0.2])
+	_prism(seat, seat_y - 0.03, seat_y, TPZ_CHAIR, TPZ_CHAIR.lightened(0.08), M_STONE, M_STONE)
+	for s: float in [-0.18, 0.18]:
+		_tpz_bar(pt.call(s, 0.2, f), pt.call(s, -0.24, seat_y + 0.42), 0.018, TPZ_CHAIR)   # back legs into the back
+		_tpz_bar(pt.call(s, -0.18, f), pt.call(s, 0.16, seat_y), 0.016, TPZ_CHAIR)        # front legs, crossed
+	var back := PackedVector2Array([c + sd * -0.19 + fw * -0.25, c + sd * 0.19 + fw * -0.25, c + sd * 0.19 + fw * -0.22, c + sd * -0.19 + fw * -0.22])
+	_prism(back, seat_y + 0.2, seat_y + 0.4, TPZ_CHAIR, TPZ_CHAIR, M_STONE, M_STONE)
+
+
+## A slatted folding table at (u, v) with its crossed legs and a pot of herbs.
+func _tpz_table(u: float, v: float, f: float) -> void:
+	var ty := f + 0.74
+	for k in 4:
+		var su := u - 0.33 + k * 0.22
+		_ubox(su - 0.09, su + 0.09, v - 0.3, v + 0.3, ty - 0.035, ty, TPZ_TABLE, M_STONE, TPZ_TABLE.lightened(0.06))
+	var leg := func(s: float, t: float, y: float) -> Vector3:
+		var p := _w(u + s, v + t)
+		return Vector3(p.x, y, p.y)
+	for s: float in [-0.3, 0.3]:   # an X of legs on each end
+		_tpz_bar(leg.call(s, -0.27, f), leg.call(s, 0.27, ty - 0.04), 0.022, TPZ_TABLE.darkened(0.15))
+		_tpz_bar(leg.call(s, 0.27, f), leg.call(s, -0.27, ty - 0.04), 0.022, TPZ_TABLE.darkened(0.15))
+	_ubox(u - 0.06, u + 0.06, v - 0.06, v + 0.06, ty, ty + 0.1, Color("#9a9b9d"))
+	_ubox(u - 0.09, u + 0.09, v - 0.09, v + 0.09, ty + 0.1, ty + 0.2, TPZ_HERB, M_STONE, TPZ_HERB.lightened(0.1))
+	for d: Vector2 in [Vector2(0, -0.62), Vector2(0, 0.62), Vector2(-0.58, 0), Vector2(0.58, 0)]:
+		_tpz_chair(u + d.x, v + d.y, -d.normalized(), f)
+
+
+## A square black market umbrella: the pole, the shallow four-sided canopy, its valance with the
+## parody on the street side, and a cap.
+func _tpz_umbrella(cu: float, cv: float, h: float, f: float) -> void:
+	_ubox(cu - 0.04, cu + 0.04, cv - 0.04, cv + 0.04, f, f + TPZ_UMB_APEX + 0.15, Color("#3a3b3e"))
+	_ubox(cu - 0.3, cu + 0.3, cv - 0.3, cv + 0.3, f, f + 0.06, Color("#3a3b3e"))   # the base plate
+	var rim := f + TPZ_UMB_RIM
+	_mode = M_STONE
+	_pyramid(_urect(cu - h, cu + h, cv - h, cv + h), rim, f + TPZ_UMB_APEX, TPZ_UMB)
+	_cap(_urect(cu - h + 0.02, cu + h - 0.02, cv - h + 0.02, cv + h - 0.02), rim - 0.01, TPZ_UMB.darkened(0.2))
+	var drop := 0.26
+	_ubox(cu - h, cu + h, cv + h - 0.02, cv + h, rim - drop, rim, TPZ_UMB)
+	_ubox(cu - h, cu + h, cv - h, cv - h + 0.02, rim - drop, rim, TPZ_UMB)
+	_ubox(cu - h, cu - h + 0.02, cv - h, cv + h, rim - drop, rim, TPZ_UMB)
+	_ubox(cu + h - 0.02, cu + h, cv - h, cv + h, rim - drop, rim, TPZ_UMB)
+	var pitch := 0.15
+	var px := 0.045
+	var w := TPZ_UMB_WORD.length() * pitch - (pitch - 3.0 * px)
+	_sm_text(TPZ_UMB_WORD, cu - w * 0.5, cv + h + 0.012, rim - 0.04, px, 0.036, pitch, Color("#f4f4f2"))
+	_ubox(cu - 0.07, cu + 0.07, cv - 0.07, cv + 0.07, f + TPZ_UMB_APEX + 0.1, f + TPZ_UMB_APEX + 0.22, TPZ_UMB)
+
+
+## A crate of pine slats (the planters and the bench under its cushion).
+func _tpz_crate(u0: float, u1: float, v0: float, v1: float, y0: float, y1: float) -> void:
+	_ubox(u0, u1, v0, v1, y0, y1, TPZ_PINE, M_STONE, TPZ_PINE)
+	var n := maxi(2, roundi((y1 - y0) / 0.15))
+	for k in range(1, n):
+		var y := y0 + (y1 - y0) * k / n
+		_ubox(u0 - 0.01, u1 + 0.01, v0 - 0.01, v1 + 0.01, y - 0.012, y + 0.012, TPZ_PINE_D)
+
+
+## A planter crate with its black liner and a small tree: a trunk and a few leafy clumps.
+func _tpz_planter(cu: float, cv: float, f: float, tall: float) -> void:
+	_tpz_crate(cu - 0.32, cu + 0.32, cv - 0.32, cv + 0.32, f, f + 0.75)
+	_ubox(cu - 0.3, cu + 0.3, cv - 0.3, cv + 0.3, f + 0.75, f + 0.85, TPZ_BLACK, M_STONE, TPZ_BLACK.lightened(0.05))
+	_ubox(cu - 0.035, cu + 0.035, cv - 0.035, cv + 0.035, f + 0.85, f + tall - 0.5, Color("#6b5a48"))
+	var clumps := [[0.0, 0.0, 0.0, 0.42], [-0.28, 0.1, -0.35, 0.3], [0.26, -0.12, -0.25, 0.32], [0.05, 0.25, 0.3, 0.28]]
+	for c: Array in clumps:
+		var y: float = f + tall - 0.5 + float(c[2])
+		var r: float = c[3]
+		var col := TPZ_LEAF if float(c[0]) >= 0.0 else TPZ_LEAF_D
+		_ubox(cu + c[0] - r, cu + c[0] + r, cv + c[1] - r, cv + c[1] + r, y - r * 0.6, y + r * 0.8, col, M_STONE, col.lightened(0.08))
+
+
+func _build_tapczan(_site: Dictionary) -> void:
+	_tpz_frame()
+	var deck := _urect(TPZ_DECK.position.x, TPZ_DECK.end.x, TPZ_DECK.position.y, TPZ_DECK.end.y)
+	var g := _ground_under(_urect(TPZ_U0, TPZ_U1, -0.3, TPZ_DECK.end.y))
+	_g = g
+	# The street level: cream render, a grey plinth, the ledge, the two glazed bays and the piers
+	# with their carved stone panels (a stack of three on the west pier).
+	_ubox(TPZ_U0, TPZ_U1, -0.3, 0.0, g - 0.3, g + TPZ_GF, TPZ_CREAM, M_STONE, TPZ_CREAM)
+	_ubox(TPZ_U0 - 0.05, TPZ_U1 + 0.05, 0.0, 0.05, g - 0.3, g + 0.25, TPZ_STONE.lightened(0.1))
+	_ubox(TPZ_U0 - 0.1, TPZ_U1 + 0.1, -0.3, 0.22, g + TPZ_GF - 0.05, g + TPZ_GF + 0.2, TPZ_LEDGE, M_STONE, TPZ_LEDGE)
+	_ubox(TPZ_U0 - 0.1, TPZ_U1 + 0.1, -0.3, 0.12, g + TPZ_GF - 0.32, g + TPZ_GF - 0.05, TPZ_CREAM.darkened(0.04))
+	for k in 3:
+		_tpz_relief(0.55, 1.6, g + 1.0 + k * 1.05, g + 1.95 + k * 1.05, 3.0 + k)
+	_tpz_bay(1.75, 5.25, g, false)
+	_tpz_relief(5.45, 7.35, g + 0.35, g + 1.35, 9.0)
+	_tpz_bay(7.55, 11.05, g, true)
+	_tpz_relief(11.25, 12.6, g + 1.6, g + 2.55, 11.0)
+	_tpz_relief(11.25, 12.6, g + 0.35, g + 1.2, 12.0)
+	# The sign: a black square on the middle pier, a gold bottle-cap ring and the name in gold neon.
+	var sy := g + 2.55
+	_ubox(5.65, 7.15, 0.05, 0.2, sy, sy + 1.45, TPZ_BLACK, M_STONE, TPZ_BLACK)
+	var ring := _w(6.4, 0.23)
+	var nrm := Vector3(_b.x, 0.0, _b.y)
+	_disc(Vector3(ring.x, sy + 0.72, ring.y), nrm, 0.62, 20, TPZ_GOLD)
+	var inner := _w(6.4, 0.255)
+	_disc(Vector3(inner.x, sy + 0.72, inner.y), nrm, 0.55, 20, TPZ_BLACK)
+	for k in 20:   # the cap's crimp: little gold teeth round the ring
+		var t := TAU * (k + 0.5) / 20.0
+		_lbox(6.4 + cos(t) * 0.655, 0.22, 0.03, 0.02, sy + 0.72 + sin(t) * 0.655 - 0.03, sy + 0.72 + sin(t) * 0.655 + 0.03, TPZ_GOLD)
+	_usign("THE", 6.4, 0.29, sy + 0.98, _b, 0.4, 0.13, TPZ_NEON)
+	_usign("TAPCZAN", 6.4, 0.29, sy + 0.62, _b, 1.0, 0.26, TPZ_NEON)
+	_usign("CRAFT BEER", 6.4, 0.29, sy + 0.42, _b, 0.6, 0.08, TPZ_NEON)
+	# The terrace: a deck of pallets (the dark gaps at the foot, boards on top).
+	var f := g + TPZ_DECK_H
+	_prism(deck, g - 0.15, f - 0.04, TPZ_PINE_D.darkened(0.25), TPZ_PINE_D, M_STONE, M_STONE)
+	var boards := int(TPZ_DECK.size.y / 0.2)
+	for k in boards:
+		var v := TPZ_DECK.position.y + (k + 0.5) * TPZ_DECK.size.y / boards
+		var tone := TPZ_PINE.darkened(0.06 * fposmod(k * 0.37, 1.0))
+		_ubox(TPZ_DECK.position.x + 0.02, TPZ_DECK.end.x - 0.02, v - 0.085, v + 0.085, f - 0.04, f, tone, M_STONE, tone)
+	var blocks := int(TPZ_DECK.size.x / 1.2)
+	for k in blocks + 1:   # the pallets' blocks along the kerb side
+		var bu := TPZ_DECK.position.x + 0.1 + k * (TPZ_DECK.size.x - 0.2) / blocks
+		_ubox(bu - 0.08, bu + 0.08, TPZ_DECK.end.y - 0.02, TPZ_DECK.end.y + 0.01, g - 0.1, f - 0.04, TPZ_PINE_D)
+	for t: Array in TPZ_TABLES:
+		_tpz_table(t[0], t[1], f)
+	for umb: Array in TPZ_UMBRELLAS:
+		_tpz_umbrella(umb[0], umb[1], umb[2], f)
+	# Along the kerb: the long crate bench with its black cushion, the planters with their trees at
+	# both ends and one by the door; an A-board by the open bay.
+	_tpz_crate(10.6, 12.5, 5.3, 5.85, f, f + 0.42)
+	_ubox(10.62, 12.48, 5.32, 5.83, f + 0.42, f + 0.52, TPZ_BLACK, M_STONE, TPZ_BLACK.lightened(0.08))
+	_tpz_planter(12.25, 4.6, f, 2.4)
+	_tpz_planter(0.75, 5.55, f, 2.2)
+	_tpz_planter(12.25, 2.6, f, 2.6)
+	_tpz_bar(Vector3(_w(7.3, 1.2).x, g, _w(7.3, 1.2).y), Vector3(_w(7.3, 1.45).x, g + 0.9, _w(7.3, 1.45).y), 0.02, TPZ_BLACK)
+	_ubox(7.0, 7.6, 1.35, 1.6, g + 0.15, g + 0.95, TPZ_BLACK, M_STONE, TPZ_BLACK)
+	_collide(deck)
