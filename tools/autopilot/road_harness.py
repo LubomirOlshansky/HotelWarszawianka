@@ -58,6 +58,10 @@ BACK_KMH = 15.0
 # first, as a player does a three-point turn.
 TURN_ROUND_DEG = 110.0
 TURN_ROUND_KMH = 10.0
+# Sixth run: it fired 36 times in ~700 s, mostly in a lane 20-35 m past a missed aim, and the car
+# shuttled instead of going on. Now only with the aim behind for 3 s, and once per 20 s.
+TURN_ROUND_HOLD_S = 3.0
+TURN_ROUND_EVERY_S = 20.0
 
 # The stop rule of the skill: from over 20 km/h to under 3 within 1 s, or under 5 for 3 s with the gas held.
 STOP_FROM_KMH = 20.0
@@ -114,6 +118,8 @@ class RoadHarness(Harness):
         self._trail = []  # (x, z) of the last places on a lane, newest last
         self._off_since = None
         self._backing = False
+        self._behind_since = None
+        self._turned_t = -999.0
         game.ret(ROUTE, "clear_route")
         game.log("harness", t=game.t, controls="classic", kerb=self.kerb, cruise_kmh=self.cruise_kmh,
                  target=self.target)
@@ -283,8 +289,16 @@ class RoadHarness(Harness):
                 continue
             arrived = float(st.get("goal_m") or 1e9) < self.arrive_m
             bearing = float(st.get("bearing_deg") or 0.0)
-            if (not arrived and abs(bearing) > TURN_ROUND_DEG
-                    and float(st.get("speed_kmh") or 0.0) < TURN_ROUND_KMH):
+            behind = (not arrived and abs(bearing) > TURN_ROUND_DEG
+                      and float(st.get("speed_kmh") or 0.0) < TURN_ROUND_KMH)
+            if not behind:
+                self._behind_since = None
+            elif self._behind_since is None:
+                self._behind_since = game.t
+            if (behind and game.t - self._behind_since >= TURN_ROUND_HOLD_S
+                    and game.t - self._turned_t >= TURN_ROUND_EVERY_S):
+                self._turned_t = game.t
+                self._behind_since = None
                 game.log("turn_round", t=game.t, x=st.get("x"), z=st.get("z"), bearing_deg=bearing,
                          street=st.get("street"), place=st.get("place"))
                 r = yield from self.reverse_out(game, obs)
