@@ -22,7 +22,15 @@ panels stacked; a glazed bay (grey frame, two panes, a transom of two louvred ve
 pier with the sign over a carved stone panel; the open bay (doors folded back on the dark bar);
 the east pier with two carved panels.
 
-## Terrace
+## Roof
+None of its own: the house above the street level is LoD2's (its roof and upper floors stay).
+The ledge over the glazing caps the dressing at 4.3-4.5 m.
+
+## Ground and night
+The terrace on the pavement, below. At night the bays glow warm (M_PAVILION) and the sign's
+words are lit neon; no other lights.
+
+### Terrace
 A deck of light pine pallets 12.4 x 4.1 m, 0.16 m high, from 2 m off the wall to the kerb.
 Seven slatted folding tables in two rows with a pot of herbs each, four black folding chairs
 round each, two black square umbrellas (3.8 m, rim 2.35 m, apex 3 m), a long crate bench with a
@@ -41,3 +49,17 @@ instances in the Neon MultiMesh).
 ## Bar crawl
 Route `kraftowa` (bar_crawl.gd ROUTES): THE TAPCZAN → KRAFTOWNIA (Nowogrodzka) → MACKI I KUFLE
 (Poznańska); the stop ring is on Sienkiewicza at the terrace.
+
+## Parts table
+| id | shape | size | position | material | feature |
+| --- | --- | --- | --- | --- | --- |
+| front | box | 12.4 x 4.3 m | street level, u 0.4-12.8 | M_STONE | cream render, plinth, ledge |
+| reliefs | slab + bumps | 1-1.9 x 0.9-1 m | the three piers | M_STONE | carved stone panels |
+| bays | frame, glass, vents | 3.5 x 3.95 m | u 1.75-5.25, 7.55-11.05 | M_STONE, M_PAVILION | glazing, open doors, louvred transom |
+| sign | box, discs, neon | 1.5 x 1.45 m | middle pier, 2.55 m up | M_STONE, neon | bottle cap, THE TAPCZAN |
+| deck | prism + boards | 12.4 x 4.1 x 0.16 m | v 2.0-6.1 | M_STONE | pallets |
+| tables | slats, X legs | 0.66 x 0.6 m | two rows, 7 | M_STONE | herb pots |
+| chairs | seat, back, bars | 0.4 m | 4 per table, 28 | M_STONE | black, folding |
+| umbrellas | pyramid, valance, pole | 3.8 m square | u 3.4, 9.5 | M_STONE | KOLKA-KOLA |
+| planters | crate, liner, tree | 0.64 m | ends of the deck, 3 | M_STONE | small trees |
+| bench | crate + cushion | 1.9 x 0.55 m | kerb side, east | M_STONE | black cushion |
