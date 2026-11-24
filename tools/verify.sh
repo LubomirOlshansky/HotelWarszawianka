@@ -426,6 +426,8 @@
 # star toast; no map (CI too). The message director (docs/design/hud-messages.md, 2026-11-11): `messages`
 # runs game/tools/check_messages.gd: the rules by context, the queue, the call spacing, F's night race
 # replayed, the toast wait, the compact quest card, the challenge button, the road ahead; no map (CI too).
+# `callcards` runs game/tools/check_call_cards.gd (F 2026-11-24, a call that rang unseen): every call,
+# offer and quiz card is on screen with any controls, nitro, status line and talk; no map (CI too).
 # `streaming` runs game/tools/check_streaming.gd
 # (loop 3c) WITH a renderer (a window opens for a minute or two): every sector built from its
 # file is the whole city, vertex for vertex; 10 spots rendered with --monolithic and with the
@@ -1592,6 +1594,7 @@ for s in $want; do
 		# 2026-11-23: the Autopilot hunts' road route (playtest_route.gd): where on the road, three drives by
 		# road from the PT-60 spot, the rc entry points on a stand-in Main (headless, ~10 s).
 		playtestroute) check playtestroute '^check_playtest_route:' --script res://tools/check_playtest_route.gd ;;
+		callcards) check callcards '^check_call_cards:' --script res://tools/check_call_cards.gd -- --nosave ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		# The time owner (game_time.gd, F 2026-11-19): hours, the night friends by day, the clock's jump.
 		gametime) check gametime '^check_game_time:' --script res://tools/check_game_time.gd ;;
