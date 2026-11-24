@@ -169,6 +169,8 @@ const Club := preload("res://scripts/club.gd")
 const EvTow := preload("res://scripts/ev_tow.gd")
 ## Bar crawl (bar_crawl.gd, F's ask 2026-11-04): a group through three bars before they close.
 const BarCrawl := preload("res://scripts/bar_crawl.gd")
+## THE TAPCZAN's door, room, beer pong and the tipsy drive after (tapczan.gd, F 2026-11-24).
+const Tapczan := preload("res://scripts/tapczan.gd")
 ## Packs (docs/design/packs.md): running clubs, cycling packs and coffee raves.
 const Packs := preload("res://scripts/packs.gd")
 ## Kibice (docs/design/city-life-satire.md 7): friendly fans by Stadion Leguminy on match evenings.
@@ -442,6 +444,7 @@ var ev_tow: EvTow
 ## Bar crawl (bar_crawl.gd): flags --crawl-call (the group rings a second in, any hour),
 ## --crawl-route=ID, --crawl-group=ID, --crawl=0 (none), --crawl-log.
 var crawl: BarCrawl
+var tapczan: Tapczan
 ## Sekretny rave (rave.gd): flags --rave-call (LEKTI and Mati's call now), --rave-smola (Mati's
 ## Smoła night now), --rave=on / --rave=day (that rave on at any hour), --rave-spot=ID, --rave=0,
 ## --rave-log.
@@ -1817,6 +1820,9 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_stories")
 	# The night groups' calls and their crawls (bar_crawl.gd wires itself); none with --no-traffic or --crawl=0.
 	crawl = _join(BarCrawl.new(), world) as BarCrawl
+	# The pub's door is open any time (no quest): its own test, not the offers' `_free_block` (the guide,
+	# the quiet time after a finish); only a title, the bench or a card up keeps the pill away.
+	tapczan = _join(Tapczan.new(), world, func() -> bool: return title == null and not _phone_bench and not hud.cards_up()) as Tapczan
 	await LoadYield.tick("crawl")
 	await _build_storefronts(data, world)  # the Leżak round-up joins the director here
 	await LoadYield.tick("_build_storefronts")
@@ -2125,6 +2131,8 @@ func _set_quality(choice: int) -> void:
 		wellness.amount = _crowd_scale()
 	if life != null:
 		life.amount = float(flags.life_flag) * (0.5 if quality == Tiers.LOW else 1.0)
+	if tapczan != null and tapczan.tipsy != null:
+		tapczan.tipsy.set_level(quality)  # the tipsy drive's screen pass is off at Low (tiers.gd screen_fx)
 	RenderingServer.directional_shadow_atlas_set_size(int(Tiers.value(quality, "shadow_size")), true)
 	_apply_experimental()
 	_keep.applied()
@@ -3379,7 +3387,7 @@ func _on_boat_left() -> void:
 func _sound_mode() -> String:
 	if boat_race != null and boat_race.boating() and boat_race.player != null:
 		return "electric" if boat_race.player.kind == BoatRace.Boat.Kind.ELECTRIC else "boat"
-	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside):
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside) or (tapczan != null and tapczan.inside()):
 		return "foot"
 	return "bike" if car.model == "bike" else "car"
 
@@ -4815,6 +4823,8 @@ func _quest_entries() -> Array:
 	if rides != null and rides.can_request():
 		out.append(Lines.entry("ride", "ride", Lines.Line.CAR, "Podwózka · poproś o kurs", "Podwózka · ask for a ride",
 				Vector2.INF, Rides.COLOUR, "ride"))
+	if tapczan != null:
+		out.append(tapczan.quest_entry())  # the pub and the Kraftowa crawl's door (SIDE JOBS)
 	if garage != null and garage.at != Vector3.INF:
 		out.append(Lines.entry("garage", "garage", Lines.Line.CAR, "Warsztat u Mirka", "Mirek's garage",
 				Vector2(garage.at.x, garage.at.z), Garage.GARAGE_COLOUR))
@@ -6589,7 +6599,7 @@ func _toggle_vehicle() -> void:
 	# Inside the club, the lounge or the padel hall the HUD is hidden, but H and the pad's vehicle
 	# button still came here: the helicopter rose over the parked car and the player left the room
 	# in the air.
-	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside):
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside) or (tapczan != null and tapczan.inside()):
 		return
 	if flying and ev_tow != null and ev_tow.carrying():
 		hud.toast("Najpierw odstaw %s pod ładowarkę (albo ✕)" % EvTow.NAME, "Set the %s down at the charger first (or ✕)" % EvTow.NAME)
@@ -6938,6 +6948,8 @@ func _screen_to_world(s: Vector2) -> Vector3:
 
 
 func _update_camera(dt: float) -> void:
+	if tapczan != null and tapczan.room_view(cam, camera_pitch):
+		return
 	if lounge != null and lounge.inside:
 		# Senatorek (lounge.gd): the same fixed cutaway view.
 		var lb := Basis.from_euler(Vector3(deg_to_rad(camera_pitch), deg_to_rad(lounge.yaw), 0.0))
@@ -7027,7 +7039,7 @@ func _update_camera(dt: float) -> void:
 		cam.global_transform = Transform3D(b, _snap_to_pixels(cam.global_transform.origin, b, cam.size))
 	else:
 		cam.size = _view_size
-		cam.global_transform = view_xf
+		cam.global_transform = view_xf if tapczan == null else tapczan.sway(view_xf)
 	cam.far = _camera_far(maxf(CAMERA_DISTANCE, cam.size * 1.6), size)
 
 

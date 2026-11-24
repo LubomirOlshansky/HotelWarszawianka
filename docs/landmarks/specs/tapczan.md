@@ -38,7 +38,7 @@ black cushion along the kerb at the east end, three crate planters with small tr
 by the open bay. The deck is solid to the car (`_collide`).
 
 ## Colour and material
-Cream #e6dccb, ledge #efe7d8, stone #8e8b84 / #6f6c66, frame #5c6166, sign black #18181a, gold
+Cream #ece7db, ledge #f5f2ea (2026-11-24: the house's cream, was #e6dccb / #efe7d8), stone #8e8b84 / #6f6c66, frame #5c6166, sign black #18181a, gold
 #c9a45a, pine #e2c591 / #b99a66, tables #8a6a48, chairs #202124, umbrellas #1c1d20. The glass is
 M_PAVILION (warm from inside at night); the sign's words are neon (`neon_signs.gd` atlas).
 

@@ -2909,7 +2909,11 @@ func _paint_minimap_overlay() -> void:
 	for i in service_at.size():
 		if service_at[i].distance_to(_mini_car) <= GARAGE_REACH:
 			var g := ((service_at[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 6.0 * pt)
-			_tri_diamond(centre + g, 4.6 * pt, (service["colour"] as PackedColorArray)[i])
+			var sshape := (service["shape"] as PackedInt32Array)[i]
+			if sshape == MapIcons.POI_MUG:
+				poi_mark(centre + g, 3.6 * pt, (service["colour"] as PackedColorArray)[i], sshape)
+			else:
+				_tri_diamond(centre + g, 4.6 * pt, (service["colour"] as PackedColorArray)[i])
 	# Loop 3h slice 3's diamond at the final's start is the main line's star now (main_line.gd).
 	for i in _mini_dots.size():
 		# Rivals within the minimap's reach; the rest would crowd the rim.
@@ -3068,6 +3072,20 @@ func poi_mark(at: Vector2, half: float, colour: Color, shape: int) -> void:
 			_tri(a0, a1, a2, white, white, white)
 			_tri(a0, a2, a3, white, white, white)
 			_tri(at + Vector2(-h * 0.2, h * 0.05), at + Vector2(h * 0.3, h * 0.05), at + Vector2(-h * 0.2, -h * 0.26), white, white, white)
+		MapIcons.POI_MUG:
+			# A beer mug: dark outline, the glass in `colour`, a white foam head over it, the handle
+			# on the right (outline, colour, a pale hole). h = about half its height.
+			var out := Color(OUTLINE, colour.a)
+			var h := half * 1.3
+			_tri_rect(Rect2(at + Vector2(-0.68 * h - o, -0.52 * h - o), Vector2(1.16 * h + o * 2.0, 1.28 * h + o * 2.0)), out)
+			_tri_rect(Rect2(at + Vector2(0.4 * h - o, -0.2 * h - o), Vector2(0.62 * h + o * 2.0, 0.84 * h + o * 2.0)), out)
+			_tri_rect(Rect2(at + Vector2(0.4 * h, -0.2 * h), Vector2(0.62 * h, 0.84 * h)), colour)
+			_tri_rect(Rect2(at + Vector2(0.4 * h, 0.04 * h), Vector2(0.3 * h, 0.36 * h)), out)
+			_tri_rect(Rect2(at + Vector2(-0.68 * h, -0.52 * h), Vector2(1.16 * h, 1.28 * h)), colour)
+			_tri_rect(Rect2(at + Vector2(-0.68 * h, -0.52 * h), Vector2(1.16 * h, 0.4 * h)), white)
+			_tri_fan(at + Vector2(-0.46 * h, -0.62 * h), 0.28 * h, 0.0, TAU, white)
+			_tri_fan(at + Vector2(-0.1 * h, -0.72 * h), 0.3 * h, 0.0, TAU, white)
+			_tri_fan(at + Vector2(0.28 * h, -0.62 * h), 0.26 * h, 0.0, TAU, white)
 		_:
 			_tri_rect(Rect2(at - Vector2.ONE * (half + o), Vector2.ONE * (half + o) * 2.0), Color(OUTLINE, colour.a))
 			_tri_rect(Rect2(at - Vector2.ONE * half, Vector2.ONE * half * 2.0), colour)

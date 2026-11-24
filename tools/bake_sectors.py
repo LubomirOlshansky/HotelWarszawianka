@@ -281,6 +281,15 @@ SITE_AREAS = [
     (-1018, 1015, -997, 1043),   # church_kaplica_hoza
     (519, -1995, 559, -1936),   # church_plebania_florian
     (527, -1822, 579, -1775),   # church_klopotowskiego_18
+    # Sienkiewicza 4, Harczyk's tenement and the block opposite (landmarks.gd _find_sienkiewicza4, _find_harczyk,
+    # _find_sienkiewicza3): the outlines found by probe points, boxes round their centroids
+    (-812.0, -64.0, -806.0, -57.0),
+    (-783.0, -66.0, -776.0, -60.0),
+    (-791.0, -79.0, -784.0, -73.0),
+    (-788.0, -75.0, -782.0, -69.5),
+    (-764.0, -29.0, -757.0, -22.0),
+    (-768.0, -26.0, -762.0, -20.5),
+    (-756.0, -33.0, -750.0, -26.5),
     (-1264, 566, -1098, 670),   # jerozolimskie57 (the row's five outlines and the pavement strip)
     (2011, -1375, 2056, -1345),   # church_zwycieska_klasztor
     (-2704, -752, -2654, -720),   # church_zytnia_dom_zakonny
