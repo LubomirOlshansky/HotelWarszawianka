@@ -675,8 +675,10 @@ police_run() {
 	if (( code != 0 || np > 0 )); then
 		P_FAIL+=("$tag: exit $code, $np error/warning lines: $(problems $logf | head -1 | cut -c1-100)")
 	fi
-	# The złoty never change: every "wallet A zł → B zł" line has A = B.
-	local bad=$(grep -E '^police: wallet [0-9]+ zł → [0-9]+ zł' $logf | awk '{ if ($3 != $6) print }' | head -1)
+	# The police never change the złoty: every "wallet A zł → B zł" line has A = B, except for the
+	# First steps' pay (first_steps.gd STEP_ZL, 50 per tick, a fresh save ticks as the run drives):
+	# B - A may be a multiple of 50 (never a loss, never an odd sum). Anything else is the police's.
+	local bad=$(grep -E '^police: wallet [0-9]+ zł → [0-9]+ zł' $logf | awk '{ d = $6 - $3; if (d < 0 || d % 50 != 0) print }' | head -1)
 	[[ -n $bad ]] && P_FAIL+=("$tag: the złoty changed: $bad")
 	RUN_LOG=$logf
 }
@@ -812,7 +814,8 @@ police_soak() {
 	local running=0
 	[[ $end == *"1 running"* ]] && running=1
 	local b4=${${end#*edge }%%;*} lanes=${${end#*lanes worst }%% m*}
-	if (( zl0 != zl1 )); then
+	# The First steps pay 50 zł a tick (first_steps.gd STEP_ZL): a gain in whole 50s is theirs.
+	if (( zl1 < zl0 || (zl1 - zl0) % 50 != 0 )); then
 		row FAIL "$label" $secs "the złoty changed: $zl0 → $zl1 ($logf)"
 	elif (( started != ended + running )); then
 		row FAIL "$label" $secs "$started chases started, $ended ended ($logf)"
@@ -822,6 +825,28 @@ police_soak() {
 		row FAIL "$label" $secs "a police car $lanes m off its lane ($logf)"
 	else
 		row PASS "$label" $secs "0 errors · $started chases ($ended ended), wallet $zl0 zł → $zl1 zł, B4 ≥ $b4, lanes ≤ $lanes m"
+	fi
+}
+
+# F 2026-11-24 ("10 minutes and no calls"): NW_CALLS_SOAK_MINUTES of play (default 15) with nobody
+# pressing anything; a friend must ring (`friend call: X rings`, activities.gd) though the rescue call
+# waits on its button unanswered.
+calls_soak() {
+	local mins=${NW_CALLS_SOAK_MINUTES:-15}
+	local t0=$EPOCHREALTIME frames=$(( mins * 3600 )) logf=$logs/run_calls-soak.log code
+	( cd $GAME && limited $STEP_LIMIT $GODOT --headless --path . --fixed-fps 60 --quit-after $frames \
+		-- --nosave --notitle ) > $logf 2>&1
+	code=$?
+	local secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+	local np=$(problems $logf | wc -l | tr -d ' ')
+	local n=$(grep -c '^friend call: ' $logf) w=$(grep -c '^rescue call ringing' $logf)
+	local label="run: calls soak $mins min"
+	if (( code != 0 || np > 0 )); then
+		row FAIL "$label" $secs "exit $code, $np error/warning lines: $(problems $logf | head -1 | cut -c1-100) ($logf)"
+	elif (( w == 0 || n == 0 )); then
+		row FAIL "$label" $secs "$n friends' calls, $w rescue calls ($logf)"
+	else
+		row PASS "$label" $secs "$n friends' calls, $w rescue calls"
 	fi
 }
 
@@ -1614,6 +1639,7 @@ for s in $want; do
 		hints) check hints '^check_hints:' --script res://tools/check_hints.gd ;;
 		opening) check opening '^opening:' --script res://tools/check_opening.gd ;;
 		life-soak) life_soak ;;
+		calls-soak) calls_soak ;;
 		# Loop 2d-1: Podwózka's star and pay tables, the streak and the cancel rules, its lines.
 		rides) check rides '^check_rides:' --script res://tools/check_rides.gd ;;
 		# Podwózka played on the activity kit (fake HUD, small city, the autopilot over the engine's own frames).

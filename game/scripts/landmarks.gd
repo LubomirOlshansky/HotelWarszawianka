@@ -1,4 +1,4 @@
-extends "res://scripts/landmarks/karowa.gd"
+extends "res://scripts/landmarks/mirek.gd"
 ## v0.8 "Landmarks": the buildings that make it Warsaw at a glance, built in code
 ## from the real footprints and heights in centrum.json (OpenStreetMap outlines and
 ## building parts, which carry `height` / `min_height`) instead of their GUGiK LoD2 or
@@ -860,6 +860,9 @@ const INFO := {
 	"wiecha": ["Pasaż Wiecha",
 			"Deptak za Domami Towarowymi Centrum, nazwany na cześć Stefana Wiecheckiego „Wiecha”. Pawilony z witrynami pod blokami.",
 			"The walkway behind the Eastern Wall's stores, named after the writer Stefan Wiechecki, \"Wiech\". Shop pavilions under the slabs."],
+	"warsztat_mirka": ["Warsztat u Mirka",
+			"Tuning, lakier i kawa z fusami. Na dachu stoi auto, bo „zrobi się”, a na podwórku czekają dwa wyścigowe i jedno na kołkach. Wjedź pod niebieski neon.",
+			"Tuning, paint and coffee with grounds. There's a car on the roof because \"it'll get done\", and in the yard two racers and one on axle stands are waiting. Drive in under the blue neon."],
 	"wiecha_swieta": ["Święta w Pasażu Wiecha",
 			"Spadające gwiazdy na każdej latarni, piernikowy ludzik, przez którego się przechodzi, neonowa choinka i bombki, w których można usiąść. Do Trzech Króli.",
 			"Shooting stars on every lamp mast, a gingerbread man you walk through, a neon fir and baubles you can sit in. Until Epiphany."],
@@ -1588,6 +1591,9 @@ func _find_sites() -> void:
 		_add_site("solec_dom", [sld])
 		if not sites.is_empty() and sites[-1]["key"] == "solec_dom":
 			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": SLD_WALL, "roof": SLD_ROOF}
+	# F (2026-11-24): Mirek's tuning workshop on the empty plot on Grzybowska (garage.gd's place).
+	# It has a card, so it comes before the first quiet site below (the cards skip quiet sites).
+	_find_warsztat_mirka()
 	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
 	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
@@ -2004,6 +2010,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_wiecha(s)
 			"wiecha_swieta":
 				_build_wiecha_swieta(s)
+			"warsztat_mirka":
+				_build_warsztat_mirka(s)
 			"orly":
 				_build_orly(s)
 			"hotel_warszawa":
