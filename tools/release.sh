@@ -34,7 +34,8 @@
 #   release.env        ASC_KEY_ID=... and ASC_ISSUER_ID=...
 #   AuthKey_<ID>.p8    the App Store Connect API key
 #   play.json          the Google Play service account key
-# Without the ASC key the iOS upload uses Xcode's own sign-in and stops at internal TestFlight;
+# The iOS upload always signs with Xcode's own sign-in, so Xcode must be signed in on this Mac.
+# Without the ASC key it stops at internal TestFlight;
 # without play.json the AAB is left in ~/Downloads for a manual upload.
 # Also copied from this checkout: game/data/stats_key.json (the PostHog token), game/icons,
 # game/android (the Gradle template), game/map/lod2.* and terrain.json.
@@ -152,6 +153,14 @@ if (( promote )); then
 	print "promoting $csha  ios ${cios:--}  android ${cand_code:--}  phone check: $phone_ok"
 	if (( do_ios )) && [[ -n $cios ]]; then
 		step "iOS build $cios to $external_group"
+		# A fresh upload takes minutes to appear; before that pilot stops with "No build to distribute".
+		for i in {1..40}; do
+			seen=$(store_ios)
+			[[ -n $seen ]] && (( seen >= cios )) && break
+			(( i < 40 )) || { echo "App Store Connect does not list build $cios yet (last: ${seen:-no answer}); run --promote again later" >&2; exit 1 }
+			print "waiting for App Store Connect to list build $cios (last: ${seen:-no answer})"
+			sleep 60
+		done
 		# Waits for Apple's processing, writes What to Test, adds the build to the group and sends
 		# it to beta review; TestFlight tells the testers once it is approved.
 		info=$(python3 -I -c 'import json,sys
@@ -322,8 +331,10 @@ if (( do_ios )); then
 			<key>manageAppVersionAndBuildNumber</key><false/>
 		</dict></plist>
 		EOF
+		# Without $asc_args: an App Manager key may not use Apple's cloud-managed distribution
+		# certificate (build 16, 2026-11-24), so the distribution signing is Xcode's own sign-in.
 		xcodebuild -exportArchive -archivePath $archive -exportOptionsPlist $dir/build/ExportOptions.plist \
-			-exportPath $dir/build/ios-upload -allowProvisioningUpdates $asc_args \
+			-exportPath $dir/build/ios-upload -allowProvisioningUpdates \
 			> $dir/ios-upload.log 2>&1 || { tail -30 $dir/ios-upload.log; exit 1 }
 		grep -qE 'Upload succeeded|EXPORT SUCCEEDED' $dir/ios-upload.log || { tail -30 $dir/ios-upload.log; exit 1 }
 		record ios $ios_build
