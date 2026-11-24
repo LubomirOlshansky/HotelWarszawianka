@@ -3,6 +3,14 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
+## Releases: the first real run, and the overnight process (F, 2026-11-24)
+
+F chose the fast path for now: `tools/release.sh --open-beta` behind a gate (CI green on the exact
+commit and the local steps). It has not run against the stores for real yet.
+- [ ] The overnight process, for a new build left running at night: `--thorough`, a hands-off run
+  (calls and offers come, none off the screen) and an Autopilot run (no script error, no stuck car),
+  a phone smoke list with an old save, then `--promote`.
+
 ## Fill the shared photo store (2026-11-13, building-pipeline-review item 3)
 
 `tools/refs_store.py` and the store `/mnt/project-files/refs/` exist. The Mac's `refs/` and F's three photo folders were copied in on 2026-11-13 (3,103 files; F's folders sit under `_f/` and are tied to slugs in `ALIASES.tsv`).

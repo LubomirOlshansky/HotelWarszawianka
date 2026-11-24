@@ -241,6 +241,9 @@ const BUDGET := {
 	"tower75": 220,
 	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
 	"tapczan": 4700,  # 2026-11-24 THE TAPCZAN pub on Sienkiewicza 4 (F's photos): street level, carved panels, sign, pallet terrace, 7 tables, 28 chairs, 2 umbrellas, planters
+	"sienkiewicza4": 5300,  # 2026-11-24 the Art Nouveau tenement on Sienkiewicza 4 (F's photos): bows, friezes, canopy, windows, rear range
+	"harczyk": 6800,  # 2026-11-24 Kamienica Harczyka: chamfered corner, mansard with dormers, balconies, three fronts
+	"sienkiewicza3": 3200,  # 2026-11-24 the 1950s arcade block opposite: piers, arcade, balustrade, passage
 	"pijana": 2200,  # 2026-11-08 PIJANA CZEREŚNIA kiosk (F): 1806 tris (octagon, drum, painted windows, deck rail, string lights)
 	"zodiak": 1500,  # 2026-11-19 neon star, string lights on three poles
 	"cmarsz": 2200,

@@ -1642,6 +1642,8 @@ func _check_state(hud: CanvasLayer, bubbles: Control, where: String) -> void:
 		if "card" in unplaced:
 			# Loop 2d-1: how big the card wanted to be, in points.
 			problems.append("%s:   (the card %s pt)" % [where, hud._card.get_combined_minimum_size() / pt])
+	if not hud.forced().is_empty():
+		problems.append("%s: the card stands over something (no clear spot)" % where)
 	for n in hud.waiting():
 		_waits.append("%s in %s" % [n, where])
 	var fit: Dictionary = hud.fitted()

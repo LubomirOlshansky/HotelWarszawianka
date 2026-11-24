@@ -1,0 +1,2 @@
+# Local steps tools/release.sh lets through red, one per line: step | reason, and where it is tracked.
+# A line needs F's yes and goes away with its fix. Any other red step stops the build.
