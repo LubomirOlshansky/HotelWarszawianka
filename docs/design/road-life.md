@@ -79,5 +79,11 @@ Check: `game/tools/check_road_life.gd` (verify step `roadlife`, in CI).
 
 - A bus pulling out of a stop. Kontrola trzeźwości, the wedding convoy, Elka and the dostawczak
   wait for Thursday (F, 2026-11-23 21:34).
+- **Real sirens from ElevenLabs** (F, 2026-11-24, plan only, not now): replace the synth
+  `ambulance_siren` and `fire_siren` (tools/make_sfx.py) with ElevenLabs takes, each its own
+  sound: the Polish ambulance's two-tone, the fire engine's slower wail and air horn, and the rest
+  of road life's sounds (the laweta's winch and beacon click, the police car at the taxi check).
+  Loops through tools/add_sfx.py (seamless, `--rotate` if the seam clicks), same names so the code
+  doesn't change; check_sfx LOOPS; a by-ear PHONE-CHECK row. Uses ElevenLabs credits: ask F first.
 - Kontrola trzeźwości, orszak weselny, Elka. Deferred: dostawczak on hazards in a
   one-lane street (traffic queues can't pass it yet). Cut: tow-ramp jump, korytarz życia in a jam.
