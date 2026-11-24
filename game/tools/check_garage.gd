@@ -4,6 +4,8 @@ extends SceneTree
 ##   - the paints: 8, ids unique, the factory red free and the default, black and green there
 ##     (the eggs need them), the gold one behind GOLD_EGGS egg cards, prices 50-150 zł (beta, F 2026-11-17) (ten paints since loop 3h slice 2: the Syrenki ones are free, opened by 5 and 20 Syrenki);
 ##   - the rule: on / switch / buy / short / locked for each case; when it shows (`open_rule`);
+##   - the place (F 2026-11-24): SPOT is mirek.gd's forecourt, FACE its door, off the street;
+##     MOJE AUTO (`mine_shows`) lists only the cars and paints owned;
 ##   - buying with enough money pays the price once and owns the paint; too little pays nothing;
 ##     switching to an owned paint (or the factory red) is free; the gold one opens at 5 eggs;
 ##   - a seeded walk of 200 taps (10 seeds): the złoty never go below 0, what was paid is the sum
@@ -26,7 +28,11 @@ const Crowds := preload("res://scripts/crowds.gd")
 const Car := preload("res://scripts/car.gd")
 const Upgrades := preload("res://scripts/upgrades.gd")
 const SCRATCH := "user://check_garage.cfg"
-const TAGS := ["hello", "buy", "black", "green", "gold", "switch", "short", "locked", "parts", "tt", "nitro", "part", "max"]
+const TAGS := ["hello", "buy", "black", "green", "gold", "switch", "short", "locked", "parts", "tt", "nitro", "part", "max",
+		"mine", "ask", "ask_yes", "ask_no"]
+const GarageCard := preload("res://scripts/garage_card.gd")
+## F 2026-11-24: the workshop's building (the forecourt the game stops the car on is its frame's).
+const Mirek := preload("res://scripts/landmarks/mirek.gd")
 
 var problems: Array[String] = []
 
@@ -39,6 +45,7 @@ func _run() -> void:
 	await process_frame
 	_check_paints()
 	_check_rules()
+	_check_place()
 	_check_buying()
 	for seed_value in 10:
 		_check_walk(seed_value + 1)
@@ -127,6 +134,29 @@ func _check_rules() -> void:
 	_expect("shown, a kebab done", Garage.open_rule({"kebab": 1}, 0, {}), true)
 	_expect("shown, money", Garage.open_rule({}, 25, {}), true)
 	_expect("shown, a paint bought, spent out", Garage.open_rule({}, 0, {"black": 1}), true)
+
+
+## F 2026-11-24: the forecourt (SPOT) is the building's (mirek.gd WM_FORECOURT), the door faces the
+## way the car is put there (FACE), the place is off the street (RING clear of the carriageway's
+## middle, WM_O), and MOJE AUTO shows only what is owned (garage_card.gd `mine_shows`).
+func _check_place() -> void:
+	var f: Vector2 = Mirek.mr_world(Mirek.WM_FORECOURT.x, Mirek.WM_FORECOURT.y)
+	if f.distance_to(Garage.SPOT) > 0.3:
+		problems.append("place: SPOT %s is %.2f m from mirek.gd's forecourt %s" % [Garage.SPOT, f.distance_to(Garage.SPOT), f])
+	var v: Vector2 = Mirek.mr_world(0.0, 1.0) - Mirek.mr_world(0.0, 0.0)
+	if v.dot(Garage.FACE) < 0.999:
+		problems.append("place: FACE %s is not the hall's way in %s" % [Garage.FACE, v])
+	if Mirek.WM_FORECOURT.y - Garage.RING < 5.0:
+		problems.append("place: the forecourt's ring reaches the carriageway (v %.1f)" % (Mirek.WM_FORECOURT.y - Garage.RING))
+	_expect("mine: a car owned", GarageCard.mine_shows("car", "switch"), true)
+	_expect("mine: the car driven", GarageCard.mine_shows("car", "on"), true)
+	_expect("mine: a car not bought", GarageCard.mine_shows("car", "buy"), false)
+	_expect("mine: a car too dear", GarageCard.mine_shows("car", "short"), false)
+	_expect("mine: a part", GarageCard.mine_shows("part", "on"), false)
+	_expect("mine: the nitro owned", GarageCard.mine_shows("nitro", "owned"), false)
+	_expect("mine: a paint owned", GarageCard.mine_shows("paint", "switch"), true)
+	_expect("mine: a paint not bought", GarageCard.mine_shows("paint", "buy"), false)
+	_expect("mine: a locked paint", GarageCard.mine_shows("paint", "locked"), false)
 
 
 func _check_buying() -> void:

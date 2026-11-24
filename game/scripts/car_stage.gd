@@ -23,7 +23,7 @@ const SETTLE := 2.2
 ## Radians a drag of one point turns the car.
 const DRAG_TURN := 0.012
 ## The back wall's words by mode (the stencil on the roller door).
-const MODE_WORDS := {"garage": "WARSZTAT · TWARDA 24h", "lot": "KOMIS U MIRKA", "mine": "MOJE AUTO"}
+const MODE_WORDS := {"garage": "WARSZTAT · GRZYBOWSKA 24h", "lot": "KOMIS U MIRKA", "mine": "MOJE AUTO"}
 ## The camera: distance (m), height (m), the point it looks at, the field of view.
 const CAM_DIST := 10.5
 const CAM_HIGH := 2.6
