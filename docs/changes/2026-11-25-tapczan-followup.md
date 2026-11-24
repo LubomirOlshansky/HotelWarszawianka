@@ -1,0 +1,3 @@
+## Backlog
+- checked: the post-merge map chain for #1051's seven new SITE_AREAS boxes (Sienkiewicza 4, Harczyk, Sienkiewicza 3): `tools/setup_map.sh` (full, 21 min of bake_city), `check_map_data` OK with every recorded count unchanged (pois 4572, parked 19284, trees3d 269232, 112 sectors, 1304 landmark sites, 2635 site parts); `--prebuilt` and runtime shots of THE TAPCZAN, Sienkiewicza and the Philharmonic's Jasna front match pixel for pixel, no missing or doubled part
+- found: a `--spots=A:..;B:..` shots run rendered every spot at one place away from the first spot's (2026-11-25, `--prebuilt --free --time=day`); single `--at=` runs are right
