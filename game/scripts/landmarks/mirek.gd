@@ -48,6 +48,10 @@ const WM_SUPERCARS := [[-26.3, 16.0, -18.0, Color("#73e62e"), Color(1.0, 0.25, 0
 		[-21.4, 17.2, -10.0, Color("#ff6a14"), Color(0.2, 0.9, 1.0)]]
 const WM_WRECK := Vector3(-24.0, 28.5, 75.0)
 const WM_ROOF_CAR := Vector3(-11.0, 23.3, 25.0)
+## The Porsza 911 (F 2026-11-24: "the Porsche, put it outside on the street"): u, v, heading, rolled out
+## of the right open door, nose to Grzybowska, clear of the way from the drive to the bay (v 14).
+const WM_PORSZA := Vector3(1.6, 18.2, 15.0)
+const WM_PORSZA_RED := Color("#cf2230")
 
 const WM_WALL := Color("#363b46")
 const WM_RIB := Color("#474d5a")
@@ -106,6 +110,7 @@ func _build_warsztat_mirka(_site: Dictionary) -> void:
 		_wm_supercar(Vector2(c[0], c[1]), float(c[2]), g, c[3], c[4])
 	_wm_wreck(g)
 	_wm_bawarka(g)
+	_wm_porsza(g)
 	_wm_yard(g)
 	_wm_masts(g)
 	# The words (night neon): the fascia, the west wall (the traffic along Grzybowska sees it), the roof.
@@ -119,6 +124,7 @@ func _build_warsztat_mirka(_site: Dictionary) -> void:
 		_collide(_wm_ring(Vector2(c[0], c[1]), float(c[2]), 2.3, 1.0))
 	_collide(_wm_ring(Vector2(WM_WRECK.x, WM_WRECK.y), WM_WRECK.z, 2.1, 0.95))
 	_collide(_wm_ring(Vector2(WM_BAWARKA.x, WM_BAWARKA.y), WM_BAWARKA.z, 2.4, 0.95))
+	_collide(_wm_ring(Vector2(WM_PORSZA.x, WM_PORSZA.y), WM_PORSZA.z, 2.3, 1.0))
 	_mode = M_STONE
 
 
@@ -445,6 +451,70 @@ func _wm_bawarka(g: float) -> void:
 	for s: float in [-3.0, 3.0]:
 		_ubox(c.x + s - 0.06, c.x + s + 0.06, 21.55, 21.67, g, g + 3.4, WM_BLACK)
 	_ubox(c.x - 3.1, c.x + 3.1, 21.67, 21.75, g + 2.35, g + 3.4, WM_BOARD)
+
+
+## A ring in the plan from points in the car's own frame (along, side) round `c` heading `deg`.
+func _wm_local(c: Vector2, deg: float, pts: Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for q: Vector2 in pts:
+		var p := _wm_at(c, deg, q.x, q.y)
+		out.append(_w(p.x, p.y))
+	return out
+
+
+## A rounded plan outline in the car's frame: half length `hl`, half width at the nose `wf` and at
+## the tail `wr` (the 911's hips), corners rounded by `r` in `n` steps, centred `shift` along.
+static func _wm_round_pts(hl: float, wf: float, wr: float, r: float, shift := 0.0, n := 3) -> Array:
+	var out: Array = []
+	var corners := [[hl - r, wf - r, 0.0], [-(hl - r), wr - r, 90.0], [-(hl - r), -(wr - r), 180.0], [hl - r, -(wf - r), 270.0]]
+	for c: Array in corners:
+		for k in n + 1:
+			var a := deg_to_rad(float(c[2]) + 90.0 * k / n)
+			out.append(Vector2(float(c[0]) + shift + cos(a) * r, float(c[1]) + sin(a) * r))
+	return out
+
+
+## The Porsza 911 (the game's parody of a certain rear-engined coupe), parked outside the open door:
+## a low rounded body wider at the hips, the long fastback roof sloping to the tail, frog-eye lamps
+## on the front wings, twin white stripes over the bonnet and the roof, a GT wing on swan necks,
+## the full-width red tail bar, fat rear tyres on silver rims.
+func _wm_porsza(g: float) -> void:
+	var c := Vector2(WM_PORSZA.x, WM_PORSZA.y)
+	var deg := WM_PORSZA.z
+	var y := g + 0.05
+	var red := WM_PORSZA_RED
+	# The tub and the shoulders, rounded in plan.
+	var tub := _wm_local(c, deg, _wm_round_pts(2.25, 0.86, 0.95, 0.45))
+	_prism(tub, y + 0.2, y + 0.6, red.darkened(0.1), Color(0, 0, 0, 0), M_STONE, M_STONE)
+	var top := _wm_local(c, deg, _wm_round_pts(2.12, 0.8, 0.88, 0.5))
+	_frustum(tub, y + 0.6, top, y + 0.8, red, red.lightened(0.05))
+	# The cabin: the windscreen steep, the roof short, the glass sloping all the way to the engine lid.
+	var low := _wm_local(c, deg, _wm_round_pts(1.55, 0.74, 0.78, 0.3, -0.45))
+	var high := _wm_local(c, deg, _wm_round_pts(0.55, 0.6, 0.62, 0.25, -0.2))
+	_frustum(low, y + 0.8, high, y + 1.27, WM_GLASS, red)
+	# Twin white stripes on the bonnet and on the roof.
+	for s: float in [-0.14, 0.14]:
+		_wm_box(_wm_at(c, deg, 1.35, s), deg, 0.7, 0.07, y + 0.8, y + 0.83, WM_WHITE)
+		_wm_box(_wm_at(c, deg, -0.2, s), deg, 0.4, 0.07, y + 1.27, y + 1.3, WM_WHITE)
+	# Frog-eye lamps on the wings, the black splitter and sills, the tail bar.
+	for s: float in [-0.56, 0.56]:
+		var e := _wm_at(c, deg, 1.72, s)
+		_prism(_circle(_w(e.x, e.y), 0.17, 8), y + 0.66, y + 0.86, WM_WHITE, WM_WARM, M_STONE, M_LAMP)
+	_wm_box(_wm_at(c, deg, 2.2, 0.0), deg, 0.12, 0.8, y + 0.12, y + 0.22, WM_BLACK)
+	_wm_box(_wm_at(c, deg, -2.24, 0.0), deg, 0.05, 0.6, y + 0.5, y + 0.57, Color(1.0, 0.12, 0.1), M_LAMP)
+	# The wing: two swan necks and a black plate with red end plates.
+	for s: float in [-0.42, 0.42]:
+		_wm_box(_wm_at(c, deg, -1.85, s), deg, 0.06, 0.03, y + 0.8, y + 1.3, WM_BLACK)
+	_wm_box(_wm_at(c, deg, -1.92, 0.0), deg, 0.22, 0.92, y + 1.3, y + 1.36, WM_BLACK)
+	for s: float in [-0.93, 0.93]:
+		_wm_box(_wm_at(c, deg, -1.92, s), deg, 0.25, 0.02, y + 1.2, y + 1.42, red)
+	# The wheels: black tyres, silver rims outside, the rear ones fatter.
+	for w: Array in [[1.38, 0.82, 0.11], [-1.32, 0.88, 0.15]]:
+		for sg: float in [-1.0, 1.0]:
+			var a: float = w[0]
+			var side: float = float(w[1]) * sg
+			_wm_box(_wm_at(c, deg, a, side), deg, 0.33, float(w[2]), y, y + 0.64, WM_TYRE)
+			_wm_box(_wm_at(c, deg, a, side + sg * (float(w[2]) + 0.01)), deg, 0.19, 0.01, y + 0.14, y + 0.5, Color("#9a9ea6"))
 
 
 ## The yard's clutter: tyre stacks along the west wall, oil drums, a pile of wheels by the wreck.

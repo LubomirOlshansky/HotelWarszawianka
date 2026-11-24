@@ -28,7 +28,10 @@ Mirek's tuning workshop: what makes it read from the isometric camera, in order:
    Bavarian saloon, dark blue with its twin grille, bonnet up, standing in a black puddle beside a
    pyramid of yellow oil cans, under a board with **OLEJ DO BAWARKI** (oil for the Bavarian) in
    yellow neon facing the street.
-6. **Hazard-striped door frames**, a tagged shutter, a chequered parapet, two floodlight masts.
+6. **The Porsza 911** (F, 2026-11-24: "put the Porsche outside on the street"): the game's parody of
+   a certain rear-engined coupe, red with twin white stripes, frog-eye lamps and a GT wing, rolled
+   out of the right open door with its nose to Grzybowska.
+7. **Hazard-striped door frames**, a tagged shutter, a chequered parapet, two floodlight masts.
 
 ## 2. Massing
 
@@ -48,6 +51,7 @@ from it into the plot; WM_O is the carriageway's middle at about -1731.8, -253.4
 | Supercars | -26.3, -21.4 | 16.0, 17.2 | 1.2 m |
 | Stripped car | -24 | 28.5 | 1.55 m |
 | Roof car | -11 | 23.3 | on the roof |
+| Porsza 911 | 1.6 | 18.2 (heading 15°) | 1.42 m with the wing |
 
 The forecourt's middle (u -6, v 14) is garage.gd's SPOT; the mapped service stub at u 9 is the
 driveway; the footway along Grzybowska crosses the forecourt's front at v 8-10.
@@ -83,13 +87,13 @@ MultiMesh's (neon_signs.gd LANDMARK_WORDS), night only.
 
 Everything stands on the concrete; the hall's walls go 0.5 m under the ground's mean so a slope
 never shows a gap. The trees in the plot are taken out (tree_free), no parked car stands in it
-(parked_free). Solid: the hall, the two supercars and the stripped car (car colliders); the bay
+(parked_free). Solid: the hall, the two supercars, the stripped car, the Bawarka and the Porsza (car colliders); the bay
 and the forecourt are free to drive. By night the blue bay, the door frame, the fascia edges,
 the strip lights inside, the underglow and the floodlights glow, and the three neon words light.
 
 ## 7. Detail level and budget
 
-L3: the hall with its doors, the inside, six modelled cars and the clutter. Triangle budget 3600 (measured 2,981)
+L3: the hall with its doors, the inside, seven modelled cars and the clutter. Triangle budget 3600 (measured 3,367)
 (`check_mesh_quality.gd`), +0 draw calls.
 
 ## 8. Parts table
@@ -110,4 +114,5 @@ L3: the hall with its doors, the inside, six modelled cars and the clutter. Tria
 | clutter | tyre stacks, oil drums | 0.72 m and 0.58 m across | along the west wall and the yard | black, blue and red | a working yard |
 | tuning_sign | board with cyan edges | 8 x 2.1 m | west wall, 2.6-4.9 m | black, cyan M_LAMP | CHIP TUNING in cyan neon |
 | masts | two floodlight masts | 7.85 m | the hall's front corners | grey, warm M_LAMP | lit forecourt |
+| porsza | rounded tub wider at the hips, fastback glass, stripes, frog eyes, GT wing, tail bar | 4.5 x 1.9 m | u 1.6, v 18.2, heading 15° | red #cf2230, white, black | the 911 parody outside |
 | bay | painted outline and chevrons | 6 x 6.8 m | u -6, v 14 | garage blue M_LAMP | where Mirek asks |
