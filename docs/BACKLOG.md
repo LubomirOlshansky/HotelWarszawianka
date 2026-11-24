@@ -1755,6 +1755,19 @@ the railway cutting next to Warta Tower; today an OSM extrusion. Later, photo wa
 `refs/chmielna89/` plus F's four photos (project files), then the wedge, the zigzag frame on the
 sloped face, the V legs, blue-grey glass. No bank name or logo (brands only as parodies).
 
+## THE TAPCZAN phase 2, next steps (found 2026-11-24)
+
+Built: the door any time (amber ring, WEJDŹ pill), the cutaway room, WYPIJ PIWKO, beer pong against
+three rivals (`docs/design/tapczan-pub.md`), the tipsy minute after it, the QUESTS row and map mark.
+Left:
+- **Phone look and feel:** PHONE-CHECK 15zzh-15zzj (the pill, the room at phone size, the slingshot,
+  the tipsy pass's frame cost on the iPhone).
+- **Sound:** a pub murmur loop under the radio, the cup's "plip", the rim's rattle, the crowd's cheer.
+- **Rivals' portraits** (PixelLab, F's OK first); their skills and stakes after the feel test.
+- **App Store age rating:** the alcohol-references answer needs F's look before the next submission.
+- **The crawl from the door:** the Kraftowa could start in person at THE TAPCZAN (a group at the
+  terrace), not only by a night call.
+
 ## Bar-crawl taxi quests, next steps (found 2026-11-07)
 
 The first version is built (`game/scripts/bar_crawl.gd`, `game/data/bar_crawl.json`, plan and the

@@ -1,0 +1,1 @@
+- THE TAPCZAN on Sienkiewicza is open: stop at the amber ring and go in for a pint, or play beer pong against a beer sommelier, an office crew and a lady who swears it is her first time, for złoty. The drive after it is a little wobbly for a minute. The pub and its bar crawl now show in QUESTS with a pin on the map.

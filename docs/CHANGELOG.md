@@ -9,6 +9,9 @@ docs/changes/ (docs/changes/README.md) with one short line in plain words a play
 (no file names, no spoilers). The pages show the notes at once, and a weekly bookkeeping pull request
 moves them here (python3 -I tools/changelog.py --fold).
 
+## 2026-11-24
+- THE TAPCZAN on Sienkiewicza is open: stop at the amber ring and go in for a pint or a game of beer pong for złoty; the drive after it is a little wobbly for a minute.
+
 ## 2026-11-12
 - Dom Partii (Centrum Bankowo-Finansowe) at Rondo de Gaulle'a is rebuilt from your photos: the two white corner towers a storey over the front, the open colonnade with its glass lobbies and the balcony over it, rows of windows between stone piers, a frieze of small windows under the cornice, the PEPEO ŻUBR board, WISTULA and ROBUR on the roof, and a courtyard you can drive into with the wavy fountain glowing warm at night.
 - The boat race rings are wider now (24 m instead of 16) to suit the faster boats, and the jump ramps along the Powiśle bank sit closer to the ring before them, so you land well short of the next ring.
