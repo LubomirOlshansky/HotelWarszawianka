@@ -318,7 +318,7 @@ const BUDGET := {
 	# Plac Bankowy, Filharmonia, Teatr Polski (the Mac photo reports, 2026-11-02): fronts on kept skins.
 	"ratusz": 2500,
 	"gielda": 1050,
-	"filharmonia": 1450,
+	"filharmonia": 6400,  # 2026-11-24: the Jasna front from the photos (arcade, doors, inscription, balustrade); was 1450
 	"teatr_polski": 760,
 	"teresy": 900,  # 2026-11-13 photo rebuild (cream plaster, round-headed windows, porch, spire)
 	"flisac": 4200,  # 2026-11-13: the grid of panes, loggias and shop glass, 3,552 triangles

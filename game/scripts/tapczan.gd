@@ -54,7 +54,8 @@ var _pong_won := 0
 
 func install(ctx: GameCtx) -> bool:
 	_flag = str(ctx.flags.tapczan_flag) if "tapczan_flag" in ctx.flags else ""
-	if _flag == "0":
+	# None with --tapczan=0, and none in a landmark's solo shots (its beam stood in the turntables).
+	if _flag == "0" or str(ctx.flags.solo_site) != "":
 		return false
 	super(ctx)
 	name = "Tapczan"

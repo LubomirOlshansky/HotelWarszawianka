@@ -26,7 +26,7 @@ and three shop bays east of it, a grey plinth. Middle: five floors, sills 5.6, 8
 Flat gravel roof at 20.8 m, the rear range flat at 24.1 m (LoD2's mansard is not modelled).
 
 ## Colour and material
-Cream PAL_CREAM_STONE-like #e6dcc6, trim #efe8d7, frieze #566259, balcony rails PAL_PATINA_COPPER,
+Cream #ece7db (F 2026-11-24: repainted from #e6dcc6, which read tan; refs/sienkiewicza4 5, 1), trim #f5f2ea, frieze #566259, balcony rails PAL_PATINA_COPPER,
 steel #4b5156. Windows are kit panes (lit by chance at night); everything is M_STONE.
 
 ## Ground and night

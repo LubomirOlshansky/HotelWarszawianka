@@ -9,9 +9,16 @@ OpenStreetMap outline and GUGiK LoD2. The mass stays LoD2's in a skin; the model
 
 The National Philharmonic on Jasna (Karol Kozłowski, 1901; rebuilt 1955).
 
-1. **A giant order of smooth cream-white columns** along the Jasna front, two to three storeys.
-2. **A white stone composer on each window sill** between the columns, behind an iron balconette.
-3. **The corner's green neon**: the FN roundel and SALA KONCERTOWA (the institution's own name).
+1. **A giant order of smooth cream-white Ionic columns** along the Jasna front, over a balcony.
+2. **A rusticated arcade of round-headed openings** on the ground floor, one per bay.
+3. **FILHARMONIA NARODOWA cut in the frieze**, a balustrade on the attic.
+4. **Two composers** on the balcony (Chopin and Moniuszko), not one per bay.
+5. **The corner's neon**: the round "fn" sign on a bracket out of the Sienkiewicza wall (a red ring
+   round green letters) and SALA KONCERTOWA (the institution's own name).
+
+Reworked 2026-11-24 from more Commons photos (`refs/filharmonia/4.jpg`-`14.jpg`, sources in its
+SOURCES.md): the first model had tall arched windows to 13 m, ten composers and small ground-floor
+windows that sat behind the base and never showed.
 
 ## 2. Massing
 
@@ -29,10 +36,14 @@ Frame: origin (-860.7, -77.7), the mapped front's north end; u along it to (-837
 
 ## 3. Facade, base to top
 
-The rusticated base with ten ground-floor round-headed windows; a string course at 4.15-4.5 m; in
-each bay a tall round-headed window (2 m wide, 5.7 to 13.4 m), a sill, a dark iron balconette and a
-standing composer in white stone (2.6 m, a cloak to the ankles, a hand at the chest); the columns
-in front; the entablature, the cornice and a plain attic.
+The rusticated base: a step, a round-headed opening per bay (2.7 m wide, its spring at 2.75 m, dark
+behind an iron transom) and the piers between them banded with grooves every 0.6 m. The balcony on
+the base's cornice (v 0.15-2.45) with an iron railing between the columns; in each bay a rectangular
+French door (1.7 x 3.45 m, brown frame with a cross) and its lintel, the wall plain above. Two
+standing composers in white stone (2.6 m) on the balcony either side of the middle. The Ionic
+columns (volutes either side of the capital); the entablature with FILHARMONIA NARODOWA in dark
+stone letters (0.62 m), the cornice, and the attic's balustrade (plinth, balusters every 0.62 m,
+posts every 4.6 m, the rail).
 
 ## 4. Roof
 
@@ -46,8 +57,9 @@ The neon words FN, SALA and KONCERTOWA (two rows: as one the hall's name is wide
 
 ## 6. Ground and night
 
-On the terrain at the front's ends; the base's line is the car's. At night the FN roundel and the
-hall's name glow green on the Sienkiewicza corner, the windows take the city's glow.
+On the terrain at the front's ends; the base's line is the car's. At night the fn roundel's red ring
+and green letters (both faces, on its bracket 1.5 m out of the Sienkiewicza wall, 3 m back from the
+corner) and the hall's name glow; the windows take the city's glow.
 
 ## 7. Detail level and budget
 
@@ -62,11 +74,15 @@ L2, 1196 triangles, budget 1450 (check_mesh_quality). Shot: `--at=-838,-55 --yaw
 | face | box | 55.7 x 0.6 m, 10.5 m | the front | M_STONE #e3ded2 | facade |
 | base | box | 56.1 x 1.0 m, 5.1 m | the front | M_STONE #c9c3b5 | facade base |
 | columns | 11 columns | r 0.62 m, 10.5 m | v 1.55 | M_STONE #ede9de | 1 the colonnade |
-| windows | 10 arches | 2.0 m wide | between the columns | M_GLASS #232a33 | facade |
-| sills | 10 boxes | 2.3 x 0.7 m | under the windows | M_STONE #e3ded2 | 2 composers |
-| balconettes | 10 boxes | 2.2 x 0.06 m, 0.95 m | on the sills | M_STONE #2b2c2e | 2 composers |
-| composers | 10 figures | 2.6 m | on the sills | M_STONE #f1efe9 | 2 composers |
+| arcade | 10 arches | 2.7 m wide, to 4.1 m | the base, one per bay | M_GLASS #232a33 | 2 the arcade |
+| grooves | 6 rows | 0.04 m | the piers and end bays | M_STONE base darkened | 2 the arcade |
+| balcony | box | 56.1 x 2.3 m | the base's cornice | M_STONE #e3ded2 | 1 the colonnade |
+| doors | 10 French doors | 1.7 x 3.45 m | between the columns | M_STONE #5e3a26 | facade |
+| railings | 10 boxes | 0.95 m | the balcony's edge | M_STONE #2b2c2e | 1 the colonnade |
+| composers | 2 figures | 2.6 m | the balcony, either side of the middle | M_STONE #f1efe9 | 4 composers |
+| capitals | volutes | 1.9 x 1.0 m | the column tops | M_STONE #ede9de | 1 the colonnade |
+| inscription | letter runs | 0.62 m high | the frieze | M_STONE #5f5a50 | 3 the inscription |
+| balustrade | plinth, balusters, posts, rail | 1.3 m | the attic | M_STONE #e3ded2 | 3 the attic |
 | entablature | 2 boxes | 56.1 x 3.2 m, 1.65 m | over the columns | M_STONE #ede9de | 1 the colonnade |
-| attic | box | 55.9 x 0.7 m, 1.35 m | over the face | M_STONE #e3ded2 | facade |
-| roundel | disc | r 1.5 m | the Sienkiewicza corner | M_STONE #232a33 | 3 the neon |
-| neon | 3 words | FN, SALA / KONCERTOWA | the corner | neon sign | 3 the neon |
+| roundel | 2 discs on a bracket | r 1.05 m, ring M_LAMP #ff4a2a | the Sienkiewicza wall | M_STONE #232a33 | 5 the neon |
+| neon | 3 words | FN (both faces), SALA / KONCERTOWA | the corner | neon sign | 5 the neon |
