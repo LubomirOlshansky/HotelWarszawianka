@@ -1,4 +1,5 @@
-- Inside Mirek's workshop your car turns on a diamond-plate stand under neon wrenches, with a stripped car up on the lift and a Porsza 911 parked beside it ("just look").
+- Inside Mirek's workshop your car turns on a diamond-plate stand under neon wrenches.
+- A red Porsza 911 with a GT wing stands outside Mirek's open door on Grzybowska.
 - New at Mirek's: a GT spoiler and underglow for your car, bought once and kept for any car.
 - The workshop's screen is redone: four tabs (AUTA, TUNING, LAKIER, STYL), clear tiles, one gold button for the buy.
 
