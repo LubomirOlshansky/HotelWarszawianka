@@ -13,6 +13,9 @@ extends Control
 ## G13: two tabs in the header, LAKIER (the paints) and CZĘŚCI I AUTA (the Ołdi TT, the nitro, tyres
 ## and engine: upgrades.gd, six cells in two columns), with a stat card (top speed, pull, grip now
 ## -> after buying the item picked) in place of the paints; the same action button buys it.
+## F 2026-11-24: MOJE AUTO (mode "mine", from the full map) is the player's own garage: only what is
+## owned shows (the cars bought and the paints owned, `mine_shows`), the second tab says AUTA, and
+## nothing is sold there; the parts, the nitro and the cars not yet bought are at Mirek's on Grzybowska.
 
 const Lang := preload("res://scripts/lang.gd")
 const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
@@ -34,6 +37,8 @@ const STAGE_GAP := 10.0
 ## G1: the class letters' colours (D .. S) on the badge.
 const CLASS_COLOURS := [UiKit.SUB, UiKit.GO, UiKit.NEON_CYAN, UiKit.NEON_PINK, UiKit.GOLD]
 const GAP := 6.0
+## The second tab's words at the workshop (MOJE AUTO says AUTA: only the cars owned).
+const PARTS_TAB := ["CZĘŚCI I AUTA", "Parts and cars"]
 ## Swatches per row (loop 3h slice 2: ten paints in two rows of five).
 const COLUMNS := 5
 
@@ -135,7 +140,7 @@ func _build() -> void:
 	_tab_paint = hud._chip(head, "LAKIER", "Paint")
 	_tab_paint.name = "tab_paint"
 	_tab_paint.pressed.connect(func() -> void: show_tab("paint"))
-	_tab_parts = hud._chip(head, "CZĘŚCI I AUTA", "Parts and cars")
+	_tab_parts = hud._chip(head, PARTS_TAB[0], PARTS_TAB[1])
 	_tab_parts.name = "tab_parts"
 	_tab_parts.pressed.connect(func() -> void: show_tab("parts"))
 	for t: Button in [_tab_paint, _tab_parts]:
@@ -275,6 +280,12 @@ func open(start_tab := "paint", mode := "garage") -> void:
 	if not _built:
 		_build()
 	stage.set_mode(mode)
+	if mode == "mine":
+		_hud()._set_chip(_tab_parts, "AUTA", "Cars")
+		if not mine_shows(garage.Upgrades.kind(picked_item), garage.item_rule_now(picked_item)):
+			picked_item = str(garage.shop_state()["car"])
+	else:
+		_hud()._set_chip(_tab_parts, PARTS_TAB[0], PARTS_TAB[1])
 	_title.text = Lang.pick("MOJE AUTO", "MY CAR") if mode == "mine" else str(garage.NAME[0]).to_upper()
 	picked = garage.current()
 	tab = start_tab
@@ -381,6 +392,7 @@ func _refresh() -> void:
 					price.text = Lang.pick("%d/%d sekretów", "%d/%d easter eggs") % [garage.eggs_now(), int(p["eggs"])]
 			_:
 				price.text = w.money(int(p["price"]))
+		b.visible = garage.mode != "mine" or mine_shows("paint", r)
 		var lit := id == picked
 		var edge: Color = hud.ACCENT if lit else (UiKit.INK if id == cur else UiKit.EDGE_STRONG)
 		var style: StyleBoxFlat = hud._box(hud.CARD_BG, edge, 2.0 if lit or id == cur else 1.0)
@@ -414,10 +426,17 @@ func _refresh() -> void:
 	_place()
 
 
-## G2: from the full map (MOJE AUTO) the shop's buys wait for the workshop: the action says where.
+## F 2026-11-24: what MOJE AUTO shows: a car bought or a paint owned (on the car now, or one to
+## switch to for free); `kind` is upgrades.gd's ("car", "nitro", "part") or "paint".
+static func mine_shows(kind: String, rule: String) -> bool:
+	return kind in ["car", "paint"] and rule in ["on", "switch"]
+
+
+## G2: from the full map (MOJE AUTO) the shop's buys wait for the workshop: the action says where
+## (only reached by a paint picked before the card filtered them, kept as the guard).
 func _mine_gate(rule: String) -> void:
 	if garage.mode == "mine" and rule in ["buy", "short"]:
-		_hud()._set_chip(_action, "KUP U MIRKA · TWARDA", "Buy it at Mirek's on Twarda")
+		_hud()._set_chip(_action, "KUP U MIRKA · GRZYBOWSKA", "Buy it at Mirek's on Grzybowska")
 		_action.disabled = true
 
 
@@ -471,6 +490,7 @@ func _refresh_parts() -> void:
 					price.text = Lang.pick("poz. %d → %d · %s", "lvl %d → %d · %s") % [U.level(st["tune"], id), U.level(st["tune"], id) + 1, w.money(U.price(id, st["tune"]))]
 				else:
 					price.text = w.money(U.price(id, st["tune"]))
+		b.visible = garage.mode != "mine" or mine_shows(U.kind(id), r)
 		var lit := id == picked_item
 		var worn: bool = r in ["on", "owned", "max"]
 		var edge: Color = hud.ACCENT if lit else (UiKit.INK if worn else UiKit.EDGE_STRONG)

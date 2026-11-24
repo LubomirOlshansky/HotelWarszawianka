@@ -205,7 +205,7 @@ strip as they are made.
 
 ## 1. What is there today (main 04e52e9)
 
-- **Warsztat u Mirka** (`garage.gd`, card `garage_card.gd`): a dashed ring on Twarda
+- **Warsztat u Mirka** (`garage.gd`, card `garage_card.gd`): until 2026-11-24 a dashed ring on Twarda
   (SPOT -1505, -135; PR #1009). Stop in it and a card opens with two tabs: LAKIER (10 paints,
   50-150 zł, three unlocked by eggs and Syrenki) and CZĘŚCI I AUTA (`upgrades.gd`).
 - **Cars**: the striped hatch (free) and the Ołdi TT (1,500 zł; top ×1.2, pull ×1.2, grip ×1.1).
@@ -376,24 +376,32 @@ full map (and a row in Settings). The viewer, the car's name, class and bars, th
 All in the UI kit (`ui_kit.gd`, dark cards, gold titles in caps), Polish over English, every
 touch target 44 pt or more, the gamepad works on every row.
 
-## 7. The place: Warsztat u Mirka on the corner of Twarda and Emilii Plater
+## 7. The place: Warsztat u Mirka on Grzybowska
 
-- **Where**: the garage stays on Twarda (PR #1009) and grows into the corner by the real
-  filling station at **Emilii Plater 55** (it is on the map today as a low retail box at about
-  -1541, -86, 60 m from the ring), under the 160 m Cosmopolitan tower (Twarda 4). A scruffy
-  workshop under a luxury tower is a very Warsaw picture.
-- **What**: a single-storey workshop with two roll-up doors (one open and lit, a car up on a
-  lift), a hand-painted sign "WARSZTAT U MIRKA · MECHANIKA · WULKANIZACJA · TUNING", stacks of
-  tyres, an oil drum, Mirek in overalls by the door; beside it **"KOMIS U MIRKA"**, a lot with the
-  cars for sale in a row, price cards behind the windscreens ("OKAZJA! 200 zł"), a string of
-  flags, a neon at night. Cars you own park on the lot when you are not in them.
-- **Drive in**: the ring moves off Twarda into the lot, so stopping there never blocks traffic.
-- **Cost**: the lot's cars are one merged mesh in the shared material (1-2 draw calls), the
-  workshop and props a handful more; target ≤ +5 draw calls in view, bench before/after.
-- **How**: photos first (Mapillary, Panoramax, fotopolska.eu for that corner), the plot measured
-  on the orthophoto on the Mac; turntable sheet before the PR (`tools/turntable.sh`). If the plot
-  is too tight, the lot takes the forecourt side and only the workshop front faces Twarda.
-- F lifted the modelling stop for the garage in this ask.
+F, 2026-11-24 (Play 15 shots of the dashed ring on Twarda): "the garage is a dumb circle on the
+street; there must be a real garage on Grzybowska, on an empty plot, really cool, pimp-my-ride
+style, supercars and stripped cars beside it, something meme-y, lit up; drive up, press enter and
+buy upgrades there; and it must always be on the map". Built that way (site `warsztat_mirka`,
+`landmarks/mirek.gd`, spec `docs/landmarks/specs/warsztat_mirka.md`), in place of the earlier plan for the corner
+of Twarda and Emilii Plater.
+
+- **Where**: the empty plot on Grzybowska's south side between Q22 and the slab at number 61
+  (OpenStreetMap: grass and a dozen trees, no building), about 230 m north-west of the old ring.
+  The forecourt (garage.gd SPOT) is off the eastbound carriageway, so waiting there never blocks
+  traffic; the mapped service stub is its driveway.
+- **What**: a graphite hall with three roller doors in hazard frames (one shut and tagged, one
+  open and lit with a hatchback up on a lift, one half up), WARSZTAT U MIRKA in pink neon on a
+  black fascia with blue LED edges, a chequered parapet, TUNING on the west wall; in the yard
+  two lowered supercars with underglow and a stripped car on axle stands, tyres and drums; on the
+  roof the meme: a little cream hatchback and ZROBI SIĘ! in yellow neon. All of it the city's
+  building surface (+0 draw calls), every light M_LAMP, the words the landmark neon.
+- **Drive in**: roll onto the forecourt's blue bay and a side card asks WJEŻDŻAM / NIE TERAZ
+  (Enter on a keyboard); WJEŻDŻAM opens the car screen. No ring on the street any more.
+- **Always on the map**: the diamond is on the minimap and the full map from the first minute;
+  the first earnings still bring the toast that says where.
+- **MOJE AUTO** (from the full map) lists only what is owned: the cars bought and the paints
+  owned, to switch between; the tab says AUTA. Parts, nitro and new cars: at Mirek's.
+- **The lot (KOMIS)**: later, beside the hall on the same plot (the yard has room west of it).
 
 ## 8. Questions for F (each has a default that gets built if nobody answers)
 
@@ -405,7 +413,7 @@ touch target 44 pt or more, the gamepad works on every row.
 4. **Should a better car win races more easily?** Today rivals drive at your car's top speed, so
    upgrades don't help in races. NFS gives each race a fixed rival level, so upgrades matter.
    *Default: keep today's rule until F decides; phase 5 is the change.*
-5. **The place**: the corner of Twarda and Emilii Plater by the filling station. *Default: yes.*
+5. **The place**: Grzybowska's empty plot by Q22 (F chose, 2026-11-24).
 6. **Keep the old hold-to-burn nitro as a setting?** *Default: no, tap only.*
 
 ## 9. Phases
@@ -418,7 +426,7 @@ touch target 44 pt or more, the gamepad works on every row.
 | **P2** | Car viewer + the garage card's three tabs + JAZDA PRÓBNA | Sonnet with this spec | 1 PR, ~1-2 days | card shots at phone size, gamepad |
 | **AP** | Autopilot rows P21-P23 on F's Mac after P0-P3 land (9b.4) | Opus thread on the Mac | ~1 evening | PT-n rows, fix threads |
 | **P3** | MOJE AUTO from the full map and Settings | Sonnet | 1 PR, ~1 day | shots, check the switch rule |
-| **P4** | The workshop and the komis lot at Twarda × Emilii Plater | Sonnet modeler, Opus directs | 1-2 PRs, ~2 days (Mac shots, bench) | turntable, prebuilt and runtime city, bench |
+| **P4** | The workshop on Grzybowska (done 2026-11-24, `warsztat_mirka`); the komis lot beside it later | Opus | 1-2 PRs | turntable, prebuilt and runtime city, bench |
 | **P5** | Races value the car: a rival level per race (F's call, question 4) | Opus | 1 PR | race bench before/after (`tools/race_bench.sh`), the racer rules |
 | later | Looks: rims, spoilers, underglow (BACKLOG), plates; selling cars | Sonnet | | |
 

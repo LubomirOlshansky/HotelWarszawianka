@@ -514,8 +514,8 @@ var fans: Fans
 var event_day: EventDay
 ## Wellness circles (wellness.gd); flags --wellness=0 (none), --wellness-now (every spot on at any hour), --wellness-log.
 var wellness: Wellness
-## The garage loop (garage.gd): Warsztat u Mirka on Twarda; flags --paint=<id> (the car starts in
-## that paint, owned for the run), --garage (the car in the garage's ring, the card open; the
+## The garage loop (garage.gd): Warsztat u Mirka on Grzybowska; flags --paint=<id> (the car starts in
+## that paint, owned for the run), --garage (the car on the garage's forecourt, the card open; the
 ## garage shown whatever the wallet), --garage-log (`garage:` lines).
 var garage: Garage
 # --- loop 2d-1: Podwózka (rides.gd) and its testing flags ---
@@ -2916,7 +2916,7 @@ func _build_first10() -> void:
 		first10.race_at = 1.0
 
 
-## Warsztat u Mirka (garage.gd): its ring on Twarda, the car's saved paint (or --paint), the card
+## Warsztat u Mirka (garage.gd): its forecourt on Grzybowska, the car's saved paint (or --paint), the card
 ## that pauses the game like the settings card.
 func _build_garage(world: Node3D) -> void:
 	garage = Garage.new()
@@ -2965,17 +2965,13 @@ func _build_garage(world: Node3D) -> void:
 		_blip_sound())
 
 
-## --garage: the car in the ring, still (the card opens at the garage's next look); --garage=ring:
-## 16 m short of it along the lane, facing it.
+## --garage: the car on the forecourt facing the door, still (the card opens at the garage's next
+## look); --garage=ring: 16 m back from it, towards Grzybowska, facing the door.
 func _put_at_garage() -> void:
 	if garage == null or garage.at == Vector3.INF:
 		return
-	var lane := _lane_spot(garage.at, car.rotation.y)
 	var spot := garage.at
-	var yaw := car.rotation.y
-	if not lane.is_empty() and Vector2((lane[0] as Vector3).x, (lane[0] as Vector3).z).distance_to(Vector2(garage.at.x, garage.at.z)) < Garage.RING - 1.0:
-		spot = lane[0]
-		yaw = lane[1]
+	var yaw := atan2(-Garage.FACE.x, -Garage.FACE.y)  # the car's front is -Z
 	if flags.garage_ring_only:
 		var back := Vector3(sin(yaw), 0.0, cos(yaw)) * 16.0  # the car's front is -Z
 		spot = Vector3(spot.x + back.x, map.ground_height(spot.x + back.x, spot.z + back.z), spot.z + back.z)
