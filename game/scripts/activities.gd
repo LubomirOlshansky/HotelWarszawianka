@@ -266,6 +266,8 @@ func rescue_busy(a: Activity = null) -> bool:
 ## `a`'s phone rang (a call that came by itself or one the player asked for): it rang last.
 func _rang(a: Activity) -> void:
 	_last = a
+	if not a.pill_call:
+		print("friend call: %s rings" % a.tag)  # the hands-off soak counts them (tools/verify.sh `calls-soak`)
 	if rang.is_valid():
 		rang.call(a)
 
