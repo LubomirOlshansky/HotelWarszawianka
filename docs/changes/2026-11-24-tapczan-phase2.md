@@ -7,4 +7,4 @@
 
 ## Backlog
 - fixed: the tipsy drive's double-vision pass read the screen back (costly on a tile-based GPU) at every level; at Graphics Low (and Auto's Low on an old Adreno) it is skipped now, the sway, thoughts and pull stay
-- found: the pass's cost on the iPhone at High is still unmeasured (PHONE-CHECK 15zzj)
+- found: the pass's cost on the iPhone at High is still unmeasured (PHONE-CHECK 15zzm)

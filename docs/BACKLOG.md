@@ -1768,7 +1768,7 @@ sloped face, the V legs, blue-grey glass. No bank name or logo (brands only as p
 Built: the door any time (amber ring, WEJDŹ pill), the cutaway room, WYPIJ PIWKO, beer pong against
 three rivals (`docs/design/tapczan-pub.md`), the tipsy minute after it, the QUESTS row and map mark.
 Left:
-- **Phone look and feel:** PHONE-CHECK 15zzh-15zzl (the pill, the room at phone size, the slingshot,
+- **Phone look and feel:** PHONE-CHECK 15zzk-15zzo (the pill, the room at phone size, the slingshot,
   the tipsy pass's frame cost on the iPhone, the tap list and bill, the beer-mug map mark).
 - **Interior from the photos (done 2026-11-24, second pass):** curved bar, stone front, copper top,
   tap pipes, chalk soffit, mezzanine, BREW ENJOY EMPTY REPEAT, square tables. Still apart from the

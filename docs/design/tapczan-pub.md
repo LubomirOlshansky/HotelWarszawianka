@@ -81,7 +81,7 @@ the rivals' quips follow the game's events, so `data/tapczan.json` line bags are
 ## Decided for now (park list)
 
 - The tap prices (12-32 zł), ABV / 5 as drinks, the stakes (80/120/150 zł) and the skills are first guesses for the phone
-  feel test (PHONE-CHECK 15zzi).
+  feel test (PHONE-CHECK 15zzl).
 - Drinks do not lead to police or fines: the tipsy minute is a comic wobble, not a crime mechanic.
   The App Store age rating's "alcohol references" answer needs F's look before the next submission.
 - No sound of its own yet (the radio plays on; the room counts as "on foot"): a pub murmur loop and
