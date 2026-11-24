@@ -237,7 +237,7 @@ if (( do_ios )); then
 			# group and sends it to beta review. Testers are told by TestFlight once approved.
 			info=$(python3 -I -c 'import json,sys
 d=sys.argv[1]; r=lambda f: open(d+"/"+f+".txt", encoding="utf-8").read().strip()
-print(json.dumps({"default":{"whats_new":r("en-GB")},"en-GB":{"whats_new":r("en-GB")},"pl":{"whats_new":r("pl-PL")}}))' $notes)
+print(json.dumps({"default":{"whats_new":r("en-GB")},"en-US":{"whats_new":r("en-GB")},"pl":{"whats_new":r("pl-PL")}}))' $notes)
 			short=$(/usr/libexec/PlistBuddy -c 'Print :ApplicationProperties:CFBundleShortVersionString' $archive/Info.plist)
 			fastlane pilot distribute --api_key_path $asc_json --app_identifier $ios_app \
 				--app_platform ios --app_version $short --build_number $ios_build \

@@ -3,11 +3,10 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
-## Releases with no manual step: the store keys (F, 2026-11-24)
+## Releases with no manual step: the first real run (F, 2026-11-24)
 
-`tools/release.sh --open-beta` is written but has never run against the stores: it needs the App
-Store Connect API key and the Play service account key (docs/store/release.md, "Keys"). Its first
-real run proves the store half; until then builds go out the old way.
+The store keys exist on the Mac and both stores answer `tools/release.sh --check-keys`
+(2026-11-24). `--open-beta` itself (Play rollout, "Beta test external") has not run yet.
 
 ## Fill the shared photo store (2026-11-13, building-pipeline-review item 3)
 
