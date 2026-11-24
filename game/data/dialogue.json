@@ -6995,7 +6995,7 @@
     ["Polataj helikopterem", "Fly the helicopter", {"only": "step_heli"}],
     ["Spotkaj policję: stań albo uciekaj", "Meet the police: stop or get away", {"only": "step_police"}],
     ["Zajrzyj do warsztatu Mirka", "Visit Mirek's garage", {"only": "step_garage"}],
-    ["Na Grzybowskiej ktoś lakieruje za złotówki. Ten warsztat z autem na dachu.", "Someone on Grzybowska paints cars for pennies. The garage with a car on its roof.", {"only": "unknown_garage"}],
+    ["Mirek z Grzybowskiej: lakier za grosze, auto na dachu.", "Mirek's on Grzybowska: cheap paint, a car on the roof.", {"only": "unknown_garage"}],
     ["Na dachu BUW coś leży. Dolecisz?", "Something lies on the BUW roof. Can you fly?", {"only": "unknown_heli"}],
     ["Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty.", "Six rivals. Beat them all and win Trzy mosty.", {"only": "promise"}],
     ["PANI HALINA MRUGA", "Pani Halina is flashing you", {"only": "choice_title"}],
