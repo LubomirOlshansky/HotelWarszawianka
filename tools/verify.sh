@@ -670,8 +670,10 @@ police_run() {
 	if (( code != 0 || np > 0 )); then
 		P_FAIL+=("$tag: exit $code, $np error/warning lines: $(problems $logf | head -1 | cut -c1-100)")
 	fi
-	# The złoty never change: every "wallet A zł → B zł" line has A = B.
-	local bad=$(grep -E '^police: wallet [0-9]+ zł → [0-9]+ zł' $logf | awk '{ if ($3 != $6) print }' | head -1)
+	# The police never change the złoty: every "wallet A zł → B zł" line has A = B, except for the
+	# First steps' pay (first_steps.gd STEP_ZL, 50 per tick, a fresh save ticks as the run drives):
+	# B - A may be a multiple of 50 (never a loss, never an odd sum). Anything else is the police's.
+	local bad=$(grep -E '^police: wallet [0-9]+ zł → [0-9]+ zł' $logf | awk '{ d = $6 - $3; if (d < 0 || d % 50 != 0) print }' | head -1)
 	[[ -n $bad ]] && P_FAIL+=("$tag: the złoty changed: $bad")
 	RUN_LOG=$logf
 }
@@ -807,7 +809,8 @@ police_soak() {
 	local running=0
 	[[ $end == *"1 running"* ]] && running=1
 	local b4=${${end#*edge }%%;*} lanes=${${end#*lanes worst }%% m*}
-	if (( zl0 != zl1 )); then
+	# The First steps pay 50 zł a tick (first_steps.gd STEP_ZL): a gain in whole 50s is theirs.
+	if (( zl1 < zl0 || (zl1 - zl0) % 50 != 0 )); then
 		row FAIL "$label" $secs "the złoty changed: $zl0 → $zl1 ($logf)"
 	elif (( started != ended + running )); then
 		row FAIL "$label" $secs "$started chases started, $ended ended ($logf)"
