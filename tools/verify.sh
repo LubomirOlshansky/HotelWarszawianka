@@ -95,7 +95,8 @@
 # mesh per sector and the mesh defects of every place script on the flat stub map (committed centrum.json only, CI too).
 # The L-shaped map loop: `edge` runs game/tools/check_edge.gd: the helicopter's clamp along the
 # map's outline (random moves, four flights past the inner corner), the rescue spots inside the
-# outline, the minimap's mesh over the corner left outside; centrum.json only (CI too).
+# outline, the minimap's mesh over the corner left outside, and (2026-11-22) every job target (orders,
+# rides, EV tow, crash scenes) 80 m inside the outline; centrum.json only (CI too).
 # The edge roadworks (2026-11-02): `roadworks` runs game/tools/check_edge_roadworks.gd: every road
 # leaving the map closed by roadworks, the traffic shut there, rays through the barriers, the budget;
 # centrum.json only (CI too). `roadworks-prebuilt` runs game/tools/check_edge_prebuilt.gd: the prebuilt
@@ -367,6 +368,10 @@
 # Grodzka's ramp by the Royal Castle (F, 2026-11-13): `zamekramps` runs tools/zamek_ramps.py --check
 # (the slip road past Pałac pod Blachą up to the W-Z tunnel is one smooth climb: no pit fills or their
 # walls on it, one ground profile; no map beyond centrum.json, CI too).
+# Party-wall fronts (F, 2026-11-22): `photofronts` runs tools/photo_fronts_party.py --check (no photo
+# street front in game/data/photo_fronts.json faces straight into a neighbour 8 m or taller: a front
+# on a shared wall stood over the roofs of Krakowskie Przedmieście as a free slab; no map beyond
+# centrum.json, CI too).
 # The obelisk's semicircle north of the Palace (F, 2026-11-17): `defiladobelisk` runs
 # tools/defilad_obelisk.py --check (no mapped wall loop, service ramp, zebra or garage door left on it;
 # no map beyond centrum.json, CI too).
@@ -471,7 +476,7 @@ fi
 # Operation Unslop review (2026-11-05): the road loop ran the whole --quick (~100 steps, most start
 # the game) after every tweak. --roads keeps only the steps a road rule can break; steps not in
 # STEPS_ALL on this branch (e.g. `smooth` before the smooth-roads PR) are skipped.
-STEPS_ROADS=(map roads streets streetdetails streetpass design models overrides smooth fixes centralnyramp zamekramps objecttypes cyclehang portbridge objects tramstops drive stuckspots)
+STEPS_ROADS=(map roads streets streetdetails streetpass design models overrides smooth fixes centralnyramp zamekramps photofronts objecttypes cyclehang portbridge objects tramstops drive stuckspots)
 # Loop 3g-1: minutes of play in the police soak (P13; the full one is 10).
 SOAK_MINUTES=${NW_SOAK_MINUTES:-3}
 # Longest a single step may take, in seconds, before it is stopped (macOS has no `timeout`).
@@ -1063,6 +1068,15 @@ for s in $want; do
 				0) row PASS "centralnyramp" $secs "$(grep '^centralny_ramp: ' $logs/centralnyramp.log | tail -1)" ;;
 				*) row FAIL "centralnyramp" $secs "$(grep '^centralny_ramp: ' $logs/centralnyramp.log | tail -1) ($logs/centralnyramp.log)" ;;
 			esac ;;
+		photofronts)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/photo_fronts_party.py --check > $logs/photofronts.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "photofronts" $secs "$(grep '^photo_fronts_party: ' $logs/photofronts.log | tail -1)" ;;
+				*) row FAIL "photofronts" $secs "$(grep '^photo_fronts_party: ' $logs/photofronts.log | tail -1) ($logs/photofronts.log)" ;;
+			esac ;;
 		zamekramps)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/zamek_ramps.py --check > $logs/zamekramps.log 2>&1
@@ -1430,6 +1444,8 @@ for s in $want; do
 		settings) check settings '^settings:' --script res://tools/check_settings.gd ;;
 		# DEMO 3j: no testing flags in a release build; the credits and licences page (no map; CI too).
 		credits) check credits '^check_credits:' --script res://tools/check_credits.gd ;;
+		# In-game feedback (feedback.gd, F 2026-11-21): the payload, the message and email checks (no map, no network; CI too).
+		feedback) check feedback '^check_feedback:' --script res://tools/check_feedback.gd ;;
 		# 2026-11-02: the language choice (lang.gd): one language on every screen, in Polish and in English.
 		language) check language '^check_language:' --script res://tools/check_language.gd ;;
 		# Loop G1: model id -> tier, the pixel image at the phones' sizes; the governor's rules.
@@ -1573,6 +1589,9 @@ for s in $want; do
 		maptrack) check maptrack '^check_map_track:' --script res://tools/check_map_track.gd ;;
 		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		targetroute) check targetroute '^check_target_route:' --script res://tools/check_target_route.gd ;;
+		# 2026-11-23: the Autopilot hunts' road route (playtest_route.gd): where on the road, three drives by
+		# road from the PT-60 spot, the rc entry points on a stand-in Main (headless, ~10 s).
+		playtestroute) check playtestroute '^check_playtest_route:' --script res://tools/check_playtest_route.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		# The time owner (game_time.gd, F 2026-11-19): hours, the night friends by day, the clock's jump.
 		gametime) check gametime '^check_game_time:' --script res://tools/check_game_time.gd ;;

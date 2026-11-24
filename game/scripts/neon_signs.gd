@@ -14,7 +14,9 @@ const PixelFont := preload("res://scripts/pixel_font.gd")
 const WORDS := ["KEBAB 24H", "BAR MLECZNY", "APTEKA", "KWIATY", "HOTEL", "KANTOR", "PIZZA", "KLUB", "NOCNY"]
 ## The landmarks loop: words only the landmarks wear (never a shop's), after WORDS in the atlas:
 ## the parody of the brand on Warsaw Spire's crown, the mall by Rondo Radosława's.
-const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA", "CHILTON", "INTERKONTI", "N", "O", "W", "T", "E", "L", "BANK POLSKA", "PEPEO ŻUBR", "ERZATZ",
+const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA", "CHILTON", "INTERKONTI", "N", "O", "W", "T", "E", "L", "BANK POLSKA", "PEPEO ŻUBR", "ŻUBR", "ERZATZ",
+		# BGK's roof (F, 2026-11-20): the energy group as the parody PEGE, its name in two words.
+		"PEGE", "POLSKA GRUPA", "ENERGICZNA",
 		"METROPOLKA", "HOTEL AHOJ", "PORT PRASKI", "STATKI WKRÓTCE", "ENELMEDIK", "ACORN", "HOTELS", "--",
 		# First scene item 3: the Eastern Wall's stores (parodies of their roof names).
 		"JUNIOREK", "SAWKA", "WARSIK", "ATOMIK 24H",
@@ -58,14 +60,14 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"WISTULA",
 		# Its arcade's cafés and bars (parodies, F 2026-11-19): the bakery-bistro, the cocktail
 		# bar (its neon Z is the "Z" below) and the craft-beer bar.
-		"SZARLOTKA", "ZAMIESZAJ", "CUDA NA PATYKU",
+		"SZARLOTKA", "ZAMIESZAJ", "OLDTWICE", "CUDA NA PATYKU",
 		# The power company's red roof sign on Wybrzeże Kościuszkowskie 41 (F's photos, 2026-11-13).
 		"ELEKTRON",
 		# HOTEL PIURE's rooftop date bar (G3).
 		"LORETKA",
 		# Arkadka from F's photos (2026-11-03): Westfield as "west field" in Polish, the
 		# hypermarket, the DIY store and the cinema on the sign tower.
-		"ZACHODNIE", "POLE", "KARFUREK", "MERLINEK", "KINO SITKO",
+		"ZACHODNIE", "POLE", "KARFUREK", "GEOBENT",
 		# The railway (docs/design/railway.md, S2): the round pavilion's letters at Powiśle.
 		"WARSZAWA", "POWIŚLE",
 		# F's photos (2026-11-06): the round pavilion's letters one box each (the ones N, O, W, T, E, L
@@ -166,7 +168,12 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# office tenants as parodies, and the HUB's own name at its door.
 		"NA DACHU", "KORONA PLAZA", "KORONA", "PLAZA", "HOLIDEJ INN", "ORAKEL", "STANDARD CZARTER", "HUB",
 		# The University Library's pizzeria under the lookout (F, 2026-11-20): a parody of its name.
-		"BOSKAJOLA"]
+		"BOSKAJOLA",
+		# Pasaż Wiecha's cafés and shops (F, 2026-11-22: OSM and the photos), parodies: the loft
+		# restaurant, the vegan bar, the bubble tea, the grill, the jars, the pierogi, the sushi, the
+		# Czech pub, Scena Relax's café and pizzeria, the café on Zgoda.
+		"STRYCH", "WEGE FUD", "AUREOLA TEA", "BLISKI ZACHÓD", "SŁOICZEK", "PIEROŻKARNIA", "KISIEL SUSHI",
+		"PO CZESKU", "KAWIARNIA RELAKS", "WŁOSKI ZASTÓJ", "KOSMOSIK"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)

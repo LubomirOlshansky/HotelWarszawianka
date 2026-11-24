@@ -36,6 +36,7 @@ const KNOWN := {
 	"patelnia": {"zfight": 317, "float": 634},
 	"plac_pieciu_rogow": {"zfight": 470, "degenerate": 24, "float": 5},
 	"tarasy_screen": {"float": 1},
+	"arkadia_screen": {"float": 1},  # the screen hangs on the tower's box (landmarks/skyline.gd), off the ground by design
 	"spire_motion": {"float": 271},  # 2026-11-15: the night lines and LED band lie on the tower's glass (landmarks.gd), not on this mesh
 	"street_details": {"zfight": 7091, "float": 7},
 	"ratusz_hub": {"zfight": 271, "degenerate": 8, "float": 382},
@@ -44,7 +45,7 @@ const KNOWN := {
 	"towarowa22_life": {"zfight": 1206, "float": 1510},  # 2026-11-16: props.gd's cafe sets, benches and people (shared pieces: boxes that meet and stand on their feet) on the flat stub
 	"bulwar_food": {"zfight": 12},  # 2026-11-19: the food truck's hidden chassis and floor boxes overlap (under the body, not visible)
 	"light_garden": {"float": 3},  # the dandelion clocks' bulb tips on their spikes (2026-11-15; 7 before the flower rebuild)
-	"jarmark_rides": {"float": 270},  # 2026-11-21: the turning parts hang on the market's static mast and bases (landmarks/jarmark.gd): the tower's carrier and chairs 20-26 m up, the canopies and sleighs on their poles
+	"jarmark_rides": {"float": 274},  # 2026-11-22 (the official-map layout moved the rides; 270 before), 2026-11-21: the turning parts hang on the market's static mast and bases (landmarks/jarmark.gd): the tower's carrier and chairs 20-26 m up, the canopies and sleighs on their poles
 	"trasa_wz": {"zfight": 249, "float": 128},  # 2026-11-15: the walls, rails and stairs keep set heights (walls and steps are sector-only data) and the kiosk front hangs on the map's kiosk, so on the flat stub the pilaster feet meet and the rails and the front stand off the ground
 }
 

@@ -104,8 +104,13 @@ EXPECTED = {"trees3d": 269232, "pois": 4572, "trees3d_crown": 44872, "parked": 1
 # the default; v2's fixes leave 9.1 % and 11.5 % (31.9 km: the square's planter edges 0.9 km, the
 # stadium's perimeter 0.2 km). Both ratchets only go down. The walls doc's aim for W3 was 9 % of all
 # lines: the bollard-row rule that was to carry most of it failed its 20-sample check (QUESTIONS).
-FENCE_DEFAULT_MAX = 9.2
-ALL_DEFAULT_MAX = 11.5
+# W10a, the first wall sweep (2026-11-21, object_types v3: 14 lines typed by id from judged photos,
+# docs/streets/streets.json `places`): fence default 9.08 -> 9.04 % of 188.0 km, all three kinds
+# 11.47 -> 11.29 % of 278.3 km (31.92 -> 31.41 km: Plac Grzybowski's five default plastered "walls"
+# that are planter edges 0.44 km, the bar fence on a low wall by the square 0.08 km; the other eight
+# typed lines were context, not default). Lowered on purpose to the new numbers.
+FENCE_DEFAULT_MAX = 9.1
+ALL_DEFAULT_MAX = 11.3
 # W8 of the walls look (2026-11-20, tools/barrier_gates.py): the gates, counted from the lines' own
 # `g` and `ge` (recorded on purpose; a change to the rules or the lines changes them): 761 lines;
 # 326 gaps (834 m) where a footway crosses a fence, wall or hedge at OSM's gate node (object_fixes L4's

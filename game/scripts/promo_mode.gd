@@ -41,6 +41,11 @@ const UiKit := preload("res://scripts/ui_kit.gd")
 const Lang := preload("res://scripts/lang.gd")
 const GameTime := preload("res://scripts/game_time.gd")
 const Pacer := preload("res://scripts/pacer.gd")
+const Heli := preload("res://scripts/heli.gd")
+const DevFlags := preload("res://scripts/dev_flags.gd")
+const LaneGraph := preload("res://scripts/lane_graph.gd")
+const Traffic := preload("res://scripts/traffic.gd")
+const Trams := preload("res://scripts/trams.gd")
 
 enum Cam { CAR, FREE }
 enum HudShow { SHOW, GHOST, HIDE }
@@ -898,3 +903,87 @@ func _input(e: InputEvent) -> void:
 func _log(line: String) -> void:
 	if log_on:
 		print(line)
+
+
+
+
+## --promo-heli=X0,Z0,X1,Z1,UP[,SHARE[,SCALE]] (teaser 5, F 2026-11-21): a second helicopter that
+## flies itself from X0,Z0 toward X1,Z1, UP m over the ground, at SHARE of full speed, with nav
+## lights and no searchlight; SCALE draws it bigger, because a wide night frame shows a 12 m
+## helicopter as a few dark pixels. Null when the flag is not given. main.gd keeps the node to
+## switch its lights with the clock.
+static func make_heli(ph: PackedFloat32Array, map: Node3D, world: Node3D) -> Node3D:
+	if ph.size() < 5:
+		return null
+	var h := Heli.new()
+	h.name = "PromoHeli"
+	h.ground_height = map.ground_height
+	h.top_height = map.top_height
+	h.tallest_near = map.tallest_near
+	h.set_map(map)
+	world.add_child(h)
+	var go := Vector2(ph[2] - ph[0], ph[3] - ph[1])
+	h.place(Vector3(ph[0], map.ground_height(ph[0], ph[1]) + ph[4], ph[1]), atan2(-go.x, -go.y), ph[4])
+	h.auto_to = Vector2(ph[2], ph[3])
+	h.searchlight = false
+	h.add_nav_lights()
+	if ph.size() >= 6:
+		h.auto_share = ph[5]
+	if ph.size() >= 7:
+		h.scale = Vector3.ONE * ph[6]
+	print("promo heli: from %s to %s, %.0f m up, %.0f%% speed" % [h.global_position, h.auto_to, ph[4], h.auto_share * 100.0])
+	return h
+
+
+## --promo-at=X,Z,T (videos): with --promo-parts, trams[0] up Marszałkowska, trams[1] east along
+## the Aleje two seconds later, a bus and a patrol car east along the Aleje, each placed so it passes
+## X,Z about T s after the start (buses keep their lane). --promo-delay=S places them S s after the
+## start instead of at once, for a clip with a long skip (the east tram otherwise waits at its stop).
+const PROMO_TRAM_V := 8.0
+const PROMO_BUS_V := 9.0
+const PROMO_POLICE_V := 11.0
+const ALEJE_EAST := Vector2(0.937, -0.349)
+const MARSZALKOWSKA_NORTH := Vector2(-0.349, -0.937)
+
+
+static func traffic_on_cue(f: DevFlags, tree: SceneTree, trams: Trams, traffic: Traffic, graph: LaneGraph) -> void:
+	if f.promo_delay > 0.0:
+		tree.create_timer(f.promo_delay, false).timeout.connect(
+				func() -> void: place_traffic(f, trams, traffic, graph))
+	else:
+		place_traffic(f, trams, traffic, graph)
+
+
+static func place_traffic(f: DevFlags, trams: Trams, traffic: Traffic, graph: LaneGraph) -> void:
+	var at := f.promo_at
+	if at == Vector2.INF or trams == null or trams.trams.size() < 2:
+		return
+	var t := f.promo_t
+	traffic.steady_buses = true
+	var parts := f.promo_parts
+	var up := false
+	var east := false
+	if "tram-up" in parts:
+		up = trams.place_near(trams.trams[0], at, -PROMO_TRAM_V * t, MARSZALKOWSKA_NORTH, PROMO_TRAM_V)
+	if "tram-east" in parts:
+		east = trams.place_near(trams.trams[1], at, -PROMO_TRAM_V * (t + 2.0), ALEJE_EAST, PROMO_TRAM_V)
+	var bus := false
+	# F (2026-11-21): the bus east along the Aleje behind the patrol car (up Nowy Świat it changed
+	# its line at the rondo at the end of the take).
+	var lane := graph.snap(at - ALEJE_EAST * (PROMO_BUS_V * (t + 4.0)), 30.0, ALEJE_EAST, true, true, true)
+	if not lane.is_empty() and "bus" in parts:
+		var d := traffic.add_bus(int(lane[0]), int(lane[1]), float(lane[2]))
+		if d != null:
+			d.v = PROMO_BUS_V
+			bus = true
+	# F (2026-11-21, the palm teaser): a patrol car driving through too, east along the Aleje.
+	var patrol := false
+	var pl := graph.snap(at - ALEJE_EAST * (PROMO_POLICE_V * (t + 1.5)), 30.0, ALEJE_EAST, true, true, true)
+	if not pl.is_empty() and "police" in parts:
+		var p := traffic.add_police(int(pl[0]), int(pl[1]), float(pl[2]))
+		if p != null:
+			p.patrol = true
+			p.persistent = false
+			p.v = PROMO_POLICE_V
+			patrol = true
+	print("promo: at %s in %.1f s: tram up %s, tram east %s, bus %s, patrol %s" % [at, t, up, east, bus, patrol])

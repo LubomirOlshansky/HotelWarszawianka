@@ -2,7 +2,7 @@ extends RefCounted
 
 const Lang := preload("res://scripts/lang.gd")
 ## The in-game credits and licences (DEMO 3j, WORKFLOW "TestFlight": the credits and licences
-## screen; Settings → DŹWIĘK → LICENCJE). The same facts as CREDITS.md, in the player's words:
+## screen; Settings → OGÓLNE → LICENCJE). The same facts as CREDITS.md, in the player's words:
 ## the open data the city is built from (OpenStreetMap ODbL, GUGiK, the trees' CC BY 4.0), the
 ## engine and the add-ons shipped in the build, and every radio track with its licence line from
 ## data/radio.json, so a song added with tools/add_music.py shows up here without an edit.

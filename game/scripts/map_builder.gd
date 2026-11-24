@@ -363,7 +363,8 @@ func setup_streamed(index: Dictionary, building_mat: ShaderMaterial, flat_mat: S
 	# `kladka`: the footbridge's layout (tools/kladka.py; landmarks/kladka.gd).
 	_marks = Landmarks.new(self, {"landmarks": index.get("landmarks", []), "towers": index.get("towers", []),
 			"buildings": index.get("site_parts", []), "areas": index.get("areas", []),
-			"platforms": index.get("platforms", []), "kladka": index.get("kladka", {})})
+			"platforms": index.get("platforms", []), "kladka": index.get("kladka", {}),
+			"steps": index.get("steps_wide", [])})
 	landmark_info = _marks.info
 	_pick.resize(_roof_nx * _roof_nz * 2)
 	_pick.fill(0)
@@ -632,6 +633,7 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		_drape_bias = 0.01
 		_cover_on = true
 		_build_areas(flat)
+		_build_portal_lids(flat)
 		_build_cut_banks(flat)
 		_cover_on = false
 		# The sandbars over the water (fill 0.02, rim 0.07, foam 0.09) and the natural banks' wet
@@ -2213,6 +2215,15 @@ const SUNKEN := [
 		"at": Vector2(458.2, -840.3), "a": Vector2(394.8, -904.3), "b": Vector2(401.8, -911.7),
 		"ring": [Vector2(373.0, -925.1), Vector2(415.8, -884.2), Vector2(426.0, -893.3), Vector2(410.1, -904.0),
 			Vector2(382.6, -933.7)]},
+	# The Arka, Stadion Narodowy's east entrance (F's photos, 2026-11-21: "the ground that goes to the
+	# entrance is flat ground"): a level cut into the embankment, narrowing from the plaza to the
+	# headwall with the arch (landmarks/praga.gd _stadium_arka), between granite cheek walls under the
+	# two flights. The 10 m grid drew it as a slope rising to the headwall. The ring: the cut's floor
+	# between the cheeks (OSM's slivers beside the flights), from 1 m out on the plaza to just behind
+	# the headwall's slab; the floor the grid's own at the mouth. Its site is the stadium's.
+	{"key": "arka_cut", "site": "stadium", "style": "parapet", "sub": 10, "hb": -17.1, "bare": true,
+		"a": Vector2(1650.0, -703.5), "b": Vector2(1650.0, -703.5),
+		"ring": [Vector2(1643.6, -716.2), Vector2(1658.7, -690.9), Vector2(1629.3, -682.7), Vector2(1621.8, -695.4)]},
 ]
 ## Grid nodes held up to the street (the 10 m grid's pit at Złote Tarasy's plaza pulled the upper
 ## terrace, the stair's sides and the station forecourt down into a crater): [node, at least m].
@@ -2303,7 +2314,8 @@ static func sunk_entry(e: Dictionary, ha: float, step: float) -> Dictionary:
 	return {"key": e["key"], "ring": ring, "grown": grown, "wide": wide, "box": box, "a": e["a"], "b": e["b"], "ha": ha, "hb": hb, "sub": sub,
 			"site": e.get("site", "sunken"), "style": e.get("style", "rail"), "walk": PackedVector2Array(e.get("walk", [])),
 			"rows": int(e.get("rows", 0)), "rim": float(e.get("rim", -INF)), "tile": e.get("tile", Color(0, 0, 0, 0)),
-			"floor": e.get("floor", Color(0, 0, 0, 0)), "rise": float(e.get("rise", -1.0))}
+			"floor": e.get("floor", Color(0, 0, 0, 0)), "rise": float(e.get("rise", -1.0)),
+			"bare": bool(e.get("bare", false))}
 
 
 ## A sunken ring's floor at a point (its ring, or `grown` its ring grown for the drawn ground),
@@ -2318,6 +2330,29 @@ func sunk_floor(x: float, z: float, grown := false) -> float:
 			continue
 		best = minf(best, sunk_level(sk, p))
 	return best
+
+
+## True when plan point (x, z) lies in a SUNKEN ring's grown outline (its drawn floor).
+func _in_sunk_grown(x: float, z: float) -> bool:
+	var p := Vector2(x, z)
+	if _sunk.is_empty() or not _sunk_box.has_point(p):
+		return false
+	for sk: Dictionary in _sunk:
+		if (sk["box"] as Rect2).has_point(p) and Geometry2D.is_point_in_polygon(p, sk["grown"]):
+			return true
+	return false
+
+
+## True when plan point p lies in a "bare" SUNKEN ring's grown outline: a paved cut whose floor
+## carries no lawn (the Arka's approach, F's photos 2026-11-21). Green fills skip it.
+func _in_bare(p: Vector2) -> bool:
+	if _sunk.is_empty() or not _sunk_box.has_point(p):
+		return false
+	for sk: Dictionary in _sunk:
+		if sk.get("bare", false) and (sk["box"] as Rect2).has_point(p) \
+				and Geometry2D.is_point_in_polygon(p, sk["grown"]):
+			return true
+	return false
 
 
 ## The floor of sunken ring `sk` at plan point p (from its stair's top to its foot, flat past them).
@@ -2710,6 +2745,99 @@ func _wislostrada_portal(st) -> void:
 			var p2 := hull[tri[k + 2]]
 			var h := top - 0.35
 			_tri(st, Vector3(p0.x, h, p0.y), Vector3(p1.x, h, p1.y), Vector3(p2.x, h, p2.y), Vector3.UP, PORTAL_LID_GRASS)
+
+
+## A road tunnel's mouth under higher ground (the W-Z's under Plac Zamkowy, F 2026-11-22: "a hole by
+## the square over the tunnel"): the apron at the mouth (tools/bake_structures.py `place_aprons`)
+## holds the ground at the road's height over the tunnel's first APRON_IN metres, so the mouth stays
+## open in the height field. From above that was an open pit behind the headwall, 11 m deep down to
+## the road, the plaza's paving sunk into it, and its sides sloping in under the square. The lid is
+## the tunnel's roof there: the ground layer the square would have without the apron (the grid,
+## the approaches and profiles, never the apron, and never under the ground over the mouth), from
+## the headwall back past the pit's far slope
+## and across the apron's whole reach. It lies LID_UNDER under that surface, so it shows only where
+## the ground fell away, in the colour and shader layer of what lies over the mouth (the area there,
+## or the bare ground). Flat layer, no collision, no draw call (the flat mesh). The Wisłostrada's
+## north mouth keeps its own lid (`_wislostrada_portal`); Wiadukt Markiewicza's arches have none.
+const LID_UNDER := 0.06
+const LID_STEP := 1.0
+const LID_PAST := 5.0  ## m, the lid reaches this far inside past the apron's start (its slope, the grid's dip)
+
+
+func _build_portal_lids(st) -> void:
+	if _t_h.is_empty() or _aprons.is_empty():
+		return
+	var keep_layer := _layer
+	for f: Dictionary in data.get("tunnels", {}).get("frames", []):
+		var c := Vector2(float(f["c"][0]), float(f["c"][1]))
+		if Landmarks.mk_covers(c, 1.0) or c.distance_to(PORTAL_WISLA_AT) < 12.0:
+			continue
+		if _in_sector and not _near.grow(30.0).has_point(c):
+			continue
+		for a: PackedFloat32Array in _aprons:
+			var o := Vector2(a[0], a[1])
+			var u := Vector2(a[2], a[3])
+			var inner := a[8]
+			if inner < 1.0 or (o + u * inner).distance_to(c) > 1.0:
+				continue
+			_portal_lid(st, o, u, inner, a[6] + APRON_TAPER, a[7] + APRON_TAPER, float(f["top"]))
+	_layer = keep_layer
+
+
+## One lid over apron start `o`, outward `u`: from LID_PAST inside the start to under the headwall
+## (0.5 m inside the mouth), `left` / `right` across (the apron's left is +n, as terrain_height's).
+## Never under `top`, the ground over the mouth (the frame's): the 10 m grid itself dips over the
+## mouth (its cells reach the open cut in front), so the square's own surface there sags too.
+func _portal_lid(st, o: Vector2, u: Vector2, inner: float, left: float, right: float, top: float) -> void:
+	var n := Vector2(-u.y, u.x)
+	var mid := o + u * inner * 0.5
+	var col: Color = COL["ground"]
+	_layer = L_GROUND
+	for ar in data["areas"]:
+		var poly := _pts(ar["p"])
+		if Geometry2D.is_point_in_polygon(mid, poly):
+			var k: String = ar["k"]
+			col = COL.get(k, col)
+			_layer = L_PLAZA if k == "plaza" else (L_WATER if k == "water" else L_GREEN)
+			if k == "plaza":
+				break
+	var along0 := -LID_PAST
+	var along1 := inner - 0.5
+	var steps_a := maxi(1, ceili((along1 - along0) / LID_STEP))
+	var steps_l := maxi(1, ceili((left + right) / LID_STEP))
+	var pts: Array[PackedVector3Array] = []
+	for i in steps_a + 1:
+		var row := PackedVector3Array()
+		var al := lerpf(along0, along1, float(i) / steps_a)
+		for j in steps_l + 1:
+			var lat := lerpf(-right, left, float(j) / steps_l)
+			var p := o + u * al + n * lat
+			var h := maxf(minf(_grid_height(p.x, p.y), _fill_height(p.x, p.y)), top) - LID_UNDER
+			row.append(Vector3(p.x, h, p.y))
+		pts.append(row)
+	for i in steps_a:
+		for j in steps_l:
+			var p00 := pts[i][j]
+			var p01 := pts[i][j + 1]
+			var p10 := pts[i + 1][j]
+			var p11 := pts[i + 1][j + 1]
+			_lid_tri(st, p00, p10, p11, col)
+			_lid_tri(st, p00, p11, p01, col)
+
+
+## A lid triangle in the flat layers' vertex format (_emit_draped's: no bias, the layer id, the
+## street axes), wound to face up.
+func _lid_tri(st, a: Vector3, b: Vector3, c: Vector3, col: Color) -> void:
+	var p := [a, b, c]
+	if ((p[1] - p[0]).cross(p[2] - p[0]).dot(Vector3.UP) > 0.0) == CLOCKWISE_FRONT:
+		p = [p[0], p[2], p[1]]
+	var axis := CITY_GRID
+	for v: Vector3 in p:
+		st.set_color(col)
+		st.set_normal(Vector3.UP)
+		st.set_uv(Vector2(0.0, _layer))
+		st.set_uv2(Vector2(v.x * axis.x + v.z * axis.y, -v.x * axis.y + v.z * axis.x))
+		st.add_vertex(v)
 
 
 ## The railway cutting west of Centralna (rail_cut.gd, F 2026-11-06): its banks in grass and its
@@ -5945,7 +6073,11 @@ func _emit_draped(st, a: Vector3, b: Vector3, c: Vector3, col: Color) -> bool:
 		if _on_grid and _dk < 0 and _tn < 0:
 			# Never under the drawn ground (map round 2: the drawn ground, which follows an
 			# apron in its sub-cells).
-			h = maxf(h, _drawn_height(v.x, v.z))
+			# Inside a SUNKEN ring the drawn ground is the ring's floor, under the grid: a fill
+			# there lies on that floor (at the Arka's cut the embankment's grass stood up over
+			# the floor in spikes along the cheek walls, F 2026-11-21).
+			var drawn := _drawn_height(v.x, v.z)
+			h = drawn if _in_sunk_grown(v.x, v.z) else maxf(h, drawn)
 		p[k] = Vector3(v.x, h + v.y, v.z)
 	if ((p[1] - p[0]).cross(p[2] - p[0]).dot(Vector3.UP) > 0.0) == CLOCKWISE_FRONT:
 		p = [p[0], p[2], p[1]]
@@ -6076,6 +6208,8 @@ func _fill_grid_cells(st, poly: PackedVector2Array, y: float, col: Color) -> voi
 									var p1 := piece[pidx[t + 1]]
 									var p2 := piece[pidx[t + 2]]
 									if absf((p1 - p0).cross(p2 - p0)) < 0.0002:
+										continue
+									if _layer == L_GREEN and _in_bare((p0 + p1 + p2) / 3.0):
 										continue
 									_emit_draped(st, Vector3(p0.x, y, p0.y), Vector3(p1.x, y, p1.y), Vector3(p2.x, y, p2.y), col)
 				continue
@@ -7505,13 +7639,40 @@ func _build_surfaces(st) -> void:
 		if _dk >= 0:
 			_fill(st, _pts(a["p"]), y, Color(style[0]))
 		elif a["k"] == "ballast":
-			for part in _cut_out(_pts(a["p"]), platforms):
+			# Where a carriageway crosses the tracks they lie in the road's own paving, not on
+			# stones (F, 2026-11-20, the tracks across Rondo de Gaulle'a): cut those out too.
+			for part in _cut_out(_pts(a["p"]), platforms + _carriage_polys(a["p"])):
 				_fill_on_grid(st, part, y, Color(style[0]))
 		else:
 			_fill_on_grid(st, _pts(a["p"]), y, Color(style[0]))
 	_dk = -1
 	_build_pkin_ground(st)
 	_layer = L_GROUND
+
+
+## The street carriageways (centrum.json `carriage` of a road class; not the service ways, nor the
+## emergency and no-entry areas painted over the tracks) that overlap the outline `flat`, as
+## [box, polygon] for _cut_out.
+const CROSSING_KINDS := ["primary", "primary_link", "secondary", "secondary_link", "tertiary", "tertiary_link",
+		"residential", "unclassified"]
+func _carriage_polys(flat: Array) -> Array:
+	var poly := _pts(flat)
+	var box := Rect2(poly[0], Vector2.ZERO)
+	for q in poly:
+		box = box.expand(q)
+	var out := []
+	for c in data.get("carriage", []):
+		if not String(c.get("k", "")) in CROSSING_KINDS:
+			continue
+		var q := _pts(c["p"])
+		if q.size() < 3:
+			continue
+		var cb := Rect2(q[0], Vector2.ZERO)
+		for p in q:
+			cb = cb.expand(p)
+		if cb.intersects(box):
+			out.append([cb, q])
+	return out
 
 
 ## OSM's railway platforms (0.9 m) as outlines with their boxes. The ballast (landuse=railway)
@@ -11210,6 +11371,8 @@ func _build_street_furniture() -> void:
 			continue  # first_scene.gd's Y mast stands here
 		if Landmarks.mk_covers(Vector2(x, z), 1.0):
 			continue  # Wiadukt Markiewicza is lit by its own obelisk lamps (landmarks/karowa.gd)
+		if Landmarks.jarmark_lift(Vector2(x, z)) > 0.0:
+			continue  # Jarmark Warszawski's car park: the market is lit by its strings and counters
 		var t := Transform3D(Basis(Vector3.UP, fposmod(x * 0.37 + z * 0.11, TAU)), Vector3(x, terrain_height(x, z), z))
 		if Vector2(x, z).distance_to(Vector2(CANDELABRAS.x, CANDELABRAS.y)) < CANDELABRAS.z:
 			candelabras.append(t)

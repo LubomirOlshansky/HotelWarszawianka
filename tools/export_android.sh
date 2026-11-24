@@ -37,6 +37,9 @@ opts=$(awk 'f&&/^\[preset\.[0-9]+\]/{exit} /^\[preset\.[0-9]+\]/{s=0} /^name="An
 vname=$(print -r -- $opts | sed -n 's/^version\/name="\(.*\)"/\1/p')
 vcode=$(print -r -- $opts | sed -n 's/^version\/code=\([0-9]*\)/\1/p')
 package=$(print -r -- $opts | sed -n 's/^package\/unique_name="\(.*\)"/\1/p')
+# Perf thread (2026-11-23): the version code and commit for the play stats (play_stats.gd
+# BUILD_STAMP; PostHog's app_build said "0.1" for every build). Gitignored, made at each export.
+print -r -- "{\"build\": \"${vcode:-dev}\", \"commit\": \"$(git -C .. rev-parse --short HEAD 2>/dev/null || cat ../COMMIT 2>/dev/null)\"}" > data/build_stamp.json
 
 # A clone Godot has never opened must be imported first: bake_city.gd on an unimported project
 # can't resolve the add-ons' class names (PhantomCameraHost) and the export then crashes in its

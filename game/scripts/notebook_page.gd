@@ -39,8 +39,9 @@ const T_BODY := 15.0
 const T_SUB := 13.0
 const T_LABEL := 11.0
 ## The page in points (at least; it takes the card's width when that is more): the chapters'
-## row, a gap, the area (the grid or one card).
-const MIN_W := 476.0
+## row, a gap, the area (the grid or one card). 572 pt holds 12 chips (9 chapters and 3 sections)
+## at 44 pt: since the settings redesign step 2 the tab row (5 tabs) no longer widens the card.
+const MIN_W := 572.0
 const ROW := 44.0
 const GAP := 6.0
 const AREA := 204.0

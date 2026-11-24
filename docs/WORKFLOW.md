@@ -195,7 +195,7 @@ changes and picks the highest tier any of them asks for; a path no rule knows is
 | content | dialogue, audio, art and the `game/data` files the city build doesn't read | `quick` | 7 min |
 | code | gameplay and check scripts | `quick` + the prebuilt city (`smoke`) | 15-20 min |
 | landmarks | landmark, model, sign and prop code and their data | code + `landmarks` | 20-25 min |
-| full | `game/map/`, `tools/`, the map builder, streaming, shaders, `.github/`, anything unknown | every group, in four shards | about 40 min |
+| full | `game/map/`, `tools/`, the map builder, streaming, shaders, `.github/`, anything unknown | every group, in five shards | about 65 min (2026-11-21) |
 
 The full set took 42 min on its first run (2026-11-12; 46-61 min before), `quick` 6 min and the
 `tier` job 11 s. The other rows are estimates from the step times until a pull request of each

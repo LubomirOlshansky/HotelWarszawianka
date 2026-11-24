@@ -3323,6 +3323,41 @@
   ],
   "garage": [
     [
+      "Zmiana fury za darmo. Części i nowe auta kupisz u mnie na Twardej.",
+      "Switching is free. Parts and new cars: at my place on Twarda.",
+      {
+        "only": "mine"
+      }
+    ],
+    [
+      "PRĘDKOŚĆ",
+      "TOP SPEED",
+      {
+        "only": "bar_top"
+      }
+    ],
+    [
+      "PRZYSPIESZENIE",
+      "PULL",
+      {
+        "only": "bar_pull"
+      }
+    ],
+    [
+      "PRZYCZEPNOŚĆ",
+      "GRIP",
+      {
+        "only": "bar_grip"
+      }
+    ],
+    [
+      "NITRO",
+      "NITRO",
+      {
+        "only": "bar_nitro"
+      }
+    ],
+    [
       "Pod maskę zajrzymy. Kasa na ladę.",
       "We'll look under the bonnet. Cash on the counter.",
       {
@@ -3365,8 +3400,8 @@
       }
     ],
     [
-      "Mirek, od lat na Brzeskiej. Lakier od ręki, kawa z fusami.",
-      "Mirek, on Brzeska for years. Paint while you wait, coffee with grounds.",
+      "Mirek, od lat na Twardej. Lakier od ręki, kawa z fusami.",
+      "Mirek, on Twarda for years. Paint while you wait, coffee with grounds.",
       {
         "only": "hello"
       }
@@ -6925,7 +6960,7 @@
     ["Polataj helikopterem", "Fly the helicopter", {"only": "step_heli"}],
     ["Spotkaj policję: stań albo uciekaj", "Meet the police: stop or get away", {"only": "step_police"}],
     ["Zajrzyj do warsztatu Mirka", "Visit Mirek's garage", {"only": "step_garage"}],
-    ["Na Pradze ktoś lakieruje za złotówki.", "Someone on Praga paints cars for pennies.", {"only": "unknown_garage"}],
+    ["Na Twardej ktoś lakieruje za złotówki.", "Someone on Twarda paints cars for pennies.", {"only": "unknown_garage"}],
     ["Na dachu BUW coś leży. Dolecisz?", "Something lies on the BUW roof. Can you fly?", {"only": "unknown_heli"}],
     ["Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty.", "Six rivals. Beat them all and win Trzy mosty.", {"only": "promise"}],
     ["PANI HALINA MRUGA", "Pani Halina is flashing you", {"only": "choice_title"}],
@@ -6935,10 +6970,13 @@
     ["Lot · kaseta na dachu BUW", "Fly · a mixtape on the BUW roof", {"only": "choice_fly"}],
     ["NASTĘPNY: %s · %d zł", "Next: %s · %d zł", {"only": "next_rival"}],
     ["%s czeka w kole", "%s waits in the ring", {"only": "next_waits"}],
-    ["Miasto cię zauważyło: znajomi zaczną dzwonić. Nowy lakier u Mirka.", "The city has noticed you: friends will call. New paint at Mirek's.", {"only": "noticed"}],
+    ["Najpierw zgub policję, potem rewanż.", "Lose the police first, then the rematch.", {"only": "rematch_chase"}],
+    ["Meta jest pod bramą: zawróć i przepłyń przez nią!", "The finish is under the arch: turn round and go through it!", {"only": "finish_arch"}],
+    ["Miasto cię zauważyło. Nowy lakier u Mirka.", "The city has noticed you. New paint at Mirek's.", {"only": "noticed"}],
     ["PIERWSZE KROKI ZALICZONE", "First steps done", {"only": "all_title"}],
     ["Znasz już całe miasto. Lakier „Żółty jak tramwaj” czeka u Mirka, +100 respektu. Teraz szóstka rywali.", "You know the whole city now. Tram yellow paint waits at Mirek's, +100 respect. Now the six rivals.", {"only": "all_body"}],
     ["Kebab przy Świętokrzyskiej wciąż czeka. Gorący.", "The kebab stand by Świętokrzyska still waits. Hot.", {"only": "intro_kebab"}],
+    ["Pani Halina czeka w swoim kole. Podjedź, to ruszycie.", "Pani Halina waits in her ring. Drive up and you're off.", {"only": "race_ring"}],
     ["Ktoś szuka podwózki. Nowe: zlecenie w aplikacji.", "Someone needs a lift. New: a request in the app.", {"only": "intro_ride"}],
     ["Pierwsze kroki: jeszcze %d. Złota strzałka pokazuje drogę.", "First steps: %d to go. The gold arrow shows the way.", {"only": "what_next"}],
     ["✓ Pierwsze kroki %d/%d: %s  +%d zł", "✓ First steps %d/%d: %s  +%d zł", {"only": "tick"}],
@@ -6998,7 +7036,7 @@
     ["Otwarte teraz", "Open now", {"only": "v_open"}],
     ["O każdej porze", "Any time", {"only": "v_any"}],
     ["Otwarte %s", "Open %s", {"only": "v_hours"}],
-    ["Teraz zamknięte · otwarte %s", "Closed now · open %s", {"only": "v_closed"}],
+    ["Później · %s, zegar przeskoczy", "Later · %s, the clock skips ahead", {"only": "v_closed"}],
     ["Jeszcze nie", "Not yet", {"only": "v_not_yet"}],
     ["%d×", "%d×", {"only": "v_times"}],
     ["Bez stałego miejsca: zadzwoń", "No fixed spot: give them a call", {"only": "v_no_start"}],
@@ -7009,11 +7047,11 @@
     ["Czeka na wyścig", "Ready to race", {"only": "v_rival_open"}],
     ["Jeszcze nie teraz", "Not yet open", {"only": "v_rival_locked"}],
     ["+%d zł", "+%d zł", {"only": "r_step"}],
-    ["+%d zł, nowy lakier i telefony od znajomych", "+%d zł, a new paint, and friends start calling", {"only": "r_step3"}],
+    ["+%d zł i nowy lakier", "+%d zł and a new paint", {"only": "r_step3"}],
     ["+%d zł, drugi lakier i +%d respektu", "+%d zł, another paint and +%d respect", {"only": "r_step7"}],
-    ["Każdy krok +%d zł. Trzy kroki: nowy lakier i dzwonią znajomi. Wszystkie siedem: drugi lakier i +%d respektu.", "Every step +%d zł. Three steps: a new paint, and your friends start calling. All seven: another paint and +%d respect.", {"only": "steps_head"}],
+    ["Każdy krok +%d zł. Trzy kroki: nowy lakier. Wszystkie siedem: drugi lakier i +%d respektu.", "Every step +%d zł. Three steps: a new paint. All seven: another paint and +%d respect.", {"only": "steps_head"}],
     ["Zaproszenia od znajomych. Podjedź do ich kropki albo zadzwoń.", "Invitations from your friends. Drive up to their dot, or call them.", {"only": "stories_head"}],
-    ["Znajomi zaczną dzwonić po trzech pierwszych krokach. Już teraz możesz podjechać do ich kropki.", "Friends start calling after three First steps. You can already drive up to their dot.", {"only": "friends_wait"}],
+    ["Znajomi zadzwonią po kilku minutach jazdy. Już teraz możesz podjechać do ich kropki albo zadzwonić.", "Friends start calling after a few minutes of driving. You can already drive up to their dot, or call them.", {"only": "friends_wait"}],
     ["Sześciu rywali, w dowolnej kolejności. Pokonaj wszystkich, a nocą czeka Trzy mosty.", "Six rivals, in any order. Beat them all, and Trzy mosty waits at night.", {"only": "rivals_head"}],
     ["Wyzwij, a %s podjedzie i stanie obok ciebie w kole. Rewir: %s.", "Challenge them and %s pulls up in a ring next to you. Home turf: %s.", {"only": "rival_about"}],
     ["Trzy mosty", "Trzy mosty", {"only": "final"}],
@@ -7024,7 +7062,7 @@
     ["Ktoś utknął w mieście. Odbierz wezwanie i pomóż, autem albo helikopterem.", "Someone is stuck somewhere in town. Take the call and help, by car or by helicopter.", {"only": "step_rescue_about"}],
     ["Przycisk HELI zamienia auto na helikopter. Wzbij się nad miasto.", "The HELI button swaps the car for the helicopter. Take off over the city.", {"only": "step_heli_about"}],
     ["Policja prędzej czy później cię zauważy. Zatrzymaj się albo uciekaj.", "The police will notice you sooner or later. Pull over, or get away.", {"only": "step_police_about"}],
-    ["Mirek na Pradze lakieruje i tuninguje. W becie tanio.", "Mirek on Praga does paint jobs and tuning. Cheap in the beta.", {"only": "step_garage_about"}],
+    ["Mirek na Twardej lakieruje i tuninguje. W becie tanio.", "Mirek on Twarda does paint jobs and tuning. Cheap in the beta.", {"only": "step_garage_about"}],
     ["Kebab na dowóz", "Kebab deliveries", {"only": "job_kebab"}],
     ["Budki z kebabem w całym centrum. Weź zamówienie i dowieź, zanim wystygnie.", "Kebab stands all over the centre. Take an order and deliver it before it goes cold.", {"only": "job_kebab_about"}],
     ["Podwózka", "Podwózka rides", {"only": "job_ride"}],
@@ -7054,9 +7092,11 @@
     ["Kasety", "Tapes", {"only": "col_tapes"}],
     ["Mixtape'y dla miejskiego radia, na dachach i w zaułkach.", "Mixtapes for the city radio, on rooftops and in back streets.", {"only": "col_tapes_about"}],
     ["Miejsca z notesu", "Notebook places", {"only": "col_places"}],
+    ["OTWÓRZ ZESZYT", "OPEN NOTEBOOK", {"only": "b_notebook"}],
     ["Ciekawe miejsca z notesu. Podjedź, a się odhaczą.", "Interesting places from your notebook. Drive by and they get ticked off.", {"only": "col_places_about"}],
     ["Zaprasza: %s", "Invites you: %s", {"only": "invite"}],
-    ["Nocą: zaczniecie o %s.", "At night: you start at %s.", {"only": "call_night"}],
+    ["Dziś wieczorem, o %s? Powiedz tak, a zegar przeskoczy.", "Tonight at %s? Say yes and the clock skips ahead.", {"only": "call_night"}],
+    ["O %s? Powiedz tak, a zegar przeskoczy.", "At %s? Say yes and the clock skips ahead.", {"only": "hello_later"}],
     ["PORA DNIA", "TIME OF DAY", {"only": "clock_title"}],
     ["Teraz otwarte: %s. Nocne zadania bierz też w dzień: zegar sam przeskoczy.", "Open now: %s. Take night quests by day too: the clock jumps.", {"only": "clock_open"}],
     ["nic z godzinami", "nothing with hours", {"only": "clock_none"}],
@@ -7070,6 +7110,7 @@
     ["‹ MAPA", "‹ MAP", {"only": "b_back"}],
     ["AROUND WARSAW · BETA", "AROUND WARSAW · BETA", {"only": "show_title"}],
     ["To był dopiero kebab. Znajomi będą dzwonić z zadaniami: odrzuć, a dadzą ci spokój. Gra jest w becie, próbuj wszystkiego!", "That was just a kebab. Friends will phone you with quests: say no and they leave you alone a while. It's a beta, try everything!", {"only": "show_body"}],
+    ["Warszawa jest twoja. Znajomi będą dzwonić z zadaniami: odrzuć, a dadzą ci spokój. Gra jest w becie, próbuj wszystkiego!", "Warsaw is all yours. Friends will phone you with quests: say no and they leave you alone a while. It's a beta, try everything!", {"only": "show_body_open"}],
     ["Kebaby", "Kebabs", {"only": "show_kebab"}],
     ["Podwózki", "Rides", {"only": "show_ride"}],
     ["Wyścigi", "Races", {"only": "show_race"}],

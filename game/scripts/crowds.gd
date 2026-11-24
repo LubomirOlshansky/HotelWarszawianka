@@ -10,7 +10,9 @@ extends Node3D
 ##    `reject` bubble); the car at the door (< 10 km/h within 8 m) gets the bouncer's `car` line
 ##    once per club per night (the garage loop: painted black, the `car_black` line; at Lusterko's
 ##    door on a Friday or Saturday night, 23:00-06:00, egg E01 through `egg`, `door_egg`);
-##  - **Level 26's roof crowd** on the tower's top at its place (vision's roof curve), when the
+##  - **Level 26's roof crowd** (since 2026-11-22 the DJ, dancers and drinkers of landmarks'
+##    level26_plan on the terrace, and the deck chairs' loungers, `level_26_lounge`; the rest of
+##    this item is the fallback without the model) on the tower's top (vision's roof curve), when the
 ##    roof grid says the tower is there; F's asks (2026-10-30): the place's anchor moved onto the
 ##    tower (places.json `near`), the figures stand by the parapet of the roof grid's outline
 ##    (`roof_ring`: 48 rays round the top floors), a short queue waits at the
@@ -98,6 +100,11 @@ const STEPS_KEYS := ["schodki_wisla", "schodki_wisla_w"]
 ## packed for the trailer (F: "tons of people"), the strollers in the aisles are jarmark_life.gd.
 const JARMARK_IDS := ["jarmark_main", "jarmark_annex"]
 const JARMARK_MAX := {"jarmark_main": 360, "jarmark_annex": 150}
+## Pasaż Wiecha at Christmas (F, 2026-11-22): people taking photos at the decorations and in twos at
+## the café fronts (Landmarks.wiecha_plan), kind `wiecha`, one site; scattered, never a crowd (F: "not
+## overdone"). Its strollers are wiecha_life.gd.
+const WIECHA_ID := "wiecha_swieta"
+const WIECHA_MAX := 44
 const KLADKA_IDS := ["kladka_w", "kladka_e"]
 const KLADKA_SPLIT := 250.0
 const KLADKA_MAX := {"kladka_w": 90, "kladka_e": 50}
@@ -288,6 +295,11 @@ const ROOF_ID := "level_26"
 ## roof ring's rays, the band's place under the roof (m) and its colour.
 const ROOF_DOOR_ID := "level_26_door"
 const ROOF_DOOR_MAX := 8
+## F (2026-11-22, Level 26 rebuilt from F's photos: landmarks level26_plan): the deck chairs'
+## loungers from the late afternoon to the night (the sunset crowd of the day photos), and the
+## `level_26` roof crowd on the model's dance floor and at its bar instead of the parapet.
+const L26_LOUNGE_ID := "level_26_lounge"
+const L26_LOUNGE_HOURS := Vector2(16.0, 1.0)
 const RING_RAYS := 48
 const RING_TOP := 1.0
 const RING_H := 2.0
@@ -382,6 +394,15 @@ const NOWOGRODZKA := {
 	"pub_nowo_23": [Vector2(-625.0, 520.0), 12, 14.0],
 	"pub_nowo_22": [Vector2(-680.0, 528.0), 14, 16.0],
 	"pub_nowo_27": [Vector2(-695.0, 547.0), 10, 14.0],
+}
+## Pasaż Wiecha's evening (F, 2026-11-19: "more people on the pasaż"): Zodiak's café, the square
+## between the pavilions and Wars, and the walk past the kebab windows, on the `pub` curve (the
+## pasaż is busiest after 20:00). Same shape as NOWOGRODZKA; the spots are footway, checked
+## against centrum.json's buildings.
+const WIECHA_NIGHT := {
+	"pub_wiecha_zodiak": [Vector2(-815.0, 285.0), 14, 12.0],
+	"pub_wiecha_square": [Vector2(-835.0, 275.0), 12, 12.0],
+	"pub_wiecha_mid": [Vector2(-845.0, 240.0), 10, 12.0],
 }
 ## Wilcza and Poznańska's bars (street-by-street, 2026-11-03): people with a glass and a cigarette on the
 ## pavement in front of the bars, on the `pub` curve like NOWOGRODZKA. id -> [spot (game coordinates),
@@ -606,6 +627,8 @@ var paint: Callable
 var egg: Callable
 ## --crowd=: 0 none (this node isn't built), 1 normal, 2 double; the Low tier halves it.
 var amount := 1.0
+## The weather (main.gd's Weather): in the rain every figure carries an umbrella (Models.umbrella_twin).
+var weather: Node
 ## City-life satire #1: the car meet's crowd (main.gd: off with --loud=0).
 var meet_on := true
 ## --night-log: queues, rejections, the dawn walkers each minute and every event.
@@ -636,6 +659,8 @@ var levels := {}
 var t := 0.0
 
 var _cells := {}
+## True once _build_drawing has made the cells: the sites tick only after it (PT-58).
+var _drawn := false
 var _rng := RandomNumberGenerator.new()
 var _tick_t := 0.0
 var _walk_t := 0.0
@@ -646,6 +671,10 @@ var _still_mat: ShaderMaterial
 var _walk_mat: ShaderMaterial
 var _walk_mm: MultiMesh
 var _walk_mmi: MultiMeshInstance3D
+## The figures' umbrellas: one twin per cell (in `_cells`) and the walkers' (Models.umbrella_twin).
+var _walk_umb: MultiMeshInstance3D
+## Whether it rained at the last frame: a change shows or hides every cell's umbrellas.
+var _wet_was := false
 var _walk_buf := PackedFloat32Array()
 var _walk_box := Rect2()
 ## Phase D: the steps' props, ONE MultiMesh (+1 draw call, only while the steps are on screen).
@@ -784,9 +813,9 @@ static func jazz_level(hour: float, weekday: int, month: int, rain: bool) -> flo
 ## THE WJU (0..1 of the seats, `dj`: of the dancers): the lounge from noon to 02:00, half
 ## full in the afternoon, full in the evening; the dance floor from 19:00 filling over two hours;
 ## Friday and Saturday fuller, out of season and in rain thinner. 0 outside the hours.
-static func view_level(hour: float, weekday: int, month: int, rain: bool, dj: bool) -> float:
+static func view_level(hour: float, weekday: int, month: int, rain: bool, dj: bool, own := Vector2(-1.0, -1.0)) -> float:
 	var h := fmod(hour + 24.0, 24.0)
-	var hours := VIEW_DJ_HOURS if dj else VIEW_HOURS
+	var hours := own if own.x >= 0.0 else (VIEW_DJ_HOURS if dj else VIEW_HOURS)
 	if not (h >= hours.x or h < hours.y):
 		return 0.0
 	var lvl := 1.0 if weekday == 5 or weekday == 6 else 0.6
@@ -951,12 +980,16 @@ static func campus_level(hour: float, weekday: int, month: int, rain: bool) -> f
 	return lvl * (0.4 if rain else 1.0)
 
 
+## The share of the street and pub people still out in the rain (2026-11-19: everyone carries an
+## umbrella now, Models.umbrella_twin, so the rain thins them less; it was a third) *guess*.
+const RAIN_OUT := 0.6
+
 ## Nowogrodzka's pub crowd level 0..1: the `pub` curve × PUB_WEEKDAY (past midnight counts as the
-## evening before, as the clubs do); winter keeps 60 % (they smoke outside in the snow), rain 0.3
-## (under the doorways) *guess*.
+## evening before, as the clubs do); winter keeps 60 % (they smoke outside in the snow), rain RAIN_OUT
+## (umbrellas, doorways) *guess*.
 static func pub_level(hour: float, weekday: int, month: int, rain: bool) -> float:
 	return minf(curve_at("pub", hour) * float(PUB_WEEKDAY[night_day(hour, weekday) - 1]) * maxf(month_factor(month), 0.6)
-			* (0.3 if rain else 1.0), 1.0)
+			* (RAIN_OUT if rain else 1.0), 1.0)
 
 
 ## Mazowiecka's club crowd level 0..1: the `club` curve × WEEKDAY (past midnight counts as the
@@ -974,9 +1007,9 @@ static func theatre_level(hour: float, weekday: int, rain: bool) -> float:
 
 
 ## First scene item 6: the start's street level 0..1 (FIRST_SCENE): the `street` curve, winter keeps
-## 60 % (people still buy papers and coffee), rain a third *guess*.
+## 60 % (people still buy papers and coffee), rain RAIN_OUT.
 static func street_level(hour: float, month: int, rain: bool) -> float:
-	return curve_at("street", hour) * maxf(month_factor(month), 0.6) * (0.35 if rain else 1.0)
+	return curve_at("street", hour) * maxf(month_factor(month), 0.6) * (RAIN_OUT if rain else 1.0)
 
 
 ## KROWA 2.0's line now: [people, "kolejka"]. Open 8:00-18:00, 26 at lunch (12-15), 10 otherwise.
@@ -1226,8 +1259,16 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 	_add_site({"id": JAZZ_ID, "kind": "jazz", "at": jazz["centre"], "max": JAZZ_BAND + (jazz["chairs"] as Array).size()
 			+ (jazz["standing"] as Array).size(), "plan": jazz})
 	_add_site({"id": JAZZ_CAFE_ID, "kind": "jazz_cafe", "at": Landmarks.POW_LOW_C, "max": (jazz["seats"] as Array).size(), "plan": jazz})
+	var l26 := Landmarks.level26_plan(data)
+	if not l26.is_empty():
+		_add_site({"id": L26_LOUNGE_ID, "kind": "view", "at": l26["centre"], "max": (l26["layout"]["seats"] as Array).size(),
+				"plan": l26, "hours": L26_LOUNGE_HOURS})
 	if at.has(ROOF_ID):
-		_add_site({"id": ROOF_ID, "kind": "roof", "at": at[ROOF_ID], "max": ROOF_MAX, "curve": "roof"})
+		if l26.is_empty():
+			_add_site({"id": ROOF_ID, "kind": "roof", "at": at[ROOF_ID], "max": ROOF_MAX, "curve": "roof"})
+		else:
+			_add_site({"id": ROOF_ID, "kind": "roof", "at": at[ROOF_ID], "max": 1 + (l26["layout"]["dancers"] as Array).size(),
+					"curve": "roof", "plan": l26})
 		_add_site({"id": ROOF_DOOR_ID, "kind": "queue", "at": at[ROOF_ID], "max": ROOF_DOOR_MAX, "curve": "roof",
 				"police": false, "dawn": false})
 	for id: String in DECKS:
@@ -1243,6 +1284,7 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 		_add_site({"id": STEPS_ID, "kind": "steps", "at": band["centre"] if band["stair"] != "" else at[STEPS_ID], "max": STEPS_MAX})
 	_add_kladka(data.get("kladka", {}))
 	_add_jarmark()
+	_add_wiecha()
 	var yards := CHILL.duplicate()
 	yards.merge(BULWARY)
 	yards.merge(NOWY_SWIAT)
@@ -1255,6 +1297,9 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 	for pid: String in NOWOGRODZKA:
 		var ps: Array = NOWOGRODZKA[pid]
 		_add_site({"id": pid, "kind": "chill", "pub": true, "sit": false, "at": ps[0], "max": int(ps[1]), "radius": float(ps[2])})
+	for pid: String in WIECHA_NIGHT:
+		var ws: Array = WIECHA_NIGHT[pid]
+		_add_site({"id": pid, "kind": "chill", "pub": true, "sit": false, "at": ws[0], "max": int(ws[1]), "radius": float(ws[2])})
 	for wid: String in WILCZA:
 		var ws: Array = WILCZA[wid]
 		_add_site({"id": wid, "kind": "chill", "pub": true, "sit": false, "at": ws[0], "max": int(ws[1]), "radius": float(ws[2])})
@@ -1558,6 +1603,46 @@ func _add_jarmark() -> void:
 				"slots": mixed})
 
 
+## The pasaż's standing people from its plan, in a seeded order so a smaller crowd still spreads over
+## every decoration.
+func _add_wiecha() -> void:
+	var plan: Array = Landmarks.wiecha_plan()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2211
+	var slots: Array = []
+	var c := Vector2.ZERO
+	for e: Array in plan:
+		var p: Vector2 = e[0]
+		var d: Vector2 = e[1]
+		slots.append({"p": p, "y": _ground(p).y, "pose": STAND, "yaw": atan2(-d.x, -d.y),
+				"shirt": BRIGHT[rng.randi() % BRIGHT.size()]})
+		c += p
+	if slots.is_empty():
+		return
+	var order := range(slots.size())
+	_shuffle(order, rng)
+	var mixed: Array = []
+	for i: int in order:
+		mixed.append(slots[i])
+	_add_site({"id": WIECHA_ID, "kind": "wiecha", "at": c / slots.size(), "max": mini(WIECHA_MAX, mixed.size()),
+			"slots": mixed})
+
+
+## How busy the pasaż is (0..1): a few from 9:00, the afternoon's shoppers, fullest from dusk to 21:00
+## when the lights are on, thinning to 23:00; a third in the rain.
+static func wiecha_level(hour: float, rain: bool) -> float:
+	var lvl := 0.0
+	if hour >= 9.0 and hour < 23.5:
+		lvl = 0.3
+		if hour >= 12.0:
+			lvl = 0.55
+		if hour >= 15.5 and hour < 21.0:
+			lvl = 1.0
+		elif hour >= 21.0:
+			lvl = 0.5
+	return lvl * (0.35 if rain else 1.0)
+
+
 ## How full the market is (0..1): shut before 11:00 and after 22:00, filling through the afternoon,
 ## fullest from dusk to 21:00 (the reels: packed aisles after dark), a third in the rain.
 static func jarmark_level(hour: float, rain: bool) -> float:
@@ -1727,7 +1812,7 @@ func _place_site(s: Dictionary) -> void:
 			_place_view(s)
 		"deck":
 			_place_deck(s)
-		"meet", "kladka", "jarmark":
+		"meet", "kladka", "jarmark", "wiecha":
 			s["door"] = s["at"]
 
 
@@ -2186,6 +2271,9 @@ func _place_roof(s: Dictionary) -> void:
 	s["door"] = at
 	if map == null:
 		return
+	if s.has("plan"):
+		_place_l26(s)
+		return
 	var top: float = map.roof_height(at.x, at.y)
 	var ground: float = map.ground_height(at.x, at.y)
 	if top - ground < 40.0:
@@ -2216,6 +2304,31 @@ func _place_roof(s: Dictionary) -> void:
 		_build_ring(ring, at)
 	print("crowds: %s on a roof %.0f m over the ground, %d spots at the parapet, %s" % [s["id"], top - ground, slots.size(),
 			"the band of light round %d m of facade" % roundi(_ring_len(ring)) if _ring != null else "no band (%d rays)" % ring.size()])
+
+
+## Level 26 from F's photos (2026-11-22, landmarks level26_plan): the DJ first at the desk, then
+## the dancers before the stage and the drinkers at the bar in a seeded order, on the model's deck
+## (its height over the lowest ground under the tower's outline, as the model's). No parapet ring
+## and no violet band: the model's own lights (the railing's strip, the lanterns) glow instead.
+func _place_l26(s: Dictionary) -> void:
+	var plan: Dictionary = s["plan"]
+	var lay: Dictionary = plan["layout"]
+	var g := INF
+	for q: Vector2 in plan["outline"]:
+		g = minf(g, map.terrain_height(q.x, q.y))
+	var y := g + float(plan["deck_h"])
+	var face: Vector2 = lay["dj_face"]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2627
+	var crowd: Array = []
+	for st: Array in lay["dancers"]:
+		var d: Vector2 = st[1]
+		crowd.append({"p": st[0], "y": y, "pose": STAND, "yaw": atan2(-d.x, -d.y) + rng.randf_range(-0.35, 0.35),
+				"shirt": DARK[rng.randi() % DARK.size()] if rng.randf() < 0.6 else BRIGHT[rng.randi() % BRIGHT.size()]})
+	_shuffle(crowd, rng)
+	s["slots"] = [{"p": lay["dj"], "y": y, "pose": STAND, "yaw": atan2(-face.x, -face.y), "shirt": VIEW_DJ_SHIRT}] + crowd
+	s["top"] = y
+	print("crowds: %s on the terrace %.0f m up, %d spots (the DJ, the dance floor, the bar)" % [s["id"], y - g, (s["slots"] as Array).size()])
 
 
 ## An observation deck's spots (F's asks, 2026-11-01), every second one in a seeded order, each
@@ -2363,7 +2476,7 @@ func _build_drawing() -> void:
 		var buf := PackedFloat32Array()
 		buf.resize(int(cap[c]) * 16)
 		buf.fill(0.0)
-		_cells[c] = {"mmi": mmi, "mm": mm, "buf": buf, "cap": int(cap[c]), "dirty": false}
+		_cells[c] = {"mmi": mmi, "mm": mm, "buf": buf, "cap": int(cap[c]), "dirty": false, "umb": Models.umbrella_twin(mmi)}
 	_props_mm = MultiMesh.new()
 	_props_mm.transform_format = MultiMesh.TRANSFORM_3D
 	_props_mm.use_custom_data = true
@@ -2403,6 +2516,8 @@ func _build_drawing() -> void:
 	_walk_mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_walk_mmi.visible = false
 	add_child(_walk_mmi)
+	_walk_umb = Models.umbrella_twin(_walk_mmi)
+	_drawn = true
 
 
 ## Writes one figure into `buf` at instance `i`: standing, sitting (lower and longer) or broad.
@@ -2486,7 +2601,7 @@ func _figures(s: Dictionary) -> Array:
 				var gp: Vector2 = s["guitar"]
 				var gy := float(s["guitar_y"]) if not is_nan(float(s.get("guitar_y", NAN))) else _ground(gp).y
 				out.append([Vector3(gp.x, gy, gp.y), atan2(-face.x, -face.y), SIT, GUITAR_SHIRT, 0.0])
-		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe", "view", "view_dj", "bar", "kladka", "jarmark":
+		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe", "view", "view_dj", "bar", "kladka", "jarmark", "wiecha":
 			var slots: Array = s["slots"]
 			for k in mini(n, slots.size()):
 				var sl: Dictionary = slots[k]
@@ -2500,6 +2615,11 @@ func _figures(s: Dictionary) -> Array:
 
 func _ground(p: Vector2) -> Vector3:
 	return Vector3(p.x, map.deck_height(-1, p.x, p.y) if map != null else 0.0, p.y)
+
+
+## True while it rains enough for umbrellas (the same line as the pedestrians').
+func _raining() -> bool:
+	return weather != null and float(weather.get("amount")) > 0.2
 
 
 ## Phase D: writes the steps' props whose anchor sitter is there (`n` of the slots) into the one MultiMesh,
@@ -2573,6 +2693,7 @@ func _redraw() -> void:
 			mm.custom_aabb = box.grow(1.0).expand(box.end + Vector3(0, 2.5, 0))
 		mm.visible_instance_count = n
 		(cell["mmi"] as MultiMeshInstance3D).visible = n > 0
+		Models.rain_sync(cell["umb"], cell["mmi"], _raining(), buf if n > 0 else PackedFloat32Array())
 
 
 # --- the logic -----------------------------------------------------------------------------
@@ -2589,6 +2710,11 @@ func _process(dt: float) -> void:
 	var t0 := Time.get_ticks_usec()
 	t += dt
 	_tick_t += dt
+	var wet := _raining()
+	if wet != _wet_was:
+		_wet_was = wet
+		for c: Vector2i in _cells:
+			Models.rain_sync(_cells[c]["umb"], _cells[c]["mmi"], wet)
 	if _route_task >= 0 and WorkerThreadPool.is_task_completed(_route_task):
 		WorkerThreadPool.wait_for_task_completion(_route_task)
 		_route_task = -1
@@ -2596,7 +2722,8 @@ func _process(dt: float) -> void:
 	if _tick_t >= TICK:
 		var step := _tick_t
 		_tick_t = 0.0
-		tick(step)
+		if _drawn:  # setup() awaits before _build_drawing makes the cells (PT-58)
+			tick(step)
 	if (dawn_on or office_on or campus_on) and not walkers.is_empty():
 		_walk_t += dt
 		if _walk_t >= WALK_TICK:
@@ -2650,6 +2777,8 @@ func tick(step: float) -> void:
 				want = roundi(int(s["max"]) * k * steps_level(hour, month, rain, sunset))
 			"jarmark":
 				want = roundi(int(s["max"]) * k * jarmark_level(hour, rain))
+			"wiecha":
+				want = roundi(int(s["max"]) * k * wiecha_level(hour, rain))
 			"plan_c":
 				plan_lvl = plan_c_level(hour, weekday, month, rain)
 				want = roundi(PLAN_C_MAX * k * plan_lvl)
@@ -2682,7 +2811,8 @@ func tick(step: float) -> void:
 			"bar":
 				want = bar_count(int(s["max"]), int(s.get("staff_n", 0)), bar_level(hour, weekday, month, rain, bool(s["barge"])), k)
 			"view":
-				want = mini(roundi(int(s["max"]) * k * view_level(hour, weekday, month, rain, false)), int(s["max"]))
+				want = mini(roundi(int(s["max"]) * k * view_level(hour, weekday, month, rain, false, s.get("hours", Vector2(-1.0, -1.0)))),
+						int(s["max"]))
 			"view_dj":
 				var lvl := view_level(hour, weekday, month, rain, true)
 				want = 0 if lvl <= 0.0 else mini(1 + roundi((int(s["max"]) - 1) * k * lvl), int(s["max"]))
@@ -3345,6 +3475,7 @@ func _move_walkers() -> void:
 	if not box_now.grow(ACTIVE_R).has_point(Vector2(eye.x, eye.z)):
 		if _walk_mmi.visible:
 			_walk_mmi.visible = false
+			Models.rain_sync(_walk_umb, _walk_mmi, false)
 		return
 	var n := mini(walkers.size(), _walk_mm.instance_count)
 	var box := AABB()
@@ -3361,6 +3492,7 @@ func _move_walkers() -> void:
 		InstanceBuffers.send(_walk_mm.get_rid(), _walk_buf)
 		_walk_mm.custom_aabb = box.grow(1.0).expand(box.end + Vector3(0, 2.5, 0))
 	_walk_mmi.visible = n > 0
+	Models.rain_sync(_walk_umb, _walk_mmi, _raining(), _walk_buf if n > 0 else PackedFloat32Array())
 
 
 ## The dawn crowd's routes: A* over the footways and crossings (`paths`: [PackedVector2Array,

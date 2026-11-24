@@ -56,7 +56,13 @@ const KNOWN := 12.0
 ## next best road, which the metres rule took, costs a racer with a plan a second or less: on the
 ## race bench Słoik lost nothing by his wrong turn, and came home in front of Bartek.)
 const WRONG_LEAST := 4.0
-const WRONG_MOST := 15.0
+const WRONG_MOST := 9.0
+## ... and never onto a road whose quickest way on turns back by more than this (radians, 140°): a
+## U-turn at its far end, through a gap in a dual carriageway's median or onto the street's own
+## other way (`_turns_back`).
+const WRONG_BACK := 2.44
+const WRONG_BACK_M := 120.0
+const WRONG_LINK := 25.0
 ## The finish's circle (`ends`): a road runs through it when one of its lanes comes END_MARGIN m
 ## inside (a lane that only grazes the edge is nobody's finish), on the finish's own level (within
 ## END_LEVEL m: not the viaduct over it or the street under it). Its lanes are looked at every
@@ -731,19 +737,61 @@ class Plan:
 			best = held
 			best_time = held_time
 			best_cut = held_cut
-		# A wrong turn from here: the road that costs the most without being hopeless (never the
-		# way back, which no driver takes by mistake).
+		# A wrong turn from here: a road that costs seconds without being hopeless (never the
+		# way back, which no driver takes by mistake, and never a road whose quickest way on is a
+		# U-turn at its end: F's playtest of 2026-11-22, Słoik turned off Aleje Jerozolimskie into
+		# Krucza, crawled round at its far end and drove back down it, which read as a car that had
+		# lost the race, not as a satnav's slip; the satnav finds the way on round the block).
+		# Of those, the one that costs least: round a block costs what it costs, and the dearest
+		# took Słoik's bench race from Marszałkowska from 57 to 65 s.
 		var rev := graph.e_reverse[e]
-		var most := 0.0
+		var least := INF
 		for k in outs.size():
 			var over := times[k] - best_time
-			if over >= WRONG_LEAST and over <= WRONG_MOST and over > most and outs[k] != rev and (best_cut or outs[k] != best):
-				most = over
+			if over >= WRONG_LEAST and over <= WRONG_MOST and over < least and outs[k] != rev and (best_cut or outs[k] != best) \
+					and not _turns_back(outs[k]):
+				least = over
 				wrong = outs[k]
 				wrong_time = times[k]
 		chosen_time = best_time
 		chosen_cut = best_cut
 		return best
+
+	## Whether the quickest settled way on from the end of edge f makes a U-turn within
+	## WRONG_BACK_M m: its own way back, or a turn of more than WRONG_BACK at one junction or across
+	## a link shorter than WRONG_LINK m (the other carriageway through a gap in the median). Round a
+	## block is not one: each of its corners turns a quarter. True also when none is settled.
+	func _turns_back(f: int) -> bool:
+		var at := f
+		var run := 0.0
+		for _i in 8:
+			var next := _best_out(at)
+			if next < 0 or next == graph.e_reverse[at]:
+				return true
+			var here := graph.direction(at, graph.e_s1[at])
+			if absf(here.angle_to(graph.direction(next, graph.e_s0[next]))) > WRONG_BACK:
+				return true
+			if graph.e_len[next] < WRONG_LINK and not ends_on(next, graph.e_s0[next]):
+				var after := _best_out(next)
+				if after >= 0 and (after == graph.e_reverse[at] or absf(here.angle_to(graph.direction(after, graph.e_s0[after]))) > WRONG_BACK):
+					return true
+			run += graph.e_len[next]
+			if run > WRONG_BACK_M or ends_on(next, graph.e_s0[next]):
+				return false
+			at = next
+		return false
+
+	## The quickest settled way on from the end of edge e (-1: none settled).
+	func _best_out(e: int) -> int:
+		var best_f := -1
+		var lo := INF
+		var y0: int = planner.first[e]
+		var outs := graph.node_out[graph.e_b[e]]
+		for k in outs.size():
+			if _done[y0 + k] == 1 and _time[y0 + k] < lo and not shut.has(outs[k]):
+				lo = _time[y0 + k]
+				best_f = outs[k]
+		return best_f
 
 	## Whether a racer at s on edge e has the finish on that street ahead of it (or is in it): the
 	## street ends at the finish's junction, or runs through its circle and s is not past it.

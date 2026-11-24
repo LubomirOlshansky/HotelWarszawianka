@@ -1,0 +1,24 @@
+- The boat race's finish can no longer be missed for good: cross the line beside the arch and the game tells you to turn round and go through it.
+- Android's back button no longer closes the game: in play it opens the settings card, on the map it closes the map.
+- The phone stops ringing under the map, the settings and the garage card.
+- The garage's parts tab and two phone calls speak the game's language.
+- The DESKA padel call can be flown to, as its card says.
+- Finished Dekalog and cinema tours now count on the QUESTS screen.
+
+## Backlog
+- fixed: boat race finish crossed outside the arch ended the rings with no finish (only ✕ got out)
+- fixed: Android back quit the app from anywhere, without the save's flush (quit_on_go_back on by default)
+- fixed: the ringtone played every 2.6 s under a paused screen while a call waited
+- fixed: garage PARTS tab Polish-only in English; "JADĘ / NIE TERAZ" untranslated on the Mrożulo and coffee-run calls
+- fixed: QUESTS "done" never counted the Dekalog and cinema tours (keys dekalog_tour / kino_tour)
+- fixed: REWANŻ during a police chase teleported the player out of it for a free escape
+- fixed: a race chip tapped in the moment the player got busy started a race on top of another activity
+- fixed: the night meet's drag paid respect and a job tick for a false start, again with every REWANŻ
+- fixed: a helicopter landing started over the TESŁO hooked it and then touched down with the car on the rope
+- fixed: H / the pad's vehicle button took off from inside the club, the lounge or the padel hall
+- fixed: the garage card could open over a ringing call
+- found: session_end.minutes_played counts the whole launch after each background/resume (play_stats, owned by #1013/#1015); FOCUS_OUT ends a session too (Control Center)
+- found: activity_end says how="done" for a race given up with ✕; chase_end fires for pull-overs with no chase
+- found: the friend's in-person card is not owned (story_quests.gd): its 45 s timeout can hide another call's card
+- found: the garage card can open during non-job activities (tours, rave, shisha); a Leżak depot passed slowly ends a ringing rescue call
+- found: the phone bench restores only part of the wallet; a save from a newer build is silently not saved

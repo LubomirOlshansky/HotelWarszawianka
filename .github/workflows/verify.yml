@@ -124,7 +124,9 @@ jobs:
     needs: tier
     if: needs.tier.outputs.map == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    # 90 and a 1500 s step limit since 2026-11-21: after #980 the smoke and landmarks shard took
+    # 64 min and one runtime-city step 873 s on a slow runner (tools/ci_tier.py, FULL_SHARDS).
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.tier.outputs.matrix) }}
@@ -202,6 +204,7 @@ jobs:
         if: steps.pack.outputs.ready == 'true'
         env:
           GODOT: /home/runner/godot/godot
+          NW_STEP_LIMIT: 1500
         run: zsh tools/verify.sh --only=${{ matrix.steps }} --logs="$RUNNER_TEMP/verify-map"
 
       - name: Keep the logs

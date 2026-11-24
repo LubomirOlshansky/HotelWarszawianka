@@ -3,10 +3,10 @@ extends RefCounted
 ## ConfigFile beside the wallet's save.cfg, which wallet.gd rewrites whole): the control
 ## scheme and (for Classic) the camera, the traffic level, quality, three volumes and the
 ## performance overlay; loop 2b: the frame rate (60, or 30 to save the battery); loop 2e: the
-## picture style and the VHS tape (they moved off the driving screen into Settings; the time of
+## picture style (it moved off the driving screen into Settings; the time of
 ## day and the rain are the world's state and start by day and dry). `--nosave` neither reads
 ## nor writes it; command-line flags (`--controls= --traffic= --quality= --fixed --perf
-## --style= --vhs`) win for that run and are not saved unless the player then changes the setting.
+## --style=`) win for that run and are not saved unless the player then changes the setting.
 ## Loop G1b: Auto's sharp image and its fallback (`[auto_image]`, tiers.gd SHARP_*), written only
 ## by a normal launch's own sessions (main.gd: never by --nosave, test runs, benches or
 ## --last-session=); a file without it (from before G1b) starts sharp.
@@ -69,6 +69,13 @@ var quality := AUTO
 ## last one never got going: a crash on the 8192 shadow map) loads Ultra instead, once (`quality_guarded`).
 var quality_pending := false
 var quality_guarded := false
+## Perf thread (F 2026-11-20): Obraz Piksel / Pełny: the 3D image at the screen's own pixels on any
+## level (tiers.gd full_image). Off by default: x2 on a phone is what holds 60.
+var image_full := false
+## Perf thread (2026-11-23): Auto's level steps down by this many after sessions that struggled, and
+## back up one after DROP_CALM calm sessions (quality_keep.gd); `auto_calm` counts those.
+var auto_drop := 0
+var auto_calm := 0
 ## 0..1 each: everything, the radio (Music bus), the effects (SFX and Ambience buses).
 var master := 1.0
 var music := 1.0
@@ -92,27 +99,29 @@ var camera_view := FollowCamera.VIEW_NORMAL
 ## F 2026-11-20: Promo Mode (promo_mode.gd), DEV → "Tryb promo · Promo mode", key "promo"; off by
 ## default. `promo_shots`: its saved frames, "x,y,z,yaw,pitch,size,hour,date" each.
 var promo := false
+## Stats thread 2026-11-21: DEV → "Test device (stats)": marks this device's events `test_device=true` so PostHog can
+## filter F's own devices out (play_stats.gd). Off by default, key "test_device".
+var test_device := false
 var promo_shots := PackedStringArray()
-## Loop 2e: main.gd STYLES (Sharp, Fine, Clean, Chunky) and the VHS overlay.
+## Loop 2e: main.gd STYLES (Sharp, Fine, Clean, Chunky). The Retro filter setting (key display/vhs) was removed
+## 2026-11-22 (F: it did not work on phones); an old file that still has the key is simply not read.
 var style := 0
-var vhs := false
 ## The colour look (grades.gd SETTING: 0 "warsaw", shown as Natural, the default; 1 Neon; 2 Classic, the picture
 ## before 2026-11-15). Settings → Obraz → Kolory, key "grade".
 var grade := 0
-## Loop MW-6 (vision 4.3, Open Question 7): the game's mode, Miasto (0, jobs and calls come by
-## themselves; the default) or Spacer (1, wander: nothing comes by itself, hints to the notebook's
-## places), and whether Spacer has been offered once (after the first pause).
-var wander := false
-var wander_offered := false
 ## F's asks (2026-10-30): the pedestrian zones' 20 km/h cap (ped_zones.gd, loop 3d-1) and its
 ## pill, off by default (driving made easier); Settings → JAZDA turns it on. The guards stand in
 ## the zones either way, and the footway clamp is not part of it.
 var zone_cap := false
-## G4: car.gd Handling (0 Cruise, the default; 1 Sport, the loop 2a feel; 2 Grounded, the car with
-## weight, F 2026-11-04 "too arcade"). Settings → Jazda, key "handling".
+## H1 (F 2026-11-22): the Realnie switch, the car with weight (car.gd GROUNDED, F 2026-11-04 "too
+## arcade"): 0 off (the default), 1 on. DEV page, key "handling" (before H1 it held 0 Cruise,
+## 1 Sport, 2 Grounded; `load` moves those saves over).
 var handling := 0
-## Steering sensitivity 0..1 (0.5 = the profile as is; car.gd set_sensitivity). Settings → Jazda, key "sensitivity".
-var sensitivity := 0.5
+## H1: „Charakter jazdy" 0..1, Spokojnie to Sportowo (car.gd set_character, CRUISE_AT), one slider
+## for what Cruise/Sport and the sensitivity did. Settings → Jazda, key "character".
+## About two thirds of the way to Sport's steering, with Cruise's grip (car.gd CRUISE_AT).
+const CHARACTER_DEFAULT := 0.65
+var character := CHARACTER_DEFAULT
 ## Beta values (2026-11-04): the lane assist (lane_assist.gd), Classic only. Settings → Jazda, key
 ## "lane_assist". On by default since 2026-11-13 (F: "A + lane assist", with the fixed arrows: an
 ## arrow is all or nothing, so between taps the lane holds the car straight); a save from before
@@ -159,6 +168,17 @@ var loaded_version := 0
 var newer := false
 
 
+## Settings redesign step 5 (F 2026-11-23): OGÓLNE → PRZYWRÓĆ DOMYŚLNE. The settings panel's values
+## (settings_panel.gd rows) for the player's own settings as a fresh file has them; call it on
+## `Settings.new()`. The language, the stats choice and the DEV switches are left alone.
+func player_defaults() -> Dictionary:
+	return {"pads": pads, "character": character, "lane_assist": int(lane_assist), "weather": 0, "traffic": traffic,
+			"angle": maxi(0, FollowCamera.PITCHES.find(pitch)), "grade": grade, "quality": quality + 1,
+			"fps": maxi(0, FPS.find(fps)), "image": int(image_full), "master": master, "music": music, "effects": effects,
+			"text_large": int(text_large), "calm": int(calm), "color_safe": int(color_safe), "vibration": int(vibration),
+			"stop_assist": int(stop_assist), "left_handed": int(left_handed)}
+
+
 func load_file() -> void:
 	if not persistent:
 		return
@@ -181,6 +201,9 @@ func load_file() -> void:
 	traffic = clampi(int(cfg.get_value("world", "traffic", traffic)), 0, TRAFFIC.size() - 1)
 	quality = clampi(int(cfg.get_value("world", "quality", quality)), AUTO, EXPERIMENTAL)
 	quality_pending = bool(cfg.get_value("world", "quality_pending", false))
+	image_full = bool(cfg.get_value("display", "image_full", false))
+	auto_drop = clampi(int(cfg.get_value("world", "auto_drop", 0)), 0, 3)
+	auto_calm = maxi(int(cfg.get_value("world", "auto_calm", 0)), 0)
 	if quality_pending and quality == EXPERIMENTAL:
 		quality = ULTRA
 		quality_pending = false
@@ -195,7 +218,6 @@ func load_file() -> void:
 	if not fps in FPS:
 		fps = FPS[0]
 	style = clampi(int(cfg.get_value("display", "style", style)), 0, 3)
-	vhs = bool(cfg.get_value("display", "vhs", vhs))
 	grade = clampi(int(cfg.get_value("display", "grade", grade)), 0, Grades.SETTING.size() - 1)
 	view = clampf(float(cfg.get_value("display", "view", view)), FollowCamera.VIEWS[0], FollowCamera.VIEWS[-1])
 	pitch = float(cfg.get_value("display", "pitch", pitch))
@@ -203,12 +225,16 @@ func load_file() -> void:
 		pitch = FollowCamera.DEFAULT_PITCH
 	camera_view = clampi(int(cfg.get_value("display", "camera_view", camera_view)), 0, FollowCamera.VIEW_AERIAL)
 	promo = bool(cfg.get_value("debug", "promo", promo))
+	test_device = bool(cfg.get_value("debug", "test_device", test_device))
 	promo_shots = PackedStringArray(cfg.get_value("debug", "promo_shots", promo_shots))
-	wander = bool(cfg.get_value("game", "wander", wander))
-	wander_offered = bool(cfg.get_value("game", "wander_offered", wander_offered))
 	zone_cap = bool(cfg.get_value("game", "zone_cap", zone_cap))
-	handling = clampi(int(cfg.get_value("game", "handling", handling)), 0, 2)
-	sensitivity = clampf(float(cfg.get_value("game", "sensitivity", sensitivity)), 0.0, 1.0)
+	if cfg.has_section_key("game", "character"):
+		handling = clampi(int(cfg.get_value("game", "handling", handling)), 0, 1)
+		character = clampf(float(cfg.get_value("game", "character", character)), 0.0, 1.0)
+	else:
+		character = migrate_character(int(cfg.get_value("game", "handling", 0)),
+				float(cfg.get_value("game", "sensitivity", 0.5)))
+		handling = 1 if int(cfg.get_value("game", "handling", 0)) == 2 else 0
 	lane_assist = bool(cfg.get_value("game", "lane_assist", lane_assist))
 	if not cfg.has_section_key("game", "lane_assist_default"):
 		lane_assist = true
@@ -249,6 +275,9 @@ func save() -> void:
 	cfg.set_value("world", "traffic", traffic)
 	cfg.set_value("world", "quality", quality)
 	cfg.set_value("world", "quality_pending", quality_pending)
+	cfg.set_value("display", "image_full", image_full)
+	cfg.set_value("world", "auto_drop", auto_drop)
+	cfg.set_value("world", "auto_calm", auto_calm)
 	cfg.set_value("world", "tiers", 1)
 	cfg.set_value("sound", "master", snappedf(master, 0.01))
 	cfg.set_value("sound", "music", snappedf(music, 0.01))
@@ -256,18 +285,16 @@ func save() -> void:
 	cfg.set_value("debug", "perf", perf)
 	cfg.set_value("display", "fps", fps)
 	cfg.set_value("display", "style", style)
-	cfg.set_value("display", "vhs", vhs)
 	cfg.set_value("display", "grade", grade)
 	cfg.set_value("display", "view", view)
 	cfg.set_value("display", "pitch", pitch)
 	cfg.set_value("display", "camera_view", camera_view)
 	cfg.set_value("debug", "promo", promo)
+	cfg.set_value("debug", "test_device", test_device)
 	cfg.set_value("debug", "promo_shots", promo_shots)
-	cfg.set_value("game", "wander", wander)
-	cfg.set_value("game", "wander_offered", wander_offered)
 	cfg.set_value("game", "zone_cap", zone_cap)
 	cfg.set_value("game", "handling", handling)
-	cfg.set_value("game", "sensitivity", snappedf(sensitivity, 0.05))
+	cfg.set_value("game", "character", snappedf(character, 0.05))
 	cfg.set_value("game", "lane_assist", lane_assist)
 	cfg.set_value("game", "lane_assist_default", 1)
 	cfg.set_value("game", "collide_default", 1)
@@ -289,9 +316,9 @@ func save() -> void:
 
 
 func summary() -> String:
-	return "controls %d pads %d, classic camera %s, traffic %s, quality %s, volume %.0f/%.0f/%.0f %%, perf %s, %d fps, style %d, vhs %s, camera view %d, zone cap %s, handling %d sens %.2f lane %s chatter %d, collide %d soft fences %s stats %s, access large %s calm %s colour-safe %s vibration %s assist %s left-handed %s, auto image %s" % [
+	return "controls %d pads %d, classic camera %s, traffic %s, quality %s, volume %.0f/%.0f/%.0f %%, perf %s, %d fps, style %d, camera view %d, zone cap %s, handling %d character %.2f lane %s chatter %d, collide %d soft fences %s stats %s, access large %s calm %s colour-safe %s vibration %s assist %s left-handed %s, auto image %s" % [
 			controls, pads, "follow" if classic_follow else "fixed", TRAFFIC_NAMES[traffic], "auto" if quality == AUTO else str(quality),
-			master * 100.0, music * 100.0, effects * 100.0, perf, fps, style, vhs, camera_view, zone_cap, handling, sensitivity, lane_assist, chatter, collide, soft_fences, stats, text_large, calm, color_safe, vibration, stop_assist, left_handed, image_summary()]
+			master * 100.0, music * 100.0, effects * 100.0, perf, fps, style, camera_view, zone_cap, handling, character, lane_assist, chatter, collide, soft_fences, stats, text_large, calm, color_safe, vibration, stop_assist, left_handed, image_summary()]
 
 
 ## Loop G1b: "sharp", "sharp, on trial 1/4" or "fallback, calm 1/2 (GPU extras down 74 s)".
@@ -307,3 +334,12 @@ func image_summary() -> String:
 static func parse_traffic(v: String) -> int:
 	var k := TRAFFIC_KEYS.find(v.to_lower())
 	return k if k >= 0 else clampi(int(v), 0, TRAFFIC.size() - 1)
+
+
+## H1: a save from before the slider (handling 0 Cruise, 1 Sport, 2 Grounded; sensitivity 0..1, 0.5
+## as is) as „Charakter jazdy": Sport is the slider's right end; Cruise was the default nobody chose
+## (the modes sat on the DEV page), so it starts at the new default; Grounded keeps the default under
+## Realnie. A moved sensitivity shifts the slider by half its offset.
+static func migrate_character(old_handling: int, old_sensitivity: float) -> float:
+	var c := 1.0 if old_handling == 1 else CHARACTER_DEFAULT
+	return clampf(snappedf(c + (clampf(old_sensitivity, 0.0, 1.0) - 0.5) * 0.5, 0.05), 0.0, 1.0)

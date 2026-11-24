@@ -1,0 +1,139 @@
+{
+  "_note": "The unlisted beta guide (/beta/, /pl/beta/): not linked from the site, not in the sitemap, noindex. Built by tools/site_build.py with site/src/beta.html. Short on purpose (F 2026-11-23: nobody reads manuals).",
+  "hero": "jarmark-night",
+  "hero_w": 1920,
+  "hero_h": 884,
+  "fb_bg": "city-night",
+  "testing_url": "https://play.google.com/apps/testing/com.olshanskysoft.nocnawarszawa",
+  "email": "aroundwarsaw@gmail.com",
+  "en": {
+    "title": "Beta · Around Warsaw",
+    "description": "The Around Warsaw beta: the whole game, free, on iPhone and Android. Two minutes to install.",
+    "skip": "Skip to the guide",
+    "other_lang": "PL",
+    "other_href": "/pl/beta/",
+    "other_name": "Polski",
+    "hero_kicker": "Open beta",
+    "hero_title": "The whole game. Free.",
+    "hero_lede": "No ads, no purchases, no catch. Drive the real centre of Warsaw, day and night. All we ask: tell us what broke.",
+    "btn_ios": "Join on iPhone",
+    "btn_android": "Join on Android",
+    "req": "iPhone with iOS 16 or newer · Android 7 or newer",
+    "hero_alt": "The Christmas market by the Palace of Culture at night, in the game",
+    "nav_install": "Install",
+    "nav_start": "Try this",
+    "nav_feedback": "Feedback",
+    "install_title": "Two minutes, a few taps",
+    "install_lede": "Your phone's steps come first. Nobody reads manuals, so we kept it short.",
+    "ios_title": "iPhone",
+    "ios_intro": "Through TestFlight, Apple's free app for betas. Yes, one more app. It's worth it.",
+    "ios_steps": [
+      ["Get TestFlight", "Free, from the App Store."],
+      ["Open the beta link", "Tap Join on iPhone, then View in TestFlight."],
+      ["Accept", "TestFlight asks nicely. Say yes."],
+      ["Install and drive", "Install, Open, go."]
+    ],
+    "ios_note": "Turn on Automatic Updates in TestFlight and new builds arrive on their own. Your progress stays.",
+    "and_title": "Android",
+    "and_intro": "An open test on Google Play, with the Google account your phone already uses.",
+    "and_steps": [
+      ["Open the beta link", "Tap Join on Android. If Play asks, tap Become a tester."],
+      ["Install", "Straight from Google Play. Updates come like any app's."],
+      ["Drive", "That's it. Really."]
+    ],
+    "and_note": "Play says it's not available? Check which Google account is active and give it a few minutes. Still nothing? The phone may be too old for us: we need Vulkan 1.1.",
+    "and_testing_link": "Testing page",
+    "mock_note": "",
+    "start_title": "Then try this",
+    "start": [
+      ["Deliver a kebab", "Hot. Fast. With garlic sauce."],
+      ["Race a local", "Pani Halina doesn't brake for anyone."],
+      ["Fly over the Vistula", "The helicopter unlocks after your first rescue. Go at night."]
+    ],
+    "controls_line": "Steer left / right, GAS and BRAKE bottom right, pinch to zoom. Stuck in a corner? TOW TRUCK in Settings.",
+    "fb_kicker": "Your opinion matters",
+    "fb_title": "Found a bug? Great. Tell us.",
+    "fb_lede": "Every message is read by a real person: the developer, usually with coffee. Bugs, ideas, a tram on the pavement, a building that looks wrong. Write. A screenshot and your phone model help a lot.",
+    "fb_ways": [
+      ["In the game", "Settings (the gear), then the gold WRITE TO THE AUTHOR button at the top."],
+      ["Right here", "The form below. Email only if you want an answer."],
+      ["Or by email", "aroundwarsaw@gmail.com"]
+    ],
+    "form_summary": "Write to us",
+    "faq_title": "Quick questions",
+    "faq": [
+      ["Is it really free?", "Yes, the whole game. No ads, no purchases. The złoty in the game are fake, sorry."],
+      ["Will I lose my progress?", "No, updates keep it. Only deleting the game deletes it."],
+      ["The link doesn't open.", "iPhone: install TestFlight first and open the link on the phone, not a computer. Android: check the Google account in Play."],
+      ["What does the beta send?", "Anonymous play stats (no name, no account) and whatever you write to us. Stats can be switched off in Settings."]
+    ],
+    "privacy": "Privacy",
+    "back": "aroundwarsaw.app",
+    "thanks": "Thanks for testing. See you on Marszałkowska."
+  },
+  "pl": {
+    "title": "Beta · Around Warsaw",
+    "description": "Beta Around Warsaw: cała gra za darmo, na iPhone'a i Androida. Instalacja w dwie minuty.",
+    "skip": "Przejdź do przewodnika",
+    "other_lang": "EN",
+    "other_href": "/beta/",
+    "other_name": "English",
+    "hero_kicker": "Otwarta beta",
+    "hero_title": "Cała gra. Za darmo.",
+    "hero_lede": "Bez reklam, bez zakupów, bez haczyków. Jeździsz po prawdziwym centrum Warszawy, w dzień i w nocy. Prosimy tylko o jedno: napisz, co się zepsuło.",
+    "btn_ios": "Dołącz na iPhonie",
+    "btn_android": "Dołącz na Androidzie",
+    "req": "iPhone z iOS 16 lub nowszym · Android 7 lub nowszy",
+    "hero_alt": "Jarmark przy Pałacu Kultury nocą, w grze",
+    "nav_install": "Instalacja",
+    "nav_start": "Spróbuj",
+    "nav_feedback": "Opinie",
+    "install_title": "Dwie minuty, parę dotknięć",
+    "install_lede": "Kroki dla Twojego telefonu są pierwsze. Instrukcji i tak nikt nie czyta, więc jest krótko.",
+    "ios_title": "iPhone",
+    "ios_intro": "Przez TestFlight, darmową aplikację Apple do bet. Tak, jeszcze jedna aplikacja. Warto.",
+    "ios_steps": [
+      ["Pobierz TestFlight", "Za darmo, z App Store."],
+      ["Otwórz link do bety", "Dotknij Dołącz na iPhonie, potem View in TestFlight."],
+      ["Akceptuj", "TestFlight grzecznie pyta. Powiedz tak."],
+      ["Zainstaluj i jedź", "Install, Open, w drogę."]
+    ],
+    "ios_note": "Włącz w TestFlight automatyczne aktualizacje, a nowe wersje przyjdą same. Postępy zostają.",
+    "and_title": "Android",
+    "and_intro": "Otwarty test w Google Play, na koncie Google, którego już używasz w telefonie.",
+    "and_steps": [
+      ["Otwórz link do bety", "Dotknij Dołącz na Androidzie. Jeśli Play zapyta, dotknij Zostań testerem."],
+      ["Zainstaluj", "Prosto z Google Play. Aktualizacje jak w każdej aplikacji."],
+      ["Jedź", "I tyle. Serio."]
+    ],
+    "and_note": "Play pisze, że niedostępna? Sprawdź, które konto Google jest aktywne, i daj mu parę minut. Dalej nic? Telefon może być dla nas za stary: potrzebujemy Vulkana 1.1.",
+    "and_testing_link": "Strona testów",
+    "mock_note": "",
+    "start_title": "A potem spróbuj",
+    "start": [
+      ["Dowieź kebaba", "Gorącego. Szybko. Z czosnkowym."],
+      ["Ściganie z miejscową", "Pani Halina nie hamuje dla nikogo."],
+      ["Leć nad Wisłą", "Helikopter odblokujesz po pierwszej akcji ratunkowej. Najlepiej nocą."]
+    ],
+    "controls_line": "Skręcasz paskiem lewo / prawo, GAZ i HAMULEC w prawym dolnym rogu, przybliżasz szczypnięciem. Utknąłeś w rogu? POMOC DROGOWA w Ustawieniach.",
+    "fb_kicker": "Twoja opinia jest dla nas ważna",
+    "fb_title": "Znalazłeś błąd? Super. Napisz.",
+    "fb_lede": "Każdą wiadomość czyta żywy człowiek: autor gry, zwykle przy kawie. Błędy, pomysły, tramwaj na chodniku, budynek, który wygląda nie tak. Pisz. Zrzut ekranu i model telefonu bardzo pomagają.",
+    "fb_ways": [
+      ["W grze", "Ustawienia (zębatka), potem złoty przycisk NAPISZ DO AUTORA na górze."],
+      ["Tutaj", "Formularz poniżej. E-mail tylko, jeśli chcesz odpowiedź."],
+      ["Albo mailem", "aroundwarsaw@gmail.com"]
+    ],
+    "form_summary": "Napisz do nas",
+    "faq_title": "Szybkie pytania",
+    "faq": [
+      ["Naprawdę za darmo?", "Tak, cała gra. Bez reklam i zakupów. Złotówki w grze są nieprawdziwe, sorry."],
+      ["Stracę postępy?", "Nie, aktualizacje je zachowują. Kasuje je tylko usunięcie gry."],
+      ["Link się nie otwiera.", "iPhone: najpierw zainstaluj TestFlight i otwórz link na telefonie, nie na komputerze. Android: sprawdź konto Google w Play."],
+      ["Co wysyła beta?", "Anonimowe statystyki gry (bez imienia i konta) i to, co do nas napiszesz. Statystyki wyłączysz w Ustawieniach."]
+    ],
+    "privacy": "Prywatność",
+    "back": "aroundwarsaw.app",
+    "thanks": "Dzięki za testy. Do zobaczenia na Marszałkowskiej."
+  }
+}

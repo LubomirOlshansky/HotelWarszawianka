@@ -49,6 +49,11 @@
 		"from": "ElevenLabs Sound Effects v2",
 		"prompt": "Modern city tram rolling steadily along street rails, soft electric motor whine, steel wheels on rails with rhythmic clicks over rail joints, constant, no bell, no voices"
 	},
+	"tram_bell_2": {
+		"added": "2026-11-21",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "Warsaw tram bell, mechanical dzyn dzyn rung a few times in a row (ring A, palm teaser, 2026-11-21)"
+	},
 	"tyre_squeal": {
 		"added": "2026-11-19",
 		"from": "ElevenLabs Sound Effects v2",

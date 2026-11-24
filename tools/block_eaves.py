@@ -30,7 +30,7 @@ NEAR = 1.5  # a wall vertex this close to a point on the edge counts for it (m)
 STEP = 1.0  # samples along each edge (m)
 
 
-def walls_of(block_id: str) -> list:
+def walls_of(block_id: str, dense: bool = False) -> list:
     """The model's wall vertices (x, y, z), y over the block's ground: triangles whose normal is
     more horizontal than _build_block's 0.3 test."""
     raw = gzip.open(BLOCKS / f"{block_id}.bin").read()
@@ -52,6 +52,20 @@ def walls_of(block_id: str) -> list:
                 ln = math.sqrt(nx * nx + ny * ny + nz * nz)
                 if ln > 1e-9 and abs(ny) / ln < 0.3:
                     out.extend(p)
+                    if not dense:
+                        continue
+                    # index.json `dense_eaves` (set block by block, checked by eye): a big wall
+                    # quad has vertices only at its corners, so points along its edges too and
+                    # a plain facade's top counts along its whole length (F's teaser 4,
+                    # 2026-11-21: the Jerozolimskie tenement's walls stood 2.2 m over its lifted
+                    # roof, only its window frames were seen). Not for every block: towers'
+                    # tall quads would lift the roofs round them.
+                    for a, b in ((p[0], p[1]), (p[1], p[2]), (p[2], p[0])):
+                        span = math.dist((a[0], a[2]), (b[0], b[2]))
+                        steps = int(span / STEP)
+                        for k in range(1, steps + 1):
+                            f = k / (steps + 1)
+                            out.append(tuple(a[i] + (b[i] - a[i]) * f for i in range(3)))
         at += n * 18 + (n if g["role"] == "glass" else 0)
     return out
 
@@ -60,7 +74,7 @@ def eaves_of(entry: dict) -> list:
     o = entry["outline"]
     pts = [(o[i], o[i + 1]) for i in range(0, len(o) - 1, 2)]
     grid: dict = {}
-    for x, y, z in walls_of(entry["id"]):
+    for x, y, z in walls_of(entry["id"], bool(entry.get("dense_eaves", False))):
         key = (math.floor(x), math.floor(z))
         grid.setdefault(key, []).append((x, y, z))
     out = []

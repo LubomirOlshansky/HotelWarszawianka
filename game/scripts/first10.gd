@@ -38,10 +38,17 @@ extends Node
 ## `done` is saved. Its progress is the save's [intro] section (wallet.gd `intro`: beat id -> the
 ## day); an old save with progress never sees it, so it never locks anything for a returning player.
 ##
+## **It remembers** (the first-15-minutes review, 2026-11-22: PostHog showed the finger and the
+## kebab arrow two and three times to the same player): a beat saved in [intro] is not made again
+## in a later session (`restored`), the opening flyover and the Palace start come on the first
+## launch only (`first_launch`, OPENED_KEY), and a guide once started (GUIDE_KEY) carries on in
+## later sessions until `done`, even with złoty in the wallet (a First steps tick pays 50 zł, which
+## used to switch the guide off for good, so Halina, Mirek and the first call never came).
+##
 ## **First steps** (first_steps.gd, any save): the seven steps tick here from the facts, each with
-## its reward; the third opens the friends' calls (`friends_wait`: until FRIENDS_STEPS steps or
-## FRIENDS_AFTER s, then at most one new friend every NEW_FRIEND_GAP s while the guide runs; main.gd
-## `_free_block`), all seven bring the "First steps done" card. With steps left, WHAT_NEXT s of free
+## its reward; the third opens the friends' calls early (`friends_wait`: until FRIENDS_STEPS steps or
+## FRIENDS_AFTER s of just driving, saved as FRIENDS_KEY for later sessions, then at most one new
+## friend every NEW_FRIEND_GAP s while the guide runs; main.gd `_free_block`), all seven bring the "First steps done" card. With steps left, WHAT_NEXT s of free
 ## driving bring the gold arrow to the nearest one that has a place, for WHAT_NEXT_SHOW s.
 ##
 ## **The end card** (any save): once `Ladder.final_won()` (the "Trzy mosty" win, `trzy_mosty` in
@@ -98,6 +105,13 @@ const STAND_AT := 10.0
 ## before the choice card starts then, as after a delivery (or after the first order went back
 ## quietly, jobs.gd `first_gone`).
 const LURE_LATEST := 90.0
+## [intro] keys: the guide began on this save (it then carries on in later sessions until `done`),
+## and the opening (the flyover, the Palace start) was seen.
+const GUIDE_KEY := "guide"
+const OPENED_KEY := "opened"
+## A beat restored from the save counts as made this many seconds into the session (`restored`):
+## after the kebab let go (`lure`) the beta card comes BETA_AFTER s after it, not in the first seconds.
+const RESTORED_AT := 15.0
 ## --first10: the car is taken to the stand at ORDER_AT s.
 const ORDER_AT := 15.0
 ## The beta card (2026-11-17): seconds after the first delivery (or the kebab let go), its latest
@@ -120,10 +134,14 @@ const CHOICE_HALINA_WAIT := 12.0
 ## Seconds of free driving, and since the last intro, before the next intro.
 static var NEXT_GAP: float = Pacer.num("first_steps", "next_gap")
 ## The friends' calls (main.gd `_free_block`) wait for FRIENDS_STEPS ticked steps or FRIENDS_AFTER s
-## of play, then at most one new friend every NEW_FRIEND_GAP s while the guide runs.
+## of play, then at most one new friend every NEW_FRIEND_GAP s while the guide runs. F 2026-11-22: a
+## player who skips the First steps and just drives must get the calls too (they are how the
+## questlines are found), so FRIENDS_AFTER is a few minutes (was 12), and once open they stay open
+## in later sessions (FRIENDS_KEY saved in [intro]).
 static var FRIENDS_STEPS: float = Pacer.num("first_steps", "friends_steps")
 static var FRIENDS_AFTER: float = Pacer.num("first_steps", "friends_after")
 static var NEW_FRIEND_GAP: float = Pacer.num("first_steps", "new_friend_gap")
+const FRIENDS_KEY := "friends_open"
 ## A friend's call yields to the guide's next intro once the player has been free this long (the
 ## intro itself comes at NEXT_GAP s).
 const FRIENDS_YIELD := 20.0
@@ -215,6 +233,8 @@ var flying: Callable
 var scripted := false
 ## The guide runs on this save (`guide_due` at `begin`).
 var guide := false
+## This launch is the guide's first (`first_launch`): the opening flyover and the Palace start.
+var opening := false
 ## --first-race: Halina rolls up this many seconds into the run, whatever the guide (screenshots,
 ## the race's feel); -1: off.
 var race_at := -1.0
@@ -288,11 +308,34 @@ var _what_next := false
 
 # --- the rules (static: check_first10.gd tests them without the map) ---------------------------
 
-## The guide runs on a fresh save: no jobs done, no złoty, no rung beaten, and not finished before.
+## The guide runs on a fresh save (no jobs done, no złoty, no rung beaten), and on a save where it
+## began (GUIDE_KEY) and has not finished yet, whatever was earned since.
 static func guide_due(w: Node) -> bool:
-	if w == null:
+	if w == null or w.intro.has("done"):
 		return false
-	return w.jobs_done() == 0 and int(w.zl) == 0 and w.ladder.is_empty() and not w.intro.has("done")
+	if w.intro.has(GUIDE_KEY):
+		return true
+	return w.jobs_done() == 0 and int(w.zl) == 0 and w.ladder.is_empty()
+
+
+## The first launch of the guide: the opening flyover, the song from its first bar and the start at
+## the Palace (main.gd). Once seen (OPENED_KEY), a later session starts where the last one left off.
+static func first_launch(w: Node) -> bool:
+	return guide_due(w) and not w.intro.has(OPENED_KEY)
+
+
+## The beats an earlier session made, from the save's [intro] (beat id -> RESTORED_AT): the guide
+## does not make them again. The kebab arrow shown (`stand`) with no order taken counts as let go
+## (`lure`): the next session does not point at the stand again, and the free minute before the
+## beta and choice cards starts at once (the "kebab" intro still brings the stand back later).
+static func restored(intro: Dictionary) -> Dictionary:
+	var out := {}
+	for id: String in BEATS + ["lure", "kebab"]:
+		if intro.has(id):
+			out[id] = RESTORED_AT
+	if out.has("stand") and not out.has("order") and not out.has("lure"):
+		out["lure"] = RESTORED_AT
+	return out
 
 
 ## The end card is due: the final won, END_JOBS jobs done, not seen yet.
@@ -462,8 +505,10 @@ static func judge(done: Dictionary, ways: Dictionary) -> Array[String]:
 ## call at `friend_t` (-1: none yet); `intro_next`: one of the guide's intros waits and the player has
 ## been free FRIENDS_YIELD s, so it goes first (one thing at a time: the replay of 2026-11-15 took
 ## Szymek's boat race between two intros and Mirek's garage never came in its window).
-static func friends_held(steps: int, now: float, friend_t: float, intro_next := false) -> bool:
-	if steps < int(FRIENDS_STEPS) and now < FRIENDS_AFTER:
+## `opened`: an earlier session already opened them (FRIENDS_KEY in [intro]), so a player who only
+## drives in short sessions is not held again each time (F 2026-11-22).
+static func friends_held(steps: int, now: float, friend_t: float, intro_next := false, opened := false) -> bool:
+	if not opened and steps < int(FRIENDS_STEPS) and now < FRIENDS_AFTER:
 		return true
 	if intro_next:
 		return true
@@ -493,6 +538,14 @@ func _ready() -> void:
 ## fresh save). Called once the city is built (before the title is dismissed).
 func setup(want_guide: bool) -> void:
 	guide = want_guide and guide_due(wallet)
+	opening = guide and first_launch(wallet)
+	if guide:
+		fired = restored(wallet.intro)
+		for id: String in fired:
+			how[id] = "saved"
+		if not wallet.intro.has(GUIDE_KEY):
+			wallet.intro[GUIDE_KEY] = _today()
+			wallet.save()
 	if hud != null:
 		hud.card_pressed.connect(_on_card)
 	if tape != null and tape.has_signal("played"):
@@ -502,12 +555,16 @@ func setup(want_guide: bool) -> void:
 	if police != null and police.has_signal("chase_ended"):
 		police.chase_ended.connect(_on_police_end)
 	if garage != null and garage.has_signal("opened"):
-		garage.opened.connect(func() -> void: _garage_opened = true)
+		# G2: MOJE AUTO opens the same card from the map; only a visit at Mirek's ticks the step.
+		garage.opened.connect(func() -> void:
+			if str(garage.get("mode")) != "mine":
+				_garage_opened = true)
 	if guide:
+		# What an earlier session's intros let go stays let go.
 		if missions != null:
-			missions.held = true
+			missions.held = not fired.has("rescue")
 		if garage != null:
-			garage.held = true
+			garage.held = not fired.has("garage")
 		# 2026-11-01 (F, beta): the helicopter and the map teleport are open from the first second;
 		# the "heli" intro stays as a hint.
 		if jobs != null:
@@ -518,8 +575,10 @@ func setup(want_guide: bool) -> void:
 	if wallet != null:
 		for id in FirstSteps.from_wallet(wallet.jobs, wallet.ladder):
 			_tick_step(id, true)
-	print("first10: guide %s%s%s; first steps %d/%d" % ["on" if guide else "off", " (scripted)" if scripted else "",
-			", first stand %d" % _stand if guide else "", steps_done(), FirstSteps.IDS.size()])
+	print("first10: guide %s%s%s%s; first steps %d/%d" % ["on" if guide else "off", " (scripted)" if scripted else "",
+			", first stand %d" % _stand if guide else "",
+			", resumed: %s" % ", ".join(PackedStringArray(fired.keys())) if guide and not fired.is_empty() else "",
+			steps_done(), FirstSteps.IDS.size()])
 
 
 ## The clock starts (the title is gone, or there was none).
@@ -527,6 +586,9 @@ func begin() -> void:
 	_running = true
 	# The tap that closed the title is not "the first touch" of the drive.
 	_input_base = int(hud.input_ms) if hud != null else 0
+	if opening and wallet != null and not wallet.intro.has(OPENED_KEY):
+		wallet.intro[OPENED_KEY] = _today()
+		wallet.save()
 
 
 func _process(dt: float) -> void:
@@ -573,7 +635,29 @@ func steps_done() -> int:
 ## NEW_FRIEND_GAP s after each new friend's first call.
 ## Before step 3 the whole guide held them (it ran about ten minutes).
 func friends_wait() -> bool:
-	return guide_on() and friends_held(steps_done(), t, _friend_t, _intro_next)
+	return guide_on() and friends_held(steps_done(), t, _friend_t, _intro_next, _friends_saved())
+
+
+## The friends may call at all (the QUESTLINES tab's head, main.gd `_fill_map_list`): no guide, or
+## FRIENDS_STEPS steps, FRIENDS_AFTER s of play, or an earlier session opened them. The one-at-a-time
+## spacing after that is `friends_wait`'s.
+func friends_open() -> bool:
+	return not guide_on() or _friends_saved() or steps_done() >= int(FRIENDS_STEPS) or t >= FRIENDS_AFTER
+
+
+func _friends_saved() -> bool:
+	return wallet != null and wallet.intro.has(FRIENDS_KEY)
+
+
+## The friends opened in this session (steps or time): saved, so the next session doesn't hold them.
+func _friends_save() -> void:
+	if wallet == null or not guide_on() or _friends_saved():
+		return
+	if steps_done() < int(FRIENDS_STEPS) and t < FRIENDS_AFTER:
+		return
+	wallet.intro[FRIENDS_KEY] = _today()
+	wallet.save()
+	print("first10: the friends may call (%d steps, %.1f s)" % [steps_done(), t])
 
 
 ## An activity of the kit's phone rang (main.gd, the director's `rang`): `tag` names it. A friend
@@ -593,6 +677,7 @@ func tick() -> void:
 	_free_for = _free_for + TICK if f["free"] else 0.0
 	f["free_for"] = _free_for
 	_steps_tick(f)
+	_friends_save()
 	f["steps"] = FirstSteps.done(wallet.intro) if wallet != null else []
 	if guide and not fired.has("done"):
 		for id in met(f):
@@ -857,6 +942,8 @@ func _fire(id: String) -> void:
 			_retry_t = t + FIRE_RETRY
 			return
 		print("first10: %s could not be made in %d tries: given up" % [id, FIRE_TRIES])
+		if id == "race":
+			_race_ring()
 	_trigger(id, "fired")
 
 
@@ -889,7 +976,7 @@ func _end_guide() -> void:
 func _show_beta() -> void:
 	_beta_up = true
 	_beta_t = t
-	var w := beta_words()
+	var w := beta_words(wallet != null and int(wallet.jobs.get("kebab", 0)) > 0)
 	hud.show_card(w["title"][0], w["body"][0], w["buttons"], BETA_COLOUR, false, w["title"][1], w["body"][1])
 	hud.own_card(self)
 	hud.set_card_art(beta_tiles(hud.pt), false, true)
@@ -899,11 +986,12 @@ func _show_beta() -> void:
 
 
 ## The beta card's words: {"title": [pl, en], "body": [pl, en], "buttons": PackedStringArray
-## ("POLISH|ENGLISH" each): SEE QUESTS, DRIVE ON}. Pure: check_first10.gd.
-static func beta_words() -> Dictionary:
+## ("POLISH|ENGLISH" each): SEE QUESTS, DRIVE ON}. `kebab`: a kebab was delivered ("That was just a
+## kebab"); else the body says nothing of one (most new players let it go). Pure: check_first10.gd.
+static func beta_words(kebab := false) -> Dictionary:
 	var see := QuestBook.words("b_show_quests")
 	var drive := QuestBook.words("b_show_drive")
-	return {"title": QuestBook.words("show_title"), "body": QuestBook.words("show_body"),
+	return {"title": QuestBook.words("show_title"), "body": QuestBook.words("show_body" if kebab else "show_body_open"),
 			"buttons": PackedStringArray(["%s|%s" % [see[0], see[1]], "%s|%s" % [drive[0], drive[1]]])}
 
 
@@ -1008,6 +1096,10 @@ func _pick(index: int, why := "pressed") -> void:
 			raced = bool(rivals.first_start())
 		elif rivals.first_waiting():
 			rivals.first_decline()
+	# START RACE with no Halina behind the car (no lane to roll up on): the arrow to her ring at once,
+	# so the button does something; the race intro still comes when she can roll up.
+	if index == 0 and not raced and not _choice_halina:
+		_race_ring()
 	_choice_halina = false
 	for id: String in picks:
 		if raced and id == "race":
@@ -1021,6 +1113,19 @@ func _pick(index: int, why := "pressed") -> void:
 	if wallet != null:
 		wallet.intro["choice_pick"] = clampi(index, 0, CHOICE_PICKS.size() - 1) + 1
 		wallet.save()
+
+
+## The arrow to Pani Halina's ring and its toast (START RACE with no Halina behind the car, or her
+## roll-up given up): the race is still there to start.
+func _race_ring() -> void:
+	var at := _step_at("race")
+	if at == Vector3.INF:
+		return
+	_hint(at, "HALINA", HINT_S)
+	if hud != null:
+		var w: Array = FirstSteps.words("race_ring")
+		hud.toast(w[0], w[1])
+	print("first10: the arrow to Halina's ring")
 
 
 ## A button of a card the guide owns (hud.gd `own_card`): the choice card's, or the First steps

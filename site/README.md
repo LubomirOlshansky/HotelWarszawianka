@@ -11,6 +11,8 @@ tracking scripts. Visits come from Cloudflare's own traffic numbers, store-butto
 | `src/strings.json` | all the copy in `en` and `pl`, plus the data the page is built from: `hero` (the poster's image name, as before), `hero_video` (`ver`, poster size), `chapters` (the four city chapters: image, size, `side`, optional `clip`, texts), `dn` (the day/night pair), `quests` (the frame and the five rows; a row's optional `crop` is `none` for the whole wide shot, or `left`/`right` to keep that side of a shot whose card or bubble sits there when the phone crops it), `join_bg`, `author` (raw HTML, for the link), `topics`, and the Google Play slot (`android_live`, `android_url`) |
 | `public/progress/index.html` | **built**: what was added or improved each day (`tools/changelog.py` from `docs/CHANGELOG.md` and ROADMAP's progress log) with links to the backlog; run `python3 -I tools/site_build.py` before every deploy so it is current |
 | `public/index.html`, `public/pl/index.html`, `public/privacy/index.html`, `public/support/index.html` | **built**, never edited by hand: `python3 -I tools/site_build.py` (the privacy page comes from `docs/privacy.md`, support from `docs/support.md`) |
+| `src/beta.html`, `src/beta.json`, `src/form.html` | the beta testers' guide (**unlisted**: `/beta/` and `/pl/beta/`, linked from nowhere on the site, not in the sitemap, `noindex` in the page and in `_headers`; the invite email links to it) and the feedback form both it and the landing use |
+| `public/lang.js` | runs before the page draws: a Polish browser opening `/` or `/beta/` goes to `/pl/` or `/pl/beta/`; the EN / PL switch (any `a[hreflang]`) or `?lang=en|pl` is remembered in localStorage and wins |
 | `public/styles.css` | all styles; colours and fonts are tokens on `:root` |
 | `public/site.js` | the two forms (feedback and the Android "tell me when": check, post to Formspree in place, say how it went; without JavaScript they still post), the day/night slider, the hero loop and chapter clips, `data-os` on `<html>`, the phone sticky bar |
 | `public/img/game/` | screenshots, `<name>.webp` (1920 px wide) and `<name>-960.webp` for phones; `img/og.jpg` is the 1200×630 link preview |
@@ -51,13 +53,13 @@ save each as WebP at 1920 px and 960 px wide (quality about 82), put them in
 
 ## The form
 
-It posts to Formspree form `mykaeqjp` (the same form as Stillplace's contact page), with the
-subject `Around Warsaw: <topic>` and `source: aroundwarsaw.app (en|pl)`, so the messages are
-easy to filter. Topics: feedback, something broke, an idea; the
-phone type rides along. The Android "tell me when" email field posts to the same form with
-`_subject` "Around Warsaw: Android beta, notify" and `platform` Android. To give the site its own form, create one in Formspree and change the
-`action` in `src/index.html`. If the Formspree form is restricted to certain domains, add
-`aroundwarsaw.app`.
+Both forms post to the Around Warsaw project's own Formspree form "Website beta signup" (`xjyweqgn`;
+the in-game feedback card posts to "In-game feedback", `maeodgey`, see `game/scripts/feedback.gd`). The feedback
+form sends the subject `Around Warsaw: <topic>` and `source: aroundwarsaw.app (en|pl)`, so the messages are
+easy to filter. Topics: feedback, something broke, an idea; the phone type rides along. The beta signup
+("notify") posts the email, `platform` (iPhone or Android, preselected from the visitor's phone) and the
+`_subject` "Around Warsaw: open beta, notify me". Free plan: Formspree caps submissions per month. If a form is
+restricted to certain domains, add `aroundwarsaw.app`.
 
 ## Deploy
 
@@ -130,3 +132,18 @@ touch points counts as iOS); "other" shows TestFlight.
   (token with Account Analytics: Read).
 - **When the apps are listed**: put the URLs in `vars` in `wrangler.jsonc` (for Android also the
   `android_live` flip above), `python3 -I tools/site_build.py`, deploy. QR joins arrive as `/go/ios?src=qr` in the logs' URL.
+
+## Our own forms (site/forms.js)
+
+The Worker also takes the forms itself: `POST /api/signup` and `POST /api/feedback` store the row in the
+D1 database `aroundwarsaw-forms` (table `submissions`, `migrations/0001_init.sql`) and mail it to the game's
+inbox through the `EMAIL` send_email binding (Cloudflare Email Routing; best effort, the row is kept either
+way). A honeypot, a salted IP hash with 5 posts an hour and 30 a day, and an origin check keep it quiet.
+Read the rows: `GET /api/admin/submissions?kind=signup&format=csv` with `Authorization: Bearer <ADMIN_TOKEN>`
+(or the dashboard's D1 console).
+
+Today the pages still post to Formspree: `FORMS = "formspree"` in `tools/site_build.py`. To switch: deploy the
+Worker, set `FORMS = "own"`, rebuild; in the game set `Feedback.FORM_URL` to `OWN_URL`.
+One-time setup (F's Cloudflare account): Email Routing on the zone with `aroundwarsaw@gmail.com` as a verified
+destination, `npx wrangler secret put ADMIN_TOKEN`, and an `IP_SALT` if wanted. Tested locally with
+`wrangler dev --local`: signup, feedback, bad email, honeypot, wrong origin, rate limit, redirect for no-JS.

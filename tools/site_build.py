@@ -216,18 +216,20 @@ PRIVACY_SITE = """<h2>This website · Ta strona</h2>
 <p>aroundwarsaw.app sets no cookies and runs no tracking scripts. It is served by
 Cloudflare, which handles ordinary request data (such as IP addresses) only to deliver and
 protect the site, and shows the developer anonymous totals (visits per day, country). Clicks
-on the store buttons are counted as a number per button and country, with nothing about you. The beta and feedback form sends what you type (your email, phone type and
-message) through Formspree to the developer's inbox. The email is used only to send a beta
-invite or to reply, and is deleted on request (write on Telegram, @olshansky93, or through the
-same form).</p>
+on the store buttons are counted as a number per button and country, with nothing about you. The beta signup and feedback forms send what you type (your email, phone type and
+message) to our own server on Cloudflare, which keeps it in a database and mails it to the
+developer's inbox; a one-way hash of your IP address, your country, city, region, timezone and browser language are kept only to stop
+abuse. The email is used only to send a beta invite or to reply, and is deleted on request
+(write through the Support page).</p>
 <p>aroundwarsaw.app nie używa ciasteczek ani skryptów śledzących. Stronę serwuje Cloudflare,
 który przetwarza zwykłe dane żądań (np. adresy IP) wyłącznie po to, by ją dostarczyć i chronić,
 i pokazuje autorowi anonimowe sumy (odwiedziny dziennie, kraj). Kliknięcia przycisków sklepów
 są liczone jako liczba na przycisk i kraj, bez żadnych danych o Tobie.
-Formularz bety i opinii wysyła to, co wpiszesz (e-mail, rodzaj telefonu, wiadomość), przez
-Formspree do skrzynki autora. E-mail służy tylko do wysłania zaproszenia do bety albo
-odpowiedzi i zostanie usunięty na prośbę (napisz na Telegramie, @olshansky93, albo przez ten
-sam formularz).</p>
+Formularze zapisu do bety i opinii wysyłają to, co wpiszesz (e-mail, rodzaj telefonu,
+wiadomość), na nasz serwer w Cloudflare, który zapisuje to w bazie i wysyła do skrzynki autora;
+jednokierunkowy skrót adresu IP, kraj, miasto, region, strefa czasowa i język przeglądarki są przechowywane tylko po to, by ograniczyć nadużycia.
+E-mail służy tylko do wysłania zaproszenia do bety albo odpowiedzi i zostanie usunięty na prośbę
+(napisz przez stronę Wsparcie).</p>
 """
 
 
@@ -295,6 +297,13 @@ MONTHS_PL = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipc
 
 # Phones show the wide shots as a 4:3 crop (the hero, the chapters, day/night): a 1920 x 884 frame
 # cropped to 4:3 fills the width with 61% of the picture, so the browser must ask for 163vw.
+# Where the site's forms post. "formspree": the Around Warsaw project's Formspree forms (live today).
+# "own": the Worker's /api/* (site/forms.js, D1 + email). One line to switch after a deploy of the Worker.
+FORMS = "own"
+FORM_ACTIONS = {
+    "formspree": {"signup": "https://formspree.io/f/xjyweqgn", "feedback": "https://formspree.io/f/xjyweqgn"},
+    "own": {"signup": "/api/signup", "feedback": "/api/feedback"},
+}
 PHONE_43 = "(max-width: 700px) 163vw, 100vw"
 
 
@@ -354,18 +363,21 @@ def landing(strings: dict, lang: str) -> str:
         values["hero_video"] = values["hero_button"] = ""
 
     # No store links while the beta is closed: one "open beta soon" button to the subscribe card (#beta).
+    values["form_action"] = FORM_ACTIONS[FORMS]["feedback"]
     values["hero_ctas"] = f'      <a class="btn btn-primary" href="#beta">{values["cta_ios"]}</a>'
     values["sticky_buttons"] = f'  <a class="btn btn-primary" href="#beta">{values["sticky_ios"]}</a>'
     values["android_card"] = (
         f'    <div class="plat-card soon" id="soon">\n        <h3>{values["and_title"]}</h3>\n'
         f'        <p>{values["and_text_a"]}</p>\n'
-        f'        <form class="notify" id="notify" action="https://formspree.io/f/mykaeqjp" method="POST" novalidate data-need="email">\n'
+        f'        <form class="notify" id="notify" action="{FORM_ACTIONS[FORMS]["signup"]}" method="POST" novalidate data-need="email">\n'
+        f'          <fieldset class="topics platform">\n            <legend>{values["f_platform"]}</legend>\n'
+        f'            <label><input type="radio" name="platform" value="iPhone" checked><span>iPhone</span></label>\n'
+        f'            <label><input type="radio" name="platform" value="Android"><span>Android</span></label>\n          </fieldset>\n'
         f'          <label for="n-email">{values["n_email"]}</label>\n'
         f'          <div class="notify-row"><input id="n-email" name="email" type="email" required autocomplete="email" inputmode="email" aria-describedby="n-email-err">'
         f'<button class="btn btn-primary send" type="submit">{values["and_btn_a"]}</button></div>\n'
         f'          <p class="err" id="n-email-err" aria-live="polite"></p>\n'
         f'          <input type="hidden" name="_subject" value="Around Warsaw: open beta, notify me">\n'
-        f'          <input type="hidden" name="platform" value="—">\n'
         f'          <input type="hidden" name="source" value="aroundwarsaw.app ({lang}) beta notify">\n'
         f'          <div class="hp" aria-hidden="true"><label for="n-gotcha">Leave empty</label><input id="n-gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>\n'
         f'          <p class="status" role="status" aria-live="polite" data-ok="{values["n_ok"]}" data-fail="{values["f_fail"]}" '
@@ -412,7 +424,7 @@ def landing(strings: dict, lang: str) -> str:
 
     # New every day: the newest changelog day, three lines (the same source as /progress/).
     cl = changelog()
-    days = cl.days()
+    days = cl.highlights()
     newest = days[0]
     lines = [x for d in days[:3] for x in d["lines"]][:3]
     d0 = datetime.date.fromisoformat(newest["date"])
@@ -429,7 +441,21 @@ def landing(strings: dict, lang: str) -> str:
         f'          <label><input type="radio" name="topic" value="{e(v)}"{" checked" if i == 0 else ""}>'
         f"<span>{e(label)}</span></label>"
         for i, (v, label) in enumerate(strings["topics"][lang]))
+    values["feedback_form"] = feedback_form(strings, lang)
     return fill((SITE / "src" / "index.html").read_text(encoding="utf-8"), values)
+
+
+def feedback_form(strings: dict, lang: str) -> str:
+    """The feedback form (site/src/form.html), shared by the landing and the beta guide."""
+    t = strings[lang]
+    values = {k: (v if k in RAW_KEYS else html.escape(v)) for k, v in t.items()}
+    values["lang"] = lang
+    values["form_action"] = FORM_ACTIONS[FORMS]["feedback"]
+    values["topics"] = "\n".join(
+        f'          <label><input type="radio" name="topic" value="{html.escape(v)}"{" checked" if i == 0 else ""}>'
+        f"<span>{html.escape(label)}</span></label>"
+        for i, (v, label) in enumerate(strings["topics"][lang]))
+    return fill((SITE / "src" / "form.html").read_text(encoding="utf-8"), values)
 
 
 # A row's optional "crop": "none" shows the whole wide shot; "left"/"right" keep that side
@@ -450,12 +476,111 @@ def progress_page() -> str:
     cl = changelog()
     intro = (
         "<h1>Progress · Postępy</h1>\n"
-        "<p>What was added or improved in Around Warsaw, day by day, newest first. "
-        "Co dodano albo poprawiono, dzień po dniu.</p>\n"
+        "<p>The best of what is new in Around Warsaw, newest first. "
+        "Najważniejsze nowości w Around Warsaw, od najnowszych.</p>\n"
         )
     return PAGE.format(title="Progress · Postępy", extra="",
-                       description="What's new in Around Warsaw, day by day: what was added or improved, and the backlog.",
+                       description="What's new in Around Warsaw: the best of each day, short.",
                        body=intro + cl.html_days())
+
+
+# ---- The beta guide (/beta/, /pl/beta/): unlisted, noindex, not in the sitemap ----------------------
+
+def _t(x: float, y: float, text: str, cls: str = "m-t", anchor: str = "middle") -> str:
+    return f'<text x="{x}" y="{y}" class="{cls}" text-anchor="{anchor}">{html.escape(text)}</text>'
+
+
+def mock(screen: dict, label: str) -> str:
+    """A simplified phone screen (inline SVG) for one install step: the bar, an icon, a title and
+    the one button to tap, lit in the site's sodium colour. Drawings, not screenshots: the real
+    store screens change with every iOS and Play update."""
+    w, h = 150, 260
+    out = [f'<svg class="mock" viewBox="0 0 {w} {h}" role="img" aria-label="{html.escape(label)}">',
+           f'<rect x="1" y="1" width="{w - 2}" height="{h - 2}" rx="20" class="m-frame"/>',
+           f'<rect x="8" y="8" width="{w - 16}" height="{h - 16}" rx="14" class="m-screen"/>',
+           '<rect x="57" y="14" width="36" height="8" rx="4" class="m-notch"/>',
+           _t(w / 2, 38, screen["bar"], "m-bar")]
+    icon = screen.get("icon")
+    y = 54
+    if icon == "aw":
+        out.append(f'<image href="/img/apple-touch-icon.png" x="51" y="{y}" width="48" height="48" class="m-icon"/>')
+    elif icon == "tf":
+        out.append(f'<rect x="51" y="{y}" width="48" height="48" rx="11" class="m-tf"/>'
+                   f'<circle cx="75" cy="{y + 24}" r="9" class="m-tf-ring"/><circle cx="75" cy="{y + 24}" r="3" class="m-tf-dot"/>')
+    elif icon == "shot":
+        out.append(f'<rect x="45" y="{y - 6}" width="60" height="34" rx="4" class="m-shot"/>'
+                   f'<rect x="49" y="{y - 2}" width="52" height="26" rx="2" class="m-shot-in"/>')
+    if icon:
+        y += 66
+    else:
+        y += 20
+    for i, line in enumerate(screen.get("title", [])):
+        out.append(_t(w / 2, y + i * 15, line, "m-title"))
+    y += 15 * len(screen.get("title", [])) + 4
+    if screen.get("sub"):
+        out.append(_t(w / 2, y, screen["sub"], "m-sub"))
+        y += 14
+    for row in screen.get("rows", []):
+        out.append(f'<rect x="20" y="{y}" width="110" height="22" rx="6" class="m-row"/>' + _t(30, y + 15, row, "m-rowt", "start"))
+        y += 28
+    by = max(y + 6, 196)
+    btn = screen["button"]
+    out.append(f'<rect x="22" y="{by}" width="106" height="30" rx="15" class="m-btn"/>' + _t(w / 2, by + 19, btn, "m-btnt" if len(btn) <= 13 else "m-btnt m-btnt-s"))
+    out.append(f'<circle cx="118" cy="{by + 28}" r="8" class="m-tap"/>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+BETA_MOCKS = {
+    "ios": [
+        {"bar": "App Store", "icon": "tf", "title": ["TestFlight"], "sub": "Apple", "button": "GET"},
+        {"bar": "testflight.apple.com", "icon": "aw", "title": ["Join the", "Around Warsaw beta"], "button": "View in TestFlight"},
+        {"bar": "TestFlight", "icon": "aw", "title": ["Around Warsaw"], "sub": "Beta", "button": "Accept"},
+        {"bar": "TestFlight", "icon": "aw", "title": ["Around Warsaw"], "sub": "Beta", "button": "Install"},
+    ],
+    "android": [
+        {"bar": "play.google.com", "icon": "aw", "title": ["Around Warsaw"], "sub": "Open testing", "button": "Become a tester"},
+        {"bar": "Google Play", "icon": "aw", "title": ["Around Warsaw"], "sub": "You're a beta tester", "button": "Install"},
+        {"bar": "", "icon": "aw", "title": ["Around Warsaw"], "button": "Open"},
+    ],
+}
+
+
+def beta_page(strings: dict, lang: str) -> str:
+    """The unlisted beta guide in one language (site/src/beta.html + beta.json)."""
+    b = json.loads((SITE / "src" / "beta.json").read_text(encoding="utf-8"))
+    t = b[lang]
+    e = html.escape
+    values = {k: e(v) for k, v in t.items() if isinstance(v, str)}
+    values.update(lang=lang, home="/pl/" if lang == "pl" else "/", other_code="en" if lang == "pl" else "pl",
+                  hero=b["hero"], hero_w=str(b["hero_w"]), hero_h=str(b["hero_h"]), fb_bg=b.get("fb_bg", "city-night"),
+                  testing_url=e(b["testing_url"]), email=e(b["email"]))
+
+    def shot(kind: str, i: int, m: dict, label: str) -> str:
+        """A real phone screenshot when one exists (site/public/img/beta/<kind>-<n>[-<lang>].webp,
+        portrait), else the drawn screen."""
+        for name in (f"{kind}-{i + 1}-{lang}", f"{kind}-{i + 1}"):
+            if (SITE / "public" / "img" / "beta" / f"{name}.webp").exists():
+                return f'<img class="shot" src="/img/beta/{name}.webp" alt="{e(label)}" width="390" height="844" loading="lazy" decoding="async">'
+        return mock(m, label)
+
+    def steps(key: str, kind: str) -> str:
+        return "\n".join(
+            f'          <li class="step"><figure>{shot(kind, i, m, f"{title}: {body}")}</figure>'
+            f'<div><h4><span class="n">{i + 1}</span>{e(title)}</h4><p>{e(body)}</p></div></li>'
+            for i, ((title, body), m) in enumerate(zip(t[key], BETA_MOCKS[kind])))
+
+    values["ios_steps"] = steps("ios_steps", "ios")
+    values["and_steps"] = steps("and_steps", "android")
+    values["start"] = "\n".join(f'      <li><h4>{e(a)}</h4><p>{e(c)}</p></li>' for a, c in t["start"])
+
+    def way(c: str) -> str:
+        return f'<a href="mailto:{e(c)}">{e(c)}</a>' if "@" in c else e(c)
+
+    values["fb_ways"] = "\n".join(f'      <div><dt>{e(a)}</dt><dd>{way(c)}</dd></div>' for a, c in t["fb_ways"])
+    values["faq"] = "\n".join(f'    <details class="qa"><summary>{e(q)}</summary><p>{e(a)}</p></details>' for q, a in t["faq"])
+    values["feedback_form"] = feedback_form(strings, lang)
+    return fill((SITE / "src" / "beta.html").read_text(encoding="utf-8"), values)
 
 
 def main() -> int:
@@ -472,6 +597,8 @@ def main() -> int:
             description="Help with Around Warsaw and its beta: contact, TestFlight and Google Play testing, common questions.",
             body=convert((ROOT / "docs" / "support.md").read_text(encoding="utf-8"))),
         SITE / "public" / "progress" / "index.html": progress_page(),
+        SITE / "public" / "beta" / "index.html": beta_page(strings, "en"),
+        SITE / "public" / "pl" / "beta" / "index.html": beta_page(strings, "pl"),
     }
     for path, text in pages.items():
         path.parent.mkdir(parents=True, exist_ok=True)
