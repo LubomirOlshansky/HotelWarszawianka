@@ -238,12 +238,16 @@ func _draw_text() -> void:
 	draw_string(_font, Vector2(16 * pt, 30 * pt), cups_s, HORIZONTAL_ALIGNMENT_LEFT, -1, mid, UiKit.GOLD)
 	var dr := Room.say("drinks", [sim.drinks])
 	draw_string(_font, Vector2(16 * pt, 50 * pt), dr, HORIZONTAL_ALIGNMENT_LEFT, -1, small, UiKit.HEAT if sim.drinks > 0 else UiKit.SUB)
+	# The banner and the rival's quip in the left column (the table and the rival hold the middle).
+	var col_w := s.x * 0.34
+	var bx := 16 * pt
 	if _banner != "":
-		draw_string_outline(_font, Vector2(0, s.y * 0.12), _banner, HORIZONTAL_ALIGNMENT_CENTER, s.x, big, 5 * pt, Color.BLACK)
-		draw_string(_font, Vector2(0, s.y * 0.12), _banner, HORIZONTAL_ALIGNMENT_CENTER, s.x, big, UiKit.INK)
+		draw_multiline_string_outline(_font, Vector2(bx, s.y * 0.36), _banner, HORIZONTAL_ALIGNMENT_LEFT, col_w, big, -1, 5 * pt, Color.BLACK)
+		draw_multiline_string(_font, Vector2(bx, s.y * 0.36), _banner, HORIZONTAL_ALIGNMENT_LEFT, col_w, big, -1, UiKit.INK)
 	if _quip != "":
-		draw_string_outline(_font, Vector2(s.x * 0.1, s.y * 0.12 + 26 * pt), _quip, HORIZONTAL_ALIGNMENT_CENTER, s.x * 0.8, small, 4 * pt, Color.BLACK)
-		draw_string(_font, Vector2(s.x * 0.1, s.y * 0.12 + 26 * pt), _quip, HORIZONTAL_ALIGNMENT_CENTER, s.x * 0.8, small, UiKit.SUB)
+		var qy := s.y * 0.36 + (big + 8 * pt) * ceilf(_font.get_string_size(_banner, HORIZONTAL_ALIGNMENT_LEFT, -1, big).x / col_w) + 6 * pt
+		draw_multiline_string_outline(_font, Vector2(bx, qy), _quip, HORIZONTAL_ALIGNMENT_LEFT, col_w, mid, -1, 4 * pt, Color.BLACK)
+		draw_multiline_string(_font, Vector2(bx, qy), _quip, HORIZONTAL_ALIGNMENT_LEFT, col_w, mid, -1, UiKit.SUB)
 	if stage != Stage.OVER:
 		_quit_rect = _text_button(Vector2(s.x - 16 * pt, 16 * pt), Room.say("give_up"), false, true)
 	else:
