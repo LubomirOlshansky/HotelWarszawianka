@@ -25,8 +25,10 @@ const UiKit := preload("res://scripts/ui_kit.gd")
 const EYE := Vector3(0.0, 2.0, -1.4)
 const PITCH := 0.62
 ## The focal length and the horizon's row as shares of the screen's height.
-const FOCAL := 1.15
-const MID := 0.48
+const FOCAL := 1.5
+const MID := 0.45
+## The cups are drawn this much larger than the sim's (readability at phone size; the rims' rule is the sim's).
+const CUP_DRAW := 1.2
 ## The ball's flight: path points per second (the sim keeps one every two steps at 120 Hz).
 const PATH_RATE := 60.0
 const SPIN_S := 0.8
@@ -190,7 +192,7 @@ func _draw() -> void:
 
 
 func _draw_cup(p: Vector3) -> void:
-	var r := _scale_at(p, Sim.CUP_R)
+	var r := _scale_at(p, Sim.CUP_R * CUP_DRAW)
 	var top := project(p + Vector3(0, Sim.CUP_H, 0))
 	var base := project(p)
 	var rb := r * 0.75
@@ -203,8 +205,9 @@ func _draw_cup(p: Vector3) -> void:
 
 
 func _draw_rival() -> void:
-	var feet := project(Vector3(0.0, -0.75, Sim.L + 0.45))
-	var h := _scale_at(Vector3(0.0, 0.0, Sim.L + 0.45), 1.0)
+	# Behind the far end, waist at the table: sized to the screen so the head stays under the banner.
+	var h := size.y * 0.16
+	var feet := project(Vector3(0.0, 0.0, Sim.L + 0.3)) + Vector2(0, 0.62 * h)
 	var col := Color("#7a3a5a")
 	match rival_id:
 		"sommelier":

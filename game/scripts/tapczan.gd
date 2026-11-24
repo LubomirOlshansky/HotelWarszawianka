@@ -158,7 +158,8 @@ func _idle_tick(dt: float) -> void:
 		elif _mark != null:
 			_mark.visible = false
 	var near := d < PILL_R and not flying and absf(float(v[1])) < STOP_KMH
-	if near and free_now.call() and hud.pill_free_for(PILL):
+	# Our own pill up counts as free (pill_free_for is about taking it from someone else).
+	if near and free_now.call() and (hud.pill_shown(PILL) or hud.pill_free_for(PILL)):
 		if not hud.pill_shown(PILL):
 			var w := Room.pair("enter")
 			hud.show_pill(str(w[0]), str(w[1]), PILL)

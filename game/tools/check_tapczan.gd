@@ -348,6 +348,12 @@ func _room_and_door() -> void:
 	step.call(0.5)
 	if not hud.pill_shown(Tapczan.PILL) or hud.pill_word != str(Room.pair("enter")[0]):
 		_fail("stopped by the ring: the WEJDŹ pill (%s)" % hud.pill_word)
+	# The fake's pill_free answers like hud.gd's while a pill is up: not free for another.
+	hud.pill_free = false
+	step.call(1.0)
+	if not hud.pill_shown(Tapczan.PILL):
+		_fail("the WEJDŹ pill should stay up while stopped (it hid itself)")
+	hud.pill_free = true
 	hud.context_pressed.emit(Tapczan.PILL)
 	if t.phase != Activity.Phase.RUN or not t.inside() or hud.visible or car.process_mode != Node.PROCESS_MODE_DISABLED:
 		_fail("the pill should take the player in (phase %d, inside %s)" % [t.phase, t.inside()])

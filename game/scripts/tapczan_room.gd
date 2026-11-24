@@ -5,7 +5,8 @@ extends Node3D
 ## at the kerb (tapczan.gd does both).
 ##
 ## The room (ROOM m, far off the map at PLACE): old brick walls, the bar along the back wall with
-## the sixteen taps on a black board and the chalk menu over them, warm pendant lamps over five long
+## two chrome tap towers with their glowing amber glasses, the black soffit with fifteen numbered
+## chalk boards, a porthole window in the brick (from refs/tapczan-interior), warm pendant lamps over five long
 ## wooden tables with benches, the regulars sitting at them (one MultiMesh), the beer pong table at
 ## the front right with tonight's rivals standing by it, a window bay with the street's glow, the lit
 ## WYJŚCIE door. People to tap say a line (data/tapczan.json "people").
@@ -120,16 +121,17 @@ static func room_mesh() -> ArrayMesh:
 	var brick := Color("#7a3e2c")
 	var brick_d := Color("#5e2e22")
 	var mortar := Color("#8c5a48")
-	var oak := Color("#6b4a32")
+	var oak := Color("#a0703f")
 	var oak_d := Color("#4a3222")
 	var black := Color("#18181a")
-	var brass := Color("#c9a45a")
 	var warm := Color("#ffd08a")
-	# The void, the floor (dark boards).
+	# The void, the floor: dark slate tiles (F's interior photos, refs/tapczan-interior).
 	Models.box(st, Vector3(0, -0.6, 0), Vector3(400, 1.0, 400), Color("#050304"), Models.FIXED)
-	Models.box(st, Vector3(0, -0.1, 0), Vector3(ROOM.x, 0.2, ROOM.y), Color("#3a2a20"), Models.FIXED)
+	Models.box(st, Vector3(0, -0.1, 0), Vector3(ROOM.x, 0.2, ROOM.y), Color("#33373b"), Models.FIXED)
 	for i in 16:
-		Models.box(st, Vector3(-hx + 0.5 + i * 1.0, 0.005, 0), Vector3(0.03, 0.01, ROOM.y), Color("#2c1f17"), Models.FIXED)
+		Models.box(st, Vector3(-hx + 1.0 + i * 1.0, 0.005, 0), Vector3(0.03, 0.01, ROOM.y), Color("#26292c"), Models.FIXED)
+	for i in 10:
+		Models.box(st, Vector3(0, 0.005, -hz + 1.0 + i * 1.0), Vector3(ROOM.x, 0.01, 0.03), Color("#26292c"), Models.FIXED)
 	# The brick walls: courses in two reds, the mortar lines between.
 	Models.box(st, Vector3(0, WALL_H * 0.5, -hz - 0.2), Vector3(ROOM.x + 0.8, WALL_H, 0.4), brick, Models.FIXED)
 	Models.box(st, Vector3(-hx - 0.2, WALL_H * 0.5, 0), Vector3(0.4, WALL_H, ROOM.y), brick, Models.FIXED)
@@ -144,31 +146,60 @@ static func room_mesh() -> ArrayMesh:
 			Models.box(st, Vector3(bx, y + 0.14, -hz + 0.01), Vector3(0.24, 0.24, 0.01), brick_d, Models.FIXED)
 			var bz := rng.randf_range(-hz + 0.4, hz - 0.4)
 			Models.box(st, Vector3(-hx + 0.01, y + 0.14, bz), Vector3(0.01, 0.24, 0.24), brick_d, Models.FIXED)
-	# The bar along the back wall: the counter, its brass foot rail, the tap board and the taps.
-	Models.box(st, Vector3(-1.0, 0.55, -hz + 1.6), Vector3(9.0, 1.1, 0.8), oak_d, Models.FIXED)
-	Models.box(st, Vector3(-1.0, 1.13, -hz + 1.6), Vector3(9.2, 0.06, 0.95), oak, Models.FIXED)
-	Models.box(st, Vector3(-1.0, 0.18, -hz + 2.05), Vector3(9.0, 0.05, 0.05), brass, Models.FIXED)
-	Models.box(st, Vector3(-1.0, 1.9, -hz + 0.05), Vector3(6.4, 1.2, 0.08), black, Models.FIXED)
-	var taps := [Color("#f2c94c"), Color("#e0892b"), Color("#7a3a1e"), Color("#f2e6a0"), Color("#c94c4c"), Color("#2a1a12"), Color("#9ad04c"), Color("#e8b04c")]
-	for i in 16:
-		var x := -4.0 + i * 0.4
-		Models.box(st, Vector3(x, 1.95, -hz + 0.12), Vector3(0.14, 0.5, 0.05), taps[i % 8], Models.LIT_SIGN)
-		Models.box(st, Vector3(x, 1.25, -hz + 1.35), Vector3(0.05, 0.28, 0.05), brass, Models.FIXED)
-		Models.box(st, Vector3(x, 1.42, -hz + 1.35), Vector3(0.06, 0.12, 0.08), taps[i % 8], Models.FIXED)
-	# The chalk menu over the board: a dark slate with chalk lines.
-	Models.box(st, Vector3(-1.0, 3.25, -hz + 0.05), Vector3(6.4, 1.1, 0.06), Color("#24282a"), Models.FIXED)
-	for k in 5:
-		Models.box(st, Vector3(-2.4 + (k % 2) * 2.6, 3.55 - k * 0.15, -hz + 0.09), Vector3(2.0 - (k % 3) * 0.4, 0.04, 0.01), Color("#e8e4d8"), Models.LIT_SIGN)
+	# The bar along the back wall (the photos): a wooden top on a front of grey brick, a footrest,
+	# two chrome T-towers with the glowing amber glasses on top (the pub's own look), the bottles on
+	# lit shelves against the brick, a black column, and over it all the black soffit with fifteen
+	# numbered chalk boards (the taps' list).
+	var grey := Color("#7d7f80")
+	var chrome := Color("#c8ccd0")
+	var glass := Color("#f2b04a")
+	Models.box(st, Vector3(-1.0, 0.55, -hz + 1.7), Vector3(9.0, 1.1, 0.7), Color("#55585a"), Models.FIXED)
+	for row in 4:
+		for k in 15:
+			var bx := -5.3 + k * 0.6 + (0.3 if row % 2 else 0.0)
+			if bx < 3.4:
+				Models.box(st, Vector3(bx, 0.16 + row * 0.26, -hz + 2.06), Vector3(0.5, 0.2, 0.02), grey if (k + row) % 3 else grey.darkened(0.2), Models.FIXED)
+	Models.box(st, Vector3(-1.0, 1.13, -hz + 1.75), Vector3(9.2, 0.07, 0.95), Color("#a0683a"), Models.FIXED)
+	Models.box(st, Vector3(-1.0, 0.18, -hz + 2.25), Vector3(9.0, 0.05, 0.05), chrome, Models.FIXED)
+	for tx: float in [-3.2, 1.2]:
+		for side in [-1.0, 1.0]:
+			Models.box(st, Vector3(tx + side * 1.1, 1.45, -hz + 1.6), Vector3(0.09, 0.6, 0.09), chrome, Models.FIXED)
+		Models.box(st, Vector3(tx, 1.78, -hz + 1.6), Vector3(2.3, 0.1, 0.1), chrome, Models.FIXED)
+		for k in 8:
+			var gx := tx - 0.98 + k * 0.28
+			Models.box(st, Vector3(gx, 1.93, -hz + 1.6), Vector3(0.16, 0.2, 0.16), glass, Models.LIT_SIGN)
+			Models.box(st, Vector3(gx, 1.66, -hz + 1.72), Vector3(0.04, 0.14, 0.04), Color("#1a1a1c"), Models.FIXED)
+	var bottles := [Color("#3a6a3a"), Color("#c9b48a"), Color("#6a3a1e"), Color("#e8e4d8"), Color("#2a4a6a")]
+	for k in 2:
+		Models.box(st, Vector3(-1.0, 1.6 + k * 0.5, -hz + 0.2), Vector3(8.0, 0.04, 0.3), Color("#cfe6ea"), Models.LIT_WINDOW)
+		for j in 26:
+			Models.box(st, Vector3(-4.8 + j * 0.3, 1.78 + k * 0.5, -hz + 0.2), Vector3(0.08, 0.3, 0.08), bottles[(j + k) % 5], Models.FIXED)
+	Models.box(st, Vector3(-1.0, 1.4, -hz + 1.3), Vector3(0.24, 2.8, 0.24), black, Models.FIXED)
+	Models.box(st, Vector3(-1.0, 3.3, -hz + 1.0), Vector3(9.4, 1.2, 2.0), Color("#1c1c1e"), Models.FIXED)
+	for col in 3:
+		for row in 5:
+			var c := Vector3(-3.9 + col * 2.9, 3.78 - row * 0.22, -hz + 2.02)
+			Models.box(st, c, Vector3(2.6, 0.19, 0.02), Color("#2a2e30"), Models.FIXED)
+			Models.box(st, c + Vector3(-1.15, 0.0, 0.012), Vector3(0.1, 0.12, 0.01), Color("#e8e4d8"), Models.LIT_SIGN)
+			Models.box(st, c + Vector3(-0.2 + 0.1 * (row % 2), 0.0, 0.012), Vector3(1.3 - 0.2 * ((row + col) % 3), 0.04, 0.01), Color("#e8e4d8"), Models.LIT_SIGN)
+			Models.box(st, c + Vector3(1.0, 0.0, 0.012), Vector3(0.3, 0.05, 0.01), Color("#e8e4d8"), Models.LIT_SIGN)
+	# The porthole in the left wall (the round iron window over the side door) and the stools at the bar.
+	for k in 16:
+		var a := TAU * k / 16.0
+		Models.box(st, Vector3(-hx + 0.03, 3.0 + sin(a) * 0.5, 2.6 + cos(a) * 0.5), Vector3(0.05, 0.16, 0.16), Color("#2b2c2e"), Models.FIXED)
+	Models.box(st, Vector3(-hx + 0.02, 3.0, 2.6), Vector3(0.03, 0.7, 0.7), Color("#9fb8c8"), Models.LIT_WINDOW)
+	Models.box(st, Vector3(-hx + 0.04, 3.0, 2.6), Vector3(0.03, 0.72, 0.05), Color("#2b2c2e"), Models.FIXED)
+	Models.box(st, Vector3(-hx + 0.04, 3.0, 2.6), Vector3(0.03, 0.05, 0.72), Color("#2b2c2e"), Models.FIXED)
+	for k in 9:
+		var sx := -4.8 + k * 0.95
+		Models.box(st, Vector3(sx, 0.38, -hz + 2.75), Vector3(0.06, 0.76, 0.06), Color("#a0683a"), Models.FIXED)
+		Models.box(st, Vector3(sx, 0.78, -hz + 2.75), Vector3(0.38, 0.08, 0.38), black, Models.FIXED)
+		Models.box(st, Vector3(sx, 0.3, -hz + 2.75), Vector3(0.3, 0.03, 0.03), Color("#a0683a"), Models.FIXED)
 	# The bottle-cap sign over the bar's right end (the street sign's gold ring).
 	Models.box(st, Vector3(4.6, 2.6, -hz + 0.05), Vector3(1.4, 1.4, 0.06), black, Models.FIXED)
 	for k in 16:
 		var a := TAU * k / 16.0
 		Models.box(st, Vector3(4.6 + cos(a) * 0.55, 2.6 + sin(a) * 0.55, -hz + 0.1), Vector3(0.14, 0.14, 0.03), Color(1.0, 0.8, 0.42), Models.LIT_SIGN)
-	# Shelves of glasses on the left wall behind the bar's end.
-	for k in 3:
-		Models.box(st, Vector3(-hx + 0.15, 1.6 + k * 0.5, -hz + 2.6), Vector3(0.3, 0.04, 2.4), oak, Models.FIXED)
-		for j in 8:
-			Models.box(st, Vector3(-hx + 0.18, 1.72 + k * 0.5, -hz + 1.6 + j * 0.28), Vector3(0.09, 0.18, 0.09), Color("#cfe6ea"), Models.LIT_WINDOW)
 	# The tables and benches, a candle on each.
 	for t: Array in TABLES:
 		var c := Vector3(float(t[0]), 0, float(t[1]))
