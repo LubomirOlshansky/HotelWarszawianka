@@ -3365,6 +3365,48 @@
       }
     ],
     [
+      "Dwie fury do wyboru: Ołdi szybsze, hatchback bardziej uczciwy.",
+      "Two rides to pick: the Owdy is quicker, the hatch more honest.",
+      {
+        "only": "cars"
+      }
+    ],
+    [
+      "Tu nie chodzi o szybkość. Tu chodzi o szacun na dzielni.",
+      "This isn't about speed. It's about respect on the block.",
+      {
+        "only": "style"
+      }
+    ],
+    [
+      "Spojler GT: docisk żaden, szacun pełny. Wygląda na +50 KM.",
+      "GT wing: zero downforce, full respect. Looks like +50 hp.",
+      {
+        "only": "wing"
+      }
+    ],
+    [
+      "Neon pod autem. Policja widzi cię z Pragi, ale jak ładnie.",
+      "Underglow. The police can see you from Praga, but so pretty.",
+      {
+        "only": "neon"
+      }
+    ],
+    [
+      "Przykręcone na cztery śruby i taśmę. Powyżej 200 nie sprawdzaj.",
+      "Bolted on with four screws and tape. Don't test it over 200.",
+      {
+        "only": "wing_buy"
+      }
+    ],
+    [
+      "Świeci! Teraz każdy parking to pokaz. Sąsiedzi zachwyceni.",
+      "It glows! Every car park is a show now. The neighbours love it.",
+      {
+        "only": "neon_buy"
+      }
+    ],
+    [
       "PRĘDKOŚĆ",
       "TOP SPEED",
       {

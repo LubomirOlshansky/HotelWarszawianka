@@ -13,6 +13,17 @@ extends SubViewportContainer
 ## to the slow turn; `focus` turns a side towards the camera (the engine: the nose, the tyres: a
 ## wheel, the nitro: the tail). About a dozen draw calls; the viewport renders only while shown
 ## (`render_target_update_mode`), and the game is paused under the screen.
+## F 2026-11-24 ("inside it must look good, neon; you can buy, say, a spoiler; and next to it a
+## Porsche 911, by all means"): the night box became Mirek's tuning bay (`_build_bay`):
+##  - the car turns on a round diamond-plate pad with a hazard-striped rim (one generated texture);
+##  - on the wall, two crossed neon wrenches and TUNING in cyan, two white strip lights;
+##  - behind the car on the right, a yellow two-post lift with a stripped shell (no wheels, a rusty
+##    door) up in the air; on the left, the "Porsza 911" (the game's parody of a certain rear-engined
+##    coupe: a sloping fastback, frog-eye lamps, a ducktail and the full-width tail bar) under a
+##    pink sign on the wall, PORSZA 911 · TYLKO POPATRZ ("just look");
+##  - the looks shown on the car (`set_car` wing and neon): the GT wing in the body's mesh, the
+##    underglow an additive pad and a cyan light under it.
+## About ten more draw calls than G1's box, all inside the stage's own world.
 
 const Models := preload("res://scripts/models.gd")
 const UiKit := preload("res://scripts/ui_kit.gd")
@@ -51,7 +62,14 @@ var _words: Label3D
 var _paint := Color("#d8432f")
 var _stripe := Color("#f4efe4")
 var _kind := "player"
+var _wing := false
+var _neon := false
 var _body_mat: StandardMaterial3D
+## The underglow under the stage car (a pad and its light), shown with `set_car` neon.
+var _glow_pad: MeshInstance3D
+var _glow_light: OmniLight3D
+## The turning pad (it turns with the car).
+var _pad: MeshInstance3D
 
 
 func _ready() -> void:
@@ -85,14 +103,25 @@ func set_mode(m: String) -> void:
 		_words.text = str(MODE_WORDS[mode])
 
 
-## The car on the turntable: its body kind (models.gd player_meshes: "player", "player_tt") and paint.
-func set_car(kind: String, paint: Color, stripe: Color) -> void:
-	if kind == _kind and paint == _paint and stripe == _stripe and _car_root != null and _car_root.get_child_count() > 0:
+## The car on the turntable: its body kind (models.gd player_meshes: "player", "player_tt"), paint,
+## and the looks (upgrades.gd LOOKS: the GT wing, the underglow), owned or tried on.
+func set_car(kind: String, paint: Color, stripe: Color, wing := false, neon := false) -> void:
+	_neon = neon
+	if _glow_pad != null:
+		_glow_pad.visible = neon
+		_glow_light.visible = neon
+	if kind == _kind and paint == _paint and stripe == _stripe and wing == _wing and _car_root != null and _car_root.get_child_count() > 0:
 		return
 	_kind = kind
 	_paint = paint
 	_stripe = stripe
+	_wing = wing
 	_set_car_meshes()
+
+
+## For the checks: the looks the stage car wears now [wing, neon].
+func looks() -> Array[bool]:
+	return [_wing, _neon]
 
 
 ## Turn the side that shows `part` (FOCUS_YAW) towards the camera, then the slow turn goes on.
@@ -131,6 +160,8 @@ func _process(dt: float) -> void:
 		_cam.h_offset = panel_share * 0.5 * high * size.x / size.y
 	_car_root.rotation.y = _yaw
 	_mirror_root.rotation.y = _yaw
+	if _pad != null:
+		_pad.rotation.y = _yaw
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -264,6 +295,7 @@ func _build_room() -> void:
 	var lamp_head := BoxMesh.new()
 	lamp_head.size = Vector3(0.36, 0.26, 0.12)
 	_mesh(wall, lamp_head, _glow_mat(Color("#e8b860"), 1.0), Vector3(-5.0, 1.95, 1.6))
+	_build_bay(world, wall)
 	# The car (and its mirror) go on the turntable; `_set_car_meshes` fills them.
 	_car_root = Node3D.new()
 	world.add_child(_car_root)
@@ -332,16 +364,243 @@ func _set_car_meshes() -> void:
 	for root: Node3D in [_car_root, _mirror_root]:
 		for c in root.get_children():
 			c.free()
-	var meshes := Models.player_meshes(Models.fin(_paint, Models.HERO, 1.0), Models.fin(_stripe, Models.HERO, 0.3), _kind)
+	var meshes := Models.player_meshes(Models.fin(_paint, Models.HERO, 1.0), Models.fin(_stripe, Models.HERO, 0.3), _kind, _wing)
+	var mats: Array[Material] = [_gloss(), _glow_mat(Color("#fff6d8"), 1.6), _glow_mat(Color("#ff3a2a"), 1.3)]
+	for i in 3:
+		_mesh(_car_root, meshes[i], mats[i], Vector3.ZERO)
+	_mesh(_mirror_root, meshes[0], _gloss(), Vector3.ZERO)  # the body only: lit lamps glare through the floor
+	_car_root.rotation.y = _yaw
+	_mirror_root.rotation.y = _yaw
+
+
+## The glossy showroom material that takes the vertex colours (the cars on the stage).
+func _gloss() -> StandardMaterial3D:
 	if _body_mat == null:
 		_body_mat = StandardMaterial3D.new()
 		_body_mat.vertex_color_use_as_albedo = true
 		_body_mat.roughness = 0.3
 		_body_mat.metallic = 0.1
 		_body_mat.metallic_specular = 0.7
-	var mats: Array[Material] = [_body_mat, _glow_mat(Color("#fff6d8"), 1.6), _glow_mat(Color("#ff3a2a"), 1.3)]
-	for i in 3:
-		_mesh(_car_root, meshes[i], mats[i], Vector3.ZERO)
-	_mesh(_mirror_root, meshes[0], _body_mat, Vector3.ZERO)  # the body only: lit lamps glare through the floor
-	_car_root.rotation.y = _yaw
-	_mirror_root.rotation.y = _yaw
+	return _body_mat
+
+
+# --- Mirek's tuning bay (F 2026-11-24) ----------------------------------------------------------
+
+## The Porsza's paint, the lift's yellow, the shell's primer and rust.
+const PORSZA_PAINT := Color("#e6e8ec")
+const LIFT_YELLOW := Color("#ffc21a")
+const PRIMER := Color("#8b8f88")
+const RUST := Color("#8a4a2a")
+## The pad's radius (m) and its hazard rim's share of it.
+const PAD_R := 2.9
+const PAD_RIM := 0.12
+
+
+## Everything the bay adds round the car; `wall` is the back wall's frame (x to the camera's right,
+## z towards it, the car 5 m out from it).
+func _build_bay(world: Node3D, wall: Node3D) -> void:
+	# The pad: diamond plate in a hazard rim, a little see-through so the wet floor still shines.
+	var pad_m := StandardMaterial3D.new()
+	pad_m.albedo_texture = _pad_texture()
+	pad_m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	pad_m.alpha_scissor_threshold = 0.5
+	pad_m.roughness = 0.35
+	pad_m.metallic = 0.55
+	pad_m.metallic_specular = 0.7
+	_pad = _mesh(world, _plane(Vector2(PAD_R * 2.0, PAD_R * 2.0)), pad_m, Vector3(0.0, 0.02, 0.0))
+	# The underglow (shown with `set_car` neon): a soft additive pad and a cyan light under the car.
+	var glow := StandardMaterial3D.new()
+	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glow.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glow.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	glow.albedo_texture = _radial(Color(UiKit.NEON_CYAN, 0.95), Color(UiKit.NEON_CYAN, 0.0))
+	_glow_pad = _mesh(world, _plane(Vector2(3.4, 5.6)), glow, Vector3(0.0, 0.035, 0.0))
+	_glow_light = OmniLight3D.new()
+	_glow_light.light_color = UiKit.NEON_CYAN
+	_glow_light.light_energy = 1.6
+	_glow_light.omni_range = 3.2
+	_glow_light.shadow_enabled = false
+	_glow_light.position = Vector3(0.0, 0.25, 0.0)
+	world.add_child(_glow_light)
+	_glow_pad.visible = _neon
+	_glow_light.visible = _neon
+	# Two crossed neon wrenches over TUNING, left of the stencil, with a halo behind.
+	var wrench := SurfaceTool.new()
+	wrench.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for sgn: float in [-1.0, 1.0]:
+		_wrench(wrench, Transform3D(Basis(Vector3.BACK, sgn * 0.75), Vector3.ZERO))
+	_mesh(wall, wrench.commit(), _glow_mat(UiKit.NEON_CYAN.lightened(0.35), 1.0), Vector3(-4.9, 3.95, 0.2))
+	var halo := StandardMaterial3D.new()
+	halo.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	halo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	halo.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	halo.albedo_texture = _radial(Color(UiKit.NEON_CYAN, 0.55), Color(UiKit.NEON_CYAN, 0.0))
+	var hq := QuadMesh.new()
+	hq.size = Vector2(4.2, 3.8)
+	_mesh(wall, hq, halo, Vector3(-4.9, 3.5, 0.16))
+	var word := Label3D.new()
+	word.text = "TUNING"
+	word.font_size = 120
+	word.pixel_size = 0.005
+	word.modulate = UiKit.NEON_CYAN.lightened(0.3)
+	word.outline_modulate = Color(UiKit.NEON_CYAN, 0.5)
+	word.outline_size = 18
+	word.shaded = false
+	word.position = Vector3(-4.9, 2.55, 0.22)
+	wall.add_child(word)
+	# Two white strip lights down the wall.
+	var strips := SurfaceTool.new()
+	strips.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var strip := BoxMesh.new()
+	strip.size = Vector3(0.09, 4.6, 0.09)
+	for x: float in [-6.9, 3.6]:
+		strips.append_from(strip, 0, Transform3D(Basis(), Vector3(x, 3.0, 0.2)))
+	_mesh(wall, strips.commit(), _glow_mat(Color("#f4f1ff"), 1.0), Vector3.ZERO)
+	# The lift with the stripped shell, behind the car on the right, side on.
+	var lift := _lift_mesh()
+	var lm := _mesh(wall, lift, _gloss(), Vector3(2.6, 0.0, 1.4))
+	lm.rotation.y = PI * 0.5 - 0.55
+	# The Porsza 911 on the left, its nose to the camera, and its sign.
+	var porsza := _porsza_meshes()
+	var pr := Node3D.new()
+	pr.position = Vector3(-3.1, 0.0, 1.7)
+	pr.rotation.y = atan2(0.6, -0.8)
+	wall.add_child(pr)
+	_mesh(pr, porsza[0], _gloss(), Vector3.ZERO)
+	_mesh(pr, porsza[1], _glow_mat(Color("#fff6d8"), 1.4), Vector3.ZERO)
+	_mesh(pr, porsza[2], _glow_mat(Color("#ff3a2a"), 1.3), Vector3.ZERO)
+	var plate := Label3D.new()
+	plate.text = "PORSZA 911\nTYLKO POPATRZ"
+	plate.font_size = 64
+	plate.pixel_size = 0.0042
+	plate.modulate = Color(UiKit.NEON_PINK.lightened(0.45), 0.9)
+	plate.outline_modulate = Color(UiKit.NEON_PINK, 0.45)
+	plate.outline_size = 10
+	plate.shaded = false
+	plate.position = Vector3(-2.7, 1.95, 0.22)
+	wall.add_child(plate)
+
+
+## One wrench along x (2.4 m), its open jaws at both ends, into `st` at `xf`.
+func _wrench(st: SurfaceTool, xf: Transform3D) -> void:
+	var bar := BoxMesh.new()
+	bar.size = Vector3(1.7, 0.13, 0.06)
+	st.append_from(bar, 0, xf)
+	var seg := BoxMesh.new()
+	seg.size = Vector3(0.2, 0.09, 0.06)
+	for end: float in [-1.0, 1.0]:
+		var c := Vector3(end * 1.06, 0.0, 0.0)
+		# A C of seven segments round the jaw, open away from the handle.
+		for k in 7:
+			var a := (end * -1.0 + 1.0) * PI * 0.5 + deg_to_rad(-150.0 + k * 50.0)
+			var p := c + Vector3(cos(a), sin(a), 0.0) * 0.24
+			st.append_from(seg, 0, xf * Transform3D(Basis(Vector3.BACK, a + PI * 0.5), p))
+
+
+## The pad's texture: diamond plate inside, the hazard rim, clear outside the circle.
+func _pad_texture() -> ImageTexture:
+	var n := 256
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	var plate := Color("#4c5058")
+	var bead := Color("#8a8f99")
+	var yellow := Color("#ffc21a")
+	var black := Color("#141417")
+	var half := n * 0.5
+	for y in n:
+		for x in n:
+			var d := Vector2(x + 0.5 - half, y + 0.5 - half)
+			var r := d.length() / half
+			if r > 1.0:
+				img.set_pixel(x, y, Color(0, 0, 0, 0))
+				continue
+			if r > 1.0 - PAD_RIM:
+				var stripe := int(floor((d.angle() / TAU * 48.0) + r * 3.0)) % 2 == 0
+				img.set_pixel(x, y, yellow if stripe else black)
+				continue
+			# Diamond plate: short raised beads in a herringbone, two directions on a 16 px grid.
+			var cell := Vector2(fposmod(x, 16.0) - 8.0, fposmod(y, 16.0) - 8.0)
+			var flip := (int(x / 16.0) + int(y / 16.0)) % 2 == 0
+			var a := cell.rotated(0.785 if flip else -0.785)
+			var on := absf(a.x) < 5.0 and absf(a.y) < 1.3
+			img.set_pixel(x, y, bead if on else plate)
+	return ImageTexture.create_from_image(img)
+
+
+## The two-post lift and the stripped shell up on it (no wheels, primer, a rusty door), one mesh in
+## vertex colours; the shell's length along -z like the cars.
+func _lift_mesh() -> ArrayMesh:
+	var s := Models.Shape.new()
+	var yel := Models.fin(LIFT_YELLOW)
+	var dark := Models.fin(Color("#26252b"))
+	for sgn: float in [-1.0, 1.0]:
+		s.box(Vector3(sgn * 1.35, 1.45, 0.0), Vector3(0.24, 2.9, 0.3), yel)
+		s.box(Vector3(sgn * 1.35, 0.03, 0.0), Vector3(0.6, 0.06, 0.6), dark)
+		for z: float in [-0.9, 0.9]:
+			s.box(Vector3(sgn * 0.85, 1.55, z * 0.5), Vector3(1.0, 0.08, 0.1), yel)
+	s.box(Vector3(0.0, 2.95, 0.0), Vector3(2.94, 0.12, 0.18), yel)
+	# The shell, 1.62 m up: a small hatch's lower body and glasshouse, no wheels, dark arches.
+	s.xform = Transform3D(Basis(), Vector3(0.0, 1.62, 0.0))
+	var lower := PackedVector2Array([Vector2(-1.85, 0.18), Vector2(-1.9, 0.5), Vector2(-1.4, 0.72),
+			Vector2(1.55, 0.78), Vector2(1.85, 0.6), Vector2(1.85, 0.2)])
+	var lw := PackedFloat32Array([0.78, 0.8, 0.82, 0.82, 0.8, 0.78])
+	var primer := Models.fin(PRIMER)
+	s.loft(lower, lw, [primer, primer, primer, primer, primer, null], primer)
+	var house := PackedVector2Array([Vector2(-1.2, 0.76), Vector2(-0.5, 1.3), Vector2(1.2, 1.32), Vector2(1.5, 0.79)])
+	var hw := PackedFloat32Array([0.74, 0.66, 0.66, 0.74])
+	var glass := Models.fin(Color("#2a3340"))
+	s.loft(house, hw, [glass, primer, glass, null], glass)
+	for z: float in [-1.15, 1.15]:
+		for sgn: float in [-1.0, 1.0]:
+			s.arch(sgn * 0.83, sgn, z, 0.3, 0.36, 0.18, dark)
+	# One rusty door on the camera's side (-x once the lift is turned side on), the bonnet's hole dark.
+	s.side_rect(-0.835, -1.0, 0.24, 0.7, -0.55, 0.45, Models.fin(RUST))
+	s.box(Vector3(0.0, 0.73, -1.62), Vector3(1.3, 0.04, 0.42), dark)
+	return s.mesh()
+
+
+## The Porsza 911: [body, head lamps, tail bar]. A low fastback (4.5 x 1.8 x 1.3 m), the nose -z:
+## the long sloping roof down to a ducktail, round lamps on the front wings, fat rear tyres.
+func _porsza_meshes() -> Array[ArrayMesh]:
+	var s := Models.Shape.new()
+	var paint := Models.fin(PORSZA_PAINT)
+	var glass := Models.fin(Color("#1d2430"))
+	var dark := Models.fin(Color("#16151a"))
+	var lower := PackedVector2Array([Vector2(-2.25, 0.28), Vector2(-2.3, 0.56), Vector2(-2.0, 0.74),
+			Vector2(-0.75, 0.86), Vector2(1.6, 0.9), Vector2(2.25, 0.7), Vector2(2.3, 0.35)])
+	var lw := PackedFloat32Array([0.8, 0.84, 0.86, 0.88, 0.9, 0.86, 0.84])
+	s.loft(lower, lw, [paint, paint, paint, paint, paint, paint, null], paint)
+	var house := PackedVector2Array([Vector2(-0.75, 0.86), Vector2(-0.15, 1.28), Vector2(0.5, 1.3), Vector2(1.85, 0.89)])
+	var hw := PackedFloat32Array([0.74, 0.62, 0.6, 0.72])
+	s.loft(house, hw, [glass, paint, glass, null], glass)
+	# The ducktail on the engine lid, a black sill, the arches and the wheels (wider at the back).
+	s.box(Vector3(0.0, 0.93, 1.95), Vector3(1.5, 0.06, 0.4), paint)
+	for sgn: float in [-1.0, 1.0]:
+		s.side_rect(sgn * 0.905, sgn, 0.26, 0.36, -1.0, 0.9, dark)
+		for ax: Array in [[-1.38, 0.2], [1.3, 0.27]]:
+			s.arch(sgn * 0.91, sgn, float(ax[0]), 0.33, 0.4, 0.28, dark)
+			s.wheel(Vector3(sgn * (0.9 - float(ax[1]) * 0.5 + 0.03), 0.33, float(ax[0])), 0.33, float(ax[1]), 10, sgn,
+					Models.fin(Color("#111114")), Models.fin(Color("#b9bcc2")))
+	var body := s.mesh()
+	# Frog-eye lamps: round, on the front wings' slope.
+	var heads := Models.Shape.new()
+	var face := heads.edge_face(lower, lw, 1)
+	var c0: Vector3 = face[0]
+	var c1: Vector3 = face[1]
+	var c2: Vector3 = face[2]
+	var c3: Vector3 = face[3]
+	var n: Vector3 = (c1 - c0).cross(c3 - c0).normalized()
+	if n.dot(Vector3(0.0, 0.4, -1.0)) < 0.0:
+		n = -n
+	var up := (c3 - c0).normalized()
+	for u: float in [0.2, 0.8]:
+		var centre: Vector3 = c0.lerp(c1, u).lerp(c3.lerp(c2, u), 0.6) + n * 0.02
+		var ring: Array[Vector3] = []
+		for k in 10:
+			var a := TAU * (k + 0.5) / 10.0
+			ring.append(centre + Vector3.RIGHT * cos(a) * 0.15 + up * sin(a) * 0.15)
+		for k in range(1, 9):
+			heads.tri(ring[0], ring[k], ring[k + 1], Models.fin(Color.WHITE), n)
+	# The tail: one red bar across the full width.
+	var tails := Models.Shape.new()
+	tails.pane(tails.edge_face(lower, lw, 5), 0.02, 0.98, 0.25, 0.45, Models.fin(Color.WHITE), 0.02)
+	return [body, heads.mesh(), tails.mesh()]

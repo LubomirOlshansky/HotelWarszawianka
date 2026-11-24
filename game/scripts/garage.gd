@@ -298,6 +298,8 @@ func choose_item(id: String) -> String:
 				wallet.car = id
 			"nitro":
 				wallet.nitro = true
+			"look":
+				wallet.tune[id] = 1
 			"part":
 				wallet.tune[id] = Upgrades.level(wallet.tune, id) + 1
 		print("garage: bought %s for %d zł -> %d zł left" % [id, price, wallet.zl])
@@ -321,6 +323,8 @@ func apply_car() -> void:
 	car.nitro_owned = bool(wallet.nitro)
 	if str(wallet.car) != car.model:
 		car.set_model(str(wallet.car))
+	if car.has_method("set_looks"):
+		car.set_looks(Upgrades.has_look(wallet.tune, "wing"), Upgrades.has_look(wallet.tune, "neon"))
 	if hud != null and hud.has_method("set_nitro"):
 		hud.set_nitro(car.nitro_owned, car.nitro_charge, car.nitro_bottles, car.nitro_on)
 

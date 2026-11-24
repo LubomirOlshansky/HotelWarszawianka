@@ -165,6 +165,13 @@ var steer_gain := 1.0
 ## "Ołdi TT" parody), the tuning multipliers (engine: top speed and pull, tyres: grip) and nitro.
 ## All 1.0 / off by default, so a car nobody has tuned drives exactly as before.
 var model := "hatch"
+## F 2026-11-24 (bought at Mirek's, upgrades.gd LOOKS): the GT wing on the body (models.gd
+## player_meshes `wing`, the same one mesh) and the underglow (one additive pad under the car,
+## drawn only when owned: +1 draw call then, none otherwise).
+var wing := false
+var neon := false
+const NEON_COLOUR := Color("#5fd4ff")  # ui_kit.gd NEON_CYAN, the brand's
+var _neon_pad: MeshInstance3D
 ## The coffee run (coffee_run.gd): the player swaps the car for a ROWERILO bike at a dock. On the
 ## bike (model "bike") the top speed is BIKE_TOP whatever the engine, the pull BIKE_PULL of the
 ## car's and NITRO never lights; the collision box stays the car's (the same stuck and kerb rules).
@@ -1339,14 +1346,53 @@ func set_model(id: String) -> void:
 		_apply_lights()
 	if _body != null and _body.get_child_count() >= 3:
 		var m := Models.player_meshes(Models.fin(paint, Models.HERO, paint_glow),
-				Models.fin(stripe, Models.HERO, stripe_glow), _kind())
+				Models.fin(stripe, Models.HERO, stripe_glow), _kind(), wing)
 		(_body.get_child(0) as MeshInstance3D).mesh = m[0]
 		(_body.get_child(1) as MeshInstance3D).mesh = m[1]
 		(_body.get_child(2) as MeshInstance3D).mesh = m[2]
+	if _neon_pad != null:
+		_neon_pad.visible = neon and model != "bike"  # no underglow under the ROWERILO bike
 
 
 func _kind() -> String:
 	return "player_tt" if model == "tt" else ("player_bike" if model == "bike" else "player")
+
+
+## F 2026-11-24: the looks bought at Mirek's: the GT wing (the body made again once) and the underglow.
+func set_looks(has_wing: bool, has_neon: bool) -> void:
+	if has_wing != wing:
+		wing = has_wing
+		set_model(model)
+	neon = has_neon
+	if neon and _neon_pad == null:
+		_neon_pad = MeshInstance3D.new()
+		_neon_pad.name = "Underglow"
+		var q := QuadMesh.new()
+		q.size = Vector2(2.9, 5.0)
+		q.orientation = PlaneMesh.FACE_Y
+		_neon_pad.mesh = q
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.albedo_color = NEON_COLOUR
+		var g := Gradient.new()
+		g.set_color(0, Color(1, 1, 1, 0.9))
+		g.set_color(1, Color(1, 1, 1, 0.0))
+		var t := GradientTexture2D.new()
+		t.gradient = g
+		t.fill = GradientTexture2D.FILL_RADIAL
+		t.fill_from = Vector2(0.5, 0.5)
+		t.fill_to = Vector2(0.5, 0.0)
+		t.width = 32
+		t.height = 32
+		m.albedo_texture = t
+		_neon_pad.material_override = m
+		_neon_pad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_neon_pad.position = Vector3(0.0, 0.06, 0.0)
+		_body.add_child(_neon_pad)
+	if _neon_pad != null:
+		_neon_pad.visible = neon and model != "bike"
 
 
 ## The coffee run: a still copy of the car's three body meshes (the paint, lamps unlit), left at the
@@ -1605,7 +1651,7 @@ func _make_body() -> Node3D:
 	# The garage loop: the paint and the stripes are the car's (`set_paint`).
 	var root := Node3D.new()
 	var meshes := Models.player_meshes(Models.fin(paint, Models.HERO, paint_glow),
-			Models.fin(stripe, Models.HERO, stripe_glow), _kind())
+			Models.fin(stripe, Models.HERO, stripe_glow), _kind(), wing)
 	_part(root, meshes[0], Models.material(), true)
 	_body_mesh = root.get_child(0) as MeshInstance3D
 	var lamp := StandardMaterial3D.new()
@@ -1636,7 +1682,7 @@ func set_paint(body: Color, stripes: Color, body_glow := HERO_PAINT, stripes_glo
 	stripe_glow = stripes_glow
 	if _body_mesh != null:
 		_body_mesh.mesh = Models.player_meshes(Models.fin(paint, Models.HERO, paint_glow),
-				Models.fin(stripe, Models.HERO, stripe_glow), _kind())[0]
+				Models.fin(stripe, Models.HERO, stripe_glow), _kind(), wing)[0]
 
 
 ## G13b: two flames out of the tail, orange fading to a transparent blue-white tip, drawn like the
