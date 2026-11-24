@@ -12,6 +12,8 @@ extends SceneTree
 ##     games to the end (every one ends, the strong rival wins more than the weak), and the aim's
 ##     predicted path allocates nothing new once grown;
 ##  3. the tipsy spell (tipsy.gd): the fade from the start to 0 at LONG, the pull wanders both ways;
+##     the double-vision screen pass off at Low (tiers.gd screen_fx) and on at every higher level,
+##     the camera's sway there at every level;
 ##  4. the room: its mesh builds (under 20k triangles), people to tap, the rivals' card;
 ##  5. the door (tapczan.gd on the activity kit, with stand-ins): the ring only near, the WEJDŹ pill
 ##     only stopped at the kerb, the pill starts the run (HUD hidden, the car's process off), a pint
@@ -22,6 +24,7 @@ extends SceneTree
 
 const Sim := preload("res://scripts/beer_pong_sim.gd")
 const Room := preload("res://scripts/tapczan_room.gd")
+const Tiers := preload("res://scripts/tiers.gd")
 const Tipsy := preload("res://scripts/tipsy.gd")
 const Tapczan := preload("res://scripts/tapczan.gd")
 const MapMarkers := preload("res://scripts/map_markers.gd")
@@ -333,6 +336,20 @@ func _tipsy() -> void:
 		hi = maxf(hi, p)
 	if lo > -0.05 or hi < 0.05 or maxf(-lo, hi) > Tipsy.PULL * 1.5:
 		_fail("tipsy pull should wander both ways, gently: %.3f .. %.3f" % [lo, hi])
+	# Perf audit: the screen read (hint_screen_texture) is skipped at Low; the free parts stay.
+	if Tipsy.screen_pass(Tiers.LOW):
+		_fail("tipsy: the double-vision pass should be off at Low")
+	for q in [Tiers.MEDIUM, Tiers.HIGH, Tiers.ULTRA, Tiers.EXPERIMENTAL]:
+		if not Tipsy.screen_pass(q):
+			_fail("tipsy: the double-vision pass should be on at %s" % Tiers.NAMES[q])
+	var tp := Tipsy.new()
+	tp.amount = 1.0
+	tp._t = 1.0
+	for q in [Tiers.LOW, Tiers.HIGH]:
+		tp.level = q
+		if tp.sway(Transform3D.IDENTITY).is_equal_approx(Transform3D.IDENTITY):
+			_fail("tipsy: the camera should sway at %s" % Tiers.NAMES[q])
+	tp.free()
 
 
 # --- 4, 5. the room and the door -----------------------------------------------------------------
@@ -430,6 +447,12 @@ func _room_and_door() -> void:
 		_fail("WYJDŹ should end the run with the HUD and the car back")
 	if not t.tipsy.on() or t.tipsy.amount < 0.9:
 		_fail("a pint and two cups should make the drive tipsy: %.2f" % t.tipsy.amount)
+	t.tipsy.set_level(Tiers.LOW)
+	if t.tipsy._overlay.visible or not t.tipsy.on() or not t.tipsy.is_processing():
+		_fail("at Low the spell should go on without its screen pass")
+	t.tipsy.set_level(Tiers.HIGH)
+	if not t.tipsy._overlay.visible:
+		_fail("back at High the screen pass should return mid-spell")
 	var e := t.quest_entry()
 	if str(e["group"]) != "crawl" or (e["at"] as Vector2).distance_to(Tapczan.door()) > 0.1:
 		_fail("the QUESTS entry: %s" % e)

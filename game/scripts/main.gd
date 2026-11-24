@@ -2131,6 +2131,8 @@ func _set_quality(choice: int) -> void:
 		wellness.amount = _crowd_scale()
 	if life != null:
 		life.amount = float(flags.life_flag) * (0.5 if quality == Tiers.LOW else 1.0)
+	if tapczan != null and tapczan.tipsy != null:
+		tapczan.tipsy.set_level(quality)  # the tipsy drive's screen pass is off at Low (tiers.gd screen_fx)
 	RenderingServer.directional_shadow_atlas_set_size(int(Tiers.value(quality, "shadow_size")), true)
 	_apply_experimental()
 	_keep.applied()

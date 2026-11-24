@@ -4,3 +4,7 @@
 - THE TAPCZAN has its own beer-mug mark with its name on the minimap and the full map, from the very start.
 - The National Philharmonic on Jasna looks like the real one now: the arcade of arches at street level, the balcony with its doors behind the columns, Chopin and Moniuszko on the balcony, FILHARMONIA NARODOWA over the columns and the round fn sign on the corner. The house above THE TAPCZAN is cream again, as in the photos.
 - Kamienica Harczyka on the corner of Jasna and Sienkiewicza is warm cream like in the photos, with arched shop fronts, balconies on every other floor of the corner and round-topped gables along the roof.
+
+## Backlog
+- fixed: the tipsy drive's double-vision pass read the screen back (costly on a tile-based GPU) at every level; at Graphics Low (and Auto's Low on an old Adreno) it is skipped now, the sway, thoughts and pull stay
+- found: the pass's cost on the iPhone at High is still unmeasured (PHONE-CHECK 15zzj)

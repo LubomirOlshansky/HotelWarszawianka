@@ -53,6 +53,9 @@ to go into.
    camera swaying and rolling a touch, odd thoughts drifting across the screen ("Gołąb na dachu
    ocenia twoje życie"), and the car wandering gently one way and then the other. One of the lines
    says it plainly: in real life, a taxi. More drinks, a stronger start (a pint 0.35, up to 1).
+   At Graphics Low (and Auto's Low on an old Adreno; tiers.gd `screen_fx`) the doubling and soft
+   edges are skipped, since that pass reads the screen back, which costs a tile-based GPU a resolve
+   and a copy; the sway, the thoughts and the pull stay at every level.
 
 ## How it is built
 
@@ -62,7 +65,7 @@ to go into.
 | The room, the tap list, the bill | `tapczan_room.gd` | one mesh (about 16k triangles, the chalk's pixel text merged into runs), one MultiMesh of people, the panel, the tap list and the bill line; built on the first visit at (9000, 0, -9000); no lights of its own |
 | Beer pong's rules and ball | `beer_pong_sim.gd` | pure; the flight is integrated at 120 Hz once per throw; the aim's preview traces into one reused array |
 | Beer pong's view and touch | `beer_pong.gd` | `_draw` only, a fixed perspective; nothing allocated per frame |
-| The drive after | `tipsy.gd`, `shaders/tipsy.gdshader` | the overlay lives in the city's SubViewport (the HUD stays sharp); hidden and `_process` off when sober; car.gd `tipsy_pull` |
+| The drive after | `tipsy.gd`, `shaders/tipsy.gdshader` | the overlay lives in the city's SubViewport (the HUD stays sharp); hidden and `_process` off when sober; the screen pass skipped where tiers.gd's `screen_fx` is off (Low; `Tipsy.screen_pass`, main.gd `_set_quality` → `set_level`); car.gd `tipsy_pull` |
 | Words | `game/data/tapczan.json` | every on-screen line, [Polish, English]; `taps` (the tap list), `refusals`, `memes` (the boards' pixel lines and their tap) |
 | The map mark | `tapczan.gd` `setup` | the registry's SERVICE layer (map_markers.gd), shape `POI_MUG`, `extra.name` "THE TAPCZAN": both maps, from the start, quiet in quest focus like the garage |
 

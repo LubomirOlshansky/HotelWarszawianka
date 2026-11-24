@@ -9,9 +9,14 @@ extends Node
 ##
 ## Cost: nothing while sober (the overlay hidden, `_process` off). While on: one full-screen pass
 ## with three taps of the screen (fill rate: a phone question, PHONE-CHECK), a Label, a few sines.
+## The pass reads the screen back (hint_screen_texture: on a tile-based GPU the frame is resolved
+## and copied), so a level without `screen_fx` (tiers.gd: Low, and Auto's Low on an old Adreno)
+## skips it (`screen_pass`); the sway, the thoughts and the pull stay there. main.gd `_set_quality`
+## passes the level in (`set_level`), so a change in Settings mid-spell takes effect at once.
 
 const Lang := preload("res://scripts/lang.gd")
 const Room := preload("res://scripts/tapczan_room.gd")
+const Tiers := preload("res://scripts/tiers.gd")
 
 ## How long it lasts (s) from the full amount, and the amount a drink adds.
 const LONG := 60.0
@@ -28,6 +33,8 @@ var hud: CanvasLayer
 var car: Node3D
 ## 0..1 now; `start` is the amount at the last drink.
 var amount := 0.0
+## The graphics level in force (Tiers.LOW..EXPERIMENTAL; main.gd `set_level`).
+var level := Tiers.HIGH
 var left := 0.0
 var _start := 0.0
 var _t := 0.0
@@ -89,7 +96,7 @@ func go() -> void:
 	left = LONG
 	_t = 0.0
 	_next_thought = 1.5
-	_overlay.visible = true
+	_overlay.visible = screen_pass(level)
 	set_process(true)
 	if hud != null:
 		var p := Room.pair("drunk_toast")
@@ -104,6 +111,19 @@ static func fade(a: float, t: float) -> float:
 
 func on() -> bool:
 	return amount > 0.0
+
+
+## Whether the double-vision pass (tipsy.gdshader, a screen read) runs at graphics level `q`:
+## not where the level turns `screen_fx` off (Low). The sway, thoughts and pull run at every level.
+static func screen_pass(q: int) -> bool:
+	return bool(Tiers.value(q, "screen_fx", true))
+
+
+## The graphics level changed (main.gd `_set_quality`): the pass follows it, mid-spell too.
+func set_level(q: int) -> void:
+	level = q
+	if _overlay != null:
+		_overlay.visible = on() and screen_pass(level)
 
 
 ## The car's pull now (rad/s of yaw): a slow wander one way and then the other.
