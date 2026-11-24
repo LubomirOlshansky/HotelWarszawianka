@@ -241,6 +241,9 @@ const BUDGET := {
 	"tower75": 220,
 	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
 	"tapczan": 4700,  # 2026-11-24 THE TAPCZAN pub on Sienkiewicza 4 (F's photos): street level, carved panels, sign, pallet terrace, 7 tables, 28 chairs, 2 umbrellas, planters
+	"sienkiewicza4": 5300,  # 2026-11-24 the Art Nouveau tenement on Sienkiewicza 4 (F's photos): bows, friezes, canopy, windows, rear range
+	"harczyk": 6800,  # 2026-11-24 Kamienica Harczyka: chamfered corner, mansard with dormers, balconies, three fronts
+	"sienkiewicza3": 3200,  # 2026-11-24 the 1950s arcade block opposite: piers, arcade, balustrade, passage
 	"pijana": 2200,  # 2026-11-08 PIJANA CZEREŚNIA kiosk (F): 1806 tris (octagon, drum, painted windows, deck rail, string lights)
 	"zodiak": 1500,  # 2026-11-19 neon star, string lights on three poles
 	"cmarsz": 2200,
@@ -316,7 +319,7 @@ const BUDGET := {
 	# Plac Bankowy, Filharmonia, Teatr Polski (the Mac photo reports, 2026-11-02): fronts on kept skins.
 	"ratusz": 2500,
 	"gielda": 1050,
-	"filharmonia": 1450,
+	"filharmonia": 6400,  # 2026-11-24: the Jasna front from the photos (arcade, doors, inscription, balustrade); was 1450
 	"teatr_polski": 760,
 	"teresy": 900,  # 2026-11-13 photo rebuild (cream plaster, round-headed windows, porch, spire)
 	"flisac": 4200,  # 2026-11-13: the grid of panes, loggias and shop glass, 3,552 triangles

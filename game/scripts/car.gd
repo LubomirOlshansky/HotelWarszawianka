@@ -330,6 +330,9 @@ var lane_assist := false
 var lane_dir := Vector3.ZERO
 ## The assist's yaw rate this step (rad/s), for the checks.
 var lane_pull := 0.0
+## After THE TAPCZAN (tipsy.gd): a gentle yaw rate (rad/s, + left) added while the car moves, so it
+## wanders one way and then the other; 0 when sober.
+var tipsy_pull := 0.0
 ## What the car does this step (loop 2a): the brakes are on (the button, or pointing well
 ## behind at speed: skids and the tyres' squeal read this), the smoothed steering, and
 ## the yaw rate (rad/s, + is left).
@@ -669,6 +672,8 @@ func _step(dt: float) -> void:
 	var st := steer_time / steer_gain * ((1.0 + absf(speed) / STEER_SLOW) if weighty else 1.0)
 	steer_now = lerpf(steer_now, clampf(s, -1.0, 1.0), 1.0 - exp(-dt / st))
 	var yaw := steer_now * max_turn(absf(speed), maxf(gas, throttle)) * backwards
+	if tipsy_pull != 0.0:
+		yaw += tipsy_pull * clampf(absf(speed) / 6.0, 0.0, 1.0) * backwards
 	lane_pull = _lane_pull(fwd, speed)
 	if lane_pull != 0.0:
 		var most := max_turn(absf(speed), maxf(gas, throttle))

@@ -234,6 +234,9 @@ var crawl_flag := ""
 var crawl_route := ""
 var crawl_group := ""
 var crawl_log := false
+## THE TAPCZAN (tapczan.gd): --tapczan=0|in|taps|pong|drunk, --tapczan-log.
+var tapczan_flag := ""
+var tapczan_log := false
 var _crawl_auto := false
 var ev_flag := ""
 var ev_log := false
@@ -953,6 +956,10 @@ func parse_with(args: PackedStringArray) -> void:
 			crawl_flag = arg.trim_prefix("--crawl=")
 		elif arg == "--crawl-log":
 			crawl_log = true
+		elif arg.begins_with("--tapczan="):
+			tapczan_flag = arg.trim_prefix("--tapczan=")
+		elif arg == "--tapczan-log":
+			tapczan_log = true
 		elif arg == "--rave-log":
 			rave_log = true
 		elif arg in ["--shisha-call", "--shisha-meet", "--shisha-door", "--shisha-arrive", "--shisha-lounge", "--shisha-terrace", "--shisha-hold"]:

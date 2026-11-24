@@ -75,6 +75,8 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"A", "R", "S", "Z", "P", "I", "Ś", "JAZZ",
 		# THE TAPCZAN, the craft-beer pub's sign on Sienkiewicza 4 (F's photos, 2026-11-24).
 		"THE", "TAPCZAN", "CRAFT BEER",
+		# Kamienica Harczyka's ground floor (F's photos, 2026-11-24): parodies of a restaurant and a café.
+		"REJNA", "LIMONKA",
 		# S3a: Warszawa Stadion's roof letters.
 		"STADION",
 		# S3e: Warszawa Wschodnia's fascia letters (with WARSZAWA above).

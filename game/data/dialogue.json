@@ -7120,6 +7120,8 @@
     ["Mixtape'y leżą na dachach. Dolecisz tylko helikopterem.", "Mixtapes lie on rooftops. Only the helicopter gets there.", {"only": "job_cassette_about"}],
     ["Warsztat u Mirka", "Mirek's garage", {"only": "job_garage"}],
     ["Lakiery, opony, silnik i nitro. W becie tanio.", "Paints, tyres, engine and nitro. Cheap in the beta.", {"only": "job_garage_about"}],
+    ["Rajd Kraftowy · THE TAPCZAN", "The Craft Crawl · THE TAPCZAN", {"only": "job_crawl"}],
+    ["Pub na Sienkiewicza 4, otwarty zawsze: zatrzymaj się przy złotym kółku i WEJDŹ. Piwko przy barze, beer pong z bywalcami o złotówki. Nocą stąd rusza Rajd Kraftowy: grupa dzwoni, ty wozisz.", "The pub on Sienkiewicza 4, always open: stop at the gold ring and GO IN. A pint at the bar, beer pong with the regulars for złoty. At night the Craft Crawl starts here: a group rings, you drive.", {"only": "job_crawl_about"}],
     ["Dzielnice", "Districts", {"only": "col_districts"}],
     ["Odkrywaj dzielnice, jeżdżąc po nich i robiąc zlecenia.", "Discover the districts by driving through them and doing jobs there.", {"only": "col_districts_about"}],
     ["Syrenki", "Syrenki", {"only": "col_syrenki"}],
