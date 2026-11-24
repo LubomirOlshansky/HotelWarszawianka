@@ -3,12 +3,11 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
-## Automatic Play uploads need a service account key (F, 2026-11-21)
+## Releases with no manual step: the store keys (F, 2026-11-24)
 
-`tools/release.sh` uploads iOS builds to TestFlight by itself, but the Play upload needs a Play
-service account JSON key that only F can create (docs/store/release.md, "Keys"). Until then it
-leaves the AAB in ~/Downloads for a manual upload in Play Console. Optional: an App Store Connect
-API key, so iOS uploads work without the Xcode sign-in.
+`tools/release.sh --open-beta` is written but has never run against the stores: it needs the App
+Store Connect API key and the Play service account key (docs/store/release.md, "Keys"). Its first
+real run proves the store half; until then builds go out the old way.
 
 ## Fill the shared photo store (2026-11-13, building-pipeline-review item 3)
 
