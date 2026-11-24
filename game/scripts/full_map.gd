@@ -1439,7 +1439,7 @@ func _paint() -> void:
 			continue
 		taken.append(box)
 		var col := Access.tint((svc["colour"] as PackedColorArray)[i])
-		o.draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, _px(5), Color(0.11, 0.1, 0.14, 0.95))
+		o.draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, _px(5), UiKit.OUTLINE)
 		o.draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, col.lightened(0.35))
 	for ic in named:
 		var text: String = ic["pl"]
