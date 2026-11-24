@@ -35,6 +35,10 @@ var car: Node3D
 var amount := 0.0
 ## The graphics level in force (Tiers.LOW..EXPERIMENTAL; main.gd `set_level`).
 var level := Tiers.HIGH
+## --tapczan-log: the spell every LOG_EVERY s (amount, pull, sway, the screen pass), its start and end.
+var log_on := false
+const LOG_EVERY := 10.0
+var _log_t := 0.0
 var left := 0.0
 var _start := 0.0
 var _t := 0.0
@@ -98,6 +102,8 @@ func go() -> void:
 	_next_thought = 1.5
 	_overlay.visible = screen_pass(level)
 	set_process(true)
+	_log_t = 0.0
+	_log("start: amount %.2f, level %d, screen pass %s" % [amount, level, "on" if _overlay.visible else "off"])
 	if hud != null:
 		var p := Room.pair("drunk_toast")
 		hud.toast(str(p[0]), str(p[1]))
@@ -153,6 +159,18 @@ func _process(dt: float) -> void:
 	if car != null and "tipsy_pull" in car:
 		car.tipsy_pull = pull_at(amount, _t)
 	_thoughts(dt)
+	if log_on:
+		_log_t += dt
+		if _log_t >= LOG_EVERY:
+			_log_t -= LOG_EVERY
+			var xf := sway(Transform3D.IDENTITY)
+			_log("t %.0f s: amount %.2f, pull %.3f rad/s, sway %.2f m, screen pass %s, thought %s" % [_t, amount,
+					pull_at(amount, _t), xf.origin.length(), "on" if _overlay.visible else "off", "up" if _text.visible else "-"])
+
+
+func _log(text: String) -> void:
+	if log_on:
+		print("tipsy: " + text)
 
 
 func _thoughts(dt: float) -> void:
@@ -190,6 +208,8 @@ func _stop() -> void:
 	if car != null and "tipsy_pull" in car:
 		car.tipsy_pull = 0.0
 	set_process(false)
+	if was:
+		_log("over at %.0f s" % _t)
 	if was and hud != null:
 		var p := Room.pair("drunk_over")
 		hud.toast(str(p[0]), str(p[1]))

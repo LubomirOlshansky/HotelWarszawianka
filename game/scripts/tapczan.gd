@@ -19,7 +19,10 @@ extends "res://scripts/activity.gd"
 ## Flags (dev_flags.gd): --tapczan=0 (none), --tapczan=in (straight in, the room's panel to use),
 ## --tapczan=taps (straight in with the TAP LIST open, for shots),
 ## --tapczan=pong (straight in, a pint and a self-playing game against the first rival, then out:
-## the tipsy drive), --tapczan=drunk (the tipsy minute at once), --tapczan-log.
+## the tipsy drive; --tapczan=pong:office against another rival of RIVALS), --tapczan=pour:ID (straight
+## in, one beer ID off the tap list, stay), --tapczan=drunk (the tipsy minute at once), --tapczan-log
+## (the pill, the pours with the wallet, the pong's pay, the tipsy spell every 10 s, the map mark and
+## the QUESTS entry at the join: the playtest rows' verdicts, docs/PLAYTEST.md P22).
 ##
 ## Cost idle: a distance test 4 times a second; the ring (one beacon) only within MARK_R m.
 
@@ -103,6 +106,7 @@ func setup(world: Node3D) -> void:
 			start())
 	if hud.get("markers") != null:
 		var d := door()
+	tipsy.log_on = log_on
 		# F 2026-11-24: a permanent mark on both maps, a beer mug named THE TAPCZAN (SERVICE layer).
 		hud.markers.put_all("tapczan", [{"key": "door", "layer": MapMarkers.Layer.SERVICE, "at": d, "colour": AMBER,
 				"shape": MapIcons.POI_MUG, "group": "crawl", "extra": {"name": "THE TAPCZAN"}}])
@@ -112,14 +116,26 @@ func setup(world: Node3D) -> void:
 func joined(ctx: GameCtx) -> void:
 	cam = ctx.world.get_viewport().get_camera_3d() if ctx.world != null else null
 	room.cam = cam
-	match _flag:
-		"in", "pong", "taps":
-			room.auto_play = _flag == "pong"
+	if log_on:
+		var e := quest_entry()
+		var m: Variant = hud.get("markers")
+		var marked: bool = m != null and m.has("tapczan:door")
+		_log("joined: map mark %s at %s, QUESTS entry '%s' (%s)" % ["on" if marked else "MISSING",
+				str(door().round()), str(e.get("en", "?")), str(e.get("group", "?"))])
+	var mode := _flag.get_slice(":", 0)
+	match mode:
+		"in", "pong", "taps", "pour":
+			room.auto_play = mode == "pong"
+			if mode == "pong" and _flag.contains(":"):
+				room.auto_rival = _flag.get_slice(":", 1)
 			get_tree().create_timer(1.5).timeout.connect(func() -> void:
 				if phase == Phase.IDLE:
 					start()
-				if _flag == "taps":
-					room.drink())
+				if mode == "taps":
+					room.drink()
+				elif mode == "pour":
+					# After --pop's pay (main.gd, 2 s), so a row can start with money.
+					get_tree().create_timer(1.5).timeout.connect(func() -> void: room.order(_flag.get_slice(":", 1))))
 		"drunk":
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
 				tipsy.add(3.0)
@@ -183,6 +199,7 @@ func _idle_tick(dt: float) -> void:
 
 func _begin() -> void:
 	if hud.pill_shown(PILL):
+			_log("pill %s at %.1f m from the ring, %.1f km/h" % [str(w[0]), d, absf(float(v[1]))])
 		hud.hide_pill()
 	if _mark != null:
 		_mark.visible = false
@@ -213,9 +230,12 @@ func _on_left() -> void:
 		return
 	finish()
 
+	var before := int(wallet.get("zl")) if wallet != null else 0
 
 func _ended() -> void:
 	if room.inside:
+	_log("pong paid: %s vs %s, stake %d, wallet %d -> %d" % ["won" if won else "lost", room.last_rival(), stake,
+			before, int(wallet.get("zl")) if wallet != null else 0])
 		room.inside = false
 	hud.visible = _hud_was
 	if _car_body != null:

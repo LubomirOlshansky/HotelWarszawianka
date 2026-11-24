@@ -77,6 +77,8 @@ var log_on := false
 var auto_play := false
 ## --nohud: the room without its panel (shots).
 var panel_off := false
+## A test run's rival (--tapczan=pong:ID; "" for the first on the card).
+var auto_rival := ""
 
 var inside := false
 ## The view's aim: up and towards the back so the tall walls and the mezzanine fit over the panel.
@@ -787,7 +789,7 @@ func enter(world: Node3D) -> void:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
 			if inside:
 				order("lager")
-				play(RIVALS[0]))
+				play(auto_rival if auto_rival in RIVALS else RIVALS[0]))
 
 
 func leave() -> void:
@@ -856,7 +858,8 @@ func order(id: String) -> bool:
 		get_tree().create_timer(SIP_S).timeout.connect(func() -> void:
 			if inside and gen == _sip_gen:
 				_say_text(pair("sip"), line))
-	_log("pour %s: %d zl, bill %d, strength %.2f" % [id, price, bill, strength(t)])
+	_log("pour %s: %d zl, bill %d, wallet %d, strength %.2f" % [id, price, bill,
+			int(wallet.get("zl")) if wallet != null else -1, strength(t)])
 	drank.emit(strength(t))
 	return true
 
@@ -879,6 +882,11 @@ func _show_pick() -> void:
 func play(id: String) -> void:
 	_pick.visible = false
 	if _pong == null:
+## The rival of the last pong game ("" before one).
+func last_rival() -> String:
+	return _pong.rival_id if _pong != null else ""
+
+
 		_pong = BeerPong.new()
 		_pong.name = "BeerPong"
 		_pong.log_on = log_on
