@@ -42,7 +42,7 @@ no brands (the check runs the brand denylist).
 
 ## The routes (bar_crawl.gd ROUTES)
 
-All bars are the parody fascias already on the map (storefronts.gd), never real names.
+All bars are parody names, never real ones: the fascias on the map (storefronts.gd), and THE TAPCZAN, a modelled site (landmarks `tapczan`, F 2026-11-24).
 
 | id | Name | Bars |
 | --- | --- | --- |
@@ -50,6 +50,7 @@ All bars are the parody fascias already on the map (storefronts.gd), never real 
 | nad_woda | Nad wodą | SZKIC NOCĄ (Mazowiecka) → Q-BAR POD WIADUKTEM (Powiśle viaduct) → CUDAK NA BULWARZE (the boulevard) |
 | odwazni | Dla odważnych | GORĄCZKA PIĄTKOWA (Wilcza) → NEWTWICE (the Party House) → ENKLAWKA (Mazowiecka) |
 | praga | Na drugą stronę | SCHRON PIWNY (Nowogrodzka) → ŚWIAT PO PRASKU → POD KUFLEM ZA ROGIEM (Praga) |
+| kraftowa | Kraftowa | THE TAPCZAN (Sienkiewicza 4, its own model and terrace) → KRAFTOWNIA (Nowogrodzka) → MACKI I KUFLE (Poznańska) |
 
 A route whose stop has no ground road within 120 m is left out on that map.
 

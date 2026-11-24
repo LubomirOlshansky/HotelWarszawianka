@@ -11,7 +11,8 @@ extends "res://scripts/activity.gd"
 ##
 ## **The crawl.** Once they are in, the clock runs: the sum of each leg's allowance (`leg_time`) and
 ## the stays. Three bars in a row (ROUTES: the existing parody fascias on Nowogrodzka, Mazowiecka,
-## Wilcza, under the Powiśle viaduct, on the boulevard, the Party House and Praga), each a stop
+## Wilcza, under the Powiśle viaduct, on the boulevard, the Party House, Praga and THE TAPCZAN on
+## Sienkiewicza), each a stop
 ## ring at the kerb nearest its door. At the first two the group goes in for a round (STAY s) and
 ## you wait at the kerb: the stay counts down only within WAIT_R of the ring (drive off and the mood
 ## drops while they stand on the pavement). The third bar is the night's end: they stay there.
@@ -59,6 +60,12 @@ const ROUTES := [
 		{"sign": "nowo_schron", "name": "SCHRON PIWNY"},
 		{"sign": "praga_swiat", "name": "ŚWIAT PO PRASKU"},
 		{"sign": "praga_kufel", "name": "POD KUFLEM ZA ROGIEM"}]},
+	# F (2026-11-24): THE TAPCZAN, the craft-beer pub on Sienkiewicza 4 (landmarks site `tapczan`),
+	# its terrace at the kerb; then the craft taps of Nowogrodzka and Poznańska.
+	{"id": "kraftowa", "name": ["Kraftowa", "The Craft Route"], "stops": [
+		{"ll": [52.23438, 21.012551], "name": "THE TAPCZAN"},
+		{"sign": "nowo_kraftownia", "name": "KRAFTOWNIA"},
+		{"sign": "wil_macki", "name": "MACKI I KUFLE"}]},
 ]
 
 ## The call's window (wraps past midnight) and the free-play seconds before the first and the

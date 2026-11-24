@@ -73,6 +73,8 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# F's photos (2026-11-06): the round pavilion's letters one box each (the ones N, O, W, T, E, L
 		# don't give), and the jazz stage's valance.
 		"A", "R", "S", "Z", "P", "I", "Ś", "JAZZ",
+		# THE TAPCZAN, the craft-beer pub's sign on Sienkiewicza 4 (F's photos, 2026-11-24).
+		"THE", "TAPCZAN", "CRAFT BEER",
 		# S3a: Warszawa Stadion's roof letters.
 		"STADION",
 		# S3e: Warszawa Wschodnia's fascia letters (with WARSZAWA above).

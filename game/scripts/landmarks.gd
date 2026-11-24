@@ -836,6 +836,9 @@ const INFO := {
 	"cepelia": ["Pawilon Cepelii",
 			"Szklany pawilon z 1966 roku na rogu Alej, odnowiony w 2024: książki i winyle na trzech poziomach.",
 			"A 1966 glass pavilion on the Aleje corner, restored in 2024: books and vinyl on three levels."],
+	"tapczan": ["The Tapczan",
+			"Pub z piwem kraftowym na Sienkiewicza: szesnaście kranów, trzy poziomy i ogródek na paletach pod czarnymi parasolami. Tak, to parodia.",
+			"A craft-beer pub on Sienkiewicza: sixteen taps, three floors and a pallet terrace under black umbrellas. Yes, a parody."],
 	"pijana": ["Pijana Czereśnia",
 			"Ciemny ośmioboczny pawilon w parku, z beczkowatym bębnem na dachu. Nalewka z czereśni, drewniany taras i światełka. Tak, to parodia.",
 			"A dark octagonal pavilion in the park with a barrel-like drum on its roof. Cherry liqueur, a timber deck and string lights. Yes, a parody."],
@@ -1337,6 +1340,8 @@ func _find_sites() -> void:
 	_find_modern_pavilions()
 	# F's photos (2026-11-08): the cherry-liqueur kiosk in the park by Emilii Plater, as a parody.
 	_find_pijana()
+	# F's photos (2026-11-24): THE TAPCZAN, the craft-beer pub on Sienkiewicza 4 and its terrace.
+	_find_tapczan()
 	# First scene items 4-5 (2026-11-02, the Mac photo report dt_pawilony): Pasaż Wiecha's pavilions.
 	_find_wiecha()
 	# F's photos and the opening night's Instagram (2026-11-22): the pasaż's Christmas lights.
@@ -1974,6 +1979,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_zodiak(s)
 			"pijana":
 				_build_pijana(s)
+			"tapczan":
+				_build_tapczan(s)
 			"wiecha":
 				_build_wiecha(s)
 			"wiecha_swieta":
