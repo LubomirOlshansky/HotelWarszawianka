@@ -1,7 +1,17 @@
 #!/bin/zsh
-# One command from a git ref to the beta stores: TestFlight (iOS) and Google Play open testing
-# (Android). Builds in a fresh folder outside the checkout, so the Mac's own uncommitted work
-# (icons, store art) is never touched, bumps the build numbers, uploads, and records them.
+# From a git ref to the beta testers in one command, behind a gate (F, 2026-11-24: the fast path;
+# the long overnight process is in docs/BACKLOG.md).
+#   tools/release.sh --notes=DIR               the gate, one build, internal TestFlight and Play
+#                                              internal testing; remembered as the candidate
+#   tools/release.sh --notes=DIR --open-beta   the same, then straight on to the outside testers:
+#                                              "Beta test external" and Play open testing
+#   tools/release.sh --promote --phone-ok="who, which phones"
+#                                              a candidate's own files, not a rebuild, to them later
+# The gate, on the exact commit: CI's `verify` green on main's push, then the `local` steps of
+# tools/ci_steps.txt on this Mac (CI never runs those). The fast gate leaves the longest ones to
+# the night (gate_slow below); --thorough runs all of them. A step that fails or only warns stops
+# the build unless tools/release_known_red.txt names it with a reason.
+# Builds in a fresh folder outside the checkout, so uncommitted work is never touched.
 #
 # usage: tools/release.sh [--ios] [--android] [options]     (neither flag: both)
 #   --ref=REF          what to build (default origin/main, fetched first)
@@ -10,10 +20,13 @@
 #   --android-code=N   force the Android version code (default: last uploaded + 1)
 #   --skip-bake        reuse the folder's prebuilt sectors (only with --keep)
 #   --keep             don't wipe the build folder (a re-run after a failed upload)
-#   --open-beta        all the way to the testers: Play open testing is rolled out, and the iOS
-#                      build goes to the external group (Apple's beta review included). Needs
-#                      --notes and the keys below. Without it: a Play draft, internal TestFlight.
-#   --notes=DIR        what's new: en-GB.txt and pl-PL.txt (up to 500 characters each)
+#   --open-beta        go on to the outside testers once both uploads are in
+#   --thorough         the gate with every local step, hours (overnight)
+#   --promote          send the candidate, for the stores the candidate has (--ios / --android: only that one)
+#   --phone-ok=TEXT    --promote's record of the phone check (docs/store/release.md)
+#   --gate-only        build folder, bake and gate, then stop
+#   --no-gate          build without the gate: internal only, never becomes a candidate
+#   --notes=DIR        what's new: en-GB.txt and pl-PL.txt (up to 500 characters each); step 1 needs it
 #   --no-upload        build and sign only (the AAB goes to ~/Downloads, the iOS archive stays)
 #   --check-keys       only say which keys are there and whether the stores accept them
 #
@@ -30,10 +43,13 @@
 # lookup wins when it is higher. Play production and the App Store are never touched.
 set -e
 setopt pipefail
+self=${0:A}
+# Local steps the fast gate skips: soaks and walks of ten minutes and more.
+gate_slow=(streaming sectororder first10-run trzy-mosty police-soak life-soak lanedrive-grounded)
 export LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8  # fastlane refuses other locales
 root=${AW_ROOT:-${0:A:h:h}}  # AW_ROOT: the checkout to copy from
 do_ios=0 do_android=0 ref=origin/main dir=/private/tmp/aw-release
-ios_build= android_code= skip_bake=0 keep=0 open_beta=0 upload=1 check_keys=0 notes=
+ios_build= android_code= skip_bake=0 keep=0 promote=0 open_beta=0 thorough=0 phone_ok= gate=1 gate_only=0 upload=1 check_keys=0 notes=
 for arg in "$@"; do
 	case $arg in
 		--ios) do_ios=1 ;;
@@ -44,7 +60,12 @@ for arg in "$@"; do
 		--android-code=*) android_code=${arg#*=} ;;
 		--skip-bake) skip_bake=1 ;;
 		--keep) keep=1 ;;
+		--promote) promote=1 ;;
 		--open-beta) open_beta=1 ;;
+		--thorough) thorough=1 ;;
+		--phone-ok=*) phone_ok=${arg#*=} ;;
+		--gate-only) gate_only=1 ;;
+		--no-gate) gate=0 ;;
 		--notes=*) notes=${${arg#*=}:a} ;;
 		--check-keys) check_keys=1 ;;
 		--no-upload) upload=0 ;;
@@ -53,6 +74,8 @@ for arg in "$@"; do
 	esac
 done
 (( do_ios || do_android )) || { do_ios=1; do_android=1 }
+if (( open_beta && ( ! gate || ! upload || gate_only ) )); then echo "--open-beta needs the gate and the upload" >&2; exit 2; fi
+(( gate_only && ! gate )) && { echo "--gate-only and --no-gate contradict" >&2; exit 2 }
 (( skip_bake && ! keep )) && { echo "--skip-bake needs --keep" >&2; exit 2 }
 
 team=S6PVT5UP7G
@@ -113,12 +136,46 @@ if (( check_keys )); then
 	n=$(store_android); print "Google Play key: $( (( play_ready )) && echo present || echo missing ), last version code: ${n:-no answer}"
 	exit 0
 fi
-# Everything --open-beta needs is checked before the long build, not after it.
-if (( open_beta && upload )); then
-	if (( do_ios && ! asc_ready )); then echo "--open-beta: no App Store Connect key or fastlane (docs/store/release.md)" >&2; exit 1; fi
-	if (( do_android && ! play_ready )); then echo "--open-beta: no Google Play key or fastlane (docs/store/release.md)" >&2; exit 1; fi
-	[[ -n $notes ]] || { echo "--open-beta needs --notes=DIR" >&2; exit 1 }
+# Step 2: the candidate goes out as it is.
+candidate=$conf/candidate
+cand() { sed -n "s/^$1=//p" $candidate }
+if (( promote )); then
+	[[ -f $candidate ]] || { echo "no candidate: run step 1 first" >&2; exit 1 }
+	[[ -n $phone_ok ]] || { echo "--promote needs --phone-ok=\"who, which phones\" (docs/store/release.md)" >&2; exit 1 }
+	cios=$(cand ios) cand_code=$(cand android) cnotes=$(cand notes) csha=$(cand sha)
+	if (( do_ios )) && [[ -n $cios ]] && (( ! asc_ready )); then echo "no App Store Connect key" >&2; exit 1; fi
+	if (( do_android )) && [[ -n $cand_code ]] && (( ! play_ready )); then echo "no Google Play key" >&2; exit 1; fi
+	[[ -s $cnotes/en-GB.txt && -s $cnotes/pl-PL.txt ]] || { echo "the candidate's notes are gone: $cnotes" >&2; exit 1 }
+	print "promoting $csha  ios ${cios:--}  android ${cand_code:--}  phone check: $phone_ok"
+	if (( do_ios )) && [[ -n $cios ]]; then
+		step "iOS build $cios to $external_group"
+		# Waits for Apple's processing, writes What to Test, adds the build to the group and sends
+		# it to beta review; TestFlight tells the testers once it is approved.
+		info=$(python3 -I -c 'import json,sys
+d=sys.argv[1]; r=lambda f: open(d+"/"+f+".txt", encoding="utf-8").read().strip()
+print(json.dumps({"default":{"whats_new":r("en-GB")},"en-US":{"whats_new":r("en-GB")},"pl":{"whats_new":r("pl-PL")}}))' $cnotes)
+		fastlane pilot distribute --api_key_path $asc_json --app_identifier $ios_app \
+			--app_platform ios --app_version $(cand version) --build_number $cios \
+			--distribute_external true --groups "$external_group" --submit_beta_review true \
+			--localized_build_info "$info"
+	fi
+	if (( do_android )) && [[ -n $cand_code ]]; then
+		step "Android $cand_code from internal to open testing"
+		empty=$(mktemp -d -t aw-play)
+		fastlane supply --package_name $package --json_key $PLAY_JSON_KEY --track internal \
+			--track_promote_to beta --track_promote_release_status completed \
+			--version_code $cand_code --metadata_path $empty --skip_upload_apk true \
+			--skip_upload_aab true --skip_upload_metadata true --skip_upload_images true \
+			--skip_upload_screenshots true --skip_upload_changelogs true
+	fi
+	print "$(date '+%F %T')  $csha  ios=${cios:--} android=${cand_code:--}  ios_sent=$do_ios android_sent=$do_android  phone: $phone_ok" >> $conf/promoted.log
+	print "\npromoted: $csha"
+	exit 0
 fi
+if (( open_beta && do_ios && ! asc_ready )) || (( open_beta && do_android && ! play_ready )); then
+	echo "--open-beta: a store key or fastlane is missing (--check-keys)" >&2; exit 1
+fi
+if (( gate && upload && ! gate_only )) && [[ -z $notes ]]; then echo "step 1 needs --notes=DIR (or --no-gate / --no-upload)" >&2; exit 1; fi
 if [[ -n $notes ]]; then
 	for l in en-GB pl-PL; do
 		[[ -s $notes/$l.txt ]] || { echo "missing $notes/$l.txt" >&2; exit 1 }
@@ -138,7 +195,19 @@ if (( do_android )) && [[ -z $android_code ]]; then android_code=$(next_number $
 # --- build folder --------------------------------------------------------------------------
 step "build folder $dir from $ref"
 if [[ $ref == origin/* ]]; then git -C $root fetch -q origin ${ref#origin/}; fi
-sha=$(git -C $root rev-parse --short $ref)
+full=$(git -C $root rev-parse $ref) sha=${$(git -C $root rev-parse --short $ref)}
+if (( keep )) && [[ "$(cat $dir/RELEASE_SHA 2>/dev/null)" != $sha ]]; then
+	echo "--keep: $dir holds $(cat $dir/RELEASE_SHA 2>/dev/null || echo nothing), not $sha" >&2; exit 1
+fi
+# The gate's first half costs nothing, so it comes before the folder.
+if (( gate )); then
+	step "gate: CI on $sha"
+	slug=${$(git -C $root remote get-url origin)%.git}; slug=${slug#*github.com[:/]}
+	ci=$(gh api "repos/$slug/actions/workflows/verify.yml/runs?head_sha=$full&event=push&branch=main" \
+		--jq '.workflow_runs[0] | "\(.status) \(.conclusion)"' 2>/dev/null) || ci="no answer"
+	[[ $ci == "completed success" ]] || { echo "refused: CI verify on $sha is '$ci', not green" >&2; exit 1 }
+	print "CI verify: green"
+fi
 if (( ! keep )); then
 	rm -rf $dir
 	mkdir -p $dir
@@ -153,6 +222,46 @@ fi
 [[ -s $dir/game/data/stats_key.json ]] || { echo "no PostHog token in the build" >&2; exit 1 }
 print "$sha" > $dir/RELEASE_SHA
 
+cd $dir/game
+if grep -q '^AutopilotPlaytest=' project.godot; then
+	echo "Autopilot is on in project.godot" >&2; exit 1
+fi
+
+# --- bake once for both --------------------------------------------------------------------
+if (( ! skip_bake )); then
+	step "import and bake the prebuilt city"
+	godot --headless --path . --import > $dir/import.log 2>&1 || true
+	python3 -I ../tools/bake_sectors.py map > /dev/null
+	# Not --headless: the headless renderer drops MultiMesh and texture data.
+	godot --path . --resolution 320x180 --script res://tools/bake_city.gd > $dir/bake.log 2>&1
+	python3 -I ../tools/check_map_data.py
+fi
+
+# --- the gate's second half ----------------------------------------------------------------
+# One verify.sh run per step, so a red step is named and none hides another.
+if (( gate )); then
+	step "gate: the steps CI does not run"
+	glog=$conf/gate/$sha
+	rm -rf $glog; mkdir -p $glog
+	red=()
+	for s in $(awk '!/^#/ && $2 == "local" { print $1 }' ../tools/ci_steps.txt); do
+		if (( ! thorough )) && (( ${gate_slow[(Ie)$s]} )); then print "  night $s"; continue; fi
+		code=0
+		../tools/verify.sh --only=$s --logs=$glog/$s > $glog/$s.txt 2>&1 || code=$?
+		warned=$(grep -cE '^RESULT: PASS .* [1-9][0-9]* warned' $glog/$s.txt || true)
+		if (( code == 0 && warned == 0 )) && grep -q '^RESULT: PASS ([1-9]' $glog/$s.txt; then
+			print "  pass  $s"
+		else
+			why=$(sed -n "s/^${s}[[:space:]]*|[[:space:]]*//p" ../tools/release_known_red.txt 2>/dev/null || true)
+			if [[ -n $why ]]; then print -r -- "  known ${s}: $why"; else print "  RED   $s ($glog/$s.txt)"; red+=$s; fi
+		fi
+	done
+	(( ${#red} == 0 )) || { echo "refused: red on $sha: $red" >&2; exit 1 }
+	print "gate passed on $sha, logs in $glog"
+	(( gate_only )) && exit 0
+fi
+
+# --- numbers into the build folder ---------------------------------------------------------
 # The numbers and icon lines live only in the build folder's preset (main's preset never
 # carries them: game/icons is not in git).
 presets=$dir/game/export_presets.cfg
@@ -176,21 +285,6 @@ if (( do_android )); then
 	set_opt Android launcher_icons/adaptive_background_432x432 '"res://icons/android_adaptive_background_432.png"'
 fi
 print "commit $sha  ios build ${ios_build:--}  android code ${android_code:--}"
-
-cd $dir/game
-if grep -q '^AutopilotPlaytest=' project.godot; then
-	echo "Autopilot is on in project.godot" >&2; exit 1
-fi
-
-# --- bake once for both --------------------------------------------------------------------
-if (( ! skip_bake )); then
-	step "import and bake the prebuilt city"
-	godot --headless --path . --import > $dir/import.log 2>&1 || true
-	python3 -I ../tools/bake_sectors.py map > /dev/null
-	# Not --headless: the headless renderer drops MultiMesh and texture data.
-	godot --path . --resolution 320x180 --script res://tools/bake_city.gd > $dir/bake.log 2>&1
-	python3 -I ../tools/check_map_data.py
-fi
 
 # --- iOS -----------------------------------------------------------------------------------
 if (( do_ios )); then
@@ -231,20 +325,8 @@ if (( do_ios )); then
 		grep -qE 'Upload succeeded|EXPORT SUCCEEDED' $dir/ios-upload.log || { tail -30 $dir/ios-upload.log; exit 1 }
 		record ios $ios_build
 		print "iOS build $ios_build uploaded to App Store Connect (internal TestFlight after processing)"
-		if (( open_beta )); then
-			step "iOS build $ios_build to $external_group"
-			# Waits for Apple's processing, writes What to Test, adds the build to the external
-			# group and sends it to beta review. Testers are told by TestFlight once approved.
-			info=$(python3 -I -c 'import json,sys
-d=sys.argv[1]; r=lambda f: open(d+"/"+f+".txt", encoding="utf-8").read().strip()
-print(json.dumps({"default":{"whats_new":r("en-GB")},"en-US":{"whats_new":r("en-GB")},"pl":{"whats_new":r("pl-PL")}}))' $notes)
-			short=$(/usr/libexec/PlistBuddy -c 'Print :ApplicationProperties:CFBundleShortVersionString' $archive/Info.plist)
-			fastlane pilot distribute --api_key_path $asc_json --app_identifier $ios_app \
-				--app_platform ios --app_version $short --build_number $ios_build \
-				--distribute_external true --groups "$external_group" --submit_beta_review true \
-				--localized_build_info "$info"
-			print "iOS build $ios_build is in $external_group (beta review decides when testers get it)"
-		fi
+		short=$(/usr/libexec/PlistBuddy -c 'Print :ApplicationProperties:CFBundleShortVersionString' $archive/Info.plist)
+		sent_ios=$ios_build
 	fi
 fi
 
@@ -257,7 +339,6 @@ if (( do_android )); then
 	print "AAB: ~/Downloads/${aab:t}"
 	if (( upload )); then
 		if (( play_ready )); then
-			rel_status=draft; (( open_beta )) && rel_status=completed
 			meta=$dir/build/play-metadata
 			rm -rf $meta; mkdir -p $meta
 			skip_notes=true
@@ -268,17 +349,30 @@ if (( do_android )); then
 					cp $notes/$l.txt $meta/$l/changelogs/$android_code.txt
 				done
 			fi
-			fastlane supply --package_name $package --aab $aab --track beta \
-				--release_status $rel_status --json_key $PLAY_JSON_KEY --metadata_path $meta \
+			fastlane supply --package_name $package --aab $aab --track internal \
+				--release_status completed --json_key $PLAY_JSON_KEY --metadata_path $meta \
 				--skip_upload_metadata true --skip_upload_images true --timeout 900 \
 				--skip_upload_screenshots true --skip_upload_changelogs $skip_notes
 			record android $android_code
-			print "Play open testing: version code $android_code uploaded ($rel_status)"
+			sent_android=$android_code
+			print "Play internal testing: version code $android_code"
 		else
 			record android $android_code
 			print "No Google Play key (or no fastlane): upload ~/Downloads/${aab:t} in Play Console,"
 			print "Testing > Open testing > Create new release."
 		fi
 	fi
+fi
+if (( gate && upload )); then
+	# The candidate keeps its own copy of the notes: step 2 must not pick up later ones.
+	rm -rf $conf/candidate-notes; cp -R $notes $conf/candidate-notes
+	print -l "sha=$sha" "ios=${sent_ios:-}" "android=${sent_android:-}" "version=${short:-}" \
+		"notes=$conf/candidate-notes" > $candidate
+	if (( open_beta )); then
+		(( do_ios && do_android )) && which=() || { (( do_ios )) && which=(--ios) || which=(--android) }
+		AW_ROOT=$root zsh $self --promote $which --phone-ok="fast path: gate only, no phone check"
+		print "\ndone: $sha"; exit 0
+	fi
+	print "\ncandidate: $sha. After the phone check: tools/release.sh --promote --phone-ok=\"...\""
 fi
 print "\ndone: $sha"

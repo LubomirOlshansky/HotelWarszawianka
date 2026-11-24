@@ -7,24 +7,24 @@ untracked bits from the checkout: `game/.godot`, `game/icons`, `game/android`,
 never touched. It bakes the city once for both platforms.
 
 ```zsh
-tools/release.sh                  # both stores, numbers = last + 1
-tools/release.sh --ios            # TestFlight only
-tools/release.sh --android        # Play only
-tools/release.sh --no-upload      # build and sign only
-tools/release.sh --keep --skip-bake --ios   # retry an upload without rebuilding
+tools/release.sh --notes=DIR --open-beta   # gate, build, both stores, out to the outside testers
+tools/release.sh --notes=DIR               # the same, stops at internal testing (the candidate)
+tools/release.sh --promote --phone-ok="F, iPhone 16 Pro Max"   # the candidate's own files go out
+tools/release.sh --gate-only               # only: may this commit ship?
+tools/release.sh --no-gate                 # internal only, can never be promoted
 ```
 
-What it does:
+`DIR` holds `en-GB.txt` and `pl-PL.txt`, up to 500 characters each.
 
-- **iOS:** export, archive and upload with `xcodebuild` (automatic signing, team S6PVT5UP7G); the
-  build lands in internal TestFlight after Apple's processing.
-- **Android:** `tools/export_android.sh` builds the signed AAB (also copied to `~/Downloads`), and
-  with the Play key `fastlane supply` uploads it to open testing (`beta`) as a draft.
-- **`--open-beta --notes=DIR`:** no manual step. The Play release is rolled out to open testing;
-  the iOS build gets its What to Test, joins "Beta test external" and goes to Apple's beta review.
-  Missing keys or notes stop it before the build. Production and the App Store are never touched.
-- **Numbers:** the last ones are in `~/.config/aroundwarsaw/release-numbers`; with the keys the
-  store's latest number is checked too and the higher wins. `--ios-build=N`, `--android-code=N`.
+- **The gate** refuses to build unless CI's `verify` is green on that exact main commit and the
+  `local` steps of `tools/ci_steps.txt` pass on the Mac, a warning counting as red. The fast gate
+  leaves the longest steps to the night; `--thorough` runs all. Exceptions: only lines of
+  `tools/release_known_red.txt`, each with a reason and F's yes. Logs: `~/.config/aroundwarsaw/gate/`.
+- **iOS** goes out with `xcodebuild` (team S6PVT5UP7G) to internal TestFlight, then `pilot` adds it
+  to "Beta test external" and sends it to Apple's beta review.
+- **Android** goes to Play internal testing, then the same version code is promoted to open testing.
+- Production and the App Store are never touched. Numbers: `~/.config/aroundwarsaw/release-numbers`
+  and the stores' own, the higher wins.
 
 ## Keys (none of them in git)
 
