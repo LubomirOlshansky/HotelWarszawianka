@@ -3,6 +3,22 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
+## NEXT, Thursday 2026-11-26: map screen layout fixes, PORA DNIA panel and top chips (F, 2026-11-25)
+
+F sent a phone screenshot (landscape, iPhone) of the map's PORA DNIA (time of day) panel: "the time buttons
+look awful, there is no space at all at the bottom". F is only listing tomorrow's work, so nothing is built yet.
+- [ ] PORA DNIA panel overflows the screen height on the landscape layout: the ŚWIT / DZIEŃ / ZMIERZCH / NOC
+  buttons sit flush against the bottom edge. Make the panel fit on every phone aspect ratio with proper
+  padding, respecting safe areas; shrink the clock dial or the text if needed; follow the UI kit and the
+  dark-card design system. Check at 2532x1170, 2868x1320 and a narrow Android ratio.
+- [ ] Top chips on the map (the clock chip "PT 12:41" and the X button) also lack proper insets from the
+  screen edges (F: "no proper insets"): give them real margins and safe-area insets in the same change.
+- [ ] A faded "THE TAPCZAN" text label still shows on the map near the panel, although F asked for the
+  beer-mug icon only (#1063, merged). Find which map layer draws it (a label layer or the POI name) and
+  remove it if it is a quick fix.
+- Light done (UI layout): shots at phone sizes before/after, `tools/verify.sh`; name what only the phone
+  can show. Merge on a green `gate` plus an audit go.
+
 ## NEXT, Thursday 2026-11-26: model Niecała 7 and the houses round it (F, 2026-11-25)
 
 F: "tomorrow we need to model Niecała 7, add it to the backlog, and the houses around". F's ask lifts
