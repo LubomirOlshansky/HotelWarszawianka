@@ -3,6 +3,10 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
+## traffic.gd start-up errors in the editor (Autopilot run 20261125-094944, 2026-11-25)
+- Every editor run with `--nosave --prebuilt` logs at t=0: `traffic.gd:1158 Out of bounds get index '0' (on base: 'Array')` (x4-5) and `traffic.gd:4871 Out of bounds get index '0' (on base: 'Array[MultiMesh]')` (x1), before the title's build ends. Not pub-related; the game plays on. Find which empty array/MultiMesh list is indexed before it is filled (a guard or an order fix), check with `--prebuilt` runs of the headless checks, and note whether the phone logs the same.
+
+
 ## Releases: the first real run, and the overnight process (F, 2026-11-24)
 
 F chose the fast path for now: `tools/release.sh --open-beta` behind a gate (CI green on the exact

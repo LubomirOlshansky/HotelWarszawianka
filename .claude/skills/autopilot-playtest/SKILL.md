@@ -234,3 +234,15 @@ Each starts from `road_harness.py`, with frame-describer on every off-lane stop.
   minutes: a quest's in-person start needs its own flag or a save past the guide.
 - The Autopilot add-on itself logs key-hold races (`playtest.gd:1023/1024/1027`) now and then:
   the add-on, not the game.
+- **Editor run args** (2026-11-25, pub rows): set `run/main_run_args="--nosave --prebuilt"` in the checkout's
+  project.godot before opening the editor (then put `--nosave` back, never commit it): the runtime city build took
+  287 s ("A frame took 287 s") and the game process was gone at about 6 minutes of play; with `--prebuilt` the title is
+  ready in seconds. Restart the editor after each `report`; a start right after a kill can crash it (signal 11): start it again.
+- The editor game's UI is English (buttons GO IN, HAVE A BEER, LEAVE; tap-list ids `T_neipa`...): match both languages
+  and ids, not Polish labels (the first harness lost 100 s looking for WYPIJ PIWKO).
+- The title ends in "TAP TO DRIVE": in `setup()` press LeftMouseButton, then wait for "km/h" in `game.screen()` before
+  teleporting. A harness whose step is done by a game state that the option may never set (a 0.0% beer leaves tipsy 0, a
+  0 zł wallet pays nothing) never finishes: read the real state of that case first, filter the options to the ones that can.
+- The editor's debugger can drop the game after 2-3 minutes ("Packet too large ... Disconnecting", then "No game is
+  running"): keep a row under 90 s of play after the title, ask for 200 s, and let the plan end the episode.
+- Example: runs of the pub row (ring, pill, tap list, pour, leave) are in docs/PLAYTEST.md P22; the whole row takes about 60 s of play.
