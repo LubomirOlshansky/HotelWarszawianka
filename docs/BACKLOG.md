@@ -53,6 +53,17 @@ X -870.7 Z 427.3) is re-shot after this work, so the rondo and the square must b
 - Done is full (geometry): re-bake chain, `check_map_data.py`, verify, shots, bench, `--ios`, both city
   paths; name what only the phone can show. Trees stay simple for performance (F, 2026-11-20).
 
+- [ ] **Marszałkowska at ul. Widok, 10 out of 10** (F, 2026-11-25, with a satellite view and a game shot; road
+  geometry, next to the rondo work, since the same teaser frames pass it): the right-turn lane that
+  leaves Marszałkowska into Widok is built wrong in the game (its mouth is a ragged, notched edge
+  against the kerb and the tram side; the real one is a clean slip lane beside the kerb with a
+  pedestrian crossing across Widok), pedestrians walk on it, and the junction has join artifacts
+  (jagged asphalt, lines that stop and restart, kerb jumps). Lane-graph edges 254, 255, 3507, 4035
+  near x -856, z 377. Method: skill `road-design` (measure the junction on the orthophoto and OSM
+  lane tags, spec in `docs/roads/`, regenerate kerbs, lane lines and the crossing), check the lane
+  graph edges and that pedestrians stay on the pavement and crossing, before/after shots day and
+  night, both city paths, the re-bake chain and `check_map_data.py`.
+
 ## traffic.gd start-up errors in the editor (Autopilot run 20261125-094944, 2026-11-25)
 - Every editor run with `--nosave --prebuilt` logs at t=0: `traffic.gd:1158 Out of bounds get index '0' (on base: 'Array')` (x4-5) and `traffic.gd:4871 Out of bounds get index '0' (on base: 'Array[MultiMesh]')` (x1), before the title's build ends. Not pub-related; the game plays on. Find which empty array/MultiMesh list is indexed before it is filled (a guard or an order fix), check with `--prebuilt` runs of the headless checks, and note whether the phone logs the same.
 
