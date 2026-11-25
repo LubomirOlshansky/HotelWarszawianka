@@ -76,7 +76,7 @@ roughly with a view like this... for the reel". Promo content for a reel only, n
 
 ## NEXT, Thursday 2026-11-26: boar statue quest "Stado" (F, 2026-11-25)
 
-F: "we do it tomorrow". Third-party-free slapstick quest; fits the architecture rule of the Thursday list
+F: "we do it tomorrow". An affectionate slapstick quest; it follows the architecture rule of the Thursday list
 (read `docs/architecture/extending.md`; Add-ons line in the PR). The walking boars and the flying boar
 stay later items (see "Wild boars in the city").
 - [ ] Boar quest "Stado" (F, 2026-11-25: "we do it tomorrow"): the player walks up to a boar statue and
