@@ -30,6 +30,10 @@ Progress is ticked in docs/ROADMAP.md "v1.0 checklist".
 Norblin, Browary, Wschodnia, Bazar Różyckiego and Pasaż Wiecha (BACKLOG "Landmark look-check fixes");
 Cedet, the Europejski, the KP gate, the Castle and Poniatowski are other threads' items.
 
+**Next up, 2026-11-26 (F, 2026-11-25):** Niecała 7 and the houses round it, from photos (BACKLOG
+"NEXT, Thursday 2026-11-26"). Today Niecała has only the monuments in the Ogród Saski and generic
+LoD2 houses; the hotel PURO and the Muzeum Wódki are not built (CITY_INVENTORY, Niecała).
+
 ## Churches review (F, 2026-11-13)
 
 F asked which churches are modelled as real landmarks, which are generic, and which could still be

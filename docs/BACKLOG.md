@@ -3,6 +3,23 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
+## NEXT, Thursday 2026-11-26: model Niecała 7 and the houses round it (F, 2026-11-25)
+
+F: "tomorrow we need to model Niecała 7, add it to the backlog, and the houses around". F's ask lifts
+the building-modelling stop for this block only. Niecała is the short street by Ogród Saski, between
+Plac Bankowy and Senatorska/Podwale. Priority for 2026-11-26, first in the queue.
+- [ ] Niecała 7 rebuilt as a whole building from photos (skill `model-from-photos`, spec in
+  `docs/landmarks/specs/`, a site in the landmarks code, `tools/turntable.sh KEY` before the PR and
+  the sheet shown to F first).
+- [ ] The houses on the same block round it (the neighbouring numbers on Niecała and the corners
+  with the streets it meets): each one from photos, a skin or a whole model by how much it shows.
+  List the block's outlines from the map data first, ranked by how often a player sees them.
+- Photos (never committed, kept in the gitignored `refs/`): Mapillary and Panoramax through
+  `tools/street_photos.py X Z --r --max --slug`, fotopolska.eu's photo map, any other web source
+  (F's standing rule). F's own photos, if he sends them, win.
+- Light or full done: full (geometry): verify, shots, bench, `--ios`, both city paths; name what
+  only the phone can show.
+
 ## traffic.gd start-up errors in the editor (Autopilot run 20261125-094944, 2026-11-25)
 - Every editor run with `--nosave --prebuilt` logs at t=0: `traffic.gd:1158 Out of bounds get index '0' (on base: 'Array')` (x4-5) and `traffic.gd:4871 Out of bounds get index '0' (on base: 'Array[MultiMesh]')` (x1), before the title's build ends. Not pub-related; the game plays on. Find which empty array/MultiMesh list is indexed before it is filled (a guard or an order fix), check with `--prebuilt` runs of the headless checks, and note whether the phone logs the same.
 
