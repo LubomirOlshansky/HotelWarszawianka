@@ -3,6 +3,44 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
+## NEXT, Thursday 2026-11-26: F's big batch, activities in the phone, quests, heli, rival AI (F, 2026-11-25)
+
+F wrote this in one go (Ukrainian) and asked to sort and file it, then do it tomorrow. Grouped and ordered
+by how many players it touches. "Plan first" means a short design note and F's choice before code.
+It ties into the analytics finding (18 of 28 players never start an activity), the onboarding item below and
+the lane assist and bus items below.
+
+**A. Activities and quests in the phone (plan first, F picks the look)**
+- [ ] The "Podwózka" (ride) marker glows all the time, and players only ever pick the taxi. Add a button at
+  the top of the screen ("add activity") that opens the phone on the right; there the player picks an
+  activity: the ride, an Uber parody, food delivery. Rename them to something funnier, with parody brand
+  names only (skill `warsaw-tone`). Quests are one more button in the phone that opens the quests menu, so
+  all of it lives inside the phone.
+- [ ] Quests screen, "Pierwsze kroki" (first steps) tab: remove it once every step is done; until then
+  find a way to nudge the player into opening it (a badge, a pulse, the guide pointing at it).
+- [ ] Map: while a mission is active, quest start points and rivals must NOT glow on the map.
+- [ ] Split by fun: "Kino objazdowe" and "Dekalog na kółkach" become ordinary jobs (zlecenia). The fun ones
+  are the featured quests: Smolna night spot rave, "Szprotka w Wiśle" (the boat), the Tesla one. Rank all
+  quests from most fun to most boring (same rule as the onboarding item).
+
+**B. Bugs (reproduce, then fix)**
+- [ ] Choosing the Smolna job sends the player to the secret cave instead (wrong target on the job card or
+  the map marker). Find which target the job resolves to.
+- [ ] When the player goes the wrong way, the navigation should reroute. F's note was garbled; the reading is
+  that the route is not recalculated today. Check the route owner in `docs/architecture/extending.md`.
+
+**C. Helicopter (plan first, F's choices)**
+- [ ] Landing during the flying quest (the Tesla one) does not work, and landing to pick up needs to be far
+  too exact. Make the pickup forgiving (a landing zone, a hover-and-hold pickup).
+- [ ] The heli controls feel complicated. Rethink them and make them pleasant: a short design note with
+  two or three options for F to choose from before any code. Full done (feel): phone check.
+
+**D. Rival AI (plan first, F's choices)**
+- [ ] The race target was on the other side, and the rival Galina drove a long detour while F drove straight
+  through. F feels the in-game AI is weak overall and wants it reworked. Start with a short audit of how
+  rivals pick routes and targets (`rivals.gd`, `race_planner.gd`); any change to `traffic.gd`,
+  `race_session.gd`, `race_planner.gd` or `rivals.gd` reruns the racer bench before and after.
+
 ## NEXT, Thursday 2026-11-26: map screen layout fixes, PORA DNIA panel and top chips (F, 2026-11-25)
 
 F sent a phone screenshot (landscape, iPhone) of the map's PORA DNIA (time of day) panel: "the time buttons
