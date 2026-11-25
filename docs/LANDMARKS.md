@@ -34,6 +34,10 @@ Cedet, the Europejski, the KP gate, the Castle and Poniatowski are other threads
 "NEXT, Thursday 2026-11-26"). Today Niecała has only the monuments in the Ogród Saski and generic
 LoD2 houses; the hotel PURO and the Muzeum Wódki are not built (CITY_INVENTORY, Niecała).
 
+**Also 2026-11-26 (F, 2026-11-25):** Rondo Dmowskiego to trailer quality and the square by the Empik pavilion
+(today a car park; the city plans lawns, trees, a café terrace and seats), BACKLOG "NEXT, Thursday
+2026-11-26: Rondo Dmowskiego". The final teaser is re-shot after it.
+
 ## Churches review (F, 2026-11-13)
 
 F asked which churches are modelled as real landmarks, which are generic, and which could still be

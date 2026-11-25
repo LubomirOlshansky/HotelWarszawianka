@@ -138,7 +138,7 @@ const SHOTS := {
 	# Step 8a (soft_things.gd, main.gd _on_car_pushed, tools/make_sfx.py): a parked car shoved, the hard
 	# knock pitched down (3 dB under thump_hard: a push, not a crash).
 	"smash_car": -9.0,
-	# THE TAPCZAN (tapczan_room.gd, beer_pong.gd, tools/make_sfx.py): the tap's pour and the clink on
+	# THE TAPCZAN (tapczan_room.gd, pong_match.gd, tools/make_sfx.py): the tap's pour and the clink on
 	# WYPIJ PIWKO, the ball's tock on the table, into a cup, round a rim (the win and the loss are the
 	# feedback set's, hud.gd `cue`).
 	"beer_pour": -9.0, "glass_clink": -13.0, "pong_bounce": -14.0, "pong_cup": -10.0, "pong_rim": -14.0,
