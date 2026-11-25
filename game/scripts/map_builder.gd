@@ -10647,8 +10647,25 @@ func _pool_pick(r: float) -> int:
 
 
 ## The instance custom data of a tree of `kind`: r its kind, g its seed (h the tree's hash).
-func _tree_custom(kind: int, h: float) -> Color:
-	return Color(float(kind) / 16.0, fposmod(h * 7.3, 1.0), 0.0, 0.0)
+func _tree_custom(kind: int, h: float, x := 0.0, z := 0.0) -> Color:
+	return Color(float(kind) / 16.0, fposmod(h * 7.3, 1.0), _jarmark_uplight(x, z, h), 0.0)
+
+
+## The Jarmark night (F 2026-11-22, his night photo from the Palace): the trees on the strip
+## between the Museum of Modern Art, the tower ride and the theatre site are lit from below, most
+## green, some red. 0 none, 0.4 green, 0.9 red (foliage.gdshader reads INSTANCE_CUSTOM.b, and
+## lights them only after dusk).
+func _jarmark_uplight(x: float, z: float, h: float) -> float:
+	var a := Vector2(0.3445, 0.9388).normalized()
+	var d := Vector2(x, z) - Vector2(-1022.4, 100.15)
+	var u := d.dot(a)
+	var v := d.dot(Vector2(-a.y, a.x))
+	if u < 50.0 or u > 128.0 or v < 25.0 or v > 115.0:
+		return 0.0
+	var pick := fposmod(h * 13.7, 1.0)
+	if pick > 0.55:
+		return 0.0  # about half stay dark: a few spotlights, not a whole grove
+	return 0.9 if pick < 0.15 else 0.4
 
 
 ## The instance colour: only the tree's own (a little lighter or darker, warmer or cooler); the
@@ -10702,11 +10719,11 @@ func _build_trees() -> void:
 		if osm_kind >= TreeKind.SPRUCE:
 			needle.append(t)
 			needle_col.append(_tree_colour(h))
-			needle_kind.append(_tree_custom(osm_kind, h))
+			needle_kind.append(_tree_custom(osm_kind, h, x, z))
 		else:
 			broad.append(t)
 			broad_col.append(_tree_colour(h))
-			broad_kind.append(_tree_custom(osm_kind, h))
+			broad_kind.append(_tree_custom(osm_kind, h, x, z))
 
 	# GUGiK trees from the 2023 laser scan: each crown is stretched to the tree's real
 	# radius and spans its real crown base to its top; the trunk fills the gap below.
@@ -10744,11 +10761,11 @@ func _build_trees() -> void:
 		if kind >= TreeKind.SPRUCE:
 			needle.append(t)
 			needle_col.append(colour)
-			needle_kind.append(_tree_custom(kind, h))
+			needle_kind.append(_tree_custom(kind, h, x, z))
 		else:
 			broad.append(t)
 			broad_col.append(colour)
-			broad_kind.append(_tree_custom(kind, h))
+			broad_kind.append(_tree_custom(kind, h, x, z))
 		var trunk_h := base + (top - base) * 0.3
 		var girth := clampf(0.55 + top / 28.0, 0.6, 1.7)
 		real_trunks.append(Transform3D(lean * Basis(Vector3.UP, h * TAU).scaled(Vector3(girth, trunk_h / 2.8, girth)),
