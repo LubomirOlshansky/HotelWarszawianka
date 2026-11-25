@@ -3105,6 +3105,13 @@ real ones added to `brand_denylist.json`). One PR each:
       on the real streets (Dom Partii's height and skin: replaced by the model, 2026-11-12).
 - [x] `Tinder` in a run-club line replaced by TIMBER (it would fail the new denylist entry).
 
+## Move the Zagłębie Kebabowe to its real place (F, 2026-11-25; LATER, not started)
+F: find the real place, move the kebab spot there and model the kebab passage; the work runs on the API.
+- Place (F's Wyborcza photo): the two-storey brick pavilions at al. Jana Pawła II 46/48, east side, north of Solidarności (OSM ways 871756975-871756988; real kebabs near 52.2430-52.2432, 20.9930-20.9932). In the game the fronts are the `retail` buildings round (-2095, -1000).
+- [ ] Spec from the photos (L3): brick, boxed bay windows, an upper gallery with a black railing and a dark canopy, white parasols over tables. Brief and inputs: `refs/zaglebie/spec` on the Mac (gitignored); more photos of the kebab fronts are needed.
+- [ ] Model the passage, then move the five shops (`zaglebie.gd` SHOPS `ll`), the job pickup and the `zakwas` queue; update LANDMARKS 2.16, the checks and PHONE-CHECK. Kino Femina's sign stays.
+- [ ] Before starting: a Mac thread with the Worktree option, and F's choice of who launches the API run (auto mode refused it in the kebab thread).
+
 ## Zagłębie Kebabowe and Kino Femina (F, 2026-11-02)
 
 Spec: `docs/design/zaglebie-kebabowe.md`. Built: five parody kebab shops by Kino Femina (stands,
