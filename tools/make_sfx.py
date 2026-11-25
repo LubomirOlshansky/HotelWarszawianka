@@ -106,7 +106,7 @@ levels (if their folder is given) to balance the buses against.
       (a 10 s loop)
   beer_pour / glass_clink   WYPIJ PIWKO (tapczan_room.gd): the tap's pour as the glass fills (1.8 s);
       two pint glasses touched (0.9 s)
-  pong_bounce / pong_cup / pong_rim   beer pong (beer_pong.gd): the ball's tock on the table; into a
+  pong_bounce / pong_cup / pong_rim   beer pong (pong_match.gd): the ball's tock on the table; into a
       cup of beer (a tick and a plop); spinning on a rim (slowing ticks)
 
   --only=club_leak,busker  makes just those (the city's sounds: club_leak, metro_chime,
@@ -2067,7 +2067,7 @@ def loud_rev(seed):
     return fade(out, 0.01, 0.25)
 
 
-# --- THE TAPCZAN (tapczan_room.gd, beer_pong.gd; 2026-11-25) --------------------------------------
+# --- THE TAPCZAN (tapczan_room.gd, pong_match.gd; 2026-11-25) --------------------------------------
 
 def pub_room(seed):
     """THE TAPCZAN's room while the player is inside (sfx.gd `pub_bed`): a pub's talk, closer and
@@ -2264,7 +2264,7 @@ CITY = {"club_leak": lambda: [club_leak(71)], "metro_chime": lambda: [metro_chim
         "lift_hum": lambda: [lift_hum(111)],
         # The coffee run's bike (sfx.gd mode "bike"): the ride and the coasting hub.
         "bike_roll": lambda: [bike_roll(2.0, 107)], "bike_freewheel": lambda: [bike_freewheel(2.0, 108)],
-        # THE TAPCZAN (tapczan_room.gd, beer_pong.gd): the room's talk, the pour, the clink, the ball.
+        # THE TAPCZAN (tapczan_room.gd, pong_match.gd): the room's talk, the pour, the clink, the ball.
         "pub_room": lambda: [pub_room(115)], "beer_pour": lambda: [beer_pour(116)],
         "glass_clink": lambda: [glass_clink(117)], "pong_bounce": lambda: [pong_bounce(118)],
         "pong_cup": lambda: [pong_cup(119)], "pong_rim": lambda: [pong_rim(120)]}

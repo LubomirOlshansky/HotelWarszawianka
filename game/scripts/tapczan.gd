@@ -7,9 +7,9 @@ extends "res://scripts/activity.gd"
 ##     (`set_mark`, amber), and once the car stops at the kerb within PILL_R m of it the context pill
 ##     says WEJDŹ / GO IN;
 ##   - the run: inside (tapczan_room.gd): the HUD aside, the car waiting with its process off, the
-##     camera on the room (main.gd asks `room_view`); WYPIJ PIWKO (the TAP LIST: a beer's price on
-##     the bill and out of the wallet, its strength into the tipsy spell), ZAGRAJ (beer pong,
-##     beer_pong.gd) and WYJDŹ; a won game pays its stake (wallet kind "pong"); the run ends at WYJDŹ;
+##     camera on the room (main.gd asks `room_view`); the pixel UI's tiles PIWKO (the TAP LIST: a
+##     beer's price on the bill and out of the wallet, its strength into the tipsy spell), GRAJ
+##     (beer pong "Rzut na raz", pong_match.gd, the city's 3D off while it plays) and WYJDŹ; a won game pays its stake (wallet kind "pong"); the run ends at WYJDŹ;
 ##   - after: every pint and every cup the rival took makes the drive after it tipsy (tipsy.gd,
 ##     about a minute, fading).
 ## The bar crawl's "Kraftowa" starts at the same door (bar_crawl.gd); QUESTS lists the pub under
@@ -64,6 +64,7 @@ var _flag := ""
 var _mark_on := false
 var _pong_won := 0
 var _ctx_hide_hud := false
+var _city_drawn := Callable()
 
 
 func install(ctx: GameCtx) -> bool:
@@ -85,6 +86,7 @@ func install(ctx: GameCtx) -> bool:
 	dialogue = ctx.dialogue
 	_car_body = ctx.car
 	world_node = ctx.world
+	_city_drawn = ctx.city_drawn
 	return true
 
 
@@ -98,6 +100,7 @@ func setup(world: Node3D) -> void:
 	# --nohud (shots of the room alone): the room's own panel stays hidden too.
 	room.panel_off = bool(_ctx_hide_hud)
 	room.sfx = sfx
+	room.city_drawn = _city_drawn
 	add_child(room)
 	room.left.connect(_on_left)
 	room.drank.connect(func(drinks: float) -> void: tipsy.add(drinks))
