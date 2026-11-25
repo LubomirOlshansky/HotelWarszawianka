@@ -4,6 +4,13 @@ F, after the phone: the interface inside the Tapczan is huge and the game looks 
 the look and the mechanic from scratch. Style: **pixel art, like the padel match**. This is the
 concept for F and the coordinator. No game code yet; section 5 is the build plan for the next pass.
 
+**Second pass, the same day: `tapczan-pong-v2-physics-and-fun.md`** is the critique of this brief's
+mechanic and the improved design (real ball physics, a lung per turn, the bounce shot, tells, the
+dare, heat, juice). Where the two differ, the addendum wins: this brief's 3.1 to 3.6, its sim
+constants and API (5.1 step 3), its check (5.3) and its PHONE-CHECK rows (5.5) are superseded.
+Sections 1, 2, 3.7, 3.8, 4 and the rest of 5 (the look, the room UI, the tap list, the wiring,
+performance) stand.
+
 Files next to this one:
 
 | File | What |
@@ -14,7 +21,9 @@ Files next to this one:
 | `tapczan-pong-v2-mock-3-result.png` | the win and the payout |
 | `tapczan-pong-v2-mock-4-sprites.png` | sprites and palette |
 | `tapczan-pong-v2-mocks.py` | draws the five PNGs (`python3 -I`, standard library, the game's own 5x7 font) |
-| `tapczan-pong-v2-sim.py` | the balance prototype: plays whole matches, prints the win-rate table in 3.6 |
+| `tapczan-pong-v2-sim.py` | the first pass's balance prototype (the table in 3.6); superseded |
+| `tapczan-pong-v2-physics-and-fun.md` | **the second pass: critique, physics, fun, the numbers that are built, the build plan** |
+| `tapczan-pong-v2-physics-sim.py` | the reference 60 Hz sim `pong_sim.gd` is ported from, with the bots and tables |
 
 All mocks are 2532x1170 at padel's pixel scale. Pink lines and words are size notes, not UI
 (`--plain` renders without them). In mocks 1 and 1b the room is a flat stand-in for the game's
@@ -163,6 +172,10 @@ chalk cross, hit 45 pt, or a tap outside. The barman's answer is a bubble on the
   sits 12 px (21 pt) above the bottom.
 
 ## 3. The new mechanic: "Rzut na raz"
+
+> 3.1 to 3.6 are the first pass. The rules that are built are the addendum's sections 2 to 4:
+> the hold-and-release, the side view and the three rivals' characters are kept; the landing
+> lookup, the per-throw breath, the dice rivals, the eight rounds and every number here are not.
 
 One finger, the whole screen, hold and let go. Not a slingshot and not a re-skin of padel.
 
@@ -319,37 +332,21 @@ glow, the font. Sizes and colours can be copied across; `chibi`, `bust`, `cup`, 
    `cup`, `tulip`, `mug`, `ball`, `figure`. Row in `docs/architecture/systems.md`. Padel keeps
    its own copies for now: a row in `tech-debt.md` ("padel_match.gd onto pixel_kit.gd"), no
    `# WORKAROUND` needed since nothing is bent.
-3. **`game/scripts/pong_sim.gd`** (new, pure `RefCounted`, replaces `beer_pong_sim.gd`). Port
-   `tapczan-pong-v2-sim.py`, but stepped in time so the view can draw it:
-   - `_init(seed, rival: Dictionary, start_drinks := 0)`
-   - `tick(dt: float, finger: bool) -> void`, phases `AIM, FLIGHT, SPIN_THEIRS, RIVAL, SPIN_MINE,
-     BANNER, SUDDEN, DONE`
-   - `ring_x() -> float` (px from the first cup's centre, wobble included), `breath() -> float`
-     (0..1), `their_cups: PackedFloat32Array`, `my_cups: int`, `round_no`, `balls_left`,
-     `drinks`, `winner` (-1, 0 you, 1 rival, 2 draw)
-   - `events: Array[Dictionary]`, drained by the view each frame (`throw`, `clean`, `cup`,
-     `rim`, `rim_in`, `rim_out`, `flicked`, `miss`, `rival_throw`, `rival_cup`, `rival_miss`,
-     `nudge_warn`, `nudge`, `reset`, `bonus`, `wake`, `rerack`, `round`, `last_orders`,
-     `sudden`, `over`), padel's `_on_event` pattern
-   - `bot_finger(sd: float, flick: float) -> bool`: the autopilot's finger for checks and
-     `auto_play`
-   - Constants exactly as the prototype's top block (`CUPS 5`, `PITCH 14`, `IN_R 2.5`,
-     `RIM_R 4.5`, `CLEAN_R 1`, `SWEEP_LO -24`, `SWEEP_HI 70`, `PERIOD 1.5`, `HOLD_SLOW 0.75`,
-     `BREATH 1.1`, `BREATH_DRINK 0.12`, `BREATH_MIN 0.45`, `SWEEP_V_DRINK 0.05`, `WOB_0 0.4`,
-     `WOB_DRINK 0.9`, `WOB_MAX 5.5`, `WOB_HZ 1.1`, `RIM_DROP 0.6`, `BALLS 2`, `ROUNDS 8`,
-     `SUDDEN 3`, `RERACK_AT 2`, `SHOT_CLOCK 5`), plus the view's clock: `T_FLY 0.75`,
-     `T_BEAT 0.5`, `T_RIVAL_BALL 1.35`, `T_BANNER 0.7`, `T_SPIN 0.9`, `FLICK_WINDOW 0.16`,
-     `NUDGE_WARN 0.4`. The prototype rolls the nudge and the flick as chances; the real sim
-     runs them in time (the nudge at a random moment of the swing, the flick as a window).
-4. **`game/tools/check_tapczan.gd`**: replace the pong half (5.3). It is already in
+3. **`game/scripts/pong_sim.gd`** (new, pure `RefCounted`, replaces `beer_pong_sim.gd`): a
+   method-for-method port of `tapczan-pong-v2-physics-sim.py`'s `Sim`, a deterministic 60 Hz
+   sim with `tick(finger: bool, low: bool)`. The API, the events and every constant: the
+   addendum's 2.3 and 5.2.
+4. **`game/tools/check_tapczan.gd`**: replace the pong half (the addendum's 5.4). It is already in
    `tools/verify.sh` (`tapczan`); `tapczan-run` (`--tapczan=pong`, expects `tapczan: out: won`)
    must still pass: `auto_play` uses the expert bot against the crew with a fixed seed that wins
-   (an unseeded expert still loses about 1 in 12).
+   (an unseeded expert still loses about 1 in 13).
 5. **`game/scripts/pong_match.gd`** (new, replaces `beer_pong.gd`): padel's structure. A
    `CanvasLayer` on the root viewport, a 216-row `SubViewport` with one `Node2D` whose `draw`
    paints the scene through `pixel_kit`, a `TextureRect` nearest-filtered over the screen, one
    native-resolution `Control` for the quit disc. Input: any touch or the left mouse button is
-   the finger; Space too; Esc quits. While it is up the city's SubViewport is not updated
+   the finger, Space too; the finger dragged 28 pt down (back above 16 pt: off), or S / the down
+   arrow, is `low` (the bounce shot); Esc quits. The sim is ticked at a fixed 60 Hz from an
+   accumulator. The juice, the regulars and the poses: the addendum's 3.7, 3.8 and 5.3. While it is up the city's SubViewport is not updated
    (`main.gd` already does this for padel; move that pair of lines behind one call both use,
    e.g. `main.set_city_drawn(false)`, rather than a second copy).
 6. **`game/scripts/tapczan_ui.gd`** (new): the room's UI as one `Control` with `_draw`, on a
@@ -360,17 +357,22 @@ glow, the font. Sizes and colours can be copied across; `chibi`, `bust`, `cup`, 
    signals `tile(id)`, `tap_picked(id)`, `rival_picked(id)`. Tile and bubble anchors:
    `cam.unproject_position(world) * view.stretch_shrink` (main.gd's `bubbles.project` does this).
    `pick()` already converts the tap into the city viewport's pixels; keep it.
-7. **Data and words**: `tapczan.json` as 3.8; `check_tapczan.gd` checks every pair.
+7. **Data and words**: `tapczan.json` as the addendum's 5.5 and 5.6 (on top of 3.8's `ui` table);
+   `check_tapczan.gd` checks every pair.
 8. **Art**: the five busts. Draw them in code first (mock 4's `bust`), so nothing waits on
    art. Then, optionally, PixelLab versions (5.2). 
-9. **Sound** (reuse `tapczan_room._sound` names where they exist): the plop, the rim's ticks,
-   the table's tock, a breath-in on finger down, the bell for last orders, the crowd's "ooo".
+9. **Sound**: the addendum's 3.9, all from sounds `sfx.gd` already has (`pong_bounce`,
+   `pong_rim`, `pong_cup`, `glass_clink`, `thump_soft`, `tick`, `cafe_bell`, `crowd_murmur`,
+   `fan_chant`, `coin`), through `tapczan_room._sound`.
 10. **Delete** `beer_pong.gd`, `beer_pong_sim.gd`; update `systems.md`, `tapczan-pub.md`
     (sections 2-3 and the table), the flags table (no new flags), one change note.
 11. Verify (`tools/verify.sh`, `--ios`), shots (`--tapczan=in`, `taps`, `pong:first` at
     2532x1170 and 2868x1320), bench before and after.
 
 ### 5.2 Sprites
+
+The pong screen's additions (ring core, lung bar, heat, eye pip, dare mark, poses, foam): the
+addendum's 5.3.
 
 | Sprite | Size (canvas px) | Frames | How |
 | --- | --- | --- | --- |
@@ -385,6 +387,8 @@ glow, the font. Sizes and colours can be copied across; `chibi`, `bust`, `cup`, 
 No texture is required for this feature. That is on purpose: zero new materials.
 
 ### 5.3 The headless check (in `check_tapczan.gd`)
+
+> Superseded: the bots, bands and cases are the addendum's 5.4. The list below is the first pass.
 
 - 300 seeded matches a rival with `bot_finger(0.048, 0.6)` at a fixed 60 Hz step: win rates
   inside crew 55-72 %, Gienia 38-54 %, Hubert 21-36 %; crew > Gienia > Hubert.
@@ -417,6 +421,8 @@ No texture is required for this feature. That is on purpose: zero new materials.
   enters the pub.
 
 ### 5.5 PHONE-CHECK rows to add (the next free ids)
+
+> Superseded: four rows, 15zzq to 15zzt, in the addendum's 5.7.
 
 | Id | Do | Look for |
 | --- | --- | --- |

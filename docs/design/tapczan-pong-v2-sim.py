@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Balance prototype for THE TAPCZAN's beer pong v2, "Rzut na raz" (docs/design/tapczan-pong-v2.md).
 
+FIRST PASS, kept as the record the second pass's critique measured. The rules and numbers that
+are built are tapczan-pong-v2-physics-sim.py's (docs/design/tapczan-pong-v2-physics-and-fun.md).
+
 Design material, not game code: the reference the GDScript sim (game/scripts/pong_sim.gd, next
 pass) is ported from and tuned against. It plays whole matches with a model of the thumb (a
 release-time error in seconds, a share of rim flicks made) and prints win rates, cups, drinks
