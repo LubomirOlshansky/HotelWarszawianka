@@ -88,6 +88,29 @@ stay later items (see "Wild boars in the city").
   nobody is hurt, no gore, and no real private people (warsaw-tone). It reuses the boar actor and the
   pedestrian flee reaction on the existing city-life owner.
 
+## NEXT, Thursday 2026-11-26: research, make the ordinary houses look varied (F, 2026-11-25)
+
+F: "tomorrow do research: how to vary the ordinary houses, because they are all the same. Maybe take all the
+buildings that are not modelled, sort them into types, and make at least 10 to 15 kinds, repeating window
+shapes and architecture (panel blocks, tenement houses, and so on), then adapt them so the city looks more
+varied. Think about it tomorrow." Tomorrow is research and thinking, not building.
+- [ ] Research note first (a doc in `docs/design/`, no game code): how the unmodelled buildings (the plain
+  LoD2/OSM extrusions that have no site or skin) are drawn now and why they read as identical; count them
+  by district and by the data we already have (height, levels, footprint shape, age, `building:*` tags,
+  roof tags); how other city games vary generic buildings (facade families, window grids, material and
+  colour palettes, roof types, procedural variation).
+- [ ] Propose a type catalogue of 10 to 15 building kinds for Warsaw's ordinary houses, for example the
+  prewar kamienica (plastered front, regular window rows, cornice, courtyard), the interwar block, the
+  socialist-realist block, the large-panel "wielka płyta" block (several series), the 1990s infill, the
+  modern glass office, the corner shop house, and so on; for each: window shape and rhythm, storey
+  height, roof, colour palette, and a rule that picks it from the map data (age, height, district).
+  Photos as reference only (never committed).
+- [ ] A small prototype plan: one rule-based facade family applied to one test block, before and after
+  shots at phone size and a bench (draw calls and materials are the gate: variety through shared
+  materials and MultiMesh, not new materials per building). Fits the architecture rule of the Thursday
+  list (`docs/architecture/graphics.md`, `extending.md`); both city paths (runtime and prebuilt) must work.
+- Output for F to choose from: the catalogue, the picking rules, the cost, and a recommended first batch.
+
 ## NEXT, Thursday 2026-11-26: map screen layout fixes, PORA DNIA panel and top chips (F, 2026-11-25)
 
 F sent a phone screenshot (landscape, iPhone) of the map's PORA DNIA (time of day) panel: "the time buttons
