@@ -35,6 +35,9 @@ X -870.7 Z 427.3) is re-shot after this work, so the rondo and the square must b
   glass pavilions on the rondo where the real ones are just open stairs down to the underpass. Replace
   each pavilion with an open stair entrance (railings, steps going down, no roof or glass), checked
   against photos; find which code or map objects spawn them first.
+  The pavilions are the white-and-blue arched barrel-roof canopies with M signs repeated round the rondo.
+  Check each entrance against photos before removing anything: the corner ones are open stairwells, but
+  the Patelnia one may have a real canopy, which stays.
 - [ ] The empty square next to the Empik pavilion rebuilt as the city plans it. Today it is a surface car
   park with parking bays, a big tree, an old lamp post, a kiosk and two underpass stairwells (what the
   city's "Tak było" picture shows). Plan ("Tak będzie", F's two pictures, 2026-11-25), from the picture:
