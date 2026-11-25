@@ -312,7 +312,7 @@ func layout() -> void:
 
 ## A press at root-viewport px: true when the UI took it (the room's pick is skipped).
 func press(at: Vector2) -> bool:
-	if not is_visible_in_tree():
+	if not shown():
 		return false
 	layout()
 	var c := _c(at)
@@ -355,8 +355,15 @@ func _flash(key: String) -> void:
 	queue_redraw()
 
 
+## On screen: this Control and its CanvasLayer both visible (a hidden layer does not hide its
+## children's `visible`, and they would still hear touches).
+func shown() -> bool:
+	var layer := get_parent() as CanvasLayer
+	return visible and (layer == null or layer.visible)
+
+
 func _input(event: InputEvent) -> void:
-	if not visible:
+	if not shown():
 		return
 	# Touch only: the project emulates touch from the mouse (and iOS the mouse from touch), so
 	# reading both would press twice (padel's rule).

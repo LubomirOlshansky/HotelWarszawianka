@@ -270,6 +270,13 @@
       "lines": [
         ["Pierwsza randka. On mi czyta etykiety piw. Na głos.", "First date. He reads me the beer labels. Out loud."]
       ]
+    },
+    "dog": {
+      "name": ["Chmiel, pies baru", "Chmiel, the pub dog"],
+      "lines": [
+        ["Hau. (Chmiel patrzy na twoje frytki.)", "Woof. (Chmiel is looking at your fries.)"],
+        ["Chmiel nie pije. Chmiel tu pilnuje porządku. Śpiąc.", "Chmiel doesn't drink. Chmiel keeps order here. Asleep."]
+      ]
     }
   },
   "tipsy": [
@@ -399,6 +406,11 @@
     ["Barman: „Pierwszy gratis. Dla firmy to marketing, dla ciebie kolacja.”", "Barman: \"First one's free. For us it's marketing, for you it's dinner.\""]
   ],
   "memes": [
+    {
+      "id": "lokalnie",
+      "world": ["PIJ", "LOKALNIE.", "NAJLEPIEJ TU."],
+      "say": ["Pij lokalnie. Najlepiej tu, najlepiej jeszcze jedno.", "Drink local. Ideally here, ideally one more."]
+    },
     {
       "id": "drugie",
       "world": ["PIWO NIE MA", "BYĆ SMACZNE.", "MA BYĆ DRUGIE."],

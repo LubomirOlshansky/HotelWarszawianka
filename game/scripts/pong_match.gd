@@ -194,6 +194,8 @@ func start(id: String, r: Dictionary) -> void:
 	_rival_says(hello)
 	set_process(true)
 	_log("start vs %s, seed %d, start drinks %d" % [id, seed_value, start_drinks])
+	if log_on and is_inside_tree():
+		get_tree().create_timer(3.0).timeout.connect(func() -> void: _log("frame: " + Room.frame_note()))
 
 
 ## The ✕: giving up is a loss.
@@ -765,9 +767,12 @@ func _draw_backdrop() -> void:
 	for i in mini(4, list.size()):
 		var t: Dictionary = list[i]
 		var nm: Array = t.get("name", ["", ""])
-		var s := str(nm[0]).substr(0, 15)
-		p.text(s, bx + 5, 46 + i * 11, Kit.CHALK_D)
 		var pr := str(int(t.get("price", 0)))
+		# The name cut at a word to fit beside the price.
+		var s := str(nm[0]).to_upper()
+		while Kit.text_w(s) > 92 - Kit.text_w(pr) and s.contains(" "):
+			s = s.substr(0, s.rfind(" ")).trim_suffix(",")
+		p.text(s, bx + 5, 46 + i * 11, Kit.CHALK_D)
 		p.text(pr, bx + 103 - Kit.text_w(pr), 46 + i * 11, Kit.AMBER)
 	# The porthole.
 	var ox := w * 0.5 - 170.0
@@ -1065,8 +1070,13 @@ func _draw_words() -> void:
 		var y := 52.0 if _call_scale >= 2 else 64.0
 		if _call_scale >= 3:
 			y = 24.0
+		if _call_scale < 3:
+			var cw := Kit.text_w(_call, _call_scale)
+			p.rect(W * 0.5 - cw * 0.5 - 4, y + 1, cw + 9, 9 * _call_scale + 2, Color(Kit.INK, 0.72))
 		p.text(_call, W * 0.5, y, _call_c, _call_scale, true, true)
 	if _sub_t > 0.0 and _sub != "":
+		var sw := Kit.text_w(_sub)
+		p.rect(W * 0.5 - sw * 0.5 - 4, 81, sw + 9, 11, Color(Kit.INK, 0.72))
 		p.text(_sub, W * 0.5, 80, Kit.LINE, 1, true, true)
 	if _bub_t > 0.0 and _bub_text != "" and sim.phase != Sim.DONE:
 		var lines := Kit.wrap(_bub_text, 140)

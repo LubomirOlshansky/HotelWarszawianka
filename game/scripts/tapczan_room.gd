@@ -67,6 +67,8 @@ const TAGGED := {"beard": [0, 1], "students": [1, 2], "tourists": [4, 1], "coupl
 const MEZZ := [1.8, 8.0, 2.9, 2.9]
 ## The pong table (room-local), along x.
 const PONG := Vector3(4.8, 0.0, 3.2)
+## Chmiel the pub dog, asleep on the slate by the window table (room-local).
+const DOG := Vector3(-6.4, 0.0, 2.1)
 
 signal left
 ## A glass was poured (tapczan.gd: the drive after it): its strength in drinks (0 for the zero).
@@ -248,6 +250,7 @@ static func meme_boards() -> Array:
 		["chmiel", Vector3(-hx + 0.06, 2.15, -3.0), PI * 0.5, 1.1, 1.0],
 		["metne", Vector3(-1.0, 2.05, -hz + 0.06), 0.0, 1.5, 0.95],
 		["jasne", Vector3(5.6, 1.95, -hz + 0.06), 0.0, 1.7, 1.0],
+		["lokalnie", Vector3(-hx + 0.06, 3.35, -4.3), PI * 0.5, 1.0, 0.7],
 	]
 
 
@@ -506,6 +509,7 @@ static func room_mesh() -> ArrayMesh:
 		Models.box(st, c + Vector3(0, 3.7, 0), Vector3(0.015, 2.2, 0.015), black, Models.FIXED)
 		Models.box(st, c + Vector3(0, 2.62, 0), Vector3(0.26, 0.12, 0.26), Color("#6a4a2a"), Models.FIXED)
 		Models.box(st, c + Vector3(0, 2.53, 0), Vector3(0.24, 0.08, 0.24), warm, Models.LIT_SIGN)
+	_detail(st)
 	# The beer pong table: black top, white edge lines, a red triangle of cups at each end.
 	var pt := PONG
 	Models.box(st, pt + Vector3(0, 0.74, 0), Vector3(2.44, 0.05, 0.61), black, Models.FIXED)
@@ -523,6 +527,115 @@ static func room_mesh() -> ArrayMesh:
 				Models.box(st, pt + Vector3(cx, 0.83, cz), Vector3(0.08, 0.12, 0.08), Color("#d4282e"), Models.FIXED)
 				Models.box(st, pt + Vector3(cx, 0.892, cz), Vector3(0.082, 0.01, 0.082), Color("#f2f2ea"), Models.FIXED)
 	return st.commit()
+
+
+## The small things from the real pub's photos (2026-11-25, F: "a bit more detail inside"), all in
+## the room's one mesh (no draw call, no light): the copper pendant domes over the bar, the chrome
+## drip trays under the taps, stickers on the black column, the lit fridge and crisps behind the
+## bar, the black radiator under the porthole, wall spots along the brick, a succulent on every
+## table, a tall plant in the corner and one on the high shelf, a barrel table by the way out,
+## Chmiel the pub dog asleep by the window table and the cat on the bar's end.
+static func _detail(st: SurfaceTool) -> void:
+	var hx := ROOM.x * 0.5
+	var hz := ROOM.y * 0.5
+	var black := Color("#161618")
+	var copper := Color("#b8743e")
+	var copper_l := Color("#e0a060")
+	var warm := Color("#ffd08a")
+	var chrome := Color("#d0d4d8")
+	var green := Color("#3f7a3a")
+	var green_l := Color("#5fa04a")
+	var terracotta := Color("#a4532e")
+	# Copper pendant domes on long cords over the bar's front (photo 3).
+	for a: float in [-0.46, -0.16, 0.16, 0.46]:
+		var c := _arc(BAR_R + 0.25, a, 0.0)
+		_rbox(st, c + Vector3(0, 3.55, 0), Vector3(0.015, 1.4, 0.015), a, black)
+		_rbox(st, c + Vector3(0, 2.84, 0), Vector3(0.14, 0.06, 0.14), a, copper_l)
+		_rbox(st, c + Vector3(0, 2.74, 0), Vector3(0.34, 0.14, 0.34), a, copper)
+		_rbox(st, c + Vector3(0, 2.66, 0), Vector3(0.16, 0.06, 0.16), a, warm, Models.LIT_SIGN)
+	# Chrome drip trays along the bar top under the two tap pipes (photo 1).
+	for span: Array in [[-0.5, -0.08], [0.08, 0.5]]:
+		var mid := (float(span[0]) + float(span[1])) * 0.5
+		var r_t := BAR_R - 0.5
+		_rbox(st, _arc(r_t, mid, 1.17), Vector3(r_t * (float(span[1]) - float(span[0])), 0.02, 0.16), mid, chrome)
+	# Stickers on the black column through the bar (photo 4): a rainbow, white and blue squares.
+	var col := _arc(BAR_R - 1.4, 0.0, 0.0) + Vector3(0, 0, 0.135)
+	var rainbow := [Color("#e8403a"), Color("#f29a2e"), Color("#f2d23a"), Color("#4fae4a"), Color("#3a6ad8"), Color("#8a4ac8")]
+	for i in 6:
+		Models.box(st, col + Vector3(0, 1.62 - i * 0.025, 0), Vector3(0.14, 0.025, 0.01), rainbow[i], Models.FIXED)
+	Models.box(st, col + Vector3(0.02, 1.85, 0), Vector3(0.12, 0.14, 0.01), Color("#f2f0ea"), Models.FIXED)
+	Models.box(st, col + Vector3(-0.03, 1.36, 0), Vector3(0.1, 0.1, 0.01), Color("#2a6ad8"), Models.FIXED)
+	Models.box(st, col + Vector3(0.0, 2.1, 0), Vector3(0.16, 0.05, 0.01), Color("#f2c14a"), Models.FIXED)
+	# The cage lamps on the column under the soffit.
+	for sx: float in [-1.0, 1.0]:
+		var lp := _arc(BAR_R - 1.4, 0.0, 2.95) + Vector3(sx * 0.32, 0, 0.1)
+		Models.box(st, lp, Vector3(0.18, 0.16, 0.18), warm, Models.LIT_SIGN)
+		Models.box(st, lp + Vector3(0, 0.1, 0), Vector3(0.22, 0.03, 0.22), black, Models.FIXED)
+	# Behind the bar: a small lit fridge of cans, crisps on top (photo 4).
+	var fr := Vector3(-0.9, 0.0, -hz + 0.45)
+	Models.box(st, fr + Vector3(0, 0.45, 0), Vector3(0.62, 0.9, 0.5), black, Models.FIXED)
+	Models.box(st, fr + Vector3(0, 0.47, 0.251), Vector3(0.52, 0.74, 0.01), Color("#cfe6ff"), Models.LIT_WINDOW)
+	for k in 6:
+		Models.box(st, fr + Vector3(-0.2 + (k % 3) * 0.2, 0.3 + (k / 3) * 0.32, 0.2), Vector3(0.08, 0.16, 0.08), [Color("#3a6ad8"), Color("#d4282e"), Color("#c0c4c8")][k % 3], Models.FIXED)
+	for k in 3:
+		Models.box(st, fr + Vector3(-0.18 + k * 0.18, 1.0, 0.0), Vector3(0.16, 0.2, 0.08), Color("#f2c14a"), Models.FIXED)
+	# The black radiator under the porthole (photo 1).
+	for k in 9:
+		Models.box(st, Vector3(-hx + 0.1, 0.55, -1.6 + k * 0.1), Vector3(0.08, 0.7, 0.05), Color("#232428"), Models.FIXED)
+	Models.box(st, Vector3(-hx + 0.1, 0.92, -1.2), Vector3(0.06, 0.04, 0.95), Color("#2e3034"), Models.FIXED)
+	# Spots on a black rail along the top of the back brick.
+	Models.box(st, Vector3(-3.4, 4.25, -hz + 0.12), Vector3(8.0, 0.04, 0.04), black, Models.FIXED)
+	for k in 6:
+		Models.box(st, Vector3(-7.0 + k * 1.4, 4.15, -hz + 0.2), Vector3(0.09, 0.14, 0.12), black, Models.FIXED)
+		Models.box(st, Vector3(-7.0 + k * 1.4, 4.07, -hz + 0.27), Vector3(0.06, 0.03, 0.03), warm, Models.LIT_SIGN)
+	# A succulent in a white pot on every table (photo 3).
+	for t: Vector2 in TABLES:
+		var c := Vector3(t.x + 0.18, 0.0, t.y - 0.16)
+		Models.box(st, c + Vector3(0, 0.82, 0), Vector3(0.08, 0.07, 0.08), Color("#e8e4da"), Models.FIXED)
+		Models.box(st, c + Vector3(0, 0.88, 0), Vector3(0.1, 0.05, 0.1), green_l, Models.FIXED)
+		Models.box(st, c + Vector3(0, 0.92, 0), Vector3(0.04, 0.06, 0.04), green, Models.FIXED)
+	# A tall plant in the front-left corner by the concrete, a small one on the high shelf.
+	var pc := Vector3(-hx + 0.45, 0.0, hz - 0.5)
+	Models.box(st, pc + Vector3(0, 0.25, 0), Vector3(0.4, 0.5, 0.4), terracotta, Models.FIXED)
+	for k in 7:
+		var ang := k * 0.9
+		var lean := Vector3(cos(ang) * 0.16, 0, sin(ang) * 0.16)
+		_rbox(st, pc + lean + Vector3(0, 0.75 + (k % 3) * 0.22, 0), Vector3(0.1, 0.55, 0.32), ang, green if k % 2 else green_l)
+	var ps := Vector3(4.4, 1.08, -hz + 0.2)
+	Models.box(st, ps + Vector3(0, 0.08, 0), Vector3(0.16, 0.16, 0.16), terracotta, Models.FIXED)
+	for k in 3:
+		_rbox(st, ps + Vector3(0, 0.26 + k * 0.04, 0), Vector3(0.05, 0.22, 0.2), k * 1.1, green_l)
+	# A barrel standing table by the way out, two pints on it.
+	var bp := Vector3(6.1, 0.0, -2.4)
+	for k in 6:
+		_rbox(st, bp + Vector3(0, 0.5, 0), Vector3(0.62, 1.0, 0.26), k * PI / 6.0, Color("#6e4a2a"))
+	for y: float in [0.2, 0.8]:
+		for k in 6:
+			_rbox(st, bp + Vector3(0, y, 0), Vector3(0.64, 0.05, 0.27), k * PI / 6.0, Color("#2b2c2e"))
+	Models.box(st, bp + Vector3(0, 1.02, 0), Vector3(0.7, 0.04, 0.7), Color("#8a5a34"), Models.FIXED)
+	Models.box(st, bp + Vector3(-0.12, 1.12, 0.05), Vector3(0.08, 0.16, 0.08), Color("#e8a83a"), Models.LIT_WINDOW)
+	Models.box(st, bp + Vector3(0.14, 1.12, -0.06), Vector3(0.08, 0.16, 0.08), Color("#2a1408"), Models.FIXED)
+	# Chmiel, the pub dog, asleep on the slate by the window table (tap him: people "dog").
+	var dg := DOG
+	var fur := Color("#b07a44")
+	var fur_d := Color("#7a5232")
+	Models.box(st, dg + Vector3(0, 0.12, 0), Vector3(0.55, 0.22, 0.26), fur, Models.FIXED)
+	Models.box(st, dg + Vector3(0.33, 0.12, 0.02), Vector3(0.2, 0.17, 0.2), fur, Models.FIXED)
+	Models.box(st, dg + Vector3(0.44, 0.09, 0.02), Vector3(0.08, 0.08, 0.1), fur_d, Models.FIXED)
+	Models.box(st, dg + Vector3(0.3, 0.16, 0.12), Vector3(0.08, 0.04, 0.06), fur_d, Models.FIXED)
+	Models.box(st, dg + Vector3(0.3, 0.16, -0.08), Vector3(0.08, 0.04, 0.06), fur_d, Models.FIXED)
+	Models.box(st, dg + Vector3(-0.32, 0.07, 0.1), Vector3(0.18, 0.05, 0.05), fur_d, Models.FIXED)
+	Models.box(st, dg + Vector3(0.18, 0.03, 0.14), Vector3(0.22, 0.05, 0.06), fur, Models.FIXED)
+	# The cat on the bar's far end, looking at the room.
+	var ct := _arc(BAR_R - 0.35, BAR_A - 0.05, 1.16)
+	var cat := Color("#2a2a2e")
+	Models.box(st, ct + Vector3(0, 0.1, 0), Vector3(0.14, 0.2, 0.22), cat, Models.FIXED)
+	Models.box(st, ct + Vector3(0, 0.26, 0.07), Vector3(0.13, 0.12, 0.12), cat, Models.FIXED)
+	Models.box(st, ct + Vector3(0.04, 0.34, 0.07), Vector3(0.03, 0.05, 0.03), cat, Models.FIXED)
+	Models.box(st, ct + Vector3(-0.04, 0.34, 0.07), Vector3(0.03, 0.05, 0.03), cat, Models.FIXED)
+	Models.box(st, ct + Vector3(0.03, 0.27, 0.135), Vector3(0.02, 0.02, 0.01), Color("#d8e04a"), Models.LIT_SIGN)
+	Models.box(st, ct + Vector3(-0.03, 0.27, 0.135), Vector3(0.02, 0.02, 0.01), Color("#d8e04a"), Models.LIT_SIGN)
+	Models.box(st, ct + Vector3(0.0, 0.03, -0.17), Vector3(0.04, 0.04, 0.2), cat, Models.FIXED)
 
 
 ## Chair `k` of table `ti`: (x, yaw facing the table, z), room-local (0: -x side, 1: +x, 2: -z, 3: +z).
@@ -587,6 +700,8 @@ func _build(world: Node3D) -> void:
 	people.append([rival("first").get("name", ["", ""]), "r:first", PONG + Vector3(0.9, 0, 0.9)])
 	for mb: Array in meme_boards():
 		people.append([pair("board"), "m:" + str(mb[0]), (mb[1] as Vector3) - Vector3(0, 1.1, 0)])
+	if ppl.has("dog"):
+		people.append([ppl["dog"]["name"], "dog", DOG - Vector3(0, 0.9, 0)])
 	people.append([pair("board"), "m:wall", Vector3(-ROOM.x * 0.5 + 0.2, 1.6, 3.4)])
 	# The standing: [position, yaw, colour].
 	var stand: Array = [
@@ -696,11 +811,20 @@ func enter(world: Node3D) -> void:
 	_show(true)
 	_say(people[0])
 	_log("room in: ui unit %.2f px (pt %.2f), city image x%.0f" % [_ui.u, _ui.pt, _shrink()])
+	if log_on and is_inside_tree():
+		get_tree().create_timer(2.0).timeout.connect(func() -> void: _log("frame in the room: " + frame_note()))
 	if auto_play:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
 			if inside:
 				order("lager")
 				play(auto_rival if auto_rival in RIVALS else RIVALS[0]))
+
+
+## The frame's counters (the bench's: draw calls, objects, primitives, fps) for --tapczan-log.
+static func frame_note() -> String:
+	return "%d draw calls, %d objects, %d primitives, %d fps" % [int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
+			int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)), int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
+			int(Performance.get_monitor(Performance.TIME_FPS))]
 
 
 ## The city image's scale (the root's height over the room's viewport's): 2 on the phone.
