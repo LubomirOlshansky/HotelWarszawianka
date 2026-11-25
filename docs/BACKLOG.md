@@ -134,6 +134,27 @@ extend the quest with 'ksionzvlo' with some mini-game".
   UI and `main.gd` wiring for the Tapczan), never a private copy; Add-ons line in the PR (Dialogue Manager
   for any branching scene: decide first). Light or full done by what is touched; phone check for the 2D UI.
 
+## NEXT, Thursday 2026-11-26: model the fountains by the Vistula and add their show (F, 2026-11-25)
+
+F: "tomorrow model the fountains by the Vistula and add the show there". The place is the Multimedia
+Fountain Park (Park Fontann, Podzamcze, by the boulevards). F's ask lifts the modelling stop for this item.
+- Heads-up (needs F's call first): the backlog places Park Fontann at about (-868, -2208), in the map
+  box's cut north-east corner, and "The fountain park stays off the map" (F, 2026-11-08: don't grow the
+  map; see "Grow the map north-east" above, F 2026-11-03: not now). Building it needs the map grown there
+  or a small local extension. Default to build: ask F in the first minutes whether tomorrow's ask
+  overrides the 2026-11-08 rule; if yes, do the smallest map growth that holds the park (map lane,
+  `bake-map` skill, re-bake chain on the Mac, `check_map_data.py`), then the model.
+- [ ] Model the fountain park from photos (skill `model-from-photos`, spec in `docs/landmarks/specs/`,
+  `tools/turntable.sh KEY` before the PR and the sheet shown to F first): the basins, the jets and
+  the pool shapes, the paving, the lamps and the seating by the boulevards.
+- [ ] The show: water jets that rise and fall in patterns, coloured lights and music at night (the real
+  park runs an evening multimedia show with projections on a water screen); a short loop that starts at
+  dusk and repeats, with the crowd gathering round. Original choreography and music (no real show
+  content copied). Performance is a gate: few draw calls (MultiMesh or a particle owner already in the
+  game, a shared water material), bench before and after, a quality-tier switch for old phones.
+- Follows the architecture rule of the Thursday list (`docs/architecture/extending.md`, `graphics.md`);
+  both city paths (runtime and prebuilt) must work; what only the phone can show: the show's frame rate.
+
 ## NEXT, Thursday 2026-11-26: map screen layout fixes, PORA DNIA panel and top chips (F, 2026-11-25)
 
 F sent a phone screenshot (landscape, iPhone) of the map's PORA DNIA (time of day) panel: "the time buttons
