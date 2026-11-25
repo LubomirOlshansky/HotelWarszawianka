@@ -74,6 +74,20 @@ roughly with a view like this... for the reel". Promo content for a reel only, n
   (night, 30 fps, 1080x1920 as F's standing capture rules).
 - Photos and the reference reel stay out of the repo (reference only).
 
+## NEXT, Thursday 2026-11-26: boar statue quest "Stado" (F, 2026-11-25)
+
+F: "we do it tomorrow". Third-party-free slapstick quest; fits the architecture rule of the Thursday list
+(read `docs/architecture/extending.md`; Add-ons line in the PR). The walking boars and the flying boar
+stay later items (see "Wild boars in the city").
+- [ ] Boar quest "Stado" (F, 2026-11-25: "we do it tomorrow"): the player walks up to a boar statue and
+  turns into a boar, runs into the forest, and a herd of boars starts running after them; people scatter,
+  cars stop and honk. The goal is to scare 20 pedestrians within about 2 minutes, then the mission is done.
+  Open for the design note: which statue (a real one in the city if the map has one, else a parody
+  statue as a site), which forest, the timer card, and the scare rule (the herd and the player running
+  close to a pedestrian counts once per person). Affectionate slapstick: people laugh and jump aside,
+  nobody is hurt, no gore, and no real private people (warsaw-tone). It reuses the boar actor and the
+  pedestrian flee reaction on the existing city-life owner.
+
 ## NEXT, Thursday 2026-11-26: map screen layout fixes, PORA DNIA panel and top chips (F, 2026-11-25)
 
 F sent a phone screenshot (landscape, iPhone) of the map's PORA DNIA (time of day) panel: "the time buttons
@@ -240,14 +254,6 @@ to "the flying boar for the reel" (the promo-only model); this is the gameplay v
 - [ ] A mission "earn the boars' trust": the player wins over the wild boars of the city (the ambient
   sounder item), for example by feeding them, driving slowly, not honking, bringing the right snack, at
   dusk by the park edges; the reward is the flying boar. Affectionate, no hurting the animals.
-- [ ] Boar quest "Stado" (F, 2026-11-25, later, not built now): the player walks up to a boar statue and
-  turns into a boar, runs into the forest, and a herd of boars starts running after them; people scatter,
-  cars stop and honk. The goal is to scare 20 pedestrians within about 2 minutes, then the mission is done.
-  Open for the design note: which statue (a real one in the city if the map has one, else a parody
-  statue as a site), which forest, the timer card, and the scare rule (the herd and the player running
-  close to a pedestrian counts once per person). Affectionate slapstick: people laugh and jump aside,
-  nobody is hurt, no gore, and no real private people (warsaw-tone). It reuses the boar actor and the
-  pedestrian flee reaction on the existing city-life owner.
 - Default to build when it starts: the boar actor from the walking-boars item reused for the flying one,
   on the existing owners in `docs/architecture/extending.md` (city-life actor, vehicle/activity and quest
   owners); bench before and after; Add-ons line in the PR (Beehave and Dialogue Manager: decide first).
