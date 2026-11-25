@@ -240,6 +240,14 @@ to "the flying boar for the reel" (the promo-only model); this is the gameplay v
 - [ ] A mission "earn the boars' trust": the player wins over the wild boars of the city (the ambient
   sounder item), for example by feeding them, driving slowly, not honking, bringing the right snack, at
   dusk by the park edges; the reward is the flying boar. Affectionate, no hurting the animals.
+- [ ] Boar quest "Stado" (F, 2026-11-25, later, not built now): the player walks up to a boar statue and
+  turns into a boar, runs into the forest, and a herd of boars starts running after them; people scatter,
+  cars stop and honk. The goal is to scare 20 pedestrians within about 2 minutes, then the mission is done.
+  Open for the design note: which statue (a real one in the city if the map has one, else a parody
+  statue as a site), which forest, the timer card, and the scare rule (the herd and the player running
+  close to a pedestrian counts once per person). Affectionate slapstick: people laugh and jump aside,
+  nobody is hurt, no gore, and no real private people (warsaw-tone). It reuses the boar actor and the
+  pedestrian flee reaction on the existing city-life owner.
 - Default to build when it starts: the boar actor from the walking-boars item reused for the flying one,
   on the existing owners in `docs/architecture/extending.md` (city-life actor, vehicle/activity and quest
   owners); bench before and after; Add-ons line in the PR (Beehave and Dialogue Manager: decide first).
