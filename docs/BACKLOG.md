@@ -38,6 +38,9 @@ X -870.7 Z 427.3) is re-shot after this work, so the rondo and the square must b
   The pavilions are the white-and-blue arched barrel-roof canopies with M signs repeated round the rondo.
   Check each entrance against photos before removing anything: the corner ones are open stairwells, but
   the Patelnia one may have a real canopy, which stays.
+- [ ] Grass on Rondo Dmowskiego's traffic islands (F, 2026-11-25, with a game shot): the islands on the right,
+  left and top of the rondo are bare; lay lawns on them (grass areas through the map data's grass layer,
+  draped on the terrain grid, simple for performance), as the real islands are green.
 - [ ] The empty square next to the Empik pavilion rebuilt as the city plans it. Today it is a surface car
   park with parking bays, a big tree, an old lamp post, a kiosk and two underpass stairwells (what the
   city's "Tak było" picture shows). Plan ("Tak będzie", F's two pictures, 2026-11-25), from the picture:
