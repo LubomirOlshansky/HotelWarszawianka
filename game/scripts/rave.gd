@@ -709,10 +709,15 @@ func _tick(dt: float) -> void:
 			tease_in -= _due
 			if tease_in <= 0.0:
 				# Mati's nights take turns: Smoła (he rings straight away), then a secret rave
-				# (LEKTI first).
-				if next_kind == "smola" and not smola.is_empty():
+				# (LEKTI first). A night already played to its end is skipped, and with both
+				# played he stays quiet (F 2026-11-25); the QUESTS screen still starts either.
+				if story_closed_now(next_kind):
+					next_kind = "rave" if next_kind == "smola" else "smola"
+				if story_closed_now(next_kind) or (next_kind == "smola" and smola.is_empty() and story_closed_now("rave")):
+					tease_in = RETRY
+				elif next_kind == "smola" and not smola.is_empty():
 					# Not again straight after its own call while another's waits (TD-3's variety): retry.
-					if not (_ring_turn() and ring("smola")):
+					if not (_ring_turn("smola") and ring("smola")):
 						tease_in = RETRY
 				else:
 					tease()
