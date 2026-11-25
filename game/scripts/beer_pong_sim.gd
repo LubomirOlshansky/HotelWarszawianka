@@ -34,8 +34,9 @@ const SPEED := Vector2(3.0, 5.4)
 const YAW_MAX := 0.2
 const G := 9.81
 const DT := 1.0 / 120.0
-## The share of rim spins that end in the cup.
-const RIM_IN := 0.5
+## The share of rim spins that end in the cup: three in four (2026-11-25, tools/pong_calibrate.gd;
+## was half, which left a decent player ~2 throws longer per game for the same odds).
+const RIM_IN := 0.75
 const CUPS := 6
 const RERACK_AT := 3
 const BALLS := 2

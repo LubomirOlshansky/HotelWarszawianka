@@ -47,7 +47,7 @@
       "name": ["Pan Hubert, sommelier piwny", "Pan Hubert, beer sommelier"],
       "short": ["SOMMELIER", "SOMMELIER"],
       "stake": 120,
-      "skill": 0.75,
+      "skill": 0.7,
       "hello": [
         ["Ten kubek ma nuty cytrusa i porażki. Twojej.", "This cup has notes of citrus and defeat. Yours."]
       ],
@@ -69,7 +69,7 @@
       "name": ["Ekipa z open space'u", "The open-space crew"],
       "short": ["OPEN SPACE", "OPEN SPACE"],
       "stake": 80,
-      "skill": 0.5,
+      "skill": 0.45,
       "hello": [
         ["Gramy do trzech KPI. Znaczy kubków. Sześciu.", "We play to three KPIs. Cups. Six."]
       ],
@@ -92,7 +92,7 @@
       "short": ["PANI GIENIA", "PANI GIENIA"],
       "stake": 150,
       "skill": 0.3,
-      "late_skill": 0.73,
+      "late_skill": 0.67,
       "hello": [
         ["Ojej, to się rzuca do kubeczka? Pierwszy raz gram, słowo!", "Oh dear, you throw it in the little cup? First time, I promise!"]
       ],

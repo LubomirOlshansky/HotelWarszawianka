@@ -10,7 +10,8 @@ extends SceneTree
 ##     turn, two hits bring the balls back, the re-rack at 3 (once a side), each rival hit is a drink
 ##     and the sway grows with the drinks, the late skill (Pani Gienia) after her re-rack, 300 seeded
 ##     games to the end (every one ends, the strong rival wins more than the weak), each rival's
-##     400 games against the reference bot with Pani Gienia beatable 30-40% (PT-56), and the aim's
+##     400 games against the reference bot on the difficulty ladder (sommelier hardest, Pani Gienia
+##     in the middle, the open-space crew easiest; each in its band, 2026-11-25), and the aim's
 ##     predicted path allocates nothing new once grown;
 ##  3. the tipsy spell (tipsy.gd): the fade from the start to 0 at LONG, the pull wanders both ways;
 ##     the double-vision screen pass off at Low (tiers.gd screen_fx) and on at every higher level,
@@ -312,15 +313,20 @@ func _miss(s: Sim, side: int) -> Dictionary:
 ## The reference bot, "a decent player": aims exactly at a random cup with this scatter (lateral,
 ## power), plus the sim's own drink sway.
 const BOT_SCATTER := Vector2(0.12, 0.06)
-## PT-56 (2026-11-25): the reference bot's win rate against Pani Gienia (her late skill after her
-## re-rack, data/tapczan.json) stays in this band, so the hustler is beatable but not easy.
-const GIENIA_BAND := Vector2(0.30, 0.40)
-const GIENIA_GAMES := 400
+## The difficulty ladder (F's ask 2026-11-25, tools/pong_calibrate.gd, docs/design/tapczan-pub.md
+## "Difficulty"): the reference bot's win rate against each rival stays in its band, and the bands
+## follow each other, so the sommelier is the hardest, Pani Gienia (PT-56: beatable after her late
+## switch) the middle and the open-space crew the easiest. Aimed at 30 / 46 / 68 % in 1000 games;
+## the bands leave room for 400 games' noise (about ±2.5 points; these seeds read 36 / 50 / 67 %),
+## and the order itself is checked too.
+const BANDS := {"sommelier": Vector2(0.22, 0.40), "first": Vector2(0.40, 0.56), "office": Vector2(0.58, 0.78)}
+const LADDER := ["sommelier", "first", "office"]
+const BAND_GAMES := 400
 
 
 ## Seeded games: every one ends; the sommelier beats a middling player more often than the
-## first-timer's early skill would; each rival's games against the reference bot, with Pani Gienia
-## in GIENIA_BAND (about a quarter of a second for all of it).
+## first-timer's early skill would; each rival's games against the reference bot, each in its
+## BANDS row (about a second for all of it).
 func _games() -> void:
 	var wins := {}
 	for skill: float in [0.3, 0.75]:
@@ -334,19 +340,25 @@ func _games() -> void:
 	print("check_tapczan: rival wins of 150: skill 0.3 %d, skill 0.75 %d" % [wins[0.3], wins[0.75]])
 	if int(wins[0.75]) <= int(wins[0.3]):
 		_fail("the strong rival should win more often than the weak")
-	var line := "check_tapczan: the reference bot's wins of %d:" % GIENIA_GAMES
+	var rates := {}
+	var line := "check_tapczan: the reference bot's wins of %d:" % BAND_GAMES
 	for id: String in Room.RIVALS:
 		var r := Room.rival(id)
 		var won := 0
-		for g in GIENIA_GAMES:
+		for g in BAND_GAMES:
 			if _bot_game(1000 + g, float(r.get("skill", 0.5)), float(r.get("late_skill", -1.0))) == 0:
 				won += 1
-		var rate := float(won) / GIENIA_GAMES
+		var rate := float(won) / BAND_GAMES
+		rates[id] = rate
 		line += " %s %d%%" % [id, roundi(rate * 100.0)]
-		if r.has("late_skill") and (rate < GIENIA_BAND.x or rate > GIENIA_BAND.y):
-			_fail("PT-56: the reference bot wins %.1f%% against %s, want %d-%d%%" % [rate * 100.0, id,
-					roundi(GIENIA_BAND.x * 100.0), roundi(GIENIA_BAND.y * 100.0)])
+		var band: Vector2 = BANDS.get(id, Vector2(0.0, 1.0))
+		if rate < band.x or rate > band.y:
+			_fail("difficulty ladder: the reference bot wins %.1f%% against %s, want %d-%d%%" % [
+					rate * 100.0, id, roundi(band.x * 100.0), roundi(band.y * 100.0)])
 	print(line)
+	for i in LADDER.size() - 1:
+		if float(rates.get(LADDER[i], 0.0)) >= float(rates.get(LADDER[i + 1], 1.0)):
+			_fail("difficulty ladder: %s should be harder than %s" % [LADDER[i], LADDER[i + 1]])
 
 
 ## One seeded game, the reference bot against a rival of `skill` (and `late`): the winner, -1 if it
