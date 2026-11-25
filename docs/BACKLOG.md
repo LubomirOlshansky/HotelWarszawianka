@@ -111,6 +111,29 @@ varied. Think about it tomorrow." Tomorrow is research and thinking, not buildin
   list (`docs/architecture/graphics.md`, `extending.md`); both city paths (runtime and prebuilt) must work.
 - Output for F to choose from: the catalogue, the picking rules, the cost, and a recommended first batch.
 
+## NEXT, Thursday 2026-11-26: extend the Tapczan quest and one more quest with mini-games (F, 2026-11-25)
+
+F typed this fast and it is partly garbled, so the readings below are ASSUMPTIONS for F to confirm before
+building. F: "add to the Tapczan quest ... drive to a kebab place and there a 2D kebab, 'na ostro' ... and
+extend the quest with 'ksionzvlo' with some mini-game".
+- [ ] Reading 1 (assumed): extend the Tapczan quest, "Rajd Kraftowy · THE TAPCZAN" (the pub crawl job, see
+  `quest_book.gd` JOB_KINDS "crawl"): after the pub the player drives to a kebab place, where a 2D kebab
+  mini-game plays (ordering or building the kebab, with a "na ostro" spicy option), in the pixel look of
+  the existing pub mini-games (`tapczan_ui.gd`, `pong_match.gd`, `docs/design/tapczan-pong-v2.md`). Check
+  with F: which kebab place (the Kebab Zagłębie item in the backlog, al. Jana Pawła II 46/48, is a
+  candidate), and whether the tipsy drive after the pub (`tipsy.gd`) stays on during the kebab leg.
+- [ ] Reading 2 (assumed, updated after F's follow-up "make the kebab thing with Mrożulo"): the second
+  quest is **Mrożulo's "Mlask"** (`trend_job.gd`, `docs/design/gaulle-and-food-hype.md` G5: the food
+  reviewer on wheels with the cream van, a parody type and never the real man). It is the same quest as
+  the garbled "ksionzvlo" (the repo has no priest quest for that word; "Mrożulo" fits the letters and the
+  kebab theme). Extend it with a kebab mini-game: Mrożulo reviews a kebab, so the player makes or hand-
+  picks the kebab in the 2D game (the same mini-game as reading 1, reused, not a second copy) and his
+  MLASK grade depends on how well it went. Check with F: is the kebab mini-game one shared game for both
+  quests, or two separate ones.
+- Mini-games plug into the existing mini-game owner (read `docs/architecture/extending.md`; the pub room
+  UI and `main.gd` wiring for the Tapczan), never a private copy; Add-ons line in the PR (Dialogue Manager
+  for any branching scene: decide first). Light or full done by what is touched; phone check for the 2D UI.
+
 ## NEXT, Thursday 2026-11-26: map screen layout fixes, PORA DNIA panel and top chips (F, 2026-11-25)
 
 F sent a phone screenshot (landscape, iPhone) of the map's PORA DNIA (time of day) panel: "the time buttons
