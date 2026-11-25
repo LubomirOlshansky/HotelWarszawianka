@@ -6,133 +6,156 @@ description: Playtests Around Warsaw with Autopilot (an AI player in the Godot e
 # Playtesting Around Warsaw with Autopilot
 
 Autopilot (github.com/ramenvr/autopilot, Apache-2.0, plugin in `game/addons/autopilot/`) plays
-the game in the Godot editor: Claude writes a harness from our code, a decision model on Aura
-makes the moment-to-moment choices. Its own `autopilot` skill (installed by
-`autopilot connect claude` into `~/.claude/skills/autopilot/`) is how to drive its MCP tools:
-`start_run`, read the INSTRUCTIONS.md it names, `wait`, `report`, and frames only through the
-`frame-describer` subagent. Follow that skill for the tools; this one says what to test, the
-project's rules, and what happens with the results.
+the game in the Godot editor. Its own `autopilot` skill (installed by `autopilot connect claude`
+into `~/.claude/skills/autopilot/`) is how to drive its MCP tools: `start_run`, read the
+INSTRUCTIONS.md it names, `wait`, `report`, and frames only through the `frame-describer`
+subagent. Follow that skill for the tools; this one says what to test, the project's rules, and
+what happens with the results.
 
 **Two things are called "autopilot".** This skill is the Aura plugin on the Mac (F says
 "Autopilot Aura"). The game's own `--autopilot` flag is a scripted driver for missions, races and
 jobs in headless checks (verify-game skill); it runs in the cloud and needs no Mac.
 
-**What Autopilot is for** (lessons of 2026-11-02..08, PT-1..PT-45): it is good at finding a
-*place and a symptom* a player meets off the scripted routes (a dead stop, a HUD overlap, a
-card that never shows, a script error every frame). It is bad at saying *why*: its cause
-guesses were wrong as often as right (PT-40 "the harness line", PT-44 "beside a tram" were both
-real wall ends a car on the kerb or pavement hits). So a run delivers spots with `--at=`, and a
-cloud fix thread proves the cause with headless lines in minutes.
+## What it is, and what it is for (F, 2026-11-24)
+
+**How it plays.** Two models. Claude (the coding agent) reads our code and writes a *harness*:
+a few macro options ("drive to the goal", "tap ACCEPT", "back out") and a plan whose steps read
+the game's state. A small fast decision model (Jev, about 0.25 s a choice) picks one option at a
+time from the facts the harness hands it. Jev never sees the screen and does not know what a bug
+is. Autopilot keeps a memory of the game per project and gets better at the same prompts run
+after run.
+
+**What it is sold for**, and what works for us: short, concrete prompts of four kinds:
+**verify** (one claim: "the tow offer comes within 10 s of a pin at X"), **goal** (one outcome:
+"win the race against Pani Halina"), **test** (go over one thing: every tab of the settings
+card), **explore** (free play). The public tests are all small: a tiny arena, one task, a few
+minutes. None drives a city.
+
+**What our hunts showed** (2026-11-02..24, PT-1..PT-60, the 23-24 ride runs):
+- *Good*: a **place and a symptom** a player meets (a HUD overlap, PT-35; a real wall end on the
+  kerb, PT-40 and PT-44; script errors at start-up, #1032; the loader stuck for ~160 s) and
+  whether cards and buttons work at all (calls Accept/Skip/Later, settings, race won at cruise 95).
+- *Bad*: saying **why** (its cause guesses were wrong as often as right: PT-40 "the harness line"
+  and PT-44 "beside a tram" were real wall ends), and **long drives**. Six ride runs on 11-23/24
+  found no game bug in the driving: every failure was our harness (U-turns, off the road,
+  buttons by index), and it steers with keys, so it leaves narrow streets a player keeps to.
+
+**So:**
+1. **One row = one short verify or goal**, started at its own start (section 1, "Start at the
+   row"), with a verdict read from the game's state. No 15-minute chains (kebab, then wait for
+   the app, then the ride): the start flags put the car at the ride, the race, the order.
+2. **Driving routes go headless, in the cloud**: streets, bridges, tunnels, a way from A to B,
+   "is there a car route" are `check_lane_drive`, `check_drive --debug=X,Z`,
+   `check_playtest_route` and `check_stuck_spots` lines (minutes, no Mac, no cost). Autopilot
+   drives only the few hundred metres a row needs, or the drive *is* the claim.
+3. A finding is a place (`--at=`, street, place on the road, side offset) plus frames. A cloud
+   fix thread proves the cause headless.
+
+What goes where:
+
+| Question | Tool |
+| --- | --- |
+| Does a card, button, call, quest beat, menu, hint work in play; is a label cut off at 1266x585 | **Autopilot** verify/test |
+| Can a race, a boat race, a drag, a delivery be won or finished by a player | **Autopilot** goal, from its start flag |
+| The helicopter: take-off, landings, roofs, the car given back | **Autopilot** goal (headless can't fly the HUD) |
+| A street, bridge, tunnel, ramp: stops, kerbs, heights, the car under a deck | **headless** lines (`check_lane_drive`, `check_drive`), Autopilot only to film a spot a line found |
+| Is there a road route from A to B; does the route loop | **headless** `playtest_route` / lane graph |
+| A spot Autopilot flagged | **headless** repro in a fix thread, never a second Mac pass |
 
 ## 0. Setup (once per Mac; the user does the account steps)
 
-1. Install the `autopilot` CLI from the same release as the add-on (v1.0.0-1cb2383; the add-on no
-   longer bundles `agent_service/`; get the installer from the ramenvr/autopilot release page). Claude
-   Code's auto mode blocks it ("code from external"): the user runs it.
+1. Install the `autopilot` CLI from the same release as the add-on (v1.0.0-c84203c; the add-on
+   in git leaves out `agent_service/`, so get the installer from the ramenvr/autopilot release
+   page). Claude Code's auto mode blocks it ("code from external"): the user runs it.
 2. `autopilot connect claude`, then a new Claude Code session (it blocks this as
    self-modification too: the user runs it).
 3. In the editor's Autopilot tab: sign in to Aura and choose **Aura** as the decision model (no
-   TypeSafe key needed), runs sharing **off**.
+   TypeSafe key needed), runs sharing **off**. Keep the project's memory (never empty it between
+   hunts): the same prompts get better on it.
 
 ## 1. Before every run
 
-- **One Autopilot session on the Mac at a time.** Two threads in one editor, or two editors,
-  corrupt each other's runs and the CPU makes both slow (the padel thread waited ~40 min on
-  11-07 guessing whether the hunt was done from "quiet for 10 minutes"). Take the Mac with
+- **One Autopilot session on the Mac at a time.** Take the Mac with
   `tools/autopilot.sh on <thread name>`: it writes the lock `build/autopilot.lock` and refuses
-  while another owner holds it with a Godot running. `tools/autopilot.sh status` names the
-  owner. When you finish, `tools/autopilot.sh off` (frees the lock), close the editor, and tell
-  the coordinator "the Mac is free" so the next thread in the queue starts.
-- **Never overlap with exports or benches**: `tools/autopilot.sh off` before
-  `tools/export_ios.sh`, `xcodebuild` or a bench; the exports refuse while the plugin is on.
-- **Run on the latest main**: `git pull` (or merge main into the branch under test) and restart
-  the editor before the first run. Hunt 2 nearly re-tested a day-old checkout after a merge
-  train; an old checkout re-finds bugs that are already fixed.
-- `tools/autopilot.sh on`, then open the editor (`godot --editor --path game`, in the
-  background). The plugin and its game-side autoload are **off in git**: they must never ship,
-  and the exports refuse to run while it is on. `tools/autopilot.sh off` before you commit
-  `game/project.godot` or export. Opening the editor also writes `[autopilot] project_id` (the
-  key of Autopilot's memory of the game): leave it out of commits too.
-- Editor play always passes `--nosave` (`[editor] run/main_run_args` in project.godot), so a
-  run never touches the player's save; never take that line out.
-- Pick the next row of docs/TEST_BACKLOG.md, then docs/PLAYTEST.md "The test plan" (the first
-  never run, then the oldest); one row per run, **under 6 minutes of play** (see "Short runs").
+  while another owner holds it with a Godot running. `tools/autopilot.sh status` names the owner.
+  Also check no other `godot` runs (a bench, shots, an export): if one does, report "Mac busy"
+  and stop, don't start beside it. When you finish, `tools/autopilot.sh off`, close the editor,
+  restore the run args, and tell the coordinator "the Mac is free".
+- **Never overlap with exports or benches**: the exports refuse while the plugin is on.
+- **Run on the latest main**: pull and restart the editor before the first run; an old checkout
+  re-finds bugs that are already fixed.
+- The plugin and its game-side autoload are **off in git** (`tools/autopilot.sh on|off`); opening
+  the editor writes `[autopilot] project_id`: leave both out of commits.
+- `[editor] run/main_run_args` always has `--nosave` (a run never touches the player's save).
+  Add `--prebuilt` after it (the city builds in about 2 min instead of 5+) and the row's start
+  flags after that; restore the line before committing.
+- **Start at the row** (the rule since 2026-11-24; it replaces "the drive is the test"). Put the
+  row's own start in the run args, so the first episode plays the claim within a minute:
+  - `--ride=N`: ride N's request, the car by its passenger (also `--ride-story=ID`,
+    `--ride-quirk=`, `--stars=`);
+  - `--kebab=N`: kebab order N;
+  - `--race=N`: rival race N (1 Seba, 2 Mordor Mike, 3 Pani Halina, 4 Słoik, 5 Zbyszek, 6 Bartek);
+  - `--boat-race[=call]`, `--meet=` / `--meet-at=`, `--police=N`, `--heli`, `--garage`, the call
+    flags (`--call-in`, `--ev-call`, ...): see `game/scripts/dev_flags.gd` and the archive's flags
+    table;
+  - `--at=X,Z --heading=H` for a place; `--no-traffic` to split traffic from the map;
+    `--time=night` / `--clock=HH:MM`.
+
+  `--ride`, `--kebab` and `--race` skip the title and the first-hour guide (`show_title` off, so
+  `first10` never starts and "TAP TO DRIVE" never shows: wait for "km/h"). A row *about* the
+  guide runs with no start flag (or `--first10`). Name every start flag and teleport in the report.
+- Pick the next row of docs/TEST_BACKLOG.md, then docs/PLAYTEST.md "The test plan".
 - **Cost:** the decision model bills to the user's Aura account. One row at a time; ask the user
   before more than three rows in one go or a run over 15 minutes.
 
-## 2. The harness: what it must record
+## 2. The harness
 
-The first run lost its stuck positions (kept in memory only), so every harness here must write,
-per event, to its trace file:
-- **stops**: speed falls from over 20 km/h to under 3 km/h within 1 s, or under 5 km/h for 3 s
-  with the gas held; **unsticks**: `car.gd`'s `unsticks` counter going up (and whether it freed
-  the car); **height jumps**: the car's y against the frame before (over 2 m) and against the
-  terrain under it (`map.drive_height`) (below by more than 1 m = under the ground);
-  **clips**: the car inside a building's box.
-- Each with game time, **Godot world x, z** (metres; what `--at=` takes), heading, speed
-  before/after, the street name if the codex knows it, and **where on the road the car was**:
-  its side offset from the road's centre line and whether it was in a lane, over the kerb, on
-  the pavement or the tram strip. That one number decides who fixes it (see section 3).
-- Time limits on elapsed episode time, never on the game clock that keeps running. **Waits run
-  on real time too**: a wait on the game clock freezes while the pause card is open (PT-42 was
-  that, not a bug).
-- **Start from the shared harness**, `tools/autopilot/road_harness.py` (its README): it drives by
-  road to the arrow on the lane graph (`game/scripts/playtest_route.gd` over `rc`, one call a
-  tick), keeps the stuck rule and writes the events below with the place on the road. Players
-  follow streets: never steer straight at the arrow (PT-60 pinned the car on the Palace forecourt
-  that way, and rows 5-6 never got done). A row only adds its plan and its own reads.
-- **Teleports only to reach the row**: `--at=` or the map teleport may put the car at the start
-  of the area, never next to the goal. The drive *is* the test: the padel run found PT-31 (no
-  car route from Solec) only because it drove; the 11-08 padel re-test teleported to the club
-  and so tested the match but not the way there. Name every teleport in the report.
-- **Leave out traffic bumps**: a stop with a traffic car touching the player's, or a driver's
-  "traffic" shout (dialogue.gd `_shout`: KIEROWCA, TAKSÓWKARZ...) within 2 s, is the player
-  hitting a car: correct, not a bug (runs 3-8: every framed on-road stop was one). Log the
-  shout, read `traffic` near the car each tick, or run with `--no-traffic` for map-only bugs.
-- **Finish frame-describer before `report`**: after `report` the `frames` tool refuses (run 7
-  lost its frames that way).
-- **Keep the Mac awake** for the whole run (the user's Energy settings, or `caffeinate` if the
-  permission check allows it): a sleep ends the run (run 4).
-- **Phone shape**: the editor's game view is 16:9 and can't be resized from a run; set the root
-  window's content scale to 1266x585 (aspect keep) at the start, and log
-  `get_viewport().get_visible_rect()`. Edge cut-offs (PT-9) only show at the phone's shape.
-  Run cards and HUD rows at **both** shapes when a feature adds a card: the padel point cards
-  (PT-30, padel) were never placed at 16:9.
-- **Flying**: cruise at about 50 m and come down only within 30 m of the target (run 13 aimed at the cassette's height and flew into the ground).
-- **Story beats (P2)**: offer options from the guide's own state (`first10.gd` `fired`), not the
-  agent's memory, and give each beat a real drive or fly option (run 10 only waited at the race
-  and lost it). An edge check on rects misses text that slides off while it animates: look at
-  the frames.
-- **Count a stop only on the road**: within the carriageway of a road in `game/map/centrum.json`
-  `roads` (`p` is a flat x,z list, `w` its width), kerb and pavement edge included. Run 3's
-  framed hard stops were all the agent driving 30 m off the road into car park walls: correct
-  collisions, not bugs. Off-road events go to a separate list, read only for clipping and
-  under-the-ground.
-- Compare the car's height with `map.drive_height`, never the raw terrain grid: dug ground (the
-  excavation by Fangora) is below the grid on purpose.
-- **One street per run** when the streets are far apart (run 3 kept the first street's momentum
-  and never reached the last three); slow to about 50 km/h near waypoints 15 m apart.
-- **One street per option**, forced in turn (run 2's agent picked Marszałkowska every time and
-  never drove the other eight). A steering deadband of about 14° keeps it on the street.
-- A **stuck** is under 1.2 m/s for over 2 s with the gas held; when one lasts 10 s, reverse or
-  `--at=` back to the route and go on, so a trap costs time but doesn't end the run.
-- **Controls**: Classic is the default since 2026-11-04 (editor runs pass `--nosave`, so they get
-  it): A / D steer car-relative, W is the gas, S brakes and reverses from a standstill. A harness
-  written for Point's screen-direction keys must add `--controls=point` to the run's arguments,
-  or drive with A / D against the car's heading. Name the scheme in the trace.
-- **Keys**: the game reads `physical_keycode` (main.gd `_unhandled_key_input`: H, Q, E, C...), so
-  an injected key event must set it, or H "does nothing" (run 12). **Tap** a key (press, then
-  release a frame later): a held Escape does nothing (PT-42 again, 11-08). The HELI button
-  always works. During a job that rides in the car the helicopter is refused with a toast, by
-  design.
-- **Short runs**: on F's Mac the run's sandbox ends (-9) at about 6 minutes of play (runs 11-14,
-  every hunt since): plan rows that need under 6 minutes, start what you test in the first 2-3
-  minutes, and restart the editor before a run; flush the trace every tick and describe frames
-  as they come in. Split a long line (the Podwózka story ride, a whole quest) into rows that
-  each start where the last ended.
-- After the run, frame-describer on the frames of every stop and height event: a hard stop can
-  be a kerb, a tram island or just a traffic car, and only the picture tells. Raise
-  `frames_fps` to 10 around a spot the building see-through patch hides (PT-45).
+**Start from the shared harness**, `tools/autopilot/road_harness.py` (its README): driving by
+road on the lane graph (`game/scripts/playtest_route.gd` over `rc`), the stuck rule, back to the
+road, the three-point turn, card buttons by label, and the trace events. A row adds only its plan,
+its reads and its `row_status`. Never steer straight at the arrow (PT-60).
+
+The trace, per event: **stops** (over 20 km/h to under 3 within 1 s, or under 5 for 3 s with the
+gas held), **unsticks** (`car.gd`'s counter), **height jumps** (over 2 m frame to frame) and
+**under the ground** (over 1 m below `map.drive_height`, never the raw terrain grid), each with
+game time, Godot world x, z (what `--at=` takes), heading, speed, street and **the place on the
+road** (lane, lane_edge, junction, kerb, off; side offset). That place decides who fixes it
+(section 3). Also `back_to_road`, `back_on_road`, `turn_round`, `reverse_out`, `arrived`, `button`.
+
+Rules that cost a run each to learn:
+- **A verdict reads the game's state, never a stage name or which options ran**: a ride's
+  `Result` stage is also the *cancelled* card; paid = stage Ride was seen, `wallet.zl` went up, no
+  "cancel" in the card text. Keep each `Step`'s done on state too, so `restart=False` resumes it.
+- **Buttons by label, never by index** (`want_labels`): `press_button_N` once pressed HELI and the
+  car flew off. Skip on a call card is "next call", Later the decline.
+- **Rings are small**: a stand or pickup ring is 7 m; `arrive_m = 4` stops inside it.
+- **Escape**: hold it 0.3 s, release, wait 1 s (a one-frame press does nothing). Other keys: an
+  injected event must set `physical_keycode` (main.gd `_unhandled_key_input`), and is tapped
+  (press, release a frame later). The HELI button always works; during a job that rides in the
+  car the helicopter is refused with a toast, by design.
+- **Controls**: Classic (the default): A / D steer car-relative, W gas, S brakes and reverses.
+- **Time**: the episode cap and the game clock stop while a pause card is up; end a settings row's
+  episode by wall time (`Status("done")` after N real seconds), and wait on real time.
+- **Traffic bumps are not bugs**: a stop with a traffic car touching, or a driver's shout
+  (dialogue.gd `_shout`) within 2 s. `--no-traffic` settles it: a stop that comes back with no
+  traffic is the map or the route.
+- **Phone shape**: set the root window's content scale to 1266x585 (aspect keep) at the start and
+  log `get_viewport().get_visible_rect()`; a row about a card runs at 16:9 too.
+- **Flying**: cruise at about 50 m and come down only within 30 m of the target.
+- **Story beats**: options from the guide's own state (`first10.gd` `fired`), not Jev's memory.
+- **Keep the Mac awake** (a sleep ends the run).
+
+**Episodes.** The agent service caps one `run_harness` episode at 360 s of play
+(`MAX_EPISODE`, autopilot/agents/session.py) and then stops the harness child: that was the old
+"-9 at about 6 minutes", not a crash. A row that needs longer is one run with more episodes, each
+later one `run_harness(restart=False)` (the game plays on); ask `time_limit_minutes` in
+`start_run`. A `restart=True` episode starts a fresh game and rebuilds the city. Release
+v1.0.0-c84203c has no `keep_game_open` (only upstream HEAD does): one row is one run, and the
+editor restarts after each `report`. With start flags a row should fit one or two episodes.
+
+**Frames.** Run frame-describer on the frames of every off-lane stop and height event before
+`report` (after `report` the `frames` tool refuses). Raise `frames_fps` around a spot the
+building see-through patch hides (PT-45).
 
 Don't change the project's files during a run; the game is acted on only through play.
 
@@ -140,55 +163,74 @@ Don't change the project's files during a run; the game is acted on only through
 
 1. **Take the PT id from the register first**: the next free number is the highest in
    `/mnt/project-files/autopilot/bug-log.md`, main's docs/PLAYTEST.md *and* every open PR that
-   touches PLAYTEST.md. Write the id into bug-log.md at once (it is shared and instant), then the
-   row. Two threads on two branches both took PT-30..PT-32 on 11-07.
-2. Add each finding to docs/PLAYTEST.md "The bug log" as `PT-<n>`, status `suspect`, with
-   the place, `--at=x,z`, heading, the side offset, what happens, the run id and trace. Copy
-   frames worth keeping to `shots/autopilot/<run>/` (gitignored), never into git. Mirror the
-   short line into bug-log.md.
+   touches PLAYTEST.md. Write the id into bug-log.md at once, then the row.
+2. Add each finding to docs/PLAYTEST.md "The bug log" as `PT-<n>`, status `suspect`, with the
+   place, `--at=x,z`, heading, the side offset, what happens, the run id and the start flags.
+   Frames worth keeping go to `shots/autopilot/<run>/` (gitignored), never into git. Mirror the
+   short line into bug-log.md (newest analysis on top).
 3. **Sort by who can tell, not by guessing the cause:**
-   - *Harness-only* (closed here, no fix thread): the car 10+ m off the road, a traffic bump, a
-     key the harness held or sent without `physical_keycode`, a wait frozen under the pause.
-   - *Everything a player could do* (a stop in a lane, on the kerb, on the pavement or the tram
+   - *Harness-only* (closed in the report, no PT id): the car 10+ m off the road, a traffic bump,
+     a key held or sent without `physical_keycode`, a wait frozen under the pause, a verdict read
+     from the wrong state.
+   - *Everything a player could do* (a stop in a lane, on the kerb, the pavement or the tram
      strip; a card that never shows; a script error): **send it to the coordinator straight
-     away** with the PT id, `--at=`, heading, offset and speed, one bug or one street's small
-     batch per message. A cloud fix thread reproduces it with headless lines (lane centre,
-     kerb lane, `--no-traffic`) in minutes; don't spend a second Mac pass "confirming" first.
-     Never call a stop "the harness line" unless a kerb-lane line clears it too: PT-40 was
-     waved off that way and was a real wall end.
+     away** with the PT id, `--at=`, heading, offset and speed. A cloud fix thread reproduces it
+     headless (lane centre, kerb lane, `--no-traffic`) in minutes; no second Mac pass first. Never
+     call a stop "the harness line" unless a kerb-lane line clears it too (PT-40).
 4. Update the plan row's "Last run" and "Result", and tick the TEST_BACKLOG line.
-5. Never fix in the playtest thread, and don't wait on a merge train: the hunt's docs PR is
-   small; the fix PRs carry their own PLAYTEST.md status change.
-6. Re-run the rows of an area whenever its map geometry changes (a bake, new kerbs, decks,
-   props): clipping and out-of-bounds bugs come back with geometry. After a merge train lands,
-   one short hunt on the touched areas is worth more than an hourly one on a quiet main.
-7. Fix threads: prove the cause (with and without `--no-traffic`), fix, add the spot to a check
-   (`check_stuck_spots.gd` for car spots, showing old main fails and the fix passes; `check_hud`
-   for HUD), set `fixed (PR)`. The next run of that row sets `verified` or reopens it; list it
-   under TEST_BACKLOG "Fixes waiting for proof".
+5. Never fix in the playtest thread. Harness fixes go to `tools/autopilot/` in a small PR of
+   their own; game fixes to their fix threads.
+6. Fix threads: prove the cause, fix, add the spot to a check (`check_stuck_spots.gd` for car
+   spots, `check_hud` for HUD), set `fixed (PR)`. The next run of that row sets `verified` or
+   reopens it (TEST_BACKLOG "Fixes waiting for proof").
+
+**Report each row as**: pass / fail; the start flags; the timings (e.g. accept to START, START to
+the drop); events with x, z, street, place, side_m; one frame line for each stop worth a fix
+thread; harness faults; the run folder.
 
 ## 4. Scheduling hunts
 
-- **Autopilot never gates a merge** (F, 2026-11-08: waiting would slow merges down badly). A PR
-  merges on its green CI and the usual go; Autopilot then plays it from main in the next hunt.
-  A feature thread doesn't queue for the Mac before merging, and nobody holds a merge for a run.
-- Hunts run in a Remote Control session on the Mac, which only starts from F's own message and
-  goes offline when the Mac sleeps or the session idles. A routine in the cloud can't start one
-  and can't message it. So: a hunt starts on F's "start" or after a merge train, not on a timer;
-  a routine that finds the Mac offline stays silent instead of posting "no change".
-- The coordinator keeps the Mac queue (hunt, feature threads that want a run, exports) and hands
-  the Mac to the next thread when the last one says it is free.
+- **Autopilot never gates a merge** (F, 2026-11-08): a PR merges on its green CI and the usual
+  go; Autopilot plays it from main in the next hunt.
+- Hunts run in a Remote Control session on the Mac, which starts only from F's own message. A
+  hunt starts on F's "start" or after a merge train, not on a timer; re-run an area's rows when
+  its geometry changes.
+- The coordinator keeps the Mac queue and hands the Mac on when the last thread says it is free.
+
+## 5. Row recipes (what worked 2026-11-23/24)
+
+Each starts from `road_harness.py`, with frame-describer on every off-lane stop.
+
+- **Settings tabs**: hold Escape, `game.ui()` for `tab_*`, click `pads_*` / `text_large_*` /
+  `lang_*` and `close`; check fit with `hud.settings_panel.card_rect()`, `card_scale()` and
+  `button_rects()` (the card scales, so raw control sizes read as off screen); close and reopen
+  keeps the last tab. End by wall time.
+- **Loader**: `restart=True` so the setup loop watches the percent text ("building the city… N %"
+  / "budujemy miasto… N %": match `%`), then Space at the prompt. With `--prebuilt` the editor
+  still holds the bar at 17-19 % for about 160 s: record it.
+- **Guide** (no start flag): read `first10.t`, `fired`, `how`, `_beta_up`, `_choice_up` every 4 s;
+  the clock stops in the settings pause; any key in the first 4 s makes the finger "met".
+- **Calls**: `missions.held = False` (a research change, say so), `ring_in(2)`, tap the rescue
+  pill, Accept / Skip / Later; the next ring can take 45-60 s (pacing, not a bug).
+- **Podwózka ride**: `--ride=N`. Tap START THE RIDE by label, drive to the drop, verdict paid
+  (above). Log pickup to START and START to the drop. The passenger cancels after about 250 s
+  of waiting. The ride *offer* in a real session comes only after the guide's first kebab and its
+  card expires: that is a separate guide row, not this one. Known spots (watch, not PT): Plac
+  Grzybowski (-1360..-1440, -165..-325) and Zielna (-1220..-1255, -320..-396), off the lane with
+  and without traffic; a headless drive keeps the lane there.
+- **Kebab**: `--kebab=N`, `arrive_m = 4`, done = the order delivered (`jobs_done` up).
+- **Race (Pani Halina)**: `--race=3`, `cruise_kmh = 95` wins (70 loses by about 40 s); done when
+  `rivals.state` is Result and the panel reads 1ST.
 
 ## Gotchas
 
 - Enabling the plugin by editing project.godot by hand skips its `_enable_plugin()`, so the
   autoload is missing: use `tools/autopilot.sh on`.
-- Godot headless (Autopilot's own CI path) never captures the mouse and has no renderer: our
-  shots and looks don't work there; use the editor path.
-- The city takes about a minute to build at the start of each play session (the "A frame took
-  61 s" error is that, not a bug).
+- Godot headless (Autopilot's own CI path) never captures the mouse and has no renderer: use the
+  editor path.
 - Coordinates: Autopilot's kit frame is centimetres, `kit = 100 * (-z, x, y)`; convert with
   `game.to_native` before writing `--at=` (Godot x, z in metres).
-- A fresh save runs the first-10-minutes guide, which keeps friends from walking up for those
-  10 minutes: a quest's in-person start needs a save past the guide (or the quest's own flag).
-- On-road hard stops with a driver's shout bubble are traffic bumps (dialogue.gd `_shout`).
+- A fresh save runs the first-10-minutes guide, which keeps friends from walking up for those 10
+  minutes: a quest's in-person start needs its own flag or a save past the guide.
+- The Autopilot add-on itself logs key-hold races (`playtest.gd:1023/1024/1027`) now and then:
+  the add-on, not the game.
