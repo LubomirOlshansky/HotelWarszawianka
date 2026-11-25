@@ -31,6 +31,8 @@ Links to the analytics finding (18 of 28 players never start an activity) and th
   learned, it steers the player to something different: a taxi ride, or a race against a rival.
 - [ ] The first minutes make the quests near the player visible (a marker, a card or a hint), so the player
   who walks into the first steps understands there is more to do next to them.
+- [ ] The quests offered or shown to new players are ordered from the most fun to the most boring (F,
+  2026-11-25): rank the quest kinds by fun first, then the guide and the nearby-quest hints follow that order.
 - Design first with the guide owner (guide.gd and the onboarding plan, artifact UWbDq4YuduZRo4joQ8Lipc,
   F chose: kebab stays on the counter, the player picks it up); full done (gameplay): verify, shots, `--ios`;
   say what only the phone can show.
