@@ -532,10 +532,10 @@ func _room_and_door() -> void:
 	if not hud.markers.has("tapczan:door"):
 		_fail("the maps' mark at the door")
 	else:
-		# F 2026-11-24: permanent on both maps, a beer mug named THE TAPCZAN (not in quest focus).
+		# F 2026-11-24: permanent on both maps, a beer mug (not in quest focus); F 2026-11-25: the mug alone, no name.
 		var mk: Dictionary = hud.markers.owned("tapczan")[0]
-		if int(mk["shape"]) != MapIcons.POI_MUG or str((mk["extra"] as Dictionary).get("name", "")) != "THE TAPCZAN":
-			_fail("the pub's mark: a mug named THE TAPCZAN, got %s" % mk)
+		if int(mk["shape"]) != MapIcons.POI_MUG or str((mk["extra"] as Dictionary).get("name", "")) != "":
+			_fail("the pub's mark: the mug alone, no name, got %s" % mk)
 		for ctx in [MapMarkers.Context.FREE, MapMarkers.Context.AIR]:
 			for view in [MapMarkers.View.MINIMAP, MapMarkers.View.FULL_MAP]:
 				if not MapMarkers.shows(int(mk["layer"]), view, ctx):
