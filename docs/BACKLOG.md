@@ -17,6 +17,7 @@ Plac Bankowy and Senatorska/Podwale. Priority for 2026-11-26, first in the queue
 - Photos (never committed, kept in the gitignored `refs/`): Mapillary and Panoramax through
   `tools/street_photos.py X Z --r --max --slug`, fotopolska.eu's photo map, any other web source
   (F's standing rule). F's own photos, if he sends them, win.
+- After the build: the re-bake chain (`bake_sectors.py`, then `bake_city.gd` with a renderer), `check_map_data.py`, and the looks with `--prebuilt` too. A new site's spec needs the Roof, Ground and Parts sections for `check_spec`.
 - Light or full done: full (geometry): verify, shots, bench, `--ios`, both city paths; name what
   only the phone can show.
 
