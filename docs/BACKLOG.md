@@ -3,6 +3,55 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
+## NEXT, Thursday 2026-11-26: map screen layout fixes, PORA DNIA panel and top chips (F, 2026-11-25)
+
+F sent a phone screenshot (landscape, iPhone) of the map's PORA DNIA (time of day) panel: "the time buttons
+look awful, there is no space at all at the bottom". F is only listing tomorrow's work, so nothing is built yet.
+- [ ] PORA DNIA panel overflows the screen height on the landscape layout: the ŚWIT / DZIEŃ / ZMIERZCH / NOC
+  buttons sit flush against the bottom edge. Make the panel fit on every phone aspect ratio with proper
+  padding, respecting safe areas; shrink the clock dial or the text if needed; follow the UI kit and the
+  dark-card design system. Check at 2532x1170, 2868x1320 and a narrow Android ratio.
+- [ ] Top chips on the map (the clock chip "PT 12:41" and the X button) also lack proper insets from the
+  screen edges (F: "no proper insets"): give them real margins and safe-area insets in the same change.
+- [ ] A faded "THE TAPCZAN" text label still shows on the map near the panel, although F asked for the
+  beer-mug icon only (#1063, merged). Find which map layer draws it (a label layer or the POI name) and
+  remove it if it is a quick fix.
+- [ ] Lane assist ("Asysta pasa", Jazda tab in Settings) must be OFF by default (F, 2026-11-25). Change the
+  default in the settings owner, keep saved choices of existing players, and check that a fresh install
+  starts with it off.
+- Light done (UI layout): shots at phone sizes before/after, `tools/verify.sh`; name what only the phone
+  can show. Merge on a green `gate` plus an audit go.
+
+## NEXT, Thursday 2026-11-26: onboarding after the first kebab (F, 2026-11-25)
+
+F: after the first kebab is delivered the game says "next" and sends the player to another kebab far away,
+which feels wrong; and a new player who lands on the first steps does not see that quests are right nearby.
+Links to the analytics finding (18 of 28 players never start an activity) and the held kebab-spam fix #1071.
+- [ ] After the first kebab, the guide must not point to a far kebab stand again. Once the mechanic is
+  learned, it steers the player to something different: a taxi ride, or a race against a rival.
+- [ ] The first minutes make the quests near the player visible (a marker, a card or a hint), so the player
+  who walks into the first steps understands there is more to do next to them.
+- [ ] The quests offered or shown to new players are ordered from the most fun to the most boring (F,
+  2026-11-25): rank the quest kinds by fun first, then the guide and the nearby-quest hints follow that order.
+- Design first with the guide owner (guide.gd and the onboarding plan, artifact UWbDq4YuduZRo4joQ8Lipc,
+  F chose: kebab stays on the counter, the player picks it up); full done (gameplay): verify, shots, `--ios`;
+  say what only the phone can show.
+
+## NEXT, Thursday 2026-11-26: buses turn sideways and get stuck (F, 2026-11-25)
+
+F: "buses sometimes just turn sideways across the road and get stuck".
+- [ ] Find why a bus ends up crosswise on the road and stops (turn at a junction, lane change, a swept
+  path too wide for the lane, or a recovery that never fires); reproduce it, fix the root cause, and make
+  a stuck bus free itself. Traffic AI: if `traffic.gd` is touched, rerun the racer bench before and after.
+
+## NEXT, Thursday 2026-11-26: engine sound at max RPM (F, 2026-11-25)
+
+F: the engine sound at maximum revs is weird and wheezy, with a rustling or scraping noise under it; F does
+not like it and wants it changed. Ties into the engine sound rework already in the backlog (F, 2026-11-19:
+car engine sound rework, new tyre squeal only).
+- [ ] Find what makes the top-RPM sound wheezy and rustling (the loop pitch ceiling, a noise layer, or the
+  limiter), and rework the top of the rev range so it stays clean. Listen at idle, mid and max.
+
 ## NEXT, Thursday 2026-11-26: model Niecała 7 and the houses round it (F, 2026-11-25)
 
 F: "tomorrow we need to model Niecała 7, add it to the backlog, and the houses around". F's ask lifts
