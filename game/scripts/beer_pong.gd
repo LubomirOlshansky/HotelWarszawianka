@@ -13,8 +13,12 @@ extends Control
 ## in złoty) or PRZEGRANA, then JESZCZE RAZ (again) or DO BARU (back to the room). PODDAJ SIĘ (top
 ## right) gives up. Keys: none needed (a mouse drag works as a finger on the Mac).
 ##
+## Sound (tapczan_room.gd hands `sound` and `cue` in; empty in checks): the ball's tock at each
+## table touch along the flight, the ticks round a rim, the plop into a cup; the end's win or loss
+## from the feedback set (hud.gd `cue`).
+##
 ## Cost: 2D only, redrawn while something moves (a few hundred primitives); the aim's arc is
-## traced into one reused array; nothing is allocated per frame.
+## traced into one reused array; nothing is allocated per frame (the table touches are found once a throw).
 
 const Sim := preload("res://scripts/beer_pong_sim.gd")
 const Room := preload("res://scripts/tapczan_room.gd")
@@ -60,6 +64,9 @@ var log_on := false
 var rival_id := ""
 var sim: Sim
 var stake := 0
+## sfx.gd one-shot by name (tapczan_room.gd `_sound`), and the feedback cue (hud.gd `cue`).
+var sound := Callable()
+var cue := Callable()
 
 enum Stage { AIM, FLY, SPIN, SAY, RIVAL, OVER }
 var stage := Stage.AIM
@@ -81,6 +88,9 @@ var _quit_rect := Rect2()
 var _again_rect := Rect2()
 var _done_rect := Rect2()
 var _font: Font
+## The flight's table touches (path indices) and the next one to sound.
+var _touches := PackedInt32Array()
+var _touch_i := 0
 
 
 func _ready() -> void:
@@ -335,6 +345,23 @@ func _fly(r: Dictionary, by: int) -> void:
 	_t = 0.0
 	stage = Stage.FLY
 	_banner = ""
+	_touches = table_touches(_path)
+	_touch_i = 0
+
+
+## Where a flight touches the table: the path's low points at the ball's height over the top.
+static func table_touches(path: PackedVector3Array) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	for i in range(1, path.size() - 1):
+		var y := path[i].y
+		if y <= Sim.BALL_R + 0.01 and y <= path[i - 1].y and y < path[i + 1].y:
+			out.append(i)
+	return out
+
+
+func _sound(n: String) -> void:
+	if sound.is_valid():
+		sound.call(n)
 
 
 ## The ball's place now along the flight (or round the rim while it spins).
@@ -365,14 +392,22 @@ func _process(dt: float) -> void:
 			elif auto_play and _t > AUTO_AIM:
 				_auto_throw()
 		Stage.FLY:
+			while _touch_i < _touches.size() and _touches[_touch_i] <= int(_t * PATH_RATE):
+				_touch_i += 1
+				_sound("pong_bounce")
 			if _t * PATH_RATE >= _path.size() - 1:
 				if bool(_result.get("rim", false)):
 					stage = Stage.SPIN
 					_t = 0.0
+					_sound("pong_rim")
 				else:
+					if str(_result.get("result", "")) in ["cup", "bounce"]:
+						_sound("pong_cup")
 					_said()
 		Stage.SPIN:
 			if _t >= SPIN_S:
+				if str(_result.get("result", "")) in ["rim_in", "bounce"]:
+					_sound("pong_cup")
 				_said()
 		Stage.SAY:
 			if _t >= SAY_S:
@@ -427,6 +462,8 @@ func _end(won: bool) -> void:
 	_pulling = false
 	_banner = Room.say("won", [stake]) if won else Room.say("lost")
 	_quip = _line_of("lose" if won else "win")
+	if cue.is_valid():
+		cue.call("win" if won else "fail")
 	if not _paid:
 		_paid = true
 		finished.emit(won, stake if won else 0, sim.drinks)

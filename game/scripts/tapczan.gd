@@ -47,6 +47,13 @@ const AMBER_D := Color("#7a4a12")
 const PILL := "tapczan"
 
 var room: Room
+## The sound (sfx.gd; main.gd sets it after the join): the room's bed while inside, the pour, the
+## clink and the ball (the room and the pong view get it through `room.sfx`). Null in checks.
+var sfx: Node:
+	set(v):
+		sfx = v
+		if room != null:
+			room.sfx = v
 var tipsy: Tipsy
 var cam: Camera3D
 var world_node: Node3D
@@ -90,6 +97,7 @@ func setup(world: Node3D) -> void:
 	room.log_on = log_on
 	# --nohud (shots of the room alone): the room's own panel stays hidden too.
 	room.panel_off = bool(_ctx_hide_hud)
+	room.sfx = sfx
 	add_child(room)
 	room.left.connect(_on_left)
 	room.drank.connect(func(drinks: float) -> void: tipsy.add(drinks))
@@ -98,6 +106,7 @@ func setup(world: Node3D) -> void:
 	tipsy.name = "Tipsy"
 	tipsy.hud = hud
 	tipsy.car = _car_body
+	tipsy.log_on = log_on
 	add_child(tipsy)
 	tipsy.setup(world)
 	hud.context_pressed.connect(func(who: String) -> void:
@@ -106,7 +115,6 @@ func setup(world: Node3D) -> void:
 			start())
 	if hud.get("markers") != null:
 		var d := door()
-	tipsy.log_on = log_on
 		# F 2026-11-24: a permanent mark on both maps, a beer mug named THE TAPCZAN (SERVICE layer).
 		hud.markers.put_all("tapczan", [{"key": "door", "layer": MapMarkers.Layer.SERVICE, "at": d, "colour": AMBER,
 				"shape": MapIcons.POI_MUG, "group": "crawl", "extra": {"name": "THE TAPCZAN"}}])
@@ -191,6 +199,7 @@ func _idle_tick(dt: float) -> void:
 		if not hud.pill_shown(PILL):
 			var w := Room.pair("enter")
 			hud.show_pill(str(w[0]), str(w[1]), PILL)
+			_log("pill %s at %.1f m from the ring, %.1f km/h" % [str(w[0]), d, absf(float(v[1]))])
 	elif hud.pill_shown(PILL):
 		hud.hide_pill()
 
@@ -199,7 +208,6 @@ func _idle_tick(dt: float) -> void:
 
 func _begin() -> void:
 	if hud.pill_shown(PILL):
-			_log("pill %s at %.1f m from the ring, %.1f km/h" % [str(w[0]), d, absf(float(v[1]))])
 		hud.hide_pill()
 	if _mark != null:
 		_mark.visible = false
@@ -215,14 +223,19 @@ func _begin() -> void:
 		cam = world_node.get_viewport().get_camera_3d()
 	room.cam = cam
 	room.enter(world_node)
+	if sfx != null:
+		sfx.pub_bed(true)
 	_log("in")
 
 
 func _on_pong(won: bool, stake: int, drinks: int) -> void:
 	tipsy.add(drinks)
+	var before := int(wallet.get("zl")) if wallet != null else 0
 	if won and stake > 0 and wallet != null:
 		wallet.pay(stake, 5, "pong")
 		_pong_won += stake
+	_log("pong paid: %s vs %s, stake %d, wallet %d -> %d" % ["won" if won else "lost", room.last_rival(), stake,
+			before, int(wallet.get("zl")) if wallet != null else 0])
 
 
 func _on_left() -> void:
@@ -230,14 +243,13 @@ func _on_left() -> void:
 		return
 	finish()
 
-	var before := int(wallet.get("zl")) if wallet != null else 0
 
 func _ended() -> void:
 	if room.inside:
-	_log("pong paid: %s vs %s, stake %d, wallet %d -> %d" % ["won" if won else "lost", room.last_rival(), stake,
-			before, int(wallet.get("zl")) if wallet != null else 0])
 		room.inside = false
 	hud.visible = _hud_was
+	if sfx != null:
+		sfx.pub_bed(false)
 	if _car_body != null:
 		_car_body.process_mode = Node.PROCESS_MODE_INHERIT
 	tipsy.go()

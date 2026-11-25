@@ -1823,6 +1823,8 @@ func _build_world() -> void:
 	# The pub's door is open any time (no quest): its own test, not the offers' `_free_block` (the guide,
 	# the quiet time after a finish); only a title, the bench or a card up keeps the pill away.
 	tapczan = _join(Tapczan.new(), world, func() -> bool: return title == null and not _phone_bench and not hud.cards_up()) as Tapczan
+	if tapczan != null:
+		tapczan.sfx = sfx  # the pub's bed, pour, clink and ball (sfx.gd)
 	await LoadYield.tick("crawl")
 	await _build_storefronts(data, world)  # the Leżak round-up joins the director here
 	await LoadYield.tick("_build_storefronts")
