@@ -21,6 +21,38 @@ Plac Bankowy and Senatorska/Podwale. Priority for 2026-11-26, first in the queue
 - Light or full done: full (geometry): verify, shots, bench, `--ios`, both city paths; name what
   only the phone can show.
 
+## NEXT, Thursday 2026-11-26: Rondo Dmowskiego to trailer quality, and the new square by Empik (F, 2026-11-25)
+
+F: "not the rondo yet, we improve it tomorrow"; "the kiosk next to Empik must be redone, there is
+nothing there now, it is just a car park" (the square beside the rondo, planned as the city's "Zielona
+metamorfoza placu obok ronda Dmowskiego"). F's ask lifts the modelling stop for this area. Second in the
+queue of 2026-11-26, after Niecała 7. The final "day 1 / day 28" teaser (teaser thread, start point
+X -870.7 Z 427.3) is re-shot after this work, so the rondo and the square must be done first.
+- [ ] Rondo Dmowskiego improved to trailer quality (it is the teaser's start): the paved island and tram
+  cross, the four crescent beds, façades and shopfronts round it, lamps, signs, ground and markings,
+  looked at day and night with `tools/shots.sh` (rondo set) and as the trailer frames.
+- [ ] The empty square next to the Empik pavilion rebuilt as the city plans it. Today it is a surface car
+  park with parking bays, a big tree, an old lamp post, a kiosk and two underpass stairwells (what the
+  city's "Tak było" picture shows). Plan ("Tak będzie", F's two pictures, 2026-11-25), from the picture:
+  - the car park is gone: one paved square in light grey slabs, the Empik pavilion (glass sides, white
+    roof with roof lights) stays on its west edge, the tall slab block with shopfronts on the east edge;
+  - three large lawn-and-tree islands with curved low edges (round-leaf and olive-like trees, shrubs),
+    the biggest one in front of Empik, two smaller ones further along the block's front;
+  - a small café terrace with pergolas and tables on the north side by the block's shops, a few
+    wooden "pebble" seats near the middle, one street lamp, an advertising column on the south-east;
+  - along the roadway a line of low bollards, a green planted verge (grass and low shrubs) on the
+    corner, a bike rack and a blue kiosk or ticket pillar by the stair; the two underpass stairs are
+    kept, re-railed, with a small service hut beside them;
+  - people walking across; the façade's giant advert is gone.
+  Not read yet: the city page itself (um.warszawa.pl, "zielona-metamorfoza-placu-obok-ronda-dmowskiego")
+  did not open from the cloud, so exact sizes, planting numbers and dates are open: the thread fetches it
+  first (a Mac browser or the cloud proxy) and fixes the list above against the text.
+- Method: skill `model-from-photos`, spec in `docs/landmarks/specs/`, ground and greenery through the
+  map data's plaza/grass areas (`docs/architecture/extending.md`), a site for the pavilion's surroundings
+  only if needed; `tools/turntable.sh KEY` before the PR, the sheet shown to F first.
+- Done is full (geometry): re-bake chain, `check_map_data.py`, verify, shots, bench, `--ios`, both city
+  paths; name what only the phone can show. Trees stay simple for performance (F, 2026-11-20).
+
 ## traffic.gd start-up errors in the editor (Autopilot run 20261125-094944, 2026-11-25)
 - Every editor run with `--nosave --prebuilt` logs at t=0: `traffic.gd:1158 Out of bounds get index '0' (on base: 'Array')` (x4-5) and `traffic.gd:4871 Out of bounds get index '0' (on base: 'Array[MultiMesh]')` (x1), before the title's build ends. Not pub-related; the game plays on. Find which empty array/MultiMesh list is indexed before it is filled (a guard or an order fix), check with `--prebuilt` runs of the headless checks, and note whether the phone logs the same.
 
