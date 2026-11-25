@@ -57,6 +57,23 @@ TD-4 wiring spec (`docs/architecture/`) where it applies. Each PR says which own
   variety between rides and drops), tied to item A (the activity button and the phone) and to the
   analytics finding that most players never start an activity. No code before F picks.
 
+## NEXT, Thursday 2026-11-26: the flying boar for the reel (F, 2026-11-25)
+
+F: "tomorrow we need to make a boar that flies over central Warsaw, with little wings, around the Palace,
+roughly with a view like this... for the reel". Promo content for a reel only, not a gameplay feature
+(the walking boars of the "Wild boars in the city" item below stay a separate, later item).
+- [ ] A wild boar (dzik) with small wings flies a loop around the Palace of Culture and Science, shot for
+  the reel. Looks: the real boar photo F sent (dark bristly coat, pale snout, dark ears, autumn leaves)
+  for the body, and the "flying pig" reel F referenced (a pig whose wings are two playing cards) for the
+  joke. Wings: little and silly, not a feathered angel, and the game's own original take (content rule:
+  original art): do NOT copy the third-party reel's playing-card wings. Show F two or three original wing
+  options first.
+- [ ] Built as a promo-only actor on the existing owner (a `--trailer` or promo-mode prop, see the
+  promo-video skill and `docs/architecture/extending.md`), never in normal play. Model with
+  `tools/turntable.sh KEY` first and show the sheet to F; then the flight path and the reel take
+  (night, 30 fps, 1080x1920 as F's standing capture rules).
+- Photos and the reference reel stay out of the repo (reference only).
+
 ## NEXT, Thursday 2026-11-26: map screen layout fixes, PORA DNIA panel and top chips (F, 2026-11-25)
 
 F sent a phone screenshot (landscape, iPhone) of the map's PORA DNIA (time of day) panel: "the time buttons
