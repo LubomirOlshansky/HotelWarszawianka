@@ -908,7 +908,7 @@ func play(id: String) -> void:
 		if hud != null and hud.has_method("cue"):
 			hud.cue(n)
 		_log("cue " + n)
-	_pong.pt =hud.pt if hud != null and "pt" in hud else 1.0
+	_pong.pt = hud.pt if hud != null and "pt" in hud else 1.0
 	_buttons.visible = false
 	_talk.visible = false
 	_pong.start(id, rival(id))
