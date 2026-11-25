@@ -30,6 +30,10 @@ TD-4 wiring spec (`docs/architecture/`) where it applies. Each PR says which own
   quests from most fun to most boring (same rule as the onboarding item).
 
 **B. Bugs (reproduce, then fix)**
+- [ ] Sometimes all the traffic cars vanish at once and the roads are empty (F's phone screenshot, 2026-11-25:
+  an empty carriageway beside the tram line, night). Find why the traffic pool empties (despawn, a pool or
+  budget bug, a state after a mission, a quality tier); reproduce, fix, and make traffic refill. Traffic
+  AI: if `traffic.gd` is touched, rerun the racer bench before and after.
 - [ ] Choosing the Smolna job sends the player to the secret cave instead (wrong target on the job card or
   the map marker). Find which target the job resolves to.
 - [ ] When the player goes the wrong way, the navigation should reroute. F's note was garbled; the reading is
@@ -46,6 +50,12 @@ TD-4 wiring spec (`docs/architecture/`) where it applies. Each PR says which own
   through. F feels the in-game AI is weak overall and wants it reworked. Start with a short audit of how
   rivals pick routes and targets (`rivals.gd`, `race_planner.gd`); any change to `traffic.gd`,
   `race_session.gd`, `race_planner.gd` or `rivals.gd` reruns the racer bench before and after.
+
+**E. Core mechanics (design first, F's choices)**
+- [ ] Rethink the core taxi (Podwózka) and delivery (food) mechanics to make them more fun (F, 2026-11-25).
+  A short design note with a few options for F to choose from (what the player decides, risk and reward,
+  variety between rides and drops), tied to item A (the activity button and the phone) and to the
+  analytics finding that most players never start an activity. No code before F picks.
 
 ## NEXT, Thursday 2026-11-26: map screen layout fixes, PORA DNIA panel and top chips (F, 2026-11-25)
 
