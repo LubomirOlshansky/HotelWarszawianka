@@ -31,6 +31,10 @@ X -870.7 Z 427.3) is re-shot after this work, so the rondo and the square must b
 - [ ] Rondo Dmowskiego improved to trailer quality (it is the teaser's start): the paved island and tram
   cross, the four crescent beds, façades and shopfronts round it, lamps, signs, ground and markings,
   looked at day and night with `tools/shots.sh` (rondo set) and as the trailer frames.
+- [ ] Rondo Dmowskiego's underpass entrances (F, 2026-11-25, with a game shot): the game puts several small
+  glass pavilions on the rondo where the real ones are just open stairs down to the underpass. Replace
+  each pavilion with an open stair entrance (railings, steps going down, no roof or glass), checked
+  against photos; find which code or map objects spawn them first.
 - [ ] The empty square next to the Empik pavilion rebuilt as the city plans it. Today it is a surface car
   park with parking bays, a big tree, an old lamp post, a kiosk and two underpass stairwells (what the
   city's "Tak było" picture shows). Plan ("Tak będzie", F's two pictures, 2026-11-25), from the picture:
