@@ -3,6 +3,7 @@
 - More of the real pub inside: copper lamps over the bar, stickers on the column, a lit fridge, plants, a barrel table, and Chmiel the pub dog asleep on the slate.
 
 ## Backlog
+- found: the tipsy shader's frame-cost bench from #1051 is still owed (the iPhone number, PHONE-CHECK 15zzm); v2 changes nothing per-frame in the city and the room went from 16 to 5 draw calls
 - fixed: the pub's buttons and cards were drawn at twice their size on the phone (the panel lived inside the city's half-size image)
 - fixed: the old fake-3D slingshot pong (F: "looks like junk")
 - found: padel_match.gd still draws with its own copies of the pixel helpers (tech-debt TD-30)

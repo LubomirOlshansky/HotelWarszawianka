@@ -3,6 +3,87 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
+## NEXT, Thursday 2026-11-26: model Niecała 7 and the houses round it (F, 2026-11-25)
+
+F: "tomorrow we need to model Niecała 7, add it to the backlog, and the houses around". F's ask lifts
+the building-modelling stop for this block only. Niecała is the short street by Ogród Saski, between
+Plac Bankowy and Senatorska/Podwale. Priority for 2026-11-26, first in the queue.
+- [ ] Niecała 7 rebuilt as a whole building from photos (skill `model-from-photos`, spec in
+  `docs/landmarks/specs/`, a site in the landmarks code, `tools/turntable.sh KEY` before the PR and
+  the sheet shown to F first).
+- [ ] The houses on the same block round it (the neighbouring numbers on Niecała and the corners
+  with the streets it meets): each one from photos, a skin or a whole model by how much it shows.
+  List the block's outlines from the map data first, ranked by how often a player sees them.
+- Photos (never committed, kept in the gitignored `refs/`): Mapillary and Panoramax through
+  `tools/street_photos.py X Z --r --max --slug`, fotopolska.eu's photo map, any other web source
+  (F's standing rule). F's own photos, if he sends them, win.
+- After the build: the re-bake chain (`bake_sectors.py`, then `bake_city.gd` with a renderer), `check_map_data.py`, and the looks with `--prebuilt` too. A new site's spec needs the Roof, Ground and Parts sections for `check_spec`.
+- Light or full done: full (geometry): verify, shots, bench, `--ios`, both city paths; name what
+  only the phone can show.
+
+## NEXT, Thursday 2026-11-26: Rondo Dmowskiego to trailer quality, and the new square by Empik (F, 2026-11-25)
+
+F: "not the rondo yet, we improve it tomorrow"; "the kiosk next to Empik must be redone, there is
+nothing there now, it is just a car park" (the square beside the rondo, planned as the city's "Zielona
+metamorfoza placu obok ronda Dmowskiego"). F's ask lifts the modelling stop for this area. Second in the
+queue of 2026-11-26, after Niecała 7. The final "day 1 / day 28" teaser (teaser thread, start point
+X -870.7 Z 427.3) is re-shot after this work, so the rondo and the square must be done first.
+- [ ] Rondo Dmowskiego improved to trailer quality (it is the teaser's start): the paved island and tram
+  cross, the four crescent beds, façades and shopfronts round it, lamps, signs, ground and markings,
+  looked at day and night with `tools/shots.sh` (rondo set) and as the trailer frames.
+- [ ] Rondo Dmowskiego's underpass entrances (F, 2026-11-25, with a game shot): the game puts several small
+  glass pavilions on the rondo where the real ones are just open stairs down to the underpass. Replace
+  each pavilion with an open stair entrance (railings, steps going down, no roof or glass), checked
+  against photos; find which code or map objects spawn them first.
+  The pavilions are the white-and-blue arched barrel-roof canopies with M signs repeated round the rondo.
+  Check each entrance against photos before removing anything: the corner ones are open stairwells, but
+  the Patelnia one may have a real canopy, which stays.
+  F (2026-11-25, with a game shot): the metro entrances themselves must be realistic and very well
+  modelled, from photos: the stairs, balustrades, the M sign and the canopies where they really exist,
+  each entrance by its own photos, a turntable sheet shown to F first.
+  F's street-view picture (Jerozolimskie side, sent in the teaser thread; kept out of the repo): the
+  entrance is a low dark slatted-steel balustrade round an open stairwell, with a handrail and a stone
+  coping, a planted bed (grasses and shrubs) beside it, and a glass lift cabin behind it; no barrel-roof canopy.
+- [ ] Grass on Rondo Dmowskiego's traffic islands (F, 2026-11-25, with a game shot): the islands on the right,
+  left and top of the rondo are bare; lay lawns on them (grass areas through the map data's grass layer,
+  draped on the terrain grid, simple for performance), as the real islands are green.
+- [ ] The empty square next to the Empik pavilion rebuilt as the city plans it. Today it is a surface car
+  park with parking bays, a big tree, an old lamp post, a kiosk and two underpass stairwells (what the
+  city's "Tak było" picture shows). Plan ("Tak będzie", F's two pictures, 2026-11-25), from the picture:
+  - the car park is gone: one paved square in light grey slabs, the Empik pavilion (glass sides, white
+    roof with roof lights) stays on its west edge, the tall slab block with shopfronts on the east edge;
+  - three large lawn-and-tree islands with curved low edges (round-leaf and olive-like trees, shrubs),
+    the biggest one in front of Empik, two smaller ones further along the block's front;
+  - a small café terrace with pergolas and tables on the north side by the block's shops, a few
+    wooden "pebble" seats near the middle, one street lamp, an advertising column on the south-east;
+  - along the roadway a line of low bollards, a green planted verge (grass and low shrubs) on the
+    corner, a bike rack and a blue kiosk or ticket pillar by the stair; the two underpass stairs are
+    kept, re-railed, with a small service hut beside them;
+  - people walking across; the façade's giant advert is gone.
+  Not read yet: the city page itself (um.warszawa.pl, "zielona-metamorfoza-placu-obok-ronda-dmowskiego")
+  did not open from the cloud, so exact sizes, planting numbers and dates are open: the thread fetches it
+  first (a Mac browser or the cloud proxy) and fixes the list above against the text.
+- Method: skill `model-from-photos`, spec in `docs/landmarks/specs/`, ground and greenery through the
+  map data's plaza/grass areas (`docs/architecture/extending.md`), a site for the pavilion's surroundings
+  only if needed; `tools/turntable.sh KEY` before the PR, the sheet shown to F first.
+- Done is full (geometry): re-bake chain, `check_map_data.py`, verify, shots, bench, `--ios`, both city
+  paths; name what only the phone can show. Trees stay simple for performance (F, 2026-11-20).
+
+- [ ] **Marszałkowska at ul. Widok, 10 out of 10** (F, 2026-11-25, with a satellite view and a game shot; road
+  geometry, next to the rondo work, since the same teaser frames pass it): the right-turn lane that
+  leaves Marszałkowska into Widok is built wrong in the game (its mouth is a ragged, notched edge
+  against the kerb and the tram side; the real one is a clean slip lane beside the kerb with a
+  pedestrian crossing across Widok), pedestrians walk on it, and the junction has join artifacts
+  (jagged asphalt, lines that stop and restart, kerb jumps). Lane-graph edges 254, 255, 3507, 4035
+  near x -856, z 377. Method: skill `road-design` (measure the junction on the orthophoto and OSM
+  lane tags, spec in `docs/roads/`, regenerate kerbs, lane lines and the crossing), check the lane
+  graph edges and that pedestrians stay on the pavement and crossing, before/after shots day and
+  night, both city paths, the re-bake chain and `check_map_data.py`.
+
+## traffic.gd start-up errors in the editor (Autopilot run 20261125-094944, 2026-11-25)
+- Every editor run with `--nosave --prebuilt` logs at t=0: `traffic.gd:1158 Out of bounds get index '0' (on base: 'Array')` (x4-5) and `traffic.gd:4871 Out of bounds get index '0' (on base: 'Array[MultiMesh]')` (x1), before the title's build ends. Not pub-related; the game plays on. Find which empty array/MultiMesh list is indexed before it is filled (a guard or an order fix), check with `--prebuilt` runs of the headless checks, and note whether the phone logs the same.
+
+
 ## Releases: the first real run, and the overnight process (F, 2026-11-24)
 
 F chose the fast path for now: `tools/release.sh --open-beta` behind a gate (CI green on the exact
@@ -1793,7 +1874,7 @@ Left:
   spell, MAX_PINTS 4. Tune prices against the job pay after the feel test; a rotating "beer of the
   week" could swap one tap by the day; "Chmiel, Bóg i Ojczyzna" was written "Chmiel, Honor,
   Ojczyzna" (warsaw-tone: no jokes touching religion) - F may decide otherwise.
-- **Map mark:** the beer mug's name is a fixed "THE TAPCZAN" (a proper name, not translated);
+- **Map mark:** the pub's mark is the beer mug alone (F 2026-11-25: no name label beside it; the SERVICE marks can still carry a name for other places);
   docs/architecture/map-markers.md should note that SERVICE marks can carry a shape and a name.
 - **Sound (done 2026-11-25):** the room's talk and glasses (`pub_room`, the radio ducked -18 dB, the street's beds to 20 %), the pour and clink, the ball's tock, rim ticks and plop, the feedback set's win and fail. Left: the levels on the phone (PHONE-CHECK 15zzp); a cheer from the tables on a bounce shot.
 - **Pani Gienia runs the table (PT-56, fixed 2026-11-25, coordinator's call, F can change it):** her late skill 0.95 → 0.73, balls back unchanged; the reference bot (check_tapczan, 400 seeded games) wins 36 % against her (was 5 %), held in a 30-40 % band; the sommelier 25 %, the open-space crew 63 % (unchanged). Left: the feel on the phone (PHONE-CHECK 15zzk); she is now easier than the sommelier for a decent player while her stake is the highest.
@@ -3104,6 +3185,13 @@ real ones added to `brand_denylist.json`). One PR each:
 - [ ] Mac checks: the statue's spot and facing against the orthophoto; KUKŁA/KOSZTA/NERWO spots
       on the real streets (Dom Partii's height and skin: replaced by the model, 2026-11-12).
 - [x] `Tinder` in a run-club line replaced by TIMBER (it would fail the new denylist entry).
+
+## Move the Zagłębie Kebabowe to its real place (F, 2026-11-25; LATER, not started)
+F: find the real place, move the kebab spot there and model the kebab passage; the work runs on the API.
+- Place (F's Wyborcza photo): the two-storey brick pavilions at al. Jana Pawła II 46/48, east side, north of Solidarności (OSM ways 871756975-871756988; real kebabs near 52.2430-52.2432, 20.9930-20.9932). In the game the fronts are the `retail` buildings round (-2095, -1000).
+- [ ] Spec from the photos (L3): brick, boxed bay windows, an upper gallery with a black railing and a dark canopy, white parasols over tables. Brief and inputs: `refs/zaglebie/spec` on the Mac (gitignored); more photos of the kebab fronts are needed.
+- [ ] Model the passage, then move the five shops (`zaglebie.gd` SHOPS `ll`), the job pickup and the `zakwas` queue; update LANDMARKS 2.16, the checks and PHONE-CHECK. Kino Femina's sign stays.
+- [ ] Before starting: a Mac thread with the Worktree option, and F's choice of who launches the API run (auto mode refused it in the kebab thread).
 
 ## Zagłębie Kebabowe and Kino Femina (F, 2026-11-02)
 

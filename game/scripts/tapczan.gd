@@ -118,9 +118,9 @@ func setup(world: Node3D) -> void:
 			start())
 	if hud.get("markers") != null:
 		var d := door()
-		# F 2026-11-24: a permanent mark on both maps, a beer mug named THE TAPCZAN (SERVICE layer).
+		# F 2026-11-24: a permanent mark on both maps, a beer mug (SERVICE layer); F 2026-11-25: no name beside it, the mug alone.
 		hud.markers.put_all("tapczan", [{"key": "door", "layer": MapMarkers.Layer.SERVICE, "at": d, "colour": AMBER,
-				"shape": MapIcons.POI_MUG, "group": "crawl", "extra": {"name": "THE TAPCZAN"}}])
+				"shape": MapIcons.POI_MUG, "group": "crawl"}])
 
 
 ## Test starts at the join: straight in, a self-playing game, or the tipsy minute.
