@@ -550,7 +550,10 @@ func on_air() -> bool:
 func check_air(force := false) -> void:
 	var a := on_air()
 	var changed := a != _air
-	if not changed and not force:
+	# F 2026-11-25: a game started with the radio off. Until the player picks a station of their
+	# own, Off is never the radio's state: the once-a-second reread brings the day default back.
+	var stray := not picked and station < 0
+	if not changed and not force and not stray:
 		return
 	_air = a
 	_apply_level()
