@@ -11,6 +11,21 @@ commit and the local steps). It has not run against the stores for real yet.
   (calls and offers come, none off the screen) and an Autopilot run (no script error, no stuck car),
   a phone smoke list with an old save, then `--promote`.
 
+## Wild boars in the city (F, 2026-11-25, later, not built now)
+
+F: "add the boars that walk around the city to the backlog". Warsaw's dziki really do wander into
+streets and parks (near the forests, Bielany, Wawer, Las Kabacki, the Vistula banks).
+- [ ] A small sounder (one sow and a few piglets, or a lone boar) walks through the city on its own
+  path at dusk and at night: along park edges, the Vistula boulevards and quiet streets, crosses a
+  road now and then. Traffic stops for it and honks, the player can stop too. Rare, never in the
+  first minutes.
+- [ ] Possible fun: KEBAB FM jokes about "dziki na jezdni", a bystander phone shot, a short
+  "dzik na drodze" moment on the map. Affectionate, no hurting the animals (a bump makes them
+  trot away, no gore).
+- Default to build when it starts: an ambient actor on the existing city-life owner
+  (`docs/architecture/extending.md`, `city_life.gd` and the traffic give-way), a few MultiMesh-free
+  nodes at most, bench before and after; Beehave not used (one walk-and-cross state).
+
 ## Fill the shared photo store (2026-11-13, building-pipeline-review item 3)
 
 `tools/refs_store.py` and the store `/mnt/project-files/refs/` exist. The Mac's `refs/` and F's three photo folders were copied in on 2026-11-13 (3,103 files; F's folders sit under `_f/` and are tied to slugs in `ALIASES.tsv`).
