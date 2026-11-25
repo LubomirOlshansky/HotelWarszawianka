@@ -507,6 +507,11 @@ Kopernik (pale aqua crystal, `crystal_aqua`), Dworzec Gdański (clear glass in d
 
 ## Night racing club: Darek, Lena, Tadek (F, 2026-11-06; docs/design/night-meet.md)
 
+Critique (F, 2026-11-25; `docs/design/critique-drag-race.md`, `critique-night-quest.md`, order in `critique-summary.md`), design only, nothing built:
+- [ ] Drag: Tadek loses to a tap at the first yellow by 1.2 s and to the loaned nitro by 3.9 s (`docs/design/critique-drag-sim.py`); perfect shifts are worth 0.2 s; all three shifts come in the first 2.5 s. Build the drag document's section 3 (five gears with a pull each, a 0.12 s green, KRÓTKO, one bottle, Tadek on the same model with four nights)
+- [ ] Night chain: only the race is played and nothing carries between beats. Build the pot, the night bar, the race's gaps and warm tyres, the raid with a tell and two chasers, four nights (night document, sections 3 and 5)
+- [ ] An Autopilot run of the whole chain without teleports (P20 reached the race and the drag by teleport)
+
 Built: Darek's call, the meet on Plac Defilad with Lena's donuts, two police raids, the TYGRAM pin
 and the race to the National Stadium's car park, the drag on Aleja Zieleniecka with START DRAG,
 the tree, BIEG! shifts and nitro. F's pass (2026-11-08): meet 2 moved off the fences to the
@@ -835,6 +840,10 @@ Fixed: Mrożulo could phone (the Dżemini call) in the middle of a mission. Now 
 
 ## Padel call at WTS DESKA (coordinator, 2026-11-07; docs/design/padel.md)
 
+Critique (F, 2026-11-25; `docs/design/critique-padel.md`), design only, nothing built:
+- [ ] The swing hits on the first frame the ball is in reach, so a tap before the ball arrives never scores above 0.45, and the hint ("hit when the ball glows") teaches that tap; the stick only switches the better auto-run off; no aim; you play about a quarter of the pair's balls. Build section 3 (the committed swing and the closing ring, aim by timing, visible pressure, your lane, shorter pauses)
+- [ ] The arcade match has no Autopilot row and no phone row
+
 Built: the call opens like the boat race and the rave (ringing card with the caller's bio,
 ODBIERZ / ODRZUĆ, a buzz, then the ask), a three-point match on arrival (LOB / ZE ŚCIANY / SMECZ,
 five rallies), the helicopter landing remark, English on the call's buttons; fixed the late line
@@ -856,6 +865,9 @@ at DESKA (the generic three-a-side line overwrote it). Left:
 - [ ] A match record in the notebook (won / played) and the hoodie as a cosmetic after 3/3
 
 ## Boat race "Wiślana Szprotka" (F, 2026-11-06; docs/design/boat-race.md)
+
+Critique (F, 2026-11-25; `docs/design/critique-boat-race.md`), design only, nothing built:
+- [ ] Full gas with centre aim misses no ring, even at 1.5 times the top speed (`docs/design/critique-boat-sim.py`): the three-miss rule and the brake do nothing; the rhythm is a constant +15 %; a bank contact multiplies the speed by 0.92 a frame (a dead stop in half a second); no record is kept. Build section 3 (the inside buoy, the rhythm meter, banks that scrub, a record; then hard gates and the slide with a course re-bake)
 
 Built: Szymek's call, the start pontoon at the mouth of Port Czerniakowski, the 3.2 km course of 26
 rings under four bridges, three misses and you're out (JESZCZE RAZ / WYJDŹ), the rhythm and gold
