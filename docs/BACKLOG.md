@@ -44,6 +44,14 @@ F: "buses sometimes just turn sideways across the road and get stuck".
   path too wide for the lane, or a recovery that never fires); reproduce it, fix the root cause, and make
   a stuck bus free itself. Traffic AI: if `traffic.gd` is touched, rerun the racer bench before and after.
 
+## NEXT, Thursday 2026-11-26: engine sound at max RPM (F, 2026-11-25)
+
+F: the engine sound at maximum revs is weird and wheezy, with a rustling or scraping noise under it; F does
+not like it and wants it changed. Ties into the engine sound rework already in the backlog (F, 2026-11-19:
+car engine sound rework, new tyre squeal only).
+- [ ] Find what makes the top-RPM sound wheezy and rustling (the loop pitch ceiling, a noise layer, or the
+  limiter), and rework the top of the rev range so it stays clean. Listen at idle, mid and max.
+
 ## NEXT, Thursday 2026-11-26: model Niecała 7 and the houses round it (F, 2026-11-25)
 
 F: "tomorrow we need to model Niecała 7, add it to the backlog, and the houses around". F's ask lifts
