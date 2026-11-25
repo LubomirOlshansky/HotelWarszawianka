@@ -22,6 +22,19 @@ look awful, there is no space at all at the bottom". F is only listing tomorrow'
 - Light done (UI layout): shots at phone sizes before/after, `tools/verify.sh`; name what only the phone
   can show. Merge on a green `gate` plus an audit go.
 
+## NEXT, Thursday 2026-11-26: onboarding after the first kebab (F, 2026-11-25)
+
+F: after the first kebab is delivered the game says "next" and sends the player to another kebab far away,
+which feels wrong; and a new player who lands on the first steps does not see that quests are right nearby.
+Links to the analytics finding (18 of 28 players never start an activity) and the held kebab-spam fix #1071.
+- [ ] After the first kebab, the guide must not point to a far kebab stand again. Once the mechanic is
+  learned, it steers the player to something different: a taxi ride, or a race against a rival.
+- [ ] The first minutes make the quests near the player visible (a marker, a card or a hint), so the player
+  who walks into the first steps understands there is more to do next to them.
+- Design first with the guide owner (guide.gd and the onboarding plan, artifact UWbDq4YuduZRo4joQ8Lipc,
+  F chose: kebab stays on the counter, the player picks it up); full done (gameplay): verify, shots, `--ios`;
+  say what only the phone can show.
+
 ## NEXT, Thursday 2026-11-26: model Niecała 7 and the houses round it (F, 2026-11-25)
 
 F: "tomorrow we need to model Niecała 7, add it to the backlog, and the houses around". F's ask lifts
