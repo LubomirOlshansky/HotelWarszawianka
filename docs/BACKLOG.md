@@ -38,6 +38,12 @@ X -870.7 Z 427.3) is re-shot after this work, so the rondo and the square must b
   The pavilions are the white-and-blue arched barrel-roof canopies with M signs repeated round the rondo.
   Check each entrance against photos before removing anything: the corner ones are open stairwells, but
   the Patelnia one may have a real canopy, which stays.
+  F (2026-11-25, with a game shot): the metro entrances themselves must be realistic and very well
+  modelled, from photos: the stairs, balustrades, the M sign and the canopies where they really exist,
+  each entrance by its own photos, a turntable sheet shown to F first.
+  F's street-view picture (Jerozolimskie side, sent in the teaser thread; kept out of the repo): the
+  entrance is a low dark slatted-steel balustrade round an open stairwell, with a handrail and a stone
+  coping, a planted bed (grasses and shrubs) beside it, and a glass lift cabin behind it; no barrel-roof canopy.
 - [ ] Grass on Rondo Dmowskiego's traffic islands (F, 2026-11-25, with a game shot): the islands on the right,
   left and top of the rondo are bare; lay lawns on them (grass areas through the map data's grass layer,
   draped on the terrain grid, simple for performance), as the real islands are green.
