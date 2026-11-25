@@ -20,7 +20,7 @@ tools/release.sh --no-gate                 # internal only, can never be promote
   `local` steps of `tools/ci_steps.txt` pass on the Mac, a warning counting as red. The fast gate
   leaves the longest steps to the night; `--thorough` runs all. Exceptions: only lines of
   `tools/release_known_red.txt`, each with a reason and F's yes. Logs: `~/.config/aroundwarsaw/gate/`.
-- **iOS** goes out with `xcodebuild` (team S6PVT5UP7G) to internal TestFlight, then `pilot` adds it
+- **iOS** goes out with `xcodebuild` (team S6PVT5UP7G; the export uses the Xcode account sign-in, not the API key, which cannot use cloud-managed certificates) to internal TestFlight, then `pilot` (after waiting until Apple lists the build) adds it
   to "Beta test external" and sends it to Apple's beta review.
 - **Android** goes to Play internal testing, then the same version code is promoted to open testing.
 - Production and the App Store are never touched. Numbers: `~/.config/aroundwarsaw/release-numbers`

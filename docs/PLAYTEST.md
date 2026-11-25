@@ -12,19 +12,24 @@ log, then fix them one by one in separate threads").
 | Static | `tools/check_roads.py`, `check_map_data.py`, the `check_*.gd` scripts (`tools/verify.sh`) | road/deck rules, map counts, lane boxes overlapping colliders | cloud + Mac, every PR |
 | Scripted drive | `game/tools/check_drive.gd`; the game's own `--autopilot` (missions, races, jobs) | fixed routes over bridges and tunnels, mission flows end to end | cloud + Mac |
 | Looks | `tools/shots.sh`, screenshot-review skill, art-director | wrong-looking things at fixed spots | cloud (lavapipe) + Mac |
-| **Free play** | **Autopilot** (`.claude/skills/autopilot-playtest`) | what a player meets off the scripted routes: stuck spots, dead stops, falling under the ground, clipping, menus and prompts that trap you | Mac only (Godot editor + Aura) |
+| **Play checks** | **Autopilot** (`.claude/skills/autopilot-playtest`) | short verify/goal rows from a start flag: cards, buttons, calls, quest beats, menus, races, the helicopter, labels at 1266x585; a place and frames for a stop it meets | Mac only (Godot editor + Aura) |
 | Feel and frame time | the iPhone (device-run skill), the user | touch feel, haptics, frame time, heat | the phone, with the user's yes |
 
-Autopilot is the free-play layer: a decision model drives the real game in the editor inside a
-harness that Claude writes from our code, like a curious player would. It doesn't replace the
-checks; every bug it finds should end as a check or a fixed spot so it can't come back.
+Autopilot plays the real game in the editor: a decision model picks among the options of a
+harness that Claude writes from our code. Since 2026-11-24 (F: "do we use it wrong?") it runs
+**short verify and goal rows** that start at their own start (`--ride=N`, `--kebab=N`,
+`--race=N`, `--at=X,Z`), with the verdict read from the game's state. **Driving routes are
+headless** (`check_lane_drive`, `check_drive`, `check_playtest_route`, `check_stuck_spots`):
+six long Autopilot ride runs on 11-23/24 found no driving bug, only harness faults, while the
+headless lines answer "is there a route, does the car keep the lane" in minutes. Every bug
+either finds should end as a check or a fixed spot so it can't come back.
 
 ## 2. The test plan
 
 The queue of what to run next, built from F's comments: `docs/TEST_BACKLOG.md`.
 
-A run is one row: an area, a kind and a time limit (10 minutes of game time unless the row says
-otherwise). Areas follow the start outwards, the order a new player meets them (first 10 minutes
+A run is one row: an area, a kind and its start flag, one or two 360 s episodes. A driving row
+(P1, P3, P5, P11, P14, P16) runs headless first; Autopilot only films a spot a line found. Areas follow the start outwards, the order a new player meets them (first 10 minutes
 first, F's design goal). Mark the row's last run date and its result; re-run a row after each fix
 in its area (the regression run).
 

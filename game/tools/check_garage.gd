@@ -29,7 +29,7 @@ const Car := preload("res://scripts/car.gd")
 const Upgrades := preload("res://scripts/upgrades.gd")
 const SCRATCH := "user://check_garage.cfg"
 const TAGS := ["hello", "buy", "black", "green", "gold", "switch", "short", "locked", "parts", "tt", "nitro", "part", "max",
-		"mine", "ask", "ask_yes", "ask_no"]
+		"mine", "ask", "ask_yes", "ask_no", "cars", "style", "wing", "neon", "wing_buy", "neon_buy"]
 const GarageCard := preload("res://scripts/garage_card.gd")
 ## F 2026-11-24: the workshop's building (the forecourt the game stops the car on is its frame's).
 const Mirek := preload("res://scripts/landmarks/mirek.gd")
@@ -57,11 +57,12 @@ func _run() -> void:
 	_check_shop_buying()
 	_check_shop_save()
 	await _check_shop_car()
+	await _check_looks()
 	if FileAccess.file_exists(SCRATCH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SCRATCH))
 	if problems.is_empty():
-		print("check_garage: OK (%d paints, the rules, buying and switching, 10 seeded walks, the save, the car's paint, Mirek's %d tags, E01 and E21 once; G13: %d cars, nitro, %d parts x 3 levels, the shop's rules, buying, save, the car's model, tuning and nitro tank)" % [
-				Garage.PAINTS.size(), TAGS.size(), Upgrades.CARS.size(), Upgrades.PARTS.size()])
+		print("check_garage: OK (%d paints, the rules, buying and switching, 10 seeded walks, the save, the car's paint, Mirek's %d tags, E01 and E21 once; G13: %d cars, nitro, %d parts x 3 levels, the shop's rules, buying, save, the car's model, tuning and nitro tank; %d looks)" % [
+				Garage.PAINTS.size(), TAGS.size(), Upgrades.CARS.size(), Upgrades.PARTS.size(), Upgrades.LOOKS.size()])
 		quit(0)
 	else:
 		for p in problems:
@@ -393,8 +394,15 @@ func _check_shop_rules() -> void:
 				problems.append("shop: %s level %d is not dearer than the last" % [p["id"], i + 1])
 	for id: String in Upgrades.ORDER:
 		var row := Upgrades.find(id)
-		if row.is_empty() or (row["name"] as Array).size() != 2 or (row["blurb"] as Array).size() != 2:
+		var said: bool = Upgrades.kind(id) == "look" or (row.get("blurb", []) as Array).size() == 2
+		if row.is_empty() or (row["name"] as Array).size() != 2 or not said:
 			problems.append("shop: %s without names or blurbs in both languages" % id)
+		# The card's tile shows the short name whole (F 2026-11-24: everything reads).
+		for n: String in (row.get("short", row["name"]) as Array):
+			if n.length() > 15:
+				problems.append("shop: %s's tile name \"%s\" is over 15 characters" % [id, n])
+		if GarageCard.tab_of(id) == "paint":
+			problems.append("shop: %s is on no tab of the card" % id)
 		if str(row["name"][0]).length() > 32:
 			problems.append("shop: %s's Polish name is over 32 characters" % id)
 	var st := {"car": "hatch", "cars": {}, "nitro": false, "tune": {}}
@@ -648,3 +656,46 @@ func _check_shop_car() -> void:
 	g.free()
 	w.free()
 	car.free()
+
+
+## F 2026-11-24 (upgrades.gd LOOKS): the GT wing and the underglow are bought once, kept, change
+## no numbers, show on the car (the wing in the body's mesh, the underglow a pad), and MOJE AUTO
+## lists them once owned.
+func _check_looks() -> void:
+	var st := {"car": "hatch", "cars": {}, "nitro": false, "tune": {}}
+	_expect("rule wing 250", Upgrades.rule("wing", 250, st), "buy")
+	_expect("rule neon 299", Upgrades.rule("neon", 299, st), "short")
+	_expect("look kind", Upgrades.kind("neon"), "look")
+	_expect("mine: a look owned", GarageCard.mine_shows("look", "owned"), true)
+	_expect("mine: a look not bought", GarageCard.mine_shows("look", "buy"), false)
+	var car: CharacterBody3D = Car.new()
+	root.add_child(car)
+	await process_frame
+	var mesh_before: Mesh = (car.get("_body_mesh") as MeshInstance3D).mesh
+	var w := _wallet(600)
+	var g := _garage(w)
+	g.car = car
+	var stats_before := Upgrades.stats("hatch", w.tune, false)
+	_expect("buy the wing", g.choose_item("wing"), "buy")
+	_expect("the wing again", g.choose_item("wing"), "owned")
+	_expect("buy the underglow", g.choose_item("neon"), "buy")
+	_expect("zł after the looks", int(w.zl), 600 - 250 - 300)
+	_expect("looks change no numbers", Upgrades.stats("hatch", w.tune, false), stats_before)
+	_expect("car wing", bool(car.get("wing")), true)
+	if (car.get("_body_mesh") as MeshInstance3D).mesh == mesh_before:
+		problems.append("looks: the wing left the plain body on")
+	var pad := car.find_child("Underglow", true, false) as MeshInstance3D
+	if pad == null or not pad.visible:
+		problems.append("looks: no underglow under the car after buying it")
+	car.set_model("tt")
+	_expect("the wing kept on the TT", bool(car.get("wing")), true)
+	car.set_model("bike")
+	if pad != null and pad.visible:
+		problems.append("looks: the underglow stays on under the ROWERILO bike")
+	car.set_model("hatch")
+	if pad != null and not pad.visible:
+		problems.append("looks: the underglow did not come back off the bike")
+	g.free()
+	w.free()
+	car.queue_free()
+	await process_frame
