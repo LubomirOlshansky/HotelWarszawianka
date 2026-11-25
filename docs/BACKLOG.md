@@ -227,6 +227,24 @@ streets and parks (near the forests, Bielany, Wawer, Las Kabacki, the Vistula ba
   (`docs/architecture/extending.md`, `city_life.gd` and the traffic give-way), a few MultiMesh-free
   nodes at most, bench before and after; Beehave not used (one walk-and-cross state).
 
+## Idea: a flying winged boar instead of the helicopter, and a mission to earn the boars' trust (F, 2026-11-25, later, not built now)
+
+F: "add to the backlog the idea of making a flying boar with wings instead of the heli, and a mission where
+you have to earn the boars' trust". Links to "Wild boars in the city" above (the ambient walking boars) and
+to "the flying boar for the reel" (the promo-only model); this is the gameplay version of both.
+- [ ] Replace the helicopter (HELI) with a flying winged boar as the player's air vehicle: same job (fly
+  over the centre, pick-ups, the flying quests), new look, sound and controls. This is also a chance to
+  fix the heli's controls (see item C of the 2026-11-25 batch: too complex, landing too exact). Needs a
+  design note and F's choice first: a straight swap of the skin, or a new flight model; which quests keep
+  working; how the wings look (original design, not the reel's playing cards).
+- [ ] A mission "earn the boars' trust": the player wins over the wild boars of the city (the ambient
+  sounder item), for example by feeding them, driving slowly, not honking, bringing the right snack, at
+  dusk by the park edges; the reward is the flying boar. Affectionate, no hurting the animals.
+- Default to build when it starts: the boar actor from the walking-boars item reused for the flying one,
+  on the existing owners in `docs/architecture/extending.md` (city-life actor, vehicle/activity and quest
+  owners); bench before and after; Add-ons line in the PR (Beehave and Dialogue Manager: decide first).
+  Order: walking boars, then the reel boar model, then this.
+
 ## Fill the shared photo store (2026-11-13, building-pipeline-review item 3)
 
 `tools/refs_store.py` and the store `/mnt/project-files/refs/` exist. The Mac's `refs/` and F's three photo folders were copied in on 2026-11-13 (3,103 files; F's folders sit under `_f/` and are tied to slugs in `ALIASES.tsv`).
