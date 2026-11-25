@@ -1,5 +1,5 @@
 {
-  "_about": "THE TAPCZAN (Sienkiewicza 4, landmarks site `tapczan`): every on-screen word of the pub (tapczan.gd, tapczan_room.gd), beer pong (beer_pong.gd) and the tipsy drive after it (tipsy.gd). \"taps\": the TAP LIST (WYPIJ PIWKO): name, style, ABV, ml, price in zł, the tap handle's colour, the barman's reply on a pick and the first sip's line; \"refusals\": short of money; \"memes\": the posters and chalkboards in the room (\"world\": the pixel-font lines on the board, Polish only, UPPERCASE; \"say\": the tap's [Polish, English]). Each line is [Polish, English]. Parody names only, invented people (warsaw-tone). check_tapczan.gd checks every pair.",
+  "_about": "THE TAPCZAN (Sienkiewicza 4, landmarks site `tapczan`): every on-screen word of the pub (tapczan.gd, tapczan_room.gd), beer pong (beer_pong.gd) and the tipsy drive after it (tipsy.gd). \"taps\": the TAP LIST (WYPIJ PIWKO): name, style, ABV, ml, price in zł, the tap handle's colour, the barman's reply on a pick and the first sip's line; \"refusals\": short of money; \"house\": the barman's line when the visit's first glass is on the house (short of money); \"memes\": the posters and chalkboards in the room (\"world\": the pixel-font lines on the board, Polish only, UPPERCASE; \"say\": the tap's [Polish, English]). Each line is [Polish, English]. Parody names only, invented people (warsaw-tone). check_tapczan.gd checks every pair.",
   "ui": {
     "enter": ["WEJDŹ", "GO IN"],
     "door": ["THE TAPCZAN · wejście", "THE TAPCZAN · the door"],
@@ -92,7 +92,7 @@
       "short": ["PANI GIENIA", "PANI GIENIA"],
       "stake": 150,
       "skill": 0.3,
-      "late_skill": 0.95,
+      "late_skill": 0.73,
       "hello": [
         ["Ojej, to się rzuca do kubeczka? Pierwszy raz gram, słowo!", "Oh dear, you throw it in the little cup? First time, I promise!"]
       ],
@@ -275,6 +275,11 @@
     ["Barman: „Na zeszyt nie lejemy. Kranówka gratis, też z duszą.”", "Barman: \"No tabs. Tap water's free, and it has a soul too.\""],
     ["Barman: „Za tyle mogę ci najwyżej opowiedzieć, jak smakuje.”", "Barman: \"For that money I can only tell you how it tastes.\""],
     ["Barman: „Karta odrzucona? U nas tylko Mętna Sprawa jest mętna.”", "Barman: \"Short? Here the only hazy thing is meant to be the NEIPA.\""]
+  ],
+  "house": [
+    ["Barman: „Krucho z kasą? Pierwszy na koszt firmy. Napiwki przyjmuję w uśmiechach.”", "Barman: \"Short on cash? The first one's on the house. I take tips in smiles.\""],
+    ["Barman: „Pusty portfel? Ten jeden leję za darmo. Drugi na koszt twojej dumy.”", "Barman: \"Empty wallet? This one's free. The next one's on your pride.\""],
+    ["Barman: „Pierwszy gratis. Dla firmy to marketing, dla ciebie kolacja.”", "Barman: \"First one's free. For us it's marketing, for you it's dinner.\""]
   ],
   "memes": [
     {

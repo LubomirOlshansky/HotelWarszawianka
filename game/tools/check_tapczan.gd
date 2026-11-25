@@ -9,7 +9,8 @@ extends SceneTree
 ##     cups, a rim spin goes in or out by its roll, a throw far short or wide misses, two balls a
 ##     turn, two hits bring the balls back, the re-rack at 3 (once a side), each rival hit is a drink
 ##     and the sway grows with the drinks, the late skill (Pani Gienia) after her re-rack, 300 seeded
-##     games to the end (every one ends, the strong rival wins more than the weak), and the aim's
+##     games to the end (every one ends, the strong rival wins more than the weak), each rival's
+##     400 games against the reference bot with Pani Gienia beatable 30-40% (PT-56), and the aim's
 ##     predicted path allocates nothing new once grown;
 ##  3. the tipsy spell (tipsy.gd): the fade from the start to 0 at LONG, the pull wanders both ways;
 ##     the double-vision screen pass off at Low (tiers.gd screen_fx) and on at every higher level,
@@ -17,7 +18,8 @@ extends SceneTree
 ##  4. the room: its mesh builds (under 20k triangles), people to tap, the rivals' card;
 ##  5. the door (tapczan.gd on the activity kit, with stand-ins): the ring only near, the WEJDŹ pill
 ##     only stopped at the kerb, the pill starts the run (HUD hidden, the car's process off), a pint
-##     costs PINT and makes the drive tipsy, a won game pays its stake, WYJDŹ ends the run (HUD and
+##     costs its price and makes the drive tipsy, short of money the visit's first glass is on the
+##     house and the second refused, the bar stops at four, a won game pays its stake, WYJDŹ ends the run (HUD and
 ##     car back, the tipsy spell on), the QUESTS entry at the door;
 ##  6. the sounds (2026-11-25, with Fakes.Sfx): the pub's bed on inside and off after, a pour sounds,
 ##     the ball's table touches (once on a bounce shot, none on a clean cup).
@@ -159,6 +161,10 @@ func _words() -> void:
 		_pair_ok("refusals", l, 150)
 	if (d.get("refusals", []) as Array).is_empty():
 		_fail("no refusals for the broke")
+	for l: Variant in d.get("house", []):
+		_pair_ok("house", l, 150)
+	if (d.get("house", []) as Array).is_empty():
+		_fail("no barman's line for the first glass on the house")
 	# The memes: every board in the room has its words (Polish pixel lines, the tap's pair).
 	var memes := {}
 	for m: Dictionary in d.get("memes", []):
@@ -303,31 +309,62 @@ func _miss(s: Sim, side: int) -> Dictionary:
 	return s._resolve(side, Sim.fly(Sim.launch(0.0, 0.0), s.cups[1 - side], 0.9))
 
 
-## 300 seeded games: every one ends; the sommelier beats a middling player more often than the
-## first-timer's early skill would.
+## The reference bot, "a decent player": aims exactly at a random cup with this scatter (lateral,
+## power), plus the sim's own drink sway.
+const BOT_SCATTER := Vector2(0.12, 0.06)
+## PT-56 (2026-11-25): the reference bot's win rate against Pani Gienia (her late skill after her
+## re-rack, data/tapczan.json) stays in this band, so the hustler is beatable but not easy.
+const GIENIA_BAND := Vector2(0.30, 0.40)
+const GIENIA_GAMES := 400
+
+
+## Seeded games: every one ends; the sommelier beats a middling player more often than the
+## first-timer's early skill would; each rival's games against the reference bot, with Pani Gienia
+## in GIENIA_BAND (about a quarter of a second for all of it).
 func _games() -> void:
 	var wins := {}
 	for skill: float in [0.3, 0.75]:
 		wins[skill] = 0
 		for g in 150:
-			var s := Sim.new(1000 + g)
-			s.skill = skill
-			var throws := 0
-			while s.winner < 0 and throws < 400:
-				throws += 1
-				if s.turn == 0:
-					var row: Array = s.cups[1]
-					var a := Sim.aim_at(row[s.rng.randi() % row.size()])
-					s.throw_player(a.x + s.rng.randfn(0.0, 0.12), a.y + s.rng.randfn(0.0, 0.06), throws * 0.7)
-				else:
-					s.throw_rival()
-			if s.winner < 0:
+			var w := _bot_game(1000 + g, skill, -1.0)
+			if w < 0:
 				_fail("game %d (skill %.2f) did not end in 400 throws" % [g, skill])
-			elif s.winner == 1:
+			elif w == 1:
 				wins[skill] += 1
 	print("check_tapczan: rival wins of 150: skill 0.3 %d, skill 0.75 %d" % [wins[0.3], wins[0.75]])
 	if int(wins[0.75]) <= int(wins[0.3]):
 		_fail("the strong rival should win more often than the weak")
+	var line := "check_tapczan: the reference bot's wins of %d:" % GIENIA_GAMES
+	for id: String in Room.RIVALS:
+		var r := Room.rival(id)
+		var won := 0
+		for g in GIENIA_GAMES:
+			if _bot_game(1000 + g, float(r.get("skill", 0.5)), float(r.get("late_skill", -1.0))) == 0:
+				won += 1
+		var rate := float(won) / GIENIA_GAMES
+		line += " %s %d%%" % [id, roundi(rate * 100.0)]
+		if r.has("late_skill") and (rate < GIENIA_BAND.x or rate > GIENIA_BAND.y):
+			_fail("PT-56: the reference bot wins %.1f%% against %s, want %d-%d%%" % [rate * 100.0, id,
+					roundi(GIENIA_BAND.x * 100.0), roundi(GIENIA_BAND.y * 100.0)])
+	print(line)
+
+
+## One seeded game, the reference bot against a rival of `skill` (and `late`): the winner, -1 if it
+## did not end in 400 throws.
+func _bot_game(seed_value: int, skill: float, late: float) -> int:
+	var s := Sim.new(seed_value)
+	s.skill = skill
+	s.late_skill = late
+	var throws := 0
+	while s.winner < 0 and throws < 400:
+		throws += 1
+		if s.turn == 0:
+			var row: Array = s.cups[1]
+			var a := Sim.aim_at(row[s.rng.randi() % row.size()])
+			s.throw_player(a.x + s.rng.randfn(0.0, BOT_SCATTER.x), a.y + s.rng.randfn(0.0, BOT_SCATTER.y), throws * 0.7)
+		else:
+			s.throw_rival()
+	return s.winner
 
 
 # --- 3. tipsy --------------------------------------------------------------------------------------
@@ -436,6 +473,24 @@ func _room_and_door() -> void:
 	t.room.drink()
 	if not t.room._taps.visible:
 		_fail("WYPIJ PIWKO should open the tap list")
+	# Short of money (0 zł): the visit's first glass is on the house (0 zł on the bill, the wallet
+	# never below 0, the barman's "house" line), the second is refused, the bar still stops at four.
+	wallet.money = 0
+	if not t.room.order("neipa") or wallet.money != 0 or t.room.pints != 1 or t.room.bill != 0:
+		_fail("0 zl, first glass: on the house (%d zl, %d pints, bill %d)" % [wallet.money, t.room.pints, t.room.bill])
+	var said := t.room._line.text
+	if not (Room.data().get("house", []) as Array).any(func(p: Array) -> bool: return said == str(p[0]) or said == str(p[1])):
+		_fail("the free glass should have the barman's house line: %s" % t.room._line.text)
+	if t.room.order("lager") or wallet.money != 0 or t.room.pints != 1:
+		_fail("0 zl, second glass: a refusal, nothing poured")
+	wallet.money = 1000
+	t.room.pints = Room.MAX_PINTS
+	if t.room.order("lager") or wallet.money != 1000:
+		_fail("four glasses: the bar stops")
+	wallet.money = 100
+	t.room.pints = 0
+	t.room.bill = 0
+	t.room.drink()
 	var stout := Room.tap("stout")
 	var price := int(stout.get("price", 0))
 	if not t.room.order("stout") or wallet.money != 100 - price or t.room.pints != 1 or t.room.bill != price:
