@@ -65,8 +65,9 @@ roughly with a view like this... for the reel". Promo content for a reel only, n
 - [ ] A wild boar (dzik) with small wings flies a loop around the Palace of Culture and Science, shot for
   the reel. Looks: the real boar photo F sent (dark bristly coat, pale snout, dark ears, autumn leaves)
   for the body, and the "flying pig" reel F referenced (a pig whose wings are two playing cards) for the
-  joke. Wings: little and silly, not a feathered angel; F's reference uses playing-card wings, so start
-  there and show F the options.
+  joke. Wings: little and silly, not a feathered angel, and the game's own original take (content rule:
+  original art): do NOT copy the third-party reel's playing-card wings. Show F two or three original wing
+  options first.
 - [ ] Built as a promo-only actor on the existing owner (a `--trailer` or promo-mode prop, see the
   promo-video skill and `docs/architecture/extending.md`), never in normal play. Model with
   `tools/turntable.sh KEY` first and show the sheet to F; then the flight path and the reel take
