@@ -842,6 +842,12 @@ vec3 glass_roof(vec3 col, vec2 xz, vec2 uv, float param, out vec3 glow) {
 	vec3 pane_glow = gold * (0.2 + 0.5 * n);
 	vec3 wave_glow = mix(pane_glow, vec3(1.0, 0.84, 0.52) * 1.9, bar);
 	glow = lit * mix(warm * (1.0 - bar), wave_glow, panes);
+	if (param > 0.85) {
+		// Param 0.9: the Museum of Modern Art's skylight field (F 2026-11-22, his night photo from
+		// the Palace): unlit, it fades to a matte dark grey after dusk instead of glowing gold.
+		glow = vec3(0.0);
+		return mix(c, srgb_to_linear(vec3(0.231, 0.243, 0.267)) * 0.6, lit);
+	}
 	return c * mix(1.0, mix(0.5, 0.45, panes), lit * (1.0 - bar));
 }
 

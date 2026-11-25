@@ -2785,7 +2785,9 @@ func _build_msn(_site: Dictionary) -> void:
 	var wells: Array = []
 	for w: Vector3 in MSN_WELLS:
 		wells.append(_rect(w.x, w.y, w.z, w.z))
-	_mode = M_GLASS_ROOF
+	# M_GLASS_ROOF + 0.9: the skylight field goes matte dark grey at night, not a lit gold field
+	# (F 2026-11-22, his night photo from the Palace; building.gdshader glass_roof).
+	_mode = M_GLASS_ROOF + 0.9
 	_cap_holes(_rect(0.0, 0.0, MSN_HU - MSN_SKY_EDGE, MSN_HV - MSN_SKY_EDGE), wells, g + MSN_H, MSN_SKY_GLASS)
 	_mode = M_STONE
 	_cap_holes(box, wells, g + MSN_H, MSN_ROOF)
