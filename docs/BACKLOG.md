@@ -10,6 +10,12 @@ by how many players it touches. "Plan first" means a short design note and F's c
 It ties into the analytics finding (18 of 28 players never start an activity), the onboarding item below and
 the lane assist and bus items below.
 
+**Rule for the whole Thursday 2026-11-26 list (F, 2026-11-25):** every item here, the activity button and
+phone, First Steps, navigation, the map, the heli, rival AI and the rest, must fit the existing architecture
+and follow its rules: read `docs/architecture/README.md` and `extending.md` first, plug into the named owner
+(never a private copy), mark any workaround `# WORKAROUND(arch)` with a row in `tech-debt.md`, and follow the
+TD-4 wiring spec (`docs/architecture/`) where it applies. Each PR says which owner it used.
+
 **A. Activities and quests in the phone (plan first, F picks the look)**
 - [ ] The "Podwózka" (ride) marker glows all the time, and players only ever pick the taxi. Add a button at
   the top of the screen ("add activity") that opens the phone on the right; there the player picks an
