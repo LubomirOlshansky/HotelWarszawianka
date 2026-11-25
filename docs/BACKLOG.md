@@ -1874,7 +1874,7 @@ Left:
   spell, MAX_PINTS 4. Tune prices against the job pay after the feel test; a rotating "beer of the
   week" could swap one tap by the day; "Chmiel, Bóg i Ojczyzna" was written "Chmiel, Honor,
   Ojczyzna" (warsaw-tone: no jokes touching religion) - F may decide otherwise.
-- **Map mark:** the beer mug's name is a fixed "THE TAPCZAN" (a proper name, not translated);
+- **Map mark:** the pub's mark is the beer mug alone (F 2026-11-25: no name label beside it; the SERVICE marks can still carry a name for other places);
   docs/architecture/map-markers.md should note that SERVICE marks can carry a shape and a name.
 - **Sound (done 2026-11-25):** the room's talk and glasses (`pub_room`, the radio ducked -18 dB, the street's beds to 20 %), the pour and clink, the ball's tock, rim ticks and plop, the feedback set's win and fail. Left: the levels on the phone (PHONE-CHECK 15zzp); a cheer from the tables on a bounce shot.
 - **Pani Gienia runs the table (PT-56, fixed 2026-11-25, coordinator's call, F can change it):** her late skill 0.95 → 0.73, balls back unchanged; the reference bot (check_tapczan, 400 seeded games) wins 36 % against her (was 5 %), held in a 30-40 % band; the sommelier 25 %, the open-space crew 63 % (unchanged). Left: the feel on the phone (PHONE-CHECK 15zzk); she is now easier than the sommelier for a decent player while her stake is the highest.

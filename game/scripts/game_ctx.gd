@@ -80,3 +80,6 @@ var focus_at: Callable
 ## The clock to 22:00 at once, as CZEKAM DO 21:00 does it (main.gd's story skip): the street
 ## racers' sixth win offers the night (NOC).
 var night_now: Callable
+## (bool) -> void: the city's 3D drawn or not (main.gd `set_city_drawn`): off while a full-screen
+## pixel game covers it (padel, the pub's beer pong), so the frame is the 2D canvas alone.
+var city_drawn: Callable

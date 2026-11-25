@@ -1,5 +1,5 @@
 {
-  "_about": "THE TAPCZAN (Sienkiewicza 4, landmarks site `tapczan`): every on-screen word of the pub (tapczan.gd, tapczan_room.gd), beer pong (beer_pong.gd) and the tipsy drive after it (tipsy.gd). \"taps\": the TAP LIST (WYPIJ PIWKO): name, style, ABV, ml, price in zł, the tap handle's colour, the barman's reply on a pick and the first sip's line; \"refusals\": short of money; \"house\": the barman's line when the visit's first glass is on the house (short of money); \"memes\": the posters and chalkboards in the room (\"world\": the pixel-font lines on the board, Polish only, UPPERCASE; \"say\": the tap's [Polish, English]). Each line is [Polish, English]. Parody names only, invented people (warsaw-tone). check_tapczan.gd checks every pair.",
+  "_about": "THE TAPCZAN (Sienkiewicza 4, landmarks site `tapczan`): every on-screen word of the pub (tapczan.gd, tapczan_room.gd), beer pong (pong_match.gd, pong_sim.gd; the room's pixel UI tapczan_ui.gd) and the tipsy drive after it (tipsy.gd). \"taps\": the TAP LIST (WYPIJ PIWKO): name, style, ABV, ml, price in zł, the tap handle's colour, the barman's reply on a pick and the first sip's line; \"refusals\": short of money; \"house\": the barman's line when the visit's first glass is on the house (short of money); \"memes\": the posters and chalkboards in the room (\"world\": the pixel-font lines on the board, Polish only, UPPERCASE; \"say\": the tap's [Polish, English]). Each line is [Polish, English]. Parody names only, invented people (warsaw-tone). check_tapczan.gd checks every pair.",
   "ui": {
     "enter": ["WEJDŹ", "GO IN"],
     "door": ["THE TAPCZAN · wejście", "THE TAPCZAN · the door"],
@@ -7,7 +7,7 @@
     "drink": ["WYPIJ PIWKO", "HAVE A BEER"],
     "play": ["ZAGRAJ", "PLAY"],
     "leave": ["WYJDŹ", "LEAVE"],
-    "pick": ["Z kim gramy? Wygrana w złotówkach.", "Who are we playing? The prize is in złoty."],
+    "pick": ["Z KIM GRAMY?", "WHO ARE WE PLAYING?"],
     "back": ["NIE TERAZ", "NOT NOW"],
     "stake_btn": ["%s · %d zł", "%s · %d zł"],
     "price": ["Kufel: %d zł", "A pint: %d zł"],
@@ -15,39 +15,68 @@
     "full": ["Barman: „Kolego, starczy. Woda na koszt firmy.”", "Barman: \"Mate, that's enough. Water's on the house.\""],
     "drunk_toast": ["Szumi w głowie. Jedź jak po jajkach.", "Your head is buzzing. Drive like you're carrying eggs."],
     "drunk_over": ["Przeszło. Jakby nic.", "It passed. As if nothing happened."],
-    "won": ["WYGRANA! +%d zł", "YOU WON! +%d zł"],
-    "lost": ["PRZEGRANA. Kolejka na ciebie.", "YOU LOST. The round is on you."],
-    "your_turn": ["TWÓJ RZUT · ciągnij do tyłu i puść", "YOUR THROW · pull back and let go"],
+    "won": ["WYGRANA!", "YOU WON!"],
+    "lost": ["PRZEGRANA", "YOU LOST"],
     "their_turn": ["RZUCA: %s", "THROWING: %s"],
-    "balls_back": ["DWA TRAFIENIA · PIŁKI WRACAJĄ!", "TWO HITS · BALLS BACK!"],
     "rerack": ["PRZESTAWIAMY KUBKI", "RE-RACK"],
-    "drink_up": ["TRAFIENIE · PIJESZ!", "THEY HIT · YOU DRINK!"],
+    "drink_up": ["TRAFIŁ · PIJESZ", "THEY HIT · YOU DRINK"],
     "cup": ["KUBEK!", "CUP!"],
-    "bounce": ["Z ODBICIA! DWA KUBKI!", "BOUNCE SHOT! TWO CUPS!"],
     "rim_in": ["KRĘCI SIĘ... WPADŁA!", "IT SPINS... IT DROPS!"],
-    "rim_out": ["KRĘCI SIĘ... WYSKOCZYŁA", "IT SPINS... IT POPS OUT"],
+    "rim_out": ["WYKRĘCIŁA SIĘ", "SPUN OUT"],
     "miss": ["PUDŁO", "MISS"],
     "cups": ["KUBKI %d : %d", "CUPS %d : %d"],
     "drinks": ["wypite: %d", "drunk: %d"],
-    "give_up": ["PODDAJ SIĘ", "GIVE UP"],
-    "again": ["JESZCZE RAZ", "AGAIN"],
     "done": ["DO BARU", "BACK TO THE BAR"],
     "quest_title": ["Rajd Kraftowy · THE TAPCZAN", "The Craft Crawl · THE TAPCZAN"],
     "quest_sub": ["piwko i beer pong, zawsze otwarte", "a pint and beer pong, always open"],
     "quest_about": ["Pub z piwem kraftowym na Sienkiewicza 4. Wejdź kiedy chcesz: piwko przy barze, beer pong z bywalcami o złotówki. Nocą stąd rusza Rajd Kraftowy: grupa dzwoni, ty wozisz.", "A craft-beer pub on Sienkiewicza 4. Walk in any time: a pint at the bar, beer pong with the regulars for złoty. At night the Craft Crawl starts here: a group rings, you drive."],
-    "taps_head": ["NA KRANIE · co lejemy?", "ON TAP · what'll it be?"],
-    "tap_btn": ["%s · %d zł\n%s · %s · %s", "%s · %d zł\n%s · %s · %s"],
+    "taps_head": ["NA KRANIE", "ON TAP"],
     "bill": ["Rachunek: %d zł · w portfelu: %d zł", "Bill: %d zł · in your wallet: %d zł"],
     "bill_add": ["Na rachunek: +%d zł (%s)", "On the bill: +%d zł (%s)"],
     "sip": ["Pierwszy łyk", "The first sip"],
-    "board": ["Tablica przy barze", "A chalkboard by the bar"]
+    "board": ["Tablica przy barze", "A chalkboard by the bar"],
+    "hint": ["PRZYTRZYMAJ: ODDECH · PUŚĆ: RZUT", "HOLD: BREATH · LET GO: THROW"],
+    "hint_low": ["PALEC W DÓŁ: ODBICIE ×2", "DRAG DOWN: BOUNCE ×2"],
+    "clean": ["CZYSTO! PIŁKA WRACA", "CLEAN! BALL BACK"],
+    "flick_hint": ["KRĘCI SIĘ! STUKNIJ!", "IT SPINS! TAP!"],
+    "flicked": ["WYDMUCHANA!", "FLICKED OUT!"],
+    "round": ["RUNDA %d/6", "ROUND %d/6"],
+    "last_orders": ["OSTATNIE ZAMÓWIENIE!", "LAST ORDERS!"],
+    "sudden": ["DOGRYWKA · PO JEDNEJ PIŁCE", "SUDDEN DEATH · ONE BALL EACH"],
+    "draw": ["REMIS. NIKT NIE STAWIA.", "A DRAW. NOBODY PAYS."],
+    "breath": ["ODDECH", "BREATH"],
+    "rematch": ["REWANŻ", "REMATCH"],
+    "total": ["RAZEM", "TOTAL"],
+    "tile_beer": ["PIWKO", "BEER"],
+    "tile_play": ["GRAJ", "PLAY"],
+    "tile_leave": ["WYJDŹ", "LEAVE"],
+    "bill_chip": ["RACHUNEK %d ZŁ", "BILL %d ZŁ"],
+    "bounce_in": ["Z ODBICIA! DWA KUBKI", "OFF THE TABLE! TWO CUPS"],
+    "swat": ["ODBITA ŁAPĄ!", "SWATTED!"],
+    "dare": ["TEGO NIE TRAFISZ", "YOU WON'T HIT THAT ONE"],
+    "karniak": ["KARNIAK! RYWAL PIJE", "PENALTY! THE RIVAL DRINKS"],
+    "heat2": ["SERIA!", "ON A ROLL"],
+    "heat3": ["OGIEŃ!", "ON FIRE!"],
+    "fluke": ["FUKS!", "FLUKE!"],
+    "gasp": ["BRAK TCHU", "OUT OF BREATH"],
+    "slip": ["WYPADŁA Z RĘKI", "IT SLIPPED"],
+    "too_far": ["ZA DALEKO NA ODBICIE", "TOO FAR FOR A BOUNCE"],
+    "lost_sub": ["Kolejka na ciebie.", "The round is on you."],
+    "receipt_cups": ["KUBKI", "CUPS"],
+    "receipt_stake": ["STAWKA", "STAKE"],
+    "receipt_drunk": ["WYPITE", "DRUNK"],
+    "receipt_respect": ["RESPEKT", "RESPECT"],
+    "you": ["TY", "YOU"],
+    "taps_sub": ["CO LEJEMY?", "WHAT'LL IT BE?"],
+    "wallet_chip": ["%d ZŁ", "%d ZŁ"],
+    "last_won": ["OSTATNIO: WYGRANA", "LAST TIME: WON"],
+    "last_lost": ["OSTATNIO: PRZEGRANA", "LAST TIME: LOST"]
   },
   "rivals": {
     "sommelier": {
       "name": ["Pan Hubert, sommelier piwny", "Pan Hubert, beer sommelier"],
       "short": ["SOMMELIER", "SOMMELIER"],
       "stake": 120,
-      "skill": 0.75,
       "hello": [
         ["Ten kubek ma nuty cytrusa i porażki. Twojej.", "This cup has notes of citrus and defeat. Yours."]
       ],
@@ -63,15 +92,49 @@
       ],
       "win": [
         ["Nie martw się. Lager też ma swoich fanów.", "Don't worry. Lager has fans too."]
+      ],
+      "balls": 2,
+      "sd": 4.5,
+      "flick": 0.0,
+      "swat": 0.75,
+      "half": 3.5,
+      "in_r": 1.2,
+      "rim_r": 4.0,
+      "glass": "tulip",
+      "reset_after_hit": true,
+      "reset_busy": 2.2,
+      "away_every": 3.4,
+      "away_len": 1.0,
+      "bonus_on_blank": true,
+      "how": ["Wąskie kieliszki. Pilnuje stołu, póki nie wącha.", "Narrow glasses. Guards the table, until he sniffs."],
+      "reset": [
+        ["Chwileczkę. Dekantuję.", "One moment. Decanting."]
+      ],
+      "bonus": [
+        ["Za brak szacunku do piany: jeszcze jedna.", "For disrespecting the foam: one more."]
+      ],
+      "you_lead": [
+        ["Ciekawe. Nuty fartu, finisz krótki.", "Interesting. Notes of luck, a short finish."]
+      ],
+      "they_lead": [
+        ["Wyczuwam w twoim rzucie korek.", "I detect cork in your throw."]
+      ],
+      "last_cup": [
+        ["Ostatni kieliszek. Podawać w temperaturze piwnicy.", "The last glass. Serve at cellar temperature."]
+      ],
+      "again_won": [
+        ["Rewanż. Tym razem dobiorę kieliszek pod twój styl.", "A rematch. This time I'll pick a glass for your style."]
+      ],
+      "again_lost": [
+        ["Jeszcze raz? Mam jeszcze sześć kieliszków do skalibrowania.", "Again? I've six more glasses to calibrate."]
       ]
     },
     "office": {
       "name": ["Ekipa z open space'u", "The open-space crew"],
       "short": ["OPEN SPACE", "OPEN SPACE"],
       "stake": 80,
-      "skill": 0.5,
       "hello": [
-        ["Gramy do trzech KPI. Znaczy kubków. Sześciu.", "We play to three KPIs. Cups. Six."]
+        ["Gramy do pięciu KPI. Znaczy kubków.", "We play to five KPIs. Cups, we mean."]
       ],
       "hit": [
         ["Dowieźliśmy! Wrzuć to na kanał #sukcesy.", "Delivered! Post it in #wins."],
@@ -85,14 +148,38 @@
       ],
       "win": [
         ["Zamykamy sprint z wygraną. Kto stawia?", "Sprint closed with a win. Whose round?"]
+      ],
+      "half": 4.5,
+      "in_r": 2.0,
+      "rim_r": 5.5,
+      "glass": "cup",
+      "flick": 0.0,
+      "balls": 3,
+      "sd": 7.1,
+      "swat": 0.6,
+      "away_every": 2.6,
+      "away_len": 1.4,
+      "how": ["Trzy piłki na turę. Połowę czasu w telefonach.", "Three balls a turn. Half the time on their phones."],
+      "you_lead": [
+        ["Spokojnie, to tylko pierwsza iteracja.", "Relax, it's only the first iteration."]
+      ],
+      "they_lead": [
+        ["Dowozimy. Zgodnie z roadmapą.", "Delivering. As per the roadmap."]
+      ],
+      "last_cup": [
+        ["Ostatni kubek. Eskalujemy do managera.", "Last cup. Escalating to the manager."]
+      ],
+      "again_won": [
+        ["Rewanż? Wpisaliśmy cię w kalendarz jako „blokera”.", "A rematch? We booked you in the calendar as a \"blocker\"."]
+      ],
+      "again_lost": [
+        ["Jeszcze raz? Mamy wolny slot do 23:00.", "Again? We've a free slot till 11 p.m."]
       ]
     },
     "first": {
       "name": ["Pani Gienia, „pierwszy raz”", "Pani Gienia, \"first time\""],
       "short": ["PANI GIENIA", "PANI GIENIA"],
       "stake": 150,
-      "skill": 0.3,
-      "late_skill": 0.73,
       "hello": [
         ["Ojej, to się rzuca do kubeczka? Pierwszy raz gram, słowo!", "Oh dear, you throw it in the little cup? First time, I promise!"]
       ],
@@ -103,14 +190,44 @@
       "miss": [
         ["A to w którą stronę się celuje?", "Which way do you aim again?"]
       ],
-      "late": [
-        ["Dobra. Koniec rozgrzewki.", "Right. Warm-up's over."]
-      ],
+      "late": {"sd": 2.55, "flick": 0.55, "swat": 0.85, "nudge": 4.0, "nudge_p": 0.5},
       "lose": [
         ["No proszę. Następnym razem nie będę taka grzeczna.", "Well, well. Next time I won't be so nice."]
       ],
       "win": [
         ["Mistrzostwa Pragi '98, dziecko. Pierwszy raz? Dzisiaj.", "Praga champion, '98, child. First time? Today."]
+      ],
+      "half": 4.5,
+      "in_r": 2.0,
+      "rim_r": 5.5,
+      "glass": "cup",
+      "flick": 0.0,
+      "balls": 2,
+      "sd": 9.0,
+      "swat": 0.0,
+      "wake_cups": 3,
+      "wake_round": 4,
+      "how": ["„Pierwszy raz.” Póki śpi, bij z odbicia.", "\"First time.\" While she dozes, bounce it."],
+      "wake_says": [
+        ["Dobra. Koniec rozgrzewki.", "Right. Warm-up's over."]
+      ],
+      "nudge_says": [
+        ["Ojej, przepraszam, stolik się rusza.", "Oh dear, sorry, the table wobbles."]
+      ],
+      "you_lead": [
+        ["Ależ ty zdolny, kochanieńki. Herbatki?", "Aren't you clever, sweetie. A cup of tea?"]
+      ],
+      "they_lead": [
+        ["Ojej, znowu wpadło. Same wpadają.", "Oh dear, in again. They just fall in."]
+      ],
+      "last_cup": [
+        ["Okulary na nos. Teraz pogramy.", "Glasses on. Now we play."]
+      ],
+      "again_won": [
+        ["Rewanż, dziecko? Tym razem bez taryfy ulgowej.", "A rematch, child? No discount this time."]
+      ],
+      "again_lost": [
+        ["Jeszcze raz? Mam czas do „Jaka to melodia”.", "Again? I've time till my evening quiz show."]
       ]
     }
   },
@@ -152,6 +269,13 @@
       "name": ["Para na randce", "A couple on a date"],
       "lines": [
         ["Pierwsza randka. On mi czyta etykiety piw. Na głos.", "First date. He reads me the beer labels. Out loud."]
+      ]
+    },
+    "dog": {
+      "name": ["Chmiel, pies baru", "Chmiel, the pub dog"],
+      "lines": [
+        ["Hau. (Chmiel patrzy na twoje frytki.)", "Woof. (Chmiel is looking at your fries.)"],
+        ["Chmiel nie pije. Chmiel tu pilnuje porządku. Śpiąc.", "Chmiel doesn't drink. Chmiel keeps order here. Asleep."]
       ]
     }
   },
@@ -283,6 +407,11 @@
   ],
   "memes": [
     {
+      "id": "lokalnie",
+      "world": ["PIJ", "LOKALNIE.", "NAJLEPIEJ TU."],
+      "say": ["Pij lokalnie. Najlepiej tu, najlepiej jeszcze jedno.", "Drink local. Ideally here, ideally one more."]
+    },
+    {
       "id": "drugie",
       "world": ["PIWO NIE MA", "BYĆ SMACZNE.", "MA BYĆ DRUGIE."],
       "say": ["Piwo nie ma być smaczne. Ma być DRUGIE.", "Beer doesn't have to be tasty. It has to be the SECOND one."]
@@ -312,5 +441,15 @@
       "world": ["BREW", "ENJOY", "EMPTY", "REPEAT"],
       "say": ["Warz. Pij. Opróżnij. Powtórz. Czytaj pierwsze litery od góry.", "Brew. Enjoy. Empty. Repeat. Read the first letters downwards."]
     }
+  ],
+  "regulars": [
+    ["No ładnie!", "Nice!"],
+    ["Uuu...", "Ooh..."],
+    ["Jeszcze raz to samo!", "Same again!"],
+    ["Barman, on oszukuje!", "Barman, he's cheating!"],
+    ["Z odbicia, widziałeś?", "Off the table, did you see?"],
+    ["Pij, pij.", "Drink up."],
+    ["Cisza, kręci się!", "Quiet, it's spinning!"],
+    ["Ostatnie zamówienie!", "Last orders!"]
   ]
 }

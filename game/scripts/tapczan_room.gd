@@ -16,22 +16,27 @@ extends Node3D
 ## the regulars on them (one MultiMesh); the beer pong table at the front right with tonight's
 ## rivals. The craft-beer memes hang as chalkboards (data/tapczan.json "memes"; a tap reads one).
 ##
-## The panel: WYPIJ PIWKO (the TAP LIST: six beers on tap, each with its style, ABV, glass and
-## price; the price goes on the bill and out of the wallet, the barman answers the pick and the
-## first sip has its line; a stronger beer makes the drive after it more tipsy (tapczan.gd), short
-## of money the visit's first glass is on the house, later ones a refusal), ZAGRAJ (the rival card, then beer pong, beer_pong.gd), WYJDŹ. The bill
-## of the visit and the wallet stand under the title.
+## The UI (tapczan_ui.gd, padel's pixel look, on the ROOT viewport so the city image's half scale
+## does not double it): chips (THE TAPCZAN, the bill, the wallet), lines as bubbles pinned to the
+## speaker, and three tiles on the objects: PIWKO over the taps (the TAP LIST chalkboard: six beers
+## on tap, each with its style, ABV, glass and price; the price goes on the bill and out of the
+## wallet, the barman answers the pick and the first sip has its line; a stronger beer makes the
+## drive after it more tipsy (tapczan.gd), short of money the visit's first glass is on the house,
+## later ones a refusal), GRAJ over the pong table (the rival card, then beer pong "Rzut na raz",
+## pong_match.gd and pong_sim.gd, full screen with the city's 3D off) and WYJDŹ at the door.
 ##
 ## Cost: two draw calls (the room's mesh with every board's chalk in it, the people), the city out
 ## of view; under 30k triangles (pixel text merged into runs), built once on the first visit. No
-## lights of its own: the glows are the actor shader's lit parts. The pong view is 2D on top.
+## lights of its own: the glows are the actor shader's lit parts. The UI is one canvas item.
 
 const Models := preload("res://scripts/models.gd")
 const UiKit := preload("res://scripts/ui_kit.gd")
 const Lang := preload("res://scripts/lang.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
-const BeerPong := preload("res://scripts/beer_pong.gd")
+const PongMatch := preload("res://scripts/pong_match.gd")
 const PixelFont := preload("res://scripts/pixel_font.gd")
+const PixelKit := preload("res://scripts/pixel_kit.gd")
+const TapczanUi := preload("res://scripts/tapczan_ui.gd")
 
 const DATA := "res://data/tapczan.json"
 ## Where the room stands: far past the map's edge, away from the club (9000, 9000) and the lounge.
@@ -62,6 +67,8 @@ const TAGGED := {"beard": [0, 1], "students": [1, 2], "tourists": [4, 1], "coupl
 const MEZZ := [1.8, 8.0, 2.9, 2.9]
 ## The pong table (room-local), along x.
 const PONG := Vector3(4.8, 0.0, 3.2)
+## Chmiel the pub dog, asleep on the open slate at the front (room-local).
+const DOG := Vector3(-4.2, 0.0, 5.0)
 
 signal left
 ## A glass was poured (tapczan.gd: the drive after it): its strength in drinks (0 for the zero).
@@ -81,6 +88,10 @@ var auto_play := false
 var auto_rival := ""
 ## --nohud: the room without its panel (shots).
 var panel_off := false
+## (bool) -> void: the city's 3D on or off (GameCtx.city_drawn, main.gd): off under the pong view.
+var city_drawn := Callable()
+## The last result against each rival this visit {id: won}: the card's line and REWANŻ's memory.
+var results: Dictionary = {}
 
 var inside := false
 ## The view's aim: up and towards the back so the tall walls and the mezzanine fit over the panel.
@@ -98,19 +109,9 @@ static var _data: Dictionary = {}
 var _built := false
 var _room: MeshInstance3D
 var _crowd: MultiMeshInstance3D
-var _ui: CanvasLayer
-var _title: Label
-var _bill: Label
-var _talk: PanelContainer
-var _who: Label
-var _line: Label
-var _buttons: HBoxContainer
-var _drink_btn: Button
-var _play_btn: Button
-var _out_btn: Button
-var _pick: PanelContainer
-var _taps: PanelContainer
-var _pong: Control
+var _ui_layer: CanvasLayer
+var _ui: TapczanUi
+var _pong: PongMatch
 var _rng := RandomNumberGenerator.new()
 ## The regulars' seats: (x, yaw, z), room-local.
 var _seat: Array[Vector3] = []
@@ -164,15 +165,6 @@ static func strength(t: Dictionary) -> float:
 static func num(v: float, pl: bool) -> String:
 	var s := ("%.1f" % v)
 	return s.replace(".", ",") if pl else s
-
-
-## One tap's button: name · price, then style · ABV · glass.
-static func tap_label(t: Dictionary, pl: bool) -> String:
-	var nm: Array = t.get("name", ["", ""])
-	var st: Array = t.get("style", ["", ""])
-	var p := pair("tap_btn")
-	return str(p[0 if pl else 1]) % [str(nm[0 if pl else 1]), int(t.get("price", 0)),
-		str(st[0 if pl else 1]), num(float(t.get("abv", 0.0)), pl) + "%", num(int(t.get("ml", 0)) / 1000.0, pl) + " l"]
 
 
 # --- the room -------------------------------------------------------------------------------
@@ -258,6 +250,7 @@ static func meme_boards() -> Array:
 		["chmiel", Vector3(-hx + 0.06, 2.15, -3.0), PI * 0.5, 1.1, 1.0],
 		["metne", Vector3(-1.0, 2.05, -hz + 0.06), 0.0, 1.5, 0.95],
 		["jasne", Vector3(5.6, 1.95, -hz + 0.06), 0.0, 1.7, 1.0],
+		["lokalnie", Vector3(-hx + 0.06, 3.35, -4.3), PI * 0.5, 1.0, 0.7],
 	]
 
 
@@ -516,6 +509,7 @@ static func room_mesh() -> ArrayMesh:
 		Models.box(st, c + Vector3(0, 3.7, 0), Vector3(0.015, 2.2, 0.015), black, Models.FIXED)
 		Models.box(st, c + Vector3(0, 2.62, 0), Vector3(0.26, 0.12, 0.26), Color("#6a4a2a"), Models.FIXED)
 		Models.box(st, c + Vector3(0, 2.53, 0), Vector3(0.24, 0.08, 0.24), warm, Models.LIT_SIGN)
+	_detail(st)
 	# The beer pong table: black top, white edge lines, a red triangle of cups at each end.
 	var pt := PONG
 	Models.box(st, pt + Vector3(0, 0.74, 0), Vector3(2.44, 0.05, 0.61), black, Models.FIXED)
@@ -533,6 +527,115 @@ static func room_mesh() -> ArrayMesh:
 				Models.box(st, pt + Vector3(cx, 0.83, cz), Vector3(0.08, 0.12, 0.08), Color("#d4282e"), Models.FIXED)
 				Models.box(st, pt + Vector3(cx, 0.892, cz), Vector3(0.082, 0.01, 0.082), Color("#f2f2ea"), Models.FIXED)
 	return st.commit()
+
+
+## The small things from the real pub's photos (2026-11-25, F: "a bit more detail inside"), all in
+## the room's one mesh (no draw call, no light): the copper pendant domes over the bar, the chrome
+## drip trays under the taps, stickers on the black column, the lit fridge and crisps behind the
+## bar, the black radiator under the porthole, wall spots along the brick, a succulent on every
+## table, a tall plant in the corner and one on the high shelf, a barrel table by the way out,
+## Chmiel the pub dog asleep on the slate and the cat on the bar's end.
+static func _detail(st: SurfaceTool) -> void:
+	var hx := ROOM.x * 0.5
+	var hz := ROOM.y * 0.5
+	var black := Color("#161618")
+	var copper := Color("#d08a4a")
+	var copper_l := Color("#f0b070")
+	var warm := Color("#ffd08a")
+	var chrome := Color("#d0d4d8")
+	var green := Color("#3f7a3a")
+	var green_l := Color("#5fa04a")
+	var terracotta := Color("#a4532e")
+	# Copper pendant domes on long cords over the bar's front (photo 3).
+	for a: float in [-0.46, -0.16, 0.16, 0.46]:
+		var c := _arc(BAR_R + 0.25, a, 0.0)
+		_rbox(st, c + Vector3(0, 3.55, 0), Vector3(0.015, 1.4, 0.015), a, black)
+		_rbox(st, c + Vector3(0, 2.84, 0), Vector3(0.14, 0.06, 0.14), a, copper_l)
+		_rbox(st, c + Vector3(0, 2.74, 0), Vector3(0.34, 0.14, 0.34), a, copper)
+		_rbox(st, c + Vector3(0, 2.66, 0), Vector3(0.16, 0.06, 0.16), a, warm, Models.LIT_SIGN)
+	# Chrome drip trays along the bar top under the two tap pipes (photo 1).
+	for span: Array in [[-0.5, -0.08], [0.08, 0.5]]:
+		var mid := (float(span[0]) + float(span[1])) * 0.5
+		var r_t := BAR_R - 0.5
+		_rbox(st, _arc(r_t, mid, 1.17), Vector3(r_t * (float(span[1]) - float(span[0])), 0.02, 0.16), mid, chrome)
+	# Stickers on the black column through the bar (photo 4): a rainbow, white and blue squares.
+	var col := _arc(BAR_R - 1.4, 0.0, 0.0) + Vector3(0, 0, 0.135)
+	var rainbow := [Color("#e8403a"), Color("#f29a2e"), Color("#f2d23a"), Color("#4fae4a"), Color("#3a6ad8"), Color("#8a4ac8")]
+	for i in 6:
+		Models.box(st, col + Vector3(0, 1.62 - i * 0.025, 0), Vector3(0.14, 0.025, 0.01), rainbow[i], Models.FIXED)
+	Models.box(st, col + Vector3(0.02, 1.85, 0), Vector3(0.12, 0.14, 0.01), Color("#f2f0ea"), Models.FIXED)
+	Models.box(st, col + Vector3(-0.03, 1.36, 0), Vector3(0.1, 0.1, 0.01), Color("#2a6ad8"), Models.FIXED)
+	Models.box(st, col + Vector3(0.0, 2.1, 0), Vector3(0.16, 0.05, 0.01), Color("#f2c14a"), Models.FIXED)
+	# The cage lamps on the column under the soffit.
+	for sx: float in [-1.0, 1.0]:
+		var lp := _arc(BAR_R - 1.4, 0.0, 2.95) + Vector3(sx * 0.32, 0, 0.1)
+		Models.box(st, lp, Vector3(0.18, 0.16, 0.18), warm, Models.LIT_SIGN)
+		Models.box(st, lp + Vector3(0, 0.1, 0), Vector3(0.22, 0.03, 0.22), black, Models.FIXED)
+	# Behind the bar: a small lit fridge of cans, crisps on top (photo 4).
+	var fr := Vector3(-0.9, 0.0, -hz + 0.45)
+	Models.box(st, fr + Vector3(0, 0.45, 0), Vector3(0.62, 0.9, 0.5), black, Models.FIXED)
+	Models.box(st, fr + Vector3(0, 0.47, 0.251), Vector3(0.52, 0.74, 0.01), Color("#cfe6ff"), Models.LIT_WINDOW)
+	for k in 6:
+		Models.box(st, fr + Vector3(-0.2 + (k % 3) * 0.2, 0.3 + (k / 3) * 0.32, 0.2), Vector3(0.08, 0.16, 0.08), [Color("#3a6ad8"), Color("#d4282e"), Color("#c0c4c8")][k % 3], Models.FIXED)
+	for k in 3:
+		Models.box(st, fr + Vector3(-0.18 + k * 0.18, 1.0, 0.0), Vector3(0.16, 0.2, 0.08), Color("#f2c14a"), Models.FIXED)
+	# The black radiator under the porthole (photo 1).
+	for k in 9:
+		Models.box(st, Vector3(-hx + 0.1, 0.55, -1.6 + k * 0.1), Vector3(0.08, 0.7, 0.05), Color("#232428"), Models.FIXED)
+	Models.box(st, Vector3(-hx + 0.1, 0.92, -1.2), Vector3(0.06, 0.04, 0.95), Color("#2e3034"), Models.FIXED)
+	# Spots on a black rail along the top of the back brick.
+	Models.box(st, Vector3(-3.4, 4.25, -hz + 0.12), Vector3(8.0, 0.04, 0.04), black, Models.FIXED)
+	for k in 6:
+		Models.box(st, Vector3(-7.0 + k * 1.4, 4.15, -hz + 0.2), Vector3(0.09, 0.14, 0.12), black, Models.FIXED)
+		Models.box(st, Vector3(-7.0 + k * 1.4, 4.07, -hz + 0.27), Vector3(0.06, 0.03, 0.03), warm, Models.LIT_SIGN)
+	# A succulent in a white pot on every table (photo 3).
+	for t: Vector2 in TABLES:
+		var c := Vector3(t.x + 0.18, 0.0, t.y - 0.16)
+		Models.box(st, c + Vector3(0, 0.82, 0), Vector3(0.08, 0.07, 0.08), Color("#e8e4da"), Models.FIXED)
+		Models.box(st, c + Vector3(0, 0.88, 0), Vector3(0.1, 0.05, 0.1), green_l, Models.FIXED)
+		Models.box(st, c + Vector3(0, 0.92, 0), Vector3(0.04, 0.06, 0.04), green, Models.FIXED)
+	# A tall plant in the front-left corner by the concrete, a small one on the high shelf.
+	var pc := Vector3(-hx + 0.45, 0.0, hz - 0.5)
+	Models.box(st, pc + Vector3(0, 0.25, 0), Vector3(0.4, 0.5, 0.4), terracotta, Models.FIXED)
+	for k in 7:
+		var ang := k * 0.9
+		var lean := Vector3(cos(ang) * 0.16, 0, sin(ang) * 0.16)
+		_rbox(st, pc + lean + Vector3(0, 0.75 + (k % 3) * 0.22, 0), Vector3(0.1, 0.55, 0.32), ang, green if k % 2 else green_l)
+	var ps := Vector3(4.4, 1.08, -hz + 0.2)
+	Models.box(st, ps + Vector3(0, 0.08, 0), Vector3(0.16, 0.16, 0.16), terracotta, Models.FIXED)
+	for k in 3:
+		_rbox(st, ps + Vector3(0, 0.26 + k * 0.04, 0), Vector3(0.05, 0.22, 0.2), k * 1.1, green_l)
+	# A barrel standing table by the way out, two pints on it.
+	var bp := Vector3(6.1, 0.0, -2.4)
+	for k in 6:
+		_rbox(st, bp + Vector3(0, 0.5, 0), Vector3(0.62, 1.0, 0.26), k * PI / 6.0, Color("#6e4a2a"))
+	for y: float in [0.2, 0.8]:
+		for k in 6:
+			_rbox(st, bp + Vector3(0, y, 0), Vector3(0.64, 0.05, 0.27), k * PI / 6.0, Color("#2b2c2e"))
+	Models.box(st, bp + Vector3(0, 1.02, 0), Vector3(0.7, 0.04, 0.7), Color("#8a5a34"), Models.FIXED)
+	Models.box(st, bp + Vector3(-0.12, 1.12, 0.05), Vector3(0.08, 0.16, 0.08), Color("#e8a83a"), Models.LIT_WINDOW)
+	Models.box(st, bp + Vector3(0.14, 1.12, -0.06), Vector3(0.08, 0.16, 0.08), Color("#2a1408"), Models.FIXED)
+	# Chmiel, the pub dog, asleep on the slate at the front (tap him: people "dog").
+	var dg := DOG
+	var fur := Color("#b07a44")
+	var fur_d := Color("#7a5232")
+	Models.box(st, dg + Vector3(0, 0.12, 0), Vector3(0.55, 0.22, 0.26), fur, Models.FIXED)
+	Models.box(st, dg + Vector3(0.33, 0.12, 0.02), Vector3(0.2, 0.17, 0.2), fur, Models.FIXED)
+	Models.box(st, dg + Vector3(0.44, 0.09, 0.02), Vector3(0.08, 0.08, 0.1), fur_d, Models.FIXED)
+	Models.box(st, dg + Vector3(0.3, 0.16, 0.12), Vector3(0.08, 0.04, 0.06), fur_d, Models.FIXED)
+	Models.box(st, dg + Vector3(0.3, 0.16, -0.08), Vector3(0.08, 0.04, 0.06), fur_d, Models.FIXED)
+	Models.box(st, dg + Vector3(-0.32, 0.07, 0.1), Vector3(0.18, 0.05, 0.05), fur_d, Models.FIXED)
+	Models.box(st, dg + Vector3(0.18, 0.03, 0.14), Vector3(0.22, 0.05, 0.06), fur, Models.FIXED)
+	# The cat on the bar's far end, looking at the room.
+	var ct := _arc(BAR_R - 0.35, BAR_A - 0.05, 1.16)
+	var cat := Color("#2a2a2e")
+	Models.box(st, ct + Vector3(0, 0.1, 0), Vector3(0.14, 0.2, 0.22), cat, Models.FIXED)
+	Models.box(st, ct + Vector3(0, 0.26, 0.07), Vector3(0.13, 0.12, 0.12), cat, Models.FIXED)
+	Models.box(st, ct + Vector3(0.04, 0.34, 0.07), Vector3(0.03, 0.05, 0.03), cat, Models.FIXED)
+	Models.box(st, ct + Vector3(-0.04, 0.34, 0.07), Vector3(0.03, 0.05, 0.03), cat, Models.FIXED)
+	Models.box(st, ct + Vector3(0.03, 0.27, 0.135), Vector3(0.02, 0.02, 0.01), Color("#d8e04a"), Models.LIT_SIGN)
+	Models.box(st, ct + Vector3(-0.03, 0.27, 0.135), Vector3(0.02, 0.02, 0.01), Color("#d8e04a"), Models.LIT_SIGN)
+	Models.box(st, ct + Vector3(0.0, 0.03, -0.17), Vector3(0.04, 0.04, 0.2), cat, Models.FIXED)
 
 
 ## Chair `k` of table `ti`: (x, yaw facing the table, z), room-local (0: -x side, 1: +x, 2: -z, 3: +z).
@@ -597,6 +700,8 @@ func _build(world: Node3D) -> void:
 	people.append([rival("first").get("name", ["", ""]), "r:first", PONG + Vector3(0.9, 0, 0.9)])
 	for mb: Array in meme_boards():
 		people.append([pair("board"), "m:" + str(mb[0]), (mb[1] as Vector3) - Vector3(0, 1.1, 0)])
+	if ppl.has("dog"):
+		people.append([ppl["dog"]["name"], "dog", DOG - Vector3(0, 0.9, 0)])
 	people.append([pair("board"), "m:wall", Vector3(-ROOM.x * 0.5 + 0.2, 1.6, 3.4)])
 	# The standing: [position, yaw, colour].
 	var stand: Array = [
@@ -635,158 +740,79 @@ func _pose_crowd() -> void:
 		mm.set_instance_transform(i, Transform3D(lean, Vector3(s.x, -0.36, s.z)))
 
 
+## The root viewport's node for the pub's 2D (the HUD's parent: main, or the check's root), so the
+## pixel UI and the pong view are drawn at the screen's own resolution, not the city image's.
+func _root_parent() -> Node:
+	if hud != null and hud.get_parent() != null:
+		return hud.get_parent()
+	return self
+
+
+## The pixel UI (tapczan_ui.gd) on a CanvasLayer of the root viewport.
 func _build_ui() -> void:
-	var pt: float = hud.pt if hud != null and "pt" in hud else 1.0
-	_ui = CanvasLayer.new()
-	_ui.layer = 20
-	add_child(_ui)
-	var top := PanelContainer.new()
-	top.add_theme_stylebox_override("panel", UiKit.card(pt, 10.0))
-	top.position = Vector2(16, 16) * pt
-	_ui.add_child(top)
-	var tv := VBoxContainer.new()
-	top.add_child(tv)
-	_title = Label.new()
-	UiKit.style_label(_title, "title", pt)
-	tv.add_child(_title)
-	_bill = Label.new()
-	_bill.name = "Bill"
-	UiKit.style_label(_bill, "sub", pt)
-	_bill.add_theme_color_override("font_color", AMBER)
-	tv.add_child(_bill)
-	_talk = PanelContainer.new()
-	_talk.add_theme_stylebox_override("panel", UiKit.card(pt, 10.0))
-	_talk.custom_minimum_size = Vector2(360, 0) * pt
-	_ui.add_child(_talk)
-	var v := VBoxContainer.new()
-	_talk.add_child(v)
-	_who = Label.new()
-	UiKit.style_label(_who, "sub", pt)
-	_who.add_theme_color_override("font_color", AMBER)
-	v.add_child(_who)
-	_line = Label.new()
-	_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_line.custom_minimum_size.x = 340 * pt
-	UiKit.style_label(_line, "body", pt)
-	v.add_child(_line)
-	_buttons = HBoxContainer.new()
-	_buttons.add_theme_constant_override("separation", int(10 * pt))
-	_ui.add_child(_buttons)
-	_drink_btn = _button(_buttons, "drink", pt, true)
-	_drink_btn.pressed.connect(drink)
-	_play_btn = _button(_buttons, "play", pt, true)
-	_play_btn.pressed.connect(_show_pick)
-	_out_btn = _button(_buttons, "leave", pt, false)
-	_out_btn.pressed.connect(leave)
-	# The rival card: who to play, the stake on each button.
-	_pick = PanelContainer.new()
-	_pick.add_theme_stylebox_override("panel", UiKit.card(pt, 14.0))
-	_ui.add_child(_pick)
-	var pv := VBoxContainer.new()
-	pv.add_theme_constant_override("separation", int(8 * pt))
-	_pick.add_child(pv)
-	var head := Label.new()
-	UiKit.style_label(head, "title", pt)
-	head.text = say("pick")
-	head.name = "Head"
-	pv.add_child(head)
-	for id: String in RIVALS:
-		var r := rival(id)
-		var b := Button.new()
-		var nm: Array = r.get("name", [id, id])
-		b.text = say("stake_btn", [Lang.pick(str(nm[0]), str(nm[1])), int(r.get("stake", 0))])
-		b.name = "R_" + id
-		UiKit.style_button(b, UiKit.Kind.PRIMARY, pt)
-		b.custom_minimum_size = Vector2(320, 48) * pt
-		b.pressed.connect(play.bind(id))
-		pv.add_child(b)
-	var no := Button.new()
-	no.text = say("back")
-	UiKit.style_button(no, UiKit.Kind.SECONDARY, pt)
-	no.custom_minimum_size = Vector2(320, 44) * pt
-	no.pressed.connect(func() -> void: _pick.visible = false)
-	pv.add_child(no)
-	_pick.visible = false
-	# The TAP LIST: the six on tap in two columns, name and price, style, ABV and glass.
-	_taps = PanelContainer.new()
-	_taps.name = "Taps"
-	_taps.add_theme_stylebox_override("panel", UiKit.card(pt, 14.0))
-	_ui.add_child(_taps)
-	var tl := VBoxContainer.new()
-	tl.add_theme_constant_override("separation", int(8 * pt))
-	_taps.add_child(tl)
-	var th := Label.new()
-	UiKit.style_label(th, "title", pt)
-	th.text = say("taps_head")
-	tl.add_child(th)
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", int(8 * pt))
-	grid.add_theme_constant_override("v_separation", int(8 * pt))
-	tl.add_child(grid)
+	_ui_layer = CanvasLayer.new()
+	_ui_layer.name = "TapczanUiLayer"
+	_ui_layer.layer = 20
+	_root_parent().add_child(_ui_layer)
+	_ui = TapczanUi.new()
+	_ui.name = "TapczanUi"
+	_ui.words = pair
+	_ui.project = _project
+	var hz := ROOM.y * 0.5
+	_ui.anchors = {"beer": PLACE + _arc(BAR_R - 0.55, -0.29, 2.55), "play": PLACE + PONG + Vector3(-0.6, 2.9, -0.6),
+			"leave": PLACE + Vector3(7.0, 3.05, -hz + 0.1)}
 	var pl := Lang.pick("pl", "en") == "pl"
 	for t: Dictionary in taps():
-		var b := Button.new()
-		b.name = "T_" + str(t.get("id", ""))
-		b.text = tap_label(t, pl)
-		UiKit.style_button(b, UiKit.Kind.PRIMARY, pt, UiKit.T_LABEL)
-		b.custom_minimum_size = Vector2(270, 54) * pt
-		b.pressed.connect(order.bind(str(t.get("id", ""))))
-		grid.add_child(b)
-	var tno := Button.new()
-	tno.text = say("back")
-	UiKit.style_button(tno, UiKit.Kind.SECONDARY, pt)
-	tno.custom_minimum_size = Vector2(250, 44) * pt
-	tno.pressed.connect(func() -> void: _taps.visible = false)
-	tl.add_child(tno)
-	_taps.visible = false
-	_layout()
-	get_viewport().size_changed.connect(_layout)
+		var nm: Array = t.get("name", ["", ""])
+		var st: Array = t.get("style", ["", ""])
+		_ui.taps.append({"id": str(t.get("id", "")), "name": str(nm[0 if pl else 1]), "price": int(t.get("price", 0)),
+				"sub": "%s · %s%% · %s L" % [str(st[0 if pl else 1]), num(float(t.get("abv", 0.0)), pl), num(int(t.get("ml", 0)) / 1000.0, pl)],
+				"colour": Color(str(t.get("handle", "#f2a51e")))})
+	_ui_layer.add_child(_ui)
+	_ui.tile.connect(_on_tile)
+	_ui.tap_picked.connect(func(id: String) -> void: order(id))
+	_ui.rival_picked.connect(play)
+	_ui_layer.visible = false
 
 
-func _button(parent: Node, key: String, pt: float, primary: bool) -> Button:
-	var b := Button.new()
-	b.text = say(key)
-	UiKit.style_button(b, UiKit.Kind.PRIMARY if primary else UiKit.Kind.SECONDARY, pt)
-	b.custom_minimum_size = Vector2(120, 52) * pt
-	parent.add_child(b)
-	return b
+## A room point (world) on the root viewport: the camera's projection times the city image's scale.
+func _project(p: Vector3) -> Vector2:
+	if cam == null or not cam.is_inside_tree():
+		return Vector2(-1000, -1000)
+	var k := 1.0
+	var root := get_tree().root
+	var own := get_viewport()
+	if own != root:
+		k = float(root.get_visible_rect().size.y) / maxf(1.0, float(own.get_visible_rect().size.y))
+	return cam.unproject_position(p) * k
 
 
-func _layout() -> void:
-	if _ui == null:
-		return
-	var pt: float = hud.pt if hud != null and "pt" in hud else 1.0
-	var vp := get_viewport().get_visible_rect().size
-	_buttons.reset_size()
-	_buttons.position = vp - _buttons.size - Vector2(16, 16) * pt
-	# The line sits over the buttons (a long line widens it to the screen's width otherwise).
-	_talk.size = Vector2(360 * pt, 0)
-	_talk.reset_size()
-	_talk.position = Vector2(16 * pt, _buttons.position.y - _talk.size.y - 10 * pt)
-	_pick.reset_size()
-	_pick.position = (vp - _pick.size) * 0.5
-	_taps.reset_size()
-	# Long names (English) or a big Mac window: the list shrinks to fit the screen, never runs off.
-	var k := minf(1.0, minf(vp.x * 0.94 / maxf(_taps.size.x, 1.0), vp.y * 0.94 / maxf(_taps.size.y, 1.0)))
-	_taps.scale = Vector2(k, k)
-	_taps.position = (vp - _taps.size * k) * 0.5
+func _on_tile(id: String) -> void:
+	match id:
+		"beer":
+			drink()
+		"play":
+			_show_pick()
+		"leave":
+			leave()
 
 
 # --- going in and out -----------------------------------------------------------------------
 
-## In: the room built (once) under `world`, the panel up, the barman's hello.
+## In: the room built (once) under `world`, the UI up, the barman's hello.
 func enter(world: Node3D) -> void:
 	if not _built:
 		_build(world)
 	inside = true
 	pints = 0
 	bill = 0
-	_title.text = say("title")
+	results.clear()
 	_update_bill()
 	_show(true)
 	_say(people[0])
-	_log("room in")
+	_log("room in: ui unit %.2f px (pt %.2f), city image x%.0f" % [_ui.u, _ui.pt, _shrink()])
+	if log_on and is_inside_tree():
+		get_tree().create_timer(2.0).timeout.connect(func() -> void: _log("frame in the room: " + frame_note()))
 	if auto_play:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
 			if inside:
@@ -794,10 +820,25 @@ func enter(world: Node3D) -> void:
 				play(auto_rival if auto_rival in RIVALS else RIVALS[0]))
 
 
+## The frame's counters (the bench's: draw calls, objects, primitives, fps) for --tapczan-log.
+static func frame_note() -> String:
+	return "%d draw calls, %d objects, %d primitives, %d fps" % [int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
+			int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)), int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
+			int(Performance.get_monitor(Performance.TIME_FPS))]
+
+
+## The city image's scale (the root's height over the room's viewport's): 2 on the phone.
+func _shrink() -> float:
+	if not is_inside_tree():
+		return 1.0
+	var own := get_viewport()
+	return float(get_tree().root.get_visible_rect().size.y) / maxf(1.0, float(own.get_visible_rect().size.y))
+
+
 func leave() -> void:
 	if not inside:
 		return
-	if _pong != null and _pong.visible:
+	if _pong != null and _pong.inside:
 		return
 	inside = false
 	_show(false)
@@ -808,23 +849,20 @@ func leave() -> void:
 func _show(on: bool) -> void:
 	_room.visible = on
 	_crowd.visible = on
-	_ui.visible = on and not panel_off
-	_talk.visible = on and _line.text != ""
-	_pick.visible = false
-	_taps.visible = false
-	_buttons.visible = on
+	_ui_layer.visible = on and not panel_off
+	_ui.close_all()
+	if not on:
+		_ui.hide_line()
 
 
-## WYPIJ PIWKO: the TAP LIST (or the barman's "enough" once the visit had MAX_PINTS).
+## PIWKO: the TAP LIST (or the barman's "enough" once the visit had MAX_PINTS).
 func drink() -> void:
 	if not inside:
 		return
 	if pints >= MAX_PINTS:
-		_say_text(people[0][0], pair("full"))
+		_say_text(people[0][0], pair("full"), _head(0))
 		return
-	_pick.visible = false
-	_taps.visible = true
-	_layout()
+	_ui.open_taps()
 
 
 ## One beer from the list: its price out of the wallet and onto the bill, the barman's answer to
@@ -832,14 +870,15 @@ func drink() -> void:
 ## strong. Short of money: the visit's first glass on the house (the barman's "house" line, 0 zł on
 ## the bill), after that a refusal with nothing poured. False when nothing was poured.
 func order(id: String) -> bool:
-	_taps.visible = false
+	if _ui != null:
+		_ui.close_all()
 	if not inside:
 		return false
 	var t := tap(id)
 	if t.is_empty():
 		return false
 	if pints >= MAX_PINTS:
-		_say_text(people[0][0], pair("full"))
+		_say_text(people[0][0], pair("full"), _head(0))
 		return false
 	var price := int(t.get("price", 0))
 	# Short of the price: the visit's first glass is on the house (a new player with 0 zł can drink
@@ -848,7 +887,7 @@ func order(id: String) -> bool:
 	if wallet != null and not wallet.spend(price):
 		if pints > 0:
 			var no: Array = data().get("refusals", [pair("broke")])
-			_say_text(people[0][0], no[_rng.randi() % no.size()])
+			_say_text(people[0][0], no[_rng.randi() % no.size()], _head(0))
 			_log("broke for %s (%d zl)" % [id, price])
 			return false
 		house = true
@@ -859,7 +898,7 @@ func order(id: String) -> bool:
 	_sound("beer_pour")
 	var picks: Array = data().get("house", []) if house else t.get("pick", [])
 	if not picks.is_empty():
-		_say_text(people[0][0], picks[_rng.randi() % picks.size()])
+		_say_text(people[0][0], picks[_rng.randi() % picks.size()], _head(0))
 	if house:
 		_log("on the house: %s" % id)
 	var sips: Array = t.get("sip", [])
@@ -870,25 +909,35 @@ func order(id: String) -> bool:
 		get_tree().create_timer(SIP_S).timeout.connect(func() -> void:
 			if inside and gen == _sip_gen:
 				_sound("glass_clink")
-				_say_text(pair("sip"), line))
+				_say_text(pair("sip"), line, PLACE + PONG + Vector3(-3.0, 1.8, -1.0), UiKit.HEAT))
 	_log("pour %s: %d zl, bill %d, wallet %d, strength %.2f" % [id, price, bill,
 			int(wallet.get("zl")) if wallet != null else -1, strength(t)])
 	drank.emit(strength(t))
 	return true
 
 
-## The bill line under the title: the visit's bill and what is left in the wallet.
+## The chips: the visit's bill and what is left in the wallet.
 func _update_bill() -> void:
-	if _bill == null:
+	if _ui == null:
 		return
 	var zl := int(wallet.get("zl")) if wallet != null else 0
-	_bill.text = say("bill", [bill, zl])
+	_ui.set_bill(bill, zl)
 
 
+## The rival card: each rival's bust, short name, stake, the one line of how they play, and the
+## last result against them this visit (REWANŻ's memory; nothing is saved).
 func _show_pick() -> void:
-	_taps.visible = false
-	_pick.visible = true
-	_layout()
+	_ui.rivals.clear()
+	for id: String in RIVALS:
+		var r := rival(id)
+		var sh: Array = r.get("short", [id, id])
+		var how: Array = r.get("how", ["", ""])
+		var last := ""
+		if results.has(id):
+			last = say("last_won" if bool(results[id]) else "last_lost")
+		_ui.rivals.append({"id": id, "short": Lang.pick(str(sh[0]), str(sh[1])), "stake": int(r.get("stake", 0)),
+				"how": Lang.pick(str(how[0]), str(how[1])), "last": last})
+	_ui.open_rivals()
 
 
 ## The rival of the last pong game ("" before one).
@@ -896,42 +945,46 @@ func last_rival() -> String:
 	return _pong.rival_id if _pong != null else ""
 
 
-## ZAGRAJ against rival `id`: the pong view over the room.
+## GRAJ against rival `id`: the pixel pong view over everything (root viewport), the city's 3D off.
 func play(id: String) -> void:
-	_pick.visible = false
+	_ui.close_all()
 	if _pong == null:
-		_pong = BeerPong.new()
-		_pong.name = "BeerPong"
+		_pong = PongMatch.new()
+		_pong.name = "PongMatch"
 		_pong.log_on = log_on
-		var layer := CanvasLayer.new()
-		layer.layer = 21
-		add_child(layer)
-		layer.add_child(_pong)
+		_root_parent().add_child(_pong)
 		_pong.finished.connect(_on_pong_finished)
 		_pong.closed.connect(func() -> void:
-			_buttons.visible = inside
-			_talk.visible = inside and _line.text != "")
+			if city_drawn.is_valid():
+				city_drawn.call(true)
+			_ui_layer.visible = inside and not panel_off)
 	_pong.auto_play = auto_play
 	_pong.sound = _sound
 	_pong.cue = func(n: String) -> void:
 		if hud != null and hud.has_method("cue"):
 			hud.cue(n)
 		_log("cue " + n)
-	_pong.pt = hud.pt if hud != null and "pt" in hud else 1.0
-	_buttons.visible = false
-	_talk.visible = false
+	_pong.pt = _ui.pt
+	_pong.start_drinks = pints
+	_pong.last = (1 if bool(results[id]) else 0) if results.has(id) else -1
+	_ui_layer.visible = false
+	_ui.hide_line()
+	if city_drawn.is_valid():
+		city_drawn.call(false)
 	_pong.start(id, rival(id))
 	_log("pong vs %s" % id)
 
 
 func _on_pong_finished(won: bool, stake: int, drinks: int) -> void:
-	var r: Dictionary = rival(_pong.rival_id)
-	var lines: Array = r.get("win" if not won else "lose", [])
-	if not lines.is_empty():
-		_say_text(r.get("name", ["", ""]), lines[_rng.randi() % lines.size()])
-	_log("pong over: %s, %d zl, %d drinks" % ["won" if won else "lost", stake, drinks])
+	var id := str(_pong.rival_id)
+	results[id] = won
+	_log("pong over: %s, %d zl, %d drinks" % ["won" if won else ("draw" if stake == 0 and _pong.draw else "lost"), stake, drinks])
 	pong_over.emit(won, stake, drinks)
 	_update_bill()
+	var r: Dictionary = rival(id)
+	var lines: Array = r.get("win" if not won else "lose", [])
+	if not lines.is_empty():
+		_say_text(r.get("name", ["", ""]), lines[_rng.randi() % lines.size()], _rival_head(id), PixelKit.THEM)
 	if auto_play:
 		get_tree().create_timer(2.5).timeout.connect(leave)
 
@@ -949,19 +1002,15 @@ func _process(dt: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not inside or cam == null or (_pong != null and _pong.visible):
+	if not inside or cam == null or (_pong != null and _pong.inside):
 		return
-	var at := Vector2.INF
-	if event is InputEventScreenTouch and event.pressed:
-		at = event.position
-	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		at = event.position
-	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		leave()
 		return
-	if at == Vector2.INF:
+	# Touch only (the project emulates touch from the mouse; both would tap twice).
+	if not (event is InputEventScreenTouch and event.pressed):
 		return
-	var who := pick(at)
+	var who := pick(event.position)
 	if who >= 0:
 		_say(people[who])
 		get_viewport().set_input_as_handled()
@@ -984,29 +1033,42 @@ func pick(at: Vector2) -> int:
 	return best
 
 
-## A person's line: a regular's from "people", a rival's hello.
+## Person `i`'s head (world), where a bubble points.
+func _head(i: int) -> Vector3:
+	return PLACE + (people[i][2] as Vector3) + Vector3(0, 2.0, 0)
+
+
+func _rival_head(id: String) -> Vector3:
+	for i in people.size():
+		if str(people[i][1]) == "r:" + id:
+			return _head(i)
+	return Vector3.INF
+
+
+## A person's line: a regular's from "people", a rival's hello, a board's words; pinned to them.
 func _say(person: Array) -> void:
 	var key := str(person[1])
 	var lines: Array = []
+	var colour := UiKit.HEAT
 	if key.begins_with("r:"):
 		lines = rival(key.trim_prefix("r:")).get("hello", [])
+		colour = PixelKit.THEM
 	elif key.begins_with("m:"):
 		for m: Dictionary in data().get("memes", []):
 			if "m:" + str(m.get("id", "")) == key:
 				lines = [m.get("say", ["", ""])]
+		colour = PixelKit.CHALK_D
 	else:
 		lines = (data().get("people", {}) as Dictionary).get(key, {}).get("lines", [])
 	if lines.is_empty():
 		return
-	_say_text(person[0], lines[_rng.randi() % lines.size()])
+	_say_text(person[0], lines[_rng.randi() % lines.size()], PLACE + (person[2] as Vector3) + Vector3(0, 2.0, 0), colour)
 
 
-func _say_text(name_pair: Array, line: Array) -> void:
-	_who.text = Lang.pick(str(name_pair[0]), str(name_pair[1]))
-	_line.text = Lang.pick(str(line[0]), str(line[1]))
-	_talk.visible = inside and (_pong == null or not _pong.visible)
-	_update_bill()
-	_layout()
+func _say_text(name_pair: Array, line: Array, at := Vector3.INF, colour := UiKit.HEAT) -> void:
+	if _ui == null:
+		return
+	_ui.show_line(Lang.pick(str(name_pair[0]), str(name_pair[1])), Lang.pick(str(line[0]), str(line[1])), at, colour)
 
 
 ## One of the pub's one-shots (sfx.gd SHOTS): silent in the checks (no sfx), logged with --tapczan-log.

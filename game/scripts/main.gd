@@ -497,6 +497,7 @@ var lounge: Lounge
 ## itself, then the game quits), --padel-log.
 var padel: PadelMatch
 var _padel_heli_mode := Node.PROCESS_MODE_INHERIT
+## The city SubViewport's update mode before set_city_drawn(false) turned it off.
 var _padel_sv_mode := SubViewport.UPDATE_ALWAYS
 ## Packs (packs.gd): running clubs, cycling packs, coffee raves; flags --packs=0 (none), --packs-now
 ## (every club and rave on whatever the clock, the packs near the car timed to pass it), --packs-log.
@@ -3464,6 +3465,21 @@ func _on_lounge_done(how: String, score: int) -> void:
 		shisha.lounge_done(how, score)
 
 
+## The city's 3D drawn or not: off while a full-screen pixel game covers it (padel_match.gd,
+## the pub's pong_match.gd through GameCtx.city_drawn). Its SubViewport, not the root, draws the
+## 3D; the update mode it had is put back.
+func set_city_drawn(on: bool) -> void:
+	if sv == null:
+		return
+	if not on and sv.render_target_update_mode != SubViewport.UPDATE_DISABLED:
+		_padel_sv_mode = sv.render_target_update_mode
+		sv.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		view.visible = false
+	elif on and not view.visible:
+		sv.render_target_update_mode = _padel_sv_mode
+		view.visible = true
+
+
 ## Onto the court at WTS DESKA (padel_match.gd): the HUD aside, the vehicle waiting, the city's 3D
 ## off while the pixel match covers the screen.
 func _enter_padel(info: Dictionary, auto_play := false) -> void:
@@ -3479,10 +3495,7 @@ func _enter_padel(info: Dictionary, auto_play := false) -> void:
 	padel.enter(info)
 	hud.visible = false
 	# The city stops rendering under the court (its SubViewport, not the root, draws the 3D).
-	if sv != null:
-		_padel_sv_mode = sv.render_target_update_mode
-		sv.render_target_update_mode = SubViewport.UPDATE_DISABLED
-		view.visible = false
+	set_city_drawn(false)
 	car.vel = Vector3.ZERO
 	car.forward_speed = 0.0
 	car.process_mode = Node.PROCESS_MODE_DISABLED
@@ -3493,9 +3506,7 @@ func _enter_padel(info: Dictionary, auto_play := false) -> void:
 
 func _on_padel_done(g_us: int, g_them: int, stats: Dictionary) -> void:
 	hud.visible = not flags.hide_hud
-	if sv != null:
-		sv.render_target_update_mode = _padel_sv_mode
-		view.visible = true
+	set_city_drawn(true)
 	car.process_mode = Node.PROCESS_MODE_INHERIT
 	if heli != null:
 		heli.process_mode = _padel_heli_mode
@@ -3590,6 +3601,7 @@ func _build_ctx() -> GameCtx:
 	_ctx.focus = func() -> Vector3: return cam_focus
 	_ctx.focus_at = func(p: Vector3) -> void: cam_focus = p
 	_ctx.night_now = func() -> void: _story_skip_to(22.0)
+	_ctx.city_drawn = set_city_drawn
 	return _ctx
 
 
