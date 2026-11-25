@@ -37,6 +37,13 @@ Links to the analytics finding (18 of 28 players never start an activity) and th
   F chose: kebab stays on the counter, the player picks it up); full done (gameplay): verify, shots, `--ios`;
   say what only the phone can show.
 
+## NEXT, Thursday 2026-11-26: buses turn sideways and get stuck (F, 2026-11-25)
+
+F: "buses sometimes just turn sideways across the road and get stuck".
+- [ ] Find why a bus ends up crosswise on the road and stops (turn at a junction, lane change, a swept
+  path too wide for the lane, or a recovery that never fires); reproduce it, fix the root cause, and make
+  a stuck bus free itself. Traffic AI: if `traffic.gd` is touched, rerun the racer bench before and after.
+
 ## NEXT, Thursday 2026-11-26: model Niecała 7 and the houses round it (F, 2026-11-25)
 
 F: "tomorrow we need to model Niecała 7, add it to the backlog, and the houses around". F's ask lifts
