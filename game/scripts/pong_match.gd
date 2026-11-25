@@ -1043,6 +1043,7 @@ func _draw_strips() -> void:
 		p.rect(mid - tw * 0.5 - 30 + i * 5, 9, 3, 3, Kit.US if i < sim.took else Kit.SLATE_L)
 		p.rect(mid + tw * 0.5 + 28 - i * 5, 9, 3, 3, Kit.THEM if i < sim.lost else Kit.SLATE_L)
 	# Heat: three flames under the score, lit by the streak, all three pulsing at the top.
+	p.rect(mid - 11, 17, 23, 7, Color(Kit.INK, 0.86))
 	for i in 3:
 		var lit := i < sim.heat
 		var c := Kit.US if lit else Kit.SLATE_L

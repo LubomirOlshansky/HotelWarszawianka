@@ -67,8 +67,8 @@ const TAGGED := {"beard": [0, 1], "students": [1, 2], "tourists": [4, 1], "coupl
 const MEZZ := [1.8, 8.0, 2.9, 2.9]
 ## The pong table (room-local), along x.
 const PONG := Vector3(4.8, 0.0, 3.2)
-## Chmiel the pub dog, asleep on the slate by the window table (room-local).
-const DOG := Vector3(-6.4, 0.0, 2.1)
+## Chmiel the pub dog, asleep on the open slate at the front (room-local).
+const DOG := Vector3(-4.2, 0.0, 5.0)
 
 signal left
 ## A glass was poured (tapczan.gd: the drive after it): its strength in drinks (0 for the zero).
@@ -534,13 +534,13 @@ static func room_mesh() -> ArrayMesh:
 ## drip trays under the taps, stickers on the black column, the lit fridge and crisps behind the
 ## bar, the black radiator under the porthole, wall spots along the brick, a succulent on every
 ## table, a tall plant in the corner and one on the high shelf, a barrel table by the way out,
-## Chmiel the pub dog asleep by the window table and the cat on the bar's end.
+## Chmiel the pub dog asleep on the slate and the cat on the bar's end.
 static func _detail(st: SurfaceTool) -> void:
 	var hx := ROOM.x * 0.5
 	var hz := ROOM.y * 0.5
 	var black := Color("#161618")
-	var copper := Color("#b8743e")
-	var copper_l := Color("#e0a060")
+	var copper := Color("#d08a4a")
+	var copper_l := Color("#f0b070")
 	var warm := Color("#ffd08a")
 	var chrome := Color("#d0d4d8")
 	var green := Color("#3f7a3a")
@@ -615,7 +615,7 @@ static func _detail(st: SurfaceTool) -> void:
 	Models.box(st, bp + Vector3(0, 1.02, 0), Vector3(0.7, 0.04, 0.7), Color("#8a5a34"), Models.FIXED)
 	Models.box(st, bp + Vector3(-0.12, 1.12, 0.05), Vector3(0.08, 0.16, 0.08), Color("#e8a83a"), Models.LIT_WINDOW)
 	Models.box(st, bp + Vector3(0.14, 1.12, -0.06), Vector3(0.08, 0.16, 0.08), Color("#2a1408"), Models.FIXED)
-	# Chmiel, the pub dog, asleep on the slate by the window table (tap him: people "dog").
+	# Chmiel, the pub dog, asleep on the slate at the front (tap him: people "dog").
 	var dg := DOG
 	var fur := Color("#b07a44")
 	var fur_d := Color("#7a5232")
@@ -759,7 +759,7 @@ func _build_ui() -> void:
 	_ui.words = pair
 	_ui.project = _project
 	var hz := ROOM.y * 0.5
-	_ui.anchors = {"beer": PLACE + _arc(BAR_R - 0.55, -0.29, 2.55), "play": PLACE + PONG + Vector3(-0.2, 1.5, 0),
+	_ui.anchors = {"beer": PLACE + _arc(BAR_R - 0.55, -0.29, 2.55), "play": PLACE + PONG + Vector3(-0.6, 2.9, -0.6),
 			"leave": PLACE + Vector3(7.0, 3.05, -hz + 0.1)}
 	var pl := Lang.pick("pl", "en") == "pl"
 	for t: Dictionary in taps():

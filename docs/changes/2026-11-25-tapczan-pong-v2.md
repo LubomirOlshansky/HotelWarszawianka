@@ -1,6 +1,6 @@
 - THE TAPCZAN's inside is small and sharp now, in the same pixel look as the padel match: slim chips, speech bubbles at whoever speaks, and three tiles right on the bar, the pong table and the door. The tap list is a chalkboard.
 - Beer pong is new: "Rzut na raz". Hold your breath to steady the swing, let go to throw, drag down for a bounce shot worth two cups, flick their spinner out of your cup. Three rivals who each play differently, six rounds, then last orders.
-- More of the real pub inside: copper lamps over the bar, stickers on the column, a lit fridge, plants, a barrel table, and Chmiel the pub dog asleep by the window.
+- More of the real pub inside: copper lamps over the bar, stickers on the column, a lit fridge, plants, a barrel table, and Chmiel the pub dog asleep on the slate.
 
 ## Backlog
 - fixed: the pub's buttons and cards were drawn at twice their size on the phone (the panel lived inside the city's half-size image)
