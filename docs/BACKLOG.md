@@ -16,6 +16,9 @@ look awful, there is no space at all at the bottom". F is only listing tomorrow'
 - [ ] A faded "THE TAPCZAN" text label still shows on the map near the panel, although F asked for the
   beer-mug icon only (#1063, merged). Find which map layer draws it (a label layer or the POI name) and
   remove it if it is a quick fix.
+- [ ] Lane assist ("Asysta pasa", Jazda tab in Settings) must be OFF by default (F, 2026-11-25). Change the
+  default in the settings owner, keep saved choices of existing players, and check that a fresh install
+  starts with it off.
 - Light done (UI layout): shots at phone sizes before/after, `tools/verify.sh`; name what only the phone
   can show. Merge on a green `gate` plus an audit go.
 
