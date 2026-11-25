@@ -3206,6 +3206,12 @@ func _build_stories(world: Node3D) -> void:
 		var act := (d["idle"] as Callable).get_object() as Activity  # its call card names it (F 2026-11-17)
 		if act != null:
 			act.invites[str(d["id"])] = [str(d["pl"]), str(d["en"])]
+			# A questline played to its end never phones again (F 2026-11-25); QUESTS still starts it.
+			act.story_closed = func(id: String) -> bool: return wallet != null and QuestBook.is_done(wallet.intro, id)
+			act.story_finished = func(id: String) -> void:
+				if wallet != null and not QuestBook.is_done(wallet.intro, id):
+					QuestBook.mark_done(wallet.intro, id)
+					wallet.save()
 			act.declined = func(id: String) -> void:  # turned down or rung out: NEW in QUESTS, and a toast
 				var w := QuestBook.mark_invite(wallet.intro, stories.defs, id) if wallet != null else []
 				if not w.is_empty():
