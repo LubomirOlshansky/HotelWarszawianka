@@ -19,7 +19,10 @@ extends "res://scripts/activity.gd"
 ## Flags (dev_flags.gd): --tapczan=0 (none), --tapczan=in (straight in, the room's panel to use),
 ## --tapczan=taps (straight in with the TAP LIST open, for shots),
 ## --tapczan=pong (straight in, a pint and a self-playing game against the first rival, then out:
-## the tipsy drive), --tapczan=drunk (the tipsy minute at once), --tapczan-log.
+## the tipsy drive; --tapczan=pong:office against another rival of RIVALS), --tapczan=pour:ID (straight
+## in, one beer ID off the tap list, stay), --tapczan=drunk (the tipsy minute at once), --tapczan-log
+## (the pill, the pours with the wallet, the pong's pay, the tipsy spell every 10 s, the map mark and
+## the QUESTS entry at the join: the playtest rows' verdicts, docs/PLAYTEST.md P22).
 ##
 ## Cost idle: a distance test 4 times a second; the ring (one beacon) only within MARK_R m.
 
@@ -44,6 +47,13 @@ const AMBER_D := Color("#7a4a12")
 const PILL := "tapczan"
 
 var room: Room
+## The sound (sfx.gd; main.gd sets it after the join): the room's bed while inside, the pour, the
+## clink and the ball (the room and the pong view get it through `room.sfx`). Null in checks.
+var sfx: Node:
+	set(v):
+		sfx = v
+		if room != null:
+			room.sfx = v
 var tipsy: Tipsy
 var cam: Camera3D
 var world_node: Node3D
@@ -87,6 +97,7 @@ func setup(world: Node3D) -> void:
 	room.log_on = log_on
 	# --nohud (shots of the room alone): the room's own panel stays hidden too.
 	room.panel_off = bool(_ctx_hide_hud)
+	room.sfx = sfx
 	add_child(room)
 	room.left.connect(_on_left)
 	room.drank.connect(func(drinks: float) -> void: tipsy.add(drinks))
@@ -95,6 +106,7 @@ func setup(world: Node3D) -> void:
 	tipsy.name = "Tipsy"
 	tipsy.hud = hud
 	tipsy.car = _car_body
+	tipsy.log_on = log_on
 	add_child(tipsy)
 	tipsy.setup(world)
 	hud.context_pressed.connect(func(who: String) -> void:
@@ -112,14 +124,26 @@ func setup(world: Node3D) -> void:
 func joined(ctx: GameCtx) -> void:
 	cam = ctx.world.get_viewport().get_camera_3d() if ctx.world != null else null
 	room.cam = cam
-	match _flag:
-		"in", "pong", "taps":
-			room.auto_play = _flag == "pong"
+	if log_on:
+		var e := quest_entry()
+		var m: Variant = hud.get("markers")
+		var marked: bool = m != null and m.has("tapczan:door")
+		_log("joined: map mark %s at %s, QUESTS entry '%s' (%s)" % ["on" if marked else "MISSING",
+				str(door().round()), str(e.get("en", "?")), str(e.get("group", "?"))])
+	var mode := _flag.get_slice(":", 0)
+	match mode:
+		"in", "pong", "taps", "pour":
+			room.auto_play = mode == "pong"
+			if mode == "pong" and _flag.contains(":"):
+				room.auto_rival = _flag.get_slice(":", 1)
 			get_tree().create_timer(1.5).timeout.connect(func() -> void:
 				if phase == Phase.IDLE:
 					start()
-				if _flag == "taps":
-					room.drink())
+				if mode == "taps":
+					room.drink()
+				elif mode == "pour":
+					# After --pop's pay (main.gd, 2 s), so a row can start with money.
+					get_tree().create_timer(1.5).timeout.connect(func() -> void: room.order(_flag.get_slice(":", 1))))
 		"drunk":
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
 				tipsy.add(3.0)
@@ -175,6 +199,7 @@ func _idle_tick(dt: float) -> void:
 		if not hud.pill_shown(PILL):
 			var w := Room.pair("enter")
 			hud.show_pill(str(w[0]), str(w[1]), PILL)
+			_log("pill %s at %.1f m from the ring, %.1f km/h" % [str(w[0]), d, absf(float(v[1]))])
 	elif hud.pill_shown(PILL):
 		hud.hide_pill()
 
@@ -198,14 +223,19 @@ func _begin() -> void:
 		cam = world_node.get_viewport().get_camera_3d()
 	room.cam = cam
 	room.enter(world_node)
+	if sfx != null:
+		sfx.pub_bed(true)
 	_log("in")
 
 
 func _on_pong(won: bool, stake: int, drinks: int) -> void:
 	tipsy.add(drinks)
+	var before := int(wallet.get("zl")) if wallet != null else 0
 	if won and stake > 0 and wallet != null:
 		wallet.pay(stake, 5, "pong")
 		_pong_won += stake
+	_log("pong paid: %s vs %s, stake %d, wallet %d -> %d" % ["won" if won else "lost", room.last_rival(), stake,
+			before, int(wallet.get("zl")) if wallet != null else 0])
 
 
 func _on_left() -> void:
@@ -218,6 +248,8 @@ func _ended() -> void:
 	if room.inside:
 		room.inside = false
 	hud.visible = _hud_was
+	if sfx != null:
+		sfx.pub_bed(false)
 	if _car_body != null:
 		_car_body.process_mode = Node.PROCESS_MODE_INHERIT
 	tipsy.go()

@@ -9,6 +9,9 @@ docs/changes/ (docs/changes/README.md) with one short line in plain words a play
 (no file names, no spoilers). The pages show the notes at once, and a weekly bookkeeping pull request
 moves them here (python3 -I tools/changelog.py --fold).
 
+## 2026-11-25
+- THE TAPCZAN has its own sound: the pub's chatter and clinking glasses inside, the tap pouring and a toast with every beer, and the ping-pong ball's bounce, the plop into a cup and a sting when you win or lose.
+
 ## 2026-11-24
 - THE TAPCZAN on Sienkiewicza is open: stop at the amber ring and go in for a pint or a game of beer pong for złoty; the drive after it is a little wobbly for a minute.
 - Inside THE TAPCZAN now looks like the real pub (curved copper bar, chrome taps, chalk tap list, mezzanine, BREW ENJOY EMPTY REPEAT), WYPIJ PIWKO opens a tap list of six craft beers with prices on your bill, and the pub has a beer-mug mark on both maps from the start.

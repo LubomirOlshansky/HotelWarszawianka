@@ -18,7 +18,9 @@ extends SceneTree
 ##  5. the door (tapczan.gd on the activity kit, with stand-ins): the ring only near, the WEJDŹ pill
 ##     only stopped at the kerb, the pill starts the run (HUD hidden, the car's process off), a pint
 ##     costs PINT and makes the drive tipsy, a won game pays its stake, WYJDŹ ends the run (HUD and
-##     car back, the tipsy spell on), the QUESTS entry at the door.
+##     car back, the tipsy spell on), the QUESTS entry at the door;
+##  6. the sounds (2026-11-25, with Fakes.Sfx): the pub's bed on inside and off after, a pour sounds,
+##     the ball's table touches (once on a bounce shot, none on a clean cup).
 ## Prints `check_tapczan: OK`, or the problems and their count (exit 1). A couple of seconds.
 ##   godot --headless --path game --script res://tools/check_tapczan.gd
 
@@ -32,6 +34,7 @@ const MapIcons := preload("res://scripts/map_icons.gd")
 const Activity := preload("res://scripts/activity.gd")
 const Activities := preload("res://scripts/activities.gd")
 const Fakes := preload("res://tools/fakes.gd")
+const BeerPong := preload("res://scripts/beer_pong.gd")
 
 const UI_KEYS := ["enter", "title", "drink", "play", "leave", "pick", "back", "stake_btn", "broke", "full",
 		"taps_head", "tap_btn", "bill", "sip", "board",
@@ -210,6 +213,12 @@ func _rules() -> void:
 				_fail("bounce: events %s" % [r["events"]])
 		if s.cups[1].size() != 4:
 			_fail("a bounce shot should take two cups, %d left" % s.cups[1].size())
+		# The ball's tock (beer_pong.gd `table_touches`): once on a bounce shot, never on a clean cup.
+		var bounced := BeerPong.table_touches(Sim.fly(Sim.launch(0.0, bounce_pow), six, 0.0)["path"]).size()
+		var a0 := Sim.aim_at(six[0])
+		var clean := BeerPong.table_touches(Sim.fly(Sim.launch(a0.x, a0.y), six, 0.9)["path"]).size()
+		if bounced != 1 or clean != 0:
+			_fail("table touches: a bounce shot %d (want 1), a clean cup %d (want 0)" % [bounced, clean])
 	# A rim: some roll in, some out, by the roll.
 	var rim_lat := -1.0
 	for k in 200:
@@ -383,6 +392,9 @@ func _room_and_door() -> void:
 	t._car_body = car
 	world.add_child(t)
 	t.setup(world)
+	var sfx := Fakes.Sfx.new()
+	world.add_child(sfx)
+	t.sfx = sfx
 	t.set_process(false)
 	var director := Activities.new()
 	director.add(t)
@@ -417,6 +429,8 @@ func _room_and_door() -> void:
 		_fail("the pill should take the player in (phase %d, inside %s)" % [t.phase, t.inside()])
 	if hud.pill_shown(Tapczan.PILL):
 		_fail("inside: the pill should go")
+	if not sfx.pub_on:
+		_fail("inside: the pub's bed should play (sfx.gd pub_bed)")
 	# The TAP LIST: WYPIJ PIWKO opens it; a beer's price goes out of the wallet and onto the bill;
 	# short of money is a refusal with nothing poured; the alcohol-free adds no tipsiness.
 	t.room.drink()
@@ -428,6 +442,8 @@ func _room_and_door() -> void:
 		_fail("a stout: %d zl left, %d pints, bill %d" % [wallet.money, t.room.pints, t.room.bill])
 	if t.room._taps.visible:
 		_fail("a pick should close the tap list")
+	if not sfx.played.any(func(p: Array) -> bool: return p[0] == "beer_pour"):
+		_fail("a pour should sound (beer_pour): %s" % [sfx.played])
 	if t.room._bill.text.find(str(price)) < 0:
 		_fail("the bill line should show %d zł: %s" % [price, t.room._bill.text])
 	var before := t.tipsy._start
@@ -445,6 +461,8 @@ func _room_and_door() -> void:
 	t.room.leave()
 	if t.phase != Activity.Phase.IDLE or t.inside() or not hud.visible or car.process_mode != Node.PROCESS_MODE_INHERIT:
 		_fail("WYJDŹ should end the run with the HUD and the car back")
+	if sfx.pub_on:
+		_fail("out: the pub's bed should stop")
 	if not t.tipsy.on() or t.tipsy.amount < 0.9:
 		_fail("a pint and two cups should make the drive tipsy: %.2f" % t.tipsy.amount)
 	t.tipsy.set_level(Tiers.LOW)

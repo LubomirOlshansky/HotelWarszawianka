@@ -1768,7 +1768,7 @@ sloped face, the V legs, blue-grey glass. No bank name or logo (brands only as p
 Built: the door any time (amber ring, WEJDŹ pill), the cutaway room, WYPIJ PIWKO, beer pong against
 three rivals (`docs/design/tapczan-pub.md`), the tipsy minute after it, the QUESTS row and map mark.
 Left:
-- **Phone look and feel:** PHONE-CHECK 15zzk-15zzo (the pill, the room at phone size, the slingshot,
+- **Phone look and feel:** PHONE-CHECK 15zzk-15zzp (the pill, the room at phone size, the slingshot,
   the tipsy pass's frame cost on the iPhone, the tap list and bill, the beer-mug map mark).
 - **Interior from the photos (done 2026-11-24, second pass):** curved bar, stone front, copper top,
   tap pipes, chalk soffit, mezzanine, BREW ENJOY EMPTY REPEAT, square tables. Still apart from the
@@ -1780,7 +1780,9 @@ Left:
   Ojczyzna" (warsaw-tone: no jokes touching religion) - F may decide otherwise.
 - **Map mark:** the beer mug's name is a fixed "THE TAPCZAN" (a proper name, not translated);
   docs/architecture/map-markers.md should note that SERVICE marks can carry a shape and a name.
-- **Sound:** a pub murmur loop under the radio, the cup's "plip", the rim's rattle, the crowd's cheer.
+- **Sound (done 2026-11-25):** the room's talk and glasses (`pub_room`, the radio ducked -18 dB, the street's beds to 20 %), the pour and clink, the ball's tock, rim ticks and plop, the feedback set's win and fail. Left: the levels on the phone (PHONE-CHECK 15zzp); a cheer from the tables on a bounce shot.
+- **Pani Gienia runs the table (PT-56, parked 2026-11-25):** her late 0.95 with unlimited balls back clears six cups in one turn ~3 in 4; QUESTIONS has the options.
+- **A new player can't drink:** the tap list refuses with 0 zł (as designed); the first visit lands before most players have earned anything, so maybe a first pint on the house (the phase-2 draft had it).
 - **Rivals' portraits** (PixelLab, F's OK first); their skills and stakes after the feel test.
 - **App Store age rating:** the alcohol-references answer needs F's look before the next submission.
 - **The crawl from the door:** the Kraftowa could start in person at THE TAPCZAN (a group at the

@@ -71,10 +71,14 @@ signal pong_over(won: bool, stake: int, drinks: int)
 
 var hud: CanvasLayer
 var wallet: Node
+## The sound (sfx.gd, from tapczan.gd): the pour and the clink here, the ball in the pong view. Null in checks.
+var sfx: Node
 var cam: Camera3D
 var log_on := false
 ## A test run: the pong plays itself, the rival is the first on the card.
 var auto_play := false
+## A test run's rival (--tapczan=pong:ID; "" for the first on the card).
+var auto_rival := ""
 ## --nohud: the room without its panel (shots).
 var panel_off := false
 
@@ -787,7 +791,7 @@ func enter(world: Node3D) -> void:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
 			if inside:
 				order("lager")
-				play(RIVALS[0]))
+				play(auto_rival if auto_rival in RIVALS else RIVALS[0]))
 
 
 func leave() -> void:
@@ -845,6 +849,7 @@ func order(id: String) -> bool:
 	pints += 1
 	bill += price
 	_update_bill()
+	_sound("beer_pour")
 	var picks: Array = t.get("pick", [])
 	if not picks.is_empty():
 		_say_text(people[0][0], picks[_rng.randi() % picks.size()])
@@ -855,8 +860,10 @@ func order(id: String) -> bool:
 		var line: Array = sips[_rng.randi() % sips.size()]
 		get_tree().create_timer(SIP_S).timeout.connect(func() -> void:
 			if inside and gen == _sip_gen:
+				_sound("glass_clink")
 				_say_text(pair("sip"), line))
-	_log("pour %s: %d zl, bill %d, strength %.2f" % [id, price, bill, strength(t)])
+	_log("pour %s: %d zl, bill %d, wallet %d, strength %.2f" % [id, price, bill,
+			int(wallet.get("zl")) if wallet != null else -1, strength(t)])
 	drank.emit(strength(t))
 	return true
 
@@ -875,6 +882,11 @@ func _show_pick() -> void:
 	_layout()
 
 
+## The rival of the last pong game ("" before one).
+func last_rival() -> String:
+	return _pong.rival_id if _pong != null else ""
+
+
 ## ZAGRAJ against rival `id`: the pong view over the room.
 func play(id: String) -> void:
 	_pick.visible = false
@@ -891,6 +903,11 @@ func play(id: String) -> void:
 			_buttons.visible = inside
 			_talk.visible = inside and _line.text != "")
 	_pong.auto_play = auto_play
+	_pong.sound = _sound
+	_pong.cue = func(n: String) -> void:
+		if hud != null and hud.has_method("cue"):
+			hud.cue(n)
+		_log("cue " + n)
 	_pong.pt = hud.pt if hud != null and "pt" in hud else 1.0
 	_buttons.visible = false
 	_talk.visible = false
@@ -981,6 +998,13 @@ func _say_text(name_pair: Array, line: Array) -> void:
 	_talk.visible = inside and (_pong == null or not _pong.visible)
 	_update_bill()
 	_layout()
+
+
+## One of the pub's one-shots (sfx.gd SHOTS): silent in the checks (no sfx), logged with --tapczan-log.
+func _sound(n: String) -> void:
+	if sfx != null:
+		sfx.play(n)
+	_log("sound " + n)
 
 
 func _log(text: String) -> void:
