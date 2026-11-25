@@ -10,6 +10,7 @@ docs/changes/ (docs/changes/README.md) with one short line in plain words a play
 moves them here (python3 -I tools/changelog.py --fold).
 
 ## 2026-11-25
+- At THE TAPCZAN an empty wallet still gets you the first beer of a visit on the house, with a word from the barman, and Pani Gienia's "first time" is now a game you can win.
 - THE TAPCZAN has its own sound: the pub's chatter and clinking glasses inside, the tap pouring and a toast with every beer, and the ping-pong ball's bounce, the plop into a cup and a sting when you win or lose.
 
 ## 2026-11-24

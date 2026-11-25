@@ -29,8 +29,9 @@ to go into.
      (lager 4,8%, 16 zł) and Trzeźwy Kierowca (alcohol-free, 12 zł). A pick: the price out of the
      wallet and onto the visit's **bill** (the amber line under the title, with the wallet), the
      barman's sommelier-style answer, the first sip's line 2.4 s later. A beer's strength for the
-     drive after it is ABV / 5 drinks (the stout about two, the zero none). Short of the price: one
-     of the barman's refusals, nothing poured. The bar stops at four glasses a visit.
+     drive after it is ABV / 5 drinks (the stout about two, the zero none). Short of the price: the
+     visit's first glass is on the house (the barman's "house" line, 0 zł on the bill), after that
+     one of the barman's refusals, nothing poured. The bar stops at four glasses a visit.
    - **ZAGRAJ**: the rival card, then beer pong.
    - **WYJDŹ**: back to the car.
 3. **Beer pong** (2D over the room, drawn from behind the player's end):
@@ -45,7 +46,7 @@ to go into.
      is more tipsy.
    - **The rivals** (invented people): Pan Hubert, beer sommelier (skill 0.75, 120 zł: wine-note
      trash talk about hops), the open-space crew (0.5, 80 zł: KPI and sprint jokes), and Pani Gienia,
-     "pierwszy raz" (0.3 until her cups are re-racked, then 0.95: "Mistrzostwa Pragi '98, dziecko",
+     "pierwszy raz" (0.3 until her cups are re-racked, then 0.73 (PT-56, 2026-11-25: was 0.95, which ran the table in one turn ~3 in 4; a decent player now wins ~36 %): "Mistrzostwa Pragi '98, dziecko",
      150 zł).
    - **Win**: the stake in złoty and 5 respect (wallet kind `pong`). **Lose**: nothing paid, the
      round is on you. JESZCZE RAZ or DO BARU; PODDAJ SIĘ gives up.

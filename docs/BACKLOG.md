@@ -1781,8 +1781,8 @@ Left:
 - **Map mark:** the beer mug's name is a fixed "THE TAPCZAN" (a proper name, not translated);
   docs/architecture/map-markers.md should note that SERVICE marks can carry a shape and a name.
 - **Sound (done 2026-11-25):** the room's talk and glasses (`pub_room`, the radio ducked -18 dB, the street's beds to 20 %), the pour and clink, the ball's tock, rim ticks and plop, the feedback set's win and fail. Left: the levels on the phone (PHONE-CHECK 15zzp); a cheer from the tables on a bounce shot.
-- **Pani Gienia runs the table (PT-56, parked 2026-11-25):** her late 0.95 with unlimited balls back clears six cups in one turn ~3 in 4; QUESTIONS has the options.
-- **A new player can't drink:** the tap list refuses with 0 zł (as designed); the first visit lands before most players have earned anything, so maybe a first pint on the house (the phase-2 draft had it).
+- **Pani Gienia runs the table (PT-56, fixed 2026-11-25, coordinator's call, F can change it):** her late skill 0.95 → 0.73, balls back unchanged; the reference bot (check_tapczan, 400 seeded games) wins 36 % against her (was 5 %), held in a 30-40 % band; the sommelier 25 %, the open-space crew 63 % (unchanged). Left: the feel on the phone (PHONE-CHECK 15zzk); she is now easier than the sommelier for a decent player while her stake is the highest.
+- **A new player can drink (fixed 2026-11-25):** short of the price, the visit's first glass is on the house with one of the barman's three "house" lines; the second is refused, the bar still stops at four, the wallet never goes below 0. The phase-2 draft had it (c1b9b721); the tap list rewrite (d8fe2072) replaced the single-pint `order` and dropped it, so P22 found a 0 zł player refused.
 - **Rivals' portraits** (PixelLab, F's OK first); their skills and stakes after the feel test.
 - **App Store age rating:** the alcohol-references answer needs F's look before the next submission.
 - **The crawl from the door:** the Kraftowa could start in person at THE TAPCZAN (a group at the

@@ -19,7 +19,7 @@ extends Node3D
 ## The panel: WYPIJ PIWKO (the TAP LIST: six beers on tap, each with its style, ABV, glass and
 ## price; the price goes on the bill and out of the wallet, the barman answers the pick and the
 ## first sip has its line; a stronger beer makes the drive after it more tipsy (tapczan.gd), short
-## of money is a refusal), ZAGRAJ (the rival card, then beer pong, beer_pong.gd), WYJDŹ. The bill
+## of money the visit's first glass is on the house, later ones a refusal), ZAGRAJ (the rival card, then beer pong, beer_pong.gd), WYJDŹ. The bill
 ## of the visit and the wallet stand under the title.
 ##
 ## Cost: two draw calls (the room's mesh with every board's chalk in it, the people), the city out
@@ -829,7 +829,8 @@ func drink() -> void:
 
 ## One beer from the list: its price out of the wallet and onto the bill, the barman's answer to
 ## the pick, the first sip's line SIP_S s later, and the drive after it as tipsy as the beer is
-## strong. Short of money: a refusal, nothing poured. False when nothing was poured.
+## strong. Short of money: the visit's first glass on the house (the barman's "house" line, 0 zł on
+## the bill), after that a refusal with nothing poured. False when nothing was poured.
 func order(id: String) -> bool:
 	_taps.visible = false
 	if not inside:
@@ -841,18 +842,26 @@ func order(id: String) -> bool:
 		_say_text(people[0][0], pair("full"))
 		return false
 	var price := int(t.get("price", 0))
+	# Short of the price: the visit's first glass is on the house (a new player with 0 zł can drink
+	# once, F 2026-11-25; the phase-2 draft had it, the tap list rewrite lost it), later ones refused.
+	var house := false
 	if wallet != null and not wallet.spend(price):
-		var no: Array = data().get("refusals", [pair("broke")])
-		_say_text(people[0][0], no[_rng.randi() % no.size()])
-		_log("broke for %s (%d zl)" % [id, price])
-		return false
+		if pints > 0:
+			var no: Array = data().get("refusals", [pair("broke")])
+			_say_text(people[0][0], no[_rng.randi() % no.size()])
+			_log("broke for %s (%d zl)" % [id, price])
+			return false
+		house = true
+		price = 0
 	pints += 1
 	bill += price
 	_update_bill()
 	_sound("beer_pour")
-	var picks: Array = t.get("pick", [])
+	var picks: Array = data().get("house", []) if house else t.get("pick", [])
 	if not picks.is_empty():
 		_say_text(people[0][0], picks[_rng.randi() % picks.size()])
+	if house:
+		_log("on the house: %s" % id)
 	var sips: Array = t.get("sip", [])
 	_sip_gen += 1
 	var gen := _sip_gen
