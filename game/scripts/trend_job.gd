@@ -520,12 +520,12 @@ func _look() -> void:
 			_cool[-1] = _played + SLOT_COOL
 			if offer_drop():
 				return
-	if calls_ok and hour >= CoffeeRun.HOURS[0] and hour < CoffeeRun.HOURS[1] and _played >= _kawa_at \
+	if calls_ok and not story_closed_now("kawa") and hour >= CoffeeRun.HOURS[0] and hour < CoffeeRun.HOURS[1] and _played >= _kawa_at \
 			and p.distance_to(CoffeeRun.DOCK) <= KAWA_CALL_R:
 		_kawa_at = _played + CoffeeRun.COOL
 		if offer_kawa_call():
 			return
-	if calls_ok and hour >= DESKI_HOURS[0] and hour < DESKI_HOURS[1] and _played >= _deski_at:
+	if calls_ok and not story_closed_now("padel") and hour >= DESKI_HOURS[0] and hour < DESKI_HOURS[1] and _played >= _deski_at:
 		_deski_at = _played + DESKI_COOL
 		if offer_deski_call():
 			return
