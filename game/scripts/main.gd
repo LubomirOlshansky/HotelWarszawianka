@@ -3437,7 +3437,7 @@ func _enter_club(pl: String, en: String) -> void:
 		club.wallet = wallet
 		club.radio = radio
 		club.cam = cam
-		club.log_on = flags.rave_log
+		club.wire(_build_ctx(), sfx)
 		add_child(club)
 		club.left.connect(_on_club_left)
 	club.enter(car.get_parent(), pl, en, radio.station_index("mordor_fm"))

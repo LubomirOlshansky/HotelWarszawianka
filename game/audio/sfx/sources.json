@@ -29,6 +29,16 @@
 		"from": "ElevenLabs Sound Effects v2",
 		"prompt": "Quiet city at night ambience, low distant traffic rumble, soft electrical hum of street lamps, a single far car now and then, no voices, no music"
 	},
+	"crowd_cheer": {
+		"added": "2026-11-26",
+		"from": "ElevenLabs Sound Effects v3",
+		"prompt": "Indoor club crowd of about forty people erupting in a cheer"
+	},
+	"crowd_eee": {
+		"added": "2026-11-26",
+		"from": "ElevenLabs Sound Effects v3",
+		"prompt": "Small indoor crowd letting out a short disappointed groan"
+	},
 	"rain": {
 		"added": "2026-11-12",
 		"from": "ElevenLabs Sound Effects v2 (medium take 2, highs 3 dB down above 5 kHz)",
@@ -58,5 +68,10 @@
 		"added": "2026-11-19",
 		"from": "ElevenLabs Sound Effects v2",
 		"prompt": "One long unbroken tyre squeal at a constant level and constant pitch, rubber screeching on dry asphalt during a long steady drift, sustained the whole time with no gaps, no start or stop, no engine, no crash, no voices"
+	},
+	"vinyl_spinback": {
+		"added": "2026-11-26",
+		"from": "ElevenLabs Sound Effects v3",
+		"prompt": "DJ vinyl record spin-back"
 	}
 }
