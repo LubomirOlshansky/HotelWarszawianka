@@ -135,6 +135,9 @@ const LETTUCE := Color("#6cc04a")
 const TOMATO := Color("#e0402a")
 const SAUCE := Color("#fff8ec")
 const KRAFT := [Color("#c8a06a"), Color("#a07a48"), Color("#dcbc88")]
+## The bun (the default dish, F's "buła taka nie za sucha"): crust, shade, the lit top; and its napkin.
+const BUN := [Color("#e0a556"), Color("#b87a34"), Color("#f6cb84")]
+const PAPER := [Color("#f2eee6"), Color("#cfc8ba"), Color("#ffffff")]
 const NICKS := [Kit.GO, CYAN, GOLD, Color("#ff7ab8"), Color("#ffa35c")]
 
 ## The floaters' sprites: a heart and a little kebab, a "#" a lit pixel.
@@ -1666,7 +1669,7 @@ func _arm(side: int, pose: String, ys: float, tw: float, th: float, top: Array, 
 func _hold(what: String, hx: float, hy: float) -> void:
 	match what:
 		"kebab", "kebab_bit":
-			_wrap(hx, hy, what == "kebab_bit")
+			_food(hx, hy, what == "kebab_bit")
 		"wraps3":
 			_wrap(hx - 7, hy - 1, false)
 			_wrap(hx + 7, hy - 1, false)
@@ -1706,11 +1709,67 @@ func _hold(what: String, hx: float, hy: float) -> void:
 			_detail(false)
 
 
+## What he ordered, in the hand (the Fable critique: he ate a wrap whatever was bought): the bun in
+## its napkin, the wrap, the open box with a fork, the XXL wrap twice as long.
+func _food(hx: float, hy: float, bit: bool) -> void:
+	match tasting.dish if tasting != null else "wrap":
+		"bun":
+			_bun(hx, hy, bit)
+		"box":
+			_box(hx, hy, bit)
+		"xxl":
+			_wrap(hx, hy, bit, 2.0)
+		_:
+			_wrap(hx, hy, bit)
+
+
+## The kebab in a bun: the napkin, the bottom half, the filling spilling at the sides, the domed top
+## with sesame; `bit` takes a bite out of its far top corner.
+func _bun(hx: float, hy: float, bit: bool) -> void:
+	_band(hx - 5, hy - 2, 10, 6, PAPER, 2, 1)
+	_band(hx - 5, hy - 6, 10, 4, BUN, 2, 1)
+	_q(hx - 6, hy - 9, 12, 3, MEAT)
+	_band(hx - 5, hy - 13, 10 if not bit else 6, 4, BUN, 2, 1)
+	_q(hx - 3, hy - 15, 6 if not bit else 3, 2, BUN[0])
+	_detail(true)
+	_q(hx - 6, hy - 9, 3, 1, LETTUCE)
+	_q(hx + 3, hy - 9, 3, 1, LETTUCE)
+	_q(hx - 1, hy - 8, 2, 1, TOMATO)
+	_q(hx + 4, hy - 7, 1, 2, SAUCE)
+	_q(hx - 3, hy - 14, 4, 1, BUN[2])
+	_q(hx - 2, hy - 12, 1, 1, PAPER[2])
+	_q(hx + 1, hy - 13, 1, 1, PAPER[2])
+	_q(hx - 5, hy + 1, 10, 1, PAPER[1])
+	if bit:
+		_q(hx + 1, hy - 13, 3, 3, MEAT)
+		_q(hx + 1, hy - 13, 3, 1, LETTUCE)
+	_detail(false)
+
+
+## The open box: kraft, the lid up behind, the meat and fries on top, a white fork stuck in.
+func _box(hx: float, hy: float, bit: bool) -> void:
+	_band(hx - 7, hy - 12, 14, 5, KRAFT, 2, 1)
+	_q(hx - 6, hy - 9, 12, 3 if not bit else 2, MEAT)
+	_band(hx - 7, hy - 6, 14, 8, KRAFT, 3, 1)
+	_q(hx + 2, hy - 17, 1, 9, PAPER[0])
+	_detail(true)
+	_q(hx - 7, hy - 6, 14, 1, KRAFT[2])
+	_q(hx - 5, hy - 9, 3, 1, LETTUCE)
+	_q(hx - 1, hy - 9, 2, 1, Color("#f2c84a"))
+	_q(hx + 3, hy - 8, 2, 1, Color("#f2c84a"))
+	_q(hx - 3, hy - 8, 1, 1, TOMATO)
+	_q(hx + 1, hy - 18, 3, 2, PAPER[0])
+	_q(hx - 2, hy - 2, 4, 2, RED)
+	_detail(false)
+
+
 ## The wrap: foil below, the tortilla with grill marks, the filling at the top and a sauce drip;
-## `bit` takes a bite out of its top.
-func _wrap(hx: float, hy: float, bit: bool) -> void:
-	_band(hx - 4, hy - 1, 8, 6, FOIL, 2, 1)
-	_band(hx - 4, hy - 12, 8, 11, WRAP, 2, 1)
+## `bit` takes a bite out of its top; `long` stretches it (the XXL).
+func _wrap(hx: float, hy: float, bit: bool, long := 1.0) -> void:
+	var ex := roundf(11.0 * (long - 1.0))
+	hy -= ex * 0.5
+	_band(hx - 4, hy - 1 + ex, 8, 6, FOIL, 2, 1)
+	_band(hx - 4, hy - 12, 8, 11 + ex, WRAP, 2, 1)
 	if bit:
 		_q(hx - 4, hy - 16, 4, 4, MEAT)
 		_q(hx, hy - 13, 4, 1, MEAT)
@@ -1979,7 +2038,7 @@ func _you() -> void:
 			elif g >= 8.0:
 				face["mouth"] = "grin"
 				front = "fist"
-			elif g < 5.0:
+			elif g < 7.5:
 				face["eyes"] = "worried"
 				face["mouth"] = "squiggle"
 		Tasting.Phase.FAN, Tasting.Phase.SELFIE, Tasting.Phase.CARD:
@@ -1988,7 +2047,7 @@ func _you() -> void:
 				front = "thumb"
 	_person({"x": _you_x(), "f": 1, "kind": "you", "top": TEAL, "legs": JEANS, "shoe": SOLE_D, "sole": Color("#c9c4b8"),
 			"skin": SKIN_MID, "tw": 28.0, "th": 64.0, "ll": 64.0, "hair": "messy", "hair_c": Color("#5a3a24"), "face": face,
-			"front": front, "back": back, "hold_f": hold_f, "hold_b": "bag" if ph >= Tasting.Phase.HELLO and back == "down" else "", "bob": bob, "seed": 0.4})
+			"front": front, "back": back, "hold_f": hold_f, "hold_b": "bag" if ph <= Tasting.Phase.HELLO and back == "down" else "", "bob": bob, "seed": 0.4})
 
 
 func _kebabulo() -> void:
@@ -2003,8 +2062,9 @@ func _kebabulo() -> void:
 	var bob := 0.0
 	match ph:
 		Tasting.Phase.IN, Tasting.Phase.HELLO:
-			# the proud reviewer: three wraps shown off at the shoulder
-			hold_f = "wraps3"
+			# empty-handed, a thumb up: the bag is still in the player's hand (the handover)
+			hold_f = ""
+			front = "thumb"
 			face["brows"] = 1.0
 		Tasting.Phase.CHEW, Tasting.Phase.MLASK:
 			face["eyes"] = "happy"
@@ -2029,7 +2089,7 @@ func _kebabulo() -> void:
 			elif g >= 8.0:
 				face["brows"] = 1.0
 				back = "fist"
-			elif g >= 5.0:
+			elif g >= 7.5:
 				back = "thumb"
 				face["mouth"] = "smile"
 			else:
@@ -2074,7 +2134,7 @@ func _zbyszek() -> void:
 			if tasting.grade >= 8.0:
 				face["mouth"] = "grin"
 				back = "thumb"
-			elif tasting.grade < 5.0:
+			elif tasting.grade < 7.5:
 				face["mouth"] = "tight"
 	var talk := _talk_of("zbyszek")
 	if not talk.is_empty():
@@ -2524,6 +2584,10 @@ func _big_face(cx: float, top: float, s: float, st: Dictionary, clip: Rect2) -> 
 			B.call(22, 45, 20, 2, MOUTH)
 	_detail(false)
 	if bool(st.get("kebab", false)):
+		# the bun or the wrap (its napkin or foil) held across into his mouth
+		var bun := tasting.dish == "bun"
+		var wr: Array = BUN if bun else WRAP
+		var fo: Array = PAPER if bun else FOIL
 		# the hand from the left, the wrap held across into his mouth, the bite in the tortilla
 		var ky := 41.0
 		B.call(-30, ky, 16, 16, SKIN_LIGHT[0])
@@ -2532,18 +2596,18 @@ func _big_face(cx: float, top: float, s: float, st: Dictionary, clip: Rect2) -> 
 		for k in 3:
 			B.call(-30, ky + 3 + k * 4, 6, 1, SKIN_LIGHT[1])
 		_detail(false)
-		B.call(-24, ky + 2, 14, 12, FOIL[0])
+		B.call(-24, ky + 2, 14, 12, fo[0])
 		_detail(true)
-		B.call(-24, ky + 11, 14, 3, FOIL[1])
-		B.call(-22, ky + 4, 6, 1, FOIL[2])
-		B.call(-16, ky + 7, 1, 4, FOIL[1])
+		B.call(-24, ky + 11, 14, 3, fo[1])
+		B.call(-22, ky + 4, 6, 1, fo[2])
+		B.call(-16, ky + 7, 1, 4, fo[1])
 		_detail(false)
-		B.call(-10, ky + 1, 30, 14, WRAP[0])
+		B.call(-10, ky + 1, 30, 14, wr[0])
 		_detail(true)
-		B.call(-10, ky + 12, 30, 3, WRAP[1])
-		B.call(-10, ky + 1, 30, 2, WRAP[2])
+		B.call(-10, ky + 12, 30, 3, wr[1])
+		B.call(-10, ky + 1, 30, 2, wr[2])
 		for gx in 6:
-			B.call(-8 + gx * 5, ky + 4 + (gx % 2), 1, 6, WRAP[1])
+			B.call(-8 + gx * 5, ky + 4 + (gx % 2), 1, 6, wr[1])
 		B.call(18, ky + 3, 4, 3, LETTUCE)
 		B.call(18, ky + 7, 4, 4, MEAT)
 		B.call(19, ky + 11, 3, 2, TOMATO)

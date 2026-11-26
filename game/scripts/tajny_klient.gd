@@ -674,6 +674,7 @@ func tasting_spec() -> Dictionary:
 		"cam": cam,
 		"order": ["%s · %s" % [order[0], sc[0]], "%s · %s" % [order[1], sc[1]]],
 		"badge": b[0] if not b.is_empty() else [],
+		"dish": KebabStand.dish_id(STAND, dish),
 		"seed": int(grade * 10.0) + dish * 7 + bumps,
 	}
 

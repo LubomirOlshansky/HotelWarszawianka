@@ -78,6 +78,8 @@ var cam := false
 ## The card's lines: the order ([pl, en]) and the badge ([pl, en], or empty).
 var order: Array = ["", ""]
 var badge: Array = []
+## What he eats: "bun", "wrap", "box" or "xxl" (the stand's dish ids), drawn in his hand.
+var dish := "bun"
 
 var _chat_t := 0.0
 var _rng := RandomNumberGenerator.new()
@@ -87,7 +89,7 @@ static var _words: Dictionary = {}
 
 
 ## `spec`: hello, verdict (an Array of [pl, en]), roast, grade, grade_label, cam, order, badge,
-## seed.
+## dish, seed.
 func _init(spec: Dictionary = {}) -> void:
 	hello = spec.get("hello", hello)
 	verdict = spec.get("verdict", verdict)
@@ -98,6 +100,7 @@ func _init(spec: Dictionary = {}) -> void:
 	cam = bool(spec.get("cam", false))
 	order = spec.get("order", order)
 	badge = spec.get("badge", [])
+	dish = str(spec.get("dish", dish))
 	_rng.seed = int(spec.get("seed", 87))
 	if cam:
 		viewers = VIEWERS_0 * 3

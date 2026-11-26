@@ -8009,7 +8009,7 @@
     ["*PLASK* MLASK wisi na szybie Kemala!", "*SLAP* The MLASK is on Kemal's window!", {"only": "slapped"}],
     ["KEBAB FM: Uwaga, Jerozolimskie stoją. Nie przez remont. Przez kebaba.", "KEBAB FM: Heads up, Jerozolimskie is jammed. Not roadworks. A kebab.", {"only": "radio"}],
     ["„Trzydzieści lat kroję. Pierwszy raz płaczę nie od cebuli.” Kolejka rośnie do przystanku.", "\"Thirty years of carving. First time I cry and it's not the onions.\" The queue grows to the bus stop.", {"only": "kemal_cry"}],
-    ["RECENZJA", "THE REVIEW", {"only": "result_title"}],
+    ["PARAGON", "THE RECEIPT", {"only": "result_title"}],
     ["KEBAB U KEMALA · {dish} · {sauce}\nKebabulo: {grade}\n+{zl} zł, +{respect} szacunku", "KEBAB U KEMALA · {dish} · {sauce}\nKebabulo: {grade}\n+{zl} zł, +{respect} respect", {"only": "result_body"}],
     ["ZŁOTY MLASK", "GOLDEN SMACK", {"only": "badge_gold"}],
     ["KEBAB DLA KAMERY", "KEBAB FOR THE CAMERA", {"only": "badge_cam"}],

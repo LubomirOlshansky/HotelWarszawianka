@@ -2,7 +2,7 @@ extends SceneTree
 ## Screenshots of the tasting at the Palm (palm_tasting_ui.gd) on its own, no city: the livestream
 ## plays itself and frames are saved at set moments. Needs a renderer (not --headless).
 ##   godot --path game --resolution 2532x1170 --script res://tools/shot_palm_tasting.gd -- --out=DIR [--lang=en|pl]
-##       [--at=a,b,c] [--perfect] [--cam]
+##       [--at=a,b,c] [--perfect] [--cam] [--dish=bun|wrap|box|xxl]
 
 const Ui := preload("res://scripts/palm_tasting_ui.gd")
 const Tasting := preload("res://scripts/palm_tasting.gd")
@@ -13,6 +13,8 @@ var out := "user://palm_tasting"
 var at: Array[float] = [0.9, 2.6, 3.6, 4.4, 5.0, 5.5, 7.0, 12.0, 13.6, 15.0, 16.4, 17.4, 18.6, 19.0, 19.4, 19.8, 20.4, 21.8]
 var perfect := false
 var cam := false
+## The dish in his hand: bun, wrap, box or xxl (--dish=).
+var dish := "xxl"
 var _t := 0.0
 var _k := 0
 
@@ -31,6 +33,8 @@ func _initialize() -> void:
 			perfect = true
 		elif a == "--cam":
 			cam = true
+		elif a.begins_with("--dish="):
+			dish = a.trim_prefix("--dish=")
 	DirAccess.make_dir_recursive_absolute(out)
 	view = Ui.new()
 	view.auto_play = true
@@ -47,6 +51,7 @@ func _initialize() -> void:
 		"grade_label": "11 / 10" if perfect else "9,4 / 10",
 		"cam": cam,
 		"order": ["XXL · CZOSNKOWY", "XXL · GARLIC"],
+		"dish": dish,
 		"badge": ["ZŁOTY MLASK", "GOLDEN SMACK"] if perfect else [],
 	})
 

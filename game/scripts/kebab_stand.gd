@@ -86,6 +86,12 @@ static func stand_of(stand_id: String) -> Dictionary:
 	return (data().get("stands", {}) as Dictionary).get(stand_id, {})
 
 
+## The id of a stand's dish `i` ("bun", "wrap", "box", "xxl"), "bun" when there is none.
+static func dish_id(stand_id: String, i: int) -> String:
+	var ds: Array = stand_of(stand_id).get("dishes", [])
+	return str((ds[i] as Dictionary).get("id", "bun")) if i >= 0 and i < ds.size() else "bun"
+
+
 ## A line [Polish, English] of the group: the stand's own tag ("kemal_hello") first, then the
 ## shared one; [tag, tag] when neither is there (check_kebab_stand fails on that).
 static func say(tag: String, words := "kemal") -> Array:
