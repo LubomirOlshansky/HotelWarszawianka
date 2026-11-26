@@ -125,6 +125,7 @@ func _run() -> void:
 	await _check_sober(map, digest, 0.0, "stop")
 	await _check_sober(map, digest, 0.5, "stop")
 	await _check_sober(map, digest, 0.0, "past")
+	await _check_sober(map, digest, 0.5, "stop", 120)
 	await _check_wedding(map, digest)
 	await _check_elka(map, digest)
 	if problems.is_empty():
@@ -914,7 +915,8 @@ func _check_delivery(map: Node3D, digest: PackedStringArray) -> void:
 ## The sobriety check on the test road, the player in the kerb lane driving east: `how` "stop":
 ## they stop by the officer (a test: 0,00 at `tipsy` 0 is +2 respect; at 0.5 a fine and a floored
 ## loss); "past": they drive on (−3 respect, no more).
-func _check_sober(map: Node3D, digest: PackedStringArray, tipsy: float, how: String) -> void:
+## `cash`: the player's money (a fine never takes more than they have: 120 zł pays 120, leaves 0).
+func _check_sober(map: Node3D, digest: PackedStringArray, tipsy: float, how: String, cash := 2000) -> void:
 	var made := _road(map)
 	var g: LaneGraph = made[0]
 	var traffic: Node3D = made[1]
@@ -934,7 +936,7 @@ func _check_sober(map: Node3D, digest: PackedStringArray, tipsy: float, how: Str
 	root.add_child(cs.hud)
 	var wallet := Fakes.Wallet.new()
 	wallet.respect = Ladder.threshold(1) + 40
-	wallet.money = 2000
+	wallet.money = cash
 	root.add_child(wallet)
 	cs.wallet = wallet
 	cs.tipsy = func() -> float: return tipsy
@@ -943,7 +945,7 @@ func _check_sober(map: Node3D, digest: PackedStringArray, tipsy: float, how: Str
 	cs.set_process(false)
 	root.add_child(cs)
 	cs.setup(11)
-	var tag := "sober %s%s" % [how, " tipsy" if tipsy > 0.0 else ""]
+	var tag := "sober %s%s%s" % [how, " tipsy" if tipsy > 0.0 else "", " with %d zł" % cash if cash < CrashScenes.SOBER_FINE else ""]
 	if not cs.place(Vector2(440.0, 1.6), Vector2(1, 0), true, Vector2(520.0, 3.2), "sober"):
 		problems.append(tag + ": no scene placed on the test road")
 		return
@@ -978,8 +980,9 @@ func _check_sober(map: Node3D, digest: PackedStringArray, tipsy: float, how: Str
 		if cs.sober_tests != 1 or wallet.respect - r0 != Rules.SOBER_GAIN:
 			problems.append(tag + ": tests %d, respect %+d (want 1, +%d)" % [cs.sober_tests, wallet.respect - r0, Rules.SOBER_GAIN])
 	else:
-		if cs.sober_fines != 1 or m0 - wallet.money != CrashScenes.SOBER_FINE or r0 - wallet.respect != Rules.SOBER_DRUNK_LOSS:
-			problems.append(tag + ": fines %d, money −%d, respect −%d (want 1, −%d, −%d)" % [cs.sober_fines, m0 - wallet.money, r0 - wallet.respect, CrashScenes.SOBER_FINE, Rules.SOBER_DRUNK_LOSS])
+		var due := mini(CrashScenes.SOBER_FINE, m0)
+		if cs.sober_fines != 1 or m0 - wallet.money != due or wallet.money < 0 or r0 - wallet.respect != Rules.SOBER_DRUNK_LOSS:
+			problems.append(tag + ": fines %d, money −%d (left %d), respect −%d (want 1, −%d, −%d)" % [cs.sober_fines, m0 - wallet.money, wallet.money, r0 - wallet.respect, due, Rules.SOBER_DRUNK_LOSS])
 		elif not toasts.any(func(t: String) -> bool: return t.contains("0,70")):
 			problems.append(tag + ": no toast with 0,70 per mille (%s)" % [toasts])
 	if toasts.is_empty() or not String(toasts[0]).begins_with("KONTROLA"):
