@@ -59,6 +59,12 @@ GUGiK LoD2 heights and what the model remembered; nobody put a photo beside the 
   buildings, and a tower's footprint from OSM. Some sites are blurred by the Geoportal itself
   (Dom bez Kantów, parts round the Presidential Palace).
   Google's and Apple's 3D views may be looked at, never downloaded or copied (their terms).
+- **Google 3D renders: `refs/<slug>/3dtiles/`** (F, 2026-11-26). `node tools/tiles3d/render.mjs
+  --building="NAME IN centrum.json" --slug=NAME` (or `--lat= --lon=`, or game `X Z`) renders the building live from Google Photorealistic
+  3D Tiles: 6 orbit views and a top-down, Google's attribution on each image, in the cloud or on the
+  Mac (docs/design/tiles3d-setup.md). Best for roof shapes, heights, back and courtyard faces. Look,
+  measure by eye and write values into the spec; never export, cache, trace or import the mesh
+  (Google's terms). One run is one billable root request: one run per building, not per view.
 
 ## 2. The spec (Opus, from the photos)
 
