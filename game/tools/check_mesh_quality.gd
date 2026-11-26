@@ -252,6 +252,7 @@ const BUDGET := {
 	"equator": 120,
 	"equator2": 120,
 	"wiecha": 3700,  # 2026-11-19 night life (lit displays, awnings, kebab hatch, bulbs); 2026-11-22 the cafés' own lit bays, words and bulb strings (3,042)
+	"niecala7": 13000,  # 2026-11-26 Rezydencja Opera, Niecała 7 (F): the whole block on its mapped outline, stacked round balconies, pergola; +0 draw calls. 8000 → 11500 the same day: F asked for the balconies of the photos F sent (dish bowls, posts, hoops, a stack on every arc edge), 10930 tris; 13000 for the ivy and the geranium boxes (F, 12478 tris)
 	"warsztat_mirka": 3600,  # 2026-11-24 Mirek's tuning workshop on Grzybowska (F): the hall with three doors, two lifts (a hatch, a stripped shell), two supercars, the Bawarka in its oil, a stripped car, tyres, the roof car, 2,981 tris; +0 draw calls
 	"wiecha_swieta": 27000,  # 2026-11-22 Pasaż Wiecha at Christmas (F's photos): 22 shooting stars on the masts, the gingerbread tunnel, the neon fir, bauble benches, two photo frames, LED curtains, 26,230 tris; +0 draw calls (one mesh)
 	"orly": 1600,
