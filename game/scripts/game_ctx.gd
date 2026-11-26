@@ -17,6 +17,9 @@ var data := {}
 ## dev_flags.gd preloads main.gd, which preloads every activity, so a typed field would load all of
 ## main.gd with the kit's base (and into every check that builds an activity).
 var flags: Variant
+## The player's settings (settings.gd): an activity behind an A/B switch of the DEV page reads it
+## here (tajny_klient.gd: `tajny`). Untyped for the same reason as `flags`.
+var settings: Variant
 var hud: CanvasLayer
 ## The talk (dialogue.gd): the call and card lines.
 var dialogue: Node

@@ -111,6 +111,7 @@ const CityLife := preload("res://scripts/city_life.gd")
 ## Loop MW-2: storefronts and parodies (Frogs, the venues' neon, Leżak, the metro entrances).
 const Storefronts := preload("res://scripts/storefronts.gd")
 const TrendJob := preload("res://scripts/trend_job.gd")
+const TajnyKlient := preload("res://scripts/tajny_klient.gd")
 const CoffeeRun := preload("res://scripts/coffee_run.gd")
 const RoundupJob := preload("res://scripts/roundup_job.gd")
 const Weather := preload("res://scripts/weather.gd")
@@ -423,6 +424,8 @@ var _sunsets := {}
 ## Wiralek slot, 1-3).
 var life: CityLife
 var trend_job: TrendJob
+## F 2026-11-26: the Tajny klient opening (tajny_klient.gd), behind DEV → Tajny klient or --tajny.
+var tajny: TajnyKlient
 ## The night-buses loop (buses.gd): the N sign, the night hub at Centralny, the bus stops' people,
 ## the player's horn (B, L3), E23-E25; flags --night-hub (a gathering now, parked at once), --bus-log,
 ## --honk=F1,F2 (the horn at those frames).
@@ -2895,7 +2898,7 @@ func _build_play_stats() -> void:
 			{"platform": OS.get_name(), "lang": Lang.code, "quality_tier": Tiers.NAMES[auto_quality] if quality_choice == Tiers.AUTO else Tiers.NAMES[quality_choice],
 			"controls": controls.scheme, "test_device": settings.test_device})
 	play_stats.watch({"wallet": wallet, "car": car, "is_flying": func() -> bool: return flying, "activities": activities,
-			"police": police, "first10": first10, "districts": districts, "egg_book": egg_book, "garage": garage,
+			"police": police, "first10": first10, "tajny": tajny, "districts": districts, "egg_book": egg_book, "garage": garage,
 			"heli": heli, "radio": radio, "panel": hud.settings_panel, "save_note": wallet.load_note, "look": func() -> Array: return [Tiers.NAMES[quality], view.stretch_shrink, _cap]})
 
 
@@ -2925,7 +2928,10 @@ func _build_first10() -> void:
 			quests_flag = false).call_deferred()
 	first10.scripted = flags.first10_flag and flags.autopilot
 	add_child(first10)
-	first10.setup(flags.first10_flag or flags.show_title)
+	# The Tajny klient opening takes the guide's place on its save (tajny_klient.gd).
+	first10.setup((flags.first10_flag or flags.show_title) and not (tajny != null and tajny.active))
+	if tajny != null:
+		tajny.open_quests = first10.open_quests
 	if flags.end_card_flag:
 		first10.end_at = 1.0
 	if flags.first_race_flag:
@@ -3071,16 +3077,9 @@ func _build_crash_scenes() -> void:
 	crash_scenes.setup()
 	var f := -car.global_transform.basis.z
 	crash_scenes.test_flag(flags.crash_flag, Vector2(car.global_position.x, car.global_position.z), Vector2(f.x, f.z).normalized())
-	# Road life: the ambulance and the honk at a green, quiet in a race, a chase or the guide (the
-	# scenes wait for the same).
-	road_life = RoadLife.make(_build_ctx()) as RoadLife
-	if road_life != null:
-		road_life.name = "RoadLife"
-		road_life.hushed = func() -> bool: return police.phase != 0 or (first10 != null and first10.guide) \
-				or (activities.current() != null and activities.current().target_source() == "race")
-		crash_scenes.hushed = road_life.hushed
-		add_child(road_life)
-		road_life.setup()
+	crash_scenes.hushed = func() -> bool: return (police != null and police.phase != 0) or (first10 != null \
+			and first10.guide) or (activities.current() != null and activities.current().target_source() == "race")
+	road_life = RoadLife.make(_build_ctx(), self, crash_scenes.hushed) as RoadLife  # the ambulance, Zielone!: quiet alike
 
 
 # --- the boat race ---------------------------------------------------------------------------
@@ -3581,6 +3580,7 @@ func _place_car(at: Vector3, yaw: float) -> void:
 ## itself: each one sees what exists at its place in the build, as when main.gd wired it by hand.
 func _build_ctx() -> GameCtx:
 	_ctx.flags = flags
+	_ctx.settings = settings
 	_ctx.hud = hud
 	_ctx.dialogue = dialogue
 	_ctx.bubbles = bubbles
@@ -3833,6 +3833,10 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
 				_enter_padel({"partner": "Kuba", "rivals": TrendJob.ARCADE_RIVALS, "hour": flags.padel_flag, "seed": 3}, true))
 		trend_job.egg = func(id: String) -> bool: return egg_book != null and egg_book.fire(id, _egg_state())
+	# The Tajny klient opening (tajny_klient.gd) wires itself; while it is on, its story has DŻEMINI.
+	tajny = _join(TajnyKlient.new(), world) as TajnyKlient
+	if tajny != null and tajny.on and trend_job != null:
+		trend_job.dz_off = true
 	if flags.zajac_flag or flags.trend_job_flag > 0 or flags.armchair_flag or flags.dzemini_flag:
 		_life_start.call_deferred()
 
@@ -5072,7 +5076,7 @@ func _settings_state() -> Dictionary:
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index,
 			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
-			"angle": FollowCamera.PITCHES.size() if top_down else maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on), "test_device": int(settings.test_device),
+			"angle": FollowCamera.PITCHES.size() if top_down else maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on), "test_device": int(settings.test_device), "tajny": int(settings.tajny),
 			"weather": weather.state, "time": tod.look_mode(), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
 			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "character": settings.character,
@@ -5184,6 +5188,8 @@ func _on_setting(key: String, value: Variant) -> void:
 		"test_device":
 			settings.test_device = int(value) == 1
 			play_stats.set_test_device(settings.test_device)
+		"tajny":
+			settings.tajny = int(value) == 1  # tajny_klient.gd: from the next launch on a fresh save
 		"bench":
 			_start_phone_bench.call_deferred()
 			return
