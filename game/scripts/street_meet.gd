@@ -1318,7 +1318,9 @@ func _mandat_poll() -> void:
 	if stage == Stage.NONE or stage == Stage.RESULT:
 		return
 	var c := _cautions_now()
-	if c > _cautions_seen:
+	if c < _cautions_seen:
+		_cautions_seen = c  # the day turned over: the notebook starts again
+	elif c > _cautions_seen:
 		_cautions_seen = c
 		if pot > 0:
 			var was := pot
