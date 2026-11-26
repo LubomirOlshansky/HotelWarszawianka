@@ -37,7 +37,8 @@ const CITY_INPUTS := ["map/lod2.bin", "map/terrain.json", "map/ao.bin", "map/lig
 		"scripts/map_builder.gd", "scripts/chunked_surface.gd", "scripts/neon_signs.gd", "scripts/landmarks.gd",
 		"scripts/sector_proxies.gd", "scripts/models.gd", "scripts/pixel_font.gd", "scripts/index_pack.gd",
 		"scripts/city_maps.gd", "tools/bake_city.gd", "data/courts.json", "scripts/solidity.gd", "data/object_palette.json",
-		"scripts/city_barriers.gd", "scripts/facade_kit.gd", "scripts/panel_rule.gd"]
+		"scripts/city_barriers.gd", "scripts/facade_kit.gd", "scripts/panel_rule.gd", "scripts/house_types.gd",
+		"data/house_types.json"]
 ## TD-10 (2026-11-15): and every file of landmarks.gd's base chain (`scripts/landmarks/*.gd`, by name).
 const CITY_INPUT_DIRS := ["scripts/landmarks"]
 

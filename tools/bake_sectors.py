@@ -173,6 +173,7 @@ SITE_AREAS = [
     (-690.0, 525.0, -628.0, 635.0),         # Cyfrowy Parking Novotel, Nowogrodzka 27 (landmarks.gd CP_AT)
     (-475.0, -960.0, -450.0, -940.0),       # Karowa 18a (unnamed in OSM; landmarks.gd KR_AT)
     (-175.0, 125.0, -145.0, 150.0),         # Smolna 38 (building=office, no name; landmarks.gd S38_AT)
+    (-1062.0, -918.0, -1015.0, -868.0),     # Niecała 7, Rezydencja Opera (unnamed in OSM; landmarks/niecala.gd N7_AT)
     (-3105.0, -2455.0, -2920.0, -2335.0),   # map north: the Forest tower's office block (unnamed in OSM; docs/DEMO.md 2.2)
     (440.0, -580.0, 465.0, -555.0),         # Flisac, Tamka 2: the 14 m wings and the 7.6 m garden block in the elbow (unnamed in OSM; landmarks.gd FLISAC_AT, FLISAC_PODIUM_AT)
     (-2175.0, -2520.0, -1945.0, -2335.0),   # Gdański Business Center (unnamed in OSM; landmarks.gd GBC_BOX)
