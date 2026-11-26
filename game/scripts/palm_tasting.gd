@@ -12,6 +12,8 @@ extends RefCounted
 ##   VERDICT his lines one by one: the bite, the bun, Berlin, DŻEMINI or the quiet one (a tap each);
 ##   DRUM    the drumroll, the scoreboard's digits rolling (DRUM_S, by itself);
 ##   GRADE   the decimal grade and the roast of the player's own run (a tap; 11/10 cracks the board);
+##   FAN     a fan walks up and asks for a photo, Kebabulo says yes (a tap each; F 2026-11-26);
+##   SELFIE  the flash and the snap (SELFIE_S, by itself);
 ##   CARD    the RECENZJA card: the order, the grade, the badge, the game's name (held CARD_S, then
 ##           a tap);
 ##   DONE    the owner takes it from here (the race call).
@@ -26,13 +28,16 @@ extends RefCounted
 const WORDS_PATH := "res://data/dialogue.json"
 const GROUP := "palm_tasting"
 
-enum Phase {IN, HELLO, CHEW, MLASK, VERDICT, DRUM, GRADE, CARD, DONE}
+enum Phase {IN, HELLO, CHEW, MLASK, VERDICT, DRUM, GRADE, FAN, SELFIE, CARD, DONE}
 
 const IN_S := 1.4
 const CHEW_S := 1.5
 const MLASK_S := 1.1
 const DRUM_S := 1.4
 const CARD_S := 3.0
+const SELFIE_S := 1.2
+## The fan's walk in (the view's): a tap before it does nothing.
+const FAN_WALK_S := 0.9
 ## A tap within this of a line's start does nothing (a stray second tap must not eat a line).
 const TAP_S := 0.35
 ## The autopilot's (and the screenshot tool's) time on each tap beat.
@@ -47,11 +52,13 @@ var phase := Phase.IN
 var t := 0.0
 ## Time since the scene opened.
 var total := 0.0
-## The line on screen now ([pl, en]) and who says it ("kebabulo", "zbyszek" or "").
+## The line on screen now ([pl, en]) and who says it ("kebabulo", "zbyszek", "fan" or "").
 var line: Array = ["", ""]
 var who := ""
 ## Which verdict line is up.
 var line_i := 0
+## Which of the fan's two lines is up (0 the ask, 1 his yes).
+var fan_i := 0
 var auto_play := false
 var skipped := false
 ## How long ✕ has been held (the view draws its ring).
@@ -149,6 +156,9 @@ func tick(dt: float, skip_held := false) -> void:
 		Phase.DRUM:
 			if t >= DRUM_S:
 				_go(Phase.GRADE)
+		Phase.SELFIE:
+			if t >= SELFIE_S:
+				_go(Phase.CARD)
 	if auto_play and t >= (CARD_S if phase == Phase.CARD else AUTO_S):
 		tap()
 	_chat_tick(dt)
@@ -169,7 +179,16 @@ func tap() -> bool:
 			else:
 				_go(Phase.DRUM)
 		Phase.GRADE:
-			_go(Phase.CARD)
+			_go(Phase.FAN)
+		Phase.FAN:
+			if fan_i == 0:
+				if t < FAN_WALK_S:
+					return false
+				fan_i = 1
+				_set_line(say("fan_yes"), "kebabulo")
+				t = 0.0
+			else:
+				_go(Phase.SELFIE)
 		Phase.CARD:
 			if t < CARD_S:
 				return false
@@ -231,6 +250,13 @@ func _go(p: Phase) -> void:
 			_set_line(roast, "kebabulo")
 			viewers += 900 if perfect else 260
 			_chat_burst("chat_perfect" if perfect else "chat_grade", 2)
+		Phase.FAN:
+			fan_i = 0
+			_set_line(say("fan_ask"), "fan")
+		Phase.SELFIE:
+			_set_line(["", ""], "")
+			viewers += 120 + _rng.randi_range(0, 60)
+			_chat_burst("chat_fan", 2)
 		Phase.CARD:
 			_set_line(["", ""], "")
 
@@ -250,6 +276,8 @@ func _chat_bag() -> String:
 			return "chat_verdict"
 		Phase.GRADE, Phase.CARD:
 			return "chat_perfect" if perfect else "chat_grade"
+		Phase.FAN, Phase.SELFIE:
+			return "chat_fan"
 	return ""
 
 

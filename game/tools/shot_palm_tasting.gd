@@ -10,7 +10,7 @@ const Lang := preload("res://scripts/lang.gd")
 
 var view: Ui
 var out := "user://palm_tasting"
-var at: Array[float] = [0.7, 2.2, 4.2, 5.0, 6.4, 10.5, 12.6, 14.6, 17.0]
+var at: Array[float] = [0.9, 2.6, 3.8, 5.0, 7.0, 12.0, 13.6, 15.5, 17.2, 18.8, 21.8]
 var perfect := false
 var cam := false
 var _t := 0.0

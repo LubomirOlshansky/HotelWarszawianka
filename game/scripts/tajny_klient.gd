@@ -77,6 +77,11 @@ const PALM := Vector2(-213.9, 238.5)
 ## place to park): a little way up each street, the first with free pavement.
 const PALM_TRIES := [Vector2(0, -70), Vector2(70, 0), Vector2(-70, 0), Vector2(0, 70), Vector2(50, -50), Vector2(-50, 50)]
 const PORSZA_SIZE := Vector3(1.85, 1.3, 4.4)
+## The race back's start (F 2026-11-26): both cars side by side on the Palm's kerb, 3, 2, 1, START!
+## (COUNT_S s; the Porsza held still, the player's car held on the brake until the start).
+const COUNT_S := 3.6
+## A one-lane kerb: the player's car this far behind the Porsza, in its lane.
+const GRID_BEHIND := 7.5
 const ARRIVE_R := 9.0
 const STOP_KMH := 12.0
 const HOLD := 0.8
@@ -147,6 +152,12 @@ var _race: RaceSession
 var _racer: RaceSession.Racer
 var _race_dist := PackedFloat32Array()
 var _race_t := 0.0
+## The countdown before the race back (COUNT_S down to 0, then the start); 0 while racing.
+var _count := 0.0
+var _count_said := 0
+## Puts the car at (position, yaw) at once, the camera cut too (main.gd `_place_car`, set after
+## the join, as street_meet.gd's).
+var place_car: Callable
 var _rank_t := 0.0
 var _sticker: MeshInstance3D
 var _stand_ui: KebabStandUi
@@ -355,7 +366,7 @@ func _begin() -> void:
 		_save(Saved.TAKEN)
 	hud.show_banner(w("banner")[0], COLOUR)
 	_banner_t = BANNER
-	hud.cue("start")
+	hud.cue("sting")
 	Access.buzz(120, 0.9)
 	if saved >= Saved.BOUGHT:
 		_to_palm(true)
@@ -757,11 +768,14 @@ func _start_race() -> void:
 	_race_dist = graph.distances_to(node)
 	var e := int(_palm_kerb["edge"])
 	var lane: int = maxi(graph.e_lanes[e] - 1, 0)
-	_porsza_d = traffic.add_node_driver(_porsza, PORSZA_SIZE, e, lane, float(_palm_kerb["s"]))
+	var s := float(_palm_kerb["s"])
+	_porsza_d = traffic.add_node_driver(_porsza, PORSZA_SIZE, e, lane, s)
 	if _porsza_d == null:
 		_payoff(true)
 		return
 	_porsza_d.persistent = true
+	_porsza_d.stun = COUNT_S + 0.5
+	_grid(e, lane, s)
 	_race = RaceSession.new()
 	_race.setup(graph, traffic, RacePlanner.new(graph), RaceCuts.new(), {node: _race_dist})
 	_race.course(PackedInt32Array([node]), Vector2(goal.x, goal.z), RaceSession.FINISH_RADIUS)
@@ -771,15 +785,66 @@ func _start_race() -> void:
 	_racer = _race.add(_porsza_d, "Kebabulo", Ladder.FIRST_RACER, Ladder.pace(0),
 			{"top": Ladder.class_top(Ladder.race_class(0), pc), "cuts": false, "dice": _rng.randi()})
 	_race.prepare()
-	_race.start(_racer)
 	_race_t = 0.0
 	_rank_t = 0.0
+	_count = COUNT_S
+	_count_said = 0
 	set_target(Vector2(goal.x, goal.z))
-	hud.show_banner(w("race_banner")[0], COLOUR)
+	_beat("grid")
+	_log("the grid at the Palm, race to Kemal: %.0f m by road" % _player_left())
+
+
+## The player's car beside the Porsza on the next lane in (behind it on a one-lane kerb).
+func _grid(e: int, lane: int, s: float) -> void:
+	if not place_car.is_valid():
+		return
+	var d: Vector2 = graph.direction(e, s)
+	var at: Vector2
+	if lane >= 1:
+		at = graph.point_at(e, s, graph.lane_offset(e, lane - 1))
+	else:
+		at = graph.point_at(e, maxf(0.0, s - GRID_BEHIND), graph.lane_offset(e, lane))
+	place_car.call(Vector3(at.x, graph.surface(e, at), at.y), atan2(-d.x, -d.y))
+
+
+## The race's start, after the countdown: GO for him and for the player.
+func _go() -> void:
+	_count = 0.0
+	if _porsza_d != null:
+		_porsza_d.stun = 0.0
+	_race.start(_racer)
+	_race_t = 0.0
+	hud.show_banner(w("race_go")[0], COLOUR)
 	_banner_t = BANNER
 	hud.cue("go")
+	Access.buzz(80, 0.8)
 	_beat("race")
-	_log("race to Kemal: %.0f m by road" % _player_left())
+
+
+## The countdown's frame: a number a second, the cue once a number.
+func _count_tick(dt: float) -> void:
+	_count -= dt
+	_race.plan_tick(false)
+	var n := ceili(_count - 0.6)
+	if n >= 1:
+		if n != _count_said:
+			_count_said = n
+			hud.cue("count")
+			Access.buzz(30, 0.4)
+		hud.show_banner(str(n), COLOUR)
+	else:
+		_go()
+
+
+## The player's car held on the brake on the grid (main.gd calls it each frame, as rivals.gd's).
+func hold_car(c: Node) -> void:
+	if c == null or stage != Stage.RACE or _count <= 0.0 or phase != Phase.RUN:
+		return
+	c.target_dir = Vector3.ZERO
+	c.steer = 0.0
+	c.throttle = 0.0
+	c.nitro_on = false
+	c.braking = true
 
 
 func _player_left() -> float:
@@ -798,6 +863,9 @@ func _player_left() -> float:
 
 func _race_tick(dt: float, at: Vector3) -> void:
 	if _race == null:
+		return
+	if _count > 0.0:
+		_count_tick(dt)
 		return
 	_race_t += dt
 	_race.plan_tick(false)

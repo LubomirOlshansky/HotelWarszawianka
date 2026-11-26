@@ -20,6 +20,16 @@ one arcade voice (the blip's square-and-sine, in C), short and dry so it reads o
   step.wav       a quest's next step: G5 then D6, soft bell partials
   offer.wav      a job or quest offered on a card: D6 F#6 A6, quick and light
   ping.wav       the game pointing something out (an alert note): one soft E6 ding
+
+The Tajny klient set (plan doc "First 10 minutes: Tajny klient", the sound phase), all original:
+  mlask.wav      the MLASK sting (2 s): a hummed "m", a wet cartoon smack falling in pitch, a bass
+                 hit, a sticker's slap and a three-bell sparkle with a short echo; never anyone's
+                 real chewing
+  drumroll.wav   Zbyszek's drumroll: a snare roll growing for 1.4 s, then the crash
+  sting.wav      the mission-start sting (1.2 s): a noise-and-saw riser, an impact, a bright stab
+  voice_kebabulo.wav, voice_kemal.wav, voice_zbyszek.wav, voice_fan.wav
+                 each character's line blip: four syllables of a little square-and-formant voice,
+                 low and lazy for Kebabulo, warm for Kemal, quick and high for Zbyszek
 """
 import math
 import os
@@ -260,9 +270,162 @@ def ping():
     return lowpass(tone(1318.5, 0.26, 0.1, 0.002, 0.22, bell=0.35), 0.5)
 
 
+def _noise(n, seed):
+    rnd = random.Random(seed)
+    return [rnd.uniform(-1.0, 1.0) for _ in range(n)]
+
+
+def mlask():
+    out = []
+    # the hummed "m": a short nasal 140 Hz
+    n = int(RATE * 0.09)
+    for i in range(n):
+        t = i / RATE
+        out.append(0.35 * (math.sin(math.tau * 140.0 * t) + 0.3 * math.sin(math.tau * 280.0 * t)) * env(i, n, 0.01, 0.03))
+    # the wet smack: a pitch drop 1100 -> 140 Hz over 70 ms with a squelch of filtered noise
+    n = int(RATE * 0.16)
+    noise = _noise(n, 87)
+    ph = 0.0
+    lp = 0.0
+    smack = []
+    for i in range(n):
+        t = i / RATE
+        f = 140.0 + 960.0 * math.exp(-t / 0.022)
+        ph += f / RATE
+        lp += (noise[i] - lp) * 0.25
+        smack.append((0.9 * math.sin(math.tau * ph) + 0.7 * lp) * math.exp(-t / 0.045))
+    # the bass hit under it
+    n = int(RATE * 0.5)
+    bass = []
+    ph = 0.0
+    for i in range(n):
+        t = i / RATE
+        ph += (48.0 + 40.0 * math.exp(-t / 0.03)) / RATE
+        bass.append(1.1 * math.sin(math.tau * ph) * math.exp(-t / 0.16))
+    # the sticker's slap: a bright click 0.12 s later
+    n = int(RATE * 0.05)
+    slap = [0.0] * int(RATE * 0.12) + [s * math.exp(-i / (RATE * 0.008)) for i, s in enumerate(_noise(n, 11))]
+    hit = layer(smack, bass, slap)
+    # the sparkle: C6 E6 G6 bells, then a held C7 with an echo
+    bells = gap(0.3)
+    for f in (1046.5, 1318.5, 1568.0):
+        bells += tone(f, 0.07, 0.1, 0.002, 0.05, bell=0.4)
+    bells += tone(2093.0, 0.6, 0.08, 0.002, 0.5, bell=0.5)
+    bells = add_echo([0.45 * s for s in bells], 0.13, 0.3)
+    tail = layer(hit, bells)
+    return lowpass(out + tail + gap(0.05), 0.6)
+
+
+def drumroll():
+    out = []
+    noise = _noise(int(RATE * 2.2), 5)
+    k = 0
+    t = 0.0
+    hits = []
+    while t < 1.4:
+        hits.append(t)
+        t += 0.042 - 0.012 * (t / 1.4)
+    n = int(RATE * 2.1)
+    out = [0.0] * n
+    for h in hits:
+        a = 0.25 + 0.75 * (h / 1.4) ** 1.6
+        i0 = int(h * RATE)
+        for i in range(int(RATE * 0.05)):
+            if i0 + i >= n:
+                break
+            tt = i / RATE
+            body = math.sin(math.tau * 190.0 * tt) * math.exp(-tt / 0.01)
+            out[i0 + i] += a * (0.55 * noise[(i0 + i) % len(noise)] + 0.45 * body) * math.exp(-tt / 0.018)
+        k += 1
+    # the crash at 1.4 s: a long bright noise, high-passed, and a low hit
+    i0 = int(RATE * 1.4)
+    hp_prev = 0.0
+    lp = 0.0
+    for i in range(n - i0):
+        tt = i / RATE
+        x = noise[(i * 7) % len(noise)]
+        lp += (x - lp) * 0.3
+        hp = x - lp
+        out[i0 + i] += (0.9 * hp * math.exp(-tt / 0.35) + 0.8 * math.sin(math.tau * 70.0 * tt) * math.exp(-tt / 0.12))
+    return out
+
+
+def sting():
+    n = int(RATE * 0.5)
+    noise = _noise(n, 3)
+    riser = []
+    ph = 0.0
+    lp = 0.0
+    for i in range(n):
+        t = i / n
+        ph += (180.0 + 900.0 * t * t) / RATE
+        lp += (noise[i] - lp) * (0.05 + 0.5 * t)
+        riser.append((0.35 * (2.0 * (ph % 1.0) - 1.0) + 0.5 * lp) * t * t)
+    # the impact: a bass thump and a noise burst
+    n = int(RATE * 0.7)
+    noise = _noise(n, 9)
+    impact = []
+    ph = 0.0
+    for i in range(n):
+        t = i / RATE
+        ph += (55.0 + 60.0 * math.exp(-t / 0.04)) / RATE
+        impact.append(1.0 * math.sin(math.tau * ph) * math.exp(-t / 0.2) + 0.6 * noise[i] * math.exp(-t / 0.03))
+    # the bright stab: A minor add9 on detuned saws, with an echo
+    stab = []
+    chord = (440.0, 523.25, 659.25, 987.77)
+    n = int(RATE * 0.45)
+    phs = [0.0] * 8
+    for i in range(n):
+        s = 0.0
+        for k, f in enumerate(chord):
+            for v, det in enumerate((1.0, 1.007)):
+                phs[k * 2 + v] += f * det / RATE
+                s += 2.0 * (phs[k * 2 + v] % 1.0) - 1.0
+        stab.append(0.18 * s * env(i, n, 0.004, 0.35))
+    stab = add_echo(lowpass(stab, 0.35), 0.11, 0.3)
+    return riser + layer(impact, stab)
+
+
+def _voice(base, spread, syll, seed, length=0.06):
+    rnd = random.Random(seed)
+    out = []
+    for k in range(syll):
+        f = base * (1.0 + rnd.uniform(-spread, spread))
+        n = int(RATE * length * rnd.uniform(0.8, 1.2))
+        ph = 0.0
+        form = rnd.choice((700.0, 1100.0, 1600.0))
+        ph2 = 0.0
+        for i in range(n):
+            ph += f / RATE
+            ph2 += form / RATE
+            sq = 1.0 if (ph % 1.0) < 0.5 else -1.0
+            s = 0.55 * sq + 0.3 * math.sin(math.tau * ph) + 0.25 * math.sin(math.tau * ph2) * (0.5 + 0.5 * sq)
+            out.append(s * env(i, n, 0.004, 0.025))
+        out += gap(0.022)
+    return lowpass(out, 0.3)
+
+
+def voice_kebabulo():
+    return _voice(150.0, 0.12, 4, 21, 0.075)
+
+
+def voice_kemal():
+    return _voice(210.0, 0.18, 4, 33, 0.065)
+
+
+def voice_zbyszek():
+    return _voice(320.0, 0.2, 4, 45, 0.05)
+
+
+def voice_fan():
+    return _voice(420.0, 0.24, 3, 57, 0.045)
+
+
 SOUNDS = (("blip", blip), ("tune", tune), ("start", start), ("ring", ring),
           ("count", count), ("go", go), ("checkpoint", checkpoint), ("win", win), ("fail", fail),
-          ("tick", tick), ("step", step), ("offer", offer), ("ping", ping))
+          ("tick", tick), ("step", step), ("offer", offer), ("ping", ping),
+          ("mlask", mlask), ("drumroll", drumroll), ("sting", sting),
+          ("voice_kebabulo", voice_kebabulo), ("voice_kemal", voice_kemal), ("voice_zbyszek", voice_zbyszek), ("voice_fan", voice_fan))
 
 
 def main(out_dir, only=()):

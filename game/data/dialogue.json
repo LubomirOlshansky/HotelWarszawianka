@@ -7819,7 +7819,16 @@
     ["11/10?! HISTORIA", "11/10?! HISTORY", {"only": "chat_perfect"}],
     ["SKALA PĘKŁA", "THE SCALE BROKE", {"only": "chat_perfect"}],
     ["KLIPUJCIE TO", "CLIP THIS", {"only": "chat_perfect"}],
-    ["PIERWSZE 11!", "THE FIRST 11!", {"only": "chat_perfect"}]
+    ["PIERWSZE 11!", "THE FIRST 11!", {"only": "chat_perfect"}],
+    ["FAN", "FAN", {"only": "name_fan"}],
+    ["„Przepraszam… Pan Kebabulo? Można fotkę? Dla mamy.”", "\"Sorry... Mr Kebabulo? Can I get a photo? It's for my mum.\"", {"only": "fan_ask"}],
+    ["„Dawaj. Tylko kebab ma być w kadrze.”", "\"Go on. Just keep the kebab in the shot.\"", {"only": "fan_yes"}],
+    ["PSTRYK!", "SNAP!", {"only": "snap"}],
+    ["DLA MAMY", "FOR MUM", {"only": "print_caption"}],
+    ["MAMA BĘDZIE DUMNA", "MUM WILL BE PROUD", {"only": "chat_fan"}],
+    ["JA TEŻ CHCĘ FOTKĘ", "I WANT A PHOTO TOO", {"only": "chat_fan"}],
+    ["ZBYSZEK, WEJDŹ W KADR", "ZBYSZEK, GET IN IT", {"only": "chat_fan"}],
+    ["KEBAB WYSZEDŁ NAJLEPIEJ", "THE KEBAB LOOKS BEST", {"only": "chat_fan"}]
   ],
   "taxi_check": [
     ["Dokumenty, licencja i ten uśmiech też poproszę.", "Papers, licence, and I'll take that smile too.", {"only": "officer"}],
@@ -7992,6 +8001,7 @@
     ["DALEJ", "NEXT", {"only": "btn_next"}],
     ["OK", "OK", {"only": "btn_ok"}],
     ["WYŚCIG DO KEMALA", "RACE TO KEMAL'S", {"only": "race_banner"}],
+    ["START!", "GO!", {"only": "race_go"}],
     ["Pierwszy pod Kemalem przykleja MLASK", "First at Kemal's slaps the MLASK on", {"only": "st_race"}],
     ["„Ej! Porsza ma czterysta koni, a ty masz… szczęście. Przyklejaj.”", "\"Hey! The Porsza has four hundred horses and you have… luck. Slap it on.\"", {"only": "race_won"}],
     ["„Porsza była pierwsza. Ale dobra, naklejkę przyklejamy razem.”", "\"The Porsza was first. But fine, we slap the sticker on together.\"", {"only": "race_lost"}],

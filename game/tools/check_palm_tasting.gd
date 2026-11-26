@@ -2,26 +2,25 @@ extends SceneTree
 ## The tasting at the Palm as Zbyszek's livestream (palm_tasting.gd's rules, palm_tasting_ui.gd's
 ## view; plan doc "First 10 minutes: Tajny klient", "The river scene and the viral moment"):
 ##   - the beats in order: the viewfinder, the hello, the chew (the chat frozen), the MLASK, his
-##     verdict line by line, the drumroll, the grade, the RECENZJA card, done; a tap too soon after
+##     verdict line by line, the drumroll, the grade, the fan's photo, the RECENZJA card, done; a tap too soon after
 ##     a line does nothing; the card holds CARD_S before its tap;
 ##   - a held × skips to the card; a perfect run's board reads 11;
 ##   - the chat: three lines at most, the viewers climb and jump at the MLASK and the grade;
 ##   - every line the rules and the view ask is in dialogue.json "palm_tasting" in both languages,
-##     every chat bag has lines, all drawable by the pixel font, and every chat line fits left of
-##     the speaker's bubble on the narrowest screen;
+##     every chat bag has lines, all drawable by the scene's font, and every chat line fits the
+##     chat's scrim on the narrowest screen;
 ##   - the scene plays itself (auto) to the end in under 30 s, and the view to `finished`.
 ##   godot --headless --path game --script res://tools/check_palm_tasting.gd -- --nosave
 
 const Tasting := preload("res://scripts/palm_tasting.gd")
 const TastingUi := preload("res://scripts/palm_tasting_ui.gd")
-const Kit := preload("res://scripts/pixel_kit.gd")
-const PixelFont := preload("res://scripts/pixel_font.gd")
+const Pen := preload("res://scripts/toon_pen.gd")
 
 ## Every tag the rules and the view ask (the chat bags and "name_" + the speaker built by name).
 const TAGS := ["live", "viewers", "channel", "rec", "skip", "tap", "drumroll", "mlask", "card_title", "card_order",
 		"card_grade", "card_badge", "card_game", "card_shot", "cracked", "btn_next", "name_kebabulo", "name_zbyszek",
-		"place"]
-const BAGS := ["chat_in", "chat_cam", "chat_hello", "chat_mlask", "chat_verdict", "chat_grade", "chat_perfect", "handles"]
+		"place", "name_fan", "fan_ask", "fan_yes", "snap", "print_caption"]
+const BAGS := ["chat_in", "chat_cam", "chat_hello", "chat_mlask", "chat_verdict", "chat_grade", "chat_perfect", "chat_fan", "handles"]
 
 var problems: Array[String] = []
 var checks := 0
@@ -111,6 +110,14 @@ func _beats() -> void:
 	_expect(s.phase == Tasting.Phase.GRADE and s.board_text() == "8,6", "then the grade: %s" % s.board_text())
 	_run(s, Tasting.TAP_S + 0.05)
 	s.tap()
+	_expect(s.phase == Tasting.Phase.FAN and s.who == "fan", "then a fan asks for a photo")
+	_run(s, Tasting.TAP_S + 0.05)
+	_expect(not s.tap(), "a tap while the fan walks up does nothing")
+	_run(s, Tasting.FAN_WALK_S)
+	_expect(s.tap() and s.phase == Tasting.Phase.FAN and s.who == "kebabulo", "a tap: his yes")
+	_run(s, Tasting.TAP_S + 0.05)
+	_expect(s.tap() and s.phase == Tasting.Phase.SELFIE, "a tap: the selfie")
+	_run(s, Tasting.SELFIE_S + 0.05)
 	_expect(s.phase == Tasting.Phase.CARD, "then the RECENZJA card")
 	_run(s, Tasting.TAP_S + 0.05)
 	_expect(not s.tap(), "the card holds before its tap")
@@ -146,32 +153,33 @@ func _words() -> void:
 	for t: String in TAGS:
 		_expect(Tasting.has_words(t), "dialogue.json \"%s\" has no line \"%s\"" % [Tasting.GROUP, t])
 		_font(t, Tasting.say(t))
-	var chat_w := 0.0
 	var probe := TastingUi.new()
 	probe.W = TastingUi.MIN_W
-	chat_w = probe.chat_w()
+	var chat_w := probe.chat_w()
 	probe.free()
 	for b: String in BAGS:
 		var lines := Tasting.lines_of(b)
 		_expect(lines.size() >= (3 if b != "handles" else 6), "the chat bag \"%s\" has lines (%d)" % [b, lines.size()])
 		for l: Array in lines:
 			_font(b, l)
-	var widest_name := 0
+	var widest := ""
 	for h: Array in Tasting.lines_of("handles"):
-		widest_name = maxi(widest_name, Kit.text_w(str(h[0])))
+		if Pen.text_w(str(h[0]), TastingUi.T_CHAT) > Pen.text_w(widest, TastingUi.T_CHAT):
+			widest = str(h[0])
 	for b: String in BAGS:
 		if b == "handles":
 			continue
 		for l: Array in Tasting.lines_of(b):
 			for lang in 2:
-				var w := widest_name + Kit.text_w(str(l[lang])) + 12
-				_expect(w <= chat_w, "the chat line \"%s\" fits left of the bubble (%d of %d px)" % [l[lang], w, chat_w])
+				var w := TastingUi.chat_line_w(widest, str(l[lang]))
+				_expect(w <= chat_w, "the chat line \"%s\" fits the chat's scrim (%d of %d units)" % [l[lang], w, chat_w])
 
 
 func _font(tag: String, p: Array) -> void:
+	var f := Pen.font()
 	for s: String in [str(p[0]), str(p[1])]:
 		_expect(s != "", "\"%s\" in both languages" % tag)
-		for ch in s.to_upper().replace("\"", "”").replace("{N}", "0"):
-			if ch != " " and ch != "\n" and PixelFont.char_width(ch) == 0:
-				problems.append("\"%s\": the pixel font has no '%s': %s" % [tag, ch, s])
+		for ch in s:
+			if ch != " " and ch != "\n" and not f.has_char(ch.unicode_at(0)):
+				problems.append("\"%s\": the scene's font has no '%s': %s" % [tag, ch, s])
 				break
