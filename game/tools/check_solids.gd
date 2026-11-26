@@ -71,7 +71,10 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## 2026-11-26 (#1099, Rondo Dmowskiego): +194 faces (47760 → 47954), the twelve sunken stairwells' edge
 ## colliders (site `rondo_wells`), the lifts and the square's beds, less the old tubes and wall lines on
 ## the rings; measured on a fresh bake of the branch after merging main.
-const TOTAL := 47954
+## 2026-11-26 (#1107, the metro wells): +66 faces (47954 → 48020), the other stations' 37 sunken wells'
+## edge and mouth colliders (sites `mw_*`), less the wall lines on their rings; measured on a fresh bake
+## of the branch after merging main with #1099; TOTAL_TYPED not measured again here.
+const TOTAL := 48020
 ## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
