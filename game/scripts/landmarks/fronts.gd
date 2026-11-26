@@ -9,14 +9,12 @@ extends "res://scripts/landmarks/works.gd"
 
 # --- the low-rise landmarks (the landmarks loop) -----------------------------------------------
 
-const ZAMEK_ROOF := "#ad5c3f"  # terracotta tile (photos #c0502e, calmed; was #8d6350, read brown)
-
 const SKINS := [
 	{"key": "teatr", "osm": "Teatr Wielki", "mode": M_MONUMENT, "wall": "#ddd2b6", "roof": "#7fa894"},
 	# F's look check (2026-11-03): LoD2's steep roof slopes in the roof's tile (`steep`), and its
 	# walls on the river side of the courtyard in the Vistula front's cream (`pale`), not salmon.
-	{"key": "zamek", "osm": "Zamek Królewski", "mode": M_MONUMENT, "wall": ZAMEK_WALL, "roof": ZAMEK_ROOF,
-			"steep": 0.3},
+	# The Royal Castle is one model, whole (F, 2026-11-26, pass 3: old_town.gd `_build_zamek`): no LoD2 is left.
+	{"key": "zamek", "osm": "Zamek Królewski", "model": true, "mode": M_MONUMENT, "wall": ZAMEK_WALL, "roof": ZAMEK_ROOF},
 	# The cathedral's roof is green copper (2026-11-14, photo and orthophoto); LoD2 draws it steeper than
 	# the default 0.7, so `steep` 0.3 keeps its slopes in the roof colour, not the brick.
 	# Floodlit at night like the real one (F, 2026-11-26; M_GOTHIC_LIT).
@@ -148,17 +146,6 @@ func _find_skins() -> void:
 				sites[-1]["skin"]["upper"] = {"over": float(t["upper"][0]), "wall": Color(t["upper"][1])}
 			if t.has("keep"):
 				sites[-1]["skin"]["keep"] = PackedVector2Array(t["keep"])
-			if t["key"] == "zamek":
-				# `drop`: the river front's frame (`_zamek_river_front`, u -17..76), where LoD2's walls
-				# along the front go and the model stands alone
-				var za := ZV_A.normalized()
-				var zb := Vector2(-za.y, za.x)
-				var drop := PackedVector2Array()
-				for c: Vector2 in [Vector2(-17, -14), Vector2(76, -14), Vector2(76, 14), Vector2(-17, 14)]:
-					drop.append(ZV_O + za * c.x + zb * c.y)
-				sites[-1]["skin"]["pale"] = {"wall": ZAMEK_VISTULA, "edges": _zamek_river_edges(outline), "near": 3.0,
-						"drop": drop}
-				_zamek_tops()
 
 
 # --- Domy Towarowe Centrum (the Eastern Wall) ----------------------------------------------
@@ -172,39 +159,6 @@ const RELAX_GLYPHS := ["110101110101101", "111100110100111", "100100100100111", 
 
 
 # --- Plac Małachowskiego and the Presidential Palace (2026-10-31) ------------------------------
-
-## The Vistula front's edges of the castle's outline (the ones `_zamek_vistula` fronts: facing east,
-## east of x -615), as pairs of ends, for the skin's `pale` walls (map_builder `_skin_run`): LoD2's
-## walls stand up to 0.9 m proud of the outline there (5 m at the risalits) and showed salmon
-## round and over the model's cream front (F's look check, 2026-11-03).
-func _zamek_river_edges(ring: PackedVector2Array) -> PackedVector2Array:
-	var out := PackedVector2Array()
-	var n := ring.size()
-	for i in n:
-		var p := ring[i]
-		var q := ring[(i + 1) % n]
-		if p.distance_to(q) < 0.4:
-			continue
-		if _out(ring, p, q).x < 0.3 or (p.x + q.x) * 0.5 < -615.0:
-			continue
-		out.append(p)
-		out.append(q)
-	return out
-
-
-## The Clock Tower's LoD2 cut under the model's cornice (`lod2_tops`): LoD2 carries the shaft 3.5 m
-## past it and the helm as a salmon mass to 46.7 m, which stood out of the copper helm on every
-## side (F's look check, 2026-11-03). The ring is the shaft's square grown to 6 m a side from its
-## middle (LoD2's shaft is 4.5-4.7 m); the cut, 30.0 m over the square, hides inside the cornice
-## (29.5-30.3 m, 5.0 m), whose top caps it.
-func _zamek_tops() -> void:
-	var a := ZAMEK_FRONT
-	var b := Vector2(a.y, -a.x)
-	var ring := PackedVector2Array()
-	for c: Vector2 in [Vector2(-6, -6), Vector2(6, -6), Vector2(6, 6), Vector2(-6, 6)]:
-		ring.append(ZAMEK_CLOCK + a * c.x + b * c.y)
-	lod2_tops.append([ring, 30.0, ZAMEK_CLOCK + b * 9.0])
-
 
 # --- street blocks with modelled fronts ------------------------------------------------------
 
