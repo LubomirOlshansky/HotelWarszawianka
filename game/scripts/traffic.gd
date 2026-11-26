@@ -119,6 +119,22 @@ const PARKED_WAIT := 1.6
 ## Their own seeded generator, so the rest of the traffic's sequence is the same as before.
 const LOUD_CHANCE := 0.12
 const LOUD_SPEED := Vector2(1.12, 1.25)
+## Road life stage 2 (docs/design/road-life.md): this share of the vans the band spawns (not the
+## crazy couriers) are a laweta, half of them with a car on the platform (models.gd VAN_TOW,
+## VAN_TOW_LOADED: the VAN MultiMesh, no draw call of its own). Their own seeded generator, so
+## the rest of the traffic's sequence (the shapes' _looks too) is as before.
+const TOW_CHANCE := 0.12
+## Road life (2026-11-26, docs/design/road-life.md): a CAR's dressing (Driver.dress, models.gd
+## _dress, actor.gdshader DRESS: in the CAR MultiMesh, no draw call of its own). This share of the
+## cars the band spawns are a driving school's Elka (L box on the roof), slow and careful (ELKA_PACE,
+## ELKA_ACCEL), on their own seeded generator, so the rest of the traffic's sequence is as before.
+## A wedding car is road_life.gd's (the convoy).
+const DRESS_NONE := 0
+const DRESS_ELKA := 1
+const DRESS_WEDDING := 2
+const ELKA_CHANCE := 0.025
+const ELKA_PACE := 0.62
+const ELKA_ACCEL := 0.55
 const LOUD_ACCEL := 1.7
 ## Crazy drivers (F 2026-11-05, docs/design/crazy-drivers.md): a few of the taxis and vans the band
 ## spawns drive in racer mode with no route (racing_mode): the Szkoda Oktawia taxis (crazy 1, the
@@ -765,6 +781,10 @@ class Driver:
 	## City-life satire #1 (loud_cars.gd): a loud supercar (kind TAXI, shape TAXI_SUPERCAR): it
 	## drives quicker and pulls away harder; loud_cars.gd revs it when it passes the view.
 	var loud := false
+	## Road life (2026-11-26, actor.gdshader DRESS): a CAR's dressing (DRESS_*: the driving school's
+	## Elka, a wedding car), and a VAN standing on its hazard lights (the dostawczak, crash_scenes.gd).
+	var dress := 0
+	var hazard := false
 	## Crazy drivers (CRAZY_* above): 0 a town car, 1 a Szkoda Oktawia taxi, 2 a Szprynter
 	## courier, 3 the Pasatini.
 	var crazy := 0
@@ -782,6 +802,9 @@ signal hop_refused(d: Driver)
 signal blocked_by_player(d: Driver)
 ## Loop 3g-1: the player's car hit a police car at `speed` m/s (police.gd: a warning or a ram).
 signal bumped_police(d: Driver, speed: float)
+## Road life stage 3: the player's car hit a car of another pool with its lights on (the fire
+## engine), at `speed` m/s lost.
+signal bumped_siren(d: Driver, speed: float)
 ## Loop 3g-1: a police car came into the band (a patrol) or left it (any police car).
 signal police_spawned(d: Driver)
 signal police_released(d: Driver)
@@ -877,6 +900,13 @@ var crazy_count := 0
 var crazy_target := 3
 var pasat_count := 0
 var _crazy_rng := RandomNumberGenerator.new()
+## Road life stage 2: the lawetas' generator.
+var _tow_rng := RandomNumberGenerator.new()
+## Road life (2026-11-26): the Elkas' share (main.gd --elka=X; 0: none), the Elkas out now, their
+## generator.
+var elka_share := 0.0
+var elka_count := 0
+var _elka_rng := RandomNumberGenerator.new()
 ## Loop 2c: picks the shapes, apart from _rng so where and what kind of car spawns is as before.
 var _looks := RandomNumberGenerator.new()
 var _tick := 0
@@ -987,6 +1017,8 @@ func setup(lane_graph: LaneGraph, map_node: Node3D, camera: Camera3D, data: Dict
 	_looks.seed = 2027
 	_loud_rng.seed = 2028
 	_crazy_rng.seed = 2030
+	_tow_rng.seed = 2031
+	_elka_rng.seed = 2032
 	_lane_cars.resize(graph.lane_count)
 	for i in graph.lane_count:
 		_lane_cars[i] = []
@@ -1194,6 +1226,8 @@ func on_player_bump(collider: Object, speed := 0.0) -> void:
 			bumped_police.emit(d, speed)
 			return
 		d.daze = maxf(d.daze, lerpf(DAZE_BRUSH, DAZE, clampf((speed - BRUSH_HIT) / (FULL_HIT - BRUSH_HIT), 0.0, 1.0)))
+		if d.lights:
+			bumped_siren.emit(d, speed)
 		bumped_driver.emit(d)
 
 
@@ -1403,6 +1437,8 @@ func _try_spawn(anywhere: bool) -> bool:
 		elif kind == Kind.VAN:
 			shape = 0
 			crazy = 2
+	if kind == Kind.VAN and crazy == 0 and _tow_rng.randf() < TOW_CHANCE:
+		shape = Models.VAN_TOW if _tow_rng.randf() < 0.5 else Models.VAN_TOW_LOADED
 	var look: Dictionary = shapes[shape]
 	var size: Vector3 = look["size"]
 	if not anywhere and on_screen(Vector3(q.x, y, q.y), size.y):
@@ -1471,6 +1507,12 @@ func _try_spawn(anywhere: bool) -> bool:
 			pasat_count += 1
 			d.paint = Color(PASAT_PAINT[_crazy_rng.randi() % PASAT_PAINT.size()])
 	_start(d, e, lane, s)
+	if kind == Kind.CAR and crazy == 0 and _elka_rng.randf() < elka_share:
+		d.dress = DRESS_ELKA
+		d.speed_factor = ELKA_PACE
+		d.accel_factor = ELKA_ACCEL
+		d.paint = Color("#f2f2ee")
+		elka_count += 1
 	if crazy > 0:
 		_crazy_stats(d)
 	d.v = graph.e_speed[e] * 0.6
@@ -1528,6 +1570,36 @@ func add_crazy(e: int, lane: int, s: float, crazy: int) -> Driver:
 	_crazy_stats(d)
 	d.v = 0.0
 	crazy_spawned.emit(d)
+	return d
+
+
+## Road life (2026-11-26, road_life.gd's wedding convoy): a CAR of `shape` in `paint` dressed
+## `dress` (DRESS_*) on lane (e, lane) at s, standing, out of the pool; persistent (the caller lets
+## it go); null if the pool has no car. Its pace is the town's (speed_factor 1: the caller sets it).
+func add_car(e: int, lane: int, s: float, shape: int, paint: Color, dress := DRESS_NONE) -> Driver:
+	if _free.is_empty() or _free_slots[Kind.CAR].is_empty():
+		return null
+	var d: Driver = _free.pop_back()
+	d.kind = Kind.CAR
+	d.slot = _free_slots[Kind.CAR][_free_slots[Kind.CAR].size() - 1]
+	_free_slots[Kind.CAR].resize(_free_slots[Kind.CAR].size() - 1)
+	_counts[Kind.CAR] += 1
+	var look: Dictionary = Models.TRAFFIC[Kind.CAR][shape]
+	d.size = look["size"]
+	d.length = d.size.z
+	d.shape = shape
+	d.paint = paint
+	d.speed_factor = 1.0
+	d.accel_factor = 1.0
+	d.loud = false
+	d.persistent = true
+	d.ghost = false
+	d.node = null
+	d.core_only = false
+	d.crazy = 0
+	_start(d, e, lane, s)
+	d.dress = dress
+	d.v = 0.0
 	return d
 
 
@@ -1597,6 +1669,8 @@ func _start(d: Driver, e: int, lane: int, s: float) -> void:
 	d.halt_e = -1
 	d.halting = false
 	d.tag = ""
+	d.dress = DRESS_NONE
+	d.hazard = false
 	d.parked = false
 	d.line = null
 	d.line_was = null
@@ -1624,6 +1698,10 @@ func _release(d: Driver) -> void:
 	if d.loud:
 		d.loud = false
 		loud_count -= 1
+	if d.dress == DRESS_ELKA:
+		elka_count -= 1
+	d.dress = DRESS_NONE
+	d.hazard = false
 	if d.crazy > 0:
 		crazy_released.emit(d)
 		crazy_count -= 1
@@ -1641,6 +1719,10 @@ func _release(d: Driver) -> void:
 			# Loop 3g-1: police.gd sets the pause before the next patrol (patrol_wait).
 			police_released.emit(d)
 			_police_reset(d)
+		elif d.lights:
+			# Road life stage 3: the fire engine's lights go off with it.
+			d.lights = false
+			_sirens.erase(d)
 	var at := _active.find(d)
 	if at >= 0:
 		_active[at] = _active[_active.size() - 1]
@@ -2011,7 +2093,7 @@ func _give_way_to_sirens() -> void:
 
 ## Loop 3g-1: moves to lane `k` of its road if it is free alongside (giving way).
 func _change_lane_to(d: Driver, k: int) -> void:
-	if steady_buses and d.kind == Kind.BUS:
+	if steady_buses and d.kind == Kind.BUS and not d.lights:
 		return
 	var e := d.edge
 	if graph.e_s1[e] - d.s < 18.0 or _line_busy(d):
@@ -2484,7 +2566,10 @@ func _choose_way(d: Driver) -> void:
 	d.next_reg = graph.e_lane0[best] + d.next_lane
 	# A racing rival chances some reds.
 	# The night-buses loop: a bus on a route (to a stop, the race to the Palm) never does.
-	d.run_red = not d.route.is_empty() and d.kind != Kind.BUS and (d.race_top > 0.0 or _rng.randf() < 0.6)
+	# (Road life stage 3: the fire engine, a BUS with its lights on, does.)
+	# (Road life 2026-11-26: a wedding convoy's car keeps to the lights, its column re-forms after.)
+	d.run_red = not d.route.is_empty() and (d.kind != Kind.BUS or d.lights) and d.dress != DRESS_WEDDING \
+			and (d.race_top > 0.0 or _rng.randf() < 0.6)
 	if d.crazy > 0:
 		d.run_red = _crazy_rng.randf() < CRAZY_RED[d.crazy]  # crazy drivers: a fresh red now and then
 
@@ -3980,7 +4065,7 @@ func _pass_lanes(e: int, rev: int, s: float, out: float) -> PackedByteArray:
 ## Moves to the neighbouring lane with the most room ahead (more than `room`
 ## metres, nobody alongside), if the road has one. The car slides across.
 func _change_lane(d: Driver, room_needed: float, near := 18.0) -> bool:
-	if steady_buses and d.kind == Kind.BUS:
+	if steady_buses and d.kind == Kind.BUS and not d.lights:
 		return false
 	var e := d.edge
 	if d.in_conn or graph.e_s1[e] - d.s < near or _line_busy(d):
@@ -4856,7 +4941,18 @@ func _write() -> void:
 		buf[b + 14] = d.paint.b
 		# Loop 3g-1: a police car's custom alpha also says its light bar's state (actor.gdshader
 		# SIREN: + 4 lights off, + 8 flashing).
-		buf[b + 15] = float(d.shape) + (0.0 if d.kind != Kind.POLICE else (8.0 if d.lights else 4.0))
+		# (Road life stage 3: so does the fire engine's, models.gd BUS_FIRE.)
+		var bar := d.kind == Kind.POLICE or (d.kind == Kind.BUS and d.shape == Models.BUS_FIRE)
+		# Road life (2026-11-26): a dressed car's mode shows its dressing (+ 12 the Elka, + 16 the
+		# wedding), a van's + 8 flashes its hazard lamps.
+		var mode := 0.0
+		if bar:
+			mode = 8.0 if d.lights else 4.0
+		elif d.kind == Kind.CAR and d.dress != DRESS_NONE:
+			mode = 4.0 * float(d.dress + 2)
+		elif d.kind == Kind.VAN and d.hazard:
+			mode = 8.0
+		buf[b + 15] = float(d.shape) + mode
 		_top[d.kind] = maxi(_top[d.kind], d.slot + 1)
 	for k in POOL.size():
 		# Loop 2c: draw only up to the highest slot in use (a freed slot is the next one taken,
@@ -4888,11 +4984,14 @@ static func night_bus_mesh() -> ArrayMesh:
 		return _bus_night
 	var plate := Models.fin(Color("#16171b"))
 	var lit := Models.fin(Color("#ffb21e"), Models.LIT_SIGN)
-	# One shape per bus (models.gd bus_mesh: the articulated and the solo bus), the signs placed
+	# One shape per bus (models.gd bus_mesh: the articulated and the solo bus; the fire engine gets none), the signs placed
 	# by its front (-9 or -6) and back (9 or 6).
 	var shapes: Array = []
-	for solo: bool in [false, true]:
-		var s := Models.bus_shape(solo)
+	for which in [Models.BUS_ARTIC, Models.BUS_SOLO, Models.BUS_FIRE]:
+		var solo: bool = which == Models.BUS_SOLO
+		var s := Models.bus_shape(which)
+		if which == Models.BUS_FIRE:
+			s.xform = Models.gone(Vector3(0.0, 1.5, 0.0))  # no N signs on the fire engine
 		var front := -6.0 if solo else -9.0
 		var back := 6.0 if solo else 9.0
 		# A side's "right" as seen from outside it: -z on the +x side, +z on the -x side.
@@ -4954,6 +5053,35 @@ func add_bus(e: int, lane: int, s: float) -> Driver:
 	d.core_only = false
 	d.parked = false
 	_start(d, e, lane, s)
+	d.v = 0.0
+	return d
+
+
+## Road life stage 3 (road_life.gd): the fire engine (the BUS pool's models.gd BUS_FIRE) on lane
+## (e, lane) at s, tagged "fire" so buses.gd never takes it for a stop; persistent until remove();
+## null if the pool is empty.
+func add_fire_engine(e: int, lane: int, s: float) -> Driver:
+	if _free_slots[Kind.BUS].is_empty() or _free.is_empty():
+		return null
+	var look: Dictionary = Models.TRAFFIC[Kind.BUS][Models.BUS_FIRE]
+	var d: Driver = _free.pop_back()
+	d.kind = Kind.BUS
+	d.slot = _free_slots[Kind.BUS][_free_slots[Kind.BUS].size() - 1]
+	_free_slots[Kind.BUS].resize(_free_slots[Kind.BUS].size() - 1)
+	_counts[Kind.BUS] += 1
+	d.size = look["size"]
+	d.length = d.size.z
+	d.shape = Models.BUS_FIRE
+	d.paint = Color(look["paint"][0])
+	d.speed_factor = 1.0
+	d.accel_factor = 1.0
+	d.persistent = true
+	d.ghost = false
+	d.node = null
+	d.core_only = false
+	d.parked = false
+	_start(d, e, lane, s)
+	d.tag = "fire"
 	d.v = 0.0
 	return d
 

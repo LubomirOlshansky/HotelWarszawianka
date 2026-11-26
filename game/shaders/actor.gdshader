@@ -22,6 +22,12 @@ shader_type spatial;
 // switched off (its lenses dim, still two-tone), 2 flashing: the patrol car's blue and red lenses
 // in turns, 0.2 s each (2.5 Hz, UV.y shifts the beat), the guards' amber pair together at 1.5 Hz;
 // a lit lens glows by day too, more at night.
+//
+// Road life (2026-11-26, docs/design/road-life.md): DRESS. A family's parts 9 and 10 are a car's
+// dressing, there only in mode 3 (part 9: the driving school's L box, the "Elka") and mode 4
+// (part 10: a wedding car's ribbons and bouquet); in any other mode their vertices fold to a
+// point (no triangles drawn, no draw call of their own). A BLINK lamp with UV.y over 9.5 flashes at
+// the hazard beat (1.4 Hz, all together: a van's hazard lights, mode 2 on, any other mode off).
 
 #include "res://shaders/common.gdshaderinc"
 #include "res://shaders/night.gdshaderinc"
@@ -68,6 +74,9 @@ void vertex() {
 	}
 	vec3 c = srgb_to_linear(COLOR.rgb);
 	int part = int(code + 0.5);
+	if ((part == 9 && siren_mode < 2.5) || (part == 9 && siren_mode > 3.5) || (part == 10 && siren_mode < 3.5)) {
+		VERTEX = vec3(0.0);
+	}
 	glow = vec3(0.0);
 	blink = 0.0;
 	siren = vec3(0.0);
@@ -83,6 +92,9 @@ void vertex() {
 		glow = vec3(1.0, 0.82, 0.55) * 0.75;
 	} else if (part == 6) {
 		glow = c * 1.6;
+	} else if (part == 7 && UV.y > 9.5) {
+		// The hazard lamps: off (a dim lens) unless mode 2.
+		siren = vec3(max(siren_mode, 1.0), 0.0, 1.4);
 	} else if (part == 7 && siren_mode > 0.5) {
 		siren = vec3(siren_mode, UV.y, shape == 1 ? 1.5 : 2.5);
 	} else if (part == 7) {

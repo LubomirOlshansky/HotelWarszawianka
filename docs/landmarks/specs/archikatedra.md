@@ -69,3 +69,11 @@ L3 for the front, L1 elsewhere; budget 1100 (`check_mesh_quality.gd`). Shot:
 ## Update
 
 Photo pass 2026-11-06 (refs/archikatedra 1 and 3, Commons photos): body 16 m of brick (M_GOTHIC) with three pointed windows in white splays (side ones 2 m wide to 13.4 m, middle 2.3 m to 14.2 m), two buttresses at m ± 5.5, a stone frieze at 16-17.2 m, then a gable of six levels (full width 26 m, each level 2.2 m narrower per side and 3.3 m taller, to 21 m over the frieze) with brick shafts and cream panels each holding a blind lancet, gilt cross; an octagonal copper bell turret on the ridge. Replaces the four-tier gable below.
+
+## Update 2026-11-26: windows and night light (F: "strange windows")
+
+The side lancets drew striped panes and an alternating amber/purple glow at night. Now
+(building.gdshader `gothic()`): pale stone splays, leaded diamond quarries with a mullion, one
+dim grey-blue night glow (about #aeb9c8, Fable's critique); the brick and the gable's panels are
+floodlit warm at night like the real church (`M_GOTHIC_LIT`, `M_STONE_LIT`, half codes in
+facade_kit.gd). Shader budget 502 of 505.

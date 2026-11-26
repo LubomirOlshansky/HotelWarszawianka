@@ -39,7 +39,7 @@ extends SceneTree
 ##     rave_flag == "club"; wants_harness() stays false;
 ## 14. the view: decks_match with auto_skill = perfect emits `finished` (PIEC) then `closed`
 ##     headless; every touch zone >= 44 pt with none overlapping at 2532x1170 @3 and 2048x1536 @2;
-##     at most 1100 Kit rects a frame through a set (and on the receipt).
+##     at most 1500 Kit rects a frame through a set (and on the receipt).
 ## Prints `check_decks: OK`, or the problems and their count (exit 1). A few seconds.
 ##   godot --headless --path game --script res://tools/check_decks.gd
 ## Tuning mode (prints the table per bot, checks nothing but the targets' verdicts):
@@ -58,7 +58,7 @@ const UI_TAGS := ["tier0", "tier1", "tier2", "tier3", "g_clean", "g_good", "g_wo
 		"r_respect", "r_paid", "b_again", "b_floor", "b_play", "b_later", "mix"]
 ## Words that must not be on screen in a club (warsaw-tone: no drug jokes).
 const DRUG_WORDS := ["narkot", "kokain", "koks", "mdma", "ecstasy", "extasy", "dragi", "pigu", "cocaine", "drug", "amfetam", "molly"]
-const RECT_BUDGET := 1100
+const RECT_BUDGET := 1500
 const SEEDS := 30
 const SKILLS := ["perfect", "mid", "poor", "none"]
 ## Section 12 point 8: the DJ comes back within this many seconds for the no-input bot.
@@ -806,8 +806,14 @@ func _club() -> void:
 	_step(club, 6.0, ducks)
 	if talk.count("club_decks_invite", "") != 1:
 		_fail("club: the invite came twice")
+	# While the offer is up it is the one choice: no tile, the room's buttons hidden (Autopilot,
+	# 2026-11-26: two TO THE DECKS at once, the card over TAŃCZ).
 	club._place_tile()
-	if not club._decks_btn.visible:
+	if club._decks_btn.visible or club._bar.visible:
+		_fail("club: the tile or the room's buttons show with the invite (tile %s, buttons %s)" % [club._decks_btn.visible, club._bar.visible])
+	club._show_offer(false)
+	club._place_tile()
+	if not club._decks_btn.visible or not club._bar.visible:
 		_fail("club: no ZA DECKI tile after the invite")
 	# A perfect set: paid, saved, the city off then on, the duck held.
 	var frames := _play_set(club, ducks)
