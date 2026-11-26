@@ -29,6 +29,10 @@
   ],
   "_about": "Original lines for Around Warsaw: affectionate Warsaw humour about the city and its stereotypes, never about real private people, no brand names. Each line is [Polish, English], optionally with a third element of notes for the game: {\"only\": tag or [tags]} limits it to one situation (kebab orders: \"powisle\", \"praga\" across the river, \"office\"; rescues: \"roof\", \"street\", \"river\", \"child\", \"square\"; słoiki: \"all\" jars intact, \"some\"; water_tow, loop 10a: \"river\", \"pond\"), {\"customer\": name} names who ordered. {\"poster\": [lines]} (column_posters, loop 1) is how the poster on an advertising column breaks the line: at most four lines of eight letters. Loop 3g-1 (police, docs/design/police.md section 6): police_warn \"speed\", \"red\", \"bump\"; police_chase \"start\", \"backup\", \"roadblock\" (untagged: every 10 to 12 s); police_lost \"escaped\", \"shift\", \"heli\"; police_stop \"routine\", \"roosters\", \"trap\", \"kebab\", \"sloik\" (untagged: the generic opener); police_reply \"trap\", \"kebab\" (untagged: always offered; at most 28 characters, they are buttons); police_caution \"police\", \"fifth\"; radio_host \"traps\" ({pl} / {en}: the day's three speed traps). Speech bubbles stay under 70 characters in Polish. Loop MW-0 (Moja Warszawa, docs/design/vision.md section 7): radio_polnoc (PÓŁNOC FM's host Kuba, \"south_gate\": entering the box from Plac Na Rozdrożu); radio_host (the Hyrax line); club_door (the bouncer: \"reject\", \"queue\", \"car\", \"car_black\", \"dawn\"); clubbers; dawn_crowd (\"palm\"); police_club (the units parked by the clubs, \"sober\"); schodki (\"sunset\", \"guitar\", \"fourth\"); viral (Wiralek: \"queue\", \"new\", \"gone\", \"glon\", \"late\"); runners (\"zajac\", \"hyrax\"); dog_walkers (\"horn\", \"influencer\"); cyclists (\"lane\"); metro_announce; bus_stop (\"night\"); podwozka_request and podwozka_passenger \"club\" (dawn rides from the club doors); notes (the notebook toasts: \"found\", \"chapter\", \"kadr\"); four signs and four column_posters. The notebook's place cards are in places.json and the tape's then cards in then_cards.json. Crash scenes (crash_scenes.gd, 2026-11-01): crash_scene \"driver\", \"officer\", \"medic\", \"gawker\" (bubbles at a fender bender); tow_scene \"operator\", \"guard\", \"owner\", \"gawker\" (road life stage 2, the Odholowanie); radio_host \"crash\", \"tow\" ({street}: the road's name, starting the line). Office crowds at Rondo Daszyńskiego (crowds.gd \"office\" sites and walkers, 2026-11-02): office (\"morning\" 07-10, \"lunch\" 11-14, \"evening\" 16-19, \"rain\"; untagged anywhere): overheard corporate jokes, no brand names. Beta radio (2026-11-02): the host's greeting when the game starts (dialogue.gd greeting) = radio_hello_morning / _day / _evening / _night + radio_weather_warm / _mild / _cold / _rain ({t}: the temperature, \"20 stopni\" / \"20 degrees\") + radio_bye (\"morning\", \"day\", \"evening\", \"night\"). City-life satire #1, loud cars (loud_cars.gd, 2026-11-02): car_meet (the crowd at the Browary meet; \"rev\" when a parked car revs), loud_driver (a passing loud supercar's driver), radio_host \"loud\" (KEBAB FM: \"Sąsiedzi znów liczą obroty\"). Crazy drivers (crazy_drivers.gd, docs/design/crazy-drivers.md, 2026-11-05): crazy_taxi (the Szkoda Oktawia taxis), crazy_courier (the Szprynter couriers), crazy_pasatini (Janusz in the Pasatini 1.9 TDJ), said when one cuts in or blocks near the player; radio_host \"pasatini\" (KEBAB FM: a Pasatini sighting). The city objects plan, step 7 (soft_things.gd, main.gd _on_soft_broke): smash (someone who saw the player drive through a fence or hedge; \"fence\", \"hedge\"). Step 8a (soft_things.gd, main.gd _on_car_pushed): parked_push (the owner of a parked car the player pushed).",
   "radio_host": [
+    ["{street}: drogówka dmucha w balonik. Kto był w Tapczanie, niech wybierze tramwaj.", "{street}: the police are doing breath tests. If you've been to the Tapczan, take the tram.", {"only": "sober"}],
+    ["Uwaga, {street}: kontrola trzeźwości. Ustniki nowe, humory różne.", "Heads up, {street}: a sobriety check. Fresh mouthpieces, mixed moods.", {"only": "sober"}],
+    ["{street}: jedzie wesele. Wstążki na masce, klaksony na full. Gorzko!", "{street}: a wedding coming through. Ribbons on the bonnet, horns flat out. Gorzko!", {"only": "wedding"}],
+    ["{street}: orszak weselny. Kto trąbi z nimi, ten gość.", "{street}: a wedding convoy. Honk along and you're a guest.", {"only": "wedding"}],
     ["{street}: laweta zabiera auto z chodnika. Właściciel biegnie w szlafroku, zakupy w ręku.", "{street}: a tow truck is taking a car off the pavement. The owner's running in a bathrobe, shopping in hand.", {"only": "tow"}],
     ["Z ostatniej chwili: {street}, odholowanie. Straż miejska ma dziś dobry dzień. Kierowca nie.", "Breaking: {street}, a tow-away. The city guards are having a good day. The driver isn't.", {"only": "tow"}],
     ["{street}: auto stało na chodniku „pięć minut”. Laweta przyjechała w cztery.", "{street}: the car was on the pavement \"five minutes\". The tow truck came in four.", {"only": "tow"}],
@@ -7264,6 +7268,38 @@
     ["Nagrywam. To będzie hit na osiedlowej grupie.", "I'm filming. This'll be a hit in the estate group.", {"only": "gawker"}],
     ["Mówiłam mu w zeszłym tygodniu. Nie słuchał.", "I told him last week. He didn't listen.", {"only": "gawker"}]
   ],
+  "delivery_scene": [
+    ["Tylko na chwilkę!", "Just for a sec!", {"only": "courier"}],
+    ["Paczka do czternastki, a tu nikt nie otwiera...", "Parcel for number fourteen and nobody answers...", {"only": "courier"}],
+    ["Mam jeszcze sto dwadzieścia adresów, proszę pana.", "I've still got a hundred and twenty stops, sir.", {"only": "courier"}],
+    ["Awaryjne włączone, czyli wolno, prawda?", "Hazards on, so it's allowed, right?", {"only": "courier"}],
+    ["Miało być do automatu paczkowego!", "It was meant to go to the parcel locker!", {"only": "customer"}],
+    ["Zamawiałam na jutro, ale dziękuję.", "I ordered it for tomorrow, but thanks.", {"only": "customer"}],
+    ["Proszę pana, to nie moje nazwisko...", "Excuse me, that's not my name...", {"only": "customer"}],
+    ["Już, już! Sekundka!", "Coming, coming! One second!", {"only": "honked"}],
+    ["Trąb sobie, ja mam normę!", "Honk away, I've got a quota!", {"only": "honked"}],
+    ["Chwila! Pan też kiedyś coś zamówi!", "One minute! You'll order something one day too!", {"only": "honked"}]
+  ],
+  "sober_check": [
+    ["Dmuchamy długo, do końca.", "Blow long and steady, all the way.", {"only": "officer"}],
+    ["Jeszcze raz. Pan dmuchał do środka czy na zewnątrz?", "Once more. Did you blow in or out?", {"only": "officer"}],
+    ["Dobry wieczór. Dokumenty też poproszę.", "Good evening. Papers too, please.", {"only": "officer"}],
+    ["Kontrola trzeźwości, zapraszamy!", "Sobriety check, pull in please!", {"only": "waver"}],
+    ["Następny, proszę zjechać.", "Next one, pull in please.", {"only": "waver"}],
+    ["Spokojnie, tylko dmuchamy.", "Relax, we're only breathing today.", {"only": "waver"}],
+    ["Dobry wieczór, kontrola trzeźwości. Proszę stanąć!", "Good evening, sobriety check. Please stop!", {"only": "wave"}],
+    ["Ustnik nowy, proszę dmuchać.", "Fresh mouthpiece. Blow, please.", {"only": "blow"}],
+    ["Zero, zero zero. Szerokości!", "Zero point zero zero. Drive safe!", {"only": "sober"}],
+    ["Czysto. Tak trzymać.", "Clean. Keep it that way.", {"only": "sober"}],
+    ["Coś tu jest... A gdzie my tak po Tapczanie?", "Something's there... Coming from the Tapczan, are we?", {"only": "drunk"}],
+    ["Promile są. Mandat na pamiątkę i dalej bardzo powoli.", "There's alcohol. A ticket as a souvenir, and very slowly from here.", {"only": "drunk"}],
+    ["Halo! Stój! ...Szkoda papieru na pościg.", "Hey! Stop! ...Not worth the paperwork to chase.", {"only": "passed"}],
+    ["KONTROLA TRZEŹWOŚCI · STAŃ PRZY POLICJANCIE", "SOBRIETY CHECK · STOP BY THE OFFICER", {"only": "toast_wave"}],
+    ["DMUCHNIJ!", "BLOW!", {"only": "toast_blow"}],
+    ["0,00 ‰ · SZEROKOŚCI! +{n} RESPEKTU", "0.00 ‰ · DRIVE SAFE! +{n} RESPECT", {"only": "toast_sober"}],
+    ["{p} ‰ · MANDAT {zl} ZŁ · −{n} RESPEKTU", "{p} ‰ · {zl} ZŁ FINE · −{n} RESPECT", {"only": "toast_drunk"}],
+    ["KONTROLA POMINIĘTA · −{n} RESPEKTU", "SKIPPED THE CHECK · −{n} RESPECT", {"only": "toast_passed"}]
+  ],
   "road_life": [
     ["KARETKA Z TYŁU · ZJEDŹ NA BOK", "AMBULANCE BEHIND · PULL ASIDE", {"only": "amb_behind"}],
     ["KORYTARZ ŻYCIA! +{n} RESPEKTU", "RESCUE CORRIDOR! +{n} RESPECT", {"only": "amb_thanks"}],
@@ -7293,6 +7329,21 @@
     ["Zielone, kierowniku!", "Green, chief!", {"only": "green"}],
     ["Jedź, bardziej zielone nie będzie!", "Go on, it won't get any greener!", {"only": "green"}],
     ["Halo! Zielone było trzy sekundy temu!", "Hello! It went green three seconds ago!", {"only": "green"}],
-    ["Trąbię z miłością. Jedź!", "I'm honking with love. Go!", {"only": "green"}]
+    ["Trąbię z miłością. Jedź!", "I'm honking with love. Go!", {"only": "green"}],
+    ["Sprzęgło, sprzęgło! I lusterko!", "Clutch, clutch! And the mirror!", {"only": "elka_instructor"}],
+    ["Spokojnie. Ten za nami też kiedyś zdawał.", "Easy. The one behind us passed a test once too.", {"only": "elka_instructor"}],
+    ["Kierunkowskaz to nie ozdoba.", "The indicator isn't a decoration.", {"only": "elka_instructor"}],
+    ["Panie instruktorze, ktoś za nami jedzie!", "Instructor, someone's right behind us!", {"only": "elka_learner"}],
+    ["Mogę już wrzucić trójkę?", "Can I go into third yet?", {"only": "elka_learner"}],
+    ["To już egzamin czy jeszcze nie?", "Is this the exam yet or not?", {"only": "elka_learner"}],
+    ["Proszę nie trąbić, kursant się stresuje!", "Please don't honk, the learner gets nervous!", {"only": "elka_honked"}],
+    ["Trąbienie nie przyspiesza nauki!", "Honking doesn't speed up the lessons!", {"only": "elka_honked"}],
+    ["Gorzko! Gorzko!", "Gorzko! Kiss, kiss!", {"only": "wedding"}],
+    ["Młoda para jedzie!", "Here come the newlyweds!", {"only": "wedding"}],
+    ["Sto lat, sto lat!", "A hundred years, a hundred years!", {"only": "wedding"}],
+    ["Wesele do rana!", "Party till the morning!", {"only": "wedding"}],
+    ["Gość weselny! Zapraszamy na poprawiny!", "A wedding guest! You're invited to the day-after!", {"only": "wedding_guest"}],
+    ["Trąbi z nami! Jest miejsce przy stole!", "Honking along! There's a seat at the table!", {"only": "wedding_guest"}],
+    ["GOŚĆ WESELNY! +{n} RESPEKTU", "WEDDING GUEST! +{n} RESPECT", {"only": "wed_guest"}]
   ]
 }

@@ -200,6 +200,12 @@ class Hud extends CanvasLayer:
 		buttons = 0
 		button_words = PackedStringArray()
 
+	## hud.gd's minimap mark of a road scene (crash_scenes.gd; INF: none).
+	var scene_mark := Vector2.INF
+
+	func set_scene_mark(at: Vector2) -> void:
+		scene_mark = at
+
 	func toast(a: String, b := "", _priority := 2) -> void:  # 2 is Messages.INFO, hud.gd's default
 		toasts.append(a)
 		toasts_en.append(b)

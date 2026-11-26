@@ -31,6 +31,15 @@ const LIT_WINDOW := 5.0
 const LIT_SIGN := 6.0
 const BLINK := 7.0
 const HERO := 8.0
+## Road life (2026-11-26): a traffic car's dressing, drawn only in its mode (actor.gdshader DRESS;
+## traffic.gd Driver.dress): 9 the driving school's L box, 10 a wedding car's ribbons and flowers.
+const DRESS_L := 9.0
+const DRESS_WEDDING := 10.0
+## A BLINK lamp's UV.y at the hazard beat (actor.gdshader: over 9.5, all together at 1.4 Hz).
+const HAZARD_BEAT := 10.0
+const HAZARD := Color("#ffa51e")
+## The Polish L sign: a blue square, a white L.
+const L_BLUE := Color("#1f5fbf")
 ## Loop 2c: added to UV.x on a family mesh's vertices (actor.gdshader then reads CUSTOM0..2).
 const MORPH := 16.0
 
@@ -659,6 +668,7 @@ static func traffic_mesh(kind: int) -> ArrayMesh:
 			for n: String in ["hatch", "saloon", "estate", "suv"]:
 				var s := Shape.new()
 				_vehicle(s, spec(n), paint)
+				_dress(s, spec(n))
 				shapes.append(s)
 			return family(shapes)
 		1:
@@ -666,6 +676,39 @@ static func traffic_mesh(kind: int) -> ArrayMesh:
 		2:
 			return family([_van(VAN_PANEL), _van(VAN_BOX), _van(VAN_TOW), _van(VAN_TOW_LOADED)])
 	return bus_mesh()
+
+
+## Road life (2026-11-26): a traffic car's two dressings, in every CAR shape (the family's parts
+## match), shown by actor.gdshader only in their mode: the Elka's roof box (a blue box, a white L
+## on its front and back) and a wedding car's white ribbons from the mirrors to the bonnet's nose,
+## a bouquet on the nose and a bow on each mirror.
+static func _dress(s: Shape, p: Dictionary) -> void:
+	var L: float = p["L"]
+	var W: float = p["W"]
+	var roof_y: float = p["roof_y"]
+	var rz := (float(p["roof_z0"]) + float(p["roof_z1"])) * 0.5
+	var blue := fin(L_BLUE, DRESS_L)
+	var white := fin(Color("#f4f4f0"), DRESS_L)
+	s.box(Vector3(0.0, roof_y + 0.17, rz), Vector3(0.62, 0.32, 0.42), blue)
+	for e: float in [-1.0, 1.0]:
+		var z := rz + e * 0.215
+		# Looking at that face, the viewer's right is +x * e: the stem on the left, the foot to the right.
+		s.box(Vector3(-e * 0.06, roof_y + 0.18, z), Vector3(0.07, 0.24, 0.012), white)
+		s.box(Vector3(e * 0.01, roof_y + 0.095, z), Vector3(0.21, 0.07, 0.012), white)
+	var rib := fin(Color("#f8f8f4"), DRESS_WEDDING)
+	var nose_y: float = p["nose"] + 0.03
+	var nose_z := -L * 0.5 + 0.32
+	var cowl_z: float = p["cowl_z"]
+	var cowl_y: float = p["cowl_y"] + 0.03
+	for sgn: float in [-1.0, 1.0]:
+		var a := Vector3(sgn * (W - 0.06), cowl_y, cowl_z + 0.05)
+		var b := Vector3(sgn * 0.05, nose_y, nose_z)
+		var side := Vector3(0.0, 0.0, 0.09)
+		s.quad(a - side, a + side, b + side, b - side, rib, Vector3.UP)
+		s.box(Vector3(sgn * (W + 0.06), cowl_y + 0.03, cowl_z + 0.12), Vector3(0.14, 0.16, 0.1), rib)
+	s.box(Vector3(0.0, nose_y + 0.07, nose_z), Vector3(0.38, 0.16, 0.28), fin(Color("#ffffff"), DRESS_WEDDING))
+	s.box(Vector3(-0.08, nose_y + 0.17, nose_z - 0.03), Vector3(0.12, 0.08, 0.12), fin(Color("#f29bb8"), DRESS_WEDDING))
+	s.box(Vector3(0.09, nose_y + 0.17, nose_z + 0.04), Vector3(0.12, 0.08, 0.12), fin(Color("#f29bb8"), DRESS_WEDDING))
 
 
 ## The city taxi (an invented livery: a white hybrid liftback with a yellow band of dark squares along
@@ -816,6 +859,13 @@ static func _van(which: int) -> Shape:
 	_vehicle(s, spec("hatch"), fin(TOW_LOAD_PAINT))
 	s.xform = Transform3D.IDENTITY
 	s.show()
+	# Road life (2026-11-26): the hazard lamps at the four corners (traffic.gd Driver.hazard: the
+	# dostawczak), dim amber lenses unless they flash.
+	var W: float = p["W"]
+	var lamp := fin(HAZARD, BLINK, HAZARD_BEAT)
+	for e: float in [-1.0, 1.0]:
+		for sgn: float in [-1.0, 1.0]:
+			s.box(Vector3(sgn * (W - 0.02), float(p["sill"]) + 0.42, e * (L * 0.5 + 0.02)), Vector3(0.16, 0.14, 0.14), lamp)
 	return s
 
 

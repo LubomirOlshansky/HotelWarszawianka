@@ -44,9 +44,26 @@ extends Node
 ## Stage 3: WRECK_TOW_SHARE of the fender benders ("crash_tow") have a laweta where the ambulance
 ## would stand, its operator in the paramedic's place; the car that was hit (then the hatch in
 ## TOW_LOAD_PAINT) is pulled onto it the same way, and the laweta takes the wreck away.
+##
+## Road life (2026-11-26, F's Thursday list): two more kinds.
+## **Dostawczak na awaryjnych** ("delivery", DELIVERY_SHARE): a courier's van (the VAN pool's panel
+## or box van) stands in the kerb lane on its hazard lights (traffic.gd Driver.hazard, models.gd's
+## corner lamps: +0 draw calls), the courier at its back doors with a parcel, the customer on the
+## footway ("Tylko na chwilkę!", dialogue.json `delivery_scene`). The player's horn near it gets an
+## answer (`honk`). After DELIVERY_STAY s the courier gets in, the hazards go off and the van pulls
+## out into the traffic.
+## **Kontrola trzeźwości** ("sober", night only, SOBER_HOURS; once a session): a patrol car with its
+## lights on in the kerb lane, a car pulled in behind it with an officer and the breathalyser at its
+## window, a second officer standing at the lane's edge waving cars in (`sober_check`). The player
+## who comes by in that lane or the next is waved in (a toast); stopping by the officer is a breath
+## test ("Dmuchamy!"), 0,00 is +2 respect ("Szerokości!"), after THE TAPCZAN (tipsy.gd `amount`,
+## through `tipsy`) a fine and a floored respect loss; driving on past the officer costs 3 respect
+## (road_rules.gd; F 2026-11-23: no chase).
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Models := preload("res://scripts/models.gd")
+const Rules := preload("res://scripts/road_rules.gd")
+const Messages := preload("res://scripts/messages.gd")
 
 const TICK := 0.5
 ## The share of scenes that are a taxi check (the rest are fender benders).
@@ -71,6 +88,33 @@ const HAIL_SPEED := 4.5
 const PASSENGER := 3
 ## The share of scenes that are an Odholowanie (a tow).
 const TOW_SHARE := 0.25
+## Road life (2026-11-26): the dostawczak's share of scenes, where its van stands from the scene's
+## rear (m), how long it stays (s), its people (the courier, the customer), their turns, lines and
+## bubble colour, and the gap between the courier's answers to a horn (s) and how near it is heard.
+const DELIVERY_SHARE := 0.15
+const AT_VAN := 10.0
+const DELIVERY_STAY := Vector2(40.0, 70.0)
+const DELIVERY_PEOPLE := [["courier", "#c8452c", 0.1], ["customer", "#7fa7c9", 0.6]]
+const DELIVERY_TURNS := [0, 1, 0, 0, 1]
+const DELIVERY_LINES := "delivery_scene"
+const DELIVERY_BUBBLE := Color("#ffb347")
+const HONK_REPLY_GAP := 5.0
+const HONK_REACH := 35.0
+## Kontrola trzeźwości: its share of the scenes at night (SOBER_HOURS: from x in the evening to y
+## in the morning), where the checked car, the patrol car and the waving officer stand (m from the
+## scene's rear), its people (the officer at the window, the one waving), turns, lines, bubble
+## colour, the breath test's seconds and the fine (zł) when it is not 0,00.
+const SOBER_SHARE := 0.4
+const SOBER_HOURS := Vector2(21.0, 5.0)
+const AT_SOBER_POLICE := 17.0
+const AT_SOBER_CAR := 10.0
+const AT_SOBER_WAVE := 4.0
+const SOBER_PEOPLE := [["officer", "#e8f23a", 0.1], ["waver", "#e8f23a", 0.1]]
+const SOBER_TURNS := [0, 1, 0, 1, 1]
+const SOBER_LINES := "sober_check"
+const SOBER_RADIO_TAG := "sober"
+const SOBER_BLOW := 2.2
+const SOBER_FINE := 500
 ## The share of fender benders where a laweta takes the wreck away (no ambulance), and where it
 ## stands along the lane (its middle: its rear 3.1 m ahead of the hit car's front).
 const WRECK_TOW_SHARE := 0.5
@@ -176,6 +220,20 @@ var hail_share := HAIL_SHARE
 var hails := 0
 var hail_offers := 0
 var _hail_rng := RandomNumberGenerator.new()
+## Road life (2026-11-26): the dostawczak's and the sobriety check's shares (a check sets 0 or 1);
+## the wallet (respect, the fine), the hour now (0-24; empty: noon) and how tipsy the player is
+## (tipsy.gd `amount`, 0..1; empty: sober); the counts (the log, check_crash_scenes).
+var delivery_share := DELIVERY_SHARE
+var sober_share := SOBER_SHARE
+var wallet: Node
+var hour: Callable
+var tipsy: Callable
+var sobers := 0
+var sober_tests := 0
+var sober_passed := 0
+var sober_fines := 0
+var deliveries := 0
+var honk_replies := 0
 
 ## Seconds to the next scene; the scene now ({} = none).
 var wait := 0.0
@@ -189,6 +247,44 @@ var _clock := 0.0
 var _heading := Vector2.ZERO
 var _last_at := Vector2.INF
 var spent_usec := 0
+
+
+## The kinds a test flag may ask for (--crash=KIND, --crash=KIND,X,Z).
+const KINDS := ["taxi", "tow", "delivery", "sober"]
+
+
+## Copies what it needs from the ctx (game_ctx.gd), as road_life.gd does: the traffic and its
+## graph, the map, the words, the police, the radio, the sound, the HUD, the wallet, the clock,
+## the view's focus, the player's vehicle and the test flags (--crash=..., --crash-log). main.gd
+## adds the walkers and the callables to other systems.
+func install(ctx) -> void:
+	traffic = ctx.traffic
+	graph = ctx.graph
+	map = ctx.map
+	dialogue = ctx.dialogue
+	police = ctx.police
+	radio = ctx.radio
+	sfx = ctx.sfx
+	hud = ctx.hud
+	wallet = ctx.wallet
+	hour = ctx.hour
+	focus = ctx.focus
+	vehicle = ctx.vehicle
+	var f = ctx.flags
+	if f != null:
+		log_on = f.crash_log
+		enabled = f._crash_auto or f.crash_flag != ""
+
+
+## --crash=now, =KIND, =X,Z or =KIND,X,Z (dev_flags.gd): a scene (of that kind) ahead of the car
+## now (`from`, `heading`; it may be in view), or on the fitting road nearest X,Z.
+func test_flag(flag: String, from: Vector2, heading: Vector2) -> void:
+	var xz := flag.split(",")
+	var kind: String = xz[0] if xz[0] in KINDS else ""
+	if kind != "" and xz.size() == 3:
+		xz = xz.slice(1)
+	if flag == "now" or kind == flag or xz.size() == 2:
+		place(from, heading, true, Vector2(float(xz[0]), float(xz[1])) if xz.size() == 2 else Vector2.INF, kind)
 
 
 func setup(seed_value := -1) -> void:
@@ -249,6 +345,10 @@ func step(dt: float) -> void:
 		_tow_step(dt, dist)
 	if scene.has("hail"):
 		_hail_step(v)
+	if scene.has("van"):
+		_delivery_step()
+	if scene.has("sober"):
+		_sober_step(dt, v)
 	if dist < TALK_REACH and not bool(v[2]):
 		scene["talk"] = float(scene["talk"]) - dt
 		if float(scene["talk"]) <= 0.0:
@@ -305,6 +405,10 @@ static func layout(g: LaneGraph, spot: Dictionary, kind := "crash") -> Dictionar
 		return taxi_layout(g, spot)
 	if kind == "tow":
 		return tow_layout(g, spot)
+	if kind == "delivery":
+		return delivery_layout(g, spot)
+	if kind == "sober":
+		return sober_layout(g, spot)
 	var e: int = spot["e"]
 	var lane: int = spot["lane"]
 	var s0: float = spot["s0"]
@@ -412,6 +516,67 @@ static func tow_layout(g: LaneGraph, spot: Dictionary) -> Dictionary:
 	return {"cars": cars, "people": people, "mid": m}
 
 
+## The hour `h` (0-24) is the sobriety checks' (SOBER_HOURS, over midnight).
+static func is_night(h: float) -> bool:
+	return h >= SOBER_HOURS.x or h < SOBER_HOURS.y
+
+
+## People at [s, metres right of the centreline, facing: 1 along, -1 back, 0 the road, 2 the kerb]
+## on edge e: [position (y 0), yaw] each.
+static func _stand(g: LaneGraph, e: int, rows: Array) -> Array:
+	var people: Array = []
+	for row: Array in rows:
+		var s: float = row[0]
+		var p := g.point_at(e, s, float(row[1]))
+		var d := g.direction(e, s)
+		var face: Vector2
+		match int(row[2]):
+			1, -1:
+				face = d * float(row[2])
+			2:
+				face = Vector2(-d.y, d.x)
+			_:
+				face = Vector2(d.y, -d.x)
+		people.append([Vector3(p.x, 0.0, p.y), atan2(-face.x, -face.y)])
+	return people
+
+
+## The dostawczak at spot {e, lane, s0}: the van in the kerb lane, a little towards the kerb; the
+## courier at its back doors on the kerb side, turned to the footway, the customer on the footway.
+static func delivery_layout(g: LaneGraph, spot: Dictionary) -> Dictionary:
+	var e: int = spot["e"]
+	var lane: int = spot["lane"]
+	var s0: float = spot["s0"]
+	var lo := g.lane_offset(e, lane)
+	var s := s0 + AT_VAN
+	var p := g.point_at(e, s, lo + 0.3)
+	var d := g.direction(e, s)
+	var kerb := lo + g.e_lw[e] * 0.5
+	var people := _stand(g, e, [[s - 3.4, kerb - 0.1, 2.0], [s - 3.1, kerb + 1.6, 0.0]])
+	return {"cars": [["van", Vector3(p.x, g.height(e, s), p.y), atan2(-d.x, -d.y)]], "people": people,
+			"mid": g.point_at(e, s, lo)}
+
+
+## The sobriety check at spot {e, lane, s0}: the checked car pulled in behind the patrol car in the
+## kerb lane, both straight; the officer with the breathalyser at the car's driver window (the
+## lane's traffic side), the one waving cars in at the lane's traffic edge behind it, facing the
+## traffic. `wave` is where the waving officer stands (the rules' mark).
+static func sober_layout(g: LaneGraph, spot: Dictionary) -> Dictionary:
+	var e: int = spot["e"]
+	var lane: int = spot["lane"]
+	var s0: float = spot["s0"]
+	var lo := g.lane_offset(e, lane)
+	var cars: Array = []
+	for row: Array in [["checked", AT_SOBER_CAR, 0.3], ["police", AT_SOBER_POLICE, 0.2]]:
+		var s: float = s0 + float(row[1])
+		var p := g.point_at(e, s, lo + float(row[2]))
+		var d := g.direction(e, s)
+		cars.append([row[0], Vector3(p.x, g.height(e, s), p.y), atan2(-d.x, -d.y)])
+	var people := _stand(g, e, [[s0 + AT_SOBER_CAR - 0.5, lo - 1.25, 2.0], [s0 + AT_SOBER_WAVE, lo - 0.9, -1.0]])
+	var w := g.point_at(e, s0 + AT_SOBER_WAVE, lo - 0.9)
+	return {"cars": cars, "people": people, "mid": g.point_at(e, s0 + AT_SOBER_CAR, lo), "wave": w}
+
+
 ## Where the abandoned car is on its way onto the laweta at `tow` (its position and yaw), `f`
 ## from 0 (still at the kerb, `start`, `start_yaw`) to 1 (on the platform, as the loaded shape
 ## draws it): a slide in line behind the ramp tips, up to the platform's end, along it. Static:
@@ -438,6 +603,10 @@ static func people_of(kind: String) -> Array:
 			return TAXI_PEOPLE
 		"tow":
 			return TOW_PEOPLE
+		"delivery":
+			return DELIVERY_PEOPLE
+		"sober":
+			return SOBER_PEOPLE
 		"crash_tow":
 			var out := PEOPLE.duplicate()
 			out[3] = TOW_PEOPLE[0]
@@ -452,9 +621,13 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 		clear()
 	if kind == "":
 		var r := _rng.randf()
-		kind = "taxi" if r < taxi_share else "tow" if r < taxi_share + tow_share else "crash"
+		kind = "taxi" if r < taxi_share else "tow" if r < taxi_share + tow_share else \
+				"delivery" if r < taxi_share + tow_share + delivery_share else "crash"
 		if kind == "crash" and _rng.randf() < wreck_tow_share:
 			kind = "crash_tow"
+		# Road life: at night, now and then a sobriety check instead (once a session).
+		if sobers == 0 and is_night(float(hour.call()) if hour.is_valid() else 12.0) and _rng.randf() < sober_share:
+			kind = "sober"
 	var spot := {}
 	for attempt in 6:
 		if at != Vector2.INF:
@@ -488,8 +661,8 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 	var drivers: Array = []
 	var paints: Array = Models.TRAFFIC[0][0]["paint"]
 	var at_s: Dictionary = {"police": AT_TAXI_POLICE, "taxi": AT_TAXI, "car": AT_TOW_CAR, "tow": AT_TOW,
-			"hitter": AT_HITTER, "hit": AT_HIT, "ambulance": AT_AMBULANCE}
-	at_s["police"] = AT_TAXI_POLICE if kind == "taxi" else AT_POLICE
+			"hitter": AT_HITTER, "hit": AT_HIT, "ambulance": AT_AMBULANCE, "van": AT_VAN, "checked": AT_SOBER_CAR}
+	at_s["police"] = AT_TAXI_POLICE if kind == "taxi" else AT_SOBER_POLICE if kind == "sober" else AT_POLICE
 	if kind == "crash_tow":
 		at_s["tow"] = AT_WRECK_TOW
 	for c: Array in lay["cars"]:
@@ -506,6 +679,15 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 		elif c[0] == "tow":
 			var tw: Array = Models.TRAFFIC[2][Models.VAN_TOW]["paint"]
 			d = traffic.add_parked_car(e, s, c[1], c[2], lane, Models.VAN_TOW, Color(tw[_rng.randi() % tw.size()]), 2)
+		elif c[0] == "van":
+			# The dostawczak: the panel or the box van in its own paints, on its hazard lights.
+			var shape := _rng.randi() % 2
+			var vp: Array = Models.TRAFFIC[2][shape]["paint"]
+			d = traffic.add_parked_car(e, s, c[1], c[2], lane, shape, Color(vp[_rng.randi() % vp.size()]), 2)
+			if d != null:
+				d.hazard = true
+		elif c[0] == "checked":
+			d = traffic.add_parked_car(e, s, c[1], c[2], lane, _rng.randi() % WRECK_SHAPES, Color(paints[_rng.randi() % paints.size()]))
 		elif c[0] == "hit" and kind == "crash_tow":
 			# The wreck the laweta takes: the hatch in the loaded laweta's car paint.
 			d = traffic.add_parked_car(e, s, c[1], c[2], lane, 0, Models.TOW_LOAD_PAINT)
@@ -514,7 +696,7 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 			d = traffic.add_parked_car(e, s, c[1], c[2], lane, _rng.randi() % WRECK_SHAPES, paint)
 		elif police != null:
 			d = police.scene_car(e, lane, s, c[1], c[2], 0 if c[0] == "police" else 2)
-		if d == null and c[0] in ["hitter", "hit", "taxi", "car", "tow"]:
+		if d == null and c[0] in ["hitter", "hit", "taxi", "car", "tow", "van", "checked"]:
 			for o in drivers:
 				_drop(o)
 			return false
@@ -536,6 +718,15 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 			"age": 0.0, "life": _rng.randf_range(LIFE.x, LIFE.y), "talk": 0.6, "turn": 0, "street": street, "kind": kind}
 	if kind == "taxi" and stranded.is_valid() and _hail_rng.randf() < hail_share:
 		scene["hail"] = true
+	if kind == "delivery":
+		scene["van"] = drivers[0]
+		scene["stay"] = _rng.randf_range(DELIVERY_STAY.x, DELIVERY_STAY.y)
+		scene["life"] = maxf(float(scene["life"]), float(scene["stay"]) + 30.0)
+		deliveries += 1
+	elif kind == "sober":
+		scene["wave"] = lay["wave"]
+		scene["sober"] = 0  # 0 not met, 1 waved in, 2 blowing, 3 done
+		sobers += 1
 	if tow_truck != null:
 		scene["tow_car"] = load_car
 		scene["tow_truck"] = tow_truck
@@ -544,7 +735,8 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 	var m: Vector2 = lay["mid"]
 	_log("scene %d (%s) at %d,%d (%s, lane %d of %d, %d vehicles, %.0f m away, lives %.0f s)" % [placed, kind, roundi(m.x), roundi(m.y),
 			street if street != "" else "a nameless road", lane, graph.e_lanes[e], drivers.size(), from.distance_to(m), scene["life"]])
-	_announce(street, {"taxi": TAXI_RADIO_TAG, "tow": TOW_RADIO_TAG}.get(kind, RADIO_TAG))
+	if kind != "delivery":
+		_announce(street, {"taxi": TAXI_RADIO_TAG, "tow": TOW_RADIO_TAG, "sober": SOBER_RADIO_TAG}.get(kind, RADIO_TAG))
 	return true
 
 
@@ -712,14 +904,18 @@ func _talk() -> void:
 	var turn: int = scene["turn"]
 	scene["turn"] = turn + 1
 	var kind: String = scene.get("kind", "crash")
-	var turns: Array = {"taxi": TAXI_TURNS, "tow": TOW_TURNS}.get(kind, TURNS)
+	var turns: Array = {"taxi": TAXI_TURNS, "tow": TOW_TURNS, "delivery": DELIVERY_TURNS, "sober": SOBER_TURNS}.get(kind, TURNS)
 	var i: int = turns[turn % turns.size()]
 	if i == PASSENGER and kind == "taxi" and bool(scene.get("gone", false)):
 		return  # the passenger left in the player's car
+	if kind == "delivery" and i == 0 and scene.get("van") == null:
+		return  # the courier drove off
+	if kind == "sober" and int(scene.get("sober", 0)) in [1, 2]:
+		return  # the officers are busy with the player
 	var tag: String = people_of(kind)[i][0]
-	var group: String = {"taxi": TAXI_LINES, "tow": TOW_LINES}.get(kind, TOW_LINES if tag == "operator" else LINES)
-	var l: Array = dialogue.say_ambient(_anchor(i), "", group, tag, 3.4,
-			{"taxi": TAXI_BUBBLE, "tow": TOW_BUBBLE}.get(kind, BUBBLE), 1.9, true)
+	var group: String = {"taxi": TAXI_LINES, "tow": TOW_LINES, "delivery": DELIVERY_LINES, "sober": SOBER_LINES}.get(kind,
+			TOW_LINES if tag == "operator" else LINES)
+	var l: Array = dialogue.say_ambient(_anchor(i), "", group, tag, 3.4, _bubble(kind), 1.9, true)
 	if not l.is_empty():
 		_log("%s: %s" % [tag, l[0]])
 
@@ -754,6 +950,141 @@ func _hail_step(v: Array) -> void:
 		_log("the passenger hailed the player: a ride offered")
 	else:
 		_log("the passenger hailed the player: busy, no ride")
+
+
+## The bubble colour of a scene of `kind`.
+static func _bubble(kind: String) -> Color:
+	return {"taxi": TAXI_BUBBLE, "tow": TOW_BUBBLE, "delivery": DELIVERY_BUBBLE, "sober": TAXI_BUBBLE}.get(kind, BUBBLE)
+
+
+## A line of `tag` from the scene's person i (its own group and bubble).
+func _say(i: int, tag: String) -> void:
+	if dialogue == null:
+		return
+	var kind: String = scene.get("kind", "crash")
+	var group: String = {"delivery": DELIVERY_LINES, "sober": SOBER_LINES}.get(kind, LINES)
+	var l: Array = dialogue.say_ambient(_anchor(i), "", group, tag, 3.4, _bubble(kind), 2.4, true)
+	scene["talk"] = maxf(float(scene["talk"]), 3.0)
+	if not l.is_empty():
+		_log("%s: %s" % [tag, l[0]])
+
+
+## The dostawczak's timeline, each tick: after its stay the courier gets in, the hazards go off and
+## the van pulls out into its lane and drives on as ordinary traffic.
+func _delivery_step() -> void:
+	var van = scene["van"]
+	if van == null or float(scene["age"]) < float(scene["stay"]):
+		return
+	scene["van"] = null
+	if not van.active:
+		return
+	van.hazard = false
+	scene["drivers"].erase(van)
+	traffic.unpark(van, int(scene["e"]), int(scene["lane"]), float(scene["s0"]) + AT_VAN)
+	van.persistent = false
+	if walkers != null:
+		walkers.clear_scene(0)
+	if dialogue != null and dialogue.bubbles != null:
+		dialogue.bubbles.hush(_anchor(0))
+	_log("the courier drives off")
+
+
+## The player's horn (main.gd `_honk`) at `at`: a courier still at their van within HONK_REACH m
+## answers (at most every HONK_REPLY_GAP s).
+func honk(at: Vector3) -> void:
+	if scene.is_empty() or scene.get("van") == null:
+		return
+	var van = scene["van"]
+	if Vector2(at.x, at.z).distance_to(Vector2(van.pos.x, van.pos.z)) > HONK_REACH:
+		return
+	if _clock - float(scene.get("honk_at", -INF)) < HONK_REPLY_GAP:
+		return
+	scene["honk_at"] = _clock
+	honk_replies += 1
+	_say(0, "honked")
+
+
+## The sobriety check's part for the player, each tick (road_rules.gd sober_*): waved in when they
+## come near in its lane or the next; stopping by the waving officer is a breath test; driving on
+## past them costs respect (once).
+func _sober_step(dt: float, v: Array) -> void:
+	var stage: int = scene["sober"]
+	if stage == 3 or bool(v[2]):
+		return
+	if stage == 2:
+		scene["blow"] = float(scene["blow"]) - dt
+		if float(scene["blow"]) <= 0.0:
+			_sober_result()
+		return
+	var e: int = scene["e"]
+	var wave: Vector2 = scene["wave"]
+	var dir := graph.direction(e, float(scene["s0"]) + AT_SOBER_WAVE)
+	var me3: Vector3 = v[0]
+	# [metres past the officer along the road (coming up from behind: < 0), metres to the side].
+	var rel := Rules.relative(wave, dir, Vector2(me3.x, me3.z))
+	var pv: float = float(v[3]) if v.size() > 3 else float(v[1]) / 3.6
+	if not Rules.sober_near(rel.x, rel.y):
+		if stage == 1 and Rules.sober_passed(rel.x, rel.y):
+			scene["sober"] = 3
+			sober_passed += 1
+			var took: int = wallet.lose_respect(Rules.SOBER_PASS_LOSS, Rules.respect_floor(int(wallet.respect))) if wallet != null else 0
+			_say(1, "passed")
+			_toast("passed", took)
+			_log("drove past the sobriety check: -%d respect" % took)
+		return
+	if stage == 0:
+		scene["sober"] = 1
+		_say(1, "wave")
+		_toast("wave", 0)
+		_log("the player is waved in")
+	if Rules.sober_stopped(rel.x, absf(pv)):
+		scene["sober"] = 2
+		scene["blow"] = SOBER_BLOW
+		sober_tests += 1
+		_say(0, "blow")
+		_toast("blow", 0)
+		_log("breath test")
+
+
+## The breath test's result: 0,00 is respect; after the pub (tipsy.gd) a fine and a respect loss.
+func _sober_result() -> void:
+	scene["sober"] = 3
+	var amount: float = float(tipsy.call()) if tipsy.is_valid() else 0.0
+	var promil := Rules.promil(amount)
+	if promil <= 0.0:
+		if wallet != null:
+			wallet.add_respect(Rules.SOBER_GAIN)
+		_say(0, "sober")
+		_toast("sober", Rules.SOBER_GAIN)
+		_log("blew 0,00: +%d respect" % Rules.SOBER_GAIN)
+		return
+	sober_fines += 1
+	var fine := 0
+	var took := 0
+	if wallet != null:
+		fine = mini(SOBER_FINE, int(wallet.zl))
+		if fine > 0:
+			wallet.spend(fine)
+		took = wallet.lose_respect(Rules.SOBER_DRUNK_LOSS, Rules.respect_floor(int(wallet.respect)))
+	_say(0, "drunk")
+	_toast("drunk", took, fine, promil)
+	_log("blew %.2f per mille: -%d zł, -%d respect" % [promil, fine, took])
+
+
+## A toast from the `sober_check` lines tagged "toast_<what>": {n} the respect, {zl} the fine, {p}
+## the per mille (a comma in Polish). None for a loss of nothing (at the floor).
+func _toast(what: String, n: int, zl := 0, promil := 0.0) -> void:
+	if hud == null or dialogue == null:
+		return
+	if what == "passed" and n <= 0:
+		return
+	var l: Array = dialogue.line(SOBER_LINES, "toast_" + what, true)
+	if l.is_empty():
+		return
+	var p := "%.2f" % promil
+	var pl := String(l[0]).replace("{n}", str(n)).replace("{zl}", str(zl)).replace("{p}", p.replace(".", ","))
+	var en := String(l[1]).replace("{n}", str(n)).replace("{zl}", str(zl)).replace("{p}", p)
+	hud.toast(pl, en, Messages.INFO)
 
 
 ## Person i's anchor: a callable giving their head (one per person, so a new line replaces theirs).

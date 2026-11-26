@@ -98,3 +98,50 @@ static func blocking(way_t: float, player_v: float, lanes_its_way: int) -> bool:
 ## `green_t` s, within GREEN_NEAR m of the line, with a car standing behind within BEHIND_NEAR m.
 static func honk_at_green(green_t: float, to_line: float, behind: float) -> bool:
 	return green_t >= GREEN_WAIT and to_line >= 0.0 and to_line <= GREEN_NEAR and behind <= BEHIND_NEAR
+
+
+# --- Kontrola trzeźwości (crash_scenes.gd "sober", 2026-11-26) --------------------------------
+
+## The breath test: 0,00 gives SOBER_GAIN respect; after THE TAPCZAN a fine (crash_scenes.gd
+## SOBER_FINE) and SOBER_DRUNK_LOSS; waved in and driving on past the officer costs SOBER_PASS_LOSS
+## (no chase, F 2026-11-23). Every loss is floored like the ambulance's (`respect_floor`).
+const SOBER_GAIN := 2
+const SOBER_PASS_LOSS := 3
+const SOBER_DRUNK_LOSS := 5
+## The player is near the waving officer: from SOBER_BACK m behind them to SOBER_FRONT m past,
+## within SOBER_SIDE m to the side (the check's lane and the next one); stopped there: under
+## SOBER_STOP_V m/s, at most SOBER_STOP_NEAR m behind the officer.
+const SOBER_BACK := 26.0
+const SOBER_FRONT := 3.0
+const SOBER_SIDE := 5.0
+const SOBER_STOP_V := 1.5
+const SOBER_STOP_NEAR := 14.0
+## Tipsy (tipsy.gd `amount`, 0..1) under SOBER_TRACE blows 0,00; above, SOBER_PER_AMOUNT per mille
+## for each whole amount, never under SOBER_MIN_PROMIL.
+const SOBER_TRACE := 0.03
+const SOBER_PER_AMOUNT := 1.4
+const SOBER_MIN_PROMIL := 0.1
+
+
+## The player's car (`along` m past the officer along the road, `side` m to the side) is where the
+## officer waves it in.
+static func sober_near(along: float, side: float) -> bool:
+	return along >= -SOBER_BACK and along <= SOBER_FRONT and side <= SOBER_SIDE
+
+
+## Waved in, the car went on past the officer (out of the near zone by its front, still by the
+## road): it did not stop.
+static func sober_passed(along: float, side: float) -> bool:
+	return along > SOBER_FRONT and along < SOBER_FRONT + 25.0 and side <= SOBER_SIDE + 2.0
+
+
+## The car stopped for the test (`v` m/s).
+static func sober_stopped(along: float, v: float) -> bool:
+	return along >= -SOBER_STOP_NEAR and along <= SOBER_FRONT and v < SOBER_STOP_V
+
+
+## What the breathalyser reads (per mille, two decimals; 0 sober).
+static func promil(amount: float) -> float:
+	if amount < SOBER_TRACE:
+		return 0.0
+	return maxf(snappedf(amount * SOBER_PER_AMOUNT, 0.01), SOBER_MIN_PROMIL)

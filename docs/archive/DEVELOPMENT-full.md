@@ -6157,6 +6157,9 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--crash-log` | crash scenes: print `crash:` lines: the first scene's wait, each scene (where, street, lane, vehicles, distance, life), the radio line, every bubble line, each clear and the next wait |
 | `--crash=taxi` | crash scenes: a taxi check (kontrola taksówki) now 45-130 m ahead of the car instead of a crash |
 | `--crash=tow` / `--crash=tow,X,Z` (`taxi,X,Z` too) | crash scenes: an Odholowanie (a laweta loading a car off the pavement) now 45-130 m ahead of the car (or on the fitting road nearest X,Z) instead of a crash; it loads when the car comes within 50 m |
+| `--wedding=now` / `--wedding=on` / `--wedding=0` | road life (`road_life.gd`, 2026-11-26): a wedding convoy starts 2 s in, 50-70 m ahead on the player's road; `on`: its timer in a test run too (normal launch only otherwise, 12:00-21:00); `0`: none |
+| `--elka=X` | road life (`traffic.gd`): that share (0-1) of the band's cars are a driving school's Elka (default 0.025 in a normal launch, none in a test run) |
+| `--crash=delivery` / `--crash=sober` (also `KIND,X,Z`) | crash scenes: a courier's van on its hazards / a sobriety check ahead now (the check at any hour) |
 | `--ambulance=now` / `--ambulance=fire` / `--ambulance=on` / `--ambulance=0` | road life (`road_life.gd`): an ambulance on a call starts 2 s in, 40-60 m behind the car (it may be in view); `fire`: the same with every run a fire engine; `on`: the 2.5-5 minute timer in a test run too (it runs in a normal launch only); `0`: none |
 | `--road-log` | road life: print `road:` lines: each ambulance (lane, hospital, distance), in its way, blocking, thanks, hits, its end; each "Zielone!" honk |
 | `--boat-race`, `--boat-race=call` | boat race (`boat_race.gd`): Szymek rings now, whatever the time |

@@ -75,15 +75,40 @@ Check: `game/tools/check_road_life.gd` (verify step `roadlife`, in CI).
   stand, no story, the usual fare and stars). Once taken, the scene's passenger leaves with the
   player and says no more.
 
+- **Dostawczak na awaryjnych** (built 2026-11-26): 15 % of the roadside scenes are a courier's van
+  (the panel or box van) standing in the kerb lane on its hazard lights: four amber corner lamps
+  that blink together at 1.4 Hz (`models.gd` HAZARD_BEAT, `traffic.gd` Driver.hazard, the VAN
+  family's custom alpha + 8; +0 draw calls). The courier at the back doors, the customer on the
+  footway (`delivery_scene`); the player's horn within 35 m gets an answer. After 40-70 s the
+  courier gets in, the hazards go off and the van pulls out. On 2+ lane roads only (the queue goes
+  round it, as at every scene).
+- **Kontrola trzeźwości** (built 2026-11-26): at night (21:00-05:00 on the game clock), 40 % of
+  the scenes are a sobriety check, once a session: a car pulled in behind a patrol car with its
+  lights on, an officer at its window, a second at the lane's edge waving cars in. In that lane or
+  the next, the player is waved in (toast); stopping by the officer is a breath test (DMUCHNIJ,
+  2.2 s): 0,00 is +2 respect; after THE TAPCZAN (`tipsy.gd` amount × 1.4 per mille) a 500 zł fine
+  and −5 respect; driving on past is −3. Every loss stops at the ladder rung reached; no chase.
+- **The Elka** (built 2026-11-26): 2.5 % of the band's cars (normal launch; `--elka=X`) are a
+  driving school's car: white, a blue roof box with a white L front and back (`models.gd` `_dress`,
+  part 9, shown in mode 3: +0 draw calls), at 62 % of the road's pace and 55 % of the pull.
+  Tailing one for 3 s brings a line from the instructor or the learner; the horn behind one, the
+  instructor's "please don't honk".
+- **The wedding convoy** (built 2026-11-26): every 8-15 minutes by day (12:00-21:00), four cars
+  with white ribbons from the mirrors to a bouquet on the bonnet (part 10, mode 4) start 110-160 m
+  ahead of the player on their road, in the kerb lane, a white or black saloon leading, at 80 % of
+  the road's pace, to one far junction (their church), never through a red. Near the player they
+  honk (two horn sounds, every 0.5-1.6 s) and shout "Gorzko!"; the player's horn by them makes a
+  wedding guest (+1 respect, once a convoy). KEBAB FM reads out the check and the convoy.
+
 ## Left
 
-- A bus pulling out of a stop. Kontrola trzeźwości, the wedding convoy, Elka and the dostawczak
-  wait for Thursday (F, 2026-11-23 21:34).
+- A bus pulling out of a stop.
+- The dostawczak in a one-lane street (the queue can't pass it: the town drivers don't go round a
+  standing car over the centre line yet), the Elka stalling at a green.
 - **Real sirens from ElevenLabs** (F, 2026-11-24, plan only, not now): replace the synth
   `ambulance_siren` and `fire_siren` (tools/make_sfx.py) with ElevenLabs takes, each its own
   sound: the Polish ambulance's two-tone, the fire engine's slower wail and air horn, and the rest
   of road life's sounds (the laweta's winch and beacon click, the police car at the taxi check).
   Loops through tools/add_sfx.py (seamless, `--rotate` if the seam clicks), same names so the code
   doesn't change; check_sfx LOOPS; a by-ear PHONE-CHECK row. Uses ElevenLabs credits: ask F first.
-- Kontrola trzeźwości, orszak weselny, Elka. Deferred: dostawczak on hazards in a
-  one-lane street (traffic queues can't pass it yet). Cut: tow-ramp jump, korytarz życia in a jam.
+- Cut: tow-ramp jump, korytarz życia in a jam.

@@ -32,6 +32,18 @@ extends Node
 ## behind it: that car honks (sfx.gd `horn`) and its driver shouts (dialogue.json `road_life`
 ## "green"); at most once every HONK_GAP s.
 ##
+## **The Elka (2026-11-26).** traffic.gd dresses a few of the band's cars as a driving school's
+## Elka (ELKA_CHANCE, the L box on the roof: models.gd `_dress`, +0 draw calls), slow and careful.
+## Tailing one for ELKA_TAIL s, its instructor or learner speaks up (`road_life` "elka_*"); the
+## player's horn behind one (`honk`) gets the instructor's look.
+##
+## **The wedding convoy (orszak weselny, 2026-11-26).** Now and then by day (WED_HOURS) WED_CARS
+## cars with white ribbons and a bouquet on the bonnet (traffic.gd `add_car`, DRESS_WEDDING: the
+## CAR MultiMesh) drive in a column a little slower than the town, ahead of the player the way they
+## drive, to a far junction (their church; one bounded route shared by the column), never through
+## a red. Near the player they honk all the way (sfx.gd horns, WED_HONK) and shout "Gorzko!"; the
+## player's horn by them makes them a wedding guest once a convoy (+WED_GUEST_GAIN respect).
+##
 ## Nothing draws (the ambulance is in the police MultiMesh, the mark in the HUD's police overlay);
 ## the work is a tick at TICK (4 Hz) and one shortest-path table per hospital, made the first
 ## time that hospital is wanted and kept.
@@ -39,6 +51,8 @@ extends Node
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Rules := preload("res://scripts/road_rules.gd")
 const Messages := preload("res://scripts/messages.gd")
+const Models := preload("res://scripts/models.gd")
+const Traffic := preload("res://scripts/traffic.gd")
 
 const TICK := 0.25
 ## Seconds to the first ambulance, and from one leaving to the next.
@@ -75,6 +89,37 @@ const FIRE_ACCEL := 2.4
 const FIRE_RUN := Vector2(500.0, 1100.0)
 const FIRE_ROUTE := 2600.0
 const FIREMAN := Color("#ff7a3d")
+## The Elka: how near ahead (m) and how long (s) the player tails one before a line, the side room
+## (m) of "behind it", the least gap between its lines (s), the horn's reach (m), its bubble colour.
+const ELKA_NEAR := 18.0
+const ELKA_TAIL := 3.0
+const ELKA_SIDE := 1.8
+const ELKA_GAP := 35.0
+const ELKA_HONK := 25.0
+const ELKA_BUBBLE := Color("#5b9bf0")
+## The wedding convoy: seconds to the first and between them, its hours, its cars, their spacing (m),
+## where it starts ahead of the player (m along their road), how far its church is (m, straight;
+## reached by road within WED_ROUTE m), its pace (× the road's speed), its longest run (s), where
+## its horns are heard (m), the gap between honks (s), its shouts at most and their gap (s), the
+## guest's reach (m) and respect, and its bubble colour.
+const WED_FIRST := Vector2(200.0, 420.0)
+const WED_GAP := Vector2(480.0, 900.0)
+const WED_HOURS := Vector2(12.0, 21.0)
+const WED_CARS := 4
+const WED_SPACING := 10.0
+const WED_AHEAD := Vector2(110.0, 160.0)
+const WED_RUN := Vector2(600.0, 1200.0)
+const WED_ROUTE := 2800.0
+const WED_PACE := 0.8
+const WED_LIFE := 220.0
+const WED_HEAR := 45.0
+const WED_HONK := Vector2(0.5, 1.6)
+const WED_SHOUTS := 3
+const WED_SHOUT_GAP := 3.5
+const WED_GUEST_NEAR := 30.0
+const WED_GUEST_GAIN := 1
+const WED_BUBBLE := Color("#f29bb8")
+const WED_LEADER_PAINTS := ["#f4f4f0", "#1c1d20"]
 
 ## Set by `install` (game_ctx.gd).
 var traffic: Node3D
@@ -94,10 +139,29 @@ var project: Callable
 var hospitals: Array = []
 ## True while no ambulance may start (main.gd: a race, a chase, the guide).
 var hushed: Callable
+## The hour of the local clock (game_ctx.gd `hour`, 0-24; empty: noon).
+var hour: Callable
 var log_on := false
 ## The ambulance on or off (--ambulance=0), the honk on or off.
 var ambulance_on := true
 var honk_on := true
+## The wedding convoys on or off (--wedding=0), the Elkas' lines on or off.
+var wedding_on := true
+var elka_on := true
+## The wedding convoy now ({} = none), the seconds to the next; this session's convoys, guests,
+## honks, shouts and Elka lines (the checks, the log).
+var convoy := {}
+var wed_wait := 0.0
+var convoys := 0
+var guests := 0
+var wed_honks := 0
+var wed_shouts := 0
+var elka_lines := 0
+var _elka_t := 0.0
+var _elka_wait := 0.0
+var _elka_turn := 0
+var _elka_honk_at := -INF
+var _wed_now := false
 
 ## Seconds to the next ambulance; the run now ({} = none).
 var wait := 0.0
@@ -139,6 +203,7 @@ func install(ctx) -> bool:
 	sfx = ctx.sfx
 	car = ctx.car
 	vehicle = ctx.vehicle
+	hour = ctx.hour
 	if ctx.bubbles != null:
 		project = ctx.bubbles.project
 	if ctx.missions != null:
@@ -152,6 +217,9 @@ func install(ctx) -> bool:
 			fire_share = 1.0
 		ambulance_on = f.ambulance_flag != "0" and (f._crash_auto or f.ambulance_flag != "")
 		honk_on = f._crash_auto or f.ambulance_flag != ""
+		wedding_on = f.wedding_flag != "0" and (f._crash_auto or f.wedding_flag != "")
+		_wed_now = f.wedding_flag == "now"
+		elka_on = f._crash_auto or f.elka_flag > 0.0
 	return true
 
 
@@ -162,12 +230,15 @@ func setup(seed_value := -1) -> void:
 		_rng.randomize()
 	wait = _rng.randf_range(FIRST.x, FIRST.y)
 	_honk_wait = 30.0
+	wed_wait = _rng.randf_range(WED_FIRST.x, WED_FIRST.y)
 	if traffic.has_signal("bumped_police"):
 		traffic.bumped_police.connect(_on_bumped)
 	if traffic.has_signal("bumped_siren"):
 		traffic.bumped_siren.connect(_on_bumped)
 	if _test_now:
 		get_tree().create_timer(2.0).timeout.connect(func() -> void: send(true))
+	if _wed_now:
+		get_tree().create_timer(2.0).timeout.connect(func() -> void: send_convoy(true))
 	_log("first ambulance in %.0f s (%d hospitals)" % [wait, hospitals.size()])
 
 
@@ -184,7 +255,8 @@ func _process(dt: float) -> void:
 
 func _exit_tree() -> void:
 	if log_on:
-		_log("end (%d sent, %d of them fire engines, %d let through, %d blocked, %d hit, %d honks)" % [sent, fires, thanked, blocked, hits, honks])
+		_log("end (%d sent, %d of them fire engines, %d let through, %d blocked, %d hit, %d honks; %d convoys, %d guests, %d Elka lines)" % [
+				sent, fires, thanked, blocked, hits, honks, convoys, guests, elka_lines])
 
 
 ## One tick, `dt` seconds after the last.
@@ -203,6 +275,20 @@ func step(dt: float) -> void:
 			_follow(dt, v)
 	if honk_on:
 		_green_step(dt, v)
+	if wedding_on:
+		if convoy.is_empty():
+			wed_wait -= dt
+			if wed_wait <= 0.0:
+				var h: float = float(hour.call()) if hour.is_valid() else 12.0
+				if bool(v[2]) or (hushed.is_valid() and bool(hushed.call())) or not run.is_empty() \
+						or h < WED_HOURS.x or h >= WED_HOURS.y:
+					wed_wait = 20.0
+				elif not send_convoy(false):
+					wed_wait = 6.0
+		else:
+			_convoy_step(dt, v)
+	if elka_on:
+		_elka_step(dt, v)
 
 
 # --- the ambulance ---------------------------------------------------------------------------
@@ -348,6 +434,13 @@ func _hospital_for(e: int, s: float, fwd: Vector2) -> Dictionary:
 ## (`fwd`, the most ahead of a few drawn at random), at least MIN_RUN m by road and reachable
 ## within FIRE_ROUTE m (one bounded shortest-path search, not kept): {node, dist, name}, or {}.
 func _fire_for(e: int, s: float, fwd: Vector2) -> Dictionary:
+	return _node_ahead(e, s, fwd, FIRE_RUN, FIRE_ROUTE, "a fire")
+
+
+## A graph node `run` m away (straight line) from (e, s) the way `fwd` points (the most ahead of a
+## few drawn at random), at least MIN_RUN m by road and reachable within `bound` m (one bounded
+## shortest-path search, not kept): {node, dist, name} (`what` by node n), or {}.
+func _node_ahead(e: int, s: float, fwd: Vector2, run_m: Vector2, bound: float, what: String) -> Dictionary:
 	var from := graph.point_at(e, s)
 	var n_all: int = graph.node_pos.size()
 	if n_all == 0:
@@ -357,7 +450,7 @@ func _fire_for(e: int, s: float, fwd: Vector2) -> Dictionary:
 		var n := _rng.randi() % n_all
 		var q: Vector2 = graph.node_pos[n] - from
 		var far := q.length()
-		if far < FIRE_RUN.x or far > FIRE_RUN.y or graph.node_in[n].is_empty():
+		if far < run_m.x or far > run_m.y or graph.node_in[n].is_empty():
 			continue
 		var k := q.normalized().dot(fwd)
 		if k > 0.3:
@@ -365,10 +458,10 @@ func _fire_for(e: int, s: float, fwd: Vector2) -> Dictionary:
 	picks.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
 	for i in mini(picks.size(), 3):
 		var node: int = picks[i][1]
-		var dist := graph.distances_to(node, FIRE_ROUTE)
+		var dist := graph.distances_to(node, bound)
 		var left := graph.remaining(dist, e, s)
 		if left != INF and left >= MIN_RUN:
-			return {"node": node, "dist": dist, "name": "a fire by node %d" % node}
+			return {"node": node, "dist": dist, "name": "%s by node %d" % [what, node]}
 	return {}
 
 
@@ -591,6 +684,214 @@ func _car_behind(fwd: Vector2):
 	return best
 
 
+# --- the Elka -------------------------------------------------------------------------------
+
+## The Elka ahead of the player's car in their way (ELKA_NEAR m, ELKA_SIDE m to the side, going
+## their way), or null.
+func _elka_ahead(fwd: Vector2):
+	var me := Vector2(car.global_position.x, car.global_position.z)
+	var best = null
+	var best_d := ELKA_NEAR
+	for o in traffic.drivers():
+		if o.dress != Traffic.DRESS_ELKA:
+			continue
+		var rel := Vector2(o.pos.x, o.pos.z) - me
+		var along := rel.dot(fwd)
+		if along < 2.0 or along > best_d or absf(rel.cross(fwd)) > ELKA_SIDE:
+			continue
+		if Vector2(-sin(o.yaw), -cos(o.yaw)).dot(fwd) < Rules.WAY_COS:
+			continue
+		best_d = along
+		best = o
+	return best
+
+
+## Tailing an Elka: after ELKA_TAIL s behind it, its instructor or learner speaks (in turns), at
+## most every ELKA_GAP s.
+func _elka_step(dt: float, v: Array) -> void:
+	_elka_wait -= dt
+	if bool(v[2]) or car == null:
+		_elka_t = 0.0
+		return
+	var b := car.global_transform.basis.z
+	var elka = _elka_ahead(-Vector2(b.x, b.z).normalized())
+	if elka == null:
+		_elka_t = 0.0
+		return
+	_elka_t += dt
+	if _elka_t < ELKA_TAIL or _elka_wait > 0.0:
+		return
+	_elka_wait = ELKA_GAP
+	elka_lines += 1
+	_elka_turn += 1
+	_shout(elka, "elka_learner" if _elka_turn % 2 == 0 else "elka_instructor", ELKA_BUBBLE)
+	_log("tailing an Elka: a line")
+
+
+## The player's horn (main.gd `_honk`) at `at`: an Elka near ahead gets the instructor's word, a
+## wedding convoy near makes the player a guest (once a convoy) and honks back.
+func honk(at: Vector3) -> void:
+	var me := Vector2(at.x, at.z)
+	if elka_on and _clock - _elka_honk_at > 6.0:
+		for o in traffic.drivers():
+			if o.dress == Traffic.DRESS_ELKA and Vector2(o.pos.x, o.pos.z).distance_to(me) < ELKA_HONK:
+				_elka_honk_at = _clock
+				elka_lines += 1
+				_shout(o, "elka_honked", ELKA_BUBBLE)
+				_log("honked at an Elka")
+				break
+	if convoy.is_empty() or bool(convoy["guest"]):
+		return
+	for d in convoy["cars"]:
+		if d.active and Vector2(d.pos.x, d.pos.z).distance_to(me) < WED_GUEST_NEAR:
+			convoy["guest"] = true
+			guests += 1
+			if wallet != null:
+				wallet.add_respect(WED_GUEST_GAIN)
+			_toast("wed_guest", WED_GUEST_GAIN)
+			_shout(d, "wedding_guest", WED_BUBBLE)
+			convoy["honk_t"] = 0.0
+			_log("the player honked with the wedding: a guest, +%d respect" % WED_GUEST_GAIN)
+			return
+
+
+# --- the wedding convoy ----------------------------------------------------------------------
+
+## A start `ahead` metres along the roads out of (e, s) (the straightest way on at each junction,
+## main and secondary roads first): {e, s}, or {} when the roads run out.
+func _ahead(e: int, s: float, ahead: float) -> Dictionary:
+	var left := ahead
+	for hop in 8:
+		var room := graph.e_s1[e] - s - 4.0
+		if room >= left:
+			return {"e": e, "s": s + left}
+		left -= maxf(room, 0.0)
+		var best := -1
+		var best_k := -INF
+		var out: Vector2 = graph.direction(e, graph.e_s1[e])
+		for f: int in graph.node_out[graph.e_b[e]]:
+			if graph.e_tn[f] >= 0 or graph.e_dk[f] >= 0 or graph.e_reverse[e] == f:
+				continue
+			var k := graph.direction(f, graph.e_s0[f]).dot(out) - 0.4 * graph.e_class[f]
+			if k > best_k:
+				best_k = k
+				best = f
+		if best < 0:
+			return {}
+		e = best
+		s = graph.e_s0[e]
+	return {}
+
+
+## Sends a wedding convoy onto the player's road ahead of them, the way they drive (`near`: a
+## test's, 50-70 m ahead and maybe in view). True if it set off.
+func send_convoy(near: bool) -> bool:
+	if not convoy.is_empty():
+		return false
+	var road := _player_road()
+	if road.is_empty():
+		return false
+	var start := _ahead(int(road["e"]), float(road["s"]), _rng.randf_range(50.0, 70.0) if near else _rng.randf_range(WED_AHEAD.x, WED_AHEAD.y))
+	if start.is_empty():
+		return false
+	var e: int = start["e"]
+	var lane: int = graph.e_lanes[e] - 1
+	var s_front: float = start["s"]
+	var s_back := s_front - float(WED_CARS - 1) * WED_SPACING
+	if s_back < graph.e_s0[e] + 4.0:
+		s_front += graph.e_s0[e] + 4.0 - s_back
+		s_back = graph.e_s0[e] + 4.0
+		if s_front > graph.e_s1[e] - 4.0:
+			return false
+	if not traffic.lane_free(e, lane, s_back - 6.0, s_front + 6.0, 2.0):
+		return false
+	for i in WED_CARS:
+		var s := s_front - float(i) * WED_SPACING
+		var q := graph.point_at(e, s, graph.lane_offset(e, lane))
+		if not near and traffic.on_screen(Vector3(q.x, graph.height(e, s), q.y), 1.6):
+			return false
+	var goal := _node_ahead(e, s_front, road["fwd"], WED_RUN, WED_ROUTE, "the church")
+	if goal.is_empty():
+		return false
+	var cars: Array = []
+	for i in WED_CARS:
+		var shape := 1 if i == 0 else _rng.randi() % 4
+		var paints: Array = Models.TRAFFIC[0][shape]["paint"]
+		var paint := Color(WED_LEADER_PAINTS[_rng.randi() % 2]) if i == 0 else Color(paints[_rng.randi() % paints.size()])
+		var d = traffic.add_car(e, lane, s_front - float(i) * WED_SPACING, shape, paint, Traffic.DRESS_WEDDING)
+		if d == null:
+			for o in cars:
+				traffic.remove(o)
+			return false
+		d.speed_factor = WED_PACE
+		d.accel_factor = 0.8
+		cars.append(d)
+	for d in cars:
+		traffic.race_to(d, int(goal["node"]), goal["dist"])
+		d.v = graph.e_speed[e] * 0.5
+	convoys += 1
+	convoy = {"cars": cars, "age": 0.0, "honk_t": 0.0, "shout_t": 0.0, "shouts": 0, "guest": false, "goal": goal["name"]}
+	_log("wedding convoy %d on edge %d (%s) to %s, %.0f m by road" % [convoys, e, graph.e_name[e], goal["name"],
+			traffic.remaining(cars[0])])
+	_announce(graph.e_name[e], "wedding")
+	return true
+
+
+## The convoy's tick: its horns and shouts near the player, its end at the church, after WED_LIFE s
+## or out of sight far away (the cars drive on as town traffic, still dressed, until the band lets
+## them go).
+func _convoy_step(dt: float, v: Array) -> void:
+	convoy["age"] = float(convoy["age"]) + dt
+	var p: Vector3 = v[0]
+	var me := Vector2(p.x, p.z)
+	var near := INF
+	var near_car = null
+	var seen := false
+	var arrived := false
+	for d in convoy["cars"]:
+		if not d.active:
+			continue
+		var dd := Vector2(d.pos.x, d.pos.z).distance_to(me)
+		if dd < near:
+			near = dd
+			near_car = d
+		if traffic.on_screen(d.pos, d.size.y):
+			seen = true
+		if d.arrived or traffic.remaining(d) < REACHED:
+			arrived = true
+	if near_car == null or arrived or float(convoy["age"]) > WED_LIFE or (near > FAR and not seen):
+		_end_convoy("at the church" if arrived else "gone" if near_car == null else "over")
+		return
+	if near > WED_HEAR or not seen or bool(v[2]):
+		return
+	convoy["honk_t"] = float(convoy["honk_t"]) - dt
+	if float(convoy["honk_t"]) <= 0.0:
+		convoy["honk_t"] = _rng.randf_range(WED_HONK.x, WED_HONK.y)
+		var live: Array = (convoy["cars"] as Array).filter(func(o) -> bool: return o.active)
+		var who = live[_rng.randi() % live.size()]
+		wed_honks += 1
+		if sfx != null:
+			sfx.play_at("horn_double" if _rng.randf() < 0.5 else "horn", who.pos, _rng.randf_range(-4.0, -1.0))
+	convoy["shout_t"] = float(convoy["shout_t"]) - dt
+	if int(convoy["shouts"]) < WED_SHOUTS and float(convoy["shout_t"]) <= 0.0:
+		convoy["shout_t"] = WED_SHOUT_GAP
+		convoy["shouts"] = int(convoy["shouts"]) + 1
+		wed_shouts += 1
+		_shout(near_car, "wedding", WED_BUBBLE)
+
+
+func _end_convoy(why: String) -> void:
+	for d in convoy["cars"]:
+		if not d.active:
+			continue
+		if not d.route.is_empty():
+			traffic.stop_racing(d)
+		d.persistent = false
+	_log("wedding convoy over (%s, %.0f s)" % [why, convoy["age"]])
+	convoy = {}
+	wed_wait = _rng.randf_range(WED_GAP.x, WED_GAP.y)
+
+
 # --- words -----------------------------------------------------------------------------------
 
 ## A toast from dialogue.json `road_life` (`tag`), {n} the respect.
@@ -605,14 +906,17 @@ func _toast(tag: String, n: int) -> void:
 	hud.toast(String(l[0]).replace("{n}", str(n)), String(l[1]).replace("{n}", str(n)), Messages.INFO)
 
 
-## A line over driver d (the paramedic, the firefighter, the driver behind).
-func _shout(d, tag: String) -> void:
+## A line over driver d (the paramedic, the firefighter, the driver behind, an Elka, a wedding
+## car), in `colour` (none: the paramedic's or the firefighter's).
+func _shout(d, tag: String, colour := Color(0, 0, 0, 0)) -> void:
 	if dialogue == null:
 		return
 	var pos: Vector3 = d.pos
 	var anchor := func() -> Vector3: return d.pos if d.active else pos
 	var high := 3.0 if not tag.begins_with("fireman") else 3.8
-	dialogue.say_ambient(anchor, "", LINES, tag, high, FIREMAN if tag.begins_with("fireman") else MEDIC, 2.9, true)
+	if colour.a == 0.0:
+		colour = FIREMAN if tag.begins_with("fireman") else MEDIC
+	dialogue.say_ambient(anchor, "", LINES, tag, high, colour, 2.9, true)
 
 
 ## KEBAB FM's host (`radio_host` lines tagged `tag`, {street} the road's name).
