@@ -478,10 +478,10 @@ const SCENE_AMBER := UiKit.HEAT
 const LENS_BLUE := Color("#3d7bff")
 const LENS_RED := UiKit.ALERT
 ## Road life: the ambulance's edge mark (models.gd AMBULANCE_YELLOW and its red).
-const AMB_YELLOW := Color("#f2cf1d")
-const AMB_RED := Color("#d9262c")
+const AMB_YELLOW := UiKit.AMBULANCE
+const AMB_RED := UiKit.AMBULANCE_CROSS
 ## Road life stage 3: the fire engine's edge mark (models.gd FIRE_RED, a white flame).
-const FIRE_RED := Color("#c4161c")
+const FIRE_RED := UiKit.FIRE_ENGINE
 var _police_pill: PanelContainer
 var _police_pl: Label
 var _police_en: Label

@@ -3073,8 +3073,8 @@ func _build_crash_scenes() -> void:
 	crash_scenes.test_flag(flags.crash_flag, Vector2(car.global_position.x, car.global_position.z), Vector2(f.x, f.z).normalized())
 	# Road life: the ambulance and the honk at a green, quiet in a race, a chase or the guide (the
 	# scenes wait for the same).
-	road_life = RoadLife.new()
-	if road_life.install(_build_ctx()):
+	road_life = RoadLife.make(_build_ctx()) as RoadLife
+	if road_life != null:
 		road_life.name = "RoadLife"
 		road_life.hushed = func() -> bool: return police.phase != 0 or (first10 != null and first10.guide) \
 				or (activities.current() != null and activities.current().target_source() == "race")

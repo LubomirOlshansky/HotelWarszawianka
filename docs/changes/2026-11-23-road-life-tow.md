@@ -10,7 +10,7 @@
 ## Backlog
 - fixed: the crazy-driver check counted a recycled car as an old crazy driver without a fare
 - found: road life stage 3 (F wants all): all built but the bus pulling out of a stop; left: the dostawczak in a one-lane street, the Elka stalling at a green
-- found: PHONE-CHECK had two rows each for 15zze-15zzj (road life's and main's); road life's stage 2/3 rows are now 15zzv-15zzz
+- found: PHONE-CHECK had two rows each for 15zze-15zzj (road life's and main's); stage 1's rows are 15zzv-15zzx, stages 2 and 3 are 15zzy-15zzzc
 
 ## Roadmap
 - added: "Road life: tow trucks in traffic and the Odholowanie scene"
