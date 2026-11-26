@@ -59,6 +59,9 @@ const ALERT := Color("#ff4f6d")   # NEW badges, quit, wrong way, a rescue
 const GO := Color("#5fd38a")      # won, delivered, safe, hidden
 const POLICE := Color("#3d7bff")  # police and the chase
 const HEAT := Color("#ffb020")    # timers and hot food
+## Road life (road_life.gd): the ambulance's edge mark, a yellow disc with a red cross.
+const AMBULANCE := Color("#f2cf1d")
+const AMBULANCE_CROSS := Color("#d9262c")
 
 ## The brand neon (the title's sunset, KEBAB FM, stars, portrait rings, photo mode's frame).
 const NEON_PINK := Color("#ff4fd8")
