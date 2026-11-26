@@ -70,6 +70,25 @@ func _initialize() -> void:
 	_expect(not HouseTypes.replaces_osm(-1, "#111111"), "a black tag stays")
 	_expect(HouseTypes.levels_from_h(5 * 3.3 + 1.0) == 5, "5 storeys from the bake's height")
 	_expect(HouseTypes.levels_from_h(17.4) == 0, "a measured height gives no storeys")
+	# PR 2a: the shader's encoding and its tables.
+	for t in [1, 4, 8, 15]:
+		for sd in [0.0, 0.5, 0.999]:
+			_expect(HouseTypes.decode(HouseTypes.encode(t, sd)) == t, "type %d seed %.3f round-trips" % [t, sd])
+			# Half precision (the mesh's UV2 may be stored as 16-bit floats) keeps the type.
+			var half := snappedf(HouseTypes.encode(t, sd), 1.0 / 1024.0)
+			_expect(HouseTypes.decode(half) == t, "type %d seed %.3f survives half precision" % [t, sd])
+	_expect(HouseTypes.encode(0, 0.3) == 0.3, "untyped keeps its seed")
+	_expect(HouseTypes.decode(2.5) == 0 and HouseTypes.decode(0.5) == 0, "landmarks and seeds decode as untyped")
+	var shader := FileAccess.get_file_as_string("res://shaders/building.gdshader")
+	for key in types:
+		var f: Array = types[key].get("facade", [])
+		_expect(f.size() == 16, "type %s has 16 facade numbers" % key)
+		if f.size() == 16:
+			for i in 4:
+				var row := ", ".join(f.slice(i * 4, i * 4 + 4).map(func(v): return _g(float(v))))
+				var rows := _table(shader, "ABCD"[i])
+				_expect(rows.size() == 16 and rows[int(key)] == row,
+						"building.gdshader HOUSE_%s row %s is type %s's (run tools/house_zones.py)" % ["ABCD"[i], key, key])
 	var muranow := HouseTypes.zone_at(Vector2(-2099, -1262))
 	_expect(HouseTypes.zone_id(muranow) == "muranow", "Nowolipki is in Muranów (got %s)" % HouseTypes.zone_id(muranow))
 
@@ -173,6 +192,22 @@ func _census(map: Dictionary) -> void:
 		var names := row.keys()
 		names.sort_custom(func(a, b): return row[a] > row[b])
 		print("  %-22s %s" % [z, ", ".join(names.map(func(n): return "%s %d" % [n, row[n]]))])
+
+
+## The rows of building.gdshader's `const vec4 HOUSE_<name>[16]`, each as its numbers' text.
+func _table(shader: String, name: String) -> PackedStringArray:
+	var at := shader.find("const vec4 HOUSE_%s[16] = vec4[16](vec4(" % name)
+	if at < 0:
+		return PackedStringArray()
+	var line := shader.substr(at, shader.find("\n", at) - at)
+	line = line.substr(line.find("(vec4(") + 6)
+	line = line.substr(0, line.rfind("));"))
+	return line.split("), vec4(")
+
+
+## A number as Python's "%g" writes it (house_zones.py's shader rows).
+func _g(v: float) -> String:
+	return str(int(v)) if v == floorf(v) else String.num(v, 6)
 
 
 func _expect(ok: bool, what: String) -> void:

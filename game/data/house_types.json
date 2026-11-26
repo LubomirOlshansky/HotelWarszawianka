@@ -1,5 +1,5 @@
 {
-	"_about": "House types (docs/design/house-types.md, PR 1). zones: first match wins; mix = type weights inside the zone. Zone outlines are boxes drawn from Warsaw's building history (lat/lon to map metres like tools/bake_osm.py), not yet photo-checked (phase 4). types: rhythm = the drawn facade today (0 generic, 1 tenement, 2 slab, 3 office), family = what floor height and shape can tell (prewar, postwar, office), walls = sRGB palette.",
+	"_about": "House types (docs/design/house-types.md, PR 1). zones: first match wins; mix = type weights inside the zone. Zone outlines are boxes drawn from Warsaw's building history (lat/lon to map metres like tools/bake_osm.py), not yet photo-checked (phase 4). types: rhythm = the roof dress class (0 generic, 1 tenement chimneys, 2 slab, 3 office coping), facade = the drawn facade (tools/house_zones.py FACADE, copied into building.gdshader), 4 old_town is drawn by its own street list (map_builder _tenement_facades), never picked by a zone; family = what floor height and shape can tell (prewar, postwar, office), walls = sRGB palette.",
 	"floor_prewar": 3.6,
 	"floor_postwar": 3.05,
 	"default_mix": {
@@ -28,6 +28,24 @@
 				"#d8cdb8",
 				"#b8a184",
 				"#cfc0a2"
+			],
+			"facade": [
+				4.4,
+				3.7,
+				2.8,
+				0.9,
+				0.55,
+				2.1,
+				0.85,
+				0.18,
+				0.75,
+				0.0,
+				0.0,
+				0.0,
+				1.0,
+				0.0,
+				0.34,
+				0.0
 			]
 		},
 		"2": {
@@ -42,6 +60,24 @@
 				"#b06a4f",
 				"#94574a",
 				"#a8a196"
+			],
+			"facade": [
+				3.8,
+				3.4,
+				2.5,
+				0.6,
+				0.45,
+				1.9,
+				0.8,
+				0.12,
+				0.45,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				0.32,
+				0.0
 			]
 		},
 		"3": {
@@ -54,6 +90,48 @@
 				"#f1ece0",
 				"#d9d4c6",
 				"#e5dcc5"
+			],
+			"facade": [
+				3.4,
+				3.2,
+				3.0,
+				0.0,
+				0.75,
+				1.5,
+				0.95,
+				0.0,
+				0.4,
+				0.0,
+				0.0,
+				0.15,
+				0.0,
+				0.0,
+				0.34,
+				0.0
+			]
+		},
+		"4": {
+			"name": "old_town",
+			"rhythm": 0,
+			"family": "prewar",
+			"walls": [],
+			"facade": [
+				3.6,
+				3.2,
+				2.5,
+				0.8,
+				0.45,
+				1.6,
+				0.8,
+				0.15,
+				0.7,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				0.34,
+				0.0
 			]
 		},
 		"5": {
@@ -66,6 +144,24 @@
 				"#c9b48e",
 				"#bfb39c",
 				"#d9ccb0"
+			],
+			"facade": [
+				6.2,
+				3.6,
+				2.6,
+				1.3,
+				0.55,
+				1.8,
+				0.9,
+				0.2,
+				0.9,
+				0.0,
+				0.0,
+				0.0,
+				1.0,
+				0.0,
+				0.34,
+				0.0
 			]
 		},
 		"6": {
@@ -79,6 +175,24 @@
 				"#b89a8a",
 				"#d1bba8",
 				"#a89386"
+			],
+			"facade": [
+				3.0,
+				2.9,
+				2.6,
+				0.35,
+				0.5,
+				1.5,
+				0.9,
+				0.1,
+				0.1,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				0.34,
+				1.0
 			]
 		},
 		"7": {
@@ -91,6 +205,24 @@
 				"#e9e0c8",
 				"#cfd6d6",
 				"#e4d2c2"
+			],
+			"facade": [
+				3.0,
+				2.8,
+				3.0,
+				0.0,
+				0.75,
+				1.45,
+				0.9,
+				0.0,
+				0.3,
+				0.0,
+				0.0,
+				0.15,
+				0.0,
+				0.1,
+				0.34,
+				1.0
 			]
 		},
 		"8": {
@@ -102,6 +234,24 @@
 				"#b1aea6",
 				"#c7c3b9",
 				"#a9a69e"
+			],
+			"facade": [
+				2.8,
+				2.8,
+				3.2,
+				0.0,
+				0.8,
+				1.4,
+				0.95,
+				0.0,
+				0.05,
+				0.0,
+				1.0,
+				0.35,
+				0.0,
+				0.35,
+				0.34,
+				1.0
 			]
 		},
 		"9": {
@@ -117,6 +267,24 @@
 				"#e8e8e2",
 				"#f1e2c6",
 				"#d9d2e6"
+			],
+			"facade": [
+				2.8,
+				2.8,
+				3.2,
+				0.0,
+				0.8,
+				1.4,
+				0.95,
+				0.0,
+				0.05,
+				0.0,
+				0.1,
+				0.3,
+				0.0,
+				0.0,
+				0.34,
+				1.0
 			]
 		},
 		"10": {
@@ -129,6 +297,24 @@
 				"#cfe0e6",
 				"#bdbab2",
 				"#f2d4c2"
+			],
+			"facade": [
+				2.8,
+				2.8,
+				2.9,
+				0.0,
+				0.7,
+				1.4,
+				0.95,
+				0.0,
+				0.05,
+				0.0,
+				0.5,
+				0.45,
+				0.0,
+				0.2,
+				0.34,
+				1.0
 			]
 		},
 		"11": {
@@ -140,6 +326,24 @@
 				"#a8a59c",
 				"#c4bfb2",
 				"#9d9a92"
+			],
+			"facade": [
+				3.8,
+				3.3,
+				1.5,
+				0.0,
+				0.7,
+				1.7,
+				0.9,
+				0.0,
+				0.9,
+				1.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				0.42,
+				2.0
 			]
 		},
 		"12": {
@@ -151,6 +355,24 @@
 				"#9c8f84",
 				"#c6b8a5",
 				"#8e8a86"
+			],
+			"facade": [
+				4.2,
+				3.5,
+				2.7,
+				0.3,
+				0.8,
+				1.6,
+				0.9,
+				0.08,
+				0.9,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				0.42,
+				2.0
 			]
 		},
 		"13": {
@@ -163,6 +385,24 @@
 				"#d9d8d4",
 				"#6a6c71",
 				"#f0ebe0"
+			],
+			"facade": [
+				3.6,
+				3.0,
+				3.4,
+				0.0,
+				1.0,
+				1.9,
+				0.3,
+				0.0,
+				0.4,
+				0.0,
+				0.0,
+				0.5,
+				0.0,
+				0.0,
+				0.34,
+				2.0
 			]
 		},
 		"15": {
@@ -173,6 +413,24 @@
 				"#9a4f3c",
 				"#8a4636",
 				"#a5604a"
+			],
+			"facade": [
+				4.5,
+				4.5,
+				3.6,
+				0.5,
+				0.9,
+				2.6,
+				1.0,
+				0.15,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				0.2,
+				1.0
 			]
 		}
 	},

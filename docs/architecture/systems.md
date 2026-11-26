@@ -82,7 +82,7 @@ fails if a script is in neither page, so add a row when you add a file.
 | `place.gd` | The base of a place script: `map`, `ctx` (data, dialogue, clock, focus, vehicle, logs), `pour(mesh, shadows)` for static dressing in the actors' material, `part(node)` for anything else (own material, a mover, a StaticBody3D). |
 | `park_details.gd`, `street_details.gd`, `first_scene.gd`, `skwer_zlota.gd`, `light_garden.gd`, `pkin_hoardings.gd`, `plac_pieciu_rogow.gd`, `ratusz_hub.gd`, `tamka.gd`, `centralny_ramp.gd`, `trasa_wz.gd`, `patelnia.gd`, `towarowa22_life.gd` | Places (extend `place.gd`, a row in `Places.TABLE`): hand-placed dressing for named spots the map data lacks. |
 | `storefronts.gd`, `neon_signs.gd`, `pixel_font.gd` | Shop fronts and parody signs, night neon, the 5x7 world font. |
-| `house_types.gd` | House types (docs/design/house-types.md): an ordinary house's Warsaw type, drawn rhythm and wall palette from its zone, floor height and shape; `game/data/house_types.json`. |
+| `house_types.gd` | House types (docs/design/house-types.md): an ordinary house's Warsaw type, its facade row in building.gdshader (HOUSE_* tables from `tools/house_zones.py`), roof dress class and wall palette from its zone, floor height and shape; `game/data/house_types.json`. |
 | `roof_dress.gd`, `osm_roofs.gd`, `old_town_roofs.gd`, `tenement_trim.gd`, `powisle_houses.gd`, `small_buildings.gd` | Building detail on top of LoD2 and OSM shapes. |
 | `monuments.gd` | Statues, plaques and benches from OSM. |
 | `map_edge.gd`, `edge_roadworks.gd` | Land past the map edge, roadworks closing roads at the edge. |
