@@ -91,6 +91,8 @@ const DALEJ_TUBE := Color(0.55, 1.0, 0.8)
 const KRINGULA_TUBE := Color(1.0, 0.3, 0.22)
 ## DŻEMINI KEBAB (F, 2026-11-06): the kebab an AI agent carves, in the agent's blue-violet.
 const DZEMINI_TUBE := Color(0.45, 0.55, 1.0)
+## KEBAB U KEMALA (Tajny klient, F 2026-11-26): warm kebab-shop red-orange.
+const KEMAL_TUBE := Color(1.0, 0.42, 0.16)
 ## The cinemas' marquee tubes: amber, a deep red and a cool white-blue, so a street of them is not one colour.
 const CINEMA_TUBE := Color(1.0, 0.72, 0.25)
 const CINEMA_TUBE_B := Color(1.0, 0.25, 0.3)
@@ -186,6 +188,10 @@ const VENUES := {
 	# F (2026-11-06): the new kebab whose meat an AI agent carves; Mrożulo's MLASK makes it the
 	# city's longest queue (trend_job.gd "Dżemini", crowds.gd DZEMINI_ID).
 	"dzemini_kebab": [["DŻEMINI", "KEBAB 24H"], DZEMINI_TUBE, 2.8],
+	# F (2026-11-26, Tajny klient): the new kebab on Aleje Jerozolimskie the opening sends the player
+	# to as Kebabulo's secret customer; empty at first, the city's next queue after his MLASK
+	# (tajny_klient.gd, crowds.gd KEMAL_ID). An invented shop, no house number on screen.
+	"kemal_kebab": [["KEBAB", "U KEMALA"], KEMAL_TUBE, 2.8],
 	# Warsaw's classic and arthouse cinemas (F, 2026-11-02): the real independent halls under their
 	# own names (place names, not brands; the multiplex chains stay out), amber marquee tubes.
 	"kino_atlantic": [["KINO", "ATLANTIC"], CINEMA_TUBE_B, 3.2],
@@ -365,6 +371,9 @@ const HYPE := {
 	"kringula_pizza": [52.22725, 21.01575],
 	# DŻEMINI KEBAB, new on the north side of Świętokrzyska, its front to the camera (an invented shop; the Mac look check parks the door).
 	"dzemini_kebab": [52.23595, 21.0105],
+	# KEBAB U KEMALA on the south side of Aleje Jerozolimskie between the map's nos. 85 and 91 (the
+	# door about x -1642, z 765; the Mac look check parks the door).
+	"kemal_kebab": [52.22708, 20.99990],
 }
 ## Warsaw's classic and arthouse cinemas (F, 2026-11-02; BACKLOG "Lore: coffee raves and arthouse
 ## cinemas"): (Kino Muranów's letters are its landmark model's since 2026-11-07, landmarks.gd) Atlantic (Chmielna 33), Luna (Marszałkowska 28), Kultura

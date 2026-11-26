@@ -106,14 +106,18 @@ var _honk_wait := 0.0
 var _test_now := false
 
 
-## A road life installed from the ctx, or null (freed, so a --no-police run leaks no node at exit)
-## when there is no traffic or police to drive.
-static func make(ctx) -> Node:
+## A road life installed from the ctx, quiet while `hush` says so, added under `parent` and set up;
+## or null (freed, so a --no-police run leaks no node at exit) when there is no traffic or police.
+static func make(ctx, parent: Node, hush: Callable) -> Node:
 	var life: Node = (load("res://scripts/road_life.gd") as GDScript).new()
-	if life.install(ctx):
-		return life
-	life.free()
-	return null
+	if not life.install(ctx):
+		life.free()
+		return null
+	life.name = "RoadLife"
+	life.hushed = hush
+	parent.add_child(life)
+	life.setup()
+	return life
 
 
 ## Copies what it needs from the ctx; false when there is no traffic or police (nothing to drive).

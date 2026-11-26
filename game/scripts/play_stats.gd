@@ -354,6 +354,10 @@ func watch(ctx: Dictionary) -> void:
 	if first10 != null:
 		first10.beat.connect(func(id: String, how: String, at: float) -> void:
 			track("guide_beat", {"beat": id, "how": how, "t_play_s": at}))
+	var tajny: Object = ctx.get("tajny")  # the Tajny klient opening's beats ("tk_*"), in the guide's funnel
+	if tajny != null:
+		tajny.beat.connect(func(id: String, how: String, at: float) -> void:
+			track("guide_beat", {"beat": id, "how": how, "t_play_s": at}))
 	var districts: Object = ctx.get("districts")
 	if districts != null:
 		districts.discovered.connect(func(id: String, _card: bool) -> void:
