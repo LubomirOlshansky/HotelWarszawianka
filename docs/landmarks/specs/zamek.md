@@ -222,12 +222,12 @@ No new material, light, node or MultiMesh.
 
 ## 7. Detail level and budget
 
-- L3, the hero landmark (docs/LANDMARKS.md), triangle budget 30000.
-- `zamek`: **30000** triangles in `check_mesh_quality.gd` and `check_sites.gd` (17656 measured
-  before pass 3). This is a named **exception** to the L3 limit:
+- L3, the hero landmark (docs/LANDMARKS.md), triangle budget 24500.
+- `zamek`: **24500** triangles in `check_mesh_quality.gd` and `check_sites.gd`: 18632 measured,
+  17656 before pass 3, tightened from 30000 at the audit. This is a named **exception** to the L3 limit:
   - the castle is the largest building in the Old Town and is seen from every side of the square
     and the river;
-  - about 360 kit windows on the square, south and river fronts make most of it;
+  - about 170 kit windows on the square, south and river fronts make most of it;
   - all of it is in the city's one building surface, so no draw call is added.
 - `arkady`: 2400 in `check_sites.gd` and 2600 in `check_mesh_quality.gd` (unchanged).
 - Mesh check: no z-fighting, no floating parts. Chimneys, dormers and the towers' shafts start
