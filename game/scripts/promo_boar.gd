@@ -38,6 +38,44 @@ const SHOTS := {
 		"bonk": 1.8},
 }
 
+## F (2026-11-26, round 4): "views from different sides of the Palace, not so much horizon; ~20
+## screenshots: close-ups, distant views, the camera behind the dziks". --promo-boar=views holds each
+## view HOLD frames (the city streams in round it), so the still is frame 120 + HOLD * (k + 1) - 1.
+## A view: the boar's place (x, height over the ground, z); the point that should stand behind it
+## (bg); the camera's distance from the boar on the line bg -> boar, its lift (m) and fov; yaw = which
+## way the boar flies relative to the lens (0 = at it, 90 = across, 180 = away, the camera behind);
+## w = how far the look point slides from the boar towards bg.
+const HOLD := 40
+const P := [-1214.0, 120.0, 247.0]  # the Palace's shaft
+const VIEWS := [
+	# Close-ups (faces, the Palace behind).
+	{"name": "close_south_face", "boar": [-1214.0, 128.0, 302.0], "bg": P, "dist": 7.0, "up": 3.0, "yaw": 30.0, "fov": 55.0, "w": 0.1},
+	{"name": "close_pinnacles", "boar": [-1262.0, 158.0, 292.0], "bg": [-1214.0, 175.0, 247.0], "dist": 6.5, "up": 2.0, "yaw": 55.0, "fov": 55.0, "w": 0.15},
+	{"name": "close_over_defilad", "boar": [-1160.0, 60.0, 330.0], "bg": [-1214.0, 40.0, 247.0], "dist": 6.5, "up": 3.5, "yaw": 20.0, "fov": 55.0, "w": 0.1},
+	{"name": "close_over_zlote_tarasy", "boar": [-1430.0, 62.0, 415.0], "bg": P, "dist": 7.0, "up": 4.0, "yaw": 0.0, "fov": 55.0, "w": 0.12},
+	{"name": "close_profile_clock", "boar": [-1214.0, 122.0, 300.0], "bg": P, "dist": 9.0, "up": 2.0, "yaw": 90.0, "fov": 50.0, "w": 0.1},
+	{"name": "close_selfie_west", "boar": [-1300.0, 100.0, 300.0], "bg": P, "dist": 4.5, "up": 1.5, "yaw": 10.0, "fov": 60.0, "w": 0.05},
+	{"name": "close_topdown_square", "boar": [-1214.0, 70.0, 345.0], "bg": [-1214.0, 0.0, 362.0], "dist": 7.0, "up": 2.0, "yaw": 160.0, "fov": 55.0, "w": 0.0},
+	# Behind the dziks (the camera follows, the target ahead).
+	{"name": "behind_from_zlote_tarasy", "boar": [-1380.0, 100.0, 380.0], "bg": [-1214.0, 130.0, 247.0], "dist": 9.0, "up": 4.0, "yaw": 180.0, "fov": 55.0, "w": 0.2},
+	{"name": "behind_from_west", "boar": [-1330.0, 90.0, 250.0], "bg": [-1214.0, 120.0, 247.0], "dist": 9.0, "up": 5.0, "yaw": 180.0, "fov": 55.0, "w": 0.2},
+	{"name": "behind_from_south", "boar": [-1214.0, 90.0, 420.0], "bg": [-1214.0, 130.0, 247.0], "dist": 10.0, "up": 6.0, "yaw": 180.0, "fov": 55.0, "w": 0.2},
+	{"name": "behind_up_the_spire", "boar": [-1250.0, 170.0, 290.0], "bg": [-1214.0, 190.0, 247.0], "dist": 8.0, "up": 6.0, "yaw": 180.0, "fov": 55.0, "w": 0.25},
+	{"name": "behind_towards_rotunda", "boar": [-1150.0, 100.0, 300.0], "bg": [-1000.0, 0.0, 330.0], "dist": 9.0, "up": 5.0, "yaw": 180.0, "fov": 55.0, "w": 0.15},
+	{"name": "behind_over_the_roof", "boar": [-1214.0, 162.0, 330.0], "bg": [-1214.0, 140.0, 200.0], "dist": 8.0, "up": 7.0, "yaw": 180.0, "fov": 55.0, "w": 0.2},
+	{"name": "behind_from_southeast", "boar": [-1110.0, 100.0, 360.0], "bg": [-1214.0, 120.0, 247.0], "dist": 9.0, "up": 5.0, "yaw": 180.0, "fov": 55.0, "w": 0.2},
+	# Distant (the whole tower, the family small but there).
+	{"name": "far_southwest_zlote_tarasy", "boar": [-1380.0, 140.0, 370.0], "bg": [-1214.0, 100.0, 247.0], "dist": 55.0, "up": 30.0, "yaw": 120.0, "fov": 55.0, "w": 0.35},
+	{"name": "far_south_high", "boar": [-1214.0, 150.0, 360.0], "bg": [-1214.0, 90.0, 247.0], "dist": 110.0, "up": 80.0, "yaw": 150.0, "fov": 55.0, "w": 0.45},
+	{"name": "far_west_zlota44", "boar": [-1320.0, 140.0, 247.0], "bg": [-1214.0, 100.0, 247.0], "dist": 90.0, "up": 50.0, "yaw": 120.0, "fov": 55.0, "w": 0.4},
+	{"name": "far_topdown", "boar": [-1214.0, 180.0, 330.0], "bg": [-1214.0, 0.0, 300.0], "dist": 80.0, "up": 10.0, "yaw": 150.0, "fov": 55.0, "w": 0.3},
+	{"name": "far_southeast_rotunda", "boar": [-1150.0, 130.0, 330.0], "bg": [-1214.0, 100.0, 247.0], "dist": 110.0, "up": 70.0, "yaw": 120.0, "fov": 55.0, "w": 0.4},
+	{"name": "mid_profile_whole_tower", "boar": [-1214.0, 150.0, 322.0], "bg": [-1214.0, 120.0, 247.0], "dist": 35.0, "up": 8.0, "yaw": 90.0, "fov": 60.0, "w": 0.3},
+]
+
+var views_mode := false
+var _view := {}
+
 var shot_name := "chase"
 var shot: Dictionary
 var skip := 4.0
@@ -61,6 +99,8 @@ static func parse(opts: String) -> Dictionary:
 			o["skip"] = float(p.trim_prefix("skip="))
 		elif p == "nopiglets":
 			o["piglets"] = false
+		elif p == "views":
+			o["views"] = true
 	return o
 
 
@@ -69,6 +109,7 @@ func setup(m: Node, opts: String) -> void:
 	var o := parse(opts)
 	skip = o["skip"]
 	shot_name = o["shot"]
+	views_mode = o.get("views", false)
 	shot = (SHOTS[shot_name] as Dictionary).duplicate(true)
 	var ovr: Variant = JSON.parse_string(OS.get_environment("BOAR_OVR")) if OS.has_environment("BOAR_OVR") else null
 	if ovr is Dictionary:
@@ -134,7 +175,7 @@ func _path(t: float) -> Array:
 
 
 func _fly(t: float) -> void:
-	var pd := _path(t)
+	var pd := _view_path(t) if views_mode else _path(t)
 	_pos = pd[0]
 	var d: Vector3 = pd[1]
 	_fwd = Vector3(d.x, 0.0, d.z).normalized()
@@ -156,8 +197,35 @@ func _process(dt: float) -> void:
 	_fly(_t())
 
 
+## Views mode: the boar's place and flight in the view held at time t.
+func _view_path(t: float) -> Array:
+	var k := clampi(int(floorf(t * 30.0 / float(HOLD))), 0, VIEWS.size() - 1)
+	_view = VIEWS[k]
+	var b := _v(_view["boar"])
+	var bg := _v(_view["bg"])
+	var to_cam := Vector3(b.x - bg.x, 0.0, b.z - bg.z).normalized()
+	var d := to_cam.rotated(Vector3.UP, deg_to_rad(float(_view["yaw"])))
+	return [b, d]
+
+
+func _view_camera(cam: Camera3D) -> Vector3:
+	var b := _pos
+	var bg := _v(_view["bg"])
+	var away := (b - bg).normalized()
+	var eye := b + away * float(_view["dist"]) + Vector3.UP * float(_view["up"])
+	var look := (b + Vector3.UP * 1.0).lerp(bg, float(_view["w"]))
+	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+	cam.fov = _view["fov"]
+	cam.near = 0.05
+	cam.far = 4000.0
+	cam.global_transform = Transform3D(Basis.looking_at(look - eye, Vector3.UP), eye)
+	return look
+
+
 ## main.gd calls this in place of the free camera. Returns the look point (the streaming focus).
 func place_camera(cam: Camera3D) -> Vector3:
+	if views_mode:
+		return _view_camera(cam)
 	var t := _t()
 	var f := smoothstep(0.0, 1.0, clampf(t / float(shot["len"]), 0.0, 1.0))
 	var eye: Vector3
