@@ -44,7 +44,7 @@ The pavement and the parked cars are the map's. The garden court and the lawn be
 
 ## 7. Detail level and budget
 
-L3, triangle budget 13000 (8000 at first; raised the same day for the balconies, the ivy and the geranium boxes of F's photos) (`check_mesh_quality.gd`).
+L3, triangle budget 13000, an exception to the L3 limit of 8000 (the stacked round balconies are the building's identity; 8000 at first; raised the same day for the balconies, the ivy and the geranium boxes of F's photos) (`check_mesh_quality.gd`).
 
 Shots: turntable `tools/turntable.sh niecala7`; `--at=-1043,-892 --yaw=40 --pitch=-25 --size=70` (from Niecała, photo fotopolska 340543), `--at=-1040,-880 --yaw=200 --pitch=-20 --size=70` (the garden arc, photos of the developer's gallery).
 
