@@ -613,6 +613,8 @@ class Wallet extends Node:
 	## wallet.gd's kept facts (a club card, a count of wins) and the best time under each key.
 	var keep := {}
 	var best := {}
+	## The joke notebook's count today (wallet.gd), the night's mandat reads it.
+	var cautions_today := 0
 
 	## Every payment as [amount, gain, kind], in step with `kinds` (a check that tells two payments of one delivery apart).
 	var payments: Array = []

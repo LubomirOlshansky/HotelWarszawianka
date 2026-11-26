@@ -116,6 +116,7 @@ tall on the pane, a trim block hw·0.86 half wide from y + h + 0.24 to y + h + 0
 | `kit_pediment(u, hw, y, h, col, roof, depth := 0.45, relief := none)` | a triangular gable standing `depth` out of the face over u ± hw, its two roof slopes running back into the wall; a darker relief triangle inside when `relief` is opaque | 6 to 7 |
 | `kit_portico(u, hw, y0, y1, n, col, roof, depth := 3.0, steps := 3, order := Order.TUSCAN)` | steps, n columns `depth` out, an entablature on them back to the wall, a pediment a quarter of the width tall | about 60 a column + 60 |
 | `kit_lantern(u, v, y, h, r, wall, roof, glass := PAL_GLASS_DARK, sides := 8)` | a roof lantern: a `sides`-sided drum with a pane in each face, a ledge, a pointed cap and a finial | about 12 a side |
+| `kit_dormer(at, out, y, body, trim, glass := PAL_GLASS_DARK)` | a dormer on a roof slope: a box 1.3 m wide, 1.5 m over the slope at its front `at` (`out` the plan step down the slope, `y` the slope's height there), base 0.8 m under it, 1.8 m deep, a small hip cap, a framed 0.8 x 1.0 m window lit by chance; takes its own frame and gives the caller's back (the Royal Castle, 2026-11-26) | about 60 |
 
 ## 4. The palette
 

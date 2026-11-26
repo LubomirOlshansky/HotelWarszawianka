@@ -934,6 +934,19 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(_hud.dots == m._racers.size(), "the racers show on the minimap")
 	await _real(1.8)
 	_ok(_hud.banner == "", "the banner goes after 1.6 s")
+	# The night's pot: the siren tell came, the player parked in the ring is boxed (no CZYSTO), a clean
+	# player is 22 m out; a caution halves the pot, never to nothing by itself.
+	_ok(m._tell_t < 0.0 and not m.raid_clean, "the siren tell came first and the player in the ring is boxed (no CZYSTO)")
+	var pot_save: int = m.pot
+	_ok(Meet.is_clean(gap + Vector3(Meet.CLEAN_M + 1.0, 0.0, 0.0), gap) and not Meet.is_clean(gap + Vector3(5.0, 0.0, 0.0), gap), "CZYSTO is CLEAN_M m from the gap")
+	m.pot = 100
+	_wallet.cautions_today += 1
+	m._mandat_poll()
+	_ok(m.pot == 50, "a caution halves the pot (MANDAT)")
+	m._mandat_poll()
+	_ok(m.pot == 50, "one halving per caution")
+	_ok(m.night_bar() == "●●○○○ · 50 zł", "the night bar: the second beat and the pot (%s)" % m.night_bar())
+	m.pot = pot_save
 
 	# 5. The pin, the race.
 	_ok(_until(_in.bind(Meet.Stage.RACE), 10.0), "PIN_AFTER s after the sirens the race begins")
@@ -972,6 +985,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(_hud.badge == "3/9", "two ahead: the badge 3/9 (%s)" % _hud.badge)
 	var money: int = _wallet.money
 	var respect: int = _wallet.respect
+	var pot0: int = m.pot
 	_hud.toasts.clear()
 	dice.state = m._rng.state
 	_park_at(goal)
@@ -979,7 +993,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_crowd_dice(dice)
 	_ok(m._rng.state == dice.state, "the dice: meet 2 draws its crowd's places and no cars")
 	var pay: Array = Meet.place_pay(3)
-	_ok(m.place == 3 and m.last_pay == pay and _wallet.money == money + int(pay[0]) and _wallet.respect == respect + int(pay[1]) and "meet_race" in _wallet.kinds, "third place pays place_pay(3)")
+	_ok(m.place == 3 and m.last_pay == pay and _wallet.money == money and m.pot == pot0 + int(pay[0]) and _wallet.respect == respect + int(pay[1]) and "meet_race" in _wallet.kinds, "third place: the money into the pot, the respect paid (the night's pot %d zł)" % m.pot)
 	_ok(_toast("3. MIEJSCE") and not m.has_target() and _hud.status == "", "the toast, no target, no status line")
 	_ok(m.meet_i == 1 and m._tandem and m._drifting and m._skajlajner.visible and m._scene.visible, "meet 2 is up with the tandem and Tadek's car")
 	var parked := true
@@ -1052,11 +1066,12 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(gears_ok, "three perfect shifts: the pill, the gear, a burst, the car's tune with the gear")
 	money = _wallet.money
 	respect = _wallet.respect
+	var pot_win: int = m.pot
 
 	# 8. The ends: the win.
 	_ok(_drive_until(_in.bind(Meet.Stage.RESULT), 30.0, 1.0), "across 402 m")
 	_ok(m.drag_won and _hud.card == "RESPEKT!" and _hud.buttons == 1 and m.drag_time > 0.0, "before Tadek: RESPEKT!, one button (%.2f s)" % m.drag_time)
-	_ok(_wallet.money == money + int(Meet.DRAG_PAY[0]) and _wallet.respect == respect + int(Meet.DRAG_PAY[1]) and "meet_drag" in _wallet.kinds, "DRAG_PAY paid")
+	_ok(_wallet.money == money + pot_win * 2 and _wallet.respect == respect + int(Meet.DRAG_PAY[1]) and "meet_drag" in _wallet.kinds and m.pot == 0, "a win pays the pot doubled (%d × 2 zł)" % pot_win)
 	_ok(bool(_wallet.keep.get("wnrc_member", false)) and int(_wallet.keep.get("wnrc_wins", 0)) == 1 and is_equal_approx(float(_wallet.best.get("drag_402", -1.0)), m.drag_time), "the club card kept, the record")
 	_tune("the win")
 	_ok(not m._tacho.visible and not m._tree.visible and not _hud.hush and _hud.pill == "", "the tacho, tree, pill and quiet screen down")
