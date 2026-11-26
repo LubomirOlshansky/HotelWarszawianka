@@ -629,6 +629,9 @@ const INFO := {
 	"swieto": ["Most Świętokrzyski",
 			"Most wantowy z 2000 roku: jeden pylon, wanty w jednej płaszczyźnie.",
 			"A cable-stayed bridge of 2000: one pylon, its stays in one plane."],
+	"ns4a": ["Nowy Świat 4A",
+			"Szklany róg przy Dom Partii: cztery piętra świecących żeber, biało-czerwony pas, flaga na maszcie. Na górze PGR, na dole PRZEGRYWKI, gdzie gra się do rana.",
+			"The glass corner by the Party House: four floors of glowing fins, a white-and-red band, a flag on the mast. PGR upstairs, PRZEGRYWKI downstairs, where the games run till morning."],
 	"dom_partii": ["Dom Partii",
 			"Biały gmach z 1952 roku. Była partia, giełda, dziś biura i bary.",
 			"A white block from 1952. Once the Party, then the stock exchange, now offices and bars."],
@@ -1153,6 +1156,8 @@ static func tower_colour(key: String, fallback: Color) -> Color:
 		return VITKAC_WALL
 	if key == "dom_partii":
 		return DOM_STONE
+	if key == "ns4a":
+		return NS4A_GLASS
 	if key == "eon41":
 		return EON_STONE
 	if key == "asp37":
@@ -1284,6 +1289,7 @@ func _find_sites() -> void:
 	_find_sunken()
 	_find_deski()
 	_find_dom_partii()
+	_find_ns4a()
 	_find_eon41()
 	_find_asp37()
 	_find_rynek()
@@ -1698,6 +1704,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_deski(s)
 			"dom_partii":
 				_build_dom_partii(s)
+			"ns4a":
+				_build_ns4a(s)
 			"eon41":
 				_build_eon41(s)
 			"asp37":
