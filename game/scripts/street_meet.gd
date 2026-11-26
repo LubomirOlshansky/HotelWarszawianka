@@ -30,7 +30,7 @@ extends "res://scripts/activity.gd"
 ## green; moving before green is FALSTART (a loss). Four gears (GEARS, a share of the drag top,
 ## DRAG_TOP × the car's): at the top of each the button says BIEG!: on time (PERFECT s) is a burst
 ## (SHIFT_BOOST), late is just a shift, never is an auto-shift after AUTO_SHIFT s. The nitro button
-## works (a bottle on loan, LOAN, without the garage's). Tadek's run is the "ok" run of the same car
+## works (a bottle on loan from the second night, without the garage's). Tadek's run is the "ok" run of the same car
 ## (sim_run) sped up to between it and a clean run (RIVAL_SKILL), so clean shifts or the nitro
 ## win. On the line and in the run the car holds the strip's line and any gas is full gas
 ## (hold_car): a drag is the launch and the shifts, not the steering (PT-33: the point-to-steer
@@ -195,18 +195,30 @@ const PLACE_PAY := [[200, 40], [120, 25], [60, 12], [20, 5]]
 const DRAG_PAY := [0, 80]
 const DRAG_LOSE := [0, 10]
 ## The drag car: top speed × DRAG_TOP (Darek's map on the ECU), four gears as shares of it.
-const DRAG_TOP := 1.5
-const GEARS := [0.34, 0.57, 0.79, 1.0]
+const DRAG_TOP := 1.87
+## Five gears that fill the run (critique-drag-race.md 3.1): a taller gear pulls less (GEAR_PULL, a share of
+## the car's pull), so the shifts spread over the strip and the car is still gaining at the line.
+const GEARS := [0.26, 0.44, 0.62, 0.81, 1.0]
+const GEAR_PULL := [1.0, 0.60, 0.40, 0.29, 0.22]
 ## The BIEG! button: shown from SHIFT_SHOW of the gear's top, "TERAZ" from SHIFT_AT; pressed within
 ## PERFECT s of that, a perfect shift (accel × SHIFT_BOOST for BOOST_S s); before SHIFT_AT, early
 ## (accel × EARLY_BOG for BOG_S s); nothing for AUTO_SHIFT s, the box shifts itself.
 const SHIFT_SHOW := 0.82
 const SHIFT_AT := 0.96
-const PERFECT := 0.35
+const PERFECT := 0.12
 const SHIFT_BOOST := 1.7
 const BOOST_S := 1.1
-const EARLY_BOG := 0.6
+## A shift before the yellow (ZA WCZEŚNIE): pull x EARLY_BOG for EARLY_S s; a launch that bogs: x LAUNCH_BOG for
+## BOG_S s; in the yellow (KRÓTKO / SHORT) the pull is x SHORT_MIN to 1 by how near the green, for SHORT_S s;
+## later than GOOD_LATE s past the green (ZA PÓŹNO): x LATE_MULT for LATE_S s.
+const EARLY_BOG := 0.55
+const EARLY_S := 0.9
+const LAUNCH_BOG := 0.6
 const BOG_S := 0.6
+const SHORT_MIN := 0.55
+const SHORT_S := 0.7
+const LATE_MULT := 0.8
+const LATE_S := 0.5
 ## F 2026-11-08 ("a gearbox you shift yourself, with a rev counter and its zones"): the box never
 ## shifts for you on time; only after AUTO_SHIFT s bouncing on the limiter it saves a sleeping run
 ## (a late, slow shift). The tacho (DragTacho) shows the zones: yellow from SHIFT_SHOW, green from
@@ -215,13 +227,15 @@ const AUTO_SHIFT := 2.5
 ## The genre's grades (CSR-style drag games, F 2026-11-08 "look how arcade games do the shifting"):
 ## a press in the yellow (from SHIFT_SHOW) or up to GOOD_LATE s past the green is "good" (no burst,
 ## no bog); before the yellow "early" (a bog); later than GOOD_LATE on the limiter "late".
-const GOOD_LATE := 0.8
+const GOOD_LATE := 0.35
 ## The launch (the same games): on the line the car is held and the gas only revs the engine; the
 ## needle climbs REV_UP a second with the gas, falls REV_DOWN without. At green the needle in the
 ## launch zone LAUNCH (shares of the dial's 0-1 rev range) is a perfect start (a burst); over
 ## it the tyres spin (accel × SPIN for SPIN_S s); under it a bog.
-const REV_UP := 0.9
+const REV_UP := 1.3
 const REV_DOWN := 1.4
+## The blue zone by night (it narrows: critique 3.3), the first night's as it was.
+const LAUNCHES := [Vector2(0.55, 0.78), Vector2(0.58, 0.77), Vector2(0.61, 0.76), Vector2(0.64, 0.75)]
 const LAUNCH := Vector2(0.55, 0.78)
 const SPIN := 0.55
 const SPIN_S := 0.9
@@ -242,12 +256,26 @@ const LINE_R := 6.0
 const STRIP_HALF := 9.0
 ## Tadek: his reaction, and how far between the "ok" run and a perfect one his time sits.
 const RIVAL_REACT := 0.28
-const RIVAL_SKILL := 0.5
+## Tadek by night (critique 3.5): his reaction, launch ("perfect" or plain), each shift's delay after the
+## green, and the gear whose shift fires his bottle (-1: none; 2 is "into third").
+const TADEK := [
+	{"react": 0.28, "launch": false, "delays": [0.22, 0.22, 0.22, 0.22], "bottle": -1},
+	{"react": 0.24, "launch": false, "delays": [0.15, 0.15, 0.15, 0.15], "bottle": 2},
+	{"react": 0.2, "launch": true, "delays": [0.1, 0.2, 0.1, 0.2], "bottle": 3},
+	{"react": 0.2, "launch": true, "delays": [0.1, 0.1, 0.1, 0.2], "bottle": 2},
+]
+## The bottle in the drag (critique 3.4): one, NITRO_S s of pull x NITRO_PULL and top x NITRO_CAP (the
+## city's x2.2 and x1.3 stay); STRZAL_S s when fired within SHOT_WINDOW s after an IDEALNIE; in first or
+## second gear the tyres can't take it. The first night has none.
+const NITRO_S := 2.5
+const STRZAL_S := 3.2
+const NITRO_PULL := 1.6
+const NITRO_CAP := 1.15
+const SHOT_WINDOW := 0.4
 ## The clean run Tadek is measured against: a human reaction and shifts on time (not a robot's).
 const CLEAN_REACT := 0.35
-const CLEAN_DELAY := 0.15
+const CLEAN_DELAY := 0.1
 ## A nitro bottle on loan (with no garage nitro): one full tank.
-const LOAN := true
 const RESULT_LIFE := 30.0
 const TICK := 0.25
 
@@ -423,6 +451,10 @@ var _gear := 0
 var _shift_w := -1.0
 var _boost_t := 0.0
 var _bog_t := 0.0
+## A shift's penalty: its pull factor and the seconds it lasts; seconds since an IDEALNIE (STRZAŁ).
+var _pen_m := 1.0
+var _pen_t := 0.0
+var _since_perfect := 99.0
 ## The launch: the revs on the line (0-1 of the gear's range) and the gas held now.
 var _revs := 0.0
 var _spin_t := 0.0
@@ -430,6 +462,8 @@ var _rev_gas := false
 var _top_was := 1.0
 var _accel_was := 1.0
 var _nitro_was := false
+var _night := 1
+var _nitro_save: Array = []
 var _nitro_charge_was := 1.0
 var _gentle_was := false
 var _rival_s := 0.0
@@ -542,50 +576,79 @@ static func shift_grade(w: float) -> String:
 static func shift_grade_at(k: float, w: float) -> String:
 	if w >= 0.0:
 		return shift_grade(w) if w <= PERFECT else ("good" if w <= GOOD_LATE else "late")
-	return "good" if k >= SHIFT_SHOW else "early"
+	return "short" if k >= SHIFT_SHOW else "early"
+
+
+## The pull a "short" shift (a tap in the yellow) leaves: SHORT_MIN at the yellow's start, 1 at the green.
+static func short_mult(k: float) -> float:
+	return SHORT_MIN + (1.0 - SHORT_MIN) * clampf((k - SHIFT_SHOW) / (SHIFT_AT - SHIFT_SHOW), 0.0, 1.0)
+
+
+## The launch zone for night `night` (1 the first).
+static func launch_zone(night: int) -> Vector2:
+	return LAUNCHES[clampi(night - 1, 0, LAUNCHES.size() - 1)]
 
 
 ## The launch's grade from the revs at green: "perfect", "spin" or "bog".
-static func launch_grade(revs: float) -> String:
-	if revs > LAUNCH.y:
+static func launch_grade(revs: float, night := 1) -> String:
+	var z := launch_zone(night)
+	if revs > z.y:
 		return "spin"
-	return "perfect" if revs >= LAUNCH.x else "bog"
+	return "perfect" if revs >= z.x else "bog"
 
 
 ## One 402 m run of a car with `accel` (m/s²) and `top` (m/s, the drag top), the car.gd equation,
-## at 120 Hz: `react` s at the line, then each gear's cap until a shift `delay` s after reaching
-## it (a perfect shift with `boost`), `nitro` s of the nitro from `nitro_at` s. Returns
-## [time (s), the distance at each 1/30 s as a PackedFloat32Array].
+## at 120 Hz: `react` s at the line, then each gear's cap (and GEAR_PULL) until a shift `delay` s after
+## reaching it (`delays`, one per shift, when given). A shift within PERFECT s gives the burst when `boost`;
+## later than GOOD_LATE s it costs (LATE_MULT). `perfect_launch` starts with the burst. The bottle: `nitro`
+## s of it from `nitro_at` s after the start, or (`bottle_gear` >= 0) from the shift into that gear (0 is
+## first), the drag's strength (pull x NITRO_PULL, top x NITRO_CAP; 3.2 s as a STRZAŁ after a perfect shift).
+## Returns [time (s), the distance at each 1/30 s as a PackedFloat32Array].
 static func sim_run(accel: float, top: float, react: float, delay: float, boost: bool, nitro := 0.0,
-		nitro_at := 2.0, nitro_top := 1.3, nitro_accel := 2.2) -> Array:
+		nitro_at := 2.0, nitro_top := NITRO_CAP, nitro_accel := NITRO_PULL, delays := [],
+		perfect_launch := false, bottle_gear := -1) -> Array:
 	var dt := 1.0 / 120.0
 	var t := 0.0
 	var s := 0.0
 	var v := 0.0
 	var gear := 0
 	var at_cap := -1.0
-	var boost_t := 0.0
+	var boost_t := BOOST_S if perfect_launch else 0.0
+	var late_t := 0.0
+	var bottle_t := 0.0
+	var last_perfect := false
+	var shifts := 0
 	var samples := PackedFloat32Array([0.0])
 	var next_sample := 1.0 / 30.0
 	while s < QUARTER and t < 60.0:
 		t += dt
 		if t > react:
-			var n := nitro > 0.0 and t - react >= nitro_at and t - react < nitro_at + nitro
+			var n := (nitro > 0.0 and t - react >= nitro_at and t - react < nitro_at + nitro) or bottle_t > 0.0
 			var cap: float = top * float(GEARS[gear]) * (nitro_top if n else 1.0)
-			var a := accel * (nitro_accel if n else 1.0) * (SHIFT_BOOST if boost_t > 0.0 else 1.0)
+			var a := accel * float(GEAR_PULL[gear]) * (nitro_accel if n else 1.0) * (SHIFT_BOOST if boost_t > 0.0 else 1.0) \
+					* (LATE_MULT if late_t > 0.0 else 1.0)
 			if v < cap:
 				v = minf(cap, v + a * dt * (1.0 - 0.6 * clampf(v / cap, 0.0, 1.0)))
 			else:
 				v = move_toward(v, cap, 4.0 * dt)
 			boost_t = maxf(0.0, boost_t - dt)
-			if gear < GEARS.size() - 1 and v >= cap * SHIFT_AT:
+			late_t = maxf(0.0, late_t - dt)
+			bottle_t = maxf(0.0, bottle_t - dt)
+			if gear < GEARS.size() - 1 and v >= top * float(GEARS[gear]) * SHIFT_AT:
 				if at_cap < 0.0:
 					at_cap = t
-				if t - at_cap >= minf(delay, AUTO_SHIFT):
+				var d: float = float(delays[shifts]) if shifts < delays.size() else delay
+				if t - at_cap >= minf(d, AUTO_SHIFT):
 					gear += 1
+					shifts += 1
 					at_cap = -1.0
-					if boost and delay <= PERFECT:
+					last_perfect = boost and d <= PERFECT
+					if last_perfect:
 						boost_t = BOOST_S
+					elif d > GOOD_LATE:
+						late_t = LATE_S
+					if gear == bottle_gear:
+						bottle_t = STRZAL_S if last_perfect else NITRO_S
 		s += v * dt
 		if t >= next_sample:
 			samples.append(s)
@@ -593,13 +656,22 @@ static func sim_run(accel: float, top: float, react: float, delay: float, boost:
 	return [t, samples]
 
 
-## Tadek's run against a car of `accel`/`top`: the "ok" run's profile and the factor that speeds it
-## up to RIVAL_SKILL of the way to a clean run's time: [profile, k, his time, ok, perfect].
-static func rival_run(accel: float, top: float) -> Array:
+## Tadek's run on night `night` (1 to 4): the same car by the same rules (critique 3.5), his launch,
+## shifts and bottle from TADEK's row. With `seed` >= 0 he may fluff one shift 0.9 s late (nights 1 to 3).
+## [profile, 1.0 (a profile as it is), his time, the time with no bottle and shifts 0.6 s late, a clean run's].
+static func rival_run(accel: float, top: float, night := 1, seed := -1) -> Array:
+	var row: Dictionary = TADEK[clampi(night - 1, 0, TADEK.size() - 1)]
+	var delays: Array = (row["delays"] as Array).duplicate()
+	if seed >= 0 and night <= 3:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed
+		if rng.randf() < 0.25:
+			delays[rng.randi_range(0, delays.size() - 1)] = 0.9
+	var run: Array = sim_run(accel, top, float(row["react"]), 0.2, true, 0.0, 0.0, NITRO_CAP, NITRO_PULL,
+			delays, bool(row["launch"]), int(row["bottle"]))
 	var ok: Array = sim_run(accel, top, RIVAL_REACT, 0.6, false)
 	var best: Array = sim_run(accel, top, CLEAN_REACT, CLEAN_DELAY, true)
-	var target := lerpf(float(ok[0]), float(best[0]), RIVAL_SKILL)
-	return [ok[1], float(ok[0]) / target, target, float(ok[0]), float(best[0])]
+	return [run[1], 1.0, float(run[0]), float(ok[0]), float(best[0])]
 
 
 ## Distance along a 30 Hz profile at time `t` (past its end: the last speed carried on).
@@ -2199,6 +2271,8 @@ func _stage() -> void:
 	_shift_w = -1.0
 	_boost_t = 0.0
 	_bog_t = 0.0
+	_pen_t = 0.0
+	_since_perfect = 99.0
 	_spin_t = 0.0
 	_player_s = 0.0
 	_rival_s = 0.0
@@ -2211,11 +2285,20 @@ func _stage() -> void:
 	_accel_was = float(car.accel_mult)
 	_nitro_was = bool(car.nitro_owned)
 	_nitro_charge_was = float(car.nitro_charge)
-	if LOAN:
-		car.nitro_owned = true
-		car.nitro_charge = 1.0
+	# One bottle from the second night, none on the first, the drag's strength (critique 3.4).
+	_night = drag_night()
+	car.nitro_owned = _night >= 2
+	car.nitro_on = false
+	car.nitro_charge = 1.0
+	_nitro_save = [car.nitro_accel_scale, car.nitro_top_scale, car.nitro_burn_s, car.nitro_bottles]
+	car.nitro_bottles = 1
+	car.nitro_accel_scale = NITRO_PULL
+	car.nitro_top_scale = NITRO_CAP
+	car.nitro_burn_s = NITRO_S
+	if not car.nitro_started.is_connected(_on_nitro):
+		car.nitro_started.connect(_on_nitro)
 	car.top_mult = _top_was * DRAG_TOP * float(GEARS[0])
-	var rr := rival_run(float(car.accel) * _accel_was, float(car.max_speed) * _top_was * DRAG_TOP)
+	var rr := rival_run(float(car.accel) * _accel_was, float(car.max_speed) * _top_was * DRAG_TOP, _night, randi())
 	_rival_profile = rr[0]
 	_rival_k = rr[1]
 	_rival_time = float(rr[2])
@@ -2232,7 +2315,7 @@ func _stage() -> void:
 	_tree.queue_redraw()
 	_revs = 0.0
 	_rev_gas = false
-	_tacho.launch = LAUNCH
+	_tacho.launch = launch_zone(_night)
 	_tacho.staging = true
 	_quiet(true)
 	hide_status()
@@ -2310,7 +2393,7 @@ func _drag_frame(dt: float) -> void:
 				car.nitro_wait = false  # N1: a tap kept on the line fires with the green
 			_drag_t = 0.0
 			_tacho.staging = false
-			_launch(launch_grade(_revs))
+			_launch(launch_grade(_revs, _night))
 			Access.buzz(80, 0.8)
 			hud.cue("go")
 		return
@@ -2318,8 +2401,7 @@ func _drag_frame(dt: float) -> void:
 	if _react < 0.0 and _player_s > 0.5:
 		_react = _drag_t
 	# Tadek.
-	var rt := maxf(0.0, _drag_t - RIVAL_REACT)
-	_rival_s = 0.0 if _drag_t < RIVAL_REACT else profile_at(_rival_profile, rt * _rival_k + RIVAL_REACT)
+	_rival_s = profile_at(_rival_profile, _drag_t)
 	_skajlajner.global_transform = Transform3D(Basis(Vector3.UP, strip_yaw()), strip_at(_rival_s, -float(strip["lane_gap"])))
 	if _rival_done < 0.0 and _rival_s >= QUARTER:
 		_rival_done = _drag_t
@@ -2328,8 +2410,10 @@ func _drag_frame(dt: float) -> void:
 	_boost_t = maxf(0.0, _boost_t - dt)
 	_bog_t = maxf(0.0, _bog_t - dt)
 	_spin_t = maxf(0.0, _spin_t - dt)
-	car.accel_mult = _accel_was * (SHIFT_BOOST if _boost_t > 0.0 else 1.0) * (EARLY_BOG if _bog_t > 0.0 else 1.0) \
-			* (SPIN if _spin_t > 0.0 else 1.0)
+	_pen_t = maxf(0.0, _pen_t - dt)
+	_since_perfect += dt
+	car.accel_mult = _accel_was * float(GEAR_PULL[_gear]) * (SHIFT_BOOST if _boost_t > 0.0 else 1.0) \
+			* (LAUNCH_BOG if _bog_t > 0.0 else 1.0) * (_pen_m if _pen_t > 0.0 else 1.0) * (SPIN if _spin_t > 0.0 else 1.0)
 	car.top_mult = _top_was * DRAG_TOP * float(GEARS[_gear])
 	var cap := float(car.max_speed) * float(car.top_mult)
 	var v: float = car.vel.length()
@@ -2393,31 +2477,72 @@ func _launch(grade: String) -> void:
 	_log("launch: %s (revs %.2f)" % [grade, _revs])
 
 
+## Which night's drag this is (1 to 4): the club wins so far plus one; a card from before the ladder starts
+## at night 2 (critique, open question).
+func drag_night() -> int:
+	if wallet == null:
+		return 1
+	var wins := int(wallet.keep.get("wnrc_wins", 0))
+	if wins == 0 and bool(wallet.keep.get("wnrc_member", false)):
+		return 2
+	return clampi(wins + 1, 1, 4)
+
+
+## The bottle's burn started in the run: in first or second gear the tyres give up (BUKSOWANIE, the bottle
+## gone); within SHOT_WINDOW s after an IDEALNIE it is a STRZAŁ (the burn lasts STRZAL_S).
+func _on_nitro() -> void:
+	if stage != Stage.DRAG:
+		return
+	if _gear <= 1:
+		car.nitro_cancel()
+		_spin_t = SPIN_S
+		hud.show_banner(Lang.pick("BUKSOWANIE!", "WHEELSPIN!"), Color("#ffb21e"))
+		_log("bottle: wheelspin in gear %d" % (_gear + 1))
+	elif _since_perfect <= SHOT_WINDOW:
+		car.nitro_extend(STRZAL_S)
+		hud.show_banner(Lang.pick("STRZAŁ!", "SHOT!"), Color("#38f6ff"))
+		_log("bottle: STRZAŁ in gear %d" % (_gear + 1))
+	else:
+		_log("bottle: plain in gear %d" % (_gear + 1))
+
+
 func _shift_pressed() -> void:
 	if _gear >= GEARS.size() - 1:
 		return
 	var cap := float(car.max_speed) * float(car.top_mult)
-	_shift(shift_grade_at(float(car.vel.length()) / maxf(cap, 0.1), _shift_w))
+	var k := float(car.vel.length()) / maxf(cap, 0.1)
+	_shift(shift_grade_at(k, _shift_w), k)
 
 
-## A shift: "perfect" (a burst), "late" (just the gear), "early" (a bog), "auto" (the box did it).
-func _shift(how: String) -> void:
+## A shift: "perfect" (a burst), "good" (just the gear), "short" (the yellow: a bog by how near the
+## green), "late" (a slow shift), "early" (a bog), "auto" (the box did it).
+func _shift(how: String, k := 1.0) -> void:
 	_gear += 1
 	_shift_w = -1.0
 	hud.hide_pill()
 	match how:
 		"perfect":
 			_boost_t = BOOST_S
+			_since_perfect = 0.0
 			hud.show_banner(Lang.pick("IDEALNIE!", "PERFECT!"), Color("#3cff6a"))
 			Access.buzz(40, 0.6)
 		"early":
-			_bog_t = BOG_S
+			_pen_m = EARLY_BOG
+			_pen_t = EARLY_S
 			hud.show_banner(Lang.pick("ZA WCZEŚNIE", "TOO EARLY"), Color("#ffb21e"))
+		"short":
+			_pen_m = short_mult(k)
+			_pen_t = SHORT_S
+			hud.show_banner(Lang.pick("KRÓTKO", "SHORT"), Color("#ffe34a"))
 		"good":
 			hud.show_banner(Lang.pick("DOBRZE", "GOOD"), Color("#f2f2f2"))
 		"late":
+			_pen_m = LATE_MULT
+			_pen_t = LATE_S
 			hud.show_banner(Lang.pick("ZA PÓŹNO", "LATE"), Color("#ffb21e"))
 		"auto":
+			_pen_m = LATE_MULT
+			_pen_t = LATE_S
 			hud.show_banner(Lang.pick("SPÓŹNIONY BIEG", "MISSED SHIFT"), Color("#ffb21e"))
 		_:
 			hud.show_banner("BIEG %d" % (_gear + 1), Color("#f2f2f2"))
@@ -2510,9 +2635,16 @@ func _restore_car() -> void:
 	car.accel_mult = _accel_was
 	if "nitro_wait" in car:
 		car.nitro_wait = false
-	if LOAN and not _nitro_was:
-		car.nitro_owned = false
-		car.nitro_on = false
+	car.nitro_owned = _nitro_was
+	car.nitro_on = false
+	if _nitro_save.size() == 4:
+		car.nitro_accel_scale = _nitro_save[0]
+		car.nitro_top_scale = _nitro_save[1]
+		car.nitro_burn_s = _nitro_save[2]
+		car.nitro_bottles = _nitro_save[3]
+		_nitro_save = []
+	if car.nitro_started.is_connected(_on_nitro):
+		car.nitro_started.disconnect(_on_nitro)
 	car.nitro_charge = maxf(_nitro_charge_was, 0.0) if not _nitro_was else car.nitro_charge
 	if police != null and "gentle" in police:
 		police.gentle = _gentle_was
