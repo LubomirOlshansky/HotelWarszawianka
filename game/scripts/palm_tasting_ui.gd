@@ -1,99 +1,144 @@
 extends Node
 ## The tasting at the Palm, drawn as Zbyszek's livestream (palm_tasting.gd's rules; plan doc "First
 ## 10 minutes: Tajny klient", "The river scene and the viral moment", moved to the Palm at Rondo de
-## Gaulle'a by F): full screen, the city's 3D off while it is up (GameCtx.city_drawn), like the
-## kebab stand and beer pong.
+## Gaulle'a by F): full screen in the pixel kit's look, the city's 3D off while it is up
+## (GameCtx.city_drawn), like the kebab stand and beer pong.
 ##
-## The look: pixel art with more pixels (F 2026-11-26: first "too pixel ... more detail, the persons
-## fake 3D, fine animations and emotions", then at 19:33 "it should be the pixel style ... with more
-## pixels", after an isometric pixel-city reference). The cel-shaded shapes of toon_pen.gd are drawn
-## on the 216-unit grid into a pixel viewport at the screen divided by a whole number (~360-400
-## rows), nearest-filtered with no antialiasing, and pixel_art.gdshader adds one-pixel ink outlines
-## in each shape's own hue and steps the gradients into bands. The props carry pixel-model detail:
-## window crosses, AC boxes, geranium boxes, balconies, shop signs, chimneys, a dish and an aerial,
-## granite kerbs, bollards, a bin, a hydrant. One warm key light from screen-left (the sun low
-## behind the Party House), three tones and a rim on every form, contact and long cast shadows.
-## The stream's own overlay (chips, chat, bubble, scoreboard, card) stays sharp at the screen's
-## resolution: it is the phone app over the camera's picture.
-##   - far: the sky, the Party House, Nowy Świat's fronts and the haze, drawn once;
-##   - middle: the roundabout's carriageway, cars both ways, a tram every TRAM_S, the Palm on its
-##     island;
-##   - near: the pavement, Kebabulo's Porsza, a pigeon, the player, Kebabulo, Zbyszek with his
-##     gimbal, and the fan who walks up for a photo after the grade;
-##   - the handheld sway moves the layers by different amounts; the MLASK and the grade punch in.
-## The acting: breathing, weight shifts, blinks, the mouth following the line's letters, the chew
-## cycle and the bliss in the close-up, surprise at the MLASK, a face per grade, the fan's shuffle
-## and the selfie with its one flash and the instant print, which lands on the RECENZJA card.
-## The stream's own layer: REC corners and a timecode, NA ŻYWO and the viewers (an odometer with a
-## green +N), three chat lines on a scrim bottom left, the speaker's bubble above the speaker's
-## head, hold × to skip, hearts and little kebabs rising at the big moments.
+## The look (F 2026-11-26 20:36: "use our first version but make more details, more pixels, like
+## more detailed but not realistic"): the first version's composition, palette and staging, drawn
+## as crisp axis-aligned rects in flat colours, now at twice the pixels. Every coordinate is on the
+## first version's 216-unit grid; the scene's viewport draws 432 rows (canvas scale 2), so detail
+## lives at half a unit = one pixel. No ellipses, rotations, gradients, shaders or smooth fonts:
+## shading is two or three flat tones per material as rect bands, one key light from screen-left.
+##   - the back (drawn once a size, its draw list kept): golden-hour bands, the sun behind the Party
+##     House, the Party House's colonnade, Nowy Świat's fronts (cornices, framed windows, awnings,
+##     shop signs, AC boxes, geraniums, a balcony, chimneys, a dish, an aerial), the lamps, the road
+##     with its rails and dashes, kerb stones, slabs, bollards, a bin and a hydrant;
+##   - the live layer: cars both ways and a tram every TRAM_S, the Palm with its ringed trunk and
+##     swaying fronds, the Porsza, a pigeon, and the people: the player, Kebabulo, Zbyszek with his
+##     gimbal, the fan for the photo. They are ~1.4x the first version's, each with a 1 px dark
+##     outline, faces with eyes, catch-lights, brows, a nose, mouths that talk by the line's vowels,
+##     chew and react, blinks and a 1 px breath; a pose per beat and per grade, held, hard cuts;
+##   - the fx layer: the comic close-up for the bite (his big face at 2x), the MLASK as a full comic
+##     panel (F 20:37, concept 3 "TRZY KADRY": gold rays, the giant word, his face rising, insets of
+##     Zbyszek, the pigeon and the chat), the hearts and little kebabs, the 11/10 confetti.
+## Kebabulo (F 20:38): a cartoon archetype, no portrait: short neat hair, a short trimmed beard and
+## moustache, a plain black cap worn forward, a beige hoodie with the hood down behind the neck, a
+## black puffer vest, light skin, the big open grin; slim. He shows three wraps at the hello.
+## The stream's own layer (its own 216-row viewport, the kit's 5x7 font, the first version's style):
+## the REC corners, NA ŻYWO and the viewers with a "+N", three chat lines bottom left, the speaker's
+## line bottom right, hold-× to skip, the scoreboard, the selfie's flash, the RECENZJA card; the
+## instant print rides over it at the scene's pixels.
 ##
 ## Touch: a tap anywhere advances, a hold on the skip chip skips. Keys for the Mac: Space or Enter
-## a tap, Esc held the skip. Access.calm: no shake, no punch, no flash (a soft warm one).
+## a tap, Esc held the skip. Access.calm: no shake, no slam, a soft warm flash.
 ##
-## Cost: while it is up the city's 3D is off; the frame is the cached far texture, about 1,200
-## untextured polygons in the pixel viewport, the overlay viewport and one full-screen post pass;
-## closed, both live viewports are switched off, so nothing runs per frame.
+## Cost: while it is up the city's 3D is off; the frame is a 432-row and a 216-row canvas of flat
+## rects (the back's ~3,300 replayed from its kept draw list; ~3,000 drawn a frame for the live
+## layer, the people with their outlines and the stream's layer, up to ~5,000 under the MLASK's
+## rays); closed, both viewports are off (UPDATE_DISABLED), so nothing runs.
 
 const Tasting := preload("res://scripts/palm_tasting.gd")
-const Pen := preload("res://scripts/toon_pen.gd")
+const Kit := preload("res://scripts/pixel_kit.gd")
+const PixelFont := preload("res://scripts/pixel_font.gd")
 const Lang := preload("res://scripts/lang.gd")
 const ScreenPoints := preload("res://scripts/screen_points.gd")
 const Access := preload("res://scripts/access.gd")
 
+## The grid: 216 units high, at least MIN_W wide; the scene draws PX pixels a unit.
 const H := 216
 const MIN_W := 384
-## The most lines the viewport draws (a 1170-line phone draws 1080 and scales a little).
-const MAX_LINES := 1080
-## About how many pixel rows the scene has (the screen divided by the nearest whole number).
-const PIXEL_LINES := 380.0
-const PIXEL_ART := preload("res://shaders/pixel_art.gdshader")
+const PX := 2
+const HORIZON := 78.0
 const ROAD_Y := 112.0
-const PAVE_Y := 150.0
-const FEET := 200.0
+const PAVE_Y := 146.0
+const FEET := 196.0
 const TRAM_S := 12.0
 const WIPE_S := 0.45
+const BLOCK := 12.0
 const TOUCH_PT := 44.0
-## Text sizes in grid units (216 to the screen's height).
-const T_CHIP := 6.0
-const T_CHAT := 6.6
-const T_LINE := 7.6
-const T_NAME := 5.6
-## The scoreboard's width (the line's bubble keeps right of it).
-const SCORE_W := 116.0
 
-# --- the palette (base, shade, light) ---
-const SKIN := [Color("#e6b48e"), Color("#b97a5e"), Color("#f7d2ac")]
-const SKIN_TAN := [Color("#d9a07a"), Color("#a86a4c"), Color("#f0c098")]
-const SKIN_FAIR := [Color("#f0c6a6"), Color("#c98e72"), Color("#ffe0c4")]
-const HOODIE := [Color("#e2561c"), Color("#a8351a"), Color("#ff8038")]
-const BLACK := [Color("#1e1d24"), Color("#121118"), Color("#3a3c48")]
-const JACKET := [Color("#1f8fb0"), Color("#15607e"), Color("#49b8d4")]
+# --- the palette (the first version's family; shades as [base, shade, light]) ---
+const SKY := [Color("#5f6694"), Color("#7c6f98"), Color("#a87892"), Color("#d08680"), Color("#ec9c68"), Color("#f4b866"), Color("#f8d488")]
+const SUN := Color("#fff4cc")
+const SUN_GLOW := Color("#ffe39a")
+const STONE := Color("#d8cdb6")
+const STONE_D := Color("#b3a68c")
+const STONE_L := Color("#ece4d0")
+const STONE_DD := Color("#8f846e")
+const BAY := Color("#4c4a52")
+const GLASS := Color("#4e5266")
+const GLASS_L := Color("#7a7c96")
+const GLOW := Color("#f2c97a")
+const ASPHALT := Color("#45464c")
+const ASPHALT_L := Color("#56585e")
+const ASPHALT_D := Color("#3a3b40")
+const RAIL := Color("#c9d2d8")
+const KERB := Color("#a2a2a8")
+const KERB_L := Color("#c4c4ca")
+const KERB_D := Color("#6a6a72")
+const PAVE := Color("#9a958c")
+const PAVE_D := Color("#86817a")
+const PAVE_L := Color("#a8a399")
+const TRUNK := [Color("#8a6a48"), Color("#6a4e34"), Color("#a8845a")]
+const TRUNK_RING := Color("#523a26")
+const FROND := [Color("#3f9a4a"), Color("#2c7238"), Color("#6cc04a")]
+const GRASS := [Color("#4a8a3e"), Color("#3a6e32"), Color("#6aa84e")]
+const TRAM_R := Color("#c8302a")
+const TRAM_RD := Color("#9a2020")
+const TRAM_Y := Color("#f2c230")
+const PORSZA := [Color("#e9e6dc"), Color("#c4bfc8"), Color("#ffffff")]
+const PIGEON := [Color("#8a8f9a"), Color("#5e6270"), Color("#b4b8c4")]
+const OUT := Color("#2a1f3d")
+const INK := Color("#16191d")
+const WHITE := Color("#fbfaf6")
+const RED := Color("#d4282e")
+const RED_L := Color("#ee5a5a")
+const GOLD := Color("#ffd23a")
+const AMBER := Color("#ffb020")
+const CYAN := Color("#1ae6ff")
+const BLUSH := Color("#f08a78")
+const MOUTH := Color("#5a1e1a")
+const TONGUE := Color("#d9605a")
+const TEETH := Color("#fbf6ec")
+const SWEAT := Color("#8ad8f8")
+# the people
+const SKIN_LIGHT := [Color("#f1c8a4"), Color("#d9a984"), Color("#ffdcc0")]
+const SKIN_MID := [Color("#e2b08a"), Color("#c48d68"), Color("#f1c8a4")]
+const SKIN_FAIR := [Color("#f6d4b4"), Color("#dcae8e"), Color("#fff0dc")]
+const HOODIE := [Color("#d8c09a"), Color("#b39a74"), Color("#ecdcb8")]
+const VEST := [Color("#24232b"), Color("#141319"), Color("#45444f")]
+const BLACK_PANTS := [Color("#24232b"), Color("#16151b"), Color("#383744")]
+const CAP := [Color("#1e1d24"), Color("#0f0e14"), Color("#3e3d4a")]
+const BEARD := Color("#5a3e2a")
+const BEARD_L := Color("#7a5a40")
+## His short neat hair, a shade lighter than the beard.
+const HAIR_K := Color("#6a4a30")
+const TEAL := [Color("#1f9cb8"), Color("#137089"), Color("#49cce4")]
 const JEANS := [Color("#34466e"), Color("#232f4c"), Color("#4d6492")]
-const CHARCOAL := [Color("#3a3d46"), Color("#24262e"), Color("#565a66")]
+const CHARCOAL := [Color("#4e5260"), Color("#373a45"), Color("#6c7182")]
 const DARK_JEANS := [Color("#2a3040"), Color("#1a1e2a"), Color("#3c4458")]
 const PUFFER := [Color("#d8457a"), Color("#9c2c5c"), Color("#f47aa6")]
 const LIGHT_JEANS := [Color("#7f9ac0"), Color("#5a7298"), Color("#a4bcdc")]
-const MUSTARD := Color("#e8b23a")
-const WHITE_SHOE := Color("#f4f1e6")
-const INK := Color("#16191d")
-const GOLD := Color("#ffd23a")
-const GOLD_D := Color("#c8901a")
-const CREAM := Color("#fff6e6")
-const RED := Color("#ff3b5c")
-const GREEN := Color("#5fd38a")
-const MOUTH := Color("#5a1e1a")
-const TONGUE := Color("#d9605a")
-const BLUSH := Color("#e8846a")
-const TORTILLA := [Color("#ecd8a4"), Color("#c9a86c"), Color("#fff0c8")]
+const MUSTARD := [Color("#e8b23a"), Color("#b8862a"), Color("#f8d070")]
+const TRAINER := Color("#f4f1e6")
+const SOLE_L := Color("#c9c4b8")
+const SOLE_D := Color("#2a2630")
+# the kebab
 const FOIL := [Color("#c9d2d8"), Color("#8f9aa4"), Color("#eef4f8")]
+const WRAP := [Color("#ecd8a4"), Color("#c9a86c"), Color("#fff0c8")]
 const MEAT := Color("#9a4a24")
 const LETTUCE := Color("#6cc04a")
 const TOMATO := Color("#e0402a")
 const SAUCE := Color("#fff8ec")
-const PORSZA := [Color("#eeebe2"), Color("#b9b4c2"), Color("#ffffff")]
-const PIGEON := [Color("#8a8f9a"), Color("#5e6270"), Color("#b4b8c4")]
-const NICKS := [Color("#ffd23f"), Color("#1ae6ff"), Color("#ff7ab8"), Color("#9be36a"), Color("#ffa35c")]
+const KRAFT := [Color("#c8a06a"), Color("#a07a48"), Color("#dcbc88")]
+const NICKS := [Kit.GO, CYAN, GOLD, Color("#ff7ab8"), Color("#ffa35c")]
+
+## The floaters' sprites: a heart and a little kebab, a "#" a lit pixel.
+const HEART := [".##.##.", "#######", "#######", ".#####.", "..###..", "...#..."]
+const MINI_KEBAB := ["..##.", ".####", "#####", "#####", "#####", ".###.", ".###."]
+## The open-mouth letters, Polish ones as escapes (a code table, not on-screen text).
+const VOWELS := "aeiouy\u0105\u0119\u00f3"
 
 signal finished(result: Dictionary)
 
@@ -105,23 +150,22 @@ var inside := false
 ## Plays a short sound by name (the owner's hud.cue): "tick", "win", "mlask", "drumroll", "voice_*".
 var cue := Callable()
 var W := MIN_W
+## Rects drawn this frame (or counted by `dry_frame`): the scene's per-frame budget for the check.
+var rects := 0
 
 var _layer: CanvasLayer
+var _bg: ColorRect
 var _vp: SubViewport
-var _px_vp: SubViewport
-var _far_vp: SubViewport
-var _far: Node2D
-var _scene: Node2D
-var _mid: Node2D
+var _ui_vp: SubViewport
+var _world: Node2D
+var _back: Node2D
+var _live_n: Node2D
+var _fx: Node2D
 var _ui: Node2D
+var _over: Node2D
 var _tex: TextureRect
-var _px_tex: TextureRect
-var _pen: Pen
-var _far_pen: Pen
-var _mid_pen: Pen
-var _ui_pen: Pen
-## Scene pixels per grid unit (the pixel viewport's canvas scale).
-var _kp := 1.0
+var _ui_tex: TextureRect
+var _ui_pen: Kit
 var _t := 0.0
 var _wipe := 0.0
 var _leaving := false
@@ -130,20 +174,34 @@ var _key_skip := false
 var _last_phase := -1
 var _last_said := ""
 var _shake := 0.0
-var _punch := 0.0
-var _flash := 0.0
 var _skip_rect := Rect2()
-## The viewer count as drawn (it rolls toward the real one) and the last "+N".
+## The viewer count as drawn (it rolls toward the real one) and the last jump's "+N".
 var _shown_viewers := 0.0
 var _plus := 0
 var _plus_t := 9.0
-## Hearts and little kebabs rising up the right edge: {x, t, kind, wob}.
+## Hearts and little kebabs rising up the right edge: {x, t, kind}.
 var _floaters: Array = []
-## The 11/10's confetti: {p, v, t, c, r}.
+## The 11/10's confetti: {p, v, t, c}.
 var _bits: Array = []
 var _rng := RandomNumberGenerator.new()
-## The fan's x (eased in).
-var _fan_x := -40.0
+## The fan's x in units (walks in from the right).
+var _fan_x := 600.0
+
+# The pen: rects in scene pixels (432-row grid) onto `_ci`; `_kd` target px a scene px, `_offd` the
+# target origin, `_dinv` draw units a target px (0.5 in the viewport, whose canvas is scaled 2).
+var _ci: CanvasItem
+var _kd := 1.0
+var _offd := Vector2.ZERO
+var _dinv := 0.5
+var _dry := false
+# The figure frame: origin in scene px, facing (+1 right), scene px a local px; and the outline
+# buffer (rects of one figure, outlined as one silhouette).
+var _org := Vector2.ZERO
+var _f := 1
+var _sc := 1.0
+var _buffering := false
+var _buf: Array = []
+var _ol_on := true
 
 
 func _ready() -> void:
@@ -166,18 +224,16 @@ func open(spec: Dictionary) -> void:
 	_last_phase = -1
 	_last_said = ""
 	_shake = 0.0
-	_punch = 0.0
-	_flash = 0.0
 	_floaters.clear()
 	_bits.clear()
 	_rng.seed = 7
 	_shown_viewers = float(tasting.viewers)
 	_plus_t = 9.0
-	_fan_x = -40.0
 	inside = true
 	_layer.visible = true
 	_live(true)
 	_resize()
+	_fan_x = W + 30.0
 	set_process(true)
 	_log("open: grade %s" % tasting.grade_label)
 
@@ -212,11 +268,16 @@ func _cue(n: String) -> void:
 
 func _w(tag: String) -> String:
 	var p: Array = Tasting.say(tag)
-	return Lang.pick(str(p[0]), str(p[1]))
+	return shown(Lang.pick(str(p[0]), str(p[1])))
 
 
 func _pick(l: Array) -> String:
-	return Lang.pick(str(l[0]), str(l[1])) if l.size() >= 2 else ""
+	return shown(Lang.pick(str(l[0]), str(l[1]))) if l.size() >= 2 else ""
+
+
+## A line as the kit's 5x7 font draws it (it has no ellipsis glyph).
+static func shown(s: String) -> String:
+	return s.replace("…", "...")
 
 
 # --- building -----------------------------------------------------------------------------------
@@ -225,77 +286,72 @@ func _build() -> void:
 	_layer = CanvasLayer.new()
 	_layer.layer = 30
 	add_child(_layer)
-	# The pixel layer: the scene at a whole fraction of the screen, nearest, no antialiasing.
-	_far_vp = _pixel_vp(false)
-	_far = Node2D.new()
-	_far.draw.connect(_draw_far)
-	_far_vp.add_child(_far)
-	_far_pen = Pen.new(_far)
-	_px_vp = _pixel_vp(true)
-	_scene = Node2D.new()
-	_scene.draw.connect(_draw_scene)
-	_px_vp.add_child(_scene)
-	# the close-up, the MLASK burst, the hearts and the confetti: art, so pixels too
-	_mid = Node2D.new()
-	_mid.draw.connect(_draw_mid)
-	_px_vp.add_child(_mid)
-	_pen = Pen.new(_scene)
-	_mid_pen = Pen.new(_mid)
-	for pen: Pen in [_far_pen, _pen, _mid_pen]:
-		pen.hard = true
-	# The stream's own overlay (the phone app over the camera's picture): sharp, screen resolution.
-	_vp = SubViewport.new()
-	_vp.size = Vector2i(MIN_W, H)
-	_vp.disable_3d = true
-	_vp.transparent_bg = true
-	_vp.msaa_2d = Viewport.MSAA_2X
-	_vp.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_LINEAR
-	_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	add_child(_vp)
+	_bg = ColorRect.new()
+	_bg.color = Kit.VOID
+	_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_layer.add_child(_bg)
+	# The scene: 432 rows, the canvas scaled 2 so the grid stays in units.
+	_vp = _viewport(false)
+	_world = Node2D.new()
+	_vp.add_child(_world)
+	_back = Node2D.new()
+	_back.draw.connect(_draw_back)
+	_world.add_child(_back)
+	_live_n = Node2D.new()
+	_live_n.draw.connect(_draw_live)
+	_world.add_child(_live_n)
+	_fx = Node2D.new()
+	_fx.draw.connect(_draw_fx)
+	_vp.add_child(_fx)
+	# The stream's layer: 216 rows, the kit's pen at one unit.
+	_ui_vp = _viewport(true)
 	_ui = Node2D.new()
 	_ui.draw.connect(_draw_ui)
-	_vp.add_child(_ui)
-	_ui_pen = Pen.new(_ui)
-	_px_tex = _shown(_px_vp, CanvasItem.TEXTURE_FILTER_NEAREST)
-	var mat := ShaderMaterial.new()
-	mat.shader = PIXEL_ART
-	_px_tex.material = mat
-	_tex = _shown(_vp, CanvasItem.TEXTURE_FILTER_LINEAR)
+	_ui_vp.add_child(_ui)
+	_ui_pen = Kit.new(_ui)
+	_tex = _shown(_vp)
+	_ui_tex = _shown(_ui_vp)
+	# The instant print over the card, at the scene's pixels, straight on the screen.
+	_over = Node2D.new()
+	_over.draw.connect(_draw_over)
+	_layer.add_child(_over)
 	_layer.visible = false
 	if is_inside_tree():
 		get_viewport().size_changed.connect(_resize)
 
 
-## The two live viewports render only while the scene is up (closed, they cost nothing).
-func _live(on: bool) -> void:
-	var mode := SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED
-	_px_vp.render_target_update_mode = mode
-	_vp.render_target_update_mode = mode
-
-
-func _pixel_vp(always: bool) -> SubViewport:
+func _viewport(transparent: bool) -> SubViewport:
 	var v := SubViewport.new()
 	v.size = Vector2i(MIN_W, H)
 	v.disable_3d = true
-	v.transparent_bg = false
+	v.transparent_bg = transparent
 	v.msaa_2d = Viewport.MSAA_DISABLED
+	v.snap_2d_transforms_to_pixel = true
 	v.snap_2d_vertices_to_pixel = true
 	v.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
-	v.render_target_update_mode = SubViewport.UPDATE_ALWAYS if always else SubViewport.UPDATE_ONCE
+	v.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	add_child(v)
 	return v
 
 
-func _shown(v: SubViewport, filter: CanvasItem.TextureFilter) -> TextureRect:
+func _shown(v: SubViewport) -> TextureRect:
 	var r := TextureRect.new()
 	r.texture = v.get_texture()
-	r.texture_filter = filter
+	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_layer.add_child(r)
 	return r
+
+
+## The two viewports render only while the scene is up (closed, they cost nothing).
+func _live(on: bool) -> void:
+	var mode := SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED
+	_vp.render_target_update_mode = mode
+	_ui_vp.render_target_update_mode = mode
 
 
 func _resize() -> void:
@@ -303,35 +359,28 @@ func _resize() -> void:
 		return
 	var s := get_viewport().get_visible_rect().size
 	W = maxi(MIN_W, int(round(H * s.x / maxf(s.y, 1.0))))
-	var lines := clampf(minf(s.y, MAX_LINES), float(H), float(MAX_LINES))
-	var k := lines / float(H)
-	_vp.size = Vector2i(roundi(W * k), roundi(H * k))
-	_vp.canvas_transform = Transform2D.IDENTITY.scaled(Vector2(k, k))
-	# The pixel layer: the screen divided by a whole number, ~360-400 lines (the old look had 216),
-	# so each scene pixel is the same whole number of screen pixels.
-	var n := maxi(1, roundi(s.y / PIXEL_LINES))
-	_kp = floorf(s.y / n) / float(H)
-	for v: SubViewport in [_px_vp, _far_vp]:
-		v.size = Vector2i(maxi(1, roundi(W * _kp)), maxi(1, roundi(H * _kp)))
-		v.canvas_transform = Transform2D.IDENTITY.scaled(Vector2(_kp, _kp))
-	_far_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
-	_far.queue_redraw()
-	(_px_tex.material as ShaderMaterial).set_shader_parameter("px", Vector2(_px_vp.size))
-	_pen.k = _kp
-	_mid_pen.k = _kp
-	_far_pen.k = _kp
-	_ui_pen.k = k
+	_vp.size = Vector2i(W * PX, H * PX)
+	_vp.canvas_transform = Transform2D.IDENTITY.scaled(Vector2(PX, PX))
+	_ui_vp.size = Vector2i(W, H)
+	_back.queue_redraw()
 	pt = float(ScreenPoints.measure(s)["pt"])
 
 
+## Screen px a unit (the canvas fits the screen; a screen narrower than MIN_W gets bars).
 func _scale() -> float:
-	return get_viewport().get_visible_rect().size.y / float(H)
+	var s := get_viewport().get_visible_rect().size
+	return minf(s.x / float(W), s.y / float(H))
+
+
+## The canvas's top left on the screen.
+func _origin() -> Vector2:
+	var s := get_viewport().get_visible_rect().size
+	var k := _scale()
+	return ((s - Vector2(W, H) * k) * 0.5).floor()
 
 
 func _to_canvas(p: Vector2) -> Vector2:
-	var s := get_viewport().get_visible_rect().size
-	var k := _scale()
-	return Vector2((p.x - (s.x - W * k) * 0.5) / k, p.y / k)
+	return (p - _origin()) / _scale()
 
 
 func _safe_canvas() -> Vector2:
@@ -340,7 +389,8 @@ func _safe_canvas() -> Vector2:
 	var s := get_viewport().get_visible_rect().size
 	var safe: Rect2 = ScreenPoints.measure(s)["safe"]
 	var k := _scale()
-	return Vector2(safe.position.x / k, (s.x - safe.end.x) / k)
+	var o := _origin()
+	return Vector2(maxf(0.0, (safe.position.x - o.x) / k), maxf(0.0, (s.x - safe.end.x - o.x) / k))
 
 
 func _touch_px() -> float:
@@ -366,23 +416,19 @@ func _process(dt: float) -> void:
 			_leaving = true
 	_react()
 	_shake = maxf(0.0, _shake - dt)
-	_punch = maxf(0.0, _punch - dt * 1.6)
-	_flash = maxf(0.0, _flash - dt)
 	_plus_t += dt
 	_shown_viewers = lerpf(_shown_viewers, float(tasting.viewers), 1.0 - exp(-dt * 4.0))
 	_fan_tick(dt)
 	_particles(dt)
-	# The camera: the punch-in about the middle and the decaying shake.
-	var z := 1.0 + (0.0 if Access.calm else 0.06 * Pen.ease_out(_punch))
 	var off := Vector2.ZERO
 	if _shake > 0.0 and not Access.calm:
-		var a := _shake / 0.5
-		off = Vector2(sin(_t * 71.0), cos(_t * 53.0)) * 2.2 * a * a
-	_scene.scale = Vector2(z, z)
-	_scene.position = _snap(Vector2(W, H) * 0.5 * (1.0 - z) + off)
-	_scene.queue_redraw()
-	_mid.queue_redraw()
+		off = Vector2(roundf(sin(_t * 71.0) * 2.0), roundf(cos(_t * 53.0) * 1.5))
+	_world.position = off
+	_fx.position = off if tasting.phase == Tasting.Phase.MLASK else Vector2.ZERO
+	_live_n.queue_redraw()
+	_fx.queue_redraw()
 	_ui.queue_redraw()
+	_over.queue_redraw()
 
 
 func _react() -> void:
@@ -398,7 +444,6 @@ func _react() -> void:
 	match tasting.phase:
 		Tasting.Phase.MLASK:
 			_shake = 0.5
-			_punch = 1.0
 			_cue("mlask")
 			Access.buzz(120, 1.0)
 			_rise(6)
@@ -406,18 +451,18 @@ func _react() -> void:
 			_cue("drumroll")
 		Tasting.Phase.GRADE:
 			_shake = 0.45 if tasting.perfect else 0.0
-			_punch = 0.7
 			if tasting.perfect:
 				_cue("win")
 				_confetti()
-				_flash = 0.08
 			Access.buzz(200, 1.0)
 			_rise(10 if tasting.perfect else 4)
 			_log("grade %s" % tasting.grade_label)
 		Tasting.Phase.FAN:
-			_fan_x = -30.0
+			_fan_x = W + 30.0
+			_log("fan")
 		Tasting.Phase.SELFIE:
 			_rise(5)
+			_log("selfie")
 		Tasting.Phase.CARD:
 			_log("card%s" % (" (skipped)" if tasting.skipped else ""))
 	if tasting.viewers > int(_shown_viewers) + 30:
@@ -428,13 +473,32 @@ func _react() -> void:
 func _fan_tick(dt: float) -> void:
 	var ph := tasting.phase
 	if ph == Tasting.Phase.FAN or ph == Tasting.Phase.SELFIE:
-		_fan_x = lerpf(_fan_x, _fan_goal(), 1.0 - exp(-dt * 5.0))
+		# a steady walk, whole pixels (no easing: a held pose when she arrives)
+		var goal := _fan_goal()
+		_fan_x = maxf(goal, _fan_x - dt * 70.0)
 	elif ph == Tasting.Phase.CARD:
 		_fan_x += dt * 60.0
 
 
 func _fan_goal() -> float:
-	return _kebabulo_x() - 38.0 if tasting.phase == Tasting.Phase.SELFIE else _kebabulo_x() - 50.0
+	return _kebabulo_x() + (30.0 if tasting.phase == Tasting.Phase.SELFIE else 38.0)
+
+
+## Draws one whole frame with no canvas, counting the rects (the check walks every beat with it).
+func dry_frame() -> int:
+	_dry = true
+	rects = 0
+	var ci := _ui_pen.ci
+	_ui_pen.ci = null
+	_ui_pen.rects = 0
+	_draw_back()
+	_draw_live()
+	_draw_fx()
+	_draw_ui()
+	_draw_over()
+	_ui_pen.ci = ci
+	_dry = false
+	return rects + _ui_pen.rects
 
 
 # --- touch --------------------------------------------------------------------------------------
@@ -470,878 +534,1300 @@ func _input(event: InputEvent) -> void:
 		vp.set_input_as_handled()
 
 
-# --- where things stand ---------------------------------------------------------------------------
+# --- the pen --------------------------------------------------------------------------------------
+
+## Draws on `node` in the scene's viewport from here on (no canvas in a dry frame).
+func _use(node: CanvasItem) -> void:
+	_ci = null if _dry else node
+	_kd = 1.0
+	_offd = Vector2.ZERO
+	_dinv = 1.0 / PX
+
+
+## A rect in scene pixels, snapped to whole target pixels (or into the figure's buffer).
+func _r(x: float, y: float, w: float, h: float, c: Color) -> void:
+	if w <= 0.0 or h <= 0.0 or c.a <= 0.0:
+		return
+	if _buffering:
+		_buf.append([x, y, w, h, c, _ol_on])
+		return
+	rects += 1
+	if _ci == null:
+		return
+	var x0 := roundf(_offd.x + roundf(x) * _kd)
+	var y0 := roundf(_offd.y + roundf(y) * _kd)
+	var x1 := roundf(_offd.x + roundf(x + w) * _kd)
+	var y1 := roundf(_offd.y + roundf(y + h) * _kd)
+	_ci.draw_rect(Rect2(x0 * _dinv, y0 * _dinv, maxf(1.0, x1 - x0) * _dinv, maxf(1.0, y1 - y0) * _dinv), c)
+
+
+## A rect in grid units (half units are single pixels).
+func _u(x: float, y: float, w: float, h: float, c: Color) -> void:
+	_r(roundf(x * PX), roundf(y * PX), roundf((x + w) * PX) - roundf(x * PX), roundf((y + h) * PX) - roundf(y * PX), c)
+
+
+## A filled pixel disc in units (rows of half a unit), for wheels, the sun, the island.
+func _disc(cx: float, cy: float, rx: float, ry: float, c: Color) -> void:
+	var n := int(ceil(ry * PX))
+	for k in range(-n, n):
+		var t := (float(k) + 0.5) / (ry * PX)
+		if absf(t) > 1.0:
+			continue
+		var hw := roundf(rx * sqrt(1.0 - t * t) * PX) / PX
+		_u(cx - hw, cy + float(k) / PX, hw * 2.0, 1.0 / PX, c)
+
+
+## Starts a figure at (x, y) in units, facing `f`, `s` scene px a local px; its rects are buffered.
+func _fig(x: float, y: float, f: int, s := 1.0) -> void:
+	_org = Vector2(roundf(x * PX), roundf(y * PX))
+	_f = f
+	_sc = s
+	_buffering = true
+	_ol_on = true
+	_buf.clear()
+
+
+## A rect in the figure's local px, mirrored when it faces left.
+func _q(x: float, y: float, w: float, h: float, c: Color) -> void:
+	var lx := x if _f > 0 else -x - w
+	_r(_org.x + lx * _sc, _org.y + y * _sc, w * _sc, h * _sc, c)
+
+
+## A rect in the figure's px, screen-relative (not mirrored): the light falls from screen-left.
+func _qs(x: float, y: float, w: float, h: float, c: Color) -> void:
+	_r(_org.x + x * _sc, _org.y + y * _sc, w * _sc, h * _sc, c)
+
+
+## A local x span as screen-relative x (its left edge on screen).
+func _sx(lx: float, w: float) -> float:
+	return lx if _f > 0 else -lx - w
+
+
+## A shaded box: the base, a shade band on its screen-right, a lit edge on its screen-left.
+func _band(lx: float, y: float, w: float, h: float, c: Array, shade := 3.0, lit := 1.0) -> void:
+	_q(lx, y, w, h, c[0])
+	var s := _sx(lx, w)
+	_qs(s + w - shade, y, shade, h, c[1])
+	if lit > 0.0:
+		_qs(s, y, lit, h, c[2])
+
+
+## Details inside the silhouette: no outline of their own.
+func _detail(on: bool) -> void:
+	_ol_on = not on
+
+
+## Ends the figure: the silhouette's outline (`e` px out), then the fills in order.
+func _flush(ol: Color, e := 1.0) -> void:
+	_buffering = false
+	var b := _buf
+	_buf = []
+	for q: Array in b:
+		if bool(q[5]):
+			_r(float(q[0]) - e, float(q[1]) - e, float(q[2]) + e * 2.0, float(q[3]) + e * 2.0, ol)
+	for q: Array in b:
+		_r(float(q[0]), float(q[1]), float(q[2]), float(q[3]), q[4])
+
+
+static func _hash(i: int) -> int:
+	var h := (i * 73856093) ^ (i * 19349663 >> 3)
+	return absi(h) % 1000
+
+
+## An overshooting 0 to 1 (the slams), held at 1.
+static func _pop(k: float, over := 1.7) -> float:
+	var x := clampf(k, 0.0, 1.0) - 1.0
+	return 1.0 + (over + 1.0) * x * x * x + over * x * x
+
+
+# --- where things stand -------------------------------------------------------------------------
 
 func _palm_x() -> float:
-	return W * 0.47
+	return roundf(W * 0.40)
 
 
 func _you_x() -> float:
-	var x := W * 0.36
-	if tasting != null and tasting.phase == Tasting.Phase.FAN:
-		x -= 10.0 * Pen.ease_out(tasting.t / 0.5)
-	elif tasting != null and tasting.phase == Tasting.Phase.SELFIE:
-		x -= 10.0
-	return x
+	return roundf(W * 0.47)
 
 
 func _kebabulo_x() -> float:
-	return W * 0.57
+	return roundf(W * 0.60)
 
 
 func _zbyszek_x() -> float:
-	return W * 0.86
+	return W - 28.0
 
 
-## The handheld sway: the near layer moves the most.
-func _sway(depth: float) -> Vector2:
-	if Access.calm:
-		return Vector2.ZERO
-	return _snap(Vector2(sin(_t * TAU / 6.0) * 1.4, sin(_t * TAU / 4.3 + 0.7) * 0.7) * depth)
+# --- the back (drawn once a size) -----------------------------------------------------------------
+
+func _draw_back() -> void:
+	_use(_back)
+	_sky()
+	_party_house()
+	_nowy_swiat()
+	_lamps()
+	_road_bed()
+	_pavement()
+	_props()
 
 
-## To whole scene pixels, so a layer moves a pixel at a time and never smears.
-func _snap(v: Vector2) -> Vector2:
-	return (v * _kp).round() / _kp
+func _sky() -> void:
+	var stops := [0.0, 14.0, 27.0, 39.0, 50.0, 60.0, 69.0, ROAD_Y]
+	for i in SKY.size():
+		_u(0, stops[i], W, float(stops[i + 1]) - float(stops[i]), SKY[i])
+		# a one-pixel seam of the next band's colour every few pixels: a hand-dithered edge
+		if i + 1 < SKY.size():
+			var x := float(i * 3 % 5)
+			while x < W:
+				_u(x, float(stops[i + 1]) - 0.5, 2.0, 0.5, SKY[i + 1])
+				x += 5.0
+	# the sun low behind the Party House, its glow in two steps
+	var sx := roundf(W * 0.30)
+	_disc(sx, 30, 17, 15, Color("#f8c878"))
+	_disc(sx, 30, 13, 11.5, SUN_GLOW)
+	_disc(sx, 30, 9.5, 8.5, SUN)
+	# clouds: stacked strips, a warm underside
+	for c: Array in [[0.08, 16.0, 40.0], [0.52, 24.0, 52.0], [0.78, 12.0, 30.0]]:
+		var cx := roundf(W * float(c[0]))
+		var cy: float = c[1]
+		var cw: float = c[2]
+		_u(cx + cw * 0.2, cy - 2, cw * 0.4, 1, Color("#ffe8d0"))
+		_u(cx + cw * 0.1, cy - 1, cw * 0.7, 1, Color("#ffe8d0"))
+		_u(cx, cy, cw, 1.5, Color("#fbd6b8"))
+		_u(cx + 2, cy + 1.5, cw - 4, 0.5, Color("#e8a090"))
+	# far birds
+	for b: Array in [[0.62, 18.0], [0.66, 15.0], [0.70, 20.0]]:
+		var bx := roundf(W * float(b[0]))
+		_u(bx, b[1], 1, 0.5, Color("#5a4a6a"))
+		_u(bx + 1.5, b[1], 1, 0.5, Color("#5a4a6a"))
+		_u(bx + 1, float(b[1]) + 0.5, 0.5, 0.5, Color("#5a4a6a"))
 
 
-# --- the far layer (drawn once) -------------------------------------------------------------------
-
-func _draw_far() -> void:
-	var p := _far_pen
-	# The sky: four stops, the low sun on the horizon behind the Party House.
-	p.rect_v(0, 0, W, 40, Color("#5b5f9a"), Color("#c9788a"))
-	p.rect_v(0, 40, W, 34, Color("#c9788a"), Color("#f2a05e"))
-	p.rect_v(0, 74, W, ROAD_Y - 74, Color("#f2a05e"), Color("#ffd98a"))
-	var sun := Vector2(W * 0.12, 88)
-	p.blob(sun, Vector2(110, 80), Color("#ffe6a8", 0.55), 24)
-	p.blob(sun, Vector2(40, 34), Color("#fff4cc", 0.8), 20)
-	for c: Array in [[W * 0.30, 22.0, 58.0], [W * 0.66, 34.0, 74.0], [W * 0.88, 16.0, 44.0]]:
-		_cloud(p, Vector2(c[0], c[1]), c[2])
-	_nowy_swiat(p)
-	_party_house(p)
-	# The haze over the lower part of the buildings.
-	p.rect_v(0, 64, W, ROAD_Y - 64, Color("#ffc98a", 0.0), Color("#ffc98a", 0.38))
-	_lamps(p)
-
-
-func _cloud(p: Pen, c: Vector2, w: float) -> void:
-	p.ell(c + Vector2(0, 1.4), Vector2(w * 0.5, 3.6), Color("#ffcf9a", 0.75))
-	p.ell(c, Vector2(w * 0.46, 3.0), Color("#9a7aa8", 0.55))
-	p.ell(c + Vector2(-w * 0.12, -1.6), Vector2(w * 0.22, 2.6), Color("#b48cb0", 0.5))
-
-
-## The old Party House on the corner: in its own shade (the sun behind it), the bright rim on the
-## roof and the left edge, square piers over dark bays, recessed windows with one in five aflame.
-func _party_house(p: Pen) -> void:
-	var x0 := -4.0
-	var x1 := W * 0.38
-	var top := 30.0
-	p.rect_v(x0, top, x1 - x0, ROAD_Y - top, Color("#c9b49a"), Color("#a8918a"))
-	p.rect(x0, top - 2, x1 - x0, 3, Color("#d8c6aa"))
-	p.rect(x0, top - 2, x1 - x0, 0.8, Color("#fff0c8"))
-	p.rect(x1 - 1.5, top - 2, 1.5, ROAD_Y - top + 2, Color("#8f7a74"))
-	p.rect(x0, top + 9, x1 - x0, 1.6, Color("#9a8478"))
-	var n := 0
+## The old Party House on the corner: a long pale block, five rows of framed windows over a tall
+## colonnade, the flag on the roof.
+func _party_house() -> void:
+	var x0 := -2.0
+	var x1 := roundf(W * 0.40)
+	var w := x1 - x0
+	var top := 34.0
+	_u(x0, top, w, ROAD_Y - top, STONE)
+	# the roof: a parapet, a plant room, the flagpole
+	_u(x0 + 24, top - 5, 34, 5, STONE_D)
+	_u(x0 + 24, top - 5, 34, 0.5, STONE_L)
+	_u(x0 + 26, top - 3.5, 30, 0.5, STONE_DD)
+	_u(x0, top - 1.5, w, 1.5, STONE_L)
+	_u(x0, top, w, 1, STONE_D)
+	_u(x0, top + 2, w, 1, STONE_L)
+	_u(x0, top + 3, w, 0.5, STONE_DD)
+	var fx := x1 - 22.0
+	_u(fx, top - 16, 0.5, 14.5, Color("#3a3a44"))
+	_u(fx + 0.5, top - 16, 7, 2, WHITE)
+	_u(fx + 0.5, top - 14, 7, 2, Color("#d4283a"))
+	_u(fx + 6.5, top - 16, 0.5, 4, Color("#e8e0d8"))
+	# the windows: framed, a sill, the cross, the sunset caught in the top pane
+	var cy := top + 47.0
 	for r in 4:
-		var y := top + 14 + r * 9.5
-		var x := x0 + 6.0
-		while x < x1 - 8.0:
-			p.rect(x - 0.6, y - 0.6, 6.2, 6.8, Color("#9a8478"))
-			p.rect_v(x, y, 5, 5.6, Color("#4a4660"), Color("#5c5874"))
-			if (n * 7 + r * 3) % 5 == 0:
-				p.rect_v(x, y, 5, 5.6, Color("#ffb060"), Color("#ffd98a"))
-			p.rect(x + 2.2, y, 0.6, 5.6, Color("#9a8478"))
-			p.rect(x, y + 2.4, 5, 0.6, Color("#9a8478"))
-			p.rect(x - 0.8, y + 5.6, 6.6, 1.0, Color("#e8d8bc"))
-			if (n * 5 + r) % 7 == 3:
-				_ac_unit(p, x + 0.4, y + 6.6)
-			elif (n * 3 + r * 2) % 9 == 4:
-				_flower_box(p, x - 0.4, y + 5.0, 5.8)
-			x += 10.5
-			n += 1
-	# the roof: a lift-room box, a dish, an aerial
-	p.rect(x1 * 0.22, top - 7, 14, 5, Color("#b8a48e"))
-	p.rect(x1 * 0.22, top - 7, 14, 0.8, Color("#e8d8bc"))
-	p.rect(x1 * 0.22 + 12.6, top - 7, 1.4, 5, Color("#8f7a74"))
-	_dish(p, Vector2(x1 * 0.55, top - 4.5))
-	_aerial(p, Vector2(x1 * 0.78, top - 2.0))
-	var cy := top + 54.0
-	p.rect(x0, cy - 2.4, x1 - x0, 2.6, Color("#d8c6aa"))
-	p.rect(x0, cy, x1 - x0, ROAD_Y - cy, Color("#3b3348"))
+		var y := top + 6.0 + r * 9.5
+		var x := x0 + 5.0
+		var i := 0
+		while x < x1 - 6.0:
+			var lit := _hash(i * 7 + r * 31) % 9 == 0
+			_u(x - 0.5, y - 0.5, 5, 7, STONE_D)
+			_u(x, y, 4, 6, GLOW if lit else GLASS)
+			_u(x, y, 4, 1.5, Color("#e8b070") if not lit else Color("#ffe39a"))
+			_u(x + 1.5, y, 0.5, 6, STONE_L)
+			_u(x, y + 2.5, 4, 0.5, STONE_L)
+			_u(x - 1, y + 6, 6, 0.5, STONE_L)
+			_u(x - 1, y + 6.5, 6, 0.5, STONE_DD)
+			if not lit and _hash(i * 11 + r) % 5 == 0:
+				_u(x + 2, y + 3, 2, 3, Color("#8a7a8a"))
+			x += 8.0
+			i += 1
+	# pilasters every four bays
+	var px := x0 + 2.5
+	while px < x1 - 4.0:
+		_u(px, top + 4, 1, cy - top - 7, STONE_L)
+		_u(px + 1, top + 4, 0.5, cy - top - 7, STONE_D)
+		px += 32.0
+	# the colonnade: the entablature, the dark bays with shop light, the square pillars
+	_u(x0, cy - 3, w, 3, STONE)
+	_u(x0, cy - 3, w, 0.5, STONE_L)
+	_u(x0, cy - 0.5, w, 0.5, STONE_DD)
+	_u(x0, cy, w, ROAD_Y - cy, BAY)
+	_u(x0, cy, w, 1.5, Color("#38363e"))
+	var bx := x0 + 10.0
+	var k := 0
+	while bx < x1 - 6.0:
+		if _hash(k * 5 + 3) % 3 == 0:
+			_u(bx, cy + 10, 6, 14, Color("#d8a060"))
+			_u(bx, cy + 10, 6, 1, Color("#f2c97a"))
+			_u(bx + 2.5, cy + 10, 0.5, 14, Color("#8a6040"))
+		else:
+			_u(bx, cy + 10, 6, 14, Color("#3a3842"))
+			_u(bx + 0.5, cy + 10.5, 5, 0.5, Color("#5a5866"))
+		bx += 13.0
+		k += 1
 	var x := x0 + 3.0
-	while x < x1 - 4.0:
-		p.rect_h(x, cy, 6, ROAD_Y - cy, Color("#e2d2b4"), Color("#a8918a"))
-		p.rect(x, cy, 0.8, ROAD_Y - cy, Color("#fff0c8", 0.8))
-		x += 15.0
+	while x < x1 - 3.0:
+		_u(x - 1, cy, 8, 1.5, STONE_L)
+		_u(x - 1, cy + 1.5, 8, 0.5, STONE_DD)
+		_u(x, cy + 2, 6, ROAD_Y - cy - 4, STONE)
+		_u(x, cy + 2, 1, ROAD_Y - cy - 4, STONE_L)
+		_u(x + 4.5, cy + 2, 1.5, ROAD_Y - cy - 4, STONE_D)
+		_u(x + 2.5, cy + 3, 0.5, ROAD_Y - cy - 6, STONE_D)
+		_u(x - 1, ROAD_Y - 2.5, 8, 2.5, STONE_D)
+		_u(x - 1, ROAD_Y - 2.5, 8, 0.5, STONE_L)
+		x += 13.0
+	_u(x1 - 1, top, 1, ROAD_Y - top, STONE_DD)
 
 
-## Nowy Świat's low pastel fronts: cornices, awnings, lit shop windows, a lit left reveal on each.
-func _nowy_swiat(p: Pen) -> void:
+## Nowy Świat's low pastel fronts: roofs, cornices, framed windows, shop signs and awnings.
+func _nowy_swiat() -> void:
 	var cols := [Color("#e8c9a0"), Color("#d6b6c4"), Color("#c9d4b0"), Color("#ead79c"), Color("#d8bca8")]
-	var awn := [Color("#b84a3a"), Color("#3f7a5a"), Color("#3a5a8a"), Color("#c08a2a")]
-	var x := W * 0.40
+	var signs := [Color("#2e5a3a"), Color("#7a2a34"), Color("#2a3a6a"), Color("#5a3a20"), Color("#3a3a44")]
+	var awn := [Color("#c8302a"), Color("#2e7a4a"), Color("#e8a020"), Color("#2a5aa8"), Color("#a8306a")]
+	var x := roundf(W * 0.40)
 	var i := 0
 	while x < W:
-		var w := 36.0 + float((i * 13) % 14)
+		var w := 38.0 + float((i * 13) % 14)
 		var top := 46.0 + float((i * 7) % 12)
 		var c: Color = cols[i % cols.size()]
-		p.rect_v(x, top, w, ROAD_Y - top, c, c.darkened(0.12))
-		p.rect(x, top, 1.4, ROAD_Y - top, c.lightened(0.35))
-		p.rect(x - 1, top - 2.5, w + 2, 2.8, c.darkened(0.25))
-		p.rect(x - 1, top - 2.5, w + 2, 0.8, c.lightened(0.3))
+		var d := c.darkened(0.14)
+		var l := c.lightened(0.14)
+		_u(x, top, w, ROAD_Y - top, c)
+		_u(x, top, 1, ROAD_Y - top, l)
+		_u(x + w - 1.5, top, 1.5, ROAD_Y - top, d)
+		# the roof and the cornice
+		var roof := Color("#8a5040") if i % 2 == 0 else Color("#5e6070")
+		_u(x - 0.5, top - 2, w + 1, 2, roof)
+		_u(x - 0.5, top - 2, w + 1, 0.5, roof.lightened(0.25))
+		_u(x, top, w, 1, c.darkened(0.3))
+		_u(x, top + 1, w, 0.5, l)
+		# the roof kit
+		match i % 5:
+			0, 3:
+				_chimney(x + 6.0, top - 2.0)
+				_chimney(x + w - 12.0, top - 2.0)
+			2:
+				_dish(x + w - 12.0, top - 2.0)
+			4:
+				_aerial(x + 9.0, top - 2.0)
+			1:
+				_chimney(x + w * 0.5, top - 2.0)
+		# three floors of windows
+		var n := int((w - 6.0) / 8.0)
+		var ox := x + (w - n * 8.0) * 0.5 + 2.0
 		for r in 3:
-			for kx in int((w - 6.0) / 8.0):
-				var wx := x + 4.0 + kx * 8.0
-				var wy := top + 7.0 + r * 12.0
-				p.rect(wx - 0.5, wy - 0.5, 5, 8, c.darkened(0.2))
-				p.rect_v(wx, wy, 4, 7, Color("#4e5266"), Color("#666a80"))
-				p.rect(wx + 1.7, wy, 0.6, 7, c.darkened(0.2))
-				p.rect(wx + 0.4, wy + 0.4, 0.8, 2.4, Color(1, 1, 1, 0.22))
-				p.rect(wx - 0.6, wy + 7, 5.2, 0.9, c.lightened(0.25))
-				if (i + kx + r) % 6 == 2:
-					_flower_box(p, wx - 0.6, wy + 6.0, 5.2)
-				elif (i * 2 + kx + r) % 8 == 5:
-					_ac_unit(p, wx, wy + 8.0)
-			# a balcony on every other front, first floor
-			if i % 2 == 1:
-				_railing(p, x + 3.0, top + 7.0 + 12.0 + 6.0, w - 6.0, c)
-		# the roof: a chimney or two, a dormer on the wider fronts, a drainpipe at the joint
-		p.rect(x + w * 0.24, top - 6.5, 3.2, 4.2, c.darkened(0.3))
-		p.rect(x + w * 0.24 - 0.4, top - 7.2, 4.0, 1.0, c.darkened(0.45))
-		if w > 42.0:
-			p.poly(PackedVector2Array([Vector2(x + w * 0.6, top - 2.5), Vector2(x + w * 0.6 + 4, top - 7.5), Vector2(x + w * 0.6 + 8, top - 2.5)]), c.darkened(0.3))
-			p.rect(x + w * 0.6 + 2.5, top - 5.2, 3, 2.7, Color("#4e5266"))
-		p.rect(x + w - 1.6, top, 1.0, ROAD_Y - top - 14.0, c.darkened(0.35))
-		# the shop: an awning and a warm window
-		var sy := ROAD_Y - 14.0
-		p.rect_v(x + 3, sy, w - 6, 13, Color("#ffd98a"), Color("#ffb060"))
-		p.rect(x + 3, sy + 4, w - 6, 0.6, Color("#c08040", 0.6))
-		for m in int((w - 6.0) / 9.0):
-			p.rect(x + 3 + (m + 1) * 9.0, sy, 0.7, 13, Color("#8a6040"))
-		p.rect(x + w * 0.5 - 3, sy + 4.6, 6, 8.4, Color("#6a4a3a"))
-		p.rect(x + w * 0.5 - 2.4, sy + 5.2, 4.8, 3.6, Color("#ffe8b0"))
-		# the shop's sign board over the awning, a squiggle for its name
-		var sg := minf(w - 10.0, 22.0)
-		var sx0 := x + (w - sg) * 0.5
-		p.rect(sx0, sy - 9.5, sg, 4.4, Color("#2a2a3a"))
-		for q in int(sg / 2.2) - 1:
-			p.rect(sx0 + 1.2 + q * 2.2, sy - 8.4 + float((q + i) % 2) * 0.8, 1.4, 1.4, NICKS[(i + q / 3) % NICKS.size()])
-		var a: Color = awn[i % awn.size()]
-		p.poly(PackedVector2Array([Vector2(x + 1, sy - 4), Vector2(x + w - 1, sy - 4), Vector2(x + w + 1, sy + 1), Vector2(x - 1, sy + 1)]), a)
-		for s in int(w / 5.0):
-			if s % 2 == 0:
-				p.poly(PackedVector2Array([Vector2(x + 1 + s * 5, sy - 4), Vector2(x + 6 + s * 5, sy - 4), Vector2(x + 6.4 + s * 5, sy + 1), Vector2(x + 0.6 + s * 5, sy + 1)]), a.lightened(0.35))
+			var wy := top + 5.0 + r * 12.0
+			if wy + 8.0 > ROAD_Y - 18.0:
+				break
+			_u(x, wy + 9.5, w, 0.5, c.darkened(0.08))
+			for k in n:
+				var wx := ox + k * 8.0
+				_window(wx, wy, c, _hash(i * 17 + r * 5 + k))
+			if i % 5 == 1 and r == 1:
+				_balcony(x + 3.0, wy, w - 6.0)
+		# the shop: a sign with squiggle letters, a striped awning, the lit window, the door
+		var sy := ROAD_Y - 18.0
+		var sc: Color = signs[i % signs.size()]
+		_u(x + 2, sy, w - 4, 4.5, sc)
+		_u(x + 2, sy, w - 4, 0.5, sc.lightened(0.3))
+		_squiggle(x + 4.0, sy + 1.5, w - 8.0, Color("#f2e6c8") if i % 2 == 0 else GOLD, i)
+		var ac: Color = awn[i % awn.size()]
+		var ay := sy + 5.0
+		var sx := x + 1.0
+		var j := 0
+		while sx < x + w - 1.0:
+			var sw := minf(2.0, x + w - 1.0 - sx)
+			var sc2 := ac if j % 2 == 0 else WHITE
+			_u(sx, ay, sw, 3, sc2)
+			_u(sx, ay + 3, sw, 0.5, sc2.darkened(0.15) if j % 2 == 0 else Color("#e0dcd0"))
+			if j % 2 == 0:
+				_u(sx + 0.5, ay + 3.5, 1, 0.5, ac.darkened(0.15))
+			sx += 2.0
+			j += 1
+		_u(x + 1, ay, w - 2, 0.5, ac.lightened(0.3))
+		_u(x + 1, ay + 4, w - 2, 0.5, Color(0.1, 0.05, 0.1, 0.35))
+		var gy := ay + 4.5
+		_u(x + 3, gy, w - 13, ROAD_Y - gy, GLOW)
+		_u(x + 3, gy, w - 13, 1, Color("#c89050"))
+		for g in int((w - 15.0) / 4.0):
+			_u(x + 4.5 + g * 4.0, ROAD_Y - 3.5, 2, 2.5, [Color("#c84a3a"), Color("#4a8a3e"), Color("#e8b23a"), Color("#5a6ab0")][(g + i) % 4])
+		_u(x + 3 + (w - 13) * 0.5, gy, 0.5, ROAD_Y - gy, Color("#a07040"))
+		_u(x + w - 9, gy - 0.5, 6, ROAD_Y - gy + 0.5, Color("#3a2e2e"))
+		_u(x + w - 8.5, gy + 0.5, 5, 4, Color("#6a5a5a"))
+		_u(x + w - 4.5, gy + 6, 0.5, 1, GOLD)
+		# an AC box on some fronts
+		if i % 3 != 2:
+			var ax := x + (4.0 if i % 2 == 0 else w - 9.0)
+			_ac(ax, top + 12.5)
 		x += w
 		i += 1
 
 
-## A wall air-conditioner box with its grille and fan.
-func _ac_unit(p: Pen, x: float, y: float) -> void:
-	p.rect(x, y, 5.2, 3.6, Color("#d8dce0"))
-	p.rect(x, y + 3.0, 5.2, 0.6, Color("#9aa0a8"))
-	p.rect(x + 4.6, y, 0.6, 3.6, Color("#aab0b8"))
-	p.ell(Vector2(x + 2.0, y + 1.6), Vector2(1.2, 1.2), Color("#7a808a"), 0.0, 8)
-	p.rect(x + 3.4, y + 0.6, 0.6, 2.2, Color("#9aa0a8"))
+func _window(wx: float, wy: float, wall: Color, h: int) -> void:
+	var lit := h % 7 == 0
+	_u(wx - 0.5, wy - 0.5, 4.5, 8, Color("#f4ead8"))
+	_u(wx, wy, 3.5, 7, GLOW if lit else GLASS)
+	_u(wx, wy, 3.5, 1.5, Color("#ffe39a") if lit else GLASS_L)
+	_u(wx + 1.5, wy, 0.5, 7, Color("#f4ead8"))
+	_u(wx, wy + 2.5, 3.5, 0.5, Color("#f4ead8"))
+	_u(wx - 1, wy + 7.5, 5.5, 0.5, wall.darkened(0.3))
+	_u(wx - 1, wy - 1, 5.5, 0.5, wall.darkened(0.12))
+	if h % 4 == 1:
+		# geraniums in a box
+		_u(wx - 0.5, wy + 6, 4.5, 1.5, Color("#3a6a32"))
+		_u(wx - 0.5, wy + 5.5, 1, 0.5, Color("#e0402a"))
+		_u(wx + 1, wy + 5, 1, 1, Color("#ff6a7a"))
+		_u(wx + 2.5, wy + 5.5, 1, 0.5, Color("#e0402a"))
+		_u(wx + 0.5, wy + 6, 0.5, 0.5, Color("#6cc04a"))
+	elif h % 5 == 2 and not lit:
+		_u(wx, wy + 3, 1.5, 4, Color("#d8b8a8"))
 
 
-## A window box of geraniums.
-func _flower_box(p: Pen, x: float, y: float, w: float) -> void:
-	p.rect(x, y + 1.2, w, 1.6, Color("#8a4a2a"))
-	for f in int(w / 1.4):
-		var fc := RED if f % 3 == 0 else (Color("#ff9ab0") if f % 3 == 1 else LETTUCE)
-		p.rect(x + 0.2 + f * 1.4, y + float(f % 2) * 0.5, 1.1, 1.2, fc)
+func _ac(x: float, y: float) -> void:
+	_u(x, y, 4, 3, Color("#d8dcdc"))
+	_u(x, y, 4, 0.5, Color("#eef0f0"))
+	_u(x + 0.5, y + 1, 2, 0.5, Color("#9aa0a4"))
+	_u(x + 0.5, y + 2, 2, 0.5, Color("#9aa0a4"))
+	_u(x + 3, y + 1, 0.5, 1.5, Color("#6b737a"))
+	_u(x, y + 3, 4, 0.5, Color("#8a9094"))
+	_u(x + 1, y + 3.5, 0.5, 0.5, Color("#6aa8d8"))
 
 
-## A balcony: the slab, the rail and its bars.
-func _railing(p: Pen, x: float, y: float, w: float, c: Color) -> void:
-	p.rect(x - 1, y + 4.2, w + 2, 1.2, c.darkened(0.3))
-	p.rect(x - 1, y, w + 2, 0.7, Color("#3a3646"))
+func _balcony(x: float, y: float, w: float) -> void:
+	_u(x, y + 8, w, 1, Color("#b0a090"))
+	_u(x, y + 9, w, 0.5, Color("#7a6a5a"))
+	_u(x, y + 4, w, 0.5, Color("#3a3a44"))
 	var bx := x
-	while bx <= x + w:
-		p.rect(bx, y, 0.5, 4.2, Color("#3a3646"))
-		bx += 1.8
+	while bx < x + w:
+		_u(bx, y + 4.5, 0.5, 3.5, Color("#3a3a44"))
+		bx += 1.5
+	_u(x + 2, y + 2, 2.5, 2, Color("#4a8a3e"))
+	_u(x + 2.5, y + 1.5, 1, 0.5, Color("#ff6a7a"))
 
 
-func _dish(p: Pen, at: Vector2) -> void:
-	p.rect(at.x - 0.3, at.y, 0.7, 3.0, Color("#5a5666"))
-	p.ell(at + Vector2(0, -1.0), Vector2(2.6, 2.0), Color("#e8eaee"), -0.5, 10)
-	p.ell(at + Vector2(0.4, -0.8), Vector2(1.6, 1.2), Color("#b8bcc4"), -0.5, 8)
+func _chimney(x: float, base: float) -> void:
+	_u(x, base - 5, 3, 5, Color("#8a4a3a"))
+	_u(x, base - 5, 1, 5, Color("#a86050"))
+	_u(x - 0.5, base - 5.5, 4, 1, Color("#5a3a30"))
+	_u(x, base - 3, 3, 0.5, Color("#6a3a2e"))
 
 
-func _aerial(p: Pen, at: Vector2) -> void:
-	p.rect(at.x - 0.3, at.y - 9.0, 0.6, 9.0, Color("#3a3646"))
-	for r in 3:
-		var w := 6.0 - r * 1.4
-		p.rect(at.x - w * 0.5, at.y - 8.6 + r * 2.0, w, 0.5, Color("#3a3646"))
+func _dish(x: float, base: float) -> void:
+	_u(x + 2, base - 3, 0.5, 3, Color("#6b737a"))
+	_u(x, base - 6, 1, 3.5, Color("#e0e4e6"))
+	_u(x + 1, base - 6.5, 1.5, 4.5, Color("#d0d4d6"))
+	_u(x + 2.5, base - 5.5, 0.5, 2.5, Color("#a0a4a8"))
+	_u(x + 2.5, base - 4.5, 2, 0.5, Color("#6b737a"))
+	_u(x + 4.5, base - 5, 0.5, 1, Color("#3a3a44"))
 
 
-func _lamps(p: Pen) -> void:
-	for k in 5:
-		var lx := 30.0 + k * W * 0.22
-		p.rect(lx - 0.5, 64, 1.1, ROAD_Y - 64, Color("#3a3646"))
-		p.rect(lx - 4, 63, 8, 1.6, Color("#3a3646"))
-		p.blob(Vector2(lx, 65.5), Vector2(6, 4), Color("#ffe39a", 0.6), 10)
+func _aerial(x: float, base: float) -> void:
+	_u(x, base - 11, 0.5, 11, Color("#3a3a44"))
+	_u(x - 3, base - 10, 6.5, 0.5, Color("#3a3a44"))
+	_u(x - 2, base - 8, 4.5, 0.5, Color("#3a3a44"))
+	_u(x - 1, base - 6, 2.5, 0.5, Color("#3a3a44"))
 
 
-# --- the scene ------------------------------------------------------------------------------------
+## Tiny sign letters: one-pixel strokes that read as words from afar.
+func _squiggle(x: float, y: float, w: float, c: Color, seed_i: int) -> void:
+	var cx := x
+	var k := seed_i * 13
+	while cx < x + w - 1.0:
+		var h := _hash(k)
+		if h % 6 == 0:
+			cx += 1.5
+		else:
+			_u(cx, y, 0.5, 1.5, c)
+			if h % 3 == 0:
+				_u(cx + 0.5, y, 0.5, 0.5, c)
+			elif h % 3 == 1:
+				_u(cx + 0.5, y + 1, 0.5, 0.5, c)
+			else:
+				_u(cx + 0.5, y + 0.5, 0.5, 0.5, c)
+			cx += 1.5
+		k += 1
 
-func _draw_scene() -> void:
-	var p := _pen
-	p.o = Vector2.ZERO
-	if _far_vp != null:
-		_scene.draw_texture_rect(_far_vp.get_texture(), Rect2(Vector2.ZERO, Vector2(_far_vp.size) / _kp), false)
-	p.o = _sway(0.35)
-	_road(p)
-	p.o = _sway(1.0)
-	_pavement(p)
-	_porsza(p, W * 0.015, 176.0)
-	_pigeon(p)
-	_zbyszek(p)
-	_kebabulo(p)
-	_you(p)
-	if tasting.phase in [Tasting.Phase.FAN, Tasting.Phase.SELFIE, Tasting.Phase.CARD]:
-		_fan(p)
-	p.o = Vector2.ZERO
+
+## Jerozolimskie's lamps: a pole lit on its left, the arm, the head with its warm bottom.
+func _lamps() -> void:
+	for lf: float in [0.05, 0.25, 0.535, 0.77]:
+		var lx := roundf(W * lf)
+		_u(lx, 64, 1, ROAD_Y - 64, Color("#2a2e34"))
+		_u(lx, 64, 0.5, ROAD_Y - 64, Color("#4a4e58"))
+		_u(lx - 1, ROAD_Y - 4, 3, 4, Color("#2a2e34"))
+		_u(lx - 1, ROAD_Y - 4, 3, 0.5, Color("#4a4e58"))
+		_u(lx, 63, 4, 1, Color("#2a2e34"))
+		_u(lx + 3, 63, 5, 2, Color("#3a3e46"))
+		_u(lx + 3, 63, 5, 0.5, Color("#5a5e68"))
+		_u(lx + 3.5, 65, 4, 0.5, SUN_GLOW)
+		_u(lx + 4.5, 65.5, 2, 0.5, SUN)
 
 
-func _road(p: Pen) -> void:
-	p.rect_v(0, ROAD_Y, W, PAVE_Y - ROAD_Y, Color("#4a4850"), Color("#3e3d45"))
-	# the sun's sheen along the far side, the kerb's lit edge
-	p.blob(Vector2(W * 0.14, ROAD_Y + 8), Vector2(W * 0.3, 7), Color("#ffb878", 0.28), 16)
-	p.rect(0, ROAD_Y, W, 1.0, Color("#8a8076"))
-	# the tracks and the wires
-	for ty in [ROAD_Y + 13.0, ROAD_Y + 17.0]:
-		p.rect(0, ty, W, 0.6, Color("#9aa0a8", 0.7))
-	for wy in [18.0, 21.0]:
-		p.seg(Vector2(-4, wy), Vector2(W + 4, wy + 2.0), 0.35, Color("#2a2630", 0.7))
-	# the lane dashes, curving round the island
-	var c := Vector2(_palm_x(), ROAD_Y + 19.0)
-	for lane: Array in [[W * 0.7, 12.0], [W * 0.78, 16.5]]:
-		var pts := Pen.ell_pts(c, Vector2(lane[0], lane[1]), 0.0, 64)
-		for i in range(0, 64, 2):
-			var a: Vector2 = pts[i]
-			var b: Vector2 = pts[(i + 1) % 64]
-			if a.y > ROAD_Y + 1.0 and a.y < PAVE_Y - 1.0:
-				p.seg(a, b, 0.7, Color("#e8e4d8", 0.6))
-	var colours := [Color("#d4282e"), Color("#27c4dc"), Color("#c9d2d8"), Color("#ffd23a"), Color("#3a4a7a")]
-	# the far lane (behind the island) and the tram
-	for k in 4:
-		var sp := 38.0 + k * 9.0
-		var bx := W + 30.0 - fmod(_t * (sp + 6.0) + k * 97.0, W + 60.0)
-		_car(p, bx, ROAD_Y + 4.5, colours[(k + 2) % colours.size()], false, 0.86)
-	var tt := fmod(_t + 4.0, TRAM_S)
-	if tt < 5.0:
-		_tram(p, -130.0 + tt / 5.0 * (W + 260.0), ROAD_Y + 2.5)
-	_palm(p)
+func _road_bed() -> void:
+	_u(0, ROAD_Y, W, PAVE_Y - ROAD_Y, ASPHALT)
+	_u(0, ROAD_Y, W, 1, KERB_L)
+	_u(0, ROAD_Y + 1, W, 0.5, KERB_D)
+	_u(0, ROAD_Y + 1.5, W, 0.5, ASPHALT_D)
+	# the track bed and its two rails, the sleepers' tops
+	_u(0, ROAD_Y + 13, W, 9, Color("#4c4c52"))
+	for ry: float in [ROAD_Y + 14.5, ROAD_Y + 19.5]:
+		_u(0, ry, W, 0.5, RAIL)
+		_u(0, ry + 0.5, W, 0.5, Color("#2a2a30"))
+	var x := 0.0
+	while x < W:
+		_u(x, ROAD_Y + 13, 0.5, 0.5, Color("#5a5a60"))
+		x += 6.0
+	# patches and specks
+	for i in 60:
+		var h := _hash(i + 400)
+		var sx := float(h % 467) / 467.0 * W
+		var sy := ROAD_Y + 3.0 + float((h / 7) % 30)
+		if sy > ROAD_Y + 12.5 and sy < ROAD_Y + 22.5:
+			continue
+		_u(sx, sy, 0.5, 0.5, ASPHALT_L if i % 2 == 0 else ASPHALT_D)
+	_u(W * 0.18, ROAD_Y + 24, 14, 3, ASPHALT_D)
+	_u(W * 0.72, ROAD_Y + 4, 10, 2.5, ASPHALT_D)
+	# the lane dashes
+	x = 0.0
+	while x < W:
+		for dy: float in [7.0, 27.0]:
+			_u(x, ROAD_Y + dy, 8, 1, Color("#d8d8cc"))
+			_u(x, ROAD_Y + dy + 1, 8, 0.5, Color("#9a9a94"))
+		x += 16.0
+	# the near kerb: granite stones, the gutter, a drain
+	_u(0, PAVE_Y - 2.5, W, 0.5, ASPHALT_D)
+	_u(0, PAVE_Y - 2, W, 2, KERB)
+	_u(0, PAVE_Y - 2, W, 0.5, KERB_L)
+	x = 4.0
+	while x < W:
+		_u(x, PAVE_Y - 2, 0.5, 2, KERB_D)
+		x += 9.0
+	var dx := roundf(W * 0.56)
+	_u(dx, PAVE_Y - 3.5, 6, 1, Color("#2a2a30"))
+	for g in 4:
+		_u(dx + 0.5 + g * 1.5, PAVE_Y - 3.5, 0.5, 1, Color("#6a6a72"))
+
+
+func _pavement() -> void:
+	_u(0, PAVE_Y, W, H - PAVE_Y, PAVE)
+	var y := PAVE_Y + 6.0
+	var row := 0
+	var prev := PAVE_Y
+	while y < H + 8.0:
+		var step := 7.0 + row
+		var x := 12.0 if row % 2 == 0 else 0.0
+		var col := 0
+		while x < W:
+			var h := _hash(row * 41 + col)
+			if h % 7 == 0:
+				_u(x + 0.5, prev + 0.5, 23.5, y - prev - 0.5, PAVE_L)
+			elif h % 11 == 0:
+				_u(x + 0.5, prev + 0.5, 23.5, y - prev - 0.5, Color("#908b82"))
+			if h % 23 == 0:
+				_u(x + 6, prev + 2, 3, 0.5, PAVE_D)
+				_u(x + 9, prev + 2.5, 2, 0.5, PAVE_D)
+			_u(x, prev + 0.5, 0.5, y - prev - 0.5, PAVE_D)
+			_u(x + 0.5, prev + 0.5, 0.5, y - prev - 0.5, PAVE_L)
+			x += 24.0
+			col += 1
+		_u(0, y, W, 0.5, PAVE_D)
+		_u(0, y + 0.5, W, 0.5, PAVE_L)
+		prev = y
+		y += step
+		row += 1
+	# the palm's long shadow toward the right, the sun being low on the left
+	_u(_palm_x() + 4, PAVE_Y + 0.5, 80, 2.5, Color(0.1, 0.05, 0.15, 0.16))
+
+
+## Street furniture behind the people: bollards, a green bin, a hydrant.
+func _props() -> void:
+	for bx: float in [W * 0.31, W * 0.69, W * 0.83]:
+		_bollard(roundf(bx), PAVE_Y + 2.0)
+	_bin(roundf(W * 0.35), PAVE_Y + 8.0)
+	_hydrant(roundf(W * 0.78), PAVE_Y + 9.0)
+
+
+func _bollard(x: float, y: float) -> void:
+	_u(x - 0.5, y - 0.5, 4, 12, OUT)
+	_u(x, y, 3, 11, Color("#2a2e34"))
+	_u(x, y, 1, 11, Color("#4a4e58"))
+	_u(x - 0.5, y - 1, 4, 1.5, Color("#3a3e46"))
+	_u(x, y + 2.5, 3, 1, Color("#e0e4e6"))
+	_u(x + 4, y + 10, 6, 1, Color(0.1, 0.05, 0.15, 0.2))
+
+
+func _bin(x: float, y: float) -> void:
+	_u(x - 0.5, y - 1.5, 10, 14, OUT)
+	_u(x, y, 9, 12, Color("#2e7a4a"))
+	_u(x, y, 1.5, 12, Color("#4a9a62"))
+	_u(x + 7, y, 2, 12, Color("#1e5a34"))
+	_u(x - 0.5, y - 1, 10, 1.5, Color("#1e5a34"))
+	_u(x + 0.5, y - 1.5, 8, 0.5, Color("#16191d"))
+	_u(x, y + 3, 9, 0.5, Color("#1e5a34"))
+	_u(x + 2.5, y + 1, 4, 1, Color("#16191d"))
+	_u(x + 3, y + 5, 3, 2, Color("#f2f2ea"))
+	_u(x + 3.5, y + 5.5, 2, 1, Color("#2e7a4a"))
+	_u(x + 9.5, y + 11, 8, 1, Color(0.1, 0.05, 0.15, 0.2))
+
+
+func _hydrant(x: float, y: float) -> void:
+	_u(x - 0.5, y - 2.5, 6, 12, OUT)
+	_u(x, y, 5, 9, Color("#c8302a"))
+	_u(x, y, 1, 9, Color("#e8584a"))
+	_u(x + 4, y, 1, 9, Color("#8a1e1a"))
+	_u(x + 0.5, y - 2, 4, 2, Color("#c8302a"))
+	_u(x + 1.5, y - 2.5, 2, 0.5, Color("#8a1e1a"))
+	_u(x - 1, y + 3, 1, 1.5, Color("#c8c8c8"))
+	_u(x + 5, y + 3, 1, 1.5, Color("#c8c8c8"))
+	_u(x - 0.5, y + 8, 6, 1, Color("#8a1e1a"))
+	_u(x + 6, y + 8.5, 7, 1, Color(0.1, 0.05, 0.15, 0.2))
+
+
+# --- the live layer -------------------------------------------------------------------------------
+
+func _draw_live() -> void:
+	_use(_live_n)
+	if tasting == null:
+		return
+	var colours := [Kit.CUP, Kit.THEM, Kit.CHROME, Kit.GOLD, Color("#5a6ab0"), Color("#2e7a4a")]
 	for k in 4:
 		var sp := 38.0 + k * 9.0
 		var cx := fmod(_t * sp + k * 131.0, W + 60.0) - 30.0
-		_car(p, cx, ROAD_Y + 25.0, colours[k], true, 1.0)
-	p.rect_v(0, PAVE_Y - 2.6, W, 2.6, Color("#b8b2a6"), Color("#8a857c"))
-	p.rect(0, PAVE_Y - 2.6, W, 0.7, Color("#efe6d2"))
-
-
-## A car side-on: a rounded body in two tones, the glass with a sheen, wheels, a lamp, its shadow.
-func _car(p: Pen, x: float, y: float, c: Color, right: bool, s: float) -> void:
-	var w := 24.0 * s
-	var h := 8.0 * s
-	p.blob(Vector2(x + w * 0.6, y + h + 0.6), Vector2(w * 0.7, 1.4), Color(Pen.SHADOW, 0.45), 10)
-	p.rrect_v(x, y + h * 0.35, w, h * 0.55, 2.0 * s, c.lightened(0.15), c.darkened(0.3))
-	var cab := PackedVector2Array([Vector2(x + w * (0.22 if right else 0.30), y + h * 0.36), Vector2(x + w * (0.34 if right else 0.38), y),
-			Vector2(x + w * (0.62 if right else 0.66), y), Vector2(x + w * (0.78 if right else 0.70), y + h * 0.36)])
-	p.poly(cab, c.darkened(0.1))
-	var g := PackedVector2Array([cab[0] + Vector2(1.2 * s, -0.2), cab[1] + Vector2(0.6 * s, 0.8 * s), cab[2] + Vector2(-0.6 * s, 0.8 * s), cab[3] + Vector2(-1.2 * s, -0.2)])
-	p.poly_cols(g, PackedColorArray([Color("#3a4660"), Color("#8fb4d0"), Color("#5a7090"), Color("#2a3448")]))
-	p.rect(x + w * 0.02, y + h * 0.58, w * 0.96, 0.5 * s, c.lightened(0.4))
-	for wx in [x + w * 0.22, x + w * 0.78]:
-		p.ell(Vector2(wx, y + h * 0.9), Vector2(2.6 * s, 2.6 * s), INK, 0.0, 14)
-		p.ell(Vector2(wx, y + h * 0.9), Vector2(1.2 * s, 1.2 * s), Color("#b8c0c8"), 0.0, 10)
-	p.blob(Vector2(x + (w if right else 0.0), y + h * 0.52), Vector2(2.4, 1.6), Color("#fff4cc", 0.9), 8)
-
-
-## A Warsaw tram: three red cars with the yellow band, the pantograph on the wire.
-func _tram(p: Pen, x: float, y: float) -> void:
-	p.blob(Vector2(x + 60, y + 16), Vector2(64, 1.8), Color(Pen.SHADOW, 0.4), 14)
-	for k in 3:
-		var cx := x + k * 40.0
-		p.rrect_v(cx, y, 39, 15, 2.4, Color("#d8403a"), Color("#a02420"))
-		p.rect(cx + 0.5, y + 9.5, 38, 2.2, Color("#f2c230"))
-		for wi in 4:
-			p.rrect_v(cx + 3.0 + wi * 9.0, y + 2.2, 7, 6, 1.0, Color("#8fb4d0"), Color("#2a3448"))
-		p.rect(cx + 0.5, y + 0.6, 38, 0.7, Color("#ff8a7a"))
-	p.seg(Vector2(x + 58, y), Vector2(x + 52, y - 6), 0.6, INK)
-	p.seg(Vector2(x + 52, y - 6), Vector2(x + 60, y - 6), 0.6, INK)
-
-
-## The Palm on its island: a grass oval and its kerb, the trunk in shaded diamonds, sixteen fronds
-## bursting like a firework (the upper ones up, the lower ones drooping), each a curved tapered
-## blade with a serrated edge, rim-lit on the left.
-func _palm(p: Pen) -> void:
-	var x := _palm_x()
-	var base := ROAD_Y + 21.0
-	p.ell(Vector2(x, base + 1.0), Vector2(30, 5.2), Color("#8a857c"))
-	p.ell(Vector2(x, base + 0.4), Vector2(28, 4.4), Color("#4a8a3e"))
-	p.ell(Vector2(x - 5, base - 0.6), Vector2(16, 2.4), Color("#6aa84e"))
-	var top := 30.0
-	var sway := sin(_t * 0.9) * 1.2
-	var n := 22
-	var seg := (base - top) / n
-	for i in n:
-		var u := float(i) / float(n)
-		var y := base - (i + 1) * seg
-		var lean := u * u * 4.0 + sway * u
-		var w := lerpf(3.4, 2.6, u)
-		p.poly(PackedVector2Array([Vector2(x - w + lean, y + seg), Vector2(x + w + lean, y + seg), Vector2(x + w * 0.9 + lean, y), Vector2(x - w * 0.9 + lean, y)]),
-				Color("#6a4e34") if i % 2 == 0 else Color("#5a4028"))
-		p.poly(PackedVector2Array([Vector2(x - w + lean, y + seg), Vector2(x + lean, y + seg * 0.55), Vector2(x - w * 0.9 + lean, y)]), Color("#a8845a"))
-	var cx := x + 4.0 + sway
-	p.ell(Vector2(cx, top + 1.5), Vector2(4.6, 3.6), Color("#5a4a2a"))
-	for f in 16:
-		var a := -PI + float(f) / 15.0 * PI
-		_frond(p, Vector2(cx, top), a + sin(_t * 1.1 + f) * 0.03, 30.0 + float((f * 5) % 7))
-	p.ell(Vector2(cx - 1.6, top + 3.0), Vector2(1.4, 1.4), Color("#c8a020"))
-	p.ell(Vector2(cx + 1.6, top + 3.4), Vector2(1.4, 1.4), Color("#b08a18"))
-
-
-func _frond(p: Pen, at: Vector2, a: float, length: float) -> void:
-	var dir := Vector2(cos(a), sin(a))
-	var droop := 0.5 + 0.5 * absf(cos(a))
-	var top := PackedVector2Array()
-	var bot := PackedVector2Array()
-	var n := 9
-	for i in n + 1:
-		var u := float(i) / float(n)
-		var u2 := minf(1.0, u + 0.1)
-		var spine := at + dir * length * u + Vector2(0, length * 0.42 * droop * u * u)
-		var ahead := at + dir * length * u2 + Vector2(0, length * 0.42 * droop * u2 * u2)
-		var t := ahead - spine
-		var nrm := Vector2(-t.y, t.x).normalized()
-		if nrm.y > 0.0:
-			nrm = -nrm
-		var w := 3.2 * sin(PI * minf(1.0, u * 1.08))
-		top.append(spine + nrm * w * 0.45)
-		var tooth := 1.0 if i % 2 == 0 else 0.4
-		bot.append(spine - nrm * w * tooth)
-	var pts := PackedVector2Array(top)
-	for i in range(bot.size() - 1, -1, -1):
-		pts.append(bot[i])
-	p.poly(pts, Color("#2f7a3e"))
-	var inner := PackedVector2Array(top)
-	for i in range(top.size() - 1, -1, -1):
-		inner.append(top[i].lerp(bot[i], 0.35))
-	p.poly(inner, Color("#3f9a4a"))
-	if dir.x < 0.0:
-		p.line(top, 0.5, Color("#7fd05a", 0.9))
-
-
-## The pavement in front: slabs in perspective (the joints converging on the vanishing point), the
-## palm's long shadow.
-func _pavement(p: Pen) -> void:
-	p.rect_v(0, PAVE_Y, W, H - PAVE_Y, Color("#a8a296"), Color("#8e887e"))
-	var vp := Vector2(W * 0.5, ROAD_Y - 30.0)
-	var y := PAVE_Y + 5.0
-	var gap := 5.0
-	while y < H:
-		p.rect(0, y, W, 0.45, Color("#6e6a62", 0.55))
-		y += gap
-		gap *= 1.32
-	for i in range(-8, 9):
-		var bx := W * 0.5 + i * 34.0
-		var d := Vector2(bx, H) - vp
-		var t0 := (PAVE_Y - vp.y) / d.y
-		p.seg(vp + d * t0, Vector2(bx, H), 0.45, Color("#6e6a62", 0.5))
-	p.poly(PackedVector2Array([Vector2(_palm_x() + 2, PAVE_Y), Vector2(_palm_x() + 7, PAVE_Y), Vector2(_palm_x() + 70, H), Vector2(_palm_x() + 55, H)]),
-			Color(Pen.SHADOW, 0.12))
-	# the kerb: granite blocks with a lit top edge
-	p.rect(0, PAVE_Y - 1.2, W, 2.4, Color("#b8b2a6"))
-	p.rect(0, PAVE_Y - 1.2, W, 0.6, Color("#ddd8cc"))
-	var kx := 0.0
-	while kx < W:
-		p.rect(kx, PAVE_Y - 1.2, 0.5, 2.4, Color("#7e786e"))
-		kx += 9.0
-	# street furniture along the kerb: bollards, a bin, a hydrant (behind the people)
-	for bx: float in [W * 0.30, W * 0.33, W * 0.70, W * 0.73, W * 0.76]:
-		_bollard(p, Vector2(bx, PAVE_Y + 6.0))
-	_bin(p, Vector2(W * 0.455, PAVE_Y + 9.0))
-	_hydrant(p, Vector2(W * 0.95, PAVE_Y + 8.0))
-
-
-func _bollard(p: Pen, at: Vector2) -> void:
-	p.ell(at + Vector2(0.8, 0.4), Vector2(2.2, 0.8), Color(Pen.SHADOW, 0.3), 0.0, 8)
-	p.rect(at.x - 1.2, at.y - 6.0, 2.4, 6.0, Color("#4a4a56"))
-	p.rect(at.x - 1.2, at.y - 6.0, 0.7, 6.0, Color("#6e6e7c"))
-	p.rect(at.x - 1.2, at.y - 4.6, 2.4, 0.8, Color("#e8e4d8"))
-	p.ell(at + Vector2(0, -6.0), Vector2(1.2, 0.6), Color("#6e6e7c"), 0.0, 8)
-
-
-## A Warsaw street bin: the green barrel on its post, a lid, a bag edge.
-func _bin(p: Pen, at: Vector2) -> void:
-	p.ell(at + Vector2(1.5, 0.4), Vector2(4.0, 1.0), Color(Pen.SHADOW, 0.3), 0.0, 10)
-	p.rect(at.x - 0.5, at.y - 6.0, 1.0, 6.0, Color("#3a3646"))
-	p.rect(at.x - 3.2, at.y - 13.0, 6.4, 8.0, Color("#3f7a4a"))
-	p.rect(at.x - 3.2, at.y - 13.0, 1.6, 8.0, Color("#5a9a62"))
-	p.rect(at.x + 2.2, at.y - 13.0, 1.0, 8.0, Color("#2a5a34"))
-	p.rect(at.x - 3.6, at.y - 14.0, 7.2, 1.4, Color("#2a5a34"))
-	p.rect(at.x - 1.4, at.y - 10.6, 2.8, 2.4, Color("#e8e4d8"))
-
-
-func _hydrant(p: Pen, at: Vector2) -> void:
-	p.ell(at + Vector2(1.0, 0.3), Vector2(3.0, 0.8), Color(Pen.SHADOW, 0.3), 0.0, 8)
-	p.rect(at.x - 1.6, at.y - 7.0, 3.2, 7.0, Color("#c83a2a"))
-	p.rect(at.x - 1.6, at.y - 7.0, 0.9, 7.0, Color("#e86a4a"))
-	p.rect(at.x - 2.6, at.y - 4.6, 5.2, 1.2, Color("#a02a1e"))
-	p.ell(at + Vector2(0, -7.2), Vector2(1.6, 1.0), Color("#a02a1e"), 0.0, 8)
-
-
-## Kebabulo's Porsza, side-on, nose right: a low white fastback in three tones, the roof sloping to
-## the tail, round lamps, the gold stripe, five-spoke rims, its shadow.
-func _porsza(p: Pen, x: float, base: float) -> void:
-	var w := W * 0.27
-	var hh := w * 0.27
-	p.ground(Vector2(x + w * 0.5, base + 0.5), w * 0.5, 1.6, 0.5)
-	var body := PackedVector2Array()
-	var outline := [[0.0, 0.62], [0.02, 0.42], [0.10, 0.36], [0.30, 0.30], [0.40, 0.06], [0.50, 0.0], [0.60, 0.02],
-			[0.72, 0.24], [0.86, 0.34], [0.97, 0.42], [1.0, 0.56], [0.99, 0.82], [0.0, 0.84]]
-	for q: Array in outline:
-		body.append(Vector2(x + w * float(q[0]), base - hh + hh * float(q[1])))
-	p.form(body, PORSZA[0], PORSZA[1], 0.86)
-	p.blob(Vector2(x + w * 0.42, base - hh * 0.75), Vector2(w * 0.22, hh * 0.16), Color(PORSZA[2], 0.8), 12)
-	var glass := PackedVector2Array([Vector2(x + w * 0.34, base - hh * 0.68), Vector2(x + w * 0.42, base - hh * 0.9),
-			Vector2(x + w * 0.58, base - hh * 0.92), Vector2(x + w * 0.68, base - hh * 0.70)])
-	p.poly_cols(glass, PackedColorArray([Color("#2a3448"), Color("#8fb4d0"), Color("#5a7090"), Color("#1e2638")]))
-	p.seg(Vector2(x + w * 0.52, base - hh * 0.91), Vector2(x + w * 0.52, base - hh * 0.68), 0.7, PORSZA[1])
-	p.seg(Vector2(x + w * 0.40, base - hh * 0.78), Vector2(x + w * 0.46, base - hh * 0.9), 0.6, Color(1, 1, 1, 0.5))
-	p.rect(x + w * 0.04, base - hh * 0.44, w * 0.92, 0.9, GOLD)
-	p.rect(x + w * 0.05, base - hh * 0.2, w * 0.9, 1.0, PORSZA[1].darkened(0.15))
-	p.ell(Vector2(x + w * 0.955, base - hh * 0.5), Vector2(1.8, 1.6), Color("#fff4cc"))
-	p.blob(Vector2(x + w * 0.98, base - hh * 0.5), Vector2(5, 3), Color("#fff4cc", 0.5), 10)
-	p.rrect(x, base - hh * 0.52, 2.0, 1.6, 0.6, Color("#d4282e"))
-	for wx in [x + w * 0.2, x + w * 0.8]:
-		var wc := Vector2(wx, base - hh * 0.18)
-		p.ell(wc + Vector2(0, -0.6), Vector2(hh * 0.36, hh * 0.36), Color("#2a2630"), 0.0, 18)
-		p.ell(wc, Vector2(hh * 0.31, hh * 0.31), INK, 0.0, 18)
-		p.ell(wc, Vector2(hh * 0.19, hh * 0.19), Color("#c9d2d8"), 0.0, 16)
-		for s in 5:
-			var a := float(s) / 5.0 * TAU + 0.3
-			p.seg(wc, wc + Vector2(cos(a), sin(a)) * hh * 0.17, 0.7, Color("#8f9aa4"))
-		p.ell(wc, Vector2(hh * 0.05, hh * 0.05), Color("#eef4f8"), 0.0, 8)
-
-
-## A pigeon pacing toward the crumbs, pecking; it takes off at the MLASK and is back for the card.
-func _pigeon(p: Pen) -> void:
+		_car(cx, ROAD_Y + 1.5, colours[k], true)
+	var tt := fmod(_t + 4.0, TRAM_S)
+	if tt < 5.0:
+		_tram(-120.0 + tt / 5.0 * (W + 240.0), ROAD_Y + 5.5)
+	_palm()
+	for k in 4:
+		var sp := 38.0 + k * 9.0
+		var bx := W + 30.0 - fmod(_t * (sp + 6.0) + k * 97.0, W + 60.0)
+		_car(bx, ROAD_Y + 21.5, colours[(k + 2) % colours.size()], false)
+	_porsza(roundf(W * 0.02), 188.0)
+	_pigeon()
 	var ph := tasting.phase
-	var flying := ph == Tasting.Phase.MLASK or (ph == Tasting.Phase.VERDICT and tasting.t < 0.8 and tasting.line_i == 0)
+	var fan := ph == Tasting.Phase.FAN or ph == Tasting.Phase.SELFIE or ph == Tasting.Phase.CARD
+	for x: float in [_you_x(), _kebabulo_x(), _zbyszek_x()] + ([_fan_x] if fan else []):
+		_u(x - 8, FEET - 0.5, 16, 1.5, Color(0.1, 0.05, 0.15, 0.3))
+		_u(x + 4, FEET, 30, 1.5, Color(0.1, 0.05, 0.15, 0.14))
+	if fan and ph == Tasting.Phase.CARD:
+		_fan()
+	_zbyszek()
+	if fan and ph != Tasting.Phase.CARD:
+		_fan()
+	_kebabulo()
+	_you()
+
+
+## A car side-on: two-tone body, framed glass with a glint, wheels with hubs, the lamps.
+func _car(x: float, y: float, c: Color, right: bool) -> void:
+	x = roundf(x * PX) / PX
+	var d := c.darkened(0.28)
+	var l := c.lightened(0.25)
+	var fr := x + 21.5 if right else x
+	var rr := x if right else x + 21.5
+	var cab := x + (5.0 if right else 6.0)
+	_u(x - 0.5, y + 2.5, 23, 6.5, OUT)
+	_u(cab - 0.5, y - 0.5, 12, 4, OUT)
+	_u(x, y + 3, 22, 5, c)
+	_u(x, y + 6.5, 22, 1.5, d)
+	_u(x + 0.5, y + 3, 21, 0.5, l)
+	_u(cab, y, 11, 3.5, c)
+	_u(cab, y, 11, 0.5, l)
+	_u(cab + 1, y + 0.5, 4, 2.5, Color("#3a4a5a"))
+	_u(cab + 5.5, y + 0.5, 4.5, 2.5, Color("#3a4a5a"))
+	_u(cab + 1, y + 0.5, 1, 1, Color("#9ab4c8"))
+	_u(cab + 5.5, y + 0.5, 1, 1, Color("#9ab4c8"))
+	_u(x + 11, y + 3.5, 0.5, 3, d)
+	_u(x + (12.5 if right else 8.5), y + 4.5, 1.5, 0.5, d)
+	_u(fr, y + 4, 0.5, 1.5, SUN)
+	_u(rr, y + 4, 0.5, 1.5, RED)
+	_u(x, y + 7.5, 22, 0.5, Color("#2a2a30"))
+	for wx: float in [x + 3.0, x + 15.0]:
+		_u(wx, y + 6.5, 4, 3.5, INK)
+		_u(wx + 1, y + 7.5, 2, 1.5, Color("#8a929a"))
+		_u(wx + 1.5, y + 8, 1, 0.5, Color("#c9d2d8"))
+
+
+## A Warsaw tram: three red cars, the yellow band, framed windows, doors, bogies, the pantograph.
+func _tram(x: float, y: float) -> void:
+	x = roundf(x * PX) / PX
+	_u(x - 0.5, y - 1.5, 3 * 38.0 - 1, 17, OUT)
+	for k in 3:
+		var cx := x + k * 38.0
+		_u(cx, y - 1, 36, 1.5, Color("#9a9aa0"))
+		_u(cx, y + 0.5, 36, 13, TRAM_R)
+		_u(cx, y + 0.5, 36, 0.5, Color("#e8584a"))
+		_u(cx, y + 8, 36, 2, TRAM_Y)
+		_u(cx, y + 10, 36, 0.5, Color("#b8901a"))
+		_u(cx, y + 12, 36, 1.5, TRAM_RD)
+		for wi in 4:
+			var wx := cx + 3.0 + wi * 8.0
+			if k == 1 and wi == 1:
+				_u(wx, y + 2, 6, 11, Color("#2a2e34"))
+				_u(wx + 0.5, y + 2.5, 2, 4, Color("#5a7a8a"))
+				_u(wx + 3.5, y + 2.5, 2, 4, Color("#5a7a8a"))
+				continue
+			_u(wx - 0.5, y + 1.5, 7, 6, TRAM_RD)
+			_u(wx, y + 2, 6, 5, Color("#3a4a5a"))
+			_u(wx, y + 2, 2, 1, Color("#9ab4c8"))
+		_u(cx + 4, y + 13.5, 9, 1.5, INK)
+		_u(cx + 23, y + 13.5, 9, 1.5, INK)
+		_u(cx + 36, y + 2, 2, 10, Color("#2a2e34"))
+	# the front: its lamp and the destination board
+	_u(x + 3 * 38.0 - 3, y + 9, 1, 1, SUN)
+	_u(x + 3 * 38.0 - 10, y + 1, 6, 1.5, INK)
+	_u(x + 3 * 38.0 - 9.5, y + 1.5, 3, 0.5, AMBER)
+	_u(x + 44, y - 5.5, 12, 0.5, INK)
+	_u(x + 46, y - 5, 0.5, 2, INK)
+	_u(x + 53.5, y - 5, 0.5, 2, INK)
+	_u(x + 46, y - 3, 8, 0.5, INK)
+	_u(x + 49.5, y - 2.5, 1, 1.5, INK)
+
+
+## The Palm on its island: grass and kerb, the trunk in rings (lit left, shaded right), fronds as
+## stepped strips with leaflets, the dates; it sways by whole pixels.
+func _palm() -> void:
+	var x := _palm_x()
+	var base := PAVE_Y - 8.0
+	_disc(x, base + 3, 24, 5, Color("#8a8a92"))
+	_disc(x, base + 2.5, 22.5, 4, GRASS[0])
+	_u(x - 18, base + 0.5, 12, 0.5, GRASS[2])
+	_u(x + 6, base + 4.5, 14, 0.5, GRASS[1])
+	for g in 9:
+		_u(x - 16 + g * 4, base + 1 + (g % 3), 0.5, 1, GRASS[2] if g % 2 == 0 else GRASS[1])
+	var top := 28.0
+	var seg := 2.5
+	var n := int((base - top) / seg)
+	for i in n:
+		var y := base - (i + 1) * seg
+		var lean := roundf(float(i) / n * 3.0 * PX) / PX
+		var wide := 1.0 if i < 4 else 0.0
+		var tx := x - 3.0 + lean - wide * 0.5
+		var tw := 7.0 + wide
+		_u(tx - 0.5, y, tw + 1, seg, OUT)
+		_u(tx, y, tw, seg, TRUNK[0])
+		_u(tx, y, 1.5, seg, TRUNK[2])
+		_u(tx + tw - 2, y, 2, seg, TRUNK[1])
+		_u(tx, y + seg - 0.5, tw, 0.5, TRUNK_RING)
+		_u(tx + (0.0 if i % 2 == 0 else tw - 1.0) - 0.5, y + seg - 1, 1, 0.5, TRUNK[2] if i % 2 == 0 else TRUNK[1])
+	var sway := roundf(sin(_t * 0.9) * 1.0 * PX) / PX
+	var cx := x + 3.0 + sway
+	var droop := 0.5 if fmod(_t, 2.4) < 1.2 else 0.0
+	# the fronds behind first (darker), then the front ones; each a rib of stepped rects with
+	# leaflets hanging under it, the tips drooping
+	for layer in 2:
+		for f in 6:
+			var a := -PI * 1.1 + (float(f) + 0.5 * layer) * PI * 1.2 / 5.5
+			var dx := cos(a)
+			var dy := sin(a)
+			var length := 9 + (f + layer * 3) % 4 - (2 if absf(dx) < 0.35 else 0)
+			var shade: Array = [FROND[1], FROND[1].darkened(0.2), FROND[0]] if layer == 0 else FROND
+			for k in length:
+				var fx := roundf((cx + dx * k * 3.0) * PX) / PX
+				var fy := roundf((top + dy * k * 2.4 + k * k * (0.16 + absf(dx) * 0.1) + (droop if k > length - 3 else 0.0)) * PX) / PX
+				var th := 2.0 if k < length - 3 else 1.5
+				_u(fx - 1.5, fy - 0.5, 4, th + 1, OUT)
+				_u(fx - 1, fy, 3, th, shade[2] if k % 3 == 0 and layer == 1 else shade[0])
+				_u(fx - 1, fy + th - 0.5, 3, 0.5, shade[1])
+				if k > 1 and k % 2 == 0:
+					var ll := 1.5 + minf(k, 6) * 0.25
+					_u(fx - 1, fy + th, 0.5, ll, shade[1])
+					_u(fx + 1, fy + th, 0.5, ll - 0.5, shade[0])
+				elif k > 1:
+					_u(fx, fy - 1, 0.5, 1, shade[2])
+	_u(cx - 3, top - 1, 6, 4, OUT)
+	_u(cx - 2.5, top - 0.5, 5, 3, FROND[1])
+	_u(cx - 2, top + 2, 1.5, 1.5, Color("#c8a020"))
+	_u(cx, top + 2.5, 1.5, 1.5, Color("#a87a18"))
+	_u(cx + 1.5, top + 2, 1.5, 1.5, Color("#c8a020"))
+
+
+## Kebabulo's Porsza, side-on, nose right: a low white fastback, the roof sloping to the tail, round
+## lamps, the gold stripe, five-spoke rims.
+func _porsza(x: float, base: float) -> void:
+	var w := roundf(W * 0.24)
+	_u(x + 2, base - 1, w - 2, 2.5, Color(0.1, 0.05, 0.15, 0.3))
+	var roof_l := x + w * 0.10
+	var roof_r := x + w * 0.66
+	var steps := PackedFloat32Array()
+	for i in 10:
+		var k := float(i) / 9.0
+		steps.append(base - 15.0 - roundf((10.0 * sin(k * PI * 0.5 + 0.05) if k < 0.85 else 10.0 * (1.0 - (k - 0.85) * 4.0)) * PX) / PX)
+	_fig(0, 0, 1)
+	_org = Vector2.ZERO
+	var su := float(PX)
+	# the body in rects (the buffer outlines the whole silhouette)
+	_q((x + 2) * su, (base - 14) * su, (w - 4) * su, 10 * su, PORSZA[0])
+	_q(x * su, (base - 12) * su, w * su, 7 * su, PORSZA[0])
+	_q((x + w * 0.70) * su, (base - 16) * su, w * 0.27 * su, 3 * su, PORSZA[0])
+	for i in 10:
+		var k := float(i) / 9.0
+		var yy := steps[i]
+		_q((roof_l + k * (roof_r - roof_l)) * su, yy * su, ((roof_r - roof_l) / 9.0 + 1.0) * su, (base - 14.0 - yy) * su, PORSZA[0])
+	_detail(true)
+	_q((x + w * 0.06) * su, (base - 8) * su, w * 0.9 * su, 3 * su, PORSZA[1])
+	_q((x + 2) * su, (base - 14) * su, (w - 4) * su, 1, PORSZA[2])
+	_q((x + w * 0.70) * su, (base - 16) * su, w * 0.27 * su, 1, PORSZA[2])
+	# the glass: windscreen, door, quarter light; chrome frames
+	_q((x + w * 0.36) * su - 1, (base - 23.5) * su, w * 0.17 * su + 2, 8 * su, Color("#a8b0b8"))
+	_q((x + w * 0.36) * su, (base - 23) * su, w * 0.16 * su, 7 * su, Color("#3a4a5a"))
+	_q((x + w * 0.53) * su, (base - 23) * su, w * 0.10 * su, 7 * su, Color("#3a4a5a"))
+	_q((x + w * 0.22) * su, (base - 20) * su, w * 0.12 * su, 4 * su, Color("#2e3a48"))
+	_q((x + w * 0.37) * su, (base - 22.5) * su, 2, 4, Color("#9ab4c8"))
+	_q((x + w * 0.54) * su, (base - 22.5) * su, 2, 2, Color("#9ab4c8"))
+	_q((x + w * 0.52) * su, (base - 23) * su, 2, 7 * su, PORSZA[1])
+	# the door line, the handle, the mirror
+	_q((x + w * 0.36) * su, (base - 14) * su, 1, 8 * su, PORSZA[1])
+	_q((x + w * 0.62) * su, (base - 14) * su, 1, 8 * su, PORSZA[1])
+	_q((x + w * 0.55) * su, (base - 12.5) * su, 4, 1, Color("#6b737a"))
+	_q((x + w * 0.63) * su, (base - 17) * su, 3, 2, PORSZA[1])
+	# the lamps, the tail light, the stripe, the exhaust
+	_q((x + w - 6) * su, (base - 14) * su, 5 * su, 3 * su, Color("#c9d2d8"))
+	_q((x + w - 5.5) * su, (base - 13.5) * su, 4 * su, 2 * su, SUN)
+	_q((x + w - 5) * su, (base - 13.5) * su, 2, 2, WHITE)
+	_q((x + 0.5) * su, (base - 12) * su, 2.5 * su, 2 * su, RED)
+	_q((x + 0.5) * su, (base - 12) * su, 2.5 * su, 1, RED_L)
+	_q((x + w * 0.06) * su, (base - 9) * su, w * 0.88 * su, 2, Kit.GOLD)
+	_q((x + w * 0.06) * su, (base - 9) * su + 2, w * 0.88 * su, 1, Color("#c8901a"))
+	_q((x - 1) * su, (base - 5) * su, 2 * su, 1 * su, Color("#8a929a"))
+	_detail(false)
+	_flush(OUT)
+	for wx: float in [x + w * 0.20, x + w * 0.80]:
+		var wxx := roundf(wx * PX) / PX
+		_disc(wxx, base - 3, 7.5, 6.5, OUT)
+		_disc(wxx, base - 3, 7, 6, INK)
+		_disc(wxx, base - 3, 4, 3.5, Color("#c9d2d8"))
+		_disc(wxx, base - 3, 3, 2.5, Color("#a8b0b8"))
+		for s: Vector2 in [Vector2(0, -2.5), Vector2(2.5, -0.5), Vector2(1.5, 2), Vector2(-1.5, 2), Vector2(-2.5, -0.5)]:
+			_u(wxx + s.x - 0.25, base - 3 + s.y - 0.25, 0.5, 0.5, Color("#6b737a"))
+		_u(wxx - 0.5, base - 3.5, 1, 1, Color("#4a4e58"))
+		_u(wxx - 3, base - 5.5, 1.5, 0.5, WHITE)
+
+
+## A pigeon pacing toward the kebab, pecking; it takes off at the MLASK and is back for the verdict.
+func _pigeon() -> void:
+	var ph := tasting.phase
+	var flying := ph == Tasting.Phase.MLASK or (ph == Tasting.Phase.VERDICT and tasting.t < 0.6 and tasting.line_i == 0)
 	var k := fmod(_t, 16.0) / 16.0
-	var x := lerpf(W * 0.30, _you_x() + 14.0, minf(1.0, k * 1.6))
-	var y := FEET - 1.0
+	var x := roundf(lerpf(W * 0.29, _you_x() - 16.0, minf(1.0, k * 1.6)))
+	var y := FEET - 2.0
 	if flying:
-		var ft := tasting.t + (Tasting.MLASK_S if ph == Tasting.Phase.VERDICT else 0.0)
-		x += ft * 70.0
-		y -= ft * 60.0
-	else:
-		p.ground(Vector2(x + 3, FEET), 4.0, 1.4, 0.3)
+		var ft := tasting.t + (0.0 if ph == Tasting.Phase.MLASK else Tasting.MLASK_S)
+		y -= roundf(ft * 40.0)
+		x -= roundf(ft * 30.0)
+	var walk := int(_t * 5.0) % 2
 	var peck := not flying and fmod(_t, 1.4) < 0.25
-	p.ball(Vector2(x + 3, y - 4.5), Vector2(4.6, 3.2), PIGEON[0], PIGEON[1], PIGEON[2], -0.15)
-	var hc := Vector2(x + (8.5 if not peck else 9.5), y - (8.0 if not peck else 4.6))
-	p.ball(hc, Vector2(1.9, 1.8), PIGEON[0], PIGEON[1], PIGEON[2])
-	p.ell(Vector2(x + 7.0, y - 5.6), Vector2(1.6, 1.4), Color("#5fae8a", 0.85))
-	p.poly(PackedVector2Array([hc + Vector2(1.4, -0.4), hc + Vector2(3.4, 0.4), hc + Vector2(1.4, 0.8)]), GOLD_D)
-	p.ell(hc + Vector2(0.5, -0.5), Vector2(0.45, 0.45), INK, 0.0, 8)
+	_fig(x, y, 1)
+	var hy := 4.0 if peck else 0.0
+	var hx := 2.0 if peck else 0.0
+	# tail, body, wing, neck, head
+	_q(-6, -11, 6, 3, PIGEON[1])
+	_q(-7, -10, 2, 2, Color("#3a3e48"))
+	_q(-1, -13, 15, 8, PIGEON[0])
+	_q(0, -7, 12, 2, PIGEON[2])
 	if flying:
-		var flap := sin(_t * 30.0)
-		p.poly(PackedVector2Array([Vector2(x + 2, y - 6), Vector2(x - 3, y - 12 - flap * 4), Vector2(x + 6, y - 6)]), PIGEON[2])
+		var up := int(_t * 12.0) % 2 == 0
+		_q(1, -22 if up else -10, 9, 10 if up else 6, PIGEON[2])
+		_q(2, -22 if up else -6, 7, 2, Color("#3a3e48"))
 	else:
-		p.seg(Vector2(x + 2, y - 2), Vector2(x + 2, y + 1), 0.6, Color("#ee5a5a"))
-		p.seg(Vector2(x + 4.5, y - 2), Vector2(x + 4.5, y + 1), 0.6, Color("#ee5a5a"))
-		p.poly(PackedVector2Array([Vector2(x - 1, y - 5), Vector2(x - 4.5, y - 3.4), Vector2(x - 1, y - 3)]), PIGEON[1])
+		_q(1, -12, 10, 5, PIGEON[2])
+		_detail(true)
+		_q(4, -10, 1, 3, Color("#4a4e58"))
+		_q(7, -10, 1, 3, Color("#4a4e58"))
+		_detail(false)
+	_q(11 + hx, -17 + hy, 5, 7, PIGEON[0])
+	_q(12 + hx, -20 + hy, 6, 5, Color("#7a7f8a"))
+	_q(18 + hx, -18 + hy, 2, 1, Color("#e8c090"))
+	_detail(true)
+	_q(12 + hx, -14 + hy, 3, 2, Color("#5fae8a"))
+	_q(14 + hx, -13 + hy, 2, 2, Color("#8a6aa0"))
+	_q(16 + hx, -19 + hy, 1, 1, Color("#ff8a2a"))
+	_q(18 + hx, -19 + hy, 1, 1, WHITE)
+	_detail(false)
+	if not flying:
+		_q(4 + walk, -5, 1, 4, Color("#e07a7a"))
+		_q(8 - walk, -5, 1, 4, Color("#e07a7a"))
+		_q(4 + walk, -1, 3, 1, Color("#e07a7a"))
+		_q(8 - walk, -1, 3, 1, Color("#e07a7a"))
+	_flush(OUT)
 
 
 # --- the people -----------------------------------------------------------------------------------
 
-## A figure, cel-shaded, five heads tall, in three-quarter view (`f` 1 facing right, -1 left).
-## `s` (all optional but x, foot, h, f, skin, top, legs):
-##   build: "big"; breath period `bp`; seed (blinks and shifts differ);
-##   near / far: the arms as [shoulder angle, elbow angle] (0 straight down, + forward);
-##   hold_near / hold_far: "", "kebab", "kebab_bit", "bag", "phone", "gimbal", "thumb", "peace", "fist";
-##   face: the head's own keys (see `_head`); bob (up), lean, walk (a phase, or -1);
-##   shoe colour, hood, chain, puffer (quilt lines), backpack.
-func _person(p: Pen, s: Dictionary) -> void:
-	var x: float = s["x"]
-	var foot: float = s["foot"]
-	var h: float = s["h"]
+## One figure, front-on with the face turned to `f`. `s` keys: x, f, top, legs, shoe, sole, skin,
+## tw (torso px), th, ll (legs), hh (head), front / back arm poses ("down", "hold", "out", "up",
+## "thumb", "fist", "peace", "scratch"), hold_f / hold_b ("kebab", "kebab_bit", "wraps3", "bag",
+## "phone", "phone_up", "gimbal"), face (see `_head`), hair, hair_c, kind ("kebabulo", "you",
+## "zbyszek", "fan"), bob (px up), walk (-1 or the frame 0/1), seed (blinks).
+func _person(s: Dictionary) -> void:
 	var f: int = s["f"]
-	var seed := float(s.get("seed", 0.0))
-	var big := str(s.get("build", "")) == "big"
+	_fig(float(s["x"]), FEET, f)
+	var tw: float = s["tw"]
+	var th: float = s["th"]
+	var ll: float = s["ll"]
+	var hh: float = s.get("hh", 30.0)
+	var bob: float = s.get("bob", 0.0)
+	# a 1 px breath and the walk's bounce
+	var seed: float = s.get("seed", 0.0)
+	if fmod(_t + seed, 3.2) < 1.6:
+		bob += 1.0
+	var walk: int = s.get("walk", -1)
+	if walk == 1:
+		bob += 1.0
+	var yh := -(7.0 + ll) - (bob if walk < 0 else 0.0)
+	var ys := -(7.0 + ll + th) - bob
 	var top: Array = s["top"]
+	var kind: String = s.get("kind", "")
+	# what is behind: the backpack, the back arm and its hold
+	if kind == "fan":
+		_band(-tw * 0.5 - 5.0, ys + 5, 7, 28, [Color("#1f5f6a"), Color("#14444c"), Color("#2f7f8a")], 2, 1)
+	_arm(-1, str(s.get("back", "down")), ys, tw, th, top, s["skin"], str(s.get("hold_b", "")))
+	# the legs and the shoes
 	var legs: Array = s["legs"]
-	var skin: Array = s["skin"]
-	var shoe: Color = s.get("shoe", INK)
-	var bp := float(s.get("bp", 3.2))
-	var breath := sin(_t * TAU / bp + seed)
-	var walk := float(s.get("walk", -1.0))
-	var bob := float(s.get("bob", 0.0))
-	if walk >= 0.0:
-		bob += absf(sin(walk)) * 0.012 * h
-	# the weight shift every few seconds
-	var shift := 0.0
-	if walk < 0.0:
-		var sv := sin(_t * TAU / (5.3 + seed) + seed * 2.0)
-		shift = signf(sv) * pow(absf(sv), 0.35) * 0.010 * h
-	var hip := Vector2(x + shift, foot - 0.44 * h - bob)
-	var sw := (0.34 if big else 0.25) * h
-	var bw := (0.42 if big else 0.22) * h * (1.0 + breath * (0.025 if big else 0.012))
-	var hw := (0.30 if big else 0.19) * h
-	var torso_h := 0.32 * h * (1.0 + breath * 0.012)
-	var lean := float(s.get("lean", 0.0))
-	var sh_c := Vector2(hip.x + lean * torso_h, hip.y - torso_h - breath * 0.004 * h)
-	p.ground(Vector2(x, foot), 0.22 * h * (1.3 if big else 1.0), 3.0, 0.45)
-	if bool(s.get("backpack", false)):
-		p.ball(sh_c + Vector2(-f * sw * 0.48, torso_h * 0.42), Vector2(sw * 0.3, torso_h * 0.36), Color("#3a5a8a"), Color("#25406a"), Color("#5a7aaa"))
-	# the far leg and arm, a tone darker and a little smaller
-	var dk := func(c: Color) -> Color: return c.darkened(0.12)
-	var lt := 1.35 if big else 1.0
-	_leg(p, hip + Vector2(-f * hw * 0.22, 0), foot, h, f, -1.0, walk, legs, shoe, dk, lt)
-	_arm(p, sh_c + Vector2(-f * sw * 0.40, 0.03 * h), h * 0.95, f, s.get("far", [0.12, 0.25]), top, skin, str(s.get("hold_far", "")), dk)
-	_leg(p, hip + Vector2(f * hw * 0.22, 0), foot, h, f, 1.0, walk, legs, shoe, Callable(), lt)
-	# the torso: an egg for Kebabulo, a tapered capsule for the rest
-	var pts := PackedVector2Array()
-	var n := 9
-	for side: int in [-1, 1]:
-		for i in n + 1:
-			var u := float(i) / float(n) if side < 0 else 1.0 - float(i) / float(n)
-			var half: float
-			if u < 0.12:
-				half = lerpf(sw * 0.36, sw * 0.5, Pen.ease_out(u / 0.12))
-			elif u < 0.62:
-				half = lerpf(sw * 0.5, bw * 0.5, Pen.ease_in_out((u - 0.12) / 0.5))
-			else:
-				half = lerpf(bw * 0.5, hw * 0.5, Pen.ease_in_out((u - 0.62) / 0.38))
-			var yy := sh_c.y + torso_h * u + (0.012 * h if u > 0.98 else 0.0)
-			var xx := lerpf(sh_c.x, hip.x, u) + side * half
-			pts.append(Vector2(xx, yy))
-	p.form(pts, top[0], top[1], 0.82)
-	p.blob(sh_c + Vector2(-sw * 0.18, torso_h * 0.22), Vector2(sw * 0.2, torso_h * 0.18), Color(top[2], 0.55), 10)
-	p.line(PackedVector2Array([pts[0], pts[1], pts[2]]), 0.45, Color(Pen.RIM, 0.55))
-	# folds: armpit to belly, a hem crease, a light crease
-	var fc: Color = top[1]
-	p.seg(sh_c + Vector2(f * sw * 0.30, torso_h * 0.18), hip + Vector2(f * bw * 0.18, -torso_h * 0.32), 0.5, Color(fc, 0.7))
-	p.seg(hip + Vector2(-hw * 0.4, -0.01 * h), hip + Vector2(hw * 0.4, -0.01 * h), 0.6, Color(fc, 0.8))
-	p.seg(sh_c + Vector2(-sw * 0.12, torso_h * 0.3), sh_c + Vector2(-sw * 0.05, torso_h * 0.6), 0.45, Color(top[2], 0.6))
-	if bool(s.get("puffer", false)):
-		for q in 3:
-			var qy := sh_c.y + torso_h * (0.28 + q * 0.24)
-			var qhalf := lerpf(sw, hw, 0.28 + q * 0.24) * 0.5
-			p.line(PackedVector2Array([Vector2(hip.x - qhalf, qy), Vector2(hip.x, qy + 0.6), Vector2(hip.x + qhalf, qy)]), 0.55, Color(fc, 0.75))
-	if bool(s.get("hood", false)):
-		p.ball(sh_c + Vector2(-f * sw * 0.16, -0.01 * h), Vector2(sw * 0.34, 0.05 * h), top[0], top[1], top[2])
-		for dsx: float in [-0.06, 0.06]:
-			var dx := sh_c.x + f * sw * 0.1 + dsx * h
-			var sway := sin(_t * 2.0 + dsx * 20.0) * 0.004 * h
-			p.seg(Vector2(dx, sh_c.y + 0.02 * h), Vector2(dx + sway, sh_c.y + 0.11 * h), 0.55, Color("#f6e6c8"))
-		p.line(PackedVector2Array([hip + Vector2(-hw * 0.28, -torso_h * 0.3), hip + Vector2(0, -torso_h * 0.22), hip + Vector2(hw * 0.28, -torso_h * 0.3)]), 0.6, Color(fc, 0.9))
-	if bool(s.get("chain", false)):
-		p.line(Pen.ell_pts(sh_c + Vector2(f * 0.02 * h, 0.03 * h), Vector2(0.06 * h, 0.05 * h), 0.0, 10, 0.25, PI - 0.25), 0.55, GOLD)
+	var lw := floorf((tw - 6.0) * 0.5) - 1.0
+	var ax := -tw * 0.5 + 3.0
+	var bxl := 1.0
+	var a_lift := 0.0
+	var b_lift := 0.0
+	if walk == 0:
+		ax -= 3.0
+		bxl += 3.0
+		b_lift = 1.0
+	elif walk == 1:
+		ax += 2.0
+		bxl -= 2.0
+		a_lift = 1.0
+	_q(-tw * 0.5 + 3.0, yh - 1.0, tw - 6.0, 8, legs[0])
+	for lg: Array in [[ax, a_lift], [bxl, b_lift]]:
+		var lx: float = lg[0]
+		var lift: float = lg[1]
+		_band(lx, yh, lw, -7.0 - yh - lift, legs, 2, 1)
+		_detail(true)
+		_q(lx, -10.0 - lift, lw, 1, legs[2])
+		if kind == "you" or kind == "fan":
+			_q(lx + floorf(lw * 0.5), yh + 8.0, 1, -18.0 - yh, legs[1])
+		_detail(false)
+		var shoe: Color = s.get("shoe", SOLE_D)
+		_q(lx - 1.0, -7.0 - lift, lw + 4.0, 5, shoe)
+		_q(lx - 1.0, -2.0 - lift, lw + 4.0, 2, s.get("sole", SOLE_L))
+		_detail(true)
+		_q(lx + 2.0, -6.0 - lift, 4, 1, shoe.darkened(0.25))
+		_q(lx + lw + 1.0, -5.0 - lift, 2, 1, shoe.lightened(0.3))
+		_detail(false)
+	# the torso
+	_band(-tw * 0.5, ys, tw, yh - ys, top, 4, 2)
+	_q(-tw * 0.5, yh - 4.0, tw, 4, top[1])
+	_detail(true)
+	_q(-tw * 0.5, yh - 4.0, tw, 1, top[0].darkened(0.3))
+	_detail(false)
+	match kind:
+		"kebabulo":
+			_kebabulo_torso(ys, yh, tw)
+		"you":
+			_detail(true)
+			_q(-tw * 0.5, ys + 14, tw, 3, top[2])
+			_q(-tw * 0.5, ys + 17, tw, 1, top[1])
+			_q(-5, ys, 10, 2, top[1])
+			_detail(false)
+		"zbyszek":
+			_q(-8, ys - 3, 16, 5, top[2])
+			_detail(true)
+			_q(-8, ys - 3, 16, 1, top[2].lightened(0.15))
+			_q(0, ys + 2, 1, yh - ys - 6, Color("#8a929a"))
+			_q(-tw * 0.5 + 4, ys + 16, 7, 1, top[1])
+			_q(4, ys + 26, 7, 1, top[1])
+			_detail(false)
+		"fan":
+			_detail(true)
+			var qy := ys + 7.0
+			while qy < yh - 4.0:
+				_q(-tw * 0.5, qy, tw, 1, top[1])
+				_qs(-tw * 0.5, qy - 1.0, tw * 0.5, 1, top[2])
+				qy += 7.0
+			_detail(false)
+			qy = ys + 4.0
+			while qy < yh - 4.0:
+				_q(-tw * 0.5 - 1.0, qy, 1, 5, top[0])
+				_q(tw * 0.5, qy, 1, 5, top[1])
+				qy += 7.0
+			_q(-7, ys - 3, 14, 5, top[2])
+			_q(-tw * 0.5 + 4, ys, 3, 22, Color("#14444c"))
 	# the neck and the head
-	var head_c := sh_c + Vector2(f * 0.01 * h, -0.125 * h) + Vector2(0, sin(_t * TAU / bp + seed - 0.6) * 0.002 * h)
-	p.limb(sh_c + Vector2(0, 0.01 * h), head_c + Vector2(0, 0.04 * h), 0.04 * h, 0.035 * h, skin[1], skin[1].darkened(0.1), 0.0)
-	var face: Dictionary = s.get("face", {})
-	_head(p, head_c, h, f, skin, face, seed)
-	# the near arm last, in front
-	_arm(p, sh_c + Vector2(f * sw * 0.40, 0.03 * h), h, f, s.get("near", [0.1, 0.2]), top, skin, str(s.get("hold_near", "")), Callable())
+	var skin: Array = s["skin"]
+	_q(-4, ys - 4, 8, 5, skin[1])
+	if kind == "kebabulo":
+		_kebabulo_hood(ys)
+	var face: Dictionary = (s.get("face", {}) as Dictionary).duplicate()
+	if str(face.get("eyes", "open")) == "open" and fmod(_t + seed * 1.7, 3.3) < 0.12:
+		face["eyes"] = "blink"
+	_head(0, ys - 3.0 - hh, hh, skin, str(s.get("hair", "")), s.get("hair_c", BEARD), face, kind == "kebabulo")
+	# the front arm and what it holds
+	_arm(1, str(s.get("front", "down")), ys, tw, th, top, skin, str(s.get("hold_f", "")))
+	_flush(OUT)
 
 
-func _leg(p: Pen, hip: Vector2, foot: float, h: float, f: int, side: float, walk: float, legs: Array, shoe: Color, tone: Callable, thick := 1.0) -> void:
-	var swing := sin(walk) * 0.38 * side if walk >= 0.0 else 0.0
-	var thigh := 0.21 * h
-	var shin := 0.19 * h
-	var knee := hip + Vector2(sin(swing) * thigh * f, cos(swing) * thigh)
-	var bend := maxf(0.0, -sin(walk) * side) * 0.5 if walk >= 0.0 else 0.0
-	var ankle := knee + Vector2(sin(swing - bend) * shin * f, cos(swing - bend) * shin)
-	if walk < 0.0:
-		ankle.y = foot - 0.04 * h
-	var b: Color = legs[0]
-	var sh: Color = legs[1]
-	var sc := shoe
-	if tone.is_valid():
-		b = tone.call(b)
-		sh = tone.call(sh)
-		sc = tone.call(sc)
-	p.limb(hip, knee, 0.05 * h * thick, 0.042 * h * thick, b, sh, 0.35)
-	p.limb(knee, ankle, 0.042 * h * thick, 0.034 * h * thick, b, sh, 0.35)
-	# the shoe: a rounded wedge toward the facing side, a light sole
-	var sy := ankle.y
-	var toe := ankle.x + f * 0.075 * h
-	var heel := ankle.x - f * 0.035 * h
-	var shoe_pts := PackedVector2Array([Vector2(heel, sy - 0.02 * h), Vector2(ankle.x, sy - 0.035 * h), Vector2(toe - f * 0.02 * h, sy - 0.012 * h),
-			Vector2(toe, sy + 0.018 * h), Vector2(heel, sy + 0.022 * h)])
-	if f < 0:
-		shoe_pts.reverse()
-	p.form(shoe_pts, sc, sc.darkened(0.3), 0.85)
-	p.seg(Vector2(heel, sy + 0.018 * h), Vector2(toe, sy + 0.016 * h), 0.6, sc.lightened(0.4) if sc.get_luminance() < 0.5 else Color("#d8d2c4"))
+## Kebabulo's black puffer vest over the beige hoodie: quilted bands, the zip, the pockets, the
+## hoodie's V and strings at the neck and its ribbed hem below.
+func _kebabulo_torso(ys: float, yh: float, tw: float) -> void:
+	_band(-tw * 0.5, ys + 2, tw, yh - ys - 8, VEST, 4, 1)
+	_detail(true)
+	var qy := ys + 8.0
+	while qy < yh - 8.0:
+		_q(-tw * 0.5, qy, tw, 1, VEST[1])
+		_qs(-tw * 0.5 + 1.0, qy - 1.0, tw * 0.5 - 2.0, 1, VEST[2])
+		qy += 7.0
+	_q(-1, ys + 8, 1, yh - ys - 14, Color("#6b737a"))
+	_q(-tw * 0.5 + 3, yh - 16, 7, 1, Color("#6b737a"))
+	_q(tw * 0.5 - 10, yh - 16, 7, 1, Color("#6b737a"))
+	_detail(false)
+	_q(-tw * 0.5, yh - 6, tw, 6, HOODIE[0])
+	_detail(true)
+	_q(-tw * 0.5, yh - 6, tw, 1, HOODIE[1])
+	for rx in range(int(-tw * 0.5) + 2, int(tw * 0.5), 3):
+		_q(rx, yh - 4, 1, 4, HOODIE[1])
+	# the V of the hoodie and its strings
+	_q(-5, ys + 1, 10, 5, HOODIE[0])
+	_q(-3, ys + 6, 6, 2, HOODIE[0])
+	_q(-4, ys + 5, 1, 6, TRAINER)
+	_q(3, ys + 5, 1, 6, TRAINER)
+	_q(-4, ys + 11, 1, 1, Color("#c9c4b8"))
+	_q(3, ys + 11, 1, 1, Color("#c9c4b8"))
+	_detail(false)
 
 
-## An arm from `sh` (shoulder): `ang` [shoulder, elbow] radians from straight down, + forward; the
-## hand and what it holds.
-func _arm(p: Pen, sh: Vector2, h: float, f: int, ang: Array, top: Array, skin: Array, hold: String, tone: Callable) -> void:
-	var a := float(ang[0])
-	var e := float(ang[1])
-	var elbow := sh + Vector2(sin(a) * f, cos(a)) * 0.16 * h
-	var hand := elbow + Vector2(sin(a + e) * f, cos(a + e)) * 0.15 * h
-	var b: Color = top[0]
-	var sd: Color = top[1]
-	var sk: Array = skin
-	if tone.is_valid():
-		b = tone.call(b)
-		sd = tone.call(sd)
-		sk = [tone.call(skin[0]), tone.call(skin[1]), tone.call(skin[2])]
-	p.limb(sh, elbow, 0.038 * h, 0.034 * h, b, sd, 0.45)
-	p.limb(elbow, hand, 0.034 * h, 0.03 * h, b, sd, 0.45)
-	# the ribbed cuff
-	var d := (hand - elbow).normalized()
-	var nn := Vector2(-d.y, d.x)
-	p.seg(hand - d * 0.02 * h + nn * 0.03 * h, hand - d * 0.02 * h - nn * 0.03 * h, 0.9, sd)
-	var hr := 0.033 * h
-	match hold:
-		"kebab", "kebab_bit":
-			_kebab(p, hand + Vector2(f * 0.01 * h, -0.03 * h), 0.11 * h, -0.8, hold == "kebab_bit", f)
-			p.ball(hand, Vector2(hr, hr * 0.95), sk[0], sk[1], sk[2])
-			p.ell(hand + Vector2(f * hr * 0.6, -hr * 0.3), Vector2(hr * 0.42, hr * 0.32), sk[1])
-		"bag":
-			p.ball(hand, Vector2(hr, hr), sk[0], sk[1], sk[2])
-			p.form(Pen.rr_pts(hand.x - 0.05 * h, hand.y + hr * 0.4, 0.1 * h, 0.11 * h, 0.01 * h), Color("#c9a06a"), Color("#9a7448"))
-			p.line(PackedVector2Array([Vector2(hand.x - 0.05 * h, hand.y + hr * 1.6), Vector2(hand.x, hand.y + hr * 1.3), Vector2(hand.x + 0.05 * h, hand.y + hr * 1.6)]), 0.5, Color("#9a7448"))
-		"phone":
-			p.ball(hand, Vector2(hr, hr), sk[0], sk[1], sk[2])
-			var ph := hand + Vector2(f * 0.005 * h, -0.05 * h)
-			p.rrect(ph.x - 0.032 * h, ph.y - 0.05 * h, 0.064 * h, 0.1 * h, 0.012 * h, Color("#1ae6ff"))
-			p.rrect_v(ph.x - 0.026 * h, ph.y - 0.044 * h, 0.052 * h, 0.088 * h, 0.008 * h, Color("#bfe8ff"), Color("#4a7aa0"))
-		"gimbal":
-			p.ball(hand, Vector2(hr, hr), sk[0], sk[1], sk[2])
-			var rod := hand + Vector2(f * 0.02 * h, -0.13 * h)
-			p.seg(hand, rod, 0.025 * h, Color("#2a2630"))
-			var tilt := sin(_t * TAU / 2.3) * 0.08
-			var pc := rod + Vector2(f * 0.03 * h, 0)
-			p.poly(_rot_rect(pc, Vector2(0.1 * h, 0.055 * h), tilt), Color("#1e1d24"))
-			p.poly(_rot_rect(pc + Vector2(-f * 0.004 * h, 0), Vector2(0.088 * h, 0.044 * h), tilt), Color("#2a3448"))
-			if fmod(_t, 1.0) < 0.6:
-				p.ell(pc + Vector2(f * 0.04 * h, -0.018 * h), Vector2(0.008 * h, 0.008 * h), RED, 0.0, 8)
-		"thumb":
-			p.ball(hand, Vector2(hr * 1.05, hr), sk[0], sk[1], sk[2])
-			p.limb(hand + Vector2(0, -hr * 0.4), hand + Vector2(f * hr * 0.2, -hr * 1.7), hr * 0.38, hr * 0.32, sk[0], sk[1], 0.3)
-		"peace":
-			p.ball(hand, Vector2(hr, hr), sk[0], sk[1], sk[2])
-			p.limb(hand + Vector2(-hr * 0.3, -hr * 0.4), hand + Vector2(-hr * 0.7, -hr * 1.9), hr * 0.3, hr * 0.26, sk[0], sk[1], 0.3)
-			p.limb(hand + Vector2(hr * 0.3, -hr * 0.4), hand + Vector2(hr * 0.7, -hr * 1.9), hr * 0.3, hr * 0.26, sk[0], sk[1], 0.3)
-		"fist":
-			p.ball(hand, Vector2(hr * 1.15, hr * 1.05), sk[0], sk[1], sk[2])
-			p.seg(hand + Vector2(-hr * 0.6, -hr * 0.2), hand + Vector2(hr * 0.6, -hr * 0.2), 0.4, sk[1])
+## The hood down behind his neck, beige, shaded.
+func _kebabulo_hood(ys: float) -> void:
+	_band(-15, ys - 8, 30, 8, HOODIE, 4, 2)
+	_detail(true)
+	_q(-12, ys - 8, 24, 1, HOODIE[2])
+	_q(-6, ys - 3, 12, 2, HOODIE[1])
+	_detail(false)
+
+
+## An arm from the shoulder on side `side` (+1 the facing side, -1 the back), `pose`, the hand and
+## what it holds. Coordinates go outward from the shoulder's outer edge.
+func _arm(side: int, pose: String, ys: float, tw: float, th: float, top: Array, skin: Array, hold: String) -> void:
+	var x0 := tw * 0.5 if side > 0 else -tw * 0.5
+	var al := roundf(th * 0.55)
+	var A := func(dx: float, y: float, w: float, h: float, c: Color) -> void:
+		_q(x0 + dx if side > 0 else x0 - dx - w, ys + y, w, h, c)
+	var hand := Vector2(3.5, al + 4.0)
+	match pose:
+		"hold":
+			A.call(0, 1, 7, 19, top[0])
+			A.call(0, 15, 15, 7, top[0])
+			A.call(0, 20, 15, 2, top[1])
+			A.call(13, 15, 2, 7, top[1])
+			A.call(15, 14, 6, 8, skin[0])
+			A.call(15, 20, 6, 2, skin[1])
+			hand = Vector2(18, 16)
+		"out":
+			A.call(0, 1, 22, 7, top[0])
+			A.call(0, 6, 22, 2, top[1])
+			A.call(20, 1, 2, 7, top[1])
+			A.call(22, 0, 6, 8, skin[0])
+			A.call(22, 6, 6, 2, skin[1])
+			hand = Vector2(25, 3)
+		"up":
+			A.call(0, -27, 7, 29, top[0])
+			A.call(5, -27, 2, 29, top[1])
+			A.call(0, -27, 7, 2, top[1])
+			A.call(0, -34, 7, 7, skin[0])
+			A.call(5, -34, 2, 7, skin[1])
+			hand = Vector2(3.5, -31)
+		"thumb", "fist", "peace":
+			A.call(0, 1, 12, 7, top[0])
+			A.call(0, 6, 12, 2, top[1])
+			A.call(6, -16, 7, 19, top[0])
+			A.call(11, -16, 2, 19, top[1])
+			A.call(6, -16, 7, 2, top[1])
+			A.call(5, -23, 9, 7, skin[0])
+			A.call(5, -18, 9, 2, skin[1])
+			if pose == "thumb":
+				A.call(7, -28, 3, 5, skin[0])
+				A.call(9, -28, 1, 5, skin[1])
+			elif pose == "peace":
+				A.call(6, -30, 2, 7, skin[0])
+				A.call(10, -30, 2, 7, skin[0])
+			hand = Vector2(9, -20)
+		"scratch":
+			A.call(0, 1, 9, 7, top[0])
+			A.call(2, -14, 7, 17, top[0])
+			A.call(7, -14, 2, 17, top[1])
+			A.call(-3, -20, 11, 6, skin[0])
+			A.call(-3, -16, 11, 2, skin[1])
+			hand = Vector2(0, -18)
 		_:
-			p.ball(hand, Vector2(hr, hr), sk[0], sk[1], sk[2])
+			A.call(0, 1, 7, al - 2.0, top[0])
+			A.call(5, 1, 2, al - 2.0, top[1])
+			A.call(0, al - 2.0, 7, 2, top[1])
+			A.call(0, al, 7, 7, skin[0])
+			A.call(5, al, 2, 7, skin[1])
+	if hold == "":
+		return
+	var hx := x0 + hand.x if side > 0 else x0 - hand.x
+	_hold(hold, hx, ys + hand.y)
 
 
-func _rot_rect(c: Vector2, size: Vector2, rot: float) -> PackedVector2Array:
-	var pts := PackedVector2Array()
-	for q: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
-		pts.append(c + (q * size * 0.5).rotated(rot))
-	return pts
+## What a hand holds, centred on (hx, hy) in local px.
+func _hold(what: String, hx: float, hy: float) -> void:
+	match what:
+		"kebab", "kebab_bit":
+			_wrap(hx, hy, what == "kebab_bit")
+		"wraps3":
+			_wrap(hx - 7, hy - 1, false)
+			_wrap(hx + 7, hy - 1, false)
+			_wrap(hx, hy - 5, false)
+		"bag":
+			_q(hx - 1, hy - 1, 3, 4, KRAFT[1])
+			_band(hx - 6, hy + 2, 12, 14, KRAFT, 3, 1)
+			_detail(true)
+			_q(hx - 6, hy + 2, 12, 2, KRAFT[1])
+			_q(hx - 2, hy + 8, 4, 3, RED)
+			_q(hx - 1, hy + 9, 2, 1, WHITE)
+			_detail(false)
+		"phone":
+			_q(hx - 3, hy - 9, 6, 11, INK)
+			_detail(true)
+			_q(hx - 2, hy - 8, 4, 8, Color("#4f7fd8"))
+			_q(hx - 2, hy - 8, 1, 2, Color("#9ab4f8"))
+			_detail(false)
+		"phone_up":
+			_q(hx - 4, hy - 13, 8, 12, INK)
+			_detail(true)
+			_q(hx - 3, hy - 12, 6, 9, Color("#4f7fd8"))
+			_q(hx - 1, hy - 12, 2, 1, Color("#16191d"))
+			_q(hx - 3, hy - 12, 1, 3, Color("#9ab4f8"))
+			_detail(false)
+		"gimbal":
+			_q(hx - 2, hy - 3, 4, 13, Color("#2a2e34"))
+			_q(hx - 1, hy - 11, 2, 9, Color("#4a4e58"))
+			_q(hx - 3, hy - 12, 6, 2, Color("#2a2e34"))
+			_q(hx - 1, hy - 19, 15, 8, INK)
+			_detail(true)
+			_q(hx, hy - 18, 13, 6, Color("#3a4a6a"))
+			_q(hx + 11, hy - 17, 1, 1, Color("#9ab4f8"))
+			_q(hx - 1, hy + 2, 4, 1, Color("#6b737a"))
+			if fmod(_t, 1.0) < 0.6:
+				_q(hx + 1, hy - 17, 1, 1, Color("#ff4f6d"))
+			_detail(false)
 
 
-## The kebab: a foil-wrapped cone, the tortilla with grill stripes, the open end with lettuce,
-## tomato, meat and a drip of sauce; `bit` shows the bite; two wisps of steam.
-## `rot` tilts it from upright, toward the facing side `f`.
-func _kebab(p: Pen, at: Vector2, length: float, rot: float, bit: bool, f: int) -> void:
-	var d := Vector2(sin(-rot) * f, -cos(rot))
-	var n := Vector2(-d.y, d.x)
-	var l := length * (0.86 if bit else 1.0)
-	var w0 := length * 0.21
-	var w1 := length * 0.25
-	var tip := at - d * l * 0.25
-	var end := at + d * l * 0.75
-	var wrap := PackedVector2Array([tip + n * w0 * 0.75, tip + n * w0 * 0.2 - d * w0 * 0.5, tip - n * w0 * 0.2 - d * w0 * 0.5, tip - n * w0 * 0.75, end - n * w1, end + n * w1])
-	p.poly(wrap, TORTILLA[1])
-	p.poly(PackedVector2Array([tip + n * w0 * 0.6, end + n * w1 * 0.9, end - n * w1 * 0.3, tip - n * w0 * 0.3]), TORTILLA[0])
-	for s in 3:
-		var u := 0.55 + s * 0.14
-		var c := tip.lerp(end, u)
-		var hw := lerpf(w0 * 0.3, w1, u) * 0.85
-		p.seg(c + n * hw + d * 0.6, c - n * hw - d * 0.6, 0.5, Color("#b77834"))
-	var mid := tip.lerp(end, 0.5)
-	var mw := lerpf(w0 * 0.75, w1, 0.5) * 1.06
-	var foil := PackedVector2Array([tip + n * w0 * 0.8, tip + n * w0 * 0.2 - d * w0 * 0.55, tip - n * w0 * 0.2 - d * w0 * 0.55, tip - n * w0 * 0.8, mid - n * mw, mid + n * mw])
-	p.poly(foil, FOIL[1])
-	p.poly(PackedVector2Array([tip + n * w0 * 0.62, mid + n * mw * 0.9, mid - n * mw * 0.2, tip - n * w0 * 0.3]), FOIL[0])
-	p.seg(mid + n * mw, mid - n * mw, 0.5, FOIL[2])
-	p.seg(tip.lerp(end, 0.12) + n * w0 * 0.3, tip.lerp(end, 0.45) + n * w1 * 0.4, 0.45, FOIL[2])
-	# the open end
-	var ang := n.angle()
-	p.ell(end, Vector2(w1 * 1.02, w1 * 0.42), TORTILLA[2], ang)
-	p.ell(end + d * 0.4, Vector2(w1 * 0.85, w1 * 0.34), MEAT, ang)
-	p.ell(end + d * 0.6 + n * w1 * 0.4, Vector2(w1 * 0.36, w1 * 0.2), LETTUCE, ang)
-	p.ell(end + d * 0.6 - n * w1 * 0.3, Vector2(w1 * 0.3, w1 * 0.18), TOMATO, ang)
-	p.ell(end + d * 0.5, Vector2(w1 * 0.5, w1 * 0.16), SAUCE, ang)
+## The wrap: foil below, the tortilla with grill marks, the filling at the top and a sauce drip;
+## `bit` takes a bite out of its top.
+func _wrap(hx: float, hy: float, bit: bool) -> void:
+	_band(hx - 4, hy - 1, 8, 6, FOIL, 2, 1)
+	_band(hx - 4, hy - 12, 8, 11, WRAP, 2, 1)
 	if bit:
-		for i in 3:
-			p.ell(end + n * w1 * (0.6 - i * 0.6) + d * w1 * 0.25, Vector2(w1 * 0.3, w1 * 0.22), MEAT.darkened(0.2), ang)
-	for i in 2:
-		var ph := fmod(_t * 0.6 + i * 0.5, 1.0)
-		var sx := end + d * (2.0 + ph * 8.0) + n * sin(ph * 6.0 + i) * 1.5
-		p.blob(sx, Vector2(1.8, 1.8) * (0.6 + ph), Color(1, 1, 1, 0.35 * (1.0 - ph)), 8)
+		_q(hx - 4, hy - 16, 4, 4, MEAT)
+		_q(hx, hy - 13, 4, 1, MEAT)
+	else:
+		_q(hx - 4, hy - 17, 8, 5, MEAT)
+	_detail(true)
+	_q(hx - 4, hy + 2, 8, 1, FOIL[1])
+	_q(hx - 2, hy, 1, 2, FOIL[2])
+	_q(hx - 4, hy - 9, 6, 1, WRAP[1])
+	_q(hx - 3, hy - 5, 6, 1, WRAP[1])
+	if bit:
+		_q(hx - 4, hy - 16, 3, 1, LETTUCE)
+		_q(hx - 2, hy - 14, 2, 1, TOMATO)
+		_q(hx + 1, hy - 13, 2, 1, LETTUCE)
+		_q(hx - 3, hy - 12, 1, 2, SAUCE)
+	else:
+		_q(hx - 4, hy - 17, 8, 2, LETTUCE)
+		_q(hx - 3, hy - 15, 2, 1, TOMATO)
+		_q(hx + 1, hy - 14, 2, 1, TOMATO)
+		_q(hx - 1, hy - 17, 1, 1, Color("#9ae06a"))
+		_q(hx + 1, hy - 12, 1, 3, SAUCE)
+	_detail(false)
 
 
-## A head: `c` its centre, `h` the figure's height (the head is 0.2 h); `f` the facing side.
-## `fc` keys: hair ("short", "messy", "cap_back", "beanie"), hair_c, beard, eyes ("open", "shut",
-## "wide", "happy", "worried"), brows (+ up), brow_tilt, mouth ("rest", "smile", "grin", "a", "o",
-## "chew", "squiggle", "smack", "tight"), jaw, blush (0..1), look (the pupils, -1..1 toward the
-## facing side), tilt (radians), cap_lift, freckles, sweat, talk ([the line, its time]).
-func _head(p: Pen, c: Vector2, h: float, f: int, skin: Array, fc: Dictionary, seed := 0.0) -> void:
-	var rx := 0.095 * h
-	var ry := 0.112 * h
-	var tilt := float(fc.get("tilt", 0.0))
-	var hair := str(fc.get("hair", "short"))
-	var hair_c: Color = fc.get("hair_c", Color("#2a2420"))
-	var beard := bool(fc.get("beard", false))
-	var R := func(v: Vector2) -> Vector2: return c + v.rotated(tilt)
-	# behind the head: the cap's brim
-	if hair == "cap_back":
-		var brim: Vector2 = R.call(Vector2(-f * rx * 1.05, -ry * 0.62))
-		p.poly(PackedVector2Array([brim + Vector2(f * rx * 0.3, -ry * 0.1), brim + Vector2(-f * rx * 0.55, ry * 0.02), brim + Vector2(-f * rx * 0.5, ry * 0.18), brim + Vector2(f * rx * 0.3, ry * 0.16)]), BLACK[1])
-	# the ear (the back side shows in three-quarter view)
-	var ear: Vector2 = R.call(Vector2(-f * rx * 0.78, ry * 0.08))
-	p.ball(ear, Vector2(rx * 0.2, ry * 0.24), skin[0], skin[1], skin[2], 0.0, 0.3)
-	p.ell(ear + Vector2(f * rx * 0.04, 0), Vector2(rx * 0.08, ry * 0.12), skin[1])
-	p.ball(c, Vector2(rx, ry), skin[0], skin[1], skin[2], tilt, 0.65)
-	var fx: Vector2 = R.call(Vector2(f * rx * 0.16, 0))
-	var blush := float(fc.get("blush", 0.15))
-	if blush > 0.0:
-		p.blob(fx + Vector2(f * rx * 0.42, ry * 0.28).rotated(tilt), Vector2(rx * 0.24, ry * 0.14), Color(BLUSH, 0.25 + blush * 0.4), 10)
-		p.blob(fx + Vector2(-f * rx * 0.38, ry * 0.28).rotated(tilt), Vector2(rx * 0.16, ry * 0.12), Color(BLUSH, 0.15 + blush * 0.3), 10)
-	if beard:
-		# the beard on the jaw and round the mouth only: the cheeks and the eyes stay clear
-		var bpts := Pen.ell_pts(R.call(Vector2(0, ry * 0.36)), Vector2(rx * 0.99, ry * 0.68), tilt, 20, 0.12, PI - 0.12)
-		bpts.append(R.call(Vector2(-rx * 0.93, ry * 0.06)))
-		bpts.append(R.call(Vector2(-rx * 0.55, ry * 0.34)))
-		bpts.append(R.call(Vector2(f * rx * 0.2, ry * 0.3)))
-		bpts.append(R.call(Vector2(rx * 0.55, ry * 0.34)))
-		bpts.append(R.call(Vector2(rx * 0.93, ry * 0.06)))
-		p.form(bpts, hair_c, hair_c.darkened(0.3), 0.85)
-		p.line(Pen.ell_pts(R.call(Vector2(0, ry * 0.36)), Vector2(rx * 0.9, ry * 0.6), tilt, 8, PI * 0.25, PI * 0.55), 0.5, hair_c.lightened(0.3))
-	# the nose, breaking the silhouette toward the facing side
-	var nose: Vector2 = R.call(Vector2(f * rx * 0.74, ry * 0.12))
-	p.ball(nose, Vector2(rx * 0.17, ry * 0.15), skin[0], skin[1], skin[2], 0.0, 0.0)
-	p.ell(nose + Vector2(-f * rx * 0.04, ry * 0.07), Vector2(rx * 0.05, ry * 0.035), skin[1].darkened(0.2))
-	# the eyes
-	var eyes := str(fc.get("eyes", "open"))
-	var blink := fmod(_t + seed * 1.7, 3.6 + seed * 0.4) < 0.11
-	if blink and eyes in ["open", "wide", "worried"]:
-		eyes = "blink"
-	var look := float(fc.get("look", 0.0))
-	var bdy := float(fc.get("brows", 0.0))
-	var btilt := float(fc.get("brow_tilt", 0.0))
-	for side: int in [1, -1]:
-		var near := side == 1
-		var ex := fx + Vector2(f * side * rx * (0.30 if near else 0.28), -ry * 0.05).rotated(tilt)
-		var sc := 1.0 if near else 0.72
-		var er := Vector2(rx * 0.17 * sc, ry * 0.15)
+## A head: `cx` the local centre x, `hy` its top, `hh` its height. Keys of `fc`: eyes ("open",
+## "blink", "happy" (shut in bliss), "wide", "worried"), brows (px up), tilt (worried brows), mouth
+## ("rest", "smile", "grin", "a", "o", "chew_a", "chew_b", "smack", "tight", "squiggle"), look (-1
+## away, 1 toward the facing side), blush, sweat, freckles, talk ([the line, its time]).
+func _head(cx: float, hy: float, hh: float, skin: Array, hair: String, hair_c: Color, fc: Dictionary, beard := false) -> void:
+	var hw := 28.0
+	var l := cx - hw * 0.5
+	# the ear on the far side, the skull, the jaw
+	_q(l - 3, hy + 12, 4, 8, skin[0])
+	_detail(true)
+	_q(l - 2, hy + 14, 1, 4, skin[1])
+	_detail(false)
+	_q(l + 1, hy, hw - 2, hh - 4, skin[0])
+	_q(l, hy + 3, hw, hh - 10, skin[0])
+	_q(l + 2, hy + hh - 4, hw - 4, 2, skin[0])
+	_q(l + 4, hy + hh - 2, hw - 8, 2, skin[0])
+	_detail(true)
+	var sl := _sx(l, hw)
+	_qs(sl + hw - 4, hy + 3, 4, hh - 10, skin[1])
+	_qs(sl + hw - 5, hy + hh - 7, 3, 3, skin[1])
+	_qs(sl + hw - 7, hy + hh - 4, 4, 2, skin[1])
+	_qs(sl, hy + 4, 2, hh - 14, skin[2])
+	_qs(sl + 2, hy + 1, 6, 2, skin[2])
+	_detail(false)
+	# the eyes, toward the facing side
+	var ey := hy + 13.0
+	var look: int = fc.get("look", 1)
+	var eyes: String = fc.get("eyes", "open")
+	var brows: float = fc.get("brows", 0.0)
+	if eyes == "worried":
+		brows += 1.0
+	_detail(true)
+	for ex: float in [cx - 6.0, cx + 6.0]:
 		match eyes:
-			"open", "wide", "worried":
-				var k := 1.3 if eyes == "wide" else 1.0
-				p.ell(ex, er * k, Color("#fbf8f2"), tilt, 14)
-				var pr := rx * 0.1 * (0.72 if eyes == "wide" else 1.0)
-				var pc := ex + Vector2(f * look * er.x * 0.35, er.y * 0.1)
-				p.ell(pc, Vector2(pr * sc, pr), Color("#2a1c1a"), 0.0, 12)
-				p.ell(pc + Vector2(-pr * 0.35, -pr * 0.4), Vector2(pr * 0.32, pr * 0.32), Color(1, 1, 1, 0.95), 0.0, 8)
-				p.line(Pen.ell_pts(ex, er * k * 1.05, tilt, 8, PI * 1.08, PI * 1.92), 0.55, skin[1].darkened(0.35))
 			"blink":
-				p.line(PackedVector2Array([ex + Vector2(-er.x, 0.3), ex + Vector2(er.x, 0.3)]), 0.6, skin[1].darkened(0.4))
-			"shut", "happy":
-				p.line(Pen.ell_pts(ex + Vector2(0, er.y * 0.3), er, tilt, 8, PI * 1.1, PI * 1.9), 0.7, Color("#2a1c1a"))
-		# the brows
-		var by := ex + Vector2(0, -ry * (0.27 + bdy * 0.1)).rotated(tilt)
-		var inner := by + Vector2(-f * side * er.x * 1.0, (btilt + (0.25 if eyes == "worried" else 0.0)) * ry * 0.09)
-		var outer := by + Vector2(f * side * er.x * 1.1, -btilt * ry * 0.06)
-		var bw := ry * 0.07
-		p.poly(PackedVector2Array([inner + Vector2(0, -bw * 0.5), outer + Vector2(0, -bw * 0.3), outer + Vector2(0, bw * 0.2), inner + Vector2(0, bw * 0.5)]),
-				hair_c.darkened(0.1))
+				_q(ex - 1, ey + 2, 4, 1, OUT)
+			"happy":
+				_q(ex - 1, ey + 1, 4, 1, OUT)
+				_q(ex - 2, ey + 2, 1, 1, OUT)
+				_q(ex + 3, ey + 2, 1, 1, OUT)
+			"wide":
+				_q(ex - 1, ey - 1, 5, 5, WHITE)
+				_q(ex + (1.0 if look >= 0 else 0.0), ey, 2, 3, OUT)
+				_q(ex + (1.0 if look >= 0 else 0.0), ey, 1, 1, WHITE)
+			_:
+				_q(ex - 1, ey, 4, 4, WHITE)
+				_q(ex + (1.0 if look > 0 else (-1.0 if look < 0 else 0.0)), ey, 2, 4, OUT)
+				_q(ex + (1.0 if look > 0 else (-1.0 if look < 0 else 0.0)), ey, 1, 1, WHITE)
+				_q(ex - 1, ey + 4, 4, 1, skin[1])
+		# the brows: worried ones raise their inner ends
+		var bc := hair_c if hair != "beanie" else Color("#6a3a24")
+		var by := ey - 3.0 - brows
+		if eyes == "worried" or bool(fc.get("tilt", false)):
+			var inner := 1.0 if ex < cx else -1.0
+			_q(ex - 1 + (2.0 if inner > 0 else 0.0), by - 1, 2, 1, bc)
+			_q(ex - 1 + (0.0 if inner > 0 else 2.0), by, 2, 1, bc)
+		else:
+			_q(ex - 1, by, 4, 1, bc)
+	# the nose: a shade group toward the facing side, a lit pixel
+	_q(cx + 1, ey + 3, 3, 5, skin[1])
+	_q(cx + 1, ey + 3, 1, 2, skin[2])
+	_q(cx + 3, ey + 7, 2, 1, skin[1].darkened(0.15))
+	if bool(fc.get("blush", false)):
+		_q(cx - 9, ey + 6, 4, 1, BLUSH)
+		_q(cx + 6, ey + 6, 4, 1, BLUSH)
 	if bool(fc.get("freckles", false)):
-		for i in 4:
-			p.ell(fx + Vector2(f * rx * (0.2 + i * 0.12), ry * (0.2 + (i % 2) * 0.06)).rotated(tilt), Vector2(rx * 0.025, rx * 0.025), skin[1].darkened(0.2), 0.0, 6)
-	# the mouth
-	var mouth := str(fc.get("mouth", "rest"))
+		for fp: Vector2 in [Vector2(-8, 7), Vector2(-6, 8), Vector2(7, 7), Vector2(9, 8)]:
+			_q(cx + fp.x, ey + fp.y, 1, 1, skin[1].darkened(0.1))
+	_detail(false)
+	# the hair (or the cap) and the beard
+	match hair:
+		"cap_fwd":
+			# short neat hair above the ear, a baseball cap hugging the head, its bill forward
+			_q(l - 1, hy + 2, 4, 6, HAIR_K)
+			_q(l, hy - 5, hw, 7, CAP[0])
+			_q(l + 2, hy - 7, hw - 4, 2, CAP[0])
+			_q(l + 6, hy - 8, hw - 12, 1, CAP[0])
+			_q(l + hw - 4, hy, 13, 2, CAP[0])
+			_detail(true)
+			_qs(_sx(l, hw) + 2, hy - 6, 8, 1, CAP[2])
+			_qs(_sx(l, hw) + 1, hy - 5, 1, 4, CAP[2])
+			_q(l + hw * 0.5 - 1, hy - 9, 2, 1, CAP[2])
+			_q(l + hw * 0.5 + 2, hy - 7, 1, 7, CAP[1])
+			_q(l + hw - 4, hy, 13, 1, CAP[2])
+			_q(l + 3, hy + 2, hw - 6, 1, skin[1])
+			_q(l + hw - 2, hy + 2, 8, 1, Color(0, 0, 0, 0.18))
+			_detail(false)
+		"messy":
+			_q(l - 1, hy - 4, hw + 2, 8, hair_c)
+			_q(l - 3, hy, 4, 11, hair_c)
+			_q(l + 2, hy - 6, 4, 2, hair_c)
+			_q(l + 8, hy - 7, 5, 3, hair_c)
+			_q(l + 16, hy - 6, 5, 2, hair_c)
+			_q(l + hw - 4, hy + 3, 6, 3, hair_c)
+			_detail(true)
+			_q(l + 3, hy - 3, 6, 1, hair_c.lightened(0.25))
+			_q(l + 11, hy - 6, 2, 1, hair_c.lightened(0.25))
+			_q(l + 12, hy + 3, 8, 1, hair_c.darkened(0.2))
+			_detail(false)
+		"short":
+			_q(l - 1, hy - 3, hw + 2, 6, hair_c)
+			_q(l - 3, hy + 1, 4, 9, hair_c)
+			_q(l + hw - 7, hy + 3, 8, 2, hair_c)
+			_detail(true)
+			_q(l + 2, hy - 2, 10, 1, hair_c.lightened(0.3))
+			_q(l + 4, hy + 2, 12, 1, hair_c.darkened(0.2))
+			_detail(false)
+		"beanie":
+			_q(l - 3, hy + 4, 4, 14, Color("#6a3a24"))
+			_q(l - 2, hy - 7, hw + 4, 12, MUSTARD[0])
+			_q(l - 2, hy + 2, hw + 4, 4, MUSTARD[1])
+			_q(cx - 3, hy - 12, 6, 5, MUSTARD[2])
+			_detail(true)
+			for rx in range(int(l), int(l + hw + 2), 3):
+				_q(rx, hy - 6, 1, 8, MUSTARD[1])
+			_q(cx - 2, hy - 12, 2, 1, WHITE)
+			_detail(false)
+	if beard:
+		# a short trimmed beard along the jaw line, the moustache
+		_detail(true)
+		_q(l, hy + 10, 2, hh - 16, hair_c)
+		_q(l + hw - 2, hy + 10, 2, hh - 16, hair_c)
+		_q(l + 1, hy + hh - 6, 3, 2, hair_c)
+		_q(l + hw - 4, hy + hh - 6, 3, 2, hair_c)
+		_q(l + 2, hy + hh - 4, hw - 4, 2, hair_c)
+		_q(l + 4, hy + hh - 2, hw - 8, 2, hair_c)
+		_q(cx - 3, hy + 20, 9, 1, hair_c)
+		_q(l + 6, hy + hh - 4, 1, 1, BEARD_L)
+		_q(l + 14, hy + hh - 2, 1, 1, BEARD_L)
+		_q(l + 20, hy + hh - 4, 1, 1, BEARD_L)
+		_detail(false)
+	# the mouth, over the beard
+	var mouth: String = fc.get("mouth", "rest")
 	var talk: Array = fc.get("talk", [])
 	if not talk.is_empty():
 		mouth = _talk_mouth(str(talk[0]), float(talk[1]), mouth)
-	var mc := fx + Vector2(f * rx * 0.22, ry * 0.5 + float(fc.get("jaw", 0.0)) * ry).rotated(tilt)
-	var mw := rx * 0.36
-	var lip: Color = skin[1].darkened(0.35) if not beard else Color("#c98a7a")
-	match mouth:
-		"rest":
-			p.line(PackedVector2Array([mc + Vector2(-mw * 0.6, 0), mc + Vector2(0, mw * 0.12), mc + Vector2(mw * 0.6, -mw * 0.04)]), 0.6, lip)
-		"smile":
-			p.line(Pen.ell_pts(mc + Vector2(0, -mw * 0.35), Vector2(mw * 0.75, mw * 0.5), tilt, 8, PI * 0.15, PI * 0.85), 0.7, lip)
-		"tight":
-			p.line(PackedVector2Array([mc + Vector2(-mw * 0.55, 0), mc + Vector2(mw * 0.55, -mw * 0.02)]), 0.65, lip)
-			p.ell(mc + Vector2(mw * 0.62, -mw * 0.06), Vector2(mw * 0.08, mw * 0.08), lip, 0.0, 6)
-		"grin", "smack":
-			var r := Vector2(mw, mw * 0.62) if mouth == "grin" else Vector2(mw * 1.15, mw * 0.9)
-			var pts := Pen.ell_pts(mc, r, tilt, 12, 0.0, PI)
-			p.poly(pts, MOUTH)
-			p.poly(PackedVector2Array([mc + Vector2(-r.x * 0.9, 0), mc + Vector2(r.x * 0.9, 0), mc + Vector2(r.x * 0.75, r.y * 0.3), mc + Vector2(-r.x * 0.75, r.y * 0.3)]), Color("#fbf8f2"))
-			p.ell(mc + Vector2(0, r.y * 0.72), Vector2(r.x * 0.5, r.y * 0.22), TONGUE)
-		"a":
-			p.ell(mc + Vector2(0, mw * 0.2), Vector2(mw * 0.5, mw * 0.42), MOUTH, tilt, 12)
-			p.rect(mc.x - mw * 0.34, mc.y - mw * 0.14, mw * 0.68, mw * 0.14, Color("#fbf8f2"))
-			p.ell(mc + Vector2(0, mw * 0.42), Vector2(mw * 0.28, mw * 0.12), TONGUE)
-		"o":
-			p.ell(mc + Vector2(0, mw * 0.1), Vector2(mw * 0.24, mw * 0.26), MOUTH, tilt, 10)
-		"chew":
-			var cs := sin(_t * TAU * 3.0)
-			p.line(PackedVector2Array([mc + Vector2(-mw * 0.5 + cs * mw * 0.1, 0), mc + Vector2(mw * 0.5 + cs * mw * 0.1, -mw * 0.06)]), 0.75, lip)
-			p.blob(fx + Vector2(f * cs * rx * 0.5, ry * 0.42).rotated(tilt), Vector2(rx * 0.22, ry * 0.15), Color(skin[2], 0.5), 8)
-		"squiggle":
-			var sq := PackedVector2Array()
-			for i in 7:
-				var u := float(i) / 6.0
-				sq.append(mc + Vector2((u - 0.5) * mw * 1.2, sin(u * TAU * 1.2) * mw * 0.12))
-			p.line(sq, 0.65, lip)
+	_mouth(cx + 1.0, hy + 23.0, mouth)
+	_detail(true)
 	if bool(fc.get("sweat", false)):
-		var sp: Vector2 = R.call(Vector2(-f * rx * 0.75, -ry * 0.35 + fmod(_t * 0.8, 1.0) * ry * 0.3))
-		p.poly(PackedVector2Array([sp + Vector2(0, -rx * 0.18), sp + Vector2(rx * 0.1, rx * 0.04), sp + Vector2(-rx * 0.1, rx * 0.04)]), Color("#bfe8ff"))
-		p.ell(sp + Vector2(0, rx * 0.05), Vector2(rx * 0.1, rx * 0.1), Color("#bfe8ff"), 0.0, 8)
-	# the hair on top
-	match hair:
-		"short", "messy":
-			var hc: Vector2 = R.call(Vector2(-f * rx * 0.06, -ry * 0.12))
-			var hp := Pen.ell_pts(hc, Vector2(rx * 1.04, ry * 0.95), tilt, 16, PI * 1.02, PI * 1.98)
-			if hair == "messy":
-				for i in hp.size():
-					if i % 2 == 0:
-						hp[i] = hp[i] + (hp[i] - c).normalized() * rx * 0.12
-			hp.append(R.call(Vector2(-f * rx * 0.2, -ry * 0.42)))
-			p.form(hp, hair_c, hair_c.darkened(0.25), 0.85)
-			p.line(Pen.ell_pts(hc, Vector2(rx * 0.92, ry * 0.85), tilt, 6, PI * 1.15, PI * 1.45), 0.55, hair_c.lightened(0.25))
-			p.poly(PackedVector2Array([R.call(Vector2(-f * rx * 0.92, -ry * 0.25)), R.call(Vector2(-f * rx * 0.62, -ry * 0.3)), R.call(Vector2(-f * rx * 0.66, ry * 0.12)), R.call(Vector2(-f * rx * 0.86, ry * 0.06))]), hair_c)
-		"cap_back":
-			var lift := float(fc.get("cap_lift", 0.0)) * ry
-			var cc: Vector2 = R.call(Vector2(0, -ry * 0.18 - lift))
-			p.form(Pen.ell_pts(cc, Vector2(rx * 1.07, ry * 0.92), tilt, 16, PI * 1.0, PI * 2.0), BLACK[0], BLACK[1], 0.84)
-			p.line(Pen.ell_pts(cc, Vector2(rx * 0.98, ry * 0.84), tilt, 8, PI * 1.1, PI * 1.5), 0.6, BLACK[2])
-			p.seg(R.call(Vector2(-rx * 1.06, -ry * 0.18 - lift)), R.call(Vector2(rx * 1.06, -ry * 0.18 - lift)), 0.9, BLACK[1])
-			p.ell(R.call(Vector2(-f * rx * 0.55, -ry * 0.62 - lift)), Vector2(rx * 0.12, rx * 0.08), GOLD, tilt, 8)
-		"beanie":
-			var bc: Vector2 = R.call(Vector2(0, -ry * 0.2))
-			p.form(Pen.ell_pts(bc, Vector2(rx * 1.08, ry * 0.95), tilt, 16, PI * 1.0, PI * 2.0), MUSTARD, MUSTARD.darkened(0.3), 0.84)
-			p.rrect_v(bc.x - rx * 1.1, bc.y - ry * 0.1, rx * 2.2, ry * 0.26, ry * 0.08, MUSTARD.lightened(0.1), MUSTARD.darkened(0.25))
-			for i in 7:
-				var rxk := bc.x - rx * 0.95 + i * rx * 0.32
-				p.seg(Vector2(rxk, bc.y - ry * 0.08), Vector2(rxk, bc.y + ry * 0.14), 0.4, MUSTARD.darkened(0.35))
-			var lag := sin(_t * 5.0 + seed) * rx * 0.12
-			p.ball(bc + Vector2(lag, -ry * 1.02).rotated(tilt), Vector2(rx * 0.3, rx * 0.28), MUSTARD.lightened(0.15), MUSTARD.darkened(0.25), Color("#fff0b0"))
-			p.poly(PackedVector2Array([R.call(Vector2(-f * rx * 0.95, -ry * 0.05)), R.call(Vector2(-f * rx * 0.7, -ry * 0.1)), R.call(Vector2(-f * rx * 0.75, ry * 0.45)), R.call(Vector2(-f * rx * 0.98, ry * 0.35))]), hair_c)
+		_q(l + 1, hy + 4, 1, 2, SWEAT)
+		_q(l, hy + 6, 3, 2, SWEAT)
+	_detail(false)
 
 
-## The open-mouth letters, Polish ones as escapes (a code table, not on-screen text).
-const VOWELS := "aeiouy\u0105\u0119\u00f3"
+## A mouth at (mx, my) local px.
+func _mouth(mx: float, my: float, m: String) -> void:
+	_detail(true)
+	match m:
+		"smile":
+			_q(mx - 3, my + 1, 6, 1, MOUTH)
+			_q(mx - 4, my, 1, 1, MOUTH)
+			_q(mx + 3, my, 1, 1, MOUTH)
+		"grin":
+			_q(mx - 5, my - 1, 10, 4, MOUTH)
+			_q(mx - 4, my - 1, 8, 1, TEETH)
+			_q(mx - 2, my + 2, 4, 1, TONGUE)
+			_q(mx - 6, my - 2, 1, 1, MOUTH)
+			_q(mx + 5, my - 2, 1, 1, MOUTH)
+		"a":
+			_q(mx - 2, my - 1, 5, 4, MOUTH)
+			_q(mx - 1, my - 1, 3, 1, TEETH)
+			_q(mx - 1, my + 2, 3, 1, TONGUE)
+		"o":
+			_q(mx - 1, my - 1, 3, 3, MOUTH)
+		"chew_a":
+			_q(mx - 3, my, 6, 2, MOUTH)
+			_q(mx + 5, my - 3, 2, 3, Color(1, 1, 1, 0.25))
+		"chew_b":
+			_q(mx - 2, my + 1, 4, 1, MOUTH)
+			_q(mx - 7, my - 3, 2, 3, Color(1, 1, 1, 0.25))
+		"smack":
+			_q(mx - 4, my - 1, 8, 3, MOUTH)
+			_q(mx - 3, my + 1, 3, 1, TONGUE)
+			_q(mx + 2, my - 1, 1, 1, WHITE)
+		"tight":
+			_q(mx - 3, my + 1, 6, 1, MOUTH)
+		"squiggle":
+			_q(mx - 4, my, 2, 1, MOUTH)
+			_q(mx - 2, my + 1, 2, 1, MOUTH)
+			_q(mx, my, 2, 1, MOUTH)
+			_q(mx + 2, my + 1, 2, 1, MOUTH)
+		_:
+			_q(mx - 3, my + 1, 5, 1, MOUTH)
+	_detail(false)
 
 
 ## The mouth for a line being spoken: about 14 letters a second, a vowel open, a consonant small,
@@ -1365,25 +1851,30 @@ func _talk_of(who: String) -> Array:
 	return [_pick(tasting.line), tasting.t]
 
 
-func _you(p: Pen) -> void:
+## A hop of `h` px in hard steps (up, held, down).
+func _hop(t: float, period: float, h: float) -> float:
+	return h if fmod(t, period) < period * 0.5 else 0.0
+
+
+func _you() -> void:
 	var ph := tasting.phase
 	var g := tasting.grade
-	var face := {"hair": "messy", "hair_c": Color("#5a3a24"), "look": 1.0, "blush": 0.1, "mouth": "smile"}
-	var near := [0.15, 0.25]
-	var far := [0.05, 0.35]
-	var hold_near := ""
+	var t := tasting.t
+	var face := {"look": 1, "mouth": "smile"}
+	var front := "down"
+	var back := "down"
+	var hold_f := ""
 	var bob := 0.0
 	match ph:
 		Tasting.Phase.CHEW:
 			face["eyes"] = "worried"
 			face["mouth"] = "tight"
 			face["sweat"] = true
-			near = [0.35, 1.4]
 		Tasting.Phase.MLASK:
 			face["eyes"] = "wide"
-			face["brows"] = 1.2
+			face["brows"] = 2.0
 			face["mouth"] = "o"
-			bob = 1.4 * maxf(0.0, 1.0 - tasting.t / 0.3)
+			bob = 3.0 if t < 0.3 else 0.0
 		Tasting.Phase.DRUM:
 			face["mouth"] = "tight"
 			face["eyes"] = "worried"
@@ -1391,244 +1882,706 @@ func _you(p: Pen) -> void:
 			if tasting.perfect:
 				face["eyes"] = "happy"
 				face["mouth"] = "grin"
-				near = [2.6, 0.3]
-				far = [2.5, 0.2]
-				bob = absf(sin(tasting.t * 9.0)) * 4.0
+				front = "up"
+				back = "up"
+				bob = _hop(t, 0.36, 3.0)
 			elif g >= 8.0:
 				face["mouth"] = "grin"
-				near = [2.2, 0.9]
-				hold_near = "fist"
-		Tasting.Phase.FAN, Tasting.Phase.SELFIE:
-			face["look"] = -0.6
+				front = "fist"
+			elif g < 5.0:
+				face["eyes"] = "worried"
+				face["mouth"] = "squiggle"
+		Tasting.Phase.FAN, Tasting.Phase.SELFIE, Tasting.Phase.CARD:
+			face["mouth"] = "grin" if g >= 8.0 else "smile"
 			if ph == Tasting.Phase.SELFIE and g >= 8.0:
-				near = [2.5, 0.2]
-				hold_near = "thumb"
-				face["mouth"] = "grin"
-	_person(p, {"x": _you_x(), "foot": FEET, "h": 92.0, "f": 1, "skin": SKIN, "top": JACKET, "legs": JEANS, "shoe": Color("#2a2630"),
-			"seed": 0.4, "near": near, "far": far, "hold_near": hold_near, "hold_far": "bag" if ph >= Tasting.Phase.HELLO else "", "face": face, "bob": bob})
+				front = "thumb"
+	_person({"x": _you_x(), "f": 1, "kind": "you", "top": TEAL, "legs": JEANS, "shoe": SOLE_D, "sole": Color("#c9c4b8"),
+			"skin": SKIN_MID, "tw": 28.0, "th": 64.0, "ll": 64.0, "hair": "messy", "hair_c": Color("#5a3a24"), "face": face,
+			"front": front, "back": back, "hold_f": hold_f, "hold_b": "bag" if ph >= Tasting.Phase.HELLO and back == "down" else "", "bob": bob, "seed": 0.4})
 
 
-func _kebabulo(p: Pen) -> void:
+func _kebabulo() -> void:
 	var ph := tasting.phase
 	var g := tasting.grade
 	var t := tasting.t
-	var face := {"hair": "cap_back", "hair_c": BLACK[0], "beard": true, "look": 0.6, "blush": 0.2, "mouth": "smile"}
-	var near := [0.35, 1.5]
-	var far := [0.1, 0.3]
-	var hold := "kebab" if ph < Tasting.Phase.CHEW else "kebab_bit"
-	var hold_far := ""
-	var lean := 0.0
+	var f := 1 if ph == Tasting.Phase.FAN or ph == Tasting.Phase.SELFIE else -1
+	var face := {"look": 1, "mouth": "grin"}
+	var front := "hold"
+	var back := "down"
+	var hold_f := "kebab_bit"
 	var bob := 0.0
-	var talk := _talk_of("kebabulo")
-	if not talk.is_empty():
-		face["talk"] = talk
 	match ph:
-		Tasting.Phase.HELLO:
-			face["brows"] = 0.6
-			near = [0.6, 1.7]
+		Tasting.Phase.IN, Tasting.Phase.HELLO:
+			# the proud reviewer: three wraps shown off at the shoulder
+			hold_f = "wraps3"
+			face["brows"] = 1.0
 		Tasting.Phase.CHEW, Tasting.Phase.MLASK:
 			face["eyes"] = "happy"
-			face["mouth"] = "chew"
-			face["tilt"] = -0.1
-			near = [0.9, 1.8]
+			face["mouth"] = "chew_a" if fmod(t, 0.32) < 0.16 else "chew_b"
+			face["blush"] = true
 		Tasting.Phase.VERDICT:
-			# a gesture with the kebab at each line's start (a little anticipation first)
-			var lift := sin(clampf((t - 0.08) / 0.4, 0.0, 1.0) * PI) * 0.5 - (0.08 if t < 0.08 else 0.0)
-			near = [0.6 + lift, 1.6 - lift * 0.6]
-			far = [0.5, 1.2]
-			face["brows"] = 0.8
-			face["tilt"] = sin(t * 6.0) * 0.03
+			front = "up" if t < 0.35 else "hold"
+			face["brows"] = 1.0
+			face["mouth"] = "smile"
 		Tasting.Phase.DRUM:
-			face["look"] = sin(t * 5.0)
+			face["look"] = 1 if fmod(t, 0.6) < 0.3 else -1
 			face["mouth"] = "tight"
-			face["brows"] = 0.5
-			near = [0.5, 1.6]
-			lean = sin(t * 75.0) * 0.004
+			face["brows"] = 1.0
 		Tasting.Phase.GRADE:
 			if tasting.perfect:
 				face["eyes"] = "wide" if t < 0.6 else "happy"
 				face["mouth"] = "smack" if t < 0.6 else "grin"
-				face["cap_lift"] = maxf(0.0, 0.25 - absf(t - 0.25)) * 1.2
-				near = [2.7, 0.4]
-				far = [2.6, 0.3]
-				bob = maxf(0.0, sin(t * 6.0)) * 2.0
+				face["blush"] = true
+				front = "up"
+				back = "up"
+				bob = _hop(t, 0.4, 3.0)
 			elif g >= 8.0:
-				face["mouth"] = "grin"
-				face["brows"] = 0.6
-				hold_far = "fist"
-				far = [2.3, 1.0]
+				face["brows"] = 1.0
+				back = "fist"
 			elif g >= 5.0:
-				hold_far = "thumb"
-				far = [1.3, 0.9]
+				back = "thumb"
+				face["mouth"] = "smile"
 			else:
+				face["eyes"] = "worried"
 				face["mouth"] = "squiggle"
-				face["brow_tilt"] = 0.8
-				face["tilt"] = 0.08
+				back = "scratch"
 		Tasting.Phase.FAN:
-			face["look"] = 1.0
 			if tasting.fan_i == 0:
-				face["brows"] = 0.4 if t < 0.4 else 0.0
-				face["brow_tilt"] = 0.6 if t < 0.4 else 0.0
-				face["mouth"] = "rest"
+				face["brows"] = 2.0 if t < 0.4 else 0.0
+				face["mouth"] = "o" if t < 0.4 else "smile"
 			else:
-				face["mouth"] = "grin"
-				near = [1.4 + sin(t * 9.0) * 0.25, 1.2]
+				front = "thumb"
+				hold_f = ""
 		Tasting.Phase.SELFIE:
-			face["mouth"] = "grin"
-			face["eyes"] = "happy"
-			face["look"] = 0.0
-			near = [1.6, 1.9]
-			lean = -0.12
-	_person(p, {"x": _kebabulo_x(), "foot": FEET, "h": 102.0, "f": -1, "skin": SKIN_TAN, "top": HOODIE, "legs": BLACK, "shoe": WHITE_SHOE,
-			"build": "big", "bp": 3.6, "seed": 1.3, "hood": true, "chain": true, "near": near, "far": far, "hold_near": hold, "hold_far": hold_far,
-			"face": face, "lean": lean, "bob": bob})
-
-
-func _zbyszek(p: Pen) -> void:
-	var ph := tasting.phase
-	var t := tasting.t
-	var face := {"hair": "short", "hair_c": Color("#c8a060"), "look": 1.0, "blush": 0.1, "mouth": "smile"}
-	var talk := _talk_of("zbyszek")
+			face["eyes"] = "happy" if t > 0.55 else "open"
+			face["look"] = -1
+			back = "thumb"
+		Tasting.Phase.CARD:
+			hold_f = "wraps3"
+	var talk := _talk_of("kebabulo")
 	if not talk.is_empty():
 		face["talk"] = talk
-	var lis := Vector2(sin(_t * TAU / 2.3), sin(_t * TAU / 3.1)) * 0.05
-	var near := [1.35 + lis.x, 0.25 + lis.y]
-	var far := [0.1, 0.3]
-	var hold_far := ""
-	var lean := 0.0
+	_person({"x": _kebabulo_x(), "f": f, "kind": "kebabulo", "top": HOODIE, "legs": BLACK_PANTS, "shoe": TRAINER, "sole": SOLE_L,
+			"skin": SKIN_LIGHT, "tw": 28.0, "th": 70.0, "ll": 68.0, "hair": "cap_fwd", "hair_c": BEARD, "face": face,
+			"front": front, "back": back, "hold_f": hold_f, "bob": bob, "seed": 1.3})
+
+
+func _zbyszek() -> void:
+	var ph := tasting.phase
+	var t := tasting.t
+	var face := {"look": 1, "mouth": "smile"}
+	var back := "down"
 	match ph:
-		Tasting.Phase.CHEW:
-			near = [1.5, 0.15]
-			lean = -0.07
 		Tasting.Phase.MLASK:
 			face["eyes"] = "wide"
-			face["brows"] = 1.2
+			face["brows"] = 2.0
 			face["mouth"] = "o"
-			near = [1.6, 0.1]
 		Tasting.Phase.DRUM:
-			far = [0.9 + sin(t * 40.0) * 0.12, 1.0]
+			back = "fist" if fmod(t, 0.2) < 0.1 else "down"
+			face["eyes"] = "wide"
 		Tasting.Phase.GRADE, Tasting.Phase.SELFIE:
 			if tasting.grade >= 8.0:
 				face["mouth"] = "grin"
-				hold_far = "thumb"
-				far = [1.2, 1.2]
-	_person(p, {"x": _zbyszek_x(), "foot": FEET, "h": 90.0, "f": -1, "skin": SKIN_FAIR, "top": CHARCOAL, "legs": DARK_JEANS, "shoe": Color("#c9d2d8"),
-			"seed": 2.1, "near": near, "far": far, "hold_near": "gimbal", "hold_far": hold_far, "face": face, "lean": lean})
-
-
-## The fan: a teen in a raspberry puffer and a mustard beanie, starstruck; shuffles in, asks, hops at
-## the yes, then the selfie with the phone held out, the peace sign.
-func _fan(p: Pen) -> void:
-	var ph := tasting.phase
-	var t := tasting.t
-	var walking := ph == Tasting.Phase.CARD or absf(_fan_x - _fan_goal()) > 1.5
-	var face := {"hair": "beanie", "hair_c": Color("#6a3a24"), "eyes": "wide", "look": 1.0, "blush": 0.5, "freckles": true, "mouth": "smile"}
-	var talk := _talk_of("fan")
+				back = "thumb"
+			elif tasting.grade < 5.0:
+				face["mouth"] = "tight"
+	var talk := _talk_of("zbyszek")
 	if not talk.is_empty():
 		face["talk"] = talk
-	var near := [0.9, 1.6]
-	var far := [0.8, 1.7]
-	var hold_far := ""
+	_person({"x": _zbyszek_x(), "f": -1, "kind": "zbyszek", "top": CHARCOAL, "legs": DARK_JEANS, "shoe": Color("#c9d2d8"), "sole": Color("#6b737a"),
+			"skin": SKIN_FAIR, "tw": 28.0, "th": 64.0, "ll": 64.0, "hair": "short", "hair_c": Color("#e2c060"), "face": face,
+			"front": "out", "back": back, "hold_f": "gimbal", "bob": 1.0 if ph == Tasting.Phase.CHEW else 0.0, "seed": 2.1})
+
+
+## The fan: a teen in a raspberry puffer and a mustard beanie; walks in from the right, asks, hops at
+## the yes, the selfie with the phone held up and a peace sign, then walks off.
+func _fan() -> void:
+	var ph := tasting.phase
+	var t := tasting.t
+	var walking := ph == Tasting.Phase.CARD or _fan_x > _fan_goal() + 0.5
+	var face := {"eyes": "wide", "look": 1, "blush": true, "freckles": true, "mouth": "smile"}
+	var front := "down"
+	var back := "down"
+	var hold_f := "phone"
 	var bob := 0.0
 	if ph == Tasting.Phase.FAN and tasting.fan_i == 0 and t > 1.4:
-		# "for my mum": looks away, scratches the neck, the blush up
-		face["look"] = -1.0
-		face["blush"] = 0.9
-		far = [2.4, 2.2]
+		face["look"] = -1
+		face["eyes"] = "open"
+		back = "scratch"
 	if ph == Tasting.Phase.FAN and tasting.fan_i == 1:
 		face["eyes"] = "happy"
 		face["mouth"] = "grin"
-		bob = maxf(0.0, sin(clampf(t / 0.35, 0.0, 1.0) * PI)) * 3.0
+		bob = 3.0 if t < 0.3 else 0.0
 	if ph == Tasting.Phase.SELFIE:
 		face["mouth"] = "grin"
 		face["eyes"] = "happy" if t > 0.55 else "open"
-		face["look"] = 0.0
-		near = [2.2, -0.2]
-		far = [2.4, 0.5]
-		hold_far = "peace"
+		front = "up"
+		hold_f = "phone_up"
+		back = "peace"
 	if ph == Tasting.Phase.CARD:
-		near = [0.4, 0.3]
 		face["mouth"] = "grin"
-	_person(p, {"x": _fan_x, "foot": FEET, "h": 81.0, "f": 1, "skin": SKIN_FAIR, "top": PUFFER, "legs": LIGHT_JEANS, "shoe": WHITE_SHOE,
-			"seed": 3.3, "puffer": true, "backpack": true, "near": near, "far": far, "hold_near": "phone", "hold_far": hold_far, "face": face,
-			"bob": bob, "walk": _t * TAU * 2.0 if walking else -1.0})
+		face["eyes"] = "happy"
+	var talk := _talk_of("fan")
+	if not talk.is_empty():
+		face["talk"] = talk
+	_person({"x": roundf(_fan_x), "f": 1 if ph == Tasting.Phase.CARD else -1, "kind": "fan", "top": PUFFER, "legs": LIGHT_JEANS, "shoe": TRAINER,
+			"sole": SOLE_L, "skin": SKIN_FAIR, "tw": 26.0, "th": 54.0, "ll": 54.0, "hh": 28.0, "hair": "beanie", "face": face,
+			"front": front, "back": back, "hold_f": hold_f, "bob": bob, "walk": int(_t * 6.0) % 2 if walking else -1, "seed": 3.3})
 
 
-# --- the stream's layer -------------------------------------------------------------------------
+## Where the fan's phone is for the selfie (units): her raised hand on her front side.
+func _fan_lens() -> Vector2:
+	var tw := 26.0
+	var ys := -(7.0 + 54.0 + 54.0)
+	return Vector2(roundf(_fan_x) - (tw * 0.5 + 3.5) / PX, FEET + (ys - 31.0 - 8.0) / PX)
 
-## The art above the scene, in the pixel layer: the close-up, the MLASK burst, hearts, confetti.
-func _draw_mid() -> void:
-	var p := _mid_pen
-	p.o = Vector2.ZERO
-	var right := W - maxf(6.0, _safe_canvas().y + 4.0)
-	var ph := tasting.phase
-	if ph in [Tasting.Phase.CHEW, Tasting.Phase.MLASK]:
-		_close_up(p)
-	if ph == Tasting.Phase.MLASK:
-		_burst(p)
-	_floaters_draw(p, right)
-	_bits_draw(p)
 
+# --- the fx layer ---------------------------------------------------------------------------------
+
+func _draw_fx() -> void:
+	_use(_fx)
+	if tasting == null:
+		return
+	match tasting.phase:
+		Tasting.Phase.CHEW:
+			_close_up()
+		Tasting.Phase.MLASK:
+			_mlask_panel()
+	_floaters_draw()
+	_bits_draw()
+
+
+## The comic close-up for the bite: an ink-edged panel slams in from the right, his big face
+## chewing with his eyes shut, the kebab at his mouth, crumbs.
+func _close_up() -> void:
+	var t := tasting.t
+	var pw := roundf(W * 0.40)
+	var ph := 132.0
+	var slide := 0.0 if Access.calm else clampf(1.0 - t / 0.15, 0.0, 1.0)
+	var x := roundf(W - pw - 18.0 + slide * (pw + 20.0))
+	var y := 34.0
+	_u(x - 2, y - 2, pw + 4, ph + 4, INK)
+	_u(x - 1, y - 1, pw + 2, ph + 2, Kit.LINE)
+	_u(x, y, pw, ph, Color("#f2a562"))
+	# halftone dots in the corners, speed dashes round the head
+	var dy := 2.0
+	while dy < 30.0:
+		var dx := 2.0 + fmod(dy, 4.0)
+		while dx < pw * 0.3:
+			_u(x + dx, y + dy, 1, 1, Color("#f6c07a"))
+			_u(x + pw - dx - 1, y + ph - dy - 1, 1, 1, Color("#e08a52"))
+			dx += 4.0
+		dy += 2.0
+	var cx := x + pw * 0.5
+	var cy := y + ph * 0.5
+	for i in 14:
+		var a := float(i) / 14.0 * TAU + floorf(_t * 4.0) * 0.05
+		var r0 := 0.40 + 0.04 * float(i % 3)
+		var px0 := roundf(cx + cos(a) * pw * r0)
+		var py0 := roundf(cy + sin(a) * ph * r0)
+		if px0 > x + 4 and px0 < x + pw - 8 and py0 > y + 3 and py0 < y + ph - 4:
+			_u(px0, py0, 5 if absf(cos(a)) > 0.5 else 1, 1 if absf(cos(a)) > 0.5 else 4, Color("#ffe0b0"))
+	var st := {"eyes": "bliss", "mouth": "chew_a" if fmod(t, 0.32) < 0.16 else "chew_b", "blush": true, "brows": 3.0,
+			"kebab": true, "shoulders": true}
+	if t < 0.25:
+		st["eyes"] = "open"
+		st["mouth"] = "bite"
+		st["brows"] = 0.0
+	var jaw := 1.0 if str(st["mouth"]) == "chew_a" else 0.0
+	st["jaw"] = jaw
+	_big_face(cx, y + 34.0, 2.0, st, Rect2(x, y, pw, ph))
+	# crumbs falling
+	for i in 6:
+		var ct := fmod(t * 0.8 + i * 0.17, 1.0)
+		var cpx := roundf(cx - 30.0 + i * 3.0)
+		var cpy := roundf(y + 86.0 + ct * 40.0)
+		if cpy < y + ph - 2.0:
+			_u(cpx, cpy, 1, 1, WRAP[1])
+
+
+## The MLASK (F 20:37, concept 3 "TRZY KADRY"): one full comic panel slams in with an overshoot:
+## gold rays from below the centre, the giant word bouncing letter by letter, his face rising from
+## the bottom edge in bliss, sauce drops; insets of Zbyszek with his phone and the pigeon (the chat
+## panel is the stream layer's). A hard cut back to the street after it.
+func _mlask_panel() -> void:
+	var t := tasting.t
+	var drop := 0.0 if Access.calm else roundf((1.0 - _pop(t / 0.22)) * -70.0)
+	var x0 := 4.0
+	var y0 := 4.0 + drop
+	var pw := W - 8.0
+	var ph := 208.0
+	_u(0, drop, W, H, Kit.VOID)
+	_u(x0, y0, pw, ph, GOLD)
+	_rays(x0, y0, pw, ph, Vector2(roundf(W * 0.5), y0 + 162.0))
+	# the edge: 1 px LINE, the corners cut
+	_u(x0 + 1, y0, pw - 2, 0.5, Kit.LINE)
+	_u(x0 + 1, y0 + ph - 0.5, pw - 2, 0.5, Kit.LINE)
+	_u(x0, y0 + 1, 0.5, ph - 2, Kit.LINE)
+	_u(x0 + pw - 0.5, y0 + 1, 0.5, ph - 2, Kit.LINE)
+	_mlask_word(y0, t)
+	# his face rising from the bottom edge
+	var rise := 1.0 if Access.calm else _pop(t / 0.3, 1.2)
+	var top := roundf(lerpf(240.0, 122.0, rise)) + drop
+	_big_face(roundf(W * 0.5), top, 2.0, {"eyes": "bliss", "mouth": "grin", "blush": true, "brows": 3.0, "shoulders": true},
+			Rect2(x0, y0, pw, ph))
+	# sauce drops flying out
+	var cx := roundf(W * 0.5)
+	for d: Vector2 in [Vector2(-43, 38), Vector2(43, 34), Vector2(-51, 54), Vector2(51, 58), Vector2(-63, 28), Vector2(63, 26)]:
+		var k := 1.0 + minf(t, 0.8) * 0.6
+		var p := Vector2(cx + d.x * k, top + d.y - minf(t, 0.8) * 10.0 + t * t * 20.0)
+		_u(roundf(p.x), roundf(p.y), 3, 3, SAUCE)
+		_u(roundf(p.x) + 0.5, roundf(p.y) + 0.5, 1, 1, WHITE)
+		_u(roundf(p.x) + 2, roundf(p.y) + 2.5, 1, 0.5, Color("#d8c8a8"))
+	# the insets pop in one after the other
+	if t > 0.12 or Access.calm:
+		_inset_pigeon(8.0, 106.0 + drop)
+	if t > 0.2 or Access.calm:
+		_inset_zbyszek(10.0, 132.0 + drop)
+
+
+## Sixteen ray wedges from `c`, alternately GOLD and AMBER, the one straight up GOLD; stepped sides
+## (two-unit rows).
+func _rays(x0: float, y0: float, pw: float, ph: float, c: Vector2) -> void:
+	var step := 2.0
+	var y := y0
+	while y < y0 + ph:
+		var dy := y + step * 0.5 - c.y
+		var cuts := PackedFloat32Array([x0, x0 + pw])
+		for k in 16:
+			var a := -PI * 0.5 + (float(k) + 0.5) * TAU / 16.0
+			var sa := sin(a)
+			if absf(sa) < 0.001 or signf(sa) != signf(dy):
+				continue
+			var xi := c.x + dy * cos(a) / sa
+			if xi > x0 and xi < x0 + pw:
+				cuts.append(roundf(xi))
+		cuts.sort()
+		for i in cuts.size() - 1:
+			var a0 := cuts[i]
+			var a1 := cuts[i + 1]
+			if a1 - a0 < 0.5:
+				continue
+			var mid := (a0 + a1) * 0.5
+			var ang := atan2(dy, mid - c.x) + PI * 0.5
+			var wedge := int(floor(fposmod(ang + TAU / 32.0, TAU) / (TAU / 16.0)))
+			if wedge % 2 == 1:
+				_u(a0, y, a1 - a0, minf(step, y0 + ph - y), AMBER)
+		y += step
+
+
+## The giant MLASK! in the 5x7 font: red letters, an ink copy behind, the top row lighter, each
+## letter at its own height and bouncing.
+func _mlask_word(y0: float, t: float) -> void:
+	var word := _w("mlask").to_upper()
+	var sc := clampf(floorf((W - 70.0) / float(PixelFont.width(word))), 5.0, 11.0)
+	var tw := PixelFont.width(word) * sc
+	var x := roundf(W * 0.5 - tw * 0.5)
+	var offs := [0.0, -4.0, 3.0, -3.0, 4.0, 0.0]
+	var i := 0
+	for ch in word:
+		var cw := PixelFont.char_width(ch)
+		if cw == 0:
+			continue
+		var land := 1.0 if Access.calm else _pop((t - i * 0.03) / 0.2, 1.4)
+		var bounce := 0.0 if Access.calm else roundf(sin(t * 9.0 + i * 1.3) * 1.5)
+		var ly := y0 + 20.0 + float(offs[i % offs.size()]) + bounce - roundf((1.0 - land) * 60.0)
+		var px := PixelFont.pixels(ch)
+		var top_row := 99
+		for p: Vector2i in px:
+			top_row = mini(top_row, p.y)
+		for pass_i in 3:
+			for p: Vector2i in px:
+				var rx := x + p.x * sc
+				var ry := ly + (p.y - PixelFont.BODY) * sc
+				match pass_i:
+					0:
+						_u(rx + 3, ry + 3, sc, sc, INK)
+					1:
+						_u(rx, ry, sc, sc, RED)
+					2:
+						if p.y == top_row:
+							_u(rx, ry, sc, minf(sc, 4.0), RED_L)
+		x += (cw + PixelFont.GAP) * sc
+		i += 1
+
+
+func _inset(x: float, y: float, w: float, h: float, ground: Color) -> void:
+	_u(x - 2, y - 2, w + 4, h + 4, Kit.VOID)
+	_u(x - 1, y - 1, w + 2, h + 2, Kit.LINE)
+	_u(x, y, w, h, ground)
+
+
+## The pigeon inset: mid-flap against the sky.
+func _inset_pigeon(x: float, y: float) -> void:
+	_inset(x, y, 52, 24, Color("#bfe6f2"))
+	_u(x + 4, y + 18, 8, 0.5, WHITE)
+	_u(x + 36, y + 4, 10, 0.5, WHITE)
+	var up := int(_t * 10.0) % 2 == 0
+	_u(x + 19.5, y + 9.5, 15, 9, OUT)
+	_u(x + 20, y + 10, 14, 8, Color("#7c8088"))
+	_u(x + 21, y + 15, 11, 2, Color("#9aa0aa"))
+	_u(x + 31.5, y + 5.5, 7, 7, OUT)
+	_u(x + 32, y + 6, 6, 6, Color("#5f636b"))
+	_u(x + 32, y + 10, 3, 2, Color("#5fae8a"))
+	_u(x + 36, y + 7, 1, 1, Color("#ff8a2a"))
+	_u(x + 38, y + 8, 2, 1, AMBER)
+	_u(x + 15.5, y + 10.5, 5, 4, OUT)
+	_u(x + 16, y + 11, 4, 3, Color("#5e6270"))
+	var wy := 1.0 if up else 9.0
+	_u(x + 15.5, y + wy - 0.5, 9, 9, OUT)
+	_u(x + 16, y + wy, 8, 8, Kit.CHROME)
+	_u(x + 25.5, y + wy - 1.5, 7, 9, OUT)
+	_u(x + 26, y + wy - 1, 6, 8, Kit.CHROME)
+	_u(x + 17, y + wy + 6, 6, 1, Color("#8a929a"))
+	for fp: Vector2 in [Vector2(12, 18), Vector2(28, 20), Vector2(40, 16)]:
+		_u(x + fp.x, y + fp.y, 2, 1, Kit.CHROME)
+
+
+## Zbyszek's inset: half his shocked face, his phone up with Kebabulo on its screen.
+func _inset_zbyszek(x: float, y: float) -> void:
+	_inset(x, y, 100, 72, Kit.NIGHT2)
+	# the face: skin, hair, the brow up, the wide eye, the open mouth, a sweat drop
+	_u(x + 8, y + 14, 36, 44, SKIN_FAIR[0])
+	_u(x + 8, y + 14, 3, 44, SKIN_FAIR[2])
+	_u(x + 8, y + 52, 36, 6, SKIN_FAIR[1])
+	_u(x + 4, y + 26, 4, 12, SKIN_FAIR[0])
+	_u(x + 5, y + 29, 2, 6, SKIN_FAIR[1])
+	_u(x + 8, y + 6, 36, 10, Color("#e2c060"))
+	_u(x + 8, y + 6, 36, 2, Color("#f2d880"))
+	_u(x + 4, y + 10, 6, 16, Color("#e2c060"))
+	_u(x + 18, y + 19, 16, 3, Color("#8a5a2a"))
+	_u(x + 20, y + 25, 12, 12, WHITE)
+	_u(x + 24, y + 29, 5, 5, INK)
+	_u(x + 24, y + 29, 2, 2, WHITE)
+	_u(x + 20, y + 37, 12, 1, SKIN_FAIR[1])
+	_u(x + 36, y + 30, 6, 10, SKIN_FAIR[1])
+	_u(x + 26, y + 44, 8, 8, MOUTH)
+	_u(x + 27, y + 49, 6, 3, TONGUE)
+	_u(x + 40, y + 18, 2, 4, CYAN)
+	_u(x + 39, y + 21, 4, 2, CYAN)
+	# the phone, held by four fingers, Kebabulo on its screen with REC
+	_u(x + 47.5, y + 11.5, 35, 55, OUT)
+	_u(x + 48, y + 12, 34, 54, INK)
+	_u(x + 51, y + 16, 28, 44, Color("#4f7fd8"))
+	_u(x + 51, y + 16, 28, 14, Color("#f2a562"))
+	_u(x + 59, y + 30, 12, 4, VEST[0])
+	_u(x + 60, y + 34, 10, 9, SKIN_LIGHT[0])
+	_u(x + 58, y + 29, 14, 3, CAP[0])
+	_u(x + 62, y + 39, 6, 3, BEARD)
+	_u(x + 63, y + 40, 4, 1, WHITE)
+	_u(x + 56, y + 43, 18, 17, VEST[0])
+	_u(x + 63, y + 43, 4, 4, HOODIE[0])
+	_u(x + 53, y + 18, 2, 2, Color("#ff4f6d"))
+	_u(x + 64, y + 62, 3, 2, Color("#3a3e46"))
+	for k in 4:
+		_u(x + 43.5, y + 21.5 + k * 11.0, 7, 9, OUT)
+		_u(x + 44, y + 22 + k * 11.0, 6, 8, SKIN_FAIR[0])
+		_u(x + 44, y + 28 + k * 11.0, 6, 2, SKIN_FAIR[1])
+
+
+## Kebabulo's face, big (the close-up, the MLASK): `cx` its centre, `top` the forehead under the
+## cap (units), `s` scene px a face px (64 face px wide). Keys of `st`: eyes ("open", "bliss"),
+## mouth ("grin", "chew_a", "chew_b", "bite"), brows (face px up), blush, jaw (px down), kebab,
+## shoulders. `clip` keeps it inside its panel (rows below it are cut).
+func _big_face(cx: float, top: float, s: float, st: Dictionary, clip: Rect2) -> void:
+	_fig(cx, top, 1, s)
+	_org.x -= 32.0 * s
+	var jaw: float = st.get("jaw", 0.0)
+	var bottom := (clip.end.y - top) * PX / s
+	var B := func(x: float, y: float, w: float, h: float, c: Color) -> void:
+		var h2 := minf(h, bottom - y)
+		if h2 > 0.0:
+			_q(x, y, w, h2, c)
+	if bool(st.get("shoulders", false)):
+		# the vest's shoulders, the hood behind the neck, the hoodie's V and strings
+		B.call(-34, 68, 132, 60, VEST[0])
+		_detail(true)
+		for qy: float in [76.0, 86.0, 96.0]:
+			B.call(-34, qy, 132, 1, VEST[1])
+			B.call(-34, qy - 1.0, 60, 1, VEST[2])
+		B.call(84, 68, 14, 60, VEST[1])
+		_detail(false)
+		B.call(6, 58, 52, 10, HOODIE[0])
+		B.call(48, 58, 10, 10, HOODIE[1])
+		B.call(6, 58, 52, 2, HOODIE[2])
+		for v in 5:
+			B.call(20 + v * 3, 64 + v * 4, 24 - v * 6, 4, HOODIE[0])
+		_detail(true)
+		B.call(24, 70, 2, 16, TRAINER)
+		B.call(38, 70, 2, 16, TRAINER)
+		B.call(31, 68, 1, 40, Color("#6b737a"))
+		_detail(false)
+	B.call(20, 52 + jaw, 24, 10, SKIN_LIGHT[1])
+	# the ears, the head (rounded at the jaw), its light and shade
+	B.call(-5, 20, 6, 14, SKIN_LIGHT[0])
+	B.call(63, 20, 6, 14, SKIN_LIGHT[1])
+	B.call(2, 0, 60, 2, SKIN_LIGHT[0])
+	B.call(0, 2, 64, 44, SKIN_LIGHT[0])
+	B.call(1, 46, 62, 4 + jaw, SKIN_LIGHT[0])
+	B.call(3, 50 + jaw, 58, 4, SKIN_LIGHT[0])
+	B.call(7, 54 + jaw, 50, 3, SKIN_LIGHT[0])
+	B.call(12, 57 + jaw, 40, 2, SKIN_LIGHT[0])
+	_detail(true)
+	B.call(-3, 23, 2, 8, SKIN_LIGHT[1])
+	B.call(65, 23, 2, 8, SKIN_LIGHT[1].darkened(0.1))
+	B.call(56, 4, 8, 42, SKIN_LIGHT[1])
+	B.call(54, 46, 8, 6 + jaw, SKIN_LIGHT[1])
+	B.call(0, 6, 3, 30, SKIN_LIGHT[2])
+	B.call(4, 3, 20, 2, SKIN_LIGHT[2])
+	B.call(2, 0, 60, 3, SKIN_LIGHT[1])
+	_detail(false)
+	# short neat hair at the temples, a baseball cap worn forward: the crown hugging the head, the
+	# bill seen from the front (its lit top, its edge lower in the middle), its shadow on the brow
+	B.call(-1, 2, 4, 12, HAIR_K)
+	B.call(61, 2, 4, 12, HAIR_K)
+	B.call(0, -10, 64, 10, CAP[0])
+	B.call(4, -14, 56, 4, CAP[0])
+	B.call(12, -17, 40, 3, CAP[0])
+	B.call(29, -19, 6, 2, CAP[0])
+	B.call(0, 0, 64, 3, CAP[0])
+	B.call(6, 0, 52, 6, CAP[0])
+	B.call(11, 6, 42, 2, CAP[0])
+	_detail(true)
+	B.call(7, -15, 16, 2, CAP[2])
+	B.call(2, -11, 3, 9, CAP[2])
+	B.call(31, -18, 2, 18, CAP[1])
+	B.call(14, -14, 1, 14, CAP[1])
+	B.call(49, -14, 1, 14, CAP[1])
+	B.call(54, -12, 10, 12, CAP[1])
+	B.call(6, 0, 52, 4, Color("#3e3d4c"))
+	B.call(8, 0, 24, 1, Color("#5e5d70"))
+	B.call(6, 4, 52, 1, CAP[2])
+	B.call(11, 7, 42, 1, CAP[1])
+	B.call(3, 3, 3, 4, SKIN_LIGHT[1])
+	B.call(58, 3, 3, 4, SKIN_LIGHT[1])
+	B.call(4, 8, 56, 2, SKIN_LIGHT[1])
+	_detail(false)
+	# the brows, the eyes, the nose, the blush
+	var brows: float = st.get("brows", 0.0)
+	_detail(true)
+	B.call(10, 13 - brows, 16, 3, BEARD)
+	B.call(38, 13 - brows, 16, 3, BEARD)
+	match str(st.get("eyes", "open")):
+		"bliss":
+			for ex: float in [12.0, 40.0]:
+				B.call(ex + 2, 22, 10, 3, OUT)
+				B.call(ex - 1, 25, 3, 3, OUT)
+				B.call(ex + 12, 25, 3, 3, OUT)
+		_:
+			for ex: float in [12.0, 40.0]:
+				B.call(ex, 19, 13, 1, OUT)
+				B.call(ex, 20, 13, 9, WHITE)
+				B.call(ex + 3, 20, 7, 9, Color("#5a3a24"))
+				B.call(ex + 4, 22, 5, 5, OUT)
+				B.call(ex + 4, 21, 2, 2, WHITE)
+				B.call(ex + 8, 25, 1, 1, WHITE)
+				B.call(ex, 29, 13, 1, SKIN_LIGHT[1])
+	B.call(27, 26, 10, 12, SKIN_LIGHT[1])
+	B.call(28, 26, 2, 9, SKIN_LIGHT[2])
+	B.call(28, 37, 3, 1, SKIN_LIGHT[1].darkened(0.2))
+	B.call(33, 37, 3, 1, SKIN_LIGHT[1].darkened(0.2))
+	B.call(35, 30, 2, 6, SKIN_LIGHT[1].darkened(0.1))
+	if bool(st.get("blush", false)):
+		B.call(5, 34, 8, 3, BLUSH)
+		B.call(51, 34, 8, 3, BLUSH)
+		B.call(6, 34, 2, 1, Color("#ffb0a0"))
+		B.call(52, 34, 2, 1, Color("#ffb0a0"))
+	_detail(false)
+	# the short trimmed beard along the jaw line, stubble on the cheeks, the neat moustache
+	_detail(true)
+	B.call(-1, 14, 3, 22, BEARD)
+	B.call(62, 14, 3, 22, BEARD)
+	B.call(0, 36, 4, 12 + jaw, BEARD)
+	B.call(60, 36, 4, 12 + jaw, BEARD)
+	B.call(2, 47 + jaw, 6, 4, BEARD)
+	B.call(56, 47 + jaw, 6, 4, BEARD)
+	B.call(5, 51 + jaw, 54, 3, BEARD)
+	B.call(8, 54 + jaw, 48, 3, BEARD)
+	B.call(13, 57 + jaw, 38, 2, BEARD)
+	for bp: Vector2 in [Vector2(4, 40), Vector2(6, 44), Vector2(9, 47), Vector2(58, 40), Vector2(56, 44), Vector2(53, 47),
+			Vector2(14, 50), Vector2(50, 50), Vector2(22, 52), Vector2(42, 52)]:
+		B.call(bp.x, bp.y + (jaw if bp.y > 44.0 else 0.0), 1, 1, BEARD)
+	for bp: Vector2 in [Vector2(1, 24), Vector2(10, 53), Vector2(20, 56), Vector2(33, 57), Vector2(44, 55), Vector2(54, 52), Vector2(61, 40)]:
+		B.call(bp.x, bp.y + (jaw if bp.y > 44.0 else 0.0), 1, 1, BEARD_L)
+	B.call(19, 39, 26, 3, BEARD)
+	B.call(17, 41, 3, 2, BEARD)
+	B.call(44, 41, 3, 2, BEARD)
+	B.call(31, 39, 2, 1, SKIN_LIGHT[1])
+	B.call(21, 39, 8, 1, BEARD_L)
+	# the mouth
+	match str(st.get("mouth", "grin")):
+		"grin":
+			B.call(17, 43, 30, 10, MOUTH)
+			B.call(19, 52, 26, 1, MOUTH)
+			B.call(19, 43, 26, 3, TEETH)
+			B.call(25, 43, 1, 3, Color("#d8d0c0"))
+			B.call(38, 43, 1, 3, Color("#d8d0c0"))
+			B.call(23, 48, 18, 5, TONGUE)
+			B.call(25, 48, 6, 1, Color("#f08a80"))
+			B.call(15, 41, 2, 2, MOUTH)
+			B.call(47, 41, 2, 2, MOUTH)
+		"chew_a":
+			B.call(22, 45 + jaw, 20, 3, MOUTH)
+			B.call(24, 45 + jaw, 6, 1, WRAP[0])
+		"chew_b":
+			B.call(24, 46, 16, 2, MOUTH)
+		"bite":
+			B.call(18, 43, 28, 10, MOUTH)
+			B.call(20, 43, 24, 2, TEETH)
+			B.call(20, 51, 24, 2, TEETH)
+		_:
+			B.call(22, 45, 20, 2, MOUTH)
+	_detail(false)
+	if bool(st.get("kebab", false)):
+		# the hand from the left, the wrap held across into his mouth, the bite in the tortilla
+		var ky := 41.0
+		B.call(-30, ky, 16, 16, SKIN_LIGHT[0])
+		_detail(true)
+		B.call(-30, ky + 13, 16, 3, SKIN_LIGHT[1])
+		for k in 3:
+			B.call(-30, ky + 3 + k * 4, 6, 1, SKIN_LIGHT[1])
+		_detail(false)
+		B.call(-24, ky + 2, 14, 12, FOIL[0])
+		_detail(true)
+		B.call(-24, ky + 11, 14, 3, FOIL[1])
+		B.call(-22, ky + 4, 6, 1, FOIL[2])
+		B.call(-16, ky + 7, 1, 4, FOIL[1])
+		_detail(false)
+		B.call(-10, ky + 1, 30, 14, WRAP[0])
+		_detail(true)
+		B.call(-10, ky + 12, 30, 3, WRAP[1])
+		B.call(-10, ky + 1, 30, 2, WRAP[2])
+		for gx in 6:
+			B.call(-8 + gx * 5, ky + 4 + (gx % 2), 1, 6, WRAP[1])
+		B.call(18, ky + 3, 4, 3, LETTUCE)
+		B.call(18, ky + 7, 4, 4, MEAT)
+		B.call(19, ky + 11, 3, 2, TOMATO)
+		B.call(12, ky + 1, 2, 4, SAUCE)
+		_detail(false)
+	_flush(OUT, s)
+
+
+# --- floaters and confetti ------------------------------------------------------------------------
+
+func _rise(n: int) -> void:
+	for i in n:
+		if _floaters.size() >= 12:
+			_floaters.pop_front()
+		_floaters.append({"x": float(_rng.randi_range(-14, 0)), "t": -float(i) * 0.12, "kind": _rng.randi_range(0, 2)})
+
+
+func _confetti() -> void:
+	if Access.calm:
+		return
+	for i in 40:
+		var a := _rng.randf_range(-PI, 0.0)
+		_bits.append({"p": Vector2(W * 0.5, 50.0), "v": Vector2(cos(a), sin(a)) * _rng.randf_range(40.0, 120.0), "t": 0.0,
+				"c": [GOLD, RED, CYAN, WHITE][i % 4]})
+
+
+func _particles(dt: float) -> void:
+	for f: Dictionary in _floaters:
+		f["t"] = float(f["t"]) + dt
+	while not _floaters.is_empty() and float((_floaters[0] as Dictionary)["t"]) > 1.6:
+		_floaters.pop_front()
+	for b: Dictionary in _bits:
+		b["t"] = float(b["t"]) + dt
+		b["v"] = (b["v"] as Vector2) + Vector2(0, 160.0) * dt
+		b["p"] = (b["p"] as Vector2) + (b["v"] as Vector2) * dt
+	while not _bits.is_empty() and float((_bits[0] as Dictionary)["t"]) > 2.0:
+		_bits.pop_front()
+
+
+## Hearts and little kebabs rising up the right edge, as tiny pixel sprites.
+func _floaters_draw() -> void:
+	var right := W - 7.0
+	for f: Dictionary in _floaters:
+		var t: float = f["t"]
+		if t < 0.0 or t > 1.4:
+			continue
+		var px := roundf((right + float(f["x"]) + (1.0 if int(t * 4.0) % 2 == 0 else -1.0)) * PX)
+		var py := roundf((H - 34.0 - t * 80.0) * PX)
+		var kind: int = f["kind"]
+		var rows: Array = HEART if kind < 2 else MINI_KEBAB
+		for ry in rows.size():
+			var row: String = rows[ry]
+			for rx in row.length():
+				if row[rx] != "#":
+					continue
+				var c: Color
+				if kind < 2:
+					c = (RED if kind == 0 else Color("#ff7ab8"))
+					if ry == 1 and (rx == 1 or rx == 4):
+						c = WHITE
+				else:
+					c = WRAP[0] if ry < 4 else FOIL[0]
+					if ry == 0 or (ry == 1 and rx == 2):
+						c = MEAT if ry == 0 else LETTUCE
+				_r(px + rx * 2, py + ry * 2, 2, 2, c)
+
+
+func _bits_draw() -> void:
+	for b: Dictionary in _bits:
+		var p: Vector2 = b["p"]
+		var spin := int(float(b["t"]) * 10.0) % 2 == 0
+		_u(roundf(p.x), roundf(p.y), 2 if spin else 1, 1 if spin else 2, b["c"])
+
+
+# --- the stream's layer (216 rows, the kit's pen) -------------------------------------------------
 
 func _draw_ui() -> void:
+	if tasting == null:
+		return
 	var p := _ui_pen
-	p.o = Vector2.ZERO
 	var safe := _safe_canvas()
 	var left := maxf(6.0, safe.x + 4.0)
 	var right := W - maxf(6.0, safe.y + 4.0)
 	var ph := tasting.phase
-	_chat(p, left)
-	if ph in [Tasting.Phase.DRUM, Tasting.Phase.GRADE]:
-		_scoreboard(p, left)
+	_rec_frame(p, left, right)
+	if ph == Tasting.Phase.MLASK:
+		_chat_panel(p, right)
+	else:
+		_chat(p, left)
+	if ph == Tasting.Phase.DRUM or ph == Tasting.Phase.GRADE:
+		_scoreboard(p)
 	if tasting.line[0] != "" and ph != Tasting.Phase.CARD:
 		_line(p, left, right)
 	if ph == Tasting.Phase.SELFIE:
 		_selfie_flash(p)
-	_rec_frame(p, left, right)
 	_top_chips(p, left, right)
 	if ph == Tasting.Phase.CARD:
-		_card(p, left)
-	if _flash > 0.0:
-		p.rect(0, 0, W, H, Color(1, 1, 1, _flash / 0.08 * 0.6))
+		_card(p)
 	if ph == Tasting.Phase.IN:
 		_viewfinder(p)
 	if _wipe > 0.0:
-		p.rect(0, 0, W, H, Color(0.04, 0.04, 0.05, Pen.ease_in_out(_wipe)))
+		_draw_wipe(p)
 
 
-func _top_chips(p: Pen, left: float, right: float) -> void:
-	var ph := tasting.phase
-	# NA ŻYWO with its pulsing dot, the viewers with an eye and the rolling count
-	var live := _w("live")
-	var lw := Pen.text_w(live, T_CHIP) + 13.0
-	p.rrect(left + 4, 6, lw, 10, 5, RED)
-	p.ell(Vector2(left + 9, 11), Vector2(1.7, 1.7), Color(1, 1, 1, 0.6 + 0.4 * sin(_t * 6.0)), 0.0, 10)
-	p.text(live, left + 12.5, 7.6, T_CHIP, Color.WHITE)
+## NA ŻYWO, the viewers and the "+N", the channel; hold-× to skip top right until the card.
+func _top_chips(p: Kit, left: float, right: float) -> void:
+	var lw := p.chip(left + 4, 6, _w("live"), Kit.LINE, "", 0.0, Kit.ALERT)
+	p.rect(left + 4, 6, lw, 13, Color(Kit.ALERT, 0.9))
+	if fmod(_t, 1.0) < 0.6:
+		p.rect(left + 4, 6, 2, 13, Kit.LINE)
+	p.text(_w("live"), left + 8, 7, Kit.LINE)
 	var vt := _w("viewers").format({"n": _thousands(int(round(_shown_viewers)))})
-	var vw := Pen.text_w(vt, T_CHIP) + 15.0
-	var vx := left + 7 + lw
-	p.rrect(vx, 6, vw, 10, 5, Color(0.05, 0.05, 0.08, 0.6))
-	p.ell(Vector2(vx + 5.5, 11), Vector2(2.6, 1.6), Color.WHITE, 0.0, 12)
-	p.ell(Vector2(vx + 5.5, 11), Vector2(1.0, 1.0), Color(0.05, 0.05, 0.08), 0.0, 8)
-	p.text(vt, vx + 10, 7.6, T_CHIP, Color.WHITE)
-	if _plus_t < 1.2 and _plus > 0:
-		var a := 1.0 - Pen.ease_in_out(_plus_t / 1.2)
-		p.text("+%d" % _plus, vx + vw + 3, 7.6 - _plus_t * 4.0, T_CHIP, Color(GREEN, a), -1, 0.4)
-	p.text(_w("channel"), left + 5, 18.5, T_NAME, Color(1, 1, 1, 0.85), -1, 0.4)
-	# skip, top right, until the card: a pill with its ring filling
-	if ph < Tasting.Phase.CARD:
+	var vw := p.chip(left + 6 + lw, 6, vt, Kit.GOLD)
+	if _plus_t < 1.2 and _plus > 0 and int(_plus_t * 8.0) % 4 != 3:
+		var pl := "+%d" % _plus
+		var px := left + 8 + lw + vw
+		var py := 6.0 - floorf(_plus_t * 4.0)
+		p.rect(px, py, Kit.text_w(pl) + 8, 13, Color(Kit.INK, 0.86))
+		p.text(pl, px + 4, py + 1, Kit.GO)
+	if tasting.phase != Tasting.Phase.MLASK:
+		p.text(_w("channel"), left + 6, 21, Color(Kit.LINE, 0.8), 1, false, true)
+	if tasting.phase < Tasting.Phase.CARD:
 		var label := _w("skip")
-		var sw := Pen.text_w(label, T_CHIP) + 18.0
-		var sx := right - sw
-		p.rrect(sx, 6, sw, 10, 5, Color(0.05, 0.05, 0.08, 0.6))
-		var ring := Vector2(sx + 6, 11)
-		p.line(Pen.ell_pts(ring, Vector2(3, 3), 0.0, 16, 0.0, TAU), 0.6, Color(1, 1, 1, 0.35))
-		var k := clampf(tasting.skip_t / Tasting.SKIP_S, 0.0, 1.0)
-		if k > 0.0:
-			p.line(Pen.ell_pts(ring, Vector2(3, 3), 0.0, 16, -PI * 0.5, -PI * 0.5 + TAU * k), 0.9, GOLD)
-		p.text("×", ring.x, 7.2, T_CHIP, Color.WHITE, 0)
-		p.text(label, sx + 11.5, 7.6, T_CHIP, Color.WHITE)
-		_skip_rect = _grow(Rect2(sx, 6, sw, 10))
+		var sw := Kit.text_w(label) + 10.0
+		var sx := right - sw - 2
+		p.chip(sx, 6, label, Kit.LINE, "", sw)
+		if tasting.skip_t > 0.0:
+			p.rect(sx, 18, sw * clampf(tasting.skip_t / Tasting.SKIP_S, 0.0, 1.0), 2, Kit.GOLD)
+		_skip_rect = _grow(Rect2(sx, 6, sw, 13))
 	else:
 		_skip_rect = Rect2()
 
@@ -1639,55 +2592,93 @@ func _thousands(n: int) -> String:
 	return "%d %03d" % [n / 1000, n % 1000]
 
 
-## The REC corners (round caps), the dot and a running timecode.
-func _rec_frame(p: Pen, left: float, right: float) -> void:
-	var c := Color(1, 1, 1, 0.85)
-	for corner: Array in [[left, 3.0, 1, 1], [right, 3.0, -1, 1], [left, H - 3.0, 1, -1], [right, H - 3.0, -1, -1]]:
+## The REC corners and the dot.
+func _rec_frame(p: Kit, left: float, right: float) -> void:
+	var c := Color(Kit.LINE, 0.85)
+	var y0 := 2.0
+	var y1 := H - 3.0
+	for corner: Array in [[left, y0, 1, 1], [right, y0, -1, 1], [left, y1, 1, -1], [right, y1, -1, -1]]:
 		var x: float = corner[0]
 		var y: float = corner[1]
 		var sx: int = corner[2]
 		var sy: int = corner[3]
-		p.line(PackedVector2Array([Vector2(x, y + sy * 11), Vector2(x, y), Vector2(x + sx * 11, y)]), 0.9, c)
-	if fmod(_t, 1.0) < 0.6:
-		p.ell(Vector2(W * 0.5 - 16, 11), Vector2(2.2, 2.2), RED, 0.0, 12)
-	var secs := int(tasting.total) + 754
-	p.text("%s  %02d:%02d" % [_w("rec"), secs / 60, secs % 60], W * 0.5 - 12, 7.6, T_CHIP, Color.WHITE, -1, 0.4)
-
-
-## Three chat lines bottom left on a soft scrim: an avatar dot, a coloured nick, white text; the
-## newest at the bottom sliding up, the older ones fading.
-func _chat(p: Pen, left: float) -> void:
-	var n := tasting.chat.size()
-	if n == 0:
+		p.rect(x if sx > 0 else x - 12, y if sy > 0 else y - 1, 12, 1, c)
+		p.rect(x if sx > 0 else x - 1, y if sy > 0 else y - 12, 1, 12, c)
+	if tasting.phase == Tasting.Phase.MLASK:
 		return
-	p.poly_cols(PackedVector2Array([Vector2(0, H - 54), Vector2(W * 0.52, H - 54), Vector2(W * 0.52, H), Vector2(0, H)]),
-			PackedColorArray([Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.6)]))
-	p.poly_cols(PackedVector2Array([Vector2(0, H - 54), Vector2(W * 0.4, H - 54), Vector2(W * 0.4, H), Vector2(0, H)]),
-			PackedColorArray([Color(0, 0, 0, 0), Color(0, 0, 0, 0), Color(0, 0, 0, 0.3), Color(0, 0, 0, 0.3)]))
+	if fmod(_t, 1.0) < 0.6:
+		p.rect(W * 0.5 - 16, 9, 4, 4, Kit.ALERT)
+		p.rect(W * 0.5 - 15, 8, 2, 6, Kit.ALERT)
+		p.rect(W * 0.5 - 17, 10, 6, 2, Kit.ALERT)
+	var secs := int(tasting.total) + 754
+	p.text("%s %02d:%02d" % [_w("rec"), secs / 60, secs % 60], W * 0.5 - 8, 5, Kit.LINE, 1, false, true)
+
+
+## Three chat lines bottom left, the newest at the bottom, rising in.
+func _chat(p: Kit, left: float) -> void:
+	var n := tasting.chat.size()
 	for i in n:
 		var c: Dictionary = tasting.chat[i]
-		var age := n - 1 - i
-		var y := H - 17.0 - age * 11.0
-		var rise := Pen.ease_out(float(c["t"]) / 0.15)
-		y += (1.0 - rise) * 6.0
-		var a := rise * (1.0 if age == 0 else 0.72)
+		var y := H - 28.0 - (n - 1 - i) * 11.0
+		var rise := clampf(float(c["t"]) / 0.2, 0.0, 1.0)
+		y += roundf((1.0 - rise) * 6.0)
 		var name := str(c["name"])
-		var text := Lang.pick(str(c["pl"]), str(c["en"]))
-		var col: Color = NICKS[absi(name.hash()) % NICKS.size()]
-		p.ell(Vector2(left + 8, y + 3.6), Vector2(3.2, 3.2), Color(col, a * 0.9), 0.0, 12)
-		p.text(name.substr(0, 1), left + 8, y + 1.0, 4.4, Color(0.05, 0.05, 0.08, a), 0)
-		p.text(name, left + 14, y, T_CHAT, Color(col, a), -1, 0.4)
-		p.text(text, left + 17 + Pen.text_w(name, T_CHAT), y, T_CHAT, Color(1, 1, 1, a), -1, 0.4)
+		var text := shown(Lang.pick(str(c["pl"]), str(c["en"])))
+		var nw := Kit.text_w(name)
+		var tw := Kit.text_w(text)
+		p.rect(left + 4, y - 1, nw + tw + 12, 11, Color(Kit.INK, 0.6 * rise))
+		p.text(name, left + 7, y - 1, Color(NICKS[absi(name.hash()) % NICKS.size()], rise))
+		p.text(text, left + 11 + nw, y - 1, Color(Kit.LINE, rise))
 
 
-## The room the chat has (the check holds every chat line to it): the scrim's width.
-func chat_w() -> float:
-	return W * 0.52 - 12.0
+## The MLASK's chat as its own dark comic inset bottom right: the viewers, then the lines.
+func _chat_panel(p: Kit, right: float) -> void:
+	if tasting.t < 0.28 and not Access.calm:
+		return
+	var vt := _w("viewers").format({"n": _thousands(int(round(_shown_viewers)))})
+	var lines: Array = []
+	var w := Kit.text_w(vt)
+	for c: Dictionary in tasting.chat:
+		var name := str(c["name"])
+		var text := shown(Lang.pick(str(c["pl"]), str(c["en"])))
+		lines.append([name, text])
+		w = maxi(w, Kit.text_w(name) + 4 + Kit.text_w(text))
+	var pw := float(w) + 10.0
+	var ph := 16.0 + lines.size() * 11.0
+	var x := right - pw - 2.0
+	var y := H - 10.0 - ph
+	p.rect(x - 2, y - 2, pw + 4, ph + 4, Kit.VOID)
+	p.rect(x - 1, y - 1, pw + 2, ph + 2, Kit.LINE)
+	p.rect(x, y, pw, ph, Kit.INK)
+	p.text(vt, x + 5, y + 2, Kit.GOLD)
+	for i in lines.size():
+		var l: Array = lines[i]
+		var name: String = l[0]
+		p.text(name, x + 5, y + 13 + i * 11, NICKS[absi(name.hash()) % NICKS.size()])
+		p.text(str(l[1]), x + 9 + Kit.text_w(name), y + 13 + i * 11, Kit.LINE)
 
 
-## A chat line's width, for the check: the handle and the text.
-static func chat_line_w(name: String, text: String) -> float:
-	return 14.0 + Pen.text_w(name, T_CHAT) + 3.0 + Pen.text_w(text, T_CHAT)
+## The speaker's line bottom right (the chat keeps the left), the name on its tab.
+func _line(p: Kit, left: float, right: float) -> void:
+	var bw := line_w()
+	var bx := right - bw
+	var lines := Kit.wrap(_pick(tasting.line), int(bw) - 10)
+	var by := H - 8.0 - lines.size() * 10.0 - 6.0
+	var name := _w("name_" + tasting.who) if tasting.who != "" else ""
+	var nc := Kit.AMBER if tasting.who == "kebabulo" else (Color("#f47aa6") if tasting.who == "fan" else Kit.THEM)
+	var tail := bx + 20.0
+	match tasting.who:
+		"kebabulo":
+			tail = clampf(_kebabulo_x(), bx + 8.0, bx + bw - 8.0)
+		"zbyszek":
+			tail = clampf(_zbyszek_x(), bx + 8.0, bx + bw - 8.0)
+		"fan":
+			tail = clampf(_fan_x, bx + 8.0, bx + bw - 8.0)
+	p.bubble(bx, by, bw, name, lines, tail, nc, false)
+	var ph := tasting.phase
+	if (ph == Tasting.Phase.HELLO or ph == Tasting.Phase.VERDICT or ph == Tasting.Phase.GRADE or ph == Tasting.Phase.FAN) and tasting.t > Tasting.TAP_S and fmod(_t, 1.0) < 0.7:
+		var hint := _w("tap") + " \u2192"
+		p.text(hint, right - Kit.text_w(hint) - 4, by - 10, Kit.GOLD, 1, false, true)
 
 
 ## The line's bubble width.
@@ -1695,319 +2686,115 @@ func line_w() -> float:
 	return minf(roundf(W * 0.42), 200.0)
 
 
-## The speaker's head top (the bubble's tail points at it).
-func _speaker_at() -> Vector2:
-	match tasting.who:
-		"kebabulo":
-			return Vector2(_kebabulo_x() - 4.0, FEET - 104.0)
-		"zbyszek":
-			return Vector2(_zbyszek_x(), FEET - 92.0)
-		"fan":
-			return Vector2(_fan_x, FEET - 90.0)
-	return Vector2(W * 0.5, FEET - 100.0)
+## The room the chat has, left of the bubble (the check holds every chat line to it).
+func chat_w() -> float:
+	return W - line_w() - 6.0 - 6.0 - 14.0
 
 
-## The speaker's line in a rounded card above the speaker's head, the name on its tab, the tail
-## down to the head; the tap hint a pulsing chevron inside.
-func _line(p: Pen, left: float, right: float) -> void:
-	var bw := line_w()
-	var lines := Pen.wrap(_pick(tasting.line), bw - 14.0, T_LINE)
-	var lh := 9.4
-	var bh := lines.size() * lh + 10.0
-	var head := _speaker_at()
-	var lo := left + 2.0
-	if tasting.phase == Tasting.Phase.DRUM or tasting.phase == Tasting.Phase.GRADE:
-		lo = left + 14.0 + SCORE_W + 6.0
-	var bx := clampf(head.x - bw * 0.5, lo, right - bw - 2.0)
-	var by := maxf(30.0, head.y - 8.0 - bh)
-	var s := Pen.pop(tasting.t / 0.22, 1.06)
-	var cx := bx + bw * 0.5
-	var cy := by + bh
-	var bx2 := cx + (bx - cx) * s
-	var by2 := cy + (by - cy) * s
-	var bw2 := bw * s
-	var bh2 := bh * s
-	p.rrect(bx2 + 1.2, by2 + 1.6, bw2, bh2, 6, Color(0, 0, 0, 0.25))
-	var tail_x := clampf(head.x, bx2 + 10.0, bx2 + bw2 - 10.0)
-	p.poly(PackedVector2Array([Vector2(tail_x - 5, by2 + bh2 - 1), Vector2(tail_x + 5, by2 + bh2 - 1), Vector2(head.x, by2 + bh2 + 6.5)]), Color("#f2e6cc"))
-	p.rrect_v(bx2, by2, bw2, bh2, 6, Color("#fffaf0"), Color("#f2e6cc"))
-	if s < 0.98:
-		return
-	var name := _w("name_" + tasting.who) if tasting.who != "" else ""
-	if name != "":
-		var nc := Color("#ff8038") if tasting.who == "kebabulo" else (Color("#d8457a") if tasting.who == "fan" else Color("#1f8fb0"))
-		var nw := Pen.text_w(name, T_NAME) + 10.0
-		p.rrect(bx + 8, by - 5.5, nw, 9, 4.5, nc)
-		p.text(name, bx + 13, by - 4.2, T_NAME, Color.WHITE)
-	for i in lines.size():
-		p.text(lines[i], bx + 7, by + 5.2 + i * lh, T_LINE, Color("#2a1f3d"))
-	var ph := tasting.phase
-	if (ph == Tasting.Phase.HELLO or ph == Tasting.Phase.VERDICT or ph == Tasting.Phase.GRADE or ph == Tasting.Phase.FAN) and tasting.t > Tasting.TAP_S:
-		var a := 0.5 + 0.5 * sin(_t * 5.0)
-		var tx := bx + bw - 8.0 + sin(_t * 5.0) * 1.0
-		var ty := by + bh - 7.0
-		p.line(PackedVector2Array([Vector2(tx - 2, ty - 2.5), Vector2(tx + 1, ty), Vector2(tx - 2, ty + 2.5)]), 1.1, Color(Color("#ff8038"), a))
+## A chat line's width, for the check: the handle and the text on their strip.
+static func chat_line_w(name: String, text: String) -> float:
+	return 4.0 + Kit.text_w(name) + Kit.text_w(shown(text)) + 12.0
 
 
-## The close-up: a rounded picture-in-picture card with a white border over Kebabulo and Zbyszek,
-## his face big, the bite, the chewing with his eyes shut, the bliss (the smack at the MLASK).
-func _close_up(p: Pen) -> void:
-	var x := W * 0.48
-	var y := 26.0
-	var pw := W - x - 12.0
-	var ph := H - y - 10.0
-	var slide := 0.0 if Access.calm or tasting.phase != Tasting.Phase.CHEW else 1.0 - Pen.ease_out(tasting.t / 0.22)
-	x += slide * (pw + 30.0)
-	p.rrect(x + 2, y + 3, pw, ph, 9, Color(0, 0, 0, 0.35))
-	p.rrect(x - 1.6, y - 1.6, pw + 3.2, ph + 3.2, 10, Color.WHITE)
-	p.rrect_v(x, y, pw, ph, 8, Color("#f6b06a"), Color("#e07a5a"))
-	var mid := Vector2(x + pw * 0.5, y + ph * 0.5)
-	p.blob(mid + Vector2(-pw * 0.2, -ph * 0.1), Vector2(pw * 0.5, ph * 0.5), Color("#ffe0a0", 0.6), 18)
-	for i in 14:
-		var a := float(i) / 14.0 * TAU + _t * 0.4
-		var d := Vector2(cos(a), sin(a) * ph / pw)
-		var p0 := mid + d * pw * 0.36
-		var p1 := mid + d * pw * 0.48
-		if p1.x > x + 3 and p1.x < x + pw - 3 and p1.y > y + 3 and p1.y < y + ph - 3:
-			p.seg(p0, p1, 0.9, Color(1, 1, 1, 0.35))
-	var mlask := tasting.phase == Tasting.Phase.MLASK
-	var t := tasting.t
-	var face := {"hair": "cap_back", "hair_c": BLACK[0], "beard": true, "blush": 0.45, "eyes": "happy"}
-	var tilt := 0.0
-	var jaw := 0.0
-	if mlask:
-		face["mouth"] = "smack"
-		face["brows"] = 1.0
-		face["brow_tilt"] = 0.6
-		tilt = -0.1
-	elif t < 0.18:
-		face["mouth"] = "smack"
-		face["eyes"] = "open"
-		face["look"] = -0.8
-	else:
-		face["mouth"] = "chew"
-		jaw = absf(sin((t - 0.18) * TAU * 3.0)) * 0.08
-		tilt = -0.10 * Pen.ease_in_out((t - 0.18) / 0.5)
-		face["brows"] = 0.6 * Pen.ease_out((t - 0.18) / 1.0)
-		face["brow_tilt"] = 0.5
-	face["jaw"] = jaw
-	face["tilt"] = tilt
-	var hh := ph * 3.1
-	var hc := Vector2(x + pw * 0.54, y + ph * 0.46 + jaw * 6.0)
-	# the hoodie at the bottom of the frame
-	var sh := PackedVector2Array([Vector2(x + 6, y + ph), Vector2(x + pw * 0.14, y + ph * 0.8), Vector2(x + pw * 0.5, y + ph * 0.74),
-			Vector2(x + pw * 0.88, y + ph * 0.8), Vector2(x + pw - 6, y + ph)])
-	p.form(sh, HOODIE[0], HOODIE[1], 0.82)
-	p.limb(Vector2(hc.x, hc.y + ph * 0.28), Vector2(hc.x, hc.y + ph * 0.1), 0.04 * hh, 0.04 * hh, SKIN_TAN[1], SKIN_TAN[1].darkened(0.1), 0.0)
-	_head(p, hc, hh, -1, SKIN_TAN, face, 1.3)
-	# the kebab at his mouth, the crumbs
-	var km := hc + Vector2(-0.085 * hh * 0.9, 0.1 * hh * 0.5)
-	if not mlask:
-		_kebab(p, km + Vector2(-0.04 * hh, 0.05 * hh), 0.16 * hh, -1.0, t > 0.18, -1)
-	for i in 6:
-		var ct := fmod(t * 0.8 + i * 0.17, 1.0)
-		var cp := km + Vector2(-6.0 + i * 2.4, 4.0 + ct * 30.0)
-		if cp.y < y + ph - 4:
-			p.ell(cp, Vector2(0.9, 0.7), TORTILLA[1], 0.0, 6)
-
-
-## MLASK: a fourteen-spike star in yellow with a red stroke and a white inner line, the word heavy
-## and leaning; it pops in with an overshoot, pulses while held, eight sauce drops fly.
-func _burst(p: Pen) -> void:
-	var t := tasting.t
-	var k := 1.0 if Access.calm else Pen.pop(t / 0.18, 1.15)
-	var pulse := 1.0 + 0.02 * sin(t * TAU * 6.0)
-	var c := Vector2(W * 0.40, 78.0)
-	var r0 := Vector2(78.0, 46.0) * k * pulse
-	var r1 := r0 * 0.72
-	var rot := -0.14 + 0.05 * (1.0 - k)
-	if k < 0.05:
-		return
-	p.poly(Pen.star_pts(c + Vector2(3, 4), r0, r1, 14, rot), Color(0.1, 0.05, 0.1, 0.4))
-	p.poly(Pen.star_pts(c, r0 * 1.05, r1 * 1.05, 14, rot), Color("#e0263a"))
-	var inner := Pen.star_pts(c, r0 * 0.96, r1 * 0.96, 14, rot)
-	var cols := PackedColorArray()
-	for q in inner:
-		cols.append(Color("#ffe14a").lerp(Color("#ffb020"), clampf((q.y - (c.y - r0.y)) / (r0.y * 2.0), 0.0, 1.0)))
-	p.poly_cols(inner, cols)
-	var ring := Pen.star_pts(c, r0 * 0.88, r1 * 0.88, 14, rot)
-	ring.append(ring[0])
-	p.line(ring, 0.8, Color(1, 1, 1, 0.85))
-	for i in 8:
-		var a := float(i) / 8.0 * TAU + 0.3
-		var dp := c + Vector2(cos(a) * r0.x, sin(a) * r0.y) * (0.9 + t * 1.2)
-		p.ell(dp, Vector2(2.2, 2.2) * maxf(0.0, 1.0 - t), SAUCE, 0.0, 8)
-	if k > 0.6:
-		p.text_outlined(_w("mlask"), c.x, c.y - 13.0 * k, 26.0 * k, Color("#2a1f3d"), Color.WHITE, 1.6, 0, -0.14)
-
-
-## The scoreboard: the dark card, gold rim, the digits rolling like an odometer, then the grade;
-## 11 cracks it (jagged lines, a flash, confetti) and a digit falls.
-func _scoreboard(p: Pen, left: float) -> void:
-	var bw := SCORE_W
-	var bh := 60.0
-	var appear := Pen.pop(tasting.t / 0.3, 1.08) if tasting.phase == Tasting.Phase.DRUM else 1.0
-	var cx := left + 14.0 + bw * 0.5
-	var cy := 32.0 + bh * 0.5
-	var w := bw * appear
-	var h := bh * appear
-	var x := cx - w * 0.5
-	var y := cy - h * 0.5
-	p.rrect(x + 2, y + 3, w, h, 9, Color(0, 0, 0, 0.35))
-	p.rrect_v(x, y, w, h, 9, Color("#22262c"), Color("#121418"))
-	p.rrect_line(x + 1.4, y + 1.4, w - 2.8, h - 2.8, 7.6, 0.9, GOLD)
-	if appear < 0.95:
-		return
-	var gc := Color("#fff2b0") if tasting.phase == Tasting.Phase.GRADE else GOLD
-	p.text_outlined(tasting.board_text(), cx - 12, y + 10, 34.0, gc, Color("#7a4a10"), 1.2, 0)
-	p.text("/ 10", x + w - 30, y + h - 16, 9.0, Color(1, 1, 1, 0.8))
-	p.text(_w("card_grade"), x + 10, y + 6, T_NAME, Color(1, 1, 1, 0.6))
+## The pixel scoreboard: the digits rolling, then the grade; 11 cracks it and a digit falls.
+func _scoreboard(p: Kit) -> void:
+	var bw := 120.0
+	var bh := 46.0
+	var x := roundf(W * 0.5 - bw * 0.5)
+	var slam := 0.0 if Access.calm or tasting.phase != Tasting.Phase.DRUM else roundf((1.0 - _pop(tasting.t / 0.2)) * -40.0)
+	var y := 30.0 + slam
+	p.rect(x + 2, y + 2, bw, bh, Color(Kit.VOID, 0.5))
+	p.card(x, y, bw, bh, Color(Kit.INK, 0.96), Kit.GOLD)
+	var txt := tasting.board_text()
+	p.text(txt, x + bw * 0.42, y + 6, Kit.GOLD, 4, true)
+	p.text("/ 10", x + bw - 26, y + bh - 16, Kit.LINE)
 	if tasting.perfect and tasting.phase == Tasting.Phase.GRADE:
-		for cr: Array in [[0.22, 0.1, 0.34, 0.5, 0.26, 0.92], [0.6, 0.06, 0.52, 0.4, 0.66, 0.7], [0.8, 0.2, 0.9, 0.55]]:
-			var pts := PackedVector2Array()
-			for i in range(0, cr.size(), 2):
-				pts.append(Vector2(x + w * float(cr[i]), y + h * float(cr[i + 1])))
-			p.line(pts, 1.1, Color(0.95, 0.95, 1.0, 0.9))
-			p.line(pts, 0.4, Color("#5a5a6a"))
-		var fall := minf(tasting.t * tasting.t * 160.0, 150.0)
-		p.text("0", x + w - 15, y + h - 16 + fall, 9.0, Color.WHITE, -1, 0.0, tasting.t * 3.0)
-		var label := _w("cracked")
-		var lw := Pen.text_w(label, T_CHIP) + 14.0
-		p.rrect(cx - lw * 0.5, y + h + 3, lw, 10, 5, GOLD)
-		p.text(label, cx, y + h + 4.4, T_CHIP, INK, 0)
+		for i in 8:
+			p.rect(x + 30 + i * 4, y + 4 + (i % 3) * 5 + i * 2, 3, 2, Kit.LINE)
+		var fall := minf(tasting.t * 90.0, 140.0)
+		p.text("0", x + bw - 18, y + bh - 16 + fall, Kit.LINE)
+		var cw := Kit.text_w(_w("cracked")) + 8.0
+		p.rect(x + bw * 0.5 - cw * 0.5, y + bh + 2, cw, 12, Color(Kit.INK, 0.9))
+		p.text(_w("cracked"), x + bw * 0.5, y + bh + 3, Kit.GOLD, 1, true)
 
 
-## The selfie: the pre-flash dot at the fan's phone, one flash (soft and warm under calm), the star
-## flare, and the instant print popping out, tilted.
-func _selfie_flash(p: Pen) -> void:
+## The selfie: the pre-flash dot at the fan's phone, one flash (soft and warm under calm), SNAP.
+func _selfie_flash(p: Kit) -> void:
 	var t := tasting.t
-	var lens := Vector2(_fan_x + 22.0, FEET - 74.0)
+	var lens := _fan_lens()
 	if t > 0.32 and t < 0.40:
-		p.ell(lens, Vector2(1.6, 1.6), Color.WHITE, 0.0, 10)
+		p.rect(lens.x - 1, lens.y - 1, 2, 2, Kit.LINE)
 	if t < 0.55:
 		return
 	var ft := t - 0.55
-	var a := (0.85 if not Access.calm else 0.35) * exp(-ft / 0.08)
-	p.rect(0, 0, W, H, Color(1.0, 0.98, 0.92, a) if not Access.calm else Color(1.0, 0.9, 0.7, a))
-	if ft < 0.16 and not Access.calm:
-		var sk := sin(ft / 0.16 * PI) * 1.4
-		p.poly(Pen.star_pts(lens, Vector2(16, 16) * sk, Vector2(2, 2) * sk, 4, PI * 0.25), Color(1, 1, 1, 0.9))
-	if ft > 0.25:
-		_print(p, Vector2(W * 0.5, H * 0.44), 62.0 * Pen.pop((ft - 0.25) / 0.35, 1.12), -0.1)
-	if ft < 0.3:
-		p.text(_w("snap"), lens.x, lens.y - 16, 9.0, Color(1, 1, 1, 1.0 - ft / 0.3), 0, 0.6)
+	if ft < 0.06 and not Access.calm:
+		p.rect(0, 0, W, H, Color(1.0, 0.98, 0.92, 0.9))
+	elif ft < 0.24:
+		p.rect(0, 0, W, H, Color(1.0, 0.9, 0.7, 0.3) if Access.calm else Color(1.0, 0.98, 0.92, 0.35))
+	if not Access.calm and ft < 0.16:
+		p.rect(lens.x - 8, lens.y, 17, 1, Kit.LINE)
+		p.rect(lens.x, lens.y - 8, 1, 17, Kit.LINE)
+	if ft < 0.4:
+		p.text(_w("snap"), lens.x, lens.y - 18 - floorf(ft * 20.0), Kit.LINE, 1, true, true)
 
 
-## The instant print of the selfie: a white frame, the two faces on a warm backdrop, the caption;
-## the faces follow the grade.
-func _print(p: Pen, c: Vector2, size: float, rot: float) -> void:
-	if size < 4.0:
-		return
-	var w := size
-	var h := size * 1.2
-	p.poly(_rot_rect(c + Vector2(1.5, 2.2), Vector2(w, h), rot), Color(0, 0, 0, 0.3))
-	p.poly(_rot_rect(c, Vector2(w, h), rot), Color("#fbfaf6"))
-	var img := c + Vector2(0, -h * 0.08).rotated(rot)
-	var iw := w * 0.86
-	var ih := w * 0.84
-	p.poly_cols(_rot_rect(img, Vector2(iw, ih), rot), PackedColorArray([Color("#f2a05e"), Color("#c9788a"), Color("#e07a5a"), Color("#ffd98a")]))
-	p.blob(img + Vector2(-iw * 0.25, -ih * 0.2), Vector2(iw * 0.3, ih * 0.24), Color("#fff4cc", 0.7), 10)
-	var good := tasting.grade >= 8.0 or tasting.perfect
-	var hh := ih * 2.1
-	_head(p, img + Vector2(iw * 0.16, ih * 0.12).rotated(rot), hh, -1, SKIN_TAN,
-			{"hair": "cap_back", "hair_c": BLACK[0], "beard": true, "eyes": "happy", "mouth": "grin" if good else "tight", "tilt": rot - 0.12, "blush": 0.3}, 1.3)
-	_head(p, img + Vector2(-iw * 0.2, ih * 0.22).rotated(rot), hh * 0.86, 1, SKIN_FAIR,
-			{"hair": "beanie", "hair_c": Color("#6a3a24"), "eyes": "happy", "mouth": "grin", "tilt": rot + 0.1, "blush": 0.6, "freckles": true}, 3.3)
-	var cap := c + Vector2(0, h * 0.4).rotated(rot)
-	p.text(_w("print_caption"), cap.x, cap.y - 3.0, maxf(3.0, size * 0.07), Color("#5a4a60"), 0, 0.0, rot)
-
-
-## The RECENZJA card: the dark recipe left of the middle (the scene dimmed behind), the order, the
-## grade as a red stamp slamming in, the badge as a swinging medal, the selfie print taped on.
-func _card(p: Pen, left: float) -> void:
-	var t := tasting.t
-	p.rect(0, 0, W, H, Color(0.03, 0.03, 0.05, 0.5 * Pen.ease_out(t / 0.3)))
-	var cw := minf(W * 0.46, 220.0)
-	var ch := 186.0
-	var drop := 0.0 if Access.calm else _spring(t) * -40.0
-	var x := maxf(left + 8.0, W * 0.5 - cw - 4.0)
-	var y := 16.0 + drop
-	p.rrect(x + 2.5, y + 3.5, cw, ch, 11, Color(0, 0, 0, 0.4))
-	p.rrect_v(x, y, cw, ch, 11, Color("#22262c"), Color("#121418"))
-	p.rrect_line(x + 1.5, y + 1.5, cw - 3, ch - 3, 9.5, 0.9, GOLD)
-	p.text(_w("card_title"), x + 12, y + 10, 15.0, GOLD)
-	p.text(_w("place"), x + 12, y + 28, T_NAME, Color(1, 1, 1, 0.6))
-	var ry := y + 44.0 + maxf(0.0, 8.0 - (t - 0.15) * 60.0)
-	p.text(_w("card_order"), x + 12, ry, T_NAME, Color(1, 1, 1, 0.55))
-	var ol := Pen.wrap(_pick(tasting.order), cw - 24.0, T_LINE)
+## The RECENZJA card: vertical, the order, the grade, the badge, the game's name (the print rides
+## over its right edge, drawn by `_draw_over`).
+func _card(p: Kit) -> void:
+	var cw := 184.0
+	var ch := 198.0
+	var x := _card_x()
+	var drop := 0.0 if Access.calm else roundf(exp(-tasting.t * 7.0) * cos(tasting.t * 14.0) * -40.0)
+	var y := 9.0 + drop
+	p.rect(0, 0, W, H, Color(Kit.VOID, 0.45))
+	p.card(x, y, cw, ch, Color(Kit.INK, 0.97), Kit.GOLD)
+	p.text(_w("card_title"), x + cw * 0.5, y + 6, Kit.GOLD, 2, true)
+	p.text(_w("place"), x + cw * 0.5, y + 26, Kit.CHALK_D, 1, true)
+	p.text(_w("card_order"), x + 8, y + 42, Kit.CHALK_D)
+	var ol := Kit.wrap(_pick(tasting.order), int(cw) - 16)
 	for i in mini(ol.size(), 2):
-		p.text(ol[i], x + 12, ry + 7.5 + i * 9.0, T_LINE, Color.WHITE)
-	# the grade: a red stamp roundel slamming in
-	ry = y + 76.0 + maxf(0.0, 8.0 - (t - 0.27) * 60.0)
-	p.text(_w("card_grade"), x + 12, ry, T_NAME, Color(1, 1, 1, 0.55))
-	var st := clampf((t - 0.35) / 0.12, 0.0, 1.0)
-	if st > 0.0:
-		var sk := lerpf(2.2, 1.0, Pen.ease_out(st))
-		var sc := Vector2(x + cw * 0.62, ry + 14.0)
-		var sr := 24.0 * sk
-		p.line(Pen.ell_pts(sc, Vector2(sr, sr * 0.84), -0.2, 28), 1.8, Color("#e0263a", 0.95))
-		p.line(Pen.ell_pts(sc, Vector2(sr * 0.86, sr * 0.7), -0.2, 28), 0.6, Color("#e0263a", 0.8))
-		p.text(tasting.board_text(), sc.x, sc.y - 12.0 * sk, 17.0 * sk, Color("#ff5a6a"), 0, 0.0, -0.2)
-		p.text("/ 10", sc.x + 2.0 * sk, sc.y + 6.5 * sk, 6.0 * sk, Color("#ff5a6a"), 0, 0.0, -0.2)
-		if st < 1.0:
-			p.line(Pen.ell_pts(sc, Vector2(sr * 1.4, sr * 0.6), 0.0, 20), 0.6, Color(1, 1, 1, 0.3 * (1.0 - st)))
-	# the badge: a gold medal on a ribbon, swinging
+		p.text(ol[i], x + 8, y + 52 + i * 10, Kit.LINE)
+	p.text(_w("card_grade"), x + 8, y + 76, Kit.CHALK_D)
+	p.text(tasting.board_text() + " / 10", x + cw * 0.5, y + 84, Kit.GOLD, 3, true)
+	var by := y + 122.0
 	if not tasting.badge.is_empty():
-		var by := y + ch - 54.0
-		var swing := sin(t * 4.0) * 0.3 * exp(-t * 0.9)
-		var top := Vector2(x + 24, by)
-		var m := top + Vector2(sin(swing) * 13.0, cos(swing) * 13.0)
-		p.poly(PackedVector2Array([top + Vector2(-5, 0), top + Vector2(5, 0), m + Vector2(3, -3), m + Vector2(-3, -3)]), Color("#e0263a"))
-		p.ball(m, Vector2(7, 7), GOLD, GOLD_D, Color("#fff2b0"))
-		p.poly(Pen.star_pts(m, Vector2(3.6, 3.6), Vector2(1.5, 1.5), 5, -PI * 0.5), Color("#7a4a10"))
-		p.text(_w("card_badge"), x + 40, by + 2, T_NAME, Color(1, 1, 1, 0.55))
-		p.text(_pick(tasting.badge), x + 40, by + 10, T_LINE, GOLD)
-	p.text(_w("card_game"), x + cw * 0.5, y + ch - 27, T_NAME, Color(1, 1, 1, 0.7), 0)
-	if t >= Tasting.CARD_S:
-		var bw := 84.0
-		var bx := x + cw * 0.5 - bw * 0.5
-		p.rrect(bx, y + ch - 19, bw, 13, 6.5, GOLD)
-		p.text(_w("btn_next"), bx + bw * 0.5, y + ch - 17, T_LINE, INK, 0)
+		p.text(_w("card_badge"), x + 8, by, Kit.CHALK_D)
+		var bt := _pick(tasting.badge)
+		var bw := Kit.text_w(bt) + 10.0
+		p.rect(x + 8, by + 10, bw, 12, Kit.GOLD)
+		p.text(bt, x + 13, by + 10, Kit.INK)
+	p.text(_w("card_shot"), x + cw * 0.5, y + ch - 46, Kit.CHALK_D, 1, true)
+	p.text(_w("card_game"), x + cw * 0.5, y + ch - 34, Kit.LINE, 1, true)
+	if tasting.t >= Tasting.CARD_S:
+		var bw2 := 96.0
+		p.button(x + cw * 0.5 - bw2 * 0.5, y + ch - 22, bw2, _w("btn_next"), true, 18.0)
 	else:
 		var bar := cw - 40.0
-		p.text(_w("card_shot"), x + cw * 0.5, y + ch - 19, T_NAME, Color(1, 1, 1, 0.55), 0)
-		p.rrect(x + 20, y + ch - 10, bar, 2.4, 1.2, Color(1, 1, 1, 0.15))
-		p.rrect(x + 20, y + ch - 10, maxf(2.4, bar * clampf(t / Tasting.CARD_S, 0.0, 1.0)), 2.4, 1.2, GOLD)
-	# the selfie print, taped over the card's right edge
-	var pk := Pen.pop((t - 0.2) / 0.4, 1.06)
-	var pc := Vector2(x + cw + 52.0, y + ch * 0.46 - drop * 0.5)
-	_print(p, pc, 92.0 * pk, 0.09)
-	if pk > 0.9:
-		p.poly(_rot_rect(pc + Vector2(0, -92.0 * 1.2 * 0.5).rotated(0.09), Vector2(26, 7), 0.09 - 0.25), Color("#fff2b0", 0.7))
+		p.rect(x + 20, y + ch - 12, bar, 2, Kit.SLATE_D)
+		p.rect(x + 20, y + ch - 12, bar * clampf(tasting.t / Tasting.CARD_S, 0.0, 1.0), 2, Kit.GOLD)
 
 
-## A damped spring from 1 to 0 (the card's drop with one overshoot).
-func _spring(t: float) -> float:
-	return exp(-t * 7.0) * cos(t * 14.0)
+## The card's left edge: left of the middle when there is room for the print beside it.
+func _card_x() -> float:
+	return roundf(maxf(W * 0.5 - 92.0 - 30.0, 8.0))
 
 
-## Zbyszek's viewfinder opening: the black frame drawing back, the corners sliding out, the focus.
-func _viewfinder(p: Pen) -> void:
-	var m := 1.0 - Pen.ease_in_out(tasting.t / Tasting.IN_S)
-	p.rect(0, 0, W, H * 0.5 * m, Color.BLACK)
-	p.rect(0, H - H * 0.5 * m, W, H * 0.5 * m, Color.BLACK)
-	p.rect(0, 0, W * 0.3 * m, H, Color(0, 0, 0, m))
-	p.rect(W - W * 0.3 * m, 0, W * 0.3 * m, H, Color(0, 0, 0, m))
-	var inset := m * 50.0 + 12.0
-	var c := Color(1, 1, 1, 0.9)
-	for q: Array in [[inset, inset, 1, 1], [W - inset, inset, -1, 1], [inset, H - inset, 1, -1], [W - inset, H - inset, -1, -1]]:
-		var x: float = q[0]
-		var y: float = q[1]
-		var sx: int = q[2]
-		var sy: int = q[3]
-		p.line(PackedVector2Array([Vector2(x, y + sy * 14), Vector2(x, y), Vector2(x + sx * 14, y)]), 1.2, c)
-	var fr := 10.0 + m * 30.0
-	p.line(Pen.ell_pts(Vector2(W * 0.5, H * 0.5), Vector2(fr, fr), 0.0, 24), 0.8, Color(1, 1, 1, 0.6 * m))
+## Zbyszek's viewfinder closing in: black blocks giving way, the corners sliding in.
+func _viewfinder(p: Kit) -> void:
+	var k := clampf(tasting.t / Tasting.IN_S, 0.0, 1.0)
+	var cols := int(ceil(W / BLOCK))
+	var rows := int(ceil(H / BLOCK))
+	for by in rows:
+		for bx in cols:
+			var d := float((bx * 7 + by * 13) % 16) / 16.0
+			if d >= k * 1.15:
+				p.rect(bx * BLOCK, by * BLOCK, BLOCK, BLOCK, Kit.VOID)
+	var inset := roundf((1.0 - k) * 40.0)
+	var c := Kit.LINE
+	p.rect(inset, inset, 24, 2, c)
+	p.rect(inset, inset, 2, 24, c)
+	p.rect(W - inset - 24, H - inset - 2, 24, 2, c)
+	p.rect(W - inset - 2, H - inset - 24, 2, 24, c)
 
 
 func _grow(r: Rect2) -> Rect2:
@@ -2020,58 +2807,96 @@ func _grow(r: Rect2) -> Rect2:
 	return g
 
 
-# --- the crowd's floaters and the confetti -----------------------------------------------------------
+func _draw_wipe(p: Kit) -> void:
+	var cols := int(ceil(W / BLOCK))
+	var rows := int(ceil(H / BLOCK))
+	for by in rows:
+		for bx in cols:
+			var d := float((bx * 7 + by * 13) % 16) / 16.0
+			if d < _wipe:
+				p.rect(bx * BLOCK, by * BLOCK, BLOCK, BLOCK, Kit.VOID)
 
-func _rise(n: int) -> void:
-	for i in n:
-		if _floaters.size() >= 12:
-			_floaters.pop_front()
-		_floaters.append({"x": _rng.randf_range(-14.0, 0.0), "t": -float(i) * 0.12, "kind": _rng.randi_range(0, 2), "wob": _rng.randf() * TAU})
 
+# --- the instant print (over the stream's layer, at the scene's pixels) ----------------------------
 
-func _confetti() -> void:
-	if Access.calm:
+func _draw_over() -> void:
+	if tasting == null:
 		return
-	for i in 40:
-		var a := _rng.randf_range(-PI, 0.0)
-		_bits.append({"p": Vector2(W * 0.2, 60.0), "v": Vector2(cos(a), sin(a)) * _rng.randf_range(40.0, 120.0), "t": 0.0,
-				"c": [GOLD, RED, Color("#1ae6ff"), Color.WHITE][i % 4], "r": _rng.randf() * TAU})
+	var ph := tasting.phase
+	var at := Vector2.ZERO
+	var big := false
+	if ph == Tasting.Phase.SELFIE and tasting.t > 0.8:
+		at = Vector2(roundf(W * 0.5 - 30.0), 36.0)
+		big = tasting.t < 0.86 and not Access.calm
+	elif ph == Tasting.Phase.CARD and tasting.t > 0.2:
+		at = Vector2(_card_x() + 184.0 - 12.0, 40.0)
+		big = tasting.t < 0.26 and not Access.calm
+	else:
+		return
+	_ci = null if _dry else _over
+	_dinv = 1.0
+	if is_inside_tree():
+		var k := _scale()
+		var o := _origin()
+		_kd = k / PX
+		_offd = o
+	_print(at, 1.25 if big else 1.0, ph == Tasting.Phase.CARD)
 
 
-func _particles(dt: float) -> void:
-	for f: Dictionary in _floaters:
-		f["t"] = float(f["t"]) + dt
-	while not _floaters.is_empty() and float((_floaters[0] as Dictionary)["t"]) > 1.6:
-		_floaters.pop_front()
-	for b: Dictionary in _bits:
-		b["t"] = float(b["t"]) + dt
-		b["v"] = (b["v"] as Vector2) + Vector2(0, 160.0) * dt
-		b["p"] = (b["p"] as Vector2) + (b["v"] as Vector2) * dt
-		b["r"] = float(b["r"]) + dt * 8.0
-	while not _bits.is_empty() and float((_bits[0] as Dictionary)["t"]) > 2.0:
-		_bits.pop_front()
+## The print: a white frame with a thick foot, the sunset, a frond, the two grinning faces, the
+## caption in the kit's font; tape when it is on the card.
+func _print(at: Vector2, s: float, taped: bool) -> void:
+	var w := 60.0
+	var h := 72.0
+	var c := at + Vector2(w, h) * 0.5
+	var o := c - Vector2(w, h) * 0.5 * s
+	var R := func(x: float, y: float, rw: float, rh: float, col: Color) -> void:
+		_u(o.x + x * s, o.y + y * s, rw * s, rh * s, col)
+	R.call(1.5, 1.5, w, h, Color(0, 0, 0, 0.35))
+	R.call(-0.5, -0.5, w + 1, h + 1, OUT)
+	R.call(0, 0, w, h, WHITE)
+	R.call(3, 3, w - 6, 54, Color("#f2a562"))
+	R.call(3, 3, w - 6, 14, Color("#d9877a"))
+	R.call(3, 17, w - 6, 1, Color("#e8957a"))
+	R.call(3, 44, w - 6, 13, Color("#f6c56a"))
+	for k in 6:
+		R.call(3 + k * 2.5, 6 + k * 1.5, 3, 1, FROND[0])
+		R.call(3.5 + k * 2.5, 7 + k * 1.5, 0.5, 1.5, FROND[1])
+	R.call(0, h - 1, w, 1, Color("#e0dcd0"))
+	# the two of them: shoulders, then the heads at the print's scale
+	R.call(30, 45, 26, 12, VEST[0])
+	R.call(38, 45, 8, 4, HOODIE[0])
+	R.call(4, 46, 24, 11, PUFFER[0])
+	R.call(4, 49, 24, 0.5, PUFFER[1])
+	R.call(4, 53, 24, 0.5, PUFFER[1])
+	var good := tasting.grade >= 8.0 or tasting.perfect
+	var scale := s
+	_fig(0, 0, -1, scale)
+	_org = Vector2(roundf((o.x + 42.0 * s) * PX), roundf((o.y + 26.0 * s) * PX))
+	_head(0, 0, 30, SKIN_LIGHT, "cap_fwd", BEARD, {"eyes": "happy", "mouth": "grin" if good else "tight", "blush": true}, true)
+	_flush(OUT)
+	_fig(0, 0, 1, scale)
+	_org = Vector2(roundf((o.x + 17.0 * s) * PX), roundf((o.y + 29.0 * s) * PX))
+	_head(0, 0, 28, SKIN_FAIR, "beanie", Color("#6a3a24"), {"eyes": "happy", "mouth": "grin", "blush": true, "freckles": true})
+	_flush(OUT)
+	# the caption in the 5x7 font, one font px a unit
+	var cap := _w("print_caption").to_upper()
+	var cw := PixelFont.width(cap)
+	var cx := roundf(o.x + (w * 0.5) * s - cw * 0.5)
+	var cy := roundf(o.y + 61.0 * s)
+	_glyphs(cap, cx, cy, Color("#5a4a60"))
+	if taped:
+		R.call(w * 0.5 - 12, -4, 24, 7, Color("#fff2b0", 0.75))
+		R.call(w * 0.5 - 12, -4, 24, 1, Color("#ffffff", 0.5))
 
 
-func _floaters_draw(p: Pen, right: float) -> void:
-	for f: Dictionary in _floaters:
-		var t: float = f["t"]
-		if t < 0.0:
+## The 5x7 font with this pen, one font pixel a unit (the print's caption).
+func _glyphs(s: String, x: float, y: float, c: Color) -> void:
+	var cx := x
+	for ch in s:
+		var cw := PixelFont.char_width(ch)
+		if cw == 0:
 			continue
-		var u := Pen.ease_out(t / 1.4)
-		var pos := Vector2(right - 12.0 + float(f["x"]) + sin(t * 5.0 + float(f["wob"])) * 3.0, H - 30.0 - u * 110.0)
-		var a := 1.0 - clampf((t - 0.9) / 0.6, 0.0, 1.0)
-		var s := 1.0 + 0.2 * sin(t * 10.0)
-		if int(f["kind"]) < 2:
-			var hc := RED if int(f["kind"]) == 0 else Color("#ff7ab8")
-			p.ell(pos + Vector2(-1.6, -0.6) * s, Vector2(2.2, 2.2) * s, Color(hc, a), 0.0, 10)
-			p.ell(pos + Vector2(1.6, -0.6) * s, Vector2(2.2, 2.2) * s, Color(hc, a), 0.0, 10)
-			p.poly(PackedVector2Array([pos + Vector2(-3.7, 0) * s, pos + Vector2(3.7, 0) * s, pos + Vector2(0, 4.2) * s]), Color(hc, a))
-		else:
-			p.poly(PackedVector2Array([pos + Vector2(-1.6, 3.4), pos + Vector2(1.6, 3.4), pos + Vector2(3.0, -2.6), pos + Vector2(-3.0, -2.6)]), Color(TORTILLA[0], a))
-			p.ell(pos + Vector2(0, -2.6), Vector2(3.0, 1.2), Color(MEAT, a), 0.0, 10)
-
-
-func _bits_draw(p: Pen) -> void:
-	for b: Dictionary in _bits:
-		var a := 1.0 - clampf((float(b["t"]) - 1.4) / 0.6, 0.0, 1.0)
-		p.poly(_rot_rect(b["p"], Vector2(2.6, 1.4), float(b["r"])), Color(b["c"], a))
+		for p: Vector2i in PixelFont.pixels(ch):
+			_u(cx + p.x, y + p.y - PixelFont.BODY, 1, 1, c)
+		cx += cw + PixelFont.GAP
