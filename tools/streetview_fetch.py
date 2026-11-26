@@ -11,7 +11,7 @@ coverage, then fetches one image per heading from that one panorama (pano id, so
 and saves refs/<slug>/streetview/<pano>_h<heading>.jpg plus a SOURCES.md line: pano id, capture date,
 camera spot, heading, pitch, fov. refs/ is gitignored: these are modelling references only,
 never committed, shipped, traced or used as textures (model-from-photos skill, F 2026-11-26).
-Costs: images are the billable SKU (free monthly tier, then paid); keep headings few.
+Skips images already saved; refuses more than 8 headings per run. Costs: images are the billable SKU (free monthly tier, then paid); keep headings few.
 Standard library only.
 """
 import argparse
@@ -26,7 +26,8 @@ import urllib.request
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 BASE = "https://maps.googleapis.com/maps/api/streetview"
-UA = "AroundWarsaw-streetview/1.0 (game reference photos)"
+MAX_HEADINGS = 8
+UA = "streetview-fetch/1.0"
 
 
 def unproject(x, z):
@@ -97,9 +98,15 @@ def main():
         headings = [round(bearing(pl["lat"], pl["lng"], tla, tlo))]
     else:
         headings = [int(float(h)) % 360 for h in a.headings.split(",") if h.strip()]
+    if len(headings) > MAX_HEADINGS:
+        sys.exit(f"streetview_fetch: {len(headings)} headings, at most {MAX_HEADINGS} per run (each image is a billable request)")
     out = os.path.join(ROOT, "refs", a.slug, "streetview")
     os.makedirs(out, exist_ok=True)
     for h in headings:
+        name = f"{pano}_h{h:03d}.jpg"
+        if os.path.exists(os.path.join(out, name)):
+            print(f"heading {h}: {name} exists, skipped")
+            continue
         try:
             data, ctype = call("", {"pano": pano, "size": a.size, "heading": h, "pitch": a.pitch,
                                     "fov": a.fov, "return_error_code": "true"}, key)
@@ -109,7 +116,6 @@ def main():
         if not ctype.startswith("image"):
             print(f"heading {h}: not an image ({ctype})", file=sys.stderr)
             continue
-        name = f"{pano}_h{h:03d}.jpg"
         with open(os.path.join(out, name), "wb") as f:
             f.write(data)
         with open(os.path.join(out, "SOURCES.md"), "a") as f:
