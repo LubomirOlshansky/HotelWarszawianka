@@ -62,6 +62,8 @@ const HEAT := Color("#ffb020")    # timers and hot food
 ## Road life (road_life.gd): the ambulance's edge mark, a yellow disc with a red cross.
 const AMBULANCE := Color("#f2cf1d")
 const AMBULANCE_CROSS := Color("#d9262c")
+## Road life stage 3: the fire engine's red (models.gd FIRE_RED) on the HUD's edge mark.
+const FIRE_ENGINE := Color("#c4161c")
 
 ## The brand neon (the title's sunset, KEBAB FM, stars, portrait rings, photo mode's frame).
 const NEON_PINK := Color("#ff4fd8")

@@ -92,3 +92,24 @@ wall as spam, coach, unplayed racket, tennis-padel-pickleball, three-week bookin
 photo, fourth on court, chess with a ball.
 
 Then: three character lines in the queue, a notebook place `padelnia` (chapter "trendy"), and the "Czwarty" job (fetch a player 400-1500 m away, bring them to the court in 7 min; 45 zł + 8 zł a km there and back, +14 respect). Offered when the car is within 60 m of PADELNIA's door and its line has 10 or more people.
+
+## Committed swing and the ring (2026-11-26, critique-padel.md items 1, 2, 4, 6, 10 in part)
+A tap books the best contact the ball's flight offers (`PadelSim._scan_contact`, 60 Hz look-ahead);
+the ring around the ball and around the UDERZ button closes LEAD (0.14 s) before it. Tap error up to
+60 ms is CZYSTO (q 1.0, gold flash, 60 ms hit-stop), 120 ms 0.8, 200 ms 0.6, worse 0.4 with a small grey
+ZA SZYBKO / ZA WOLNO. Aim: no stick, early tap crosses, late tap goes down the line; stick up/down picks
+a corner, towards the net deep, away a drop. The stick no longer moves you (auto-run always on). Your own
+shots find the open spot only partly (HUMAN_SPREAD), the rivals are stronger (0.82 / 0.86, never read a
+ball under 0.88), the decider at 1:1 is first to three, pauses are shorter, the friend covers 1.4x his
+lane, TWOJA! when the friend leaves a ball to you, WYMIANA counter from six hits, Prezes changes rackets.
+`check_padel` plays three hands: ring 45 ms wins about 70%, 110 ms about 40%, a masher under 10%.
+
+## How-to and warm-up (2026-11-26, F: "make some intro ... onboarding/instruction")
+The first match of a run opens with JAK GRAĆ / HOW TO PLAY: four rows over the dimmed court, each with
+a small moving picture (the ring closing on a ball with its gold CZYSTO flash; early across, late down
+the line; the left thumb aiming; a high ball for a smash). A tap starts the warm-up: Prezes feeds
+three slow balls into your lane (`PadelSim.warm_on`, the rivals don't chase your returns), Dominik
+grades each tap (TAK JEST / DOBRZE / ZA WCZEŚNIE / ZA PÓŹNO / JESZCZE RAZ), nothing counts; then
+GRAMY NA SERIO!, Prezes: „Ja się nie rozgrzewam. Ja od razu gram.” and the match from 0:0. POMIŃ skips
+both; a player who never taps is moved on after 25 s. Not saved: once per session. The words of the
+whole match now live in dialogue.json, group `padel_match`.

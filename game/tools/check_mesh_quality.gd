@@ -149,6 +149,7 @@ const BUDGET := {
 	"cosmopolitan": 420,  # 2026-11-08 photo rebuild (F)
 	"plac_grzybowski": 1500,  # 2026-11-08 photo build (F): 1429 tris, the cascade field is 48 blocks
 	"prozna": 5100,  # 2026-11-08 photo build (F): 5014 tris, 1,300 of them the 90 bollards
+	"ns4a": 1200,  # 2026-11-26 Nowy Świat 4A from F's night photo: lobby, copper fascia, glass with lit fins, flag band, top storey, roof box, flag: 1097 tris, +0 draw calls
 	"dom_partii": 14300,  # 2026-11-21 teaser 4 (F): café guests and dogs at the tables, then the courtyard by the bar (deckchairs, a stage, crowds): 13593 tris; earlier: 2026-11-12 rebuilt whole from F's photos: 5202 tris; 2026-11-19 the arcade, terrace, cafés and tables: 7225 tris, +0 draw calls
 	"eon41": 1300,  # 2026-11-13 photo rebuild (F): the power company's L-block, curve, medallions, glass tower, lantern
 	"asp37": 1600,  # 2026-11-13 the Academy of Fine Arts: the 1914 school and JEMS's wing
@@ -164,7 +165,7 @@ const BUDGET := {
 	"forest": 8100,  # 2026-11-15: the real green roof (lawns, wavy corten beds, railing, pavilions, tent), measured 6739 (was 4260)
 	"gpy": 2000,  # RD-3 (2026-11-06): black patches, the wings' decks, trees and tables
 	"gaulle": 880,
-	"rondo": 7000,
+	"rondo": 10000,  # 2026-11-26: open wells, bent beds, arm beds, the square by the Empik pavilion: measured 8771
 	"sunken": 5600,  # 2026-11-05: the Patelnia and the Rotunda's stair: walls, railings, treads, two barrels
 	"metro_tubes": 1500,  # 2026-11-09: Metro Centrum's two barrels by the Palace park: ribs, pink walls, escalators
 	"metro_pavilion": 800,  # 2026-11-19: Metro Centrum's big glass pavilion by the Palace park: 14 ribs, glazing bars, fan end
@@ -215,8 +216,8 @@ const BUDGET := {
 	"mpw": 3200,
 	"metropolitan": 3100,
 	"metropolsign": 320,  # 2026-11-10: Hotel Metropol rebuilt whole from F's photos (255 measured)
-	"muzeum": 3500,  # 2026-11-06 photo pass: a stone pier on every bay boundary, fence, flagpoles
-	"palace": 7600,   # 2026-11-07: 3696 -> 7288, Bar Studio's 34 deck chairs, tables, festoons and frame signs (same mesh, no new draw call)
+	"muzeum": 4600,  # 2026-11-26 the lit roof sign (wave + MUZEUM NARODOWE in built serif letters, F's night photo): 4478 tris; 2026-11-06 photo pass: a stone pier on every bay boundary, fence, flagpoles
+	"palace": 28500,   # 2026-11-26 the Blender Palace is the default (F, reel close-ups): 27,708 tris with the crown frieze, the glb's 23,084 plus the venues, one mesh, +0 draw calls (probe below). Before, 2026-11-07: 3696 -> 7288, Bar Studio's 34 deck chairs, tables, festoons and frame signs (same mesh, no new draw call)
 	"pawilony": 2100,
 	"plater49": 140,
 	"platinum_a": 80,
@@ -256,6 +257,7 @@ const BUDGET := {
 	"equator": 120,
 	"equator2": 120,
 	"wiecha": 3700,  # 2026-11-19 night life (lit displays, awnings, kebab hatch, bulbs); 2026-11-22 the cafés' own lit bays, words and bulb strings (3,042)
+	"niecala7": 13000,  # 2026-11-26 Rezydencja Opera, Niecała 7 (F): the whole block on its mapped outline, stacked round balconies, pergola; +0 draw calls. 8000 → 11500 the same day: F asked for the balconies of the photos F sent (dish bowls, posts, hoops, a stack on every arc edge), 10930 tris; 13000 for the ivy and the geranium boxes (F, 12478 tris)
 	"warsztat_mirka": 3600,  # 2026-11-24 Mirek's tuning workshop on Grzybowska (F): the hall with three doors, two lifts (a hatch, a stripped shell), two supercars, the Bawarka in its oil, a stripped car, tyres, the roof car, 2,981 tris; +0 draw calls
 	"wiecha_swieta": 27000,  # 2026-11-22 Pasaż Wiecha at Christmas (F's photos): 22 shooting stars on the masts, the gingerbread tunnel, the neon fir, bauble benches, two photo frames, LED curtains, 26,230 tris; +0 draw calls (one mesh)
 	"orly": 1600,
@@ -335,14 +337,17 @@ const BUDGET := {
 	"sw_krzyz": 1250,  # 2026-11-06 photo pass: the real flat front, balustrade and statue
 	"sejm": 1400,
 	"staszic": 360,
-	"zamek": 4300,
-	"zamkowy": 1700,
+	"zamek": 24500,  # 2026-11-26 pass 3: the whole castle as one model, LoD2 gone (the named exception to L3; spec section 7)
+	"zamkowy": 2900,  # 2026-11-26: + the oak's granite block bench in two tiers and railing (measured 2778)
+	"mansjonaria": 2700,  # 2026-11-26: the buttressed house by the oak modelled whole (measured 2458)
+	"nikidw": 2400,  # 2026-11-26: the Institute modelled whole: 12-bay two-storey arcade, wings, hipped roofs (measured 2268)
 	"arkady": 2600,
 	"kino_muranow": 6000,
 	"zbawiciela": 3400,
 	"zbawiciela_plac": 2200,
 	"tarasy": 9400,  # 2026-11-11 F's photos: the triangular glass wave, the guitar, the café (5455); the whole complex: podium ledges, shop boards, Lumen's setback (7781)
 	"tarasy_plaza": 2750,  # 2026-11-11: the sunken plaza by the station: walls, shopfronts, railings, treads, umbrellas (2290)
+	"rondo_wells": 6000,  # 2026-11-26: Rondo Dmowskiego's twelve stairwells sunk 3.5 m: coping, railings, treads, mouths
 	"trojca": 3700,  # 2026-11-14 photo rebuild: rusticated drum, arched windows, framed oculi, Doric porticoes with lunettes, dormers, glazed lantern (measured 3361)
 	"unit": 1450,  # 2026-11-19: the Dragon Skin dress (green wall, MODERATO) and the corner café board
 	"varso": 4300,  # 2026-11-15 photo rebuild (3614 tris): grey frame, louvre crown, lattice spire with dish platforms, lobby, observation box; +0 draw calls
@@ -352,7 +357,7 @@ const BUDGET := {
 	"wizytki": 3600,  # 2026-11-14: the whole Visitationist church replaces LoD2 (front, nave, aisles, chancel, wing, turret; measured 3248)
 	"branickich": 1500,
 	"archikatedra": 1100,
-	"sw_anna": 1050,  # 2026-11-06 photo pass: giant order, niches, attic, tower dome
+	"sw_anna": 7800,  # 2026-11-26: the whole church (nave, presbytery, chapels, Loreto, monastery wing) and the bell tower rebuilt from photos and the 3D views (measured 7403)
 	"widok": 820,  # 2026-11-22 rebuilt from F's photos: two slabs, the core, soffit, roof plant (682 tris)
 	"pzu": 900,
 	"jm": 900,
@@ -390,7 +395,7 @@ const BUDGET := {
 ## block's `facade` walls do (fronts.gd _build_block): they go into the same building surface, so no
 ## draw call of their own; any plain triangle more than that number still fails.
 ## dom_chlopa "plain": the one wall quad (works.gd _dch_fill_front) over its south-west front, the same way.
-const KNOWN := {"jarmark": {"zfight": 1235, "float": 777}, "lipowa1a": {"zfight": 2}, "port_praski": {"plain": 750}, "dom_chlopa": {"plain": 2}, "towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}, "tr": {"zfight": 8}}  # lipowa1a: 2 coplanar triangles where two cornice slabs meet at the base corners (12 m up, never seen); jarmark: coplanar panels on the chalets' fronts about 1 m up (1235, sampled in rows R3 and R4; not yet traced) and the bulbs hung on strings over the aisles (777, they hang by design); tr: 8 coplanar triangles in crane 1's A-frame legs at 36 m, not found (hidden in a lattice, never seen)
+const KNOWN := {"jarmark": {"zfight": 1235, "float": 777}, "lipowa1a": {"zfight": 2}, "port_praski": {"plain": 750}, "dom_chlopa": {"plain": 2}, "towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}, "tr": {"zfight": 8}, "palace": {"zfight": 101}}  # lipowa1a: 2 coplanar triangles where two cornice slabs meet at the base corners (12 m up, never seen); jarmark: coplanar panels on the chalets' fronts about 1 m up (1235, sampled in rows R3 and R4; not yet traced) and the bulbs hung on strings over the aisles (777, they hang by design); tr: 8 coplanar triangles in crane 1's A-frame legs at 36 m, not found (hidden in a lattice, never seen); palace: 101 coplanar triangles at 17-18 m where the wings' walls and cornices meet the base cornice (inside the stone, not seen in the close-ups; the steps and colonnade ones, 186 before, are fixed)
 
 var _probe: MeshProbe
 var problems: Array[String] = []

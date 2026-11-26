@@ -67,12 +67,15 @@ const MDM_CROWNS := [
 	[Vector2(-462.0, 1374.3), 27.4, 7.5, 5.8],   # the south gate, east
 ]
 ## Roof and hotel signs, all on the Hotel MDM (Plac Konstytucji 1, the south-west block, 27.4 m; the
-## real MDM and BYD neons share its roof, read from the square; the direction is the text's back): [word, spot, outward direction, roof height above ground, width m, colour].
+## real MDM and BYD neons share its roof, read from the square): [word, spot, outward direction, roof height above ground, width m, colour].
+## The direction is the sign's front, as Neon.place wants it: the quad is cull_disabled, so a sign
+## whose direction points away from the viewer reads mirrored (the HOTEL MDM bug, 2026-11-26).
+## From the square a sign on the hotel's roof looks along -MDM_A; XIAOMY is on the east block.
 const MDM_SIGNS := [
-	["MDM", Vector2(-512.0, 1388.5), Vector2(0.349, 0.937), 32.2, 8.0, MDM_RED],
-	["BYDŁO", Vector2(-527.0, 1394.5), Vector2(0.349, 0.937), 31.0, 12.0, MDM_SILVER],
+	["MDM", Vector2(-512.0, 1388.5), Vector2(-0.349, -0.937), 32.2, 8.0, MDM_RED],
+	["BYDŁO", Vector2(-527.0, 1394.5), Vector2(-0.349, -0.937), 31.0, 12.0, MDM_SILVER],
 	["XIAOMY", Vector2(-447.0, 1366.0), Vector2(-0.349, -0.937), 27.8, 11.0, MDM_ORANGE],
-	["HOTEL MDM", Vector2(-509.8, 1382.2), Vector2(0.349, 0.937), 5.9, 5.2, MDM_RED],
+	["HOTEL MDM", Vector2(-509.8, 1382.2), Vector2(-0.349, -0.937), 5.9, 5.2, MDM_RED],
 ]
 
 
@@ -895,6 +898,182 @@ func _build_dom_partii(_site: Dictionary) -> void:
 	var k_w := 11.0 / Neon.length_of("WISTULA")
 	var wp := _w(DOM_LEN * 0.5, DOM_BODY_V[0].x + 1.2)
 	signs.append(["WISTULA", Vector3(wp.x, g + DOM_BODY_TOP, wp.y), Vector3(-_b.x, 0.0, -_b.y), k_w, DOM_WISTULA])
+
+
+# --- Nowy Świat 4A, the glass corner south of Dom Partii (F's night photo, 2026-11-26) -----------
+
+## The office block at Nowy Świat 4A (OpenStreetMap's "Nowy Świat 2.0"), modelled whole from F's
+## night photo from Rondo de Gaulle'a, Street View (2026-08) and the 3D Tiles render: a 78 m wedge
+## along the lane south of Dom Partii, its west end rounded onto Nowy Świat. From the mapped parts:
+## - a recessed glass lobby 6.6 m high (OSM's min_height of the overhang) on slim round columns,
+##   lit pink-violet at night (the photo; M_PAVILION + 0.375, SOWA CLUB's tone): PRZEGRYWKI, the
+##   board-game and arcade bar (the Zagrywki parody, F's "zGrywki"; storefronts.gd's venue stands
+##   at this corner);
+## - a copper-brown fascia and soffit over it (Street View), then four storeys of silvery glass
+##   lit cool white at night (to OSM's 20.8 m) with dark frame bands at every floor and vertical fins every 1.6 m that glow
+##   white at night (the photo's lit fins);
+## - a white band with the flag's red stripe under it (20.8-22.3 m) wearing the tenant's sign as a
+##   parody: PGR (the state farm, for the arms group's three letters), then the set-back glass top
+##   storey to 24.6 m behind a glass rail;
+## - on the roof a white plant box and, at the rounded end, an 11 m white pole with the Polish
+##   flag caught mid-wave (a fixed ripple in the city mesh: no extra draw call).
+const NS4A_STOREY := 3.55
+const NS4A_LOBBY := 6.6
+const NS4A_FASCIA := 7.4
+const NS4A_GLASS_TOP := 20.8
+const NS4A_BAND_RED := 21.25
+const NS4A_BAND_TOP := 22.3
+const NS4A_TOP := 24.6
+const NS4A_FIN_STEP := 1.6
+const NS4A_LOBBY_GLASS := Color("#3f3a62")
+const NS4A_COPPER := Color("#8a4a2f")
+const NS4A_GLASS := Color("#b4c6ca")
+const NS4A_TOP_GLASS := Color("#5d7277")
+const NS4A_FRAME := Color("#2a2c30")
+const NS4A_FIN := Color("#d3dadd")
+const NS4A_WHITE := Color("#f1f1ee")
+const NS4A_RED := Color("#d4213d")
+const NS4A_ROOF := Color("#8f9294")
+const NS4A_RAIL := Color("#c6d3d7")
+const NS4A_SIGN := Color(0.14, 0.17, 0.28)
+
+
+func _find_ns4a() -> void:
+	var outline := _landmark("Nowy Świat 2.0")
+	if outline.size() < 3:
+		return
+	# The overhang (OSM's part from 6.6 m) stands up to 1.6 m proud of the outline: the zone takes it.
+	_add_site("ns4a", [_largest(Geometry2D.offset_polygon(outline, 1.8, Geometry2D.JOIN_MITER))])
+	if not sites.is_empty() and sites[-1]["key"] == "ns4a":
+		sites[-1]["ring"] = _simplify(outline, 0.25)
+
+
+func _build_ns4a(site: Dictionary) -> void:
+	var ring: PackedVector2Array = site["ring"]
+	_g = _ground_under(ring)
+	var g := _g
+	var lobby := _largest(Geometry2D.offset_polygon(ring, -1.0, Geometry2D.JOIN_MITER))
+	var fascia := _largest(Geometry2D.offset_polygon(ring, 0.5, Geometry2D.JOIN_MITER))
+	var body := _largest(Geometry2D.offset_polygon(ring, 0.3, Geometry2D.JOIN_MITER))
+	var top := _largest(Geometry2D.offset_polygon(ring, -1.6, Geometry2D.JOIN_MITER))
+	# The lobby: violet-lit glass behind the columns, the copper fascia and its soffit over it.
+	_prism(lobby, g - 0.5, g + NS4A_LOBBY, NS4A_LOBBY_GLASS, Color(0, 0, 0, 0), M_PAVILION + 0.375)
+	_prism(fascia, g + NS4A_LOBBY, g + NS4A_FASCIA, NS4A_COPPER, Color(0, 0, 0, 0), M_STONE)
+	_soffit(fascia, g + NS4A_LOBBY, NS4A_COPPER.darkened(0.25))
+	var cols := _ns4a_along(_largest(Geometry2D.offset_polygon(ring, -0.3, Geometry2D.JOIN_MITER)), 9.0)
+	for c: Vector2 in cols:
+		_prism(_circle(c, 0.32, 8), g - 0.3, g + NS4A_LOBBY, NS4A_FRAME.lightened(0.5), Color(0, 0, 0, 0), M_STONE)
+	# Four storeys of glass, lit cool white floor to ceiling at night as in the photo (M_PAVILION +
+	# 0.5, Varso's crown's tone), a dark frame band at every floor, the fins in front of the glass.
+	_prism(body, g + NS4A_FASCIA, g + NS4A_GLASS_TOP, NS4A_GLASS, Color(0, 0, 0, 0), M_PAVILION + 0.5)
+	for k in 4:
+		var y := g + NS4A_FASCIA + k * NS4A_STOREY
+		_band(ring, 0.6, y - 0.05, y + 0.42, NS4A_FRAME)
+	var fins := _largest(Geometry2D.offset_polygon(ring, 0.42, Geometry2D.JOIN_MITER))
+	_mode = M_LAMP
+	for i in fins.size():
+		var a := fins[i]
+		var b := fins[(i + 1) % fins.size()]
+		var length := a.distance_to(b)
+		if length < 0.3:
+			continue
+		var e := (b - a) / length
+		var o := _out(fins, a, b)
+		var n := maxi(1, roundi(length / NS4A_FIN_STEP))
+		for k in n:
+			var c := a + e * length * (k + 0.5) / n
+			var p0 := c - e * 0.15
+			var p1 := c + e * 0.15
+			_quad(Vector3(p0.x, g + NS4A_FASCIA, p0.y), Vector3(p1.x, g + NS4A_FASCIA, p1.y),
+					Vector3(p1.x, g + NS4A_GLASS_TOP, p1.y), Vector3(p0.x, g + NS4A_GLASS_TOP, p0.y),
+					Vector3(o.x, 0.0, o.y), NS4A_FIN)
+	_mode = M_STONE
+	# The flag-coloured band, the terrace round the top storey, its glass rail, the top storey.
+	_band(ring, 0.6, g + NS4A_GLASS_TOP, g + NS4A_BAND_RED, NS4A_RED)
+	var deck := _largest(Geometry2D.offset_polygon(ring, 0.6, Geometry2D.JOIN_MITER))
+	_prism(deck, g + NS4A_BAND_RED, g + NS4A_BAND_TOP, NS4A_WHITE, Color("#b8bbbe"), M_STONE, M_STONE)
+	_parapet(_largest(Geometry2D.offset_polygon(ring, 0.45, Geometry2D.JOIN_MITER)), g + NS4A_BAND_TOP, 1.0, NS4A_RAIL)
+	_prism(top, g + NS4A_BAND_TOP, g + NS4A_TOP, NS4A_TOP_GLASS, NS4A_ROOF, M_GLASS, M_STONE)
+	_parapet(top, g + NS4A_TOP, 0.5, NS4A_WHITE)
+	# The roof: the white plant box and the flagpole near the rounded end (the long axis from it).
+	var west := Vector2.ZERO
+	var east := Vector2.ZERO
+	for q in ring:
+		if q.x < west.x or west == Vector2.ZERO:
+			west = q
+		if q.x > east.x or east == Vector2.ZERO:
+			east = q
+	_o = _centre(top)
+	_a = (east - west).normalized()
+	_b = Vector2(-_a.y, _a.x)
+	var lw := _local(west)
+	_lbox(lw.x + 16.0, 0.0, 5.0, 2.6, g + NS4A_TOP, g + NS4A_TOP + 3.2, NS4A_WHITE, M_STONE, Color("#dcdcd8"))
+	var pole := _w(lw.x + 6.5, 0.0)
+	var pole_top := g + NS4A_TOP + 11.0
+	_beam(Vector3(pole.x, g + NS4A_TOP, pole.y), Vector3(pole.x, pole_top + 0.3, pole.y), 0.18, NS4A_WHITE)
+	_ns4a_flag(Vector3(pole.x, pole_top, pole.y), Vector3(_a.x, 0.0, _a.y), 2.7, 1.7)
+	_collide(lobby)
+	# PGR on the white band's north face near the rounded corner (the photo's sign).
+	var best := INF
+	var at := Vector2.ZERO
+	var face := Vector2.ZERO
+	for i in deck.size():
+		var a := deck[i]
+		var b := deck[(i + 1) % deck.size()]
+		var o := _out(deck, a, b)
+		var mid := (a + b) * 0.5
+		var d := mid.distance_to(west + _a * 9.0)
+		if o.dot(-_b if _b.y > 0.0 else _b) > 0.8 and a.distance_to(b) > 2.0 and d < best:
+			best = d
+			at = mid
+			face = o
+	if best < 12.0:
+		var k_s := 0.42
+		signs.append(["PGR", Vector3(at.x, g + NS4A_BAND_RED + 0.06, at.y), Vector3(face.x, 0.0, face.y), k_s, NS4A_SIGN])
+
+
+## Points every `step` m round a ring (the lobby's columns).
+func _ns4a_along(ring: PackedVector2Array, step: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var carry := step * 0.5
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var length := a.distance_to(b)
+		var t := carry
+		while t < length:
+			out.append(a.lerp(b, t / length))
+			t += step
+		carry = t - length
+	return out
+
+
+## The Polish flag on its pole, caught mid-wave: `top` the pole's top (the hoist's upper corner),
+## `fly` the way it streams (level, unit), `w` × `h` m; six strips that swing in and out of the
+## plane, white over red, both faces drawn.
+func _ns4a_flag(top: Vector3, fly: Vector3, w: float, h: float) -> void:
+	var side := Vector3.UP.cross(fly).normalized()
+	var n := 6
+	for k in n:
+		var t0 := float(k) / n
+		var t1 := float(k + 1) / n
+		var s0 := side * sin(t0 * TAU * 1.1) * 0.28 * t0
+		var s1 := side * sin(t1 * TAU * 1.1) * 0.28 * t1
+		var d0 := Vector3.DOWN * 0.18 * t0 * t0
+		var d1 := Vector3.DOWN * 0.18 * t1 * t1
+		var a0 := top + fly * w * t0 + s0 + d0
+		var a1 := top + fly * w * t1 + s1 + d1
+		var nrm := (a1 - a0).cross(Vector3.UP).normalized()
+		for half in 2:
+			var col := NS4A_WHITE if half == 0 else NS4A_RED
+			var y0 := -h * 0.5 * half
+			var y1 := y0 - h * 0.5
+			var p0 := a0 + Vector3.UP * y0
+			var p1 := a1 + Vector3.UP * y0
+			var p2 := a1 + Vector3.UP * y1
+			var p3 := a0 + Vector3.UP * y1
+			_quad(p0, p1, p2, p3, nrm, col)
+			_quad(p1, p0, p3, p2, -nrm, col)
 
 
 # --- The Bridge and Grzybowska 77 (F's photos, 2026-11-06) -----------------------------------

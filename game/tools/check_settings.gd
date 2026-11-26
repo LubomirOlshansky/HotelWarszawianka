@@ -33,7 +33,7 @@ func _initialize() -> void:
 			and fresh.master == 1.0 and fresh.music == 1.0 and fresh.effects == 1.0 and not fresh.perf and fresh.classic_follow \
 			and fresh.fps == 60 and fresh.style == 0 and not fresh.zone_cap and fresh.handling == 0 and is_equal_approx(fresh.character, Settings.CHARACTER_DEFAULT) \
 			and not fresh.text_large and not fresh.calm and not fresh.color_safe and fresh.vibration and fresh.stop_assist \
-			and not fresh.left_handed and fresh.lane_assist and fresh.pads == Settings.PADS_SLIDER and fresh.view == 65.0 and fresh.pitch == 30.0 and fresh.camera_view == 0 \
+			and not fresh.left_handed and not fresh.auto_pour and fresh.lane_assist and fresh.pads == Settings.PADS_SLIDER and fresh.view == 65.0 and fresh.pitch == 30.0 and fresh.camera_view == 0 \
 			and fresh.collide == Settings.DEFAULT_COLLIDE and fresh.soft_fences == Settings.DEFAULT_SOFT
 	print("defaults from a missing file: %s (%s)" % ["OK" if defaults else "WRONG", fresh.summary()])
 	ok = ok and defaults
@@ -114,6 +114,7 @@ func _initialize() -> void:
 	a.vibration = false
 	a.stop_assist = false
 	a.left_handed = true
+	a.auto_pour = true
 	a.lane_assist = false  # off by choice (on is the default since 2026-11-13) survives the round trip
 	a.pads = Settings.PADS_ARROWS  # the arrows by choice (the slider is the default since 2026-11-14) survive
 	a.view = 40.0
@@ -124,7 +125,7 @@ func _initialize() -> void:
 	b.path = SCRATCH
 	b.load_file()
 	var same := a.summary() == b.summary() and b.classic_follow == a.classic_follow and b.view == 40.0 and b.pitch == 50.0 and b.camera_view == 2 \
-			and not b.lane_assist and b.pads == Settings.PADS_ARROWS and b.collide == 3 and not b.soft_fences and b.grade == 1
+			and not b.lane_assist and b.pads == Settings.PADS_ARROWS and b.collide == 3 and not b.soft_fences and b.grade == 1 and b.auto_pour
 	# H1: saves from before the „Charakter jazdy" slider: Sport is its right end, Cruise the new
 	# default, Grounded Realnie, and a moved sensitivity shifts it by half its offset.
 	for row: Array in [[1, 0.5, 1.0, 0], [0, 0.5, Settings.CHARACTER_DEFAULT, 0], [2, 0.5, Settings.CHARACTER_DEFAULT, 1], [0, 0.9, Settings.CHARACTER_DEFAULT + 0.2, 0]]:

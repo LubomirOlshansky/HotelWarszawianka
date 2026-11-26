@@ -2126,6 +2126,7 @@ func _set_quality(choice: int) -> void:
 	if map != null and map.leaf_material != null:
 		map.leaf_material.set_shader_parameter("limbs", 1.0 if Tiers.value(quality, "tree_limbs", true) else 0.0)
 	if map != null: map.set_tree_detail(bool(Tiers.value(quality, "fine_trees", false)))  # perf thread: simple crowns below Experimental
+	if building_mat != null: building_mat.set_shader_parameter("clutter", 1.0 if Tiers.value(quality, "house_clutter", true) else 0.0)  # house types 2b
 	if map != null and map.panel_material != null: map.panel_material.set_shader_parameter("holes", 1.0 if Tiers.value(quality, "panel_holes", true) else 0.0)
 	if crowds != null:
 		crowds.amount = _crowd_scale()
@@ -2827,6 +2828,8 @@ func _build_event_day(data: Dictionary, world: Node3D) -> void:
 func _build_loud_cars(world: Node3D) -> void:
 	if traffic != null:
 		traffic.loud_target = flags.loud_flag
+		# Road life (2026-11-26): the driving schools' Elkas, in a normal launch (or --elka=X).
+		traffic.elka_share = flags.elka_flag if flags.elka_flag >= 0.0 else (Traffic.ELKA_CHANCE if flags._crash_auto else 0.0)
 	if flags.loud_flag == 0:
 		return
 	loud_cars = LoudCars.new()
@@ -3018,6 +3021,11 @@ func _honk() -> void:
 		return  # too soon after the last honk
 	if fans != null:
 		fans.honk(car.global_position)
+	# Road life (2026-11-26): the courier answers, an Elka's instructor sighs, a wedding honks back.
+	if crash_scenes != null:
+		crash_scenes.honk(car.global_position)
+	if road_life != null:
+		road_life.honk(car.global_position)
 
 
 ## The buses (buses.gd) on the traffic's lane graph, after everyday life (the dogs hear the horn).
@@ -3059,30 +3067,17 @@ func _build_crash_scenes() -> void:
 		return
 	crash_scenes = CrashScenes.new()
 	crash_scenes.name = "CrashScenes"
-	crash_scenes.traffic = traffic
-	crash_scenes.graph = graph
-	crash_scenes.map = map
+	crash_scenes.install(_build_ctx())
 	crash_scenes.walkers = walkers
-	crash_scenes.dialogue = dialogue
-	crash_scenes.police = police
-	crash_scenes.radio = radio
-	crash_scenes.sfx = sfx
-	crash_scenes.hud = hud
-	crash_scenes.log_on = flags.crash_log
-	crash_scenes.enabled = flags._crash_auto or flags.crash_flag != ""
-	crash_scenes.focus = func() -> Vector3: return cam_focus
-	crash_scenes.vehicle = func() -> Array:
-		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true]
-		return [car.global_position, car.vel.length() * 3.6, false]
+	# Road life stage 3, "Pan wolny?!": a taxi check's passenger asks Podwózka for the ride.
+	crash_scenes.stranded = func(at: Vector2) -> bool: return rides != null and rides.offer_stranded(at)
+	crash_scenes.stranded_on = func() -> bool: return rides != null and rides.stranded_on()
+	# Road life (2026-11-26): the sobriety check reads the pub's beer.
+	crash_scenes.tipsy = func() -> float: return tapczan.tipsy.amount if tapczan != null and tapczan.tipsy != null else 0.0
 	add_child(crash_scenes)
 	crash_scenes.setup()
-	var xz := flags.crash_flag.split(",")
-	if flags.crash_flag in ["now", "taxi"] or xz.size() == 2:
-		var p := car.global_position
-		var f := -car.global_transform.basis.z
-		var at := Vector2(float(xz[0]), float(xz[1])) if xz.size() == 2 else Vector2.INF
-		crash_scenes.place(Vector2(p.x, p.z), Vector2(f.x, f.z).normalized(), true, at, xz[0] if xz[0] == "taxi" else "")
+	var f := -car.global_transform.basis.z
+	crash_scenes.test_flag(flags.crash_flag, Vector2(car.global_position.x, car.global_position.z), Vector2(f.x, f.z).normalized())
 	crash_scenes.hushed = func() -> bool: return (police != null and police.phase != 0) or (first10 != null \
 			and first10.guide) or (activities.current() != null and activities.current().target_source() == "race")
 	road_life = RoadLife.make(_build_ctx(), self, crash_scenes.hushed) as RoadLife  # the ambulance, Zielone!: quiet alike
@@ -5090,7 +5085,7 @@ func _settings_state() -> Dictionary:
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
 			"lane_assist": int(car.lane_assist if car != null else settings.lane_assist),
 			"pads": settings.pads if hud == null else (0 if hud.arrows_layout else 1),
-			"left_handed": int(settings.left_handed), "lang": maxi(0, Lang.CODES.find(Lang.code)), "stats": int(settings.stats),
+			"left_handed": int(settings.left_handed), "auto_pour": int(settings.auto_pour), "lang": maxi(0, Lang.CODES.find(Lang.code)), "stats": int(settings.stats),
 			"where": _feedback_where()}
 
 
@@ -5243,7 +5238,7 @@ func _on_setting(key: String, value: Variant) -> void:
 		"zones":
 			settings.zone_cap = int(value) == 1
 			zone_cap_on = settings.zone_cap
-		"text_large", "calm", "color_safe", "vibration", "stop_assist", "left_handed":
+		"text_large", "calm", "color_safe", "vibration", "stop_assist", "left_handed", "auto_pour":
 			# Accessibility (access.gd): all of it shows at once, text size included.
 			settings.set(key, int(value) == 1)
 			Access.apply(settings)
