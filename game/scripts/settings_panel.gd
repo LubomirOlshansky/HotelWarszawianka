@@ -370,6 +370,8 @@ func _build() -> void:
 	_segments(access[1], "stop_assist", ON_OFF)
 	_heading(access[1], "Dla leworęcznych", "Left-handed: pedals on the left")
 	_segments(access[1], "left_handed", ON_OFF)
+	_heading(access[0], "Sos leje się sam", "The sauce pours itself")
+	_segments(access[0], "auto_pour", ON_OFF)
 
 	# OGÓLNE · General (step 3): the language, the stats, the credits and the tips (were on DŹWIĘK).
 	var general := _page(body, 2)

@@ -5082,7 +5082,7 @@ func _settings_state() -> Dictionary:
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
 			"lane_assist": int(car.lane_assist if car != null else settings.lane_assist),
 			"pads": settings.pads if hud == null else (0 if hud.arrows_layout else 1),
-			"left_handed": int(settings.left_handed), "lang": maxi(0, Lang.CODES.find(Lang.code)), "stats": int(settings.stats),
+			"left_handed": int(settings.left_handed), "auto_pour": int(settings.auto_pour), "lang": maxi(0, Lang.CODES.find(Lang.code)), "stats": int(settings.stats),
 			"where": _feedback_where()}
 
 
@@ -5235,7 +5235,7 @@ func _on_setting(key: String, value: Variant) -> void:
 		"zones":
 			settings.zone_cap = int(value) == 1
 			zone_cap_on = settings.zone_cap
-		"text_large", "calm", "color_safe", "vibration", "stop_assist", "left_handed":
+		"text_large", "calm", "color_safe", "vibration", "stop_assist", "left_handed", "auto_pour":
 			# Accessibility (access.gd): all of it shows at once, text size included.
 			settings.set(key, int(value) == 1)
 			Access.apply(settings)

@@ -434,6 +434,9 @@
 # `tajny` runs game/tools/check_tajny.gd (F 2026-11-26, the Tajny klient opening): Kebabulo's grade and
 # roast, when the opening is due, KEBAB U KEMALA's line, every line and time it asks for; no map (CI too).
 # `tajny-run` (local, slow) plays it headless with --tajny --autopilot from the call to the CO DALEJ? card.
+# `kebabstand` runs game/tools/check_kebab_stand.gd (the Tajny klient's 2D stand, phase 2): the stands'
+# menus, the pour (dry, good, jacket, auto-pour), an order to the end, the words and the buttons' fit,
+# and the view playing a whole order by itself.
 # `callcards` runs game/tools/check_call_cards.gd (F 2026-11-24, a call that rang unseen): every call,
 # offer and quiz card is on screen with any controls, nitro, status line and talk; no map (CI too).
 # `streaming` runs game/tools/check_streaming.gd
@@ -1564,6 +1567,7 @@ for s in $want; do
 		# THE TAPCZAN, phase 2: the words, the beer pong rules and 300 seeded games, the tipsy fade, the
 		# room's mesh, the door's ring and WEJDŹ pill, the pint, the stake, WYJDŹ.
 		tajny) check tajny '^check_tajny:' --script res://tools/check_tajny.gd -- --nosave ;;
+		kebabstand) check kebabstand '^check_kebab_stand:' --script res://tools/check_kebab_stand.gd -- --nosave ;;
 		tapczan) check tapczan '^check_tapczan:' --script res://tools/check_tapczan.gd ;;
 		# Dead electric cars: the TESŁO, the lines, the sling, the chargers on the real graph.
 		evtow) check evtow '^check_ev_tow:' --script res://tools/check_ev_tow.gd ;;
@@ -1717,7 +1721,7 @@ for s in $want; do
 		# last bar 2 min 38 s after boarding (about 12,000 frames with the call and the pickup).
 		crawl-run) game crawl 20000 '^crawl: end: made it, 3/3 bars' --crawl-call --crawl-log --crawl-route=klasyczna --autopilot ;;
 		# THE TAPCZAN in the whole game: straight in, a pint, a self-playing beer pong game, out to the tipsy drive.
-		tajny-run) game tajny-run 14000 '^tajny klient: beat done' --tajny --autopilot ;;
+		tajny-run) game tajny-run 17000 '^tajny klient: beat done' --tajny --autopilot ;;
 		tapczan-run) game tapczan 12000 '^tapczan: out: won' --tapczan=pong --tapczan-log ;;
 		shisha-run) game shisha 30000 '^shisha: done: smoke' --shisha-call --shisha-log --autopilot ;;
 		# Loop 2d-1 x 3g-1: a pull-over 25 s into that ride takes exactly one star (police.gd calls
