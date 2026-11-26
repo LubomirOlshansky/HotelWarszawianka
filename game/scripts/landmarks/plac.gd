@@ -766,7 +766,7 @@ func _find_plac2() -> void:
 		if t.get("model", false):
 			continue
 		if not sites.is_empty() and sites[-1]["key"] == t["key"]:
-			sites[-1]["skin"] = {"mode": t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
+			sites[-1]["skin"] = {"mode": M_MONUMENT_FLOOD if FLOODLIT_SITES.has(t["key"]) and t["mode"] == M_MONUMENT else t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
 
 
 ## The Metropolitan: the outline's fronts in glass (M_GLASS) behind granite fins standing out
