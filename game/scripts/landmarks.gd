@@ -2014,7 +2014,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"rondo":
 				_id = 0
 				_build_rondo(s)
-			"sunken", "underpass", "defilad_ramp", "powstancow_ramp", "tarasy_plaza":
+			"sunken", "underpass", "defilad_ramp", "powstancow_ramp", "tarasy_plaza", "rondo_wells":
 				_id = 0
 				_build_sunken(s)
 			"metro_tubes":

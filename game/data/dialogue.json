@@ -7573,7 +7573,70 @@
     ["Ktoś szuka podwózki. Nowe: zlecenie w aplikacji.", "Someone needs a lift. New: a request in the app.", {"only": "intro_ride"}],
     ["Pierwsze kroki: jeszcze %d. Złota strzałka pokazuje drogę.", "First steps: %d to go. The gold arrow shows the way.", {"only": "what_next"}],
     ["✓ Pierwsze kroki %d/%d: %s  +%d zł", "✓ First steps %d/%d: %s  +%d zł", {"only": "tick"}],
-    ["✓ Pierwsze kroki %d/%d: %s  +%d zł · Dalej: garaż", "✓ First steps %d/%d: %s  +%d zł · Next: the garage", {"only": "tick_race"}]
+    ["✓ Pierwsze kroki %d/%d: %s  +%d zł · Dalej: garaż", "✓ First steps %d/%d: %s  +%d zł · Next: the garage", {"only": "tick_race"}],
+    [
+      "%s · %d zł",
+      "%s · %d zł",
+      {
+        "only": "pot_bar"
+      }
+    ],
+    [
+      "%s  +%d zł do puli",
+      "%s  +%d zł to the pot",
+      {
+        "only": "pot_add"
+      }
+    ],
+    [
+      "MANDAT: pula %d → %d zł",
+      "FINE: pot %d → %d zł",
+      {
+        "only": "pot_fine"
+      }
+    ],
+    [
+      "Syreny! Słychać je z oddali.",
+      "Sirens! You can hear them coming.",
+      {
+        "only": "pot_tell"
+      }
+    ],
+    [
+      "%s  +%d respektu · pula %d zł",
+      "%s  +%d RESPECT · pot %d zł",
+      {
+        "only": "pot_place"
+      }
+    ],
+    [
+      "  Pula czeka: %d zł.",
+      "  The pot waits: %d zł.",
+      {
+        "only": "pot_wait"
+      }
+    ],
+    [
+      "  Pula %d zł × 2 = %d zł  +%d szacunu",
+      "  Pot %d zł × 2 = %d zł  +%d respect",
+      {
+        "only": "pot_win"
+      }
+    ],
+    [
+      "  Pula %d → %d zł. Rewanż ją znów ryzykuje.  +%d szacunu",
+      "  Pot %d → %d zł. A rematch risks it again.  +%d respect",
+      {
+        "only": "pot_lose"
+      }
+    ],
+    [
+      "Pula: +%d zł",
+      "Pot: +%d zł",
+      {
+        "only": "pot_paid"
+      }
+    ]
   ],
   "quest_book": [
     ["ZADANIA", "QUESTS", {"only": "quests"}],

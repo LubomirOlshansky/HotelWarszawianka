@@ -9,6 +9,43 @@ koncepcja organizacji ruchu"), free press photos and articles on Metro Centrum's
 four lawns (the island's quarters, 24.8-26.5 m out), and twelve walled stairwells (`steps` and
 `lines` k wall). Street furniture round it: `tools/bake_street_details.py` RONDO.
 
+## 2026-11-26 rework (F's street views and the city's square plan; Fable critique)
+
+Supersedes the tubes, the bed colours and the lawn wedges below (kept for history):
+- **Stairwells** (rebuilt from zero after F's note, 2026-11-26: the first pass's 1.05 m dark panels
+  on a coping, plus the map's own 1.9 m stone walls round the wells, read as "big fences inside small
+  stairs"): the twelve blue tubes are gone (removed in the underpass's 2020s renovation, F's street
+  views 2026-11-25). The site draws no railing of its own: the map's wall lines round each well are
+  typed `balustrade_rail` (a 0.45 m granite upstand with a dark steel rail to 1.0 m, posts, collider;
+  docs/streets/streets.json place `rondo-dmowskiego-wells`, object_types v4), so every well has one
+  low, thin railing that follows its real outline. The site adds the red M post at each mouth, and on
+  wells 0, 1 and 5 (a guess; not 9, where Widok's kerb is too close) a glass lift cabin (1.8 m, 2.9 m, #b8d2db in a dark
+  frame) on the well's long side, wherever it is clear of the carriageway and the other wells, with a
+  small bed of grasses. The mapped lawn wedges the wells stand in are paved (#c8c4ba).
+- **The wells go down** (F, 2026-11-26: "does this stairs go down or is it flat?"; they were
+  painted strips at street level): map_builder.gd SUNKEN `rondo_w0`..`rondo_w11`, one ring per
+  well on its mapped walls, the floor falling 3.5 m from the mouth to a 1.6 m landing, a dark
+  passage opening 2.2 m wide in the deep end. Site `rondo_wells` (landmarks/centre.gd
+  `_build_sunken`, style "rail"): coping, the dark steel railing and the car's collision on every
+  edge that drops, treads at ~0.16 m risers; the mapped walls on the rings are the site's
+  (city_barriers SINK_WALL_REACH). Budget 6000.
+- **Island:** light paving #c8c4ba, three mid-grey bands #a39f96 (6.0-8.4, 12.6-14.2, 21.2-23.4 m).
+  Per quarter a long bent bed (middle radius 17.3 m, 5.2 m wide, bulging 1.4 m on the diagonal,
+  rounded ends) of dark planting #4a6a3a with a red #b23a2e and a yellow #d6b23a ribbon, and a short
+  inner bed (10.4 m, 3.4 m) of clipped shrubs #3b5a40, both in a low granite kerb #b4b0a8. No purple.
+- **Arm islands** (the mapped lawns on the four arms): dark planting in a granite kerb with a
+  serpentine ribbon, yellow on the north and south arms, red on the east and west (F's satellite
+  views). Draped on the terrain (`_drape_prism`, `_drape_cap`, 3 m cells).
+- **The square by the Empik pavilion** (the city's "Zielona metamorfoza" render; the city page
+  could not be read from the cloud): light slabs over the car park, the big rounded lawn island with
+  five young trees and shrubs at the pavilion's north end, five rectangular tree beds between the
+  pavilion and Hotel Metropol, café tables under umbrellas by the block, an advertising column; the
+  laser scan's crowns there go (tree_free 24 m). The pavilion's roof is white with a glass roof light.
+- **The passage between the pavilion and Hotel Metropol** (F, 2026-11-26): the old service lane in
+  the square's paving, three planted beds down the middle (6 m x 3 m, two young trees each), a
+  timber seat on each bed's Metropol-side kerb, three 5 m grey lamps on the pavilion side.
+- Budget 10000 (measured 8771).
+
 ## 1. Identity
 
 Warsaw's central roundabout, where Marszałkowska crosses Aleje Jerozolimskie, over the underpass

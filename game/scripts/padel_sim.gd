@@ -48,9 +48,9 @@ const SWING_COOL := 0.2
 ## The racket's sweet spot height (m) for the quality.
 const SWEET_Z := 1.05
 const SERVE_WAIT := 1.2
-const HUMAN_SERVE_WAIT := 4.0
-const POINT_PAUSE := 1.9
-const GAME_PAUSE := 3.2
+const HUMAN_SERVE_WAIT := 2.5
+const POINT_PAUSE := 1.3
+const GAME_PAUSE := 2.2
 const GAMES_TO_WIN := 2
 const POINTS_TO_GAME := 4
 ## A rally never runs longer than this (s); a stuck ball goes to the side that hit it last. The
@@ -58,6 +58,28 @@ const POINTS_TO_GAME := 4
 const RALLY_MAX := 40.0
 ## The stick, not touched this long (s), hands the human back to the auto-run.
 const STICK_HOLD := 0.7
+## The committed swing (docs/design/critique-padel.md 3.1): a tap books the best contact the ball's
+## flight offers; the ideal tap is LEAD s before it. |tap error| up to CLEAN_S is CZYSTO (q 1.0),
+## GOOD_S 0.8, OK_S 0.6, worse 0.4. A contact further than COMMIT_MAX ahead is not booked (a whiff).
+const LEAD := 0.14
+const CLEAN_S := 0.06
+const GOOD_S := 0.12
+const OK_S := 0.2
+const COMMIT_MAX := 0.55
+const SCAN_S := 1.3
+## A hit that was not booked (a tap with no contact ahead; the old first-frame-in-reach hit) is poor.
+const RIM_Q := 0.4
+## The decider (1:1 in games) is short: first to three points, the golden point at 2:2.
+const DECIDER_POINTS := 3
+## A clean ball is harder to read: the pressure grows with the hit's quality above 0.45 (a tap on the ring wins points, a flail doesn't).
+const QDIFF := 0.0
+## The least chance a rival (not your pair's AI) reads a ball: a hard one still gets returned this often.
+const OK_MIN := 0.88
+## How well your own shots find the open spot (0..1; the AI's drives use 1): you pick when, the court picks where.
+const HUMAN_SPREAD := 0.4
+## The rivals (Prezes, Pan Zbyszek): skill and speed (m/s).
+const RIVAL_SKILL := [0.82, 0.86]
+const RIVAL_SPEED := [4.9, 5.0]
 const CALLS := ["0", "15", "30", "40"]
 
 enum Shot { DRIVE, LOB, SMASH, VOLLEY, SERVE, BANDEJA }
@@ -171,6 +193,9 @@ class Player:
 	var hit_at := -10.0
 	var hit_q := 0.0
 	var run := 0.0
+	## A booked contact (sim time, -1 none), and the tap's error: + early, - late (s).
+	var commit_at := -1.0
+	var commit_err := 0.0
 
 
 var players: Array[Player] = []
@@ -204,7 +229,16 @@ var _stick_idle := 99.0
 ## The human's serve is waiting for a tap.
 var serve_tap := false
 var stalls := 0
-var stats := {"hits": 0, "smashes": 0, "glass": 0, "rallies": 0, "longest": 0, "perfect": 0, "your_hits": 0}
+var stats := {"hits": 0, "smashes": 0, "glass": 0, "rallies": 0, "longest": 0, "perfect": 0, "your_hits": 0,
+		"pair_hits": 0, "clean": 0}
+## Your best contact for the ball coming (sim time, -1 none): the ring closes at `cue_at - LEAD`.
+var cue_at := -1.0
+var cue_p := Vector3.ZERO
+## Extra fields for the next "hit" event (the human's tap: err, clean, aimed).
+var _hit_extra := {}
+## The human's tap error for the hit being made (the aim leans on it); NAN: not a booked tap.
+var _aim_err := NAN
+var _human_hitter := false
 
 
 ## Four players: you and `partner` (team 0) against `rivals` (team 1). `seed` fixes the AI's dice.
@@ -212,8 +246,8 @@ func setup(seed: int, partner: String, rivals: Array) -> void:
 	rng.seed = seed
 	players.clear()
 	var names := ["Ty", partner, String(rivals[0]), String(rivals[1])]
-	var skills := [0.75, 0.7, 0.66, 0.72]
-	var speeds := [5.4, 4.7, 4.6, 4.7]
+	var skills := [0.75, 0.7, RIVAL_SKILL[0], RIVAL_SKILL[1]]
+	var speeds := [5.4, 4.7, RIVAL_SPEED[0], RIVAL_SPEED[1]]
 	for i in 4:
 		var pl := Player.new()
 		pl.idx = i
@@ -245,8 +279,14 @@ func call_of(team: int) -> String:
 	return CALLS[mini(int(points[team]), 3)]
 
 
+## Points a game takes: four, in the decider (games 1:1) three.
+func points_needed() -> int:
+	return DECIDER_POINTS if int(games[0]) == 1 and int(games[1]) == 1 else POINTS_TO_GAME
+
+
 func golden() -> bool:
-	return int(points[0]) == 3 and int(points[1]) == 3
+	var n := points_needed() - 1
+	return int(points[0]) == n and int(points[1]) == n
 
 
 func start_point() -> void:
@@ -296,6 +336,18 @@ func press(shot: int) -> void:
 		return
 	me.swing = 0.0
 	me.swing_shot = shot
+	me.commit_at = -1.0
+	if auto_human:
+		return
+	# Book the best contact: the tap's timing against the ring (the ideal tap is LEAD s before it).
+	_update_cue()
+	if cue_at < 0.0:
+		return
+	var at := maxf(cue_at, time)
+	if at - time > COMMIT_MAX:
+		return
+	me.commit_at = at
+	me.commit_err = (cue_at - LEAD) - time
 
 
 func step(dt: float) -> void:
@@ -311,6 +363,8 @@ func step(dt: float) -> void:
 			if phase_t > wait:
 				_serve()
 		Phase.PLAY:
+			if not auto_human:
+				_update_cue()
 			var h := dt / SUB
 			for _i in SUB:
 				_ball_step(h)
@@ -322,7 +376,7 @@ func step(dt: float) -> void:
 		Phase.POINT:
 			_ball_free(dt)
 			if phase_t > POINT_PAUSE:
-				if int(points[point_team]) >= POINTS_TO_GAME:
+				if int(points[point_team]) >= points_needed():
 					_game(point_team)
 				else:
 					start_point()
@@ -440,13 +494,19 @@ func _launch(pl: Player, from: Vector3, to: Vector2, t: float, shot: int, q: flo
 	pl.hit_q = q
 	pl.cool = SWING_COOL
 	stats["hits"] = int(stats["hits"]) + 1
+	if pl.team == 0:
+		stats["pair_hits"] = int(stats["pair_hits"]) + 1
 	if pl.human:
 		stats["your_hits"] = int(stats["your_hits"]) + 1
 	if shot == Shot.SMASH:
 		stats["smashes"] = int(stats["smashes"]) + 1
 	if q >= 0.9 and shot != Shot.SERVE:
 		stats["perfect"] = int(stats["perfect"]) + 1
-	events.append(["hit", {"who": pl.idx, "team": pl.team, "shot": shot, "q": q, "p": from}])
+	cue_at = -1.0
+	var ev := {"who": pl.idx, "team": pl.team, "shot": shot, "q": q, "p": from, "clean": false, "err": 0.0}
+	ev.merge(_hit_extra, true)
+	_hit_extra = {}
+	events.append(["hit", ev])
 	_plan(1 - pl.team)
 	_home(pl.team, shot, q, to.y)
 
@@ -473,6 +533,7 @@ static func solve(from: Vector3, to: Vector2, t: float) -> Vector3:
 func _hit(pl: Player, shot: int, q: float) -> void:
 	var dir := 1.0 if pl.team == 0 else -1.0
 	var from := ball.p
+	_human_hitter = pl.human and not auto_human
 	if shot == Shot.DRIVE and absf(from.x - NET_X) < 3.2 and bounces == 0:
 		shot = Shot.VOLLEY
 	if shot == Shot.SMASH:
@@ -507,6 +568,8 @@ func _hit(pl: Player, shot: int, q: float) -> void:
 				t = Vector2(from.x, from.y).distance_to(to) / (12.5 + 4.0 * q)
 	if q >= 0.9:
 		t *= 0.9
+	if pl.human and not auto_human:
+		to = _aim(pl, shot, to, q)
 	var err: float = (1.0 - q) * float(SCATTER[shot])
 	to += Vector2(rng.randfn(0.0, err), rng.randfn(0.0, err * 0.8))
 	to.y = clampf(to.y, -1.5, WID + 1.5)
@@ -514,8 +577,39 @@ func _hit(pl: Player, shot: int, q: float) -> void:
 	_launch(pl, from, to, maxf(t, 0.25), shot, q)
 
 
+## Where you send it (critique 3.2): timing leans the ball, the stick places it. No stick: a tap on
+## the ring (CZYSTO) keeps the open spot, an early one pulls it cross-court, a late one down the line
+## (1.3 m from the side fence: the poor tap that leans goes into it). The stick at contact: up or down
+## picks the corner (1 m from the fence), towards the net deep, away from it a drop (from q 0.8).
+func _aim(pl: Player, shot: int, to: Vector2, q: float) -> Vector2:
+	var near := pl.pos.y < WID * 0.5
+	var dir := 1.0 if pl.team == 0 else -1.0
+	if stick.length() > 0.35:
+		var out := to
+		if absf(stick.y) > 0.35:
+			out.y = WID - 1.0 if stick.y > 0.0 else 1.0
+			_hit_extra["aimed"] = 1
+		if shot != Shot.LOB and absf(stick.x) > 0.5:
+			if stick.x * dir > 0.0:
+				out.x = NET_X + dir * 8.4
+				_hit_extra["aimed"] = 1
+			elif q >= 0.8:
+				out.x = NET_X + dir * 2.6
+				_hit_extra["aimed"] = 1
+		return out
+	if is_nan(_aim_err) or absf(_aim_err) <= CLEAN_S:
+		return to
+	var lean := clampf(-(_aim_err - signf(_aim_err) * CLEAN_S) / 0.10, -1.0, 1.0)
+	var line_y := 1.3 if near else WID - 1.3
+	var cross_y := WID - 1.3 if near else 1.3
+	to.y = lerpf(to.y, line_y if lean > 0.0 else cross_y, absf(lean) * 0.85)
+	return to
+
+
 ## The y on the far side most away from the two rivals (`spread` 0..1: how hard it tries).
 func _open_y(team: int, spread: float) -> float:
+	if _human_hitter:
+		spread = minf(spread, HUMAN_SPREAD)
 	var best := WID * 0.5
 	var best_d := -1.0
 	for k in 7:
@@ -523,7 +617,8 @@ func _open_y(team: int, spread: float) -> float:
 		var d := INF
 		for pl in players:
 			if pl.team != team:
-				d = minf(d, absf(pl.pos.y - y))
+				# The friend covers 1.4x his lane, so the rivals' shots find yours.
+				d = minf(d, absf(pl.pos.y - y) / (1.4 if pl.idx == 1 else 1.0))
 		d += rng.randf() * (1.0 - spread) * 4.0
 		if d > best_d:
 			best_d = d
@@ -604,6 +699,7 @@ func _plan(team: int) -> void:
 	var best_pl: Player = null
 	var best_c: Array = []
 	var best_score := INF
+	var raw := [INF, INF]
 	for pl in mates:
 		# Each player's own ball: the earliest comfortable moment they reach with time to spare
 		# (the read, the first step and settling count), else the one with the most time to spare.
@@ -625,6 +721,8 @@ func _plan(team: int) -> void:
 			continue
 		var p2: Vector3 = c2[1]
 		var score := float(c2[0]) - time + float(c2[3]) * 0.6 + (0.0 if not spare.is_empty() else 0.6)
+		if pl.team == 0:
+			raw[0 if pl.human else 1] = score
 		if pl.human and p2.y < WID * 0.5:
 			score -= 0.5
 		if not pl.human and pl.team == 0 and p2.y < WID * 0.5:
@@ -650,6 +748,9 @@ func _plan(team: int) -> void:
 		return
 	var bp: Vector3 = best_c[1]
 	var dir := 1.0 if team == 0 else -1.0
+	if best_pl.human and float(raw[1]) < float(raw[0]) and not auto_human:
+		# The friend was nearer, and leaves it to you.
+		events.append(["yours", {}])
 	best_pl.planned = true
 	best_pl.plan_p = bp
 	best_pl.plan_t = float(best_c[0])
@@ -663,9 +764,9 @@ func _plan(team: int) -> void:
 		var cp: Vector3 = c[1]
 		slack = maxf(slack, float(c[0]) - time - Vector2(cp.x, cp.y).distance_to(best_pl.pos) / best_pl.speed)
 	var pace := ball.v.length()
-	var diff := float(PRESSURE[last_shot]) * last_q + clampf((pace - 13.0) / 28.0, 0.0, 0.3) \
+	var diff := float(PRESSURE[last_shot]) * last_q + QDIFF * maxf(last_q - 0.45, 0.0) + clampf((pace - 13.0) / 28.0, 0.0, 0.3) \
 			+ clampf(0.3 - slack, 0.0, 0.5) * 0.7 + (0.05 if bool(best_c[4]) else 0.0)
-	var ok_p := clampf(1.0 - diff * (1.7 - best_pl.skill), 0.4, 0.985)
+	var ok_p := clampf(1.0 - diff * (1.7 - best_pl.skill), OK_MIN if best_pl.team == 1 else 0.4, 0.985)
 	var read := (best_pl.human and not auto_human) or rng.randf() < ok_p
 	best_pl.will_reach = true
 	best_pl.botch = false
@@ -699,10 +800,8 @@ func _players_step(dt: float) -> void:
 			if pl.jump <= 0.0:
 				pl.jump_v = 0.0
 		var want := Vector2.ZERO
-		var manual := pl.human and not auto_human and _stick_idle < STICK_HOLD
-		if manual:
-			want = stick.limit_length(1.0) * pl.speed
-		elif pl.react > 0.0:
+		# The auto-run is always on (the stick aims, see _aim): it can no longer make you worse.
+		if pl.react > 0.0:
 			pl.react -= dt
 		else:
 			var to := pl.target - pl.pos
@@ -719,7 +818,18 @@ func _players_step(dt: float) -> void:
 		pl.run += pl.vel.length() * dt
 		if pl.swing >= 0.0:
 			pl.swing += dt
-			if can_hit(pl, pl.swing_shot == Shot.DRIVE):
+			if pl.commit_at >= 0.0:
+				# A booked swing: the racket winds up, then the hit lands on the best contact.
+				var smash_ok := pl.swing_shot == Shot.DRIVE
+				if time >= pl.commit_at - 0.001:
+					if can_hit(pl, smash_ok) or _near_hit(pl, smash_ok):
+						_human_hit(pl)
+					elif time > pl.commit_at + 0.12:
+						pl.swing = -1.0
+						pl.commit_at = -1.0
+						pl.cool = SWING_COOL
+						events.append(["whiff", {"who": pl.idx}])
+			elif can_hit(pl, pl.swing_shot == Shot.DRIVE):
 				_human_hit(pl)
 			elif pl.swing > SWING_S:
 				pl.swing = -1.0
@@ -747,22 +857,135 @@ func _reach(pl: Player) -> float:
 	return REACH + LUNGE * clampf(pl.vel.length() / maxf(pl.speed, 0.1), 0.0, 1.0)
 
 
-## The timing's quality: the ball near the middle of the reach at the sweet height is 1.
+## The contact's quality: the ball near the middle of the reach at the sweet height is 1.
 func quality(pl: Player) -> float:
-	var d := Vector2(ball.p.x, ball.p.y).distance_to(pl.pos) / _reach(pl)
-	var hz := absf(ball.p.z - SWEET_Z) / 1.4
-	if ball.p.z > REACH_H:
+	return _q_at(Vector2(ball.p.x, ball.p.y).distance_to(pl.pos) / _reach(pl), ball.p.z)
+
+
+static func _q_at(d: float, z: float) -> float:
+	var hz := absf(z - SWEET_Z) / 1.4
+	if z > REACH_H:
 		hz = 0.15
 	return clampf(1.0 - 0.55 * d - 0.6 * hz, 0.0, 1.0)
+
+
+## A booked contact the legs did not quite make: the ball is within a hand's width more than the reach.
+func _near_hit(pl: Player, smash: bool) -> bool:
+	if phase != Phase.PLAY or not live or last_team == pl.team or side_of(ball.p.x) != pl.team:
+		return false
+	if bounces > 1 or (serve_ball and bounces == 0) or ball.p.z < 0.12 or ball.p.z > (JUMP_H if smash else REACH_H):
+		return false
+	return Vector2(ball.p.x, ball.p.y).distance_to(pl.pos) < _reach(pl) * 1.25
+
+
+## The tap's grade by its error (s, + early, - late): CZYSTO 1.0, DOBRZE 0.8, 0.6, then 0.4.
+static func grade(err: float) -> float:
+	var e := absf(err)
+	if e <= CLEAN_S:
+		return 1.0
+	if e <= GOOD_S:
+		return 0.8
+	if e <= OK_S:
+		return 0.6
+	return 0.4
 
 
 func _human_hit(pl: Player) -> void:
 	var shot := pl.swing_shot
 	if shot == Shot.DRIVE and ball.p.z > 1.85 and bounces == 0:
 		shot = Shot.SMASH
-	var q := quality(pl)
+	var q := minf(quality(pl), RIM_Q)
+	if pl.commit_at >= 0.0:
+		# The booked swing: the tap's grade, a little less when the legs were late.
+		var pq := clampf(quality(pl) / 0.85, 0.0, 1.0)
+		q = grade(pl.commit_err) * (0.8 + 0.2 * pq)
+		var clean := absf(pl.commit_err) <= CLEAN_S
+		_hit_extra = {"err": pl.commit_err, "clean": clean}
+		_aim_err = pl.commit_err
+		if clean:
+			stats["clean"] = int(stats["clean"]) + 1
 	pl.swing = -1.0
+	pl.commit_at = -1.0
 	_hit(pl, shot, q)
+	_aim_err = NAN
+
+
+# --- the cue: where your best contact is -------------------------------------------------------
+
+## Where `pl` will be in `tau` s: the auto-run walks to the plan's target (after the read).
+func _pos_at(pl: Player, tau: float) -> Vector2:
+	var go := tau - maxf(pl.react, 0.0)
+	if go <= 0.0:
+		return pl.pos
+	var to := pl.target - pl.pos
+	var sp := pl.speed * (0.9 if pl.human else 1.0)
+	return pl.pos + to.normalized() * minf(to.length(), sp * go)
+
+
+## The best contact the ball's flight offers `pl`: {t (sim time), p, q, smash}, or {} when it never
+## comes into reach in SCAN_S s. A copy of the ball is flown ahead at 60 Hz; the contact is the
+## moment of best quality (nearest the middle of the reach, at the sweet height).
+func _scan_contact(pl: Player, smash_ok := true) -> Dictionary:
+	if phase != Phase.PLAY or not live or last_team == pl.team or last_team < 0:
+		return {}
+	var b := ball.copy()
+	var bn := bounces
+	var t := 0.0
+	var h := 1.0 / 60.0
+	var best := {}
+	var best_q := 0.0
+	var reach := REACH + LUNGE * 0.5
+	while t < SCAN_S:
+		var ev := b.step(h)
+		t += h
+		if ev == "net" or ev == "out":
+			break
+		var s := side_of(b.p.x)
+		if ev == "floor":
+			if s != pl.team:
+				break
+			bn += 1
+			if bn >= 2:
+				break
+		if (ev == "glass" or ev == "mesh") and s == pl.team and bn == 0:
+			break
+		if s != pl.team or bn > 1 or (serve_ball and bn == 0):
+			continue
+		var z := b.p.z
+		if z < 0.12 or z > (JUMP_H if smash_ok else REACH_H):
+			continue
+		var d := Vector2(b.p.x, b.p.y).distance_to(_pos_at(pl, t)) / reach
+		if d > 1.0:
+			continue
+		var q := _q_at(d, z)
+		if q > best_q + 0.0005:
+			best_q = q
+			best = {"t": time + t, "p": b.p, "q": q, "smash": z > 1.85 and bn == 0}
+	return best
+
+
+## Keeps `cue_at` (your best contact, absolute sim time) up to date while a ball is coming. Once the
+## peak is behind us the last value stays (a late tap is judged against it) until the next hit.
+func _update_cue() -> void:
+	var me := players[0]
+	if phase != Phase.PLAY or not live or last_team == 0 or last_team < 0:
+		cue_at = -1.0
+		return
+	if me.swing >= 0.0:
+		return
+	var c := _scan_contact(me)
+	if c.is_empty():
+		if cue_at >= 0.0 and time - cue_at > 0.35:
+			cue_at = -1.0
+		return
+	if float(c["t"]) - time > 0.03 or cue_at < 0.0:
+		cue_at = float(c["t"])
+		cue_p = c["p"]
+
+
+## Seconds until the ring closes (the ideal tap), or INF with no cue.
+func cue_left() -> float:
+	return INF if cue_at < 0.0 else cue_at - LEAD - time
 
 
 ## The AI (rivals, partner, the human on autopilot): hits a planned ball when it is at a good height
