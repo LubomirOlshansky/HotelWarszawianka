@@ -37,7 +37,17 @@ Spec (docs/roads/AREA.json), map metres, +x east, +z south; offsets are to the r
   w width (else an equal share of what is left; "shift": true on a carriageway that moves
   sideways to the next section keeps its lane lines sliding with it). med: tram, grass, island (one per gap between
   carriageways; "none" for a painted gap). crossings: mid-block zebras (bs: a cycle crossing beside
-  it). openings: a side road or driveway leaving one side (kerb break, two kerb returns). gaps: the
+  it). openings: a side road or driveway leaving one side (kerb break, two kerb returns). A
+  designed mouth (any of "radii", "reach", "xings", "graph"; widok.json): "dir" the side road's
+  direction, "radii" [upstream, downstream] kerb returns met on the street's actual kerb line,
+  "reach" m of the side road's own asphalt and kerbs drawn out from the street (the old ones there
+  are replaced), "xings" [{"k": "zebra"|"cycle", "at", "w"}] crossings across it at m out, "graph"
+  the side road's lane-graph name (its link out of the street is redrawn from the kerb lane round
+  the return, retarget_mouths). edge_lines (street): ["l"] and/or ["r"], an edge line EDGE_IN m
+  inside that kerb. arrows (street): [s, ...] a row of the lanes' `t` arrows at each s (else
+  ARROWS before a junction). path_clear (area level): footways running along a designed kerb with
+  their middle nearer than this many m are moved out to it (pedestrians.gd walks 0.3 w aside).
+  gaps: the
   median broken where a side street or U-turn crosses (paved; the lanes' paint runs on). closed:
   [{"s0", "s1", "side"}] where the map has a road crossing the kerb but the photo has an unbroken
   kerb (a footway-only service way, a plaza access): no automatic opening there.
@@ -94,6 +104,12 @@ ISLAND_MIN = 1.0     # m: carriageways closer than this have no island between t
 NOSE = 1.2            # m: a median's rounded end stops this far behind a crossing
 HATCH = 3.0           # m between a painted gap's bars
 LANE_MIN = 1.5        # m: a kerb lane narrower than this (in a taper) gets no lane line yet
+EDGE_IN = 0.35        # m inside the kerb where a street's edge line runs ("edge_lines")
+MOUTH_LEAD = 2.0      # m of the kerb lane before a designed mouth's return where its graph link starts
+MOUTH_TURN = 0.75     # rad: that link's s0, where it has turned this far (lane_graph.gd TURN_MIN 0.6 + margin)
+# an opening with any of these keys is drawn by Design.designed_mouth (the older openings are unchanged)
+ORPHAN_NEAR = 25.0    # m round a designed mouth where the dropped junction's own old kerbs go
+DESIGNED_MOUTH = ("radii", "reach", "xings", "graph")
 CHUNK = 8.0           # m: carriageway polygons in pieces this long (they drape on the terrain)
 # Young street trees a design plants on its green strips (greens "trees"): [top, crown radius,
 # crown base] in metres, as tools/planted_trees.py SPECIES. 'Columella' and fiorente elms are the
@@ -456,6 +472,9 @@ class Design:
         self.footprint = []     # polygons of designed asphalt and medians
         self.ring_islands = []  # (centre, radius) of roundabout islands the design draws itself
         self.mouths = []        # side-road mouths: old kerbs and lines go, the side road stays
+        self.tight_mouths = []  # designed mouths with a reach: replaced exactly (no FOOT_PAD round them)
+        self.tight_info = []    # (ring, kerb point, direction out, reach) of each such mouth
+        self.links = []         # designed mouths whose lane-graph link is redrawn (retarget_mouths)
         self.crossings = {}     # street id -> [(s0, s1)] where kerbs and lines break
         self.stops = {}         # street id -> [(s of the stop line, direction of the lanes it stops)]
         self.notes = []
@@ -994,6 +1013,7 @@ class Design:
         breaks = []
         for op in self.openings_of(st):
             breaks.append(self.opening(st, op))
+        st.breaks = breaks
         for side in (-1, +1):
             own = [b for b in breaks if not (isinstance(b, tuple) and len(b) == 3 and b[2] != side)]
             k0 = max(t0, st.kerb_from.get((0, side), 0.0))
@@ -1003,11 +1023,20 @@ class Design:
                     self.out["kerbs"].append({"p": flat(st.line(u1, u0, lambda s: st.outer(s, -1)))})
                 else:
                     self.out["kerbs"].append({"p": flat(st.line(u0, u1, lambda s: st.outer(s, +1)))})
+                # "edge_lines": ["l"] / ["r"]: the solid edge line EDGE_IN inside that kerb, as the
+                # map's own streets have it along the tram side (broken at crossings and mouths)
+                if ("l" if side < 0 else "r") in st.spec.get("edge_lines", []):
+                    for (e0, e1) in self.kerb_runs(st, u0, u1):
+                        if e1 - e0 > 1.0:
+                            self.out["markings"].append({"k": "edge", "p": flat(simplify_run(
+                                st.line(e0, e1, lambda s, sd=side: st.outer(s, sd) - sd * EDGE_IN)))})
         self.paint(st, t0, t1)
 
     def opening(self, st, op):
         """A side road or driveway leaving the street: the kerb opens, two small kerb returns
         lead into it and a patch of asphalt fills its mouth. Returns the kerb break (s0, s1, side)."""
+        if any(k in op for k in DESIGNED_MOUTH):
+            return self.designed_mouth(st, op)
         side = int(op["side"])
         s = float(op["s"])
         w = float(op.get("w", 6.0))
@@ -1061,6 +1090,104 @@ class Design:
             run = pts if (sgn * side) < 0 else list(reversed(pts))
             self.out["kerbs"].append({"p": flat(run)})
         return (s + min(span), s + max(span), side)
+
+    def designed_mouth(self, st, op):
+        """A side street's mouth drawn to its measured shape (Widok, 2026-11-26): each kerb return
+        has its own radius ("radii": [r before, r after] along the street) and meets the street's
+        kerb where that kerb really is (a mouth where the street narrows past the side road, or a
+        bay that ends just before it, has a different kerb line on each side); both returns run on
+        along the side road's kerbs to "reach" metres out, so the mouth ends square across the side
+        road and the old kerbs there are replaced, not left 2.5 m short (the side road's own old
+        kerbs, zebras and footways in the mouth are cut to it: apply_design `tight`); "xings" paints
+        the side road's own crossings across the mouth ({"k": "zebra" | "cycle", "at": metres out
+        from the street's kerb, "w"}), kerb to kerb; "graph": the side road's name, whose lane-graph
+        link out of the street is redrawn from the street's kerb lane round the return
+        (retarget_mouths). Returns the kerb break (s0, s1, side)."""
+        side = int(op["side"])
+        s = float(op["s"])
+        w = float(op.get("w", 6.0))
+        r = float(op.get("r", 4.0))
+        radii = [float(x) for x in op.get("radii", [r, r])]
+        reach = float(op.get("reach", 0.0))
+        p, d = st.at(s)
+        nrm = mul(right_of(d), side)
+        edge = add(p, mul(right_of(d), st.outer(s, side)))
+        v = norm(tuple(op["dir"])) if op.get("dir") else nrm
+        if dot(v, nrm) < 0.26:
+            along = 1.0 if dot(v, d) > 0 else -1.0
+            v = norm(add(mul(nrm, 0.26), mul(d, along * 0.966)))
+        nv = right_of(v)
+        if dot(nv, d) < 0:
+            nv = mul(nv, -1.0)
+        kerbs, span, rets, lines = [], [], [], []
+        for k, sgn in enumerate((-1, +1)):
+            rr = radii[k]
+            q = add(edge, mul(nv, sgn * w / 2.0))      # a point of this side road kerb
+            sk = s
+            for _ in range(6):
+                # the street's kerb line where this return meets it (straight there)
+                pk, dk = st.at(sk)
+                K = add(pk, mul(right_of(dk), st.outer(sk, side)))
+                hit = line_hit(K, dk, q, v)
+                if hit is None:
+                    raise SystemExit("road_design: %s: mouth at s %.1f runs along the street" % (st.id, s))
+                I = add(K, mul(dk, hit[0]))
+                u1 = mul(dk, float(sgn))               # along the kerb, away from the mouth
+                phi = math.acos(max(-1.0, min(1.0, dot(u1, v))))
+                T = rr / math.tan(phi / 2.0)
+                A = add(I, mul(u1, T))
+                sa = project(st, A)[0]
+                if abs(sa - sk) < 0.02:
+                    break
+                sk = sa
+            B = add(I, mul(v, T))
+            c = add(I, mul(norm(add(u1, v)), rr / math.sin(phi / 2.0)))
+            a1 = math.atan2(A[1] - c[1], A[0] - c[0])
+            a2 = math.atan2(B[1] - c[1], B[0] - c[0])
+            pts = arc(c, rr, a1, a2, 0.5)
+            out_b = dot(sub(B, edge), v)
+            pts.append(add(B, mul(v, max(0.5, reach - out_b))))
+            kerbs.append(pts)
+            # the kerb itself runs a little past the mouth's edge, onto the side road's old kerb
+            # (cut 0.3 m beyond the edge by apply_design), so the two overlap instead of leaving a gap
+            lines.append(pts + ([add(B, mul(v, reach - out_b + 0.4))] if reach > out_b + 0.5 else []))
+            span.append(project(st, A)[0])
+            rets.append({"c": c, "r": rr, "A": A, "B": B, "I": I, "sgn": sgn, "phi": phi})
+        ring = kerbs[0] + list(reversed(kerbs[1]))
+        # closed back along the street a little inside its kerb (the kerb line moves across the
+        # mouth, so the straight chord between the returns' ends would cut a return)
+        sa, sb = span[1], span[0]
+        ring += [st.point(x, st.outer(x, side) - side * 0.6) for x in frange(sa, sb, 1.0)]
+        self.out["carriage"].append({"k": op.get("k", "service"), "p": flat(ring)})
+        (self.tight_mouths if reach > 0.0 else self.mouths).append(ring)
+        if reach > 0.0:
+            self.tight_info.append((ring, edge, v, reach))
+        for sgn, pts in zip((-1, +1), lines):
+            run = pts if (sgn * side) < 0 else list(reversed(pts))
+            self.out["kerbs"].append({"p": flat(run)})
+        # the side road's own crossings, kerb to kerb across the mouth
+        for x in op.get("xings", []):
+            M = add(edge, mul(v, float(x["at"])))
+            ends = []
+            for pts in kerbs:
+                best = None
+                for a, b in zip(pts, pts[1:]):
+                    hit = line_hit(M, nv, a, sub(b, a))
+                    if hit is not None and -1e-6 <= hit[1] <= 1.0 + 1e-6 and (best is None or abs(hit[0]) < abs(best)):
+                        best = hit[0]
+                if best is None:
+                    raise SystemExit("road_design: %s: crossing %.1f m out of the mouth at s %.1f misses a kerb" % (st.id, float(x["at"]), s))
+                ends.append(best)
+            t0, t1 = min(ends), max(ends)
+            xw = float(x.get("w", CROSS_W if x.get("k", "zebra") == "zebra" else 2.2))
+            if x.get("k", "zebra") == "zebra":
+                self.out["zebras"].append({"p": flat([add(M, mul(nv, t0 + 0.3)), add(M, mul(nv, t1 - 0.3))]), "w": xw})
+            else:
+                self.out["cyclecross"].append({"p": flat([add(M, mul(nv, t0)), add(M, mul(nv, t1))]), "w": round(xw, 2)})
+        if op.get("graph"):
+            self.links.append({"st": st, "op": op, "side": side, "edge": edge, "v": v, "nv": nv, "w": w,
+                               "rets": rets, "reach": reach})
+        return (min(span), max(span), side)
 
     def runs_minus(self, s0, s1, holes):
         runs = [(s0, s1)]
@@ -1146,6 +1273,21 @@ class Design:
                         dd = mul(d, din)
                         self.out["symbols"].append({"k": "arrow", "x": round(c[0], 2), "z": round(c[1], 2),
                                                     "d": [round(dd[0], 3), round(dd[1], 3)], "t": x["t"]})
+        # "arrows": [s, ...]: a row of every lane's turn arrows at s, where no stop line asks for
+        # them (the turn lane before a side street's mouth: Marszałkowska's straight-and-right
+        # lane before Widok)
+        for sa in st.spec.get("arrows", []):
+            if not (s0 + 3 < sa < s1 - 3) or self.in_crossing(st, sa):
+                continue
+            p, d = st.at(sa)
+            for row in st.lanes(sa):
+                for (x, l, r) in row:
+                    if x.get("k", "lane") != "lane" or not x.get("t"):
+                        continue
+                    c = add(p, mul(right_of(d), (l + r) / 2.0))
+                    dd = mul(d, int(x.get("d", 1)))
+                    self.out["symbols"].append({"k": "arrow", "x": round(c[0], 2), "z": round(c[1], 2),
+                                                "d": [round(dd[0], 3), round(dd[1], 3)], "t": x["t"]})
         # BUS words and bike symbols
         for kind, every in (("bus", BUS_EVERY), ("bike", BIKE_EVERY)):
             s = s0 + every / 2.0
@@ -1420,6 +1562,65 @@ class PastEnds:
                         cuts.append((t, q))
             out += [q for _, q in sorted(cuts)] + [b]
         return out
+
+
+class MouthCut:
+    """The old kerbs and lines a designed mouth replaces: within FOOT_PAD of it, as round the
+    streets, but only up to its reach across the side road, where its kerbs meet the old ones."""
+
+    def __init__(self, info):
+        self.info = []
+        for ring, edge, v, reach in info:
+            xs = [q[0] for q in ring]
+            zs = [q[1] for q in ring]
+            self.info.append((ring, edge, v, reach, (min(xs) - FOOT_PAD, min(zs) - FOOT_PAD,
+                                                     max(xs) + FOOT_PAD, max(zs) + FOOT_PAD)))
+
+    def has(self, x, z):
+        for ring, edge, v, reach, box in self.info:
+            if not (box[0] <= x <= box[2] and box[1] <= z <= box[3]):
+                continue
+            if dot(sub((x, z), edge), v) > reach - 0.05:
+                continue
+            if inside(x, z, ring) or near_ring(x, z, ring, FOOT_PAD):
+                return True
+        return False
+
+
+class Orphans:
+    """Points on the edge of a dropped old carriage polygon that edge no kept one, within
+    ORPHAN_NEAR of a designed mouth (apply_design, tight mouths only)."""
+
+    def __init__(self, dropped, kept, mouths):
+        self.mouths = Footprint(mouths, ORPHAN_NEAR) if mouths else None
+        pts = [q for m in mouths for q in m]
+        pad = ORPHAN_NEAR + 1.0
+        self.box = (min(q[0] for q in pts) - pad, min(q[1] for q in pts) - pad,
+                    max(q[0] for q in pts) + pad, max(q[1] for q in pts) + pad) if pts else None
+        self.dropped_rings = [r for r in dropped if len(r) >= 3 and self._near(r)]
+        self.kept_rings = [r for r in kept if len(r) >= 3 and self._near(r)]
+
+    def _near(self, ring):
+        b = self.box
+        return b is not None and any(b[0] <= x <= b[2] and b[1] <= z <= b[3] for x, z in dense(ring + ring[:1], 2.0))
+
+    def has(self, x, z):
+        b = self.box
+        if b is None or not (b[0] <= x <= b[2] and b[1] <= z <= b[3]) or not self.mouths.has(x, z):
+            return False
+        if not any(near_ring(x, z, r, 0.4) for r in self.dropped_rings):
+            return False
+        return not any(near_ring(x, z, r, 0.4) for r in self.kept_rings)
+
+
+class Either:
+    """A point test that holds where either of two footprints does."""
+
+    def __init__(self, a, b):
+        self.a, self.b = a, b
+
+    def has(self, x, z):
+        return self.a.has(x, z) or self.b.has(x, z)
 
 
 def near_ring(x, z, ring, r):
@@ -1709,6 +1910,54 @@ def reseat_paths(paths, d):
     return moved
 
 
+def clear_kerb_paths(paths, d, clear):
+    """(Area level "path_clear": metres, Widok 2026-11-26.) A footway that runs along a designed
+    street with its middle under `clear` metres beyond the outer kerb moves out to `clear`: the
+    walkers keep to their footway's middle third, so a pavement mapped hugging the kerb had people
+    on the kerb's edge and the asphalt. Only along the street (not in a mouth, not across it).
+    Returns how many footways moved."""
+    moved = 0
+    xs = [q[0] for st in d.streets.values() for q in st.pts]
+    zs = [q[1] for st in d.streets.values() for q in st.pts]
+    box = (min(xs) - 30.0, min(zs) - 30.0, max(xs) + 30.0, max(zs) + 30.0)
+    for f in paths:
+        if f.get("k") != "foot" or f.get("dk") is not None:
+            continue
+        raw = pts_of(f["p"])
+        if not any(box[0] <= x <= box[2] and box[1] <= z <= box[3] for x, z in dense(raw, 10.0)):
+            continue
+        p = dense(raw, 1.0)
+        newp, hit = [], False
+        for i, q in enumerate(p):
+            a, b = p[max(0, i - 1)], p[min(len(p) - 1, i + 1)]
+            h = norm(sub(b, a))
+            best = None
+            for st in d.streets.values():
+                s, off = project(st, q)
+                if s is None or not (st.s0 + 1.0 <= s <= st.s1 - 1.0) or abs(off) < 0.5:
+                    continue
+                side = 1 if off > 0 else -1
+                if any(b0 - 2.0 <= s <= b1 + 2.0 and (len(br) < 3 or br[2] == side)
+                       for br in getattr(st, "breaks", []) for b0, b1 in [br[:2]]):
+                    continue
+                t = norm(sub(st.point(min(s + 1.0, st.L), 0.0), st.point(max(s - 1.0, 0.0), 0.0)))
+                if abs(dot(h, t)) < 0.85:
+                    continue
+                gap = side * (off - st.outer(s, side))
+                if -0.05 <= gap < clear - 0.05 and (best is None or gap < best[2]):
+                    best = (st, s, gap, side)
+            if best is None:
+                newp.append(q)
+                continue
+            st, s, _, side = best
+            newp.append(st.point(s, st.outer(s, side) + side * clear))
+            hit = True
+        if hit:
+            f["p"] = flat(simplify_run(newp, 0.1))
+            moved += 1
+    return moved
+
+
 LEAD_R = 14.0     # m: a cut footway / cycle track end this close to a crossing's end walks to it
 LEAD_BACK = 6.0   # m back along the path where the bend to the crossing starts
 
@@ -1943,6 +2192,11 @@ def apply_design(out, d):
     """Removes the old road layers in the design's footprint and writes the design's own."""
     fp = Footprint(d.footprint + d.mouths, FOOT_PAD)
     fp_tight = Footprint(d.footprint, 0.3)
+    # designed mouths with a reach (designed_mouth) are replaced exactly: the old carriage, zebras,
+    # footways, kerbs and lines in them go, with no FOOT_PAD round them (the design's kerbs run on
+    # to the mouth's edge and meet the side road's old ones there)
+    tight = Footprint(d.tight_mouths, 0.3) if d.tight_mouths else None
+    fp_cut = Footprint(d.footprint + d.tight_mouths, 0.3) if tight else fp_tight
     stats = {}
 
     def drop(layer, test):
@@ -1958,7 +2212,7 @@ def apply_design(out, d):
 
     def mostly_in(f, key="p", share=0.5):
         p = dense(pts_of(f[key]), 2.0)
-        n = sum(1 for q in p if fp_tight.has(*q))
+        n = sum(1 for q in p if fp_cut.has(*q))
         return n >= share * len(p)
 
     # the free ends of the designed streets: what lies past them is the old map's (PastEnds)
@@ -1986,6 +2240,7 @@ def apply_design(out, d):
     stats["roads hidden"] = hidden
     old_carriage = out.get("carriage", [])
     drop("carriage", lambda f: f.get("dk") is None and mostly_in(f))
+    kept_ids = {id(f) for f in out["carriage"]}
     # an old carriage piece that ran on past a designed street's free end: the part beyond the
     # end stays (cut square at the end's cross-section), or the street would stop in a hole
     kept = {id(f) for f in out["carriage"]}
@@ -2051,10 +2306,12 @@ def apply_design(out, d):
     # the old medians' grass and planter walls (the design draws its own medians)
     drop("areas", lambda f: f.get("k") in ("grass", "park") and mostly_in(f, share=0.6))
     drop("paths", lambda f: f["k"] in ("zebra", "cyclecross") and f.get("dk") is None
-         and any(fp_tight.has(*q) for q in dense(pts_of(f["p"]), 1.0)))
+         and any(fp_cut.has(*q) for q in dense(pts_of(f["p"]), 1.0)))
     # footways and cycle tracks: clipped where they cross the new asphalt (the zebras and the
     # cycle crossings carry them over it)
     stats["paths moved out to the new kerb"] = reseat_paths(out.get("paths", []), d)
+    if d.spec.get("path_clear"):
+        stats["footways moved clear of the kerb"] = clear_kerb_paths(out.get("paths", []), d, float(d.spec["path_clear"]))
     paths = []
     cut = 0
     for f in out.get("paths", []):
@@ -2062,11 +2319,11 @@ def apply_design(out, d):
             paths.append(f)
             continue
         p = pts_of(f["p"])
-        if not any(fp_tight.has(*q) for q in dense(p, 1.0)):
+        if not any(fp_cut.has(*q) for q in dense(p, 1.0)):
             paths.append(f)
             continue
         cut += 1
-        for run in clip_line(p, fp_tight):
+        for run in clip_line(p, fp_cut):
             g = dict(f)
             g["p"] = flat(run)
             # which ends the asphalt cut (not the path's own ends): those walk to a crossing
@@ -2137,6 +2394,11 @@ def apply_design(out, d):
             walls.append(g)
     out["lines"] = walls
     stats["walls clipped"] = cut
+    # round a designed mouth (tight): an old kerb that edged an old carriage polygon the design
+    # dropped, and edges no carriage that stays, is the old junction's own (the box round Widok's
+    # old crossings): it goes too, wherever it stood
+    orphans = Orphans([pts_of(f["p"]) for f in old_carriage if id(f) not in kept_ids],
+                      [pts_of(f["p"]) for f in out["carriage"]], d.tight_mouths) if tight else None
     # kerbs and painted lines: clipped to outside the footprint (but not past a free end)
     for layer in ("kerbs", "markings"):
         keep = []
@@ -2146,11 +2408,12 @@ def apply_design(out, d):
                 keep.append(f)
                 continue
             p = pts_of(f["p"])
-            if not any(fp_ends.has(*q) for q in dense(p, 2.0)):
+            gone = Either(fp_ends, Either(MouthCut(d.tight_info), orphans)) if tight else fp_ends
+            if not any(gone.has(*q) for q in dense(p, 2.0)):
                 keep.append(f)
                 continue
             cut += 1
-            for run in clip_line(fp_ends.split(p), fp_ends):
+            for run in clip_line(fp_ends.split(p), gone):
                 g = dict(f)
                 g["p"] = flat(run)
                 keep.append(g)
@@ -2169,6 +2432,8 @@ def apply_design(out, d):
     out.setdefault("tram_xings", [])
     out["tram_xings"] += o["tram_xings"]
     stats["traffic edges on the designed lanes"] = retarget_graph(out, d)
+    if d.links:
+        stats["side-road links redrawn round their mouths"] = retarget_mouths(out, d)
     if d.spec.get("close_median_links"):
         stats["links across the median closed"] = close_median_links(out, d)
     if d.out["trees"]:
@@ -2280,6 +2545,87 @@ def retarget_graph(out, d):
             e["o"] = round(-(mid[1] - 1) / 2.0 * mid[2], 2)
             moved += 1
             break
+    return moved
+
+
+def retarget_mouths(out, d):
+    """A designed mouth's "graph": the lane-graph link of that side road out of the street (OSM's
+    way starts on the street's middle line, so the car's lane started in the middle lane and cut
+    across the kerb lane to the corner) is redrawn: it starts MOUTH_LEAD m before the return in
+    the street's kerb lane (the outermost lane on the mouth's side running towards it), follows
+    the kerb return at that lane's distance from the kerb, widening to the side road's middle, and
+    runs out along the side road to where the old link went on. The graph's nodes stay. Returns how
+    many edges were redrawn."""
+    g = out.get("graph")
+    if not g:
+        return 0
+    moved = 0
+    for lk in d.links:
+        st, op, side = lk["st"], lk["op"], lk["side"]
+        name = op["graph"]
+        for e in g["edges"]:
+            if e.get("name") != name or e.get("br"):
+                continue
+            p = pts_of(e["p"])
+            s_a, off_a = project(st, p[0])
+            if s_a is None or abs(off_a) > abs(st.outer(s_a, side)) + 1.0 or side * off_a < -abs(st.outer(s_a, -side)):
+                continue                      # this edge does not start in the street
+            far = dot(sub(p[-1], lk["edge"]), lk["v"])
+            if far < 1.0:
+                continue                      # not out along the side road
+            # the traffic turning in: the lanes running towards the mouth whose outermost one is
+            # beside the kerb on the mouth's side (traffic on the right: side +1 is reached by d +1)
+            dd = side
+            ret = [r for r in lk["rets"] if r["sgn"] == -dd][0]
+            sA = project(st, ret["A"])[0]
+            s0 = sA - dd * MOUTH_LEAD
+            lane = None
+            for row in st.lanes(s0):
+                for (x, l, r) in row:
+                    if int(x.get("d", 1)) == dd and x.get("k", "lane") in ("lane", "bus"):
+                        if lane is None or side * ((l + r) / 2.0) > side * ((lane[0] + lane[1]) / 2.0):
+                            lane = (l, r)
+            if lane is None:
+                raise SystemExit("road_design: %s: no lane runs to the %s mouth" % (st.id, name))
+            mid = (lane[0] + lane[1]) / 2.0
+            h0 = abs(st.outer(sA, side) - mid)          # the lane's middle from the kerb
+            h1 = lk["w"] / 2.0                           # the side road's middle from its kerb
+            new = [st.point(s0, mid), st.point(sA, st.outer(sA, side) - side * h0)]
+            c, rr = ret["c"], ret["r"]
+            a1 = math.atan2(ret["A"][1] - c[1], ret["A"][0] - c[0])
+            a2 = math.atan2(ret["B"][1] - c[1], ret["B"][0] - c[0])
+            sweep = (a2 - a1 + math.pi) % (2 * math.pi) - math.pi
+            n = max(4, int(abs(sweep) * (rr + h0) / 1.0))
+            for k in range(1, n + 1):
+                t = k / n
+                ang = a1 + sweep * t
+                rad = rr + h0 + (h1 - h0) * t
+                q = (c[0] + rad * math.cos(ang), c[1] + rad * math.sin(ang))
+                if dot(sub(q, lk["edge"]), lk["v"]) > far - 0.8:
+                    break                     # the old link ends this near: it joins there
+                new.append(q)
+            # on out along the side road to the old link's own end (the next edge starts there)
+            new += [q for q in p if dot(sub(q, lk["edge"]), lk["v"]) > dot(sub(new[-1], lk["edge"]), lk["v"]) + 0.5]
+            if math.dist(new[-1], p[-1]) > 0.01:
+                new.append(p[-1])
+            old_len = plen(p)
+            new_len = plen(new)
+            e["p"] = flat(new)
+            # the car joins the link where it has clearly turned (MOUTH_TURN rad off the street):
+            # lane_graph.gd reads a turn, and which lanes may take it, from the direction there
+            sd = norm(sub(st.point(sA, 0.0), st.point(s0, 0.0)))
+            run, join = 0.0, None
+            for a, b in zip(new, new[1:]):
+                ln = math.dist(a, b)
+                if ln > 1e-6:
+                    u = ((b[0] - a[0]) / ln, (b[1] - a[1]) / ln)
+                    if math.acos(max(-1.0, min(1.0, dot(u, sd)))) >= MOUTH_TURN:
+                        join = run
+                        break
+                run += ln
+            e["s0"] = round(min(join if join is not None else 0.5, new_len / 2.0), 2)
+            e["s1"] = round(max(e["s0"] + 0.1, new_len - (old_len - float(e["s1"]))), 2)
+            moved += 1
     return moved
 
 

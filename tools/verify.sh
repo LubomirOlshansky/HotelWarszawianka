@@ -362,6 +362,9 @@
 # Re-bake guard (2026-11-14): `postpasses` runs tools/check_post_passes.py (road_fixes, lane_tapers, zamek_ramps,
 # object_fixes, road_profiles, lane_links and parked_thin each leave the committed map unchanged: a pass that is not
 # idempotent drifts it on every re-run).
+# Walkers on the road (Widok, 2026-11-26): `footroad` runs tools/check_foot_on_road.py (the metres of
+# footway along a kerb whose walkers reach the carriageway, off any crossing, over the whole map: at
+# most the count recorded in the script).
 # Parked rows (the city objects plan, step 8b, 2026-11-15): `parkedthin` runs tools/parked_thin.py --check
 # (the map is thinned, and over the whole map no parked car's box reaches into a lane, none within 1 m
 # of a lane stands within 15 m of a junction, and no two pinched cars stand in neighbouring bays of a row).
@@ -1279,6 +1282,15 @@ for s in $want; do
 			case $code in
 				0) row PASS "parkedthin" $secs "$(grep '^parked_thin: ' $logs/parkedthin.log | tail -1)" ;;
 				*) row FAIL "parkedthin" $secs "$(grep '^parked_thin: ' $logs/parkedthin.log | tail -1) ($logs/parkedthin.log)" ;;
+			esac ;;
+		footroad)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/check_foot_on_road.py > $logs/footroad.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "footroad" $secs "$(grep '^check_foot_on_road: ' $logs/footroad.log | tail -1)" ;;
+				*) row FAIL "footroad" $secs "$(grep '^check_foot_on_road: ' $logs/footroad.log | tail -1) ($logs/footroad.log)" ;;
 			esac ;;
 		postpasses)
 			t0=$EPOCHREALTIME

@@ -1174,6 +1174,34 @@ func kit_lantern(u: float, v: float, y: float, h: float, r: float, wall: Color, 
 	_mode = keep
 
 
+## A dormer standing on a roof slope: a box `out`-ward facing (a unit plan step down the slope), its
+## front on the plan point `at` where the slope is `y` (absolute) high, 1.3 m wide and 1.5 m over the
+## slope at the front, its base 0.8 m under it and 1.8 m deep up the slope, in `body`; a small hip cap
+## over it; and a framed window 0.8 x 1.0 m in `trim` and `glass` (lit by chance at night). Cheeks are
+## the box's sides. Keeps the caller's frame.
+func kit_dormer(at: Vector2, out: Vector2, y: float, body: Color, trim: Color, glass := PAL_GLASS_DARK) -> void:
+	var keep_o := _o
+	var keep_a := _a
+	var keep_b := _b
+	var keep_face := _face
+	var keep_mode := _mode
+	_mode = M_STONE
+	_o = at
+	_b = out.normalized()
+	_a = Vector2(-_b.y, _b.x)
+	_face = 0.0
+	var top := y + 1.5
+	_prism(_rect(0.0, -0.9, 0.65, 0.9), y - 0.8, top, body, Color(0, 0, 0, 0), M_STONE)
+	_frustum(_rect(0.0, -0.9, 0.78, 1.05), top, _rect(0.0, -0.9, 0.05, 0.55), top + 0.55, body.darkened(0.12),
+			body.darkened(0.16))
+	kit_window(0.0, y + 0.2, 1.0, Win.FRAMED, trim, glass, 0.4)
+	_o = keep_o
+	_a = keep_a
+	_b = keep_b
+	_face = keep_face
+	_mode = keep_mode
+
+
 # --- the sampler ---
 
 ## One street front and one free-standing pavilion that use every kit part and style once
