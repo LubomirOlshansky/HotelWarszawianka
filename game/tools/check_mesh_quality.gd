@@ -145,6 +145,7 @@ const BUDGET := {
 	"cosmopolitan": 420,  # 2026-11-08 photo rebuild (F)
 	"plac_grzybowski": 1500,  # 2026-11-08 photo build (F): 1429 tris, the cascade field is 48 blocks
 	"prozna": 5100,  # 2026-11-08 photo build (F): 5014 tris, 1,300 of them the 90 bollards
+	"ns4a": 1200,  # 2026-11-26 Nowy Świat 4A from F's night photo: lobby, copper fascia, glass with lit fins, flag band, top storey, roof box, flag: 1097 tris, +0 draw calls
 	"dom_partii": 14300,  # 2026-11-21 teaser 4 (F): café guests and dogs at the tables, then the courtyard by the bar (deckchairs, a stage, crowds): 13593 tris; earlier: 2026-11-12 rebuilt whole from F's photos: 5202 tris; 2026-11-19 the arcade, terrace, cafés and tables: 7225 tris, +0 draw calls
 	"eon41": 1300,  # 2026-11-13 photo rebuild (F): the power company's L-block, curve, medallions, glass tower, lantern
 	"asp37": 1600,  # 2026-11-13 the Academy of Fine Arts: the 1914 school and JEMS's wing
@@ -211,7 +212,7 @@ const BUDGET := {
 	"mpw": 3200,
 	"metropolitan": 3100,
 	"metropolsign": 320,  # 2026-11-10: Hotel Metropol rebuilt whole from F's photos (255 measured)
-	"muzeum": 3500,  # 2026-11-06 photo pass: a stone pier on every bay boundary, fence, flagpoles
+	"muzeum": 4600,  # 2026-11-26 the lit roof sign (wave + MUZEUM NARODOWE in built serif letters, F's night photo): 4478 tris; 2026-11-06 photo pass: a stone pier on every bay boundary, fence, flagpoles
 	"palace": 7600,   # 2026-11-07: 3696 -> 7288, Bar Studio's 34 deck chairs, tables, festoons and frame signs (same mesh, no new draw call)
 	"pawilony": 2100,
 	"plater49": 140,

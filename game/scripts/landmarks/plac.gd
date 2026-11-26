@@ -110,9 +110,83 @@ func _build_muzeum(site: Dictionary) -> void:
 	_muzeum_forecourt(g)
 	_collide(ring)
 	_collide(_rect(0.0, -2.5, 7.0, 1.6))
+	_muzeum_sign(ring, g + h + 1.0)
 	# The army museum's hardware on the lawn of the east courtyard, beside its pool, noses north.
 	_tank(MUZEUM_TANK, MUZEUM_YARD_DIR)
 	_field_gun(MUZEUM_GUN, MUZEUM_YARD_DIR.rotated(-0.5))
+
+
+## The museum's lit roof sign (F's night photo from Rondo de Gaulle'a, 2026-11-26; Street View and
+## the 3D Tiles render agree): built white letters on the west wing's roof, set back from its
+## parapet over the north end of the front that faces the rondo, so they read from the Palm down
+## Al. Jerozolimskie: the wave mark (the museum's logo kept as a plain stylised zigzag wave, not
+## the real mark) and MUZEUM NARODOWE in serif capitals (the institution's own name, like
+## Filharmonia Narodowa's). White by day, glowing at night (M_LAMP), on a dark steel rail and posts.
+const MUZEUM_SIGN_FROM := Vector2(-213.9, 238.5)  # the Palm: the sign faces it
+const MUZEUM_SIGN_CAP := 1.65      # the letters' cap height (photo: a third of a window bay's pitch)
+const MUZEUM_SIGN_START := 7.0     # from the front's north corner to the wave's left edge
+const MUZEUM_SIGN_BACK := 1.4      # behind the parapet's face
+const MUZEUM_SIGN_LIFT := 0.45     # the letters' foot over the parapet's top
+const MUZEUM_SIGN_WHITE := Color("#f4f6f8")
+const MUZEUM_SIGN_STEEL := Color("#2c2e31")
+
+
+func _muzeum_sign(ring: PackedVector2Array, top: float) -> void:
+	# The longest straight front facing the Palm.
+	var best := -1.0
+	var a := Vector2.ZERO
+	var b := Vector2.ZERO
+	var out := Vector2.ZERO
+	for i in ring.size():
+		var p := ring[i]
+		var q := ring[(i + 1) % ring.size()]
+		var o := _out(ring, p, q)
+		var facing := o.dot((MUZEUM_SIGN_FROM - (p + q) * 0.5).normalized())
+		var score := p.distance_to(q) * facing
+		if facing > 0.5 and score > best:
+			best = score
+			a = p
+			b = q
+			out = o
+	if best < 30.0:
+		return
+	# Read left to right from outside: start at the end that is on the left seen from the Palm.
+	var right := Vector2(out.y, -out.x)  # the viewer's right, facing -out
+	if (b - a).dot(right) < 0.0:
+		var t := a
+		a = b
+		b = t
+	right = (b - a).normalized()
+	var r3 := Vector3(right.x, 0.0, right.y)
+	var h := MUZEUM_SIGN_CAP
+	var foot := top + MUZEUM_SIGN_LIFT
+	var base := a + right * MUZEUM_SIGN_START - out * MUZEUM_SIGN_BACK
+	var o3 := Vector3(base.x, foot, base.y)
+	# The wave: a zigzag of four peaks drawn twice, one line inside the other (an outline, as the
+	# real mark is), 1.7 caps high and 2.6 wide.
+	var wave_w := 2.6 * h
+	var wave_h := 1.7 * h
+	for inset: float in [0.0, 0.17]:
+		var prev := Vector3.ZERO
+		for k in 9:
+			var x := inset * h + float(k) / 8.0 * (wave_w - 2.0 * inset * h)
+			var y := (wave_h - inset * h) if k % 2 == 0 else inset * h
+			var pt := o3 + r3 * x + Vector3.UP * (y - 0.05 * h)
+			if k > 0:
+				_beam(prev, pt, h * 0.09, MUZEUM_SIGN_WHITE, false, M_LAMP)
+			prev = pt
+	var word_at := o3 + r3 * (wave_w + 0.9 * h) + Vector3.UP * 0.2 * h
+	var length := wave_w + 0.9 * h + _serif_word("MUZEUM NARODOWE", word_at, r3, h, MUZEUM_SIGN_WHITE)
+	# The steel: a rail under the letters and one behind them, on posts every 3 m down to the roof.
+	var back := -out * 0.35
+	for y: float in [foot - 0.1, foot + 0.9 * h]:
+		var p0 := base + back
+		var p1 := base + back + right * length
+		_beam(Vector3(p0.x, y, p0.y), Vector3(p1.x, y, p1.y), 0.12, MUZEUM_SIGN_STEEL, false)
+	var n := ceili(length / 3.0)
+	for k in n + 1:
+		var p := base + back + right * length * float(k) / n
+		_beam(Vector3(p.x, top - 1.0, p.y), Vector3(p.x, foot + 0.9 * h + 0.06, p.y), 0.12, MUZEUM_SIGN_STEEL, false)
 
 
 ## The wings' stone piers (photos 1-4 of refs/muzeum_narodowe: tall square pilasters between the
