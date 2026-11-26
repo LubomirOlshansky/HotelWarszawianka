@@ -6416,6 +6416,421 @@
       "That's enough, champ. Save some for Lusterko."
     ]
   ],
+  "club_decks_invite": [
+    [
+      "Wyjdę na powietrze. Potrzymasz set pięć minut? Dotykaj prawie niczego.",
+      "I'm stepping out for air. Hold the set for five minutes? Touch almost nothing."
+    ],
+    [
+      "Telefon od mamy. Pięć minut, zagraj coś. Nie ma złych decyzji, są tylko głośne.",
+      "A call from my mum. Five minutes, play something. No bad choices, only loud ones."
+    ],
+    [
+      "Kolejka do łazienki nie poczeka, ja też nie. Pięć minut za deckami?",
+      "The toilet queue won't wait, neither will I. Five minutes on the decks?"
+    ],
+    [
+      "Mam pięć minut przerwy i zero siły. Ty bierz decki, ja wezmę wodę.",
+      "I've got a five-minute break and zero energy. You take the decks, I'll take water."
+    ]
+  ],
+  "club_decks_mati": [
+    [
+      "Stary, ludzie patrzą w telefony. Rusz tym talerzem, błagam.",
+      "Mate, people are looking at their phones. Move that platter, please.",
+      {
+        "only": "cold"
+      }
+    ],
+    [
+      "Zakrywam oczy. Powiedz, kiedy będzie po wszystkim.",
+      "I'm covering my eyes. Tell me when it's over.",
+      {
+        "only": "cold"
+      }
+    ],
+    [
+      "Kiwają głowami. To dobry znak. Albo grzeczność. Warszawa.",
+      "They're nodding. Good sign. Or politeness. Warsaw.",
+      {
+        "only": "polite"
+      }
+    ],
+    [
+      "Nie jest źle! Jest… uprzejmie. Dociśnij trochę.",
+      "Not bad! It's… polite. Push it a little.",
+      {
+        "only": "polite"
+      }
+    ],
+    [
+      "Idzie! Podłoga drży, a to nie tramwaj.",
+      "It's working! The floor's shaking and it's not a tram.",
+      {
+        "only": "moving"
+      }
+    ],
+    [
+      "Trzymaj tak! Ręce w górze na każdym takcie!",
+      "Hold it like that! Hands up on every bar!",
+      {
+        "only": "moving"
+      }
+    ],
+    [
+      "Skaczą! Ktoś zgubił but i nawet nie szuka!",
+      "They're jumping! Someone lost a shoe and isn't even looking!",
+      {
+        "only": "hot"
+      }
+    ],
+    [
+      "Stary, ty to masz w rękach. Nie puszczaj.",
+      "Mate, you've got it in your hands. Don't let go.",
+      {
+        "only": "hot"
+      }
+    ],
+    [
+      "To jest piec! Ściany się pocą! Pan Kołek kiwa głową!",
+      "It's an oven! The walls are sweating! Pan Kołek is nodding!",
+      {
+        "only": "piec"
+      }
+    ],
+    [
+      "Mówiłem, że umiesz! Nic nie mówiłem, ale umiesz!",
+      "I said you could do it! I said nothing, but you can!",
+      {
+        "only": "piec"
+      }
+    ]
+  ],
+  "club_decks_dj_back": [
+    [
+      "Wróciłem. Cicho jak na świetlicy w piątek. Dzięki, że ogrzałeś krzesło.",
+      "I'm back. Quiet as a youth club on a Friday. Thanks for keeping the chair warm.",
+      {
+        "only": "swietlica"
+      }
+    ],
+    [
+      "No, nikt nie uciekł. To już sukces. Odbieram decki.",
+      "Well, nobody ran away. That's already a win. Taking the decks back.",
+      {
+        "only": "swietlica"
+      }
+    ],
+    [
+      "Rozgrzałeś ich. Do letniego. Ale zawsze to coś.",
+      "You warmed them up. To lukewarm. Still something.",
+      {
+        "only": "rozgrzewka"
+      }
+    ],
+    [
+      "Niezła rozgrzewka. Teraz ja wejdę i wszystko zepsuję profesjonalnie.",
+      "A decent warm-up. Now I'll come in and ruin it professionally.",
+      {
+        "only": "rozgrzewka"
+      }
+    ],
+    [
+      "Nawet brzmiało jak set. Nie mów reszcie, że to powiedziałem.",
+      "It actually sounded like a set. Don't tell the others I said that.",
+      {
+        "only": "dobry"
+      }
+    ],
+    [
+      "Parkiet pełny, nikt nie śpi. Stawiam wodę. Tę za dwanaście złotych.",
+      "Floor's full, nobody's asleep. I'm buying you a water. The twelve-złoty one.",
+      {
+        "only": "dobry"
+      }
+    ],
+    [
+      "Co tu się stało? Ściany się pocą. Z szacunku.",
+      "What happened here? The walls are sweating. Out of respect.",
+      {
+        "only": "piec"
+      }
+    ],
+    [
+      "Piec. Prawdziwy piec. Moja babcia piekłaby tu chleb.",
+      "An oven. A real oven. My gran would bake bread in here.",
+      {
+        "only": "piec"
+      }
+    ],
+    [
+      "Dobra, dobra, oddawaj.",
+      "Okay, okay, hand it over.",
+      {
+        "only": "early"
+      }
+    ],
+    [
+      "Spokojnie, nikt cię nie wyprosi. Dobra, dobra, oddawaj, zanim zasną na stojąco.",
+      "Easy, nobody's throwing you out. Hand it over before they fall asleep standing.",
+      {
+        "only": "early"
+      }
+    ],
+    [
+      "Ty, a ty gdzie grasz?",
+      "Hey, where do you play?",
+      {
+        "only": "first_piec"
+      }
+    ]
+  ],
+  "club_decks_kolek": [
+    [
+      "Nie słuchałem. Mój but sam wystukał rytm. Zdradziecki but.",
+      "I wasn't listening. My shoe tapped the beat on its own. Traitor shoe."
+    ],
+    [
+      "Tak, okulary opadły. Tak, na sekundę. Nie, nic nie widziałeś.",
+      "Yes, the sunglasses slipped. Yes, for a second. No, you saw nothing."
+    ],
+    [
+      "BETON był niezły. To znaczy… solidny. Konstrukcyjnie.",
+      "BETON was decent. I mean… sturdy. Structurally."
+    ],
+    [
+      "Głową kiwałem na muchę. Nie na bas. Na muchę.",
+      "I was nodding at a fly. Not at the bass. A fly."
+    ]
+  ],
+  "club_crowd_hot": [
+    [
+      "Zgubiłem telefon, kolegę i wstyd. Zostaję.",
+      "I lost my phone, my mate and my shame. I'm staying."
+    ],
+    [
+      "Ten bas masuje mi nerki. Dzięki, dobry człowieku zza decków.",
+      "That bass is massaging my kidneys. Thanks, kind soul behind the decks."
+    ],
+    [
+      "Sąsiedzi znów dzwonią na policję. Niech przyjdą. Zatańczą.",
+      "The neighbours are calling the police again. Let them come. They'll dance."
+    ],
+    [
+      "Pierwszy raz od lat nie patrzę w telefon. Patrzę w sufit. Ładny.",
+      "First time in years I'm not on my phone. I'm looking at the ceiling. It's nice."
+    ],
+    [
+      "Podłoga się trzęsie. Bar się trzęsie. Ja się trzęsę. Tak ma być.",
+      "The floor shakes. The bar shakes. I shake. As intended."
+    ]
+  ],
+  "club_crowd_cold": [
+    [
+      "Spokojnie, każdy miał pierwszy raz. Mój był na weselu. Wujek płakał.",
+      "Easy, everyone has a first time. Mine was at a wedding. My uncle cried."
+    ],
+    [
+      "Cicho jak w czytelni, ale lepsze światło. Dobre wejście.",
+      "Quiet as a reading room, but better lighting. Solid debut."
+    ],
+    [
+      "Idę po wodę. Nie dlatego, że źle. Woda jest po prostu blisko.",
+      "I'm off for water. Not because it's bad. The water's just close."
+    ],
+    [
+      "Trochę krzywo, ale szczerze. Szczerość też się tańczy. Wolno.",
+      "A bit wonky, but honest. Honesty can be danced to. Slowly."
+    ],
+    [
+      "Gdzieś tam jest bit. Chyba. Szukamy go wszyscy razem.",
+      "There's a beat in there somewhere. I think. We're all looking for it together."
+    ]
+  ],
+  "club_decks_ui": [
+    [
+      "ŚWIETLICA",
+      "THE YOUTH CLUB",
+      {
+        "only": "tier0"
+      }
+    ],
+    [
+      "ROZGRZEWKA",
+      "THE WARM-UP",
+      {
+        "only": "tier1"
+      }
+    ],
+    [
+      "DOBRY SET",
+      "A GOOD SET",
+      {
+        "only": "tier2"
+      }
+    ],
+    [
+      "PIEC",
+      "THE OVEN",
+      {
+        "only": "tier3"
+      }
+    ],
+    [
+      "CZYSTO",
+      "CLEAN",
+      {
+        "only": "g_clean"
+      }
+    ],
+    [
+      "DOBRZE",
+      "GOOD",
+      {
+        "only": "g_good"
+      }
+    ],
+    [
+      "KRZYWO",
+      "WONKY",
+      {
+        "only": "g_wonky"
+      }
+    ],
+    [
+      "GALOP",
+      "GALLOP",
+      {
+        "only": "g_gallop"
+      }
+    ],
+    [
+      "—",
+      "—",
+      {
+        "only": "g_none"
+      }
+    ],
+    [
+      "ZGRAJ STOPY",
+      "MATCH THE KICKS",
+      {
+        "only": "h_jog"
+      }
+    ],
+    [
+      "TERAZ FADER",
+      "NOW THE FADER",
+      {
+        "only": "h_fader"
+      }
+    ],
+    [
+      "RUSZ TEMPO",
+      "FIX THE TEMPO",
+      {
+        "only": "h_pitch"
+      }
+    ],
+    [
+      "NUMER SIĘ KOŃCZY",
+      "TRACK ENDING",
+      {
+        "only": "ending"
+      }
+    ],
+    [
+      "SET",
+      "SET",
+      {
+        "only": "r_set"
+      }
+    ],
+    [
+      "MIX",
+      "MIX",
+      {
+        "only": "r_mix"
+      }
+    ],
+    [
+      "NAJDŁUŻSZY LOCK",
+      "LONGEST LOCK",
+      {
+        "only": "r_lock"
+      }
+    ],
+    [
+      "TAKTÓW",
+      "BARS",
+      {
+        "only": "r_bars"
+      }
+    ],
+    [
+      "PARKIET",
+      "THE FLOOR",
+      {
+        "only": "r_floor"
+      }
+    ],
+    [
+      "NAPIWEK",
+      "TIP",
+      {
+        "only": "r_tip"
+      }
+    ],
+    [
+      "SZACUNEK",
+      "RESPECT",
+      {
+        "only": "r_respect"
+      }
+    ],
+    [
+      "WIZYTA OPŁACONA",
+      "ALREADY PAID TONIGHT",
+      {
+        "only": "r_paid"
+      }
+    ],
+    [
+      "JESZCZE RAZ",
+      "AGAIN",
+      {
+        "only": "b_again"
+      }
+    ],
+    [
+      "NA PARKIET",
+      "TO THE FLOOR",
+      {
+        "only": "b_floor"
+      }
+    ],
+    [
+      "ZA DECKI",
+      "TO THE DECKS",
+      {
+        "only": "b_play"
+      }
+    ],
+    [
+      "NIE TERAZ",
+      "NOT NOW",
+      {
+        "only": "b_later"
+      }
+    ],
+    [
+      "MIX",
+      "MIX",
+      {
+        "only": "mix"
+      }
+    ]
+  ],
   "club_patio": [
     [
       "Tu przynajmniej słychać, co mówisz. Szkoda, bo mówisz o kryptowalutach.",
