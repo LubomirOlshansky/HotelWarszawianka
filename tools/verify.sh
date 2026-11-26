@@ -370,6 +370,8 @@
 # City objects plan step 5 (2026-11-14): `objecttypes` runs tools/object_types.py --selftest (the
 # barrier type rules on synthetic lines, the OSM reader in both formats, its copies of the wall
 # builder's hand lists against city_barriers.gd; no map, CI too).
+# `zebras` runs game/tools/check_zebras.gd (2026-11-26): zebra bars at least 3.6 m (map_builder.gd
+# `_zebra_bar`; the bake's 2.2 m footway default is not a crossing's width), on the committed map.
 # Grodzka's ramp by the Royal Castle (F, 2026-11-13): `zamekramps` runs tools/zamek_ramps.py --check
 # (the slip road past Pałac pod Blachą up to the W-Z tunnel is one smooth climb: no pit fills or their
 # walls on it, one ground profile; no map beyond centrum.json, CI too).
@@ -1604,6 +1606,7 @@ for s in $want; do
 		districts) check districts '^check_districts:' --script res://tools/check_districts.gd ;;
 		syrenki) check syrenki '^syrenki:' --script res://tools/check_syrenki.gd ;;
 		cassettes) check cassettes '^cassettes:' --script res://tools/check_cassettes.gd ;;
+		zebras) check zebras '^check_zebras:' --script res://tools/check_zebras.gd ;;
 		ladder) check ladder '^ladder:' --script res://tools/check_ladder.gd ;;
 		racecuts) check racecuts '^race_cuts:' --script res://tools/check_race_cuts.gd ;;
 		racelinks) check racelinks '^race_links:' --script res://tools/check_race_links.gd ;;

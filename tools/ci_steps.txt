@@ -244,3 +244,4 @@ water-prebuilt       smoke     slow
 wellness             quick
 zaglebie             quick
 zamekramps           quick
+zebras               quick
