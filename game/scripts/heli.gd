@@ -123,6 +123,8 @@ func _ready() -> void:
 	_shadow = _make_shadow()
 	add_child(_shadow)
 	_make_lights()
+	# F 2026-11-26 (promo build): "always should be dzik, not the heli".
+	set_dzik(true)
 
 
 ## Puts the helicopter somewhere new without sliding there.

@@ -146,8 +146,6 @@ func set_on(value: bool) -> void:
 		_set_dzik(true)
 		_refresh()
 	else:
-		if _has_dzik():
-			game.heli.set_dzik(false)
 		set_portrait(false)
 		if _layer != null:
 			_layer.visible = false
