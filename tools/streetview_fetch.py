@@ -53,7 +53,9 @@ def building_faces(name, faces):
     (mid, a, b, out, length) in game metres, `out` the unit normal away from the building,
     and the building's height. Exits when the name is not found."""
     data = json.load(open(os.path.join(ROOT, "game", "map", "centrum.json")))
-    hits = [b for b in data.get("buildings", []) if b.get("name", "").lower() == name.lower()]
+    # landmarks too (All Saints is one): the same lookup as tools/tiles3d/render.mjs
+    hits = [b for b in data.get("buildings", []) + data.get("landmarks", [])
+            if b.get("name", "").lower() == name.lower()]
     if not hits:
         sys.exit(f"streetview_fetch: no building named {name!r} in game/map/centrum.json")
     b = max(hits, key=lambda b: len(b["p"]))
