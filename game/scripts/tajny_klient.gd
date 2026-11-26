@@ -8,14 +8,18 @@ extends "res://scripts/activity.gd"
 ##      stay `mrozulo`) phones: be his secret customer at KEBAB U KEMALA, the new kebab on Aleje
 ##      Jerozolimskie. Turned down, he rings again a minute later. Taken: the sting (the banner
 ##      TAJNY KLIENT, the start sound, a buzz), 50 zł on BLIP for the kebab, the arrow to the shop.
-##      At the counter Kemal's cards: the dish, the sauce and "Dla kogo?" (for me / for a mate
-##      with a camera: the cover blown, the KEBAB DLA KAMERY badge and Kemal's VIP kebab).
+##      At the door WEJDŹ, and the 2D stand (phase 2: kebab_stand.gd's rules, kebab_stand_ui.gd's
+##      view, the city's 3D off): the dish, the sauce, "Dla kogo?" (for me / for a mate with a
+##      camera: the cover blown, the KEBAB DLA KAMERY badge and Kemal's VIP kebab), Kemal builds
+##      it, the player pours the sauce (dry, just right or on the jacket: it shows in the grade).
 ##   2. TASTE. To the Palm at Rondo de Gaulle'a while it's warm; on the way DŻEMINI KEBAB's AI
 ##      agent offers 100 zł on TYGRAM to say it was bad (take it: the money and the SPRZEDAWCZYK
-##      badge; show it to the camera: Kebabulo roasts DŻEMINI). Kebabulo is never bribed: he bites
-##      (F's phrases: "ale dobry", "buła taka nie za sucha", "jak z Berlina") and grades the
-##      kebab from the player's own run (the dish, how warm it came, the bumps on the way), with
-##      an 11/10 for a perfect one, then the MLASK.
+##      badge; show it to the camera: Kebabulo roasts DŻEMINI). Kebabulo is never bribed. At the
+##      Palm the tasting is Zbyszek's livestream (phase 3: palm_tasting.gd's beats,
+##      palm_tasting_ui.gd's pixel view, the city's 3D off): he bites, chews in close-up, MLASK,
+##      then his verdict (F's phrases: "ale dobry", "buła taka nie za sucha", "jak z Berlina"),
+##      the drumroll and the grade from the player's own run (the dish, how warm it came, the
+##      bumps, the pour), an 11/10 for a perfect one, and the RECENZJA card.
 ##   3. PAYOFF. "Kto pierwszy pod Kemalem, ten przykleja!": a race back to the shop against his
 ##      Porsza on the race session (race_session.gd: one racer, Halina's gentle profile). Whoever
 ##      wins slaps the MLASK sticker on the window (the player taps PRZYKLEJ!), and for good the
@@ -32,7 +36,8 @@ extends "res://scripts/activity.gd"
 ##
 ## Words: dialogue.json group "tajny_klient" (one line per tag). Times: pacing.json "tajny".
 ## Add-ons: Dialogue Manager not used (a straight line of cards with two-way picks, the kit's
-## cards hold it; the 2D stand phase may move the counter scene there), Beehave not used.
+## cards hold it; the stand's order is the stand's own phases; the tasting has no replies, a tap
+## each, so palm_tasting.gd's beats hold it), Beehave not used.
 
 signal beat(id: String, how: String, at: float)
 
@@ -46,6 +51,9 @@ const Ladder := preload("res://scripts/ladder.gd")
 const Messages := preload("res://scripts/messages.gd")
 const Models := preload("res://scripts/models.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
+const KebabStand := preload("res://scripts/kebab_stand.gd")
+const KebabStandUi := preload("res://scripts/kebab_stand_ui.gd")
+const PalmTastingUi := preload("res://scripts/palm_tasting_ui.gd")
 
 const SITE := Crowds.KEMAL_ID
 const KEEP := "kemal_mlask"
@@ -55,6 +63,9 @@ const DISH_KEY := "tajny_dish"
 const SAUCE_KEY := "tajny_sauce"
 const CAM_KEY := "tajny_cam"
 const BRIBE_KEY := "tajny_bribe"
+const POUR_KEY := "tajny_pour"
+## The pour's verdicts as the save keeps them (POUR_KEY).
+const POURS := ["good", "dry", "jacket"]
 enum Saved {NONE, TAKEN, BOUGHT, DONE}
 
 const WORDS := "tajny_klient"
@@ -71,8 +82,8 @@ const STOP_KMH := 12.0
 const HOLD := 0.8
 ## Faster than this the player is driving, and the call's clock counts (km/h).
 const MOVING_KMH := 5.0
-## The dish buttons' order: [grade bonus, price zł]. The VIP kebab for the camera costs nothing.
-const DISHES := [[0.0, 24], [0.1, 26], [0.2, 27], [0.4, 39]]
+## Kemal's stand (data/kebab_stand.json "kemal"): its dishes' grade bonuses come from there.
+const STAND := "kemal"
 ## A bump at this speed or more shakes the bag (m/s).
 const BUMP_SPEED := 5.0
 const ADVANCE := 50
@@ -112,6 +123,8 @@ var sauce := 0
 var cam := false
 ## 0 no message (yet), 1 taken, 2 shown to the camera, 3 ignored.
 var bribe := 0
+## The sauce's pour at the stand: "good", "dry" or "jacket".
+var pour := "good"
 var grade := 0.0
 var bumps := 0
 var won := false
@@ -136,6 +149,10 @@ var _race_dist := PackedFloat32Array()
 var _race_t := 0.0
 var _rank_t := 0.0
 var _sticker: MeshInstance3D
+var _stand_ui: KebabStandUi
+var _palm_ui: PalmTastingUi
+var _city_drawn: Callable
+var _hud_was := true
 var _banner_t := 0.0
 
 
@@ -158,6 +175,7 @@ func install(ctx: GameCtx) -> bool:
 	jobs = ctx.jobs
 	car = ctx.car
 	vehicle = ctx.vehicle
+	_city_drawn = ctx.city_drawn
 	log_on = flag != ""
 	autopilot = ctx.flags.autopilot
 	return true
@@ -182,6 +200,7 @@ func setup(world: Node3D) -> void:
 		sauce = int(wallet.intro.get(SAUCE_KEY, 0))
 		cam = int(wallet.intro.get(CAM_KEY, 0)) == 1
 		bribe = int(wallet.intro.get(BRIBE_KEY, 0))
+		pour = POURS[clampi(int(wallet.intro.get(POUR_KEY, 0)), 0, POURS.size() - 1)]
 		_due = _rng.randf_range(CALL_AT.x, CALL_AT.y) if saved == Saved.NONE else CALL_AT.x * 0.5
 		if hud != null and hud.has_method("set_vehicle_shown"):
 			hud.set_vehicle_shown(false)
@@ -235,6 +254,7 @@ func _save(st: Saved) -> void:
 	wallet.intro[SAUCE_KEY] = sauce
 	wallet.intro[CAM_KEY] = 1 if cam else 0
 	wallet.intro[BRIBE_KEY] = bribe
+	wallet.intro[POUR_KEY] = maxi(0, POURS.find(pour))
 	wallet.save()
 
 
@@ -310,6 +330,8 @@ func _refused(timed_out: bool) -> void:
 
 
 func _ended() -> void:
+	_close_stand()
+	_close_palm()
 	if active and stage != Stage.NONE:
 		# Dropped with the ✕ (or the clock): the call comes again, the chapter kept.
 		_due = _drove + RETRY
@@ -425,53 +447,86 @@ func _counter() -> void:
 	stage = Stage.COUNTER
 	hide_status()
 	_beat("shop")
-	step = "menu"
+	step = "door"
 	card_face = "Kemal"
-	show_card(w("menu_title"), w("kemal_hello"), PackedStringArray([_b("dish_0"), _b("dish_1"), _b("dish_2"), _b("dish_3")]),
-			0.0, true)
+	show_card(w("menu_title"), w("shop_door"), PackedStringArray([_b("btn_enter")]), 0.0)
+
+
+## WEJDŹ: the 2D stand over everything (the root's viewport, as the pub's pong), the city's 3D off,
+## the car held and the HUD away until WYJDŹ.
+func _open_stand() -> void:
+	step = "stand"
+	if _stand_ui == null:
+		_stand_ui = KebabStandUi.new()
+		_stand_ui.name = "KebabStand"
+		var host: Node = hud.get_parent() if hud != null and hud.get_parent() != null else self
+		host.add_child(_stand_ui)
+		_stand_ui.finished.connect(_stand_done)
+	_stand_ui.auto_play = autopilot
+	_stand_ui.auto_pour = Access.auto_pour
+	_stand_ui.log_on = log_on
+	_stand_ui.zl = int(wallet.zl) if wallet != null else 0
+	_stand_ui.pay_tip = func() -> bool:
+		if wallet == null or int(wallet.zl) < KebabStand.TIP:
+			return false
+		wallet.spend(KebabStand.TIP)
+		_stand_ui.zl = int(wallet.zl)
+		return true
+	_stand_ui.cue = func(n: String) -> void:
+		if hud != null:
+			hud.cue(n)
+	_hold_world(true)
+	_stand_ui.open(STAND, true)
+	_beat("stand")
+
+
+## The world held while the stand is up, and let go after.
+func _hold_world(held: bool) -> void:
+	if held:
+		_hud_was = hud.visible if hud != null else true
+	if hud != null:
+		hud.visible = _hud_was if not held else false
+	if _city_drawn.is_valid():
+		_city_drawn.call(not held)
+	if car != null:
+		if held:
+			if "vel" in car:
+				car.set("vel", Vector3.ZERO)
+			if "forward_speed" in car:
+				car.set("forward_speed", 0.0)
+		car.process_mode = Node.PROCESS_MODE_DISABLED if held else Node.PROCESS_MODE_INHERIT
+
+
+func _close_stand() -> void:
+	if _stand_ui != null and _stand_ui.inside:
+		_stand_ui.hide_now()
+		_hold_world(false)
+
+
+## WYJDŹ: the order, paid; to the Palm.
+func _stand_done(r: Dictionary) -> void:
+	_hold_world(false)
+	if phase != Phase.RUN or stage != Stage.COUNTER:
+		return
+	dish = int(r.get("dish", 0))
+	sauce = int(r.get("sauce", 0))
+	cam = bool(r.get("cam", false))
+	pour = str(r.get("pour", "good"))
+	var price := int(r.get("price", 0))
+	if price > 0 and wallet != null:
+		wallet.spend(mini(price, int(wallet.zl)))
+	_beat("order", "cam" if cam else "self")
+	_beat("pour", pour)
+	_save(Saved.BOUGHT)
+	_to_palm(false)
 
 
 func _card_pressed(index: int) -> void:
 	match step:
-		"menu":
-			dish = clampi(index, 0, DISHES.size() - 1)
-			step = "sauce"
-			card_face = "Kemal"
-			show_card(w("sauce_title"), w("kemal_sauce"), PackedStringArray([_b("sauce_0"), _b("sauce_1"), _b("sauce_2")]), 0.0, true)
-		"sauce":
-			sauce = clampi(index, 0, 2)
-			step = "who"
-			card_face = "Kemal"
-			var body := w("kemal_who")
-			if sauce == 2:
-				var hot := w("kemal_hot")
-				body = ["%s\n%s" % [hot[0], body[0]], "%s\n%s" % [hot[1], body[1]]]
-			show_card(w("who_title"), body, PackedStringArray([_b("btn_self"), _b("btn_cam")]), 0.0, true)
-		"who":
-			cam = index == 1
-			step = "paid"
-			_beat("order", "cam" if cam else "self")
-			var price: int = 0 if cam else int(DISHES[dish][1])
-			if price > 0 and wallet != null:
-				wallet.spend(mini(price, int(wallet.zl)))
-			card_face = "Kemal"
-			show_card(w("paid_title"), w("kemal_cam" if cam else "kemal_self"), PackedStringArray([_b("btn_go")]), 0.0)
-		"paid":
-			_save(Saved.BOUGHT)
-			_to_palm(false)
+		"door":
+			_open_stand()
 		"bribe":
 			_bribe_answer(index)
-		"taste_1":
-			step = "taste_2"
-			card_face = "Kebabulo"
-			show_card(w("kebabulo"), _verdict(), PackedStringArray([_b("btn_next")]), 0.0)
-		"taste_2":
-			step = "grade"
-			_grade_card()
-		"grade":
-			step = "race_call"
-			card_face = "Kebabulo"
-			show_card(w("kebabulo"), w("race_call"), PackedStringArray([_b("btn_race")]), 0.0)
 		"race_call":
 			_start_race()
 		"slap":
@@ -568,79 +623,124 @@ func _bribe_answer(index: int) -> void:
 	_beat("bribe", ["", "take", "show", "ignore"][bribe])
 
 
-## At the Palm: Kebabulo bites.
+## At the Palm: Kebabulo bites, on Zbyszek's livestream (palm_tasting_ui.gd over everything, the
+## city's 3D off, the car held, as the stand).
 func _taste() -> void:
 	stage = Stage.TASTE
 	hide_status()
 	clear_target()
-	grade = grade_of(dish, _bag_t / WARM, bumps, cam)
+	grade = grade_of(dish, _bag_t / WARM, bumps, cam, pour)
 	_beat("palm", "%.1f" % grade)
-	step = "taste_1"
+	step = "taste"
+	if _palm_ui == null:
+		_palm_ui = PalmTastingUi.new()
+		_palm_ui.name = "PalmTasting"
+		var host: Node = hud.get_parent() if hud != null and hud.get_parent() != null else self
+		host.add_child(_palm_ui)
+		_palm_ui.finished.connect(_palm_done)
+	_palm_ui.auto_play = autopilot
+	_palm_ui.log_on = log_on
+	_palm_ui.cue = func(n: String) -> void:
+		if hud != null:
+			hud.cue(n)
+	_hold_world(true)
+	_palm_ui.open(tasting_spec())
+	_beat("tasting")
+
+
+## What the livestream shows, from this run: his lines, the grade and its roast, the order, the
+## badge so far.
+func tasting_spec() -> Dictionary:
+	var order := KebabStand.say("dish_%d" % dish)
+	var sc := KebabStand.say("sauce_%d" % sauce)
+	var b := badges()
+	return {
+		"hello": w("palm_hello"),
+		"verdict": _verdict(),
+		"roast": w("roast_" + roast_of(_bag_t / WARM, bumps, cam, grade, pour)),
+		"grade": grade,
+		"grade_label": grade_text(grade),
+		"cam": cam,
+		"order": ["%s · %s" % [order[0], sc[0]], "%s · %s" % [order[1], sc[1]]],
+		"badge": b[0] if not b.is_empty() else [],
+		"seed": int(grade * 10.0) + dish * 7 + bumps,
+	}
+
+
+func _close_palm() -> void:
+	if _palm_ui != null and _palm_ui.inside:
+		_palm_ui.hide_now()
+		_hold_world(false)
+
+
+## The livestream over: MLASK reached the stats, and the race call.
+func _palm_done(r: Dictionary) -> void:
+	_hold_world(false)
+	if phase != Phase.RUN or stage != Stage.TASTE:
+		return
+	var roast := roast_of(_bag_t / WARM, bumps, cam, grade, pour)
+	_beat("mlask", roast)
+	if bool(r.get("skipped", false)):
+		_beat("tasting_skip")
+	step = "race_call"
 	card_face = "Kebabulo"
-	var hello := w("palm_hello")
-	var bite := w("bite_cam" if cam else "bite")
-	show_card(w("kebabulo"), ["%s\n%s" % [hello[0], bite[0]], "%s\n%s" % [hello[1], bite[1]]], PackedStringArray([_b("btn_next")]), 0.0)
+	show_card(w("kebabulo"), w("race_call"), PackedStringArray([_b("btn_race")]), 0.0)
 
 
-## His grade from the run (pure: the check tests it): 8.0, the dish's bonus, up to +1.4 for a warm
-## kebab (`cool` 0 hot .. 1 cold), -0.3 a bump (four at most), -0.2 for the VIP kebab's extra meat;
-## 6.0-9.8, and 11 for a perfect run (the biggest dish, hot, not one bump, for himself).
-static func grade_of(dish_i: int, cool: float, bump_n: int, for_cam: bool) -> float:
-	var g := 8.0 + float(DISHES[clampi(dish_i, 0, DISHES.size() - 1)][0])
+## His grade from the run (pure: the check tests it): 8.0, the dish's bonus (the stand's menu), up
+## to +1.4 for a warm kebab (`cool` 0 hot .. 1 cold), -0.3 a bump (four at most), -0.2 for the VIP
+## kebab's extra meat, -0.4 for a dry pour and -0.2 for sauce on the jacket; 6.0-9.8, and 11 for a
+## perfect run (the biggest dish, hot, not one bump, for himself, the sauce just right).
+static func grade_of(dish_i: int, cool: float, bump_n: int, for_cam: bool, poured := "good") -> float:
+	var dishes: Array = KebabStand.stand_of(STAND).get("dishes", [])
+	var bonus := 0.0
+	if not dishes.is_empty():
+		bonus = float((dishes[clampi(dish_i, 0, dishes.size() - 1)] as Dictionary).get("bonus", 0.0))
+	var g := 8.0 + bonus
 	g += 1.4 * (1.0 - clampf(cool, 0.0, 1.0))
 	g -= 0.3 * mini(bump_n, 4)
 	if for_cam:
 		g -= 0.2
-	if dish_i == DISHES.size() - 1 and cool <= 0.35 and bump_n == 0 and not for_cam:
+	if poured == "dry":
+		g -= 0.4
+	elif poured == "jacket":
+		g -= 0.2
+	if dish_i == dishes.size() - 1 and cool <= 0.35 and bump_n == 0 and not for_cam and poured == "good":
 		return 11.0
 	return clampf(snappedf(g, 0.1), 6.0, 9.8)
 
 
-## What cost the most tenths, for the roast: "perfect", "bumps", "cold", "cam" or "fine".
-static func roast_of(cool: float, bump_n: int, for_cam: bool, g: float) -> String:
+## What cost the most tenths, for the roast: "perfect", "bumps", "cold", "dry", "jacket", "cam" or
+## "fine".
+static func roast_of(cool: float, bump_n: int, for_cam: bool, g: float, poured := "good") -> String:
 	if g >= 11.0:
 		return "perfect"
 	if bump_n >= 2:
 		return "bumps"
 	if cool > 0.6:
 		return "cold"
+	if poured == "dry" or poured == "jacket":
+		return poured
 	if for_cam:
 		return "cam"
 	return "fine"
 
 
-## The second card: the bun, the Berlin comparison, DŻEMINI if the camera saw the bribe.
+## His verdict, line by line: the bite (the sparklers if the camera saw Kemal), the bun, Berlin, and
+## DŻEMINI if the camera saw the bribe (or the quiet one if the player took it).
 func _verdict() -> Array:
-	var a := w("bun")
-	var b := w("berlin")
-	var pl := "%s\n%s" % [a[0], b[0]]
-	var en := "%s\n%s" % [a[1], b[1]]
+	var out: Array = [w("bite_cam" if cam else "bite"), w("bun"), w("berlin")]
 	if bribe == 2:
-		var c := w("dzemini_roast")
-		pl += "\n" + c[0]
-		en += "\n" + c[1]
+		out.append(w("dzemini_roast"))
 	elif bribe == 1:
-		var c := w("quiet")
-		pl += "\n" + c[0]
-		en += "\n" + c[1]
-	return [pl, en]
+		out.append(w("quiet"))
+	return out
 
 
 static func grade_text(g: float) -> String:
 	if g >= 11.0:
 		return "11 / 10"
 	return ("%.1f / 10" % g).replace(".", ",")
-
-
-func _grade_card() -> void:
-	var r := roast_of(_bag_t / WARM, bumps, cam, grade)
-	var head := w("grade_title")
-	var title := ["%s %s" % [head[0], grade_text(grade)], "%s %s" % [head[1], grade_text(grade).replace(",", ".")]]
-	card_face = "Kebabulo"
-	show_card(title, w("roast_" + r), PackedStringArray([_b("btn_next")]), 0.0)
-	hud.cue("win")
-	Access.buzz(200, 1.0)
-	_beat("mlask", r)
 
 
 # --- chapter 3: the race back and the sticker --------------------------------------------------------
@@ -774,8 +874,8 @@ func badges() -> Array:
 
 
 func _result_card() -> void:
-	var order := w("dish_%d" % dish)
-	var sc := w("sauce_%d" % sauce)
+	var order := KebabStand.say("dish_%d" % dish)
+	var sc := KebabStand.say("sauce_%d" % sauce)
 	var head := w("result_body")
 	var pl := str(head[0]).format({"dish": order[0], "sauce": sc[0], "grade": grade_text(grade), "zl": PAY, "respect": RESPECT})
 	var en := str(head[1]).format({"dish": order[1], "sauce": sc[1], "grade": grade_text(grade).replace(",", "."), "zl": PAY, "respect": RESPECT})
@@ -833,6 +933,7 @@ func _jump(to: String) -> void:
 	dish = 3
 	sauce = 0
 	cam = false
+	pour = "good"
 	_save(Saved.BOUGHT)
 	start()
 	if stage != Stage.TO_PALM:
@@ -844,7 +945,7 @@ func _jump(to: String) -> void:
 	if to == "race":
 		_bag_t = 0.0
 		bribe = 2
-		grade = grade_of(dish, 0.0, 0, false)
+		grade = grade_of(dish, 0.0, 0, false, pour)
 		stage = Stage.TASTE
 		hide_status()
 		clear_target()

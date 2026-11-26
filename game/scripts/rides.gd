@@ -660,6 +660,26 @@ func offer_now() -> bool:
 	return not idle()
 
 
+## Road life stage 3, "Pan wolny?!" (crash_scenes.gd's taxi check): the passenger whose taxi the
+## police stopped waves the player down at `at` (the pavement by the check): a request from right
+## there, its card titled PAN WOLNY?! (no story: they say where they were going). False when the
+## player is busy or no ride fits.
+func offer_stranded(at: Vector2) -> bool:
+	if not idle() or not _free():
+		return false
+	_offers += 1
+	var r := _make_ride(_base + _offers, -1, 0.0, at, 0.0, 0.0, at)
+	if r.is_empty():
+		return false
+	_show_offer(r)
+	return not idle()
+
+
+## True while the ride taken (on the way to them, the ride, its result) is a stranded taxi passenger's.
+func stranded_on() -> bool:
+	return stage != Stage.NONE and bool(_ride.get("stranded", false))
+
+
 ## A request from near where the car is.
 func _offer_here() -> void:
 	var p := Vector2(car.global_position.x, car.global_position.z)
@@ -695,6 +715,10 @@ func _offer_card() -> Dictionary:
 	var r := _ride
 	var text := Rules.offer_text({"name": r["name"], "away": r["away"], "road": r["road"], "their": r["their"],
 			"note": r["note"], "night": r["night"], "rain": r["rain"], "rating": _rating()})
+	var hail: Array = dialogue.line("podwozka_request", "stranded_title", true) if bool(r.get("stranded", false)) else []
+	if not hail.is_empty():
+		text[0] = "%s · %s" % [hail[0], text[0].get_slice(" · ", 1)]
+		text[2] = "%s · %s" % [hail[1], text[2]]
 	return {"title": [text[0], text[2]], "body": [text[1], text[3]], "buttons": ["ACCEPT", "SKIP"]}
 
 
@@ -714,15 +738,24 @@ func _withdraw() -> void:
 
 ## Ride n: a pickup door lo-hi m by road from lane point (e, s), the passenger (and where they
 ## really wait), the destination and the quirk (resolved on accepting). Same n, same ride from
-## the same lane point.
-func _make_ride(n: int, e: int, s: float, from: Vector2, lo: float, hi: float) -> Dictionary:
+## the same lane point. `here` (road life's "Pan wolny?!"): the passenger stands right there
+## instead (no door picked, no story, they wait by the pin).
+func _make_ride(n: int, e: int, s: float, from: Vector2, lo: float, hi: float, here := Vector2.INF) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = n * 9973 + 17
 	var west := func(a: Dictionary) -> bool: return a["d"] != "praga"
 	# Loop MW-3: at dawn, most requests are at an address by a club's door (a `club` passenger).
 	var club := ""
 	var pick: Dictionary = {}
-	var doors: Array = club_doors.call() if club_doors.is_valid() else []
+	var stranded := here != Vector2.INF
+	if stranded:
+		var hit := graph.snap(here, 30.0, Vector2.ZERO, true, true)
+		if hit.is_empty():
+			return {}
+		var street: String = graph.e_name[hit[0]]
+		pick = {"name": street if street != "" else "?", "ring": Vector3(here.x, map.ground_height(here.x, here.y), here.y),
+				"road": 0.0, "door": here, "at": graph.point_at(hit[0], hit[2]), "edge": hit[0], "s": hit[2]}
+	var doors: Array = club_doors.call() if club_doors.is_valid() and not stranded else []
 	if not doors.is_empty() and rng.randf() < 0.7:
 		var door: Array = doors[rng.randi() % doors.size()]
 		var by_door := func(a: Dictionary) -> bool: return a["d"] != "praga" and (a["door"] as Vector2).distance_to(door[1]) < 60.0
@@ -736,7 +769,7 @@ func _make_ride(n: int, e: int, s: float, from: Vector2, lo: float, hi: float) -
 	var r := {"n": n, "pin_name": String(pick["name"]), "pin": pick["ring"], "away": float(pick["road"])}
 	# Where the passenger really is: by the pin, or (half the time) 30-60 m along the street or across it.
 	var door: Vector2 = pick["door"]
-	var offset := rng.randf() < OFFSET_SHARE
+	var offset := rng.randf() < OFFSET_SHARE and not stranded
 	var off_m := rng.randf_range(OFFSET.x, OFFSET.y)
 	var k: Dictionary = {}
 	if offset:
@@ -848,13 +881,16 @@ func _make_ride(n: int, e: int, s: float, from: Vector2, lo: float, hi: float) -
 	r["rain"] = _rain()
 	r["eta"] = Rules.eta_for(r["road"], kind == "hurry" or kind == "date")
 	var l: Array = dialogue.line("podwozka_request", kind, true) if kind == "club" or kind == "timber" or kind == "date" else dialogue.line("podwozka_request")
+	if stranded:
+		l = dialogue.line("podwozka_request", "stranded", true)
 	r["note"] = [l[0], l[1]] if not l.is_empty() else []
+	r["stranded"] = stranded
 	# F (2026-11-07): most passengers are story passengers (taxi_stories.json), in turn; a club
 	# night, a date and a late Hyrax competitor keep their own lines.
 	r["story"] = {}
 	var sroll := rng.randf()
-	var can: bool = kind != "club" and kind != "date" and not bool(r.get("hyrax", false))
-	if force_story != "none" and not _stories.is_empty() and ((can and sroll < Stories.SHARE) or force_story != ""):
+	var can: bool = kind != "club" and kind != "date" and not bool(r.get("hyrax", false)) and not stranded
+	if force_story != "none" and not stranded and not _stories.is_empty() and ((can and sroll < Stories.SHARE) or force_story != ""):
 		var seen: Array = wallet.keep.get("podwozka_stories", []) if wallet != null else []
 		var skip: Array = []
 		# F (2026-11-07): each story goes to its real place (`to`); one whose place doesn't fit

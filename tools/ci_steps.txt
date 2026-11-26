@@ -97,6 +97,7 @@ jobplay              quick
 jobs2                quick
 juice                quick
 kebab                local     slow
+kebabstand           quick
 kinotour             quick
 kladka               quick
 kukuryznik           quick
@@ -136,6 +137,7 @@ pacing               quick
 packs                quick
 padel                quick
 palacelights         quick
+palmtasting          quick
 panelrule            quick
 panelstates          smoke
 parkdetails          quick

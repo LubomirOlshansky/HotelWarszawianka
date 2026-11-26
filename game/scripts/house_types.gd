@@ -12,11 +12,18 @@ extends RefCounted
 ## OpenStreetMap colour tag beats the palette; an empty or grey one gives way to it.
 
 const PATH := "res://data/house_types.json"
-## Rhythms the shader draws today (building.gdshader typed_facade, R4 types of map_builder.gd).
+## Roof dress classes (roof_dress.gd's `kind`: 1 tenement chimneys, 2 slab, 3 office coping).
 const RHYTHM_GENERIC := 0
 const RHYTHM_TENEMENT := 1
 const RHYTHM_SLAB := 2
 const RHYTHM_OFFICE := 3
+## Rows of building.gdshader's HOUSE_* tables: a typed wall's UV2.x is 1 + (T + 0.96 seed) / ROWS.
+const ROWS := 16
+## The Old Town and New Town (map_builder _tenement_facades), drawn by the shader's own function.
+const OLD_TOWN := 4
+## map_builder's R4 kinds (_building_type: 1 tenement, 2 slab, 3 office) as types, for the houses
+## the street lists still type (TD-37).
+const FROM_R4 := {1: 1, 2: 8, 3: 11, 4: OLD_TOWN}
 
 static var _data: Dictionary = {}
 static var _zones: Array = []  # [id, PackedVector2Array, Rect2, mix Dictionary, grey_override]
@@ -135,7 +142,21 @@ static func pick(zone: int, fam: String, h: float, long: float, short: float, se
 	return picked
 
 
-## The drawn rhythm of a type (0 generic, 1 tenement, 2 slab, 3 office).
+## A wall's UV2.x for type `type` (1..15) and seed 0..1, the shader's encoding; 0 keeps the seed.
+static func encode(type: int, seed: float) -> float:
+	if type <= 0 or type >= ROWS:
+		return seed
+	return 1.0 + (float(type) + 0.96 * clampf(seed, 0.0, 0.999)) / float(ROWS)
+
+
+## The type a UV2.x carries (0 untyped, a landmark code or out of range).
+static func decode(x: float) -> int:
+	if x < 1.0 or x >= 2.0:
+		return 0
+	return clampi(int((x - 1.0) * ROWS), 0, ROWS - 1)
+
+
+## The roof dress class of a type (0 generic, 1 tenement, 2 slab, 3 office).
 static func rhythm(type: int) -> int:
 	return int(data().get("types", {}).get(str(type), {}).get("rhythm", RHYTHM_GENERIC))
 

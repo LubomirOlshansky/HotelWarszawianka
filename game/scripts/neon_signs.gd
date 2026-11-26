@@ -65,6 +65,9 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"ELEKTRON",
 		# HOTEL PIURE's rooftop date bar (G3).
 		"LORETKA",
+		# Nowy Świat 4A's band (F's photo, 2026-11-26): the arms group's three letters as the old
+		# state farm's.
+		"PGR",
 		# Arkadka from F's photos (2026-11-03): Westfield as "west field" in Polish, the
 		# hypermarket, the DIY store and the cinema on the sign tower.
 		"ZACHODNIE", "POLE", "KARFUREK", "GEOBENT",

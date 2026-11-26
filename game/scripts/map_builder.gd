@@ -9760,7 +9760,7 @@ func _build_buildings(st, keep: Array, marks) -> void:
 			roof = skin["roof"]
 			_uv2.x = skin["mode"]
 		elif not glass and not _historic(plan.get_center(), 0.0):
-			_uv2.x = typed_seed(_osm_house_type(bld, poly, h, plan.get_center(), hsh), _uv2.x)
+			_uv2.x = HouseTypes.encode(_osm_house_type(bld, poly, h, plan.get_center(), hsh), _uv2.x)
 			if _osm_house_colour.a > 0.0:
 				wall = _osm_house_colour
 			if not bld.has("pil") and not bld.has("cut") and mh < 1.0:
@@ -10206,7 +10206,7 @@ func _build_lod2(walls, marks) -> Array:
 			# The landmarks loop: a kept building in a landmark's own stone (Muzeum Narodowe).
 			var skin: Dictionary = marks.skin_at(Rect2(lo, hi - lo))
 			if not skin.is_empty():
-				_skin_run(skin, pos, nrm, col, uv2, t0, t1)
+				_skin_run(skin, pos, nrm, col, uv2, t0, t1, dropped)
 			else:
 				building_runs.append(Vector3i(t0, t1, 0))
 		t0 = t1
@@ -10414,11 +10414,11 @@ func _clip_lod2(pos: PackedVector3Array, nrm: PackedVector3Array, col: PackedCol
 ## A kept LoD2 building in a landmark's skin (`skin_at`): its roof colour on faces flatter than
 ## the skin's `steep` (0.7 unless it says: a steeper LoD2 slope reads as wall), its wall colour on
 ## the rest, and its `pale` colour on the walls along one front (`pale`: {wall, edges: pairs of
-## outline ends, near}: walls whose centre is within `near` m of one of those edges). F's look
+## outline ends, near, drop}: walls whose centre is within `near` m of one of those edges). F's look
 ## check (2026-11-03): the Royal Castle's steep roof slopes and LoD2's walls standing up to 0.9 m
 ## proud of the model's Vistula front showed as a salmon band over the pale river front.
 func _skin_run(skin: Dictionary, pos: PackedVector3Array, nrm: PackedVector3Array, col: PackedColorArray,
-		uv2: PackedVector2Array, t0: int, t1: int) -> void:
+		uv2: PackedVector2Array, t0: int, t1: int, dropped: PackedByteArray) -> void:
 	var steep: float = skin.get("steep", 0.7)
 	var pale: Dictionary = skin.get("pale", {})
 	# `upper`: walls higher than `over` m above the building's foot in another colour (a brick tower
@@ -10448,6 +10448,12 @@ func _skin_run(skin: Dictionary, pos: PackedVector3Array, nrm: PackedVector3Arra
 			for e in range(0, edges.size() - 1, 2):
 				if Geometry2D.get_closest_point_to_segment(mid, edges[e], edges[e + 1]).distance_to(mid) < float(pale["near"]):
 					c = pale["wall"]
+					# `drop`: a plan polygon where a modelled front stands; the pale walls there go, since
+					# they stood proud of the model in places and drew a second row of window slits
+					# through its openings (the castle's river front, 2026-11-26)
+					var drop: PackedVector2Array = pale.get("drop", PackedVector2Array())
+					if not drop.is_empty() and Geometry2D.is_point_in_polygon(mid, drop):
+						dropped[t / 3] = 1
 					break
 		for k in 3:
 			col[t + k] = c
@@ -10577,6 +10583,16 @@ func _tree_blocked(x: float, z: float) -> bool:
 		elif Vector2(x, z).distance_to(c[0]) < float(c[1]):
 			return true
 	return false
+
+
+## A landmark's re-sized tree at this spot (landmarks.gd tree_set), or [].
+func _tree_set_at(x: float, z: float) -> Array:
+	if _marks == null:
+		return []
+	for e: Array in _marks.tree_set:
+		if Vector2(x, z).distance_to(e[0]) < float(e[1]):
+			return e
+	return []
 
 
 ## A landmark keeps this spot clear of parked cars (landmarks.gd parked_free: the Christmas market
@@ -10737,6 +10753,13 @@ func _build_trees() -> void:
 		var h := fposmod(sin(x * 12.9898 + z * 78.233) * 43758.5453, 1.0)
 		var ground := terrain_height(x, z) - 0.2
 		var kind := int(kinds[i / 6]) if i / 6 < kinds.size() else _tree_kind(x, z, top, radius, base, is_needle)
+		var set_one := _tree_set_at(x, z)
+		if not set_one.is_empty():
+			top = float(set_one[2])
+			radius = float(set_one[3])
+			base = 4.2  # the trunk shows over the bench, the crown spreads over the people on it
+			kind = int(set_one[4])
+			h = 0.0  # seed 0: the last of its kind to turn
 		is_needle = kind >= TreeKind.SPRUCE
 		# Crown meshes in model space: broadleaf spans y 2.09-6.51 at radius 2.3, conifer 1.6-7.4 at 2.2.
 		var low := 1.6 if is_needle else 2.09
@@ -10747,7 +10770,8 @@ func _build_trees() -> void:
 		var foot := Vector3(x, ground, z)
 		var t := Transform3D(lean * Basis(Vector3.UP, h * TAU).scaled(Vector3(sxz, sy, sxz)),
 				foot + lean * Vector3(0, base - low * sy, 0))
-		var colour := _tree_colour(h)
+		# a re-sized tree keeps a fresh olive green (F's November photo of the oak), not seed 0's dark
+		var colour := _tree_colour(h) if set_one.is_empty() else Color(0.95, 1.12, 0.8)
 		# The mesh follows the kind (the needle flag only when no kind is stored).
 		if kind >= TreeKind.SPRUCE:
 			needle.append(t)
@@ -11553,8 +11577,6 @@ const PLAC_PALETTE_R := 110.0
 ## The market square's fronts (the shader's painted bands): walls within this of its centre that
 ## face it.
 const SQUARE_FRONT_R := 48.0
-## building.gdshader's T_OLDTOWN: the historic districts' walls (F's photos, 2026-11-08).
-const OLD_TOWN_TYPE := 4
 ## The Old Town Market Square's houses (F, 2026-11-09): within RYNEK_PALETTE_R of its centre each
 ## house is a painted front in one of these (ochre, salmon, sage, powder blue, pale pink, cream,
 ## terracotta, lilac, straw), unless OSM names its colour; the named houses below have their own,
@@ -11623,7 +11645,7 @@ const NOT_TENEMENTS := ["church", "cathedral", "chapel", "monastery", "convent",
 
 
 ## R4 of docs/design/start-area-real.md (2026-11-01): an ordinary building's type for the facade
-## shader (building.gdshader typed_facade), from its OpenStreetMap kind, footprint and height:
+## shader (building.gdshader house_facade, through HouseTypes.FROM_R4), from its OpenStreetMap kind, footprint and height:
 ## 1 a pre-war tenement (kamienica: 10-26 m, the city's usual block), 2 a 1960s-80s large-panel
 ## slab or point block (26 m and up, or a long thin bar 14 m and up), 3 a post-war office with
 ## ribbon windows (offices, shops, hotels, ministries 12 m and up), 0 untyped (the seed's look:
@@ -11727,18 +11749,17 @@ func _boulevard_dress(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pac
 	return col
 
 
-## A wall's UV2.x for type `kind` (1-3) and seed 0..1: [1, 2) in quarters; 0 keeps the seed.
+## A wall's UV2.x for R4 kind `kind` (1 tenement, 2 slab, 3 office, 4 the Old Town) and seed 0..1,
+## as its house type (HouseTypes.FROM_R4, encode); 0 keeps the seed.
 static func typed_seed(kind: int, seed: float) -> float:
-	if kind <= 0:
-		return seed
-	return 1.0 + 0.25 * float(kind - 1) + 0.24 * clampf(seed, 0.0, 0.999)
+	return HouseTypes.encode(int(HouseTypes.FROM_R4.get(kind, 0)), seed)
 
 
 ## The palette colour _osm_house_type picked for the house it just typed (alpha 0: none).
 var _osm_house_colour := Color(0, 0, 0, 0)
 
 
-## The OSM-path house's drawn rhythm (house types, PR 1): today's R4 rule says whether it is a
+## The OSM-path house's house type (house types, PR 1; 0 untyped): today's R4 rule says whether it is a
 ## typed house at all; HouseTypes picks its type from the zone and its shape (no floor height:
 ## here the wall height is the baked h itself). Sets _osm_house_colour to the type's palette when
 ## OSM gives no colour or a grey one, else clear.
@@ -11749,7 +11770,7 @@ func _osm_house_type(bld: Dictionary, poly: PackedVector2Array, h: float, centre
 	if old == 0:
 		return 0
 	if _nowy_swiat(centre) or _powisle_distance(centre) <= POWISLE_REACH or not _tamka_look(bld, poly, centre, hsh).is_empty():
-		return old  # a street list's house: its own palette and trims, today's type
+		return int(HouseTypes.FROM_R4.get(old, 0))  # a street list's house: its own palette and trims, today's type
 	var zone := HouseTypes.zone_at(centre)
 	var fp := HouseTypes.footprint(poly)
 	var fam := HouseTypes.family(TYPED_OFFICES.has(kind), h, 0.0, fp.x, fp.y, false, HouseTypes.zone_family(zone))
@@ -11757,12 +11778,12 @@ func _osm_house_type(bld: Dictionary, poly: PackedVector2Array, h: float, centre
 	var type := HouseTypes.pick(zone, fam, h, fp.x, fp.y, seed)
 	if HouseTypes.replaces_osm(zone, bld.get("c", "")):
 		_osm_house_colour = HouseTypes.wall(type, fposmod(seed * 3.7 + hsh * 0.618, 1.0))
-	return HouseTypes.rhythm(type)
+	return type
 
 
 ## R4 for the LoD2 buildings, by house type (docs/design/house-types.md, PR 1): each run (one
 ## building) finds the OpenStreetMap house it stands on, HouseTypes picks its Warsaw type from the
-## zone, its floor height (eave over storeys) and shape, the walls take that type's drawn rhythm
+## zone, its floor height (eave over storeys) and shape, the walls take that type's drawn facade
 ## and, where OSM gives no colour (or a grey one), the type's palette. Glass walls, landmarks'
 ## skins, the historic districts and the street lists (Nowy Świat, Powiśle, Tamka, Aleja Jana
 ## Pawła II) keep theirs. Load time only, both city paths; every seed from a place.
@@ -11848,11 +11869,10 @@ func _typed_lod2(pos: PackedVector3Array, nrm: PackedVector3Array, col: PackedCo
 		var type := HouseTypes.pick(zone, fam, eave, fp.x, fp.y, seed)
 		var type_name := HouseTypes.type_name(type)
 		census[type_name] = int(census.get(type_name, 0)) + 1
-		var rhythm := HouseTypes.rhythm(type)
-		if rhythm > 0:
+		if type > 0:
 			for t in range(run.x, run.y):
 				if uv2[t].x < 1.0 and col[t].a >= 0.9:
-					uv2[t].x = typed_seed(rhythm, uv2[t].x)
+					uv2[t].x = HouseTypes.encode(type, uv2[t].x)
 		var paint := HouseTypes.wall(type, fposmod(seed * 3.7 + hsh * 0.618, 1.0))
 		if paint.a > 0.0 and HouseTypes.replaces_osm(zone, bld.get("c", "")):
 			# Keep the bake's shading (the darker foot of the walls) as each vertex's brightness
@@ -11928,13 +11948,13 @@ func _roof_dress(pos: PackedVector3Array, nrm: PackedVector3Array, col: PackedCo
 			lo = lo.min(Vector2(pos[t].x, pos[t].z))
 			hi = hi.max(Vector2(pos[t].x, pos[t].z))
 			if kind == 0 and uv2[t].x >= 1.0 and uv2[t].x < 2.0:
-				kind = int((uv2[t].x - 1.0) * 4.0) + 1
+				kind = HouseTypes.rhythm(HouseTypes.decode(uv2[t].x))
 		var extra := RoofDress.building(pos, nrm, col, uv, run.x, run.y, kind, _historic((lo + hi) * 0.5, 0.0))
 		if not (extra["pos"] as PackedVector3Array).is_empty():
 			_add_dress(dress, extra)
 	if not _in_sector:
-		print("roofs: %d parapet edges, %d chimneys, %d triangles (RF2-RF3)" % [RoofDress.parapets,
-				RoofDress.chimneys, RoofDress.triangles - before])
+		print("roofs: %d parapet edges, %d chimneys, %d rooms, %d antennas, %d triangles (RF2-RF3)" % [RoofDress.parapets,
+				RoofDress.chimneys, RoofDress.rooms, RoofDress.antennas, RoofDress.triangles - before])
 
 
 ## The historic districts: each LoD2 wall in them takes the colour and window seed of the
@@ -12025,7 +12045,7 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 					break
 				# F's photos (2026-11-08): the walls take the shader's Old Town type (portals,
 				# casements in cream surrounds, sills, painted bands on the market square's fronts)
-				var wall_seed := typed_seed(OLD_TOWN_TYPE, seeds[k] * 0.5 + (0.5 if _faces_square(pos, nrm, t) else 0.0))
+				var wall_seed := HouseTypes.encode(HouseTypes.OLD_TOWN, seeds[k] * 0.5 + (0.5 if _faces_square(pos, nrm, t) else 0.0))
 				for v in 3:
 					if pitched:
 						col[t + v] = col[t + v].lerp(roofs[k], 0.5)

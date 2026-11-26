@@ -48,6 +48,10 @@ const S_KEYS := 15      # Piano House: white plaster, dark window strips in a ke
 
 const CLOCKWISE_FRONT := true
 const M_STEEL := M_GOLD + 0.5
+## Floodlit at night (F, 2026-11-26, the Cathedral's night photo): brick Gothic washed warm from the
+## ground, and stone washed the same (building.gdshader gothic() `lit`, the M_STONE branch).
+const M_GOTHIC_LIT := M_GOTHIC + 0.5
+const M_STONE_LIT := M_STONE + 0.5
 
 
 # --- state ---
@@ -778,7 +782,7 @@ const PAL_SIGNAL_RED := Color("#c8322e")  # red paint
 ## Window styles of `kit_window`: what surrounds the pane (docs/design/facade-kit.md section 3).
 enum Win { PLAIN, SILL, SILL_HEAD, FRAMED, HOODED, PEDIMENT, ARCHED }
 ## Balcony kinds of `kit_balcony`: iron rail and bars, solid stone balustrade, parapet wall.
-enum Balcony { IRON, STONE, PARAPET }
+enum Balcony { IRON, STONE, PARAPET, ROUND }
 ## What stands on a cornice (`kit_attic`): a plain parapet or a balustrade with piers.
 enum Attic { WALL, BALUSTRADE }
 ## Column orders of `kit_column`, `kit_colonnade`, `kit_portico`.
@@ -938,10 +942,19 @@ func kit_colonnade(u0: float, u1: float, n: int, v: float, y0: float, y1: float,
 ## pane 5 cm proud; sill hw + 0.28 half wide, 0.30 deep, 0.16 tall under the pane; head hw + 0.20
 ## half wide, 0.17 tall just over it; jambs 0.2 square at hw + 0.08; a hood hw + 0.28 half
 ## wide to 0.30 over the pane; a two-step pediment on the head; an arched head of glass and trim.
-func kit_window(u: float, y: float, h: float, style: Win, trim: Color, glass := PAL_GLASS_DARK, hw := 0.7) -> void:
+func kit_window(u: float, y: float, h: float, style: Win, trim: Color, glass := PAL_GLASS_DARK, hw := 0.7,
+		sash := Color(0, 0, 0, 0)) -> void:
 	var f := _face
 	var top := y + h
 	_lbox(u, f + 0.02, hw, 0.03, y, top, glass, _lit(u, y))
+	if sash.a > 0.0:
+		# the sash cross: a mullion and a transom two thirds up, flat on the pane
+		var keep := _mode
+		_mode = M_STONE
+		_wall(_w(u - 0.035, f + 0.06), _w(u + 0.035, f + 0.06), y, top, _b, sash)
+		var ty := y + h * 0.66
+		_wall(_w(u - hw, f + 0.06), _w(u + hw, f + 0.06), ty - 0.035, ty + 0.035, _b, sash)
+		_mode = keep
 	if style == Win.PLAIN:
 		return
 	if style == Win.FRAMED or style == Win.HOODED:
@@ -960,6 +973,16 @@ func kit_window(u: float, y: float, h: float, style: Win, trim: Color, glass := 
 	elif style == Win.ARCHED:
 		_lbox(u, f + 0.02, hw * 0.67, 0.03, top, top + 0.30, glass)
 		_lbox(u, f + 0.08, hw * 0.86, 0.12, top + 0.24, top + 0.50, trim)
+
+
+## A round-headed window anywhere on a wall (plan point `at` its foot's middle, the wall running
+## `along`, facing `out`): a surround in `trim` 0.22 m wider round the arch, 0.2 m under the sill,
+## and the glass from `y0` to the spring and round the half disc, lit by chance at night.
+func kit_round_window(at: Vector2, along: Vector2, out: Vector2, y0: float, spring: float, hw: float, trim: Color,
+		glass := PAL_GLASS_DARK) -> void:
+	var l := _local(at)
+	_arch_panel(at, along, out, hw + 0.22, y0 - 0.2, spring, trim, 0.03, M_STONE)
+	_arch_panel(at, along, out, hw, y0, spring, glass, 0.09, _lit(l.x + l.y, y0))
 
 
 ## A window in every bay (bay centres evenly between u0 and u1) on every sill height in `sills`
@@ -1018,7 +1041,9 @@ func kit_door(u: float, y: float, h: float, hw: float, trim: Color, leaf: Color,
 ## the face: `IRON` a slab 0.20 thick, a top rail 0.85 to 0.92 over it on the front and both
 ## sides, a bar every 0.42 m or closer; `STONE` a slab 0.28 thick, a solid balustrade 1.0 high
 ## and 0.14 thick on the front and both sides, two brackets under it; `PARAPET` a slab and a
-## solid front wall 0.86 high with a coping, no sides. `rail` is the railing, balustrade or wall.
+## solid front wall 0.86 high with a coping, no sides; `ROUND` a half-ellipse rim 0.28 thick
+## (`depth` out, 2 * `hw` wide) over a dish 72 % its size and 0.46 deep, and a solid rail 0.96 high round its curve (Niecała 7's
+## stacks, 2026-11-26). `rail` is the railing, balustrade or wall.
 func kit_balcony(u: float, y: float, hw: float, kind: Balcony, rail: Color, slab: Color, depth := 1.0) -> void:
 	var v0 := _face + 0.01
 	var vf := v0 + depth
@@ -1040,6 +1065,27 @@ func kit_balcony(u: float, y: float, hw: float, kind: Balcony, rail: Color, slab
 				_kbox(c - 0.07, c + 0.07, v0, vf - 0.14, y - 0.06, y + 0.94, rail)
 				var b := u + s * (hw - 0.3)
 				_kbox(b - 0.12, b + 0.12, v0, v0 + depth * 0.6, y - 0.74, y - 0.34, slab)
+		Balcony.ROUND:
+			var poly := PackedVector2Array()
+			for t in 9:
+				var ang := PI * float(t) / 8.0
+				poly.append(_w(u - cos(ang) * hw, v0 + 0.01 + sin(ang) * depth))
+			var keep := _mode
+			_mode = M_STONE
+			var c := _w(u, _face)
+			# The rim, then a narrower bowl under it, so the underside reads as a dish.
+			_prism(poly, y - 0.34, y - 0.06, slab.lightened(0.06), slab.lightened(0.1), M_STONE, M_STONE)
+			var bowl := PackedVector2Array()
+			for p in poly:
+				bowl.append(c + (p - c) * 0.72)
+			_prism(bowl, y - 0.8, y - 0.34, slab.darkened(0.06), slab, M_STONE, M_STONE)
+			_soffit(poly, y - 0.34, slab.darkened(0.1))
+			_soffit(bowl, y - 0.8, slab.darkened(0.16))
+			for t in 8:
+				var a := poly[t]
+				var b := poly[t + 1]
+				_wall(a, b, y - 0.06, y + 0.9, ((a + b) * 0.5 - c).normalized(), rail)
+			_mode = keep
 		_:
 			_kbox(u - hw, u + hw, v0, vf, y - 0.28, y - 0.06, slab)
 			_kbox(u - hw, u + hw, vf - 0.14, vf, y - 0.06, y + 0.80, rail)
