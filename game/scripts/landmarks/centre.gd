@@ -328,8 +328,9 @@ func _build_palace(site: Dictionary) -> void:
 	_palace_venues(g)
 
 
-## The Blender trial (2026-11-13): where the Palace comes from. "code" is `_build_palace` below;
-## "blender" (LOD 0) and "blender1" (LOD 1) read the glb that tools/blender/pkin.py exports. Set by
+## Where the Palace comes from. Since 2026-11-26 (F's flying-boar reel, close-ups round the Palace) the
+## default is "blender" (LOD 0): the glb that tools/blender/pkin.py exports ("blender1" is LOD 1).
+## "code" is `_build_palace` below, the fallback when the glb is missing. Set by
 ## main.gd's `--palace=`; the sector bake (tools/bake_city.gd) reads AW_PALACE instead.
 static var palace_flag := ""
 
@@ -338,7 +339,7 @@ static func palace_source() -> String:
 	if palace_flag != "":
 		return palace_flag
 	var env := OS.get_environment("AW_PALACE")
-	return env if env != "" else "code"
+	return env if env != "" else "blender"
 
 
 ## The Palace from the Blender model: every triangle of the glb into the city mesh with the
@@ -404,7 +405,7 @@ func _palace_glb(outer: PackedVector2Array, g: float) -> bool:
 		var nu: float = [1.0, -1.0, 0.0, 0.0][f]
 		var nv: float = [0.0, 0.0, 1.0, -1.0][f]
 		# The clocks sit over the arcade on the 12.6 m tier (the photos), not under it.
-		_dial(_w(nu * 6.42, nv * 6.42), g + 178.0, Vector2(_a * nu + _b * nv), 2.8)
+		_dial(_w(nu * 6.42, nv * 6.42), g + 178.0, Vector2(_a * nu + _b * nv), 3.3)
 	for gate in P_GATES:
 		_palace_gate(float(gate[0]), float(gate[1]), float(gate[2]), float(gate[3]), g, SANDSTONE_LIGHT)
 	_palace_name(54.05, g)

@@ -212,7 +212,7 @@ const BUDGET := {
 	"metropolitan": 3100,
 	"metropolsign": 320,  # 2026-11-10: Hotel Metropol rebuilt whole from F's photos (255 measured)
 	"muzeum": 3500,  # 2026-11-06 photo pass: a stone pier on every bay boundary, fence, flagpoles
-	"palace": 7600,   # 2026-11-07: 3696 -> 7288, Bar Studio's 34 deck chairs, tables, festoons and frame signs (same mesh, no new draw call)
+	"palace": 27500,   # 2026-11-26 the Blender Palace is the default (F, reel close-ups): 26,906 tris, the glb's 23,084 plus the venues, one mesh, +0 draw calls (probe below). Before, 2026-11-07: 3696 -> 7288, Bar Studio's 34 deck chairs, tables, festoons and frame signs (same mesh, no new draw call)
 	"pawilony": 2100,
 	"plater49": 140,
 	"platinum_a": 80,
@@ -386,7 +386,7 @@ const BUDGET := {
 ## block's `facade` walls do (fronts.gd _build_block): they go into the same building surface, so no
 ## draw call of their own; any plain triangle more than that number still fails.
 ## dom_chlopa "plain": the one wall quad (works.gd _dch_fill_front) over its south-west front, the same way.
-const KNOWN := {"jarmark": {"zfight": 1235, "float": 777}, "lipowa1a": {"zfight": 2}, "port_praski": {"plain": 750}, "dom_chlopa": {"plain": 2}, "towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}, "tr": {"zfight": 8}}  # lipowa1a: 2 coplanar triangles where two cornice slabs meet at the base corners (12 m up, never seen); jarmark: coplanar panels on the chalets' fronts about 1 m up (1235, sampled in rows R3 and R4; not yet traced) and the bulbs hung on strings over the aisles (777, they hang by design); tr: 8 coplanar triangles in crane 1's A-frame legs at 36 m, not found (hidden in a lattice, never seen)
+const KNOWN := {"jarmark": {"zfight": 1235, "float": 777}, "lipowa1a": {"zfight": 2}, "port_praski": {"plain": 750}, "dom_chlopa": {"plain": 2}, "towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}, "tr": {"zfight": 8}, "palace": {"zfight": 101}}  # lipowa1a: 2 coplanar triangles where two cornice slabs meet at the base corners (12 m up, never seen); jarmark: coplanar panels on the chalets' fronts about 1 m up (1235, sampled in rows R3 and R4; not yet traced) and the bulbs hung on strings over the aisles (777, they hang by design); tr: 8 coplanar triangles in crane 1's A-frame legs at 36 m, not found (hidden in a lattice, never seen); palace: 101 coplanar triangles at 17-18 m where the wings' walls and cornices meet the base cornice (inside the stone, not seen in the close-ups; the steps and colonnade ones, 186 before, are fixed)
 
 var _probe: MeshProbe
 var problems: Array[String] = []

@@ -26,8 +26,8 @@ import math
 import os
 import sys
 
+import bpy  # first: the pip `bpy` module sets up bmesh and mathutils
 import bmesh
-import bpy
 from mathutils import Vector, geometry
 
 ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -45,6 +45,8 @@ PLINTH = "b8a888"      # the granite-ish plinth band
 ROOF = "8f877a"
 COURT = "a39c90"
 METAL = "8d9398"       # the Congress Hall's roof
+DOOR = "3e2c22"        # the main entrance's timber doors
+DOOR_GLASS = "5d6e66"  # their bronze-green glazing
 DARK = "3a3640"        # the lantern's open arches
 PATINA = "9fbcae"
 BRONZE = "5a4630"
@@ -416,7 +418,7 @@ def portico_on_edge(m, a, b, cols, h, out, r=0.6, depth=1.4):
            top=h)
     for k in range(cols):
         c = a + d * (ln * (k + 0.5) / cols) + out * depth
-        column(m, c.x, c.y, r, 0.0, h, n=12 if LOD == 0 else 6)
+        column(m, c.x, c.y, r, 0.0, h + 0.3, n=12 if LOD == 0 else 6)  # top buried in the entablature
     e0 = a - d * 0.4
     e1 = b + d * 0.4
     q = [(e0.x, e0.y), (e1.x, e1.y), (e1.x + out.x * (depth + 1.1), e1.y + out.y * (depth + 1.1)),
@@ -476,7 +478,7 @@ def build(m):
         for k in range(ncol):
             t = a0 + (a1 - a0) * k / (ncol - 1)
             c = centre + Vector((math.cos(t), math.sin(t))) * (rr + 1.3)
-            column(m, c.x, c.y, 0.55, 0.0, 9.5, n=10 if LOD == 0 else 6)
+            column(m, c.x, c.y, 0.55, 0.0, 10.0, n=10 if LOD == 0 else 6)  # top buried in the entablature (9.5-11): no coplanar cap
         nseg_e = 28 if LOD == 0 else 12
         band0 = [(centre.x + (rr + 0.1) * math.cos(a0 + (a1 - a0) * k / nseg_e),
                   centre.y + (rr + 0.1) * math.sin(a0 + (a1 - a0) * k / nseg_e)) for k in range(nseg_e + 1)]
@@ -491,8 +493,9 @@ def build(m):
             m.face([(p0[0], p0[1], 9.5), (p1[0], p1[1], 9.5), (q1[0], q1[1], 9.5), (q0[0], q0[1], 9.5)],
                    M_STONE, shade(LIGHT, 0.85))
     # The main entrance's steps (three, 0.15 m) and the two seated monuments beside them.
-    for k, (u0, h) in enumerate(((52.0, 0.45), (55.6, 0.3), (56.6, 0.15))):
-        m.box((u0 + 57.6) / 2, 0.0, (57.6 - u0) / 2, 15.0 + k * 0.6, -0.2, h, shade(PLINTH, 1.05))
+    # Side by side, not nested: nested boxes shared their outer face (186 z-fights, check_mesh_quality).
+    for k, (u0, u1, h) in enumerate(((52.0, 56.2, 0.45), (56.2, 57.0, 0.3), (57.0, 57.6, 0.15))):
+        m.box((u0 + u1) / 2, 0.0, (u1 - u0) / 2, 15.0 + k * 0.6, -0.2, h, shade(PLINTH, 1.05))
     # The two seated monuments beside the steps are the map's own (bake_monuments.py), not built here.
 
     # 2. The wings: the corner pavilions and the entrance block (to 22.5 m), each with a cornice,
@@ -556,11 +559,22 @@ def build(m):
 
     # 5. The east entrance: six round columns, 13.5 m, under an entablature and a low attic.
     for k in range(6):
-        column(m, 53.4, -12.0 + k * 4.8, 0.65, 0.45, 13.5, n=12 if LOD == 0 else 6)
+        column(m, 53.4, -12.0 + k * 4.8, 0.65, 0.45, 13.9, n=12 if LOD == 0 else 6)
     m.box(51.0, 0.0, 3.0, 13.4, 13.5, 15.6, light)
     if LOD == 0:
         m.box(51.2, 0.0, 3.1, 13.6, 15.6, 16.0, shade(light, 1.04))
     attic(m, [(54.0, -13.0), (54.0, 13.0)], 16.0, 1.2, closed=False)
+    # The doors behind the columns (F's photo of the main entrance, Commons Kgbo 2019, and the 3D
+    # Tiles views): in each of the five bays a tall dark-brown timber door with a bronze-green
+    # panelled glass field and a pale transom, between the pale piers (the columns' shadow lines).
+    for k in range(5):
+        cv = -9.6 + k * 4.8
+        m.face([(51.86, cv - 1.75, 0.5), (51.86, cv + 1.75, 0.5), (51.86, cv + 1.75, 9.4), (51.86, cv - 1.75, 9.4)],
+               M_STONE, DOOR, top=9.4)
+        m.face([(51.9, cv - 1.3, 1.1), (51.9, cv + 1.3, 1.1), (51.9, cv + 1.3, 6.6), (51.9, cv - 1.3, 6.6)],
+               M_STONE, DOOR_GLASS, top=6.6)
+        m.face([(51.9, cv - 1.3, 7.1), (51.9, cv + 1.3, 7.1), (51.9, cv + 1.3, 8.9), (51.9, cv - 1.3, 8.9)],
+               M_STONE, DOOR_GLASS, top=8.9)
 
     # 6. The tower's first tier (18-67 m) with a belt cornice at 52 m; the corner towers carry an
     # attic, a cornice, a crest on each outer face, and pinnacles on the corners and between.
