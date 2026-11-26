@@ -71,6 +71,11 @@ const SCAN_S := 1.3
 const RIM_Q := 0.4
 ## The decider (1:1 in games) is short: first to three points, the golden point at 2:2.
 const DECIDER_POINTS := 3
+## The warm-up before the first match (padel_match.gd's how-to): Prezes feeds slow balls to your lane
+## until you have hit WARM_BALLS (or WARM_MAX s pass), nothing counts, then the match starts at 0:0.
+const WARM_BALLS := 3
+const WARM_MAX := 25.0
+const WARM_PAUSE := 0.8
 ## A clean ball is harder to read: the pressure grows with the hit's quality above 0.45 (a tap on the ring wins points, a flail doesn't).
 const QDIFF := 0.0
 ## The least chance a rival (not your pair's AI) reads a ball: a hard one still gets returned this often.
@@ -239,10 +244,14 @@ var _hit_extra := {}
 ## The human's tap error for the hit being made (the aim leans on it); NAN: not a booked tap.
 var _aim_err := NAN
 var _human_hitter := false
+## The warm-up is on; the balls you still have to hit in it; its clock.
+var warm_on := false
+var warm_left := 0
+var warm_t := 0.0
 
 
 ## Four players: you and `partner` (team 0) against `rivals` (team 1). `seed` fixes the AI's dice.
-func setup(seed: int, partner: String, rivals: Array) -> void:
+func setup(seed: int, partner: String, rivals: Array, warm := false) -> void:
 	rng.seed = seed
 	players.clear()
 	var names := ["Ty", partner, String(rivals[0]), String(rivals[1])]
@@ -259,7 +268,28 @@ func setup(seed: int, partner: String, rivals: Array) -> void:
 		players.append(pl)
 	points = [0, 0]
 	games = [0, 0]
+	warm_on = warm and not auto_human
+	warm_left = WARM_BALLS if warm_on else 0
+	warm_t = 0.0
 	start_point()
+
+
+## The warm-up is over (enough balls, the time, or SKIP): the match starts at 0:0 with fresh stats.
+func end_warmup() -> void:
+	if not warm_on:
+		return
+	warm_on = false
+	warm_left = 0
+	points = [0, 0]
+	games = [0, 0]
+	for k: String in stats:
+		stats[k] = 0
+	events.append(["warm_done", {}])
+	start_point()
+
+
+func warming() -> bool:
+	return warm_on
 
 
 ## The serving player this game: the teams take turns by game, each team's two players by turns.
@@ -290,7 +320,7 @@ func golden() -> bool:
 
 
 func start_point() -> void:
-	server = server_index()
+	server = 2 if warm_on else server_index()
 	var s := players[server]
 	var dir := 1.0 if s.team == 0 else -1.0
 	var lane := 2.6 if (int(points[0]) + int(points[1])) % 2 == 0 else 7.4
@@ -353,13 +383,15 @@ func press(shot: int) -> void:
 func step(dt: float) -> void:
 	time += dt
 	phase_t += dt
+	if warm_on:
+		warm_t += dt
 	_stick_idle = 0.0 if stick.length() > 0.15 else _stick_idle + dt
 	match phase:
 		Phase.SERVE:
 			var s := players[server]
 			var dir := 1.0 if s.team == 0 else -1.0
 			ball.p = Vector3(s.pos.x + dir * 0.4, s.pos.y, 0.9 + absf(sin(phase_t * 5.0)) * 0.25)
-			var wait := HUMAN_SERVE_WAIT if serve_tap else SERVE_WAIT
+			var wait := HUMAN_SERVE_WAIT if serve_tap else (0.6 if warm_on else SERVE_WAIT)
 			if phase_t > wait:
 				_serve()
 		Phase.PLAY:
@@ -375,7 +407,13 @@ func step(dt: float) -> void:
 				_point(last_team if last_team >= 0 else 0, "stall")
 		Phase.POINT:
 			_ball_free(dt)
-			if phase_t > POINT_PAUSE:
+			if warm_on:
+				if phase_t > WARM_PAUSE:
+					if warm_left <= 0 or warm_t > WARM_MAX:
+						end_warmup()
+					else:
+						start_point()
+			elif phase_t > POINT_PAUSE:
 				if int(points[point_team]) >= points_needed():
 					_game(point_team)
 				else:
@@ -448,7 +486,8 @@ func _point(team: int, why: String) -> void:
 	if phase != Phase.PLAY:
 		return
 	live = false
-	points[team] = int(points[team]) + 1
+	if not warm_on:
+		points[team] = int(points[team]) + 1
 	point_team = team
 	reason = why
 	phase = Phase.POINT
@@ -471,12 +510,18 @@ func _serve() -> void:
 	var from := Vector3(s.pos.x + dir * 0.4, s.pos.y, 0.95)
 	var tx := NET_X + dir * rng.randf_range(3.6, 6.2)
 	var ty := clampf(WID - s.pos.y + rng.randf_range(-1.0, 1.0), 1.2, WID - 1.2)
+	var t := 1.05
+	if warm_on:
+		# A friendly feed: slow, deep, into your lane.
+		tx = NET_X + dir * rng.randf_range(5.0, 6.0)
+		ty = clampf(players[0].pos.y + rng.randf_range(-0.6, 0.6), 1.2, WID - 1.2)
+		t = 1.35
 	held = false
 	live = true
 	phase = Phase.PLAY
 	phase_t = 0.0
 	serve_ball = true
-	_launch(s, from, Vector2(tx, ty), 1.05, Shot.SERVE, 1.0)
+	_launch(s, from, Vector2(tx, ty), t, Shot.SERVE, 1.0)
 
 
 ## Sets the ball flying from `from` to land on `to` after `t` s (lengthened until it clears the net).
@@ -498,6 +543,9 @@ func _launch(pl: Player, from: Vector3, to: Vector2, t: float, shot: int, q: flo
 		stats["pair_hits"] = int(stats["pair_hits"]) + 1
 	if pl.human:
 		stats["your_hits"] = int(stats["your_hits"]) + 1
+		if warm_on and shot != Shot.SERVE:
+			# The ball is played out; the match starts after the point once none are left.
+			warm_left = maxi(warm_left - 1, 0)
 	if shot == Shot.SMASH:
 		stats["smashes"] = int(stats["smashes"]) + 1
 	if q >= 0.9 and shot != Shot.SERVE:
@@ -651,6 +699,12 @@ func _home(team: int, shot: int, q := 0.7, to_y := WID * 0.5) -> void:
 ## first, the spot to take it (a comfortable height after the bounce, a volley near the net, or a
 ## smash); the other covers. The AI's dice: a misjudged ball is chased but not hit.
 func _plan(team: int) -> void:
+	if warm_on and team == 1:
+		# The warm-up: the rivals watch your shot land, the next feed comes.
+		for pl in players:
+			if pl.team == 1:
+				pl.planned = false
+		return
 	var b := ball.copy()
 	var bn := 0
 	var cr := false

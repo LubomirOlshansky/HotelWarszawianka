@@ -13,7 +13,8 @@ extends SceneTree
 ##   masher at most 25%; each prints its win rate, its share of the pair's balls and the match time;
 ## - the rules: a ball into the net, one into the glass before its bounce, a second bounce and a
 ##   ball over the fence after the bounce each give the point to the right side;
-## - the match's view (padel_match.gd) has every line in Polish and English.
+## - the match's view (padel_match.gd) has every line in Polish and English (dialogue.json group
+##   padel_match, one key each in PadelMatch.KEYS).
 ##   godot --headless --path game --script res://tools/check_padel.gd
 
 const PadelSim := preload("res://scripts/padel_sim.gd")
@@ -35,6 +36,7 @@ func _init() -> void:
 	_matches()
 	_idle()
 	_hands()
+	_warmup()
 	_rules()
 	_lines()
 	if fails.is_empty():
@@ -199,6 +201,42 @@ func _hands() -> void:
 		_fail("a button masher won %.0f%% of matches" % (100.0 * float(rates["mash"])))
 
 
+## The warm-up (the how-to's three feeds): nothing counts, it ends by itself after WARM_BALLS hits
+## (or WARM_MAX s for a hand that never taps), then a whole match is played from 0:0.
+func _warmup() -> void:
+	for bot: String in ["decent", "idle"]:
+		var sim := PadelSim.new()
+		sim.setup(5, "Kuba", ["Prezes", "Zbyszek"], true)
+		if not sim.warming():
+			_fail("warm-up: did not start")
+			return
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 9
+		var t := 0.0
+		var ball_n := -1
+		var noise := 0.0
+		while sim.warming() and t < PadelSim.WARM_MAX + 10.0:
+			if bot == "decent" and sim.phase == PadelSim.Phase.PLAY:
+				if sim.rally_hits != ball_n:
+					ball_n = sim.rally_hits
+					noise = rng.randfn(0.0, DECENT_S)
+				if sim.cue_at >= 0.0 and sim.players[0].swing < 0.0 and sim.time >= sim.cue_at - PadelSim.LEAD + noise:
+					sim.press(PadelSim.Shot.DRIVE)
+			sim.step(STEP)
+			t += STEP
+			if int(sim.points[0]) + int(sim.points[1]) > 0:
+				_fail("warm-up (%s): a point counted (%s)" % [bot, sim.points])
+				return
+			sim.events.clear()
+		if sim.warming():
+			_fail("warm-up (%s): still on after %.0f s" % [bot, t])
+		elif bot == "decent" and t > 25.0:
+			_fail("warm-up: three timed hits took %.0f s" % t)
+		if int(sim.stats["hits"]) != 0 or sim.server != sim.server_index():
+			_fail("warm-up (%s): the match did not start fresh (stats %s, server %d)" % [bot, sim.stats, sim.server])
+		print("check_padel: warm-up (%s hand) over in %.1f s" % [bot, t])
+
+
 func _rules() -> void:
 	# A ball into the net: the hitter's side loses.
 	var sim := _fresh()
@@ -256,8 +294,10 @@ func _expect(sim: PadelSim, team: int, what: String) -> void:
 
 
 func _lines() -> void:
-	for key: String in PadelMatch.LINES:
-		var row: Array = PadelMatch.LINES[key]
+	for key: String in PadelMatch.KEYS:
+		var row: Array = PadelMatch.lines_of(key)
+		if row.is_empty():
+			_fail("lines: %s has no words in dialogue.json group %s" % [key, PadelMatch.GROUP])
 		for pair: Array in row:
 			if pair.size() != 2 or String(pair[0]) == "" or String(pair[1]) == "":
 				_fail("lines: %s has a line without Polish or English" % key)
