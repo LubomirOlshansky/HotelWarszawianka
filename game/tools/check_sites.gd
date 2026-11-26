@@ -16,8 +16,8 @@ extends SceneTree
 ## the same way; the Królewska edge's skins (Dom bez Kantów, the Departament, the unnamed block on
 ## the square's south-east corner) are found and give the buildings under them their stone, and
 ## the unnamed one has no card (so it isn't on the picking grid).
-## Street blocks: no street block may stand inside a landmark's outline (two models of one building)
-## beyond KNOWN_OVERLAPS (2026-11-26).
+## Overlaps: no street block, photo-front house or other site may stand inside a landmark's outline
+## (two models of one building) beyond DRESSES_BLOCK and NESTED (2026-11-26).
 ## Prints a line per site, then `check_sites: OK` (exit 0) or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_sites.gd
 
@@ -230,45 +230,74 @@ func _check_card(key: String, card: Array) -> void:
 			problems.append("%s: its card names %s" % [key, word])
 
 
+## Landmarks over another model of their building (found 2026-11-26, the Ufficio Primo pilot): a
+## street block's model stood in the new site's outline and drew its own dome and windows over it,
+## in both city paths, and no single-site check saw it (the turntable builds the site alone). The 17
+## older pairs were looked at in the city on 2026-11-26: where the landmark is the better model the
+## block went to `_find_blocks`'s skip list (LM_BLOCKS, like CM_BLOCK, MP_BLOCK and UP_BLOCK); where
+## the block is better the tower builds only its sign on it (TOWERS `on_block`). What is left draws
+## on top of the block by design: the landmark is dress over the block's mass (its spec says so).
+const DRESSES_BLOCK := ["blk_25844922 torwar", "blk_2250406 dom_chlopa", "blk_141043447 kino_muranow"]
+## Other sites inside a landmark's outline that are one scene by design (a statue on its square, a
+## barge in its dock, a church in its precinct), as "guest host".
+const NESTED := ["barka_kaskada kaskada", "kaskada barka_kaskada", "bulwary_bary kopernik",
+		"church_bazylianie church_cerkiew", "eon41 flisac", "flisac eon41", "rynek syrenka", "syrenka rynek",
+		"zygmunt zamkowy"]
+
+
+func _ring_centre(zone: Array) -> Vector2:
+	var c := Vector2.ZERO
+	var n := 0
+	for z: PackedVector2Array in zone:
+		for q in z:
+			c += q
+			n += 1
+	return c / maxf(n, 1)
+
+
+## The model site (not a skin, a street block or photo fronts) whose zone holds `c`, other than `guest`.
+func _host_at(marks, c: Vector2, guest: Dictionary) -> Dictionary:
+	for s: Dictionary in marks.sites:
+		if s == guest or s.has("block") or s.has("skin") or not (s["box"] as Rect2).has_point(c):
+			continue
+		for z: PackedVector2Array in s["zone"]:
+			if Geometry2D.is_point_in_polygon(c, z):
+				return s
+	return {}
+
+
+## Two models of one building (z-fighting walls, two roofs): a street block, a house's photo fronts or
+## another landmark whose outline's centre lies in a landmark's zone. A street block under a tower
+## that leaves its body to it (`on_block`), dress over a block and the NESTED scenes pass.
+func _check_block_overlaps(marks) -> void:
+	var counts := {"block": 0, "fronts": 0, "site": 0}
+	for b: Dictionary in marks.sites:
+		if b.has("skin") and not b.has("fronts"):
+			continue  # a skin only colours what stays: no geometry of its own
+		var kind := "block" if b.has("block") else ("fronts" if b.has("fronts") else "site")
+		var c: Vector2 = _ring_centre([b["raw"]]) if b.has("block") else _ring_centre(b["zone"])
+		var s := _host_at(marks, c, b)
+		if s.is_empty():
+			continue
+		var pair := "%s %s" % [b["key"], s["key"]]
+		if kind == "block" and (s.get("tower", {}) as Dictionary).has("on_block"):
+			continue
+		if pair in DRESSES_BLOCK or pair in NESTED:
+			continue
+		counts[kind] += 1
+		match kind:
+			"block":
+				problems.append("%s stands in %s's outline: two models of one building (skip the block in fronts.gd LM_BLOCKS, or `on_block` for a tower)" % [b["key"], s["key"]])
+			"fronts":
+				problems.append("%s (photo fronts) stand in %s's outline: two models of one building (drop the house from photo_fronts.json)" % [b["key"], s["key"]])
+			_:
+				problems.append("%s stands in %s's outline: two models of one building (or add the pair to NESTED)" % [b["key"], s["key"]])
+	print("check_sites: overlaps: %d blocks, %d photo fronts, %d sites over a landmark (%d dress a block, %d nested by design)" % [
+			counts["block"], counts["fronts"], counts["site"], DRESSES_BLOCK.size(), NESTED.size()])
+
+
 ## The Królewska edge: each skin site is found, gives the building at its point its own colours
 ## and mode, and has a card when it is on the picking grid.
-## Landmarks over a street block (found 2026-11-26, the Ufficio Primo pilot): the block's model
-## stood in the new site's outline and drew its own dome and windows over it, in both city paths,
-## and no single-site check saw it (the turntable builds the site alone). Each pair here was already
-## there and waits for its own look (does the landmark model the whole building? then the block goes
-## to its skip list, as CM_BLOCK, MP_BLOCK and UP_BLOCK did); a NEW pair fails.
-const KNOWN_OVERLAPS := ["blk_28010955 jerozolimskie57", "blk_28010954 jerozolimskie57", "blk_44190667 jerozolimskie57",
-		"blk_44190669 jerozolimskie57", "blk_6520917 grzybowska77", "blk_1456269648 prosta28", "blk_1149651967 prosta28",
-		"blk_1186516012 asbud", "blk_1186516013 asbud", "blk_238169923 pepeo_tower", "blk_25844922 torwar",
-		"blk_141043447 kino_muranow", "blk_31002630 equator", "blk_305521858 equator2", "blk_32129912 powstancow_blue",
-		"blk_2250406 dom_chlopa", "blk_338542425 marszalkowska99"]
-
-
-## A street block whose outline's centre lies in another landmark's zone is a second model of the
-## same building (z-fighting walls, two roofs).
-func _check_block_overlaps(marks) -> void:
-	var found := 0
-	for b: Dictionary in marks.sites:
-		if not b.has("block"):
-			continue
-		var ring: PackedVector2Array = b["raw"]
-		var c := Vector2.ZERO
-		for q in ring:
-			c += q
-		c /= ring.size()
-		for s: Dictionary in marks.sites:
-			if s.has("block") or s.has("skin") or not (s["box"] as Rect2).has_point(c):
-				continue
-			for z: PackedVector2Array in s["zone"]:
-				if Geometry2D.is_point_in_polygon(c, z):
-					found += 1
-					var pair := "%s %s" % [b["key"], s["key"]]
-					if not pair in KNOWN_OVERLAPS:
-						problems.append("%s stands in %s's outline: two models of one building (skip the block in fronts.gd _find_blocks)" % [b["key"], s["key"]])
-					break
-	print("check_sites: blocks: %d street blocks inside a landmark (%d known)" % [found, KNOWN_OVERLAPS.size()])
-
-
 func _check_skins(marks, data: Dictionary) -> void:
 	for key: String in SKINNED:
 		var site: Dictionary = {}

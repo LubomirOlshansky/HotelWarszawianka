@@ -204,6 +204,18 @@ const BLOCKS_DIR := "res://data/street_blocks"
 ## The street blocks (game/data/street_blocks) that stood in for four of them: the site builds those.
 const DE_BLOCKS := ["118344657", "118344539", "279988290", "138607846"]
 
+## Street blocks that stood under a landmark built whole, so the building was drawn twice (z-fighting
+## walls, two roofs; check_sites lists the pairs). Looked at in the city one by one (2026-11-26):
+## the landmark reads better in each, so the block goes.
+const LM_BLOCKS := [
+	"28010955", "28010954", "44190667", "44190669",  # Aleje Jerozolimskie 57-63: the four houses, built whole
+	"1456269648", "1149651967",  # Prosta 28: the tower and its annex from the photos
+	"1186516012", "1186516013",  # Towarowa Towers (asbud): the quarter is rebuilt whole
+	"32129912",  # the blue glass tower on Plac Powstańców: its LoD2 mesh is open (see-through)
+	"338542425",  # Marszałkowska 99's white slab
+	"6520917",  # Grzybowska 77 (Bellona): the brick house from F's photos
+]
+
 
 func _find_blocks() -> void:
 	if not FileAccess.file_exists(BLOCKS_DIR + "/index.json"):
@@ -215,7 +227,7 @@ func _find_blocks() -> void:
 		var q := _pts(d["outline"])
 		if q.size() < 3:
 			continue
-		if str(d["id"]) in DE_BLOCKS or str(d["id"]) in [CM_BLOCK, MP_BLOCK, UP_BLOCK]:
+		if str(d["id"]) in DE_BLOCKS or str(d["id"]) in LM_BLOCKS or str(d["id"]) in [CM_BLOCK, MP_BLOCK, UP_BLOCK]:
 			continue
 		var key := "blk_" + str(d["id"])
 		var zone: Array = [_largest(Geometry2D.offset_polygon(q, 1.0, Geometry2D.JOIN_MITER))]

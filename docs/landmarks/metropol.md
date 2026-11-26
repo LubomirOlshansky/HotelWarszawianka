@@ -40,3 +40,6 @@ Site key `metropolsign` (no card), built by `landmarks.gd` `_build_metropol_sign
 - Found: 17 more street blocks stand inside other modelled sites (jerozolimskie57 x4, prosta28 x2,
   asbud x2, equator, equator2, grzybowska77, pepeo_tower, torwar, kino_muranow, powstancow_blue,
   dom_chlopa, marszalkowska99); each may be the same double model. Not changed here.
+  Settled 2026-11-26 (each looked at in the city): 11 blocks skipped (fronts.gd LM_BLOCKS), the
+  Pekao and Equator towers keep the block and add only their sign (TOWERS `on_block`), Torwar, Dom
+  Chłopa and Kino Muranów dress their block by design (check_sites DRESSES_BLOCK).

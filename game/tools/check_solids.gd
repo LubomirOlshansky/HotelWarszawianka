@@ -68,7 +68,10 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## TOTAL_TYPED not measured again here.
 ## 2026-11-23 (Jarmark parked cars, F's Play 14 report): -53 faces in (-2, 0) (47813 → 47760), the parked
 ## cars on Plac Centralny cleared under the market's rides and chalets (jarmark.gd JM_PARK_FREE).
-const TOTAL := 47760
+## 2026-11-26 (double models, check_sites DRESSES_BLOCK): -46 faces in (-2, 1), Marszałkowska 99's
+## street block (blk_338542425) no longer drawn under its landmark; the branch already counted 47750
+## before it (-10 from main since the last record). 47760 → 47704, `--record` on a fresh bake.
+const TOTAL := 47704
 ## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
@@ -84,7 +87,9 @@ const TOTAL := 47760
 ## --barriers=typed` on the gated map: 46459, unchanged (of the 16 gaps in these six sectors 13 cut
 ## soft fences, which file no faces; the walls' 3 sit on OSM's gate node, a vertex, so the segments on
 ## each side are shorter but as many; the gate posts file none). TOTAL (classic) ignores the gates.
-const TOTAL_TYPED := 47533
+## 2026-11-26 (double models): 47569 before, 47523 after (-46, the same block), each its own
+## `--record --barriers=typed` on a fresh bake.
+const TOTAL_TYPED := 47523
 
 var problems: Array[String] = []
 var verbose := false
