@@ -950,6 +950,11 @@ func _serif_width(word: String) -> float:
 ## the roof grid. Returns the word's length in metres.
 func _serif_word(word: String, at: Vector3, right: Vector3, h: float, col: Color, mode := M_LAMP) -> float:
 	var x := 0.0
+	# Strokes that meet would share a face's plane and flicker: every other stroke stands 7.5 cm
+	# deeper and 2.5 cm higher. The step clears the gaps between the three stroke widths' faces
+	# (2.1, 2.7 and 4.8 cm), so no two faces of meeting strokes come within check_mesh_quality's 2 cm.
+	var depth := right.cross(Vector3.UP).normalized() * 0.075
+	var k := 0
 	for i in word.length():
 		if i > 0:
 			x += SERIF_GAP
@@ -958,8 +963,10 @@ func _serif_word(word: String, at: Vector3, right: Vector3, h: float, col: Color
 			x += SERIF_SPACE
 			continue
 		for s: Array in g[1]:
-			var p0 := at + right * (x + float(s[0])) * h + Vector3.UP * float(s[1]) * h
-			var p1 := at + right * (x + float(s[2])) * h + Vector3.UP * float(s[3]) * h
+			var nudge := (depth + Vector3.UP * 0.025) * float(k % 2)
+			k += 1
+			var p0 := at + right * (x + float(s[0])) * h + Vector3.UP * float(s[1]) * h + nudge
+			var p1 := at + right * (x + float(s[2])) * h + Vector3.UP * float(s[3]) * h + nudge
 			_beam(p0, p1, h * SERIF_STEM * float(s[4]), col, false, mode)
 		x += float(g[0])
 	return x * h

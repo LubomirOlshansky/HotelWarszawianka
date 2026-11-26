@@ -166,6 +166,8 @@ func _muzeum_sign(ring: PackedVector2Array, top: float) -> void:
 	# real mark is), 1.7 caps high and 2.6 wide.
 	var wave_w := 2.6 * h
 	var wave_h := 1.7 * h
+	# Each stroke a little deeper than the last (their front faces must not share a plane).
+	var depth := Vector3(out.x, 0.0, out.y) * -0.035
 	for inset: float in [0.0, 0.17]:
 		var prev := Vector3.ZERO
 		for k in 9:
@@ -173,7 +175,8 @@ func _muzeum_sign(ring: PackedVector2Array, top: float) -> void:
 			var y := (wave_h - inset * h) if k % 2 == 0 else inset * h
 			var pt := o3 + r3 * x + Vector3.UP * (y - 0.05 * h)
 			if k > 0:
-				_beam(prev, pt, h * 0.09, MUZEUM_SIGN_WHITE, false, M_LAMP)
+				var nudge := depth * float(k % 2) + depth * (2.0 if inset > 0.0 else 0.0)
+				_beam(prev + nudge, pt + nudge, h * 0.09, MUZEUM_SIGN_WHITE, false, M_LAMP)
 			prev = pt
 	var word_at := o3 + r3 * (wave_w + 0.9 * h) + Vector3.UP * 0.2 * h
 	var length := wave_w + 0.9 * h + _serif_word("MUZEUM NARODOWE", word_at, r3, h, MUZEUM_SIGN_WHITE)
@@ -186,7 +189,8 @@ func _muzeum_sign(ring: PackedVector2Array, top: float) -> void:
 	var n := ceili(length / 3.0)
 	for k in n + 1:
 		var p := base + back + right * length * float(k) / n
-		_beam(Vector3(p.x, top - 1.0, p.y), Vector3(p.x, foot + 0.9 * h + 0.06, p.y), 0.12, MUZEUM_SIGN_STEEL, false)
+		# Thinner than the rails, so no post face lies in a rail's face (z-fighting).
+		_beam(Vector3(p.x, top - 1.0, p.y), Vector3(p.x, foot + 0.9 * h + 0.06, p.y), 0.09, MUZEUM_SIGN_STEEL, false)
 
 
 ## The wings' stone piers (photos 1-4 of refs/muzeum_narodowe: tall square pilasters between the
