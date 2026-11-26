@@ -230,6 +230,10 @@ var bus_log := false
 var honk_frames: Array[int] = []
 var crash_flag := ""
 var crash_log := false
+## Road life (road_life.gd): --ambulance=now (one comes up behind in 2 s, 40-60 m back), =0 (none;
+## the honk at a green stays), =on (on in a test run too); --road-log prints its log.
+var ambulance_flag := ""
+var road_log := false
 var crawl_flag := ""
 var crawl_route := ""
 var crawl_group := ""
@@ -250,6 +254,13 @@ var rave_flag := ""
 var rave_spot := ""
 var rave_log := false
 var _rave_auto := false
+## Za deckami (smola-decks loop, stage B; club.gd `wire`): --decks goes straight into a set in Smoła's
+## room (it sets --rave-club too, so the room's own test start takes the run in); --decks-bot=perfect|
+## mid|poor|none lets a bot play it (decks_sim.gd's bots); --decks-log prints the set's lines (the
+## `decks: over:` line, a frame note 3 s in).
+var decks_flag := ""
+var decks_bot := ""
+var decks_log := false
 var dekalog_flag := ""
 var dekalog_log := false
 var stories_log := false
@@ -966,6 +977,13 @@ func parse_with(args: PackedStringArray) -> void:
 			tapczan_log = true
 		elif arg == "--rave-log":
 			rave_log = true
+		elif arg == "--decks":
+			decks_flag = "on"
+			rave_flag = "club"
+		elif arg.begins_with("--decks-bot="):
+			decks_bot = arg.trim_prefix("--decks-bot=")
+		elif arg == "--decks-log":
+			decks_log = true
 		elif arg in ["--shisha-call", "--shisha-meet", "--shisha-door", "--shisha-arrive", "--shisha-lounge", "--shisha-terrace", "--shisha-hold"]:
 			shisha_flag = arg.trim_prefix("--shisha-")
 		elif arg.begins_with("--shisha="):
@@ -1021,6 +1039,10 @@ func parse_with(args: PackedStringArray) -> void:
 			ev_log = true
 		elif arg == "--crash-log":
 			crash_log = true
+		elif arg.begins_with("--ambulance="):
+			ambulance_flag = arg.trim_prefix("--ambulance=")
+		elif arg == "--road-log":
+			road_log = true
 		elif arg.begins_with("--loud="):
 			loud_flag = clampi(int(arg.trim_prefix("--loud=")), 0, 16)
 		elif arg == "--loud-log":

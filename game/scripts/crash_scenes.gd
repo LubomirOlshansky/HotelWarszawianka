@@ -17,11 +17,34 @@ extends Node
 ## is placed AHEAD m ahead of the player (main and secondary roads with 2+ lanes, off any bridge
 ## or tunnel, out of sight), lives LIFE s and is taken away only when the view can't see it (or
 ## the player is past FAR m from it). Nothing runs per frame but a timer: one tick every TICK s.
+##
+## Road life (F, 2026-11-23, docs/design/road-life.md): a scene is now one of two kinds. TAXI_SHARE
+## of them are a taxi check (kontrola taksówki): a city taxi or a Podwózka stopped in the kerb lane
+## (traffic.gd add_parked_car, kind TAXI: +0 draw calls), the patrol car behind it with its lights
+## on, an officer at the driver's window with the papers, a second by the patrol car, the driver
+## out on the kerb explaining, the passenger on the footway late for the airport and an onlooker
+## (dialogue.json `taxi_check`, KEBAB FM's `radio_host` tag "taxi_check"). No ambulance and no
+## siren at a taxi check. No new scene while `hushed` says so (road_life.gd: a race, a chase, the
+## first minutes' guide), so a race or the guide's drive never meets one.
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Models := preload("res://scripts/models.gd")
 
 const TICK := 0.5
+## The share of scenes that are a taxi check (the rest are fender benders).
+const TAXI_SHARE := 0.4
+## The taxi check along the kerb lane, metres from its rear end: the patrol car, the taxi.
+const AT_TAXI_POLICE := 4.0
+const AT_TAXI := 10.6
+## The taxi check's people: [tag in `taxi_check`, shirt, trousers 0..1]: 0 the officer at the
+## window, 1 the officer by the patrol car, 2 the taxi's driver, 3 the passenger, 4 an onlooker.
+const TAXI_PEOPLE := [["officer", "#e8f23a", 0.1], ["officer", "#e8f23a", 0.1], ["driver", "#3a3d42", 0.4],
+		["passenger", "#b0413e", 0.75], ["gawker", "#3b8f5a", 0.9]]
+## Who talks at a taxi check, in turn (indices into TAXI_PEOPLE).
+const TAXI_TURNS := [0, 2, 3, 0, 2, 4, 1, 3, 2, 0, 3, 4]
+const TAXI_LINES := "taxi_check"
+const TAXI_RADIO_TAG := "taxi_check"
+const TAXI_BUBBLE := Color("#ffd23f")
 ## Seconds to the first scene, between one clearing and the next, and a scene's life.
 const FIRST := Vector2(80.0, 150.0)
 const GAP := Vector2(180.0, 330.0)
@@ -80,6 +103,10 @@ var vehicle: Callable
 var log_on := false
 ## Scenes on or off (--crash=0).
 var enabled := true
+## Road life: true while no new scene may come (a race, a chase, the guide); empty: never.
+var hushed: Callable
+## The share of taxi checks (TAXI_SHARE; a check sets 0 or 1 for a kind of its own).
+var taxi_share := TAXI_SHARE
 
 ## Seconds to the next scene; the scene now ({} = none).
 var wait := 0.0
@@ -131,7 +158,9 @@ func step(dt: float) -> void:
 	if scene.is_empty():
 		wait -= dt
 		if wait <= 0.0:
-			if not place(at, _heading, false):
+			if hushed.is_valid() and bool(hushed.call()):
+				wait = 5.0  # a race, a chase or the guide: later
+			elif not place(at, _heading, false):
 				wait = 3.0  # nowhere fitting now: soon again
 		return
 	scene["age"] = float(scene["age"]) + dt
@@ -192,8 +221,11 @@ static func fits(g: LaneGraph, e: int) -> bool:
 
 ## The scene's pieces at spot {e, lane, s0}: [what, position, yaw] for the four vehicles (what:
 ## "police", "hitter", "hit", "ambulance"; position on the road at s's height) and the people's
-## [position (y 0: the caller puts it on the ground), yaw]. Static: the check reads it.
-static func layout(g: LaneGraph, spot: Dictionary) -> Dictionary:
+## [position (y 0: the caller puts it on the ground), yaw]. Static: the check reads it. `kind`
+## "taxi": the taxi check's two vehicles ("police", "taxi") and its five people.
+static func layout(g: LaneGraph, spot: Dictionary, kind := "crash") -> Dictionary:
+	if kind == "taxi":
+		return taxi_layout(g, spot)
 	var e: int = spot["e"]
 	var lane: int = spot["lane"]
 	var s0: float = spot["s0"]
@@ -223,11 +255,56 @@ static func layout(g: LaneGraph, spot: Dictionary) -> Dictionary:
 	return {"cars": cars, "people": people, "mid": m}
 
 
+## The taxi check at spot {e, lane, s0}: the patrol car behind the taxi in the kerb lane, both
+## straight (a pull-over, not a crash), the taxi a little towards the kerb. The officer stands at
+## the taxi's driver window (the lane's traffic side, inside the lane: the queue goes round the
+## whole scene), the second officer by the patrol car's kerb side, the driver out on the kerb by
+## the taxi's front, the passenger and an onlooker on the footway.
+static func taxi_layout(g: LaneGraph, spot: Dictionary) -> Dictionary:
+	var e: int = spot["e"]
+	var lane: int = spot["lane"]
+	var s0: float = spot["s0"]
+	var lo := g.lane_offset(e, lane)
+	var cars: Array = []
+	for row: Array in [["police", AT_TAXI_POLICE, 0.0], ["taxi", AT_TAXI, 0.3]]:
+		var s: float = s0 + float(row[1])
+		var p := g.point_at(e, s, lo + float(row[2]))
+		var d := g.direction(e, s)
+		cars.append([row[0], Vector3(p.x, g.height(e, s), p.y), atan2(-d.x, -d.y)])
+	var kerb := lo + g.e_lw[e] * 0.5
+	var people: Array = []
+	# [s, metres right of the centreline, facing: 1 along, -1 back, 0 the road, 2 the kerb].
+	for row: Array in [[s0 + AT_TAXI - 0.6, lo - 1.25, 2.0], [s0 + AT_TAXI_POLICE + 1.0, kerb + 0.6, 0.0],
+			[s0 + AT_TAXI + 2.9, kerb + 0.5, -1.0], [s0 + AT_TAXI + 0.4, kerb + 2.3, 0.0],
+			[s0 + AT_TAXI_POLICE - 1.5, kerb + 2.6, 0.0]]:
+		var s: float = row[0]
+		var p := g.point_at(e, s, float(row[1]))
+		var d := g.direction(e, s)
+		var face: Vector2
+		match int(row[2]):
+			1, -1:
+				face = d * float(row[2])
+			2:
+				face = Vector2(-d.y, d.x)
+			_:
+				face = Vector2(d.y, -d.x)
+		people.append([Vector3(p.x, 0.0, p.y), atan2(-face.x, -face.y)])
+	var m := g.point_at(e, s0 + (AT_TAXI_POLICE + AT_TAXI) * 0.5, lo)
+	return {"cars": cars, "people": people, "mid": m}
+
+
+## The people of a scene of `kind` ("crash" or "taxi"): PEOPLE or TAXI_PEOPLE.
+static func people_of(kind: String) -> Array:
+	return TAXI_PEOPLE if kind == "taxi" else PEOPLE
+
+
 ## Makes a scene near `from` (out of sight; `near`: for a test's shot, 45-80 m ahead and maybe in
 ## view; `at`: for a shot, on the fitting road nearest that point). True if one was placed.
-func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF) -> bool:
+func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind := "") -> bool:
 	if not scene.is_empty():
 		clear()
+	if kind == "":
+		kind = "taxi" if _rng.randf() < taxi_share else "crash"
 	var spot := {}
 	for attempt in 6:
 		if at != Vector2.INF:
@@ -242,7 +319,7 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF) -> bo
 		if not traffic.lane_free(e, lane, s0, s0 + SPAN, 10.0):
 			spot = {}
 			continue
-		var lay := layout(graph, spot)
+		var lay := layout(graph, spot, kind)
 		var hidden := true
 		for c: Array in lay["cars"]:
 			if traffic.on_screen(c[1], 2.6):
@@ -260,33 +337,41 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF) -> bo
 	var s0: float = spot["s0"]
 	var drivers: Array = []
 	var paints: Array = Models.TRAFFIC[0][0]["paint"]
+	var at_s: Dictionary = {"police": AT_TAXI_POLICE, "taxi": AT_TAXI} if kind == "taxi" else \
+			{"police": AT_POLICE, "hitter": AT_HITTER, "hit": AT_HIT, "ambulance": AT_AMBULANCE}
 	for c: Array in lay["cars"]:
-		var s: float = s0 + {"police": AT_POLICE, "hitter": AT_HITTER, "hit": AT_HIT, "ambulance": AT_AMBULANCE}[c[0]]
+		var s: float = s0 + float(at_s[c[0]])
 		var d = null
-		if c[0] in ["hitter", "hit"]:
+		if c[0] == "taxi":
+			# A city taxi or a Podwózka (models.gd TAXI_CITY, TAXI_APP) in its own paints.
+			var shape := _rng.randi() % 2
+			var tp: Array = Models.TRAFFIC[1][shape]["paint"]
+			d = traffic.add_parked_car(e, s, c[1], c[2], lane, shape, Color(tp[_rng.randi() % tp.size()]), 1)
+		elif c[0] in ["hitter", "hit"]:
 			var paint := Color(paints[_rng.randi() % paints.size()])
 			d = traffic.add_parked_car(e, s, c[1], c[2], lane, _rng.randi() % WRECK_SHAPES, paint)
 		elif police != null:
 			d = police.scene_car(e, lane, s, c[1], c[2], 0 if c[0] == "police" else 2)
-		if d == null and c[0] in ["hitter", "hit"]:
+		if d == null and c[0] in ["hitter", "hit", "taxi"]:
 			for o in drivers:
 				_drop(o)
 			return false
 		if d != null:
 			drivers.append(d)
+	var who := people_of(kind)
 	if walkers != null:
-		for i in PEOPLE.size():
+		for i in who.size():
 			var p: Vector3 = lay["people"][i][0]
 			p.y = map.ground_height(p.x, p.z) if map != null else 0.0
-			walkers.set_scene(i, p, lay["people"][i][1], Color(PEOPLE[i][1]), float(PEOPLE[i][2]))
+			walkers.set_scene(i, p, lay["people"][i][1], Color(who[i][1]), float(who[i][2]))
 	var street := graph.e_name[e]
 	scene = {"e": e, "lane": lane, "s0": s0, "mid": lay["mid"], "drivers": drivers, "people": lay["people"],
-			"age": 0.0, "life": _rng.randf_range(LIFE.x, LIFE.y), "talk": 0.6, "turn": 0, "street": street}
+			"age": 0.0, "life": _rng.randf_range(LIFE.x, LIFE.y), "talk": 0.6, "turn": 0, "street": street, "kind": kind}
 	placed += 1
 	var m: Vector2 = lay["mid"]
-	_log("scene %d at %d,%d (%s, lane %d of %d, %d vehicles, %.0f m away, lives %.0f s)" % [placed, roundi(m.x), roundi(m.y),
+	_log("scene %d (%s) at %d,%d (%s, lane %d of %d, %d vehicles, %.0f m away, lives %.0f s)" % [placed, kind, roundi(m.x), roundi(m.y),
 			street if street != "" else "a nameless road", lane, graph.e_lanes[e], drivers.size(), from.distance_to(m), scene["life"]])
-	_announce(street)
+	_announce(street, TAXI_RADIO_TAG if kind == "taxi" else RADIO_TAG)
 	return true
 
 
@@ -348,7 +433,7 @@ func _report(over: bool) -> void:
 	if hud != null:
 		hud.set_scene_mark(m)
 	if sfx != null:
-		if over:
+		if over or scene.get("kind", "crash") == "taxi":
 			sfx.scene_siren(Vector3.INF)
 		else:
 			var amb = scene["drivers"][-1] if not scene["drivers"].is_empty() else null
@@ -365,11 +450,12 @@ func clear() -> void:
 		sfx.scene_siren(Vector3.INF)
 	for d in scene["drivers"]:
 		_drop(d)
+	var who := people_of(scene.get("kind", "crash"))
 	if walkers != null:
-		for i in PEOPLE.size():
+		for i in who.size():
 			walkers.clear_scene(i)
 	if dialogue != null and dialogue.bubbles != null:
-		for i in PEOPLE.size():
+		for i in who.size():
 			dialogue.bubbles.hush(_anchor(i))
 	cleared += 1
 	_log("scene cleared after %.0f s" % float(scene["age"]))
@@ -392,9 +478,12 @@ func _talk() -> void:
 		return
 	var turn: int = scene["turn"]
 	scene["turn"] = turn + 1
-	var i: int = TURNS[turn % TURNS.size()]
-	var tag: String = PEOPLE[i][0]
-	var l: Array = dialogue.say_ambient(_anchor(i), "", LINES, tag, 3.4, BUBBLE, 1.9, true)
+	var taxi: bool = scene.get("kind", "crash") == "taxi"
+	var turns: Array = TAXI_TURNS if taxi else TURNS
+	var i: int = turns[turn % turns.size()]
+	var tag: String = people_of(scene.get("kind", "crash"))[i][0]
+	var l: Array = dialogue.say_ambient(_anchor(i), "", TAXI_LINES if taxi else LINES, tag, 3.4,
+			TAXI_BUBBLE if taxi else BUBBLE, 1.9, true)
 	if not l.is_empty():
 		_log("%s: %s" % [tag, l[0]])
 
@@ -410,13 +499,13 @@ func _anchor(i: int) -> Callable:
 	return scene[key]
 
 
-## KEBAB FM's host reads the scene out (radio_host lines tagged "crash"; {street} is the road's
-## name, "this street" without one).
-func _announce(street: String) -> void:
+## KEBAB FM's host reads the scene out (radio_host lines tagged `tag`: "crash", or "taxi_check"
+## for a taxi check; {street} is the road's name, "this street" without one).
+func _announce(street: String, tag := RADIO_TAG) -> void:
 	if radio == null or dialogue == null or radio.station < 0:
 		return
-	var l: Array = dialogue.line(RADIO_GROUP, RADIO_TAG, true)
-	if l.is_empty() or dialogue.notes(l).get("only", "") != RADIO_TAG:
+	var l: Array = dialogue.line(RADIO_GROUP, tag, true)
+	if l.is_empty() or dialogue.notes(l).get("only", "") != tag:
 		return
 	var pl := street if street != "" else "Ulica bez nazwy"
 	var en := street if street != "" else "A street with no name"

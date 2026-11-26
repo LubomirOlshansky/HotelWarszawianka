@@ -27,6 +27,19 @@ extends Node3D
 ## chairs, trees full of fairy lights, garlands, a mirror ball whose rays turn, the bar kiosk and
 ## a small DJ; lighter music there (MUSIC_PATIO; the radio waits on PÓŁNOC FM); the barmaid, the patio's DJ and the crowd to tap (`club_patio*`). SALA goes back in.
 ##
+## Za deckami (docs/design/smola-decks.md 11.5 with section 12; the smola-decks loop, stage B): the
+## room's main thing. On a save's first visit the DJ calls the player over 6 s in (ZA DECKI / NIE
+## TERAZ, once a save: `wallet.keep.decks_invited`); after that a ZA DECKI tile stands over the booth
+## and a tap on the DJ offers the decks. A set (decks_match.gd, its rules decks_sim.gd) covers the
+## screen in the pixel look with the city's 3D off (GameCtx.city_drawn) and the room paused (no
+## lights or dancers posed, its loop paused; the radio's "club" duck held). It pays once a visit
+## (`wallet.pay`, kind "club_decks"), the save keeps `decks_best` (tier 0-3), `decks_sets` and
+## `decks_piec` (the first PIEC: the DJ's line and a note on the way out). Back in the room the
+## room keeps the set's mood for the visit: the dancers' hop and the lights' strength follow its
+## average, the crowd talks from `club_crowd_hot` (60 and over) or `club_crowd_cold` (under 35).
+## main.gd hands the run's flags (--decks, --decks-bot=, --decks-log), the city switch and the
+## sound in through `wire()` in its one line.
+##
 ## Cost: three draw calls in the room (its mesh, the dancers, the lights), three on the patio
 ## (its mesh, its crowd, the same lights moved there); the city is out of view. Both are built
 ## once, on the first visit (about 13k triangles together).
@@ -46,6 +59,9 @@ const Models := preload("res://scripts/models.gd")
 const Rave := preload("res://scripts/rave.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const Access := preload("res://scripts/access.gd")
+const DecksMatch := preload("res://scripts/decks_match.gd")
+const DecksSim := preload("res://scripts/decks_sim.gd")
+const GameCtx := preload("res://scripts/game_ctx.gd")
 
 ## Where the room stands: far past the map's edge.
 const PLACE := Vector3(9000.0, 0.0, 9000.0)
@@ -81,6 +97,14 @@ const PATIO_BPM := 112.0
 const BALL := Vector3(2.0, 4.4, 0.0)
 ## The patio door in the left wall (local z).
 const PATIO_DOOR_Z := -4.6
+## Za deckami: the DJ's first invite this long after entering (once a save); a --decks run's set
+## starts this long after entering; where the ZA DECKI tile stands (room local, over the booth).
+const DECKS_INVITE_S := 6.0
+const DECKS_TEST_S := 1.0
+const DECKS_TILE := Vector3(0.0, 2.6, -ROOM.y * 0.5 + 1.6)
+## The set's average above which the room stays hot, under which it stays cold (11.5).
+const DECKS_HOT := 60.0
+const DECKS_COLD := 35.0
 
 signal left
 
@@ -93,6 +117,14 @@ var _streams := {}
 ## The view's camera (main.gd's), for taps.
 var cam: Camera3D
 var log_on := false
+## Za deckami's wiring (`wire`): the sound (sfx.gd, null in checks), the city's 3D switch
+## (GameCtx.city_drawn), the test flags (--decks: a set at once; --decks-bot=: a bot plays it;
+## --decks-log: its log lines).
+var sfx: Node
+var city_drawn := Callable()
+var decks_flag := ""
+var decks_bot := ""
+var decks_log := false
 
 var inside := false
 var centre := PLACE + Vector3(0, 1.2, 0)
@@ -135,6 +167,19 @@ var _crowd_at: Array[Vector3] = []
 var _patio_btn: Button
 var _sala_btn: Button
 var _mordor_i := -1
+## Za deckami: the view, a set on, this visit paid, the invite's countdown (-1 none), the set's mood
+## for the rest of the visit (-1 none, else its average / 100), the first PIEC's note waiting for the
+## way out, the DJ's tag for the line after a set, the tile and the offer's two buttons.
+var _decks: DecksMatch
+var _decks_on := false
+var _decks_paid := false
+var _decks_tested := false
+var _invite_t := -1.0
+var _mood := -1.0
+var _piec_note := false
+var _back_tag := "early"
+var _decks_btn: Button
+var _offer: HBoxContainer
 
 
 # --- the room -------------------------------------------------------------------------------
@@ -626,6 +671,17 @@ func _build_ui() -> void:
 	_line_en.add_theme_font_size_override("font_size", int(11 * pt))
 	_line_en.add_theme_color_override("font_color", UiKit.SUB)
 	v.add_child(_line_en)
+	# The DJ's offer (Za deckami): ZA DECKI / NIE TERAZ under his line, shown only with the offer.
+	_offer = HBoxContainer.new()
+	_offer.add_theme_constant_override("separation", int(10 * pt))
+	v.add_child(_offer)
+	var play_w := _ui_words("b_play")
+	var go := _button(_offer, play_w[0], play_w[1], pt)
+	go.pressed.connect(start_set)
+	var later_w := _ui_words("b_later")
+	var later := _button(_offer, later_w[0], later_w[1], pt)
+	later.pressed.connect(func() -> void: _talk.visible = false)
+	_offer.visible = false
 	var buttons := HBoxContainer.new()
 	buttons.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	buttons.grow_horizontal = Control.GROW_DIRECTION_BEGIN
@@ -640,6 +696,14 @@ func _build_ui() -> void:
 	_sala_btn.pressed.connect(go_sala)
 	var out := _button(buttons, "WYJDŹ", "leave", pt)
 	out.pressed.connect(leave)
+	# The ZA DECKI tile over the booth (placed on the camera's view, `_place_tile`).
+	var tile_holder := Control.new()
+	tile_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(tile_holder)
+	var tile_w := _ui_words("b_play")
+	_decks_btn = _button(tile_holder, tile_w[0], tile_w[1], pt)
+	_decks_btn.pressed.connect(start_set)
+	_decks_btn.visible = false
 	_beat = Control.new()
 	_beat.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_beat.draw.connect(_draw_beat)
@@ -660,6 +724,12 @@ func _button(parent: Node, pl: String, en: String, pt: float) -> Button:
 	c.custom_minimum_size = Vector2(96, 52) * pt
 	parent.add_child(c)
 	return c
+
+
+## A club_decks_ui word as [Polish, English] (the buttons show both, as the room's others).
+func _ui_words(tag: String) -> Array:
+	var l: Array = dialogue.line("club_decks_ui", tag, true) if dialogue != null else []
+	return [str(l[0]), str(l[1])] if l.size() >= 2 else [tag.to_upper(), tag]
 
 
 func _draw_beat() -> void:
@@ -684,9 +754,26 @@ func enter(world: Node3D, pl: String, en: String, mordor: int) -> void:
 	_red_in = _rng.randf_range(RED_GAP.x, RED_GAP.y)
 	inside = true
 	_mordor_i = mordor
+	_decks_paid = false
+	_mood = -1.0
+	_invite_t = DECKS_INVITE_S if wallet != null and not bool(wallet.keep.get("decks_invited", false)) else -1.0
 	_go("sala")
 	_say(people[0])
 	_log("in: %s" % pl)
+	if decks_flag == "on" and not _decks_tested and is_inside_tree():
+		_decks_tested = true
+		get_tree().create_timer(DECKS_TEST_S).timeout.connect(start_set)
+
+
+## main.gd's one line (Za deckami 11.5, section 12 point 6): the run's flags, the city's 3D switch and
+## the sound copied in; the ctx is not kept.
+func wire(ctx: GameCtx, sfx_node: Node) -> void:
+	log_on = bool(ctx.flags.rave_log)
+	decks_flag = str(ctx.flags.decks_flag)
+	decks_bot = str(ctx.flags.decks_bot)
+	decks_log = bool(ctx.flags.decks_log)
+	city_drawn = ctx.city_drawn
+	sfx = sfx_node
 
 
 ## Out to the patio: the yard, the mirror ball, lighter music, the room's kick through the wall.
@@ -725,12 +812,141 @@ func _go(where: String) -> void:
 func leave() -> void:
 	if not inside:
 		return
+	if _decks_on and _decks != null:
+		_decks.leave()
 	inside = false
 	_show(false)
 	_music_on("")
 	area = "sala"
 	_log("out (danced %d)" % danced)
+	if _piec_note and hud != null:
+		# The first PIEC: the DJ's question goes into the notes on the way out (risk 5).
+		_piec_note = false
+		var l: Array = dialogue.line("club_decks_dj_back", "first_piec", true) if dialogue != null else []
+		var tier := _ui_words("tier3")
+		if l.size() >= 2:
+			hud.show_note("%s · %s" % [title_pl, Lang.pick(tier[0], tier[1])], Lang.pick(str(l[0]), str(l[1])), VIOLET)
 	left.emit()
+
+
+# --- Za deckami -----------------------------------------------------------------------------
+
+## The DJ's offer: his invite line with ZA DECKI / NIE TERAZ (the first one 6 s into a save's first
+## visit; then a tap on him). Marks the save as invited.
+func offer_decks() -> void:
+	if not inside or _decks_on:
+		return
+	_say(["DJ", "club_decks_invite", people[0][2]])
+	_offer.visible = true
+	_talk.reset_size()
+	_talk.position.y = get_viewport().get_visible_rect().size.y - _talk.size.y - 16.0 * (hud.pt if hud != null else 1.0)
+	if wallet != null and not bool(wallet.keep.get("decks_invited", false)):
+		wallet.keep["decks_invited"] = true
+		wallet.save()
+	_invite_t = -1.0
+	_log("decks offered")
+
+
+## A set behind the decks: the room's panel and loop paused, the city's 3D off, the pixel view on.
+func start_set() -> void:
+	if not inside or _decks_on or area != "sala":
+		return
+	if _decks == null:
+		_decks = DecksMatch.new()
+		_decks.name = "DecksMatch"
+		add_child(_decks)
+		_decks.finished.connect(_on_set_finished)
+		_decks.closed.connect(_on_set_closed)
+		_decks.words = func(g: String, t: String) -> String:
+			var l: Array = dialogue.line(g, t, true) if dialogue != null else []
+			return Lang.pick(str(l[0]), str(l[1])) if l.size() >= 2 else ""
+		_decks.sound = func(n: String) -> void:
+			if sfx != null:
+				sfx.play(n)
+		_decks.cue = func(n: String) -> void:
+			if hud != null and hud.has_method("cue"):
+				hud.cue(n)
+	_decks.pt = hud.pt if hud != null and "pt" in hud else 1.0
+	_decks.kolek_name = str(people[4][0]) if people.size() > 4 else ""
+	_decks.auto_skill = decks_bot
+	_decks.log_on = decks_log
+	_decks.visit_paid = _decks_paid
+	_ui.visible = false
+	_talk.visible = false
+	_offer.visible = false
+	if _music != null:
+		_music.stream_paused = true
+	if city_drawn.is_valid():
+		city_drawn.call(false)
+	_decks_on = true
+	_back_tag = "early"
+	if wallet != null and not bool(wallet.keep.get("decks_invited", false)):
+		# A set played (the test start, a DJ tap before the invite) counts as the invite: the tile stays.
+		wallet.keep["decks_invited"] = true
+		_invite_t = -1.0
+	var first_set := wallet == null or int(wallet.keep.get("decks_sets", 0)) == 0
+	_decks.start(_rng.randi(), first_set)
+	_log("decks: set on")
+
+
+## A set's result: paid once a visit, the best tier and the sets saved, the first PIEC kept, the
+## room's mood set for the rest of the visit.
+func _on_set_finished(r: Dictionary) -> void:
+	var tier := clampi(int(r.get("tier", 0)), 0, 3)
+	var zl := 0
+	var resp := 0
+	if not _decks_paid:
+		_decks_paid = true
+		zl = int(r.get("tip", 0))
+		resp = int(r.get("respect", 0))
+		if wallet != null:
+			wallet.pay(zl, resp, "club_decks")
+	_decks.visit_paid = true
+	_back_tag = "early" if bool(r.get("early", false)) else DecksSim.TIER_IDS[tier]
+	if wallet != null:
+		wallet.keep["decks_best"] = maxi(int(wallet.keep.get("decks_best", -1)), tier)
+		wallet.keep["decks_sets"] = int(wallet.keep.get("decks_sets", 0)) + 1
+		if tier == 3 and not bool(wallet.keep.get("decks_piec", false)):
+			wallet.keep["decks_piec"] = true
+			_piec_note = true
+			_back_tag = "first_piec"
+		wallet.save()
+	_mood = clampf(float(r.get("avg", 0.0)) / 100.0, 0.0, 1.0)
+	if bool(r.get("early", false)):
+		# The DJ took the decks back: the room stays cold whatever the average was (section 12 point 3).
+		_mood = minf(_mood, (DECKS_COLD - 1.0) / 100.0)
+	if decks_log:
+		print("decks: over: %s avg %.1f paid %d zł/%d" % [str(DecksSim.TIER_IDS[tier]).to_upper(), float(r.get("avg", 0.0)), zl, resp])
+
+
+## Back to the room: the city drawn again, the panel and the loop back, the DJ's word on the set.
+func _on_set_closed() -> void:
+	_decks_on = false
+	if city_drawn.is_valid():
+		city_drawn.call(true)
+	if not inside:
+		return
+	_ui.visible = true
+	if _music != null:
+		_music.stream_paused = false
+	_say(["DJ", "club_decks_dj_back", people[0][2]], _back_tag)
+	_back_tag = "early"
+	_log("decks: back in the room (mood %.2f)" % _mood)
+
+
+## The tile over the booth, where the camera sees it (the city's image may be scaled: `pick`'s rule).
+func _place_tile() -> void:
+	var on := inside and area == "sala" and not _decks_on and wallet != null and bool(wallet.keep.get("decks_invited", false))
+	_decks_btn.visible = on and cam != null
+	if not _decks_btn.visible:
+		return
+	var at := PLACE + DECKS_TILE
+	if cam.is_position_behind(at):
+		_decks_btn.visible = false
+		return
+	var scale := Vector2(cam.get_viewport().get_visible_rect().size) / get_viewport().get_visible_rect().size
+	var p := cam.unproject_position(at) / scale
+	_decks_btn.position = p - _decks_btn.size * 0.5
 
 
 ## The club's loop `path` (looped forward, from its start) with the radio ducked under it; ""
@@ -791,7 +1007,7 @@ func _show(on: bool) -> void:
 # --- the frame ------------------------------------------------------------------------------
 
 func _process(dt: float) -> void:
-	if not inside or dt <= 0.0:
+	if not inside or dt <= 0.0 or _decks_on:
 		return
 	_clock += dt
 	_pose_lights()
@@ -802,6 +1018,11 @@ func _process(dt: float) -> void:
 			_sway()
 		else:
 			_dance()
+		_place_tile()
+	if _invite_t > 0.0 and area == "sala":
+		_invite_t -= dt
+		if _invite_t <= 0.0:
+			offer_decks()
 	_beat.queue_redraw()
 	if area == "patio":
 		return
@@ -843,18 +1064,22 @@ static func room_lights(t: float, calm: bool, red: bool) -> Array:
 func _pose_lights() -> void:
 	var mm := _lights.multimesh
 	var pose := patio_lights(_clock) if area == "patio" else room_lights(_clock, Access.calm, _red_t > 0.0)
+	var k := lerpf(0.55, 1.25, _mood) if _mood >= 0.0 and area == "sala" else 1.0
 	for i in pose.size():
 		mm.set_instance_transform(i, pose[i][0])
-		mm.set_instance_color(i, pose[i][1])
+		var c: Color = pose[i][1]
+		mm.set_instance_color(i, Color(c.r * k, c.g * k, c.b * k, c.a))
 
 
 func _dance() -> void:
 	var dm := _dancers.multimesh
 	var beat := _beat_time() * BPM / 60.0
+	# After a set the floor keeps its mood (Za deckami 11.5).
+	var lift := lerpf(0.4, 1.6, _mood) if _mood >= 0.0 else 1.0
 	for i in _floor.size():
 		var f := _floor[i]
 		var ph := fmod(beat + f.y * 0.3, 1.0)
-		var hop := 0.12 * (1.0 - absf(ph * 2.0 - 1.0))
+		var hop := 0.12 * lift * (1.0 - absf(ph * 2.0 - 1.0))
 		var yaw_i := PI + sin(beat * PI * 0.5 + f.y * 6.0) * 0.4
 		dm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, yaw_i), Vector3(f.x, hop, f.z)))
 	var nod := 0.05 * absf(sin(beat * PI))
@@ -879,7 +1104,7 @@ func _sway() -> void:
 # --- taps -----------------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not inside or cam == null:
+	if not inside or cam == null or _decks_on:
 		return
 	var at := Vector2.INF
 	if event is InputEventScreenTouch and event.pressed:
@@ -895,7 +1120,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if at == Vector2.INF:
 		return
 	var who := pick(at)
-	if who >= 0:
+	if who == 0 and area == "sala":
+		offer_decks()
+		get_viewport().set_input_as_handled()
+	elif who >= 0:
 		_say(_here()[who])
 		get_viewport().set_input_as_handled()
 
@@ -927,10 +1155,17 @@ func _here() -> Array:
 	return patio_people if area == "patio" else people
 
 
-func _say(person: Array) -> void:
+## A line of `person`'s group ([name, group, where]) in the talk card; `tag` picks a tagged line (the
+## DJ after a set). The crowd talks from its hot or cold group after a set that was.
+func _say(person: Array, tag := "") -> void:
 	if dialogue == null:
 		return
-	var l: Array = dialogue.line(String(person[1]))
+	if _offer != null:
+		_offer.visible = false
+	var group := String(person[1])
+	if group == "club_crowd" and _mood >= 0.0:
+		group = crowd_group()
+	var l: Array = dialogue.line(group, tag, tag != "")
 	if l.is_empty():
 		return
 	_who.text = String(person[0]) if String(person[0]) != "" else Lang.pick("Ktoś z tłumu", "Someone in the crowd")
@@ -942,6 +1177,15 @@ func _say(person: Array) -> void:
 	_talk.reset_size()
 	var vp := get_viewport().get_visible_rect().size
 	_talk.position.y = vp.y - _talk.size.y - 16.0 * (hud.pt if hud != null else 1.0)
+
+
+## The crowd's lines in the room now: hot or cold after a set that was, else the usual.
+func crowd_group() -> String:
+	if _mood >= DECKS_HOT / 100.0:
+		return "club_crowd_hot"
+	if _mood >= 0.0 and _mood < DECKS_COLD / 100.0:
+		return "club_crowd_cold"
+	return "club_crowd"
 
 
 ## TAŃCZ: a tap near a beat keeps the streak, else it starts again; STREAK in a row pays.
