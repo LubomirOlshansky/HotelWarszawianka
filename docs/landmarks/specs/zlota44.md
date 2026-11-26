@@ -186,7 +186,7 @@ dark; the aviation lights, the tip light and the LED edge are unchanged.
 
 ### Budget and shots
 
-L3, triangle budget 2200 (was 1800, raise only): blue 0, well inner walls 20, coping 30, plant and
+L3, triangle budget 2160 (tightened to 1.3x of the measured 1659 at the audit) (was 1800, raise only): blue 0, well inner walls 20, coping 30, plant and
 ducts 50, lobby and portal 40, blade 30, plinth about 110, pool and path 30, cells 0: about 310
 new. The builder writes the measured count in the BUDGET comment of `check_mesh_quality.gd`; if
 the measured count plus 20 % is over 2200, the budget is that number. Draw calls: 0 new (bench
