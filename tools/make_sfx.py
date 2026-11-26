@@ -47,6 +47,7 @@ levels (if their folder is given) to balance the buses against.
   amb_river / amb_park / amb_square / amb_yard   v1.0: the districts' beds (sfx.gd DISTRICT_BEDS, 10 s loops)
   birds_a / birds_b       sparrow chirps, a whistled phrase (day)
   siren_far / dog_far     the night's rare distant events
+  ambulance_siren   road life (road_life.gd): the ambulance's fast yelp, a 2 s loop
   police_siren   loop 3g-2 (docs/design/police.md 10): the patrol car's two-tone siren,
       590 / 790 Hz for 0.5 s each, a soft square through a 3 kHz low-pass (a 1 s loop)
   police_whoop   a 0.35 s sweep 400 -> 1,100 Hz (a unit warns or joins)
@@ -767,6 +768,25 @@ def police_siren(seed):
     # A little air of the horn's bell: a second, quieter band round 1.4 kHz.
     body = biquad(out, "bp", 1400.0, 1.2, loop=True)
     return mix((1.0, out), (0.35, body))
+
+
+def ambulance_siren(seed):
+    """Road life (road_life.gd, F 2026-11-23): the ambulance's siren, a fast rising-falling yelp
+    (not the police's two tones, so a player hears at once which one is behind them): a rounded
+    square swept between 690 and 1460 Hz four times a second. The sweep's mean (1075 Hz) over the
+    2 s loop is a whole number of cycles and the sweep itself sums to none, so the loop point falls
+    back on the starting phase."""
+    n = 2 * RATE
+    out = zeros(n)
+    ph = 0.0
+    for i in range(n):
+        t = i / RATE
+        f = 1075.0 + 385.0 * math.sin(TAU * 4.0 * t)
+        out[i] = soft_square(ph, 2.0)
+        ph += f / RATE
+    out = biquad(biquad(out, "lp", 3200.0, 0.7, loop=True), "lp", 3200.0, 0.7, loop=True)
+    body = biquad(out, "bp", 1500.0, 1.1, loop=True)
+    return mix((1.0, out), (0.3, body))
 
 
 def police_whoop(seed):
@@ -1988,7 +2008,7 @@ def station_gong(seed):
     return fade(echo(out, [(0.13, 0.22), (0.29, 0.12)], 0.4), 0.0, 0.4)
 
 LOOPS = ["engine_idle", "engine_mid", "engine_high", "tyre_roll", "tyre_wet", "tyre_squeal", "rotor",
-         "city_day", "city_night", "rain", "police_siren", "club_leak", "busker", "crowd_murmur", "steps_guitar",
+         "city_day", "city_night", "rain", "police_siren", "ambulance_siren", "club_leak", "busker", "crowd_murmur", "steps_guitar",
          "queue_chatter", "amb_river", "amb_park", "amb_square", "amb_yard", "fan_chant", "gong_bowls", "techno_thump",
          "jazz_trio", "bike_roll", "bike_freewheel", "lift_hum", "pub_room"]
 
@@ -2264,6 +2284,8 @@ CITY = {"club_leak": lambda: [club_leak(71)], "metro_chime": lambda: [metro_chim
         "lift_hum": lambda: [lift_hum(111)],
         # The coffee run's bike (sfx.gd mode "bike"): the ride and the coasting hub.
         "bike_roll": lambda: [bike_roll(2.0, 107)], "bike_freewheel": lambda: [bike_freewheel(2.0, 108)],
+        # Road life (road_life.gd): the ambulance on a call.
+        "ambulance_siren": lambda: [ambulance_siren(115)],
         # THE TAPCZAN (tapczan_room.gd, pong_match.gd): the room's talk, the pour, the clink, the ball.
         "pub_room": lambda: [pub_room(115)], "beer_pour": lambda: [beer_pour(116)],
         "glass_clink": lambda: [glass_clink(117)], "pong_bounce": lambda: [pong_bounce(118)],

@@ -6156,6 +6156,9 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--bus-log` | night-buses loop: print `buses:` lines: the hub's bays and stops, each gathering and ring bus, the car at the ring, the race to the Palm, each honk and called bus, the stop lines, a summary every 20 s |
 | `--crash=now` / `--crash=X,Z` / `--crash=on` / `--crash=0` | crash scenes (`crash_scenes.gd`): a scene now 45-130 m ahead of the car (shots; it may be in view), or on the fitting road nearest X,Z; `on`: the 3-5 minute timer in a test run too (it runs in a normal launch only); `0`: none |
 | `--crash-log` | crash scenes: print `crash:` lines: the first scene's wait, each scene (where, street, lane, vehicles, distance, life), the radio line, every bubble line, each clear and the next wait |
+| `--crash=taxi` | crash scenes: a taxi check (kontrola taksówki) now 45-130 m ahead of the car instead of a crash |
+| `--ambulance=now` / `--ambulance=on` / `--ambulance=0` | road life (`road_life.gd`): an ambulance on a call starts 2 s in, 40-60 m behind the car (it may be in view); `on`: the 2.5-5 minute timer in a test run too (it runs in a normal launch only); `0`: none |
+| `--road-log` | road life: print `road:` lines: each ambulance (lane, hospital, distance), in its way, blocking, thanks, hits, its end; each "Zielone!" honk |
 | `--boat-race`, `--boat-race=call` | boat race (`boat_race.gd`): Szymek rings now, whatever the time |
 | `--boat-race=race` | boat race: the car at the start pontoon and straight onto the grid (3-2-1) |
 | `--boat-race=auto` | boat race: as `race`, with the player's boat driven by the rivals' driver (the shots and the full-race probe) |
@@ -6174,6 +6177,9 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--rave-call` | secret rave (`rave.gd`): LEKTI's break-in on MORDOR FM now (with his voice) and Ziomek rings a second later, whatever the time |
 | `--rave-smola` | secret rave: Ziomek rings now for the club night at Smoła (the door's three questions, then the room) |
 | `--rave-club` | secret rave: straight into Smoła's cutaway room (option A: the jungle, the DJ, the dancers, the lights, TAŃCZ, PATIO and WYJDŹ) |
+| `--decks` | Za deckami (`decks_match.gd`, `club.gd`): straight into a DJ set in Smoła's room (it sets `--rave-club` too; the set starts 1 s after entering, once a run) |
+| `--decks-bot=perfect\|mid\|poor\|none` | Za deckami: a bot plays the set (`decks_sim.gd`'s bots), the view closes itself 2.5 s after the receipt |
+| `--decks-log` | Za deckami: `decks:` lines (the start and its tracks, each mix's grade, `decks: over: <TIER> avg <x> paid <zł>/<respect>`, a frame note 3 s into the set). Verify step `decks-run` |
 | `--padel-match[=HOUR]` | arcade padel (padel_match.gd): straight onto the DESKA court at HOUR (default 12; 20 is the floodlit night), the match plays itself, the game quits at its end |
 | `--padel-log` | arcade padel: one line per point, the match's in and out |
 | `--shisha-call` | shisha night (shisha.gd): Ivan rings now (ODBIERZ, then JADĘ!). With `--autopilot` the whole night plays itself: the call and the offer taken, the drive to Ivan, the courts and the lounge, the evening inside, both drop-offs, the result card (`--shisha-log`: `shisha: done: smoke, score N, +N zł +N respect`). Verify step `shisha-run` |
