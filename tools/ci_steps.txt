@@ -49,6 +49,7 @@ crazy                quick
 credits              quick
 crowds               quick
 cyclehang            roads
+decks                quick
 deckxray             smoke
 defiladobelisk       quick
 dekalog              quick
