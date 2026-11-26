@@ -50,6 +50,7 @@ credits              quick
 crowds               quick
 cyclehang            roads
 decks                quick
+decks-run            local     slow
 deckxray             smoke
 defiladobelisk       quick
 dekalog              quick

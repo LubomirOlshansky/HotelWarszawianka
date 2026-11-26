@@ -2,7 +2,7 @@ extends SceneTree
 ## Za deckami, the DJ game in Smoła (docs/design/smola-decks.md 11.9 with section 12's changes):
 ## the rules (decks_sim.gd), the tracks (data/decks_tracks.json, audio/club/decks_*.ogg) and the
 ## tuning numbers (data/decks.json), without the club or the view. Built in the smola-decks loop,
-## stage A:
+## stage A (and stage B below):
 ##  1. the tracks: four ids, each with a name and a file; the OGG loads and is 64 beats at 132 BPM
 ##     to the millisecond; `loud` and `kick` have 512 ints 0..99; every beat's kick is in the
 ##     picture's first quarter beat (its first two eighths peak at or above the track's median) on
@@ -11,37 +11,62 @@ extends SceneTree
 ##     tuning key;
 ##  3. determinism: the same seed and bot give the same digest (hype every beat and every event); a
 ##     different seed gives a different track order;
-##  4-6. the bots against section 12 point 8 (SEEDS seeds each): perfect always PIEC with three clean
-##     hand-overs, no early return and `shades` at most once; mid in ROZGRZEWKA or DOBRY SET in at
-##     least 80 % and PIEC in at most 10 %; poor below DOBRY SET in at least 90 % and never sent off
-##     before mix 2; none always ŚWIETLICA, the DJ back within 50 s;
+##  4-6. the bots against section 12 point 8 with stage B's targets (SEEDS seeds each): perfect always
+##     PIEC with an average of at least 88, three clean hand-overs, no early return and `shades` at
+##     most once; mid in ROZGRZEWKA or DOBRY SET in at least 80 % and PIEC in at most 10 %; poor below
+##     DOBRY SET in at least 90 %, sent off early in at most 40 % and never before mix 2; none always
+##     ŚWIETLICA, the DJ back within 60 s;
 ##  7. bounds: on every tick of every bot run 0 <= hype <= 100 and 0 <= avg <= 100;
-##  8. the forced rules: a locked beat +1.5 with the streak bonus reaching +2.5 at 8; a gallop -3,
-##     the streak reset, `eee` on the 4th; ENDING -2 a beat; a clean hand-over +8 only at 48 or 64
-##     within 0.5 and nothing at 32; a hard cut -8; the magnet snaps at 0.0014 and not at 0.002; a
+##  8. the forced rules: a locked beat +1.5 with the streak bonus reaching +2.5 at 8 (the design's
+##     numbers through the tune); a gallop and a loose beat lose decks.json's numbers, the gallop
+##     resets the streak and sends `eee` on the 4th; ENDING -2 a beat; a clean hand-over only at 48
+##     or 64 within 0.5 and nothing at 32; a hard cut -8; the magnet snaps at 0.0014 and not at 0.002; a
 ##     200 pt jog moves one beat (1 %) and keeps its place; the pitch clamped at 4 %; abort() ends
 ##     the set with no result;
-##  9. the early return at 8 cold beats, not 7;
+##  9. the early return at 16 beats under 5 hype, not 15; no lock gain in ENDING;
 ## 10. an early return is tier 0 whatever the average, and the average counts only played beats.
-## TODO stage B (decks_match.gd, club.gd wiring, dialogue.json, dev_flags.gd), not written here:
-##  - club with stand-ins (Fakes.Wallet, Hud, Dialogue): the invite once 6 s in, the tile after it,
-##    a perfect set pays +120 zl / +50 once a visit, best and sets saved, city_drawn false then
-##    true, the club duck held; the ✕ pays nothing and does not count; the hot crowd group after;
-##  - words: every club_decks_* group and tag the scripts ask for, [pl, en] pairs, <= 90 chars,
-##    help chips <= 4 words, no denylisted brand, every UI letter in the 5x7 font;
-##  - flags: parse_with(["--decks", "--decks-bot=mid", "--decks-log"]) and rave_flag == "club";
-##  - view: decks_match with auto_skill = perfect emits finished then closed headless; every touch
-##    zone >= 44 pt with no overlap at 2532x1170 @3 and 2048x1536 @2; Kit.rects <= 1100 a frame.
+## Stage B (decks_match.gd, club.gd wiring, dialogue.json, dev_flags.gd):
+## 11. the club with stand-ins (Fakes.Hud, Dialogue, Wallet; city_drawn recorded): the invite once,
+##     6 s after entering, and the save marked; the tile after it; a set with the perfect bot pays
+##     +120 zł / +50 respect, best 3, sets 1, the first PIEC kept and its note on the way out,
+##     city_drawn false then true, the club duck held the whole set; JESZCZE RAZ pays nothing and
+##     counts; the ✕ pays nothing and does not count; the hot crowd group after; a new visit pays
+##     again; the no-input bot's set is ŚWIETLICA, +0 zł / +5 respect, the cold crowd group after;
+## 12. words: every group and tag the scripts ask for, [pl, en] pairs, not empty, <= 90 characters,
+##     help chips <= 4 words, no denylisted brand or drug word, every letter the view draws in the
+##     5x7 font (the bubbles with their ellipsis as three dots), the track names too;
+## 13. flags: parse_with(["--decks", "--decks-bot=mid", "--decks-log"]) gives the values and
+##     rave_flag == "club"; wants_harness() stays false;
+## 14. the view: decks_match with auto_skill = perfect emits `finished` (PIEC) then `closed`
+##     headless; every touch zone >= 44 pt with none overlapping at 2532x1170 @3 and 2048x1536 @2;
+##     at most 1100 Kit rects a frame through a set (and on the receipt).
 ## Prints `check_decks: OK`, or the problems and their count (exit 1). A few seconds.
 ##   godot --headless --path game --script res://tools/check_decks.gd
 ## Tuning mode (prints the table per bot, checks nothing but the targets' verdicts):
 ##   godot --headless --path game --script res://tools/check_decks.gd -- --tune=200 [--tune-set=key=value,...]
 
 const Sim := preload("res://scripts/decks_sim.gd")
+const Match := preload("res://scripts/decks_match.gd")
+const Club := preload("res://scripts/club.gd")
+const Fakes := preload("res://tools/fakes.gd")
+const DevFlags := preload("res://scripts/dev_flags.gd")
+const PixelFont := preload("res://scripts/pixel_font.gd")
+const Sfx := preload("res://scripts/sfx.gd")
+## Every club_decks_ui tag decks_match.gd and club.gd ask for.
+const UI_TAGS := ["tier0", "tier1", "tier2", "tier3", "g_clean", "g_good", "g_wonky", "g_gallop", "g_none",
+		"h_jog", "h_fader", "h_pitch", "ending", "r_set", "r_mix", "r_lock", "r_bars", "r_floor", "r_tip",
+		"r_respect", "r_paid", "b_again", "b_floor", "b_play", "b_later", "mix"]
+## Words that must not be on screen in a club (warsaw-tone: no drug jokes).
+const DRUG_WORDS := ["narkot", "kokain", "koks", "mdma", "ecstasy", "extasy", "dragi", "pigu", "cocaine", "drug", "amfetam", "molly"]
+const RECT_BUDGET := 1100
 const SEEDS := 30
 const SKILLS := ["perfect", "mid", "poor", "none"]
 ## Section 12 point 8: the DJ comes back within this many seconds for the no-input bot.
-const DJ_BACK_S := 50.0
+const DJ_BACK_S := 60.0
+## Stage B's targets: the perfect bot's average at least this; the poor bot sent off early in at most
+## this share of sets.
+const PERFECT_AVG := 88.0
+const POOR_EARLY := 0.4
 
 var _bad := 0
 
@@ -67,6 +92,12 @@ func _initialize() -> void:
 	_bots()
 	_forced()
 	_early()
+	await process_frame
+	_words()
+	_flags()
+	_zones()
+	_view()
+	_club()
 	if _bad == 0:
 		print("check_decks: OK")
 		quit(0)
@@ -205,6 +236,8 @@ func _targets(runs: Dictionary) -> PackedStringArray:
 			piec += 1
 		if bool(r["early"]) or int(r["clean"]) != 3 or int((r["stats"] as Dictionary).get("shades", 0)) > 1:
 			bad.append("perfect: early %s, %d clean, %d shades" % [r["early"], r["clean"], (r["stats"] as Dictionary).get("shades", 0)])
+		if float(r["avg"]) < PERFECT_AVG:
+			bad.append("perfect: an average under %.0f" % PERFECT_AVG)
 	if piec < int(n):
 		bad.append("perfect: PIEC in %d of %d" % [piec, int(n)])
 	var mid_ok := 0
@@ -220,13 +253,18 @@ func _targets(runs: Dictionary) -> PackedStringArray:
 	if float(mid_piec) > 0.1 * n:
 		bad.append("mid: PIEC in %d of %d, want at most 10 %%" % [mid_piec, int(n)])
 	var poor_low := 0
+	var poor_early := 0
 	for r: Dictionary in runs["poor"]:
 		if int(r["tier"]) <= 1:
 			poor_low += 1
+		if bool(r["early"]):
+			poor_early += 1
 		if bool(r["early"]) and int(r["mix_at_dj"]) < 1:
 			bad.append("poor: sent off in mix 1 (%.1f s)" % float(r["dj_back_s"]))
 	if float(poor_low) < 0.9 * n:
 		bad.append("poor: below DOBRY in %d of %d, want 90 %%" % [poor_low, int(n)])
+	if float(poor_early) > POOR_EARLY * n:
+		bad.append("poor: sent off early in %d of %d, want at most %.0f %%" % [poor_early, int(n), 100.0 * POOR_EARLY])
 	for r: Dictionary in runs["none"]:
 		if int(r["tier"]) != 0 or not bool(r["early"]) or int((r["stats"] as Dictionary).get("dj_back", 0)) != 1:
 			bad.append("none: tier %d, early %s" % [r["tier"], r["early"]])
@@ -297,12 +335,12 @@ func _forced() -> void:
 	s._judge(43)
 	if not _near(s.hype, 50.0 + s.lock_gain + s.streak_bonus):
 		_fail("forced: decks.json's full streak gave %+.3f, want %+.3f" % [s.hype - 50.0, s.lock_gain + s.streak_bonus])
-	# A gallop: -3, the streak reset, `eee` on the 4th.
+	# A gallop: decks.json's loss, the streak reset, `eee` on the 4th.
 	s = _blend()
 	s.streak = 5
 	s.err = 0.3
 	s._judge(40)
-	if not _near(s.hype, 47.0) or s.streak != 0:
+	if not _near(s.hype, 50.0 - s.gallop_loss) or s.streak != 0:
 		_fail("forced: a gallop gave %+.3f, streak %d" % [s.hype - 50.0, s.streak])
 	for i in 2:
 		s._judge(41 + i)
@@ -311,12 +349,13 @@ func _forced() -> void:
 	s._judge(43)
 	if not _has(s, "eee"):
 		_fail("forced: no `eee` on the 4th gallop beat")
-	# A loose beat: nothing.
+	# A loose beat: decks.json's small loss (stage B's tune), the streak kept.
 	s = _blend()
 	s.err = 0.12
+	s.streak = 3
 	s._judge(40)
-	if not _near(s.hype, 50.0):
-		_fail("forced: a loose beat gave %+.3f" % (s.hype - 50.0))
+	if not _near(s.hype, 50.0 - s.loose_loss) or s.streak != 3:
+		_fail("forced: a loose beat gave %+.3f, want %+.2f" % [s.hype - 50.0, -s.loose_loss])
 	# ENDING: -2 a beat with the fader on A.
 	s = _blend()
 	s.phase = Sim.ENDING
@@ -326,19 +365,20 @@ func _forced() -> void:
 	if not _near(s.hype, 46.0):
 		_fail("forced: two ENDING beats gave %+.3f, want -4" % (s.hype - 50.0))
 	# Clean hand-overs: +8 within 0.5 of beat 48 or 64 when locked, nothing at 32 or 0.6 off.
-	for c: Array in [[48.3, 8.0], [47.6, 8.0], [48.6, 0.0], [63.6, 8.0], [32.2, 0.0], [56.0, 0.0]]:
-		s = _blend()
+	for c: Array in [[48.3, 1.0], [47.6, 1.0], [48.6, 0.0], [63.6, 1.0], [32.2, 0.0], [56.0, 0.0]]:
+		s = _blend({"clean_bonus": 8.0})
 		s.rb = float(c[0])
 		s.xf = 1.0
 		s._hand_over()
-		if not _near(s.hype, 50.0 + float(c[1])):
-			_fail("forced: a locked landing at %.1f gave %+.3f, want %+.1f" % [c[0], s.hype - 50.0, c[1]])
+		if not _near(s.hype, 50.0 + float(c[1]) * s.clean_bonus):
+			_fail("forced: a locked landing at %.1f gave %+.3f, want %+.1f" % [c[0], s.hype - 50.0, float(c[1]) * s.clean_bonus])
 	s = _blend()
+	s.hype = 40.0
 	s.phase = Sim.ENDING
 	s.rb = 64.4
 	s._hand_over()
-	if not _near(s.hype, 58.0):
-		_fail("forced: a locked landing in ENDING at 64.4 gave %+.3f, want +8" % (s.hype - 50.0))
+	if not _near(s.hype, minf(100.0, 40.0 + s.clean_bonus)):
+		_fail("forced: a locked landing in ENDING at 64.4 gave %+.3f, want %+.1f" % [s.hype - 40.0, s.clean_bonus])
 	# A hard cut: -8; a loose cut on the bar: nothing.
 	s = _blend()
 	s.rb = 48.0
@@ -443,18 +483,28 @@ func _forced() -> void:
 # ---- 9, 10: the early return and the average ----
 
 func _early() -> void:
-	# Hype under 10: 7 beats keep the set on, the 8th sends the DJ back.
+	# Hype under 5: 15 beats keep the set on, the 16th sends the DJ back.
 	var s := _blend()
 	s.phase = Sim.CUE
 	s.xf = 0.0
 	s.hype = 3.0
-	for i in 7:
+	if s.cold_beats != 16 or not _near(s.cold_hype, 5.0):
+		_fail("early: decks.json's cold rule is %d beats under %.1f, want 16 under 5" % [s.cold_beats, s.cold_hype])
+	for i in 15:
 		s._judge(i)
 	if s.phase == Sim.DONE or _has(s, "dj_back"):
-		_fail("early: 7 cold beats ended the set")
-	s._judge(7)
+		_fail("early: 15 cold beats ended the set")
+	s._judge(15)
 	if s.phase != Sim.DONE or not _has(s, "dj_back") or not s.early or s.tier != 0:
-		_fail("early: 8 cold beats left phase %s, early %s, tier %d" % [s.phase_name(), s.early, s.tier])
+		_fail("early: 16 cold beats left phase %s, early %s, tier %d" % [s.phase_name(), s.early, s.tier])
+	# Locked in ENDING: only the ENDING loss, no lock gain.
+	s = _blend()
+	s.phase = Sim.ENDING
+	s.xf = 0.5
+	s.err = 0.0
+	s._judge(66)
+	if not _near(s.hype, 50.0 - s.ending_loss):
+		_fail("early: a locked ENDING beat gave %+.3f, want %+.1f" % [s.hype - 50.0, -s.ending_loss])
 	# A warm set taken back is still tier 0, and the average is over the beats played only.
 	s = _blend()
 	s.hype_sum = 70.0 * 100.0
@@ -462,7 +512,8 @@ func _early() -> void:
 	s.hype = 9.0
 	s.phase = Sim.ENDING
 	s.xf = 0.0
-	s.cold_run = 7
+	s.cold_run = s.cold_beats - 1
+	s.hype = 4.0
 	s._judge(100)
 	if s.phase != Sim.DONE or s.tier != 0 or not _near(s.avg(), (7000.0 + s.hype) / 101.0):
 		_fail("early: a set at avg %.1f taken back got tier %d (avg %.2f)" % [s.avg(), s.tier, s.avg()])
@@ -528,3 +579,285 @@ func _tune(n: int, tune: Dictionary) -> void:
 
 func _share(sum: float, n: int) -> String:
 	return "%3.0f%%" % (100.0 * sum / float(n)) if n > 0 else "  - "
+
+
+# ---- 12: words ----
+
+func _pair(where: String, p: Variant, longest := 90) -> void:
+	if not (p is Array) or (p as Array).size() < 2 or str(p[0]).strip_edges() == "" or str(p[1]).strip_edges() == "":
+		_fail("words: %s is not a [Polish, English] pair: %s" % [where, p])
+		return
+	var deny := _denylist()
+	for t: String in [str(p[0]), str(p[1])]:
+		if t.length() > longest:
+			_fail("words: %s is over %d characters: %s" % [where, longest, t])
+		var low := t.to_lower()
+		for b: String in deny:
+			if low.contains(b):
+				_fail("words: %s names a denylisted brand (%s): %s" % [where, b, t])
+		for b: String in DRUG_WORDS:
+			if low.contains(b):
+				_fail("words: %s has a drug word (%s): %s" % [where, b, t])
+		for ch in t.replace("…", "...").to_upper().replace("\"", "”"):
+			if ch != " " and PixelFont.char_width(ch) == 0:
+				_fail("words: %s: the pixel font has no '%s': %s" % [where, ch, t])
+				break
+
+
+func _denylist() -> Array:
+	var out: Array = []
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/brand_denylist.json"))
+	if d is Dictionary:
+		for k: String in d:
+			if d[k] is Array:
+				for b: Variant in d[k]:
+					if b is String and (b as String).length() >= 4:
+						out.append((b as String).to_lower())
+	return out
+
+
+func _words() -> void:
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
+	if not (d is Dictionary):
+		_fail("words: dialogue.json does not load")
+		return
+	var want := {
+		"club_decks_invite": [""], "club_decks_mati": Sim.BAND_IDS, "club_decks_kolek": [""],
+		"club_decks_dj_back": Sim.TIER_IDS + ["early", "first_piec"], "club_crowd_hot": [""], "club_crowd_cold": [""],
+		"club_decks_ui": UI_TAGS,
+	}
+	for g: String in want:
+		var lines: Variant = (d as Dictionary).get(g)
+		if not (lines is Array) or (lines as Array).is_empty():
+			_fail("words: no group %s" % g)
+			continue
+		for tag: String in want[g]:
+			var n := 0
+			for l: Variant in lines:
+				var note: Variant = (l as Array)[2] if (l as Array).size() > 2 and (l as Array)[2] is Dictionary else {}
+				var only: Variant = (note as Dictionary).get("only", null)
+				if only == null or str(only) == tag:
+					n += 1
+			if n == 0:
+				_fail("words: %s has no line for '%s'" % [g, tag])
+		for l: Variant in lines:
+			_pair(g, l)
+			var note: Variant = (l as Array)[2] if (l as Array).size() > 2 and (l as Array)[2] is Dictionary else {}
+			if g == "club_decks_ui" and str((note as Dictionary).get("only", "")).begins_with("h_"):
+				for t: String in [str(l[0]), str(l[1])]:
+					if t.split(" ", false).size() > 4:
+						_fail("words: a help chip of more than four words: %s" % t)
+	for row: Dictionary in Sim.tracks():
+		var nm := str(row.get("name", ""))
+		_pair("track " + nm, [nm, nm])
+
+
+# ---- 13: flags ----
+
+func _flags() -> void:
+	var game: Node = load("res://scripts/main.gd").new()
+	var f := DevFlags.new()
+	f.m = game
+	f.parse_with(PackedStringArray(["--decks", "--decks-bot=mid", "--decks-log"]))
+	if f.decks_flag != "on" or f.decks_bot != "mid" or not f.decks_log or f.rave_flag != "club":
+		_fail("flags: --decks gave decks_flag '%s', bot '%s', log %s, rave_flag '%s'" % [f.decks_flag, f.decks_bot, f.decks_log, f.rave_flag])
+	if f.wants_harness():
+		_fail("flags: --decks turns the test harness on")
+	var g := DevFlags.new()
+	g.m = game
+	g.parse_with(PackedStringArray([]))
+	if g.decks_flag != "" or g.decks_bot != "" or g.decks_log:
+		_fail("flags: an empty command line sets the decks' flags")
+	game.free()
+
+
+# ---- 14: the view ----
+
+func _zones() -> void:
+	for c: Array in [[Vector2(2532, 1170), 3.0], [Vector2(2048, 1536), 2.0]]:
+		var size: Vector2 = c[0]
+		var p := float(c[1])
+		var z := Match.zones(size, p)
+		var names: Array = z.keys()
+		for k: String in names:
+			var r: Rect2 = z[k]
+			if r.size.x < 44.0 * p - 0.01 or r.size.y < 44.0 * p - 0.01:
+				_fail("view: at %s the %s zone is %.0f x %.0f pt, under 44" % [size, k, r.size.x / p, r.size.y / p])
+			if r.position.x < -0.01 or r.position.y < -0.01 or r.end.x > size.x + 0.01 or r.end.y > size.y + 0.01:
+				_fail("view: at %s the %s zone runs off the screen: %s" % [size, k, r])
+		for i in names.size():
+			for j in range(i + 1, names.size()):
+				# Sharing an edge is not an overlap (half a pixel of float either way).
+				if (z[names[i]] as Rect2).grow(-0.5).intersects((z[names[j]] as Rect2).grow(-0.5)):
+					_fail("view: at %s the %s and %s zones overlap" % [size, names[i], names[j]])
+
+
+func _view() -> void:
+	# The phone's screen (the widest canvas: the most lane columns and people).
+	var old := root.size
+	root.size = Vector2i(2532, 1170)
+	var v := Match.new()
+	root.add_child(v)
+	var got: Array = []
+	var shut := [false]
+	v.finished.connect(func(r: Dictionary) -> void:
+		got.append(r)
+		if shut[0]:
+			_fail("view: finished after closed"))
+	v.closed.connect(func() -> void: shut[0] = true)
+	v.auto_skill = "perfect"
+	v.start(11, true)
+	var top := 0
+	var top_at := ""
+	var n := 0
+	while v.inside and n < 20000:
+		v._process(1.0 / 60.0)
+		n += 1
+		if v.inside and n % 7 == 0:
+			var r := v.count_rects()
+			if r > top:
+				top = r
+				top_at = "%s mix %d, band %d%s" % [v.sim.phase_name(), v.sim.mix + 1, v._band, ", the receipt" if v._shown else ""]
+	if got.size() != 1 or not shut[0]:
+		_fail("view: finished %d time(s), closed %s after %d frames" % [got.size(), shut[0], n])
+	elif int((got[0] as Dictionary)["tier"]) != 3:
+		_fail("view: the perfect bot's set came out tier %d" % int((got[0] as Dictionary)["tier"]))
+	if top > RECT_BUDGET:
+		_fail("view: %d rects in one frame (%s), the budget is %d" % [top, top_at, RECT_BUDGET])
+	if v.W != 467:
+		_fail("view: the canvas is %d wide at 2532x1170, want 467" % v.W)
+	print("check_decks: the view's perfect set: %s avg %.1f in %d frames, at most %d rects a frame (%s)" % [
+			(got[0] as Dictionary).get("tier_id", "?") if not got.is_empty() else "-", float((got[0] as Dictionary).get("avg", 0.0)) if not got.is_empty() else 0.0, n, top, top_at])
+	# The ✕ leaves at once: closed, no finished.
+	got.clear()
+	shut[0] = false
+	v.auto_skill = ""
+	v.start(12, false)
+	for i in 300:
+		v._process(1.0 / 60.0)
+	v.leave()
+	if not got.is_empty() or not shut[0] or v.inside or v.sim != null or v.is_processing():
+		_fail("view: the ✕ gave finished %d, closed %s, inside %s" % [got.size(), shut[0], v.inside])
+	v.queue_free()
+	root.size = old
+
+
+# ---- 11: the club with stand-ins ----
+
+class PtHud extends Fakes.Hud:
+	var pt := 1.0
+
+
+## Steps the club (and its set, when one is on) by `seconds` at 60 Hz; true while the club duck held.
+func _step(club: Club, seconds: float, ducks: Array) -> void:
+	for i in int(seconds * 60.0):
+		club._process(1.0 / 60.0)
+		if club._decks != null and club._decks.inside:
+			club._decks._process(1.0 / 60.0)
+			if not Sfx.ducked("club"):
+				ducks[0] = false
+
+
+## A whole set from start_set() to the room again (the bot's auto close); the frames it took.
+func _play_set(club: Club, ducks: Array, again := false) -> int:
+	club.start_set()
+	var n := 0
+	var did_again := false
+	while club._decks_on and n < 20000:
+		_step(club, 1.0 / 60.0, ducks)
+		n += 1
+		if again and not did_again and club._decks._shown:
+			did_again = true
+			club._decks._again()
+	return n
+
+
+func _club() -> void:
+	var world := Node3D.new()
+	root.add_child(world)
+	var cam := Camera3D.new()
+	world.add_child(cam)
+	cam.look_at_from_position(Club.PLACE + Vector3(18, 22, 18), Club.PLACE, Vector3.UP)
+	cam.current = true
+	var hud := PtHud.new()
+	root.add_child(hud)
+	var talk := Fakes.Dialogue.new()
+	root.add_child(talk)
+	var wallet := Fakes.Wallet.new()
+	root.add_child(wallet)
+	var drawn: Array = []
+	var club := Club.new()
+	club.hud = hud
+	club.dialogue = talk
+	club.wallet = wallet
+	club.cam = cam
+	club.city_drawn = func(on: bool) -> void: drawn.append(on)
+	club.decks_bot = "perfect"
+	root.add_child(club)
+	club.enter(world, "SMOŁA", "SMOŁA", -1)
+	var ducks := [true]
+	# The invite: not at 5.8 s, once by 6.2 s, the save marked.
+	_step(club, 5.8, ducks)
+	if club._offer.visible or bool(wallet.keep.get("decks_invited", false)):
+		_fail("club: the invite came before 6 s")
+	_step(club, 0.4, ducks)
+	if not club._offer.visible or not bool(wallet.keep.get("decks_invited", false)) or wallet.saves != 1 or talk.count("club_decks_invite", "") != 1:
+		_fail("club: no invite 6 s in (offer %s, invited %s, saves %d)" % [club._offer.visible, wallet.keep.get("decks_invited", false), wallet.saves])
+	_step(club, 6.0, ducks)
+	if talk.count("club_decks_invite", "") != 1:
+		_fail("club: the invite came twice")
+	club._place_tile()
+	if not club._decks_btn.visible:
+		_fail("club: no ZA DECKI tile after the invite")
+	# A perfect set: paid, saved, the city off then on, the duck held.
+	var frames := _play_set(club, ducks)
+	if drawn != [false, true]:
+		_fail("club: city_drawn went %s, want [false, true]" % [drawn])
+	if wallet.payments.size() != 1 or wallet.payments[0] != [120, 50, "club_decks"]:
+		_fail("club: the perfect set paid %s, want [120, 50, club_decks]" % [wallet.payments])
+	if int(wallet.keep.get("decks_best", -1)) != 3 or int(wallet.keep.get("decks_sets", 0)) != 1 or not bool(wallet.keep.get("decks_piec", false)):
+		_fail("club: saved best %s, sets %s, piec %s" % [wallet.keep.get("decks_best"), wallet.keep.get("decks_sets"), wallet.keep.get("decks_piec")])
+	if not ducks[0]:
+		_fail("club: the club duck let go during the set")
+	if talk.count("club_decks_dj_back", "first_piec") != 1:
+		_fail("club: no first_piec line from the DJ after the first PIEC")
+	if club.crowd_group() != "club_crowd_hot":
+		_fail("club: after a PIEC set the crowd talks from %s" % club.crowd_group())
+	if not club._ui.visible or club._decks_on:
+		_fail("club: the room's panel did not come back")
+	# JESZCZE RAZ: no pay, but counted (two sets more).
+	_play_set(club, ducks, true)
+	if wallet.payments.size() != 1 or int(wallet.keep.get("decks_sets", 0)) != 3:
+		_fail("club: JESZCZE RAZ paid %s, sets %s (want 1 payment, 3 sets)" % [wallet.payments.size(), wallet.keep.get("decks_sets")])
+	# The ✕: no pay, not counted, the city back.
+	club.start_set()
+	_step(club, 5.0, ducks)
+	club._decks.leave()
+	if club._decks_on or wallet.payments.size() != 1 or int(wallet.keep.get("decks_sets", 0)) != 3 or drawn.back() != true:
+		_fail("club: the ✕ left decks_on %s, %d payments, sets %s" % [club._decks_on, wallet.payments.size(), wallet.keep.get("decks_sets")])
+	# Out: the first PIEC's note; in again: it pays again.
+	club.leave()
+	if hud.notes.size() != 1:
+		_fail("club: the first PIEC's note on the way out: %s" % [hud.notes])
+	club.enter(world, "SMOŁA", "SMOŁA", -1)
+	_play_set(club, ducks)
+	if wallet.payments.size() != 2:
+		_fail("club: a new visit did not pay again (%d payments)" % wallet.payments.size())
+	# A set nobody plays: the DJ back, ŚWIETLICA, +0 zł / +5, the cold crowd.
+	club.leave()
+	club.enter(world, "SMOŁA", "SMOŁA", -1)
+	club.decks_bot = "none"
+	_play_set(club, ducks)
+	if wallet.payments.size() != 3 or wallet.payments[2] != [0, 5, "club_decks"]:
+		_fail("club: the no-input set paid %s, want [0, 5, club_decks]" % [wallet.payments.back()])
+	if club.crowd_group() != "club_crowd_cold":
+		_fail("club: after a cold set the crowd talks from %s" % club.crowd_group())
+	if talk.count("club_decks_dj_back", "early") < 2:
+		_fail("club: the DJ's early line after the ✕ and the early return: %d" % talk.count("club_decks_dj_back", "early"))
+	club.leave()
+	print("check_decks: the club: a perfect set in %d frames, %s paid" % [frames, wallet.payments])
+	club.queue_free()
+	world.queue_free()
+	hud.queue_free()
+	talk.queue_free()
+	wallet.queue_free()

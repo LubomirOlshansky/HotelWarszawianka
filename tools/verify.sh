@@ -176,6 +176,10 @@
 # (decks_sim.gd) and its tracks: the four OGGs 64 beats at 132 BPM, their lane pictures, the tuning
 # numbers (data/decks.json), determinism, the perfect, mid, poor and no-input bots against the design's
 # targets (30 seeds each), the forced per-beat rules, the early return and the ✕; no map (CI too).
+# Stage B (2026-11-26) adds the club with stand-ins (the invite, the tile, a set paid once a visit, the
+# saved best and sets, the city's 3D off and on, the mood after), the words, the flags, the view's
+# touch zones at two screens and its rect budget, and a whole self-played set. `decks-run` (full set
+# only) plays a set in the whole game: --decks --decks-bot=perfect, its `decks: over: PIEC` line.
 # THE TAPCZAN phase 2 (2026-11-24): `tapczan` runs game/tools/check_tapczan.gd: data/tapczan.json's
 # words (pairs, no brand), the beer pong rules (racks, aim, bounce, rim, balls back, re-rack, drinks
 # and sway, Pani Gienia's late skill) and 300 seeded games, the tipsy fade and pull, the room's mesh,
@@ -1720,6 +1724,7 @@ for s in $want; do
 		crawl-run) game crawl 20000 '^crawl: end: made it, 3/3 bars' --crawl-call --crawl-log --crawl-route=klasyczna --autopilot ;;
 		# THE TAPCZAN in the whole game: straight in, a pint, a self-playing beer pong game, out to the tipsy drive.
 		tapczan-run) game tapczan 12000 '^tapczan: out: won' --tapczan=pong --tapczan-log ;;
+		decks-run) game decks 12000 '^decks: over: PIEC' --decks --decks-bot=perfect --decks-log ;;
 		shisha-run) game shisha 30000 '^shisha: done: smoke' --shisha-call --shisha-log --autopilot ;;
 		# Loop 2d-1 x 3g-1: a pull-over 25 s into that ride takes exactly one star (police.gd calls
 		# rides.on_pulled_over() when the conversation ends), on the prebuilt city.

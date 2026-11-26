@@ -60,7 +60,7 @@ const NOT_REACHED := "-"
 const BAND_IDS := ["cold", "polite", "moving", "hot", "piec"]
 ## Every number decks.json sets (the order is the file's).
 const TUNABLES := ["hype_start", "hype_rest", "rest_step", "lock_beat", "loose_beat", "lock_off", "lock_gain",
-		"streak_bonus", "streak_full", "gallop_loss", "eee_after", "ending_loss", "clean_bonus", "clean_window",
+		"streak_bonus", "streak_full", "loose_loss", "gallop_loss", "eee_after", "ending_loss", "clean_bonus", "clean_window",
 		"hard_loss", "cold_hype", "cold_beats", "tiers", "tips", "respect", "bands", "shades_hype", "tempo_err",
 		"cue_off_lo", "cue_off_hi", "jog_beat_per_pt", "jog_max", "jog_tau", "jog_key", "pitch_per_pt", "pitch_max",
 		"pitch_key_rate", "magnet", "magnet_tau", "xf_span_pt", "xf_key_rate", "xf_both", "xf_land", "glide_beats"]
@@ -79,14 +79,16 @@ var lock_off := 0.09
 var lock_gain := 1.5
 var streak_bonus := 2.5
 var streak_full := 8
+## A loose beat (between lock_beat and loose_beat) with both decks in: a small loss (stage B tune).
+var loose_loss := 0.0
 var gallop_loss := 3.0
 var eee_after := 4
 var ending_loss := 2.0
 var clean_bonus := 8.0
 var clean_window := 0.5
 var hard_loss := 8.0
-var cold_hype := 10.0
-var cold_beats := 8
+var cold_hype := 5.0
+var cold_beats := 16
 var tiers: Array = [35.0, 60.0, 82.0]
 var tips: Array = [0, 30, 60, 120]
 var respect: Array = [5, 15, 30, 50]
@@ -404,13 +406,17 @@ func _judge(n: int) -> void:
 		m_both[mix] += 1
 		var e := absf(err)
 		if e <= lock_beat:
-			_add(lock_gain + streak_bonus * float(mini(streak, streak_full)) / float(maxi(1, streak_full)))
+			# No lock gain once the blend is over (stage B): staying blended past its end must not hold a
+			# high average; only the ENDING loss counts then.
+			if phase != ENDING:
+				_add(lock_gain + streak_bonus * float(mini(streak, streak_full)) / float(maxi(1, streak_full)))
 			streak += 1
 			m_locked[mix] += 1
 			lock_run += 1
 			m_longest[mix] = maxi(m_longest[mix], lock_run)
 			gallop_run = 0
 		elif e <= loose_beat:
+			_add(-loose_loss)
 			lock_run = 0
 			gallop_run = 0
 		else:
