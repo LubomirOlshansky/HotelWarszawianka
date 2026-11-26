@@ -1,5 +1,5 @@
 extends SceneTree
-## Podwózka on the activity kit (scripts/rides.gd, tech-debt TD-1), played headless: the real Rides
+## Łuber on the activity kit (scripts/rides.gd, tech-debt TD-1), played headless: the real Rides
 ## on the shared stand-ins of tools/fakes.gd (a HUD, a dialogue, a wallet, the rescue calls, the
 ## bubbles) and a few of its own (a small city of 7 x 7 junctions 400 m apart with address doors
 ## along every street, a river on the east side, a pond, two roofs, a ghost driver in traffic, the
@@ -962,7 +962,7 @@ func _b_idle() -> void:
 	_secs(2.0 / 60.0)
 	_ok(hud.pill == "", "the button came before 120 s")
 	_secs(8.0 / 60.0)
-	_ok(hud.pill == "ride" and hud.pill_word == "PODWÓZKA" and q.can_request(), "the PODWÓZKA button after 120 s")
+	_ok(hud.pill == "ride" and hud.pill_word == "ŁUBER" and q.can_request(), "the ŁUBER button after 120 s")
 	for gate: String in GATES:
 		_gate(gate, true)
 		_secs(2.0 / 60.0)
@@ -994,7 +994,7 @@ func _b_idle() -> void:
 	hud.pill = "tape"
 	hud.pill_free = false
 	_secs(3.0 / 60.0)
-	_ok(hud.pill == "tape", "PODWÓZKA took a button that outranks it")
+	_ok(hud.pill == "tape", "ŁUBER took a button that outranks it")
 	hud.pill = ""
 	hud.pill_free = true
 	_secs(2.0 / 60.0)
@@ -1109,7 +1109,7 @@ func _c_request() -> void:
 			"the request: offer phase, no stage, not busy, offering")
 	_ok(not q.has_target() and director.current() == null and director.may_start(other), "the request: no target, the director sees nothing on")
 	_ok(hud.side and hud.card_is(q) and not hud.stacked and hud.face == "", "the request: beside the road, its own card, not stacked, no face")
-	_ok(hud.card == "PODWÓZKA · NOWY KURS" and hud.card_en == "New ride" and hud.accent == TEAL, "the request's title and colour: %s" % hud.card)
+	_ok(hud.card == "ŁUBER · NOWY KURS" and hud.card_en == "New ride" and hud.accent == TEAL, "the request's title and colour: %s" % hud.card)
 	_ok(hud.button_words == PackedStringArray(["ACCEPT", "SKIP"]), "the request's buttons: %s" % [hud.button_words])
 	_ok(r["note"] == ["Komentarz", "A comment"], "the note is the request line: %s" % [r["note"]])
 	_ok(hud.body == _offer_body(r, true), "the request's body: %s / %s" % [hud.body, _offer_body(r, true)])
@@ -1188,7 +1188,7 @@ func _c_request() -> void:
 		else:
 			_gate(gate, true)
 		_secs(0.5)
-		_ok(_on_offer() and hud.card == "PODWÓZKA · NOWY KURS", "%s took the request away" % gate)
+		_ok(_on_offer() and hud.card == "ŁUBER · NOWY KURS", "%s took the request away" % gate)
 		missions.put(Activity.Phase.IDLE)
 		_gate("mission", false)
 		_gate("water", false)
@@ -1206,11 +1206,11 @@ func _c_request() -> void:
 	hud.hide_card()
 	_secs(3.0 / 60.0)
 	# The surge in the title.
-	var cases := [[2, 0.0, false, "PODWÓZKA · MNOŻNIK ×1,5", "New ride · surge ×1.5 · night"],
-			[0, 0.0, true, "PODWÓZKA · MNOŻNIK ×1,2", "New ride · surge ×1.2 · rain"],
-			[2, 0.0, true, "PODWÓZKA · MNOŻNIK ×1,8", "New ride · surge ×1.8 · night + rain"],
-			[3, 0.6, false, "PODWÓZKA · MNOŻNIK ×1,5", "New ride · surge ×1.5 · night"],
-			[3, 0.4, false, "PODWÓZKA · NOWY KURS", "New ride"]]
+	var cases := [[2, 0.0, false, "ŁUBER · MNOŻNIK ×1,5", "New ride · surge ×1.5 · night"],
+			[0, 0.0, true, "ŁUBER · MNOŻNIK ×1,2", "New ride · surge ×1.2 · rain"],
+			[2, 0.0, true, "ŁUBER · MNOŻNIK ×1,8", "New ride · surge ×1.8 · night + rain"],
+			[3, 0.6, false, "ŁUBER · MNOŻNIK ×1,5", "New ride · surge ×1.5 · night"],
+			[3, 0.4, false, "ŁUBER · NOWY KURS", "New ride"]]
 	for c: Array in cases:
 		tod.mode = int(c[0])
 		tod.lights_on = float(c[1])
@@ -1284,7 +1284,7 @@ func _d_pickup() -> void:
 	_frame()
 	_ok(not dialogue.host_hold and not q.moments.held, "the host is free on the way to the passenger")
 	# The status line after one frame.
-	_ok(hud.status_title == "PODWÓZKA · ODBIÓR: %s" % nm and hud.count == "0:00", "the status line: %s / %s" % [hud.status_title, hud.count])
+	_ok(hud.status_title == "ŁUBER · ODBIÓR: %s" % nm and hud.count == "0:00", "the status line: %s / %s" % [hud.status_title, hud.count])
 	_ok(hud.distance == "%d m" % roundi(_flat(_car, pin)) and hud.tint == TEAL and hud.progress == 0.0, "the status line's metres, colour and bar: %s" % hud.distance)
 	_ok(hud.status == "Jedź do pinezki (turkusowe światło)" and hud.hint_en == "Head for the pin (the teal beacon)", "the hint from afar: %s" % hud.status)
 	_ok(q.target_position() == pin and q.stop_spot() == Vector3.INF, "far away the arrow is on the pin and the stop assist is not")
@@ -1401,8 +1401,8 @@ func _d_pickup() -> void:
 	_frame()
 	_ok(_in_stage(Rides.Stage.RESULT), "the passenger did not give up past 3 x the ETA (%.1f s)" % limit)
 	var money := wallet.money
-	_cancel_card("PASAŻER ANULOWAŁ", "The passenger cancelled", "%s wybiera inną Podwózkę. Bez opłat; seria przepadła." % nm,
-			"%s picked another Podwózka. No charge; the streak is gone." % nm, "the passenger gave up")
+	_cancel_card("PASAŻER ANULOWAŁ", "The passenger cancelled", "%s wybiera innego Łubera. Bez opłat; seria przepadła." % nm,
+			"%s picked another Łuber. No charge; the streak is gone." % nm, "the passenger gave up")
 	_ok(int(wallet.keep.get("podwozka_streak", -1)) == 0 and wallet.saves == saves0 + 1 and wallet.money == money, "the passenger gave up: the streak ended, saved once, no pay")
 	_ok(not q._beacon.visible and not q._rider.visible and hud.route.is_empty() and hud.status_title == "", "the passenger gave up: the ring, the passenger, the route and the status line are gone")
 	_ok(not q.has_target() and q.busy() and hud.tickers > tickers0, "the passenger gave up: no target, still busy, the ticker went out")
@@ -1511,7 +1511,7 @@ func _e_ride() -> void:
 	var k0 := _frames
 	_secs(5.0)
 	var eta := _eta(r)
-	_ok(hud.status_title == "PODWÓZKA → %s" % r["dest"] and hud.count == "★★★★★ 5,0" and hud.distance == "400 m" and hud.tint == TEAL,
+	_ok(hud.status_title == "ŁUBER → %s" % r["dest"] and hud.count == "★★★★★ 5,0" and hud.distance == "400 m" and hud.tint == TEAL,
 			"the status line: %s / %s / %s" % [hud.status_title, hud.count, hud.distance])
 	_ok(absf(hud.progress - float(_frames - k0 + 1) * DT / eta) < 0.003, "the status line's bar is the ride's clock over its ETA: %.4f" % hud.progress)
 	_ok(hud.status == "Jedź do turkusowego światła" and hud.hint_en == "Head for the teal beacon", "the hint from afar: %s" % hud.status)
@@ -4399,13 +4399,13 @@ func _t_misc() -> void:
 	q.force_story = "none"
 	_at(HOME)
 	_secs(0.2)
-	_ok(hud.pill == "ride" and hud.pill_word == "PODWÓZKA" and hud.pill_en == "ride app", "the idle button: %s / %s" % [hud.pill_word, hud.pill_en])
+	_ok(hud.pill == "ride" and hud.pill_word == "ŁUBER" and hud.pill_en == "ride app", "the idle button: %s / %s" % [hud.pill_word, hud.pill_en])
 	hud.pill = "tape"
 	hud.pill_free = false
 	_fly = true
 	_secs(0.2)
 	_fly = false
-	_ok(hud.pill == "tape", "PODWÓZKA took down a button that is not its own: %s" % hud.pill)
+	_ok(hud.pill == "tape", "ŁUBER took down a button that is not its own: %s" % hud.pill)
 	hud.pill = ""
 	hud.pill_free = true
 	var toasts := _toast_n()

@@ -2,7 +2,7 @@ extends SceneTree
 ## City-life satire #1, loud cars (scripts/loud_cars.gd, 2026-11-02): headless, from the committed
 ## map (map/centrum.json) and data/dialogue.json; seeded:
 ##   1. the taxis' family mesh: one surface, a morphing family of four shapes (the city taxi,
-##      Podwózka, the supercar, the Pasatini), so the loud cars and the meet add no traffic draw call; the
+##      Łuber, the supercar, the Pasatini), so the loud cars and the meet add no traffic draw call; the
 ##      supercar is never a random taxi (share 0) and none of its paints is the player's red or
 ##      orange or the police's blue;
 ##   2. the meet at Browary: every car clear of every building outline (1 m), of every road's

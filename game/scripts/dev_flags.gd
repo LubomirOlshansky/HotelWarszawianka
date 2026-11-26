@@ -812,7 +812,7 @@ func parse_with(args: PackedStringArray) -> void:
 			start_heat = clampf(float(arg.trim_prefix("--heat=")), 0.0, 1.0)
 		elif arg == "--craft=plain":
 			craft_plain = true
-		# --- loop 2d-1: Podwózka's flags ---
+		# --- loop 2d-1: Łuber's flags ---
 		elif arg.begins_with("--ride="):
 			start_ride = maxi(0, int(arg.trim_prefix("--ride=")))
 		elif arg.begins_with("--ride-quirk="):

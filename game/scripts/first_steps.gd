@@ -72,7 +72,7 @@ static func count(intro: Dictionary) -> int:
 
 
 ## The steps the facts say were done (each fact a bool): kebab (a kebab delivered), ride (a
-## Podwózka ride), race (a race with a rival run to its end, won or lost: the critique's point 4),
+## Łuber ride), race (a race with a rival run to its end, won or lost: the critique's point 4),
 ## rescue (a rescue call answered), heli (in the air once), police (a chase or a pull-over over:
 ## stopped or got away), garage (Mirek's garage opened).
 static func from_facts(f: Dictionary) -> Array[String]:
@@ -108,7 +108,7 @@ static func reward(n: int) -> Dictionary:
 	return out
 
 
-## The tick's toast: "✓ Pierwsze kroki 2/7: Podwózka" with the reward, [Polish, English]. The
+## The tick's toast: "✓ Pierwsze kroki 2/7: Łuber" with the reward, [Polish, English]. The
 ## race's tick, while Mirek's garage is not visited (`garage_next`), names the garage: it is the
 ## next intro (first10.gd INTROS).
 static func tick_words(id: String, n: int, garage_next := false) -> Array:

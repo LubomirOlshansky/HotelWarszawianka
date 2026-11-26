@@ -937,7 +937,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 
 	# 5. The pin, the race.
 	_ok(_until(_in.bind(Meet.Stage.RACE), 10.0), "PIN_AFTER s after the sirens the race begins")
-	_ok(_hud.notes.size() == 1 and _hud.notes[0].begins_with("TYGRAM · WNRC"), "the TYGRAM note")
+	_ok(_hud.notes.size() == 1 and _hud.notes[0].begins_with("COTAM · WNRC"), "the COTAM note")
 	var goal: Vector3 = m.meets[1]["at"]
 	_ok(m.has_target() and m.target_position() == goal and m.target_colour() == Meet.PIN_COLOUR and _director.targeted() == m, "the race's target is meet 2's middle, in PIN_COLOUR")
 	_ok(Color(m._beacon.get("_colour")) == Meet.PIN_COLOUR and is_equal_approx(float(m._beacon.get("_ring_radius")), Meet.ARRIVE_R * 0.6), "the ring is recoloured, ARRIVE_R * 0.6")

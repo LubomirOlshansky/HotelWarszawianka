@@ -1,10 +1,10 @@
 extends "res://scripts/activity.gd"
-## Loop 2d-1: Podwózka, the app-taxi side job (docs/design/parodies.md 3.3; the rules and the
+## Loop 2d-1: Łuber, the app-taxi side job (docs/design/parodies.md 3.3; the rules and the
 ## pay are ride_rules.gd, the GPS moments of the app-taxis in traffic gps_moments.gd).
 ##
 ## Start: in the car with nothing else on (one activity at a time, like the kebab and słoiki
 ## jobs) and not in the first 2 minutes: a request card at the bottom every 75-120 s (not
-## modal, gone after 10 s), or the context button PODWÓZKA in the top row (a request within
+## modal, gone after 10 s), or the context button ŁUBER in the top row (a request within
 ## 2 s). Pickup: the app's pin (teal ring and column, the minimap dot) at a real address door
 ## 150-600 m by road; half the time the passenger waits 30-60 m away instead, waving under a
 ## teal "!" (the pin is a bit off). Stop within 7 m of them under 2.5 m/s for 1 s. The ride:
@@ -128,10 +128,10 @@ var map_data := {}
 ## (no offers, and the first 2 minutes wait).
 var flying := false
 var away := false
-## Loop MW-6: Spacer (spacer.gd): a request comes only when the PODWÓZKA button is tapped.
+## Loop MW-6: Spacer (spacer.gd): a request comes only when the ŁUBER button is tapped.
 var quiet := false
 ## The first-10 guide (first10.gd `_hold_offers`): a beat is due, so no request comes by itself
-## until it has fired; the PODWÓZKA button still asks for one.
+## until it has fired; the ŁUBER button still asks for one.
 var guide_hold := false
 ## Testing: --autopilot drives the app's route (--ignore-app: the shortest one); --parody-log
 ## prints `ride:` lines; --ride-quirk, --passenger and --stars force the quirk, the passenger
@@ -162,7 +162,7 @@ var start_stars := -1.0
 ## Loop MW-3 (vision.md 4.5, 4.7): at dawn the requests come from the club doors: -> [[club id,
 ## door: Vector2], ...] while the dawn crowd is out (crowds.gd), else []. Unset: none.
 var club_doors: Callable
-## F 2026-11-10: true while any mission, race, job, questline or tour is on (main.gd); PODWÓZKA
+## F 2026-11-10: true while any mission, race, job, questline or tour is on (main.gd); ŁUBER
 ## stays off the context button for all of it.
 var mission_on: Callable
 ## Loop MW-4 (vision.md 3.7, 4.7): where a `hurry` passenger goes now, -> Vector2 (Saturday
@@ -238,7 +238,7 @@ var _drive_counts: Array[int] = []
 var drive_toasts := 0
 
 
-## Wires Podwózka from the game (activity.gd `install`; main.gd's `_build_side_jobs` until TD-4 b8),
+## Wires Łuber from the game (activity.gd `install`; main.gd's `_build_side_jobs` until TD-4 b8),
 ## after the deliveries (`jobs`), whose addresses it picks from. --autopilot drives the app's route,
 ## --ignore-app the shortest; --parody-log, --ride-quirk, --passenger, --ride-story, --ride-answer,
 ## --stars and --gps-in= as the flags table says.
@@ -602,18 +602,18 @@ func _idle_tick(dt: float) -> void:
 	if guide_hold:
 		_offer_in = maxf(_offer_in, HOLD_GAP)  # a beat comes first; a request a while after it
 	# A request that comes by itself waits for the quiet time after a finish (TD-3); one the player
-	# asked for with the PODWÓZKA button does not.
+	# asked for with the ŁUBER button does not.
 	if (_offer_in <= 0.0 and not quiet and not guide_hold and not _hushed()) or (_pill_at >= 0.0 and _t - _pill_at >= PILL_DELAY):
 		_pill_at = -1.0
 		_offer_in = _rng.randf_range(OFFER_GAP.x, OFFER_GAP.y)
 		_offer_here()
 
 
-## The top row's context button reads PODWÓZKA while the player could take a ride.
+## The top row's context button reads ŁUBER while the player could take a ride.
 func _set_pill(on: bool) -> void:
 	var shown: bool = hud.pill_shown("ride")
 	if on and not shown and hud.pill_free_for("ride"):
-		hud.show_pill("PODWÓZKA", "ride app", "ride")
+		hud.show_pill("ŁUBER", "ride app", "ride")
 	elif not on and shown:
 		hud.hide_pill()
 
@@ -638,13 +638,13 @@ func _on_context(owner: String) -> void:
 		hud.toast("Szukam kursu…", "Finding you a ride…")
 
 
-## G12 part 2: the AUTO list may offer "ask for a ride" now (the PODWÓZKA button's rule: in the
+## G12 part 2: the AUTO list may offer "ask for a ride" now (the ŁUBER button's rule: in the
 ## car, nothing else on, past the first FIRST_OFFER seconds).
 func can_request() -> bool:
 	return idle() and _free() and _played >= FIRST_OFFER
 
 
-## G12 part 2: the AUTO list's request: as a tap on PODWÓZKA (a request within PILL_DELAY s).
+## G12 part 2: the AUTO list's request: as a tap on ŁUBER (a request within PILL_DELAY s).
 func request() -> void:
 	if can_request():
 		_on_context("ride")
@@ -1028,7 +1028,7 @@ func _pickup_tick(dt: float) -> void:
 		hint = ["Stań przy pasażerze", "Pull up by the passenger"]
 	elif _ride["offset"] and (to_pin < 40.0 or to_rider < 70.0):
 		hint = ["Pinezka swoje, pasażer swoje: szukaj „!”", "The pin is here, the passenger isn't: look for the !"]
-	status("PODWÓZKA · ODBIÓR: %s" % _ride["name"], _clock_text(_t), "%d m" % roundi(_flat(p, target_position())),
+	status("ŁUBER · ODBIÓR: %s" % _ride["name"], _clock_text(_t), "%d m" % roundi(_flat(p, target_position())),
 			hint, _hold / BOARD_HOLD)
 
 
@@ -1164,7 +1164,7 @@ func _ride_tick(dt: float) -> void:
 		hint = ["Stań w kręgu", "Pull up inside the ring"]
 	elif _ride["quirk"] != "" and _quirk_done == "":
 		hint = ["Cel to turkusowe światło. Kropki to pomysł aplikacji.", "The goal is the teal beacon. The dots are the app's idea."]
-	status("PODWÓZKA → %s" % _ride["dest"], Rules.stars_text(_rules.stars()), "%d m" % roundi(d),
+	status("ŁUBER → %s" % _ride["dest"], Rules.stars_text(_rules.stars()), "%d m" % roundi(d),
 			hint, _rules.clock / _rules.eta)
 
 
@@ -1536,8 +1536,8 @@ func _cancel(by_passenger: bool) -> void:
 				PackedStringArray(), RESULT_LIFE, FAIL_COLOUR)
 	elif by_passenger:
 		show_side_card(["PASAŻER ANULOWAŁ", "The passenger cancelled"],
-				["%s wybiera inną Podwózkę. Bez opłat; seria przepadła." % who,
-				"%s picked another Podwózka. No charge; the streak is gone." % who],
+				["%s wybiera innego Łubera. Bez opłat; seria przepadła." % who,
+				"%s picked another Łuber. No charge; the streak is gone." % who],
 				PackedStringArray(), RESULT_LIFE, FAIL_COLOUR)
 	else:
 		show_side_card(["KURS ANULOWANY", "Ride cancelled"],

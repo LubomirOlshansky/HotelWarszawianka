@@ -61,7 +61,7 @@ static func split(s: String, sep := " · ") -> String:
 
 ## The stock words of the HUD's Polish-only mission titles ("WYŚCIG · A → B", "ODBIÓR"), for the
 ## status panel, which has no English title of its own. Names of jobs and services (KEBAB,
-## SŁOIKI, PODWÓZKA, MLASK, Leżak) are the game's own words and stay.
+## SŁOIKI, ŁUBER, MLASK, Leżak) are the game's own words and stay.
 const TITLE_WORDS := {
 	"DO SZPITALA": "TO THE HOSPITAL", "NA CZASIE": "ON TREND", "TRZY MOSTY": "THREE BRIDGES",
 	"ODBIÓR": "PICK-UP", "WYŚCIG": "RACE", "KOLEJKA": "QUEUE", "LIMITKA": "LIMITED DROP",

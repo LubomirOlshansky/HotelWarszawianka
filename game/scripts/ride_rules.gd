@@ -1,5 +1,5 @@
 extends RefCounted
-## Loop 2d-1: Podwózka's numbers as plain rules (docs/design/parodies.md 3.3 with the section 11
+## Loop 2d-1: Łuber's numbers as plain rules (docs/design/parodies.md 3.3 with the section 11
 ## defaults), apart from the scene so tools/check_rides.gd can feed them synthetic events.
 ##
 ## One of these lives for each ride (rides.gd): the live star rating starts at 5.0 and loses
@@ -305,7 +305,7 @@ static func offer_text(o: Dictionary) -> Array:
 	var body_en := "%s ★ %s · %d m · %s" % [o["name"], num(o["their"], 1, false), roundi(o["away"]), km(o["road"], false)]
 	if not note.is_empty():
 		body_en += "\n" + String(note[1])
-	var title := ("PODWÓZKA · MNOŻNIK ×" + num(mult)) if surge_pl != "" else "PODWÓZKA · NOWY KURS"
+	var title := ("ŁUBER · MNOŻNIK ×" + num(mult)) if surge_pl != "" else "ŁUBER · NOWY KURS"
 	return [title, body, ("New ride · surge " + surge_en) if surge_en != "" else "New ride", body_en]
 
 

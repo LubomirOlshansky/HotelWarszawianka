@@ -22,7 +22,7 @@ Research notes (Polish internet folklore, no content copied; sources at the end)
   "Passats attack other drivers" and "the ultimate Polish car" pieces.
 - **The Skoda Octavia** is the taxi and app-ride car of Warsaw, and the sales rep's estate on the
   left lane. App drivers are the city's fastest: the meter is time, the rating is stars, the bus
-  lane is "almost legal". (The game already has Podwózka, the app taxi, parodies.md 3.)
+  lane is "almost legal". (The game already has Łuber, the app taxi, parodies.md 3.)
 - **Couriers (dostawcy)**: a van, ninety parcels, one shift. Hazard lights on means "I may stop
   anywhere", the pavement is a car park, the doorbell is never rung ("nobody was home"), the parcel
   is "left with a neighbour". Their vans are the big three-tonne panel vans everyone knows.
@@ -31,7 +31,7 @@ The game's take (affectionate, never about a real person, brands only as parodie
 
 | Who | Car (parody name) | In one line |
 | --- | --- | --- |
-| Taksówkarz / app driver | **Szkoda Oktawia** (the city taxi saloon and Podwózka's hatch) | "Szkoda czasu na hamowanie." Fast, tight lane changes, bus lane when it can. |
+| Taksówkarz / app driver | **Szkoda Oktawia** (the city taxi saloon and Łuber's hatch) | "Szkoda czasu na hamowanie." Fast, tight lane changes, bus lane when it can. |
 | Dostawca (courier) | **Szprynter** (the panel van) | Pulls away hard, squeezes past, cuts in to make the next drop. |
 | Janusz z Pasatini | **Pasatini 1.9 TDJ** (a dark estate, sun strip, twin chrome tips) | The craziest: the fastest, tailgates, runs a fresh red, blocks you if you try to pass. |
 
@@ -50,7 +50,7 @@ lewy pas. Prosimy zjechać i się pomodlić."
   the crazy-driver spawn), on spec("estate") with roof rails, in Janusz paints (black, graphite,
   bottle green, dark slate, silver-grey), with a dark sun strip over the windscreen, a boot-lip spoiler and
   two chrome exhaust tips. The taxi family then holds four shapes, the most a family takes.
-- **Szkoda Oktawia taxi**: the existing city taxi and Podwózka shapes (no change).
+- **Szkoda Oktawia taxi**: the existing city taxi and Łuber shapes (no change).
 - **Szprynter courier**: the existing panel van in courier whites and greys (no change).
 
 They use the taxis' and vans' MultiMeshes, so the draw count stays the same.

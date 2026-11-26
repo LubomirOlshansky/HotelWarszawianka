@@ -18,7 +18,7 @@ extends RefCounted
 ##               nearest first, "new" ones (invited, not opened here yet) on top;
 ##   jobs        SIDE JOBS: one entry per kind of job on offer now (the nearest place of
 ##               that kind), with how many the player has done (wallet.gd `jobs`);
-##   taxi        PODWÓZKA: the taxi app's driver account (F 2026-11-20): earned ever, the average fare,
+##   taxi        ŁUBER: the taxi app's driver account (F 2026-11-20): earned ever, the average fare,
 ##               the rating, rides, best ride and streaks (ride_rules.gd `account`); only when main.gd
 ##               hands over the `taxi` fact;
 ##   rivals      RIVALS: the Six (ladder.gd) and the final;

@@ -44,7 +44,7 @@ nothing here is copied from it: these are lessons and ideas to do in our own way
   streets S1–S4, streaming identity, the police and ride runs) is deeper than what the article
   describes.
 - **A game, not a map**: a car and a helicopter you drive, traffic with lanes and signals, the
-  police, jobs, Podwózka, races, the radio, the jokes: their author turned down "moving cars and
+  police, jobs, Łuber, races, the radio, the jokes: their author turned down "moving cars and
   a life simulator" for scale reasons; at our street-level zoom they are the point.
 - **Roads as structures**: bridges, flyovers, tunnels, ramps, kerbs you feel, markings and lamps
   checked rule by rule; a map seen from above can skip most of that.

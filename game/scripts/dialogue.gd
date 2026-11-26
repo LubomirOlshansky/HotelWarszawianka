@@ -41,7 +41,7 @@ var radio: Node:
 			radio.host_wanted.connect(speak_now)
 ## The radio host waits while this is false (the title screen).
 var host_on := true
-## Loop 2d-1: a Podwózka card is up: the host's next line waits until it goes (then comes at once).
+## Loop 2d-1: a Łuber card is up: the host's next line waits until it goes (then comes at once).
 var host_hold := false
 ## Seconds to the first host line on a station (--host-in=, for screenshots).
 var host_first := -1.0
@@ -183,7 +183,7 @@ func on_station_changed(_index: int, _station: Dictionary) -> void:
 
 ## Loop radio-playlists: between two songs (one ran out on its own: `natural`) the host
 ## sometimes speaks, a few seconds after the new title's caption, through the same timer, so
-## host_hold (a Podwózka card) and the title screen still keep him quiet.
+## host_hold (a Łuber card) and the title screen still keep him quiet.
 func on_track_changed(_info: Dictionary, _track: Dictionary, natural: bool) -> void:
 	# Loop MW-5: not sooner than HOST_GAP.x after his last line.
 	if natural and host_first < 0.0 and _rng.randf() < HOST_BETWEEN and _host_t >= _gap().x - HOST_AFTER_TITLE:

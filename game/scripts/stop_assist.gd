@@ -1,7 +1,7 @@
 extends RefCounted
 ## The quest stop assist (2026-10-31): one place for how forgiving pickups and drop-offs are.
 ## F found stopping the car exactly on a quest's point too hard on touch controls, so every
-## car stop zone (rescue pickup and hospital, Podwózka passenger and door, kebab and słoiki
+## car stop zone (rescue pickup and hospital, Łuber passenger and door, kebab and słoiki
 ## doors, the "Na czasie" queue and door, the Leżak depot's unload) shares a bigger ring and a
 ## looser "stopped", and car.gd brakes the car into the ring by itself (assist_at / assist_reach,
 ## set every frame by main.gd from the quest on now). Pulling into a job's stand (jobs.gd

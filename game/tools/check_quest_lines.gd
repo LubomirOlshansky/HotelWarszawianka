@@ -63,7 +63,7 @@ func _lists() -> void:
 		Lines.entry("k1", "kebab", Lines.Line.CAR, "Kebab A", "Kebab A", Vector2(0, -900), c),
 		Lines.entry("k2", "kebab", Lines.Line.CAR, "Kebab B", "Kebab B", Vector2(0, -300), c),
 		Lines.entry("s1", "sloik", Lines.Line.CAR, "Słoiki", "Jars", Vector2(1500, 0), c),
-		Lines.entry("ride", "ride", Lines.Line.CAR, "Podwózka", "Ride", Vector2.INF, c, "ride"),
+		Lines.entry("ride", "ride", Lines.Line.CAR, "Łuber", "Ride", Vector2.INF, c, "ride"),
 		Lines.entry("g", "garage", Lines.Line.CAR, "Warsztat", "Garage", Vector2(-50, 0), c),
 		Lines.entry("call", "call", Lines.Line.HELI, "Wezwanie", "Call", Vector2.INF, c, "call"),
 	]
@@ -103,7 +103,7 @@ func _lists() -> void:
 ## First hour step 4: the one map list's sections (quest_lines.gd `sections`).
 func _sections() -> void:
 	var c := Color.WHITE
-	var ride := Lines.entry("ride", "ride", Lines.Line.CAR, "Podwózka", "Ride", Vector2.INF, c, "ride")
+	var ride := Lines.entry("ride", "ride", Lines.Line.CAR, "Łuber", "Ride", Vector2.INF, c, "ride")
 	var garage := Lines.entry("garage", "garage", Lines.Line.CAR, "Mirek", "Mirek", Vector2(0, -200), c)
 	var k1 := Lines.entry("k1", "kebab", Lines.Line.CAR, "Kebab A", "Kebab A", Vector2(0, -900), c)
 	var e: Array = [

@@ -1,6 +1,6 @@
 extends RefCounted
 ## Beta values (2026-11-04): the way to a goal by road, as a polyline for the minimap's dotted
-## route (hud.gd set_minimap_route), the one Podwózka's app draws. The kebab and słoiki deliveries,
+## route (hud.gd set_minimap_route), the one Łuber's app draws. The kebab and słoiki deliveries,
 ## the way to the next kebab stand and the street races use it: the edge arrow alone points
 ## straight at the goal, through blocks and against one-way streets.
 ##

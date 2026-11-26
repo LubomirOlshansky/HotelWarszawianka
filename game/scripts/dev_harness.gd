@@ -328,7 +328,7 @@ func _contact_street(x: float, z: float) -> Array:
 
 
 ## Loop 2c, --lineup: every vehicle model standing round the car, all facing its way: beside it
-## the taxi, Podwózka, the police car, the guards' car and the two vans; a row ahead the cars'
+## the taxi, Łuber, the police car, the guards' car and the two vans; a row ahead the cars'
 ## four shapes; a row behind the six rivals; further back the articulated and the solo bus (and the
 ## solo one with its night sign) and a tram cab car.
 ## Family shapes go through a MultiMesh with the shape in the custom alpha, as traffic draws

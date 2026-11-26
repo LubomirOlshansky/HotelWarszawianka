@@ -16,7 +16,7 @@ extends "res://scripts/activity.gd"
 ## plaza to the road, then racer mode away). Escape it (or let it end: the end of the shift, a
 ## caution: the night goes on either way).
 ##
-## **The pin and the race.** A TYGRAM message: the next meet, the car park by the National Stadium
+## **The pin and the race.** A COTAM message: the next meet, the car park by the National Stadium
 ## (MEETS[1]). Every racer heads there too, from wherever it fled: first there gets the most
 ## (PLACE_PAY by place). The status shows the place live. The racers who get there park in the
 ## new ring.
@@ -86,7 +86,7 @@ const FRIEND := "Darek „Bawarka”"
 const DRIFTER := "Lena „Bokiem”"
 const BOSS := "Tadek"
 const COLOUR := Color("#ff3d6e")        ## the club's colour: hot neon red
-const PIN_COLOUR := Color("#38f6ff")    ## TYGRAM's pin
+const PIN_COLOUR := Color("#38f6ff")    ## COTAM's pin
 const BUBBLE := Color("#ff8aa8")
 const MOTTO := ["Ćwiartka nie kłamie.", "The quarter mile doesn't lie."]
 
@@ -265,7 +265,7 @@ const MEET2_LINES := [
 ]
 const RAID_LINES := [
 	["Widz", "PSY! Zwijamy się!", "COPS! We're out!"],
-	[FRIEND, "Rozjazd! Pin wrzucę na TYGRAMA!", "Split up! I'll drop a pin on TYGRAM!"],
+	[FRIEND, "Rozjazd! Pin wrzucę na COTAMA!", "Split up! I'll drop a pin on COTAM!"],
 	[DRIFTER, "Znowu? Przecież nikt jeszcze nie przegrał!", "Again? Nobody's even lost yet!"],
 ]
 const RACE_LINES := [
@@ -1542,17 +1542,17 @@ func _racer_dots() -> void:
 	hud.set_quest_dots(pts, cols)
 
 
-## The TYGRAM pin after a raid: meet 2 (and the race to it), or the drag.
+## The COTAM pin after a raid: meet 2 (and the race to it), or the drag.
 func _pin() -> void:
 	_scene.visible = false
 	if meet_i == 0:
 		var m: Dictionary = meets[1]
-		hud.show_note("TYGRAM · WNRC", Lang.pick("📍 %s. Kto pierwszy, ten lepszy. Psy szukają nas tutaj, nie tam." % m["name"][0],
+		hud.show_note("COTAM · WNRC", Lang.pick("📍 %s. Kto pierwszy, ten lepszy. Psy szukają nas tutaj, nie tam." % m["name"][0],
 				"📍 %s. First there wins. The cops are looking for us here, not there." % m["name"][1]), PIN_COLOUR,
 				Messages.QUEST_LINE)  # the quest's own message: shows in the chase (messages.gd)
 		_start_race()
 	else:
-		hud.show_note("TYGRAM · WNRC", Lang.pick("📍 Zieleniecka, pod dworcem Stadion. Drag. %s" % MOTTO[0],
+		hud.show_note("COTAM · WNRC", Lang.pick("📍 Zieleniecka, pod dworcem Stadion. Drag. %s" % MOTTO[0],
 				"📍 Zieleniecka, by Stadion station. Drag. %s" % MOTTO[1]), PIN_COLOUR, Messages.QUEST_LINE)
 		_release_racers()
 		_show_gate(true)

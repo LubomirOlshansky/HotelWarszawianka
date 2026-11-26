@@ -49,7 +49,7 @@ only side quests show.
   the first rescue included: the first ten minutes teach the game through those.
 - After the guide, a race is the main line only when it is the **next rung's** (or the final). A
   beaten rival re-raced for the stake is a side race.
-- Everything else is a side quest: kebab and słoiki, Podwózka, the courier race, Na czasie, the
+- Everything else is a side quest: kebab and słoiki, Łuber, the courier race, Na czasie, the
   scooter round-up, rescues after the first, the notebook, the Syrenki, the eggs, the cassettes.
 
 ## 2. Pacing: the final inside the first hour
@@ -91,7 +91,7 @@ phone is the real gate (QUESTIONS.md).
 | | Minimap | Full map |
 | --- | --- | --- |
 | **Main line** | A gold five-point star with a dark rim in a pulsing gold ring, pinned to the rim at **any** distance (the one thing that is always findable) | The same star, bigger; off the screen it waits at the screen's edge, smaller, on the way to it. Under the title a gold goal card: "★ Znajdź i mrugnij: Słoik z Radomia" / "Find and flash: Słoik z Radomia" |
-| **Side quest, active** | A dot in the job's colour (kebab orange, Podwózka teal, rescue red, race) inside a white ring, pinned to the rim | The same ringed dot, bigger |
+| **Side quest, active** | A dot in the job's colour (kebab orange, Łuber teal, rescue red, race) inside a white ring, pinned to the rim | The same ringed dot, bigger |
 | **Side quest, places to start one** | Small blinking squares in the job's colour, up to 700 m (kebab stands, the station, the scooters) | Squares in the job's colour, all of them |
 | Not found yet | The gold "?" | The gold "?" |
 | Garage | The diamond (Mirek's) | The diamond |

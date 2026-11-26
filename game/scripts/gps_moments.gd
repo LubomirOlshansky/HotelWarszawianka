@@ -1,5 +1,5 @@
 extends Node
-## Loop 2d-1: Podwózka's "GPS moments" in traffic (docs/design/parodies.md 3.2). Every 45 to 90 s
+## Loop 2d-1: Łuber's "GPS moments" in traffic (docs/design/parodies.md 3.2). Every 45 to 90 s
 ## one app-taxi (traffic kind TAXI, shape podwozka: the phone on the roof, loop 2c) within 80 m of
 ## the view's centre, on screen and not behind a building does one of three things, never two
 ## at once:
@@ -23,7 +23,7 @@ const RIVER_HOLD := 3.0
 ## The junction ahead must be this far (m) for a GPS U-turn to read as one.
 const TURN_MIN := 15.0
 const TURN_MAX := 140.0
-const SPEAKER := "Podwózka"
+const SPEAKER := "Łuber"
 const Chatter := preload("res://scripts/chatter.gd")
 const COLOUR := Color("#e8f4ff")
 
@@ -33,7 +33,7 @@ var dialogue: Node
 var log_on := false
 ## --gps-in=S (testing, screenshots): the first moment is looked for S seconds in.
 var first_in := -1.0
-## A Podwózka card is up (rides.gd): no new moment, and a driver's bubble already up is hushed.
+## A Łuber card is up (rides.gd): no new moment, and a driver's bubble already up is hushed.
 var held := false:
 	set(v):
 		if v and not held and _anchor.is_valid():

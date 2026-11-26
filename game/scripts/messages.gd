@@ -15,7 +15,7 @@ const Pacer := preload("res://scripts/pacer.gd")
 ## - FOCUS: a scripted moment (the drag's rev counter, hud.gd `hush`). Only alerts; the rest waits.
 ##
 ## Priorities, low to high: AMBIENT (flavour toasts), RADIO (the host, the news, a new track),
-## INFO (easter eggs, landmark notes, a district found), QUEST (a quest's own message: the TYGRAM
+## INFO (easter eggs, landmark notes, a district found), QUEST (a quest's own message: the COTAM
 ## pin, a partner), ALERT (a result, a warning, the player's own action: a station they picked).
 ##
 ## Incoming calls (F 2026-11-11: "also the incoming calls in this queue, with logic too"): a friend's

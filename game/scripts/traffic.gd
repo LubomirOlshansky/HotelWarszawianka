@@ -17,7 +17,7 @@ extends Node3D
 ##
 ## Loop 2c (car models): each kind's MultiMesh draws a family of shapes (models.gd TRAFFIC and
 ## traffic_mesh(): cars are hatches, saloons, estates and SUVs; taxis the city taxi and
-## Podwózka, the app taxi; vans panel and box vans), the shape picked per car and written in
+## Łuber, the app taxi; vans panel and box vans), the shape picked per car and written in
 ## the instance's custom alpha, with its own size and paints. Each MultiMesh draws only up to
 ## its highest slot in use (visible_instance_count), not its whole pool.
 ##
@@ -1831,7 +1831,7 @@ func stop_racing(d: Driver) -> void:
 		_choose_next(d)
 
 
-# --- loop 2d-1: Podwózka's GPS moments (gps_moments.gd) -----------------------------------------
+# --- loop 2d-1: Łuber's GPS moments (gps_moments.gd) -----------------------------------------
 
 ## Sends driver d onto edge f at the junction ahead (a GPS U-turn: f is the way back); false if
 ## it is already in the junction or f is not one of the junction's ways out.
