@@ -837,14 +837,15 @@ func leave() -> void:
 
 # --- Za deckami -----------------------------------------------------------------------------
 
-## The DJ's offer: his invite line with ZA DECKI / NIE TERAZ (the first one 6 s into a save's first
-## visit; then a tap on him). Marks the save as invited.
+## The offer's ZA DECKI / NIE TERAZ row on or off; the room's own buttons the other way.
 func _show_offer(on: bool) -> void:
 	_offer.visible = on
 	if _bar != null:
 		_bar.visible = not on
 
 
+## The DJ's offer: his invite line with ZA DECKI / NIE TERAZ (the first one 6 s into a save's first
+## visit; then a tap on him). Marks the save as invited.
 func offer_decks() -> void:
 	if not inside or _decks_on:
 		return

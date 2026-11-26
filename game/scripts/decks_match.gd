@@ -881,9 +881,10 @@ func count_rects() -> int:
 
 
 ## Head i's colour on the truss now (its beam, its pool, the rims near it): one dim blue in a cold
-## room, violet and cyan when it warms, magenta and white when hot, red light in the oven.
+## room, violet and cyan when it warms, magenta and white when hot, red light in the oven. With
+## reduced flashing (access.gd) the colours hold still: no change per bar, no white flicker in red.
 func _head_col(i: int) -> Color:
-	var bar := int(_room_beat() / 4.0)
+	var bar := 0 if Access.calm else int(_room_beat() / 4.0)
 	match _band:
 		0:
 			return COLD
@@ -893,6 +894,8 @@ func _head_col(i: int) -> Color:
 			return [VIOLET, CYAN, MAGENTA][(i + bar) % 3]
 		3:
 			return [VIOLET, CYAN, MAGENTA, Color.WHITE][(i + bar) % 4]
+	if Access.calm:
+		return RED
 	return Color.WHITE if (i + int(_room_beat())) % 3 == 0 else RED
 
 
@@ -934,8 +937,10 @@ func _draw_floor() -> void:
 	p.rect(w * 0.36, 14, 2, 24, Color("#ff2a2a"))
 	# Haze: two slow bands lit in the room's main colour.
 	var haze := _head_col(2)
-	p.rect(0, 50.0 + roundf(sin(_t * 0.4) * 2.0), w, 6, Color(haze, alpha * 0.5))
-	p.rect(0, 74.0 + roundf(sin(_t * 0.3 + 1.0) * 2.0), w, 4, Color(haze, alpha * 0.35))
+	# (still with reduced flashing)
+	var bob := 0.0 if Access.calm else 1.0
+	p.rect(0, 50.0 + roundf(sin(_t * 0.4) * 2.0 * bob), w, 6, Color(haze, alpha * 0.5))
+	p.rect(0, 74.0 + roundf(sin(_t * 0.3 + 1.0) * 2.0 * bob), w, 4, Color(haze, alpha * 0.35))
 	# The pillars: dark, one edge caught by the light.
 	for f: float in [0.18, 0.5, 0.82]:
 		p.rect(w * f - 5, 8, 10, 100, Color("#16181d"))
@@ -946,7 +951,9 @@ func _draw_floor() -> void:
 		if not _beam_on(i):
 			continue
 		var hx := w * (float(i) + 0.5) / 6.0
-		var sway := sin(_t * BEAM_SPEED[clampi(_band, 0, BEAM_SPEED.size() - 1)] + float(i) * 1.3)
+		# The sweep; with reduced flashing each beam holds its angle.
+		var spin := 0.0 if Access.calm else _t * float(BEAM_SPEED[clampi(_band, 0, BEAM_SPEED.size() - 1)])
+		var sway := sin(spin + float(i) * 1.3)
 		var tx := hx + sway * w * 0.11
 		var col := _head_col(i)
 		var k := 0
@@ -960,7 +967,7 @@ func _draw_floor() -> void:
 	# The truss and its six heads (the beams' colours; lit on the beat when the room moves).
 	p.rect(0, 4, w, 4, Color("#26262c"))
 	for i in 6:
-		var on := _beam_on(i) and (_band < 2 or (int(_room_beat()) + i) % 3 != 0)
+		var on := _beam_on(i) and (_band < 2 or Access.calm or (int(_room_beat()) + i) % 3 != 0)
 		var hc := _head_col(i)
 		p.rect(w * (i + 0.5) / 6.0 - 2, 6, 5, 4, hc if on else hc.darkened(0.7))
 	# Lasers in the hot bands: six green lines fanning down from the truss over the heads, swinging
