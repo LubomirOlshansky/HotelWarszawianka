@@ -5333,11 +5333,21 @@ func _hints_frame(dt: float) -> void:
 		wallet.save()
 
 
+## PT-60: the log line for an offer held back was written for this stall.
+var _stuck_noted := false
+
+
 func _stuck_offer_frame() -> void:
+	if car.stalled < Car.STALL_TIME:
+		_stuck_noted = false
 	var want: bool = not flying and not flags.autopilot and _bench_ghost == null and title == null \
 			and not car.in_water and car.stalled >= Car.STALL_TIME \
 			and not (fotka != null and fotka.is_open())
-	if want and not hud.pill_shown("unstuck") and hud.pill_free_for("unstuck"):
+	# PT-60 (2026-11-23): a rescue call waits on the button until it is pressed (no time limit) and
+	# ranks above the tow, so a stalled car with a call ringing never got the offer. A stalled car
+	# comes first: the tow takes the button, and the call's pill is put back when it goes.
+	var call_held: bool = want and not hud.pill_shown("unstuck") and hud.pill_shown("call") and missions.ringing()
+	if want and not hud.pill_shown("unstuck") and (hud.pill_free_for("unstuck") or call_held):
 		hud.show_pill("POMOC DROGOWA", "tow truck", "unstuck")
 		if Gamepad.in_use():
 			hud.toast(Gamepad.fmt("Utknąłeś? {a}: pomoc drogowa."), Gamepad.fmt("Stuck? {a}: tow truck."))
@@ -5346,12 +5356,21 @@ func _stuck_offer_frame() -> void:
 		print("stuck offer: %.0f s trying at %.1f, %.1f, frame %d" % [car.stalled, car.global_position.x, car.global_position.z, frame])
 	elif not want and hud.pill_shown("unstuck"):
 		hud.hide_pill()
+		if missions.ringing():
+			hud.show_pill("WEZWANIE", "rescue call")
+	elif want and car.stalled >= Car.STALL_TIME + 5.0 and not hud.pill_shown("unstuck") and not _stuck_noted:
+		# The offer is due and the button is held by something else: say so in the log (Autopilot's runs).
+		_stuck_noted = true
+		print("stuck offer held back: %.0f s trying at %.1f, %.1f, the button is '%s'" % [car.stalled,
+				car.global_position.x, car.global_position.z, hud.pill_owner])
 
 
 ## The context button's press (hud.context_pressed): the stuck offer's tow is the game's own.
 func _on_context_pressed(owner: String) -> void:
 	if owner == "unstuck":
 		hud.hide_pill()
+		if missions.ringing():
+			hud.show_pill("WEZWANIE", "rescue call")  # PT-60: the tow took its button; it comes back
 		_unstuck()
 
 
