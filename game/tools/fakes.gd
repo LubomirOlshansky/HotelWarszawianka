@@ -863,8 +863,18 @@ class Sfx extends Node3D:
 	var played: Array = []
 	var softened := 0
 
+	## THE TAPCZAN's room bed (sfx.gd `pub_bed`): on while the player is inside.
+	var pub_on := false
+
 	func play_at(n: String, at: Vector3, _gain_db := 0.0) -> void:
 		played.append([n, at])
+
+	## A one-shot with no place (sfx.gd `play`): kept as [name, Vector3.INF].
+	func play(n: String, _gain_db := 0.0, _pitch := 1.0, _bus := &"SFX") -> void:
+		played.append([n, Vector3.INF])
+
+	func pub_bed(on: bool) -> void:
+		pub_on = on
 
 	func soften_engine(_seconds: float) -> void:
 		softened += 1

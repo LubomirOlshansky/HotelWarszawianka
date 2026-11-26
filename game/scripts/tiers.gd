@@ -39,7 +39,7 @@ const NAMES := ["Low", "Medium", "High", "Ultra", "Max"]
 const QUALITY := [
 	{"name": "Low", "step": 1, "budget": 0.5, "shadows": false, "shadow_size": 1024, "glow": false, "rain": 0.4,
 		"reflect": 0, "traffic": 0.55, "people": 24, "small_shadows": false, "tree_limbs": false, "panel_holes": true,
-		"cap": 30},
+		"cap": 30, "screen_fx": false},
 	{"name": "Medium", "step": 1, "budget": 0.5, "shadows": true, "shadow_size": 1024, "glow": true, "rain": 0.7,
 		"reflect": 6, "traffic": 0.8, "people": 40, "small_shadows": false, "panel_holes": true},
 	{"name": "High", "step": 0, "budget": 0.96, "shadows": true, "shadow_size": 2048, "glow": true, "rain": 1.0,
@@ -66,6 +66,10 @@ const QUALITY := [
 ## keys take EXTRA_DEFAULTS.
 ## Perf thread (2026-11-19): `fine_trees` true (Max only; missing means false) draws the cut
 ## 80-face crowns (map_builder.gd set_tree_detail), the others the 20-face crown with its limbs.
+## THE TAPCZAN (2026-11-24, perf audit): `screen_fx` false (Low, so also Auto's Low on an old Adreno)
+## skips the full-screen passes that read the screen back (tipsy.gdshader's hint_screen_texture: on
+## a tile-based GPU it ends the pass and copies the frame); the effect keeps what costs nothing
+## (tipsy.gd: the camera's sway, the thoughts, the car's pull). Missing means true.
 ## Trees thread (2026-11-15): `tree_limbs` false (Low) hides the crowns' limbs (foliage.gdshader
 ## `limbs`): a bare tree is its haze and trunk, 36 fewer triangles a crown. Missing means true.
 ## W4 of the walls look (docs/design/walls-true-to-life.md 9): `panel_holes` false makes the

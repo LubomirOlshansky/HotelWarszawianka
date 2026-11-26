@@ -193,6 +193,7 @@ func _go() -> void:
 	_world.add_child(_map)
 	_phases()
 	_clock()
+	_closed_story()
 	_cards()
 	_target_and_end()
 	_refusals_and_looks()
@@ -286,6 +287,32 @@ func _phases() -> void:
 	_expect(a.meet() and a.phase == Activity.Phase.RUN and a.begun == 2, "meet(): it starts with no call")
 	a.finish()
 	_expect(hud.broadcast == 0, "no press of the activity's cards went to every listener (%d)" % hud.broadcast)
+
+
+## A questline played to its end never phones by the clock again (F 2026-11-25), the run that ends
+## done reports its questline once, and starting it by hand (the QUESTS screen) still works.
+func _closed_story() -> void:
+	var hud := _hud()
+	var a := _probe(hud)
+	a.invites["boat"] = ["Łódź", "Boat"]
+	var closed := [true]
+	a.story_closed = func(id: String) -> bool: return closed[0] and id == "boat"
+	var finished: Array = []
+	a.story_finished = func(id: String) -> void: finished.append(id)
+	_hour = 12.0
+	_fly = false
+	_run(a, a.first_call + a.call_cool + 30.0)
+	_expect(a.idle(), "a finished questline's friend does not phone by the clock")
+	_expect(a.ring() and a.phase == Activity.Phase.RING, "ring() (the QUESTS screen's PHONE) still rings it")
+	hud.press(1)
+	a.start()
+	a.finish()
+	_expect(finished == ["boat"], "a run that finishes reports its questline once: %s" % [finished])
+	closed[0] = false
+	a.invites.clear()
+	a.start()
+	a.finish()
+	_expect(finished == ["boat"], "a plain job (no questline) reports nothing: %s" % [finished])
 
 
 func _clock() -> void:

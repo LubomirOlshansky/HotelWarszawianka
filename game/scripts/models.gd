@@ -1171,7 +1171,9 @@ static func renew_parked(nodes: Array[Node]) -> bool:
 ## twin white stripes over the bonnet, the roof and the tailgate; black bumpers, a roof
 ## spoiler, round head lamps and light hub caps make it the one retro hot hatch in town.
 ## G13: `kind` "player" (the hatch) or "player_tt" (the shop's coupe, no roof spoiler).
-static func player_meshes(paint: Array, stripes: Array, kind := "player") -> Array[ArrayMesh]:
+## `wing` (F 2026-11-24, bought at Mirek's: upgrades.gd LOOKS "wing"): a GT wing on two struts, its
+## plate in the stripes' colour, in the body's one mesh (no new draw call).
+static func player_meshes(paint: Array, stripes: Array, kind := "player", wing := false) -> Array[ArrayMesh]:
 	if kind == "player_bike":
 		return player_bike_meshes(paint, stripes)
 	var s := Shape.new()
@@ -1202,6 +1204,16 @@ static func player_meshes(paint: Array, stripes: Array, kind := "player") -> Arr
 	else:
 		# The coupe's spoiler is a thin lip on the boot lid instead.
 		s.box(Vector3(0.0, p["tail_y"] + 0.04, p["L"] * 0.5 - p["tail_in"] - 0.12), Vector3(1.5, 0.05, 0.22), fin(TRIM))
+	if wing:
+		# The wing: on the hatch over the tailgate's top, on the coupe over the boot lid.
+		var wy: float = roof_y + 0.28 if kind == "player" else float(p["tail_y"]) + 0.42
+		var wz: float = float(p["roof_z1"]) + 0.02 if kind == "player" else float(p["L"]) * 0.5 - float(p["tail_in"]) - 0.3
+		var foot: float = roof_y if kind == "player" else float(p["tail_y"])
+		var span := float(p["W"]) * 2.0 + 0.16
+		for sgn: float in [-1.0, 1.0]:
+			s.box(Vector3(sgn * 0.5, (foot + wy) * 0.5, wz), Vector3(0.07, wy - foot, 0.14), fin(TRIM))
+			s.box(Vector3(sgn * span * 0.5, wy + 0.06, wz), Vector3(0.04, 0.24, 0.5), fin(TRIM))
+		s.box(Vector3(0.0, wy + 0.03, wz), Vector3(span, 0.06, 0.46), stripes)
 	# Light hub caps over the plain ones (retro steel wheels).
 	var r: float = p["r"]
 	var wc := r * cos(PI / 8.0)

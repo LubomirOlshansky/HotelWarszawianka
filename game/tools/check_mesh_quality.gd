@@ -240,6 +240,10 @@ const BUDGET := {
 	"obeliski": 600,  # the two 1955 granite obelisks by the Palace and their exit hatches (F, 2026-11-15, 2026-11-17)
 	"tower75": 220,
 	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
+	"tapczan": 4700,  # 2026-11-24 THE TAPCZAN pub on Sienkiewicza 4 (F's photos): street level, carved panels, sign, pallet terrace, 7 tables, 28 chairs, 2 umbrellas, planters
+	"sienkiewicza4": 5300,  # 2026-11-24 the Art Nouveau tenement on Sienkiewicza 4 (F's photos): bows, friezes, canopy, windows, rear range
+	"harczyk": 6800,  # 2026-11-24 Kamienica Harczyka: chamfered corner, mansard with dormers, balconies, three fronts
+	"sienkiewicza3": 3200,  # 2026-11-24 the 1950s arcade block opposite: piers, arcade, balustrade, passage
 	"pijana": 2200,  # 2026-11-08 PIJANA CZEREŚNIA kiosk (F): 1806 tris (octagon, drum, painted windows, deck rail, string lights)
 	"zodiak": 1500,  # 2026-11-19 neon star, string lights on three poles
 	"cmarsz": 2200,
@@ -248,6 +252,7 @@ const BUDGET := {
 	"equator": 120,
 	"equator2": 120,
 	"wiecha": 3700,  # 2026-11-19 night life (lit displays, awnings, kebab hatch, bulbs); 2026-11-22 the cafés' own lit bays, words and bulb strings (3,042)
+	"warsztat_mirka": 3600,  # 2026-11-24 Mirek's tuning workshop on Grzybowska (F): the hall with three doors, two lifts (a hatch, a stripped shell), two supercars, the Bawarka in its oil, a stripped car, tyres, the roof car, 2,981 tris; +0 draw calls
 	"wiecha_swieta": 27000,  # 2026-11-22 Pasaż Wiecha at Christmas (F's photos): 22 shooting stars on the masts, the gingerbread tunnel, the neon fir, bauble benches, two photo frames, LED curtains, 26,230 tris; +0 draw calls (one mesh)
 	"orly": 1600,
 	"hotel_warszawa": 2300,
@@ -314,7 +319,7 @@ const BUDGET := {
 	# Plac Bankowy, Filharmonia, Teatr Polski (the Mac photo reports, 2026-11-02): fronts on kept skins.
 	"ratusz": 2500,
 	"gielda": 1050,
-	"filharmonia": 1450,
+	"filharmonia": 6400,  # 2026-11-24: the Jasna front from the photos (arcade, doors, inscription, balustrade); was 1450
 	"teatr_polski": 760,
 	"teresy": 900,  # 2026-11-13 photo rebuild (cream plaster, round-headed windows, porch, spire)
 	"flisac": 4200,  # 2026-11-13: the grid of panes, loggias and shop glass, 3,552 triangles

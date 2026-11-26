@@ -53,6 +53,8 @@ const DUCKS := {
 	# The 02:00 beat's host (radio.gd host_moment) and LEKTI's break-in (rave.gd).
 	"host_moment": ["radio", -10.0, 0.0, 0.0],
 	"rave_voice": ["radio", -10.0, 0.0, 0.0],
+	# THE TAPCZAN's room (tapczan.gd): the station a quiet bed under the pub's talk, as if from its speakers.
+	"pub": ["radio", -18.0, 0.6, 1.5],
 }
 ## Loops: name, bus, level (dB) at full.
 const LOOPS := {
@@ -76,7 +78,12 @@ const LOOPS := {
 	"amb_yard": ["Ambience", -16.0],
 	# Senatorek's lift ride (lounge.gd, tools/make_sfx.py): a hum felt more than heard.
 	"lift_hum": ["SFX", -24.0],
+	# THE TAPCZAN's room (tapczan.gd `pub_bed`, tools/make_sfx.py): the pub's talk and glasses, at the
+	# street crowds' level by the file's RMS; the city's beds fall to PUB_OUTSIDE under it.
+	"pub_room": ["Ambience", -4.0],
 }
+## Inside the pub the city's beds (day, night, rain, the district's) keep this share: through the windows.
+const PUB_OUTSIDE := 0.2
 ## v1.0 juice: the district's own bed (districts.json ids): the river at Powiśle, trees in the
 ## park, a square's talk in the Old Town and on the Royal Route, courtyards and trams in Praga
 ## and Muranów. The centre, Wola and the south keep the city bed alone.
@@ -131,6 +138,10 @@ const SHOTS := {
 	# Step 8a (soft_things.gd, main.gd _on_car_pushed, tools/make_sfx.py): a parked car shoved, the hard
 	# knock pitched down (3 dB under thump_hard: a push, not a crash).
 	"smash_car": -9.0,
+	# THE TAPCZAN (tapczan_room.gd, pong_match.gd, tools/make_sfx.py): the tap's pour and the clink on
+	# WYPIJ PIWKO, the ball's tock on the table, into a cup, round a rim (the win and the loss are the
+	# feedback set's, hud.gd `cue`).
+	"beer_pour": -9.0, "glass_clink": -13.0, "pong_bounce": -14.0, "pong_cup": -10.0, "pong_rim": -14.0,
 }
 ## Loop 3g-2: the siren loop (one positional voice) and its level there.
 const SIREN := "police_siren"
@@ -170,6 +181,8 @@ const SHOT_RULES := {
 	"train_rumble": [NORMAL, 1, 0.04], "train_bridge": [NORMAL, 1, 0.04], "train_horn": [NORMAL, 1, 0.0], "station_gong": [NORMAL, 1, 0.0],
 	"smash_fence_metal": [NORMAL, 2, 0.08], "smash_fence_wood": [NORMAL, 2, 0.08], "smash_hedge": [NORMAL, 2, 0.08],
 	"smash_car": [NORMAL, 2, 0.06],
+	"beer_pour": [NORMAL, 1, 0.03], "glass_clink": [NORMAL, 1, 0.05], "pong_bounce": [NORMAL, 2, 0.08],
+	"pong_cup": [HIGH, 1, 0.05], "pong_rim": [NORMAL, 1, 0.04],
 }
 ## A sound may have more than one take: `name.wav`, then `name_2.wav` up to `name_4.wav` beside
 ## it. A take is picked at random, never the same one twice running.
@@ -233,6 +246,7 @@ var _last_v := 0.0
 var _load := 0.0
 var _rotor := 0.0
 var _lift_on := false
+var _pub_on := false
 var _hit_wait := 0.0
 var _horn_wait := 0.0
 ## Seconds until a tram bell may ring again anywhere (trams.gd already spaces each tram by 8 s).
@@ -557,12 +571,14 @@ func _process(dt: float) -> void:
 	_drive("rotor", _rotor, 0.55 + 0.45 * _rotor + 0.05 * fast + 0.04 * climb, dt, 4.0)
 	# Ambience: day and night beds by the light, rain on top; dips under the radio.
 	var daylight: float = tod.daylight if tod != null else 1.0
-	_drive("city_day", daylight * (1.0 - 0.5 * raining), 1.0, dt, 1.5)
-	_drive("city_night", (1.0 - daylight) * (1.0 - 0.4 * raining), 1.0, dt, 1.5)
-	_drive("rain", raining, 1.0, dt, 1.5)
+	var outside := PUB_OUTSIDE if _pub_on else 1.0
+	_drive("city_day", daylight * (1.0 - 0.5 * raining) * outside, 1.0, dt, 1.5)
+	_drive("city_night", (1.0 - daylight) * (1.0 - 0.4 * raining) * outside, 1.0, dt, 1.5)
+	_drive("rain", raining * outside, 1.0, dt, 1.5)
 	_drive("lift_hum", 1.0 if _lift_on else 0.0, 1.0, dt, 3.0)
+	_drive("pub_room", 1.0 if _pub_on else 0.0, 1.0, dt, 2.0)
 	# The district's bed: fades under rain, at night and in the helicopter (the ground is far).
-	var bed_level := (1.0 - 0.6 * raining) * (0.5 + 0.5 * daylight) * (0.4 if flying else 1.0)
+	var bed_level := (1.0 - 0.6 * raining) * (0.5 + 0.5 * daylight) * (0.4 if flying else 1.0) * outside
 	var bed := bed_now()
 	for b in DISTRICT_BEDS.values():
 		_drive(b, bed_level if b == bed else 0.0, 1.0, dt, BED_RATE)
@@ -692,6 +708,22 @@ func lounge_shot(n: String) -> void:
 ## Senatorek's lift ride: the cabin's hum fades in while `on` and out after.
 func lift_hum(on: bool) -> void:
 	_lift_on = on
+
+
+## THE TAPCZAN (tapczan.gd): the pub's room is heard while `on` (its talk fades in over ~2 s, the
+## city's beds drop to PUB_OUTSIDE and the radio ducks under it), and fades out after.
+func pub_bed(on: bool) -> void:
+	if on == _pub_on:
+		return
+	_pub_on = on
+	if on:
+		duck("pub")
+	else:
+		release("pub")
+
+
+func pub_inside() -> bool:
+	return _pub_on
 
 
 ## Birds now and then by day (not in the rain); at night, rarely, a far siren or a dog.

@@ -15,6 +15,7 @@ should grow into. Design background: docs/design/quest-map.md and docs/design/ma
 | Street jobs | small icon per stand, station or depot | yes (registry JOB) | yes, zoomed in | the kebab stands' rings | `jobs.gd` (owner "jobs"), `roundup_job.gd` (owner "roundup", its pins during a run), main.gd `_quest_entries` for the list |
 | Ladder and final | the list's RYWALE section: six chips (`ladder.gd` `chips`), the final's line, the night button; the final's start is the main line's star | registry MAIN "rivals:final" (kept, not drawn) | `set_rivals` | the race beacon at Rondo Daszyńskiego | `ladder.gd`, `rivals.gd` |
 | Garage | its diamond within reach | registry SERVICE "garage:workshop" | yes | | `garage.gd` |
+| THE TAPCZAN (pub) | its beer mug (`POI_MUG`) within reach | registry SERVICE "tapczan:door", shape `POI_MUG`, `extra.name` "THE TAPCZAN" (the full map prints the name; a SERVICE mark may carry a shape and a name) | yes | | `tapczan.gd` |
 | Unfound places | "?" | registry PLACE (owner "notebook") | no (F 2026-11-08) | | `notebook.gd` |
 | Police and traps | chasers, known traps, edge rooster | yes | | the patrol cars | `police.gd` |
 | Districts, landmarks, metro, hospitals | printed silhouettes and names, hospitals only during a rescue | | `set_districts`, map art | | `districts.gd`, `map_icons.gd`, `missions.gd` |

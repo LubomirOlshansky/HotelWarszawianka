@@ -3,6 +3,329 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
+## NEXT, Thursday 2026-11-26: F's big batch, activities in the phone, quests, heli, rival AI (F, 2026-11-25)
+
+F wrote this in one go (Ukrainian) and asked to sort and file it, then do it tomorrow. Grouped and ordered
+by how many players it touches. "Plan first" means a short design note and F's choice before code.
+It ties into the analytics finding (18 of 28 players never start an activity), the onboarding item below and
+the lane assist and bus items below.
+
+**Rule for the whole Thursday 2026-11-26 list (F, 2026-11-25):** every item here, the activity button and
+phone, First Steps, navigation, the map, the heli, rival AI and the rest, must fit the existing architecture
+and follow its rules: read `docs/architecture/README.md` and `extending.md` first, plug into the named owner
+(never a private copy), mark any workaround `# WORKAROUND(arch)` with a row in `tech-debt.md`, and follow the
+TD-4 wiring spec (`docs/architecture/`) where it applies. Each PR says which owner it used.
+
+**A. Activities and quests in the phone (plan first, F picks the look)**
+- [ ] The "Podwózka" (ride) marker glows all the time, and players only ever pick the taxi. Add a button at
+  the top of the screen ("add activity") that opens the phone on the right; there the player picks an
+  activity: the ride, an Uber parody, food delivery. Rename them to something funnier, with parody brand
+  names only (skill `warsaw-tone`). Quests are one more button in the phone that opens the quests menu, so
+  all of it lives inside the phone.
+- [ ] Quests screen, "Pierwsze kroki" (first steps) tab: remove it once every step is done; until then
+  find a way to nudge the player into opening it (a badge, a pulse, the guide pointing at it).
+- [ ] Map: while a mission is active, quest start points and rivals must NOT glow on the map.
+- [ ] Split by fun: "Kino objazdowe" and "Dekalog na kółkach" become ordinary jobs (zlecenia). The fun ones
+  are the featured quests: Smolna night spot rave, "Szprotka w Wiśle" (the boat), the Tesla one. Rank all
+  quests from most fun to most boring (same rule as the onboarding item).
+
+**B. Bugs (reproduce, then fix)**
+- [ ] Sometimes all the traffic cars vanish at once and the roads are empty (F's phone screenshot, 2026-11-25:
+  an empty carriageway beside the tram line, night). Find why the traffic pool empties (despawn, a pool or
+  budget bug, a state after a mission, a quality tier); reproduce, fix, and make traffic refill. Traffic
+  AI: if `traffic.gd` is touched, rerun the racer bench before and after.
+- [ ] Choosing the Smolna job sends the player to the secret cave instead (wrong target on the job card or
+  the map marker). Find which target the job resolves to.
+- [ ] When the player goes the wrong way, the navigation should reroute. F's note was garbled; the reading is
+  that the route is not recalculated today. Check the route owner in `docs/architecture/extending.md`.
+
+**C. Helicopter (plan first, F's choices)**
+- [ ] Landing during the flying quest (the Tesla one) does not work, and landing to pick up needs to be far
+  too exact. Make the pickup forgiving (a landing zone, a hover-and-hold pickup).
+- [ ] The heli controls feel complicated. Rethink them and make them pleasant: a short design note with
+  two or three options for F to choose from before any code. Full done (feel): phone check.
+
+**D. Rival AI (plan first, F's choices)**
+- [ ] The race target was on the other side, and the rival Galina drove a long detour while F drove straight
+  through. F feels the in-game AI is weak overall and wants it reworked. Start with a short audit of how
+  rivals pick routes and targets (`rivals.gd`, `race_planner.gd`); any change to `traffic.gd`,
+  `race_session.gd`, `race_planner.gd` or `rivals.gd` reruns the racer bench before and after.
+
+**E. Core mechanics (design first, F's choices)**
+- [ ] Rethink the core taxi (Podwózka) and delivery (food) mechanics to make them more fun (F, 2026-11-25).
+  A short design note with a few options for F to choose from (what the player decides, risk and reward,
+  variety between rides and drops), tied to item A (the activity button and the phone) and to the
+  analytics finding that most players never start an activity. No code before F picks.
+
+## NEXT, Thursday 2026-11-26: the flying boar for the reel (F, 2026-11-25)
+
+F: "tomorrow we need to make a boar that flies over central Warsaw, with little wings, around the Palace,
+roughly with a view like this... for the reel". Promo content for a reel only, not a gameplay feature
+(the walking boars of the "Wild boars in the city" item below stay a separate, later item).
+- [ ] A wild boar (dzik) with small wings flies a loop around the Palace of Culture and Science, shot for
+  the reel. Looks: the real boar photo F sent (dark bristly coat, pale snout, dark ears, autumn leaves)
+  for the body, and the "flying pig" reel F referenced (a pig whose wings are two playing cards) for the
+  joke. Wings: little and silly, not a feathered angel, and the game's own original take (content rule:
+  original art): do NOT copy the third-party reel's playing-card wings. Show F two or three original wing
+  options first.
+- [ ] Built as a promo-only actor on the existing owner (a `--trailer` or promo-mode prop, see the
+  promo-video skill and `docs/architecture/extending.md`), never in normal play. Model with
+  `tools/turntable.sh KEY` first and show the sheet to F; then the flight path and the reel take
+  (night, 30 fps, 1080x1920 as F's standing capture rules).
+- Photos and the reference reel stay out of the repo (reference only).
+
+## NEXT, Thursday 2026-11-26: boar statue quest "Stado" (F, 2026-11-25)
+
+F: "we do it tomorrow". An affectionate slapstick quest; it follows the architecture rule of the Thursday list
+(read `docs/architecture/extending.md`; Add-ons line in the PR). The walking boars and the flying boar
+stay later items (see "Wild boars in the city").
+- [ ] Boar quest "Stado" (F, 2026-11-25: "we do it tomorrow"): the player walks up to a boar statue and
+  turns into a boar, runs into the forest, and a herd of boars starts running after them; people scatter,
+  cars stop and honk. The goal is to scare 20 pedestrians within about 2 minutes, then the mission is done.
+  Open for the design note: which statue (a real one in the city if the map has one, else a parody
+  statue as a site), which forest, the timer card, and the scare rule (the herd and the player running
+  close to a pedestrian counts once per person). Affectionate slapstick: people laugh and jump aside,
+  nobody is hurt, no gore, and no real private people (warsaw-tone). It reuses the boar actor and the
+  pedestrian flee reaction on the existing city-life owner.
+
+## NEXT, Thursday 2026-11-26: research, make the ordinary houses look varied (F, 2026-11-25)
+
+F: "tomorrow do research: how to vary the ordinary houses, because they are all the same. Maybe take all the
+buildings that are not modelled, sort them into types, and make at least 10 to 15 kinds, repeating window
+shapes and architecture (panel blocks, tenement houses, and so on), then adapt them so the city looks more
+varied. Think about it tomorrow." Tomorrow is research and thinking, not building.
+- [ ] Research note first (a doc in `docs/design/`, no game code): how the unmodelled buildings (the plain
+  LoD2/OSM extrusions that have no site or skin) are drawn now and why they read as identical; count them
+  by district and by the data we already have (height, levels, footprint shape, age, `building:*` tags,
+  roof tags); how other city games vary generic buildings (facade families, window grids, material and
+  colour palettes, roof types, procedural variation).
+- [ ] Propose a type catalogue of 10 to 15 building kinds for Warsaw's ordinary houses, for example the
+  prewar kamienica (plastered front, regular window rows, cornice, courtyard), the interwar block, the
+  socialist-realist block, the large-panel "wielka płyta" block (several series), the 1990s infill, the
+  modern glass office, the corner shop house, and so on; for each: window shape and rhythm, storey
+  height, roof, colour palette, and a rule that picks it from the map data (age, height, district).
+  Photos as reference only (never committed).
+- [ ] A small prototype plan: one rule-based facade family applied to one test block, before and after
+  shots at phone size and a bench (draw calls and materials are the gate: variety through shared
+  materials and MultiMesh, not new materials per building). Fits the architecture rule of the Thursday
+  list (`docs/architecture/graphics.md`, `extending.md`); both city paths (runtime and prebuilt) must work.
+- Output for F to choose from: the catalogue, the picking rules, the cost, and a recommended first batch.
+
+## NEXT, Thursday 2026-11-26: extend the Tapczan quest and one more quest with mini-games (F, 2026-11-25)
+
+F typed this fast and it is partly garbled, so the readings below are ASSUMPTIONS for F to confirm before
+building. F: "add to the Tapczan quest ... drive to a kebab place and there a 2D kebab, 'na ostro' ... and
+extend the quest with 'ksionzvlo' with some mini-game".
+- [ ] Reading 1 (assumed): extend the Tapczan quest, "Rajd Kraftowy · THE TAPCZAN" (the pub crawl job, see
+  `quest_book.gd` JOB_KINDS "crawl"): after the pub the player drives to a kebab place, where a 2D kebab
+  mini-game plays (ordering or building the kebab, with a "na ostro" spicy option), in the pixel look of
+  the existing pub mini-games (`tapczan_ui.gd`, `pong_match.gd`, `docs/design/tapczan-pong-v2.md`). Check
+  with F: which kebab place (the Kebab Zagłębie item in the backlog, al. Jana Pawła II 46/48, is a
+  candidate), and whether the tipsy drive after the pub (`tipsy.gd`) stays on during the kebab leg.
+- [ ] Reading 2 (assumed, updated after F's follow-up "make the kebab thing with Mrożulo"): the second
+  quest is **Mrożulo's "Mlask"** (`trend_job.gd`, `docs/design/gaulle-and-food-hype.md` G5: the food
+  reviewer on wheels with the cream van, a parody type and never the real man). It is the same quest as
+  the garbled "ksionzvlo" (the repo has no priest quest for that word; "Mrożulo" fits the letters and the
+  kebab theme). Extend it with a kebab mini-game: Mrożulo reviews a kebab, so the player makes or hand-
+  picks the kebab in the 2D game (the same mini-game as reading 1, reused, not a second copy) and his
+  MLASK grade depends on how well it went. Check with F: is the kebab mini-game one shared game for both
+  quests, or two separate ones.
+- Mini-games plug into the existing mini-game owner (read `docs/architecture/extending.md`; the pub room
+  UI and `main.gd` wiring for the Tapczan), never a private copy; Add-ons line in the PR (Dialogue Manager
+  for any branching scene: decide first). Light or full done by what is touched; phone check for the 2D UI.
+
+## NEXT, Thursday 2026-11-26: model the fountains by the Vistula and add their show (F, 2026-11-25)
+
+F: "tomorrow model the fountains by the Vistula and add the show there". The place is the Multimedia
+Fountain Park (Park Fontann, Podzamcze, by the boulevards). F's ask lifts the modelling stop for this item.
+- Heads-up (needs F's call first): the backlog places Park Fontann at about (-868, -2208), in the map
+  box's cut north-east corner, and "The fountain park stays off the map" (F, 2026-11-08: don't grow the
+  map; see "Grow the map north-east" above, F 2026-11-03: not now). Building it needs the map grown there
+  or a small local extension. Default to build: ask F in the first minutes whether tomorrow's ask
+  overrides the 2026-11-08 rule; if yes, do the smallest map growth that holds the park (map lane,
+  `bake-map` skill, re-bake chain on the Mac, `check_map_data.py`), then the model.
+- [ ] Model the fountain park from photos (skill `model-from-photos`, spec in `docs/landmarks/specs/`,
+  `tools/turntable.sh KEY` before the PR and the sheet shown to F first): the basins, the jets and
+  the pool shapes, the paving, the lamps and the seating by the boulevards.
+- [ ] The show: water jets that rise and fall in patterns, coloured lights and music at night (the real
+  park runs an evening multimedia show with projections on a water screen); a short loop that starts at
+  dusk and repeats, with the crowd gathering round. Original choreography and music (no real show
+  content copied). Performance is a gate: few draw calls (MultiMesh or a particle owner already in the
+  game, a shared water material), bench before and after, a quality-tier switch for old phones.
+- Follows the architecture rule of the Thursday list (`docs/architecture/extending.md`, `graphics.md`);
+  both city paths (runtime and prebuilt) must work; what only the phone can show: the show's frame rate.
+
+## NEXT, Thursday 2026-11-26: map screen layout fixes, PORA DNIA panel and top chips (F, 2026-11-25)
+
+F sent a phone screenshot (landscape, iPhone) of the map's PORA DNIA (time of day) panel: "the time buttons
+look awful, there is no space at all at the bottom". F is only listing tomorrow's work, so nothing is built yet.
+- [ ] PORA DNIA panel overflows the screen height on the landscape layout: the ŚWIT / DZIEŃ / ZMIERZCH / NOC
+  buttons sit flush against the bottom edge. Make the panel fit on every phone aspect ratio with proper
+  padding, respecting safe areas; shrink the clock dial or the text if needed; follow the UI kit and the
+  dark-card design system. Check at 2532x1170, 2868x1320 and a narrow Android ratio.
+- [ ] Top chips on the map (the clock chip "PT 12:41" and the X button) also lack proper insets from the
+  screen edges (F: "no proper insets"): give them real margins and safe-area insets in the same change.
+- [ ] A faded "THE TAPCZAN" text label still shows on the map near the panel, although F asked for the
+  beer-mug icon only (#1063, merged). Find which map layer draws it (a label layer or the POI name) and
+  remove it if it is a quick fix.
+- [ ] Lane assist ("Asysta pasa", Jazda tab in Settings) must be OFF by default (F, 2026-11-25). Change the
+  default in the settings owner, keep saved choices of existing players, and check that a fresh install
+  starts with it off.
+- Light done (UI layout): shots at phone sizes before/after, `tools/verify.sh`; name what only the phone
+  can show. Merge on a green `gate` plus an audit go.
+
+## NEXT, Thursday 2026-11-26: onboarding after the first kebab (F, 2026-11-25)
+
+F: after the first kebab is delivered the game says "next" and sends the player to another kebab far away,
+which feels wrong; and a new player who lands on the first steps does not see that quests are right nearby.
+Links to the analytics finding (18 of 28 players never start an activity) and the held kebab-spam fix #1071.
+- [ ] After the first kebab, the guide must not point to a far kebab stand again. Once the mechanic is
+  learned, it steers the player to something different: a taxi ride, or a race against a rival.
+- [ ] The first minutes make the quests near the player visible (a marker, a card or a hint), so the player
+  who walks into the first steps understands there is more to do next to them.
+- [ ] The quests offered or shown to new players are ordered from the most fun to the most boring (F,
+  2026-11-25): rank the quest kinds by fun first, then the guide and the nearby-quest hints follow that order.
+- Design first with the guide owner (guide.gd and the onboarding plan, artifact UWbDq4YuduZRo4joQ8Lipc,
+  F chose: kebab stays on the counter, the player picks it up); full done (gameplay): verify, shots, `--ios`;
+  say what only the phone can show.
+
+## NEXT, Thursday 2026-11-26: buses turn sideways and get stuck (F, 2026-11-25)
+
+F: "buses sometimes just turn sideways across the road and get stuck".
+- [ ] Find why a bus ends up crosswise on the road and stops (turn at a junction, lane change, a swept
+  path too wide for the lane, or a recovery that never fires); reproduce it, fix the root cause, and make
+  a stuck bus free itself. Traffic AI: if `traffic.gd` is touched, rerun the racer bench before and after.
+
+## NEXT, Thursday 2026-11-26: engine sound at max RPM (F, 2026-11-25)
+
+F: the engine sound at maximum revs is weird and wheezy, with a rustling or scraping noise under it; F does
+not like it and wants it changed. Ties into the engine sound rework already in the backlog (F, 2026-11-19:
+car engine sound rework, new tyre squeal only).
+- [ ] Find what makes the top-RPM sound wheezy and rustling (the loop pitch ceiling, a noise layer, or the
+  limiter), and rework the top of the rev range so it stays clean. Listen at idle, mid and max.
+
+## NEXT, Thursday 2026-11-26: model Niecała 7 and the houses round it (F, 2026-11-25)
+
+F: "tomorrow we need to model Niecała 7, add it to the backlog, and the houses around". F's ask lifts
+the building-modelling stop for this block only. Niecała is the short street by Ogród Saski, between
+Plac Bankowy and Senatorska/Podwale. Priority for 2026-11-26, first in the queue.
+- [ ] Niecała 7 rebuilt as a whole building from photos (skill `model-from-photos`, spec in
+  `docs/landmarks/specs/`, a site in the landmarks code, `tools/turntable.sh KEY` before the PR and
+  the sheet shown to F first).
+- [ ] The houses on the same block round it (the neighbouring numbers on Niecała and the corners
+  with the streets it meets): each one from photos, a skin or a whole model by how much it shows.
+  List the block's outlines from the map data first, ranked by how often a player sees them.
+- Photos (never committed, kept in the gitignored `refs/`): Mapillary and Panoramax through
+  `tools/street_photos.py X Z --r --max --slug`, fotopolska.eu's photo map, any other web source
+  (F's standing rule). F's own photos, if he sends them, win.
+- After the build: the re-bake chain (`bake_sectors.py`, then `bake_city.gd` with a renderer), `check_map_data.py`, and the looks with `--prebuilt` too. A new site's spec needs the Roof, Ground and Parts sections for `check_spec`.
+- Light or full done: full (geometry): verify, shots, bench, `--ios`, both city paths; name what
+  only the phone can show.
+
+## NEXT, Thursday 2026-11-26: Rondo Dmowskiego to trailer quality, and the new square by Empik (F, 2026-11-25)
+
+F: "not the rondo yet, we improve it tomorrow"; "the kiosk next to Empik must be redone, there is
+nothing there now, it is just a car park" (the square beside the rondo, planned as the city's "Zielona
+metamorfoza placu obok ronda Dmowskiego"). F's ask lifts the modelling stop for this area. Second in the
+queue of 2026-11-26, after Niecała 7. The final "day 1 / day 28" teaser (teaser thread, start point
+X -870.7 Z 427.3) is re-shot after this work, so the rondo and the square must be done first.
+- [ ] Rondo Dmowskiego improved to trailer quality (it is the teaser's start): the paved island and tram
+  cross, the four crescent beds, façades and shopfronts round it, lamps, signs, ground and markings,
+  looked at day and night with `tools/shots.sh` (rondo set) and as the trailer frames.
+- [ ] Rondo Dmowskiego's underpass entrances (F, 2026-11-25, with a game shot): the game puts several small
+  glass pavilions on the rondo where the real ones are just open stairs down to the underpass. Replace
+  each pavilion with an open stair entrance (railings, steps going down, no roof or glass), checked
+  against photos; find which code or map objects spawn them first.
+  The pavilions are the white-and-blue arched barrel-roof canopies with M signs repeated round the rondo.
+  Check each entrance against photos before removing anything: the corner ones are open stairwells, but
+  the Patelnia one may have a real canopy, which stays.
+  F (2026-11-25, with a game shot): the metro entrances themselves must be realistic and very well
+  modelled, from photos: the stairs, balustrades, the M sign and the canopies where they really exist,
+  each entrance by its own photos, a turntable sheet shown to F first.
+  F's street-view picture (Jerozolimskie side, sent in the teaser thread; kept out of the repo): the
+  entrance is a low dark slatted-steel balustrade round an open stairwell, with a handrail and a stone
+  coping, a planted bed (grasses and shrubs) beside it, and a glass lift cabin behind it; no barrel-roof canopy.
+- [ ] Grass on Rondo Dmowskiego's traffic islands (F, 2026-11-25, with a game shot): the islands on the right,
+  left and top of the rondo are bare; lay lawns on them (grass areas through the map data's grass layer,
+  draped on the terrain grid, simple for performance), as the real islands are green.
+- [ ] The empty square next to the Empik pavilion rebuilt as the city plans it. Today it is a surface car
+  park with parking bays, a big tree, an old lamp post, a kiosk and two underpass stairwells (what the
+  city's "Tak było" picture shows). Plan ("Tak będzie", F's two pictures, 2026-11-25), from the picture:
+  - the car park is gone: one paved square in light grey slabs, the Empik pavilion (glass sides, white
+    roof with roof lights) stays on its west edge, the tall slab block with shopfronts on the east edge;
+  - three large lawn-and-tree islands with curved low edges (round-leaf and olive-like trees, shrubs),
+    the biggest one in front of Empik, two smaller ones further along the block's front;
+  - a small café terrace with pergolas and tables on the north side by the block's shops, a few
+    wooden "pebble" seats near the middle, one street lamp, an advertising column on the south-east;
+  - along the roadway a line of low bollards, a green planted verge (grass and low shrubs) on the
+    corner, a bike rack and a blue kiosk or ticket pillar by the stair; the two underpass stairs are
+    kept, re-railed, with a small service hut beside them;
+  - people walking across; the façade's giant advert is gone.
+  Not read yet: the city page itself (um.warszawa.pl, "zielona-metamorfoza-placu-obok-ronda-dmowskiego")
+  did not open from the cloud, so exact sizes, planting numbers and dates are open: the thread fetches it
+  first (a Mac browser or the cloud proxy) and fixes the list above against the text.
+- Method: skill `model-from-photos`, spec in `docs/landmarks/specs/`, ground and greenery through the
+  map data's plaza/grass areas (`docs/architecture/extending.md`), a site for the pavilion's surroundings
+  only if needed; `tools/turntable.sh KEY` before the PR, the sheet shown to F first.
+- Done is full (geometry): re-bake chain, `check_map_data.py`, verify, shots, bench, `--ios`, both city
+  paths; name what only the phone can show. Trees stay simple for performance (F, 2026-11-20).
+
+- [ ] **Marszałkowska at ul. Widok, 10 out of 10** (F, 2026-11-25, with a satellite view and a game shot; road
+  geometry, next to the rondo work, since the same teaser frames pass it): the right-turn lane that
+  leaves Marszałkowska into Widok is built wrong in the game (its mouth is a ragged, notched edge
+  against the kerb and the tram side; the real one is a clean slip lane beside the kerb with a
+  pedestrian crossing across Widok), pedestrians walk on it, and the junction has join artifacts
+  (jagged asphalt, lines that stop and restart, kerb jumps). Lane-graph edges 254, 255, 3507, 4035
+  near x -856, z 377. Method: skill `road-design` (measure the junction on the orthophoto and OSM
+  lane tags, spec in `docs/roads/`, regenerate kerbs, lane lines and the crossing), check the lane
+  graph edges and that pedestrians stay on the pavement and crossing, before/after shots day and
+  night, both city paths, the re-bake chain and `check_map_data.py`.
+
+## traffic.gd start-up errors in the editor (Autopilot run 20261125-094944, 2026-11-25)
+- Every editor run with `--nosave --prebuilt` logs at t=0: `traffic.gd:1158 Out of bounds get index '0' (on base: 'Array')` (x4-5) and `traffic.gd:4871 Out of bounds get index '0' (on base: 'Array[MultiMesh]')` (x1), before the title's build ends. Not pub-related; the game plays on. Find which empty array/MultiMesh list is indexed before it is filled (a guard or an order fix), check with `--prebuilt` runs of the headless checks, and note whether the phone logs the same.
+
+
+## Releases: the first real run, and the overnight process (F, 2026-11-24)
+
+F chose the fast path for now: `tools/release.sh --open-beta` behind a gate (CI green on the exact
+commit and the local steps). It has not run against the stores for real yet.
+- [ ] The overnight process, for a new build left running at night: `--thorough`, a hands-off run
+  (calls and offers come, none off the screen) and an Autopilot run (no script error, no stuck car),
+  a phone smoke list with an old save, then `--promote`.
+
+## Wild boars in the city (F, 2026-11-25, later, not built now)
+
+F: "add the boars that walk around the city to the backlog". Warsaw's dziki really do wander into
+streets and parks (near the forests, Bielany, Wawer, Las Kabacki, the Vistula banks).
+- [ ] A small sounder (one sow and a few piglets, or a lone boar) walks through the city on its own
+  path at dusk and at night: along park edges, the Vistula boulevards and quiet streets, crosses a
+  road now and then. Traffic stops for it and honks, the player can stop too. Rare, never in the
+  first minutes.
+- [ ] Possible fun: KEBAB FM jokes about "dziki na jezdni", a bystander phone shot, a short
+  "dzik na drodze" moment on the map. Affectionate, no hurting the animals (a bump makes them
+  trot away, no gore).
+- Default to build when it starts: an ambient actor on the existing city-life owner
+  (`docs/architecture/extending.md`, `city_life.gd` and the traffic give-way), a few MultiMesh-free
+  nodes at most, bench before and after; Beehave not used (one walk-and-cross state).
+
+## Idea: a flying winged boar instead of the helicopter, and a mission to earn the boars' trust (F, 2026-11-25, later, not built now)
+
+F: "add to the backlog the idea of making a flying boar with wings instead of the heli, and a mission where
+you have to earn the boars' trust". Links to "Wild boars in the city" above (the ambient walking boars) and
+to "the flying boar for the reel" (the promo-only model); this is the gameplay version of both.
+- [ ] Replace the helicopter (HELI) with a flying winged boar as the player's air vehicle: same job (fly
+  over the centre, pick-ups, the flying quests), new look, sound and controls. This is also a chance to
+  fix the heli's controls (see item C of the 2026-11-25 batch: too complex, landing too exact). Needs a
+  design note and F's choice first: a straight swap of the skin, or a new flight model; which quests keep
+  working; how the wings look (original design, not the reel's playing cards).
+- [ ] A mission "earn the boars' trust": the player wins over the wild boars of the city (the ambient
+  sounder item), for example by feeding them, driving slowly, not honking, bringing the right snack, at
+  dusk by the park edges; the reward is the flying boar. Affectionate, no hurting the animals.
+- Default to build when it starts: the boar actor from the walking-boars item reused for the flying one,
+  on the existing owners in `docs/architecture/extending.md` (city-life actor, vehicle/activity and quest
+  owners); bench before and after; Add-ons line in the PR (Beehave and Dialogue Manager: decide first).
+  Order: walking boars, then the reel boar model, then this.
+
 ## Fill the shared photo store (2026-11-13, building-pipeline-review item 3)
 
 `tools/refs_store.py` and the store `/mnt/project-files/refs/` exist. The Mac's `refs/` and F's three photo folders were copied in on 2026-11-13 (3,103 files; F's folders sit under `_f/` and are tied to slugs in `ALIASES.tsv`).
@@ -1755,6 +2078,31 @@ the railway cutting next to Warta Tower; today an OSM extrusion. Later, photo wa
 `refs/chmielna89/` plus F's four photos (project files), then the wedge, the zigzag frame on the
 sloped face, the V legs, blue-grey glass. No bank name or logo (brands only as parodies).
 
+## THE TAPCZAN phase 2, next steps (found 2026-11-24)
+
+Built: the door any time (amber ring, WEJDŹ pill), the cutaway room, WYPIJ PIWKO, beer pong against
+three rivals (`docs/design/tapczan-pub.md`), the tipsy minute after it, the QUESTS row and map mark.
+Left:
+- **Phone look and feel:** PHONE-CHECK 15zzk-15zzp (the pill, the room at phone size, the slingshot,
+  the tipsy pass's frame cost on the iPhone, the tap list and bill, the beer-mug map mark).
+- **Interior from the photos (done 2026-11-24, second pass):** curved bar, stone front, copper top,
+  tap pipes, chalk soffit, mezzanine, BREW ENJOY EMPTY REPEAT, square tables. Still apart from the
+  photos: no black ceiling (the cutaway shows only its edge and the ducts), the stone piers are
+  boxes, the mezzanine stair is missing, the chalk at the soffit is small on a phone.
+- **Tap list (built 2026-11-24):** six beers, prices 12-32 zł, ABV / 5 = drinks for the tipsy
+  spell, MAX_PINTS 4. Tune prices against the job pay after the feel test; a rotating "beer of the
+  week" could swap one tap by the day; "Chmiel, Bóg i Ojczyzna" was written "Chmiel, Honor,
+  Ojczyzna" (warsaw-tone: no jokes touching religion) - F may decide otherwise.
+- **Map mark:** the pub's mark is the beer mug alone (F 2026-11-25: no name label beside it; the SERVICE marks can still carry a name for other places);
+  docs/architecture/map-markers.md should note that SERVICE marks can carry a shape and a name.
+- **Sound (done 2026-11-25):** the room's talk and glasses (`pub_room`, the radio ducked -18 dB, the street's beds to 20 %), the pour and clink, the ball's tock, rim ticks and plop, the feedback set's win and fail. Left: the levels on the phone (PHONE-CHECK 15zzp); a cheer from the tables on a bounce shot.
+- **Pani Gienia runs the table (PT-56, fixed 2026-11-25, coordinator's call, F can change it):** her late skill 0.95 → 0.73, balls back unchanged; the reference bot (check_tapczan, 400 seeded games) wins 36 % against her (was 5 %), held in a 30-40 % band; the sommelier 25 %, the open-space crew 63 % (unchanged). Left: the feel on the phone (PHONE-CHECK 15zzk); she is now easier than the sommelier for a decent player while her stake is the highest.
+- **A new player can drink (fixed 2026-11-25):** short of the price, the visit's first glass is on the house with one of the barman's three "house" lines; the second is refused, the bar still stops at four, the wallet never goes below 0. The phase-2 draft had it (c1b9b721); the tap list rewrite (d8fe2072) replaced the single-pint `order` and dropped it, so P22 found a 0 zł player refused.
+- **Rivals' portraits** (PixelLab, F's OK first); their skills and stakes after the feel test.
+- **App Store age rating:** the alcohol-references answer needs F's look before the next submission.
+- **The crawl from the door:** the Kraftowa could start in person at THE TAPCZAN (a group at the
+  terrace), not only by a night call.
+
 ## Bar-crawl taxi quests, next steps (found 2026-11-07)
 
 The first version is built (`game/scripts/bar_crawl.gd`, `game/data/bar_crawl.json`, plan and the
@@ -3056,6 +3404,13 @@ real ones added to `brand_denylist.json`). One PR each:
 - [ ] Mac checks: the statue's spot and facing against the orthophoto; KUKŁA/KOSZTA/NERWO spots
       on the real streets (Dom Partii's height and skin: replaced by the model, 2026-11-12).
 - [x] `Tinder` in a run-club line replaced by TIMBER (it would fail the new denylist entry).
+
+## Move the Zagłębie Kebabowe to its real place (F, 2026-11-25; LATER, not started)
+F: find the real place, move the kebab spot there and model the kebab passage; the work runs on the API.
+- Place (F's Wyborcza photo): the two-storey brick pavilions at al. Jana Pawła II 46/48, east side, north of Solidarności (OSM ways 871756975-871756988; real kebabs near 52.2430-52.2432, 20.9930-20.9932). In the game the fronts are the `retail` buildings round (-2095, -1000).
+- [ ] Spec from the photos (L3): brick, boxed bay windows, an upper gallery with a black railing and a dark canopy, white parasols over tables. Brief and inputs: `refs/zaglebie/spec` on the Mac (gitignored); more photos of the kebab fronts are needed.
+- [ ] Model the passage, then move the five shops (`zaglebie.gd` SHOPS `ll`), the job pickup and the `zakwas` queue; update LANDMARKS 2.16, the checks and PHONE-CHECK. Kino Femina's sign stays.
+- [ ] Before starting: a Mac thread with the Worktree option, and F's choice of who launches the API run (auto mode refused it in the kebab thread).
 
 ## Zagłębie Kebabowe and Kino Femina (F, 2026-11-02)
 

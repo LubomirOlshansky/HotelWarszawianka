@@ -170,6 +170,8 @@ const Club := preload("res://scripts/club.gd")
 const EvTow := preload("res://scripts/ev_tow.gd")
 ## Bar crawl (bar_crawl.gd, F's ask 2026-11-04): a group through three bars before they close.
 const BarCrawl := preload("res://scripts/bar_crawl.gd")
+## THE TAPCZAN's door, room, beer pong and the tipsy drive after (tapczan.gd, F 2026-11-24).
+const Tapczan := preload("res://scripts/tapczan.gd")
 ## Packs (docs/design/packs.md): running clubs, cycling packs and coffee raves.
 const Packs := preload("res://scripts/packs.gd")
 ## Kibice (docs/design/city-life-satire.md 7): friendly fans by Stadion Leguminy on match evenings.
@@ -445,6 +447,7 @@ var ev_tow: EvTow
 ## Bar crawl (bar_crawl.gd): flags --crawl-call (the group rings a second in, any hour),
 ## --crawl-route=ID, --crawl-group=ID, --crawl=0 (none), --crawl-log.
 var crawl: BarCrawl
+var tapczan: Tapczan
 ## Sekretny rave (rave.gd): flags --rave-call (LEKTI and Mati's call now), --rave-smola (Mati's
 ## Smoła night now), --rave=on / --rave=day (that rave on at any hour), --rave-spot=ID, --rave=0,
 ## --rave-log.
@@ -497,6 +500,7 @@ var lounge: Lounge
 ## itself, then the game quits), --padel-log.
 var padel: PadelMatch
 var _padel_heli_mode := Node.PROCESS_MODE_INHERIT
+## The city SubViewport's update mode before set_city_drawn(false) turned it off.
 var _padel_sv_mode := SubViewport.UPDATE_ALWAYS
 ## Packs (packs.gd): running clubs, cycling packs, coffee raves; flags --packs=0 (none), --packs-now
 ## (every club and rave on whatever the clock, the packs near the car timed to pass it), --packs-log.
@@ -517,8 +521,8 @@ var fans: Fans
 var event_day: EventDay
 ## Wellness circles (wellness.gd); flags --wellness=0 (none), --wellness-now (every spot on at any hour), --wellness-log.
 var wellness: Wellness
-## The garage loop (garage.gd): Warsztat u Mirka on Twarda; flags --paint=<id> (the car starts in
-## that paint, owned for the run), --garage (the car in the garage's ring, the card open; the
+## The garage loop (garage.gd): Warsztat u Mirka on Grzybowska; flags --paint=<id> (the car starts in
+## that paint, owned for the run), --garage (the car on the garage's forecourt, the card open; the
 ## garage shown whatever the wallet), --garage-log (`garage:` lines).
 var garage: Garage
 # --- loop 2d-1: Podwózka (rides.gd) and its testing flags ---
@@ -1624,6 +1628,7 @@ func _build_world() -> void:
 	# still counts as one (the radio host and the flavour keep quiet, notes and calls wait).
 	# M1: the rescue line counts through `_quest_running` (its target), not its two cards, as before it
 	# joined the director (the pacer, TD-3, is to settle whether its cards are a quest too).
+	hud.local_clock = func() -> Dictionary: return tod.local_clock()
 	hud.quest_on = func() -> bool:
 		return _quest_running() \
 				or (activities.busy() and activities.current() != missions) \
@@ -1758,6 +1763,8 @@ func _build_world() -> void:
 	activities.finished = hud.messages.finished
 	# First hour, step 3: a friend's phone rang (first10.gd: one new friend at a time in the guide).
 	activities.rang = func(a: Activity) -> void:
+		if not a.pill_call:
+			missions.put_off()  # a rescue call nobody took gives its place to the friend's
 		if first10 != null and not a.pill_call and not a.is_job:
 			first10.friend_rang(a.tag)
 	# LEKTI's invites, Mati's calls and the raves' rigs (rave.gd wires itself); none with --no-traffic
@@ -1817,6 +1824,11 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_stories")
 	# The night groups' calls and their crawls (bar_crawl.gd wires itself); none with --no-traffic or --crawl=0.
 	crawl = _join(BarCrawl.new(), world) as BarCrawl
+	# The pub's door is open any time (no quest): its own test, not the offers' `_free_block` (the guide,
+	# the quiet time after a finish); only a title, the bench or a card up keeps the pill away.
+	tapczan = _join(Tapczan.new(), world, func() -> bool: return title == null and not _phone_bench and not hud.cards_up()) as Tapczan
+	if tapczan != null:
+		tapczan.sfx = sfx  # the pub's bed, pour, clink and ball (sfx.gd)
 	await LoadYield.tick("crawl")
 	await _build_storefronts(data, world)  # the Leżak round-up joins the director here
 	await LoadYield.tick("_build_storefronts")
@@ -2125,6 +2137,8 @@ func _set_quality(choice: int) -> void:
 		wellness.amount = _crowd_scale()
 	if life != null:
 		life.amount = float(flags.life_flag) * (0.5 if quality == Tiers.LOW else 1.0)
+	if tapczan != null and tapczan.tipsy != null:
+		tapczan.tipsy.set_level(quality)  # the tipsy drive's screen pass is off at Low (tiers.gd screen_fx)
 	RenderingServer.directional_shadow_atlas_set_size(int(Tiers.value(quality, "shadow_size")), true)
 	_apply_experimental()
 	_keep.applied()
@@ -2916,7 +2930,7 @@ func _build_first10() -> void:
 		first10.race_at = 1.0
 
 
-## Warsztat u Mirka (garage.gd): its ring on Twarda, the car's saved paint (or --paint), the card
+## Warsztat u Mirka (garage.gd): its forecourt on Grzybowska, the car's saved paint (or --paint), the card
 ## that pauses the game like the settings card.
 func _build_garage(world: Node3D) -> void:
 	garage = Garage.new()
@@ -2965,17 +2979,13 @@ func _build_garage(world: Node3D) -> void:
 		_blip_sound())
 
 
-## --garage: the car in the ring, still (the card opens at the garage's next look); --garage=ring:
-## 16 m short of it along the lane, facing it.
+## --garage: the car on the forecourt facing the door, still (the card opens at the garage's next
+## look); --garage=ring: 16 m back from it, towards Grzybowska, facing the door.
 func _put_at_garage() -> void:
 	if garage == null or garage.at == Vector3.INF:
 		return
-	var lane := _lane_spot(garage.at, car.rotation.y)
 	var spot := garage.at
-	var yaw := car.rotation.y
-	if not lane.is_empty() and Vector2((lane[0] as Vector3).x, (lane[0] as Vector3).z).distance_to(Vector2(garage.at.x, garage.at.z)) < Garage.RING - 1.0:
-		spot = lane[0]
-		yaw = lane[1]
+	var yaw := atan2(-Garage.FACE.x, -Garage.FACE.y)  # the car's front is -Z
 	if flags.garage_ring_only:
 		var back := Vector3(sin(yaw), 0.0, cos(yaw)) * 16.0  # the car's front is -Z
 		spot = Vector3(spot.x + back.x, map.ground_height(spot.x + back.x, spot.z + back.z), spot.z + back.z)
@@ -3216,6 +3226,12 @@ func _build_stories(world: Node3D) -> void:
 		var act := (d["idle"] as Callable).get_object() as Activity  # its call card names it (F 2026-11-17)
 		if act != null:
 			act.invites[str(d["id"])] = [str(d["pl"]), str(d["en"])]
+			# A questline played to its end never phones again (F 2026-11-25); QUESTS still starts it.
+			act.story_closed = func(id: String) -> bool: return wallet != null and QuestBook.is_done(wallet.intro, id)
+			act.story_finished = func(id: String) -> void:
+				if wallet != null and not QuestBook.is_done(wallet.intro, id):
+					QuestBook.mark_done(wallet.intro, id)
+					wallet.save()
 			act.declined = func(id: String) -> void:  # turned down or rung out: NEW in QUESTS, and a toast
 				var w := QuestBook.mark_invite(wallet.intro, stories.defs, id) if wallet != null else []
 				if not w.is_empty():
@@ -3399,7 +3415,7 @@ func _on_boat_left() -> void:
 func _sound_mode() -> String:
 	if boat_race != null and boat_race.boating() and boat_race.player != null:
 		return "electric" if boat_race.player.kind == BoatRace.Boat.Kind.ELECTRIC else "boat"
-	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside):
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside) or (tapczan != null and tapczan.inside()):
 		return "foot"
 	return "bike" if car.model == "bike" else "car"
 
@@ -3474,6 +3490,21 @@ func _on_lounge_done(how: String, score: int) -> void:
 		shisha.lounge_done(how, score)
 
 
+## The city's 3D drawn or not: off while a full-screen pixel game covers it (padel_match.gd,
+## the pub's pong_match.gd through GameCtx.city_drawn). Its SubViewport, not the root, draws the
+## 3D; the update mode it had is put back.
+func set_city_drawn(on: bool) -> void:
+	if sv == null:
+		return
+	if not on and sv.render_target_update_mode != SubViewport.UPDATE_DISABLED:
+		_padel_sv_mode = sv.render_target_update_mode
+		sv.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		view.visible = false
+	elif on and not view.visible:
+		sv.render_target_update_mode = _padel_sv_mode
+		view.visible = true
+
+
 ## Onto the court at WTS DESKA (padel_match.gd): the HUD aside, the vehicle waiting, the city's 3D
 ## off while the pixel match covers the screen.
 func _enter_padel(info: Dictionary, auto_play := false) -> void:
@@ -3489,10 +3520,7 @@ func _enter_padel(info: Dictionary, auto_play := false) -> void:
 	padel.enter(info)
 	hud.visible = false
 	# The city stops rendering under the court (its SubViewport, not the root, draws the 3D).
-	if sv != null:
-		_padel_sv_mode = sv.render_target_update_mode
-		sv.render_target_update_mode = SubViewport.UPDATE_DISABLED
-		view.visible = false
+	set_city_drawn(false)
 	car.vel = Vector3.ZERO
 	car.forward_speed = 0.0
 	car.process_mode = Node.PROCESS_MODE_DISABLED
@@ -3503,9 +3531,7 @@ func _enter_padel(info: Dictionary, auto_play := false) -> void:
 
 func _on_padel_done(g_us: int, g_them: int, stats: Dictionary) -> void:
 	hud.visible = not flags.hide_hud
-	if sv != null:
-		sv.render_target_update_mode = _padel_sv_mode
-		view.visible = true
+	set_city_drawn(true)
 	car.process_mode = Node.PROCESS_MODE_INHERIT
 	if heli != null:
 		heli.process_mode = _padel_heli_mode
@@ -3535,9 +3561,9 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "first-10 guide"
 	if not ringing_ok and not hud.offer_ok():  # spacing, settle, quiet; a call's gap: activity.gd `_ring_turn`
 		return "offers: a card was up lately, or a quest or a chase is on or just ended (messages.gd)"
-	# Any card on screen, and the rescue line's call ringing on the context button (the director's
-	# `call_on_pill`) unless `ringing_ok`; its card or run is the director's (`activities.busy` below).
-	if hud.cards_up() or (activities.call_on_pill() and not ringing_ok):
+	# Any card on screen, and the rescue line's call just come to the context button (the director's
+	# `call_fresh`) unless `ringing_ok`; its card or run is the director's (`activities.busy` below).
+	if hud.cards_up() or (activities.call_fresh() and not ringing_ok):
 		return "a card or a rescue call is up"
 	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return "ride/job/trend job busy"
@@ -3602,6 +3628,7 @@ func _build_ctx() -> GameCtx:
 	_ctx.focus = func() -> Vector3: return cam_focus
 	_ctx.focus_at = func(p: Vector3) -> void: cam_focus = p
 	_ctx.night_now = func() -> void: _story_skip_to(22.0)
+	_ctx.city_drawn = set_city_drawn
 	return _ctx
 
 
@@ -3650,7 +3677,7 @@ func _ev_free() -> bool:
 		return false
 	if first10 != null and first10.friends_wait():
 		return false
-	if hud.cards_up() or activities.call_on_pill() or hud.offers_quiet():
+	if hud.cards_up() or activities.call_fresh() or hud.offers_quiet():
 		return false
 	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return false
@@ -4837,6 +4864,8 @@ func _quest_entries() -> Array:
 	if rides != null and rides.can_request():
 		out.append(Lines.entry("ride", "ride", Lines.Line.CAR, "Podwózka · poproś o kurs", "Podwózka · ask for a ride",
 				Vector2.INF, Rides.COLOUR, "ride"))
+	if tapczan != null:
+		out.append(tapczan.quest_entry())  # the pub and the Kraftowa crawl's door (SIDE JOBS)
 	if garage != null and garage.at != Vector3.INF:
 		out.append(Lines.entry("garage", "garage", Lines.Line.CAR, "Warsztat u Mirka", "Mirek's garage",
 				Vector2(garage.at.x, garage.at.z), Garage.GARAGE_COLOUR))
@@ -5055,7 +5084,7 @@ func _settings_state() -> Dictionary:
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index,
 			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
-			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on), "test_device": int(settings.test_device),
+			"angle": FollowCamera.PITCHES.size() if top_down else maxi(0, FollowCamera.PITCHES.find(-camera_pitch)), "camera_view": FollowCamera.VIEW_TOP_DOWN if top_down else settings.camera_view, "promo": int(promo != null and promo.on), "test_device": int(settings.test_device),
 			"weather": weather.state, "time": tod.look_mode(), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
 			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "character": settings.character,
@@ -5151,8 +5180,14 @@ func _on_setting(key: String, value: Variant) -> void:
 			_apply_fps()
 		"angle":
 			# F (2026-11-07): the camera's angle (follow_camera.gd PITCHES); the camera follows next frame.
-			settings.pitch = FollowCamera.PITCHES[clampi(int(value), 0, FollowCamera.PITCHES.size() - 1)]
-			camera_pitch = -settings.pitch
+			# F (2026-11-24): the choice after the last pitch is the top-down view (`top_down`, saved as camera_view).
+			if int(value) >= FollowCamera.PITCHES.size():
+				_set_view(FollowCamera.VIEW_TOP_DOWN)
+			else:
+				settings.pitch = FollowCamera.PITCHES[clampi(int(value), 0, FollowCamera.PITCHES.size() - 1)]
+				camera_pitch = -settings.pitch
+				if top_down:
+					_set_view(FollowCamera.VIEW_NORMAL)
 		"camera_view":
 			_set_view(int(value))
 		"promo":
@@ -6607,7 +6642,7 @@ func _toggle_vehicle() -> void:
 	# Inside the club, the lounge or the padel hall the HUD is hidden, but H and the pad's vehicle
 	# button still came here: the helicopter rose over the parked car and the player left the room
 	# in the air.
-	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside):
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside) or (tapczan != null and tapczan.inside()):
 		return
 	if flying and ev_tow != null and ev_tow.carrying():
 		hud.toast("Najpierw odstaw %s pod ładowarkę (albo ✕)" % EvTow.NAME, "Set the %s down at the charger first (or ✕)" % EvTow.NAME)
@@ -6956,6 +6991,8 @@ func _screen_to_world(s: Vector2) -> Vector3:
 
 
 func _update_camera(dt: float) -> void:
+	if tapczan != null and tapczan.room_view(cam, camera_pitch):
+		return
 	if lounge != null and lounge.inside:
 		# Senatorek (lounge.gd): the same fixed cutaway view.
 		var lb := Basis.from_euler(Vector3(deg_to_rad(camera_pitch), deg_to_rad(lounge.yaw), 0.0))
@@ -7045,7 +7082,7 @@ func _update_camera(dt: float) -> void:
 		cam.global_transform = Transform3D(b, _snap_to_pixels(cam.global_transform.origin, b, cam.size))
 	else:
 		cam.size = _view_size
-		cam.global_transform = view_xf
+		cam.global_transform = view_xf if tapczan == null else tapczan.sway(view_xf)
 	cam.far = _camera_far(maxf(CAMERA_DISTANCE, cam.size * 1.6), size)
 
 

@@ -104,13 +104,20 @@ levels (if their folder is given) to balance the buses against.
   techno_thump   the techno-yoga speaker (wellness.gd): a muffled four-on-the-floor at 128 BPM (a 7.5 s loop)
   jazz_trio      the jazz evenings under the Powiśle saucer (city_sounds.gd `jazz`): an original swung
       tune in F at 132 BPM, walking bass, ride and brushes, piano comping, vibraphone (a 14.5 s loop)
+  pub_room       THE TAPCZAN's room (sfx.gd pub_bed): a pub's warm talk, glasses at the bar, a laugh
+      (a 10 s loop)
+  beer_pour / glass_clink   WYPIJ PIWKO (tapczan_room.gd): the tap's pour as the glass fills (1.8 s);
+      two pint glasses touched (0.9 s)
+  pong_bounce / pong_cup / pong_rim   beer pong (pong_match.gd): the ball's tock on the table; into a
+      cup of beer (a tick and a plop); spinning on a rim (slowing ticks)
 
   --only=club_leak,busker  makes just those (the city's sounds: club_leak, metro_chime,
   church_bell, busker, crowd_murmur, steps_guitar; loop MW-4's bark_small, bark_mid, bark_big,
   bike_bell, watch_beep, queue_chatter, phone_shutter, cafe_bell; loop MW-2's frog_chime,
   scooter_clatter; the night-buses loop's horn_player; the vintage-tram loop's tram_creak,
   old_tram_bell; the railway audit's train_rumble, train_bridge, train_horn, station_gong; the
-  coffee run's bike_roll, bike_freewheel) and leaves the other files as
+  coffee run's bike_roll, bike_freewheel; THE TAPCZAN's pub_room, beer_pour, glass_clink,
+  pong_bounce, pong_cup, pong_rim) and leaves the other files as
   they are.
 """
 import array
@@ -2022,7 +2029,7 @@ def station_gong(seed):
 LOOPS = ["engine_idle", "engine_mid", "engine_high", "tyre_roll", "tyre_wet", "tyre_squeal", "rotor",
          "city_day", "city_night", "rain", "police_siren", "ambulance_siren", "fire_siren", "club_leak", "busker", "crowd_murmur", "steps_guitar",
          "queue_chatter", "amb_river", "amb_park", "amb_square", "amb_yard", "fan_chant", "gong_bowls", "techno_thump",
-         "jazz_trio", "bike_roll", "bike_freewheel", "lift_hum"]
+         "jazz_trio", "bike_roll", "bike_freewheel", "lift_hum", "pub_room"]
 
 
 def loud_rev(seed):
@@ -2099,6 +2106,161 @@ def loud_rev(seed):
     return fade(out, 0.01, 0.25)
 
 
+# --- THE TAPCZAN (tapczan_room.gd, pong_match.gd; 2026-11-25) --------------------------------------
+
+def pub_room(seed):
+    """THE TAPCZAN's room while the player is inside (sfx.gd `pub_bed`): a pub's talk, closer and
+    warmer than the street's crowd (ten formant-noise voices, the top rolled off at 2 kHz, a low
+    room boom under it), glasses clinking at the bar now and then, a laugh. Periodic by
+    construction, 10 s, so it loops."""
+    rnd = random.Random(seed)
+    n = int(10.0 * RATE)
+    out = zeros(n)
+    w = noise(n, rnd)
+    for v in range(10):
+        f1 = rnd.uniform(320.0, 700.0)
+        band = mix((1.0, biquad(w, "bp", f1, 2.0, True)), (0.4, biquad(w, "bp", f1 * rnd.uniform(2.1, 2.8), 2.4, True)))
+        env = zeros(n)
+        i = rnd.randrange(n)
+        left = n
+        while left > 0:
+            phrase = int(rnd.uniform(1.0, 2.8) * RATE)
+            rate = rnd.uniform(3.0, 5.5)
+            for k in range(phrase):
+                env[(i + k) % n] += max(0.0, math.sin(TAU * k / RATE * rate)) ** 2 * min(1.0, k / 600.0, (phrase - k) / 600.0)
+            gap = int(rnd.uniform(0.3, 1.2) * RATE)
+            i = (i + phrase + gap) % n
+            left -= phrase + gap
+        gain = rnd.uniform(0.4, 1.0)
+        for k in range(n):
+            out[k] += band[k] * env[k] * gain
+    out = biquad(biquad(out, "lp", 2000.0, 0.7, True), "hp", 110.0, 0.7, True)
+    # the room's boom: a slow swell of low noise (people, chairs, the fridge)
+    boom = biquad(noise(n, rnd), "lp", 180.0, 0.7, True)
+    out = mix((1.0, out), (0.35, boom))
+    # glasses at the bar: a pair of soft tings every ~1.6 s on average, never on the seam
+    t = 0.4
+    while t < 9.2:
+        f = rnd.uniform(2400.0, 3300.0)
+        ting = bell(int(0.35 * RATE), [(f, 1.0, 0.09), (f * 1.49, 0.4, 0.06), (f * 2.27, 0.2, 0.03)], 0.25, rnd)
+        place(out, ting, int(t * RATE), rnd.uniform(0.12, 0.25))
+        if rnd.random() < 0.5:
+            place(out, ting, int((t + rnd.uniform(0.07, 0.14)) * RATE), rnd.uniform(0.06, 0.12))
+        t += rnd.uniform(0.9, 2.4)
+    at = rnd.randrange(n)
+    laugh = biquad(noise(int(1.0 * RATE), rnd), "bp", rnd.uniform(480.0, 640.0), 3.0)
+    for k in range(len(laugh)):
+        tt = k / RATE
+        laugh[k] *= max(0.0, math.sin(TAU * 5.0 * tt)) * math.exp(-tt * 2.2) * 1.4
+    place(out, laugh, at, 1.0)
+    return out
+
+
+def beer_pour(seed):
+    """WYPIJ PIWKO: the tap's pour, 1.8 s: the handle's clack, then the foam's hiss through a
+    resonance that climbs as the glass fills (a glass's cavity shortening: 600 -> 1,500 Hz), a
+    trickle of bubbles on top, the last drips."""
+    rnd = random.Random(seed)
+    n = int(1.8 * RATE)
+    hiss = noise(n, rnd)
+    out = zeros(n)
+    # the band-pass swept in blocks (a biquad per block, overlapped by a short crossfade)
+    blk = 512
+    for b0 in range(0, n, blk):
+        u = b0 / n
+        f = 600.0 + 900.0 * u ** 0.8
+        seg = biquad(hiss[b0:b0 + blk + 64], "bp", f, 4.0)
+        for k, v in enumerate(seg):
+            if b0 + k < n:
+                g = 1.0 if k < blk else (1.0 - (k - blk) / 64)
+                if b0 > 0 and k < 64:
+                    g *= k / 64
+                out[b0 + k] += v * g
+    for i in range(n):
+        t = i / RATE
+        env = min(1.0, (t - 0.08) / 0.12) if t > 0.08 else 0.0
+        env *= min(1.0, (1.55 - t) / 0.15) if t < 1.55 else 0.0
+        out[i] *= env * (0.8 + 0.2 * math.sin(TAU * 7.0 * t))
+    # bubbles: tiny rising chirps
+    for _ in range(26):
+        at = rnd.uniform(0.15, 1.6)
+        f0 = rnd.uniform(900.0, 1800.0)
+        m = int(0.02 * RATE)
+        ph = 0.0
+        for k in range(m):
+            ph += f0 * (1.0 + 1.5 * k / m) / RATE
+            i = int(at * RATE) + k
+            if i < n:
+                out[i] += 0.25 * math.sin(TAU * ph) * (1 - k / m)
+    # the handle's clack at the start, two drips at the end
+    clack = bell(int(0.05 * RATE), [(1900.0, 1.0, 0.008), (3100.0, 0.5, 0.005)], 0.6, rnd)
+    place(out, clack, 0, 0.9)
+    for at in (1.62, 1.72):
+        drip = bell(int(0.06 * RATE), [(rnd.uniform(1100.0, 1400.0), 1.0, 0.015)], 0.0, rnd)
+        place(out, drip[: n - int(at * RATE)], int(at * RATE), 0.5)
+    return fade(biquad(out, "hp", 200.0, 0.7), 0.0, 0.05)
+
+
+def glass_clink(seed):
+    """Na zdrowie: two pint glasses touched, 0.9 s: a thick glass's low ring (two close partials
+    beating) and the bright tick of the touch, a smaller second touch a beat later."""
+    rnd = random.Random(seed)
+    n = int(0.9 * RATE)
+    out = zeros(n)
+    for k, (at, g) in enumerate(((0.0, 1.0), (0.11, 0.45))):
+        f = rnd.uniform(1350.0, 1500.0)
+        ring = bell(n - int(at * RATE), [(f, 1.0, 0.22), (f * 1.012, 0.7, 0.2), (f * 2.65, 0.4, 0.08),
+                                        (f * 4.1, 0.2, 0.03)], 0.5, rnd)
+        place(out, ring, int(at * RATE), g)
+    return fade(out, 0.0, 0.1)
+
+
+def pong_bounce(seed):
+    """Beer pong: the ball on the table, 0.12 s: the hollow tock of a celluloid ball (a short
+    ring near 3 kHz) over the table's dull knock."""
+    rnd = random.Random(seed)
+    n = int(0.12 * RATE)
+    out = bell(n, [(rnd.uniform(2900.0, 3200.0), 1.0, 0.012), (4700.0, 0.4, 0.006), (520.0, 0.7, 0.02)], 0.5, rnd)
+    return fade(out, 0.0, 0.02)
+
+
+def pong_cup(seed):
+    """Beer pong: the ball into a cup of beer, 0.5 s: a tick off the plastic rim, then the plop
+    (a quick downward pitch drop in the liquid) and a little splash."""
+    rnd = random.Random(seed)
+    n = int(0.5 * RATE)
+    out = zeros(n)
+    place(out, bell(int(0.05 * RATE), [(2300.0, 1.0, 0.01), (3600.0, 0.4, 0.006)], 0.3, rnd), 0, 0.6)
+    at = int(0.03 * RATE)
+    m = int(0.09 * RATE)
+    ph = 0.0
+    for k in range(m):
+        t = k / RATE
+        ph += (900.0 * math.exp(-t * 18.0) + 260.0) / RATE
+        out[at + k] += math.sin(TAU * ph) * math.exp(-t * 30.0)
+    spl = biquad(noise(int(0.35 * RATE), rnd), "bp", 2600.0, 0.9)
+    for k in range(len(spl)):
+        spl[k] *= math.exp(-k / RATE * 14.0) * 0.35
+    place(out, spl, at + int(0.02 * RATE), 1.0)
+    return fade(out, 0.0, 0.05)
+
+
+def pong_rim(seed):
+    """Beer pong: the ball spinning on a cup's rim, 0.7 s: a run of light plastic ticks slowing
+    down (a thin cup's ring at ~1.8 kHz)."""
+    rnd = random.Random(seed)
+    n = int(0.7 * RATE)
+    out = zeros(n)
+    t = 0.0
+    gap = 0.045
+    while t < 0.62:
+        tick = bell(int(0.04 * RATE), [(rnd.uniform(1700.0, 1900.0), 1.0, 0.008), (3300.0, 0.3, 0.004)], 0.2, rnd)
+        place(out, tick[: n - int(t * RATE)], int(t * RATE), 0.6 + 0.4 * (1 - t / 0.7))
+        t += gap
+        gap *= 1.12
+    return fade(out, 0.0, 0.05)
+
+
 # Loop MW-5: the city's sounds (city_sounds.gd), made on their own with --only=.
 CITY = {"club_leak": lambda: [club_leak(71)], "metro_chime": lambda: [metro_chime(72)],
         "church_bell": lambda: [church_bell(73)], "busker": lambda: [busker(74)],
@@ -2141,9 +2303,13 @@ CITY = {"club_leak": lambda: [club_leak(71)], "metro_chime": lambda: [metro_chim
         "lift_hum": lambda: [lift_hum(111)],
         # The coffee run's bike (sfx.gd mode "bike"): the ride and the coasting hub.
         "bike_roll": lambda: [bike_roll(2.0, 107)], "bike_freewheel": lambda: [bike_freewheel(2.0, 108)],
-        # Road life (road_life.gd): the ambulance on a call.
+        # Road life (road_life.gd): the ambulance and the fire engine on a call.
         "ambulance_siren": lambda: [ambulance_siren(115)],
-        "fire_siren": lambda: [fire_siren(116)]}
+        "fire_siren": lambda: [fire_siren(116)],
+        # THE TAPCZAN (tapczan_room.gd, pong_match.gd): the room's talk, the pour, the clink, the ball.
+        "pub_room": lambda: [pub_room(115)], "beer_pour": lambda: [beer_pour(116)],
+        "glass_clink": lambda: [glass_clink(117)], "pong_bounce": lambda: [pong_bounce(118)],
+        "pong_cup": lambda: [pong_cup(119)], "pong_rim": lambda: [pong_rim(120)]}
 
 
 def main(out_dir, radio_dir=None, only=None):

@@ -1503,9 +1503,12 @@ func _build_gielda(_site: Dictionary) -> void:
 ## docs/landmarks/specs/filharmonia.md, from the Mac's photos and ortho in
 ## docs/landmarks/photo-reports/filharmonia.md, 2026-11-02). The mass stays LoD2's in its skin
 ## of pale cream stone; the model adds the Jasna front: a rusticated base, the giant order of
-## smooth cream-white columns, the tall windows between them each with an iron balconette and a
-## white composer on the sill, the cornice and the attic; on the corner at Sienkiewicza the
-## green neon FN roundel and SALA KONCERTOWA (the institution's own words, not a brand).
+## smooth cream-white columns with Ionic capitals, a French door in each bay behind the balcony's
+## iron railing, two composers on the balcony (Chopin and Moniuszko), FILHARMONIA NARODOWA cut in
+## the frieze, the cornice and the attic's balustrade; below, the rusticated arcade of round-headed
+## openings; on the Sienkiewicza wall the round "fn" sign on its bracket (red ring, green letters)
+## and SALA KONCERTOWA (the institution's own words, not a brand). Reworked 2026-11-24 from the
+## Commons photos in refs/filharmonia (4-14): the tall arched windows and ten composers were wrong.
 ## Frame: u along the mapped Jasna front from its north end, +v out of it to the street (east).
 const FIL_A := Vector2(-860.7, -77.7)
 const FIL_B := Vector2(-837.6, -27.0)
@@ -1517,6 +1520,9 @@ const FIL_DARK := Color("#232a33")
 const FIL_IRON := Color("#2b2c2e")
 const FIL_LEAD := Color("#a2a7a8")
 const FIL_NEON := Color(0.2, 1.0, 0.45)
+const FIL_RING := Color("#ff4a2a")        # the roundel's red neon ring
+const FIL_DOOR := Color("#5e3a26")        # the French doors' brown frames
+const FIL_INSCRIPTION := Color("#5f5a50") # the letters cut in the frieze
 const FIL_COLS := 11
 const FIL_END := 4.8       # the solid corner bays at both ends of the colonnade
 const FIL_BASE_TOP := 4.5
@@ -1534,32 +1540,115 @@ func _build_filharmonia(_site: Dictionary) -> void:
 	var base := g + FIL_BASE_TOP
 	var top := g + FIL_TOP
 	var bay := (span - 2.0 * FIL_END) / float(FIL_COLS - 1)
-	# the windows first (they stand off the face), then the face, then the columns in front
+	# The rusticated base (2026-11-24, refs/filharmonia 5, 7, 9): an arcade of round-headed openings,
+	# one per bay, dark behind their grilles, on a step; the piers between them banded with grooves.
+	_lbox(m, 0.25, m + 0.2, 0.5, g - 0.6, base, FIL_BASE, M_STONE, FIL_BASE.lightened(0.05))
+	_lbox(m, 0.95, m + 0.2, 0.2, g - 0.6, g + 0.15, FIL_BASE.darkened(0.08), M_STONE, FIL_BASE.darkened(0.04))   # the step
+	var arch_hw := minf(1.35, bay * 0.3)
 	for k in FIL_COLS - 1:
 		var u := FIL_END + (k + 0.5) * bay
-		_arch_panel(_w(u, 0.35), _a, _b, 1.0, base + 1.2, top - 2.6, FIL_DARK, 0.04, M_GLASS)
-		_lbox(u, 0.7, 1.15, 0.35, base + 1.05, base + 1.25, FIL_WALL, M_STONE, FIL_WALL)   # the sill
-		_lbox(u, 0.86, 1.1, 0.03, base + 1.25, base + 2.2, FIL_IRON, M_STONE, FIL_IRON)    # the balconette
-		_fil_composer(_w(u, 0.75), base + 1.25)
-		_arch_panel(_w(u, 0.35), _a, _b, 0.75, g + 1.0, g + 3.2, FIL_DARK, 0.04, M_GLASS)  # ground-floor windows
+		_arch_panel(_w(u, 0.75), _a, _b, arch_hw, g + 0.15, g + 2.75, FIL_DARK, 0.02, M_GLASS)
+		_lbox(u, 0.79, arch_hw, 0.01, g + 2.55, g + 2.62, FIL_IRON, M_STONE, FIL_IRON)   # the grille's transom
+	# The grooves: on each pier under a column, and on the two solid end bays.
+	var pier := bay * 0.5 - arch_hw - 0.1
+	var ends: Array[Vector2] = [Vector2(0.2, FIL_END - pier - 0.05), Vector2(span - FIL_END + pier + 0.05, span - 0.2)]
+	for row in 6:
+		var y := g + 0.75 + row * 0.6
+		var groove := FIL_BASE.darkened(0.14)
+		for k in FIL_COLS:
+			_lbox(FIL_END + k * bay, 0.765, pier, 0.015, y, y + 0.04, groove, M_STONE, groove)
+		for e: Vector2 in ends:
+			_lbox((e.x + e.y) * 0.5, 0.765, (e.y - e.x) * 0.5, 0.015, y, y + 0.04, groove, M_STONE, groove)
+	# The balcony along the colonnade's foot (the base's cornice carries it), its iron railing
+	# between the columns; behind it a rectangular French door in each bay (brown frames, a cross).
+	_lbox(m, 1.3, m + 0.25, 1.15, base - 0.35, base, FIL_WALL.lightened(0.03), M_STONE, FIL_WALL)
 	_lbox(m, 0.05, m, 0.3, base, top, FIL_WALL, M_STONE, FIL_WALL)
-	_lbox(m, 0.25, m + 0.2, 0.5, g - 0.6, base, FIL_BASE, M_STONE, FIL_BASE.lightened(0.05))
-	_lbox(m, 0.3, m + 0.25, 0.55, base - 0.35, base, FIL_WALL.lightened(0.03), M_STONE, FIL_WALL)
+	for k in FIL_COLS - 1:
+		var u := FIL_END + (k + 0.5) * bay
+		_lbox(u, 0.37, 0.85, 0.02, base + 0.05, base + 3.5, FIL_DOOR, M_STONE, FIL_DOOR)
+		_lbox(u, 0.4, 0.06, 0.02, base + 0.05, base + 3.5, FIL_DOOR.lightened(0.15), M_STONE, FIL_DOOR)
+		_lbox(u, 0.4, 0.85, 0.02, base + 2.2, base + 2.3, FIL_DOOR.lightened(0.15), M_STONE, FIL_DOOR)
+		_lbox(u, 0.36, 1.0, 0.04, base + 3.5, base + 3.75, FIL_WALL.darkened(0.05), M_STONE, FIL_WALL)   # the lintel
+		# The railing: a top rail and a low dark band (a solid 1 m box read as a black slab).
+		_lbox(u, 2.35, bay * 0.5 - 0.75, 0.03, base + 0.85, base + 0.92, FIL_IRON, M_STONE, FIL_IRON)
+		_lbox(u, 2.35, bay * 0.5 - 0.75, 0.015, base + 0.05, base + 0.85, FIL_IRON.lightened(0.25), M_STONE, FIL_IRON)
+	# Two composers, not ten (the photos): Chopin and Moniuszko on the balcony either side of the middle.
+	var mid := (FIL_COLS - 1) / 2
+	for k: int in [mid - 2, mid + 1]:
+		_fil_composer(_w(FIL_END + (k + 0.5) * bay, 1.2), base)
 	for k in FIL_COLS:
-		_column(FIL_END + k * bay, 1.55, 0.62, base, top, FIL_COLUMN)
-	# entablature, cornice, attic
+		var u := FIL_END + k * bay
+		_column(u, 1.55, 0.62, base, top, FIL_COLUMN)
+		# The Ionic capital: the volutes either side, wider than the shaft along the front.
+		_lbox(u, 1.55, 0.95, 0.5, top - 0.55, top - 0.25, FIL_COLUMN.lightened(0.04), M_STONE, FIL_COLUMN)
+		for sd in [-1.0, 1.0]:
+			_lbox(u + sd * 0.85, 1.55, 0.14, 0.52, top - 0.75, top - 0.3, FIL_COLUMN.darkened(0.04), M_STONE, FIL_COLUMN)
+	# The entablature with FILHARMONIA NARODOWA cut in its frieze, the cornice, and the attic's
+	# balustrade (a plinth, balusters in panels between posts, the top rail).
 	_lbox(m, 0.85, m + 0.2, 1.4, top, top + 1.2, FIL_COLUMN, M_STONE, FIL_COLUMN)
+	_fil_word("FILHARMONIA NARODOWA", m, top + 0.3, 0.62, 0.26, 2.26, FIL_INSCRIPTION)
 	_lbox(m, 1.0, m + 0.45, 1.6, top + 1.2, top + 1.65, FIL_COLUMN.lightened(0.04), M_STONE, FIL_LEAD)
-	_lbox(m, 0.1, m + 0.1, 0.35, top + 1.65, top + 3.0, FIL_WALL, M_STONE, FIL_LEAD)
-	# the corner at Sienkiewicza: a dark round plate with FN over the door, the hall's name lower down
-	var corner := _w(span - 2.4, 0.45)
+	_lbox(m, 0.2, m + 0.1, 0.45, top + 1.65, top + 1.95, FIL_WALL, M_STONE, FIL_WALL)
+	_lbox(m, 0.2, m + 0.1, 0.45, top + 2.75, top + 2.95, FIL_WALL.lightened(0.04), M_STONE, FIL_LEAD)
+	var posts := int(span / 4.6)
+	for k in posts + 1:
+		_lbox(-0.1 + k * (span + 0.2) / posts, 0.2, 0.22, 0.4, top + 1.95, top + 2.75, FIL_WALL, M_STONE, FIL_WALL)
+	var n_bal := int(span / 0.62)
+	for k in n_bal:
+		var u := 0.31 + k * span / n_bal
+		_lbox(u, 0.35, 0.08, 0.08, top + 1.95, top + 2.75, FIL_COLUMN, M_STONE, FIL_COLUMN)
+	# The corner at Sienkiewicza (refs/filharmonia 1, 13): the round "fn" sign on a bracket out of the
+	# side wall, a red neon ring round the green letters, both faces; the hall's name lower down.
+	var disc_at := _w(span + 1.5, -3.0)
+	var y_fn := top - 3.2
+	var nb := Vector3(_b.x, 0.0, _b.y)
+	_lbox(span + 0.75, -3.0, 0.75, 0.05, y_fn + 1.05, y_fn + 1.15, FIL_IRON, M_STONE, FIL_IRON)
+	_lbox(span + 0.75, -3.0, 0.75, 0.05, y_fn - 0.05, y_fn + 0.05, FIL_IRON, M_STONE, FIL_IRON)
+	# A hidden plate between the two faces joins them to the bracket, and a stone strip on the side
+	# wall (the corner's pilaster, from the front's face back past the bracket) carries it.
+	_lbox(span + 1.5, -3.0, 0.68, 0.01, y_fn - 0.13, y_fn + 1.23, FIL_IRON, M_STONE, FIL_IRON)
+	_ubox(span - 0.05, span + 0.08, -3.8, -0.2, base, top, FIL_WALL, M_STONE, FIL_WALL)
+	for sd in [-1.0, 1.0]:
+		var c: Vector3 = Vector3(disc_at.x, y_fn + 0.55, disc_at.y) + nb * (0.08 * sd)
+		var keep := _mode
+		_mode = M_LAMP
+		_disc(c, nb * sd, 1.05, 18, FIL_RING)
+		_mode = keep
+		_disc(c + nb * (0.06 * sd), nb * sd, 0.92, 18, FIL_DARK)
+		if sd > 0.0:   # one sign: the neon is seen from both sides (two overlapped from an angle)
+			signs.append(["FN", c + nb * 0.09, nb, 0.85, FIL_NEON])
 	var n3 := Vector3(_b.x, 0.0, _b.y)
-	_disc(Vector3(corner.x, top - 2.0, corner.y), n3, 1.5, 16, FIL_DARK)
-	signs.append(["FN", Vector3(corner.x, top - 2.6, corner.y) + n3 * 0.08, n3, 1.1, FIL_NEON])
-	var name_at := _w(span - FIL_END * 0.5 - 1.0, 0.6)
+	var name_at := _w(span - FIL_END * 0.5 - 1.0, 0.8)
 	signs.append(["SALA", Vector3(name_at.x, base - 1.0, name_at.y), n3, 0.45, FIL_NEON])
 	signs.append(["KONCERTOWA", Vector3(name_at.x, base - 2.1, name_at.y), n3, 0.45, FIL_NEON])
 	_collide(_rect(m, 1.0, m + 0.3, 1.2))
+
+
+## An inscription cut in the frieze: `text` in PixelFont's letters as dark stone runs, centred at
+## u `cu`, from y `y0`, `h` high, `sx` m a pixel across, standing out to v `v` (the frieze's face).
+## The reader faces -v, so the word runs along -u.
+func _fil_word(text: String, cu: float, y0: float, h: float, sx: float, v: float, col: Color) -> void:
+	var sy := h / 7.0
+	var width := 0.0
+	for ch in text:
+		width += (_pow_glyph_w(ch) + 1) * sx
+	width -= sx
+	var at := cu - width * 0.5
+	for ch in text:
+		var lit := {}
+		for q: Vector2i in _pow_glyph(ch):
+			lit[q] = true
+		for q: Vector2i in lit:
+			if lit.has(q - Vector2i(1, 0)):
+				continue
+			var e := q
+			while lit.has(e + Vector2i(1, 0)):
+				e += Vector2i(1, 0)
+			var row := PixelFont.BODY + 6 - q.y
+			var u0 := at + q.x * sx
+			var u1 := at + (e.x + 1) * sx
+			_lbox(2.0 * cu - (u0 + u1) * 0.5, v, (u1 - u0) * 0.5, 0.02, y0 + row * sy, y0 + (row + 1) * sy, col, M_STONE, col)
+		at += (_pow_glyph_w(ch) + 1) * sx
 
 
 ## A composer on a window sill: white stone, standing, a cloak to the ankles, one hand at the chest.

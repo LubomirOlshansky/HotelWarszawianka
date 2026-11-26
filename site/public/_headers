@@ -12,3 +12,9 @@
 
 /video/*
   Cache-Control: public, max-age=31536000, immutable
+
+/beta/*
+  X-Robots-Tag: noindex, nofollow
+
+/pl/beta/*
+  X-Robots-Tag: noindex, nofollow

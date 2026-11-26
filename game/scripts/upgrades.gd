@@ -12,13 +12,17 @@ extends RefCounted
 ##    keyboard, LB or RB on a pad).
 ##  - **Parts** (PARTS): tyres (grip) and engine (top speed and pull), levels 1 to 3, each level
 ##    dearer than the last (100-320 zł), kept for any car.
+##  - **Looks** (LOOKS, F 2026-11-24: "you can buy, for example, add a spoiler"): the GT wing and the
+##    underglow, bought once and kept for any car; they change nothing in the numbers (Mirek says so).
+##    Owned looks are in `tune` as level 1 (save and rules as the parts'), so no new save section.
 ## Prices follow the jobs' pay (a kebab run about 35 zł, a First step 50 zł). Beta prices (F
 ## 2026-11-17: "a lot less, it's a beta"): the first part (100 zł) is two runs away, the nitro
 ## (350) about ten minutes of jobs, the coupe (1,500) the long-term goal.
 
-## id, kind, name [pl, en], what it is [pl, en], price (zł), and the model's multipliers (cars).
+## id, kind, name [pl, en], the card tile's short name ("short", when the name is long), what it is
+## [pl, en], price (zł), and the model's multipliers (cars).
 const CARS: Array[Dictionary] = [
-	{"id": "hatch", "name": ["Hatchback z paskami", "Striped hatch"],
+	{"id": "hatch", "name": ["Hatchback z paskami", "Striped hatch"], "short": ["Hatchback", "Hatch"],
 			"blurb": ["Mały, czerwony, uczciwy. Skręca tam, gdzie patrzysz.", "Small, red, honest. Turns where you look."],
 			"price": 0, "top": 1.0, "pull": 1.0, "grip": 1.0},
 	{"id": "tt", "name": ["Ołdi TT", "Owdy TT"],
@@ -26,21 +30,29 @@ const CARS: Array[Dictionary] = [
 			"price": 1500, "top": 1.2, "pull": 1.2, "grip": 1.1},
 ]
 const DEFAULT_CAR := "hatch"
-const NITRO := {"id": "nitro", "name": ["Nitro „Kebab Boost”", "Nitro: Kebab Boost"],
+const NITRO := {"id": "nitro", "name": ["Nitro „Kebab Boost”", "Nitro: Kebab Boost"], "short": ["Nitro", "Nitro"],
 		"blurb": ["Dwie butle. Stuknij: 2,5 s mocy. Pusta butla ładuje się 12 s.", "Two bottles. Tap: 2.5 s of power. An empty bottle refills in 12 s."],
 		"price": 350}
 ## The part's id, name, what a level adds, and the price of each level.
 const PARTS: Array[Dictionary] = [
-	{"id": "tyres", "name": ["Opony „Przyczep”", "Grip tyres"],
+	{"id": "tyres", "name": ["Opony „Przyczep”", "Grip tyres"], "short": ["Opony", "Tyres"],
 			"blurb": ["Przyczepność +8 % za poziom: trzyma zakręt.", "Grip +8 % a level: it holds the corner."],
 			"prices": [100, 180, 280], "grip": 0.08},
-	{"id": "engine", "name": ["Silnik „Mirek Stage”", "Mirek Stage engine"],
+	{"id": "engine", "name": ["Silnik „Mirek Stage”", "Mirek Stage engine"], "short": ["Silnik", "Engine"],
 			"blurb": ["Prędkość +4 %, przyspieszenie +8 % za poziom.", "Top speed +4 %, pull +8 % a level."],
 			"prices": [120, 220, 320], "top": 0.04, "pull": 0.08},
 ]
+## The looks: id, name, price (Mirek's words on them are dialogue.json "garage" tags `wing`, `neon`
+## and `wing_buy`, `neon_buy`).
+const LOOKS: Array[Dictionary] = [
+	{"id": "wing", "name": ["Spojler GT", "GT wing"], "price": 250},
+	{"id": "neon", "name": ["Neon pod autem", "Underglow"], "price": 300},
+]
 const MAX_LEVEL := 3
-## Order of the rows on the card.
-const ORDER := ["tt", "nitro", "tyres", "engine", "hatch"]
+## Order of the rows on the card (every shop id; the card's tabs, `TABS`, group them).
+const ORDER := ["hatch", "tt", "engine", "tyres", "nitro", "wing", "neon"]
+## The card's tabs (F 2026-11-24: AUTA, TUNING, STYL; the paints are on STYL too).
+const TABS := {"cars": ["hatch", "tt"], "tune": ["engine", "tyres", "nitro"], "style": ["wing", "neon"]}
 
 
 ## The car row `id`, or {}.
@@ -48,6 +60,13 @@ static func car(id: String) -> Dictionary:
 	for c in CARS:
 		if str(c["id"]) == id:
 			return c
+	return {}
+
+
+static func look(id: String) -> Dictionary:
+	for l in LOOKS:
+		if str(l["id"]) == id:
+			return l
 	return {}
 
 
@@ -63,16 +82,26 @@ static func find(id: String) -> Dictionary:
 	if id == "nitro":
 		return NITRO
 	var c := car(id)
-	return c if not c.is_empty() else part(id)
+	if not c.is_empty():
+		return c
+	var l := look(id)
+	return l if not l.is_empty() else part(id)
 
 
-## "car", "nitro", "part" or "".
+## "car", "nitro", "part", "look" or "".
 static func kind(id: String) -> String:
 	if id == "nitro":
 		return "nitro"
 	if not car(id).is_empty():
 		return "car"
+	if not look(id).is_empty():
+		return "look"
 	return "part" if not part(id).is_empty() else ""
+
+
+## A look owned (bought once, then on the car).
+static func has_look(tune: Dictionary, id: String) -> bool:
+	return int(tune.get(id, 0)) >= 1
 
 
 ## The level of part `id` in `tune` (id -> level), 0 to MAX_LEVEL.
@@ -90,8 +119,8 @@ static func price(id: String, tune: Dictionary) -> int:
 
 
 ## What a tap on `id` would do. `st` is {car, cars (id -> day), nitro (bool), tune (id -> level)}:
-## cars: "on" (on the road now), "switch" (owned: free), "buy", "short"; nitro: "owned", "buy",
-## "short"; parts: "max", "buy" (the next level), "short"; "" for an unknown id.
+## cars: "on" (on the road now), "switch" (owned: free), "buy", "short"; nitro and looks: "owned",
+## "buy", "short"; parts: "max", "buy" (the next level), "short"; "" for an unknown id.
 static func rule(id: String, zl: int, st: Dictionary) -> String:
 	match kind(id):
 		"car":
@@ -101,6 +130,9 @@ static func rule(id: String, zl: int, st: Dictionary) -> String:
 				return "switch"
 		"nitro":
 			if bool(st.get("nitro", false)):
+				return "owned"
+		"look":
+			if has_look(st.get("tune", {}), id):
 				return "owned"
 		"part":
 			if level(st.get("tune", {}), id) >= MAX_LEVEL:

@@ -123,6 +123,14 @@ var invites := {}
 ## Called with the questline's id when its call or offer is turned down or rings out: main.gd marks
 ## it NEW in the QUESTS screen and toasts where it waits.
 var declined: Callable
+## Is this questline finished for good? (id -> bool; main.gd: wallet.intro `qdone_<id>`). A finished
+## questline's friend never phones by the clock again (`_ring_turn`); the QUESTS screen's PHONE
+## button and the start spot still start it, because the player chose it (F 2026-11-25).
+var story_closed: Callable
+## Called with the questline's id when its run ends done (`finish`): main.gd saves `qdone_<id>`.
+var story_finished: Callable
+## The questline the run under way belongs to ("" a plain job, or a run that does not count: a stranger's tow).
+var run_story := ""
 ## Testing aid: calls at any hour.
 var force_hours := false
 
@@ -392,13 +400,22 @@ func _idle_tick(dt: float) -> void:
 
 ## The call's own clock says ring now: false while another caller's call goes first (TD-3's variety:
 ## this one rang last and another's call waits, the director's `my_turn`); this one then waits too.
-func _ring_turn() -> bool:
+func _ring_turn(story := "?") -> bool:
+	# A questline played to its end stays quiet (F 2026-11-25: "a character must not call again about a
+	# mission already done"). Not `_waited`: nobody else's turn is held for a call that will never ring.
+	if story_closed_now(_invite_id() if story == "?" else story):
+		return false
 	# The call gate (F 2026-11-19): `free_now` holds every offer for the spacing and the quiet time;
 	# a call by its own clock waits the call gap as well (messages.gd `call_ok`).
 	if _call_gate() and bool(my_turn.call()):
 		return true
 	_waited = _session
 	return false
+
+
+## The questline `id` is finished for good (false for "" and with no `story_closed` wired).
+func story_closed_now(id: String) -> bool:
+	return id != "" and story_closed.is_valid() and bool(story_closed.call(id))
 
 
 ## This one's call is due and waits: held by the call gate or by another's turn, within the last
@@ -499,6 +516,7 @@ func start() -> void:
 	_t = 0.0
 	_run_t = 0.0
 	end_how = "ended"
+	run_story = _invite_id()
 	_card_up = false
 	if on_start.is_valid():
 		on_start.call()
@@ -639,6 +657,9 @@ func drop(by_player: bool) -> void:
 ## The run is over and its last card closed.
 func finish() -> void:
 	end_how = "done"
+	if run_story != "" and story_finished.is_valid():
+		story_finished.call(run_story)
+	run_story = ""
 	_end(call_cool)
 
 

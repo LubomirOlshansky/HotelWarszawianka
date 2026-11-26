@@ -5158,6 +5158,9 @@ const S38_FONT := {
 	"T": ["###", ".#.", ".#.", ".#.", ".#."], "L": ["#..", "#..", "#..", "#..", "###"],
 	"I": ["###", ".#.", ".#.", ".#.", "###"], "3": ["###", "..#", "###", "..#", "###"],
 	"8": ["###", "#.#", "###", "#.#", "###"],
+	# THE TAPCZAN's umbrellas (KOLKA-KOLA).
+	"K": ["#.#", "#.#", "##.", "#.#", "#.#"], "O": ["###", "#.#", "#.#", "#.#", "###"],
+	"A": ["###", "#.#", "###", "#.#", "#.#"], "-": ["...", "...", "###", "...", "..."],
 }
 var _sm_run := 0.0
 
@@ -6777,3 +6780,744 @@ func _build_politechnika(_site: Dictionary) -> void:
 		_prism(_circle(_w(pu, face + 1.0), 0.75, 6), g + 4.6, g + 5.3, PW_GLOBE, PW_GLOBE, M_LAMP, M_LAMP)
 		_prism(_circle(_w(pu, face + 1.0), 0.3, 6), g + 5.3, g + 6.0, PW_GLOBE, PW_GLOBE, M_LAMP, M_LAMP)
 	_collide(_rect(0.0, face * 0.5, hw, face * 0.5))
+
+
+# --- THE TAPCZAN, the craft-beer pub on Sienkiewicza 4 (F's photos, 2026-11-24) -------------------
+# Spec docs/landmarks/specs/tapczan.md. A parody of the real pub's name (a "tapczan" is a sofa bed:
+# the pub you end up sleeping on); the real name is in data/brand_denylist.json. The house is
+# LoD2's and stays; this site dresses its street level and puts the summer terrace on the pavement.
+
+## The front of Sienkiewicza 4 on the street (OpenStreetMap's outline, west corner to east), and
+## where the pub's street level runs along it (u from the west corner, m).
+const TPZ_FRONT_A := Vector2(-789.1, -46.2)
+const TPZ_FRONT_B := Vector2(-763.1, -56.4)
+const TPZ_U0 := 0.4
+const TPZ_U1 := 12.8
+## The terrace (pallet deck) on the pavement: u along the front, v out of it; the kerb of the
+## carriageway stands at v ~6.5 (Sienkiewicza's centreline at v 10, 7 m wide).
+const TPZ_DECK := Rect2(0.3, 2.0, 12.4, 4.1)
+const TPZ_DECK_H := 0.16
+const TPZ_GF := 4.3          # the street level's height (the ledge over the glazing)
+const TPZ_CREAM := Color("#ece7db")    # the house's cream (SK4_CREAM)
+const TPZ_LEDGE := Color("#f5f2ea")
+const TPZ_STONE := Color("#8e8b84")
+const TPZ_STONE_D := Color("#6f6c66")
+const TPZ_FRAME := Color("#5c6166")
+const TPZ_GLASS := Color("#2c3338")
+const TPZ_VENT := Color("#c9ccce")
+const TPZ_BLACK := Color("#18181a")
+const TPZ_GOLD := Color("#c9a45a")
+const TPZ_NEON := Color(1.0, 0.8, 0.42)
+const TPZ_PINE := Color("#e2c591")
+const TPZ_PINE_D := Color("#b99a66")
+const TPZ_TABLE := Color("#8a6a48")
+const TPZ_CHAIR := Color("#202124")
+const TPZ_UMB := Color("#2a2b30")
+const TPZ_LEAF := Color("#5f8f3a")
+const TPZ_LEAF_D := Color("#467a2c")
+const TPZ_HERB := Color("#6fae45")
+## The two square umbrellas: centre u, v, half size, the canopy's rim and apex over the deck.
+const TPZ_UMBRELLAS := [[3.4, 3.9, 1.9], [9.5, 3.9, 1.9]]
+const TPZ_UMB_RIM := 2.35
+const TPZ_UMB_APEX := 3.0
+## The tables: two rows along the front, [u, v]; four chairs round each, folding, black.
+const TPZ_TABLES := [[1.6, 3.0], [4.3, 3.0], [7.1, 3.0], [10.2, 3.0],
+		[2.6, 4.7], [5.6, 4.7], [8.4, 4.7]]
+## The parody on the umbrellas' valances (the real ones carry a cola maker's script).
+const TPZ_UMB_WORD := "KOLKA-KOLA"
+
+
+func _find_tapczan() -> void:
+	var a := (TPZ_FRONT_B - TPZ_FRONT_A).normalized()
+	var b := Vector2(-a.y, a.x)
+	var at := func(u: float, v: float) -> Vector2: return TPZ_FRONT_A + a * u + b * v
+	var zone := PackedVector2Array([at.call(-0.2, -0.7), at.call(13.2, -0.7), at.call(13.2, 6.4), at.call(-0.2, 6.4)])
+	_add_site("tapczan", [zone])
+
+
+## The frame on the front: u east along it from the west corner, v out to the street.
+func _tpz_frame() -> void:
+	_o = TPZ_FRONT_A
+	_a = (TPZ_FRONT_B - TPZ_FRONT_A).normalized()
+	_b = Vector2(-_a.y, _a.x)
+
+
+## A thin bar between two points (a leg, a brace), drawn as a slim box: square section `r`.
+func _tpz_bar(p0: Vector3, p1: Vector3, r: float, col: Color) -> void:
+	var d := p1 - p0
+	if d.length() < 0.01:
+		return
+	var side := d.cross(Vector3.UP)
+	if side.length() < 0.001:
+		side = Vector3(_a.x, 0.0, _a.y)
+	side = side.normalized() * r
+	var up := side.cross(d).normalized() * r
+	var c := [p0 - side - up, p0 + side - up, p0 + side + up, p0 - side + up]
+	var e := [p1 - side - up, p1 + side - up, p1 + side + up, p1 - side + up]
+	_mode = M_STONE
+	for k in 4:
+		var q0: Vector3 = c[k]
+		var q1: Vector3 = c[(k + 1) % 4]
+		var mid := (q0 + q1) * 0.5 - p0
+		var n := (mid - d * (mid.dot(d) / d.length_squared())).normalized()
+		_quad(q0, q1, e[(k + 1) % 4], e[k], n, col)
+
+
+## A rough carved stone panel on the wall (the Art Deco reliefs between the bays): a flat slab
+## and a field of chiselled bumps in two greys, set from a seed so it stays put.
+func _tpz_relief(u0: float, u1: float, y0: float, y1: float, seed: float) -> void:
+	_ubox(u0, u1, 0.02, 0.1, y0, y1, TPZ_STONE, M_STONE, TPZ_STONE)
+	var cols := maxi(2, roundi((u1 - u0) / 0.32))
+	var rows := maxi(2, roundi((y1 - y0) / 0.3))
+	var du := (u1 - u0 - 0.12) / cols
+	var dy := (y1 - y0 - 0.12) / rows
+	for i in cols:
+		for j in rows:
+			var h := fposmod(sin(seed * 7.1 + i * 12.9898 + j * 78.233) * 43758.5453, 1.0)
+			if h < 0.3:
+				continue
+			var cu := u0 + 0.06 + (i + 0.5) * du + (h - 0.5) * 0.08
+			var cy := y0 + 0.06 + (j + 0.5) * dy
+			var col := TPZ_STONE_D if h > 0.7 else TPZ_STONE.lightened(0.08)
+			_ubox(cu - du * 0.36, cu + du * 0.36, 0.1, 0.13 + 0.05 * h, cy - dy * 0.34, cy + dy * 0.34, col, M_STONE, col)
+
+
+## One glazed bay of the street level: a grey frame, the glass (warm inside at night), a transom of
+## louvred vents over it; `open` leaves the doors folded back on the dark bar inside.
+func _tpz_bay(u0: float, u1: float, g: float, open: bool) -> void:
+	var top := g + TPZ_GF - 0.35
+	var tr := top - 0.75
+	_ubox(u0, u1, -0.25, 0.02, g, top, TPZ_FRAME, M_STONE, TPZ_FRAME)   # the reveal and frame
+	if open:
+		_ubox(u0 + 0.1, u1 - 0.1, 0.02, 0.04, g + 0.02, tr - 0.08, Color("#1d1a18"), M_PAVILION)
+		for s: float in [u0 + 0.22, u1 - 0.22]:   # the folded doors' edges
+			_ubox(s - 0.08, s + 0.08, 0.02, 0.5, g + 0.02, tr - 0.08, TPZ_FRAME.darkened(0.2))
+	else:
+		_ubox(u0 + 0.1, u1 - 0.1, 0.02, 0.04, g + 0.08, tr - 0.08, TPZ_GLASS, M_PAVILION)
+		var m := (u0 + u1) * 0.5
+		_ubox(m - 0.04, m + 0.04, 0.04, 0.08, g + 0.08, tr - 0.08, TPZ_FRAME)
+	_ubox(u0 + 0.05, u1 - 0.05, 0.02, 0.09, tr - 0.08, tr, TPZ_FRAME)   # the transom bar
+	var vents := 2
+	var vw := (u1 - u0 - 0.3) / vents
+	for k in vents:
+		var vu := u0 + 0.15 + vw * k
+		_ubox(vu + 0.06, vu + vw - 0.06, 0.02, 0.05, tr + 0.08, top - 0.1, TPZ_VENT)
+		for s in 4:
+			var sy := tr + 0.14 + s * 0.12
+			_ubox(vu + 0.1, vu + vw - 0.1, 0.05, 0.08, sy, sy + 0.04, TPZ_VENT.darkened(0.25))
+
+
+## A black folding chair at (u, v), facing `face` (a local unit vector towards its table).
+func _tpz_chair(u: float, v: float, face: Vector2, f: float) -> void:
+	var fw := _a * face.x + _b * face.y
+	var sd := Vector2(-fw.y, fw.x)
+	var c := _w(u, v)
+	var pt := func(s: float, t: float, y: float) -> Vector3:
+		var p := c + sd * s + fw * t
+		return Vector3(p.x, y, p.y)
+	var seat_y := f + 0.45
+	_mode = M_STONE
+	var seat := PackedVector2Array([c + sd * -0.2 + fw * -0.19, c + sd * 0.2 + fw * -0.19, c + sd * 0.2 + fw * 0.2, c + sd * -0.2 + fw * 0.2])
+	_prism(seat, seat_y - 0.03, seat_y, TPZ_CHAIR, TPZ_CHAIR.lightened(0.08), M_STONE, M_STONE)
+	for s: float in [-0.18, 0.18]:
+		_tpz_bar(pt.call(s, 0.2, f), pt.call(s, -0.24, seat_y + 0.42), 0.018, TPZ_CHAIR)   # back legs into the back
+		_tpz_bar(pt.call(s, -0.18, f), pt.call(s, 0.16, seat_y), 0.016, TPZ_CHAIR)        # front legs, crossed
+	var back := PackedVector2Array([c + sd * -0.19 + fw * -0.25, c + sd * 0.19 + fw * -0.25, c + sd * 0.19 + fw * -0.22, c + sd * -0.19 + fw * -0.22])
+	_prism(back, seat_y + 0.2, seat_y + 0.4, TPZ_CHAIR, TPZ_CHAIR, M_STONE, M_STONE)
+
+
+## A slatted folding table at (u, v) with its crossed legs and a pot of herbs.
+func _tpz_table(u: float, v: float, f: float) -> void:
+	var ty := f + 0.74
+	for k in 4:
+		var su := u - 0.33 + k * 0.22
+		_ubox(su - 0.09, su + 0.09, v - 0.3, v + 0.3, ty - 0.035, ty, TPZ_TABLE, M_STONE, TPZ_TABLE.lightened(0.06))
+	var leg := func(s: float, t: float, y: float) -> Vector3:
+		var p := _w(u + s, v + t)
+		return Vector3(p.x, y, p.y)
+	for s: float in [-0.3, 0.3]:   # an X of legs on each end
+		_tpz_bar(leg.call(s, -0.27, f), leg.call(s, 0.27, ty - 0.04), 0.022, TPZ_TABLE.darkened(0.15))
+		_tpz_bar(leg.call(s, 0.27, f), leg.call(s, -0.27, ty - 0.04), 0.022, TPZ_TABLE.darkened(0.15))
+	_ubox(u - 0.06, u + 0.06, v - 0.06, v + 0.06, ty, ty + 0.1, Color("#9a9b9d"))
+	_ubox(u - 0.09, u + 0.09, v - 0.09, v + 0.09, ty + 0.1, ty + 0.2, TPZ_HERB, M_STONE, TPZ_HERB.lightened(0.1))
+	for d: Vector2 in [Vector2(0, -0.62), Vector2(0, 0.62), Vector2(-0.58, 0), Vector2(0.58, 0)]:
+		_tpz_chair(u + d.x, v + d.y, -d.normalized(), f)
+
+
+## A square black market umbrella: the pole, the shallow four-sided canopy, its valance with the
+## parody on the street side, and a cap.
+func _tpz_umbrella(cu: float, cv: float, h: float, f: float) -> void:
+	_ubox(cu - 0.04, cu + 0.04, cv - 0.04, cv + 0.04, f, f + TPZ_UMB_APEX + 0.15, Color("#3a3b3e"))
+	_ubox(cu - 0.3, cu + 0.3, cv - 0.3, cv + 0.3, f, f + 0.06, Color("#3a3b3e"))   # the base plate
+	var rim := f + TPZ_UMB_RIM
+	_mode = M_STONE
+	_pyramid(_urect(cu - h, cu + h, cv - h, cv + h), rim, f + TPZ_UMB_APEX, TPZ_UMB)
+	_cap(_urect(cu - h + 0.02, cu + h - 0.02, cv - h + 0.02, cv + h - 0.02), rim - 0.01, TPZ_UMB.darkened(0.2))
+	var drop := 0.26
+	_ubox(cu - h, cu + h, cv + h - 0.02, cv + h, rim - drop, rim, TPZ_UMB)
+	_ubox(cu - h, cu + h, cv - h, cv - h + 0.02, rim - drop, rim, TPZ_UMB)
+	_ubox(cu - h, cu - h + 0.02, cv - h, cv + h, rim - drop, rim, TPZ_UMB)
+	_ubox(cu + h - 0.02, cu + h, cv - h, cv + h, rim - drop, rim, TPZ_UMB)
+	var pitch := 0.15
+	var px := 0.045
+	var w := TPZ_UMB_WORD.length() * pitch - (pitch - 3.0 * px)
+	_sm_text(TPZ_UMB_WORD, cu - w * 0.5, cv + h + 0.012, rim - 0.04, px, 0.036, pitch, Color("#f4f4f2"))
+	_ubox(cu - 0.07, cu + 0.07, cv - 0.07, cv + 0.07, f + TPZ_UMB_APEX + 0.1, f + TPZ_UMB_APEX + 0.22, TPZ_UMB)
+
+
+## A crate of pine slats (the planters and the bench under its cushion).
+func _tpz_crate(u0: float, u1: float, v0: float, v1: float, y0: float, y1: float) -> void:
+	_ubox(u0, u1, v0, v1, y0, y1, TPZ_PINE, M_STONE, TPZ_PINE)
+	var n := maxi(2, roundi((y1 - y0) / 0.15))
+	for k in range(1, n):
+		var y := y0 + (y1 - y0) * k / n
+		_ubox(u0 - 0.01, u1 + 0.01, v0 - 0.01, v1 + 0.01, y - 0.012, y + 0.012, TPZ_PINE_D)
+
+
+## A planter crate with its black liner and a small tree: a trunk and a few leafy clumps.
+func _tpz_planter(cu: float, cv: float, f: float, tall: float) -> void:
+	_tpz_crate(cu - 0.32, cu + 0.32, cv - 0.32, cv + 0.32, f, f + 0.75)
+	_ubox(cu - 0.3, cu + 0.3, cv - 0.3, cv + 0.3, f + 0.75, f + 0.85, TPZ_BLACK, M_STONE, TPZ_BLACK.lightened(0.05))
+	_ubox(cu - 0.035, cu + 0.035, cv - 0.035, cv + 0.035, f + 0.85, f + tall - 0.5, Color("#6b5a48"))
+	var clumps := [[0.0, 0.0, 0.0, 0.42], [-0.28, 0.1, -0.35, 0.3], [0.26, -0.12, -0.25, 0.32], [0.05, 0.25, 0.3, 0.28]]
+	for c: Array in clumps:
+		var y: float = f + tall - 0.5 + float(c[2])
+		var r: float = c[3]
+		var col := TPZ_LEAF if float(c[0]) >= 0.0 else TPZ_LEAF_D
+		_ubox(cu + c[0] - r, cu + c[0] + r, cv + c[1] - r, cv + c[1] + r, y - r * 0.6, y + r * 0.8, col, M_STONE, col.lightened(0.08))
+
+
+func _build_tapczan(_site: Dictionary) -> void:
+	_tpz_frame()
+	var deck := _urect(TPZ_DECK.position.x, TPZ_DECK.end.x, TPZ_DECK.position.y, TPZ_DECK.end.y)
+	var g := _ground_under(_urect(TPZ_U0, TPZ_U1, -0.3, TPZ_DECK.end.y))
+	_g = g
+	# The street level: cream render, a grey plinth, the ledge, the two glazed bays and the piers
+	# with their carved stone panels (a stack of three on the west pier).
+	_ubox(TPZ_U0, TPZ_U1, -0.3, 0.0, g - 0.3, g + TPZ_GF, TPZ_CREAM, M_STONE, TPZ_CREAM)
+	_ubox(TPZ_U0 - 0.05, TPZ_U1 + 0.05, 0.0, 0.05, g - 0.3, g + 0.25, TPZ_STONE.lightened(0.1))
+	_ubox(TPZ_U0 - 0.1, TPZ_U1 + 0.1, -0.3, 0.22, g + TPZ_GF - 0.05, g + TPZ_GF + 0.2, TPZ_LEDGE, M_STONE, TPZ_LEDGE)
+	_ubox(TPZ_U0 - 0.1, TPZ_U1 + 0.1, -0.3, 0.12, g + TPZ_GF - 0.32, g + TPZ_GF - 0.05, TPZ_CREAM.darkened(0.04))
+	for k in 3:
+		_tpz_relief(0.55, 1.6, g + 1.0 + k * 1.05, g + 1.95 + k * 1.05, 3.0 + k)
+	_tpz_bay(1.75, 5.25, g, false)
+	_tpz_relief(5.45, 7.35, g + 0.35, g + 1.35, 9.0)
+	_tpz_bay(7.55, 11.05, g, true)
+	_tpz_relief(11.25, 12.6, g + 1.6, g + 2.55, 11.0)
+	_tpz_relief(11.25, 12.6, g + 0.35, g + 1.2, 12.0)
+	# The sign: a black square on the middle pier, a gold bottle-cap ring and the name in gold neon.
+	var sy := g + 2.55
+	_ubox(5.65, 7.15, 0.05, 0.2, sy, sy + 1.45, TPZ_BLACK, M_STONE, TPZ_BLACK)
+	var ring := _w(6.4, 0.23)
+	var nrm := Vector3(_b.x, 0.0, _b.y)
+	_disc(Vector3(ring.x, sy + 0.72, ring.y), nrm, 0.62, 20, TPZ_GOLD)
+	var inner := _w(6.4, 0.255)
+	_disc(Vector3(inner.x, sy + 0.72, inner.y), nrm, 0.55, 20, TPZ_BLACK)
+	for k in 20:   # the cap's crimp: little gold teeth round the ring
+		var t := TAU * (k + 0.5) / 20.0
+		_lbox(6.4 + cos(t) * 0.655, 0.22, 0.03, 0.02, sy + 0.72 + sin(t) * 0.655 - 0.03, sy + 0.72 + sin(t) * 0.655 + 0.03, TPZ_GOLD)
+	_usign("THE", 6.4, 0.29, sy + 0.98, _b, 0.4, 0.13, TPZ_NEON)
+	_usign("TAPCZAN", 6.4, 0.29, sy + 0.62, _b, 1.0, 0.26, TPZ_NEON)
+	_usign("CRAFT BEER", 6.4, 0.29, sy + 0.42, _b, 0.6, 0.08, TPZ_NEON)
+	# The terrace: a deck of pallets (the dark gaps at the foot, boards on top).
+	var f := g + TPZ_DECK_H
+	_prism(deck, g - 0.15, f - 0.04, TPZ_PINE_D.darkened(0.25), TPZ_PINE_D, M_STONE, M_STONE)
+	var boards := int(TPZ_DECK.size.y / 0.2)
+	for k in boards:
+		var v := TPZ_DECK.position.y + (k + 0.5) * TPZ_DECK.size.y / boards
+		var tone := TPZ_PINE.darkened(0.06 * fposmod(k * 0.37, 1.0))
+		_ubox(TPZ_DECK.position.x + 0.02, TPZ_DECK.end.x - 0.02, v - 0.085, v + 0.085, f - 0.04, f, tone, M_STONE, tone)
+	var blocks := int(TPZ_DECK.size.x / 1.2)
+	for k in blocks + 1:   # the pallets' blocks along the kerb side
+		var bu := TPZ_DECK.position.x + 0.1 + k * (TPZ_DECK.size.x - 0.2) / blocks
+		_ubox(bu - 0.08, bu + 0.08, TPZ_DECK.end.y - 0.02, TPZ_DECK.end.y + 0.01, g - 0.1, f - 0.04, TPZ_PINE_D)
+	for t: Array in TPZ_TABLES:
+		_tpz_table(t[0], t[1], f)
+	for umb: Array in TPZ_UMBRELLAS:
+		_tpz_umbrella(umb[0], umb[1], umb[2], f)
+	# Along the kerb: the long crate bench with its black cushion, the planters with their trees at
+	# both ends and one by the door; an A-board by the open bay.
+	_tpz_crate(10.6, 12.5, 5.3, 5.85, f, f + 0.42)
+	_ubox(10.62, 12.48, 5.32, 5.83, f + 0.42, f + 0.52, TPZ_BLACK, M_STONE, TPZ_BLACK.lightened(0.08))
+	_tpz_planter(12.25, 4.6, f, 2.4)
+	_tpz_planter(0.75, 5.55, f, 2.2)
+	_tpz_planter(12.25, 2.6, f, 2.6)
+	_tpz_bar(Vector3(_w(7.3, 1.2).x, g, _w(7.3, 1.2).y), Vector3(_w(7.3, 1.45).x, g + 0.9, _w(7.3, 1.45).y), 0.02, TPZ_BLACK)
+	_ubox(7.0, 7.6, 1.35, 1.6, g + 0.15, g + 0.95, TPZ_BLACK, M_STONE, TPZ_BLACK)
+	_collide(deck)
+
+
+# --- Sienkiewicza 4, Harczyk's tenement and the block opposite (F, 2026-11-24) ----------------------
+# Three full models on ul. Sienkiewicza, replacing their LoD2 and mapped outlines: the Art Nouveau
+# tenement no. 4 (THE TAPCZAN's house: its street level west of u 12.9 stays the pub's), Kamienica
+# Maksymiliana Harczyka on the corner of Jasna, and the 1950s block with the arcade across the street.
+# Specs docs/landmarks/specs/sienkiewicza4.md, harczyk.md, sienkiewicza3.md.
+
+## The OpenStreetMap rings holding any of `probes` (a house's parts: the block, its rear range and
+## the low base), each once, so a site's zone takes the lot off the map.
+func _sk_rings(probes: Array) -> Array[PackedVector2Array]:
+	var out: Array[PackedVector2Array] = []
+	for bld in data.get("buildings", []):
+		var q := _pts(bld["p"])
+		if q.size() < 3:
+			continue
+		for at: Vector2 in probes:
+			if Geometry2D.is_point_in_polygon(at, q):
+				out.append(q)
+				break
+	return out
+
+
+## Plain panes (a trim pane and the glass over it) on every wall of `ring` that `skip` (given the
+## edge's two ends) does not name: the sides and the yards of a modelled house, `rows` the sills.
+func _sk_sides(ring: PackedVector2Array, f0: Vector2, f1: Vector2, rows: Array, trim: Color, skip: Callable) -> void:
+	var n := ring.size()
+	var cw := Geometry2D.is_polygon_clockwise(ring)
+	for k in n:
+		var p := ring[k]
+		var q := ring[(k + 1) % n]
+		kit_front(f0, f1)   # `skip` reads the site's own frame
+		if p.distance_to(q) < 3.0 or skip.call(p, q):
+			continue
+		var le := kit_front(p, q) if cw else kit_front(q, p)
+		var m := maxi(1, floori(le / 4.6))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		kit_panes(cs, rows, 1.3, 1.9, trim, 0.03)
+		kit_panes(cs, rows, 1.05, 1.7, PAL_GLASS_DARK, 0.06)
+
+
+## True when both ends of the edge p-q lie within `tol` of the segment a-b (a party wall).
+func _sk_on(p: Vector2, q: Vector2, a: Vector2, b: Vector2, tol: float) -> bool:
+	return Geometry2D.get_closest_point_to_segment(p, a, b).distance_to(p) < tol \
+			and Geometry2D.get_closest_point_to_segment(q, a, b).distance_to(q) < tol
+
+
+# --- Sienkiewicza 4 -----------------------------------------------------------------------------
+
+const SK4_AT: Array[Vector2] = [Vector2(-776.0, -58.0), Vector2(-790.0, -80.0)]
+const SK4_TOP := 20.8
+const SK4_REAR_TOP := 24.1
+const SK4_CREAM := Color("#ece7db")    # F 2026-11-24: cream as in the photos (it read tan at #e6dcc6)
+const SK4_TRIM := Color("#f5f2ea")
+const SK4_FRIEZE := Color("#566259")      # the dark green-grey stone bands (leafy relief)
+const SK4_LEAF := Color("#6b7a62")
+const SK4_STEEL := Color("#4b5156")
+const SK4_SILLS: Array[float] = [5.6, 8.6, 11.6, 14.6, 17.6]
+const SK4_HEIGHTS: Array[float] = [1.9, 1.7, 1.7, 1.7, 1.7]
+## The middle bays' centres (u from the west corner); the two bows stand at each end.
+const SK4_BAYS: Array[float] = [6.7, 10.3, 13.9, 17.5, 21.1]
+const SK4_BOWS: Array[float] = [2.6, 25.3]
+## The pub's street level (TPZ_U1 + the ledge) ends here; east of it the shops and the gate.
+const SK4_GATE := 14.75
+const SK4_SHOPS: Array[Vector3] = [Vector3(18.5, 1.3, 0.0), Vector3(22.1, 1.5, 0.0), Vector3(25.5, 1.2, 0.0)]
+
+
+func _find_sienkiewicza4() -> void:
+	var rings := _sk_rings(SK4_AT)
+	var main := _tallest_at(SK4_AT[0])
+	var rear := _tallest_at(SK4_AT[1])
+	if rings.size() < 2 or main.size() < 3 or rear.size() < 3:
+		return
+	_add_site("sienkiewicza4", rings)
+	if not sites.is_empty() and sites[-1]["key"] == "sienkiewicza4":
+		sites[-1]["main"] = main
+		sites[-1]["rear"] = rear
+
+
+## One of the two rounded corners: a four-sided bow standing out of the front, in three facets,
+## each with its windows; curved iron balconies at the 2nd and 3rd floors.
+func _sk4_bow(uc: float, g: float) -> void:
+	var local: Array[Vector2] = [Vector2(uc - 2.3, 0.0), Vector2(uc - 0.85, 0.88), Vector2(uc + 0.85, 0.88),
+			Vector2(uc + 2.3, 0.0)]
+	var w: Array[Vector2] = []
+	for p: Vector2 in local:
+		w.append(_w(p.x, p.y))
+	var ring := PackedVector2Array([_w(uc - 2.3, -0.2), w[0], w[1], w[2], w[3], _w(uc + 2.3, -0.2)])
+	_prism(ring, g + 4.5, g + SK4_TOP, SK4_CREAM, PAL_ROOF_GRAVEL, M_STONE, M_STONE)
+	_soffit(ring, g + 4.5, SK4_CREAM.darkened(0.25))
+	_band(ring, 0.08, g + 10.45, g + 11.25, SK4_FRIEZE)
+	_band(ring, 0.08, g + 16.45, g + 17.25, SK4_FRIEZE)
+	kit_cornice_ring(ring, g + 20.2, SK4_TRIM, 0.55, 0.3)
+	for k in 3:
+		var le := kit_front(w[k], w[k + 1])
+		for i in SK4_SILLS.size():
+			var style := Win.SILL_HEAD if i == 0 else Win.SILL
+			kit_window(le * 0.5, g + SK4_SILLS[i], SK4_HEIGHTS[i], style, SK4_TRIM, PAL_GLASS_DARK, 0.5)
+		for i in [1, 2]:
+			kit_balcony(le * 0.5, g + SK4_SILLS[i], 0.62, Balcony.IRON, PAL_PATINA_COPPER, SK4_CREAM, 0.5)
+	kit_front(TPZ_FRONT_A, TPZ_FRONT_B)
+
+
+## The steel truss canopy over the gate: a girder on two raking braces, a zigzag of diagonals.
+func _sk4_canopy(u0: float, u1: float, g: float) -> void:
+	var at := func(u: float, v: float, y: float) -> Vector3:
+		var p := _w(u, v)
+		return Vector3(p.x, y, p.y)
+	_kbox(u0, u1, 0.0, 1.7, g + 3.95, g + 4.1, SK4_STEEL)
+	_kbox(u0, u1, 1.62, 1.7, g + 4.1, g + 4.45, SK4_STEEL)
+	for s: float in [u0 + 0.2, u1 - 0.2]:
+		_beam(at.call(s, 0.05, g + 4.75), at.call(s, 1.65, g + 4.0), 0.1, SK4_STEEL)
+	var n := 8
+	for k in n:
+		var ua := u0 + (u1 - u0) * float(k) / n
+		var ub := u0 + (u1 - u0) * float(k + 1) / n
+		var up := k % 2 == 0
+		_beam(at.call(ua, 1.78, g + (4.1 if up else 4.45)), at.call(ub, 1.78, g + (4.45 if up else 4.1)), 0.06, SK4_STEEL)
+
+
+## A dark green-grey frieze band with a row of leaf reliefs (the Art Nouveau stone bands).
+func _sk4_frieze(u0: float, u1: float, y0: float, y1: float) -> void:
+	_kbox(u0, u1, -0.02, 0.08, y0, y1, SK4_FRIEZE)
+	var n := maxi(2, roundi((u1 - u0) / 0.8))
+	for i in n:
+		var cu := u0 + (float(i) + 0.5) * (u1 - u0) / float(n)
+		var tall := 0.1 if i % 2 == 0 else 0.0
+		_kbox(cu - 0.2, cu + 0.2, 0.08, 0.15, y0 + 0.1, y1 - 0.1 - tall, SK4_LEAF)
+
+
+func _build_sienkiewicza4(site: Dictionary) -> void:
+	var main: PackedVector2Array = site["main"]
+	var rear: PackedVector2Array = site["rear"]
+	var le := kit_front(TPZ_FRONT_A, TPZ_FRONT_B)
+	var g := _ground_under(_urect(TPZ_U0, TPZ_U1, -0.3, TPZ_DECK.end.y))   # the pub's own ground
+	_g = g
+	_mode = M_STONE
+	# The mass: the front recessed 0.35 m behind the skin (the pub's street level stands in the gap),
+	# and the rear range to 24.1 m.
+	var body := _largest(Geometry2D.intersect_polygons(main, _urect(-60.0, le + 60.0, -80.0, -0.35)))
+	_prism(body, g - 1.0, g + SK4_TOP, SK4_CREAM, PAL_ROOF_GRAVEL, M_STONE, M_STONE)
+	_prism(rear, g - 1.0, g + SK4_REAR_TOP, SK4_CREAM.darkened(0.04), PAL_ROOF_GRAVEL.darkened(0.05), M_STONE, M_STONE)
+	_collide(main)
+	_collide(rear)
+	pocket_rings.append(main)
+	pocket_rings.append(rear)
+	# The skin: the street level east of the pub, and every floor over it.
+	kit_wall(TPZ_U1 + 0.1, le, g - 0.3, g + 4.5, SK4_CREAM)
+	kit_wall(0.0, le, g + 4.5, g + 20.2, SK4_CREAM)
+	kit_ledge(TPZ_U1 + 0.1, le, g, 0.55, PAL_GREY_GRANITE, 0.08)
+	kit_cornice(4.9, 23.0, g + 4.75, PAL_DARK_GRANITE, 0.45, 0.6)   # the bows carry their own
+	kit_cornice(4.9, 23.0, g + 20.2, SK4_TRIM, 0.6, 1.0)
+	# The frieze bands under the 3rd and the top floor, between the bows.
+	for y: float in [10.45, 16.45]:
+		_sk4_frieze(4.9, 23.0, g + y, g + y + 0.8)
+	# The windows: a tall arched one on the first floor of each middle bay, then pairs.
+	for u in SK4_BAYS:
+		kit_window(u, g + SK4_SILLS[0], SK4_HEIGHTS[0], Win.ARCHED, SK4_TRIM, PAL_GLASS_DARK, 0.9)
+		for i in range(1, SK4_SILLS.size()):
+			for s: float in [-0.95, 0.95]:
+				kit_window(u + s, g + SK4_SILLS[i], SK4_HEIGHTS[i], Win.SILL, SK4_TRIM, PAL_GLASS_DARK, 0.5)
+	for y: float in [8.1, 14.1]:
+		kit_ledge(4.9, 23.0, g + y, 0.22, SK4_TRIM, 0.12)
+	# The gate with the steel canopy, and the shops east of it.
+	kit_shop_bay(SK4_GATE, g + 0.05, g + 3.4, 1.15, SK4_TRIM, PAL_GLASS_DARK)
+	for s: float in [-1.75, 1.75]:
+		kit_pilaster(SK4_GATE + s, g + 0.2, g + 3.9, PAL_GREY_STONE, 0.5, 0.14)
+	_sk4_canopy(SK4_GATE - 1.9, SK4_GATE + 1.9, g)
+	for sp in SK4_SHOPS:
+		kit_shop_bay(sp.x, g + 0.55, g + 3.8, sp.y, SK4_TRIM, PAL_GLASS_DARK)
+	# The two bows, the 2nd and 3rd floor balconies on them.
+	for uc in SK4_BOWS:
+		_sk4_bow(uc, g)
+	# The sides and the rear range: plain panes, but not on the party wall with Harczyk's house.
+	var rows: Array = [g + 1.2, g + 5.6, g + 8.6, g + 11.6, g + 14.6, g + 17.6]
+	var wall_w := Vector2(-789.1, -46.2)
+	var wall_n := Vector2(-795.0, -61.6)
+	var party := func(p: Vector2, q: Vector2) -> bool:
+		return _sk_on(p, q, wall_w, wall_n, 1.0) or absf(_local(p).y) < 0.8 and absf(_local(q).y) < 0.8
+	_sk_sides(main, TPZ_FRONT_A, TPZ_FRONT_B, rows, SK4_TRIM, party)
+	_sk_sides(rear, TPZ_FRONT_A, TPZ_FRONT_B, rows, SK4_TRIM.darkened(0.03), party)
+	kit_front(TPZ_FRONT_A, TPZ_FRONT_B)
+
+
+# --- Kamienica Maksymiliana Harczyka --------------------------------------------------------------
+
+const HZ_AT := Vector2(-805.0, -50.0)
+const HZ_P0 := Vector2(-789.1, -46.2)       # where it meets no. 4
+const HZ_J0 := Vector2(-832.1, -61.0)       # the north end of its Jasna front
+const HZ_CORNER := Vector2(-820.9, -35.8)   # the mapped corner (a small jog), replaced by a wide chamfer
+const HZ_CHAMFER := 5.5                     # each leg of the chamfer, along the two fronts
+const HZ_EAVE := 18.85
+const HZ_TOP := 20.8
+const HZ_DEPTH := 2.0
+const HZ_WHITE := Color("#e4d9b8")      # soiled warm cream stucco (photos 1, 4)
+const HZ_TRIM := Color("#ebe2c8")
+const HZ_PLINTH := Color("#b8a688")     # unpainted sandstone
+const HZ_BRICK := Color("#a5523e")
+const HZ_GOLD := Color("#c9ac6a")
+const HZ_YELLOW := Color(1.0, 0.86, 0.3)
+const HZ_SILLS: Array[float] = [5.1, 8.0, 10.9, 13.8, 16.6]
+const HZ_HEIGHTS: Array[float] = [2.3, 2.1, 1.9, 1.9, 1.5]
+
+
+func _find_harczyk() -> void:
+	var raw := _tallest_at(HZ_AT)
+	if raw.size() < 10:
+		return
+	var n := raw.size()
+	var pi := -1
+	var ji := -1
+	var ci := -1
+	for i in n:
+		if raw[i].distance_to(HZ_P0) < 0.5:
+			pi = i
+		elif raw[i].distance_to(HZ_J0) < 0.5:
+			ji = i
+		elif raw[i].distance_to(HZ_CORNER) < 0.5:
+			ci = i
+	if pi < 0 or ji < 0 or ci < 0:
+		return
+	var f1 := raw[(pi + 1) % n]
+	var jd := (raw[ci] - HZ_J0).normalized()
+	var hit = Geometry2D.line_intersects_line(HZ_P0, (f1 - HZ_P0).normalized(), HZ_J0, jd)
+	if not hit is Vector2:
+		return
+	var cc: Vector2 = hit
+	var k1 := cc + (HZ_P0 - cc).normalized() * HZ_CHAMFER
+	var k2 := cc + (HZ_J0 - cc).normalized() * HZ_CHAMFER
+	# The ring from the Jasna end round the back to no. 4, then the chamfer: its last three edges are
+	# the street fronts (Sienkiewicza, the chamfer, Jasna).
+	var ring := PackedVector2Array()
+	var i := ji
+	while true:
+		ring.append(raw[i])
+		if i == pi:
+			break
+		i = (i + 1) % n
+	ring.append(k1)
+	ring.append(k2)
+	_add_site("harczyk", [raw])
+	if not sites.is_empty() and sites[-1]["key"] == "harczyk":
+		sites[-1]["raw"] = raw
+		sites[-1]["ring"] = ring
+
+
+## A dormer in the current front's frame, standing on the mansard: red brick cheeks, a window, a
+## white gable over it.
+func _hz_dormer(u: float, g: float, wide: float, rise: float, cheek: float) -> void:
+	var y := g + HZ_EAVE
+	# brick panel between the gables, then a round-headed gable (a wave skyline) with an arched pane
+	_kbox(u - cheek, u + cheek, -HZ_DEPTH + 0.05, -0.45, y + 0.05, y + 2.05, HZ_BRICK)
+	var keep := _face
+	kit_face(-0.45)
+	var at := _w(u, _face)
+	var spring := y + 1.7 + rise * 0.4
+	_arch_panel(at, _a, _b, wide, y + 0.05, spring, HZ_WHITE, 0.06, M_STONE)
+	_arch_panel(at, _a, _b, wide * 0.55, y + 0.6, spring - 0.25, PAL_GLASS_DARK, 0.1, M_STONE)
+	kit_face(keep)
+
+
+## The mansard along a run of the fronts `pts` (ring edges in order): the slope from the eave line
+## `y0` back `depth` m and up `rise`; returns the slope's plan so the flat top can leave it out.
+func _hz_mansard(ring: PackedVector2Array, pts: Array[Vector2], y0: float, rise: float, depth: float) -> PackedVector2Array:
+	var m := pts.size()
+	var inward: Array[Vector2] = []
+	for i in m - 1:
+		inward.append(-_out(ring, pts[i], pts[i + 1]))
+	var q: Array[Vector2] = []
+	for i in m:
+		var d: Vector2
+		if i == 0:
+			d = inward[0] * depth
+		elif i == m - 1:
+			d = inward[m - 2] * depth
+		else:
+			d = (inward[i - 1] + inward[i]) * (depth / maxf(1.0 + inward[i - 1].dot(inward[i]), 0.2))
+		q.append(pts[i] + d)
+	_mode = M_STONE
+	for i in m - 1:
+		var o := -inward[i]
+		var nrm := (Vector3(o.x, 0.0, o.y) * rise + Vector3.UP * depth).normalized()
+		_quad(Vector3(pts[i].x, y0, pts[i].y), Vector3(pts[i + 1].x, y0, pts[i + 1].y),
+				Vector3(q[i + 1].x, y0 + rise, q[i + 1].y), Vector3(q[i].x, y0 + rise, q[i].y), nrm, PAL_ROOF_DARK)
+	var band := PackedVector2Array()
+	for p in pts:
+		band.append(p)
+	for i in range(m - 1, -1, -1):
+		band.append(q[i])
+	return band
+
+
+## A shop opening with a round head: a trim arch behind the dark glass, 3.05 m tall in all.
+func _hz_shop(u: float, g: float, hw: float) -> void:
+	var at := _w(u, _face)
+	_arch_panel(at, _a, _b, hw + 0.15, g + 0.7, g + 3.8 - hw, HZ_TRIM, 0.03, M_STONE)
+	_arch_panel(at, _a, _b, hw, g + 0.75, g + 3.8 - hw - 0.05, PAL_GLASS_DARK, 0.07, M_STONE)
+
+
+## One front's windows, balconies and dormers; `bays` windows across, `bal` the bays with a
+## balcony on the 3rd floor, `ground` what stands on the street level (called with the frame set).
+func _hz_front(le: float, bays: int, bal: Array, g: float, crown := -1, mid_only := false) -> Array[float]:
+	var cs: Array[float] = []
+	for i in bays:
+		cs.append((float(i) + 0.5) * le / float(bays))
+	kit_ledge(0.0, le, g, 0.7, HZ_PLINTH, 0.1)
+	kit_bands(0.0, le, g + 0.7, g + 4.3, 0.9, HZ_TRIM.darkened(0.12))
+	kit_ledge(0.0, le, g + 4.4, 0.4, HZ_TRIM, 0.22)
+	kit_cornice(0.0, le, g + 18.4, HZ_WHITE, 0.45, 0.9)
+	for ci in cs.size():
+		var u := cs[ci]
+		_hz_dormer(u, g, 1.15 if ci == crown else 0.78, 1.6 if ci == crown else 0.8, minf(le / float(bays) * 0.5 - 0.1, 1.9))
+		if mid_only and ci != crown:
+			continue
+		kit_window(u, g + HZ_SILLS[0], HZ_HEIGHTS[0], Win.HOODED, HZ_TRIM, PAL_GLASS_DARK, 0.85)
+		kit_window(u, g + HZ_SILLS[1], HZ_HEIGHTS[1], Win.ARCHED, HZ_TRIM, PAL_GLASS_DARK, 0.65)
+		kit_window(u, g + HZ_SILLS[2], HZ_HEIGHTS[2], Win.SILL_HEAD, HZ_TRIM, PAL_GLASS_DARK, 0.65)
+		kit_window(u, g + HZ_SILLS[3], HZ_HEIGHTS[3], Win.SILL, HZ_TRIM, PAL_GLASS_DARK, 0.65)
+		kit_window(u, g + HZ_SILLS[4], HZ_HEIGHTS[4], Win.SILL_HEAD, HZ_TRIM, PAL_GLASS_DARK, 0.6)
+	for b: int in bal:
+		kit_balcony(cs[b], g + HZ_SILLS[2], 0.95, Balcony.STONE, HZ_WHITE, HZ_TRIM, 0.95)
+	return cs
+
+
+func _build_harczyk(site: Dictionary) -> void:
+	var ring: PackedVector2Array = site["ring"]
+	var raw: PackedVector2Array = site["raw"]
+	var n := ring.size()
+	var k1 := ring[n - 2]
+	var k2 := ring[n - 1]
+	var p0 := ring[n - 3]
+	var j0 := ring[0]
+	var g := _ground_under(ring)
+	_g = g
+	_mode = M_STONE
+	_collide(raw)
+	pocket_rings.append(raw)
+	# The walls: the three street fronts to the eaves, the rest to the flat top.
+	var run := 0.0
+	for i in n:
+		var a := ring[i]
+		var b := ring[(i + 1) % n]
+		var front := i >= n - 3
+		_wall(a, b, g - 1.0, g + (HZ_EAVE if front else HZ_TOP), _out(ring, a, b), HZ_WHITE, run)
+		run += a.distance_to(b)
+	var fronts: Array[Vector2] = [p0, k1, k2, j0]
+	var band := _hz_mansard(ring, fronts, g + HZ_EAVE, HZ_TOP - HZ_EAVE, HZ_DEPTH)
+	for piece in Geometry2D.clip_polygons(ring, band):
+		if piece.size() >= 3 and not Geometry2D.is_polygon_clockwise(piece):
+			_cap(piece, g + HZ_TOP, PAL_ROOF_GRAVEL)
+	# Sienkiewicza: the long front, the REJNA entrance and LIMONKA at the east end.
+	var ls := kit_front(k1, p0)
+	var cs := _hz_front(ls, 8, [1, 6], g)
+	for i in cs.size():
+		if i == 2:
+			kit_door(cs[i], g + 0.1, 3.3, 1.0, HZ_TRIM, PAL_DARK_DOOR, true)
+			_kbox(cs[i] - 1.6, cs[i] + 1.6, 0.0, 0.12, g + 3.55, g + 4.3, HZ_GOLD)
+			_usign("REJNA", cs[i], 0.14, g + 3.85, _b, 2.6, 0.4, Color(0.2, 0.15, 0.08))
+		else:
+			_hz_shop(cs[i], g, 1.3)
+	_usign("LIMONKA", cs[7], 0.2, g + 4.0, _b, 2.0, 0.34, HZ_YELLOW)
+	# Jasna: the second long front.
+	var lj := kit_front(j0, k2)
+	var cj := _hz_front(lj, 7, [1, 5], g)
+	for u in cj:
+		_hz_shop(u, g, 1.3)
+	# The chamfer: three narrow bays, the stack of balconies on the middle one, the crown gable.
+	var lk := kit_front(k2, k1)
+	var cc := _hz_front(lk, 3, [], g, 1, true)
+	# One window a floor; balconies alternate: wide at floor 1, small at floors 3 and 5 (photos 1, 4).
+	kit_balcony(cc[1], g + HZ_SILLS[0], 1.3, Balcony.STONE, HZ_TRIM.lightened(0.35), HZ_PLINTH, 0.9)
+	kit_balcony(cc[1], g + HZ_SILLS[2], 0.85, Balcony.STONE, HZ_TRIM.lightened(0.35), HZ_PLINTH, 0.8)
+	kit_balcony(cc[1], g + HZ_SILLS[4], 0.85, Balcony.STONE, HZ_TRIM.lightened(0.35), HZ_PLINTH, 0.8)
+	_hz_shop(cc[0], g, 1.0)
+	_hz_shop(cc[2], g, 1.0)
+	kit_door(cc[1], g + 0.1, 3.4, 1.1, HZ_TRIM, PAL_DARK_DOOR, true)
+	# The sides and the yards: plain panes, but not on the party walls (no. 4, the bank's office).
+	var rows: Array = [g + 1.3, g + 5.1, g + 8.0, g + 10.9, g + 13.8, g + 16.6]
+	var seg := func(p: Vector2, q: Vector2) -> bool:
+		return _sk_on(p, q, p0, Vector2(-795.0, -61.6), 1.0) or _sk_on(p, q, Vector2(-831.6, -61.2), Vector2(-816.4, -67.2), 1.0) \
+				or _sk_on(p, q, p0, k1, 1.0) or _sk_on(p, q, k1, k2, 1.0) or _sk_on(p, q, k2, j0, 1.0)
+	_sk_sides(ring, k1, p0, rows, HZ_TRIM, seg)
+	kit_front(k1, p0)
+
+
+# --- the block opposite (Sienkiewicza 3 in OpenStreetMap's addresses) ---------------------------------
+
+const SB_AT: Array[Vector2] = [Vector2(-765.0, -25.0), Vector2(-752.0, -30.0)]
+const SB_E := Vector2(-752.5, -38.0)        # the east end of its front
+const SB_W := Vector2(-778.2, -28.1)        # the west end
+const SB_ARCADE := 2.2                      # how far the upper floors stand back of the balcony's edge
+const SB_PITCH := 13                        # bays across
+const SB_TOP := 20.8
+const SB_SAND := Color("#d6c3a0")
+const SB_SAND_L := Color("#e3d4b5")
+const SB_PILLAR := Color("#c4ae86")
+const SB_RED := Color("#b98471")
+const SB_SILLS: Array[float] = [4.6, 7.9, 11.2, 14.5, 17.8]
+const SB_HEIGHTS: Array[float] = [2.2, 1.7, 1.7, 1.7, 1.7]
+const SB_PILLARS: Array[float] = [4.9, 10.4, 17.2, 22.0]
+const SB_TUNNEL := Vector2(11.6, 16.0)      # the passage through to the south
+
+
+func _find_sienkiewicza3() -> void:
+	var rings := _sk_rings(SB_AT)
+	var main := _tallest_at(SB_AT[0])
+	if rings.size() < 2 or main.size() < 3:
+		return
+	_add_site("sienkiewicza3", rings)
+	if not sites.is_empty() and sites[-1]["key"] == "sienkiewicza3":
+		sites[-1]["main"] = main
+
+
+func _build_sienkiewicza3(site: Dictionary) -> void:
+	var main: PackedVector2Array = site["main"]
+	var le := kit_front(SB_E, SB_W)
+	var g := _ground_under(main)
+	_g = g
+	_mode = M_STONE
+	_collide(main)
+	pocket_rings.append(main)
+	var none := Color(0, 0, 0, 0)
+	var inner := _largest(Geometry2D.intersect_polygons(main, _urect(-60.0, le + 60.0, -80.0, -SB_ARCADE)))
+	var tunnel := _urect(SB_TUNNEL.x, SB_TUNNEL.y, -80.0, -SB_ARCADE + 0.1)
+	# The street level: the ground range with the passage cut through it, its ceiling over the passage.
+	for piece in Geometry2D.clip_polygons(inner, tunnel):
+		if piece.size() >= 3 and not Geometry2D.is_polygon_clockwise(piece):
+			_prism(piece, g - 1.0, g + 4.3, SB_SAND, none, M_STONE)
+	for piece in Geometry2D.intersect_polygons(inner, tunnel):
+		if piece.size() >= 3 and not Geometry2D.is_polygon_clockwise(piece):
+			_soffit(piece, g + 4.3, SB_PILLAR.darkened(0.2))
+	# The five floors over it.
+	_prism(inner, g + 4.3, g + SB_TOP, SB_SAND, PAL_ROOF_GRAVEL, M_STONE, M_STONE)
+	# The arcade: the floor and the three steps up to it, the slab with its fascia, the balustrade.
+	_ubox(0.0, le, -SB_ARCADE, 0.0, g - 0.2, g + 0.6, PAL_GREY_GRANITE, M_STONE, PAL_PALE_CONCRETE)
+	_ubox(0.3, le - 0.3, 0.0, 1.0, g - 0.2, g + 0.2, PAL_GREY_GRANITE, M_STONE, PAL_PALE_CONCRETE)
+	_ubox(0.15, le - 0.15, 0.0, 0.65, g + 0.2, g + 0.4, PAL_GREY_GRANITE, M_STONE, PAL_PALE_CONCRETE)
+	_ubox(0.0, le, -SB_ARCADE, 0.0, g + 3.7, g + 4.3, SB_SAND_L, M_STONE, SB_SAND_L)
+	_soffit(_urect(0.0, le, -SB_ARCADE, 0.0), g + 3.7, SB_PILLAR.darkened(0.25))
+	kit_face(-0.15)
+	kit_attic(0.0, le, g + 4.3, SB_SAND_L, 1.0, Attic.BALUSTRADE)
+	kit_face(0.0)
+	for s: float in [0.1, le - 0.1]:
+		_ubox(s - 0.1, s + 0.1, -SB_ARCADE, 0.0, g + 4.5, g + 5.2, SB_SAND_L)
+	# The pillars and the end blocks, the doors and the grilled windows of the ground wall.
+	_ubox(0.0, 1.3, -SB_ARCADE, -0.15, g + 0.6, g + 3.7, SB_PILLAR)
+	_ubox(le - 1.3, le, -SB_ARCADE, -0.15, g + 0.6, g + 3.7, SB_PILLAR)
+	for u: float in SB_PILLARS:
+		_ubox(u - 0.45, u + 0.45, -1.05, -0.15, g + 0.6, g + 3.7, SB_PILLAR)
+	kit_face(-SB_ARCADE)
+	kit_door(3.2, g + 0.6, 2.4, 0.55, SB_SAND_L, PAL_OAK)
+	kit_door(le - 3.2, g + 0.6, 2.4, 0.55, SB_SAND_L, PAL_OAK)
+	for u: float in [7.6, 20.0, 24.0]:
+		kit_window(u, g + 1.7, 1.6, Win.SILL, SB_SAND_L, PAL_GLASS_DARK, 0.7)
+	# The upper floors: piers (every third one in the reddish stone), windows in the deep bays.
+	kit_face(-SB_ARCADE)
+	var pitch := le / float(SB_PITCH)
+	for i in SB_PITCH + 1:
+		var red := i % 3 == 1
+		kit_pilaster(float(i) * pitch, g + 4.3, g + 20.0, SB_RED if red else SB_SAND_L, 0.9 if 0 < i and i < SB_PITCH else 0.5, 0.3)
+	for i in SB_PITCH:
+		var u := (float(i) + 0.5) * pitch
+		for k in SB_SILLS.size():
+			kit_window(u, g + SB_SILLS[k], SB_HEIGHTS[k], Win.SILL, SB_SAND_L, PAL_GLASS_DARK, 0.55)
+	for y: float in [7.4, 10.7, 14.0, 17.3]:
+		kit_ledge(0.0, le, g + y, 0.25, SB_SAND_L, 0.12)
+	kit_cornice(0.0, le, g + 20.2, SB_SAND_L, 0.6, 1.1)
+	# The sides and the rear: plain panes, none on the party wall with the bank next door.
+	kit_front(SB_E, SB_W)
+	var rows: Array = [g + 1.3, g + 4.6, g + 7.9, g + 11.2, g + 14.5, g + 17.8]
+	var party := func(p: Vector2, q: Vector2) -> bool:
+		return (_local(p).x > le - 1.5 and _local(q).x > le - 1.5) or (_local(p).y > -SB_ARCADE + 0.5 and _local(q).y > -SB_ARCADE + 0.5)
+	_sk_sides(inner, SB_E, SB_W, rows, SB_SAND_L, party)
+	kit_front(SB_E, SB_W)
