@@ -48,6 +48,10 @@ const S_KEYS := 15      # Piano House: white plaster, dark window strips in a ke
 
 const CLOCKWISE_FRONT := true
 const M_STEEL := M_GOLD + 0.5
+## Floodlit at night (F, 2026-11-26, the Cathedral's night photo): brick Gothic washed warm from the
+## ground, and stone washed the same (building.gdshader gothic() `lit`, the M_STONE branch).
+const M_GOTHIC_LIT := M_GOTHIC + 0.5
+const M_STONE_LIT := M_STONE + 0.5
 
 
 # --- state ---

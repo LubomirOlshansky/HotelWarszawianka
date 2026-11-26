@@ -371,6 +371,9 @@ const INFO := {
 	"sw_anna": ["Kościół Świętej Anny",
 			"Na początku Krakowskiego Przedmieścia.",
 			"Where Krakowskie Przedmieście begins."],
+	"nikidw": ["Instytut Kultury Wsi",
+			"Długa arkada na Krakowskim Przedmieściu, tuż za kościołem św. Anny.",
+			"The long arcade on Krakowskie Przedmieście, right past St Anne's."],
 	"prezydencki": ["Pałac Prezydencki",
 			"Przed nim książę Józef Poniatowski na koniu i cztery kamienne lwy.",
 			"Prince Józef Poniatowski on horseback and four stone lions before it."],
@@ -1273,6 +1276,8 @@ func _find_sites() -> void:
 	_find_muzeum()
 	_find_mdm()
 	_find_skins()
+	# The Institute next to St Anne's (F, 2026-11-26): a model instead of a street block.
+	_find_nikidw()
 	# Before the column: a later site's tap cells win, and the column's must (check_landmarks).
 	_find_zamkowy()
 	_find_zygmunt()
@@ -1948,8 +1953,11 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the corner tower is ours
 				_build_bristol(s)
 			"sw_anna":
-				_mark_zone(s)  # the nave stays LoD2's, in its skin; the portico and the bell tower's trim are ours
+				_mark_zone(s)  # the whole church and the bell tower are ours (a model, SKINS `runs`)
 				_build_anna(s)
+			"nikidw":
+				_mark_zone(s)
+				_build_nikidw(s)
 			"staszic":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the portico and the statue are ours
 				_build_staszic(s)

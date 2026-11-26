@@ -95,8 +95,9 @@ whole vault gets a lawn (#74a24c).
 
 ## 7. Detail level and budget
 
-L3 (hero landmark, docs/LANDMARKS.md). Budgets in `check_sites.gd`: `zamek` 3200 triangles
-(2810 measured), `arkady` 2400 (2300 measured); `check_mesh_quality.gd` 3400 and 2600, no
+L3 (hero landmark, docs/LANDMARKS.md). Budgets in `check_sites.gd`: `zamek` 7900 triangles
+(7544 measured after the 2026-11-26 Vistula front), `arkady` 2400 (2300 measured);
+`check_mesh_quality.gd` 7900 and 2600, no
 z-fighting and no floating parts (the turret shafts start at the ground inside the mass, the
 railing has posts). No new material, node, light or MultiMesh: all of
 it is merged into the city's one building mesh. Shots (cloud, both paths): from Plac Zamkowy
@@ -138,3 +139,23 @@ it is merged into the city's one building mesh. Shots (cloud, both paths): from 
 - Not built: the courtyard's fan-pattern setts and the yard walls' colours; the Vistula front's
   two gabled side risalits and loggias; the dormers; the Lower Garden's stairs and boskets beyond
   the map's hedges; the south quarter garden's embroidered parterre; Pałac pod Blachą's model.
+
+## Update 2026-11-26: the Vistula front rebuilt (F: "this green kupol is like off")
+
+From F's garden photo, PAP's aerial and the Google 3D views. `_zamek_river_front` in a frame on
+the outline's front line (origin (-609.6, -1596.8), u along (0.347, 0.938), +v out to the river):
+the north gabled risalit (u -16..0, v 5.3: pediment, three statues, three bays), a loggia of four
+round arches under a balustraded balcony (u 0..18), the convex oval central risalit (centre u
+29.6, half axes 11.6 x 6.9, a superellipse so it meets the loggias squarely; arched French
+windows, tall windows, oculi), a second loggia (u 41..59), the south risalit (u 59..75.3, v 7.2).
+A rusticated ground floor #d8cfbf, warm cream walls #ede6d8 (`ZAMEK_VISTULA`), grey-green glazing
+#5e6f6a, cream cornices.
+
+The oval's roof is a bell, not a dome (Fable's critique): a flared eave 0.4 m past the drum, a
+concave kick, a convex shoulder to a small cream lantern with eight dark openings, its copper cap
+and a thin gilt spire with a ball (about 0.55 of the oval's width tall with the spire), pale
+patina #8db8a6, three oculi in the copper and two statues on the rim.
+
+LoD2's walls along this front stood proud of the model in places and drew a second row of window
+slits through it: the skin's `pale` now carries a `drop` polygon (the front's frame, u -17..76,
+v +-14) inside which map_builder's `_skin_run` drops them, so the model stands alone there.

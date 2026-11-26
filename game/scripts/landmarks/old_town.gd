@@ -267,6 +267,8 @@ const ZAMKOWY_SETS := [
 
 func _find_zamkowy() -> void:
 	_add_site("zamkowy", [PackedVector2Array(ZAMKOWY_ZONE)])
+	# the oak in its bench: a big spreading crown, 14 m tall and 12 m across (F's photo)
+	tree_set.append([ZAMKOWY_OAK, 4.0, 14.5, 6.0, 5])  # 5: TreeKind.OAK
 
 
 ## A ring sector round the column between two radii and two angles (degrees), wound for `_cap`.
@@ -351,7 +353,32 @@ func _build_zamkowy(_site: Dictionary) -> void:
 		_umbrella(p, float(u[k + 2]), gy, canopy[(k / 3) % canopy.size()])
 		for v: float in [-0.8, 0.8]:
 			_lbox(v, 0.0, 0.2, 0.2, gy, gy + 0.45, RYNEK_CHAIR, M_STONE)
+	_zamkowy_oak()
 	_no_roof = false
+
+
+## The oak by the castle's west wing (F's photo, 2026-11-26): it stands in a round stone bench of
+## two steps, about 7 m across and 0.9 m to the seat, an iron railing round the soil on its top.
+## The tree itself is the laser scan's, made big by `tree_set` (`_find_zamkowy`).
+const ZAMKOWY_OAK := Vector2(-682.4, -1552.2)
+const ZAMKOWY_BENCH := Color("#9a9086")
+func _zamkowy_oak() -> void:
+	var c := ZAMKOWY_OAK
+	var g: float = map.terrain_height(c.x, c.y)
+	_prism(_circle(c, 3.7, 20), g - 0.4, g + 0.42, ZAMKOWY_BENCH.darkened(0.08), ZAMKOWY_BENCH, M_STONE, M_STONE)
+	_prism(_circle(c, 3.15, 20), g + 0.42, g + 0.85, ZAMKOWY_BENCH, ZAMKOWY_BENCH.lightened(0.06), M_STONE, M_STONE)
+	_prism(_circle(c, 2.6, 18), g + 0.85, g + 1.0, ZAMKOWY_BENCH.darkened(0.04), Color("#4a3b2c"), M_STONE, M_STONE)
+	# the railing: posts round the soil, a top rail and a middle one
+	var posts := _circle(c, 2.75, 16)
+	for k in posts.size():
+		var p := posts[k]
+		var q := posts[(k + 1) % posts.size()]
+		_prism(_square(p, 0.04), g + 0.85, g + 1.78, ANNA_IRON, ANNA_IRON, M_STONE, M_STONE)
+		var d := (q - p).normalized()
+		var n := Vector2(-d.y, d.x) * 0.03
+		for y: float in [g + 1.28, g + 1.72]:
+			_prism(PackedVector2Array([p - n, q - n, q + n, p + n]), y, y + 0.06, ANNA_IRON, ANNA_IRON, M_STONE, M_STONE)
+	_collide(_circle(c, 3.7, 12))
 
 
 ## The mermaid, bronze: the tail coiled on the rock with its fin flicked up, the torso, the
@@ -453,9 +480,8 @@ func _build_zamek(site: Dictionary) -> void:
 			var b := p.lerp(q, float(k + 1) / steps) + out * 0.7
 			_g = minf(map.terrain_height(a.x, a.y), map.terrain_height(b.x, b.y))
 			_wall(a, b, _g - 1.0, _g + 2.2, out, ZAMEK_STONE, p.distance_to(a))
-	_zamek_vistula(ring)
+	_zamek_river_front()
 	_zamek_square_front(ring)
-	_zamek_dome()
 	_zamek_clock_tower()
 	for c: Vector2 in ZAMEK_TURRETS:
 		_zamek_turret(c)
@@ -478,41 +504,220 @@ const ZAMEK_TURRETS := [Vector2(-675.0, -1476.7), Vector2(-669.6, -1565.7)]
 ## The courtyard (the ground the Vistula front's storeys count from) and that front's eave.
 const ZAMEK_YARD := Vector2(-632.0, -1517.0)
 const ZAMEK_EAVE := 17.0
-## The oval central risalit: a drum standing 1.5 m out of the front, and its dome.
-const ZAMEK_DOME := Vector2(-597.2, -1566.0)
-const ZAMEK_DOME_R := 7.0
 ## The row of tubs on the terrace in front of the Vistula front, 7 m out, one every 4 m.
 const ZAMEK_TUBS := [Vector2(-590.4, -1580.2), Vector2(-572.4, -1530.2)]
 
 
-## The Vistula front: every edge of the outline facing east (x > -615): a rusticated ground floor
-## and two storeys of windows in cream-white, 0.35 m proud of the skin, to the eave, under a
-## cream cornice.
-func _zamek_vistula(ring: PackedVector2Array) -> void:
+## The Vistula front, rebuilt whole (F, 2026-11-26, his garden photo and PAP's aerial diagram: "this
+## green kupol is like off"). Pass 2 laid one cream wall over every east edge and stood a round drum
+## with a squat dome on it; the real front (Merlini and Fontana, rebuilt 1971-1984) is a composition:
+## from the north, a gabled side risalit, a loggia of four round arches under a balustraded balcony,
+## the convex oval central risalit under its tall bell-shaped copper roof with the gilt sculpture
+## group, a second loggia and the second gabled risalit. Three storeys over a rusticated ground floor:
+## tall pedimented windows on the piano nobile, square ones above, green-grey glazing in cream
+## surrounds, a cream cornice. Frame: origin (-609.6, -1596.8) on the outline's main front line,
+## u south along it (the outline's steps: the north risalit u -16..0, 5 m proud; the loggias
+## u 0..18 and 41..59; the oval u 18..41, 6.4 m out; the south risalit u 59..75.3, 5.9 m proud),
+## +v out of it towards the river. Spec docs/landmarks/specs/zamek.md "Vistula front".
+const ZV_O := Vector2(-609.6, -1596.8)
+const ZV_A := Vector2(0.347, 0.938)
+## [u0, u1, face v, bays, kind]: 0 a risalit (pediment, three bays), 1 a loggia (four arches).
+const ZV_PARTS := [[-16.0, 0.0, 5.3, 3, 0], [0.0, 18.0, 1.0, 4, 1], [41.0, 59.0, 1.0, 4, 1], [59.0, 75.3, 7.2, 3, 0]]
+## The oval: its middle on the front line, its half width along u and its depth out of it.
+const ZV_OVAL := Vector3(29.6, 11.6, 6.9)
+const ZV_GLASS := Color("#5e6f6a")   # the photos' grey-green glazing and frames
+const ZV_RUSTIC := Color("#d8cfbf")  # the rusticated ground floor, a warm pale stone
+const ZV_COPPER := Color("#8db8a6")  # the oval roof, a pale old patina (F's garden photo)
+const ZV_TILE := Color("#b85a3c")
+
+
+func _zamek_river_front() -> void:
 	var yard: float = map.terrain_height(ZAMEK_YARD.x, ZAMEK_YARD.y)
 	var top := yard + ZAMEK_EAVE
-	var n := ring.size()
-	var run := 0.0
-	for i in n:
-		var p := ring[i]
-		var q := ring[(i + 1) % n]
-		if p.distance_to(q) < 0.4:
-			continue
-		var out := _out(ring, p, q)
-		if out.x < 0.55 or (p.x + q.x) * 0.5 < -615.0:
-			continue
-		var a := p + out * 0.35
-		var b := q + out * 0.35
-		var foot: float = minf(map.terrain_height(a.x, a.y), map.terrain_height(b.x, b.y))
-		_g = yard
-		_mode = M_MONUMENT
-		_wall(a, b, minf(foot, yard) - 0.5, yard + 4.6, out, ZAMEK_RUSTIC, run)
-		_wall(a, b, yard + 4.6, top, out, ZAMEK_VISTULA, run)
+	_o = ZV_O
+	_a = ZV_A.normalized()
+	_b = Vector2(_a.y, -_a.x)  # out of the front, east to the river
+	_g = yard
+	_mode = M_STONE
+	for part: Array in ZV_PARTS:
+		_zv_part(float(part[0]), float(part[1]), float(part[2]), int(part[3]), int(part[4]), yard, top)
+	# the risalits' and the oval's return walls back to the loggias' face
+	for r: Array in [[0.0, 5.3], [59.0, 7.2]]:
+		var u := float(r[0])
+		_zv_return(u, 1.0, float(r[1]), yard, top)
+	_zv_oval(yard, top)
+
+
+## The foot of the front at u, v: the terrace in front of it (the Upper Garden), never above the yard.
+func _zv_foot(u: float, v: float) -> float:
+	var p := _w(u, v + 1.5)
+	return minf(float(map.terrain_height(p.x, p.y)), _g) - 0.6
+
+
+## One straight part of the front from u0 to u1 with its face `v`: the wall, the rustication, the
+## string courses and the cornice, then its windows (`bays` of them a storey) and, by `kind`, a
+## loggia of four arches under a balcony (1) or a pediment over the cornice (0).
+func _zv_part(u0: float, u1: float, v: float, bays: int, kind: int, yard: float, top: float) -> void:
+	var foot := minf(_zv_foot(u0, v), _zv_foot(u1, v))
+	kit_face(v)
+	_kbox(u0, u1, v - 1.2, v, foot, yard + 4.6, ZV_RUSTIC)
+	kit_bands(u0, u1, yard + 0.2, yard + 4.4, 0.55, ZV_RUSTIC)
+	_kbox(u0, u1, v - 1.2, v, yard + 4.6, top, ZAMEK_VISTULA)
+	kit_ledge(u0, u1, yard + 4.45, 0.4, ZAMEK_CREAM, 0.14)
+	kit_ledge(u0, u1, yard + 10.7, 0.3, ZAMEK_CREAM, 0.1)
+	kit_cornice(u0, u1, top, ZAMEK_CREAM, 0.6, 0.7)
+	# corner quoins: cream strips at both ends from the rustication to the cornice
+	for e: float in [u0 + 0.45, u1 - 0.45]:
+		_kbox(e - 0.45, e + 0.45, v - 0.04, v + 0.1, yard + 4.6, top - 0.4, ZAMEK_CREAM)
+	var centres := _spread(u0 + 0.6, u1 - 0.6, bays)
+	for i in bays:
+		var u: float = centres[i]
+		var mid := kind == 0 and i == 1
+		kit_window(u, yard + 5.7, 3.3, Win.PEDIMENT if mid or kind == 1 else Win.SILL_HEAD, ZAMEK_CREAM, ZV_GLASS, 0.72)
+		kit_window(u, yard + 11.7, 2.4, Win.SILL_HEAD, ZAMEK_CREAM, ZV_GLASS, 0.66)
+		if kind == 0:
+			# the risalit's ground floor: arched windows, the middle one a door under a balcony
+			kit_window(u, yard + 1.0, 2.2, Win.ARCHED, ZAMEK_CREAM, ZV_GLASS, 0.62)
+			if mid:
+				kit_balcony(u, yard + 5.7, 1.6, Balcony.STONE, ZAMEK_CREAM, ZAMEK_CREAM, 0.9)
+	if kind == 1:
+		# the loggia: four open round arches on rusticated piers, dark inside
+		var arch := _spread(u0, u1, 4)
+		for au: float in arch:
+			# (0.06 and 0.12 proud: clear of the rustication's lines at 0.03)
+			_arch_panel(_w(au, v), _a, _b, 1.75, foot + 0.4, yard + 2.6, ZAMEK_CREAM, 0.06, M_STONE)
+			_arch_panel(_w(au, v), _a, _b, 1.5, foot + 0.4, yard + 2.6, ZAMEK_GATE, 0.12, M_STONE)
+		# the balcony over it: a slab and a balustrade along the whole loggia
+		_kbox(u0 + 0.3, u1 - 0.3, v, v + 0.9, yard + 4.6, yard + 4.9, ZAMEK_CREAM)
+		kit_face(v + 0.75)
+		kit_attic(u0 + 0.4, u1 - 0.4, yard + 4.9, ZAMEK_CREAM, 1.0, Attic.BALUSTRADE)
+		kit_face(v)
+		return
+	# the risalit's pediment over the cornice, a relief in its field and three statues on it
+	var um := (u0 + u1) * 0.5
+	var hw := (u1 - u0) * 0.5 - 0.3
+	var py := top + 0.6
+	var ph := 3.4
+	kit_pediment(um, hw, py, ph, ZAMEK_CREAM, ZV_TILE, 0.7, ZAMEK_VISTULA.darkened(0.12))
+	_kbox(um - 1.1, um + 1.1, v + 0.55, v + 0.8, py + 0.5, py + 2.3, ZAMEK_CREAM.darkened(0.06))  # the cartouche
+	for s: float in [-1.0, 0.0, 1.0]:
+		var su := um + s * (hw - 0.5)
+		var sy := py + (ph - 0.3 if s == 0.0 else 0.15)  # the middle one sunk into the apex, not hung over it
+		_lbox(su, v + 0.3, 0.35, 0.3, sy, sy + 0.5, ZAMEK_CREAM)
+		_lbox(su, v + 0.3, 0.22, 0.2, sy + 0.5, sy + 2.1, ZAMEK_GILT.darkened(0.1), M_GOLD)
+	# the risalit's own gable roof running back from the pediment into the castle's roof
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(v + 0.65, v - 9.0, um, hw + 0.2, py, ph, ZAMEK_CREAM, ZV_TILE, false)
+	_a = ka
+	_b = kb
+
+
+## A short wall at u from face v0 out to v1 (a risalit's side), the ground floor rusticated.
+func _zv_return(u: float, v0: float, v1: float, yard: float, top: float) -> void:
+	var foot := _zv_foot(u, v1)
+	var a := _w(u, v0)
+	var b := _w(u, v1)
+	# the north risalit (ending at u 0) shows its side to the south, the south one (from u 59) to the north
+	var out := _a if u < 1.0 else -_a
+	_wall(a, b, foot, yard + 4.6, out, ZV_RUSTIC)
+	_wall(a, b, yard + 4.6, top, out, ZAMEK_VISTULA)
+
+
+## The oval central risalit: a convex half ellipse of three storeys (arched French windows on the
+## ground floor, tall ones on the piano nobile, round oculi above), its cornice, and the tall
+## bell-shaped copper roof (a flared eave, a convex shoulder, a full ellipse whose back half stands in
+## the castle's roof) crowned by a small lantern and a thin gilt spire, two statues on its rim.
+func _zv_oval(yard: float, top: float) -> void:
+	var c := ZV_OVAL.x
+	var ha := ZV_OVAL.y
+	var hb := ZV_OVAL.z
+	var n := 10
+	var pts: Array[Vector2] = []  # local (u, v), from the south end round to the north end
+	for k in n + 1:
+		var t := PI * float(k) / float(n)
+		# a superellipse, fuller at the ends than an ellipse: the oval meets the loggias squarely
+		pts.append(Vector2(c + ha * signf(cos(t)) * pow(absf(cos(t)), 0.75), hb * pow(sin(t), 0.75) + 0.4))
+	for k in n:
 		_mode = M_STONE
-		_wall(a + out * 0.05, b + out * 0.05, yard + 4.4, yard + 4.8, out, ZAMEK_CREAM, run)
-		_wall(p + out * 0.75, q + out * 0.75, top - 0.2, top + 0.7, out, ZAMEK_CREAM, run)
-		_ledge(a, b, p + out * 0.75, q + out * 0.75, top + 0.7, ZAMEK_CREAM)
-		run += p.distance_to(q)
+		var p: Vector2 = pts[k]
+		var q: Vector2 = pts[k + 1]
+		var a := _w(p.x, p.y)
+		var b := _w(q.x, q.y)
+		var mid := (p + q) * 0.5
+		var d2 := (q - p).normalized()
+		var nrm2 := Vector2(d2.y, -d2.x)  # the facet's outward normal in the local plan
+		var out := (_a * nrm2.x + _b * nrm2.y).normalized()
+		var foot := _zv_foot(mid.x, mid.y)
+		_wall(a, b, foot, yard + 4.6, out, ZV_RUSTIC)
+		_wall(a, b, yard + 4.6, top + 0.6, out, ZAMEK_VISTULA)
+		# the window bay of this facet: a frame of local axes on the facet
+		var along := (b - a).normalized()
+		var fc := (a + b) * 0.5
+		var fy := [[yard + 0.9, 2.7, 0.62, true], [yard + 5.7, 3.4, 0.7, false]]
+		for w: Array in fy:
+			var y0 := float(w[0])
+			var hh := float(w[1])
+			var hw := float(w[2])
+			_arch_panel(fc + out * 0.02, along, out, hw + 0.2, y0 - 0.15, y0 + hh - hw, ZAMEK_CREAM, 0.02, M_STONE)
+			_arch_panel(fc + out * 0.02, along, out, hw, y0, y0 + hh - hw, ZV_GLASS, 0.07, _lit(float(k) * 3.1, y0))
+		_mode = M_STONE
+		# the oculus on the second floor, in a cream ring
+		var oc := fc + out * 0.06
+		_disc(Vector3(oc.x, yard + 13.2, oc.y), Vector3(out.x, 0.0, out.y), 0.95, 10, ZAMEK_CREAM)
+		var oi := fc + out * 0.1
+		_disc(Vector3(oi.x, yard + 13.2, oi.y), Vector3(out.x, 0.0, out.y), 0.65, 10, ZV_GLASS)
+		# string courses
+		_wall(a + out * 0.1, b + out * 0.1, yard + 4.45, yard + 4.85, out, ZAMEK_CREAM)
+		_wall(a + out * 0.08, b + out * 0.08, yard + 10.7, yard + 11.0, out, ZAMEK_CREAM)
+	_mode = M_STONE
+	# the cornice and the copper roof, full ellipses round the oval's middle
+	var cw := _w(c, 0.4)
+	var ring := func(sa: float, sb: float) -> PackedVector2Array:
+		var r := PackedVector2Array()
+		for k in 20:
+			var t := TAU * (float(k) + 0.5) / 20.0
+			r.append(cw + _a * (sa * signf(cos(t)) * pow(absf(cos(t)), 0.75)) + _b * (sb * signf(sin(t)) * pow(absf(sin(t)), 0.75)))
+		return r
+	var y := top + 0.6
+	_prism(ring.call(ha + 0.55, hb + 0.55), y, y + 0.7, ZAMEK_CREAM, Color(0, 0, 0, 0), M_STONE)
+	_prism(ring.call(ha + 0.2, hb + 0.2), y + 0.7, y + 1.1, ZAMEK_CREAM.darkened(0.05), Color(0, 0, 0, 0), M_STONE)
+	# the bell (Fable 2026-11-26): a flared eave just past the drum, a concave kick, a convex
+	# shoulder rising to a small lantern, about 0.55 of the oval's width tall with the spire
+	var eave: PackedVector2Array = ring.call(ha + 0.4, hb + 0.4)
+	var prof := [[0.97, 1.9], [0.92, 3.1], [0.83, 4.9], [0.68, 6.8], [0.5, 8.3], [0.32, 9.5], [0.18, 10.3], [0.12, 10.6]]
+	_frustum(eave, y + 1.1, ring.call(ha * 0.97, hb * 0.97), y + 1.9, ZV_COPPER.darkened(0.04))
+	for k in prof.size() - 1:
+		var s0 := float(prof[k][0])
+		var s1 := float(prof[k + 1][0])
+		_frustum(ring.call(ha * s0, hb * s0), y + float(prof[k][1]), ring.call(ha * s1, hb * s1), y + float(prof[k + 1][1]),
+				ZV_COPPER.lightened(0.04 * float(k % 2)), ZV_COPPER if k == prof.size() - 2 else Color(0, 0, 0, 0))
+	# the dormer-oculi in the copper: one each side of the front
+	var ry := y + 3.4
+	for s: float in [-0.45, 0.0, 0.45]:
+		var t := PI * 0.5 + s
+		var at := cw + _a * (ha * 0.92 * cos(t)) + _b * (hb * 0.92 * sin(t))
+		var o3 := (_a * cos(t) / ha + _b * sin(t) / hb).normalized()
+		_disc(Vector3(at.x, ry, at.y) + Vector3(o3.x, 0.0, o3.y) * 0.15, Vector3(o3.x, 0.25, o3.y).normalized(), 0.7, 8, ZAMEK_CREAM)
+	# the crown: a small open lantern, its cap, and a thin gilt spire with a ball
+	var top_y := y + 10.6
+	_prism(_circle(cw, 1.0, 8), top_y, top_y + 1.7, ZAMEK_CREAM, Color(0, 0, 0, 0), M_STONE)
+	for k in 8:
+		var t := TAU * (float(k) + 0.5) / 8.0
+		var dir := Vector2(cos(t), sin(t))
+		_disc(Vector3(cw.x + dir.x * 1.01, top_y + 0.85, cw.y + dir.y * 1.01), Vector3(dir.x, 0.0, dir.y), 0.32, 6, ZV_GLASS.darkened(0.3))
+	_frustum(_circle(cw, 1.25, 8), top_y + 1.7, _circle(cw, 0.25, 8), top_y + 3.0, ZV_COPPER)
+	_mode = M_GOLD
+	_prism(_circle(cw, 0.08, 6), top_y + 3.0, top_y + 6.4, ZAMEK_GILT, ZAMEK_GILT, M_GOLD, M_GOLD)
+	_prism(_circle(cw, 0.3, 6), top_y + 4.0, top_y + 4.5, ZAMEK_GILT, ZAMEK_GILT, M_GOLD, M_GOLD)
+	# two statues on the cornice where the oval meets the loggias
+	for s: float in [-1.0, 1.0]:
+		var at := cw + _a * (s * (ha - 0.3)) + _b * 0.8
+		_prism(_square(at, 0.4), y + 0.7, y + 1.2, ZAMEK_CREAM, ZAMEK_CREAM, M_STONE, M_STONE)
+		_prism(_square(at, 0.25), y + 1.2, y + 3.0, ZAMEK_GILT.darkened(0.12), ZAMEK_GILT, M_GOLD, M_GOLD)
+	_mode = M_STONE
 
 
 ## The square front (F, 2026-11-10, the trailer's Old Town take: "from the side of Plac Zamkowy it had
@@ -599,34 +804,6 @@ func _ledge(a: Vector2, b: Vector2, c: Vector2, d: Vector2, y: float, col: Color
 	if Geometry2D.is_polygon_clockwise(quad):
 		quad.reverse()
 	_cap(quad, y, col)
-
-
-## The oval central risalit of the Vistula front: a drum of windows to above the eave, a cornice,
-## a green copper dome with a lantern and a gilt ball, and three gilt figure groups on its rim.
-func _zamek_dome() -> void:
-	_o = Vector2.ZERO
-	_a = Vector2(1, 0)
-	_b = Vector2(0, 1)
-	var yard: float = map.terrain_height(ZAMEK_YARD.x, ZAMEK_YARD.y)
-	var top := yard + ZAMEK_EAVE
-	_g = yard
-	var c := ZAMEK_DOME
-	var r := ZAMEK_DOME_R
-	_prism(_circle(c, r, 12), yard - 0.5, top + 1.2, ZAMEK_VISTULA, Color(0, 0, 0, 0), M_MONUMENT)
-	_prism(_circle(c, r + 0.4, 12), top + 1.2, top + 2.0, ZAMEK_CREAM, ZAMEK_CREAM, M_STONE, M_STONE)
-	_mode = M_STONE
-	var prof := [[r - 0.2, 2.0], [r - 0.8, 3.6], [r - 2.4, 5.4], [r - 4.6, 6.6], [1.0, 7.1]]
-	for k in prof.size() - 1:
-		_frustum(_circle(c, float(prof[k][0]), 12), top + float(prof[k][1]), _circle(c, float(prof[k + 1][0]), 12),
-				top + float(prof[k + 1][1]), ZAMEK_COPPER.lightened(0.03 * k), ZAMEK_COPPER)
-	_prism(_circle(c, 0.9, 6), top + 7.1, top + 8.6, ZAMEK_CREAM, Color(0, 0, 0, 0), M_STONE)
-	_frustum(_circle(c, 1.1, 6), top + 8.6, _circle(c, 0.15, 6), top + 9.6, ZAMEK_COPPER)
-	_prism(_circle(c + Vector2(0.0, 0.0), 0.35, 6), top + 9.6, top + 10.3, ZAMEK_GILT, ZAMEK_GILT, M_STONE, M_STONE)
-	# the figure groups on the rim, facing the river
-	var face := Vector2(0.93, -0.36)
-	for turn: float in [-0.7, 0.0, 0.7]:
-		var at := c + face.rotated(turn) * (r - 0.1)
-		_prism(_square(at, 0.45), top + 2.0, top + 4.1, ZAMEK_GILT.darkened(0.08), ZAMEK_GILT, M_STONE, M_STONE)
 
 
 ## The Clock Tower: the shaft (0.3 m proud of the mapped one) with cream quoins and string

@@ -19,13 +19,17 @@ const SKINS := [
 			"steep": 0.3},
 	# The cathedral's roof is green copper (2026-11-14, photo and orthophoto); LoD2 draws it steeper than
 	# the default 0.7, so `steep` 0.3 keeps its slopes in the roof colour, not the brick.
-	{"key": "archikatedra", "osm": "Archikatedra pw. Świętego Jana Chrzciciela", "mode": M_GOTHIC, "wall": "#9a4b38", "roof": "#829a8f",
+	# Floodlit at night like the real one (F, 2026-11-26; M_GOTHIC_LIT).
+	{"key": "archikatedra", "osm": "Archikatedra pw. Świętego Jana Chrzciciela", "mode": M_GOTHIC_LIT, "wall": "#9a4b38", "roof": "#829a8f",
 			"steep": 0.3},
 	# The Jesuit church (F's Old Town trailer pass, 2026-11-08): LoD2 draws the church with its tower
 	# over 55 m, so the bake gave it the office towers' blue glass. Salmon plaster with white
 	# pilasters on Świętojańska and the brick tower above the roofs (Mapillary photos, refs/oldtown_jezuici2).
 	{"key": "jezuici", "osm": "Sanktuarium Matki Bożej Łaskawej", "model": true, "mode": M_MONUMENT, "wall": "#dd8f82", "roof": "#6a4d44"},
-	{"key": "sw_anna", "osm": "Kościół pw. Świętej Anny", "mode": M_MONUMENT, "wall": "#e6dcc4", "roof": "#8a5a44"},
+	# St Anne's is a model now, whole (F, 2026-11-26): the church and, by `runs`, the bell tower's two
+	# OSM blocks (the square and the octagon on it, both centred there).
+	{"key": "sw_anna", "osm": "Kościół pw. Świętej Anny", "model": true, "runs": [[-689.2, -1379.6]], "mode": M_MONUMENT,
+			"wall": "#e6dcc4", "roof": "#6f9f8a"},
 	{"key": "sw_krzyz", "osm": "Kościół pw. Świętego Krzyża", "mode": M_MONUMENT, "wall": "#e3d9c0", "roof": "#5d6e64"},
 	{"key": "staszic", "osm": "Pałac Staszica", "mode": M_MONUMENT, "wall": "#e6dcc4", "roof": "#6a8f80"},
 	{"key": "wszystkich", "osm": "Kościół Wszystkich Świętych", "mode": M_MONUMENT, "wall": "#c6b186", "roof": "#6e7f6e"},
@@ -124,8 +128,12 @@ func _find_skins() -> void:
 		# `run`: a point inside a LoD2 model that merges this building with its neighbours, whose
 		# centre falls outside the outline (Pałac Uruskich, the Tyszkiewicz palace and its annex are
 		# one LoD2 run): a 2 m square there joins the zone, so `skin_at` finds that run too
+		# `runs`: the same for several points (a model's other blocks: St Anne's bell tower)
+		var runs: Array = t.get("runs", [])
 		if t.has("run"):
-			var c := Vector2(float(t["run"][0]), float(t["run"][1]))
+			runs = runs + [t["run"]]
+		for r: Array in runs:
+			var c := Vector2(float(r[0]), float(r[1]))
 			zones.append(PackedVector2Array([c + Vector2(-1, -1), c + Vector2(1, -1), c + Vector2(1, 1), c + Vector2(-1, 1)]))
 		_add_site(t["key"], zones)
 		# `model`: the whole building is a model now (it replaces LoD2); the entry keeps its place in
@@ -141,7 +149,15 @@ func _find_skins() -> void:
 			if t.has("keep"):
 				sites[-1]["skin"]["keep"] = PackedVector2Array(t["keep"])
 			if t["key"] == "zamek":
-				sites[-1]["skin"]["pale"] = {"wall": ZAMEK_VISTULA, "edges": _zamek_river_edges(outline), "near": 3.0}
+				# `drop`: the river front's frame (`_zamek_river_front`, u -17..76), where LoD2's walls
+				# along the front go and the model stands alone
+				var za := ZV_A.normalized()
+				var zb := Vector2(-za.y, za.x)
+				var drop := PackedVector2Array()
+				for c: Vector2 in [Vector2(-17, -14), Vector2(76, -14), Vector2(76, 14), Vector2(-17, 14)]:
+					drop.append(ZV_O + za * c.x + zb * c.y)
+				sites[-1]["skin"]["pale"] = {"wall": ZAMEK_VISTULA, "edges": _zamek_river_edges(outline), "near": 3.0,
+						"drop": drop}
 				_zamek_tops()
 
 
@@ -203,6 +219,9 @@ const BLOCKS_DIR := "res://data/street_blocks"
 
 ## The street blocks (game/data/street_blocks) that stood in for four of them: the site builds those.
 const DE_BLOCKS := ["118344657", "118344539", "279988290", "138607846"]
+## The Institute next to St Anne's (Krakowskie Przedmieście 66): a model of its own since
+## 2026-11-26 (churches.gd `_build_nikidw`), its street block no longer stands in for it.
+const NIKIDW_BLOCK := "43281056"
 
 
 func _find_blocks() -> void:
@@ -215,7 +234,7 @@ func _find_blocks() -> void:
 		var q := _pts(d["outline"])
 		if q.size() < 3:
 			continue
-		if str(d["id"]) in DE_BLOCKS or str(d["id"]) in [CM_BLOCK, MP_BLOCK]:
+		if str(d["id"]) in DE_BLOCKS or str(d["id"]) in [CM_BLOCK, MP_BLOCK, NIKIDW_BLOCK]:
 			continue
 		var key := "blk_" + str(d["id"])
 		var zone: Array = [_largest(Geometry2D.offset_polygon(q, 1.0, Geometry2D.JOIN_MITER))]

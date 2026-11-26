@@ -853,35 +853,59 @@ float clock_hand(vec2 q, float a, float len, float w) {
 	return step(length(q - d * t), w);
 }
 
-// Brick Gothic (the landmarks loop, Old Town): the Cathedral's and the Barbican's walls. Brick
-// in slow patches, a stone plinth, a buttress every bay, and tall pointed lancets on walls
-// over 9 m (stained glass, faintly lit at night).
-vec3 gothic(vec3 col, float u, float h, float top, vec3 wp, out vec3 glow) {
+// Brick Gothic (the Cathedral, the Barbican): buttress faces every 6.5 m and a pointed lancet in
+// each bay. The lancet (F, 2026-11-26: "strange windows", the panes were drawn in horizontal
+// stripes of dark and blue, at night alternating amber and purple) is now as the photos show it:
+// a white plaster splay round dark leaded glass (diamond quarries, a mullion in the middle), lit
+// at night as one even, soft blue-grey pane (the photos' windows by night), never in stripes.
+// `lit` (the mode's fraction, M_GOTHIC_LIT): floodlit from the ground at night like the
+// Cathedral (its night photo: the brick washed in warm orange, brightest low down).
+vec3 gothic(vec3 col, float u, float h, float top, vec3 wp, float lit, out vec3 glow) {
 	glow = vec3(0.0);
 	vec3 c = col * (0.9 + 0.16 * value_noise(vec2(u * 0.7, h * 1.6) + wp.xz * 0.05));
+	vec3 flood = vec3(0.4, 0.27, 0.17) * lit * (0.45 + 0.55 * (1.0 - smoothstep(0.0, max(top, 4.0), h)));
 	if (h < 1.0) {
-		return srgb_to_linear(vec3(0.62, 0.6, 0.56)) * mix(0.35, 1.0, daylight);
+		vec3 plinth = srgb_to_linear(vec3(0.62, 0.6, 0.56)) * mix(0.35, 1.0, daylight);
+		glow = plinth * flood;
+		return plinth;
 	}
 	float bay = 6.5;
 	float fx = fract(u / bay);
 	if (fx < 0.14) {
-		return c * (h > top - 0.6 ? 1.0 : 0.84); // the buttress's shadowed face
+		vec3 b = c * (h > top - 0.6 ? 1.0 : 0.84); // the buttress's shadowed face
+		glow = b * flood;
+		return b;
 	}
 	if (top > 9.0) {
 		float hw = 0.75;
 		float top_w = top - 2.8;
-		float dx = abs(fx - 0.57) * bay;
+		float sx = (fx - 0.57) * bay;
+		float dx = abs(sx);
 		float y = h - (top_w - hw * 1.6);
 		// A lancet: straight sides, then two arcs meeting in a point.
-		bool in_arch = any(bvec2(y < 0.0, dx < hw * (1.0 - (y / (hw * 1.6)) * (y / (hw * 1.6)))));
+		float yr = y / (hw * 1.6);
+		bool in_arch = any(bvec2(y < 0.0, dx < hw * (1.0 - yr * yr)));
 		if (all(bvec4(h > 2.6, h < top_w, dx < hw, in_arch))) {
-			vec3 pane = mix(srgb_to_linear(vec3(0.16, 0.17, 0.22)), srgb_to_linear(vec3(0.3, 0.33, 0.42)), fract(h * 0.71));
-			if (lights_on > 0.001) {
-				glow = mix(WARM, srgb_to_linear(vec3(0.5, 0.35, 0.8)), step(0.5, fract(h * 0.37))) * 0.35 * lights_on;
-			}
+			// The splay: a pale band 0.22 m wide round the glass.
+			float g = hw - 0.22;
+			float yg = (y + 0.1) / (g * 1.6);
+			bool glass = all(bvec4(h > 2.85, h < top_w - 0.2, dx < g, any(bvec2(y + 0.1 < 0.0, dx < g * (1.0 - yg * yg)))));
+			float gl = float(glass);
+			vec3 splay = srgb_to_linear(vec3(0.84, 0.82, 0.78));
+			// Leaded quarries: two diagonal lead lines and the mullion.
+			float d1 = fract((sx + h) * 1.4);
+			float d2 = fract((sx - h) * 1.4);
+			float lead = max(max(step(0.88, d1), step(0.88, d2)), step(dx, 0.045));
+			float shade = 0.88 + 0.22 * hash12(vec2(floor((sx + h) * 1.4), floor((sx - h) * 1.4)));
+			vec3 pane = srgb_to_linear(vec3(0.17, 0.2, 0.25)) * shade;
+			pane = mix(mix(pane, srgb_to_linear(vec3(0.08, 0.08, 0.09)), lead * 0.85), splay, 1.0 - gl);
+			float wnd = hash12(vec2(floor(u / bay), floor(wp.x * 0.01 + wp.z * 0.013)));
+			vec3 inner = vec3(0.42, 0.48, 0.58) * (0.12 + 0.06 * wnd) * (1.0 - lead * 0.8) * lights_on;
+			glow = mix(splay * flood * 1.2, inner, gl);
 			return pane * mix(0.4, 1.0, daylight);
 		}
 	}
+	glow = c * flood;
 	return c;
 }
 
@@ -892,6 +916,8 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 		return wall ? monument(col, uv.x, uv.y, top, glow) : col * (0.94 + 0.08 * value_noise(wp.xz * 1.7));
 	} else if (mode == M_STONE) {
 		float grain = 0.95 + 0.07 * value_noise(wp.xz * 2.1 + wp.y * 1.3);
+		// M_STONE_LIT (fraction 0.5): stone washed by floodlights at night (the Cathedral's gable panels).
+		glow = col * vec3(1.0, 0.8, 0.56) * step(0.25, param) * 0.55;
 		if (all(bvec3(wall, top > 2.0, uv.y > top - 0.5))) {
 			return col * 1.12;
 		}
@@ -966,7 +992,7 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 	} else if (mode == M_GLASS) {
 		return wall ? glass_wall(col, uv.x, uv.y, top, 1.5, 4.0, 0.34, glow) : col;
 	} else if (mode == M_GOTHIC) {
-		return wall ? gothic(col, uv.x, uv.y, top, wp, glow) : col * (0.92 + 0.1 * value_noise(wp.xz * 1.3));
+		return wall ? gothic(col, uv.x, uv.y, top, wp, step(0.25, param), glow) : col * (0.92 + 0.1 * value_noise(wp.xz * 1.3));
 	} else if (mode == M_SKIN) {
 		if (!wall) {
 			return col * (0.94 + 0.08 * value_noise(wp.xz * 1.7));

@@ -331,8 +331,9 @@ const BUDGET := {
 	"sw_krzyz": 1250,  # 2026-11-06 photo pass: the real flat front, balustrade and statue
 	"sejm": 1400,
 	"staszic": 360,
-	"zamek": 4300,
-	"zamkowy": 1700,
+	"zamek": 7900,  # 2026-11-26: the Vistula front rebuilt from F's photos: risalits, loggias, the oval under its copper bell with lantern (measured 7544)
+	"zamkowy": 2400,  # 2026-11-26: + the oak's stone ring bench and railing (measured 2271)
+	"nikidw": 2400,  # 2026-11-26: the Institute modelled whole: 12-bay two-storey arcade, wings, hipped roofs (measured 2268)
 	"arkady": 2600,
 	"kino_muranow": 6000,
 	"zbawiciela": 3400,
@@ -348,7 +349,7 @@ const BUDGET := {
 	"wizytki": 3600,  # 2026-11-14: the whole Visitationist church replaces LoD2 (front, nave, aisles, chancel, wing, turret; measured 3248)
 	"branickich": 1500,
 	"archikatedra": 1100,
-	"sw_anna": 1050,  # 2026-11-06 photo pass: giant order, niches, attic, tower dome
+	"sw_anna": 7800,  # 2026-11-26: the whole church (nave, presbytery, chapels, Loreto, monastery wing) and the bell tower rebuilt from photos and the 3D views (measured 7403)
 	"widok": 820,  # 2026-11-22 rebuilt from F's photos: two slabs, the core, soffit, roof plant (682 tris)
 	"pzu": 900,
 	"jm": 900,
