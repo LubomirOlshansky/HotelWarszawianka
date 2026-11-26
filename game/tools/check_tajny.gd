@@ -18,6 +18,8 @@ const Tajny := preload("res://scripts/tajny_klient.gd")
 const Crowds := preload("res://scripts/crowds.gd")
 const Storefronts := preload("res://scripts/storefronts.gd")
 const StandUi := preload("res://scripts/kebab_stand_ui.gd")
+const PalmUi := preload("res://scripts/palm_tasting_ui.gd")
+const Dialogue := preload("res://scripts/dialogue.gd")
 
 var problems: Array[String] = []
 var checks := 0
@@ -40,6 +42,7 @@ func _initialize() -> void:
 	_words()
 	_tables()
 	_stand_exits()
+	_palm_exits()
 	for p in problems:
 		print("  PROBLEM " + p)
 	print("check_tajny: %s" % ("OK (%d checks)" % checks if problems.is_empty() else "%d problems" % problems.size()))
@@ -184,3 +187,54 @@ func _stand_exits() -> void:
 		t._stand_ui.queue_free()
 		t.queue_free()
 	car.queue_free()
+
+
+## The livestream at the Palm: what it is handed, and every way out brings the city and the car back.
+func _palm_exits() -> void:
+	var dlg := Dialogue.new()
+	root.add_child(dlg)
+	if dlg.lines.is_empty():
+		dlg._ready()  # _initialize runs before the tree's ready
+	var t0 := Tajny.new()
+	t0.dialogue_node = dlg
+	t0.dish = 3
+	t0.cam = false
+	t0.bribe = 2
+	t0.grade = Tajny.grade_of(3, 0.1, 0, false, "good")
+	var spec := t0.tasting_spec()
+	var v: Array = spec["verdict"]
+	_expect(v.size() == 4, "the verdict: the bite, the bun, Berlin and DŻEMINI (%d lines)" % v.size())
+	var said := ""
+	for l: Array in v:
+		said += str(l[0]) + " "
+	for phrase: String in ["Ale dobry", "nie za sucha", "z Berlina"]:
+		_expect(said.contains(phrase), "the livestream says F's \"%s\"" % phrase)
+	_expect(str(spec["grade_label"]) == "11 / 10" and str((spec["roast"] as Array)[0]).contains("Jedenaście"), "a perfect run is 11/10 with its roast: %s" % spec["grade_label"])
+	t0.free()
+	var drawn: Array[bool] = []
+	var car := Node3D.new()
+	root.add_child(car)
+	for way: String in ["done_out_of_run", "ended"]:
+		var t := Tajny.new()
+		root.add_child(t)
+		t.dialogue_node = dlg
+		t._city_drawn = func(on: bool) -> void: drawn.append(on)
+		t.car = car
+		t._palm_ui = PalmUi.new()
+		root.add_child(t._palm_ui)
+		t._palm_ui.open(t.tasting_spec())
+		t._hold_world(true)
+		_expect(drawn.back() == false and car.process_mode == Node.PROCESS_MODE_DISABLED, "palm %s: the city off and the car still" % way)
+		match way:
+			"done_out_of_run":
+				t._palm_done({})
+			"ended":
+				t._ended()
+		_expect(drawn.back() == true, "palm %s: the city is drawn again" % way)
+		_expect(car.process_mode == Node.PROCESS_MODE_INHERIT, "palm %s: the car moves again" % way)
+		if way == "ended":
+			_expect(not t._palm_ui.inside, "palm ended: the livestream is taken down")
+		t._palm_ui.queue_free()
+		t.queue_free()
+	car.queue_free()
+	dlg.queue_free()

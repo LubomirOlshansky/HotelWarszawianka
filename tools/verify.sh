@@ -451,6 +451,9 @@
 # `kebabstand` runs game/tools/check_kebab_stand.gd (the Tajny klient's 2D stand, phase 2): the stands'
 # menus, the pour (dry, good, jacket, auto-pour), an order to the end, the words and the buttons' fit,
 # and the view playing a whole order by itself.
+# `palmtasting` runs game/tools/check_palm_tasting.gd (the Tajny klient's tasting at the Palm as
+# Zbyszek's livestream, phase 3): the beats in order, the taps and the held-× skip, the chat and the
+# viewers, the words and the chat's fit, and the view playing it through by itself.
 # `callcards` runs game/tools/check_call_cards.gd (F 2026-11-24, a call that rang unseen): every call,
 # offer and quiz card is on screen with any controls, nitro, status line and talk; no map (CI too).
 # `streaming` runs game/tools/check_streaming.gd
@@ -1583,6 +1586,7 @@ for s in $want; do
 		# room's mesh, the door's ring and WEJDŹ pill, the pint, the stake, WYJDŹ.
 		tajny) check tajny '^check_tajny:' --script res://tools/check_tajny.gd -- --nosave ;;
 		kebabstand) check kebabstand '^check_kebab_stand:' --script res://tools/check_kebab_stand.gd -- --nosave ;;
+		palmtasting) check palmtasting '^check_palm_tasting:' --script res://tools/check_palm_tasting.gd -- --nosave ;;
 		tapczan) check tapczan '^check_tapczan:' --script res://tools/check_tapczan.gd ;;
 		# Za deckami, stage A: the DJ game's rules, tracks and tuning; four bots against the design's targets.
 		decks) check decks '^check_decks:' --script res://tools/check_decks.gd ;;
@@ -1741,7 +1745,7 @@ for s in $want; do
 		# last bar 2 min 38 s after boarding (about 12,000 frames with the call and the pickup).
 		crawl-run) game crawl 20000 '^crawl: end: made it, 3/3 bars' --crawl-call --crawl-log --crawl-route=klasyczna --autopilot ;;
 		# THE TAPCZAN in the whole game: straight in, a pint, a self-playing beer pong game, out to the tipsy drive.
-		tajny-run) game tajny-run 17000 '^tajny klient: beat done' --tajny --autopilot ;;
+		tajny-run) game tajny-run 19000 '^tajny klient: beat done' --tajny --autopilot ;;
 		tapczan-run) game tapczan 12000 '^tapczan: out: won' --tapczan=pong --tapczan-log ;;
 		decks-run) game decks 12000 '^decks: over: PIEC' --decks --decks-bot=perfect --decks-log ;;
 		shisha-run) game shisha 30000 '^shisha: done: smoke' --shisha-call --shisha-log --autopilot ;;
