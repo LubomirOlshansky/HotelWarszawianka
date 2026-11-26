@@ -120,7 +120,7 @@ Calmed from the 3D Tiles colours and the photo report:
 | walls, shafts, screen, arcades | `#c6b186` weathered sandy ochre (shade `#a8977a` is the light's job) | M_STONE (walls), M_MONUMENT on big plain wall slabs |
 | order, cornices, frames, pediments, urns | `#d6c9a6` lighter trim | M_STONE |
 | plinth, steps | `#b5aa8e` | M_STONE |
-| copper roofs, caps, dome | `#86a898` pale green copper (the 3D views read paler than the old `#6e8f7e`) | M_STONE |
+| copper roofs, caps, dome | `#96b8a4` pale green copper (the 3D views read paler than the old `#6e8f7e`) | M_STONE |
 | openings, portals, belfry and arcade voids, windows | `#3a3d40` | M_GLASS for windows and doors, M_STONE for open voids |
 | ball and crosses | `#c9a24a` gilt | M_STONE |
 | tympanum relief | `#8f8466` | M_STONE |
