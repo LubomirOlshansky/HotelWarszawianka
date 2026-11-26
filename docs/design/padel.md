@@ -103,3 +103,13 @@ shots find the open spot only partly (HUMAN_SPREAD), the rivals are stronger (0.
 ball under 0.88), the decider at 1:1 is first to three, pauses are shorter, the friend covers 1.4x his
 lane, TWOJA! when the friend leaves a ball to you, WYMIANA counter from six hits, Prezes changes rackets.
 `check_padel` plays three hands: ring 45 ms wins about 70%, 110 ms about 40%, a masher under 10%.
+
+## How-to and warm-up (2026-11-26, F: "make some intro ... onboarding/instruction")
+The first match of a run opens with JAK GRAĆ / HOW TO PLAY: four rows over the dimmed court, each with
+a small moving picture (the ring closing on a ball with its gold CZYSTO flash; early across, late down
+the line; the left thumb aiming; a high ball for a smash). A tap starts the warm-up: Prezes feeds
+three slow balls into your lane (`PadelSim.warm_on`, the rivals don't chase your returns), Dominik
+grades each tap (TAK JEST / DOBRZE / ZA WCZEŚNIE / ZA PÓŹNO / JESZCZE RAZ), nothing counts; then
+GRAMY NA SERIO!, Prezes: „Ja się nie rozgrzewam. Ja od razu gram.” and the match from 0:0. POMIŃ skips
+both; a player who never taps is moved on after 25 s. Not saved: once per session. The words of the
+whole match now live in dialogue.json, group `padel_match`.
