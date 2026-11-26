@@ -1068,7 +1068,7 @@ func _sober_result() -> void:
 		took = wallet.lose_respect(Rules.SOBER_DRUNK_LOSS, Rules.respect_floor(int(wallet.respect)))
 	_say(0, "drunk")
 	_toast("drunk", took, fine, promil)
-	_log("blew %.2f per mille: -%d zł, -%d respect" % [promil, fine, took])
+	_log("blew %.2f per mille: -%d zl, -%d respect" % [promil, fine, took])
 
 
 ## A toast from the `sober_check` lines tagged "toast_<what>": {n} the respect, {zl} the fine, {p}
