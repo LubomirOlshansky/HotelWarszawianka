@@ -92,6 +92,23 @@ func _initialize() -> void:
 	var muranow := HouseTypes.zone_at(Vector2(-2099, -1262))
 	_expect(HouseTypes.zone_id(muranow) == "muranow", "Nowolipki is in Muranów (got %s)" % HouseTypes.zone_id(muranow))
 
+	# Parked cars by zone: every share in 0..1, the estates full, the office belt thinner, and the
+	# pick a pure function of the place (both city paths keep the same cars).
+	for z: Dictionary in d.get("zones", []):
+		var share := float(z.get("parked", 1.0))
+		_expect(share >= 0.0 and share <= 1.0, "zone %s parks a share in 0..1 (%s)" % [z.get("id"), share])
+	_expect(is_equal_approx(HouseTypes.parked_keep(Vector2(-2099, -1262)), 1.0), "Muranów keeps all its parked cars")
+	var kept := 0
+	var wola := Vector2(-2400, 450)
+	var share_w := HouseTypes.parked_keep(wola)
+	_expect(share_w < 1.0, "the Wola office belt parks thinner (%.2f)" % share_w)
+	for i in 2000:
+		var at := wola + Vector2(fmod(i * 7.31, 150.0), fmod(i * 3.17, 90.0))
+		if HouseTypes.keeps_parked(at):
+			kept += 1
+		_expect(HouseTypes.keeps_parked(at) == HouseTypes.keeps_parked(at), "keeps_parked is the same twice")
+	_expect(absf(kept / 2000.0 - share_w) < 0.06, "Wola keeps about its share of parked cars (%.2f of %.2f)" % [kept / 2000.0, share_w])
+
 	# The photo fronts and the census, from the baked map.
 	_expect(map is Dictionary, "res://map/centrum.json loads (run tools/setup_map.sh)")
 	if map is Dictionary:
