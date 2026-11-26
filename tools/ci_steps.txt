@@ -151,6 +151,7 @@ places               quick
 placescripts         quick
 placzamkowy          quick
 plain                runs
+phonehub             quick
 playtestroute        quick
 pois                 roads
 police               quick

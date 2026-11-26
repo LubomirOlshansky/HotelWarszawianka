@@ -6903,7 +6903,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				settings.perf = show_perf
 				settings.save()
 			KEY_ESCAPE:
-				if not phone.close_if_open():
+				if phone == null or not phone.close_if_open():
 					_open_settings()
 			KEY_U:
 				# Loop G1: Auto → Low → Medium → High → Ultra → Experimental → Auto.
