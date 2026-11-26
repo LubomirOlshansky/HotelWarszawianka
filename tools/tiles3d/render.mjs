@@ -16,7 +16,7 @@
 // added); an environment secret, never in a file, never printed. Setup: docs/design/tiles3d-setup.md.
 //
 // Google's Map Tiles terms: view live only. Nothing here caches, exports or traces the mesh: the tiles
-// stay in the browser's memory for one run (fresh in-memory profile, disk cache off) and only
+// live only for one run (a fresh temporary browser profile, deleted at exit) and only
 // screenshots with Google's attribution on them are saved, as local modelling references (refs/ is
 // gitignored; never committed, shipped, traced or used as textures). One run is one root tileset
 // request (the billable unit; free monthly tier, then paid), however many views.
@@ -108,7 +108,7 @@ const browser = await chromium.launch(launch);
 let failed = false;
 try {
 	const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
-	page.on("pageerror", (e) => console.error(`tiles3d_render: page: ${e.message}`));
+	page.on("pageerror", (e) => console.error(`tiles3d_render: page: ${String(e.message).replaceAll(key, "KEY")}`));
 	// The key rides in the fragment, which browsers never send to the server.
 	await page.goto(`http://127.0.0.1:${port}/#key=${encodeURIComponent(key)}`);
 	await page.waitForFunction(() => window.status_ && (window.status_.ready || window.status_.error), null, { timeout: 60000 });

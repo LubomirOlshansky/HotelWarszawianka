@@ -62,7 +62,8 @@ GUGiK LoD2 heights and what the model remembered; nobody put a photo beside the 
 - **Google 3D renders: `refs/<slug>/3dtiles/`** (F, 2026-11-26). `node tools/tiles3d/render.mjs
   --building="NAME IN centrum.json" --slug=NAME` (or `--lat= --lon=`, or game `X Z`) renders the building live from Google Photorealistic
   3D Tiles: 6 orbit views and a top-down, Google's attribution on each image, in the cloud or on the
-  Mac (docs/design/tiles3d-setup.md). Best for roof shapes, heights, back and courtyard faces. Look,
+  Mac (docs/design/tiles3d-setup.md). Best for roof shapes, heights, back and courtyard faces. The saved screenshots are local-only references that
+  never leave `refs/`: not in the repo, posts, PRs or artifacts. Look,
   measure by eye and write values into the spec; never export, cache, trace or import the mesh
   (Google's terms). One run is one billable root request: one run per building, not per view.
 
