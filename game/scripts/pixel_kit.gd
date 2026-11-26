@@ -69,6 +69,9 @@ const HAIR_BK := Color("#2a2a2a")
 var ci: CanvasItem
 var u := 1.0
 var o := Vector2.ZERO
+## Rects drawn (or, with no `ci`, that would be) since the owner last zeroed it: the Za deckami view's
+## per-frame budget (check_decks.gd reads it from a dry pen).
+var rects := 0
 
 static var _glyphs: Dictionary = {}
 
@@ -83,7 +86,10 @@ func _init(item: CanvasItem = null, unit := 1.0, origin := Vector2.ZERO) -> void
 
 ## A canvas-px rect, snapped to whole screen pixels on the grid.
 func rect(x: float, y: float, w: float, h: float, c: Color) -> void:
-	if ci == null or w <= 0.0 or h <= 0.0:
+	if w <= 0.0 or h <= 0.0:
+		return
+	rects += 1
+	if ci == null:
 		return
 	var x0 := roundf(o.x + roundf(x) * u)
 	var y0 := roundf(o.y + roundf(y) * u)

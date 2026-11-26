@@ -176,6 +176,14 @@
 # the call's hours, the clock and the pay, and (since it is an activity of the kit, 2026-11-12) a
 # whole crawl played against the shared stand-ins. `crawl-run` (full set only) plays the Klasyczna
 # in the whole game with the autopilot: the pickup, three bars, the pay.
+# Za deckami, stage A (2026-11-26): `decks` runs game/tools/check_decks.gd: Smoła's DJ game's rules
+# (decks_sim.gd) and its tracks: the four OGGs 64 beats at 132 BPM, their lane pictures, the tuning
+# numbers (data/decks.json), determinism, the perfect, mid, poor and no-input bots against the design's
+# targets (30 seeds each), the forced per-beat rules, the early return and the ✕; no map (CI too).
+# Stage B (2026-11-26) adds the club with stand-ins (the invite, the tile, a set paid once a visit, the
+# saved best and sets, the city's 3D off and on, the mood after), the words, the flags, the view's
+# touch zones at two screens and its rect budget, and a whole self-played set. `decks-run` (full set
+# only) plays a set in the whole game: --decks --decks-bot=perfect, its `decks: over: PIEC` line.
 # THE TAPCZAN phase 2 (2026-11-24): `tapczan` runs game/tools/check_tapczan.gd: data/tapczan.json's
 # words (pairs, no brand), the beer pong rules (racks, aim, bounce, rim, balls back, re-rack, drinks
 # and sway, Pani Gienia's late skill) and 300 seeded games, the tipsy fade and pull, the room's mesh,
@@ -1572,6 +1580,8 @@ for s in $want; do
 		# room's mesh, the door's ring and WEJDŹ pill, the pint, the stake, WYJDŹ.
 		tajny) check tajny '^check_tajny:' --script res://tools/check_tajny.gd -- --nosave ;;
 		tapczan) check tapczan '^check_tapczan:' --script res://tools/check_tapczan.gd ;;
+		# Za deckami, stage A: the DJ game's rules, tracks and tuning; four bots against the design's targets.
+		decks) check decks '^check_decks:' --script res://tools/check_decks.gd ;;
 		# Dead electric cars: the TESŁO, the lines, the sling, the chargers on the real graph.
 		evtow) check evtow '^check_ev_tow:' --script res://tools/check_ev_tow.gd ;;
 		# City-life satire #1: the loud cars and the Browary meet.
@@ -1727,6 +1737,7 @@ for s in $want; do
 		# THE TAPCZAN in the whole game: straight in, a pint, a self-playing beer pong game, out to the tipsy drive.
 		tajny-run) game tajny-run 14000 '^tajny klient: beat done' --tajny --autopilot ;;
 		tapczan-run) game tapczan 12000 '^tapczan: out: won' --tapczan=pong --tapczan-log ;;
+		decks-run) game decks 12000 '^decks: over: PIEC' --decks --decks-bot=perfect --decks-log ;;
 		shisha-run) game shisha 30000 '^shisha: done: smoke' --shisha-call --shisha-log --autopilot ;;
 		# Loop 2d-1 x 3g-1: a pull-over 25 s into that ride takes exactly one star (police.gd calls
 		# rides.on_pulled_over() when the conversation ends), on the prebuilt city.
