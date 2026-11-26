@@ -107,6 +107,14 @@ var _shadow: MeshInstance3D
 var _shadow_mat: StandardMaterial3D
 var _acc := Vector3.ZERO
 var _spin := 0.0
+## F 2026-11-26, promo only (the flying-dzik Reel): the helicopter flies as a winged dzik with two
+## piglets (boar.gd), so F can fly it round the city and frame shots in Promo Mode. `set_dzik`.
+var dzik := false
+var _dzik_root: Node3D
+var _dzik_rigs: Array[Dictionary] = []
+var _dzik_t := 0.0
+const DZIK_SCALE := 4.0
+const PIGLET_SCALE := 2.5
 
 
 func _ready() -> void:
@@ -138,7 +146,35 @@ func speed() -> float:
 
 ## 0..1, how fast the rotor turns (it spins up after take-off): the rotor sound's pitch.
 func rotor_speed() -> float:
-	return _spin
+	return 0.0 if dzik else _spin
+
+
+## The dzik skin on or off: the helicopter's boxes hide (the lights stay, they only glow at night)
+## and the boar with feathered wings flies in its place, the piglets in a V behind.
+func set_dzik(on: bool) -> void:
+	if on == dzik:
+		return
+	dzik = on
+	if on and _dzik_root == null:
+		_dzik_root = Node3D.new()
+		_dzik_root.name = "Dzik"
+		_body.add_child(_dzik_root)
+		# The boar's nose is +Z, the helicopter's -Z.
+		var at := [[Vector3(0, -0.6, 0), DZIK_SCALE], [Vector3(-5.0, -0.2, 9.0), PIGLET_SCALE],
+				[Vector3(5.0, 0.2, 10.0), PIGLET_SCALE]]
+		for i in at.size():
+			var r := Boar.build(Boar.Wings.FEATHERS, i > 0)
+			var n: Node3D = r["root"]
+			n.scale = Vector3.ONE * float(at[i][1])
+			n.position = at[i][0]
+			n.rotation.y = PI
+			_dzik_root.add_child(n)
+			_dzik_rigs.append(r)
+	for c in _body.get_children():
+		if c != _dzik_root:
+			(c as Node3D).visible = not on
+	if _dzik_root != null:
+		_dzik_root.visible = on
 
 
 func _physics_process(dt: float) -> void:
@@ -210,6 +246,12 @@ func _step(dt: float) -> void:
 	_spin = move_toward(_spin, 1.0, 0.5 * dt)
 	_rotor.rotate_y(27.0 * _spin * dt)
 	_tail_rotor.rotate_x(40.0 * _spin * dt)
+	if dzik:
+		# Faster beats when climbing or flying fast; the piglets beat a little quicker, out of step.
+		_dzik_t += dt
+		var hz := 2.4 + 1.2 * clampf(speed() / MAX_SPEED, 0.0, 1.0) + 0.8 * clampf(vy / 8.0, 0.0, 1.0)
+		for i in _dzik_rigs.size():
+			Boar.pose_fly(_dzik_rigs[i], _dzik_t + 0.13 * i, hz * (1.0 if i == 0 else 1.25))
 	_update_shadow(nx, nz)
 	_update_lights(dt, nx, nz)
 

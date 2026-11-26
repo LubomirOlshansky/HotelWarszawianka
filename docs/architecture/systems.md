@@ -100,6 +100,8 @@ fails if a script is in neither page, so add a row when you add a file.
 | `drive_controls.gd` | Touch and key controls to throttle and steering (shared with `check_steering.gd`). |
 | `lane_assist.gd`, `stop_assist.gd` | Lane assist; how forgiving every stop zone is. |
 | `heli.gd` | The helicopter. |
+| `boar.gd` (F 2026-11-26) | The dzik model: a game-style voxel wild boar rig (body, head, ears, legs, tail, optional feathered wings, piglet build) in one vertex-colour material, with `pose_fly` and `pose_trot`; for the flying-dzik Reel (`promo_boar.gd`, the heli's promo dzik skin) and the "become a boar" quest. |
+| `promo_boar.gd` (F 2026-11-26, promo branch only) | The flying-dzik Reel's scripted shots and still views (`--promo-boar[=SHOT|views]`): flies the boar and piglets round the Palace and places the perspective camera. |
 | `boat.gd` | Boats for the boat race. |
 | `gamepad.gd` | Controllers. |
 | `follow_camera.gd` | The follow camera's rules (shared with tests), and the test-only free camera's flag text and view (`--cam=X,Y,Z`, main.gd `_update_free_camera`; check `check_free_cam`, verify step `freecam`). |

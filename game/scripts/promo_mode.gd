@@ -143,8 +143,11 @@ func set_on(value: bool) -> void:
 		_layer.visible = true
 		_apply_hud()
 		_apply_speed()
+		_set_dzik(true)
 		_refresh()
 	else:
+		if _has_dzik():
+			game.heli.set_dzik(false)
 		set_portrait(false)
 		if _layer != null:
 			_layer.visible = false
@@ -314,6 +317,44 @@ func _process(dt: float) -> void:
 
 
 # --- the clock ---------------------------------------------------------------------------------
+
+## F 2026-11-26, promo only (the flying-dzik Reel): DZIK puts the winged boar and its piglets in
+## the helicopter's place (heli.gd `set_dzik`), takes off from the car and holds the clock at
+## 14:40 (paused), the light F picked; HELI brings the helicopter back and leaves the clock.
+const DZIK_HOUR := 14.0 + 40.0 / 60.0
+
+func _set_dzik(value: bool) -> void:
+	if not _has_dzik():
+		return
+	game.heli.set_dzik(value)
+	if not value:
+		return
+	if not game.flying:
+		game._take_off(Heli.CRUISE)
+	_dzik_clock()
+	# Promo Mode turns on while the world is still being built: set the clock again once the
+	# game's own start (the date, the saved clock) has run.
+	for wait in [1.5, 6.0]:
+		get_tree().create_timer(wait).timeout.connect(func() -> void:
+			if on and game.heli.dzik:
+				_dzik_clock())
+
+
+## A test double (check_promo) has no helicopter skin.
+func _has_dzik() -> bool:
+	return game.heli != null and game.heli.has_method("set_dzik")
+
+
+func _dzik_clock() -> void:
+	if game.tod != null:
+		if game.tod.game_clock:
+			game.tod.shift_clock((DZIK_HOUR - float(game.tod.local_clock()["hour"])) * 60.0)
+		else:
+			game.tod.set_hour(DZIK_HOUR, true)
+	speed_i = 0
+	_apply_speed()
+	_log("promo: dzik at 14:40")
+
 
 func _nudge(minutes: float) -> void:
 	GameTime.nudge(game.tod, minutes)
@@ -597,6 +638,10 @@ func _build() -> void:
 	_button(r, "car_here", "CAR HERE", func() -> void:
 		game._teleport_from_map(Vector2(focus.x, focus.z))
 		_log("promo: car to %.0f, %.0f" % [focus.x, focus.z]))
+	r = _row(b, "FLY")
+	_button(r, "dzik", "DZIK", func() -> void:
+		_set_dzik(_has_dzik() and not game.heli.dzik)
+		_refresh(), UiKit.Kind.PRIMARY)
 	r = _row(b, "")
 	_button(r, "off", "PROMO OFF", _turn_off, UiKit.Kind.DANGER)
 	_place_panel()
@@ -757,6 +802,7 @@ func _refresh() -> void:
 	(_buttons["hud"] as Button).text = ["HUD", "GHOST", "NO HUD"][hud_show]
 	(_buttons["guide"] as Button).text = str(GUIDES[guide][0])
 	(_buttons["speed"] as Button).text = _speed_word()
+	(_buttons["dzik"] as Button).text = "HELI" if _has_dzik() and game.heli.dzik else "DZIK"
 	(_buttons["rotate"] as Button).text = "HORIZONTAL" if portrait else "VERTICAL"
 	_overlay.queue_redraw()
 
