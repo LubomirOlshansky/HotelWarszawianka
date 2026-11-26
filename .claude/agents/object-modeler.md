@@ -63,22 +63,38 @@ Order matters (model-from-photos skill, section 4): the automatic checks first, 
 yours to fix before anyone reviews. After two review rounds that still fail, stop and
 escalate: the spec needs changing, not a third try.
 
-1. `tools/verify.sh --quick` PASS (or the set the brief names); paste the table.
-2. Matched shots: for each reference photo that shows the silhouette, a game shot from the
-   nearest angle (model-from-photos skill, section 4), named after the photo.
-3. Before/after shots of each object at 2532x1170 (screenshot-review skill), the runtime
-   build and `--prebuilt` when `map_builder.gd` changed. Open each one yourself and say in one
-   line what changed.
-4. Draw calls before/after when you add meshes or materials (CLAUDE.md "Performance is a gate"),
-   and each site's triangle count against its budget.
+For a landmark or building site (the inner loop; Ufficio Primo pilot 2026-11-26: the whole-map
+checks and city shots took most of a 55-minute build, so the lane session runs those once):
+
+1. The site's mesh check alone: `godot --headless --path game --script
+   res://tools/check_mesh_quality.gd -- --site=KEY` (14 s): budget, z-fight, float, normals
+   all clean; the site's `BUDGET` entry is in the same change.
+   Then `godot --headless --path game --script res://tools/check_sites.gd` (seconds): a new site
+   over an older street-block model fails there (add the block's id to `fronts.gd` `_find_blocks`'
+   skip list, as `UP_BLOCK`); the turntable builds the site alone and cannot show it.
+2. The turntable: `tools/turntable.sh KEY` (about 80 s); open the sheet and say per identity
+   feature of the spec: there, missing or off.
+3. When the brief names references: `python3 -I tools/refs_compare.py KEY [--slug=SLUG]`
+   (3D Tiles renders over the turntable, `refs/SLUG/KEY_vs_refs.png`); open it and fix what
+   differs within the spec's values. It holds Google imagery: never attach it or copy it out
+   of `refs/`.
+4. A new site on an unnamed OSM outline: its box in `tools/bake_sectors.py` `SITE_AREAS`, then
+   `python3 -I tools/bake_sectors.py`, or the runtime city draws nothing there.
+
+No `tools/verify.sh`, whole mesh check or city shots unless the brief asks: the lane session
+runs them once before the PR. For other objects (props, signs, facades in `map_builder.gd`):
+`tools/verify.sh --quick` or the set the brief names, and before/after shots at 2532x1170
+(screenshot-review skill), runtime and `--prebuilt` when `map_builder.gd` changed.
+Draw calls before/after when you add meshes or materials (CLAUDE.md "Performance is a gate"),
+and each site's triangle count against its budget.
 5. Scope: every file you changed; nothing outside the brief.
 
 ## Report (keep it short; the reviewer reads it on Opus)
 
 - **Done:** one line per object: what changed, file and function.
-- **For acceptance:** the shot paths, before then after, per object, and each matched shot
-  beside its photo's path.
-- **Checks:** the verify table, draw calls if measured.
+- **For acceptance:** the turntable sheet path (and the compare sheet's, for the lane session
+  only), or the shot paths before then after, per object.
+- **Checks:** the exact last lines of each check you ran, draw calls if measured.
 - **Escalate:** each open item with the options and your pick.
 
 Never claim a check passed that you didn't run.

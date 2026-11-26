@@ -540,7 +540,7 @@ Status of the 550 matched: ⏳ 1, ○ 45, ◐ 42, ★ 32, ✗ 430.
 | Kościół pw. Świętych Apostołów Piotra i Pawła | Wspólna | ◐ | model |
 | Park Avenue — Wspólna 70 | Wspólna | ✗ | address, block 30.0 m |
 | Pierzeja ul. Krucza 23–43, Wspólna 25–27A i Żurawia 4–12 | Wspólna | ✗ | address, block 20.8 m |
-| Ufficio Primo | Wspólna | ✗ |  |
+| Ufficio Primo | Wspólna | ◐ | model 2026-11-26 |
 | Wspólna 41 | Wspólna | ✗ | address, block 37.3 m |
 | Wspólna 47/49 | Wspólna | ✗ | address, block 27.4 m |
 | Wspólna 73 | Wspólna | ✗ | address, block 17.5 m |
