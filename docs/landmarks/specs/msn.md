@@ -44,11 +44,11 @@ Plan axes (local u, v in metres): origin (-1022.4, 100.15); u along the long sid
 | Volume | Plan (local) | Heights above ground | Source |
 | --- | --- | --- | --- |
 | Glazed core (ground floor) | u -45.8..45.8, v -13.95..13.95 | 0 to 3.5 m | photos: people for scale give 3 to 3.5 m (OSM said 5) |
-| Lower box | u -51.45..51.45, v -19.5..19.5 (0.4 m in from the outline) | 3.5 to 14.0 m | photos: the upper box overhangs (4.jpg, Street View) |
-| Seam | u -51.05..51.05, v -19.1..19.1 (0.8 m in) | 14.0 to 15.0 m | Street View 2026 (ribbon at 14.1 to 14.9 m), 3.jpg, 4.jpg |
-| Upper box | the outline, u -51.85..51.85, v -19.9..19.9 | 15.0 to 26.0 m | photos (OSM said 13.8; the photos put the seam at 14 to 15 m) |
+| Lower box | u -51.45..51.45, v -19.5..19.5 (0.4 m in from the outline) | 3.5 to 12.5 m | photos: the upper box overhangs (4.jpg, Street View) |
+| Seam | u -51.05..51.05, v -19.1..19.1 (0.8 m in) | 12.5 to 13.6 m | F's dusk photo of the Marszałkowska face, straight on (2026-11-26): ribbon 12.3-13.3 m |
+| Upper box | the outline, u -51.85..51.85, v -19.9..19.9 | 13.6 to 26.0 m | F's dusk photo (OSM's 12.5/13.8 were close) |
 | South-east panel | u 51.85..52.25, v -19.9..-7.9 | 15.0 to 27.4 m | 3.jpg, 4.jpg: the east part of the south end stands proud and higher |
-| Roofline step | upstands 0.4 m thick on the edge: -v u 10.5..51.85, +v u 8..51.85, the south end | 26.0 to 27.1 m | Street View 2026 h252, 3.jpg, 4.jpg: the south part of the box is about a metre higher |
+| Roofline step | upstands 0.4 m thick on the edge: +v u 8..51.85, the south end (F's dusk photo: the Marszałkowska edge is flat) | 26.0 to 27.1 m | Street View 2026 h252, 3.jpg, 4.jpg: the south part of the box is about a metre higher |
 | Corner block | u -64.3..-51.85, v 16.5..27 | 0 to 25.0 m | OSM (unchanged) |
 
 ## 3. Facade, base to top
@@ -68,23 +68,23 @@ the loggia and the entrance cut 3 m. Glass #8fa9b6 lit warm at night; the ribbon
 
 | Face | id | Along (u or v) | Height | Depth | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| Marszałkowska (-v) | loggia | u -5.0..10.5 | 15.2-21.0 | 3.0 | SV 2026 h252 (straight on), h215, h300, 4.jpg |
-| Marszałkowska | win_mn | u -33.5..-29.5 | 16.5-20.5 | 0.4 | SV 2024 h256, 4.jpg far end |
-| Marszałkowska | low_mc | u -10.2..-1.8 | 8.8-11.5 | 0.4 | SV 2026 h252, h300 |
-| Marszałkowska | low_ms | u 19.6..25.5 | 8.8-11.5 | 0.4 | SV 2026 h252, h215, h250 |
-| Marszałkowska | low_mn | u -32.3..-30.2 | 9.0-11.5 | 0.4 | SV 2024 h256 |
-| Marszałkowska | rib_ms | u 20.0..49.3 | 14.1-14.9 | seam | SV 2026 h250, 4.jpg |
-| Marszałkowska | rib_mn | u -46.0..-6.0 | 14.1-14.9 | seam | SV 2026 h252, h300; SV 2024 h256 |
+| Marszałkowska (-v) | loggia | u -4.2..9.8 | 15.7-20.9 | 3.0 | SV 2026 h252 (straight on), h215, h300, 4.jpg |
+| Marszałkowska | win_mn | u -33.4..-30.3 | 15.5-19.5 | 0.4 | SV 2024 h256, 4.jpg far end |
+| Marszałkowska | low_mc | u -7.7..-0.3 | 6.8-9.7 | 0.4 | SV 2026 h252, h300 |
+| Marszałkowska | low_ms | u 16.0..23.4 | 6.8-9.7 | 0.4 | SV 2026 h252, h215, h250 |
+| Marszałkowska | low_mn | u -32.4..-30.3 | 6.8-9.0 | 0.4 | SV 2024 h256 |
+| Marszałkowska | rib_ms | u 18.0..51.4 | 12.6-13.5 | seam | SV 2026 h250, 4.jpg |
+| Marszałkowska | rib_mn | u -45.5..-0.5 | 12.6-13.5 | seam | SV 2026 h252, h300; SV 2024 h256 |
 | Plac Defilad (+v) | w1 | u -9.0..9.0 | 15.2-20.8 | 0.4 | 2.jpg (from the Palace), 3.jpg |
-| Plac Defilad | entry | u 14.0..23.0 | 3.5-12.0 | 3.0 | 2.jpg (the MSN letters), 3.jpg |
-| Plac Defilad | low_pc | u -9.0..3.0 | 8.8-11.5 | 0.4 | 3.jpg |
-| Plac Defilad | low_pn | u -27.0..-24.5 | 9.3-11.5 | 0.4 | 2.jpg |
-| Plac Defilad | rib_pn | u -43.0..-31.0 | 14.1-14.9 | seam | 2.jpg, 3.jpg |
-| Plac Defilad | rib_ps | u 20.0..49.0 | 14.1-14.9 | seam | 2.jpg, 3.jpg |
+| Plac Defilad | entry | u 14.0..23.0 | 3.5-10.5 | 3.0 | 2.jpg (the MSN letters), 3.jpg |
+| Plac Defilad | low_pc | u -9.0..3.0 | 6.8-9.7 | 0.4 | 3.jpg |
+| Plac Defilad | low_pn | u -27.0..-24.5 | 7.3-9.5 | 0.4 | 2.jpg |
+| Plac Defilad | rib_pn | u -43.0..-31.0 | 12.6-13.5 | seam | 2.jpg, 3.jpg |
+| Plac Defilad | rib_ps | u 20.0..49.0 | 12.6-13.5 | seam | 2.jpg, 3.jpg |
 | South end (+u) | win_s | v -7.5..-1.5 | 15.3-20.5 | 0.4 | 3.jpg, 4.jpg (three mullions) |
-| South end | low_s | v -3.3..-1.5 | 7.5-12.0 | 0.4 | 3.jpg, 4.jpg (narrow, under win_s's west edge) |
+| South end | low_s | v -3.3..-1.5 | 6.3-10.4 | 0.4 | 3.jpg, 4.jpg (narrow, under win_s's west edge) |
 | North end (-u) | w4 | v -15.0..-9.0 | 15.6-22.0 | 0.4 | F's night photo 2026-10-31 (no daylight photo yet) |
-| North end | w5 | v -14.0..-11.5 | 8.8-11.3 | 0.4 | F's night photo |
+| North end | w5 | v -14.0..-11.5 | 6.8-9.3 | 0.4 | F's night photo |
 
 v1's flush w3 (Plac Defilad, lower) and w6 (Marszałkowska, near the south end) are gone: no photo
 shows them (w6 is win_mn, at the north end).
@@ -115,6 +115,12 @@ south-east panel 1.4 m.
 No new material, no draw call of its own: everything goes into the city's building surface.
 
 ## 6. Ground and night
+
+**Night (F's night photos, 2026-11-26):** the white walls, piers and soffit are floodlit (M_MEMBRANE
++ 0.5, a lit wall), the gallery roof is dark, not lit (M_GLASS_ROOF + 0.75: the grid by day, dark at
+night with a few faintly lit cool panels), the light wells glow dimly (M_MEMBRANE), the windows,
+ribbons and ground floor glow warm. The opening-night projections on the walls are not modelled.
+
 
 Unchanged: the square's paving and planting round it (other items), the car stopped at the box's
 outline. At night the ground-floor glass, the windows and the ribbons glow warm, the unglazed seam

@@ -24,3 +24,12 @@ city-room windows, the glass roof. 412 tris after the Mac photo check of 2026-11
 - Still differs: the facade's panels shift in depth by up to a metre in many places (only the
   south-east panel and the roof step are modelled); the north end is unchecked (no daylight
   photo); the window mullions come from the material, not geometry.
+
+## v2.1, 2026-11-26 (F's night photos)
+
+- F: at night the roof is not lit. The real museum at night: a dark roof, floodlit white walls,
+  warm windows and ribbons. Now: walls M_MEMBRANE + 0.5 (floodlit), the roof glass a new
+  `glass_roof` variant (param 0.75: dark at night, a few faint cool panels), the wells dim.
+- F's straight-on dusk photo of the Marszałkowska face moved the seam down to 12.5-13.6 m (OSM
+  was close), the lower windows to 6.8-9.7 m and slightly along, the ribbons to u 18..51.4 and
+  -45.5..-0.5, and showed that face's roof edge flat (its upstand removed). 618 tris.
