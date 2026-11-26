@@ -244,6 +244,8 @@ var _deck_hid := false
 var heli: Node3D
 ## Teaser 5 (F, 2026-11-21): the promo shot's second helicopter (--promo-heli), or null.
 var promo_heli: Node3D
+## PROMO ONLY: the flying boar round the Palace (promo_boar.gd, --promo-boar), or null.
+var promo_boar: Node3D
 var missions: Node
 var hud: CanvasLayer
 ## The living city (absent with --no-traffic): lane graph, traffic, trams,
@@ -1544,6 +1546,10 @@ func _build_world() -> void:
 	cam.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	world.add_child(cam)
 	_add_post_pass()
+	if flags.promo_boar != "":  # PROMO ONLY: the flying boar Reel (promo_boar.gd)
+		promo_boar = preload("res://scripts/promo_boar.gd").new()
+		world.add_child(promo_boar)
+		promo_boar.setup(self, flags.promo_boar)
 	# After the post pass's quad (the camera's first child, --exp=nopost hides it).
 	_view_size = base_size
 	moments = CameraShots.new()
@@ -7081,6 +7087,11 @@ const FREE_CAM_CLEAR := 80.0
 
 ## --cam: the free camera's frame (see free_cam): the view fixed on its point.
 func _update_free_camera() -> void:
+	if promo_boar != null:
+		cam_focus = promo_boar.place_camera(cam)
+		car.visible = false
+		_view_size = 300.0
+		return
 	var focus := _free_cam_at
 	if is_nan(focus.y):
 		focus.y = map.ground_height(focus.x, focus.z)

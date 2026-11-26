@@ -158,6 +158,9 @@ var cam_lift := 0.0
 ## it (default: under the camera, so the city streams in around the view) and is hidden unless
 ## --cam-car; no occlusion ghost. follow_camera.gd parse_free / free_view.
 var free_cam := false
+## --promo-boar[=OPTS] (PROMO ONLY, the flying-boar Reel, promo_boar.gd): the winged boar circles
+## the Palace of Culture under a perspective chase camera. OPTS: cards|feathers, skip=S.
+var promo_boar := ""
 var _free_cam_car := false
 ## --cams=NAME:X,Y,Z,YAW,PITCH,SIZE+NAME2:...: one run, several free cameras, one shot each
 ## (files NAME_FFFF.png; the --spots machinery moves the car under each). follow_camera.gd parse_cams.
@@ -611,6 +614,14 @@ func parse_with(args: PackedStringArray) -> void:
 				no_ghost = true
 				if not _has_arg("--at="):
 					m.start_at = Vector3(fc[0], 0.0, fc[2])
+		elif arg == "--promo-boar" or arg.begins_with("--promo-boar="):
+			promo_boar = arg.trim_prefix("--promo-boar").trim_prefix("=") + ",on"
+			free_cam = true
+			no_ghost = true
+			var pk: Vector2 = preload("res://scripts/promo_boar.gd").PKIN
+			m._free_cam_at = Vector3(pk.x, NAN, pk.y)
+			if not _has_arg("--at="):
+				m.start_at = Vector3(pk.x + 140.0, 0.0, pk.y)
 		elif arg == "--cam-car":
 			_free_cam_car = true
 		elif arg.begins_with("--cams="):
