@@ -75,6 +75,7 @@ first10              quick
 first10-run          local     slow
 firstlife            runs
 fixes                quick
+footroad             quick
 freecam              quick
 gamepad              quick
 gametime             quick
