@@ -2,6 +2,7 @@
   "_about": "Loop MW-0: real business and brand names that must never appear on screen (place and venue names, dialogue, signs, neons, posters, billboards, radio titles, store text). For loop 3k's brand audit and MW-1's check_places.gd. All strings are lower case; a check lower-cases the text, folds nothing else (keep the Polish letters) and matches each entry as a whole word or phrase. `names`: the real businesses behind vision.md 3.0's parodies and the real brands parodies.md names. `rejected`: candidate parody names dropped for being too close to a real name; never use them either. `allowed_in` lists the entries that are also an ordinary word, a street or an address, with the only places they may appear (an `address` or `osm` field, a generic shop word); everywhere else they count as hits. The title-collision list of vision.md's rule is not kept in the repo (the designer checks it against the published discography when lines are merged).",
   "names": [
     "pekao",
+    "pgz", "polska grupa zbrojeniowa",
     "kukirin", "kugoo", "tiktok",
     "samsung",
     "chery",

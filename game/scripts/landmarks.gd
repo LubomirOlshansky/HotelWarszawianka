@@ -1,4 +1,4 @@
-extends "res://scripts/landmarks/mirek.gd"
+extends "res://scripts/landmarks/niecala.gd"
 ## v0.8 "Landmarks": the buildings that make it Warsaw at a glance, built in code
 ## from the real footprints and heights in centrum.json (OpenStreetMap outlines and
 ## building parts, which carry `height` / `min_height`) instead of their GUGiK LoD2 or
@@ -629,6 +629,9 @@ const INFO := {
 	"swieto": ["Most Świętokrzyski",
 			"Most wantowy z 2000 roku: jeden pylon, wanty w jednej płaszczyźnie.",
 			"A cable-stayed bridge of 2000: one pylon, its stays in one plane."],
+	"ns4a": ["Nowy Świat 4A",
+			"Szklany róg przy Dom Partii: cztery piętra świecących żeber, biało-czerwony pas, flaga na maszcie. Na górze PGR, na dole PRZEGRYWKI, gdzie gra się do rana.",
+			"The glass corner by the Party House: four floors of glowing fins, a white-and-red band, a flag on the mast. PGR upstairs, PRZEGRYWKI downstairs, where the games run till morning."],
 	"dom_partii": ["Dom Partii",
 			"Biały gmach z 1952 roku. Była partia, giełda, dziś biura i bary.",
 			"A white block from 1952. Once the Party, then the stock exchange, now offices and bars."],
@@ -860,6 +863,9 @@ const INFO := {
 	"wiecha": ["Pasaż Wiecha",
 			"Deptak za Domami Towarowymi Centrum, nazwany na cześć Stefana Wiecheckiego „Wiecha”. Pawilony z witrynami pod blokami.",
 			"The walkway behind the Eastern Wall's stores, named after the writer Stefan Wiechecki, \"Wiech\". Shop pavilions under the slabs."],
+	"niecala7": ["Rezydencja Opera · Niecała 7",
+			"Luksusowa kamienica z 2005 roku tuż przy Ogrodzie Saskim: kremowy tynk na miodowym piaskowcu, okrągłe balkony na żelaznych wspornikach i pergola nad łukiem od strony ogrodu.",
+			"A luxury block of 2005 beside the Saxon Garden: cream plaster on honey sandstone, round balconies on iron brackets and a pergola over the arc on the garden side."],
 	"warsztat_mirka": ["Warsztat u Mirka",
 			"Tuning, lakier i kawa z fusami. Na dachu stoi auto, bo „zrobi się”, a na podwórku czekają dwa wyścigowe i jedno na kołkach. Wjedź pod niebieski neon.",
 			"Tuning, paint and coffee with grounds. There's a car on the roof because \"it'll get done\", and in the yard two racers and one on axle stands are waiting. Drive in under the blue neon."],
@@ -1150,6 +1156,8 @@ static func tower_colour(key: String, fallback: Color) -> Color:
 		return VITKAC_WALL
 	if key == "dom_partii":
 		return DOM_STONE
+	if key == "ns4a":
+		return NS4A_GLASS
 	if key == "eon41":
 		return EON_STONE
 	if key == "asp37":
@@ -1281,6 +1289,7 @@ func _find_sites() -> void:
 	_find_sunken()
 	_find_deski()
 	_find_dom_partii()
+	_find_ns4a()
 	_find_eon41()
 	_find_asp37()
 	_find_rynek()
@@ -1594,6 +1603,8 @@ func _find_sites() -> void:
 	# F (2026-11-24): Mirek's tuning workshop on the empty plot on Grzybowska (garage.gd's place).
 	# It has a card, so it comes before the first quiet site below (the cards skip quiet sites).
 	_find_warsztat_mirka()
+	# Rezydencja Opera, Niecała 7 (F, 2026-11-26): a whole model over the mapped outline, with a card.
+	_find_niecala7()
 	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
 	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
@@ -1693,6 +1704,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_deski(s)
 			"dom_partii":
 				_build_dom_partii(s)
+			"ns4a":
+				_build_ns4a(s)
 			"eon41":
 				_build_eon41(s)
 			"asp37":
@@ -2012,6 +2025,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_wiecha_swieta(s)
 			"warsztat_mirka":
 				_build_warsztat_mirka(s)
+			"niecala7":
+				_build_niecala7(s)
 			"orly":
 				_build_orly(s)
 			"hotel_warszawa":

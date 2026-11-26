@@ -700,7 +700,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	money = _wallet.money
 	_hud.press(0)
 	_ok(c.idle() and _hud.card == "" and _entered == [["SEKRETNY RAVE", "SECRET RAVE"]] and _wallet.money == money - Rave.ENTRY, "PŁACĘ with cash: the club opens once, the ticket is taken")
-	_ok(not _toast("Za mało gotówki"), "no cash toast")
+	_ok(not _toast("Brakuje na bilet"), "no short-of-money toast")
 	_ok(c.night_spot == c.night_spots()[(c.night_spots().find(spot0) + 1) % c.night_spots().size()], "the next night spot after a secret rave's result")
 	_ok(not _calls._held(), "the calls are back")
 
@@ -713,7 +713,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_wallet.money = 0
 	_hud.toasts.clear()
 	_hud.press(0)
-	_ok(c.idle() and _entered.is_empty() and _toast("Za mało gotówki") and _wallet.money == 0, "PŁACĘ without cash: the toast, no club, nothing taken")
+	_ok(c.idle() and _entered.is_empty() and _toast("Brakuje na bilet") and _wallet.money == 0, "PŁACĘ without cash: the toast, no club, nothing taken")
 	_reach(Rave.Stage.DOOR)
 	_park()
 	_frames(1.2)
