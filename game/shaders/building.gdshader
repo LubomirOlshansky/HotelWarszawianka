@@ -41,6 +41,8 @@ uniform int ghost_debug = 0;
 // hands' angles in radians, clockwise from twelve, for the time in Warsaw.
 uniform vec2 clock_hands = vec2(5.32, 1.05);
 uniform float windows = 1.0;
+// House types 2b: balcony and window clutter on the ordinary houses (tiers.gd house_clutter; Low 0).
+uniform float clutter = 1.0;
 // The floodlit landmark: x, z of its centre and a radius (map_builder.gd, from the
 // Palace of Culture's outline); only its sandstone walls light up.
 uniform vec4 floodlit = vec4(0.0, 0.0, -1.0, 0.0);
@@ -324,10 +326,18 @@ vec3 house_facade(int t, vec3 col, float u, float h, float seed, float top, floa
 	float office = step(1.5, pd.w);
 	vec3 room_col = mix(mix(WARM, WARM_PALE, step(0.62, room_pick)), COOL, step(0.76, room_pick));
 	room_col = mix(room_col, mix(COOL, WARM_PALE, step(0.7, room_pick)), office);
+	// A television in one home room of ten: blue, flickering (room()'s rule).
+	float tv = (1.0 - office) * step(0.9, room_pick);
+	room_col = mix(room_col, TV * (0.65 + 0.35 * value_noise(vec2(TIME * 3.1 + cell.x * 7.0, cell.y * 3.0))), tv);
 	vec3 pane_glow = room_col * (1.05 + 0.5 * hash12(cell + 2.2)) * room_on;
 	// The upper floors.
 	float loggia = step(hash12(vec2(bay, s * 19.0)), pc.w);
-	float win = step(ax, hw) * step(wb, wy) * step(wy, wt) * (1.0 - loggia * step(wy, 0.95));
+	// A post-war block's stairwell: one axis in eight, small panes half a floor up, lit most nights.
+	float postwar = step(0.5, pd.w) * (1.0 - office);
+	float stair = postwar * (1.0 - loggia) * step(hash12(vec2(bay, s * 23.0)), 0.12);
+	float stair_win = stair * step(ax, 0.32) * step(abs(wy - fh * 0.5), 0.5);
+	float stair_lit = on * stair_win * step(hash12(vec2(bay, s * 5.0 + 1.3)), 0.85 * lights_on);
+	float win = step(ax, hw) * step(wb, wy) * step(wy, wt) * (1.0 - loggia * step(wy, 0.95)) * (1.0 - stair);
 	float mullion = win * pc.y * step(sp * 0.5 - 0.06, ax);
 	vec3 upper = col;
 	float joint = max(step(wy, 0.05), step(sp * 0.5 - 0.04, ax));
@@ -339,6 +349,19 @@ vec3 house_facade(int t, vec3 col, float u, float h, float seed, float top, floa
 	upper = mix(upper, col * 0.5, recess);
 	upper = mix(upper, glass * mix(1.0, 0.8, loggia), win);
 	upper = mix(upper, col * 0.6, mullion);
+	upper = mix(upper, mix(glass, WARM_PALE * 0.9, step(0.5, stair_lit)), stair_win);
+	// Clutter (2b): an air conditioner beside a window, flower boxes on the pre-war sills,
+	// laundry and a dish on a loggia.
+	float ac = clutter * step(hash12(cell + 4.4), 0.07) * step(hw + 0.12, dx) * step(dx, hw + 0.72) * step(abs(wy - wb - 0.3), 0.24);
+	upper = mix(upper, srgb_to_linear(vec3(0.8, 0.8, 0.78)), ac);
+	float flowers = clutter * step(0.5, pa.w) * step(hash12(cell + 8.8), 0.18) * win * step(wy, wb + 0.26);
+	vec3 bloom = mix(srgb_to_linear(vec3(0.25, 0.42, 0.18)), srgb_to_linear(vec3(0.78, 0.16, 0.14)), step(0.55, fract(dx * 3.1)));
+	upper = mix(upper, mix(srgb_to_linear(vec3(0.35, 0.22, 0.15)), bloom, step(wb + 0.11, wy)), flowers);
+	float wash = clutter * recess * step(hash12(cell + 6.6), 0.4) * step(abs(wy - 1.45), 0.2) * step(fract(dx * 2.2), 0.72);
+	vec3 cloth = mix(mix(vec3(0.85), srgb_to_linear(vec3(0.3, 0.45, 0.75)), step(0.33, fract(dx * 0.7 + s))), srgb_to_linear(vec3(0.8, 0.35, 0.4)), step(0.7, fract(dx * 0.7 + s)));
+	upper = mix(upper, cloth * dim, wash);
+	float dish = clutter * postwar * recess * step(hash12(cell + 2.9), 0.1) * step(length(vec2(dx - sp * 0.25, wy - 1.7)), 0.3);
+	upper = mix(upper, srgb_to_linear(vec3(0.85, 0.85, 0.83)), dish);
 	// The ground floor: shop windows under a fascia on some axes, a door or a window on the rest.
 	vec2 unit = vec2(room_x, s * 77.0);
 	vec2 axis = vec2(bay, s * 77.0);
@@ -373,7 +396,7 @@ vec3 house_facade(int t, vec3 col, float u, float h, float seed, float top, floa
 	c = mix(c, col * 0.93, tall * (1.0 - has_cornice) * step(top - 0.5, h));                 // a flat attic band
 	float under = 1.0 - tall * step(top - mix(0.5, pa.w + 0.25, has_cornice), h);
 	float lit_share = room_on * cover;
-	vec3 up_glow = mix(room_col * lit_share, pane_glow * win * (1.0 - mullion), detail);
+	vec3 up_glow = mix(room_col * lit_share, pane_glow * win * (1.0 - mullion) + WARM_PALE * 0.8 * stair_lit, detail);
 	glow = (shop_glow * lit * is_ground + pane_glow * gwin * is_ground + up_glow * is_upper) * under;
 	return c;
 }

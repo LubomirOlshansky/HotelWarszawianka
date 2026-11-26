@@ -44,7 +44,7 @@ const GY := 196.0
 const FAR := 0.17
 ## After the match: the result stays this long (s) before it hands back.
 const END_HOLD := 4.0
-const INTRO_S := 3.0
+const INTRO_S := 2.0
 const RATE := 22050
 const MUSIC_RATE := 16000
 const BPM := 120.0
@@ -62,8 +62,8 @@ const GOLD := Color("#ffd23a")
 ## Every line on screen: [pl, en] pairs (check_padel.gd checks both exist).
 const LINES := {
 	"title": [["PADEL NA DESCE", "PADEL AT DESKA"]],
-	"hint": [["LEWY KCIUK: BIEGNIJ. ZOSTAW GO: BIEGNIESZ SAM.", "LEFT THUMB: RUN. LET GO: YOU RUN BY YOURSELF."],
-			["UDERZ, GDY PIŁKA ŚWIECI. WYSOKA PIŁKA: SMECZ.", "HIT WHEN THE BALL GLOWS. A HIGH BALL: SMASH."],
+	"hint": [["UDERZ, GDY KÓŁKO SIĘ ZAMKNIE. WYSOKA PIŁKA: SMECZ.", "HIT WHEN THE RING CLOSES. A HIGH BALL: SMASH."],
+			["BIEGNIESZ SAM. LEWY KCIUK CELUJE W ROGI I DO SIATKI.", "YOU RUN BY YOURSELF. THE LEFT THUMB AIMS AT THE CORNERS AND THE NET."],
 			["LOB NAD PARĄ PRZY SIATCE. SZYBA JEST CZĘŚCIĄ GRY.", "LOB OVER A PAIR AT THE NET. THE GLASS IS PART OF THE GAME."]],
 	"serve": [["TWÓJ SERWIS: UDERZ", "YOUR SERVE: HIT"]],
 	"net": [["SIATKA", "NET"]],
@@ -82,7 +82,14 @@ const LINES := {
 	"game_them": [["GEM DLA RYWALI", "GAME TO THEM"]],
 	"win": [["WYGRANA!", "YOU WIN!"]],
 	"lose": [["PRZEGRANA", "YOU LOSE"]],
-	"perfect": [["IDEALNIE!", "PERFECT!"]],
+	"perfect": [["CZYSTO!", "CLEAN!"]],
+	"early": [["ZA SZYBKO", "TOO EARLY"]],
+	"late": [["ZA WOLNO", "TOO LATE"]],
+	"yours": [["TWOJA!", "YOURS!"]],
+	"rally": [["WYMIANA ×%d", "RALLY ×%d"]],
+	"racket": [["PREZES: „RAKIETA NR %d.”", "PREZES: RACKET NUMBER %d."],
+			["PREZES: „RAKIETA NR %d. TO WINA STRUN.”", "PREZES: RACKET NUMBER %d. IT'S THE STRINGS."]],
+	"strings": [["PREZES: „TO PRZEZ STRUNY.”", "PREZES: IT'S THE STRINGS."]],
 	"smash": [["SMECZ!", "SMASH!"]],
 	"whiff": [["PUDŁO", "MISS"]],
 	"ooh": [["OOOCH!", "OOOH!"]],
@@ -93,7 +100,7 @@ const LINES := {
 	"coach": [["DOMINIK: „NIE BIEGAJ, USTAW SIĘ!”", "DOMINIK: DON'T RUN, GET IN PLACE!"],
 			["DOMINIK: „ŚCIANA TO CZĘŚĆ GRY!”", "DOMINIK: THE WALL IS PART OF THE GAME!"],
 			["DOMINIK: „LOB, KIEDY STOJĄ PRZY SIATCE!”", "DOMINIK: LOB WHEN THEY'RE AT THE NET!"],
-			["DOMINIK: „WCZEŚNIEJ RAKIETA!”", "DOMINIK: RACKET BACK EARLIER!"]],
+			["DOMINIK: „NIE MACHAJ. CZEKAJ NA KÓŁKO.”", "DOMINIK: DON'T FLAIL. WAIT FOR THE RING."]],
 	"basia": [["PANI BASIA: „PARKING DLA HELIKOPTERÓW OD STRONY WISŁY.”", "PANI BASIA: THE HELICOPTER PARKING IS ON THE RIVER SIDE."]],
 	"vs": [["%s I %s KONTRA %s I %s", "%s AND %s VS %s AND %s"]],
 }
@@ -162,6 +169,14 @@ var _hit_glow := 0.0
 var _hit_press := 0.0
 var _lob_press := 0.0
 var _coach_i := 0
+## Hit-stop (s left): the frame freezes a beat on a clean hit and a smash.
+var _stop := 0.0
+var _rackets := 1
+var _tell := 0.0
+var _tell_c := Color.WHITE
+var _tell_s := ""
+var _ring_flash := 0.0
+var _yours_t := -10.0
 
 
 func _ready() -> void:
@@ -188,6 +203,8 @@ func enter(info: Dictionary) -> void:
 	_parts.clear()
 	_trail.clear()
 	_t = 0.0
+	_stop = 0.0
+	_rackets = 1
 	_end_t = -1.0
 	_cam_x = 0.0
 	_touches.clear()
@@ -344,7 +361,10 @@ func _process(dt: float) -> void:
 		var d := (_stick_knob - _stick_base) / (60.0 * _pt())
 		stick = Vector2(d.x, -d.y)
 	sim.stick = stick.limit_length(1.0)
-	sim.step(dt)
+	if _stop > 0.0:
+		_stop -= dt
+	else:
+		sim.step(dt)
 	for ev: Array in sim.events:
 		_on_event(String(ev[0]), ev[1])
 	sim.events.clear()
@@ -373,6 +393,8 @@ func _fx_tick(dt: float) -> void:
 	_shake_v = Vector2(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1)) * _shake * 2.5
 	_callout_t -= dt
 	_sub_t -= dt
+	_tell -= dt
+	_ring_flash = maxf(_ring_flash - dt * 5.0, 0.0)
 	_score_flip = maxf(_score_flip - dt * 3.0, 0.0)
 	_crowd_cheer = maxf(_crowd_cheer - dt, 0.0)
 	_crowd_ooh = maxf(_crowd_ooh - dt, 0.0)
@@ -437,11 +459,26 @@ func _on_event(kind: String, d: Dictionary) -> void:
 				_play("cheer", -4.0)
 				_say(_line("smash"), c, 0.9)
 				_burst(d["p"], GOLD, 14, 6.0)
-			elif q >= 0.9 and int(d["who"]) == 0:
-				_say(_line("perfect"), GOLD, 0.7)
-				_shake = maxf(_shake, 0.35)
+			if int(d["who"]) == 0 and sim.players[0].human and not auto_play:
+				var err := float(d["err"])
+				if bool(d["clean"]):
+					_stop = 0.06
+					_ring_flash = 1.0
+					if shot != PadelSim.Shot.SMASH:
+						_say(_line("perfect"), GOLD, 0.7)
+						_shake = maxf(_shake, 0.35)
+					_play("chime", -8.0, 1.5)
+					_tell_s = ""
+				elif absf(err) > PadelSim.GOOD_S and shot != PadelSim.Shot.SERVE:
+					_tell_s = _line("early") if err > 0.0 else _line("late")
+					_tell = 0.8
+				else:
+					_tell_s = ""
+			if shot == PadelSim.Shot.SMASH:
+				_stop = maxf(_stop, 0.06)
 			if int(d["who"]) == 0 and sim.players[0].human:
 				_hit_press = 1.0
+
 		"bounce":
 			var p: Vector3 = d["p"]
 			for i in 6:
@@ -463,6 +500,8 @@ func _on_event(kind: String, d: Dictionary) -> void:
 		"whiff":
 			if int(d["who"]) == 0:
 				_say(_line("whiff"), Color("#c8c8c8"), 0.6)
+		"yours":
+			_yours_t = _t
 		"point":
 			var team := int(d["team"])
 			var why := String(d["why"])
@@ -495,13 +534,17 @@ func _on_event(kind: String, d: Dictionary) -> void:
 		"game":
 			var team := int(d["team"])
 			_say(_line("game_us") if team == 0 else _line("game_them"), US if team == 0 else THEM, PadelSim.GAME_PAUSE)
+			if team == 0:
+				# Prezes changes racket after every game he loses, then blames the strings.
+				_rackets += 1
+				_say_sub(_line("racket", 0 if _rackets < 3 else 1) % _rackets, PadelSim.GAME_PAUSE)
 			_score_flip = 1.0
 			_crowd_cheer = 2.5
 			_play("cheer", 0.0)
 		"match":
 			var won := int(d["winner"]) == 0
 			_say(_line("win") if won else _line("lose"), US if won else THEM, END_HOLD + 1.0)
-			_say_sub("%s %d:%d" % [_line("games"), int(sim.games[0]), int(sim.games[1])], END_HOLD + 1.0)
+			_say_sub("%s %d:%d" % [_line("games"), int(sim.games[0]), int(sim.games[1])] if not won else _line("strings"), END_HOLD + 1.0)
 			_crowd_cheer = 4.0
 			_play("cheer", 1.0)
 
@@ -544,6 +587,11 @@ func _poly(pts: Array, c: Color) -> void:
 
 func _ln(a: Vector2, b: Vector2, c: Color) -> void:
 	_canvas.draw_line(a.round() + Vector2(0.5, 0.5), b.round() + Vector2(0.5, 0.5), c, 1.0)
+
+
+## Right-aligned text ending at x.
+func _text_r(s: String, x: float, y: float, c: Color) -> void:
+	_text(s, x - PixelFont.width(s.to_upper()), y, c, 1, false, true)
 
 
 ## Pixel text (the city's 5x7 font): `scale` px per font pixel, centred on `x` when `centre`.
@@ -906,9 +954,29 @@ func _draw_ball() -> void:
 	var p := _proj(sim.ball.p)
 	if _hit_glow > 0.0 and not sim.held:
 		_canvas.draw_circle(p.round(), 4.0, Color(1, 1, 0.6, 0.35 * _hit_glow))
+	# The ring that closes on the ball: tap as it meets the ball (CZYSTO is the gold moment).
+	var rf := _ring_frac()
+	if rf >= 0.0 and not sim.held and not auto_play:
+		var left := sim.cue_left()
+		var clean := absf(left) <= PadelSim.CLEAN_S
+		var rc := GOLD if clean else Color(1, 1, 1, 0.55 + 0.4 * (1.0 - rf))
+		_canvas.draw_arc(p.round(), 3.5 + 13.0 * rf, 0.0, TAU, 20, rc, 1.0 if not clean else 2.0)
+	if _ring_flash > 0.0:
+		_canvas.draw_arc(p.round(), 4.0 + 10.0 * (1.0 - _ring_flash), 0.0, TAU, 20, Color(GOLD, _ring_flash), 2.0)
 	_rect(p.x - 1, p.y - 1, 3, 3, BALL)
 	_rect(p.x - 1, p.y - 1, 1, 1, Color(1, 1, 1, 0.9))
 	_rect(p.x + 1, p.y + 1, 1, 1, BALL.darkened(0.35))
+
+
+## How open the ring is: 1 when it first shows (0.7 s before the ideal tap), 0 as it closes, -1: no ring.
+## It stays up 0.12 s past the ideal moment, the late taps' grace.
+func _ring_frac() -> float:
+	if sim == null or sim.cue_at < 0.0 or sim.phase != PadelSim.Phase.PLAY or sim.players[0].swing >= 0.0:
+		return -1.0
+	var left := sim.cue_left()
+	if left > 0.7 or left < -0.12:
+		return -1.0
+	return clampf(left / 0.7, 0.0, 1.0)
 
 
 ## A chibi player: about 18 px, the team's shirt, their own hair; the racket's swing smears.
@@ -961,7 +1029,12 @@ func _draw_player(pl: PadelSim.Player) -> void:
 	var since := sim.time - pl.hit_at
 	var ang := -0.6
 	if pl.swing >= 0.0:
-		ang = lerpf(-2.2, 0.8, minf(pl.swing / 0.12, 1.0))
+		if pl.commit_at >= 0.0:
+			# Booked: the arm cocks back and holds, then snaps through on the contact.
+			var to_hit := pl.commit_at - sim.time
+			ang = lerpf(-2.2, 0.8, clampf(1.0 - to_hit / 0.08, 0.0, 1.0)) if to_hit < 0.08 else lerpf(-0.6, -2.2, clampf(pl.swing / 0.1, 0.0, 1.0))
+		else:
+			ang = lerpf(-2.2, 0.8, minf(pl.swing / 0.12, 1.0))
 	elif since < 0.2:
 		ang = lerpf(0.9, 0.2, since / 0.2)
 	var smash_pose := since < 0.3 and pl.jump > 0.1
@@ -1092,6 +1165,13 @@ func _draw_board() -> void:
 
 
 func _draw_texts() -> void:
+	# The rally counter (from six hits), the small grey tell of a loose tap, TWOJA!.
+	if sim.phase == PadelSim.Phase.PLAY and sim.rally_hits >= 6:
+		_text_r(_line("rally") % sim.rally_hits, W - 36, 9, GOLD if sim.rally_hits >= 10 else Color(1, 1, 1))
+	if _tell > 0.0 and _tell_s != "":
+		_text(_tell_s, W * 0.5, 100, Color(0.78, 0.78, 0.78, clampf(_tell * 3.0, 0.0, 1.0)), 1)
+	if _t - _yours_t < 0.7 and not auto_play:
+		_text(_line("yours"), W * 0.5, 100, Color("#9bff6a"), 1)
 	if _callout_t > 0.0 and _callout != "":
 		var pop := 1 if _callout_t < 0.15 else 2
 		_text(_callout, W * 0.5, 34, _callout_c.lightened(0.15), pop)
@@ -1141,6 +1221,11 @@ func _draw_pad() -> void:
 	var glow := _hit_glow
 	_pad.draw_circle(hc, (62 + glow * 6) * pt, Color(US, 0.25 + 0.35 * glow + 0.3 * _hit_press))
 	_pad.draw_arc(hc, (62 + glow * 6) * pt, 0, TAU, 40, Color(1, 1, 1, 0.7), 3.0 * pt)
+	# The closing ring on the thumb's own button: tap as it meets the HIT circle.
+	var rf := _ring_frac()
+	if rf >= 0.0 and not auto_play:
+		var clean := absf(sim.cue_left()) <= PadelSim.CLEAN_S
+		_pad.draw_arc(hc, (62 + 54 * rf) * pt, 0, TAU, 48, GOLD if clean else Color(1, 1, 1, 0.5 + 0.4 * (1.0 - rf)), (5.0 if clean else 3.0) * pt)
 	_label(font, _line("hit"), hc, 20 * pt)
 	var smash_ready := not sim.held and sim.ball.p.z > 1.85 and sim.bounces == 0 and sim.can_hit(sim.players[0])
 	if smash_ready:
