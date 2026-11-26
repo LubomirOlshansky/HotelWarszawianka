@@ -2126,6 +2126,7 @@ func _set_quality(choice: int) -> void:
 	if map != null and map.leaf_material != null:
 		map.leaf_material.set_shader_parameter("limbs", 1.0 if Tiers.value(quality, "tree_limbs", true) else 0.0)
 	if map != null: map.set_tree_detail(bool(Tiers.value(quality, "fine_trees", false)))  # perf thread: simple crowns below Experimental
+	if building_mat != null: building_mat.set_shader_parameter("clutter", 1.0 if Tiers.value(quality, "house_clutter", true) else 0.0)  # house types 2b
 	if map != null and map.panel_material != null: map.panel_material.set_shader_parameter("holes", 1.0 if Tiers.value(quality, "panel_holes", true) else 0.0)
 	if crowds != null:
 		crowds.amount = _crowd_scale()
