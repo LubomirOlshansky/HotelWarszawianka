@@ -35,7 +35,7 @@ hand in the thread and say so in the PR; the first sweep thread builds what it n
    - **orthophoto crop** (Mac: `tools/overlay_ortho.py OUT.png X Z 20` per object; the GUGiK
      orthophoto is only on the Mac);
    - **open street-level photo** (cloud: `python3 -I tools/street_photos.py X Z --r=25
-     --slug=road-<street>`, Mapillary with `MAPILLARY_TOKEN` and Panoramax; never Google Street View);
+     --slug=road-<street>`, Mapillary with `MAPILLARY_TOKEN` and Panoramax; Google Street View via `tools/streetview_fetch.py`);
    - **F's photo** (landmarks, tier S/A: photos only);
    - **A/B playtest** (a feel question: both versions behind a flag, Autopilot row + the numbers).
 4. Ask the Mac for the orthophoto crops in ONE batch per street group (a list of crops and photo

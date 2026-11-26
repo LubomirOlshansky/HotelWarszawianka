@@ -28,6 +28,7 @@ GUGiK LoD2 heights and what the model remembered; nobody put a photo beside the 
   (`commons.wikimedia.org/w/api.php`, `generator=search`, `gsrnamespace=6`,
   `prop=imageinfo`, `iiprop=url|extmetadata`, `iiurlwidth=1600`), the 1600 px thumb, a
   descriptive User-Agent. Free downloads are pre-approved (CLAUDE.md "Hard rules").
+- **Google Street View (F, 2026-11-26)**: `python3 -I tools/streetview_fetch.py X Z --slug=<slug> [--headings=0,90,180,270 | --heading-to=LAT,LON]` (`--list` first; metadata is free) saves 640 px views of one panorama into `refs/<slug>/streetview/` with SOURCES.md lines. Needs `GOOGLE_STREETVIEW_KEY` in the environment (setup: docs/design/streetview-setup.md). Often the best-dated and sharpest street view in Warsaw; use it next to Mapillary, Panoramax and fotopolska. Reference only: never committed, shipped or traced. Fetch few headings (images are the billable call).
 - **Also from street level (F, 2026-11-04)**: Mapillary and Panoramax, both CC BY-SA 4.0 (Panoramax
   also etalab-2.0, per photo): `python3 -I tools/street_photos.py X Z --r=40 --slug=<slug>` saves the
   newest photos whose camera faces the point into `refs/<slug>/street/` with their SOURCES.md lines
