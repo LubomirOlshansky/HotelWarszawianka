@@ -60,7 +60,7 @@ func _track() -> void:
 	_expect(not intro.keys().any(func(k: String) -> bool: return k.begins_with("track_")), "the key is taken away")
 	var rival := Lines.entry("rival", "rival", Lines.Line.CAR, "Rywal", "Rival", Vector2(1, 1), Color.RED)
 	_expect(not t.pin(rival) and t.tracked == "", "a rival's moving pin is not kept")
-	var ride := Lines.entry("ride", "ride", Lines.Line.CAR, "Podwózka", "Ride", Vector2.INF, Color.TEAL, "ride")
+	var ride := Lines.entry("ride", "ride", Lines.Line.CAR, "Łuber", "Ride", Vector2.INF, Color.TEAL, "ride")
 	_expect(not t.pin(ride), "a request is not kept")
 	_expect(MapTrack.clean("kebab 12/3.5") == "kebab_12_3_5", "an id is cleaned for the save (%s)" % MapTrack.clean("kebab 12/3.5"))
 	# Saved, then found again.

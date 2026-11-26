@@ -57,7 +57,7 @@ frame. The night has a rhythm: the queues grow after midnight, the doors pick an
 dawn crowd walks to the Palm in sunglasses, the first tram, the kebab. A late-night radio station
 (**PÓŁNOC FM**, 86,0) plays original instrumentals and a host who talks about the city.
 
-**Missions, jobs, police and races stay, as flavour.** Kebab, słoiki, Podwózka, rescues, rivals
+**Missions, jobs, police and races stay, as flavour.** Kebab, słoiki, Łuber, rescues, rivals
 and the gentle police are the city's errands and characters: they come to you, you can say no,
 and they all happen at real places that the notebook then remembers. A **Spacer** (wander) mode
 switches off every timer and every push; the city alone is enough to play. Nothing in the game
@@ -129,7 +129,7 @@ re-checks every name before TestFlight.
 **The existing parodies stay**, each for a reason:
 - **Frogs** (was Rechotka 24; the user's pick, 2026-10-30): a plain English word a local reads at
   once as the frog-green shop. A closer near-miss would come too close to the real chain's name.
-- **Podwózka, Pędzik, Leżak**: each joke is about a kind of app (ride-hailing, delivery, scooters)
+- **Łuber, Pędzik, Leżak**: each joke is about a kind of app (ride-hailing, delivery, scooters)
   with several real operators. A near-miss of one would point at one company and its workers,
   which `parodies.md` rules out.
 - **U Zdzicha, Na cienkim**: invented stands with no real target.
@@ -279,7 +279,7 @@ photographing, every 40 s), a courier with a square backpack bringing the trend 
 **Eggs.** E18 Cykl życia trendu, E19 Trzy kolejki naraz, E20 Tłusty Czwartek, E21 Zielony pasuje
 do menu (Glon).
 
-**Gameplay hook (optional job, "Na czasie" / on trend).** A request card, like Podwózka's: an
+**Gameplay hook (optional job, "Na czasie" / on trend).** A request card, like Łuber's: an
 office worker at Rondo Daszyńskiego wants today's trend before it's "over". Pick up at a Wiralek
 slot (stop 2 s; the queue lets the courier through, "odbiór na aplikację"), deliver within 6 min
 *guess* to a real address in the Rondo Daszyńskiego towers or Mordor's lobby door. Pay 25 zł + 8
@@ -386,7 +386,7 @@ mint, white; never the jobs' orange) run the boulevards to Most Poniatowskiego a
 - **HYRAX**, the parody fitness race, on **Saturdays 09:00–17:00** *guess* on the forecourt of
   Stadion Narodowy: a cordon of the roadworks barriers, a loop of runners, and our own Warsaw
   stations (carry the słoiki up the steps, push a Leżak, a Frogs-basket farmer's walk, the
-  stadium's stairs). The mascot is a hyrax (*góralek*) on the banner. Podwózka rides tagged
+  stadium's stairs). The mascot is a hyrax (*góralek*) on the banner. Łuber rides tagged
   `hurry` that morning go to the stadium (a late competitor). E30.
 
 **People with pets on bikes, fancy and retro, scooters on the steps**: all of the above share the
@@ -575,7 +575,7 @@ saved PNG.
 
 **Settings → Gra → Tryb: Miasto / Spacer** (City / Wander). In Spacer:
 - no request cards, no rescue calls, no rival challenges arrive by themselves (the context button
-  still offers PODWÓZKA, a kebab or a race on a tap);
+  still offers ŁUBER, a kebab or a race on a tap);
 - no timers anywhere (rescues started by hand run without a clock);
 - police: speed traps give the caution only, no chases (the gentle joke stays);
 - the radio prefers PÓŁNOC FM at night and KEBAB FM by dusk;
@@ -626,7 +626,7 @@ bubble). **The car at the door**: drive past within 8 m at < 10 km/h → the bou
 
 **The dawn crowd.** Sat/Sun 05:00–09:00 (Live, or the Dawn look): 20–40 walkers on footway
 paths from the three clubs to the Palm, Nowy Świat-Uniwersytet, the tram stops and two kebab
-stands; `dawn_crowd` bubbles once per 25 s in view. **Podwózka at dawn**: request cards from club
+stands; `dawn_crowd` bubbles once per 25 s in view. **Łuber at dawn**: request cards from club
 doors (`podwozka_request` tag `club`), passengers with `club` lines; the joke is always that you,
 sober, drive them home.
 
@@ -681,7 +681,7 @@ Each chapter of the notebook unlocks one (4.1); tracks 1–2 are free from the s
 | --- | --- | --- |
 | Kebab | The 3 a.m. errand; stands at real places; the dawn crowd stops there | Two stands get dawn-crowd queues (Sat/Sun 05–08) |
 | Słoiki | The newcomer's errand; the Hyrax station joke | none |
-| Podwózka | The city's taxi errand; at dawn, the sober driver for the clubbers; the Hyrax late runner | `club` tags (request, passenger), `hurry` rides to the stadium on Saturdays |
+| Łuber | The city's taxi errand; at dawn, the sober driver for the clubbers; the Hyrax late runner | `club` tags (request, passenger), `hurry` rides to the stadium on Saturdays |
 | Rescues | Real places; a dog's ball on a roof (E16) as a helicopter mini-rescue | one new kind |
 | Rivals and races | Unchanged; the final race "Trzy mosty" is a night drive past the steps and the clubs | none |
 | Police | Gentle; static units by two clubs at night; caution-only in Spacer | `police_club` lines, Spacer rule |
@@ -716,7 +716,7 @@ completion. Loop 2d-2 (the unbuilt half of `parodies.md`) is folded into MW-2.
 | 1 | **MW-0: data and lines** (game-designer, now; no code) | `places.json` (72 places), `then_cards`, the section 7 lines merged into `dialogue.json`, the brand denylist for 3k, Apteczka's street | JSON parses; every line PL + EN, ≤ 70 characters, no repeat; the title-collision check done and noted | +0 |
 | 2 | **MW-1: the notebook** (map-engineer bake + gameplay-dev) | `pois` kind `place` and the venue anchors (3.x OSM tags) in the 3d bake; the MOJA WARSZAWA tab, finding, cards, rewards, minimap "?" | `check_places.gd` green; `--place=<id> --notes-log` finds each of 10 sample places; HUD shots at 375/390/440 pt | HUD ≤ +5 2D draw calls when open, 0 closed; scripts ≤ 0.02 ms (2 Hz grid check) |
 | 3 | **MW-2: storefronts and parodies** (= 2d-2 folded) | Frogs, Pędzik, Leżak, 14 kebab stands, 10 billboards (`parodies.md` 10), and the 17 venues as named neon fascias in `neon_signs.gd`, the metro entrances | `parodies.md` section 10's checks; each venue at its address within 0.3 m of the facade; art-director: no real brand readable | parodies.md 8's ≤ +15/17/20 draw calls; venues +0 (the neon atlas); metro entrances +1 per sector with any |
-| 4 | **MW-3: the night and the river** (after 3g-2) | City clock + Dawn look, queues, the door, the dawn crowd, police by the clubs, the steps crowd, Hocki Bloki's lights, Podwózka `club` | 4.5's acceptance; shots at night 01:00 on Smolna, dawn at the Palm, dusk on the steps, at phone size | crowd MultiMesh per sector, 2 poses: ≤ +2 draw calls in view, ≤ 25 k triangles, no sun shadow; scripts ≤ 0.04 ms |
+| 4 | **MW-3: the night and the river** (after 3g-2) | City clock + Dawn look, queues, the door, the dawn crowd, police by the clubs, the steps crowd, Hocki Bloki's lights, Łuber `club` | 4.5's acceptance; shots at night 01:00 on Smolna, dawn at the Palm, dusk on the steps, at phone size | crowd MultiMesh per sector, 2 poses: ≤ +2 draw calls in view, ≤ 25 k triangles, no sun shadow; scripts ≤ 0.04 ms |
 | 5 | **MW-4: everyday life and trends** | Dog walkers, cyclists and Rowerilo docks, runners, Kolka and the Zając, Hyrax Saturdays, the Wiralek cycle and the "Na czasie" job, Fat Thursday | `--dogs-log`, `--trend-log` (`trend: slot 1 day 3 queue 20`), `--zajac --autopilot` pays once; a 10-minute soak, no dog or rider overlapping the car | dogs: one city MultiMesh, +1 draw call; riders share Pędzik's (+0); scripts ≤ 0.05 ms |
 | 6 | **MW-5: PÓŁNOC FM and the city's sounds** | The station, 7 tracks, the host; the club leak, steps crowd, guitar, barks, bells, metro chime | `--station=polnoc --radio-log`; each sound plays at its place (a headless check of emitters); levels by ear on the phone | audio only; ≤ 8 positional emitters live at once *guess* |
 | 7 | **MW-6: Fotka, Spacer, KASETA, the eggs** | Photo mode and 15 Kadr spots, Spacer, the time tape at 20 spots, the 40 eggs wired, the then cards | 4.2–4.4 acceptance; every egg's flag logs its reward (`--egg=<id>`) | ghosts ≤ +1 draw call within 150 m of a spot; Fotka 0 when closed |
@@ -809,7 +809,7 @@ announcements, untagged crowd lines with no speaker.
     ["Która godzina? Niedziela.", "What time is it? Sunday."],
     ["Pierwszy tramwaj, kebab i spać. Rytuał.", "The first tram, a kebab, then bed. A ritual."],
     ["Gołębie patrzą na nas z wyższością. Mają rację.", "The pigeons look down on us. They have a point."],
-    ["Bierzemy Podwózkę. Nikt z nas nie prowadzi, i bardzo dobrze.", "We're getting a Podwózka. None of us is driving, and that's how it should be."],
+    ["Bierzemy Łubera. Nikt z nas nie prowadzi, i bardzo dobrze.", "We're getting a Łuber. None of us is driving, and that's how it should be."],
     ["Dzień dobry, Palmo. Ty też całą noc na nogach?", "Good morning, Palm. You've been up all night too?", {"only": "palm"}]
   ],
   "police_club": [

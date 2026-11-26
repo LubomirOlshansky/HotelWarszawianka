@@ -1882,7 +1882,7 @@ func _talk_done() -> void:
 		_end("pullover")
 		dismiss(fu)
 		return
-	# --- loop 2d-1: a Podwózka passenger on board takes one star for the pull-over (police.md
+	# --- loop 2d-1: a Łuber passenger on board takes one star for the pull-over (police.md
 	# 8.3, parodies.md 3.3; rides.gd acts only while a ride runs). An escape costs nothing. ---
 	var rides = jobs.get("rides") if jobs != null else null
 	if rides != null:

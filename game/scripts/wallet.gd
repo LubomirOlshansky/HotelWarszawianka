@@ -30,7 +30,7 @@ extends Node
 ## Saves when the app leaves (2026-11-15, F's pick after the architecture review). Most changes
 ## save at once (`pay`, `spend`, `record`, `find_egg`...), but some only change a value and wait for
 ## the next save: `count_smash`, `count_push`, and other scripts' own writes into `keep` and the
-## other sections (a Podwózka story heard, Zagłębie's first welcome). iOS can close a background app
+## other sections (a Łuber story heard, Zagłębie's first welcome). iOS can close a background app
 ## without a word, so main.gd calls `flush` when the app is paused, loses focus or is closed. The
 ## first write of a session that fails sends `save_failed`, once, for main.gd's note to the player.
 
@@ -602,7 +602,7 @@ func pay(amount: int, gain := 0, kind := "") -> void:
 
 
 ## Loop 3h slice 4: the jobs finished, of every paid kind but NOT_JOBS (a kebab, słoiki, a rescue,
-## a Podwózka ride, the round-up, "Na czasie"...). Old saves count from the totals they kept by kind.
+## a Łuber ride, the round-up, "Na czasie"...). Old saves count from the totals they kept by kind.
 func jobs_done() -> int:
 	var n := 0
 	for k in jobs:

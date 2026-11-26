@@ -87,7 +87,7 @@ func _words() -> void:
 func _facts() -> Dictionary:
 	var L := Lines
 	var e: Array = [
-		L.entry("ride", "ride", L.Line.CAR, "Podwózka", "Ride", Vector2.INF, Color.CYAN, "ride"),
+		L.entry("ride", "ride", L.Line.CAR, "Łuber", "Ride", Vector2.INF, Color.CYAN, "ride"),
 		L.entry("garage", "garage", L.Line.CAR, "Warsztat u Mirka", "Mirek's garage", Vector2(400, 0), Color.BLUE),
 		L.entry("k_far", "kebab", L.Line.CAR, "Kebab daleko", "Kebab far", Vector2(3000, 0), Color.ORANGE),
 		L.entry("k_near", "kebab", L.Line.CAR, "Kebab blisko", "Kebab near", Vector2(100, 0), Color.ORANGE),

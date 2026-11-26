@@ -88,7 +88,7 @@ At about (-171, 273), the lawn's curved cut-out north-west of the Party House's 
   the helicopter hovers over the roof: "Na zdjęciach był wyższy. I miał psa." / "He was taller in
   his photos. And he had a dog."; "Trzecia randka w LORETCE w tym tygodniu. Barman już mi kibicuje."
   / "Third date at LORETKA this week. The barman is rooting for me now."
-- TIMBER itself: a billboard (signs group), two column posters, radio host lines, and Podwózka
+- TIMBER itself: a billboard (signs group), two column posters, radio host lines, and Łuber
   passengers with the `timber` tag going to LORETKA (lines about the match, the profile, "6'2 i
   Mordor"). No real app look; the mark is a pine cone.
 
@@ -148,7 +148,7 @@ sticker goes on the shop, and after that a huge queue stands there for good, wit
   wiersz."); **delivery** to his van at today's spot in 5 min (warm).
 - **His verdict** (a card): "*mlask* … Wjeżdżam w to." (cold: "Letni, ale… wjeżdżam w to."),
   60 zł + 10 zł a km, +25 respect, 20 zł tip *guess* (cold: half, no tip, no respect).
-- **TYGRAM** (our messenger parody, a blue card): "DŻEMINI: MLASK! Naklejka już wisi na szybie.
+- **COTAM** (our messenger parody, a blue card): "DŻEMINI: MLASK! Naklejka już wisi na szybie.
   Jutro kolejka do Marszałkowskiej. Dzięki, kierowco!"
 - **For good** (the save's `keep` `dzemini_mlask`): the MLASK sticker (yellow, pink edge, pixel
   letters) on the shop's wall beside its sign, and the longest line in town at its door

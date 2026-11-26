@@ -107,7 +107,7 @@ func _check_mesh(digest: PackedStringArray) -> void:
 		problems.append("taxi family: not a morphing family (the shapes' vertex counts differ?)")
 	var shapes: Array = Models.TRAFFIC[1]
 	if shapes.size() != 4:
-		problems.append("TRAFFIC[1]: %d shapes (want 4: city, Podwózka, supercar, Pasatini)" % shapes.size())
+		problems.append("TRAFFIC[1]: %d shapes (want 4: city, Łuber, supercar, Pasatini)" % shapes.size())
 	var ps: Dictionary = shapes[Models.TAXI_PASAT]
 	if str(ps["name"]) != "pasatini" or float(ps["share"]) != 0.0:
 		problems.append("TRAFFIC[1][%d]: %s share %.2f (want pasatini, 0)" % [Models.TAXI_PASAT, ps["name"], ps["share"]])

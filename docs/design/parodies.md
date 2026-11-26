@@ -32,7 +32,7 @@ TestFlight.
 | Joke | Candidate | What the check found | Decision |
 | --- | --- | --- | --- |
 | 24h corner shop | ~~Rechotka 24~~ → **Frogs** | Rechotka (2026-10-28): no shop, chain, retail brand or trademark named Rechotka found; `rechotka.pl` shows only the word "Rechotka" and a "PEGI 13" label. **"Frogs" is the user's pick (2026-10-30)**: it is an English word, not the real brand's name or logo (no frog figure, no lowercase wordmark, a lily-pad mark of our own) | **Frogs** (the user, 2026-10-30; ids stay `rechotka`, `easter_rechotka`) |
-| App-taxi | **Podwózka** | No taxi, ride-hailing app or transport company named Podwózka found (results were iTaxi and other real apps, none with this name). `podwozka.pl` exists but refused the request (HTTP 403), content unknown | **Keep: Podwózka** |
+| App-taxi | **Łuber** | No taxi, ride-hailing app or transport company named Łuber found (results were iTaxi and other real apps, none with this name). `podwozka.pl` exists but refused the request (HTTP 403), content unknown | **Keep: Łuber** |
 | Delivery riders | **Pędzik** | No courier, delivery app or brand named Pędzik found; `pedzik.pl` does not resolve | **Keep: Pędzik** |
 | E-scooters | ~~Hulajka~~ | No brand "Hulajka" found, but **"Hulaj" (hulaj.eu, "HULAJnogi elektryczne na minuty") was a Polish per-minute e-scooter sharing service**; its domain now carries unrelated casino pages. One suffix away, same field. `hulajka.pl` exists (HTTP 403) | **Replace with Leżak** ("deckchair", from *leżeć*, to lie down: the scooters always lie down). No scooter or sharing brand named Leżak found; `lezak.pl` does not resolve |
 | Kebab stand | ~~Nocny Marek~~ | One letter from **Nocny Market**, a real and well-known Warsaw night street-food market | **Drop** |
@@ -98,7 +98,7 @@ one instance in a MultiMesh per 512 m tile (section 8).
   +1 stamp. One stamp per shop per in-game day, max 10 a day. The **10th stamp**: a card *HOT DOG
   GRATIS! · FREE HOT DOG!* with the `free` line and +10 respect. Saved. (A discoverable loop that
   costs nothing and teaches that they are everywhere.)
-- **Podwózka's GPS uses them as landmarks** (section 3.4): "turn at the Frogs", at a triple
+- **Łuber's GPS uses them as landmarks** (section 3.4): "turn at the Frogs", at a triple
   corner.
 - **Passenger detour**: some app-taxi passengers ask to stop at one (+0.5 ★, section 3.3).
 - **Radio ads**: two `radio_host` lines (the host reads parody ads among the others).
@@ -107,9 +107,9 @@ one instance in a MultiMesh per 512 m tile (section 8).
 
 ---
 
-## 3. Podwózka: the app-taxi, in traffic and as a side job
+## 3. Łuber: the app-taxi, in traffic and as a side job
 
-*"Podwózka"* is colloquial for "a lift". The joke is the app: a pin that is a bit off, a GPS that
+*"Łuber"* is colloquial for "a lift". The joke is the app: a pin that is a bit off, a GPS that
 is very sure of itself, star ratings, a "multiplier".
 
 ### 3.1 Look in traffic
@@ -139,13 +139,13 @@ One app-taxi in view does one of these every 45 to 90 s *guess* (never two at on
 jobs), not in the first 2 minutes of a session *guess*. Two ways:
 - a **request card** at the bottom of the screen every 75 to 120 s while idle (not modal, gone
   after 10 s, never during a race, rescue or chase);
-- or the top row's **context button** shows **PODWÓZKA** when the player is idle in the car;
+- or the top row's **context button** shows **ŁUBER** when the player is idle in the car;
   tapping it brings a request within 2 s.
 
 The card (HUD card recipe, Polish above English):
 
 ```
-PODWÓZKA · NOWY KURS / NEW RIDE
+ŁUBER · NOWY KURS / NEW RIDE
 Kasia · 350 m · kurs 1,8 km · ★ 4,9
 Uwagi: „stoję pod Frogsem”.            ← a podwozka_request line
 MNOŻNIK ×1,5 · NOC / NIGHT              ← only at night or in rain
@@ -341,7 +341,7 @@ letters), all below in section 7.
 `podwozka_request`, `podwozka_pickup`, `podwozka_gps`, `podwozka_passenger`, `podwozka_rating`,
 `podwozka_driver`, `pedzik`, `lezak`, `easter_lezak`; additions to `radio_host`, `kebab_vendor`,
 `kebab_order`, `signs`, `column_posters`. Speakers: **"Frogs"** (the till, with the lily-pad
-icon), **"Nawigacja"** (the app, a phone avatar), the passenger's first name, **"Podwózka"** for
+icon), **"Nawigacja"** (the app, a phone avatar), the passenger's first name, **"Łuber"** for
 app-taxi drivers in traffic, **"Pędzik"** for riders, **"Leżak"** for the round-up card (the
 knock line is the game's own aside, no speaker). Polish bubbles ≤ 70 characters. Checked
 against today's file for repeats (grep: pierwszeństwo, kawalerka, zaginął, za rogiem, GPS, 3:00):
@@ -365,7 +365,7 @@ becomes *ZAGINĄŁ SYGNAŁ GPS*) and each has a new punchline.
   ],
   "radio_host": [
     ["Frogs. Otwarte dziś, jutro i na wszelki wypadek pojutrze.", "Frogs: open today, tomorrow, and the day after, just in case."],
-    ["Podwózka: przyjedziemy tam, gdzie pokaże pinezka. Mniej więcej.", "Podwózka: we'll come wherever the pin says. More or less."]
+    ["Łuber: przyjedziemy tam, gdzie pokaże pinezka. Mniej więcej.", "Łuber: we'll come wherever the pin says. More or less."]
   ],
   "podwozka_request": [
     ["Uwagi: „stoję pod Frogsem”.", "Note: \"I'm outside the Frogs.\""],
@@ -376,7 +376,7 @@ becomes *ZAGINĄŁ SYGNAŁ GPS*) and each has a new punchline.
   "podwozka_pickup": [
     ["Dzień dobry! Pinezka trochę się pomyliła, ja nie.", "Hi! The pin was a bit off. I wasn't."],
     ["Pięć gwiazdek, jeśli zdążymy. Sześć, jeśli bez trąbienia.", "Five stars if we make it. Six if there's no honking."],
-    ["To pan od Podwózki? Bo tu czeka jeszcze trzech.", "Are you my Podwózka? Because three more are waiting here."]
+    ["To pan od Łubera? Bo tu czeka jeszcze trzech.", "Are you my Łuber? Because three more are waiting here."]
   ],
   "podwozka_gps": [
     ["Za dwieście metrów skręć w prawo. W Wisłę.", "In two hundred metres, turn right. Into the Vistula.", {"only": "river"}],
@@ -434,14 +434,14 @@ becomes *ZAGINĄŁ SYGNAŁ GPS*) and each has a new punchline.
   ],
   "signs": [
     ["FROGS · TU TEŻ", "FROGS · HERE TOO"],
-    ["PODWÓZKA · GPS WIE LEPIEJ", "PODWÓZKA · THE GPS KNOWS BEST"],
+    ["ŁUBER · GPS WIE LEPIEJ", "ŁUBER · THE GPS KNOWS BEST"],
     ["PĘDZIK · PLECAK WIĘKSZY NIŻ KAWALERKA", "PĘDZIK · A BACKPACK BIGGER THAN A STUDIO FLAT"],
     ["LEŻAK · PARKING? JAKI PARKING?", "LEŻAK · PARKING? WHAT PARKING?"]
   ],
   "column_posters": [
     ["FROGS: ZAWSZE O JEDEN SKOK", "Frogs: always one hop away", {"poster": ["FROGS:", "ZAWSZE", "O JEDEN", "SKOK"]}],
     ["LEŻAK. LEŻY. PRAWIE WSZĘDZIE.", "Leżak. Lying around. Almost everywhere.", {"poster": ["LEŻAK.", "LEŻY.", "PRAWIE", "WSZĘDZIE"]}],
-    ["ZAGINĄŁ SYGNAŁ GPS. PODWÓZKA.", "Missing: one GPS signal. Podwózka.", {"poster": ["ZAGINĄŁ", "SYGNAŁ", "GPS.", "PODWÓZKA"]}]
+    ["ZAGINĄŁ SYGNAŁ GPS. ŁUBER.", "Missing: one GPS signal. Łuber.", {"poster": ["ZAGINĄŁ", "SYGNAŁ", "GPS.", "ŁUBER"]}]
   ]
 }
 ```
@@ -464,7 +464,7 @@ metre), rule 5 (no new shader).
 | --- | --- | --- | --- | --- |
 | Frogs shop front | per 512 m tile (static) | ≤ 600 (~430 planned: 8 boxes, the blade disc, ~150 letter quads) | **off** (flat on a wall that already casts) | +1–4 / +4–9 / +6–12 |
 | Leżak scooter (lying or upright) | per tile (static; a knocked one rewrites its tile's buffer once) | ≤ 120 | off (< 1 m), `fine_detail` | +1–4 / 0 / 0 |
-| Podwózka car | traffic kind APP_TAXI (pool 12) + its night headlight beams, like the other kinds | ≤ 330 | small_casters | +2 (+1 at night) at every view |
+| Łuber car | traffic kind APP_TAXI (pool 12) + its night headlight beams, like the other kinds | ≤ 330 | small_casters | +2 (+1 at night) at every view |
 | Pędzik rider | one for the city (pool 16) | ≤ 300 | small_casters | +2 at every view |
 | Kebab stands, 12 generic | per tile (replaces 7 nodes) | ≤ 1,500 (today's stand) | as today | ≈ ±0 (fewer nodes, more stands) |
 | Two named kebab stands | own mesh each (never both in view) | ≤ 1,500 | as today | +0–1 |
@@ -492,12 +492,12 @@ medium, `max_colors` 8–16 for icons, ≤ 32 for billboards.
 | Asset | Tool, size | Prompt | Item colours | Gens |
 | --- | --- | --- | --- | --- |
 | Frogs minimap icon | `create_image_pixen`, 16 px, no background | "tiny round lily pad icon with a small notch, flat, bold outline" | `#4fae3b`, `#2f6b2a` | 2 |
-| Podwózka pickup icon | same | "tiny smartphone icon with a small star on the screen, flat, bold outline" | `#1f1f22`, `#e8f4ff` | 2 |
+| Łuber pickup icon | same | "tiny smartphone icon with a small star on the screen, flat, bold outline" | `#1f1f22`, `#e8f4ff` | 2 |
 | Pędzik icon | same | "tiny cube delivery backpack icon with a pale band round the middle, flat" | `#c23a7e` | 2 |
 | Leżak icon | same | "tiny electric kick scooter lying on its side, flat icon" | `#8e44d9` | 2 |
 | "Nawigacja" avatar | `create_image_pixen`, 32 px | "a cheerful smartphone with a map pin for a face, simple, front view" | `#1f1f22`, `#e8f4ff`, `#4fd8c4` | 2 |
 | Billboard art: Frogs | `create_image_pixen`, 128 × 64 | "billboard illustration of a bright corner shop at night on a city street, green shop front, warm light from the window, a lily pad symbol, no text, no people" | `#4fae3b`, `#2f6b2a`, `#cfe8c6` | 2 |
-| Billboard art: Podwózka | same | "billboard illustration of a small dark car with an upright glowing phone sign on its roof, a curvy dotted route line leading into a river, no text" | `#1f1f22`, `#e8f4ff`, `#4fd8c4` | 2 |
+| Billboard art: Łuber | same | "billboard illustration of a small dark car with an upright glowing phone sign on its roof, a curvy dotted route line leading into a river, no text" | `#1f1f22`, `#e8f4ff`, `#4fd8c4` | 2 |
 | Billboard art: Pędzik | same | "billboard illustration of a bicycle courier with an enormous cube backpack bigger than a doorway, speed lines, no text, no logos" | `#c23a7e` | 2 |
 | Billboard art: Leżak | same | "billboard illustration of violet electric kick scooters lying on a pavement around an empty painted parking rectangle, no text" | `#8e44d9` | 2 |
 | Portrait: passenger, GPS believer | `create_portrait_character`, 64 px | "young office worker staring at a smartphone, lanyard, confident smile, invented character, front view" | `#4fd8c4` | 10 |
@@ -529,7 +529,7 @@ pixel-font quads, not textures. If a billboard explore wins, its final can be re
    hot dog card and +10 respect.
 4. App-taxi GPS moments in traffic (3.2). *Check:* in a 5-minute `--traffic=busy` run at least 3
    moments log, never two at once.
-5. **The Podwózka job** (3.3) with its flags (3.4). *Check:* `--ride=1 --autopilot --parody-log`
+5. **The Łuber job** (3.3) with its flags (3.4). *Check:* `--ride=1 --autopilot --parody-log`
    logs pickup, quirk (with `--ride-quirk=river`: the waypoint is on dry land), arrival, stars,
    pay; a headless `check_rides.gd` feeds synthetic events and asserts the star and pay tables,
    the streak and the cancel rules; the police pull-over takes exactly one star.
@@ -547,7 +547,7 @@ pixel-font quads, not textures. If a billboard explore wins, its final can be re
     litter and an empty zone, a rider, an app-taxi with its sign, the ride card and result card.
     art-director: nothing reads as a real brand; parody colours less saturated than the police
     and the job beacons; C1 (the player's car found in < 1 s) still holds with the extra props.
-11. README (a Parodies and Podwózka section, flags), ROADMAP row, BACKLOG; CREDITS: nothing new
+11. README (a Parodies and Łuber section, flags), ROADMAP row, BACKLOG; CREDITS: nothing new
     from outside (the PixelLab art is the game's own).
 
 Flags: `--rechotka`, `--stamps=K`, `--ride=N`, `--ride-quirk=…`, `--passenger=…`, `--stars=X`,

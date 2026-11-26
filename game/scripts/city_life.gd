@@ -17,7 +17,7 @@ extends Node3D
 ##    mint and white, a footway A* route); the Zając (the car beside the club, 9-14 km/h, 600 m:
 ##    the `runners` `zajac` cheer, E29's +40 respect once).
 ##  - **Hyrax** on Saturdays 09-17 on the stadium's forecourt: a cordon of barriers, a loop of
-##    runners, a HYRAX banner, E30 (a lap); Podwózka's `hurry` riders go there that morning.
+##    runners, a HYRAX banner, E30 (a lap); Łuber's `hurry` riders go there that morning.
 ##  - **The Wiralek trend cycle**: three slots (Plac Zbawiciela, Chmielna, Tamka), a trend each
 ##    for 7 days and a WKRÓTCE day (`slot_state`); the queue (crowds.gd's `trend` sites) by the day;
 ##    a fascia per slot in the pixel font; E18, E19. Fat Thursday at Lukrownia (Live or --date):
@@ -309,7 +309,7 @@ const CORDON_N := 24
 const HYRAX_RUNNERS := 14
 const HYRAX_LOOP_R := 20.0
 const HYRAX_V := 3.2
-## Podwózka's hurry riders go to the stadium that morning *guess*.
+## Łuber's hurry riders go to the stadium that morning *guess*.
 const HURRY_HOURS := [7.0, 10.0]
 
 ## The Wiralek slots (vision 3.4): places.json ids, each one's offset in days, the cycle (7 trend
@@ -890,7 +890,7 @@ static func hyrax_on(hour: float, weekday: int) -> bool:
 	return weekday == HYRAX_DAY and hour >= float(HYRAX_HOURS[0]) and hour < float(HYRAX_HOURS[1])
 
 
-## Podwózka's hurry riders head to the stadium (Saturday morning).
+## Łuber's hurry riders head to the stadium (Saturday morning).
 static func hurry_to_stadium(hour: float, weekday: int) -> bool:
 	return weekday == HYRAX_DAY and hour >= float(HURRY_HOURS[0]) and hour < float(HURRY_HOURS[1])
 
@@ -3875,7 +3875,7 @@ func _hyrax_talk(step: float) -> void:
 			sfx.play_at("whistle", Vector3(c.x, _ground(c) + 1.5, c.y))
 
 
-## Podwózka's `hurry` destination now (rides.gd `hurry_to`): the Hyrax forecourt on a Saturday
+## Łuber's `hurry` destination now (rides.gd `hurry_to`): the Hyrax forecourt on a Saturday
 ## morning, else INF.
 func hurry_target() -> Vector2:
 	if _hyrax.is_empty() or not hurry_to_stadium(_hour, _weekday):

@@ -15,7 +15,7 @@ extends SceneTree
 ##   E. Limitka (Friday's drop), F. Czwarty (PADELNIA), G. the DESKA call, its way, the card match, the
 ##      arcade court, every line of the rallies and the quest map's hooks;
 ##   H. Mlask (the van, the fans, the egg, the review, the sticker, the dice draw for draw);
-##   I. Dżemini (Mrożulo's call, the bite, the sticker, the TYGRAM card); J. the coffee run (Zuzia's
+##   I. Dżemini (Mrożulo's call, the bite, the sticker, the COTAM card); J. the coffee run (Zuzia's
 ##      call, the bike, four stamps, the glow, the late run, the ✕, the rest, the quest hooks);
 ##   K. one order over another and the seven answers "no" during a run; L. the autopilot to the end of
 ##      every kind; N. what deliberate breaks of the script showed (which comes first, the hours' ends,
@@ -46,7 +46,7 @@ const TEAL := Color("#2fd0e0")
 const ORANGE := Color("#ffbf5f")
 const BROWN := Color("#c98a4b")
 const RED := Color("#e2574c")
-const BLUE := Color("#3aa0e8")
+const COTAM_GREEN := Color("#2fd36b")
 const HOME := Vector2(5000.0, 5000.0)
 const SLOT_A := Vector2(0.0, 0.0)
 const SLOT_B := Vector2(300.0, 0.0)
@@ -1805,16 +1805,16 @@ func _i_dzemini() -> void:
 	var sticker := _sticker_node()
 	_ok(_stickers() == 1 and sticker != null and sticker.global_position.distance_to(wall) < 5.0, "the sticker is on the wall within 0.6 s of it being there")
 	_press(0)
-	_ok(_sub() == "tygram" and tj.busy() and hud.side and hud.card == "TYGRAM · MROŻULO" and hud.card_en == "TYGRAM · Mrożulo" and hud.accent == BLUE, "OK: the TYGRAM card in blue, still busy")
+	_ok(_sub() == "tygram" and tj.busy() and hud.side and hud.card == "COTAM · MROŻULO" and hud.card_en == "COTAM · Mrożulo" and hud.accent == COTAM_GREEN, "OK: the COTAM card in green, still busy")
 	_ok(hud.body == "„DŻEMINI: MLASK! Naklejka już wisi na szybie. Jutro kolejka do Marszałkowskiej. Dzięki, kierowco!”" \
-			and hud.body_en == "\"DŻEMINI: SMACK! The sticker's on the window. Tomorrow the queue reaches Marszałkowska. Thanks, driver!\"", "the TYGRAM text")
+			and hud.body_en == "\"DŻEMINI: SMACK! The sticker's on the window. Tomorrow the queue reaches Marszałkowska. Thanks, driver!\"", "the COTAM text")
 	_press(0)
 	_ok(_idle(), "OK: idle")
 	# Not once done.
 	_at(HOME)
 	_dz_due()
 	_ok(_quiet(1.1), "Mrożulo does not ring again once the MLASK is on DŻEMINI")
-	# Forced again, cold, the TYGRAM card by the clock; the van stays shown out of its hours.
+	# Forced again, cold, the COTAM card by the clock; the van stays shown out of its hours.
 	_rested()
 	_ok(tj.offer_dzemini(true), "the forced call")
 	_press(0)
@@ -1832,8 +1832,8 @@ func _i_dzemini() -> void:
 			and hud.body_en == "\"Lukewarm, but… *smack* … I'm going in.\"\n+%d zł (tip 0 zł), +0 respect" % half, "cold: the lukewarm line")
 	_ok(_stays_stage(Trend.Stage.RESULT, 9.9) and _sub() == "review", "the bite's card is still up 9.9 s after")
 	_secs(0.2)
-	_ok(_sub() == "tygram", "the TYGRAM card after 10 s")
-	_ok(_stays_stage(Trend.Stage.RESULT, 9.7) and _until_idle(0.6), "and the TYGRAM card closes by itself after 10 s")
+	_ok(_sub() == "tygram", "the COTAM card after 10 s")
+	_ok(_stays_stage(Trend.Stage.RESULT, 9.7) and _until_idle(0.6), "and the COTAM card closes by itself after 10 s")
 	_mark("I")
 
 
@@ -2235,7 +2235,7 @@ func _l_auto() -> void:
 	_ok(_auto_end(400.0) >= 0.0, "Mlask reaches idle within 400 s")
 	var base := 40 + roundi(10.0 * 2.0 * 1.3 * _flat(vr, place) / 1000.0)
 	_ok(wallet.money == m0 + base + 15, "the autopilot's Mlask pays %d zł" % (base + 15))
-	# Dżemini: the bite's card tapped, the TYGRAM waits out its 10 s.
+	# Dżemini: the bite's card tapped, the COTAM waits out its 10 s.
 	_at(DZEMINI + Vector2(0.0, 100.0))
 	_secs(2.6)
 	_rested()
@@ -2244,7 +2244,7 @@ func _l_auto() -> void:
 	var shop := _kerb_ring(_ans(DZEMINI))
 	vr = tj.van["ring"]
 	_ok(_until(func() -> bool: return _sub() == "tygram", 400.0), "the autopilot brings the kebab and taps the bite's card")
-	_ok(_stays_stage(Trend.Stage.RESULT, 9.7) and _auto_end(0.6) >= 0.0, "the TYGRAM message waits out its 10 s")
+	_ok(_stays_stage(Trend.Stage.RESULT, 9.7) and _auto_end(0.6) >= 0.0, "the COTAM message waits out its 10 s")
 	pay = 60 + roundi(10.0 * 1.3 * _flat(shop, vr) / 1000.0) + 20
 	_ok(wallet.money == m0 + pay, "the autopilot's Dżemini pays %d zł" % pay)
 	# The coffee run.
@@ -2556,7 +2556,7 @@ func _n_hooks_and_sticker() -> void:
 	_ok(_stickers() == 1 and str(_sticker_node().name) == "DzeminiSticker", "one sticker, named DzeminiSticker, in the very frame he bites")
 	_press(0)
 	_press(0)
-	_ok(_idle(), "the TYGRAM message closed")
+	_ok(_idle(), "the COTAM message closed")
 	_rested()
 	_ok(tj.offer_dzemini(true), "a second forced call")
 	_press(0)
