@@ -1240,15 +1240,16 @@ func _enter(result: String) -> void:
 		pl += " " + entry_note()[0]
 		en += " " + entry_note()[1]
 	var pay_card: bool = result != "out" and enter_club.is_valid()
-	var buttons := PackedStringArray(["PŁACĘ %d ZŁ|PAY %d ZŁ CASH" % [ENTRY, ENTRY], "POTEM|LATER"]) if pay_card else PackedStringArray(["OK"])
+	var buttons := PackedStringArray(["PŁACĘ %d ZŁ|PAY %d ZŁ" % [ENTRY, ENTRY], "POTEM|LATER"]) if pay_card else PackedStringArray(["OK"])
 	show_card([title, title_en], [pl, en], buttons, PAY_LIFE if pay_card else RESULT_LIFE)
 	_log("%s: %s, %d/3 right, +%d zł +%d respect" % [place, result, quiz_right, p[0], p[1]])
 
 
-## The door's cash line under the result: the ticket, cash only, the card machine a joke.
+## The door's ticket line under the result: the price and the house rule, a sticker over the
+## phone camera (F, 2026-11-26: Smoła tapes cameras; the cash-only jokes belong to another club).
 static func entry_note() -> Array:
-	return ["Bilet: %d zł. Tylko gotówka, terminal „chwilowo nie działa” od 2019." % ENTRY,
-			"Ticket: %d zł. Cash only, the card machine has been \"temporarily down\" since 2019." % ENTRY]
+	return ["Bilet: %d zł. Na wejściu naklejka na aparat. Zdjęcia zostają w głowie." % ENTRY,
+			"Ticket: %d zł. A sticker on your phone camera at the door. The photos stay in your head." % ENTRY]
 
 
 ## Where the quest drives now: the secret spot or Smoła.
@@ -1269,10 +1270,10 @@ func _card_pressed(i: int) -> void:
 			finish()
 			if go_in and wallet != null and not wallet.spend(ENTRY):
 				go_in = false
-				hud.toast("Za mało gotówki. Bramkarz wskazuje bankomat… trzy ulice dalej.", "Not enough cash. The bouncer points to a cash machine… three streets away.")
-				_log("door: no cash for the %d zł ticket" % ENTRY)
+				hud.toast("Brakuje na bilet. Bramkarz kiwa głową: następnym razem.", "Not enough for the ticket. The bouncer nods: next time.")
+				_log("door: not enough for the %d zł ticket" % ENTRY)
 			if go_in:
-				_log("door: paid %d zł cash" % ENTRY)
+				_log("door: paid %d zł" % ENTRY)
 				enter_club.call(t[0], t[1])
 
 
