@@ -181,6 +181,7 @@ ride-police          local     slow
 rideplay             quick
 rides                quick
 rivals               quick
+roadlife             quick
 roadprofiles         smoke
 roads                roads
 roadtruth            quick
@@ -217,6 +218,8 @@ stuckoffer           quick
 stuckspots           roads
 stuckspots-prebuilt  smoke     slow
 syrenki              quick
+tajny                quick
+tajny-run            local     slow
 tamka                quick
 tapczan              quick
 tapczan-run          local     slow
@@ -244,3 +247,4 @@ water-prebuilt       smoke     slow
 wellness             quick
 zaglebie             quick
 zamekramps           quick
+zebras               quick
