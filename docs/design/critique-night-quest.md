@@ -62,7 +62,7 @@ to 40 minutes later: the same night, with the race one class faster (D to A over
   meet) are still open lines in BACKLOG.
 
 Right and staying: the cast (Darek, Lena, Tadek) and the motto, the look of the ring (neon, smoke,
-marks), the cordon driving in, the TYGRAM pin, the racers on the minimap, the club's pack with its
+marks), the cordon driving in, the COTAM pin, the racers on the minimap, the club's pack with its
 own profiles and the class a night, the gate, the route across the river to the stadium.
 
 ## 3. Rules and feel fixes
@@ -118,7 +118,7 @@ and the pot's "mandat" rule. A fence closes the way north onto the railway bed.
 
 - The gap to the car ahead and behind, by name, under the place badge („LENA +1.8 s”, „DAREK -0.6
   s”), refreshed each 0.5 s.
-- One TYGRAM hint a night from Darek at the first split („Przez Solec szybciej. Nie mów Lenie.” /
+- One COTAM hint a night from Darek at the first split („Przez Solec szybciej. Nie mów Lenie.” /
   "Solec is quicker. Don't tell Lena."): one of `race_cuts.json`'s cuts on the player's own route,
   drawn on the minimap for 6 s.
 - The club's pack always plans for "Normal" traffic density whatever the setting (the town's cars
@@ -159,9 +159,9 @@ A night counts when the drag is won. The card is a notebook page: the level, the
 | 4 | Four nights: Tadek's tiers, the card's levels, two more line sets (24 lines, Polish with English) (3.7) | in | S + the drag's rework |
 | 5 | Meet 2 fills in race order; one watched pair, then none (3.6) | in | S |
 | 6 | Raid 2 as the searchlight with two exits, and the fence by the railway (3.4) | in | M (a light, an exit test, one fence in the map lane) |
-| 7 | Darek's shortcut hint on TYGRAM (3.5) | in | S |
+| 7 | Darek's shortcut hint on COTAM (3.5) | in | S |
 | 8 | The crowd reacts to you: phones up for a first place, a flat „Aha.” for the last; after the drag the ring runs to the winner's car (the existing crowd, new targets) | in (phones and lines), out (the run) | S / M |
-| 9 | Racers get caught: a ring car the cordon boxes is out of the race, with a TYGRAM line („Golfa zwinęli. Znowu.” / "They got the hatchback. Again.") | out | M |
+| 9 | Racers get caught: a ring car the cordon boxes is out of the race, with a COTAM line („Golfa zwinęli. Znowu.” / "They got the hatchback. Again.") | out | M |
 | 10 | Show off at meet 1: your own donut in the ring for the pot. Waits for the drift quest (drift-narodowy.md, planned): there is no drift scoring in the game yet | out | M after that |
 | 11 | Meets that move (Browary, Wał Miedzeszyński from night-meet.md's list) | out | L (each ring needs clear ground, the check's 17 m rule, a race course) |
 
