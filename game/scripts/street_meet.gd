@@ -68,6 +68,7 @@ extends "res://scripts/activity.gd"
 ## Flags (main.gd): --meet-call (Darek rings now), --meet=on (night rules at any hour), --meet=0,
 ## --meet-at=raid|race|meet2|drag|stage (jump to that beat), --meet-log.
 
+const FirstSteps := preload("res://scripts/first_steps.gd")
 const Models := preload("res://scripts/models.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Notebook := preload("res://scripts/notebook.gd")
@@ -275,8 +276,7 @@ const POT_CLEAN := 60
 const RAID_TELL := 2.0
 const CLEAN_M := 22.0
 ## The night bar's five beats (3.2), shown in the status line: SPOT · NALOT · WYŚCIG · SPOT 2 · DRAG.
-const PIPS := ["SPOT", "NALOT", "WYŚCIG", "SPOT 2", "DRAG"]
-const PIPS_EN := ["MEET", "RAID", "RACE", "MEET 2", "DRAG"]
+const PIPS := 5
 const RAID_LINES := [
 	["Widz", "PSY! Zwijamy się!", "COPS! We're out!"],
 	[FRIEND, "Rozjazd! Pin wrzucę na TYGRAMA!", "Split up! I'll drop a pin on TYGRAM!"],
@@ -1291,9 +1291,14 @@ static func beat_of(st: int) -> int:
 func night_bar() -> String:
 	var b := beat_of(stage)
 	var bar := ""
-	for i in PIPS.size():
+	for i in PIPS:
 		bar += "●" if i <= b else "○"
-	return "%s · %d zł" % [bar, pot]
+	return (_w("pot_bar")[0] as String) % [bar, pot]
+
+
+## The night's words by key (dialogue.json "first_steps" group, keys pot_*): [Polish, English].
+func _w(key: String) -> Array:
+	return FirstSteps.words(key)
 
 
 ## Into the pot, with the word it shows in (a toast; the card sums it up).
@@ -1302,7 +1307,8 @@ func _pot_add(zl: int, pl: String, en: String) -> void:
 		return
 	pot += zl
 	pot_parts.append([zl, pl, en])
-	hud.ambient_toast("%s  +%d zł do puli" % [pl, zl], "%s  +%d zł to the pot" % [en, zl])
+	var w := _w("pot_add")
+	hud.ambient_toast(str(w[0]) % [pl, zl], str(w[1]) % [en, zl])
 	_log("pot +%d (%s) = %d" % [zl, en, pot])
 
 
@@ -1325,7 +1331,8 @@ func _mandat_poll() -> void:
 		if pot > 0:
 			var was := pot
 			pot = maxi(pot / 2, 1)
-			hud.toast("MANDAT: pula %d → %d zł" % [was, pot], "FINE: pot %d → %d zł" % [was, pot])
+			var w := _w("pot_fine")
+			hud.toast(str(w[0]) % [was, pot], str(w[1]) % [was, pot])
 			pot_parts.append([pot - was, "MANDAT", "FINE"])
 			_log("mandat: pot %d -> %d" % [was, pot])
 
@@ -1501,7 +1508,8 @@ static func is_clean(at: Vector3, gap: Vector3) -> bool:
 ## come from, with a line from Darek. A player who reads it and rolls is out of the ring when it lands.
 func _tell() -> void:
 	_tell_t = RAID_TELL
-	hud.toast("Syreny! Słychać je z oddali.", "Sirens! You can hear them coming.")
+	var w := _w("pot_tell")
+	hud.toast(str(w[0]), str(w[1]))
 	_line(RAID_LINES[0], 2.5)
 	if police != null and "sfx" in police and police.sfx != null:
 		var m: Dictionary = meets[meet_i]
@@ -2003,7 +2011,8 @@ func _race_done(p: int) -> void:
 	var title := "PIERWSZY!" if p == 1 else "%d. MIEJSCE" % p
 	var title_en := "FIRST!" if p == 1 else "PLACE %d" % p
 	_pot_add(int(last_pay[0]), title, title_en)
-	hud.toast("%s  +%d respektu · pula %d zł" % [title, last_pay[1], pot], "%s  +%d RESPECT · pot %d zł" % [title_en, last_pay[1], pot])
+	var w := _w("pot_place")
+	hud.toast(str(w[0]) % [title, last_pay[1], pot], str(w[1]) % [title_en, last_pay[1], pot])
 	hide_status()
 	clear_target()
 	_log("race done: place %d of %d, +%d zł +%d" % [p, _racers.size() + 1, last_pay[0], last_pay[1]])
@@ -2477,14 +2486,17 @@ func _drag_end(won: bool, how: String) -> void:
 			body_en = "You %s · reaction %s · Tadek %s. %s" % ["%.2f s" % drag_time if drag_time > 0.0 else "—", react, tad,
 					"The %s card is yours." % CLUB if won else MOTTO[1]]
 	if how in ["false", "off"]:
-		body += "  Pula czeka: %d zł." % pot
-		body_en += "  The pot waits: %d zł." % pot
+		var w := _w("pot_wait")
+		body += str(w[0]) % pot
+		body_en += str(w[1]) % pot
 	elif won:
-		body += "  Pula %d zł × 2 = %d zł  +%d szacunu" % [pot_was, cashed, pay[1]]
-		body_en += "  Pot %d zł × 2 = %d zł  +%d respect" % [pot_was, cashed, pay[1]]
+		var w := _w("pot_win")
+		body += str(w[0]) % [pot_was, cashed, pay[1]]
+		body_en += str(w[1]) % [pot_was, cashed, pay[1]]
 	else:
-		body += "  Pula %d → %d zł. Rewanż ją znów ryzykuje.  +%d szacunu" % [pot_was, pot, pay[1]]
-		body_en += "  Pot %d → %d zł. A rematch risks it again.  +%d respect" % [pot_was, pot, pay[1]]
+		var w := _w("pot_lose")
+		body += str(w[0]) % [pot_was, pot, pay[1]]
+		body_en += str(w[1]) % [pot_was, pot, pay[1]]
 	var buttons := PackedStringArray(["OK|OK"]) if won else PackedStringArray(["REWANŻ|REMATCH", "KONIEC|DONE"])
 	show_card([title, title_en], [body, body_en], buttons, RESULT_LIFE)
 	_line(DRAG_LINES["win" if won else ("false" if how == "false" else "lose")], 4.0)
@@ -2544,7 +2556,8 @@ func _card_expired() -> void:
 func _pay_pot() -> void:
 	if pot > 0 and wallet != null:
 		wallet.pay(pot, 0, "")
-		hud.toast("Pula: +%d zł" % pot, "Pot: +%d zł" % pot)
+		var w := _w("pot_paid")
+		hud.toast(str(w[0]) % pot, str(w[1]) % pot)
 	_log("pot paid: %d" % pot)
 	pot = 0
 
