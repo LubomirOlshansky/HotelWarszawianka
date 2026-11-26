@@ -17,7 +17,9 @@ OpenStreetMap's outline (centrum.json building 5544) simplified to 23 corners, a
 
 ## 3. Facade, base to top
 
-Base (0 to 5 m): sandstone, a ledge at its top, on Niecała dark shop-glass bays between sandstone piers and the hall at the middle of the third edge (door, two 0.42 m columns, a 2.6 m half-ellipse glass canopy at 3.9 m). Plaster storeys: on Niecała, a window every 2.9 m; on the garden arc and south face a balcony column every 4.2 m with a window between columns, the balcony door 2.1 m tall; windows have sills and heads in a lighter sandstone. The party walls (north-east end, back) and the south-west gable stay plain cream (the photos show them blank).
+Base (0 to 5 m): sandstone, a ledge at its top, on Niecała dark shop-glass bays between sandstone piers and the hall at the middle of the third edge (door, two 0.42 m columns, a 2.6 m half-ellipse glass canopy at 3.9 m). Plaster storeys: on Niecała, a window every 2.9 m; round-balcony stacks only on every other edge (garden arc edges 9 and 11, the south face's 14, the street corners 17 and 22), with plain windows on the edges between and a window either side of a lone stack, as the photos run stack, windows, stack (Mac look check 2026-11-26: a stack on every edge read as one dark wall of glass); the balcony door 2.1 m tall; windows have sills and heads in a lighter sandstone. The party walls (north-east end, back) and the south-west gable stay plain cream (the photos show them blank). The gable is a firewall: it rises past the set-back zinc storey to a coping 0.9 m over its roof (Nemo5576's photo).
+
+Green (F's photos, 2026-11-26): ivy climbs the plaster beside the garden-side stacks from the ground, a different height per stack, and about two balconies in three carry a box of red geraniums on the rail. Each balcony has two slim cream posts up to the bowl above, and the top one an iron half-hoop.
 
 ## 4. Roof
 
@@ -42,7 +44,7 @@ The pavement and the parked cars are the map's. The garden court and the lawn be
 
 ## 7. Detail level and budget
 
-L3, triangle budget 8000 (`check_mesh_quality.gd`).
+L3, triangle budget 13000 (8000 at first; raised the same day for the balconies, the ivy and the geranium boxes of F's photos) (`check_mesh_quality.gd`).
 
 Shots: turntable `tools/turntable.sh niecala7`; `--at=-1043,-892 --yaw=40 --pitch=-25 --size=70` (from Niecała, photo fotopolska 340543), `--at=-1040,-880 --yaw=200 --pitch=-20 --size=70` (the garden arc, photos of the developer's gallery).
 
@@ -55,8 +57,8 @@ Shots: turntable `tools/turntable.sh niecala7`; `--at=-1043,-892 --yaw=40 --pitc
 | windows | kit windows, sill and head | 1.1 x 1.7 m | every storey, every windowed edge | M_PANE | 2 base and plaster |
 | shop_bays | dark glass bays | 1.7 x 3.7 m | Niecała ground floor | M_PANE | 2 hall |
 | entrance | door, two columns, half-ellipse canopy | 2.2 x 3.6 m, canopy 5.2 m | Niecała, third edge | M_STONE | 2 hall |
-| balconies | half-ellipse slab and iron rail | 2.5 m wide, 1.1 m deep | garden arc, south face, street corner, every storey | M_STONE | 1 balconies |
+| balconies | half-ellipse cream bowl and light iron rail | 2.5 m wide, 1.45 m deep | edges 9, 11, 14, 17, 22, every storey | M_STONE | 1 balconies |
 | zinc_storey | inset prism, flat roof | 3.2 m high | y 24.6 to 27.8 | M_STONE | 3 top |
 | pergola | columns, rail, slats | 0.28 m columns, 2.7 m tall | the garden arc, top terrace | M_STONE | 3 top |
 | chimneys | four-sided stacks | 1.1 m, 2 m high | the zinc roof | M_STONE | 3 top |
-| gable | plain cream wall | 9.9 m wide | the south-west end | M_STONE | 4 gable |
+| gable | plain cream wall, rising past the zinc storey | 9.9 m wide, to 28.7 m | the south-west end | M_STONE | 4 gable |

@@ -11,7 +11,10 @@ extends "res://scripts/landmarks/mirek.gd"
 ## The plan is OpenStreetMap's outline simplified to 23 corners (N7_RING, from centrum.json building
 ## 5544, so the site stands on the mapped footprint). Its edges, by index: 17..22 the street front on
 ## Niecała (west), 16 the blank south-west gable, 0 and 1..7 the north-east end and the back (party
-## walls, plain), 8..11 the concave garden arc and 12..15 the south face (balconies, windows).
+## walls, plain), 8..11 the concave garden arc and 12..15 the south face. The round balconies stand in
+## stacks with plain windows between (Nemo5576's photo from the south: stack, windows, stack ...),
+## so only every other edge of the arc carries one (N7_BALCONY_EDGES); the Mac look check of
+## 2026-11-26 found a stack on every edge read as one dark wall of glass.
 
 const N7_AT := Vector2(-1043.0, -892.0)
 const N7_RING: Array[float] = [-1039.7, -916.2, -1029.7, -906.9, -1034.2, -901.2, -1019.1, -889.5, -1017.8, -892.9,
@@ -20,7 +23,7 @@ const N7_RING: Array[float] = [-1039.7, -916.2, -1029.7, -906.9, -1034.2, -901.2
 		-1060.0, -890.0, -1056.0, -895.1, -1052.4, -897.5, -1049.0, -901.1, -1046.0, -905.6, -1044.3, -910.3]
 const N7_FRONT_EDGES: Array[int] = [17, 18, 19, 20, 21, 22]
 const N7_GABLE_EDGE := 16
-const N7_BALCONY_EDGES: Array[int] = [8, 9, 10, 11, 13, 14, 17, 18]
+const N7_BALCONY_EDGES: Array[int] = [8, 9, 10, 11, 14, 17, 22]
 const N7_ENTRANCE_EDGE := 20
 const N7_BASE := 5.0          # the sandstone base's height over the ground
 const N7_FLOOR := 3.2         # a storey of the cream plaster
@@ -33,10 +36,15 @@ const N7_SAND := Color("#c9a56c")
 const N7_SAND_L := Color("#dcc08a")
 const N7_ZINC := Color("#656d74")
 const N7_ZINC_ROOF := Color("#7c8388")
-const N7_RAIL := Color("#56606b")
+const N7_RAIL := Color("#76828d")   # the pergola's iron rail
+const N7_BRAIL := Color("#c4c9cd")  # the balconies' rails read grey-white on F's photos
 const N7_WOOD := Color("#9a6a3c")
 const N7_GLASS := Color("#2c3640")
 const N7_DECK := Color("#b9b7b1")
+const N7_IVY := Color("#3e5a2b")
+const N7_IVY_L := Color("#56773a")
+const N7_GERANIUM := Color("#c8323a")
+const N7_BOWL := Color("#e2d3b2")   # the balconies' cream-sandstone bowls
 
 
 func _find_niecala7() -> void:
@@ -88,6 +96,7 @@ func _build_niecala7(site: Dictionary) -> void:
 	if top.size() >= 3:
 		_prism(top, y_eave + 0.4, y_top, N7_ZINC, N7_ZINC_ROOF, M_STONE, M_STONE)
 		_n7_chimneys(top, y_top)
+	_n7_gable(ring, y_eave, y_top)
 	for i in ring.size():
 		_n7_edge(ring, i, g, y_plaster, y_eave)
 	_collide(ring)
@@ -101,7 +110,7 @@ func _n7_edge(ring: PackedVector2Array, i: int, g: float, y_plaster: float, y_ea
 		return
 	var front := N7_FRONT_EDGES.has(i)
 	var balcony := N7_BALCONY_EDGES.has(i)
-	var windowed := front or balcony or i == 12 or i == 15
+	var windowed := front or balcony or (i >= 8 and i <= 15)
 	if i == N7_GABLE_EDGE or not windowed:
 		return
 	# Storeys 2 to 7: a window between the balcony columns, or a grid of them on a plain stretch.
@@ -114,13 +123,25 @@ func _n7_edge(ring: PackedVector2Array, i: int, g: float, y_plaster: float, y_ea
 			var u := le * float(j) / float(nb)
 			for y: float in sills:
 				kit_window(u, y, 1.7, Win.SILL_HEAD, N7_SAND_L, N7_GLASS, 0.55)
-		var hw := minf(1.25, le / float(nb) * 0.3)
+		var hw := minf(1.45, le / float(nb) * 0.34)
+		if nb == 1 and le - 2.0 * hw >= 2.4:
+			# A lone stack: a window beside it (one side on the arc, so stacks and windows
+			# alternate round it as on F's garden photo; both sides elsewhere).
+			var side := (le * 0.5 - hw) * 0.5
+			var us: Array = [le - side] if i >= 8 and i <= 11 else [side, le - side]
+			for u: float in us:
+				for y: float in sills:
+					kit_window(u, y, 1.7, Win.SILL_HEAD, N7_SAND_L, N7_GLASS, 0.5)
 		for j in nb:
 			var uc := le * (float(j) + 0.5) / float(nb)
 			for y: float in sills:
 				# The balcony door behind: tall glass, then the round slab and its iron rail.
-				kit_window(uc, y - 0.05, 2.1, Win.PLAIN, N7_SAND_L, N7_GLASS, hw - 0.1)
-				_n7_balcony(uc, y, hw)
+				kit_window(uc, y - 0.05, 2.1, Win.PLAIN, N7_SAND_L, N7_GLASS, hw * 0.5)
+				kit_balcony(uc, y, hw, Balcony.ROUND, N7_BRAIL, N7_BOWL, 1.9)
+			_n7_stack_posts(uc, hw, sills)
+			_n7_flowers(uc, hw, sills, i * 7 + j)
+			if i >= 8 and i <= 14:
+				_n7_ivy(uc, hw, sills, i * 3 + j)
 	else:
 		var bays := maxi(1, roundi(le / 2.9))
 		kit_window_grid(0.0, le, bays, sills, 1.7, Win.SILL_HEAD, N7_SAND_L, N7_GLASS, 0.55)
@@ -131,7 +152,7 @@ func _n7_edge(ring: PackedVector2Array, i: int, g: float, y_plaster: float, y_ea
 			kit_shop_bay(u, g + 0.5, g + 4.2, 0.85, N7_SAND_L, N7_GLASS)
 		if i == N7_ENTRANCE_EDGE:
 			_n7_entrance(le, g)
-	elif balcony or i == 12 or i == 15:
+	else:
 		var gb := maxi(1, roundi(le / 3.2))
 		for u: float in _spread(0.0, le, gb):
 			kit_window(u, g + 1.0, 2.6, Win.SILL, N7_SAND_L, N7_GLASS, 0.8)
@@ -140,25 +161,65 @@ func _n7_edge(ring: PackedVector2Array, i: int, g: float, y_plaster: float, y_ea
 		_n7_pergola(le, y_eave + 0.4, y_eave + 0.4 + N7_ROOF_STOREY)
 
 
-## A round balcony on the current front: a half-ellipse slab on brackets with a rail, centred at u
-## on the storey whose sill is at y, `hw` half-wide, 1.1 m deep.
-func _n7_balcony(u: float, y: float, hw: float) -> void:
-	var depth := 1.1
-	var poly := PackedVector2Array()
-	for t in 9:
-		var ang := PI * float(t) / 8.0
-		poly.append(_w(u - cos(ang) * hw, _face + 0.02 + sin(ang) * depth))
-	_prism(poly, y - 0.34, y - 0.06, N7_SAND, N7_SAND_L, M_STONE, M_STONE)
-	_soffit(poly, y - 0.34, N7_SAND.darkened(0.1))
+## The slim columns either side of each balcony door, from one bowl's rim up under the next, and over
+## the top balcony the iron half-hoop (F's garden photos). The hoop is drawn as short boxes round
+## the arc: at the game's distance they read as one bent bar.
+func _n7_stack_posts(uc: float, hw: float, sills: Array) -> void:
+	var v := _face + 0.32
+	for k in sills.size():
+		var y: float = sills[k]
+		var top := y + 2.35 if k == sills.size() - 1 else float(sills[k + 1]) - 0.8
+		for s: float in [-1.0, 1.0]:
+			_lbox(uc + s * hw * 0.62, v, 0.07, 0.07, y - 0.06, top, N7_CREAM_L)
+	var yt: float = sills[-1] + 0.9
+	var r := hw * 0.92
+	var vh := _face + 0.9
+	var prev := Vector2(uc - r, yt)
+	for t in range(1, 8):
+		var ang := PI * float(t) / 7.0
+		var p := Vector2(uc - cos(ang) * r, yt + sin(ang) * r * 1.1)
+		_lbox((prev.x + p.x) * 0.5, vh, maxf(absf(p.x - prev.x) * 0.5, 0.035), 0.035,
+				minf(prev.y, p.y) - 0.035, maxf(prev.y, p.y) + 0.035, N7_BRAIL)
+		prev = p
+
+
+## Window boxes of red geraniums on the balcony rails (F's photos): a green band and a red one round
+## the rail's curve, on about half the balconies of a stack, picked by `seed` so stacks differ.
+func _n7_flowers(uc: float, hw: float, sills: Array, seed: int) -> void:
+	var c := _w(uc, _face)
 	var keep := _mode
 	_mode = M_STONE
-	for t in 8:
-		var a := poly[t]
-		var b := poly[t + 1]
-		var mid := (a + b) * 0.5
-		var out := (mid - _w(u, _face)).normalized()
-		_wall(a, b, y - 0.06, y + 0.92, out, N7_RAIL)
+	for k in sills.size():
+		if (seed + k * 5) % 3 == 0:
+			continue
+		var y: float = sills[k]
+		var ring := PackedVector2Array()
+		for t in 7:
+			var ang := PI * float(t) / 6.0
+			ring.append(_w(uc - cos(ang) * (hw + 0.06), _face + 0.03 + sin(ang) * 1.96))
+		for t in 6:
+			var a := ring[t]
+			var b := ring[t + 1]
+			var out := ((a + b) * 0.5 - c).normalized()
+			_wall(a, b, y + 0.6, y + 0.74, out, N7_IVY_L)
+			_wall(a, b, y + 0.74, y + 0.9, out, N7_GERANIUM)
 	_mode = keep
+
+
+## Ivy climbing the plaster beside a balcony stack (F's photos of the garden arc): ragged green
+## panels just proud of the wall, each storey a different width, to a height that differs by stack.
+func _n7_ivy(uc: float, hw: float, sills: Array, seed: int) -> void:
+	var widths: Array[float] = [1.1, 1.5, 0.9, 1.3, 1.7, 1.0]
+	var top := 3 + seed % 4
+	for side: float in [-1.0, 1.0]:
+		var reach := top if side > 0.0 else maxi(2, top - 1 - seed % 2)
+		for k in mini(reach, sills.size()):
+			var y: float = sills[k]
+			var w: float = widths[(seed + k * 2 + (1 if side > 0.0 else 0)) % widths.size()]
+			var u := uc + side * (hw * 0.55 + w * 0.5)
+			var col := N7_IVY if (k + seed) % 2 == 0 else N7_IVY_L
+			var y0 := _g + 0.3 if k == 0 else y - 1.1
+			_lbox(u, _face + 0.1, w * 0.5, 0.06, y0, y + 2.1, col)
 
 
 ## The entrance hall on the street front: two stone columns, a dark wood door and the glass canopy.
@@ -187,6 +248,16 @@ func _n7_pergola(le: float, y0: float, y1: float) -> void:
 	for u: float in _spread(0.1, le - 0.1, slats):
 		_lbox(u, -0.6, 0.05, 0.95, y1 - 0.15, y1 - 0.02, N7_WOOD)
 	_lbox(le * 0.5, -0.35, le * 0.5, 0.08, y1 - 0.02, y1 + 0.1, N7_CREAM_L)
+
+
+## The blank south-west gable: a firewall that rises past the set-back zinc storey to a coping over
+## it (Nemo5576's photo), instead of stepping back with the roof.
+func _n7_gable(ring: PackedVector2Array, y_eave: float, y_top: float) -> void:
+	var a := ring[N7_GABLE_EDGE]
+	var b := ring[(N7_GABLE_EDGE + 1) % ring.size()]
+	var d := -_out(ring, a, b) * (N7_SETBACK + 0.45)
+	var slab := PackedVector2Array([a, b, b + d, a + d])
+	_prism(slab, y_eave + 0.4, y_top + 0.9, N7_CREAM, N7_ZINC_ROOF, M_STONE, M_STONE)
 
 
 ## Three chimney stacks over the zinc roof, kept inside it.

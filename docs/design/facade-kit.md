@@ -106,6 +106,7 @@ tall on the pane, a trim block hw·0.86 half wide from y + h + 0.24 to y + h + 0
 | `IRON` | slab 0.20 thick under y − 0.06; a top rail at y + 0.85..0.92 on the front edge and both sides; a bar every 0.42 m or closer |
 | `STONE` | slab 0.28 thick; a solid balustrade 1.0 high, 0.14 thick, on the front and both sides; two brackets under it |
 | `PARAPET` | slab; a solid front wall 0.86 high with a coping, no sides (between piers) |
+| `ROUND` | a half-ellipse rim 0.28 thick, `depth` out and 2 × `hw` wide, over a dish 72 % its size and 0.46 deep, both with soffits; a solid rail 0.96 high round its curve (Niecała 7's stacks) |
 
 ### Entrances and crowns
 
