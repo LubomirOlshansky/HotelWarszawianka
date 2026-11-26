@@ -322,6 +322,7 @@ func _aviation(poly: PackedVector2Array, roof_y: Callable) -> void:
 ## windows between piers (plastered and stone fronts), M_STONE a plain wall (brick, the science
 ## centre's dark slabs). Colours from photographs, a step paler than life.
 const ZAMEK_WALL := "#cf9580"  # salmon plaster (was #c87560: it read brick-red and loud)
+const ZAMEK_ROOF := "#a9534a"  # tile, a coral red (fix round 1; was #ad5c3f, read orange)
 
 
 # --- Rynek Starego Miasta and its Syrenka (F, 2026-11-01) -------------------------------------
