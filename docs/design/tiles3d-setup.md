@@ -22,10 +22,10 @@ the same command (Node + `npx playwright install chromium` once).
 ## Terms (Google Maps Platform)
 
 - View live only. No caching, exporting, scraping or tracing of the mesh, and nothing from it
-  goes into the game, the repo or the bakes. The tool keeps tiles in browser memory for one run
-  (in-memory profile, disk cache off) and saves only screenshots.
-- Screenshots are local modelling references, like all of `refs/`: never committed, shipped,
-  published, traced or used as textures. Google's attribution stays visible on them.
+  goes into the game, the repo or the bakes. The tool loads tiles in a fresh temporary browser profile,
+  deleted at exit, and saves only screenshots.
+- Screenshots are local-only modelling references that never leave `refs/`: not in the repo,
+  posts, PRs or artifacts, never shipped, traced or used as textures. Google's attribution stays visible on them.
 - We read shapes from them by eye and write values into the spec (model-from-photos skill).
 
 ## Key and costs
