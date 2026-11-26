@@ -30,6 +30,11 @@ var pocket_rings: Array[PackedVector2Array] = []
 var _r2 := {}
 ## Circles ([centre, radius]) no tree may grow in: a landmark's overhang (Powiśle's saucer).
 var tree_free: Array = []
+## Laser-scanned trees a landmark re-sizes ([centre, near, top, radius, kind], world x, z, metres
+## over the ground): the one tree within `near` of `centre` takes this height, crown radius and
+## kind, and turns the latest of its kind in autumn. The oak on Plac Zamkowy in its stone bench,
+## which the 2023 scan caught as a 15 m tree with a 4 m crown (F's photo, 2026-11-26).
+var tree_set: Array = []
 ## Plans ([ring, its box], world x, z) no parked car stands in: a market or a fair on a car park
 ## (Jarmark Warszawski on Plac Defilad), read by map_builder's parked cars on both city paths.
 var parked_free: Array = []
@@ -317,6 +322,7 @@ func _aviation(poly: PackedVector2Array, roof_y: Callable) -> void:
 ## windows between piers (plastered and stone fronts), M_STONE a plain wall (brick, the science
 ## centre's dark slabs). Colours from photographs, a step paler than life.
 const ZAMEK_WALL := "#cf9580"  # salmon plaster (was #c87560: it read brick-red and loud)
+const ZAMEK_ROOF := "#a9534a"  # tile, a coral red (fix round 1; was #ad5c3f, read orange)
 
 
 # --- Rynek Starego Miasta and its Syrenka (F, 2026-11-01) -------------------------------------
@@ -556,7 +562,7 @@ func _arch_win(at: Vector2, along: Vector2, out: Vector2, hw: float, y0: float, 
 	_arch_panel(at, along, out, hw, y0, spring, glass, 0.08, M_GLASS)
 
 
-const ZAMEK_VISTULA := Color("#e9e1cf")   # the Vistula (Saxon) front, cream-white
+const ZAMEK_VISTULA := Color("#ede6d8")   # the Vistula (Saxon) front, a warm cream-white (Fable 2026-11-26)
 
 ## The Clock Tower (Wieża Zegarowa) in the middle of the west front, and the front's way north.
 const ZAMEK_CLOCK := Vector2(-671.0, -1519.3)

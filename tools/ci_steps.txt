@@ -138,6 +138,7 @@ pacing               quick
 packs                quick
 padel                quick
 palacelights         quick
+palmtasting          quick
 panelrule            quick
 panelstates          smoke
 parkdetails          quick

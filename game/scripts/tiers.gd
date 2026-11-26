@@ -39,7 +39,7 @@ const NAMES := ["Low", "Medium", "High", "Ultra", "Max"]
 const QUALITY := [
 	{"name": "Low", "step": 1, "budget": 0.5, "shadows": false, "shadow_size": 1024, "glow": false, "rain": 0.4,
 		"reflect": 0, "traffic": 0.55, "people": 24, "small_shadows": false, "tree_limbs": false, "panel_holes": true,
-		"cap": 30, "screen_fx": false},
+		"cap": 30, "screen_fx": false, "house_clutter": false},
 	{"name": "Medium", "step": 1, "budget": 0.5, "shadows": true, "shadow_size": 1024, "glow": true, "rain": 0.7,
 		"reflect": 6, "traffic": 0.8, "people": 40, "small_shadows": false, "panel_holes": true},
 	{"name": "High", "step": 0, "budget": 0.96, "shadows": true, "shadow_size": 2048, "glow": true, "rain": 1.0,
@@ -72,6 +72,9 @@ const QUALITY := [
 ## (tipsy.gd: the camera's sway, the thoughts, the car's pull). Missing means true.
 ## Trees thread (2026-11-15): `tree_limbs` false (Low) hides the crowns' limbs (foliage.gdshader
 ## `limbs`): a bare tree is its haze and trunk, 36 fewer triangles a crown. Missing means true.
+## House types 2b (docs/design/house-types.md): `house_clutter` false (Low) drops the painted
+## air conditioners, flower boxes, laundry and dishes on ordinary houses (building.gdshader
+## `clutter`); the stairwells and televisions stay. Missing means true.
 ## W4 of the walls look (docs/design/walls-true-to-life.md 9): `panel_holes` false makes the
 ## fence panels (panel.gdshader `holes`) solid, their gaps the row's colour blended toward the
 ## ground by its openness, so the tile-based GPU keeps its hidden-surface shortcut for them (a
