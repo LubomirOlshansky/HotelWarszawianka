@@ -405,7 +405,7 @@ func _palace_glb(outer: PackedVector2Array, g: float) -> bool:
 		var nu: float = [1.0, -1.0, 0.0, 0.0][f]
 		var nv: float = [0.0, 0.0, 1.0, -1.0][f]
 		# The clocks sit over the arcade on the 12.6 m tier (the photos), not under it.
-		_dial(_w(nu * 6.42, nv * 6.42), g + 178.0, Vector2(_a * nu + _b * nv), 3.3)
+		_dial(_w(nu * 6.42, nv * 6.42), g + 178.0, Vector2(_a * nu + _b * nv), 3.6)
 	for gate in P_GATES:
 		_palace_gate(float(gate[0]), float(gate[1]), float(gate[2]), float(gate[3]), g, SANDSTONE_LIGHT)
 	_palace_name(54.05, g)

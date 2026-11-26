@@ -677,6 +677,14 @@ def build(m):
     for k in range(4):
         pinnacle(m, -7.6 if k % 2 == 0 else 7.6, -7.6 if k < 2 else 7.6, 1.6, 168.0, 7.5)
     if LOD == 0:
+        for k in range(4):
+            cu = -7.6 if k % 2 == 0 else 7.6
+            cv = -7.6 if k < 2 else 7.6
+            su = -1.0 if cu < 0 else 1.0
+            sv = -1.0 if cv < 0 else 1.0
+            pinnacle(m, cu - su * 1.7, cv, 1.0, 168.0, 4.6)
+            pinnacle(m, cu, cv - sv * 1.7, 1.0, 168.0, 4.6)
+    if LOD == 0:
         for sd in (-1.0, 1.0):
             for t in (-3.8, 3.8):
                 pinnacle(m, sd * 8.3, t, 0.9, 168.0, 4.0)
@@ -690,6 +698,18 @@ def build(m):
             cu = -6.3 if k % 2 == 0 else 6.3
             cv = -6.3 if k < 2 else 6.3
             m.box(cu, cv, 0.7, 0.7, 168.0, 187.2, light)
+    # The frieze of tall pointed panels above the dials (F's close-up photos, 2026-11-26): seven
+    # dark lancet slots per face between the dial and the cornice.
+    if LOD == 0:
+        for nu, nv in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            side = (-nv, nu)
+            for k in range(7):
+                t = -4.8 + k * 1.6
+                pts = [(-0.5, 182.6), (0.5, 182.6), (0.0, 186.6)]
+                m.face([(nu * 6.33 + side[0] * (t + a), nv * 6.33 + side[1] * (t + a), z) for a, z in pts],
+                       M_STONE, shade(stone, 0.55), top=187.2)
+        # A stone band under the dials, where the photos show the arcade tier's flat roof meeting the wall.
+        m.walls(Model.rect(0, 0, 6.5, 6.5), 168.0, 169.0, M_STONE, shade(stone, 0.9))
     cornice(m, Model.rect(0, 0, 6.3, 6.3), 188.0, depth=0.5, height=0.8, steps=2 if LOD == 0 else 1)
     m.cap(Model.rect(0, 0, 6.3, 6.3), 188.0, M_STONE, ROOF)
     attic(m, Model.rect(0, 0, 6.6, 6.6), 188.0, 1.2)

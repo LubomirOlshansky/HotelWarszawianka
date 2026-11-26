@@ -1,4 +1,4 @@
-- The Palace of Culture and Science is the detailed model now: profiled cornices and pinnacles on every step, round columns on the main portico and the wings, the Congress Hall's colonnade, the clocks above the tower's arcade as in the photos, and tall dark timber doors behind the main columns.
+- The Palace of Culture and Science is the detailed model now: profiled cornices and pinnacles on every step, round columns on the main portico and the wings, the Congress Hall's colonnade, the clocks above the tower's arcade as in the photos, tall dark timber doors behind the main columns, and a crown with bigger clocks, a frieze of pointed panels above them and clusters of pinnacles at the corners, as in the photos.
 
 ## Backlog
 - fixed: the Blender Palace trial (QUESTIONS "Blender for the top landmarks?"): taken as the default for the reel's close-ups; `--palace=code` still builds the old code model

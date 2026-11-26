@@ -213,7 +213,7 @@ const BUDGET := {
 	"metropolitan": 3100,
 	"metropolsign": 320,  # 2026-11-10: Hotel Metropol rebuilt whole from F's photos (255 measured)
 	"muzeum": 4600,  # 2026-11-26 the lit roof sign (wave + MUZEUM NARODOWE in built serif letters, F's night photo): 4478 tris; 2026-11-06 photo pass: a stone pier on every bay boundary, fence, flagpoles
-	"palace": 27500,   # 2026-11-26 the Blender Palace is the default (F, reel close-ups): 26,906 tris, the glb's 23,084 plus the venues, one mesh, +0 draw calls (probe below). Before, 2026-11-07: 3696 -> 7288, Bar Studio's 34 deck chairs, tables, festoons and frame signs (same mesh, no new draw call)
+	"palace": 28500,   # 2026-11-26 the Blender Palace is the default (F, reel close-ups): 27,7xx tris with the crown frieze, the glb's 23,084 plus the venues, one mesh, +0 draw calls (probe below). Before, 2026-11-07: 3696 -> 7288, Bar Studio's 34 deck chairs, tables, festoons and frame signs (same mesh, no new draw call)
 	"pawilony": 2100,
 	"plater49": 140,
 	"platinum_a": 80,
