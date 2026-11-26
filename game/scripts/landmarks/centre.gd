@@ -1838,7 +1838,7 @@ func _rondo_arm_bed(q: PackedVector2Array, tint: int) -> void:
 	for p in inner:
 		if p.size() < 3 or Geometry2D.is_polygon_clockwise(p):
 			continue
-		_drape_cap(p, 0.48, RONDO_SHRUB)
+		_drape_prism(p, 0.48, RONDO_SHRUB.darkened(0.1), RONDO_SHRUB)
 		for piece in Geometry2D.intersect_polygons(ribbon, p):
 			if piece.size() >= 3 and not Geometry2D.is_polygon_clockwise(piece):
 				_drape_cap(piece, 0.53, RONDO_YELLOW if tint == 0 else RONDO_RED)
@@ -1880,12 +1880,20 @@ func _dv(p: Vector2, lift: float) -> Vector3:
 func _drape_prism(poly: PackedVector2Array, lift: float, wall: Color, top: Color) -> void:
 	if Geometry2D.is_polygon_clockwise(poly):
 		poly.reverse()
+	_drape_walls(poly, lift, wall)
+	_drape_cap(poly, lift, top)
+
+
+## The walls round `poly` from 0.3 m under the terrain to `lift` over it.
+func _drape_walls(poly: PackedVector2Array, lift: float, wall: Color) -> void:
+	if Geometry2D.is_polygon_clockwise(poly):
+		poly = poly.duplicate()
+		poly.reverse()
 	for i in poly.size():
 		var a := poly[i]
 		var b := poly[(i + 1) % poly.size()]
 		var o := _out(poly, a, b)
 		_quad(_dv(a, -0.3), _dv(b, -0.3), _dv(b, lift), _dv(a, lift), Vector3(o.x, 0.0, o.y), wall)
-	_drape_cap(poly, lift, top)
 
 
 # --- The square by the Empik pavilion ("Zielona metamorfoza", F 2026-11-25) --------------------
@@ -1975,7 +1983,11 @@ func _build_square() -> void:
 		pieces = next
 	for p: PackedVector2Array in pieces:
 		if p.size() >= 3 and not Geometry2D.is_polygon_clockwise(p):
-			_drape_prism(p, 0.18, SQ_EDGE.darkened(0.1), SQ_PAVE)  # over the old service lane's asphalt
+			_drape_cap(p, 0.18, SQ_PAVE)  # over the old service lane's asphalt
+	# Its kerb on the outer edge only (a hole's clip leaves a bridge edge inside a piece, whose two
+	# walls would overlap; the holes' own edges are the beds' and the wells' walls).
+	for r: PackedVector2Array in rings:
+		_drape_walls(r, 0.18, SQ_EDGE.darkened(0.1))
 	# The big lawn island: a granite edge, the lawn, five trees and two shrub clumps.
 	if island.size() >= 3:
 		var isl := Geometry2D.offset_polygon(island, 1.0, Geometry2D.JOIN_ROUND)
@@ -1995,8 +2007,9 @@ func _build_square() -> void:
 	# The rows of tree beds between the pavilion and the block.
 	for b: Array in SQ_BEDS:
 		var bed := _urect(float(b[0]), float(b[1]), float(b[2]), float(b[3]))
-		_drape_prism(bed, 0.35, SQ_EDGE.darkened(0.08), SQ_EDGE)
-		_drape_cap(_urect(float(b[0]) + 0.3, float(b[1]) - 0.3, float(b[2]) + 0.3, float(b[3]) - 0.3), 0.4, SQ_LAWN)
+		# 0.31 / 0.37: the first bed's corner runs under the lawn island's edge (0.35 / 0.4).
+		_drape_prism(bed, 0.31, SQ_EDGE.darkened(0.08), SQ_EDGE)
+		_drape_cap(_urect(float(b[0]) + 0.3, float(b[1]) - 0.3, float(b[2]) + 0.3, float(b[3]) - 0.3), 0.37, SQ_LAWN)
 		var n := int(b[4])
 		for k in n:
 			var u := lerpf(float(b[0]), float(b[1]), (float(k) + 0.5) / float(n))
@@ -2067,10 +2080,11 @@ func _sq_tree(p: Vector2, k: int) -> void:
 
 ## One of the underpass's open stairwells, `w` a RONDO_WELLS row (F, 2026-11-26: the first pass's
 ## slabs read as big fences round small stairs). The real ones since the 2020s renovation (F's
-## street views, 2026-11-25): an open well in the paving, a low granite upstand on its edge and a
-## dark steel railing on it. Those are the map's own wall lines round each well, typed
-## `balustrade_rail` (docs/streets/streets.json place "rondo-dmowskiego-wells", object_types v4)
-## and drawn by city_barriers.gd with their colliders, so the site adds only what the map has not:
+## street views, 2026-11-25): an open well in the paving, a coping on its edge and a dark steel
+## railing on it, the stair going 3.5 m down to the passage. The well itself is map_builder.gd's
+## SUNKEN `rondo_w<i>` (the drop, treads, coping, railing, collision: site `rondo_wells`); the
+## mapped walls on its ring are left out (typed `balustrade_rail` too, streets.json place
+## "rondo-dmowskiego-wells", for any piece off the ring). The site adds only what the map has not:
 ## a red M post at the mouth, and on three wells a glass lift on the long side, wherever that side
 ## is clear of the carriageway and the other wells (F's photos: beside the stair, not over it).
 const WELL_COPING := Color("#b1aea6")
@@ -2240,6 +2254,8 @@ const UNDERPASS_BOX := [Vector2(-1315.0, 546.0), Vector2(-1211.0, 625.0)]
 const DEFILAD_BOX := [Vector2(-1010.0, 220.0), Vector2(-986.0, 260.0)]
 const POWSTANCOW_RAMP_BOX := [Vector2(-729.0, -189.0), Vector2(-711.0, -155.0)]
 const TARASY_PLAZA_BOX := [Vector2(-1436.0, 456.0), Vector2(-1352.0, 499.0)]
+## Rondo Dmowskiego's twelve stairwells (SUNKEN `rondo_w0`..`rondo_w11`, site `rondo_wells`).
+const RONDO_WELLS_BOX := [Vector2(-890.0, 400.0), Vector2(-772.0, 521.0)]
 ## Złote Tarasy's plaza (F's photos 2026-11-11): the curved wall under the upper terrace is red-brown
 ## brick over a band of lit shopfronts (the electronics store, the restaurants); white café umbrellas
 ## on the square.
@@ -2318,6 +2334,12 @@ func _find_sunken() -> void:
 	for a: Vector2 in TARASY_PLAZA_BOX:
 		plaza.append(PackedVector2Array([a, a + Vector2(0.2, 0), a + Vector2(0.2, 0.2), a + Vector2(0, 0.2)]))
 	_add_site("tarasy_plaza", plaza)
+	# Rondo Dmowskiego's stairwells (SUNKEN `rondo_w*`): their own site, the same way (the mapped
+	# walls on the rings are map_builder's to leave out).
+	var wells: Array = []
+	for a: Vector2 in RONDO_WELLS_BOX:
+		wells.append(PackedVector2Array([a, a + Vector2(0.2, 0), a + Vector2(0.2, 0.2), a + Vector2(0, 0.2)]))
+	_add_site("rondo_wells", wells)
 	# Metro Centrum's other two glass barrels (OSM `transportation` outlines 3224 and 3401 by the
 	# Palace's park, refs 10 and 4): the mapped outlines are the plans, the boxes go.
 	var tubes: Array = []

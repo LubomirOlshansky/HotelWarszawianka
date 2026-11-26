@@ -1,9 +1,9 @@
-- Rondo Dmowskiego looks like today's: open stairs down to the underpass with low granite-and-steel railings and glass lifts instead of the old blue tubes, real flower beds on the island and the arm islands, and the new green square by the Empik pavilion, with the passage beside Hotel Metropol planted and lit.
+- Rondo Dmowskiego looks like today's: open stairs that really go down into the underpass, with low railings and glass lifts instead of the old blue tubes, real flower beds on the island and the arm islands, and the new green square by the Empik pavilion, with the passage beside Hotel Metropol planted and lit.
 - Marszałkowska at ul. Widok rebuilt: a clean taxi bay along the Rotunda that closes before the corner, one smooth kerb into Widok with a zebra and a cycle crossing across it, continuous lane lines and kerbs, and cars turning in from the kerb lane.
 
 ## Backlog
 - fixed: Rondo Dmowskiego to trailer quality (island beds, paving bands, arm islands)
-- fixed: Rondo Dmowskiego's underpass entrances (the twelve tubes are open stairwells; the map's 1.9 m stone walls round them are low balustrades now; three lifts)
+- fixed: Rondo Dmowskiego's underpass entrances (the twelve tubes are open stairwells; sunk 3.5 m with treads and a tunnel mouth, map_builder SUNKEN rondo_w*, site rondo_wells; the map's 1.9 m stone walls round them are gone; three lifts)
 - fixed: grass on Rondo Dmowskiego's traffic islands (planted beds with a flower ribbon, as the real ones)
 - fixed: the empty square next to the Empik pavilion rebuilt as the city plans it
 - found: lamp masts by the rondo are blue (the real ones are grey); the neon-green boxes at the tram stops read as debug; a mirrored "WARS" sign on Wars's back face (Fable's critique, 2026-11-26)

@@ -340,6 +340,7 @@ const BUDGET := {
 	"zbawiciela_plac": 2200,
 	"tarasy": 9400,  # 2026-11-11 F's photos: the triangular glass wave, the guitar, the café (5455); the whole complex: podium ledges, shop boards, Lumen's setback (7781)
 	"tarasy_plaza": 2750,  # 2026-11-11: the sunken plaza by the station: walls, shopfronts, railings, treads, umbrellas (2290)
+	"rondo_wells": 6000,  # 2026-11-26: Rondo Dmowskiego's twelve stairwells sunk 3.5 m: coping, railings, treads, mouths
 	"trojca": 3700,  # 2026-11-14 photo rebuild: rusticated drum, arched windows, framed oculi, Doric porticoes with lunettes, dormers, glazed lantern (measured 3361)
 	"unit": 1450,  # 2026-11-19: the Dragon Skin dress (green wall, MODERATO) and the corner café board
 	"varso": 4300,  # 2026-11-15 photo rebuild (3614 tris): grey frame, louvre crown, lattice spire with dish platforms, lobby, observation box; +0 draw calls

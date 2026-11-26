@@ -22,6 +22,13 @@ Supersedes the tubes, the bed colours and the lawn wedges below (kept for histor
   wells 0, 1 and 5 (a guess; not 9, where Widok's kerb is too close) a glass lift cabin (1.8 m, 2.9 m, #b8d2db in a dark
   frame) on the well's long side, wherever it is clear of the carriageway and the other wells, with a
   small bed of grasses. The mapped lawn wedges the wells stand in are paved (#c8c4ba).
+- **The wells go down** (F, 2026-11-26: "does this stairs go down or is it flat?"; they were
+  painted strips at street level): map_builder.gd SUNKEN `rondo_w0`..`rondo_w11`, one ring per
+  well on its mapped walls, the floor falling 3.5 m from the mouth to a 1.6 m landing, a dark
+  passage opening 2.2 m wide in the deep end. Site `rondo_wells` (landmarks/centre.gd
+  `_build_sunken`, style "rail"): coping, the dark steel railing and the car's collision on every
+  edge that drops, treads at ~0.16 m risers; the mapped walls on the rings are the site's
+  (city_barriers SINK_WALL_REACH). Budget 6000.
 - **Island:** light paving #c8c4ba, three mid-grey bands #a39f96 (6.0-8.4, 12.6-14.2, 21.2-23.4 m).
   Per quarter a long bent bed (middle radius 17.3 m, 5.2 m wide, bulging 1.4 m on the diagonal,
   rounded ends) of dark planting #4a6a3a with a red #b23a2e and a yellow #d6b23a ribbon, and a short
