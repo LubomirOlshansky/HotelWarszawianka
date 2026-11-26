@@ -10,7 +10,9 @@ extends SceneTree
 ## - an old save (before qdone_) counts the night meet and the boat by their job counts, never the
 ##   TESŁO (strangers' tows count there too), padel (paid as "trend") or Smoła (paid as "rave");
 ## - gold only with `qgold_`; `newly_done` returns each done chapter once and marks it seen;
-## - the rows carry the next flag on one chapter only.
+## - the rows carry the next flag on one chapter only;
+## - every chapter but "tajny" is a story_quests.gd questline id (main.gd `stories.add`), the id its
+##   finish marks `qdone_` with.
 ##   godot --headless --path game --script res://tools/check_story_arc.gd
 
 const StoryArc := preload("res://scripts/story_arc.gd")
@@ -33,6 +35,13 @@ func _initialize() -> void:
 			_expect(v is Array and (v as Array).size() == 2 and str(v[0]) != "" and str(v[1]) != "", "%s has no %s in both languages" % [c.get("id"), k])
 		var h := float(c.get("hour", -1.0))
 		_expect(h >= 0.0 and h < 24.0, "%s's story hour %.1f is not in 0-24" % [c.get("id"), h])
+	# Every chapter but the opening is a questline of story_quests.gd (main.gd `stories.add`), so its
+	# finish (activity.gd `finish` -> QuestBook.mark_done) writes `qdone_<the same id>`.
+	var main_src := FileAccess.get_file_as_string("res://scripts/main.gd")
+	var re := RegEx.create_from_string("stories\\.add\\(\\{\"id\": \"([a-z_]+)\"")
+	var defs := re.search_all(main_src).map(func(m: RegExMatch) -> String: return m.get_string(1))
+	for id in ids:
+		_expect(id == StoryArc.TAJNY_KEY or id in defs, "chapter %s is not a questline id in main.gd's stories.add (%s)" % [id, defs])
 	_expect(StoryArc.number("meet") == 4 and StoryArc.number("x") == 0, "chapter numbers")
 	_expect(is_equal_approx(StoryArc.hour("boat"), 6.5) and StoryArc.hour("x") < 0.0, "story hours")
 
