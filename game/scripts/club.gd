@@ -180,6 +180,9 @@ var _piec_note := false
 var _back_tag := "early"
 var _decks_btn: Button
 var _offer: HBoxContainer
+## The room's own buttons (TAŃCZ, PATIO, WYJDŹ): hidden while the DJ's offer is up, so the taller card
+## never covers them and the offer is the one choice on screen (Autopilot playtest, 2026-11-26).
+var _bar: HBoxContainer
 
 
 # --- the room -------------------------------------------------------------------------------
@@ -680,7 +683,9 @@ func _build_ui() -> void:
 	go.pressed.connect(start_set)
 	var later_w := _ui_words("b_later")
 	var later := _button(_offer, later_w[0], later_w[1], pt)
-	later.pressed.connect(func() -> void: _talk.visible = false)
+	later.pressed.connect(func() -> void:
+		_talk.visible = false
+		_show_offer(false))
 	_offer.visible = false
 	var buttons := HBoxContainer.new()
 	buttons.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -688,6 +693,7 @@ func _build_ui() -> void:
 	buttons.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	buttons.add_theme_constant_override("separation", int(10 * pt))
 	_ui.add_child(buttons)
+	_bar = buttons
 	_dance_btn = _button(buttons, "TAŃCZ", "dance", pt)
 	_dance_btn.pressed.connect(_on_dance)
 	_patio_btn = _button(buttons, "PATIO", "patio", pt)
@@ -748,7 +754,7 @@ func enter(world: Node3D, pl: String, en: String, mordor: int) -> void:
 		_build(world)
 	title_pl = pl
 	title_en = en
-	_title.text = "%s · w środku / inside" % pl
+	_title.text = "%s · %s" % [Lang.pick(pl, en), Lang.pick("w środku", "inside")]
 	danced = 0
 	streak = 0
 	_red_in = _rng.randf_range(RED_GAP.x, RED_GAP.y)
@@ -797,7 +803,7 @@ func _go(where: String) -> void:
 	var patio := where == "patio"
 	centre = (PATIO_AT if patio else PLACE) + Vector3(0, 1.2, 0)
 	view_size = PATIO_VIEW if patio else VIEW
-	_title.text = "%s · %s" % [title_pl, "patio" if patio else "w środku / inside"]
+	_title.text = "%s · %s" % [Lang.pick(title_pl, title_en), "patio" if patio else Lang.pick("w środku", "inside")]
 	_lights.position = PATIO_AT if patio else PLACE
 	_show(true)
 	_music_on(MUSIC_PATIO if patio else MUSIC_SALA)
@@ -825,7 +831,7 @@ func leave() -> void:
 		var l: Array = dialogue.line("club_decks_dj_back", "first_piec", true) if dialogue != null else []
 		var tier := _ui_words("tier3")
 		if l.size() >= 2:
-			hud.show_note("%s · %s" % [title_pl, Lang.pick(tier[0], tier[1])], Lang.pick(str(l[0]), str(l[1])), VIOLET)
+			hud.show_note("%s · %s" % [Lang.pick(title_pl, title_en), Lang.pick(tier[0], tier[1])], Lang.pick(str(l[0]), str(l[1])), VIOLET)
 	left.emit()
 
 
@@ -833,11 +839,17 @@ func leave() -> void:
 
 ## The DJ's offer: his invite line with ZA DECKI / NIE TERAZ (the first one 6 s into a save's first
 ## visit; then a tap on him). Marks the save as invited.
+func _show_offer(on: bool) -> void:
+	_offer.visible = on
+	if _bar != null:
+		_bar.visible = not on
+
+
 func offer_decks() -> void:
 	if not inside or _decks_on:
 		return
 	_say(["DJ", "club_decks_invite", people[0][2]])
-	_offer.visible = true
+	_show_offer(true)
 	_talk.reset_size()
 	_talk.position.y = get_viewport().get_visible_rect().size.y - _talk.size.y - 16.0 * (hud.pt if hud != null else 1.0)
 	if wallet != null and not bool(wallet.keep.get("decks_invited", false)):
@@ -873,7 +885,7 @@ func start_set() -> void:
 	_decks.visit_paid = _decks_paid
 	_ui.visible = false
 	_talk.visible = false
-	_offer.visible = false
+	_show_offer(false)
 	if _music != null:
 		_music.stream_paused = true
 	if city_drawn.is_valid():
@@ -936,7 +948,7 @@ func _on_set_closed() -> void:
 
 ## The tile over the booth, where the camera sees it (the city's image may be scaled: `pick`'s rule).
 func _place_tile() -> void:
-	var on := inside and area == "sala" and not _decks_on and wallet != null and bool(wallet.keep.get("decks_invited", false))
+	var on := inside and area == "sala" and not _decks_on and not _offer.visible and wallet != null and bool(wallet.keep.get("decks_invited", false))
 	_decks_btn.visible = on and cam != null
 	if not _decks_btn.visible:
 		return
@@ -1161,7 +1173,7 @@ func _say(person: Array, tag := "") -> void:
 	if dialogue == null:
 		return
 	if _offer != null:
-		_offer.visible = false
+		_show_offer(false)
 	var group := String(person[1])
 	if group == "club_crowd" and _mood >= 0.0:
 		group = crowd_group()

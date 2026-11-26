@@ -10,7 +10,7 @@ extends Node
 ## 19.5:9 phone, 288 on a 4:3 iPad (MIN_W is 288, not pong's 384, so the iPad sees the whole desk).
 ## Top: the floor seen from the booth (the truss, the back wall and its pillars, the bar's glow, four
 ## rows of people, Mati front left, Pan Kołek by the right pillar, the monitors' backs); the crowd's
-## band is the score (cold: phones up and two walk to the bar; polite: every third nods; moving:
+## band is the score (cold: screens down at the chest, one blue work light, two walk to the bar; polite: every third nods; moving:
 ## everyone bobs, arms up on the bar; hot: jumping, lasers, a strobe on the beat; PIEC: Kołek nods,
 ## once his sunglasses come off). Middle: two lanes scrolling through the NOW line a third from the
 ## left, lane A cyan (the room's deck), lane B orange (gold when locked), drawn from the beat grid
@@ -25,7 +25,9 @@ extends Node
 ## receipt, no pay, the set not counted). Each finger keeps the zone it pressed in (two thumbs).
 ## Keys for the Mac and the checks: A/D jog, W/S pitch, Left/Right fader, Esc the ✕, Enter NA PARKIET.
 ## The first set of a save shows a ghost hand on the jog, the fader and (mix 2) the pitch with its
-## chip; later sets the chip alone.
+## chip, and Mati talks the player through it in a bubble (catch the kick, land on the gold line, fix
+## the tempo: `club_decks_mati` lines tagged learn_*); later sets the chip alone. A lock flashes
+## ZŁAPANE; the lanes carry SALA and TY at their left end.
 ##
 ## Sound (11.4 with section 12): two AudioStreamPlayers on the bus the club's own loop uses (SFX), the
 ## OGGs duplicated at runtime with `loop = true` (their .import has it off); pitch_scale is the deck's
@@ -38,7 +40,7 @@ extends Node
 ##
 ## Cost: nothing while no set is on (no process, the layer hidden, the sim null). During a set the
 ## city's 3D is off (club.gd, GameCtx.city_drawn); the frame is one canvas of about 467 x 216 px,
-## at most 1100 untextured rects (check_decks.gd reads `Kit.rects`), one small native Control (the
+## at most 1500 untextured rects (check_decks.gd reads `Kit.rects`), one small native Control (the
 ## ✕), two Vorbis decodes. Nothing allocated per frame but the sim's event dictionaries.
 
 const Sim := preload("res://scripts/decks_sim.gd")
@@ -75,8 +77,22 @@ const MATI_GAP := 7.0
 const SHIRTS := [Color("#1a1a1e"), Color("#232327"), Color("#2e2e34"), Color("#3ad8ff"), Color("#ff3ad0"), Color("#141416"), Color("#5a2a6a")]
 const MATI := Color("#7a3aa8")
 const VIOLET := Color("#b44cff")
-const WALL := Color("#1d3a48")
-const FLOOR := Color("#29282d")
+const WALL := Color("#14171c")
+const FLOOR := Color("#0f1013")
+## The light (a dark room shaped by what the truss throws on it): the beams' strength and sweep per
+## band, the cone's rows (4 px steps), the colours, how dark each crowd row sits (back to front) and
+## how strong its rim light is.
+const BEAM_A := [0.10, 0.13, 0.16, 0.19, 0.22]
+const BEAM_SPEED := [0.25, 0.45, 0.7, 1.0, 1.3]
+const BEAM_ROWS := 23
+const COLD := Color("#3a5fb0")
+const CYAN := Color("#3ad8ff")
+const MAGENTA := Color("#ff3ad0")
+const RED := Color("#ff2a3a")
+const SIL := Color("#07070a")
+const ROW_DARK := [0.78, 0.6, 0.4, 0.18]
+const ROW_RIM := [0.35, 0.5, 0.7, 0.85]
+const SCREEN := Color("#9fd0ff")
 ## Grade ids (decks_sim.gd) -> club_decks_ui tags.
 const GRADE_TAGS := {"czysto": "g_clean", "dobrze": "g_good", "krzywo": "g_wonky", "galop": "g_gallop", "-": "g_none"}
 
@@ -133,6 +149,8 @@ var _xf_acc := 0.0
 var _key_jog := 0
 var _key_pitch := 0
 var _key_xf := 0
+## The axis keys held now (keycode -> bool).
+var _held := {}
 var _again_rect := Rect2()
 var _floor_rect := Rect2()
 # the audio sync per deck: smoothed error, frames far off, frames not measured
@@ -165,6 +183,8 @@ var _cheer_last := -100.0
 var _done_jog := false
 var _done_fader := false
 var _done_pitch := false
+## The first set's lesson on Mati's bubble now ("" none): learn_jog, learn_fader, learn_pitch.
+var _coach := ""
 var _frame_noted := false
 
 
@@ -199,6 +219,7 @@ func start(seed_value: int, first_set := false) -> void:
 	_key_jog = 0
 	_key_pitch = 0
 	_key_xf = 0
+	_held.clear()
 	_disp = sim.hype
 	_band = Sim.band_of(_disp, sim.bands)
 	_call = ""
@@ -211,6 +232,7 @@ func start(seed_value: int, first_set := false) -> void:
 	_done_jog = false
 	_done_fader = false
 	_done_pitch = false
+	_coach = ""
 	for d in 2:
 		_eb[d] = 0.0
 		_far[d] = 0
@@ -480,6 +502,33 @@ func _fx(dt: float) -> void:
 	_cold_t = _cold_t + dt if _band == 0 else maxf(0.0, _cold_t - dt * 2.0)
 	if not _done_pitch and sim.mix == 1 and sim.playing[sim.deck_b()] and absf(sim.tempo_residual()) < sim.magnet:
 		_done_pitch = true
+	_coach_tick()
+
+
+## The first set's lessons on Mati's bubble: each stays up until its control is used right, then the
+## next; after the first landing a short "that's it".
+func _coach_tick() -> void:
+	var step := ""
+	if first and sim.phase != Sim.DONE and sim.playing[sim.deck_b()]:
+		# The same steps as the chips (_draw_ghost): the kick while cueing, the fader in the blend.
+		if sim.mix == 0 and sim.phase == Sim.CUE and not _done_jog:
+			step = "learn_jog"
+		elif sim.mix == 0 and (sim.phase == Sim.BLEND or sim.phase == Sim.ENDING) and not _done_fader:
+			step = "learn_fader"
+		elif sim.mix == 1 and not _done_pitch:
+			step = "learn_pitch"
+	if step == _coach:
+		if step != "" and _bub_t < 1.0:
+			_bub_t = 30.0
+		return
+	var was := _coach
+	_coach = step
+	if step != "":
+		_bubble("MATI", _line("club_decks_mati", step), _mati_x(), 30.0)
+	elif was == "learn_fader":
+		_bubble("MATI", _line("club_decks_mati", "learn_done"), _mati_x(), 3.0)
+	else:
+		_bub_t = 0.0
 
 
 func _say(text: String, c := Kit.GOLD, life := 1.0) -> void:
@@ -521,6 +570,8 @@ func _on_event(n: String, e: Dictionary) -> void:
 				_snd("crowd_cheer")
 		"locked":
 			_cue("tick")
+			if _call_t <= 0.0:
+				_say(_w("locked"), Kit.GOLD, 0.7)
 			Access.buzz(15, 0.5)
 			_done_jog = true
 		"eee":
@@ -540,7 +591,7 @@ func _on_event(n: String, e: Dictionary) -> void:
 			if old < _players.size():
 				_players[old].stop()
 		"band":
-			if _t - _mati_last >= MATI_GAP:
+			if _coach == "" and _t - _mati_last >= MATI_GAP:
 				_mati_last = _t
 				_bubble("MATI", _line("club_decks_mati", Sim.BAND_IDS[clampi(int(e["to"]), 0, 4)]), _mati_x())
 		"kolek_nod":
@@ -710,20 +761,13 @@ func _input(event: InputEvent) -> void:
 		if k.echo:
 			get_viewport().set_input_as_handled()
 			return
-		var on := 1 if k.pressed else 0
+		# Each axis from both its keys held now, so letting go of one leaves the other working.
+		if k.keycode in [KEY_A, KEY_D, KEY_W, KEY_S, KEY_LEFT, KEY_RIGHT]:
+			_held[k.keycode] = k.pressed
+			_key_jog = int(_held.get(KEY_D, false)) - int(_held.get(KEY_A, false))
+			_key_pitch = int(_held.get(KEY_W, false)) - int(_held.get(KEY_S, false))
+			_key_xf = int(_held.get(KEY_RIGHT, false)) - int(_held.get(KEY_LEFT, false))
 		match k.keycode:
-			KEY_A:
-				_key_jog = -on
-			KEY_D:
-				_key_jog = on
-			KEY_W:
-				_key_pitch = on
-			KEY_S:
-				_key_pitch = -on
-			KEY_LEFT:
-				_key_xf = -on
-			KEY_RIGHT:
-				_key_xf = on
 			KEY_ESCAPE:
 				if k.pressed:
 					leave()
@@ -836,34 +880,89 @@ func count_rects() -> int:
 	return n
 
 
+## Head i's colour on the truss now (its beam, its pool, the rims near it): one dim blue in a cold
+## room, violet and cyan when it warms, magenta and white when hot, red light in the oven.
+func _head_col(i: int) -> Color:
+	var bar := int(_room_beat() / 4.0)
+	match _band:
+		0:
+			return COLD
+		1:
+			return [VIOLET, CYAN][i % 2]
+		2:
+			return [VIOLET, CYAN, MAGENTA][(i + bar) % 3]
+		3:
+			return [VIOLET, CYAN, MAGENTA, Color.WHITE][(i + bar) % 4]
+	return Color.WHITE if (i + int(_room_beat())) % 3 == 0 else RED
+
+
+## Whether head i throws a beam: one when cold, two, four, then all six.
+func _beam_on(i: int) -> bool:
+	match _band:
+		0:
+			return i == 2
+		1:
+			return i == 1 or i == 4
+		2:
+			return i % 3 != 2
+	return true
+
+
 func _draw_floor() -> void:
 	var p := _pen
 	var w := float(W)
 	var beat := fposmod(_room_beat(), 1.0)
 	var hot := _band >= 3
+	var alpha: float = BEAM_A[clampi(_band, 0, BEAM_A.size() - 1)]
 	p.rect(0, 0, w, DESK_Y, Kit.VOID)
-	# The back wall and its cyan top line, the floor.
+	# The back wall: dark concrete in panels, a dim cyan line along its top, the floor darker still.
 	p.rect(0, 8, w, 36, WALL)
-	p.rect(0, 8, w, 1, Color("#3ad8ff"))
+	p.rect(0, 8, w, 1, Color("#1f5f72"))
+	var seam := 0.0
+	while seam < w:
+		p.rect(seam, 9, 1, 35, WALL.darkened(0.35))
+		seam += 38.0
 	p.rect(0, 44, w, 74, FLOOR)
-	p.rect(0, 44, w, 2, FLOOR.darkened(0.3))
-	# The bar's glow at the back right, brighter with the room.
-	var glow := 0.10 + 0.08 * float(_band)
-	p.rect(w * 0.62, 30, w * 0.33, 14, Color(Kit.AMBER, glow))
-	p.rect(w * 0.64, 34, w * 0.29, 10, Color(Kit.AMBER_L, glow * 0.8))
-	p.rect(w * 0.62, 42, w * 0.33, 3, Kit.WOOD_D)
-	# Red LED bars on the wall, the pillars.
+	p.rect(0, 44, w, 2, FLOOR.darkened(0.4))
+	# The bar's glow at the back right, warmer with the room.
+	var glow := 0.08 + 0.06 * float(_band)
+	p.rect(w * 0.64, 32, w * 0.29, 12, Color(Kit.AMBER, glow))
+	p.rect(w * 0.66, 36, w * 0.25, 8, Color(Kit.AMBER_L, glow * 0.7))
+	p.rect(w * 0.64, 42, w * 0.29, 2, Kit.WOOD_D)
+	# Red LED bars on the wall.
 	p.rect(w * 0.08, 14, 2, 24, Color("#ff2a2a"))
 	p.rect(w * 0.36, 14, 2, 24, Color("#ff2a2a"))
+	# Haze: two slow bands lit in the room's main colour.
+	var haze := _head_col(2)
+	p.rect(0, 50.0 + roundf(sin(_t * 0.4) * 2.0), w, 6, Color(haze, alpha * 0.5))
+	p.rect(0, 74.0 + roundf(sin(_t * 0.3 + 1.0) * 2.0), w, 4, Color(haze, alpha * 0.35))
+	# The pillars: dark, one edge caught by the light.
 	for f: float in [0.18, 0.5, 0.82]:
-		p.rect(w * f - 5, 8, 10, 100, Color("#323a46"))
-		p.rect(w * f - 5, 8, 3, 100, Color("#3d4757"))
-	# The truss and its six heads (lit on the beat when the room moves).
-	p.rect(0, 4, w, 4, Color("#4a4a52"))
-	var cols := [VIOLET, Color("#3ad8ff"), Color("#ff3ad0"), Color.WHITE, Color("#3ad8ff"), VIOLET]
+		p.rect(w * f - 5, 8, 10, 100, Color("#16181d"))
+		p.rect(w * f + 4, 8, 1, 100, Color(_head_col(int(f * 6.0)), 0.35 + alpha))
+	# The beams from the truss: stepped cones down to a pool on the floor, sweeping; more of them
+	# and in more colours the hotter the room (cold: one dim blue work light).
 	for i in 6:
-		var lit := _band >= 2 and (int(_room_beat()) + i) % 3 == 0
-		p.rect(w * (i + 0.5) / 6.0 - 2, 6, 5, 4, cols[i] if lit else (cols[i] as Color).darkened(0.6))
+		if not _beam_on(i):
+			continue
+		var hx := w * (float(i) + 0.5) / 6.0
+		var sway := sin(_t * BEAM_SPEED[clampi(_band, 0, BEAM_SPEED.size() - 1)] + float(i) * 1.3)
+		var tx := hx + sway * w * 0.11
+		var col := _head_col(i)
+		var k := 0
+		while k < BEAM_ROWS:
+			var t := float(k) / float(BEAM_ROWS - 1)
+			var cx := lerpf(hx, tx, t)
+			var hw := 1.0 + t * 9.0
+			p.rect(roundf(cx - hw), 10.0 + k * 4.0, roundf(hw * 2.0), 4, Color(col, alpha * (1.15 - 0.45 * t)))
+			k += 1
+		p.disc(tx, 100.0, 12.0, 2.0, Color(col, alpha * 1.4))
+	# The truss and its six heads (the beams' colours; lit on the beat when the room moves).
+	p.rect(0, 4, w, 4, Color("#26262c"))
+	for i in 6:
+		var on := _beam_on(i) and (_band < 2 or (int(_room_beat()) + i) % 3 != 0)
+		var hc := _head_col(i)
+		p.rect(w * (i + 0.5) / 6.0 - 2, 6, 5, 4, hc if on else hc.darkened(0.7))
 	# Lasers in the hot bands: six green lines fanning down from the truss over the heads, swinging
 	# (not behind the receipt; dimmer with reduced flashing).
 	if hot and not _shown:
@@ -910,7 +1009,7 @@ func _draw_crowd(beat: float) -> void:
 		var phone := false
 		match band:
 			0:
-				phone = i % 13 == 4
+				phone = i % 4 == 1
 				# Two drift toward the bar while it stays cold.
 				if i == 3 or i == 15:
 					x = lerpf(x, W * 0.8, clampf(_cold_t / 12.0, 0.0, 1.0))
@@ -922,21 +1021,31 @@ func _draw_crowd(beat: float) -> void:
 			_:
 				lift = 3.0 * bump
 				arms = i % 3 != 2 or _bar_t > 0.0
-		_person(x, foot - roundf(lift), s, _cshirt[i], Kit.SKIN[i % 4], [Kit.HAIR_BK, Kit.HAIR_BR, Kit.HAIR_BL][i % 3], arms, phone)
+		var rc := _head_col(clampi(int(x / float(W) * 6.0), 0, 5))
+		var rim := Color(rc, float(ROW_RIM[row]) * (0.55 + 0.1 * float(band)))
+		_person(x, foot - roundf(lift), s, _cshirt[i], Kit.SKIN[i % 4], [Kit.HAIR_BK, Kit.HAIR_BR, Kit.HAIR_BL][i % 3], arms, phone, float(ROW_DARK[row]), rim)
 
 
-## One of the crowd, facing the booth: legs, body, head, hair (s its size; about 17 px at 1).
-func _person(x: float, foot: float, s: float, shirt: Color, skin: Color, hair: Color, arms: bool, phone: bool) -> void:
+## One of the crowd, facing the booth: legs, body, head, hair (s its size; about 17 px at 1), darker
+## the further back its row (`dark` 0..1 toward a silhouette), a rim of the nearest light on the
+## hair and one shoulder; `phone` is a screen held low at the chest lighting the chin (Smoła tapes
+## the cameras: nobody films, the bored ones scroll).
+func _person(x: float, foot: float, s: float, shirt: Color, skin: Color, hair: Color, arms: bool, phone: bool, dark := 0.0, rim := Color(0, 0, 0, 0)) -> void:
 	var p := _pen
-	p.rect(x - 2.0 * s, foot - 5.0 * s, 4.0 * s, 5.0 * s, Kit.JEANS)
-	p.rect(x - 3.0 * s, foot - 12.0 * s, 6.0 * s, 7.0 * s, shirt)
-	p.rect(x - 2.5 * s, foot - 17.0 * s, 5.0 * s, 5.0 * s, skin)
-	p.rect(x - 2.5 * s, foot - 17.5 * s, 5.0 * s, 1.5 * s, hair)
+	var sk := skin.lerp(SIL, dark)
+	p.rect(x - 2.0 * s, foot - 5.0 * s, 4.0 * s, 5.0 * s, Kit.JEANS.lerp(SIL, dark))
+	p.rect(x - 3.0 * s, foot - 12.0 * s, 6.0 * s, 7.0 * s, shirt.lerp(SIL, dark))
+	p.rect(x - 2.5 * s, foot - 17.0 * s, 5.0 * s, 5.0 * s, sk)
+	p.rect(x - 2.5 * s, foot - 17.5 * s, 5.0 * s, 1.5 * s, hair.lerp(SIL, dark))
 	if arms:
-		p.rect(x - 4.0 * s, foot - 19.0 * s, 1.0 * s, 7.0 * s, skin)
-		p.rect(x + 3.0 * s, foot - 19.0 * s, 1.0 * s, 7.0 * s, skin)
+		p.rect(x - 4.0 * s, foot - 19.0 * s, 1.0 * s, 7.0 * s, sk)
+		p.rect(x + 3.0 * s, foot - 19.0 * s, 1.0 * s, 7.0 * s, sk)
+	if rim.a > 0.0:
+		p.rect(x - 2.5 * s, foot - 17.5 * s, 5.0 * s, 1, rim)
+		p.rect(x - 3.0 * s, foot - 12.0 * s, 1, 7.0 * s, rim)
 	if phone:
-		p.rect(x + 3.0 * s, foot - 22.0 * s, 2.0 * s, 3.0 * s, Color.WHITE)
+		p.rect(x - 1.0 * s, foot - 10.0 * s, 2.0 * s, 2.5 * s, SCREEN)
+		p.rect(x - 2.5 * s, foot - 13.0 * s, 5.0 * s, 1.0 * s, Color(SCREEN, 0.45))
 
 
 ## Mati front left in his violet shirt: hands over his eyes when cold, arms up when hot.
@@ -1011,6 +1120,12 @@ func _draw_lanes() -> void:
 	_lane(LANE_B, b_deck, Kit.GOLD if sim.locked else Kit.US)
 	# The NOW line.
 	p.rect(now - 1, LANE_A - 3, 2, LANE_B + LANE_H - LANE_A + 6, Kit.LINE)
+	# Whose lane is whose, at the left end: the room's deck and yours.
+	var lx := maxf(3.0, _safe_canvas().x + 2.0)
+	for row: Array in [[LANE_A, _w("lane_a"), Kit.THEM], [LANE_B, _w("lane_b"), Kit.US]]:
+		var tag: String = row[1]
+		p.rect(lx - 2, float(row[0]) + 2, Kit.text_w(tag) + 4, 9, Kit.INK)
+		p.text(tag, lx, float(row[0]) + 3, row[2])
 	if ending:
 		var t := _w("ending")
 		var tw := Kit.text_w(t)
@@ -1213,6 +1328,9 @@ func _draw_result() -> void:
 	p.text(avg, x + cw - 10 - Kit.text_w(avg), y + 67, Kit.LINE)
 	var tier := clampi(int(r.get("tier", 0)), 0, 3)
 	p.text(_w("tier%d" % tier), x + cw * 0.5, y + 82, Kit.GOLD, 2, true, true)
+	if bool(r.get("early", false)):
+		# Why the lowest tier on a warm average: the floor went cold and the DJ took the decks back.
+		p.text(_w("r_dj_back"), x + cw * 0.5, y + 97, Kit.ALERT, 1, true)
 	if _shown_paid:
 		p.text(_w("r_paid"), x + cw * 0.5, y + 108, Kit.CHALK_D, 1, true)
 	else:

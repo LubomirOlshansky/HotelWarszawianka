@@ -6456,6 +6456,34 @@
   ],
   "club_decks_mati": [
     [
+      "Pomarańczowe kreski to ty. Kręć talerzem, aż staną równo z niebieskimi.",
+      "Orange marks are you. Spin the platter till they line up with the blue.",
+      {
+        "only": "learn_jog"
+      }
+    ],
+    [
+      "Złoty pas to wejście. Na złotej kresce przesuń suwak na dole w prawo.",
+      "The gold band is your way in. At the gold line, slide the bottom fader right.",
+      {
+        "only": "learn_fader"
+      }
+    ],
+    [
+      "Kreski uciekają? Suwak tempa z prawej, aż przestaną.",
+      "Marks drifting apart? Tempo slider on the right till they stop.",
+      {
+        "only": "learn_pitch"
+      }
+    ],
+    [
+      "Tak się to robi. Sala jest twoja.",
+      "That's how it's done. The room is yours.",
+      {
+        "only": "learn_done"
+      }
+    ],
+    [
       "Stary, ludzie patrzą w telefony. Rusz tym talerzem, błagam.",
       "Mate, people are looking at their phones. Move that platter, please.",
       {
@@ -6669,6 +6697,34 @@
   ],
   "club_decks_ui": [
     [
+      "DJ ZABRAŁ DECKI",
+      "THE DJ TOOK THE DECKS BACK",
+      {
+        "only": "r_dj_back"
+      }
+    ],
+    [
+      "ZŁAPANE",
+      "LOCKED",
+      {
+        "only": "locked"
+      }
+    ],
+    [
+      "SALA",
+      "ROOM",
+      {
+        "only": "lane_a"
+      }
+    ],
+    [
+      "TY",
+      "YOU",
+      {
+        "only": "lane_b"
+      }
+    ],
+    [
       "ŚWIETLICA",
       "THE YOUTH CLUB",
       {
@@ -6718,8 +6774,8 @@
       }
     ],
     [
-      "GALOP",
-      "GALLOP",
+      "ROZJECHANE",
+      "OFF THE BEAT",
       {
         "only": "g_gallop"
       }
