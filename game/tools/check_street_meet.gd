@@ -235,7 +235,7 @@ class PlayCar extends CharacterBody3D:
 		nitro_charge = 0.0
 
 	func nitro_extend(s: float) -> void:
-		nitro_burn_s = s
+		nitro_burn_s = maxf(nitro_burn_s, s)
 
 	var top_mult := 1.0
 	var accel_mult := 1.0
@@ -504,6 +504,27 @@ func _check_real_car(digest: PackedStringArray) -> void:
 		problems.append("the real car's lazy run (%.2f s) beats Tadek (%.2f s)" % [lazy[0], lazy[1]])
 	if absf(float(clean[0]) - float(sim[0])) > 0.3:
 		problems.append("the real car (%.2f s) and sim_run (%.2f s) differ" % [clean[0], sim[0]])
+	# The real bottle after a perfect shift (STRZAŁ) burns at least 3.0 s, not the plain 2.5.
+	var nb := Car.new()
+	nb.nitro_owned = true
+	nb.nitro_bottles = 1
+	nb.nitro_burn_s = Meet.NITRO_S
+	nb.nitro_charge = 1.0
+	nb.nitro_fire()
+	var burnt := 0.0
+	var extended := false
+	for i in 600:
+		nb._nitro_tick(1.0 / 60.0)
+		if nb.nitro_on and not extended:
+			nb.nitro_extend(Meet.STRZAL_S)
+			extended = true
+		if not nb.nitro_on and extended:
+			break
+		if nb.nitro_on:
+			burnt += 1.0 / 60.0
+	nb.free()
+	if burnt < 3.0:
+		problems.append("a STRZAŁ bottle burns %.2f s on the real car, not 3.0 s or more" % burnt)
 	digest.append("real car: clean %.2f < Tadek %.2f < lazy %.2f s" % [clean[0], clean[1], lazy[0]])
 	# The Grounded handling (car.gd GROUNDED) pulls the same, so the drag stays fair in it too.
 	var g_clean: Array = await _real_run(0.46, 0.1, Car.Handling.GROUNDED)

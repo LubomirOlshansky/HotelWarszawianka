@@ -1465,6 +1465,7 @@ func nitro_cancel() -> void:
 func nitro_extend(s: float) -> void:
 	if _nitro_burn > 0.0:
 		_nitro_burn = maxf(_nitro_burn, s)
+		nitro_burn_s = maxf(nitro_burn_s, s)  # the charge drains on this, or the burn would cut at the old length
 
 
 ## N1: a tap from code (the same as a press of the button): fires a bottle as soon as it can.
