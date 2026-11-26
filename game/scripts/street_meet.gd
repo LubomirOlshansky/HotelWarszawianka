@@ -68,6 +68,7 @@ extends "res://scripts/activity.gd"
 ## Flags (main.gd): --meet-call (Darek rings now), --meet=on (night rules at any hour), --meet=0,
 ## --meet-at=raid|race|meet2|drag|stage (jump to that beat), --meet-log.
 
+const FirstSteps := preload("res://scripts/first_steps.gd")
 const Models := preload("res://scripts/models.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Notebook := preload("res://scripts/notebook.gd")
@@ -189,9 +190,9 @@ const SCATTER_FROM := 80.0
 const ARRIVE_R := 22.0
 const THERE_M := 12.0
 ## [złoty, respect] by place (1st, 2nd, 3rd, the rest).
-const PLACE_PAY := [[200, 40], [120, 25], [60, 12], [0, 5]]
+const PLACE_PAY := [[200, 40], [120, 25], [60, 12], [20, 5]]
 ## The drag win and the loss.
-const DRAG_PAY := [300, 80]
+const DRAG_PAY := [0, 80]
 const DRAG_LOSE := [0, 10]
 ## The drag car: top speed × DRAG_TOP (Darek's map on the ECU), four gears as shares of it.
 const DRAG_TOP := 1.5
@@ -263,6 +264,19 @@ const MEET2_LINES := [
 	[BOSS, "Dobra, nowy. Po tym wszystkim: ty i ja. Drag.", "Fine, new guy. After all this: you and me. A drag."],
 	["Widz", "Tu jest ciszej. Tylko stadion patrzy.", "It's quieter here. Only the stadium's watching."],
 ]
+## The night's pot ("pula", critique 2026-11-25 3.1): the whole night feeds one number and nothing is paid
+## until the drag. Arriving at meet 1 within POT_PUNCTUAL s of the yes +40; leaving the ring before the
+## sirens land is CZYSTO +60; the race pays its place; a caution in the night halves the pot (MANDAT);
+## the drag wins it doubled (and pays it) or loses it halved. The respect is paid as it is earned.
+const POT_PUNCTUAL := 60.0
+const POT_ON_TIME := 40
+const POT_CLEAN := 60
+## The siren tell (3.3): the sirens are heard this long before NALOT, so a player who was already rolling is
+## out of the ring when the cordon would close (CLEAN_M from the gap).
+const RAID_TELL := 2.0
+const CLEAN_M := 22.0
+## The night bar's five beats (3.2), shown in the status line: SPOT · NALOT · WYŚCIG · SPOT 2 · DRAG.
+const PIPS := 5
 const RAID_LINES := [
 	["Widz", "PSY! Zwijamy się!", "COPS! We're out!"],
 	[FRIEND, "Rozjazd! Pin wrzucę na TYGRAMA!", "Split up! I'll drop a pin on TYGRAM!"],
@@ -319,6 +333,14 @@ var last_pay := []
 var drag_time := 0.0
 var drag_won := false
 var nights := 0
+## The night's pot in zł (unpaid until the drag), its sums for the result card, seconds since the yes,
+## the siren tell's clock (-1: none), the cautions seen so far.
+var pot := 0
+var pot_parts: Array = []
+var _night_t := 0.0
+var _tell_t := -1.0
+var _cautions_seen := 0
+var raid_clean := false
 
 var _rng := RandomNumberGenerator.new()
 ## The quarter-second step (`_tick`): the time gathered, the time it covered when it ran this
@@ -1126,6 +1148,9 @@ func _tick(dt: float) -> void:
 	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
 	_at = v[0]
 	_kmh = v[1]
+	if stage != Stage.NONE:
+		_night_t += _due
+		_mandat_poll()
 	if not _cordon.is_empty():
 		var c0: Vector3 = (_cordon[0]["to"] as Vector3)
 		var raiding := stage == Stage.RAID or stage == Stage.RAID2
@@ -1158,6 +1183,8 @@ func _run_tick(_dt: float) -> void:
 			_status("%s · SPOT" % String(m["name"][0]).to_upper(), "Stań w luce między autami", "Park in the gap between the cars",
 					_at, m["gap"], COLOUR)
 			if _arrived(_due, _at, _kmh, m["gap"], MEET_R):
+				if _night_t <= POT_PUNCTUAL:
+					_pot_add(POT_ON_TIME, "NA CZAS", "ON TIME")
 				_start_meet(0)
 		Stage.MEET, Stage.MEET2:
 			_talk_t -= _due
@@ -1167,7 +1194,13 @@ func _run_tick(_dt: float) -> void:
 				_talk_i += 1
 				_talk_t = MEET_TALK / float(lines.size())
 			elif _talk_t <= 0.0:
-				_raid()
+				if _tell_t < 0.0:
+					_tell()
+				else:
+					_tell_t -= _due
+					if _tell_t <= 0.0:
+						_tell_t = -1.0
+						_raid()
 		Stage.RAID, Stage.RAID2:
 			_t_raid(_due)
 		Stage.RACE:
@@ -1235,7 +1268,73 @@ func stop_spot() -> Vector3:
 
 func _status(title: String, hint: String, hint_en: String, at: Vector3, to: Vector3, tint: Color, badge := "") -> void:
 	var m := roundi(Vector2(at.x, at.z).distance_to(Vector2(to.x, to.z)))
-	status(title, "", "%d m" % m, [hint, hint_en], _hold_t / HOLD, tint, badge)
+	status(title, night_bar(), "%d m" % m, [hint, hint_en], _hold_t / HOLD, tint, badge)
+
+
+## Which of the night's five beats (PIPS) a stage is.
+static func beat_of(st: int) -> int:
+	match st:
+		Stage.TO_MEET, Stage.MEET:
+			return 0
+		Stage.RAID:
+			return 1
+		Stage.RACE:
+			return 2
+		Stage.MEET2, Stage.RAID2:
+			return 3
+		Stage.TO_DRAG, Stage.WATCH, Stage.LINE, Stage.DRAG, Stage.RESULT:
+			return 4
+	return 0
+
+
+## The night bar (3.2): five pips, the beat under way lit, and the pot: "●●○○○ · 140 zł".
+func night_bar() -> String:
+	var b := beat_of(stage)
+	var bar := ""
+	for i in PIPS:
+		bar += "●" if i <= b else "○"
+	return (_w("pot_bar")[0] as String) % [bar, pot]
+
+
+## The night's words by key (dialogue.json "first_steps" group, keys pot_*): [Polish, English].
+func _w(key: String) -> Array:
+	return FirstSteps.words(key)
+
+
+## Into the pot, with the word it shows in (a toast; the card sums it up).
+func _pot_add(zl: int, pl: String, en: String) -> void:
+	if zl <= 0:
+		return
+	pot += zl
+	pot_parts.append([zl, pl, en])
+	var w := _w("pot_add")
+	hud.ambient_toast(str(w[0]) % [pl, zl], str(w[1]) % [en, zl])
+	_log("pot +%d (%s) = %d" % [zl, en, pot])
+
+
+## The wallet's cautions today (the joke notebook), 0 where there is none (tests).
+func _cautions_now() -> int:
+	if wallet != null and "cautions_today" in wallet:
+		return int(wallet.cautions_today)
+	return 0
+
+
+## A caution written in the night halves the pot (MANDAT), once per caution; never to nothing by itself.
+func _mandat_poll() -> void:
+	if stage == Stage.NONE or stage == Stage.RESULT:
+		return
+	var c := _cautions_now()
+	if c < _cautions_seen:
+		_cautions_seen = c  # the day turned over: the notebook starts again
+	elif c > _cautions_seen:
+		_cautions_seen = c
+		if pot > 0:
+			var was := pot
+			pot = maxi(pot / 2, 1)
+			var w := _w("pot_fine")
+			hud.toast(str(w[0]) % [was, pot], str(w[1]) % [was, pot])
+			pot_parts.append([pot - was, "MANDAT", "FINE"])
+			_log("mandat: pot %d -> %d" % [was, pot])
 
 
 func _arrived(dt: float, at: Vector3, kmh: float, to: Vector3, r: float) -> bool:
@@ -1321,6 +1420,12 @@ func meet_in_person() -> bool:
 ## JADĘ!: the meet goes up on Plac Defilad, the beacon in the ring's gap.
 func _begin() -> void:
 	nights += 1
+	pot = 0
+	pot_parts.clear()
+	_night_t = 0.0
+	_tell_t = -1.0
+	raid_clean = false
+	_cautions_seen = _cautions_now()
 	_show_meet(0)
 	var g: Vector3 = meets[0]["gap"]
 	set_target(Vector2(g.x, g.z), false, g, MEET_R * 0.7)
@@ -1394,9 +1499,37 @@ func _start_meet(i: int) -> void:
 	_log("at meet %s" % meets[i]["id"])
 
 
+## Is a player at `at` already clear of the ring (the gap `gap`) when the sirens land?
+static func is_clean(at: Vector3, gap: Vector3) -> bool:
+	return Vector2(at.x, at.z).distance_to(Vector2(gap.x, gap.z)) >= CLEAN_M
+
+
+## The tell (critique 3.3): the sirens are heard RAID_TELL s before NALOT, from the side the cordon will
+## come from, with a line from Darek. A player who reads it and rolls is out of the ring when it lands.
+func _tell() -> void:
+	_tell_t = RAID_TELL
+	var w := _w("pot_tell")
+	hud.toast(str(w[0]), str(w[1]))
+	_line(RAID_LINES[0], 2.5)
+	if police != null and "sfx" in police and police.sfx != null:
+		var m: Dictionary = meets[meet_i]
+		var c: Vector3 = m["at"]
+		police.sfx.police_siren(c + Vector3(60.0, 0.0, 0.0))
+	Access.buzz(30, 0.4)
+	_log("siren tell")
+
+
 ## The sirens: police.gd's raid on the meet, the crowd runs, every racer scatters.
 func _raid() -> void:
 	var m: Dictionary = meets[meet_i]
+	if police != null and "sfx" in police and police.sfx != null:
+		police.sfx.police_siren(Vector3.INF)
+	# CZYSTO: already well away from the ring when the sirens land: no cordon boxes anyone in.
+	var gap: Vector3 = m["gap"]
+	raid_clean = is_clean(_at, gap)
+	if raid_clean:
+		_pot_add(POT_CLEAN, "CZYSTO!", "CLEAN!")
+		hud.cue("checkpoint")
 	stage = Stage.RAID if meet_i == 0 else Stage.RAID2
 	_stage_t = 0.0
 	_chase_seen = false
@@ -1415,7 +1548,7 @@ func _raid() -> void:
 	_scatter()
 	if meet_i == 0:
 		_race_prepare()
-	var boxed := _cordon_in()
+	var boxed := 0 if raid_clean else _cordon_in()
 	_log("raid at %s: %d patrol cars, %d in the cordon" % [m["id"], sent, boxed])
 
 
@@ -1872,11 +2005,14 @@ func _race_done(p: int) -> void:
 	place = p
 	_race_end()
 	last_pay = place_pay(p)
+	# The money goes to the pot; the respect is paid now.
 	if wallet != null:
-		wallet.pay(int(last_pay[0]), int(last_pay[1]), "meet_race")
+		wallet.pay(0, int(last_pay[1]), "meet_race")
 	var title := "PIERWSZY!" if p == 1 else "%d. MIEJSCE" % p
 	var title_en := "FIRST!" if p == 1 else "PLACE %d" % p
-	hud.toast("%s  +%d zł  +%d" % [title, last_pay[0], last_pay[1]], "%s  +%d zł  +%d RESPECT" % [title_en, last_pay[0], last_pay[1]])
+	_pot_add(int(last_pay[0]), title, title_en)
+	var w := _w("pot_place")
+	hud.toast(str(w[0]) % [title, last_pay[1], pot], str(w[1]) % [title_en, last_pay[1], pot])
 	hide_status()
 	clear_target()
 	_log("race done: place %d of %d, +%d zł +%d" % [p, _racers.size() + 1, last_pay[0], last_pay[1]])
@@ -2305,6 +2441,17 @@ func _drag_end(won: bool, how: String) -> void:
 		get_tree().create_timer(2.0).timeout.connect(func() -> void: _tree.visible = false)
 	hud.cue("win" if won else "fail")
 	var pay: Array = DRAG_PAY if won else DRAG_LOSE
+	# The night's pot (critique 3.1): a win doubles it and pays it all; a loss halves it, and it is
+	# paid when the card is closed (a rematch risks it again).
+	var pot_was := pot
+	var cashed := 0
+	if how not in ["false", "off"]:
+		if won:
+			cashed = pot * 2
+			pot = 0
+		else:
+			pot = pot / 2
+	pay = [cashed, int(pay[1])]
 	# A jump start or a run off the strip is no run: nothing paid, nothing counted (before, the
 	# loser's respect and a job tick for a tap of the gas on the line, again with every REWANŻ).
 	if wallet != null and how not in ["false", "off"]:
@@ -2338,8 +2485,18 @@ func _drag_end(won: bool, how: String) -> void:
 					"Karta klubu %s jest twoja." % CLUB if won else MOTTO[0]]
 			body_en = "You %s · reaction %s · Tadek %s. %s" % ["%.2f s" % drag_time if drag_time > 0.0 else "—", react, tad,
 					"The %s card is yours." % CLUB if won else MOTTO[1]]
-	body += "  +%d zł  +%d" % [pay[0], pay[1]]
-	body_en += "  +%d zł  +%d respect" % [pay[0], pay[1]]
+	if how in ["false", "off"]:
+		var w := _w("pot_wait")
+		body += str(w[0]) % pot
+		body_en += str(w[1]) % pot
+	elif won:
+		var w := _w("pot_win")
+		body += str(w[0]) % [pot_was, cashed, pay[1]]
+		body_en += str(w[1]) % [pot_was, cashed, pay[1]]
+	else:
+		var w := _w("pot_lose")
+		body += str(w[0]) % [pot_was, pot, pay[1]]
+		body_en += str(w[1]) % [pot_was, pot, pay[1]]
 	var buttons := PackedStringArray(["OK|OK"]) if won else PackedStringArray(["REWANŻ|REMATCH", "KONIEC|DONE"])
 	show_card([title, title_en], [body, body_en], buttons, RESULT_LIFE)
 	_line(DRAG_LINES["win" if won else ("false" if how == "false" else "lose")], 4.0)
@@ -2384,12 +2541,25 @@ func _card_pressed(i: int) -> void:
 	if i == 0 and not drag_won:
 		_stage()
 	else:
+		_pay_pot()
 		finish()
 
 
 ## Nobody pressed the result card for RESULT_LIFE s: the night ends (no rematch by itself).
 func _card_expired() -> void:
+	_pay_pot()
 	finish()
+
+
+## What is left in the pot goes to the wallet (a lost drag's halved pot; a win paid it already).
+## Giving the night up with the ✕ pays nothing.
+func _pay_pot() -> void:
+	if pot > 0 and wallet != null:
+		wallet.pay(pot, 0, "")
+		var w := _w("pot_paid")
+		hud.toast(str(w[0]) % pot, str(w[1]) % pot)
+	_log("pot paid: %d" % pot)
+	pot = 0
 
 
 ## The full map's "✕ Quit" and the status ✕ (the kit's `abort`) give up in every beat under way.
