@@ -357,7 +357,8 @@ func _build() -> void:
 		_level(sound[0], l[0], l[1], l[2])
 
 	# DOSTĘP · Access (access.gd).
-	var access := _page(body, 2)
+	# A third column for the stand's auto-pour (kebab_stand.gd): a fourth row would make the page too tall.
+	var access := _page(body, 3)
 	_heading(access[0], "Duży tekst", "Larger text (after restart)")
 	_segments(access[0], "text_large", ON_OFF)
 	_heading(access[0], "Spokojny obraz", "Calm: no flashing or shaking")
@@ -370,8 +371,8 @@ func _build() -> void:
 	_segments(access[1], "stop_assist", ON_OFF)
 	_heading(access[1], "Dla leworęcznych", "Left-handed: pedals on the left")
 	_segments(access[1], "left_handed", ON_OFF)
-	_heading(access[0], "Sos leje się sam", "The sauce pours itself")
-	_segments(access[0], "auto_pour", ON_OFF)
+	_heading(access[2], "Sos leje się sam", "The sauce pours itself")
+	_segments(access[2], "auto_pour", ON_OFF)
 
 	# OGÓLNE · General (step 3): the language, the stats, the credits and the tips (were on DŹWIĘK).
 	var general := _page(body, 2)
