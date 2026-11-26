@@ -1,0 +1,501 @@
+{
+	"_about": "House types (docs/design/house-types.md, PR 1). zones: first match wins; mix = type weights inside the zone. Zone outlines are boxes drawn from Warsaw's building history (lat/lon to map metres like tools/bake_osm.py), not yet photo-checked (phase 4). types: rhythm = the drawn facade today (0 generic, 1 tenement, 2 slab, 3 office), family = what floor height and shape can tell (prewar, postwar, office), walls = sRGB palette.",
+	"floor_prewar": 3.6,
+	"floor_postwar": 3.05,
+	"default_mix": {
+		"1": 5,
+		"9": 3,
+		"13": 2
+	},
+	"family_default": {
+		"prewar": "1",
+		"postwar": "9",
+		"office": "11"
+	},
+	"types": {
+		"1": {
+			"name": "kamienica",
+			"rhythm": 1,
+			"family": "prewar",
+			"walls": [
+				"#d9c7a0",
+				"#c9b38a",
+				"#bfb8a8",
+				"#e3d3b0",
+				"#d1a77f",
+				"#c8a89a",
+				"#a9a89a",
+				"#d8cdb8",
+				"#b8a184",
+				"#cfc0a2"
+			]
+		},
+		"2": {
+			"name": "praga_brick",
+			"rhythm": 1,
+			"family": "prewar",
+			"walls": [
+				"#9a4f3c",
+				"#8c4a3a",
+				"#a5604a",
+				"#7e4436",
+				"#b06a4f",
+				"#94574a",
+				"#a8a196"
+			]
+		},
+		"3": {
+			"name": "modernist",
+			"rhythm": 1,
+			"family": "prewar",
+			"walls": [
+				"#ece6d6",
+				"#e8e0cc",
+				"#f1ece0",
+				"#d9d4c6",
+				"#e5dcc5"
+			]
+		},
+		"5": {
+			"name": "mdm",
+			"rhythm": 1,
+			"family": "prewar",
+			"walls": [
+				"#d6c7a6",
+				"#cdbd99",
+				"#c9b48e",
+				"#bfb39c",
+				"#d9ccb0"
+			]
+		},
+		"6": {
+			"name": "muranow",
+			"rhythm": 2,
+			"family": "postwar",
+			"walls": [
+				"#c9aea0",
+				"#bf9f90",
+				"#c7b39f",
+				"#b89a8a",
+				"#d1bba8",
+				"#a89386"
+			]
+		},
+		"7": {
+			"name": "postthaw",
+			"rhythm": 2,
+			"family": "postwar",
+			"walls": [
+				"#e6e4dc",
+				"#dcdad2",
+				"#e9e0c8",
+				"#cfd6d6",
+				"#e4d2c2"
+			]
+		},
+		"8": {
+			"name": "panel",
+			"rhythm": 2,
+			"family": "postwar",
+			"walls": [
+				"#bdbab2",
+				"#b1aea6",
+				"#c7c3b9",
+				"#a9a69e"
+			]
+		},
+		"9": {
+			"name": "docieplony",
+			"rhythm": 2,
+			"family": "postwar",
+			"walls": [
+				"#f0e6b8",
+				"#e9d7a1",
+				"#d8e3c3",
+				"#cfe0e6",
+				"#f2d4c2",
+				"#e8e8e2",
+				"#f1e2c6",
+				"#d9d2e6"
+			]
+		},
+		"10": {
+			"name": "point_block",
+			"rhythm": 2,
+			"family": "postwar",
+			"walls": [
+				"#e8e8e2",
+				"#f0e6b8",
+				"#cfe0e6",
+				"#bdbab2",
+				"#f2d4c2"
+			]
+		},
+		"11": {
+			"name": "prl_office",
+			"rhythm": 3,
+			"family": "office",
+			"walls": [
+				"#b9b6ad",
+				"#a8a59c",
+				"#c4bfb2",
+				"#9d9a92"
+			]
+		},
+		"12": {
+			"name": "postmodern",
+			"rhythm": 3,
+			"family": "office",
+			"walls": [
+				"#b8a99a",
+				"#9c8f84",
+				"#c6b8a5",
+				"#8e8a86"
+			]
+		},
+		"13": {
+			"name": "developer",
+			"rhythm": 2,
+			"family": "postwar",
+			"walls": [
+				"#eeeeec",
+				"#e4e3df",
+				"#d9d8d4",
+				"#6a6c71",
+				"#f0ebe0"
+			]
+		},
+		"15": {
+			"name": "factory",
+			"rhythm": 0,
+			"family": "prewar",
+			"walls": [
+				"#9a4f3c",
+				"#8a4636",
+				"#a5604a"
+			]
+		}
+	},
+	"zones": [
+		{
+			"id": "mdm",
+			"about": "MDM: Marszałkowska, Plac Konstytucji, Plac Zbawiciela (1950-56 socrealism)",
+			"p": [
+				-831.8,
+				1680.7,
+				-490.9,
+				1680.7,
+				-490.9,
+				1017.3,
+				-831.8,
+				1017.3
+			],
+			"mix": {
+				"5": 8,
+				"1": 2
+			},
+			"grey_override": true
+		},
+		{
+			"id": "sciana_wschodnia",
+			"about": "Ściana Wschodnia: Marszałkowska east, Świętokrzyska to Jerozolimskie (1960s)",
+			"p": [
+				-940.8,
+				409.1,
+				-613.6,
+				409.1,
+				-613.6,
+				-132.7,
+				-940.8,
+				-132.7
+			],
+			"mix": {
+				"11": 6,
+				"7": 4
+			},
+			"grey_override": true
+		},
+		{
+			"id": "za_zelazna_brama",
+			"about": "Za Żelazną Bramą estate (1965-72 slabs and point blocks)",
+			"p": [
+				-2113.5,
+				22.1,
+				-1329.4,
+				22.1,
+				-1329.4,
+				-685.6,
+				-2113.5,
+				-685.6
+			],
+			"mix": {
+				"9": 55,
+				"8": 20,
+				"10": 25
+			},
+			"grey_override": true
+		},
+		{
+			"id": "stawki",
+			"about": "Stawki and Inflancka estates north of Muranów",
+			"p": [
+				-2454.4,
+				-2156.2,
+				-1227.2,
+				-2156.2,
+				-1227.2,
+				-2874.9,
+				-2454.4,
+				-2874.9
+			],
+			"mix": {
+				"9": 60,
+				"8": 20,
+				"10": 20
+			},
+			"grey_override": true
+		},
+		{
+			"id": "muranow",
+			"about": "Muranów (Lachert's 1950s blocks on the ghetto's rubble)",
+			"p": [
+				-2795.2,
+				-497.6,
+				-1363.5,
+				-497.6,
+				-1363.5,
+				-2211.5,
+				-2795.2,
+				-2211.5
+			],
+			"mix": {
+				"6": 75,
+				"7": 10,
+				"13": 15
+			},
+			"grey_override": true
+		},
+		{
+			"id": "wola_offices",
+			"about": "Wola office belt: Prosta, Grzybowska, Rondo Daszyńskiego to ONZ",
+			"p": [
+				-3136.1,
+				663.4,
+				-1636.2,
+				663.4,
+				-1636.2,
+				0.0,
+				-3136.1,
+				0.0
+			],
+			"mix": {
+				"12": 4,
+				"13": 4,
+				"11": 2
+			},
+			"grey_override": true
+		},
+		{
+			"id": "mirow",
+			"about": "Mirów and east Wola: 1950s-60s blocks and new builds",
+			"p": [
+				-3136.1,
+				22.1,
+				-2113.5,
+				22.1,
+				-2113.5,
+				-497.6,
+				-3136.1,
+				-497.6
+			],
+			"mix": {
+				"7": 3,
+				"9": 3,
+				"13": 4
+			},
+			"grey_override": true
+		},
+		{
+			"id": "srodmiescie_polnoc",
+			"about": "Śródmieście Północne: Świętokrzyska, Królewska, Grzybowski square",
+			"p": [
+				-1636.2,
+				387.0,
+				-272.7,
+				387.0,
+				-272.7,
+				-663.4,
+				-1636.2,
+				-663.4
+			],
+			"mix": {
+				"7": 35,
+				"11": 25,
+				"1": 20,
+				"13": 20
+			},
+			"grey_override": true
+		},
+		{
+			"id": "solec_ludna",
+			"about": "Solec, Ludna, Czerniakowska estates",
+			"p": [
+				409.1,
+				1271.6,
+				1499.9,
+				1271.6,
+				1499.9,
+				442.3,
+				409.1,
+				442.3
+			],
+			"mix": {
+				"7": 3,
+				"9": 5,
+				"13": 2
+			},
+			"grey_override": true
+		},
+		{
+			"id": "powisle",
+			"about": "Powiśle: pre-war and interwar houses, post-war blocks, new builds",
+			"p": [
+				-68.2,
+				442.3,
+				1227.2,
+				442.3,
+				1227.2,
+				-884.6,
+				-68.2,
+				-884.6
+			],
+			"mix": {
+				"3": 3,
+				"1": 3,
+				"7": 2,
+				"13": 2
+			},
+			"grey_override": true
+		},
+		{
+			"id": "ujazdow",
+			"about": "Ujazdów and Frascati: villas, interwar houses, embassies",
+			"p": [
+				-68.2,
+				2100.9,
+				818.1,
+				2100.9,
+				818.1,
+				552.9,
+				-68.2,
+				552.9
+			],
+			"mix": {
+				"1": 5,
+				"3": 3,
+				"11": 2
+			},
+			"grey_override": true
+		},
+		{
+			"id": "srodmiescie_poludnie",
+			"about": "Śródmieście Południowe: Hoża, Wilcza, Poznańska, Koszyki (pre-war kamienice)",
+			"p": [
+				-1772.6,
+				1990.3,
+				204.5,
+				1990.3,
+				204.5,
+				387.0,
+				-1772.6,
+				387.0
+			],
+			"mix": {
+				"1": 85,
+				"3": 10,
+				"13": 5
+			},
+			"grey_override": true
+		},
+		{
+			"id": "ochota",
+			"about": "Ochota by Plac Narutowicza: interwar blocks",
+			"p": [
+				-3136.1,
+				2100.9,
+				-1772.6,
+				2100.9,
+				-1772.6,
+				663.4,
+				-3136.1,
+				663.4
+			],
+			"mix": {
+				"3": 6,
+				"1": 2,
+				"9": 2
+			},
+			"grey_override": true
+		},
+		{
+			"id": "port_praski",
+			"about": "Praga riverside and Port Praski: new builds by old brick",
+			"p": [
+				204.5,
+				-1105.7,
+				818.1,
+				-1105.7,
+				818.1,
+				-1824.5,
+				204.5,
+				-1824.5
+			],
+			"mix": {
+				"13": 6,
+				"2": 4
+			},
+			"grey_override": true
+		},
+		{
+			"id": "praga_polnoc",
+			"about": "Praga Północ: Ząbkowska, Targowa, Brzeska, Stalowa (brick kamienice)",
+			"p": [
+				204.5,
+				-1105.7,
+				2454.4,
+				-1105.7,
+				2454.4,
+				-3096.1,
+				204.5,
+				-3096.1
+			],
+			"mix": {
+				"2": 65,
+				"9": 15,
+				"13": 10,
+				"15": 10
+			},
+			"grey_override": true
+		},
+		{
+			"id": "kamionek",
+			"about": "Kamionek and Praga Południe west: blocks, brick, new builds",
+			"p": [
+				1090.8,
+				663.4,
+				2454.4,
+				663.4,
+				2454.4,
+				-1105.7,
+				1090.8,
+				-1105.7
+			],
+			"mix": {
+				"9": 4,
+				"2": 3,
+				"13": 3
+			},
+			"grey_override": true
+		}
+	]
+}

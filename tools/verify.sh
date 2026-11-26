@@ -1671,6 +1671,8 @@ for s in $want; do
 		oldtownroofs) check oldtownroofs '^check_old_town_roofs:' --script res://tools/check_old_town_roofs.gd ;;
 		# The roofs lane (scripts/roof_dress.gd): parapets on outer edges only, tenement chimneys, the budget.
 		roofdress) check roofdress '^check_roof_dress:' --script res://tools/check_roof_dress.gd ;;
+		# house types (docs/design/house-types.md): zones, palettes, rules, photo-front scores
+		housetypes) check housetypes '^check_house_types:' --script res://tools/check_house_types.gd ;;
 		# Dobra and Tamka's tenement trim (scripts/tenement_trim.gd): cornice, string course, shop fronts, on the wall, within budget.
 		tenementtrim) check tenementtrim '^check_tenement_trim:' --script res://tools/check_tenement_trim.gd ;;
 		# RF4 (scripts/osm_roofs.gd): pitched roofs for small OSM-only houses: shapes, cover, what stays flat.
