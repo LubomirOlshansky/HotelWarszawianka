@@ -942,10 +942,19 @@ func kit_colonnade(u0: float, u1: float, n: int, v: float, y0: float, y1: float,
 ## pane 5 cm proud; sill hw + 0.28 half wide, 0.30 deep, 0.16 tall under the pane; head hw + 0.20
 ## half wide, 0.17 tall just over it; jambs 0.2 square at hw + 0.08; a hood hw + 0.28 half
 ## wide to 0.30 over the pane; a two-step pediment on the head; an arched head of glass and trim.
-func kit_window(u: float, y: float, h: float, style: Win, trim: Color, glass := PAL_GLASS_DARK, hw := 0.7) -> void:
+func kit_window(u: float, y: float, h: float, style: Win, trim: Color, glass := PAL_GLASS_DARK, hw := 0.7,
+		sash := Color(0, 0, 0, 0)) -> void:
 	var f := _face
 	var top := y + h
 	_lbox(u, f + 0.02, hw, 0.03, y, top, glass, _lit(u, y))
+	if sash.a > 0.0:
+		# the sash cross: a mullion and a transom two thirds up, flat on the pane
+		var keep := _mode
+		_mode = M_STONE
+		_wall(_w(u - 0.035, f + 0.06), _w(u + 0.035, f + 0.06), y, top, _b, sash)
+		var ty := y + h * 0.66
+		_wall(_w(u - hw, f + 0.06), _w(u + hw, f + 0.06), ty - 0.035, ty + 0.035, _b, sash)
+		_mode = keep
 	if style == Win.PLAIN:
 		return
 	if style == Win.FRAMED or style == Win.HOODED:
@@ -964,6 +973,16 @@ func kit_window(u: float, y: float, h: float, style: Win, trim: Color, glass := 
 	elif style == Win.ARCHED:
 		_lbox(u, f + 0.02, hw * 0.67, 0.03, top, top + 0.30, glass)
 		_lbox(u, f + 0.08, hw * 0.86, 0.12, top + 0.24, top + 0.50, trim)
+
+
+## A round-headed window anywhere on a wall (plan point `at` its foot's middle, the wall running
+## `along`, facing `out`): a surround in `trim` 0.22 m wider round the arch, 0.2 m under the sill,
+## and the glass from `y0` to the spring and round the half disc, lit by chance at night.
+func kit_round_window(at: Vector2, along: Vector2, out: Vector2, y0: float, spring: float, hw: float, trim: Color,
+		glass := PAL_GLASS_DARK) -> void:
+	var l := _local(at)
+	_arch_panel(at, along, out, hw + 0.22, y0 - 0.2, spring, trim, 0.03, M_STONE)
+	_arch_panel(at, along, out, hw, y0, spring, glass, 0.09, _lit(l.x + l.y, y0))
 
 
 ## A window in every bay (bay centres evenly between u0 and u1) on every sill height in `sills`

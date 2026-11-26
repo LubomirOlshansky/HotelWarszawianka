@@ -7115,23 +7115,17 @@ func _anna_foot(u: float, v: float) -> float:
 	return minf(float(map.terrain_height(p.x, p.y)), _g) - 0.6
 
 
-## Round-headed windows along a side wall at u = `uf` facing `side` (+1 south, -1 north), one at
-## every v in `vs`: a cream surround and the glass, sill y0, spring `spring`, half width hw.
-func _anna_side_windows(uf: float, side: float, vs: Array, y0: float, spring: float, hw: float) -> void:
-	var out := _a * side
+## A row of round-headed windows (`kit_round_window`) along a side wall at u = `uf` facing `side`
+## (+1 south, -1 north), one at every v in `vs`: sill y0, spring `spring`, half width hw.
+func _anna_side_row(uf: float, side: float, vs: Array, y0: float, spring: float, hw: float) -> void:
 	for v: float in vs:
-		var at := _w(uf, v)
-		_arch_panel(at, _b, out, hw + 0.22, y0 - 0.2, spring, ANNA_TRIM, 0.03, M_STONE)
-		_arch_panel(at, _b, out, hw, y0, spring, ANNA_GLASS, 0.09, _lit(v, y0))
+		kit_round_window(_w(uf, v), _b, _a * side, y0, spring, hw, ANNA_TRIM, ANNA_GLASS)
 
 
 ## The same along an end wall at v = `vf` facing `side` (+1 west, -1 east), one at every u in `us`.
-func _anna_end_windows(vf: float, side: float, us: Array, y0: float, spring: float, hw: float) -> void:
-	var out := _b * side
+func _anna_end_row(vf: float, side: float, us: Array, y0: float, spring: float, hw: float) -> void:
 	for u: float in us:
-		var at := _w(u, vf)
-		_arch_panel(at, _a, out, hw + 0.22, y0 - 0.2, spring, ANNA_TRIM, 0.03, M_STONE)
-		_arch_panel(at, _a, out, hw, y0, spring, ANNA_GLASS, 0.09, _lit(u, y0))
+		kit_round_window(_w(u, vf), _a, _b * side, y0, spring, hw, ANNA_TRIM, ANNA_GLASS)
 
 
 ## A ridge along v (the nave's way) from vf (the west end) to vb over u = cu, half width hu,
@@ -7178,8 +7172,8 @@ func _anna_body(g: float) -> void:
 		_kbox(minf(uf, uf + sd * 0.15), maxf(uf, uf + sd * 0.15), -38.3, -6.0, nf, g + 0.9, ANNA_BASE)
 		for v: float in [-11.7, -17.2, -22.7, -28.2, -33.7]:
 			_kbox(minf(uf, uf + sd * 0.18), maxf(uf, uf + sd * 0.18), v - 0.45, v + 0.45, g + 0.9, g + 14.3, ANNA_TRIM)
-	_anna_side_windows(24.5, 1.0, [-9.0, -14.5, -20.0, -25.5, -31.0, -36.0], g + 7.6, g + 12.0, 1.0)
-	_anna_side_windows(4.4, -1.0, [-17.5, -23.0], g + 9.4, g + 12.2, 0.9)
+	_anna_side_row(24.5, 1.0, [-9.0, -14.5, -20.0, -25.5, -31.0, -36.0], g + 7.6, g + 12.0, 1.0)
+	_anna_side_row(4.4, -1.0, [-17.5, -23.0], g + 9.4, g + 12.2, 0.9)
 	_anna_roof_v(-5.6, -38.7, 14.45, 10.6, g + 15.0, 8.8, ANNA_WALL, ANNA_ROOF_CU, ANNA_ROOF_N)
 	# the slim copper ridge turret near the nave's east end (photo 6): an octagon, a spire, a cross
 	var tc := _w(14.45, -34.5)
@@ -7197,22 +7191,22 @@ func _anna_body(g: float) -> void:
 	_kbox(-6.5, 4.4, -38.3, -26.5, _anna_foot(-1.0, -32.4), g + 10.45, ANNA_WALL)
 	_kbox(-6.8, 4.4, -38.6, -26.2, g + 10.4, g + 11.0, ANNA_TRIM)
 	_hip(-1.05, -32.4, 5.45, 5.9, g + 11.0, 3.2, ANNA_ROOF_DARK)
-	_anna_side_windows(-6.5, -1.0, [-29.4, -35.4], g + 4.0, g + 7.6, 0.85)
-	_anna_end_windows(-26.5, 1.0, [-3.6, 1.4], g + 4.0, g + 7.6, 0.85)
+	_anna_side_row(-6.5, -1.0, [-29.4, -35.4], g + 4.0, g + 7.6, 0.85)
+	_anna_end_row(-26.5, 1.0, [-3.6, 1.4], g + 4.0, g + 7.6, 0.85)
 	# the presbytery, narrower and lower, its east gable a cream pediment over the escarpment
 	_kbox(6.0, 22.0, -56.5, -38.3, _anna_foot(14.0, -47.0), g + 13.45, ANNA_WALL)
 	_kbox(5.6, 22.4, -56.9, -38.3, g + 13.4, g + 14.0, ANNA_TRIM)
 	_anna_roof_v(-38.3, -56.9, 14.0, 8.4, g + 14.0, 6.6, ANNA_WALL, ANNA_ROOF_CU, ANNA_ROOF_N)
-	_anna_side_windows(22.0, 1.0, [-42.5, -48.0, -53.0], g + 7.4, g + 11.4, 0.9)
-	_anna_side_windows(6.0, -1.0, [-53.0], g + 7.4, g + 11.4, 0.9)
-	_anna_end_windows(-56.5, -1.0, [10.0, 18.0], g + 7.4, g + 11.4, 0.9)
+	_anna_side_row(22.0, 1.0, [-42.5, -48.0, -53.0], g + 7.4, g + 11.4, 0.9)
+	_anna_side_row(6.0, -1.0, [-53.0], g + 7.4, g + 11.4, 0.9)
+	_anna_end_row(-56.5, -1.0, [10.0, 18.0], g + 7.4, g + 11.4, 0.9)
 	# the sacristy north of it and the block south of it, both low under hipped roofs
 	_kbox(1.5, 6.0, -49.2, -38.3, _anna_foot(3.7, -43.7), g + 9.0, ANNA_WALL)
 	_hip(3.75, -43.75, 2.25, 5.45, g + 9.0, 1.8, ANNA_ROOF_DARK)
 	_kbox(22.0, 29.6, -57.5, -38.3, _anna_foot(25.8, -47.9), g + 11.0, ANNA_WALL)
 	_hip(25.8, -47.9, 3.8, 9.6, g + 11.0, 2.6, ANNA_ROOF_DARK)
-	_anna_end_windows(-57.5, -1.0, [24.0, 27.6], g + 2.0, g + 5.0, 0.6)
-	_anna_end_windows(-57.5, -1.0, [24.0, 27.6], g + 6.6, g + 9.2, 0.6)
+	_anna_end_row(-57.5, -1.0, [24.0, 27.6], g + 2.0, g + 5.0, 0.6)
+	_anna_end_row(-57.5, -1.0, [24.0, 27.6], g + 6.6, g + 9.2, 0.6)
 	# the white domed chapel on the presbytery's north side (photos 0-2): a drum with tall
 	# round-headed windows, half-moon windows over them, a cornice, a grey dome and a lantern
 	var dc := _w(4.6, -45.6)
@@ -7263,9 +7257,9 @@ func _anna_body(g: float) -> void:
 	_hip(36.25, -44.5, 7.25, 6.1, g + 10.6, 3.6, ANNA_TILE)
 	_kbox(28.7, 43.8, -50.9, -38.1, g + 10.1, g + 10.6, ANNA_TRIM)
 	for row: float in [g + 2.0, g + 6.4]:
-		_anna_end_windows(-50.6, -1.0, [31.0, 33.6, 36.2, 38.8, 41.4], row, row + 2.0, 0.55)
-		_anna_side_windows(43.5, 1.0, [-40.6, -43.2, -45.8, -48.4], row, row + 2.0, 0.55)
-		_anna_end_windows(-38.4, 1.0, [31.6, 34.4, 37.2, 40.0, 42.4], row, row + 2.0, 0.55)
+		_anna_end_row(-50.6, -1.0, [31.0, 33.6, 36.2, 38.8, 41.4], row, row + 2.0, 0.55)
+		_anna_side_row(43.5, 1.0, [-40.6, -43.2, -45.8, -48.4], row, row + 2.0, 0.55)
+		_anna_end_row(-38.4, 1.0, [31.6, 34.4, 37.2, 40.0, 42.4], row, row + 2.0, 0.55)
 	# where the Institute's arcade starts, in the church's outline: one bay of its two storeys
 	_kbox(24.6, 30.4, -6.4, -0.1, _anna_foot(27.5, -3.0), g + 11.05, ANNA_WALL)
 	_kbox(24.4, 30.6, -6.6, 0.25, g + 11.0, g + 11.6, ANNA_TRIM)

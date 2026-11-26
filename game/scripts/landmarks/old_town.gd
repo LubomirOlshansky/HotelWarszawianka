@@ -357,28 +357,188 @@ func _build_zamkowy(_site: Dictionary) -> void:
 	_no_roof = false
 
 
-## The oak by the castle's west wing (F's photo, 2026-11-26): it stands in a round stone bench of
-## two steps, about 7 m across and 0.9 m to the seat, an iron railing round the soil on its top.
-## The tree itself is the laser scan's, made big by `tree_set` (`_find_zamkowy`).
+## The oak by the castle's west wing (F's photo, 2026-11-26): it stands in a round bench of
+## granite blocks in two tiers, about 7.4 m across: a low step for the feet (0.42 m) and the seat
+## ring (0.88 m) people sit on all round, each tier of 24 blocks in slightly different browns
+## with a dark joint between them, a rounded coping on the seat, the soil on top behind an iron
+## railing. F's second look (2026-11-26, "the laweczki near the tree"): the flat grey rings read as
+## a fountain basin, not a bench. The tree itself is the laser scan's, made big by `tree_set`.
 const ZAMKOWY_OAK := Vector2(-682.4, -1552.2)
-const ZAMKOWY_BENCH := Color("#9a9086")
+const ZAMKOWY_BENCH := Color("#8f8170")   # the photo's warm grey-brown granite
+const ZAMKOWY_JOINT := Color("#4f463d")
+const ZAMKOWY_BLOCKS := 24
 func _zamkowy_oak() -> void:
 	var c := ZAMKOWY_OAK
 	var g: float = map.terrain_height(c.x, c.y)
-	_prism(_circle(c, 3.7, 20), g - 0.4, g + 0.42, ZAMKOWY_BENCH.darkened(0.08), ZAMKOWY_BENCH, M_STONE, M_STONE)
-	_prism(_circle(c, 3.15, 20), g + 0.42, g + 0.85, ZAMKOWY_BENCH, ZAMKOWY_BENCH.lightened(0.06), M_STONE, M_STONE)
-	_prism(_circle(c, 2.6, 18), g + 0.85, g + 1.0, ZAMKOWY_BENCH.darkened(0.04), Color("#4a3b2c"), M_STONE, M_STONE)
+	# [inner r, outer r, foot, top] of the step and the seat
+	for tier: Array in [[3.05, 3.75, g - 0.4, g + 0.42], [2.55, 3.15, g + 0.42, g + 0.88]]:
+		var r0: float = tier[0]
+		var r1: float = tier[1]
+		var y0: float = tier[2]
+		var y1: float = tier[3]
+		for k in ZAMKOWY_BLOCKS:
+			var t0 := TAU * float(k) / ZAMKOWY_BLOCKS + 0.012
+			var t1 := TAU * float(k + 1) / ZAMKOWY_BLOCKS - 0.012
+			var shade := ZAMKOWY_BENCH.darkened(0.07) if k % 3 == 0 else (ZAMKOWY_BENCH.lightened(0.05) if k % 3 == 1 else ZAMKOWY_BENCH)
+			var blk := PackedVector2Array([c + Vector2(cos(t0), sin(t0)) * r0, c + Vector2(cos(t1), sin(t1)) * r0,
+					c + Vector2(cos(t1), sin(t1)) * r1, c + Vector2(cos(t0), sin(t0)) * r1])
+			if Geometry2D.is_polygon_clockwise(blk):
+				blk.reverse()
+			_prism(blk, y0, y1, shade.darkened(0.1), shade.lightened(0.06), M_STONE, M_STONE)
+		# the joints: one dark ring just inside the blocks shows through the 2.4 cm gaps
+		_prism(_circle(c, r1 - 0.06, ZAMKOWY_BLOCKS), y0, y1 - 0.02, ZAMKOWY_JOINT, Color(0, 0, 0, 0), M_STONE, M_STONE)
+	# the seat's coping, a little proud of the seat ring
+	_frustum(_circle(c, 3.2, ZAMKOWY_BLOCKS), g + 0.88, _circle(c, 3.12, ZAMKOWY_BLOCKS), g + 0.95,
+			ZAMKOWY_BENCH.lightened(0.08))
+	_prism(_circle(c, 2.55, 18), g + 0.88, g + 1.02, ZAMKOWY_BENCH.darkened(0.04), Color("#4a3b2c"), M_STONE, M_STONE)
 	# the railing: posts round the soil, a top rail and a middle one
-	var posts := _circle(c, 2.75, 16)
+	var posts := _circle(c, 2.65, 16)
 	for k in posts.size():
 		var p := posts[k]
 		var q := posts[(k + 1) % posts.size()]
-		_prism(_square(p, 0.04), g + 0.85, g + 1.78, ANNA_IRON, ANNA_IRON, M_STONE, M_STONE)
+		_prism(_square(p, 0.04), g + 0.95, g + 1.78, ANNA_IRON, ANNA_IRON, M_STONE, M_STONE)
 		var d := (q - p).normalized()
 		var n := Vector2(-d.y, d.x) * 0.03
-		for y: float in [g + 1.28, g + 1.72]:
+		for y: float in [g + 1.3, g + 1.72]:
 			_prism(PackedVector2Array([p - n, q - n, q + n, p + n]), y, y + 0.06, ANNA_IRON, ANNA_IRON, M_STONE, M_STONE)
-	_collide(_circle(c, 3.7, 12))
+	_collide(_circle(c, 3.75, 12))
+
+
+## The Mansjonaria (Plac Zamkowy at Świętojańska, the house by the oak), modelled whole (F,
+## 2026-11-26: "fix this building and roof"; it was street block 101331240's fronts on LoD2's
+## mass, which read its ground-floor buttresses as walls leaning out the whole height). From F's
+## oak photo and the Google 3D views (refs/mansjonaria, reference only): a three-storey house of
+## pale yellow-grey plaster, the square front's ground floor held by three big sloped buttresses
+## (and a fourth at the north corner), a red-brick arched door between the south ones, windows
+## in dark stone surrounds (pedimented on the first floor), a band over the buttresses, a cream cornice and a steep red tile hip
+## roof with dormers and white chimneys. Frame: from the square front's north corner (by
+## Świętojańska) to its south corner (by the castle), u south along it (15.2 m), +v out to the
+## square. Spec docs/landmarks/specs/mansjonaria.md.
+const MJ_N := Vector2(-689.81, -1564.41)
+const MJ_S := Vector2(-679.35, -1575.45)
+const MJ_WALL := Color("#dccf9f")
+const MJ_BUTTRESS := Color("#c9bb8c")   # a shade darker than the wall (F's photo)
+const MJ_TRIM := Color("#e8dfc2")
+const MJ_STONE := Color("#77736a")   # the window surrounds, dark stone
+const MJ_GLASS := Color("#353a3c")
+const MJ_BRICK := Color("#9a4b38")
+const MJ_TILE := Color("#b0583d")
+const MJ_ZINC := Color("#868b8b")   # the dormers' sheet-metal cheeks and fronts (3D views)
+const MJ_EAVE := 12.4
+const MJ_RISE := 6.2
+## The plan (u, v) of the mass without its buttresses, round from the square front's north corner.
+const MJ_RING := [[0.0, 0.0], [15.2, 0.0], [15.21, -0.21], [15.55, -7.84], [15.78, -13.71], [16.01, -17.1],
+		[12.27, -17.13], [0.59, -16.8], [0.12, -4.65], [0.06, -2.53]]
+## The buttresses on the square front: [u0, u1], all 1.48 m deep at the foot.
+const MJ_BUTTRESSES := [[0.1, 2.08], [4.15, 7.23], [8.3, 11.2]]
+
+
+func _find_mansjonaria() -> void:
+	var outline := _landmark("Mansjonaria")
+	if outline.size() < 3:
+		return
+	_add_site("mansjonaria", [outline])
+
+
+func _build_mansjonaria(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["zone"][0]
+	var length := kit_front(MJ_S, MJ_N)
+	# kit_front's +v is left of S->N, out to the square; u from the south corner. Re-base on the
+	# north corner so u runs south (the plan above).
+	_o = MJ_N
+	_a = (MJ_S - MJ_N).normalized()
+	_b = Vector2(-_a.y, _a.x)
+	if _b.dot(Vector2(0.726, 0.688)) < 0.0:
+		_b = -_b
+	var mid := _w(length * 0.5, 2.0)
+	_g = map.terrain_height(mid.x, mid.y)
+	var g := _g
+	var eave := g + MJ_EAVE
+	_mode = M_STONE
+	var ring := PackedVector2Array()
+	for q: Array in MJ_RING:
+		ring.append(_w(float(q[0]), float(q[1])))
+	if Geometry2D.is_polygon_clockwise(ring):
+		ring.reverse()
+	var foot := _ground_under(outline) - 0.6
+	_prism(ring, foot, eave, MJ_WALL, Color(0, 0, 0, 0), M_STONE, M_STONE)
+	_prism(_ring_out(ring, 0.06), foot, g + 0.55, MJ_STONE.lightened(0.25), MJ_STONE.lightened(0.25), M_STONE, M_STONE)
+	kit_cornice_ring(ring, eave, MJ_TRIM, 0.35, 0.4)
+	kit_ledge_ring(ring, g + 4.55, 0.25, MJ_TRIM, 0.1)  # the band over the buttresses
+	# the buttresses: sloped from 1.48 m out at the foot to 0.3 m under a stone cap at 4.3 m
+	for bt: Array in MJ_BUTTRESSES:
+		var u0: float = bt[0]
+		var u1: float = bt[1]
+		var cu := (u0 + u1) * 0.5
+		var hu := (u1 - u0) * 0.5
+		_frustum(_rect(cu, 0.85, hu, 1.0), foot, _rect(cu, 0.075, hu - 0.04, 0.225), g + 4.3, MJ_BUTTRESS)
+		_lbox(cu, 0.16, hu + 0.04, 0.3, g + 4.3, g + 4.48, MJ_BUTTRESS.darkened(0.08))
+		_collide(_rect(cu, 0.85, hu, 1.0))
+	# the square front: the brick-arched door and a small window on the ground floor, four axes above
+	kit_face(0.0)
+	kit_door(13.2, g + 0.1, 3.0, 0.75, MJ_BRICK, MJ_GLASS.darkened(0.2), true)
+	kit_window(3.1, g + 1.5, 1.7, Win.FRAMED, MJ_STONE, MJ_GLASS, 0.45)
+	for u: float in [3.1, 5.7, 9.75, 13.2]:
+		kit_window(u, g + 5.1, 2.1, Win.PEDIMENT, MJ_STONE, MJ_GLASS, 0.55)
+		kit_window(u, g + 8.7, 1.85, Win.FRAMED, MJ_STONE, MJ_GLASS, 0.52)
+	# the south front (to the castle) and the north one (to Świętojańska): three rows each
+	var fronts := [[_w(15.21, -0.21), _w(16.01, -17.1), 4], [_w(0.59, -16.8), _w(0.0, 0.0), 5]]
+	var keep_o := _o
+	var keep_a := _a
+	var keep_b := _b
+	for f: Array in fronts:
+		var flen := kit_front(f[0], f[1])
+		if _b.dot((f[0] + f[1]) * 0.5 - _centre(ring)) < 0.0:
+			_b = -_b
+		var n: int = f[2]
+		for u in _spread(1.0, flen - 1.0, n):
+			kit_window(u, g + 1.5, 1.9, Win.FRAMED, MJ_STONE, MJ_GLASS, 0.5)
+			kit_window(u, g + 5.1, 2.1, Win.PEDIMENT, MJ_STONE, MJ_GLASS, 0.55)
+			kit_window(u, g + 8.7, 1.85, Win.FRAMED, MJ_STONE, MJ_GLASS, 0.52)
+	_o = keep_o
+	_a = keep_a
+	_b = keep_b
+	_face = 0.0
+	# the roof: a steep hip over the whole plan (0.3 m over the walls), a short ridge along v
+	var base := PackedVector2Array([_w(-0.3, 0.3), _w(15.5, 0.3), _w(16.3, -17.4), _w(0.3, -17.4)])
+	var crest := PackedVector2Array([_w(7.5, -7.6), _w(8.3, -7.6), _w(8.3, -9.6), _w(7.5, -9.6)])
+	_frustum(base, eave + 0.3, crest, eave + 0.3 + MJ_RISE, MJ_TILE, MJ_TILE.darkened(0.06))
+	# dormers: two over the square, two on each side slope; [u, v, out u, out v, slope run]
+	for dm: Array in [[5.7, -1.5, 0.0, 1.0, 7.9], [9.75, -1.5, 0.0, 1.0, 7.9], [1.6, -6.0, -1.0, 0.0, 7.7],
+			[1.7, -11.5, -1.0, 0.0, 7.7], [14.3, -6.0, 1.0, 0.0, 7.5], [14.5, -11.5, 1.0, 0.0, 7.5]]:
+		_mansjonaria_dormer(Vector2(dm[0], dm[1]), Vector2(dm[2], dm[3]), eave + 0.3 + MJ_RISE * 1.5 / float(dm[4]))
+	# two white chimneys by the ridge
+	for c: Vector2 in [Vector2(5.0, -9.0), Vector2(10.8, -8.0)]:
+		_lbox(c.x, c.y, 0.45, 0.35, eave + 2.5, eave + 0.3 + MJ_RISE + 0.8, MJ_TRIM.lightened(0.1))
+		_lbox(c.x, c.y, 0.55, 0.45, eave + 0.3 + MJ_RISE + 0.8, eave + 0.3 + MJ_RISE + 1.0, MJ_TRIM)
+	_collide(ring)
+
+
+## A dormer on the Mansjonaria's roof: `at` the front's middle (u, v), `out` the way it faces
+## (a unit plan step along u or v), `y` the roof's height at the front: a wide box in grey sheet
+## metal (the 3D views: big zinc dormers) with a dark window and a small tile gable roof whose
+## ridge runs back into the slope.
+func _mansjonaria_dormer(at: Vector2, out: Vector2, y: float) -> void:
+	var side := Vector2(-out.y, out.x)
+	var back := at - out * 2.0
+	var c := (at + back) * 0.5
+	var hs := 0.95
+	var hd := 1.0
+	var hu := absf(side.x) * hs + absf(out.x) * hd
+	var hv := absf(side.y) * hs + absf(out.y) * hd
+	_lbox(c.x, c.y, hu, hv, y - 0.6, y + 1.25, MJ_ZINC)
+	var f := at + out * 0.02
+	_mode = _lit(at.x + at.y, y)
+	var wa := _w(f.x - side.x * 0.62, f.y - side.y * 0.62)
+	var wb := _w(f.x + side.x * 0.62, f.y + side.y * 0.62)
+	var wo := (_a * out.x + _b * out.y).normalized()
+	_wall(wa, wb, y - 0.25, y + 0.95, wo, MJ_GLASS)
+	_mode = M_STONE
+	var ru := absf(side.x) * (hs + 0.12) + absf(out.x) * (hd + 0.1)
+	var rv := absf(side.y) * (hs + 0.12) + absf(out.y) * (hd + 0.1)
+	var tu := absf(out.x) * (hd + 0.1) + 0.02
+	var tv := absf(out.y) * (hd + 0.1) + 0.02
+	_frustum(_rect(c.x, c.y, ru, rv), y + 1.25, _rect(c.x, c.y, tu, tv), y + 2.05, MJ_ZINC.darkened(0.1))
 
 
 ## The mermaid, bronze: the tail coiled on the rock with its fin flicked up, the torso, the
@@ -723,17 +883,22 @@ func _zv_oval(yard: float, top: float) -> void:
 ## The square front (F, 2026-11-10, the trailer's Old Town take: "from the side of Plac Zamkowy it had
 ## no facade"; photos F sent, 14 of the castle): the red plaster wall of the west wing and of the
 ## south wing's end, as the castle shows it to the square: a pale stone plinth, the plaster to the eave,
-## two cream string courses and the cornice, and three rows of windows, each a cream surround with a
-## dark pane and a sill (small on the ground floor, tall on the piano nobile, square on the top
-## floor), one to a 3.6 m bay. The Clock Tower and the two corner turrets keep their own bays.
+## three thin cream string courses and the cornice, and four rows of windows (`ZAMEK_ROWS`,
+## `_zamek_window`: 2026-11-26 rework), one to a 3.6 m bay. The Clock Tower and the two corner turrets keep their own bays.
 ## It stands 0.3 m proud of LoD2's wall (which still shows above the eave and round the tower).
 const ZAMEK_PLASTER := Color("#d98568")
 const ZAMEK_PLINTH := Color("#c9bea8")
-const ZAMEK_PANE := Color("#2c2f3a")
+const ZAMEK_PANE := Color("#3b4744")   # the photos' dark grey-green glass
+const ZAMEK_SASH := Color("#eeeae0")   # the white sash cross
+## The window rows over a bay's ground: [sill, head, half width, a cornice over the head] (the
+## photos 01_west_square and 02_west_column: ground floor, piano nobile, second floor, the top
+## floor's square windows under the eave).
+const ZAMEK_ROWS := [[1.3, 3.2, 0.55, false], [4.7, 7.5, 0.62, true], [8.8, 11.0, 0.6, false],
+		[12.2, 13.7, 0.55, false]]
 const ZAMEK_BAY := 3.6
 ## Absolute eave of the square front over the courtyard's ground, and its string courses over a bay's ground.
 const ZAMEK_SQUARE_EAVE := 15.5
-const ZAMEK_COURSES := [5.0, 10.0]
+const ZAMEK_COURSES := [4.15, 8.3, 11.75]
 
 
 func _zamek_square_front(ring: PackedVector2Array) -> void:
@@ -769,7 +934,7 @@ func _zamek_square_front(ring: PackedVector2Array) -> void:
 			_wall(a, b, g + 1.1, top, out, ZAMEK_PLASTER, run)
 			var o2 := out * 0.04
 			for c: float in ZAMEK_COURSES:
-				_wall(a + o2, b + o2, g + c, g + c + 0.35, out, ZAMEK_CREAM, run)
+				_wall(a + o2, b + o2, g + c, g + c + 0.22, out, ZAMEK_CREAM, run)
 			_wall(a + out * 0.45, b + out * 0.45, top - 0.35, top + 0.5, out, ZAMEK_CREAM, run)
 			_ledge(a, b, a + out * 0.45, b + out * 0.45, top + 0.5, ZAMEK_CREAM)
 			run += bay
@@ -781,20 +946,25 @@ func _zamek_square_front(ring: PackedVector2Array) -> void:
 					near_turret = true
 			if near_tower or near_turret:
 				continue
-			# rows: [floor y0, y1, half width]
-			var rows := [[g + 2.0, g + 3.5, 0.45], [g + 6.0, g + 9.0, 0.6], [g + 11.0, g + 13.2, 0.5]]
-			for r: Array in rows:
-				var y0: float = r[0]
-				var y1: float = r[1]
+			# rows: [sill, head, half width, hooded] (the photos: four storeys of windows, the
+			# piano nobile's tallest under a hood, the top floor's square), kit windows in cream
+			# surrounds with the white sash cross (F, 2026-11-26, "those windows look bad": flush
+			# surrounds were cut away by `_wall`'s coplanar check, leaving bare dark holes)
+			_o = mid
+			_a = d
+			_b = out
+			_face = 0.0
+			for r: Array in ZAMEK_ROWS:
+				var y0: float = g + float(r[0])
+				var y1: float = g + float(r[1])
 				if y1 > top - 0.9:
 					continue
-				var hw: float = r[2]
-				var ca := mid - d * (hw + 0.14)
-				var cb := mid + d * (hw + 0.14)
-				_wall(ca + out * 0.0, cb + out * 0.0, y0 - 0.14, y1 + 0.18, out, ZAMEK_CREAM, run)
-				_wall(mid - d * hw + out * 0.05, mid + d * hw + out * 0.05, y0, y1, out, ZAMEK_PANE, run)
-				_wall(ca + out * 0.18, cb + out * 0.18, y0 - 0.3, y0 - 0.14, out, ZAMEK_CREAM, run)
-				_ledge(ca, cb, ca + out * 0.18, cb + out * 0.18, y0 - 0.14, ZAMEK_CREAM)
+				kit_window(0.0, y0, y1 - y0, Win.HOODED if bool(r[3]) else Win.FRAMED, ZAMEK_CREAM, ZAMEK_PANE,
+						float(r[2]), ZAMEK_SASH)
+	_o = Vector2.ZERO
+	_a = Vector2(1, 0)
+	_b = Vector2(0, 1)
+	_mode = M_STONE
 
 
 ## A flat strip between two parallel segments (a cornice's top), through `_cap` so the strips of

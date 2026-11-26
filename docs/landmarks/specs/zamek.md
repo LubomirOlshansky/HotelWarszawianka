@@ -95,9 +95,11 @@ whole vault gets a lawn (#74a24c).
 
 ## 7. Detail level and budget
 
-L3 (hero landmark, docs/LANDMARKS.md). Budgets in `check_sites.gd`: `zamek` 7900 triangles
-(7544 measured after the 2026-11-26 Vistula front), `arkady` 2400 (2300 measured);
-`check_mesh_quality.gd` 7900 and 2600, no
+L3 (hero landmark, docs/LANDMARKS.md). Budgets in `check_sites.gd`: `zamek` 18500 triangles
+(17656 measured after the 2026-11-26 square front windows; named exception to the L3 limit: about
+220 kit windows with surrounds and sash crosses on the square front, F's ask, all in the city's one
+building surface, so no draw call is added), `arkady` 2400 (2300 measured);
+`check_mesh_quality.gd` 18500 and 2600, no
 z-fighting and no floating parts (the turret shafts start at the ground inside the mass, the
 railing has posts). No new material, node, light or MultiMesh: all of
 it is merged into the city's one building mesh. Shots (cloud, both paths): from Plac Zamkowy
@@ -159,3 +161,12 @@ patina #8db8a6, three oculi in the copper and two statues on the rim.
 LoD2's walls along this front stood proud of the model in places and drew a second row of window
 slits through it: the skin's `pale` now carries a `drop` polygon (the front's frame, u -17..76,
 v +-14) inside which map_builder's `_skin_run` drops them, so the model stands alone there.
+
+## Update 2026-11-26: the square front's windows (F: "those windows look bad")
+
+The square front's windows were a dark pane with a flush cream surround that `_wall`'s coplanar
+check cut away, so they read as bare dark holes. Now four storeys from the photos (01_west_square,
+02_west_column), `ZAMEK_ROWS`: ground floor sill 1.3 m, 1.9 m tall; piano nobile 4.7 m, 2.8 m,
+hooded; second floor 8.8 m, 2.2 m; top floor 12.2 m, 1.5 m. Each is a kit window (`kit_window`
+FRAMED or HOODED) in cream with the white sash cross (its `sash` argument), grey-green glass
+#3b4744 lit by chance at night. Three thin string courses at 4.15, 8.3 and 11.75 m (0.22 m).

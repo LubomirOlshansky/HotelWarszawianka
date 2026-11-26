@@ -371,6 +371,9 @@ const INFO := {
 	"sw_anna": ["Kościół Świętej Anny",
 			"Na początku Krakowskiego Przedmieścia.",
 			"Where Krakowskie Przedmieście begins."],
+	"mansjonaria": ["Mansjonaria",
+			"Dom z wielkimi przyporami na rogu placu Zamkowego i Świętojańskiej, przy dębie.",
+			"The house with the big buttresses on the corner of Castle Square and Świętojańska, by the oak."],
 	"nikidw": ["Instytut Kultury Wsi",
 			"Długa arkada na Krakowskim Przedmieściu, tuż za kościołem św. Anny.",
 			"The long arcade on Krakowskie Przedmieście, right past St Anne's."],
@@ -1278,6 +1281,8 @@ func _find_sites() -> void:
 	_find_skins()
 	# The Institute next to St Anne's (F, 2026-11-26): a model instead of a street block.
 	_find_nikidw()
+	# The buttressed house by the oak (F, 2026-11-26): a model instead of a street block.
+	_find_mansjonaria()
 	# Before the column: a later site's tap cells win, and the column's must (check_landmarks).
 	_find_zamkowy()
 	_find_zygmunt()
@@ -1958,6 +1963,9 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"nikidw":
 				_mark_zone(s)
 				_build_nikidw(s)
+			"mansjonaria":
+				_mark_zone(s)
+				_build_mansjonaria(s)
 			"staszic":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the portico and the statue are ours
 				_build_staszic(s)

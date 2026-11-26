@@ -222,6 +222,8 @@ const DE_BLOCKS := ["118344657", "118344539", "279988290", "138607846"]
 ## The Institute next to St Anne's (Krakowskie Przedmieście 66): a model of its own since
 ## 2026-11-26 (churches.gd `_build_nikidw`), its street block no longer stands in for it.
 const NIKIDW_BLOCK := "43281056"
+## The Mansjonaria on Plac Zamkowy, likewise (old_town.gd `_build_mansjonaria`, 2026-11-26).
+const MANSJONARIA_BLOCK := "101331240"
 
 
 func _find_blocks() -> void:
@@ -234,7 +236,7 @@ func _find_blocks() -> void:
 		var q := _pts(d["outline"])
 		if q.size() < 3:
 			continue
-		if str(d["id"]) in DE_BLOCKS or str(d["id"]) in [CM_BLOCK, MP_BLOCK, NIKIDW_BLOCK]:
+		if str(d["id"]) in DE_BLOCKS or str(d["id"]) in [CM_BLOCK, MP_BLOCK, NIKIDW_BLOCK, MANSJONARIA_BLOCK]:
 			continue
 		var key := "blk_" + str(d["id"])
 		var zone: Array = [_largest(Geometry2D.offset_polygon(q, 1.0, Geometry2D.JOIN_MITER))]
@@ -300,6 +302,7 @@ func _build_block(site: Dictionary) -> void:
 	var oz: float = d["oz"]
 	var top: float = d["top"]
 	var piure: bool = site["block"] == PIURE_BLOCK
+	var plain_front: bool = site["block"] in PLAIN_FRONT_BLOCKS
 	var piure_wins: Array = []
 	for grp: Dictionary in d["groups"]:
 		var col := Color(grp["color"])
@@ -332,7 +335,10 @@ func _build_block(site: Dictionary) -> void:
 			var ua := Vector2(Vector2(q[0].x, q[0].z).dot(t), q[0].y - _g)
 			var ub := Vector2(Vector2(q[1].x, q[1].z).dot(t), q[1].y - _g)
 			var uc := Vector2(Vector2(q[2].x, q[2].z).dot(t), q[2].y - _g)
-			if role == "facade":
+			if role == "facade" and plain_front:
+				_mode = M_STONE  # its own modelled windows only (PLAIN_FRONT_BLOCKS)
+				_tri(q[0], q[1], q[2], n, col, ua, ub, uc, 0.0, false)
+			elif role == "facade":
 				_mode = seed
 				_tri(q[0], q[1], q[2], n, col, ua, ub, uc, top, false)
 			else:
@@ -343,6 +349,13 @@ func _build_block(site: Dictionary) -> void:
 		_piure_strips(piure_wins)
 	_mode = keep
 	_collide_raw(site)
+
+
+## Blocks whose `facade` walls are their main fronts, in front of their own modelled windows: the
+## building shader's windows on those walls stood among the model's, two grids of different
+## panes and sills over each other (F, 2026-11-26, Kamienica Roesslera i Hurtiga opposite St Anne's:
+## "some have artifacts"). Their facade walls are plain plaster in the block's colour.
+const PLAIN_FRONT_BLOCKS := ["30302033"]
 
 
 ## HOTEL PIURE (Widok 9, F's photos 2026-11-11): the street block's white panel fronts carry a

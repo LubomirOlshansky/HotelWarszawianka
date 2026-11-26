@@ -331,8 +331,9 @@ const BUDGET := {
 	"sw_krzyz": 1250,  # 2026-11-06 photo pass: the real flat front, balustrade and statue
 	"sejm": 1400,
 	"staszic": 360,
-	"zamek": 7900,  # 2026-11-26: the Vistula front rebuilt from F's photos: risalits, loggias, the oval under its copper bell with lantern (measured 7544)
-	"zamkowy": 2400,  # 2026-11-26: + the oak's stone ring bench and railing (measured 2271)
+	"zamek": 18500,  # 2026-11-26: the Vistula front rebuilt, then the square front's ~220 kit windows with sash crosses (measured 17656; spec names the exception)
+	"zamkowy": 2900,  # 2026-11-26: + the oak's granite block bench in two tiers and railing (measured 2778)
+	"mansjonaria": 2700,  # 2026-11-26: the buttressed house by the oak modelled whole (measured 2458)
 	"nikidw": 2400,  # 2026-11-26: the Institute modelled whole: 12-bay two-storey arcade, wings, hipped roofs (measured 2268)
 	"arkady": 2600,
 	"kino_muranow": 6000,
