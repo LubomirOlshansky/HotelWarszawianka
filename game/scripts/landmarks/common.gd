@@ -30,6 +30,11 @@ var pocket_rings: Array[PackedVector2Array] = []
 var _r2 := {}
 ## Circles ([centre, radius]) no tree may grow in: a landmark's overhang (Powiśle's saucer).
 var tree_free: Array = []
+## Laser-scanned trees a landmark re-sizes ([centre, near, top, radius, kind], world x, z, metres
+## over the ground): the one tree within `near` of `centre` takes this height, crown radius and
+## kind, and turns the latest of its kind in autumn. The oak on Plac Zamkowy in its stone bench,
+## which the 2023 scan caught as a 15 m tree with a 4 m crown (F's photo, 2026-11-26).
+var tree_set: Array = []
 ## Plans ([ring, its box], world x, z) no parked car stands in: a market or a fair on a car park
 ## (Jarmark Warszawski on Plac Defilad), read by map_builder's parked cars on both city paths.
 var parked_free: Array = []
@@ -556,7 +561,7 @@ func _arch_win(at: Vector2, along: Vector2, out: Vector2, hw: float, y0: float, 
 	_arch_panel(at, along, out, hw, y0, spring, glass, 0.08, M_GLASS)
 
 
-const ZAMEK_VISTULA := Color("#e9e1cf")   # the Vistula (Saxon) front, cream-white
+const ZAMEK_VISTULA := Color("#ede6d8")   # the Vistula (Saxon) front, a warm cream-white (Fable 2026-11-26)
 
 ## The Clock Tower (Wieża Zegarowa) in the middle of the west front, and the front's way north.
 const ZAMEK_CLOCK := Vector2(-671.0, -1519.3)
@@ -890,3 +895,83 @@ func _pcz_frame() -> void:
 
 func _pcz_world(s: float, t: float) -> Vector2:
 	return PCZ_O + PCZ_N * (s - 64.0) + PCZ_E * (t + 130.0)
+
+
+# --- Built letters: serif capitals and a wave mark (Muzeum Narodowe's roof sign, 2026-11-26) -----
+
+## Serif capitals drawn as strokes, for a lit roof sign of built letters (the neon atlas has only a
+## 5×7 sans font). Each glyph: [width, strokes], width in cap heights, a stroke [x0, y0, x1, y1,
+## weight] in cap heights (y up), weight 1 a stem, 0.55 a hairline (the bars, the diagonals'
+## thin side, the serifs). The serifs are short hairlines across a stem's ends. Only the letters a
+## sign needs so far; add more as signs need them.
+const SERIF_GLYPHS := {
+	"M": [0.92, [[0.0, 0.0, 0.0, 1.0, 0.55], [0.92, 0.0, 0.92, 1.0, 1.0], [0.0, 1.0, 0.46, 0.08, 1.0],
+			[0.46, 0.08, 0.92, 1.0, 0.55], [-0.13, 0.0, 0.13, 0.0, 0.55], [0.79, 0.0, 1.05, 0.0, 0.55],
+			[-0.1, 1.0, 0.04, 1.0, 0.55], [0.88, 1.0, 1.02, 1.0, 0.55]]],
+	"U": [0.76, [[0.0, 1.0, 0.0, 0.26, 1.0], [0.76, 1.0, 0.76, 0.22, 0.55], [0.0, 0.26, 0.17, 0.03, 1.0],
+			[0.17, 0.03, 0.58, 0.03, 0.75], [0.58, 0.03, 0.76, 0.22, 0.55], [-0.13, 1.0, 0.13, 1.0, 0.55],
+			[0.65, 1.0, 0.87, 1.0, 0.55]]],
+	"Z": [0.7, [[0.0, 1.0, 0.7, 1.0, 0.55], [0.7, 1.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.7, 0.0, 0.55],
+			[0.0, 1.0, 0.0, 0.84, 0.55], [0.7, 0.0, 0.7, 0.18, 0.55]]],
+	"E": [0.66, [[0.0, 0.0, 0.0, 1.0, 1.0], [0.0, 1.0, 0.64, 1.0, 0.55], [0.0, 0.52, 0.48, 0.52, 0.55],
+			[0.0, 0.0, 0.66, 0.0, 0.55], [0.64, 1.0, 0.64, 0.84, 0.55], [0.66, 0.0, 0.66, 0.18, 0.55],
+			[0.46, 0.44, 0.46, 0.6, 0.55], [-0.13, 0.0, 0.0, 0.0, 0.55], [-0.13, 1.0, 0.0, 1.0, 0.55]]],
+	"O": [0.86, [[0.26, 0.0, 0.6, 0.0, 0.55], [0.6, 0.0, 0.86, 0.26, 0.75], [0.86, 0.26, 0.86, 0.74, 1.0],
+			[0.86, 0.74, 0.6, 1.0, 0.75], [0.6, 1.0, 0.26, 1.0, 0.55], [0.26, 1.0, 0.0, 0.74, 0.75],
+			[0.0, 0.74, 0.0, 0.26, 1.0], [0.0, 0.26, 0.26, 0.0, 0.75]]],
+	"N": [0.8, [[0.0, 0.0, 0.0, 1.0, 0.55], [0.8, 0.0, 0.8, 1.0, 0.55], [0.0, 1.0, 0.8, 0.0, 1.0],
+			[-0.13, 0.0, 0.13, 0.0, 0.55], [-0.1, 1.0, 0.04, 1.0, 0.55], [0.67, 1.0, 0.93, 1.0, 0.55]]],
+	"A": [0.86, [[0.0, 0.0, 0.43, 1.0, 0.55], [0.43, 1.0, 0.86, 0.0, 1.0], [0.2, 0.34, 0.66, 0.34, 0.55],
+			[-0.12, 0.0, 0.12, 0.0, 0.55], [0.72, 0.0, 1.0, 0.0, 0.55]]],
+	"R": [0.76, [[0.0, 0.0, 0.0, 1.0, 1.0], [0.0, 1.0, 0.52, 1.0, 0.55], [0.52, 1.0, 0.7, 0.86, 0.75],
+			[0.7, 0.86, 0.7, 0.66, 1.0], [0.7, 0.66, 0.52, 0.52, 0.75], [0.52, 0.52, 0.0, 0.52, 0.55],
+			[0.34, 0.52, 0.76, 0.0, 1.0], [-0.13, 0.0, 0.13, 0.0, 0.55], [-0.13, 1.0, 0.0, 1.0, 0.55],
+			[0.66, 0.0, 0.88, 0.0, 0.55]]],
+	"D": [0.82, [[0.0, 0.0, 0.0, 1.0, 1.0], [0.0, 1.0, 0.46, 1.0, 0.55], [0.46, 1.0, 0.82, 0.7, 0.75],
+			[0.82, 0.7, 0.82, 0.3, 1.0], [0.82, 0.3, 0.46, 0.0, 0.75], [0.46, 0.0, 0.0, 0.0, 0.55],
+			[-0.13, 0.0, 0.0, 0.0, 0.55], [-0.13, 1.0, 0.0, 1.0, 0.55]]],
+	"W": [1.12, [[0.0, 1.0, 0.26, 0.0, 1.0], [0.26, 0.0, 0.56, 0.86, 0.55], [0.56, 0.86, 0.86, 0.0, 1.0],
+			[0.86, 0.0, 1.12, 1.0, 0.55], [-0.12, 1.0, 0.12, 1.0, 0.55], [1.0, 1.0, 1.24, 1.0, 0.55]]],
+}
+const SERIF_GAP := 0.22    # between letters, in cap heights
+const SERIF_SPACE := 0.5   # a word space
+const SERIF_STEM := 0.13   # a stem's width, in cap heights
+
+
+## How wide `word` is in cap heights (SERIF_GLYPHS; an unknown letter counts as a space).
+func _serif_width(word: String) -> float:
+	var w := 0.0
+	for i in word.length():
+		if i > 0:
+			w += SERIF_GAP
+		var g: Array = SERIF_GLYPHS.get(word[i], [])
+		w += SERIF_SPACE if g.is_empty() else float(g[0])
+	return w
+
+
+## A word of built serif capitals standing on a vertical plane: `at` the bottom of its first letter,
+## `right` the reading direction (unit, level), cap height `h` m, strokes `h` × SERIF_STEM wide and
+## as deep. Each stroke is a beam in `mode` (M_LAMP: its colour by day, glowing at night), out of
+## the roof grid. Returns the word's length in metres.
+func _serif_word(word: String, at: Vector3, right: Vector3, h: float, col: Color, mode := M_LAMP) -> float:
+	var x := 0.0
+	# Strokes that meet would share a face's plane and flicker: every other stroke stands 7.5 cm
+	# deeper and 2.5 cm higher. The step clears the gaps between the three stroke widths' faces
+	# (2.1, 2.7 and 4.8 cm), so no two faces of meeting strokes come within check_mesh_quality's 2 cm.
+	var depth := right.cross(Vector3.UP).normalized() * 0.075
+	var k := 0
+	for i in word.length():
+		if i > 0:
+			x += SERIF_GAP
+		var g: Array = SERIF_GLYPHS.get(word[i], [])
+		if g.is_empty():
+			x += SERIF_SPACE
+			continue
+		for s: Array in g[1]:
+			var nudge := (depth + Vector3.UP * 0.025) * float(k % 2)
+			k += 1
+			var p0 := at + right * (x + float(s[0])) * h + Vector3.UP * float(s[1]) * h + nudge
+			var p1 := at + right * (x + float(s[2])) * h + Vector3.UP * float(s[3]) * h + nudge
+			_beam(p0, p1, h * SERIF_STEM * float(s[4]), col, false, mode)
+		x += float(g[0])
+	return x * h

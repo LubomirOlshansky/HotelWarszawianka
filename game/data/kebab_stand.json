@@ -1,0 +1,22 @@
+{
+  "_note": "The 2D kebab stands (kebab_stand.gd, the plan doc's 'The 2D kebab stand'): each stand's menu. dishes: id, price in zł, the grade's bonus (Kebabulo's tasting, tajny_klient.gd grade_of), the photo panel's look. sauces: id, the pour's speed (a share of the gauge a second; hot pours faster) and its colour on the canvas. pour: the gauge's green (the share of the bottle that is just right) and where it stops by itself. Words are in dialogue.json group 'kebab_stand' (a tag 'kemal_x' first, then 'x').",
+  "stands": {
+    "kemal": {
+      "owner": ["Kemal", "Kemal"],
+      "sign": ["KEBAB U KEMALA", "KEBAB U KEMALA"],
+      "words": "kemal",
+      "dishes": [
+        {"id": "bun", "price": 24, "bonus": 0.0},
+        {"id": "wrap", "price": 26, "bonus": 0.1},
+        {"id": "box", "price": 27, "bonus": 0.2},
+        {"id": "xxl", "price": 39, "bonus": 0.4}
+      ],
+      "sauces": [
+        {"id": "garlic", "speed": 0.5, "colour": "white"},
+        {"id": "mixed", "speed": 0.55, "colour": "pink"},
+        {"id": "hot", "speed": 0.7, "colour": "red"}
+      ],
+      "pour": {"green": [0.56, 0.8], "spill": 1.15}
+    }
+  }
+}

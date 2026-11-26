@@ -10,8 +10,8 @@ const MIN_INRADIUS := 1.25   ## m, room for a dormer and its cheeks inside the t
 const FRAME := Color("#efe3cb")
 const GLASS := Color("#2c3a4d")
 const BRICK := Color("#8c4a3a")
-## The trailer pass (F's drone photos E05, 2026-11-08): most Old Town stacks are white-plastered,
-## and most dormers wear dark grey zinc on their cheeks and caps.
+## The trailer pass (F's drone photos E05, 2026-11-08): most Old Town stacks are white-plastered;
+## the dormers' zinc (now a quarter of them, see `_dormer`) is grey.
 const PLASTER := Color("#ebe5da")
 const ZINC := Color("#5d6266")
 const SINK := 0.45           ## m, a chimney's foot under the slope
@@ -98,7 +98,7 @@ static func _dormer(out: Dictionary, p: Vector3, run: Vector3, across: Vector3, 
 		wall: Color, tile: Color) -> void:
 	var up := Vector3.UP
 	var wall_h := 0.9 + 0.5 * fposmod(seed * 3.0, 1.0)
-	var rise := half * (0.6 + 0.4 * fposmod(seed * 5.0, 1.0))
+	var rise := half * (0.45 + 0.3 * fposmod(seed * 5.0, 1.0))  # flatter caps: less of a shaded slope
 	var b1 := p - across * half
 	var b2 := p + across * half
 	var e1 := b1 + up * wall_h
@@ -108,9 +108,12 @@ static func _dormer(out: Dictionary, p: Vector3, run: Vector3, across: Vector3, 
 	var q2 := e2 - run * (wall_h / r)
 	var ridge := apex - run * ((wall_h + rise) / r)
 	var centre := p + up * (wall_h * 0.5) - run * 0.5
-	var zinc := fposmod(seed * 59.0, 1.0) < 0.7
-	var roof := ZINC if zinc else tile.darkened(0.12)
-	var cheek := ZINC.lightened(0.08) if zinc else wall
+	# F (2026-11-26, his night shots of Plac Zamkowy): the dark zinc cheeks and caps on most dormers
+	# read as holes in the roofs. Now most dormers wear the roof's own tile on cheeks and cap, a
+	# quarter keep a lighter zinc.
+	var zinc := fposmod(seed * 59.0, 1.0) < 0.25
+	var roof := ZINC.lightened(0.18) if zinc else tile.lightened(0.05)
+	var cheek := ZINC.lightened(0.24) if zinc else tile.lightened(0.02)
 	var front := wall.lerp(FRAME, 0.7)
 	# The front: a cream pentagon, then the window pane just proud of it.
 	_tri(out, b1, b2, e2, front, centre)

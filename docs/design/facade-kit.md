@@ -70,7 +70,8 @@ the spec.
 
 | Part | What it builds | Triangles |
 | --- | --- | --- |
-| `kit_window(u, y, h, style, trim, glass := PAL_GLASS_DARK, hw := 0.7)` | one window, sill at y, pane h tall and 2·hw wide. Styles below. The pane is `M_PANE`: lit whole, by chance, at night | 10 to 60 |
+| `kit_window(u, y, h, style, trim, glass := PAL_GLASS_DARK, hw := 0.7, sash := none)` | one window, sill at y, pane h tall and 2·hw wide. Styles below. The pane is `M_PANE`: lit whole, by chance, at night. An opaque `sash` adds the sash cross on the pane: a mullion 7 cm wide and a transom two thirds up, 6 cm out of the face (the castle's square front, 2026-11-26) | 10 to 60, +4 with a sash |
+| `kit_round_window(at, along, out, y0, spring, hw, trim, glass := PAL_GLASS_DARK)` | a round-headed window on any wall by plan point and directions, not a front's frame: a surround 0.22 m wider from 0.2 m under the sill, the glass to the spring and round the half disc, lit by chance (St Anne's, 2026-11-26) | 20 |
 | `kit_window_grid(u0, u1, bays, sills, h, style, trim, glass, hw, skip := [])` | a window in every bay (bay centres evenly between u0 and u1) on every sill height in `sills`; `h` a float or one per sill; `skip` holds `Vector2i(bay, floor)` to leave out. Returns the bay centres | bays × floors windows |
 | `kit_panes(cols, rows, w, h, glass, proud := 0.05)` | flat lit panes with no surround, one quad each, for modern blocks with hundreds of windows (`cols` u centres, `rows` sill heights) | 2 each |
 | `kit_shop_bay(u, y0, y1, hw, trim, glass)` | a ground-floor opening: dark glass from y0 to y1 and a lintel band over it | 20 |
@@ -106,6 +107,7 @@ tall on the pane, a trim block hw·0.86 half wide from y + h + 0.24 to y + h + 0
 | `IRON` | slab 0.20 thick under y − 0.06; a top rail at y + 0.85..0.92 on the front edge and both sides; a bar every 0.42 m or closer |
 | `STONE` | slab 0.28 thick; a solid balustrade 1.0 high, 0.14 thick, on the front and both sides; two brackets under it |
 | `PARAPET` | slab; a solid front wall 0.86 high with a coping, no sides (between piers) |
+| `ROUND` | a half-ellipse rim 0.28 thick, `depth` out and 2 × `hw` wide, over a dish 72 % its size and 0.46 deep, both with soffits; a solid rail 0.96 high round its curve (Niecała 7's stacks) |
 
 ### Entrances and crowns
 

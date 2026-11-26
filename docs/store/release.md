@@ -41,3 +41,14 @@ them. fastlane: `brew install fastlane`.
 There is no official App Store Connect or Google Play MCP server, and the community ones wrap the
 same two APIs with the same keys. A script is easier to audit and runs without a Claude session,
 so the pipeline stays a script; a session runs it like any other tool.
+
+## Age rating: revisit before the public release
+
+F, 2026-11-24: the beta goes out with the current store age-rating and alcohol answers; look at
+them again before the first public release (likely 12+; the drink-driving below may push PEGI 16).
+
+- THE TAPCZAN serves beer and plays beer pong (docs/design/tapczan-pub.md): the "alcohol
+  references" answer on the App Store and Play.
+- The night sobriety check (road life, docs/design/road-life.md): after a pint the breath test
+  shows the per mille and fines the player (up to 500 zł, never more than they have) and takes
+  respect. It is the one place drinking meets the police, and it is a drink-driving reference.
