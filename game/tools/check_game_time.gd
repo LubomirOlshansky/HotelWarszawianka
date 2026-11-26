@@ -78,6 +78,25 @@ func _game_clock() -> void:
 	t._frame(10.0)
 	var ran := (float(t.local_clock()["hour"]) - h0) * 3600.0
 	_expect(absf(ran - 10.0 * t.speed) < 1.0, "10 real s moved the clock %.0f game s, not %.0f" % [ran, 10.0 * t.speed])
+	# F 2026-11-26 (story-structure, "The clock"): inside a questline the clock goes at
+	# time.hold_speed (real time), and the speed comes back as it was when the questline ends.
+	t.held = true
+	h0 = float(t.local_clock()["hour"])
+	t._frame(10.0)
+	ran = (float(t.local_clock()["hour"]) - h0) * 3600.0
+	_expect(absf(ran - 10.0 * Pacer.num("time", "hold_speed")) < 0.5, "held, 10 real s moved the clock %.0f game s, not %.0f" % [ran, 10.0 * Pacer.num("time", "hold_speed")])
+	_expect(is_equal_approx(t.speed, Pacer.num("time", "speed")), "holding the clock wrote its speed (Promo mode's speeds would be lost)")
+	t.held = false
+	h0 = float(t.local_clock()["hour"])
+	t._frame(10.0)
+	ran = (float(t.local_clock()["hour"]) - h0) * 3600.0
+	_expect(absf(ran - 10.0 * t.speed) < 1.0, "after the hold, 10 real s moved the clock %.0f game s, not %.0f" % [ran, 10.0 * t.speed])
+	# What holds it: a questline under way, or the Tajny klient chapter; nothing else.
+	var idle := {"busy": func() -> bool: return false}
+	var running := {"busy": func() -> bool: return true}
+	_expect(not GameTime.held_for([idle, {}]), "no questline runs, yet the clock is held")
+	_expect(GameTime.held_for([idle, running]), "a questline runs, yet the clock is not held")
+	_expect(GameTime.held_for([], true), "the Tajny klient chapter runs, yet the clock is not held")
 	# The seasons: Warsaw's real day lengths, about 8.5 h on 20 November and 16.8 h on 21 June.
 	var nov := t.sun_times()
 	var jun := TimeOfDay.sun_times_on(TimeOfDay.warsaw_to_utc("00:00", 20270621))

@@ -143,6 +143,14 @@ var fixed_start := -1.0
 ## per game day, worked out once a day.
 var game_clock := false
 var speed := 1.0
+## F 2026-11-26 (docs/design/story-structure.md, "The clock"): while a story chapter or a questline
+## runs the clock goes at real time (1 game second a real second), so a 3-minute boat race started
+## at 21:00 ends at 21:03, not in the dark at 22:30 (pacing.json time.hold_speed: 1; 3 if real time
+## feels frozen on the phone). Set by main.gd's story tick through
+## game_time.gd `held_for`; jobs, rides, rival races and rescues leave it off. A flag, not a write
+## to `speed`, so Promo mode's speeds (promo_mode.gd) come back untouched.
+var held := false
+var hold_speed := 1.0
 var _game_utc := 0.0
 var _golden := 1.0
 var _look_every := 10.0
@@ -240,6 +248,7 @@ func start_clock(date := 0, m := DAY, hour := -1.0) -> void:
 		date = int(fri["year"]) * 10000 + int(fri["month"]) * 100 + int(fri["day"])
 	game_clock = true
 	speed = Pacer.num("time", "speed")
+	hold_speed = Pacer.num("time", "hold_speed")
 	_golden = Pacer.num("time", "golden")
 	_look_every = Pacer.num("time", "look_every")
 	mode = LIVE
@@ -442,7 +451,7 @@ func _frame(dt: float) -> void:
 			_apply(_wake_look())
 		return
 	if game_clock:
-		_game_utc += dt * speed
+		_game_utc += dt * (hold_speed if held else speed)
 	if mode == LIVE:
 		_live_wait -= dt
 		if _live_wait <= 0.0:
