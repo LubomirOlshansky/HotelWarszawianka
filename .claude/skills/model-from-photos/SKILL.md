@@ -18,7 +18,7 @@ them in this order and write no spec line before steps 2 and 3 are back.
 | Step | Source and command | Answers | Cost |
 | --- | --- | --- | --- |
 | 1 | Facts: Wikipedia, the owner's or architect's site (a `web-fetch` or Haiku `scout` run) | storeys, year, architect, materials, what stands on the roof | 1 min, ~50k tokens in a subagent |
-| 2 | Google 3D Tiles: `node tools/tiles3d/render.mjs --building="NAME" --slug=KEY --angles=8 --pitch=-25` (start it first, in the background; 8 views at -25 match the turntable's low ring for `refs_compare.py`; the tool's default 6 at -28 pairs only 6 sides) | massing, true height, **the roof** (the game's main view), hidden and back faces, the neighbours | 5-7 min, 1 billable run |
+| 2 | Google 3D Tiles: `node tools/tiles3d/render.mjs --building="NAME" --slug=KEY --angles=8 --pitch=-25` (start it first, in the background; 8 views at -25 match the turntable's low ring for `refs_compare.py`; the tool's default 6 at -28 pairs only 6 sides; with `--building` it adds 4 square-on face views at pitch -10 that show the whole height down to the ground, `--no-faces` skips them) | massing, true height, **the roof** (the game's main view), hidden and back faces, the neighbours | 5-7 min, 1 billable run |
 | 3 | Street View: `python3 -I tools/streetview_fetch.py --building="NAME" --slug=KEY --fov=100` | bays and storeys per face, ground floor, doors, colour | 10 s, ≤ 16 images |
 | 4 | Mapillary / Panoramax / Commons / F's photos (below) | only what 2-3 lack: older or newer state, night, a detail | as needed |
 | 5 | GUGiK orthophoto (below) | true footprint under a leaning tower | optional: the cloud proxy blocks geoportal |
@@ -36,8 +36,8 @@ them in this order and write no spec line before steps 2 and 3 are back.
   in the spec. Google's terms limit storing and deriving from its content; this is reference by
   eye only (F decides on anything more).
 - **A square, a street front or a block of houses is one 3D Tiles run**, not one per house: aim
-  it with `--lat/--lon` (or game `X Z`) at the middle and a `--radius` that holds the whole group
-  (the Old Town, Plac Zamkowy), then crop per house from the 8 views and the top. Unnamed OSM
+  it with `--lat/--lon` (or game `X Z`) at the middle and `--area=R` with R holding the whole group
+  (the Old Town, Plac Zamkowy: 8 orbits at pitch -35 plus the top), then crop per house from the views. Unnamed OSM
   buildings use the X Z forms of both tools.
 - **Look at one sheet, not twenty files**: `montage refs/KEY/streetview/*.jpg -tile 4x -geometry
   420x420+2+2 /tmp/sv.jpg` (or `game/tools/shot_sheet.gd`), and the 3D renders the same way. A
@@ -171,6 +171,11 @@ parts, z-fighting) are ones a judge looking at shots misses.
    another part. A FAIL goes back to the builder, not to the reviewer. A new site on an **unnamed**
    OSM outline also needs its box in `tools/bake_sectors.py` `SITE_AREAS`, or the runtime city
    draws nothing there (no headless check catches it; the turntable does not either).
+   **Another model may already stand in the outline**: a street block (`game/data/street_blocks`,
+   `blk_<id>` sites), a photo front or a skin. The turntable builds the site alone and hides it;
+   `check_sites.gd` (headless, seconds) fails on a landmark over a street block, and the fix is the
+   block's id in `fronts.gd` `_find_blocks`' skip list (Ufficio Primo's first city shot showed the old
+   block's dome over the new model). Run it with the mesh check, and take one city shot at the end.
 2. **The builder's own look, in stages**: massing first (render, compare the silhouette with
    the photos), then the facade, then the roof and the small details, each stage rendered
    and compared before the next (a wrong silhouette is cheapest to fix before the facade).

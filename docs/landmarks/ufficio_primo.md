@@ -19,6 +19,9 @@ Fix rounds (2026-11-26, the lane session on Opus, from `tools/refs_compare.py`: 
 - art-director (Opus, one sheet, photo first): **L2 PASS**: silhouette 4, roof 4, rhythm 3, colour 4, identity 4,
   ground 3. Its fixes applied: dome 7 m rise and #707785 (between the two judges' readings), grooves 0.15 m and
   darker, stone cooled to #d8d4c9, cornice slab 1.1 m. 4322 tris.
+- City shot (2026-11-26): an older street-block model (blk_25911097, game/data/street_blocks) still stood in the
+  outline and drew its own dome and roof lights over this one; the turntable builds the site alone and could not
+  show it. `_find_blocks` skips it now (UP_BLOCK) and check_sites fails on any new landmark over a block.
 - Phone-only: whether the grooves shimmer while driving, whether the guardians read as figures, the lit panes at night.
 
 What still differs from the spec:

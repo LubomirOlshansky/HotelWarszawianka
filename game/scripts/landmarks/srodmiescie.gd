@@ -4228,6 +4228,10 @@ const UP_RING := [Vector2(-1051.4, 810.7), Vector2(-1011.3, 796.1), Vector2(-996
 const UP_STONE := Color("#d8d4c9")  # cooled a step after the art-director pass (the sunlit model read tan)
 const UP_CORNICE := 22.9     # the cornice slab's foot; its top, the roof, is 1.1 m higher (a slab deep enough to throw a shadow band)
 const UP_ROOF := 24.0
+## The street block (game/data/street_blocks) that stood in for it: the pilot's first city shot showed
+## that block's dome and windows over this model (the turntable builds the site alone and could not), so
+## `_find_blocks` skips it and check_sites fails on any new landmark over a block.
+const UP_BLOCK := "25911097"
 ## The dome's slate-blue sheet under the white bubbles (3D Tiles orbit views in sun; a paler grey
 ## lost the bubbles' contrast, Fable's review 2026-11-26).
 const UP_DOME := Color("#707785")

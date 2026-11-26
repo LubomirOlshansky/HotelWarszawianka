@@ -69,6 +69,9 @@ checks and city shots took most of a 55-minute build, so the lane session runs t
 1. The site's mesh check alone: `godot --headless --path game --script
    res://tools/check_mesh_quality.gd -- --site=KEY` (14 s): budget, z-fight, float, normals
    all clean; the site's `BUDGET` entry is in the same change.
+   Then `godot --headless --path game --script res://tools/check_sites.gd` (seconds): a new site
+   over an older street-block model fails there (add the block's id to `fronts.gd` `_find_blocks`'
+   skip list, as `UP_BLOCK`); the turntable builds the site alone and cannot show it.
 2. The turntable: `tools/turntable.sh KEY` (about 80 s); open the sheet and say per identity
    feature of the spec: there, missing or off.
 3. When the brief names references: `python3 -I tools/refs_compare.py KEY [--slug=SLUG]`
