@@ -45,6 +45,7 @@ func _initialize() -> void:
 	_expect(not bool(no_ride["apps"][0]["enabled"]) and no_ride["apps"][0]["sub"] == Rules.words("no_ride"), "no ride: off and says why")
 	_expect(no_ride["featured"].size() == 1 and not bool(no_ride["featured"][0]["enabled"]), "busy: the one quest there is, off")
 	_expect(Rules.model({})["featured"].is_empty(), "no questlines: no rows")
+	await process_frame  # the root takes the card into the tree on the first frame
 	_view(m)
 	if _problems == 0:
 		print("check_phone_hub: OK")

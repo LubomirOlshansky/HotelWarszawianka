@@ -4666,7 +4666,7 @@ func _draw_phone() -> void:
 	var c := Vector2.ONE * TOUCH * 0.5 * pt
 	var held := _phone_button.button_pressed or _phone_button.is_pressed()
 	_phone_button.draw_circle(c, 20.0 * pt, CARD_BG)
-	_phone_button.draw_arc(c, 20.0 * pt - 0.5 * pt, 0, TAU, 40, ACCENT if held else Color(1, 1, 1, 0.22), maxf(1.0, 0.6 * pt))
+	_phone_button.draw_arc(c, 20.0 * pt - 0.5 * pt, 0, TAU, 40, ACCENT if held else UiKit.EDGE_STRONG, maxf(1.0, 0.6 * pt))
 	var ink := ACCENT if held else INK
 	var body := Rect2(c - Vector2(6.0, 11.0) * pt, Vector2(12.0, 22.0) * pt)
 	_phone_button.draw_rect(body, ink, false, maxf(1.5, 1.6 * pt))
