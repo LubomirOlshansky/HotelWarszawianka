@@ -87,7 +87,10 @@ const GRASS := [Color("#4a8a3e"), Color("#3a6e32"), Color("#6aa84e")]
 const TRAM_R := Color("#c8302a")
 const TRAM_RD := Color("#9a2020")
 const TRAM_Y := Color("#f2c230")
-const PORSZA := [Color("#e9e6dc"), Color("#c4bfc8"), Color("#ffffff")]
+## Kebabulo's Porsza: gunmetal paint (lit top, light, mid, low side, sill), the glass, the calipers.
+const P911 := [Color("#d4dae2"), Color("#a3abb6"), Color("#838b97"), Color("#626a75"), Color("#3c4048")]
+const GLASS911 := [Color("#28303a"), Color("#4a5866"), Color("#8ea4b8")]
+const P911_CALIPER := Color("#f2c230")
 const PIGEON := [Color("#8a8f9a"), Color("#5e6270"), Color("#b4b8c4")]
 const OUT := Color("#2a1f3d")
 const INK := Color("#16191d")
@@ -1104,7 +1107,7 @@ func _draw_live() -> void:
 		var sp := 38.0 + k * 9.0
 		var bx := W + 30.0 - fmod(_t * (sp + 6.0) + k * 97.0, W + 60.0)
 		_car(bx, ROAD_Y + 21.5, colours[(k + 2) % colours.size()], false)
-	_porsza(roundf(W * 0.02), 188.0)
+	_porsza(roundf(W * 0.03), PAVE_Y - 1.0)
 	_pigeon()
 	var ph := tasting.phase
 	var fan := ph == Tasting.Phase.FAN or ph == Tasting.Phase.SELFIE or ph == Tasting.Phase.CARD
@@ -1244,66 +1247,154 @@ func _palm() -> void:
 	_u(cx + 1.5, top + 2, 1.5, 1.5, Color("#c8a020"))
 
 
-## Kebabulo's Porsza, side-on, nose right: a low white fastback, the roof sloping to the tail, round
-## lamps, the gold stripe, five-spoke rims.
+## Kebabulo's Porsza parked at the near kerb, side-on, nose right (F 2026-11-26 21:09, a grey 911-style
+## coupe from a photo, no badges): a gunmetal fastback whose roof runs down to the tail, the raised
+## rear wing, the intake behind the door, a round lamp with its ring, a black front intake, dark
+## multi-spoke rims with yellow calipers. The profile is rows of columns (equal tops merged), the
+## paint in four horizontal bands clipped to it, so it costs a few hundred rects.
 func _porsza(x: float, base: float) -> void:
-	var w := roundf(W * 0.24)
-	_u(x + 2, base - 1, w - 2, 2.5, Color(0.1, 0.05, 0.15, 0.3))
-	var roof_l := x + w * 0.10
-	var roof_r := x + w * 0.66
-	var steps := PackedFloat32Array()
-	for i in 10:
-		var k := float(i) / 9.0
-		steps.append(base - 15.0 - roundf((10.0 * sin(k * PI * 0.5 + 0.05) if k < 0.85 else 10.0 * (1.0 - (k - 0.85) * 4.0)) * PX) / PX)
+	x = roundf(x * PX) / PX
+	var w := roundf(W * 0.25)
+	var n := int(w * PX)
+	var su := float(PX)
+	_u(x + 1, base - 0.5, w - 1, 2, Color(0.1, 0.05, 0.15, 0.32))
+	_u(x + 4, base + 1.5, w - 8, 1, Color(0.1, 0.05, 0.15, 0.16))
+	# the profile's top (units above the ground) at each scene px column
+	var tops := PackedFloat32Array()
+	for i in n:
+		tops.append(_porsza_top((float(i) + 0.5) / float(n)))
 	_fig(0, 0, 1)
 	_org = Vector2.ZERO
-	var su := float(PX)
-	# the body in rects (the buffer outlines the whole silhouette)
-	_q((x + 2) * su, (base - 14) * su, (w - 4) * su, 10 * su, PORSZA[0])
-	_q(x * su, (base - 12) * su, w * su, 7 * su, PORSZA[0])
-	_q((x + w * 0.70) * su, (base - 16) * su, w * 0.27 * su, 3 * su, PORSZA[0])
-	for i in 10:
-		var k := float(i) / 9.0
-		var yy := steps[i]
-		_q((roof_l + k * (roof_r - roof_l)) * su, yy * su, ((roof_r - roof_l) / 9.0 + 1.0) * su, (base - 14.0 - yy) * su, PORSZA[0])
+	var gx := x * su
+	var gy := base * su
+	# the silhouette (outlined): runs of columns with the same top, then the wing on its stalk
+	var i0 := 0
+	for i in range(1, n + 1):
+		if i == n or roundf(tops[i] * su) != roundf(tops[i0] * su):
+			var t := roundf(tops[i0] * su)
+			var b := 6.0 if i0 < n * 0.02 or i0 > n * 0.975 else 5.0
+			_q(gx + i0, gy - t, i - i0, t - b, P911[1])
+			i0 = i
+	for sx: float in [0.05, 0.12]:
+		_q(gx + w * sx * su, gy - 22.0 * su, 1.5 * su, 4 * su, P911[4])
+	_q(gx + w * 0.005 * su, gy - 23.5 * su, w * 0.165 * su, 2.5 * su, P911[2])
 	_detail(true)
-	_q((x + w * 0.06) * su, (base - 8) * su, w * 0.9 * su, 3 * su, PORSZA[1])
-	_q((x + 2) * su, (base - 14) * su, (w - 4) * su, 1, PORSZA[2])
-	_q((x + w * 0.70) * su, (base - 16) * su, w * 0.27 * su, 1, PORSZA[2])
-	# the glass: windscreen, door, quarter light; chrome frames
-	_q((x + w * 0.36) * su - 1, (base - 23.5) * su, w * 0.17 * su + 2, 8 * su, Color("#a8b0b8"))
-	_q((x + w * 0.36) * su, (base - 23) * su, w * 0.16 * su, 7 * su, Color("#3a4a5a"))
-	_q((x + w * 0.53) * su, (base - 23) * su, w * 0.10 * su, 7 * su, Color("#3a4a5a"))
-	_q((x + w * 0.22) * su, (base - 20) * su, w * 0.12 * su, 4 * su, Color("#2e3a48"))
-	_q((x + w * 0.37) * su, (base - 22.5) * su, 2, 4, Color("#9ab4c8"))
-	_q((x + w * 0.54) * su, (base - 22.5) * su, 2, 2, Color("#9ab4c8"))
-	_q((x + w * 0.52) * su, (base - 23) * su, 2, 7 * su, PORSZA[1])
-	# the door line, the handle, the mirror
-	_q((x + w * 0.36) * su, (base - 14) * su, 1, 8 * su, PORSZA[1])
-	_q((x + w * 0.62) * su, (base - 14) * su, 1, 8 * su, PORSZA[1])
-	_q((x + w * 0.55) * su, (base - 12.5) * su, 4, 1, Color("#6b737a"))
-	_q((x + w * 0.63) * su, (base - 17) * su, 3, 2, PORSZA[1])
-	# the lamps, the tail light, the stripe, the exhaust
-	_q((x + w - 6) * su, (base - 14) * su, 5 * su, 3 * su, Color("#c9d2d8"))
-	_q((x + w - 5.5) * su, (base - 13.5) * su, 4 * su, 2 * su, SUN)
-	_q((x + w - 5) * su, (base - 13.5) * su, 2, 2, WHITE)
-	_q((x + 0.5) * su, (base - 12) * su, 2.5 * su, 2 * su, RED)
-	_q((x + 0.5) * su, (base - 12) * su, 2.5 * su, 1, RED_L)
-	_q((x + w * 0.06) * su, (base - 9) * su, w * 0.88 * su, 2, Kit.GOLD)
-	_q((x + w * 0.06) * su, (base - 9) * su + 2, w * 0.88 * su, 1, Color("#c8901a"))
-	_q((x - 1) * su, (base - 5) * su, 2 * su, 1 * su, Color("#8a929a"))
+	_q(gx + w * 0.005 * su, gy - 21.5 * su, w * 0.165 * su, 0.5 * su, P911[4])
+	_q(gx + w * 0.005 * su, gy - 23.5 * su, w * 0.165 * su, 1, P911[0])
+	# the paint: bands clipped to the profile (the sides darker down to the sill)
+	for band: Array in [[18.0, 17.0, P911[0]], [17.0, 9.0, P911[2]], [9.0, 4.5, P911[3]], [4.5, 2.5, P911[4]]]:
+		var a := -1
+		var z := -1
+		for i in n:
+			if tops[i] > float(band[0]):
+				if a < 0:
+					a = i
+				z = i
+		if a >= 0:
+			var hgt := float(band[0]) - float(band[1])
+			_q(gx + a, gy - float(band[0]) * su, z - a + 1, hgt * su, band[2])
+	# the light along the roof, the deck and the bonnet: one px on each run's top
+	i0 = 0
+	for i in range(1, n + 1):
+		if i == n or roundf(tops[i] * su) != roundf(tops[i0] * su):
+			_q(gx + i0, gy - roundf(tops[i0] * su), i - i0, 1, P911[0])
+			i0 = i
+	# the glass: the quarter light and the door window under the roof's line, a frame of paint above
+	var gl := int(n * 0.30)
+	var gr := int(n * 0.69)
+	i0 = gl
+	for i in range(gl + 1, gr + 1):
+		var belt := _porsza_belt(float(i0) / float(n))
+		if i == gr or roundf((tops[i] - 1.5) * su) != roundf((tops[i0] - 1.5) * su) or roundf(_porsza_belt(float(i) / float(n)) * su) != roundf(belt * su):
+			var top := roundf((tops[i0] - 1.5) * su)
+			var bot := roundf(belt * su)
+			if top > bot:
+				_q(gx + i0, gy - top, i - i0, top - bot, GLASS911[0])
+				_q(gx + i0, gy - top, i - i0, 1, GLASS911[1])
+			i0 = i
+	_q(gx + w * 0.445 * su, gy - 27 * su, 1.5 * su, 6 * su, P911[4])
+	_q(gx + w * 0.50 * su, gy - 25.5 * su, w * 0.05 * su, 1, GLASS911[2])
+	_q(gx + w * 0.51 * su, gy - 25 * su, w * 0.03 * su, 1, GLASS911[2])
+	_q(gx + w * 0.345 * su, gy - 25 * su, 2, 1, GLASS911[2])
+	# the door: its cut lines, the flush handle, the mirror on the door's front
+	_q(gx + w * 0.40 * su, gy - 20 * su, 1, 16 * su, P911[4])
+	_q(gx + w * 0.675 * su, gy - 20 * su, 1, 15.5 * su, P911[4])
+	_q(gx + w * 0.42 * su, gy - 18.5 * su, 3 * su, 1, P911[4])
+	_q(gx + w * 0.42 * su, gy - 18.5 * su + 1, 3 * su, 1, P911[0])
+	_q(gx + w * 0.655 * su, gy - 23.5 * su, w * 0.05 * su, 2.5 * su, P911[1])
+	_q(gx + w * 0.655 * su, gy - 23.5 * su, w * 0.05 * su, 1, P911[0])
+	_q(gx + w * 0.655 * su, gy - 21 * su, w * 0.05 * su, 1, P911[4])
+	# the long reflections: a hard line along the door and the rear hip
+	_q(gx + w * 0.42 * su, gy - 12.5 * su, w * 0.24 * su, 1, P911[1])
+	_q(gx + w * 0.07 * su, gy - 14.5 * su, w * 0.15 * su, 1, P911[1])
+	_q(gx + w * 0.74 * su, gy - 13 * su, w * 0.12 * su, 1, P911[1])
+	# the intake behind the door, slats in it
+	for k in 5:
+		var iw := 4.0 - absf(float(k) - 1.5) * 0.6
+		_q(gx + (w * 0.315 - iw * 0.5) * su, gy - (17.5 - k * 1.2) * su, iw * su, 1.2 * su, INK if k % 2 == 0 else Color("#33373e"))
+	# the round lamp with its light ring, the black intake under the nose, the lip
+	var lx := x + w * 0.875
+	_disc(lx, base - 15.5, 3.0, 2.5, P911[4])
+	_disc(lx, base - 15.5, 2.5, 2.0, Color("#c9d2da"))
+	_disc(lx, base - 15.5, 1.5, 1.2, Color("#4a525c"))
+	_u(lx - 0.5, base - 16, 1, 0.5, WHITE)
+	for s: Vector2 in [Vector2(-1.5, -1.0), Vector2(1.0, -1.0), Vector2(-1.5, 0.5), Vector2(1.0, 0.5)]:
+		_u(lx + s.x, base - 15.5 + s.y, 0.5, 0.5, Color("#f4fbff"))
+	_q(gx + w * 0.93 * su, gy - 9 * su, w * 0.07 * su, 5 * su, INK)
+	for k in 3:
+		_q(gx + w * 0.935 * su, gy - (8 - k * 1.5) * su, w * 0.06 * su, 1, Color("#3a3e46"))
+	_q(gx + w * 0.90 * su, gy - 4.5 * su, w * 0.10 * su, 1 * su, Color("#24272c"))
+	# the tail: the light bar, the diffuser, two tailpipes
+	_q(gx, gy - 15 * su, 1.5 * su, 1.5 * su, RED)
+	_q(gx, gy - 15 * su, 1.5 * su, 1, RED_L)
+	_q(gx + w * 0.015 * su, gy - 7 * su, w * 0.06 * su, 3 * su, INK)
+	_q(gx - 1.5 * su, gy - 5.5 * su, 2 * su, 1 * su, Color("#8a929a"))
+	_q(gx - 1.5 * su, gy - 5.5 * su, 1, 1 * su, INK)
 	_detail(false)
 	_flush(OUT)
-	for wx: float in [x + w * 0.20, x + w * 0.80]:
-		var wxx := roundf(wx * PX) / PX
-		_disc(wxx, base - 3, 7.5, 6.5, OUT)
-		_disc(wxx, base - 3, 7, 6, INK)
-		_disc(wxx, base - 3, 4, 3.5, Color("#c9d2d8"))
-		_disc(wxx, base - 3, 3, 2.5, Color("#a8b0b8"))
-		for s: Vector2 in [Vector2(0, -2.5), Vector2(2.5, -0.5), Vector2(1.5, 2), Vector2(-1.5, 2), Vector2(-2.5, -0.5)]:
-			_u(wxx + s.x - 0.25, base - 3 + s.y - 0.25, 0.5, 0.5, Color("#6b737a"))
-		_u(wxx - 0.5, base - 3.5, 1, 1, Color("#4a4e58"))
-		_u(wxx - 3, base - 5.5, 1.5, 0.5, WHITE)
+	for wu: float in [0.205, 0.80]:
+		_porsza_wheel(roundf((x + w * wu) * PX) / PX, base - 8.0, wu > 0.5)
+
+
+## The Porsza's roof line, units above the ground at `u` (0 the tail, 1 the nose).
+static func _porsza_top(u: float) -> float:
+	var pts := [Vector2(0.0, 13.5), Vector2(0.02, 16.5), Vector2(0.06, 18.0), Vector2(0.15, 20.0),
+		Vector2(0.25, 23.0), Vector2(0.35, 26.5), Vector2(0.45, 28.5), Vector2(0.52, 29.0),
+		Vector2(0.58, 28.3), Vector2(0.64, 25.5), Vector2(0.70, 21.5), Vector2(0.73, 19.0),
+		Vector2(0.76, 18.0), Vector2(0.83, 17.8), Vector2(0.88, 18.4), Vector2(0.93, 17.0),
+		Vector2(0.97, 14.5), Vector2(0.995, 11.5), Vector2(1.0, 10.0)]
+	for k in range(1, pts.size()):
+		var b: Vector2 = pts[k]
+		if u <= b.x:
+			var a: Vector2 = pts[k - 1]
+			return lerpf(a.y, b.y, (u - a.x) / (b.x - a.x))
+	return 10.0
+
+
+## The window's lower edge: level along the door, rising to the quarter light's tip.
+static func _porsza_belt(u: float) -> float:
+	return 20.0 + maxf(0.0, 0.45 - u) * 12.0
+
+
+## A wheel: the arch, the tyre, a dark multi-spoke rim, the disc, a yellow caliper behind the spokes.
+func _porsza_wheel(cx: float, cy: float, front: bool) -> void:
+	_disc(cx, cy - 0.5, 9.0, 9.0, Color("#24262b"))
+	_disc(cx, cy + 0.5, 8.0, 8.0, OUT)
+	_disc(cx, cy + 0.5, 7.5, 7.5, Color("#17181c"))
+	_disc(cx, cy + 0.5, 5.8, 5.8, Color("#3d4148"))
+	_disc(cx, cy + 0.5, 5.3, 5.3, Color("#202227"))
+	_disc(cx, cy + 0.5, 4.2, 4.2, Color("#5b6068"))
+	var ca := PI * (0.80 if front else 0.20)
+	for k in 5:
+		var a := ca + (float(k) - 2.0) * 0.16
+		_u(cx + cos(a) * 3.6 - 0.75, cy + 0.5 - sin(a) * 3.6 - 0.75, 1.5, 1.5, P911_CALIPER)
+	for k in 10:
+		var a := TAU * float(k) / 10.0 + 0.15
+		for r: float in [1.6, 2.4, 3.2, 4.0, 4.8]:
+			_u(cx + cos(a) * r - 0.25, cy + 0.5 + sin(a) * r - 0.25, 0.5, 0.5, Color("#6a6f78") if r < 3.0 else Color("#4a4e56"))
+	_disc(cx, cy + 0.5, 1.4, 1.4, Color("#2a2d33"))
+	_u(cx - 0.5, cy, 1, 1, Color("#9aa0a8"))
+	_u(cx - 5.5, cy - 3.5, 1.5, 0.5, Color("#3a3d44"))
 
 
 ## A pigeon pacing toward the kebab, pecking; it takes off at the MLASK and is back for the verdict.
