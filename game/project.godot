@@ -1,10 +1,4 @@
 ; Engine configuration file.
-; It's best edited using the editor UI and not directly,
-; since the parameters that go here are not all obvious.
-;
-; Format:
-;   [section] ; section goes between []
-;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -12,13 +6,21 @@ config_version=5
 
 config/name="Around Warsaw"
 config/version="0.1"
-run/main_scene="res://boot.tscn"
 config/quit_on_go_back=false
-config/features=PackedStringArray("4.7", "Mobile")
+run/main_scene="res://boot.tscn"
 run/flush_stdout_on_print=true
+config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://icon.png"
 boot_splash/bg_color=Color(0.659, 0.804, 0.902, 1)
 boot_splash/show_image=false
-config/icon="res://icon.png"
+
+[editor]
+
+run/main_run_args="--nosave"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/nw_android_export/plugin.cfg")
 
 [autoload]
 
@@ -31,13 +33,9 @@ window/size/viewport_height=720
 window/handheld/orientation=4
 window/ios/allow_high_refresh_rate=false
 
-[editor]
+[audio]
 
-run/main_run_args="--nosave"
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/nw_android_export/plugin.cfg")
+general/ios/session_category=0
 
 [input_devices]
 
@@ -50,8 +48,9 @@ common/physics_interpolation=true
 [rendering]
 
 renderer/rendering_method="mobile"
-textures/vram_compression/import_etc2_astc=true
+lights_and_shadows/directional_shadow/size=4096
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=0
+textures/vram_compression/import_etc2_astc=true
 
 [shader_globals]
 
