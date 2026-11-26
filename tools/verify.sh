@@ -176,6 +176,11 @@
 # the call's hours, the clock and the pay, and (since it is an activity of the kit, 2026-11-12) a
 # whole crawl played against the shared stand-ins. `crawl-run` (full set only) plays the Klasyczna
 # in the whole game with the autopilot: the pickup, three bars, the pay.
+# THE TAPCZAN phase 2 (2026-11-24): `tapczan` runs game/tools/check_tapczan.gd: data/tapczan.json's
+# words (pairs, no brand), the beer pong rules (racks, aim, bounce, rim, balls back, re-rack, drinks
+# and sway, Pani Gienia's late skill) and 300 seeded games, the tipsy fade and pull, the room's mesh,
+# the door's ring and WEJDŹ pill on the kit with stand-ins. `tapczan-run` (full set only) plays it
+# in the whole game: in, a pint, a self-playing game, out to the tipsy drive.
 # Sekretny rave (2026-11-06): `rave` runs game/tools/check_rave.gd: the cone, booth and club-room meshes,
 # LEKTI's, Mati's, the door's and the club's lines (no brand), the rave clock, the door's three
 # questions, the lights' poses, the spots and Smoła on the real lane graph; centrum.json only (CI too).
@@ -430,6 +435,8 @@
 # star toast; no map (CI too). The message director (docs/design/hud-messages.md, 2026-11-11): `messages`
 # runs game/tools/check_messages.gd: the rules by context, the queue, the call spacing, F's night race
 # replayed, the toast wait, the compact quest card, the challenge button, the road ahead; no map (CI too).
+# `callcards` runs game/tools/check_call_cards.gd (F 2026-11-24, a call that rang unseen): every call,
+# offer and quiz card is on screen with any controls, nitro, status line and talk; no map (CI too).
 # `streaming` runs game/tools/check_streaming.gd
 # (loop 3c) WITH a renderer (a window opens for a minute or two): every sector built from its
 # file is the whole city, vertex for vertex; 10 spots rendered with --monolithic and with the
@@ -672,8 +679,10 @@ police_run() {
 	if (( code != 0 || np > 0 )); then
 		P_FAIL+=("$tag: exit $code, $np error/warning lines: $(problems $logf | head -1 | cut -c1-100)")
 	fi
-	# The złoty never change: every "wallet A zł → B zł" line has A = B.
-	local bad=$(grep -E '^police: wallet [0-9]+ zł → [0-9]+ zł' $logf | awk '{ if ($3 != $6) print }' | head -1)
+	# The police never change the złoty: every "wallet A zł → B zł" line has A = B, except for the
+	# First steps' pay (first_steps.gd STEP_ZL, 50 per tick, a fresh save ticks as the run drives):
+	# B - A may be a multiple of 50 (never a loss, never an odd sum). Anything else is the police's.
+	local bad=$(grep -E '^police: wallet [0-9]+ zł → [0-9]+ zł' $logf | awk '{ d = $6 - $3; if (d < 0 || d % 50 != 0) print }' | head -1)
 	[[ -n $bad ]] && P_FAIL+=("$tag: the złoty changed: $bad")
 	RUN_LOG=$logf
 }
@@ -809,7 +818,8 @@ police_soak() {
 	local running=0
 	[[ $end == *"1 running"* ]] && running=1
 	local b4=${${end#*edge }%%;*} lanes=${${end#*lanes worst }%% m*}
-	if (( zl0 != zl1 )); then
+	# The First steps pay 50 zł a tick (first_steps.gd STEP_ZL): a gain in whole 50s is theirs.
+	if (( zl1 < zl0 || (zl1 - zl0) % 50 != 0 )); then
 		row FAIL "$label" $secs "the złoty changed: $zl0 → $zl1 ($logf)"
 	elif (( started != ended + running )); then
 		row FAIL "$label" $secs "$started chases started, $ended ended ($logf)"
@@ -819,6 +829,28 @@ police_soak() {
 		row FAIL "$label" $secs "a police car $lanes m off its lane ($logf)"
 	else
 		row PASS "$label" $secs "0 errors · $started chases ($ended ended), wallet $zl0 zł → $zl1 zł, B4 ≥ $b4, lanes ≤ $lanes m"
+	fi
+}
+
+# F 2026-11-24 ("10 minutes and no calls"): NW_CALLS_SOAK_MINUTES of play (default 15) with nobody
+# pressing anything; a friend must ring (`friend call: X rings`, activities.gd) though the rescue call
+# waits on its button unanswered.
+calls_soak() {
+	local mins=${NW_CALLS_SOAK_MINUTES:-15}
+	local t0=$EPOCHREALTIME frames=$(( mins * 3600 )) logf=$logs/run_calls-soak.log code
+	( cd $GAME && limited $STEP_LIMIT $GODOT --headless --path . --fixed-fps 60 --quit-after $frames \
+		-- --nosave --notitle ) > $logf 2>&1
+	code=$?
+	local secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+	local np=$(problems $logf | wc -l | tr -d ' ')
+	local n=$(grep -c '^friend call: ' $logf) w=$(grep -c '^rescue call ringing' $logf)
+	local label="run: calls soak $mins min"
+	if (( code != 0 || np > 0 )); then
+		row FAIL "$label" $secs "exit $code, $np error/warning lines: $(problems $logf | head -1 | cut -c1-100) ($logf)"
+	elif (( w == 0 || n == 0 )); then
+		row FAIL "$label" $secs "$n friends' calls, $w rescue calls ($logf)"
+	else
+		row PASS "$label" $secs "$n friends' calls, $w rescue calls"
 	fi
 }
 
@@ -1531,6 +1563,9 @@ for s in $want; do
 		devflags) check devflags '^check_dev_flags:' --script res://tools/check_dev_flags.gd ;;
 		# Bar crawl: the groups' lines (no brand), the routes' stops on the map, the hours, clock and pay.
 		crawl) check crawl '^check_bar_crawl:' --script res://tools/check_bar_crawl.gd ;;
+		# THE TAPCZAN, phase 2: the words, the beer pong rules and 300 seeded games, the tipsy fade, the
+		# room's mesh, the door's ring and WEJDŹ pill, the pint, the stake, WYJDŹ.
+		tapczan) check tapczan '^check_tapczan:' --script res://tools/check_tapczan.gd ;;
 		# Dead electric cars: the TESŁO, the lines, the sling, the chargers on the real graph.
 		evtow) check evtow '^check_ev_tow:' --script res://tools/check_ev_tow.gd ;;
 		# City-life satire #1: the loud cars and the Browary meet.
@@ -1594,6 +1629,10 @@ for s in $want; do
 		maptrack) check maptrack '^check_map_track:' --script res://tools/check_map_track.gd ;;
 		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		targetroute) check targetroute '^check_target_route:' --script res://tools/check_target_route.gd ;;
+		# 2026-11-23: the Autopilot hunts' road route (playtest_route.gd): where on the road, three drives by
+		# road from the PT-60 spot, the rc entry points on a stand-in Main (headless, ~10 s).
+		playtestroute) check playtestroute '^check_playtest_route:' --script res://tools/check_playtest_route.gd ;;
+		callcards) check callcards '^check_call_cards:' --script res://tools/check_call_cards.gd -- --nosave ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		# The time owner (game_time.gd, F 2026-11-19): hours, the night friends by day, the clock's jump.
 		gametime) check gametime '^check_game_time:' --script res://tools/check_game_time.gd ;;
@@ -1605,6 +1644,7 @@ for s in $want; do
 		hints) check hints '^check_hints:' --script res://tools/check_hints.gd ;;
 		opening) check opening '^opening:' --script res://tools/check_opening.gd ;;
 		life-soak) life_soak ;;
+		calls-soak) calls_soak ;;
 		# Loop 2d-1: Podwózka's star and pay tables, the streak and the cancel rules, its lines.
 		rides) check rides '^check_rides:' --script res://tools/check_rides.gd ;;
 		# Podwózka played on the activity kit (fake HUD, small city, the autopilot over the engine's own frames).
@@ -1677,6 +1717,8 @@ for s in $want; do
 		# the Klasyczna's three bars with their stays, the pay. In the cloud the group was at the
 		# last bar 2 min 38 s after boarding (about 12,000 frames with the call and the pickup).
 		crawl-run) game crawl 20000 '^crawl: end: made it, 3/3 bars' --crawl-call --crawl-log --crawl-route=klasyczna --autopilot ;;
+		# THE TAPCZAN in the whole game: straight in, a pint, a self-playing beer pong game, out to the tipsy drive.
+		tapczan-run) game tapczan 12000 '^tapczan: out: won' --tapczan=pong --tapczan-log ;;
 		shisha-run) game shisha 30000 '^shisha: done: smoke' --shisha-call --shisha-log --autopilot ;;
 		# Loop 2d-1 x 3g-1: a pull-over 25 s into that ride takes exactly one star (police.gd calls
 		# rides.on_pulled_over() when the conversation ends), on the prebuilt city.

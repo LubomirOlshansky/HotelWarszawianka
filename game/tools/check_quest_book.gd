@@ -232,6 +232,14 @@ func _invites() -> void:
 			"the toast names the questline in both languages: %s" % [w])
 	_expect(not QuestBook.mark_invite(intro, defs, "boat").is_empty() and intro.size() == 1,
 			"turning the same questline down again keeps one NEW mark")
+	# A questline played to its end (F 2026-11-25): remembered per id, drops its NEW mark, no other id.
+	_expect(not QuestBook.is_done(intro, "boat"), "a questline is not done before it is played")
+	QuestBook.mark_done(intro, "boat")
+	_expect(QuestBook.is_done(intro, "boat") and not QuestBook.is_done(intro, "rave"), "mark_done closes only that questline: %s" % [intro])
+	_expect(not intro.has(QuestBook.NEW_KEY + "boat"), "a finished questline is no longer NEW: %s" % [intro])
+	intro.erase(QuestBook.DONE_KEY + "boat")
+	intro.erase(QuestBook.NEW_KEY + "boat")
+	QuestBook.mark_invite(intro, defs, "boat")
 	# The questlines' facts (`story_facts`): open by their hours at the clock, NEW by the mark.
 	defs[1]["who"] = "Mati"
 	defs[1]["hours"] = Vector2(22.0, 4.0)

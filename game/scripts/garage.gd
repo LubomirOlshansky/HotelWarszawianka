@@ -1,23 +1,28 @@
 extends Node3D
 ## The garage loop (2026-10-31; docs/DEMO.md 6.2's 10:00 beat and 6.3 "Progression", checklist
-## F4): "Warsztat u Mirka", a street workshop on Twarda in Śródmieście (an invented business on a
+## F4): "Warsztat u Mirka", a tuning workshop on Grzybowska in Wola (an invented business on a
 ## real street; Mirek is an invented type). It moved from Brzeska in Praga, 3 km from the start, to
-## about 600 m west of it on 2026-11-22 (F: "капец далеко"). The złoty buy paint jobs for the hatchback; the eggs found
-## open a gold one.
-##  - **The place**: a dashed ring on the street (jobs.gd's pull-in look, in GARAGE_COLOUR) at the
-##    lane graph's point nearest SPOT, a diamond on the minimap and the full map. It shows once the
-##    player has earned anything (`open_rule`: a job done, złoty in the wallet or a paint bought:
-##    the default for the beat's "after the first earnings"); the first time, a toast says where.
-##  - **The card** (garage_card.gd): drive into the ring and stop (under STOP_SPEED m/s, no job,
-##    race, rescue or chase on, not flying): the game pauses under it like the settings card. The
-##    paints, their prices, Mirek's line; buy one (the wallet pays), or switch to one owned (free).
+## Twarda on 2026-11-22 (F: "капец далеко"), and on 2026-11-24 off the street into a building of
+## its own on the empty plot on Grzybowska's south side by Q22 (F: "a real garage, lit up, supercars
+## and stripped cars beside it; drive up, press a button, buy upgrades; always on the map"). The
+## building is the landmark site `warsztat_mirka` (landmarks/mirek.gd). The złoty buy paint jobs,
+## cars and parts; the eggs found open a gold paint.
+##  - **The place**: the forecourt in front of the open door (SPOT, off the carriageway, so waiting
+##    there never blocks traffic), a diamond on the minimap and the full map from the very start
+##    (F: "always on the map"). The first earnings still bring the toast that says where
+##    (`open_rule`, the guide's garage beat: `is_shown`).
+##  - **The way in** (F 2026-11-24): roll onto the forecourt (within RING of SPOT, under STOP_SPEED
+##    m/s, no job, race, rescue or chase on, not flying) and a side card asks: WJEŻDŻAM / NIE TERAZ
+##    (Enter on a keyboard is the first). WJEŻDŻAM opens the card (garage_card.gd): the game pauses
+##    under it like the settings card. The paints, their prices, Mirek's line; buy one (the wallet
+##    pays), or switch to one owned (free). NIE TERAZ: the question waits until the car has left.
 ##  - **The paints** (PAINTS): factory red (free, the default), six more for 50-150 zł (beta prices,
 ##    F 2026-11-17: the first delivery's money buys one; black 120: egg E01 at Lusterko's door; pea
 ##    green 60: egg E21 at Glon) and gold, free once GOLD_EGGS
 ##    egg cards are found. Owned paints are kept (wallet.gd `paints`, the day each was bought) and
 ##    the one on the car (`paint`): the save's [garage] section. car.gd `set_paint` rebuilds the
 ##    body's one mesh once (the same material: no new draw call).
-## Nothing runs per frame but a 4 Hz look at the ring (`spent_usec`: the bench's "garage" line).
+## Nothing runs per frame but a 4 Hz look at the forecourt (`spent_usec`: the bench's "garage" line).
 
 signal opened
 signal closed
@@ -31,18 +36,22 @@ const GarageCard := preload("res://scripts/garage_card.gd")
 ## G13: the second tab, "Części i auta" (a faster car, nitro, tyres and engine): upgrades.gd.
 const Upgrades := preload("res://scripts/upgrades.gd")
 
-## The workshop's spot: a point on Twarda (map metres), on the wide two-way stretch between Plac
-## Grzybowski and Emilii Plater, near which the ring goes on the street: ~590 m from the guided start
-## (first10.gd START), ~450 m from the first stand (jobs.gd FIRST_STAND), ~720 m from the map's spawn.
-const SPOT := Vector2(-1505.0, -135.0)
+## The workshop's forecourt (map metres): the middle of the apron in front of the open door, in
+## mirek.gd's frame (WM_O, WM_A) at u -6, v 14 (checked by check_garage.gd), ~14 m off Grzybowska's
+## eastbound carriageway: ~820 m from the guided start, ~230 m north-west of the old ring on Twarda.
+const SPOT := Vector2(-1730.0, -238.3)
+## Which way the door looks into the workshop from the forecourt (mirek.gd's v axis): the car
+## --garage puts there faces it.
+const FACE := Vector2(0.5018, 0.8650)
 const NAME := ["Warsztat u Mirka", "Mirek's garage"]
-const STREET := "Twarda"
+const STREET := "Grzybowska"
 ## The district on the card under the name (garage_card.gd).
-const DISTRICT := "Śródmieście"
+const DISTRICT := "Wola"
 const GARAGE_COLOUR := Color("#5aa0ff")
-## Stop in this ring (m) under this speed (m/s) and the card opens; leave COOL m to open it again.
-const RING := 6.0
-const STOP_SPEED := 1.5
+## Roll onto the forecourt (within RING m of SPOT) under this speed (m/s) and the card asks; leave
+## COOL m for it to ask again.
+const RING := 8.0
+const STOP_SPEED := 2.5
 const COOL := 20.0
 const CHECK_EVERY := 0.25
 ## Egg cards found that open the gold paint (DEMO 6.3: collectibles unlock a gold paint).
@@ -81,7 +90,7 @@ var hud: CanvasLayer
 var dialogue: Node
 var car: CharacterBody3D
 var map: Node3D
-## lane_graph.gd: where the ring meets the street (null: the ring sits on SPOT).
+## lane_graph.gd (unused since the forecourt left the street; main.gd still hands it over).
 var graph
 ## Is anything else on (a job, a race, a rescue, the police, the helicopter)? -> bool.
 var busy: Callable
@@ -89,10 +98,10 @@ var busy: Callable
 var eggs_found: Callable
 ## Loop 3h slice 2: the Syrenki found, -> int (unset: the wallet's `syrenki`).
 var syrenki_found: Callable
-## --garage: shown whatever the wallet says (no toast).
+## --garage: shown whatever the wallet says (no toast), and the card opens without the question.
 var force := false
-## Loop 3h slice 4: the guided first 10 minutes (first10.gd) keep the ring hidden until their
-## 10:00 beat, earnings or not (the rule's "after the first earnings" waits for it).
+## Loop 3h slice 4: the guided first 10 minutes (first10.gd) keep the "it's open" toast back until
+## their garage beat, earnings or not. The place itself is on the map and open the whole time.
 var held := false
 ## --garage=parts: the card opens on the parts tab (G13).
 var start_tab := "paint"
@@ -100,12 +109,13 @@ var start_tab := "paint"
 var log_on := false
 ## Time spent in this script since the bench last read it (µs).
 var spent_usec := 0
-## The ring's centre (on the road).
+## The forecourt's middle, on the ground.
 var at := Vector3.INF
 ## The card (built at the first open).
 var card: Control
-var _ring: MeshInstance3D
 var _shown := false
+## The side card's question (WJEŻDŻAM / NIE TERAZ) is up and this garage's.
+var _asking := false
 var _cool := false
 var _t := 0.0
 var _open := false
@@ -150,57 +160,17 @@ static func open_rule(jobs: Dictionary, zl: int, owned: Dictionary) -> bool:
 
 # --- setup -----------------------------------------------------------------------------------
 
-## The ring on the street nearest SPOT (on the lane graph, the ground level), hidden until it
-## shows; the car's saved paint.
-func setup(world: Node3D) -> void:
-	var p := SPOT
-	var y := 0.0
-	if graph != null:
-		var hit: Array = graph.snap(SPOT, 40.0, Vector2.ZERO, true, true)
-		if hit.is_empty():
-			hit = graph.snap(SPOT, 40.0, Vector2.ZERO, false, true)
-		if not hit.is_empty():
-			p = graph.point_at(int(hit[0]), float(hit[2]))
-			y = graph.surface(int(hit[0]), p)
-	elif map != null:
-		y = map.ground_height(p.x, p.y)
-	at = Vector3(p.x, y, p.y)
-	_ring = _ring_node()
-	world.add_child(_ring)
-	_ring.global_position = at
-	_ring.visible = false
+## The forecourt on the ground at SPOT, its diamond on the maps from the start; the car's saved paint.
+func setup(_world: Node3D) -> void:
+	var y: float = map.ground_height(SPOT.x, SPOT.y) if map != null else 0.0
+	at = Vector3(SPOT.x, y, SPOT.y)
+	if hud != null:
+		hud.markers.put("garage:workshop", MapMarkers.Layer.SERVICE, SPOT, GARAGE_COLOUR, 0, "garage")
 	apply_saved()
 	apply_car()
 	_refresh(true)
-	print("garage: %s at %.0f, %.0f (%s), %.1f m from its spot; paint %s, %d owned%s" % [NAME[0], at.x, at.z, STREET,
-			p.distance_to(SPOT), current(), owned().size() + 1, ", shown" if _shown else ", not shown yet"])
-
-
-## The dashed ring (jobs.gd `_marker`'s look, a little wider), unshaded, no shadow: one draw call
-## while near, none away (culled).
-func _ring_node() -> MeshInstance3D:
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_color = GARAGE_COLOUR
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var n := 28
-	for i in n:
-		if i % 2 == 1:
-			continue
-		var a0 := TAU * i / n
-		var a1 := TAU * (i + 1) / n
-		var o0 := Vector3(cos(a0), 0.0, sin(a0))
-		var o1 := Vector3(cos(a1), 0.0, sin(a1))
-		var y := Vector3(0, 0.4, 0)
-		for v in [o0 * RING, o1 * RING, o0 * (RING - 0.5), o1 * RING, o1 * (RING - 0.5), o0 * (RING - 0.5)]:
-			st.add_vertex(v + y)
-	var mi := MeshInstance3D.new()
-	mi.name = "GarageRing"
-	mi.mesh = st.commit()
-	mi.material_override = m
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return mi
+	print("garage: %s at %.0f, %.0f (%s); paint %s, %d owned%s" % [NAME[0], at.x, at.z, STREET,
+			current(), owned().size() + 1, ", told" if _shown else ", not told yet"])
 
 
 # --- the paints --------------------------------------------------------------------------------
@@ -328,6 +298,8 @@ func choose_item(id: String) -> String:
 				wallet.car = id
 			"nitro":
 				wallet.nitro = true
+			"look":
+				wallet.tune[id] = 1
 			"part":
 				wallet.tune[id] = Upgrades.level(wallet.tune, id) + 1
 		print("garage: bought %s for %d zł -> %d zł left" % [id, price, wallet.zl])
@@ -351,6 +323,8 @@ func apply_car() -> void:
 	car.nitro_owned = bool(wallet.nitro)
 	if str(wallet.car) != car.model:
 		car.set_model(str(wallet.car))
+	if car.has_method("set_looks"):
+		car.set_looks(Upgrades.has_look(wallet.tune, "wing"), Upgrades.has_look(wallet.tune, "neon"))
 	if hud != null and hud.has_method("set_nitro"):
 		hud.set_nitro(car.nitro_owned, car.nitro_charge, car.nitro_bottles, car.nitro_on)
 
@@ -371,7 +345,7 @@ func preset_upgrades(what: String) -> void:
 	print("garage: --upgrades=%s" % what)
 
 
-# --- the ring ----------------------------------------------------------------------------------
+# --- the forecourt -----------------------------------------------------------------------------
 
 func is_shown() -> bool:
 	return _shown
@@ -381,25 +355,18 @@ func is_open() -> bool:
 	return _open
 
 
-## The ring and the marks follow the rule (the first time: a toast).
+## The rule says the player has earned something (the first time: a toast saying where). The
+## diamond on the maps does not wait for it (F 2026-11-24: always on the map; put in `setup`).
 func _refresh(quiet := false) -> void:
 	var on := force or (not held and wallet != null and open_rule(wallet.jobs, int(wallet.zl), wallet.paints))
 	if on == _shown:
 		return
 	_shown = on
-	if _ring != null:
-		_ring.visible = on
-	if hud != null:
-		# Its diamond on the minimap and the full map (map_markers.gd, TD-13).
-		if on:
-			hud.markers.put("garage:workshop", MapMarkers.Layer.SERVICE, Vector2(at.x, at.z), GARAGE_COLOUR, 0, "garage")
-		else:
-			hud.markers.remove("garage:workshop")
 	if on and not quiet and not force and hud != null and wallet != null and not bool(wallet.keep.get("garage_told", false)):
 		wallet.keep["garage_told"] = true
 		wallet.save()
-		hud.toast("Warsztat u Mirka otwarty: Twarda, rzut beretem. Lakier za złotówki.",
-				"Mirek's garage is open: on Twarda, just round the corner. Paint jobs for złoty.")
+		hud.toast("Warsztat u Mirka otwarty: Grzybowska, ten z neonem. Lakier i tuning za złotówki.",
+				"Mirek's garage is open: on Grzybowska, the one with the neon. Paint and tuning for złoty.")
 		if log_on:
 			print("garage: shown (the first earnings)")
 
@@ -414,13 +381,20 @@ func _process(dt: float) -> void:
 	spent_usec += Time.get_ticks_usec() - t0
 
 
-## One look: the rule, and the car in the ring, stopped, nothing else on -> the card.
+## One look: the rule, and the car on the forecourt, slow, nothing else on -> the question (with
+## --garage: the card at once). The question goes when the car leaves or something else starts.
 func tick() -> void:
 	_refresh()
-	if not _shown or _open or car == null or at == Vector3.INF:
+	if _open or car == null or at == Vector3.INF:
 		return
 	var p := car.global_position
 	var d := Vector2(p.x - at.x, p.z - at.z).length()
+	if _asking:
+		if hud == null or not hud.card_is(self):
+			_asking = false  # another card took its place: asked again when it has gone
+		elif d > RING + 3.0 or (busy.is_valid() and bool(busy.call())):
+			_drop_question()
+		return
 	if _cool:
 		_cool = d < COOL
 		return
@@ -428,11 +402,60 @@ func tick() -> void:
 		return
 	if busy.is_valid() and bool(busy.call()):
 		return
-	open_card(start_tab)
+	if force:
+		open_card(start_tab)
+		return
+	if hud == null or hud.card_showing():
+		return
+	_ask()
+
+
+## The side card at the door: WARSZTAT U MIRKA, Mirek's call, WJEŻDŻAM / NIE TERAZ; its buttons
+## come to `card_pressed` (hud.gd `own_card`).
+func _ask() -> void:
+	var say := line("ask")
+	var yes := line("ask_yes")
+	var no := line("ask_no")
+	_asking = true
+	hud.show_side_card(str(NAME[0]).to_upper(), str(say[0]), PackedStringArray(["%s|%s" % yes, "%s|%s" % no]),
+			GARAGE_COLOUR, str(NAME[1]), str(say[1]))
+	hud.own_card(self)
+	if log_on:
+		print("garage: asked at the door")
+
+
+func _drop_question() -> void:
+	_asking = false
+	if hud != null and hud.card_is(self):
+		hud.hide_card()
+
+
+func is_asking() -> bool:
+	return _asking
+
+
+## A button of the question: 0 drives in (the card opens), 1 not now (asked again once the car
+## has left the forecourt).
+func card_pressed(index: int) -> void:
+	_drop_question()
+	if index == 0:
+		open_card(start_tab)
+	else:
+		_cool = true
+
+
+## Enter on a keyboard answers the question with its first button (F: "press enter").
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not _asking:
+		return
+	var k := event as InputEventKey
+	if k != null and k.pressed and not k.echo and k.keycode in [KEY_ENTER, KEY_KP_ENTER]:
+		get_viewport().set_input_as_handled()
+		card_pressed(0)
 
 
 ## The card opens (main.gd pauses the game under it: `opened`).
-## G2: "garage" at Mirek's ring (buy, tune, paint), "mine" from the full map's MOJE AUTO (look and
+## G2: "garage" at Mirek's (buy, tune, paint), "mine" from the full map's MOJE AUTO (look and
 ## switch what is owned; buying waits for the workshop), "lot" for the car lot (later).
 var mode := "garage"
 

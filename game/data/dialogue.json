@@ -3330,10 +3330,87 @@
   ],
   "garage": [
     [
-      "Zmiana fury za darmo. Części i nowe auta kupisz u mnie na Twardej.",
-      "Switching is free. Parts and new cars: at my place on Twarda.",
+      "Tu tylko twoje fury, zmiana gratis. Części: u Mirka na Grzybowskiej.",
+      "Only your own rides here, switching is free. Parts: Mirek's, Grzybowska.",
       {
         "only": "mine"
+      }
+    ],
+    [
+      "Mirek macha z bramy: „Wjeżdżaj, zrobi się!”",
+      "Mirek waves from the door: \"Roll in, we'll sort it!\"",
+      {
+        "only": "ask"
+      }
+    ],
+    [
+      "Mirek wyciera ręce w szmatę: „No, co dziś robimy?”",
+      "Mirek wipes his hands on a rag: \"So, what are we doing today?\"",
+      {
+        "only": "ask"
+      }
+    ],
+    [
+      "Z warsztatu leci disco polo, a Mirek już otwiera bramę.",
+      "Disco polo blares from the workshop, and Mirek is already opening the door.",
+      {
+        "only": "ask"
+      }
+    ],
+    [
+      "WJEŻDŻAM",
+      "Drive in",
+      {
+        "only": "ask_yes"
+      }
+    ],
+    [
+      "NIE TERAZ",
+      "Not now",
+      {
+        "only": "ask_no"
+      }
+    ],
+    [
+      "Dwie fury do wyboru: Ołdi szybsze, hatchback bardziej uczciwy.",
+      "Two rides to pick: the Owdy is quicker, the hatch more honest.",
+      {
+        "only": "cars"
+      }
+    ],
+    [
+      "Tu nie chodzi o szybkość. Tu chodzi o szacun na dzielni.",
+      "This isn't about speed. It's about respect on the block.",
+      {
+        "only": "style"
+      }
+    ],
+    [
+      "Spojler GT: docisk żaden, szacun pełny. Wygląda na +50 KM.",
+      "GT wing: zero downforce, full respect. Looks like +50 hp.",
+      {
+        "only": "wing"
+      }
+    ],
+    [
+      "Neon pod autem. Policja widzi cię z Pragi, ale jak ładnie.",
+      "Underglow. The police can see you from Praga, but so pretty.",
+      {
+        "only": "neon"
+      }
+    ],
+    [
+      "Przykręcone na cztery śruby i taśmę. Powyżej 200 nie sprawdzaj.",
+      "Bolted on with four screws and tape. Don't test it over 200.",
+      {
+        "only": "wing_buy"
+      }
+    ],
+    [
+      "Świeci! Teraz każdy parking to pokaz. Sąsiedzi zachwyceni.",
+      "It glows! Every car park is a show now. The neighbours love it.",
+      {
+        "only": "neon_buy"
       }
     ],
     [
@@ -3407,8 +3484,8 @@
       }
     ],
     [
-      "Mirek, od lat na Twardej. Lakier od ręki, kawa z fusami.",
-      "Mirek, on Twarda for years. Paint while you wait, coffee with grounds.",
+      "Mirek, teraz na Grzybowskiej. Lakier od ręki, kawa z fusami.",
+      "Mirek, now on Grzybowska. Paint while you wait, coffee with grounds.",
       {
         "only": "hello"
       }
@@ -6967,7 +7044,7 @@
     ["Polataj helikopterem", "Fly the helicopter", {"only": "step_heli"}],
     ["Spotkaj policję: stań albo uciekaj", "Meet the police: stop or get away", {"only": "step_police"}],
     ["Zajrzyj do warsztatu Mirka", "Visit Mirek's garage", {"only": "step_garage"}],
-    ["Na Twardej ktoś lakieruje za złotówki.", "Someone on Twarda paints cars for pennies.", {"only": "unknown_garage"}],
+    ["Mirek z Grzybowskiej: lakier za grosze, auto na dachu.", "Mirek's on Grzybowska: cheap paint, a car on the roof.", {"only": "unknown_garage"}],
     ["Na dachu BUW coś leży. Dolecisz?", "Something lies on the BUW roof. Can you fly?", {"only": "unknown_heli"}],
     ["Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty.", "Six rivals. Beat them all and win Trzy mosty.", {"only": "promise"}],
     ["PANI HALINA MRUGA", "Pani Halina is flashing you", {"only": "choice_title"}],
@@ -7069,7 +7146,7 @@
     ["Ktoś utknął w mieście. Odbierz wezwanie i pomóż, autem albo helikopterem.", "Someone is stuck somewhere in town. Take the call and help, by car or by helicopter.", {"only": "step_rescue_about"}],
     ["Przycisk HELI zamienia auto na helikopter. Wzbij się nad miasto.", "The HELI button swaps the car for the helicopter. Take off over the city.", {"only": "step_heli_about"}],
     ["Policja prędzej czy później cię zauważy. Zatrzymaj się albo uciekaj.", "The police will notice you sooner or later. Pull over, or get away.", {"only": "step_police_about"}],
-    ["Mirek na Twardej lakieruje i tuninguje. W becie tanio.", "Mirek on Twarda does paint jobs and tuning. Cheap in the beta.", {"only": "step_garage_about"}],
+    ["Mirek na Grzybowskiej lakieruje i tuninguje. W becie tanio.", "Mirek on Grzybowska does paint jobs and tuning. Cheap in the beta.", {"only": "step_garage_about"}],
     ["Kebab na dowóz", "Kebab deliveries", {"only": "job_kebab"}],
     ["Budki z kebabem w całym centrum. Weź zamówienie i dowieź, zanim wystygnie.", "Kebab stands all over the centre. Take an order and deliver it before it goes cold.", {"only": "job_kebab_about"}],
     ["Podwózka", "Podwózka rides", {"only": "job_ride"}],
@@ -7092,6 +7169,8 @@
     ["Mixtape'y leżą na dachach. Dolecisz tylko helikopterem.", "Mixtapes lie on rooftops. Only the helicopter gets there.", {"only": "job_cassette_about"}],
     ["Warsztat u Mirka", "Mirek's garage", {"only": "job_garage"}],
     ["Lakiery, opony, silnik i nitro. W becie tanio.", "Paints, tyres, engine and nitro. Cheap in the beta.", {"only": "job_garage_about"}],
+    ["Rajd Kraftowy · THE TAPCZAN", "The Craft Crawl · THE TAPCZAN", {"only": "job_crawl"}],
+    ["Pub na Sienkiewicza 4, otwarty zawsze: zatrzymaj się przy złotym kółku i WEJDŹ. Piwko przy barze, beer pong z bywalcami o złotówki. Nocą stąd rusza Rajd Kraftowy: grupa dzwoni, ty wozisz.", "The pub on Sienkiewicza 4, always open: stop at the gold ring and GO IN. A pint at the bar, beer pong with the regulars for złoty. At night the Craft Crawl starts here: a group rings, you drive.", {"only": "job_crawl_about"}],
     ["Dzielnice", "Districts", {"only": "col_districts"}],
     ["Odkrywaj dzielnice, jeżdżąc po nich i robiąc zlecenia.", "Discover the districts by driving through them and doing jobs there.", {"only": "col_districts_about"}],
     ["Syrenki", "Syrenki", {"only": "col_syrenki"}],

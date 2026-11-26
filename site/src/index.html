@@ -26,6 +26,7 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/styles.css">
+<script src="/lang.js"></script>
 <script src="/site.js" defer></script>
 </head>
 <body>
@@ -123,34 +124,7 @@
     </div>
     <details class="write" open>
       <summary>{{feedback_summary}}</summary>
-      <form class="form" id="form" action="{{form_action}}" method="POST" novalidate data-need="message">
-        <fieldset class="topics">
-          <legend>{{f_topic}}</legend>
-{{topics}}
-        </fieldset>
-        <fieldset class="topics platform">
-          <legend>{{f_platform}}</legend>
-          <label><input type="radio" name="platform" value="iPhone"><span>iPhone</span></label>
-          <label><input type="radio" name="platform" value="Android"><span>Android</span></label>
-          <label><input type="radio" name="platform" value="—" checked><span>{{f_platform_none}}</span></label>
-        </fieldset>
-        <div class="field">
-          <label for="email">{{f_email}} <span class="opt">{{f_email_opt}}</span></label>
-          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" aria-describedby="email-err">
-          <p class="err" id="email-err" aria-live="polite"></p>
-        </div>
-        <div class="field">
-          <label for="message">{{f_message}}</label>
-          <textarea id="message" name="message" rows="5" maxlength="5000" aria-describedby="message-err"></textarea>
-          <p class="err" id="message-err" aria-live="polite"></p>
-        </div>
-        <input type="hidden" name="source" value="aroundwarsaw.app ({{lang}})">
-        <input type="hidden" name="_subject" id="subject" value="Around Warsaw: {{topic_default}}">
-        <div class="hp" aria-hidden="true"><label for="_gotcha">Leave empty</label><input id="_gotcha" type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>
-        <button class="btn btn-primary send" type="submit">{{f_send}}<svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
-        <p class="legal">{{f_legal}}</p>
-        <p class="status" role="status" aria-live="polite" data-ok="{{f_ok}}" data-fail="{{f_fail}}" data-need-email="{{f_need_email}}" data-bad-email="{{f_bad_email}}" data-need-msg="{{f_need_msg}}" data-sending="{{f_sending}}"></p>
-      </form>
+{{feedback_form}}
     </details>
   </div>
 </section>

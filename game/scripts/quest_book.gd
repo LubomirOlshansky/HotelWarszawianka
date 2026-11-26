@@ -45,9 +45,9 @@ const TABS := ["steps", "stories", "jobs", "taxi", "rivals", "collection"]
 ## The tabs that show even when empty.
 const ALWAYS := ["stories", "jobs", "rivals"]
 ## The side jobs' kinds, in the tab's order, and the wallet.gd `jobs` key that counts each ("" none).
-const JOB_KINDS := ["kebab", "ride", "call", "sloik", "lezak", "trend", "mlask", "drop", "peacock", "cassette", "garage"]
+const JOB_KINDS := ["kebab", "ride", "call", "sloik", "lezak", "trend", "mlask", "drop", "peacock", "cassette", "garage", "crawl"]
 const JOB_COUNT := {"kebab": "kebab", "ride": "podwozka", "call": "rescue", "sloik": "sloik", "lezak": "roundup",
-		"trend": "trend", "mlask": "trend", "drop": "trend", "peacock": "", "cassette": "", "garage": ""}
+		"trend": "trend", "mlask": "trend", "drop": "trend", "peacock": "", "cassette": "", "garage": "", "crawl": "crawl"}
 ## A questline's wallet.gd `jobs` key, where its runs are counted on their own ("" none: the coffee
 ## run and padel are paid as "trend", with the other trend jobs).
 const STORY_COUNT := {"boat": "boat_race", "rave": "rave", "dekalog": "dekalog_tour", "kino": "kino_tour", "meet": "meet_race",
@@ -58,8 +58,11 @@ const STORY_COUNT := {"boat": "boat_race", "rave": "rave", "dekalog": "dekalog_t
 const ICON_DIR := "res://art/quest_icons/"
 ## The wallet intro key prefix that marks a questline NEW in QUESTS (a turned-down invite, `mark_invite`).
 const NEW_KEY := "qnew_"
+## The wallet intro key prefix of a questline played to its end (F 2026-11-25: its friend never phones
+## again; the QUESTS screen and the start spot still start it on purpose).
+const DONE_KEY := "qdone_"
 const ICONS := {"kebab": "kebab", "ride": "ride", "call": "rescue", "rescue": "rescue", "sloik": "jars", "lezak": "scooter",
-		"trend": "trend", "mlask": "foodvan", "drop": "drop", "peacock": "peacock", "cassette": "cassette", "garage": "garage",
+		"trend": "trend", "mlask": "foodvan", "drop": "drop", "peacock": "peacock", "cassette": "cassette", "garage": "garage", "crawl": "club",
 		"boat": "boat", "rave": "rave", "smola": "club", "dekalog": "film_tour", "kawa": "coffee", "padel": "padel",
 		"meet": "meet", "kino": "cinema", "tesla": "ev_tow", "race": "rivals", "rivals": "rivals", "final": "rivals",
 		"heli": "heli", "police": "police", "districts": "collection", "syrenki": "collection", "tapes": "cassette",
@@ -122,10 +125,21 @@ static func story_facts(defs: Array, clock: Array, intro: Dictionary) -> Array:
 	return out
 
 
+## Is questline `id` finished for good (`intro` is wallet.gd's)?
+static func is_done(intro: Dictionary, id: String) -> bool:
+	return intro.has(DONE_KEY + id)
+
+
+## Questline `id` was played to its end: remember it, and drop its NEW mark.
+static func mark_done(intro: Dictionary, id: String) -> void:
+	intro[DONE_KEY + id] = 1
+	intro.erase(NEW_KEY + id)
+
+
 ## A questline's call was turned down or rang out (activity.gd `declined`): mark it NEW in QUESTS in
 ## `intro` (wallet.gd) and return the toast's words, or [] and mark nothing for an id that is no
 ## questline of `defs` (story_quests.gd). It can't be one under way: `declined` fires only from that
-## activity's ringing or offer card. Questlines repeat, so a played one is a fresh invite on purpose.
+## activity's ringing or offer card. A finished questline never phones again (`mark_done`), but a played one can be started again from QUESTS.
 static func mark_invite(intro: Dictionary, defs: Array, id: String) -> Array:
 	for d: Dictionary in defs:
 		if str(d.get("id", "")) == id:

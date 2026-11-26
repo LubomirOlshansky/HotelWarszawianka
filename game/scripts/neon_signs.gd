@@ -73,6 +73,10 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# F's photos (2026-11-06): the round pavilion's letters one box each (the ones N, O, W, T, E, L
 		# don't give), and the jazz stage's valance.
 		"A", "R", "S", "Z", "P", "I", "Ś", "JAZZ",
+		# THE TAPCZAN, the craft-beer pub's sign on Sienkiewicza 4 (F's photos, 2026-11-24).
+		"THE", "TAPCZAN", "CRAFT BEER",
+		# Kamienica Harczyka's ground floor (F's photos, 2026-11-24): parodies of a restaurant and a café.
+		"REJNA", "LIMONKA",
 		# S3a: Warszawa Stadion's roof letters.
 		"STADION",
 		# S3e: Warszawa Wschodnia's fascia letters (with WARSZAWA above).
@@ -173,7 +177,9 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# restaurant, the vegan bar, the bubble tea, the grill, the jars, the pierogi, the sushi, the
 		# Czech pub, Scena Relax's café and pizzeria, the café on Zgoda.
 		"STRYCH", "WEGE FUD", "AUREOLA TEA", "BLISKI ZACHÓD", "SŁOICZEK", "PIEROŻKARNIA", "KISIEL SUSHI",
-		"PO CZESKU", "KAWIARNIA RELAKS", "WŁOSKI ZASTÓJ", "KOSMOSIK"]
+		"PO CZESKU", "KAWIARNIA RELAKS", "WŁOSKI ZASTÓJ", "KOSMOSIK",
+		# Warsztat u Mirka on Grzybowska (F, 2026-11-24): the fascia, the west wall, the roof's meme.
+		"WARSZTAT U MIRKA", "CHIP TUNING", "OLEJ DO BAWARKI", "ZROBI SIĘ!"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)

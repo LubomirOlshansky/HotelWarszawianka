@@ -28,6 +28,8 @@ boatrace             quick
 boot                 quick
 boot-run             smoke
 buses                quick
+callcards            quick
+calls-soak           local     slow
 campus               quick
 cassettes            quick
 centralnyramp        quick
@@ -144,6 +146,7 @@ places               quick
 placescripts         quick
 placzamkowy          quick
 plain                runs
+playtestroute        quick
 pois                 roads
 police               quick
 police-runs          local     slow
@@ -216,6 +219,8 @@ stuckspots           roads
 stuckspots-prebuilt  smoke     slow
 syrenki              quick
 tamka                quick
+tapczan              quick
+tapczan-run          local     slow
 tape                 quick
 tapers               quick
 tarasyscreen         quick

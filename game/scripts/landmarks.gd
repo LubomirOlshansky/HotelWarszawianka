@@ -1,4 +1,4 @@
-extends "res://scripts/landmarks/karowa.gd"
+extends "res://scripts/landmarks/mirek.gd"
 ## v0.8 "Landmarks": the buildings that make it Warsaw at a glance, built in code
 ## from the real footprints and heights in centrum.json (OpenStreetMap outlines and
 ## building parts, which carry `height` / `min_height`) instead of their GUGiK LoD2 or
@@ -836,6 +836,18 @@ const INFO := {
 	"cepelia": ["Pawilon Cepelii",
 			"Szklany pawilon z 1966 roku na rogu Alej, odnowiony w 2024: książki i winyle na trzech poziomach.",
 			"A 1966 glass pavilion on the Aleje corner, restored in 2024: books and vinyl on three levels."],
+	"tapczan": ["The Tapczan",
+			"Pub z piwem kraftowym na Sienkiewicza: szesnaście kranów, trzy poziomy i ogródek na paletach pod czarnymi parasolami. Tak, to parodia.",
+			"A craft-beer pub on Sienkiewicza: sixteen taps, three floors and a pallet terrace under black umbrellas. Yes, a parody."],
+	"sienkiewicza4": ["Sienkiewicza 4",
+			"Secesyjna kamienica z zaokrąglonymi narożnikami, żelaznymi balkonami i ciemnymi fryzami z liśćmi. Na parterze pub, a stalowy daszek nad bramą.",
+			"An Art Nouveau tenement with rounded corners, iron balconies and dark leafy friezes. A pub on the ground floor and a steel canopy over the gate."],
+	"harczyk": ["Kamienica Harczyka",
+			"Śnieżnobiała neobarokowa kamienica na rogu Jasnej: skośny narożnik z balkonami, mansarda z czerwonymi lukarnami i białymi szczytami.",
+			"A brilliant-white neo-baroque corner tenement on Jasna: a chamfered corner stacked with balconies, a mansard with red-brick dormers and white gables."],
+	"sienkiewicza3": ["Sienkiewicza 3",
+			"Socrealistyczny blok z lat 50.: siatka piaskowych filarów, czerwonawe płyty, długi balkon nad arkadą i przejście na południe.",
+			"A 1950s socialist-classicist block: a grid of sandstone piers, reddish panels, a long balcony over an arcade and a passage south."],
 	"pijana": ["Pijana Czereśnia",
 			"Ciemny ośmioboczny pawilon w parku, z beczkowatym bębnem na dachu. Nalewka z czereśni, drewniany taras i światełka. Tak, to parodia.",
 			"A dark octagonal pavilion in the park with a barrel-like drum on its roof. Cherry liqueur, a timber deck and string lights. Yes, a parody."],
@@ -848,6 +860,9 @@ const INFO := {
 	"wiecha": ["Pasaż Wiecha",
 			"Deptak za Domami Towarowymi Centrum, nazwany na cześć Stefana Wiecheckiego „Wiecha”. Pawilony z witrynami pod blokami.",
 			"The walkway behind the Eastern Wall's stores, named after the writer Stefan Wiechecki, \"Wiech\". Shop pavilions under the slabs."],
+	"warsztat_mirka": ["Warsztat u Mirka",
+			"Tuning, lakier i kawa z fusami. Na dachu stoi auto, bo „zrobi się”, a na podwórku czekają dwa wyścigowe i jedno na kołkach. Wjedź pod niebieski neon.",
+			"Tuning, paint and coffee with grounds. There's a car on the roof because \"it'll get done\", and in the yard two racers and one on axle stands are waiting. Drive in under the blue neon."],
 	"wiecha_swieta": ["Święta w Pasażu Wiecha",
 			"Spadające gwiazdy na każdej latarni, piernikowy ludzik, przez którego się przechodzi, neonowa choinka i bombki, w których można usiąść. Do Trzech Króli.",
 			"Shooting stars on every lamp mast, a gingerbread man you walk through, a neon fir and baubles you can sit in. Until Epiphany."],
@@ -1337,6 +1352,12 @@ func _find_sites() -> void:
 	_find_modern_pavilions()
 	# F's photos (2026-11-08): the cherry-liqueur kiosk in the park by Emilii Plater, as a parody.
 	_find_pijana()
+	# F's photos (2026-11-24): THE TAPCZAN, the craft-beer pub on Sienkiewicza 4 and its terrace.
+	_find_tapczan()
+	# F (2026-11-24): the three houses round THE TAPCZAN: no. 4 itself, Harczyk's corner and the block opposite.
+	_find_sienkiewicza4()
+	_find_harczyk()
+	_find_sienkiewicza3()
 	# First scene items 4-5 (2026-11-02, the Mac photo report dt_pawilony): Pasaż Wiecha's pavilions.
 	_find_wiecha()
 	# F's photos and the opening night's Instagram (2026-11-22): the pasaż's Christmas lights.
@@ -1570,6 +1591,9 @@ func _find_sites() -> void:
 		_add_site("solec_dom", [sld])
 		if not sites.is_empty() and sites[-1]["key"] == "solec_dom":
 			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": SLD_WALL, "roof": SLD_ROOF}
+	# F (2026-11-24): Mirek's tuning workshop on the empty plot on Grzybowska (garage.gd's place).
+	# It has a card, so it comes before the first quiet site below (the cards skip quiet sites).
+	_find_warsztat_mirka()
 	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
 	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
@@ -1974,10 +1998,20 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_zodiak(s)
 			"pijana":
 				_build_pijana(s)
+			"tapczan":
+				_build_tapczan(s)
+			"sienkiewicza4":
+				_build_sienkiewicza4(s)  # the whole house (it replaces LoD2 and the mapped parts)
+			"harczyk":
+				_build_harczyk(s)
+			"sienkiewicza3":
+				_build_sienkiewicza3(s)
 			"wiecha":
 				_build_wiecha(s)
 			"wiecha_swieta":
 				_build_wiecha_swieta(s)
+			"warsztat_mirka":
+				_build_warsztat_mirka(s)
 			"orly":
 				_build_orly(s)
 			"hotel_warszawa":

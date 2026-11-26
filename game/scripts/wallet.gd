@@ -611,15 +611,15 @@ func jobs_done() -> int:
 	return n
 
 
-## The garage loop: pays `amount` złoty out of the wallet (a paint job, a car or a part) and saves; false (nothing
-## paid) when there are not that many.
+## Pays `amount` złoty out of the wallet (the garage loop's paint job, car or part; THE TAPCZAN's beer) and saves;
+## false (nothing paid) when there are not that many.
 func spend(amount: int) -> bool:
 	if amount < 0 or amount > zl:
 		return false
 	zl -= amount
 	save()
 	changed.emit(zl, respect, -amount)
-	print("wallet: -%d zł (garage) -> %d zł, respect %d" % [amount, zl, respect])
+	print("wallet: -%d zł (spent) -> %d zł, respect %d" % [amount, zl, respect])
 	return true
 
 

@@ -626,6 +626,7 @@ func _refused(timed_out: bool) -> void:
 func _begin() -> void:
 	_towing = true
 	if bool(job.get("stranger", false)):
+		run_story = ""  # a stranger's car is a tip, not Bartek's questline: it never closes it
 		_hook()
 		return
 	calls += 1
