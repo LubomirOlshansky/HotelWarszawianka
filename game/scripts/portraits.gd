@@ -13,7 +13,8 @@ const DIR := "res://art/portraits/"
 ## A name whose face file has a longer key (the only Kuba who calls is the padel one).
 const ALIAS := {"kuba": "kuba_padel", "bogdan": "bogdan_tenis", "sierzant": "sierzant_bogdan", "straznik": "henio",
 		"mistrz": "pan_dymek", "taksiarz": "taksiarz_zbyszek", "sloik": "sloik", "mordor": "mordor_mike", "trener": "trener_dominik", "dj": "club_dj",
-		"bartek": "bartek_padel", "posterunkowy": "kacper", "zbyszek": "pan_zbyszek"}
+		"bartek": "bartek_padel", "posterunkowy": "kacper", "zbyszek": "pan_zbyszek",
+		"kebabulo": "mrozulo"}  # F 2026-11-26: Mrożulo is Kebabulo on screen (tajny_klient.gd)
 ## First words that are not a name on their own: the file key is this word and the next ("Pani Halina" ->
 ## pani_halina, "Pan Kołek" -> pan_kolek, "Bulwar Bartek" -> bulwar_bartek).
 const TITLES := ["pan", "pani", "bulwar"]

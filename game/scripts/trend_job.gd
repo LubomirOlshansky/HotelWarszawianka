@@ -301,6 +301,9 @@ var egg: Callable
 ## (the save), when the call may ring next (_played s), the sticker's node once placed.
 var storefronts: Node
 var dz_done := false
+## The Tajny klient opening is on (tajny_klient.gd, main.gd): DŻEMINI is in its story, so this call
+## does not ring.
+var dz_off := false
 var _dz_at := DZ_FIRST
 var _sticker: MeshInstance3D
 
@@ -510,7 +513,7 @@ func _look() -> void:
 	# The message director's call spacing and quiet time, and TD-3's variety (the director's `my_turn`).
 	var calls_ok: bool = not hold_calls(mission_on, _played, _call_rest, bool(call_waiting.call())) \
 			and _call_gate() and bool(my_turn.call())
-	if calls_ok and not dz_done and van_out(hour) and _played >= _dz_at:
+	if calls_ok and not dz_done and not dz_off and van_out(hour) and _played >= _dz_at:
 		_dz_at = _played + DZ_COOL
 		if offer_dzemini():
 			return
