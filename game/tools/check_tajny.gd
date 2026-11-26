@@ -11,7 +11,11 @@ extends SceneTree
 ##     and F's three phrases are there; the shop is in the storefronts' tables;
 ##   - the times are in pacing.json "tajny";
 ##   - the 2D stand gives the city back on every way out: WYJDŹ (`_stand_done`, in a run or not) and
-##     the run's end (`_ended`: the ✕, a drop, the clock); held, the city is off and the car stopped.
+##     the run's end (`_ended`: the ✕, a drop, the clock); held, the city is off and the car stopped;
+##   - the livestream's verdict and the MLASK's caption say F's three phrases;
+##   - SZYBA (kemal_window_ui.gd, the payoff): what it is handed (who won, the lines, the receipt's
+##     rows, the badges, the leak only for a taken bribe), and every way out gives the city back
+##     (its end, out of a run, the run's end).
 ##   godot --headless --path game --script res://tools/check_tajny.gd -- --nosave
 
 const Tajny := preload("res://scripts/tajny_klient.gd")
@@ -19,6 +23,7 @@ const Crowds := preload("res://scripts/crowds.gd")
 const Storefronts := preload("res://scripts/storefronts.gd")
 const StandUi := preload("res://scripts/kebab_stand_ui.gd")
 const PalmUi := preload("res://scripts/palm_tasting_ui.gd")
+const WindowUi := preload("res://scripts/kemal_window_ui.gd")
 const Dialogue := preload("res://scripts/dialogue.gd")
 
 var problems: Array[String] = []
@@ -43,6 +48,7 @@ func _initialize() -> void:
 	_tables()
 	_stand_exits()
 	_palm_exits()
+	_window_exits()
 	for p in problems:
 		print("  PROBLEM " + p)
 	print("check_tajny: %s" % ("OK (%d checks)" % checks if problems.is_empty() else "%d problems" % problems.size()))
@@ -203,10 +209,12 @@ func _palm_exits() -> void:
 	t0.grade = Tajny.grade_of(3, 0.1, 0, false, "good")
 	var spec := t0.tasting_spec()
 	var v: Array = spec["verdict"]
-	_expect(v.size() == 4, "the verdict: the bite, the bun, Berlin and DŻEMINI (%d lines)" % v.size())
-	var said := ""
+	_expect(v.size() == 3, "the verdict: the bun, Berlin and DŻEMINI (%d lines; the bite is the MLASK's caption)" % v.size())
+	var said := str((spec.get("caption", ["", ""]) as Array)[0]) + " "
+	_expect(said.to_lower().contains("ale dobry"), "the MLASK's caption is F's \"…ale dobry\": %s" % said)
 	for l: Array in v:
 		said += str(l[0]) + " "
+	said = said.replace("ALE DOBRY", "Ale dobry")
 	for phrase: String in ["Ale dobry", "nie za sucha", "z Berlina"]:
 		_expect(said.contains(phrase), "the livestream says F's \"%s\"" % phrase)
 	_expect(str(spec["grade_label"]) == "11 / 10" and str((spec["roast"] as Array)[0]).contains("Jedenaście"), "a perfect run is 11/10 with its roast: %s" % spec["grade_label"])
@@ -235,6 +243,62 @@ func _palm_exits() -> void:
 		if way == "ended":
 			_expect(not t._palm_ui.inside, "palm ended: the livestream is taken down")
 		t._palm_ui.queue_free()
+		t.queue_free()
+	car.queue_free()
+	dlg.queue_free()
+
+
+## SZYBA, the payoff at Kemal's window: what it is handed, and every way out brings the city back.
+func _window_exits() -> void:
+	var dlg := Dialogue.new()
+	root.add_child(dlg)
+	if dlg.lines.is_empty():
+		dlg._ready()
+	var t0 := Tajny.new()
+	t0.dialogue_node = dlg
+	t0.dish = 3
+	t0.sauce = 0
+	t0.grade = 9.4
+	t0.won = true
+	t0.bribe = 2
+	var spec := t0.window_spec()
+	_expect(bool(spec["won"]) and str((spec["line"] as Array)[0]).contains("Porsza"), "SZYBA: the player won, Kebabulo's race line: %s" % str(spec["line"]))
+	_expect(str((spec["title"] as Array)[0]) == "PARAGON", "SZYBA: the receipt is PARAGON")
+	_expect(str(spec["grade"]) == "9,4 / 10" and int(spec["pay"]) == Tajny.PAY and int(spec["respect"]) == Tajny.RESPECT, "SZYBA: the receipt's grade, pay and respect")
+	_expect((spec["leak"] as Array).is_empty(), "SZYBA: no leak line without the bribe taken")
+	_expect((spec["badges"] as Array).size() == 1, "SZYBA: the gold badge for a won, clean run (%d)" % (spec["badges"] as Array).size())
+	_expect(not str((spec["cry"] as Array)[0]).contains("Kolejka"), "SZYBA: Kemal's line is only his words (the queue is drawn)")
+	t0.won = false
+	t0.bribe = 1
+	t0.cam = true
+	spec = t0.window_spec()
+	_expect(not bool(spec["won"]) and (spec["leak"] as Array).size() == 2, "SZYBA: Kebabulo won; the taken bribe's leak line")
+	_expect((spec["badges"] as Array).size() == 2, "SZYBA: the camera's and the sellout's badges (%d)" % (spec["badges"] as Array).size())
+	t0.free()
+	var drawn: Array[bool] = []
+	var car := Node3D.new()
+	root.add_child(car)
+	for way: String in ["done_out_of_run", "ended"]:
+		var t := Tajny.new()
+		root.add_child(t)
+		t.dialogue_node = dlg
+		t._city_drawn = func(on: bool) -> void: drawn.append(on)
+		t.car = car
+		t._window_ui = WindowUi.new()
+		root.add_child(t._window_ui)
+		t._window_ui.open(t.window_spec())
+		t._hold_world(true)
+		_expect(drawn.back() == false and car.process_mode == Node.PROCESS_MODE_DISABLED, "szyba %s: the city off and the car still" % way)
+		match way:
+			"done_out_of_run":
+				t._window_done({})
+			"ended":
+				t._ended()
+		_expect(drawn.back() == true, "szyba %s: the city is drawn again" % way)
+		_expect(car.process_mode == Node.PROCESS_MODE_INHERIT, "szyba %s: the car moves again" % way)
+		if way == "ended":
+			_expect(not t._window_ui.inside, "szyba ended: the window is taken down")
+		t._window_ui.queue_free()
 		t.queue_free()
 	car.queue_free()
 	dlg.queue_free()

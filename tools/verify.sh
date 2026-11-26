@@ -454,6 +454,9 @@
 # `palmtasting` runs game/tools/check_palm_tasting.gd (the Tajny klient's tasting at the Palm as
 # Zbyszek's livestream, phase 3): the beats in order, the taps and the held-× skip, the chat and the
 # viewers, the words and the chat's fit, and the view playing it through by itself.
+# `kemalwindow` runs game/tools/check_kemal_window.gd (SZYBA, the Tajny klient's payoff at Kemal's window):
+# the beats for both endings, the tap, the skip, the queue, the words' and the receipt's fit at the
+# narrowest screen, and the view playing both endings by itself within its rect budget.
 # `callcards` runs game/tools/check_call_cards.gd (F 2026-11-24, a call that rang unseen): every call,
 # offer and quiz card is on screen with any controls, nitro, status line and talk; no map (CI too).
 # `streaming` runs game/tools/check_streaming.gd
@@ -1587,6 +1590,7 @@ for s in $want; do
 		tajny) check tajny '^check_tajny:' --script res://tools/check_tajny.gd -- --nosave ;;
 		kebabstand) check kebabstand '^check_kebab_stand:' --script res://tools/check_kebab_stand.gd -- --nosave ;;
 		palmtasting) check palmtasting '^check_palm_tasting:' --script res://tools/check_palm_tasting.gd -- --nosave ;;
+		kemalwindow) check kemalwindow '^check_kemal_window:' --script res://tools/check_kemal_window.gd -- --nosave ;;
 		tapczan) check tapczan '^check_tapczan:' --script res://tools/check_tapczan.gd ;;
 		# Za deckami, stage A: the DJ game's rules, tracks and tuning; four bots against the design's targets.
 		decks) check decks '^check_decks:' --script res://tools/check_decks.gd ;;

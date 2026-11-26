@@ -57,6 +57,12 @@ const TRAM_S := 12.0
 const WIPE_S := 0.45
 const BLOCK := 12.0
 const TOUCH_PT := 44.0
+## The MLASK panel (Fable's critique, section 2 row 2): his face's scale (scene px a face px; 2.0 in
+## the close-up), its forehead's row when it has risen (units: the cap over the word's lower third),
+## and the row the insets and the chat stand on, above the caption strip.
+const MLASK_FACE := 2.8
+const MLASK_TOP := 100.0
+const MLASK_LOW := 176.0
 
 # --- the palette (the first version's family; shades as [base, shade, light]) ---
 const SKY := [Color("#5f6694"), Color("#7c6f98"), Color("#a87892"), Color("#d08680"), Color("#ec9c68"), Color("#f4b866"), Color("#f8d488")]
@@ -452,7 +458,8 @@ func _react() -> void:
 			_shake = 0.5
 			_cue("mlask")
 			Access.buzz(120, 1.0)
-			_rise(6)
+		Tasting.Phase.VERDICT:
+			_rise(6)  # the hearts come on the cut back, not in the panel
 		Tasting.Phase.DRUM:
 			_cue("drumroll")
 		Tasting.Phase.GRADE:
@@ -1457,7 +1464,7 @@ func _pigeon() -> void:
 ## "zbyszek", "fan"), bob (px up), walk (-1 or the frame 0/1), seed (blinks).
 func _person(s: Dictionary) -> void:
 	var f: int = s["f"]
-	_fig(float(s["x"]), FEET, f)
+	_fig(float(s["x"]), float(s.get("feet", FEET)), f, float(s.get("s", 1.0)))
 	var tw: float = s["tw"]
 	var th: float = s["th"]
 	var ll: float = s["ll"]
@@ -1548,6 +1555,8 @@ func _person(s: Dictionary) -> void:
 				qy += 7.0
 			_q(-7, ys - 3, 14, 5, top[2])
 			_q(-tw * 0.5 + 4, ys, 3, 22, Color("#14444c"))
+		_:
+			_torso_extra(kind, ys, yh, tw, top)
 	# the neck and the head
 	var skin: Array = s["skin"]
 	_q(-4, ys - 4, 8, 5, skin[1])
@@ -1560,6 +1569,11 @@ func _person(s: Dictionary) -> void:
 	# the front arm and what it holds
 	_arm(1, str(s.get("front", "down")), ys, tw, th, top, skin, str(s.get("hold_f", "")))
 	_flush(OUT)
+
+
+## A kind's own marks on the torso (none here; kemal_window_ui.gd's queue adds its own).
+func _torso_extra(_kind: String, _ys: float, _yh: float, _tw: float, _top: Array) -> void:
+	pass
 
 
 ## Kebabulo's black puffer vest over the beige hoodie: quilted bands, the zip, the pockets, the
@@ -2198,7 +2212,8 @@ func _draw_fx() -> void:
 			_close_up()
 		Tasting.Phase.MLASK:
 			_mlask_panel()
-	_floaters_draw()
+	if tasting.phase != Tasting.Phase.MLASK:
+		_floaters_draw()
 	_bits_draw()
 
 
@@ -2250,10 +2265,13 @@ func _close_up() -> void:
 			_u(cpx, cpy, 1, 1, WRAP[1])
 
 
-## The MLASK (F 20:37, concept 3 "TRZY KADRY"): one full comic panel slams in with an overshoot:
-## gold rays from below the centre, the giant word bouncing letter by letter, his face rising from
-## the bottom edge in bliss, sauce drops; insets of Zbyszek with his phone and the pigeon (the chat
-## panel is the stream layer's). A hard cut back to the street after it.
+## The MLASK (F 20:37, concept 3 "TRZY KADRY"), held and staged (Fable's critique 2026-11-26,
+## section 2 rows 1-2): one full comic panel slams in with an overshoot, gold rays from below the
+## centre and the giant word bouncing letter by letter at once; his face rises at MLASK_FACE_AT, big
+## (MLASK_FACE scene px a face px, the panel's hero, over the word's lower third), in bliss with
+## sauce drops; a dead hold; Zbyszek's small inset bottom left at MLASK_INSET_AT; the chat panel
+## (the stream layer's) at MLASK_CHAT_AT and the caption strip under his face at MLASK_CAPTION_AT.
+## No pigeon inset and no hearts in the panel. A hard cut back to the street after it.
 func _mlask_panel() -> void:
 	var t := tasting.t
 	var drop := 0.0 if Access.calm else roundf((1.0 - _pop(t / 0.22)) * -70.0)
@@ -2270,24 +2288,27 @@ func _mlask_panel() -> void:
 	_u(x0, y0 + 1, 0.5, ph - 2, Kit.LINE)
 	_u(x0 + pw - 0.5, y0 + 1, 0.5, ph - 2, Kit.LINE)
 	_mlask_word(y0, t)
-	# his face rising from the bottom edge
-	var rise := 1.0 if Access.calm else _pop(t / 0.3, 1.2)
-	var top := roundf(lerpf(240.0, 122.0, rise)) + drop
-	_big_face(roundf(W * 0.5), top, 2.0, {"eyes": "bliss", "mouth": "grin", "blush": true, "brows": 3.0, "shoulders": true},
-			Rect2(x0, y0, pw, ph))
-	# sauce drops flying out
-	var cx := roundf(W * 0.5)
-	for d: Vector2 in [Vector2(-43, 38), Vector2(43, 34), Vector2(-51, 54), Vector2(51, 58), Vector2(-63, 28), Vector2(63, 26)]:
-		var k := 1.0 + minf(t, 0.8) * 0.6
-		var p := Vector2(cx + d.x * k, top + d.y - minf(t, 0.8) * 10.0 + t * t * 20.0)
-		_u(roundf(p.x), roundf(p.y), 3, 3, SAUCE)
-		_u(roundf(p.x) + 0.5, roundf(p.y) + 0.5, 1, 1, WHITE)
-		_u(roundf(p.x) + 2, roundf(p.y) + 2.5, 1, 0.5, Color("#d8c8a8"))
-	# the insets pop in one after the other
-	if t > 0.12 or Access.calm:
-		_inset_pigeon(8.0, 106.0 + drop)
-	if t > 0.2 or Access.calm:
-		_inset_zbyszek(10.0, 132.0 + drop)
+	var ft := t - Tasting.MLASK_FACE_AT
+	if ft >= 0.0 or Access.calm:
+		# his face rising from the bottom edge over the word's lower third
+		var k := MLASK_FACE / 2.0
+		var rise := 1.0 if Access.calm else _pop(ft / 0.3, 1.2)
+		var top := roundf(lerpf(250.0, MLASK_TOP, rise)) + drop
+		_big_face(roundf(W * 0.5) - 8.0, top, MLASK_FACE, {"eyes": "bliss", "mouth": "grin", "blush": true, "brows": 3.0, "shoulders": true},
+				Rect2(x0, y0, pw, ph))
+		# sauce drops flying out
+		var cx := roundf(W * 0.5) - 8.0
+		var ct := maxf(ft, 0.0)
+		for d: Vector2 in [Vector2(-43, 38), Vector2(43, 34), Vector2(-51, 54), Vector2(51, 58), Vector2(-63, 28), Vector2(63, 26)]:
+			var sp := 1.0 + minf(ct, 0.8) * 0.6
+			var p := Vector2(cx + d.x * k * sp, top + d.y * k - minf(ct, 0.8) * 10.0 + ct * ct * 14.0)
+			if p.y > y0 + ph - 6.0:
+				continue
+			_u(roundf(p.x), roundf(p.y), 3, 3, SAUCE)
+			_u(roundf(p.x) + 0.5, roundf(p.y) + 0.5, 1, 1, WHITE)
+			_u(roundf(p.x) + 2, roundf(p.y) + 2.5, 1, 0.5, Color("#d8c8a8"))
+	if t >= Tasting.MLASK_INSET_AT or Access.calm:
+		_inset_zbyszek(10.0, MLASK_LOW - 50.0 + drop)
 
 
 ## Sixteen ray wedges from `c`, alternately GOLD and AMBER, the one straight up GOLD; stepped sides
@@ -2362,72 +2383,54 @@ func _inset(x: float, y: float, w: float, h: float, ground: Color) -> void:
 	_u(x, y, w, h, ground)
 
 
-## The pigeon inset: mid-flap against the sky.
-func _inset_pigeon(x: float, y: float) -> void:
-	_inset(x, y, 52, 24, Color("#bfe6f2"))
-	_u(x + 4, y + 18, 8, 0.5, WHITE)
-	_u(x + 36, y + 4, 10, 0.5, WHITE)
-	var up := int(_t * 10.0) % 2 == 0
-	_u(x + 19.5, y + 9.5, 15, 9, OUT)
-	_u(x + 20, y + 10, 14, 8, Color("#7c8088"))
-	_u(x + 21, y + 15, 11, 2, Color("#9aa0aa"))
-	_u(x + 31.5, y + 5.5, 7, 7, OUT)
-	_u(x + 32, y + 6, 6, 6, Color("#5f636b"))
-	_u(x + 32, y + 10, 3, 2, Color("#5fae8a"))
-	_u(x + 36, y + 7, 1, 1, Color("#ff8a2a"))
-	_u(x + 38, y + 8, 2, 1, AMBER)
-	_u(x + 15.5, y + 10.5, 5, 4, OUT)
-	_u(x + 16, y + 11, 4, 3, Color("#5e6270"))
-	var wy := 1.0 if up else 9.0
-	_u(x + 15.5, y + wy - 0.5, 9, 9, OUT)
-	_u(x + 16, y + wy, 8, 8, Kit.CHROME)
-	_u(x + 25.5, y + wy - 1.5, 7, 9, OUT)
-	_u(x + 26, y + wy - 1, 6, 8, Kit.CHROME)
-	_u(x + 17, y + wy + 6, 6, 1, Color("#8a929a"))
-	for fp: Vector2 in [Vector2(12, 18), Vector2(28, 20), Vector2(40, 16)]:
-		_u(x + fp.x, y + fp.y, 2, 1, Kit.CHROME)
-
-
-## Zbyszek's inset: half his shocked face, his phone up with Kebabulo on its screen.
-func _inset_zbyszek(x: float, y: float) -> void:
-	_inset(x, y, 100, 72, Kit.NIGHT2)
+## Zbyszek's inset, small (70 x 50; the critique: the hero's face is the panel's biggest thing):
+## half his shocked face, his phone up with Kebabulo on its screen. Drawn on the 100 x 72 design.
+func _inset_zbyszek(x0: float, y0: float) -> void:
+	_inset(x0, y0, 70, 50, Kit.NIGHT2)
+	var k := 0.7
+	var Z := func(x: float, y: float, w: float, h: float, c: Color) -> void:
+		var ax := roundf((x0 + (x - x0) * k) * PX) / PX
+		var ay := roundf((y0 + (y - y0) * k) * PX) / PX
+		_u(ax, ay, maxf(0.5, roundf((x + w - x0) * k * PX) / PX - (ax - x0)), maxf(0.5, roundf((y + h - y0) * k * PX) / PX - (ay - y0)), c)
+	var x := x0
+	var y := y0
 	# the face: skin, hair, the brow up, the wide eye, the open mouth, a sweat drop
-	_u(x + 8, y + 14, 36, 44, SKIN_FAIR[0])
-	_u(x + 8, y + 14, 3, 44, SKIN_FAIR[2])
-	_u(x + 8, y + 52, 36, 6, SKIN_FAIR[1])
-	_u(x + 4, y + 26, 4, 12, SKIN_FAIR[0])
-	_u(x + 5, y + 29, 2, 6, SKIN_FAIR[1])
-	_u(x + 8, y + 6, 36, 10, Color("#e2c060"))
-	_u(x + 8, y + 6, 36, 2, Color("#f2d880"))
-	_u(x + 4, y + 10, 6, 16, Color("#e2c060"))
-	_u(x + 18, y + 19, 16, 3, Color("#8a5a2a"))
-	_u(x + 20, y + 25, 12, 12, WHITE)
-	_u(x + 24, y + 29, 5, 5, INK)
-	_u(x + 24, y + 29, 2, 2, WHITE)
-	_u(x + 20, y + 37, 12, 1, SKIN_FAIR[1])
-	_u(x + 36, y + 30, 6, 10, SKIN_FAIR[1])
-	_u(x + 26, y + 44, 8, 8, MOUTH)
-	_u(x + 27, y + 49, 6, 3, TONGUE)
-	_u(x + 40, y + 18, 2, 4, CYAN)
-	_u(x + 39, y + 21, 4, 2, CYAN)
+	Z.call(x + 8, y + 14, 36, 44, SKIN_FAIR[0])
+	Z.call(x + 8, y + 14, 3, 44, SKIN_FAIR[2])
+	Z.call(x + 8, y + 52, 36, 6, SKIN_FAIR[1])
+	Z.call(x + 4, y + 26, 4, 12, SKIN_FAIR[0])
+	Z.call(x + 5, y + 29, 2, 6, SKIN_FAIR[1])
+	Z.call(x + 8, y + 6, 36, 10, Color("#e2c060"))
+	Z.call(x + 8, y + 6, 36, 2, Color("#f2d880"))
+	Z.call(x + 4, y + 10, 6, 16, Color("#e2c060"))
+	Z.call(x + 18, y + 19, 16, 3, Color("#8a5a2a"))
+	Z.call(x + 20, y + 25, 12, 12, WHITE)
+	Z.call(x + 24, y + 29, 5, 5, INK)
+	Z.call(x + 24, y + 29, 2, 2, WHITE)
+	Z.call(x + 20, y + 37, 12, 1, SKIN_FAIR[1])
+	Z.call(x + 36, y + 30, 6, 10, SKIN_FAIR[1])
+	Z.call(x + 26, y + 44, 8, 8, MOUTH)
+	Z.call(x + 27, y + 49, 6, 3, TONGUE)
+	Z.call(x + 40, y + 18, 2, 4, CYAN)
+	Z.call(x + 39, y + 21, 4, 2, CYAN)
 	# the phone, held by four fingers, Kebabulo on its screen with REC
-	_u(x + 47.5, y + 11.5, 35, 55, OUT)
-	_u(x + 48, y + 12, 34, 54, INK)
-	_u(x + 51, y + 16, 28, 44, Color("#4f7fd8"))
-	_u(x + 51, y + 16, 28, 14, Color("#f2a562"))
-	_u(x + 59, y + 30, 12, 4, VEST[0])
-	_u(x + 60, y + 34, 10, 9, SKIN_LIGHT[0])
-	_u(x + 58, y + 29, 14, 3, CAP[0])
-	_u(x + 62, y + 39, 6, 3, BEARD)
-	_u(x + 63, y + 40, 4, 1, WHITE)
-	_u(x + 56, y + 43, 18, 17, VEST[0])
-	_u(x + 63, y + 43, 4, 4, HOODIE[0])
-	_u(x + 53, y + 18, 2, 2, Color("#ff4f6d"))
-	_u(x + 64, y + 62, 3, 2, Color("#3a3e46"))
-	for k in 4:
-		_u(x + 43.5, y + 21.5 + k * 11.0, 7, 9, OUT)
-		_u(x + 44, y + 22 + k * 11.0, 6, 8, SKIN_FAIR[0])
-		_u(x + 44, y + 28 + k * 11.0, 6, 2, SKIN_FAIR[1])
+	Z.call(x + 47.5, y + 11.5, 35, 55, OUT)
+	Z.call(x + 48, y + 12, 34, 54, INK)
+	Z.call(x + 51, y + 16, 28, 44, Color("#4f7fd8"))
+	Z.call(x + 51, y + 16, 28, 14, Color("#f2a562"))
+	Z.call(x + 59, y + 30, 12, 4, VEST[0])
+	Z.call(x + 60, y + 34, 10, 9, SKIN_LIGHT[0])
+	Z.call(x + 58, y + 29, 14, 3, CAP[0])
+	Z.call(x + 62, y + 39, 6, 3, BEARD)
+	Z.call(x + 63, y + 40, 4, 1, WHITE)
+	Z.call(x + 56, y + 43, 18, 17, VEST[0])
+	Z.call(x + 63, y + 43, 4, 4, HOODIE[0])
+	Z.call(x + 53, y + 18, 2, 2, Color("#ff4f6d"))
+	Z.call(x + 64, y + 62, 3, 2, Color("#3a3e46"))
+	for f in 4:
+		Z.call(x + 43.5, y + 21.5 + f * 11.0, 7, 9, OUT)
+		Z.call(x + 44, y + 22 + f * 11.0, 6, 8, SKIN_FAIR[0])
+		Z.call(x + 44, y + 28 + f * 11.0, 6, 2, SKIN_FAIR[1])
 
 
 ## Kebabulo's face, big (the close-up, the MLASK): `cx` its centre, `top` the forehead under the
@@ -2695,6 +2698,7 @@ func _draw_ui() -> void:
 	_rec_frame(p, left, right)
 	if ph == Tasting.Phase.MLASK:
 		_chat_panel(p, right)
+		_caption(p)
 	else:
 		_chat(p, left)
 	if ph == Tasting.Phase.DRUM or ph == Tasting.Phase.GRADE:
@@ -2788,7 +2792,7 @@ func _chat(p: Kit, left: float) -> void:
 
 ## The MLASK's chat as its own dark comic inset bottom right: the viewers, then the lines.
 func _chat_panel(p: Kit, right: float) -> void:
-	if tasting.t < 0.28 and not Access.calm:
+	if tasting.t < Tasting.MLASK_CHAT_AT and not Access.calm:
 		return
 	var vt := _w("viewers").format({"n": _thousands(int(round(_shown_viewers)))})
 	var lines: Array = []
@@ -2801,7 +2805,7 @@ func _chat_panel(p: Kit, right: float) -> void:
 	var pw := float(w) + 10.0
 	var ph := 16.0 + lines.size() * 11.0
 	var x := right - pw - 2.0
-	var y := H - 10.0 - ph
+	var y := MLASK_LOW - ph
 	p.rect(x - 2, y - 2, pw + 4, ph + 4, Kit.VOID)
 	p.rect(x - 1, y - 1, pw + 2, ph + 2, Kit.LINE)
 	p.rect(x, y, pw, ph, Kit.INK)
@@ -2811,6 +2815,31 @@ func _chat_panel(p: Kit, right: float) -> void:
 		var name: String = l[0]
 		p.text(name, x + 5, y + 13 + i * 11, NICKS[absi(name.hash()) % NICKS.size()])
 		p.text(str(l[1]), x + 9 + Kit.text_w(name), y + 13 + i * 11, Kit.LINE)
+
+
+## The MLASK's caption strip under his face (F's "…ALE DOBRY.", handed in): a cream comic caption box
+## with an ink edge, the words at the biggest scale that fits, popping up at MLASK_CAPTION_AT.
+func _caption(p: Kit) -> void:
+	var ct := tasting.t - Tasting.MLASK_CAPTION_AT
+	if ct < 0.0 or tasting.caption.size() < 2 or str(tasting.caption[0]) == "":
+		return
+	var text := _pick(tasting.caption)
+	var sc := caption_scale(text, W)
+	var tw := float(Kit.text_w(text, sc))
+	var bw := tw + 8.0 * sc
+	var bh := 7.0 * sc + 8.0
+	var x := roundf(W * 0.5 - 8.0 - bw * 0.5)
+	var y := 208.0 - bh - 2.0 + (0.0 if Access.calm else roundf((1.0 - _pop(ct / 0.14)) * 20.0))
+	p.rect(x + 3, y + 3, bw, bh, Color(Kit.VOID, 0.6))
+	p.rect(x - 2, y - 2, bw + 4, bh + 4, Kit.INK)
+	p.rect(x, y, bw, bh, Kit.PANEL)
+	p.rect(x, y + bh - 2, bw, 2, Kit.PAPER_D)
+	p.text(text, x + bw * 0.5, y + 4 - 2 * sc, Kit.INK, sc, true)
+
+
+## The caption's text scale on a canvas `w` units wide: 3, or 2 when 3 does not fit.
+static func caption_scale(text: String, w: float) -> int:
+	return 3 if Kit.text_w(shown(text), 3) + 24 <= w - 24 else 2
 
 
 ## The speaker's line bottom right (the chat keeps the left), the name on its tab.
