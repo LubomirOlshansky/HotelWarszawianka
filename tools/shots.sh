@@ -51,6 +51,10 @@ for sk in "palace -1290,170 150" "rotunda -808,378 45" "tarasy -1495,420 160" "m
 		FIRST+=(first_${fk[1]}_$lk)
 	done
 done
+# Złote Tarasy and Złota 44 (detail pass, 2026-11-26): from the helicopter, the station side and the Złota side.
+SHOT[tarasy_heli_day]="--heli --at=-1440,545 --heading=330 --time=day --nohud"
+SHOT[tarasy_heli_night]="--heli --at=-1440,545 --heading=330 --time=night --nohud"
+SHOT[zlota44_heli_day]="--heli --at=-1400,350 --heading=290 --time=day --nohud"
 CORE=(spawn_day spawn_night_prebuilt marszalkowska_day palace_day river_day river_night rondo_rain_night heli_day settings_panel)
 QUICK=(spawn_day spawn_night_prebuilt)
 
