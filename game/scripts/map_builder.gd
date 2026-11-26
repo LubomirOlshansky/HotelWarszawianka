@@ -10206,7 +10206,7 @@ func _build_lod2(walls, marks) -> Array:
 			# The landmarks loop: a kept building in a landmark's own stone (Muzeum Narodowe).
 			var skin: Dictionary = marks.skin_at(Rect2(lo, hi - lo))
 			if not skin.is_empty():
-				_skin_run(skin, pos, nrm, col, uv2, t0, t1)
+				_skin_run(skin, pos, nrm, col, uv2, t0, t1, dropped)
 			else:
 				building_runs.append(Vector3i(t0, t1, 0))
 		t0 = t1
@@ -10414,11 +10414,11 @@ func _clip_lod2(pos: PackedVector3Array, nrm: PackedVector3Array, col: PackedCol
 ## A kept LoD2 building in a landmark's skin (`skin_at`): its roof colour on faces flatter than
 ## the skin's `steep` (0.7 unless it says: a steeper LoD2 slope reads as wall), its wall colour on
 ## the rest, and its `pale` colour on the walls along one front (`pale`: {wall, edges: pairs of
-## outline ends, near}: walls whose centre is within `near` m of one of those edges). F's look
+## outline ends, near, drop}: walls whose centre is within `near` m of one of those edges). F's look
 ## check (2026-11-03): the Royal Castle's steep roof slopes and LoD2's walls standing up to 0.9 m
 ## proud of the model's Vistula front showed as a salmon band over the pale river front.
 func _skin_run(skin: Dictionary, pos: PackedVector3Array, nrm: PackedVector3Array, col: PackedColorArray,
-		uv2: PackedVector2Array, t0: int, t1: int) -> void:
+		uv2: PackedVector2Array, t0: int, t1: int, dropped: PackedByteArray) -> void:
 	var steep: float = skin.get("steep", 0.7)
 	var pale: Dictionary = skin.get("pale", {})
 	# `upper`: walls higher than `over` m above the building's foot in another colour (a brick tower
@@ -10448,6 +10448,12 @@ func _skin_run(skin: Dictionary, pos: PackedVector3Array, nrm: PackedVector3Arra
 			for e in range(0, edges.size() - 1, 2):
 				if Geometry2D.get_closest_point_to_segment(mid, edges[e], edges[e + 1]).distance_to(mid) < float(pale["near"]):
 					c = pale["wall"]
+					# `drop`: a plan polygon where a modelled front stands; the pale walls there go, since
+					# they stood proud of the model in places and drew a second row of window slits
+					# through its openings (the castle's river front, 2026-11-26)
+					var drop: PackedVector2Array = pale.get("drop", PackedVector2Array())
+					if not drop.is_empty() and Geometry2D.is_point_in_polygon(mid, drop):
+						dropped[t / 3] = 1
 					break
 		for k in 3:
 			col[t + k] = c
@@ -10577,6 +10583,16 @@ func _tree_blocked(x: float, z: float) -> bool:
 		elif Vector2(x, z).distance_to(c[0]) < float(c[1]):
 			return true
 	return false
+
+
+## A landmark's re-sized tree at this spot (landmarks.gd tree_set), or [].
+func _tree_set_at(x: float, z: float) -> Array:
+	if _marks == null:
+		return []
+	for e: Array in _marks.tree_set:
+		if Vector2(x, z).distance_to(e[0]) < float(e[1]):
+			return e
+	return []
 
 
 ## A landmark keeps this spot clear of parked cars (landmarks.gd parked_free: the Christmas market
@@ -10737,6 +10753,13 @@ func _build_trees() -> void:
 		var h := fposmod(sin(x * 12.9898 + z * 78.233) * 43758.5453, 1.0)
 		var ground := terrain_height(x, z) - 0.2
 		var kind := int(kinds[i / 6]) if i / 6 < kinds.size() else _tree_kind(x, z, top, radius, base, is_needle)
+		var set_one := _tree_set_at(x, z)
+		if not set_one.is_empty():
+			top = float(set_one[2])
+			radius = float(set_one[3])
+			base = 4.2  # the trunk shows over the bench, the crown spreads over the people on it
+			kind = int(set_one[4])
+			h = 0.0  # seed 0: the last of its kind to turn
 		is_needle = kind >= TreeKind.SPRUCE
 		# Crown meshes in model space: broadleaf spans y 2.09-6.51 at radius 2.3, conifer 1.6-7.4 at 2.2.
 		var low := 1.6 if is_needle else 2.09
@@ -10747,7 +10770,8 @@ func _build_trees() -> void:
 		var foot := Vector3(x, ground, z)
 		var t := Transform3D(lean * Basis(Vector3.UP, h * TAU).scaled(Vector3(sxz, sy, sxz)),
 				foot + lean * Vector3(0, base - low * sy, 0))
-		var colour := _tree_colour(h)
+		# a re-sized tree keeps a fresh olive green (F's November photo of the oak), not seed 0's dark
+		var colour := _tree_colour(h) if set_one.is_empty() else Color(0.95, 1.12, 0.8)
 		# The mesh follows the kind (the needle flag only when no kind is stored).
 		if kind >= TreeKind.SPRUCE:
 			needle.append(t)
