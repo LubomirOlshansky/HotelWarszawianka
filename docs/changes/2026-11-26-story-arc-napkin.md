@@ -6,4 +6,4 @@
 - found: name clashes to settle in text: TESŁO's Bartek against the rival Bulwar Bartek; three Zbyszeks
 
 ## Roadmap
-- added: "Story Doba w Warszawie: five chapters, the napkin, the clock hold (phase 1 of 4)"
+- added: "Story Doba w Warszawie: six chapters (Smoła joined), the napkin, the clock hold (phase 1 of 4)"

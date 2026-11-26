@@ -1,6 +1,6 @@
 # The story: Doba w Warszawie · 24 hours in Warsaw
 
-F's ask (2026-11-26): make the story from the five quests; keep the garage and the bar as visits,
+F's ask (2026-11-26): make the story from the five quests (six since 2026-11-27, with Smoła); keep the garage and the bar as visits,
 the side jobs as the grind and the rivals as their own track; First Steps becomes bonuses. This
 page is the design summary in the repo. The long working papers (research, the plans, Fable's
 two critiques, the plane document) are in the project files under `story-structure/`.
@@ -13,8 +13,8 @@ Code: `game/scripts/story_arc.gd` (chapters, pure), `game/scripts/napkin.gd` (th
 
 | Layer | What | Rule |
 | --- | --- | --- |
-| **Story** | five chapters, one game day, one friend and one vehicle each | one friend rings at a time; the gold star points at the next chapter |
-| **Side questlines** | Kawowy rajd, the cinema tour, Dekalog na kółkach, the secret rave, Smoła, the shisha night (hidden) | "!" badges; calls only after chapter 2 or 15 min of play |
+| **Story** | six chapters, one game day, one friend and one vehicle each | one friend rings at a time; the gold star points at the next chapter |
+| **Side questlines** | Kawowy rajd, the cinema tour, Dekalog na kółkach, the secret rave, the shisha night (hidden) | "!" badges; calls only after chapter 2 or 15 min of play |
 | **Hubs** | Mirek's garage, THE TAPCZAN, the Smoła room, the lounge | always open, never a chapter |
 | **Jobs** | deliveries, słoiki, rides, rescues, round-ups, trend orders | the grind; request cards after chapter 2 or 15 min |
 | **Rivals** | The Six and Trzy mosty | their own track and end card, unchanged |
@@ -22,7 +22,9 @@ Code: `game/scripts/story_arc.gd` (chapters, pure), `game/scripts/napkin.gd` (th
 | **Collections** | notebook places, eggs, then cards, Kadr spots, Syrenki, cassettes | unchanged, pages after the napkin |
 | **Bonusy** | First Steps | kept; its list stops showing after chapter 1 |
 
-## The five chapters (data/story_arc.json)
+## The six chapters (data/story_arc.json)
+
+F 2026-11-26 named five; on 2026-11-27 F added Smoła ("a strong quest"), so it leaves the side questlines and comes between the night meet and dawn.
 
 | # | Chapter | Friend | Story hour | Vehicle |
 | --- | --- | --- | --- | --- |
@@ -30,7 +32,8 @@ Code: `game/scripts/story_arc.gd` (chapters, pure), `game/scripts/napkin.gd` (th
 | 2 | Padel na Desce | Kuba | 16:00 | on foot |
 | 3 | Stanęło TESŁO | Bartek | 19:30 | helicopter |
 | 4 | Nocny spot | Darek | 22:00 | race |
-| 5 | Wiślana Szprotka | Szymek | 06:30 | boat |
+| 5 | Smoła | Mati | 23:30 | the club (Za deckami inside) |
+| 6 | Wiślana Szprotka | Szymek | 06:30 | boat |
 
 - **Gates are calls, never doors.** Every chapter can be played at any time from QUESTS or its
   spot, in any order. The order only says which friend rings next.
@@ -38,7 +41,7 @@ Code: `game/scripts/story_arc.gd` (chapters, pure), `game/scripts/napkin.gd` (th
   is never replayed by a call (F's missions rule, 2026-11-25), only by the player's choice.
 - **Done** comes from the save: `qdone_<id>` (activity.gd `finish`). An old save counts the night
   meet and the boat by their job counts, never TESŁO (strangers' tows count there too) or padel
-  (paid as "trend"). Chapter 1 is done at the Tajny klient's stage 3, or, on a save that never saw
+  (paid as "trend") or Smoła (paid as "rave" with the secret rave). Chapter 1 is done at the Tajny klient's stage 3, or, on a save that never saw
   it, at the old guide's end or any job. `qseen_<id>` makes an old save's chapters count once,
   quietly, with no rewards.
 
@@ -74,6 +77,6 @@ off-hours card, which offers the jump to the line's hour.
    off-hours cards, the QUESTS story section, the phone slot.
 3. **The flow:** the CO DALEJ card, the call queue (one friend per 5 min, 90 s quiet after a
    chapter), the near-closing rule, the gold star.
-4. **The city answers:** radio and passer-by lines after chapter 1, the 5/5 end card "EKIPA W
+4. **The city answers:** radio and passer-by lines after chapter 1, the 6/6 end card "EKIPA W
    KOMPLECIE", the napkin's 14/14 ("No. Jesteś stąd" and a paint), the napkin hand-over at the
    kebab buy (a hook asked of the Tajny klient thread).

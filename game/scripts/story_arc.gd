@@ -1,9 +1,10 @@
 extends RefCounted
 ## The story, "Doba w Warszawie · 24 hours in Warsaw" (F 2026-11-26: "make the story from those 5
 ## quests ... separate from the garage and the bar, the side jobs to grind, the racing with rivals;
-## First steps just bonuses"). The design: docs/design/story-structure.md. Five chapters, one game
+## First steps just bonuses"). The design: docs/design/story-structure.md. Six chapters, one game
 ## day, one vehicle each, in data/story_arc.json's order: Tajny klient (Kebabulo, noon), Padel na
-## Desce (Kuba), Stanęło TESŁO (Bartek, dusk), Nocny spot (Darek, night), Wiślana Szprotka
+## Desce (Kuba), Stanęło TESŁO (Bartek, dusk), Nocny spot (Darek, night), Smoła (Mati, late night;
+## F 2026-11-27: "a strong quest"), Wiślana Szprotka
 ## (Szymek, dawn).
 ##
 ## Gates are calls, never doors: every chapter can be played at any time from QUESTS or its spot,
@@ -98,7 +99,7 @@ static func done_count(intro: Dictionary, jobs: Dictionary) -> int:
 	return n
 
 
-## The first chapter in order not done yet ("" when all five are).
+## The first chapter in order not done yet ("" when all six are).
 static func next_id(intro: Dictionary, jobs: Dictionary) -> String:
 	for id in ids():
 		if not is_done(id, intro, jobs):

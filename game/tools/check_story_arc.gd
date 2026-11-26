@@ -1,14 +1,14 @@
 extends SceneTree
 ## The story "Doba w Warszawie" (story_arc.gd, F 2026-11-26), pure: made-up saves in, chapters out,
 ## no map, no game. Checks that:
-## - data/story_arc.json has the five chapters in F's order (tajny, padel, tesla, meet, boat), each
+## - data/story_arc.json has the six chapters in F's order (tajny, padel, tesla, meet, smola, boat), each
 ##   with a title and a friend in both languages and a story hour in 0-24;
 ## - a fresh save has nothing done and chapter 1 next; `qdone_` marks finish a chapter; played out
-##   of order, `next_id` is the first one not done; all five done: no next, header 5/5;
+##   of order, `next_id` is the first one not done; all six done: no next, header 6/6;
 ## - chapter 1: the Tajny klient stage 3 finishes it; stage 1 or 2 (under way) does not, even with a
 ##   job done; a save that never saw it (stage 0) counts the old guide's end or any job;
 ## - an old save (before qdone_) counts the night meet and the boat by their job counts, never the
-##   TESŁO (strangers' tows count there too) or padel (paid as "trend");
+##   TESŁO (strangers' tows count there too), padel (paid as "trend") or Smoła (paid as "rave");
 ## - gold only with `qgold_`; `newly_done` returns each done chapter once and marks it seen;
 ## - the rows carry the next flag on one chapter only.
 ##   godot --headless --path game --script res://tools/check_story_arc.gd
@@ -26,7 +26,7 @@ func _expect(ok: bool, what: String) -> void:
 
 func _initialize() -> void:
 	var ids := StoryArc.ids()
-	_expect(Array(ids) == ["tajny", "padel", "tesla", "meet", "boat"], "the chapters are %s, not F's five in order" % ids)
+	_expect(Array(ids) == ["tajny", "padel", "tesla", "meet", "smola", "boat"], "the chapters are %s, not F's six in order" % ids)
 	for c: Dictionary in StoryArc.chapters():
 		for k: String in ["title", "friend"]:
 			var v: Variant = c.get(k)
@@ -57,13 +57,14 @@ func _initialize() -> void:
 	_expect(StoryArc.done_count(intro, jobs) == 2, "two chapters done counted %d" % StoryArc.done_count(intro, jobs))
 	var rows := StoryArc.rows(intro, jobs)
 	var nexts := rows.filter(func(r: Dictionary) -> bool: return bool(r["next"]))
-	_expect(rows.size() == 5 and nexts.size() == 1 and str(nexts[0]["id"]) == "padel", "the rows' next flag")
+	_expect(rows.size() == 6 and nexts.size() == 1 and str(nexts[0]["id"]) == "padel", "the rows' next flag")
 
-	# Old saves: job counts for the meet and the boat, never for TESŁO or padel.
-	var old := {"meet_race": 1, "ev_tow": 3, "trend": 4}
+	# Old saves: job counts for the meet and the boat, never for TESŁO, padel or Smoła.
+	var old := {"meet_race": 1, "ev_tow": 3, "trend": 4, "rave": 2}
 	_expect(StoryArc.is_done("meet", {}, old), "an old save's night race does not count the night meet")
 	_expect(not StoryArc.is_done("tesla", {}, old), "a stranger's tow counts the TESŁO chapter")
 	_expect(not StoryArc.is_done("padel", {}, old), "a trend job counts padel")
+	_expect(not StoryArc.is_done("smola", {}, old), "a secret rave counts Smoła")
 
 	# Gold and the quiet count.
 	_expect(not StoryArc.is_gold("boat", intro), "a finish without a win is gold")
@@ -73,10 +74,10 @@ func _initialize() -> void:
 	_expect(Array(first) == ["tajny", "boat"], "newly done gave %s" % first)
 	_expect(StoryArc.newly_done(intro, jobs).is_empty(), "newly done gave a chapter twice")
 
-	# All five.
+	# All six.
 	for id in ids:
 		intro["qdone_" + id] = 1
-	_expect(StoryArc.next_id(intro, jobs) == "" and StoryArc.header(intro, jobs)[0] == "DOBA W WARSZAWIE 5/5", "all five done: %s" % [StoryArc.header(intro, jobs)])
+	_expect(StoryArc.next_id(intro, jobs) == "" and StoryArc.header(intro, jobs)[0] == "DOBA W WARSZAWIE 6/6", "all six done: %s" % [StoryArc.header(intro, jobs)])
 
 	if _problems == 0:
 		print("check_story_arc: OK (%d chapters: %s)" % [ids.size(), ", ".join(ids)])
