@@ -5990,8 +5990,8 @@
       }
     ],
     [
-      "Mam wodę, gumę i gotówkę. Rave'y nie wierzą w terminale.",
-      "Water, gum and cash. Raves don't believe in card terminals.",
+      "Na wejściu zaklejają kamery. Mój telefon pierwszy raz w życiu odpocznie.",
+      "They tape over cameras at the door. My phone gets its first night off ever.",
       {
         "only": "ride"
       }
@@ -6267,6 +6267,10 @@
   ],
   "club_dj": [
     [
+      "Nikt mnie nie nagrywa. Mogę w końcu zagrać to, co naprawdę lubię.",
+      "Nobody's filming me. I can finally play what I actually like."
+    ],
+    [
       "Nie pytaj, co gram. Sam nie wiem. Dlatego jest dobrze.",
       "Don't ask what I'm playing. I don't know either. That's why it's good."
     ],
@@ -6307,6 +6311,10 @@
   ],
   "club_ziomek": [
     [
+      "Zakleili mi kamerę. Pierwszy raz od lat widzę imprezę oczami, nie ekranem.",
+      "They taped my camera. First party in years I've seen with my eyes, not a screen."
+    ],
+    [
       "Mówiłem! Weszliśmy! W poniedziałek nikt mi nie uwierzy.",
       "Told you! We're in! Nobody'll believe me on Monday."
     ],
@@ -6324,6 +6332,10 @@
     ]
   ],
   "club_bar": [
+    [
+      "Telefon z naklejką na aparacie? Szanuję. Ten bez naklejki stoi przy wyjściu.",
+      "Phone with a sticker on the camera? Respect. The one without is standing by the exit."
+    ],
     [
       "Woda dwanaście złotych. Woda z lodem piętnaście. Lód jest lokalny.",
       "Water's twelve złoty. Water with ice is fifteen. The ice is local."
@@ -6360,6 +6372,10 @@
     ]
   ],
   "club_crowd": [
+    [
+      "Bez telefonów w górze widać sufit. Kto wiedział, że jest taki ładny.",
+      "No phones in the air, so you can see the ceiling. Who knew it was this nice."
+    ],
     [
       "Mówią, że selekcja jak w Berlinie. W Berlinie mówią, że jak w Warszawie.",
       "They say the door's like Berlin. In Berlin they say it's like Warsaw."
@@ -6446,6 +6462,34 @@
     ]
   ],
   "club_decks_mati": [
+    [
+      "Pomarańczowe kreski to ty. Kręć talerzem, aż staną równo z niebieskimi.",
+      "Orange marks are you. Spin the platter till they line up with the blue.",
+      {
+        "only": "learn_jog"
+      }
+    ],
+    [
+      "Złoty pas to wejście. Na złotej kresce przesuń suwak na dole w prawo.",
+      "The gold band is your way in. At the gold line, slide the bottom fader right.",
+      {
+        "only": "learn_fader"
+      }
+    ],
+    [
+      "Kreski uciekają? Suwak tempa z prawej, aż przestaną.",
+      "Marks drifting apart? Tempo slider on the right till they stop.",
+      {
+        "only": "learn_pitch"
+      }
+    ],
+    [
+      "Tak się to robi. Sala jest twoja.",
+      "That's how it's done. The room is yours.",
+      {
+        "only": "learn_done"
+      }
+    ],
     [
       "Stary, ludzie patrzą w telefony. Rusz tym talerzem, błagam.",
       "Mate, people are looking at their phones. Move that platter, please.",
@@ -6660,6 +6704,34 @@
   ],
   "club_decks_ui": [
     [
+      "DJ ZABRAŁ DECKI",
+      "THE DJ TOOK THE DECKS BACK",
+      {
+        "only": "r_dj_back"
+      }
+    ],
+    [
+      "ZŁAPANE",
+      "LOCKED",
+      {
+        "only": "locked"
+      }
+    ],
+    [
+      "SALA",
+      "ROOM",
+      {
+        "only": "lane_a"
+      }
+    ],
+    [
+      "TY",
+      "YOU",
+      {
+        "only": "lane_b"
+      }
+    ],
+    [
       "ŚWIETLICA",
       "THE YOUTH CLUB",
       {
@@ -6709,8 +6781,8 @@
       }
     ],
     [
-      "GALOP",
-      "GALLOP",
+      "ROZJECHANE",
+      "OFF THE BEAT",
       {
         "only": "g_gallop"
       }
@@ -6844,6 +6916,10 @@
   ],
   "club_patio": [
     [
+      "Mam naklejkę na kamerze i dalej robię miny do zdjęć. Odruch.",
+      "There's a sticker on my camera and I still pull faces for photos. Reflex."
+    ],
+    [
       "Tu przynajmniej słychać, co mówisz. Szkoda, bo mówisz o kryptowalutach.",
       "Out here you can hear what you say. Shame, it's about crypto."
     ],
@@ -6882,8 +6958,8 @@
       "Lemonade, water, tonic. Yes, tonic counts as a drink."
     ],
     [
-      "Gotówka czy gotówka? Terminal śpi od wiosny.",
-      "Cash or cash? The card machine has slept since spring."
+      "Naklejka się odkleiła? Mam zapasowe. Przy barze nikt nie jest viralem.",
+      "Sticker peeled off? I've got spares. Nobody goes viral at this bar."
     ],
     [
       "Najwięcej zamawia się wody o czwartej. Ludzie mądrzeją nad ranem.",
