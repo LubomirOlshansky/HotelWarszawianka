@@ -24,7 +24,7 @@ const SHOTS := {
 	# Fable (round 3): a three-quarter face, 1 m above, wings open, the gold Palace behind (the boar
 	# flies SW away from it, towards the lens, lit by the low SW sun).
 	"unbonk": {"len": 1.2, "from": [-1296.0, 112.0, 310.0], "to": [-1318.0, 110.0, 326.0],
-		"cam0": [3.4, -1.7, 1.0], "cam1": [6.5, -2.6, 1.6], "look": [0.3, 0.7], "fov0": 55.0, "fov1": 55.0},
+		"cam0": [6.5, -2.5, 1.6], "cam1": [9.5, -3.0, 2.4], "look": [0.3, 0.6], "fov0": 55.0, "fov1": 55.0},
 	"chase": {"len": 3.2, "from": [-1440.0, 80.0, 420.0], "to": [-1350.0, 108.0, 348.0],
 		"cam0": [-11.0, 1.5, 6.0], "cam1": [-10.0, 1.0, 6.0], "look": [16.0, -4.5], "fov0": 55.0, "fov1": 55.0},
 	"orbit": {"len": 3.0, "r": 40.0, "h": 150.0, "a0": 300.0, "a1": 345.0,
@@ -32,7 +32,7 @@ const SHOTS := {
 	# F (2026-11-26): further back, the whole of Złote Tarasy and Złota 44 in, less sky. ~700 m from
 	# the Palace, 270 m up, south of Varso (out of its shadow), 23 degrees down.
 	"wide": {"len": 2.6, "eye": [-1650.0, 270.0, 800.0], "target": [-1300.0, 30.0, 360.0],
-		"from": [-1606.4, 255.0, 745.2], "to": [-1632.6, 262.0, 778.1], "fov0": 60.0, "fov1": 58.0},
+		"from": [-1627.6, 262.0, 771.8], "to": [-1640.0, 265.0, 787.5], "fov0": 60.0, "fov1": 58.0},
 	"selfie": {"len": 2.6, "from": [-1170.0, 150.0, 190.0], "to": [-1120.0, 156.0, 150.0],
 		"cam0": [4.0, 0.4, 1.8], "cam1": [4.0, 0.4, 1.8], "look": [0.0, 0.3], "fov0": 62.0, "fov1": 62.0,
 		"bonk": 1.8},
