@@ -480,6 +480,8 @@ const LENS_RED := UiKit.ALERT
 ## Road life: the ambulance's edge mark (models.gd AMBULANCE_YELLOW and its red).
 const AMB_YELLOW := UiKit.AMBULANCE
 const AMB_RED := UiKit.AMBULANCE_CROSS
+## Road life stage 3: the fire engine's edge mark (models.gd FIRE_RED, a white flame).
+const FIRE_RED := UiKit.FIRE_ENGINE
 var _police_pill: PanelContainer
 var _police_pl: Label
 var _police_en: Label
@@ -4903,14 +4905,16 @@ func _draw_police_gap() -> void:
 ## Road life (road_life.gd): the ambulance's screen point (HUD pixels) while it is on a call near
 ## the player, or INF. Off screen it gets its own mark pinned to the edge, towards it: an
 ## ambulance-yellow disc with a red cross (never the police's rooster, so nobody reads it as a
-## chase).
+## chase). `fire`: the fire engine's instead, a red disc with a white flame.
 var _amb_edge := Vector2.INF
+var _amb_fire := false
 
 
-func ambulance_edge(p: Vector2) -> void:
-	if p == _amb_edge:
+func ambulance_edge(p: Vector2, fire := false) -> void:
+	if p == _amb_edge and fire == _amb_fire:
 		return
 	_amb_edge = p
+	_amb_fire = fire
 	_police_fx.queue_redraw()
 
 
@@ -4966,16 +4970,26 @@ func _draw_police_fx() -> void:
 		_tri_ring(at, 13.0 * pt, 15.0 * pt, 0.0, TAU, LENS_BLUE if flip else LENS_RED)
 		_tri_fan(at + Vector2(0, 4.0 * pt), 8.0 * pt, PI, TAU, LENS_BLUE if flip else LENS_RED)
 	if _amb_edge != Vector2.INF and inside.size.x > 0.0 and inside.size.y > 0.0 and not inside.has_point(_amb_edge):
-		# Road life: the ambulance off screen: a yellow disc with a red cross, pulsing, at the edge.
+		# Road life: the ambulance off screen: a yellow disc with a red cross, pulsing, at the edge
+		# (the fire engine: a red disc, a white flame).
 		var centre := inside.get_center()
 		var d := _amb_edge - centre
 		var k := minf((inside.size.x * 0.5) / maxf(absf(d.x), 0.001), (inside.size.y * 0.5) / maxf(absf(d.y), 0.001))
 		var at := centre + d * k
 		var r := (15.0 + (1.5 if flip else 0.0)) * pt
 		_tri_fan(at, r + 2.0 * pt, 0.0, TAU, OUTLINE)
-		_tri_fan(at, r, 0.0, TAU, AMB_YELLOW)
-		_tri_rect(Rect2(at - Vector2(2.5, 8.0) * pt, Vector2(5.0, 16.0) * pt), AMB_RED)
-		_tri_rect(Rect2(at - Vector2(8.0, 2.5) * pt, Vector2(16.0, 5.0) * pt), AMB_RED)
+		if _amb_fire:
+			# The fire engine: a red disc with a white flame (a round base, a tip, a lick each side).
+			_tri_fan(at, r, 0.0, TAU, FIRE_RED)
+			_tri_fan(at + Vector2(0, 3.0) * pt, 5.5 * pt, 0.0, TAU, Color.WHITE)
+			var w := Color.WHITE
+			_tri(at + Vector2(-5.2, 1.5) * pt, at + Vector2(0, -10.0) * pt, at + Vector2(5.2, 1.5) * pt, w, w, w)
+			_tri(at + Vector2(-5.5, 3.0) * pt, at + Vector2(-6.5, -4.0) * pt, at + Vector2(-2.0, 0.0) * pt, w, w, w)
+			_tri(at + Vector2(5.5, 3.0) * pt, at + Vector2(6.5, -4.0) * pt, at + Vector2(2.0, 0.0) * pt, w, w, w)
+		else:
+			_tri_fan(at, r, 0.0, TAU, AMB_YELLOW)
+			_tri_rect(Rect2(at - Vector2(2.5, 8.0) * pt, Vector2(5.0, 16.0) * pt), AMB_RED)
+			_tri_rect(Rect2(at - Vector2(8.0, 2.5) * pt, Vector2(16.0, 5.0) * pt), AMB_RED)
 	if _lizak != Vector2.INF:
 		# The lizak (the round stop paddle) over the officer, bobbing 2 pt at 2 Hz.
 		var bob := sin(Time.get_ticks_msec() * 0.001 * TAU * 2.0) * 2.0 * pt

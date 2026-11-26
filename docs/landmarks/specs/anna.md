@@ -65,8 +65,8 @@ Anny", PL "Na początku Krakowskiego Przedmieścia."
 
 ## 7. Detail level and budget
 
-L3 for the front, L2 for the tower trim; 514 triangles measured, budget 620
-(`check_mesh_quality.gd`). `check_landmarks` flies the helicopter at 8 m for this site
+L3 for the front, the tower and the body (2026-11-26 rebuild): 7403 triangles measured, budget
+7800 (`check_mesh_quality.gd`). Before the rebuild: L3 front, L2 tower trim, 514 triangles. `check_landmarks` flies the helicopter at 8 m for this site
 (the tower trim would otherwise raise it above the cloud's LoD2-less nave). Shot:
 `--at=-700,-1345 --yaw=270 --pitch=-22 --size=55 --nohud --no-ghost`.
 
@@ -95,3 +95,26 @@ L3 for the front, L2 for the tower trim; 514 triangles measured, budget 620
 ## Update
 
 Photo pass 2026-11-06 (refs/st_anne 1-2): the front is one cream plane 25.5 m wide; corner pilasters at m ± 11.8, giant Corinthian columns at m ± 3.9 and ± 7.9 (r 0.8, 9 m shafts, gilded-cream capitals), a 17.5 m high front under a wide pediment with a round emblem, four pedimented statue niches (m ± 5.9 and ± 9.7), side doors at m ± 5.9, the arched relief and the great oak door in a two-column porch in the middle bay, a stepped attic behind the pediment and the cross; the tower's octagon carries arched louvres and a copper dome with a lantern. Replaces the 4-column portico below.
+
+## Update 2026-11-26: the whole church and the bell tower (F: "only the front is good")
+
+From F's photos, Street View and the Google 3D views (refs/anna_3d, refs/anna_back,
+refs/anna_tower; local only). The site is now a model (`"model": true`, SKINS `runs` also
+replaces the tower's OSM blocks): LoD2's nave and OSM's tower are gone.
+
+- **Body** (`_anna_body`): the front block to 14.4 m; the nave u 4.4..24.5, v -38.3..-6, walls
+  15 m with pilasters and round-headed windows, a steep two-tone roof (green copper #6f9f8a on
+  the south slope, grey-black #4c5154 on the north, as the 3D views show), the slim copper ridge
+  turret at (14.45, -34.5) to 31.9 m; the low north annexes and chapel under dark hips; the
+  presbytery u 6..22, v -56.5..-38.3, 14 m, its own two-tone roof; the white domed chapel on its
+  north side (slate dome to 19.9 m); the red-brick octagonal Loreto chapel at the east end
+  (r 4.6, buttresses, green tent roof to 19 m); the monastery wing under orange tile #b85f3e;
+  the Institute's first arcade bay.
+- **Bell tower** (`_anna_tower`, 10.6 m square): channelled rustication to 8.2 m, two stages of
+  triple blind arcades (the middle arch a dark window) between rusticated quoins, the
+  rosette-oculus-rosette frieze, round modillions, a cornice 0.8 m proud, the terrace railing,
+  a green copper octagonal lantern about half the tower's width (r 2.7) with arched openings, a
+  low dome and a gilt cross to 35.1 m. Walls #e6dbbe, arcades #f6f2e8 (Fable's critique).
+- **Link** (`_anna_link`): the low cream wall with three round-headed gateways between the tower
+  and the church's front, 5.2 m with a cornice.
+- The pediment's raking cornice is cream (`ANNA_TRIM`), not the old brown.

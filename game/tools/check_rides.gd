@@ -32,7 +32,7 @@ const Stories := preload("res://scripts/taxi_stories.gd")
 
 ## The groups and tags the ride code asks dialogue.gd for ("" = an untagged line).
 const NEEDED := {
-	"podwozka_request": ["", "timber", "date"],
+	"podwozka_request": ["", "timber", "date", "stranded", "stranded_title"],
 	"podwozka_pickup": ["", "offset"],
 	"podwozka_gps": ["river", "zone", "oldtown", "rechotka", "reroute", "arrive"],
 	"podwozka_passenger": ["", "believer", "hurry", "followed", "timber", "date"],

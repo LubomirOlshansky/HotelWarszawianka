@@ -47,7 +47,7 @@ same PR as the change (keep the old row under "Replaced" with one line on why).
 | A state machine add-on for activities | The base class (`activity.gd`, TD-1) is under 400 lines with its cards and target; an add-on brings a dependency and an editor workflow agents can't use. |
 | A private window, balcony, ledge, cornice, pediment or column helper inside a landmark (`_xx_window`) | It is how the city got 21 kinds of window. `tools/check_facade_kit.py` fails a new one; the 37 that remain are listed there and only leave. |
 | Proportions as arguments of a kit part (sill depth, rail height, reveal) | Every landmark would pass its own numbers and the kit would unify nothing. A different proportion is a new named style, decided once, with a look. |
-| A new facade look in the building shader | The shader is at 502 of 505 Adreno instructions and all 16 skin slots are taken. Kit parts are geometry in the materials that exist. Look again after the shader is freed (pipeline review item 6). |
+| A new branch in the building shader for an ordinary house's look | House types PR 2a (2026-11-26) draws every ordinary house from one flat `house_facade` and a row of numbers per type (`HOUSE_*` tables, written by `tools/house_zones.py`): a new look is a new row. Landmarks still use their 16 skins; kit parts stay geometry. |
 | Moving every landmark to the palette's colours in one PR | Each move changes a look a little; 185 unreviewed look changes at once is how unverified models pile up. A landmark takes palette names when it is next reworked, with its look check. |
 | A full localisation system (CSV, gettext) | Two languages, and the pair pattern works: every toast has its English. Look again if a third language is asked for. |
 | Splitting `hud.gd` before cards have an owner (TD-16) | It would move the tangle into five files. After TD-16 it splits along owners. |
@@ -60,4 +60,7 @@ same PR as the change (keep the old row under "Replaced" with one line on why).
 
 ## Replaced
 
-None yet.
+| Was | Replaced by, and why |
+| --- | --- |
+| Against: a new facade look in the building shader (the shader was at 502 of 505 Adreno instructions and all 16 skin slots were taken; look again after it is freed) | 2026-11-26, house types PR 2a: one flat `house_facade` freed it to 380, so ordinary houses get new looks as rows ("A new branch in the building shader for an ordinary house's look" above); landmarks still have no new skin slots. |
+

@@ -200,6 +200,12 @@ class Hud extends CanvasLayer:
 		buttons = 0
 		button_words = PackedStringArray()
 
+	## hud.gd's minimap mark of a road scene (crash_scenes.gd; INF: none).
+	var scene_mark := Vector2.INF
+
+	func set_scene_mark(at: Vector2) -> void:
+		scene_mark = at
+
 	func toast(a: String, b := "", _priority := 2) -> void:  # 2 is Messages.INFO, hud.gd's default
 		toasts.append(a)
 		toasts_en.append(b)
@@ -607,6 +613,8 @@ class Wallet extends Node:
 	## wallet.gd's kept facts (a club card, a count of wins) and the best time under each key.
 	var keep := {}
 	var best := {}
+	## The joke notebook's count today (wallet.gd), the night's mandat reads it.
+	var cautions_today := 0
 
 	## Every payment as [amount, gain, kind], in step with `kinds` (a check that tells two payments of one delivery apart).
 	var payments: Array = []
@@ -882,12 +890,15 @@ class Sfx extends Node3D:
 	## sfx.gd's `horn` and road life's `ambulance_siren`: the horns' places, the siren's last place.
 	var horns: Array = []
 	var siren := Vector3.INF
+	## True while the last siren asked for was the fire engine's.
+	var siren_fire := false
 
 	func horn(at: Vector3) -> void:
 		horns.append(at)
 
-	func ambulance_siren(at: Vector3) -> void:
+	func ambulance_siren(at: Vector3, fire := false) -> void:
 		siren = at
+		siren_fire = fire
 
 
 ## city_sounds.gd for a check with no city sounds (TD-11 group 3): the crowds asked for, by id.
