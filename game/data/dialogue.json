@@ -7648,6 +7648,7 @@
     ["Sos to sztuka. Szef leje sam.", "Sauce is an art. You pour, boss.", {"only": "kemal_pour"}],
     ["TRZYMAJ, BY LAĆ. PUŚĆ NA ZIELONYM.", "HOLD TO POUR. LET GO ON THE GREEN.", {"only": "pour_hint"}],
     ["SOS LEJE SIĘ SAM", "THE SAUCE POURS ITSELF", {"only": "pour_auto"}],
+    ["Sos leje się sam", "The sauce pours itself", {"only": "setting_auto_pour"}],
     ["O! Jak u mamy. Ani kropli za dużo.", "Oh! Like mum's. Not a drop too much.", {"only": "kemal_pour_good"}],
     ["Trochę sucho, szefie. Ale buła dobra.", "A bit dry, boss. But the bun is good.", {"only": "kemal_pour_dry"}],
     ["Szefie... Kurtka. Kurtka też ma sos.", "Boss... your jacket. Your jacket has sauce too.", {"only": "kemal_pour_jacket"}],

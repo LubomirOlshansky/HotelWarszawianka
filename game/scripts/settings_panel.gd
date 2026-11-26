@@ -35,6 +35,7 @@ signal closed
 
 const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")  # one language at a time
+const KebabStand := preload("res://scripts/kebab_stand.gd")  # the auto-pour heading's words
 const ACCENT := UiKit.GOLD
 const INK := UiKit.INK
 const SUB := UiKit.SUB
@@ -371,7 +372,8 @@ func _build() -> void:
 	_segments(access[1], "stop_assist", ON_OFF)
 	_heading(access[1], "Dla leworęcznych", "Left-handed: pedals on the left")
 	_segments(access[1], "left_handed", ON_OFF)
-	_heading(access[2], "Sos leje się sam", "The sauce pours itself")
+	var auto_pour: Array = KebabStand.say("setting_auto_pour")
+	_heading(access[2], str(auto_pour[0]), str(auto_pour[1]))
 	_segments(access[2], "auto_pour", ON_OFF)
 
 	# OGÓLNE · General (step 3): the language, the stats, the credits and the tips (were on DŹWIĘK).

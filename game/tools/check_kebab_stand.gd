@@ -21,7 +21,8 @@ const PixelFont := preload("res://scripts/pixel_font.gd")
 const TAGS := ["hello", "hello_note", "menu", "sauce", "who", "build", "hot", "vip", "pour", "pour_hint", "pour_auto",
 		"pour_good", "pour_dry", "pour_jacket", "pay", "pay_cam", "paid", "paid_cam", "tip", "flyer", "dish_0", "dish_1",
 		"dish_2", "dish_3", "dish_3_note", "sauce_0", "sauce_1", "sauce_2", "who_0", "who_1", "build_shave", "build_fill",
-		"build_roll", "btn_leave", "blip_paid", "blip_free", "card_1", "card_2", "enter", "price", "wallet", "flyer_name", "tip_jar"]
+		"build_roll", "btn_leave", "blip_paid", "blip_free", "card_1", "card_2", "enter", "price", "wallet", "flyer_name", "tip_jar",
+		"setting_auto_pour"]
 
 var problems: Array[String] = []
 var checks := 0
