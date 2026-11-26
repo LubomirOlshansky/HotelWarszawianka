@@ -635,7 +635,7 @@ func _dev_page(body: Control) -> Control:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.follow_focus = true  # the pad's focus brings the rows below into view
 	body.add_child(scroll)
-	var dev := _rows(scroll, [2, 2, 2, 2, 2, 1])
+	var dev := _rows(scroll, [2, 2, 2, 2, 2, 2])
 	_pages[_pages.size() - 1] = scroll
 	_heading(dev[0], "Kamera za autem", "Camera follows the car")
 	_segments(dev[0], "camera", CAMERA)
@@ -675,7 +675,10 @@ func _dev_page(body: Control) -> Control:
 	_heading(dev[10], "Pora dnia", "Time of day")
 	_segments(dev[10], "time", TIME)
 	_groups["time"][3].visible = false  # F 2026-11-19: no Live, the game runs its own clock (time_of_day.gd)
-	for key: String in ["camera", "zones", "soft_fences", "perf", "promo", "test_device"]:
+	# F 2026-11-26: the new opening (tajny_klient.gd) instead of the guide, on a fresh save from the next launch.
+	_heading(dev[11], "Tajny klient (nowy start)", "Secret customer (new start)")
+	_segments(dev[11], "tajny", ON_OFF)
+	for key: String in ["camera", "zones", "soft_fences", "perf", "promo", "test_device", "tajny"]:
 		for b: Button in _groups[key]:
 			b.custom_minimum_size.x = touch * 1.05
 	return scroll
