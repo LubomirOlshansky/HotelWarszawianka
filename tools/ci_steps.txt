@@ -49,6 +49,8 @@ crazy                quick
 credits              quick
 crowds               quick
 cyclehang            roads
+decks                quick
+decks-run            local     slow
 deckxray             smoke
 defiladobelisk       quick
 dekalog              quick
@@ -90,11 +92,13 @@ heightthreads        smoke
 heli                 local     slow
 heliview             quick
 hints                quick
+housetypes           quick
 hud                  quick
 jobplay              quick
 jobs2                quick
 juice                quick
 kebab                local     slow
+kebabstand           quick
 kinotour             quick
 kladka               quick
 kukuryznik           quick
@@ -182,6 +186,7 @@ ride-police          local     slow
 rideplay             quick
 rides                quick
 rivals               quick
+roadlife             quick
 roadprofiles         smoke
 roads                roads
 roadtruth            quick
@@ -218,6 +223,8 @@ stuckoffer           quick
 stuckspots           roads
 stuckspots-prebuilt  smoke     slow
 syrenki              quick
+tajny                quick
+tajny-run            local     slow
 tamka                quick
 tapczan              quick
 tapczan-run          local     slow
@@ -245,3 +252,4 @@ water-prebuilt       smoke     slow
 wellness             quick
 zaglebie             quick
 zamekramps           quick
+zebras               quick

@@ -102,6 +102,10 @@ var promo := false
 ## Stats thread 2026-11-21: DEV → "Test device (stats)": marks this device's events `test_device=true` so PostHog can
 ## filter F's own devices out (play_stats.gd). Off by default, key "test_device".
 var test_device := false
+## F 2026-11-26: DEV → "Tajny klient · Secret customer": the new opening mission (tajny_klient.gd)
+## in place of the first-ten-minutes guide, on a fresh save from the next launch. Off by default,
+## key "tajny", until its 2D stand and river scene are real.
+var tajny := false
 var promo_shots := PackedStringArray()
 ## Loop 2e: main.gd STYLES (Sharp, Fine, Clean, Chunky). The Retro filter setting (key display/vhs) was removed
 ## 2026-11-22 (F: it did not work on phones); an old file that still has the key is simply not read.
@@ -154,6 +158,8 @@ var vibration := true
 var stop_assist := true
 ## Accessibility (2026-11-01): the pedals on the left, the stick on the right (hud.gd).
 var left_handed := false
+## Accessibility (2026-11-26, the kebab stand): the sauce pours itself (access.gd auto_pour).
+var auto_pour := false
 ## The language (lang.gd): "" until the player picks one (then the phone decides), "pl" or "en".
 var lang := ""
 ## Loop G1b: Auto's sharp-image state (tiers.gd sharp_state: fallback, calm, wait, trial, why).
@@ -176,7 +182,7 @@ func player_defaults() -> Dictionary:
 			"angle": maxi(0, FollowCamera.PITCHES.find(pitch)), "grade": grade, "quality": quality + 1,
 			"fps": maxi(0, FPS.find(fps)), "image": int(image_full), "master": master, "music": music, "effects": effects,
 			"text_large": int(text_large), "calm": int(calm), "color_safe": int(color_safe), "vibration": int(vibration),
-			"stop_assist": int(stop_assist), "left_handed": int(left_handed)}
+			"stop_assist": int(stop_assist), "left_handed": int(left_handed), "auto_pour": int(auto_pour)}
 
 
 func load_file() -> void:
@@ -226,6 +232,7 @@ func load_file() -> void:
 	camera_view = clampi(int(cfg.get_value("display", "camera_view", camera_view)), 0, FollowCamera.VIEW_AERIAL)
 	promo = bool(cfg.get_value("debug", "promo", promo))
 	test_device = bool(cfg.get_value("debug", "test_device", test_device))
+	tajny = bool(cfg.get_value("debug", "tajny", tajny))
 	promo_shots = PackedStringArray(cfg.get_value("debug", "promo_shots", promo_shots))
 	zone_cap = bool(cfg.get_value("game", "zone_cap", zone_cap))
 	if cfg.has_section_key("game", "character"):
@@ -253,6 +260,7 @@ func load_file() -> void:
 	vibration = bool(cfg.get_value("access", "vibration", vibration))
 	stop_assist = bool(cfg.get_value("access", "stop_assist", stop_assist))
 	left_handed = bool(cfg.get_value("access", "left_handed", left_handed))
+	auto_pour = bool(cfg.get_value("access", "auto_pour", auto_pour))
 	lang = str(cfg.get_value("game", "lang", lang))
 	if lang != "" and not lang in ["pl", "en"]:
 		lang = ""
@@ -291,6 +299,7 @@ func save() -> void:
 	cfg.set_value("display", "camera_view", camera_view)
 	cfg.set_value("debug", "promo", promo)
 	cfg.set_value("debug", "test_device", test_device)
+	cfg.set_value("debug", "tajny", tajny)
 	cfg.set_value("debug", "promo_shots", promo_shots)
 	cfg.set_value("game", "zone_cap", zone_cap)
 	cfg.set_value("game", "handling", handling)
@@ -308,6 +317,7 @@ func save() -> void:
 	cfg.set_value("access", "vibration", vibration)
 	cfg.set_value("access", "stop_assist", stop_assist)
 	cfg.set_value("access", "left_handed", left_handed)
+	cfg.set_value("access", "auto_pour", auto_pour)
 	if lang != "":
 		cfg.set_value("game", "lang", lang)
 	for key in auto_image:

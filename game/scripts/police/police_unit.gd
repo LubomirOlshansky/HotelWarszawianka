@@ -111,6 +111,8 @@ func build() -> void:
 	top.add_child(_branch("Club", [_role("club")], "stay_parked"))
 	# The crash scenes: a car at a scene (police.gd scene_car) stands there, lights on.
 	top.add_child(_branch("Crash", [_role("crash")], "attend"))
+	# Road life: an ambulance on a call (police.gd ambulance_car) rushes on, lights on.
+	top.add_child(_branch("Ambulance", [_role("ambulance")], "rush"))
 	top.add_child(_branch("GuardFollow", [_role("guard_follow")], "guard_follow"))
 	top.add_child(_branch("Guard", [_role("guard")], "drive_as_guard"))
 	top.add_child(_action("drive_as_traffic"))
@@ -261,6 +263,17 @@ func attend() -> int:
 		_racer(false)
 		traffic.set_lights(driver, true)
 		driver.held = true
+	return BeehaveNode.RUNNING
+
+
+## Road life (road_life.gd): an ambulance on a call. Its driving is road_life.gd's (racer stats and
+## a route to a hospital, set before the unit first ticks); the unit only keeps its lights on and
+## never holds it.
+func rush() -> int:
+	if _mode != "ambulance":
+		_mode = "ambulance"
+		traffic.set_lights(driver, true)
+		driver.held = false
 	return BeehaveNode.RUNNING
 
 

@@ -64,11 +64,49 @@ const HAIR_BL := Color("#e2c060")
 const HAIR_GR := Color("#bcbcbc")
 const HAIR_BK := Color("#2a2a2a")
 
+# --- the kebab stand's (kebab_stand_ui.gd; Fable's palette: white tile, a cobalt band, a green-white
+# fluorescent cast, four meat browns, white and red sauce, padel's gold for prices) ---
+const TILE := Color("#e9eeea")
+const GROUT := Color("#c7d0cc")
+const COBALT := Color("#1f4fa8")
+const COBALT_L := Color("#4f7fd8")
+const COBALT_D := Color("#163a7c")
+const FLUO := Color(0.88, 1.0, 0.86, 0.05)
+const PANEL := Color("#fff4d6")
+const GRILL := Color("#ff7a1e")
+const STEEL := Color("#9aa3aa")
+const STEEL_D := Color("#6b737a")
+const MEAT := [Color("#8a4a24"), Color("#a65a2a"), Color("#6e3a1c"), Color("#c27838")]
+const MEAT_FAT := Color("#e8b070")
+const SAUCE_W := Color("#f4f1e4")
+const SAUCE_P := Color("#f0a29a")
+const SAUCE_R := Color("#d2332a")
+const BUN := Color("#d99a4e")
+const BUN_D := Color("#b77834")
+const TORTILLA := Color("#ecd8a4")
+const KRAFT := Color("#c8a06a")
+const FRIES := Color("#f2cf4a")
+const LETTUCE := Color("#6cc04a")
+const TOMATO := Color("#e0443a")
+const ONION := Color("#b07ac8")
+const CABBAGE := Color("#e8f0d8")
+const CABBAGE_R := Color("#9a3a78")
+const CUCUMBER := Color("#3f9a4a")
+const FRIDGE := Color("#e8f6ff")
+const GLASS_C := Color("#cfeef2")
+const APRON := Color("#2c3a52")
+const MOUTH := Color("#5a1e1a")
+const DZEMINI := Color("#5a3ad0")
+const DZEMINI_L := Color("#8a6af0")
+
 ## The pen: what is drawn on (null: a dry run, nothing drawn), screen px per canvas px, the canvas
 ## origin on screen.
 var ci: CanvasItem
 var u := 1.0
 var o := Vector2.ZERO
+## Rects drawn (or, with no `ci`, that would be) since the owner last zeroed it: the Za deckami view's
+## per-frame budget (check_decks.gd reads it from a dry pen).
+var rects := 0
 
 static var _glyphs: Dictionary = {}
 
@@ -83,7 +121,10 @@ func _init(item: CanvasItem = null, unit := 1.0, origin := Vector2.ZERO) -> void
 
 ## A canvas-px rect, snapped to whole screen pixels on the grid.
 func rect(x: float, y: float, w: float, h: float, c: Color) -> void:
-	if ci == null or w <= 0.0 or h <= 0.0:
+	if w <= 0.0 or h <= 0.0:
+		return
+	rects += 1
+	if ci == null:
 		return
 	var x0 := roundf(o.x + roundf(x) * u)
 	var y0 := roundf(o.y + roundf(y) * u)

@@ -35,6 +35,7 @@ signal closed
 
 const UiKit := preload("res://scripts/ui_kit.gd")  # the one look (docs/design/ui-kit.md)
 const Lang := preload("res://scripts/lang.gd")  # one language at a time
+const KebabStand := preload("res://scripts/kebab_stand.gd")  # the auto-pour heading's words
 const ACCENT := UiKit.GOLD
 const INK := UiKit.INK
 const SUB := UiKit.SUB
@@ -357,7 +358,8 @@ func _build() -> void:
 		_level(sound[0], l[0], l[1], l[2])
 
 	# DOSTĘP · Access (access.gd).
-	var access := _page(body, 2)
+	# A third column for the stand's auto-pour (kebab_stand.gd): a fourth row would make the page too tall.
+	var access := _page(body, 3)
 	_heading(access[0], "Duży tekst", "Larger text (after restart)")
 	_segments(access[0], "text_large", ON_OFF)
 	_heading(access[0], "Spokojny obraz", "Calm: no flashing or shaking")
@@ -370,6 +372,9 @@ func _build() -> void:
 	_segments(access[1], "stop_assist", ON_OFF)
 	_heading(access[1], "Dla leworęcznych", "Left-handed: pedals on the left")
 	_segments(access[1], "left_handed", ON_OFF)
+	var auto_pour: Array = KebabStand.say("setting_auto_pour")
+	_heading(access[2], str(auto_pour[0]), str(auto_pour[1]))
+	_segments(access[2], "auto_pour", ON_OFF)
 
 	# OGÓLNE · General (step 3): the language, the stats, the credits and the tips (were on DŹWIĘK).
 	var general := _page(body, 2)
@@ -635,7 +640,7 @@ func _dev_page(body: Control) -> Control:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.follow_focus = true  # the pad's focus brings the rows below into view
 	body.add_child(scroll)
-	var dev := _rows(scroll, [2, 2, 2, 2, 2, 1])
+	var dev := _rows(scroll, [2, 2, 2, 2, 2, 2])
 	_pages[_pages.size() - 1] = scroll
 	_heading(dev[0], "Kamera za autem", "Camera follows the car")
 	_segments(dev[0], "camera", CAMERA)
@@ -675,7 +680,10 @@ func _dev_page(body: Control) -> Control:
 	_heading(dev[10], "Pora dnia", "Time of day")
 	_segments(dev[10], "time", TIME)
 	_groups["time"][3].visible = false  # F 2026-11-19: no Live, the game runs its own clock (time_of_day.gd)
-	for key: String in ["camera", "zones", "soft_fences", "perf", "promo", "test_device"]:
+	# F 2026-11-26: the new opening (tajny_klient.gd) instead of the guide, on a fresh save from the next launch.
+	_heading(dev[11], "Tajny klient (nowy start)", "Secret customer (new start)")
+	_segments(dev[11], "tajny", ON_OFF)
+	for key: String in ["camera", "zones", "soft_fences", "perf", "promo", "test_device", "tajny"]:
 		for b: Button in _groups[key]:
 			b.custom_minimum_size.x = touch * 1.05
 	return scroll

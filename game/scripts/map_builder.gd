@@ -9182,7 +9182,7 @@ func _build_crossings(st) -> void:
 		_dk = int(p.get("dk", -1))
 		var poly := _pts(p["p"])
 		# Road design (tools/road_design.py): a zebra may say how wide it is (`w`, 4-10 m in the
-		# centre); the bars run 0.2 m short of each edge. Without it the old 3.6 m.
+		# centre); the bars run 0.2 m short of each edge, at least the old 3.6 m (_zebra_bar).
 		var bar := _zebra_bar(p)
 		for i in poly.size() - 1:
 			var a := poly[i]
@@ -9199,9 +9199,13 @@ func _build_crossings(st) -> void:
 	_dk = -1
 
 
-## A zebra's bar length across the crossing: its `w` less 0.4 m, else 3.6 m (TACTILE_WIDE).
+## A zebra's bar length across the crossing: its `w` less 0.4 m, never under 3.6 m (TACTILE_WIDE).
+## Road design's zebras say how wide they are (4-10 m); every other zebra's `w` is only the bake's
+## footway default (bake_osm.py PATHS, 2.2 m), not the crossing's width. Reading it as one drew
+## 2,021 of the map's 2,117 zebras with 2.0 m bars from #474 (2026-11-07) to 2026-11-26; Polish
+## zebras are at least 4 m across (P-10). check_zebras holds it.
 static func _zebra_bar(p: Dictionary) -> float:
-	return maxf(2.0, float(p["w"]) - 0.4) if p.has("w") else TACTILE_WIDE
+	return maxf(TACTILE_WIDE, float(p.get("w", 0.0)) - 0.4)
 
 
 ## First-scene item 5 (2026-11-02): Warsaw's crossings end in a strip of yellow tactile paving
@@ -9756,7 +9760,9 @@ func _build_buildings(st, keep: Array, marks) -> void:
 			roof = skin["roof"]
 			_uv2.x = skin["mode"]
 		elif not glass and not _historic(plan.get_center(), 0.0):
-			_uv2.x = typed_seed(_building_type(str(bld["kind"]), poly, h), _uv2.x)
+			_uv2.x = HouseTypes.encode(_osm_house_type(bld, poly, h, plan.get_center(), hsh), _uv2.x)
+			if _osm_house_colour.a > 0.0:
+				wall = _osm_house_colour
 			if not bld.has("pil") and not bld.has("cut") and mh < 1.0:
 				pitched = OsmRoofs.shape(poly, h, str(bld["kind"]))
 		# RF4: a small low house gets a pitched roof in its district's material (the walls stop
@@ -10207,7 +10213,9 @@ func _build_lod2(walls, marks) -> Array:
 	var facades := _tenement_facades(pos, nrm, col, uv2, dropped)
 	col = facades[0]
 	uv2 = facades[1]
-	uv2 = _typed_lod2(pos, col, uv2, building_runs)
+	var typed := _typed_lod2(pos, nrm, col, uv2, building_runs, facades[3])
+	col = typed[0]
+	uv2 = typed[1]
 	col = _boulevard_dress(pos, nrm, col, building_runs)
 	var dress: Dictionary = facades[2]
 	if not walls.none:
@@ -11545,8 +11553,6 @@ const PLAC_PALETTE_R := 110.0
 ## The market square's fronts (the shader's painted bands): walls within this of its centre that
 ## face it.
 const SQUARE_FRONT_R := 48.0
-## building.gdshader's T_OLDTOWN: the historic districts' walls (F's photos, 2026-11-08).
-const OLD_TOWN_TYPE := 4
 ## The Old Town Market Square's houses (F, 2026-11-09): within RYNEK_PALETTE_R of its centre each
 ## house is a painted front in one of these (ochre, salmon, sage, powder blue, pale pink, cream,
 ## terracotta, lilac, straw), unless OSM names its colour; the named houses below have their own,
@@ -11615,7 +11621,7 @@ const NOT_TENEMENTS := ["church", "cathedral", "chapel", "monastery", "convent",
 
 
 ## R4 of docs/design/start-area-real.md (2026-11-01): an ordinary building's type for the facade
-## shader (building.gdshader typed_facade), from its OpenStreetMap kind, footprint and height:
+## shader (building.gdshader house_facade, through HouseTypes.FROM_R4), from its OpenStreetMap kind, footprint and height:
 ## 1 a pre-war tenement (kamienica: 10-26 m, the city's usual block), 2 a 1960s-80s large-panel
 ## slab or point block (26 m and up, or a long thin bar 14 m and up), 3 a post-war office with
 ## ribbon windows (offices, shops, hotels, ministries 12 m and up), 0 untyped (the seed's look:
@@ -11719,22 +11725,50 @@ func _boulevard_dress(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pac
 	return col
 
 
-## A wall's UV2.x for type `kind` (1-3) and seed 0..1: [1, 2) in quarters; 0 keeps the seed.
+## A wall's UV2.x for R4 kind `kind` (1 tenement, 2 slab, 3 office, 4 the Old Town) and seed 0..1,
+## as its house type (HouseTypes.FROM_R4, encode); 0 keeps the seed.
 static func typed_seed(kind: int, seed: float) -> float:
-	if kind <= 0:
-		return seed
-	return 1.0 + 0.25 * float(kind - 1) + 0.24 * clampf(seed, 0.0, 0.999)
+	return HouseTypes.encode(int(HouseTypes.FROM_R4.get(kind, 0)), seed)
 
 
-## R4 for the LoD2 buildings: each run (one building) takes the type of the OpenStreetMap house
-## under its middle, its height from its own triangles. Glass walls, landmarks' skins and the
-## historic districts (_tenement_facades) keep theirs. Load time only, both city paths.
-func _typed_lod2(pos: PackedVector3Array, col: PackedColorArray, uv2: PackedVector2Array,
-		runs: Array[Vector3i]) -> PackedVector2Array:
+## The palette colour _osm_house_type picked for the house it just typed (alpha 0: none).
+var _osm_house_colour := Color(0, 0, 0, 0)
+
+
+## The OSM-path house's house type (house types, PR 1; 0 untyped): today's R4 rule says whether it is a
+## typed house at all; HouseTypes picks its type from the zone and its shape (no floor height:
+## here the wall height is the baked h itself). Sets _osm_house_colour to the type's palette when
+## OSM gives no colour or a grey one, else clear.
+func _osm_house_type(bld: Dictionary, poly: PackedVector2Array, h: float, centre: Vector2, hsh: int) -> int:
+	_osm_house_colour = Color(0, 0, 0, 0)
+	var kind := str(bld["kind"])
+	var old := _building_type(kind, poly, h)
+	if old == 0:
+		return 0
+	if _nowy_swiat(centre) or _powisle_distance(centre) <= POWISLE_REACH or not _tamka_look(bld, poly, centre, hsh).is_empty():
+		return int(HouseTypes.FROM_R4.get(old, 0))  # a street list's house: its own palette and trims, today's type
+	var zone := HouseTypes.zone_at(centre)
+	var fp := HouseTypes.footprint(poly)
+	var fam := HouseTypes.family(TYPED_OFFICES.has(kind), h, 0.0, fp.x, fp.y, false, HouseTypes.zone_family(zone))
+	var seed := fposmod(centre.x * 0.0731 + centre.y * 0.0417, 1.0)
+	var type := HouseTypes.pick(zone, fam, h, fp.x, fp.y, seed)
+	if HouseTypes.replaces_osm(zone, bld.get("c", "")):
+		_osm_house_colour = HouseTypes.wall(type, fposmod(seed * 3.7 + hsh * 0.618, 1.0))
+	return type
+
+
+## R4 for the LoD2 buildings, by house type (docs/design/house-types.md, PR 1): each run (one
+## building) finds the OpenStreetMap house it stands on, HouseTypes picks its Warsaw type from the
+## zone, its floor height (eave over storeys) and shape, the walls take that type's drawn facade
+## and, where OSM gives no colour (or a grey one), the type's palette. Glass walls, landmarks'
+## skins, the historic districts and the street lists (Nowy Świat, Powiśle, Tamka, Aleja Jana
+## Pawła II) keep theirs. Load time only, both city paths; every seed from a place.
+func _typed_lod2(pos: PackedVector3Array, nrm: PackedVector3Array, col: PackedColorArray, uv2: PackedVector2Array,
+		runs: Array[Vector3i], painted: PackedByteArray) -> Array:
 	var cell := 48.0
 	var grid := {}
 	var polys: Array[PackedVector2Array] = []
-	var kinds: Array[String] = []
+	var blds: Array[Dictionary] = []
 	for bld in data.get("buildings", []):
 		var p: Array = bld["p"]
 		if p.size() < 6 or not (TYPED_HOMES.has(str(bld["kind"])) or TYPED_OFFICES.has(str(bld["kind"]))):
@@ -11745,13 +11779,16 @@ func _typed_lod2(pos: PackedVector3Array, col: PackedColorArray, uv2: PackedVect
 			box = box.expand(q)
 		var k := polys.size()
 		polys.append(poly)
-		kinds.append(str(bld["kind"]))
+		blds.append(bld)
 		for gx in range(floori(box.position.x / cell), floori(box.end.x / cell) + 1):
 			for gz in range(floori(box.position.y / cell), floori(box.end.y / cell) + 1):
 				var key := Vector2i(gx, gz)
 				if not grid.has(key):
 					grid[key] = []
 				(grid[key] as Array).append(k)
+	var courts := _court_centres()
+	var avenue := _boulevard_grid()
+	var census := {}
 	for run in runs:
 		var lo := Vector3(INF, INF, INF)
 		var hi := -lo
@@ -11761,20 +11798,116 @@ func _typed_lod2(pos: PackedVector3Array, col: PackedColorArray, uv2: PackedVect
 		var mid := Vector2((lo.x + hi.x) * 0.5, (lo.z + hi.z) * 0.5)
 		if _historic(mid, 0.0):
 			continue
-		var found := -1
-		for k in grid.get(Vector2i(floori(mid.x / cell), floori(mid.y / cell)), []):
-			if Geometry2D.is_point_in_polygon(mid, polys[k]):
-				found = k
-				break
+		# The house under the run: its box centre, else (a U or L round a courtyard, whose centre
+		# is in the yard) a metre behind one of its walls.
+		var found := _house_under(mid, grid, polys, cell)
+		if found < 0:
+			for t in range(run.x, run.y, 3):
+				if absf(nrm[t].y) < 0.3:
+					var c := (pos[t] + pos[t + 1] + pos[t + 2]) / 3.0
+					var n := nrm[t]
+					found = _house_under(Vector2(c.x, c.z) - Vector2(n.x, n.z).normalized(), grid, polys, cell)
+					break
 		if found < 0:
 			continue
-		var kind := _building_type(kinds[found], polys[found], hi.y - lo.y)
-		if kind == 0:
+		var bld := blds[found]
+		var kind_s := str(bld["kind"])
+		var old := _building_type(kind_s, polys[found], hi.y - lo.y)
+		if old == 0:
 			continue
-		for t in range(run.x, run.y):
-			if uv2[t].x < 1.0 and col[t].a >= 0.9:
-				uv2[t].x = typed_seed(kind, uv2[t].x)
-	return uv2
+		var hsh := absi(int(polys[found][0].x * 73.0 + polys[found][0].y * 31.0))
+		if _nowy_swiat(mid) or _powisle_distance(mid) <= POWISLE_REACH or _near_boulevard(avenue, mid) \
+				or not _tamka_look(bld, polys[found], mid, hsh).is_empty():
+			# A street list's house: its own palette and trims, today's type.
+			for t in range(run.x, run.y):
+				if uv2[t].x < 1.0 and col[t].a >= 0.9:
+					uv2[t].x = typed_seed(old, uv2[t].x)
+			census["street list"] = int(census.get("street list", 0)) + 1
+			continue
+		# Eave: the median wall top (UV2.y, metres over the building's ground; plant boxes -1).
+		var tops: Array[float] = []
+		for t in range(run.x, run.y, 3):
+			if absf(nrm[t].y) < 0.3 and uv2[t].y > 0.0:
+				tops.append(uv2[t].y)
+		tops.sort()
+		var eave := tops[tops.size() / 2] if not tops.is_empty() else hi.y - lo.y
+		var levels := HouseTypes.levels_from_h(float(bld.get("h", 0.0)))
+		var floor_h := eave / levels if levels > 0 else 0.0
+		var fp := HouseTypes.footprint(polys[found])
+		var court := false
+		for q: Vector2 in courts.get(Vector2i(floori(mid.x / cell), floori(mid.y / cell)), []):
+			if Rect2(Vector2(lo.x, lo.z), Vector2(hi.x - lo.x, hi.z - lo.z)).grow(3.0).has_point(q):
+				court = true
+				break
+		var zone := HouseTypes.zone_at(mid)
+		var fam := HouseTypes.family(TYPED_OFFICES.has(kind_s), eave, floor_h, fp.x, fp.y, court, HouseTypes.zone_family(zone))
+		var seed := fposmod(mid.x * 0.0731 + mid.y * 0.0417, 1.0)
+		var type := HouseTypes.pick(zone, fam, eave, fp.x, fp.y, seed)
+		var type_name := HouseTypes.type_name(type)
+		census[type_name] = int(census.get(type_name, 0)) + 1
+		if type > 0:
+			for t in range(run.x, run.y):
+				if uv2[t].x < 1.0 and col[t].a >= 0.9:
+					uv2[t].x = HouseTypes.encode(type, uv2[t].x)
+		var paint := HouseTypes.wall(type, fposmod(seed * 3.7 + hsh * 0.618, 1.0))
+		if paint.a > 0.0 and HouseTypes.replaces_osm(zone, bld.get("c", "")):
+			# Keep the bake's shading (the darker foot of the walls) as each vertex's brightness
+			# against the run's brightest wall vertex, and the alpha (the glass flag).
+			var ref := 0.0
+			for t in range(run.x, run.y, 3):
+				if absf(nrm[t].y) < 0.3 and col[t].a >= 0.9:
+					for v in 3:
+						ref = maxf(ref, col[t + v].get_luminance())
+			if ref > 0.001:
+				for t in range(run.x, run.y, 3):
+					if absf(nrm[t].y) < 0.3 and col[t].a >= 0.9 and uv2[t].x < 2.0 and not painted[t / 3]:
+						for v in 3:
+							var k := clampf(col[t + v].get_luminance() / ref, 0.5, 1.0)
+							col[t + v] = Color(paint.r * k, paint.g * k, paint.b * k, col[t + v].a)
+	if not _in_sector:
+		var keys := census.keys()
+		keys.sort()
+		print("house types: %s" % ", ".join(keys.map(func(k): return "%s %d" % [k, census[k]])))
+	return [col, uv2]
+
+
+## The index of the house (in `polys`) a point stands in, or -1.
+func _house_under(at: Vector2, grid: Dictionary, polys: Array[PackedVector2Array], cell: float) -> int:
+	for k in grid.get(Vector2i(floori(at.x / cell), floori(at.y / cell)), []):
+		if Geometry2D.is_point_in_polygon(at, polys[k]):
+			return k
+	return -1
+
+
+## courts.json read once per builder (a sector build would parse it per call otherwise).
+var _courts_cache := {}
+
+
+## Courtyard centres (game/data/courts.json) in 48 m cells: a pre-war hint for a house beside one.
+func _court_centres() -> Dictionary:
+	if not _courts_cache.is_empty():
+		return _courts_cache
+	var out := _courts_cache
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string("res://data/courts.json"))
+	if not parsed is Dictionary:
+		return out
+	for c: Array in parsed.get("courts", []):
+		var sum := Vector2.ZERO
+		var n := 0
+		for i in range(0, c.size() - 1, 2):
+			sum += Vector2(float(c[i]), float(c[i + 1]))
+			n += 1
+		if n == 0:
+			continue
+		var at := sum / n
+		var key := Vector2i(floori(at.x / 48.0), floori(at.y / 48.0))
+		for dx in range(-1, 2):
+			for dz in range(-1, 2):
+				var k2 := key + Vector2i(dx, dz)
+				if not out.has(k2):
+					out[k2] = []
+				(out[k2] as Array).append(at)
+	return out
 
 
 ## The roofs lane (docs/design/roofs.md, RF2-RF3): each kept LoD2 building's parapets,
@@ -11791,7 +11924,7 @@ func _roof_dress(pos: PackedVector3Array, nrm: PackedVector3Array, col: PackedCo
 			lo = lo.min(Vector2(pos[t].x, pos[t].z))
 			hi = hi.max(Vector2(pos[t].x, pos[t].z))
 			if kind == 0 and uv2[t].x >= 1.0 and uv2[t].x < 2.0:
-				kind = int((uv2[t].x - 1.0) * 4.0) + 1
+				kind = HouseTypes.rhythm(HouseTypes.decode(uv2[t].x))
 		var extra := RoofDress.building(pos, nrm, col, uv, run.x, run.y, kind, _historic((lo + hi) * 0.5, 0.0))
 		if not (extra["pos"] as PackedVector3Array).is_empty():
 			_add_dress(dress, extra)
@@ -11858,8 +11991,10 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 				if not grid.has(key):
 					grid[key] = []
 				(grid[key] as Array).append(k)
+	var painted := PackedByteArray()
+	painted.resize(pos.size() / 3)
 	if polys.is_empty():
-		return [col, uv2, dress]
+		return [col, uv2, dress, painted]
 	var balc0 := TenementTrim.balconies
 	var covered := _gable_ends(pos, nrm)
 	for t in range(0, pos.size(), 3):
@@ -11877,6 +12012,7 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 			if (in_old or plain[k]) and Geometry2D.is_point_in_polygon(probe, polys[k]):
 				if plain[k]:
 					if not pitched:
+						painted[t / 3] = 1
 						for v in 3:
 							col[t + v] = looks[k]
 							uv2[t + v].x = seeds[k]
@@ -11885,11 +12021,12 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 					break
 				# F's photos (2026-11-08): the walls take the shader's Old Town type (portals,
 				# casements in cream surrounds, sills, painted bands on the market square's fronts)
-				var wall_seed := typed_seed(OLD_TOWN_TYPE, seeds[k] * 0.5 + (0.5 if _faces_square(pos, nrm, t) else 0.0))
+				var wall_seed := HouseTypes.encode(HouseTypes.OLD_TOWN, seeds[k] * 0.5 + (0.5 if _faces_square(pos, nrm, t) else 0.0))
 				for v in 3:
 					if pitched:
 						col[t + v] = col[t + v].lerp(roofs[k], 0.5)
 					else:
+						painted[t / 3] = 1
 						col[t + v] = looks[k]
 						uv2[t + v].x = wall_seed
 				if pitched:
@@ -11905,7 +12042,7 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 				break
 	if not _in_sector and tamka_houses > 0:
 		print("tamka: %d houses in the photos' looks, %d balconies" % [tamka_houses, TenementTrim.balconies - balc0])
-	return [col, uv2, dress]
+	return [col, uv2, dress, painted]
 
 
 ## A Market Square house's painted colour: its OSM colour when it has one, the named table's,
@@ -12062,7 +12199,8 @@ const TAMKA_HOMES := ["apartments", "yes", "residential", "house"]
 
 ## The distance from a point to the nearest Dobra or Tamka centre line (INF beyond 80 m).
 func _powisle_distance(at: Vector2) -> float:
-	if _powisle_segs.is_empty():
+	if not _powisle_filled:
+		_powisle_filled = true
 		for r in data.get("roads", []):
 			if not POWISLE_STREETS.has(str(r.get("name", ""))) or bool(r.get("bridge", false)):
 				continue
@@ -12076,6 +12214,7 @@ func _powisle_distance(at: Vector2) -> float:
 		best = minf(best, Geometry2D.get_closest_point_to_segment(at, sg[0], sg[1]).distance_to(at))
 	return best
 var _powisle_segs: Array = []
+var _powisle_filled := false  # a sector with none of the streets reads the roads once, not per call
 
 
 ## One wall triangle `t` of a Dobra or Tamka tenement: its cornice, string course and, when the
@@ -12121,7 +12260,8 @@ var _mariensztat := PackedVector2Array()
 ## Whether a point stands in the houses of Nowy Świat (NOWY_REACH of its centre line, short of
 ## Al. Jerozolimskie), apart from the historic districts, which keep their own dress.
 func _nowy_swiat(at: Vector2) -> bool:
-	if _nowy_segs.is_empty():
+	if not _nowy_filled:
+		_nowy_filled = true
 		for r in data.get("roads", []):
 			if str(r.get("name", "")) != NOWY_STREET or bool(r.get("bridge", false)):
 				continue
@@ -12138,6 +12278,7 @@ func _nowy_swiat(at: Vector2) -> bool:
 			return not _historic(at, 0.0)
 	return false
 var _nowy_segs: Array = []
+var _nowy_filled := false  # as _powisle_filled
 
 
 ## The named Royal Route streets' segments in this map or sector: [a, b, half width + reach].

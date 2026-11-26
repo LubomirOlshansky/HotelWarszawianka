@@ -1062,7 +1062,7 @@ func _pp_works(ring: PackedVector2Array, g: float, h: float) -> void:
 ## facade (rusticated shop floor, tall windows, a heavy cornice), a hotel sign on the Okrzei front.
 func _pp_minter(ring: PackedVector2Array, g: float) -> void:
 	var h := 18.2
-	_prism(ring, g - 0.3, g + h, PP_MINTER, Color(0, 0, 0, 0), 1.0 + 0.6 / 4.0)
+	_prism(ring, g - 0.3, g + h, PP_MINTER, Color(0, 0, 0, 0), HouseTypes.encode(1, 0.6))
 	kit_cornice_ring(ring, g + h - 0.2, PP_MINTER.lightened(0.06), 0.45, 0.6)
 	_mode = M_STONE
 	_cap(ring, g + h + 0.25, PAL_ROOF_GREY)

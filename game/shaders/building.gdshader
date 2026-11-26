@@ -177,16 +177,18 @@ vec3 facade(vec3 col, float u, float h, float seed, float top, bool glass, out v
 	return col;
 }
 
-// R4 of docs/design/start-area-real.md (2026-11-01): ordinary buildings drawn by their type,
-// not only their seed. map_builder.gd (_building_type) tags a wall's UV2.x in [1, 2): the type
-// in quarters (1 a pre-war tenement, 2 a 1960s-80s slab or point block, 3 a post-war office
-// with ribbon windows) and the seed in the rest of the quarter. Untyped walls keep [0, 1).
-const int T_TENEMENT = 1;
-const int T_SLAB = 2;
-const int T_OFFICE = 3;
-// The Old Town and New Town (F's photos E01-E04, 2026-11-08): map_builder.gd _tenement_facades
-// tags their walls 4, the seed's upper half marking a front on the market square.
+// House types (docs/design/house-types.md, PR 2a): an ordinary building's walls carry its
+// type in UV2.x in [1, 2) as 1 + (T + 0.96 seed) / 16 (scripts/house_types.gd encode()): T 1..15
+// is a row of the HOUSE_* tables below (the types of game/data/house_types.json), the seed its
+// own variation. Untyped walls keep [0, 1) and facade(). One flat facade draws every type from
+// its row; the Old Town and New Town (T 4, F's photos E01-E04) keep their own drawing.
 const int T_OLDTOWN = 4;
+// HOUSE_TYPES_BEGIN (written by tools/house_zones.py from FACADE; do not edit by hand)
+const vec4 HOUSE_A[16] = vec4[16](vec4(4, 3.4, 2.8, 0.7), vec4(4.4, 3.7, 2.8, 0.9), vec4(3.8, 3.4, 2.5, 0.6), vec4(3.4, 3.2, 3, 0), vec4(3.6, 3.2, 2.5, 0.8), vec4(6.2, 3.6, 2.6, 1.3), vec4(3, 2.9, 2.6, 0.35), vec4(3, 2.8, 3, 0), vec4(2.8, 2.8, 3.2, 0), vec4(2.8, 2.8, 3.2, 0), vec4(2.8, 2.8, 2.9, 0), vec4(3.8, 3.3, 1.5, 0), vec4(4.2, 3.5, 2.7, 0.3), vec4(3.6, 3, 3.4, 0), vec4(4, 3.4, 2.8, 0.7), vec4(4.5, 4.5, 3.6, 0.5));
+const vec4 HOUSE_B[16] = vec4[16](vec4(0.45, 1.8, 0.85, 0), vec4(0.55, 2.1, 0.85, 0.18), vec4(0.45, 1.9, 0.8, 0.12), vec4(0.75, 1.5, 0.95, 0), vec4(0.45, 1.6, 0.8, 0.15), vec4(0.55, 1.8, 0.9, 0.2), vec4(0.5, 1.5, 0.9, 0.1), vec4(0.75, 1.45, 0.9, 0), vec4(0.8, 1.4, 0.95, 0), vec4(0.8, 1.4, 0.95, 0), vec4(0.7, 1.4, 0.95, 0), vec4(0.7, 1.7, 0.9, 0), vec4(0.8, 1.6, 0.9, 0.08), vec4(1, 1.9, 0.3, 0), vec4(0.45, 1.8, 0.85, 0), vec4(0.9, 2.6, 1, 0.15));
+const vec4 HOUSE_C[16] = vec4[16](vec4(0.6, 0, 0, 0), vec4(0.75, 0, 0, 0), vec4(0.45, 0, 0, 0), vec4(0.4, 0, 0, 0.15), vec4(0.7, 0, 0, 0), vec4(0.9, 0, 0, 0), vec4(0.1, 0, 0, 0), vec4(0.3, 0, 0, 0.15), vec4(0.05, 0, 1, 0.35), vec4(0.05, 0, 0.1, 0.3), vec4(0.05, 0, 0.5, 0.45), vec4(0.9, 1, 0, 0), vec4(0.9, 0, 0, 0), vec4(0.4, 0, 0, 0.5), vec4(0.6, 0, 0, 0), vec4(0, 0, 0, 0));
+const vec4 HOUSE_D[16] = vec4[16](vec4(0, 0, 0.34, 0), vec4(1, 0, 0.34, 0), vec4(0, 0, 0.32, 0), vec4(0, 0, 0.34, 0), vec4(0, 0, 0.34, 0), vec4(1, 0, 0.34, 0), vec4(0, 0, 0.34, 1), vec4(0, 0.1, 0.34, 1), vec4(0, 0.35, 0.34, 1), vec4(0, 0, 0.34, 1), vec4(0, 0.2, 0.34, 1), vec4(0, 0, 0.42, 2), vec4(0, 0, 0.42, 2), vec4(0, 0, 0.34, 2), vec4(0, 0, 0.34, 0), vec4(0, 0, 0.2, 1));
+// HOUSE_TYPES_END
 
 // A pane's colour by day, and a lit room at night: the same rules as facade()'s windows.
 vec3 typed_pane(vec3 col, vec2 cell, float seed, bool office, out vec3 glow) {
@@ -205,195 +207,175 @@ vec3 typed_pane(vec3 col, vec2 cell, float seed, bool office, out vec3 glow) {
 	return mix(col * 0.45, glass_col, 0.7);
 }
 
-vec3 typed_facade(int kind, vec3 col, float u, float h, float seed, float top, out vec3 glow) {
-	glow = vec3(0.0);
+// The Old Town and New Town (map_builder.gd _tenement_facades; the seed's upper half marks a
+// front on the market square).
+vec3 old_town_facade(vec3 col, float u, float h, float seed, float top, out vec3 glow) {
 	bool night = lights_on > 0.001;
-	if (kind == T_TENEMENT) {
-		// A pre-war tenement (kamienica): a tall rusticated shop floor, a string course, tall
-		// windows with light plaster surrounds and sills, a heavy cornice with its shadow.
-		float g = 4.4 + 0.5 * fract(seed * 7.13);    // the ground floor
-		float fh = 3.6 + 0.6 * fract(seed * 3.31);   // upper floors
-		float sp = 2.7 + 0.7 * fract(seed * 5.71);   // window axes
-		if (all(bvec2(top > 6.0, h > top - 0.9))) {
-			return col * 1.16;                          // the cornice
-		}
-		if (all(bvec2(top > 6.0, h > top - 1.15))) {
-			return col * 0.62;                          // its shadow
-		}
-		float fx = fract(u / sp);
-		if (h < g) {
-			float fy = h / g;
-			bool shop = all(bvec3(fy > 0.08, fy < 0.74, abs(fx - 0.5) < 0.36));
-			vec3 window_col = mix(col * 0.45, srgb_to_linear(vec3(0.2, 0.24, 0.28)), 0.75);
-			if (all(bvec2(night, shop))) {
-				vec2 unit = vec2(floor(u / sp), seed * 77.0);
-				if (hash12(unit) < 0.72 * lights_on) {
-					glow = (hash12(unit + 5.1) < 0.65 ? WARM_PALE : vec3(0.9, 0.92, 1.0)) * 1.35;
-					return window_col * 0.6;
-				}
-			}
-			if (shop) {
-				return window_col;
-			}
-			if (fy > 0.8) {
-				return col * 0.8;                       // the fascia
-			}
-			return fract(h / 0.42) < 0.12 ? col * 0.84 : col * 0.97;   // rustication
-		}
-		if (h < g + 0.32) {
-			return col * 1.12;                          // the string course
-		}
-		float y = h - g;
-		float fy = fract(y / fh);
-		vec2 cell = vec2(floor(u / sp), floor(y / fh));
-		float wx = abs(fx - 0.5);
-		float wy = abs(fy - 0.5);
-		bool win = all(bvec2(wx < 0.17, wy < 0.3));
-		if (win) {
-			return typed_pane(col, cell, seed, false, glow);
-		}
-		if (all(bvec2(wx < 0.23, wy < 0.36))) {
-			return col * 1.14;                          // the surround
-		}
-		if (all(bvec3(wx < 0.25, fy > 0.08, fy < 0.13))) {
-			return col * 0.78;                          // the sill's shadow
-		}
-		return col;
-	}
-	if (kind == T_OLDTOWN) {
-		// A rebuilt Old Town house: a stone portal with a round head on some axes of the ground
-		// floor and shop windows on the rest, a string course, then floors of tall casements in
-		// cream surrounds with white glazing bars, a sill under each and a head over it, a
-		// cornice under the eaves; on the market square a painted band along every floor line.
-		// Written as masks (step / mix, layered bottom to top) with one return: every if, && and
-		// ternary counts against the Adreno budget (tools/check_shader_budget.gd).
-		float s0 = clamp(seed / 0.96, 0.0, 0.999);
-		float sq = step(0.5, s0);                       // 1 on the market square
-		float s = fract(s0 * 2.0);
-		float g = 3.4 + 0.5 * fract(s * 7.13);      // the ground floor
-		float fh = 3.0 + 0.5 * fract(s * 3.31);     // upper floors
-		float sp = 2.2 + 0.6 * fract(s * 5.71);     // window axes
-		vec3 frame = srgb_to_linear(vec3(0.94, 0.91, 0.84));
-		float dx = (fract(u / sp) - 0.5) * sp;          // metres from the window axis
-		float ax = abs(dx);
-		vec2 unit = vec2(floor(u / sp), s * 77.0);
-		vec3 base = mix(col, col * 0.82, step(h, 0.45));   // the plinth
-		// The ground floor: a portal (door in a stone surround) or a shop window in a frame.
-		float portal = step(hash12(unit + 3.7), 0.28);
-		float spring = min(2.3, g - 1.1);
-		float edge = mix(ax, length(vec2(dx, h - spring)), step(spring, h));
-		float shop = (1.0 - portal) * step(ax, 0.36 * sp) * step(0.55, h) * step(h, g - 0.75);
-		float shop_frame = (1.0 - portal) * step(ax, 0.36 * sp + 0.14) * step(0.41, h) * step(h, g - 0.61);
-		float lit = float(night) * shop * step(hash12(unit), 0.72 * lights_on);
-		vec3 window_col = mix(col * 0.45, srgb_to_linear(vec3(0.2, 0.24, 0.28)), 0.75);
-		vec3 ground = mix(base, frame * 0.9, shop_frame);
-		ground = mix(ground, window_col * mix(1.0, 0.6, lit), shop);
-		ground = mix(ground, srgb_to_linear(vec3(0.83, 0.8, 0.74)), portal * step(edge, 1.0));
-		ground = mix(ground, srgb_to_linear(vec3(0.24, 0.17, 0.12)), portal * step(edge, 0.72));
-		vec3 shop_glow = mix(vec3(0.9, 0.92, 1.0), WARM_PALE, step(hash12(unit + 5.1), 0.65)) * 1.35;
-		// The upper floors: casements with bars, surround, head, sill, and the square's band.
-		float y = h - g;
-		float wy = fract(y / fh) * fh;                  // metres over this floor's line
-		vec2 cell = vec2(floor(u / sp), floor(y / fh));
-		float hw = 0.42 + 0.08 * fract(s * 9.1);        // a casement's half width
-		float wb = 0.8;                                 // its foot over the floor line
-		float wt = wb + 1.45 + 0.2 * fract(s * 4.3);    // its head
-		float pane = step(ax, hw) * step(wb, wy) * step(wy, wt);
-		float bar = pane * max(step(ax, 0.035), step(abs(wy - (wb + (wt - wb) * 0.64)), 0.035));
-		// typed_pane()'s rules written flat (no call, no branch): a pane by day, a lit room at night.
-		float pane_pick = hash12(cell + s * 31.0);
-		vec3 glass_col = mix(srgb_to_linear(vec3(0.22, 0.27, 0.34)), srgb_to_linear(vec3(0.55, 0.66, 0.77)), pane_pick * pane_pick);
-		float room_on = step(hash12(cell * 1.37 + s * 59.0 + 7.7), 0.34 * (0.35 + 1.3 * fract(s * 17.31)) * lights_on) * step(0.001, lights_on);
-		glass_col *= mix(1.0, mix(0.45, 1.0, daylight), step(0.001, lights_on));
-		vec3 glass = mix(mix(col * 0.45, glass_col, 0.7), mix(col * 0.5, glass_col, 0.66) * 0.35, room_on);
-		float room_pick = hash12(cell + s * 13.0);
-		vec3 room_col = mix(mix(WARM, WARM_PALE, step(0.62, room_pick)), COOL, step(0.76, room_pick));
-		vec3 pane_glow = room_col * (1.05 + 0.5 * hash12(cell + 2.2)) * room_on;
-		float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
-		vec3 band = col * mix(1.25, 0.8, step(0.3, lum));
-		float diamond = step(abs(fract(u / 0.9) - 0.5) + abs(wy / 0.34 - 0.5), 0.28);
-		vec3 upper = mix(col, mix(band, mix(band, frame, 0.7), diamond), sq * step(wy, 0.34));
-		float sill_x = step(ax, hw + 0.2);
-		upper = mix(upper, col * 0.74, sill_x * step(wb - 0.36, wy) * step(wy, wb - 0.25));
-		upper = mix(upper, frame * 0.86, sill_x * step(wb - 0.25, wy) * step(wy, wb - 0.13));
-		upper = mix(upper, frame, step(ax, hw + 0.13) * step(wb - 0.13, wy) * step(wy, wt));
-		upper = mix(upper, frame * 1.02, step(ax, hw + mix(0.18, 0.26, sq)) * step(wt, wy) * step(wy, wt + 0.24));
-		upper = mix(upper, glass, pane);
-		upper = mix(upper, frame, bar);
-		// Stack them: ground floor, string course, upper floors, the cornice and its shadow.
-		float is_ground = step(h, g);
-		float is_upper = step(g + 0.24, h);
-		vec3 c = mix(mix(col * 1.12, upper, is_upper), ground, is_ground);
-		float tall = step(6.0, top);
-		c = mix(c, col * 0.66, tall * step(top - 0.95, h));
-		c = mix(c, col * 1.15, tall * step(top - 0.75, h));
-		float under = 1.0 - tall * step(top - 0.95, h);
-		glow = (shop_glow * lit * is_ground + pane_glow * pane * (1.0 - bar) * is_upper) * under;
-		return c;
-	}
-	if (kind == T_SLAB) {
-		// A large-panel slab or point block: pale panels with dark joints, wide windows,
-		// stacks of loggias in some bays.
-		col = mix(col, srgb_to_linear(vec3(0.82, 0.81, 0.77)), 0.35);
-		float fh = 2.8;
-		float sp = 3.0 + 0.6 * fract(seed * 5.37);
-		float fy = fract(h / fh);
-		float fx = fract(u / sp);
-		vec2 cell = vec2(floor(u / sp), floor(h / fh));
-		if (all(bvec2(top > 6.0, h > top - 0.6))) {
-			return col * 0.92;                          // the attic band
-		}
-		if (h < fh) {
-			// The ground floor: dark service doors and windows, set back a little.
-			bool door = all(bvec2(abs(fx - 0.5) < 0.3, fy < 0.75));
-			return door ? col * 0.42 : col * 0.86;
-		}
-		bool loggia = hash12(vec2(floor(u / sp), seed * 19.0)) < 0.28 + 0.2 * fract(seed * 3.7);
-		if (loggia) {
-			// The loggia: a deep shadowed recess over a parapet with the window at its back.
-			if (fy < 0.36) {
-				return col * (abs(fx - 0.5) < 0.47 ? 0.9 : 1.0);   // the parapet
-			}
-			if (abs(fx - 0.5) < 0.46) {
-				if (all(bvec2(abs(fx - 0.5) < 0.3, fy < 0.88))) {
-					return typed_pane(col * 0.6, cell, seed, false, glow) * 0.8;
-				}
-				return col * 0.5;
-			}
-		}
-		if (any(bvec2(fy < 0.04, abs(fx - 0.5) > 0.49))) {
-			return col * 0.72;                          // the panel joints
-		}
-		if (all(bvec3(abs(fx - 0.5) < 0.3, fy > 0.32, fy < 0.82))) {
-			return typed_pane(col, cell, seed, false, glow);
-		}
-		return col;
-	}
-	// T_OFFICE: a post-war office: continuous ribbon windows between spandrel bands.
-	float fh = 3.6 + 0.3 * fract(seed * 7.1);
-	float fy = fract(h / fh);
-	vec2 cell = vec2(floor(u / 1.5), floor(h / fh));
-	if (all(bvec2(top > 6.0, h > top - 0.8))) {
-		return col * 1.08;
-	}
-	if (h < fh) {
-		bool glazed = all(bvec3(fy > 0.05, fy < 0.8, fract(u / 1.5) > 0.06));
-		if (glazed) {
-			if (all(bvec2(night, hash12(vec2(floor(u / 6.0), seed * 77.0)) < 0.7 * lights_on))) {
-				glow = vec3(0.9, 0.92, 1.0) * 1.2;
-				return col * 0.3;
-			}
-			return mix(col * 0.4, srgb_to_linear(vec3(0.2, 0.24, 0.29)), 0.8);
-		}
-		return col * 0.75;
-	}
-	if (all(bvec2(fy > 0.36, fy < 0.92))) {
-		if (fract(u / 1.5) < 0.06) {
-			return col * 0.6;                           // the mullions
-		}
-		return typed_pane(col, vec2(floor(u / 4.5), cell.y), seed, true, glow);
-	}
-	return col;
+	// A rebuilt Old Town house: a stone portal with a round head on some axes of the ground
+	// floor and shop windows on the rest, a string course, then floors of tall casements in
+	// cream surrounds with white glazing bars, a sill under each and a head over it, a
+	// cornice under the eaves; on the market square a painted band along every floor line.
+	// Written as masks (step / mix, layered bottom to top) with one return: every if, && and
+	// ternary counts against the Adreno budget (tools/check_shader_budget.gd).
+	float s0 = clamp(seed / 0.96, 0.0, 0.999);
+	float sq = step(0.5, s0);                       // 1 on the market square
+	float s = fract(s0 * 2.0);
+	float g = 3.4 + 0.5 * fract(s * 7.13);      // the ground floor
+	float fh = 3.0 + 0.5 * fract(s * 3.31);     // upper floors
+	float sp = 2.2 + 0.6 * fract(s * 5.71);     // window axes
+	vec3 frame = srgb_to_linear(vec3(0.94, 0.91, 0.84));
+	float dx = (fract(u / sp) - 0.5) * sp;          // metres from the window axis
+	float ax = abs(dx);
+	vec2 unit = vec2(floor(u / sp), s * 77.0);
+	vec3 base = mix(col, col * 0.82, step(h, 0.45));   // the plinth
+	// The ground floor: a portal (door in a stone surround) or a shop window in a frame.
+	float portal = step(hash12(unit + 3.7), 0.28);
+	float spring = min(2.3, g - 1.1);
+	float edge = mix(ax, length(vec2(dx, h - spring)), step(spring, h));
+	float shop = (1.0 - portal) * step(ax, 0.36 * sp) * step(0.55, h) * step(h, g - 0.75);
+	float shop_frame = (1.0 - portal) * step(ax, 0.36 * sp + 0.14) * step(0.41, h) * step(h, g - 0.61);
+	float lit = float(night) * shop * step(hash12(unit), 0.72 * lights_on);
+	vec3 window_col = mix(col * 0.45, srgb_to_linear(vec3(0.2, 0.24, 0.28)), 0.75);
+	vec3 ground = mix(base, frame * 0.9, shop_frame);
+	ground = mix(ground, window_col * mix(1.0, 0.6, lit), shop);
+	ground = mix(ground, srgb_to_linear(vec3(0.83, 0.8, 0.74)), portal * step(edge, 1.0));
+	ground = mix(ground, srgb_to_linear(vec3(0.24, 0.17, 0.12)), portal * step(edge, 0.72));
+	vec3 shop_glow = mix(vec3(0.9, 0.92, 1.0), WARM_PALE, step(hash12(unit + 5.1), 0.65)) * 1.35;
+	// The upper floors: casements with bars, surround, head, sill, and the square's band.
+	float y = h - g;
+	float wy = fract(y / fh) * fh;                  // metres over this floor's line
+	vec2 cell = vec2(floor(u / sp), floor(y / fh));
+	float hw = 0.42 + 0.08 * fract(s * 9.1);        // a casement's half width
+	float wb = 0.8;                                 // its foot over the floor line
+	float wt = wb + 1.45 + 0.2 * fract(s * 4.3);    // its head
+	float pane = step(ax, hw) * step(wb, wy) * step(wy, wt);
+	float bar = pane * max(step(ax, 0.035), step(abs(wy - (wb + (wt - wb) * 0.64)), 0.035));
+	// typed_pane()'s rules written flat (no call, no branch): a pane by day, a lit room at night.
+	float pane_pick = hash12(cell + s * 31.0);
+	vec3 glass_col = mix(srgb_to_linear(vec3(0.22, 0.27, 0.34)), srgb_to_linear(vec3(0.55, 0.66, 0.77)), pane_pick * pane_pick);
+	float room_on = step(hash12(cell * 1.37 + s * 59.0 + 7.7), 0.34 * (0.35 + 1.3 * fract(s * 17.31)) * lights_on) * step(0.001, lights_on);
+	glass_col *= mix(1.0, mix(0.45, 1.0, daylight), step(0.001, lights_on));
+	vec3 glass = mix(mix(col * 0.45, glass_col, 0.7), mix(col * 0.5, glass_col, 0.66) * 0.35, room_on);
+	float room_pick = hash12(cell + s * 13.0);
+	vec3 room_col = mix(mix(WARM, WARM_PALE, step(0.62, room_pick)), COOL, step(0.76, room_pick));
+	vec3 pane_glow = room_col * (1.05 + 0.5 * hash12(cell + 2.2)) * room_on;
+	float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
+	vec3 band = col * mix(1.25, 0.8, step(0.3, lum));
+	float diamond = step(abs(fract(u / 0.9) - 0.5) + abs(wy / 0.34 - 0.5), 0.28);
+	vec3 upper = mix(col, mix(band, mix(band, frame, 0.7), diamond), sq * step(wy, 0.34));
+	float sill_x = step(ax, hw + 0.2);
+	upper = mix(upper, col * 0.74, sill_x * step(wb - 0.36, wy) * step(wy, wb - 0.25));
+	upper = mix(upper, frame * 0.86, sill_x * step(wb - 0.25, wy) * step(wy, wb - 0.13));
+	upper = mix(upper, frame, step(ax, hw + 0.13) * step(wb - 0.13, wy) * step(wy, wt));
+	upper = mix(upper, frame * 1.02, step(ax, hw + mix(0.18, 0.26, sq)) * step(wt, wy) * step(wy, wt + 0.24));
+	upper = mix(upper, glass, pane);
+	upper = mix(upper, frame, bar);
+	// Stack them: ground floor, string course, upper floors, the cornice and its shadow.
+	float is_ground = step(h, g);
+	float is_upper = step(g + 0.24, h);
+	vec3 c = mix(mix(col * 1.12, upper, is_upper), ground, is_ground);
+	float tall = step(6.0, top);
+	c = mix(c, col * 0.66, tall * step(top - 0.95, h));
+	c = mix(c, col * 1.15, tall * step(top - 0.75, h));
+	float under = 1.0 - tall * step(top - 0.95, h);
+	glow = (shop_glow * lit * is_ground + pane_glow * pane * (1.0 - bar) * is_upper) * under;
+	return c;
+}
+
+// An ordinary house of type `t` (a HOUSE_* row): a plinth, a ground floor of shop windows or
+// plain axes (rusticated on the pre-war types), a string course, upper floors of punched windows
+// or one ribbon of glass, surrounds and sills, panel joints, stacks of loggias, a cornice with its
+// shadow or a flat attic band. Written as masks with one return like old_town_facade (every if,
+// && and ternary counts against the Adreno budget). Far away, where a window is a pixel or two
+// wide, the pattern fades to its average colour (fwidth) so it does not shimmer.
+vec3 house_facade(int t, vec3 col, float u, float h, float seed, float top, float px, out vec3 glow) {
+	vec4 pa = HOUSE_A[t];
+	vec4 pb = HOUSE_B[t];
+	vec4 pc = HOUSE_C[t];
+	vec4 pd = HOUSE_D[t];
+	float s = clamp(seed / 0.96, 0.0, 0.999);
+	col = mix(col, srgb_to_linear(vec3(0.82, 0.81, 0.77)), pd.y);
+	float g = pa.x + 0.4 * (fract(s * 7.13) - 0.5);        // the ground floor
+	float fh = pa.y * (1.0 + 0.08 * (fract(s * 3.31) - 0.5)); // upper floors
+	float sp = pa.z * (1.0 + 0.16 * (fract(s * 5.71) - 0.5)); // window axes
+	float hw = mix(min(pb.x, sp * 0.45), sp * 0.5, pc.y);  // a window's half width (a ribbon: the bay)
+	float wb = pb.z;
+	float wt = wb + pb.y;
+	float dx = (fract(u / sp) - 0.5) * sp;
+	float ax = abs(dx);
+	float bay = floor(u / sp);
+	float y = h - g;
+	float wy = fract(y / fh) * fh;                          // metres over this floor's line
+	// A room is one bay, or three on a ribbon office (one office's desks); the ground floor's
+	// windows count as the floor under the first (one cell, no seam where a floor line would be).
+	float room_x = floor(u / (sp * mix(1.0, 3.0, pc.y)));
+	vec2 cell = vec2(room_x, max(floor(y / fh), -1.0));
+	// A pane: by day the sky in it, at night a lit room (typed_pane's rules, written flat).
+	vec3 glass_dark = srgb_to_linear(vec3(0.22, 0.27, 0.34));
+	vec3 glass_light = srgb_to_linear(vec3(0.55, 0.66, 0.77));
+	float pane_pick = hash12(cell + s * 31.0);
+	vec3 glass_col = mix(glass_dark, glass_light, pane_pick * pane_pick);
+	float on = step(0.001, lights_on);
+	float room_on = on * step(hash12(cell * 1.37 + s * 59.0 + 7.7), pd.z * (0.35 + 1.3 * fract(s * 17.31)) * lights_on);
+	float dim = mix(1.0, mix(0.45, 1.0, daylight), on);
+	glass_col *= dim;
+	vec3 glass = mix(mix(col * 0.45, glass_col, 0.7), mix(col * 0.5, glass_col, 0.66) * 0.35, room_on);
+	float room_pick = hash12(cell + s * 13.0);
+	float office = step(1.5, pd.w);
+	vec3 room_col = mix(mix(WARM, WARM_PALE, step(0.62, room_pick)), COOL, step(0.76, room_pick));
+	room_col = mix(room_col, mix(COOL, WARM_PALE, step(0.7, room_pick)), office);
+	vec3 pane_glow = room_col * (1.05 + 0.5 * hash12(cell + 2.2)) * room_on;
+	// The upper floors.
+	float loggia = step(hash12(vec2(bay, s * 19.0)), pc.w);
+	float win = step(ax, hw) * step(wb, wy) * step(wy, wt) * (1.0 - loggia * step(wy, 0.95));
+	float mullion = win * pc.y * step(sp * 0.5 - 0.06, ax);
+	vec3 upper = col;
+	float joint = max(step(wy, 0.05), step(sp * 0.5 - 0.04, ax));
+	upper = mix(upper, col * 0.72, joint * pc.z);                                              // panel joints
+	float frame = step(0.01, pb.w) * step(ax, hw + pb.w) * step(wb - pb.w, wy) * step(wy, wt + pb.w);
+	upper = mix(upper, col * 1.14, frame);                                                     // the surround
+	upper = mix(upper, col * 0.78, step(ax, hw + 0.15) * step(wb - 0.14, wy) * step(wy, wb - 0.04));   // the sill's shadow
+	float recess = loggia * step(ax, sp * 0.47) * step(0.95, wy);                              // a loggia over its parapet
+	upper = mix(upper, col * 0.5, recess);
+	upper = mix(upper, glass * mix(1.0, 0.8, loggia), win);
+	upper = mix(upper, col * 0.6, mullion);
+	// The ground floor: shop windows under a fascia on some axes, a door or a window on the rest.
+	vec2 unit = vec2(room_x, s * 77.0);
+	vec2 axis = vec2(bay, s * 77.0);
+	float shop = step(hash12(axis + 3.7), pc.x);
+	float shop_win = shop * step(ax, 0.38 * sp) * step(0.4, h) * step(h, g - 0.7);
+	float lit = on * shop_win * step(hash12(unit), 0.72 * lights_on);
+	vec3 window_col = mix(col * 0.45, srgb_to_linear(vec3(0.2, 0.24, 0.28)), 0.75);
+	vec3 ground = mix(col, col * 0.84, pd.x * step(fract(h / 0.42), 0.12));                    // rustication
+	ground = mix(ground, ground * 0.8, step(h, 0.45));                                        // the plinth
+	ground = mix(ground, col * 0.8, shop * step(g - 0.62, h) * step(h, g - 0.32));             // the fascia
+	float door_bay = (1.0 - shop) * step(hash12(axis + 9.1), 0.3);
+	float door = door_bay * step(ax, 0.45) * step(h, 2.2);
+	float gwin = (1.0 - shop) * (1.0 - door_bay) * step(ax, hw) * step(max(wb, 0.9), h) * step(h, min(wt, g - 0.4));
+	ground = mix(ground, window_col * mix(1.0, 0.6, lit), shop_win);
+	ground = mix(ground, col * 0.42, door);
+	ground = mix(ground, glass, gwin);
+	vec3 shop_glow = mix(vec3(0.9, 0.92, 1.0), WARM_PALE, step(hash12(unit + 5.1), 0.65)) * 1.35;
+	// Far away a window is a pixel or two: fade the pattern (and its lit rooms) to their average.
+	float detail = 1.0 - smoothstep(1.0 * hw, 3.0 * hw, px);
+	float cover = clamp(2.0 * hw * pb.y / (sp * fh), 0.0, 0.9);
+	vec3 far_glass = mix(col * 0.45, mix(glass_dark, glass_light, 0.33) * dim, 0.7);
+	upper = mix(mix(col, far_glass, cover * 0.8), upper, detail);
+	// Stack them: ground floor, string course, upper floors, the cornice and its shadow (or a
+	// flat attic band); nothing glows under them.
+	float is_ground = step(h, g);
+	float is_upper = step(g + 0.3 * pd.x, h);
+	vec3 c = mix(mix(col * 1.12, upper, is_upper), ground, is_ground);
+	float tall = step(6.0, top);
+	float has_cornice = step(0.01, pa.w);
+	c = mix(c, col * 0.66, tall * has_cornice * step(top - pa.w - 0.25, h));
+	c = mix(c, col * 1.15, tall * has_cornice * step(top - pa.w, h));
+	c = mix(c, col * 0.93, tall * (1.0 - has_cornice) * step(top - 0.5, h));                 // a flat attic band
+	float under = 1.0 - tall * step(top - mix(0.5, pa.w + 0.25, has_cornice), h);
+	float lit_share = room_on * cover;
+	vec3 up_glow = mix(room_col * lit_share, pane_glow * win * (1.0 - mullion), detail);
+	glow = (shop_glow * lit * is_ground + pane_glow * gwin * is_ground + up_glow * is_upper) * under;
+	return c;
 }
 
 // Landmark materials (landmarks.gd). Codes match landmarks.gd's M_* constants.
@@ -1045,8 +1027,9 @@ vec3 roof_surface(vec3 col, vec3 srgb, vec3 n, float sx) {
 	if (n.y < 0.3) {
 		return col; // a plant box's side, a parapet, a dormer, a chimney
 	}
-	int kind = (all(bvec2(sx >= 1.0, sx < 2.0))) ? int((sx - 1.0) * 4.0) + 1 : 0;
-	float seed = sx >= 1.0 ? fract((sx - 1.0) * 4.0) : fract(sx);
+	bool typed = all(bvec2(sx >= 1.0, sx < 2.0));
+	float roof = typed ? HOUSE_D[clamp(int((sx - 1.0) * 16.0 + 0.004), 0, 15)].w : 0.0;   // 1 tar paper, 2 membrane
+	float seed = typed ? max(fract((sx - 1.0) * 16.0 + 0.004) - 0.004, 0.0) : fract(sx);
 	float red = srgb.r - max(srgb.g, srgb.b);
 	float green = srgb.g - max(srgb.r, srgb.b);
 	float lum = dot(srgb, vec3(0.3, 0.59, 0.11));
@@ -1092,7 +1075,7 @@ vec3 roof_surface(vec3 col, vec3 srgb, vec3 n, float sx) {
 		leaf = mix(leaf, col * vec3(1.25, 0.75, 0.6), smoothstep(0.78, 0.9, value_noise(xz * 0.7 + 3.1)) * 0.6);
 		return mix(col, leaf, 0.5 + 0.5 * detail);
 	}
-	if (any(bvec2(kind == T_SLAB, (all(bvec2(kind != T_OFFICE, lum < 0.3)))))) {
+	if (any(bvec2(roof == 1.0, (all(bvec2(roof != 2.0, lum < 0.3)))))) {
 		// Tar paper (papa): one-metre strips with a dark lapped edge, patched here and there,
 		// darker where the water stands.
 		float lap = roof_lines(q.x, 1.0, 0.08);
@@ -1100,7 +1083,7 @@ vec3 roof_surface(vec3 col, vec3 srgb, vec3 n, float sx) {
 		float shade = (1.0 - 0.3 * lap) * (1.0 - 0.12 * patch) * (1.0 - 0.1 * smoothstep(0.55, 0.8, value_noise(xz * 0.3)));
 		return col * mix(0.95, shade, detail);
 	}
-	if (any(bvec2(kind == T_OFFICE, lum > 0.42))) {
+	if (any(bvec2(roof == 2.0, lum > 0.42))) {
 		// A membrane: two-metre sheets with welded seams, the odd pond stain, gravel ballast.
 		float weld = roof_lines(q.x, 2.0, 0.06);
 		float stain = smoothstep(0.6, 0.85, value_noise(xz * 0.22 + seed * 5.0));
@@ -1121,6 +1104,8 @@ void fragment() {
 	// is negative for about half of them, so `UV.x >= 0` alone drew those walls as blank
 	// roofs (no windows, no shop band, solid navy at night); their UV.y (metres up) never is.
 	bool walls = any(bvec2(UV.x >= 0.0, UV.y > -0.5));
+	// Metres per pixel along the wall, taken here in uniform control flow (house_facade's fade).
+	float px = max(fwidth(UV.x), fwidth(UV.y));
 	int mode = style.x >= 2.0 ? int(style.x) : 0;
 	if (mode > 0) {
 		bool cut;
@@ -1132,8 +1117,15 @@ void fragment() {
 		// Roofs: their material (RF1, docs/design/roofs.md).
 		col = roof_surface(col, COLOR.rgb, normalize(world_n), style.x);
 	} else if (all(bvec3(windows > 0.5, style.x >= 1.0, COLOR.a >= 0.75))) {
-		float f = (style.x - 1.0) * 4.0;
-		col = typed_facade(int(f) + 1, col, UV.x, UV.y, fract(f), style.y, glow);
+		// Nudged off the row boundary (a varying can land one ulp under it), then the seed back.
+		float f = (style.x - 1.0) * 16.0 + 0.004;
+		int t = clamp(int(f), 1, 15);
+		float sd = max(fract(f) - 0.004, 0.0);
+		if (t == T_OLDTOWN) {
+			col = old_town_facade(col, UV.x, UV.y, sd, style.y, glow);
+		} else {
+			col = house_facade(t, col, UV.x, UV.y, sd, style.y, px, glow);
+		}
 	} else if (windows > 0.5) {
 		col = facade(col, UV.x, UV.y, style.x, style.y, COLOR.a < 0.75, glow);
 	}
