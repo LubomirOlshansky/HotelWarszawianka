@@ -5,8 +5,8 @@ tiles of its site from the nearest matching side, plus the two top views, on one
 Writes refs/SLUG/KEY_vs_refs.png (gitignored, local: it holds Google imagery; never attach or publish it).
 
 KEY is the landmark site key; run `tools/turntable.sh KEY` first (its lit tiles are read from
-shots/turntable_KEY/). SLUG (default KEY) names the refs folder: refs/SLUG/3dtiles/ in the repo, else
-/mnt/project-files/refs/SLUG/3dtiles/ (the shared store), made by tools/tiles3d/render.mjs with its
+shots/turntable_KEY/). SLUG (default KEY) names the refs folder: refs/SLUG/3dtiles/ in the working copy (Google renders
+never go to the shared folder: render them here), made by tools/tiles3d/render.mjs with its
 SOURCES.md lines (heading, pitch). Each render is paired with the turntable tile seen from the same
 side: a render looking along heading H matches turntable yaw (360 - H) % 360 (yaw 0 = the view from
 the south, looking north = heading 0; yaw 90 = from the east). Renders at pitch about -28 pair with
@@ -30,11 +30,8 @@ LINE = re.compile(r"^- \S* ?(\S+\.png): .*heading (-?[\d.]+), pitch (-?[\d.]+)")
 
 
 def refs_dir(slug):
-    for base in (os.path.join(ROOT, "refs"), "/mnt/project-files/refs"):
-        d = os.path.join(base, slug, "3dtiles")
-        if os.path.isfile(os.path.join(d, "SOURCES.md")):
-            return d
-    return None
+    d = os.path.join(ROOT, "refs", slug, "3dtiles")
+    return d if os.path.isfile(os.path.join(d, "SOURCES.md")) else None
 
 
 def renders(d):

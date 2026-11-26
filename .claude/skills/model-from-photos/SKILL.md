@@ -35,6 +35,10 @@ them in this order and write no spec line before steps 2 and 3 are back.
   accepted (`rm -r refs/KEY/streetview refs/KEY/3dtiles`): what the spec measured from them is
   in the spec. Google's terms limit storing and deriving from its content; this is reference by
   eye only (F decides on anything more).
+- **The shared folder holds our own pictures only**: `/mnt/project-files` (and any page or reply)
+  gets the turntable, city shots and other renders of the game, never a Street View image, a 3D
+  Tiles render or a compare sheet that shows one. To hand Google references to another thread,
+  give it the command that renders them; it renders its own into its working copy's `refs/`.
 - **A square, a street front or a block of houses is one 3D Tiles run**, not one per house: aim
   it with `--lat/--lon` (or game `X Z`) at the middle and `--area=R` with R holding the whole group
   (the Old Town, Plac Zamkowy: 8 orbits at pitch -35 plus the top), then crop per house from the views. Unnamed OSM
@@ -54,7 +58,8 @@ them in this order and write no spec line before steps 2 and 3 are back.
 - **Any photo from the internet (F, 2026-11-08)**: when a building lacks photos, download them yourself from anywhere (Commons, Mapillary, Panoramax, news, blogs, company or architect sites, any search result) without checking the licence: they are modelling references only, kept in the gitignored `refs/`, never shipped in the repo or the game. Don't wait for the user for photos.
 - **Where**: the shared store `/mnt/project-files/refs/<slug>/` is the home (a network mount all cloud
   threads see; the Mac does not mount it). `refs/<slug>/` at the repo root, gitignored, is the working
-  copy (other people's photos, whatever their licence, never go into the repo). Before writing a spec
+  copy (other people's photos, whatever their licence, never go into the repo; Google's Street View and
+  3D Tiles images live only in the working copy, never in the store). Before writing a spec
   `python3 -I tools/refs_store.py pull <slug>`; right after gathering `push <slug>` (it re-runs the index).
   A cloud thread reads the store's `INDEX.md` first (ranked like the inventory; `gaps` lists what is
   missing, `where TEXT` finds a slug) and asks for the Mac only for what the store lacks. `SOURCES.md` lists each file: Commons
@@ -203,9 +208,9 @@ kind repeated across the whole map gets one MultiMesh. No new node, material or 
 - **References beside the model, on one sheet**: after the turntable,
   `python3 -I tools/refs_compare.py KEY` pastes the 3D Tiles renders (row 1) over the turntable
   tiles seen from the same side (row 2) and the two top views
-  (`shots/turntable_KEY/KEY_vs_refs.png`). The builder's stage looks and the reviewer's scores
+  (`refs/KEY/KEY_vs_refs.png`). The builder's stage looks and the reviewer's scores
   start from this sheet; the Ufficio Primo fix round came from it in one look. It holds Google
-  imagery: it stays in `shots/` (local), never in a PR, a post or an artifact.
+  imagery: it stays in the working copy's `refs/`, never in a PR, a post or an artifact.
 - **The turntable is the first look at any model**: `tools/turntable.sh KEY` (about a minute) gives
   every side of the site on one sheet (lit from 8 sides at two heights, flat, silhouette, top
   view), so a builder and F check the whole model before any single matched shot is taken. The
