@@ -168,6 +168,10 @@
 # three shapes in one surface (the ambulance), the `crash_scene` and KEBAB FM lines, spots on the real
 # lane graph (main roads, 2+ lanes, no overlaps), the real traffic queueing and going round a scene,
 # the timer (first, life, gap); centrum.json only (CI too).
+# Road life (2026-11-23): `roadlife` runs game/tools/check_road_life.gd: the ambulance respect rules
+# (road_rules.gd: at fault, the rung floor, blocking, thanks), the taxi check layout on the real lane
+# graph and real traffic going round it, an ambulance run past the player (aside, round, blocked) and
+# bumps into it; centrum.json only (CI too).
 # Bar crawl (2026-11-07): `crawl` runs game/tools/check_bar_crawl.gd: the groups' lines, the routes,
 # the call's hours, the clock and the pay, and (since it is an activity of the kit, 2026-11-12) a
 # whole crawl played against the shared stand-ins. `crawl-run` (full set only) plays the Klasyczna
@@ -1550,6 +1554,7 @@ for s in $want; do
 		# real lane graph, the pay twists and Szlak Szpili.
 		zaglebie) check zaglebie '^check_zaglebie:' --script res://tools/check_zaglebie.gd ;;
 		crashes) check crashes '^check_crash_scenes:' --script res://tools/check_crash_scenes.gd ;;
+		roadlife) check roadlife '^check_road_life:' --script res://tools/check_road_life.gd ;;
 		# Sekretny rave: LEKTI's lines, the door's questions, the rigs and the club's room, the spots on the real graph.
 		rave) check rave '^check_rave:' --script res://tools/check_rave.gd ;;
 		# Dym u Senatorka: the shisha night's lines, votes, pay, the mini-game's rules, the lounge mesh, the places on the real graph.

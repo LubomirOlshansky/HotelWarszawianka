@@ -152,6 +152,10 @@ const SIREN := "police_siren"
 const SIREN_DB := -13.0
 ## A crash scene's ambulance: the same wail, quieter (it stands still, nobody is chasing).
 const SCENE_SIREN_DB := -20.0
+## Road life (road_life.gd): the ambulance on a call, its own yelp (tools/make_sfx.py), one
+## positional voice of its own, and its level.
+const AMB_SIREN := "ambulance_siren"
+const AMB_SIREN_DB := -12.0
 const VOICES_3D := 6
 const VOICES_2D := 6
 ## The one door for one-shots (sound engine step 2): `play(name)` for a sound with no place,
@@ -494,7 +498,7 @@ func setup(data: Dictionary) -> void:
 				var q := a.lerp(b, float(s) / steps)
 				_rails[Vector2i(floori(q.x / 4.0), floori(q.y / 4.0))] = true
 	# By name, not by listing the folder: an exported game holds only the imports.
-	for n in LOOPS.keys() + SHOTS.keys() + [SIREN]:
+	for n in LOOPS.keys() + SHOTS.keys() + [SIREN, AMB_SIREN]:
 		_streams[n] = load(DIR + n + ".wav")
 	for n in LOOPS:
 		var p := AudioStreamPlayer.new()
@@ -1062,6 +1066,44 @@ func scene_siren(at: Vector3) -> void:
 	_scene_voice.global_position = at
 	if not _scene_voice.playing:
 		_scene_voice.play()
+
+
+## Road life (road_life.gd): the ambulance's siren at `at`, a voice of its own (never the chase's
+## or the crash scene's); Vector3.INF stops it.
+var _amb_voice: AudioStreamPlayer3D
+
+
+func ambulance_siren(at: Vector3) -> void:
+	if _silent or _pool3.is_empty():
+		return
+	if at == Vector3.INF:
+		if _amb_voice != null and _amb_voice.stream == _streams.get(AMB_SIREN):
+			_amb_voice.stop()
+		_amb_voice = null
+		return
+	if _amb_voice == null or _amb_voice.stream != _streams.get(AMB_SIREN):
+		var ear := focus + Vector3.UP * LISTENER_UP
+		var far := -1.0
+		_amb_voice = null
+		for p in _pool3:
+			if p == _siren_voice or p == _scene_voice:
+				continue
+			if not p.playing:
+				_amb_voice = p
+				break
+			var dp := p.global_position.distance_to(ear)
+			if dp > far:
+				far = dp
+				_amb_voice = p
+		if _amb_voice == null:
+			return
+		_amb_voice.stop()
+		_amb_voice.stream = _streams.get(AMB_SIREN)
+		_amb_voice.volume_db = AMB_SIREN_DB
+		_amb_voice.pitch_scale = 1.0
+	_amb_voice.global_position = at
+	if not _amb_voice.playing:
+		_amb_voice.play()
 
 
 ## A police cue (2D): "whoop" (a unit warns or joins), "megaphone" (before its line), "whistle"
