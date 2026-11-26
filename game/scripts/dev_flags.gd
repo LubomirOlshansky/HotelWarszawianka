@@ -233,6 +233,11 @@ var crash_log := false
 ## Road life (road_life.gd): --ambulance=now (one comes up behind in 2 s, 40-60 m back), =0 (none;
 ## the honk at a green stays), =on (on in a test run too); --road-log prints its log.
 var ambulance_flag := ""
+## Road life (2026-11-26): --wedding=now (a wedding convoy just ahead in 2 s), =0 (none), =on (on in
+## a test run too); --elka=X (that share of the band's cars are an Elka, 0..1; default ELKA_CHANCE
+## in a normal launch, none in a test run).
+var wedding_flag := ""
+var elka_flag := -1.0
 var road_log := false
 var crawl_flag := ""
 var crawl_route := ""
@@ -1041,6 +1046,10 @@ func parse_with(args: PackedStringArray) -> void:
 			crash_log = true
 		elif arg.begins_with("--ambulance="):
 			ambulance_flag = arg.trim_prefix("--ambulance=")
+		elif arg.begins_with("--wedding="):
+			wedding_flag = arg.trim_prefix("--wedding=")
+		elif arg.begins_with("--elka="):
+			elka_flag = clampf(float(arg.trim_prefix("--elka=")), 0.0, 1.0)
 		elif arg == "--road-log":
 			road_log = true
 		elif arg.begins_with("--loud="):
