@@ -537,6 +537,12 @@ const DZEMINI_ID := "dzemini_kebab"
 const DZEMINI_MAX := 40
 const DZEMINI_NIGHT := 26
 const DZEMINI_NEW := 3
+## KEBAB U KEMALA (F 2026-11-26, tajny_klient.gd): the new kebab on Aleje Jerozolimskie. Empty before
+## Kebabulo's MLASK (the opening's "Pierwszy klient!"); after it (the save's `keep` KEMAL_KEEP,
+## `kemal_hype`) a long line by day and evening, a short one 01:00-08:00, tag "kemal".
+const KEMAL_ID := "kemal_kebab"
+const KEMAL_MAX := 30
+const KEMAL_NIGHT := 8
 ## The other hyped chains' morning lines (F's #5, huge queues everywhere): the green-café's pavilion
 ## and KOSZTA on Marszałkowska, 7:00-11:00 on a working day 16 and a half-length line later, tag "kolejka".
 const COFFEE := ["nerwo_pawilon", "koszta_marszalkowska"]
@@ -598,6 +604,8 @@ static var steps_n := 0
 static var steps_fine := {}
 ## DŻEMINI KEBAB has had Mrożulo's MLASK (trend_job.gd sets it, from the save too): its line for good.
 var dzemini_hype := false
+## KEBAB U KEMALA got Kebabulo's MLASK (tajny_klient.gd, or the save at start).
+var kemal_hype := false
 var _weekday_now := 0
 var _month_now := 7
 ## The view's focus (the camera's), -> Vector3.
@@ -1062,6 +1070,16 @@ static func dzemini_queue(hour: float, hype: bool) -> Array:
 	return [DZEMINI_MAX, "dzemini"]
 
 
+## KEBAB U KEMALA's line now: [people, tag]. Nobody before the MLASK (it has just opened); after it
+## KEMAL_MAX from 08:00 to 01:00, KEMAL_NIGHT in the small hours.
+static func kemal_queue(hour: float, hype: bool) -> Array:
+	if not hype:
+		return [0, ""]
+	if hour >= 1.0 and hour < 8.0:
+		return [KEMAL_NIGHT, "kemal"]
+	return [KEMAL_MAX, "kemal"]
+
+
 ## The hyped coffee chains' line now: [people, "kolejka"]. 7:00-18:00, the working-day morning rush
 ## fullest; half-length otherwise.
 static func coffee_queue(hour: float, weekday: int) -> Array:
@@ -1136,6 +1154,14 @@ func dzemini_mlask() -> void:
 	dzemini_hype = true
 	if by_id.has(DZEMINI_ID):
 		sites[by_id[DZEMINI_ID]]["next"] = 0.0
+
+
+## KEBAB U KEMALA got Kebabulo's MLASK (tajny_klient.gd, or the save at start): its line for good,
+## rewritten at the next tick.
+func kemal_mlask() -> void:
+	kemal_hype = true
+	if by_id.has(KEMAL_ID):
+		sites[by_id[KEMAL_ID]]["next"] = 0.0
 
 
 ## The "Mrożulo effect" on a trend site (a Wiralek slot or KUKŁA) for today: its queue at its
@@ -1217,7 +1243,7 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 		var ll: Array = Storefronts.TRENDY[vid]
 		_add_site({"id": vid, "kind": "trend", "max": PISTACJA_MAX if vid == PISTACJA_ID else PADEL_MAX, "tag": "",
 				"at": Notebook.project(data.get("origin", [52.234, 21.024]), float(ll[0]), float(ll[1]))})
-	for vid: String in KUKLA + [PIURE_ID] + MILK + GELATO + KRINGULA + MIESZANE + COFFEE + [DZEMINI_ID]:
+	for vid: String in KUKLA + [PIURE_ID] + MILK + GELATO + KRINGULA + MIESZANE + COFFEE + [DZEMINI_ID, KEMAL_ID]:
 		var ll: Array = Storefronts.HYPE[vid]
 		var vmax := KUKLA_MAX
 		if vid == PIURE_ID:
@@ -1234,6 +1260,8 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 			vmax = COFFEE_MAX
 		elif vid == DZEMINI_ID:
 			vmax = DZEMINI_MAX
+		elif vid == KEMAL_ID:
+			vmax = KEMAL_MAX
 		_add_site({"id": vid, "kind": "trend", "max": vmax, "tag": "",
 				"at": Notebook.project(data.get("origin", [52.234, 21.024]), float(ll[0]), float(ll[1]))})
 	var zak: Dictionary = Zaglebie.shop(ZAKWAS_TAG)
@@ -2840,6 +2868,8 @@ func tick(step: float) -> void:
 					q = zakwas_queue(hour, weekday)
 				elif s["id"] == DZEMINI_ID:
 					q = dzemini_queue(hour, dzemini_hype)
+				elif s["id"] == KEMAL_ID:
+					q = kemal_queue(hour, kemal_hype)
 				elif trend.is_valid():
 					q = trend.call(str(s["id"]))
 				if int(q[0]) > 0 and int(mrozulo.get(str(s["id"]), -1)) == weekday:
