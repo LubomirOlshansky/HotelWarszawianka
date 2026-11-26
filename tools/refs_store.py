@@ -517,15 +517,26 @@ def append_missing_lines(src, dst):
     return len(new)
 
 
-def sync_tree(src, dst, force, st, label):
-    """Copy src into dst by the rules in the module docstring; never deletes."""
+## Google imagery stays in the working copy that fetched it (model-from-photos skill: Google's terms
+## limit storing it; it is deleted when the model is accepted), so `push` never copies these folders
+## or the reference-versus-model sheets that hold it.
+LOCAL_ONLY = ("streetview", "3dtiles")
+
+
+def local_only(name):
+    return name in LOCAL_ONLY or name.endswith("_vs_refs.png")
+
+
+def sync_tree(src, dst, force, st, label, push=False):
+    """Copy src into dst by the rules in the module docstring; never deletes. A push leaves out
+    the LOCAL_ONLY Google folders and sheets."""
     os.makedirs(dst, exist_ok=True)
     for e in entries(src):
-        if skip_name(e.name):
+        if skip_name(e.name) or (push and local_only(e.name)):
             continue
         d = os.path.join(dst, e.name)
         if e.is_dir(follow_symlinks=False):
-            sync_tree(e.path, d, force, st, label + e.name + "/")
+            sync_tree(e.path, d, force, st, label + e.name + "/", push)
             continue
         if not e.is_file():
             continue
@@ -585,7 +596,7 @@ def sync_command(args, name):
             missing.append(slug)
             continue
         print("%s %s" % (name, slug))
-        sync_tree(src, os.path.join(dst_root, slug), args.force, st, slug + "/")
+        sync_tree(src, os.path.join(dst_root, slug), args.force, st, slug + "/", name == "push")
     print("refs_store: %s: %d folders, %d copied, %d skipped, %d conflicts, %d SOURCES.md lines appended%s" % (
         name, len(slugs) - len(missing), st.copied, st.skipped, st.conflicts, st.appended,
         (", %d missing" % len(missing)) if missing else ""))
@@ -736,6 +747,15 @@ def selftest():
         check(os.path.getsize(os.path.join(repo, "alpha", "a1.jpg")) == 10, "--force overwrites")
         check(run("pull", "alpha", "--store=" + os.path.join(tmp, "nope"))[0] == 1, "pull without a store exits 1")
         check(run("pull", "ghostfolder", *common)[0] == 1, "pull of a missing slug exits 1")
+        # Google imagery is never pushed to the shared store
+        touch(os.path.join(repo, "alpha", "streetview", "p_h000.jpg"))
+        touch(os.path.join(repo, "alpha", "3dtiles", "alpha_top.png"))
+        touch(os.path.join(repo, "alpha", "alpha_vs_refs.png"))
+        run("push", "alpha", *common)
+        check(not os.path.exists(os.path.join(store, "alpha", "streetview"))
+              and not os.path.exists(os.path.join(store, "alpha", "3dtiles"))
+              and not os.path.exists(os.path.join(store, "alpha", "alpha_vs_refs.png")),
+              "push leaves streetview/, 3dtiles/ and the compare sheet local")
         # SOURCES.md append, both ways, never deleting
         touch(os.path.join(repo, "alpha", "SOURCES.md"), text="line two\nmac line\n")
         code, out, _ = run("push", "alpha", *common)
@@ -757,7 +777,8 @@ def selftest():
         code, out, _ = run("push", "--all", *common)
         check(code == 0 and "1 conflicts" in out and os.path.getsize(os.path.join(store, "newone", "n1.jpg")) == 10,
               "push conflict keeps the store's file: %r" % out)
-        check(len(os.listdir(os.path.join(store, "alpha"))) == len(os.listdir(os.path.join(repo, "alpha"))) + 1,
+        check(len(os.listdir(os.path.join(store, "alpha")))
+              == len([n for n in os.listdir(os.path.join(repo, "alpha")) if not local_only(n)]) + 1,
               "nothing deleted (store keeps its .DS_Store)")
         check(run("push", "../escape", *common)[0] == 1, "push refuses a path as slug")
         # a new store is created by push and gets a README

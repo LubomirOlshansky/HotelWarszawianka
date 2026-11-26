@@ -14,7 +14,7 @@ Sources (docs/design/road-objects.md 3.2 S5, model-from-photos skill section 1):
   Mapillary developer app; never in a file). graph.mapillary.com, images from *.fbcdn.net.
 - Panoramax (CC BY-SA 4.0 or etalab-2.0 per photo, as its `license` says): no key. api.panoramax.xyz,
   images from the instance that holds them (panoramax.openstreetmap.fr for most of Warsaw).
-Never Google Street View. The photos are evidence for a spec or a verdict: never traced, never shipped.
+Google Street View is a separate tool: tools/streetview_fetch.py. The photos are evidence for a spec or a verdict: never traced, never shipped.
 Standard library only.
 """
 import datetime

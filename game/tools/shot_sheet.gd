@@ -1,8 +1,9 @@
 extends SceneTree
 ## Pastes equal-size PNGs into one grid sheet (tools/turntable.sh): a 4 px dark gap between tiles.
-##   godot --headless --path game --script res://tools/shot_sheet.gd -- --out=FILE.png --cols=8 A.png B.png ...
+##   godot --headless --path game --script res://tools/shot_sheet.gd -- --out=FILE.png --cols=8 [--tile=640x480] A.png B.png ...
 ## A file that is missing or unreadable leaves a dark tile and is named in the output; exit 1 only
-## when none loads (or the arguments are wrong). Tiles take the size of the first one that loads.
+## when none loads (or the arguments are wrong). Tiles take the size of the first one that loads, or
+## `--tile` (tools/refs_compare.py pastes 1600 px references beside 640 px turntable tiles).
 ## compose() is static so tools/check_turntable.gd calls the same code.
 
 const GAP := 4
@@ -10,9 +11,9 @@ const DARK := Color(0.08, 0.08, 0.1)
 
 
 ## The sheet of `files` in `cols` columns, or null when none loads. `missing` gets the names that failed.
-static func compose(files: PackedStringArray, cols: int, missing: PackedStringArray) -> Image:
+static func compose(files: PackedStringArray, cols: int, missing: PackedStringArray, size := Vector2i.ZERO) -> Image:
 	var imgs: Array[Image] = []
-	var tile := Vector2i.ZERO
+	var tile := size
 	for f in files:
 		var im := Image.load_from_file(f) if FileAccess.file_exists(f) else null
 		if im == null or im.is_empty():
@@ -41,12 +42,17 @@ static func compose(files: PackedStringArray, cols: int, missing: PackedStringAr
 func _initialize() -> void:
 	var out := ""
 	var cols := 0
+	var size := Vector2i.ZERO
 	var files := PackedStringArray()
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--out="):
 			out = a.trim_prefix("--out=")
 		elif a.begins_with("--cols="):
 			cols = int(a.trim_prefix("--cols="))
+		elif a.begins_with("--tile="):
+			var wh := a.trim_prefix("--tile=").split("x")
+			if wh.size() == 2:
+				size = Vector2i(int(wh[0]), int(wh[1]))
 		else:
 			files.append(a)
 	if out == "" or cols < 1 or files.is_empty():
@@ -54,7 +60,7 @@ func _initialize() -> void:
 		quit(1)
 		return
 	var missing := PackedStringArray()
-	var sheet := compose(files, cols, missing)
+	var sheet := compose(files, cols, missing, size)
 	if sheet == null:
 		print("shot_sheet: none of the %d files loads" % files.size())
 		quit(1)

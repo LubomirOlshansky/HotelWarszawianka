@@ -88,7 +88,7 @@ console's City map colours each block by it).
 - Mapillary detections (`tools/street_features.py --street=NAME`) count objects per stretch.
   Their positions are 10-20 m off, so use them as evidence, never as coordinates.
 
-Never Google Street View. Nothing from a photo is traced or shipped.
+Google Street View is allowed as reference (`tools/streetview_fetch.py`, F 2026-11-26). Nothing from a photo is traced or shipped.
 
 ## 2d. Look pass and F's flags
 

@@ -19,7 +19,10 @@ extends SceneTree
 ## fails when a count goes ABOVE it, and says so when it went below (lower the number). New
 ## defects fail at once. Not checked (the art-director judges them): parts inside parts, T gaps.
 ## Prints a line per site, then `check_mesh_quality: OK` (exit 0) or the problems (exit 1).
-##   godot --headless --path game --script res://tools/check_mesh_quality.gd
+##   godot --headless --path game --script res://tools/check_mesh_quality.gd [-- --site=KEY]
+## `--site=KEY` judges that one site alone (budget, defects; no sampler, signs or SUNKEN checks): the
+## builder's inner loop takes seconds instead of the whole run's minutes (Ufficio Primo pilot,
+## 2026-11-26: 6.5 min in the cloud). The whole run stays the gate (verify step and CI).
 
 const MapBuilderRef := preload("res://scripts/map_builder.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
@@ -86,7 +89,7 @@ const BUDGET := {
 	"church_narodzenia": 1450,  # 2026-11-14: the whole Baroque church and its clock turret from photos (measured 1305)
 	"church_niepokalanego": 720,  # 2026-11-14: the whole Res Sacra Miser church from photos (measured 644)
 	"church_nozykow": 2900,  # 2026-11-14: the whole Nożyk Synagogue from photos (measured 2625)
-	"church_piotr_pawel": 1300,
+	"church_piotr_pawel": 1650,  # 2026-11-26: 3D Tiles rework: pitched transept and wings, drum balustrade, fuller dome (was 1300)
 	"church_reformowany": 1150,  # 2026-11-14: the whole neo-Gothic church and its spire from photos (measured 1020)
 	"church_sw_marcin": 2400,  # 2026-11-14: the whole St Martin church and its tower from photos (measured 2043)
 	"church_trojca_praga": 520,  # 2026-11-14: Holy Trinity on Solec, temple front and crossing turret from photos (measured 469)
@@ -117,6 +120,7 @@ const BUDGET := {
 	"jablkowscy": 1450,
 	"sheraton": 2400,
 	"bgk": 2700,
+	"ufficio_primo": 4400,  # 2026-11-26: the whole stone cube, doors, bronze guardians; L2 exception: the roof (dome, 71 bubbles, roof lights) is its identity from the camera
 	"foksal": 3000,
 	"mlotek": 2400,
 	"kozia9": 7000,
@@ -412,11 +416,38 @@ func _initialize() -> void:
 	map._roof_nz = ceili((float(bounds[3]) - float(bounds[1])) / map.ROOF_CELL)
 	_probe = MeshProbe.new(data)
 	var marks = Landmarks.new(map, data)
+	var only := ""
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--site="):
+			only = a.trim_prefix("--site=")
 	var keys: Array[String] = []
 	for s: Dictionary in marks.sites:
 		if not s.has("block") and not s.has("fronts"):  # city fabric, not landmarks: no budget of their own
-			keys.append(s["key"])
+			if only == "" or s["key"] == only:
+				keys.append(s["key"])
 	keys.sort()
+	if only != "":
+		if keys.is_empty():
+			print("check_mesh_quality: no landmark site %s" % only)
+			map.free()
+			quit(1)
+			return
+		var one := MeshProbe.Recorder.new()
+		marks.build(one, Rect2(), only)
+		var one_found := _probe.examine(only, one)
+		_judge(only, one_found)
+		map.free()
+		for n in notes:
+			print("  note: " + n)
+		if problems.is_empty():
+			print("check_mesh_quality: OK (site %s)" % only)
+			quit(0)
+		else:
+			print("check_mesh_quality: %d problems" % problems.size())
+			for p in problems:
+				print("  " + p)
+			quit(1)
+		return
 	var measured := {}
 	for key in keys:
 		var rec := MeshProbe.Recorder.new()
