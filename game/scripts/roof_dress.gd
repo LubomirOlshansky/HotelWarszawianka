@@ -27,6 +27,15 @@ const NO_UV := Vector2(-1.0, -1.0)
 static var parapets := 0
 static var chimneys := 0
 static var triangles := 0
+static var rooms := 0
+static var antennas := 0
+static var furniture := 0      ## triangles of roof furniture (rooms, masts, units)
+
+## Off switch for the roof furniture (PR 3), kept for before/after shots.
+const FURNITURE := true
+const FURNITURE_MIN_AREA := 150.0  ## m², the highest flat level must be this big
+const INSET := 1.5                 ## m, furniture stays this far inside every outer edge
+const SKY := Color("#2f3a44")  ## a skylight's dark glass lid
 
 
 ## The extra triangles for one LoD2 building: its triangles are `t0` to `t1` of the arrays,
@@ -55,12 +64,14 @@ static func building(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pack
 	wall.a = 1.0
 	# The roof triangles (a box's top is not the roof) and the area of each flat level.
 	var roofs: Array[int] = []
+	var box_tops: Array[int] = []
 	var levels := {}
 	var grid := {}
 	for t in range(t0, t1, 3):
 		if nrm[t].y < 0.3:
 			continue
 		if box_verts.has(_key(pos[t])) and box_verts.has(_key(pos[t + 1])) and box_verts.has(_key(pos[t + 2])):
+			box_tops.append(t)
 			continue
 		roofs.append(t)
 		var lo := Vector2(pos[t].x, pos[t].z)
@@ -78,6 +89,10 @@ static func building(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pack
 		if nrm[t].y > 0.97:
 			var lk := roundi((pos[t].y + pos[t + 1].y + pos[t + 2].y) / 3.0 * 2.0)
 			levels[lk] = float(levels.get(lk, 0.0)) + _area(pos[t], pos[t + 1], pos[t + 2])
+	if FURNITURE and not historic and (kind == 2 or kind == 3):
+		var before := triangles
+		_furniture(out, pos, nrm, roofs, levels, grid, wall, kind, box_tops)
+		furniture += triangles - before
 	for t in roofs:
 		var n := nrm[t]
 		var place := fposmod(pos[t].x * 0.0731 + pos[t].z * 0.0417, 1.0)
@@ -90,6 +105,220 @@ static func building(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pack
 			_pitched(out, pos[t], pos[t + 1], pos[t + 2], n, place)
 	return {"pos": PackedVector3Array(out["pos"]), "nrm": PackedVector3Array(out["nrm"]),
 			"col": PackedColorArray(out["col"])}
+
+
+## Roof furniture on the building's highest flat level (at least FURNITURE_MIN_AREA m²), inside
+## its outer edges by INSET and clear of the baked plant boxes: a slab's lift and stair rooms,
+## TV masts, a dish and vent stacks, an office's HVAC units and skylight strips. Laid square to
+## the roof's outer edges; every choice is seeded from the roof's place, never an index.
+static func _furniture(out: Dictionary, pos: PackedVector3Array, nrm: PackedVector3Array, roofs: Array[int],
+		levels: Dictionary, grid: Dictionary, wall: Color, kind: int, box_tops: Array[int]) -> void:
+	var top_key := -100000
+	for lk: int in levels:
+		if float(levels[lk]) >= FURNITURE_MIN_AREA and lk > top_key:
+			top_key = lk
+	if top_key == -100000:
+		return
+	var tris: Array[int] = []
+	var sum := Vector2.ZERO
+	var ysum := 0.0
+	var wsum := 0.0
+	for t in roofs:
+		if nrm[t].y > 0.97 and roundi((pos[t].y + pos[t + 1].y + pos[t + 2].y) / 3.0 * 2.0) == top_key:
+			tris.append(t)
+			var a := _area(pos[t], pos[t + 1], pos[t + 2])
+			var c := (pos[t] + pos[t + 1] + pos[t + 2]) / 3.0
+			sum += Vector2(c.x, c.z) * a
+			ysum += c.y * a
+			wsum += a
+	var mean := sum / wsum
+	var y := ysum / wsum
+	# The axis: the outer edges' directions folded into a quarter turn, weighted by length (a
+	# roof's edges meet square; inner diagonals of the triangulation do not count).
+	var fold := Vector2.ZERO
+	for t in tris:
+		for i in 3:
+			var p := Vector2(pos[t + i].x, pos[t + i].z)
+			var q := Vector2(pos[t + (i + 1) % 3].x, pos[t + (i + 1) % 3].z)
+			var e := q - p
+			var length := e.length()
+			if length < 0.5:
+				continue
+			var o := Vector2(e.y, -e.x) / length
+			var c3 := (pos[t] + pos[t + 1] + pos[t + 2]) / 3.0
+			if o.dot((p + q) * 0.5 - Vector2(c3.x, c3.z)) < 0.0:
+				o = -o
+			if _covered(pos, grid, (p + q) * 0.5 + o * PROBE, y - 0.3):
+				continue
+			var ang := atan2(e.y, e.x) * 4.0
+			fold += Vector2(cos(ang), sin(ang)) * length
+	var ax := Vector2.RIGHT.rotated(fold.angle() * 0.25) if fold.length() > 0.001 else Vector2.RIGHT
+	var cr := Vector2(-ax.y, ax.x)
+	var lo := Vector2(INF, INF)  # extent in (along, across)
+	var hi := -lo
+	for t in tris:
+		for k in 3:
+			var q := Vector2(pos[t + k].x, pos[t + k].z) - mean
+			var uvq := Vector2(q.dot(ax), q.dot(cr))
+			lo = lo.min(uvq)
+			hi = hi.max(uvq)
+	if hi.x - lo.x < hi.y - lo.y:  # the long side first
+		ax = cr
+		cr = Vector2(-ax.y, ax.x)
+		var l2 := Vector2(lo.y, -hi.x)
+		hi = Vector2(hi.y, -lo.x)
+		lo = l2
+	var length := hi.x - lo.x
+	var width := hi.y - lo.y
+	var at := func(u: float, v: float) -> Vector2: return mean + ax * u + cr * v
+	# An item of half size (hw along, hd across) fits when its centre, corners and side middles,
+	# pushed out by INSET, all stand on this level with nothing higher over them, and it keeps
+	# a metre from every plant box.
+	var fit := func(p: Vector2, hw: float, hd: float) -> bool:
+		for su: float in [-1.0, 0.0, 1.0]:
+			for sv: float in [-1.0, 0.0, 1.0]:
+				var s := p + ax * su * (hw + INSET * absf(su)) + cr * sv * (hd + INSET * absf(sv))
+				if not _on_level(pos, nrm, grid, s, y):
+					return false
+		var clear := maxf(hw, hd) + 1.0
+		for t in box_tops:
+			var a := Vector2(pos[t].x, pos[t].z)
+			var b := Vector2(pos[t + 1].x, pos[t + 1].z)
+			var c := Vector2(pos[t + 2].x, pos[t + 2].z)
+			if Geometry2D.point_is_inside_triangle(p, a, b, c):
+				return false
+			for e: Array in [[a, b], [b, c], [c, a]]:
+				if p.distance_to(Geometry2D.get_closest_point_to_segment(p, e[0], e[1])) < clear:
+					return false
+		return true
+	var d3 := Vector3(ax.x, 0.0, ax.y)
+	var x3 := Vector3(cr.x, 0.0, cr.y)
+	var taken: Array[Vector2] = []
+	var cx := mean.x
+	var cz := mean.y
+	var up := Vector3.UP
+	var mast := COPING_METAL.darkened(0.4)
+	if kind == 2:
+		var n_rooms := 0 if box_tops.size() >= 4 else mini(4, ceili(length / 30.0))  # two baked boxes: GUGiK has them
+		for i in n_rooms:
+			var u: float = lo.x + length * (i + 0.5) / n_rooms
+			for off: float in [0.0, 0.25, -0.25]:
+				var p: Vector2 = at.call(u, (lo.y + hi.y) * 0.5 + off * width)
+				if fit.call(p, 2.0, 1.5):
+					_box(out, Vector3(p.x, y, p.y), d3, 2.0, 1.5, 2.6, wall.lightened(0.15), COPING)
+					taken.append(p)
+					rooms += 1
+					break
+		if _r(cx, cz, 1) < 0.5:
+			for j in int(_r(cx, cz, 2) * 3.0) + 1:
+				var p := _spot(at, lo, hi, fit, taken, cx, cz, 10 + j, 0.4, 0.4)
+				if p.x == INF:
+					continue
+				var f := Vector3(p.x, y, p.y)
+				_box(out, f, d3, 0.1, 0.1, 2.5, mast, mast)
+				for b in 1 + int(_r(cx, cz, 20 + j) * 2.0):
+					_box(out, f + up * (1.7 + 0.4 * b), x3, 0.6, 0.06, 0.15, mast, mast, 0.0)
+				antennas += 1
+		if _r(cx, cz, 3) < 0.3:
+			var p := _spot(at, lo, hi, fit, taken, cx, cz, 30, 0.7, 0.7)
+			if p.x != INF:
+				var f := Vector3(p.x, y, p.y)
+				_box(out, f, d3, 0.075, 0.075, 0.9, mast, mast)
+				var dir := x3 * (1.0 if _r(cx, cz, 4) < 0.5 else -1.0)
+				var tilt := deg_to_rad(25.0)  # the face 65 degrees up from the roof
+				var nrm_d := (dir * cos(tilt) + up * sin(tilt)).normalized()
+				var ua := up.cross(nrm_d).normalized()
+				var va := nrm_d.cross(ua)
+				var cc := f + up * 1.0 + nrm_d * 0.1
+				var back := COPING.darkened(0.25)
+				for k in 8:
+					var a0 := k * TAU / 8.0
+					var a1 := (k + 1) * TAU / 8.0
+					var p0 := cc + (ua * cos(a0) + va * sin(a0)) * 0.6
+					var p1 := cc + (ua * cos(a1) + va * sin(a1)) * 0.6
+					_tri2(out, cc, p0, p1, COPING, COPING, COPING, cc - nrm_d)
+					_tri2(out, cc, p0, p1, back, back, back, cc + nrm_d)
+				antennas += 1
+		for j in 2 + int(_r(cx, cz, 5) * 3.0):
+			var p := _spot(at, lo, hi, fit, taken, cx, cz, 40 + j, 0.2, 0.2)
+			if p.x != INF:
+				_box(out, Vector3(p.x, y, p.y), d3, 0.2, 0.2, 0.6, PLASTER, PLASTER.darkened(0.2))
+	else:
+		for j in 1 + int(_r(cx, cz, 6) * 3.0):
+			var p := _spot(at, lo, hi, fit, taken, cx, cz, 50 + j, 1.25, 0.75)
+			if p.x != INF:
+				_box(out, Vector3(p.x, y, p.y), d3, 1.25, 0.75, 1.2, COPING_METAL, COPING_METAL.darkened(0.25))
+		if _r(cx, cz, 7) < 0.4:
+			for j in 1 + int(_r(cx, cz, 8) * 2.0):
+				var p := _spot(at, lo, hi, fit, taken, cx, cz, 60 + j, 3.0, 0.6)
+				if p.x != INF:
+					_box(out, Vector3(p.x, y, p.y), d3, 3.0, 0.6, 0.25, COPING_METAL, SKY)
+
+
+## A seeded roof place: the k-th random number in [0, 1) of a roof at (x, z), hashed from the
+## place rounded to half a metre (a sector's copy of a roof gives the same numbers).
+static func _r(x: float, z: float, k: int) -> float:
+	var h := (roundi(x * 2.0) * 73856093) ^ (roundi(z * 2.0) * 19349663) ^ (k * 83492791)
+	h = (h ^ (h >> 13)) * 1274126177
+	h ^= h >> 16
+	return float(h & 0xFFFFFF) / 16777216.0
+
+
+## A point of the roof for furniture of half size (hw, hd): the first of a few seeded tries that
+## fits and keeps 3 m from what is placed; (INF, INF) when none does.
+static func _spot(at: Callable, lo: Vector2, hi: Vector2, fit: Callable, taken: Array[Vector2], x: float, z: float,
+		k: int, hw: float, hd: float) -> Vector2:
+	var r := maxf(hw, hd)
+	for i in 12:
+		var p: Vector2 = at.call(lerpf(lo.x, hi.x, _r(x, z, k * 13 + i * 2)), lerpf(lo.y, hi.y, _r(x, z, k * 13 + i * 2 + 1)))
+		var free := true
+		for q in taken:
+			if q.distance_to(p) < 3.0 + r:
+				free = false
+				break
+		if free and fit.call(p, hw, hd):
+			taken.append(p)
+			return p
+	return Vector2(INF, INF)
+
+
+## Whether `at` stands on a flat roof triangle at `y` (within 0.3 m) with no higher part of the
+## building over it.
+static func _on_level(pos: PackedVector3Array, nrm: PackedVector3Array, grid: Dictionary, at: Vector2, y: float) -> bool:
+	var on := false
+	for t: int in grid.get(Vector2i(floori(at.x / CELL), floori(at.y / CELL)), []):
+		var a := Vector2(pos[t].x, pos[t].z)
+		var b := Vector2(pos[t + 1].x, pos[t + 1].z)
+		var c := Vector2(pos[t + 2].x, pos[t + 2].z)
+		if not Geometry2D.point_is_inside_triangle(at, a, b, c):
+			continue
+		var top := maxf(pos[t].y, maxf(pos[t + 1].y, pos[t + 2].y))
+		if top > y + 0.3:
+			return false
+		if nrm[t].y > 0.97 and absf((pos[t].y + pos[t + 1].y + pos[t + 2].y) / 3.0 - y) < 0.3:
+			on = true
+	return on
+
+
+## A box standing on `foot`: half `hw` along `along`, `hd` across, `h` tall, sides in `colour`,
+## the lid in `lid`; its foot sunk `sink` m under the roof (a roof's planes are not quite level).
+static func _box(out: Dictionary, foot: Vector3, along: Vector3, hw: float, hd: float, h: float, colour: Color,
+		lid: Color, sink: float = 0.3) -> void:
+	var across := Vector3(-along.z, 0.0, along.x)
+	var base := foot - Vector3.UP * sink
+	var up := Vector3.UP * (h + sink)
+	var c0 := base - along * hw - across * hd
+	var c1 := base + along * hw - across * hd
+	var c2 := base + along * hw + across * hd
+	var c3 := base - along * hw + across * hd
+	var inside := foot + Vector3.UP * (h * 0.5)
+	for quad: Array in [[c0, c1], [c1, c2], [c2, c3], [c3, c0]]:
+		var p: Vector3 = quad[0]
+		var q: Vector3 = quad[1]
+		_tri2(out, p, q, q + up, colour, colour, colour, inside)
+		_tri2(out, p, q + up, p + up, colour, colour, colour, inside)
+	_tri2(out, c0 + up, c1 + up, c2 + up, lid, lid, lid, inside - Vector3.UP * h)
+	_tri2(out, c0 + up, c2 + up, c3 + up, lid, lid, lid, inside - Vector3.UP * h)
 
 
 ## A flat roof triangle's outer edges: a parapet on each, and on a tenement a party-wall

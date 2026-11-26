@@ -11953,8 +11953,8 @@ func _roof_dress(pos: PackedVector3Array, nrm: PackedVector3Array, col: PackedCo
 		if not (extra["pos"] as PackedVector3Array).is_empty():
 			_add_dress(dress, extra)
 	if not _in_sector:
-		print("roofs: %d parapet edges, %d chimneys, %d triangles (RF2-RF3)" % [RoofDress.parapets,
-				RoofDress.chimneys, RoofDress.triangles - before])
+		print("roofs: %d parapet edges, %d chimneys, %d rooms, %d antennas, %d triangles (RF2-RF3)" % [RoofDress.parapets,
+				RoofDress.chimneys, RoofDress.rooms, RoofDress.antennas, RoofDress.triangles - before])
 
 
 ## The historic districts: each LoD2 wall in them takes the colour and window seed of the
