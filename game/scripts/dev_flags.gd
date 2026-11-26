@@ -230,6 +230,10 @@ var bus_log := false
 var honk_frames: Array[int] = []
 var crash_flag := ""
 var crash_log := false
+## Road life (road_life.gd): --ambulance=now (one comes up behind in 2 s, 40-60 m back), =0 (none;
+## the honk at a green stays), =on (on in a test run too); --road-log prints its log.
+var ambulance_flag := ""
+var road_log := false
 var crawl_flag := ""
 var crawl_route := ""
 var crawl_group := ""
@@ -315,6 +319,10 @@ var trend_job_flag := 0
 ## --dzemini: Mrożulo's MLASK already on DŻEMINI KEBAB (the queue for good, the sticker), the car by
 ## the shop (trend_job.gd "Dżemini"; shots without driving the job).
 var dzemini_flag := false
+## --tajny[=palm|race|0]: the Tajny klient opening (tajny_klient.gd) on, whatever the DEV setting:
+## Kebabulo's call 2 s in; =palm: the order made, the car at the Palm's kerb; =race: the tasting done,
+## the race back to Kemal's on; =0: off, even with the setting on.
+var tajny_flag := ""
 var start_kebab := -1
 ## Loop jobs-2: --courier-race[=N] (kebab order N, default 0, with the courier's challenge forced).
 var courier_race := false
@@ -1017,6 +1025,10 @@ func parse_with(args: PackedStringArray) -> void:
 			ev_log = true
 		elif arg == "--crash-log":
 			crash_log = true
+		elif arg.begins_with("--ambulance="):
+			ambulance_flag = arg.trim_prefix("--ambulance=")
+		elif arg == "--road-log":
+			road_log = true
 		elif arg.begins_with("--loud="):
 			loud_flag = clampi(int(arg.trim_prefix("--loud=")), 0, 16)
 		elif arg == "--loud-log":
@@ -1112,6 +1124,8 @@ func parse_with(args: PackedStringArray) -> void:
 		elif arg == "--dzemini":
 			dzemini_flag = true
 			trend_log = true
+		elif arg == "--tajny" or arg.begins_with("--tajny="):
+			tajny_flag = arg.trim_prefix("--tajny=") if arg.contains("=") else "on"
 		elif arg == "--zajac":
 			zajac_flag = true
 			life_log = true
@@ -1246,7 +1260,7 @@ func parse_with(args: PackedStringArray) -> void:
 	# Loop MW-6: and the eggs', the tape's and Fotka's flags; --egg sets its moment's time.
 	if egg_flag != "" or tape_flag != "" or fotka_flag or pop_flag > 0:
 		show_title = false
-	if first10_flag or end_card_flag or first_race_flag:
+	if first10_flag or end_card_flag or first_race_flag or (tajny_flag != "" and tajny_flag != "0"):
 		show_title = false  # loop 3h slice 4: --first10 and --end-card are test runs
 	# Loop MW-4: --zajac is Kolka's Wednesday evening (Live), --life-soak a Friday dusk.
 	if zajac_flag or life_soak or trend_job_flag > 0 or armchair_flag or dzemini_flag:
