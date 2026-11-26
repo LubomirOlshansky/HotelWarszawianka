@@ -142,6 +142,10 @@ const SHOTS := {
 	# WYPIJ PIWKO, the ball's tock on the table, into a cup, round a rim (the win and the loss are the
 	# feedback set's, hud.gd `cue`).
 	"beer_pour": -9.0, "glass_clink": -13.0, "pong_bounce": -14.0, "pong_cup": -10.0, "pong_rim": -14.0,
+	# Za deckami (decks_match.gd, tools/add_sfx.py from ElevenLabs takes, 2026-11-26): Smoła's crowd
+	# cheering a clean hand-over and a hot phrase, its short "eee" at a gallop, and the record's
+	# spin-back when the DJ takes the decks back (over the two decks' music, so a little louder).
+	"crowd_cheer": -8.0, "crowd_eee": -9.0, "vinyl_spinback": -8.0,
 }
 ## Loop 3g-2: the siren loop (one positional voice) and its level there.
 const SIREN := "police_siren"
@@ -183,6 +187,7 @@ const SHOT_RULES := {
 	"smash_car": [NORMAL, 2, 0.06],
 	"beer_pour": [NORMAL, 1, 0.03], "glass_clink": [NORMAL, 1, 0.05], "pong_bounce": [NORMAL, 2, 0.08],
 	"pong_cup": [HIGH, 1, 0.05], "pong_rim": [NORMAL, 1, 0.04],
+	"crowd_cheer": [NORMAL, 1, 0.04], "crowd_eee": [NORMAL, 1, 0.05], "vinyl_spinback": [HIGH, 1, 0.0],
 }
 ## A sound may have more than one take: `name.wav`, then `name_2.wav` up to `name_4.wav` beside
 ## it. A take is picked at random, never the same one twice running.
