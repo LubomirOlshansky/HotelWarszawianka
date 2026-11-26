@@ -1,4 +1,4 @@
-"""Write game/data/house_types.json (docs/design/house-types.md): the zones as lat/lon boxes
+"""Write game/data/house_types.json and building.gdshader's HOUSE_TYPES rows (docs/design/house-types.md): the zones as lat/lon boxes
 turned into map metres (tools/bake_osm.py's projection), the types and their palettes.
 
 Usage: python3 -I tools/house_zones.py   (edit the tables here, never the JSON by hand)
@@ -30,6 +30,7 @@ TYPES = {
  "1": {"name": "kamienica", "rhythm": 1, "family": "prewar", "walls": ["#d9c7a0", "#c9b38a", "#bfb8a8", "#e3d3b0", "#d1a77f", "#c8a89a", "#a9a89a", "#d8cdb8", "#b8a184", "#cfc0a2"]},
  "2": {"name": "praga_brick", "rhythm": 1, "family": "prewar", "walls": ["#9a4f3c", "#8c4a3a", "#a5604a", "#7e4436", "#b06a4f", "#94574a", "#a8a196"]},
  "3": {"name": "modernist", "rhythm": 1, "family": "prewar", "walls": ["#ece6d6", "#e8e0cc", "#f1ece0", "#d9d4c6", "#e5dcc5"]},
+ "4": {"name": "old_town", "rhythm": 0, "family": "prewar", "walls": []},
  "5": {"name": "mdm", "rhythm": 1, "family": "prewar", "walls": ["#d6c7a6", "#cdbd99", "#c9b48e", "#bfb39c", "#d9ccb0"]},
  "6": {"name": "muranow", "rhythm": 2, "family": "postwar", "walls": ["#c9aea0", "#bf9f90", "#c7b39f", "#b89a8a", "#d1bba8", "#a89386"]},
  "7": {"name": "postthaw", "rhythm": 2, "family": "postwar", "walls": ["#e6e4dc", "#dcdad2", "#e9e0c8", "#cfd6d6", "#e4d2c2"]},
@@ -41,10 +42,41 @@ TYPES = {
  "13": {"name": "developer", "rhythm": 2, "family": "postwar", "walls": ["#eeeeec", "#e4e3df", "#d9d8d4", "#6a6c71", "#f0ebe0"]},
  "15": {"name": "factory", "rhythm": 0, "family": "prewar", "walls": ["#9a4f3c", "#8a4636", "#a5604a"]},
 }
+# PR 2a: each type's drawn facade, read by building.gdshader's house_facade() from the const
+# block this script writes there (HOUSE_A..HOUSE_D, row = type). Metres unless noted.
+#   A: ground floor height, upper floor height, window axis spacing, cornice depth (0 none)
+#   B: window half width, window height, window foot over the floor line, surround width (0 none)
+#   C: share of ground-floor axes with a shop window, ribbon (1 = one band of glass), panel joints
+#      (0..1), share of bays with a loggia
+#   D: rusticated ground floor (0/1), mix towards pale panel concrete (0..1), share of lit rooms
+#      at night, roof (0 by the photo's colour, 1 tar paper, 2 membrane)
+FACADE = {
+ "0":  [4.0, 3.4, 2.8, 0.7,  0.45, 1.8, 0.85, 0.0,   0.6, 0.0, 0.0, 0.0,   0.0, 0.0, 0.34, 0.0],
+ "1":  [4.4, 3.7, 2.8, 0.9,  0.55, 2.1, 0.85, 0.18,  0.75, 0.0, 0.0, 0.0,  1.0, 0.0, 0.34, 0.0],
+ "2":  [3.8, 3.4, 2.5, 0.6,  0.45, 1.9, 0.8, 0.12,   0.45, 0.0, 0.0, 0.0,  0.0, 0.0, 0.32, 0.0],
+ "3":  [3.4, 3.2, 3.0, 0.0,  0.75, 1.5, 0.95, 0.0,   0.4, 0.0, 0.0, 0.15,  0.0, 0.0, 0.34, 0.0],
+ "4":  [3.6, 3.2, 2.5, 0.8,  0.45, 1.6, 0.8, 0.15,   0.7, 0.0, 0.0, 0.0,   0.0, 0.0, 0.34, 0.0],
+ "5":  [6.2, 3.6, 2.6, 1.3,  0.55, 1.8, 0.9, 0.2,    0.9, 0.0, 0.0, 0.0,   1.0, 0.0, 0.34, 0.0],
+ "6":  [3.0, 2.9, 2.6, 0.35, 0.5, 1.5, 0.9, 0.1,     0.1, 0.0, 0.0, 0.0,   0.0, 0.0, 0.34, 1.0],
+ "7":  [3.0, 2.8, 3.0, 0.0,  0.75, 1.45, 0.9, 0.0,   0.3, 0.0, 0.0, 0.15,  0.0, 0.1, 0.34, 1.0],
+ "8":  [2.8, 2.8, 3.2, 0.0,  0.8, 1.4, 0.95, 0.0,    0.05, 0.0, 1.0, 0.35, 0.0, 0.35, 0.34, 1.0],
+ "9":  [2.8, 2.8, 3.2, 0.0,  0.8, 1.4, 0.95, 0.0,    0.05, 0.0, 0.1, 0.3, 0.0, 0.0, 0.34, 1.0],
+ "10": [2.8, 2.8, 2.9, 0.0,  0.7, 1.4, 0.95, 0.0,    0.05, 0.0, 0.5, 0.45, 0.0, 0.2, 0.34, 1.0],
+ "11": [3.8, 3.3, 1.5, 0.0,  0.7, 1.7, 0.9, 0.0,     0.9, 1.0, 0.0, 0.0,   0.0, 0.0, 0.42, 2.0],
+ "12": [4.2, 3.5, 2.7, 0.3,  0.8, 1.6, 0.9, 0.08,    0.9, 0.0, 0.0, 0.0,   0.0, 0.0, 0.42, 2.0],
+ "13": [3.6, 3.0, 3.4, 0.0,  1.0, 1.9, 0.3, 0.0,     0.4, 0.0, 0.0, 0.5,   0.0, 0.0, 0.34, 2.0],
+ "14": [4.0, 3.4, 2.8, 0.7,  0.45, 1.8, 0.85, 0.0,   0.6, 0.0, 0.0, 0.0,   0.0, 0.0, 0.34, 0.0],
+ "15": [4.5, 4.5, 3.6, 0.5,  0.9, 2.6, 1.0, 0.15,    0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.2, 1.0],
+}
+for k, t in TYPES.items():
+	t["facade"] = FACADE[k]
+
 out = {
  "_about": "House types (docs/design/house-types.md, PR 1). zones: first match wins; mix = type weights inside the zone. "
            "Zone outlines are boxes drawn from Warsaw's building history (lat/lon to map metres like tools/bake_osm.py), "
-           "not yet photo-checked (phase 4). types: rhythm = the drawn facade today (0 generic, 1 tenement, 2 slab, 3 office), "
+           "not yet photo-checked (phase 4). types: rhythm = the roof dress class (0 generic, 1 tenement chimneys, 2 slab, 3 office coping), "
+           "facade = the drawn facade (tools/house_zones.py FACADE, copied into building.gdshader), "
+           "4 old_town is drawn by its own street list (map_builder _tenement_facades), never picked by a zone; "
            "family = what floor height and shape can tell (prewar, postwar, office), walls = sRGB palette.",
  "floor_prewar": 3.6, "floor_postwar": 3.05,
  "default_mix": {"1": 5, "9": 3, "13": 2},
@@ -53,3 +85,21 @@ out = {
  "zones": [{"id": i, "about": a, "p": p, "mix": m, "grey_override": True} for i, a, p, m in Z],
 }
 open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'game', 'data', 'house_types.json'), 'w').write(json.dumps(out, ensure_ascii=False, indent='\t') + "\n")
+
+def shader_block():
+	"""building.gdshader's const rows, between the HOUSE_TYPES markers (check_house_types compares)."""
+	lines = ["// HOUSE_TYPES_BEGIN (written by tools/house_zones.py from FACADE; do not edit by hand)"]
+	for i, name in enumerate("ABCD"):
+		rows = ", ".join("vec4(%s)" % ", ".join("%g" % v for v in FACADE[str(t)][i * 4:i * 4 + 4]) for t in range(16))
+		lines.append("const vec4 HOUSE_%s[16] = vec4[16](%s);" % (name, rows))
+	lines.append("// HOUSE_TYPES_END")
+	return "\n".join(lines)
+
+sh = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'game', 'shaders', 'building.gdshader')
+code = open(sh, encoding='utf-8').read()
+a, b = code.find("// HOUSE_TYPES_BEGIN"), code.find("// HOUSE_TYPES_END")
+if a >= 0 and b > a:
+	code = code[:a] + shader_block() + code[b + len("// HOUSE_TYPES_END"):]
+	open(sh, 'w', encoding='utf-8').write(code)
+else:
+	print("house_zones: no HOUSE_TYPES markers in building.gdshader")

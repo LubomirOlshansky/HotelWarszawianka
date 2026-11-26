@@ -30,7 +30,7 @@ static var triangles := 0
 
 
 ## The extra triangles for one LoD2 building: its triangles are `t0` to `t1` of the arrays,
-## `kind` its R4 type (1 tenement, 2 slab, 3 office, 0 other), `historic` whether it stands in
+## `kind` its roof dress class (HouseTypes.rhythm: 1 tenement, 2 slab, 3 office, 0 other), `historic` whether it stands in
 ## the Old Town or the New Town (their roofs are old_town_roofs.gd's). Returns "pos", "nrm",
 ## "col" (one entry per vertex; empty arrays when it takes none).
 static func building(pos: PackedVector3Array, nrm: PackedVector3Array, col: PackedColorArray,

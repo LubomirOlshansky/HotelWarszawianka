@@ -11,7 +11,7 @@ looks; nothing here models a building, so the modelling stop is untouched.
 - `map_builder.gd _building_type` gives an ordinary house one of 3 drawn types by OSM kind and
   height only: 4,082 tenements (10-26 m), 1,683 slabs (26 m+ or a long bar, about half of all
   wall area), 468 offices. Muranów's 1950s blocks get 383 kamienica fronts; Wola 666.
-- `building.gdshader typed_facade` draws each type with one fixed rhythm; the seed moves spacing
+- `building.gdshader typed_facade` (before PR 2a) drew each type with one fixed rhythm; the seed moves spacing
   by about 20 %. Every generic ground floor (`facade()`) has shop windows.
 - Wall colour: LoD2 walls take one of 12 light beiges (`bake_gugik.py FACADES`), or an OSM
   colour (31 % of buildings, mostly flat greys `#666666`, `gray`, `#999999`) mixed 70 % in.
@@ -148,9 +148,11 @@ encoding moves to phase 2a, where the shader first needs it.
 - UV2.x = 1 + (T + 0.96 x seed) / 16 for T = 1..15; generic stays in [0, 1). Change every reader
   together: dispatch (~1135), `roof_surface` (~1048), `_roof_dress` (~11793, else new types get
   chimneys or metal coping), `_powisle_house`, `OLD_TOWN_TYPE` (~11549, 11888).
-- One flat facade function reading `uniform vec4` arrays indexed by type (16 rows); fallback a
-  small data texture if Adreno 6xx dislikes dynamic uniform indexing. Arrays set after the
-  prebuilt material swap (`main.gd` ~7237 and the lite swap) as well as at ~1430.
+- One flat facade function reading `vec4` rows indexed by type (16 rows). Built as `const`
+  tables in the shader (`HOUSE_A..D`), written by `tools/house_zones.py` from its FACADE table
+  and checked against the JSON by `check_house_types`: no material plumbing, and the prebuilt
+  sectors' materials need nothing new. Fallback a small data texture if Adreno 6xx dislikes
+  dynamic indexing of const arrays.
 - Window fade by `fwidth`, base band, shadow under the cornice. Budget target 450 or less.
 - Update `decisions.md` (line ~50) and tech-debt TD-9, which this changes.
 - Phone only: the Adreno 6xx link and frame time on the A56 and Nothing Phone.
