@@ -589,12 +589,12 @@ func _ln(a: Vector2, b: Vector2, c: Color) -> void:
 	_canvas.draw_line(a.round() + Vector2(0.5, 0.5), b.round() + Vector2(0.5, 0.5), c, 1.0)
 
 
-## Pixel text (the city's 5x7 font): `scale` px per font pixel, centred on `x` when `centre`.
 ## Right-aligned text ending at x.
 func _text_r(s: String, x: float, y: float, c: Color) -> void:
 	_text(s, x - PixelFont.width(s.to_upper()), y, c, 1, false, true)
 
 
+## Pixel text (the city's 5x7 font): `scale` px per font pixel, centred on `x` when `centre`.
 func _text(s: String, x: float, y: float, c: Color, scale := 1, centre := true, shadow := true) -> void:
 	s = s.to_upper()
 	var w := PixelFont.width(s) * scale
