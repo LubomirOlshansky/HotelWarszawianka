@@ -49,6 +49,8 @@ crazy                quick
 credits              quick
 crowds               quick
 cyclehang            roads
+decks                quick
+decks-run            local     slow
 deckxray             smoke
 defiladobelisk       quick
 dekalog              quick
@@ -182,6 +184,7 @@ ride-police          local     slow
 rideplay             quick
 rides                quick
 rivals               quick
+roadlife             quick
 roadprofiles         smoke
 roads                roads
 roadtruth            quick

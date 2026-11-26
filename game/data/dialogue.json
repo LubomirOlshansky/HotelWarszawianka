@@ -29,6 +29,13 @@
   ],
   "_about": "Original lines for Around Warsaw: affectionate Warsaw humour about the city and its stereotypes, never about real private people, no brand names. Each line is [Polish, English], optionally with a third element of notes for the game: {\"only\": tag or [tags]} limits it to one situation (kebab orders: \"powisle\", \"praga\" across the river, \"office\"; rescues: \"roof\", \"street\", \"river\", \"child\", \"square\"; słoiki: \"all\" jars intact, \"some\"; water_tow, loop 10a: \"river\", \"pond\"), {\"customer\": name} names who ordered. {\"poster\": [lines]} (column_posters, loop 1) is how the poster on an advertising column breaks the line: at most four lines of eight letters. Loop 3g-1 (police, docs/design/police.md section 6): police_warn \"speed\", \"red\", \"bump\"; police_chase \"start\", \"backup\", \"roadblock\" (untagged: every 10 to 12 s); police_lost \"escaped\", \"shift\", \"heli\"; police_stop \"routine\", \"roosters\", \"trap\", \"kebab\", \"sloik\" (untagged: the generic opener); police_reply \"trap\", \"kebab\" (untagged: always offered; at most 28 characters, they are buttons); police_caution \"police\", \"fifth\"; radio_host \"traps\" ({pl} / {en}: the day's three speed traps). Speech bubbles stay under 70 characters in Polish. Loop MW-0 (Moja Warszawa, docs/design/vision.md section 7): radio_polnoc (PÓŁNOC FM's host Kuba, \"south_gate\": entering the box from Plac Na Rozdrożu); radio_host (the Hyrax line); club_door (the bouncer: \"reject\", \"queue\", \"car\", \"car_black\", \"dawn\"); clubbers; dawn_crowd (\"palm\"); police_club (the units parked by the clubs, \"sober\"); schodki (\"sunset\", \"guitar\", \"fourth\"); viral (Wiralek: \"queue\", \"new\", \"gone\", \"glon\", \"late\"); runners (\"zajac\", \"hyrax\"); dog_walkers (\"horn\", \"influencer\"); cyclists (\"lane\"); metro_announce; bus_stop (\"night\"); podwozka_request and podwozka_passenger \"club\" (dawn rides from the club doors); notes (the notebook toasts: \"found\", \"chapter\", \"kadr\"); four signs and four column_posters. The notebook's place cards are in places.json and the tape's then cards in then_cards.json. Crash scenes (crash_scenes.gd, 2026-11-01): crash_scene \"driver\", \"officer\", \"medic\", \"gawker\" (bubbles at a fender bender); radio_host \"crash\" ({street}: the road's name, starting the line). Office crowds at Rondo Daszyńskiego (crowds.gd \"office\" sites and walkers, 2026-11-02): office (\"morning\" 07-10, \"lunch\" 11-14, \"evening\" 16-19, \"rain\"; untagged anywhere): overheard corporate jokes, no brand names. Beta radio (2026-11-02): the host's greeting when the game starts (dialogue.gd greeting) = radio_hello_morning / _day / _evening / _night + radio_weather_warm / _mild / _cold / _rain ({t}: the temperature, \"20 stopni\" / \"20 degrees\") + radio_bye (\"morning\", \"day\", \"evening\", \"night\"). City-life satire #1, loud cars (loud_cars.gd, 2026-11-02): car_meet (the crowd at the Browary meet; \"rev\" when a parked car revs), loud_driver (a passing loud supercar's driver), radio_host \"loud\" (KEBAB FM: \"Sąsiedzi znów liczą obroty\"). Crazy drivers (crazy_drivers.gd, docs/design/crazy-drivers.md, 2026-11-05): crazy_taxi (the Szkoda Oktawia taxis), crazy_courier (the Szprynter couriers), crazy_pasatini (Janusz in the Pasatini 1.9 TDJ), said when one cuts in or blocks near the player; radio_host \"pasatini\" (KEBAB FM: a Pasatini sighting). The city objects plan, step 7 (soft_things.gd, main.gd _on_soft_broke): smash (someone who saw the player drive through a fence or hedge; \"fence\", \"hedge\"). Step 8a (soft_things.gd, main.gd _on_car_pushed): parked_push (the owner of a parked car the player pushed).",
   "radio_host": [
+    ["{street}: drogówka sprawdza taksówkę. Pasażer na chodniku, licznik dalej bije.", "{street}: traffic police are checking a taxi. The passenger's on the pavement, the meter's still running.", {"only": "taxi_check"}],
+    ["Z ostatniej chwili: {street}, kontrola taksówki. Prawy pas zajęty, kierowca tłumaczy się aplikacją.", "Breaking: {street}, a taxi check. Right lane blocked; the driver is blaming the app.", {"only": "taxi_check"}],
+    ["{street}: policja zatrzymała taksówkę. Słuchacze pytają, czy kurs się wlicza. Nie wlicza.", "{street}: the police stopped a taxi. Listeners ask if the ride still counts. It doesn't.", {"only": "taxi_check"}],
+    ["Karetka na sygnale jedzie przez {street}. Korytarz życia, kochani, zróbcie miejsce.", "An ambulance on call is coming through {street}. Make a corridor, folks, give it room.", {"only": "ambulance"}],
+    ["Uwaga kierowcy, {street}: karetka. Na bok, a potem wracamy do muzyki.", "Heads up, drivers, {street}: an ambulance. Pull aside, then back to the music.", {"only": "ambulance"}],
+    ["Ktoś właśnie wjechał w karetkę na {street}. Nie róbcie tak. Serio.", "Someone just drove into an ambulance on {street}. Don't do that. Seriously.", {"only": "ambulance_hit"}],
+    ["{street}: kierowca kontra karetka. Ratownicy cali, reputacja kierowcy mniej.", "{street}: driver versus ambulance. The paramedics are fine; the driver's reputation, less so.", {"only": "ambulance_hit"}],
     ["Woda w kranie? Filtry przy Koszykowej robią to od 1886. Starsze niż twój remont.", "Water in your tap? The Filtry on Koszykowa have done that since 1886. Older than your renovation."],
     ["Lindley zaprojektował, Starynkiewicz wywalczył, Warszawa się kłóciła o koszty. Klasyka.", "Lindley designed it, Starynkiewicz fought for it, Warsaw argued about the cost. A classic."],
     ["Na Filtrach 36 filtrów leży pod trawą. Najdroższy trawnik w mieście i nikt na nim nie grilluje.", "At the Filtry, 36 filter beds lie under the grass. The city's priciest lawn, and nobody barbecues on it."],
@@ -6420,6 +6427,421 @@
       "That's enough, champ. Save some for Lusterko."
     ]
   ],
+  "club_decks_invite": [
+    [
+      "Wyjdę na powietrze. Potrzymasz set pięć minut? Dotykaj prawie niczego.",
+      "I'm stepping out for air. Hold the set for five minutes? Touch almost nothing."
+    ],
+    [
+      "Telefon od mamy. Pięć minut, zagraj coś. Nie ma złych decyzji, są tylko głośne.",
+      "A call from my mum. Five minutes, play something. No bad choices, only loud ones."
+    ],
+    [
+      "Kolejka do łazienki nie poczeka, ja też nie. Pięć minut za deckami?",
+      "The toilet queue won't wait, neither will I. Five minutes on the decks?"
+    ],
+    [
+      "Mam pięć minut przerwy i zero siły. Ty bierz decki, ja wezmę wodę.",
+      "I've got a five-minute break and zero energy. You take the decks, I'll take water."
+    ]
+  ],
+  "club_decks_mati": [
+    [
+      "Stary, ludzie patrzą w telefony. Rusz tym talerzem, błagam.",
+      "Mate, people are looking at their phones. Move that platter, please.",
+      {
+        "only": "cold"
+      }
+    ],
+    [
+      "Zakrywam oczy. Powiedz, kiedy będzie po wszystkim.",
+      "I'm covering my eyes. Tell me when it's over.",
+      {
+        "only": "cold"
+      }
+    ],
+    [
+      "Kiwają głowami. To dobry znak. Albo grzeczność. Warszawa.",
+      "They're nodding. Good sign. Or politeness. Warsaw.",
+      {
+        "only": "polite"
+      }
+    ],
+    [
+      "Nie jest źle! Jest… uprzejmie. Dociśnij trochę.",
+      "Not bad! It's… polite. Push it a little.",
+      {
+        "only": "polite"
+      }
+    ],
+    [
+      "Idzie! Podłoga drży, a to nie tramwaj.",
+      "It's working! The floor's shaking and it's not a tram.",
+      {
+        "only": "moving"
+      }
+    ],
+    [
+      "Trzymaj tak! Ręce w górze na każdym takcie!",
+      "Hold it like that! Hands up on every bar!",
+      {
+        "only": "moving"
+      }
+    ],
+    [
+      "Skaczą! Ktoś zgubił but i nawet nie szuka!",
+      "They're jumping! Someone lost a shoe and isn't even looking!",
+      {
+        "only": "hot"
+      }
+    ],
+    [
+      "Stary, ty to masz w rękach. Nie puszczaj.",
+      "Mate, you've got it in your hands. Don't let go.",
+      {
+        "only": "hot"
+      }
+    ],
+    [
+      "To jest piec! Ściany się pocą! Pan Kołek kiwa głową!",
+      "It's an oven! The walls are sweating! Pan Kołek is nodding!",
+      {
+        "only": "piec"
+      }
+    ],
+    [
+      "Mówiłem, że umiesz! Nic nie mówiłem, ale umiesz!",
+      "I said you could do it! I said nothing, but you can!",
+      {
+        "only": "piec"
+      }
+    ]
+  ],
+  "club_decks_dj_back": [
+    [
+      "Wróciłem. Cicho jak na świetlicy w piątek. Dzięki, że ogrzałeś krzesło.",
+      "I'm back. Quiet as a youth club on a Friday. Thanks for keeping the chair warm.",
+      {
+        "only": "swietlica"
+      }
+    ],
+    [
+      "No, nikt nie uciekł. To już sukces. Odbieram decki.",
+      "Well, nobody ran away. That's already a win. Taking the decks back.",
+      {
+        "only": "swietlica"
+      }
+    ],
+    [
+      "Rozgrzałeś ich. Do letniego. Ale zawsze to coś.",
+      "You warmed them up. To lukewarm. Still something.",
+      {
+        "only": "rozgrzewka"
+      }
+    ],
+    [
+      "Niezła rozgrzewka. Teraz ja wejdę i wszystko zepsuję profesjonalnie.",
+      "A decent warm-up. Now I'll come in and ruin it professionally.",
+      {
+        "only": "rozgrzewka"
+      }
+    ],
+    [
+      "Nawet brzmiało jak set. Nie mów reszcie, że to powiedziałem.",
+      "It actually sounded like a set. Don't tell the others I said that.",
+      {
+        "only": "dobry"
+      }
+    ],
+    [
+      "Parkiet pełny, nikt nie śpi. Stawiam wodę. Tę za dwanaście złotych.",
+      "Floor's full, nobody's asleep. I'm buying you a water. The twelve-złoty one.",
+      {
+        "only": "dobry"
+      }
+    ],
+    [
+      "Co tu się stało? Ściany się pocą. Z szacunku.",
+      "What happened here? The walls are sweating. Out of respect.",
+      {
+        "only": "piec"
+      }
+    ],
+    [
+      "Piec. Prawdziwy piec. Moja babcia piekłaby tu chleb.",
+      "An oven. A real oven. My gran would bake bread in here.",
+      {
+        "only": "piec"
+      }
+    ],
+    [
+      "Dobra, dobra, oddawaj.",
+      "Okay, okay, hand it over.",
+      {
+        "only": "early"
+      }
+    ],
+    [
+      "Spokojnie, nikt cię nie wyprosi. Dobra, dobra, oddawaj, zanim zasną na stojąco.",
+      "Easy, nobody's throwing you out. Hand it over before they fall asleep standing.",
+      {
+        "only": "early"
+      }
+    ],
+    [
+      "Ty, a ty gdzie grasz?",
+      "Hey, where do you play?",
+      {
+        "only": "first_piec"
+      }
+    ]
+  ],
+  "club_decks_kolek": [
+    [
+      "Nie słuchałem. Mój but sam wystukał rytm. Zdradziecki but.",
+      "I wasn't listening. My shoe tapped the beat on its own. Traitor shoe."
+    ],
+    [
+      "Tak, okulary opadły. Tak, na sekundę. Nie, nic nie widziałeś.",
+      "Yes, the sunglasses slipped. Yes, for a second. No, you saw nothing."
+    ],
+    [
+      "BETON był niezły. To znaczy… solidny. Konstrukcyjnie.",
+      "BETON was decent. I mean… sturdy. Structurally."
+    ],
+    [
+      "Głową kiwałem na muchę. Nie na bas. Na muchę.",
+      "I was nodding at a fly. Not at the bass. A fly."
+    ]
+  ],
+  "club_crowd_hot": [
+    [
+      "Zgubiłem telefon, kolegę i wstyd. Zostaję.",
+      "I lost my phone, my mate and my shame. I'm staying."
+    ],
+    [
+      "Ten bas masuje mi nerki. Dzięki, dobry człowieku zza decków.",
+      "That bass is massaging my kidneys. Thanks, kind soul behind the decks."
+    ],
+    [
+      "Sąsiedzi znów dzwonią na policję. Niech przyjdą. Zatańczą.",
+      "The neighbours are calling the police again. Let them come. They'll dance."
+    ],
+    [
+      "Pierwszy raz od lat nie patrzę w telefon. Patrzę w sufit. Ładny.",
+      "First time in years I'm not on my phone. I'm looking at the ceiling. It's nice."
+    ],
+    [
+      "Podłoga się trzęsie. Bar się trzęsie. Ja się trzęsę. Tak ma być.",
+      "The floor shakes. The bar shakes. I shake. As intended."
+    ]
+  ],
+  "club_crowd_cold": [
+    [
+      "Spokojnie, każdy miał pierwszy raz. Mój był na weselu. Wujek płakał.",
+      "Easy, everyone has a first time. Mine was at a wedding. My uncle cried."
+    ],
+    [
+      "Cicho jak w czytelni, ale lepsze światło. Dobre wejście.",
+      "Quiet as a reading room, but better lighting. Solid debut."
+    ],
+    [
+      "Idę po wodę. Nie dlatego, że źle. Woda jest po prostu blisko.",
+      "I'm off for water. Not because it's bad. The water's just close."
+    ],
+    [
+      "Trochę krzywo, ale szczerze. Szczerość też się tańczy. Wolno.",
+      "A bit wonky, but honest. Honesty can be danced to. Slowly."
+    ],
+    [
+      "Gdzieś tam jest bit. Chyba. Szukamy go wszyscy razem.",
+      "There's a beat in there somewhere. I think. We're all looking for it together."
+    ]
+  ],
+  "club_decks_ui": [
+    [
+      "ŚWIETLICA",
+      "THE YOUTH CLUB",
+      {
+        "only": "tier0"
+      }
+    ],
+    [
+      "ROZGRZEWKA",
+      "THE WARM-UP",
+      {
+        "only": "tier1"
+      }
+    ],
+    [
+      "DOBRY SET",
+      "A GOOD SET",
+      {
+        "only": "tier2"
+      }
+    ],
+    [
+      "PIEC",
+      "THE OVEN",
+      {
+        "only": "tier3"
+      }
+    ],
+    [
+      "CZYSTO",
+      "CLEAN",
+      {
+        "only": "g_clean"
+      }
+    ],
+    [
+      "DOBRZE",
+      "GOOD",
+      {
+        "only": "g_good"
+      }
+    ],
+    [
+      "KRZYWO",
+      "WONKY",
+      {
+        "only": "g_wonky"
+      }
+    ],
+    [
+      "GALOP",
+      "GALLOP",
+      {
+        "only": "g_gallop"
+      }
+    ],
+    [
+      "—",
+      "—",
+      {
+        "only": "g_none"
+      }
+    ],
+    [
+      "ZGRAJ STOPY",
+      "MATCH THE KICKS",
+      {
+        "only": "h_jog"
+      }
+    ],
+    [
+      "TERAZ FADER",
+      "NOW THE FADER",
+      {
+        "only": "h_fader"
+      }
+    ],
+    [
+      "RUSZ TEMPO",
+      "FIX THE TEMPO",
+      {
+        "only": "h_pitch"
+      }
+    ],
+    [
+      "NUMER SIĘ KOŃCZY",
+      "TRACK ENDING",
+      {
+        "only": "ending"
+      }
+    ],
+    [
+      "SET",
+      "SET",
+      {
+        "only": "r_set"
+      }
+    ],
+    [
+      "MIX",
+      "MIX",
+      {
+        "only": "r_mix"
+      }
+    ],
+    [
+      "NAJDŁUŻSZY LOCK",
+      "LONGEST LOCK",
+      {
+        "only": "r_lock"
+      }
+    ],
+    [
+      "TAKTÓW",
+      "BARS",
+      {
+        "only": "r_bars"
+      }
+    ],
+    [
+      "PARKIET",
+      "THE FLOOR",
+      {
+        "only": "r_floor"
+      }
+    ],
+    [
+      "NAPIWEK",
+      "TIP",
+      {
+        "only": "r_tip"
+      }
+    ],
+    [
+      "SZACUNEK",
+      "RESPECT",
+      {
+        "only": "r_respect"
+      }
+    ],
+    [
+      "WIZYTA OPŁACONA",
+      "ALREADY PAID TONIGHT",
+      {
+        "only": "r_paid"
+      }
+    ],
+    [
+      "JESZCZE RAZ",
+      "AGAIN",
+      {
+        "only": "b_again"
+      }
+    ],
+    [
+      "NA PARKIET",
+      "TO THE FLOOR",
+      {
+        "only": "b_floor"
+      }
+    ],
+    [
+      "ZA DECKI",
+      "TO THE DECKS",
+      {
+        "only": "b_play"
+      }
+    ],
+    [
+      "NIE TERAZ",
+      "NOT NOW",
+      {
+        "only": "b_later"
+      }
+    ],
+    [
+      "MIX",
+      "MIX",
+      {
+        "only": "mix"
+      }
+    ]
+  ],
   "club_patio": [
     [
       "Tu przynajmniej słychać, co mówisz. Szkoda, bo mówisz o kryptowalutach.",
@@ -7203,6 +7625,48 @@
     ["ZOBACZ ZADANIA", "SEE QUESTS", {"only": "b_show_quests"}],
     ["JADĘ DALEJ", "DRIVE ON", {"only": "b_show_drive"}],
     ["Przytrzymaj {a}, by się przenieść pod krzyżyk · lewa gałka przesuwa · {rt} / {lt} przybliża · {y}: ZADANIA", "Hold {a} to jump to the cross · left stick pans · {rt} / {lt} zoom · {y}: QUESTS", {"only": "pad_map"}]
+  ],
+  "taxi_check": [
+    ["Dokumenty, licencja i ten uśmiech też poproszę.", "Papers, licence, and I'll take that smile too.", {"only": "officer"}],
+    ["Taksometr pan ma. Włączać to już trudniej?", "You've got a meter. Switching it on is harder?", {"only": "officer"}],
+    ["Spokojnie, rutynowa kontrola. Rutynowa, czyli długa.", "Relax, a routine check. Routine means long.", {"only": "officer"}],
+    ["Gaśnica, trójkąt, apteczka. Po kolei.", "Extinguisher, triangle, first-aid kit. One by one.", {"only": "officer"}],
+    ["Ciągła linia to nie sugestia, proszę pana.", "A solid line isn't a suggestion, sir.", {"only": "officer"}],
+    ["Pasażer poczeka. Pasażerowie zawsze czekają.", "The passenger will wait. Passengers always wait.", {"only": "officer"}],
+    ["Panie władzo, aplikacja kazała tu skręcić!", "Officer, the app told me to turn here!", {"only": "driver"}],
+    ["Licencję mam, tylko w drugich spodniach.", "I've got the licence, just in my other trousers.", {"only": "driver"}],
+    ["Ja tylko na chwilkę buspasem, korek był!", "Only a sec in the bus lane, there was a jam!", {"only": "driver"}],
+    ["Pierwszy raz mnie zatrzymali. W tym tygodniu.", "First time I've been stopped. This week.", {"only": "driver"}],
+    ["Klient się spieszył, to i ja się spieszyłem.", "The customer was in a hurry, so I was too.", {"only": "driver"}],
+    ["Gwiazdki mi spadną. Pięć lat na nie pracowałem.", "My stars will drop. Five years I worked for them.", {"only": "driver"}],
+    ["Ja mam samolot z Okęcia za godzinę!", "My plane leaves Okęcie in an hour!", {"only": "passenger"}],
+    ["Mogę wysiąść? Pieszo i tak będzie szybciej.", "Can I get out? It's quicker on foot anyway.", {"only": "passenger"}],
+    ["Licznik dalej bije, widzę go stąd!", "The meter's still running, I can see it from here!", {"only": "passenger"}],
+    ["Zamówiłem „ekspres”, a stoimy.", "I ordered \"express\", and we're standing still.", {"only": "passenger"}],
+    ["Wystawię jedną gwiazdkę. Policji też.", "I'm giving one star. The police too.", {"only": "passenger"}],
+    ["O, taksówkę złapali. Sprawiedliwość istnieje.", "Ooh, they caught a taxi. There is justice.", {"only": "gawker"}],
+    ["Wczoraj mnie wiózł. Trzy razy dookoła ronda.", "He drove me yesterday. Three times round the rondo.", {"only": "gawker"}],
+    ["Nagrywam. W sieci pójdzie jak złoto.", "I'm filming. This'll do great online.", {"only": "gawker"}],
+    ["Ja tylko patrzę. Patrzeć wolno.", "I'm just looking. Looking's allowed.", {"only": "gawker"}]
+  ],
+  "road_life": [
+    ["KARETKA Z TYŁU · ZJEDŹ NA BOK", "AMBULANCE BEHIND · PULL ASIDE", {"only": "amb_behind"}],
+    ["KORYTARZ ŻYCIA! +{n} RESPEKTU", "RESCUE CORRIDOR! +{n} RESPECT", {"only": "amb_thanks"}],
+    ["BLOKUJESZ KARETKĘ · −{n} RESPEKTU", "BLOCKING THE AMBULANCE · −{n} RESPECT", {"only": "amb_block"}],
+    ["UDERZENIE W KARETKĘ · −{n} RESPEKTU", "AMBULANCE HIT · −{n} RESPECT", {"only": "amb_hit"}],
+    ["Zjedź na bok! Wieziemy pacjenta!", "Pull aside! We've got a patient!", {"only": "medic_block"}],
+    ["Panie, to karetka, nie wyścig!", "Mate, it's an ambulance, not a race!", {"only": "medic_block"}],
+    ["Na bok, na bok, na bok!", "Aside, aside, aside!", {"only": "medic_block"}],
+    ["Serio?! W karetkę?!", "Seriously?! An ambulance?!", {"only": "medic_hit"}],
+    ["Mieliśmy jednego pacjenta. Teraz dwóch!", "We had one patient. Now we've got two!", {"only": "medic_hit"}],
+    ["Zderzak do wymiany, pan do przemyślenia!", "The bumper needs fixing, you need a think!", {"only": "medic_hit"}],
+    ["Dzięki, szefie!", "Thanks, boss!", {"only": "medic_thanks"}],
+    ["Dziękujemy! Tak się jeździ!", "Thank you! That's how you drive!", {"only": "medic_thanks"}],
+    ["Zielone!", "It's green!", {"only": "green"}],
+    ["Zielone, kierowniku!", "Green, chief!", {"only": "green"}],
+    ["Jedź, bardziej zielone nie będzie!", "Go on, it won't get any greener!", {"only": "green"}],
+    ["Halo! Zielone było trzy sekundy temu!", "Hello! It went green three seconds ago!", {"only": "green"}],
+    ["Trąbię z miłością. Jedź!", "I'm honking with love. Go!", {"only": "green"}]
   ],
   "tajny_klient": [
     ["Robi recenzje kebabów. Pół miasta go ogląda.", "Reviews kebabs. Half the city watches him.", {"only": "call_about"}],

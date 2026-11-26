@@ -1,0 +1,72 @@
+<!doctype html>
+<!-- Live viewer for tools/tiles3d/render.mjs: Google Photorealistic 3D Tiles in CesiumJS, no globe,
+     no Cesium ion. The driver sets the camera with window.shoot() and screenshots the page.
+     The key comes in the URL fragment (never sent to the local server, never logged).
+     Cesium's credit bar stays on screen: Google's logo and data attributions must show in every image. -->
+<html>
+<head>
+<meta charset="utf-8">
+<link href="/cesium/Widgets/widgets.css" rel="stylesheet">
+<style>
+	html, body, #v { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #8fa9c4; }
+	#label { position: absolute; top: 8px; left: 8px; font: 14px sans-serif; color: #fff;
+		background: rgba(0, 0, 0, .55); padding: 4px 8px; border-radius: 4px; }
+	/* keep the attribution readable on white roofs */
+	.cesium-viewer-bottom { background: rgba(0, 0, 0, .45); padding: 2px 6px; border-radius: 4px; }
+</style>
+<script>window.CESIUM_BASE_URL = "/cesium/";</script>
+<script src="/cesium/Cesium.js"></script>
+</head>
+<body>
+<div id="v"></div>
+<div id="label"></div>
+<script>
+"use strict";
+const key = new URLSearchParams(location.hash.slice(1)).get("key");
+Cesium.Ion.defaultAccessToken = "";
+Cesium.GoogleMaps.defaultApiKey = key;
+const viewer = new Cesium.Viewer("v", {
+	globe: false, baseLayer: false, skyBox: false, skyAtmosphere: false,
+	animation: false, timeline: false, geocoder: false, homeButton: false, sceneModePicker: false,
+	baseLayerPicker: false, navigationHelpButton: false, fullscreenButton: false, infoBox: false,
+	selectionIndicator: false, requestRenderMode: false, contextOptions: { webgl: { preserveDrawingBuffer: true } },
+});
+viewer.scene.backgroundColor = Cesium.Color.fromCssColorString("#8fa9c4");
+window.status_ = { ready: false, error: null };
+let tileset = null;
+(async () => {
+	try {
+		tileset = await Cesium.createGooglePhotorealistic3DTileset(undefined, { maximumScreenSpaceError: 8, showCreditsOnScreen: true });
+		viewer.scene.primitives.add(tileset);
+		window.status_.ready = true;
+	} catch (e) {
+		window.status_.error = String(e && e.message || e);
+	}
+})();
+
+/** Ground height (ellipsoid metres) under lat/lon from the loaded mesh, or null. */
+window.ground = async (lat, lon) => {
+	const c = Cesium.Cartographic.fromDegrees(lon, lat);
+	const [r] = await viewer.scene.sampleHeightMostDetailed([c]);
+	return r && Number.isFinite(r.height) ? r.height : null;
+};
+
+/** Point the camera at (lat, lon, h) from heading/pitch (degrees) and range (m); resolves when tiles settle. */
+window.shoot = (lat, lon, h, heading, pitch, range, label, timeoutMs) => new Promise((resolve) => {
+	document.getElementById("label").textContent = label || "";
+	const target = Cesium.Cartesian3.fromDegrees(lon, lat, h);
+	viewer.camera.lookAt(target, new Cesium.HeadingPitchRange(
+		Cesium.Math.toRadians(heading), Cesium.Math.toRadians(pitch), range));
+	const t0 = performance.now();
+	let calm = 0;
+	const tick = () => {
+		calm = tileset && tileset.tilesLoaded ? calm + 1 : 0;
+		if (calm >= 20) return resolve({ settled: true, ms: performance.now() - t0 });
+		if (performance.now() - t0 > timeoutMs) return resolve({ settled: false, ms: performance.now() - t0 });
+		requestAnimationFrame(tick);
+	};
+	requestAnimationFrame(tick);
+});
+</script>
+</body>
+</html>

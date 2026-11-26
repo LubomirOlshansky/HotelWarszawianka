@@ -142,12 +142,20 @@ const SHOTS := {
 	# WYPIJ PIWKO, the ball's tock on the table, into a cup, round a rim (the win and the loss are the
 	# feedback set's, hud.gd `cue`).
 	"beer_pour": -9.0, "glass_clink": -13.0, "pong_bounce": -14.0, "pong_cup": -10.0, "pong_rim": -14.0,
+	# Za deckami (decks_match.gd, tools/add_sfx.py from ElevenLabs takes, 2026-11-26): Smoła's crowd
+	# cheering a clean hand-over and a hot phrase, its short "eee" at a gallop, and the record's
+	# spin-back when the DJ takes the decks back (over the two decks' music, so a little louder).
+	"crowd_cheer": -8.0, "crowd_eee": -9.0, "vinyl_spinback": -8.0,
 }
 ## Loop 3g-2: the siren loop (one positional voice) and its level there.
 const SIREN := "police_siren"
 const SIREN_DB := -13.0
 ## A crash scene's ambulance: the same wail, quieter (it stands still, nobody is chasing).
 const SCENE_SIREN_DB := -20.0
+## Road life (road_life.gd): the ambulance on a call, its own yelp (tools/make_sfx.py), one
+## positional voice of its own, and its level.
+const AMB_SIREN := "ambulance_siren"
+const AMB_SIREN_DB := -12.0
 const VOICES_3D := 6
 const VOICES_2D := 6
 ## The one door for one-shots (sound engine step 2): `play(name)` for a sound with no place,
@@ -177,6 +185,7 @@ const SHOT_RULES := {
 	"smash_car": [NORMAL, 2, 0.06],
 	"beer_pour": [NORMAL, 1, 0.03], "glass_clink": [NORMAL, 1, 0.05], "pong_bounce": [NORMAL, 2, 0.08],
 	"pong_cup": [HIGH, 1, 0.05], "pong_rim": [NORMAL, 1, 0.04],
+	"crowd_cheer": [NORMAL, 1, 0.04], "crowd_eee": [NORMAL, 1, 0.05], "vinyl_spinback": [HIGH, 1, 0.0],
 }
 ## A sound may have more than one take: `name.wav`, then `name_2.wav` up to `name_4.wav` beside
 ## it. A take is picked at random, never the same one twice running.
@@ -489,7 +498,7 @@ func setup(data: Dictionary) -> void:
 				var q := a.lerp(b, float(s) / steps)
 				_rails[Vector2i(floori(q.x / 4.0), floori(q.y / 4.0))] = true
 	# By name, not by listing the folder: an exported game holds only the imports.
-	for n in LOOPS.keys() + SHOTS.keys() + [SIREN]:
+	for n in LOOPS.keys() + SHOTS.keys() + [SIREN, AMB_SIREN]:
 		_streams[n] = load(DIR + n + ".wav")
 	for n in LOOPS:
 		var p := AudioStreamPlayer.new()
@@ -1057,6 +1066,44 @@ func scene_siren(at: Vector3) -> void:
 	_scene_voice.global_position = at
 	if not _scene_voice.playing:
 		_scene_voice.play()
+
+
+## Road life (road_life.gd): the ambulance's siren at `at`, a voice of its own (never the chase's
+## or the crash scene's); Vector3.INF stops it.
+var _amb_voice: AudioStreamPlayer3D
+
+
+func ambulance_siren(at: Vector3) -> void:
+	if _silent or _pool3.is_empty():
+		return
+	if at == Vector3.INF:
+		if _amb_voice != null and _amb_voice.stream == _streams.get(AMB_SIREN):
+			_amb_voice.stop()
+		_amb_voice = null
+		return
+	if _amb_voice == null or _amb_voice.stream != _streams.get(AMB_SIREN):
+		var ear := focus + Vector3.UP * LISTENER_UP
+		var far := -1.0
+		_amb_voice = null
+		for p in _pool3:
+			if p == _siren_voice or p == _scene_voice:
+				continue
+			if not p.playing:
+				_amb_voice = p
+				break
+			var dp := p.global_position.distance_to(ear)
+			if dp > far:
+				far = dp
+				_amb_voice = p
+		if _amb_voice == null:
+			return
+		_amb_voice.stop()
+		_amb_voice.stream = _streams.get(AMB_SIREN)
+		_amb_voice.volume_db = AMB_SIREN_DB
+		_amb_voice.pitch_scale = 1.0
+	_amb_voice.global_position = at
+	if not _amb_voice.playing:
+		_amb_voice.play()
 
 
 ## A police cue (2D): "whoop" (a unit warns or joins), "megaphone" (before its line), "whistle"

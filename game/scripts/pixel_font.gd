@@ -1,7 +1,7 @@
 extends RefCounted
 ## A tiny 5×7 pixel font with the Polish letters, for signs in the world: the
 ## KEBAB board on the stands, the REMONT sign at the roadworks, the joke billboards.
-## Capitals, digits and a few marks (· → ← : , . ! ? - / ' „ ” ( ) + %). A glyph cell
+## Capitals, digits and a few marks (· → ← — : , . ! ? - / ' „ ” ( ) + %). A glyph cell
 ## is 10 rows: two for accents, seven for the letter, one for an ogonek. Text can be
 ## drawn into an Image (billboard posters) or added to a mesh as one quad per lit
 ## pixel (box-built models, actor.gdshader).
@@ -59,6 +59,8 @@ const GLYPHS := {
 	"!": ["#", "#", "#", "#", "#", ".", "#"],
 	"?": [".###.", "#...#", "....#", "...#.", "..#..", ".....", "..#.."],
 	"-": ["...", "...", "...", "###", "...", "...", "..."],
+	# The dash of a mix not reached (Za deckami's receipt, 2026-11-26).
+	"—": [".....", ".....", ".....", "#####", ".....", ".....", "....."],
 	"/": ["....#", "...#.", "...#.", "..#..", ".#...", ".#...", "#...."],
 	"'": ["#", "#", ".", ".", ".", ".", "."],
 	"„": ["...", "...", "...", "...", "...", "#.#", "#.#"],
