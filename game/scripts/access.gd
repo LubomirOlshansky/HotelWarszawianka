@@ -21,6 +21,8 @@ extends RefCounted
 ##   left_handed    true: the pedals, the nitro and the helicopter's pads bottom left, the stick's
 ##                  half of the screen and Classic's steering strip on the right (hud.gd
 ##                  `set_left_handed`, applied by main.gd at once, no restart).
+##   auto_pour      true: the kebab stand pours the sauce itself, to the middle of the green
+##                  (kebab_stand.gd, the plan's accessibility option; the hold-to-pour beat off).
 
 const LARGE_TEXT := 1.25
 
@@ -30,6 +32,7 @@ static var color_safe := false
 static var vibration := true
 static var stop_assist := true
 static var left_handed := false
+static var auto_pour := false
 
 
 ## Take the values from the saved settings (settings.gd).
@@ -40,6 +43,7 @@ static func apply(s: RefCounted) -> void:
 	vibration = s.vibration
 	stop_assist = s.stop_assist
 	left_handed = s.left_handed
+	auto_pour = s.auto_pour
 
 
 ## The game's success green (missions DROPOFF_COLOUR, rivals WIN_COLOUR, the 1ST badge) and fail

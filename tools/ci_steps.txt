@@ -97,6 +97,7 @@ jobplay              quick
 jobs2                quick
 juice                quick
 kebab                local     slow
+kebabstand           quick
 kinotour             quick
 kladka               quick
 kukuryznik           quick
