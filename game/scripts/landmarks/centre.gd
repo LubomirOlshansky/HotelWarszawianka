@@ -2712,7 +2712,7 @@ const MSN_OPENINGS := [
 	["-u", -14.0, -11.5, 6.8, 9.3, 0.4, "low"],    # w5 (F's night photo)
 ]
 ## The ribbon windows in the seam: [face, u0, u1] (spec rib_*), 14.1 to 14.9 m.
-const MSN_RIBBONS := [["-v", 18.0, 51.4], ["-v", -45.5, -0.5], ["+v", -43.0, -31.0], ["+v", 20.0, 49.0]]
+const MSN_RIBBONS := [["-v", 18.0, 51.0], ["-v", -45.5, -0.5], ["+v", -43.0, -31.0], ["+v", 20.0, 49.0]]
 ## The south end's east part stands proud and higher (3.jpg, 4.jpg): u0, u1, v0, v1, top.
 const MSN_PANEL := [51.85, 52.25, -19.9, -7.9, 27.4]
 ## The roofline steps (3.jpg, 4.jpg; F's dusk photo shows the Marszałkowska edge flat): the south part of the box stands

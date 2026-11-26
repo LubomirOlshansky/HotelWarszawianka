@@ -73,7 +73,7 @@ the loggia and the entrance cut 3 m. Glass #8fa9b6 lit warm at night; the ribbon
 | Marszałkowska | low_mc | u -7.7..-0.3 | 6.8-9.7 | 0.4 | SV 2026 h252, h300 |
 | Marszałkowska | low_ms | u 16.0..23.4 | 6.8-9.7 | 0.4 | SV 2026 h252, h215, h250 |
 | Marszałkowska | low_mn | u -32.4..-30.3 | 6.8-9.0 | 0.4 | SV 2024 h256 |
-| Marszałkowska | rib_ms | u 18.0..51.4 | 12.6-13.5 | seam | SV 2026 h250, 4.jpg |
+| Marszałkowska | rib_ms | u 18.0..51.0 | 12.6-13.5 | seam | SV 2026 h250, 4.jpg |
 | Marszałkowska | rib_mn | u -45.5..-0.5 | 12.6-13.5 | seam | SV 2026 h252, h300; SV 2024 h256 |
 | Plac Defilad (+v) | w1 | u -9.0..9.0 | 15.2-20.8 | 0.4 | 2.jpg (from the Palace), 3.jpg |
 | Plac Defilad | entry | u 14.0..23.0 | 3.5-10.5 | 3.0 | 2.jpg (the MSN letters), 3.jpg |

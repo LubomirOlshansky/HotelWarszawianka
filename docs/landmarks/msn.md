@@ -31,5 +31,5 @@ city-room windows, the glass roof. 412 tris after the Mac photo check of 2026-11
   warm windows and ribbons. Now: walls M_MEMBRANE + 0.5 (floodlit), the roof glass a new
   `glass_roof` variant (param 0.75: dark at night, a few faint cool panels), the wells dim.
 - F's straight-on dusk photo of the Marszałkowska face moved the seam down to 12.5-13.6 m (OSM
-  was close), the lower windows to 6.8-9.7 m and slightly along, the ribbons to u 18..51.4 and
+  was close), the lower windows to 6.8-9.7 m and slightly along, the ribbons to u 18..51.0 and
   -45.5..-0.5, and showed that face's roof edge flat (its upstand removed). 618 tris.
