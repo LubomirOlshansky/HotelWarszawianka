@@ -8,7 +8,7 @@ extends RefCounted
 ##
 ## Precedence (who colours a wall): a landmark's skin and the photo fronts (their own builders),
 ## then the street lists still in map_builder.gd (the Old Town, Nowy Świat, Powiśle and Tamka,
-## Aleja Jana Pawła II; tech-debt TD-31 moves them here), then the zone's type palette. A real
+## Aleja Jana Pawła II; tech-debt TD-37 moves them here), then the zone's type palette. A real
 ## OpenStreetMap colour tag beats the palette; an empty or grey one gives way to it.
 
 const PATH := "res://data/house_types.json"

@@ -218,6 +218,8 @@ stuckoffer           quick
 stuckspots           roads
 stuckspots-prebuilt  smoke     slow
 syrenki              quick
+tajny                quick
+tajny-run            local     slow
 tamka                quick
 tapczan              quick
 tapczan-run          local     slow
@@ -245,3 +247,4 @@ water-prebuilt       smoke     slow
 wellness             quick
 zaglebie             quick
 zamekramps           quick
+zebras               quick

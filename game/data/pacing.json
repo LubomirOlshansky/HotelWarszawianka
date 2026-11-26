@@ -114,5 +114,15 @@
 		"ml_cool": 300,
 		"card_rest": 2.5,
 		"call_rest": 20
+	},
+	"tajny": {
+		"_note": "The Tajny klient opening (tajny_klient.gd): Kebabulo rings call_at s into the first drive, again retry s after a no; his call card lives ring_life s; the kebab is warm for warm s from Kemal's counter; DŻEMINI's bribe comes bribe_at s into that drive and waits bribe_life s; the banners stay banner s.",
+		"call_at": [25, 35],
+		"retry": 60,
+		"ring_life": 20,
+		"warm": 180,
+		"bribe_at": 35,
+		"bribe_life": 14,
+		"banner": 2.5
 	}
 }

@@ -127,7 +127,7 @@ encoding moves to phase 2a, where the shader first needs it.
   today's drawn rhythm 1-3 (`typed_seed` unchanged); `_building_type` stays as the "typed at
   all" gate and for `_powisle_house`. The street lists (Nowy Świat, Powiśle, Tamka, Aleja Jana
   Pawła II, the Old Town) keep their palettes and types on both paths, and walls
-  `_tenement_facades` painted are never repainted; moving their palettes into the JSON is TD-31.
+  `_tenement_facades` painted are never repainted; moving their palettes into the JSON is TD-37.
 - OSM colour: a coloured tag stays; an empty or mid-grey one (not white, not black) gives way.
 - Floor height only on LoD2 runs: on the OSM-only path UV2.y is `h` itself, so the rule would
   be circular. Plant boxes (UV2.y -1) are skipped. OSM tags other than `c` wait for PR 4 (the

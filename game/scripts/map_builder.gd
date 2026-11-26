@@ -9182,7 +9182,7 @@ func _build_crossings(st) -> void:
 		_dk = int(p.get("dk", -1))
 		var poly := _pts(p["p"])
 		# Road design (tools/road_design.py): a zebra may say how wide it is (`w`, 4-10 m in the
-		# centre); the bars run 0.2 m short of each edge. Without it the old 3.6 m.
+		# centre); the bars run 0.2 m short of each edge, at least the old 3.6 m (_zebra_bar).
 		var bar := _zebra_bar(p)
 		for i in poly.size() - 1:
 			var a := poly[i]
@@ -9199,9 +9199,13 @@ func _build_crossings(st) -> void:
 	_dk = -1
 
 
-## A zebra's bar length across the crossing: its `w` less 0.4 m, else 3.6 m (TACTILE_WIDE).
+## A zebra's bar length across the crossing: its `w` less 0.4 m, never under 3.6 m (TACTILE_WIDE).
+## Road design's zebras say how wide they are (4-10 m); every other zebra's `w` is only the bake's
+## footway default (bake_osm.py PATHS, 2.2 m), not the crossing's width. Reading it as one drew
+## 2,021 of the map's 2,117 zebras with 2.0 m bars from #474 (2026-11-07) to 2026-11-26; Polish
+## zebras are at least 4 m across (P-10). check_zebras holds it.
 static func _zebra_bar(p: Dictionary) -> float:
-	return maxf(2.0, float(p["w"]) - 0.4) if p.has("w") else TACTILE_WIDE
+	return maxf(TACTILE_WIDE, float(p.get("w", 0.0)) - 0.4)
 
 
 ## First-scene item 5 (2026-11-02): Warsaw's crossings end in a strip of yellow tactile paving

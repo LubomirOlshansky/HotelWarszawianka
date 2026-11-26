@@ -4,7 +4,7 @@
 - fixed: Muranów's 1950s blocks drawn as pre-war tenements with shop fronts and cornices
 - fixed: one beige palette (and flat OSM greys) on every ordinary house
 - found: zone outlines are drawn from memory of the city's history; photo-check 20 houses per zone (house types PR 4)
-- found: street-list palettes (Old Town, Nowy Świat, Powiśle, Tamka, Aleja Jana Pawła II) still live in map_builder.gd (TD-31)
+- found: street-list palettes (Old Town, Nowy Świat, Powiśle, Tamka, Aleja Jana Pawła II) still live in map_builder.gd (TD-37)
 
 ## Roadmap
 - adds: "House types: PR 2a one parametric facade (window fade, base shading), 2b night windows and facade clutter, 3 roofs by type, 4 levels in the bake"
