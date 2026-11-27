@@ -39,9 +39,10 @@ const NAMES := ["Low", "Medium", "High", "Ultra", "Max"]
 const QUALITY := [
 	{"name": "Low", "step": 1, "budget": 0.5, "shadows": false, "shadow_size": 1024, "glow": false, "rain": 0.4,
 		"reflect": 0, "traffic": 0.55, "people": 24, "small_shadows": false, "tree_limbs": false, "panel_holes": true,
-		"cap": 30, "screen_fx": false, "house_clutter": false},
+		"cap": 30, "screen_fx": false, "house_clutter": false, "drift_smoke": 24, "drift_crowd": 400, "drift_flames": 4},
 	{"name": "Medium", "step": 1, "budget": 0.5, "shadows": true, "shadow_size": 1024, "glow": true, "rain": 0.7,
-		"reflect": 6, "traffic": 0.8, "people": 40, "small_shadows": false, "panel_holes": true},
+		"reflect": 6, "traffic": 0.8, "people": 40, "small_shadows": false, "panel_holes": true,
+		"drift_smoke": 40, "drift_crowd": 900, "drift_flames": 8},
 	{"name": "High", "step": 0, "budget": 0.96, "shadows": true, "shadow_size": 2048, "glow": true, "rain": 1.0,
 		"reflect": 10, "traffic": 1.0, "people": 60, "small_shadows": true},
 	{"name": "Ultra", "step": 0, "budget": 0.96, "shadows": true, "shadow_size": 4096, "glow": true, "rain": 1.0,
@@ -94,6 +95,14 @@ const QUALITY := [
 ## it can't lock the player out), and the governor's first GPU drop there steps the session back
 ## to Ultra with a toast (main.gd _govern). Every other level leaves the extras at the engine's
 ## defaults (EXTRA_DEFAULTS).
+## Bokiem na Narodowym, PR 2 (2026-11-27, drift-narodowy.md 0b.4): the drift stadium's tiers, read by
+## drift_stadium.gd on each run: `drift_smoke` the most smoke puffs alive (64 / 40 / 24), `drift_crowd`
+## the figures in the stands (1,500 / 900 / 400), `drift_flames` the flame jets' instances (16 / 8 / 4:
+## two a jet). Missing means High's (DRIFT).
+const DRIFT := {"drift_smoke": 64, "drift_crowd": 1500, "drift_flames": 16}
+## The level main.gd applies now (`_set_quality`), for what reads its tier on its own time (the drift
+## stadium builds on its first visit, long after the level was set).
+static var level := HIGH
 const EXTRA_DEFAULTS := {"full": false, "msaa": Viewport.MSAA_DISABLED, "lod": 1.0,
 		"soft": RenderingServer.SHADOW_QUALITY_HARD}
 
