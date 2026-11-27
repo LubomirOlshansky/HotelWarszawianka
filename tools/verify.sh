@@ -658,10 +658,19 @@ shown() {
 	fi
 }
 
+# stuck_kill PID: SIGSEGV first so the engine's crash handler prints the GDScript backtrace of where
+# the run is stuck into the job log, then (after 5 s) SIGKILL if it is still there.
+stuck_kill() {
+	kill -SEGV $1 2>/dev/null
+	local i
+	for i in 1 2 3 4 5; do kill -0 $1 2>/dev/null || break; sleep 1; done
+	kill -9 $1 2>/dev/null; wait $1 2>/dev/null
+}
+
 # watched LIMIT OKRE GRACE LOG CMD...: run CMD (stdout+stderr to LOG) under a LIMIT-second cap like
 # `limited`, and once a line matching OKRE shows in LOG, give it GRACE seconds to exit. Sets
 # WATCH_OK_AT / WATCH_EXIT_AT (seconds from the start; OK_AT is -1 if the line never came) and
-# returns the exit code, 142 when LIMIT ran out, 144 when the process was still alive GRACE seconds
+# returns the exit code (a timeout or hang is killed with SIGSEGV first, see stuck_kill), 142 when LIMIT ran out, 144 when the process was still alive GRACE seconds
 # after the OK line (an exit hang on a slow runner, not a game failure: it is killed and reported alone).
 WATCH_OK_AT=-1
 WATCH_EXIT_AT=-1
@@ -679,12 +688,12 @@ watched() {
 			print -u2 -- "[watch] $(date -u +%H:%M:%S) OK line after $(printf '%.0f' $now) s"
 		fi
 		if (( now > limit )); then
-			kill -9 $pid 2>/dev/null; wait $pid 2>/dev/null
+			stuck_kill $pid
 			WATCH_EXIT_AT=$(( EPOCHREALTIME - t0 ))
 			return 142
 		fi
 		if (( WATCH_OK_AT >= 0 && now - WATCH_OK_AT > grace )); then
-			kill -9 $pid 2>/dev/null; wait $pid 2>/dev/null
+			stuck_kill $pid
 			WATCH_EXIT_AT=$(( EPOCHREALTIME - t0 ))
 			print -u2 -- "[watch] $(date -u +%H:%M:%S) still alive ${grace} s after the OK line: killed"
 			return 144
