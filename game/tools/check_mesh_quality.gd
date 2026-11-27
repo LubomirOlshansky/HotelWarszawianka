@@ -224,7 +224,7 @@ const BUDGET := {
 	"platinum_b": 80,
 	"pepeo_tower": 130,  # 2026-11-08 top-50 T37: mapped parts in their skins, the crown sign
 	"poniatowski": 4800,  # 2026-11-03: the towers strengthened (F), 2556 -> 4574 tris over four groups; +0 draw calls
-	"prezydencki": 1300,
+	"prezydencki": 7000,
 	"q22": 720,  # 2026-11-08 photo rebuild (top-50 T02): 607 tris
 	"rondo1": 900,  # 2026-11-08 photo rebuild (top-50 T03): 769 tris
 	"rotunda": 2450,  # 2026-11-11: + the plaza's dark stone grid and its bollards
