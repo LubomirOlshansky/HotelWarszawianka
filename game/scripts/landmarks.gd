@@ -552,6 +552,18 @@ const INFO := {
 	"stary_dom_poselski": ["Stary Dom Poselski",
 			"Przedwojenny gmach przy Sejmie z okrągłym narożnikiem na Wiejskiej.",
 			"Pre-war Sejm building with a rounded corner on Wiejska."],
+	"rembielinskiego": ["Pałacyk Rembielińskiego",
+			"Klasycystyczny pałacyk z lat 40. XIX w. z kolumnową loggią.",
+			"An 1840s classical palace with a columned loggia on the avenue."],
+	"willa_raua": ["Willa Raua",
+			"Włoska willa z lat 60. XIX w. z boniowaniem i głębokim gzymsem.",
+			"An 1860s Italianate villa with rusticated corners and deep eaves."],
+	"dziewulskich": ["Pałacyk Dziewulskich",
+			"Kameralny kremowy pałacyk w ogrodzie przy Alejach Ujazdowskich.",
+			"A compact cream villa in a garden along Aleje Ujazdowskie."],
+	"pod_karczochem": ["Pałac pod Karczochem",
+			"Pałacowa kamienica z balkonami i wieżyczką z kamiennym karczochem.",
+			"Five-storey tenement with balconies and a stone artichoke turret."],
 	"sobieski": ["Radysław Blu",
 			"Hotel przy placu Zawiszy, w kolorowych pasach.",
 			"A hotel on Plac Zawiszy, in colourful bands."],
@@ -1523,6 +1535,10 @@ func _find_sites() -> void:
 	_find_polskie_radio()
 	_find_dom_poselski()
 	_find_stary_dom_poselski()
+	_find_rembielinskiego()
+	_find_willa_raua()
+	_find_dziewulskich()
+	_find_pod_karczochem()
 	# F's ask (2026-11-01): Norblin, Browary Warszawskie, Hala Koszyki, Elektrownia Powiśle.
 	_find_works()
 	# F's ask (2026-11-02, CITY_INVENTORY #21): the Warsaw Rising Museum, from the Mac's photos.
@@ -2025,6 +2041,14 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_dom_poselski(s)
 			"stary_dom_poselski":
 				_build_stary_dom_poselski(s)
+			"rembielinskiego":
+				_build_rembielinskiego(s)
+			"willa_raua":
+				_build_willa_raua(s)
+			"dziewulskich":
+				_build_dziewulskich(s)
+			"pod_karczochem":
+				_build_pod_karczochem(s)
 			"sobieski":
 				_build_sobieski(s)
 			"bristol":
