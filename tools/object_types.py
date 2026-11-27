@@ -70,7 +70,7 @@ CTX_FILE = os.path.join(ROOT, "data", "raw", "osm", "object_context.json")
 # map, the way W3 brought the stadium's ids in (fix_types is idempotent without the guard: on a map
 # at the old version with no new entry only the stamp changes). check_object_overrides.gd (verify
 # `overrides`) and street_pass.py --check fail while an entry has not reached centrum.json.
-VERSION = 3
+VERSION = 4
 KEY = "object_types"
 KINDS = ("fence", "wall", "hedge")
 LON0, LAT0 = 21.0240, 52.2340

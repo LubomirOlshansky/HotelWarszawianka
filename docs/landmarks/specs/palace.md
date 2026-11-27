@@ -135,7 +135,15 @@ night and the landing's golden hour.
 | spire_foot | box | 3.6 m, 200.5 to 208 m | the tower's centre | M_STONE #5a4630 | 1 stepped tower |
 | spire | 2 frustums, 2 rings | 3.2 m to a point, 208 to 237 m | the tower's centre | M_GOLD #d4a640 | 1 stepped tower |
 
-## 9. The Blender trial (2026-11-13)
+## 9. The Blender Palace (trial 2026-11-13, the default since 2026-11-26)
+
+Since 2026-11-26 (F's flying-boar reel, close-ups round the Palace) this is the Palace the game builds; `--palace=code` (or
+`AW_PALACE=code`) builds sections 2-8's code model, which is also the fallback when the glb is missing. The glb is rebuilt with
+`python3 tools/blender/pkin.py -- --lod=0` and `--lod=1` (Blender, or the pip `bpy` module in a venv: it runs as a plain
+script). 2026-11-26 changes: the entrance steps laid side by side and the colonnade and portico columns ending inside their
+entablatures (no coplanar faces), and a timber door with bronze-green glazing in each of the five bays behind the main
+portico (from a Commons photo of the main entrance and the Google 3D Tiles views; the 3D renders matched the plan, the tiers
+and the arcade under the clocks).
 
 A second build of the Palace, in Blender (`tools/blender/pkin.py`, glb in `game/models/pkin/`),
 behind `--palace=blender`; the code model above stays the default. Same plan and heights, from

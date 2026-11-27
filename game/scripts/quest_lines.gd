@@ -1,5 +1,5 @@
 extends RefCounted
-## Two quest lines (G12, 2026-11-02): CAR (kebab, Podwózka, couriers, races) and HELI (rescues only
+## Two quest lines (G12, 2026-11-02): CAR (kebab, Łuber, couriers, races) and HELI (rescues only
 ## the helicopter reaches). F asked that flying shows helicopter quests and driving car quests, each
 ## with its own marker colour. The main line stays one path and is not touched here.
 ## A rescue the car can also reach (street, park, shore) is not heli-only: it stays on offer in
@@ -52,7 +52,7 @@ static func kind_for(kind: int, flying: bool) -> int:
 ## F asked for car quests and heli quests "each with its own list". The full map carries a card with
 ## two tabs, AUTO and HELI, each listing what can be started now: places (a kebab stand, a station,
 ## a cassette on a roof) nearest first with their distance and compass direction, and requests (a
-## Podwózka ride, a helicopter rescue call) that start at once. A tapped place becomes the quest pin
+## Łuber ride, a helicopter rescue call) that start at once. A tapped place becomes the quest pin
 ## (main.gd `quest_pin`): the arrow and the minimap dot point at it until the vehicle is there.
 
 ## The rows a tab shows at most (44 pt each, the card must fit under the map's buttons on a 375 pt

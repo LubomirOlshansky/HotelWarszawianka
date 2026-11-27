@@ -124,8 +124,11 @@ const TOWERS := [
 	# Equator II graphite with blue-grey ribbon glass. The software house on Equator II's 9th floor
 	# gets the parody BLUZOFT on the roof edge.
 	{"key": "brama", "osm": "Brama Zachodnia", "style": S_PUNCHED, "glass": "#c99573", "roof": "#8d8a86", "h": 47.2},
-	{"key": "equator", "osm": "Equator", "style": S_RIBBON, "glass": "#4a5a6c", "roof": "#8a8f93", "h": 53.8},
-	{"key": "equator2", "osm": "Equator II", "style": S_RIBBON, "glass": "#5a7490", "roof": "#8a8f93", "h": 50.5, "sign": "BLUZOFT"},
+	# Both stand on modelled street blocks (blk_31002630, blk_305521858) that carry their roofs and
+	# plant: `on_block` (the block's roof height) leaves the body to the block, the tower adds its sign.
+	{"key": "equator", "osm": "Equator", "style": S_RIBBON, "glass": "#4a5a6c", "roof": "#8a8f93", "h": 53.8, "on_block": 63.4},
+	{"key": "equator2", "osm": "Equator II", "style": S_RIBBON, "glass": "#5a7490", "roof": "#8a8f93", "h": 50.5, "sign": "BLUZOFT",
+			"on_block": 61.9},
 	{"key": "skysawa", "osm": "Skysawa", "style": S_BANDS, "glass": "#7e93a3", "roof": "#a7b0b6"},
 	# Błękitny Wieżowiec (Plac Bankowy 2, 1991): untinted reflective float glass that mirrors the
 	# sky, hence blue (its first cladding was copper, the "Golden Tower"; spec blekitny.md). Deep
@@ -167,8 +170,9 @@ const TOWERS := [
 			"skins": {"#c1a48b": [S_PUNCHED, "#e4e0d6"], "#647887": [S_BANDS, "#8aa1ad"]}},
 	# The bank tower on Grzybowska (T37, 2026-11-08; OSM name kept for the lookup only): beige stone with punched windows over a green
 	# glass grid on the lower floors, the bank's name (the parody) on the crown, grey glass podium.
+	# The street block under it (blk_238169923) is the better body (the stone crown, the glass grid): `on_block`.
 	{"key": "pepeo_tower", "osm": "Pekao Tower", "style": S_PUNCHED, "glass": "#d9d2c2", "roof": "#a9a69c", "mapped": true,
-			"sign": "PEPEO ŻUBR",
+			"sign": "PEPEO ŻUBR", "on_block": 82.2,
 			"skins": {"#ffffff": [S_PUNCHED, "#d9d2c2"], "#2c4c50": [S_GRID, "#4f7a76"], "#545a56": [S_DARK, "#545a56"],
 					"": [S_GRID, "#6f7c80"]}},
 	# Widok Towers (F's photos, 2026-11-08, folder E4-widok): pale blue-grey glass in a white
@@ -818,6 +822,9 @@ const INFO := {
 	"bgk": ["Gmach Banku Gospodarstwa Krajowego",
 			"Al. Jerozolimskie 7, 1928–31: kamienny gmach Rudolfa Świerczyńskiego.",
 			"Al. Jerozolimskie 7, 1928–31: Rudolf Świerczyński's granite bank."],
+	"ufficio_primo": ["Ufficio Primo",
+			"Wspólna 62, 1952: kamienna kostka Marka Leykama, dziś biura.",
+			"Wspólna 62, 1952: Marek Leykam's stone cube, offices today."],
 	"mlotek": ["Młotek",
 			"Smolna 8, 1976: blok Bogusławskiego i Gniewiewskiego, głowa młotka nad skarpą.",
 			"Smolna 8, 1976: Bogusławski and Gniewiewski's block, a hammer's head over the escarpment."],
@@ -1174,6 +1181,8 @@ static func tower_colour(key: String, fallback: Color) -> Color:
 		return SHER_WHITE
 	if key == "bgk":
 		return BGK_STONE
+	if key == "ufficio_primo":
+		return UP_STONE
 	if key == "mlotek":
 		return ML_WALL
 	if key == "kozia9":
@@ -1449,6 +1458,8 @@ func _find_sites() -> void:
 	_find_bracka()
 	# The BGK building next to Vitkac (F, 2026-11-03), from the Mac photo gather.
 	_find_bgk()
+	# Ufficio Primo, Wspólna 62 (spec 2026-11-26): the whole stone cube from its four corners.
+	_find_ufficio_primo()
 	# Foksal 13 and 15 (F's photos, 2026-11-05): the two restored tenements' street fronts.
 	_find_foksal()
 	# Warsaw modernism (F, 2026-11-03), from the Mac photo gathers.
@@ -1684,6 +1695,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 		_walls.clear()
 		_caps.clear()
 		_holes = s.get("courts", [] as Array[PackedVector2Array])
+		_flood = FLOODLIT_SITES.has(key)
 		built += 1
 		match key:
 			"palace":
@@ -1892,8 +1904,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the facade and towers are ours
 				_build_krzyz(s)
 			"wszystkich":
-				_mark_zone(s)  # the nave stays LoD2's, in its skin; the front and towers are ours
-				_build_wszystkich(s)
+				_build_wszystkich(s)  # the whole church (SKINS entry with `model`: it replaces LoD2)
 			"archikatedra":
 				_mark_zone(s)  # the nave stays LoD2's, in its brick; the stepped-gable front is ours
 				_build_archikatedra(s)
@@ -1916,7 +1927,6 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"brama_uw":
 				_build_brama_uw(s)
 			"potocki":
-				_mark_zone(s)  # the mass stays LoD2's, in its skin; the court front is ours
 				_build_potocki(s)
 			"kordegarda":
 				_build_kordegarda(s)
@@ -1968,8 +1978,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"sobieski":
 				_build_sobieski(s)
 			"bristol":
-				_mark_zone(s)  # the mass stays LoD2's, in its skin; the corner tower is ours
-				_build_bristol(s)
+				_build_bristol(s)  # the whole hotel replaces LoD2
 			"sw_anna":
 				_mark_zone(s)  # the whole church and the bell tower are ours (a model, SKINS `runs`)
 				_build_anna(s)
@@ -2014,7 +2023,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"rondo":
 				_id = 0
 				_build_rondo(s)
-			"sunken", "underpass", "defilad_ramp", "powstancow_ramp", "tarasy_plaza":
+			"sunken", "underpass", "defilad_ramp", "powstancow_ramp", "tarasy_plaza", "rondo_wells":
 				_id = 0
 				_build_sunken(s)
 			"metro_tubes":
@@ -2154,6 +2163,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_sheraton(s)
 			"bgk":
 				_build_bgk(s)
+			"ufficio_primo":
+				_build_ufficio_primo(s)
 			"foksal":
 				_mark_zone(s)  # the masses and the mansards stay LoD2's, in their skin; the fronts are ours
 				_build_foksal(s)
@@ -2255,12 +2266,15 @@ func build(surface, near := Rect2(), only := "") -> void:
 					_build_photo_fronts(s)
 				elif s.has("tower"):
 					_build_tower(s)
+					if (s["tower"] as Dictionary).has("on_block"):
+						_mark_zone(s)  # no body of its own to tap: the block's outline
 				elif s.has("skin"):
 					_mark_zone(s)
 		if not _holes.is_empty():
 			_court_walls(_court_wall_colour(key))
 			_holes = []
 	_id = 0
+	_flood = false
 	if not near.has_area():
 		print("landmarks: %d built in %d ms" % [built, Time.get_ticks_msec() - t0])
 

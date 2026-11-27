@@ -100,8 +100,9 @@ and 5.7 m at the south-east corner. Walls always go down into the ground.
     - the four rows keep visibly different heights (ground 1.9 m, piano nobile 2.8 m hooded,
       second 2.2 m, top 1.5 m, as in `ZAMEK_ROWS`).
 - **The Clock Tower's west face** (reviewer's fix): over the gate's cornice, one window per stage
-  between the string courses, 1.0 x 2.0 m, framed. The iron balcony at 19.6 m is a black slab
-  0.25 m thick, 1.2 m deep, with a two-rail iron railing (`kit_balcony` IRON).
+  between the string courses, 1.0 x 2.0 m, framed. The balcony is a cream stone slab
+  3.0 m wide, 0.8 m deep, 0.2 m thick, resting on the upper string course (19.45 m), with the iron
+  railing over it (`kit_balcony` IRON, slab in ZAMEK_CREAM; F 2026-11-26: the black slab floated).
 - **The Vistula front** (A's east face): `_zamek_river_front`, kept unchanged. A's own wall on that
   face stands 0.5 m inside the front line, so it is never coplanar with the front's walls (the
   facade kit's `_wall` cuts coplanar overlaps).
@@ -222,12 +223,12 @@ No new material, light, node or MultiMesh.
 
 ## 7. Detail level and budget
 
-- L3, the hero landmark (docs/LANDMARKS.md), triangle budget 30000.
-- `zamek`: **30000** triangles in `check_mesh_quality.gd` and `check_sites.gd` (17656 measured
-  before pass 3). This is a named **exception** to the L3 limit:
+- L3, the hero landmark (docs/LANDMARKS.md), triangle budget 24500.
+- `zamek`: **24500** triangles in `check_mesh_quality.gd` and `check_sites.gd`: 18632 measured,
+  17656 before pass 3, tightened from 30000 at the audit. This is a named **exception** to the L3 limit:
   - the castle is the largest building in the Old Town and is seen from every side of the square
     and the river;
-  - about 360 kit windows on the square, south and river fronts make most of it;
+  - about 170 kit windows on the square, south and river fronts make most of it;
   - all of it is in the city's one building surface, so no draw call is added.
 - `arkady`: 2400 in `check_sites.gd` and 2600 in `check_mesh_quality.gd` (unchanged).
 - Mesh check: no z-fighting, no floating parts. Chimneys, dormers and the towers' shafts start

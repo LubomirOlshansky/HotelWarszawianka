@@ -68,10 +68,19 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## TOTAL_TYPED not measured again here.
 ## 2026-11-23 (Jarmark parked cars, F's Play 14 report): -53 faces in (-2, 0) (47813 → 47760), the parked
 ## cars on Plac Centralny cleared under the market's rides and chalets (jarmark.gd JM_PARK_FREE).
-## 2026-11-26 (house types, parked cars by zone #1111): -17 faces (47760 → 47743), the parked cars
+## 2026-11-26 (#1099, Rondo Dmowskiego): +194 faces (47760 → 47954), the twelve sunken stairwells' edge
+## colliders (site `rondo_wells`), the lifts and the square's beds, less the old tubes and wall lines on
+## the rings; measured on a fresh bake of the branch after merging main.
+## 2026-11-26 (Ufficio Primo, #1096): -10 faces (47954 → 47944 after #1099), the street block blk_25911097's
+## colliders out under the new site (its ring's own walls in their place), `--record` on a fresh bake
+## of the branch after merging main; TOTAL_TYPED not measured again here.
+## 2026-11-26 (double models, check_sites DRESSES_BLOCK): Marszałkowska 99's street block
+## (blk_338542425) no longer drawn under its landmark in (-2, 1): -46 faces, 47944 → 47898, `--record` on
+## a fresh bake of the branch after merging main.
+## 2026-11-27 (house types, parked cars by zone #1111): -17 faces (47898 → 47881), the parked cars
 ## the Ściana Wschodnia and Śródmieście Północne zones thin out in (-2, 0) and (-2, 1)
-## (HouseTypes.keeps_parked); measured on the runtime path (CI's fresh bake: both paths equal).
-const TOTAL := 47743
+## (HouseTypes.keeps_parked); measured on the runtime path before the merge (47760 → 47743).
+const TOTAL := 47881
 ## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
@@ -87,7 +96,9 @@ const TOTAL := 47743
 ## --barriers=typed` on the gated map: 46459, unchanged (of the 16 gaps in these six sectors 13 cut
 ## soft fences, which file no faces; the walls' 3 sit on OSM's gate node, a vertex, so the segments on
 ## each side are shorter but as many; the gate posts file none). TOTAL (classic) ignores the gates.
-const TOTAL_TYPED := 47533
+## 2026-11-26 (double models): 47717 with the same block gone (-46), measured with its own
+## `--record --barriers=typed` on a fresh bake after merging main (Rondo #1099, Ufficio #1096).
+const TOTAL_TYPED := 47717
 
 var problems: Array[String] = []
 var verbose := false

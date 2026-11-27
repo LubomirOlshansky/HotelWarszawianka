@@ -70,7 +70,7 @@ Check: `game/tools/check_road_life.gd` (verify step `roadlife`, in CI).
   the corridor, −3 for blocking, −10 for a hit at fault, rung floor), a firefighter's lines and
   KEBAB FM's "fire"/"fire_hit". Done, its lights go off and it drives on as traffic.
 - **"Pan wolny?!"** (built): at 60 % of the taxi checks, when the player rolls past slowly (under
-  4.5 m/s, within 16 m), the passenger waves them down ("Pan wolny?!") and Podwózka offers their
+  4.5 m/s, within 16 m), the passenger waves them down ("Pan wolny?!") and Łuber offers their
   ride from right there (`rides.gd` `offer_stranded`: card titled PAN WOLNY?!, the pin where they
   stand, no story, the usual fare and stars). Once taken, the scene's passenger leaves with the
   player and says no more.

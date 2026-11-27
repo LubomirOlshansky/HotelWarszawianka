@@ -163,6 +163,7 @@ SITE_AREAS = [
     (-260.0, 325.0, -240.0, 345.0),         # the BGK building, Al. Jerozolimskie 7 (unnamed in OSM; landmarks.gd BGK_AT)
     (-290.0, 356.0, -288.0, 358.0),         # BGK's stray roof part by Bracka (srodmiescie.gd BGK_STRAY_PARTS)
     (-313.0, 363.0, -311.0, 365.0),         # the other one
+    (-1053.0, 795.0, -995.0, 852.0),        # Ufficio Primo, Wspólna 62 (unnamed in OSM; srodmiescie.gd UP_AT, _find_ufficio_primo)
     (-165.0, 55.0, -155.0, 65.0),           # Foksal 13 (unnamed in OSM; landmarks.gd _find_foksal, its address point)
     (-193.0, 46.0, -183.0, 56.0),           # and Foksal 15
     (70.0, 20.0, 100.0, 45.0),              # Młotek, Smolna 8 (landmarks.gd ML_AT)

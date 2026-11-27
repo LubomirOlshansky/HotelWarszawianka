@@ -867,7 +867,7 @@ ACTIVITIES = [
      "Pull into a kebab stand, take an order to a real address 400–1500 m away; the hotter it arrives, the bigger the tip. Nights pay more."),
     ("sloiki", "The słoiki run", "game/scripts/jobs.gd", ["sloik_start", "sloik_bump", "sloik_crash", "sloik_done", "sloik_broken", "passenger"], "--sloik[=K]", None,
      "Sunday evening at Centralny: drive a newcomer and mum's six jars to Powiśle without breaking them."),
-    ("podwozka", "Podwózka, the app-taxi", "game/scripts/rides.gd", ["podwozka_request", "podwozka_board", "podwozka_done", "podwozka_cancel", "podwozka_gps", "podwozka_chat"], "--ride=N", None,
+    ("podwozka", "Łuber, the app-taxi", "game/scripts/rides.gd", ["podwozka_request", "podwozka_board", "podwozka_done", "podwozka_cancel", "podwozka_gps", "podwozka_chat"], "--ride=N", None,
      "Ride requests from the parody taxi app: find the passenger (the pin is a bit off), ignore the app's odd route, earn stars."),
     ("trend", "Na czasie, the trend job", "game/scripts/trend_job.gd", ["trend_job"], "", "wiralek",
      "Deliver to the café that is trending this week, before the queue moves on."),
@@ -1302,7 +1302,7 @@ def page_howto(site: Site) -> None:
 
 def page_home(site: Site, counts: dict, progress: dict) -> None:
     tiles = [
-        ("activities/", "Quests and jobs", f"{counts['activities']} activities: rescues, kebab, słoiki, Podwózka, races, police…"),
+        ("activities/", "Quests and jobs", f"{counts['activities']} activities: rescues, kebab, słoiki, Łuber, races, police…"),
         ("models/", "Model progress", f"{counts['models']} ranked places: planned, researching, done"),
         ("landmarks/", "Landmarks", f"{counts['landmarks']} landmarks with their cards and looks"),
         ("places/", "Places and venues", f"{counts['places']} notebook places in 9 chapters"),

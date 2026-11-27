@@ -175,3 +175,205 @@ From F's 19 photos and an aerial view (reference only, never in the repo) and th
   (black) and H·M·M (red) by the Emilii Plater entrance, MULTIKINKO (pink) on the Złota side, a red
   WYPRZEDAŻ banner on the station side. The mall's name is bigger (ZŁOTE at 1.2, TARASKI at 0.7).
 - Budget: 9400 triangles for the site (7781 measured on the flat stub map).
+
+## Update 2026-11-26 (3D Tiles + Street View pass)
+
+Written by the Opus spec pass for a Sonnet builder with no photos: every observation is a value
+below. Sources (reference only, gitignored, never copied, attached or committed):
+`refs/tarasy_area/3dtiles/tarasy_area_top.png` (top-down, north up: the roof source) and the
+eight orbit views `tarasy_area_h000..h315.png` (pitch -35, range 377 m; the towers' tops are cut
+off by the frame), Street View `refs/tarasy/streetview/` (JD_1pya h000/h045: the station side;
+p0yx h225/h270: the Emilii Plater entrance; vEkL2 h180: the Złota entrance; XGgOr h090 is the
+car-park tunnel, ignored), `refs/skylight/streetview/` (Y9zv: Skylight and the screen from
+Emilii Plater; ySX: inside the wave, the white triangle lattice).
+
+**Top view scale (measured, use it to place anything else).** The top view is centred on game
+(-1468, 412) and spans about 520 m across its 1600 px, not +-145 m: ground scale 3.07 px/m at
+full size, and a thing at height h is pushed out from the centre by 434 / (434 - h). Checked on
+four known plans: the drum's centre (-1459, 476), the teal box's four corners against its mapped
+part (within 2 m), the white egg (-1510, 517) and Skylight's roof outline.
+
+**What the first reading got right and wrong.** (a) Right: two teal (verdigris) roofs, but they
+are the mapped parts coloured #6EBE9F: the big one is a box on the cinema hall's roof (35-40 m,
+about 40 x 48 m, a very low hip, not 40 x 30 m), the "sliver" is a curved roof over the
+Jana Pawła II wing on the WEST edge (not Emilii Plater, which is the east). Both are now drawn as
+planted green terraces with a glass rail. (b) There is one white egg (the mapped #dddddd part on
+the hall's roof, 11 x 16 m), not two domes; the other white oval is the drum's white ring, and the
+third white thing is Skylight's roof cap. (c) Right: the drum's top is a white ring round a blue
+glass oculus. (d) The wave shows 8 to 9 high points: the model's 8 domes match, no change.
+(e) Right: two Lumen arcs; the striped band seen along their inner edges in the top view is their
+courtyard facade foreshortened by the camera's perspective, not a roof element. (f) Right: the
+hall's roofs are dark brown-grey with small vents. (g) Skylight's scooped roof and cap exist
+already (see questions). (h) Złota 44: in its own spec.
+
+### Keep (do not change, do not remove, do not re-colour)
+
+- The 3D LED screen (`tarasy_screen.gd`, `led_screen.gdshader`) and its graphite block with the gold
+  ZŁOTE / TARASKI names (`_tarasy_screen_block`, `_tarasy_signs`).
+- The sunken plaza and the grand stair (`map_builder.gd` "tarasy_plaza", "tarasy_stair",
+  `GRID_HOLD`, `_tarasy_plaza_dress` umbrellas).
+- The guitar sign and the café with its umbrellas (`_tarasy_guitar`, `_tarasy_cafe`).
+- The lit shop boards and their words (`TARASY_BOARDS`, `_tarasy_shops`).
+- The wave: 8 domes, `TARASY_DOME_H`, the triangle-lattice pane mode (M_GLASS_ROOF + 0.5), its
+  rim walls and the glass floor of the south sweep (`_tarasy_wave`).
+- The podium's shop band (`_tarasy_podium` shop floor, TARASY_SHOP_H 4.6) and the three ledges
+  (`TARASY_LEDGES`, `_tarasy_ledges`): every podium part stays in the `podium` array.
+- Lumen's stepped top (`_tarasy_lumen`: parapet, 2.2 m setback, plant screen), Skylight
+  (`_tarasy_skylight`, its cap and plant), the drum's walls, deck and rim (the oculus crown below
+  is added on top of them), the red entrance boxes, the inner courtyard garden.
+- Triangle budgets only go up.
+
+### Gaps, ranked by how visible they are (helicopter, then the street iso camera)
+
+| rank | gap | reference | now |
+| --- | --- | --- | --- |
+| 1 | the teal box on the hall (1876 m2 at 35-40 m, the biggest single colour field after the wave) | top, h000-h315: verdigris metal box, plain teal walls, a very low hip roof with faint fold lines, no rail | sandstone S_PUNCHED walls, green flat roof, glass rail |
+| 2 | the drum's top | top, h000, h090: white ring of 20 panels, blue glass oculus with 16 white ribs and a small white hub | flat deck #a49d90 and a sandstone disc |
+| 3 | the white egg on the hall's south-west roof | top, h000, h045: white half-ellipsoid, 11 x 16 m, about 6 m high | a 6 m sandstone box |
+| 4 | the station-side glass band (14-35 m strip along the south curve) | JD h000/h045, h000: curved blue-grey glass with white floor bands, cantilevered about 3.5 m over the sandstone base on a white rounded soffit; two big blue parking "P" panels | sandstone S_PUNCHED, no soffit |
+| 5 | the Jana Pawła II wing (west, 0-17 m) | h090, h045, top: teal glass walls, a teal roof that rolls down to a rounded eave on the street | sandstone walls, green flat roof, rail |
+| 6 | the hall's flat roofs | top, h045: dark brown-grey membrane, 10 small dark vents | pale #a49d90 |
+| 7 | Lumen's roofs | top: west arc 8 plant units in a row plus a lift overrun at its north end and 2 small boxes at its south end; north arc a long pale plant shed at its west end with 6 dark panels east of it | only the setback and parapet |
+| 8 | the entrances' brick panels | vEkL2 h180 (Złota): a recessed red-brick panel with the mall's gold name; p0yx h225/h270 (Emilii Plater): a brick panel behind the shop names | sandstone only |
+| 9 | the cinema name high on the hall's west face | h045, h090: big pink letters about 27 m up, facing Jana Pawła II | only the low MULTIKINKO board on the south |
+| 10 | the lift box's open steel grid on top (south-east of the hall) | top, h000 | a plain roof |
+
+### Additions, with values
+
+All parts go into the site's one building surface through the existing material codes (M_STONE,
+M_PAVILION, M_SKIN, M_GLASS_ROOF, M_LAMP) and the existing helpers of `facade_kit.gd`
+(`_prism`, `_frustum`, `_pyramid`, `_soffit`, `_beam`, `_quad`, `kit_ledge_ring`); signs through
+the existing `signs` list (words already in `neon_signs.gd`: P, ZŁOTE, TARASKI, MULTIKINKO).
+No new material, light, MultiMesh, helper of the landmark's own or draw call. Colours are the
+photo's mapped to the calmer palette (PAL_* where one fits, else the hex given).
+
+1. **t26_teal_box** (the mapped part #6EBE9F, mh 35, h 40, 13 points, x -1544..-1485, z 461..512;
+   match it by colour and mh 35). Walls from g + 35 to g + 40 in PAL_PATINA_COPPER #6f9a8a, M_STONE
+   (plain metal, no skin). A fascia: `kit_ledge_ring(outline, g + 39.4, 0.6, #8cc0b2, 0.15)`.
+   The roof: `_pyramid(outline, g + 40, g + 41.8, #82b8aa)` (13 facets: the fold lines of the low
+   hip read as in the top view). No glass rail on this part (question 1). It stays in `podium`.
+2. **t26_drum_crown** on the drum (centre (-1459, 476), radius 12.9). A white ring: `_frustum` from
+   a 20-gon of radius 12.9 at g + 30.0 to a 20-gon of radius 7.2 at g + 31.4, colour PAL_WHITE_STONE
+   #ebe8df, M_STONE, every second facet 6 % darker (the 20 panels). The oculus: a shallow 16-sided
+   cone from radius 7.2 at g + 31.4 to the centre at g + 32.4 in TARASY_WAVE #4a74a6, M_GLASS_ROOF
+   (plain, not the pane mode); 16 white ribs (`_beam`, 0.35 m, #ebe8df) from the ring's inner
+   edge to the centre, 0.15 m over the glass; a white hub, a 10-gon of radius 1.0 at g + 32.55.
+   The drum's own deck and rim stay in the mesh under it.
+3. **t26_egg** (the mapped part #dddddd, mh 35, h 41, centre (-1509.5, 517), x -1515..-1504,
+   z 509..525): instead of its prism, a half-ellipsoid with semi-axes 5.5 m (x) and 8.0 m (z),
+   6.0 m high from g + 35: 20 sides, bands at height fractions 0, 0.35, 0.62, 0.82, 0.95 with the
+   radius scaled by sqrt(1 - t^2) (1.0, 0.937, 0.785, 0.572, 0.312), then a cone to the apex at
+   g + 41 (stacked `_frustum` calls of a scaled `_circle`). Colour #eceeed, each band 3 % darker
+   towards the foot, M_STONE. Not in `podium` (it spans no ledge level).
+4. **t26_south_band** (the mapped part #669999, mh 14, h 35, 29 points, the 3.3 m strip along the
+   south curve z 512..532). Walls TARASY_DRUM_GLASS #7f9fb4 in M_SKIN + S_RIBBON / 16 (Lumen's
+   ribbon skin: white floor bands between glass), roof #6b625a (as t26_roofs). Under it a white
+   soffit `_soffit(outline, g + 14.0, #e6e8e6)` and a rounded fascia
+   `kit_ledge_ring(outline, g + 13.0, 1.0, #e9ebea, 0.3)` (question 2).
+   Two parking boards, M_LAMP, colour #2f5d9e, 7.0 m wide, 6.0 m tall, bottom at g + 22.0, 0.3 m
+   out from the glass: P1 centre (-1507.5, 529.3) facing (-0.27, 0.96), P2 centre (-1488.5, 531.6)
+   facing (0.20, 0.98); on each a sign "P", white, sized so the letter is about 4.5 m tall
+   (compare ZŁOTE at 1.2 on the screen block), centred on the board.
+5. **t26_wing** (the mapped part #6EBE9F, mh 0, h 17, 23 points, x -1581..-1552, z 406..453,
+   along Jana Pawła II). The shop floor and the three ledges stay. Over the shop floor, walls to
+   g + 16.2 in teal glass #6f9a8a, M_PAVILION (+0, warm at night) instead of the sandstone skin.
+   The roof rolls over the 15.9 m cornice (which becomes its eave lip): `_frustum` from the outline
+   at g + 16.2 to the outline offset -1.5 m at g + 17.4 (#7aaea0), then to the outline offset
+   -3.0 m (fall back to -2.0 if the offset is empty) at g + 18.0 (#82b8aa), capped in #82b8aa,
+   M_STONE. No rail on it (question 1). The two small #6EBE9F entrance parts by the red boxes
+   (mh 4 and mh 9) keep their look.
+6. **t26_roofs and t26_vents**: the hall's roof (the part kind "hall", mh 14, h 35) and the plate on
+   it (mh 35, h 36, x -1528..-1453, z 489..528) get roof colour #6b625a (dark brown-grey membrane)
+   instead of TARASY_DECK. On them 10 vents, boxes 1.2 x 1.2 x 0.9 m in PAL_DARK_STEEL #4a4e52,
+   M_STONE, on the roof under each point: plate (-1485.9, 502.3), (-1474.0, 509.8),
+   (-1459.8, 506.0), (-1493.4, 516.5), (-1465.8, 521.7), (-1484.4, 526.9); hall roof
+   (-1478.4, 481.4), (-1475.5, 485.1), (-1468.7, 488.9), (-1483.0, 486.0). Skip a point that falls
+   inside the teal box or the egg.
+7. **t26_lumen_plant** on the two Lumen roofs (g + 55, on the inset top floor, never on the
+   2.2 m step). West arc: 8 units 6.5 m along the arc x 4.5 m across x 2.0 m, walls PAL_ALUMINIUM
+   #c3c7ca, tops PAL_ROOF_PALE #9a9c9c, M_STONE, centred 5.0 m in from the outer (west) wall,
+   their long side along the arc, at 8 m pitch starting 6 m from the arc's north end; a lift
+   overrun 9 x 7 x 3.5 m in PAL_PALE_CONCRETE #d4d0c6 at the north end (where the two arcs meet);
+   2 boxes 3 x 3 x 1.5 m in #c3c7ca at the south end, 4 m apart. North arc: a plant shed
+   26 x 10 x 3.0 m centred (-1449, 364), long side along the arc, walls PAL_ROOF_GRAVEL #b9b7b1,
+   top #c3c7ca; east of it 6 panels 4 x 2 m tilted 15 degrees up to the south (their high edge
+   0.9 m over the roof), PAL_GLASS_NAVY #3e4d5a, 1 m apart, the first 2 m east of the shed. Clip
+   every footprint to the inset top floor; drop one that loses more than half its area.
+8. **t26_brick** panels, PLAZA_BRICK #9c5a46, M_STONE, each a quad 0.1 m in front of the wall with a
+   0.4 m frame of four quads in TARASY_STONE darkened 0.15 (the recess): Złota entrance, centre
+   x -1470 on the podium's north wall (snap: the first podium wall south of (-1470, 330),
+   z about 343), facing north (0, -1), 12 m wide, g + 5.0 to g + 13.5; on it the signs "ZŁOTE"
+   (1.0) at g + 10.0 and "TARASKI" (0.6) at g + 8.2, TARASY_GOLD. Emilii Plater entrance: centre
+   (-1362.0, 448.5), facing (0.94, -0.34), 14 m wide, g + 4.8 to g + 15.0, 0.12 m out from the wall,
+   behind the ZARAZA and H·M·M boards (0.25 m out), which stay in front.
+9. **t26_cinema_sign**: "MULTIKINKO", pink #e0457b, size 1.6, at (-1535.0, 497.0), g + 27.0,
+   facing (-0.94, 0.33) (the hall's west face under the teal box, towards Jana Pawła II).
+10. **t26_grid** on the lift box (the mapped part #BAC1C7, mh 14, h 28, x -1460..-1434,
+   z 489..512): 3 beams east-west and 3 north-south, `_beam` 0.4 m, PAL_ALUMINIUM #c3c7ca, lying
+   at g + 28.6 from edge to edge of its roof at the quarter points.
+
+### Roof from the top view (tarasy_area_top.png, counted)
+
+| element | count | where (game x, z) | height |
+| --- | --- | --- | --- |
+| wave domes (high points) | 8 (a 9th reading is the south sweep) | as mapped | KEEP |
+| teal box, low hip | 1 | corners (-1545, 466), (-1506, 461), (-1486, 498), (-1530, 513) | 35-41.8 m |
+| teal wing roof | 1 | x -1581..-1552, z 406..453 | eave 16.2, top 18 m |
+| white egg | 1 | (-1509.5, 517) | 35-41 m |
+| drum: ring panels, oculus ribs, hub | 20, 16, 1 | centre (-1459, 476); ring outer r 12.9, oculus r 7.2 | 30-32.5 m |
+| hall roof vents | 10 | t26_vents | 35-36.9 m |
+| Lumen west plant units, overrun, small boxes | 8, 1, 2 | t26_lumen_plant | 55-58.5 m |
+| Lumen north shed, dark panels | 1, 6 | t26_lumen_plant | 55-58 m |
+| lift box grid beams | 6 | (-1447, 500) | 28.6 m |
+| Skylight roof cap | 1 | seen at about (-1404, 430), white; modelled at (-1396, 418) in glass | question 3 |
+
+### Night
+
+The teal wing's glass (M_PAVILION) glows warm floor by floor; the south band's glass lights in
+its ribbon skin's share; the two P boards and the high MULTIKINKO glow (board M_LAMP, sign tubes);
+the brick panels' gold names glow (signs are night-only, as the existing ones); the drum's oculus
+glows warm through M_GLASS_ROOF like the wave. The egg, the teal box, the vents, the plant and the
+grid stay unlit. No new light.
+
+### Budget and shots
+
+L3 (exception, named since 2026-11-11: the whole complex is one site). Estimated new triangles:
+teal box 65, wing roof 115, egg +130 net, drum crown 215, south band 150, vents 100, Lumen plant
+180, brick panels 20, grid 60: about 1035, so about 8820 measured on the flat stub map. Raise
+`"tarasy"` in `check_mesh_quality.gd` BUDGET from 9400 to 10600 (the builder writes the measured
+number in its comment; never lower). `tarasy_plaza` 2750 is untouched. Draw calls: 0 new (bench
+before/after anyway, CLAUDE.md "Performance is a gate").
+Shots: `tools/turntable.sh tarasy` (lit, flat, sil, the top: check the teal box, the egg, the
+drum's ring from the top tile; the KEEP items unchanged against a before sheet), then city shots
+with `tools/shots.sh` at 2532x1170: the helicopter over the complex, the street iso from the
+station side (P boards, soffit, drum), from Jana Pawła II (wing, cinema name), from Złota (brick
+panel), each by day and night, runtime and `--prebuilt`.
+
+### Questions (defaults built)
+
+1. The teal box and the wing lose their glass rail and green roof (the references show teal metal
+   and no rail on both, in all nine 3D views); default: built as written; every other planted part
+   keeps its rail. F to confirm it is not "a lost detail".
+2. The station-side band changes from sandstone to glass (JD and h000 agree); default: built.
+3. Skylight's roof cap: the top view shows it white and opaque at about (-1404, 430), 10 x 6 m,
+   8-12 m from where it is modelled in glass; not changed (KEEP).
+4. Skylight's shaft: the 2026-08 Street View (Y9zv) reads dark blue glass with a light grid, the
+   2026-11-05 update made it silver-grey from the Mac photos; not changed (KEEP).
+5. Is the white egg lit at night? Default: unlit.
+
+### Parts table (new parts of this update)
+
+| id | shape | size | position | material | feature |
+| --- | --- | --- | --- | --- | --- |
+| t26_teal_box | mapped prism, fascia ring, 13-facet low pyramid | about 40 x 48 m, 35-41.8 m | x -1544..-1485, z 461..512 | M_STONE #6f9a8a walls, #8cc0b2 fascia, #82b8aa roof | 5 south block |
+| t26_drum_crown | 20-gon frustum ring, 16-gon cone, 16 beams, 10-gon hub | r 12.9 to 7.2, 30-32.55 m | centre (-1459, 476) | M_STONE #ebe8df, M_GLASS_ROOF #4a74a6 | 5 drum |
+| t26_egg | half-ellipsoid, 20 sides, 5 bands and an apex cone | 11 x 16 x 6 m | (-1509.5, 517) on the hall | M_STONE #eceeed | 5 south block |
+| t26_south_band | mapped strip re-skinned, soffit, fascia ring | 3.3 m deep, 14-35 m, fascia 1.0 m | the south curve, z 512..532 | M_SKIN S_RIBBON #7f9fb4, M_STONE #e6e8e6 / #e9ebea | 2 terraced mall |
+| t26_p_boards | 2 lit boards with a P sign | 7 x 6 m, bottom 22 m | (-1507.5, 529.3), (-1488.5, 531.6) | M_LAMP #2f5d9e, sign white | 2 terraced mall |
+| t26_wing | teal glass walls, 2-step frustum roof | 8 m deep, walls to 16.2 m, roof to 18 m | x -1581..-1552, z 406..453 | M_PAVILION #6f9a8a, M_STONE #7aaea0 / #82b8aa | 2 terraced mall |
+| t26_roofs | roof colour of two mapped parts | the hall and its plate | x -1548..-1453, z 457..528 | M_STONE #6b625a | 5 south block |
+| t26_vents | 10 boxes | 1.2 x 1.2 x 0.9 m | the 10 listed points | M_STONE PAL_DARK_STEEL #4a4e52 | 5 south block |
+| t26_lumen_plant | 11 boxes on the west arc, a shed and 6 tilted panels on the north arc | units 6.5 x 4.5 x 2, overrun 9 x 7 x 3.5, shed 26 x 10 x 3, panels 4 x 2 | Lumen roofs at 55 m | M_STONE #c3c7ca / #9a9c9c / #d4d0c6 / #b9b7b1 / #3e4d5a | 3 Lumen |
+| t26_brick | 2 recessed quads with frames, gold signs on one | 12 x 8.5 m and 14 x 10.2 m | Złota x -1470; Emilii Plater (-1362, 448.5) | M_STONE #9c5a46, signs TARASY_GOLD | 2 terraced mall |
+| t26_cinema_sign | sign MULTIKINKO | size 1.6 | (-1535, 497), 27 m | sign #e0457b | 5 south block |
+| t26_grid | 6 beams | 0.4 m, edge to edge | lift box roof, 28.6 m | M_STONE #c3c7ca | 5 south block |
