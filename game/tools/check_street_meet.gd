@@ -201,12 +201,19 @@ class PlayPolice extends Node:
 	## often the chase was called off.
 	var raids: Array = []
 	var cordon: Array = []
+	var chasers: Array = []
 	var left := 0
 	var stood_down := 0
 
-	func raid(at: Vector3, n: int, lvl := 2) -> int:
+	func raid(at: Vector3, n: int, lvl := 2, _hold := 15.0) -> int:
 		raids.append([at, n, lvl])
 		return n
+
+	func scene_to_chaser(d: Driver) -> bool:
+		if not chase:
+			return false
+		chasers.append(d)
+		return true
 
 	func chasing() -> bool:
 		return chase
@@ -1004,6 +1011,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	# player is 22 m out; a caution halves the pot, never to nothing by itself.
 	_ok(m._tell_t < 0.0 and not m.raid_clean, "the siren tell came first and the player in the ring is boxed (no CZYSTO)")
 	var pot_save: int = m.pot
+	_ok(m._punctual >= Meet.POT_PUNCTUAL, "NA CZAS allows at least POT_PUNCTUAL s, more for a long way (%.0f s, PT-59)" % m._punctual)
 	_ok(Meet.is_clean(gap + Vector3(Meet.CLEAN_M + 1.0, 0.0, 0.0), gap) and not Meet.is_clean(gap + Vector3(5.0, 0.0, 0.0), gap), "CZYSTO is CLEAN_M m from the gap")
 	m.pot = 100
 	_wallet.cautions_today += 1
@@ -1013,6 +1021,13 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(m.pot == 50, "one halving per caution")
 	_ok(m.night_bar() == "●●○○○ · 50 zł", "the night bar: the second beat and the pot (%s)" % m.night_bar())
 	m.pot = pot_save
+	# Critique 3.3: CHASER_AT s after NALOT! two of the four become chasers, the other two stay boxed.
+	_ok(_police.chasers.is_empty(), "no cordon car chases before CHASER_AT")
+	_police.chase = true
+	m._stage_t = Meet.CHASER_AT - 0.01
+	_frames(0.3)
+	_ok(_police.chasers.size() == Meet.CHASERS and m._cordon.size() == Meet.CORDON - Meet.CHASERS and _in(Meet.Stage.RAID), "CHASERS cordon cars join the chase, the rest stay")
+	_police.chase = false
 
 	# 5. The pin, the race.
 	_ok(_until(_in.bind(Meet.Stage.RACE), 10.0), "PIN_AFTER s after the sirens the race begins")
@@ -1078,7 +1093,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	for l: Array in Meet.MEET2_LINES:
 		talked2 = talked2 and _said(String(l[1]))
 	_ok(talked2, "the club said all of MEET2_LINES")
-	_ok(_police.raids.size() == 2 and _hud.banners.count("NALOT!") == 2 and _police.cordon.size() == 2 * Meet.CORDON and m._cordon.size() == Meet.CORDON and _police.left == Meet.CORDON, "the second raid: its cordon, the first one sent away")
+	_ok(_police.raids.size() == 2 and _hud.banners.count("NALOT!") == 2 and _police.cordon.size() == 2 * Meet.CORDON and m._cordon.size() == Meet.CORDON and _police.left == Meet.CORDON - Meet.CHASERS, "the second raid: its cordon, the first one sent away")
 	_frames(Meet.PIN_AFTER - 1.5)
 	_ok(_in(Meet.Stage.RAID2), "the second raid counts its own PIN_AFTER s (not on from the race's)")
 	_ok(_until(_in.bind(Meet.Stage.TO_DRAG), 12.0), "the pin to the drag")
@@ -1087,7 +1102,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(m.has_target() and m.target_position() == watch and m._beacon.global_position.is_equal_approx(watch) and is_equal_approx(float(m._beacon.get("_ring_radius")), Meet.MEET_R), "the target is the start, ring MEET_R")
 	_traffic.seen = false
 	_frames(0.6)
-	_ok(m._cordon.is_empty() and _police.left == 2 * Meet.CORDON and not m._flash.visible, "the cordon leaves once out of sight")
+	_ok(m._cordon.is_empty() and _police.left == 2 * Meet.CORDON - Meet.CHASERS and not m._flash.visible, "the cordon leaves once out of sight")
 	_traffic.seen = true
 	var on_strip := _traffic.spawn(m.strip_at(60.0))
 	var off_strip := _traffic.spawn(Vector3(5000.0, 0.0, 5000.0))
