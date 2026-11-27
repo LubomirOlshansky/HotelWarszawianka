@@ -198,6 +198,7 @@ const LM_BLOCKS := [
 	"905863487",  # Unique Tower's north and shoulder outline, rebuilt by the unique site
 	"141043447",  # Kino Muranów: whole complex (podium + residential blocks) rebuilt in muranow.gd
 	"1371716",  # Pałac Mostowskich: the whole palace and its roofs are built in muranow.gd
+	"295124092", "699441160",  # Generation Park X and Z: rebuilt whole in wola.gd (`gpxz`)
 ]
 
 
