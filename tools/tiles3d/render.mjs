@@ -136,7 +136,7 @@ try {
 	const off = (radius + 8) / M_LAT, offLon = (radius + 8) / M_LON;
 	const spots = [[lat, lon], [lat + off, lon], [lat - off, lon], [lat, lon + offLon], [lat, lon - offLon]];
 	const samples = [];
-	for (const [la, lo] of spots) samples.push(await page.evaluate(([a, b]) => window.ground(a, b), [la, lo]));
+	for (const [la, lo] of spots) samples.push(await page.evaluate(([a, b, t]) => Promise.race([window.ground(a, b), new Promise((ok) => setTimeout(() => ok(null), t))]), [la, lo, 40000]));
 	let ground = samples.filter((h) => h !== null).reduce((m, h) => Math.min(m, h), Infinity);
 	if (!Number.isFinite(ground)) ground = null;
 	// The mesh's own roof height beats the map's when the map's is lower (and no --height was given).

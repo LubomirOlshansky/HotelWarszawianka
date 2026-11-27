@@ -362,7 +362,7 @@ const BUDGET := {
 	"wiktoria": 4500,  # 2026-11-15 photo rebuild (about 4100 tris): two white volumes, 8 and 6 floors of niche windows, glazed base; an exception to the L2 cap, one 117 by 79 m outline
 	"wtt": 1900,  # 2026-11-15 photo rework (1604 tris): crown slits, the mast from its mapped foot
 	"zacheta": 720,
-	"zlota44": 1800,
+	"zlota44": 2160,  # 1659 measured 2026-11-26 (spec budget 2200: 1401 before the 3D Tiles + Street View pass)
 	"zygmunt": 320,
 	# Towarowa 22 built as finished (2026-11-03): seven towers and blocks, the hall's steel frame,
 	# the pavilion, the park, the drone port and the gilded crane.

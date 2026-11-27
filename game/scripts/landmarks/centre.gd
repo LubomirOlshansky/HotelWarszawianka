@@ -741,6 +741,8 @@ func _build_tarasy(site: Dictionary) -> void:
 	var g := _g
 	var none := Color(0, 0, 0, 0)
 	var podium: Array = []
+	var t26 := {"lumen": [], "plate": PackedVector2Array(), "hall": PackedVector2Array(), "teal": PackedVector2Array(),
+			"lift": PackedVector2Array()}
 	for b: Dictionary in site.get("parts", []):
 		if _tarasy_dome(b):
 			continue
@@ -760,6 +762,7 @@ func _build_tarasy(site: Dictionary) -> void:
 			_prism(poly, y0, y1, SKY_CLAD, TARASY_TERRACE, M_SKIN + float(S_PUNCHED) / 16.0, M_STONE)
 		elif nm == "Lumen":
 			_tarasy_lumen(poly, y0, y1)
+			(t26["lumen"] as Array).append(poly)
 		elif nm == "Skylight":
 			_tarasy_skylight(poly, y0, g)
 		elif col == "#336699":
@@ -770,13 +773,35 @@ func _build_tarasy(site: Dictionary) -> void:
 		elif h >= 29.5 and mh < 0.5 and poly.size() >= 16:
 			# The drum (F's photos: round blue-grey glass, warm from inside at night).
 			_prism(poly, y0, y1, TARASY_DRUM_GLASS, TARASY_DECK, M_PAVILION, M_STONE)
+			_t26_drum_crown(g)
+		elif col == "#669999" and is_equal_approx(mh, 14.0):
+			_t26_south_band(poly, y0, y1, g)
+			podium.append([poly, y0, y1])
+		elif col == "#dddddd" and is_equal_approx(mh, 35.0):
+			_t26_egg(g)
 		elif col == "tomato":
 			_prism(poly, y0, y1, TARASY_RED, TARASY_RED.darkened(0.15), M_STONE, M_STONE)
+		elif col == "#6ebe9f" and mh >= 34.5:
+			_t26_teal_box(poly, y0, y1)
+			t26["teal"] = poly
+			podium.append([poly, y0, y1])
+		elif col == "#6ebe9f" and mh < 0.5 and poly.size() == 23:
+			_t26_wing(poly, y0, y1)
+			podium.append([poly, y0, y1])
 		elif col == "#6ebe9f":
 			_tarasy_podium(poly, y0, y1, g, TARASY_TERRACE, true)
 			podium.append([poly, y0, y1])
 		else:
-			_tarasy_podium(poly, y0, y1, g, TARASY_DECK, false)
+			var roof := TARASY_DECK
+			if col == "#bac1c7" and is_equal_approx(mh, 14.0) and is_equal_approx(h, 35.0):
+				roof = T26_ROOF   # the hall's roof: dark membrane
+				t26["hall"] = poly
+			elif col == "#bac1c7" and is_equal_approx(mh, 35.0) and is_equal_approx(h, 36.0):
+				roof = T26_ROOF
+				t26["plate"] = poly
+			elif col == "#bac1c7" and is_equal_approx(mh, 14.0) and is_equal_approx(h, 28.0):
+				t26["lift"] = poly
+			_tarasy_podium(poly, y0, y1, g, roof, false)
 			podium.append([poly, y0, y1])
 		if mh < 0.5:
 			_collide(poly)
@@ -786,6 +811,7 @@ func _build_tarasy(site: Dictionary) -> void:
 	_tarasy_signs(g)
 	_tarasy_guitar(g)
 	_tarasy_cafe(g)
+	_t26_extras(g, podium, t26)
 	_mode = M_STONE
 
 
@@ -985,6 +1011,351 @@ func _tarasy_signs(g: float) -> void:
 	var face := Vector3(0.22, 0.0, 0.975)
 	signs.append(["ZŁOTE", Vector3(-1384.0, g + 19.2, 447.9), face, 1.2, TARASY_GOLD])
 	signs.append(["TARASKI", Vector3(-1381.5, g + 22.6, 448.5), face, 0.7, TARASY_GOLD])
+
+
+# --- Złote Tarasy, update 2026-11-26 (spec docs/landmarks/specs/tarasy.md "3D Tiles + Street View pass") ---
+## Only additions and re-skins of the parts the spec names; every part id t26_* is a function below.
+const T26_ROOF := Color("#6b625a")        # the hall's dark brown-grey membrane (t26_roofs)
+const T26_TEAL_FASCIA := Color("#8cc0b2")
+const T26_TEAL_ROOF := Color("#82b8aa")
+const T26_WHITE := Color("#ebe8df")       # PAL_WHITE_STONE
+## The egg, 1.4x the first reading in plan (review): centre nudged north to stay on the hall roof.
+const T26_EGG_C := Vector2(-1509.5, 515.0)
+const T26_EGG_R := Vector2(7.7, 10.0)
+const T26_BRICK_FRAME := TARASY_STONE
+
+
+## t26_teal_box: the mapped #6EBE9F box on the hall (35-40 m): plain verdigris metal walls, a fascia
+## ring and a 13-facet low hip. The glass rail round the top stays (F's rule: nothing existing goes).
+func _t26_teal_box(poly: PackedVector2Array, y0: float, y1: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	y1 += 2.5   # review: the walls stand 7.5 m clear of the brown hall roof, not 5
+	_prism(poly, y0, y1, PAL_PATINA_COPPER, T26_TEAL_ROOF, M_STONE, M_STONE)
+	_prism(poly, y1, y1 + 1.1, TARASY_RAIL, none, M_PAVILION + 0.5, M_STONE)
+	kit_ledge_ring(poly, y1 - 0.6, 0.6, T26_TEAL_FASCIA, 0.15)
+	_mode = M_STONE
+	_pyramid(poly, y1, y1 + 1.8, T26_TEAL_ROOF)
+
+
+## One facet of a ring band, shaded `dark` darker (the drum ring's 20 panels).
+func _t26_facet(a0: Vector2, b0: Vector2, y0: float, a1: Vector2, b1: Vector2, y1: float, col: Color) -> void:
+	var p0 := Vector3(a0.x, y0, a0.y)
+	var p1 := Vector3(b0.x, y0, b0.y)
+	var p2 := Vector3(b1.x, y1, b1.y)
+	var p3 := Vector3(a1.x, y1, a1.y)
+	var nrm := (p1 - p0).cross(p3 - p0).normalized()
+	if nrm.y < 0.0:
+		nrm = -nrm
+	_quad(p0, p1, p2, p3, nrm, col)
+
+
+## t26_drum_crown: a white ring of 20 panels, a blue glass oculus with 16 white ribs and a hub,
+## on top of the drum's own deck and rim.
+func _t26_drum_crown(g: float) -> void:
+	var c := Vector2(-1459.0, 476.0)
+	var r0 := _circle(c, 12.9, 20)
+	var r1 := _circle(c, 7.2, 20)
+	_mode = M_STONE
+	for i in 20:
+		var col := T26_WHITE if i % 2 == 0 else T26_WHITE.darkened(0.06)
+		_t26_facet(r0[i], r0[(i + 1) % 20], g + 30.0, r1[i], r1[(i + 1) % 20], g + 31.4, col)
+	var oc := _circle(c, 7.2, 16)
+	_mode = M_GLASS_ROOF
+	_pyramid(oc, g + 31.4, g + 32.4, TARASY_WAVE)
+	for k in 16:
+		_beam(Vector3(oc[k].x, g + 31.55, oc[k].y), Vector3(c.x, g + 32.55, c.y), 0.35, T26_WHITE)
+	_prism(_circle(c, 1.0, 10), g + 32.4, g + 32.55, T26_WHITE, T26_WHITE, M_STONE, M_STONE)
+
+
+func _t26_ellipse(c: Vector2, rx: float, rz: float, n: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for k in n:
+		var a := TAU * (k + 0.5) / n
+		out.append(c + Vector2(cos(a) * rx, sin(a) * rz))
+	return out
+
+
+## t26_egg: the white half-ellipsoid on the hall's roof, 11 x 16 x 6 m, five bands and an apex.
+func _t26_egg(g: float) -> void:
+	var c := T26_EGG_C
+	var fr := [0.0, 0.35, 0.62, 0.82, 0.95]
+	_mode = M_STONE
+	var base := Color("#eceeed")
+	var prev := _t26_ellipse(c, T26_EGG_R.x, T26_EGG_R.y, 20)
+	var prev_y: float = g + 35.0
+	for i in range(1, 5):
+		var t: float = fr[i]
+		var ring := _t26_ellipse(c, T26_EGG_R.x * sqrt(1.0 - t * t), T26_EGG_R.y * sqrt(1.0 - t * t), 20)
+		var y: float = g + 35.0 + 6.0 * t
+		_frustum(prev, prev_y, ring, y, base.darkened(0.03 * float(5 - i)))
+		prev = ring
+		prev_y = y
+	_pyramid(prev, prev_y, g + 41.0, base)
+
+
+## t26_south_band: the station-side strip re-skinned as ribbon glass, on a white soffit and a rounded
+## fascia (the canopy, ledges and boards of the podium stay: this part is still in `podium`).
+func _t26_south_band(poly: PackedVector2Array, y0: float, y1: float, g: float) -> void:
+	_prism(poly, y0, y1, TARASY_DRUM_GLASS, T26_ROOF, M_SKIN + float(S_RIBBON) / 16.0, M_STONE)
+	_mode = M_STONE
+	_soffit(poly, y0, Color("#e6e8e6"))
+	kit_ledge_ring(poly, y0 - 0.97, 1.0, Color("#e9ebea"), 0.3)   # 3 cm over the mall roof it stands on: no coplanar top
+	# t26_p_boards: two lit blue parking boards, each with a white P.
+	for bd: Array in [[Vector2(-1507.5, 529.3), Vector2(-0.27, 0.96)], [Vector2(-1488.5, 531.6), Vector2(0.20, 0.98)]]:
+		var c: Vector2 = bd[0]
+		var n: Vector2 = (bd[1] as Vector2).normalized()
+		var side := Vector2(-n.y, n.x)
+		var a := c - side * 3.5
+		var b := c + side * 3.5
+		_mode = M_LAMP
+		_quad(Vector3(a.x, g + 22.0, a.y), Vector3(b.x, g + 22.0, b.y), Vector3(b.x, g + 28.0, b.y), Vector3(a.x, g + 28.0, a.y),
+				Vector3(n.x, 0.0, n.y), Color("#2f5d9e"))
+		var sp := c + n * 0.12
+		signs.append(["P", Vector3(sp.x, g + 22.75, sp.y), Vector3(n.x, 0.0, n.y), 3.2, Color(1, 1, 1)])
+	_mode = M_STONE
+
+
+## t26_wing: teal glass over the shop floor, the roof rolling over the cornice to a flat teal cap.
+## The glass rail stays (F's rule), so the wall runs to the mapped top and the roll starts there.
+func _t26_wing(poly: PackedVector2Array, y0: float, y1: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var shop_top := _mean_ground(poly) + TARASY_SHOP_H
+	_prism(poly, y0, shop_top, TARASY_SHOPFRONT, none, M_PAVILION, M_STONE)
+	_prism(poly, shop_top, y1, PAL_PATINA_COPPER, none, M_PAVILION, M_STONE)
+	_prism(poly, y1, y1 + 1.1, TARASY_RAIL, none, M_PAVILION + 0.5, M_STONE)
+	_mode = M_STONE
+	# the roll runs on the outline without its tiny steps (a mitred inset folds over them)
+	var ring := PackedVector2Array()
+	for q in poly:
+		if ring.is_empty() or ring[ring.size() - 1].distance_to(q) >= 2.0:
+			ring.append(q)
+	while ring.size() > 3 and ring[0].distance_to(ring[ring.size() - 1]) < 2.0:
+		ring.remove_at(ring.size() - 1)
+	var r1 := _t26_inset(ring, 1.0)
+	var r2 := _t26_inset(ring, 2.0)
+	# starts 0.3 m over the mapped top (behind the rail): the small teal entrance parts' caps lie at 17 m
+	_frustum(ring, y1 + 0.3, r1, y1 + 0.65, Color("#7aaea0"))
+	_frustum(r1, y1 + 0.65, r2, y1 + 1.0, T26_TEAL_ROOF, T26_TEAL_ROOF)
+
+
+## A ring `d` m inside `ring`, vertex for vertex, the mitre capped so a sharp corner doesn't fold over.
+func _t26_inset(ring: PackedVector2Array, d: float) -> PackedVector2Array:
+	var n := ring.size()
+	var out := PackedVector2Array()
+	for i in n:
+		var n1 := _out(ring, ring[(i + n - 1) % n], ring[i])
+		var n2 := _out(ring, ring[i], ring[(i + 1) % n])
+		out.append(ring[i] - (n1 + n2) * (d / maxf(1.0 + n1.dot(n2), 1.0)))
+	return out
+
+
+## A rectangle centred on c, `l` along t and `w` across n.
+func _t26_rect(c: Vector2, t: Vector2, n: Vector2, l: float, w: float) -> PackedVector2Array:
+	return PackedVector2Array([c - t * l * 0.5 - n * w * 0.5, c + t * l * 0.5 - n * w * 0.5,
+			c + t * l * 0.5 + n * w * 0.5, c - t * l * 0.5 + n * w * 0.5])
+
+
+## The point and tangent at distance s along a polyline.
+func _t26_along(chain: PackedVector2Array, s: float) -> Array:
+	var run := 0.0
+	for i in chain.size() - 1:
+		var l := chain[i].distance_to(chain[i + 1])
+		if l < 0.01:
+			continue
+		if s <= run + l or i == chain.size() - 2:
+			var t := (chain[i + 1] - chain[i]) / l
+			return [chain[i] + t * (s - run), t]
+		run += l
+	return [chain[0], Vector2.RIGHT]
+
+
+func _t26_len(chain: PackedVector2Array) -> float:
+	var l := 0.0
+	for i in chain.size() - 1:
+		l += chain[i].distance_to(chain[i + 1])
+	return l
+
+
+## A roof box on the clipped footprint `fp` (clipped to `inset`); false when it loses over half its area.
+func _t26_box(fp: PackedVector2Array, inset: PackedVector2Array, y0: float, h: float, wall: Color, top: Color) -> bool:
+	var clip := _largest(Geometry2D.intersect_polygons(fp, inset))
+	if clip.size() < 3 or absf(_area(clip)) < absf(_area(fp)) * 0.5:
+		return false
+	_prism(clip, y0, y0 + h, wall, top, M_STONE, M_STONE)
+	return true
+
+
+## t26_lumen_plant: the plant units, lift overrun, small boxes, shed and tilted panels on Lumen's two roofs.
+func _t26_lumen_plant(g: float, lumens: Array) -> void:
+	var y := g + 55.0
+	for poly: PackedVector2Array in lumens:
+		var inset := _largest(Geometry2D.offset_polygon(poly, -2.2, Geometry2D.JOIN_MITER))
+		if inset.size() < 3:
+			continue
+		if poly.size() == 36:
+			# West arc: the outer (west) wall runs from index 0 (south) to 17 (north end).
+			var chain := PackedVector2Array()
+			for i in range(17, -1, -1):
+				chain.append(poly[i])
+			var total := _t26_len(chain)
+			for k in 8:
+				var at := _t26_along(chain, 6.0 + k * 8.0 + 3.25)
+				var t: Vector2 = at[1]
+				var n := Vector2(-t.y, t.x)
+				if not Geometry2D.is_point_in_polygon(at[0] + n * 2.0, poly):
+					n = -n
+				_t26_box(_t26_rect(at[0] + n * 5.0, t, n, 6.5, 4.5), inset, y, 2.0, PAL_ALUMINIUM, PAL_ROOF_PALE)
+			# the lift overrun at the north end, where the arcs meet
+			var c0 := (poly[17] + poly[18]) * 0.5
+			var t0 := (chain[1] - chain[0]).normalized()
+			var n0 := Vector2(-t0.y, t0.x)
+			_t26_box(_t26_rect(c0 + t0 * 3.5, t0, n0, 7.0, 9.0), inset, y, 3.5, PAL_PALE_CONCRETE, PAL_PALE_CONCRETE.lightened(0.05))
+			# two small boxes at the south end
+			for k in 2:
+				var at := _t26_along(chain, total - 5.0 - 7.0 * k)
+				var t: Vector2 = at[1]
+				var n := Vector2(-t.y, t.x)
+				if not Geometry2D.is_point_in_polygon(at[0] + n * 2.0, poly):
+					n = -n
+				_t26_box(_t26_rect(at[0] + n * 5.0, t, n, 3.0, 3.0), inset, y, 1.5, PAL_ALUMINIUM, PAL_ALUMINIUM.lightened(0.05))
+		elif poly.size() == 25:
+			# North arc: a long plant shed, then six tilted dark panels to the east.
+			_t26_box(_t26_rect(Vector2(-1449.0, 364.0), Vector2(1, 0), Vector2(0, 1), 26.0, 10.0), inset, y, 3.0,
+					PAL_ROOF_GRAVEL, PAL_ALUMINIUM)
+			var chain := PackedVector2Array()
+			for i in 12:
+				chain.append(poly[i])
+			var s0 := 0.0
+			var run := 0.0
+			for i in 11:
+				if chain[i].x < -1434.0:
+					s0 = run + chain[i].distance_to(chain[i + 1])
+				run += chain[i].distance_to(chain[i + 1])
+			for k in 6:
+				var at := _t26_along(chain, s0 + 2.0 + 5.0 * k)
+				var t: Vector2 = at[1]
+				var n := Vector2(-t.y, t.x)
+				if not Geometry2D.is_point_in_polygon(at[0] + n * 2.0, poly):
+					n = -n
+				var cc: Vector2 = at[0] + n * 9.0
+				if not Geometry2D.is_point_in_polygon(cc, inset):
+					continue
+				# the panel's high edge faces south (+z): its low edge sits 0.4 m on the roof, the high 0.9 m
+				var south := Vector2(0, 1) if n.y >= 0.0 else Vector2(0, -1)
+				south = (south - t * south.dot(t)).normalized()
+				var lo := cc - south
+				var hi := cc + south
+				var a0 := lo - t * 2.0
+				var a1 := lo + t * 2.0
+				var b0 := hi + t * 2.0
+				var b1 := hi - t * 2.0
+				_mode = M_STONE
+				var nm := Vector3(-south.x * 0.26, 0.97, -south.y * 0.26)
+				_quad(Vector3(a0.x, y + 0.4, a0.y), Vector3(a1.x, y + 0.4, a1.y), Vector3(b0.x, y + 0.92, b0.y),
+						Vector3(b1.x, y + 0.92, b1.y), nm, PAL_GLASS_NAVY)
+	_mode = M_STONE
+
+
+## t26_brick: a recessed red-brick panel in a stone frame on one wall, centred c, facing n.
+func _t26_brick_panel(c: Vector2, n: Vector2, width: float, y0: float, y1: float, off: float) -> void:
+	var side := Vector2(-n.y, n.x)
+	var fr := 0.4
+	var nrm := Vector3(n.x, 0.0, n.y)
+	var o := c + n * off
+	var fcol := T26_BRICK_FRAME.darkened(0.15)
+	_mode = M_STONE
+	var hw := width * 0.5
+	var l0 := o - side * hw
+	var l1 := o + side * hw
+	var iin0 := o - side * (hw - fr)
+	var iin1 := o + side * (hw - fr)
+	_quad(Vector3(iin0.x, y0 + fr, iin0.y), Vector3(iin1.x, y0 + fr, iin1.y), Vector3(iin1.x, y1 - fr, iin1.y),
+			Vector3(iin0.x, y1 - fr, iin0.y), nrm, PLAZA_BRICK)
+	_quad(Vector3(l0.x, y0, l0.y), Vector3(l1.x, y0, l1.y), Vector3(l1.x, y0 + fr, l1.y), Vector3(l0.x, y0 + fr, l0.y), nrm, fcol)
+	_quad(Vector3(l0.x, y1 - fr, l0.y), Vector3(l1.x, y1 - fr, l1.y), Vector3(l1.x, y1, l1.y), Vector3(l0.x, y1, l0.y), nrm, fcol)
+	_quad(Vector3(l0.x, y0 + fr, l0.y), Vector3(iin0.x, y0 + fr, iin0.y), Vector3(iin0.x, y1 - fr, iin0.y),
+			Vector3(l0.x, y1 - fr, l0.y), nrm, fcol)
+	_quad(Vector3(iin1.x, y0 + fr, iin1.y), Vector3(l1.x, y0 + fr, l1.y), Vector3(l1.x, y1 - fr, l1.y),
+			Vector3(iin1.x, y1 - fr, iin1.y), nrm, fcol)
+
+
+## The extras of the 2026-11-26 pass that need the whole site: vents, Lumen's plant, the brick panels,
+## the cinema's name, the lift box's grid.
+func _t26_extras(g: float, podium: Array, t26: Dictionary) -> void:
+	# t26_vents
+	var teal: PackedVector2Array = t26["teal"]
+	var plate: PackedVector2Array = t26["plate"]
+	var egg_c := T26_EGG_C
+	for p: Vector2 in [Vector2(-1485.9, 502.3), Vector2(-1474.0, 509.8), Vector2(-1459.8, 506.0), Vector2(-1493.4, 516.5),
+			Vector2(-1465.8, 521.7), Vector2(-1484.4, 526.9), Vector2(-1478.4, 481.4), Vector2(-1475.5, 485.1),
+			Vector2(-1468.7, 488.9), Vector2(-1483.0, 486.0)]:
+		if teal.size() >= 3 and Geometry2D.is_point_in_polygon(p, teal):
+			continue
+		var d := p - egg_c
+		if pow(d.x / T26_EGG_R.x, 2.0) + pow(d.y / T26_EGG_R.y, 2.0) < 1.0:
+			continue
+		var on_plate := plate.size() >= 3 and Geometry2D.is_point_in_polygon(p, plate)
+		var yb := g + (36.0 if on_plate else 35.0)
+		_prism(_square(p, 0.6), yb, yb + 0.9, PAL_DARK_STEEL, PAL_DARK_STEEL.lightened(0.06), M_STONE, M_STONE)
+	_t26_lumen_plant(g, t26["lumen"])
+	# t26_brick: Złota entrance (the first podium wall south of (-1470, 330)) ...
+	var best_z := INF
+	var best_n := Vector2(0, -1)
+	for part: Array in podium:
+		var poly: PackedVector2Array = part[0]
+		for i in poly.size():
+			var a := poly[i]
+			var b := poly[(i + 1) % poly.size()]
+			if absf(b.x - a.x) < 1.0 or minf(a.x, b.x) > -1470.0 or maxf(a.x, b.x) < -1470.0:
+				continue
+			var z := a.y + (b.y - a.y) * (-1470.0 - a.x) / (b.x - a.x)
+			var out := _out(poly, a, b)
+			if out.y < -0.7 and z >= 330.0 and z < best_z:
+				best_z = z
+				best_n = out
+	if best_z < INF:
+		var cz := Vector2(-1470.0, best_z)
+		_t26_brick_panel(cz, best_n, 12.0, g + 5.0, g + 13.5, 0.1)
+		var sp := cz + best_n * 0.35
+		signs.append(["ZŁOTE", Vector3(sp.x, g + 10.0, sp.y), Vector3(best_n.x, 0.0, best_n.y), 1.0, TARASY_GOLD])
+		signs.append(["TARASKI", Vector3(sp.x, g + 8.2, sp.y), Vector3(best_n.x, 0.0, best_n.y), 0.6, TARASY_GOLD])
+	# ... and the Emilii Plater entrance, behind the ZARAZA and H·M·M boards.
+	_t26_brick_panel(Vector2(-1362.0, 448.5), Vector2(0.94, -0.34).normalized(), 14.0, g + 4.8, g + 15.0, 0.12)
+	# t26_cinema_sign: the hall's west face, snapped to the nearest wall of the hall (the spec's point is 4 m inside it).
+	var hall: PackedVector2Array = t26["hall"]
+	if hall.size() >= 3:
+		var want := Vector2(-1535.0, 497.0)
+		var bq := want
+		var bn := Vector2(-0.94, 0.33)
+		var bd := INF
+		for i in hall.size():
+			var a := hall[i]
+			var b := hall[(i + 1) % hall.size()]
+			var q := Geometry2D.get_closest_point_to_segment(want, a, b)
+			if q.distance_to(want) < bd:
+				bd = q.distance_to(want)
+				bq = q
+				bn = _out(hall, a, b)
+		var sp2 := bq + bn * 0.3
+		signs.append(["MULTIKINKO", Vector3(sp2.x, g + 27.0, sp2.y), Vector3(bn.x, 0.0, bn.y), 1.6, Color("#e0457b")])
+	# t26_grid: three beams each way on the lift box's roof.
+	var lift: PackedVector2Array = t26["lift"]
+	if lift.size() >= 3:
+		var x0 := INF
+		var x1 := -INF
+		var z0 := INF
+		var z1 := -INF
+		for q in lift:
+			x0 = minf(x0, q.x)
+			x1 = maxf(x1, q.x)
+			z0 = minf(z0, q.y)
+			z1 = maxf(z1, q.y)
+		for f in [0.25, 0.5, 0.75]:
+			var zz: float = lerpf(z0, z1, f)
+			_beam(Vector3(x0, g + 28.6, zz), Vector3(x1, g + 28.6, zz), 0.4, PAL_ALUMINIUM)
+			var xx: float = lerpf(x0, x1, f)
+			_beam(Vector3(xx, g + 29.0, z0), Vector3(xx, g + 29.0, z1), 0.4, PAL_ALUMINIUM)   # laid across the east-west ones, not through them
+	_mode = M_STONE
 
 
 ## The guitar sign by the café on the podium's south-east corner (F, 2026-11-11, his photos and the
