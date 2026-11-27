@@ -291,6 +291,9 @@ const INFO := {
 	"gpy": ["Generation Park Y",
 			"140 m przy rondzie Daszyńskiego.",
 			"140 m by Rondo Daszyńskiego."],
+	"gpxz": ["Generation Park X i Z",
+			"Dwa biurowce przy rondzie Daszyńskiego po bokach wieży Y.",
+			"Two office blocks by Rondo Daszyńskiego framing tower Y."],
 	"powstancow_blue": ["Szklana wieża przy placu Powstańców",
 			"70 m niebieskiego szkła przy Hotelu Warszawa.",
 			"70 m of blue glass beside Hotel Warszawa."],
@@ -319,6 +322,9 @@ const INFO := {
 			"Biurowiec z cegły i kamienia w stylu lat 50.: kamienne filary parteru, długi balkon nad ulicą. Stoi u stóp The Bridge.",
 			"An office block of brick and stone in the 1950s style: stone piers on the ground floor, a long balcony over the street. It stands at the foot of The Bridge."],
 	"grzybowska63": ["Chilton", "Hotel przy Grzybowskiej 63, 94 m. Na luzie.", "A hotel at Grzybowska 63, 94 m. Chilled."],
+	"unique": ["Unique Tower",
+			"Białe balkony oplatają trzy budynki przy Grzybowskiej 51.",
+			"White balconies wrap around three buildings at Grzybowska 51."],
 	"jp2_21": ["Westynka", "Hotel przy Jana Pawła II 21, 94 m, z rurą szkła na fasadzie.", "A hotel at Jana Pawła II 21, 94 m, with a glass tube up its front."],
 	"marszalkowska94": ["Nowotel", "Hotel przy Marszałkowskiej 94/98, 95 m. Nowy od 1974 roku.", "A hotel at Marszałkowska 94/98, 95 m. New since 1974."],
 	"central": ["Central Tower", "115 m przy Alejach Jerozolimskich.", "115 m on Al. Jerozolimskie."],
@@ -573,6 +579,9 @@ const INFO := {
 	"nbp": ["NBP, Oddział Okręgowy",
 			"Oddział Narodowego Banku Polskiego przy placu Powstańców: długi dom w ciemnych, pochylonych blachach, szklany parter na tarasie, szerokie granitowe schody. Tu pieniądze śpią, zanim pójdą w miasto.",
 			"The National Bank's Warsaw branch on Plac Powstańców: a long block in dark, leaning metal panels, a glass ground floor on a terrace, a wide flight of granite steps. The money sleeps here before it goes out into the city."],
+	"mostowski": ["Pałac Mostowskich",
+			"Cztery kolumny w portyku Corazziego witają od strony alei Solidarności. Odbudowany po wojnie pałac jest dziś siedzibą stołecznej policji.",
+			"Four columns in Corazzi’s portico greet you from al. Solidarności. Rebuilt after the war, the palace is now home to Warsaw’s police headquarters."],
 	"dom_chlopa": ["Dom Chłopa",
 			"Hotel na placu Powstańców z lat 1958-61, zbudowany dla chłopów przyjeżdżających do stolicy. Falisty gzyms na dachu, zielony neon, kasyno na parterze.",
 			"The hotel on Plac Powstańców of 1958-61, built for farmers visiting the capital. A wavy roof edge, a green neon on top, a casino on the ground floor."],
@@ -1374,6 +1383,8 @@ func _find_sites() -> void:
 	_find_behind()
 	# Osiedle Za Żelazną Bramą (2026-11-01): the eleven blocks between Żelazna and Jana Pawła II.
 	_find_zelazna()
+	# Generation Park X and Z (Rondo Daszyńskiego): the two stone-grid office blocks framing Y.
+	_find_gpxz()
 	# Pokorna 2 (F, 2026-11-01): the 57 m residential block by Muranów, a model with balconies.
 	_find_pokorna2()
 	# I Oddział PKO (F's photo, 2026-11-09): the first branch on Marszałkowska, rebuilt as one block.
@@ -1632,6 +1643,7 @@ func _find_sites() -> void:
 	_find_warsztat_mirka()
 	# Rezydencja Opera, Niecała 7 (F, 2026-11-26): a whole model over the mapped outline, with a card.
 	_find_niecala7()
+	_find_unique()
 	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
 	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
@@ -1866,6 +1878,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_sad_okregowy(s)
 			"nbp":
 				_build_nbp(s)  # the whole branch (SKINS entry with `model`: it replaces LoD2)
+			"mostowski":
+				_build_mostowski(s)
 			"dom_chlopa":
 				_build_dom_chlopa(s)  # over its street block: the wavy roof edge and the signs
 			"batalion_kilinski":
@@ -2005,11 +2019,15 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"tower75":
 				_id = 0  # unnamed: no card, not on the picking grid
 				_build_tower75(s)
+			"unique":
+				_build_unique(s)
 			"slabs":
 				_id = 0
 				_build_slabs(s)
 			"zelazna":
 				_build_zelazna(s)
+			"gpxz":
+				_build_gpxz(s)
 			"pokorna2":
 				_id = 0
 				_build_pokorna2(s)
