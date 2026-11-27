@@ -1067,9 +1067,8 @@ func _pr_entrance(cu: float, g: float) -> void:
 	for s: float in [-1.0, 1.0]:
 		var pu := cu + s * 2.35
 		_kbox(pu - 0.07, pu + 0.07, 1.80, 1.94, g - 0.2, g + 3.94, PAL_DARK_STEEL)
-	# Dark signboard fascia on the canopy front and 0.7 m white RADIO letters (M_LAMP + _usign).
+	# Dark signboard fascia on the canopy front and 0.7 m white RADIO letters (_usign, the shared sign helper).
 	_kbox(cu - 2.00, cu + 2.00, 1.86, 2.00, g + 4.20, g + 5.14, PAL_DARK_STEEL)
-	_pr_radio_sign(cu, 2.03, g + 4.30)
 	_usign("RADIO", cu, 2.08, g + 4.28, _b, 3.0, 0.72, PR_SIGN_WHITE)
 	# Flagpole pair framing the outer edges of the entrance risalit, clear of the windows.
 	for s: float in [-1.0, 1.0]:
@@ -1079,35 +1078,6 @@ func _pr_entrance(cu: float, g: float) -> void:
 		_lbox(fu, fv, 0.05, 0.05, g + 0.36, g + 8.6, PAL_ALUMINIUM)
 		_kbox(fu + 0.05, fu + 1.25, fv - 0.02, fv + 0.02, g + 8.05, g + 8.50, PAL_WHITE_STONE)
 		_kbox(fu + 0.05, fu + 1.25, fv - 0.02, fv + 0.02, g + 7.60, g + 8.05, PAL_SIGNAL_RED)
-	_mode = keep
-
-
-## Places plain 0.7 m white sans-serif RADIO letters in M_LAMP 3 cm proud of the canopy signboard,
-## built from strictly disjoint wall quads so they read crisply by day and glow white at night.
-func _pr_radio_sign(cu: float, v: float, y: float) -> void:
-	# [u0, u1, y0, y1] per stroke in local letter coords (cap height 0.70 m, total width 2.74 m).
-	var x0 := cu - 1.37
-	var strokes := [
-		# R (0.00..0.46)
-		[0.00, 0.10, 0.00, 0.70], [0.10, 0.44, 0.60, 0.70], [0.34, 0.44, 0.38, 0.60],
-		[0.10, 0.34, 0.32, 0.42], [0.34, 0.46, 0.00, 0.34],
-		# A (0.64..1.12)
-		[0.64, 0.74, 0.00, 0.60], [1.02, 1.12, 0.00, 0.60], [0.70, 1.06, 0.60, 0.70],
-		[0.74, 1.02, 0.26, 0.36],
-		# D (1.30..1.76)
-		[1.30, 1.40, 0.00, 0.70], [1.40, 1.72, 0.60, 0.70], [1.40, 1.72, 0.00, 0.10],
-		[1.66, 1.76, 0.10, 0.60],
-		# I (1.94..2.06)
-		[1.94, 2.06, 0.00, 0.70],
-		# O (2.24..2.74)
-		[2.24, 2.34, 0.00, 0.70], [2.64, 2.74, 0.00, 0.70], [2.34, 2.64, 0.60, 0.70],
-		[2.34, 2.64, 0.00, 0.10],
-	]
-	var keep := _mode
-	_mode = M_LAMP
-	for st_box: Array in strokes:
-		_wall(_w(x0 + float(st_box[0]), v), _w(x0 + float(st_box[1]), v),
-				y + float(st_box[2]), y + float(st_box[3]), _b, PR_SIGN_WHITE)
 	_mode = keep
 
 
