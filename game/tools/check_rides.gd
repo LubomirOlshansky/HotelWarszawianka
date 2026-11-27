@@ -207,7 +207,7 @@ func _words() -> void:
 			"rating": 4.87})
 	_expect("the request card's first line", String(card[1]).get_slice("\n", 0), "Kasia ★ 4,9 · 350 m · 1,8 km")
 	_expect("the request card's MNOŻNIK (the title)", card[0], "ŁUBER · MNOŻNIK ×1,5")
-	_expect("its gloss", card[2], "New ride · surge ×1.5 · night")
+	_expect("its gloss", card[2], "ŁUBER · New ride · surge ×1.5 · night")
 	var data = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
 	if not data is Dictionary:
 		_expect("dialogue.json parses", false, true)
