@@ -75,9 +75,9 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## colliders out under the new site (its ring's own walls in their place), `--record` on a fresh bake
 ## of the branch after merging main; TOTAL_TYPED not measured again here.
 ## 2026-11-26 (double models, check_sites DRESSES_BLOCK): Marszałkowska 99's street block
-## (blk_338542425) no longer drawn under its landmark in (-2, 1); 47944 → TOTAL_NEW, `--record` on
+## (blk_338542425) no longer drawn under its landmark in (-2, 1): -46 faces, 47944 → 47898, `--record` on
 ## a fresh bake of the branch after merging main.
-const TOTAL := 47944
+const TOTAL := 47898
 ## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
@@ -93,9 +93,9 @@ const TOTAL := 47944
 ## --barriers=typed` on the gated map: 46459, unchanged (of the 16 gaps in these six sectors 13 cut
 ## soft fences, which file no faces; the walls' 3 sit on OSM's gate node, a vertex, so the segments on
 ## each side are shorter but as many; the gate posts file none). TOTAL (classic) ignores the gates.
-## 2026-11-26 (double models): 47569 before, 47523 after (-46, the same block), each its own
-## `--record --barriers=typed` on a fresh bake.
-const TOTAL_TYPED := 47523
+## 2026-11-26 (double models): 47717 with the same block gone (-46), measured with its own
+## `--record --barriers=typed` on a fresh bake after merging main (Rondo #1099, Ufficio #1096).
+const TOTAL_TYPED := 47717
 
 var problems: Array[String] = []
 var verbose := false
