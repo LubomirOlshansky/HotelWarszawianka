@@ -13,7 +13,7 @@ extends SceneTree
 ##      tunnel triangle in a part left outside; the off-map ground covers each part whole; the
 ##      edge line has a vertex at the inner corner.
 ##   E4 the job targets (2026-11-22, a tester's kebab order at the very end of the map): on the real
-##      lane graph, the doors jobs.gd `_pick_address` gives (the kebab orders, Podwózka, the trend
+##      lane graph, the doors jobs.gd `_pick_address` gives (the kebab orders, Łuber, the trend
 ##      job) from every kebab stand and from 60 starts by the outline, the EV tow's car
 ##      (ev_tow.gd `pick_car_spot`) and the crash scenes (crash_scenes.gd `pick_spot`) from those
 ##      starts, are all `in_map(p, -TARGET_PAD)` (lane_graph.gd `in_play`); every address is

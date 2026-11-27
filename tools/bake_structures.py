@@ -1473,7 +1473,7 @@ BANK_STEP_RUN = 2.0    # ...within this (a terrace, a boulevard's wall the grid 
 
 
 def place_bank(m):
-    """Map round 2b (2026-10-29): the river spots the Podwózka job drives the car to (loop 2d-1
+    """Map round 2b (2026-10-29): the river spots the Łuber job drives the car to (loop 2d-1
     `rides.gd` found them by scanning the water's edge at run time: a dry waypoint BANK_INLAND in
     from the river, a straight line to a lane within BANK_ROAD over dry ground with no building
     on it). The line was never tested against what stops a car: a retaining wall, a fence, a

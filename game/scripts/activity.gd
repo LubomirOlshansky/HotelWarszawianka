@@ -93,7 +93,7 @@ var run_hours := Vector2(-1.0, -1.0)
 var clock_node: Node
 ## Nothing else is on (the director sets this when the activity joins it).
 var free_now: Callable = func() -> bool: return true
-## Another activity's request card that leaves the player free is up (`offer_busy` off: Podwózka's,
+## Another activity's request card that leaves the player free is up (`offer_busy` off: Łuber's,
 ## the trend job's). The director sets this too; a rival's challenge waits for it (rivals.gd, PT-15).
 var request_up: Callable = func() -> bool: return false
 ## Another activity's run holds the rescue calls now (its `rescue_calls` is HOLD or RESTART): the director

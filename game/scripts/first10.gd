@@ -29,7 +29,7 @@ extends Node
 ## | rescue | intro | the first call (held by missions.gd `held` until then) rings RESCUE_RING s later |
 ## | heli | intro | the helicopter's toast; at once when a rescue is done or a call needs the helicopter |
 ## | tape | intro | the arrow to the mixtape on the University Library's roof (cassettes.gd, CASSETTE_ID), from the air; without it, KASETA on the boulevards (TAPE_ID) |
-## | ride | intro | the first Podwózka request (rides.gd `offer_now`) |
+## | ride | intro | the first Łuber request (rides.gd `offer_now`) |
 ## | powisle | intro | the arrow to Powiśle, unless districts.gd discovered it |
 ## | garage | intro | Mirek's garage (garage.gd `held`), after the first earnings: its toast and an arrow; it comes right after the race (the race's tick toast names it) |
 ## | kebab | intro | the arrow to the stand again, for a player who never delivered one |
@@ -467,7 +467,7 @@ static func _all_intros(done: Dictionary, now_out: Array) -> bool:
 
 
 ## What the guide holds new offers for now (empty: nothing): the choice card before it has come
-## (the first Podwózka request comes after it), then the intro waiting once a job was done since the
+## (the first Łuber request comes after it), then the intro waiting once a job was done since the
 ## last intro (`jobs_since`): one job between two intros, so a player who takes every ride still
 ## meets each intro (run 12, 2026-11-03: the call came 83 s late behind a ride), and a rider gets
 ## rides between them.
@@ -714,8 +714,8 @@ func tick() -> void:
 		_script(f)
 
 
-## Holds (or lets go of) what comes by itself: Podwózka's requests and the "Na czasie" offers.
-## A ride already under way runs on; only new ones wait (the PODWÓZKA button still asks for one).
+## Holds (or lets go of) what comes by itself: Łuber's requests and the "Na czasie" offers.
+## A ride already under way runs on; only new ones wait (the ŁUBER button still asks for one).
 func _hold_offers(on: bool) -> void:
 	if on == offers_held:
 		return
@@ -1061,7 +1061,7 @@ func _show_choice() -> void:
 ## The choice card's words with the game's own numbers in them: {"title": [pl, en], "body": [pl, en],
 ## "buttons": PackedStringArray ("POLISH|ENGLISH" each)}. `km` is the road to the finish in km (rivals.gd
 ## `first_route_m`, rounded to 0.1; below 0: unknown, "?"); the reward is the ladder's first stake and
-## WIN_GAIN, the ride chip's "from" Podwózka's base fare (ride_rules.gd BASE). A pure function: check_first10.gd.
+## WIN_GAIN, the ride chip's "from" Łuber's base fare (ride_rules.gd BASE). A pure function: check_first10.gd.
 static func choice_words(km: float) -> Dictionary:
 	var stake: int = int(Ladder.RUNGS[0]["stake"])
 	var title: Array = FirstSteps.words("choice_title")

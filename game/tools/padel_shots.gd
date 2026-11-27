@@ -1,7 +1,8 @@
 extends SceneTree
 ## Stills of the arcade padel match with a timed human (padel_match.gd, docs/design/critique-padel.md).
 ## A bot taps on the ring with a 45 ms error, the way a decent hand would, and the screen is saved at
-## the moments worth looking at: the ring open, closing, the CZYSTO hit, a smash, a long rally.
+## the moments worth looking at: the how-to card and the warm-up (a fresh run opens with them), the ring
+## open, closing, the CZYSTO hit, a long rally.
 ## Needs a renderer (never --headless):
 ##   godot --path game --resolution 1170x540 --script res://tools/padel_shots.gd -- [--out=DIR] [--hour=H] [--max=N]
 ## Writes DIR/padel_NN_what.png (default ../shots/padel, gitignored) and prints one line a still.
@@ -48,6 +49,17 @@ func _process(_dt: float) -> bool:
 		quit(0)
 		return true
 	var me := sim.players[0]
+	# The how-to card first (a fresh run shows it), then a tap starts the warm-up.
+	if match_node._howto:
+		if _frame > 50:
+			_grab("howto", sim)
+		if _frame > 70:
+			match_node._start_warmup()
+		return false
+	if sim.warming() and sim.phase == PadelSim.Phase.PLAY and sim.cue_left() < 0.12 and sim.cue_left() > 0.04:
+		_grab("warmup_ring", sim)
+	if match_node._warm_end_t >= 0.0 and match_node._t - match_node._warm_end_t > 0.3:
+		_grab("warmup_done", sim)
 	if sim.phase == PadelSim.Phase.PLAY:
 		if sim.rally_hits != _ball_n:
 			_ball_n = sim.rally_hits
@@ -58,13 +70,13 @@ func _process(_dt: float) -> bool:
 		sim.press(PadelSim.Shot.DRIVE)
 	# The moments.
 	var left := sim.cue_left()
-	if sim.phase == PadelSim.Phase.PLAY and left < INF:
+	if sim.phase == PadelSim.Phase.PLAY and left < INF and not sim.warming():
 		if left < 0.5 and left > 0.35:
 			_grab("ring_open", sim)
 		elif left < 0.12 and left > 0.05:
 			_grab("ring_closing", sim)
 	if match_node._ring_flash > 0.85:
-		_grab("clean_flash", sim)
+		_grab("clean_flash" if not sim.warming() else "warmup_clean", sim)
 	if sim.phase == PadelSim.Phase.PLAY and sim.rally_hits >= 8:
 		_grab("rally", sim)
 	if match_node._tell > 0.6 and match_node._tell_s != "":

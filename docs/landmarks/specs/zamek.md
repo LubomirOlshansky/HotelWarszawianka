@@ -100,8 +100,9 @@ and 5.7 m at the south-east corner. Walls always go down into the ground.
     - the four rows keep visibly different heights (ground 1.9 m, piano nobile 2.8 m hooded,
       second 2.2 m, top 1.5 m, as in `ZAMEK_ROWS`).
 - **The Clock Tower's west face** (reviewer's fix): over the gate's cornice, one window per stage
-  between the string courses, 1.0 x 2.0 m, framed. The iron balcony at 19.6 m is a black slab
-  0.25 m thick, 1.2 m deep, with a two-rail iron railing (`kit_balcony` IRON).
+  between the string courses, 1.0 x 2.0 m, framed. The balcony is a cream stone slab
+  3.0 m wide, 0.8 m deep, 0.2 m thick, resting on the upper string course (19.45 m), with the iron
+  railing over it (`kit_balcony` IRON, slab in ZAMEK_CREAM; F 2026-11-26: the black slab floated).
 - **The Vistula front** (A's east face): `_zamek_river_front`, kept unchanged. A's own wall on that
   face stands 0.5 m inside the front line, so it is never coplanar with the front's walls (the
   facade kit's `_wall` cuts coplanar overlaps).

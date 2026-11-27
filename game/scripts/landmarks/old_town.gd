@@ -1215,7 +1215,27 @@ func _zamek_u_roof(yard: float, tile: Color) -> void:
 ## three rows of kit windows over the ground floor's (spec section 3). Kit windows, so the wall is
 ## plain (M_STONE, never the shader's grid on it).
 func _zamek_e_front(yard: float) -> void:
-	var len := kit_front(ZAMEK_U_OUT[3], ZAMEK_U_OUT[4])
+	# The face runs on past O4 to the Saxon wing's south end, where the Vistula front's south risalit
+	# stands, so no notch opens between them (F 2026-11-26, "the hole" by the rotunda: O4 to O5 turns
+	# in to the yard and had no wall, so A's plain south end showed through).
+	var saxon := _zamek_saxon_ring()
+	var o3: Vector2 = ZAMEK_U_OUT[3]
+	var o4: Vector2 = ZAMEK_U_OUT[4]
+	var end: Vector2 = Geometry2D.line_intersects_line(o3, o4 - o3, saxon[2], saxon[3] - saxon[2])
+	var len := kit_front(o3, end)
+	# the notch's roof: the east slope carried on from O4 to the new end, up to the ridge over O4
+	var ey := yard + ZAMEK_U_EAVE
+	var rr := (o4 + (ZAMEK_U_IN[4] as Vector2)) * 0.5
+	var ga: Vector2 = _zamek_grow(ZAMEK_U_OUT, ZAMEK_U_IN, 0.4)[4]  # the ring's own eave corner: one shared edge
+	var gb := end + _b * 0.4
+	_mode = M_STONE
+	var pa := Vector3(ga.x, ey, ga.y)
+	var pb := Vector3(gb.x, ey, gb.y)
+	var pc := Vector3(rr.x, yard + ZAMEK_U_RIDGE, rr.y)
+	var nrm := (pb - pa).cross(pc - pa).normalized()
+	if nrm.y < 0.0:
+		nrm = -nrm
+	_tri(pa, pb, pc, nrm, Color(ZAMEK_ROOF), Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
 	_mode = M_STONE
 	_g = yard
 	var top := yard + ZAMEK_U_EAVE
@@ -1430,7 +1450,7 @@ func _ledge(a: Vector2, b: Vector2, c: Vector2, d: Vector2, y: float, col: Color
 
 
 ## The Clock Tower: the shaft (0.3 m proud of the mapped one) with cream quoins and string
-## courses, the gate to the courtyard, the iron balcony two thirds up, a dial on every face, the
+## courses, the gate to the courtyard, the balcony (stone slab, iron rail) two thirds up, a dial on every face, the
 ## cornice with a gilt frieze, then the helm: the copper onion, the open lantern, a second onion,
 ## the spire with two gilt balls and a flag (56 m).
 func _zamek_clock_tower() -> void:
@@ -1442,7 +1462,13 @@ func _zamek_clock_tower() -> void:
 	_g = g
 	var wall := Color(ZAMEK_WALL)
 	var h := 4.6
-	_lbox(0.0, 0.0, h, h, g - 0.6, g + 29.5, wall, M_MONUMENT, wall)
+	# the shaft plain, then the shader's windows on the three faces that carry no kit windows (the
+	# west face has its own kit windows: never two grids on one face, the Roesslera lesson)
+	_lbox(0.0, 0.0, h, h, g - 0.6, g + 29.5, wall, M_STONE, wall)
+	_mode = M_MONUMENT
+	_wall(_w(h + 0.02, -h), _w(h + 0.02, h), g + 6.4, g + 29.5, _a, wall)
+	_wall(_w(-h - 0.02, h), _w(-h - 0.02, -h), g + 6.4, g + 29.5, -_a, wall)
+	_wall(_w(h, -h - 0.02), _w(-h, -h - 0.02), g + 6.4, g + 29.5, -_b, wall)
 	for su: float in [-1.0, 1.0]:
 		for sv: float in [-1.0, 1.0]:
 			_lbox(su * h, sv * h, 0.45, 0.45, g + 0.3, g + 29.5, ZAMEK_CREAM, M_STONE, ZAMEK_CREAM)
@@ -1453,9 +1479,11 @@ func _zamek_clock_tower() -> void:
 	_wall(_w(-2.8, h + 0.05), _w(2.8, h + 0.05), g - 0.3, g + 6.4, _b, ZAMEK_CREAM)
 	_wall(_w(-2.0, h + 0.1), _w(2.0, h + 0.1), g - 0.3, g + 5.0, _b, ZAMEK_GATE)
 	_lbox(0.0, h + 0.15, 0.7, 0.15, g + 5.4, g + 6.2, ZAMEK_GILT, M_STONE, ZAMEK_GILT)
-	# the balcony on the square's side
+	# the balcony on the square's side: a cream stone slab resting on the upper string course (its
+	# underside at the course's top, so it reads as part of the shaft, not stuck on), the iron railing
+	# over it (F 2026-11-26: the old black slab floated half a metre over the course)
 	kit_face(h)
-	kit_balcony(0.0, g + 19.91, 2.0, Balcony.IRON, ZAMEK_IRON, ZAMEK_IRON, 1.2)
+	kit_balcony(0.0, g + 19.71, 1.5, Balcony.IRON, ZAMEK_IRON, ZAMEK_CREAM, 0.8)
 	# the west face's windows (the reviewer's fix): one per stage between the string courses, over the
 	# gate's cornice, 1.0 x 2.0 m framed, and a door window over the balcony
 	for sill: float in [8.4, 14.8]:

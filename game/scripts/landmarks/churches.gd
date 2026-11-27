@@ -3315,11 +3315,27 @@ func _build_antoniego(site: Dictionary) -> void:
 ## the left of that.
 const SPP_O := Vector2(-1128.8, 830.2)
 const SPP_A := Vector2(-0.9412, 0.3379)
-const SPP_WALL := Color("#d8c9a4")      ## the sand stucco (photos)
-const SPP_TRIM := Color("#e5dbc0")      ## pilasters, cornices, ledges
-const SPP_ROOF := Color("#6b6c66")      ## the grey sheet roofs
+const SPP_WALL := Color("#e2d8c2")      ## the pale cool stucco (3D Tiles rework 2026-11-26)
+const SPP_TRIM := Color("#ece5d4")      ## pilasters, cornices, ledges: cream stone
+const SPP_ROOF := Color("#86a898")      ## the patina-green copper roofs (paler than the dome)
 const SPP_COPPER := Color("#6f9e8c")    ## the green copper dome and caps
 const SPP_DARK := Color("#3b3732")      ## doors, porch recesses, belfry openings
+
+
+## A gabled roof whose ridge runs along v (the transept arms): eaves at u0 and u1 (y), the ridge
+## `rise` above them at the middle, from v0 to v1. The end triangles are the pediments' (kit).
+func _pp_ridge_roof(u0: float, u1: float, v0: float, v1: float, y: float, rise: float, col: Color) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	var um := (u0 + u1) * 0.5
+	var at := func(u: float, v: float, yy: float) -> Vector3:
+		var q := _w(u, v)
+		return Vector3(q.x, yy, q.y)
+	for e: float in [u0, u1]:
+		var sg := signf(e - um)
+		var n := (Vector3(_a.x, 0.0, _a.y) * sg * rise + Vector3.UP * absf(e - um)).normalized()
+		_quad(at.call(e, v0, y), at.call(e, v1, y), at.call(um, v1, y + rise), at.call(um, v0, y + rise), n, col)
+	_mode = keep
 
 
 ## Panes along a wall from p to q (local metres), its outside on the left of p→q: one every
@@ -3353,7 +3369,9 @@ func _build_piotr_pawel(site: Dictionary) -> void:
 	# --- the crossing and the transept: flat-topped to 18.5, pediments on the arms' ends
 	_lbox(-11.5, 0.0, 7.5, 11.3, g - 1.0, g + 18.5, SPP_WALL, M_STONE, SPP_ROOF)
 	for s: float in [-1.0, 1.0]:
-		_lbox(-11.0, s * 13.15, 4.0, 2.15, g - 1.0, g + 18.4, SPP_WALL, M_STONE, SPP_ROOF)
+		_prism(_rect(-11.0, s * 13.15, 4.0, 2.15), g - 1.0, g + 18.5, SPP_WALL, none, M_STONE)
+	# each arm's gable roof along its own axis: eaves 18.5, ridge 22 (3D Tiles rework)
+	_pp_ridge_roof(-15.0, -7.0, -15.3, 15.3, g + 18.5, 3.5, SPP_ROOF)
 	var cross := _lpoly([[-19.0, -11.3], [-15.0, -11.3], [-15.0, -15.3], [-7.0, -15.3], [-7.0, -11.3], [-4.0, -11.3],
 			[-4.0, 11.3], [-7.0, 11.3], [-7.0, 15.3], [-15.0, 15.3], [-15.0, 11.3], [-19.0, 11.3]])
 	kit_ledge_ring(cross, g + 17.9, 0.5, SPP_TRIM, 0.2)
@@ -3362,13 +3380,14 @@ func _build_piotr_pawel(site: Dictionary) -> void:
 		var p1: Vector2 = e[1]
 		kit_front(SPP_O, SPP_O + SPP_A)
 		kit_front(_w(p0.x, p0.y), _w(p1.x, p1.y))
-		kit_pediment(4.0, 4.4, g + 18.5, 3.0, SPP_WALL, SPP_ROOF, 0.4)
+		kit_pediment(4.0, 4.4, g + 18.5, 3.5, SPP_WALL, SPP_ROOF, 0.4)
 		kit_panes([4.0], [g + 5.0], 2.0, 6.0, PAL_GLASS_DARK, 0.05)
 		kit_panes([4.0], [g + 11.0], 1.2, 0.6, PAL_GLASS_DARK, 0.05)
 	kit_front(SPP_O, SPP_O + SPP_A)
 	# --- the low wings beside the apse and the rounded apse with its roof
 	for s: float in [-1.0, 1.0]:
-		_lbox(-22.9, s * 10.1, 4.1, 4.9, g - 1.0, g + 11.0, SPP_WALL, M_STONE, SPP_ROOF)
+		_prism(_rect(-22.9, s * 10.1, 4.1, 4.9), g - 1.0, g + 11.0, SPP_WALL, none, M_STONE)
+		_hip(-22.9, s * 10.1, 4.1, 4.9, g + 11.0, 2.5, SPP_ROOF)  # green hip rising to 13.5
 	var apse: Array = [[-19.0, -5.5]]
 	for k in 7:
 		var ang := -PI * 0.5 - PI * float(k) / 6.0
@@ -3390,7 +3409,13 @@ func _build_piotr_pawel(site: Dictionary) -> void:
 		kit_panes([ln * 0.5], [g + 21.0], 1.2, 4.0, PAL_GLASS_DARK, 0.05)
 		kit_panes([ln * 0.5], [g + 25.0], 0.7, 0.4, PAL_GLASS_DARK, 0.05)
 	kit_front(SPP_O, SPP_O + SPP_A)
-	_frustum(_circle(dc, 7.1, 16), g + 28.5, _circle(dc, 6.4, 16), g + 33.0, SPP_COPPER)
+	# the balustrade ring: plinth and rail slabs with a pier on every drum corner, 1.3 m
+	kit_ledge_ring(drum, g + 28.5, 0.2, SPP_TRIM, 0.3)
+	kit_ledge_ring(drum, g + 29.5, 0.2, SPP_TRIM, 0.3)
+	for pv: Vector2 in drum:
+		_prism(_square(pv, 0.2), g + 28.5, g + 29.8, SPP_TRIM, SPP_TRIM, M_STONE)
+	_frustum(_circle(dc, 7.1, 16), g + 28.5, _circle(dc, 7.0, 16), g + 31.0, SPP_COPPER)  # near-vertical foot: a broad cap
+	_frustum(_circle(dc, 7.0, 16), g + 31.0, _circle(dc, 6.4, 16), g + 33.0, SPP_COPPER)
 	_frustum(_circle(dc, 6.4, 16), g + 33.0, _circle(dc, 4.9, 16), g + 37.2, SPP_COPPER)
 	_frustum(_circle(dc, 4.9, 16), g + 37.2, _circle(dc, 2.7, 16), g + 40.6, SPP_COPPER)
 	_frustum(_circle(dc, 2.7, 16), g + 40.6, _circle(dc, 1.0, 16), g + 42.4, SPP_COPPER)

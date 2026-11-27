@@ -818,6 +818,9 @@ const INFO := {
 	"bgk": ["Gmach Banku Gospodarstwa Krajowego",
 			"Al. Jerozolimskie 7, 1928–31: kamienny gmach Rudolfa Świerczyńskiego.",
 			"Al. Jerozolimskie 7, 1928–31: Rudolf Świerczyński's granite bank."],
+	"ufficio_primo": ["Ufficio Primo",
+			"Wspólna 62, 1952: kamienna kostka Marka Leykama, dziś biura.",
+			"Wspólna 62, 1952: Marek Leykam's stone cube, offices today."],
 	"mlotek": ["Młotek",
 			"Smolna 8, 1976: blok Bogusławskiego i Gniewiewskiego, głowa młotka nad skarpą.",
 			"Smolna 8, 1976: Bogusławski and Gniewiewski's block, a hammer's head over the escarpment."],
@@ -1174,6 +1177,8 @@ static func tower_colour(key: String, fallback: Color) -> Color:
 		return SHER_WHITE
 	if key == "bgk":
 		return BGK_STONE
+	if key == "ufficio_primo":
+		return UP_STONE
 	if key == "mlotek":
 		return ML_WALL
 	if key == "kozia9":
@@ -1449,6 +1454,8 @@ func _find_sites() -> void:
 	_find_bracka()
 	# The BGK building next to Vitkac (F, 2026-11-03), from the Mac photo gather.
 	_find_bgk()
+	# Ufficio Primo, Wspólna 62 (spec 2026-11-26): the whole stone cube from its four corners.
+	_find_ufficio_primo()
 	# Foksal 13 and 15 (F's photos, 2026-11-05): the two restored tenements' street fronts.
 	_find_foksal()
 	# Warsaw modernism (F, 2026-11-03), from the Mac photo gathers.
@@ -2155,6 +2162,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_sheraton(s)
 			"bgk":
 				_build_bgk(s)
+			"ufficio_primo":
+				_build_ufficio_primo(s)
 			"foksal":
 				_mark_zone(s)  # the masses and the mansards stay LoD2's, in their skin; the fronts are ours
 				_build_foksal(s)

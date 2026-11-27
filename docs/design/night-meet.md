@@ -16,11 +16,11 @@ after the build. Code: `game/scripts/street_meet.gd`, check `game/tools/check_st
 
 | Who / what | In game | Parody of |
 | --- | --- | --- |
-| The club | WARSAW NIGHT RACING CLUB (WNRC on TYGRAM) | generic, F's own words |
+| The club | WARSAW NIGHT RACING CLUB (WNRC on COTAM) | generic, F's own words |
 | Your friend | Darek „Bawarka", dark-blue Bawarka 3.2 saloon, two-part grille | a Bavarian saloon |
 | The drifter | Lena „Bokiem" ("sideways"), silver Porszę 912, duck tail | a Stuttgart coupe |
 | The drag boss | Tadek, matte black Nisan Skajlajner, tinted glass, tall wing | a Japanese GT |
-| The messenger | TYGRAM (as in the Dżemini job) | a messenger app |
+| The messenger | COTAM (as in the Dżemini job) | a messenger app |
 | The motto | „Ćwiartka nie kłamie." / "The quarter mile doesn't lie." | original |
 
 No characters, quotes, catchphrases or memes from the films or games that inspired the genre
@@ -39,7 +39,7 @@ No characters, quotes, catchphrases or memes from the films or games that inspir
    glides off the plaza to the road and drives off fast. Get 220 m away (a meet off the road is no
    hiding place) and let the chase end (escape, end of shift or a caution: the night goes on). A
    raid's chase can't be shaken in its first 15 s and needs 160 m from every chaser (PT-34).
-4. **The pin and the race.** TYGRAM: "📍 Parking pod Narodowym. Kto pierwszy, ten lepszy." Every
+4. **The pin and the race.** COTAM: "📍 Parking pod Narodowym. Kto pierwszy, ten lepszy." Every
    racer races there from wherever it fled (racer mode, 0.86-0.97 of your top). The status shows
    your place live. Place pays 200 / 120 / 60 / 0 zł and 40 / 25 / 12 / 5 respect.
 5. **Meet 2, the coach park south of the National Stadium.** The racers park in a new ring, Tadek's

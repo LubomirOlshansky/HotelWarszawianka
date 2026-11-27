@@ -79,7 +79,7 @@ const ErrorTrap := preload("res://scripts/error_trap.gd")  # the error trap (TD-
 const Boot := preload("res://scripts/boot.gd")  # the boot scene (TD-15): its title and trap are taken over
 const Dialogue := preload("res://scripts/dialogue.gd")
 const Jobs := preload("res://scripts/jobs.gd")
-## Loop 2d-1: Podwózka, the app-taxi side job.
+## Loop 2d-1: Łuber, the app-taxi side job.
 const Rides := preload("res://scripts/rides.gd")
 const Lines := preload("res://scripts/quest_lines.gd")
 const Eggs := preload("res://scripts/eggs.gd")
@@ -528,7 +528,7 @@ var wellness: Wellness
 ## that paint, owned for the run), --garage (the car on the garage's forecourt, the card open; the
 ## garage shown whatever the wallet), --garage-log (`garage:` lines).
 var garage: Garage
-# --- loop 2d-1: Podwózka (rides.gd) and its testing flags ---
+# --- loop 2d-1: Łuber (rides.gd) and its testing flags ---
 var rides: Rides
 ## G12 part 2: the quest pin, a place picked on the full map's ZADANIA card (quest_lines.gd entry;
 ## {} none): the arrow and minimap dot point at it while nothing else is on, until it is reached.
@@ -2538,9 +2538,9 @@ func _end_phone_bench(done: bool) -> void:
 
 ## The side jobs (kebab stands, the słoiki run) and the easter eggs.
 func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
-	# The deliveries and Podwózka (jobs.gd, rides.gd: each wires itself) set up in one order (the
-	# deliveries first: Podwózka picks its addresses from theirs) and join the director in the other
-	# (Podwózka first). Each one's own `_free` holds every rule for what is outside the kit, so the
+	# The deliveries and Łuber (jobs.gd, rides.gd: each wires itself) set up in one order (the
+	# deliveries first: Łuber picks its addresses from theirs) and join the director in the other
+	# (Łuber first). Each one's own `_free` holds every rule for what is outside the kit, so the
 	# test the director gets here is "yes".
 	jobs = _install(Jobs.new(), self) as Jobs
 	add_child(preload("res://scripts/target_route.gd").new(hud, graph))  # the road route to any target (TD-13)
@@ -2697,7 +2697,7 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 				var g: Vector2 = site["guitar"]
 				city_sounds.add_crowd(str(site["id"]), "guitar", Vector3(g.x, map.ground_height(g.x, g.y), g.y),
 						func() -> bool: return bool(site.get("guitar_on", false)))
-	# Podwózka at dawn: requests from the club doors.
+	# Łuber at dawn: requests from the club doors.
 	if rides != null:
 		rides.mission_on = func() -> bool:
 			return _quest_running() \
@@ -3069,7 +3069,7 @@ func _build_crash_scenes() -> void:
 	crash_scenes.name = "CrashScenes"
 	crash_scenes.install(_build_ctx())
 	crash_scenes.walkers = walkers
-	# Road life stage 3, "Pan wolny?!": a taxi check's passenger asks Podwózka for the ride.
+	# Road life stage 3, "Pan wolny?!": a taxi check's passenger asks Łuber for the ride.
 	crash_scenes.stranded = func(at: Vector2) -> bool: return rides != null and rides.offer_stranded(at)
 	crash_scenes.stranded_on = func() -> bool: return rides != null and rides.stranded_on()
 	# Road life (2026-11-26): the sobriety check reads the pub's beer.
@@ -4818,7 +4818,7 @@ func _wire_full_map() -> void:
 
 ## G12 part 2: what the ZADANIA card lists now (quest_lines.gd entries). AUTO: the kebab stands,
 ## the słoiki stations and the Leżak depots (jobs.gd `offer_places`), Warsztat u Mirka, and "ask for
-## a ride" (Podwózka's rule). HELI: the cassettes on the roofs not taken, and "a rescue call" (one
+## a ride" (Łuber's rule). HELI: the cassettes on the roofs not taken, and "a rescue call" (one
 ## only the helicopter reaches). Nothing while a race, a job or a rescue is on.
 ## G12c: AUTO also lists the open "Na czasie" slots, Mrożulo's van (Mlask) and the Friday drop
 ## (trend_job.gd `offer_places`), and the ladder's next rival where they cruise now (or Seba's start
@@ -4855,7 +4855,7 @@ func _quest_entries() -> Array:
 			out.append(Lines.entry("final", "final", Lines.Line.CAR, "Trzy mosty · Seba czeka", "Three bridges · Seba waits",
 					rivals.start_marker(), Rivals.FINAL_COLOUR))
 	if rides != null and rides.can_request():
-		out.append(Lines.entry("ride", "ride", Lines.Line.CAR, "Podwózka · poproś o kurs", "Podwózka · ask for a ride",
+		out.append(Lines.entry("ride", "ride", Lines.Line.CAR, "Łuber · poproś o kurs", "Łuber · ask for a ride",
 				Vector2.INF, Rides.COLOUR, "ride"))
 	if tapczan != null:
 		out.append(tapczan.quest_entry())  # the pub and the Kraftowa crawl's door (SIDE JOBS)
@@ -4897,7 +4897,7 @@ func _quest_now() -> Dictionary:
 		at = trend_job.target_position()
 		colour = trend_job.target_colour()
 	elif rides != null and rides.has_target():
-		what = ["Teraz · Podwózka", "Now · Podwózka ride"]
+		what = ["Teraz · Łuber", "Now · Łuber ride"]
 		at = rides.target_position()
 		colour = rides.target_colour()
 	elif jobs != null and jobs.round_busy() and jobs.roundup.has_target():
@@ -6912,7 +6912,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				_zoom_view(-1)
 
 
-## M / the pad's A: the mission card's first button (loop 2d-1: a Podwózka request or result first).
+## M / the pad's A: the mission card's first button (loop 2d-1: a Łuber request or result first).
 ## The context button comes after the cards (a card on screen is what A answers first) and before
 ## the rescue line's own A (which offers the next call): the pad had no way to press KASETA, START
 ## KURS or POMOC DROGOWA (2026-11-03). The director asks each activity in turn (a ride, a

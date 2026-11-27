@@ -127,7 +127,7 @@
 # Street races on the kit (2026-11-14): `rivals` runs game/tools/check_rivals.gd: rivals.gd played headless on the real lane graph
 # (the real traffic, the real director, the shared stand-ins): a ladder race won, lost and given up, the result card the race's
 # own, what holds a challenge back, Halina's roll-up, a locked rival, Trzy mosty at night (CI too; skipped without the map).
-# Podwózka on the kit (2026-11-13): `rideplay` runs game/tools/check_ride_play.gd (with --fixed-fps 60 for the
+# Łuber on the kit (2026-11-13): `rideplay` runs game/tools/check_ride_play.gd (with --fixed-fps 60 for the
 # autopilot's frames): the real Rides on the stand-ins of tools/fakes.gd, played headless: the settings, the
 # button and what holds a request back, the request card, the way to the passenger, the ride and its stars,
 # the pay, the cancels, the quirks, every kind of passenger, the story passengers, the autopilot, the bare
@@ -1682,9 +1682,9 @@ for s in $want; do
 		opening) check opening '^opening:' --script res://tools/check_opening.gd ;;
 		life-soak) life_soak ;;
 		calls-soak) calls_soak ;;
-		# Loop 2d-1: Podwózka's star and pay tables, the streak and the cancel rules, its lines.
+		# Loop 2d-1: Łuber's star and pay tables, the streak and the cancel rules, its lines.
 		rides) check rides '^check_rides:' --script res://tools/check_rides.gd ;;
-		# Podwózka played on the activity kit (fake HUD, small city, the autopilot over the engine's own frames).
+		# Łuber played on the activity kit (fake HUD, small city, the autopilot over the engine's own frames).
 		rideplay) check rideplay '^check_ride_play:' --fixed-fps 60 --script res://tools/check_ride_play.gd ;;
 		cost) check cost '^check_cost_cuts:' --script res://tools/check_cost_cuts.gd ;;
 		# The Old Town's dormers and chimneys (scripts/old_town_roofs.gd): on the slope, outward, small.
@@ -1741,7 +1741,7 @@ for s in $want; do
 		# (2026-10-31): 11 places' addresses joined the address list, so the order's shuffle picks
 		# Emiliana Konopczyńskiego 3, 1,266 m by road: 21000 frames (350 s of play).
 		kebab) game kebab 21000 '^kebab delivered:' --kebab=0 --autopilot ;;
-		# Loop 2d-1: a Podwózka ride by the app's route: a passenger 34 m off the pin, a GPS believer,
+		# Loop 2d-1: a Łuber ride by the app's route: a passenger 34 m off the pin, a GPS believer,
 		# the river quirk (its waypoint on dry land, the `ride: quirk river` line says how far from
 		# the water), the stars and the pay (`ride: pay`, the wallet before and after).
 		# Loop 3d-1: 30000 frames: on the demo map (east edge 21.056) the river quirk's legs run

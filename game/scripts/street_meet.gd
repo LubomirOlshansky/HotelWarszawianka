@@ -16,7 +16,7 @@ extends "res://scripts/activity.gd"
 ## plaza to the road, then racer mode away). Escape it (or let it end: the end of the shift, a
 ## caution: the night goes on either way).
 ##
-## **The pin and the race.** A TYGRAM message: the next meet, the car park by the National Stadium
+## **The pin and the race.** A COTAM message: the next meet, the car park by the National Stadium
 ## (MEETS[1]). Every racer heads there too, from wherever it fled: first there gets the most
 ## (PLACE_PAY by place). The status shows the place live. The racers who get there park in the
 ## new ring.
@@ -30,7 +30,7 @@ extends "res://scripts/activity.gd"
 ## green; moving before green is FALSTART (a loss). Four gears (GEARS, a share of the drag top,
 ## DRAG_TOP × the car's): at the top of each the button says BIEG!: on time (PERFECT s) is a burst
 ## (SHIFT_BOOST), late is just a shift, never is an auto-shift after AUTO_SHIFT s. The nitro button
-## works (a bottle on loan, LOAN, without the garage's). Tadek's run is the "ok" run of the same car
+## works (a bottle on loan from the second night, without the garage's). Tadek's run is the "ok" run of the same car
 ## (sim_run) sped up to between it and a clean run (RIVAL_SKILL), so clean shifts or the nitro
 ## win. On the line and in the run the car holds the strip's line and any gas is full gas
 ## (hold_car): a drag is the launch and the shifts, not the steering (PT-33: the point-to-steer
@@ -68,6 +68,7 @@ extends "res://scripts/activity.gd"
 ## Flags (main.gd): --meet-call (Darek rings now), --meet=on (night rules at any hour), --meet=0,
 ## --meet-at=raid|race|meet2|drag|stage (jump to that beat), --meet-log.
 
+const FirstSteps := preload("res://scripts/first_steps.gd")
 const Models := preload("res://scripts/models.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Notebook := preload("res://scripts/notebook.gd")
@@ -86,7 +87,7 @@ const FRIEND := "Darek „Bawarka”"
 const DRIFTER := "Lena „Bokiem”"
 const BOSS := "Tadek"
 const COLOUR := Color("#ff3d6e")        ## the club's colour: hot neon red
-const PIN_COLOUR := Color("#38f6ff")    ## TYGRAM's pin
+const PIN_COLOUR := Color("#38f6ff")    ## COTAM's pin
 const BUBBLE := Color("#ff8aa8")
 const MOTTO := ["Ćwiartka nie kłamie.", "The quarter mile doesn't lie."]
 
@@ -189,23 +190,35 @@ const SCATTER_FROM := 80.0
 const ARRIVE_R := 22.0
 const THERE_M := 12.0
 ## [złoty, respect] by place (1st, 2nd, 3rd, the rest).
-const PLACE_PAY := [[200, 40], [120, 25], [60, 12], [0, 5]]
+const PLACE_PAY := [[200, 40], [120, 25], [60, 12], [20, 5]]
 ## The drag win and the loss.
-const DRAG_PAY := [300, 80]
+const DRAG_PAY := [0, 80]
 const DRAG_LOSE := [0, 10]
 ## The drag car: top speed × DRAG_TOP (Darek's map on the ECU), four gears as shares of it.
-const DRAG_TOP := 1.5
-const GEARS := [0.34, 0.57, 0.79, 1.0]
+const DRAG_TOP := 1.87
+## Five gears that fill the run (critique-drag-race.md 3.1): a taller gear pulls less (GEAR_PULL, a share of
+## the car's pull), so the shifts spread over the strip and the car is still gaining at the line.
+const GEARS := [0.26, 0.44, 0.62, 0.81, 1.0]
+const GEAR_PULL := [1.0, 0.60, 0.40, 0.29, 0.22]
 ## The BIEG! button: shown from SHIFT_SHOW of the gear's top, "TERAZ" from SHIFT_AT; pressed within
 ## PERFECT s of that, a perfect shift (accel × SHIFT_BOOST for BOOST_S s); before SHIFT_AT, early
 ## (accel × EARLY_BOG for BOG_S s); nothing for AUTO_SHIFT s, the box shifts itself.
 const SHIFT_SHOW := 0.82
 const SHIFT_AT := 0.96
-const PERFECT := 0.35
+const PERFECT := 0.12
 const SHIFT_BOOST := 1.7
 const BOOST_S := 1.1
-const EARLY_BOG := 0.6
+## A shift before the yellow (ZA WCZEŚNIE): pull x EARLY_BOG for EARLY_S s; a launch that bogs: x LAUNCH_BOG for
+## BOG_S s; in the yellow (KRÓTKO / SHORT) the pull is x SHORT_MIN to 1 by how near the green, for SHORT_S s;
+## later than GOOD_LATE s past the green (ZA PÓŹNO): x LATE_MULT for LATE_S s.
+const EARLY_BOG := 0.55
+const EARLY_S := 0.9
+const LAUNCH_BOG := 0.6
 const BOG_S := 0.6
+const SHORT_MIN := 0.55
+const SHORT_S := 0.7
+const LATE_MULT := 0.8
+const LATE_S := 0.5
 ## F 2026-11-08 ("a gearbox you shift yourself, with a rev counter and its zones"): the box never
 ## shifts for you on time; only after AUTO_SHIFT s bouncing on the limiter it saves a sleeping run
 ## (a late, slow shift). The tacho (DragTacho) shows the zones: yellow from SHIFT_SHOW, green from
@@ -214,13 +227,15 @@ const AUTO_SHIFT := 2.5
 ## The genre's grades (CSR-style drag games, F 2026-11-08 "look how arcade games do the shifting"):
 ## a press in the yellow (from SHIFT_SHOW) or up to GOOD_LATE s past the green is "good" (no burst,
 ## no bog); before the yellow "early" (a bog); later than GOOD_LATE on the limiter "late".
-const GOOD_LATE := 0.8
+const GOOD_LATE := 0.35
 ## The launch (the same games): on the line the car is held and the gas only revs the engine; the
 ## needle climbs REV_UP a second with the gas, falls REV_DOWN without. At green the needle in the
 ## launch zone LAUNCH (shares of the dial's 0-1 rev range) is a perfect start (a burst); over
 ## it the tyres spin (accel × SPIN for SPIN_S s); under it a bog.
-const REV_UP := 0.9
+const REV_UP := 1.3
 const REV_DOWN := 1.4
+## The blue zone by night (it narrows: critique 3.3), the first night's as it was.
+const LAUNCHES := [Vector2(0.55, 0.78), Vector2(0.58, 0.77), Vector2(0.61, 0.76), Vector2(0.64, 0.75)]
 const LAUNCH := Vector2(0.55, 0.78)
 const SPIN := 0.55
 const SPIN_S := 0.9
@@ -241,12 +256,26 @@ const LINE_R := 6.0
 const STRIP_HALF := 9.0
 ## Tadek: his reaction, and how far between the "ok" run and a perfect one his time sits.
 const RIVAL_REACT := 0.28
-const RIVAL_SKILL := 0.5
+## Tadek by night (critique 3.5): his reaction, launch ("perfect" or plain), each shift's delay after the
+## green, and the gear whose shift fires his bottle (-1: none; 2 is "into third").
+const TADEK := [
+	{"react": 0.28, "launch": false, "delays": [0.22, 0.22, 0.22, 0.22], "bottle": -1},
+	{"react": 0.24, "launch": false, "delays": [0.15, 0.15, 0.15, 0.15], "bottle": 2},
+	{"react": 0.2, "launch": true, "delays": [0.1, 0.2, 0.1, 0.2], "bottle": 3},
+	{"react": 0.2, "launch": true, "delays": [0.1, 0.1, 0.1, 0.2], "bottle": 2},
+]
+## The bottle in the drag (critique 3.4): one, NITRO_S s of pull x NITRO_PULL and top x NITRO_CAP (the
+## city's x2.2 and x1.3 stay); STRZAL_S s when fired within SHOT_WINDOW s after an IDEALNIE; in first or
+## second gear the tyres can't take it. The first night has none.
+const NITRO_S := 2.5
+const STRZAL_S := 3.2
+const NITRO_PULL := 1.6
+const NITRO_CAP := 1.15
+const SHOT_WINDOW := 0.4
 ## The clean run Tadek is measured against: a human reaction and shifts on time (not a robot's).
 const CLEAN_REACT := 0.35
-const CLEAN_DELAY := 0.15
+const CLEAN_DELAY := 0.1
 ## A nitro bottle on loan (with no garage nitro): one full tank.
-const LOAN := true
 const RESULT_LIFE := 30.0
 const TICK := 0.25
 
@@ -263,9 +292,22 @@ const MEET2_LINES := [
 	[BOSS, "Dobra, nowy. Po tym wszystkim: ty i ja. Drag.", "Fine, new guy. After all this: you and me. A drag."],
 	["Widz", "Tu jest ciszej. Tylko stadion patrzy.", "It's quieter here. Only the stadium's watching."],
 ]
+## The night's pot ("pula", critique 2026-11-25 3.1): the whole night feeds one number and nothing is paid
+## until the drag. Arriving at meet 1 within POT_PUNCTUAL s of the yes +40; leaving the ring before the
+## sirens land is CZYSTO +60; the race pays its place; a caution in the night halves the pot (MANDAT);
+## the drag wins it doubled (and pays it) or loses it halved. The respect is paid as it is earned.
+const POT_PUNCTUAL := 60.0
+const POT_ON_TIME := 40
+const POT_CLEAN := 60
+## The siren tell (3.3): the sirens are heard this long before NALOT, so a player who was already rolling is
+## out of the ring when the cordon would close (CLEAN_M from the gap).
+const RAID_TELL := 2.0
+const CLEAN_M := 22.0
+## The night bar's five beats (3.2), shown in the status line: SPOT · NALOT · WYŚCIG · SPOT 2 · DRAG.
+const PIPS := 5
 const RAID_LINES := [
 	["Widz", "PSY! Zwijamy się!", "COPS! We're out!"],
-	[FRIEND, "Rozjazd! Pin wrzucę na TYGRAMA!", "Split up! I'll drop a pin on TYGRAM!"],
+	[FRIEND, "Rozjazd! Pin wrzucę na COTAMA!", "Split up! I'll drop a pin on COTAM!"],
 	[DRIFTER, "Znowu? Przecież nikt jeszcze nie przegrał!", "Again? Nobody's even lost yet!"],
 ]
 const RACE_LINES := [
@@ -319,6 +361,14 @@ var last_pay := []
 var drag_time := 0.0
 var drag_won := false
 var nights := 0
+## The night's pot in zł (unpaid until the drag), its sums for the result card, seconds since the yes,
+## the siren tell's clock (-1: none), the cautions seen so far.
+var pot := 0
+var pot_parts: Array = []
+var _night_t := 0.0
+var _tell_t := -1.0
+var _cautions_seen := 0
+var raid_clean := false
 
 var _rng := RandomNumberGenerator.new()
 ## The quarter-second step (`_tick`): the time gathered, the time it covered when it ran this
@@ -401,6 +451,10 @@ var _gear := 0
 var _shift_w := -1.0
 var _boost_t := 0.0
 var _bog_t := 0.0
+## A shift's penalty: its pull factor and the seconds it lasts; seconds since an IDEALNIE (STRZAŁ).
+var _pen_m := 1.0
+var _pen_t := 0.0
+var _since_perfect := 99.0
 ## The launch: the revs on the line (0-1 of the gear's range) and the gas held now.
 var _revs := 0.0
 var _spin_t := 0.0
@@ -408,6 +462,8 @@ var _rev_gas := false
 var _top_was := 1.0
 var _accel_was := 1.0
 var _nitro_was := false
+var _night := 1
+var _nitro_save: Array = []
 var _nitro_charge_was := 1.0
 var _gentle_was := false
 var _rival_s := 0.0
@@ -520,50 +576,79 @@ static func shift_grade(w: float) -> String:
 static func shift_grade_at(k: float, w: float) -> String:
 	if w >= 0.0:
 		return shift_grade(w) if w <= PERFECT else ("good" if w <= GOOD_LATE else "late")
-	return "good" if k >= SHIFT_SHOW else "early"
+	return "short" if k >= SHIFT_SHOW else "early"
+
+
+## The pull a "short" shift (a tap in the yellow) leaves: SHORT_MIN at the yellow's start, 1 at the green.
+static func short_mult(k: float) -> float:
+	return SHORT_MIN + (1.0 - SHORT_MIN) * clampf((k - SHIFT_SHOW) / (SHIFT_AT - SHIFT_SHOW), 0.0, 1.0)
+
+
+## The launch zone for night `night` (1 the first).
+static func launch_zone(night: int) -> Vector2:
+	return LAUNCHES[clampi(night - 1, 0, LAUNCHES.size() - 1)]
 
 
 ## The launch's grade from the revs at green: "perfect", "spin" or "bog".
-static func launch_grade(revs: float) -> String:
-	if revs > LAUNCH.y:
+static func launch_grade(revs: float, night := 1) -> String:
+	var z := launch_zone(night)
+	if revs > z.y:
 		return "spin"
-	return "perfect" if revs >= LAUNCH.x else "bog"
+	return "perfect" if revs >= z.x else "bog"
 
 
 ## One 402 m run of a car with `accel` (m/s²) and `top` (m/s, the drag top), the car.gd equation,
-## at 120 Hz: `react` s at the line, then each gear's cap until a shift `delay` s after reaching
-## it (a perfect shift with `boost`), `nitro` s of the nitro from `nitro_at` s. Returns
-## [time (s), the distance at each 1/30 s as a PackedFloat32Array].
+## at 120 Hz: `react` s at the line, then each gear's cap (and GEAR_PULL) until a shift `delay` s after
+## reaching it (`delays`, one per shift, when given). A shift within PERFECT s gives the burst when `boost`;
+## later than GOOD_LATE s it costs (LATE_MULT). `perfect_launch` starts with the burst. The bottle: `nitro`
+## s of it from `nitro_at` s after the start, or (`bottle_gear` >= 0) from the shift into that gear (0 is
+## first), the drag's strength (pull x NITRO_PULL, top x NITRO_CAP; 3.2 s as a STRZAŁ after a perfect shift).
+## Returns [time (s), the distance at each 1/30 s as a PackedFloat32Array].
 static func sim_run(accel: float, top: float, react: float, delay: float, boost: bool, nitro := 0.0,
-		nitro_at := 2.0, nitro_top := 1.3, nitro_accel := 2.2) -> Array:
+		nitro_at := 2.0, nitro_top := NITRO_CAP, nitro_accel := NITRO_PULL, delays := [],
+		perfect_launch := false, bottle_gear := -1) -> Array:
 	var dt := 1.0 / 120.0
 	var t := 0.0
 	var s := 0.0
 	var v := 0.0
 	var gear := 0
 	var at_cap := -1.0
-	var boost_t := 0.0
+	var boost_t := BOOST_S if perfect_launch else 0.0
+	var late_t := 0.0
+	var bottle_t := 0.0
+	var last_perfect := false
+	var shifts := 0
 	var samples := PackedFloat32Array([0.0])
 	var next_sample := 1.0 / 30.0
 	while s < QUARTER and t < 60.0:
 		t += dt
 		if t > react:
-			var n := nitro > 0.0 and t - react >= nitro_at and t - react < nitro_at + nitro
+			var n := (nitro > 0.0 and t - react >= nitro_at and t - react < nitro_at + nitro) or bottle_t > 0.0
 			var cap: float = top * float(GEARS[gear]) * (nitro_top if n else 1.0)
-			var a := accel * (nitro_accel if n else 1.0) * (SHIFT_BOOST if boost_t > 0.0 else 1.0)
+			var a := accel * float(GEAR_PULL[gear]) * (nitro_accel if n else 1.0) * (SHIFT_BOOST if boost_t > 0.0 else 1.0) \
+					* (LATE_MULT if late_t > 0.0 else 1.0)
 			if v < cap:
 				v = minf(cap, v + a * dt * (1.0 - 0.6 * clampf(v / cap, 0.0, 1.0)))
 			else:
 				v = move_toward(v, cap, 4.0 * dt)
 			boost_t = maxf(0.0, boost_t - dt)
-			if gear < GEARS.size() - 1 and v >= cap * SHIFT_AT:
+			late_t = maxf(0.0, late_t - dt)
+			bottle_t = maxf(0.0, bottle_t - dt)
+			if gear < GEARS.size() - 1 and v >= top * float(GEARS[gear]) * SHIFT_AT:
 				if at_cap < 0.0:
 					at_cap = t
-				if t - at_cap >= minf(delay, AUTO_SHIFT):
+				var d: float = float(delays[shifts]) if shifts < delays.size() else delay
+				if t - at_cap >= minf(d, AUTO_SHIFT):
 					gear += 1
+					shifts += 1
 					at_cap = -1.0
-					if boost and delay <= PERFECT:
+					last_perfect = boost and d <= PERFECT
+					if last_perfect:
 						boost_t = BOOST_S
+					elif d > GOOD_LATE:
+						late_t = LATE_S
+					if gear == bottle_gear:
+						bottle_t = STRZAL_S if last_perfect else NITRO_S
 		s += v * dt
 		if t >= next_sample:
 			samples.append(s)
@@ -571,13 +656,22 @@ static func sim_run(accel: float, top: float, react: float, delay: float, boost:
 	return [t, samples]
 
 
-## Tadek's run against a car of `accel`/`top`: the "ok" run's profile and the factor that speeds it
-## up to RIVAL_SKILL of the way to a clean run's time: [profile, k, his time, ok, perfect].
-static func rival_run(accel: float, top: float) -> Array:
+## Tadek's run on night `night` (1 to 4): the same car by the same rules (critique 3.5), his launch,
+## shifts and bottle from TADEK's row. With `seed` >= 0 he may fluff one shift 0.9 s late (nights 1 to 3).
+## [profile, 1.0 (a profile as it is), his time, the time with no bottle and shifts 0.6 s late, a clean run's].
+static func rival_run(accel: float, top: float, night := 1, seed := -1) -> Array:
+	var row: Dictionary = TADEK[clampi(night - 1, 0, TADEK.size() - 1)]
+	var delays: Array = (row["delays"] as Array).duplicate()
+	if seed >= 0 and night <= 3:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed
+		if rng.randf() < 0.25:
+			delays[rng.randi_range(0, delays.size() - 1)] = 0.9
+	var run: Array = sim_run(accel, top, float(row["react"]), 0.2, true, 0.0, 0.0, NITRO_CAP, NITRO_PULL,
+			delays, bool(row["launch"]), int(row["bottle"]))
 	var ok: Array = sim_run(accel, top, RIVAL_REACT, 0.6, false)
 	var best: Array = sim_run(accel, top, CLEAN_REACT, CLEAN_DELAY, true)
-	var target := lerpf(float(ok[0]), float(best[0]), RIVAL_SKILL)
-	return [ok[1], float(ok[0]) / target, target, float(ok[0]), float(best[0])]
+	return [run[1], 1.0, float(run[0]), float(ok[0]), float(best[0])]
 
 
 ## Distance along a 30 Hz profile at time `t` (past its end: the last speed carried on).
@@ -1126,6 +1220,9 @@ func _tick(dt: float) -> void:
 	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
 	_at = v[0]
 	_kmh = v[1]
+	if stage != Stage.NONE:
+		_night_t += _due
+		_mandat_poll()
 	if not _cordon.is_empty():
 		var c0: Vector3 = (_cordon[0]["to"] as Vector3)
 		var raiding := stage == Stage.RAID or stage == Stage.RAID2
@@ -1158,6 +1255,8 @@ func _run_tick(_dt: float) -> void:
 			_status("%s · SPOT" % String(m["name"][0]).to_upper(), "Stań w luce między autami", "Park in the gap between the cars",
 					_at, m["gap"], COLOUR)
 			if _arrived(_due, _at, _kmh, m["gap"], MEET_R):
+				if _night_t <= POT_PUNCTUAL:
+					_pot_add(POT_ON_TIME, "NA CZAS", "ON TIME")
 				_start_meet(0)
 		Stage.MEET, Stage.MEET2:
 			_talk_t -= _due
@@ -1167,7 +1266,13 @@ func _run_tick(_dt: float) -> void:
 				_talk_i += 1
 				_talk_t = MEET_TALK / float(lines.size())
 			elif _talk_t <= 0.0:
-				_raid()
+				if _tell_t < 0.0:
+					_tell()
+				else:
+					_tell_t -= _due
+					if _tell_t <= 0.0:
+						_tell_t = -1.0
+						_raid()
 		Stage.RAID, Stage.RAID2:
 			_t_raid(_due)
 		Stage.RACE:
@@ -1235,7 +1340,73 @@ func stop_spot() -> Vector3:
 
 func _status(title: String, hint: String, hint_en: String, at: Vector3, to: Vector3, tint: Color, badge := "") -> void:
 	var m := roundi(Vector2(at.x, at.z).distance_to(Vector2(to.x, to.z)))
-	status(title, "", "%d m" % m, [hint, hint_en], _hold_t / HOLD, tint, badge)
+	status(title, night_bar(), "%d m" % m, [hint, hint_en], _hold_t / HOLD, tint, badge)
+
+
+## Which of the night's five beats (PIPS) a stage is.
+static func beat_of(st: int) -> int:
+	match st:
+		Stage.TO_MEET, Stage.MEET:
+			return 0
+		Stage.RAID:
+			return 1
+		Stage.RACE:
+			return 2
+		Stage.MEET2, Stage.RAID2:
+			return 3
+		Stage.TO_DRAG, Stage.WATCH, Stage.LINE, Stage.DRAG, Stage.RESULT:
+			return 4
+	return 0
+
+
+## The night bar (3.2): five pips, the beat under way lit, and the pot: "●●○○○ · 140 zł".
+func night_bar() -> String:
+	var b := beat_of(stage)
+	var bar := ""
+	for i in PIPS:
+		bar += "●" if i <= b else "○"
+	return (_w("pot_bar")[0] as String) % [bar, pot]
+
+
+## The night's words by key (dialogue.json "first_steps" group, keys pot_*): [Polish, English].
+func _w(key: String) -> Array:
+	return FirstSteps.words(key)
+
+
+## Into the pot, with the word it shows in (a toast; the card sums it up).
+func _pot_add(zl: int, pl: String, en: String) -> void:
+	if zl <= 0:
+		return
+	pot += zl
+	pot_parts.append([zl, pl, en])
+	var w := _w("pot_add")
+	hud.ambient_toast(str(w[0]) % [pl, zl], str(w[1]) % [en, zl])
+	_log("pot +%d (%s) = %d" % [zl, en, pot])
+
+
+## The wallet's cautions today (the joke notebook), 0 where there is none (tests).
+func _cautions_now() -> int:
+	if wallet != null and "cautions_today" in wallet:
+		return int(wallet.cautions_today)
+	return 0
+
+
+## A caution written in the night halves the pot (MANDAT), once per caution; never to nothing by itself.
+func _mandat_poll() -> void:
+	if stage == Stage.NONE or stage == Stage.RESULT:
+		return
+	var c := _cautions_now()
+	if c < _cautions_seen:
+		_cautions_seen = c  # the day turned over: the notebook starts again
+	elif c > _cautions_seen:
+		_cautions_seen = c
+		if pot > 0:
+			var was := pot
+			pot = maxi(pot / 2, 1)
+			var w := _w("pot_fine")
+			hud.toast(str(w[0]) % [was, pot], str(w[1]) % [was, pot])
+			pot_parts.append([pot - was, "MANDAT", "FINE"])
+			_log("mandat: pot %d -> %d" % [was, pot])
 
 
 func _arrived(dt: float, at: Vector3, kmh: float, to: Vector3, r: float) -> bool:
@@ -1321,6 +1492,12 @@ func meet_in_person() -> bool:
 ## JADĘ!: the meet goes up on Plac Defilad, the beacon in the ring's gap.
 func _begin() -> void:
 	nights += 1
+	pot = 0
+	pot_parts.clear()
+	_night_t = 0.0
+	_tell_t = -1.0
+	raid_clean = false
+	_cautions_seen = _cautions_now()
 	_show_meet(0)
 	var g: Vector3 = meets[0]["gap"]
 	set_target(Vector2(g.x, g.z), false, g, MEET_R * 0.7)
@@ -1394,9 +1571,37 @@ func _start_meet(i: int) -> void:
 	_log("at meet %s" % meets[i]["id"])
 
 
+## Is a player at `at` already clear of the ring (the gap `gap`) when the sirens land?
+static func is_clean(at: Vector3, gap: Vector3) -> bool:
+	return Vector2(at.x, at.z).distance_to(Vector2(gap.x, gap.z)) >= CLEAN_M
+
+
+## The tell (critique 3.3): the sirens are heard RAID_TELL s before NALOT, from the side the cordon will
+## come from, with a line from Darek. A player who reads it and rolls is out of the ring when it lands.
+func _tell() -> void:
+	_tell_t = RAID_TELL
+	var w := _w("pot_tell")
+	hud.toast(str(w[0]), str(w[1]))
+	_line(RAID_LINES[0], 2.5)
+	if police != null and "sfx" in police and police.sfx != null:
+		var m: Dictionary = meets[meet_i]
+		var c: Vector3 = m["at"]
+		police.sfx.police_siren(c + Vector3(60.0, 0.0, 0.0))
+	Access.buzz(30, 0.4)
+	_log("siren tell")
+
+
 ## The sirens: police.gd's raid on the meet, the crowd runs, every racer scatters.
 func _raid() -> void:
 	var m: Dictionary = meets[meet_i]
+	if police != null and "sfx" in police and police.sfx != null:
+		police.sfx.police_siren(Vector3.INF)
+	# CZYSTO: already well away from the ring when the sirens land: no cordon boxes anyone in.
+	var gap: Vector3 = m["gap"]
+	raid_clean = is_clean(_at, gap)
+	if raid_clean:
+		_pot_add(POT_CLEAN, "CZYSTO!", "CLEAN!")
+		hud.cue("checkpoint")
 	stage = Stage.RAID if meet_i == 0 else Stage.RAID2
 	_stage_t = 0.0
 	_chase_seen = false
@@ -1415,7 +1620,7 @@ func _raid() -> void:
 	_scatter()
 	if meet_i == 0:
 		_race_prepare()
-	var boxed := _cordon_in()
+	var boxed := 0 if raid_clean else _cordon_in()
 	_log("raid at %s: %d patrol cars, %d in the cordon" % [m["id"], sent, boxed])
 
 
@@ -1542,17 +1747,17 @@ func _racer_dots() -> void:
 	hud.set_quest_dots(pts, cols)
 
 
-## The TYGRAM pin after a raid: meet 2 (and the race to it), or the drag.
+## The COTAM pin after a raid: meet 2 (and the race to it), or the drag.
 func _pin() -> void:
 	_scene.visible = false
 	if meet_i == 0:
 		var m: Dictionary = meets[1]
-		hud.show_note("TYGRAM · WNRC", Lang.pick("📍 %s. Kto pierwszy, ten lepszy. Psy szukają nas tutaj, nie tam." % m["name"][0],
+		hud.show_note("COTAM · WNRC", Lang.pick("📍 %s. Kto pierwszy, ten lepszy. Psy szukają nas tutaj, nie tam." % m["name"][0],
 				"📍 %s. First there wins. The cops are looking for us here, not there." % m["name"][1]), PIN_COLOUR,
 				Messages.QUEST_LINE)  # the quest's own message: shows in the chase (messages.gd)
 		_start_race()
 	else:
-		hud.show_note("TYGRAM · WNRC", Lang.pick("📍 Zieleniecka, pod dworcem Stadion. Drag. %s" % MOTTO[0],
+		hud.show_note("COTAM · WNRC", Lang.pick("📍 Zieleniecka, pod dworcem Stadion. Drag. %s" % MOTTO[0],
 				"📍 Zieleniecka, by Stadion station. Drag. %s" % MOTTO[1]), PIN_COLOUR, Messages.QUEST_LINE)
 		_release_racers()
 		_show_gate(true)
@@ -1872,11 +2077,14 @@ func _race_done(p: int) -> void:
 	place = p
 	_race_end()
 	last_pay = place_pay(p)
+	# The money goes to the pot; the respect is paid now.
 	if wallet != null:
-		wallet.pay(int(last_pay[0]), int(last_pay[1]), "meet_race")
+		wallet.pay(0, int(last_pay[1]), "meet_race")
 	var title := "PIERWSZY!" if p == 1 else "%d. MIEJSCE" % p
 	var title_en := "FIRST!" if p == 1 else "PLACE %d" % p
-	hud.toast("%s  +%d zł  +%d" % [title, last_pay[0], last_pay[1]], "%s  +%d zł  +%d RESPECT" % [title_en, last_pay[0], last_pay[1]])
+	_pot_add(int(last_pay[0]), title, title_en)
+	var w := _w("pot_place")
+	hud.toast(str(w[0]) % [title, last_pay[1], pot], str(w[1]) % [title_en, last_pay[1], pot])
 	hide_status()
 	clear_target()
 	_log("race done: place %d of %d, +%d zł +%d" % [p, _racers.size() + 1, last_pay[0], last_pay[1]])
@@ -2063,6 +2271,8 @@ func _stage() -> void:
 	_shift_w = -1.0
 	_boost_t = 0.0
 	_bog_t = 0.0
+	_pen_t = 0.0
+	_since_perfect = 99.0
 	_spin_t = 0.0
 	_player_s = 0.0
 	_rival_s = 0.0
@@ -2075,11 +2285,20 @@ func _stage() -> void:
 	_accel_was = float(car.accel_mult)
 	_nitro_was = bool(car.nitro_owned)
 	_nitro_charge_was = float(car.nitro_charge)
-	if LOAN:
-		car.nitro_owned = true
-		car.nitro_charge = 1.0
+	# One bottle from the second night, none on the first, the drag's strength (critique 3.4).
+	_night = drag_night()
+	car.nitro_owned = _night >= 2
+	car.nitro_on = false
+	car.nitro_charge = 1.0
+	_nitro_save = [car.nitro_accel_scale, car.nitro_top_scale, car.nitro_burn_s, car.nitro_bottles]
+	car.nitro_bottles = 1
+	car.nitro_accel_scale = NITRO_PULL
+	car.nitro_top_scale = NITRO_CAP
+	car.nitro_burn_s = NITRO_S
+	if not car.nitro_started.is_connected(_on_nitro):
+		car.nitro_started.connect(_on_nitro)
 	car.top_mult = _top_was * DRAG_TOP * float(GEARS[0])
-	var rr := rival_run(float(car.accel) * _accel_was, float(car.max_speed) * _top_was * DRAG_TOP)
+	var rr := rival_run(float(car.accel) * _accel_was, float(car.max_speed) * _top_was * DRAG_TOP, _night, randi())
 	_rival_profile = rr[0]
 	_rival_k = rr[1]
 	_rival_time = float(rr[2])
@@ -2096,7 +2315,7 @@ func _stage() -> void:
 	_tree.queue_redraw()
 	_revs = 0.0
 	_rev_gas = false
-	_tacho.launch = LAUNCH
+	_tacho.launch = launch_zone(_night)
 	_tacho.staging = true
 	_quiet(true)
 	hide_status()
@@ -2174,7 +2393,7 @@ func _drag_frame(dt: float) -> void:
 				car.nitro_wait = false  # N1: a tap kept on the line fires with the green
 			_drag_t = 0.0
 			_tacho.staging = false
-			_launch(launch_grade(_revs))
+			_launch(launch_grade(_revs, _night))
 			Access.buzz(80, 0.8)
 			hud.cue("go")
 		return
@@ -2182,8 +2401,7 @@ func _drag_frame(dt: float) -> void:
 	if _react < 0.0 and _player_s > 0.5:
 		_react = _drag_t
 	# Tadek.
-	var rt := maxf(0.0, _drag_t - RIVAL_REACT)
-	_rival_s = 0.0 if _drag_t < RIVAL_REACT else profile_at(_rival_profile, rt * _rival_k + RIVAL_REACT)
+	_rival_s = profile_at(_rival_profile, _drag_t)
 	_skajlajner.global_transform = Transform3D(Basis(Vector3.UP, strip_yaw()), strip_at(_rival_s, -float(strip["lane_gap"])))
 	if _rival_done < 0.0 and _rival_s >= QUARTER:
 		_rival_done = _drag_t
@@ -2192,8 +2410,10 @@ func _drag_frame(dt: float) -> void:
 	_boost_t = maxf(0.0, _boost_t - dt)
 	_bog_t = maxf(0.0, _bog_t - dt)
 	_spin_t = maxf(0.0, _spin_t - dt)
-	car.accel_mult = _accel_was * (SHIFT_BOOST if _boost_t > 0.0 else 1.0) * (EARLY_BOG if _bog_t > 0.0 else 1.0) \
-			* (SPIN if _spin_t > 0.0 else 1.0)
+	_pen_t = maxf(0.0, _pen_t - dt)
+	_since_perfect += dt
+	car.accel_mult = _accel_was * float(GEAR_PULL[_gear]) * (SHIFT_BOOST if _boost_t > 0.0 else 1.0) \
+			* (LAUNCH_BOG if _bog_t > 0.0 else 1.0) * (_pen_m if _pen_t > 0.0 else 1.0) * (SPIN if _spin_t > 0.0 else 1.0)
 	car.top_mult = _top_was * DRAG_TOP * float(GEARS[_gear])
 	var cap := float(car.max_speed) * float(car.top_mult)
 	var v: float = car.vel.length()
@@ -2257,31 +2477,72 @@ func _launch(grade: String) -> void:
 	_log("launch: %s (revs %.2f)" % [grade, _revs])
 
 
+## Which night's drag this is (1 to 4): the club wins so far plus one; a card from before the ladder starts
+## at night 2 (critique, open question).
+func drag_night() -> int:
+	if wallet == null:
+		return 1
+	var wins := int(wallet.keep.get("wnrc_wins", 0))
+	if wins == 0 and bool(wallet.keep.get("wnrc_member", false)):
+		return 2
+	return clampi(wins + 1, 1, 4)
+
+
+## The bottle's burn started in the run: in first or second gear the tyres give up (BUKSOWANIE, the bottle
+## gone); within SHOT_WINDOW s after an IDEALNIE it is a STRZAŁ (the burn lasts STRZAL_S).
+func _on_nitro() -> void:
+	if stage != Stage.DRAG:
+		return
+	if _gear <= 1:
+		car.nitro_cancel()
+		_spin_t = SPIN_S
+		hud.show_banner(Lang.pick("BUKSOWANIE!", "WHEELSPIN!"), Color("#ffb21e"))
+		_log("bottle: wheelspin in gear %d" % (_gear + 1))
+	elif _since_perfect <= SHOT_WINDOW:
+		car.nitro_extend(STRZAL_S)
+		hud.show_banner(Lang.pick("STRZAŁ!", "SHOT!"), Color("#38f6ff"))
+		_log("bottle: STRZAŁ in gear %d" % (_gear + 1))
+	else:
+		_log("bottle: plain in gear %d" % (_gear + 1))
+
+
 func _shift_pressed() -> void:
 	if _gear >= GEARS.size() - 1:
 		return
 	var cap := float(car.max_speed) * float(car.top_mult)
-	_shift(shift_grade_at(float(car.vel.length()) / maxf(cap, 0.1), _shift_w))
+	var k := float(car.vel.length()) / maxf(cap, 0.1)
+	_shift(shift_grade_at(k, _shift_w), k)
 
 
-## A shift: "perfect" (a burst), "late" (just the gear), "early" (a bog), "auto" (the box did it).
-func _shift(how: String) -> void:
+## A shift: "perfect" (a burst), "good" (just the gear), "short" (the yellow: a bog by how near the
+## green), "late" (a slow shift), "early" (a bog), "auto" (the box did it).
+func _shift(how: String, k := 1.0) -> void:
 	_gear += 1
 	_shift_w = -1.0
 	hud.hide_pill()
 	match how:
 		"perfect":
 			_boost_t = BOOST_S
+			_since_perfect = 0.0
 			hud.show_banner(Lang.pick("IDEALNIE!", "PERFECT!"), Color("#3cff6a"))
 			Access.buzz(40, 0.6)
 		"early":
-			_bog_t = BOG_S
+			_pen_m = EARLY_BOG
+			_pen_t = EARLY_S
 			hud.show_banner(Lang.pick("ZA WCZEŚNIE", "TOO EARLY"), Color("#ffb21e"))
+		"short":
+			_pen_m = short_mult(k)
+			_pen_t = SHORT_S
+			hud.show_banner(Lang.pick("KRÓTKO", "SHORT"), Color("#ffe34a"))
 		"good":
 			hud.show_banner(Lang.pick("DOBRZE", "GOOD"), Color("#f2f2f2"))
 		"late":
+			_pen_m = LATE_MULT
+			_pen_t = LATE_S
 			hud.show_banner(Lang.pick("ZA PÓŹNO", "LATE"), Color("#ffb21e"))
 		"auto":
+			_pen_m = LATE_MULT
+			_pen_t = LATE_S
 			hud.show_banner(Lang.pick("SPÓŹNIONY BIEG", "MISSED SHIFT"), Color("#ffb21e"))
 		_:
 			hud.show_banner("BIEG %d" % (_gear + 1), Color("#f2f2f2"))
@@ -2305,6 +2566,17 @@ func _drag_end(won: bool, how: String) -> void:
 		get_tree().create_timer(2.0).timeout.connect(func() -> void: _tree.visible = false)
 	hud.cue("win" if won else "fail")
 	var pay: Array = DRAG_PAY if won else DRAG_LOSE
+	# The night's pot (critique 3.1): a win doubles it and pays it all; a loss halves it, and it is
+	# paid when the card is closed (a rematch risks it again).
+	var pot_was := pot
+	var cashed := 0
+	if how not in ["false", "off"]:
+		if won:
+			cashed = pot * 2
+			pot = 0
+		else:
+			pot = pot / 2
+	pay = [cashed, int(pay[1])]
 	# A jump start or a run off the strip is no run: nothing paid, nothing counted (before, the
 	# loser's respect and a job tick for a tap of the gas on the line, again with every REWANŻ).
 	if wallet != null and how not in ["false", "off"]:
@@ -2338,8 +2610,18 @@ func _drag_end(won: bool, how: String) -> void:
 					"Karta klubu %s jest twoja." % CLUB if won else MOTTO[0]]
 			body_en = "You %s · reaction %s · Tadek %s. %s" % ["%.2f s" % drag_time if drag_time > 0.0 else "—", react, tad,
 					"The %s card is yours." % CLUB if won else MOTTO[1]]
-	body += "  +%d zł  +%d" % [pay[0], pay[1]]
-	body_en += "  +%d zł  +%d respect" % [pay[0], pay[1]]
+	if how in ["false", "off"]:
+		var w := _w("pot_wait")
+		body += str(w[0]) % pot
+		body_en += str(w[1]) % pot
+	elif won:
+		var w := _w("pot_win")
+		body += str(w[0]) % [pot_was, cashed, pay[1]]
+		body_en += str(w[1]) % [pot_was, cashed, pay[1]]
+	else:
+		var w := _w("pot_lose")
+		body += str(w[0]) % [pot_was, pot, pay[1]]
+		body_en += str(w[1]) % [pot_was, pot, pay[1]]
 	var buttons := PackedStringArray(["OK|OK"]) if won else PackedStringArray(["REWANŻ|REMATCH", "KONIEC|DONE"])
 	show_card([title, title_en], [body, body_en], buttons, RESULT_LIFE)
 	_line(DRAG_LINES["win" if won else ("false" if how == "false" else "lose")], 4.0)
@@ -2353,9 +2635,16 @@ func _restore_car() -> void:
 	car.accel_mult = _accel_was
 	if "nitro_wait" in car:
 		car.nitro_wait = false
-	if LOAN and not _nitro_was:
-		car.nitro_owned = false
-		car.nitro_on = false
+	car.nitro_owned = _nitro_was
+	car.nitro_on = false
+	if _nitro_save.size() == 4:
+		car.nitro_accel_scale = _nitro_save[0]
+		car.nitro_top_scale = _nitro_save[1]
+		car.nitro_burn_s = _nitro_save[2]
+		car.nitro_bottles = _nitro_save[3]
+		_nitro_save = []
+	if car.nitro_started.is_connected(_on_nitro):
+		car.nitro_started.disconnect(_on_nitro)
 	car.nitro_charge = maxf(_nitro_charge_was, 0.0) if not _nitro_was else car.nitro_charge
 	if police != null and "gentle" in police:
 		police.gentle = _gentle_was
@@ -2384,12 +2673,25 @@ func _card_pressed(i: int) -> void:
 	if i == 0 and not drag_won:
 		_stage()
 	else:
+		_pay_pot()
 		finish()
 
 
 ## Nobody pressed the result card for RESULT_LIFE s: the night ends (no rematch by itself).
 func _card_expired() -> void:
+	_pay_pot()
 	finish()
+
+
+## What is left in the pot goes to the wallet (a lost drag's halved pot; a win paid it already).
+## Giving the night up with the ✕ pays nothing.
+func _pay_pot() -> void:
+	if pot > 0 and wallet != null:
+		wallet.pay(pot, 0, "")
+		var w := _w("pot_paid")
+		hud.toast(str(w[0]) % pot, str(w[1]) % pot)
+	_log("pot paid: %d" % pot)
+	pot = 0
 
 
 ## The full map's "✕ Quit" and the status ✕ (the kit's `abort`) give up in every beat under way.

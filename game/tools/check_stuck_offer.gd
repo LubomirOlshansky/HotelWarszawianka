@@ -13,8 +13,8 @@ extends SceneTree
 ##            over (PT-24: backing off reset the count every try): due by 2 x STALL_TIME
 ##   reset    reset_stall() and reset_motion() (the tows) start it again from nothing
 ##   pill     the real HUD's context button (PT-23): POMOC DROGOWA takes it from the ride app's
-##            PODWÓZKA (up whenever a ride could be taken) and from KASETA, never from a rescue
-##            call; PODWÓZKA can't take it back while the offer is up, and can once it goes
+##            ŁUBER (up whenever a ride could be taken) and from KASETA, never from a rescue
+##            call; ŁUBER can't take it back while the offer is up, and can once it goes
 ## Exits 1 on a problem.
 ##
 ##   godot --headless --path game --fixed-fps 60 --script res://tools/check_stuck_offer.gd
@@ -153,9 +153,9 @@ func _pill_ranks() -> void:
 	var hud: CanvasLayer = Hud.new()
 	root.add_child(hud)
 	var fails: Array[String] = []
-	hud.show_pill("PODWÓZKA", "ride app", "ride")
+	hud.show_pill("ŁUBER", "ride app", "ride")
 	if not hud.pill_free_for("unstuck"):
-		fails.append("POMOC DROGOWA can't take the button from PODWÓZKA")
+		fails.append("POMOC DROGOWA can't take the button from ŁUBER")
 	hud.show_pill("POMOC DROGOWA", "tow truck", "unstuck")
 	if hud.pill_free_for("ride") or hud.pill_free_for("ride_start") or hud.pill_free_for("tape"):
 		fails.append("the ride app or KASETA can take the button back from POMOC DROGOWA")
@@ -163,13 +163,13 @@ func _pill_ranks() -> void:
 		fails.append("a rescue call can't take the button from POMOC DROGOWA")
 	hud.hide_pill()
 	if not hud.pill_free_for("ride"):
-		fails.append("PODWÓZKA can't come back once the offer is gone")
+		fails.append("ŁUBER can't come back once the offer is gone")
 	hud.show_pill("WEZWANIE", "rescue call")
 	if hud.pill_free_for("unstuck"):
 		fails.append("POMOC DROGOWA takes the button from a rescue call")
-	hud.show_pill("PODWÓZKA", "ride app", "ride")
+	hud.show_pill("ŁUBER", "ride app", "ride")
 	if not hud.pill_free_for("tape"):
-		fails.append("KASETA can't take the button from PODWÓZKA")
+		fails.append("KASETA can't take the button from ŁUBER")
 	hud.queue_free()
 	if not fails.is_empty():
 		_problems += 1
