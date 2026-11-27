@@ -1391,7 +1391,8 @@ func _pot_add(zl: int, pl: String, en: String) -> void:
 	pot += zl
 	pot_parts.append([zl, pl, en])
 	var w := _w("pot_add")
-	hud.ambient_toast(str(w[0]) % [pl, zl], str(w[1]) % [en, zl])
+	# PT-64: a quest line (INFO), not an ambient toast, which the sirens toast and the chase dropped.
+	hud.toast(str(w[0]) % [pl, zl], str(w[1]) % [en, zl], Messages.INFO)
 	_log("pot +%d (%s) = %d" % [zl, en, pot])
 
 
@@ -1594,6 +1595,9 @@ static func is_clean(at: Vector3, gap: Vector3) -> bool:
 func _tell() -> void:
 	_tell_t = RAID_TELL
 	var w := _w("pot_tell")
+	# Lena's meet subtitle goes when the sirens are heard (PT-64).
+	if dialogue != null and dialogue.bubbles != null:
+		dialogue.bubbles.clear()
 	hud.toast(str(w[0]), str(w[1]))
 	_line(RAID_LINES[0], 2.5)
 	if police != null and "sfx" in police and police.sfx != null:
