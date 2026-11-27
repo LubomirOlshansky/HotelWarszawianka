@@ -56,7 +56,7 @@ main ridges. Roof apertures and seams are below the detail level.
 ## 5. Colour and material
 
 Cream-yellow walls (#eee3c9), pale stone trim, a darker warm granite base and blue-grey roofs
-(#818594).
+(#9a9ba2; lightened from #818594 after a sampled 3D Tiles roof read #8f8e94 to #949093).
 Use `M_STONE` for the walls, trim and roofs, and the kit's lit pane code for the windows.
 Use pale sash on the larger openings and dark painted leaves for the doors.
 

@@ -35,7 +35,7 @@ const MOSTOWSKI_BREAKS := Vector2(13.1, 37.9)
 const MOSTOWSKI_FACE := 3.7
 ## Cream plaster and blue-grey roofing from the daylight views of the two long wings.
 const MOSTOWSKI_WALL := Color("#eee3c9")
-const MOSTOWSKI_ROOF := Color("#818594")
+const MOSTOWSKI_ROOF := Color("#9a9ba2")
 
 
 ## Replace the mapped palace as one mesh, retaining the open courts in the roof and collision.

@@ -117,7 +117,7 @@ const SKINS := [
 	# Its neighbour Wolf Marszałkowska (the same photos): a glass tower with silver floor bands
 	# over a dark stone and glass base, not a dark punched block.
 	{"key": "wolf_marszalkowska", "osm": "Wolf Marszałkowska", "mode": M_SKIN + float(S_BANDS) / 16.0, "wall": "#5f7a90", "roof": "#596066"},
-	{"key": "mostowski", "osm": "Pałac Mostowskich", "model": true, "mode": M_STONE, "wall": "#eee3c9", "roof": "#818594"},
+	{"key": "mostowski", "osm": "Pałac Mostowskich", "model": true, "mode": M_STONE, "wall": "#eee3c9", "roof": "#9a9ba2"},
 ]
 
 
