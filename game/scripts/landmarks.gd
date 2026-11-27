@@ -543,6 +543,9 @@ const INFO := {
 	"ujazdowski": ["Zamek Ujazdowski",
 			"Z 1624 roku, zburzony w 1944, odbudowany. Dziś sztuka współczesna.",
 			"Built 1624, razed 1944, rebuilt. Now a centre for modern art."],
+	"polskie_radio": ["Polskie Radio",
+			"Siedziba Polskiego Radia przy Myśliwieckiej, tuż obok Agrykoli.",
+			"Polish Radio headquarters on Myśliwiecka, right beside Agrykola."],
 	"sobieski": ["Radysław Blu",
 			"Hotel przy placu Zawiszy, w kolorowych pasach.",
 			"A hotel on Plac Zawiszy, in colourful bands."],
@@ -1511,6 +1514,7 @@ func _find_sites() -> void:
 	# F's ask (2026-11-01): the Old Town hotels, as fronts on the tenements.
 	_find_hotels()
 	_find_ujazdowski()
+	_find_polskie_radio()
 	# F's ask (2026-11-01): Norblin, Browary Warszawskie, Hala Koszyki, Elektrownia Powiśle.
 	_find_works()
 	# F's ask (2026-11-02, CITY_INVENTORY #21): the Warsaw Rising Museum, from the Mac's photos.
@@ -2005,6 +2009,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_polonia(s)
 			"ujazdowski":
 				_build_ujazdowski(s)
+			"polskie_radio":
+				_build_polskie_radio(s)
 			"sobieski":
 				_build_sobieski(s)
 			"bristol":

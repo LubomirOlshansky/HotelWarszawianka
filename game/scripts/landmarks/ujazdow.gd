@@ -837,3 +837,314 @@ func _build_filtry(site: Dictionary) -> void:
 	_prism(_circle(FT_BUST, 0.26, 8), _g + 2.5, _g + 2.95, Color("#3e4a44"), Color("#3e4a44"), M_STONE, M_STONE)
 	_g = keep
 	_collide_raw(site)
+
+
+# --- Polskie Radio (Myśliwiecka 3/5/7, docs/landmarks/specs/polskie_radio.md) -------------------
+
+## Polskie Radio headquarters on Myśliwiecka: a ~130 m pale-cream three-storey block with a wider
+## cross-wing in the middle, regular tall window rhythm, steep grey hipped roofs with small dormers
+## on both long slopes, two chimneys, and a simple stone-framed east entrance with a flat canopy,
+## flagpole pair and white RADIO sign. Colours measured from refs/polskie_radio/ and the spec.
+const PR_NAME := "Polskie Radio"
+const PR_WALL := Color("#d8d0bd")       # pale cream render
+const PR_PLINTH := Color("#a9a394")     # ground plinth band
+const PR_CORNICE := Color("#e3ddcd")    # plain eave cornice
+const PR_SURROUND := Color("#cfc6b1")   # entrance stone surround
+const PR_FRAME := Color("#e6e3db")      # white window frames and sills
+const PR_GLASS := Color("#4a5660")      # tall office window glass
+const PR_ROOF := Color("#6c7277")       # steep grey slate hipped roof
+const PR_CHIMNEY := Color("#8a7f74")    # roof chimney blocks
+const PR_CANOPY := Color("#bfc3c6")     # flat entrance canopy
+const PR_ENTRANCE_GLOW := Color("#e8d4a2")  # warm entrance glazing (M_PAVILION at night)
+const PR_SIGN_WHITE := Color("#ffffff") # plain white RADIO letters (M_LAMP)
+const PR_PLINTH_H := 0.8
+const PR_EAVE_H := 10.9
+const PR_ROOF_RISE := 3.6
+const PR_BAY := 2.8
+
+
+## Finds Polskie Radio's OSM landmark outline by name and registers a 0.5 m outward zone so the
+## map's 10.9 m office prisms under the outline are replaced while outside sheds stay as they are.
+func _find_polskie_radio() -> void:
+	var raw := _landmark(PR_NAME)
+	if raw.size() < 3:
+		push_error("polskie_radio: landmark outline '%s' is missing from centrum.json" % PR_NAME)
+		return
+	var zone := _largest(Geometry2D.offset_polygon(raw, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = raw
+	_add_site("polskie_radio", [zone])
+	if not sites.is_empty() and sites[-1]["key"] == "polskie_radio":
+		sites[-1]["raw"] = raw
+
+
+## Simplifies `raw` to its main straight runs: rotates to an extreme corner so Douglas-Peucker
+## keeps all true wing corners while dropping small bumps, merges near-collinear edges, and ensures
+## counter-clockwise winding.
+func _pr_simplify(raw: PackedVector2Array) -> PackedVector2Array:
+	var c := _centre(raw)
+	var start := 0
+	var best_d := -1.0
+	for i in raw.size():
+		var d := raw[i].distance_squared_to(c)
+		if d > best_d:
+			best_d = d
+			start = i
+	var rot := PackedVector2Array()
+	for i in raw.size():
+		rot.append(raw[(start + i) % raw.size()])
+	var cur := _simplify(rot, 1.9)
+	if cur.size() < 3:
+		cur = rot
+	var changed := true
+	while changed and cur.size() > 3:
+		changed = false
+		var next := PackedVector2Array()
+		var n := cur.size()
+		for i in n:
+			var prev := cur[(i + n - 1) % n]
+			var p := cur[i]
+			var nxt := cur[(i + 1) % n]
+			var d0 := p - prev
+			var d1 := nxt - p
+			if d0.length() < 0.2 or d1.length() < 0.2:
+				changed = true
+				continue
+			if d0.normalized().dot(d1.normalized()) > 0.996:
+				changed = true
+				continue
+			next.append(p)
+		cur = next
+	if Geometry2D.is_polygon_clockwise(cur):
+		cur.reverse()
+	return cur if cur.size() >= 3 else raw
+
+
+## Starts a kit_front along edge a->b oriented so _b matches the outward normal `out`.
+func _pr_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
+## Builds Polskie Radio's headquarters: cream three-storey block with plinth and cornice rings,
+## regular window grids on all faces, stone-framed east entrance with canopy, flagpoles and RADIO
+## sign, steep grey hipped main and cross roofs with dormers and two chimneys, and full collision.
+func _build_polskie_radio(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var ring := _pr_simplify(raw)
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	# Establish the block's main frame: _a pointing north along the long axis, _b pointing east.
+	var axis := Vector2(0.0, -1.0)
+	var longest := 0.0
+	for i in ring.size():
+		var e := ring[(i + 1) % ring.size()] - ring[i]
+		if e.length() > longest:
+			longest = e.length()
+			axis = e.normalized()
+	if axis.y > 0.0:
+		axis = -axis
+	var east := Vector2(-axis.y, axis.x)
+	var block_o := _centre(ring)
+	_o = block_o
+	_a = axis
+	_b = east
+	# Measure main bar and wider middle cross-wing extents in local (u north, v east).
+	var u0 := INF
+	var u1 := -INF
+	for p in ring:
+		var l := _local(p)
+		u0 = minf(u0, l.x)
+		u1 = maxf(u1, l.x)
+	var vm0 := INF
+	var vm1 := -INF
+	var vw0 := INF
+	var vw1 := -INF
+	var um0 := INF
+	var um1 := -INF
+	for p in ring:
+		var l := _local(p)
+		vw0 = minf(vw0, l.y)
+		vw1 = maxf(vw1, l.y)
+		if absf(l.x) > (u1 - u0) * 0.35:
+			vm0 = minf(vm0, l.y)
+			vm1 = maxf(vm1, l.y)
+	for p in ring:
+		var l := _local(p)
+		if l.y < vm0 - 1.5 or l.y > vm1 + 1.5:
+			um0 = minf(um0, l.x)
+			um1 = maxf(um1, l.x)
+	# Main three-storey body prism, dark attic floor cap (5 cm below cornice top), plinth and cornice.
+	_prism(ring, g - 0.5, g + PR_EAVE_H, PR_WALL, none, M_STONE)
+	_cap(ring, g + PR_EAVE_H - 0.05, PR_ROOF.darkened(0.25))
+	kit_ledge_ring(ring, g - 0.4, PR_PLINTH_H + 0.4, PR_PLINTH, 0.10)
+	kit_cornice_ring(ring, g + PR_EAVE_H - 0.35, PR_CORNICE, 0.35, 0.40)
+	# Dress every face of the simplified outline: entrance front, long wings, short ends and returns.
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		if ln < 2.5:
+			continue
+		var out := _out(ring, a, b)
+		var mid_l := _local((a + b) * 0.5)
+		var is_ew_face := absf(out.dot(east)) > 0.7
+		var kind := "return"
+		if is_ew_face and out.dot(east) > 0.7 and mid_l.y > vm1 + 1.5:
+			kind = "entrance"
+		elif is_ew_face and ln > 25.0:
+			kind = "long"
+		elif is_ew_face:
+			kind = "west_wing"
+		elif ln > 10.0:
+			kind = "end"
+		_pr_dress_face(a, b, out, g, kind)
+		_o = block_o
+		_a = axis
+		_b = east
+	# Steep grey hipped roof over the main bar and cross-wing, dormers along both long slopes, chimneys.
+	_pr_roof(g, u0, u1, vm0, vm1, um0, um1, vw0, vw1)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Dresses one straight facade of Polskie Radio with three rows of tall windows (1.3 x 2.0 m) using
+## kit parts: hero entrance front and short ends use `kit_window_grid`, long wings use `kit_panes`
+## with continuous pale sill ledges to stay within the 3,000-triangle L2 budget.
+func _pr_dress_face(a: Vector2, b: Vector2, out: Vector2, g: float, kind: String) -> void:
+	var w := _pr_front_edge(a, b, out)
+	var sills := [g + 1.40, g + 4.75, g + 8.10]
+	match kind:
+		"entrance":
+			var bays := maxi(3, roundi((w - 1.2) / PR_BAY))
+			if bays % 2 == 0:
+				bays += 1
+			var mid_bay := bays / 2
+			kit_window_grid(0.8, w - 0.8, bays, sills, 2.0, Win.SILL, PR_FRAME, PR_GLASS, 0.65,
+					[Vector2i(mid_bay, 0)])
+			_pr_entrance(w * 0.5, g)
+		"end":
+			var bays := clampi(roundi((w - 4.0) / 5.5), 2, 4)
+			kit_window_grid(2.4, w - 2.4, bays, sills, 2.0, Win.SILL, PR_FRAME, PR_GLASS, 0.65)
+		"long", "west_wing":
+			var margin := 0.9 if kind == "west_wing" else 1.2
+			var bays := maxi(3, roundi((w - 2.0 * margin) / PR_BAY))
+			var cols := _spread(margin, w - margin, bays)
+			kit_panes(cols, sills, 1.3, 2.0, PR_GLASS, 0.06)
+		_:
+			var bays := maxi(1, roundi((w - 1.2) / PR_BAY))
+			kit_panes(_spread(0.8, w - 0.8, bays), sills, 1.3, 2.0, PR_GLASS, 0.06)
+
+
+## Builds the main entrance on Myśliwiecka: stone step and surround standing proud of the plinth,
+## double-leaf kit_door with warm night-glowing glass (M_PAVILION), flat 2.0 m canopy on slim
+## posts, twin flagpoles framing the risalit, and the white RADIO sign over the canopy.
+func _pr_entrance(cu: float, g: float) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	# Entrance step and flanking stone surround jambs + lintel (#cfc6b1) standing clear of the plinth.
+	_kbox(cu - 2.05, cu + 2.05, 0.14, 1.75, g - 0.4, g + 0.16, PR_PLINTH)
+	_kbox(cu - 1.92, cu - 1.28, -0.02, 0.34, g - 0.3, g + 3.44, PR_SURROUND)
+	_kbox(cu + 1.28, cu + 1.92, -0.02, 0.34, g - 0.3, g + 3.44, PR_SURROUND)
+	_kbox(cu - 1.96, cu + 1.96, -0.02, 0.36, g + 3.45, g + 3.92, PR_SURROUND)
+	# Double-leaf door (2.4 x 3.0 m) on a 0.18 m face proud of the 0.10 m plinth.
+	kit_face(0.18)
+	kit_door(cu, g + 0.16, 3.0, 1.20, PR_SURROUND, PAL_DARK_DOOR)
+	# Warm glowing entrance glass panels (double leaf, M_PAVILION) 4 cm proud of the door leaf.
+	_mode = M_PAVILION
+	_wall(_w(cu - 1.06, 0.27), _w(cu - 0.08, 0.27), g + 0.36, g + 2.96, _b, PR_ENTRANCE_GLOW)
+	_wall(_w(cu + 0.08, 0.27), _w(cu + 1.06, 0.27), g + 0.36, g + 2.96, _b, PR_ENTRANCE_GLOW)
+	kit_face(0.0)
+	_mode = M_STONE
+	# Thin flat canopy 2.0 m deep (#bfc3c6) resting on two slender steel posts.
+	_kbox(cu - 2.60, cu + 2.60, 0.02, 2.08, g + 3.94, g + 4.20, PR_CANOPY)
+	for s: float in [-1.0, 1.0]:
+		var pu := cu + s * 2.35
+		_kbox(pu - 0.07, pu + 0.07, 1.80, 1.94, g - 0.2, g + 3.94, PAL_DARK_STEEL)
+	# Dark signboard fascia on the canopy front and 0.7 m white RADIO letters (M_LAMP + _usign).
+	_kbox(cu - 2.00, cu + 2.00, 1.86, 2.00, g + 4.20, g + 5.14, PAL_DARK_STEEL)
+	_pr_radio_sign(cu, 2.03, g + 4.30)
+	_usign("RADIO", cu, 2.08, g + 4.28, _b, 3.0, 0.72, PR_SIGN_WHITE)
+	# Flagpole pair framing the outer edges of the entrance risalit, clear of the windows.
+	for s: float in [-1.0, 1.0]:
+		var fu := cu + s * 5.4
+		var fv := 2.6
+		_lbox(fu, fv, 0.22, 0.22, g - 0.3, g + 0.36, PR_PLINTH)
+		_lbox(fu, fv, 0.05, 0.05, g + 0.36, g + 8.6, PAL_ALUMINIUM)
+		_kbox(fu + 0.05, fu + 1.25, fv - 0.02, fv + 0.02, g + 8.05, g + 8.50, PAL_WHITE_STONE)
+		_kbox(fu + 0.05, fu + 1.25, fv - 0.02, fv + 0.02, g + 7.60, g + 8.05, PAL_SIGNAL_RED)
+	_mode = keep
+
+
+## Places plain 0.7 m white sans-serif RADIO letters in M_LAMP 3 cm proud of the canopy signboard,
+## built from strictly disjoint wall quads so they read crisply by day and glow white at night.
+func _pr_radio_sign(cu: float, v: float, y: float) -> void:
+	# [u0, u1, y0, y1] per stroke in local letter coords (cap height 0.70 m, total width 2.74 m).
+	var x0 := cu - 1.37
+	var strokes := [
+		# R (0.00..0.46)
+		[0.00, 0.10, 0.00, 0.70], [0.10, 0.44, 0.60, 0.70], [0.34, 0.44, 0.38, 0.60],
+		[0.10, 0.34, 0.32, 0.42], [0.34, 0.46, 0.00, 0.34],
+		# A (0.64..1.12)
+		[0.64, 0.74, 0.00, 0.60], [1.02, 1.12, 0.00, 0.60], [0.70, 1.06, 0.60, 0.70],
+		[0.74, 1.02, 0.26, 0.36],
+		# D (1.30..1.76)
+		[1.30, 1.40, 0.00, 0.70], [1.40, 1.72, 0.60, 0.70], [1.40, 1.72, 0.00, 0.10],
+		[1.66, 1.76, 0.10, 0.60],
+		# I (1.94..2.06)
+		[1.94, 2.06, 0.00, 0.70],
+		# O (2.24..2.74)
+		[2.24, 2.34, 0.00, 0.70], [2.64, 2.74, 0.00, 0.70], [2.34, 2.64, 0.60, 0.70],
+		[2.34, 2.64, 0.00, 0.10],
+	]
+	var keep := _mode
+	_mode = M_LAMP
+	for st_box: Array in strokes:
+		_wall(_w(x0 + float(st_box[0]), v), _w(x0 + float(st_box[1]), v),
+				y + float(st_box[2]), y + float(st_box[3]), _b, PR_SIGN_WHITE)
+	_mode = keep
+
+
+## Builds Polskie Radio's steep grey hipped roofs (main N-S ridge and intersecting cross-wing
+## ridge tucked cleanly into it), rows of kit_dormer along both long slopes, and two chimneys.
+func _pr_roof(g: float, u0: float, u1: float, vm0: float, vm1: float,
+		um0: float, um1: float, vw0: float, vw1: float) -> void:
+	var eave := g + PR_EAVE_H
+	var over := 0.35
+	var cu := (u0 + u1) * 0.5
+	var cv := (vm0 + vm1) * 0.5
+	var hu := (u1 - u0) * 0.5 + over
+	var hv := (vm1 - vm0) * 0.5 + over
+	_mode = M_STONE
+	# Main north-south hipped roof rising 3.6 m to its ridge.
+	_hip(cu, cv, hu, hv, eave, PR_ROOF_RISE, PR_ROOF)
+	# Cross hipped roof over the wider middle transept (8 cm below the main ridge so it tucks cleanly
+	# into the main ridge with zero coplanar ridge-cap z-fighting).
+	if um1 > um0 + 4.0 and vw1 > vw0 + 16.0:
+		_hip((um0 + um1) * 0.5, (vw0 + vw1) * 0.5, (um1 - um0) * 0.5 + over,
+				(vw1 - vw0) * 0.5 + over, eave, PR_ROOF_RISE - 0.08, PR_ROOF)
+	# Rows of small dormers (kit_dormer) sitting low on both long slopes (5 on the longer south wing,
+	# 4 on the north wing per side = 18 total), clear of the hip ends and cross-roof.
+	var d_in := 1.95
+	var slope_y := eave + PR_ROOF_RISE * (d_in / maxf(hv - 0.15, 1.0))
+	var spans := [[u0 + hv + 2.5, um0 - 3.5, 5], [um1 + 3.5, u1 - hv - 2.5, 4]]
+	for sp: Array in spans:
+		var sa: float = sp[0]
+		var sb: float = sp[1]
+		var cnt: int = sp[2]
+		if sb <= sa + 4.0:
+			continue
+		for du: float in _spread(sa, sb, cnt):
+			for side: float in [-1.0, 1.0]:
+				var at := _w(du, cv + side * (hv - d_in))
+				kit_dormer(at, _b * side, slope_y, PR_ROOF.lightened(0.06), PR_FRAME, PR_GLASS)
+	# Two masonry chimney blocks (#8a7f74) rising cleanly through the roof ridge on north and south wings.
+	for ch_u: float in [lerpf(u0, um0, 0.5), lerpf(um1, u1, 0.5)]:
+		_lbox(ch_u, cv, 0.65, 0.55, eave + PR_ROOF_RISE - 0.9, eave + PR_ROOF_RISE + 1.25, PR_CHIMNEY)
+		_lbox(ch_u, cv, 0.78, 0.68, eave + PR_ROOF_RISE + 1.25, eave + PR_ROOF_RISE + 1.42, PR_CHIMNEY.darkened(0.18))
