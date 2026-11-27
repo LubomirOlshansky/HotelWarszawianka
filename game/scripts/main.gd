@@ -89,6 +89,7 @@ const Notebook := preload("res://scripts/notebook.gd")
 ## Loop MW-6: the eggs as notebook cards, KASETA and Fotka.
 const EggBook := preload("res://scripts/egg_book.gd")
 const Tape := preload("res://scripts/tape.gd")
+const Napkin := preload("res://scripts/napkin.gd")
 const Fotka := preload("res://scripts/fotka.gd")
 const PromoMode := preload("res://scripts/promo_mode.gd")
 ## Loop 3h slice 1: the demo's districts (discovery, "?" marks, completion).
@@ -371,6 +372,8 @@ var notes: Notebook
 ## then card, the tape played), --tape-log, --fotka (Fotka open at the start), --kadr=<n|id> (Fotka aimed at a Kadr spot,
 ## a photo after 2 s), --fotka-shot=S (a photo S s after --fotka opens), --photo-log.
 var egg_book: EggBook
+## The napkin, LISTA (napkin.gd): story-arc places where Warsaw lives, after chapter 1.
+var napkin: Napkin
 ## Loop 3h slice 1: the districts (districts.gd) and their flags: --district=<id> (that district's
 ## "discovered" card at the first check), --districts=all|none|<id>[:jobs],... (the record, in
 ## memory), --districts-log.
@@ -2899,7 +2902,7 @@ func _build_play_stats() -> void:
 			{"platform": OS.get_name(), "lang": Lang.code, "quality_tier": Tiers.NAMES[auto_quality] if quality_choice == Tiers.AUTO else Tiers.NAMES[quality_choice],
 			"controls": controls.scheme, "test_device": settings.test_device})
 	play_stats.watch({"wallet": wallet, "car": car, "is_flying": func() -> bool: return flying, "activities": activities,
-			"police": police, "first10": first10, "tajny": tajny, "districts": districts, "egg_book": egg_book, "garage": garage,
+			"police": police, "first10": first10, "tajny": tajny, "districts": districts, "egg_book": egg_book, "napkin": napkin, "garage": garage,
 			"heli": heli, "radio": radio, "panel": hud.settings_panel, "save_note": wallet.load_note, "look": func() -> Array: return [Tiers.NAMES[quality], view.stretch_shrink, _cap]})
 
 
@@ -3274,6 +3277,8 @@ func _story_tick() -> void:
 		_restore_track()
 	var focus := _quest_running()
 	stories.focus = focus
+	if tod != null:  # real time inside a questline (game_time.gd `held_for`), never under Promo mode's speeds
+		tod.held = GameTime.held_for(stories.defs, tajny != null and tajny.busy()) and not (promo != null and promo.on)
 	_shisha_secret(focus)
 	_meet_night()
 	_rave_night()
@@ -4091,6 +4096,14 @@ func _build_moments(data: Dictionary, world: Node3D) -> void:
 		egg_book.probe = _egg_state
 		if flags.found_eggs != "":
 			egg_book.preset(flags.found_eggs)
+	napkin = Napkin.new()
+	napkin.name = "Napkin"
+	napkin.wallet = wallet
+	napkin.hud = hud
+	napkin.blip = _blip_sound
+	napkin.probe = _egg_state
+	add_child(napkin)
+	napkin.setup(places, data.get("origin", [52.234, 21.024]))
 	tape = Tape.new()
 	tape.name = "Tape"
 	tape.wallet = wallet

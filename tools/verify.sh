@@ -1673,6 +1673,9 @@ for s in $want; do
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		# The time owner (game_time.gd, F 2026-11-19): hours, the night friends by day, the clock's jump.
 		gametime) check gametime '^check_game_time:' --script res://tools/check_game_time.gd ;;
+		# The story Doba w Warszawie (story_arc.gd) and the napkin LISTA (napkin.gd), F 2026-11-26.
+		storyarc) check storyarc '^check_story_arc:' --script res://tools/check_story_arc.gd ;;
+		napkin) check napkin '^check_napkin:' --script res://tools/check_napkin.gd ;;
 		# Promo Mode (promo_mode.gd, F 2026-11-20): the clock's -15 / +15, the car and free cameras, the
 		# saved shots and COPY's flags (no map; CI too).
 		promo) check promo '^check_promo:' --script res://tools/check_promo.gd ;;

@@ -1,0 +1,12 @@
+{
+	"_about": "The story, Doba w Warszawie (F 2026-11-26, /mnt/project-files/story-structure and docs/design/story-structure.md): six chapters, one game day (Smoła added by F 2026-11-27: 'a strong quest'), one vehicle each, in this order. id: the questline's id (story_quests.gd; 'tajny' is the Tajny klient opening), title and friend [pl, en], hour: the chapter's story hour (the clock jumps there when the player picks DALEJ after the chapter before, phase 3; chapter 1 never jumps), vehicle: how it is played, old_job: the wallet.jobs key that counts a finish on a save older than the qdone_ marks (2026-11-25), '' for none (padel is paid as 'trend' with other jobs, Smoła as 'rave' with the secret rave, the TESŁO count includes strangers' cars).",
+	"title": ["DOBA W WARSZAWIE", "24 HOURS IN WARSAW"],
+	"chapters": [
+		{"id": "tajny", "title": ["Tajny klient", "The secret customer"], "friend": ["Kebabulo", "Kebabulo"], "hour": 12.0, "vehicle": "car", "old_job": ""},
+		{"id": "padel", "title": ["Padel na Desce", "Padel at the Deck"], "friend": ["Kuba", "Kuba"], "hour": 16.0, "vehicle": "foot", "old_job": ""},
+		{"id": "tesla", "title": ["Stanęło TESŁO", "The dead TESŁO"], "friend": ["Bartek", "Bartek"], "hour": 19.5, "vehicle": "heli", "old_job": ""},
+		{"id": "meet", "title": ["Nocny spot", "The night meet"], "friend": ["Darek „Bawarka”", "Darek \"Bawarka\""], "hour": 22.0, "vehicle": "race", "old_job": "meet_race"},
+		{"id": "smola", "title": ["Smoła", "Smoła"], "friend": ["Mati", "Mati"], "hour": 23.5, "vehicle": "club", "old_job": ""},
+		{"id": "boat", "title": ["Wiślana Szprotka", "The Vistula Sprat"], "friend": ["Szymek", "Szymek"], "hour": 6.5, "vehicle": "boat", "old_job": "boat_race"}
+	]
+}
