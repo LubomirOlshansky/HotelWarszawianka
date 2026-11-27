@@ -659,7 +659,11 @@ shown() {
 game() {
 	local name=$1 frames=$2 outcome=$3; shift 3
 	local logf=$logs/run_$name.log t0=$EPOCHREALTIME code
-	( cd $GAME && limited $STEP_LIMIT $GODOT --headless --path . --fixed-fps 60 --quit-after $frames \
+	# firstlife timed out on CI after its "first life: OK" line (#1107): the engine's fps line each
+	# second tells a slow frame from a stop.
+	local eng=()
+	[[ $name == firstlife ]] && eng=(--print-fps)
+	( cd $GAME && limited $STEP_LIMIT $GODOT --headless $eng --path . --fixed-fps 60 --quit-after $frames \
 		-- --nosave --notitle "$@" ) > $logf 2>&1
 	code=$?
 	local secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
