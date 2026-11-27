@@ -4,23 +4,25 @@ extends SceneTree
 ## tandem at 60 Hz, and the event with the stand-ins of fakes.gd (the HUD, the wallet; the real dialogue.gd
 ## for the words) entering the real stadium. Checks that:
 ## - T (the tandem): T1 the gap is the centres less a car, BLISKO 0.5-4 m; T2 the box test (end to end
-##   and side by side at their edges, and turned); T3 the first KONTAKT costs two chain steps and 2 m/s,
-##   the second the pile, and the chaser never passes the leader; T4 in run 2 he is no faster than his
-##   solo pace × 1.03 and stops at least 2 m behind a stopped player (R2); T5 your spin gives him 500
+##   and side by side at their edges, and turned); T3 a touch pushes the chaser back to 0.5 m under the
+##   leader's speed, the first KONTAKT costs two chain steps, a held touch no second, the next after the cars
+##   were apart half the pile, and a touch after the leader's hard braking or in his over-hold none; T4 in run 2 he is no faster than his
+##   solo pace × 1.03 and stops at least 2 m behind a stopped player (R2); T4b a parked leader loses run 2; T5 your spin gives him 500
 ##   (PREZENT!); T6 run 2: a shallow fast player (needle SHALLOW°) pulls away (UCIEKASZ!, his BLISKO under
 ##   SHALLOW_CLOSE of the run) and a deep slow one (DEEP°) is caught (his BLISKO over DEEP_CLOSE, the mean
 ##   gap under 4 m); T7 run 1: a shallow chaser sits closer than a deep one; T8 the finals by skill over
-##   SEEDS seeds (two runs each, Hrabia live): the decent player wins in DECENT_WINS, the clumsy one in at
-##   most CLUMSY_WINS; T9 Hrabia is seeded (the same seed twice is the same run), never spins in the first
+##   SEEDS seeds (two runs each, Hrabia live, no chase help): the decent player wins in DECENT_WINS, the
+##   clumsy and the shallow ones in at most CLUMSY_WINS, the deep one at least DEEP_WINS; T9 Hrabia is seeded (the same seed twice is the same run), never spins in the first
 ##   final and has his over-hold only in a fourth try; T10 the cut (drift_tracks.json "event" q_line) is
 ##   within Q_TOL of 55 % of the follower's median over Q_SEEDS seeds;
 ## - E (the event): E1 no call and no QUESTS row before a night meet, a call within FIRST_CALL after one;
 ##   E2 WCHODZĘ sets the gate's target, stopping in its ring calls the stadium's hook once; E3 short
-##   qualifying runs and WYJDŹ pay 100 zł and keep the quest open; a run over the cut goes to the final;
-##   E4 a win pays 800 zł, 150 respect and the paint, closes the quest (and Darek never rings again by his
-##   clock; QUESTS still starts the practice), saves; a loss pays 250 zł and offers REWANŻ, which starts at
-##   the final; a draw is one more pair; E5 ✕ inside: back at the gate, nothing paid, the car's process
-##   back; E6 the rescue calls are HOLD; no way in during a chase; E7 every line the event says comes from
+##   qualifying runs and WYJDŹ pay 100 zł (once ever) and keep the quest open; a run over the cut goes to the final;
+##   E4 a win pays 800 zł, 150 respect and the paint, closes the quest and saves on its card (and Darek
+##   never rings again by his clock; QUESTS still starts the practice); a loss pays 250 zł once ever and
+##   offers REWANŻ, which starts at the final; a draw (within 1 %) is one more pair; a fresh event on a won
+##   wallet is "Bokiem: trening" with the practice's hello, after a lost final the rematch's; E5 ✕ inside,
+##   on run 2's card, on the podium (the win kept) and on the drive (Darek rings again later); E6 the rescue calls are HOLD; no way in during a chase; E7 every line the event says comes from
 ##   dialogue.json "bokiem" with both languages and a speaker; the stadium's words have both;
 ##   W the warm-up ends early after a held 3 s drift and one flick, with Lena's tips by state.
 ## Prints `check_drift_event: OK` (exit 0) or the problems (exit 1).
@@ -48,6 +50,7 @@ const SHALLOW_CLOSE := 0.25
 const DEEP_CLOSE := 0.6
 const DECENT_WINS := Vector2i(2, 6)
 const CLUMSY_WINS := 2
+const DEEP_WINS := 3
 const Q_SEEDS := 32
 const Q_TOL := 0.03
 ## The tags drift_event.gd asks dialogue.json "bokiem" for.
@@ -58,7 +61,7 @@ const TAGS := ["call", "car", "gate", "decline", "practice", "rematch", "out", "
 const OB_TAGS := ["call", "car", "gate", "tip", "bank", "transition", "zone", "spin", "bjorn", "hrabia_lost", "out", "retry"]
 const WORDS := ["warmup", "quali", "final", "start", "to_final", "rematch", "again", "next", "take", "q_line", "you", "hrabia",
 		"close", "contact", "away", "gift", "run1", "run2", "won", "lost_final", "draw", "passed", "short", "prize", "paid", "practice",
-		"quest_name", "in", "not_today", "tail"]
+		"quest_name", "in", "not_today", "tail", "blurb"]
 
 
 ## The wallet with what the event reads beyond fakes.gd's: the jobs (the gate), the paints and the intro.
@@ -66,6 +69,12 @@ class EventWallet extends Fakes.Wallet:
 	var jobs := {}
 	var paints := {}
 	var intro := {}
+
+
+## A thumb that never touches the screen (the parking test, T4b).
+class Idle extends RefCounted:
+	func tick(_t: float, _st: RefCounted, _line: RefCounted, _inp: RefCounted) -> void:
+		pass
 
 
 class Police extends Node:
@@ -152,13 +161,38 @@ func _tandem_rules() -> void:
 	sc.pile = 1000.0
 	T.couple(d, you, sc, line, DT)
 	_expect("contact" in d.said and sc.chain == 2 and absf(you.v - 10.0) < 0.01 and sc.pile == 1000.0,
-			"T3: the first KONTAKT: said %s, chain %d (want 2), v %.1f (want 10: 12 capped less 2), pile %.0f kept" % [d.said, sc.chain, you.v, sc.pile])
-	_expect(you.s <= d.him.s - T.CAR_LEN + 0.001, "T3: the chaser held a bumper behind (s %.2f, his %.2f)" % [you.s, d.him.s])
-	for k in int(T.KONTAKT_COOL / DT) + 2:
+			"T3: the first KONTAKT: said %s, chain %d (want 2), v %.1f (want 10: his 12 less 2), pile %.0f kept" % [d.said, sc.chain, you.v, sc.pile])
+	_expect(you.s <= d.him.s - T.CAR_LEN - T.CLOSE.x + 0.001, "T3: the chaser pushed back to BLISKO's edge (s %.2f, his %.2f)" % [you.s, d.him.s])
+	# Held against him (a thumb that keeps the gas): no second KONTAKT while the cars never came apart.
+	for k in int(2.0 / DT):
+		you.s = d.him.s - T.CAR_LEN + 0.2
+		you.v = d.him.v + 1.0
 		T.couple(d, you, sc, line, DT)
-	you.s = 57.5
+	_expect(d.contacts == 1 and sc.pile == 1000.0, "T3: held against him 2 s, still one KONTAKT (%d, pile %.0f)" % [d.contacts, sc.pile])
+	# Apart, then in again: the second costs half the pile, not all of it.
+	you.s = d.him.s - T.CAR_LEN - 2.0
 	T.couple(d, you, sc, line, DT)
-	_expect(d.contacts >= 2 and sc.pile == 0.0 and sc.losses == 1, "T3: the second KONTAKT loses the pile (%d contacts, pile %.0f, %d losses)" % [d.contacts, sc.pile, sc.losses])
+	sc.chain = 4
+	you.s = d.him.s - T.CAR_LEN + 0.2
+	T.couple(d, you, sc, line, DT)
+	_expect(d.contacts == 2 and absf(sc.pile - 500.0) < 0.01 and sc.chain == 2 and sc.losses == 0,
+			"T3: the second KONTAKT costs half the pile and two steps (%d contacts, pile %.0f, chain %d, %d losses)" % [d.contacts, sc.pile, sc.chain, sc.losses])
+	# The leader brakes hard (a brake check, his over-hold): the touch is his, no KONTAKT.
+	you = DriftModel.State.new()
+	sc = DriftScore.Score.new()
+	sc.pile = 800.0
+	d = T.make(1, 1, false, line, p, you)
+	d.him.s = 60.0
+	d.him.v = 14.0
+	you.s = 50.0
+	you.v = 14.0
+	T.couple(d, you, sc, line, DT)
+	d.him.v = 10.0  # 4 m/s in one frame: 240 m/s²
+	you.s = d.him.s - T.CAR_LEN + 0.2
+	T.couple(d, you, sc, line, DT)
+	_expect(d.contacts == 0 and d.excused == 1 and sc.pile == 800.0, "T3: a touch after his hard braking is excused (%d contacts, %d excused)" % [d.contacts, d.excused])
+	_expect(DriftBot.hrabia(41, true).wobbling(DriftBot.hrabia(41, true).wobble_t + 0.3) and not DriftBot.hrabia(11, false).wobbling(10.0),
+			"T3: his over-hold window excuses a touch")
 	# T4: run 2, his pace cap and his stop behind a stopped player.
 	you = DriftModel.State.new()
 	sc = DriftScore.Score.new()
@@ -180,6 +214,13 @@ func _tandem_rules() -> void:
 		T.couple(d, you, sc, line, DT)
 		min_gap = minf(min_gap, d.gap)
 	_expect(d.him.v < 0.05 and min_gap >= T.KEEP_BACK - 0.05, "T4: behind a stopped player he stops %.2f m back (min %.2f, v %.2f; want ≥ 2)" % [d.gap, min_gap, d.him.v])
+	# T4b: a parked leader loses run 2: past PARK_S s at a crawl he drives his solo lap.
+	var parked := T.run(2, Idle.new(), 12, false, line, p)
+	var solo := T.run(2, Idle.new(), 12, false, line, p)
+	print("check_drift_event: T4b run 2 with you parked: you %.0f, Hrabia %.0f (solo after the park: %s)" % [parked["you"], parked["him"], parked["solo"]])
+	_expect(bool(parked["solo"]) and float(parked["him"]) > 5000.0 and float(parked["you"]) < float(parked["him"]),
+			"T4b: parked leader loses run 2 (you %.0f, Hrabia %.0f, solo %s)" % [parked["you"], parked["him"], parked["solo"]])
+	_expect(is_equal_approx(float(solo["him"]), float(parked["him"])), "T4b: the parked run is seeded")
 	# T5
 	you = DriftModel.State.new()
 	sc = DriftScore.Score.new()
@@ -204,11 +245,12 @@ func _tandem_bots() -> void:
 	print("check_drift_event: T7 run 1, you chase: shallow mean gap %.1f m, BLISKO %.0f %%, %.1f contacts; deep mean gap %.1f m, BLISKO %.0f %%" % [
 			c_sh["gap"], c_sh["close"] * 100.0, c_sh["contacts"], c_dp["gap"], c_dp["close"] * 100.0])
 	_expect(c_sh["gap"] < c_dp["gap"], "T7: a shallow chaser sits closer (%.1f m) than a deep one (%.1f m)" % [c_sh["gap"], c_dp["gap"]])
-	# T8: whole finals by skill.
+	# T8: whole finals by skill, the player's bot with no chase help (a thumb has none; Fable's review).
 	var rows := PackedStringArray()
 	var wins := {}
-	for kind: Array in [["decent", 42.0], ["clumsy", 42.0], ["shallow", SHALLOW], ["deep", DEEP]]:
+	for kind: Array in [["decent", DriftBot.NEEDLE], ["clumsy", DriftBot.NEEDLE], ["shallow", SHALLOW], ["deep", DEEP]]:
 		var w := 0
+		var draws := 0
 		var you_sum := 0.0
 		var him_sum := 0.0
 		for sd in range(1, SEEDS + 1):
@@ -219,13 +261,18 @@ func _tandem_bots() -> void:
 			var h_t := float(a["him"]) + float(b["him"])
 			you_sum += y_t
 			him_sum += h_t
-			if y_t > h_t:
+			var r := DriftEvent.final_outcome(roundi(y_t), roundi(h_t))
+			if r == "won":
 				w += 1
+			elif r == "draw":
+				draws += 1
 		wins[kind[0]] = w
-		rows.append("%s %d-%d (you %.0f, Hrabia %.0f)" % [kind[0], w, SEEDS - w, you_sum / SEEDS, him_sum / SEEDS])
-	print("check_drift_event: T8 finals by skill over %d seeds, won-lost: %s" % [SEEDS, ", ".join(rows)])
+		rows.append("%s %d-%d-%d (you %.0f, Hrabia %.0f)" % [kind[0], w, draws, SEEDS - w - draws, you_sum / SEEDS, him_sum / SEEDS])
+	print("check_drift_event: T8 finals by skill over %d seeds, won-draw-lost: %s" % [SEEDS, ", ".join(rows)])
 	_expect(int(wins["decent"]) >= DECENT_WINS.x and int(wins["decent"]) <= DECENT_WINS.y, "T8: the decent player wins %d of %d (want %d-%d)" % [wins["decent"], SEEDS, DECENT_WINS.x, DECENT_WINS.y])
 	_expect(int(wins["clumsy"]) <= CLUMSY_WINS, "T8: the clumsy player wins %d of %d (want ≤ %d)" % [wins["clumsy"], SEEDS, CLUMSY_WINS])
+	_expect(int(wins["shallow"]) <= CLUMSY_WINS, "T8: the shallow (fast, close, touching) player wins %d of %d (want ≤ %d)" % [wins["shallow"], SEEDS, CLUMSY_WINS])
+	_expect(int(wins["deep"]) >= DEEP_WINS, "T8: the deep (slow, safe) player wins %d of %d (want ≥ %d)" % [wins["deep"], SEEDS, DEEP_WINS])
 	# T9: Hrabia seeded, no spin in the first final, his wobble only in a fourth try.
 	var r1 := T.run(1, DriftBot.make("decent", 7), 11, false, line, p)
 	var r1b := T.run(1, DriftBot.make("decent", 7), 11, false, line, p)
@@ -395,6 +442,15 @@ func _e3_qualifying() -> void:
 			"E3: two short runs and WYJDŹ: %s, %d zł (want out, %d), quest open %s" % [ev.outcome, w.money, DriftEvent.OUT_ZL, not ev.won()])
 	_expect(int(w.keep.get(DriftEvent.BEST_KEY, 0)) == 2000, "E3: the best run is kept (%s)" % w.keep)
 	_free(ev)
+	# The 100 zł is paid once ever: out again on a wallet that had it pays nothing.
+	ev = _inside()
+	ev.wallet.keep[DriftEvent.OUT_PAID_KEY] = 1
+	ev._warm_over()
+	ev._card_button("start")
+	ev._run_card(1000)
+	ev._leave()
+	_expect(ev.outcome == "out" and (ev.wallet as EventWallet).money == 0, "E3: a second out pays %d zł (want 0: once ever)" % (ev.wallet as EventWallet).money)
+	_free(ev)
 	ev = _inside()
 	ev._warm_over()
 	ev._card_button("start")
@@ -411,15 +467,15 @@ func _e4_final() -> void:
 	ev._open_final()
 	ev._card_button("start")
 	_expect(ev.duel != null and ev.duel.run == 1 and ev._him_car != null and ev._him_car.visible, "E4: the final's run 1 with Hrabia's car")
-	ev.final_result(30000, 20000)
-	_expect("take" in ev._ui.card_ids(), "E4: a win's card has ODBIERZ (%s)" % ev._ui.card_ids())
 	var saves := (ev.wallet as EventWallet).saves
-	ev._card_button("take")
+	ev.final_result(30000, 20000)
 	var w := ev.wallet as EventWallet
-	_expect(w.money == DriftEvent.PRIZE_ZL and w.respect == DriftEvent.PRIZE_RESPECT and w.paints.has(DriftEvent.PAINT_ID) and ev.won(),
-			"E4: a win: %d zł, %d respect, paints %s, done %s (want 800, 150, bokiem, true)" % [w.money, w.respect, w.paints, ev.won()])
+	_expect("take" in ev._ui.card_ids(), "E4: a win's card has ODBIERZ (%s)" % ev._ui.card_ids())
+	_expect(w.money == DriftEvent.PRIZE_ZL and w.respect == DriftEvent.PRIZE_RESPECT and w.paints.has(DriftEvent.PAINT_ID) and ev.won() and w.saves > saves,
+			"E4: a win is paid, done and saved on its card, before ODBIERZ: %d zł, %d respect, paints %s, done %s, saves %d→%d" % [w.money, w.respect, w.paints, ev.won(), saves, w.saves])
+	ev._card_button("take")
+	_expect(w.money == DriftEvent.PRIZE_ZL and ev.outcome == "won", "E4: ODBIERZ only closes (%d zł, %s)" % [w.money, ev.outcome])
 	_expect(not Garage.find(DriftEvent.PAINT_ID).is_empty() and Garage.rule(DriftEvent.PAINT_ID, "red", 0, w.paints, 0) == "switch", "E4: the Bokiem paint is in the garage and owned")
-	_expect(w.saves > saves or w.kinds.has("bokiem"), "E4: the win is saved (wallet.pay saves)")
 	_expect(str(ev.quest_name()[0]) == str(DriftLine.word("practice")[0]), "E4: after the win the questline is %s" % [ev.quest_name()])
 	# Never again by his clock; QUESTS still starts the practice.
 	for k in 4000:
@@ -445,7 +501,33 @@ func _e4_final() -> void:
 	_expect(ev.pair == 1 and ev.stage == DriftEvent.Stage.FINAL, "E4: a draw is one more pair")
 	ev.final_result(1000, 20000)
 	ev._leave()
-	_expect(ev.outcome == "lost" and not ev.won() and w.money == 2 * DriftEvent.LOST_ZL, "E4: WYJDŹ after a loss: %s, %d zł" % [ev.outcome, w.money])
+	_expect(ev.outcome == "lost" and not ev.won() and w.money == DriftEvent.LOST_ZL, "E4: a second loss pays nothing more: %s, %d zł (want %d)" % [ev.outcome, w.money, DriftEvent.LOST_ZL])
+	_free(ev)
+	# Once ever: a wallet that had the 250 zł gets none on a new visit's loss.
+	ev = _inside()
+	ev.wallet.keep[DriftEvent.LOST_PAID_KEY] = 1
+	ev._open_final()
+	ev.final_result(1000, 20000)
+	_expect((ev.wallet as EventWallet).money == 0 and "rematch" in ev._ui.card_ids(), "E4: a loss after the paid one pays %d zł (want 0)" % (ev.wallet as EventWallet).money)
+	_free(ev)
+	# A draw is within 1 % of the larger total.
+	_expect(DriftEvent.final_outcome(30000, 29800) == "draw" and DriftEvent.final_outcome(30000, 29600) == "won" and DriftEvent.final_outcome(29600, 30000) == "lost",
+			"E4: a draw within 1 %% (30000-29800 %s, 30000-29600 %s)" % [DriftEvent.final_outcome(30000, 29800), DriftEvent.final_outcome(30000, 29600)])
+	# After a reload: a won quest's name, invite and hello are the practice's (main.gd wires story_closed after story_def).
+	ev = _event({"at": Vector3.ZERO, "kmh": 0.0}, {"meet_race": 1})
+	ev.story = ev.story_def()
+	QuestBook.mark_done((ev.wallet as EventWallet).intro, DriftEvent.ID)
+	ev._idle_tick(0.1)
+	var pr := DriftLine.word("practice")
+	_expect(str(ev.story["pl"]) == str(pr[0]) and str(ev.invites[DriftEvent.ID][0]) == str(pr[0]) and _is_line(ev.story["hello"], "practice"),
+			"E4: a fresh event on a won wallet: %s, invite %s, hello %s" % [ev.story["pl"], ev.invites[DriftEvent.ID], ev.story["hello"]])
+	_free(ev)
+	# ...and a final lost before: the rematch's hello.
+	ev = _event({"at": Vector3.ZERO, "kmh": 0.0}, {"meet_race": 1})
+	ev.story = ev.story_def()
+	ev.wallet.keep[DriftEvent.FINAL_KEY] = 1
+	ev._idle_tick(0.1)
+	_expect(_is_line(ev.story["hello"], "rematch"), "E4: after a lost final Darek's hello is the rematch's (%s)" % [ev.story["hello"]])
 	_free(ev)
 	# The rematch from QUESTS starts at the final.
 	ev = _inside()
@@ -468,6 +550,50 @@ func _e5_quit() -> void:
 	_expect(ev.outcome == "quit" and w.money == 0 and not ev.inside() and (ev._player_car as Node).process_mode == Node.PROCESS_MODE_INHERIT
 			and ev.hud.visible, "E5: ✕ inside: %s, %d zł, inside %s, car process %d" % [ev.outcome, w.money, ev.inside(), (ev._player_car as Node).process_mode])
 	_free(ev)
+	# ✕ on run 2's card (the final under way): quit, nothing paid, the final kept for a rematch.
+	ev = _inside()
+	ev._open_final()
+	ev._card_button("start")
+	ev.you_runs.append(9000)
+	ev.him_runs.append(8000)
+	ev.final_run = 2
+	ev._ui.show_card("run 2", [["next", "next"]])
+	ev._leave()
+	w = ev.wallet as EventWallet
+	_expect(ev.outcome == "quit" and w.money == 0 and not ev.won() and ev._rematch(), "E5: ✕ on run 2's card: %s, %d zł, rematch %s" % [ev.outcome, w.money, ev._rematch()])
+	_free(ev)
+	# ✕ on the podium card: the win stays (paid on the card).
+	ev = _inside()
+	ev._open_final()
+	ev.final_result(30000, 20000)
+	ev._leave()
+	w = ev.wallet as EventWallet
+	_expect(ev.outcome == "won" and w.money == DriftEvent.PRIZE_ZL and ev.won(), "E5: ✕ on the podium: %s, %d zł, won %s" % [ev.outcome, w.money, ev.won()])
+	_free(ev)
+	# ✕ on the drive to the gate: Darek calls again later, not never.
+	var where := {"at": Vector3(900, 0, -400), "kmh": 30.0}
+	ev = _event(where, {"meet_race": 1})
+	ev._idle_tick(0.1)
+	ev.ring()
+	ev.card_pressed(0)
+	ev.card_pressed(0)
+	_expect(ev.stage == DriftEvent.Stage.DRIVE and ev.takes_abort(), "E5: on the drive the ✕ takes the run (stage %d)" % ev.stage)
+	ev.abort()
+	var t := 0.0
+	while ev.phase == Activity.Phase.IDLE and t < DriftEvent.NEXT_CALL.y + DriftEvent.RETRY + 1.0:
+		ev._idle_tick(0.5)
+		t += 0.5
+	_expect(ev.phase == Activity.Phase.RING, "E5: ✕ on the drive, Darek rings again at %.0f s (want by %.0f)" % [t, DriftEvent.NEXT_CALL.y])
+	_free(ev)
+
+
+## `pair` (a [pl, en]) is one of dialogue.json "bokiem"'s lines tagged `tag_`.
+func _is_line(pair: Variant, tag_: String) -> bool:
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
+	for l: Variant in (d.get("bokiem", []) if d is Dictionary else []):
+		if (l as Array).size() > 2 and str((l[2] as Dictionary).get("only", "")) == tag_ and str(l[0]) == str(pair[0]):
+			return true
+	return false
 
 
 func _e6_holds() -> void:

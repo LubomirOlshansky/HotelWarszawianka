@@ -8158,7 +8158,7 @@
     ["PREZES: „JA SIĘ NIE ROZGRZEWAM. JA OD RAZU GRAM.”", "PREZES: I DON'T WARM UP. I JUST PLAY.", {"only": "prezes_warm"}]
   ],
   "bokiem": [
-    ["„Lena wypadła: słoik ogórków babci wygrał z jej nadgarstkiem. Dziś Puchar Bokiem na Narodowym, team WNRC ma wolne miejsce. Wchodzisz?”", "\"Lena's out: gran's pickle jar beat her wrist. It's the Puchar Bokiem at the Narodowy tonight and team WNRC has a free seat. You in?\"", {"only": "call", "who": "Darek „Bawarka”"}],
+    ["„Lena wypadła, słoik ogórków wygrał z jej nadgarstkiem. Dziś Puchar Bokiem na Narodowym. Wchodzisz?”", "\"Lena's out, a pickle jar beat her wrist. Puchar Bokiem at the Narodowy tonight. You in?\"", {"only": "call", "who": "Darek „Bawarka”"}],
     ["„Bawarka stoi u Mirka bez dyfra, więc jedziesz swoim. Spawany dyfer dostaniesz na wieczór.”", "\"The Bawarka's at Mirek's with no diff, so you're driving yours. You get a welded diff for the night.\"", {"only": "car", "who": "Darek „Bawarka”"}],
     ["„Pokaż ochronie opaskę. Nie masz? Powiedz, że od Darka.”", "\"Show security your wristband. None? Say Darek sent you.\"", {"only": "gate", "who": "Darek „Bawarka”"}],
     ["„Spoko. Puchar nie zając, nie ucieknie. Zadzwonię później.”", "\"No worries. The cup's not a hare, it won't run off. I'll call later.\"", {"only": "decline", "who": "Darek „Bawarka”"}],
@@ -8180,12 +8180,12 @@
     ["„Jest próg! Hrabia już poprawia rękawiczki.”", "\"You're through! Hrabia's already adjusting his gloves.\"", {"only": "quali_pass", "who": "Lena"}],
     ["„Płytko gonisz, głęboko hamujesz.”", "\"Shallow to catch him, deep to brake.\"", {"only": "chase", "who": "Lena"}],
     ["„Remis? Sędziowie każą jeszcze raz. Ja bym brała.”", "\"A draw? The judges want one more. I'd take it.\"", {"only": "draw", "who": "Lena"}],
-    ["„Pudło! Babcia dzwoniła, mówi, że ogórki w słoiku też się cieszą.”", "\"The podium! Gran called, says even the pickles in the jar are cheering.\"", {"only": "podium", "who": "Lena"}],
+    ["„Na pudle! Babcia dzwoniła, mówi, że ogórki w słoiku też się cieszą.”", "\"On the podium! Gran called, says even the pickles in the jar are cheering.\"", {"only": "podium", "who": "Lena"}],
     ["„U nas zimą wszyscy jeżdżą bokiem. Tu jeszcze dają puchar.”", "\"Back home everyone drives sideways in winter. Here they even give you a cup.\"", {"only": "bjorn", "who": "Bjørn"}],
     ["„Ścinam zakręty jak grzywkę: równo i bez litości.”", "\"I cut corners like a fringe: neat and merciless.\"", {"only": "kaska", "who": "Kaśka „Ścinka”"}],
     ["„Hrabia jeździ bokiem od urodzenia, ty od dziś. Za mną, tylko nie w zderzak.”", "\"Hrabia's driven sideways since birth, you since today. Follow me, just not into my bumper.\"", {"only": "hrabia_intro", "who": "Hrabia"}],
     ["„Teraz ty z przodu. Nie hamuj mi przed nosem, to nieeleganckie.”", "\"Your turn up front. Don't brake under my nose, it's ill-mannered.\"", {"only": "hrabia_run2", "who": "Hrabia"}],
-    ["„Przegrałem z hatchbackiem. Nikomu ani słowa. Zwłaszcza moim oponom.”", "\"Lost to a hatchback. Not a word to anyone. Especially my tyres.\"", {"only": "hrabia_lost", "who": "Hrabia"}],
+    ["„Przegrałem z seryjnym autem. Nikomu ani słowa. Zwłaszcza moim oponom.”", "\"Lost to a street car. Not a word to anyone. Especially my tyres.\"", {"only": "hrabia_lost", "who": "Hrabia"}],
     ["„Piękna próba. Puchar zostaje w rodzinie, jak srebra po prababci.”", "\"A lovely try. The cup stays in the family, like great-gran's silver.\"", {"only": "hrabia_won", "who": "Hrabia"}]
   ]
 }

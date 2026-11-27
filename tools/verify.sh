@@ -1851,7 +1851,7 @@ for s in $want; do
 		tajny-run) game tajny-run 19000 '^tajny klient: beat done' --tajny --autopilot ;;
 		tapczan-run) game tapczan 12000 '^tapczan: out: won' --tapczan=pong --tapczan-log ;;
 		drift-run) game drift 4500 '^drift: run over' --drift=osemka:bot ;;
-		drift-quest) skip_prebuilt "run: drift-quest" || game drift-quest 16000 '^drift: quest over' --drift=quest:bot --prebuilt ;;
+		drift-quest) skip_prebuilt "run: drift-quest" || game drift-quest 30000 '^drift: quest over: won' --drift=quest:bot --prebuilt ;;
 		decks-run) game decks 12000 '^decks: over: PIEC' --decks --decks-bot=perfect --decks-log ;;
 		shisha-run) game shisha 30000 '^shisha: done: smoke' --shisha-call --shisha-log --autopilot ;;
 		# Loop 2d-1 x 3g-1: a pull-over 25 s into that ride takes exactly one star (police.gd calls

@@ -15,9 +15,10 @@ extends "res://scripts/drift_stadium.gd"
 ##     and one flick), KWALIFIKACJE (a run's total against Q_LINE, best kept, PONÓW without limit; WYJDŹ
 ##     after a run short of it: out, 100 zł), FINAŁ (two tandem runs against Hrabia, drift_tandem.gd: run 1
 ##     he leads, run 2 you lead; the live bar TY vs HRABIA; a draw is one more pair), the result card.
-##   - Pay (wallet.gd, once, at the gate): a win 800 zł, 150 respect and the "Bokiem" paint (garage.gd
-##     PAINTS `bokiem`), the quest done; a lost final 250 zł, the rematch starts at the final (`keep`
-##     FINAL_KEY); out in qualifying 100 zł, the quest open; ✕ inside: back at the gate, nothing paid.
+##   - Pay (wallet.gd): a win 800 zł, 150 respect and the "Bokiem" paint (garage.gd PAINTS `bokiem`) and
+##     the quest done, on the result card; a lost final 250 zł and out in qualifying 100 zł, each once
+##     ever (`keep` LOST_PAID_KEY, OUT_PAID_KEY); the rematch starts at the final (`keep` FINAL_KEY); a draw
+##     is within DRAW_SHARE of the larger total; ✕ inside: back at the gate, nothing paid.
 ##   - After the win the questline is "Bokiem: trening" in QUESTS: the stadium's free practice, its best
 ##     kept in `keep` BEST_KEY (nothing saved under --nosave: wallet.gd's `persistent`).
 ## Words: dialogue.json "bokiem" (each line's `who`), the stadium's words in drift_tracks.json.
@@ -52,12 +53,20 @@ const WARM_HOLD := 3.0
 ## Lena's tips come at most this often (s) and show this long.
 const TIP_GAP := 4.0
 const TIP_S := 3.6
-## Final totals this close (points) are a draw: one more pair.
-const DRAW_PTS := 50
+## Final totals within this share of the larger one are a draw: one more pair (Fable's review: 1 %, about
+## 300 points; 50 was under a single zone's worth).
+const DRAW_SHARE := 0.01
+## wallet.gd `keep`: the consolation money is paid once ever (a lost final's, a short qualifying's).
+const LOST_PAID_KEY := "bokiem_lost_paid"
+const OUT_PAID_KEY := "bokiem_out_paid"
+## "Najpierw zgub ogon" at most this often (s).
+const TAIL_EVERY := 3.0
 ## Stopped in the gate's ring: under this (km/h).
 const STOP_KMH := 8.0
 ## --drift=quest:bot: the cards are pressed this long after they show (s).
 const BOT_CARD := 1.5
+## --drift=quest:bot: the finals it plays before it gives up (the verify step wants the win).
+const BOT_TRIES := 4
 
 static var HOURS: Vector2 = Pacer.span("bokiem", "hours")
 static var FIRST_CALL: Vector2 = Pacer.span("bokiem", "first_call")
@@ -111,6 +120,10 @@ var _says: Array = []
 var _bot_t := 0.0
 var _paid := 0
 var _lost_paid := false
+## The win is paid on the result card (final_result), not on ODBIERZ.
+var _won_paid := false
+var _story_fresh := false
+var _tail_t := 0.0
 
 
 # --- the wiring ----------------------------------------------------------------------------------
@@ -216,6 +229,9 @@ static func gate_jobs(jobs: Dictionary) -> bool:
 ## Darek's own clock (pacing.json "bokiem"): FIRST_CALL s after the gate opens, NEXT_CALL after a no or
 ## a run that did not win, RETRY while something holds it; never once the quest is won (`_ring_turn`).
 func _idle_tick(dt: float) -> void:
+	if not _story_fresh:
+		_story_fresh = true
+		_refresh_story()  # main.gd wires story_closed after story_def(): the name and the hello now
 	if won() or not gate_open():
 		return
 	if not _gate_was:
@@ -234,6 +250,20 @@ func _idle_tick(dt: float) -> void:
 		return
 	if _ring_turn(ID) and ring():
 		_call_in = INF
+
+
+## The questline's name, Darek's hello at the gate and the call card's invite as the quest stands now
+## (won: "Bokiem: trening"; a final lost: the rematch). After a reload and after each visit.
+func _refresh_story() -> void:
+	var n := quest_name()
+	invites[ID] = [str(n[0]), str(n[1])]
+	if story.is_empty():
+		return
+	story["pl"] = str(n[0])
+	story["en"] = str(n[1])
+	story["blurb"] = DriftLine.word("blurb")  # the full map pin's line (main.gd STORY_BLURBS has no room: the ratchet)
+	var hi: Array = _call_card()["about"]
+	story["hello"] = [hi[0], hi[1]]
 
 
 func _call_card() -> Dictionary:
@@ -316,8 +346,10 @@ func _run_tick(_dt: float) -> void:
 	status(str(quest_name()[0]).to_upper(), "", "%d m" % int(far) if far != INF else "", [name[0], name[1]], 0.0)
 	if far <= arrive and float(v[1]) <= STOP_KMH and not bool(v[2]):
 		if police != null and police.has_method("chasing") and bool(police.chasing()):
-			var w := DriftLine.word("tail")
-			hud.toast(str(w[0]), str(w[1]))
+			if Time.get_ticks_msec() / 1000.0 >= _tail_t:
+				_tail_t = Time.get_ticks_msec() / 1000.0 + TAIL_EVERY
+				var w := DriftLine.word("tail")
+				hud.toast(str(w[0]), str(w[1]))
 			return
 		_arrive()
 
@@ -476,6 +508,7 @@ func _warm_over() -> void:
 	_ui.scored = true
 	_ui.show_card(_quali_board(), [["start", "start"]])
 	_queue_say("bjorn")
+	_queue_say("kaska")  # the board's two names, each with a line
 	_log("quest: warm-up over (%.1f s, %d flicks), qualifying" % [_clock, score.flicks])
 
 
@@ -496,7 +529,8 @@ func _frame_visuals(dt: float) -> void:
 		if h.mode in [DriftModel.Mode.DRIFT, DriftModel.Mode.FLIP, DriftModel.Mode.SPIN] and absf(h.beta) > 12.0 and _rng.randf() < h.v * dt / PUFF_EVERY:
 			var side := signf(h.beta) if h.beta != 0.0 else 1.0
 			_puff(_him_car.global_transform * Vector3(0.78 * side, 0.4, 1.3))
-	if stage == Stage.FINAL:
+	_ui.retry_on = not stage in [Stage.FINAL, Stage.PODIUM]  # no PONÓW in the final (Fable's review)
+	if stage == Stage.FINAL and not _ui.result_up():
 		_ui.bar_on = true
 		# Live: the banked runs, this run's bank and the pile still at stake (a KONTAKT or a spin drops it).
 		var mine := _sum(you_runs) + (roundi(score.total + score.pile) if not _over else 0)  # over: in you_runs
@@ -518,19 +552,23 @@ func _process(dt: float) -> void:
 		_bot_t += dt
 		if _bot_t >= BOT_CARD:
 			_bot_t = 0.0
-			_ui.press_card(bot_button(_ui.card_ids(), quali_runs))
+			_ui.press_card(bot_button(_ui.card_ids(), quali_runs, final_try))
 	else:
 		_bot_t = 0.0
 
 
 ## The button the test bot presses: the way on (START, DO FINAŁU, DALEJ, JESZCZE RAZ, ODBIERZ), PONÓW
 ## for a short qualifying run up to twice, else WYJDŹ (a lost final ends the test run).
-static func bot_button(ids: PackedStringArray, runs_done: int) -> String:
+## The bot's press: forward always, PONÓW up to three qualifying runs, REWANŻ up to BOT_TRIES finals
+## (each a new seed for Hrabia, the fourth his over-hold), as a player who wants the cup.
+static func bot_button(ids: PackedStringArray, runs_done: int, tries := 0) -> String:
 	for id in ["take", "start", "to_final", "next", "again"]:
 		if id in ids:
 			return id
 	if "retry" in ids and runs_done < 3:
 		return "retry"
+	if "rematch" in ids and tries < BOT_TRIES:
+		return "rematch"
 	return "leave" if "leave" in ids else (ids[0] if not ids.is_empty() else "")
 
 
@@ -575,13 +613,15 @@ func _run_card(total: int) -> void:
 func final_result(you: int, him: int) -> void:
 	_ui.bar_on = false
 	var line_t := "%s %s · %s %s" % [_w("you"), DriftUi.num(you), _w("hrabia"), DriftUi.num(him)]
-	if absi(you - him) < DRAW_PTS:
+	var how := final_outcome(you, him)
+	if how == "draw":
 		_ui.show_card("%s\n%s" % [_w("draw"), line_t], [["again", "again"]])
 		_queue_say("draw")
 		_log("final: a draw %d to %d, one more pair" % [you, him])
 		return
-	if you > him:
+	if how == "won":
 		stage = Stage.PODIUM
+		_award()  # paid and done here: the card only closes (Fable's review)
 		_ui.show_card("%s\n%s\n\n%s" % [_w("won"), line_t, _prize_words()], [["take", "take"]])
 		_queue_say("hrabia_lost")
 		_queue_say("podium")
@@ -589,14 +629,43 @@ func final_result(you: int, him: int) -> void:
 		_wave()
 		hud.cue("win")
 	else:
-		if not _lost_paid and wallet != null:
-			_lost_paid = true
+		var paid := 0
+		if not _lost_paid and wallet != null and int(wallet.keep.get(LOST_PAID_KEY, 0)) == 0:
+			wallet.keep[LOST_PAID_KEY] = 1  # once ever, not a tap to drain
+			paid = LOST_ZL
 			_paid += LOST_ZL
 			wallet.pay(LOST_ZL, 0, "")
-		_ui.show_card("%s\n%s\n\n%s" % [_w("lost_final"), line_t, DriftUi.w("paid") % DriftUi.num(LOST_ZL)], [["rematch", "rematch"], ["leave", "leave"]])
+		_lost_paid = true
+		var tail := "\n\n%s" % (DriftUi.w("paid") % DriftUi.num(paid)) if paid > 0 else ""
+		_ui.show_card("%s\n%s%s" % [_w("lost_final"), line_t, tail], [["rematch", "rematch"], ["leave", "leave"]])
 		_queue_say("hrabia_won")
 		hud.cue("fail")
-	_log("final: %s %d to %d" % ["won" if you > him else "lost", you, him])
+	_log("final: %s %d to %d" % [how, you, him])
+
+
+## A final's totals: "draw" within DRAW_SHARE of the larger, else "won" or "lost" (T8 counts with it).
+static func final_outcome(you: int, him: int) -> String:
+	if absi(you - him) <= roundi(DRAW_SHARE * maxi(you, him)):
+		return "draw"
+	return "won" if you > him else "lost"
+
+
+## The win: 800 zł, 150 respect and the paint, and the questline marked done (story_finished), once.
+func _award() -> void:
+	if _won_paid:
+		return
+	_won_paid = true
+	_paid += PRIZE_ZL
+	if wallet != null:
+		var paints: Variant = wallet.get("paints")
+		if paints is Dictionary:
+			(paints as Dictionary)[PAINT_ID] = int(Time.get_date_string_from_system().replace("-", ""))
+		wallet.pay(PRIZE_ZL, PRIZE_RESPECT, ID)
+	if run_story != "" and story_finished.is_valid():
+		story_finished.call(run_story)
+	run_story = ""
+	if wallet != null and wallet.has_method("save"):
+		wallet.save()  # the paint and the done mark with the money, at once
 
 
 func _prize_words() -> String:
@@ -629,6 +698,7 @@ func _open_final() -> void:
 	you_runs.clear()
 	him_runs.clear()
 	_lost_paid = false
+	_won_paid = false
 	if wallet != null and int(wallet.keep.get(FINAL_KEY, 0)) == 0:
 		wallet.keep[FINAL_KEY] = 1
 		wallet.save()
@@ -676,17 +746,13 @@ func _close(how: String) -> void:
 	var w: Array = []
 	match how:
 		"won":
-			_paid += PRIZE_ZL
-			if wallet != null:
-				var paints: Variant = wallet.get("paints")
-				if paints is Dictionary:
-					(paints as Dictionary)[PAINT_ID] = int(Time.get_date_string_from_system().replace("-", ""))
-				wallet.pay(PRIZE_ZL, PRIZE_RESPECT, ID)
+			_award()  # already paid on the card; a check that closes straight away pays here
 			var p := DriftLine.word("prize")
 			w = [str(p[0]) % [DriftUi.num(PRIZE_ZL), PRIZE_RESPECT], str(p[1]) % [DriftUi.num(PRIZE_ZL), PRIZE_RESPECT]]
 		"out":
-			_paid += OUT_ZL
-			if wallet != null:
+			if wallet != null and int(wallet.keep.get(OUT_PAID_KEY, 0)) == 0:
+				wallet.keep[OUT_PAID_KEY] = 1  # once ever
+				_paid += OUT_ZL
 				wallet.pay(OUT_ZL, 0, "")
 			var o := _words("out")
 			w = [o[0], o[1]]
@@ -697,32 +763,39 @@ func _close(how: String) -> void:
 		hud.toast(str(w[0]), str(w[1]))
 	print("drift: quest over: %s, paid %d zł, qualifying %d runs (best %d, cut %d), final %s" % [how, _paid, quali_runs, quali_best, q_line,
 			"%s to %s" % [_sum(you_runs), _sum(him_runs)] if not you_runs.is_empty() else "not driven"])
-	if how == "won":
-		finish()  # the kit marks the quest done (story_finished): Darek never calls about it again
-		if not story.is_empty():
-			var n := quest_name()
-			story["pl"] = str(n[0])
-			story["en"] = str(n[1])
-	else:
-		end_how = "quit" if how == "quit" else "done"
-		run_story = ""
-		_end(call_cool)
-	if not story.is_empty():
-		# Darek met at the gate (story_quests.gd `_greet`) says what the call would: the rematch, the practice.
-		var hi: Array = _call_card()["about"]
-		story["hello"] = [hi[0], hi[1]]
+	end_how = "quit" if how == "quit" else "done"
+	run_story = ""  # a win's was closed by _award
+	_end(call_cool)
+	_refresh_story()  # the name ("Bokiem: trening") and Darek's hello at the gate: the rematch, the practice
 	if how != "won" and how != "practice":
 		_call_in = _rng.randf_range(NEXT_CALL.x, NEXT_CALL.y)
 
 
 func _ended() -> void:
 	super._ended()
+	if _call_in == INF and not won():
+		_call_in = _rng.randf_range(NEXT_CALL.x, NEXT_CALL.y)  # ✕ on the drive must not silence Darek for good
 	stage = Stage.NONE
 	_dev_in = false
 	duel = null
 	_says.clear()
 	if _him_car != null:
 		_him_car.visible = false
+
+
+## The final's finish banks the run's pile under the result card: no BANKED flash there.
+func _on_said(said: String) -> void:
+	if stage in [Stage.FINAL, Stage.PODIUM] and st != null and st.finished and said.begins_with("bank"):
+		_log(said)
+		return
+	super(said)
+	# Lena's first bank and first zone of a qualifying visit (dialogue.json "bokiem" bank, zone).
+	var what := said.get_slice(":", 0)
+	if stage == Stage.QUALI and what in ["bank", "zona"]:
+		var tag_ := "bank" if what == "bank" else "zone"
+		if not _warm_said.has(tag_):
+			_warm_said[tag_] = true
+			_queue_say(tag_)
 
 
 func _keep_best(total: int) -> void:

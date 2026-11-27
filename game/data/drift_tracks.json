@@ -81,6 +81,7 @@
 		"paid": ["+%s zł", "+%s zł"],
 		"practice": ["Bokiem: trening", "Sideways: practice"],
 		"quest_name": ["Bokiem na Narodowym", "Sideways at the Narodowy"],
+		"blurb": ["Drift na Narodowym, tandem z Hrabią.", "Drifting at the Narodowy, a tandem with Hrabia."],
 		"in": ["WCHODZĘ", "I'M IN"],
 		"not_today": ["NIE DZIŚ", "NOT TODAY"],
 		"tail": ["Najpierw zgub ogon", "Lose the tail first"]

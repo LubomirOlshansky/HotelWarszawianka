@@ -17,9 +17,10 @@ extends RefCounted
 ##     sign change (a thumb answering the NOW ring), with a 60 Hz frame's jitter.
 ##   - "none" (B6): the gas held, never a kick.
 ##   - "hrabia" (PR 3, critique-drift.md change 7: Hrabia is the bot, live, not a recording): the decent
-##     bot with his needle at HRABIA_NEEDLE° (tuned by check_drift_event T8 with a chaser that brakes under
-##     3.5 m: at 44° as the critique guessed the decent follower wins 2 of 8 finals, at 43° 6 of 8, 0b.7's 4-6
-##     at most); with `wobble` (one final in four, drift_event.gd) one
+##     bot with his needle at HRABIA_NEEDLE° (tuned by check_drift_event T8 with no chase help, a thumb's
+##     KONTAKT rules (Fable's review): at 43° the decent follower won 4 of 16 seeded finals, at 42° 7, at 41.5°
+##     7 with 2 draws, at 41° 11, so 41.5° gives 0b.7's even final); with `wobble` (one final in four,
+##     drift_event.gd) one
 ##     over-hold to WOBBLE_DEG for WOBBLE_S s somewhere in WOBBLE_AT s of the run.
 
 const DriftModel := preload("res://scripts/drift_model.gd")
@@ -43,7 +44,7 @@ const CLUMSY_WANDER := 6.0
 ## A run gives up after this (s, 0b.2).
 const RUN_LIMIT := 45.0
 ## Hrabia (PR 3): his needle, and his one over-hold: how deep, how long, when (s into the run).
-const HRABIA_NEEDLE := 43.0
+const HRABIA_NEEDLE := 41.5
 const WOBBLE_DEG := 54.0
 const WOBBLE_S := 0.8
 const WOBBLE_AT := Vector2(8.0, 18.0)
@@ -177,6 +178,11 @@ func tick(t: float, st: DriftModel.State, line: RefCounted, inp: DriftInput) -> 
 		_needle_now = needle + rng.randfn(0.0, wander)
 	var aim := WOBBLE_DEG if t >= wobble_t and t < wobble_t + WOBBLE_S else _needle_now
 	_hold(inp, t, seen < aim)
+
+
+## Hrabia's over-hold window at `t` (s), with a second after it (drift_tandem.gd: no KONTAKT then).
+func wobbling(t: float) -> bool:
+	return t >= wobble_t - 0.2 and t < wobble_t + WOBBLE_S + 1.0
 
 
 ## The blind cycle: tap, gap, hold, lift from its phase, whatever the car does.

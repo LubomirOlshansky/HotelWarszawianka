@@ -41,9 +41,21 @@ const AWAY := 6.0
 ## PREZENT!: your spin gives him this many points.
 const GIFT := 500.0
 ## KONTAKT: the speed the first one costs (m/s), the chain steps, and the time before the next counts (s).
+## A touch pushes the chaser back to BLISKO's near edge (CLOSE.x) under the leader's speed; the next one
+## counts only once the cars were apart again (Fable's review: no second KONTAKT while held).
 const KONTAKT_V := 2.0
 const KONTAKT_STEPS := 2
 const KONTAKT_COOL := 1.0
+## The second and later KONTAKT cost this share of the pile (and KONTAKT_STEPS chain steps), not all of it.
+const KONTAKT_SHARE := 0.5
+## No KONTAKT is the chaser's fault for EXCUSE_S s after the leader slows harder than SHARP (m/s²), nor in
+## Hrabia's over-hold window (drift_bot.gd `wobbling`).
+const SHARP := 9.0
+const EXCUSE_S := 1.0
+## Run 2: a leader under CRAWL for PARK_S s (after PARK_FROM s of the run) is parked: Hrabia drives his solo
+## lap for the rest of it, through you (Fable's review: parking skipped run 2).
+const PARK_S := 1.5
+const PARK_FROM := 3.0
 ## The check's chasing bots hold the gas (deeper, slower) while the gap is under this (m): a thumb that
 ## sees the car in front.
 const CHASE_DEEP := 3.5
@@ -77,6 +89,14 @@ class Duel:
 	var close_s := 0.0
 	var t := 0.0
 	var said: PackedStringArray = []
+	## KONTAKT counts again (the cars were apart since the last one); the touches let off (excused).
+	var armed := true
+	var excused := 0
+	var excuse_t := 0.0
+	var lead_v := -1.0
+	## Run 2: the leader's crawl time, and parked (he drives alone from then).
+	var crawl_t := 0.0
+	var solo := false
 
 
 ## A run of the final: Hrabia's bot with `him_seed` (and his over-hold when `wobble`), the leader placed.
@@ -185,17 +205,25 @@ static func couple(d: Duel, you: DriftModel.State, you_sc: DriftScore.Score, lin
 		d.him_sc.total += GIFT
 		d.gifts += 1
 		d.said.append("gift")
+	var lead: DriftModel.State = d.him if d.run == 1 else you
+	if d.lead_v >= 0.0 and (d.lead_v - lead.v) / maxf(dt, 0.0001) > SHARP:
+		d.excuse_t = EXCUSE_S  # the leader braked hard (a brake check, a spin): a touch is his
+	d.lead_v = lead.v
+	d.excuse_t = maxf(0.0, d.excuse_t - dt)
+	if d.run == 1 and d.bot != null and d.bot.has_method("wobbling") and bool(d.bot.wobbling(d.t)):
+		d.excuse_t = maxf(d.excuse_t, dt)
 	if d.run == 1:
 		d.gap = gap(d.him.s, you.s)
 		# A leader past the finish has left the line: nothing to touch, nothing to hold the chaser behind.
 		var touching := not d.him.finished and contact(d.him, you, line)
 		if touching or (d.gap < 0.0 and not d.him.finished):
-			# No passing: the chaser stays a bumper behind and cannot outrun the leader through him.
-			you.s = minf(you.s, d.him.s - CAR_LEN)
-			you.v = minf(you.v, d.him.v)
+			# No passing: a touch puts the chaser back at BLISKO's near edge, under the leader's speed.
+			you.s = minf(you.s, d.him.s - CAR_LEN - CLOSE.x)
+			you.v = minf(you.v, maxf(0.0, d.him.v - KONTAKT_V))
 			d.gap = gap(d.him.s, you.s)
-			if d.contact_t <= 0.0:
-				_kontakt(d, you, you_sc)
+			_touch(d, you, you_sc)
+		elif d.gap >= CLOSE.x:
+			d.armed = true
 		var near := is_close(d.gap) and not you.finished and not d.him.finished
 		if near and not d.you_close:
 			d.said.append("close")
@@ -207,6 +235,15 @@ static func couple(d: Duel, you: DriftModel.State, you_sc: DriftScore.Score, lin
 	else:
 		var cap := pace_cap(d, d.him.s)
 		d.gap = gap(you.s, d.him.s)
+		d.crawl_t = d.crawl_t + dt if you.v < CRAWL and not you.finished and d.t > PARK_FROM else 0.0
+		if d.crawl_t > PARK_S and not d.solo:
+			d.solo = true  # parked: his solo lap from here, nobody to chase
+			d.said.append("parked")
+		if d.solo:
+			d.gap = gap(you.s, d.him.s)
+			d.him_sc.boost = 1.0
+			you_sc.boost = 1.0
+			return
 		if d.gap < KEEP_BACK + KEEP_RAMP:
 			# Behind a slower car he comes down to its speed by KEEP_BACK m of gap, and stops there behind a
 			# stopped one (0b.7 R2: at least 2 m behind).
@@ -219,8 +256,13 @@ static func couple(d: Duel, you: DriftModel.State, you_sc: DriftScore.Score, lin
 			d.him.mode = DriftModel.Mode.GRIP  # crawling behind a stopped car: he straightens, his pile banks
 			d.him.beta = 0.0
 			DriftScore.bank(d.him_sc)
-		if contact(you, d.him, line) and d.contact_t <= 0.0:
-			_kontakt(d, d.him, d.him_sc)
+		if contact(you, d.him, line):
+			d.him.s = minf(d.him.s, you.s - CAR_LEN - CLOSE.x)
+			d.him.v = minf(d.him.v, maxf(0.0, you.v - KONTAKT_V))
+			d.gap = gap(you.s, d.him.s)
+			_touch(d, d.him, d.him_sc)
+		elif d.gap >= CLOSE.x:
+			d.armed = true
 		var near := is_close(d.gap) and not d.him.finished
 		if near:
 			d.close_s += dt
@@ -232,17 +274,29 @@ static func couple(d: Duel, you: DriftModel.State, you_sc: DriftScore.Score, lin
 		you_sc.boost = 1.0
 
 
-## A KONTAKT on the chaser `c` (its state and score): the first in the run costs KONTAKT_STEPS chain
-## steps and KONTAKT_V m/s, any after it the pile.
+## The cars touched (the chaser `c` already pushed back): a KONTAKT once they were apart since the last
+## one and the cooldown ran out, unless the leader caused it (`excuse_t`).
+static func _touch(d: Duel, c: DriftModel.State, sc: DriftScore.Score) -> void:
+	if not d.armed or d.contact_t > 0.0:
+		return
+	d.armed = false
+	d.contact_t = KONTAKT_COOL
+	if d.excuse_t > 0.0:
+		d.excused += 1
+		return
+	_kontakt(d, c, sc)
+
+
+## A KONTAKT on the chaser `c` (its state and score; the push back already took KONTAKT_V m/s): the first
+## in the run costs KONTAKT_STEPS chain steps, any after it KONTAKT_SHARE of the pile as well.
 static func _kontakt(d: Duel, c: DriftModel.State, sc: DriftScore.Score) -> void:
 	d.contacts += 1
-	d.contact_t = KONTAKT_COOL
 	d.said.append("contact")
-	if d.contacts == 1:
-		sc.chain = maxi(1, sc.chain - KONTAKT_STEPS)
-		c.v = maxf(0.0, c.v - KONTAKT_V)
-	else:
-		DriftScore.lose(sc)
+	sc.chain = maxi(1, sc.chain - KONTAKT_STEPS)
+	if d.contacts > 1:
+		sc.pile *= 1.0 - KONTAKT_SHARE
+		for k: String in sc.pile_parts:
+			sc.pile_parts[k] *= 1.0 - KONTAKT_SHARE
 
 
 ## The bot chaser's one rule (the sim's and the game's --drift=quest:bot): close behind him in run 1
@@ -256,7 +310,7 @@ static func chase_hold(d: Duel, you: DriftModel.State, inp: DriftInput, t: float
 ## drift_bot.gd, seeded by the caller) against Hrabia with `him_seed`. Ends when the player crosses the
 ## finish (or RUN_LIMIT); both piles bank then. Returns the two totals, the contacts, the gifts, BLISKO's
 ## seconds, the mean gap and the run's time.
-static func run(run_no: int, you_bot: RefCounted, him_seed: int, wobble: bool, line: RefCounted, p: Dictionary) -> Dictionary:
+static func run(run_no: int, you_bot: RefCounted, him_seed: int, wobble: bool, line: RefCounted, p: Dictionary, hold := false) -> Dictionary:
 	var you := DriftModel.State.new()
 	var sc := DriftScore.Score.new()
 	var inp := DriftInput.new()
@@ -270,7 +324,8 @@ static func run(run_no: int, you_bot: RefCounted, him_seed: int, wobble: bool, l
 	var his_spins := 0
 	while not you.finished and t < RUN_LIMIT:
 		you_bot.tick(t, you, line, inp)
-		chase_hold(d, you, inp, t)
+		if hold:
+			chase_hold(d, you, inp, t)  # the in-game quest bot's rule only; a thumb has none
 		fr.gas = inp.gas()
 		fr.kick = inp.take_kick()
 		fr.chain = sc.chain
@@ -290,4 +345,4 @@ static func run(run_no: int, you_bot: RefCounted, him_seed: int, wobble: bool, l
 	DriftScore.bank(d.him_sc)
 	return {"you": sc.total, "him": d.him_sc.total, "contacts": d.contacts, "gifts": d.gifts, "close_s": d.close_s,
 			"gap": gap_sum / maxf(1.0, float(n)), "time": t, "away": away, "you_spins": sc.spins, "him_spins": his_spins,
-			"end_gap": d.gap}
+			"end_gap": d.gap, "excused": d.excused, "solo": d.solo}

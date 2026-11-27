@@ -58,6 +58,8 @@ var cue_perfect := 0.15
 ## final's live bar (on, your total, Hrabia's).
 var stage := ""
 var scored := true
+## PR 3 (Fable's review): PONÓW in the strip; drift_event.gd hides it in the final and on the podium.
+var retry_on := true
 var bar_on := false
 var bar_you := 0
 var bar_him := 0
@@ -76,6 +78,7 @@ var _flash_t := 0.0
 var _tip_t := 0.0
 var _row: HBoxContainer
 var _bar: Label
+var _retry_b: Button
 
 
 static func w(id: String) -> String:
@@ -118,7 +121,8 @@ func build(points: float) -> void:
 	strip.add_child(gap2)
 	_top = _button(strip, w("top"), UiKit.Kind.SECONDARY)
 	_top.pressed.connect(func() -> void: top_pressed.emit())
-	_button(strip, w("retry"), UiKit.Kind.SECONDARY).pressed.connect(func() -> void: retry_pressed.emit())
+	_retry_b = _button(strip, w("retry"), UiKit.Kind.SECONDARY)
+	_retry_b.pressed.connect(func() -> void: retry_pressed.emit())
 	_button(strip, "✕", UiKit.Kind.DANGER).pressed.connect(func() -> void: leave_pressed.emit())
 	_pile = _label(self, "title", UiKit.T_BANNER * 0.8)
 	_pile.add_theme_color_override("font_outline_color", UiKit.OUTLINE)
@@ -314,7 +318,8 @@ func _process(dt: float) -> void:
 	size = get_viewport_rect().size  # a Control under a CanvasLayer: its rect is the screen's
 	_total.text = ("%s   " % stage if stage != "" else "") + ("%s %s" % [w("score"), num(total)] + ("" if best <= 0 else "   %s %s" % [w("best"), num(best)]) if scored else "")
 	_clock.text = "%s %.1f" % [w("time"), clock]
-	var show_pile := pile > 0 and pile_at.x > -500.0
+	_retry_b.visible = retry_on
+	var show_pile := pile > 0 and pile_at.x > -500.0 and scored  # the unscored warm-up shows no number
 	_pile.visible = show_pile
 	_chip.visible = show_pile and chain > 1
 	if show_pile:
