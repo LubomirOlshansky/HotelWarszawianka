@@ -579,9 +579,14 @@ row() {
 }
 
 # limited SECONDS CMD...: run CMD, stop it after SECONDS (exit code 142 = stopped).
+# At the limit the step gets SIGSEGV first, so Godot's crash handler prints where it was (C++ and
+# GDScript backtraces) into the step's log, then SIGKILL 5 s later; the exit is 142 either way.
 limited() {
 	local secs=$1; shift
-	perl -e 'alarm shift; exec @ARGV or die "cannot run $ARGV[0]: $!\n"' $secs "$@"
+	perl -e '$s = shift; $p = fork // die "fork: $!\n";
+		if (!$p) { exec @ARGV or die "cannot run $ARGV[0]: $!\n" }
+		$SIG{ALRM} = sub { kill "SEGV", $p; sleep 5; kill "KILL", $p; waitpid($p, 0); exit 142 };
+		alarm $s; waitpid($p, 0); exit($? & 127 ? 128 + ($? & 127) : $? >> 8)' $secs "$@"
 }
 
 # problems LOG: the ERROR / WARNING lines Godot printed (push_error, push_warning, script
@@ -676,7 +681,9 @@ game() {
 		row FAIL "$label" $secs "stopped after ${STEP_LIMIT}s ($logf)"
 		# Where it stopped, in the job's own output (CI's log artifacts can't always be fetched).
 		print -r -- "  $label, the log's last lines:"
-		grep -v -e '^ *at: ' -e '^ALSA' $logf | tail -8 | cut -c1-200 | sed 's/^/    /'
+		grep -v -e '^ *at: ' -e '^ALSA' $logf | sed '/^=====/,$d' | tail -8 | cut -c1-200 | sed 's/^/    /'
+		sed -n '/^GDScript backtrace/,/END OF GDSCRIPT/p' $logf | head -20 | cut -c1-200 | sed 's/^/    /'
+		grep -E '^\[[0-9]+\] ' $logf | head -6 | cut -c1-160 | sed 's/^/    /'
 	elif (( code != 0 || np > 0 )); then
 		local first=$(problems $logf | head -1)
 		row FAIL "$label" $secs "exit $code, $np error/warning lines: ${${first:-crash, see log}[1,140]} ($logf)"

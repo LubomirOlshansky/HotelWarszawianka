@@ -7,6 +7,7 @@
 - found: Politechnika's two south escalator barrels are not in OSM (3D Tiles shows four); only the two mapped ones are built
 - found: flights tagged n=40 on 4-8 m ways at Rondo ONZ and Ratusz (1628) count both the open and the covered part; the drop is capped by the run
 - found: Rondo Daszyńskiego's wells have no mapped walls: ring = the flight, 9 m from the mouth, as the canopies measure on 3D Tiles; check against the Mac's GUGiK ortho
+- found: CI's `firstlife` step stopped at the 1500 s limit after its "first life: OK" line on this branch (5 runs) and once on main (27 Nov 02:43); it quits in 1 s here on 2 cores. `tools/verify.sh` now sends a timed-out step SIGSEGV before the kill, so the job's output shows Godot's GDScript backtrace of where it hung
 
 ## Roadmap
 - added (done): every metro entrance in the centre sunk and built from photos (after Rondo Dmowskiego's)
