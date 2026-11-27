@@ -443,7 +443,7 @@ func _check_shop_rules() -> void:
 func _check_meme_cars() -> void:
 	const Ladder := preload("res://scripts/ladder.gd")
 	const Models := preload("res://scripts/models.gd")
-	var want := {"hatch": 0, "lanos": 0, "bolonez": 0, "paszat": 1, "szupra": 2, "tt": 3, "bawarka": 3}
+	var want := {"hatch": 0, "lanos": 0, "bolonez": 0, "paszat": 1, "mjata": 1, "szupra": 2, "tt": 3, "bawarka": 3}
 	for id: String in want:
 		var c := Upgrades.car(id)
 		if c.is_empty():

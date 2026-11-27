@@ -3495,6 +3495,13 @@
       }
     ],
     [
+      "Mjata! Dach schowany, lampy w górze. Teraz tylko się uśmiechaj.",
+      "The Myata! Roof stowed, lamps up. Now just grin.",
+      {
+        "only": "mjata"
+      }
+    ],
+    [
       "Szupra! Tył lubi tańczyć. Ty prowadź, on zatańczy.",
       "The Shoopra! The rear likes to dance. You drive, it dances.",
       {

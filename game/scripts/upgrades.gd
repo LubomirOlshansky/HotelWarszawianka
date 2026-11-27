@@ -29,7 +29,7 @@ const CARS: Array[Dictionary] = [
 			"blurb": ["Niski, szybki, trochę za drogi. Cztery kółka, żadne się nie zazębia.", "Low, fast, a bit overpriced. Four wheels, none interlocking."],
 			"price": 1500, "top": 1.2, "pull": 1.2, "grip": 1.1},
 	# C1a (F 2026-11-27: "a few different cars at Mirek's, meme cars, each drives its own way";
-	# parodies, no badges). Classes (ladder.gd car_class): Łanos and Bolonez D, Paszat C, Szupra B,
+	# parodies, no badges). Classes (ladder.gd car_class): Łanos and Bolonez D, Paszat and Mjata C, Szupra B,
 	# the TT and the Bawarka A. `feel` is car.gd `feel` (turn, steer lag, tail slide on the sporty
 	# end, the gas's bite, the pull's fade, the engine's note).
 	{"id": "lanos", "name": ["Dejwu Łanos", "Dayvoo Wanos"], "short": ["Łanos", "Wanos"],
@@ -44,6 +44,12 @@ const CARS: Array[Dictionary] = [
 			"blurb": ["Diesel, kombi, 600 tys. km. Ciągnie z dołu, góra to plotka.", "Diesel estate, 600k km. Pulls from the bottom; the top is a rumour."],
 			"price": 600, "top": 1.03, "pull": 1.35, "grip": 1.0,
 			"feel": {"turn": 0.95, "steer": 1.1, "slide": 0.85, "onset": 1.6, "fade": 0.85, "note": 0.7}},
+	# F 2026-11-27 ("where is the MX-5 cabrio"): the small roadster, roof down: light, quick
+	# hands, a willing tail, a high-revving note; class C.
+	{"id": "mjata", "name": ["Madża Mjata", "Mazdah Myata"], "short": ["Mjata", "Myata"],
+			"blurb": ["Dach złożony, lampy w górze. Odpowiedź zawsze brzmi: Mjata.", "Roof down, lamps up. The answer is always Myata."],
+			"price": 800, "top": 1.1, "pull": 1.0, "grip": 1.12,
+			"feel": {"turn": 1.15, "steer": 0.8, "slide": 1.3, "onset": 1.0, "note": 1.22}},
 	{"id": "szupra", "name": ["Tojota Szupra", "Toyoda Shoopra"], "short": ["Szupra", "Shoopra"],
 			"blurb": ["Dwa turbo, jeden spojler, zero pokory. Tył chętnie wyprzedza przód.", "Two turbos, one wing, zero humility. The rear likes to overtake the front."],
 			"price": 1100, "top": 1.17, "pull": 1.15, "grip": 1.0,
@@ -80,9 +86,9 @@ const LOOKS: Array[Dictionary] = [
 ]
 const MAX_LEVEL := 3
 ## Order of the rows on the card (every shop id; the card's tabs, `TABS`, group them).
-const ORDER := ["hatch", "lanos", "bolonez", "paszat", "szupra", "tt", "bawarka", "engine", "tyres", "nitro", "wing", "neon"]
+const ORDER := ["hatch", "lanos", "bolonez", "paszat", "mjata", "szupra", "tt", "bawarka", "engine", "tyres", "nitro", "wing", "neon"]
 ## The card's tabs (F 2026-11-24: AUTA, TUNING, STYL; the paints are on STYL too).
-const TABS := {"cars": ["hatch", "lanos", "bolonez", "paszat", "szupra", "tt", "bawarka"], "tune": ["engine", "tyres", "nitro"], "style": ["wing", "neon"]}
+const TABS := {"cars": ["hatch", "lanos", "bolonez", "paszat", "mjata", "szupra", "tt", "bawarka"], "tune": ["engine", "tyres", "nitro"], "style": ["wing", "neon"]}
 
 
 ## The car row `id`, or {}.

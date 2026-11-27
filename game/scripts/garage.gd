@@ -344,7 +344,7 @@ func preset_upgrades(what: String) -> void:
 		wallet.cars["tt"] = today()
 		wallet.car = "tt"
 	elif not Upgrades.car(what).is_empty():
-		# --upgrades=lanos|bolonez|paszat|szupra|bawarka: that car, owned and on the road.
+		# --upgrades=lanos|bolonez|paszat|mjata|szupra|bawarka: that car, owned and on the road.
 		wallet.cars[what] = today()
 		wallet.car = what
 	if what in ["all", "nitro"]:

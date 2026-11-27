@@ -76,7 +76,7 @@ the drift (docs/design/drift-narodowy.md section 0). The estimates below are opt
 **C1a + C1b built (2026-11-27, F: "a few meme cars at Mirek's, each driving its own way", "the
 TT must be there", "nice models"; the Bawarka as the night meet's prize, story fix-plan-v2):**
 upgrades.gd CARS has the hatch, Dejwu Łanos 200 zł (D), FSŁ Bolonez Karo 300 zł (D), Paszat B5 TDI
-600 zł (C), Tojota Szupra 1,100 zł (B), the Ołdi TT 1,500 zł (A, unchanged numbers, rounder body)
+600 zł (C), Madża Mjata 800 zł (C, the roof-down roadster with its pop-up lamps up, F 2026-11-27), Tojota Szupra 1,100 zł (B), the Ołdi TT 1,500 zł (A, unchanged numbers, rounder body)
 and Bawarka Darka 2,500 zł (A; gold in the night meet's drag gives it, a loss opens it for sale:
 `meet_prize`). Each car's `feel` (car.gd `set_feel`: turn, steering lag, tail slide on the sporty
 end only, the gas's bite, the pull's fade, the engine note in sfx.gd); bodies in models.gd

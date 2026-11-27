@@ -16,7 +16,8 @@ const Upgrades := preload("res://scripts/upgrades.gd")
 const TILE := Vector2i(420, 280)
 ## --mix's paints and stripes (garage.gd PAINTS' colours).
 const MIX := {"hatch": ["#d8432f", "#f4efe4"], "tt": ["#8f98a4", "#2b2620"], "lanos": ["#d9cfb3", "#c43b2c"],
-		"bolonez": ["#5aa83a", "#f4efe4"], "paszat": ["#2f72c8", "#f4efe4"], "szupra": ["#ecc02a", "#23211f"]}
+		"bolonez": ["#5aa83a", "#f4efe4"], "paszat": ["#2f72c8", "#f4efe4"], "szupra": ["#ecc02a", "#23211f"],
+		"mjata": ["#c4161c", "#f4efe4"]}
 ## [yaw (deg, 0 = from the front), pitch (deg, down), distance (m)] of each column.
 const VIEWS := [[35.0, 14.0, 7.2], [90.0, 6.0, 7.4], [215.0, 18.0, 7.2], [165.0, 52.0, 9.5], [180.0, 89.0, 8.5]]
 
