@@ -48,7 +48,7 @@ const CLASS_COLOURS := [UiKit.SUB, UiKit.GO, UiKit.NEON_CYAN, UiKit.NEON_PINK, U
 const GAP := 6.0
 ## The tabs: id, words [pl, en], the shop ids on it (the paints on "paint"), tiles across.
 const TABS := [
-	{"id": "cars", "words": ["AUTA", "CARS"], "across": 4, "tile_h": 50.0},
+	{"id": "cars", "words": ["AUTA", "CARS"], "across": 5, "tile_h": 50.0},
 	{"id": "tune", "words": ["TUNING", "TUNING"], "across": 3},
 	{"id": "paint", "words": ["LAKIER", "PAINT"], "across": 5},
 	{"id": "style", "words": ["STYL", "STYLE"], "across": 2},
@@ -606,7 +606,11 @@ func _refresh_parts() -> void:
 				price.text = w.money(Upgrades.price(id, st["tune"]))
 				ink = UiKit.FAINT
 			"locked":
-				price.text = Lang.pick("za drag", "win the drag")
+				var need := int(Upgrades.car(id).get("respect", 0))
+				if need > 0:
+					price.text = Lang.pick("%d szac.", "%d resp.") % need
+				else:
+					price.text = Lang.pick("za drag", "win the drag")
 				ink = UiKit.FAINT
 			_:
 				price.text = w.money(Upgrades.price(id, st["tune"]))
@@ -637,8 +641,13 @@ func _refresh_parts() -> void:
 			var what := (" · POZ. %d" % (lv + 1)) if Upgrades.kind(picked_item) == "part" else ""
 			_set_action("KUP ZA %s%s" % [w.money(Upgrades.price(picked_item, st["tune"])).to_upper(), what], "Buy: %s" % name_en, true)
 		"locked":
-			# The Bawarka before the night meet's drag: gold gives it, a loss opens it here.
-			_set_action("WYGRAJ DRAG · NOCNY SPOT", "Race the drag at the night meet", false)
+			var need := int(Upgrades.car(picked_item).get("respect", 0))
+			if need > 0:
+				# The top cars (F 2026-11-27: "they unlock with respect, not at once").
+				_set_action("ZA %d SZACUNKU" % need, "Earn %d respect" % need, false)
+			else:
+				# The Bawarka before the night meet's drag: gold gives it, a loss opens it here.
+				_set_action("WYGRAJ DRAG · NOCNY SPOT", "Race the drag at the night meet", false)
 		_:
 			var miss: int = Upgrades.price(picked_item, st["tune"]) - int(w.zl)
 			_set_action("BRAKUJE %s" % w.money(miss).to_upper(), "%s short" % _money_en(miss), false)

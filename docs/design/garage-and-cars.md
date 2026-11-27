@@ -75,12 +75,33 @@ the drift (docs/design/drift-narodowy.md section 0). The estimates below are opt
 
 **C1a + C1b built (2026-11-27, F: "a few meme cars at Mirek's, each driving its own way", "the
 TT must be there", "nice models"; the Bawarka as the night meet's prize, story fix-plan-v2):**
-upgrades.gd CARS has the hatch, Dejwu Łanos 200 zł (D), FSŁ Bolonez Karo 300 zł (D), Paszat B5 TDI
-600 zł (C), Madża Mjata 800 zł (C, the roof-down roadster with its pop-up lamps up, F 2026-11-27), Tojota Szupra 1,100 zł (B), the Ołdi TT 1,500 zł (A, unchanged numbers, rounder body)
-and Bawarka Darka 2,500 zł (A; gold in the night meet's drag gives it, a loss opens it for sale:
-`meet_prize`). Each car's `feel` (car.gd `set_feel`: turn, steering lag, tail slide on the sporty
-end only, the gas's bite, the pull's fade, the engine note in sfx.gd); bodies in models.gd
-`player_meshes` / `_player_kit` (+0 draw calls), sheet `game/tools/car_sheet.gd`. Not built: the
+upgrades.gd CARS (F's pick, 2026-11-27: "1 3 4 5 plus Bolonez, Paszat, Mjata and the Bawarka;
+the last ones unlock with respect") has the hatch, FSŁ Bolonez Karo 300 zł (D), Paszat B5 TDI
+600 zł (C), Madża Mjata 800 zł (C, the roof-down roadster), Kadilak Bruhem 900 zł (C), Tojota GieR 86
+1,200 zł (B), the Ołdi TT 1,500 zł (A, the 8J from F's photos, with its active spoiler), Porsza 911
+Kaczy Ogon 2,000 zł (A, 340 respect), Bawarka Darka 2,500 zł (A; gold in the night meet's drag gives
+it, a loss opens it for sale: `meet_prize`) and Lambordżini Mruczelago 4,000 zł (A at the top of the
+band, 640 respect). The Łanos and the Szupra were built and dropped (F). Each car's `feel` (car.gd
+`set_feel`: turn, steering lag, tail slide on the sporty end only, the gas's bite, the pull's fade,
+the engine note in sfx.gd); bodies in models.gd `SCULPT` + `_sculpt_meshes` (+0 draw calls; the TT's
+spoiler +1), sheet `game/tools/car_sheet.gd`.
+
+**How each car feels (the plan, F 2026-11-27 "how they should feel different"):**
+
+| Car | In one line | Turn | Steer lag | Tail (sporty) | Gas bite | Note | What the player should feel |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Hatch | the honest start | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | goes where you look |
+| Bolonez | the tank | 0.84 | 1.5 | 1.35 | 0.85 | 0.8 | turns after a think, the rear has opinions |
+| Paszat | the diesel estate | 0.95 | 1.1 | 0.85 | 1.6 | 0.7 | a kick off the line, nothing at the top, planted |
+| Mjata | the go-kart | 1.15 | 0.8 | 1.3 | 1.0 | 1.22 | the sharpest turn-in, a playful tail, a high rev |
+| Kadilak | the sofa | 0.8 | 1.6 | 1.3 | 0.7 | 0.6 | wide lazy turns, a soft slow pull, a low burble |
+| GieR 86 | the drift school | 1.1 | 0.85 | 1.4 | 1.05 | 1.1 | light, quick, slides easily and catches easily |
+| Ołdi TT | the grippy all-rounder | 1.0 | 1.0 | 1.0 | 1.0 | 1.0 | fast and safe, the spoiler pops at speed |
+| Porsza | the rear-engined snap | 1.1 | 0.8 | 1.45 | 1.15 | 1.05 | sharp, and the tail swings out under power |
+| Bawarka | the race coupe | 1.08 | 0.85 | 1.2 | 1.2 | 0.94 | quick and planted, a hard pull |
+| Mruczelago | the supercar | 1.0 | 0.9 | 1.1 | 1.3 | 1.3 | the most grip and the hardest pull, a V12 shriek |
+
+Not built: the
 Mazgaj, Ałroud and Cichobieg, per-car paint, weight in crashes.
 
 **Defaults built unless F says otherwise:** race classes (section 0a; the fixed rival top is cut);

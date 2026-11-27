@@ -15,11 +15,9 @@ const Upgrades := preload("res://scripts/upgrades.gd")
 
 const TILE := Vector2i(420, 280)
 ## --mix's paints and stripes (garage.gd PAINTS' colours).
-const MIX := {"hatch": ["#d8432f", "#f4efe4"], "tt": ["#1f2024", "#c9ccd1"], "lanos": ["#d9cfb3", "#c43b2c"],
-		"bolonez": ["#5aa83a", "#f4efe4"], "paszat": ["#2f72c8", "#f4efe4"], "szupra": ["#ecc02a", "#23211f"],
-		"mjata": ["#c4161c", "#f4efe4"], "player_mruczelago": ["#e3a2c8", "#f4efe4"],
-		"player_hondzia": ["#4cb7dc", "#1c1d21"], "player_porsza": ["#f2f0ea", "#1c1d21"], "player_gr86": ["#eeeeea", "#1c1d21"],
-		"player_kadilak": ["#8ea6c8", "#c9ccd1"], "player_bokser": ["#1f2430", "#c9ccd1"]}
+const MIX := {"hatch": ["#d8432f", "#f4efe4"], "tt": ["#1f2024", "#c9ccd1"], "bolonez": ["#5aa83a", "#f4efe4"],
+		"paszat": ["#2f72c8", "#f4efe4"], "mjata": ["#c4161c", "#f4efe4"], "kadilak": ["#8ea6c8", "#c9ccd1"],
+		"gr86": ["#eeeeea", "#1c1d21"], "porsza": ["#f2f0ea", "#1c1d21"], "mruczelago": ["#e3a2c8", "#f4efe4"]}
 ## [yaw (deg, 0 = from the front), pitch (deg, down), distance (m)] of each column.
 const VIEWS := [[35.0, 14.0, 7.2], [90.0, 6.0, 7.4], [215.0, 18.0, 7.2], [165.0, 52.0, 9.5], [180.0, 89.0, 8.5]]
 

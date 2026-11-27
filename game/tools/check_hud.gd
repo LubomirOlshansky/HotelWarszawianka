@@ -1189,7 +1189,7 @@ func _check_garage(vp: SubViewport, hud: CanvasLayer, tag: String) -> int:
 	# G13: the parts tab, with every cell's state (the TT to buy, short, owned; the nitro; a maxed part).
 	g.card.show_tab("parts")
 	w.zl = 12345
-	for pick in ["tt", "nitro", "tyres", "engine", "hatch", "tt", "tyres", "lanos", "bolonez", "paszat", "mjata", "szupra", "bawarka"]:
+	for pick in ["tt", "nitro", "tyres", "engine", "hatch", "tt", "tyres", "bolonez", "paszat", "mjata", "kadilak", "gr86", "porsza", "bawarka", "mruczelago"]:
 		if pick == "tt" and states == 9:
 			w.zl = 100  # short
 		if pick == "tyres" and states == 10:

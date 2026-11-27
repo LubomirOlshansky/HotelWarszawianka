@@ -279,7 +279,7 @@ func shop_state() -> Dictionary:
 	for c: Dictionary in Upgrades.CARS:
 		if c.has("open") and bool(wallet.keep.get(Upgrades.OPEN_KEY + str(c["id"]), false)):
 			open.append(str(c["id"]))
-	return {"car": wallet.car, "cars": wallet.cars, "nitro": wallet.nitro, "tune": wallet.tune, "open": open}
+	return {"car": wallet.car, "cars": wallet.cars, "nitro": wallet.nitro, "tune": wallet.tune, "open": open, "respect": wallet.respect}
 
 
 ## What a tap on shop item `id` would do now (upgrades.gd `rule`).
@@ -344,7 +344,7 @@ func preset_upgrades(what: String) -> void:
 		wallet.cars["tt"] = today()
 		wallet.car = "tt"
 	elif not Upgrades.car(what).is_empty():
-		# --upgrades=lanos|bolonez|paszat|mjata|szupra|bawarka: that car, owned and on the road.
+		# --upgrades=bolonez|paszat|mjata|kadilak|gr86|porsza|bawarka|mruczelago: that car, owned and on the road.
 		wallet.cars[what] = today()
 		wallet.car = what
 	if what in ["all", "nitro"]:

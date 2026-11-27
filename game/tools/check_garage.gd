@@ -438,12 +438,12 @@ func _check_shop_rules() -> void:
 
 
 ## C1a/C1b (F 2026-11-27): the meme cars and the Bawarka: their classes (the TT and the Bawarka
-## A, so the Trzy mosty final stays the hardest race; the Bawarka never S), a body each, the
+## A, so the Trzy mosty final stays the hardest race; nothing in the shop S), a body each, the top two behind respect, the
 ## Bawarka locked until the night meet's drag, and the drag's prize.
 func _check_meme_cars() -> void:
 	const Ladder := preload("res://scripts/ladder.gd")
 	const Models := preload("res://scripts/models.gd")
-	var want := {"hatch": 0, "lanos": 0, "bolonez": 0, "paszat": 1, "mjata": 1, "szupra": 2, "tt": 3, "bawarka": 3}
+	var want := {"hatch": 0, "bolonez": 0, "paszat": 1, "mjata": 1, "kadilak": 1, "gr86": 2, "tt": 3, "porsza": 3, "bawarka": 3, "mruczelago": 3}
 	for id: String in want:
 		var c := Upgrades.car(id)
 		if c.is_empty():
@@ -466,7 +466,19 @@ func _check_meme_cars() -> void:
 				problems.append("cars: %s's feel %s = %s (a known key, 0.5-1.7)" % [c["id"], k, f[k]])
 	var st := {"car": "hatch", "cars": {}, "nitro": false, "tune": {}, "open": []}
 	_expect("bawarka locked", Upgrades.rule("bawarka", 99999, st), "locked")
-	_expect("lanos to buy", Upgrades.rule("lanos", 200, st), "buy")
+	_expect("bolonez to buy", Upgrades.rule("bolonez", 300, st), "buy")
+	# F 2026-11-27: the top cars open with respect (wallet.respect), not at once.
+	for id: String in ["porsza", "mruczelago"]:
+		var need := int(Upgrades.car(id).get("respect", 0))
+		if need <= 0:
+			problems.append("cars: %s has no respect gate" % id)
+		st["respect"] = need - 1
+		_expect("%s locked under %d respect" % [id, need], Upgrades.rule(id, 99999, st), "locked")
+		st["respect"] = need
+		_expect("%s open at %d respect" % [id, need], Upgrades.rule(id, 99999, st), "buy")
+	if int(Upgrades.car("mruczelago")["respect"]) <= int(Upgrades.car("porsza")["respect"]):
+		problems.append("cars: the Mruczelago does not need more respect than the Porsza")
+	st["respect"] = 0
 	st["open"] = ["bawarka"]
 	_expect("bawarka open", Upgrades.rule("bawarka", 2500, st), "buy")
 	_expect("bawarka open, short", Upgrades.rule("bawarka", 2499, st), "short")
@@ -600,13 +612,13 @@ func _check_shop_car() -> void:
 	await process_frame
 	if car.find_child("Spoiler", true, false) != null:
 		problems.append("car: the hatch kept the TT's spoiler")
-	# C1a: each car's own feel: the Szupra turns quicker than the hatch, the Bolonez slower, and the
-	# hatch is back to the plain numbers after them.
+	# C1a: each car's own feel: the GieR 86 turns quicker than the hatch, the Bolonez slower, and
+	# the hatch is back to the plain numbers after them.
 	var plain_turn := float(car.get("turn_cap"))
-	g.choose_item("szupra")
-	_expect("car model szupra", str(car.get("model")), "szupra")
+	g.choose_item("gr86")
+	_expect("car model gr86", str(car.get("model")), "gr86")
 	if float(car.get("turn_cap")) <= plain_turn or float(car.get("engine_note")) <= 1.0:
-		problems.append("car: the Szupra turns %.2f (hatch %.2f), note %.2f" % [float(car.get("turn_cap")), plain_turn, float(car.get("engine_note"))])
+		problems.append("car: the GieR 86 turns %.2f (hatch %.2f), note %.2f" % [float(car.get("turn_cap")), plain_turn, float(car.get("engine_note"))])
 	g.choose_item("bolonez")
 	if float(car.get("turn_cap")) >= plain_turn or float(car.get("steer_time")) <= float(Car.PROFILES[Car.Handling.CRUISE]["steer_time"]):
 		problems.append("car: the Bolonez is not heavier to steer than the hatch")
