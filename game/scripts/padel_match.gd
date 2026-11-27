@@ -1422,7 +1422,7 @@ func _input(event: InputEvent) -> void:
 				_keys.y = 1.0 if on else (0.0 if _keys.y > 0 else _keys.y)
 			KEY_DOWN, KEY_S:
 				_keys.y = -1.0 if on else (0.0 if _keys.y < 0 else _keys.y)
-			KEY_SPACE, KEY_J:
+			KEY_SPACE, KEY_J, KEY_ENTER, KEY_KP_ENTER:
 				if on and _howto:
 					_start_warmup()
 				elif on:
@@ -1430,8 +1430,9 @@ func _input(event: InputEvent) -> void:
 			KEY_K, KEY_L:
 				if on:
 					_press(PadelSim.Shot.LOB)
-			KEY_P, KEY_ENTER, KEY_KP_ENTER, KEY_TAB:
-				# POMIŃ from a keyboard (Autopilot, the Mac): the same as the pill.
+			KEY_P, KEY_TAB:
+				# POMIŃ from a keyboard (Autopilot, the Mac): the same as the pill. Enter answers the card
+				# like a tap (the warm-up starts), so a player dismissing a card does not lose it.
 				if on and (_howto or sim.warming()):
 					_skip_warmup()
 			KEY_ESCAPE:
