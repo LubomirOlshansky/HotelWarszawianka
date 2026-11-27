@@ -573,9 +573,12 @@ func _build_jarmark(_site: Dictionary) -> void:
 		_jm_banner(bu, -9.6)
 	# The gold sign and the light-up trees at the entrances, big stars.
 	_jm_greeting(177.0, -7.0)
-	_jm_greeting(91.5, 17.0)
+	# The plaza sign stands 11.5 m along from the map's spot (91.5): there it ran 1 m beside the lawn
+	# railing's north edge (u 91.5..105, v 16), a slot that pinned cars sliding along the railing
+	# (Autopilot PT-60 re-run, 2026-11-27). Now its east end is 6 m short of the railing's corner.
+	_jm_greeting(80.0, 17.0)
 	for t: Array in [[150.5, -6.5], [168.5, -7.0], [236.5, -7.0], [261.0, 22.0], [261.0, 37.0],
-			[261.0, 81.0], [155.0, 12.0], [155.0, 21.0], [92.0, 40.0], [86.0, 13.0], [97.0, 13.0]]:
+			[261.0, 81.0], [155.0, 12.0], [155.0, 21.0], [92.0, 40.0], [74.5, 13.0], [85.5, 13.0]]:
 		_jm_ledtree(t[0], t[1], 3.4)
 	_jm_bigstar(160.0, -6.5, 1.9)
 	_jm_bigstar(262.0, 50.0, 1.6)
