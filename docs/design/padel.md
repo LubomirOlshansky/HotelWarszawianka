@@ -113,3 +113,9 @@ grades each tap (TAK JEST / DOBRZE / ZA WCZEŚNIE / ZA PÓŹNO / JESZCZE RAZ), n
 GRAMY NA SERIO!, Prezes: „Ja się nie rozgrzewam. Ja od razu gram.” and the match from 0:0. POMIŃ skips
 both; a player who never taps is moved on after 25 s. Not saved: once per session. The words of the
 whole match now live in dialogue.json, group `padel_match`.
+
+## Autopilot follow-ups (2026-11-27)
+
+- **PT-61, the CZYSTO window.** `check_padel.gd` now taps 0.05, 0.08 and 0.11 s off the ring, early and late, at 60 fps and at a jittery 30-60 fps, and checks that every hit is graded on the error the tap really made. The window (CLEAN_S 0.06) is right. Below 20 fps the match's 0.05 s frame clamp slows the game against the wall clock, so a tester timing taps on the wall clock sees them as earlier than the game does.
+- **PT-62, buttons over the court.** On a canvas narrower than 440 px (16:9 is 384) the court is drawn at up to 0.88 of its size with the ground line at 184 instead of 196 (`_zoom`, `_gy` in `_resize`), so the near corners clear UDERZ, LOB and the stick. 19.5:9 and wider are unchanged. `padel_shots.gd` prints in how many play frames a rival is under a button.
+- **POMIŃ from a keyboard:** P or Tab, while the card or the warm-up is up. Enter (like Space) answers the card and starts the warm-up.
