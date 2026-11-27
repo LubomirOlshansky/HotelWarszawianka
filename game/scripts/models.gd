@@ -1793,18 +1793,19 @@ static func person_mesh() -> ArrayMesh:
 
 ## The shop cars' tables (see above). Wheels: [front axle z, rear axle z, radius, tyre width].
 const SCULPT := {
-	# v5 (F 2026-11-27, "the TT is modelled badly", with photos of a second-generation TT): the
+	# v6 (F 2026-11-27, "the TT is modelled badly", "the shape is all different", photos of an 8J;
+	# numbers from an art-director comparison with them): the
 	# 8J coupe: 4.18 m, a 2.47 m wheelbase, a long low bonnet, a raked windscreen, a flat roof arc
 	# falling as a fastback to a short high tail, a hard shoulder line, flared arches.
 	"player_tt": {
-		"shape": [0.9, 0.5, 0.9, 0.05], "wheels": [-1.19, 1.28, 0.34, 0.26],
-		"lower": [[-2.09, 0.22, 0.64, 0.7, 0.78], [-2.03, 0.18, 0.68, 0.74, 0.86], [-1.9, 0.16, 0.72, 0.77, 0.9],
-				[-1.6, 0.16, 0.75, 0.8, 0.94], [-1.19, 0.16, 0.8, 0.84, 0.95], [-0.75, 0.16, 0.84, 0.87, 0.9], [0.2, 0.16, 0.88, 0.9, 0.89],
-				[0.9, 0.16, 0.9, 0.92, 0.92], [1.28, 0.16, 0.91, 0.93, 0.95], [1.7, 0.18, 0.92, 0.94, 0.93],
-				[1.98, 0.24, 0.9, 0.93, 0.86], [2.09, 0.3, 0.84, 0.88, 0.66]],
-		"house": [[-0.75, 0.87, 0.87, 0.83, 0.83, "ws"], [-0.05, 0.89, 1.31, 0.8, 0.58, "win"], [0.35, 0.9, 1.35, 0.8, 0.57, "win"],
-				[0.78, 0.91, 1.3, 0.81, 0.58, "rq"], [1.0, 0.91, 1.24, 0.82, 0.6, "rw"], [1.5, 0.92, 1.08, 0.84, 0.66, "rw"],
-				[1.88, 0.93, 0.93, 0.86, 0.86, ""]]},
+		"shape": [0.9, 0.6, 0.88, 0.08], "wheels": [-1.19, 1.28, 0.34, 0.25],
+		"lower": [[-2.09, 0.22, 0.66, 0.69, 0.56], [-2.03, 0.18, 0.7, 0.74, 0.63], [-1.85, 0.16, 0.76, 0.81, 0.85],
+				[-1.5, 0.16, 0.82, 0.87, 0.89], [-1.19, 0.16, 0.85, 0.9, 0.9], [-0.82, 0.16, 0.91, 0.94, 0.88],
+				[-0.1, 0.16, 0.93, 0.96, 0.87], [0.6, 0.16, 0.95, 0.98, 0.87], [1.28, 0.16, 0.97, 1.0, 0.9],
+				[1.62, 0.18, 0.98, 1.01, 0.89], [1.92, 0.2, 0.97, 1.0, 0.84], [2.09, 0.3, 0.87, 0.89, 0.68]],
+		"house": [[-0.82, 0.92, 0.92, 0.72, 0.72, "ws"], [-0.42, 0.92, 1.11, 0.74, 0.63, "ws"], [-0.1, 0.93, 1.23, 0.74, 0.58, "win"],
+				[0.28, 0.94, 1.27, 0.74, 0.58, "win"], [0.8, 0.95, 1.22, 0.72, 0.56, "rw"], [1.25, 0.96, 1.08, 0.69, 0.54, "rw"],
+				[1.62, 0.99, 0.99, 0.6, 0.6, ""]]},
 	# v3: narrower (0.84), the real 2.52 m wheelbase, a faster windscreen, a short flat boot.
 	"player_lanos": {
 		"shape": [0.92, 0.5, 0.88, 0.04], "wheels": [-1.32, 1.2, 0.29, 0.2],
@@ -2082,6 +2083,8 @@ static func _sculpt_meshes(kind: String, paint: Array, stripes: Array, wing: boo
 			rim = Color("#a9adb3")
 		"player_bolonez":
 			rim = Color("#9a9da3")
+		"player_tt":
+			glass = fin(Color("#1e2632"))
 		"player_paszat":
 			# The lowered-TDI meme: silver alloys, dark glass.
 			rim = Color("#c4c8ce")
@@ -2093,8 +2096,10 @@ static func _sculpt_meshes(kind: String, paint: Array, stripes: Array, wing: boo
 	for sgn: float in ([-1.0, 1.0] if house.size() >= 2 else []):
 		var h1: Array = house[1]
 		var z_end: float = house[house.size() - 2][0]
+		if kind == "player_tt":
+			z_end = 0.8
 		# The mirror sits on the door against the glass (a gap under it threw a shadow bar).
-		s.box(Vector3(sgn * (float(h1[3]) + 0.07), float(h1[1]) + 0.05, float(house[0][0]) + 0.24), Vector3(0.14, 0.1, 0.1), blue if kind == "player_bawarka" else chrome if kind == "player_tt" else paint)
+		s.box(Vector3(sgn * (maxf(float(h1[3]) + 0.07, _side_x(c, float(house[0][0]) + 0.24, float(h1[1])) + 0.05)), float(h1[1]) + 0.05, float(house[0][0]) + 0.24), Vector3(0.14, 0.1, 0.1), blue if kind == "player_bawarka" else chrome if kind == "player_tt" else paint)
 		var ys := float(h1[1])
 		_decal(s, c, sgn, [Vector2(float(house[0][0]) + 0.1, ys - 0.045), Vector2(z_end, float(house[house.size() - 2][1]) - 0.045),
 				Vector2(z_end, float(house[house.size() - 2][1]) - 0.005), Vector2(float(house[0][0]) + 0.1, ys - 0.005)], black, 0.01, 6)
@@ -2103,28 +2108,36 @@ static func _sculpt_meshes(kind: String, paint: Array, stripes: Array, wing: boo
 	var zr: float = lower[lower.size() - 1][0]
 	match kind:
 		"player_tt":
-			# The 8J coupe (v5, from F's photos; no rings, no badge): the tall single-frame grille in a
-			# chrome surround filling the nose, swept angular lamps running back over the wings' tops,
-			# corner intakes, wide tails wrapping the high tail's corners, a diffuser with twin pipes
-			# a side, the round alloy fuel cap on the right haunch.
-			_plate(s, Vector3(0.0, 0.42, zf - 0.006), Vector2(0.58, 0.42), Vector3(0, 0, -1), chrome)
-			_plate(s, Vector3(0.0, 0.42, zf - 0.012), Vector2(0.52, 0.36), Vector3(0, 0, -1), black)
-			for y: float in [0.36, 0.42, 0.48, 0.54]:
-				_plate(s, Vector3(0.0, y, zf - 0.016), Vector2(0.48, 0.01), Vector3(0, 0, -1), fin(Color("#55585e")))
+			# The 8J coupe (v6, from F's photos; no rings, no badge): the tall single-frame grille in a
+			# chrome surround filling the face with the plate across it, lamps high on the nose's
+			# corner facets sweeping back with their LED strips, corner intakes with round fogs and a
+			# chrome bar, tails wrapping the corners, a diffuser with a pipe a side, the round alloy
+			# fuel cap on the right haunch, the lip on the deck.
+			_plate(s, Vector3(0.0, 0.45, -2.096), Vector2(0.74, 0.42), Vector3(0, 0, -1), chrome)
+			_plate(s, Vector3(0.0, 0.45, -2.102), Vector2(0.68, 0.36), Vector3(0, 0, -1), black)
+			for y: float in [0.33, 0.41, 0.49, 0.57]:
+				_plate(s, Vector3(0.0, y, -2.106), Vector2(0.64, 0.01), Vector3(0, 0, -1), fin(Color("#55585e")))
+			_plate(s, Vector3(0.0, 0.4, -2.11), Vector2(0.5, 0.11), Vector3(0, 0, -1), fin(PLATE))
 			for sgn: float in [-1.0, 1.0]:
-				# The swept lamp on the nose's corner, its LED strip along the bottom edge.
-				_plate(s, Vector3(sgn * 0.5, 0.6, -2.096), Vector2(0.4, 0.17), Vector3(sgn * 0.2, 0.1, -1), black)
-				_plate(heads, Vector3(sgn * 0.5, 0.62, -2.1), Vector2(0.3, 0.1), Vector3(sgn * 0.2, 0.1, -1), lamp, true)
-				_plate(heads, Vector3(sgn * 0.5, 0.545, -2.1), Vector2(0.34, 0.025), Vector3(sgn * 0.2, 0.1, -1), lamp)
-				_plate(s, Vector3(sgn * 0.5, 0.32, -2.1), Vector2(0.22, 0.14), Vector3(sgn * 0.6, 0.0, -1), black, true)
-				_plate(s, Vector3(sgn * 0.5, 0.32, -2.1), Vector2(0.28, 0.02), Vector3(sgn * 0.6, 0.0, -1), chrome)
-				_plate(s, Vector3(sgn * 0.5, 0.8, 2.07), Vector2(0.46, 0.15), Vector3(sgn * 0.4, 0.25, 1), black)
-				_plate(tails, Vector3(sgn * 0.5, 0.8, 2.075), Vector2(0.4, 0.1), Vector3(sgn * 0.4, 0.25, 1), lamp)
+				var ln := Vector3(sgn * 0.6, 0.22, -0.77)
+				for part: Array in [[0.59, 0.615, -2.036, 0.18, 0.575, -2.04, 0.17], [0.71, 0.675, -1.919, 0.2, 0.635, -1.923, 0.19]]:
+					_plate(s, Vector3(sgn * float(part[0]), float(part[1]), float(part[2]) + 0.004), Vector2(float(part[3]) + 0.03, 0.12), ln, black)
+					_plate(heads, Vector3(sgn * float(part[0]), float(part[1]), float(part[2])), Vector2(part[3], 0.09), ln, lamp)
+					_plate(heads, Vector3(sgn * float(part[0]), float(part[4]), float(part[5])), Vector2(part[6], 0.02), ln, lamp)
+				var inn := Vector3(sgn * 0.65, -0.14, -0.75)
+				_plate(s, Vector3(sgn * 0.63, 0.35, -2.013), Vector2(0.25, 0.13), inn, black)
+				_plate(s, Vector3(sgn * 0.68, 0.345, -1.976), Vector2(0.09, 0.09), inn, fin(Color("#d9dde2")), true)
+				_plate(s, Vector3(sgn * 0.61, 0.35, -2.034), Vector2(0.2, 0.015), inn, chrome)
+				_plate(s, Vector3(sgn * 0.48, 0.81, 2.1), Vector2(0.27, 0.13), Vector3(0, 0, 1), black)
+				_plate(tails, Vector3(sgn * 0.48, 0.81, 2.104), Vector2(0.24, 0.1), Vector3(0, 0, 1), lamp)
+				var tn := Vector3(sgn * 0.7, 0.24, 0.67)
+				_plate(s, Vector3(sgn * 0.712, 0.812, 2.007), Vector2(0.26, 0.13), tn, black)
+				_plate(tails, Vector3(sgn * 0.712, 0.812, 2.011), Vector2(0.23, 0.1), tn, lamp)
 				_plate(s, Vector3(sgn * 0.42, 0.3, zr + 0.012), Vector2(0.12, 0.09), Vector3(0, 0, 1), chrome, true)
-			_decal(s, c, 1.0, [Vector2(0.86, 0.78), Vector2(1.02, 0.78), Vector2(1.02, 0.9), Vector2(0.86, 0.9)], chrome, 0.016, 2)
+			_decal(s, c, 1.0, [Vector2(0.86, 0.8), Vector2(1.02, 0.8), Vector2(1.02, 0.92), Vector2(0.86, 0.92)], chrome, 0.016, 2)
 			_plate(s, Vector3(0.0, 0.6, zr + 0.006), Vector2(0.5, 0.11), Vector3(0, 0, 1), fin(PLATE))
-			_plate(s, Vector3(0.0, 0.34, zr + 0.006), Vector2(1.0, 0.14), Vector3(0, 0, 1), black)
-			s.box(Vector3(0.0, _top_y(c, 1.98, 0.0) + 0.025, 1.98), Vector3(1.3, 0.04, 0.12), black)
+			_plate(s, Vector3(0.0, 0.36, zr + 0.006), Vector2(1.0, 0.14), Vector3(0, 0, 1), black)
+			s.box(Vector3(0.0, _top_y(c, 1.88, 0.0) + 0.02, 1.88), Vector3(1.2, 0.03, 0.14), black)
 		"player_lanos":
 			# The base 90s saloon (v3): black unpainted bumpers and mirrors, a black rub strip on the
 			# doors, almond lamps (high outside, dropping inside), a three-slot grille, wedge tails
