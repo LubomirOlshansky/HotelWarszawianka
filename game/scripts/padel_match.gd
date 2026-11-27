@@ -45,6 +45,12 @@ const KX := 16.0
 const DY := 6.6
 const KZ := 15.0
 const GY := 196.0
+## The canvas width (px) from which the court is drawn at full size, the 16:9 one, and the court's
+## scale and ground line there (PT-62: clear of the thumb buttons).
+const WIDE_W := 440
+const NARROW_W := 384
+const NARROW_ZOOM := 0.88
+const NARROW_GY := 184.0
 const FAR := 0.17
 ## After the match: the result stays this long (s) before it hands back.
 const END_HOLD := 4.0
@@ -99,6 +105,9 @@ var _pad: Control
 var _t := 0.0
 var _end_t := -1.0
 var _cam_x := 0.0
+## The court's scale and ground line for this screen's shape (_resize).
+var _zoom := 1.0
+var _gy := GY
 var _shake := 0.0
 var _shake_v := Vector2.ZERO
 var _rng := RandomNumberGenerator.new()
@@ -329,6 +338,11 @@ func _resize() -> void:
 	var s := get_viewport().get_visible_rect().size
 	W = maxi(MIN_W, int(round(H * s.x / maxf(s.y, 1.0))))
 	_vp.size = Vector2i(W, H)
+	# PT-62: on a narrower screen (16:9) the court's near corners reach under HIT and LOB (and the
+	# stick), so the court is drawn a little smaller and higher there; 19.5:9 and wider stay as they were.
+	var narrow := clampf((float(WIDE_W) - W) / float(WIDE_W - NARROW_W), 0.0, 1.0)
+	_zoom = lerpf(1.0, NARROW_ZOOM, narrow)
+	_gy = lerpf(GY, NARROW_GY, narrow)
 
 
 ## The colours by the hour: day, golden hour, night.
@@ -618,7 +632,7 @@ func _log(text: String) -> void:
 ## A court point (x along, y across, z up, m) on the pixel canvas.
 func _proj(p: Vector3) -> Vector2:
 	var f := 1.0 - FAR * p.y / PadelSim.WID
-	return Vector2(W * 0.5 + _cam_x + (p.x - PadelSim.NET_X) * KX * f, GY - p.y * DY - p.z * KZ * f) + _shake_v
+	return Vector2(W * 0.5 + _cam_x + (p.x - PadelSim.NET_X) * KX * f * _zoom, _gy - (p.y * DY + p.z * KZ * f) * _zoom) + _shake_v
 
 
 func _pr(x: float, y: float, z: float) -> Vector2:
@@ -1416,6 +1430,10 @@ func _input(event: InputEvent) -> void:
 			KEY_K, KEY_L:
 				if on:
 					_press(PadelSim.Shot.LOB)
+			KEY_P, KEY_ENTER, KEY_KP_ENTER, KEY_TAB:
+				# POMIŃ from a keyboard (Autopilot, the Mac): the same as the pill.
+				if on and (_howto or sim.warming()):
+					_skip_warmup()
 			KEY_ESCAPE:
 				if on:
 					leave()

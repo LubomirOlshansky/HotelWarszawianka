@@ -11,6 +11,9 @@ extends SceneTree
 ##   and grades its timing against the closing ring (CZYSTO, DOBRZE, ...). Three hands, SEEDS matches
 ##   each: a tap on the ring (45 ms error) wins at least 55%, a clumsy one (110 ms) fewer, a button
 ##   masher at most 25%; each prints its win rate, its share of the pair's balls and the match time;
+## - the CZYSTO window in play (PT-61): taps 0.05, 0.08 and 0.11 s early or late, at a steady 60 fps
+##   and at a jittery 30-60 fps, book the error the tap really made (within one frame), and only the
+##   0.05 s ones grade CZYSTO;
 ## - the rules: a ball into the net, one into the glass before its bounce, a second bounce and a
 ##   ball over the fence after the bounce each give the point to the right side;
 ## - the match's view (padel_match.gd) has every line in Polish and English (dialogue.json group
@@ -33,6 +36,7 @@ var fails: Array[String] = []
 func _init() -> void:
 	_solver()
 	_grades()
+	_window()
 	_matches()
 	_idle()
 	_hands()
@@ -59,6 +63,83 @@ func _grades() -> void:
 	for w: Array in want:
 		if not is_equal_approx(PadelSim.grade(float(w[0])), float(w[1])):
 			_fail("grade(%.3f) is %.1f, want %.1f" % [float(w[0]), PadelSim.grade(float(w[0])), float(w[1])])
+
+
+## PT-61: the window in a real rally. A tap is pressed on the first frame where the ring is `e` s (or
+## less) from closing. Every tap's grade must follow the error it really made (CZYSTO only inside
+## CLEAN_S); where the ring was already up and steady the frame before, that error must be `e` within
+## one frame, so at 60 fps a tap 0.08 or 0.11 s off is never CZYSTO (at 30 fps a 0.11 s one never is). Taps on a ring that only just appeared or
+## jumped (the contact moved as you ran) are counted and printed, not failed.
+func _window() -> void:
+	for jitter: bool in [false, true]:
+		for e: float in [0.05, 0.08, 0.11, -0.05, -0.08, -0.11]:
+			var tot := [0, 0, 0, 0]
+			for seed in 6:
+				var r := _window_run(seed, e, jitter)
+				for i in 4:
+					tot[i] += int(r[i])
+			var tag := "%+.2f s%s" % [e, " jittery" if jitter else ""]
+			print("check_padel: window %s: %d steady taps, %d clean, %d on a new or moved ring, %d graded wrong" % [tag, tot[0], tot[1], tot[2], tot[3]])
+			if tot[0] < 50:
+				_fail("window %s: only %d steady taps" % [tag, tot[0]])
+			if tot[3] > 0:
+				_fail("window %s: %d taps graded against the wrong error or band" % [tag, tot[3]])
+			if absf(e) <= 0.05 and not jitter and tot[1] < tot[0]:
+				_fail("window %s: only %d of %d steady taps were CZYSTO" % [tag, tot[1], tot[0]])
+			# A frame's lateness can carry a 0.08 s tap into the window at 30 fps, never a 0.11 s one.
+			var dt_max := 1.0 / 30.0 if jitter else STEP
+			if absf(e) - dt_max > PadelSim.CLEAN_S and tot[1] > 0:
+				_fail("window %s: %d steady taps were CZYSTO" % [tag, tot[1]])
+
+
+## One match tapping `e` s off the ring; returns [steady taps, of them clean, taps on a new or moved
+## ring, taps graded wrong].
+func _window_run(seed: int, e: float, jitter: bool) -> Array:
+	var sim := PadelSim.new()
+	sim.setup(seed, "Kuba", ["Prezes", "Zbyszek"])
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed * 13 + 1
+	var out := [0, 0, 0, 0]
+	var pressed_at := NAN
+	var steady := false
+	var prev_cue := -1.0
+	var dt := STEP
+	var dt_max := 1.0 / 30.0 if jitter else STEP
+	var t := 0.0
+	while not sim.over() and t < MATCH_MAX:
+		if sim.phase == PadelSim.Phase.PLAY:
+			var me := sim.players[0]
+			if sim.cue_at >= 0.0 and me.swing < 0.0 and me.cool <= 0.0 and sim.cue_left() <= e:
+				pressed_at = sim.cue_left()
+				steady = prev_cue >= 0.0 and absf(sim.cue_at - prev_cue) < 0.01
+				sim.press(PadelSim.Shot.DRIVE)
+		if sim.phase == PadelSim.Phase.SERVE and sim.server == 0 and sim.phase_t > 0.5:
+			sim.press(PadelSim.Shot.DRIVE)
+		prev_cue = sim.cue_at if sim.cue_left() > e else -1.0
+		dt = rng.randf_range(1.0 / 60.0, 1.0 / 30.0) if jitter else STEP
+		sim.step(dt)
+		t += dt
+		for ev: Array in sim.events:
+			var d: Dictionary = ev[1]
+			if String(ev[0]) != "hit" or int(d["who"]) != 0 or int(d["shot"]) == PadelSim.Shot.SERVE:
+				continue
+			if is_nan(pressed_at) or absf(float(d["err"])) < 0.0001:
+				continue
+			var err := float(d["err"])
+			var clean := bool(d["clean"])
+			var wrong := absf(err - pressed_at) > 0.0005 or clean != (absf(err) <= PadelSim.CLEAN_S)
+			if steady:
+				out[0] += 1
+				out[1] += 1 if clean else 0
+				wrong = wrong or absf(err - e) > dt_max + 0.002
+			else:
+				out[2] += 1
+			if wrong:
+				out[3] += 1
+				print("check_padel: window %+.2f seed %d t %.2f: pressed %.3f, err %.3f, clean %s" % [e, seed, sim.time, pressed_at, err, clean])
+			pressed_at = NAN
+		sim.events.clear()
+	return out
 
 
 func _solver() -> void:
