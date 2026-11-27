@@ -7,6 +7,7 @@
 - found: Politechnika's two south escalator barrels are not in OSM (3D Tiles shows four); only the two mapped ones are built
 - found: flights tagged n=40 on 4-8 m ways at Rondo ONZ and Ratusz (1628) count both the open and the covered part; the drop is capped by the run
 - found: Rondo Daszyńskiego's wells have no mapped walls: ring = the flight, 9 m from the mouth, as the canopies measure on 3D Tiles; check against the Mac's GUGiK ortho
+- found (OPEN, cause unknown): CI's `firstlife` step sometimes hangs at exit after its "first life: OK" line (#1145's EXIT HANG row): this branch 2 of its last 4 runs (85f1529, a66c700 hung; cfb26ce, cdf33b9 passed), main about 1 in 8 (27 Nov 02:43); it quits in 1 s here on 2 cores. Main suspect: the wells' walk paths (47 walkers on the start's pavements, main 43). Next step: the metro-wells owner reads #1149's backtrace printed in the job output on the next EXIT HANG and fixes what it names
 
 ## Roadmap
 - added (done): every metro entrance in the centre sunk and built from photos (after Rondo Dmowskiego's)
