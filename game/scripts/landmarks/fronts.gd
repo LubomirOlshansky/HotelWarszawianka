@@ -108,6 +108,9 @@ const SKINS := [
 	# NBP's regional branch on Plac Powstańców from F's photos (2026-11-16, docs/landmarks/specs/nbp.md):
 	# the whole building is the site's own model (_build_nbp), dark folded panels over a glass ground floor.
 	{"key": "nbp", "osm": "NBP Oddział Okręgowy w Warszawie", "model": true, "mode": M_STONE, "wall": "#4d4446", "roof": "#6f7173"},
+	# The named court outline registers the whole model and drops the GUGiK run.
+	{"key": "sad_okregowy", "osm": "Sąd Okręgowy w Warszawie", "model": true,
+			"mode": M_STONE, "wall": "#dcd6c9", "roof": "#7d7f8c"},
 	# The mapped theatre registers here as a whole model, so its LoD2 run is replaced.
 	{"key": "powszechny", "osm": "Teatr Powszechny", "model": true, "mode": M_STONE, "wall": "#ebe8df", "roof": "#b9babc"},
 	# PKO BP's office on Marszałkowska by Nowogrodzka from Mapillary photos (2026-11-16,
@@ -117,6 +120,7 @@ const SKINS := [
 	# Its neighbour Wolf Marszałkowska (the same photos): a glass tower with silver floor bands
 	# over a dark stone and glass base, not a dark punched block.
 	{"key": "wolf_marszalkowska", "osm": "Wolf Marszałkowska", "mode": M_SKIN + float(S_BANDS) / 16.0, "wall": "#5f7a90", "roof": "#596066"},
+	{"key": "mostowski", "osm": "Pałac Mostowskich", "model": true, "mode": M_STONE, "wall": "#eee3c9", "roof": "#9a9ba2"},
 ]
 
 
@@ -194,7 +198,11 @@ const LM_BLOCKS := [
 	"32129912",  # the blue glass tower on Plac Powstańców: its LoD2 mesh is open (see-through)
 	"338542425",  # Marszałkowska 99's white slab
 	"6520917",  # Grzybowska 77 (Bellona): the brick house from F's photos
+	"905863487",  # Unique Tower's north and shoulder outline, rebuilt by the unique site
 	"141043447",  # Kino Muranów: whole complex (podium + residential blocks) rebuilt in muranow.gd
+	"1871615",  # Sądy na Lesznie: the whole court model includes the façades and roofs
+	"1371716",  # Pałac Mostowskich: the whole palace and its roofs are built in muranow.gd
+	"295124092", "699441160",  # Generation Park X and Z: rebuilt whole in wola.gd (`gpxz`)
 ]
 
 
@@ -868,8 +876,8 @@ func _find_photo_fronts() -> void:
 	if not list is Array:
 		return
 	for d: Dictionary in list:
-		# The theatre's whole-building site already supplies this frontage.
-		if str(d["id"]) == "b12747":
+		# Whole-building sites that already supply their own frontages (Teatr Powszechny, Centrum Praha).
+		if str(d["id"]) in ["b12747", "b12642"]:
 			continue
 		var key := "pf_" + str(d["id"])
 		_add_site(key, [_pts(d["outline"])])

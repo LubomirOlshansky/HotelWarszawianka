@@ -27,7 +27,8 @@ const Fakes := preload("res://tools/fakes.gd")
 ## Triangles a site may hold (the museum and Plac loop's own models).
 const BUDGET := {"muzeum": 4600, "europejski": 8000, "grob": 600, "metropolitan": 3200, "wiktoria": 4500,
 		"hotel_kasztel": 400, "hotel_canaletto": 400, "hotel_starowka": 400, "polonia": 1450, "ujazdowski": 1650, "sobieski": 1500,
-		"zamek": 24500, "arkady": 2400, "kino_muranow": 11000, "dekalog_estate": 18000, "inflancka_pools": 1000, "zamkowy": 2900}
+		"zamek": 24500, "arkady": 2400, "kino_muranow": 11000, "dekalog_estate": 18000, "inflancka_pools": 1000, "zamkowy": 2900,
+		"gpxz": 12000, "centrum_praha": 4000, "targowa33a": 3000, "polskie_radio": 3000}
 ## The Królewska edge's skins: key -> a point in a building the skin must cover.
 const SKINNED := {"departament": Vector2(-596.0, -702.0)}
 ## Words no card may hold (the hotel's real brand and name).
@@ -182,6 +183,14 @@ func _check_site(marks, map: Fakes.BuilderMap, key: String) -> void:
 			marks._build_inflancka_pools(s)
 		"kino_muranow":
 			marks._build_kino_muranow(s)
+		"gpxz":
+			marks._build_gpxz(s)
+		"centrum_praha":
+			marks._build_centrum_praha(s)
+		"targowa33a":
+			marks._build_targowa33a(s)
+		"polskie_radio":
+			marks._build_polskie_radio(s)
 		"hotel_kasztel", "hotel_canaletto", "hotel_starowka":
 			marks._build_hotel(s)
 	marks._id = 0

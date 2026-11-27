@@ -534,6 +534,32 @@ static func sector_name(key: Vector2i) -> String:
 	return "s_%d_%d" % [key.x, key.y]
 
 
+## The quit fix (CI's firstlife EXIT HANG, 2026-11-27): set by the main thread when the game quits
+## (sector_streamer.gd _exit_tree) while a sector builds on the worker. The build stops at its next
+## step (`_cancelled`) and hands back a partial root, which the streamer frees; without it the main
+## thread waited up to a whole sector's build (33-63 s on 2 cores, more on a slow runner) before it
+## could exit. Only a sector build reads it; a whole-map build (bake_city, the editor) never stops.
+var cancel_build := false
+
+
+## Whether a sector build was told to stop (`cancel_build`).
+func _cancelled() -> bool:
+	return cancel_build and _in_sector
+
+
+## `_cancelled` inside the flat layers: the drape's state goes back to what it is between builds
+## (check_stream_quit.gd builds a sector after a stopped one and compares it with a fresh build).
+func _flat_cancelled() -> bool:
+	if not _cancelled():
+		return false
+	_cover_on = false
+	_cover_reset()
+	_drape_bias = -1.0
+	_dk = -1
+	_layer = L_GROUND
+	return true
+
+
 ## Loop 3c: one sector from map/sectors/<i>_<j>.json, under a new node (not in the tree):
 ## ground, roads and markings, buildings and the landmarks' parts in it, trees, lamps,
 ## signals, parked cars and props, and its colliders. Its cells of the roof and picking grids
@@ -576,7 +602,7 @@ func build_sector(key: Vector2i, roofs_only := false, merge := true) -> Node3D:
 		_scratch_wall.fill(0)
 	_merge = merge
 	_build_parts(_marks, roofs_only)
-	if not roofs_only:
+	if not roofs_only and not _cancelled():
 		_build_collision()
 		# Loop 3d-2b: the sector's slices of the baked maps travel with it (saved in its scene).
 		var slices := map_slices(key)
@@ -591,7 +617,7 @@ func build_sector(key: Vector2i, roofs_only := false, merge := true) -> Node3D:
 		var cars := soft_cars_data()
 		if not cars.is_empty():
 			root.set_meta(&"soft_cars", cars)
-	if merge:
+	if merge and not _cancelled():
 		_merge_roofs()
 	_merge = true
 	_solids.clear()
@@ -633,6 +659,8 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		_drape_bias = 0.01
 		_cover_on = true
 		_build_areas(flat)
+		if _flat_cancelled():
+			return
 		_build_portal_lids(flat)
 		_build_cut_banks(flat)
 		_cover_on = false
@@ -645,8 +673,12 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		_cover_on = true
 		_drape_bias = 0.08
 		_build_surfaces(flat)
+		if _flat_cancelled():
+			return
 		_drape_bias = 0.1
 		_build_paths(flat)
+		if _flat_cancelled():
+			return
 		_build_steps(flat)
 		# The cutting's floor under the tracks' gravel shoulders (0.18): it had their bias, the
 		# same layer at the same height, and the two greys z-fought (F's phone videos, 2026-11-07).
@@ -656,8 +688,12 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		_build_rail_beds(flat)
 		_drape_bias = 0.3
 		_build_roads(flat)
+		if _flat_cancelled():
+			return
 		_build_tunnel_roads(flat)
 		_build_carriageways(flat)
+		if _flat_cancelled():
+			return
 		_cover_on = false
 		_drape_bias = 0.34
 		_build_islands(flat)
@@ -672,9 +708,13 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		_build_tram_noses(flat)
 		_drape_bias = 0.36
 		_build_kerbs(flat)
+		if _flat_cancelled():
+			return
 		_build_shore_stone(flat)
 		_drape_bias = 0.38
 		_build_markings(flat)
+		if _flat_cancelled():
+			return
 		_build_symbols(flat)
 		_build_crossings(flat)
 		_build_tactile(flat)
@@ -685,17 +725,25 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		_dk = -1
 		_build_ground(flat)
 		_cover_reset()
+		if _flat_cancelled():
+			return
 		_add_mesh(flat, flat_material, false)
 
 	var walls := _new_surface()
 	walls.none = roofs_only
 	var keep := _build_lod2(walls, marks)
+	if _cancelled():
+		return
 	var t_parts := Time.get_ticks_msec()
 	_build_buildings(walls, keep, marks)
+	if _cancelled():
+		return
 	if not _in_sector:
 		print("buildings: %d floating parts: %d lowered (%d to the ground), %d tiny left out · %d ms" % [floating_parts,
 				floating_parts - floating_dropped, floating_to_ground, floating_dropped, Time.get_ticks_msec() - t_parts])
 	marks.build(walls, _near if _in_sector else Rect2())
+	if _cancelled():
+		return
 	if not _in_sector:
 		_pick = marks.pick_grid()
 	elif _merge:
@@ -711,6 +759,8 @@ func _build_parts(marks, roofs_only: bool) -> void:
 	_uv2 = Vector2.ZERO
 	_build_stair_flights(walls)
 	barriers.build_city_walls(walls)
+	if _cancelled():
+		return
 	_build_bridge_structures(walls)
 	_build_walls(walls)
 	_build_portals(walls)
@@ -731,12 +781,20 @@ func _build_parts(marks, roofs_only: bool) -> void:
 	_build_garage_mouths(walls)
 	barriers.build_guard_rails(walls)
 	_build_shore()
+	if _cancelled():
+		return
 	_add_mesh(walls, building_material, true)
 	_build_neon(keep, marks)
 	_build_landmark_signs(marks)
+	if _cancelled():
+		return
 
 	_build_trees()
+	if _cancelled():
+		return
 	_build_street_furniture()
+	if _cancelled():
+		return
 	_build_props()
 	_bridge_pockets(keep, marks)
 
@@ -7333,6 +7391,8 @@ func _build_areas(st) -> void:
 				_fill_on_grid(st, _pts(a["p"]), y, GRAVEL if a.has("g") else SAND)
 			continue
 		for a in data["areas"]:
+			if _cancelled():
+				return  # _build_parts' _flat_cancelled puts the state back
 			var k: String = a["k"]
 			var group := "plaza" if k == "plaza" else ("water" if k == "water" else "green")
 			if group != pass_kind:
@@ -9925,6 +9985,8 @@ func _build_buildings(st, keep: Array, marks) -> void:
 	var bottoms := _part_bottoms(list, drawn, marks)
 	var royal := _royal_segments()
 	for index in drawn:
+		if _cancelled():
+			return
 		var bld: Dictionary = list[index]
 		var poly := _pts(bld["p"])
 		var h := float(bld["h"])

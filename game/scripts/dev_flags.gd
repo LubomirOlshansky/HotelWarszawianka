@@ -247,7 +247,7 @@ var crawl_log := false
 var tapczan_flag := ""
 ## Bokiem na Narodowym, the grey box (drift_stadium.gd): --drift=osemka (straight in),
 ## --drift=osemka:bot (the decent bot drives), --drift=osemka:pose:H:B (posed for the wedge's shots),
-## --drift=0 (none). Any of them logs the run ("drift: ...").
+## a last `:top` (WIDOK Z GÓRY) or `:wide` (the whole stadium, PR 2), --drift=0 (none). Any of them logs the run ("drift: ...").
 var drift_flag := ""
 var tapczan_log := false
 var _crawl_auto := false
