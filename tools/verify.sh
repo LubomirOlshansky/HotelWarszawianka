@@ -670,6 +670,9 @@ game() {
 	[[ -n $known ]] && known=" (the engine's $known load tokens at exit: TD-22)"
 	if (( code == 142 )); then
 		row FAIL "$label" $secs "stopped after ${STEP_LIMIT}s ($logf)"
+		# Where it stopped, in the job's own output (CI's log artifacts can't always be fetched).
+		print -r -- "  $label, the log's last lines:"
+		grep -v -e '^ *at: ' -e '^ALSA' $logf | tail -8 | cut -c1-200 | sed 's/^/    /'
 	elif (( code != 0 || np > 0 )); then
 		local first=$(problems $logf | head -1)
 		row FAIL "$label" $secs "exit $code, $np error/warning lines: ${${first:-crash, see log}[1,140]} ($logf)"
