@@ -13,6 +13,8 @@ extends RefCounted
 ##     rhythm that kicks again every cycle.
 ##   - "hold" (B4): the gas held to the end, kicking again whenever it is back in grip.
 ##   - "bank" (B5): the decent bot that banks before each crossover and kicks again after it.
+##   - "human" (B8, the Autopilot's lesson): the decent bot whose flick lands HUMAN_LATE s after the
+##     sign change (a thumb answering the NOW ring), with a 60 Hz frame's jitter.
 ##   - "none" (B6): the gas held, never a kick.
 
 const DriftModel := preload("res://scripts/drift_model.gd")
@@ -26,6 +28,8 @@ const REACT := 0.2
 ## The eyes' lateness wobbles by this (s, σ, a new value about twice a second): a thumb is not a
 ## clock, so a deep needle overshoots into a spin in some seeds, not in all or none (the review's B7).
 const REACT_SIGMA := 0.05
+## The human bot's flick: this late after the sign change (s, uniform).
+const HUMAN_LATE := Vector2(0.07, 0.15)
 ## The clumsy bot: σ 200 ms on its flicks (0b.7), eyes 0.35 s late and a needle that wanders by 6°
 ## (σ, a new aim about once a second): a thumb that overshoots into spins now and then.
 const CLUMSY_SIGMA := 0.2
@@ -134,6 +138,8 @@ func tick(t: float, st: DriftModel.State, line: RefCounted, inp: DriftInput) -> 
 			if _flip_aim != f:
 				_flip_aim = f
 				_flip_err = rng.randfn(0.0, sigma)
+				if kind == "human":
+					_flip_err = rng.randf_range(HUMAN_LATE.x, HUMAN_LATE.y) + rng.randf_range(-0.5, 0.5) / HZ
 			if to_f + _flip_err <= TAPTAP[3] + 0.5 / HZ:
 				_tap_tap(t, inp)
 				return

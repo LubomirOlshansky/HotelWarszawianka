@@ -49,6 +49,7 @@
 		"styl": ["STYL", "STYLE"],
 		"best": ["NAJLEPSZY", "BEST"],
 		"grounded": ["Najpierw wyjdź ze stadionu (✕)", "Leave the stadium first (✕)"],
+		"now": ["TERAZ!", "NOW!"],
 		"busy": ["Narodowy poczeka. Najpierw dokończ, co zacząłeś.", "The stadium can wait. Finish what you started first."],
 		"air": ["Na Narodowy wjeżdża się na kołach. Najpierw wyląduj.", "The stadium takes wheels, not rotors. Land first."]
 	}

@@ -6,8 +6,9 @@
 - found: the drift's own sounds (kick, bank, loss, the limiter) are the kit's cues and the engine loop for now; SHOTS `drift_kick`, `drift_bank`, `drift_lost`, `drift_limit` wait for make_sfx.py
 - found: street_meet.gd's smoke has the same material as the stadium's had before its fix (alpha, render_priority 0), and the post-process quad paints such puffs over (beacon.gd, heli.gd); check it in a shot and give it render_priority 1
 - found: (fixed) the drift's own smoke at render_priority 0 never showed; the stadium's tyre marks lay a quad apart along the path, so the trail is gapless
-- found: (fixed, PR review) a blind fixed rhythm passed Q_LINE; now a tap-tap outside the window does nothing, zones pay per metre held, the chain's clock runs only at 32° or deeper and stops at ×4 (flicks lift it to ×6), heat 0.12 also past the band, the window 0.4 s before to 0.25 s after the crossover: the best of 2,850 blind cycles is 53 % of Q_LINE
+- found: (fixed, PR review) a blind fixed rhythm passed Q_LINE; now a tap-tap outside the window does nothing, zones pay per metre held, the chain's clock runs only at 32° or deeper and stops at ×4 (flicks lift it to ×6), heat 0.12 also past the band, the best of 2,850 blind cycles is 48 % of Q_LINE
 - found: (fixed, PR review) the hidden HUD took touches in the stadium, the stadium kept processing after a visit, the car smoked under the result card, the DEV entry ignored the director
+- found: (fixed, Mac Autopilot) no flick landed in 5 runs: the window is now 0.35 s before to 0.5 s after the crossover, the wrong side waits for it, and a ring with TERAZ! / NOW! and a cyan band on the floor show it; BANKED is drawn over the result card
 
 ## Roadmap
 - adds: "Side quest: Bokiem na Narodowym (grey box in; the stadium's look, then the event)"

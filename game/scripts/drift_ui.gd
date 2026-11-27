@@ -39,12 +39,21 @@ var clock := 0.0
 var arc_on := false
 var arc_beta := 0.0
 var arc_side := 0
+## The flick cue (the Autopilot's runs: no flick was seen): the car's screen point and the seconds to
+## the next sign change (INF: none near). A ring closes on the car as the moment comes, green while
+## the window is open (gold within the full-credit 0.15 s), with TERAZ! / NOW! over it.
+var car_at := Vector2(-1000, -1000)
+var cue_dt := INF
+var cue_before := 0.35
+var cue_after := 0.5
+var cue_perfect := 0.15
 
 var _total: Label
 var _clock: Label
 var _pile: Label
 var _chip: Label
 var _flash: Label
+var _now: Label
 var _tip: Label
 var _top: Button
 var _card: PanelContainer
@@ -126,6 +135,13 @@ func build(points: float) -> void:
 	_button(row, w("retry"), UiKit.Kind.PRIMARY).pressed.connect(func() -> void: retry_pressed.emit())
 	_button(row, w("leave"), UiKit.Kind.SECONDARY).pressed.connect(func() -> void: leave_pressed.emit())
 	_card.visible = false
+	_now = _label(self, "title", UiKit.T_TITLE)
+	_now.add_theme_color_override("font_outline_color", UiKit.OUTLINE)
+	_now.add_theme_constant_override("outline_size", UiKit.px(4.0, pt))
+	_now.text = w("now")
+	_now.visible = false
+	# The flashes over the run's card (BANKED +640 came under it).
+	move_child(_flash, -1)
 
 
 func _label(parent: Control, role: String, size_pt: float) -> Label:
@@ -204,6 +220,13 @@ func show_result(run_total: int, cards: Dictionary, best_total: int) -> void:
 
 func hide_result() -> void:
 	_card.visible = false
+	_now = _label(self, "title", UiKit.T_TITLE)
+	_now.add_theme_color_override("font_outline_color", UiKit.OUTLINE)
+	_now.add_theme_constant_override("outline_size", UiKit.px(4.0, pt))
+	_now.text = w("now")
+	_now.visible = false
+	# The flashes over the run's card (BANKED +640 came under it).
+	move_child(_flash, -1)
 
 
 func result_up() -> bool:
@@ -224,12 +247,18 @@ func _process(dt: float) -> void:
 		_chip.text = "×%d" % chain
 		_chip.reset_size()
 		_chip.position = _pile.position + Vector2(_pile.size.x + UiKit.px(6.0, pt), _pile.size.y * 0.5 - _chip.size.y * 0.5)
+	if _card.visible:
+		_card.reset_size()
+		_card.position = (size - _card.size) * 0.5
 	_flash_t -= dt
 	_flash.visible = _flash_t > 0.0
 	if _flash.visible:
 		_flash.modulate.a = clampf(_flash_t / 0.3, 0.0, 1.0)
 		_flash.reset_size()
-		_flash.position = Vector2(size.x * 0.5 - _flash.size.x * 0.5, size.y * 0.24)
+		var fy := size.y * 0.24
+		if _card.visible:  # over the run's card, not on it
+			fy = minf(fy, _card.position.y - _flash.size.y - UiKit.px(8.0, pt))
+		_flash.position = Vector2(size.x * 0.5 - _flash.size.x * 0.5, fy)
 	_tip_t -= dt
 	_tip.visible = _tip_t > 0.0 and not _card.visible
 	if _tip.visible:
@@ -238,15 +267,41 @@ func _process(dt: float) -> void:
 		_tip.reset_size()
 		_tip.size.x = minf(size.x * 0.6, UiKit.px(520.0, pt))
 		_tip.position = Vector2(size.x * 0.5 - _tip.size.x * 0.5, size.y - _tip.size.y - UiKit.px(28.0, pt))
-	if _card.visible:
-		_card.reset_size()
-		_card.position = (size - _card.size) * 0.5
+	_now.visible = cue_open() and car_at.x > -500.0
+	if _now.visible:
+		_now.add_theme_color_override("font_color", UiKit.GOLD if absf(cue_dt) <= cue_perfect else UiKit.GO)
+		_now.reset_size()
+		_now.position = car_at + Vector2(-_now.size.x * 0.5, _ring_r() + UiKit.px(4.0, pt))  # under the ring: the pile is over the car
 	queue_redraw()
+
+
+## The flick window is open now.
+func cue_open() -> bool:
+	return cue_dt >= -cue_before and cue_dt <= cue_after
+
+
+## The ring's radius: three times its size 1 s before the moment, closing to its size on it.
+func _ring_r() -> float:
+	var r := float(UiKit.px(46.0, pt))
+	return r * (1.0 + 2.0 * clampf(-cue_dt / 1.0, 0.0, 1.0))
+
+
+func _draw_cue() -> void:
+	if cue_dt == INF or cue_dt < -1.0 or cue_dt > cue_after or car_at.x < -500.0:
+		return
+	var r := float(UiKit.px(46.0, pt))
+	var w_ := float(UiKit.px(3.0, pt))
+	# The target: the ring's size at the moment.
+	draw_arc(car_at, r, 0.0, TAU, 40, Color(UiKit.INK, 0.35), w_)
+	var open := cue_open()
+	var col: Color = UiKit.GOLD if absf(cue_dt) <= cue_perfect else (UiKit.GO if open else Color(UiKit.INK, 0.7))
+	draw_arc(car_at, _ring_r(), 0.0, TAU, 48, col, w_ * (2.5 if open else 1.2))
 
 
 ## Change 4's 2D copy of the wedge, only in WIDOK Z GÓRY: a 120° arc at the bottom centre, the green
 ## band 25-50°, the bright rim 45-55°, red past 65°, the needle on the slip.
 func _draw() -> void:
+	_draw_cue()
 	if not arc_on or arc_side == 0:
 		return
 	var r := float(UiKit.px(70.0, pt))

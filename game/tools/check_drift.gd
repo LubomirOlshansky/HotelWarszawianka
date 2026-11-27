@@ -27,7 +27,9 @@ extends SceneTree
 ##   0.2-2.0 s, lift 0.1-0.8 s, CYCLE_PHASES start phases) scores under PULSE_MAX of Q_LINE; B4 the gas
 ##   held, kicking again after each grip, spins every run and scores under 40 % of Q_LINE; B5 banking at
 ##   both crossovers scores 55-75 % of the follower; B6 no kick scores 0; B7 the follower at a 55°
-##   needle spins in DEEP_SPIN_MIN of seeds or more; B9 the follower's runs last 28-40 s.
+##   needle spins in DEEP_SPIN_MIN of seeds or more; B8 a human 0.07-0.15 s late lands both flicks in
+##   HUMAN_FLICKS of SEEDS; B9 the follower's runs last 28-40 s. W2: a tap anywhere in the window flicks
+##   and never says WRONG SIDE.
 ##   godot --headless --path game --script res://tools/check_drift.gd
 
 const DriftLine := preload("res://scripts/drift_line.gd")
@@ -54,6 +56,8 @@ const CYCLE_PHASES := 10
 ## must carry risk).
 const DEEP_NEEDLE := 55.0
 const DEEP_SPIN_MIN := 0.15
+## B8: seeds (of SEEDS) where the late human lands both flicks.
+const HUMAN_FLICKS := 28
 
 var fails: Array[String] = []
 var osemka: RefCounted
@@ -289,6 +293,26 @@ func _model() -> void:
 	if absf(wrong_at - w_at) > 0.06 or pts_wrong > 0.0 or not banked_wrong or sc.chain != 1:
 		_fail("W: the old side past the crossover: sign change at %.2f s, wrong at %.2f s (%.2f), %.0f points from the sign change on (0), banked %s, chain ×%d" % [sign_at, wrong_at, w_at, pts_wrong, str(banked_wrong), sc.chain])
 	print("check_drift: W sign change at %.2f s, wrong at %.2f s, %.0f points between" % [sign_at, wrong_at, pts_wrong])
+	# W2 (the Autopilot's runs): a tap at any time inside the window, late ones too, flicks and never
+	# says WRONG SIDE.
+	var late := -DriftModel.FLICK_BEFORE + 0.02
+	while late <= DriftModel.FLICK_AFTER - 0.02 + 1e-6:
+		st = _drifting(cr, f - 0.8 * 15.0, 15.0, 35.0)
+		var said_wrong := false
+		var flipped := false
+		t = 0.0
+		var kicked := false
+		while t < 2.0 and not flipped:
+			var kick := not kicked and st.s >= f + late * st.v
+			kicked = kicked or kick
+			DriftModel.step(st, _frame(1.0 if absf(st.beta) < 35.0 else 0.0, kick), cr, p, DT)
+			t += DT
+			said_wrong = said_wrong or "wrong" in st.events or st.mode == DriftModel.Mode.WRONG
+			flipped = st.mode == DriftModel.Mode.FLIP
+		if said_wrong or not flipped:
+			_fail("W2: a tap %.2f s from the sign change: WRONG %s, flicked %s" % [late, str(said_wrong), str(flipped)])
+			break
+		late += 0.04
 
 
 ## The decent bot's mean speed (km/h) while it drifts on Ósemka's first bend.
@@ -621,6 +645,18 @@ func _bots() -> void:
 	print("check_drift: B7 needle %.0f°: median %.0f, spins in %d of %d seeds (the 42° follower: %d)" % [DEEP_NEEDLE, _median(dt_), spun_seeds, SEEDS, decent_spun])
 	if float(spun_seeds) / SEEDS < DEEP_SPIN_MIN:
 		_fail("B7: the follower at a %.0f° needle spins in %d of %d seeds (%.0f %% or more)" % [DEEP_NEEDLE, spun_seeds, SEEDS, DEEP_SPIN_MIN * 100.0])
+	# B8 (the Autopilot's runs): a thumb answering the NOW ring 0.07-0.15 s late lands the flick at both
+	# crossovers in HUMAN_FLICKS of the seeds.
+	var both := 0
+	var h_tot := []
+	for i in SEEDS:
+		var r: Dictionary = DriftBot.run("human", i + 1, osemka, p)
+		h_tot.append(float(r["total"]))
+		if int(r["flicks"]) >= 2:
+			both += 1
+	print("check_drift: B8 human (0.07-0.15 s late): both flicks in %d of %d seeds, median %.0f" % [both, SEEDS, _median(h_tot)])
+	if both < HUMAN_FLICKS:
+		_fail("B8: a thumb 0.07-0.15 s late lands both flicks in %d of %d seeds (%d or more)" % [both, SEEDS, HUMAN_FLICKS])
 	# B6: no kick.
 	var none: Dictionary = DriftBot.run("none", 1, osemka, p)
 	if float(none["total"]) != 0.0:

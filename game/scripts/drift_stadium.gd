@@ -74,6 +74,8 @@ const GRASS := Color("#4f7d3c")
 const PAINT := Color("#ece6d6")
 const KICK := Color("#e0b63a")
 const GATE := Color("#5fd4ff")
+## The speed the floor's flick band is painted for (m/s, the follower's on the crossovers).
+const GATE_V := 13.0
 const BOARD_RED := Color("#d23a35")
 const BOARD_WHITE := Color("#f1ede4")
 const CONE := Color("#ff8a2a")
@@ -448,6 +450,12 @@ func _frame_visuals(dt: float) -> void:
 	_ui.chain = score.chain
 	_ui.clock = _clock
 	_ui.pile_at = _project(at + Vector3(0.0, 1.5, 0.0))
+	# The flick cue: while drifting towards a sign change (not once flicked, not posed).
+	_ui.car_at = _project(at)
+	_ui.cue_dt = float(line.flip_dt(st.s, st.v)) if st.mode == DriftModel.Mode.DRIFT and not _over else INF
+	_ui.cue_before = float(params.get("flick_before", DriftModel.FLICK_BEFORE))
+	_ui.cue_after = float(params.get("flick_after", DriftModel.FLICK_AFTER))
+	_ui.cue_perfect = DriftModel.FLICK_PERFECT
 	_ui.arc_beta = st.beta
 	_ui.arc_side = side if st.mode != DriftModel.Mode.GRIP else 0
 
@@ -706,8 +714,12 @@ static func floor_mesh(ln: RefCounted) -> ArrayMesh:
 		_strip(st, ln, kb.x, kb.y, -2.45, -2.25, 0.008, KICK, GLOW_PAINT)
 	# The ideal line.
 	_strip(st, ln, 0.0, ln.length, -0.13, 0.13, 0.012, PAINT, GLOW_PAINT)
-	# The flick gates (change 9): a bar across the line at each sign change.
+	# The flick gates (change 9): a bar across the line at each sign change, on a tinted band where the
+	# window is open at the follower's 13 m/s (FLICK_BEFORE s before it, FLICK_AFTER s after).
 	for f in ln.flips:
+		_strip(st, ln, f - DriftModel.FLICK_BEFORE * GATE_V, f + DriftModel.FLICK_AFTER * GATE_V, -3.2, 3.2, 0.010, ASPHALT.lerp(GATE, 0.3), GLOW_FLOOR)
+		for e in [-1.0, 1.0]:
+			_strip(st, ln, f - DriftModel.FLICK_BEFORE * GATE_V, f + DriftModel.FLICK_AFTER * GATE_V, 3.05 * e - 0.1, 3.05 * e + 0.1, 0.012, GATE, GLOW_PAINT)
 		_strip(st, ln, f - 0.35, f + 0.35, -3.2, 3.2, 0.014, GATE, GLOW_PAINT)
 	# Start and finish: a checker across the line.
 	for s0 in [0.4, ln.length - 1.4]:

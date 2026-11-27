@@ -29,9 +29,11 @@ const LIFT_RATE := 40.0
 ## Under GRIP_DEG for GRIP_S s: grip, the pile banks.
 const GRIP_DEG := 8.0
 const GRIP_S := 0.4
-## The transition window: from FLICK_BEFORE s before the sign change to FLICK_AFTER s after it.
-const FLICK_BEFORE := 0.4
-const FLICK_AFTER := 0.25
+## The transition window: from FLICK_BEFORE s before the sign change to FLICK_AFTER s after it,
+## generous to a late thumb (the Mac Autopilot's runs: a tap 70 ms late never landed in 0.25 s); the
+## wrong side waits for it to close. The floor's gate and the UI's ring show it (drift_stadium.gd).
+const FLICK_BEFORE := 0.35
+const FLICK_AFTER := 0.5
 ## A transition crosses zero in FLICK_S s and lands at KICK_DEG on the other side.
 const FLICK_S := 0.6
 ## The flick's timing is 1.0 within this (s) of the sign change, 0.5 elsewhere in the window (change 9).
