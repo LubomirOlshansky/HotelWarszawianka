@@ -17,7 +17,9 @@ const TILE := Vector2i(420, 280)
 ## --mix's paints and stripes (garage.gd PAINTS' colours).
 const MIX := {"hatch": ["#d8432f", "#f4efe4"], "tt": ["#1f2024", "#c9ccd1"], "lanos": ["#d9cfb3", "#c43b2c"],
 		"bolonez": ["#5aa83a", "#f4efe4"], "paszat": ["#2f72c8", "#f4efe4"], "szupra": ["#ecc02a", "#23211f"],
-		"mjata": ["#c4161c", "#f4efe4"]}
+		"mjata": ["#c4161c", "#f4efe4"], "player_mruczelago": ["#e3a2c8", "#f4efe4"],
+		"player_hondzia": ["#4cb7dc", "#1c1d21"], "player_porsza": ["#f2f0ea", "#1c1d21"], "player_gr86": ["#eeeeea", "#1c1d21"],
+		"player_kadilak": ["#8ea6c8", "#c9ccd1"], "player_bokser": ["#1f2430", "#c9ccd1"]}
 ## [yaw (deg, 0 = from the front), pitch (deg, down), distance (m)] of each column.
 const VIEWS := [[35.0, 14.0, 7.2], [90.0, 6.0, 7.4], [215.0, 18.0, 7.2], [165.0, 52.0, 9.5], [180.0, 89.0, 8.5]]
 
@@ -97,7 +99,8 @@ func _run(cars: Array, paint: Color, stripe: Color, wing: bool, out: String, mix
 	var sheet := Image.create(TILE.x * VIEWS.size(), TILE.y * cars.size(), false, Image.FORMAT_RGBA8)
 	for row in cars.size():
 		var id := str(cars[row])
-		var kind := str(Models.PLAYER_BODIES.get(id, "player"))
+		# A body kind ("player_...") draws that body directly: candidate cars before they join the shop.
+		var kind := id if id.begins_with("player_") else str(Models.PLAYER_BODIES.get(id, "player"))
 		var pc := paint
 		var sc := stripe
 		if mix and MIX.has(id):
