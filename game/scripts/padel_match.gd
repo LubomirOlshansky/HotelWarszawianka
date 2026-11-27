@@ -502,6 +502,11 @@ func _on_event(kind: String, d: Dictionary) -> void:
 				_burst(d["p"], GOLD, 14, 6.0)
 			if int(d["who"]) == 0 and sim.players[0].human and not auto_play:
 				var err := float(d["err"])
+				# PT-61: each of your hits with its tap's error in game time, so a tester can match
+				# every CZYSTO to the tap that made it (--padel-log).
+				_log("hit you: shot %d, %s, clean %s, q %.2f, clean total %d, t %.2f" % [shot,
+						"err %+d ms" % roundi(err * 1000.0) if absf(err) >= 0.0001 else "no booked tap",
+						d["clean"], q, int(sim.stats["clean"]), sim.time])
 				if sim.warming() and shot != PadelSim.Shot.SERVE:
 					var key := "warm_clean"
 					if not bool(d["clean"]):
@@ -1473,7 +1478,9 @@ func _press(shot: int) -> void:
 		_lob_press = 1.0
 	else:
 		_hit_press = 1.0
+	var left := sim.cue_left()
 	sim.press(shot)
+	_log("tap: shot %d, %s, t %.2f" % [shot, "ring %+d ms" % roundi(left * 1000.0) if left < INF else "no ring", sim.time])
 
 
 # --- sound --------------------------------------------------------------------------------------
