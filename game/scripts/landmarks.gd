@@ -545,6 +545,9 @@ const INFO := {
 	"ujazdowski": ["Zamek Ujazdowski",
 			"Z 1624 roku, zburzony w 1944, odbudowany. Dziś sztuka współczesna.",
 			"Built 1624, razed 1944, rebuilt. Now a centre for modern art."],
+	"polskie_radio": ["Polskie Radio",
+			"Siedziba Polskiego Radia przy Myśliwieckiej, tuż obok Agrykoli.",
+			"Polish Radio headquarters on Myśliwiecka, right beside Agrykola."],
 	"sobieski": ["Radysław Blu",
 			"Hotel przy placu Zawiszy, w kolorowych pasach.",
 			"A hotel on Plac Zawiszy, in colourful bands."],
@@ -740,6 +743,12 @@ const INFO := {
 	"bazar": ["Bazar Różyckiego",
 			"Najstarszy bazar Warszawy, od 1882 roku. Stare budy obok nowych zielonych pawilonów. Kupisz tu wszystko.",
 			"Warsaw's oldest market, since 1882. Old sheds face the new green kiosks. Everything is for sale."],
+	"centrum_praha": ["Centrum Praha",
+			"Piaskowcowy gmach na Pradze z fryzem twarzy i cynkową mansardą.",
+			"A Praga sandstone block with a carved-faces frieze and zinc mansard."],
+	"targowa33a": ["Pasaż Handlowy Targowa 33A",
+			"Dwukondygnacyjny pasaż handlowy w głębi kwartału przy Targowej.",
+			"A low two-storey trade podium tucked inside the Targowa block."],
 	"powszechny": ["Teatr Powszechny im. Zygmunta Hübnera",
 			"Przy Zamoyskiego 20 praska scena nosi imię Zygmunta Hübnera. Wysoka wieża nad dachem mieści sceniczne dekoracje.",
 			"At Zamoyskiego 20, Praga's theatre bears Zygmunt Hübner's name. The tower above the roof holds the stage scenery."],
@@ -1507,6 +1516,7 @@ func _find_sites() -> void:
 	# F's ask (2026-11-01): the Old Town hotels, as fronts on the tenements.
 	_find_hotels()
 	_find_ujazdowski()
+	_find_polskie_radio()
 	# F's ask (2026-11-01): Norblin, Browary Warszawskie, Hala Koszyki, Elektrownia Powiśle.
 	_find_works()
 	# F's ask (2026-11-02, CITY_INVENTORY #21): the Warsaw Rising Museum, from the Mac's photos.
@@ -1525,6 +1535,8 @@ func _find_sites() -> void:
 	# Praga (2026-11-02, the Mac's photo reports): St Florian's cathedral and Bazar Różyckiego.
 	_find_florian()
 	_find_bazar()
+	_find_centrum_praha()
+	_find_targowa33a()
 	_find_port_praski()
 	_find_kosciuszkowcy()
 	# Stacja Filtrów (F, 2026-11-06): the water tower and Starynkiewicz's bust.
@@ -1708,6 +1720,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 	var t0 := Time.get_ticks_msec()
 	var built := 0
 	for k in sites.size():
+		if _quit_stop():
+			return  # the quit fix: the game quits while this sector builds (map_builder.gd `cancel_build`)
 		var s: Dictionary = sites[k]
 		# Loop 3c: building one sector, only the sites that reach `near` (the sector grown by
 		# the split's margin); the builder keeps the triangles that lie in the sector. Every
@@ -2006,6 +2020,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_polonia(s)
 			"ujazdowski":
 				_build_ujazdowski(s)
+			"polskie_radio":
+				_build_polskie_radio(s)
 			"sobieski":
 				_build_sobieski(s)
 			"bristol":
@@ -2175,6 +2191,10 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_florian(s)
 			"bazar":
 				_build_bazar(s)
+			"centrum_praha":
+				_build_centrum_praha(s)
+			"targowa33a":
+				_build_targowa33a(s)
 			"powszechny":
 				_build_powszechny(s)
 			"port_praski":

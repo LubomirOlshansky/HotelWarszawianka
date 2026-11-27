@@ -383,6 +383,12 @@ const JM_SHIRTS := [Color("#2c3440"), Color("#7a1f26"), Color("#e7e2d6"), Color(
 		Color("#c25a2a"), Color("#4a5a8a"), Color("#8a7a62")]
 
 
+## The quit fix: the sector this builds in is told to stop (map_builder.gd `cancel_build`; the game
+## quits while the streamer's worker builds it). Read by name: some tools build on a stand-in map.
+func _quit_stop() -> bool:
+	return map.get(&"cancel_build") == true and map.get(&"_in_sector") == true
+
+
 func _jm_frame() -> void:
 	_o = JM_O
 	_a = JM_AXIS.normalized()
@@ -573,6 +579,8 @@ func _build_jarmark(_site: Dictionary) -> void:
 		if _jm_here_box(p[0], p[1], p[2], p[3]):
 			_jm_drape(p[0], p[1], p[2], p[3])
 	for h: Array in _jm_huts():
+		if _quit_stop():
+			return  # the quit fix (map_builder.gd `cancel_build`): this site takes seconds a sector
 		if _jm_here(h[0], h[1]):
 			_jm_hut(h[0], h[1], h[2], h[3], h[4])
 	# The tree's plaza by Marszałkowska: the platform, the ring of yellow benches (open towards the
@@ -621,6 +629,8 @@ func _build_jarmark(_site: Dictionary) -> void:
 			_jm_line(l[0], l[1], l[2])
 	# The kit objects at their anchors: every small thing on the official map, the photo details.
 	_jm_kit_objects()
+	if _quit_stop():
+		return
 	# The fence along Marszałkowska with its white banners and along the south access road, the
 	# entrances (the map's wejście 1, 2, 7, 8) open.
 	if _jm_here_box(147.0, 263.0, -9.5, -9.5):
@@ -633,6 +643,8 @@ func _build_jarmark(_site: Dictionary) -> void:
 	# The gold sign and the light-up trees at the entrances, big stars.
 	if _jm_here(177.0, -7.0):
 		_jm_greeting(177.0, -7.0)
+	if _quit_stop():
+		return
 	# The plaza sign stands 11.5 m along from the map's spot (91.5): there it ran 1 m beside the lawn
 	# railing's north edge (u 91.5..105, v 16), a slot that pinned cars sliding along the railing
 	# (Autopilot PT-60 re-run, 2026-11-27). Now its east end is 6 m short of the railing's corner.
@@ -675,6 +687,8 @@ func _jm_kit_objects() -> void:
 	for m: Dictionary in kit.get_script_method_list():
 		have[m["name"]] = m["args"]
 	for name: String in JM_ANCHORS:
+		if _quit_stop():
+			return
 		var e: Array = JM_ANCHORS[name]
 		var bld: String = e[0]
 		if bld.is_empty():

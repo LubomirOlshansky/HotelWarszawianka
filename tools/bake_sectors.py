@@ -141,6 +141,7 @@ SITE_AREAS = [
     (-1360.0, -262.0, -1275.0, -225.0),     # Próżna's two south tenements (landmarks.gd _find_prozna, F's photos 2026-11-08)
     (-1345.0, -1790.0, -1200.0, -1690.0),   # Sąd Najwyższy's colonnade (landmarks.gd SN_BOX: unnamed OSM columns)
     (-270.0, -1510.0, -20.0, -1260.0),      # the boulevards' bar pavilions (landmarks.gd BULWAR_PAW_BOX)
+    (1015.0, -1845.0, 1152.0, -1714.0),     # Pasaż Targowa 33A's podium and the flats it keeps (unnamed in OSM; praga.gd TG_PODIUM_AT)
     (25.0, -1110.0, 65.0, -1065.0),         # and their containers and kiosks (BULWAR_BAR_BOXES)
     (195.0, -1068.0, 245.0, -1025.0),
     (670.0, -575.0, 712.0, -525.0),
