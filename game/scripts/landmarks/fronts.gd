@@ -108,6 +108,11 @@ const SKINS := [
 	# NBP's regional branch on Plac Powstańców from F's photos (2026-11-16, docs/landmarks/specs/nbp.md):
 	# the whole building is the site's own model (_build_nbp), dark folded panels over a glass ground floor.
 	{"key": "nbp", "osm": "NBP Oddział Okręgowy w Warszawie", "model": true, "mode": M_STONE, "wall": "#4d4446", "roof": "#6f7173"},
+	{"key": "city_gate", "osm": "City Gate", "model": true, "mode": M_STONE, "wall": "#d8dedd", "roof": "#5c6063"},
+	# Both the LoD2 bounds centre and the OSM vertex mean fall in the open court.
+	{"key": "meridian", "osm": "Meridian", "model": true, "mode": M_STONE, "wall": "#c8beb0", "roof": "#938780",
+			"runs": [[-2657.45, -305.6], [-2661.72, -298.11]]},
+	{"key": "oxygen", "osm": "Oxygen", "model": true, "mode": M_STONE, "wall": "#a8a6a2", "roof": "#aaa49a"},
 	# The mapped theatre registers here as a whole model, so its LoD2 run is replaced.
 	{"key": "powszechny", "osm": "Teatr Powszechny", "model": true, "mode": M_STONE, "wall": "#ebe8df", "roof": "#b9babc"},
 	# PKO BP's office on Marszałkowska by Nowogrodzka from Mapillary photos (2026-11-16,
@@ -197,6 +202,9 @@ const LM_BLOCKS := [
 	"905863487",  # Unique Tower's north and shoulder outline, rebuilt by the unique site
 	"141043447",  # Kino Muranów: whole complex (podium + residential blocks) rebuilt in muranow.gd
 	"295124092", "699441160",  # Generation Park X and Z: rebuilt whole in wola.gd (`gpxz`)
+	"947208951",  # Meridian: the whole office model includes its street front (wola.gd `meridian`)
+	"2892939",  # Oxygen: the whole office ring is built in wola.gd (`oxygen`)
+	"947207781",  # City Gate: the whole curved office is built in wola.gd (`city_gate`)
 ]
 
 

@@ -3136,3 +3136,366 @@ func _gpxz_build_z(z_raw: PackedVector2Array, z_top_raw: PackedVector2Array) -> 
 	_gpxz_plant(base_o + ua * -52.0 + vb * 2.0, top_roof_y, 6.0, 3.0, 2.2)
 	_gpxz_plant(base_o + ua * -52.0 + vb * -9.5, top_roof_y, 6.0, 3.0, 2.2)
 	_gpxz_plant(base_o + ua * -21.0 + vb * -8.0, top_roof_y, 6.0, 3.0, 2.2)
+
+
+# --- City Gate, Wolska ------------------------------------------------------------------------
+
+## Read from the Wolska and south obliques: cool slab edges against blue and teal glass.
+const CITY_GATE_STONE := Color("#d8dedd")
+const CITY_GATE_BODY := Color("#475961")
+const CITY_GATE_TEAL := Color("#6d9996")
+const CITY_GATE_ROOF := Color("#5c6063")
+const CITY_GATE_AT := Vector2(-2839.4, -368.55)
+const CITY_GATE_AXIS := Vector2(114.0, -32.0)
+const CITY_GATE_WING_TOP := 27.0
+const CITY_GATE_MAIN_TOP := 52.2
+const CITY_GATE_CROWN_TOP := 56.7
+
+## North bow, east return and folded south wall in the mapped frontage frame.
+const CITY_GATE_NORTH := [[-60.0, 2.8], [-53.0, -5.0], [-45.0, -11.2], [-36.9, -15.4],
+		[-26.2, -18.4], [-15.0, -19.5], [-3.0, -18.3], [7.0, -14.9], [18.1, -8.3], [26.4, -8.3]]
+const CITY_GATE_EAST := [[59.2, -8.1], [59.0, 1.8], [56.1, 5.8], [51.1, 7.7], [41.7, 5.4], [30.0, 2.4]]
+const CITY_GATE_SOUTH := [[26.4, 7.4], [1.8, 7.2], [-5.3, 4.2], [-14.5, 7.7], [-35.0, 8.1], [-58.9, 8.1]]
+
+
+## Build the low east end and tall bow together so the terraces step within the mapped outline.
+func _build_city_gate(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["zone"][0]
+	_g = _ground_under(outline)
+	kit_front(CITY_GATE_AT, CITY_GATE_AT + CITY_GATE_AXIS)
+	var base := _lpoly(CITY_GATE_NORTH + CITY_GATE_EAST + CITY_GATE_SOUTH)
+	var upper := _lpoly(CITY_GATE_NORTH + CITY_GATE_SOUTH)
+	_city_gate_mass(base, upper)
+	_city_gate_crown()
+	_city_gate_plant()
+	_city_gate_glazing(base, upper)
+	_collide(outline)
+
+
+## The continuous lower body carries the glass bow and leaves a roof deck over the east wing.
+func _city_gate_mass(base: PackedVector2Array, upper: PackedVector2Array) -> void:
+	_mode = M_STONE
+	_prism(base, _g - 0.7, _g + 4.6, PAL_DARK_STEEL, Color.TRANSPARENT)
+	_prism(base, _g + 4.6, _g + CITY_GATE_WING_TOP, CITY_GATE_BODY, CITY_GATE_ROOF)
+	_prism(upper, _g + CITY_GATE_WING_TOP, _g + CITY_GATE_MAIN_TOP, CITY_GATE_BODY, CITY_GATE_ROOF)
+	_parapet(_ring_out(upper, -0.25), _g + CITY_GATE_MAIN_TOP, 0.55, CITY_GATE_STONE)
+	# The exposed eastern deck needs coping only beyond the tall body.
+	var east_deck := _lpoly([CITY_GATE_NORTH[-1]] + CITY_GATE_EAST + [CITY_GATE_SOUTH[0]])
+	_parapet(_ring_out(east_deck, -0.3), _g + CITY_GATE_WING_TOP, 0.48, CITY_GATE_STONE)
+
+
+## The lower ribbons turn every corner. Above them the uninterrupted central bow reads as glass.
+func _city_gate_glazing(base: PackedVector2Array, upper: PackedVector2Array) -> void:
+	var low_rows: Array[float] = []
+	var high_rows: Array[float] = []
+	var low_step := (CITY_GATE_WING_TOP - 4.6) / 6.0
+	var high_step := (CITY_GATE_MAIN_TOP - CITY_GATE_WING_TOP) / 7.0
+	for floor_index in 6:
+		var y := _g + 4.6 + floor_index * low_step
+		kit_ledge_ring(base, y, 1.02, CITY_GATE_STONE, 0.48)
+		low_rows.append(y + 1.12)
+	for floor_index in 7:
+		high_rows.append(_g + CITY_GATE_WING_TOP + floor_index * high_step)
+
+	for i in base.size():
+		var width := kit_front(base[(i + 1) % base.size()], base[i])
+		var bays := maxi(1, roundi(width / 3.65))
+		var bay := width / bays
+		var glass := CITY_GATE_TEAL if _b.y > 0.15 else PAL_GLASS_STEEL
+		for j in bays:
+			var u := (j + 0.5) * bay
+			if i == base.size() - 3 and j == bays / 2:
+				kit_door(u, _g - 0.08, 3.35, 1.25, CITY_GATE_STONE, PAL_GLASS_NAVY)
+			else:
+				kit_panes([u], [_g + 0.38], bay * 0.83, 3.72, glass)
+			var tint := glass.lightened(0.09) if (i + j) % 5 == 0 else glass
+			kit_panes([u], low_rows, bay * 0.92, low_step - 1.24, tint)
+
+	for i in upper.size():
+		var width := kit_front(upper[(i + 1) % upper.size()], upper[i])
+		var curtain := i in [3, 4, 5, 6, 7, 9, 11, 12, 15]
+		var bays := maxi(1, roundi(width / (2.95 if curtain else 3.45)))
+		var bay := width / bays
+		var glass := CITY_GATE_TEAL if _b.y > 0.15 else PAL_GLASS_STEEL
+		for row: float in high_rows:
+			if not curtain:
+				kit_ledge(0.19, width - 0.19, row + 0.1, 0.93, CITY_GATE_STONE, 0.53)
+			var sill := row + (0.16 if curtain else 1.12)
+			var pane_h := high_step - (0.35 if curtain else 1.26)
+			kit_panes(_spread(0.0, width, bays), [sill], bay * 0.94, pane_h, glass)
+
+
+## A pale roofhouse rises over the dark deck and has a short south-facing window slot.
+func _city_gate_crown() -> void:
+	var ring := _lpoly([[-38.8, -3.9], [-32.1, -7.8], [-22.0, -10.2], [-10.6, -10.5],
+			[1.0, -7.7], [7.9, -3.1], [7.0, 4.9], [-5.4, 3.8], [-19.0, 5.2], [-34.2, 7.3]])
+	var y := _g + CITY_GATE_MAIN_TOP
+	var top := _g + CITY_GATE_CROWN_TOP
+	_prism(ring, y, top, PAL_ALUMINIUM, CITY_GATE_ROOF)
+	_parapet(_ring_out(ring, -0.27), top, 0.48, CITY_GATE_STONE)
+	var width := kit_front(ring[7], ring[6])
+	kit_panes(_spread(width * 0.26, width * 0.74, 4), [y + 0.35], width * 0.108, 3.38, PAL_GLASS_NAVY)
+	kit_front(CITY_GATE_AT, CITY_GATE_AT + CITY_GATE_AXIS)
+
+
+## Set the east drum around an open centre and group the air handlers on the higher roofs.
+func _city_gate_plant() -> void:
+	var y := _g + CITY_GATE_CROWN_TOP
+	_lbox(-19.0, -2.5, 4.2, 1.45, y, y + 0.8, PAL_ROOF_PALE)
+	_lbox(-9.0, 1.9, 1.85, 0.86, y, y + 2.3, PAL_DARK_STEEL)
+	_lbox(-30.5, 0.8, 1.2, 0.82, y, y + 1.65, PAL_ALUMINIUM)
+	_lbox(-1.7, -2.0, 2.4, 1.2, y, y + 0.95, PAL_ROOF_PALE)
+	y = _g + CITY_GATE_MAIN_TOP
+	_lbox(-46.0, -1.0, 3.1, 1.4, y, y + 1.45, PAL_ROOF_PALE)
+	_lbox(15.0, 1.25, 3.4, 1.55, y, y + 1.4, PAL_ALUMINIUM)
+	y = _g + CITY_GATE_WING_TOP
+	_lbox(34.2, -2.75, 2.5, 1.0, y, y + 1.18, PAL_ROOF_PALE)
+	var centre := _w(49.2, -0.65)
+	var drum := _circle(centre, 6.25, 14)
+	var inside := _circle(centre, 4.25, 14)
+	_prism(drum, y, y + 2.1, PAL_GLASS_NAVY, CITY_GATE_ROOF)
+	_prism(drum, y + 2.1, y + 6.5, PAL_ALUMINIUM, Color.TRANSPARENT)
+	_strip(inside, drum, y + 6.5, CITY_GATE_STONE)
+	_lbox(49.2, -0.65, 1.1, 1.0, y + 2.1, y + 3.45, PAL_ROOF_PALE)
+	for i in drum.size():
+		var j := (i + 1) % drum.size()
+		_wall(inside[i], inside[j], y + 2.1, y + 6.5, -_out(inside, inside[i], inside[j]), CITY_GATE_ROOF)
+		var a := drum[i]
+		var b := drum[j]
+		var width := kit_front(b, a) if not Geometry2D.is_polygon_clockwise(drum) else kit_front(a, b)
+		kit_panes([width * 0.5], [y + 0.17], width * 0.88, 1.73, CITY_GATE_TEAL)
+
+
+# --- Meridian --------------------------------------------------------------------------------
+
+## Warm stone, shadowed glazing and taupe roof membrane in the Meridian obliques.
+const MERIDIAN_WALL := Color("#c8beb0")
+const MERIDIAN_SLAB := Color("#e4ded1")
+const MERIDIAN_GLASS := Color("#424449")
+const MERIDIAN_RAIL := Color("#726764")
+const MERIDIAN_ROOF := Color("#938780")
+const MERIDIAN_AT := Vector2(-2657.45, -305.6)
+const MERIDIAN_AXIS := Vector2(52.0, -30.0)
+const MERIDIAN_LOW_TOP := 26.2
+const MERIDIAN_HIGH_TOP := 32.4
+
+## The north bar leads into the high east wing. The lower west wing curls round the open court.
+const MERIDIAN_NORTH := [[-23.2, -27.4], [-15.6, -25.4], [36.0, -27.8], [36.0, -14.2],
+		[30.1, -14.5], [30.3, 11.1], [29.4, 16.5], [20.2, 20.5], [13.3, 21.4]]
+const MERIDIAN_COURT := [[12.6, -10.6], [-6.3, -10.7], [-9.5, -7.5], [-13.4, 8.0],
+		[-13.7, 12.3], [-12.8, 16.7], [-10.3, 21.2], [-2.9, 38.6]]
+const MERIDIAN_WEST := [[-23.7, 35.3], [-33.4, 14.8], [-29.6, -0.6]]
+const MERIDIAN_STEP := [-16.4, -10.1]
+
+
+## Build the connected lower body, then add two storeys over the northeast leg of the U.
+func _build_meridian(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["zone"][0]
+	_g = _ground_under(outline)
+	kit_front(MERIDIAN_AT, MERIDIAN_AT + MERIDIAN_AXIS)
+	var base := _lpoly(MERIDIAN_NORTH + MERIDIAN_COURT + MERIDIAN_WEST)
+	var high := _lpoly(MERIDIAN_NORTH.slice(1) + MERIDIAN_COURT.slice(0, 3) + [MERIDIAN_STEP])
+	var low := _lpoly(MERIDIAN_COURT.slice(2) + MERIDIAN_WEST + MERIDIAN_NORTH.slice(0, 2) + [MERIDIAN_STEP])
+	_meridian_mass(base, high)
+	_meridian_plant(low, high)
+	_meridian_glazing(base, 4.0, MERIDIAN_LOW_TOP, 7, true)
+	_meridian_glazing(high, MERIDIAN_LOW_TOP, MERIDIAN_HIGH_TOP, 2, false)
+	_collide(outline)
+
+
+## The lower roof supports the high bar, with an open notch for the courtyard at both levels.
+func _meridian_mass(base: PackedVector2Array, high: PackedVector2Array) -> void:
+	_mode = M_STONE
+	_prism(base, _g - 0.7, _g + 4.0, PAL_GREY_GRANITE, Color.TRANSPARENT)
+	_prism(base, _g + 4.0, _g + MERIDIAN_LOW_TOP, MERIDIAN_WALL, MERIDIAN_ROOF)
+	_prism(high, _g + MERIDIAN_LOW_TOP, _g + MERIDIAN_HIGH_TOP, MERIDIAN_WALL, MERIDIAN_ROOF)
+
+
+## Alternate broad balcony openings and narrow panes, leaving solid stone at the upper step.
+func _meridian_glazing(ring: PackedVector2Array, bottom: float, top: float, floors: int, lower: bool) -> void:
+	var step := (top - bottom) / floors
+	var rows: Array[float] = []
+	for floor_index in floors:
+		var y := _g + bottom + floor_index * step
+		rows.append(y + 0.46)
+		if lower:
+			kit_ledge_ring(ring, y, 0.32, MERIDIAN_SLAB, 0.56)
+	for i in ring.size():
+		var width := kit_front(ring[(i + 1) % ring.size()], ring[i])
+		var end_wall := i in [7, 10] if lower else i in [6, 9, 11]
+		if end_wall:
+			continue
+		var bays := maxi(1, roundi(width / 5.9))
+		var bay := width / bays
+		for j in bays:
+			var u := (j + 0.5) * bay
+			if lower:
+				if i == 17 and j == bays / 2:
+					kit_door(u, _g - 0.08, 3.06, 1.14, MERIDIAN_SLAB, PAL_GLASS_NAVY)
+				else:
+					kit_panes([u], [_g + 0.44], bay * 0.79, 3.15, PAL_GLASS_STEEL)
+			kit_panes([u - bay * 0.115], rows, bay * 0.58, step - 0.91, MERIDIAN_GLASS)
+			if bay > 4.0:
+				kit_panes([u + bay * 0.30], rows, bay * 0.18, step - 1.03, PAL_GLASS_STEEL)
+		if not lower:
+			for sill: float in rows:
+				kit_ledge(0.21, width - 0.21, sill - 0.46, 0.32, MERIDIAN_SLAB, 0.56)
+		# The lower chamfer and the court-facing west wing have deeper projecting balconies.
+		if lower and i in [15, 17]:
+			for sill: float in rows:
+				kit_balcony(width * 0.52, sill - 0.20, minf(2.1, width * 0.27), Balcony.PARAPET,
+						MERIDIAN_RAIL, MERIDIAN_SLAB, 0.92)
+
+
+## Pale copings and small vent clusters keep both decks visible from overhead.
+func _meridian_plant(low: PackedVector2Array, high: PackedVector2Array) -> void:
+	var y := _g + MERIDIAN_LOW_TOP
+	_parapet(_ring_out(low, -0.23), y, 0.55, MERIDIAN_SLAB)
+	_lbox(-22.8, -16.0, 2.2, 1.45, y, y + 1.0, PAL_ROOF_PALE)
+	_lbox(-24.9, 7.3, 1.4, 1.0, y, y + 0.72, PAL_ALUMINIUM)
+	_lbox(-20.7, 21.2, 2.4, 1.4, y, y + 1.28, MERIDIAN_SLAB)
+	_lbox(-13.0, 30.3, 1.4, 1.1, y, y + 0.65, PAL_ROOF_PALE)
+	y = _g + MERIDIAN_HIGH_TOP
+	_parapet(_ring_out(high, -0.23), y, 0.55, MERIDIAN_SLAB)
+	_lbox(19.45, -16.0, 2.95, 1.85, y, y + 2.8, MERIDIAN_SLAB)
+	_lbox(14.75, -16.2, 1.35, 1.27, y, y + 0.88, PAL_ROOF_PALE)
+	_lbox(-8.5, -17.5, 2.4, 1.2, y, y + 1.05, PAL_ROOF_PALE)
+	_lbox(4.8, -18.2, 1.8, 0.85, y, y + 0.66, PAL_ALUMINIUM)
+	_lbox(23.2, 10.8, 2.1, 1.2, y, y + 0.82, PAL_ROOF_PALE)
+
+
+# --- Oxygen ----------------------------------------------------------------------------------
+
+## The street stone reads cool grey in the obliques and the courtyard a warmer limestone.
+const OXYGEN_STREET := Color("#a8a6a2")
+const OXYGEN_COURT := Color("#c3b5a2")
+const OXYGEN_TRIM := Color("#c8c5bd")
+const OXYGEN_ROOF := Color("#aaa49a")
+const OXYGEN_AT := Vector2(-2691.75, -87.05)
+const OXYGEN_AXIS := Vector2(60.0, -17.0)
+const OXYGEN_DECK := 27.5
+const OXYGEN_TOP := 30.7
+
+## The mapped sides bow out slightly. The short edges hold the four rounded corners.
+const OXYGEN_OUTER := [[-35.4, -21.4], [-33.5, -27.0], [-29.3, -32.2], [-22.6, -35.3],
+		[-3.8, -35.8], [22.5, -35.2], [32.8, -33.8], [38.5, -30.0], [41.6, -22.5],
+		[39.3, 1.2], [35.1, 22.0], [31.5, 30.4], [25.9, 34.6], [11.8, 35.8], [-13.3, 35.6],
+		[-31.9, 34.0], [-38.0, 31.1], [-41.9, 22.1], [-41.0, 7.3], [-38.3, -9.6]]
+const OXYGEN_INNER := [[-20.5, -20.7], [22.6, -20.7], [22.6, 21.0], [-22.0, 21.0]]
+
+## Full-height south and west roof strips and the recessed north and east terrace back.
+const OXYGEN_HIGH_ROOF := [[-34.0, -23.0], [-25.0, -23.0], [-20.5, -20.7], [-22.0, 21.0],
+		[22.6, 21.0], [33.5, 19.6], [34.4, 22.0], [31.0, 30.0], [25.6, 34.0], [11.8, 35.45],
+		[-13.3, 35.25], [-31.5, 33.62], [-37.65, 30.73], [-41.5, 22.0], [-40.68, 7.3], [-37.95, -9.6]]
+const OXYGEN_TERRACE_BACK := [[-19.8, -30.6], [29.1, -30.6], [29.1, 16.2], [22.6, 20.0],
+		[22.6, -20.7], [-19.8, -20.7]]
+
+
+## Keep the roof and the cars clear of the court while the street walls follow the mapped ring.
+func _build_oxygen(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["zone"][0]
+	_g = _ground_under(outline)
+	kit_front(OXYGEN_AT, OXYGEN_AT + OXYGEN_AXIS)
+	var outer := _lpoly(OXYGEN_OUTER)
+	var court := _lpoly(OXYGEN_INNER)
+	_oxygen_mass(outer, court)
+	_oxygen_terraces()
+	_oxygen_plant(outer, court)
+	_oxygen_glazing(outer, court)
+	_collide(outline)
+	_collide(court)
+
+
+## Give the continuous lower roof a real hole, with warmer stone on the inside of the block.
+func _oxygen_mass(outer: PackedVector2Array, court: PackedVector2Array) -> void:
+	_mode = M_STONE
+	var y := _g + OXYGEN_DECK
+	_prism(outer, _g - 0.7, _g + 3.55, PAL_GREY_GRANITE, Color.TRANSPARENT)
+	_prism(outer, _g + 3.55, y, OXYGEN_STREET, Color.TRANSPARENT)
+	_cap_holes(outer, [court], y, PAL_ROOF_GREY.lightened(0.19))
+	for i in court.size():
+		var a := court[i]
+		var b := court[(i + 1) % court.size()]
+		_wall(a, b, _g - 0.7, y, -_out(court, a, b), OXYGEN_COURT)
+
+
+## Alternate long street ribbons with more upright bays around the courtyard balconies.
+func _oxygen_glazing(outer: PackedVector2Array, court: PackedVector2Array) -> void:
+	var rows: Array[float] = []
+	var court_rows: Array[float] = []
+	var step := (OXYGEN_DECK - 3.55) / 7.0
+	for floor_index in 7:
+		var y := _g + 3.55 + floor_index * step
+		kit_ledge_ring(outer, y, 1.19, OXYGEN_TRIM, 0.22)
+		rows.append(y + 1.39)
+		court_rows.append(y + 0.61)
+	for i in outer.size():
+		var width := kit_front(outer[(i + 1) % outer.size()], outer[i])
+		var bays := maxi(1, roundi(width / 5.45))
+		var bay := width / bays
+		for j in bays:
+			var u := (j + 0.5) * bay
+			var wide := bay * (0.79 if (i + j) % 4 == 0 else 0.92)
+			kit_panes([u], rows, wide, 1.25, PAL_GLASS_STEEL)
+			if i == 4 and j == bays / 2:
+				kit_door(u, _g - 0.1, 2.85, 1.25, OXYGEN_TRIM, PAL_GLASS_NAVY)
+			else:
+				kit_panes([u], [_g + 0.38], bay * 0.66, 2.52, PAL_GLASS_NAVY)
+	for i in court.size():
+		var width := kit_front(court[i], court[(i + 1) % court.size()])
+		var bays := maxi(1, roundi(width / 5.5))
+		var bay := width / bays
+		for u: float in _spread(0.0, width, bays):
+			kit_panes([u - bay * 0.11], court_rows, bay * 0.62, 2.15, PAL_GLASS_NAVY)
+			kit_panes([u + bay * 0.32], court_rows, bay * 0.15, 1.55, PAL_GLASS_STEEL)
+		for sill: float in court_rows:
+			kit_ledge(0.38, width - 0.38, sill - 0.56, 0.39, OXYGEN_TRIM, 0.59)
+
+
+## Break up the north and east upper storey with shallow glazed rooms opening onto terraces.
+func _oxygen_terraces() -> void:
+	var deck := _g + OXYGEN_DECK
+	var top := _g + OXYGEN_TOP
+	var solid := _lpoly(OXYGEN_HIGH_ROOF)
+	var back := _lpoly(OXYGEN_TERRACE_BACK)
+	var court := _lpoly(OXYGEN_INNER)
+	_prism(solid, deck, top, OXYGEN_STREET, OXYGEN_ROOF)
+	_prism(back, deck, top, OXYGEN_STREET, OXYGEN_ROOF)
+	for u: float in [-14.6, -4.7, 6.0, 16.7, 25.2]:
+		_lbox(u, -31.7, 2.25, 1.8, deck, top - 0.82, OXYGEN_STREET)
+	for v: float in [-24.0, -12.3, 0.0, 11.2]:
+		_lbox(30.3, v, 1.9, 2.35, deck, top - 0.82, OXYGEN_STREET)
+	for ring: PackedVector2Array in [solid, back]:
+		for i in ring.size():
+			var width := kit_front(ring[(i + 1) % ring.size()], ring[i])
+			var bays := maxi(1, roundi(width / 5.1))
+			var glass := PAL_GLASS_NAVY if Geometry2D.is_point_in_polygon(_w(width * 0.5, 1.0), court) else PAL_GLASS_STEEL
+			kit_panes(_spread(0.0, width, bays), [deck + 0.6], width / bays * 0.77, 1.67, glass)
+	kit_front(OXYGEN_AT, OXYGEN_AT + OXYGEN_AXIS)
+	for u: float in [-14.6, -4.7, 6.0, 16.7, 25.2]:
+		var width := kit_front(_w(u + 2.25, -33.5), _w(u - 2.25, -33.5))
+		kit_panes([width * 0.5], [deck + 0.36], width * 0.76, 1.46, PAL_GLASS_STEEL)
+		kit_front(OXYGEN_AT, OXYGEN_AT + OXYGEN_AXIS)
+	for v: float in [-24.0, -12.3, 0.0, 11.2]:
+		var width := kit_front(_w(32.2, v + 2.35), _w(32.2, v - 2.35))
+		kit_panes([width * 0.5], [deck + 0.36], width * 0.76, 1.46, PAL_GLASS_STEEL)
+		kit_front(OXYGEN_AT, OXYGEN_AT + OXYGEN_AXIS)
+
+
+## Pale roof edges, with small air handlers grouped on the full-depth roof strips.
+func _oxygen_plant(outer: PackedVector2Array, court: PackedVector2Array) -> void:
+	var deck := _g + OXYGEN_DECK
+	var top := _g + OXYGEN_TOP
+	kit_ledge_ring(outer, deck - 0.49, 0.41, OXYGEN_TRIM, 0.28)
+	_parapet(_ring_out(outer, -0.16), deck, 0.48, OXYGEN_TRIM)
+	_parapet(_ring_out(court, 0.17), deck, 0.46, OXYGEN_TRIM)
+	for ring: PackedVector2Array in [_lpoly(OXYGEN_HIGH_ROOF), _lpoly(OXYGEN_TERRACE_BACK)]:
+		_parapet(_ring_out(ring, -0.18), top, 0.38, OXYGEN_TRIM)
+	for u: float in [-26.5, -12.0, 2.5, 16.0]:
+		_lbox(u, 27.8, 0.95, 1.12, top, top + 0.64, PAL_ROOF_PALE)
+		_lbox(u + 2.25, 29.7, 0.68, 0.73, top, top + 0.48, PAL_ALUMINIUM)
+	for v: float in [-13.0, -1.0, 10.8]:
+		_lbox(-29.5, v, 1.62, 1.1, top, top + 0.7, PAL_ROOF_PALE)
+	_lbox(-29.3, 19.5, 2.45, 1.72, top, top + 1.2, PAL_ROOF_PALE)
+	_lbox(23.7, -26.0, 2.18, 1.65, top, top + 0.9, PAL_DARK_STEEL, M_STONE, PAL_ALUMINIUM)
+	_lbox(0.5, -26.0, 2.6, 1.5, top, top + 0.75, PAL_ROOF_PALE)

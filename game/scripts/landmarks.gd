@@ -576,6 +576,15 @@ const INFO := {
 	"nbp": ["NBP, Oddział Okręgowy",
 			"Oddział Narodowego Banku Polskiego przy placu Powstańców: długi dom w ciemnych, pochylonych blachach, szklany parter na tarasie, szerokie granitowe schody. Tu pieniądze śpią, zanim pójdą w miasto.",
 			"The National Bank's Warsaw branch on Plac Powstańców: a long block in dark, leaning metal panels, a glass ground floor on a terrace, a wide flight of granite steps. The money sleeps here before it goes out into the city."],
+	"city_gate": ["City Gate",
+			"Biurowiec przy Wolskiej. Białe pasy otulają wygiętą szklaną fasadę, a na niższym skrzydle przysiadł okrągły dach.",
+			"An office block on Wolska. White bands wrap its curved glass front, and a round roof sits on the low wing."],
+	"meridian": ["Meridian",
+			"Jasne skrzydła z balkonami obejmują otwarty dziedziniec. Od ulicy niższe skrzydło ścina narożnik.",
+			"Pale wings with balconies wrap an open courtyard. The lower wing cuts the corner along the street."],
+	"oxygen": ["Oxygen",
+			"Za zaokrąglonymi narożnikami kryje się otwarty dziedziniec. Z ulicy widać pasy okien, a z góry tarasy.",
+			"Rounded corners wrap a sheltered courtyard. From the street you see ribbons of windows, and from above, terraces."],
 	"dom_chlopa": ["Dom Chłopa",
 			"Hotel na placu Powstańców z lat 1958-61, zbudowany dla chłopów przyjeżdżających do stolicy. Falisty gzyms na dachu, zielony neon, kasyno na parterze.",
 			"The hotel on Plac Powstańców of 1958-61, built for farmers visiting the capital. A wavy roof edge, a green neon on top, a casino on the ground floor."],
@@ -1870,6 +1879,12 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_torwar(s)
 			"nbp":
 				_build_nbp(s)  # the whole branch (SKINS entry with `model`: it replaces LoD2)
+			"city_gate":
+				_build_city_gate(s)
+			"meridian":
+				_build_meridian(s)
+			"oxygen":
+				_build_oxygen(s)
 			"dom_chlopa":
 				_build_dom_chlopa(s)  # over its street block: the wavy roof edge and the signs
 			"batalion_kilinski":
