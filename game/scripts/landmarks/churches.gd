@@ -6583,6 +6583,8 @@ const WSZ := Vector2(-1410.12, -159.08)
 const WSZ_U := Vector2(-0.9238, 0.3829)
 const WSZ_V := Vector2(0.3829, 0.9238)
 const WSZ_FACE := -0.001  ## The front plane faces -v in the shared spandrel helper.
+const WSZ_PORTALS := [Vector3(-6.6, 1.3, 5.5), Vector3(0.0, 2.4, 7.2), Vector3(6.6, 1.3, 5.5)]  ## Axis, half-width, spring.
+const WSZ_PORTAL_BACK := 0.61
 const WSZ_WALL := Color("#c6b186")
 const WSZ_TRIM := Color("#d6c9a6")
 const WSZ_BASE := Color("#b5aa8e")
@@ -6596,9 +6598,7 @@ const WSZ_NO_CAP := Color(0, 0, 0, 0)
 ## Build the whole church on the terrain datum at the front middle, with collision at the outline
 ## and the steps and arcades that extend into the square.
 func _build_wszystkich(site: Dictionary) -> void:
-	_o = WSZ
-	_a = WSZ_U.normalized()
-	_b = WSZ_V.normalized()
+	_wsz_body_frame()
 	_g = map.terrain_height(WSZ.x, WSZ.y)
 	_mode = M_STONE
 	_wsz_nave()
@@ -6614,26 +6614,18 @@ func _build_wszystkich(site: Dictionary) -> void:
 	_collide(site["zone"][0])
 
 
+## Restore the plan axes after working on an outward-facing facade.
+func _wsz_body_frame() -> void:
+	_o = WSZ
+	_a = WSZ_U.normalized()
+	_b = WSZ_V.normalized()
+	kit_face(0.0)
+
+
 ## Convert a local plan point and height above the church datum into a mesh vertex.
 func _wsz_point(u: float, v: float, y: float) -> Vector3:
 	var p := _w(u, v)
 	return Vector3(p.x, _g + y, p.y)
-
-
-## Place a raised moulding or pilaster in any wall plane, with its heel built into the masonry.
-func _wsz_face_box(at: Vector2, along: Vector2, out: Vector2, hw: float, depth: float,
-		y0: float, y1: float, col := WSZ_TRIM) -> void:
-	var left := at - along * hw
-	var right := at + along * hw
-	var ring := PackedVector2Array([left - out * 0.1, right - out * 0.1, right + out * depth, left + out * depth])
-	_prism(ring, _g + y0, _g + y1, col, col, M_STONE, M_STONE)
-
-
-## Draw a round-headed pane with an archivolt in the stone order and a lit glass code inside.
-func _wsz_window(at: Vector2, along: Vector2, out: Vector2, hw: float, sill: float,
-		spring: float, mode := M_GLASS, surround := 0.18) -> void:
-	_arch_panel(at, along, out, hw + surround, _g + sill - surround, _g + spring, WSZ_TRIM, 0.045, M_STONE)
-	_arch_panel(at, along, out, hw, _g + sill, _g + spring, WSZ_DARK, 0.085, mode)
 
 
 ## Give the portal and arcade arches masonry depth, using the same six segments as the spandrel.
@@ -6654,117 +6646,68 @@ func _wsz_arch_reveal(u: float, hw: float, y0: float, spring: float, back: float
 
 ## Build the facade's two orders, with pairs of pilasters on the same four axes in each storey.
 func _wsz_screen() -> void:
-	_wsz_screen_lower()
-	_wsz_screen_upper()
-	_wsz_pediment()
+	kit_front(WSZ, WSZ + WSZ_U * 20.0)
+	kit_face(-0.60)
+	for opening: Vector3 in WSZ_PORTALS:
+		# Emit the glass first so wall clipping keeps it in front of the kit door.
+		var at := _w(opening.x, -0.5)
+		var along := _a * opening.y
+		_mode = M_GLASS
+		_wall(at - along, at + along, _g + 1.2, _g + opening.z, _b, WSZ_DARK)
+		_arch_cap(_wsz_point(opening.x, -0.5, opening.z), Vector3(_b.x, 0.0, _b.y), opening.y, 6, WSZ_DARK)
+		_mode = M_STONE
+		kit_door(opening.x, _g + 1.2, opening.z + opening.y - 1.2, opening.y, WSZ_TRIM, WSZ_DARK, true)
+	kit_face(-1.76)
+	kit_ledge(-10.9, 10.9, _g + 10.5, 0.68, WSZ_TRIM, 2.04)
+	# The projecting slab meets the tower bands.
+	kit_ledge(-10.45, 10.45, _g + 11.18, 0.32, WSZ_TRIM, 2.36)
+	kit_ledge(-10.9, 10.9, _g + 20.2, 0.48, WSZ_TRIM, 2.07)
+	kit_ledge(-10.9, 10.9, _g + 20.68, 0.32, WSZ_TRIM, 2.28)
+	kit_face(-WSZ_FACE)
 	for u: float in [-8.8, -4.4, 4.4, 8.8]:
 		for offset: float in [-0.37, 0.37]:
-			var at := _w(u + offset, WSZ_FACE)
-			for tier: Vector2 in [Vector2(1.2, 10.5), Vector2(11.5, 20.2)]:
-				_wsz_face_box(at, _a, -_b, 0.3, 0.35, tier.x, tier.y - 0.36)
-				_wsz_face_box(at, _a, -_b, 0.35, 0.41, tier.y - 0.36, tier.y)
-
-
-## Lay out the plinth, recessed portals and the entablature that returns around the towers.
-func _wsz_screen_lower() -> void:
+			var axis := u + offset
+			kit_ledge(axis - 0.3, axis + 0.3, _g + 1.23, 8.91, WSZ_TRIM, 0.35)
+			kit_ledge(axis - 0.35, axis + 0.35, _g + 10.14, 0.33, WSZ_TRIM, 0.41)
+			kit_pilaster(axis, _g + 11.53, _g + 20.17, WSZ_TRIM, 0.6, 0.35)
+	_arch_panel(_w(0.0, _face), _a, _b, 1.8, _g + 13.0, _g + 17.4, WSZ_DARK, 0.085, M_GLASS)
+	for u: float in [-2.3, 2.3]:
+		kit_column(u, 0.22, _g + 12.76, _g + 19.2, WSZ_TRIM, 0.26)
+	kit_ledge(-2.66, 2.66, _g + 12.55, 0.21, WSZ_TRIM, 0.48)
+	kit_pediment(0.0, 2.65, _g + 19.2, 0.82, WSZ_TRIM, WSZ_TRIM, 0.59)
+	for u: float in [-6.6, 6.6]:
+		kit_window(u, _g + 13.8, 3.6, Win.FRAMED, WSZ_TRIM, WSZ_DARK, 0.8)
+		kit_pediment(u, 1.2, _g + 17.62, 0.55, WSZ_TRIM, WSZ_TRIM, 0.32)
+	for side: float in [-1.0, 1.0]:
+		for tier in 3:
+			var u := side * (10.35 - 0.24 * tier)
+			var hw := 0.62 - 0.1 * tier
+			kit_ledge(u - hw, u + hw, _g + 11.5 + 0.55 * tier, 0.55, WSZ_TRIM, 0.54)
+	# A second, inset gable leaves the sloped stone trim visible around the field.
+	kit_face(-1.8)
+	kit_pediment(0.0, 10.9, _g + 20.68, 3.82, WSZ_TRIM, WSZ_COPPER, 2.21)
+	kit_face(0.40)
+	kit_pediment(0.0, 9.94, _g + 21.0, 3.17, WSZ_WALL, WSZ_WALL, 0.045)
+	_disc(_wsz_point(0.0, 0.49, 22.47), Vector3(_b.x, 0.0, _b.y), 0.91, 16, WSZ_RELIEF)
+	_wsz_body_frame()
 	_ubox(-10.9, 10.9, 0.0, 1.8, _g - 1.2, _g + 1.2, WSZ_BASE, M_STONE, WSZ_BASE)
-	_ubox(-10.9, 10.9, 0.56, 1.8, _g + 1.18, _g + 10.52, WSZ_WALL)
+	_ubox(-10.9, 10.9, WSZ_PORTAL_BACK, 1.8, _g + 1.18, _g + 10.52, WSZ_WALL)
 	_wsz_portals()
-	_ubox(-10.9, 10.9, -0.28, 1.8, _g + 10.5, _g + 11.18, WSZ_TRIM)
-	# The projecting band meets the tower bands instead of laying a second top over them.
-	_ubox(-10.45, 10.45, -0.6, 1.81, _g + 11.18, _g + 11.5, WSZ_TRIM)
+	_ubox(-10.9, 10.9, WSZ_FACE, 1.8, _g + 11.5, _g + 20.2, WSZ_WALL)
+	_wsz_cross(0.0, 0.32, 24.5, 27.0, 0.09, 0.65)
 
 
-## Build the three cutouts in the front plane with doors half a metre behind the archivolts.
+## Build the three cutouts and the half-metre reveals in front of the door leaves.
 func _wsz_portals() -> void:
 	var last := -10.9
-	for opening: Vector3 in [Vector3(-6.6, 1.3, 5.5), Vector3(0.0, 2.4, 7.2), Vector3(6.6, 1.3, 5.5)]:
+	for opening: Vector3 in WSZ_PORTALS:
 		var left := opening.x - opening.y
 		var right := opening.x + opening.y
 		_wall(_w(last, WSZ_FACE), _w(left, WSZ_FACE), _g + 1.2, _g + 10.5, -_b, WSZ_WALL)
 		_arch(left, right, WSZ_FACE, _g + opening.z, _g + 10.5, WSZ_WALL)
-		_wsz_arch_reveal(opening.x, opening.y, 1.2, opening.z, 0.56)
-		# The dark face of the door uses the same six-segment head as the opening.
-		_mode = M_GLASS
-		var at := _w(opening.x, 0.5)
-		var along := _a * opening.y
-		_wall(at - along, at + along, _g + 1.2, _g + opening.z, -_b, WSZ_DARK)
-		_arch_cap(_wsz_point(opening.x, 0.5, opening.z), Vector3(-_b.x, 0.0, -_b.y), opening.y, 6, WSZ_DARK)
-		_mode = M_STONE
+		_wsz_arch_reveal(opening.x, opening.y, 1.2, opening.z, WSZ_PORTAL_BACK)
 		last = right
 	_wall(_w(last, WSZ_FACE), _w(10.9, WSZ_FACE), _g + 1.2, _g + 10.5, -_b, WSZ_WALL)
-
-
-## Set the upper windows below a full frieze, with stepped shoulders against the towers.
-func _wsz_screen_upper() -> void:
-	_ubox(-10.9, 10.9, WSZ_FACE, 1.8, _g + 11.5, _g + 20.2, WSZ_WALL)
-	_ubox(-10.9, 10.9, -0.31, 1.8, _g + 20.2, _g + 20.68, WSZ_TRIM)
-	_ubox(-10.9, 10.9, -0.52, 1.82, _g + 20.68, _g + 21.0, WSZ_TRIM)
-	_wsz_front_window()
-	_wsz_side_windows()
-	for side: float in [-1.0, 1.0]:
-		for tier in 3:
-			_lbox(side * (10.35 - 0.24 * tier), -0.23, 0.62 - 0.1 * tier, 0.31,
-					_g + 11.5 + 0.55 * tier, _g + 12.05 + 0.55 * tier, WSZ_TRIM)
-
-
-## Place the central arched window between two engaged columns under its own small gable.
-func _wsz_front_window() -> void:
-	_wsz_window(_w(0.0, WSZ_FACE), _a, -_b, 1.8, 13.0, 17.4, M_GLASS, 0.22)
-	for u: float in [-2.3, 2.3]:
-		_column(u, -0.22, 0.26, _g + 12.76, _g + 19.2, WSZ_TRIM)
-	_ubox(-2.66, 2.66, -0.48, 0.05, _g + 12.55, _g + 12.76, WSZ_TRIM)
-	_wsz_front_gable(0.0, 2.65, 19.2, 0.82, -0.59, 0.04, WSZ_TRIM)
-
-
-## Frame the upper side windows with shallow stone surrounds and a triangular head.
-func _wsz_side_windows() -> void:
-	for u: float in [-6.6, 6.6]:
-		var at := _w(u, WSZ_FACE)
-		_wsz_face_box(at, _a, -_b, 1.04, 0.14, 13.61, 17.4)
-		_mode = M_GLASS
-		_wall(_w(u - 0.8, -0.19), _w(u + 0.8, -0.19), _g + 13.8, _g + 17.4, -_b, WSZ_DARK)
-		_mode = M_STONE
-		_wsz_front_gable(u, 1.2, 17.4, 0.77, -0.32, 0.02, WSZ_TRIM)
-
-
-## Use the shared gable with its length axis along the church, then restore the spec's frame.
-func _wsz_front_gable(u: float, hw: float, y: float, rise: float, front: float, back: float,
-		face: Color, roof := WSZ_TRIM) -> void:
-	var lateral := _a
-	var inward := _b
-	_a = inward
-	_b = lateral
-	_gable(front, back, u, hw, _g + y, rise, face, roof, false)
-	_a = lateral
-	_b = inward
-
-
-## Close the two-storey screen with its low relief pediment, raking cornices and gilt cross.
-func _wsz_pediment() -> void:
-	_wsz_front_gable(0.0, 10.9, 21.0, 3.5, -0.18, 1.8, WSZ_WALL, WSZ_COPPER)
-	_wsz_raking_cornice(_wsz_point(-10.9, -0.18, 20.95), _wsz_point(0.0, -0.18, 24.45),
-			_wsz_point(10.9, -0.18, 20.95), -_b)
-	_disc(_wsz_point(0.0, -0.225, 22.47), Vector3(-_b.x, 0.0, -_b.y), 0.91, 16, WSZ_RELIEF)
-	_wsz_cross(0.0, 0.32, 24.5, 27.0, 0.09, 0.65)
-
-
-## Trim a pediment's sloping edges with two strips that share a mitre at the apex.
-func _wsz_raking_cornice(left: Vector3, apex: Vector3, right: Vector3, out: Vector2) -> void:
-	var normal := Vector3(out.x, 0.0, out.y)
-	var proud := normal * 0.23
-	var heel := normal * 0.04
-	var drop := Vector3.DOWN * 0.32
-	var points: Array[Vector3] = [left, apex, right]
-	for k in 2:
-		var a := points[k] + proud
-		var b := points[k + 1] + proud
-		var top := (b - a).cross(normal).normalized()
-		if top.y < 0.0:
-			top = -top
-		_quad(a, b, b + drop, a + drop, normal, WSZ_TRIM)
-		_quad(a, b, points[k + 1] - heel, points[k] - heel, top, WSZ_TRIM)
-		_quad(a + drop, b + drop, points[k + 1] - heel + drop, points[k] - heel + drop, -top, WSZ_TRIM)
 
 
 ## Form five treads from the square up to the portal sill and collide their street footprint.
@@ -6778,43 +6721,52 @@ func _wsz_steps() -> void:
 ## Build one of the paired tower shafts, with the cornices separating its three square stages.
 func _wsz_tower(u: float) -> void:
 	var c := Vector2(u, 3.9)
+	var centre := _wl(c)
+	var street := -_b
+	var flank := _a
+	kit_front(centre, centre + flank * 8.0)
+	for course: Vector3 in [Vector3(4.35, 11.18, 11.5), Vector3(4.1, 19.5, 20.0),
+			Vector3(3.98, 27.0, 27.5), Vector3(4.03, 35.2, 35.65), Vector3(4.2, 35.65, 36.0)]:
+		kit_face(0.04 - course.x)
+		kit_ledge(-course.x, course.x, _g + course.y, course.z - course.y, WSZ_TRIM, 2.0 * course.x - 0.04)
+	for out: Vector2 in [street, flank, -street, -flank]:
+		kit_front(centre, centre + Vector2(out.y, -out.x) * 8.0)
+		kit_face(3.9)
+		# The screen and nave cover both lower courses on the inward face.
+		if out.dot(flank) * signf(u) > -0.9:
+			for offset: float in [-3.4, 3.4]:
+				var behind_nave := out.dot(street) < -0.9 and offset * u > 0.0
+				if not behind_nave:
+					kit_ledge(offset - 0.27, offset + 0.27, _g + 1.22, 9.93, WSZ_TRIM, 0.19)
+				kit_ledge(offset - 0.27, offset + 0.27, _g + 11.5, 7.98, WSZ_TRIM, 0.19)
+		if out.dot(street) > 0.9 or out.dot(flank) * signf(u) > 0.9:
+			var normal := Vector3(_b.x, 0.0, _b.y)
+			_disc(_wsz_point(0.0, _face + 0.045, 15.0), normal, 1.16, 12, WSZ_TRIM)
+			_mode = M_GLASS
+			_disc(_wsz_point(0.0, _face + 0.085, 15.0), normal, 1.0, 12, WSZ_DARK)
+			_mode = M_STONE
+		kit_face(3.7)
+		for offset: float in [-3.18, 3.18]:
+			kit_ledge(offset - 0.26, offset + 0.26, _g + 20.03, 6.95, WSZ_TRIM, 0.19)
+		kit_face(3.735)
+		kit_window(0.0, _g + 21.8, 3.7, Win.PLAIN, WSZ_TRIM, WSZ_DARK, 0.8)
+		_mode = _lit(0.0, _g + 21.8)
+		_arch_cap(_wsz_point(0.0, _face + 0.05, 25.5), Vector3(_b.x, 0.0, _b.y), 0.8, 4, WSZ_DARK)
+		_mode = M_STONE
+		kit_face(3.55)
+		for offset: float in [-3.15, -2.44, 2.44, 3.15]:
+			kit_ledge(offset - 0.25, offset + 0.25, _g + 27.53, 7.65, WSZ_TRIM, 0.23)
+		kit_face(3.565)
+		kit_door(0.0, _g + 29.0, 5.5, 1.3, WSZ_TRIM, WSZ_DARK, true)
+	_wsz_body_frame()
 	_lbox(u, c.y, 4.03, 4.03, _g - 1.2, _g + 1.2, WSZ_BASE, M_STONE, WSZ_BASE)
 	_prism(_rect(u, c.y, 3.9, 3.9), _g + 1.2, _g + 20.0, WSZ_WALL, WSZ_NO_CAP, M_STONE)
 	_prism(_rect(u, c.y, 3.7, 3.7), _g + 20.0, _g + 27.5, WSZ_WALL, WSZ_NO_CAP, M_STONE)
 	_prism(_rect(u, c.y, 3.55, 3.55), _g + 27.5, _g + 36.0, WSZ_WALL, WSZ_NO_CAP, M_STONE)
-	for course: Vector3 in [Vector3(4.35, 11.18, 11.5), Vector3(4.1, 19.5, 20.0),
-			Vector3(3.98, 27.0, 27.5), Vector3(4.03, 35.2, 35.65), Vector3(4.2, 35.65, 36.0)]:
-		_lbox(u, c.y, course.x, course.x, _g + course.y, _g + course.z, WSZ_TRIM)
-	_wsz_tower_windows(c)
 	_wsz_tower_urns(c)
 	_wsz_tower_lantern(c)
 	_wsz_tower_cap(c)
 	_wsz_tower_top(c)
-
-
-## Mark all four upper faces with their arched openings, with oculi on the exposed shaft faces.
-func _wsz_tower_windows(c: Vector2) -> void:
-	var centre := _wl(c)
-	for out: Vector2 in [-_b, _a, _b, -_a]:
-		var along := Vector2(-out.y, out.x)
-		var shaft := centre + out * 3.9
-		for side: float in [-1.0, 1.0]:
-			var at := shaft + along * (side * 3.4)
-			_wsz_face_box(at, along, out, 0.27, 0.19, 1.22, 11.15)
-			_wsz_face_box(at, along, out, 0.27, 0.19, 11.5, 19.48)
-			_wsz_face_box(centre + out * 3.7 + along * (side * 3.18), along, out, 0.26, 0.19, 20.0, 26.98)
-			for offset: float in [2.44, 3.15]:
-				_wsz_face_box(centre + out * 3.55 + along * (side * offset), along, out, 0.25, 0.23, 27.5, 35.18)
-		_wsz_window(centre + out * 3.7, along, out, 0.8, 21.8, 25.5)
-		_wsz_window(centre + out * 3.55, along, out, 1.3, 29.0, 33.2, M_STONE, 0.26)
-		if out.dot(-_b) > 0.9 or out.dot(_a) * signf(c.x) > 0.9:
-			var at := shaft + out * 0.045
-			var normal := Vector3(out.x, 0.0, out.y)
-			_disc(Vector3(at.x, _g + 15.0, at.y), normal, 1.16, 12, WSZ_TRIM)
-			at += out * 0.04
-			_mode = M_GLASS
-			_disc(Vector3(at.x, _g + 15.0, at.y), normal, 1.0, 12, WSZ_DARK)
-			_mode = M_STONE
 
 
 ## Anchor a small stacked stone urn to each corner of the belfry cornice.
@@ -6831,9 +6783,9 @@ func _wsz_tower_lantern(c: Vector2) -> void:
 	var centre := _wl(c)
 	var ring := _circle(centre, 2.9, 16)
 	_prism(ring, _g + 36.0, _g + 43.0, WSZ_WALL, WSZ_NO_CAP, M_STONE)
-	_prism(_circle(centre, 3.02, 16), _g + 36.0, _g + 36.45, WSZ_TRIM, WSZ_TRIM, M_STONE)
+	kit_ledge_ring(ring, _g + 36.0, 0.45, WSZ_TRIM, 0.12)
 	_wsz_lantern_panels(ring, 2, 0.47, 36.65, 41.75, M_STONE, 0.26)
-	_prism(_circle(centre, 3.13, 16), _g + 43.0, _g + 43.5, WSZ_TRIM, WSZ_TRIM, M_STONE)
+	kit_ledge_ring(ring, _g + 43.0, 0.5, WSZ_TRIM, 0.23)
 
 
 ## Put arches on the facets themselves, leaving every group of facets divided by a stone pilaster.
@@ -6846,9 +6798,12 @@ func _wsz_lantern_panels(ring: PackedVector2Array, group: int, hw: float, sill: 
 		var along := (q - p).normalized()
 		var out := _out(ring, p, q)
 		if k % group == 0:
-			_wsz_face_box(at, along, out, pilaster, 0.21, sill - 0.34, spring + hw + 0.27)
+			kit_front(q, p)
+			var mid := p.distance_to(q) * 0.5
+			kit_ledge(mid - pilaster, mid + pilaster, _g + sill - 0.34, spring + hw - sill + 0.61, WSZ_TRIM, 0.21)
 		else:
 			_arch_panel(at, along, out, hw, _g + sill, _g + spring, WSZ_DARK, 0.045, mode)
+	_wsz_body_frame()
 
 
 ## Join a curved copper profile with open frustums so the stacked rings share their edges.
@@ -6889,48 +6844,42 @@ func _wsz_cross(u: float, v: float, foot: float, top: float, half: float, reach:
 
 ## Raise the side walls with a darker continuous plinth and a moulded cornice at the eaves.
 func _wsz_body(u0: float, u1: float, v0: float, v1: float, eave: float) -> void:
-	_prism(_urect(u0, u1, v0, v1), _g - 1.2, _g + eave, WSZ_WALL, WSZ_NO_CAP, M_STONE)
+	var ring := _urect(u0, u1, v0, v1)
+	_prism(ring, _g - 1.2, _g + eave, WSZ_WALL, WSZ_NO_CAP, M_STONE)
 	_ubox(u0 - 0.15, u1 + 0.15, v0 + 0.04, v1 - 0.04, _g - 1.21, _g + 1.2, WSZ_BASE, M_STONE, WSZ_BASE)
 	var frieze := maxf(eave - 1.0, 14.56)
-	_ubox(u0 - 0.21, u1 + 0.21, v0 + 0.04, v1 - 0.04, _g + frieze, _g + eave - 0.32, WSZ_TRIM)
-	_ubox(u0 - 0.3, u1 + 0.3, v0, v1, _g + eave - 0.32, _g + eave, WSZ_TRIM)
+	var back := _w(0.0, v1)
+	kit_front(back, back + _a * 20.0)
+	# Each solid course spans the plan below the roof.
+	kit_face(0.08)
+	kit_ledge(u0 - 0.21, u1 + 0.21, _g + frieze, eave - 0.32 - frieze, WSZ_TRIM, v1 - v0 - 0.12)
+	kit_face(0.04)
+	kit_ledge(u0 - 0.3, u1 + 0.3, _g + eave - 0.32, 0.32, WSZ_TRIM, v1 - v0 - 0.04)
+	_wsz_body_frame()
 
 
 ## Build the long nave and pilaster bays between the front towers and the crossing transept.
 func _wsz_nave() -> void:
 	_wsz_body(-15.5, 15.5, 1.8, 48.3, 17.0)
-	_wsz_nave_windows()
-	_wsz_nave_roof()
-
-
-## Dress the side bays with arched windows and low segmental heads between their pilasters.
-func _wsz_nave_windows() -> void:
 	_wsz_side_bays(17.0, [8.0, 16.0, 24.0, 32.0, 40.0, 48.0], [12.0, 20.0, 28.0, 36.0, 44.0])
+	_wsz_nave_roof()
 
 
 ## Carry the nave's bay treatment onto the chancel, lowering the cornice to its own eave.
 func _wsz_side_bays(eave: float, piers: Array[float], windows: Array[float]) -> void:
 	for side: float in [-1.0, 1.0]:
-		var out := _a * side
+		var start := _w(15.5 * side, 0.0)
+		kit_front(start, start + _b * side * 40.0)
 		for v in piers:
-			var at := _w(15.5 * side, v)
-			_wsz_face_box(at, _b, out, 0.33, 0.19, 1.2, eave - 1.36)
-			_wsz_face_box(at, _b, out, 0.38, 0.26, eave - 1.36, eave - 1.03)
+			var u := v * side
+			kit_ledge(u - 0.33, u + 0.33, _g + 1.23, eave - 2.59, WSZ_TRIM, 0.19)
+			kit_ledge(u - 0.38, u + 0.38, _g + eave - 1.36, 0.33, WSZ_TRIM, 0.26)
 		for v in windows:
-			var at := _w(15.5 * side, v)
-			_wsz_window(at, _b, out, 1.1, 8.0, 12.9)
-			_wsz_face_box(at, _b, out, 1.31, 0.25, 7.63, 7.82)
-			var head := at + out * 0.12
-			var normal := Vector3(out.x, 0.0, out.y)
-			var axis := Vector3(_b.x, 0.0, _b.y)
-			var base := Vector3(head.x, _g + 14.13, head.y)
-			var uv := Vector2(-1.0, -1.0)
-			var prev := base + axis * 1.38
-			for k in range(1, 7):
-				var angle := PI * k / 6.0
-				var next := base + axis * (1.38 * cos(angle)) + Vector3.UP * (0.39 * sin(angle))
-				_tri(base, prev, next, normal, WSZ_TRIM, uv, uv, uv, -1.0)
-				prev = next
+			var u := v * side
+			_arch_panel(_w(u, 0.0), _a, _b, 1.1, _g + 8.0, _g + 12.9, WSZ_DARK, 0.085, M_GLASS)
+			kit_ledge(u - 1.31, u + 1.31, _g + 7.63, 0.19, WSZ_TRIM, 0.25)
+			kit_pediment(u, 1.38, _g + 14.13, 0.39, WSZ_TRIM, WSZ_TRIM, 0.12)
+		_wsz_body_frame()
 
 
 ## Lay a planar copper face with its normal facing skyward. A repeated final vertex makes a hip.
@@ -6978,17 +6927,20 @@ func _wsz_transept() -> void:
 	_wsz_body(-20.8, 20.8, 48.3, 63.6, 16.0)
 	_gable(-20.8, 20.8, 55.95, 7.65, _g + 16.0, 10.0, WSZ_WALL, WSZ_COPPER)
 	for side: float in [-1.0, 1.0]:
-		var u := 20.8 * side
-		var out := _a * side
-		var at := _w(u, 55.95)
-		_wsz_window(at, _b, out, 1.5, 6.0, 11.5)
-		_wsz_face_box(at, _b, out, 7.66, 0.24, 5.08, 5.52)
+		var centre := _w(20.8 * side, 55.95)
+		kit_front(centre, centre + _b * side * 15.3)
+		kit_ledge(-7.66, 7.66, _g + 5.08, 0.44, WSZ_TRIM, 0.24)
 		for v: float in [49.1, 52.1, 59.8, 62.8]:
-			_wsz_face_box(_w(u, v), _b, out, 0.32, 0.26, 1.2, 5.08)
-			_wsz_face_box(_w(u, v), _b, out, 0.4, 0.31, 5.52, 14.57)
-			_wsz_face_box(_w(u, v), _b, out, 0.47, 0.37, 14.57, 15.0)
-		_wsz_raking_cornice(_wsz_point(u, 48.3, 15.94), _wsz_point(u, 55.95, 25.94),
-				_wsz_point(u, 63.6, 15.94), out)
+			var u := (v - 55.95) * side
+			kit_ledge(u - 0.32, u + 0.32, _g + 1.23, 3.85, WSZ_TRIM, 0.26)
+			kit_ledge(u - 0.4, u + 0.4, _g + 5.55, 9.02, WSZ_TRIM, 0.31)
+			kit_ledge(u - 0.47, u + 0.47, _g + 14.57, 0.43, WSZ_TRIM, 0.37)
+		_arch_panel(_w(0.0, 0.0), _a, _b, 1.5, _g + 6.0, _g + 11.5, WSZ_DARK, 0.085, M_GLASS)
+		kit_face(-0.05)
+		kit_pediment(0.0, 7.65, _g + 15.62, 10.35, WSZ_TRIM, WSZ_TRIM, 0.28)
+		kit_face(0.22)
+		kit_pediment(0.0, 7.31, _g + 16.0, 9.56, WSZ_WALL, WSZ_WALL, 0.045)
+		_wsz_body_frame()
 
 
 ## Sit the windowed crossing drum on a copper skirt through the intersecting roof slopes.
@@ -6997,9 +6949,9 @@ func _wsz_drum() -> void:
 	var ring := _circle(centre, 5.6, 24)
 	_prism(ring, _g + 18.0, _g + 24.0, WSZ_COPPER, WSZ_NO_CAP, M_STONE)
 	_prism(ring, _g + 24.0, _g + 33.0, WSZ_WALL, WSZ_NO_CAP, M_STONE)
-	_prism(_circle(centre, 5.72, 24), _g + 24.0, _g + 24.32, WSZ_TRIM, WSZ_TRIM, M_STONE)
+	kit_ledge_ring(ring, _g + 24.0, 0.32, WSZ_TRIM, 0.12)
 	_wsz_lantern_panels(ring, 3, 0.5, 27.0, 29.9, M_GLASS, 0.28)
-	_prism(_circle(centre, 5.91, 24), _g + 33.0, _g + 33.5, WSZ_TRIM, WSZ_TRIM, M_STONE)
+	kit_ledge_ring(ring, _g + 33.0, 0.5, WSZ_TRIM, 0.31)
 	_wsz_dome(centre)
 	_wsz_dome_lantern(centre)
 
@@ -7015,8 +6967,16 @@ func _wsz_dome(centre: Vector2) -> void:
 		for rib in range(0, 16, 2):
 			var p := ring[rib]
 			var q := next[rib]
-			_beam(Vector3(p.x, _g + profile[k - 1].y, p.y), Vector3(q.x, _g + profile[k].y, q.y),
-					0.12, WSZ_COPPER.lightened(0.11), false)
+			var foot := Vector3(p.x, _g + profile[k - 1].y, p.y)
+			var head := Vector3(q.x, _g + profile[k].y, q.y)
+			var side := Vector3.UP.cross(head - foot).normalized() * 0.06
+			var crest0 := foot + Vector3.UP * 0.06
+			var crest1 := head + Vector3.UP * 0.06
+			# The raised copper fold shares its underside with the dome skin.
+			for edge: Vector3 in [side, -side]:
+				var normal := ((head - foot).cross(crest0 - foot - edge)).normalized()
+				_quad(foot + edge, head + edge, crest1, crest0, normal * signf(normal.y),
+						WSZ_COPPER.lightened(0.11))
 		ring = next
 
 
@@ -7028,8 +6988,14 @@ func _wsz_dome_lantern(centre: Vector2) -> void:
 	for k in ring.size():
 		var p := ring[k]
 		var q := ring[(k + 1) % ring.size()]
-		_wsz_window((p + q) * 0.5, (q - p).normalized(), _out(ring, p, q), 0.29, 39.05, 40.53, M_GLASS, 0.1)
-	_prism(_circle(centre, 1.54, 8), _g + 41.27, _g + 41.5, WSZ_TRIM, WSZ_TRIM, M_STONE)
+		var mid := kit_front(q, p) * 0.5
+		kit_face(0.035)
+		kit_window(mid, _g + 39.05, 1.48, Win.PLAIN, WSZ_TRIM, WSZ_DARK, 0.29)
+		_mode = _lit(mid, _g + 39.05)
+		_arch_cap(_wsz_point(mid, 0.085, 40.53), Vector3(_b.x, 0.0, _b.y), 0.29, 4, WSZ_DARK)
+		_mode = M_STONE
+	_wsz_body_frame()
+	kit_ledge_ring(ring, _g + 41.27, 0.23, WSZ_TRIM, 0.14)
 	_wsz_ring_stack(centre, 8, [Vector2(1.52, 41.5), Vector2(1.15, 42.04), Vector2(0.11, 42.42)], WSZ_COPPER)
 	_wsz_cross(0.0, 56.0, 42.42, 44.0, 0.065, 0.42)
 
@@ -7057,7 +7023,7 @@ func _wsz_sanctuary() -> void:
 	for u: float in [-7.1, 6.6]:
 		_wall(_w(u, 77.3), _w(u, 80.4), _g - 1.2, _g + 10.0, _a * signf(u), WSZ_WALL)
 	_ubox(-7.25, 6.75, 77.35, 80.55, _g - 1.21, _g + 1.2, WSZ_BASE, M_STONE, WSZ_BASE)
-	_ubox(-7.26, 6.76, 77.35, 80.56, _g + 9.62, _g + 10.0, WSZ_TRIM)
+	kit_ledge_ring(_urect(-7.1, 6.6, 77.51, 80.4), _g + 9.62, 0.38, WSZ_TRIM, 0.16)
 	_hip(-0.25, 78.85, 7.01, 1.71, _g + 10.0, 2.0, WSZ_COPPER)
 
 
@@ -7078,13 +7044,22 @@ func _wsz_arcade(side: float) -> void:
 		var left := maxf(u - 0.55, u0)
 		var right := minf(u + 0.55, u1)
 		_ubox(left, right, WSZ_FACE, 0.82, _g + 0.03, _g + 7.18, WSZ_WALL)
-		for band in 4:
-			var y := 0.26 + 1.14 * band
-			_ubox(left + 0.035, right - 0.035, -0.095, 0.06, _g + y, _g + y + 0.95, WSZ_TRIM)
 	var canopy := _urect(u0 - 0.08, u1 + 0.08, -0.18, 4.61)
 	_soffit(canopy, _g + 7.2, WSZ_WALL)
-	_prism(canopy, _g + 7.2, _g + 7.68, WSZ_TRIM, WSZ_TRIM, M_STONE)
-	_ubox(u0 - 0.17, u1 + 0.17, -0.24, 4.7, _g + 7.68, _g + 8.0, WSZ_TRIM)
+	kit_front(WSZ, WSZ + WSZ_U * 20.0)
+	kit_face(0.04 - 4.61)
+	kit_ledge(u0 - 0.08, u1 + 0.08, _g + 7.2, 0.48, WSZ_TRIM, 4.75)
+	kit_face(0.04 - 4.7)
+	kit_ledge(u0 - 0.17, u1 + 0.17, _g + 7.68, 0.32, WSZ_TRIM, 4.9)
+	kit_face(-WSZ_FACE)
+	for k in 6:
+		var u := u0 + 4.0 * k
+		var left := maxf(u - 0.55, u0)
+		var right := minf(u + 0.55, u1)
+		for band in 4:
+			var y := 0.26 + 1.14 * band
+			kit_ledge(left + 0.035, right - 0.035, _g + y, 0.95, WSZ_TRIM, 0.094)
+	_wsz_body_frame()
 	_hip((u0 + u1) * 0.5, 2.23, 10.17, 2.47, _g + 8.0, 1.5, WSZ_COPPER)
 	_collide(_urect(u0, u1, 0.0, 4.5))
 
