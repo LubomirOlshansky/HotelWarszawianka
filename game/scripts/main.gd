@@ -177,6 +177,7 @@ const BarCrawl := preload("res://scripts/bar_crawl.gd")
 const Tapczan := preload("res://scripts/tapczan.gd")
 ## Bokiem na Narodowym's grey box (drift_stadium.gd, critique-drift.md 4) and the venue owner (venues.gd).
 const DriftStadium := preload("res://scripts/drift_stadium.gd")
+const DriftEvent := preload("res://scripts/drift_event.gd")  # PR 3: the side quest on the stadium (one activity)
 const Venues := preload("res://scripts/venues.gd")
 ## Packs (docs/design/packs.md): running clubs, cycling packs and coffee raves.
 const Packs := preload("res://scripts/packs.gd")
@@ -1836,6 +1837,7 @@ func _build_world() -> void:
 	# everything outside the kit: it may start from the air (`world_free` refuses the helicopter).
 	ev_tow = _join(EvTow.new(), self, _ev_free) as EvTow
 	await LoadYield.tick("ev_tow")
+	drift = venues.join("stadium", _join(DriftEvent.new(), world, func() -> bool: return _free_block(true, true) == ""), "car") as DriftStadium  # Darek's call; DEV asks in
 	_build_stories(world)
 	await LoadYield.tick("_build_stories")
 	# The night groups' calls and their crawls (bar_crawl.gd wires itself); none with --no-traffic or --crawl=0.
@@ -1845,7 +1847,6 @@ func _build_world() -> void:
 	tapczan = _join(Tapczan.new(), world, func() -> bool: return title == null and not _phone_bench and not hud.cards_up()) as Tapczan
 	if tapczan != null:
 		tapczan.sfx = sfx  # the pub's bed, pour, clink and ball (sfx.gd)
-	drift = venues.join("stadium", _join(DriftStadium.new(), world, func() -> bool: return _free_block(true, true) == ""), "car") as DriftStadium  # asked in, not offered
 	await LoadYield.tick("crawl")
 	await _build_storefronts(data, world)  # the Leżak round-up joins the director here
 	await LoadYield.tick("_build_storefronts")
@@ -3188,8 +3189,7 @@ func _build_stories(world: Node3D) -> void:
 				"hello": TrendJob.PADEL_HELLO, "closed": TrendJob.PADEL_CLOSED,
 				"at": TrendJob.DESKI_GATE, "colour": TrendJob.PADEL_COLOUR, "hours": Vector2(TrendJob.DESKI_HOURS[0], TrendJob.DESKI_HOURS[1]), "days": [],
 				"call": trend_job.padel_ring, "meet": trend_job.padel_meet, "busy": trend_job.padel_busy, "idle": trend_job.padel_idle})
-	# The night racing club (street_meet.gd): Darek at Plac Defilad, 21:00-4:00. Null with
-	# --no-traffic or --meet=0.
+	# The night racing club (street_meet.gd): Darek at Plac Defilad, 21:00-4:00; null with --no-traffic or --meet=0.
 	if meet != null and meet.meets.size() > 0:
 		# The start is Darek on the kerb of Parkingowa by Rondo Dmowskiego (StreetMeet.START, F
 		# 2026-11-11: out of the first view, a short drive from the spawn); the meet stays on Plac
@@ -3202,6 +3202,7 @@ func _build_stories(world: Node3D) -> void:
 				"closed": ["„Za dnia tu tylko turyści. Wpadnij po 21.”", "\"By day it's all tourists here. Come after nine.\""],
 				"at": Vector2(g.x, g.z), "colour": StreetMeet.COLOUR, "hours": StreetMeet.NIGHT_HOURS, "days": [],
 				"call": meet.ring, "meet": meet.meet_in_person, "busy": meet.busy, "idle": meet.idle})
+	if drift != null: (drift as DriftEvent).story = stories.defs[stories.add((drift as DriftEvent).story_def())]  # Bokiem na Narodowym, drift_event.gd
 	if kino_tour != null:
 		stories.add({"id": "kino", "pl": str(kino_tour.title()[0]), "en": "Cinema tour", "who": ["Wiktor", "Wiktor"],
 				"hello": ["„Jesteś! Mam film, jedną kopię na 35 mm i cztery kina do objechania. Amondo, Atlantic, Kinoteka, Muranów. Wsiadam?”",

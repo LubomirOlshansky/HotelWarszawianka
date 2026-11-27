@@ -18,6 +18,7 @@ extends RefCounted
 ##   - Points pile up unbanked and go into the total on a clean end (the model's "bank": a lift to
 ##     grip, the wrong side pulled back, the run's end while drifting); the chain is ×1 again. A spin
 ##     (or a contact, later: the tandem) loses the pile: PRZEPADŁO.
+##   - PR 3: a chase's BLISKO multiplies every point of the slide by `boost` (drift_tandem.gd sets it).
 ##   - The three cards: LINIA (zones), KĄT (the angle's base points, chain ×1), STYL (what the chain
 ##     added, and the transitions). Only banked points reach them.
 
@@ -59,6 +60,9 @@ class Score:
 	var spins := 0
 	var flicks := 0
 	var drift_s := 0.0
+	## PR 3, the tandem (critique-drift.md change 8, drift_tandem.gd): every point of a slide is worth this
+	## many times more; BLISKO's ×1.5 while the chaser is 0.5-4 m behind, 1 otherwise.
+	var boost := 1.0
 	## What happened this tick for the UI: "bank:<points>", "lost:<points>", "zona", "klip", "flick",
 	## "perfect", "wrong", "slow", "spin", "end".
 	var said: PackedStringArray = []
@@ -168,7 +172,7 @@ static func _slide(sc: Score, st: DriftModel.State, line: RefCounted, dt: float,
 			sc.chain += 1
 	if st.mode == DriftModel.Mode.DRIFT and wrong_side(st, line):
 		return
-	var base := rate(st.v, st.beta, 1, st.v, offset, backwards) * dt
+	var base := rate(st.v, st.beta, 1, st.v, offset, backwards) * dt * sc.boost
 	add(sc, "kat", base)
 	add(sc, "styl", base * float(sc.chain - 1))
 	if absf(st.beta) < ZONE_DEG or st.mode != DriftModel.Mode.DRIFT:
@@ -179,7 +183,7 @@ static func _slide(sc: Score, st: DriftModel.State, line: RefCounted, dt: float,
 			continue
 		var p := DriftModel.tail(st, line) if z["kind"] == "zona" else DriftModel.nose(st, line)
 		if DriftLine.board_distance(z, p) <= ZONE_R:
-			add(sc, "linia", ZONE_PTS_M * float(sc.chain) * st.v * dt)
+			add(sc, "linia", ZONE_PTS_M * float(sc.chain) * st.v * dt * sc.boost)
 			if not i in sc.zones_done:
 				sc.zones_done.append(i)
 				sc.said.append(str(z["kind"]))

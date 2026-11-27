@@ -16,6 +16,11 @@ extends RefCounted
 ##   - "human" (B8, the Autopilot's lesson): the decent bot whose flick lands HUMAN_LATE s after the
 ##     sign change (a thumb answering the NOW ring), with a 60 Hz frame's jitter.
 ##   - "none" (B6): the gas held, never a kick.
+##   - "hrabia" (PR 3, critique-drift.md change 7: Hrabia is the bot, live, not a recording): the decent
+##     bot with his needle at HRABIA_NEEDLE° (tuned by check_drift_event T8 with a chaser that brakes under
+##     3.5 m: at 44° as the critique guessed the decent follower wins 2 of 8 finals, at 43° 6 of 8, 0b.7's 4-6
+##     at most); with `wobble` (one final in four, drift_event.gd) one
+##     over-hold to WOBBLE_DEG for WOBBLE_S s somewhere in WOBBLE_AT s of the run.
 
 const DriftModel := preload("res://scripts/drift_model.gd")
 const DriftScore := preload("res://scripts/drift_score.gd")
@@ -37,6 +42,11 @@ const CLUMSY_REACT := 0.35
 const CLUMSY_WANDER := 6.0
 ## A run gives up after this (s, 0b.2).
 const RUN_LIMIT := 45.0
+## Hrabia (PR 3): his needle, and his one over-hold: how deep, how long, when (s into the run).
+const HRABIA_NEEDLE := 43.0
+const WOBBLE_DEG := 54.0
+const WOBBLE_S := 0.8
+const WOBBLE_AT := Vector2(8.0, 18.0)
 ## A tap-tap from a hold: lift, tap, press (the press kicks): its edges after the start (s).
 const TAPTAP := [0.0, 0.10, 0.20, 0.33]
 ## The cycle bot: the gas held this long first (s), then tap and gap (s) before each hold.
@@ -55,6 +65,8 @@ var wander := 0.0
 var hold_s := 1.0
 var lift_s := 0.4
 var phase := 0.0
+## Hrabia's over-hold starts at this run time (s); INF: none this run.
+var wobble_t := INF
 
 var _queue: Array = []
 var _seen: Array[float] = []
@@ -66,6 +78,14 @@ var _banking := false
 var _banked_for := INF
 var _needle_now := NEEDLE
 var _jit := 0.0
+
+
+## Hrabia for a final's run (PR 3): seeded by `run_seed`, with his one over-hold when `wobble`.
+static func hrabia(run_seed: int, wobble: bool) -> RefCounted:
+	var b: RefCounted = make("hrabia", run_seed)
+	if wobble:
+		b.wobble_t = b.rng.randf_range(WOBBLE_AT.x, WOBBLE_AT.y)
+	return b
 
 
 static func make(bot_kind: String, run_seed: int, hold := 1.0, lift := 0.4, start_phase := 0.0, needle_deg := NEEDLE) -> RefCounted:
@@ -81,6 +101,8 @@ static func make(bot_kind: String, run_seed: int, hold := 1.0, lift := 0.4, star
 			b.sigma = CLUMSY_SIGMA
 			b.react = CLUMSY_REACT
 			b.wander = CLUMSY_WANDER
+		"hrabia":
+			b.needle = HRABIA_NEEDLE
 	b._needle_now = b.needle
 	return b
 
@@ -153,7 +175,8 @@ func tick(t: float, st: DriftModel.State, line: RefCounted, inp: DriftInput) -> 
 		return
 	if wander > 0.0 and rng.randf() < 1.0 / HZ:
 		_needle_now = needle + rng.randfn(0.0, wander)
-	_hold(inp, t, seen < _needle_now)
+	var aim := WOBBLE_DEG if t >= wobble_t and t < wobble_t + WOBBLE_S else _needle_now
+	_hold(inp, t, seen < aim)
 
 
 ## The blind cycle: tap, gap, hold, lift from its phase, whatever the car does.

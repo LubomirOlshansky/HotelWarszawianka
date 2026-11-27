@@ -66,6 +66,13 @@
 		"next_call": [1500, 2400],
 		"retry": 20
 	},
+	"bokiem": {
+		"_note": "Darek's drift side quest, Bokiem na Narodowym (drift_event.gd): no call before the first night meet is done; then the first call first_call s after that gate opens (any hour with time.by_day, a yes jumps the clock into hours), a call turned down or let ring rings again after next_call s; a call that could not ring tries again after retry s. Never again once the quest is won.",
+		"hours": [20, 2],
+		"first_call": [60, 180],
+		"next_call": [600, 900],
+		"retry": 20
+	},
 	"rave": {
 		"_note": "Mati's nights: his tease between tease_hours, the first after first_tease s and the next after next_tease s; his call call_after s after the tease; retry as above.",
 		"tease_hours": [19, 4],
