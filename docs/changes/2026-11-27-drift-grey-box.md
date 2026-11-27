@@ -9,6 +9,7 @@
 - found: (fixed, PR review) a blind fixed rhythm passed Q_LINE; now a tap-tap outside the window does nothing, zones pay per metre held, the chain's clock runs only at 32° or deeper and stops at ×4 (flicks lift it to ×6), heat 0.12 also past the band, the best of 2,850 blind cycles is 48 % of Q_LINE
 - found: (fixed, PR review) the hidden HUD took touches in the stadium, the stadium kept processing after a visit, the car smoked under the result card, the DEV entry ignored the director
 - found: (fixed, Mac Autopilot) no flick landed in 5 runs: the window is now 0.35 s before to 0.5 s after the crossover, the wrong side waits for it, and a ring with TERAZ! / NOW! and a cyan band on the floor show it; BANKED is drawn over the result card
+- found: main.gd's `_build_*` ratchet is at 1,613 of 1,613 with no headroom (the drift stadium joins in one line through `venues.join`); the next build line must move code to its owner or make room first
 
 ## Roadmap
 - adds: "Side quest: Bokiem na Narodowym (grey box in; the stadium's look, then the event)"
