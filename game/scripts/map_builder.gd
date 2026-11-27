@@ -11559,8 +11559,8 @@ func _build_street_furniture() -> void:
 	for i in range(0, list.size() - 3, 4):
 		var x := float(list[i])
 		var z := float(list[i + 1])
-		if _parked_blocked(x, z):
-			continue
+		if _parked_blocked(x, z) or not HouseTypes.keeps_parked(Vector2(x, z)):
+			continue  # a landmark's clear spot, or a zone that parks thinner (house types)
 		spots.append(Transform3D(Basis(Vector3.UP, float(list[i + 2])), Vector3(x, terrain_height(x, z), z)))
 		paints.append(Color(CAR_PAINT[int(list[i + 3]) % CAR_PAINT.size()]))
 	for mmi in _tree_multimesh(_shared["parked"], _shared["car_paint"], spots, paints, [], null, PARKED_TILE):

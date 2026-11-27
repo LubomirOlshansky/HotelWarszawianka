@@ -46,7 +46,8 @@ static func data() -> Dictionary:
 			var box := Rect2(poly[0], Vector2.ZERO)
 			for q in poly:
 				box = box.expand(q)
-			zones.append([str(z["id"]), poly, box, z.get("mix", {}), bool(z.get("grey_override", true))])
+			zones.append([str(z["id"]), poly, box, z.get("mix", {}), bool(z.get("grey_override", true)),
+					clampf(float(z.get("parked", 1.0)), 0.0, 1.0)])
 		_zones = zones
 		_data = d
 	return _data
@@ -59,6 +60,25 @@ static func zone_at(at: Vector2) -> int:
 		if (_zones[i][2] as Rect2).has_point(at) and Geometry2D.is_point_in_polygon(at, _zones[i][1]):
 			return i
 	return -1
+
+
+## The share of the bake's parked cars kept at `at` (the zone's "parked", 1 outside the zones):
+## the estates stay full, the office belt runs thin.
+static func parked_keep(at: Vector2) -> float:
+	var z := zone_at(at)
+	return 1.0 if z < 0 else float(_zones[z][5])
+
+
+## Whether the parked car at `at` stays: a hash of its place (half a metre) against the zone's
+## share, so both city paths and every sector keep the same cars.
+static func keeps_parked(at: Vector2) -> bool:
+	var keep := parked_keep(at)
+	if keep >= 1.0:
+		return true
+	var h := (roundi(at.x * 2.0) * 73856093) ^ (roundi(at.y * 2.0) * 19349663)
+	h = (h ^ (h >> 13)) * 1274126177
+	h ^= h >> 16
+	return float(h & 0xFFFFFF) / 16777216.0 < keep
 
 
 ## A zone index's id from the JSON ("default" for -1).
