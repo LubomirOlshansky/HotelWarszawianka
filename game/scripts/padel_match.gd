@@ -15,9 +15,13 @@ extends Node
 ## the fence. A flip-card scoreboard on the lawn. Day, golden hour and night (the floodlights)
 ## follow the clock.
 ##
-## Touch: the left thumb anywhere on the left half is a stick (leave it and you run to the ball by
-## yourself), UDERZ (hit: a drive, a volley, a jumping smash on a high ball) and LOB on the right,
-## ✕ gives the match up. Keys: arrows / WASD, Space or J (hit), K (lob), Esc. Multi-touch is read
+## Touch: you run to the ball by yourself; the left thumb anywhere on the left half is a stick that
+## aims the shot (a corner, deep, a drop), UDERZ (hit: a drive, a volley, a jumping smash on a high
+## ball; tap as the ring closes on the ball) and LOB on the right, ✕ gives the match up.
+##
+## The first match of a run opens with JAK GRAĆ, a card of four moving rows (the ring, the direction,
+## the thumb, the smash and lob), then a warm-up of three of Prezes's slow feeds with Dominik grading
+## each tap (padel_sim.gd `warm_on`); POMIŃ skips both, nothing in the warm-up counts. Keys: arrows / WASD, Space or J (hit), K (lob), Esc. Multi-touch is read
 ## by index, so the stick and the buttons work together.
 ##
 ## Sound: everything made here at the first match (a chiptune loop at 120 BPM, the racket, the
@@ -59,51 +63,17 @@ const FRAME := Color("#16191d")
 const COURT := Color("#2d3135")
 const GOLD := Color("#ffd23a")
 
-## Every line on screen: [pl, en] pairs (check_padel.gd checks both exist).
-const LINES := {
-	"title": [["PADEL NA DESCE", "PADEL AT DESKA"]],
-	"hint": [["UDERZ, GDY KÓŁKO SIĘ ZAMKNIE. WYSOKA PIŁKA: SMECZ.", "HIT WHEN THE RING CLOSES. A HIGH BALL: SMASH."],
-			["BIEGNIESZ SAM. LEWY KCIUK CELUJE W ROGI I DO SIATKI.", "YOU RUN BY YOURSELF. THE LEFT THUMB AIMS AT THE CORNERS AND THE NET."],
-			["LOB NAD PARĄ PRZY SIATCE. SZYBA JEST CZĘŚCIĄ GRY.", "LOB OVER A PAIR AT THE NET. THE GLASS IS PART OF THE GAME."]],
-	"serve": [["TWÓJ SERWIS: UDERZ", "YOUR SERVE: HIT"]],
-	"net": [["SIATKA", "NET"]],
-	"short": [["NIE PRZESZŁA", "DIDN'T CROSS"]],
-	"long": [["ZA DŁUGO: W SZYBĘ", "LONG: INTO THE GLASS"]],
-	"wide": [["W BOCZNĄ SIATKĘ", "INTO THE SIDE FENCE"]],
-	"winner": [["WINNER!", "WINNER!"]],
-	"over": [["POR TRES! ZA KORT!", "POR TRES! OFF THE COURT!"]],
-	"out": [["AUT", "OUT"]],
-	"back": [["WRÓCIŁA ZA SIATKĘ!", "IT CAME BACK OVER!"]],
-	"stall": [["PIŁKA UTKNĘŁA", "THE BALL GOT STUCK"]],
-	"point_us": [["PUNKT DLA WAS", "YOUR POINT"]],
-	"point_them": [["PUNKT DLA RYWALI", "THEIR POINT"]],
-	"golden": [["ZŁOTY PUNKT!", "GOLDEN POINT!"]],
-	"game_us": [["GEM DLA WAS!", "GAME TO YOU!"]],
-	"game_them": [["GEM DLA RYWALI", "GAME TO THEM"]],
-	"win": [["WYGRANA!", "YOU WIN!"]],
-	"lose": [["PRZEGRANA", "YOU LOSE"]],
-	"perfect": [["CZYSTO!", "CLEAN!"]],
-	"early": [["ZA SZYBKO", "TOO EARLY"]],
-	"late": [["ZA WOLNO", "TOO LATE"]],
-	"yours": [["TWOJA!", "YOURS!"]],
-	"rally": [["WYMIANA ×%d", "RALLY ×%d"]],
-	"racket": [["PREZES: „RAKIETA NR %d.”", "PREZES: RACKET NUMBER %d."],
-			["PREZES: „RAKIETA NR %d. TO WINA STRUN.”", "PREZES: RACKET NUMBER %d. IT'S THE STRINGS."]],
-	"strings": [["PREZES: „TO PRZEZ STRUNY.”", "PREZES: IT'S THE STRINGS."]],
-	"smash": [["SMECZ!", "SMASH!"]],
-	"whiff": [["PUDŁO", "MISS"]],
-	"ooh": [["OOOCH!", "OOOH!"]],
-	"you": [["TY", "YOU"]],
-	"hit": [["UDERZ", "HIT"]],
-	"lob": [["LOB", "LOB"]],
-	"games": [["GEMY", "GAMES"]],
-	"coach": [["DOMINIK: „NIE BIEGAJ, USTAW SIĘ!”", "DOMINIK: DON'T RUN, GET IN PLACE!"],
-			["DOMINIK: „ŚCIANA TO CZĘŚĆ GRY!”", "DOMINIK: THE WALL IS PART OF THE GAME!"],
-			["DOMINIK: „LOB, KIEDY STOJĄ PRZY SIATCE!”", "DOMINIK: LOB WHEN THEY'RE AT THE NET!"],
-			["DOMINIK: „NIE MACHAJ. CZEKAJ NA KÓŁKO.”", "DOMINIK: DON'T FLAIL. WAIT FOR THE RING."]],
-	"basia": [["PANI BASIA: „PARKING DLA HELIKOPTERÓW OD STRONY WISŁY.”", "PANI BASIA: THE HELICOPTER PARKING IS ON THE RIVER SIDE."]],
-	"vs": [["%s I %s KONTRA %s I %s", "%s AND %s VS %s AND %s"]],
-}
+## Every line on screen lives in dialogue.json, group "padel_match": [pl, en, {"only": key}], several
+## lines of one key in order (the hints, the coach). KEYS lists every key the match uses (check_padel
+## checks each has its words in both languages).
+const WORDS_PATH := "res://data/dialogue.json"
+const GROUP := "padel_match"
+const KEYS := ["title", "hint", "serve", "net", "short", "long", "wide", "winner", "over", "out",
+		"back", "stall", "point_us", "point_them", "golden", "game_us", "game_them", "win", "lose",
+		"perfect", "early", "late", "yours", "rally", "racket", "strings", "smash", "whiff", "ooh",
+		"you", "hit", "lob", "games", "coach", "basia", "vs", "howto_title", "howto", "howto_go",
+		"howto_coach", "warm", "skip", "warm_clean", "warm_good", "warm_early", "warm_late", "warm_miss",
+		"warm_done", "prezes_warm"]
 
 ## The match's end: games won by your pair and by the rivals, the sim's stats.
 signal done(games_us: int, games_them: int, stats: Dictionary)
@@ -177,6 +147,13 @@ var _tell_c := Color.WHITE
 var _tell_s := ""
 var _ring_flash := 0.0
 var _yours_t := -10.0
+## The how-to card is up (the sim waits for a tap), and whether this match opened with it.
+var _howto := false
+var _howto_shown := false
+var _warm_end_t := -100.0
+## The how-to and the warm-up come with the first match of each run of the game (not saved: a
+## returning player gets them once a session, one tap skips them).
+static var _taught := false
 
 
 func _ready() -> void:
@@ -196,7 +173,9 @@ func enter(info: Dictionary) -> void:
 		_build()
 	sim = PadelSim.new()
 	sim.auto_human = auto_play
-	sim.setup(int(info.get("seed", 1)), partner, rivals)
+	_howto = not auto_play and (not _taught or bool(info.get("howto", false)))
+	_howto_shown = _howto
+	sim.setup(int(info.get("seed", 1)), partner, rivals, _howto)
 	_palette = palette(hour)
 	_night = bool(_palette["night"])
 	_make_crowd()
@@ -205,6 +184,7 @@ func enter(info: Dictionary) -> void:
 	_t = 0.0
 	_stop = 0.0
 	_rackets = 1
+	_warm_end_t = -100.0
 	_end_t = -1.0
 	_cam_x = 0.0
 	_touches.clear()
@@ -216,15 +196,37 @@ func enter(info: Dictionary) -> void:
 	if _music != null:
 		_music.play()
 		_amb.play()
-	var vs: Array = LINES["vs"][0]
-	_say_sub(Lang.pick(vs[0], vs[1]) % [_you_name(), partner.to_upper(), String(rivals[0]).to_upper(), String(rivals[1]).to_upper()], INTRO_S)
-	_say(_line("title"), GOLD, INTRO_S)
-	if flew:
+	if not _howto:
+		_intro_lines()
+	elif flew:
 		_say_sub(_line("basia"), 4.5)
 	set_process(true)
 	_log("city before: %d draw calls, %d objects in the frame" % [int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
 			int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))])
 	_log("in: %s with %s vs %s, hour %.1f%s" % ["auto" if auto_play else "player", partner, rivals, hour, ", landed by helicopter" if flew else ""])
+
+
+## The match's title and who plays whom (at once, or after the warm-up).
+func _intro_lines() -> void:
+	var vs: Array = lines_of("vs")[0]
+	_say_sub(Lang.pick(vs[0], vs[1]) % [_you_name(), partner.to_upper(), String(rivals[0]).to_upper(), String(rivals[1]).to_upper()], INTRO_S)
+	_say(_line("title"), GOLD, INTRO_S)
+	if flew and not _howto_shown:
+		_say_sub(_line("basia"), 4.5)
+
+
+## The how-to card is answered: the warm-up begins, Dominik says what to do.
+func _start_warmup() -> void:
+	_howto = false
+	_taught = true
+	_say_sub(_line("howto_coach"), 4.0)
+
+
+## SKIP in the warm-up (or the card's own skip): straight to the match.
+func _skip_warmup() -> void:
+	_howto = false
+	_taught = true
+	sim.end_warmup()
 
 
 ## ✕ or the end: hand back. Leaving early is a lost match.
@@ -255,9 +257,28 @@ func _you_name() -> String:
 
 
 func _line(key: String, i := 0) -> String:
-	var row: Array = LINES[key]
+	var row := lines_of(key)
+	if row.is_empty():
+		return key
 	var pair: Array = row[i % row.size()]
 	return Lang.pick(String(pair[0]), String(pair[1]))
+
+
+static var _words := {}
+
+
+## The [pl, en] lines of `key`, in order (loaded once from dialogue.json).
+static func lines_of(key: String) -> Array:
+	if _words.is_empty():
+		var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(WORDS_PATH))
+		if d is Dictionary:
+			for l: Variant in (d as Dictionary).get(GROUP, []):
+				if l is Array and (l as Array).size() >= 3 and l[2] is Dictionary:
+					var k := str((l[2] as Dictionary).get("only", ""))
+					if not _words.has(k):
+						_words[k] = []
+					(_words[k] as Array).append([str(l[0]), str(l[1])])
+	return _words.get(key, [])
 
 
 # --- building -----------------------------------------------------------------------------------
@@ -361,7 +382,9 @@ func _process(dt: float) -> void:
 		var d := (_stick_knob - _stick_base) / (60.0 * _pt())
 		stick = Vector2(d.x, -d.y)
 	sim.stick = stick.limit_length(1.0)
-	if _stop > 0.0:
+	if _howto:
+		pass
+	elif _stop > 0.0:
 		_stop -= dt
 	else:
 		sim.step(dt)
@@ -369,6 +392,10 @@ func _process(dt: float) -> void:
 		_on_event(String(ev[0]), ev[1])
 	sim.events.clear()
 	_fx_tick(dt)
+	if _warm_end_t >= 0.0 and _t - _warm_end_t > 2.6:
+		# After GRAMY NA SERIO and Prezes's line: the match's title and who plays whom.
+		_intro_lines()
+		_warm_end_t = -100.0
 	if log_on and int(_t / 10.0) != int((_t - dt) / 10.0):
 		_log("bench: %d draw calls, %d objects, %.0f fps" % [int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
 				int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)), Engine.get_frames_per_second()])
@@ -461,6 +488,14 @@ func _on_event(kind: String, d: Dictionary) -> void:
 				_burst(d["p"], GOLD, 14, 6.0)
 			if int(d["who"]) == 0 and sim.players[0].human and not auto_play:
 				var err := float(d["err"])
+				if sim.warming() and shot != PadelSim.Shot.SERVE:
+					var key := "warm_clean"
+					if not bool(d["clean"]):
+						if absf(err) < 0.0001 or PadelSim.grade(err) >= 0.8:
+							key = "warm_good"
+						else:
+							key = "warm_early" if err > 0.0 else "warm_late"
+					_say_sub(_line(key, _rng.randi()), 2.2)
 				if bool(d["clean"]):
 					_stop = 0.06
 					_ring_flash = 1.0
@@ -500,15 +535,28 @@ func _on_event(kind: String, d: Dictionary) -> void:
 		"whiff":
 			if int(d["who"]) == 0:
 				_say(_line("whiff"), Color("#c8c8c8"), 0.6)
+				if sim.warming():
+					_say_sub(_line("warm_miss"), 1.6)
+		"warm_done":
+			_score_flip = 1.0
+			_say(_line("warm_done"), GOLD, 1.6)
+			_say_sub(_line("prezes_warm"), 2.6)
+			_crowd_cheer = 1.0
+			_play("cheer", -4.0)
+			_warm_end_t = _t
 		"yours":
 			_yours_t = _t
 		"point":
+			if sim.warming():
+				# Warm-up balls don't count: a soft chime, no score, no callout.
+				_play("chime", -10.0, 1.2)
+				return
 			var team := int(d["team"])
 			var why := String(d["why"])
 			_score_flip = 1.0
 			_play("chime", -6.0, 1.0 if team == 0 else 0.8)
 			var head := _line("point_us") if team == 0 else _line("point_them")
-			if why in LINES:
+			if why in KEYS:
 				_say(_line(why), US if team == 0 else THEM, PadelSim.POINT_PAUSE)
 				_say_sub(head, PadelSim.POINT_PAUSE)
 			else:
@@ -527,9 +575,9 @@ func _on_event(kind: String, d: Dictionary) -> void:
 		"serve_ready":
 			if sim.golden():
 				_say(_line("golden"), GOLD, 1.6)
-			elif int(d["server"]) == 0 and not auto_play:
+			elif int(d["server"]) == 0 and not auto_play and _t - _warm_end_t > 3.0:
 				_say_sub(_line("serve"), 2.0)
-			if _t > 0.5 and _t < 20.0 and not auto_play:
+			if _t > 0.5 and _t < 20.0 and not auto_play and not _howto_shown and not sim.warming():
 				_say_sub(_line("hint", int(_t / 6.0)), 3.0)
 		"game":
 			var team := int(d["team"])
@@ -1181,6 +1229,68 @@ func _draw_texts() -> void:
 			var w := PixelFont.width(lines[i])
 			_rect(W * 0.5 - w * 0.5 - 3, 58 + i * 11, w + 6, 11, Color(0, 0, 0, 0.5))
 			_text(lines[i], W * 0.5, 58 + i * 11, Color(1, 1, 1), 1, true, false)
+	if sim.warming() and not _howto:
+		var done := PadelSim.WARM_BALLS - sim.warm_left
+		var wl := _line("warm") % [mini(done + 1, PadelSim.WARM_BALLS), PadelSim.WARM_BALLS]
+		_rect(W * 0.5 - PixelFont.width(wl) * 0.5 - 4, 16, PixelFont.width(wl) + 8, 12, Color(0, 0, 0, 0.55))
+		_text(wl, W * 0.5, 16, GOLD, 1, true, false)
+	if _howto:
+		_draw_howto()
+
+
+## The how-to card (the first match of a run): four rows, each with a moving picture, over the
+## dimmed court; a tap starts the warm-up. Drawn in the court's own pixels.
+func _draw_howto() -> void:
+	_rect(0, 0, W, H, Color(0, 0, 0, 0.55))
+	var pw := minf(W - 24.0, 380.0)
+	var px := roundf(W * 0.5 - pw * 0.5)
+	var py := 18.0
+	var ph := 160.0
+	_rect(px, py, pw, ph, Color("#14171c"))
+	_rect(px, py, pw, 1, GOLD)
+	_rect(px, py + ph - 1, pw, 1, GOLD)
+	_rect(px, py, 1, ph, GOLD)
+	_rect(px + pw - 1, py, 1, ph, GOLD)
+	_text(_line("howto_title"), W * 0.5, py + 7, GOLD, 2)
+	var rows := lines_of("howto")
+	for i in rows.size():
+		var ry := py + 34.0 + i * 30.0
+		var ic := Vector2(px + 20, ry + 9)
+		_howto_icon(i, ic)
+		var lines := PixelFont.wrap_lines(_line("howto", i).to_upper(), int(pw - 52))
+		for j in mini(lines.size(), 2):
+			_text(lines[j], px + 40, ry + 1 + j * 11, LINE if j == 0 else Color(0.85, 0.85, 0.85), 1, false, false)
+	var go_c := GOLD.lerp(LINE, 0.5 + 0.5 * sin(_t * 5.0))
+	_text(_line("howto_go"), W * 0.5, py + ph - 18, go_c, 1)
+
+
+## The little moving pictures of the how-to: the ring closing on a ball (a gold flash at CZYSTO),
+## the two directions, the thumb that aims, the high ball for a smash.
+func _howto_icon(i: int, c: Vector2) -> void:
+	var k := fmod(_t, 1.4) / 1.4
+	match i:
+		0:
+			var r := 2.5 + 9.0 * maxf(1.0 - k / 0.8, 0.0)
+			var closed := k >= 0.8
+			_canvas.draw_arc(c, r, 0.0, TAU, 20, GOLD if closed else Color(1, 1, 1, 0.8), 2.0 if closed else 1.0)
+			_rect(c.x - 1, c.y - 1, 3, 3, BALL)
+			if closed:
+				_canvas.draw_arc(c, 4.0 + 10.0 * (k - 0.8) / 0.2, 0.0, TAU, 20, Color(GOLD, 1.0 - (k - 0.8) / 0.2), 1.0)
+		1:
+			# Early: across; late: down the line.
+			_ln(c + Vector2(-9, 6), c + Vector2(9, -6), US)
+			_ln(c + Vector2(-9, 7), c + Vector2(9, 7), THEM)
+			_rect(c.x + 8, c.y - 7, 2, 2, US)
+			_rect(c.x + 8, c.y + 6, 2, 2, THEM)
+		2:
+			_canvas.draw_arc(c, 8.0, 0.0, TAU, 16, Color(1, 1, 1, 0.5), 1.0)
+			var a := _t * 2.2
+			_canvas.draw_circle(c + Vector2(cos(a), sin(a)) * 5.0, 3.0, Color(1, 1, 1, 0.85))
+		3:
+			var bz := 9.0 - 14.0 * absf(sin(_t * 2.0))
+			_rect(c.x - 1, c.y + bz - 6, 3, 3, BALL)
+			_rect(c.x - 2, c.y + 4, 5, 6, US)
+			_rect(c.x - 2, c.y + 1, 5, 3, Color("#f1c8a4"))
 
 
 # --- the touch pad (native pixels) --------------------------------------------------------------
@@ -1234,6 +1344,11 @@ func _draw_pad() -> void:
 	_pad.draw_circle(lc, 42 * pt, Color(THEM, 0.25 + 0.3 * _lob_press))
 	_pad.draw_arc(lc, 42 * pt, 0, TAU, 32, Color(1, 1, 1, 0.6), 2.5 * pt)
 	_label(font, _line("lob"), lc, 17 * pt)
+	if _howto or sim.warming():
+		var sc := _skip_c()
+		_pad.draw_circle(sc, 30 * pt, Color(0, 0, 0, 0.5))
+		_pad.draw_arc(sc, 30 * pt, 0, TAU, 32, Color(GOLD, 0.8), 2.0 * pt)
+		_label(font, _line("skip"), sc, 13 * pt)
 	var qc := _quit_c()
 	_pad.draw_circle(qc, 20 * pt, Color(0, 0, 0, 0.45))
 	_label(font, "X", qc, 18 * pt)
@@ -1254,6 +1369,10 @@ func _input(event: InputEvent) -> void:
 			var what := _zone(e.position, pt)
 			_touches[e.index] = what
 			match what:
+				"howto":
+					_start_warmup()
+				"skip":
+					_skip_warmup()
 				"hit":
 					_press(PadelSim.Shot.DRIVE)
 				"lob":
@@ -1290,7 +1409,9 @@ func _input(event: InputEvent) -> void:
 			KEY_DOWN, KEY_S:
 				_keys.y = -1.0 if on else (0.0 if _keys.y < 0 else _keys.y)
 			KEY_SPACE, KEY_J:
-				if on:
+				if on and _howto:
+					_start_warmup()
+				elif on:
 					_press(PadelSim.Shot.DRIVE)
 			KEY_K, KEY_L:
 				if on:
@@ -1304,9 +1425,18 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+func _skip_c() -> Vector2:
+	var s := get_viewport().get_visible_rect().size
+	return Vector2(s.x - 104 * _pt(), 38 * _pt())
+
+
 func _zone(p: Vector2, pt: float) -> String:
 	if p.distance_to(_quit_c()) < 30 * pt:
 		return "quit"
+	if (_howto or sim.warming()) and p.distance_to(_skip_c()) < 36 * pt:
+		return "skip"
+	if _howto:
+		return "howto"
 	if p.distance_to(_hit_c()) < 78 * pt:
 		return "hit"
 	if p.distance_to(_lob_c()) < 54 * pt:

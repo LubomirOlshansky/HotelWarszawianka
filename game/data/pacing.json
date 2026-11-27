@@ -83,7 +83,7 @@
 		"strand_gap": [170, 320]
 	},
 	"rides": {
-		"_note": "Podwózka: the first request after first_offer s of driving, then offer_gap s after each ride or request; a request held by the first minutes' guide comes at least hold_gap s after the hold lets go.",
+		"_note": "Łuber: the first request after first_offer s of driving, then offer_gap s after each ride or request; a request held by the first minutes' guide comes at least hold_gap s after the hold lets go.",
 		"first_offer": 120,
 		"offer_gap": [75, 120],
 		"hold_gap": 30

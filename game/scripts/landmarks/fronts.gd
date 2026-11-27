@@ -139,7 +139,7 @@ func _find_skins() -> void:
 		if t.get("model", false):
 			continue
 		if not sites.is_empty() and sites[-1]["key"] == t["key"]:
-			sites[-1]["skin"] = {"mode": t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
+			sites[-1]["skin"] = {"mode": M_MONUMENT_FLOOD if FLOODLIT_SITES.has(t["key"]) and t["mode"] == M_MONUMENT else t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
 			if t.has("steep"):
 				sites[-1]["skin"]["steep"] = t["steep"]
 			if t.has("upper"):
@@ -190,7 +190,7 @@ func _find_blocks() -> void:
 		var q := _pts(d["outline"])
 		if q.size() < 3:
 			continue
-		if str(d["id"]) in DE_BLOCKS or str(d["id"]) in [CM_BLOCK, MP_BLOCK, NIKIDW_BLOCK, MANSJONARIA_BLOCK]:
+		if str(d["id"]) in DE_BLOCKS or str(d["id"]) in [CM_BLOCK, MP_BLOCK, NIKIDW_BLOCK, MANSJONARIA_BLOCK, UP_BLOCK]:
 			continue
 		var key := "blk_" + str(d["id"])
 		var zone: Array = [_largest(Geometry2D.offset_polygon(q, 1.0, Geometry2D.JOIN_MITER))]

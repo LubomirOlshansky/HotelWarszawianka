@@ -16,6 +16,8 @@ extends SceneTree
 ## the same way; the Królewska edge's skins (Dom bez Kantów, the Departament, the unnamed block on
 ## the square's south-east corner) are found and give the buildings under them their stone, and
 ## the unnamed one has no card (so it isn't on the picking grid).
+## Street blocks: no street block may stand inside a landmark's outline (two models of one building)
+## beyond KNOWN_OVERLAPS (2026-11-26).
 ## Prints a line per site, then `check_sites: OK` (exit 0) or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_sites.gd
 
@@ -76,6 +78,7 @@ func _initialize() -> void:
 	for key: String in BUDGET:
 		_check_site(marks, map, key)
 	_check_skins(marks, data)
+	_check_block_overlaps(marks)
 	map.free()
 	if problems.is_empty():
 		print("check_sites: OK")
@@ -229,6 +232,43 @@ func _check_card(key: String, card: Array) -> void:
 
 ## The Królewska edge: each skin site is found, gives the building at its point its own colours
 ## and mode, and has a card when it is on the picking grid.
+## Landmarks over a street block (found 2026-11-26, the Ufficio Primo pilot): the block's model
+## stood in the new site's outline and drew its own dome and windows over it, in both city paths,
+## and no single-site check saw it (the turntable builds the site alone). Each pair here was already
+## there and waits for its own look (does the landmark model the whole building? then the block goes
+## to its skip list, as CM_BLOCK, MP_BLOCK and UP_BLOCK did); a NEW pair fails.
+const KNOWN_OVERLAPS := ["blk_28010955 jerozolimskie57", "blk_28010954 jerozolimskie57", "blk_44190667 jerozolimskie57",
+		"blk_44190669 jerozolimskie57", "blk_6520917 grzybowska77", "blk_1456269648 prosta28", "blk_1149651967 prosta28",
+		"blk_1186516012 asbud", "blk_1186516013 asbud", "blk_238169923 pepeo_tower", "blk_25844922 torwar",
+		"blk_141043447 kino_muranow", "blk_31002630 equator", "blk_305521858 equator2", "blk_32129912 powstancow_blue",
+		"blk_2250406 dom_chlopa", "blk_338542425 marszalkowska99"]
+
+
+## A street block whose outline's centre lies in another landmark's zone is a second model of the
+## same building (z-fighting walls, two roofs).
+func _check_block_overlaps(marks) -> void:
+	var found := 0
+	for b: Dictionary in marks.sites:
+		if not b.has("block"):
+			continue
+		var ring: PackedVector2Array = b["raw"]
+		var c := Vector2.ZERO
+		for q in ring:
+			c += q
+		c /= ring.size()
+		for s: Dictionary in marks.sites:
+			if s.has("block") or s.has("skin") or not (s["box"] as Rect2).has_point(c):
+				continue
+			for z: PackedVector2Array in s["zone"]:
+				if Geometry2D.is_point_in_polygon(c, z):
+					found += 1
+					var pair := "%s %s" % [b["key"], s["key"]]
+					if not pair in KNOWN_OVERLAPS:
+						problems.append("%s stands in %s's outline: two models of one building (skip the block in fronts.gd _find_blocks)" % [b["key"], s["key"]])
+					break
+	print("check_sites: blocks: %d street blocks inside a landmark (%d known)" % [found, KNOWN_OVERLAPS.size()])
+
+
 func _check_skins(marks, data: Dictionary) -> void:
 	for key: String in SKINNED:
 		var site: Dictionary = {}

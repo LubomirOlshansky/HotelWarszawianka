@@ -2,7 +2,7 @@ extends Node
 ## The road route to the active target (TD-13 step 4, docs/architecture/map-markers.md): every
 ## target the maps pin (the marker registry's TARGET mark, main.gd `_put_target`) gets the dotted
 ## way there by road on the minimap and the full map, not only the ones whose activity draws its
-## own (jobs.gd's deliveries, the street races, Podwózka; those keep theirs and this one steps
+## own (jobs.gd's deliveries, the street races, Łuber; those keep theirs and this one steps
 ## aside while one is on). Before it, a rescue, a tour stop, a quest pin or the guide's next place
 ## had only the straight edge arrow, through blocks and against one-way streets.
 ##
