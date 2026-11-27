@@ -108,6 +108,8 @@ const SKINS := [
 	# NBP's regional branch on Plac Powstańców from F's photos (2026-11-16, docs/landmarks/specs/nbp.md):
 	# the whole building is the site's own model (_build_nbp), dark folded panels over a glass ground floor.
 	{"key": "nbp", "osm": "NBP Oddział Okręgowy w Warszawie", "model": true, "mode": M_STONE, "wall": "#4d4446", "roof": "#6f7173"},
+	# The mapped theatre registers here as a whole model, so its LoD2 run is replaced.
+	{"key": "powszechny", "osm": "Teatr Powszechny", "model": true, "mode": M_STONE, "wall": "#ebe8df", "roof": "#b9babc"},
 	# PKO BP's office on Marszałkowska by Nowogrodzka from Mapillary photos (2026-11-16,
 	# docs/landmarks/specs/pko_marszalkowska.md): light grey bands round the floors with blue ribbon
 	# glazing between them, not the dark glass box LoD2 gave it.
@@ -867,6 +869,9 @@ func _find_photo_fronts() -> void:
 	if not list is Array:
 		return
 	for d: Dictionary in list:
+		# The theatre's whole-building site already supplies this frontage.
+		if str(d["id"]) == "b12747":
+			continue
 		var key := "pf_" + str(d["id"])
 		_add_site(key, [_pts(d["outline"])])
 		if not sites.is_empty() and sites[-1]["key"] == key:
