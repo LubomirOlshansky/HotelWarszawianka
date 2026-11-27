@@ -20,7 +20,7 @@ const GROUP := "phone_hub"
 ## and offers inside the phone, "screen" opens the big QUESTS screen, "form" opens the feedback card
 ## (feedback.gd), "soon" does nothing yet (no app is "soon" now; the kind stays for the next one).
 const APPS := [["luber", Color("#5fd4ff"), "offer"], ["glodno", Color("#ff4fd8"), "offer"],
-		["quests", Color("#ff7a2a"), "screen"], ["cotam", Color("#8e879e"), "form"]]
+		["quests", Color("#ff7a2a"), "screen"], ["cotam", Color("#2fd36b"), "form"]]
 ## The food-delivery app's places: the side-job groups (main.gd `_quest_entries`) it offers.
 const FOOD_GROUPS := ["kebab"]
 ## Seconds the "looking for…" screen is up before an offer (or nothing) shows.
