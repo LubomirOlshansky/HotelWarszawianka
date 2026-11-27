@@ -221,6 +221,7 @@ stops                quick
 stories              quick
 storyarc             quick
 streaming            local     slow
+streamquit           smoke
 streetdetails        quick
 streetmesh           roads
 streetpass           quick
