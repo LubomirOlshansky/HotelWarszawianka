@@ -291,6 +291,9 @@ const INFO := {
 	"gpy": ["Generation Park Y",
 			"140 m przy rondzie Daszyńskiego.",
 			"140 m by Rondo Daszyńskiego."],
+	"gpxz": ["Generation Park X i Z",
+			"Dwa biurowce przy rondzie Daszyńskiego po bokach wieży Y.",
+			"Two office blocks by Rondo Daszyńskiego framing tower Y."],
 	"powstancow_blue": ["Szklana wieża przy placu Powstańców",
 			"70 m niebieskiego szkła przy Hotelu Warszawa.",
 			"70 m of blue glass beside Hotel Warszawa."],
@@ -1374,6 +1377,8 @@ func _find_sites() -> void:
 	_find_behind()
 	# Osiedle Za Żelazną Bramą (2026-11-01): the eleven blocks between Żelazna and Jana Pawła II.
 	_find_zelazna()
+	# Generation Park X and Z (Rondo Daszyńskiego): the two stone-grid office blocks framing Y.
+	_find_gpxz()
 	# Pokorna 2 (F, 2026-11-01): the 57 m residential block by Muranów, a model with balconies.
 	_find_pokorna2()
 	# I Oddział PKO (F's photo, 2026-11-09): the first branch on Marszałkowska, rebuilt as one block.
@@ -2011,6 +2016,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_slabs(s)
 			"zelazna":
 				_build_zelazna(s)
+			"gpxz":
+				_build_gpxz(s)
 			"pokorna2":
 				_id = 0
 				_build_pokorna2(s)
