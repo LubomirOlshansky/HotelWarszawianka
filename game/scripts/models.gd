@@ -2094,7 +2094,7 @@ static func _sculpt_meshes(kind: String, paint: Array, stripes: Array, wing: boo
 		var h1: Array = house[1]
 		var z_end: float = house[house.size() - 2][0]
 		# The mirror sits on the door against the glass (a gap under it threw a shadow bar).
-		s.box(Vector3(sgn * (float(h1[3]) + 0.07), float(h1[1]) + 0.05, float(house[0][0]) + 0.24), Vector3(0.14, 0.1, 0.1), paint if kind != "player_bawarka" else blue)
+		s.box(Vector3(sgn * (float(h1[3]) + 0.07), float(h1[1]) + 0.05, float(house[0][0]) + 0.24), Vector3(0.14, 0.1, 0.1), blue if kind == "player_bawarka" else chrome if kind == "player_tt" else paint)
 		var ys := float(h1[1])
 		_decal(s, c, sgn, [Vector2(float(house[0][0]) + 0.1, ys - 0.045), Vector2(z_end, float(house[house.size() - 2][1]) - 0.045),
 				Vector2(z_end, float(house[house.size() - 2][1]) - 0.005), Vector2(float(house[0][0]) + 0.1, ys - 0.005)], black, 0.01, 6)
