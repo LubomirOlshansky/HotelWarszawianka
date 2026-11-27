@@ -108,6 +108,9 @@ const SKINS := [
 	# NBP's regional branch on Plac Powstańców from F's photos (2026-11-16, docs/landmarks/specs/nbp.md):
 	# the whole building is the site's own model (_build_nbp), dark folded panels over a glass ground floor.
 	{"key": "nbp", "osm": "NBP Oddział Okręgowy w Warszawie", "model": true, "mode": M_STONE, "wall": "#4d4446", "roof": "#6f7173"},
+	# The named court outline registers the whole model and drops the GUGiK run.
+	{"key": "sad_okregowy", "osm": "Sąd Okręgowy w Warszawie", "model": true,
+			"mode": M_STONE, "wall": "#dcd6c9", "roof": "#7d7f8c"},
 	# The mapped theatre registers here as a whole model, so its LoD2 run is replaced.
 	{"key": "powszechny", "osm": "Teatr Powszechny", "model": true, "mode": M_STONE, "wall": "#ebe8df", "roof": "#b9babc"},
 	# PKO BP's office on Marszałkowska by Nowogrodzka from Mapillary photos (2026-11-16,
@@ -197,6 +200,7 @@ const LM_BLOCKS := [
 	"6520917",  # Grzybowska 77 (Bellona): the brick house from F's photos
 	"905863487",  # Unique Tower's north and shoulder outline, rebuilt by the unique site
 	"141043447",  # Kino Muranów: whole complex (podium + residential blocks) rebuilt in muranow.gd
+	"1871615",  # Sądy na Lesznie: the whole court model includes the façades and roofs
 	"1371716",  # Pałac Mostowskich: the whole palace and its roofs are built in muranow.gd
 	"295124092", "699441160",  # Generation Park X and Z: rebuilt whole in wola.gd (`gpxz`)
 ]
