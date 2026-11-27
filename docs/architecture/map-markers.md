@@ -57,7 +57,7 @@ should grow into. Design background: docs/design/quest-map.md and docs/design/ma
    the garage, the "?" marks and the final (TD-13 step 1), the questlines and the main line's star
    (step 2), the active target's pin on both maps (step 3) and its road route (step 4).
 2. **Quest focus has its own busy test.** `_quest_running()` checks six activities and the
-   questlines' `busy`; `_free_block()` checks fifteen. They disagree: a Podwózka ride or a plain trend delivery blocks new starts in `_free_block()` but does not count for `_quest_running()`.
+   questlines' `busy`; `_free_block()` checks fifteen. They disagree: a Łuber ride or a plain trend delivery blocks new starts in `_free_block()` but does not count for `_quest_running()`.
 3. **The active target is set by each activity.** 24 scripts touch the route line or beacon;
    forgetting one clear leaves a stale arrow (PR #637).
 4. **Visibility rules live in several places**: quest focus in main.gd, flying in quest_lines.gd,
@@ -138,7 +138,7 @@ target (`markers.target()`) and the HUD's car (`minimap_car`, `minimap_heading`,
 the lane graph once per goal (a moving goal, a rival's pin, again after 40 m and 3 s; ~6-11 ms a
 search on the cloud CPU), walks the line again from the car every second, and puts it in the HUD's
 one route slot under the owner "target". An activity that draws its own route (jobs.gd's
-deliveries and next stand, the street races, Podwózka) wins the slot and this one steps aside. The
+deliveries and next stand, the street races, Łuber) wins the slot and this one steps aside. The
 full map's dotted line follows the slot's route when it ends at the target, else it stays straight.
 In the air there is no road route. The edge arrow still points straight at the target: a road
 arrow would change how the drive feels, so it waits for F (QUESTIONS.md).

@@ -19,7 +19,7 @@ extends Node
 ## the player is past FAR m from it). Nothing runs per frame but a timer: one tick every TICK s.
 ##
 ## Road life (F, 2026-11-23, docs/design/road-life.md): a scene is now one of two kinds. TAXI_SHARE
-## of them are a taxi check (kontrola taksówki): a city taxi or a Podwózka stopped in the kerb lane
+## of them are a taxi check (kontrola taksówki): a city taxi or a Łuber stopped in the kerb lane
 ## (traffic.gd add_parked_car, kind TAXI: +0 draw calls), the patrol car behind it with its lights
 ## on, an officer at the driver's window with the papers, a second by the patrol car, the driver
 ## out on the kerb explaining, the passenger on the footway late for the airport and an onlooker
@@ -29,7 +29,7 @@ extends Node
 ##
 ## Road life stage 3, "Pan wolny?!": at HAIL_SHARE of the taxi checks, when the player comes past
 ## slowly (under HAIL_SPEED m/s, within HAIL_REACH m of the passenger), the passenger waves them
-## down ("hail" in `taxi_check`) and Podwózka offers their ride from right there (rides.gd
+## down ("hail" in `taxi_check`) and Łuber offers their ride from right there (rides.gd
 ## `offer_stranded`, through `stranded`); once it is taken the passenger leaves the scene (the
 ## ride's own figure waits there).
 ##
@@ -669,7 +669,7 @@ func place(from: Vector2, heading: Vector2, near: bool, at := Vector2.INF, kind 
 		var s: float = s0 + float(at_s[c[0]])
 		var d = null
 		if c[0] == "taxi":
-			# A city taxi or a Podwózka (models.gd TAXI_CITY, TAXI_APP) in its own paints.
+			# A city taxi or a Łuber (models.gd TAXI_CITY, TAXI_APP) in its own paints.
 			var shape := _rng.randi() % 2
 			var tp: Array = Models.TRAFFIC[1][shape]["paint"]
 			d = traffic.add_parked_car(e, s, c[1], c[2], lane, shape, Color(tp[_rng.randi() % tp.size()]), 1)
@@ -921,7 +921,7 @@ func _talk() -> void:
 
 
 ## "Pan wolny?!": the player's car comes past slowly near the passenger: they wave it down and
-## Podwózka offers the ride; once it is taken the passenger leaves the scene.
+## Łuber offers the ride; once it is taken the passenger leaves the scene.
 func _hail_step(v: Array) -> void:
 	if bool(scene.get("gone", false)):
 		return

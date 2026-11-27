@@ -26,8 +26,8 @@ import math
 import os
 import sys
 
+import bpy  # first: the pip `bpy` module sets up bmesh and mathutils
 import bmesh
-import bpy
 from mathutils import Vector, geometry
 
 ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -45,6 +45,8 @@ PLINTH = "b8a888"      # the granite-ish plinth band
 ROOF = "8f877a"
 COURT = "a39c90"
 METAL = "8d9398"       # the Congress Hall's roof
+DOOR = "3e2c22"        # the main entrance's timber doors
+DOOR_GLASS = "5d6e66"  # their bronze-green glazing
 DARK = "3a3640"        # the lantern's open arches
 PATINA = "9fbcae"
 BRONZE = "5a4630"
@@ -416,7 +418,7 @@ def portico_on_edge(m, a, b, cols, h, out, r=0.6, depth=1.4):
            top=h)
     for k in range(cols):
         c = a + d * (ln * (k + 0.5) / cols) + out * depth
-        column(m, c.x, c.y, r, 0.0, h, n=12 if LOD == 0 else 6)
+        column(m, c.x, c.y, r, 0.0, h + 0.3, n=12 if LOD == 0 else 6)  # top buried in the entablature
     e0 = a - d * 0.4
     e1 = b + d * 0.4
     q = [(e0.x, e0.y), (e1.x, e1.y), (e1.x + out.x * (depth + 1.1), e1.y + out.y * (depth + 1.1)),
@@ -476,7 +478,7 @@ def build(m):
         for k in range(ncol):
             t = a0 + (a1 - a0) * k / (ncol - 1)
             c = centre + Vector((math.cos(t), math.sin(t))) * (rr + 1.3)
-            column(m, c.x, c.y, 0.55, 0.0, 9.5, n=10 if LOD == 0 else 6)
+            column(m, c.x, c.y, 0.55, 0.0, 10.0, n=10 if LOD == 0 else 6)  # top buried in the entablature (9.5-11): no coplanar cap
         nseg_e = 28 if LOD == 0 else 12
         band0 = [(centre.x + (rr + 0.1) * math.cos(a0 + (a1 - a0) * k / nseg_e),
                   centre.y + (rr + 0.1) * math.sin(a0 + (a1 - a0) * k / nseg_e)) for k in range(nseg_e + 1)]
@@ -491,8 +493,9 @@ def build(m):
             m.face([(p0[0], p0[1], 9.5), (p1[0], p1[1], 9.5), (q1[0], q1[1], 9.5), (q0[0], q0[1], 9.5)],
                    M_STONE, shade(LIGHT, 0.85))
     # The main entrance's steps (three, 0.15 m) and the two seated monuments beside them.
-    for k, (u0, h) in enumerate(((52.0, 0.45), (55.6, 0.3), (56.6, 0.15))):
-        m.box((u0 + 57.6) / 2, 0.0, (57.6 - u0) / 2, 15.0 + k * 0.6, -0.2, h, shade(PLINTH, 1.05))
+    # Side by side, not nested: nested boxes shared their outer face (186 z-fights, check_mesh_quality).
+    for k, (u0, u1, h) in enumerate(((52.0, 56.2, 0.45), (56.2, 57.0, 0.3), (57.0, 57.6, 0.15))):
+        m.box((u0 + u1) / 2, 0.0, (u1 - u0) / 2, 15.0 + k * 0.6, -0.2, h, shade(PLINTH, 1.05))
     # The two seated monuments beside the steps are the map's own (bake_monuments.py), not built here.
 
     # 2. The wings: the corner pavilions and the entrance block (to 22.5 m), each with a cornice,
@@ -556,11 +559,22 @@ def build(m):
 
     # 5. The east entrance: six round columns, 13.5 m, under an entablature and a low attic.
     for k in range(6):
-        column(m, 53.4, -12.0 + k * 4.8, 0.65, 0.45, 13.5, n=12 if LOD == 0 else 6)
+        column(m, 53.4, -12.0 + k * 4.8, 0.65, 0.45, 13.9, n=12 if LOD == 0 else 6)
     m.box(51.0, 0.0, 3.0, 13.4, 13.5, 15.6, light)
     if LOD == 0:
         m.box(51.2, 0.0, 3.1, 13.6, 15.6, 16.0, shade(light, 1.04))
     attic(m, [(54.0, -13.0), (54.0, 13.0)], 16.0, 1.2, closed=False)
+    # The doors behind the columns (F's photo of the main entrance, Commons Kgbo 2019, and the 3D
+    # Tiles views): in each of the five bays a tall dark-brown timber door with a bronze-green
+    # panelled glass field and a pale transom, between the pale piers (the columns' shadow lines).
+    for k in range(5):
+        cv = -9.6 + k * 4.8
+        m.face([(51.86, cv - 1.75, 0.5), (51.86, cv + 1.75, 0.5), (51.86, cv + 1.75, 9.4), (51.86, cv - 1.75, 9.4)],
+               M_STONE, DOOR, top=9.4)
+        m.face([(51.9, cv - 1.3, 1.1), (51.9, cv + 1.3, 1.1), (51.9, cv + 1.3, 6.6), (51.9, cv - 1.3, 6.6)],
+               M_STONE, DOOR_GLASS, top=6.6)
+        m.face([(51.9, cv - 1.3, 7.1), (51.9, cv + 1.3, 7.1), (51.9, cv + 1.3, 8.9), (51.9, cv - 1.3, 8.9)],
+               M_STONE, DOOR_GLASS, top=8.9)
 
     # 6. The tower's first tier (18-67 m) with a belt cornice at 52 m; the corner towers carry an
     # attic, a cornice, a crest on each outer face, and pinnacles on the corners and between.
@@ -663,6 +677,14 @@ def build(m):
     for k in range(4):
         pinnacle(m, -7.6 if k % 2 == 0 else 7.6, -7.6 if k < 2 else 7.6, 1.6, 168.0, 7.5)
     if LOD == 0:
+        for k in range(4):
+            cu = -7.6 if k % 2 == 0 else 7.6
+            cv = -7.6 if k < 2 else 7.6
+            su = -1.0 if cu < 0 else 1.0
+            sv = -1.0 if cv < 0 else 1.0
+            pinnacle(m, cu - su * 1.7, cv, 1.0, 168.0, 4.6)
+            pinnacle(m, cu, cv - sv * 1.7, 1.0, 168.0, 4.6)
+    if LOD == 0:
         for sd in (-1.0, 1.0):
             for t in (-3.8, 3.8):
                 pinnacle(m, sd * 8.3, t, 0.9, 168.0, 4.0)
@@ -676,6 +698,18 @@ def build(m):
             cu = -6.3 if k % 2 == 0 else 6.3
             cv = -6.3 if k < 2 else 6.3
             m.box(cu, cv, 0.7, 0.7, 168.0, 187.2, light)
+    # The frieze of tall pointed panels above the dials (F's close-up photos, 2026-11-26): seven
+    # dark lancet slots per face between the dial and the cornice.
+    if LOD == 0:
+        for nu, nv in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            side = (-nv, nu)
+            for k in range(7):
+                t = -4.8 + k * 1.6
+                pts = [(-0.5, 182.6), (0.5, 182.6), (0.0, 186.6)]
+                m.face([(nu * 6.33 + side[0] * (t + a), nv * 6.33 + side[1] * (t + a), z) for a, z in pts],
+                       M_STONE, shade(stone, 0.55), top=187.2)
+        # A stone band under the dials, where the photos show the arcade tier's flat roof meeting the wall.
+        m.walls(Model.rect(0, 0, 6.5, 6.5), 168.0, 169.0, M_STONE, shade(stone, 0.9))
     cornice(m, Model.rect(0, 0, 6.3, 6.3), 188.0, depth=0.5, height=0.8, steps=2 if LOD == 0 else 1)
     m.cap(Model.rect(0, 0, 6.3, 6.3), 188.0, M_STONE, ROOF)
     attic(m, Model.rect(0, 0, 6.6, 6.6), 188.0, 1.2)

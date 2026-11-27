@@ -67,7 +67,7 @@ RATCHETS = {
     "main.gd private busy tests": (4, "exact"),  # _free_block, _story_free, _world_free, _ev_free (TD-1)
     # TD-4 b (docs/design/wiring-out-of-main.md): an activity of the kit wires itself and main.gd joins
     # it with `_join` (or `_install`, then `_add`); this counts the calls still wired by hand (the two
-    # tours share one). Measured on b1's head (2026-11-15): 12; on b2's: 11; on b3's: 10; on b4's: 9; on b5's: 8; on b6's: 7; on b7's: 6; on b8's: 4 (Podwózka and the deliveries, two); on b9's: 3; on b10's: 2; on b11's: 1; on b12's: 0 (the rescue line, the last). It stays at 0.
+    # tours share one). Measured on b1's head (2026-11-15): 12; on b2's: 11; on b3's: 10; on b4's: 9; on b5's: 8; on b6's: 7; on b7's: 6; on b8's: 4 (Łuber and the deliveries, two); on b9's: 3; on b10's: 2; on b11's: 1; on b12's: 0 (the rescue line, the last). It stays at 0.
     "main.gd activities.add outside _add": (0, "exact"),
     "hud.card_pressed listeners": (2, "exact"),  # story_quests.gd, first10.gd (TD-16)
     "Polish literals outside sign scripts": (1125, "band"),  # 1,105 + 20 (TD-19: spoken lines go to dialogue.json)

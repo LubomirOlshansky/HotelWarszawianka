@@ -124,8 +124,8 @@
       }
     ],
     [
-      "Podwózka: przyjedziemy tam, gdzie pokaże pinezka. Mniej więcej.",
-      "Podwózka: we'll come wherever the pin says. More or less."
+      "Łuber: przyjedziemy tam, gdzie pokaże pinezka. Mniej więcej.",
+      "Łuber: we'll come wherever the pin says. More or less."
     ],
     [
       "W sobotę Hyrax przy Narodowym. Prosimy nie gonić tramwajów.",
@@ -743,8 +743,8 @@
       "Five stars if we make it. Six if there's no honking."
     ],
     [
-      "To pan od Podwózki? Bo tu czeka jeszcze trzech.",
-      "Are you my Podwózka? Because three more are waiting here."
+      "To pan od Łubera? Bo tu czeka jeszcze trzech.",
+      "Are you my Łuber? Because three more are waiting here."
     ]
   ],
   "podwozka_gps": [
@@ -1062,8 +1062,8 @@
       "FROGS · HERE TOO"
     ],
     [
-      "PODWÓZKA · GPS WIE LEPIEJ",
-      "PODWÓZKA · THE GPS KNOWS BEST"
+      "ŁUBER · GPS WIE LEPIEJ",
+      "ŁUBER · THE GPS KNOWS BEST"
     ],
     [
       "PĘDZIK · PLECAK WIĘKSZY NIŻ KAWALERKA",
@@ -1663,14 +1663,14 @@
       }
     ],
     [
-      "ZAGINĄŁ SYGNAŁ GPS. PODWÓZKA.",
-      "Missing: one GPS signal. Podwózka.",
+      "ZAGINĄŁ SYGNAŁ GPS. ŁUBER.",
+      "Missing: one GPS signal. Łuber.",
       {
         "poster": [
           "ZAGINĄŁ",
           "SYGNAŁ",
           "GPS.",
-          "PODWÓZKA"
+          "ŁUBER"
         ]
       }
     ],
@@ -2199,8 +2199,8 @@
       "The pigeons look down on us. They have a point."
     ],
     [
-      "Bierzemy Podwózkę. Nikt z nas nie prowadzi, i bardzo dobrze.",
-      "We're getting a Podwózka. None of us is driving, and that's how it should be."
+      "Bierzemy Łubera. Nikt z nas nie prowadzi, i bardzo dobrze.",
+      "We're getting a Łuber. None of us is driving, and that's how it should be."
     ],
     [
       "Dzień dobry, Palmo. Ty też całą noc na nogach?",
@@ -7547,7 +7547,7 @@
   ],
   "first_steps": [
     ["Dowieź kebab", "Deliver a kebab", {"only": "step_kebab"}],
-    ["Podwieź kogoś (Podwózka)", "Give a lift (Podwózka)", {"only": "step_ride"}],
+    ["Podwieź kogoś (Łuber)", "Give a lift (Łuber)", {"only": "step_ride"}],
     ["Ścigaj się z rywalem", "Race a rival", {"only": "step_race"}],
     ["Odbierz wezwanie ratunkowe", "Answer a rescue call", {"only": "step_rescue"}],
     ["Polataj helikopterem", "Fly the helicopter", {"only": "step_heli"}],
@@ -7559,7 +7559,7 @@
     ["PANI HALINA MRUGA", "Pani Halina is flashing you", {"only": "choice_title"}],
     ["„Do Palmy, kto pierwszy?”\n%s km · %d zł + %d respektu. Pierwsza z sześciu rywali.", "\"Race you to the Palm?\"\n%s km · %d zł + %d respect. First of six rivals.", {"only": "choice_body"}],
     ["ŚCIGAJ SIĘ · +%d zł", "START RACE · +%d zł", {"only": "choice_race"}],
-    ["Podwózka · od %d zł", "Give a lift · from %d zł", {"only": "choice_ride"}],
+    ["Łuber · od %d zł", "Give a lift · from %d zł", {"only": "choice_ride"}],
     ["Lot · kaseta na dachu BUW", "Fly · a mixtape on the BUW roof", {"only": "choice_fly"}],
     ["NASTĘPNY: %s · %d zł", "Next: %s · %d zł", {"only": "next_rival"}],
     ["%s czeka w kole", "%s waits in the ring", {"only": "next_waits"}],
@@ -7573,7 +7573,70 @@
     ["Ktoś szuka podwózki. Nowe: zlecenie w aplikacji.", "Someone needs a lift. New: a request in the app.", {"only": "intro_ride"}],
     ["Pierwsze kroki: jeszcze %d. Złota strzałka pokazuje drogę.", "First steps: %d to go. The gold arrow shows the way.", {"only": "what_next"}],
     ["✓ Pierwsze kroki %d/%d: %s  +%d zł", "✓ First steps %d/%d: %s  +%d zł", {"only": "tick"}],
-    ["✓ Pierwsze kroki %d/%d: %s  +%d zł · Dalej: garaż", "✓ First steps %d/%d: %s  +%d zł · Next: the garage", {"only": "tick_race"}]
+    ["✓ Pierwsze kroki %d/%d: %s  +%d zł · Dalej: garaż", "✓ First steps %d/%d: %s  +%d zł · Next: the garage", {"only": "tick_race"}],
+    [
+      "%s · %d zł",
+      "%s · %d zł",
+      {
+        "only": "pot_bar"
+      }
+    ],
+    [
+      "%s  +%d zł do puli",
+      "%s  +%d zł to the pot",
+      {
+        "only": "pot_add"
+      }
+    ],
+    [
+      "MANDAT: pula %d → %d zł",
+      "FINE: pot %d → %d zł",
+      {
+        "only": "pot_fine"
+      }
+    ],
+    [
+      "Syreny! Słychać je z oddali.",
+      "Sirens! You can hear them coming.",
+      {
+        "only": "pot_tell"
+      }
+    ],
+    [
+      "%s  +%d respektu · pula %d zł",
+      "%s  +%d RESPECT · pot %d zł",
+      {
+        "only": "pot_place"
+      }
+    ],
+    [
+      "  Pula czeka: %d zł.",
+      "  The pot waits: %d zł.",
+      {
+        "only": "pot_wait"
+      }
+    ],
+    [
+      "  Pula %d zł × 2 = %d zł  +%d szacunu",
+      "  Pot %d zł × 2 = %d zł  +%d respect",
+      {
+        "only": "pot_win"
+      }
+    ],
+    [
+      "  Pula %d → %d zł. Rewanż ją znów ryzykuje.  +%d szacunu",
+      "  Pot %d → %d zł. A rematch risks it again.  +%d respect",
+      {
+        "only": "pot_lose"
+      }
+    ],
+    [
+      "Pula: +%d zł",
+      "Pot: +%d zł",
+      {
+        "only": "pot_paid"
+      }
+    ]
   ],
   "phone_hub": [
     ["TELEFON", "PHONE", {"only": "title"}],
@@ -7605,9 +7668,9 @@
     ["PIERWSZE KROKI", "FIRST STEPS", {"only": "tab_steps"}],
     ["WĄTKI", "QUESTLINES", {"only": "tab_stories"}],
     ["ZLECENIA", "SIDE JOBS", {"only": "tab_jobs"}],
-    ["PODWÓZKA", "PODWÓZKA", {"only": "tab_taxi"}],
+    ["ŁUBER", "ŁUBER", {"only": "tab_taxi"}],
     ["Konto kierowcy", "Driver account", {"only": "taxi_title"}],
-    ["Twoje konto w aplikacji Podwózka: ile zarobiono na kursach, średnia cena kursu i ocena pasażerów (z ostatnich 20 kursów). Jedź, a liczby rosną.", "Your Podwózka app account: what rides earned, the average fare and your passengers' rating (the last 20 rides). Drive, and the numbers grow.", {"only": "taxi_about"}],
+    ["Twoje konto w aplikacji Łuber: ile zarobiono na kursach, średnia cena kursu i ocena pasażerów (z ostatnich 20 kursów). Jedź, a liczby rosną.", "Your Łuber app account: what rides earned, the average fare and your passengers' rating (the last 20 rides). Drive, and the numbers grow.", {"only": "taxi_about"}],
     ["ZAROBIONE", "EARNED", {"only": "f_earned"}],
     ["ŚREDNIA CENA", "AVERAGE FARE", {"only": "f_avg_fare"}],
     ["OCENA", "RATING", {"only": "f_rating"}],
@@ -7683,7 +7746,7 @@
     ["Mirek na Grzybowskiej lakieruje i tuninguje. W becie tanio.", "Mirek on Grzybowska does paint jobs and tuning. Cheap in the beta.", {"only": "step_garage_about"}],
     ["Kebab na dowóz", "Kebab deliveries", {"only": "job_kebab"}],
     ["Budki z kebabem w całym centrum. Weź zamówienie i dowieź, zanim wystygnie.", "Kebab stands all over the centre. Take an order and deliver it before it goes cold.", {"only": "job_kebab_about"}],
-    ["Podwózka", "Podwózka rides", {"only": "job_ride"}],
+    ["Łuber", "Łuber rides", {"only": "job_ride"}],
     ["Pasażerowie z aplikacji: odbierz i dowieź pod adres. Każdy ma swoją historię.", "Passengers from the app: pick them up and drive them there. Everyone has a story.", {"only": "job_ride_about"}],
     ["Wezwania ratunkowe", "Rescue calls", {"only": "job_call"}],
     ["Ktoś utknął na dachu, w parku albo nad Wisłą. Zabierz go do szpitala.", "Someone is stuck on a roof, in a park or by the river. Get them to hospital.", {"only": "job_call_about"}],
@@ -7732,7 +7795,7 @@
     ["To był dopiero kebab. Znajomi będą dzwonić z zadaniami: odrzuć, a dadzą ci spokój. Gra jest w becie, próbuj wszystkiego!", "That was just a kebab. Friends will phone you with quests: say no and they leave you alone a while. It's a beta, try everything!", {"only": "show_body"}],
     ["Warszawa jest twoja. Znajomi będą dzwonić z zadaniami: odrzuć, a dadzą ci spokój. Gra jest w becie, próbuj wszystkiego!", "Warsaw is all yours. Friends will phone you with quests: say no and they leave you alone a while. It's a beta, try everything!", {"only": "show_body_open"}],
     ["Kebaby", "Kebabs", {"only": "show_kebab"}],
-    ["Podwózki", "Rides", {"only": "show_ride"}],
+    ["Łubery", "Rides", {"only": "show_ride"}],
     ["Wyścigi", "Races", {"only": "show_race"}],
     ["Helikopter", "Heli rescues", {"only": "show_rescue"}],
     ["Wątki znajomych", "Friends' quests", {"only": "show_stories"}],
@@ -7989,7 +8052,7 @@
     ["WEJDŹ", "GO IN", {"only": "btn_enter"}],
     ["Pod Palmę na rondzie de Gaulle'a, póki ciepły!", "To the Palm at Rondo de Gaulle'a, while it's warm!", {"only": "to_palm"}],
     ["Pod Palmę, póki ciepły. Nie trzęś torbą.", "To the Palm while it's warm. Don't shake the bag.", {"only": "st_palm"}],
-    ["TYGRAM · DŻEMINI KEBAB (agent AI)", "TYGRAM · DŻEMINI KEBAB (AI agent)", {"only": "bribe_title"}],
+    ["COTAM · DŻEMINI KEBAB (agent AI)", "COTAM · DŻEMINI KEBAB (AI agent)", {"only": "bribe_title"}],
     ["„Dzień dobry! Jestem agentem DŻEMINI KEBAB. Proszę powiedzieć Kebabulowi, że u Kemala słabo. 100 zł na BLIP. Albo wiersz. Albo oba.”", "\"Good day! I am DŻEMINI KEBAB's agent. Please tell Kebabulo that Kemal's is bad. 100 zł on BLIP. Or a poem. Or both.\"", {"only": "bribe_body"}],
     ["BIERZ 100 ZŁ", "TAKE 100 ZŁ", {"only": "btn_take"}],
     ["POKAŻ DO KAMERY", "SHOW THE CAMERA", {"only": "btn_show"}],
@@ -8029,10 +8092,71 @@
     ["ZŁOTY MLASK", "GOLDEN SMACK", {"only": "badge_gold"}],
     ["KEBAB DLA KAMERY", "KEBAB FOR THE CAMERA", {"only": "badge_cam"}],
     ["SPRZEDAWCZYK", "SELLOUT", {"only": "badge_sold"}],
-    ["TYGRAM · DŻEMINI KEBAB: „Przelew wysłany. Ups, czat wyciekł do KEBAB FM.”", "TYGRAM · DŻEMINI KEBAB: \"Transfer sent. Oops, the chat leaked to KEBAB FM.\"", {"only": "leak"}],
+    ["COTAM · DŻEMINI KEBAB: „Przelew wysłany. Ups, czat wyciekł do KEBAB FM.”", "COTAM · DŻEMINI KEBAB: \"Transfer sent. Oops, the chat leaked to KEBAB FM.\"", {"only": "leak"}],
     ["CO DALEJ?", "WHAT NEXT?", {"only": "next_title"}],
     ["Znajomi już dzwonią. Na start polecamy:\n• Nocny zlot pod Narodowym\n• Rave na Smolnej\n• TESŁO z helikoptera", "Your friends are already calling. To start, try:\n• The night car meet by the stadium\n• Rave na Smolnej\n• TESŁO by helicopter", {"only": "next_body"}],
     ["ZADANIA", "QUESTS", {"only": "btn_quests"}],
     ["JEŻDŻĘ", "JUST DRIVE", {"only": "btn_drive"}]
+  ],
+  "padel_match": [
+    ["PADEL NA DESCE", "PADEL AT DESKA", {"only": "title"}],
+    ["UDERZ, GDY KÓŁKO SIĘ ZAMKNIE. WYSOKA PIŁKA: SMECZ.", "HIT WHEN THE RING CLOSES. A HIGH BALL: SMASH.", {"only": "hint"}],
+    ["BIEGASZ SAM. LEWY KCIUK CELUJE: W RÓG, GŁĘBOKO, SKRÓT.", "YOU RUN BY YOURSELF. THE LEFT THUMB AIMS: A CORNER, DEEP, A DROP.", {"only": "hint"}],
+    ["LOB NAD PARĄ PRZY SIATCE. SZYBA JEST CZĘŚCIĄ GRY.", "LOB OVER A PAIR AT THE NET. THE GLASS IS PART OF THE GAME.", {"only": "hint"}],
+    ["TWÓJ SERWIS: UDERZ", "YOUR SERVE: HIT", {"only": "serve"}],
+    ["SIATKA", "NET", {"only": "net"}],
+    ["NIE PRZESZŁA", "DIDN'T CROSS", {"only": "short"}],
+    ["ZA DŁUGO: W SZYBĘ", "LONG: INTO THE GLASS", {"only": "long"}],
+    ["W BOCZNĄ SIATKĘ", "INTO THE SIDE FENCE", {"only": "wide"}],
+    ["WINNER!", "WINNER!", {"only": "winner"}],
+    ["POR TRES! ZA KORT!", "POR TRES! OFF THE COURT!", {"only": "over"}],
+    ["AUT", "OUT", {"only": "out"}],
+    ["WRÓCIŁA ZA SIATKĘ!", "IT CAME BACK OVER!", {"only": "back"}],
+    ["PIŁKA UTKNĘŁA", "THE BALL GOT STUCK", {"only": "stall"}],
+    ["PUNKT DLA WAS", "YOUR POINT", {"only": "point_us"}],
+    ["PUNKT DLA RYWALI", "THEIR POINT", {"only": "point_them"}],
+    ["ZŁOTY PUNKT!", "GOLDEN POINT!", {"only": "golden"}],
+    ["GEM DLA WAS!", "GAME TO YOU!", {"only": "game_us"}],
+    ["GEM DLA RYWALI", "GAME TO THEM", {"only": "game_them"}],
+    ["WYGRANA!", "YOU WIN!", {"only": "win"}],
+    ["PRZEGRANA", "YOU LOSE", {"only": "lose"}],
+    ["CZYSTO!", "CLEAN!", {"only": "perfect"}],
+    ["ZA WCZEŚNIE", "TOO EARLY", {"only": "early"}],
+    ["ZA PÓŹNO", "TOO LATE", {"only": "late"}],
+    ["TWOJA!", "YOURS!", {"only": "yours"}],
+    ["WYMIANA ×%d", "RALLY ×%d", {"only": "rally"}],
+    ["PREZES: „RAKIETA NR %d.”", "PREZES: RACKET NUMBER %d.", {"only": "racket"}],
+    ["PREZES: „RAKIETA NR %d. TO WINA STRUN.”", "PREZES: RACKET NUMBER %d. IT'S THE STRINGS.", {"only": "racket"}],
+    ["PREZES: „TO PRZEZ STRUNY.”", "PREZES: IT'S THE STRINGS.", {"only": "strings"}],
+    ["SMECZ!", "SMASH!", {"only": "smash"}],
+    ["PUDŁO", "MISS", {"only": "whiff"}],
+    ["OOOCH!", "OOOH!", {"only": "ooh"}],
+    ["TY", "YOU", {"only": "you"}],
+    ["UDERZ", "HIT", {"only": "hit"}],
+    ["LOB", "LOB", {"only": "lob"}],
+    ["GEMY", "GAMES", {"only": "games"}],
+    ["DOMINIK: „NIE BIEGAJ, USTAW SIĘ!”", "DOMINIK: DON'T RUN, GET IN PLACE!", {"only": "coach"}],
+    ["DOMINIK: „ŚCIANA TO CZĘŚĆ GRY!”", "DOMINIK: THE WALL IS PART OF THE GAME!", {"only": "coach"}],
+    ["DOMINIK: „LOB, KIEDY STOJĄ PRZY SIATCE!”", "DOMINIK: LOB WHEN THEY'RE AT THE NET!", {"only": "coach"}],
+    ["DOMINIK: „NIE MACHAJ. CZEKAJ NA KÓŁKO.”", "DOMINIK: DON'T FLAIL. WAIT FOR THE RING.", {"only": "coach"}],
+    ["PANI BASIA: „PARKING DLA HELIKOPTERÓW OD STRONY WISŁY.”", "PANI BASIA: THE HELICOPTER PARKING IS ON THE RIVER SIDE.", {"only": "basia"}],
+    ["%s I %s KONTRA %s I %s", "%s AND %s VS %s AND %s", {"only": "vs"}],
+    ["JAK GRAĆ", "HOW TO PLAY", {"only": "howto_title"}],
+    ["UDERZ, GDY KÓŁKO ZAMKNIE SIĘ NA PIŁCE: CZYSTO!", "HIT AS THE RING CLOSES ON THE BALL: CLEAN!", {"only": "howto"}],
+    ["ZA WCZEŚNIE: PO SKOSIE. ZA PÓŹNO: PO LINII.", "EARLY: CROSS-COURT. LATE: DOWN THE LINE.", {"only": "howto"}],
+    ["BIEGASZ SAM. LEWY KCIUK CELUJE: W RÓG, GŁĘBOKO, SKRÓT.", "YOU RUN BY YOURSELF. THE LEFT THUMB AIMS: A CORNER, DEEP, A DROP.", {"only": "howto"}],
+    ["WYSOKA PIŁKA: SMECZ. ONI PRZY SIATCE: LOB.", "A HIGH BALL: SMASH. THEY'RE AT THE NET: LOB.", {"only": "howto"}],
+    ["DOTKNIJ: ROZGRZEWKA", "TAP: WARM-UP", {"only": "howto_go"}],
+    ["DOMINIK: „TRZY PIŁKI NA ROZGRZEWKĘ. NIE MACHAJ, CZEKAJ NA KÓŁKO.”", "DOMINIK: THREE BALLS TO WARM UP. DON'T FLAIL, WAIT FOR THE RING.", {"only": "howto_coach"}],
+    ["ROZGRZEWKA %d/%d", "WARM-UP %d/%d", {"only": "warm"}],
+    ["POMIŃ", "SKIP", {"only": "skip"}],
+    ["DOMINIK: „TAK JEST! TO JEST CZYSTO.”", "DOMINIK: THAT'S IT! THAT'S CLEAN.", {"only": "warm_clean"}],
+    ["DOMINIK: „PIĘKNIE. PREZES JUŻ SIĘ POCI.”", "DOMINIK: BEAUTIFUL. PREZES IS SWEATING ALREADY.", {"only": "warm_clean"}],
+    ["DOMINIK: „DOBRZE! JESZCZE BLIŻEJ KÓŁKA.”", "DOMINIK: GOOD! EVEN CLOSER TO THE RING.", {"only": "warm_good"}],
+    ["DOMINIK: „ZA WCZEŚNIE. KÓŁKO JESZCZE SIĘ ZAMYKAŁO.”", "DOMINIK: TOO EARLY. THE RING WAS STILL CLOSING.", {"only": "warm_early"}],
+    ["DOMINIK: „ZA PÓŹNO. KÓŁKO JUŻ BYŁO.”", "DOMINIK: TOO LATE. THE RING HAD CLOSED.", {"only": "warm_late"}],
+    ["DOMINIK: „SPOKOJNIE. JESZCZE RAZ.”", "DOMINIK: EASY. AGAIN.", {"only": "warm_miss"}],
+    ["GRAMY NA SERIO!", "NOW FOR REAL!", {"only": "warm_done"}],
+    ["PREZES: „JA SIĘ NIE ROZGRZEWAM. JA OD RAZU GRAM.”", "PREZES: I DON'T WARM UP. I JUST PLAY.", {"only": "prezes_warm"}]
   ]
 }

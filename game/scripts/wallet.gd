@@ -30,7 +30,7 @@ extends Node
 ## Saves when the app leaves (2026-11-15, F's pick after the architecture review). Most changes
 ## save at once (`pay`, `spend`, `record`, `find_egg`...), but some only change a value and wait for
 ## the next save: `count_smash`, `count_push`, and other scripts' own writes into `keep` and the
-## other sections (a Podwózka story heard, Zagłębie's first welcome). iOS can close a background app
+## other sections (a Łuber story heard, Zagłębie's first welcome). iOS can close a background app
 ## without a word, so main.gd calls `flush` when the app is paused, loses focus or is closed. The
 ## first write of a session that fails sends `save_failed`, once, for main.gd's note to the player.
 
@@ -45,7 +45,7 @@ const PATH := "user://save.cfg"
 const VERSION := 2
 ## The sections this version reads and writes; any other is kept as it was (`_extra`).
 const SECTIONS := ["save", "wallet", "jobs", "best", "eggs", "police", "keep", "notes", "notes_chapters",
-		"polnoc", "tapes", "kadr", "kadr_photos", "garage", "districts", "district_jobs", "syrenki", "ladder", "intro", "cassettes", "session", "end"]
+		"polnoc", "tapes", "kadr", "kadr_photos", "garage", "districts", "district_jobs", "syrenki", "ladder", "intro", "cassettes", "napkin", "session", "end"]
 ## TD-8: the section that ends a file this build writes (`[end] ok=true`), promised by the file's
 ## first line (`[save] sealed=true`). An older build keeps `[end]` as a section it does not know
 ## and drops `sealed`, so its file reads as an unsealed one: no end is asked of it.
@@ -119,6 +119,9 @@ var district_jobs := {}
 var syrenki := {}
 ## The first-10 polish (cassettes.gd): the mixtapes taken, id -> the day (YYYYMMDD).
 var cassettes := {}
+## F 2026-11-26 (story-structure): the napkin's city lines done (napkin.gd), line id -> the real day
+## (YYYYMMDD), like `eggs`. The save's [napkin] section; added, so no version bump.
+var napkin := {}
 ## Loop 3h slice 3: the rival ladder (ladder.gd): rung id ("halina" ... "mike", and "trzy_mosty" for
 ## the final race) -> the day it was first beaten (yyyymmdd). The save's [ladder] section; a v2 file
 ## without it (slices 1-2) loads as nothing beaten (no version bump: the section is only added).
@@ -250,6 +253,8 @@ func load_save() -> void:
 		intro[key] = int(cfg.get_value("intro", key, 1))
 	for key in (cfg.get_section_keys("cassettes") if cfg.has_section("cassettes") else PackedStringArray()):
 		cassettes[key] = int(cfg.get_value("cassettes", key, 1))
+	for key in (cfg.get_section_keys("napkin") if cfg.has_section("napkin") else PackedStringArray()):
+		napkin[key] = int(cfg.get_value("napkin", key, 1))
 	for key in (cfg.get_section_keys("session") if cfg.has_section("session") else PackedStringArray()):
 		session[key] = cfg.get_value("session", key)
 
@@ -450,6 +455,8 @@ func save() -> void:
 		cfg.set_value("intro", key, int(intro[key]))
 	for key in cassettes:
 		cfg.set_value("cassettes", key, int(cassettes[key]))
+	for key in napkin:
+		cfg.set_value("napkin", key, int(napkin[key]))
 	for key in session:
 		cfg.set_value("session", key, session[key])
 	for section in _extra:
@@ -530,6 +537,7 @@ func reset() -> void:
 	ladder.clear()
 	intro.clear()
 	cassettes.clear()
+	napkin.clear()
 	session.clear()
 	save()
 	changed.emit(zl, respect, 0)
@@ -602,7 +610,7 @@ func pay(amount: int, gain := 0, kind := "") -> void:
 
 
 ## Loop 3h slice 4: the jobs finished, of every paid kind but NOT_JOBS (a kebab, słoiki, a rescue,
-## a Podwózka ride, the round-up, "Na czasie"...). Old saves count from the totals they kept by kind.
+## a Łuber ride, the round-up, "Na czasie"...). Old saves count from the totals they kept by kind.
 func jobs_done() -> int:
 	var n := 0
 	for k in jobs:

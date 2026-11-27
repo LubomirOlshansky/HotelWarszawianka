@@ -201,12 +201,19 @@ class PlayPolice extends Node:
 	## often the chase was called off.
 	var raids: Array = []
 	var cordon: Array = []
+	var chasers: Array = []
 	var left := 0
 	var stood_down := 0
 
-	func raid(at: Vector3, n: int, lvl := 2) -> int:
+	func raid(at: Vector3, n: int, lvl := 2, _hold := 15.0) -> int:
 		raids.append([at, n, lvl])
 		return n
+
+	func scene_to_chaser(d: Driver) -> bool:
+		if not chase:
+			return false
+		chasers.append(d)
+		return true
 
 	func chasing() -> bool:
 		return chase
@@ -228,11 +235,24 @@ class PlayPolice extends Node:
 
 ## car.gd's part the meet reads and writes.
 class PlayCar extends CharacterBody3D:
+	signal nitro_started
+
+	func nitro_cancel() -> void:
+		nitro_on = false
+		nitro_charge = 0.0
+
+	func nitro_extend(s: float) -> void:
+		nitro_burn_s = maxf(nitro_burn_s, s)
+
 	var top_mult := 1.0
 	var accel_mult := 1.0
 	var nitro_owned := false
 	var nitro_on := false
 	var nitro_charge := 0.4
+	var nitro_accel_scale := 2.2
+	var nitro_top_scale := 1.3
+	var nitro_burn_s := 2.5
+	var nitro_bottles := 2
 	var max_speed := 30.0
 	var accel := 15.0
 	var vel := Vector3.ZERO
@@ -347,19 +367,25 @@ func _check_rules(digest: PackedStringArray) -> void:
 		if int(pay[0]) > last or int(pay[1]) <= 0:
 			problems.append("place %d pays %s" % [p, str(pay)])
 		last = int(pay[0])
-	if Meet.shift_grade(-0.1) != "early" or Meet.shift_grade(0.1) != "perfect" or Meet.shift_grade(0.8) != "late":
+	if Meet.shift_grade(-0.1) != "early" or Meet.shift_grade(0.1) != "perfect" or Meet.shift_grade(0.8) != "late" or Meet.PERFECT != 0.12:
 		problems.append("shift grades wrong")
 	# The genre's grades (F 2026-11-08): yellow is good, before it early, green perfect, long on
 	# the limiter late; the launch by the revs at green.
 	var grades := [Meet.shift_grade_at(0.5, -1.0), Meet.shift_grade_at(Meet.SHIFT_SHOW + 0.01, -1.0),
-			Meet.shift_grade_at(0.97, 0.1), Meet.shift_grade_at(1.0, Meet.PERFECT + 0.1), Meet.shift_grade_at(1.0, Meet.GOOD_LATE + 0.2)]
-	if grades != ["early", "good", "perfect", "good", "late"]:
+			Meet.shift_grade_at(0.97, 0.1), Meet.shift_grade_at(1.0, Meet.PERFECT + 0.05), Meet.shift_grade_at(1.0, Meet.GOOD_LATE + 0.2)]
+	if grades != ["early", "short", "perfect", "good", "late"]:
 		problems.append("shift grades at the needle wrong: %s" % str(grades))
 	var launches := [Meet.launch_grade(0.2), Meet.launch_grade((Meet.LAUNCH.x + Meet.LAUNCH.y) * 0.5), Meet.launch_grade(1.0)]
 	if launches != ["bog", "perfect", "spin"]:
 		problems.append("launch grades wrong: %s" % str(launches))
+	# The blue zone narrows by night; the short shift's pull climbs from SHORT_MIN to 1 across the yellow.
+	if Meet.launch_zone(1) != Meet.LAUNCH or Meet.launch_zone(4).y - Meet.launch_zone(4).x >= Meet.LAUNCH.y - Meet.LAUNCH.x \
+			or Meet.launch_zone(9) != Meet.launch_zone(4):
+		problems.append("the launch zone doesn't narrow by night")
+	if not is_equal_approx(Meet.short_mult(Meet.SHIFT_SHOW), Meet.SHORT_MIN) or not is_equal_approx(Meet.short_mult(Meet.SHIFT_AT), 1.0):
+		problems.append("the short shift's pull is wrong")
 	# Holding the gas from the first amber overshoots the launch zone by green: the launch is a skill.
-	var revs_at_green := minf(1.0, Meet.REV_UP * (3.0 * Meet.TREE_STEP))
+	var revs_at_green := minf(1.0, Meet.REV_UP * (3.0 * Meet.TREE_STEP + 0.5))
 	if Meet.launch_grade(revs_at_green) != "spin":
 		problems.append("gas held from the first amber lands a %s launch" % Meet.launch_grade(revs_at_green))
 	for st: int in Meet.Stage.values():
@@ -373,18 +399,44 @@ func _check_drag(digest: PackedStringArray) -> void:
 	# The hatch: accel 15, top 30 m/s, the drag tune on top.
 	var accel := 15.0
 	var top := 30.0 * Meet.DRAG_TOP
-	var rr: Array = Meet.rival_run(accel, top)
+	var rr: Array = Meet.rival_run(accel, top, 1)
 	var ok := float(rr[3])
 	var best := float(rr[4])
 	var tadek := float(rr[2])
+	# Tadek by night (critique 3.5, the hatch car): about 13.2, 12.5, 11.4, 10.8 s, each ±0.2.
+	var want := [13.2, 12.5, 11.4, 10.8]
+	var times: Array[float] = []
+	for n in 4:
+		times.append(float(Meet.rival_run(accel, top, n + 1)[2]))
+		if absf(times[n] - float(want[n])) > 0.25:
+			problems.append("Tadek on night %d takes %.2f s, not about %.1f" % [n + 1, times[n], want[n]])
+	if not (times[0] > times[1] and times[1] > times[2] and times[2] > times[3]):
+		problems.append("Tadek's nights don't get faster: %s" % str(times))
 	var lazy: Array = Meet.sim_run(accel, top, 0.6, 0.9, false)
-	var nitro: Array = Meet.sim_run(accel, top, 0.3, 0.3, true, 3.5, 3.0)
+	var dobrze: Array = Meet.sim_run(accel, top, 0.35, 0.3, true, 0.0, 0.0, Meet.NITRO_CAP, Meet.NITRO_PULL, [], true)
+	var masher: Array = Meet.sim_run(accel, top, 0.35, 0.3, true, 0.0, 0.0, Meet.NITRO_CAP, Meet.NITRO_PULL, [0.3, 0.3, 0.3, 0.3], false)
+	var bare: Array = Meet.sim_run(accel, top, 0.35, 0.1, true, 0.0, 0.0, Meet.NITRO_CAP, Meet.NITRO_PULL, [], true)
+	var third: Array = Meet.sim_run(accel, top, 0.35, 0.1, true, 0.0, 0.0, Meet.NITRO_CAP, Meet.NITRO_PULL, [], true, 2)
+	var fifth: Array = Meet.sim_run(accel, top, 0.35, 0.1, true, 0.0, 0.0, Meet.NITRO_CAP, Meet.NITRO_PULL, [], true, 4)
 	if not (best < tadek and tadek < ok):
 		problems.append("times out of order: perfect %.2f, Tadek %.2f, ok %.2f" % [best, tadek, ok])
 	if float(lazy[0]) <= tadek:
 		problems.append("a lazy run (%.2f s) beats Tadek (%.2f s)" % [lazy[0], tadek])
-	if float(nitro[0]) >= tadek:
-		problems.append("clean shifts + nitro (%.2f s) don't beat Tadek (%.2f s)" % [nitro[0], tadek])
+	if float(masher[0]) <= float(dobrze[0]):
+		problems.append("a plain launch (%.2f s) beats a perfect one (%.2f s)" % [masher[0], dobrze[0]])
+	# Timing is worth it: four IDEALNIE beat four DOBRZE by over a second.
+	if float(dobrze[0]) - float(bare[0]) < 0.8:
+		problems.append("four IDEALNIE (%.2f s) vs four DOBRZE (%.2f s): timing is worth under 0.8 s" % [bare[0], dobrze[0]])
+	# The bottle: into third is the best place, into fifth the weakest; the win over Tadek's night 3 needs it.
+	if not (float(third[0]) < float(fifth[0]) and float(fifth[0]) < float(bare[0])):
+		problems.append("the bottle's place: third %.2f, fifth %.2f, none %.2f" % [third[0], fifth[0], bare[0]])
+	if float(third[0]) >= times[2]:
+		problems.append("four IDEALNIE and the bottle into third (%.2f s) don't beat Tadek's night 3 (%.2f s)" % [third[0], times[2]])
+	# PT-63: night 2 can be won: four IDEALNIE and the bottle into third beat Tadek's night 2 by over a second.
+	if float(third[0]) >= times[1] - 1.0:
+		problems.append("night 2 is not winnable by a clean run: %.2f s against Tadek's %.2f s" % [third[0], times[1]])
+	if float(bare[0]) <= times[3] - 1.0:
+		problems.append("no bottle beats night 4's Tadek (%.2f s) by over a second" % times[3])
 	if ok > 30.0:
 		problems.append("the ok run takes %.1f s" % ok)
 	var prof: PackedFloat32Array = rr[0]
@@ -395,7 +447,7 @@ func _check_drag(digest: PackedStringArray) -> void:
 	if Meet.profile_at(prof, ok) < Meet.QUARTER - 1.0:
 		problems.append("profile ends short: %.1f m" % Meet.profile_at(prof, ok))
 	if verbose:
-		print("drag: perfect %.2f, nitro %.2f, Tadek %.2f, ok %.2f, lazy %.2f" % [best, nitro[0], tadek, ok, lazy[0]])
+		print("drag: perfect %.2f, bottle %.2f, Tadek %s, ok %.2f, lazy %.2f" % [best, third[0], str(times), ok, lazy[0]])
 	digest.append("drag: perfect %.2f < Tadek %.2f < ok %.2f s" % [best, tadek, ok])
 
 
@@ -431,7 +483,7 @@ func _real_run(react: float, delay: float, handling := 0) -> Array:
 		car.throttle = 0.75 if t > react else 0.0
 		Meet.hold_inputs(car, on)
 		boost = maxf(0.0, boost - dt)
-		car.accel_mult = acc0 * (Meet.SHIFT_BOOST if boost > 0.0 else 1.0)
+		car.accel_mult = acc0 * float(Meet.GEAR_PULL[gear]) * (Meet.SHIFT_BOOST if boost > 0.0 else 1.0)
 		car.top_mult = top0 * Meet.DRAG_TOP * float(Meet.GEARS[gear])
 		var cap := float(car.max_speed) * float(car.top_mult)
 		if gear < Meet.GEARS.size() - 1 and car.vel.length() >= cap * Meet.SHIFT_AT:
@@ -451,10 +503,10 @@ func _real_run(react: float, delay: float, handling := 0) -> Array:
 
 
 func _check_real_car(digest: PackedStringArray) -> void:
-	var clean: Array = await _real_run(0.46, 0.15)
+	var clean: Array = await _real_run(0.46, 0.1)
 	var lazy: Array = await _real_run(0.6, 0.9)
 	var c := Car.new()
-	var sim: Array = Meet.sim_run(float(c.accel), float(c.max_speed) * Meet.DRAG_TOP, 0.46, 0.15, true)
+	var sim: Array = Meet.sim_run(float(c.accel), float(c.max_speed) * Meet.DRAG_TOP, 0.46, 0.1, true)
 	c.free()
 	if float(clean[0]) >= float(clean[1]):
 		problems.append("the real car's clean run (%.2f s) doesn't beat Tadek (%.2f s)" % [clean[0], clean[1]])
@@ -462,9 +514,30 @@ func _check_real_car(digest: PackedStringArray) -> void:
 		problems.append("the real car's lazy run (%.2f s) beats Tadek (%.2f s)" % [lazy[0], lazy[1]])
 	if absf(float(clean[0]) - float(sim[0])) > 0.3:
 		problems.append("the real car (%.2f s) and sim_run (%.2f s) differ" % [clean[0], sim[0]])
+	# The real bottle after a perfect shift (STRZAŁ) burns at least 3.0 s, not the plain 2.5.
+	var nb := Car.new()
+	nb.nitro_owned = true
+	nb.nitro_bottles = 1
+	nb.nitro_burn_s = Meet.NITRO_S
+	nb.nitro_charge = 1.0
+	nb.nitro_fire()
+	var burnt := 0.0
+	var extended := false
+	for i in 600:
+		nb._nitro_tick(1.0 / 60.0)
+		if nb.nitro_on and not extended:
+			nb.nitro_extend(Meet.STRZAL_S)
+			extended = true
+		if not nb.nitro_on and extended:
+			break
+		if nb.nitro_on:
+			burnt += 1.0 / 60.0
+	nb.free()
+	if burnt < 3.0:
+		problems.append("a STRZAŁ bottle burns %.2f s on the real car, not 3.0 s or more" % burnt)
 	digest.append("real car: clean %.2f < Tadek %.2f < lazy %.2f s" % [clean[0], clean[1], lazy[0]])
 	# The Grounded handling (car.gd GROUNDED) pulls the same, so the drag stays fair in it too.
-	var g_clean: Array = await _real_run(0.46, 0.15, Car.Handling.GROUNDED)
+	var g_clean: Array = await _real_run(0.46, 0.1, Car.Handling.GROUNDED)
 	var g_lazy: Array = await _real_run(0.6, 0.9, Car.Handling.GROUNDED)
 	if float(g_clean[0]) >= float(g_clean[1]) or float(g_lazy[0]) <= float(g_lazy[1]):
 		problems.append("in Grounded the clean run (%.2f s) and the lazy one (%.2f s) don't straddle Tadek (%.2f s)"
@@ -934,10 +1007,42 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(_hud.dots == m._racers.size(), "the racers show on the minimap")
 	await _real(1.8)
 	_ok(_hud.banner == "", "the banner goes after 1.6 s")
+	# The night's pot: the siren tell came, the player parked in the ring is boxed (no CZYSTO), a clean
+	# player is 22 m out; a caution halves the pot, never to nothing by itself.
+	_ok(m._tell_t < 0.0 and not m.raid_clean, "the siren tell came first and the player in the ring is boxed (no CZYSTO)")
+	var pot_save: int = m.pot
+	# PT-64: a bonus is a quest toast (not the dropped ambient kind), and the tell clears Lena's subtitle.
+	var toasts0: int = _hud.toasts.size()
+	var amb0: int = _hud.ambient.size()
+	m._pot_add(60, "CZYSTO!", "CLEAN!")
+	_ok(_hud.toasts.size() == toasts0 + 1 and _hud.ambient.size() == amb0 and String(_hud.toasts[-1]).contains("60"), "PT-64: +60 CZYSTO! is a normal-priority toast")
+	m.pot = pot_save
+	m.pot_parts.pop_back()
+	var cleared0: int = _bubbles.cleared
+	m._tell()
+	m._tell_t = -1.0
+	_ok(_bubbles.cleared == cleared0 + 1, "PT-64: the siren tell clears the bubbles (Lena's subtitle)")
+	_ok(m._punctual >= Meet.POT_PUNCTUAL, "NA CZAS allows at least POT_PUNCTUAL s, more for a long way (%.0f s, PT-59)" % m._punctual)
+	_ok(Meet.is_clean(gap + Vector3(Meet.CLEAN_M + 1.0, 0.0, 0.0), gap) and not Meet.is_clean(gap + Vector3(5.0, 0.0, 0.0), gap), "CZYSTO is CLEAN_M m from the gap")
+	m.pot = 100
+	_wallet.cautions_today += 1
+	m._mandat_poll()
+	_ok(m.pot == 50, "a caution halves the pot (MANDAT)")
+	m._mandat_poll()
+	_ok(m.pot == 50, "one halving per caution")
+	_ok(m.night_bar() == "●●○○○ · 50 zł", "the night bar: the second beat and the pot (%s)" % m.night_bar())
+	m.pot = pot_save
+	# Critique 3.3: CHASER_AT s after NALOT! two of the four become chasers, the other two stay boxed.
+	_ok(_police.chasers.is_empty(), "no cordon car chases before CHASER_AT")
+	_police.chase = true
+	m._stage_t = Meet.CHASER_AT - 0.01
+	_frames(0.3)
+	_ok(_police.chasers.size() == Meet.CHASERS and m._cordon.size() == Meet.CORDON - Meet.CHASERS and _in(Meet.Stage.RAID), "CHASERS cordon cars join the chase, the rest stay")
+	_police.chase = false
 
 	# 5. The pin, the race.
 	_ok(_until(_in.bind(Meet.Stage.RACE), 10.0), "PIN_AFTER s after the sirens the race begins")
-	_ok(_hud.notes.size() == 1 and _hud.notes[0].begins_with("TYGRAM · WNRC"), "the TYGRAM note")
+	_ok(_hud.notes.size() == 1 and _hud.notes[0].begins_with("COTAM · WNRC"), "the COTAM note")
 	var goal: Vector3 = m.meets[1]["at"]
 	_ok(m.has_target() and m.target_position() == goal and m.target_colour() == Meet.PIN_COLOUR and _director.targeted() == m, "the race's target is meet 2's middle, in PIN_COLOUR")
 	_ok(Color(m._beacon.get("_colour")) == Meet.PIN_COLOUR and is_equal_approx(float(m._beacon.get("_ring_radius")), Meet.ARRIVE_R * 0.6), "the ring is recoloured, ARRIVE_R * 0.6")
@@ -972,6 +1077,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(_hud.badge == "3/9", "two ahead: the badge 3/9 (%s)" % _hud.badge)
 	var money: int = _wallet.money
 	var respect: int = _wallet.respect
+	var pot0: int = m.pot
 	_hud.toasts.clear()
 	dice.state = m._rng.state
 	_park_at(goal)
@@ -979,7 +1085,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_crowd_dice(dice)
 	_ok(m._rng.state == dice.state, "the dice: meet 2 draws its crowd's places and no cars")
 	var pay: Array = Meet.place_pay(3)
-	_ok(m.place == 3 and m.last_pay == pay and _wallet.money == money + int(pay[0]) and _wallet.respect == respect + int(pay[1]) and "meet_race" in _wallet.kinds, "third place pays place_pay(3)")
+	_ok(m.place == 3 and m.last_pay == pay and _wallet.money == money and m.pot == pot0 + int(pay[0]) and _wallet.respect == respect + int(pay[1]) and "meet_race" in _wallet.kinds, "third place: the money into the pot, the respect paid (the night's pot %d zł)" % m.pot)
 	_ok(_toast("3. MIEJSCE") and not m.has_target() and _hud.status == "", "the toast, no target, no status line")
 	_ok(m.meet_i == 1 and m._tandem and m._drifting and m._skajlajner.visible and m._scene.visible, "meet 2 is up with the tandem and Tadek's car")
 	var parked := true
@@ -998,16 +1104,21 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	for l: Array in Meet.MEET2_LINES:
 		talked2 = talked2 and _said(String(l[1]))
 	_ok(talked2, "the club said all of MEET2_LINES")
-	_ok(_police.raids.size() == 2 and _hud.banners.count("NALOT!") == 2 and _police.cordon.size() == 2 * Meet.CORDON and m._cordon.size() == Meet.CORDON and _police.left == Meet.CORDON, "the second raid: its cordon, the first one sent away")
+	# Critique 3.4: raid 2 is a searchlight, no second cordon and no police until it finds you.
+	_ok(_hud.banners.count("NALOT!") == 2 and _police.raids.size() == 1 and _police.cordon.size() == Meet.CORDON and m._search_t >= 0.0 and m._pool.visible, "the second raid: a searchlight, no cordon, no police yet")
+	_ok(m.search_pos(0.0) == m._exit_a and m.search_pos(Meet.SEARCH_LIT) == m._exit_a and m.search_pos(Meet.SEARCH_T) == m._exit_b \
+			and m.search_pos((Meet.SEARCH_LIT + Meet.SEARCH_T) * 0.5).is_equal_approx(m._exit_a.lerp(m._exit_b, 0.5)), "the light sits on exit A for SEARCH_LIT s, then crosses to exit B by SEARCH_T")
 	_frames(Meet.PIN_AFTER - 1.5)
 	_ok(_in(Meet.Stage.RAID2), "the second raid counts its own PIN_AFTER s (not on from the race's)")
 	_ok(_until(_in.bind(Meet.Stage.TO_DRAG), 12.0), "the pin to the drag")
+	var pot_lit: int = m.pot
+	_ok(_until(func() -> bool: return m.search_found, Meet.SEARCH_T + 2.0) and _police.raids.size() == 2 and not m._pool.visible and m.pot < pot_lit, "still in the square when the light has looked everywhere: found, the police come, the pot halves")
 	var watch: Vector3 = m.strip["watch"]
 	_ok(_hud.notes.size() == 2 and m._gate.visible and m._gate.mesh != null and not m._scene.visible and m._racers.is_empty() and _hud.dots == 0, "the note, the gate, the scene and the racers gone")
 	_ok(m.has_target() and m.target_position() == watch and m._beacon.global_position.is_equal_approx(watch) and is_equal_approx(float(m._beacon.get("_ring_radius")), Meet.MEET_R), "the target is the start, ring MEET_R")
 	_traffic.seen = false
 	_frames(0.6)
-	_ok(m._cordon.is_empty() and _police.left == 2 * Meet.CORDON and not m._flash.visible, "the cordon leaves once out of sight")
+	_ok(m._cordon.is_empty() and not m._flash.visible, "the cordon leaves once out of sight")
 	_traffic.seen = true
 	var on_strip := _traffic.spawn(m.strip_at(60.0))
 	var off_strip := _traffic.spawn(Vector3(5000.0, 0.0, 5000.0))
@@ -1031,15 +1142,19 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	dice.randf_range(0.0, Meet.TREE_JITTER)
 	_ok(m._rng.state == dice.state, "the dice: the tree draws its jitter once")
 	_ok(m._tree.visible and m._tacho.visible and m._tacho.staging and m._gate.visible, "the tree and the tacho are up")
-	_ok(not nitro_before and _car.nitro_owned and _car.nitro_charge == 1.0, "the nitro on loan")
+	_ok(not nitro_before and not _car.nitro_owned and _car.nitro_bottles == 1 and m.drag_night() == 1, "night 1: no bottle on the car")
 	_ok(is_equal_approx(_car.top_mult, Meet.DRAG_TOP * float(Meet.GEARS[0])), "the car's top held to first gear")
 	_ok(_hud.hush and _bubbles.cleared >= 1 and _bubbles.quiet_all and _police.gentle, "the quiet screen on, the bubbles cleared, the police gentle")
 	_ok(not on_strip.active and off_strip.active, "the traffic on the strip is cleared, the rest stays")
-	# Coast, then gas for the last 0.73 s: the revs land in the launch zone at green.
-	_driven(2.67, 0.0)
+	# Coast, then gas for the last 0.52 s: the revs land in the launch zone at green.
+	_driven(2.88, 0.0)
 	_ok(_car.vel == Vector3.ZERO and m.stage == Meet.Stage.LINE, "on the line the car stays (no false start by gas)")
 	_ok(_drive_until(func() -> bool: return m.stage == Meet.Stage.DRAG, 3.0, 1.0), "green after TREE_PRE + 3 * TREE_STEP")
 	_ok(m._tree.green and not m._tacho.staging and m._boost_t > 0.0 and Meet.launch_grade(m._revs) == "perfect", "the revs in the launch zone (%.2f): a perfect launch, a burst" % m._revs)
+	# PT-63: a car that turns onto the strip 12 m ahead mid-run is gone within a frame, not at the next tick.
+	var late_car := _traffic.spawn(m.strip_at(m._player_s + 12.0))
+	_driven(0.05, 1.0)
+	_ok(not late_car.active, "PT-63: a car on the strip 12 m ahead is swept within a few frames")
 	var gears_ok := true
 	for k in 3:
 		var top_before := _car.top_mult
@@ -1052,11 +1167,12 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(gears_ok, "three perfect shifts: the pill, the gear, a burst, the car's tune with the gear")
 	money = _wallet.money
 	respect = _wallet.respect
+	var pot_win: int = m.pot
 
 	# 8. The ends: the win.
 	_ok(_drive_until(_in.bind(Meet.Stage.RESULT), 30.0, 1.0), "across 402 m")
 	_ok(m.drag_won and _hud.card == "RESPEKT!" and _hud.buttons == 1 and m.drag_time > 0.0, "before Tadek: RESPEKT!, one button (%.2f s)" % m.drag_time)
-	_ok(_wallet.money == money + int(Meet.DRAG_PAY[0]) and _wallet.respect == respect + int(Meet.DRAG_PAY[1]) and "meet_drag" in _wallet.kinds, "DRAG_PAY paid")
+	_ok(_wallet.money == money + pot_win * 2 and _wallet.respect == respect + int(Meet.DRAG_PAY[1]) and "meet_drag" in _wallet.kinds and m.pot == 0, "a win pays the pot doubled (%d × 2 zł)" % pot_win)
 	_ok(bool(_wallet.keep.get("wnrc_member", false)) and int(_wallet.keep.get("wnrc_wins", 0)) == 1 and is_equal_approx(float(_wallet.best.get("drag_402", -1.0)), m.drag_time), "the club card kept, the record")
 	_tune("the win")
 	_ok(not m._tacho.visible and not m._tree.visible and not _hud.hush and _hud.pill == "", "the tacho, tree, pill and quiet screen down")
@@ -1123,6 +1239,23 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(_drive_until(_in.bind(Meet.Stage.DRAG), 5.0, 1.0) and m._spin_t > 0.0 and Meet.launch_grade(m._revs) == "spin", "gas held from the start: wheelspin")
 	_driven(1.0, 1.0, true)
 	_ok(_car.nitro_on and _car.nitro_charge < 1.0, "the nitro works on loan")
+	# The bottle's rules (critique 3.4): wheelspin in first or second gear (the bottle gone), a STRZAŁ right
+	# after an IDEALNIE, plain otherwise.
+	var gear_was: int = m._gear
+	m._gear = 1
+	m._spin_t = 0.0
+	_car.nitro_charge = 1.0
+	m._on_nitro()
+	_ok(m._spin_t > 0.0 and _car.nitro_charge == 0.0, "the bottle in second gear: wheelspin, the bottle gone")
+	m._gear = 2
+	m._since_perfect = 0.1
+	m._on_nitro()
+	_ok(is_equal_approx(_car.nitro_burn_s, Meet.STRZAL_S), "the bottle just after an IDEALNIE: STRZAŁ, a longer burn")
+	_car.nitro_burn_s = Meet.NITRO_S
+	m._since_perfect = 5.0
+	m._on_nitro()
+	_ok(is_equal_approx(_car.nitro_burn_s, Meet.NITRO_S), "the bottle in third on its own: the plain burn")
+	m._gear = gear_was
 	_car.global_position += Vector3(right.x, 0.0, right.y) * 12.0
 	_driven(0.1, 1.0)
 	_ok(m.stage == Meet.Stage.RESULT and _hud.card == "POZA PASEM", "off the strip again")

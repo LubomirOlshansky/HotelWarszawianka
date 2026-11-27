@@ -1215,7 +1215,28 @@ func _zamek_u_roof(yard: float, tile: Color) -> void:
 ## three rows of kit windows over the ground floor's (spec section 3). Kit windows, so the wall is
 ## plain (M_STONE, never the shader's grid on it).
 func _zamek_e_front(yard: float) -> void:
-	var len := kit_front(ZAMEK_U_OUT[3], ZAMEK_U_OUT[4])
+	# The face runs on past O4 to the Saxon wing's south end, where the Vistula front's south risalit
+	# stands, so no notch opens between them (F 2026-11-26, "the hole" by the rotunda: O4 to O5 turns
+	# in to the yard and had no wall, so A's plain south end showed through).
+	var saxon := _zamek_saxon_ring()
+	var o3: Vector2 = ZAMEK_U_OUT[3]
+	var o4: Vector2 = ZAMEK_U_OUT[4]
+	# never null: the ring's corners are constants and the two lines cross at about 75 degrees
+	var end: Vector2 = Geometry2D.line_intersects_line(o3, o4 - o3, saxon[2], saxon[3] - saxon[2])
+	var len := kit_front(o3, end)
+	# the notch's roof: the east slope carried on from O4 to the new end, up to the ridge over O4
+	var ey := yard + ZAMEK_U_EAVE
+	var rr := (o4 + (ZAMEK_U_IN[4] as Vector2)) * 0.5
+	var ga: Vector2 = _zamek_grow(ZAMEK_U_OUT, ZAMEK_U_IN, 0.4)[4]  # the ring's own eave corner: one shared edge
+	var gb := end + _b * 0.4
+	_mode = M_STONE
+	var pa := Vector3(ga.x, ey, ga.y)
+	var pb := Vector3(gb.x, ey, gb.y)
+	var pc := Vector3(rr.x, yard + ZAMEK_U_RIDGE, rr.y)
+	var nrm := (pb - pa).cross(pc - pa).normalized()
+	if nrm.y < 0.0:
+		nrm = -nrm
+	_tri(pa, pb, pc, nrm, Color(ZAMEK_ROOF), Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
 	_mode = M_STONE
 	_g = yard
 	var top := yard + ZAMEK_U_EAVE
@@ -1430,7 +1451,7 @@ func _ledge(a: Vector2, b: Vector2, c: Vector2, d: Vector2, y: float, col: Color
 
 
 ## The Clock Tower: the shaft (0.3 m proud of the mapped one) with cream quoins and string
-## courses, the gate to the courtyard, the iron balcony two thirds up, a dial on every face, the
+## courses, the gate to the courtyard, the balcony (stone slab, iron rail) two thirds up, a dial on every face, the
 ## cornice with a gilt frieze, then the helm: the copper onion, the open lantern, a second onion,
 ## the spire with two gilt balls and a flag (56 m).
 func _zamek_clock_tower() -> void:
@@ -1442,7 +1463,13 @@ func _zamek_clock_tower() -> void:
 	_g = g
 	var wall := Color(ZAMEK_WALL)
 	var h := 4.6
-	_lbox(0.0, 0.0, h, h, g - 0.6, g + 29.5, wall, M_MONUMENT, wall)
+	# the shaft plain, then the shader's windows on the three faces that carry no kit windows (the
+	# west face has its own kit windows: never two grids on one face, the Roesslera lesson)
+	_lbox(0.0, 0.0, h, h, g - 0.6, g + 29.5, wall, M_STONE, wall)
+	_mode = M_MONUMENT
+	_wall(_w(h + 0.02, -h), _w(h + 0.02, h), g + 6.4, g + 29.5, _a, wall)
+	_wall(_w(-h - 0.02, h), _w(-h - 0.02, -h), g + 6.4, g + 29.5, -_a, wall)
+	_wall(_w(h, -h - 0.02), _w(-h, -h - 0.02), g + 6.4, g + 29.5, -_b, wall)
 	for su: float in [-1.0, 1.0]:
 		for sv: float in [-1.0, 1.0]:
 			_lbox(su * h, sv * h, 0.45, 0.45, g + 0.3, g + 29.5, ZAMEK_CREAM, M_STONE, ZAMEK_CREAM)
@@ -1453,9 +1480,11 @@ func _zamek_clock_tower() -> void:
 	_wall(_w(-2.8, h + 0.05), _w(2.8, h + 0.05), g - 0.3, g + 6.4, _b, ZAMEK_CREAM)
 	_wall(_w(-2.0, h + 0.1), _w(2.0, h + 0.1), g - 0.3, g + 5.0, _b, ZAMEK_GATE)
 	_lbox(0.0, h + 0.15, 0.7, 0.15, g + 5.4, g + 6.2, ZAMEK_GILT, M_STONE, ZAMEK_GILT)
-	# the balcony on the square's side
+	# the balcony on the square's side: a cream stone slab resting on the upper string course (its
+	# underside at the course's top, so it reads as part of the shaft, not stuck on), the iron railing
+	# over it (F 2026-11-26: the old black slab floated half a metre over the course)
 	kit_face(h)
-	kit_balcony(0.0, g + 19.91, 2.0, Balcony.IRON, ZAMEK_IRON, ZAMEK_IRON, 1.2)
+	kit_balcony(0.0, g + 19.71, 1.5, Balcony.IRON, ZAMEK_IRON, ZAMEK_CREAM, 0.8)
 	# the west face's windows (the reviewer's fix): one per stage between the string courses, over the
 	# gate's cornice, 1.0 x 2.0 m framed, and a door window over the balcony
 	for sill: float in [8.4, 14.8]:
@@ -2627,9 +2656,8 @@ func _build_staszic(_site: Dictionary) -> void:
 ## the first pass (2026-11-01) had only the OpenStreetMap outlines: the Carmelite church's front
 ## (`karmelici`, a kept skin), Mickiewicz's monument (`mickiewicz`), the University's main gate
 ## (`brama_uw`) and the portico of Pałac Kazimierzowski behind it (`kazimierzowski`, a kept skin),
-## Pałac Czapskich built whole (`czapski`), Pałac Potockich's court front and street gates
-## (`potocki`, a kept skin) round the Kordegarda (`kordegarda`, built whole: OSM maps it 4.3 m
-## tall), Hotel Bristol's corner belvedere (`bristol`, a kept skin). Specs in
+## Pałac Czapskich (`czapski`), Pałac Potockich and its gates (`potocki`), the separate gallery
+## (`kordegarda`), and Hotel Bristol's corner belvedere (`bristol`, a kept skin). Specs in
 ## docs/landmarks/specs/: karmelici.md, mickiewicz.md, brama_uw.md, kazimierzowski.md, czapski.md,
 ## potocki.md, kordegarda.md, bristol.md. Where the report's ortho reading and the mapped outline
 ## disagree by more than its ±3 m (Bristol's rotunda, the Potocki front), the outline wins, since
@@ -2649,13 +2677,43 @@ const CZAP := Vector2(-599.3, -600.5)  # the centre risalit's face, facing east 
 const CZAP_OUT := Vector2(0.964, -0.266)
 const POTOCKI := Vector2(-683.3, -919.0)
 const POTOCKI_AXIS := Vector2(-0.2, -0.98)
+## The mapped palace breaks in metres along the court front (u) and east toward the street (v).
+## The open end of each range meets its separate street pavilion.
+const POTOCKI_PLAN := [
+	[-9.5, -22.0], [60.4, -22.4], [60.2, 16.45], [56.55, 16.45], [55.65, 46.0], [45.55, 46.0],
+	[46.45, 15.5], [49.25, 7.9], [49.2, -2.4], [8.95, -2.4], [8.95, 0.02], [-0.95, 0.02],
+	[-0.65, 14.0], [1.75, 17.0], [3.15, 48.2], [-8.05, 48.2], [-8.86, -3.5], [-8.5, -16.0],
+]
+## The upper hips share a continuous ridge around the court. Each point matches an eave corner.
+const POTOCKI_RIDGE := [
+	[-4.2, -12.4], [54.4, -12.2], [54.8, 12.0], [51.8, 15.0], [51.0, 42.0], [50.3, 42.0],
+	[50.6, 16.0], [53.7, 8.0], [51.3, -10.9], [7.7, -11.1], [6.0, -10.9], [-3.8, -10.7],
+	[-3.4, 13.5], [-2.6, 16.5], [-1.9, 44.5], [-3.3, 44.5], [-5.3, -4.0], [-4.7, -9.0],
+]
+## The main block is taller than the narrow side ranges where the roofs turn into the court.
+const POTOCKI_RIDGE_Y := [18.6, 18.6, 17.0, 16.55, 16.55, 16.55, 16.55, 17.0, 18.6,
+		18.6, 18.6, 18.6, 16.55, 16.55, 16.55, 16.55, 17.0, 18.6]
+const POTOCKI_ENDS := [
+	[[45.55, 46.0], [55.65, 46.0], [55.93, 56.01], [45.26, 56.8]],
+	[[-8.05, 48.2], [3.15, 48.2], [3.69, 59.58], [-7.85, 60.45]],
+]
 ## The two street gates of Pałac Potockich, each between a wing's end and the Kordegarda.
 const POTOCKI_GATES := [[Vector2(-636.6, -974.4), Vector2(-631.6, -963.6)],
 		[Vector2(-626.9, -946.6), Vector2(-625.4, -935.2)]]
-const KORDEGARDA := Vector2(-626.3, -947.4)
-const KORDEGARDA_AXIS := Vector2(-0.239, -0.971)
+const KORDEGARDA := Vector2(-626.3, -947.5)
+const KORDEGARDA_NORTH := Vector2(-630.1, -962.9)
 const BRISTOL_TOWER := Vector2(-557.8, -894.0)  # the rounded south-west corner at Karowa
-const BRISTOL_H := 27.4  # the mapped roof, which the kept skin holds
+const BRISTOL_KAROWA_END := Vector2(-504.6, -918.8)  # where the main block turns away from Karowa
+const BRISTOL_KRAK_NORTH := Vector2(-583.0, -933.2)
+const BRISTOL_KRAK_SOUTH := Vector2(-562.4, -893.6)
+const BRISTOL_BAY := 4.4
+const BRISTOL_MEZZ := 6.6  # 5.2 m ground floor and 1.4 m mezzanine
+const BRISTOL_SILL := 7.28
+const BRISTOL_ANNEX_TOP := 18.4
+const BRISTOL_CORNICE := 25.2
+const BRISTOL_MANSARD_INSET := 1.95
+const BRISTOL_ROOF := 30.05
+const BRISTOL_DRUM_TOP := 32.4
 # K6 (2026-11-01): the two statues of Krakowskie Przedmieście's north end, spots projected from
 # their published coordinates (Prus 52.24173 N 21.01636 E, Twardowski Square; Wyszyński
 # 52.24112 N 21.01661 E, in front of the Visitationists' church); the facings are estimates.
@@ -2684,13 +2742,29 @@ const CZAP_WALL := Color("#d3644e")
 const CZAP_SHADE := Color("#b5503f")
 const CZAP_WHITE := Color("#f2efe8")
 const CZAP_ROOF := Color("#a8503c")
+## Palace and gallery colours from the v2 spec, with a darker hedge and plinth for depth.
 const POTOCKI_WALL := Color("#ede8dc")
-const POTOCKI_ROOF := Color("#c5502f")
+const POTOCKI_ROOF := Color("#d0643a")  # orange terracotta, as the 3D Tiles views read it (was #c5502f, deep red)
+const POTOCKI_TRIM := Color("#f7f4ec")
+const POTOCKI_IRON := Color("#1f2224")
+const POTOCKI_SCULPT := Color("#e4ded0")
+const POTOCKI_HEDGE := Color("#485f36")
+const POTOCKI_PLINTH := Color("#b3a994")
+const POTOCKI_TURF := Color("#6f8f4e")
+const POTOCKI_PAVING := Color("#cfc6b4")
+const POTOCKI_LAMP := Color("#ffd27a")
+const POTOCKI_EAVE := 12.4
+const POTOCKI_CURB := 15.2
 const KORD_WHITE := Color("#efede6")
 const KORD_SCULPT := Color("#c9c7c0")
+const KORD_ROOF := Color("#8d8b86")
+const KORD_GLASS := Color("#3a3d40")
+const KORD_DOOR := Color("#4a3328")
 const BRISTOL_WALL := Color("#e9e1c8")
 const BRISTOL_SHADE := Color("#cfc6ac")
-const BRISTOL_SLATE := Color("#6f7477")
+const BRISTOL_SLATE := Color("#5d6266")
+const BRISTOL_ZINC := Color("#a9adb0")
+const BRISTOL_GLASS := Color("#33383e")
 
 
 func _find_krakowskie() -> void:
@@ -3630,149 +3704,841 @@ func _build_czapski(site: Dictionary) -> void:
 	_collide(ring)
 
 
-## Pałac Potockich (Krakowskie Przedmieście 15, the Ministry of Culture), photos 20-21: the mass
-## stays LoD2's (a kept skin, cream walls under orange-red roofs; the wings' ends on the street are
-## the two pavilions the report calls guardhouses); the model adds the court front of the main
-## block (corner pilasters, a string course and cornice along 50 m, a three-bay central pavilion
-## under a pediment) and the two street gates either side of the Kordegarda: stone piers with
-## caps and urns and wrought-iron gates.
-## Frame: origin at the court front's south end, u north along it, +v out into the court (east).
-func _build_potocki(_site: Dictionary) -> void:
-	_o = POTOCKI
-	_a = POTOCKI_AXIS.normalized()
-	_b = Vector2(-_a.y, _a.x)
-	var m := 25.0
-	_g = map.terrain_height(_w(m, 2.0).x, _w(m, 2.0).y)
-	var g := _g
-	var wall := POTOCKI_WALL
-	var trim := Color("#f7f4ec")
+## The whole palace follows the mapped U, with the gallery as a separate site in its open end.
+func _build_potocki(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["zone"][0]
+	var axis := POTOCKI_AXIS.normalized()
+	kit_front(POTOCKI, POTOCKI + axis)
+	var ground := _w(24.0, 26.0)
+	_g = map.terrain_height(ground.x, ground.y)
 	_mode = M_STONE
-	_lbox(25.0, 0.0, 25.2, 0.3, g - 0.6, g + 1.2, KP_BASE, M_STONE, KP_BASE.lightened(0.05))
-	_lbox(25.0, 0.2, 25.0, 0.2, g + 5.6, g + 6.1, trim, M_STONE, trim)  # the string course
-	_lbox(25.0, 0.5, 25.4, 0.7, g + 12.4, g + 13.2, trim, M_STONE, trim)  # the cornice
-	for u: float in [0.6, 49.4]:  # corner pilasters
-		_lbox(u, 0.4, 0.6, 0.3, g + 1.2, g + 12.4, trim, M_STONE, trim)
-	# the central pavilion: forward 1 m, a stone ground floor, a window storey, four pilasters
-	_lbox(m, 0.6, 5.0, 0.6, g + 1.2, g + 6.0, wall, M_STONE, wall)
-	_lbox(m, 0.6, 5.0, 0.6, g + 6.0, g + 12.4, wall, M_MONUMENT, wall)
-	for u: float in [-4.6, -1.6, 1.6, 4.6]:
-		_lbox(m + u, 1.3, 0.4, 0.3, g + 1.2, g + 12.4, trim, M_STONE, trim)
-	_lbox(m, 1.1, 5.2, 0.8, g + 12.4, g + 13.2, trim, M_STONE, trim)
-	_mode = M_GLASS
-	_wall(_w(m - 1.2, 1.27), _w(m + 1.2, 1.27), g + 1.2, g + 5.2, _b, KP_DARK)
-	_wall(_w(m - 0.9, 1.27), _w(m + 0.9, 1.27), g + 7.4, g + 10.8, _b, KP_DARK)
-	_mode = M_STONE
-	for k in 2:
-		_lbox(m, 2.0 + 0.5 * k, 2.4 - 0.4 * k, 0.5, g - 0.6, g + 0.55 - 0.35 * k, KP_BASE, M_STONE, KP_BASE.lightened(0.04))
-	var ka := _a
-	var kb := _b
-	_a = kb
-	_b = ka
-	_gable(1.3, -0.5, m, 5.2, g + 13.2, 2.2, wall, POTOCKI_ROOF)
-	_a = ka
-	_b = kb
-	var oc := _w(m, 1.35)
-	_disc(Vector3(oc.x, g + 14.6, oc.y), Vector3(_b.x, 0.0, _b.y), 0.7, 8, KP_DARK)
-	_collide(_rect(m, 2.2, 2.4, 0.5))
-	# the street gates (photos 20-21): a pier at each end, an iron gate between
-	for pair: Array in POTOCKI_GATES:
-		var p0: Vector2 = pair[0]
-		var p1: Vector2 = pair[1]
-		_o = (p0 + p1) * 0.5
-		_a = (p1 - p0).normalized()
-		_b = Vector2(-_a.y, _a.x)
-		var hl := p0.distance_to(p1) * 0.5
-		var gg: float = map.terrain_height(_o.x, _o.y)
-		for sd: float in [-1.0, 1.0]:
-			var u := sd * (hl - 0.5)
-			_lbox(u, 0.0, 0.5, 0.5, gg - 0.4, gg + 3.4, POTOCKI_WALL, M_STONE, POTOCKI_WALL)
-			_lbox(u, 0.0, 0.62, 0.62, gg + 3.4, gg + 3.7, trim, M_STONE, trim)
-			var q := _w(u, 0.0)
-			_frustum(_circle(q, 0.18, 8), gg + 3.7, _circle(q, 0.36, 8), gg + 4.2, KP_BASE)
-			_frustum(_circle(q, 0.36, 8), gg + 4.2, _circle(q, 0.1, 8), gg + 4.7, KP_BASE, KP_BASE)
-		var w := hl - 1.0
-		_lbox(0.0, 0.0, w, 0.04, gg + 0.25, gg + 0.37, KP_IRON, M_STONE, KP_IRON)
-		_lbox(0.0, 0.0, w, 0.04, gg + 2.8, gg + 2.92, KP_IRON, M_STONE, KP_IRON)
-		var bars := int(w / 0.6)
-		for k in bars + 1:
-			_lbox(-w + 2.0 * w * k / bars, 0.0, 0.035, 0.035, gg + 0.25, gg + 3.0 + 0.5 * sin(PI * k / bars), KP_IRON,
-					M_STONE, KP_IRON)
-		_collide(_rect(0.0, 0.0, hl, 0.3))
+	var palace := _lpoly(POTOCKI_PLAN)
+	var ridge := _lpoly(POTOCKI_RIDGE)
+	var ends: Array[PackedVector2Array] = []
+	for points: Array in POTOCKI_ENDS:
+		ends.append(_lpoly(points))
+	_potocki_palace(palace, ridge)
+	_potocki_wing_ends(ends)
+	kit_front(POTOCKI, POTOCKI + axis)
+	_potocki_court()
+	_potocki_gates()
+	_collide(outline)
 
 
-## The Kordegarda (the palace's old guardhouse, today the ministry's gallery), photos 22-23: built
-## whole because OSM maps it 4.3 m tall. One storey of white stone 6 m to the cornice; on the
-## street face, between shallow pilasters, three tall round-arched windows either side of a
-## round-arched door in dark wood; a balustraded attic with sculpture groups on its corners and
-## over the door. Frame: origin at the street face's south end, u north along it, +v to the street (east).
-func _build_kordegarda(site: Dictionary) -> void:
-	var ring: PackedVector2Array = site["ring"]
-	_o = KORDEGARDA
-	_a = KORDEGARDA_AXIS.normalized()
-	_b = Vector2(-_a.y, _a.x)
-	_g = _ground_under(ring)
-	var g := _g
-	var none := Color(0, 0, 0, 0)
-	_mode = M_STONE
-	_prism(ring, g - 0.5, g + 0.8, KORD_WHITE.darkened(0.12), none, M_STONE)
-	_prism(ring, g + 0.8, g + 6.0, KORD_WHITE, Color("#8d8b86"), M_STONE, M_STONE)
-	var eave := _largest(Geometry2D.offset_polygon(ring, 0.35, Geometry2D.JOIN_MITER))
-	_prism(eave, g + 6.0, g + 6.6, KORD_WHITE.lightened(0.04), Color("#8d8b86"), M_STONE, M_STONE)
-	# the street face, 15.6 m: seven openings between pilasters
-	var face := 15.6
-	var step := face / 7.0
-	for k in 7:
-		var u := step * (k + 0.5)
-		if k == 3:
-			_kp_arch_open(u, 0.05, g + 0.8, g + 4.0, 0.8, KP_WOOD)
+## The principal ranges have three window levels, with deeper trim and rustication in the court.
+func _potocki_palace(ring: PackedVector2Array, ridge: PackedVector2Array) -> void:
+	var eave := _g + POTOCKI_EAVE
+	var none := Color.TRANSPARENT
+	_prism(ring, _g - 1.55, eave, POTOCKI_WALL, none, M_STONE)
+	kit_ledge_ring(ring, _g - 1.54, 2.10, POTOCKI_PLINTH, 0.11)
+	kit_ledge_ring(ring, _g + 5.60, 0.16, POTOCKI_TRIM, 0.14)
+	kit_cornice_ring(ring, eave - 0.30, POTOCKI_TRIM, 0.30, 0.31)
+	for i in ring.size():
+		# The short returns hold each break in the plan. The end walls are mostly behind the pavilions.
+		if i in [4, 14]:
+			continue
+		var width := _potocki_front(ring, i)
+		if width < 5.3:
+			continue
+		var is_court := i >= 5 and i <= 13
+		var bays := maxi(1, roundi(width / 3.85))
+		if i == 8:
+			bays = 11
+		kit_face(0.0)
+		var band_step := 0.80 if is_court else 1.48
+		kit_bands(0.24, width - 0.24, _g + 0.63, _g + 4.60, band_step, POTOCKI_WALL)
+		var centres: Array[float] = []
+		for j in bays:
+			if i == 8 and j >= 4 and j <= 6:
+				continue
+			centres.append(width * (float(j) + 0.5) / float(bays))
+		kit_panes(centres, [_g + 1.37], 1.16, 2.35, PAL_GLASS_DARK, 0.079)
+		kit_panes(centres, [_g + 9.74], 1.04, 1.65, PAL_GLASS_DARK)
+		if i == 8:
+			for u: float in centres:
+				kit_window(u, _g + 6.08, 2.20, Win.SILL_HEAD, POTOCKI_TRIM, PAL_GLASS_DARK, 0.63)
 		else:
-			_kp_arch_open(u, 0.05, g + 1.2, g + 4.2, 0.65, KP_DARK)
-	for k in 8:
-		_lbox(step * k, 0.1, 0.22, 0.12, g + 0.8, g + 6.0, KORD_WHITE.lightened(0.03), M_STONE, KORD_WHITE)
-	# the attic: a balustrade along the street face, the sculpture groups
-	_kp_balustrade(0.3, 0.1, face - 0.3, 0.1, g + 6.6, 0.9, KORD_WHITE, 1.6)
-	for u: float in [0.6, face * 0.5, face - 0.6]:
-		_lbox(u, 0.1, 0.7, 0.55, g + 6.6, g + 7.6, KORD_WHITE, M_STONE, KORD_WHITE)
-		_kp_figure(u - 0.3, 0.1, g + 7.6, 1.7, KORD_SCULPT)
-		_kp_figure(u + 0.35, 0.1, g + 7.6, 1.4, KORD_SCULPT)
-	_collide(ring)
+			kit_panes(centres, [_g + 6.08], 1.26, 2.20, PAL_GLASS_DARK)
+		if i == 8:
+			for u: float in [0.49, width - 0.49]:
+				kit_pilaster(u, _g + 5.78, eave - 0.34, POTOCKI_TRIM, 0.58, 0.15)
+			_potocki_pavilion(width)
+	_potocki_mansard(ring, ridge, POTOCKI_RIDGE_Y, eave, _g + POTOCKI_CURB, [4, 14])
+	var axis := POTOCKI_AXIS.normalized()
+	kit_front(POTOCKI, POTOCKI + axis)
+	for u: float in [5.7, 23.5, 39.6, 52.5]:
+		_lbox(u, -11.73, 0.48, 0.36, _g + 18.15, _g + 19.52, POTOCKI_WALL)
 
 
-## Hotel Bristol (1901), photos 12-15: the mass stays LoD2's (a kept skin in cream with a grey
-## zinc mansard); the hotels pass adds the plinth, balconies, cornice, dormers and the door with
-## its board; this adds the corner tower on the rounded south-west corner at Karowa: a cream drum
-## with pilasters up to the roof and on it an open round belvedere, eight thin columns on a
-## balustraded ring under a flat cream dome cap. Its base is sunk in the roof, so a LoD2 roof a
-## little higher or lower than OSM's 27.4 m does not open a gap.
-func _build_bristol(site: Dictionary) -> void:
-	var zone: PackedVector2Array = (site["zone"] as Array)[0]
-	var ring := _simplify(zone, 0.9)
-	_palace_hotel(ring, _ground_under(ring), BRISTOL_H, {
-			"wall": BRISTOL_WALL, "base": BRISTOL_SHADE, "trim": KP_TRIM, "slate": BRISTOL_SLATE,
-			"glass": Color("#33383e"), "name": "BRISTOL", "name_w": 5.4, "board": Color("#2a2420"),
-			"tube": Color(1.0, 0.82, 0.45), "whole": false, "street_at": Vector2(-592.0, -915.0), "avoid": BRISTOL_TOWER, "avoid_r": 7.5,
-			"canopy": Color("#2b2b2b")}, PackedVector2Array())
-	var c := BRISTOL_TOWER
-	_g = map.terrain_height(c.x, c.y)
-	var g := _g
-	var top := g + 32.4  # the LoD2 roof at the corner (32.7 m over the street)
-	var none := Color(0, 0, 0, 0)
+## The three central bays project over the steps, with a low pediment and stone-framed oculus.
+func _potocki_pavilion(width: float) -> void:
+	var mid := width * 0.5
+	var eave := _g + POTOCKI_EAVE
+	var front := 1.16
+	_prism(_urect(mid - 5.05, mid + 5.05, -0.32, front), _g - 0.68, eave,
+			POTOCKI_WALL, Color.TRANSPARENT, M_STONE)
+	kit_face(front)
+	kit_ledge(mid - 5.02, mid + 5.02, _g + 0.43, 0.28, POTOCKI_PLINTH, 0.10)
+	kit_ledge(mid - 5.02, mid + 5.02, _g + 5.60, 0.19, POTOCKI_TRIM, 0.28)
+	kit_ledge(mid - 5.02, mid + 5.02, _g + 4.73, 0.12, POTOCKI_TRIM, 0.10)
+	kit_cornice(mid - 4.79, mid + 4.79, eave - 0.34, POTOCKI_TRIM, 0.34, 0.36)
+	for u: float in [-4.65, -1.62, 1.62, 4.65]:
+		kit_pilaster(mid + u, _g + 5.82, eave - 0.35, POTOCKI_TRIM, 0.64, 0.22)
+	for u: float in [-3.16, 0.0, 3.16]:
+		kit_window(mid + u, _g + 6.33, 2.15, Win.HOODED, POTOCKI_TRIM, PAL_GLASS_DARK, 0.65, POTOCKI_TRIM)
+		kit_window(mid + u, _g + 9.64, 1.75, Win.SILL, POTOCKI_TRIM, PAL_GLASS_DARK, 0.55, POTOCKI_TRIM)
+		if u != 0.0:
+			kit_round_window(_w(mid + u, front), _a, _b, _g + 1.33, _g + 3.16, 0.65, POTOCKI_TRIM)
+	kit_door(mid, _g + 0.45, 3.80, 0.94, POTOCKI_TRIM, KP_WOOD, true)
+	_ubox(mid - 2.53, mid + 2.53, 0.99, 2.81, _g - 0.66, _g + 0.22, POTOCKI_PLINTH)
+	_ubox(mid - 2.31, mid + 2.31, 1.02, 2.18, _g + 0.19, _g + 0.49, POTOCKI_PLINTH)
+	_collide(_urect(mid - 2.53, mid + 2.53, 0.99, 2.81))
+	kit_face(-0.65)
+	kit_pediment(mid, 5.21, eave, 1.20, POTOCKI_TRIM, POTOCKI_ROOF, 2.06, POTOCKI_WALL.darkened(0.09))
+	var eye := _w(mid, 1.49)
+	var out := Vector3(_b.x, 0.0, _b.y)
+	_disc(Vector3(eye.x, eave + 0.49, eye.y), out, 0.34, 10, POTOCKI_TRIM)
+	_mode = M_GLASS
+	eye = _w(mid, 1.54)
+	_disc(Vector3(eye.x, eave + 0.49, eye.y), out, 0.24, 10, PAL_GLASS_DARK)
 	_mode = M_STONE
-	_prism(_circle(c, 3.4, 12), g - 0.5, top, BRISTOL_WALL, BRISTOL_WALL, M_MONUMENT, M_STONE)
-	for k in 8:  # pilasters round the drum
-		var d := Vector2.from_angle(TAU * (k + 0.5) / 8.0)
-		_prism(_circle(c + d * 3.6, 0.3, 4), g + 6.0, top, KP_TRIM, KP_TRIM, M_STONE, M_STONE)
-	_prism(_circle(c, 3.9, 12), top, top + 0.5, KP_TRIM, KP_TRIM, M_STONE, M_STONE)
-	_prism(_circle(c, 3.6, 12), top + 0.5, top + 1.3, BRISTOL_WALL, none, M_STONE)  # the balustrade
-	_prism(_circle(c, 1.7, 8), top + 0.5, top + 4.0, Color("#4a4842"), none, M_STONE)  # the open belvedere's shade
+
+
+## Face out of the solid for either winding of the plan ring.
+func _potocki_front(ring: PackedVector2Array, edge: int) -> float:
+	var from := ring[edge]
+	var to := ring[(edge + 1) % ring.size()]
+	var along := to - from
+	if Vector2(-along.y, along.x).dot(_out(ring, from, to)) < 0.0:
+		return kit_front(to, from)
+	return kit_front(from, to)
+
+
+## The two lower street pavilions have their own hips, three bays, and dressed corner edges.
+func _potocki_wing_ends(ends: Array[PackedVector2Array]) -> void:
+	var eave := _g + 8.58
+	for ring: PackedVector2Array in ends:
+		_prism(ring, _g - 1.49, eave, POTOCKI_TRIM, Color.TRANSPARENT, M_STONE)
+		kit_ledge_ring(ring, _g - 1.48, 2.10, POTOCKI_PLINTH, 0.14)
+		kit_ledge_ring(ring, _g + 4.60, 0.16, POTOCKI_TRIM, 0.17)
+		kit_cornice_ring(ring, eave - 0.35, POTOCKI_TRIM, 0.35, 0.35)
+		for edge in [1, 2, 3]:
+			var width := _potocki_front(ring, edge)
+			var bays := 3 if edge == 2 else 2
+			for k in bays:
+				var u := width * (float(k) + 0.5) / float(bays)
+				kit_round_window(_w(u, 0.0), _a, _b, _g + 1.04, _g + 3.15, 0.60, POTOCKI_TRIM)
+				if edge == 2:
+					kit_window(u, _g + 5.49, 2.10, Win.SILL_HEAD, POTOCKI_TRIM,
+							PAL_GLASS_DARK, 0.63, POTOCKI_TRIM)
+				else:
+					kit_panes([u], [_g + 5.49], 1.26, 2.10, PAL_GLASS_DARK)
+			if edge != 2:
+				continue
+			for k in 7:
+				var y := _g + 0.64 + 0.99 * float(k) + (0.15 if k > 4 else 0.0)
+				var quoin := 0.59 if k % 2 == 0 else 0.43
+				_wall(_w(0.09, 0.055), _w(quoin, 0.0), y, y + 0.67, _b, POTOCKI_WALL)
+				_wall(_w(width - quoin, 0.0), _w(width - 0.09, 0.055), y, y + 0.67, _b, POTOCKI_WALL)
+		var ridge := _inset_ring(ring, 4.20)
+		_potocki_mansard(ring, ridge, [13.17, 13.17, 13.17, 13.17], eave, _g + 11.24, [0, 1, 3], true)
+
+
+## A steep lower skirt and shallow upper hips share the curb, keeping the U open to the sky.
+func _potocki_mansard(ring: PackedVector2Array, ridge: PackedVector2Array, ridge_y: Array, eave: float,
+		curb: float, skip: Array, single := false) -> void:
+	var saved_flood := _flood
+	_flood = false
+	var eaves := _ring_out(ring, 0.25)
+	var inset := (curb - eave) / tan(deg_to_rad(70.0))
+	var bend := _inset_ring(eaves, inset)
+	_slope(ring, eaves, eave, bend, curb, POTOCKI_ROOF)
+	var top := PackedVector3Array()
+	for i in ridge.size():
+		top.append(Vector3(ridge[i].x, _g + float(ridge_y[i]), ridge[i].y))
+	var tile := POTOCKI_ROOF.lightened(0.07)
+	for i in bend.size():
+		var j := (i + 1) % bend.size()
+		_potocki_roof_patch(PackedVector3Array([Vector3(bend[i].x, curb, bend[i].y),
+				Vector3(bend[j].x, curb, bend[j].y), top[j], top[i]]), tile)
+	_potocki_roof_patch(top, POTOCKI_ROOF)
+	_flood = saved_flood
+	_potocki_dormers(eaves, eave, skip, single)
+
+
+## The upper hips fan out at the short returns, so triangulate in plan and light each face.
+func _potocki_roof_patch(points: PackedVector3Array, tile: Color) -> void:
+	var plan := PackedVector2Array()
+	for p in points:
+		plan.append(Vector2(p.x, p.z))
+	var indices := Geometry2D.triangulate_polygon(plan)
+	for k in range(0, indices.size(), 3):
+		var a := points[indices[k]]
+		var b := points[indices[k + 1]]
+		var c := points[indices[k + 2]]
+		var n := (b - a).cross(c - a).normalized()
+		_tri(a, b, c, n if n.y > 0.0 else -n, tile, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+
+
+## Small gabled dormers sit in the skirt, centered on each roof face at the specified pitch.
+func _potocki_dormers(eaves: PackedVector2Array, eave: float, skip: Array, single: bool) -> void:
+	for i in eaves.size():
+		if i in skip:
+			continue
+		var length := _potocki_front(eaves, i)
+		if length < 5.25:
+			continue
+		var count := 1 if single else 1 + floori((length - 3.70) / 3.80)
+		for j in count:
+			var u := length * 0.5 + (float(j) - float(count - 1) * 0.5) * 3.80
+			var v := -0.19
+			var box := _urect(u - 0.65, u + 0.65, v - 1.80, v)
+			for edge in box.size():
+				var from := box[edge]
+				var to := box[(edge + 1) % box.size()]
+				var out := _out(box, from, to)
+				if out.dot(_b) >= -0.5:
+					_wall(from, to, eave - 0.12, eave + 1.88, out, POTOCKI_WALL)
+			kit_face(v)
+			kit_window(u, eave + 0.68, 0.98, Win.PLAIN, POTOCKI_TRIM, PAL_GLASS_DARK, 0.34)
+			kit_face(v - 1.48)
+			kit_pediment(u, 0.72, eave + 1.88, 0.30, POTOCKI_TRIM, POTOCKI_ROOF, 1.53)
+
+
+## The paved axis and clipped hedges sit over the mapped court grading and grass.
+func _potocki_court() -> void:
+	var lawn_centres: Array[Vector2] = [Vector2(24.0, 25.0), Vector2(24.0, 40.0)]
+	var mapped := 0
+	for area: Dictionary in data["areas"]:
+		if area["k"] != "grass":
+			continue
+		var grass := _pts(area["p"])
+		for centre in lawn_centres:
+			if Geometry2D.is_point_in_polygon(_w(centre.x, centre.y), grass):
+				mapped += 1
+	if mapped < 2:
+		for u: float in [16.0, 32.0]:
+			_potocki_grade(_rect(u, 33.1, 7.0, 11.0), 0.05, POTOCKI_TURF)
+	# The path continues past both lawn plots to the centre of the gallery and the palace steps.
+	var stations := PackedFloat32Array([0.42, 8.0, 16.0, 24.0, 32.0, 40.0, 48.0, 54.50])
+	for k in stations.size() - 1:
+		var v := stations[k]
+		var far := stations[k + 1]
+		var from := _potocki_path_axis(v)
+		var to := _potocki_path_axis(far)
+		_potocki_grade(_lpoly([[from - 0.80, v], [from + 0.80, v], [to + 0.80, far], [to - 0.80, far]]),
+				0.065, POTOCKI_PAVING)
+	var edges: Array = [[11.57, 35.93, 19.50, 31.00], [11.64, 36.22, 33.24, 47.34]]
+	if mapped < 2:
+		edges = [[9.24, 22.71, 22.34, 43.86], [25.29, 38.76, 22.34, 43.86]]
+	for bounds: Array in edges:
+		var lo: float = bounds[0]
+		var hi: float = bounds[1]
+		var back: float = bounds[2]
+		var front: float = bounds[3]
+		for u: float in [lo, hi]:
+			_potocki_hedge(u - 0.24, u + 0.24, back, front)
+		for v: float in [back, front]:
+			var path_u := _potocki_path_axis(v)
+			var left := clampf(path_u - 1.10, lo + 0.24, hi - 0.24)
+			var right := clampf(path_u + 1.10, lo + 0.24, hi - 0.24)
+			_potocki_hedge(lo + 0.24, left, v - 0.24, v + 0.24)
+			_potocki_hedge(right, hi - 0.24, v - 0.24, v + 0.24)
+
+
+## The path joins the pavilion steps to the centre of the gallery's rear wall.
+func _potocki_path_axis(v: float) -> float:
+	return lerpf(29.0, 24.2, (v - 0.42) / 54.08)
+
+
+## Sample the terrain at the path and lawn corners to keep the low surfaces visible on the grade.
+func _potocki_grade(ring: PackedVector2Array, rise: float, col: Color) -> void:
+	var points: Array[Vector3] = []
+	for p in ring:
+		points.append(Vector3(p.x, map.terrain_height(p.x, p.y) + rise, p.y))
+	_quad(points[0], points[1], points[2], points[3], Vector3.UP, col)
+
+
+## A planted edge follows the grade with a narrow, bevelled top to read as a clipped hedge.
+func _potocki_hedge(u0: float, u1: float, v0: float, v1: float) -> void:
+	if u1 - u0 < 0.15 or v1 - v0 < 0.15:
+		return
+	var ring := _urect(u0, u1, v0, v1)
+	var top := _inset_ring(ring, 0.045)
+	var lower: Array[Vector3] = []
+	var upper: Array[Vector3] = []
+	for i in ring.size():
+		var g: float = map.terrain_height(ring[i].x, ring[i].y)
+		lower.append(Vector3(ring[i].x, g - 0.13, ring[i].y))
+		upper.append(Vector3(top[i].x, g + 0.49, top[i].y))
+	for i in ring.size():
+		var j := (i + 1) % ring.size()
+		var out := _out(ring, ring[i], ring[j])
+		_quad(lower[i], lower[j], upper[j], upper[i], Vector3(out.x, 0.0, out.y), POTOCKI_HEDGE)
+	_quad(upper[0], upper[1], upper[2], upper[3], Vector3.UP, POTOCKI_HEDGE.lightened(0.12))
+
+
+## Each gate has a pedestrian portal against the wing, and ironwork between the two piers.
+func _potocki_gates() -> void:
+	for side in POTOCKI_GATES.size():
+		var pair: Array = POTOCKI_GATES[side]
+		var length := kit_front(pair[1], pair[0])
+		var centre := _w(length * 0.5, 0.0)
+		var ground: float = map.terrain_height(centre.x, centre.y)
+		var outer := length - 2.62 if side == 0 else 2.62
+		var inner := 0.48 if side == 0 else length - 0.48
+		var door_lo := outer + 0.47 if side == 0 else -0.76
+		var door_hi := length + 0.32 if side == 0 else outer - 0.47
+		var wall := _urect(door_lo, door_hi, -0.60, 0.30)
+		_prism(wall, ground - 0.70, ground + 3.09, POTOCKI_WALL, POTOCKI_TRIM, M_STONE)
+		kit_face(0.30)
+		kit_cornice(door_lo + 0.49, door_hi - 0.49, ground + 2.99, POTOCKI_TRIM, 0.14, 0.13)
+		kit_door((door_lo + door_hi) * 0.5, ground + 0.09, 2.58, 0.58, POTOCKI_TRIM, KP_WOOD, true)
+		_potocki_piers(outer, ground)
+		_potocki_piers(inner, ground)
+		_potocki_groups(outer, signf(inner - outer), ground)
+		_potocki_groups(inner, signf(outer - inner), ground)
+		_potocki_lanterns(inner, ground)
+		_potocki_ironwork(minf(inner, outer) + 0.55, maxf(inner, outer) - 0.55, ground)
+		_collide(_urect(-0.11, length + 0.12, -0.44, 0.44))
+
+
+## Rusticated piers carry a projecting entablature and the stone sculpture plinth.
+func _potocki_piers(u: float, ground: float) -> void:
+	var ring := _rect(u, 0.0, 0.60, 0.60)
+	_prism(ring, ground - 0.72, ground + 4.20, POTOCKI_WALL, Color.TRANSPARENT, M_STONE)
+	kit_ledge_ring(ring, ground - 0.70, 1.10, POTOCKI_PLINTH, 0.07)
+	var origin := _o
+	var along := _a
+	for edge in ring.size():
+		var from := ring[edge]
+		var to := ring[(edge + 1) % ring.size()]
+		if absf((to - from).normalized().dot(along)) < 0.9:
+			continue
+		_potocki_front(ring, edge)
+		kit_face(0.013)
+		kit_bands(0.04, 1.16, ground + 0.15, ground + 3.79, 0.86, POTOCKI_WALL)
+	kit_front(origin, origin + along)
+	kit_cornice_ring(ring, ground + 3.89, POTOCKI_TRIM, 0.31, 0.21)
+	_lbox(u, 0.0, 0.64, 0.57, ground + 4.16, ground + 4.60, POTOCKI_SCULPT)
+
+
+## A seated figure and putto share each cap. The bent knee and raised arm break the silhouette.
+func _potocki_groups(u: float, side: float, ground: float) -> void:
+	var col := POTOCKI_SCULPT
+	var at := _w(u - side * 0.16, -0.02)
+	_mode = M_STONE
+	_frustum(_rect(u - side * 0.14, 0.06, 0.37, 0.35), ground + 4.57,
+			_rect(u - side * 0.17, -0.04, 0.25, 0.23), ground + 5.23, col)
+	_frustum(_circle(at, 0.25, 6), ground + 5.12, _circle(at - _b * 0.05, 0.18, 6), ground + 5.91, col, col)
+	_prism(_circle(at - _b * 0.05, 0.14, 6), ground + 5.86, ground + 6.20, col, col, M_STONE)
+	_lbox(u - side * 0.02, 0.25, 0.22, 0.20, ground + 4.70, ground + 5.12, col)
+	_kp_figure(u + side * 0.37, 0.16, ground + 4.59, 1.04, col.lightened(0.04))
+	_beam(_potocki_point(u + side * 0.01, 0.02, ground + 5.65), _potocki_point(u + side * 0.34, 0.18, ground + 5.43),
+			0.16, col)
+
+
+## Glazed street lanterns project from a gilt bracket on the gallery-side piers.
+func _potocki_lanterns(u: float, ground: float) -> void:
+	var base := _w(u, 0.92)
+	_beam(_potocki_point(u, 0.57, ground + 2.67), _potocki_point(u, 0.93, ground + 2.89), 0.13, PAL_GOLD, true, M_GOLD)
+	_mode = M_GOLD
+	_frustum(_circle(base, 0.13, 6), ground + 2.85, _circle(base, 0.22, 6), ground + 3.01, PAL_GOLD)
+	_prism(_circle(base, 0.22, 6), ground + 3.01, ground + 3.58, POTOCKI_LAMP, Color.TRANSPARENT, M_LAMP)
+	_pyramid(_circle(base, 0.28, 6), ground + 3.58, ground + 3.82, PAL_GOLD)
+	_mode = M_STONE
+
+
+## The iron bars rise to the arched crest, with small gilt curls around a central cartouche.
+func _potocki_ironwork(lo: float, hi: float, ground: float) -> void:
+	var mid := (lo + hi) * 0.5
+	_lbox(mid, 0.0, (hi - lo) * 0.5, 0.075, ground - 0.09, ground + 0.09, POTOCKI_IRON)
+	_lbox(mid, 0.0, (hi - lo) * 0.5, 0.075, ground + 3.32, ground + 3.46, POTOCKI_IRON)
+	for k in 13:
+		var t := float(k) / 12.0
+		var u := lerpf(lo, hi, t)
+		var y := ground + 0.07
+		var bar_top := ground + 3.60 + 0.94 * sin(PI * t)
+		_two_sided(_potocki_point(u - 0.047, 0.0, y), _potocki_point(u + 0.047, 0.0, y),
+				_potocki_point(u + 0.047, 0.0, bar_top), _potocki_point(u - 0.047, 0.0, bar_top), POTOCKI_IRON)
 	for k in 8:
-		var d := Vector2.from_angle(TAU * k / 8.0)
-		_prism(_circle(c + d * 3.0, 0.2, 6), top + 1.3, top + 4.0, KP_TRIM, none, M_STONE)
+		var t0 := float(k) / 8.0
+		var t1 := float(k + 1) / 8.0
+		_beam(_potocki_point(lerpf(lo, hi, t0), 0.0, ground + 3.59 + 0.96 * sin(PI * t0)),
+				_potocki_point(lerpf(lo, hi, t1), 0.0, ground + 3.59 + 0.96 * sin(PI * t1)), 0.11, POTOCKI_IRON)
+	_beam(_potocki_point(mid, -0.014, ground + 3.68), _potocki_point(mid, 0.047, ground + 3.68), 0.08, POTOCKI_IRON)
+	for flip: float in [-1.0, 1.0]:
+		var from := _potocki_point(mid, 0.043, ground + 3.68)
+		for k in 9:
+			var t := float(k) / 8.0
+			var angle := TAU * t
+			var radius := 1.0 - 0.78 * t
+			var to := _potocki_point(mid + flip * (1.32 - radius * cos(angle) * 0.93), 0.043,
+					ground + 3.83 + sin(angle) * radius * 0.57)
+			var offset := Vector3(_b.x, 0.0, _b.y).cross(to - from).normalized() * 0.033
+			_mode = M_GOLD
+			_two_sided(from - offset, to - offset, to + offset, from + offset, PAL_GOLD)
+			from = to
+	var centre := _potocki_point(mid, 0.08, ground + 4.13)
+	var out := Vector3(_b.x, 0.0, _b.y)
+	_beam(centre - out * 0.09, centre, 0.18, POTOCKI_IRON)
+	_mode = M_GOLD
+	_disc(centre, out, 0.36, 10, PAL_GOLD)
+	_mode = M_STONE
+	_disc(centre + out * 0.047, out, 0.245, 10, POTOCKI_IRON)
+
+
+## A point in the gate frame at an absolute height.
+func _potocki_point(u: float, v: float, y: float) -> Vector3:
+	var p := _w(u, v)
+	return Vector3(p.x, y, p.y)
+
+
+## Kordegarda, the palace guardhouse and gallery, keeps its C-shaped plan and flat attic.
+func _build_kordegarda(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["ring"]
+	var ring := _simplify(outline, 0.32)
+	_g = _ground_under(ring)
+	_mode = M_STONE
+	_kordegarda_walls(ring)
+	var width := kit_front(KORDEGARDA, KORDEGARDA_NORTH)
+	kit_face(0.0)
+	_kordegarda_openings(width)
+	_kordegarda_supports(width)
+	_kordegarda_balustrade(width)
+	_kordegarda_sculpture_groups(width)
+	_collide(outline)
+
+
+## The white plinth and cornice trace the C; the flat roof stops at the attic base.
+func _kordegarda_walls(ring: PackedVector2Array) -> void:
+	_prism(ring, _g - 0.62, _g + 6.60, KORD_WHITE, Color.TRANSPARENT, M_STONE)
+	kit_ledge_ring(ring, _g - 0.61, 1.41, KORD_WHITE.darkened(0.12), 0.10)
+	kit_cornice_ring(ring, _g + 6.22, KORD_WHITE, 0.38, 0.35)
+	_cap(ring, _g + 6.60, KORD_ROOF)
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var width := a.distance_to(b)
+		if width < 5.40 or width > 13.50:
+			continue
+		var edge := b - a
+		var out := _out(ring, a, b)
+		if Vector2(-edge.y, edge.x).dot(out) > 0.0:
+			kit_front(a, b)
+		else:
+			kit_front(b, a)
+		kit_face(-0.06)
+		kit_attic(0.22, width - 0.22, _g + 6.57, KORD_WHITE, 0.63, Attic.WALL)
+		kit_face(0.0)
+		if out.x < -0.85:
+			kit_door(width * 0.50, _g + 0.11, 3.20, 0.68, KORD_WHITE.lightened(0.06), KORD_DOOR, true)
+		else:
+			for t: float in [0.31, 0.69]:
+				kit_round_window(_w(width * t, 0.0), _a, _b, _g + 1.28, _g + 3.93, 0.54, KORD_WHITE, KORD_GLASS)
+
+
+## The kit supplies the round surrounds. An aligned warm pane lights each of the gallery arches.
+func _kordegarda_openings(width: float) -> void:
+	var step := width / 7.0
+	for k in 7:
+		var u := step * (float(k) + 0.5)
+		if k == 3:
+			kit_door(u, _g + 0.10, 4.00, 0.80, KORD_WHITE.lightened(0.06), KORD_DOOR, true)
+		else:
+			var at := _w(u, 0.0)
+			kit_round_window(at, _a, _b, _g + 1.20, _g + 4.20, 0.65, KORD_WHITE.lightened(0.08), KORD_GLASS)
+			_arch_panel(at, _a, _b, 0.65, _g + 1.20, _g + 4.20, KORD_GLASS, 0.124, M_PAVILION)
+	var mid := width * 0.5
+	kit_ledge(mid - 0.98, mid + 0.98, _g + 4.96, 0.44, KORD_WHITE, 0.16)
+	_mode = M_LAMP
+	_wall(_w(mid - 0.86, 0.194), _w(mid + 0.86, 0.194), _g + 5.01, _g + 5.35, _b, KORD_WHITE)
+	_mode = M_STONE
+
+
+## Eight shallow pilasters set the rhythm of the gallery bays.
+func _kordegarda_supports(width: float) -> void:
+	for k in 8:
+		var u := clampf(width * float(k) / 7.0, 0.20, width - 0.20)
+		kit_pilaster(u, _g + 0.80, _g + 6.00, KORD_WHITE.lightened(0.035), 0.44, 0.16)
+
+
+## The open stone attic has a rail and plinth from the kit, with dies at the tighter gallery spacing.
+func _kordegarda_balustrade(width: float) -> void:
+	kit_face(0.03)
+	var base := _g + 6.60
+	kit_ledge(0.08, width - 0.08, base - 0.04, 0.22, KORD_WHITE, 0.26)
+	kit_ledge(0.08, width - 0.08, base + 0.73, 0.17, KORD_WHITE, 0.24)
+	for k in 11:
+		var u := lerpf(0.27, width - 0.27, float(k) / 10.0)
+		_prism(_rect(u, 0.12, 0.13, 0.10), base + 0.15, base + 0.77,
+				KORD_WHITE, Color.TRANSPARENT, M_STONE)
+		if k < 10:
+			var gap := (width - 0.54) / 10.0
+			for fraction: float in [0.33, 0.67]:
+				_frustum(_rect(u + gap * fraction, 0.12, 0.075, 0.077), base + 0.18,
+						_rect(u + gap * fraction, 0.12, 0.045, 0.053), base + 0.74, KORD_WHITE)
+
+
+## Three figures crown the entrance. Standing figures and urns mark the two street corners.
+func _kordegarda_sculpture_groups(width: float) -> void:
+	var y := _g + 6.60
+	var mid := width * 0.5
+	_lbox(mid, 0.05, 1.34, 0.42, y - 0.07, y + 0.71, KORD_WHITE)
+	_lbox(mid, 0.04, 0.69, 0.36, y + 0.68, y + 1.07, KORD_SCULPT)
+	_kordegarda_figure(mid, 0.09, y + 1.05, 1.65, 0.0)
+	for side: float in [-1.0, 1.0]:
+		_kordegarda_figure(mid + side * 0.79, 0.08, y + 0.69, 1.38, side)
+		var u := mid + side * (mid - 0.76)
+		_lbox(u, -0.05, 0.68, 0.55, y - 0.07, y + 0.72, KORD_WHITE)
+		_kordegarda_figure(u + side * 0.12, 0.06, y + 0.70, 1.52, -side)
+		var urn := _w(u - side * 0.43, 0.01)
+		_frustum(_circle(urn, 0.13, 6), y + 0.68, _circle(urn, 0.23, 6), y + 1.02, KORD_SCULPT)
+		_frustum(_circle(urn, 0.23, 6), y + 1.02, _circle(urn, 0.11, 6), y + 1.26, KORD_SCULPT, KORD_SCULPT)
+
+
+## Broad shoulders, drapery and an arm make the attic figures readable from the street.
+func _kordegarda_figure(u: float, v: float, y: float, h: float, lean: float) -> void:
+	var hip := u - lean * 0.08
+	var shoulder := u + lean * 0.17
+	_frustum(_rect(hip, v, h * 0.21, h * 0.135), y,
+			_rect(hip, v - 0.04, h * 0.12, h * 0.10), y + h * 0.46, KORD_SCULPT)
+	_frustum(_rect(hip, v - 0.04, h * 0.12, h * 0.10), y + h * 0.46,
+			_rect(shoulder, v - 0.06, h * 0.19, h * 0.105), y + h * 0.79, KORD_SCULPT, KORD_SCULPT)
+	var head := _w(shoulder, v + 0.01)
+	_frustum(_circle(head, h * 0.083, 6), y + h * 0.76,
+			_circle(head, h * 0.067, 6), y + h, KORD_SCULPT, KORD_SCULPT)
+	for side: float in [-1.0, 1.0]:
+		var a := _w(shoulder + side * h * 0.155, v + 0.015)
+		var b := _w(hip + side * h * 0.22, v + h * 0.12)
+		_beam(Vector3(a.x, y + h * 0.73, a.y), Vector3(b.x, y + h * 0.40, b.y),
+				h * 0.118, KORD_SCULPT)
+
+
+## Hotel Bristol (1901), spec v2, 2026-11-27. Models the entire block around its open court,
+## with pilastered street fronts, a zinc mansard and the corner drum's floodlit belvedere.
+## Each street frame follows its mapped edge, with u along the wall and positive v out over the street.
+func _build_bristol(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["zone"][0]
+	var ring := _simplify(outline, 1.3)
+	# Split the stepped service wing across the garden wall, retaining the mapped envelope.
+	var karowa := ring.find(BRISTOL_KAROWA_END)
+	var corner_at := ring.find(Vector2(-559.9, -890.5))
+	if karowa < 0 or corner_at < 0:
+		# A map re-bake moved the vertices the split and the drum hang on: say so, do not slice blind.
+		push_error("bristol: outline vertex not found after _simplify (karowa %d, corner %d); the hotel is not built" % [karowa, corner_at])
+		return
+	var garden := ring[-1].lerp(ring[0], 0.8)
+	var annex := ring.slice(0, karowa + 1)
+	annex.insert(0, garden)
+	ring = ring.slice(karowa)
+	ring.append(garden)
+	# Keep the two extra faces on the mapped corner's curve, under the drum.
+	var corner := ring.find(Vector2(-559.9, -890.5))
+	if corner < 0:
+		push_error("bristol: the drum's corner vertex is not on the street ring; the hotel is not built")
+		return
+	ring.insert(corner, Vector2(-557.3, -889.7))
+	ring.insert(corner + 2, BRISTOL_KRAK_SOUTH)
+	_g = _ground_under(outline)
+	_mode = M_STONE
+	var courts: Array[PackedVector2Array] = []
+	var along := Vector2(0.87, -0.49).normalized()
+	for mapped in _holes:
+		var court := _simplify(mapped, 0.85)
+		var c := _centre(court)
+		for i in court.size():
+			court[i] += along * (court[i] - c).dot(along) * 0.26
+		courts.append(court)
+	_holes = []  # Bristol walls its own open court to the new mansard roof.
+	_bristol_mass(ring, courts)
+	_bristol_mansard(ring, courts)
+	_bristol_annex(annex)
+	_bristol_front(BRISTOL_KRAK_NORTH, BRISTOL_KRAK_SOUTH, true)
+	_bristol_front(Vector2(-553.6, -891.0), BRISTOL_KAROWA_END, false)
+	_bristol_drum(ring)
+	_bristol_belvedere()
+	_collide(outline)
+
+
+## The exterior shell, with untrimmed garden windows and a continuous cornice. The court's
+## cream walls use the monument material's window grid and stop flush with the roof opening.
+func _bristol_mass(ring: PackedVector2Array, courts: Array[PackedVector2Array]) -> void:
+	var y0 := _g + BRISTOL_MEZZ
+	var y1 := _g + BRISTOL_CORNICE
+	# Sample the plaster between the monument shader's window strips. The kit places the actual bays.
+	var foot_uv := Vector2(2.48, BRISTOL_MEZZ)
+	var eave_uv := Vector2(2.48, BRISTOL_CORNICE)
+	var street_run := 0.0
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var out := _out(ring, a, b)
+		_mode = M_STONE
+		# The last two edges face the garden and overlook the lower annex, respectively.
+		if i == ring.size() - 2:
+			_wall(a, b, _g - 0.6, y1, out, BRISTOL_WALL)
+			var length := kit_front(b, a)
+			var rows: Array[float] = [_g + 1.92]
+			for storey in 4:
+				rows.append(_g + BRISTOL_SILL + 3.6 * storey)
+			kit_panes(_spread(0.0, length, 10), rows, 1.44, 2.35, BRISTOL_GLASS)
+			continue
+		if i == ring.size() - 1:
+			var annex_top := _g + BRISTOL_ANNEX_TOP
+			_wall(a, b, annex_top, y1, out, BRISTOL_WALL)
+			var length := kit_front(b, a)
+			kit_panes(_spread(0.0, length, 7), [annex_top + 0.6], 1.44, 2.35, BRISTOL_GLASS)
+			continue
+		_wall(a, b, _g - 0.6, y0, out, BRISTOL_SHADE, street_run)
+		street_run += a.distance_to(b)
+		_mode = M_MONUMENT
+		_quad(Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, y1, b.y), Vector3(a.x, y1, a.y),
+				Vector3(out.x, 0.0, out.y), BRISTOL_WALL, foot_uv, foot_uv, eave_uv, eave_uv, BRISTOL_CORNICE)
+	_mode = M_STONE
+	kit_ledge_ring(ring, _g + 0.28, 0.32, BRISTOL_SHADE.darkened(0.12), 0.12)
+	kit_ledge_ring(ring, _g + 5.0, 0.2, KP_TRIM, 0.17)
+	kit_cornice_ring(ring, _g + BRISTOL_CORNICE - 0.42, KP_TRIM, 0.42, 0.66)
+	_mode = M_MONUMENT
+	for court in courts:
+		for i in court.size():
+			var a := court[i]
+			var b := court[(i + 1) % court.size()]
+			_wall(a, b, _g - 0.6, _g + BRISTOL_ROOF, -_out(court, a, b), BRISTOL_WALL)
+	_mode = M_STONE
+
+
+## The lower service wing steps away from Karowa behind the ornate court block.
+func _bristol_annex(ring: PackedVector2Array) -> void:
+	_mode = M_STONE
+	var top := _g + BRISTOL_ANNEX_TOP
+	var rows: Array[float] = [_g + 1.92, _g + BRISTOL_SILL, _g + BRISTOL_SILL + 3.6, _g + BRISTOL_SILL + 7.2]
+	# The last edge is shared by the tall block. Only the exposed walls need faces.
+	for i in ring.size() - 1:
+		var a := ring[i]
+		var b := ring[i + 1]
+		var out := _out(ring, a, b)
+		_wall(a, b, _g - 0.6, top, out, BRISTOL_WALL)
+		var length := kit_front(b, a)
+		kit_panes(_spread(0.0, length, maxi(1, floori(length / 6.2))), rows, 1.44, 2.35, BRISTOL_GLASS)
+	_cap(ring, top, BRISTOL_SLATE)
+
+
+## Lay out the street bays symmetrically, keeping the first and last away from the corner returns.
+func _bristol_front(from: Vector2, to: Vector2, krakowskie: bool) -> void:
+	var length := kit_front(from, to)
+	kit_face(0.0)
+	var mid := length * 0.5
+	var bays := floori(length / BRISTOL_BAY)
+	if bays % 2 == 0:
+		bays -= 1
+	var first := mid - (bays - 1) * BRISTOL_BAY * 0.5
+	var centres: Array[float] = []
+	for bay in bays:
+		centres.append(first + bay * BRISTOL_BAY)
+	_bristol_gf(centres, mid if krakowskie else -10.0, krakowskie)
+	_bristol_bays(centres)
+	# The giant pairs frame every other bay from the mezzanine to the cornice.
+	for bay in range(0, bays, 2):
+		for side: float in [-1.0, 1.0]:
+			kit_pilaster(centres[bay] + side * 1.53, _g + BRISTOL_MEZZ, _g + BRISTOL_CORNICE - 0.78, KP_TRIM, 0.6, 0.25)
+	# The gallery spans five openings. Individual balconies match the width of their windows.
+	kit_face(-0.045)
+	kit_balcony(mid, _g + BRISTOL_SILL, 2.0 * BRISTOL_BAY + 0.79, Balcony.IRON, PAL_IRON, KP_TRIM, 1.05)
+	for bay in range(0, bays, 2):
+		kit_balcony(centres[bay], _g + BRISTOL_SILL + 7.2, 0.79, Balcony.IRON, PAL_IRON, KP_TRIM, 0.82)
+	kit_face(0.0)
+	if krakowskie:
+		_bristol_gable(mid)
+	_bristol_dormers(centres, mid if krakowskie else -10.0)
+
+
+## Tall shop glazing and a mezzanine above it carry the storefront rhythm up to the giant order.
+## Krakowskie's recessed panes use the warm-lit pavilion glass, as does the corner café.
+func _bristol_gf(centres: Array[float], entrance: float, warm: bool, hw := 1.58) -> void:
+	for u in centres:
+		if absf(u - entrance) < BRISTOL_BAY * 0.5:
+			continue
+		kit_panes([u], [_g + 0.62], hw * 2.0, 4.06, PAL_IRON, 0.028)
+		_mode = M_PAVILION if warm else M_GLASS
+		_wall(_w(u - hw + 0.09, 0.08), _w(u + hw - 0.09, 0.08), _g + 0.72, _g + 4.58, _b, BRISTOL_GLASS)
+	kit_panes(centres, [_g + 5.54], 1.4, 0.75, BRISTOL_GLASS)
+	_mode = M_STONE
+	if entrance >= 0.0:
+		_bristol_entrance(entrance)
+
+
+## The projecting doorway carries the two-post café canopy and the small gold neon board.
+func _bristol_entrance(u: float) -> void:
+	kit_face(0.7)
+	_ubox(u - 2.18, u + 2.18, -0.05, 0.7, _g - 0.2, _g + 5.0, BRISTOL_SHADE)
+	kit_door(u, _g + 0.12, 3.84, 1.56, KP_TRIM, PAL_IRON)
+	_mode = M_PAVILION
+	_wall(_w(u - 1.46, 0.78), _w(u + 1.46, 0.78), _g + 0.22, _g + 3.87, _b, BRISTOL_GLASS)
+	_mode = M_STONE
+	_lbox(u, 1.34, 2.42, 1.42, _g + 4.18, _g + 4.42, PAL_IRON)
+	for side: float in [-1.0, 1.0]:
+		kit_column(u + side * 2.12, 2.51, _g - 0.18, _g + 4.18, PAL_IRON, 0.10)
+	_lbox(u, 0.74, 1.83, 0.08, _g + 4.46, _g + 5.02, Color("#2a2420"))
+	# Batch the neon font's contiguous pixels into short runs on the board, in the site mesh.
+	var word := "BRISTOL"
+	_mode = M_LAMP
+	var pitch := 0.065
+	var left := u - Neon.word_width(word) * pitch * 0.5
+	for ch in word:
+		var rows: Array = Neon.FONT[ch]
+		for row in rows.size():
+			var line: String = rows[row]
+			var start := -1
+			for x in line.length() + 1:
+				if x < line.length() and line[x] == "#":
+					if start < 0:
+						start = x
+				elif start >= 0:
+					var y := _g + 4.52 + (rows.size() - 1 - row) * pitch
+					_wall(_w(left + start * pitch, 0.83), _w(left + x * pitch, 0.83), y, y + pitch, _b, Color("#ffd173"))
+					start = -1
+		left += (String(rows[0]).length() + 1) * pitch
+	_mode = M_STONE
+	kit_face(0.0)
+
+
+## The four 3.6 m storeys have 1.4 m by 2.4 m panes and the first storey gets pedimented heads.
+## Small attic panes occupy the tall frieze below the main cornice.
+func _bristol_bays(centres: Array[float]) -> void:
+	for storey in 4:
+		var y := _g + BRISTOL_SILL + 3.6 * storey
+		var style := Win.PEDIMENT if storey == 0 else Win.SILL_HEAD
+		for u in centres:
+			kit_window(u, y, 2.4, style, KP_TRIM, BRISTOL_GLASS)
+	kit_panes(centres, [_g + 22.82], 0.83, 1.02, BRISTOL_GLASS)
+	kit_ledge(centres[0] - 1.8, centres[-1] + 1.8, _g + 22.47, 0.16, KP_TRIM, 0.13)
+
+
+## The three-bay segmental crown, its pale arch rim and relief cartouche above the blank frieze.
+func _bristol_gable(mid: float) -> void:
+	var half_width := 1.5 * BRISTOL_BAY
+	var rise := 3.5
+	var radius := (half_width * half_width + rise * rise) / (2.0 * rise)
+	var angle := asin(half_width / radius)
+	var base := _g + BRISTOL_CORNICE
+	var front := Vector3(_b.x, 0.0, _b.y)
+	var at := Vector3(_o.x, 0.0, _o.y)
+	var along := Vector3(_a.x, 0.0, _a.y)
+	var centre := at + along * mid + Vector3.UP * base
+	var face := centre + front * 0.43
+	var back := front * -2.5
+	var rim := Vector3.UP * 0.24
+	var prev := face - along * half_width
+	var uv := Vector2(-1, -1)
+	for k in range(1, 7):
+		var theta := lerpf(-angle, angle, k / 6.0)
+		var next := face + along * (radius * sin(theta)) + Vector3.UP * (radius * (cos(theta) - cos(angle)))
+		_tri(face, prev, next, front, BRISTOL_WALL, uv, uv, uv, -1.0)
+		_tri(face + back, prev + back + rim, next + back + rim, -front, BRISTOL_WALL, uv, uv, uv, -1.0)
+		_quad(prev, next, next + rim, prev + rim, front, KP_TRIM)
+		var slope := (next - prev).cross(back).normalized()
+		_quad(prev + rim, next + rim, next + back + rim, prev + back + rim, slope, BRISTOL_SLATE)
+		prev = next
+	kit_ledge(mid - half_width, mid + half_width, _g + 24.08, 0.5, KP_TRIM, 0.21)
+	var seal := face + front * 0.04 + Vector3.UP * 1.38
+	_disc(seal, front, 0.84, 10, KP_TRIM)
+	_disc(seal + front * 0.03, front, 0.63, 10, BRISTOL_SHADE)
+	_disc(seal + front * 0.06, front, 0.39, 4, KP_TRIM)
+
+
+## The steep lower zinc pitch breaks at a 30 cm curb into the shallower roof above the court.
+func _bristol_mansard(ring: PackedVector2Array, courts: Array[PackedVector2Array]) -> void:
+	var curb := _inset_ring(ring, BRISTOL_MANSARD_INSET)
+	var top := _inset_ring(ring, 3.65)
+	var flood := _flood
+	_flood = false
+	_slope(ring, ring, _g + BRISTOL_CORNICE, curb, _g + 28.3, BRISTOL_ZINC)
+	_prism(curb, _g + 28.3, _g + 28.6, BRISTOL_ZINC.lightened(0.13), Color(0, 0, 0, 0), M_STONE)
+	var upper_zinc := BRISTOL_ZINC.lightened(0.21)
+	_slope(ring, curb, _g + 28.6, top, _g + BRISTOL_ROOF, upper_zinc)
+	_cap_holes(top, courts, _g + BRISTOL_ROOF, upper_zinc)
+	_flood = flood
+
+
+## Hipped zinc dormers take every other street bay, with larger round heads at the terminals.
+## The three central Krakowskie bays are taken by the gable.
+func _bristol_dormers(centres: Array[float], gable: float) -> void:
+	var flood := _flood
+	_flood = false
+	var y := _g + 26.03
+	var v := -0.48
+	var depth := 2.5
+	var body := BRISTOL_ZINC.darkened(0.08)
+	kit_face(v)
+	for bay in range(0, centres.size(), 2):
+		var u := centres[bay]
+		if absf(u - gable) < 1.5 * BRISTOL_BAY - 0.05:
+			continue
+		var large := bay == 0 or bay == centres.size() - 1
+		var hw := 1.09 if large else 0.85
+		var top := y + (2.18 if large else 1.96)
+		var box := _rect(u, v - depth * 0.5, hw, depth * 0.5)
+		# The back of each dormer is inside the mansard. Draw the front and cheeks.
+		for i in range(1, box.size()):
+			var a := box[i]
+			var b := box[(i + 1) % box.size()]
+			_wall(a, b, y - 0.53, top, _out(box, a, b), body)
+		_pyramid(_rect(u, v - depth * 0.5, hw + 0.11, depth * 0.5 + 0.09),
+				top, top + 0.65, BRISTOL_ZINC.darkened(0.14))
+		if large:
+			kit_round_window(_w(u, v), _a, _b, y + 0.18, y + 1.19, 0.66, BRISTOL_ZINC.lightened(0.2), BRISTOL_GLASS)
+		else:
+			kit_panes([u], [y + 0.19], 1.22, 1.45, BRISTOL_GLASS)
+	kit_face(0.0)
+	_flood = flood
+
+
+## The 12-sided drum rises through the roof. Below it, the mapped curved frontage carries the
+## same shop, sill and storey bands as the streets, so the tower reads as part of the building.
+func _bristol_drum(ring: PackedVector2Array) -> void:
+	var none := Color(0, 0, 0, 0)
+	var drum := _circle(BRISTOL_TOWER, 3.4, 12)
+	_prism(drum, _g + BRISTOL_CORNICE, _g + BRISTOL_DRUM_TOP, BRISTOL_WALL, none, M_STONE)
+	for k in 8:
+		var at := BRISTOL_TOWER + Vector2.from_angle(TAU * (k + 0.5) / 8.0) * 3.18
+		var out := (at - BRISTOL_TOWER).normalized()
+		kit_front(at, at + Vector2(out.y, -out.x))
+		kit_pilaster(0.0, _g + BRISTOL_CORNICE, _g + BRISTOL_DRUM_TOP - 0.04, KP_TRIM, 0.6, 0.49)
+	var sills: Array[float] = []
+	for storey in 4:
+		sills.append(_g + BRISTOL_SILL + 3.6 * storey)
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		if a.distance_to(BRISTOL_TOWER) > 5.3 or b.distance_to(BRISTOL_TOWER) > 5.3:
+			continue
+		var length := kit_front(b, a)
+		var mid := length * 0.5
+		var shops: Array[float] = [mid]
+		_bristol_gf(shops, -10.0, true, minf(1.58, mid - 0.2))
+		kit_panes(shops, sills, 1.1, 2.4, BRISTOL_GLASS)
+		for y: float in [6.46, 13.85, 21.05]:
+			kit_ledge(0.12, length - 0.12, _g + y, 0.15, KP_TRIM, 0.16)
+
+
+## The v1 belvedere keeps the oversailing ring, eight columns, blue core, shallow cap and finial.
+func _bristol_belvedere() -> void:
+	var c := BRISTOL_TOWER
+	var top := _g + BRISTOL_DRUM_TOP
+	var none := Color(0, 0, 0, 0)
+	_prism(_circle(c, 3.9, 12), top, top + 0.5, KP_TRIM, KP_TRIM, M_STONE, M_STONE)
+	_prism(_circle(c, 3.6, 12), top + 0.5, top + 1.3, BRISTOL_WALL, BRISTOL_WALL, M_STONE)
+	var core := Color("#4a7ad8").darkened(0.24)  # Keep the core in shade by day.
+	_prism(_circle(c, 2.6, 8), top + 0.5, top + 4.0, core, none, M_LAMP)
+	kit_front(c, c + Vector2.RIGHT)
+	for k in 8:
+		var p := Vector2.from_angle(TAU * k / 8.0) * 3.0
+		kit_column(p.x, p.y, top + 1.3, top + 4.0, KP_TRIM, 0.2)
 	_prism(_circle(c, 3.5, 12), top + 4.0, top + 4.6, KP_TRIM, KP_TRIM, M_STONE, M_STONE)
 	_frustum(_circle(c, 3.3, 12), top + 4.6, _circle(c, 2.0, 12), top + 5.6, BRISTOL_WALL)
 	_frustum(_circle(c, 2.0, 12), top + 5.6, _circle(c, 0.5, 12), top + 6.2, BRISTOL_WALL, BRISTOL_WALL)
-	_prism(_circle(c, 0.12, 6), top + 6.2, top + 7.4, KP_GOLD, KP_GOLD, M_STONE, M_STONE)
-
+	_prism(_circle(c, 0.12, 4), top + 6.2, top + 7.4, Color("#c9a24a"), Color("#c9a24a"), M_STONE, M_STONE)
 
 ## Rynek Mariensztacki (BACKLOG M2): the 1949 estate's square. Its six houses on the south side
 ## (Mariensztat 19 to 25) each carry a relief panel on the street face (a framed terracotta

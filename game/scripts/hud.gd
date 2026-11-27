@@ -443,7 +443,7 @@ var _card_x: Button
 var _card_x_room: Control
 var _card_x_as := -1
 var _side_call := false
-## Loop 2d-1: the Podwózka app's route on the minimap (map coordinates), drawn dotted.
+## Loop 2d-1: the Łuber app's route on the minimap (map coordinates), drawn dotted.
 var _mini_route := PackedVector2Array()
 var _mini_route_colour := Color.WHITE
 var _mini_route_owner := ""
@@ -1436,7 +1436,7 @@ func language_changed(state: Dictionary) -> void:
 
 
 ## The context button: a call came in (Polish, English under it); pressing it emits pill_pressed.
-## Loop 2d-1: `owner` says whose it is ("call", or "ride" for PODWÓZKA · rides.gd); every press
+## Loop 2d-1: `owner` says whose it is ("call", or "ride" for ŁUBER · rides.gd); every press
 ## also emits context_pressed(owner).
 func show_pill(pl: String, en := "", owner := "call") -> void:
 	pill_owner = owner
@@ -1495,7 +1495,7 @@ func pill_free() -> bool:
 	return not _pill.visible
 
 
-## Who may take the context button from whom (PT-23, 2026-11-06): the ride app's PODWÓZKA is up
+## Who may take the context button from whom (PT-23, 2026-11-06): the ride app's ŁUBER is up
 ## whenever the player could take a ride, so "wait for a free button" meant the stuck offer's
 ## POMOC DROGOWA (and KASETA by a tape) never came up while it was. A higher rank takes the button;
 ## the one it took comes back on its own once the button is free again. A rescue call ranks top.
@@ -3239,10 +3239,10 @@ func set_quest_focus(focus: bool) -> void:
 		full_map.focus = focus
 
 
-# --- loop 2d-1: the Podwózka app's route (rides.gd) -------------------------------------------
+# --- loop 2d-1: the Łuber app's route (rides.gd) -------------------------------------------
 
 ## A card in the right-hand column under the top row, as wide as the room right of the car's
-## spot allows (at most CARD_W points): the car stays in view (Podwózka's request and result).
+## spot allows (at most CARD_W points): the car stays in view (Łuber's request and result).
 ## The same card, recipe and point sizes; the next show_card() puts it back in the middle.
 ## F 2026-11-10: `face` names who is talking (a quest offer: "Ivan"), and their portrait, or
 ## their initial on a disc, stands before the title (Portraits).
@@ -3311,7 +3311,7 @@ func minimap_route() -> PackedVector2Array:
 	return _mini_route
 
 
-## Who drew the route now ("" for Podwózka's; target_route.gd steps aside for any other).
+## Who drew the route now ("" for Łuber's; target_route.gd steps aside for any other).
 func minimap_route_owner() -> String:
 	return _mini_route_owner
 
@@ -3476,7 +3476,7 @@ static func _money(amount: int) -> String:
 
 ## A small card under the wallet for a few seconds (an easter egg found). The message director:
 ## during a quest, a chase or a scripted moment a note waits in the queue and shows after it
-## (`priority` messages.gd: INFO by default; a quest's own message, the TYGRAM pin, is QUEST_LINE).
+## (`priority` messages.gd: INFO by default; a quest's own message, the COTAM pin, is QUEST_LINE).
 func show_note(title: String, body: String, colour: Color, priority := Messages.INFO) -> void:
 	match _decide("note", priority):
 		Messages.DEFER:

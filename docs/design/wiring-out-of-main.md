@@ -88,7 +88,7 @@ eleven findings are built in. Row TD-4 in `docs/architecture/tech-debt.md`.
 | b5 | the boat race | `_build_boat_race` | 43 | the boat ride's signals stay |
 | b6 | the tours (Kino, Dekalog) | `_build_tours`, `_build_tour` | 53 | one script, two joins |
 | b7 | the shisha night | `_build_shisha` | 65 | the lounge's room and its two test starts stay |
-| b8 | Podwózka and the deliveries, together | `_build_side_jobs` | 56 | they set up in one order (the deliveries first) and join in the other (Podwózka first): two `_install`, then two `_add`; `jobs.rides` set in Podwózka's `joined` |
+| b8 | Łuber and the deliveries, together | `_build_side_jobs` | 56 | they set up in one order (the deliveries first) and join in the other (Łuber first): two `_install`, then two `_add`; `jobs.rides` set in Łuber's `joined` |
 | b9 | the trend job | `_build_city_life` | 32 | the padel, egg and Spacer hooks stay; `jobs.trend` in its `joined` |
 | b10 | the round-up | `_build_storefronts` | 27 | at the index before `jobs.gd`; `jobs.roundup` in its `joined` |
 | b11 | the street races | `_build_life` | 20 | `setup_in` with the map data; their test starts stay in the chain |
