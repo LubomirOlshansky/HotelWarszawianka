@@ -623,7 +623,7 @@ func _venue_frame(dt: float) -> void:
 	if _tod != null:
 		var night := 1.0 - clampf(float(_tod.get("daylight")), 0.0, 1.0)
 		_flood.light_energy = FLOOD_ENERGY * night
-		_flood.visible = _inside and night > 0.02
+		_flood.visible = flood_on(_inside, night)
 
 
 func _smoke_frame(dt: float) -> void:
@@ -815,17 +815,28 @@ func _build_venue() -> void:
 	_root.add_child(_flames)
 	# Change 14: the floodlight from the roof for the lit floor and cars, at night, inside only; no shadow.
 	# Its cull mask is a layer only the floor, the wedge, the marks and the stadium's car carry (the review).
-	_flood = DirectionalLight3D.new()
-	_flood.name = "Floodlight"
-	_flood.light_color = FLOOD_COLOUR
-	_flood.light_energy = 0.0
-	_flood.shadow_enabled = false
-	_flood.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
-	_flood.rotation = Vector3(deg_to_rad(-62.0), deg_to_rad(20.0), 0.0)
-	_flood.visible = false
-	_flood.light_cull_mask = FLOOD_LAYER
+	_flood = make_flood()
 	add_child(_flood)
 	_apply_tiers()
+
+
+## The floodlight as built (check_drift V8): dark, hidden, no shadow, lighting only FLOOD_LAYER.
+static func make_flood() -> DirectionalLight3D:
+	var l := DirectionalLight3D.new()
+	l.name = "Floodlight"
+	l.light_color = FLOOD_COLOUR
+	l.light_energy = 0.0
+	l.shadow_enabled = false
+	l.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
+	l.rotation = Vector3(deg_to_rad(-62.0), deg_to_rad(20.0), 0.0)
+	l.visible = false
+	l.light_cull_mask = FLOOD_LAYER
+	return l
+
+
+## Whether the floodlight shows (check_drift V8): only inside the stadium, and only at night.
+static func flood_on(inside_now: bool, night: float) -> bool:
+	return inside_now and night > 0.02
 
 
 ## Puts the floodlight's layer on `n` and every mesh under it (the stadium's car gets its model on each

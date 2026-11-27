@@ -35,7 +35,8 @@ extends SceneTree
 ##   flames) are under TRI_BUDGET; V3 the line, the zones' boards and cones are at least WALL_CLEAR m inside
 ##   the track wall; V4 no line sample within ISLAND_CLEAR m of an island's grass, no cone on it; V5 the
 ##   tiers: smoke 64 / 40 / 24, crowd 1,500 / 900 / 400, the crowd has 1,500 to take; V6 every board's
-##   words fit the atlas's row and have their English.
+##   words fit the atlas's row and have their English; V8 the floodlight (layer 20) is built dark and
+##   hidden, lights only its own layer, and shows only inside the stadium at night.
 ##   godot --headless --path game --script res://tools/check_drift.gd
 
 const DriftLine := preload("res://scripts/drift_line.gd")
@@ -867,5 +868,16 @@ func _venue() -> void:
 		dense += int(d.y)
 	if dense > 0:
 		_fail("V7: %d LED or printed triangles have over %.1f texels a metre (max %.2f)" % [dense, DriftVenue.ISO_PX_M * 0.5, dens])
+	# V8: the floodlight (layer 20) is off outside the stadium: built dark and hidden with no shadow,
+	# lights only its own layer (never the city's layer 1), and shows only inside at night.
+	var fl := DriftStadium.make_flood()
+	if fl.visible or fl.light_energy != 0.0 or fl.shadow_enabled or fl.light_cull_mask != DriftStadium.FLOOD_LAYER or (fl.light_cull_mask & 1) != 0:
+		_fail("V8: the floodlight is built lit, visible, shadowed or on the city's layer (mask %d)" % fl.light_cull_mask)
+	fl.free()
+	for n: float in [0.0, 0.5, 1.0]:
+		if DriftStadium.flood_on(false, n):
+			_fail("V8: the floodlight shows outside the stadium at night %.1f" % n)
+	if not DriftStadium.flood_on(true, 1.0) or DriftStadium.flood_on(true, 0.0):
+		_fail("V8: the floodlight inside: on at night, off by day")
 	print("check_drift: venue boards %.2f texels a metre at most (%.2f render px a texel in iso at High)" % [dens, DriftVenue.ISO_PX_M / maxf(dens, 1e-3)])
 	print("check_drift: venue %d triangles at High %s, %d stand vertices hide the track, built in %d ms" % [total, str(tris), hidden, built])
