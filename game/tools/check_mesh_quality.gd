@@ -340,7 +340,7 @@ const BUDGET := {
 	"mansjonaria": 2700,  # 2026-11-26: the buttressed house by the oak modelled whole (measured 2458)
 	"nikidw": 2400,  # 2026-11-26: the Institute modelled whole: 12-bay two-storey arcade, wings, hipped roofs (measured 2268)
 	"arkady": 2600,
-	"kino_muranow": 6000,
+	"kino_muranow": 11000,  # 2026-11-27 v2 whole complex: both 4-storey blocks, arch block, arcaded podium, square
 	"zbawiciela": 3400,
 	"zbawiciela_plac": 2200,
 	"tarasy": 9400,  # 2026-11-11 F's photos: the triangular glass wave, the guitar, the café (5455); the whole complex: podium ledges, shop boards, Lumen's setback (7781)

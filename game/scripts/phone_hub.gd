@@ -320,7 +320,7 @@ func _tile(a: Dictionary) -> Button:
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# The app's icon: a drawn glyph in the app's colour on a round disc.
 	var icon := Control.new()
-	icon.custom_minimum_size = Vector2.ONE * 48.0 * pt
+	icon.custom_minimum_size = Vector2.ONE * (64.0 if ResourceLoader.exists(ICON_DIR % str(a["key"])) else 48.0) * pt
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var key := str(a["key"])
 	var art := ICON_DIR % key
@@ -333,7 +333,14 @@ func _tile(a: Dictionary) -> Button:
 		tex.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tex.modulate = Color.WHITE if on else Color(1, 1, 1, 0.4)
-		icon.add_child(tex)
+		# Rounded like an app icon: the Panel clips the square art to its corners.
+		var round_box := Panel.new()
+		round_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		round_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		round_box.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
+		round_box.add_theme_stylebox_override("panel", UiKit.box(Color("#15121f"), Color(0, 0, 0, 0), pt, 14.0, 0.0, 0.0))
+		icon.add_child(round_box)
+		round_box.add_child(tex)
 	else:
 		icon.draw.connect(func() -> void: _draw_glyph(icon, key, col if on else UiKit.DIM, UiKit.ON_GOLD if on else UiKit.FAINT))
 	var holder := CenterContainer.new()

@@ -194,6 +194,7 @@ const LM_BLOCKS := [
 	"32129912",  # the blue glass tower on Plac Powstańców: its LoD2 mesh is open (see-through)
 	"338542425",  # Marszałkowska 99's white slab
 	"6520917",  # Grzybowska 77 (Bellona): the brick house from F's photos
+	"141043447",  # Kino Muranów: whole complex (podium + residential blocks) rebuilt in muranow.gd
 ]
 
 
