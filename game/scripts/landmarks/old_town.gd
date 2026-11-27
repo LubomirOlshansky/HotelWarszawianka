@@ -3787,6 +3787,11 @@ func _build_bristol(site: Dictionary) -> void:
 	var ring := _simplify(outline, 1.3)
 	# Split the stepped service wing across the garden wall, retaining the mapped envelope.
 	var karowa := ring.find(BRISTOL_KAROWA_END)
+	var corner_at := ring.find(Vector2(-559.9, -890.5))
+	if karowa < 0 or corner_at < 0:
+		# A map re-bake moved the vertices the split and the drum hang on: say so, do not slice blind.
+		push_error("bristol: outline vertex not found after _simplify (karowa %d, corner %d); the hotel is not built" % [karowa, corner_at])
+		return
 	var garden := ring[-1].lerp(ring[0], 0.8)
 	var annex := ring.slice(0, karowa + 1)
 	annex.insert(0, garden)
@@ -3794,6 +3799,9 @@ func _build_bristol(site: Dictionary) -> void:
 	ring.append(garden)
 	# Keep the two extra faces on the mapped corner's curve, under the drum.
 	var corner := ring.find(Vector2(-559.9, -890.5))
+	if corner < 0:
+		push_error("bristol: the drum's corner vertex is not on the street ring; the hotel is not built")
+		return
 	ring.insert(corner, Vector2(-557.3, -889.7))
 	ring.insert(corner + 2, BRISTOL_KRAK_SOUTH)
 	_g = _ground_under(outline)
@@ -3836,8 +3844,8 @@ func _bristol_mass(ring: PackedVector2Array, courts: Array[PackedVector2Array]) 
 			_wall(a, b, _g - 0.6, y1, out, BRISTOL_WALL)
 			var length := kit_front(b, a)
 			var rows: Array[float] = [_g + 1.92]
-			for floor in 4:
-				rows.append(_g + BRISTOL_SILL + 3.6 * floor)
+			for storey in 4:
+				rows.append(_g + BRISTOL_SILL + 3.6 * storey)
 			kit_panes(_spread(0.0, length, 10), rows, 1.44, 2.35, BRISTOL_GLASS)
 			continue
 		if i == ring.size() - 1:
@@ -3959,12 +3967,12 @@ func _bristol_entrance(u: float) -> void:
 	kit_face(0.0)
 
 
-## The four 3.6 m storeys have 1.4 m by 2.4 m panes and the first floor gets pedimented heads.
+## The four 3.6 m storeys have 1.4 m by 2.4 m panes and the first storey gets pedimented heads.
 ## Small attic panes occupy the tall frieze below the main cornice.
 func _bristol_bays(centres: Array[float]) -> void:
-	for floor in 4:
-		var y := _g + BRISTOL_SILL + 3.6 * floor
-		var style := Win.PEDIMENT if floor == 0 else Win.SILL_HEAD
+	for storey in 4:
+		var y := _g + BRISTOL_SILL + 3.6 * storey
+		var style := Win.PEDIMENT if storey == 0 else Win.SILL_HEAD
 		for u in centres:
 			kit_window(u, y, 2.4, style, KP_TRIM, BRISTOL_GLASS)
 	kit_panes(centres, [_g + 22.82], 0.83, 1.02, BRISTOL_GLASS)
@@ -4051,7 +4059,7 @@ func _bristol_dormers(centres: Array[float], gable: float) -> void:
 
 
 ## The 12-sided drum rises through the roof. Below it, the mapped curved frontage carries the
-## same shop, sill and floor bands as the streets, so the tower reads as part of the building.
+## same shop, sill and storey bands as the streets, so the tower reads as part of the building.
 func _bristol_drum(ring: PackedVector2Array) -> void:
 	var none := Color(0, 0, 0, 0)
 	var drum := _circle(BRISTOL_TOWER, 3.4, 12)
@@ -4062,8 +4070,8 @@ func _bristol_drum(ring: PackedVector2Array) -> void:
 		kit_front(at, at + Vector2(out.y, -out.x))
 		kit_pilaster(0.0, _g + BRISTOL_CORNICE, _g + BRISTOL_DRUM_TOP - 0.04, KP_TRIM, 0.6, 0.49)
 	var sills: Array[float] = []
-	for floor in 4:
-		sills.append(_g + BRISTOL_SILL + 3.6 * floor)
+	for storey in 4:
+		sills.append(_g + BRISTOL_SILL + 3.6 * storey)
 	for i in ring.size():
 		var a := ring[i]
 		var b := ring[(i + 1) % ring.size()]
