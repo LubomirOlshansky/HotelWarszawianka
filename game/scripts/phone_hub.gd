@@ -28,6 +28,8 @@ const PHONE_W := 214.0
 const PHONE_H := 372.0
 const TILE_H := 96.0
 const EDGE_GAP := 20.0
+## The generated app icons, one per app key (a missing file falls back to the drawn glyph).
+const ICON_DIR := "res://art/phone_icons/%s.png"
 
 var pt := 1.0
 var safe := Rect2()
@@ -321,7 +323,19 @@ func _tile(a: Dictionary) -> Button:
 	icon.custom_minimum_size = Vector2.ONE * 48.0 * pt
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var key := str(a["key"])
-	icon.draw.connect(func() -> void: _draw_glyph(icon, key, col if on else UiKit.DIM, UiKit.ON_GOLD if on else UiKit.FAINT))
+	var art := ICON_DIR % key
+	if ResourceLoader.exists(art):
+		# Generated art (Codex, art/phone_icons/<key>.png) when the file is in; the drawn glyph otherwise.
+		var tex := TextureRect.new()
+		tex.texture = load(art)
+		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tex.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tex.modulate = Color.WHITE if on else Color(1, 1, 1, 0.4)
+		icon.add_child(tex)
+	else:
+		icon.draw.connect(func() -> void: _draw_glyph(icon, key, col if on else UiKit.DIM, UiKit.ON_GOLD if on else UiKit.FAINT))
 	var holder := CenterContainer.new()
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(icon)

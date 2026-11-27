@@ -5,7 +5,7 @@ extends SceneTree
 ##   languages;
 ## - the apps come in order (ŁUBER, GŁODNO, ZADANIA, COTAM), COTAM never enabled, ŁUBER only when a ride
 ##   can be requested (and then says why not), GŁODNO off while something is on; what each app does
-##   (offer, screen, soon);
+##   (offer, screen, form, soon);
 ## - the food offer is the nearest kebab place of the entries (others ignored, none: {});
 ## - the card draws: the home's four tiles, the search screen, an offer (TAKE / SKIP), nothing on
 ##   offer, every control at least 44 pt, and each press hands its key back; the search ends by itself.
@@ -33,7 +33,7 @@ func _initialize() -> void:
 	for a: Dictionary in m["apps"]:
 		keys.append(a["key"])
 	_expect(keys == ["luber", "glodno", "quests", "cotam"], "apps order %s" % [keys])
-	_expect(not bool(m["apps"][3]["enabled"]), "COTAM is not built yet")
+	_expect(bool(m["apps"][3]["enabled"]), "COTAM is the feedback form, always on")
 	_expect(bool(m["apps"][0]["enabled"]) and bool(m["apps"][1]["enabled"]) and bool(m["apps"][2]["enabled"]), "three apps on")
 	_expect(str(m["apps"][2]["sub"][1]).ends_with("12"), "the jobs count shows: %s" % [m["apps"][2]["sub"]])
 	var off := Rules.model({"can_ride": false, "busy": true})
@@ -41,7 +41,7 @@ func _initialize() -> void:
 	_expect(not bool(off["apps"][1]["enabled"]), "busy: the food app is off")
 	_expect(bool(off["apps"][2]["enabled"]), "QUESTS stays on")
 	_expect(Rules.kind("luber") == "offer" and Rules.kind("glodno") == "offer" and Rules.kind("quests") == "screen"
-			and Rules.kind("cotam") == "soon" and Rules.kind("x") == "", "what each app does")
+			and Rules.kind("cotam") == "form" and Rules.kind("x") == "", "what each app does")
 	var entries := [
 		{"id": "a", "group": "kebab", "pl": "Daleki Kebab", "en": "Far Kebab", "at": Vector2(500, 0), "colour": Color.RED},
 		{"id": "b", "group": "kebab", "pl": "Bliski Kebab", "en": "Near Kebab", "at": Vector2(80, 0), "colour": Color.RED},

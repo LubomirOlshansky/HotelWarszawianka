@@ -15,11 +15,12 @@ extends RefCounted
 const DIALOGUE_PATH := "res://data/dialogue.json"
 const GROUP := "phone_hub"
 
-## The apps in the order the phone shows them: [key, colour, kind]. "cotam" is the messenger parody's
-## inbox, not built yet (parked): its tile shows and says SOON. kind: "offer" an app that searches
-## and offers inside the phone, "screen" opens the big QUESTS screen, "soon" does nothing yet.
+## The apps in the order the phone shows them: [key, colour, kind]. "cotam" is the messenger parody
+## (F 2026-11-27: it is the feedback form, a message to the author). kind: "offer" an app that searches
+## and offers inside the phone, "screen" opens the big QUESTS screen, "form" opens the feedback card
+## (feedback.gd), "soon" does nothing yet (no app is "soon" now; the kind stays for the next one).
 const APPS := [["luber", Color("#5fd4ff"), "offer"], ["glodno", Color("#ff4fd8"), "offer"],
-		["quests", Color("#ff7a2a"), "screen"], ["cotam", Color("#8e879e"), "soon"]]
+		["quests", Color("#ff7a2a"), "screen"], ["cotam", Color("#8e879e"), "form"]]
 ## The food-delivery app's places: the side-job groups (main.gd `_quest_entries`) it offers.
 const FOOD_GROUPS := ["kebab"]
 ## Seconds the "looking for…" screen is up before an offer (or nothing) shows.
@@ -49,7 +50,7 @@ static func keys() -> Array:
 	return k
 
 
-## What an app does when tapped: "offer", "screen" or "soon" ("" for an unknown key).
+## What an app does when tapped: "offer", "screen", "form" or "soon" ("" for an unknown key).
 static func kind(key: String) -> String:
 	for a: Array in APPS:
 		if str(a[0]) == key:
@@ -75,8 +76,6 @@ static func model(facts: Dictionary) -> Dictionary:
 
 static func _sub(key: String, facts: Dictionary, enabled: bool) -> Array:
 	match key:
-		"cotam":
-			return words("soon")
 		"luber":
 			return words("app_luber_sub") if enabled else words("no_ride")
 		"glodno":
