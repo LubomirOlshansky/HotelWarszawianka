@@ -20,6 +20,14 @@ func add(venue: String, inside_test: Callable, place_view: Callable, mode := "fo
 	_venues.append([venue, inside_test, place_view, mode])
 
 
+## A scene that has `inside()` and `view(cam, pitch, dt)` joins under `venue` and is handed back
+## (null stays null and joins nothing), so main.gd's build joins it in one line.
+func join(venue: String, scene: Node, mode := "foot") -> Node:
+	if scene != null:
+		add(venue, Callable(scene, "inside"), Callable(scene, "view"), mode)
+	return scene
+
+
 ## The venue the player is in ("" for none).
 func inside_name() -> String:
 	for v: Array in _venues:

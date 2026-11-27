@@ -1845,9 +1845,7 @@ func _build_world() -> void:
 	tapczan = _join(Tapczan.new(), world, func() -> bool: return title == null and not _phone_bench and not hud.cards_up()) as Tapczan
 	if tapczan != null:
 		tapczan.sfx = sfx  # the pub's bed, pour, clink and ball (sfx.gd)
-	drift = _join(DriftStadium.new(), world, func() -> bool: return _free_block(true, true) == "") as DriftStadium  # asked in, not offered: no spacing or guide hold
-	if drift != null:
-		venues.add("stadium", drift.inside, drift.view, "car")
+	drift = venues.join("stadium", _join(DriftStadium.new(), world, func() -> bool: return _free_block(true, true) == ""), "car") as DriftStadium  # asked in, not offered
 	await LoadYield.tick("crawl")
 	await _build_storefronts(data, world)  # the Leżak round-up joins the director here
 	await LoadYield.tick("_build_storefronts")
