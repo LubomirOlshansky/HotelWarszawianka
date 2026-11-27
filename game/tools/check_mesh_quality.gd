@@ -222,7 +222,6 @@ const BUDGET := {
 	"plater49": 140,
 	"platinum_a": 80,
 	"platinum_b": 80,
-	"pepeo_tower": 130,  # 2026-11-08 top-50 T37: mapped parts in their skins, the crown sign
 	"poniatowski": 4800,  # 2026-11-03: the towers strengthened (F), 2556 -> 4574 tris over four groups; +0 draw calls
 	"prezydencki": 1300,
 	"q22": 720,  # 2026-11-08 photo rebuild (top-50 T02): 607 tris
@@ -253,9 +252,7 @@ const BUDGET := {
 	"zodiak": 1500,  # 2026-11-19 neon star, string lights on three poles
 	"cmarsz": 2200,
 	"sowa": 1500,  # SOWA CLUB and CITY 25 (F's photos, 2026-11-06): 1298 tris
-	"brama": 100,
-	"equator": 120,
-	"equator2": 120,
+	"brama": 100,  # equator, equator2 and pepeo_tower build only their signs on their street blocks (TOWERS on_block, 2026-11-26): no budget
 	"wiecha": 3700,  # 2026-11-19 night life (lit displays, awnings, kebab hatch, bulbs); 2026-11-22 the cafés' own lit bays, words and bulb strings (3,042)
 	"niecala7": 13000,  # 2026-11-26 Rezydencja Opera, Niecała 7 (F): the whole block on its mapped outline, stacked round balconies, pergola; +0 draw calls. 8000 → 11500 the same day: F asked for the balconies of the photos F sent (dish bowls, posts, hoops, a stack on every arc edge), 10930 tris; 13000 for the ivy and the geranium boxes (F, 12478 tris)
 	"warsztat_mirka": 3600,  # 2026-11-24 Mirek's tuning workshop on Grzybowska (F): the hall with three doors, two lifts (a hatch, a stripped shell), two supercars, the Bawarka in its oil, a stripped car, tyres, the roof car, 2,981 tris; +0 draw calls

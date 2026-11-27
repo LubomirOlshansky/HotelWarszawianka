@@ -823,6 +823,11 @@ func _build_tower(site: Dictionary) -> void:
 		return
 	_g = _ground_under(zone)
 	var g := _g
+	if spec.has("on_block"):
+		# A modelled street block draws the body (check_sites: no second model of one building);
+		# the tower keeps its card, its tap cells (landmarks.gd build marks its zone) and the sign.
+		_dusk_details(spec, zone, g, float(spec["on_block"]))
+		return
 	var glass := Color(spec["glass"])
 	var roof := Color(spec["roof"])
 	var skin := M_SKIN + float(spec["style"]) / 16.0
