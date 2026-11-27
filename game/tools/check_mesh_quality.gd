@@ -112,7 +112,7 @@ const BUDGET := {
 	"uw_skarpa": 7000,  # 2026-11-15: the escarpment's brick wall, piers, graffiti, railing
 	"uw_straz": 900,  # 2026-11-15: the guards' kiosk
 	"uw_kampus": 1500,  # 2026-11-15: bollards and chains, flagpoles
-	"bristol": 2450,
+	"bristol": 7500,
 	"polonia": 1450,
 	"ujazdowski": 1650,
 	"sobieski": 1500,
@@ -132,10 +132,10 @@ const BUDGET := {
 	"hotel_canaletto": 330,
 	"hotel_starowka": 330,
 	"karmelici": 1300,
-	"kordegarda": 950,
+	"kordegarda": 1750,  # 2026-11-27 v2 whole gallery (Codex): 1,350 measured, ~1.3x room
 	"mdm": 4100,
 	"mickiewicz": 1150,
-	"potocki": 760,
+	"potocki": 6500,
 	"prus": 250,
 	"wyszynski": 300,
 	"arkadia": 20300,
@@ -196,7 +196,7 @@ const BUDGET := {
 	"bez_kantow": 8000,  # 2026-11-15 Dom bez Kantów and Królewska 2 rebuilt whole from F's photos and the orthophoto: the ring, arcades, panes, cornices (measured 6679)
 	"politechnika": 950,  # 2026-11-15 front from F's photos: the columned middle on Plac Politechniki, attic and figures, stairs, lamp pillars
 	"pasta": 580,
-	"msn": 500,
+	"msn": 900,
 	# Norblin on its real block (2026-11-02, photo report): two blocks, Plater and Galwan, about
 	# three times the first footprint, arched windows round their courts, green roofs and terraces.
 	# 2026-11-03 look check: the copper base, finned storeys, set-back tops, the passage roof and

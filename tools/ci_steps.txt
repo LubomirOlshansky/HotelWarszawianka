@@ -150,6 +150,7 @@ parkmesh             quick
 parodies             quick
 pause                quick
 pause-run            smoke
+phonehub             quick
 photofronts          quick
 places               quick
 placescripts         quick

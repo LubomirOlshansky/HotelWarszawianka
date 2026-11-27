@@ -832,13 +832,20 @@ vec3 glass_roof(vec3 col, vec2 xz, vec2 uv, float param, out vec3 glow) {
 	vec2 f = abs(fract(d) - 0.5);
 	vec2 b = -2.0 - uv;
 	float edge = min(min(b.x, b.y), 1.0 - b.x - b.y);
-	float panes = step(0.25, param);
+	// Param 0.75: an unlit gallery roof (Muzeum Sztuki Nowoczesnej, F's night photos 2026-11-26):
+	// the grid of the plain roof, but dark at night but for a few faintly lit cool panels.
+	float unlit = step(0.7, param);
+	float panes = step(0.25, param) * (1.0 - unlit);
 	float bar = mix(step(0.43, max(f.x, f.y)), step(edge, 0.035), panes);
 	vec3 sky = srgb_to_linear(sky_colour);
 	float n = value_noise(xz * 0.035);
 	vec3 c = mix(col * mix(0.4, 0.95, daylight), sky, mix(0.12 + 0.2 * n, 0.18 + 0.32 * n, panes));
 	c = mix(c, mix(c, srgb_to_linear(vec3(0.93, 0.93, 0.9)), mix(0.7, 0.45, panes) * daylight + 0.1), bar);
 	float lit = step(0.001, lights_on);
+	if (unlit > 0.5) {
+		glow = lit * step(0.92, hash12(floor(d))) * (1.0 - bar) * vec3(0.5, 0.56, 0.62) * 0.3;
+		return c * mix(1.0, 0.5, lit);
+	}
 	vec3 warm = mix(WARM_PALE, vec3(1.0, 0.85, 0.55), n) * (0.55 + 0.35 * hash12(floor(d)));
 	// Param 0.5 at night (F, 2026-11-13, his Varso photo): the whole wave glows warm gold from the
 	// mall under it. The steel frame is the brightest (the lattice reads as gold lines), each

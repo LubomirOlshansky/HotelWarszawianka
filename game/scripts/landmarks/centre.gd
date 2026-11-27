@@ -3407,42 +3407,79 @@ func _sunk_canopy(sk: Dictionary) -> void:
 
 # --- Muzeum Sztuki Nowoczesnej ------------------------------------------------------------
 
-## The Museum of Modern Art (Thomas Phifer, 2024), first scene item 1 (2026-10-31), built to its
-## spec docs/landmarks/specs/msn.md from the museum's OpenStreetMap parts: one long white box on
-## a glazed ground floor behind deep white fins, a thin dark slot all round where the upper box
-## sits back, the "city room" windows, a glass grid over the flat roof. Its plan frame: u along
-## the long side (north-north-west end at u < 0), +v towards the Palace, -v Marszałkowska.
+## The Museum of Modern Art (Thomas Phifer, 2024), first scene item 1, built to its spec
+## docs/landmarks/specs/msn.md (v2, 2026-11-26, from Street View 2024/2026 and photos of the
+## finished building): two stacked white boxes, the upper one overhanging the lower by 0.4 m over
+## a shadowed seam that is glazed only in a few long ribbon runs, the lower box floating on a
+## glazed ground floor behind deep white piers, a few large deliberate windows set into the white
+## (the deep city-room cut-out on Marszałkowska, the wide window and the tall entrance cut towards
+## the Palace), a glass grid over the flat roof. Its plan frame: u along the long side (north end,
+## Świętokrzyska, at u < 0), +v towards the Palace, -v Marszałkowska.
 const MSN := Vector2(-1022.4, 100.15)
 const MSN_AXIS := Vector2(0.3445, 0.9388)
-const MSN_HU := 51.85          # the box's half length and half width (the outline)
+const MSN_HU := 51.85          # the upper box's half length and half width (the outline)
 const MSN_HV := 19.9
-const MSN_INSET := 0.7         # the slot band sits this far in
+const MSN_LOWER_IN := 0.4      # the lower box sits this far in under the upper one
+const MSN_SEAM_IN := 0.8       # and the seam between them this far
 const MSN_CORE := Vector2(45.8, 13.95)  # the glazed ground floor's half plan
-const MSN_BASE := 5.0          # the soffit
-const MSN_SLOT := Vector2(12.5, 13.8)
+const MSN_BASE := 3.5          # the soffit (photos: the ground floor is 3-3.5 m, people for scale)
+const MSN_SEAM := Vector2(12.5, 13.6)  # the lower box's top and the upper box's bottom (F's dusk photo, 2026-11-26)
 const MSN_H := 26.0
 ## The fins' centres (u) on the Marszałkowska face (v -17.4) and the Plac Defilad face (v +17.35).
 const MSN_FINS_EAST := [-50.4, -39.4, -26.4, -18.4, -10.4, 0.4, 7.4, 15.3, 26.4, 33.8, 40.8, 50.4]
 const MSN_FINS_WEST := [-50.4, -39.5, -32.5, -26.5, -18.5, -10.6, 0.4, 7.3, 15.2, 26.2, 33.7, 40.7, 50.3]
 ## The ends' fins, turned along u: [u, v].
 const MSN_FINS_END := [[-49.4, 3.95], [-49.4, -8.5], [49.4, 6.3], [49.4, -8.55]]
-## The roof (photo check on the Mac, 2026-11-01, refs/msn/ortho.jpg and 2.jpg): one gridded glass
-## field over the whole roof inside a white edge MSN_SKY_EDGE wide, and two small square light
-## wells [u, v, half side] cut into it.
+## The roof (ortho.jpg, checked 2026-11-01 and 2026-11-26): one gridded glass field inside a white
+## edge MSN_SKY_EDGE wide, two small square light wells [u, v, half side], the fans' housing.
 const MSN_SKY_EDGE := 2.2
 const MSN_WELLS := [Vector3(5.0, 4.9, 4.0), Vector3(31.5, -0.6, 3.5)]
-## The Marszałkowska face's city-room window (refs/msn/4.jpg): a deep recess in the upper box,
-## u -1..11, 14 to 20.5 m, the glass 3 m back.
-const MSN_LOGGIA := [-1.0, 11.0, 14.0, 20.5, 3.0]
+const MSN_FANS := [-12.5, 1.8, 1.5, 3.0, 1.2]  # u, v, half sizes, height
+## The openings, spec section 3: [face, along0, along1, y0, y1, depth, part]. face: "-v"
+## Marszałkowska, "+v" Plac Defilad, "+u" the south end, "-u" the north end; part "up" for the
+## upper box's wall, "low" for the lower box's (0.4 m further in). along is u on the long faces,
+## v on the ends. Every window is set into the wall (deep reveals: the building's look).
+const MSN_OPENINGS := [
+	["-v", -4.2, 9.8, 15.7, 20.9, 3.0, "up"],      # loggia: the city room on Marszałkowska
+	["-v", -33.4, -30.3, 15.5, 19.5, 0.4, "up"],   # win_mn
+	["-v", -7.7, -0.3, 6.8, 9.7, 0.4, "low"],      # low_mc
+	["-v", 16.0, 23.4, 6.8, 9.7, 0.4, "low"],      # low_ms
+	["-v", -32.4, -30.3, 6.8, 9.0, 0.4, "low"],    # low_mn
+	["+v", -9.0, 9.0, 15.2, 20.8, 0.4, "up"],      # w1: the wide window towards the Palace
+	["+v", 14.0, 23.0, 3.5, 10.5, 3.0, "low"],     # entry: the tall entrance cut
+	["+v", -9.0, 3.0, 6.8, 9.7, 0.4, "low"],       # low_pc
+	["+v", -27.0, -24.5, 7.3, 9.5, 0.4, "low"],    # low_pn
+	["+u", -7.5, -1.5, 15.3, 20.5, 0.4, "up"],     # win_s
+	["+u", -3.3, -1.5, 6.3, 10.4, 0.4, "low"],     # low_s
+	["-u", -15.0, -9.0, 15.6, 22.0, 0.4, "up"],    # w4 (F's night photo)
+	["-u", -14.0, -11.5, 6.8, 9.3, 0.4, "low"],    # w5 (F's night photo)
+]
+## The ribbon windows in the seam: [face, u0, u1] (spec rib_*), 14.1 to 14.9 m.
+const MSN_RIBBONS := [["-v", 18.0, 51.0], ["-v", -45.5, -0.5], ["+v", -43.0, -31.0], ["+v", 20.0, 49.0]]
+## The south end's east part stands proud and higher (3.jpg, 4.jpg): u0, u1, v0, v1, top.
+const MSN_PANEL := [51.85, 52.25, -19.9, -7.9, 27.4]
+## The roofline steps (3.jpg, 4.jpg; F's dusk photo shows the Marszałkowska edge flat): the south part of the box stands
+## about a metre higher, as upstands on the roof edge [u0, u1, v0, v1] up to MSN_STEP.
+const MSN_STEP := 27.1
+const MSN_UPSTANDS := [[8.0, 51.85, 19.5, 19.9], [51.45, 51.85, -7.9, 19.5]]
 ## The north-west corner block (OSM: u -64.3..-53.8, v 16.5..27, 26 m on an 8 m base).
 const MSN_CORNER_U := -64.3
 const MSN_CORNER_V := Vector2(16.5, 27.0)
+## The night look (F's night photos, 2026-11-26): the white walls are floodlit (a lit wall,
+## M_MEMBRANE + 0.5), the gallery roof stays dark with a few panels faintly lit (building.gdshader
+## glass_roof, param 0.75), the light wells glow dimly; the windows and ribbons glow warm.
+const MSN_LIT := M_MEMBRANE + 0.5
+const MSN_ROOF_GLASS := M_GLASS_ROOF + 0.75
+const MSN_WELL_GLASS := M_MEMBRANE
 const MSN_WHITE := Color("#ebe9e3")
+const MSN_SEAM_WHITE := Color("#c9c8c2")
 const MSN_ROOF := Color("#d9d8d2")
 const MSN_LOBBY := Color("#a9c3cd")
-const MSN_SLOT_GLASS := Color("#4a5960")
+const MSN_RIBBON := Color("#526872")
 const MSN_WINDOW := Color("#8fa9b6")
 const MSN_SKY_GLASS := Color("#cfd8dc")
+const MSN_SKYLIGHT := Color("#7d97a2")  # the two light wells: darker glazing (ortho.jpg)
+const MSN_FAN := Color("#9a9d9e")
 func _find_msn() -> void:
 	var outline := _landmark("Muzeum Sztuki Nowoczesnej")
 	if outline.size() < 3:
@@ -3465,81 +3502,98 @@ func _build_msn(_site: Dictionary) -> void:
 	_g = _ground_under(box)
 	var g := _g
 	var none := Color(0, 0, 0, 0)
-	# The windows first, flush, so the walls are cut round them (F's night photo, 2026-10-31):
-	# w1 and w3 on the Plac Defilad face, w4 and w5 on the north end, w2 on Marszałkowska.
+	# The openings first, so the box walls drawn after them are cut round them.
+	for o: Array in MSN_OPENINGS:
+		var inset := MSN_LOWER_IN if o[6] == "low" else 0.0
+		_msn_recess(o[0], inset, o[1], o[2], g + o[3], g + o[4], o[5])
 	_mode = M_PAVILION
-	_wall(_w(0.0, MSN_HV), _w(14.0, MSN_HV), g + 16.5, g + 22.5, _b, MSN_WINDOW)
-	_wall(_w(-1.0, MSN_HV), _w(5.0, MSN_HV), g + 7.0, g + 10.5, _b, MSN_WINDOW)
-	_wall(_w(37.0, -MSN_HV), _w(39.0, -MSN_HV), g + 14.5, g + 19.0, -_b, MSN_WINDOW)
-	_wall(_w(-MSN_HU, -9.0), _w(-MSN_HU, -15.0), g + 15.5, g + 22.0, -_a, MSN_WINDOW)
-	# loggia: w2, the recess on Marszałkowska. Its opening goes into _walls undrawn, so the upper
-	# box's wall is cut round it; then the glass at the back, the reveals, the sill and the head.
-	var lu0: float = MSN_LOGGIA[0]
-	var lu1: float = MSN_LOGGIA[1]
-	var ly0: float = g + MSN_LOGGIA[2]
-	var ly1: float = g + MSN_LOGGIA[3]
-	var lv := -MSN_HV + float(MSN_LOGGIA[4])
-	var lo0 := _w(lu0, -MSN_HV)
-	var lo1 := _w(lu1, -MSN_HV)
-	_walls.append(PackedFloat32Array([lo0.x, lo0.y, lo1.x, lo1.y, ly0, ly1, -_b.x, -_b.y]))
-	_wall(_w(lu0, lv), _w(lu1, lv), ly0, ly1, -_b, MSN_WINDOW)
-	_mode = M_STONE
-	_wall(_w(lu0, -MSN_HV), _w(lu0, lv), ly0, ly1, _a, MSN_WHITE.darkened(0.1))
-	_wall(_w(lu1, lv), _w(lu1, -MSN_HV), ly0, ly1, -_a, MSN_WHITE.darkened(0.18))
-	for k: Array in [[ly0, Vector3.UP, MSN_WHITE], [ly1, Vector3.DOWN, MSN_WHITE.darkened(0.25)]]:
-		var p0 := _w(lu0, -MSN_HV)
-		var p1 := _w(lu1, -MSN_HV)
-		var p2 := _w(lu1, lv)
-		var p3 := _w(lu0, lv)
-		var y: float = k[0]
-		_quad(Vector3(p0.x, y, p0.y), Vector3(p1.x, y, p1.y), Vector3(p2.x, y, p2.y), Vector3(p3.x, y, p3.y), k[1], k[2])
-	_mode = M_PAVILION
-	_wall(_w(-MSN_HU, -11.5), _w(-MSN_HU, -14.0), g + 7.0, g + 9.5, -_a, MSN_WINDOW)
+	for r: Array in MSN_RIBBONS:
+		var s := -1.0 if r[0] == "-v" else 1.0
+		var hv := MSN_HV - MSN_SEAM_IN
+		_wall(_w(r[1], s * hv), _w(r[2], s * hv), g + MSN_SEAM.x + 0.1, g + MSN_SEAM.y - 0.1, _b * s, MSN_RIBBON)
 	# corner: the full-height block standing out at the north-west corner (OSM's part at
 	# (-1062, 54), closed up to the box), solid to the ground, a glazed top a metre under the roof.
 	var corner := PackedVector2Array([_w(MSN_CORNER_U, MSN_CORNER_V.x), _w(-MSN_HU, MSN_CORNER_V.x),
 			_w(-MSN_HU, MSN_CORNER_V.y), _w(MSN_CORNER_U, MSN_CORNER_V.y)])
-	_prism(corner, g - 0.4, g + MSN_H - 1.0, MSN_WHITE, MSN_SKY_GLASS, M_STONE, M_GLASS_ROOF)
+	_prism(corner, g - 0.4, g + MSN_H - 1.0, MSN_WHITE, MSN_SKY_GLASS, MSN_LIT, M_GLASS_ROOF)
 	# core: the glazed lobby, lit warm at night.
 	_prism(_rect(0.0, 0.0, MSN_CORE.x, MSN_CORE.y), g - 0.4, g + MSN_BASE, MSN_LOBBY, none, M_PAVILION)
 	# fins
 	for u: float in MSN_FINS_EAST:
-		_prism(_rect(u, -17.4, 0.5, 1.5), g - 0.4, g + MSN_BASE, MSN_WHITE, none, M_STONE)
+		_prism(_rect(u, -17.4, 0.5, 1.5), g - 0.4, g + MSN_BASE, MSN_WHITE, none, MSN_LIT)
 	for u: float in MSN_FINS_WEST:
-		_prism(_rect(u, 17.35, 0.5, 1.5), g - 0.4, g + MSN_BASE, MSN_WHITE, none, M_STONE)
+		_prism(_rect(u, 17.35, 0.5, 1.5), g - 0.4, g + MSN_BASE, MSN_WHITE, none, MSN_LIT)
 	for f: Array in MSN_FINS_END:
-		_prism(_rect(f[0], f[1], 1.5, 0.5), g - 0.4, g + MSN_BASE, MSN_WHITE, none, M_STONE)
-	_mode = M_STONE
+		_prism(_rect(f[0], f[1], 1.5, 0.5), g - 0.4, g + MSN_BASE, MSN_WHITE, none, MSN_LIT)
+	_mode = MSN_LIT
+	var lu := MSN_HU - MSN_LOWER_IN
+	var lv := MSN_HV - MSN_LOWER_IN
+	var su := MSN_HU - MSN_SEAM_IN
+	var sv := MSN_HV - MSN_SEAM_IN
 	# soffit
-	_msn_ring(MSN_HU, MSN_HV, MSN_CORE.x, MSN_CORE.y, g + MSN_BASE, Vector3.DOWN, MSN_WHITE.darkened(0.12))
-	# lower
-	_prism(box, g + MSN_BASE, g + MSN_SLOT.x, MSN_WHITE, none, M_STONE)
-	# ledge, slot, under
-	var hu := MSN_HU - MSN_INSET
-	var hv := MSN_HV - MSN_INSET
-	_msn_ring(MSN_HU, MSN_HV, hu, hv, g + MSN_SLOT.x, Vector3.UP, MSN_WHITE)
-	_prism(_rect(0.0, 0.0, hu, hv), g + MSN_SLOT.x, g + MSN_SLOT.y, MSN_SLOT_GLASS, none, M_GLASS)
+	_msn_ring(lu, lv, MSN_CORE.x, MSN_CORE.y, g + MSN_BASE, Vector3.DOWN, MSN_WHITE.darkened(0.12))
 	_mode = M_STONE
-	_msn_ring(MSN_HU, MSN_HV, hu, hv, g + MSN_SLOT.y, Vector3.DOWN, MSN_WHITE.darkened(0.15))
+	# lower
+	_prism(_rect(0.0, 0.0, lu, lv), g + MSN_BASE, g + MSN_SEAM.x, MSN_WHITE, none, MSN_LIT)
+	# ledge, seam, under: the lower box's top, the shadowed band, the upper box's overhang.
+	_msn_ring(lu, lv, su, sv, g + MSN_SEAM.x, Vector3.UP, MSN_WHITE)
+	_prism(_rect(0.0, 0.0, su, sv), g + MSN_SEAM.x, g + MSN_SEAM.y, MSN_SEAM_WHITE, none, M_STONE)
+	_msn_ring(MSN_HU, MSN_HV, su, sv, g + MSN_SEAM.y, Vector3.DOWN, MSN_WHITE.darkened(0.15))
 	# upper
-	_prism(box, g + MSN_SLOT.y, g + MSN_H, MSN_WHITE, none, M_STONE)
+	_prism(box, g + MSN_SEAM.y, g + MSN_H, MSN_WHITE, none, MSN_LIT)
+	# panel: the south end's proud, higher east part.
+	_prism(_lpoly([[MSN_PANEL[0], MSN_PANEL[2]], [MSN_PANEL[1], MSN_PANEL[2]], [MSN_PANEL[1], MSN_PANEL[3]],
+			[MSN_PANEL[0], MSN_PANEL[3]]]), g + MSN_SEAM.y, g + MSN_PANEL[4], MSN_WHITE, MSN_ROOF, MSN_LIT, M_STONE)
 	# sky: the glass field over the top galleries, lit from inside at night, round the wells;
 	# drawn first so the stone roof after it keeps only the white edge.
 	var wells: Array = []
 	for w: Vector3 in MSN_WELLS:
 		wells.append(_rect(w.x, w.y, w.z, w.z))
-	_mode = M_GLASS_ROOF
+	_mode = MSN_ROOF_GLASS
 	_cap_holes(_rect(0.0, 0.0, MSN_HU - MSN_SKY_EDGE, MSN_HV - MSN_SKY_EDGE), wells, g + MSN_H, MSN_SKY_GLASS)
 	_mode = M_STONE
 	_cap_holes(box, wells, g + MSN_H, MSN_ROOF)
-	# wells: open courts cut into the roof, 4 m deep, their floors in shade.
+	# wells: the two light wells, glazed flush with the roof, darker than the grid round them.
+	_mode = MSN_WELL_GLASS
 	for well: PackedVector2Array in wells:
-		for i in 4:
-			var a := well[i]
-			var b := well[(i + 1) % 4]
-			_wall(a, b, g + MSN_H - 4.0, g + MSN_H, -_out(well, a, b), MSN_WHITE.darkened(0.2))
-		_cap(well, g + MSN_H - 4.0, MSN_ROOF.darkened(0.35))
+		_cap(well, g + MSN_H, MSN_SKYLIGHT)
+	_mode = M_STONE
+	# upstands: the roofline's step up over the south part.
+	for r: Array in MSN_UPSTANDS:
+		_prism(_lpoly([[r[0], r[2]], [r[1], r[2]], [r[1], r[3]], [r[0], r[3]]]), g + MSN_H, g + MSN_STEP, MSN_WHITE, MSN_ROOF,
+				MSN_LIT, M_STONE)
+	# fans: the plant's housing on the roof.
+	_prism(_rect(MSN_FANS[0], MSN_FANS[1], MSN_FANS[2], MSN_FANS[3]), g + MSN_H, g + MSN_H + MSN_FANS[4], MSN_FAN,
+			MSN_FAN.darkened(0.2), M_STONE, M_STONE)
 	_collide(box)
+
+
+## One window or cut set `depth` into a face of the museum (spec section 3): the opening goes into
+## _walls undrawn, so the box's wall drawn after it is cut round it; then the glass at the back
+## (lit warm at night), the two reveals, the sill and the head. `inset` is how far the face itself
+## sits in from the outline (the lower box: 0.4 m). On the long faces s0..s1 run along u, on the
+## ends along v.
+func _msn_recess(face: String, inset: float, s0: float, s1: float, y0: float, y1: float, depth: float) -> void:
+	var sg := -1.0 if face.begins_with("-") else 1.0
+	var on_u := face.ends_with("u")
+	var plane := sg * ((MSN_HU if on_u else MSN_HV) - inset)
+	var n := (_a if on_u else _b) * sg
+	var along := _b if on_u else _a
+	var at := func(s: float, d: float) -> Vector2:
+		return _w(plane - sg * d, s) if on_u else _w(s, plane - sg * d)
+	var o0: Vector2 = at.call(s0, 0.0)
+	var o1: Vector2 = at.call(s1, 0.0)
+	var i0: Vector2 = at.call(s0, depth)
+	var i1: Vector2 = at.call(s1, depth)
+	_walls.append(PackedFloat32Array([o0.x, o0.y, o1.x, o1.y, y0, y1, n.x, n.y]))
+	_mode = M_PAVILION
+	_wall(i0, i1, y0, y1, n, MSN_WINDOW)
+	_mode = M_STONE
+	_wall(o0, i0, y0, y1, along, MSN_WHITE.darkened(0.1))
+	_wall(i1, o1, y0, y1, -along, MSN_WHITE.darkened(0.18))
+	_quad(Vector3(o0.x, y0, o0.y), Vector3(o1.x, y0, o1.y), Vector3(i1.x, y0, i1.y), Vector3(i0.x, y0, i0.y), Vector3.UP, MSN_WHITE)
+	_quad(Vector3(o0.x, y1, o0.y), Vector3(o1.x, y1, o1.y), Vector3(i1.x, y1, i1.y), Vector3(i0.x, y1, i0.y), Vector3.DOWN,
+			MSN_WHITE.darkened(0.25))
 
 
 ## A flat ring in the museum's frame between the half plans (hu, hv) and (iu, iv) at y, facing
