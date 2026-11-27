@@ -2184,11 +2184,18 @@ static func _sculpt_meshes(kind: String, paint: Array, stripes: Array, wing: boo
 				_plate(s, Vector3(0.0, y, -2.106), Vector2(0.64, 0.01), Vector3(0, 0, -1), fin(Color("#55585e")))
 			_plate(s, Vector3(0.0, 0.4, -2.11), Vector2(0.5, 0.11), Vector3(0, 0, -1), fin(PLATE))
 			for sgn: float in [-1.0, 1.0]:
+				# The 8J lamp (TTS / TT RS): a big swept glass, inner end by the grille, outer end climbing
+				# back into the wing; two round lenses inside, the LED "wave" along its lower edge.
 				var ln := Vector3(sgn * 0.6, 0.22, -0.77)
-				for part: Array in [[0.59, 0.615, -2.036, 0.18, 0.575, -2.04, 0.17], [0.71, 0.675, -1.919, 0.2, 0.635, -1.923, 0.19]]:
-					_plate(s, Vector3(sgn * float(part[0]), float(part[1]), float(part[2]) + 0.004), Vector2(float(part[3]) + 0.03, 0.12), ln, black)
-					_plate(heads, Vector3(sgn * float(part[0]), float(part[1]), float(part[2])), Vector2(part[3], 0.09), ln, lamp)
-					_plate(heads, Vector3(sgn * float(part[0]), float(part[4]), float(part[5])), Vector2(part[6], 0.02), ln, lamp)
+				# Smoked glass, a step lighter than the paint, so the swept outline reads on a black car.
+				var smoke := fin(Color("#454c57"))
+				_plate(s, Vector3(sgn * 0.6, 0.625, -2.03), Vector2(0.29, 0.17), ln, smoke)
+				_plate(s, Vector3(sgn * 0.73, 0.69, -1.905), Vector2(0.29, 0.16), ln, smoke)
+				_plate(heads, Vector3(sgn * 0.57, 0.64, -2.042), Vector2(0.11, 0.11), ln, lamp, true)
+				_plate(heads, Vector3(sgn * 0.68, 0.67, -1.972), Vector2(0.11, 0.11), ln, lamp, true)
+				_plate(heads, Vector3(sgn * 0.6, 0.555, -2.042), Vector2(0.25, 0.03), ln, lamp)
+				_plate(heads, Vector3(sgn * 0.73, 0.62, -1.915), Vector2(0.26, 0.03), ln, lamp)
+				_plate(heads, Vector3(sgn * 0.81, 0.7, -1.85), Vector2(0.08, 0.05), ln, lamp)
 				var inn := Vector3(sgn * 0.65, -0.14, -0.75)
 				_plate(s, Vector3(sgn * 0.63, 0.35, -2.013), Vector2(0.25, 0.13), inn, black)
 				_plate(s, Vector3(sgn * 0.68, 0.345, -1.976), Vector2(0.09, 0.09), inn, fin(Color("#d9dde2")), true)
@@ -2202,7 +2209,7 @@ static func _sculpt_meshes(kind: String, paint: Array, stripes: Array, wing: boo
 			_decal(s, c, 1.0, [Vector2(0.86, 0.8), Vector2(1.02, 0.8), Vector2(1.02, 0.92), Vector2(0.86, 0.92)], chrome, 0.016, 2)
 			_plate(s, Vector3(0.0, 0.6, zr + 0.006), Vector2(0.5, 0.11), Vector3(0, 0, 1), fin(PLATE))
 			_plate(s, Vector3(0.0, 0.36, zr + 0.006), Vector2(1.0, 0.14), Vector3(0, 0, 1), black)
-			s.box(Vector3(0.0, _top_y(c, 1.88, 0.0) + 0.02, 1.88), Vector3(1.2, 0.03, 0.14), black)
+			# The deck lip is the active spoiler, its own mesh (tt_spoiler; car.gd raises it).
 		"player_lanos":
 			# The base 90s saloon (v3): black unpainted bumpers and mirrors, a black rub strip on the
 			# doors, almond lamps (high outside, dropping inside), a three-slot grille, wedge tails
@@ -2493,6 +2500,18 @@ static func _sculpt_meshes(kind: String, paint: Array, stripes: Array, wing: boo
 			s.box(Vector3(sgn * span * 0.5, wy + 0.06, wz), Vector3(0.04, 0.24, 0.5), trim)
 		s.box(Vector3(0.0, wy + 0.03, wz), Vector3(span, 0.06, 0.46), stripes)
 	return [s.mesh(), heads.mesh(), tails.mesh()]
+
+
+## The TT's active spoiler (F 2026-11-27: "a small spoiler that slides out", as on the 8J): a blade
+## in the paint with a dark underside, lying flush on the deck's end; car.gd lifts it SPOILER_LIFT
+## with speed. Its own small mesh in the body's material (+1 draw call, the TT only).
+const SPOILER_LIFT := 0.08
+static func tt_spoiler(paint: Array) -> ArrayMesh:
+	var s := Shape.new()
+	var y := _top_y(SCULPT["player_tt"], 1.88, 0.0)
+	s.box(Vector3(0.0, y + 0.02, 1.88), Vector3(1.2, 0.03, 0.16), paint)
+	s.box(Vector3(0.0, y - 0.01, 1.88), Vector3(1.12, 0.03, 0.12), fin(TRIM), true)
+	return s.mesh()
 
 
 ## "87" as two seven-segment digits on a door (side `sgn`), centred on (y, z), laid on the body.

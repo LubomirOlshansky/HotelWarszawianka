@@ -426,6 +426,13 @@ var _pin_at := Vector2.ZERO
 var _last_unstick := -100.0
 var _clock := 0.0
 var _body: Node3D
+## F 2026-11-27: the TT's active spoiler (models.gd tt_spoiler), up above SPOILER_UP m/s, down
+## below SPOILER_DOWN (the real one's two speeds, scaled to the game's), sliding in between.
+var _spoiler: MeshInstance3D
+var _spoiler_want := false
+var _spoiler_up := 0.0
+const SPOILER_UP := 24.0
+const SPOILER_DOWN := 16.0
 var _headlights: Array[StandardMaterial3D] = []
 var _tails: Array[StandardMaterial3D] = []
 var _beams: Node3D
@@ -509,6 +516,13 @@ func _process(dt: float) -> void:
 		_flame.visible = nitro_on
 	if nitro_on:
 		_flame.scale = Vector3(1.0, 1.0, 0.8 + 0.5 * absf(sin(Time.get_ticks_msec() * 0.045)) + 0.2 * randf())
+	if _spoiler != null:
+		var fs := absf(forward_speed)
+		_spoiler_want = fs > SPOILER_UP or (_spoiler_want and fs > SPOILER_DOWN)
+		var up := move_toward(_spoiler_up, 1.0 if _spoiler_want else 0.0, dt * 2.5)
+		if up != _spoiler_up:
+			_spoiler_up = up
+			_spoiler.position.y = Models.SPOILER_LIFT * up
 	if _flash <= 0.0 and not _beams.visible:
 		return
 	_flash -= dt
@@ -1395,6 +1409,7 @@ func set_model(id: String) -> void:
 		(_body.get_child(0) as MeshInstance3D).mesh = m[0]
 		(_body.get_child(1) as MeshInstance3D).mesh = m[1]
 		(_body.get_child(2) as MeshInstance3D).mesh = m[2]
+		_fit_spoiler(_body)
 	if _neon_pad != null:
 		_neon_pad.visible = neon and model != "bike"  # no underglow under the ROWERILO bike
 
@@ -1730,7 +1745,22 @@ func _make_body() -> Node3D:
 	tail.emission_energy_multiplier = 0.0
 	_tails.append(tail)
 	_part(root, meshes[2], tail, false)
+	_fit_spoiler(root)
 	return root
+
+
+## The TT's active spoiler on (or off) the body `root` (child 3, after the body and the lamps).
+func _fit_spoiler(root: Node3D) -> void:
+	if model == "tt":
+		if _spoiler == null:
+			_spoiler = MeshInstance3D.new()
+			_spoiler.name = "Spoiler"
+			_spoiler.material_override = Models.material()
+			root.add_child(_spoiler)
+		_spoiler.mesh = Models.tt_spoiler(Models.fin(paint, Models.HERO, paint_glow))
+	elif _spoiler != null:
+		_spoiler.queue_free()
+		_spoiler = null
 
 
 ## The garage loop: a new paint job. The body's one mesh is made again once with the new vertex
@@ -1743,6 +1773,8 @@ func set_paint(body: Color, stripes: Color, body_glow := HERO_PAINT, stripes_glo
 	if _body_mesh != null:
 		_body_mesh.mesh = Models.player_meshes(Models.fin(paint, Models.HERO, paint_glow),
 				Models.fin(stripe, Models.HERO, stripe_glow), _kind(), wing)[0]
+		if _body != null:
+			_fit_spoiler(_body)
 
 
 ## G13b: two flames out of the tail, orange fading to a transparent blue-white tip, drawn like the

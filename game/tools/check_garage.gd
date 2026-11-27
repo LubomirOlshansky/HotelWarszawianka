@@ -580,7 +580,10 @@ func _check_shop_car() -> void:
 	_expect("car model", str(car.get("model")), "tt")
 	if (car.get("_body_mesh") as MeshInstance3D).mesh == mesh_before:
 		problems.append("car: the TT left the hatch's mesh on")
-	_expect("car nodes after the swap", car.find_children("*", "", true, false).size(), nodes)
+	# The TT alone carries one more node, its active spoiler (car.gd _fit_spoiler).
+	_expect("car nodes after the swap", car.find_children("*", "", true, false).size(), nodes + 1)
+	if car.find_child("Spoiler", true, false) == null:
+		problems.append("car: the TT has no active spoiler")
 	var st := Upgrades.stats("tt", {}, false)
 	_expect("car top_mult", is_equal_approx(float(car.get("top_mult")), float(st["top_mult"])), true)
 	g.choose_item("tyres")
@@ -594,6 +597,9 @@ func _check_shop_car() -> void:
 	car.set_handling(Car.Handling.CRUISE)
 	g.choose_item("hatch")
 	_expect("car back on the hatch", str(car.get("model")), "hatch")
+	await process_frame
+	if car.find_child("Spoiler", true, false) != null:
+		problems.append("car: the hatch kept the TT's spoiler")
 	# C1a: each car's own feel: the Szupra turns quicker than the hatch, the Bolonez slower, and the
 	# hatch is back to the plain numbers after them.
 	var plain_turn := float(car.get("turn_cap"))

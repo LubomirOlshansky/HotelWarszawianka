@@ -115,6 +115,12 @@ func _run(cars: Array, paint: Color, stripe: Color, wing: bool, out: String, mix
 			mi.mesh = meshes[i]
 			mi.material_override = mats[i]
 			holder.add_child(mi)
+		if kind == "player_tt":
+			var sp := MeshInstance3D.new()
+			sp.mesh = Models.tt_spoiler(Models.fin(pc, Models.HERO, 1.0))
+			sp.material_override = body_mat
+			sp.position.y = Models.SPOILER_LIFT
+			holder.add_child(sp)
 		for col in VIEWS.size():
 			var v: Array = VIEWS[col]
 			var yaw := deg_to_rad(float(v[0]))
