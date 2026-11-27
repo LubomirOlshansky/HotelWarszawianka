@@ -2370,3 +2370,597 @@ func _build_kolejowa(site: Dictionary) -> void:
 			var ks := 0.7 / (Neon.ROW_H * Neon.PIXEL)
 			signs.append(["ODESSKA", Vector3(sp.x, g + 2.2, sp.y), n3, ks, Color(0.45, 1.0, 0.75)])
 	_mode = M_STONE
+
+
+# --- Generation Park X and Z (Towarowa 28 / Prosta 36, Rondo Daszyńskiego) ---------------------
+
+## Generation Park X (11 storeys, 37.3 m) and Generation Park Z (13 storeys / 43.9 m stepping to
+## 16 storeys / 53.8 m), the two 2017-2019 light-stone-grid office blocks flanking Generation Park
+## Y (which keeps its own TOWERS entry `gpy` and draws the decked roof terraces on X and Z roofs).
+## Spec: docs/landmarks/specs/generation_park_xz.md; references: Street View frames and 3D Tiles.
+## Shared plan frame: GPXZ_U along Prosta/Łucka (ENE), GPXZ_V along Wronia/Towarowa (SSE).
+const GPXZ_U := Vector2(0.963, -0.268)
+const GPXZ_V := Vector2(0.268, 0.963)
+const GPXZ_Z_TOP_AT := Vector2(-2687.0, 286.0)
+const GPXZ_Z_TOP_H := 53.8
+const GPXZ_X_H := 37.3
+const GPXZ_Z_H := 43.9
+const GPXZ_GROUND_H := 4.3
+const GPXZ_FIRST_H := 7.6
+const GPXZ_STOREY := 3.3
+const GPXZ_BAY := 4.8
+const GPXZ_BAND_H := 0.72
+const GPXZ_BAND_PROUD := 0.22
+const GPXZ_PIER_W := 0.62
+const GPXZ_PIER_PROUD := 0.27
+const GPXZ_CORNER_R := 0.34
+const GPXZ_PARAPET_H := 1.0
+const GPXZ_PARAPET_IN := 0.35
+const GPXZ_PARAPET_OUT := 0.28
+## Palette constants measured from docs/landmarks/specs/generation_park_xz.md and Street View refs.
+const GPXZ_STONE := Color("#d3d4d0")        # light grey stone grid: piers, bands, parapets
+const GPXZ_BACK := Color("#232a32")         # dark recessed backing and thin mullions behind panes
+const GPXZ_GLASS := Color("#33506f")        # office glazing for X and Z body (matches Y)
+const GPXZ_GLASS_TOP := Color("#2b4560")    # darker office glazing on Z's 53.8 m top
+const GPXZ_BAND1 := Color("#4f6f64")        # X first-floor green-tinted glass band
+const GPXZ_GROUND := Color("#3d4146")       # X recessed dark grey ground floor
+const GPXZ_DOOR := Color("#5a5f64")         # X grey garage and service doors
+const GPXZ_ROOF := Color("#8d969c")         # flat light grey roof membrane (matches Y)
+const GPXZ_PLANT := Color("#6f767b")        # low rooftop plant boxes
+const GPXZ_CANOPY := Color("#c9ccce")       # Z lobby thin flat canopy
+const GPXZ_SHOP := Color("#2e4860")         # ground-floor shopfront and double-height lobby glass
+const GPXZ_SIGN_BG := Color("#1e2328")      # dark fascia panel behind roof and café signs
+const GPXZ_WHITE := Color("#f4f6f8")        # white parody bank name `cyti` (M_LAMP)
+const GPXZ_CAFE_TXT := Color("#ffe6b8")     # warm cream parody café sign `KAWKA` (M_LAMP)
+## Terrace centres drawn by `gpy` (skyline.gd): rooftop plant boxes stay well clear (> 3 m).
+const GPXZ_TERRACES := [Vector2(-2605.0, 300.0), Vector2(-2654.0, 268.0), Vector2(-2687.0, 286.0)]
+## Simplified stroke definitions for lowercase `cyti` and uppercase `KAWKA` built in M_LAMP geometry
+## so letters read cleanly by day, glow at night, and add zero extra nodes or neon-atlas rows.
+## Each glyph: [advance_in_h, Array of [x0, y0, x1, y1]] in multiples of letter height.
+const GPXZ_GLYPHS := {
+	"c": [0.68, [[0.0, 0.0, 0.20, 0.72], [0.0, 0.52, 0.58, 0.72], [0.0, 0.0, 0.58, 0.20]]],
+	"y": [0.68, [[0.0, 0.26, 0.20, 0.72], [0.38, -0.20, 0.58, 0.72], [0.0, 0.22, 0.58, 0.40], [0.02, -0.20, 0.58, -0.02]]],
+	"t": [0.58, [[0.14, 0.0, 0.34, 1.00], [0.0, 0.54, 0.50, 0.72], [0.14, 0.0, 0.50, 0.18]]],
+	"i": [0.28, [[0.0, 0.0, 0.20, 0.68], [0.0, 0.80, 0.20, 0.98]]],
+	"K": [0.72, [[0.0, 0.0, 0.20, 1.0], [0.16, 0.40, 0.40, 0.60], [0.34, 0.52, 0.58, 1.0], [0.34, 0.0, 0.58, 0.48]]],
+	"A": [0.74, [[0.0, 0.0, 0.20, 1.0], [0.42, 0.0, 0.62, 1.0], [0.0, 0.80, 0.62, 1.0], [0.0, 0.36, 0.62, 0.54]]],
+	"W": [0.94, [[0.0, 0.0, 0.18, 1.0], [0.32, 0.0, 0.50, 0.66], [0.64, 0.0, 0.82, 1.0], [0.0, 0.0, 0.82, 0.20]]],
+}
+
+
+## Finds Generation Park X, Generation Park Z, and Z's 53.8 m top part from centrum.json and
+## registers them as one site `gpxz` whose zone is both outlines offset 1.0 m (clear of Y).
+func _find_gpxz() -> void:
+	var x_raw := _landmark("Generation Park X")
+	if x_raw.size() < 3:
+		push_error("gpxz: landmark outline 'Generation Park X' is missing from centrum.json")
+	var z_raw := _landmark("Generation Park Z")
+	if z_raw.size() < 3:
+		push_error("gpxz: landmark outline 'Generation Park Z' is missing from centrum.json")
+	var z_top_raw := PackedVector2Array()
+	for bld: Dictionary in data.get("buildings", []):
+		if absf(float(bld["h"]) - GPXZ_Z_TOP_H) > 0.3:
+			continue
+		var q := _pts(bld["p"])
+		if q.size() >= 3 and Geometry2D.is_point_in_polygon(GPXZ_Z_TOP_AT, q):
+			z_top_raw = q
+			break
+	if z_top_raw.size() < 3:
+		push_error("gpxz: 53.8 m top building holding (-2687, 286) is missing from centrum.json")
+	var zones: Array = []
+	if x_raw.size() >= 3:
+		var zx := _largest(Geometry2D.offset_polygon(x_raw, 1.0, Geometry2D.JOIN_MITER))
+		if zx.size() >= 3:
+			zones.append(zx)
+	if z_raw.size() >= 3:
+		var zz := _largest(Geometry2D.offset_polygon(z_raw, 1.0, Geometry2D.JOIN_MITER))
+		if zz.size() >= 3:
+			zones.append(zz)
+	if zones.is_empty():
+		return
+	_add_site("gpxz", zones)
+	if not sites.is_empty() and sites[-1]["key"] == "gpxz":
+		sites[-1]["x_raw"] = x_raw
+		sites[-1]["z_raw"] = z_raw
+		sites[-1]["z_top_raw"] = z_top_raw
+
+
+## Starts a kit_front along edge a->b oriented so _b points along outward normal `out`.
+func _gpxz_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
+## Simplifies an OSM outline into clean rectilinear edges without small revolving-door bumps.
+func _gpxz_clean(raw: PackedVector2Array, tol := 1.35) -> PackedVector2Array:
+	var ring := _simplify(raw, tol)
+	return ring if ring.size() >= 3 else raw
+
+
+## Places full-height stone corner posts aligned to the site's (GPXZ_U, GPXZ_V) frame at every
+## vertex of `ring` from `y0` to `y1`, slightly prouder than piers and bands to prevent z-fighting.
+func _gpxz_corners(ring: PackedVector2Array, y0: float, y1: float) -> void:
+	var ua := GPXZ_U.normalized()
+	var vb := GPXZ_V.normalized()
+	var r := GPXZ_CORNER_R
+	for p in ring:
+		var sq := PackedVector2Array([
+			p - ua * r - vb * r,
+			p + ua * r - vb * r,
+			p + ua * r + vb * r,
+			p - ua * r + vb * r,
+		])
+		_prism(sq, y0, y1, GPXZ_STONE, GPXZ_STONE.darkened(0.08), M_STONE, M_STONE)
+
+
+## Draws the characteristic stone-grid facade on one edge: full-height stone piers every ~GPXZ_BAY m
+## and two kit_panes glazing strips per bay per storey with a thin dark mullion gap between them.
+## `skip_u` (if x < y) leaves an opening (e.g. a double-height lobby or tall entrance) clear for
+## heights below `skip_y`.
+func _gpxz_face_grid(a: Vector2, b: Vector2, out: Vector2, y_sills: Array[float], pane_h: float,
+		pier_y0: float, pier_y1: float, glass: Color, skip_u := Vector2(-1.0, -1.0), skip_y := -INF,
+		pier_full_ground := false, ground_y0 := 0.0) -> void:
+	var w := _gpxz_front_edge(a, b, out)
+	if w < 1.8:
+		return
+	var margin := 0.55
+	var usable := w - 2.0 * margin
+	if usable < 0.8:
+		return
+	var bays := maxi(1, roundi(usable / GPXZ_BAY))
+	var step := usable / float(bays)
+	var half_gap := 0.06
+	# Intermediate vertical stone piers (proud 0.27 m > 0.22 m bands so front faces never share a plane).
+	for k in range(1, bays):
+		var pu := margin + float(k) * step
+		var in_skip := skip_u.x < skip_u.y and pu > skip_u.x + 0.15 and pu < skip_u.y - 0.15
+		var py0 := ground_y0 if (pier_full_ground and not in_skip) else (skip_y if in_skip else pier_y0)
+		if pier_y1 - py0 > 0.5:
+			_kbox(pu - GPXZ_PIER_W * 0.5, pu + GPXZ_PIER_W * 0.5, -0.02, GPXZ_PIER_PROUD, py0, pier_y1, GPXZ_STONE)
+	# Two glass panes per bay on every storey, separated by a thin 12 cm dark mullion reveal.
+	var clear_w := step - GPXZ_PIER_W - 0.08
+	var pane_w := maxf(0.4, (clear_w - 2.0 * half_gap) * 0.5)
+	var all_cols: Array[float] = []
+	var unskipped_cols: Array[float] = []
+	for k in bays:
+		var bc := margin + (float(k) + 0.5) * step
+		var p_lo := bc - (pane_w * 0.5 + half_gap)
+		var p_hi := bc + (pane_w * 0.5 + half_gap)
+		all_cols.append(p_lo)
+		all_cols.append(p_hi)
+		if not (skip_u.x < skip_u.y and bc > skip_u.x - 0.1 and bc < skip_u.y + 0.1):
+			unskipped_cols.append(p_lo)
+			unskipped_cols.append(p_hi)
+	var low_rows: Array[float] = []
+	var high_rows: Array[float] = []
+	for sy in y_sills:
+		if skip_u.x < skip_u.y and sy < skip_y - 0.1:
+			low_rows.append(sy)
+		else:
+			high_rows.append(sy)
+	if not high_rows.is_empty():
+		kit_panes(all_cols, high_rows, pane_w, pane_h, glass, 0.05)
+	if not low_rows.is_empty() and not unskipped_cols.is_empty():
+		kit_panes(unskipped_cols, low_rows, pane_w, pane_h, glass, 0.05)
+
+
+## Draws the green-tinted first-floor glass band (4.3-7.6 m) on one edge of X in M_STONE so it
+## keeps its green tint (#4f6f64) with the piers and thin mullions reading cleanly across it.
+func _gpxz_x_band1(a: Vector2, b: Vector2, out: Vector2, y0: float, y1: float, skip_u := Vector2(-1.0, -1.0)) -> void:
+	var w := _gpxz_front_edge(a, b, out)
+	if w < 1.8:
+		return
+	var margin := 0.55
+	var usable := w - 2.0 * margin
+	if usable < 0.8:
+		return
+	var bays := maxi(1, roundi(usable / GPXZ_BAY))
+	var step := usable / float(bays)
+	var half_gap := 0.06
+	var pane_w := maxf(0.4, (step - GPXZ_PIER_W - 0.08 - 2.0 * half_gap) * 0.5)
+	var keep := _mode
+	_mode = M_STONE
+	for k in bays:
+		var bc := margin + (float(k) + 0.5) * step
+		if skip_u.x < skip_u.y and bc > skip_u.x - 0.1 and bc < skip_u.y + 0.1:
+			continue
+		for s: float in [-1.0, 1.0]:
+			var u := bc + s * (pane_w * 0.5 + half_gap)
+			_wall(_w(u - pane_w * 0.5, 0.05), _w(u + pane_w * 0.5, 0.05), y0, y1, _b, GPXZ_BAND1)
+	_mode = keep
+
+
+## Builds a 1.0 m solid stone parapet with a crisp coping along every outer edge of `ring` at
+## `roof_y` (extending GPXZ_PARAPET_OUT over the piers so the roofline reads razor-straight with
+## no pier teeth, and GPXZ_PARAPET_IN inward so it stays clear of Y's 1.5 m-inset roof terraces).
+## When `clip_against` is non-empty, only outer edges outside `clip_against` receive a parapet.
+func _gpxz_parapet(ring: PackedVector2Array, roof_y: float, clip_against := PackedVector2Array()) -> void:
+	var top := roof_y + GPXZ_PARAPET_H
+	var keep := _mode
+	_mode = M_STONE
+	if clip_against.size() < 3:
+		var outer := _ring_out(ring, GPXZ_PARAPET_OUT)
+		var inner := _inset_ring(ring, GPXZ_PARAPET_IN)
+		_prism(outer, roof_y, top, GPXZ_STONE, Color(0, 0, 0, 0), M_STONE)
+		for i in inner.size():
+			var a := inner[i]
+			var b := inner[(i + 1) % inner.size()]
+			_wall(a, b, roof_y, top, -_out(inner, a, b), GPXZ_STONE.darkened(0.08))
+		_strip(inner, outer, top, GPXZ_STONE.lightened(0.05))
+		kit_ledge_ring(outer, top - 0.16, 0.16, GPXZ_STONE.lightened(0.08), 0.08)
+		_mode = keep
+		return
+	# Exposed edges of `ring` minus `clip_against` (Z's 43.9 m east/north wing around the 53.8 m top).
+	for piece: PackedVector2Array in Geometry2D.clip_polygons(ring, clip_against):
+		if piece.size() < 3 or Geometry2D.is_polygon_clockwise(piece):
+			continue
+		for i in piece.size():
+			var a := piece[i]
+			var b := piece[(i + 1) % piece.size()]
+			var ln := a.distance_to(b)
+			if ln < 0.8:
+				continue
+			var out := _out(piece, a, b)
+			var mid := (a + b) * 0.5
+			# Only outer perimeter edges (just outside `ring`), never the seam against `clip_against`.
+			if Geometry2D.is_point_in_polygon(mid + out * 0.4, ring):
+				continue
+			var w := _gpxz_front_edge(a, b, out)
+			var u0 := 0.1 if Geometry2D.is_point_in_polygon(_w(0.0, 0.0) - _a * 0.3, clip_against) else -GPXZ_PARAPET_OUT
+			var u1 := w - 0.1 if Geometry2D.is_point_in_polygon(_w(w, 0.0) + _a * 0.3, clip_against) else w + GPXZ_PARAPET_OUT
+			if u1 - u0 < 0.5:
+				continue
+			_kbox(u0, u1, -GPXZ_PARAPET_IN, GPXZ_PARAPET_OUT, roof_y, top, GPXZ_STONE)
+			kit_ledge(u0, u1, top - 0.16, 0.16, GPXZ_STONE.lightened(0.08), GPXZ_PARAPET_OUT + 0.08)
+	_mode = keep
+
+
+## Places a low grey rooftop plant box (size_u x size_v x h) centred at `world_c` aligned to
+## (GPXZ_U, GPXZ_V), after verifying it sits at least 3.0 m clear of every `gpy` terrace point.
+func _gpxz_plant(world_c: Vector2, roof_y: float, size_u: float, size_v: float, h: float) -> void:
+	var hu := size_u * 0.5
+	var hv := size_v * 0.5
+	var ua := GPXZ_U.normalized()
+	var vb := GPXZ_V.normalized()
+	var poly := PackedVector2Array([
+		world_c - ua * hu - vb * hv,
+		world_c + ua * hu - vb * hv,
+		world_c + ua * hu + vb * hv,
+		world_c - ua * hu + vb * hv,
+	])
+	for tp: Vector2 in GPXZ_TERRACES:
+		if _dist_to_ring(tp, poly) < 3.0 or Geometry2D.is_point_in_polygon(tp, poly):
+			return
+	_prism(poly, roof_y, roof_y + h, GPXZ_PLANT, GPXZ_PLANT.darkened(0.14), M_STONE, M_STONE)
+	kit_ledge_ring(poly, roof_y + h - 0.18, 0.18, GPXZ_PLANT.lightened(0.08), 0.08)
+
+
+## Draws a word of built M_LAMP letters on the current kit_front, centred at `u_mid` with baseline
+## `y_base`, letter height `h`, standing on a thin dark backing panel anchored to the wall so no
+## letter stroke floats or z-fights. Readers looking from +v see left-to-right along -u.
+func _gpxz_word(word: String, u_mid: float, y_base: float, h: float, col: Color, face_v: float,
+		with_backing := true) -> void:
+	var total := 0.0
+	for i in word.length():
+		var g: Array = GPXZ_GLYPHS.get(word[i], [])
+		if not g.is_empty():
+			total += float(g[0]) * h
+			if i > 0:
+				total += 0.12 * h
+	if total <= 0.0:
+		return
+	var back_v := face_v + 0.03
+	if with_backing:
+		_kbox(u_mid - total * 0.5 - 0.45, u_mid + total * 0.5 + 0.45, face_v - 0.04, back_v,
+				y_base - 0.25 * h, y_base + 1.15 * h, GPXZ_SIGN_BG, M_STONE)
+	var cursor := u_mid + total * 0.5
+	var keep := _mode
+	_mode = M_LAMP
+	for i in word.length():
+		var g: Array = GPXZ_GLYPHS.get(word[i], [])
+		if g.is_empty():
+			continue
+		var adv := float(g[0]) * h
+		var x_left := cursor
+		for box: Array in g[1]:
+			var u1 := x_left - float(box[0]) * h
+			var u0 := x_left - float(box[2]) * h
+			var y0 := y_base + float(box[1]) * h
+			var y1 := y_base + float(box[3]) * h
+			_kbox(u0, u1, back_v - 0.02, back_v + 0.09, y0, y1, col, M_LAMP)
+		cursor -= adv + 0.12 * h
+	_mode = keep
+
+
+## Draws a glazed shop bay using kit_shop_bay plus an M_PAVILION glass face 3 cm proud so the
+## ground floor and lobby glow warmly at night while staying on the facade kit.
+func _gpxz_shop(u: float, y0: float, y1: float, hw: float, trim: Color, glass: Color) -> void:
+	kit_shop_bay(u, y0, y1, hw, trim, glass)
+	var keep := _mode
+	_mode = M_PAVILION
+	_wall(_w(u - hw + 0.04, _face + 0.08), _w(u + hw - 0.04, _face + 0.08), y0 + 0.04, y1 - 0.02, _b, glass)
+	_mode = keep
+
+
+## Main builder for Generation Park X and Z (`gpxz`).
+func _build_gpxz(site: Dictionary) -> void:
+	var x_raw: PackedVector2Array = site.get("x_raw", PackedVector2Array())
+	var z_raw: PackedVector2Array = site.get("z_raw", PackedVector2Array())
+	var z_top_raw: PackedVector2Array = site.get("z_top_raw", PackedVector2Array())
+	if x_raw.size() >= 3:
+		_gpxz_build_x(x_raw)
+		_collide(x_raw)
+	if z_raw.size() >= 3:
+		_gpxz_build_z(z_raw, z_top_raw)
+		_collide(z_raw)
+	_mode = M_STONE
+
+
+## Builds Generation Park X: inset dark ground floor with garage doors every ~9 m and tall glazed
+## entrances, flush green-tinted first-floor glass band, nine storeys of light stone grid over
+## paired blue-grey panes, top-storey SE corner `cyti` signs on both faces, flat roof at +37.3 m
+## with 1.0 m stone parapet and low plant boxes clear of Y's terrace.
+func _gpxz_build_x(x_raw: PackedVector2Array) -> void:
+	var ring := _gpxz_clean(x_raw, 1.35)
+	var g := _ground_under(x_raw)
+	_g = g
+	var ua := GPXZ_U.normalized()
+	var vb := GPXZ_V.normalized()
+	var roof_y := g + GPXZ_X_H
+	var g_top := g + GPXZ_GROUND_H
+	var f1_top := g + GPXZ_FIRST_H
+	# Ground floor inset 1.2 m in dark grey (#3d4146) under the overhanging first-floor soffit.
+	var ground_ring := _largest(Geometry2D.offset_polygon(ring, -1.2, Geometry2D.JOIN_MITER))
+	if ground_ring.size() < 3:
+		ground_ring = ring
+	_mode = M_STONE
+	_prism(ground_ring, g - 0.5, g_top, GPXZ_GROUND, Color(0, 0, 0, 0), M_STONE)
+	_soffit(ring, g_top, GPXZ_STONE.darkened(0.24))
+	# Upper body prism (4.3-37.3 m): dark charcoal backing wall so recessed panes and thin mullions pop,
+	# capped cleanly at exact roof slab top g + 37.3 m in roof membrane #8d969c.
+	_prism(ring, g_top, roof_y, GPXZ_BACK, GPXZ_ROOF, M_STONE, M_STONE)
+	# Upper corner stone posts (4.3 m to just under roof cap) and solid full-depth ground-floor
+	# corner blocks anchoring the 1.2 m overhang cleanly to the pavement (no skinny stilt corners).
+	_gpxz_corners(ring, g_top + 0.02, roof_y - 0.08)
+	# Identify key faces: south Prosta end (out ~ +v, len ~17.5 m) and long east Wronia face (out ~ +u, len ~90 m).
+	var south_i := _edge_facing(ring, vb, 12.0)
+	var east_i := _edge_facing(ring, ua, 60.0)
+	# Storey bands: full kit_ledge_ring on floors 2..10 (7.6 to 34.0 m) plus top edge band.
+	var office_sills: Array[float] = []
+	for fl in 9:
+		var y_line := f1_top + float(fl) * GPXZ_STOREY
+		kit_ledge_ring(ring, y_line, GPXZ_BAND_H, GPXZ_STONE, GPXZ_BAND_PROUD)
+		office_sills.append(y_line + GPXZ_BAND_H + 0.05)
+	kit_ledge_ring(ring, roof_y - GPXZ_BAND_H, GPXZ_BAND_H, GPXZ_STONE, GPXZ_BAND_PROUD)
+	var pane_h := GPXZ_STOREY - GPXZ_BAND_H - 0.1
+	# Ground-floor band at 4.3 m drawn per edge so the 6 m tall south entrance passes cleanly through it.
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var out := _out(ring, a, b)
+		var ln := a.distance_to(b)
+		if ln < 1.5:
+			continue
+		var w := _gpxz_front_edge(a, b, out)
+		var ent_skip := Vector2(-1.0, -1.0)
+		if i == south_i:
+			# Tall 6 m x 8 m glazed entrance at the south end (Prosta face).
+			var ec := w * 0.5
+			ent_skip = Vector2(ec - 4.0, ec + 4.0)
+			# Flush stone portal cheeks back to the recessed ground wall so the entrance sits solid.
+			_kbox(ec - 4.45, ec - 4.0, -1.25, 0.2, g - 0.5, g + 6.3, GPXZ_STONE)
+			_kbox(ec + 4.0, ec + 4.45, -1.25, 0.2, g - 0.5, g + 6.3, GPXZ_STONE)
+			_kbox(ec - 4.45, ec + 4.45, -1.25, 0.2, g + 6.0, g + 6.3, GPXZ_STONE)
+			_gpxz_shop(ec, g, g + 6.0, 3.9, GPXZ_STONE, GPXZ_SHOP)
+			# Split 4.3 m band either side of the entrance.
+			if ec - 4.45 > 0.45:
+				kit_ledge(0.35, ec - 4.45, g_top, GPXZ_BAND_H, GPXZ_STONE, GPXZ_BAND_PROUD)
+			if w - (ec + 4.45) > 0.45:
+				kit_ledge(ec + 4.45, w - 0.35, g_top, GPXZ_BAND_H, GPXZ_STONE, GPXZ_BAND_PROUD)
+		else:
+			if w > 0.9:
+				kit_ledge(0.35, w - 0.35, g_top, GPXZ_BAND_H, GPXZ_STONE, GPXZ_BAND_PROUD)
+		# First-floor green-tinted glass band (4.3-7.6 m) and 9 office storeys above (7.6-37.3 m).
+		_gpxz_x_band1(a, b, out, g_top + GPXZ_BAND_H + 0.04, f1_top - 0.04, ent_skip)
+		_gpxz_face_grid(a, b, out, office_sills, pane_h, g_top + 0.05, roof_y - 0.05, GPXZ_GLASS, ent_skip, f1_top)
+		# Ground-floor substantial full-depth stone piers framing recessed garage bays (sv_x bottom row).
+		if ln >= 8.0:
+			var n_sup := maxi(2, roundi(w / 9.0))
+			for k in range(1, n_sup):
+				var su := w * float(k) / float(n_sup)
+				if ent_skip.x < ent_skip.y and su > ent_skip.x - 1.2 and su < ent_skip.y + 1.2:
+					continue
+				_kbox(su - 0.55, su + 0.55, -1.24, 0.25, g - 0.5, g_top - 0.03, GPXZ_STONE)
+			# End return piers anchoring the recessed corners cleanly back to the ground wall.
+			if i != south_i:
+				_kbox(0.05, 1.15, -1.24, 0.25, g - 0.5, g_top - 0.03, GPXZ_STONE)
+				_kbox(w - 1.15, w - 0.05, -1.24, 0.25, g - 0.5, g_top - 0.03, GPXZ_STONE)
+		# East (Wronia) face: wide recessed grey garage doors every 9 m plus a glazed north-end lobby bay.
+		if i == east_i:
+			var n_gar := maxi(1, floori((w - 14.0) / 9.0))
+			kit_face(-1.2)
+			for k in n_gar:
+				var du := 5.5 + float(k) * 9.0
+				if du + 3.4 < w - 10.0:
+					kit_door(du, g, 3.2, 2.9, GPXZ_GROUND.darkened(0.18), GPXZ_DOOR)
+			# Glazed north-end street entrance on Wronia (Street View sv_x bottom-right).
+			if w > 18.0:
+				_gpxz_shop(w - 6.0, g, g_top - 0.2, 3.4, GPXZ_STONE, GPXZ_SHOP)
+			kit_face(0.0)
+	# Parody bank name `cyti` (white, lowercase, M_LAMP, 1.75 m tall) on a dark top-storey frieze
+	# panel at the SE corner (both Prosta south face and Wronia east face, sv_x top & 3D Tiles h315).
+	var sign_y := roof_y - 2.25
+	if south_i >= 0:
+		var sa := ring[south_i]
+		var sb := ring[(south_i + 1) % ring.size()]
+		var sw := _gpxz_front_edge(sa, sb, _out(ring, sa, sb))
+		# Dark top-storey frieze across the south end (as in sv_x top-right) with bold white `cyti`.
+		_kbox(0.45, sw - 0.45, 0.06, 0.24, roof_y - 2.55, roof_y - GPXZ_BAND_H - 0.03, GPXZ_SIGN_BG, M_STONE)
+		_gpxz_word("cyti", minf(5.0, sw * 0.36), sign_y, 1.75, GPXZ_WHITE, 0.26, false)
+	if east_i >= 0:
+		var ea := ring[east_i]
+		var eb := ring[(east_i + 1) % ring.size()]
+		var ew := _gpxz_front_edge(ea, eb, _out(ring, ea, eb))
+		var se_near_start := _w(0.0, 0.0).dot(vb) > _w(ew, 0.0).dot(vb)
+		var su := 5.2 if se_near_start else ew - 5.2
+		_kbox(su - 4.4, su + 4.4, 0.06, 0.24, roof_y - 2.55, roof_y - GPXZ_BAND_H - 0.03, GPXZ_SIGN_BG, M_STONE)
+		_gpxz_word("cyti", su, sign_y, 1.75, GPXZ_WHITE, 0.26, false)
+	# Roof parapet (1.0 m) and low plant boxes on the north head and south end (> 20 m from Y's terrace).
+	_gpxz_parapet(ring, roof_y)
+	var base_o := Vector2(-2650.0, 280.0)
+	_gpxz_plant(base_o + ua * 35.0 + vb * -16.0, roof_y, 7.0, 3.5, 2.2)
+	_gpxz_plant(base_o + ua * 48.5 + vb * 56.0, roof_y, 3.5, 6.5, 2.0)
+
+
+## Builds Generation Park Z: 13-storey body (43.9 m) stepping to 16 storeys (53.8 m) at the west
+## part, light stone grid over paired blue panes (darker on the top 3 storeys), clear M_PAVILION
+## shopfronts all round, double-height glazed lobby with thin flat canopy and tie-rods on the plaza
+## corner, `KAWKA` café sign, flat roofs at +43.9 m and +53.8 m with parapets and plant boxes.
+func _gpxz_build_z(z_raw: PackedVector2Array, z_top_raw: PackedVector2Array) -> void:
+	var ring := _gpxz_clean(z_raw, 1.35)
+	var top_ring := _gpxz_clean(z_top_raw, 0.5) if z_top_raw.size() >= 3 else PackedVector2Array()
+	var g := _ground_under(z_raw)
+	_g = g
+	var ua := GPXZ_U.normalized()
+	var vb := GPXZ_V.normalized()
+	var g_top := g + GPXZ_GROUND_H
+	var f1_top := g + GPXZ_FIRST_H
+	var roof_y := g + GPXZ_Z_H
+	var top_g := _ground_under(z_top_raw) if z_top_raw.size() >= 3 else g
+	var top_roof_y := top_g + GPXZ_Z_TOP_H
+	# Main Z prism (0-43.9 m) capped cleanly at exact roof slab top g + 43.9 m.
+	_mode = M_STONE
+	_prism(ring, g - 0.5, roof_y, GPXZ_BACK, GPXZ_ROOF, M_STONE, M_STONE)
+	_gpxz_corners(ring, g - 0.5, roof_y - 0.08)
+	# Identify main street/plaza faces: west Towarowa face (out ~ -u, len ~33 m) and south plaza
+	# lobby face (longest south-facing edge with largest v, i.e. the SW plaza front ~25.6 m).
+	var west_i := _edge_facing(ring, -ua, 20.0)
+	var lobby_i := -1
+	var lobby_v := -INF
+	var south_cafe_i := -1
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		if ln < 12.0:
+			continue
+		var out := _out(ring, a, b)
+		if out.dot(vb) > 0.8:
+			var mv := ((a + b) * 0.5).dot(vb)
+			if mv > lobby_v:
+				lobby_v = mv
+				lobby_i = i
+	for i in ring.size():
+		if i == lobby_i:
+			continue
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		if a.distance_to(b) >= 18.0 and _out(ring, a, b).dot(vb) > 0.8:
+			south_cafe_i = i
+	# Storey bands for Z body (floors 2..12: 7.6 to 40.6 m) plus the 43.9 m roof edge band.
+	var body_sills: Array[float] = [g_top + GPXZ_BAND_H + 0.05]
+	for fl in range(1, 12):
+		var y_line := g_top + float(fl) * GPXZ_STOREY
+		kit_ledge_ring(ring, y_line, GPXZ_BAND_H, GPXZ_STONE, GPXZ_BAND_PROUD)
+		body_sills.append(y_line + GPXZ_BAND_H + 0.05)
+	var pane_h := GPXZ_STOREY - GPXZ_BAND_H - 0.1
+	# Dress every face of Z body: ground-floor shopfronts, double-height lobby + canopy, café sign, grid.
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var out := _out(ring, a, b)
+		var ln := a.distance_to(b)
+		if ln < 1.5:
+			continue
+		var w := _gpxz_front_edge(a, b, out)
+		var lobby_skip := Vector2(-1.0, -1.0)
+		if i == lobby_i:
+			# Double-height (0-7.6 m) glazed lobby across the central/west 16 m of the plaza face,
+			# with a thin 1.5 m deep, 0.3 m thick flat canopy and diagonal tie-rods over the doors.
+			var l0 := maxf(1.2, w * 0.5 - 8.0)
+			var l1 := minf(w - 1.2, w * 0.5 + 8.0)
+			lobby_skip = Vector2(l0, l1)
+			var lb_bays := 3
+			var lb_step := (l1 - l0) / float(lb_bays)
+			for k in lb_bays:
+				var uc := l0 + (float(k) + 0.5) * lb_step
+				_gpxz_shop(uc, g, f1_top - 0.05, lb_step * 0.46, GPXZ_STONE, GPXZ_SHOP)
+			# Thin flat canopy (#c9ccce, 1.8 m deep, 0.32 m thick) and diagonal tie-rods (sv_z top row).
+			var c0 := l0 + 0.3
+			var c1 := l1 - 0.3
+			_kbox(c0, c1, 0.02, 1.82, g + 3.8, g + 4.12, GPXZ_CANOPY, M_STONE)
+			var n_rods := 6
+			for k in n_rods:
+				var ru := lerpf(c0 + 0.6, c1 - 0.6, float(k) / float(n_rods - 1))
+				var p_out := _w(ru, 1.66)
+				var p_wall := _w(ru, 0.04)
+				_beam(Vector3(p_out.x, g + 4.12, p_out.y), Vector3(p_wall.x, g + 6.0, p_wall.y), 0.07, GPXZ_CANOPY, false)
+			# Split 4.3 m storey band on the non-lobby portions of this face.
+			if l0 > 0.5:
+				kit_ledge(0.35, l0 - 0.05, g_top, GPXZ_BAND_H, GPXZ_STONE, GPXZ_BAND_PROUD)
+			if w - l1 > 0.5:
+				kit_ledge(l1 + 0.05, w - 0.35, g_top, GPXZ_BAND_H, GPXZ_STONE, GPXZ_BAND_PROUD)
+		else:
+			if i == west_i and w > 14.0:
+				# Towarowa face: double-height lobby return on its southmost bay, shopfronts & café on the rest.
+				var south_at_start := _w(0.0, 0.0).dot(vb) > _w(w, 0.0).dot(vb)
+				var r0 := 0.55 if south_at_start else w - 7.5
+				var r1 := 7.5 if south_at_start else w - 0.55
+				lobby_skip = Vector2(r0, r1)
+				_gpxz_shop((r0 + r1) * 0.5, g, f1_top - 0.05, (r1 - r0) * 0.46, GPXZ_STONE, GPXZ_SHOP)
+				_kbox(r0 + 0.3, r1 - 0.3, 0.02, 1.52, g + 3.8, g + 4.12, GPXZ_CANOPY, M_STONE)
+				if south_at_start:
+					kit_ledge(r1 + 0.05, w - 0.35, g_top, GPXZ_BAND_H, GPXZ_STONE, GPXZ_BAND_PROUD)
+				else:
+					kit_ledge(0.35, r0 - 0.05, g_top, GPXZ_BAND_H, GPXZ_STONE, GPXZ_BAND_PROUD)
+			elif w > 0.9:
+				kit_ledge(0.35, w - 0.35, g_top, GPXZ_BAND_H, GPXZ_STONE, GPXZ_BAND_PROUD)
+		# Ground-floor glazed shopfronts (kit_shop_bay + M_PAVILION) in every non-lobby bay.
+		var margin := 0.55
+		var usable := w - 2.0 * margin
+		if usable >= 1.4:
+			var bays := maxi(1, roundi(usable / GPXZ_BAY))
+			var step := usable / float(bays)
+			for k in bays:
+				var bc := margin + (float(k) + 0.5) * step
+				if lobby_skip.x < lobby_skip.y and bc > lobby_skip.x - 0.1 and bc < lobby_skip.y + 0.1:
+					continue
+				_gpxz_shop(bc, g, g_top - 0.25, maxf(0.4, (step - GPXZ_PIER_W - 0.12) * 0.5), GPXZ_STONE, GPXZ_SHOP)
+		# Parody café sign `KAWKA` over a bay on Towarowa (sv_z bottom) and on the south Prosta-side face.
+		if i == west_i and w > 16.0:
+			var mid_u := w * 0.55 if _w(0.0, 0.0).dot(vb) > _w(w, 0.0).dot(vb) else w * 0.45
+			_gpxz_word("KAWKA", mid_u, g + 3.35, 0.9, GPXZ_CAFE_TXT, GPXZ_BAND_PROUD)
+		elif i == south_cafe_i:
+			_gpxz_word("KAWKA", w * 0.5, g + 3.35, 0.9, GPXZ_CAFE_TXT, GPXZ_BAND_PROUD)
+		# Office grid (4.3-43.9 m) with piers running down to ground between shop bays.
+		_gpxz_face_grid(a, b, out, body_sills, pane_h, g_top + 0.05, roof_y - 0.05, GPXZ_GLASS,
+				lobby_skip, f1_top, true, g - 0.5)
+	# Parapet on Z's exposed 43.9 m roof edges (clipped against Z's 53.8 m top so nothing z-fights).
+	_gpxz_parapet(ring, roof_y, top_ring)
+	# Z's 53.8 m top part (storeys 14-16, 43.9-53.8 m) with the same stone grid and darker glass #2b4560.
+	if top_ring.size() < 3:
+		return
+	_mode = M_STONE
+	_prism(top_ring, roof_y, top_roof_y, GPXZ_BACK.darkened(0.18), GPXZ_ROOF, M_STONE, M_STONE)
+	_gpxz_corners(top_ring, roof_y + 0.06, top_roof_y - 0.08)
+	var top_sills: Array[float] = []
+	for fl in 3:
+		var y_line := roof_y + float(fl) * GPXZ_STOREY
+		kit_ledge_ring(top_ring, y_line, GPXZ_BAND_H, GPXZ_STONE, GPXZ_BAND_PROUD)
+		top_sills.append(y_line + GPXZ_BAND_H + 0.05)
+	kit_ledge_ring(top_ring, top_roof_y - GPXZ_BAND_H, GPXZ_BAND_H, GPXZ_STONE, GPXZ_BAND_PROUD)
+	for i in top_ring.size():
+		var a := top_ring[i]
+		var b := top_ring[(i + 1) % top_ring.size()]
+		var out := _out(top_ring, a, b)
+		if a.distance_to(b) < 1.5:
+			continue
+		_gpxz_face_grid(a, b, out, top_sills, pane_h, roof_y + 0.06, top_roof_y - 0.05, GPXZ_GLASS_TOP)
+	_gpxz_parapet(top_ring, top_roof_y)
+	# Three low grey plant boxes (3 x 6 m, 2.2 m tall) on Z's 53.8 m roof, > 12 m clear of (-2687, 286).
+	var base_o := Vector2(-2650.0, 280.0)
+	_gpxz_plant(base_o + ua * -52.0 + vb * 2.0, top_roof_y, 6.0, 3.0, 2.2)
+	_gpxz_plant(base_o + ua * -52.0 + vb * -9.5, top_roof_y, 6.0, 3.0, 2.2)
+	_gpxz_plant(base_o + ua * -21.0 + vb * -8.0, top_roof_y, 6.0, 3.0, 2.2)
