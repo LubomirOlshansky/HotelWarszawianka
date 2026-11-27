@@ -19,7 +19,7 @@ extends RefCounted
 ##   - `abort()`: the ✕ (hud.abort_pressed) goes to one activity, the first that takes it
 ##     (`takes_abort`), where every joined activity heard it and dropped its run before (TD-16's rule
 ##     for the cards, for the ✕; 2026-11-15: one ✕ ended a tour's run and a rescue at once);
-##   - `offering()`: a request card that leaves the player free is up (Podwózka's, the trend
+##   - `offering()`: a request card that leaves the player free is up (Łuber's, the trend
 ##     job's), each joined activity's `request_up`;
 ##   - `holds_calls(a)`: another activity's run holds the rescue calls (its `rescue_calls`), or one of
 ##     main.gd's own holds does (`hold_calls`, `release_calls`: the phone bench, a boat ride, with the
@@ -151,9 +151,9 @@ func job_on() -> bool:
 
 
 ## A request card that leaves the player free is up: an activity of the kit other than `a` is in
-## its offer with `offer_busy` off (Podwózka's, the trend job's request beside the road). Each
+## its offer with `offer_busy` off (Łuber's, the trend job's request beside the road). Each
 ## joined activity's `request_up`: a rival's challenge waits for it (rivals.gd, PT-15), which
-## asked Podwózka by name before it joined.
+## asked Łuber by name before it joined.
 func offering(a: Activity = null) -> bool:
 	for o in list:
 		if o != a and not o.offer_busy and o.phase == Activity.Phase.OFFER:

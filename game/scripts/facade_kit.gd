@@ -52,6 +52,16 @@ const M_STEEL := M_GOLD + 0.5
 ## ground, and stone washed the same (building.gdshader gothic() `lit`, the M_STONE branch).
 const M_GOTHIC_LIT := M_GOTHIC + 0.5
 const M_STONE_LIT := M_STONE + 0.5
+## A palace washed by floodlights from the pavement at night (F's Krakowskie Przedmieście night
+## photos, 2026-11-26: Bristol, Europejski, the Presidential Palace, the Potocki Palace all stand
+## cream-white in the dark): the stone and monument walls of a site in FLOODLIT_SITES take these
+## (building.gdshader palace_flood()); every other part keeps its own mode.
+const M_STONE_FLOOD := M_STONE + 0.75
+const M_MONUMENT_FLOOD := M_MONUMENT + 0.5
+## Krakowskie Przedmieście's floodlit palaces, churches and monuments (F's night photos,
+## 2026-11-26): their stone walls glow cream-white at night (facade_kit.gd M_STONE_FLOOD).
+const FLOODLIT_SITES := ["bristol", "europejski", "prezydencki", "potocki", "kordegarda", "karmelici",
+		"wizytki", "staszic", "czapski", "kazimierzowski", "uruski", "brama_uw", "sw_krzyz", "mickiewicz", "kopernik"]
 
 
 # --- state ---
@@ -62,6 +72,7 @@ var st  # the city's building surface (chunked_surface.gd)
 var _mode := M_STONE
 var _no_roof := false  # true: triangles go into the mesh but not the roof grid (glass the cassette must not pick)
 var _g := 0.0          # the landmark's ground height
+var _flood := false    # the current site is floodlit at night (landmarks.gd FLOODLIT_SITES)
 var _id := 0           # landmark id for the picking grid (0: none)
 var _pick := PackedByteArray()  # 16-bit landmark ids, two bytes a cell (257 sites by 2026-11-08)
 ## Walls already drawn by the current site, to cut a later coplanar wall back to what shows
@@ -79,6 +90,18 @@ var _b := Vector2.DOWN
 
 # --- emitting ---
 
+## The mode a triangle is written with: on a floodlit site, plain stone and monument walls become
+## their floodlit variants.
+func _flooded(mode: float) -> float:
+	if not _flood:
+		return mode
+	if mode == M_STONE:
+		return M_STONE_FLOOD
+	if mode == M_MONUMENT:
+		return M_MONUMENT_FLOOD
+	return mode
+
+
 ## One triangle into the city mesh, the roof grid and the picking grid. `top` is the
 ## wall top above the ground (UV2.y), uv the shader's wall coordinates (x < 0 on tops).
 func _tri(a: Vector3, b: Vector3, c: Vector3, n: Vector3, col: Color, ua: Vector2, ub: Vector2, uc: Vector2,
@@ -90,7 +113,7 @@ func _tri(a: Vector3, b: Vector3, c: Vector3, n: Vector3, col: Color, ua: Vector
 		var tu := ub
 		ub = uc
 		uc = tu
-	var uv2 := Vector2(_mode, top)
+	var uv2 := Vector2(_flooded(_mode), top)
 	st.set_color(col)
 	st.set_normal(n)
 	st.set_uv(ua)
@@ -206,7 +229,7 @@ func _tri_smooth(p: Array[Vector3], n: Array[Vector3], fn: Vector3, col: Color, 
 		ub = uc
 		uc = tu
 	st.set_color(col)
-	st.set_uv2(Vector2(_mode, top))
+	st.set_uv2(Vector2(_flooded(_mode), top))
 	st.set_normal(na)
 	st.set_uv(ua)
 	st.add_vertex(a)

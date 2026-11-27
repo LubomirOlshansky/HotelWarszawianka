@@ -1278,6 +1278,25 @@ func ambulance_car(e: int, lane: int, s: float):
 	return d
 
 
+## A scene car turns chaser (street_meet.gd's raid, critique-night-quest 3.3: two of the cordon's four cars
+## go after the player): its parked pose is released onto the nearest lane and its unit takes the chase's
+## "chaser" role. False when it is no scene car, there is no chase to join, or no lane is near.
+func scene_to_chaser(d) -> bool:
+	var u = _unit_of.get(d)
+	if u == null or u.role() != "crash" or phase != Phase.CHASE or graph == null:
+		return false
+	var hit: Array = graph.snap(Vector2(d.pos.x, d.pos.z), 40.0, Vector2.ZERO, true, true)
+	if hit.is_empty():
+		return false
+	var e: int = hit[0]
+	var s := clampf(float(hit[2]), graph.e_s0[e] + 2.0, graph.e_s1[e] - 2.0)
+	traffic.unpark(d, e, 0, s)
+	d.v = 6.0
+	_engage(u, "chaser")
+	_log("scene car %d joins the chase" % u.number)
+	return true
+
+
 ## The scene's car goes (out of sight: crash_scenes.gd only clears a scene the view can't see).
 func scene_leave(d) -> void:
 	if d != null and d.active:
@@ -1301,7 +1320,7 @@ const RAID_HOLD := 15.0
 const RAID_ESCAPE := 160.0
 
 
-func raid(at: Vector3, n: int, lvl := 2) -> int:
+func raid(at: Vector3, n: int, lvl := 2, hold := RAID_HOLD) -> int:
 	if gentle or flying or graph == null or phase == Phase.PULLOVER:
 		return 0
 	var placed: Array = []
@@ -1347,7 +1366,7 @@ func raid(at: Vector3, n: int, lvl := 2) -> int:
 	_track_player()
 	if phase == Phase.CALM:
 		_start_chase(clampi(lvl, 1, 3), placed[0], "raid")
-	_raid_t = RAID_HOLD
+	_raid_t = hold
 	raid_chase = true
 	for u in placed:
 		_engage(u, "chaser")
@@ -1882,7 +1901,7 @@ func _talk_done() -> void:
 		_end("pullover")
 		dismiss(fu)
 		return
-	# --- loop 2d-1: a Podwózka passenger on board takes one star for the pull-over (police.md
+	# --- loop 2d-1: a Łuber passenger on board takes one star for the pull-over (police.md
 	# 8.3, parodies.md 3.3; rides.gd acts only while a ride runs). An escape costs nothing. ---
 	var rides = jobs.get("rides") if jobs != null else null
 	if rides != null:

@@ -26,7 +26,7 @@ pages and file lists; no code was copied.
 The list takes entries through `cities.yml` and `CONTRIBUTING.md` (a pull request). Our repo is
 public and MIT, so a "Source" entry works today; a **Play** link needs a web build (below).
 Our hook against the three Warsaw entries: the only one that is a *game* at street level, with
-gentle police, Podwózka, the radio and the Moja Warszawa humour. → Prepare the entry text and a
+gentle police, Łuber, the radio and the Moja Warszawa humour. → Prepare the entry text and a
 screenshot; opening the PR posts publicly from the user's GitHub account, so it needs the user's
 yes first.
 
@@ -64,7 +64,7 @@ Ranked by fit with the Moja Warszawa vision and the phone budget:
    sector streaming; their lesson matches ours.
 8. **Gamepad support**: a Bluetooth controller on the iPhone and the Mac is cheap in Godot (the
    Input map) and suits a driving game. Loop 3j.
-9. **Taxi fares against the clock** (a remix) = our Podwózka; **LLM residents** (one batched LLM
+9. **Taxi fares against the clock** (a remix) = our Łuber; **LLM residents** (one batched LLM
    call for eight NPCs' plans) is out: it needs a network and a server, and the game collects
    nothing and stays offline.
 

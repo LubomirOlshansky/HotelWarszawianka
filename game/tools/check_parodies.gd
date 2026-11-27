@@ -356,7 +356,7 @@ func _check_words(lines: Dictionary) -> void:
 				_expect(hit == "", "%s: a real name (%s) in \"%s\"" % [g, hit, l[k]])
 			# The parodies' own signs and posters (the older ones are eggs.gd's: BACKLOG).
 			if g in ["signs", "column_posters"]:
-				for w in ["FROGS", "PODWÓZKA", "PĘDZIK", "LEŻAK"]:
+				for w in ["FROGS", "ŁUBER", "PĘDZIK", "LEŻAK"]:
 					if pl.to_upper().contains(w):
 						world.append(pl.to_upper())
 						break

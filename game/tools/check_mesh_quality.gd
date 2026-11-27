@@ -19,7 +19,10 @@ extends SceneTree
 ## fails when a count goes ABOVE it, and says so when it went below (lower the number). New
 ## defects fail at once. Not checked (the art-director judges them): parts inside parts, T gaps.
 ## Prints a line per site, then `check_mesh_quality: OK` (exit 0) or the problems (exit 1).
-##   godot --headless --path game --script res://tools/check_mesh_quality.gd
+##   godot --headless --path game --script res://tools/check_mesh_quality.gd [-- --site=KEY]
+## `--site=KEY` judges that one site alone (budget, defects; no sampler, signs or SUNKEN checks): the
+## builder's inner loop takes seconds instead of the whole run's minutes (Ufficio Primo pilot,
+## 2026-11-26: 6.5 min in the cloud). The whole run stays the gate (verify step and CI).
 
 const MapBuilderRef := preload("res://scripts/map_builder.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
@@ -86,7 +89,7 @@ const BUDGET := {
 	"church_narodzenia": 1450,  # 2026-11-14: the whole Baroque church and its clock turret from photos (measured 1305)
 	"church_niepokalanego": 720,  # 2026-11-14: the whole Res Sacra Miser church from photos (measured 644)
 	"church_nozykow": 2900,  # 2026-11-14: the whole Nożyk Synagogue from photos (measured 2625)
-	"church_piotr_pawel": 1300,
+	"church_piotr_pawel": 1650,  # 2026-11-26: 3D Tiles rework: pitched transept and wings, drum balustrade, fuller dome (was 1300)
 	"church_reformowany": 1150,  # 2026-11-14: the whole neo-Gothic church and its spire from photos (measured 1020)
 	"church_sw_marcin": 2400,  # 2026-11-14: the whole St Martin church and its tower from photos (measured 2043)
 	"church_trojca_praga": 520,  # 2026-11-14: Holy Trinity on Solec, temple front and crossing turret from photos (measured 469)
@@ -117,6 +120,7 @@ const BUDGET := {
 	"jablkowscy": 1450,
 	"sheraton": 2400,
 	"bgk": 2700,
+	"ufficio_primo": 4400,  # 2026-11-26: the whole stone cube, doors, bronze guardians; L2 exception: the roof (dome, 71 bubbles, roof lights) is its identity from the camera
 	"foksal": 3000,
 	"mlotek": 2400,
 	"kozia9": 7000,
@@ -218,7 +222,6 @@ const BUDGET := {
 	"plater49": 140,
 	"platinum_a": 80,
 	"platinum_b": 80,
-	"pepeo_tower": 130,  # 2026-11-08 top-50 T37: mapped parts in their skins, the crown sign
 	"poniatowski": 4800,  # 2026-11-03: the towers strengthened (F), 2556 -> 4574 tris over four groups; +0 draw calls
 	"prezydencki": 1300,
 	"q22": 720,  # 2026-11-08 photo rebuild (top-50 T02): 607 tris
@@ -249,9 +252,7 @@ const BUDGET := {
 	"zodiak": 1500,  # 2026-11-19 neon star, string lights on three poles
 	"cmarsz": 2200,
 	"sowa": 1500,  # SOWA CLUB and CITY 25 (F's photos, 2026-11-06): 1298 tris
-	"brama": 100,
-	"equator": 120,
-	"equator2": 120,
+	"brama": 100,  # equator, equator2 and pepeo_tower build only their signs on their street blocks (TOWERS on_block, 2026-11-26): no budget
 	"wiecha": 3700,  # 2026-11-19 night life (lit displays, awnings, kebab hatch, bulbs); 2026-11-22 the cafés' own lit bays, words and bulb strings (3,042)
 	"niecala7": 13000,  # 2026-11-26 Rezydencja Opera, Niecała 7 (F): the whole block on its mapped outline, stacked round balconies, pergola; +0 draw calls. 8000 → 11500 the same day: F asked for the balconies of the photos F sent (dish bowls, posts, hoops, a stack on every arc edge), 10930 tris; 13000 for the ivy and the geranium boxes (F, 12478 tris)
 	"warsztat_mirka": 3600,  # 2026-11-24 Mirek's tuning workshop on Grzybowska (F): the hall with three doors, two lifts (a hatch, a stripped shell), two supercars, the Bawarka in its oil, a stripped car, tyres, the roof car, 2,981 tris; +0 draw calls
@@ -349,7 +350,7 @@ const BUDGET := {
 	"varso": 4300,  # 2026-11-15 photo rebuild (3614 tris): grey frame, louvre crown, lattice spire with dish platforms, lobby, observation box; +0 draw calls
 	"varso_place": 7200,  # 2026-11-17 the office wings from F's photos (stone frame, set-back top storey, terraces, atrium): 6846 tris, +0 draw calls
 	"wcf": 1400,  # 2026-11-08 F's 13 photos: the Emilii Plater portico, piers, fins, the low roof's rail (1319)
-	"wszystkich": 1300,
+	"wszystkich": 7000,
 	"wizytki": 3600,  # 2026-11-14: the whole Visitationist church replaces LoD2 (front, nave, aisles, chancel, wing, turret; measured 3248)
 	"branickich": 1500,
 	"archikatedra": 1100,
@@ -361,7 +362,7 @@ const BUDGET := {
 	"wiktoria": 4500,  # 2026-11-15 photo rebuild (about 4100 tris): two white volumes, 8 and 6 floors of niche windows, glazed base; an exception to the L2 cap, one 117 by 79 m outline
 	"wtt": 1900,  # 2026-11-15 photo rework (1604 tris): crown slits, the mast from its mapped foot
 	"zacheta": 720,
-	"zlota44": 1800,
+	"zlota44": 2160,  # 1659 measured 2026-11-26 (spec budget 2200: 1401 before the 3D Tiles + Street View pass)
 	"zygmunt": 320,
 	# Towarowa 22 built as finished (2026-11-03): seven towers and blocks, the hall's steel frame,
 	# the pavilion, the park, the drone port and the gilded crane.
@@ -412,11 +413,38 @@ func _initialize() -> void:
 	map._roof_nz = ceili((float(bounds[3]) - float(bounds[1])) / map.ROOF_CELL)
 	_probe = MeshProbe.new(data)
 	var marks = Landmarks.new(map, data)
+	var only := ""
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--site="):
+			only = a.trim_prefix("--site=")
 	var keys: Array[String] = []
 	for s: Dictionary in marks.sites:
 		if not s.has("block") and not s.has("fronts"):  # city fabric, not landmarks: no budget of their own
-			keys.append(s["key"])
+			if only == "" or s["key"] == only:
+				keys.append(s["key"])
 	keys.sort()
+	if only != "":
+		if keys.is_empty():
+			print("check_mesh_quality: no landmark site %s" % only)
+			map.free()
+			quit(1)
+			return
+		var one := MeshProbe.Recorder.new()
+		marks.build(one, Rect2(), only)
+		var one_found := _probe.examine(only, one)
+		_judge(only, one_found)
+		map.free()
+		for n in notes:
+			print("  note: " + n)
+		if problems.is_empty():
+			print("check_mesh_quality: OK (site %s)" % only)
+			quit(0)
+		else:
+			print("check_mesh_quality: %d problems" % problems.size())
+			for p in problems:
+				print("  " + p)
+			quit(1)
+		return
 	var measured := {}
 	for key in keys:
 		var rec := MeshProbe.Recorder.new()

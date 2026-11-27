@@ -572,7 +572,7 @@ static func spec(name: String) -> Dictionary:
 					"roof_y": 1.46, "roof_z0": -0.38, "roof_z1": 0.42, "gw0": 0.84, "gw1": 0.68, "r": 0.31,
 					"axle_f": -1.4, "axle_r": 1.36, "bp": 0.5}, true)
 		"crossover":
-			# Podwózka's car (2026-11-19, F: "tesla y"): an electric crossover, no marque: a smooth
+			# Łuber's car (2026-11-19, F: "tesla y"): an electric crossover, no marque: a smooth
 			# rounded nose with no grille height, a tall body, a fastback roof falling in one curve
 			# to a short tail.
 			p.merge({"L": 4.75, "W": 0.95, "sill": 0.4, "bump_f": 0.62, "bump_r": 0.68, "nose": 0.9, "nose_in": 0.22,
@@ -712,7 +712,7 @@ static func _dress(s: Shape, p: Dictionary) -> void:
 
 
 ## The city taxi (an invented livery: a white hybrid liftback with a yellow band of dark squares along
-## the doors and a lit yellow roof sign) or Podwózka, the app taxi (parodies.md 3.1: an electric crossover
+## the doors and a lit yellow roof sign) or Łuber, the app taxi (parodies.md 3.1: an electric crossover
 ## in its own paint with a phone standing on the roof, its screen lit). City-life satire #1
 ## (loud_cars.gd, 2026-11-02): `which` 2 is the loud supercar that shares the taxis' MultiMesh
 ## (no draw call of its own): a low, wide wedge with no badge and no marque, a carbon wing on

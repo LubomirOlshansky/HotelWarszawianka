@@ -541,7 +541,7 @@ const NAMED_STANDS := {"u_zdzicha": ["U ZDZICHA", "zdzich"], "na_cienkim": ["NA 
 const STAND_TAGS := {"hala_mirowska": "hala", "hala_gwardii": "hala", "hala_koszyki": "hala", "stadion_narodowy": "stadium"}
 const STAND_TAG_REACH := 220.0
 ## The four new billboards (6.2): the line's first word -> the place they stand by, the colours.
-const BILLBOARDS := {"FROGS": ["swietokrzyska_metro", "#4fae3b", "#fbf7ee"], "PODWÓZKA": ["dworzec_centralny", "#1f1f22", "#e8f4ff"],
+const BILLBOARDS := {"FROGS": ["swietokrzyska_metro", "#4fae3b", "#fbf7ee"], "ŁUBER": ["dworzec_centralny", "#1f1f22", "#e8f4ff"],
 		"PĘDZIK": ["hala_mirowska", "#c23a7e", "#fbf7ee"], "LEŻAK": ["nowy_swiat_uniwersytet", "#8e44d9", "#fbf7ee"],
 		"WIRALEK": ["wiralek_chmielna", "#1c1f26", "#ff7ac8"],
 		"KLATKA": ["hala_mirowska", "#1d3b5c", "#fbf7ee"], "METRAŻ": ["swietokrzyska_metro", "#f4f1ea", "#1d3b5c"],

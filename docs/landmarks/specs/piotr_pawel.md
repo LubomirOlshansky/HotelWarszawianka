@@ -7,6 +7,16 @@ neo-Gothic brick). Written 2026-11-14 from 14 Commons photos
 (refs/churches/sts_peter_paul_nowogrodzka, reference only, never shipped), the OSM outline
 (building 79) and GUGiK's LoD2.
 
+## Rework 2026-11-26 (3D Tiles)
+The first spec guessed the roofs from street-level photos; Google 3D Tiles renders (reference only,
+`refs/church_piotr_pawel/3dtiles/`) show otherwise. Changes: (1) every roof is patina green
+#86a898, paler and greyer than the copper dome (#6f9e8c, kept for dome, lantern cap, tower domes);
+(2) the transept arms are gabled along their own axis (eaves 18.5, ridge 22, pediments kept), the
+wings (u -27..-18.8, eaves 11) get green hips rising to 13.5, the apse keeps its half-octagon roof;
+(3) walls #e2d8c2, trim #ece5d4; (4) a balustrade ring (plinth, rail, 16 piers, 1.3 m) on the drum's
+top and a near-vertical dome foot (r 7.1 to 7.0 over 28.5..31) so it reads as a broad cap, apex
+unchanged. Budget 1300 -> 1650 (measured 1500).
+
 ## 1. Identity
 1. A **sand stucco neo-Renaissance basilica**.
 2. A **tall flat front** with **three deep arched porches**, a **rose window** under a gable and
@@ -38,14 +48,16 @@ Tall round-headed windows and round ones high on the nave, a tall window in each
 with a pediment over it, windows in the wings and round the apse, arched windows in the drum.
 
 ## 5. Roof
-Grey sheet roofs (#6b6c66); green copper (#6f9e8c) dome, lantern cap and tower domes.
+Patina-green copper roofs (#86a898) on the nave and aisles, transept arms (gabled, ridge 22),
+crossing, apse (half-octagon) and wings (hips to 13.5); darker green copper (#6f9e8c) dome,
+lantern cap and tower domes. A balustrade ring crowns the drum.
 
 ## 6. Colour and material
 | Part | Colour | Material |
 | --- | --- | --- |
-| Walls | #d8c9a4 | M_STONE |
-| Trim | #e5dbc0 | M_STONE |
-| Roofs | #6b6c66 | M_STONE |
+| Walls | #e2d8c2 | M_STONE |
+| Trim | #ece5d4 | M_STONE |
+| Roofs | #86a898 | M_STONE |
 | Copper | #6f9e8c | M_STONE |
 | Porches, belfry openings | #3b3732 | M_STONE |
 | Windows | PAL_GLASS_DARK | lit by chance at night (`_lit`) |
@@ -56,16 +68,16 @@ No new material, shader instruction or draw call.
 The car is stopped by the outline (`_collide`). Card unchanged. No floodlights.
 
 ## 8. Detail level and budget
-L2, triangle budget 1300 (measured 1164, `check_mesh_quality.gd`). Shots:
+L2, triangle budget 1650 (measured 1500, `check_mesh_quality.gd`). Shots:
 `tools/turntable.sh church_piotr_pawel`.
 
 ## 9. Parts table
 
 | id | shape | size | position | material | feature |
 | --- | --- | --- | --- | --- | --- |
-| nave | prism, gable | 29 x 22.6 m | u -4.5..24.5 | #d8c9a4, #6b6c66 | 1 nave |
-| crossing | boxes | 15 x 30.6 m | u -19..-4 | #d8c9a4, #6b6c66 | crossing, 2 arms, 2 pediments |
-| drum, dome | prism, frustums | r 7 m | u -11.5 | #d8c9a4, #6f9e8c | 8 windows, lantern, cross |
-| towers | boxes, octagons, cones | 3.3 m | front corners | #d8c9a4, #6f9e8c | 2 towers, 8 openings |
-| front | pilasters, doors, disc, pediment | 22.6 m wide | u 24.5 | #e5dbc0, #3b3732 | 3 porches, rose, 2 niches |
-| apse, wings | prism, pyramid, boxes | r 5.5 m | u -33..-18.8 | #d8c9a4, #6b6c66 | 1 apse, 2 wings |
+| nave | prism, gable | 29 x 22.6 m | u -4.5..24.5 | #e2d8c2, #86a898 | 1 nave |
+| crossing | boxes, gable roof | 15 x 30.6 m | u -19..-4, ridge 22 | #e2d8c2, #86a898 | crossing, 2 gabled arms, 2 pediments |
+| drum, dome | prism, balustrade ring, frustums | r 7 m | u -11.5 | #e2d8c2, #6f9e8c | 8 windows, lantern, cross |
+| towers | boxes, octagons, cones | 3.3 m | front corners | #e2d8c2, #6f9e8c | 2 towers, 8 openings |
+| front | pilasters, doors, disc, pediment | 22.6 m wide | u 24.5 | #ece5d4, #3b3732 | 3 porches, rose, 2 niches |
+| apse, wings | prism, pyramid, hips | r 5.5 m | u -33..-18.8 | #e2d8c2, #86a898 | 1 apse, 2 wings |
