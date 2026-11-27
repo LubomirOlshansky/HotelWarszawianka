@@ -87,7 +87,8 @@ const FRIEND := "Darek „Bawarka”"
 const DRIFTER := "Lena „Bokiem”"
 const BOSS := "Tadek"
 const COLOUR := Color("#ff3d6e")        ## the club's colour: hot neon red
-const PIN_COLOUR := Color("#38f6ff")    ## COTAM's pin
+const PIN_COLOUR := Color("#38f6ff")    ## the race pin and beacon
+const COTAM_COLOUR := Color("#2fd36b")  ## COTAM's own green (the messenger parody): its pin notes
 const BUBBLE := Color("#ff8aa8")
 const MOTTO := ["Ćwiartka nie kłamie.", "The quarter mile doesn't lie."]
 
@@ -1789,12 +1790,12 @@ func _pin() -> void:
 	if meet_i == 0:
 		var m: Dictionary = meets[1]
 		hud.show_note("COTAM · WNRC", Lang.pick("📍 %s. Kto pierwszy, ten lepszy. Psy szukają nas tutaj, nie tam." % m["name"][0],
-				"📍 %s. First there wins. The cops are looking for us here, not there." % m["name"][1]), PIN_COLOUR,
+				"📍 %s. First there wins. The cops are looking for us here, not there." % m["name"][1]), COTAM_COLOUR,
 				Messages.QUEST_LINE)  # the quest's own message: shows in the chase (messages.gd)
 		_start_race()
 	else:
 		hud.show_note("COTAM · WNRC", Lang.pick("📍 Zieleniecka, pod dworcem Stadion. Drag. %s" % MOTTO[0],
-				"📍 Zieleniecka, by Stadion station. Drag. %s" % MOTTO[1]), PIN_COLOUR, Messages.QUEST_LINE)
+				"📍 Zieleniecka, by Stadion station. Drag. %s" % MOTTO[1]), COTAM_COLOUR, Messages.QUEST_LINE)
 		_release_racers()
 		_show_gate(true)
 		stage = Stage.TO_DRAG
