@@ -1,5 +1,5 @@
 extends RefCounted
-## The phone's contents (F 2026-11-26, "the phone with jobs"; redesigned 2026-11-27: a compact landscape
+## The phone's contents (F 2026-11-26, "the phone with jobs"; redesigned 2026-11-27: a compact portrait
 ## phone with four apps; ŁUBER and GŁODNO search and offer inside it, QUESTS opens the big screen).
 ## Pure, no nodes: phone.gd gathers the facts, phone_hub.gd draws what `model` returns, and
 ## game/tools/check_phone_hub.gd drives it with made-up facts.
