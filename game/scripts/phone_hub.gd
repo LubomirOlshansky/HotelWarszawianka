@@ -28,6 +28,8 @@ const PHONE_W := 214.0
 const PHONE_H := 372.0
 const TILE_H := 96.0
 const EDGE_GAP := 20.0
+## The generated app icons, one per app key (a missing file falls back to the drawn glyph).
+const ICON_DIR := "res://art/phone_icons/%s.png"
 
 var pt := 1.0
 var safe := Rect2()
@@ -318,10 +320,29 @@ func _tile(a: Dictionary) -> Button:
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# The app's icon: a drawn glyph in the app's colour on a round disc.
 	var icon := Control.new()
-	icon.custom_minimum_size = Vector2.ONE * 48.0 * pt
+	icon.custom_minimum_size = Vector2.ONE * (64.0 if ResourceLoader.exists(ICON_DIR % str(a["key"])) else 48.0) * pt
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var key := str(a["key"])
-	icon.draw.connect(func() -> void: _draw_glyph(icon, key, col if on else UiKit.DIM, UiKit.ON_GOLD if on else UiKit.FAINT))
+	var art := ICON_DIR % key
+	if ResourceLoader.exists(art):
+		# Generated art (Codex, art/phone_icons/<key>.png) when the file is in; the drawn glyph otherwise.
+		var tex := TextureRect.new()
+		tex.texture = load(art)
+		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tex.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tex.modulate = Color.WHITE if on else Color(1, 1, 1, 0.4)
+		# Rounded like an app icon: the Panel clips the square art to its corners.
+		var round_box := Panel.new()
+		round_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		round_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		round_box.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
+		round_box.add_theme_stylebox_override("panel", UiKit.box(Color("#15121f"), Color(0, 0, 0, 0), pt, 14.0, 0.0, 0.0))
+		icon.add_child(round_box)
+		round_box.add_child(tex)
+	else:
+		icon.draw.connect(func() -> void: _draw_glyph(icon, key, col if on else UiKit.DIM, UiKit.ON_GOLD if on else UiKit.FAINT))
 	var holder := CenterContainer.new()
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(icon)

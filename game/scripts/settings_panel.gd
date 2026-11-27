@@ -666,6 +666,14 @@ func _dev_page(body: Control) -> Control:
 		close()
 		changed.emit("bench", 1))
 	perf_row.add_child(bench)
+	# Bokiem na Narodowym's grey box (drift_stadium.gd, critique-drift.md 4): the drift practice on
+	# the stadium floor, so F can hold it on the phone before the quest exists.
+	var drift := _word_button("BOKIEM", "DRIFT")
+	drift.name = "drift"
+	drift.pressed.connect(func():
+		close()
+		changed.emit("drift", 1))
+	perf_row.add_child(drift)
 	# F 2026-11-20: Promo Mode (promo_mode.gd): framing tools for the trailer and the Reels.
 	_heading(dev[7], "Tryb promo", "Promo mode")
 	_segments(dev[7], "promo", ON_OFF)
