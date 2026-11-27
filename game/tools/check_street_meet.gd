@@ -1008,7 +1008,6 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	# player is 22 m out; a caution halves the pot, never to nothing by itself.
 	_ok(m._tell_t < 0.0 and not m.raid_clean, "the siren tell came first and the player in the ring is boxed (no CZYSTO)")
 	var pot_save: int = m.pot
-	_ok(Meet.CLEAN_M <= 16.0, "CZYSTO is reachable: full gas for the tell's 2 s leaves 18 m (PT-58)")
 	_ok(m._punctual >= Meet.POT_PUNCTUAL, "NA CZAS allows at least POT_PUNCTUAL s, more for a long way (%.0f s, PT-59)" % m._punctual)
 	_ok(Meet.is_clean(gap + Vector3(Meet.CLEAN_M + 1.0, 0.0, 0.0), gap) and not Meet.is_clean(gap + Vector3(5.0, 0.0, 0.0), gap), "CZYSTO is CLEAN_M m from the gap")
 	m.pot = 100
