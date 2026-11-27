@@ -432,6 +432,9 @@ func _check_drag(digest: PackedStringArray) -> void:
 		problems.append("the bottle's place: third %.2f, fifth %.2f, none %.2f" % [third[0], fifth[0], bare[0]])
 	if float(third[0]) >= times[2]:
 		problems.append("four IDEALNIE and the bottle into third (%.2f s) don't beat Tadek's night 3 (%.2f s)" % [third[0], times[2]])
+	# PT-63: night 2 can be won: four IDEALNIE and the bottle into third beat Tadek's night 2 by over a second.
+	if float(third[0]) >= times[1] - 1.0:
+		problems.append("night 2 is not winnable by a clean run: %.2f s against Tadek's %.2f s" % [third[0], times[1]])
 	if float(bare[0]) <= times[3] - 1.0:
 		problems.append("no bottle beats night 4's Tadek (%.2f s) by over a second" % times[3])
 	if ok > 30.0:
@@ -1143,6 +1146,10 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(_car.vel == Vector3.ZERO and m.stage == Meet.Stage.LINE, "on the line the car stays (no false start by gas)")
 	_ok(_drive_until(func() -> bool: return m.stage == Meet.Stage.DRAG, 3.0, 1.0), "green after TREE_PRE + 3 * TREE_STEP")
 	_ok(m._tree.green and not m._tacho.staging and m._boost_t > 0.0 and Meet.launch_grade(m._revs) == "perfect", "the revs in the launch zone (%.2f): a perfect launch, a burst" % m._revs)
+	# PT-63: a car that turns onto the strip 12 m ahead mid-run is gone within a frame, not at the next tick.
+	var late_car := _traffic.spawn(m.strip_at(m._player_s + 12.0))
+	_driven(0.05, 1.0)
+	_ok(not late_car.active, "PT-63: a car on the strip 12 m ahead is swept within a few frames")
 	var gears_ok := true
 	for k in 3:
 		var top_before := _car.top_mult

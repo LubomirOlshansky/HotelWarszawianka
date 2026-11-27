@@ -282,6 +282,9 @@ const CLEAN_DELAY := 0.1
 ## A nitro bottle on loan (with no garage nitro): one full tank.
 const RESULT_LIFE := 30.0
 const TICK := 0.25
+## Traffic is swept off the strip from this far ahead of the car, every frame of the run (a car closer than this
+## is a surprise whatever we do; farther it just goes).
+const CLEAR_AHEAD := 6.0
 
 ## What people say, [Polish, English] (each under 90 characters).
 const MEET_LINES := [
@@ -1302,8 +1305,6 @@ func _run_tick(_dt: float) -> void:
 				if _arrived(_due, _at, _kmh, strip_at(0.0), LINE_R):
 					hud.hide_pill()
 					_stage()
-		Stage.DRAG:
-			_clear_strip()
 
 
 func _hour() -> float:
@@ -2438,6 +2439,9 @@ func _drag_frame(dt: float) -> void:
 			hud.cue("go")
 		return
 	_drag_t += dt
+	# PT-63: every frame, not every TICK (at 160 km/h a car pulling onto the strip was in the player's lane
+	# before the next sweep: night 2's bottle runs hit a dark car about 330 m down).
+	_clear_strip()
 	if _react < 0.0 and _player_s > 0.5:
 		_react = _drag_t
 	# Tadek.
@@ -2701,7 +2705,7 @@ func _clear_strip(all := false) -> void:
 		var rel := Vector2(d.pos.x, d.pos.z) - (strip["start"] as Vector2)
 		var along := rel.dot(strip["dir"])
 		var side := rel.dot(strip["right"])
-		if along > (-40.0 if all else _player_s + 15.0) and along < QUARTER + 80.0 and absf(side + float(strip["lane_gap"]) * 0.5) < 9.0:
+		if along > (-40.0 if all else _player_s + CLEAR_AHEAD) and along < QUARTER + 80.0 and absf(side + float(strip["lane_gap"]) * 0.5) < 9.0:
 			traffic.remove(d)
 
 
