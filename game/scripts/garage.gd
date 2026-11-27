@@ -275,7 +275,11 @@ func line(tag: String) -> Array:
 func shop_state() -> Dictionary:
 	if wallet == null:
 		return {"car": Upgrades.DEFAULT_CAR, "cars": {}, "nitro": false, "tune": {}}
-	return {"car": wallet.car, "cars": wallet.cars, "nitro": wallet.nitro, "tune": wallet.tune}
+	var open: Array = []
+	for c: Dictionary in Upgrades.CARS:
+		if c.has("open") and bool(wallet.keep.get(Upgrades.OPEN_KEY + str(c["id"]), false)):
+			open.append(str(c["id"]))
+	return {"car": wallet.car, "cars": wallet.cars, "nitro": wallet.nitro, "tune": wallet.tune, "open": open}
 
 
 ## What a tap on shop item `id` would do now (upgrades.gd `rule`).
@@ -319,6 +323,8 @@ func apply_car() -> void:
 	if car == null or wallet == null:
 		return
 	var st := Upgrades.stats(str(wallet.car), wallet.tune, bool(wallet.nitro))
+	if car.has_method("set_feel"):
+		car.feel = car.FEEL_PLAIN.merged(Upgrades.feel(str(wallet.car)), true)
 	car.set_tuning(float(st["top_mult"]), float(st["pull"]), float(st["grip"]))
 	car.nitro_owned = bool(wallet.nitro)
 	if str(wallet.car) != car.model:
@@ -330,13 +336,17 @@ func apply_car() -> void:
 
 
 ## --upgrades=all: every car, the nitro and every part at level 3, for this run (with --nosave nothing
-## stays); --upgrades=tt|nitro: just that.
+## stays); --upgrades=tt|nitro (or any car id of upgrades.gd CARS): just that.
 func preset_upgrades(what: String) -> void:
 	if wallet == null:
 		return
 	if what in ["all", "tt"]:
 		wallet.cars["tt"] = today()
 		wallet.car = "tt"
+	elif not Upgrades.car(what).is_empty():
+		# --upgrades=lanos|bolonez|paszat|szupra|bawarka: that car, owned and on the road.
+		wallet.cars[what] = today()
+		wallet.car = what
 	if what in ["all", "nitro"]:
 		wallet.nitro = true
 	if what == "all":

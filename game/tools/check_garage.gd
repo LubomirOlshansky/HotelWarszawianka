@@ -434,6 +434,50 @@ func _check_shop_rules() -> void:
 		problems.append("shop: the tyres do not add grip")
 	_expect("after the TT", int(Upgrades.stats_after("tt", {"car": "hatch", "tune": {}, "nitro": false})["top_kmh"]), int(Upgrades.stats("tt", {})["top_kmh"]))
 	_expect("after the nitro", bool(Upgrades.stats_after("nitro", {"car": "hatch", "tune": {}, "nitro": false})["nitro"]), true)
+	_check_meme_cars()
+
+
+## C1a/C1b (F 2026-11-27): the meme cars and the Bawarka: their classes (the TT and the Bawarka
+## A, so the Trzy mosty final stays the hardest race; the Bawarka never S), a body each, the
+## Bawarka locked until the night meet's drag, and the drag's prize.
+func _check_meme_cars() -> void:
+	const Ladder := preload("res://scripts/ladder.gd")
+	const Models := preload("res://scripts/models.gd")
+	var want := {"hatch": 0, "lanos": 0, "bolonez": 0, "paszat": 1, "szupra": 2, "tt": 3, "bawarka": 3}
+	for id: String in want:
+		var c := Upgrades.car(id)
+		if c.is_empty():
+			problems.append("cars: %s is missing" % id)
+			continue
+		_expect("class of %s" % id, Ladder.car_class(float(c["top"]), float(c["pull"])), int(want[id]))
+		if not Models.PLAYER_BODIES.has(id):
+			problems.append("cars: %s has no body" % id)
+		if not (id in (Upgrades.TABS["cars"] as Array)):
+			problems.append("cars: %s is not on AUTA" % id)
+	var maxed := Upgrades.stats("bawarka", {"engine": Upgrades.MAX_LEVEL})
+	if Ladder.car_class(float(maxed["top_mult"]), float(maxed["pull"])) > 4:
+		problems.append("cars: the Bawarka with engine 3 is above S")
+	if float(Upgrades.car("bawarka")["price"]) <= float(Upgrades.car("tt")["price"]):
+		problems.append("cars: the Bawarka is not dearer than the TT")
+	for c: Dictionary in Upgrades.CARS:
+		var f: Dictionary = c.get("feel", {})
+		for k: String in f:
+			if not Car.FEEL_PLAIN.has(k) or float(f[k]) < 0.5 or float(f[k]) > 1.7:
+				problems.append("cars: %s's feel %s = %s (a known key, 0.5-1.7)" % [c["id"], k, f[k]])
+	var st := {"car": "hatch", "cars": {}, "nitro": false, "tune": {}, "open": []}
+	_expect("bawarka locked", Upgrades.rule("bawarka", 99999, st), "locked")
+	_expect("lanos to buy", Upgrades.rule("lanos", 200, st), "buy")
+	st["open"] = ["bawarka"]
+	_expect("bawarka open", Upgrades.rule("bawarka", 2500, st), "buy")
+	_expect("bawarka open, short", Upgrades.rule("bawarka", 2499, st), "short")
+	var cars := {}
+	var keep := {}
+	_expect("drag lost: opened", Upgrades.meet_prize(cars, keep, false, 20261127), "opened")
+	_expect("drag lost again", Upgrades.meet_prize(cars, keep, false, 20261127), "")
+	_expect("drag won: given", Upgrades.meet_prize(cars, keep, true, 20261127), "given")
+	_expect("the Bawarka owned", cars.has("bawarka"), true)
+	_expect("drag won again", Upgrades.meet_prize(cars, keep, true, 20261128), "")
+	_expect("bawarka owned rule", Upgrades.rule("bawarka", 0, {"car": "hatch", "cars": cars, "tune": {}}), "switch")
 
 
 ## Buying walks: exact prices, levels stop at 3, the nitro once, a car once then free to switch.
@@ -550,6 +594,19 @@ func _check_shop_car() -> void:
 	car.set_handling(Car.Handling.CRUISE)
 	g.choose_item("hatch")
 	_expect("car back on the hatch", str(car.get("model")), "hatch")
+	# C1a: each car's own feel: the Szupra turns quicker than the hatch, the Bolonez slower, and the
+	# hatch is back to the plain numbers after them.
+	var plain_turn := float(car.get("turn_cap"))
+	g.choose_item("szupra")
+	_expect("car model szupra", str(car.get("model")), "szupra")
+	if float(car.get("turn_cap")) <= plain_turn or float(car.get("engine_note")) <= 1.0:
+		problems.append("car: the Szupra turns %.2f (hatch %.2f), note %.2f" % [float(car.get("turn_cap")), plain_turn, float(car.get("engine_note"))])
+	g.choose_item("bolonez")
+	if float(car.get("turn_cap")) >= plain_turn or float(car.get("steer_time")) <= float(Car.PROFILES[Car.Handling.CRUISE]["steer_time"]):
+		problems.append("car: the Bolonez is not heavier to steer than the hatch")
+	g.choose_item("hatch")
+	_expect("hatch's turn back", is_equal_approx(float(car.get("turn_cap")), plain_turn), true)
+	_expect("hatch's note back", float(car.get("engine_note")), 1.0)
 	# N1 nitro: not owned = never on; owned: a press (the tap) fires one bottle for NITRO_BURN s,
 	# holding adds nothing, the next press fires the next bottle, an empty kit stays off, a bottle
 	# refills in NITRO_REFILL s, BRAKE ends a burn and keeps the rest, a press on the drag's line

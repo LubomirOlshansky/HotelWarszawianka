@@ -73,6 +73,16 @@ R1 rivals' fixed top → C1a cars' feel, roster, sound, Car lab, `check_car_feel
 (turntable sheets) → G1 garage card with the viewer → G2 MOJE AUTO → Autopilot P21-P23 → the lot →
 the drift (docs/design/drift-narodowy.md section 0). The estimates below are optimistic: about 1.5×.
 
+**C1a + C1b built (2026-11-27, F: "a few meme cars at Mirek's, each driving its own way", "the
+TT must be there", "nice models"; the Bawarka as the night meet's prize, story fix-plan-v2):**
+upgrades.gd CARS has the hatch, Dejwu Łanos 200 zł (D), FSŁ Bolonez Karo 300 zł (D), Paszat B5 TDI
+600 zł (C), Tojota Szupra 1,100 zł (B), the Ołdi TT 1,500 zł (A, unchanged numbers, rounder body)
+and Bawarka Darka 2,500 zł (A; gold in the night meet's drag gives it, a loss opens it for sale:
+`meet_prize`). Each car's `feel` (car.gd `set_feel`: turn, steering lag, tail slide on the sporty
+end only, the gas's bite, the pull's fade, the engine note in sfx.gd); bodies in models.gd
+`player_meshes` / `_player_kit` (+0 draw calls), sheet `game/tools/car_sheet.gd`. Not built: the
+Mazgaj, Ałroud and Cichobieg, per-car paint, weight in crashes.
+
 **Defaults built unless F says otherwise:** race classes (section 0a; the fixed rival top is cut);
 tuning shared; you can buy a road Bawarka 325 and the drift prize is its drift setup in Darek's
 colours; in the calm half of the slider cars differ only by speed, pull, turning and sound.

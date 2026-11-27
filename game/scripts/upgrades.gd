@@ -28,7 +28,37 @@ const CARS: Array[Dictionary] = [
 	{"id": "tt", "name": ["Ołdi TT", "Owdy TT"],
 			"blurb": ["Niski, szybki, trochę za drogi. Cztery kółka, żadne się nie zazębia.", "Low, fast, a bit overpriced. Four wheels, none interlocking."],
 			"price": 1500, "top": 1.2, "pull": 1.2, "grip": 1.1},
+	# C1a (F 2026-11-27: "a few different cars at Mirek's, meme cars, each drives its own way";
+	# parodies, no badges). Classes (ladder.gd car_class): Łanos and Bolonez D, Paszat C, Szupra B,
+	# the TT and the Bawarka A. `feel` is car.gd `feel` (turn, steer lag, tail slide on the sporty
+	# end, the gas's bite, the pull's fade, the engine's note).
+	{"id": "lanos", "name": ["Dejwu Łanos", "Dayvoo Wanos"], "short": ["Łanos", "Wanos"],
+			"blurb": ["Emerytowana taksówka z Okęcia. W zakręcie płynie jak wersalka.", "A retired airport cab. Floats through a bend like a sofa bed."],
+			"price": 200, "top": 0.97, "pull": 0.85, "grip": 0.95,
+			"feel": {"turn": 0.93, "steer": 1.3, "slide": 1.25, "onset": 0.8, "note": 1.16}},
+	{"id": "bolonez", "name": ["FSŁ Bolonez Karo", "FSW Bolonez Karo"], "short": ["Bolonez", "Bolonez"],
+			"blurb": ["Ciężki jak PRL, skręca po namyśle. Tył ma swoje zdanie.", "Heavy as the old regime, turns after a think. The rear has opinions."],
+			"price": 300, "top": 1.0, "pull": 0.88, "grip": 1.0,
+			"feel": {"turn": 0.84, "steer": 1.5, "slide": 1.35, "onset": 0.85, "note": 0.8}},
+	{"id": "paszat", "name": ["Paszat B5 TDI", "Pashat B5 TDI"], "short": ["Paszat", "Pashat"],
+			"blurb": ["Diesel, kombi, 600 tys. km. Ciągnie z dołu, góra to plotka.", "Diesel estate, 600k km. Pulls from the bottom; the top is a rumour."],
+			"price": 600, "top": 1.03, "pull": 1.35, "grip": 1.0,
+			"feel": {"turn": 0.95, "steer": 1.1, "slide": 0.85, "onset": 1.6, "fade": 0.85, "note": 0.7}},
+	{"id": "szupra", "name": ["Tojota Szupra", "Toyoda Shoopra"], "short": ["Szupra", "Shoopra"],
+			"blurb": ["Dwa turbo, jeden spojler, zero pokory. Tył chętnie wyprzedza przód.", "Two turbos, one wing, zero humility. The rear likes to overtake the front."],
+			"price": 1100, "top": 1.17, "pull": 1.15, "grip": 1.0,
+			"feel": {"turn": 1.06, "steer": 0.9, "slide": 1.5, "onset": 1.1, "note": 1.08}},
+	# The night meet's prize (story fix-plan-v2, F 2026-11-27): gold in the drag gives it free,
+	# a lost drag opens it here (`open`: street_meet.gd sets wallet.keep "car_open_bawarka").
+	{"id": "bawarka", "name": ["Bawarka Darka", "Darek's Bawarka"], "short": ["Bawarka", "Bawarka"],
+			"blurb": ["Srebrno-niebieska legenda Nocnego spotu. Pije olej jak wodę.", "The silver-blue legend of the night meet. Drinks oil like water."],
+			"price": 2500, "top": 1.28, "pull": 1.3, "grip": 1.15, "open": "drag",
+			"feel": {"turn": 1.08, "steer": 0.85, "slide": 1.2, "onset": 1.2, "note": 0.94}},
 ]
+## The keep flag that opens a car with `open` for sale (wallet.gd `keep`): OPEN_KEY + id.
+const OPEN_KEY := "car_open_"
+## The night meet's prize car.
+const MEET_CAR := "bawarka"
 const DEFAULT_CAR := "hatch"
 const NITRO := {"id": "nitro", "name": ["Nitro „Kebab Boost”", "Nitro: Kebab Boost"], "short": ["Nitro", "Nitro"],
 		"blurb": ["Dwie butle. Stuknij: 2,5 s mocy. Pusta butla ładuje się 12 s.", "Two bottles. Tap: 2.5 s of power. An empty bottle refills in 12 s."],
@@ -50,9 +80,9 @@ const LOOKS: Array[Dictionary] = [
 ]
 const MAX_LEVEL := 3
 ## Order of the rows on the card (every shop id; the card's tabs, `TABS`, group them).
-const ORDER := ["hatch", "tt", "engine", "tyres", "nitro", "wing", "neon"]
+const ORDER := ["hatch", "lanos", "bolonez", "paszat", "szupra", "tt", "bawarka", "engine", "tyres", "nitro", "wing", "neon"]
 ## The card's tabs (F 2026-11-24: AUTA, TUNING, STYL; the paints are on STYL too).
-const TABS := {"cars": ["hatch", "tt"], "tune": ["engine", "tyres", "nitro"], "style": ["wing", "neon"]}
+const TABS := {"cars": ["hatch", "lanos", "bolonez", "paszat", "szupra", "tt", "bawarka"], "tune": ["engine", "tyres", "nitro"], "style": ["wing", "neon"]}
 
 
 ## The car row `id`, or {}.
@@ -118,8 +148,32 @@ static func price(id: String, tune: Dictionary) -> int:
 	return int(find(id).get("price", 0))
 
 
-## What a tap on `id` would do. `st` is {car, cars (id -> day), nitro (bool), tune (id -> level)}:
-## cars: "on" (on the road now), "switch" (owned: free), "buy", "short"; nitro and looks: "owned",
+## The night meet's prize (story fix-plan-v2, F 2026-11-27): a real drag run (not a false start
+## or off the strip) ended `won` gives the Bawarka (in `cars`, the day `day`: "given"), a lost one
+## opens it for sale at Mirek's (`keep` OPEN_KEY: "opened"); "" when nothing changed (already
+## owned, or already open on a loss). street_meet.gd `_drag_end` calls it and says what happened.
+static func meet_prize(cars: Dictionary, keep: Dictionary, won: bool, day: int) -> String:
+	if cars.has(MEET_CAR):
+		return ""
+	if won:
+		cars[MEET_CAR] = day
+		keep[OPEN_KEY + MEET_CAR] = true
+		return "given"
+	if bool(keep.get(OPEN_KEY + MEET_CAR, false)):
+		return ""
+	keep[OPEN_KEY + MEET_CAR] = true
+	return "opened"
+
+
+## A car's own feel for car.gd `set_feel` ({} for the hatch and the TT: the plain feel).
+static func feel(car_id: String) -> Dictionary:
+	return car(car_id).get("feel", {})
+
+
+## What a tap on `id` would do. `st` is {car, cars (id -> day), nitro (bool), tune (id -> level),
+## open (ids of cars with `open` that are for sale now)}:
+## cars: "on" (on the road now), "switch" (owned: free), "locked" (an `open` car not opened yet),
+## "buy", "short"; nitro and looks: "owned",
 ## "buy", "short"; parts: "max", "buy" (the next level), "short"; "" for an unknown id.
 static func rule(id: String, zl: int, st: Dictionary) -> String:
 	match kind(id):
@@ -128,6 +182,8 @@ static func rule(id: String, zl: int, st: Dictionary) -> String:
 				return "on"
 			if id == DEFAULT_CAR or (st.get("cars", {}) as Dictionary).has(id):
 				return "switch"
+			if car(id).has("open") and not (st.get("open", []) as Array).has(id):
+				return "locked"
 		"nitro":
 			if bool(st.get("nitro", false)):
 				return "owned"

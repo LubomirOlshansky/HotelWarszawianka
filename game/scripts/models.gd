@@ -546,10 +546,46 @@ static func spec(name: String) -> Dictionary:
 			# G13: the shop's "Ołdi TT" (a parody of a certain Bavarian-Ingolstadt coupe): the
 			# player's footprint (the collision box is shared) but a lower, wider, rounder
 			# coupe, a short glasshouse, bigger wheels.
-			p.merge({"L": 4.1, "W": 0.94, "sill": 0.22, "bump_f": 0.44, "bump_r": 0.46, "nose": 0.7, "nose_in": 0.2,
-					"cowl_z": -0.55, "cowl_y": 0.88, "belt_z": 1.5, "belt_y": 0.92, "tail_y": 0.9, "tail_in": 0.12,
-					"roof_y": 1.24, "roof_z0": 0.05, "roof_z1": 0.95, "gw0": 0.86, "gw1": 0.66, "r": 0.34,
+			p.merge({"L": 4.1, "W": 0.94, "sill": 0.22, "bump_f": 0.44, "bump_r": 0.46, "nose": 0.7, "nose_in": 0.26,
+					"cowl_z": -0.5, "cowl_y": 0.88, "belt_z": 1.55, "belt_y": 0.92, "tail_y": 0.9, "tail_in": 0.18,
+					"roof_y": 1.26, "roof_z0": 0.12, "roof_z1": 0.72, "gw0": 0.86, "gw1": 0.6, "r": 0.34,
 					"axle_f": -1.28, "axle_r": 1.26, "bp": 0.55, "sides": 8}, true)
+		# C1a/C1b (F 2026-11-27): the shop's meme cars, parodies with no badges, each within the
+		# collision box's footprint (car.gd 1.8 x 4.0 m, bodies up to 4.45 long as the TT's 4.1).
+		"player_lanos":
+			# Dejwu Łanos: a small, upright, rounded three-box saloon with a short boot.
+			p.merge({"L": 4.24, "W": 0.86, "sill": 0.3, "bump_f": 0.52, "bump_r": 0.55, "nose": 0.8, "nose_in": 0.2,
+					"cowl_z": -0.74, "cowl_y": 0.96, "belt_z": 1.22, "belt_y": 1.0, "tail_y": 1.0, "tail_in": 0.12,
+					"roof_y": 1.43, "roof_z0": -0.08, "roof_z1": 0.76, "gw0": 0.82, "gw1": 0.68, "r": 0.29,
+					"axle_f": -1.3, "axle_r": 1.26, "bp": 0.5, "sides": 8}, true)
+		"player_bolonez":
+			# FSŁ Bolonez Karo: a long flat bonnet, an upright windscreen, a squared roof and a long
+			# fastback hatch down to a cut-off tail; tall and boxy.
+			p.merge({"L": 4.34, "W": 0.87, "sill": 0.31, "bump_f": 0.58, "bump_r": 0.58, "nose": 0.84, "nose_in": 0.08,
+					"cowl_z": -0.55, "cowl_y": 1.0, "belt_z": 1.98, "belt_y": 1.05, "tail_y": 1.04, "tail_in": 0.03,
+					"roof_y": 1.5, "roof_z0": -0.05, "roof_z1": 1.12, "gw0": 0.82, "gw1": 0.7, "r": 0.3,
+					"axle_f": -1.3, "axle_r": 1.34, "bp": 0.44, "sides": 8, "ws_v": Vector2(0.08, 0.92),
+					"rw_v": Vector2(0.08, 0.9)}, true)
+		"player_paszat":
+			# Paszat B5 TDI: a lowered estate, a long roof to an upright tailgate, roof rails.
+			p.merge({"L": 4.45, "W": 0.88, "sill": 0.24, "bump_f": 0.5, "bump_r": 0.52, "nose": 0.76, "nose_in": 0.18,
+					"cowl_z": -0.92, "cowl_y": 0.94, "belt_z": 2.02, "belt_y": 0.98, "tail_y": 0.96, "tail_in": 0.05,
+					"roof_y": 1.39, "roof_z0": -0.22, "roof_z1": 1.86, "gw0": 0.84, "gw1": 0.71, "r": 0.3,
+					"axle_f": -1.4, "axle_r": 1.36, "bp": 0.4, "rails": true, "sides": 8}, true)
+		"player_szupra":
+			# Tojota Szupra: a long, low, round nose, the cabin set back, a bubble roof, a short high
+			# tail with the hoop wing (models.gd player_meshes adds it).
+			p.merge({"L": 4.42, "W": 0.93, "sill": 0.2, "bump_f": 0.42, "bump_r": 0.52, "nose": 0.64, "nose_in": 0.3,
+					"cowl_z": -0.28, "cowl_y": 0.86, "belt_z": 1.3, "belt_y": 0.93, "tail_y": 0.93, "tail_in": 0.16,
+					"roof_y": 1.2, "roof_z0": 0.18, "roof_z1": 0.84, "gw0": 0.84, "gw1": 0.63, "r": 0.34,
+					"axle_f": -1.36, "axle_r": 1.3, "bp": 0.62, "sides": 8}, true)
+		"player_bawarka":
+			# Bawarka Darka: a squat Bavarian-style two-door race coupe, low on big wheels, a long
+			# bonnet, a short boot; the flares, splitter, skirts and the GT wing in player_meshes.
+			p.merge({"L": 4.45, "W": 0.94, "sill": 0.17, "bump_f": 0.42, "bump_r": 0.48, "nose": 0.68, "nose_in": 0.22,
+					"cowl_z": -0.55, "cowl_y": 0.9, "belt_z": 1.42, "belt_y": 0.96, "tail_y": 0.96, "tail_in": 0.14,
+					"roof_y": 1.3, "roof_z0": 0.0, "roof_z1": 0.84, "gw0": 0.84, "gw1": 0.66, "r": 0.36,
+					"axle_f": -1.38, "axle_r": 1.34, "bp": 0.58, "sides": 8}, true)
 		"coupe":
 			p.merge({"L": 4.4, "W": 0.92, "sill": 0.22, "bump_f": 0.44, "bump_r": 0.46, "nose": 0.66, "nose_in": 0.2,
 					"cowl_z": -0.5, "cowl_y": 0.86, "belt_z": 1.75, "belt_y": 0.9, "tail_y": 0.9, "tail_in": 0.12,
@@ -1220,94 +1256,194 @@ static func renew_parked(nodes: Array[Node]) -> bool:
 ## calls). The body takes `paint` and `stripes` (the hero part and its glow) and keeps its
 ## twin white stripes over the bonnet, the roof and the tailgate; black bumpers, a roof
 ## spoiler, round head lamps and light hub caps make it the one retro hot hatch in town.
-## G13: `kind` "player" (the hatch) or "player_tt" (the shop's coupe, no roof spoiler).
+## G13: `kind` "player" (the hatch) or "player_tt" (the shop's coupe, no roof spoiler); C1b: the
+## meme cars "player_lanos", "player_bolonez", "player_paszat", "player_szupra" and "player_bawarka"
+## (car.gd BODIES) wear their own kit (`_player_kit`) and lamps instead of the twin stripes; the
+## Bawarka keeps Darek's silver and blue whatever the paint.
 ## `wing` (F 2026-11-24, bought at Mirek's: upgrades.gd LOOKS "wing"): a GT wing on two struts, its
 ## plate in the stripes' colour, in the body's one mesh (no new draw call).
+## The shop's cars (upgrades.gd CARS ids) and their bodies here (car.gd, the garage's stage).
+const PLAYER_BODIES := {"hatch": "player", "tt": "player_tt", "lanos": "player_lanos", "bolonez": "player_bolonez",
+		"paszat": "player_paszat", "szupra": "player_szupra", "bawarka": "player_bawarka"}
 static func player_meshes(paint: Array, stripes: Array, kind := "player", wing := false) -> Array[ArrayMesh]:
 	if kind == "player_bike":
 		return player_bike_meshes(paint, stripes)
+	if SCULPT.has(kind):
+		return _sculpt_meshes(kind, paint, stripes, wing)
 	var s := Shape.new()
 	var p := spec(kind)
-	_vehicle(s, p, paint, [], fin(Color("#2f3f52")), false)
+	var classic := kind in ["player", "player_tt"]
+	# The Bawarka wears Darek's own livery whatever paint is on the other cars: silver over a deep
+	# blue (our own pattern, not any game's), its glow as the silver paint's.
+	var blue := fin(Color("#1d3f8f"), HERO, 0.4)
+	var sky := fin(Color("#5aa8e6"), HERO, 0.6)
+	if kind == "player_bawarka":
+		paint = fin(Color("#9aa3ae"), HERO, 1.1)
+	var glass_c := Color("#2f3f52")
+	_vehicle(s, p, paint, [], fin(glass_c), false)
 	var lower := _lower(p)
 	var W: float = p["W"]
+	var L: float = p["L"]
 	var lw := _widths(lower, W)
 	var house := PackedVector2Array([Vector2(p["cowl_z"], p["cowl_y"]), Vector2(p["roof_z0"], p["roof_y"]),
 			Vector2(p["roof_z1"], p["roof_y"]), Vector2(p["belt_z"], p["belt_y"])])
 	var hw := PackedFloat32Array([p["gw0"], p["gw1"], p["gw1"], p["gw0"]])
-	# Twin stripes, 0.3 m wide either side of the middle: the bonnet, the roof, the tailgate.
-	var stripe_x := [Vector2(0.1, 0.4), Vector2(-0.4, -0.1)]
-	for face: Array in [s.edge_face(lower, lw, 2), s.edge_face(lower, lw, 4), s.edge_face(lower, lw, 5)]:
-		for sx: Vector2 in stripe_x:
-			s.pane(face, (sx.x + W) / (2.0 * W), (sx.y + W) / (2.0 * W), 0.0, 1.0, stripes, 0.01)
 	var gw1: float = p["gw1"]
-	var top := s.edge_face(house, hw, 1)
-	for sx: Vector2 in stripe_x:
-		s.pane(top, (sx.x + gw1) / (2.0 * gw1), (sx.y + gw1) / (2.0 * gw1), 0.0, 1.0, stripes, 0.01)
-	var nose := s.edge_face(lower, lw, 1)
-	for sx: Vector2 in stripe_x:
-		s.pane(nose, (sx.x + W) / (2.0 * W), (sx.y + W) / (2.0 * W), 0.0, 1.0, stripes, 0.01)
-	# A roof spoiler over the tailgate (no mirrors: at the 80 m view they'd be one pixel).
 	var roof_y: float = p["roof_y"]
-	if kind == "player":
-		s.box(Vector3(0.0, roof_y - 0.01, p["roof_z1"] + 0.1), Vector3(1.3, 0.06, 0.3), fin(TRIM))
-	else:
-		# The coupe's spoiler is a thin lip on the boot lid instead.
-		s.box(Vector3(0.0, p["tail_y"] + 0.04, p["L"] * 0.5 - p["tail_in"] - 0.12), Vector3(1.5, 0.05, 0.22), fin(TRIM))
-	if wing:
-		# The wing: on the hatch over the tailgate's top, on the coupe over the boot lid.
-		var wy: float = roof_y + 0.28 if kind == "player" else float(p["tail_y"]) + 0.42
-		var wz: float = float(p["roof_z1"]) + 0.02 if kind == "player" else float(p["L"]) * 0.5 - float(p["tail_in"]) - 0.3
-		var foot: float = roof_y if kind == "player" else float(p["tail_y"])
-		var span := float(p["W"]) * 2.0 + 0.16
-		for sgn: float in [-1.0, 1.0]:
-			s.box(Vector3(sgn * 0.5, (foot + wy) * 0.5, wz), Vector3(0.07, wy - foot, 0.14), fin(TRIM))
-			s.box(Vector3(sgn * span * 0.5, wy + 0.06, wz), Vector3(0.04, 0.24, 0.5), fin(TRIM))
-		s.box(Vector3(0.0, wy + 0.03, wz), Vector3(span, 0.06, 0.46), stripes)
-	# Light hub caps over the plain ones (retro steel wheels).
+	var tail_y: float = p["tail_y"]
+	var tail_z: float = L * 0.5 - float(p["tail_in"])
 	var r: float = p["r"]
+	var trim := fin(TRIM)
+	var black := fin(Color("#1c1d21"))
+	if classic:
+		# Twin stripes, 0.3 m wide either side of the middle: the bonnet, the roof, the tailgate.
+		var stripe_x := [Vector2(0.1, 0.4), Vector2(-0.4, -0.1)]
+		for face: Array in [s.edge_face(lower, lw, 2), s.edge_face(lower, lw, 4), s.edge_face(lower, lw, 5)]:
+			for sx: Vector2 in stripe_x:
+				s.pane(face, (sx.x + W) / (2.0 * W), (sx.y + W) / (2.0 * W), 0.0, 1.0, stripes, 0.01)
+		var top := s.edge_face(house, hw, 1)
+		for sx: Vector2 in stripe_x:
+			s.pane(top, (sx.x + gw1) / (2.0 * gw1), (sx.y + gw1) / (2.0 * gw1), 0.0, 1.0, stripes, 0.01)
+		var nose := s.edge_face(lower, lw, 1)
+		for sx: Vector2 in stripe_x:
+			s.pane(nose, (sx.x + W) / (2.0 * W), (sx.y + W) / (2.0 * W), 0.0, 1.0, stripes, 0.01)
+		# A roof spoiler over the tailgate (no mirrors: at the 80 m view they'd be one pixel).
+		if kind == "player":
+			s.box(Vector3(0.0, roof_y - 0.01, p["roof_z1"] + 0.1), Vector3(1.3, 0.06, 0.3), trim)
+		else:
+			# The coupe's spoiler is a thin lip on the boot lid instead.
+			s.box(Vector3(0.0, tail_y + 0.04, tail_z - 0.12), Vector3(1.5, 0.05, 0.22), trim)
+			# F 2026-11-27 ("the TT must be there, nice models"): the round arches bulging out of the
+			# flanks (a half-ring of paint over each wheel) and the polished round fuel cap.
+			var rr: float = float(p["r"]) + 0.1
+			var wy0: float = float(p["r"]) * cos(PI / 8.0)
+			for z: float in [p["axle_f"], p["axle_r"]]:
+				for sgn: float in [-1.0, 1.0]:
+					for k in 5:
+						var a := lerpf(0.15, PI - 0.15, (k + 0.5) / 5.0)
+						s.box(Vector3(sgn * (W + 0.02), wy0 + sin(a) * rr, z + cos(a) * rr), Vector3(0.05, 0.1, 0.16), paint)
+			var cap_at := Vector3(W + 0.035, float(p["belt_y"]) - 0.16, float(p["axle_r"]) - 0.05)
+			s.box(cap_at, Vector3(0.02, 0.13, 0.13), fin(Color("#d4d7dc")))
+	# The bought GT wing: on the hatch over the tailgate's top, on the others over the boot lid;
+	# the Szupra and the Bawarka keep their own wings.
+	if wing and kind not in ["player_szupra", "player_bawarka"]:
+		var hatchy := kind in ["player", "player_bolonez", "player_paszat"]
+		var wy: float = roof_y + 0.28 if hatchy else tail_y + 0.42
+		var wz: float = float(p["roof_z1"]) + 0.02 if hatchy else tail_z - 0.3
+		var foot: float = roof_y if hatchy else tail_y
+		var span := W * 2.0 + 0.16
+		for sgn: float in [-1.0, 1.0]:
+			s.box(Vector3(sgn * 0.5, (foot + wy) * 0.5, wz), Vector3(0.07, wy - foot, 0.14), trim)
+			s.box(Vector3(sgn * span * 0.5, wy + 0.06, wz), Vector3(0.04, 0.24, 0.5), trim)
+		s.box(Vector3(0.0, wy + 0.03, wz), Vector3(span, 0.06, 0.46), stripes)
+	# Hub caps over the plain wheels: light retro steel on the hatch and most, black steelies on the
+	# Paszat, dark five-spoke race rims on the Szupra and the Bawarka.
+	var cap := Color("#d8dadc")
+	match kind:
+		"player_paszat":
+			cap = Color("#232427")
+		"player_szupra":
+			cap = Color("#b9bcc2")
+		"player_bawarka":
+			cap = Color("#3b3e45")
+		"player_lanos":
+			cap = Color("#a9adb3")
 	var wc := r * cos(PI / 8.0)
 	for z: float in [p["axle_f"], p["axle_r"]]:
 		for sgn: float in [-1.0, 1.0]:
 			var x := sgn * (W + 0.02 + 0.016)
 			var ring: Array[Vector3] = []
+			var cap_r := r * (0.62 if kind in ["player_szupra", "player_bawarka"] else 0.42)
 			for k in 8:
 				var a := TAU * (k + 0.5) / 8.0
-				ring.append(Vector3(x, wc + sin(a) * r * 0.42, z + cos(a) * r * 0.42))
+				ring.append(Vector3(x, wc + sin(a) * cap_r, z + cos(a) * cap_r))
 			for k in range(1, 7):
-				s.tri(ring[0], ring[k], ring[k + 1], fin(Color("#d8dadc")), Vector3(sgn, 0, 0))
+				s.tri(ring[0], ring[k], ring[k + 1], fin(cap), Vector3(sgn, 0, 0))
+			if kind in ["player_szupra", "player_bawarka"]:
+				# The rim's centre nut, so the big rim reads as a wheel and not a disc.
+				s.box(Vector3(x + sgn * 0.01, wc, z), Vector3(0.02, 0.09, 0.09), fin(Color("#16171a")))
 	var body := s.mesh()
-	# Round head lamps (octagons) on the nose, the tail lamps wrapping over the rear deck so
-	# the camera above sees them.
+	return [body, _player_heads(kind, lower, lw, W), _player_tails(kind, p, lower, lw, W)]
+
+
+## The head lamps for `kind`: round octagons on the hatch and the TT, flat panes on the rest (their
+## shapes are each car's face).
+static func _player_heads(kind: String, lower: PackedVector2Array, lw: PackedFloat32Array, W: float) -> ArrayMesh:
 	var heads := Shape.new()
-	for sgn: float in [-1.0, 1.0]:
-		var c := Vector3(sgn * 0.6, 0.0, 0.0)
-		var face := heads.edge_face(lower, lw, 1)
-		var c0: Vector3 = face[0]
-		var c1: Vector3 = face[1]
-		var c2: Vector3 = face[2]
-		var c3: Vector3 = face[3]
-		var u := (c.x + W) / (2.0 * W)
-		var centre: Vector3 = c0.lerp(c1, u).lerp(c3.lerp(c2, u), 0.55)
-		var n: Vector3 = (c1 - c0).cross(c3 - c0).normalized()
-		if n.dot(Vector3(0, 0, -1)) < 0.0:
-			n = -n
-		var up := (c3 - c0).normalized()
-		var right := Vector3.RIGHT
-		var ring: Array[Vector3] = []
-		for k in 8:
-			var a := TAU * (k + 0.5) / 8.0
-			ring.append(centre + n * 0.02 + right * cos(a) * 0.15 + up * sin(a) * 0.15)
-		for k in range(1, 7):
-			heads.tri(ring[0], ring[k], ring[k + 1], fin(Color.WHITE), n)
+	var face := heads.edge_face(lower, lw, 1)
+	if kind in ["player", "player_tt"]:
+		for sgn: float in [-1.0, 1.0]:
+			var c := Vector3(sgn * 0.6, 0.0, 0.0)
+			var c0: Vector3 = face[0]
+			var c1: Vector3 = face[1]
+			var c2: Vector3 = face[2]
+			var c3: Vector3 = face[3]
+			var u := (c.x + W) / (2.0 * W)
+			var centre: Vector3 = c0.lerp(c1, u).lerp(c3.lerp(c2, u), 0.55)
+			var n: Vector3 = (c1 - c0).cross(c3 - c0).normalized()
+			if n.dot(Vector3(0, 0, -1)) < 0.0:
+				n = -n
+			var up := (c3 - c0).normalized()
+			var right := Vector3.RIGHT
+			var ring: Array[Vector3] = []
+			for k in 8:
+				var a := TAU * (k + 0.5) / 8.0
+				ring.append(centre + n * 0.02 + right * cos(a) * 0.15 + up * sin(a) * 0.15)
+			for k in range(1, 7):
+				heads.tri(ring[0], ring[k], ring[k + 1], fin(Color.WHITE), n)
+		return heads.mesh()
+	# [u0, u1, v0, v1] of the left lamp on the nose (the right one mirrored).
+	var box: Array = {"player_lanos": [0.05, 0.3, 0.35, 0.9], "player_bolonez": [0.04, 0.3, 0.3, 0.85],
+			"player_paszat": [0.04, 0.3, 0.4, 0.92], "player_szupra": [0.04, 0.24, 0.55, 0.85],
+			"player_bawarka": [0.05, 0.28, 0.5, 0.88]}.get(kind, [0.05, 0.27, 0.3, 0.9])
+	for mirror: bool in [false, true]:
+		var u0: float = 1.0 - float(box[1]) if mirror else float(box[0])
+		var u1: float = 1.0 - float(box[0]) if mirror else float(box[1])
+		if kind == "player_bawarka":
+			# Two lamps a side in one housing (a twin-lamp face, no grille copied).
+			var mid := (u0 + u1) * 0.5
+			heads.pane(face, u0, mid - 0.01, box[2], box[3], fin(Color.WHITE), 0.02)
+			heads.pane(face, mid + 0.01, u1, box[2], box[3], fin(Color.WHITE), 0.02)
+		else:
+			heads.pane(face, u0, u1, box[2], box[3], fin(Color.WHITE), 0.02)
+	return heads.mesh()
+
+
+## The tail lamps for `kind`, on the back and wrapping over the rear deck so the camera above sees
+## them; the Szupra's are two round lamps a side.
+static func _player_tails(kind: String, p: Dictionary, lower: PackedVector2Array, lw: PackedFloat32Array, W: float) -> ArrayMesh:
 	var tails := Shape.new()
 	var back := tails.edge_face(lower, lw, 5)
-	tails.pane(back, 0.03, 0.26, 0.05, 0.75, fin(Color.WHITE), 0.02)
-	tails.pane(back, 0.74, 0.97, 0.05, 0.75, fin(Color.WHITE), 0.02)
 	var deck := tails.edge_face(lower, lw, 4)
-	tails.pane(deck, 0.03, 0.26, 0.72, 1.0, fin(Color.WHITE), 0.02)
-	tails.pane(deck, 0.74, 0.97, 0.72, 1.0, fin(Color.WHITE), 0.02)
-	return [body, heads.mesh(), tails.mesh()]
+	match kind:
+		"player_szupra":
+			var c0: Vector3 = back[0]
+			var c1: Vector3 = back[1]
+			var c2: Vector3 = back[2]
+			var c3: Vector3 = back[3]
+			var n := Vector3(0, 0, 1)
+			var up := (c3 - c0).normalized()
+			for u: float in [0.1, 0.25, 0.75, 0.9]:
+				var centre: Vector3 = c0.lerp(c1, u).lerp(c3.lerp(c2, u), 0.5) + n * 0.02
+				var ring: Array[Vector3] = []
+				for k in 8:
+					var a := TAU * (k + 0.5) / 8.0
+					ring.append(centre + Vector3.RIGHT * cos(a) * 0.1 + up * sin(a) * 0.1)
+				for k in range(1, 7):
+					tails.tri(ring[0], ring[k], ring[k + 1], fin(Color.WHITE), n)
+			tails.pane(deck, 0.05, 0.95, 0.9, 1.0, fin(Color.WHITE), 0.02)
+		"player_bolonez", "player_paszat":
+			# Tall lamps up the tailgate's sides (a hatch's and an estate's).
+			tails.pane(back, 0.02, 0.2, 0.05, 0.9, fin(Color.WHITE), 0.02)
+			tails.pane(back, 0.8, 0.98, 0.05, 0.9, fin(Color.WHITE), 0.02)
+			tails.pane(deck, 0.02, 0.2, 0.75, 1.0, fin(Color.WHITE), 0.02)
+			tails.pane(deck, 0.8, 0.98, 0.75, 1.0, fin(Color.WHITE), 0.02)
+		_:
+			tails.pane(back, 0.03, 0.3 if kind == "player_bawarka" else 0.26, 0.2, 0.75, fin(Color.WHITE), 0.02)
+			tails.pane(back, 0.7 if kind == "player_bawarka" else 0.74, 0.97, 0.2, 0.75, fin(Color.WHITE), 0.02)
+			tails.pane(deck, 0.03, 0.26, 0.72, 1.0, fin(Color.WHITE), 0.02)
+			tails.pane(deck, 0.74, 0.97, 0.72, 1.0, fin(Color.WHITE), 0.02)
+	return tails.mesh()
 
 
 ## The coffee run (coffee_run.gd): the player on a ROWERILO city bike, [body, head lamp, tail
@@ -1622,3 +1758,449 @@ static func person_mesh() -> ArrayMesh:
 	box(st, Vector3(0, 1.58, 0), Vector3(0.26, 0.26, 0.26), Color("#e2b48c"))
 	box(st, Vector3(0, 1.72, 0.02), Vector3(0.28, 0.08, 0.3), Color("#4a3426"))
 	return st.commit()
+
+
+# --- C1b v2: the sculpted shop cars (F 2026-11-27: "boring; model them like the real cars, the way
+# GTA copies them") --------------------------------------------------------------------------------
+# Each car is a table of cross-sections along its length (front at -Z): the lower body's
+# [z, bottom y, shoulder y, crown y, half-width] (`lower`; the ring is the bottom edge, the widest
+# point, the shoulder and the crown, so the nose and tail taper in plan and the arches bulge), and
+# the glasshouse's [z, base y, roof y, base half-width, roof half-width, kind] (`house`; `kind`
+# colours the piece to the next section: "ws" windscreen, "win" side glass under the roof, "pil" a
+# painted pillar, "rq" a painted quarter with the roof, "rw" a rear window with painted sides,
+# "rwg" glass all round). `shape` = [bottom inset, widest point's height share, shoulder inset,
+# roof crown]. Decals hug the body (`_decal`), so liveries, strips and badges-without-badges follow
+# its curves. Every car stays one body mesh plus the two lamp meshes (+0 draw calls).
+
+## The shop cars' tables (see above). Wheels: [front axle z, rear axle z, radius, tyre width].
+const SCULPT := {
+	"player_tt": {
+		"shape": [0.9, 0.55, 0.86, 0.05], "wheels": [-1.27, 1.27, 0.34, 0.25],
+		"lower": [[-2.05, 0.3, 0.56, 0.6, 0.74], [-1.95, 0.22, 0.68, 0.72, 0.86], [-1.62, 0.2, 0.78, 0.8, 0.93],
+				[-1.27, 0.2, 0.84, 0.85, 0.96], [-0.9, 0.2, 0.86, 0.87, 0.91], [-0.45, 0.2, 0.88, 0.9, 0.89],
+				[0.5, 0.2, 0.9, 0.91, 0.89], [0.95, 0.2, 0.9, 0.92, 0.92], [1.27, 0.2, 0.9, 0.92, 0.96],
+				[1.65, 0.22, 0.87, 0.89, 0.91], [1.95, 0.27, 0.76, 0.79, 0.84], [2.05, 0.33, 0.62, 0.64, 0.74]],
+		"house": [[-0.45, 0.9, 0.9, 0.84, 0.84, "ws"], [0.08, 0.9, 1.26, 0.8, 0.6, "win"], [0.36, 0.9, 1.3, 0.8, 0.6, "win"],
+				[0.62, 0.91, 1.27, 0.8, 0.6, "rq"], [0.9, 0.91, 1.2, 0.82, 0.62, "rw"], [1.62, 0.89, 0.89, 0.86, 0.86, ""]]},
+	"player_lanos": {
+		"shape": [0.92, 0.5, 0.88, 0.04], "wheels": [-1.3, 1.26, 0.29, 0.21],
+		"lower": [[-2.12, 0.33, 0.62, 0.65, 0.74], [-2.0, 0.29, 0.74, 0.77, 0.83], [-1.7, 0.28, 0.8, 0.82, 0.86],
+				[-1.3, 0.28, 0.85, 0.86, 0.87], [-0.75, 0.28, 0.91, 0.93, 0.86], [0.2, 0.28, 0.95, 0.96, 0.87],
+				[1.0, 0.28, 0.98, 0.99, 0.87], [1.26, 0.28, 0.99, 1.0, 0.87], [1.75, 0.3, 1.0, 1.01, 0.85],
+				[2.0, 0.35, 0.99, 1.0, 0.8], [2.12, 0.42, 0.9, 0.93, 0.73]],
+		"house": [[-0.75, 0.93, 0.93, 0.83, 0.83, "ws"], [-0.08, 0.94, 1.43, 0.82, 0.67, "win"], [0.38, 0.95, 1.45, 0.83, 0.67, "pil"],
+				[0.47, 0.96, 1.45, 0.83, 0.67, "win"], [0.8, 0.97, 1.42, 0.83, 0.66, "rw"], [1.28, 0.99, 0.99, 0.84, 0.84, ""]]},
+	"player_bolonez": {
+		"shape": [0.97, 0.42, 0.96, 0.02], "wheels": [-1.3, 1.34, 0.3, 0.21],
+		"lower": [[-2.17, 0.31, 0.78, 0.8, 0.84], [-2.02, 0.3, 0.82, 0.84, 0.86], [-1.3, 0.3, 0.9, 0.91, 0.87],
+				[-0.55, 0.3, 0.98, 0.99, 0.87], [0.5, 0.3, 1.02, 1.03, 0.87], [1.34, 0.3, 1.04, 1.05, 0.87],
+				[1.98, 0.32, 1.05, 1.06, 0.87], [2.17, 0.36, 1.02, 1.03, 0.85]],
+		"house": [[-0.55, 0.99, 0.99, 0.84, 0.84, "ws"], [-0.02, 1.0, 1.5, 0.82, 0.72, "win"], [0.42, 1.01, 1.51, 0.83, 0.72, "pil"],
+				[0.52, 1.02, 1.51, 0.83, 0.72, "win"], [0.92, 1.03, 1.5, 0.84, 0.72, "rq"], [1.2, 1.04, 1.46, 0.84, 0.72, "rw"],
+				[1.98, 1.06, 1.06, 0.85, 0.85, ""]]},
+	"player_paszat": {
+		"shape": [0.93, 0.5, 0.9, 0.04], "wheels": [-1.4, 1.36, 0.31, 0.22],
+		"lower": [[-2.25, 0.29, 0.6, 0.63, 0.77], [-2.12, 0.24, 0.72, 0.75, 0.85], [-1.8, 0.23, 0.8, 0.82, 0.88],
+				[-1.4, 0.23, 0.85, 0.86, 0.89], [-0.92, 0.23, 0.92, 0.93, 0.88], [0.3, 0.23, 0.96, 0.97, 0.88],
+				[1.36, 0.23, 0.97, 0.98, 0.89], [1.95, 0.25, 0.97, 0.98, 0.87], [2.18, 0.29, 0.95, 0.96, 0.84],
+				[2.25, 0.33, 0.9, 0.92, 0.8]],
+		"house": [[-0.92, 0.93, 0.93, 0.84, 0.84, "ws"], [-0.2, 0.95, 1.38, 0.83, 0.68, "win"], [0.3, 0.96, 1.42, 0.84, 0.69, "pil"],
+				[0.38, 0.96, 1.42, 0.84, 0.69, "win"], [1.08, 0.97, 1.41, 0.84, 0.69, "pil"], [1.16, 0.97, 1.4, 0.84, 0.69, "win"],
+				[1.88, 0.97, 1.33, 0.84, 0.66, "rw"], [2.14, 0.96, 0.97, 0.84, 0.8, ""]]},
+	"player_szupra": {
+		"shape": [0.9, 0.55, 0.85, 0.05], "wheels": [-1.36, 1.3, 0.34, 0.26],
+		"lower": [[-2.22, 0.3, 0.48, 0.5, 0.72], [-2.08, 0.22, 0.6, 0.63, 0.86], [-1.78, 0.2, 0.7, 0.72, 0.93],
+				[-1.36, 0.2, 0.77, 0.78, 0.95], [-0.95, 0.2, 0.78, 0.8, 0.9], [-0.3, 0.2, 0.83, 0.85, 0.88],
+				[0.5, 0.2, 0.87, 0.88, 0.9], [1.3, 0.2, 0.91, 0.92, 0.96], [1.75, 0.22, 0.93, 0.94, 0.94],
+				[2.1, 0.28, 0.91, 0.93, 0.88], [2.22, 0.34, 0.83, 0.85, 0.82]],
+		"house": [[-0.3, 0.85, 0.85, 0.83, 0.83, "ws"], [0.22, 0.86, 1.2, 0.79, 0.6, "win"], [0.55, 0.87, 1.22, 0.8, 0.6, "win"],
+				[0.86, 0.88, 1.19, 0.81, 0.6, "rwg"], [1.5, 0.92, 0.92, 0.86, 0.86, ""]]},
+	"player_bawarka": {
+		"shape": [0.95, 0.45, 0.92, 0.03], "wheels": [-1.38, 1.34, 0.36, 0.3],
+		"lower": [[-2.25, 0.15, 0.6, 0.62, 0.84], [-2.1, 0.14, 0.68, 0.7, 0.93], [-1.75, 0.14, 0.75, 0.77, 0.99],
+				[-1.38, 0.14, 0.79, 0.8, 1.01], [-1.0, 0.14, 0.81, 0.83, 0.94], [-0.55, 0.14, 0.86, 0.88, 0.91],
+				[0.4, 0.14, 0.9, 0.92, 0.92], [0.98, 0.14, 0.94, 0.95, 0.97], [1.34, 0.14, 0.96, 0.97, 1.01],
+				[1.75, 0.16, 0.97, 0.98, 0.98], [2.12, 0.22, 0.97, 0.98, 0.9], [2.25, 0.28, 0.92, 0.94, 0.86]],
+		"house": [[-0.55, 0.88, 0.88, 0.86, 0.86, "ws"], [0.0, 0.9, 1.3, 0.84, 0.63, "win"], [0.6, 0.93, 1.31, 0.86, 0.63, "rq"],
+				[0.84, 0.94, 1.28, 0.86, 0.63, "rw"], [1.42, 0.96, 0.96, 0.86, 0.86, ""]]},
+}
+
+
+## The lower body's half ring at section `st` (bottom, widest, shoulder, crown) as (x, y).
+static func _ring(st: Array, shape: Array) -> Array[Vector2]:
+	var w: float = st[4]
+	var yb: float = st[1]
+	var ys: float = st[2]
+	return [Vector2(w * float(shape[0]), yb), Vector2(w, lerpf(yb, ys, float(shape[1]))), Vector2(w * float(shape[2]), ys),
+			Vector2(0.0, float(st[3]))]
+
+
+## The half-width of the ring at height `y` (0 above the crown, the bottom's below it).
+static func _ring_x(ring: Array[Vector2], y: float) -> float:
+	if y <= ring[0].y:
+		return ring[0].x
+	for k in ring.size() - 1:
+		var a := ring[k]
+		var b := ring[k + 1]
+		if y <= b.y or k == ring.size() - 2:
+			return lerpf(a.x, b.x, clampf((y - a.y) / maxf(b.y - a.y, 0.001), 0.0, 1.0))
+	return 0.0
+
+
+## The body's side at (z, y): its x, between the two sections round z.
+static func _side_x(c: Dictionary, z: float, y: float) -> float:
+	var lower: Array = c["lower"]
+	var shape: Array = c["shape"]
+	if z <= float(lower[0][0]):
+		return _ring_x(_ring(lower[0], shape), y)
+	for i in lower.size() - 1:
+		var a: Array = lower[i]
+		var b: Array = lower[i + 1]
+		if z <= float(b[0]):
+			var t := (z - float(a[0])) / maxf(float(b[0]) - float(a[0]), 0.001)
+			return lerpf(_ring_x(_ring(a, shape), y), _ring_x(_ring(b, shape), y), t)
+	return _ring_x(_ring(lower[lower.size() - 1], shape), y)
+
+
+## The top surface's height at (z, x) (the shoulder to the crown), and the section's widest half.
+static func _top_y(c: Dictionary, z: float, x: float) -> float:
+	var lower: Array = c["lower"]
+	var shape: Array = c["shape"]
+	var at := func(st: Array) -> float:
+		var r := _ring(st, shape)
+		return lerpf(r[3].y, r[2].y, clampf(absf(x) / maxf(r[2].x, 0.01), 0.0, 1.0))
+	if z <= float(lower[0][0]):
+		return at.call(lower[0])
+	for i in lower.size() - 1:
+		var a: Array = lower[i]
+		var b: Array = lower[i + 1]
+		if z <= float(b[0]):
+			var t := (z - float(a[0])) / maxf(float(b[0]) - float(a[0]), 0.001)
+			return lerpf(at.call(a), at.call(b), t)
+	return at.call(lower[lower.size() - 1])
+
+
+## A decal on side `sgn`: the quad (z, y) a, b, c, d (in order round it) laid on the body in a
+## grid of pieces, `lift` m off it, so it follows the flank's curve.
+static func _decal(s: Shape, c: Dictionary, sgn: float, q: Array, f: Array, lift := 0.012, n := 6) -> void:
+	var at := func(u: float, v: float) -> Vector3:
+		var a: Vector2 = q[0]
+		var b: Vector2 = q[1]
+		var cc: Vector2 = q[2]
+		var d: Vector2 = q[3]
+		var p := a.lerp(b, u).lerp(d.lerp(cc, u), v)
+		return Vector3(sgn * (_side_x(c, p.x, p.y) + lift), p.y, p.x)
+	for i in n:
+		for j in 2:
+			var u0 := float(i) / n
+			var u1 := float(i + 1) / n
+			var v0 := j * 0.5
+			var v1 := v0 + 0.5
+			s.quad(at.call(u0, v0), at.call(u1, v0), at.call(u1, v1), at.call(u0, v1), f, Vector3(sgn, 0, 0))
+
+
+## A decal on the top (bonnet, boot): x from x0 to x1, z from z0 to z1, laid on the top surface.
+static func _top_decal(s: Shape, c: Dictionary, x0: float, x1: float, z0: float, z1: float, f: Array, lift := 0.012, n := 6) -> void:
+	for i in n:
+		var za := lerpf(z0, z1, float(i) / n)
+		var zb := lerpf(z0, z1, float(i + 1) / n)
+		var p := func(x: float, z: float) -> Vector3: return Vector3(x, _top_y(c, z, x) + lift, z)
+		s.quad(p.call(x0, za), p.call(x1, za), p.call(x1, zb), p.call(x0, zb), f, Vector3.UP)
+
+
+## A flat lamp or panel standing on the nose or the tail: centre `at`, `size` (x, y), facing `out`
+## (tilted as the face is); `round` makes it an octagon.
+static func _plate(s: Shape, at: Vector3, size: Vector2, out: Vector3, f: Array, round := false) -> void:
+	var n := out.normalized()
+	var right := Vector3.UP.cross(n).normalized() if absf(n.y) < 0.95 else Vector3.RIGHT
+	var up := n.cross(right).normalized()
+	if round:
+		var ring: Array[Vector3] = []
+		for k in 8:
+			var a := TAU * (k + 0.5) / 8.0
+			ring.append(at + right * cos(a) * size.x * 0.5 + up * sin(a) * size.y * 0.5)
+		for k in range(1, 7):
+			s.tri(ring[0], ring[k], ring[k + 1], f, n)
+		return
+	var hx := right * size.x * 0.5
+	var hy := up * size.y * 0.5
+	s.quad(at - hx - hy, at + hx - hy, at + hx + hy, at - hx + hy, f, n)
+
+
+## The sculpted body of `kind` (SCULPT): the lower body lofted through its sections, the caps,
+## the glasshouse by its kinds, the wheels in their arches. `paint` the body, `roof` the roof.
+static func _sculpt(s: Shape, c: Dictionary, paint: Array, roof: Array, glass: Array, rim: Color) -> void:
+	var lower: Array = c["lower"]
+	var shape: Array = c["shape"]
+	var rings: Array = []
+	for st: Array in lower:
+		rings.append(_ring(st, shape))
+	for i in lower.size() - 1:
+		var za: float = lower[i][0]
+		var zb: float = lower[i + 1][0]
+		var ra: Array[Vector2] = rings[i]
+		var rb: Array[Vector2] = rings[i + 1]
+		var cy := (float(lower[i][1]) + float(lower[i][3])) * 0.5
+		for k in 3:
+			for sgn: float in [-1.0, 1.0]:
+				var a0 := Vector3(sgn * ra[k].x, ra[k].y, za)
+				var a1 := Vector3(sgn * ra[k + 1].x, ra[k + 1].y, za)
+				var b1 := Vector3(sgn * rb[k + 1].x, rb[k + 1].y, zb)
+				var b0 := Vector3(sgn * rb[k].x, rb[k].y, zb)
+				var mid := (a0 + a1 + b0 + b1) * 0.25
+				s.quad(a0, a1, b1, b0, paint, mid - Vector3(0.0, cy, mid.z))
+	# The nose and the tail: a fan over each end's full ring.
+	for e in [0, lower.size() - 1]:
+		var r: Array[Vector2] = rings[e]
+		var z: float = lower[e][0]
+		var pts: Array[Vector3] = []
+		for k in range(r.size() - 1, -1, -1):
+			pts.append(Vector3(-r[k].x, r[k].y, z))
+		for k in range(1, r.size()):
+			pts.append(Vector3(r[k].x, r[k].y, z))
+		var out := Vector3(0, 0, -1) if e == 0 else Vector3(0, 0, 1)
+		for k in range(1, pts.size() - 1):
+			s.tri(pts[0], pts[k], pts[k + 1], paint, out)
+	# The glasshouse.
+	var house: Array = c["house"]
+	var crown: float = shape[3]
+	for i in house.size() - 1:
+		var a: Array = house[i]
+		var b: Array = house[i + 1]
+		var kind: String = a[5]
+		var side_f: Array = glass if kind in ["ws", "win", "rwg"] else paint
+		var top_f: Array = glass if kind in ["ws", "rw", "rwg"] else roof
+		var ring := func(h: Array) -> Array[Vector2]:
+			return [Vector2(h[3], h[1]), Vector2(h[4], h[2]), Vector2(0.0, float(h[2]) + (crown if float(h[2]) > float(h[1]) + 0.05 else 0.0))]
+		var ra: Array[Vector2] = ring.call(a)
+		var rb: Array[Vector2] = ring.call(b)
+		for k in 2:
+			for sgn: float in [-1.0, 1.0]:
+				var p0 := Vector3(sgn * ra[k].x, ra[k].y, a[0])
+				var p1 := Vector3(sgn * ra[k + 1].x, ra[k + 1].y, a[0])
+				var q1 := Vector3(sgn * rb[k + 1].x, rb[k + 1].y, b[0])
+				var q0 := Vector3(sgn * rb[k].x, rb[k].y, b[0])
+				var mid := (p0 + p1 + q0 + q1) * 0.25
+				var f: Array = side_f if k == 0 else top_f
+				var out := mid - Vector3(0.0, float(a[1]) - 0.3, mid.z)
+				s.quad(p0, p1, q1, q0, f, out)
+	# Wheels in their arches.
+	var wl: Array = c["wheels"]
+	var r: float = wl[2]
+	var tw: float = wl[3]
+	var sides := 10
+	var wc := r * cos(PI / sides)
+	for z: float in [wl[0], wl[1]]:
+		var sill := _side_bottom(c, z)
+		# The arch stands just outside the flank's widest point over the wheel (the flank bulges
+		# above the hub, so the arch's top would hide inside it at the hub's width).
+		var w := 0.0
+		for k in 6:
+			w = maxf(w, _side_x(c, z, lerpf(sill, wc + r + 0.07, k / 5.0)))
+			w = maxf(w, _side_x(c, z - r, lerpf(sill, wc + r + 0.07, k / 5.0)))
+			w = maxf(w, _side_x(c, z + r, lerpf(sill, wc + r + 0.07, k / 5.0)))
+		for sgn: float in [-1.0, 1.0]:
+			s.arch(sgn * (w + 0.008), sgn, z, wc, r + 0.07, sill, fin(WELL), 6)
+			s.wheel(Vector3(sgn * (w + 0.02 - tw * 0.5), wc, z), r, tw, sides, sgn, fin(TYRE), fin(rim))
+
+
+## The lower body's bottom height at z.
+static func _side_bottom(c: Dictionary, z: float) -> float:
+	var lower: Array = c["lower"]
+	for i in lower.size() - 1:
+		if z <= float(lower[i + 1][0]):
+			var t := (z - float(lower[i][0])) / maxf(float(lower[i + 1][0]) - float(lower[i][0]), 0.001)
+			return lerpf(float(lower[i][1]), float(lower[i + 1][1]), t)
+	return float(lower[lower.size() - 1][1])
+
+
+## C1b v2: [body, heads, tails] of a sculpted shop car: the body, then each car's signature parts
+## (its face, its tail, its kit), from photos of the real cars it parodies (no badges, no logos).
+static func _sculpt_meshes(kind: String, paint: Array, stripes: Array, wing: bool) -> Array[ArrayMesh]:
+	var c: Dictionary = SCULPT[kind]
+	var s := Shape.new()
+	var heads := Shape.new()
+	var tails := Shape.new()
+	var glass := fin(Color("#2f3f52"))
+	var black := fin(Color("#1c1d21"))
+	var chrome := fin(Color("#d4d7dc"))
+	var trim := fin(TRIM)
+	var lamp := fin(Color.WHITE)
+	var blue := fin(Color("#1d3f8f"), HERO, 0.4)
+	var sky := fin(Color("#5aa8e6"), HERO, 0.6)
+	var roof := paint
+	var rim := Color("#c9ccd1")
+	if kind == "player_bawarka":
+		paint = fin(Color("#a3abb6"), HERO, 1.1)
+		roof = blue
+		rim = Color("#34373d")
+	match kind:
+		"player_lanos":
+			rim = Color("#a9adb3")
+		"player_bolonez":
+			rim = Color("#9a9da3")
+		"player_paszat":
+			rim = Color("#2a2b2f")
+			glass = fin(Color("#26303d"))
+	_sculpt(s, c, paint, roof, glass, rim)
+	# Mirrors at the windscreen's foot and a dark seal along the side windows' foot (the window
+	# line reads from the 80 m camera, and every real car has both).
+	var house: Array = c["house"]
+	var h1: Array = house[1]
+	var z_end: float = house[house.size() - 2][0]
+	for sgn: float in [-1.0, 1.0]:
+		s.box(Vector3(sgn * (float(h1[3]) + 0.1), float(h1[1]) + 0.08, float(house[0][0]) + 0.22), Vector3(0.16, 0.1, 0.12), paint if kind != "player_bawarka" else blue)
+		var ys := float(h1[1])
+		_decal(s, c, sgn, [Vector2(float(house[0][0]) + 0.1, ys - 0.045), Vector2(z_end, float(house[house.size() - 2][1]) - 0.045),
+				Vector2(z_end, float(house[house.size() - 2][1]) - 0.005), Vector2(float(house[0][0]) + 0.1, ys - 0.005)], black, 0.01, 6)
+	var lower: Array = c["lower"]
+	var zf: float = lower[0][0]
+	var zr: float = lower[lower.size() - 1][0]
+	match kind:
+		"player_tt":
+			# The round coupe: oval lamps sweeping up the nose's shoulders, a single-frame grille,
+			# the round alloy fuel cap, slim tails on the round tail, silver five-spoke rims.
+			for sgn: float in [-1.0, 1.0]:
+				_plate(heads, Vector3(sgn * 0.52, 0.62, zf + 0.06), Vector2(0.34, 0.17), Vector3(sgn * 0.45, 0.5, -1), lamp, true)
+				_plate(tails, Vector3(sgn * 0.5, 0.7, zr + 0.04), Vector2(0.36, 0.13), Vector3(sgn * 0.3, 0.3, 1), lamp)
+				_plate(s, Vector3(sgn * 0.62, 0.36, zf - 0.005), Vector2(0.2, 0.1), Vector3(0, 0, -1), black)
+			_plate(s, Vector3(0.0, 0.45, zf - 0.006), Vector2(0.56, 0.2), Vector3(0, 0, -1), black)
+			_plate(s, Vector3(0.0, 0.45, zf - 0.01), Vector2(0.48, 0.03), Vector3(0, 0, -1), chrome)
+			_decal(s, c, 1.0, [Vector2(0.96, 0.72), Vector2(1.12, 0.72), Vector2(1.12, 0.86), Vector2(0.96, 0.86)], chrome, 0.014, 2)
+			_plate(s, Vector3(0.0, 0.42, zr + 0.006), Vector2(0.9, 0.14), Vector3(0, 0, 1), black)
+			for sgn: float in [-1.0, 1.0]:
+				_plate(s, Vector3(sgn * 0.3, 0.32, zr + 0.01), Vector2(0.1, 0.08), Vector3(0, 0, 1), chrome, true)
+		"player_lanos":
+			# The 90s family saloon: an oval chrome grille with three bars, teardrop lamps, a black
+			# rubbing strip, tall boot; the retired cab's roof-sign base and one primer wing.
+			_plate(s, Vector3(0.0, 0.58, zf - 0.006), Vector2(0.62, 0.17), Vector3(0, 0, -1), chrome, true)
+			_plate(s, Vector3(0.0, 0.58, zf - 0.01), Vector2(0.52, 0.11), Vector3(0, 0, -1), black, true)
+			for y: float in [0.555, 0.605]:
+				_plate(s, Vector3(0.0, y, zf - 0.014), Vector2(0.48, 0.015), Vector3(0, 0, -1), chrome)
+			for sgn: float in [-1.0, 1.0]:
+				_plate(heads, Vector3(sgn * 0.53, 0.69, zf + 0.05), Vector2(0.32, 0.15), Vector3(sgn * 0.35, 0.45, -1), lamp)
+				_plate(tails, Vector3(sgn * 0.5, 0.8, zr + 0.01), Vector2(0.4, 0.15), Vector3(sgn * 0.15, 0.15, 1), lamp)
+				_decal(s, c, sgn, [Vector2(-1.75, 0.55), Vector2(1.8, 0.55), Vector2(1.8, 0.6), Vector2(-1.75, 0.6)], black)
+			_plate(s, Vector3(0.0, 0.48, zr + 0.006), Vector2(0.5, 0.11), Vector3(0, 0, 1), fin(PLATE))
+			_plate(s, Vector3(0.0, 0.4, zf - 0.006), Vector2(0.5, 0.11), Vector3(0, 0, -1), fin(PLATE))
+			_decal(s, c, -1.0, [Vector2(-2.02, 0.3), Vector2(-0.8, 0.3), Vector2(-0.8, 0.88), Vector2(-2.02, 0.8)], fin(Color("#8e908a")), 0.014)
+			s.box(Vector3(0.0, 1.5, 0.25), Vector3(0.56, 0.08, 0.22), fin(Color("#2a2b2e")))
+			s.box(Vector3(0.0, 1.6, 0.25), Vector3(0.5, 0.12, 0.16), fin(Color("#c9b779")))
+		"player_bolonez":
+			# The Karo: a flat upright face with big square lamps and a black grille, bumpers as big
+			# as a fridge, a wide black side strip, the black louvres on the C pillar, big square tails.
+			_plate(s, Vector3(0.0, 0.64, zf - 0.006), Vector2(0.6, 0.17), Vector3(0, 0, -1), black)
+			_plate(s, Vector3(0.0, 0.64, zf - 0.01), Vector2(0.56, 0.025), Vector3(0, 0, -1), chrome)
+			for sgn: float in [-1.0, 1.0]:
+				_plate(heads, Vector3(sgn * 0.58, 0.64, zf - 0.01), Vector2(0.4, 0.2), Vector3(0, 0, -1), lamp)
+				_plate(tails, Vector3(sgn * 0.52, 0.8, zr + 0.01), Vector2(0.56, 0.26), Vector3(0, 0, 1), lamp)
+				_decal(s, c, sgn, [Vector2(-1.9, 0.5), Vector2(1.95, 0.5), Vector2(1.95, 0.64), Vector2(-1.9, 0.64)], black)
+				for k in 3:
+					var z := 0.97 + k * 0.08
+					_plate(s, Vector3(sgn * 0.835, 1.27, z), Vector2(0.05, 0.3), Vector3(sgn, 0.25, 0), black)
+				s.box(Vector3(sgn * 0.74, 0.22, 1.72), Vector3(0.2, 0.24, 0.02), black)
+				_plate(s, Vector3(sgn * 0.55, 0.38, zf - 0.13), Vector2(0.13, 0.09), Vector3(0, 0, -1), fin(Color("#f4e7b0")), true)
+			for e: float in [-1.0, 1.0]:
+				var z := zf - 0.04 if e < 0.0 else zr + 0.04
+				s.box(Vector3(0.0, 0.42, z), Vector3(1.8, 0.26, 0.18), black)
+				_plate(s, Vector3(0.0, 0.42, z + e * 0.092), Vector2(0.5, 0.11), Vector3(0, 0, e), fin(PLATE))
+		"player_paszat":
+			# The B5 estate: a chrome grille between oval lamps, the arched roof with rails, tall
+			# tails up the tailgate's corners, tinted glass, a sun strip, black steelies, one fat
+			# pipe and the tow ball.
+			_plate(s, Vector3(0.0, 0.61, zf - 0.006), Vector2(0.66, 0.16), Vector3(0, 0, -1), chrome)
+			_plate(s, Vector3(0.0, 0.61, zf - 0.01), Vector2(0.6, 0.11), Vector3(0, 0, -1), black)
+			_plate(s, Vector3(0.0, 0.61, zf - 0.014), Vector2(0.6, 0.02), Vector3(0, 0, -1), chrome)
+			_plate(s, Vector3(0.0, 0.4, zf - 0.006), Vector2(0.5, 0.11), Vector3(0, 0, -1), fin(PLATE))
+			for sgn: float in [-1.0, 1.0]:
+				_plate(heads, Vector3(sgn * 0.55, 0.64, zf + 0.04), Vector2(0.36, 0.16), Vector3(sgn * 0.3, 0.35, -1), lamp, true)
+				_plate(tails, Vector3(sgn * 0.64, 0.84, zr + 0.01), Vector2(0.3, 0.2), Vector3(0, 0, 1), lamp)
+				_plate(tails, Vector3(sgn * 0.74, 1.0, 2.2), Vector2(0.14, 0.2), Vector3(sgn * 0.2, 0.2, 1), lamp)
+				s.box(Vector3(sgn * 0.6, 1.45, 0.82), Vector3(0.05, 0.06, 1.8), trim)
+				_decal(s, c, sgn, [Vector2(-1.9, 0.5), Vector2(2.0, 0.5), Vector2(2.0, 0.54), Vector2(-1.9, 0.54)], trim)
+			_plate(s, Vector3(0.0, 0.52, zr + 0.006), Vector2(0.5, 0.11), Vector3(0, 0, 1), fin(PLATE))
+			_plate(s, Vector3(0.0, 1.33, -0.78), Vector2(1.5, 0.08), Vector3(0, 0.6, -1), black)
+			s.box(Vector3(0.0, 0.3, zr + 0.12), Vector3(0.06, 0.07, 0.16), chrome)
+			s.box(Vector3(-0.55, 0.22, zr - 0.02), Vector3(0.13, 0.11, 0.2), chrome)
+		"player_szupra":
+			# The long round nose with the lamps set into its shoulders, a wide mouth, the bonnet's
+			# vents, the hoop wing in the paint, four round tails, a door sticker, big silver rims.
+			_plate(s, Vector3(0.0, 0.34, zf - 0.006), Vector2(0.9, 0.12), Vector3(0, 0, -1), black)
+			for sgn: float in [-1.0, 1.0]:
+				_plate(heads, Vector3(sgn * 0.5, 0.56, zf + 0.09), Vector2(0.38, 0.16), Vector3(sgn * 0.4, 0.75, -1), lamp, true)
+				for u: float in [0.3, 0.58]:
+					_plate(tails, Vector3(sgn * u, 0.72, zr + 0.01), Vector2(0.17, 0.17), Vector3(0, 0.15, 1), lamp, true)
+				_decal(s, c, sgn, [Vector2(-0.9, 0.46), Vector2(1.0, 0.46), Vector2(1.25, 0.7), Vector2(-0.9, 0.56)], stripes)
+				_top_decal(s, c, sgn * 0.18 - 0.07, sgn * 0.18 + 0.07, -1.3, -0.9, black, 0.012, 2)
+			var wz := 1.92
+			var wy := 1.32
+			for sgn: float in [-1.0, 1.0]:
+				s.box(Vector3(sgn * 0.82, (0.93 + wy) * 0.5, wz), Vector3(0.08, wy - 0.93, 0.34), paint)
+			s.box(Vector3(0.0, wy, wz - 0.02), Vector3(1.72, 0.06, 0.4), paint)
+			_plate(s, Vector3(0.0, 0.52, zr + 0.006), Vector2(0.5, 0.11), Vector3(0, 0, 1), fin(PLATE))
+			_plate(s, Vector3(0.0, 0.34, zr + 0.006), Vector2(1.2, 0.1), Vector3(0, 0, 1), black)
+			for sgn: float in [-1.0, 1.0]:
+				_plate(s, Vector3(sgn * 0.42, 0.3, zr + 0.01), Vector2(0.11, 0.09), Vector3(0, 0, 1), chrome, true)
+		"player_bawarka":
+			# Darek's race coupe (a Bavarian-style two-door, no badges, no kidney grille): twin angular
+			# lamps a side, a wide low intake, splitter, skirts, vents behind the front wheels, the GT
+			# wing; the livery is our own: silver over deep blue below a line rising to the tail, a
+			# sky-blue edge, the blue roof, two blue bands down the bonnet's left, 87 on the doors.
+			for sgn: float in [-1.0, 1.0]:
+				for u: float in [0.45, 0.7]:
+					_plate(heads, Vector3(sgn * u, 0.56, zf + 0.05), Vector2(0.22, 0.1), Vector3(sgn * 0.3, 0.45, -1), lamp)
+				_plate(tails, Vector3(sgn * 0.6, 0.8, zr + 0.01), Vector2(0.44, 0.15), Vector3(sgn * 0.25, 0.2, 1), lamp)
+				_decal(s, c, sgn, [Vector2(-0.95, 0.18), Vector2(2.0, 0.18), Vector2(2.0, 0.86), Vector2(-0.95, 0.5)], blue, 0.012, 8)
+				_decal(s, c, sgn, [Vector2(-0.95, 0.5), Vector2(2.0, 0.86), Vector2(2.0, 0.92), Vector2(-0.95, 0.56)], sky, 0.014, 8)
+				_decal(s, c, sgn, [Vector2(-1.0, 0.45), Vector2(-0.86, 0.45), Vector2(-0.86, 0.66), Vector2(-1.0, 0.66)], black, 0.016, 1)
+				_decal(s, c, sgn, [Vector2(-0.3, 0.42), Vector2(0.18, 0.42), Vector2(0.18, 0.76), Vector2(-0.3, 0.76)], fin(Color("#f2f2ee")), 0.018, 3)
+				_digits(s, c, sgn, 0.59, -0.06, blue)
+				s.box(Vector3(sgn * 0.98, 0.18, 0.0), Vector3(0.08, 0.1, 1.9), black)
+				s.box(Vector3(sgn * 0.42, (0.97 + 1.42) * 0.5, 1.95), Vector3(0.06, 0.45, 0.16), black)
+				s.box(Vector3(sgn * 0.96, 1.48, 1.93), Vector3(0.04, 0.24, 0.52), black)
+				_plate(s, Vector3(sgn * 0.3, 0.26, zr + 0.01), Vector2(0.11, 0.09), Vector3(0, 0, 1), chrome, true)
+			_plate(s, Vector3(0.0, 0.3, zf - 0.006), Vector2(1.3, 0.18), Vector3(0, 0, -1), black)
+			_plate(s, Vector3(0.0, 0.5, zf - 0.006), Vector2(0.5, 0.06), Vector3(0, 0, -1), black)
+			s.box(Vector3(0.0, 0.1, zf - 0.08), Vector3(1.9, 0.04, 0.3), black)
+			s.box(Vector3(0.0, 1.45, 1.95), Vector3(1.96, 0.06, 0.48), black)
+			s.box(Vector3(0.0, 1.485, 2.15), Vector3(1.86, 0.02, 0.06), sky)
+			_top_decal(s, c, -0.66, -0.46, zf + 0.12, -0.6, blue)
+			_top_decal(s, c, -0.42, -0.36, zf + 0.12, -0.6, sky)
+			_top_decal(s, c, 0.2, 0.42, -1.5, -1.05, black, 0.014, 2)
+			_plate(s, Vector3(0.0, 0.5, zr + 0.006), Vector2(0.5, 0.11), Vector3(0, 0, 1), fin(PLATE))
+			_plate(s, Vector3(0.0, 0.3, zr + 0.006), Vector2(1.3, 0.14), Vector3(0, 0, 1), black)
+	# The bought GT wing, on the cars that have no wing of their own (over the boot or the roof's end).
+	if wing and kind not in ["player_szupra", "player_bawarka"]:
+		var hatchy := kind in ["player_bolonez", "player_paszat"]
+		var top_z: float = float(c["house"][c["house"].size() - 1][0])
+		var wz: float = (float(c["house"][c["house"].size() - 2][0]) + 0.05) if hatchy else (zr - 0.3)
+		var foot: float = float(c["house"][c["house"].size() - 2][2]) if hatchy else _top_y(c, zr - 0.3, 0.5)
+		var wy := foot + 0.28
+		var span := 1.9
+		for sgn: float in [-1.0, 1.0]:
+			s.box(Vector3(sgn * 0.5, (foot + wy) * 0.5, wz), Vector3(0.07, wy - foot, 0.14), trim)
+			s.box(Vector3(sgn * span * 0.5, wy + 0.06, wz), Vector3(0.04, 0.24, 0.5), trim)
+		s.box(Vector3(0.0, wy + 0.03, wz), Vector3(span, 0.06, 0.46), stripes)
+	return [s.mesh(), heads.mesh(), tails.mesh()]
+
+
+## "87" as two seven-segment digits on a door (side `sgn`), centred on (y, z), laid on the body.
+static func _digits(s: Shape, c: Dictionary, sgn: float, y: float, z: float, f: Array) -> void:
+	var h := 0.12
+	var w := 0.09
+	var t := 0.026
+	# A reader facing the right side (+x) reads from the tail to the nose (larger z first).
+	var first := 0.065 * sgn
+	var bar := func(z0: float, z1: float, y0: float, y1: float) -> void:
+		_decal(s, c, sgn, [Vector2(z0, y0), Vector2(z1, y0), Vector2(z1, y1), Vector2(z0, y1)], f, 0.024, 1)
+	for d in 2:
+		var cz := z + (first if d == 0 else -first)
+		# The digit's right edge (as read) is towards -z on the right side, +z on the left.
+		var rz := cz - sgn * w * 0.5
+		var lz := cz + sgn * w * 0.5
+		bar.call(minf(lz, rz), maxf(lz, rz), y + h - t * 0.5, y + h + t * 0.5)
+		bar.call(rz - t * 0.5, rz + t * 0.5, y - h, y + h)
+		if d == 0:
+			bar.call(minf(lz, rz), maxf(lz, rz), y - t * 0.5, y + t * 0.5)
+			bar.call(minf(lz, rz), maxf(lz, rz), y - h - t * 0.5, y - h + t * 0.5)
+			bar.call(lz - t * 0.5, lz + t * 0.5, y - h, y + h)

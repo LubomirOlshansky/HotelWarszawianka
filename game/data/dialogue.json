@@ -3390,8 +3390,8 @@
       }
     ],
     [
-      "Dwie fury do wyboru: Ołdi szybsze, hatchback bardziej uczciwy.",
-      "Two rides to pick: the Owdy is quicker, the hatch more honest.",
+      "Od Łanosa po Bawarkę. Każda jeździ po swojemu.",
+      "From the Wanos to the Bawarka. Each drives its own way.",
       {
         "only": "cars"
       }
@@ -3471,6 +3471,48 @@
       "The Owdy TT. Low, fast, don't ask where I got it.",
       {
         "only": "tt"
+      }
+    ],
+    [
+      "Łanos. Taksówkarz płakał, jak oddawał. Ze szczęścia.",
+      "The Wanos. The cabbie cried handing it over. With joy.",
+      {
+        "only": "lanos"
+      }
+    ],
+    [
+      "Bolonez Karo. Czołg z homologacją. Hamuj wcześniej.",
+      "The Bolonez Karo. A tank with a road licence. Brake early.",
+      {
+        "only": "bolonez"
+      }
+    ],
+    [
+      "Paszat TDI. Przebieg? Mało. Jak na Księżyc i z powrotem.",
+      "The Pashat TDI. Mileage? Low. To the Moon and back.",
+      {
+        "only": "paszat"
+      }
+    ],
+    [
+      "Szupra! Tył lubi tańczyć. Ty prowadź, on zatańczy.",
+      "The Shoopra! The rear likes to dance. You drive, it dances.",
+      {
+        "only": "szupra"
+      }
+    ],
+    [
+      "Bawarka Darka. Olej dolewaj częściej niż paliwo.",
+      "Darek's Bawarka. Top up the oil more often than the fuel.",
+      {
+        "only": "bawarka"
+      }
+    ],
+    [
+      "Bawarki Darek nie sprzedaje byle komu. Najpierw drag na Nocnym spocie.",
+      "Darek doesn't sell the Bawarka to just anyone. First the drag at the night meet.",
+      {
+        "only": "bawarka_locked"
       }
     ],
     [
