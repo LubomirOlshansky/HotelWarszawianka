@@ -1841,8 +1841,7 @@ func _build_world() -> void:
 	tapczan = _join(Tapczan.new(), world, func() -> bool: return title == null and not _phone_bench and not hud.cards_up()) as Tapczan
 	if tapczan != null:
 		tapczan.sfx = sfx  # the pub's bed, pour, clink and ball (sfx.gd)
-	# The drift stadium's practice (no call; none with --drift=0): the first venue of venues.gd.
-	drift = _join(DriftStadium.new(), world) as DriftStadium
+	drift = _join(DriftStadium.new(), world) as DriftStadium  # the drift practice; venues.gd's first venue
 	if drift != null:
 		venues.add("stadium", drift.inside, drift.view, "car")
 	await LoadYield.tick("crawl")
