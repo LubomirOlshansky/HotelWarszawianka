@@ -1597,3 +1597,209 @@ func _stadium_arka() -> void:
 func _stair_top(p: Vector2, half: Vector2) -> float:
 	return maxf(map.ground_height(p.x, p.y), maxf(map.ground_height(p.x + half.x, p.y + half.y),
 			map.ground_height(p.x - half.x, p.y - half.y)))
+
+
+# --- Teatr Powszechny (docs/landmarks/specs/powszechny.md) --------------------------------------
+
+const PWS_ORIGIN := Vector2(1636.1, -1474.2)
+const PWS_WEST_NORTH := Vector2(1636.5, -1464.5)
+const PWS_WEST_SOUTH := Vector2(1636.1, -1402.5)
+const PWS_OFFICE_TOP := 10.9
+const PWS_STAGE_TOP := 11.5
+const PWS_ANNEX_TOP := 12.2
+const PWS_TOWER_TOP := 18.6
+const PWS_FOYER := Vector2(27.0, 53.0)
+const PWS_RECESS := -0.9
+const PWS_FOYER_HEAD := 8.9
+## Cool grey roof membrane, lifted from the dark palette value to match the aerial views in game light.
+const PWS_ROOF := Color("#b9babc")
+
+
+## Build the full SKINS replacement around the open court, then use the mapped ring for collision.
+func _build_powszechny(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["zone"][0]
+	var ring := _simplify(outline, 0.25)
+	_g = map.terrain_height(1636.3, -1431.0)
+	_mode = M_STONE
+	_o = PWS_ORIGIN
+	_a = Vector2.RIGHT
+	_b = Vector2.DOWN
+	var court := _urect(22.6, 34.8, 41.6, 63.6)
+	var annex := _lpoly([[20.4, 0.0], [22.5, 0.2], [36.5, 1.3], [36.5, 10.0], [20.4, 10.0]])
+	_powszechny_roofs(ring, court, annex)
+	_powszechny_tower()
+	_powszechny_plant()
+	_powszechny_court(court)
+	_powszechny_offices(annex)
+	kit_front(PWS_WEST_NORTH, PWS_WEST_SOUTH)
+	_powszechny_sign()
+	_powszechny_foyer()
+	_powszechny_mass(ring)
+	_collide(outline)
+
+
+## Close the stepped envelope and leave the west lobby open back to its recessed glazing.
+func _powszechny_mass(ring: PackedVector2Array) -> void:
+	var foot := _g - 1.8
+	var top := _g + PWS_OFFICE_TOP
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		if a == PWS_WEST_SOUTH and b == PWS_WEST_NORTH:
+			continue
+		_wall(a, b, foot, top, _out(ring, a, b), PAL_WHITE_STONE)
+	var span := PWS_WEST_NORTH.distance_to(PWS_WEST_SOUTH)
+	var head := _g + PWS_FOYER_HEAD
+	var cream := PAL_SANDSTONE.lightened(0.28)
+	_wall(_w(0.0, 0.0), _w(PWS_FOYER.x, 0.0), foot, _g + 2.55, _b, PAL_WHITE_STONE)
+	_wall(_w(0.0, 0.0), _w(PWS_FOYER.x, 0.0), _g + 2.55, top, _b, cream)
+	_wall(_w(PWS_FOYER.x, 0.0), _w(PWS_FOYER.y, 0.0), head, top, _b, PAL_WHITE_STONE)
+	_wall(_w(PWS_FOYER.y, 0.0), _w(span, 0.0), foot, top, _b, PAL_WHITE_STONE)
+	_wall(_w(PWS_FOYER.x, PWS_RECESS), _w(PWS_FOYER.y, PWS_RECESS), foot, head, _b, PAL_DARK_STEEL)
+	_wall(_w(PWS_FOYER.x, 0.0), _w(PWS_FOYER.x, PWS_RECESS), foot, head, _a, PAL_PALE_CONCRETE)
+	_wall(_w(PWS_FOYER.y, PWS_RECESS), _w(PWS_FOYER.y, 0.0), foot, head, -_a, PAL_PALE_CONCRETE)
+	var soffit := _urect(PWS_FOYER.x, PWS_FOYER.y, PWS_RECESS, 0.0)
+	_quad(Vector3(soffit[0].x, head, soffit[0].y), Vector3(soffit[1].x, head, soffit[1].y),
+			Vector3(soffit[2].x, head, soffit[2].y), Vector3(soffit[3].x, head, soffit[3].y),
+			Vector3.DOWN, PAL_DARK_STEEL)
+
+
+## Run tight rows of square office lights along the east and south, with service doors at grade.
+func _powszechny_offices(annex: PackedVector2Array) -> void:
+	var upper := [_g + 4.8, _g + 8.0]
+	var length := kit_front(Vector2(1678.0, -1402.1), Vector2(1678.7, -1469.5))
+	kit_window_grid(1.2, length - 1.6, 34, upper, 1.12, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.54)
+	kit_window_grid(1.0, 10.0, 5, [_g + 1.4], 0.9, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.51)
+	kit_door(14.0, _g - 0.45, 2.8, 1.45, PAL_GREY_STONE, PAL_DARK_DOOR)
+	kit_door(56.0, _g - 0.25, 2.95, 1.6, PAL_GREY_STONE, PAL_DARK_DOOR)
+	_ubox(17.0, 51.0, -0.06, 0.055, _g - 1.3, _g + 3.6, PAL_BROWN_RENDER.lightened(0.2))
+	kit_face(0.055)
+	kit_window_grid(18.0, 50.0, 15, [_g + 1.4], 0.85, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.48)
+	kit_face(0.0)
+	for h: float in [4.58, 7.79]:
+		kit_ledge(0.25, length - 0.3, _g + h, 0.14, PAL_PALE_CONCRETE, 0.12)
+	length = kit_front(PWS_WEST_SOUTH, Vector2(1678.0, -1402.1))
+	kit_window_grid(7.0, length - 4.1, 19, upper, 1.12, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.54)
+	kit_window_grid(13.4, length - 4.1, 15, [_g + 1.4], 0.9, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.48)
+	kit_window_grid(4.7, 6.6, 1, [_g + 1.4, _g + 4.8, _g + 8.0],
+			1.12, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.51)
+	kit_door(9.9, _g - 0.2, 2.9, 2.7, PAL_GREY_STONE, PAL_GLASS_STEEL)
+	for h: float in [4.58, 7.79]:
+		kit_ledge(6.8, length - 0.3, _g + h, 0.14, PAL_PALE_CONCRETE, 0.12)
+	length = kit_front(annex[2], annex[1])
+	kit_window_grid(2.2, length - 1.1, 4, [_g + 7.3], 1.1, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.44)
+	kit_door(length * 0.54, _g - 0.3, 2.5, 1.25, PAL_GREY_STONE, PAL_DARK_DOOR)
+	kit_front(Vector2(1656.4, -1472.6), Vector2(1640.8, -1472.9))
+	kit_door(5.25, _g - 0.48, 7.75, 3.25, PAL_GREY_STONE, PAL_DARK_STEEL)
+
+
+## Glaze the recessed public foyer and give the secondary doors on the cream wall a smaller hood.
+func _powszechny_foyer() -> void:
+	_ubox(PWS_FOYER.x, PWS_FOYER.y, PWS_RECESS - 0.05, 0.95, _g - 1.4, _g + 0.12,
+			PAL_GREY_GRANITE, M_STONE, PAL_PALE_CONCRETE)
+	kit_face(PWS_RECESS)
+	var screen_start := PWS_FOYER.x + 0.35
+	var screen_end := PWS_FOYER.y - 0.35
+	kit_window_grid(screen_start, screen_end, 13, [_g + 3.35], 5.05, Win.PLAIN,
+			PAL_ALUMINIUM, PAL_GLASS_NAVY, 0.89)
+	for u: float in _spread(screen_start, screen_end, 13):
+		if u >= 33.0 and u <= 47.0:
+			kit_door(u, _g + 0.12, 2.68, 0.78, PAL_DARK_STEEL, PAL_GLASS_STEEL)
+		else:
+			kit_window(u, _g + 0.28, 2.52, Win.PLAIN, PAL_ALUMINIUM, PAL_GLASS_NAVY, 0.89)
+	for h: float in [3.11, 4.32, 5.46, 6.6, 7.74, 8.55]:
+		kit_ledge(PWS_FOYER.x, PWS_FOYER.y, _g + h, 0.085, PAL_DARK_STEEL.lightened(0.18), 0.145)
+	kit_face(0.0)
+	kit_door(9.5, _g - 0.2, 2.45, 1.03, PAL_DARK_STEEL, PAL_GLASS_STEEL)
+	kit_window_grid(13.0, 25.9, 7, [_g + 1.15], 0.9, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.49)
+	for u: float in [4.45, 9.0, 13.5, 18.0, 22.5]:
+		_wall(_w(u, 0.04), _w(u + 0.065, 0.04), _g + 3.2, _g + 9.04, _b, PAL_SANDSTONE.lightened(0.16))
+	kit_window_grid(54.5, 61.0, 3, [_g + 1.4, _g + 4.8, _g + 8.0], 1.08,
+			Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.52)
+	kit_ledge(5.0, 12.9, _g + 2.88, 0.3, PAL_DARK_STEEL, 1.45)
+
+
+## Put pale mesh letters on the street's dark fascia, using the same font as other site signs.
+func _powszechny_sign() -> void:
+	_ubox(4.2, 53.2, -0.16, 0.22, _g + 9.04, _g + 11.27, PAL_DARK_STEEL)
+	var word := "TEATR POWSZECHNY"
+	var pixel_width := 0.41
+	var pixel_height := 0.24
+	var start := 28.7 - PixelFont.width(word) * pixel_width * 0.5
+	PixelFont.each_pixel(word, 0, func(x: int, row: int) -> void:
+		var u := start + x * pixel_width
+		var y := _g + 11.02 - (row - PixelFont.BODY) * pixel_height
+		_wall(_w(u, 0.26), _w(u + pixel_width, 0.26), y - pixel_height, y, _b, PAL_WHITE_STONE))
+
+
+## Finish the four inward-facing walls of the light court down to its paved floor.
+func _powszechny_court(court: PackedVector2Array) -> void:
+	_prism(court, _g - 1.6, _g - 0.4, PAL_GREY_STONE, PAL_GREY_GRANITE, M_STONE, M_STONE)
+	for i in court.size():
+		var length := kit_front(court[i], court[(i + 1) % court.size()])
+		var sills := [_g + 1.2, _g + 4.8, _g + 8.0]
+		if i == 3:
+			sills = [_g + 1.2, _g + 4.0]
+			kit_window_grid(0.65, length - 0.65, 10, [_g + 6.3], 2.4, Win.PLAIN,
+					PAL_ALUMINIUM, PAL_GLASS_NAVY, 0.94)
+		kit_window_grid(0.8, length - 0.8, roundi(length / 1.92), sills, 1.05, Win.PLAIN,
+				PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.5)
+		kit_ledge(0.16, length - 0.16, _g + PWS_OFFICE_TOP - 0.13, 0.24, PAL_PALE_CONCRETE, 0.12)
+		_wall(_w(0.0, 0.0), _w(length, 0.0), _g - 1.8, _g + PWS_OFFICE_TOP, _b, PAL_WHITE_STONE)
+
+
+## Keep the roof open where the court cuts it and lift the auditorium, foyer and north annex.
+func _powszechny_roofs(ring: PackedVector2Array, court: PackedVector2Array, annex: PackedVector2Array) -> void:
+	var roof := _g + PWS_OFFICE_TOP
+	_cap_holes(ring, [court], roof, PWS_ROOF)
+	kit_ledge_ring(ring, roof - 0.13, 0.22, PAL_PALE_CONCRETE, 0.12)
+	_prism(annex, roof - 0.22, _g + PWS_ANNEX_TOP, PAL_WHITE_STONE, PWS_ROOF, M_STONE, M_STONE)
+	_ubox(4.5, 20.0, 10.5, 31.5, roof - 0.2, _g + 12.5, PAL_WHITE_STONE, M_STONE, PWS_ROOF.lightened(0.06))
+	_ubox(6.3, 20.3, 34.5, 61.5, roof - 0.2, _g + 11.8, PAL_PALE_CONCRETE, M_STONE, PWS_ROOF)
+	kit_ledge_ring(_urect(4.5, 20.0, 10.5, 31.5), _g + 12.37, 0.21, PAL_PALE_CONCRETE, 0.12)
+	kit_ledge_ring(_urect(6.3, 20.3, 34.5, 61.5), _g + 11.68, 0.2, PAL_PALE_CONCRETE, 0.12)
+
+
+## Raise the white fly tower over its lower stage block and give the blank head a shallow coping.
+func _powszechny_tower() -> void:
+	_ubox(20.1, 35.3, 23.8, 41.5, _g + PWS_OFFICE_TOP - 0.2, _g + PWS_STAGE_TOP,
+			PAL_WHITE_STONE, M_STONE, PWS_ROOF)
+	var tower := _urect(20.3, 35.0, 24.2, 34.4)
+	_prism(tower, _g + PWS_STAGE_TOP - 0.18, _g + PWS_TOWER_TOP - 0.08,
+			PAL_WHITE_STONE, PWS_ROOF, M_STONE, M_STONE)
+	kit_ledge_ring(tower, _g + PWS_TOWER_TOP - 0.25, 0.25, PAL_PALE_CONCRETE, 0.18)
+	for v: float in [26.1, 28.3, 31.9]:
+		_ubox(20.23, 20.35, v, v + 0.16, _g + PWS_STAGE_TOP, _g + PWS_TOWER_TOP - 0.31, PAL_PALE_CONCRETE)
+
+
+## Group the larger vents and duct runs by roof so each machine sits on the roof it serves.
+func _powszechny_plant() -> void:
+	var roof := _g + PWS_OFFICE_TOP
+	var duct := PAL_ALUMINIUM.darkened(0.12)
+	var housing := PAL_PALE_CONCRETE.darkened(0.09)
+	# Twin housings behind the auditorium and the three feeds running towards the tower.
+	_ubox(4.7, 19.2, 31.9, 33.7, roof, roof + 1.75, housing, M_STONE, duct)
+	_ubox(4.7, 15.6, 34.0, 35.1, roof, roof + 1.52, duct)
+	for u: float in [22.3, 29.1, 36.4]:
+		_ubox(u, u + 1.45, 14.5, 22.0, roof, roof + 0.86, duct)
+		_ubox(u - 0.2, u + 1.65, 13.6, 16.9, roof, roof + 1.53, housing)
+	_ubox(22.3, 37.85, 22.0, 23.5, roof, roof + 1.04, duct)
+	_ubox(24.5, 34.1, 23.35, 24.38, roof, roof + 1.18, duct)
+	# The return duct follows the east and south roof edges around the open court.
+	_ubox(37.1, 38.35, 49.4, 68.8, roof, roof + 0.92, duct)
+	_ubox(12.1, 38.1, 67.65, 69.15, roof, roof + 1.16, duct)
+	_ubox(11.25, 12.6, 64.2, 69.0, roof, roof + 0.82, duct)
+	_ubox(23.4, 24.8, 64.0, 68.4, roof, roof + 0.77, housing)
+	for v: float in [11.3, 29.6, 38.7, 46.2, 55.4, 61.0]:
+		_ubox(39.0, 40.3, v, v + 1.3, roof, roof + 0.58, housing)
+	# Local exhausts above the north annex, stage roof and west foyer.
+	_ubox(26.8, 34.6, 6.2, 7.5, _g + PWS_ANNEX_TOP, _g + PWS_ANNEX_TOP + 0.52, duct)
+	_ubox(33.8, 35.4, 3.7, 7.3, _g + PWS_ANNEX_TOP, _g + PWS_ANNEX_TOP + 0.83, housing)
+	for u: float in [22.8, 27.1, 32.4]:
+		_ubox(u, u + 1.0, 36.5, 37.8, _g + PWS_STAGE_TOP, _g + PWS_STAGE_TOP + 0.7, housing)
+	_ubox(25.2, 34.84, 34.25, 35.35, _g + PWS_STAGE_TOP, _g + PWS_STAGE_TOP + 1.78, duct)
+	for at: Vector2 in [Vector2(11.0, 44.0), Vector2(15.5, 50.1), Vector2(10.5, 57.3)]:
+		_lbox(at.x, at.y, 0.45, 0.56, _g + 11.8, _g + 12.22, PAL_ROOF_PALE)
+	_ubox(16.8, 19.3, 55.6, 56.5, _g + 11.8, _g + 12.36, duct)
+	_ubox(18.4, 19.3, 56.4, 60.0, _g + 11.8, _g + 12.43, duct)
+	_ubox(27.8, 30.2, 25.4, 31.2, _g + PWS_TOWER_TOP - 0.08, _g + PWS_TOWER_TOP + 0.73, housing)
