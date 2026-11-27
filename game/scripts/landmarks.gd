@@ -732,6 +732,12 @@ const INFO := {
 	"bazar": ["Bazar Różyckiego",
 			"Najstarszy bazar Warszawy, od 1882 roku. Stare budy obok nowych zielonych pawilonów. Kupisz tu wszystko.",
 			"Warsaw's oldest market, since 1882. Old sheds face the new green kiosks. Everything is for sale."],
+	"centrum_praha": ["Centrum Praha",
+			"Piaskowcowy gmach na Pradze z fryzem twarzy i cynkową mansardą.",
+			"A Praga sandstone block with a carved-faces frieze and zinc mansard."],
+	"targowa33a": ["Pasaż Handlowy Targowa 33A",
+			"Dwukondygnacyjny pasaż handlowy w głębi kwartału przy Targowej.",
+			"A low two-storey trade podium tucked inside the Targowa block."],
 	"powszechny": ["Teatr Powszechny im. Zygmunta Hübnera",
 			"Przy Zamoyskiego 20 praska scena nosi imię Zygmunta Hübnera. Wysoka wieża nad dachem mieści sceniczne dekoracje.",
 			"At Zamoyskiego 20, Praga's theatre bears Zygmunt Hübner's name. The tower above the roof holds the stage scenery."],
@@ -1517,6 +1523,8 @@ func _find_sites() -> void:
 	# Praga (2026-11-02, the Mac's photo reports): St Florian's cathedral and Bazar Różyckiego.
 	_find_florian()
 	_find_bazar()
+	_find_centrum_praha()
+	_find_targowa33a()
 	_find_port_praski()
 	_find_kosciuszkowcy()
 	# Stacja Filtrów (F, 2026-11-06): the water tower and Starynkiewicz's bust.
@@ -2156,6 +2164,10 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_florian(s)
 			"bazar":
 				_build_bazar(s)
+			"centrum_praha":
+				_build_centrum_praha(s)
+			"targowa33a":
+				_build_targowa33a(s)
 			"powszechny":
 				_build_powszechny(s)
 			"port_praski":

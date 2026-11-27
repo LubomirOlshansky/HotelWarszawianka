@@ -870,8 +870,8 @@ func _find_photo_fronts() -> void:
 	if not list is Array:
 		return
 	for d: Dictionary in list:
-		# The theatre's whole-building site already supplies this frontage.
-		if str(d["id"]) == "b12747":
+		# Whole-building sites that already supply their own frontages (Teatr Powszechny, Centrum Praha).
+		if str(d["id"]) in ["b12747", "b12642"]:
 			continue
 		var key := "pf_" + str(d["id"])
 		_add_site(key, [_pts(d["outline"])])
