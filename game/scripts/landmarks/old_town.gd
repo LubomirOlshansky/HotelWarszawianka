@@ -3792,7 +3792,9 @@ func _build_bristol(site: Dictionary) -> void:
 		_prism(_circle(c + d * 3.6, 0.3, 4), g + 6.0, top, KP_TRIM, KP_TRIM, M_STONE, M_STONE)
 	_prism(_circle(c, 3.9, 12), top, top + 0.5, KP_TRIM, KP_TRIM, M_STONE, M_STONE)
 	_prism(_circle(c, 3.6, 12), top + 0.5, top + 1.3, BRISTOL_WALL, none, M_STONE)  # the balustrade
-	_prism(_circle(c, 1.7, 8), top + 0.5, top + 4.0, Color("#4a4842"), none, M_STONE)  # the open belvedere's shade
+	# The open belvedere's shade, lit blue at night (F's night photos, 2026-11-26: the rotunda glows
+	# deep blue between its columns): M_LAMP's neon fraction, dark grey by day.
+	_prism(_circle(c, 2.6, 12), top + 0.5, top + 4.0, Color("#4a4842"), none, M_LAMP + 0.5)
 	for k in 8:
 		var d := Vector2.from_angle(TAU * k / 8.0)
 		_prism(_circle(c + d * 3.0, 0.2, 6), top + 1.3, top + 4.0, KP_TRIM, none, M_STONE)

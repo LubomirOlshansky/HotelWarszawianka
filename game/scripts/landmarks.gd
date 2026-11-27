@@ -1691,6 +1691,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 		_walls.clear()
 		_caps.clear()
 		_holes = s.get("courts", [] as Array[PackedVector2Array])
+		_flood = FLOODLIT_SITES.has(key)
 		built += 1
 		match key:
 			"palace":
@@ -2270,6 +2271,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 			_court_walls(_court_wall_colour(key))
 			_holes = []
 	_id = 0
+	_flood = false
 	if not near.has_area():
 		print("landmarks: %d built in %d ms" % [built, Time.get_ticks_msec() - t0])
 

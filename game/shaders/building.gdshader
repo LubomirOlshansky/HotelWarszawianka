@@ -914,15 +914,37 @@ vec3 gothic(vec3 col, float u, float h, float top, vec3 wp, float lit, out vec3 
 	return c;
 }
 
+// Krakowskie Przedmieście's floodlit palaces (F's night photos, 2026-11-26): a warm cream-white
+// wash from lamps on the pavement, brightest on the ground floor, fading up the walls, the
+// cornice caught again at the top. A factor on the lit surface's own colour (`h` metres up the
+// wall, `top` its top).
+vec3 palace_flood(float h, float top) {
+	vec3 warm = vec3(1.0, 0.84, 0.62);
+	float low = 0.36 + 0.4 * exp(-max(h, 0.0) / 6.0);
+	float edge = smoothstep(top - 2.5, top - 0.3, h) * 0.18;
+	return warm * (low + edge);
+}
+
 vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, vec3 wp, out vec3 glow, out bool cut) {
 	glow = vec3(0.0);
 	cut = false;
 	if (mode == M_MONUMENT) {
-		return wall ? monument(col, uv.x, uv.y, top, glow) : col * (0.94 + 0.08 * value_noise(wp.xz * 1.7));
+		if (!wall) {
+			return col * (0.94 + 0.08 * value_noise(wp.xz * 1.7));
+		}
+		vec3 m = monument(col, uv.x, uv.y, top, glow);
+		// M_MONUMENT_FLOOD (fraction 0.5): a floodlit palace (facade_kit.gd FLOODLIT_SITES).
+		glow += m * palace_flood(uv.y, top) * step(0.25, param);
+		return m;
 	} else if (mode == M_STONE) {
 		float grain = 0.95 + 0.07 * value_noise(wp.xz * 2.1 + wp.y * 1.3);
 		// M_STONE_LIT (fraction 0.5): stone washed by floodlights at night (the Cathedral's gable panels).
-		glow = col * vec3(1.0, 0.8, 0.56) * step(0.25, param) * 0.55;
+		// M_STONE_FLOOD (fraction 0.75): a floodlit palace's stone, walls only, brightest low.
+		if (param > 0.6) {
+			glow = wall ? col * palace_flood(uv.y, top) : vec3(0.0);
+		} else {
+			glow = col * vec3(1.0, 0.8, 0.56) * step(0.25, param) * 0.55;
+		}
 		if (all(bvec3(wall, top > 2.0, uv.y > top - 0.5))) {
 			return col * 1.12;
 		}
