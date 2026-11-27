@@ -2,10 +2,10 @@ extends Control
 ## The phone (F 2026-11-26, "the phone with jobs"; F 2026-11-27: "it should look like the phone, compact
 ## like the call, with minimum information, four buttons in a landscape view; QUESTS opens the big
 ## screen; ŁUBER and the food app open inside it, looking for…, and you take or not; ŁUBER with the
-## passenger's photo and rating"). A landscape handset over a dimmed city, the game paused under it
+## passenger's photo and rating"; then "like the incoming call, compact on the right, all inside the phone"). A portrait handset on the right, like the call card's frame, over a dimmed city, the game paused under it
 ## (phone.gd holds PauseReasons.PHONE).
 ##
-## Home: the four apps (phone_rules.gd `model`) in a row. An app that offers (ŁUBER, GŁODNO) goes to
+## Home: the four apps (phone_rules.gd `model`) as a 2x2 grid of icons. An app that offers (ŁUBER, GŁODNO) goes to
 ## a searching screen for SEARCH_S seconds, then phone.gd answers with an offer (`show_offer`: the
 ## face, the words, TAKE / SKIP) or nothing (`show_none`). This script only draws and hands presses
 ## back: `app_pressed(key)`, `home_pressed`, `searched(key)`, `offer_taken(key)`, `offer_skipped(key)`, `closed`.
@@ -24,9 +24,10 @@ const Rules := preload("res://scripts/phone_rules.gd")
 const Lang := preload("res://scripts/lang.gd")
 const Portraits := preload("res://scripts/portraits.gd")
 
-const PHONE_W := 560.0
-const PHONE_H := 236.0
-const TILE_H := 112.0
+const PHONE_W := 214.0
+const PHONE_H := 372.0
+const TILE_H := 96.0
+const EDGE_GAP := 20.0
 
 var pt := 1.0
 var safe := Rect2()
@@ -105,14 +106,17 @@ func show_home(model: Dictionary) -> void:
 	_app = ""
 	_search_id += 1
 	_clear()
-	_header(Rules.words("title"), UiKit.GOLD, false)
-	var tiles := HBoxContainer.new()
+	_status_strip()
+	var tiles := GridContainer.new()
 	tiles.name = "tiles"
+	tiles.columns = 2
 	tiles.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	tiles.add_theme_constant_override("separation", UiKit.px(UiKit.GAP, pt))
+	tiles.add_theme_constant_override("h_separation", UiKit.px(UiKit.GAP, pt))
+	tiles.add_theme_constant_override("v_separation", UiKit.px(UiKit.GAP, pt))
 	for a: Dictionary in model.get("apps", []):
 		tiles.add_child(_tile(a))
 	_body.add_child(tiles)
+	_home_bar()
 
 
 ## The searching screen of app `key`: "looking for…" with moving dots, then `searched(key)`.
@@ -121,7 +125,8 @@ func show_search(key: String, title: Array, colour: Color) -> void:
 	_search_id += 1
 	var mine := _search_id
 	_clear()
-	_header(title, colour, true)
+	_status_strip()
+	_header(title, colour)
 	var l := _label(Rules.words("searching"), "title")
 	l.name = "searching"
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -129,6 +134,7 @@ func show_search(key: String, title: Array, colour: Color) -> void:
 	l.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	l.add_theme_color_override("font_color", colour)
 	_body.add_child(l)
+	_home_bar()
 	await get_tree().create_timer(Rules.SEARCH_S, true, false, true).timeout
 	if mine == _search_id and visible:
 		searched.emit(key)
@@ -140,37 +146,39 @@ func show_offer(key: String, title: Array, offer: Dictionary, colour: Color) -> 
 	_app = key
 	_search_id += 1
 	_clear()
-	_header(title, colour, true)
-	var row := HBoxContainer.new()
-	row.name = "offer"
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	row.add_theme_constant_override("separation", UiKit.px(UiKit.PAD, pt))
+	_status_strip()
+	_header(title, colour)
+	var col := VBoxContainer.new()
+	col.name = "offer"
+	col.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", UiKit.px(UiKit.GAP, pt))
 	var who := str(offer.get("who", ""))
-	var face := Portraits.badge(84.0 * pt)
-	face.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var face := Portraits.badge(72.0 * pt)
+	face.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	Portraits.set_badge(face, who, colour)
-	row.add_child(face)
-	var words := VBoxContainer.new()
-	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	words.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_child(face)
 	var t := _label(offer["title"], "label")
 	t.add_theme_color_override("font_color", colour)
-	words.add_child(t)
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(t)
 	var b := _label(offer["body"], "body")
+	b.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	b.custom_minimum_size.x = 200.0 * pt
-	words.add_child(b)
-	row.add_child(words)
-	_body.add_child(row)
+	b.custom_minimum_size.x = 150.0 * pt
+	col.add_child(b)
+	_body.add_child(col)
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", UiKit.px(UiKit.GAP, pt))
-	var skip := _button("skip", Rules.words("b_skip"), UiKit.Kind.SECONDARY)
+	var skip := _button("skip", Rules.words("b_skip"), UiKit.Kind.SECONDARY, 60.0)
 	skip.pressed.connect(func() -> void: offer_skipped.emit(key))
-	var take := _button("take", Rules.words("b_take"), UiKit.Kind.PRIMARY)
+	var take := _button("take", Rules.words("b_take"), UiKit.Kind.PRIMARY, 60.0)
 	take.pressed.connect(func() -> void: offer_taken.emit(key))
 	buttons.add_child(skip)
 	buttons.add_child(take)
 	_body.add_child(buttons)
+	_home_bar()
 
 
 ## Nothing on offer on app `key`'s screen.
@@ -178,13 +186,16 @@ func show_none(key: String, title: Array, colour: Color) -> void:
 	_app = key
 	_search_id += 1
 	_clear()
-	_header(title, colour, true)
+	_status_strip()
+	_header(title, colour)
 	var l := _label(Rules.words("none_" + key), "body")
 	l.name = "none"
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_body.add_child(l)
+	_home_bar()
 
 
 # --- the parts -----------------------------------------------------------------------------------
@@ -208,7 +219,7 @@ func _place() -> void:
 		return
 	var area := safe if safe.size.x > 0.0 else Rect2(Vector2.ZERO, get_viewport_rect().size)
 	_frame.size = Vector2(minf(PHONE_W * pt, area.size.x - 24.0 * pt), minf(PHONE_H * pt, area.size.y - 16.0 * pt))
-	_frame.position = area.position + (area.size - _frame.size) * 0.5
+	_frame.position = Vector2(area.end.x - _frame.size.x - EDGE_GAP * pt, area.position.y + (area.size.y - _frame.size.y) * 0.5)
 
 
 func _clear() -> void:
@@ -218,32 +229,57 @@ func _clear() -> void:
 		c.queue_free()
 
 
-## The status line: the title (or a BACK button on an app's screen), the clock, the close cross.
-func _header(title: Array, colour: Color, back: bool) -> void:
+## The phone's status line: the clock on the left, "5G" and a battery on the right (a look, no buttons).
+func _status_strip() -> void:
+	var row := HBoxContainer.new()
+	row.name = "status"
+	var clock := _label([_clock_text(), _clock_text()], "sub")
+	clock.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(clock)
+	var net := _label(["5G", "5G"], "sub")
+	row.add_child(net)
+	var bat := Control.new()
+	bat.custom_minimum_size = Vector2(22.0, 12.0) * pt
+	bat.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bat.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bat.draw.connect(func() -> void:
+		var r := Rect2(Vector2.ZERO, bat.size - Vector2(3.0 * pt, 0.0))
+		bat.draw_rect(r, UiKit.FAINT, false, 1.5 * pt)
+		bat.draw_rect(r.grow(-3.0 * pt), UiKit.FAINT)
+		bat.draw_rect(Rect2(r.end.x, bat.size.y * 0.3, 3.0 * pt, bat.size.y * 0.4), UiKit.FAINT))
+	row.add_child(bat)
+	_body.add_child(row)
+
+
+## An app's header: BACK to the home and the app's name in its colour.
+func _header(title: Array, colour: Color) -> void:
 	_head = HBoxContainer.new()
-	_head.name = "status"
+	_head.name = "head"
 	_head.add_theme_constant_override("separation", UiKit.px(UiKit.GAP, pt))
-	if back:
-		var bk := _button("back", Rules.words("b_back"), UiKit.Kind.SECONDARY, 0.0)
-		bk.pressed.connect(func() -> void: home_pressed.emit())
-		_head.add_child(bk)
+	var bk := _button("back", Rules.words("b_back"), UiKit.Kind.SECONDARY, 0.0)
+	bk.pressed.connect(func() -> void: home_pressed.emit())
+	_head.add_child(bk)
 	var t := _label(title, "title")
 	t.add_theme_color_override("font_color", colour)
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_head.add_child(t)
-	var clock := _label([_clock_text(), _clock_text()], "sub")
-	clock.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_head.add_child(clock)
+	_body.add_child(_head)
+
+
+## The home bar along the bottom (a 44 pt button, drawn as the phone's grey bar): puts the phone away.
+func _home_bar() -> void:
 	var x := Button.new()
 	x.name = "close"
-	x.text = "✕"
 	x.focus_mode = Control.FOCUS_NONE
-	x.custom_minimum_size = Vector2.ONE * UiKit.TOUCH * pt
-	UiKit.style_button(x, UiKit.Kind.SECONDARY, pt, UiKit.T_TITLE)
+	x.custom_minimum_size = Vector2(0.0, UiKit.TOUCH * pt)
+	UiKit.style_button(x, UiKit.Kind.SECONDARY, pt)
+	x.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
 	x.pressed.connect(close)
-	_head.add_child(x)
-	_body.add_child(_head)
+	x.draw.connect(func() -> void:
+		var w := x.size.x * 0.4
+		x.draw_rect(Rect2((x.size.x - w) * 0.5, x.size.y * 0.5 - 2.0 * pt, w, 4.0 * pt), UiKit.FAINT))
+	_body.add_child(x)
 
 
 func _button(name_: String, words: Array, kind: int, min_w := 120.0) -> Button:
@@ -272,34 +308,50 @@ func _tile(a: Dictionary) -> Button:
 	words.alignment = BoxContainer.ALIGNMENT_CENTER
 	words.add_theme_constant_override("separation", UiKit.px(2.0, pt))
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# The app's round "icon": its colour disc with the first letter.
-	var disc := Label.new()
-	disc.text = _pick(a["title"]).substr(0, 1)
-	disc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	disc.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	disc.custom_minimum_size = Vector2.ONE * 44.0 * pt
-	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	disc.add_theme_font_size_override("font_size", UiKit.px(UiKit.T_TITLE, pt))
-	disc.add_theme_color_override("font_color", UiKit.ON_GOLD if on else UiKit.FAINT)
-	disc.add_theme_stylebox_override("normal", UiKit.box(col if on else UiKit.DIM, Color(0, 0, 0, 0), pt, 999.0, 0.0, 2.0))
+	# The app's icon: a drawn glyph in the app's colour on a round disc.
+	var icon := Control.new()
+	icon.custom_minimum_size = Vector2.ONE * 48.0 * pt
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var key := str(a["key"])
+	icon.draw.connect(func() -> void: _draw_glyph(icon, key, col if on else UiKit.DIM, UiKit.ON_GOLD if on else UiKit.FAINT))
 	var holder := CenterContainer.new()
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.add_child(disc)
+	holder.add_child(icon)
 	words.add_child(holder)
 	var t := _label(a["title"], "body")
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.add_theme_color_override("font_color", col if on else UiKit.FAINT)
 	t.uppercase = true
 	words.add_child(t)
-	var s := _label(a["sub"], "faint")
-	s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	s.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	words.add_child(s)
 	b.add_child(words)
 	b.disabled = not on
-	var key := str(a["key"])
 	b.pressed.connect(func() -> void: app_pressed.emit(key))
 	return b
+
+
+## The four app icons, drawn: ŁUBER a car, GŁODNO a kebab on its spit, ZADANIA a flag, COTAM an envelope.
+func _draw_glyph(c: Control, key: String, disc: Color, ink: Color) -> void:
+	var r := c.size.x * 0.5
+	var m := c.size * 0.5
+	c.draw_circle(m, r, disc)
+	match key:
+		"luber":
+			c.draw_rect(Rect2(m + Vector2(-r * 0.55, -r * 0.05), Vector2(r * 1.1, r * 0.4)), ink)
+			c.draw_rect(Rect2(m + Vector2(-r * 0.32, -r * 0.38), Vector2(r * 0.64, r * 0.36)), ink)
+			c.draw_circle(m + Vector2(-r * 0.3, r * 0.38), r * 0.14, disc)
+			c.draw_circle(m + Vector2(r * 0.3, r * 0.38), r * 0.14, disc)
+		"glodno":
+			c.draw_line(m + Vector2(0, -r * 0.6), m + Vector2(0, r * 0.6), ink, maxf(2.0, r * 0.1))
+			for i in 3:
+				var w := r * (0.5 + 0.12 * (1 - absf(i - 1)))
+				c.draw_rect(Rect2(m + Vector2(-w * 0.5, -r * 0.42 + i * r * 0.3), Vector2(w, r * 0.24)), ink)
+		"quests":
+			c.draw_line(m + Vector2(-r * 0.3, -r * 0.55), m + Vector2(-r * 0.3, r * 0.55), ink, maxf(2.0, r * 0.1))
+			c.draw_colored_polygon(PackedVector2Array([m + Vector2(-r * 0.3, -r * 0.5), m + Vector2(r * 0.5, -r * 0.25), m + Vector2(-r * 0.3, r * 0.05)]), ink)
+		_:
+			var e := Rect2(m + Vector2(-r * 0.55, -r * 0.35), Vector2(r * 1.1, r * 0.7))
+			c.draw_rect(e, ink, false, maxf(2.0, r * 0.09))
+			c.draw_polyline(PackedVector2Array([e.position, m + Vector2(0, r * 0.05), Vector2(e.end.x, e.position.y)]), ink, maxf(2.0, r * 0.09))
 
 
 func _label(pair: Array, role: String) -> Label:
