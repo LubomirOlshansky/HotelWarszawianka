@@ -59,6 +59,8 @@ design               quick
 devflags             quick
 districts            quick
 drape                ground
+drift                quick
+drift-run            runs      slow
 drive                roads
 drive-prebuilt       smoke     slow
 drivelog             smoke     slow
