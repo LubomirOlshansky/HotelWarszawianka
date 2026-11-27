@@ -173,6 +173,9 @@ const EvTow := preload("res://scripts/ev_tow.gd")
 const BarCrawl := preload("res://scripts/bar_crawl.gd")
 ## THE TAPCZAN's door, room, beer pong and the tipsy drive after (tapczan.gd, F 2026-11-24).
 const Tapczan := preload("res://scripts/tapczan.gd")
+## Bokiem na Narodowym's grey box (drift_stadium.gd, critique-drift.md 4) and the venue owner (venues.gd).
+const DriftStadium := preload("res://scripts/drift_stadium.gd")
+const Venues := preload("res://scripts/venues.gd")
 ## Packs (docs/design/packs.md): running clubs, cycling packs and coffee raves.
 const Packs := preload("res://scripts/packs.gd")
 ## Kibice (docs/design/city-life-satire.md 7): friendly fans by Stadion Leguminy on match evenings.
@@ -451,6 +454,9 @@ var ev_tow: EvTow
 ## --crawl-route=ID, --crawl-group=ID, --crawl=0 (none), --crawl-log.
 var crawl: BarCrawl
 var tapczan: Tapczan
+## The drift stadium (--drift=osemka, the DEV page's BOKIEM) and the scenes off the map that joined venues.gd.
+var drift: DriftStadium
+var venues := Venues.new()
 ## Sekretny rave (rave.gd): flags --rave-call (LEKTI and Mati's call now), --rave-smola (Mati's
 ## Smoła night now), --rave=on / --rave=day (that rave on at any hour), --rave-spot=ID, --rave=0,
 ## --rave-log.
@@ -1832,6 +1838,10 @@ func _build_world() -> void:
 	tapczan = _join(Tapczan.new(), world, func() -> bool: return title == null and not _phone_bench and not hud.cards_up()) as Tapczan
 	if tapczan != null:
 		tapczan.sfx = sfx  # the pub's bed, pour, clink and ball (sfx.gd)
+	# The drift stadium's practice (no call; none with --drift=0): the first venue of venues.gd.
+	drift = _join(DriftStadium.new(), world) as DriftStadium
+	if drift != null:
+		venues.add("stadium", drift.inside, drift.view, "car")
 	await LoadYield.tick("crawl")
 	await _build_storefronts(data, world)  # the Leżak round-up joins the director here
 	await LoadYield.tick("_build_storefronts")
@@ -3405,6 +3415,8 @@ func _sound_mode() -> String:
 		return "electric" if boat_race.player.kind == BoatRace.Boat.Kind.ELECTRIC else "boat"
 	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside) or (tapczan != null and tapczan.inside()):
 		return "foot"
+	if venues.sound_mode() != "":
+		return venues.sound_mode()
 	return "bike" if car.model == "bike" else "car"
 
 
@@ -3540,6 +3552,8 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "club inside"
 	if lounge != null and lounge.inside:
 		return "lounge inside"
+	if venues.inside_name() != "":
+		return venues.inside_name() + " inside"
 	if title != null or _phone_bench or _bench_ghost != null:
 		return "title/bench"
 	# First hour, step 3: the guide holds the friends' calls until 3 First steps (or 3 minutes of play,
@@ -6637,7 +6651,7 @@ func _toggle_vehicle() -> void:
 	# Inside the club, the lounge or the padel hall the HUD is hidden, but H and the pad's vehicle
 	# button still came here: the helicopter rose over the parked car and the player left the room
 	# in the air.
-	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside) or (tapczan != null and tapczan.inside()):
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside) or (tapczan != null and tapczan.inside()) or venues.inside_name() != "":
 		return
 	if flying and ev_tow != null and ev_tow.carrying():
 		hud.toast("Najpierw odstaw %s pod ładowarkę (albo ✕)" % EvTow.NAME, "Set the %s down at the charger first (or ✕)" % EvTow.NAME)
@@ -6986,6 +7000,8 @@ func _screen_to_world(s: Vector2) -> Vector3:
 
 
 func _update_camera(dt: float) -> void:
+	if venues.view(cam, camera_pitch, dt):
+		return  # a venue off the map placed it (venues.gd: the drift stadium)
 	if tapczan != null and tapczan.room_view(cam, camera_pitch):
 		return
 	if lounge != null and lounge.inside:

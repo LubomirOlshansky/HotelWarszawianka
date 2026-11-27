@@ -245,6 +245,10 @@ var crawl_group := ""
 var crawl_log := false
 ## THE TAPCZAN (tapczan.gd): --tapczan=0|in|taps|pong|drunk, --tapczan-log.
 var tapczan_flag := ""
+## Bokiem na Narodowym, the grey box (drift_stadium.gd): --drift=osemka (straight in),
+## --drift=osemka:bot (the decent bot drives), --drift=osemka:pose:H:B (posed for the wedge's shots),
+## --drift=0 (none). Any of them logs the run ("drift: ...").
+var drift_flag := ""
 var tapczan_log := false
 var _crawl_auto := false
 var ev_flag := ""
@@ -978,6 +982,8 @@ func parse_with(args: PackedStringArray) -> void:
 			crawl_log = true
 		elif arg.begins_with("--tapczan="):
 			tapczan_flag = arg.trim_prefix("--tapczan=")
+		elif arg.begins_with("--drift="):
+			drift_flag = arg.trim_prefix("--drift=")
 		elif arg == "--tapczan-log":
 			tapczan_log = true
 		elif arg == "--rave-log":
