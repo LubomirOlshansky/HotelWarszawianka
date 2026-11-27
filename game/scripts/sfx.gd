@@ -638,7 +638,7 @@ func _engine(dt: float, wet: float) -> void:
 	var names := ["engine_idle", "engine_mid", "engine_high"]
 	var weights := [w_idle, w_mid, w_high]
 	# C1a: each shop car's own engine note (car.gd `engine_note`: a diesel lower, a Szupra higher).
-	var note_v: Variant = car.get("engine_note")
+	var note_v: Variant = car.get(&"engine_note")
 	var note: float = float(note_v) if note_v != null else 1.0
 	for k in 3:
 		_drive(names[k], level * sqrt(weights[k]), clampf(_rpm / ENGINE_RPM[k] * note, 0.5, 2.2), dt, 14.0)

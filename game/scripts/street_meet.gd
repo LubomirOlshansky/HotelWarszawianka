@@ -2753,13 +2753,9 @@ func _drag_end(won: bool, how: String) -> void:
 		var kept: Variant = wallet.get("keep")
 		var prize := Upgrades.meet_prize(owned, kept, won, int(Time.get_date_string_from_system().replace("-", ""))) \
 				if owned is Dictionary and kept is Dictionary else ""
-		match prize:
-			"given":
-				hud.toast("Darek rzuca ci kluczyki: „Nagroda klubu. Bawarka twoja, olej dolewaj co tankowanie.”",
-						"Darek tosses you the keys: \"The club's prize. The Bawarka's yours, top up the oil every fill-up.\"")
-			"opened":
-				hud.toast("Darek: „Bawarkę ci odstąpię. Za 2500 u Mirka. Albo wygraj rewanż.”",
-						"Darek: \"I'll sell you the Bawarka. 2,500 at Mirek's. Or win the rematch.\"")
+		if prize != "":
+			var said := _w("bawarka_" + prize)
+			hud.toast(str(said[0]), str(said[1]))
 		if won:
 			wallet.keep["wnrc_member"] = true
 			wallet.keep["wnrc_wins"] = int(wallet.keep.get("wnrc_wins", 0)) + 1

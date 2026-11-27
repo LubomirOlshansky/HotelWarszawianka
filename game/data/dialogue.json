@@ -7659,6 +7659,20 @@
       }
     ],
     [
+      "Darek rzuca ci kluczyki: „Nagroda klubu. Bawarka twoja, olej dolewaj co tankowanie.”",
+      "Darek tosses you the keys: \"The club's prize. The Bawarka's yours, top up the oil every fill-up.\"",
+      {
+        "only": "bawarka_given"
+      }
+    ],
+    [
+      "Darek: „Bawarkę ci odstąpię. Za 2500 u Mirka. Albo wygraj rewanż.”",
+      "Darek: \"I'll sell you the Bawarka. 2,500 at Mirek's. Or win the rematch.\"",
+      {
+        "only": "bawarka_opened"
+      }
+    ],
+    [
       "  Pula %d zł × 2 = %d zł  +%d szacunu",
       "  Pot %d zł × 2 = %d zł  +%d respect",
       {
