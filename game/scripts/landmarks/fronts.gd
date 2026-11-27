@@ -9,23 +9,25 @@ extends "res://scripts/landmarks/works.gd"
 
 # --- the low-rise landmarks (the landmarks loop) -----------------------------------------------
 
-const ZAMEK_ROOF := "#ad5c3f"  # terracotta tile (photos #c0502e, calmed; was #8d6350, read brown)
-
 const SKINS := [
 	{"key": "teatr", "osm": "Teatr Wielki", "mode": M_MONUMENT, "wall": "#ddd2b6", "roof": "#7fa894"},
 	# F's look check (2026-11-03): LoD2's steep roof slopes in the roof's tile (`steep`), and its
 	# walls on the river side of the courtyard in the Vistula front's cream (`pale`), not salmon.
-	{"key": "zamek", "osm": "Zamek Królewski", "mode": M_MONUMENT, "wall": ZAMEK_WALL, "roof": ZAMEK_ROOF,
-			"steep": 0.3},
+	# The Royal Castle is one model, whole (F, 2026-11-26, pass 3: old_town.gd `_build_zamek`): no LoD2 is left.
+	{"key": "zamek", "osm": "Zamek Królewski", "model": true, "mode": M_MONUMENT, "wall": ZAMEK_WALL, "roof": ZAMEK_ROOF},
 	# The cathedral's roof is green copper (2026-11-14, photo and orthophoto); LoD2 draws it steeper than
 	# the default 0.7, so `steep` 0.3 keeps its slopes in the roof colour, not the brick.
-	{"key": "archikatedra", "osm": "Archikatedra pw. Świętego Jana Chrzciciela", "mode": M_GOTHIC, "wall": "#9a4b38", "roof": "#829a8f",
+	# Floodlit at night like the real one (F, 2026-11-26; M_GOTHIC_LIT).
+	{"key": "archikatedra", "osm": "Archikatedra pw. Świętego Jana Chrzciciela", "mode": M_GOTHIC_LIT, "wall": "#9a4b38", "roof": "#829a8f",
 			"steep": 0.3},
 	# The Jesuit church (F's Old Town trailer pass, 2026-11-08): LoD2 draws the church with its tower
 	# over 55 m, so the bake gave it the office towers' blue glass. Salmon plaster with white
 	# pilasters on Świętojańska and the brick tower above the roofs (Mapillary photos, refs/oldtown_jezuici2).
 	{"key": "jezuici", "osm": "Sanktuarium Matki Bożej Łaskawej", "model": true, "mode": M_MONUMENT, "wall": "#dd8f82", "roof": "#6a4d44"},
-	{"key": "sw_anna", "osm": "Kościół pw. Świętej Anny", "mode": M_MONUMENT, "wall": "#e6dcc4", "roof": "#8a5a44"},
+	# St Anne's is a model now, whole (F, 2026-11-26): the church and, by `runs`, the bell tower's two
+	# OSM blocks (the square and the octagon on it, both centred there).
+	{"key": "sw_anna", "osm": "Kościół pw. Świętej Anny", "model": true, "runs": [[-689.2, -1379.6]], "mode": M_MONUMENT,
+			"wall": "#e6dcc4", "roof": "#6f9f8a"},
 	{"key": "sw_krzyz", "osm": "Kościół pw. Świętego Krzyża", "mode": M_MONUMENT, "wall": "#e3d9c0", "roof": "#5d6e64"},
 	{"key": "staszic", "osm": "Pałac Staszica", "mode": M_MONUMENT, "wall": "#e6dcc4", "roof": "#6a8f80"},
 	{"key": "wszystkich", "osm": "Kościół Wszystkich Świętych", "model": true, "mode": M_MONUMENT, "wall": "#c6b186", "roof": "#96b8a4"},
@@ -124,8 +126,12 @@ func _find_skins() -> void:
 		# `run`: a point inside a LoD2 model that merges this building with its neighbours, whose
 		# centre falls outside the outline (Pałac Uruskich, the Tyszkiewicz palace and its annex are
 		# one LoD2 run): a 2 m square there joins the zone, so `skin_at` finds that run too
+		# `runs`: the same for several points (a model's other blocks: St Anne's bell tower)
+		var runs: Array = t.get("runs", [])
 		if t.has("run"):
-			var c := Vector2(float(t["run"][0]), float(t["run"][1]))
+			runs = runs + [t["run"]]
+		for r: Array in runs:
+			var c := Vector2(float(r[0]), float(r[1]))
 			zones.append(PackedVector2Array([c + Vector2(-1, -1), c + Vector2(1, -1), c + Vector2(1, 1), c + Vector2(-1, 1)]))
 		_add_site(t["key"], zones)
 		# `model`: the whole building is a model now (it replaces LoD2); the entry keeps its place in
@@ -133,16 +139,13 @@ func _find_skins() -> void:
 		if t.get("model", false):
 			continue
 		if not sites.is_empty() and sites[-1]["key"] == t["key"]:
-			sites[-1]["skin"] = {"mode": t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
+			sites[-1]["skin"] = {"mode": M_MONUMENT_FLOOD if FLOODLIT_SITES.has(t["key"]) and t["mode"] == M_MONUMENT else t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
 			if t.has("steep"):
 				sites[-1]["skin"]["steep"] = t["steep"]
 			if t.has("upper"):
 				sites[-1]["skin"]["upper"] = {"over": float(t["upper"][0]), "wall": Color(t["upper"][1])}
 			if t.has("keep"):
 				sites[-1]["skin"]["keep"] = PackedVector2Array(t["keep"])
-			if t["key"] == "zamek":
-				sites[-1]["skin"]["pale"] = {"wall": ZAMEK_VISTULA, "edges": _zamek_river_edges(outline), "near": 3.0}
-				_zamek_tops()
 
 
 # --- Domy Towarowe Centrum (the Eastern Wall) ----------------------------------------------
@@ -157,39 +160,6 @@ const RELAX_GLYPHS := ["110101110101101", "111100110100111", "100100100100111", 
 
 # --- Plac Małachowskiego and the Presidential Palace (2026-10-31) ------------------------------
 
-## The Vistula front's edges of the castle's outline (the ones `_zamek_vistula` fronts: facing east,
-## east of x -615), as pairs of ends, for the skin's `pale` walls (map_builder `_skin_run`): LoD2's
-## walls stand up to 0.9 m proud of the outline there (5 m at the risalits) and showed salmon
-## round and over the model's cream front (F's look check, 2026-11-03).
-func _zamek_river_edges(ring: PackedVector2Array) -> PackedVector2Array:
-	var out := PackedVector2Array()
-	var n := ring.size()
-	for i in n:
-		var p := ring[i]
-		var q := ring[(i + 1) % n]
-		if p.distance_to(q) < 0.4:
-			continue
-		if _out(ring, p, q).x < 0.3 or (p.x + q.x) * 0.5 < -615.0:
-			continue
-		out.append(p)
-		out.append(q)
-	return out
-
-
-## The Clock Tower's LoD2 cut under the model's cornice (`lod2_tops`): LoD2 carries the shaft 3.5 m
-## past it and the helm as a salmon mass to 46.7 m, which stood out of the copper helm on every
-## side (F's look check, 2026-11-03). The ring is the shaft's square grown to 6 m a side from its
-## middle (LoD2's shaft is 4.5-4.7 m); the cut, 30.0 m over the square, hides inside the cornice
-## (29.5-30.3 m, 5.0 m), whose top caps it.
-func _zamek_tops() -> void:
-	var a := ZAMEK_FRONT
-	var b := Vector2(a.y, -a.x)
-	var ring := PackedVector2Array()
-	for c: Vector2 in [Vector2(-6, -6), Vector2(6, -6), Vector2(6, 6), Vector2(-6, 6)]:
-		ring.append(ZAMEK_CLOCK + a * c.x + b * c.y)
-	lod2_tops.append([ring, 30.0, ZAMEK_CLOCK + b * 9.0])
-
-
 # --- street blocks with modelled fronts ------------------------------------------------------
 
 const BLOCKS_DIR := "res://data/street_blocks"
@@ -203,6 +173,11 @@ const BLOCKS_DIR := "res://data/street_blocks"
 
 ## The street blocks (game/data/street_blocks) that stood in for four of them: the site builds those.
 const DE_BLOCKS := ["118344657", "118344539", "279988290", "138607846"]
+## The Institute next to St Anne's (Krakowskie Przedmieście 66): a model of its own since
+## 2026-11-26 (churches.gd `_build_nikidw`), its street block no longer stands in for it.
+const NIKIDW_BLOCK := "43281056"
+## The Mansjonaria on Plac Zamkowy, likewise (old_town.gd `_build_mansjonaria`, 2026-11-26).
+const MANSJONARIA_BLOCK := "101331240"
 
 
 func _find_blocks() -> void:
@@ -215,7 +190,7 @@ func _find_blocks() -> void:
 		var q := _pts(d["outline"])
 		if q.size() < 3:
 			continue
-		if str(d["id"]) in DE_BLOCKS or str(d["id"]) in [CM_BLOCK, MP_BLOCK, UP_BLOCK]:
+		if str(d["id"]) in DE_BLOCKS or str(d["id"]) in [CM_BLOCK, MP_BLOCK, NIKIDW_BLOCK, MANSJONARIA_BLOCK, UP_BLOCK]:
 			continue
 		var key := "blk_" + str(d["id"])
 		var zone: Array = [_largest(Geometry2D.offset_polygon(q, 1.0, Geometry2D.JOIN_MITER))]
@@ -281,6 +256,7 @@ func _build_block(site: Dictionary) -> void:
 	var oz: float = d["oz"]
 	var top: float = d["top"]
 	var piure: bool = site["block"] == PIURE_BLOCK
+	var plain_front: bool = site["block"] in PLAIN_FRONT_BLOCKS
 	var piure_wins: Array = []
 	for grp: Dictionary in d["groups"]:
 		var col := Color(grp["color"])
@@ -313,7 +289,10 @@ func _build_block(site: Dictionary) -> void:
 			var ua := Vector2(Vector2(q[0].x, q[0].z).dot(t), q[0].y - _g)
 			var ub := Vector2(Vector2(q[1].x, q[1].z).dot(t), q[1].y - _g)
 			var uc := Vector2(Vector2(q[2].x, q[2].z).dot(t), q[2].y - _g)
-			if role == "facade":
+			if role == "facade" and plain_front:
+				_mode = M_STONE  # its own modelled windows only (PLAIN_FRONT_BLOCKS)
+				_tri(q[0], q[1], q[2], n, col, ua, ub, uc, 0.0, false)
+			elif role == "facade":
 				_mode = seed
 				_tri(q[0], q[1], q[2], n, col, ua, ub, uc, top, false)
 			else:
@@ -324,6 +303,13 @@ func _build_block(site: Dictionary) -> void:
 		_piure_strips(piure_wins)
 	_mode = keep
 	_collide_raw(site)
+
+
+## Blocks whose `facade` walls are their main fronts, in front of their own modelled windows: the
+## building shader's windows on those walls stood among the model's, two grids of different
+## panes and sills over each other (F, 2026-11-26, Kamienica Roesslera i Hurtiga opposite St Anne's:
+## "some have artifacts"). Their facade walls are plain plaster in the block's colour.
+const PLAIN_FRONT_BLOCKS := ["30302033"]
 
 
 ## HOTEL PIURE (Widok 9, F's photos 2026-11-11): the street block's white panel fronts carry a

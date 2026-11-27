@@ -1,7 +1,7 @@
 extends "res://scripts/activity.gd"
 ## Loop MW-4 (docs/design/vision.md 3.4): "Na czasie" · On trend, the trend courier's side job.
 ## Passing an open Wiralek slot (within 60 m, its shop open, the trend on days 1-7) with nothing
-## else on brings a request card like Podwózka's: an office worker at Rondo Daszyńskiego wants
+## else on brings a request card like Łuber's: an office worker at Rondo Daszyńskiego wants
 ## today's trend before it's over. Accept, stop 2 s by the queue ("odbiór na aplikację": the
 ## queue lets the courier through), then deliver to a real address door within 300 m of the
 ## roundabout in 6 minutes. Pay 25 zł + 8 zł a km by road, +15 respect, a 10 zł tip *guess*; on
@@ -29,7 +29,7 @@ extends "res://scripts/activity.gd"
 ## per save, after DZ_FIRST s of play in his van's hours, Mrożulo phones: a new kebab, DŻEMINI
 ## KEBAB on Świętokrzyska, whose meat an AI agent carves (a parody of the AI assistant). Stop 2 s by
 ## its queue, bring the kebab to his van while it's warm (5 min). He bites: "Wjeżdżam w to." Then a
-## TYGRAM (the messenger parody) message from him, and for good: the MLASK sticker on DŻEMINI's wall
+## COTAM (the messenger parody) message from him, and for good: the MLASK sticker on DŻEMINI's wall
 ## and the city's longest line at its door (crowds.gd `dzemini_mlask`, the `viral` "dzemini" jokes),
 ## kept in the save (`keep` DZ_KEEP). Skipped, he rings again DZ_COOL s later. 60 zł + 10 zł a km,
 ## +25 respect, a 20 zł tip *guess*; cold: half, no tip, no respect, the sticker all the same.
@@ -161,7 +161,7 @@ const ML_COLOUR := Color("#ffbf5f")
 const ML_GRADES := [7.5, 8.0, 8.5, 9.0, 9.5]
 const ML_COLD_GRADE := 3.0
 ## "Dżemini" (G5b): the shop (crowds.gd / storefronts.gd id), the save key, the first call after this
-## much play (s), again this long after a skip, the pay *guess*, the TYGRAM card's blue, the sticker.
+## much play (s), again this long after a skip, the pay *guess*, the COTAM card's green, the sticker.
 const DZ_SITE := "dzemini_kebab"
 const DZ_KEEP := "dzemini_mlask"
 static var DZ_FIRST: float = Pacer.num("trend", "dz_first")
@@ -170,7 +170,7 @@ const DZ_BASE := 60
 const DZ_PER_KM := 10
 const DZ_TIP := 20
 const DZ_RESPECT := 25
-const TYGRAM_COLOUR := Color("#3aa0e8")
+const COTAM_COLOUR := Color("#2fd36b")
 const STICKER_YELLOW := Color("#ffd23f")
 const STICKER_PX := 0.04
 const PixelFont := preload("res://scripts/pixel_font.gd")
@@ -1131,7 +1131,7 @@ func offer_dzemini(force := false) -> bool:
 
 
 ## At the van: he bites ("Wjeżdżam w to."), the pay, and for good the MLASK on DŻEMINI (the save,
-## the queue, the sticker). The TYGRAM message follows when the card closes.
+## the queue, the sticker). The COTAM message follows when the card closes.
 func _arrive_dz() -> void:
 	var warm := _clock <= ML_WARM
 	var r := dz_pay(float(order["road"]), warm)
@@ -1159,15 +1159,15 @@ func _arrive_dz() -> void:
 			_clock, "warm" if warm else "cold", int(r["zl"]), int(r["base"]), int(r["tip"]), int(r["respect"])])
 
 
-## The TYGRAM message from Mrożulo (the messenger parody's blue card), then the job ends.
+## The COTAM message from Mrożulo (the messenger parody's green card), then the job ends.
 func _dz_tygram() -> void:
 	order["stage"] = "tygram"
 	_t = 0.0
-	show_side_card(["TYGRAM · MROŻULO", "TYGRAM · Mrożulo"],
+	show_side_card(["COTAM · MROŻULO", "COTAM · Mrożulo"],
 			["„DŻEMINI: MLASK! Naklejka już wisi na szybie. Jutro kolejka do Marszałkowskiej. Dzięki, kierowco!”",
 			"\"DŻEMINI: SMACK! The sticker's on the window. Tomorrow the queue reaches Marszałkowska. Thanks, driver!\""],
-			PackedStringArray(["OK"]), RESULT_LIFE, TYGRAM_COLOUR)
-	print("trend job: TYGRAM from Mrożulo: DŻEMINI gets the MLASK")
+			PackedStringArray(["OK"]), RESULT_LIFE, COTAM_COLOUR)
+	print("trend job: COTAM from Mrożulo: DŻEMINI gets the MLASK")
 
 
 ## The MLASK sticker on DŻEMINI's wall beside its sign, once the shop's sector has placed it.
@@ -1243,7 +1243,7 @@ func _card_expired() -> void:
 
 
 ## The autopilot's tap: the best shot on a padel point, the button of a review; a plain result and
-## the TYGRAM wait out their life, as before the kit.
+## the COTAM wait out their life, as before the kit.
 func _auto_button() -> int:
 	var sub := str(order.get("stage", ""))
 	if sub == "match":

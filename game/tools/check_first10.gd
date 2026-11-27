@@ -18,7 +18,7 @@ extends SceneTree
 ##   guide's end at GUIDE_END; a player who already flew and gave a lift is never told about the
 ##   helicopter or the rides (met, not fired); FLY asks for the helicopter and the tape at once,
 ##   RIDES for the ride; a player busy with a job gets the next intro only NEXT_GAP s after it; a
-##   player who takes every Podwózka request still meets every intro (the hold, `due`), and without
+##   player who takes every Łuber request still meets every intro (the hold, `due`), and without
 ##   the hold does not (the test means something); the replay's scripted order fires at ORDER_AT; a
 ##   helicopter-only call brings the helicopter's toast at once; `judge` flags a late, a missing and
 ##   an early-fired beat;
@@ -194,7 +194,7 @@ class Toy:
 	var flies := true         # flies when the guide says so (the heli intro)
 	var takes_rides := true   # takes the ride the guide's intro offers
 	var visits := true        # drives into the garage after its intro
-	var rider := false        # takes every Podwózka request (rides.gd: the next after ride_gap s of free driving)
+	var rider := false        # takes every Łuber request (rides.gd: the next after ride_gap s of free driving)
 	var ride_s := 150.0
 	var ride_gap := 75.0
 	var honour_hold := true   # the rides honour the guide's hold (false: as before the hold)
@@ -504,7 +504,7 @@ func _busy() -> void:
 	_summary.append("busy: the card at %.0f s" % _at(done, "choice"))
 
 
-## Run 12 (2026-11-03): a player who takes every Podwózka request kept the first call waiting
+## Run 12 (2026-11-03): a player who takes every Łuber request kept the first call waiting
 ## 83 s past its window. Once a job was done since the last intro the guide holds new requests
 ## (first10.gd `due`), so a rider meets every intro, with at most one ride between two of them;
 ## without the hold the rides crowd the intros out (the test means something).
@@ -939,7 +939,7 @@ func _words() -> void:
 		for x in l:
 			_expect(str(x).length() <= 110, "a card's body at most 110 characters: %s (%d)" % [x, str(x).length()])
 	# The choice card (F's playtest 2026-11-16): every key is in dialogue.json (a missing one reads as its own name),
-	# the numbers in the words are the game's (ladder stake and gain, Podwózka's base fare, the route's km).
+	# the numbers in the words are the game's (ladder stake and gain, Łuber's base fare, the route's km).
 	for k: String in ["choice_title", "choice_body", "choice_race", "choice_ride", "choice_fly", "next_rival", "next_waits", "tick_race"]:
 		var w: Array = FirstSteps.words(k)
 		_expect(w.size() == 2 and str(w[0]) != k and str(w[1]) != k and str(w[0]) != str(w[1]), "dialogue.json first_steps has %s in both languages: %s" % [k, w])
@@ -953,7 +953,7 @@ func _words() -> void:
 	_expect(stake == 60 and Ladder.WIN_GAIN == 100, "the reward is 60 zł and 100 respect (the ladder's data)")
 	var bs: PackedStringArray = cw["buttons"]
 	_expect(bs.size() == 3 and bs[0] == "ŚCIGAJ SIĘ · +%d zł|START RACE · +%d zł" % [stake, stake], "START RACE button: %s" % [bs])
-	_expect(bs[1] == "Podwózka · od %d zł|Give a lift · from %d zł" % [int(Rules.BASE), int(Rules.BASE)] and int(Rules.BASE) == 15, "the ride chip is from Rules.BASE: %s" % [bs])
+	_expect(bs[1] == "Łuber · od %d zł|Give a lift · from %d zł" % [int(Rules.BASE), int(Rules.BASE)] and int(Rules.BASE) == 15, "the ride chip is from Rules.BASE: %s" % [bs])
 	_expect(bs[2] == "Lot · kaseta na dachu BUW|Fly · a mixtape on the BUW roof", "the fly chip names the BUW mixtape: %s" % [bs])
 	_expect(First10.choice_words(-1.0)["body"][1].contains("? km"), "an unknown route reads as ? km, never an invented number")
 	for l: Array in [cw["body"], cw["title"]]:

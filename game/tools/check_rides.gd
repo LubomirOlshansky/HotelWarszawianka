@@ -1,5 +1,5 @@
 extends SceneTree
-## Loop 2d-1: Podwózka's rules on synthetic events (game/scripts/ride_rules.gd, the numbers in
+## Loop 2d-1: Łuber's rules on synthetic events (game/scripts/ride_rules.gd, the numbers in
 ## docs/design/parodies.md 3.3 and the section 11 defaults), without the city:
 ##  1. the star table: a hard bump (closing speed over 4 m/s), braking over 18 m/s² and a corner
 ##     over 15 m/s² cost half a star each, 2 s apart, at most 2.0 in all; lateness half a star per
@@ -40,7 +40,7 @@ const NEEDED := {
 	"podwozka_driver": ["arrive", "reroute", "river"],
 }
 ## The card buttons the job shows (hud.gd WORDS gives the Polish).
-const BUTTONS := ["PRZYJMIJ · Accept", "POMIŃ · Skip", "OK", "PODWÓZKA · ride app"]
+const BUTTONS := ["PRZYJMIJ · Accept", "POMIŃ · Skip", "OK", "ŁUBER · ride app"]
 
 var _problems := 0
 var _checks := 0
@@ -206,7 +206,7 @@ func _words() -> void:
 			"note": ["Uwagi: „stoję pod Frogsem”.", "Note: \"I'm outside the Frogs.\""], "night": true, "rain": false,
 			"rating": 4.87})
 	_expect("the request card's first line", String(card[1]).get_slice("\n", 0), "Kasia ★ 4,9 · 350 m · 1,8 km")
-	_expect("the request card's MNOŻNIK (the title)", card[0], "PODWÓZKA · MNOŻNIK ×1,5")
+	_expect("the request card's MNOŻNIK (the title)", card[0], "ŁUBER · MNOŻNIK ×1,5")
 	_expect("its gloss", card[2], "New ride · surge ×1.5 · night")
 	var data = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
 	if not data is Dictionary:

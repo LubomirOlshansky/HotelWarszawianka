@@ -755,6 +755,88 @@
      "2021-06-08"
     ]
    }
+  },
+  {
+   "slug": "rondo-dmowskiego-wells",
+   "title": "Rondo Dmowskiego's underpass stairwells",
+   "at": [
+    -836,
+    461
+   ],
+   "r": 70,
+   "sweep": "rondo remodel, 2026-11-26",
+   "decisions": {
+    "barrier:wall:-780:476": [
+     "TYPE",
+     "balustrade_rail",
+     "Rondo Dmowskiego's underpass stairwell (renovated): a low granite upstand with a dark steel railing about 1.1 m round the open well, not a 1.9 m stone wall",
+     "F's street views (teaser thread, 2026-11-25)",
+     "2026-11-25"
+    ],
+    "barrier:wall:-852:512": [
+     "TYPE",
+     "balustrade_rail",
+     "Rondo Dmowskiego's underpass stairwell (renovated): a low granite upstand with a dark steel railing about 1.1 m round the open well, not a 1.9 m stone wall",
+     "F's street views (teaser thread, 2026-11-25)",
+     "2026-11-25"
+    ],
+    "barrier:wall:-848:514": [
+     "TYPE",
+     "balustrade_rail",
+     "Rondo Dmowskiego's underpass stairwell (renovated): a low granite upstand with a dark steel railing about 1.1 m round the open well, not a 1.9 m stone wall",
+     "F's street views (teaser thread, 2026-11-25)",
+     "2026-11-25"
+    ],
+    "barrier:wall:-796:418": [
+     "TYPE",
+     "balustrade_rail",
+     "Rondo Dmowskiego's underpass stairwell (renovated): a low granite upstand with a dark steel railing about 1.1 m round the open well, not a 1.9 m stone wall",
+     "F's street views (teaser thread, 2026-11-25)",
+     "2026-11-25"
+    ],
+    "barrier:wall:-788:490": [
+     "TYPE",
+     "balustrade_rail",
+     "Rondo Dmowskiego's underpass stairwell (renovated): a low granite upstand with a dark steel railing about 1.1 m round the open well, not a 1.9 m stone wall",
+     "F's street views (teaser thread, 2026-11-25)",
+     "2026-11-25"
+    ],
+    "barrier:wall:-792:438": [
+     "TYPE",
+     "balustrade_rail",
+     "Rondo Dmowskiego's underpass stairwell (renovated): a low granite upstand with a dark steel railing about 1.1 m round the open well, not a 1.9 m stone wall",
+     "F's street views (teaser thread, 2026-11-25)",
+     "2026-11-25"
+    ],
+    "barrier:wall:-796:440": [
+     "TYPE",
+     "balustrade_rail",
+     "Rondo Dmowskiego's underpass stairwell (renovated): a low granite upstand with a dark steel railing about 1.1 m round the open well, not a 1.9 m stone wall",
+     "F's street views (teaser thread, 2026-11-25)",
+     "2026-11-25"
+    ],
+    "barrier:wall:-876:484": [
+     "TYPE",
+     "balustrade_rail",
+     "Rondo Dmowskiego's underpass stairwell (renovated): a low granite upstand with a dark steel railing about 1.1 m round the open well, not a 1.9 m stone wall",
+     "F's street views (teaser thread, 2026-11-25)",
+     "2026-11-25"
+    ],
+    "barrier:wall:-810:500": [
+     "TYPE",
+     "balustrade_rail",
+     "Rondo Dmowskiego's underpass stairwell (renovated): a low granite upstand with a dark steel railing about 1.1 m round the open well, not a 1.9 m stone wall",
+     "F's street views (teaser thread, 2026-11-25)",
+     "2026-11-25"
+    ],
+    "barrier:wall:-864:504": [
+     "TYPE",
+     "balustrade_rail",
+     "Rondo Dmowskiego's underpass stairwell (renovated): a low granite upstand with a dark steel railing about 1.1 m round the open well, not a 1.9 m stone wall",
+     "F's street views (teaser thread, 2026-11-25)",
+     "2026-11-25"
+    ]
+   }
   }
  ]
 }

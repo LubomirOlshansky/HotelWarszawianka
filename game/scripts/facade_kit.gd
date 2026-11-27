@@ -48,6 +48,20 @@ const S_KEYS := 15      # Piano House: white plaster, dark window strips in a ke
 
 const CLOCKWISE_FRONT := true
 const M_STEEL := M_GOLD + 0.5
+## Floodlit at night (F, 2026-11-26, the Cathedral's night photo): brick Gothic washed warm from the
+## ground, and stone washed the same (building.gdshader gothic() `lit`, the M_STONE branch).
+const M_GOTHIC_LIT := M_GOTHIC + 0.5
+const M_STONE_LIT := M_STONE + 0.5
+## A palace washed by floodlights from the pavement at night (F's Krakowskie Przedmieście night
+## photos, 2026-11-26: Bristol, Europejski, the Presidential Palace, the Potocki Palace all stand
+## cream-white in the dark): the stone and monument walls of a site in FLOODLIT_SITES take these
+## (building.gdshader palace_flood()); every other part keeps its own mode.
+const M_STONE_FLOOD := M_STONE + 0.75
+const M_MONUMENT_FLOOD := M_MONUMENT + 0.5
+## Krakowskie Przedmieście's floodlit palaces, churches and monuments (F's night photos,
+## 2026-11-26): their stone walls glow cream-white at night (facade_kit.gd M_STONE_FLOOD).
+const FLOODLIT_SITES := ["bristol", "europejski", "prezydencki", "potocki", "kordegarda", "karmelici",
+		"wizytki", "staszic", "czapski", "kazimierzowski", "uruski", "brama_uw", "sw_krzyz", "mickiewicz", "kopernik"]
 
 
 # --- state ---
@@ -58,6 +72,7 @@ var st  # the city's building surface (chunked_surface.gd)
 var _mode := M_STONE
 var _no_roof := false  # true: triangles go into the mesh but not the roof grid (glass the cassette must not pick)
 var _g := 0.0          # the landmark's ground height
+var _flood := false    # the current site is floodlit at night (landmarks.gd FLOODLIT_SITES)
 var _id := 0           # landmark id for the picking grid (0: none)
 var _pick := PackedByteArray()  # 16-bit landmark ids, two bytes a cell (257 sites by 2026-11-08)
 ## Walls already drawn by the current site, to cut a later coplanar wall back to what shows
@@ -75,6 +90,18 @@ var _b := Vector2.DOWN
 
 # --- emitting ---
 
+## The mode a triangle is written with: on a floodlit site, plain stone and monument walls become
+## their floodlit variants.
+func _flooded(mode: float) -> float:
+	if not _flood:
+		return mode
+	if mode == M_STONE:
+		return M_STONE_FLOOD
+	if mode == M_MONUMENT:
+		return M_MONUMENT_FLOOD
+	return mode
+
+
 ## One triangle into the city mesh, the roof grid and the picking grid. `top` is the
 ## wall top above the ground (UV2.y), uv the shader's wall coordinates (x < 0 on tops).
 func _tri(a: Vector3, b: Vector3, c: Vector3, n: Vector3, col: Color, ua: Vector2, ub: Vector2, uc: Vector2,
@@ -86,7 +113,7 @@ func _tri(a: Vector3, b: Vector3, c: Vector3, n: Vector3, col: Color, ua: Vector
 		var tu := ub
 		ub = uc
 		uc = tu
-	var uv2 := Vector2(_mode, top)
+	var uv2 := Vector2(_flooded(_mode), top)
 	st.set_color(col)
 	st.set_normal(n)
 	st.set_uv(ua)
@@ -202,7 +229,7 @@ func _tri_smooth(p: Array[Vector3], n: Array[Vector3], fn: Vector3, col: Color, 
 		ub = uc
 		uc = tu
 	st.set_color(col)
-	st.set_uv2(Vector2(_mode, top))
+	st.set_uv2(Vector2(_flooded(_mode), top))
 	st.set_normal(na)
 	st.set_uv(ua)
 	st.add_vertex(a)
@@ -938,10 +965,19 @@ func kit_colonnade(u0: float, u1: float, n: int, v: float, y0: float, y1: float,
 ## pane 5 cm proud; sill hw + 0.28 half wide, 0.30 deep, 0.16 tall under the pane; head hw + 0.20
 ## half wide, 0.17 tall just over it; jambs 0.2 square at hw + 0.08; a hood hw + 0.28 half
 ## wide to 0.30 over the pane; a two-step pediment on the head; an arched head of glass and trim.
-func kit_window(u: float, y: float, h: float, style: Win, trim: Color, glass := PAL_GLASS_DARK, hw := 0.7) -> void:
+func kit_window(u: float, y: float, h: float, style: Win, trim: Color, glass := PAL_GLASS_DARK, hw := 0.7,
+		sash := Color(0, 0, 0, 0)) -> void:
 	var f := _face
 	var top := y + h
 	_lbox(u, f + 0.02, hw, 0.03, y, top, glass, _lit(u, y))
+	if sash.a > 0.0:
+		# the sash cross: a mullion and a transom two thirds up, flat on the pane
+		var keep := _mode
+		_mode = M_STONE
+		_wall(_w(u - 0.035, f + 0.06), _w(u + 0.035, f + 0.06), y, top, _b, sash)
+		var ty := y + h * 0.66
+		_wall(_w(u - hw, f + 0.06), _w(u + hw, f + 0.06), ty - 0.035, ty + 0.035, _b, sash)
+		_mode = keep
 	if style == Win.PLAIN:
 		return
 	if style == Win.FRAMED or style == Win.HOODED:
@@ -960,6 +996,16 @@ func kit_window(u: float, y: float, h: float, style: Win, trim: Color, glass := 
 	elif style == Win.ARCHED:
 		_lbox(u, f + 0.02, hw * 0.67, 0.03, top, top + 0.30, glass)
 		_lbox(u, f + 0.08, hw * 0.86, 0.12, top + 0.24, top + 0.50, trim)
+
+
+## A round-headed window anywhere on a wall (plan point `at` its foot's middle, the wall running
+## `along`, facing `out`): a surround in `trim` 0.22 m wider round the arch, 0.2 m under the sill,
+## and the glass from `y0` to the spring and round the half disc, lit by chance at night.
+func kit_round_window(at: Vector2, along: Vector2, out: Vector2, y0: float, spring: float, hw: float, trim: Color,
+		glass := PAL_GLASS_DARK) -> void:
+	var l := _local(at)
+	_arch_panel(at, along, out, hw + 0.22, y0 - 0.2, spring, trim, 0.03, M_STONE)
+	_arch_panel(at, along, out, hw, y0, spring, glass, 0.09, _lit(l.x + l.y, y0))
 
 
 ## A window in every bay (bay centres evenly between u0 and u1) on every sill height in `sills`
@@ -1149,6 +1195,34 @@ func kit_lantern(u: float, v: float, y: float, h: float, r: float, wall: Color, 
 	var pin := roof.lightened(0.1)
 	_prism(_circle(c, 0.07, 4), y + h * 0.94 - 0.1, y + h, pin, pin, M_STONE, M_STONE)
 	_mode = keep
+
+
+## A dormer standing on a roof slope: a box `out`-ward facing (a unit plan step down the slope), its
+## front on the plan point `at` where the slope is `y` (absolute) high, 1.3 m wide and 1.5 m over the
+## slope at the front, its base 0.8 m under it and 1.8 m deep up the slope, in `body`; a small hip cap
+## over it; and a framed window 0.8 x 1.0 m in `trim` and `glass` (lit by chance at night). Cheeks are
+## the box's sides. Keeps the caller's frame.
+func kit_dormer(at: Vector2, out: Vector2, y: float, body: Color, trim: Color, glass := PAL_GLASS_DARK) -> void:
+	var keep_o := _o
+	var keep_a := _a
+	var keep_b := _b
+	var keep_face := _face
+	var keep_mode := _mode
+	_mode = M_STONE
+	_o = at
+	_b = out.normalized()
+	_a = Vector2(-_b.y, _b.x)
+	_face = 0.0
+	var top := y + 1.5
+	_prism(_rect(0.0, -0.9, 0.65, 0.9), y - 0.8, top, body, Color(0, 0, 0, 0), M_STONE)
+	_frustum(_rect(0.0, -0.9, 0.78, 1.05), top, _rect(0.0, -0.9, 0.05, 0.55), top + 0.55, body.darkened(0.12),
+			body.darkened(0.16))
+	kit_window(0.0, y + 0.2, 1.0, Win.FRAMED, trim, glass, 0.4)
+	_o = keep_o
+	_a = keep_a
+	_b = keep_b
+	_face = keep_face
+	_mode = keep_mode
 
 
 # --- the sampler ---

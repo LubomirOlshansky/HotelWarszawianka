@@ -7379,11 +7379,11 @@ func _build_wizytki(site: Dictionary) -> void:
 
 
 ## St Anne's church (Kościół św. Anny; Aigner's classical front, 1786-1788) at the start of
-## Krakowskie Przedmieście: the nave stays LoD2's (a kept skin); the model adds the front, a
-## stone plinth, flanking wings with window storeys, a central block with a portico of four
-## Corinthian-style columns under a pediment and a gilt cross, and trims Kubicki's free-standing
-## bell tower (the separate square building to the north: cornices, corner pilasters,
-## louvres, a cornice over the octagon and a gilt cross). Spec docs/landmarks/specs/anna.md.
+## Krakowskie Przedmieście, modelled whole (F, 2026-11-26; it was a front on LoD2's mass): the
+## front (a giant order of four Corinthian columns under a pediment, niches with statues, a
+## stepped attic and a gilt cross), the church behind it (`_anna_body`), the arcade wall on the
+## square (`_anna_link`) and Kubicki's free-standing bell tower (`_anna_tower`), whose OSM blocks
+## the site replaces too (SKINS `runs`). Spec docs/landmarks/specs/anna.md.
 ## Frame: origin at the front's north end on the outline, u south along the front (25.5 m),
 ## +v out of it to the street (west).
 const ANNA := Vector2(-689.3, -1358.2)
@@ -7402,7 +7402,7 @@ const ANNA_DOOR_WOOD := Color("#7c4a2a")  # the great door (photo 1: reddish oak
 const ANNA_COPPER := Color("#6e9c8b")     # the tower's copper (photo 2)
 
 
-func _build_anna(_site: Dictionary) -> void:
+func _build_anna(site: Dictionary) -> void:
 	_o = ANNA
 	_a = ANNA_AXIS.normalized()
 	_b = Vector2(-_a.y, _a.x)  # (-0.969, 0.245): out of the front, to the street (west)
@@ -7457,7 +7457,7 @@ func _build_anna(_site: Dictionary) -> void:
 	var kb := _b
 	_a = kb
 	_b = ka
-	_gable(3.3, 0.2, m, 9.8, g + 14.4, 3.7, ANNA_WALL, ANNA_ROOF)
+	_gable(3.3, 0.2, m, 9.8, g + 14.4, 3.7, ANNA_WALL, ANNA_TRIM)  # the raking cornice cream, like the photos
 	_a = ka
 	_b = kb
 	var oc := _w(m, 3.35)
@@ -7472,53 +7472,372 @@ func _build_anna(_site: Dictionary) -> void:
 	# the car meets the steps and the stylobate
 	_collide(_rect(m, 3.9, 3.0, 0.4))
 	_collide(_rect(m, 1.6, 9.3, 1.6))
+	_anna_body(g)
+	_collide(site["zone"][0])
+	_anna_link(g)
 	_anna_tower()
 
 
-## The bell tower's trim (the square building north of the church, about 10.4 m a side, 25 m
-## high, with a copper octagon to 33.8 m): a stone plinth, a string course, corner pilasters,
-## dark louvres, a heavy cornice, then a ring and a gilt cross over the octagon.
+## The whole church behind the front (F, 2026-11-26: "only front like good, back side and the roof
+## not good"; it was LoD2's mass in a skin). From the outline (in the front's frame), the orthophoto
+## and the photos from Trasa W-Z below the escarpment (refs anna_back): the front block, the nave
+## under a green copper roof with its slim ridge turret, the low annexes and the north chapel, the
+## presbytery under a darker roof, the white domed chapel on its north side, the red-brick
+## octagonal Loreto chapel at the east end, the monastery wing under orange tile and the arcade
+## bay where the Institute's arcade starts. Spec docs/landmarks/specs/anna.md "The whole church".
+const ANNA_ROOF_CU := Color("#6f9f8a")    # the nave's copper (photo 6, orthophoto's south slope)
+const ANNA_ROOF_N := Color("#4c5154")     # the north slopes' dark grey sheet (3D views, top)
+const ANNA_ROOF_DARK := Color("#5c6266")  # the annexes' and the sacristy's grey sheet
+const ANNA_SLATE := Color("#7b8590")      # the domed chapel's grey-blue dome (photos 0-2)
+const ANNA_BRICK := Color("#a5563f")      # the Loreto chapel (photos 0-2)
+const ANNA_BRICK_ROOF := Color("#6a9c86")  # green copper (3D views), not tile
+const ANNA_TILE := Color("#b85f3e")       # the monastery wing (orthophoto)
+const ANNA_GLASS := Color("#3d4a52")
+
+
+## The foot of a part at local (u, v): the ground there, never above the front's, a little down.
+func _anna_foot(u: float, v: float) -> float:
+	var p := _w(u, v)
+	return minf(float(map.terrain_height(p.x, p.y)), _g) - 0.6
+
+
+## A row of round-headed windows (`kit_round_window`) along a side wall at u = `uf` facing `side`
+## (+1 south, -1 north), one at every v in `vs`: sill y0, spring `spring`, half width hw.
+func _anna_side_row(uf: float, side: float, vs: Array, y0: float, spring: float, hw: float) -> void:
+	for v: float in vs:
+		kit_round_window(_w(uf, v), _b, _a * side, y0, spring, hw, ANNA_TRIM, ANNA_GLASS)
+
+
+## The same along an end wall at v = `vf` facing `side` (+1 west, -1 east), one at every u in `us`.
+func _anna_end_row(vf: float, side: float, us: Array, y0: float, spring: float, hw: float) -> void:
+	for u: float in us:
+		kit_round_window(_w(u, vf), _a, _b * side, y0, spring, hw, ANNA_TRIM, ANNA_GLASS)
+
+
+## A ridge along v (the nave's way) from vf (the west end) to vb over u = cu, half width hu,
+## eaves at y, rise h: the gable ends in `face`, the south slope in `south`, the north one in
+## `north` (the 3D views, 2026-11-26: the nave's and presbytery's south slopes are green copper,
+## the north slopes dark grey sheet).
+func _anna_roof_v(vf: float, vb: float, cu: float, hu: float, y: float, h: float, face: Color, south: Color,
+		north: Color, back := true) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	var at := func(u: float, v: float, yy: float) -> Vector3:
+		var p := _w(u, v)
+		return Vector3(p.x, yy, p.y)
+	var y0 := y - _g
+	var top := y + h - _g
+	var l: Vector3 = at.call(cu - hu, vf, y)
+	var r: Vector3 = at.call(cu + hu, vf, y)
+	var apex: Vector3 = at.call(cu, vf, y + h)
+	var lb: Vector3 = at.call(cu - hu, vb, y)
+	var rb: Vector3 = at.call(cu + hu, vb, y)
+	var apex_b: Vector3 = at.call(cu, vb, y + h)
+	var fwd := Vector3(_b.x, 0.0, _b.y)
+	_tri(l, r, apex, fwd, face, Vector2(0, y0), Vector2(hu * 2.0, y0), Vector2(hu, top), top)
+	if back:
+		_tri(lb, rb, apex_b, -fwd, face, Vector2(0, y0), Vector2(hu * 2.0, y0), Vector2(hu, top), top)
+	var side := Vector3(_a.x, 0.0, _a.y)
+	_quad(l, lb, apex_b, apex, (-side * h + Vector3.UP * hu).normalized(), north)
+	_quad(r, rb, apex_b, apex, (side * h + Vector3.UP * hu).normalized(), south)
+	_mode = keep
+
+
+func _anna_body(g: float) -> void:
+	_mode = M_STONE
+	# the front block behind the facade (the vestibule and the organ loft), to the entablature
+	_kbox(0.2, 25.3, -6.0, -0.35, _anna_foot(12.7, -3.0), g + 14.4, ANNA_WALL)
+	# the nave: one wide hall 20 m across with its side chapels, walls to 15 m, a steep copper roof
+	var nf := _anna_foot(14.5, -22.0)
+	_kbox(4.4, 24.5, -38.3, -6.0, nf, g + 15.0, ANNA_WALL)
+	for s: Array in [[24.5, 1.0], [4.4, -1.0]]:
+		var uf := float(s[0])
+		var sd := float(s[1])
+		# the cornice and a plinth along the side, pilasters between the window bays
+		_kbox(minf(uf, uf + sd * 0.55), maxf(uf, uf + sd * 0.55), -38.6, -6.0, g + 14.3, g + 15.0, ANNA_TRIM)
+		_kbox(minf(uf, uf + sd * 0.15), maxf(uf, uf + sd * 0.15), -38.3, -6.0, nf, g + 0.9, ANNA_BASE)
+		for v: float in [-11.7, -17.2, -22.7, -28.2, -33.7]:
+			_kbox(minf(uf, uf + sd * 0.18), maxf(uf, uf + sd * 0.18), v - 0.45, v + 0.45, g + 0.9, g + 14.3, ANNA_TRIM)
+	_anna_side_row(24.5, 1.0, [-9.0, -14.5, -20.0, -25.5, -31.0, -36.0], g + 7.6, g + 12.0, 1.0)
+	_anna_side_row(4.4, -1.0, [-17.5, -23.0], g + 9.4, g + 12.2, 0.9)
+	_anna_roof_v(-5.6, -38.7, 14.45, 10.6, g + 15.0, 8.8, ANNA_WALL, ANNA_ROOF_CU, ANNA_ROOF_N)
+	# the slim copper ridge turret near the nave's east end (photo 6): an octagon, a spire, a cross
+	var tc := _w(14.45, -34.5)
+	_prism(_circle(tc, 0.95, 8), g + 22.4, g + 26.0, ANNA_ROOF_CU.darkened(0.08), ANNA_ROOF_CU, M_STONE, M_STONE)
+	for k in 4:
+		var ang := TAU * float(k) / 4.0 + TAU / 16.0
+		var o2 := Vector2(cos(ang), sin(ang))
+		_arch_panel(tc + o2 * 0.88, Vector2(-o2.y, o2.x), o2, 0.3, g + 24.0, g + 25.2, ANNA_DOOR, 0.03, M_STONE)
+	_frustum(_circle(tc, 1.15, 8), g + 26.0, _circle(tc, 0.12, 8), g + 30.4, ANNA_ROOF_CU)
+	_lbox(14.45, -34.5, 0.07, 0.07, g + 30.4, g + 31.9, ANNA_GOLD, M_STONE, ANNA_GOLD)
+	_lbox(14.45, -34.5, 0.07, 0.4, g + 31.2, g + 31.45, ANNA_GOLD, M_STONE, ANNA_GOLD)
+	# the low north annexes between the bell tower's court and the nave, and the north chapel
+	_kbox(-2.5, 4.4, -15.5, -6.0, _anna_foot(1.0, -10.7), g + 8.4, ANNA_WALL)
+	_hip(0.95, -10.75, 3.45, 4.75, g + 8.4, 2.2, ANNA_ROOF_DARK)
+	_kbox(-6.5, 4.4, -38.3, -26.5, _anna_foot(-1.0, -32.4), g + 10.45, ANNA_WALL)
+	_kbox(-6.8, 4.4, -38.6, -26.2, g + 10.4, g + 11.0, ANNA_TRIM)
+	_hip(-1.05, -32.4, 5.45, 5.9, g + 11.0, 3.2, ANNA_ROOF_DARK)
+	_anna_side_row(-6.5, -1.0, [-29.4, -35.4], g + 4.0, g + 7.6, 0.85)
+	_anna_end_row(-26.5, 1.0, [-3.6, 1.4], g + 4.0, g + 7.6, 0.85)
+	# the presbytery, narrower and lower, its east gable a cream pediment over the escarpment
+	_kbox(6.0, 22.0, -56.5, -38.3, _anna_foot(14.0, -47.0), g + 13.45, ANNA_WALL)
+	_kbox(5.6, 22.4, -56.9, -38.3, g + 13.4, g + 14.0, ANNA_TRIM)
+	_anna_roof_v(-38.3, -56.9, 14.0, 8.4, g + 14.0, 6.6, ANNA_WALL, ANNA_ROOF_CU, ANNA_ROOF_N)
+	_anna_side_row(22.0, 1.0, [-42.5, -48.0, -53.0], g + 7.4, g + 11.4, 0.9)
+	_anna_side_row(6.0, -1.0, [-53.0], g + 7.4, g + 11.4, 0.9)
+	_anna_end_row(-56.5, -1.0, [10.0, 18.0], g + 7.4, g + 11.4, 0.9)
+	# the sacristy north of it and the block south of it, both low under hipped roofs
+	_kbox(1.5, 6.0, -49.2, -38.3, _anna_foot(3.7, -43.7), g + 9.0, ANNA_WALL)
+	_hip(3.75, -43.75, 2.25, 5.45, g + 9.0, 1.8, ANNA_ROOF_DARK)
+	_kbox(22.0, 29.6, -57.5, -38.3, _anna_foot(25.8, -47.9), g + 11.0, ANNA_WALL)
+	_hip(25.8, -47.9, 3.8, 9.6, g + 11.0, 2.6, ANNA_ROOF_DARK)
+	_anna_end_row(-57.5, -1.0, [24.0, 27.6], g + 2.0, g + 5.0, 0.6)
+	_anna_end_row(-57.5, -1.0, [24.0, 27.6], g + 6.6, g + 9.2, 0.6)
+	# the white domed chapel on the presbytery's north side (photos 0-2): a drum with tall
+	# round-headed windows, half-moon windows over them, a cornice, a grey dome and a lantern
+	var dc := _w(4.6, -45.6)
+	var df := _anna_foot(4.6, -45.6)
+	_prism(_circle(dc, 3.3, 12), df, g + 12.4, ANNA_WALL, Color(0, 0, 0, 0), M_STONE)
+	_frustum(_circle(dc, 3.65, 12), g + 12.4, _circle(dc, 3.6, 12), g + 13.0, ANNA_TRIM)
+	for k in 12:
+		var ang := TAU * (float(k) + 0.5) / 12.0
+		var o2 := Vector2(cos(ang), sin(ang))
+		if (o2.x * _a.x + o2.y * _a.y) > 0.55:
+			continue  # the side against the presbytery
+		var at := dc + o2 * 3.22
+		_arch_panel(at, Vector2(-o2.y, o2.x), o2, 0.7, g + 4.2, g + 8.0, ANNA_TRIM, 0.04, M_STONE)
+		_arch_panel(at, Vector2(-o2.y, o2.x), o2, 0.5, g + 4.4, g + 8.0, ANNA_GLASS, 0.08, _lit(float(k), g + 4.4))
+		_arch_panel(at, Vector2(-o2.y, o2.x), o2, 0.55, g + 10.0, g + 10.0, ANNA_GLASS, 0.08, M_STONE)
+	var dp := [[3.6, 13.0], [3.4, 14.2], [2.9, 15.3], [2.1, 16.1], [1.0, 16.6]]
+	for k in dp.size() - 1:
+		_frustum(_circle(dc, float(dp[k][0]), 12), g + float(dp[k][1]), _circle(dc, float(dp[k + 1][0]), 12),
+				g + float(dp[k + 1][1]), ANNA_SLATE.lightened(0.05 * float(k % 2)))
+	_prism(_circle(dc, 0.75, 8), g + 16.4, g + 17.6, ANNA_WALL, Color(0, 0, 0, 0), M_STONE)
+	_frustum(_circle(dc, 0.95, 8), g + 17.6, _circle(dc, 0.1, 8), g + 18.7, ANNA_SLATE, ANNA_SLATE)
+	_lbox(4.6, -45.6, 0.06, 0.06, g + 18.7, g + 19.9, ANNA_GOLD, M_STONE, ANNA_GOLD)
+	# the Loreto chapel (1643): a red-brick octagon on buttresses at the east end, a cream
+	# cornice, a steep tent roof with a little lantern and a cross
+	var lc := _w(16.2, -61.6)
+	var lf := _anna_foot(16.2, -61.6)
+	var ring := _circle(lc, 4.6, 8)
+	_prism(ring, lf, g + 9.6, ANNA_BRICK, Color(0, 0, 0, 0), M_STONE)
+	_frustum(_circle(lc, 4.95, 8), g + 9.6, _circle(lc, 4.95, 8), g + 10.2, ANNA_TRIM)
+	for k in 8:
+		var p: Vector2 = ring[k]
+		var q: Vector2 = ring[(k + 1) % 8]
+		var o2 := ((p + q) * 0.5 - lc).normalized()
+		var bo := (p - lc).normalized()
+		_prism(_square(p + bo * 0.35, 0.42), lf, g + 7.6, ANNA_BRICK.darkened(0.06), ANNA_BRICK, M_STONE, M_STONE)
+		if (o2.x * _b.x + o2.y * _b.y) > 0.5:
+			continue  # the side against the presbytery
+		var mid := (p + q) * 0.5
+		_arch_panel(mid, (q - p).normalized(), o2, 0.72, g + 2.8, g + 6.4, ANNA_TRIM, 0.04, M_STONE)
+		_arch_panel(mid, (q - p).normalized(), o2, 0.52, g + 3.0, g + 6.4, ANNA_GLASS, 0.08, _lit(float(k) + 7.0, g + 3.0))
+	_frustum(_circle(lc, 5.0, 8), g + 10.2, _circle(lc, 0.7, 8), g + 15.6, ANNA_BRICK_ROOF)
+	_prism(_circle(lc, 0.6, 8), g + 15.6, g + 16.6, ANNA_WALL, Color(0, 0, 0, 0), M_STONE)
+	_frustum(_circle(lc, 0.75, 8), g + 16.6, _circle(lc, 0.08, 8), g + 17.8, ANNA_BRICK_ROOF)
+	_lbox(16.2, -61.6, 0.06, 0.06, g + 17.8, g + 19.0, ANNA_GOLD, M_STONE, ANNA_GOLD)
+	# the monastery wing to the south-east: cream, two rows of windows, orange tile (orthophoto)
+	var mf := _anna_foot(36.2, -44.5)
+	_kbox(29.0, 43.5, -50.6, -38.4, mf, g + 10.15, ANNA_WALL)
+	_hip(36.25, -44.5, 7.25, 6.1, g + 10.6, 3.6, ANNA_TILE)
+	_kbox(28.7, 43.8, -50.9, -38.1, g + 10.1, g + 10.6, ANNA_TRIM)
+	for row: float in [g + 2.0, g + 6.4]:
+		_anna_end_row(-50.6, -1.0, [31.0, 33.6, 36.2, 38.8, 41.4], row, row + 2.0, 0.55)
+		_anna_side_row(43.5, 1.0, [-40.6, -43.2, -45.8, -48.4], row, row + 2.0, 0.55)
+		_anna_end_row(-38.4, 1.0, [31.6, 34.4, 37.2, 40.0, 42.4], row, row + 2.0, 0.55)
+	# where the Institute's arcade starts, in the church's outline: one bay of its two storeys
+	_kbox(24.6, 30.4, -6.4, -0.1, _anna_foot(27.5, -3.0), g + 11.05, ANNA_WALL)
+	_kbox(24.4, 30.6, -6.6, 0.25, g + 11.0, g + 11.6, ANNA_TRIM)
+	_hip(27.5, -3.25, 2.9, 3.15, g + 11.6, 1.8, ANNA_ROOF_DARK)
+	for y: Array in [[g + 0.6, g + 3.6], [g + 6.0, g + 9.0]]:
+		_arch_panel(_w(27.5, 0.0), _a, _b, 1.6, float(y[0]), float(y[1]), ANNA_TRIM, 0.03, M_STONE)
+		_arch_panel(_w(27.5, 0.0), _a, _b, 1.3, float(y[0]), float(y[1]), NK_SHADE.darkened(0.22 if y[0] < g + 3.0 else 0.0), 0.09, M_STONE)
+
+
+## The low arcade wall between the bell tower and the church's front, on the square (photo 4):
+## cream, a cornice, three round-headed gateways with dark iron gates.
+func _anna_link(g: float) -> void:
+	var p0 := Vector2(-689.275, -1379.575) + Vector2(0.985, -0.174) * -5.1 + Vector2(0.174, 0.985) * 5.4
+	var p1 := ANNA + ANNA_AXIS.normalized() * -0.3
+	var len := kit_front(p0, p1)  # u south along the square, v out to it (west)
+	var f := minf(float(map.terrain_height(p0.x, p0.y)), g) - 0.6
+	_kbox(0.0, len, -0.8, 0.0, f, g + 5.2, ANNA_WALL)
+	kit_cornice(0.0, len, g + 5.2, ANNA_TRIM, 0.35, 0.4)
+	kit_ledge(0.0, len, f, g + 0.6 - f, ANNA_BASE, 0.06)
+	for u: float in _spread(0.0, len, 3):
+		_arch_panel(_w(u, 0.0), _a, _b, 1.45, g + 0.6, g + 3.0, ANNA_TRIM, 0.03, M_STONE)
+		_arch_panel(_w(u, 0.0), _a, _b, 1.2, g + 0.6, g + 3.0, ANNA_DOOR, 0.09, M_STONE)
+
+
+## The bell tower (Kubicki's, 1806-1807), rebuilt whole (F, 2026-11-26: "no front, not like in real
+## life"; the mass was OSM's 25 m block with an octagon on it). From the photos (refs anna_tower,
+## st_anne 4): a square of 10.6 m, a ground stage of channelled rustication to 8.3 m, then two
+## stages with a triple arcade of blind round arches on every face (the middle one a dark window)
+## between rusticated corner quoins, a frieze of rosette - oculus - rosette, a row of round
+## modillions under the cornice, the observation terrace with an iron railing and the green copper
+## octagonal lantern with arched openings, a low dome and a cross. Frame: u east, v south.
+const ANNA_T_WALL := Color("#e6dbbe")  # a warmer cream, so the white arcades read on it
+const ANNA_T_PANEL := Color("#f6f2e8")
+const ANNA_IRON := Color("#2a2b2c")
+
+
 func _anna_tower() -> void:
 	_o = Vector2(-689.275, -1379.575)
-	_a = Vector2(0.985, -0.174).normalized()
-	_b = Vector2(-_a.y, _a.x)
+	var ax := Vector2(0.985, -0.174).normalized()
+	var bx := Vector2(-ax.y, ax.x)
+	_a = ax
+	_b = bx
 	_g = map.terrain_height(_o.x, _o.y)
 	var g := _g
 	_mode = M_STONE
-	var h := 5.35  # half the square's side, a little out of the wall
-	_lbox(0.0, 0.0, h + 0.3, h + 0.3, g - 0.6, g + 1.4, ANNA_BASE, M_STONE, ANNA_BASE.lightened(0.05))
-	_lbox(0.0, 0.0, h + 0.15, h + 0.15, g + 11.6, g + 12.2, ANNA_TRIM, M_STONE, ANNA_TRIM)
-	for su: float in [-1.0, 1.0]:
-		for sv: float in [-1.0, 1.0]:
-			_lbox(su * (h - 0.2), sv * (h - 0.2), 0.55, 0.55, g + 1.4, g + 24.0, ANNA_TRIM, M_STONE, ANNA_TRIM)
-	_mode = M_GLASS
-	for side: Vector2 in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
-		var fa := _w(side.x * (h + 0.1) - side.y * 1.0, side.y * (h + 0.1) + side.x * 1.0)
-		var fb := _w(side.x * (h + 0.1) + side.y * 1.0, side.y * (h + 0.1) - side.x * 1.0)
-		_wall(fa, fb, g + 15.0, g + 21.0, Vector2(side.x * _a.x + side.y * _b.x, side.x * _a.y + side.y * _b.y), ANNA_DOOR)
-	_mode = M_STONE
-	_lbox(0.0, 0.0, h + 0.5, h + 0.5, g + 24.0, g + 25.1, ANNA_TRIM, M_STONE, ANNA_TRIM)
-	_lbox(0.0, 0.0, h + 0.3, h + 0.3, g + 23.2, g + 24.0, ANNA_WALL, M_STONE, ANNA_WALL)
-	# The observation terrace (F, 2026-11-01): a stone balustrade round the cornice's edge, a post
-	# at each corner, 1.1 m high over the walking level at g + 25.1 (the visitors stand inside it,
-	# crowds.gd DECKS `anna_deck`, 5 m from the centre).
-	for su: float in [-1.0, 1.0]:
-		_lbox(su * (h + 0.38), 0.0, 0.12, h + 0.5, g + 25.1, g + 26.2, ANNA_TRIM, M_STONE, ANNA_TRIM)
-		_lbox(0.0, su * (h + 0.38), h + 0.5, 0.12, g + 25.1, g + 26.2, ANNA_TRIM, M_STONE, ANNA_TRIM)
-		for sv: float in [-1.0, 1.0]:
-			_lbox(su * (h + 0.38), sv * (h + 0.38), 0.2, 0.2, g + 25.1, g + 26.7, ANNA_WALL, M_STONE, ANNA_WALL)
-	var c := _w(0.0, 0.0)
-	# photo 2: an octagonal belfry in cream with arched louvres under a copper dome and lantern
-	_prism(_circle(c, 2.9, 8), g + 25.1, g + 30.0, ANNA_WALL, ANNA_WALL, M_STONE, M_STONE)
+	var h := 5.3
+	var foot := g - 0.6
+	for c: Vector2 in [Vector2(-h, -h), Vector2(h, -h), Vector2(h, h), Vector2(-h, h)]:
+		foot = minf(foot, float(map.terrain_height(_w(c.x, c.y).x, _w(c.x, c.y).y)) - 0.6)
+	_lbox(0.0, 0.0, h + 0.2, h + 0.2, foot, g + 0.6, ANNA_BASE, M_STONE, ANNA_BASE.lightened(0.05))
+	_lbox(0.0, 0.0, h, h, g + 0.6, g + 24.4, ANNA_T_WALL, M_STONE, ANNA_T_WALL)
+	# every face in its own frame: u along it, v out of it, the face at v = h
+	for out: Vector2 in [-ax, bx, ax, -bx]:
+		_b = out
+		_a = Vector2(out.y, -out.x)
+		kit_face(h)
+		kit_bands(-h, h, g + 0.6, g + 8.2, 0.55, ANNA_T_WALL)
+		kit_ledge(-h, h, g + 8.2, 0.35, ANNA_TRIM, 0.14)
+		kit_ledge(-h, h, g + 14.5, 0.22, ANNA_TRIM, 0.1)
+		kit_ledge(-h, h, g + 20.6, 0.22, ANNA_TRIM, 0.1)
+		# the rusticated corner quoins up the two arcaded stages and the frieze
+		for e: Array in [[-h, -h + 1.3], [h - 1.3, h]]:
+			_kbox(float(e[0]), float(e[1]), h - 0.05, h + 0.1, g + 8.55, g + 23.1, ANNA_T_WALL.lightened(0.03))
+			kit_face(h + 0.1)
+			kit_bands(float(e[0]), float(e[1]), g + 8.55, g + 23.1, 0.52, ANNA_T_WALL)
+			kit_face(h)
+		# the two triple arcades: white blind arches on thin piers, the middle one a dark window
+		for y0: float in [g + 9.1, g + 15.2]:
+			kit_ledge(-3.6, 3.6, y0 - 0.1, 0.16, ANNA_TRIM, 0.14)
+			for u: float in [-2.4, 0.0, 2.4]:
+				_arch_panel(_w(u, h), _a, _b, 1.02, y0, y0 + 3.3, ANNA_T_PANEL, 0.04, M_STONE)
+			for u: float in [-3.5, -1.2, 1.2, 3.5]:
+				_kbox(u - 0.17, u + 0.17, h, h + 0.1, y0, y0 + 3.3, ANNA_TRIM)
+			_arch_panel(_w(0.0, h), _a, _b, 0.5, y0 + 0.9, y0 + 3.2, ANNA_DOOR, 0.08, M_GLASS)
+		# the frieze: rosette, oculus, rosette in cream frames
+		_kbox(-3.4, 3.4, h, h + 0.05, g + 21.2, g + 23.1, ANNA_T_PANEL)
+		for u: float in [-2.2, 0.0, 2.2]:
+			var c3 := _w(u, h + 0.09)
+			_disc(Vector3(c3.x, g + 22.15, c3.y), Vector3(out.x, 0.0, out.y), 0.82, 12, ANNA_TRIM)
+			var c4 := _w(u, h + 0.13)
+			var inner := ANNA_DOOR if u == 0.0 else ANNA_T_WALL.darkened(0.08)
+			_disc(Vector3(c4.x, g + 22.15, c4.y), Vector3(out.x, 0.0, out.y), 0.55 if u == 0.0 else 0.62, 10, inner)
+		# the round modillions under the cornice, then the cornice (the terrace's floor at 25.1)
+		for k in 11:
+			var u := -h + 0.5 + (2.0 * h - 1.0) * float(k) / 10.0
+			_kbox(u - 0.16, u + 0.16, h, h + 0.2, g + 23.45, g + 23.8, ANNA_T_PANEL)
+		kit_cornice(-h, h, g + 24.4, ANNA_TRIM, 0.7, 0.8)
+		# the terrace's iron railing on the cornice's edge
+		var rv := h + 0.7
+		_kbox(-h - 0.7, h + 0.7, rv - 0.03, rv + 0.03, g + 26.05, g + 26.15, ANNA_IRON)
+		_kbox(-h - 0.7, h + 0.7, rv - 0.03, rv + 0.03, g + 25.25, g + 25.32, ANNA_IRON)
+		for k in 10:
+			var u := -h - 0.7 + (2.0 * h + 1.4) * float(k) / 9.0
+			_kbox(u - 0.03, u + 0.03, rv - 0.03, rv + 0.03, g + 25.1, g + 26.15, ANNA_IRON)
+	_a = ax
+	_b = bx
+	# the green copper lantern, about half the tower's width (Fable 2026-11-26): an octagon of
+	# pilasters with arched openings, a cornice, a low dome
+	var c := _o
+	_prism(_circle(c, 2.7, 8), g + 25.1, g + 29.6, ANNA_COPPER.darkened(0.05), Color(0, 0, 0, 0), M_STONE)
 	for k in 8:
 		var ang := TAU * float(k) / 8.0 + TAU / 16.0
-		var out := Vector2(cos(ang), sin(ang))
-		_arch_panel(c + out * 2.68, Vector2(-out.y, out.x), out, 0.55, g + 26.5, g + 28.3, ANNA_DOOR, 0.03, M_GLASS)
-	_frustum(_circle(c, 3.5, 8), g + 30.0, _circle(c, 3.2, 8), g + 30.6, ANNA_TRIM, ANNA_TRIM)
-	_frustum(_circle(c, 3.2, 8), g + 30.6, _circle(c, 0.5, 8), g + 34.4, ANNA_COPPER, ANNA_COPPER)
-	_prism(_circle(c, 0.5, 8), g + 34.4, g + 35.6, ANNA_COPPER, ANNA_COPPER, M_STONE, M_STONE)
-	_lbox(0.0, 0.0, 0.14, 0.14, g + 35.6, g + 38.0, ANNA_GOLD, M_STONE, ANNA_GOLD)
-	_lbox(0.0, 0.0, 0.55, 0.14, g + 36.8, g + 37.2, ANNA_GOLD, M_STONE, ANNA_GOLD)
+		var o2 := Vector2(cos(ang), sin(ang))
+		var along := Vector2(-o2.y, o2.x)
+		var at := c + o2 * 2.5
+		_arch_panel(at, along, o2, 0.62, g + 25.4, g + 28.0, ANNA_DOOR, 0.04, M_GLASS)
+		_kbox_world(c + Vector2(cos(ang - TAU / 16.0), sin(ang - TAU / 16.0)) * 2.75, 0.22, g + 25.1, g + 29.6, ANNA_COPPER)
+	_frustum(_circle(c, 3.1, 8), g + 29.6, _circle(c, 3.0, 8), g + 30.3, ANNA_COPPER.lightened(0.05))
+	_frustum(_circle(c, 2.85, 8), g + 30.3, _circle(c, 2.2, 8), g + 31.4, ANNA_COPPER)
+	_frustum(_circle(c, 2.2, 8), g + 31.4, _circle(c, 0.45, 8), g + 32.6, ANNA_COPPER.lightened(0.04))
+	_prism(_circle(c, 0.35, 8), g + 32.6, g + 33.3, ANNA_COPPER, ANNA_COPPER, M_STONE, M_STONE)
+	_lbox(0.0, 0.0, 0.07, 0.07, g + 33.3, g + 35.1, ANNA_GOLD, M_STONE, ANNA_GOLD)
+	_lbox(0.0, 0.0, 0.45, 0.07, g + 34.3, g + 34.55, ANNA_GOLD, M_STONE, ANNA_GOLD)
+	_collide(_rect(0.0, 0.0, h + 0.2, h + 0.2))
+
+
+## A small square post at world p, `r` half wide, from y0 to y1 (the lantern's pilasters).
+func _kbox_world(p: Vector2, r: float, y0: float, y1: float, col: Color) -> void:
+	_prism(_square(p, r), y0, y1, col, col, M_STONE, M_STONE)
+
+
+## The Institute of Rural Culture and Heritage (Narodowy Instytut Kultury i Dziedzictwa Wsi,
+## Krakowskie Przedmieście 66, next to St Anne's), modelled whole (F, 2026-11-26: "the front like
+## stitched on another front", it was a street block's front on LoD2's mass). From the photos (refs
+## nikidw, Mapillary 11): one long two-storey arcade on the street, 12 bays: a ground floor of
+## rusticated piers and open round arches, a ledge, the upper loggia of tall round arches between
+## pilasters with a balustrade in each, the cornice and a plain attic; the wings behind (down the
+## escarpment) plain cream with rows of windows, grey hipped roofs over all. Frame: the outline's street
+## line from its north end (by the church) to its south end, u south along it, +v out to the street.
+const NK_WALL := Color("#e8dcc0")
+const NK_TRIM := Color("#f2ead8")
+const NK_DARK := Color("#34393d")
+const NK_SHADE := Color("#b9ac92")  # the loggias' back walls in their own shade (Fable 2026-11-26)
+const NK_ROOF := Color("#7d7f80")
+const NK_N := Vector2(-680.2, -1328.7)
+const NK_S := Vector2(-667.1, -1282.9)
+
+
+func _find_nikidw() -> void:
+	var outline := _landmark("Narodowy Instytut Kultury i Dziedzictwa Wsi")
+	if outline.size() < 3:
+		return
+	_add_site("nikidw", [outline])
+
+
+func _build_nikidw(site: Dictionary) -> void:
+	var ring: PackedVector2Array = site["zone"][0]
+	var length := kit_front(NK_N, NK_S)
+	_g = map.terrain_height(_w(length * 0.5, 2.0).x, _w(length * 0.5, 2.0).y)
+	var g := _g
+	var eave := g + 12.9
+	_mode = M_STONE
+	# the whole mass from the outline: plain cream walls with the tall windows of M_MONUMENT on the
+	# wings behind, a flat top under the hipped roofs
+	_prism(ring, _ground_under(ring) - 0.6, eave, NK_WALL, Color(0, 0, 0, 0), M_STONE, M_STONE)
+	_cap_holes(ring, [], eave - 0.25, NK_ROOF)
+	kit_cornice_ring(ring, eave - 0.6, NK_TRIM, 0.35, 0.35)
+	# the street front, 0.35 m proud of the outline so it covers the mass's wall whole
+	kit_face(0.35)
+	var foot := minf(float(map.terrain_height(NK_N.x, NK_N.y)), float(map.terrain_height(NK_S.x, NK_S.y))) - 0.6
+	_kbox(0.0, length, -0.2, 0.35, foot, eave, NK_WALL)
+	kit_bands(0.0, length, g + 0.4, g + 5.0, 0.5, NK_WALL)
+	kit_ledge(0.0, length, foot, g + 0.4 - foot, NK_WALL.darkened(0.12), 0.08)
+	kit_ledge(0.0, length, g + 5.1, 0.4, NK_TRIM, 0.18)
+	var bays := 12
+	var c := _spread(0.0, length, bays)
+	var bw := length / float(bays)
+	for i in bays:
+		var u: float = c[i]
+		# the ground arcade: a dark open arch in a cream archivolt
+		_arch_panel(_w(u, 0.35), _a, _b, bw * 0.36 + 0.25, g + 0.4, g + 3.45, NK_TRIM, 0.05, M_STONE)
+		_arch_panel(_w(u, 0.35), _a, _b, bw * 0.36, g + 0.4, g + 3.45, NK_SHADE.darkened(0.22), 0.1, M_STONE)
+		# the upper loggia: a taller dark arch with its balustrade
+		_arch_panel(_w(u, 0.35), _a, _b, bw * 0.34 + 0.22, g + 5.9, g + 9.8, NK_TRIM, 0.05, M_STONE)
+		_arch_panel(_w(u, 0.35), _a, _b, bw * 0.34, g + 5.9, g + 9.8, NK_SHADE, 0.1, M_STONE)
+		kit_face(0.45)
+		kit_attic(u - bw * 0.34, u + bw * 0.34, g + 5.9, NK_TRIM, 0.95, Attic.BALUSTRADE)
+		kit_face(0.35)
+	# pilasters between the upper arches, the frieze, the cornice and the attic
+	for i in bays + 1:
+		kit_pilaster(bw * float(i), g + 5.5, g + 11.7, NK_TRIM, 0.55, 0.14)
+	kit_ledge(0.0, length, g + 11.7, 0.5, NK_TRIM, 0.12)
+	kit_cornice(0.0, length, g + 12.3, NK_TRIM, 0.4, 0.6)
+	# grey hipped roofs (the 3D views, 2026-11-26): over the street range, then, in St Anne's frame,
+	# over the wing down the escarpment and the short wing by the church
+	_hip(length * 0.5, -6.6, length * 0.5 + 0.3, 6.9, eave, 3.4, NK_ROOF)
+	_o = ANNA
+	_a = ANNA_AXIS.normalized()
+	_b = Vector2(-_a.y, _a.x)
+	_hip(50.6, -33.6, 7.2, 17.5, eave, 3.0, ANNA_TILE)  # the east wing under orange tile, like the monastery
+	_hip(30.0, -11.45, 5.8, 5.3, eave, 2.4, NK_ROOF)
+	_collide(ring)
 
 
 ## St John's Archcathedral (Archikatedra św. Jana Chrzciciela, Old Town): the nave stays the
@@ -7560,7 +7879,7 @@ func _build_archikatedra(_site: Dictionary) -> void:
 	var g := _g
 	# the portal porch: a brick block with a stone plinth, a dark pointed opening, a gable
 	_lbox(m, 1.1, 4.6, 1.6, g - 0.6, g + 1.0, ARCH_TRIM, M_STONE, ARCH_TRIM.lightened(0.04))
-	_lbox(m, 1.0, 4.4, 1.4, g + 1.0, g + 8.5, ARCH_BRICK, M_GOTHIC, ARCH_BRICK)
+	_lbox(m, 1.0, 4.4, 1.4, g + 1.0, g + 8.5, ARCH_BRICK, M_GOTHIC_LIT, ARCH_BRICK)
 	_mode = M_GLASS
 	_wall(_w(m - 1.5, 2.43), _w(m + 1.5, 2.43), g + 1.2, g + 5.4, _b, ARCH_GLASS)
 	var ka := _a
@@ -7578,18 +7897,21 @@ func _build_archikatedra(_site: Dictionary) -> void:
 	# shafts rising in steps of 3.3 m, 2.2 m apart, cream panels each with a blind lancet between
 	# them, a cross on the top pair.
 	var body_top := 16.0
-	_lbox(m, 0.55, 13.3, 0.8, g - 0.55, g + body_top, ARCH_BRICK, M_GOTHIC, ARCH_BRICK)
-	_lbox(m, 0.55, 14.2, 1.05, g + body_top, g + body_top + 1.2, ARCH_TRIM, M_STONE, ARCH_TRIM)
+	_lbox(m, 0.55, 13.3, 0.8, g - 0.55, g + body_top, ARCH_BRICK, M_GOTHIC_LIT, ARCH_BRICK)
+	_lbox(m, 0.55, 14.2, 1.05, g + body_top, g + body_top + 1.2, ARCH_TRIM, M_STONE_LIT, ARCH_TRIM)
 	for bu: float in [m - 5.5, m + 5.5]:
-		_lbox(bu, 1.1, 1.3, 0.9, g - 0.45, g + 14.2, ARCH_BRICK, M_GOTHIC, ARCH_TRIM)
+		_lbox(bu, 1.1, 1.3, 0.9, g - 0.45, g + 14.2, ARCH_BRICK, M_GOTHIC_LIT, ARCH_TRIM)
 		_lbox(bu, 1.1, 1.45, 1.05, g + 14.2, g + 14.7, ARCH_TRIM, M_STONE, ARCH_TRIM)
 	# the three pointed windows: dark glass in a pale splay, a stone sill
 	_mode = M_GLASS
 	for wu: float in [m - 9.0, m, m + 9.0]:
 		var ww := 1.15 if absf(wu - m) < 1.0 else 1.0
 		var top := 14.2 if absf(wu - m) < 1.0 else 13.4
-		_arch_panel(_w(wu, 1.34), _a, _b, ww, g + 3.6, g + top - ww - 0.2, ARCH_GLASS, 0.08, M_GLASS)
-		_arch_panel(_w(wu, 1.34), _a, _b, ww + 0.45, g + 3.3, g + top - ww - 0.2, CATH_SPLAY, 0.05, M_STONE)
+		# leaded glass, not M_GLASS's office curtain wall (F, 2026-11-26: "strange windows"), and a
+		# stone mullion up the middle
+		_arch_panel(_w(wu, 1.34), _a, _b, ww, g + 3.6, g + top - ww - 0.2, ARCH_GLASS, 0.08, M_STONE)
+		_arch_panel(_w(wu, 1.34), _a, _b, ww + 0.45, g + 3.3, g + top - ww - 0.2, CATH_SPLAY, 0.05, M_STONE_LIT)
+		_lbox(wu, 1.45, 0.07, 0.04, g + 3.6, g + top - 0.5, CATH_SPLAY, M_STONE_LIT, CATH_SPLAY)
 	_mode = M_STONE
 	# the stepped gable: six levels, the outer one the full width
 	var base := g + body_top + 1.2
@@ -7597,15 +7919,15 @@ func _build_archikatedra(_site: Dictionary) -> void:
 	for i in 6:
 		var hw := 13.0 - 2.2 * float(i)
 		var ty: float = base + float(tops[i])
-		_lbox(m, 0.4, hw, 0.8, base - 0.1, ty, CATH_PANEL, M_STONE, ARCH_BRICK)
+		_lbox(m, 0.4, hw, 0.8, base - 0.1, ty, CATH_PANEL, M_STONE_LIT, ARCH_BRICK)
 		for sgn: float in [-1.0, 1.0]:
-			_lbox(m + sgn * hw, 0.62, 0.45, 0.62, base - 0.1, ty, ARCH_BRICK, M_GOTHIC, ARCH_BRICK)
+			_lbox(m + sgn * hw, 0.62, 0.45, 0.62, base - 0.1, ty, ARCH_BRICK, M_GOTHIC_LIT, ARCH_BRICK)
 			_pinnacle(m + sgn * hw, 0.62, 0.9, ty, 1.5, ARCH_BRICK)
 			# the blind lancet in the panel outside this shaft's neighbour
 			if i < 5:
 				var lu := m + sgn * (hw - 1.1)
-				_arch_panel(_w(lu, 1.2), _a, _b, 0.5, base + 1.2, base + float(tops[i]) - 1.9, ARCH_BRICK.lightened(0.25), 0.03, M_STONE)
-	_arch_panel(_w(m, 1.2), _a, _b, 0.6, base + 6.0, base + float(tops[5]) - 2.4, ARCH_BRICK.lightened(0.25), 0.03, M_STONE)
+				_arch_panel(_w(lu, 1.2), _a, _b, 0.5, base + 1.2, base + float(tops[i]) - 1.9, ARCH_BRICK.lightened(0.25), 0.03, M_STONE_LIT)
+	_arch_panel(_w(m, 1.2), _a, _b, 0.6, base + 6.0, base + float(tops[5]) - 2.4, ARCH_BRICK.lightened(0.25), 0.03, M_STONE_LIT)
 	# the cross on the top step
 	var cy := base + float(tops[5]) + 0.3
 	_lbox(m, 0.62, 0.14, 0.14, g + body_top + 1.2 + 20.9, g + body_top + 1.2 + 24.4, ARCH_GOLD, M_STONE, ARCH_GOLD)

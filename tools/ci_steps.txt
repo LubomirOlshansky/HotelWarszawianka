@@ -77,6 +77,7 @@ first10              quick
 first10-run          local     slow
 firstlife            runs
 fixes                quick
+footroad             quick
 freecam              quick
 gamepad              quick
 gametime             quick
@@ -137,6 +138,7 @@ pacing               quick
 packs                quick
 padel                quick
 palacelights         quick
+palmtasting          quick
 panelrule            quick
 panelstates          smoke
 parkdetails          quick

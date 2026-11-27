@@ -70,7 +70,8 @@ the spec.
 
 | Part | What it builds | Triangles |
 | --- | --- | --- |
-| `kit_window(u, y, h, style, trim, glass := PAL_GLASS_DARK, hw := 0.7)` | one window, sill at y, pane h tall and 2·hw wide. Styles below. The pane is `M_PANE`: lit whole, by chance, at night | 10 to 60 |
+| `kit_window(u, y, h, style, trim, glass := PAL_GLASS_DARK, hw := 0.7, sash := none)` | one window, sill at y, pane h tall and 2·hw wide. Styles below. The pane is `M_PANE`: lit whole, by chance, at night. An opaque `sash` adds the sash cross on the pane: a mullion 7 cm wide and a transom two thirds up, 6 cm out of the face (the castle's square front, 2026-11-26) | 10 to 60, +4 with a sash |
+| `kit_round_window(at, along, out, y0, spring, hw, trim, glass := PAL_GLASS_DARK)` | a round-headed window on any wall by plan point and directions, not a front's frame: a surround 0.22 m wider from 0.2 m under the sill, the glass to the spring and round the half disc, lit by chance (St Anne's, 2026-11-26) | 20 |
 | `kit_window_grid(u0, u1, bays, sills, h, style, trim, glass, hw, skip := [])` | a window in every bay (bay centres evenly between u0 and u1) on every sill height in `sills`; `h` a float or one per sill; `skip` holds `Vector2i(bay, floor)` to leave out. Returns the bay centres | bays × floors windows |
 | `kit_panes(cols, rows, w, h, glass, proud := 0.05)` | flat lit panes with no surround, one quad each, for modern blocks with hundreds of windows (`cols` u centres, `rows` sill heights) | 2 each |
 | `kit_shop_bay(u, y0, y1, hw, trim, glass)` | a ground-floor opening: dark glass from y0 to y1 and a lintel band over it | 20 |
@@ -115,6 +116,7 @@ tall on the pane, a trim block hw·0.86 half wide from y + h + 0.24 to y + h + 0
 | `kit_pediment(u, hw, y, h, col, roof, depth := 0.45, relief := none)` | a triangular gable standing `depth` out of the face over u ± hw, its two roof slopes running back into the wall; a darker relief triangle inside when `relief` is opaque | 6 to 7 |
 | `kit_portico(u, hw, y0, y1, n, col, roof, depth := 3.0, steps := 3, order := Order.TUSCAN)` | steps, n columns `depth` out, an entablature on them back to the wall, a pediment a quarter of the width tall | about 60 a column + 60 |
 | `kit_lantern(u, v, y, h, r, wall, roof, glass := PAL_GLASS_DARK, sides := 8)` | a roof lantern: a `sides`-sided drum with a pane in each face, a ledge, a pointed cap and a finial | about 12 a side |
+| `kit_dormer(at, out, y, body, trim, glass := PAL_GLASS_DARK)` | a dormer on a roof slope: a box 1.3 m wide, 1.5 m over the slope at its front `at` (`out` the plan step down the slope, `y` the slope's height there), base 0.8 m under it, 1.8 m deep, a small hip cap, a framed 0.8 x 1.0 m window lit by chance; takes its own frame and gives the caller's back (the Royal Castle, 2026-11-26) | about 60 |
 
 ## 4. The palette
 

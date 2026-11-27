@@ -1,5 +1,5 @@
 extends RefCounted
-## Podwózka story rides (F, 2026-11-07): the passengers who tell a story on the way and ask one
+## Łuber story rides (F, 2026-11-07): the passengers who tell a story on the way and ask one
 ## question (game/data/taxi_stories.json). Pure: the list, which one is next, and when each beat
 ## is due; rides.gd says the lines, shows the question card and pays the tip; check_rides.gd
 ## checks this and the data without the city.

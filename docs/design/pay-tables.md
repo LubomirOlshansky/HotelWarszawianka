@@ -2,7 +2,7 @@
 
 The ROADMAP v1.0 item "designer pass over the guide's lines, Halina's lines, the end card, the pay
 tables". Nobody has played the economy end to end yet, so this is a desk model, not a playtest:
-each activity's pay from its code, its time from the distances it picks at Podwózka's 9 m/s
+each activity's pay from its code, its time from the distances it picks at Łuber's 9 m/s
 (`ride_rules.gd` SPEED) plus a fixed overhead for pickups and cards. F's timed run on the phone
 replaces these numbers.
 
@@ -13,7 +13,7 @@ replaces these numbers.
 | Kebab (950 m, hot 80 % of the time) | 42 | 8 | 2:30 | 17 | 3 |
 | Słoiki, 4 of 6 jars (0.8 km to the station + 1.7 km) | 190 → **160** | 0 | 5:20 | 36 → **30** | 0 |
 | Słoiki, all 6 jars | 260 → **220** | 30 | 5:20 | 49 → **42** | 6 |
-| Podwózka, 5★ (375 m to the pickup + 1.55 km) | 51 | 25 | 4:15 | 12 | 6 |
+| Łuber, 5★ (375 m to the pickup + 1.55 km) | 51 | 25 | 4:15 | 12 | 6 |
 | Rescue (2.5 km, 20 s to spare) | 86 | 40 | 5:10 | 17 | 8 |
 | Na czasie (1 km) | 43 | 15 | 3:05 | 14 | 5 |
 | Round-up (10 Leżaks) | 120 | 40 | 5:00 | 24 | 8 |
@@ -38,7 +38,7 @@ Bold: what this pass changed. Everything else stays.
 
 ## What stayed, on purpose
 
-- **Podwózka earns the least złoty (12 a minute) but the most respect of the short jobs.** That
+- **Łuber earns the least złoty (12 a minute) but the most respect of the short jobs.** That
   is its identity (the rating, the streak); left as it is.
 - **The hour.** Respect from things you find while driving (districts +10 each, notebook cards,
   eggs, cassettes, the guide's own rescue and kebab) is roughly 100 in the first 20 minutes, so

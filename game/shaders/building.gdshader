@@ -41,6 +41,8 @@ uniform int ghost_debug = 0;
 // hands' angles in radians, clockwise from twelve, for the time in Warsaw.
 uniform vec2 clock_hands = vec2(5.32, 1.05);
 uniform float windows = 1.0;
+// House types 2b: balcony and window clutter on the ordinary houses (tiers.gd house_clutter; Low 0).
+uniform float clutter = 1.0;
 // The floodlit landmark: x, z of its centre and a radius (map_builder.gd, from the
 // Palace of Culture's outline); only its sandstone walls light up.
 uniform vec4 floodlit = vec4(0.0, 0.0, -1.0, 0.0);
@@ -324,10 +326,18 @@ vec3 house_facade(int t, vec3 col, float u, float h, float seed, float top, floa
 	float office = step(1.5, pd.w);
 	vec3 room_col = mix(mix(WARM, WARM_PALE, step(0.62, room_pick)), COOL, step(0.76, room_pick));
 	room_col = mix(room_col, mix(COOL, WARM_PALE, step(0.7, room_pick)), office);
+	// A television in one home room of ten: blue, flickering (room()'s rule).
+	float tv = (1.0 - office) * step(0.9, room_pick);
+	room_col = mix(room_col, TV * (0.65 + 0.35 * value_noise(vec2(TIME * 3.1 + cell.x * 7.0, cell.y * 3.0))), tv);
 	vec3 pane_glow = room_col * (1.05 + 0.5 * hash12(cell + 2.2)) * room_on;
 	// The upper floors.
 	float loggia = step(hash12(vec2(bay, s * 19.0)), pc.w);
-	float win = step(ax, hw) * step(wb, wy) * step(wy, wt) * (1.0 - loggia * step(wy, 0.95));
+	// A post-war block's stairwell: one axis in eight, small panes half a floor up, lit most nights.
+	float postwar = step(0.5, pd.w) * (1.0 - office);
+	float stair = postwar * (1.0 - loggia) * step(hash12(vec2(bay, s * 23.0)), 0.12);
+	float stair_win = stair * step(ax, 0.32) * step(abs(wy - fh * 0.5), 0.5);
+	float stair_lit = on * stair_win * step(hash12(vec2(bay, s * 5.0 + 1.3)), 0.85 * lights_on);
+	float win = step(ax, hw) * step(wb, wy) * step(wy, wt) * (1.0 - loggia * step(wy, 0.95)) * (1.0 - stair);
 	float mullion = win * pc.y * step(sp * 0.5 - 0.06, ax);
 	vec3 upper = col;
 	float joint = max(step(wy, 0.05), step(sp * 0.5 - 0.04, ax));
@@ -339,6 +349,19 @@ vec3 house_facade(int t, vec3 col, float u, float h, float seed, float top, floa
 	upper = mix(upper, col * 0.5, recess);
 	upper = mix(upper, glass * mix(1.0, 0.8, loggia), win);
 	upper = mix(upper, col * 0.6, mullion);
+	upper = mix(upper, mix(glass, WARM_PALE * 0.9, step(0.5, stair_lit)), stair_win);
+	// Clutter (2b): an air conditioner beside a window, flower boxes on the pre-war sills,
+	// laundry and a dish on a loggia.
+	float ac = clutter * step(hash12(cell + 4.4), 0.07) * step(hw + 0.12, dx) * step(dx, hw + 0.72) * step(abs(wy - wb - 0.3), 0.24);
+	upper = mix(upper, srgb_to_linear(vec3(0.8, 0.8, 0.78)), ac);
+	float flowers = clutter * step(0.5, pa.w) * step(hash12(cell + 8.8), 0.18) * win * step(wy, wb + 0.26);
+	vec3 bloom = mix(srgb_to_linear(vec3(0.25, 0.42, 0.18)), srgb_to_linear(vec3(0.78, 0.16, 0.14)), step(0.55, fract(dx * 3.1)));
+	upper = mix(upper, mix(srgb_to_linear(vec3(0.35, 0.22, 0.15)), bloom, step(wb + 0.11, wy)), flowers);
+	float wash = clutter * recess * step(hash12(cell + 6.6), 0.4) * step(abs(wy - 1.45), 0.2) * step(fract(dx * 2.2), 0.72);
+	vec3 cloth = mix(mix(vec3(0.85), srgb_to_linear(vec3(0.3, 0.45, 0.75)), step(0.33, fract(dx * 0.7 + s))), srgb_to_linear(vec3(0.8, 0.35, 0.4)), step(0.7, fract(dx * 0.7 + s)));
+	upper = mix(upper, cloth * dim, wash);
+	float dish = clutter * postwar * recess * step(hash12(cell + 2.9), 0.1) * step(length(vec2(dx - sp * 0.25, wy - 1.7)), 0.3);
+	upper = mix(upper, srgb_to_linear(vec3(0.85, 0.85, 0.83)), dish);
 	// The ground floor: shop windows under a fascia on some axes, a door or a window on the rest.
 	vec2 unit = vec2(room_x, s * 77.0);
 	vec2 axis = vec2(bay, s * 77.0);
@@ -373,7 +396,7 @@ vec3 house_facade(int t, vec3 col, float u, float h, float seed, float top, floa
 	c = mix(c, col * 0.93, tall * (1.0 - has_cornice) * step(top - 0.5, h));                 // a flat attic band
 	float under = 1.0 - tall * step(top - mix(0.5, pa.w + 0.25, has_cornice), h);
 	float lit_share = room_on * cover;
-	vec3 up_glow = mix(room_col * lit_share, pane_glow * win * (1.0 - mullion), detail);
+	vec3 up_glow = mix(room_col * lit_share, pane_glow * win * (1.0 - mullion) + WARM_PALE * 0.8 * stair_lit, detail);
 	glow = (shop_glow * lit * is_ground + pane_glow * gwin * is_ground + up_glow * is_upper) * under;
 	return c;
 }
@@ -835,45 +858,93 @@ float clock_hand(vec2 q, float a, float len, float w) {
 	return step(length(q - d * t), w);
 }
 
-// Brick Gothic (the landmarks loop, Old Town): the Cathedral's and the Barbican's walls. Brick
-// in slow patches, a stone plinth, a buttress every bay, and tall pointed lancets on walls
-// over 9 m (stained glass, faintly lit at night).
-vec3 gothic(vec3 col, float u, float h, float top, vec3 wp, out vec3 glow) {
+// Brick Gothic (the Cathedral, the Barbican): buttress faces every 6.5 m and a pointed lancet in
+// each bay. The lancet (F, 2026-11-26: "strange windows", the panes were drawn in horizontal
+// stripes of dark and blue, at night alternating amber and purple) is now as the photos show it:
+// a white plaster splay round dark leaded glass (diamond quarries, a mullion in the middle), lit
+// at night as one even, soft blue-grey pane (the photos' windows by night), never in stripes.
+// `lit` (the mode's fraction, M_GOTHIC_LIT): floodlit from the ground at night like the
+// Cathedral (its night photo: the brick washed in warm orange, brightest low down).
+vec3 gothic(vec3 col, float u, float h, float top, vec3 wp, float lit, out vec3 glow) {
 	glow = vec3(0.0);
 	vec3 c = col * (0.9 + 0.16 * value_noise(vec2(u * 0.7, h * 1.6) + wp.xz * 0.05));
+	vec3 flood = vec3(0.4, 0.27, 0.17) * lit * (0.45 + 0.55 * (1.0 - smoothstep(0.0, max(top, 4.0), h)));
 	if (h < 1.0) {
-		return srgb_to_linear(vec3(0.62, 0.6, 0.56)) * mix(0.35, 1.0, daylight);
+		vec3 plinth = srgb_to_linear(vec3(0.62, 0.6, 0.56)) * mix(0.35, 1.0, daylight);
+		glow = plinth * flood;
+		return plinth;
 	}
 	float bay = 6.5;
 	float fx = fract(u / bay);
 	if (fx < 0.14) {
-		return c * (h > top - 0.6 ? 1.0 : 0.84); // the buttress's shadowed face
+		vec3 b = c * (h > top - 0.6 ? 1.0 : 0.84); // the buttress's shadowed face
+		glow = b * flood;
+		return b;
 	}
 	if (top > 9.0) {
 		float hw = 0.75;
 		float top_w = top - 2.8;
-		float dx = abs(fx - 0.57) * bay;
+		float sx = (fx - 0.57) * bay;
+		float dx = abs(sx);
 		float y = h - (top_w - hw * 1.6);
 		// A lancet: straight sides, then two arcs meeting in a point.
-		bool in_arch = any(bvec2(y < 0.0, dx < hw * (1.0 - (y / (hw * 1.6)) * (y / (hw * 1.6)))));
+		float yr = y / (hw * 1.6);
+		bool in_arch = any(bvec2(y < 0.0, dx < hw * (1.0 - yr * yr)));
 		if (all(bvec4(h > 2.6, h < top_w, dx < hw, in_arch))) {
-			vec3 pane = mix(srgb_to_linear(vec3(0.16, 0.17, 0.22)), srgb_to_linear(vec3(0.3, 0.33, 0.42)), fract(h * 0.71));
-			if (lights_on > 0.001) {
-				glow = mix(WARM, srgb_to_linear(vec3(0.5, 0.35, 0.8)), step(0.5, fract(h * 0.37))) * 0.35 * lights_on;
-			}
+			// The splay: a pale band 0.22 m wide round the glass.
+			float g = hw - 0.22;
+			float yg = (y + 0.1) / (g * 1.6);
+			bool glass = all(bvec4(h > 2.85, h < top_w - 0.2, dx < g, any(bvec2(y + 0.1 < 0.0, dx < g * (1.0 - yg * yg)))));
+			float gl = float(glass);
+			vec3 splay = srgb_to_linear(vec3(0.84, 0.82, 0.78));
+			// Leaded quarries: two diagonal lead lines and the mullion.
+			float d1 = fract((sx + h) * 1.4);
+			float d2 = fract((sx - h) * 1.4);
+			float lead = max(max(step(0.88, d1), step(0.88, d2)), step(dx, 0.045));
+			float shade = 0.88 + 0.22 * hash12(vec2(floor((sx + h) * 1.4), floor((sx - h) * 1.4)));
+			vec3 pane = srgb_to_linear(vec3(0.17, 0.2, 0.25)) * shade;
+			pane = mix(mix(pane, srgb_to_linear(vec3(0.08, 0.08, 0.09)), lead * 0.85), splay, 1.0 - gl);
+			float wnd = hash12(vec2(floor(u / bay), floor(wp.x * 0.01 + wp.z * 0.013)));
+			vec3 inner = vec3(0.42, 0.48, 0.58) * (0.12 + 0.06 * wnd) * (1.0 - lead * 0.8) * lights_on;
+			glow = mix(splay * flood * 1.2, inner, gl);
 			return pane * mix(0.4, 1.0, daylight);
 		}
 	}
+	glow = c * flood;
 	return c;
+}
+
+// Krakowskie Przedmieście's floodlit palaces (F's night photos, 2026-11-26): a warm cream-white
+// wash from lamps on the pavement, brightest on the ground floor, fading up the walls, the
+// cornice caught again at the top. A factor on the lit surface's own colour (`h` metres up the
+// wall, `top` its top).
+vec3 palace_flood(float h, float top) {
+	vec3 warm = vec3(1.0, 0.84, 0.62);
+	float low = 0.36 + 0.4 * exp(-max(h, 0.0) / 6.0);
+	float edge = smoothstep(top - 2.5, top - 0.3, h) * 0.18;
+	return warm * (low + edge);
 }
 
 vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, vec3 wp, out vec3 glow, out bool cut) {
 	glow = vec3(0.0);
 	cut = false;
 	if (mode == M_MONUMENT) {
-		return wall ? monument(col, uv.x, uv.y, top, glow) : col * (0.94 + 0.08 * value_noise(wp.xz * 1.7));
+		if (!wall) {
+			return col * (0.94 + 0.08 * value_noise(wp.xz * 1.7));
+		}
+		vec3 m = monument(col, uv.x, uv.y, top, glow);
+		// M_MONUMENT_FLOOD (fraction 0.5): a floodlit palace (facade_kit.gd FLOODLIT_SITES).
+		glow += m * palace_flood(uv.y, top) * step(0.25, param);
+		return m;
 	} else if (mode == M_STONE) {
 		float grain = 0.95 + 0.07 * value_noise(wp.xz * 2.1 + wp.y * 1.3);
+		// M_STONE_LIT (fraction 0.5): stone washed by floodlights at night (the Cathedral's gable panels).
+		// M_STONE_FLOOD (fraction 0.75): a floodlit palace's stone, walls only, brightest low.
+		if (param > 0.6) {
+			glow = wall ? col * palace_flood(uv.y, top) : vec3(0.0);
+		} else {
+			glow = col * vec3(1.0, 0.8, 0.56) * step(0.25, param) * 0.55;
+		}
 		if (all(bvec3(wall, top > 2.0, uv.y > top - 0.5))) {
 			return col * 1.12;
 		}
@@ -948,7 +1019,7 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 	} else if (mode == M_GLASS) {
 		return wall ? glass_wall(col, uv.x, uv.y, top, 1.5, 4.0, 0.34, glow) : col;
 	} else if (mode == M_GOTHIC) {
-		return wall ? gothic(col, uv.x, uv.y, top, wp, glow) : col * (0.92 + 0.1 * value_noise(wp.xz * 1.3));
+		return wall ? gothic(col, uv.x, uv.y, top, wp, step(0.25, param), glow) : col * (0.92 + 0.1 * value_noise(wp.xz * 1.3));
 	} else if (mode == M_SKIN) {
 		if (!wall) {
 			return col * (0.94 + 0.08 * value_noise(wp.xz * 1.7));

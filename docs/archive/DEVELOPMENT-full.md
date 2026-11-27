@@ -4888,6 +4888,25 @@ lines, symbols and ribbons past a free end are not clipped by FOOT_PAD), walls c
 `tools/bus_stops.py`, bake_street_details, bake_park_details, bake_sectors. retarget_graph: past a free end an
 edge keeps its median lane where it was (a centred, widened edge put the northbound inner lane on the Metro
 Świętokrzyska platform's edge: check_drive found 13 car/bus hits). street_pass records unchanged.
+
+**Marszałkowska at ul. Widok (F, 2026-11-25).** Road design area `widok` (docs/roads/widok.json): the
+northbound carriageway from Rondo Dmowskiego's ring (s 0) to 3 m short of the Złota stop line (s 77),
+measured on the map's own OSM kerbs (the GUGiK ortho was not reachable from the cloud). Main had OSM's
+area:highway=yes polygon: the taxi bay ending in a 2.5 m kerb step, the north corner a box round the old
+crossings, a 5 m gap in the tram-side kerb, 20 m without lines, Widok's link starting on the middle line.
+Now three lanes (T, T, TR arrows at s 18 and 33), the 2.35 m taxi bay closing over 5 m before the corner,
+one R 6.7 kerb return and R 3 on the north corner, the zebra (4 m) and cycle crossing across Widok, the
+tram-side edge line, and the first section's lines meeting main's at the seam (no line jog). road_design.py
+(opt-in, the other areas' output unchanged): the designed mouth (opening keys `radii`, `reach`, `xings`,
+`graph`: returns met on the street's actual kerb, the side road's own asphalt and kerbs out to `reach`,
+crossings across it, MouthCut and Orphans clearing the old kerbs there, `retarget_mouths` redrawing the
+side road's link from the kerb lane round the return with s0 where it has turned MOUTH_TURN 0.75 rad),
+street `edge_lines` and `arrows`, area `path_clear` (a footway hugging a designed kerb moved out to it).
+New check `tools/check_foot_on_road.py` (verify `footroad`): footway metres whose walking band
+(pedestrians.gd, 0.3 w aside + 0.25 m) reaches past a kerb onto carriage or a drawn ribbon, more than
+3 m from a crossing: main 9849 m on 398 footways, now 9820 m on 397 (the junction 36 → 7 m, the 7 on the
+southbound side). Map counts unchanged; road_truth unchanged (R3 255, R6 83, R8 56); street_pass
+marszalkowska-centrum 78 → 80 (not re-recorded).
 | Vertices (`count_vertices.gd`) | 18.70 M (meshes 11.50, instances 7.20) | 19.70 M (12.15, 7.55): +1.00 M, the extension's (0.96 M a km²); LoD2 in the box 1,549,362 → 1,548,197 vertices |
 | Probe draw calls (spawn, river, zoomed out, helicopter; 3D main / shadow) | 137, 104, 150, 220 (58/38, 36/25, 66/40, 111/74) | 138, 104, 151, 224 (58/38, 36/25, 66/41, 112/76): the city +0 (the helicopter view with `--no-traffic` 102/68 both); one more car or tram in view |
 | Probe over Rondo Radosława (`--at=-2833,-2292 --heading=60 --heli --size=150`; the car on Jana Pawła II `--at=-2790,-2200 --heading=340`) | (the map's edge) | 203 (100/68), 115 (46/28): inside the helicopter's 224 |

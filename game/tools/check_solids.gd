@@ -68,9 +68,13 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## TOTAL_TYPED not measured again here.
 ## 2026-11-23 (Jarmark parked cars, F's Play 14 report): -53 faces in (-2, 0) (47813 → 47760), the parked
 ## cars on Plac Centralny cleared under the market's rides and chalets (jarmark.gd JM_PARK_FREE).
-## 2026-11-26 (All Saints whole model): -10 faces (47760 → 47750), the church's LoD2 skin colliders
-## give way to its outline ring, steps and arcades (churches.gd `_build_wszystkich`).
-const TOTAL := 47750
+## 2026-11-26 (#1099, Rondo Dmowskiego): +194 faces (47760 → 47954), the twelve sunken stairwells' edge
+## colliders (site `rondo_wells`), the lifts and the square's beds, less the old tubes and wall lines on
+## the rings; measured on a fresh bake of the branch after merging main.
+## 2026-11-26 (Ufficio Primo, #1096): -10 faces (47954 → 47944 after #1099), the street block blk_25911097's
+## colliders out under the new site (its ring's own walls in their place), `--record` on a fresh bake
+## of the branch after merging main; TOTAL_TYPED not measured again here.
+const TOTAL := 47944
 ## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
