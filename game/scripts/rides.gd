@@ -650,6 +650,49 @@ func request() -> void:
 		_on_context("ride")
 
 
+## F 2026-11-27 (the phone, ŁUBER app): the next passenger looked at without a card on the road.
+## Returns {"who" (the face), "title", "body" ([pl, en] as the card would say), "their" (their stars)},
+## or {} when nothing is on offer here. `take_peeked` takes it; a passenger not taken is gone.
+var peeked := {}
+
+
+func peek() -> Dictionary:
+	peeked = {}
+	if not can_request() or car == null:
+		return {}
+	var p := Vector2(car.global_position.x, car.global_position.z)
+	var heading := Vector2(-sin(car.rotation.y), -cos(car.rotation.y))
+	var hit := graph.snap(p, 40.0, heading, true, true)
+	if hit.is_empty():
+		hit = graph.snap(p, 60.0, Vector2.ZERO, true, true)
+	if hit.is_empty():
+		return {}
+	_offers += 1
+	var r := _make_ride(_base + _offers, hit[0], hit[2], p, PICKUP_MIN, PICKUP_MAX)
+	if r.is_empty():
+		return {}
+	var keep := _ride
+	_ride = r
+	var c := _offer_card()
+	_ride = keep
+	peeked = r
+	return {"who": str(r["name"]), "title": c["title"], "body": c["body"], "their": float(r["their"])}
+
+
+## The peeked passenger is taken: the ride starts as if ACCEPT had been pressed. False when none
+## is waiting or something else is on now.
+func take_peeked() -> bool:
+	if peeked.is_empty() or not idle():
+		return false
+	_ride = peeked
+	peeked = {}
+	_set_pill(false)
+	hud.ticker_out()
+	_log("offer %d taken from the phone" % _ride["n"])
+	start()
+	return true
+
+
 ## First hour, step 3: the guide's first request (first10.gd: RIDES on the choice card, or the
 ## ride's turn in the First steps): one comes now, before FIRST_OFFER s of driving if need be, as
 ## long as nothing else is on (`_free`). False when none could be made.
