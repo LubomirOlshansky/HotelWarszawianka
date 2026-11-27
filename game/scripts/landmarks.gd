@@ -1979,8 +1979,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"sobieski":
 				_build_sobieski(s)
 			"bristol":
-				_mark_zone(s)  # the mass stays LoD2's, in its skin; the corner tower is ours
-				_build_bristol(s)
+				_build_bristol(s)  # the whole hotel replaces LoD2
 			"sw_anna":
 				_mark_zone(s)  # the whole church and the bell tower are ours (a model, SKINS `runs`)
 				_build_anna(s)

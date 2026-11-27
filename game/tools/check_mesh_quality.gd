@@ -112,7 +112,7 @@ const BUDGET := {
 	"uw_skarpa": 7000,  # 2026-11-15: the escarpment's brick wall, piers, graffiti, railing
 	"uw_straz": 900,  # 2026-11-15: the guards' kiosk
 	"uw_kampus": 1500,  # 2026-11-15: bollards and chains, flagpoles
-	"bristol": 2450,
+	"bristol": 7500,
 	"polonia": 1450,
 	"ujazdowski": 1650,
 	"sobieski": 1500,

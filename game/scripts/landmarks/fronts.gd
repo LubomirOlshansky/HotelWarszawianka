@@ -40,7 +40,7 @@ const SKINS := [
 	{"key": "jasinski", "osm": "Kamienica Jasińskiego", "mode": M_MONUMENT, "wall": "#e5b9a0", "roof": "#6b6059"},
 	{"key": "kossakowski", "osm": "Pałac Kossakowskich", "mode": M_MONUMENT, "wall": "#efe3c4", "roof": "#6e6a64"},
 	{"key": "potocki", "osm": "Pałac Potockich", "mode": M_MONUMENT, "wall": "#ede8dc", "roof": "#c5502f"},
-	{"key": "bristol", "osm": "Hotel Bristol", "mode": M_MONUMENT, "wall": "#e9e1c8", "roof": "#6f7477"},
+	{"key": "bristol", "osm": "Hotel Bristol", "mode": M_MONUMENT, "wall": "#e9e1c8", "roof": "#a9adb0", "model": true},
 	# Plac Bankowy (2026-11-02): the palaces round the square in their real colours.
 	# The Mac photo report (ratusz.md, 2026-11-02): pale ochre-cream walls under green copper;
 	# the colonnades, the portico and the rotunda are models (_build_ratusz, _build_gielda).

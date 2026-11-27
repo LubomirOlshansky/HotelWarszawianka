@@ -2684,7 +2684,17 @@ const POTOCKI_GATES := [[Vector2(-636.6, -974.4), Vector2(-631.6, -963.6)],
 const KORDEGARDA := Vector2(-626.3, -947.4)
 const KORDEGARDA_AXIS := Vector2(-0.239, -0.971)
 const BRISTOL_TOWER := Vector2(-557.8, -894.0)  # the rounded south-west corner at Karowa
-const BRISTOL_H := 27.4  # the mapped roof, which the kept skin holds
+const BRISTOL_KAROWA_END := Vector2(-504.6, -918.8)  # where the main block turns away from Karowa
+const BRISTOL_KRAK_NORTH := Vector2(-583.0, -933.2)
+const BRISTOL_KRAK_SOUTH := Vector2(-562.4, -893.6)
+const BRISTOL_BAY := 4.4
+const BRISTOL_MEZZ := 6.6  # 5.2 m ground floor and 1.4 m mezzanine
+const BRISTOL_SILL := 7.28
+const BRISTOL_ANNEX_TOP := 18.4
+const BRISTOL_CORNICE := 25.2
+const BRISTOL_MANSARD_INSET := 1.95
+const BRISTOL_ROOF := 30.05
+const BRISTOL_DRUM_TOP := 32.4
 # K6 (2026-11-01): the two statues of Krakowskie Przedmieście's north end, spots projected from
 # their published coordinates (Prus 52.24173 N 21.01636 E, Twardowski Square; Wyszyński
 # 52.24112 N 21.01661 E, in front of the Visitationists' church); the facings are estimates.
@@ -2719,7 +2729,9 @@ const KORD_WHITE := Color("#efede6")
 const KORD_SCULPT := Color("#c9c7c0")
 const BRISTOL_WALL := Color("#e9e1c8")
 const BRISTOL_SHADE := Color("#cfc6ac")
-const BRISTOL_SLATE := Color("#6f7477")
+const BRISTOL_SLATE := Color("#5d6266")
+const BRISTOL_ZINC := Color("#a9adb0")
+const BRISTOL_GLASS := Color("#33383e")
 
 
 func _find_krakowskie() -> void:
@@ -3767,43 +3779,330 @@ func _build_kordegarda(site: Dictionary) -> void:
 	_collide(ring)
 
 
-## Hotel Bristol (1901), photos 12-15: the mass stays LoD2's (a kept skin in cream with a grey
-## zinc mansard); the hotels pass adds the plinth, balconies, cornice, dormers and the door with
-## its board; this adds the corner tower on the rounded south-west corner at Karowa: a cream drum
-## with pilasters up to the roof and on it an open round belvedere, eight thin columns on a
-## balustraded ring under a flat cream dome cap. Its base is sunk in the roof, so a LoD2 roof a
-## little higher or lower than OSM's 27.4 m does not open a gap.
+## Hotel Bristol (1901), spec v2, 2026-11-27. Models the entire block around its open court,
+## with pilastered street fronts, a zinc mansard and the corner drum's floodlit belvedere.
+## Each street frame follows its mapped edge, with u along the wall and positive v out over the street.
 func _build_bristol(site: Dictionary) -> void:
-	var zone: PackedVector2Array = (site["zone"] as Array)[0]
-	var ring := _simplify(zone, 0.9)
-	_palace_hotel(ring, _ground_under(ring), BRISTOL_H, {
-			"wall": BRISTOL_WALL, "base": BRISTOL_SHADE, "trim": KP_TRIM, "slate": BRISTOL_SLATE,
-			"glass": Color("#33383e"), "name": "BRISTOL", "name_w": 5.4, "board": Color("#2a2420"),
-			"tube": Color(1.0, 0.82, 0.45), "whole": false, "street_at": Vector2(-592.0, -915.0), "avoid": BRISTOL_TOWER, "avoid_r": 7.5,
-			"canopy": Color("#2b2b2b")}, PackedVector2Array())
-	var c := BRISTOL_TOWER
-	_g = map.terrain_height(c.x, c.y)
-	var g := _g
-	var top := g + 32.4  # the LoD2 roof at the corner (32.7 m over the street)
-	var none := Color(0, 0, 0, 0)
+	var outline: PackedVector2Array = site["zone"][0]
+	var ring := _simplify(outline, 1.3)
+	# Split the stepped service wing across the garden wall, retaining the mapped envelope.
+	var karowa := ring.find(BRISTOL_KAROWA_END)
+	var corner_at := ring.find(Vector2(-559.9, -890.5))
+	if karowa < 0 or corner_at < 0:
+		# A map re-bake moved the vertices the split and the drum hang on: say so, do not slice blind.
+		push_error("bristol: outline vertex not found after _simplify (karowa %d, corner %d); the hotel is not built" % [karowa, corner_at])
+		return
+	var garden := ring[-1].lerp(ring[0], 0.8)
+	var annex := ring.slice(0, karowa + 1)
+	annex.insert(0, garden)
+	ring = ring.slice(karowa)
+	ring.append(garden)
+	# Keep the two extra faces on the mapped corner's curve, under the drum.
+	var corner := ring.find(Vector2(-559.9, -890.5))
+	if corner < 0:
+		push_error("bristol: the drum's corner vertex is not on the street ring; the hotel is not built")
+		return
+	ring.insert(corner, Vector2(-557.3, -889.7))
+	ring.insert(corner + 2, BRISTOL_KRAK_SOUTH)
+	_g = _ground_under(outline)
 	_mode = M_STONE
-	_prism(_circle(c, 3.4, 12), g - 0.5, top, BRISTOL_WALL, BRISTOL_WALL, M_MONUMENT, M_STONE)
-	for k in 8:  # pilasters round the drum
-		var d := Vector2.from_angle(TAU * (k + 0.5) / 8.0)
-		_prism(_circle(c + d * 3.6, 0.3, 4), g + 6.0, top, KP_TRIM, KP_TRIM, M_STONE, M_STONE)
-	_prism(_circle(c, 3.9, 12), top, top + 0.5, KP_TRIM, KP_TRIM, M_STONE, M_STONE)
-	_prism(_circle(c, 3.6, 12), top + 0.5, top + 1.3, BRISTOL_WALL, none, M_STONE)  # the balustrade
-	# The open belvedere's shade, lit blue at night (F's night photos, 2026-11-26: the rotunda glows
-	# deep blue between its columns): M_LAMP's neon fraction, dark grey by day.
-	_prism(_circle(c, 2.6, 12), top + 0.5, top + 4.0, Color("#4a4842"), none, M_LAMP + 0.5)
+	var courts: Array[PackedVector2Array] = []
+	var along := Vector2(0.87, -0.49).normalized()
+	for mapped in _holes:
+		var court := _simplify(mapped, 0.85)
+		var c := _centre(court)
+		for i in court.size():
+			court[i] += along * (court[i] - c).dot(along) * 0.26
+		courts.append(court)
+	_holes = []  # Bristol walls its own open court to the new mansard roof.
+	_bristol_mass(ring, courts)
+	_bristol_mansard(ring, courts)
+	_bristol_annex(annex)
+	_bristol_front(BRISTOL_KRAK_NORTH, BRISTOL_KRAK_SOUTH, true)
+	_bristol_front(Vector2(-553.6, -891.0), BRISTOL_KAROWA_END, false)
+	_bristol_drum(ring)
+	_bristol_belvedere()
+	_collide(outline)
+
+
+## The exterior shell, with untrimmed garden windows and a continuous cornice. The court's
+## cream walls use the monument material's window grid and stop flush with the roof opening.
+func _bristol_mass(ring: PackedVector2Array, courts: Array[PackedVector2Array]) -> void:
+	var y0 := _g + BRISTOL_MEZZ
+	var y1 := _g + BRISTOL_CORNICE
+	# Sample the plaster between the monument shader's window strips. The kit places the actual bays.
+	var foot_uv := Vector2(2.48, BRISTOL_MEZZ)
+	var eave_uv := Vector2(2.48, BRISTOL_CORNICE)
+	var street_run := 0.0
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var out := _out(ring, a, b)
+		_mode = M_STONE
+		# The last two edges face the garden and overlook the lower annex, respectively.
+		if i == ring.size() - 2:
+			_wall(a, b, _g - 0.6, y1, out, BRISTOL_WALL)
+			var length := kit_front(b, a)
+			var rows: Array[float] = [_g + 1.92]
+			for storey in 4:
+				rows.append(_g + BRISTOL_SILL + 3.6 * storey)
+			kit_panes(_spread(0.0, length, 10), rows, 1.44, 2.35, BRISTOL_GLASS)
+			continue
+		if i == ring.size() - 1:
+			var annex_top := _g + BRISTOL_ANNEX_TOP
+			_wall(a, b, annex_top, y1, out, BRISTOL_WALL)
+			var length := kit_front(b, a)
+			kit_panes(_spread(0.0, length, 7), [annex_top + 0.6], 1.44, 2.35, BRISTOL_GLASS)
+			continue
+		_wall(a, b, _g - 0.6, y0, out, BRISTOL_SHADE, street_run)
+		street_run += a.distance_to(b)
+		_mode = M_MONUMENT
+		_quad(Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, y1, b.y), Vector3(a.x, y1, a.y),
+				Vector3(out.x, 0.0, out.y), BRISTOL_WALL, foot_uv, foot_uv, eave_uv, eave_uv, BRISTOL_CORNICE)
+	_mode = M_STONE
+	kit_ledge_ring(ring, _g + 0.28, 0.32, BRISTOL_SHADE.darkened(0.12), 0.12)
+	kit_ledge_ring(ring, _g + 5.0, 0.2, KP_TRIM, 0.17)
+	kit_cornice_ring(ring, _g + BRISTOL_CORNICE - 0.42, KP_TRIM, 0.42, 0.66)
+	_mode = M_MONUMENT
+	for court in courts:
+		for i in court.size():
+			var a := court[i]
+			var b := court[(i + 1) % court.size()]
+			_wall(a, b, _g - 0.6, _g + BRISTOL_ROOF, -_out(court, a, b), BRISTOL_WALL)
+	_mode = M_STONE
+
+
+## The lower service wing steps away from Karowa behind the ornate court block.
+func _bristol_annex(ring: PackedVector2Array) -> void:
+	_mode = M_STONE
+	var top := _g + BRISTOL_ANNEX_TOP
+	var rows: Array[float] = [_g + 1.92, _g + BRISTOL_SILL, _g + BRISTOL_SILL + 3.6, _g + BRISTOL_SILL + 7.2]
+	# The last edge is shared by the tall block. Only the exposed walls need faces.
+	for i in ring.size() - 1:
+		var a := ring[i]
+		var b := ring[i + 1]
+		var out := _out(ring, a, b)
+		_wall(a, b, _g - 0.6, top, out, BRISTOL_WALL)
+		var length := kit_front(b, a)
+		kit_panes(_spread(0.0, length, maxi(1, floori(length / 6.2))), rows, 1.44, 2.35, BRISTOL_GLASS)
+	_cap(ring, top, BRISTOL_SLATE)
+
+
+## Lay out the street bays symmetrically, keeping the first and last away from the corner returns.
+func _bristol_front(from: Vector2, to: Vector2, krakowskie: bool) -> void:
+	var length := kit_front(from, to)
+	kit_face(0.0)
+	var mid := length * 0.5
+	var bays := floori(length / BRISTOL_BAY)
+	if bays % 2 == 0:
+		bays -= 1
+	var first := mid - (bays - 1) * BRISTOL_BAY * 0.5
+	var centres: Array[float] = []
+	for bay in bays:
+		centres.append(first + bay * BRISTOL_BAY)
+	_bristol_gf(centres, mid if krakowskie else -10.0, krakowskie)
+	_bristol_bays(centres)
+	# The giant pairs frame every other bay from the mezzanine to the cornice.
+	for bay in range(0, bays, 2):
+		for side: float in [-1.0, 1.0]:
+			kit_pilaster(centres[bay] + side * 1.53, _g + BRISTOL_MEZZ, _g + BRISTOL_CORNICE - 0.78, KP_TRIM, 0.6, 0.25)
+	# The gallery spans five openings. Individual balconies match the width of their windows.
+	kit_face(-0.045)
+	kit_balcony(mid, _g + BRISTOL_SILL, 2.0 * BRISTOL_BAY + 0.79, Balcony.IRON, PAL_IRON, KP_TRIM, 1.05)
+	for bay in range(0, bays, 2):
+		kit_balcony(centres[bay], _g + BRISTOL_SILL + 7.2, 0.79, Balcony.IRON, PAL_IRON, KP_TRIM, 0.82)
+	kit_face(0.0)
+	if krakowskie:
+		_bristol_gable(mid)
+	_bristol_dormers(centres, mid if krakowskie else -10.0)
+
+
+## Tall shop glazing and a mezzanine above it carry the storefront rhythm up to the giant order.
+## Krakowskie's recessed panes use the warm-lit pavilion glass, as does the corner café.
+func _bristol_gf(centres: Array[float], entrance: float, warm: bool, hw := 1.58) -> void:
+	for u in centres:
+		if absf(u - entrance) < BRISTOL_BAY * 0.5:
+			continue
+		kit_panes([u], [_g + 0.62], hw * 2.0, 4.06, PAL_IRON, 0.028)
+		_mode = M_PAVILION if warm else M_GLASS
+		_wall(_w(u - hw + 0.09, 0.08), _w(u + hw - 0.09, 0.08), _g + 0.72, _g + 4.58, _b, BRISTOL_GLASS)
+	kit_panes(centres, [_g + 5.54], 1.4, 0.75, BRISTOL_GLASS)
+	_mode = M_STONE
+	if entrance >= 0.0:
+		_bristol_entrance(entrance)
+
+
+## The projecting doorway carries the two-post café canopy and the small gold neon board.
+func _bristol_entrance(u: float) -> void:
+	kit_face(0.7)
+	_ubox(u - 2.18, u + 2.18, -0.05, 0.7, _g - 0.2, _g + 5.0, BRISTOL_SHADE)
+	kit_door(u, _g + 0.12, 3.84, 1.56, KP_TRIM, PAL_IRON)
+	_mode = M_PAVILION
+	_wall(_w(u - 1.46, 0.78), _w(u + 1.46, 0.78), _g + 0.22, _g + 3.87, _b, BRISTOL_GLASS)
+	_mode = M_STONE
+	_lbox(u, 1.34, 2.42, 1.42, _g + 4.18, _g + 4.42, PAL_IRON)
+	for side: float in [-1.0, 1.0]:
+		kit_column(u + side * 2.12, 2.51, _g - 0.18, _g + 4.18, PAL_IRON, 0.10)
+	_lbox(u, 0.74, 1.83, 0.08, _g + 4.46, _g + 5.02, Color("#2a2420"))
+	# Batch the neon font's contiguous pixels into short runs on the board, in the site mesh.
+	var word := "BRISTOL"
+	_mode = M_LAMP
+	var pitch := 0.065
+	var left := u - Neon.word_width(word) * pitch * 0.5
+	for ch in word:
+		var rows: Array = Neon.FONT[ch]
+		for row in rows.size():
+			var line: String = rows[row]
+			var start := -1
+			for x in line.length() + 1:
+				if x < line.length() and line[x] == "#":
+					if start < 0:
+						start = x
+				elif start >= 0:
+					var y := _g + 4.52 + (rows.size() - 1 - row) * pitch
+					_wall(_w(left + start * pitch, 0.83), _w(left + x * pitch, 0.83), y, y + pitch, _b, Color("#ffd173"))
+					start = -1
+		left += (String(rows[0]).length() + 1) * pitch
+	_mode = M_STONE
+	kit_face(0.0)
+
+
+## The four 3.6 m storeys have 1.4 m by 2.4 m panes and the first storey gets pedimented heads.
+## Small attic panes occupy the tall frieze below the main cornice.
+func _bristol_bays(centres: Array[float]) -> void:
+	for storey in 4:
+		var y := _g + BRISTOL_SILL + 3.6 * storey
+		var style := Win.PEDIMENT if storey == 0 else Win.SILL_HEAD
+		for u in centres:
+			kit_window(u, y, 2.4, style, KP_TRIM, BRISTOL_GLASS)
+	kit_panes(centres, [_g + 22.82], 0.83, 1.02, BRISTOL_GLASS)
+	kit_ledge(centres[0] - 1.8, centres[-1] + 1.8, _g + 22.47, 0.16, KP_TRIM, 0.13)
+
+
+## The three-bay segmental crown, its pale arch rim and relief cartouche above the blank frieze.
+func _bristol_gable(mid: float) -> void:
+	var half_width := 1.5 * BRISTOL_BAY
+	var rise := 3.5
+	var radius := (half_width * half_width + rise * rise) / (2.0 * rise)
+	var angle := asin(half_width / radius)
+	var base := _g + BRISTOL_CORNICE
+	var front := Vector3(_b.x, 0.0, _b.y)
+	var at := Vector3(_o.x, 0.0, _o.y)
+	var along := Vector3(_a.x, 0.0, _a.y)
+	var centre := at + along * mid + Vector3.UP * base
+	var face := centre + front * 0.43
+	var back := front * -2.5
+	var rim := Vector3.UP * 0.24
+	var prev := face - along * half_width
+	var uv := Vector2(-1, -1)
+	for k in range(1, 7):
+		var theta := lerpf(-angle, angle, k / 6.0)
+		var next := face + along * (radius * sin(theta)) + Vector3.UP * (radius * (cos(theta) - cos(angle)))
+		_tri(face, prev, next, front, BRISTOL_WALL, uv, uv, uv, -1.0)
+		_tri(face + back, prev + back + rim, next + back + rim, -front, BRISTOL_WALL, uv, uv, uv, -1.0)
+		_quad(prev, next, next + rim, prev + rim, front, KP_TRIM)
+		var slope := (next - prev).cross(back).normalized()
+		_quad(prev + rim, next + rim, next + back + rim, prev + back + rim, slope, BRISTOL_SLATE)
+		prev = next
+	kit_ledge(mid - half_width, mid + half_width, _g + 24.08, 0.5, KP_TRIM, 0.21)
+	var seal := face + front * 0.04 + Vector3.UP * 1.38
+	_disc(seal, front, 0.84, 10, KP_TRIM)
+	_disc(seal + front * 0.03, front, 0.63, 10, BRISTOL_SHADE)
+	_disc(seal + front * 0.06, front, 0.39, 4, KP_TRIM)
+
+
+## The steep lower zinc pitch breaks at a 30 cm curb into the shallower roof above the court.
+func _bristol_mansard(ring: PackedVector2Array, courts: Array[PackedVector2Array]) -> void:
+	var curb := _inset_ring(ring, BRISTOL_MANSARD_INSET)
+	var top := _inset_ring(ring, 3.65)
+	var flood := _flood
+	_flood = false
+	_slope(ring, ring, _g + BRISTOL_CORNICE, curb, _g + 28.3, BRISTOL_ZINC)
+	_prism(curb, _g + 28.3, _g + 28.6, BRISTOL_ZINC.lightened(0.13), Color(0, 0, 0, 0), M_STONE)
+	var upper_zinc := BRISTOL_ZINC.lightened(0.21)
+	_slope(ring, curb, _g + 28.6, top, _g + BRISTOL_ROOF, upper_zinc)
+	_cap_holes(top, courts, _g + BRISTOL_ROOF, upper_zinc)
+	_flood = flood
+
+
+## Hipped zinc dormers take every other street bay, with larger round heads at the terminals.
+## The three central Krakowskie bays are taken by the gable.
+func _bristol_dormers(centres: Array[float], gable: float) -> void:
+	var flood := _flood
+	_flood = false
+	var y := _g + 26.03
+	var v := -0.48
+	var depth := 2.5
+	var body := BRISTOL_ZINC.darkened(0.08)
+	kit_face(v)
+	for bay in range(0, centres.size(), 2):
+		var u := centres[bay]
+		if absf(u - gable) < 1.5 * BRISTOL_BAY - 0.05:
+			continue
+		var large := bay == 0 or bay == centres.size() - 1
+		var hw := 1.09 if large else 0.85
+		var top := y + (2.18 if large else 1.96)
+		var box := _rect(u, v - depth * 0.5, hw, depth * 0.5)
+		# The back of each dormer is inside the mansard. Draw the front and cheeks.
+		for i in range(1, box.size()):
+			var a := box[i]
+			var b := box[(i + 1) % box.size()]
+			_wall(a, b, y - 0.53, top, _out(box, a, b), body)
+		_pyramid(_rect(u, v - depth * 0.5, hw + 0.11, depth * 0.5 + 0.09),
+				top, top + 0.65, BRISTOL_ZINC.darkened(0.14))
+		if large:
+			kit_round_window(_w(u, v), _a, _b, y + 0.18, y + 1.19, 0.66, BRISTOL_ZINC.lightened(0.2), BRISTOL_GLASS)
+		else:
+			kit_panes([u], [y + 0.19], 1.22, 1.45, BRISTOL_GLASS)
+	kit_face(0.0)
+	_flood = flood
+
+
+## The 12-sided drum rises through the roof. Below it, the mapped curved frontage carries the
+## same shop, sill and storey bands as the streets, so the tower reads as part of the building.
+func _bristol_drum(ring: PackedVector2Array) -> void:
+	var none := Color(0, 0, 0, 0)
+	var drum := _circle(BRISTOL_TOWER, 3.4, 12)
+	_prism(drum, _g + BRISTOL_CORNICE, _g + BRISTOL_DRUM_TOP, BRISTOL_WALL, none, M_STONE)
 	for k in 8:
-		var d := Vector2.from_angle(TAU * k / 8.0)
-		_prism(_circle(c + d * 3.0, 0.2, 6), top + 1.3, top + 4.0, KP_TRIM, none, M_STONE)
+		var at := BRISTOL_TOWER + Vector2.from_angle(TAU * (k + 0.5) / 8.0) * 3.18
+		var out := (at - BRISTOL_TOWER).normalized()
+		kit_front(at, at + Vector2(out.y, -out.x))
+		kit_pilaster(0.0, _g + BRISTOL_CORNICE, _g + BRISTOL_DRUM_TOP - 0.04, KP_TRIM, 0.6, 0.49)
+	var sills: Array[float] = []
+	for storey in 4:
+		sills.append(_g + BRISTOL_SILL + 3.6 * storey)
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		if a.distance_to(BRISTOL_TOWER) > 5.3 or b.distance_to(BRISTOL_TOWER) > 5.3:
+			continue
+		var length := kit_front(b, a)
+		var mid := length * 0.5
+		var shops: Array[float] = [mid]
+		_bristol_gf(shops, -10.0, true, minf(1.58, mid - 0.2))
+		kit_panes(shops, sills, 1.1, 2.4, BRISTOL_GLASS)
+		for y: float in [6.46, 13.85, 21.05]:
+			kit_ledge(0.12, length - 0.12, _g + y, 0.15, KP_TRIM, 0.16)
+
+
+## The v1 belvedere keeps the oversailing ring, eight columns, blue core, shallow cap and finial.
+func _bristol_belvedere() -> void:
+	var c := BRISTOL_TOWER
+	var top := _g + BRISTOL_DRUM_TOP
+	var none := Color(0, 0, 0, 0)
+	_prism(_circle(c, 3.9, 12), top, top + 0.5, KP_TRIM, KP_TRIM, M_STONE, M_STONE)
+	_prism(_circle(c, 3.6, 12), top + 0.5, top + 1.3, BRISTOL_WALL, BRISTOL_WALL, M_STONE)
+	var core := Color("#4a7ad8").darkened(0.24)  # Keep the core in shade by day.
+	_prism(_circle(c, 2.6, 8), top + 0.5, top + 4.0, core, none, M_LAMP)
+	kit_front(c, c + Vector2.RIGHT)
+	for k in 8:
+		var p := Vector2.from_angle(TAU * k / 8.0) * 3.0
+		kit_column(p.x, p.y, top + 1.3, top + 4.0, KP_TRIM, 0.2)
 	_prism(_circle(c, 3.5, 12), top + 4.0, top + 4.6, KP_TRIM, KP_TRIM, M_STONE, M_STONE)
 	_frustum(_circle(c, 3.3, 12), top + 4.6, _circle(c, 2.0, 12), top + 5.6, BRISTOL_WALL)
 	_frustum(_circle(c, 2.0, 12), top + 5.6, _circle(c, 0.5, 12), top + 6.2, BRISTOL_WALL, BRISTOL_WALL)
-	_prism(_circle(c, 0.12, 6), top + 6.2, top + 7.4, KP_GOLD, KP_GOLD, M_STONE, M_STONE)
-
+	_prism(_circle(c, 0.12, 4), top + 6.2, top + 7.4, Color("#c9a24a"), Color("#c9a24a"), M_STONE, M_STONE)
 
 ## Rynek Mariensztacki (BACKLOG M2): the 1949 estate's square. Its six houses on the south side
 ## (Mariensztat 19 to 25) each carry a relief panel on the street face (a framed terracotta
