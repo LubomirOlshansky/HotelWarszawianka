@@ -567,6 +567,9 @@ const INFO := {
 	"torwar": ["Torwar",
 			"Hala przy Łazienkowskiej z lat 50.: hokej, koncerty, gale. Od ulicy biały portyk na smukłych kolumnach, po meczu zawsze korek.",
 			"The 1950s hall on Łazienkowska: hockey, concerts, galas. A white portico on slender columns faces the street, and there's a jam after every game."],
+	"sad_okregowy": ["Sąd Okręgowy w Warszawie",
+			"Sądy na Lesznie to dzieło Bohdana Pniewskiego z lat 1935–39. Za jasną fasadą kryje się pięć dziedzińców.",
+			"Bohdan Pniewski designed the Leszno courts, built in 1935–39. Five courtyards lie behind the pale stone front."],
 	"nbp": ["NBP, Oddział Okręgowy",
 			"Oddział Narodowego Banku Polskiego przy placu Powstańców: długi dom w ciemnych, pochylonych blachach, szklany parter na tarasie, szerokie granitowe schody. Tu pieniądze śpią, zanim pójdą w miasto.",
 			"The National Bank's Warsaw branch on Plac Powstańców: a long block in dark, leaning metal panels, a glass ground floor on a terrace, a wide flight of granite steps. The money sleeps here before it goes out into the city."],
@@ -1859,6 +1862,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_koszyki(s)
 			"torwar":
 				_build_torwar(s)
+			"sad_okregowy":
+				_build_sad_okregowy(s)
 			"nbp":
 				_build_nbp(s)  # the whole branch (SKINS entry with `model`: it replaces LoD2)
 			"dom_chlopa":
