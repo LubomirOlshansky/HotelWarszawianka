@@ -48,7 +48,9 @@ relative levels visible in the obliques. Walls extend below the surrounding terr
 
 ## 4. Roof
 
-Slate-grey flat roofs with thin pale edges, slightly lighter over the auditorium. Low silver
+Mid-grey flat roofs (`#b9babc` before the stone shading, which renders close to the top view's
+roof grey; the first value `#8b8c8c` rendered dark brown-grey, audit 2026-11-27) with thin pale
+edges, slightly lighter over the auditorium. Low silver
 duct runs turn around the southern roof and serve the fly tower from the north. A long pair
 of housings sits above the auditorium's south edge. Add the tower's pale roof housing and
 retain the thin edge around the open court.

@@ -1612,7 +1612,7 @@ const PWS_FOYER := Vector2(27.0, 53.0)
 const PWS_RECESS := -0.9
 const PWS_FOYER_HEAD := 8.9
 ## Cool grey roof membrane, lifted from the dark palette value to match the aerial views in game light.
-const PWS_ROOF := Color("#8b8c8c")
+const PWS_ROOF := Color("#b9babc")
 
 
 ## Build the full SKINS replacement around the open court, then use the mapped ring for collision.
