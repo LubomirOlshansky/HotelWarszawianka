@@ -125,6 +125,7 @@ mixer                quick
 models               quick
 monumentmesh         quick
 monuments            quick
+napkin               quick
 objects              quick
 objecttypes          quick
 oldtowndrive         smoke
@@ -215,6 +216,7 @@ steering             quick
 stopassist           smoke
 stops                quick
 stories              quick
+storyarc             quick
 streaming            local     slow
 streetdetails        quick
 streetmesh           roads

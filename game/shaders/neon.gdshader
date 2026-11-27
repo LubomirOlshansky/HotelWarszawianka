@@ -34,7 +34,10 @@ void fragment() {
 	if ((BAYER[p.y * 4 + p.x] + 0.5) / 16.0 < fade) {
 		discard;
 	}
-	vec4 t = texture(words, vec2(UV.x * info.y, (info.x + UV.y) / rows));
+	// Seen from behind (the quad is cull_disabled) the word would read mirrored: flip U on a back
+	// face, so every sign reads correctly from both sides (the HOTEL MDM report, 2026-11-26).
+	float u = FRONT_FACING ? UV.x : 1.0 - UV.x;
+	vec4 t = texture(words, vec2(u * info.y, (info.x + UV.y) / rows));
 	// A tired tube: every so often it drops out for a moment.
 	// The landmarks loop: a landmark's sign (INSTANCE_CUSTOM.z = 2) is lit by day too, on no plate.
 	float on = info.z > 1.5 ? max(lights_on, 0.7) : lights_on;

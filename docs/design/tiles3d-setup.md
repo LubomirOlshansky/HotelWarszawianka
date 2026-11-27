@@ -9,14 +9,21 @@ and data attribution (Cesium's credit bar) and a label saying it is a reference.
 node tools/tiles3d/render.mjs --lat=52.24635 --lon=21.01530 --slug=st_anne --radius=35
 node tools/tiles3d/render.mjs 512 -120 --slug=NAME          # game metres (+x east, +z south)
 node tools/tiles3d/render.mjs --building="Ufficio Primo" --slug=ufficio_primo   # by name in centrum.json
-#   --angles=6 --heading0=0 --pitch=-28 --range=R --no-top --size=1600x1200 --timeout=150 --out=DIR
+node tools/tiles3d/render.mjs --lat=52.2479 --lon=21.0137 --slug=plac_zamkowy --area=90   # a square: 8 orbits + top
+#   --angles=6 --heading0=0 --pitch=-28 --range=R --no-faces --height=H --no-top --size=1600x1200 --timeout=150 --out=DIR
 ```
 
 `--radius` is roughly the building's half-size in metres; the camera sits at 2.6 x radius.
+A building run also makes a **face ring**: 4 square-on views at pitch -10, aligned to the
+footprint's longest edge, the range fitted to the full height (the mesh's own roof height or
+`centrum.json`'s, whichever is higher) and width, for storeys, bays and wall heights. Same run,
+same single bill. `--area=R` is for a square or a street front: 8 orbits at pitch -35 plus the
+top, no faces. Turntable pairing: heading = (360 - turntable yaw) % 360, and `--angles=8
+--pitch=-25` matches the turntable's low ring.
 `--building` takes the name from `game/map/centrum.json` (buildings or landmarks) and sets the
 centre and radius from its footprint, the easiest way to aim.
 The first run installs CesiumJS from npm into `build/tiles3d_deps/` (gitignored). Rendering is
-software WebGL (SwiftShader), so a view takes 10-70 s in the cloud (a 7-view run about 5 min); on the Mac it is
+software WebGL (SwiftShader), so a view takes 10-70 s in the cloud (a building run, 11 views, about 7-8 min); on the Mac it is
 the same command (Node + `npx playwright install chromium` once).
 
 ## Terms (Google Maps Platform)

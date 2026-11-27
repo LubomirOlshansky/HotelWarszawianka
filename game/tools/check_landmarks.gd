@@ -228,6 +228,8 @@ func _fly_checks() -> int:
 			alt = 35.0  # ground-level stairs; the way in from the east crosses Jerozolimskie's 25 m tenements
 		elif info["key"] == "sowa":
 			alt = 4.0  # the pavilion stands 7.6-8.5 m over its plinth; the 1950s block behind lifts the default
+		elif info["key"] == "wszystkich":
+			alt = 14.0  # the towers' crosses (56 m) would lift the heli over the 26 m ridges it aims at (eave 16-17 m)
 		elif info["key"] == "tarasy":
 			alt = 15.0  # the wave stands 30 m; the towers in its box (110 m) would lift the heli over it
 		elif LOW_MONUMENTS.has(info["key"]):

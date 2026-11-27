@@ -41,6 +41,21 @@ const DAYS := [["PN", "Mon"], ["WT", "Tue"], ["ŚR", "Wed"], ["CZW", "Thu"], ["P
 static var BY_DAY: float = Pacer.num("time", "by_day")
 
 
+## F 2026-11-26 (story-structure, "The clock"): the clock goes at time.hold_speed (real time) while
+## any of these runs: a questline of story_quests.gd's `defs` (its `busy`), or `extra` (the Tajny
+## klient chapter). Jobs, rides, rival races and rescues are not questlines, so the day still moves
+## while the player grinds. main.gd's story tick sets time_of_day.gd `held` from this.
+static func held_for(defs: Array, extra := false) -> bool:
+	if extra:
+		return true
+	for d: Variant in defs:
+		if d is Dictionary:
+			var b: Callable = (d as Dictionary).get("busy", Callable())
+			if b.is_valid() and bool(b.call()):
+				return true
+	return false
+
+
 ## Within hours [from, to) that may wrap past midnight.
 static func in_hours(hour: float, h: Vector2) -> bool:
 	return (hour >= h.x and hour < h.y) if h.x < h.y else (hour >= h.x or hour < h.y)

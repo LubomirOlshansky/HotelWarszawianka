@@ -7,9 +7,9 @@ extends SceneTree
 ##   highest first, at most MAX_QUEUED, gone after TTL); the calls (only in free roam, settled,
 ##   CALL_GAP apart, and not for CALL_QUIET s after a run ended: TD-3's quiet time, which the offers
 ##   that do not ask the gate read as `quiet`);
-## - F's night-race screenshot replayed (a police chase in a race with the TYGRAM pin, a partner,
+## - F's night-race screenshot replayed (a police chase in a race with the COTAM pin, a partner,
 ##   the radio's news, the app-taxi's GPS line, an easter egg): no radio line, one bubble (the
-##   partner's), the TYGRAM pin shows, the egg waits and shows once the chase is over, no friend's
+##   partner's), the COTAM pin shows, the egg waits and shows once the chase is over, no friend's
 ##   call rings until then;
 ## - a station the player picked still shows its caption during a chase;
 ## - two toasts in a row: the second waits until the first was glanced at, then shows;
@@ -187,7 +187,7 @@ func _check_hud() -> void:
 	_expect(hud.call_ok(), "hud: no call may ring in free roam")
 
 	# F's night race (IMG_7733): the race's status with its position, the police chase's pill and
-	# koguty, the TYGRAM pin, the partner's line, the radio's news, the GPS joke and an easter egg.
+	# koguty, the COTAM pin, the partner's line, the radio's news, the GPS joke and an easter egg.
 	hud.show_status("PARKING POD NARODOWYM · WYŚCIG", "", "2523 m", "Bądź pierwszy", 0.0, Color("#38f6ff"), "2/9", {},
 			"Be first there")
 	hud.set_koguty(1, 1)
@@ -196,17 +196,17 @@ func _check_hud() -> void:
 	_expect(hud.messages.context == Messages.CHASE, "the night race with the police isn't a chase (%s)" % Messages.CONTEXT_NAMES[hud.messages.context])
 	hud.ticker("87,3 KEBAB FM:  Aleje Jerozolimskie: stłuczka.", Color("#ff5fc8"), "Aleje Jerozolimskie: a fender bender.")
 	_expect(not hud._wants.get(hud._ticker, false), "the radio's news showed in the chase")
-	hud.show_note("TYGRAM · WNRC", "📍 Parking pod Narodowym. Kto pierwszy, ten lepszy.", Color("#38f6ff"), Messages.QUEST_LINE)
-	_expect(hud._wants.get(hud._note, false), "the TYGRAM pin (the quest's own message) waited in the chase")
+	hud.show_note("COTAM · WNRC", "📍 Parking pod Narodowym. Kto pierwszy, ten lepszy.", Color("#38f6ff"), Messages.QUEST_LINE)
+	_expect(hud._wants.get(hud._note, false), "the COTAM pin (the quest's own message) waited in the chase")
 	hud.show_note("SEKRET 2/5 · EASTER EGG", "Gołębie na placu Defilad", Color("#ff4fd8"))
-	_expect(hud._note_title.text == "TYGRAM · WNRC", "an easter egg took the pin's place in the chase")
+	_expect(hud._note_title.text == "COTAM · WNRC", "an easter egg took the pin's place in the chase")
 	_expect(hud.messages.queued() == 1, "the easter egg isn't waiting in the queue")
 	hud.ambient_toast("Ładny wieczór", "Nice evening")
 	_expect(not hud._wants.get(hud._toast_box, false), "a flavour toast showed in the chase")
 	var partner := Vector3(mid.x + 300.0, mid.y + 200.0, 0.0)
 	var taxi := Vector3(mid.x - 300.0, mid.y - 100.0, 0.0)
 	b.say(partner, "Darek „Bawarka”", "Pierwszy na miejscu stawia.", "First one there buys.")
-	_expect(not b.say_ambient(taxi, "Podwózka", "GPS kazał tu stanąć.", "The GPS said to stop here."),
+	_expect(not b.say_ambient(taxi, "Łuber", "GPS kazał tu stanąć.", "The GPS said to stop here."),
 			"the app-taxi's GPS line (ambient) showed in the chase")
 	_expect(not b.say_reaction(taxi, "Kierowca", "Ej!", "Hey!"), "a driver's shout showed in the chase")
 	b.say(Vector3(mid.x, mid.y + 250.0, 0.0), "Policja", "Proszę się zatrzymać!", "Please stop!", 3.5, Color("#8fb0ff"), 2.6, Chatter.POLICE)
@@ -220,7 +220,7 @@ func _check_hud() -> void:
 	hud.police_pill("", "")
 	hud.hide_status()
 	_tick(hud, b, 1.0)
-	_expect(hud._note_title.text == "TYGRAM · WNRC" or not hud._note.visible, "the egg came before the settle")
+	_expect(hud._note_title.text == "COTAM · WNRC" or not hud._note.visible, "the egg came before the settle")
 	_expect(not hud.call_ok(), "a call may ring right after the chase")
 	_tick(hud, b, Messages.SETTLE + 6.0)
 	_expect(hud._note_title.text == "SEKRET 2/5 · EASTER EGG", "the easter egg didn't come once the chase was over")

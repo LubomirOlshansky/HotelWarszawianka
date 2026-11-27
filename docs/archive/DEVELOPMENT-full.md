@@ -6204,7 +6204,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--decks-bot=perfect\|mid\|poor\|none` | Za deckami: a bot plays the set (`decks_sim.gd`'s bots), the view closes itself 2.5 s after the receipt |
 | `--decks-log` | Za deckami: `decks:` lines (the start and its tracks, each mix's grade, `decks: over: <TIER> avg <x> paid <zł>/<respect>`, a frame note 3 s into the set). Verify step `decks-run` |
 | `--padel-match[=HOUR]` | arcade padel (padel_match.gd): straight onto the DESKA court at HOUR (default 12; 20 is the floodlit night), the match plays itself, the game quits at its end |
-| `--padel-log` | arcade padel: one line per point, the match's in and out |
+| `--padel-log` | arcade padel: one line per point, the match's in and out, each of your taps (ring ms left) and hits (err ms in game time, clean, clean total) |
 | `--shisha-call` | shisha night (shisha.gd): Ivan rings now (ODBIERZ, then JADĘ!). With `--autopilot` the whole night plays itself: the call and the offer taken, the drive to Ivan, the courts and the lounge, the evening inside, both drop-offs, the result card (`--shisha-log`: `shisha: done: smoke, score N, +N zł +N respect`). Verify step `shisha-run` |
 | `--shisha-meet` | shisha night: the car at Ivan's kerb in 19. Dzielnica, Ivan gets in, on to Bogdan at the Żelazna court |
 | `--shisha-door` | shisha night: both friends in, the car 25 m up Emilii Plater from the lounge's kerb, facing the entrance's teal kerb ring and gold door ring |

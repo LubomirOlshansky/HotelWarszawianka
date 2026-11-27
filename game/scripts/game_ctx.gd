@@ -44,11 +44,11 @@ var traffic: Node3D
 var jobs: Node
 ## The police (police.gd), null with --no-police.
 var police: Node
-## Podwózka (rides.gd), null without a lane graph: the trend job keeps out of its rides.
+## Łuber (rides.gd), null without a lane graph: the trend job keeps out of its rides.
 var rides: Node
 ## The street racers (rivals.gd), null with --no-traffic: the side jobs ask who is racing.
 var rivals: Node
-## The weather (weather.gd): Podwózka's passengers and its pay read the rain.
+## The weather (weather.gd): Łuber's passengers and its pay read the rain.
 var weather: Node
 ## Everyday life (city_life.gd): the trend slots and their doors. Null with --life=0 or without the
 ## notebook's places.

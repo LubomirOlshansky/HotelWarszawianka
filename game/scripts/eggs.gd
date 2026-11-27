@@ -351,7 +351,7 @@ func _build_gaulle_lawn() -> void:
 	chairs.mesh = Props.deckchairs(spots, 515)
 	chairs.material_override = Models.material()
 	add_child(chairs)
-	# The taxis: one MultiMesh of the taxi family (the city taxi and Podwózka) driving the inner
+	# The taxis: one MultiMesh of the taxi family (the city taxi and Łuber) driving the inner
 	# road one after another, each coming back to its start (_inner_taxis).
 	_inner_path.clear()
 	for i in range(0, INNER_ROAD.size() - 1, 2):

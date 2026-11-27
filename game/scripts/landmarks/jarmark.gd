@@ -335,7 +335,10 @@ const JM_ANCHORS := {
 const JM_TREE := Vector2(197.0, 9.5)
 const JM_CAROUSEL := Vector2(134.8, 124.4)
 const JM_TOWER := Vector2(137.7, 63.2)
-const JM_TEACUPS := Vector2(101.3, 25.8)
+## The teacups stand 3 m along and 2 m in from the map's spot (101.3, 25.8): there the ride's platform
+## and the WESOŁYCH ŚWIĄT sign's rail left a 3.6 m funnel where a car crossing the plaza got pinned
+## for a minute (Autopilot PT-60, 2026-11-26); now the gap is about 7 m.
+const JM_TEACUPS := Vector2(104.3, 27.8)
 ## The tree is the tree carousel (the map's karuzela-choinka): its bauble cars go round its foot.
 const JM_TREE_RIDE := JM_TREE
 const JM_SANTA := Vector2(246.6, 71.5)

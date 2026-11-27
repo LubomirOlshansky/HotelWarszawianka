@@ -7,8 +7,12 @@
 //   node tools/tiles3d/render.mjs X Z --slug=NAME              (game metres, +x east, +z south)
 //   node tools/tiles3d/render.mjs --building="Ufficio Primo" --slug=NAME   (name in game/map/centrum.json;
 //                                                               centre and radius from its footprint)
+// Turntable pairing: heading = (360 - turntable yaw) % 360; --angles=8 --pitch=-25 matches its low ring.
 // Options: --angles=6 (orbit views, evenly spaced from --heading0=0, 0 = looking north)
 //          --pitch=-28 (orbit camera pitch, degrees) --range=R (camera distance; default 2.6 x radius)
+//          --no-faces (skip the 4 square-on face views at pitch -10, fitted to the full height;
+//          on by default, aligned to the footprint's longest edge with --building) --height=H (m)
+//          --area=R (a square or street front: 8 orbits at pitch -35 plus the top, no faces, radius R)
 //          --no-top (skip the top-down view) --size=1600x1200 --timeout=150 (seconds per view)
 //          --out=DIR (default refs/<slug>/3dtiles)
 //
@@ -44,7 +48,7 @@ const ORIGIN = [52.2340, 21.0240];
 const M_LAT = 110574.0, M_LON = 111320.0 * Math.cos(ORIGIN[0] * Math.PI / 180);
 let lat = Number(opt("lat", NaN)), lon = Number(opt("lon", NaN));
 let xz = args.filter((a) => !a.startsWith("--")).map(Number);
-let autoRadius = NaN;
+let autoRadius = NaN, autoHeight = NaN, faceBearing = NaN;
 const building = opt("building", "");
 if (building) {
 	// The footprint from the baked map: its bounding-box centre and half its longest side.
@@ -58,17 +62,28 @@ if (building) {
 	const [x0, x1, z0, z1] = [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
 	xz = [(x0 + x1) / 2, (z0 + z1) / 2];
 	autoRadius = Math.max(x1 - x0, z1 - z0) / 2 + 5;
+	autoHeight = Number(hits[0].h) || NaN;
+	// The longest footprint edge sets the face ring's square-on headings (+x east, +z south).
+	let best = 0;
+	for (let i = 0; i < xs.length; i++) {
+		const dx = xs[(i + 1) % xs.length] - xs[i], dz = zs[(i + 1) % zs.length] - zs[i];
+		const len = Math.hypot(dx, dz);
+		if (len > best) { best = len; faceBearing = ((Math.atan2(dx, -dz) * 180 / Math.PI) % 90 + 90) % 90; }
+	}
 	console.log(`tiles3d_render: "${building}" at game ${xz[0].toFixed(0)} ${xz[1].toFixed(0)}, radius ${autoRadius.toFixed(0)} m`);
 }
 if (xz.length === 2) { lat = ORIGIN[0] - xz[1] / M_LAT; lon = ORIGIN[1] + xz[0] / M_LON; }
 if (!Number.isFinite(lat) || !Number.isFinite(lon)) die("give X Z or --lat= --lon=");
 const slug = opt("slug", "");
 if (!/^[a-z0-9_-]+$/.test(slug)) die("--slug=NAME (lowercase letters, digits, _ -)");
-const radius = Number(opt("radius", Number.isFinite(autoRadius) ? autoRadius : 35));
+const area = Number(opt("area", NaN));                  // area mode: a square or street front, radius in metres
+const radius = Number(opt("radius", Number.isFinite(area) ? area : Number.isFinite(autoRadius) ? autoRadius : 35));
 const range = Number(opt("range", radius * 2.6));
-const angles = Math.max(1, Math.min(12, Number(opt("angles", 6))));
+const angles = Math.max(1, Math.min(12, Number(opt("angles", Number.isFinite(area) ? 8 : 6))));
+const height = Number(opt("height", Number.isFinite(autoHeight) ? autoHeight : 25));
+const faces = !flag("no-faces") && !Number.isFinite(area);
 const heading0 = Number(opt("heading0", 0));
-const pitch = Number(opt("pitch", -28));
+const pitch = Number(opt("pitch", Number.isFinite(area) ? -35 : -28));
 const [W, H] = opt("size", "1600x1200").split("x").map(Number);
 const timeoutMs = Number(opt("timeout", 150)) * 1000;
 const out = resolve(opt("out", join(root, "refs", slug, "3dtiles")));
@@ -117,7 +132,16 @@ try {
 
 	// Find the ground: look from above first so tiles load, then sample the mesh at the point.
 	await page.evaluate(([la, lo, r, t]) => window.shoot(la, lo, 120, 0, -89.9, r * 4, "", t), [lat, lon, radius, timeoutMs]);
-	let ground = await page.evaluate(([la, lo]) => window.ground(la, lo), [lat, lon]);
+	// The street, not the roof: the lowest sample of the centre and four points just outside the footprint.
+	const off = (radius + 8) / M_LAT, offLon = (radius + 8) / M_LON;
+	const spots = [[lat, lon], [lat + off, lon], [lat - off, lon], [lat, lon + offLon], [lat, lon - offLon]];
+	const samples = [];
+	for (const [la, lo] of spots) samples.push(await page.evaluate(([a, b, t]) => Promise.race([window.ground(a, b), new Promise((ok) => setTimeout(() => ok(null), t))]), [la, lo, 40000]));
+	let ground = samples.filter((h) => h !== null).reduce((m, h) => Math.min(m, h), Infinity);
+	if (!Number.isFinite(ground)) ground = null;
+	// The mesh's own roof height beats the map's when the map's is lower (and no --height was given).
+	const roofH = samples[0] !== null && ground !== null ? samples[0] - ground : 0;
+	const faceHeight = opt("height", "") ? height : Math.max(height, roofH);
 	if (ground === null) { console.warn("tiles3d_render: no ground sample, using 140 m"); ground = 140; }
 	const aim = ground + Math.min(radius * 0.35, 15);   // a little up the facade, not the pavement
 
@@ -125,11 +149,23 @@ try {
 	const day = new Date().toISOString().slice(0, 10);
 	const views = [];
 	for (let i = 0; i < angles; i++) views.push({ name: `h${String(Math.round((heading0 + i * 360 / angles) % 360)).padStart(3, "0")}`, heading: (heading0 + i * 360 / angles) % 360, pitch, range });
+	if (faces) {
+		// Square-on face ring: low pitch, range fitted so the whole height and width are in frame
+		// (Cesium's 60 degree fov spans the wider side; 4:3 leaves ~47 degrees vertically).
+		const vfov = 2 * Math.atan(Math.tan(Math.PI / 6) * Math.min(W, H) / Math.max(W, H));
+		const fit = Math.max((faceHeight * 1.6 / 2) / Math.tan(vfov / 2), (radius * 2.1 / 2) / Math.tan(Math.PI / 6));
+		const b0 = Number.isFinite(faceBearing) ? faceBearing : heading0;
+		for (let k = 0; k < 4; k++) {
+			const hd = (b0 + k * 90) % 360;
+			views.push({ name: `face${String(Math.round(hd)).padStart(3, "0")}`, heading: hd, pitch: -10, range: fit, aim: ground + faceHeight * 0.42, far: fit * 4 });
+		}
+	}
 	if (!flag("no-top")) views.push({ name: "top", heading: 0, pitch: -89.9, range: range * 1.15 });
 	for (const v of views) {
-		const label = `${slug} · ${v.name === "top" ? "top-down, north up" : `camera looking ${Math.round(v.heading)}°`} · Google 3D Tiles, reference only`;
-		const res = await page.evaluate(([la, lo, h, hd, p, r, l, t]) => window.shoot(la, lo, h, hd, p, r, l, t),
-			[lat, lon, aim, v.heading, v.pitch, v.range, label, timeoutMs]);
+		const what = v.name === "top" ? "top-down, north up" : `${v.name.startsWith("face") ? "face, " : ""}camera looking ${Math.round(v.heading)}°`;
+		const label = `${slug} · ${what} · Google 3D Tiles, reference only`;
+		const res = await page.evaluate(([la, lo, h, hd, p, r, l, t, f]) => window.shoot(la, lo, h, hd, p, r, l, t, f),
+			[lat, lon, v.aim ?? aim, v.heading, v.pitch, v.range, label, timeoutMs, v.far ?? 0]);
 		const file = join(out, `${slug}_${v.name}.png`);
 		await page.screenshot({ path: file });
 		appendFileSync(join(out, "SOURCES.md"), `- ${day} ${slug}_${v.name}.png: Google Photorealistic 3D Tiles (Map Tiles API), live render, `

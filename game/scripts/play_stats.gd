@@ -365,6 +365,9 @@ func watch(ctx: Dictionary) -> void:
 	var eggs: Object = ctx.get("egg_book")
 	if eggs != null:
 		eggs.found.connect(func(id: String) -> void: track("discover", {"kind": "egg", "id": id, "t_play_s": _play}))
+	var napkin: Object = ctx.get("napkin")
+	if napkin != null:
+		napkin.ticked.connect(func(id: String) -> void: track("discover", {"kind": "napkin", "id": id, "t_play_s": _play}))
 	var garage: Object = ctx.get("garage")
 	if garage != null:
 		garage.opened.connect(func() -> void: track("garage", {"action": "visit"}))

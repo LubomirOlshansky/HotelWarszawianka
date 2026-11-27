@@ -67,12 +67,15 @@ const MDM_CROWNS := [
 	[Vector2(-462.0, 1374.3), 27.4, 7.5, 5.8],   # the south gate, east
 ]
 ## Roof and hotel signs, all on the Hotel MDM (Plac Konstytucji 1, the south-west block, 27.4 m; the
-## real MDM and BYD neons share its roof, read from the square; the direction is the text's back): [word, spot, outward direction, roof height above ground, width m, colour].
+## real MDM and BYD neons share its roof, read from the square): [word, spot, outward direction, roof height above ground, width m, colour].
+## The direction is the sign's front, as Neon.place wants it: the quad is cull_disabled, so a sign
+## whose direction points away from the viewer reads mirrored (the HOTEL MDM bug, 2026-11-26).
+## From the square a sign on the hotel's roof looks along -MDM_A; XIAOMY is on the east block.
 const MDM_SIGNS := [
-	["MDM", Vector2(-512.0, 1388.5), Vector2(0.349, 0.937), 32.2, 8.0, MDM_RED],
-	["BYDŁO", Vector2(-527.0, 1394.5), Vector2(0.349, 0.937), 31.0, 12.0, MDM_SILVER],
+	["MDM", Vector2(-512.0, 1388.5), Vector2(-0.349, -0.937), 32.2, 8.0, MDM_RED],
+	["BYDŁO", Vector2(-527.0, 1394.5), Vector2(-0.349, -0.937), 31.0, 12.0, MDM_SILVER],
 	["XIAOMY", Vector2(-447.0, 1366.0), Vector2(-0.349, -0.937), 27.8, 11.0, MDM_ORANGE],
-	["HOTEL MDM", Vector2(-509.8, 1382.2), Vector2(0.349, 0.937), 5.9, 5.2, MDM_RED],
+	["HOTEL MDM", Vector2(-509.8, 1382.2), Vector2(-0.349, -0.937), 5.9, 5.2, MDM_RED],
 ]
 
 
@@ -4388,6 +4391,195 @@ func _build_bgk(site: Dictionary) -> void:
 	signs.append(["POLSKA GRUPA", mid - read * (half - 0.5 * w1), out3, k_n, blue])
 	signs.append(["ENERGICZNA", mid + read * (half - 0.5 * w2), out3, k_n, blue])
 	_collide_raw(site)
+
+
+# --- Ufficio Primo, Wspólna 62 (spec docs/landmarks/specs/ufficio_primo.md, 2026-11-26) -------------
+
+## The former Presidium of the Government office (Marek Leykam, 1952; offices since 2010-12): a stone
+## cube, the same front on all four sides, rusticated all over, eight bays of paired narrow windows
+## on six storeys, a deep cornice under a flat roof with the rotunda's drum in the middle, a tall
+## bronze door between two bronze guardians on the north and east fronts. OpenStreetMap maps it 17.5 m
+## high; the site replaces that block and builds the whole cube from its four corners.
+const UP_AT := Vector2(-1026.8, 816.1)       # a point in the OSM outline
+## The four corners (game x, z), north-west first, walked north, east, south, west.
+const UP_RING := [Vector2(-1051.4, 810.7), Vector2(-1011.3, 796.1), Vector2(-996.7, 835.9), Vector2(-1036.9, 850.5)]
+## Measured from the 2021 Street View east face in sun, calmed to the palette (near PAL_CREAM_STONE).
+const UP_STONE := Color("#d8d4c9")  # cooled a step after the art-director pass (the sunlit model read tan)
+const UP_CORNICE := 22.9     # the cornice slab's foot; its top, the roof, is 1.1 m higher (a slab deep enough to throw a shadow band)
+const UP_ROOF := 24.0
+## The street block (game/data/street_blocks) that stood in for it: the pilot's first city shot showed
+## that block's dome and windows over this model (the turntable builds the site alone and could not), so
+## `_find_blocks` skips it and check_sites fails on any new landmark over a block.
+const UP_BLOCK := "25911097"
+## The dome's slate-blue sheet under the white bubbles (3D Tiles orbit views in sun; a paler grey
+## lost the bubbles' contrast, Fable's review 2026-11-26).
+const UP_DOME := Color("#707785")
+
+
+func _find_ufficio_primo() -> void:
+	var q := _tallest_at(UP_AT)
+	if q.size() < 3 or not Geometry2D.is_point_in_polygon(UP_AT, q):
+		return
+	_add_site("ufficio_primo", [_largest(Geometry2D.offset_polygon(q, 1.0, Geometry2D.JOIN_MITER))])
+	if not sites.is_empty() and sites[-1]["key"] == "ufficio_primo":
+		sites[-1]["ring"] = PackedVector2Array(UP_RING)
+
+
+func _build_ufficio_primo(site: Dictionary) -> void:
+	var ring: PackedVector2Array = site["ring"]
+	_g = _ground_under(ring)
+	var g := _g
+	var trim := UP_STONE.lightened(0.04)
+	# cube: the prism from 0.8 m under the ground to the cornice's foot.
+	_prism(ring, g - 0.8, g + UP_CORNICE, UP_STONE, Color(0, 0, 0, 0), M_STONE)
+	# The ledges that run round the whole cube (one ring each, so no two overlap at a corner).
+	kit_ledge_ring(ring, g, 0.9, UP_STONE.darkened(0.12), 0.12)                    # plinth
+	kit_ledge_ring(ring, g + 5.2, 0.25, trim, 0.12)                                # ground_ledge
+	kit_ledge_ring(ring, g + 8.6, 0.45, trim, 0.30)                                # string_course
+	for y: float in [9.4, 13.4, 17.4]:
+		kit_ledge_ring(ring, g + y, 0.15, trim, 0.08)                              # sill_bands
+	kit_cornice_ring(ring, g + UP_CORNICE, trim, 1.1, 1.6)                         # cornice
+	# The cornice's top is grey sheet metal, not stone (3D Tiles top view): a strip 4 cm over it.
+	_strip(ring, _ring_out(ring, 1.6), g + UP_ROOF + 0.04, PAL_ROOF_PALE)
+	# roof: the dark membrane inside the cornice slab and the pale parapet band (1.2 m, 0.3 m up).
+	_cap(ring, g + UP_ROOF, PAL_ROOF_DARK)
+	var inner := _ring_out(ring, -1.2)
+	_prism(ring, g + UP_ROOF, g + UP_ROOF + 0.3, PAL_ROOF_PALE, Color(0, 0, 0, 0), M_STONE)
+	_strip(inner, ring, g + UP_ROOF + 0.3, PAL_ROOF_PALE)
+	for i in inner.size():
+		var ia := inner[i]
+		var ib := inner[(i + 1) % inner.size()]
+		_wall(ia, ib, g + UP_ROOF, g + UP_ROOF + 0.3, -_out(inner, ia, ib), PAL_ROOF_PALE.darkened(0.1))
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var out := _out(ring, a, b)
+		# kit_front's v is to the left of from→to: walk the edge so that is the way out.
+		var left := Vector2(-(b - a).y, (b - a).x)
+		var w := kit_front(a, b) if left.dot(out) > 0.0 else kit_front(b, a)
+		_up_face(g, w, i < 2, trim)   # the north (0) and east (1) fronts have the door
+		_up_roof_lights(g, w)
+	_up_dome(g, _centre(ring))
+	_collide_raw(site)
+
+
+## roof_lights on the current face: 11 boxes 4.0 m long (across the edge, v) x 2.4 m x 0.5 m, a tan
+## frame round a pale glass top inset 0.35 m, 2.7 m apart (nearly touching, the 3D Tiles top view),
+## 1.6 m in from the parapet band; 11 is the most that clears the next face's at the corners.
+func _up_roof_lights(g: float, w: float) -> void:
+	for k in 11:
+		var u := w * 0.5 + (k - 5) * 2.7
+		_lbox(u, -3.6, 1.2, 2.0, g + UP_ROOF, g + UP_ROOF + 0.5, PAL_SANDSTONE, M_STONE)
+		_cap(_rect(u, -3.6, 0.85, 1.65), g + UP_ROOF + 0.53, PAL_GLASS_PALE)
+
+
+## The dome's profile: (radius, height over the drum's top) from the foot to the crown, a 7 m rise
+## in five frustums (the orbit views: a clear cap over the roofline, not a pancake; Fable's review).
+const UP_DOME_PROFILE := [Vector2(14.0, 0.0), Vector2(12.5, 1.9), Vector2(10.5, 3.7), Vector2(8.0, 5.25),
+		Vector2(5.0, 6.4), Vector2(2.0, 7.0)]
+
+
+## The height of the dome's surface over the drum's top at radius r (UP_DOME_PROFILE, linear between).
+func _up_dome_y(r: float) -> float:
+	for i in UP_DOME_PROFILE.size() - 1:
+		var a: Vector2 = UP_DOME_PROFILE[i]
+		var b: Vector2 = UP_DOME_PROFILE[i + 1]
+		if r >= b.x:
+			return lerpf(a.y, b.y, clampf((a.x - r) / (a.x - b.x), 0.0, 1.0))
+	return 7.0
+
+
+## drum, dome, bubbles: the pale drum 28 m across and 1.2 m tall with 24 pale vents, the slate dome
+## in five frustums (UP_DOME_PROFILE), 71 white bubble skylights 2.1 m across (20 pairs at r 10, a
+## staggered ring of 12 at r 7.2, a 1 + 6 + 12 cluster on top), from the 3D Tiles views.
+## Ducts (optional in the spec) are left out.
+func _up_dome(g: float, c: Vector2) -> void:
+	var y0 := g + UP_ROOF
+	_prism(_circle(c, 14.0, 16), y0, y0 + 1.2, PAL_PALE_CONCRETE, Color(0, 0, 0, 0), M_STONE)
+	for k in 24:
+		var ang := TAU * (k + 0.5) / 24.0
+		var pa := c + Vector2.from_angle(ang - 0.036) * 13.93
+		var pb := c + Vector2.from_angle(ang + 0.036) * 13.93
+		_wall(pa, pb, y0 + 0.4, y0 + 0.9, Vector2.from_angle(ang), PAL_WHITE_STONE)  # pale vent boxes (top view)
+	var yb := y0 + 1.2
+	_mode = M_STONE
+	for i in UP_DOME_PROFILE.size() - 1:
+		var a: Vector2 = UP_DOME_PROFILE[i]
+		var b: Vector2 = UP_DOME_PROFILE[i + 1]
+		if i == UP_DOME_PROFILE.size() - 2:
+			_frustum(_circle(c, a.x, 16), yb + a.y, _circle(c, b.x, 16), yb + b.y, UP_DOME, UP_DOME)
+		else:
+			_frustum(_circle(c, a.x, 16), yb + a.y, _circle(c, b.x, 16), yb + b.y, UP_DOME)
+	var spots: Array[Vector2] = []
+	for k in 20:
+		var ang := TAU * k / 20.0
+		var radial := Vector2.from_angle(ang)
+		var tang := Vector2(-radial.y, radial.x)
+		spots.append(c + radial * 10.0 + tang * 1.25)
+		spots.append(c + radial * 10.0 - tang * 1.25)
+	for k in 12:  # the second, staggered ring (the orbit views)
+		spots.append(c + Vector2.from_angle(TAU * (k + 0.5) / 12.0) * 7.2)
+	spots.append(c)
+	for k in 6:
+		spots.append(c + Vector2.from_angle(TAU * k / 6.0) * 2.3)
+	for k in 12:
+		spots.append(c + Vector2.from_angle(TAU * (k + 0.5) / 12.0) * 4.5)
+	for p: Vector2 in spots:
+		var y := yb + _up_dome_y(p.distance_to(c)) - 0.05
+		_pyramid(_circle(p, 1.05, 6), y, y + 0.7, PAL_WHITE_STONE)   # a 6-sided low cone, 2.1 m across (top view): 6 triangles
+
+
+## One face of Ufficio Primo in the frame kit_front has set: width `w`, v out. Parts as the spec's
+## table: rustication, basement_lights, ground_windows, first_frames + first_pairs, tall_pairs,
+## top_pairs, then (north and east) doors, door_frames, pedestals and guardians.
+func _up_face(g: float, w: float, door: bool, trim: Color) -> void:
+	# rustication: grooves 0.75 m to the string course, 1.0 m above it to the frieze.
+	# Flat dark quads (two triangles a groove) instead of kit_bands' boxes (ten): 92 grooves a
+	# face would take 3,700 triangles of the 4,200.
+	_mode = M_STONE
+	for band: Array in [[0.9, 8.6, 0.75], [8.6, 22.4, 1.0]]:
+		var y := g + float(band[0]) + float(band[2])
+		while y + 0.15 < g + float(band[1]):
+			_wall(_w(0.05, 0.03), _w(w - 0.05, 0.03), y, y + 0.15, _b, UP_STONE.darkened(0.2))
+			y += float(band[2])
+	var bays := _spread(2.2, w - 2.2, 8)
+	var open: Array = []
+	for k in bays.size():
+		if not (door and (k == 3 or k == 4)):
+			open.append(bays[k])
+	# basement_lights under each ground window (past the plinth's 0.12 proud).
+	kit_panes(open, [g + 0.3], 0.9, 0.4, PAL_GLASS_DARK, 0.14)
+	# ground_windows: one per bay, sill 1.5 m, pane 1.2 x 2.6 m.
+	for u: float in open:
+		kit_window(u, g + 1.5, 2.6, Win.SILL, trim, PAL_GLASS_DARK, 0.6)
+	# first_frames: one raised stone frame round each pair (2.3 x 1.9 m, 0.10 proud), panes in front.
+	for u: float in bays:
+		kit_ledge(u - 1.15, u + 1.15, g + 6.15, 1.9, trim, 0.10)
+	var pair := []
+	for u: float in bays:
+		pair.append(u - 0.6)
+		pair.append(u + 0.6)
+	kit_panes(pair, [g + 6.3], 0.8, 1.5, PAL_GLASS_DARK, 0.12)                 # first_pairs
+	kit_panes(pair, [g + 9.6, g + 13.6, g + 17.6], 0.75, 2.4, PAL_GLASS_DARK)   # tall_pairs
+	var top := []
+	for u: float in bays:
+		top.append(u - 0.5)
+		top.append(u + 0.5)
+	kit_panes(top, [g + 21.6], 0.6, 0.6, PAL_GLASS_DARK)                       # top_pairs
+	if not door:
+		return
+	var m := w * 0.5
+	# doors: the leaf 2.2 m wide (hw 1.1), 0.9 m up on the plinth, head under the frame's lintel.
+	kit_door(m, g + 0.9, 3.8, 1.1, trim, PAL_BRONZE)
+	# door_frames: a stone frame 0.4 m wide, 0.25 m proud, 3.0 x 5.0 m round the door.
+	kit_ledge(m - 1.5, m - 1.1, g, 5.0, trim, 0.25)
+	kit_ledge(m + 1.1, m + 1.5, g, 5.0, trim, 0.25)
+	kit_ledge(m - 1.1, m + 1.1, g + 4.6, 0.4, trim, 0.25)
+	# pedestals and guardians: 2.6 m out of the frame, 3.2 m each side of the middle.
+	for sd: float in [-1.0, 1.0]:
+		var pu := m + sd * 3.2
+		_lbox(pu, 2.85, 0.45, 0.45, g, g + 1.2, UP_STONE.darkened(0.08))
+		_kp_figure(pu, 2.85, g + 1.2, 2.2, PAL_BRONZE)
 
 
 # --- Foksal 13 and 15 (F's photos, 2026-11-05; spec docs/landmarks/specs/foksal.md) ------------

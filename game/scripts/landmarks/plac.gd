@@ -766,7 +766,7 @@ func _find_plac2() -> void:
 		if t.get("model", false):
 			continue
 		if not sites.is_empty() and sites[-1]["key"] == t["key"]:
-			sites[-1]["skin"] = {"mode": t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
+			sites[-1]["skin"] = {"mode": M_MONUMENT_FLOOD if FLOODLIT_SITES.has(t["key"]) and t["mode"] == M_MONUMENT else t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
 
 
 ## The Metropolitan: the outline's fronts in glass (M_GLASS) behind granite fins standing out
@@ -1125,27 +1125,29 @@ func _build_zacheta(site: Dictionary) -> void:
 
 const PREZ := Vector2(-514.0, -1005.5)
 const PREZ_AXIS := Vector2(-0.9089, 0.4170)
+## Stone, roof and forecourt colours from the v2 parts table.
 const PREZ_WALL := Color("#efe9da")
 const PREZ_BASE := Color("#ddd6c4")
 const PREZ_ROOF := Color("#7d8a87")
-const PREZ_BRONZE := Color("#3f4a45")
-const PREZ_GRANITE := Color("#8d8a86")
-const PREZ_LION := Color("#d8d2c4")
-const PREZ_IRON := Color("#2f3432")
-const PREZ_SLATE := Color("#6b7275")    ## the wings' dark slate roofs (the aerial, T08-04)
-const PREZ_ARCH := Color("#4d4a42")     ## the arcade's openings in shade
-const PREZ_STATUES := Color("#e4ded0")  ## the balustrade's stone figures
-## Blocks: [cu, cv, hu, hv, eaves, roof rise] (from the outline in the frame above).
-const PREZ_BLOCKS := [
-	[-12.5, 0.5, 12.5, 41.5, 15.5, 5.0],   # main block
-	[-19.5, 46.0, 5.5, 4.0, 12.0, 3.0],    # garden annex, south
-	[42.0, -33.0, 42.0, 7.5, 10.5, 3.6],   # north wing
-	[44.0, 31.5, 44.0, 8.5, 10.5, 3.6],    # south wing
-]
-## The wings' street pavilions: [cu, cv, hu, hv].
-const PREZ_PAVILIONS := [[88.0, -33.0, 4.5, 8.1], [92.0, 31.5, 4.5, 9.1]]
-const PREZ_FENCE_U := 94.0
-const PREZ_STATUE := Vector2(66.0, -0.5)
+const PREZ_SLATE := Color("#7a7f84")  # mid grey, as the 3D Tiles views read it (Codex had #4a4e52, near black on the sheet)
+const PREZ_PAVILION_ROOF := Color("#6b7275")
+const PREZ_ARCH := Color("#4d4a42")
+const PREZ_STATUES := Color("#e4ded0")
+const PREZ_BRONZE := Color("#3a403c")
+const PREZ_GRANITE := Color("#24262a")
+const PREZ_LION := Color("#e6e0d2")
+const PREZ_BOLLARD := Color("#ece6d8")
+const PREZ_CHAIN := Color("#2a2c2e")
+const PREZ_IRON := Color("#1f2224")
+const PREZ_LANTERN := Color("#ffd9a0")
+const PREZ_PLAQUE := Color("#f3ead6")
+const PREZ_FLAG_WHITE := Color("#f2f2f2")
+const PREZ_FLAG_RED := Color("#c8102e")
+const PREZ_FRONT_U := 94.0
+const PREZ_STATUE_U := 70.0
+const PREZ_WING_EAVE := 10.5
+const PREZ_WING_RISE := 4.2
+const PREZ_BAY := 3.6
 
 
 func _find_prezydencki() -> void:
@@ -1158,107 +1160,461 @@ func _find_prezydencki() -> void:
 		sites[-1]["ring"] = outline
 
 
+## Presidential Palace, spec v2 (2026-11-27), a whole model around the mapped forecourt.
+## Builds the main block and risalit, both wings and street pavilions, and the forecourt's
+## monument, lions, bollards and inner gate. The existing hull replaces the LoD2 mass.
 func _build_prezydencki(site: Dictionary) -> void:
+	_prez_frame()
+	var court := _w(40.0, 0.0)
+	_g = map.terrain_height(court.x, court.y)
+	_mode = M_STONE
+	_prez_main()
+	_prez_annex()
+	_prez_risalit()
+	_prez_wing(84.0, -40.5, -25.5, -25.5)
+	_prez_wing(88.0, 23.0, 40.0, 23.0)
+	_prez_pavilion(84.0, -41.1, -24.9, -24.9)
+	_prez_pavilion(88.0, 23.0, 40.6, 23.0)
+	_prez_bollards()
+	for v: float in [-11.0, -7.0, 7.0, 11.0]:
+		_prez_lion(v)
+	_prez_inner_fence()
+	_prez_sentries()
+	_prez_statue_base()
+	_prez_horse_rider()
+	_prez_plaques()
+	_collide(site["ring"])
+
+
+## Restores the site axes after a facade pass. +u points to the street and -v to the north.
+func _prez_frame() -> void:
 	_o = PREZ
 	_a = PREZ_AXIS.normalized()
 	_b = Vector2(-_a.y, _a.x)
-	_g = map.terrain_height(_w(40.0, 0.0).x, _w(40.0, 0.0).y)
-	var g := _g
-	var none := Color(0, 0, 0, 0)
-	var light := PREZ_WALL.lightened(0.05)
-	for blk: Array in PREZ_BLOCKS:
-		var cu: float = blk[0]
-		var cv: float = blk[1]
-		var hu: float = blk[2]
-		var hv: float = blk[3]
-		var top: float = blk[4]
-		_lbox(cu, cv, hu, hv, g - 0.6, g + 4.0, PREZ_BASE, M_STONE, none)
-		_lbox(cu, cv, hu, hv, g + 4.0, g + top, PREZ_WALL, M_MONUMENT, none)
-		_prism(_largest(Geometry2D.offset_polygon(_rect(cu, cv, hu, hv), 0.4, Geometry2D.JOIN_MITER)),
-				g + top - 0.2, g + top + 0.5, light, PREZ_ROOF.lightened(0.1), M_STONE, M_STONE)
-		# the main block's roof grey-green sheet, the wings' dark slate (the aerial, T08-04)
-		_hip(cu, cv, hu - 0.3, hv - 0.3, g + top + 0.5, blk[5], PREZ_ROOF if top > 13.0 else PREZ_SLATE)
-	# the street pavilions: a storey higher than the wings, a pediment to the street
-	for p: Array in PREZ_PAVILIONS:
-		var cu: float = p[0]
-		var cv: float = p[1]
-		var hu: float = p[2]
-		var hv: float = p[3]
-		_lbox(cu, cv, hu, hv, g - 0.6, g + 4.0, PREZ_BASE, M_STONE, none)
-		_lbox(cu, cv, hu, hv, g + 4.0, g + 12.0, PREZ_WALL, M_MONUMENT, none)
-		_lbox(cu, cv, hu + 0.3, hv + 0.3, g + 12.0, g + 12.7, light, M_STONE, PREZ_ROOF.lightened(0.1))
-		_gable(cu + hu + 0.3, cu - hu - 0.3, cv, hv + 0.3, g + 12.7, 3.2, PREZ_WALL, PREZ_SLATE)
-	# The middle of the main block (the 2026-11-08 front photo, T08-03): no free portico but a
-	# risalit a step proud, an arcade of seven round-headed openings in its rusticated ground
-	# floor, six engaged columns over it to the cornice and a balustrade with statues on top.
-	_lbox(0.6, 0.0, 0.6, 14.0, g - 0.6, g + 4.0, PREZ_BASE, M_STONE, PREZ_BASE.lightened(0.05))
-	_lbox(0.6, 0.0, 0.6, 14.0, g + 4.0, g + 15.4, PREZ_WALL, M_MONUMENT, none)
-	_lbox(0.75, 0.0, 0.75, 14.3, g + 15.4, g + 16.4, light, M_STONE, PREZ_ROOF.lightened(0.1))
-	_mode = M_GLASS
-	for v: float in [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]:
-		# the edge runs along -v so the face looks out to the street (+u)
-		var wa := _w(1.23, v + 1.1)
-		var wb := _w(1.23, v - 1.1)
-		_wall(wa, wb, g + 0.2, g + 2.6, _a, PREZ_ARCH)
-		var top := _w(1.23, v)
-		_tri(Vector3(wa.x, g + 2.6, wa.y), Vector3(wb.x, g + 2.6, wb.y), Vector3(top.x, g + 3.5, top.y),
-				Vector3(_a.x, 0.0, _a.y), PREZ_ARCH, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), 3.3)
-	_mode = M_STONE
-	for v: float in [-11.5, -6.9, -2.3, 2.3, 6.9, 11.5]:
-		_column(1.45, v, 0.5, g + 4.2, g + 15.4, PREZ_WALL)
-	# the balustrade along the main block's front and over the risalit, statues on the risalit
-	_lbox(-0.25, 0.5, 0.2, 41.3, g + 15.9, g + 16.9, light, M_STONE, light)
-	_lbox(1.2, 0.0, 0.2, 14.1, g + 16.4, g + 17.4, light, M_STONE, light)
-	for v: float in [-11.5, -6.9, -2.3, 2.3, 6.9, 11.5, -27.0, -38.0, 27.0, 38.0]:
-		var su0 := 1.2 if absf(v) < 14.0 else -0.25
-		var sy := g + (17.4 if absf(v) < 14.0 else 16.9)
-		_lbox(su0, v, 0.32, 0.32, sy, sy + 0.5, light, M_STONE, light)
-		_lbox(su0, v, 0.2, 0.22, sy + 0.5, sy + 1.9, PREZ_STATUES, M_STONE, PREZ_STATUES)
-	# the fence along the street with the gate open in the middle, posts every few metres
-	for span: Vector2 in [Vector2(-25.0, -6.0), Vector2(6.0, 22.5)]:
-		var a := _w(PREZ_FENCE_U, span.x)
-		var b := _w(PREZ_FENCE_U, span.y)
-		for y: float in [0.35, 1.95]:
-			_beam(Vector3(a.x, g + y, a.y), Vector3(b.x, g + y, b.y), 0.08, PREZ_IRON)
-		var n := ceili((span.y - span.x) / 3.2)
-		for k in n + 1:
-			var v := lerpf(span.x, span.y, float(k) / n)
-			_lbox(PREZ_FENCE_U, v, 0.04, 0.04, g - 0.3, g + 2.1, PREZ_IRON, M_STONE, PREZ_IRON)
-		_collide(_rect(PREZ_FENCE_U, (span.x + span.y) * 0.5, 0.15, (span.y - span.x) * 0.5))
-	# the lions on their pedestals by the gate, looking out to the street
-	for v: float in [-9.4, -6.0, 6.0, 9.4]:
-		_lbox(PREZ_FENCE_U, v, 0.9, 0.6, g - 0.4, g + 2.2, PREZ_BASE, M_STONE, PREZ_BASE.lightened(0.05))
-		_lbox(PREZ_FENCE_U - 0.15, v, 0.75, 0.32, g + 2.2, g + 2.75, PREZ_LION, M_STONE, PREZ_LION)
-		_lbox(PREZ_FENCE_U + 0.5, v, 0.28, 0.3, g + 2.75, g + 3.25, PREZ_LION, M_STONE, PREZ_LION.lightened(0.05))
-		_collide(_rect(PREZ_FENCE_U, v, 0.9, 0.6))
-	# the guardhouses inside the gate
-	for v: float in [-15.5, 14.0]:
-		_lbox(88.5, v, 2.2, 2.2, g - 0.5, g + 4.2, PREZ_WALL, M_MONUMENT, none)
-		_lbox(88.5, v, 2.45, 2.45, g + 4.2, g + 4.6, light, M_STONE, PREZ_ROOF)
-		_mode = M_STONE
-		_pyramid(_rect(88.5, v, 2.3, 2.3), g + 4.6, g + 6.2, PREZ_ROOF)
-		_collide(_rect(88.5, v, 2.2, 2.2))
-	# Poniatowski: the granite pedestal, the horse stepping towards the street, the rider
-	var su := PREZ_STATUE.x
-	var sv := PREZ_STATUE.y
-	_lbox(su, sv, 3.0, 1.6, g - 0.4, g + 0.6, PREZ_GRANITE, M_STONE, PREZ_GRANITE.lightened(0.05))
-	_lbox(su, sv, 2.5, 1.15, g + 0.6, g + 3.6, PREZ_GRANITE.lightened(0.12), M_STONE, none)
-	_lbox(su, sv, 2.7, 1.3, g + 3.6, g + 3.95, PREZ_GRANITE, M_STONE, PREZ_GRANITE.lightened(0.05))
-	for leg: Vector2 in [Vector2(-0.95, -0.25), Vector2(-0.95, 0.25), Vector2(0.85, -0.25), Vector2(0.95, 0.25)]:
-		_lbox(su + leg.x, sv + leg.y, 0.09, 0.09, g + 3.95, g + 5.15, PREZ_BRONZE, M_STONE, none)
-	_lbox(su, sv, 1.15, 0.38, g + 5.0, g + 6.0, PREZ_BRONZE, M_STONE, PREZ_BRONZE.lightened(0.06))
-	var neck0 := _w(su + 0.95, sv)
-	var neck1 := _w(su + 1.55, sv)
-	_beam(Vector3(neck0.x, g + 5.75, neck0.y), Vector3(neck1.x, g + 6.75, neck1.y), 0.36, PREZ_BRONZE)
-	_lbox(su + 1.75, sv, 0.32, 0.14, g + 6.35, g + 6.75, PREZ_BRONZE, M_STONE, PREZ_BRONZE)
-	_lbox(su - 0.1, sv, 0.26, 0.3, g + 6.0, g + 7.15, PREZ_BRONZE, M_STONE, PREZ_BRONZE)
-	_lbox(su - 0.1, sv, 0.13, 0.13, g + 7.15, g + 7.5, PREZ_BRONZE, M_STONE, PREZ_BRONZE)
-	var arm0 := _w(su + 0.05, sv - 0.32)
-	var arm1 := _w(su + 1.2, sv - 0.4)
-	_beam(Vector3(arm0.x, g + 6.95, arm0.y), Vector3(arm1.x, g + 7.7, arm1.y), 0.09, PREZ_BRONZE)
-	_collide(_rect(su, sv, 3.0, 1.6))
-	_collide(site["ring"])
+	kit_face(0.0)
 
+
+## The base and the upper walls share a seam. Each footing follows the lowest ground on its edge.
+func _prez_masonry(ring: PackedVector2Array, base: float, top: float, detailed: Array[int]) -> void:
+	for i in ring.size():
+		var from := ring[i]
+		var to := ring[(i + 1) % ring.size()]
+		var out := _out(ring, from, to)
+		_mode = M_STONE
+		_wall(from, to, _prez_footing(from, to), _g + base, out, PREZ_BASE)
+		# Monument mode supplies windows on the outside walls. The authored fronts use plain stone.
+		_mode = M_STONE if i in detailed else M_MONUMENT
+		_wall(from, to, _g + base, _g + top, out, PREZ_WALL)
+	_mode = M_STONE
+
+
+## Sink the bottom of a wall below grade on the palace's downhill garden side.
+func _prez_footing(from: Vector2, to: Vector2) -> float:
+	var low := _g - 0.6
+	var n := maxi(1, ceili(from.distance_to(to) / 8.0))
+	for i in n + 1:
+		var p := from.lerp(to, float(i) / n)
+		low = minf(low, map.terrain_height(p.x, p.y) - 0.3)
+	return low
+
+
+## Three floors and an attic above the main block's rusticated base, under a broad hipped top.
+func _prez_main() -> void:
+	var ring := _urect(-25.0, 0.0, -41.0, 42.0)
+	var from := _w(0.0, 42.0)
+	var to := _w(0.0, -41.0)
+	kit_front(from, to)
+	# Fifteen bays per side fit between the risalit and the outer end. The panes share sill courses.
+	for span: Vector2 in [Vector2(0.0, 28.0), Vector2(56.0, 83.0)]:
+		var visible := Vector2(19.0, 28.0) if span.x == 0.0 else Vector2(56.0, 67.5)
+		kit_bands(visible.x, visible.y, _g, _g + 4.0, 0.98, PREZ_BASE)
+		var bays: Array[float] = []
+		var exposed: Array[float] = []
+		for i in 15:
+			var u := lerpf(span.x, span.y, (i + 0.5) / 15.0)
+			bays.append(u)
+			if u >= visible.x and u <= visible.y:
+				exposed.append(u)
+		kit_panes(exposed, [_g + 1.0], 0.95, 2.1, PREZ_ARCH, 0.075)
+		kit_panes(exposed, [_g + 4.55], 1.05, 2.7, PAL_GLASS_DARK)
+		kit_panes(exposed, [_g + 8.0], 1.05, 2.2, PAL_GLASS_DARK)
+		kit_panes(bays, [_g + 10.95], 1.0, 1.75, PAL_GLASS_DARK)
+		kit_panes(bays, [_g + 13.55], 0.85, 0.95, PAL_GLASS_DARK)
+		for sill: float in [4.35, 7.8]:
+			kit_ledge(visible.x, visible.y, _g + sill, 0.13, PREZ_WALL)
+		for sill: float in [10.75, 13.35]:
+			kit_ledge(span.x, span.y, _g + sill, 0.13, PREZ_WALL)
+		var pilaster := 22.4 if span.x == 0.0 else 61.4
+		kit_pilaster(pilaster, _g + 4.18, _g + 13.21, PREZ_WALL, 0.42, 0.16)
+		kit_face(0.14)
+		kit_attic(span.x + 0.16, span.y - 0.1, _g + 15.5, PREZ_WALL, 1.0, Attic.WALL)
+		kit_face(0.0)
+	_prez_frame()
+	_prez_masonry(ring, 4.0, 15.5, [1])
+	kit_cornice_ring(ring, _g + 15.05, PREZ_WALL, 0.45, 0.4)
+	_prez_roof(ring, _rect(-12.5, 0.5, 7.0, 35.5), _g + 15.5, _g + 20.5, PREZ_ROOF)
+	for v: float in [-21.0, 24.0]:
+		_lbox(-15.0, v, 0.4, 0.75, _g + 20.49, _g + 21.25, PREZ_ROOF.lightened(0.12))
+
+
+## The low garden annex joins the south end of the main block under its own hip.
+func _prez_annex() -> void:
+	var ring := _urect(-25.0, -14.0, 42.0, 50.0)
+	_prism(ring, _prez_footing(ring[3], ring[0]), _g + 12.0, PREZ_WALL, Color(0, 0, 0, 0), M_MONUMENT)
+	kit_cornice_ring(ring, _g + 11.6, PREZ_WALL, 0.4, 0.3)
+	_prez_roof(ring, _rect(-19.5, 46.0, 1.65, 0.15), _g + 12.0, _g + 15.0, PREZ_ROOF)
+
+
+## Both long wings use the same cadence on their courtyard faces and carry flat slate dormers.
+func _prez_wing(length: float, v0: float, v1: float, court_v: float) -> void:
+	var ring := _urect(0.0, length, v0, v1)
+	var faces_positive_v := court_v == v1
+	var from := _w(0.0 if faces_positive_v else length, court_v)
+	var to := _w(length if faces_positive_v else 0.0, court_v)
+	var width := kit_front(from, to)
+	var count := floori(width / PREZ_BAY)
+	var first := (width - (count - 1) * PREZ_BAY) * 0.5
+	_prez_wing_gf(width, first, count)
+	_prez_wing_upper(width, first, count)
+	_prez_wing_lanterns(first, count)
+	_prez_frame()
+	_prez_masonry(ring, 4.2, PREZ_WING_EAVE, [2 if faces_positive_v else 0])
+	kit_cornice_ring(ring, _g + 10.03, PREZ_WALL, 0.47, 0.45)
+	_prez_wing_roof(length, v0, v1, court_v)
+
+
+## The arches sit forward of the rustication so the horizontal grooves are behind the surrounds.
+func _prez_wing_gf(width: float, first: float, count: int) -> void:
+	kit_bands(0.04, width - 0.04, _g, _g + 4.2, 1.04, PREZ_BASE)
+	for i in count:
+		var u := first + i * PREZ_BAY
+		kit_round_window(_w(u, 0.035), _a, _b, _g + 0.85, _g + 2.75, 0.7, PREZ_BASE.lightened(0.09))
+
+
+## Individual heads and sills alternate with paired sash panes on continuous stone courses.
+func _prez_wing_upper(width: float, first: float, count: int) -> void:
+	kit_ledge(0.04, width - 0.04, _g + 4.38, 0.12, PREZ_WALL, 0.11)
+	kit_ledge(0.04, width - 0.04, _g + 7.38, 0.15, PREZ_WALL, 0.11)
+	kit_ledge(0.04, width - 0.04, _g + 9.9, 0.1, PREZ_WALL, 0.13)
+	for i in count:
+		var u := first + i * PREZ_BAY
+		if i % 3 == 0:
+			kit_window(u, _g + 4.7, 2.3, Win.SILL_HEAD, PREZ_WALL, PAL_GLASS_DARK, 0.65)
+		else:
+			kit_panes([u - 0.35, u + 0.35], [_g + 4.7], 0.6, 2.3, PAL_GLASS_DARK)
+		if i % 3 == 1:
+			kit_window(u, _g + 7.75, 1.9, Win.SILL_HEAD, PREZ_WALL, PAL_GLASS_DARK, 0.65)
+		else:
+			kit_panes([u - 0.35, u + 0.35], [_g + 7.75], 0.6, 1.9, PAL_GLASS_DARK)
+
+
+## A shallow four-sided wall fixture with a dark iron hood over its warm, emissive glass.
+func _prez_wing_lanterns(first: float, count: int) -> void:
+	for i in range(0, count - 1, 2):
+		var u := first + (i + 0.5) * PREZ_BAY
+		var glass := _rect(u, 0.12, 0.12, 0.15)
+		var hood := _rect(u, 0.12, 0.15, 0.15)
+		_prism(glass, _g + 2.35, _g + 2.72, PREZ_LANTERN, Color(0, 0, 0, 0), M_LAMP)
+		_pyramid(hood, _g + 2.72, _g + 2.85, PREZ_IRON)
+
+
+## The dormers follow the central run of the hip, with their cheeks buried up the slope.
+func _prez_wing_roof(length: float, v0: float, v1: float, court_v: float) -> void:
+	var half_width := (v1 - v0) * 0.5
+	var shoulder := half_width - 0.15
+	var ridge := _rect(length * 0.5, (v0 + v1) * 0.5, length * 0.5 - shoulder, 0.15)
+	_prez_roof(_urect(0.0, length, v0, v1), ridge, _g + PREZ_WING_EAVE,
+			_g + PREZ_WING_EAVE + PREZ_WING_RISE, PREZ_SLATE)
+	var inward := signf((v0 + v1) * 0.5 - court_v)
+	var setback := 2.4
+	var roof_y := _g + PREZ_WING_EAVE + PREZ_WING_RISE * setback / shoulder
+	var from := _w(0.0 if inward < 0.0 else length, court_v + inward * setback)
+	var to := _w(length if inward < 0.0 else 0.0, court_v + inward * setback)
+	kit_front(from, to)
+	var count := floori((length - half_width - 9.6) / (2.0 * PREZ_BAY)) + 1
+	for i in count:
+		var u := 9.6 + i * 2.0 * PREZ_BAY
+		var front_left := _prez_point(u - 0.6, 0.0, roof_y + 1.0)
+		var front_right := _prez_point(u + 0.6, 0.0, roof_y + 1.0)
+		var back_left := _prez_point(u - 0.6, -2.0, roof_y + 1.0)
+		var back_right := _prez_point(u + 0.6, -2.0, roof_y + 1.0)
+		var foot := roof_y - 0.03
+		var cheek := PREZ_SLATE.lightened(0.18)
+		var along := Vector3(_a.x, 0.0, _a.y)
+		_wall(_w(u - 0.6, 0.0), _w(u + 0.6, 0.0), foot, roof_y + 1.0, _b, cheek)
+		_tri(front_left, back_left, _prez_point(u - 0.6, 0.0, foot), -along, cheek,
+				Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+		_tri(front_right, back_right, _prez_point(u + 0.6, 0.0, foot), along, cheek,
+				Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+		_quad(front_left, front_right, back_right, back_left, Vector3.UP, PREZ_SLATE.lightened(0.09))
+		kit_panes([u], [roof_y + 0.18], 0.8, 0.58, PAL_GLASS_DARK)
+	_prez_frame()
+
+
+## A hip with roof UVs so the palace floodlight shader lights the walls below it.
+func _prez_roof(eaves: PackedVector2Array, ridge: PackedVector2Array, y0: float, y1: float, col: Color) -> void:
+	for i in eaves.size():
+		var j := (i + 1) % eaves.size()
+		var a := Vector3(eaves[i].x, y0, eaves[i].y)
+		var b := Vector3(eaves[j].x, y0, eaves[j].y)
+		var c := Vector3(ridge[j].x, y1, ridge[j].y)
+		var d := Vector3(ridge[i].x, y1, ridge[i].y)
+		var n := (b - a).cross(d - a).normalized()
+		_quad(a, b, c, d, n if n.y > 0.0 else -n, col)
+	_cap(ridge, y1, col)
+
+
+## The pavilions continue the wings with two bays on the court and gables ending at the street.
+func _prez_pavilion(start: float, v0: float, v1: float, court_v: float) -> void:
+	var end := start + 8.0
+	var ring := _urect(start, end, v0, v1)
+	var faces_positive_v := court_v == v1
+	var from := _w(start if faces_positive_v else end, court_v)
+	var to := _w(end if faces_positive_v else start, court_v)
+	kit_front(from, to)
+	_prez_wing_gf(8.0, 2.2, 2)
+	_prez_wing_upper(8.0, 2.2, 2)
+	_prez_wing_lanterns(2.2, 2)
+	_prez_frame()
+	_prez_pavilion_front(end, v0, v1)
+	_prez_masonry(ring, 4.2, 12.7, [1, 2 if faces_positive_v else 0])
+	kit_cornice_ring(ring, _g + 12.0, PREZ_WALL, 0.7, 0.45)
+	_gable(end, start - 0.05, (v0 + v1) * 0.5, (v1 - v0) * 0.5 + 0.35,
+			_g + 12.7, 3.2, PREZ_WALL, PREZ_PAVILION_ROOF, true)
+
+
+## The street temple front has pilasters rising past the three balcony bays to a plain tympanum.
+func _prez_pavilion_front(end: float, v0: float, v1: float) -> void:
+	var width := kit_front(_w(end, v1), _w(end, v0))
+	var mid := width * 0.5
+	kit_bands(0.04, width - 0.04, _g, _g + 4.2, 1.04, PREZ_BASE)
+	kit_face(0.035)
+	kit_door(mid, _g + 0.12, 3.34, 0.9, PREZ_BASE.lightened(0.09), PREZ_ARCH, true)
+	kit_face(0.0)
+	for x: float in [-2.65, 2.65]:
+		kit_round_window(_w(mid + x, 0.035), _a, _b, _g + 0.85, _g + 2.75, 0.7, PREZ_BASE.lightened(0.09))
+	for x: float in [-4.25, -1.35, 1.35, 4.25]:
+		kit_pilaster(mid + x, _g + 4.15, _g + 11.66, PREZ_WALL, 0.72, 0.19)
+	kit_ledge(mid - 4.85, mid + 4.85, _g + 11.65, 0.38, PREZ_WALL, 0.27)
+	# The balcony's back overlaps the pilasters, which join it to the wall.
+	kit_balcony(mid, _g + 4.69, 3.5, Balcony.IRON, PREZ_IRON, PREZ_WALL, 0.84)
+	for x: float in [-6.1, -2.65, 0.0, 2.65, 6.1]:
+		kit_panes([mid + x], [_g + 4.75], 1.18, 2.65, PAL_GLASS_DARK)
+		kit_panes([mid + x], [_g + 8.4], 1.18, 2.08, PAL_GLASS_DARK)
+	kit_pediment(mid, mid + 0.35, _g + 12.7, 3.2, PREZ_WALL, PREZ_PAVILION_ROOF, 0.38)
+	_prez_frame()
+
+
+## Seven dark arches under engaged Corinthian columns, with the centre of the balustrade stepped out.
+func _prez_risalit() -> void:
+	var ring := _urect(0.0, 1.2, -14.0, 14.0)
+	kit_front(_w(1.2, 14.0), _w(1.2, -14.0))
+	kit_bands(0.03, 27.97, _g, _g + 4.0, 0.98, PREZ_BASE)
+	for u: float in [2.0, 6.0, 10.0, 14.0, 18.0, 22.0, 26.0]:
+		_arch_panel(_w(u, 0.035), _a, _b, 1.22, _g + 0.12, _g + 2.4, PREZ_WALL, 0.03, M_STONE)
+		_arch_panel(_w(u, 0.035), _a, _b, 1.1, _g + 0.2, _g + 2.4, PREZ_ARCH, 0.07, M_GLASS)
+		kit_panes([u], [_g + 5.3], 1.4, 3.15, PAL_GLASS_DARK)
+		kit_panes([u], [_g + 9.75], 1.4, 2.65, PAL_GLASS_DARK)
+		kit_panes([u], [_g + 13.58], 1.1, 0.95, PAL_GLASS_DARK)
+	kit_ledge(0.03, 27.97, _g + 4.0, 0.23, PREZ_WALL, 0.38)
+	# The shafts remain engaged in the masonry at this depth.
+	for u: float in [2.5, 7.1, 11.7, 16.3, 20.9, 25.5]:
+		kit_column(u, 0.25, _g + 4.2, _g + 15.4, PREZ_WALL, 0.5, Order.CORINTHIAN)
+	kit_cornice_ring(ring, _g + 15.78, PREZ_WALL, 0.62, 0.32)
+	kit_face(0.08)
+	kit_attic(0.06, 27.94, _g + 16.4, PREZ_WALL)
+	_prez_frame()
+	_prez_masonry(ring, 4.0, 16.4, [1])
+	# The risalit roof ties the crown back into the main roof slope.
+	_cap(_urect(-1.2, 1.2, -14.0, 14.0), _g + 16.36, PREZ_ROOF)
+	_prez_figures()
+	_prez_flags()
+
+
+## Stone figures on low square plinths accent the columns and the outer balustrade.
+func _prez_figures() -> void:
+	for v: float in [-38.0, -27.0, -11.5, -6.9, -2.3, 2.3, 6.9, 11.5, 27.0, 38.0]:
+		var central := absf(v) < 14.0
+		var u := 1.26 if central else 0.12
+		var y := _g + (17.4 if central else 16.5)
+		_lbox(u, v, 0.28, 0.29, y, y + 0.5, PREZ_WALL)
+		_frustum(_rect(u, v, 0.2, 0.22), y + 0.5, _rect(u + 0.03, v, 0.15, 0.16),
+				y + 1.98, PREZ_STATUES, PREZ_STATUES)
+		_lbox(u + 0.06, v, 0.105, 0.11, y + 1.98, y + 2.4, PREZ_STATUES)
+
+
+## Twin poles carry Polish flags in two horizontal bands, visible from either side.
+func _prez_flags() -> void:
+	for v: float in [-4.0, 4.0]:
+		var foot := _g + 17.39
+		var u := 1.06
+		_beam(_prez_point(u, v, foot), _prez_point(u, v, foot + 6.0), 0.085, PREZ_FLAG_WHITE, false)
+		_two_sided(_prez_point(u, v, foot + 5.32), _prez_point(u, v + 1.8, foot + 5.32),
+				_prez_point(u, v + 1.8, foot + 5.87), _prez_point(u, v, foot + 5.87), PREZ_FLAG_WHITE)
+		_two_sided(_prez_point(u, v, foot + 4.77), _prez_point(u, v + 1.8, foot + 4.77),
+				_prez_point(u, v + 1.8, foot + 5.32), _prez_point(u, v, foot + 5.32), PREZ_FLAG_RED)
+
+
+## Square bollards and three-segment chains replace the street fence and keep the entrance open.
+func _prez_bollards() -> void:
+	for row: Array in [[-25.0, -22.5, -18.0, -13.5, -9.0], [9.0, 13.5, 18.0, 22.5]]:
+		for i in row.size():
+			var v: float = row[i]
+			_lbox(PREZ_FRONT_U, v, 0.225, 0.225, _g - 0.6, _g + 1.1, PREZ_BOLLARD)
+			if i == 0:
+				continue
+			var prev: float = row[i - 1]
+			var a := _prez_point(PREZ_FRONT_U, prev + 0.2, _g + 0.92)
+			var b := _prez_point(PREZ_FRONT_U, lerpf(prev, v, 0.28), _g + 0.67)
+			var c := _prez_point(PREZ_FRONT_U, lerpf(prev, v, 0.72), _g + 0.67)
+			var d := _prez_point(PREZ_FRONT_U, v - 0.2, _g + 0.92)
+			_beam(a, b, 0.058, PREZ_CHAIN, false)
+			_beam(b, c, 0.058, PREZ_CHAIN, false)
+			_beam(c, d, 0.058, PREZ_CHAIN, false)
+		var first: float = row.front()
+		var last: float = row.back()
+		_collide(_urect(PREZ_FRONT_U - 0.17, PREZ_FRONT_U + 0.17, first, last))
+
+
+## Each reclining lion faces the street, with its paws and tail lying on the long plinth.
+func _prez_lion(v: float) -> void:
+	var u := PREZ_FRONT_U
+	var y := _g + 1.6
+	var ring := _rect(u, v, 1.4, 0.65)
+	_prism(_rect(u, v, 1.36, 0.61), _g - 0.65, y - 0.16, PREZ_BOLLARD, Color(0, 0, 0, 0))
+	_prism(ring, y - 0.16, y, PREZ_LION, PREZ_LION)
+	_frustum(_prez_oval_ring(u - 0.33, v, 0.875, 0.42), y,
+			_prez_oval_ring(u - 0.23, v, 0.76, 0.31), y + 0.67, PREZ_LION, PREZ_LION)
+	_frustum(_prez_oval_ring(u + 0.41, v, 0.37, 0.42), y + 0.2,
+			_prez_oval_ring(u + 0.5, v, 0.36, 0.33), y + 0.98, PREZ_LION.darkened(0.07), PREZ_LION)
+	_lbox(u + 0.81, v, 0.25, 0.24, y + 0.62, y + 1.01, PREZ_LION)
+	_lbox(u + 1.04, v, 0.13, 0.154, y + 0.63, y + 0.81, PREZ_LION.lightened(0.04))
+	for side: float in [-1.0, 1.0]:
+		_lbox(u + 0.79, v + 0.235 * side, 0.405, 0.11, y, y + 0.23, PREZ_LION)
+		_pyramid(_rect(u + 0.65, v + 0.18 * side, 0.073, 0.065), y + 0.97, y + 1.09, PREZ_LION)
+	_beam(_prez_point(u - 1.08, v - 0.24, y + 0.35), _prez_point(u - 0.84, v - 0.49, y + 0.09), 0.11, PREZ_LION)
+	_beam(_prez_point(u - 0.88, v - 0.49, y + 0.08), _prez_point(u - 0.29, v - 0.38, y + 0.07), 0.11, PREZ_LION)
+	_collide(ring)
+
+
+## The inner railings meet the wings and stop at dressed stone piers on either side of the drive.
+func _prez_inner_fence() -> void:
+	var u := 22.0
+	for span: Vector2 in [Vector2(-25.53, -5.44), Vector2(5.44, 23.03)]:
+		for h: float in [0.45, 2.38]:
+			_beam(_prez_point(u, span.x, _g + h), _prez_point(u, span.y, _g + h), 0.085, PREZ_IRON, false)
+		var posts := ceili((span.y - span.x) / 2.2)
+		for i in posts:
+			var v := lerpf(span.x, span.y, (i + 0.5) / posts)
+			_prism(_rect(u, v, 0.047, 0.047), _g - 0.55, _g + 2.49, PREZ_IRON, Color(0, 0, 0, 0))
+			_mode = M_GOLD
+			_pyramid(_rect(u, v, 0.061, 0.061), _g + 2.49, _g + 2.6, PAL_GOLD)
+			_mode = M_STONE
+			if i == posts - 1:
+				continue
+			var picket := lerpf(span.x, span.y, float(i + 1) / posts)
+			_two_sided(_prez_point(u, picket - 0.028, _g + 0.45), _prez_point(u, picket + 0.028, _g + 0.45),
+					_prez_point(u, picket + 0.028, _g + 2.4), _prez_point(u, picket - 0.028, _g + 2.4), PREZ_IRON)
+		_collide(_urect(u - 0.14, u + 0.14, span.x, span.y))
+	for v: float in [-5.5, 5.5]:
+		_lbox(u, v, 0.5, 0.5, _g - 0.7, _g + 0.38, PREZ_BASE)
+		_lbox(u, v, 0.4, 0.41, _g + 0.38, _g + 3.14, PREZ_WALL)
+		_lbox(u, v, 0.51, 0.5, _g + 3.14, _g + 3.4, PREZ_WALL)
+		_collide(_rect(u, v, 0.5, 0.5))
+
+
+## Two small sentry boxes stand just inside the open gate below grey pyramid roofs.
+func _prez_sentries() -> void:
+	for v: float in [-7.0, 7.0]:
+		var ring := _rect(20.0, v, 0.7, 0.7)
+		kit_front(_w(20.7, v + 0.7), _w(20.7, v - 0.7))
+		kit_door(0.7, _g + 0.03, 1.83, 0.27, PREZ_WALL, PREZ_IRON)
+		_prez_frame()
+		_prism(ring, _g - 0.65, _g + 2.14, PREZ_WALL, Color(0, 0, 0, 0), M_MONUMENT)
+		_pyramid(_rect(20.0, v, 0.77, 0.77), _g + 2.14, _g + 2.6, PREZ_PAVILION_ROOF)
+		_collide(ring)
+
+
+## Two low cream information panels stand on iron legs at the street side of the monument.
+func _prez_plaques() -> void:
+	for v: float in [-3.0, 3.0]:
+		for dv: float in [-0.44, 0.44]:
+			_lbox(88.0, v + dv, 0.055, 0.055, _g - 0.55, _g + 0.66, PREZ_IRON)
+		_lbox(88.0, v, 0.055, 0.6, _g + 0.66, _g + 1.56, PREZ_PLAQUE, M_LAMP)
+
+
+## The polished granite pedestal has a stepped foot and a lighter cap over its inscription band.
+func _prez_statue_base() -> void:
+	var u := PREZ_STATUE_U
+	_lbox(u, 0.0, 2.6, 1.5, _g - 0.68, _g + 0.32, PREZ_GRANITE.lightened(0.09))
+	_lbox(u, 0.0, 2.34, 1.3, _g + 0.32, _g + 3.9, PREZ_GRANITE)
+	_lbox(u, 0.0, 2.48, 1.42, _g + 3.9, _g + 4.2, PREZ_GRANITE.lightened(0.14))
+	_mode = M_STONE
+	_wall(_w(u + 2.37, 0.73), _w(u + 2.37, -0.73), _g + 3.08, _g + 3.36, _a, PREZ_GRANITE.darkened(0.2))
+	_collide(_rect(u, 0.0, 2.6, 1.5))
+
+
+## The horse walks toward the street with one bent foreleg. The rider holds the sword low ahead.
+func _prez_horse_rider() -> void:
+	var u := PREZ_STATUE_U
+	var y := _g + 4.2
+	var bronze := PREZ_BRONZE
+	var belly := _prez_oval_ring(u - 0.24, 0.0, 0.97, 0.33)
+	var barrel := _prez_oval_ring(u - 0.27, 0.0, 1.06, 0.42)
+	_frustum(belly, y + 0.99, barrel, y + 1.37, bronze)
+	_frustum(barrel, y + 1.37, _prez_oval_ring(u - 0.27, 0.0, 0.89, 0.29), y + 1.84, bronze, bronze)
+	for side: float in [-1.0, 1.0]:
+		var v := side * 0.26
+		var hoof := u - 0.85 - side * 0.28
+		var hock := _prez_point(u - 1.04, v, y + 0.57)
+		_beam(_prez_point(u - 0.94, v, y + 1.37), hock, 0.25, bronze)
+		_beam(hock, _prez_point(hoof, v, y + 0.06), 0.13, bronze)
+		_lbox(hoof, v, 0.1, 0.08, y, y + 0.11, bronze)
+	var knee := _prez_point(u + 0.76, -0.24, y + 0.69)
+	_beam(_prez_point(u + 0.51, -0.24, y + 1.34), knee, 0.21, bronze)
+	_beam(knee, _prez_point(u + 0.97, -0.24, y + 0.34), 0.13, bronze)
+	_beam(_prez_point(u + 0.44, 0.24, y + 1.36), _prez_point(u + 0.31, 0.24, y + 0.07), 0.17, bronze)
+	_lbox(u + 0.31, 0.24, 0.105, 0.09, y, y + 0.11, bronze)
+	var crest := _prez_oval_ring(u + 0.88, 0.0, 0.22, 0.18)
+	_frustum(_prez_oval_ring(u + 0.56, 0.0, 0.47, 0.29), y + 1.28, crest, y + 2.44, bronze)
+	_frustum(_prez_oval_ring(u + 1.21, 0.0, 0.25, 0.13), y + 1.88,
+			_prez_oval_ring(u + 1.0, 0.0, 0.25, 0.19), y + 2.38, bronze, bronze)
+	for v: float in [-0.13, 0.13]:
+		_beam(_prez_point(u + 0.87, v, y + 2.29), _prez_point(u + 0.81, v, y + 2.61), 0.085, bronze)
+	var tail := _prez_point(u - 1.35, 0.04, y + 0.86)
+	_beam(_prez_point(u - 1.13, 0.0, y + 1.67), tail, 0.19, bronze)
+	_beam(tail, _prez_point(u - 1.28, 0.18, y + 0.29), 0.14, bronze)
+	var tunic := _prez_oval_ring(u - 0.26, 0.0, 0.23, 0.27)
+	_frustum(tunic, y + 1.65, _prez_oval_ring(u - 0.22, 0.0, 0.17, 0.2), y + 1.98, bronze)
+	_frustum(_prez_oval_ring(u - 0.22, 0.0, 0.17, 0.2), y + 1.98,
+			_prez_oval_ring(u - 0.21, 0.0, 0.21, 0.28), y + 2.67, bronze, bronze)
+	_frustum(_prez_oval_ring(u - 0.17, 0.0, 0.095, 0.095), y + 2.62,
+			_prez_oval_ring(u - 0.13, 0.0, 0.15, 0.14), y + 2.83, bronze)
+	_prism(_prez_oval_ring(u - 0.12, 0.0, 0.15, 0.14), y + 2.83, y + 3.15, bronze, bronze)
+	for side: float in [-1.0, 1.0]:
+		var v := side * 0.35
+		var rider_knee := _prez_point(u + 0.11, v, y + 1.56)
+		_beam(_prez_point(u - 0.27, v * 0.7, y + 1.86), rider_knee, 0.23, bronze)
+		_beam(rider_knee, _prez_point(u - 0.04, v, y + 1.15), 0.13, bronze)
+	_beam(_prez_point(u - 0.21, 0.2, y + 2.55), _prez_point(u + 0.77, 0.16, y + 2.11), 0.15, bronze)
+	var hand := _prez_point(u + 0.28, -0.5, y + 2.14)
+	_beam(_prez_point(u - 0.21, -0.21, y + 2.53), hand, 0.15, bronze)
+	_beam(hand, _prez_point(u + 1.65, -0.59, y + 1.76), 0.056, bronze.lightened(0.12))
+
+
+## Eight-point horizontal rings keep the animal silhouettes faceted at game scale.
+func _prez_oval_ring(u: float, v: float, hu: float, hv: float) -> PackedVector2Array:
+	var ring := PackedVector2Array()
+	for i in 8:
+		var angle := TAU * i / 8.0
+		ring.append(_w(u + hu * cos(angle), v + hv * sin(angle)))
+	return ring
+
+
+## A Palace-frame plan point lifted to an absolute height for beams and flag panels.
+func _prez_point(u: float, v: float, y: float) -> Vector3:
+	var pos := _w(u, v)
+	return Vector3(pos.x, y, pos.y)
 
 # --- Plac Piłsudskiego from photos (2026-11-02) ----------------------------------------------------
 

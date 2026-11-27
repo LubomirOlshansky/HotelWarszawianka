@@ -45,7 +45,7 @@ const MapMarkers := preload("res://scripts/map_markers.gd")
 const Garage := preload("res://scripts/garage.gd")
 const Ladder := preload("res://scripts/ladder.gd")
 const Dialogue := preload("res://scripts/dialogue.gd")
-## Loop 2d-1: Podwózka's card words.
+## Loop 2d-1: Łuber's card words.
 const RideRules := preload("res://scripts/ride_rules.gd")
 ## Width x height in pixels (landscape): the user's 6.9" Pro Max, the 6.1" class, a computer
 ## window (taken as a phone 390 pt tall), the SE (375 pt tall, no insets), the 13" iPad (the
@@ -325,7 +325,7 @@ func _check_screen(screen: Vector2i) -> int:
 					hud.show_status("DO SZPITALA · Samodzielny Szpital Kliniczny im. prof. Witolda Orłowskiego", "2:31", "640 m",
 							"Pacjent na pokładzie: do zielonego światła", 0.3, Color("#ffc23a"), "", {}, "Patient on board: head for the green beacon")
 					# The message director keeps the radio and an egg's note back during a quest; the worst
-					# case left is a station the player picked and a quest's own note (TYGRAM).
+					# case left is a station the player picked and a quest's own note (COTAM).
 					hud.radio_touched()
 					hud.ticker("87,3 KEBAB FM:  Jest trzecia w nocy, a Rondo Dmowskiego wciąż stoi. Szacunek.", Color("#ff5fc8"),
 							"It's 3 a.m. and Rondo Dmowskiego is still jammed. Respect.")
@@ -399,7 +399,7 @@ func _check_screen(screen: Vector2i) -> int:
 							[["Przepraszam, już nie będę.", "Sorry, won't happen again."], ["Suszarka? Mam krótkie włosy.", "Hair dryer? But I've got short hair."]])
 					hud.show_panel(talk, true)
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
-				# Loop 2d-1: Podwózka at its longest: the longest note, the MNOŻNIK for night and rain,
+				# Loop 2d-1: Łuber at its longest: the longest note, the MNOŻNIK for night and rain,
 				# the longest destination; the result with every star note and a streak.
 				"drag shift":
 					hud.show_pill("⬆ BIEG", "⬆ SHIFT", "drag_shift")
@@ -408,10 +408,10 @@ func _check_screen(screen: Vector2i) -> int:
 							"note": ["Uwagi: „jestem tam, gdzie pinezka, tylko po drugiej stronie”.",
 							"Note: \"I'm where the pin is, just on the other side.\""], "night": true, "rain": true, "rating": 4.87})
 					hud.show_side_card(offer[0], offer[1], PackedStringArray(["ACCEPT", "SKIP"]), Color("#4fd8c4"), offer[2], offer[3])
-					hud.show_pill("PODWÓZKA", "ride app", "ride")
+					hud.show_pill("ŁUBER", "ŁUBER", "ride")
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
 				"ride":
-					hud.show_status("PODWÓZKA → Plac Trzech Krzyży", RideRules.stars_text(4.5), "1840 m",
+					hud.show_status("ŁUBER → Plac Trzech Krzyży", RideRules.stars_text(4.5), "1840 m",
 							"Cel to turkusowe światło. Kropki to pomysł aplikacji.", 0.4, Color("#4fd8c4"), "", {},
 							"The goal is the teal beacon. The dots are the app's idea.")
 					hud.toast("−½ ★ · hamowanie", "−½ star · harsh braking")
@@ -445,7 +445,7 @@ func _check_screen(screen: Vector2i) -> int:
 					# words give: first10.gd `choice_words`), the three buttons one under the other with the first
 					# gold and taller, and the ✕ for "just drive".
 					hud.show_card("PANI HALINA MRUGA", "„Do Palmy, kto pierwszy?”\n12,8 km · 60 zł + 100 respektu. Pierwsza z sześciu rywali.",
-							PackedStringArray(["ŚCIGAJ SIĘ · +60 zł|START RACE · +60 zł", "Podwózka · od 15 zł|Give a lift · from 15 zł",
+							PackedStringArray(["ŚCIGAJ SIĘ · +60 zł|START RACE · +60 zł", "Łuber · od 15 zł|Give a lift · from 15 zł",
 							"Lot · kaseta na dachu BUW|Fly · a mixtape on the BUW roof"]), Color("#ffd23f"), false,
 							"Pani Halina is flashing you", "\"Race you to the Palm?\"\n12.8 km · 60 zł + 100 respect. First of six rivals.", true)
 					hud.own_card(_closer)
@@ -721,7 +721,7 @@ func _check_quests_screen(fm: Control, where: String, pt: float, safe: Rect2) ->
 	const FS := preload("res://scripts/first_steps.gd")
 	where += " QUESTS"
 	var e: Array = [
-		L.entry("ride", "ride", L.Line.CAR, "Podwózka · poproś o kurs", "Podwózka · ask for a ride", Vector2.INF,
+		L.entry("ride", "ride", L.Line.CAR, "Łuber · poproś o kurs", "Łuber · ask for a ride", Vector2.INF,
 				Color("#4fd8c4"), "ride"),
 		L.entry("garage", "garage", L.Line.CAR, "Warsztat u Mirka", "Mirek's garage", Vector2(400, 300), Color("#5aa0ff")),
 		L.entry("k", "kebab", L.Line.CAR, "Kebab · Zakwas I Rożen", "Kebab · Zakwas I Rożen", Vector2(-1800, -2400),
@@ -1629,7 +1629,7 @@ func _check_state(hud: CanvasLayer, bubbles: Control, where: String) -> void:
 			if ra.intersection(rb).get_area() > pt * pt:
 				problems.append("%s: %s %s overlaps %s %s" % [where, names[a], _pts(ra, pt), names[b], _pts(rb, pt)])
 	# The passing panels keep clear of the player's car (the middle of the screen); loop 2d-1: so
-	# does a Podwózka card (the side card).
+	# does a Łuber card (the side card).
 	var keep_clear := ["ticker", "toast", "note", "info", "perf", "banner"]
 	if where.contains(" ride"):
 		keep_clear.append("card")

@@ -232,7 +232,7 @@ changed on purpose, because the kit has one answer where the script had its own:
 - **Busy from Ivan's offer card to the close of the result card.** Before, the night counted as on
   only from JADĘ! to Ivan's drop-off, so another call could come over either card.
 - **No kebab or słoiki delivery during the night.** Every side job stands down while it is on, as
-  during a tour or a crawl. Before, Podwózka and "Na czasie" already did.
+  during a tour or a crawl. Before, Łuber and "Na czasie" already did.
 - **The whole night is a quest for the HUD's messages**, the evening inside the lounge and the two
   cards too: the radio host and the flavour lines keep quiet and notes wait. Before, that held
   only while the status line was up, so not inside the lounge.

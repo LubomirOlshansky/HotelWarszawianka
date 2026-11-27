@@ -11086,6 +11086,7 @@ func _make_shared() -> void:
 		_box(candelabra, c + Vector3(0, 0.4, 0), Vector3(0.62, 0.1, 0.62), iron)
 		_box(candelabra, c + Vector3(0, 0.55, 0), Vector3(0.08, 0.22, 0.08), iron)
 	_shared["candelabra"] = _mark_head(candelabra.commit())
+	_shared["kp_lamp"] = _mark_glow(_kp_lamp_mesh(), [LAMP_HEAD], [KP_GLASS, KP_GOLD])
 	var fixture := ShaderMaterial.new()
 	fixture.shader = load("res://shaders/fixture.gdshader")
 	_shared["fixture"] = fixture
@@ -11609,6 +11610,9 @@ func _build_street_furniture() -> void:
 	var royal := _royal_segments()
 	var candelabras: Array[Transform3D] = []
 	var candelabra_glows: Array[Color] = []
+	var kp: Array[Transform3D] = []
+	var kp_glows: Array[Color] = []
+	var kp_segs := _street_segments(KP_STREET)
 	var list: Array = data.get("lamps", [])
 	for i in range(0, list.size() - 1, 2):
 		var x := float(list[i])
@@ -11623,6 +11627,12 @@ func _build_street_furniture() -> void:
 		if Vector2(x, z).distance_to(Vector2(CANDELABRAS.x, CANDELABRAS.y)) < CANDELABRAS.z:
 			candelabras.append(t)
 			candelabra_glows.append(SODIUM_GLOW)
+			continue
+		var kp_dir := _kp_facing(Vector2(x, z), kp_segs)
+		if kp_dir != Vector2.ZERO:
+			# Krakowskie Przedmieście: the crozier over the carriageway.
+			kp.append(Transform3D(Basis(Vector3.UP, atan2(-kp_dir.y, kp_dir.x)), t.origin))
+			kp_glows.append(LED_GLOW)  # white LED heads (the night photos), whatever the light map says
 			continue
 		if _on_royal_route(x, z, royal) or _on_karowa(Vector2(x, z)):
 			lanterns.append(t)
@@ -11676,6 +11686,8 @@ func _build_street_furniture() -> void:
 		mmi.add_to_group(SMALL_CASTERS, true)
 	for mmi in _tree_multimesh(_shared["candelabra"], _shared["fixture"], candelabras, none, candelabra_glows):
 		mmi.add_to_group(SMALL_CASTERS, true)
+	for mmi in _tree_multimesh(_shared["kp_lamp"], _shared["fixture"], kp, none, kp_glows):
+		mmi.add_to_group(SMALL_CASTERS, true)
 	var heads: Array[Transform3D] = []
 	for t in spots:
 		heads.append(Transform3D(Basis(), t * Vector3(1.2, 6.78, 0.0)))
@@ -11683,8 +11695,11 @@ func _build_street_furniture() -> void:
 		heads.append(Transform3D(Basis(), t * LANTERN_HEAD))
 	for t in candelabras:
 		heads.append(Transform3D(Basis(), t * Vector3(0, 7.9, 0)))
+	for t in kp:
+		heads.append(Transform3D(Basis(), t * KP_HEAD))
 	glows.append_array(lantern_glows)
 	glows.append_array(candelabra_glows)
+	glows.append_array(kp_glows)
 	_build_lamp_halos(heads, glows)
 
 	spots = []
@@ -11765,6 +11780,16 @@ const LED_GLOW := Color(0.72, 0.82, 1.0, 0.5)
 
 ## The landmarks loop (street furniture): the historic lantern's glass centre above its spot.
 const LANTERN_HEAD := Vector3(0, 4.38, 0)
+## Krakowskie Przedmieście's own lamps (F's night photos and Street View, 2026-11-26): a tall
+## dark cast-iron post with a crozier at the top and the lamp hanging from it over the street,
+## and round the post, from late November, the street's Christmas chandelier: a cone of gold bead
+## strands from a collar, a wide drum of green glass panels between gold rims, a smaller drum under
+## it and gold tassels below, glowing green-gold at night. KP_HEAD is the lamp's light (local +x
+## points over the carriageway).
+const KP_STREET := "Krakowskie Przedmieście"
+const KP_HEAD := Vector3(0.62, 6.55, 0)
+const KP_GLASS := Color("#5f9a63")
+const KP_GOLD := Color("#d9b35a")
 ## Streets whose lamps are the historic lanterns (the Royal Route and round the Old Town),
 ## within ROYAL_REACH metres of the carriageway's edge; and the Old Town itself, a circle.
 const ROYAL_STREETS := ["Krakowskie Przedmieście", "Nowy Świat", "Senatorska", "Miodowa", "Podwale",
@@ -12545,6 +12570,98 @@ func _on_royal_route(x: float, z: float, royal: Array) -> bool:
 	return false
 
 
+## Krakowskie Przedmieście's lamp with its Christmas chandelier (KP_HEAD above). About 330
+## triangles; one MultiMesh per tile like the other lamps.
+func _kp_lamp_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var iron := Color("#262d28")
+	# The post: a fluted foot, a collar, the shaft, a ring under the crozier.
+	_box(st, Vector3(0, 0.35, 0), Vector3(0.46, 0.7, 0.46), iron)
+	_box(st, Vector3(0, 0.78, 0), Vector3(0.32, 0.16, 0.32), iron)
+	_box(st, Vector3(0, 3.7, 0), Vector3(0.14, 5.9, 0.14), iron)
+	_box(st, Vector3(0, 2.2, 0), Vector3(0.22, 0.12, 0.22), iron)
+	# The crozier: up, over and down to the hanging lamp.
+	_box(st, Vector3(0.0, 6.85, 0), Vector3(0.1, 0.4, 0.1), iron)
+	_box(st, Vector3(0.3, 7.05, 0), Vector3(0.62, 0.09, 0.09), iron)
+	_box(st, Vector3(0.62, 6.88, 0), Vector3(0.08, 0.3, 0.08), iron)
+	_box(st, KP_HEAD + Vector3(0, 0.2, 0), Vector3(0.42, 0.1, 0.42), iron)
+	_box(st, KP_HEAD, Vector3(0.32, 0.34, 0.32), LAMP_HEAD)
+	# The chandelier round the shaft, its drum centred 4.5 m up.
+	var n := 10
+	_box(st, Vector3(0, 5.42, 0), Vector3(0.22, 0.14, 0.22), KP_GOLD)
+	for k in n:
+		var a := TAU * (k + 0.5) / n
+		var d := Vector3(cos(a), 0, sin(a))
+		_strand(st, Vector3(0, 5.36, 0) + d * 0.1, Vector3(0, 4.8, 0) + d * 0.64, 0.05, KP_GOLD)
+		_strand(st, Vector3(0, 3.9, 0) + d * 0.4, Vector3(0, 3.45, 0) + d * 0.12, 0.05, KP_GOLD)
+	_drum(st, 0.68, 4.3, 4.78, n, KP_GLASS, KP_GOLD)
+	_drum(st, 0.44, 3.9, 4.24, n, KP_GLASS, KP_GOLD)
+	return st.commit()
+
+
+## A thin square strand from a to b (the chandelier's bead strings).
+func _strand(st, a: Vector3, b: Vector3, w: float, col: Color) -> void:
+	var d := (b - a).normalized()
+	var s := d.cross(Vector3.UP)
+	if s.length() < 0.01:
+		s = Vector3.RIGHT
+	s = s.normalized() * w * 0.5
+	var t := s.cross(d).normalized() * w * 0.5
+	var c := [s + t, s - t, -s - t, -s + t]
+	for i in 4:
+		var p: Vector3 = c[i]
+		var q: Vector3 = c[(i + 1) % 4]
+		_quad(st, a + p, a + q, b + q, b + p, (p + q).normalized(), col)
+
+
+## An open drum of `n` glass panels from y0 to y1 at radius r, both faces drawn (the glass is seen
+## from inside across the street too), with a gold rim at top and bottom.
+func _drum(st, r: float, y0: float, y1: float, n: int, glass: Color, rim: Color) -> void:
+	for k in n:
+		var a0 := TAU * k / n
+		var a1 := TAU * (k + 1) / n
+		var p := Vector3(cos(a0), 0, sin(a0)) * r
+		var q := Vector3(cos(a1), 0, sin(a1)) * r
+		var out := ((p + q) * 0.5).normalized()
+		_quad(st, p + Vector3(0, y0, 0), q + Vector3(0, y0, 0), q + Vector3(0, y1, 0), p + Vector3(0, y1, 0), out, glass)
+		_quad(st, p + Vector3(0, y0, 0), p + Vector3(0, y1, 0), q + Vector3(0, y1, 0), q + Vector3(0, y0, 0), -out, glass)
+		for y in [y0, y1]:
+			var rp := p * 1.06
+			var rq := q * 1.06
+			_quad(st, rp + Vector3(0, y - 0.03, 0), rq + Vector3(0, y - 0.03, 0), rq + Vector3(0, y + 0.03, 0),
+					rp + Vector3(0, y + 0.03, 0), out, rim)
+
+
+## One named street's segments: [a, b, half width + ROYAL_REACH].
+func _street_segments(street: String) -> Array:
+	var out := []
+	for r in data.get("roads", []):
+		if r.get("name", "") != street:
+			continue
+		var p: Array = r["p"]
+		var reach := float(r.get("w", 6.0)) * 0.5 + ROYAL_REACH
+		for i in range(0, p.size() - 3, 2):
+			out.append([Vector2(float(p[i]), float(p[i + 1])), Vector2(float(p[i + 2]), float(p[i + 3])), reach])
+	return out
+
+
+## A lamp within reach of one of `segs`: the unit direction from it to the street's centre line
+## (where its crozier points); ZERO when it is not on that street.
+func _kp_facing(at: Vector2, segs: Array) -> Vector2:
+	var best := INF
+	var dir := Vector2.ZERO
+	for s in segs:
+		if absf(at.x - s[0].x) > 150.0 or absf(at.y - s[0].y) > 150.0:
+			continue
+		var c := Geometry2D.get_closest_point_to_segment(at, s[0], s[1])
+		var d := c.distance_to(at)
+		if d < float(s[2]) and d < best:
+			best = d
+			dir = (c - at).normalized() if d > 0.3 else (s[1] - s[0]).normalized().orthogonal()
+	return dir
+
+
 ## Marks the lamp head's vertices (its colour) with UV.x = 1, so fixture.gdshader
 ## knows what glows.
 func _mark_head(mesh: ArrayMesh) -> ArrayMesh:
@@ -12552,7 +12669,9 @@ func _mark_head(mesh: ArrayMesh) -> ArrayMesh:
 
 
 ## The landmarks loop: _mark_head for any parts, by their colours (the shelter's posters).
-func _mark_glow(mesh: ArrayMesh, glowing: Array) -> ArrayMesh:
+## `own` parts glow in their own colour (UV.x = 2, fixture.gdshader), not the lamp's light: the
+## Christmas chandeliers' green glass and gold beads.
+func _mark_glow(mesh: ArrayMesh, glowing: Array, own: Array = []) -> ArrayMesh:
 	var arrays := mesh.surface_get_arrays(0)
 	var colours: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
 	var uv: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
@@ -12560,7 +12679,10 @@ func _mark_glow(mesh: ArrayMesh, glowing: Array) -> ArrayMesh:
 		var lit := false
 		for c: Color in glowing:
 			lit = lit or colours[i].is_equal_approx(c)
-		uv[i] = Vector2(1.0, 1.0) if lit else Vector2(-1.0, -1.0)
+		var self_lit := false
+		for c: Color in own:
+			self_lit = self_lit or colours[i].is_equal_approx(c)
+		uv[i] = Vector2(2.0, 1.0) if self_lit else (Vector2(1.0, 1.0) if lit else Vector2(-1.0, -1.0))
 	arrays[Mesh.ARRAY_TEX_UV] = uv
 	var out := ArrayMesh.new()
 	out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)

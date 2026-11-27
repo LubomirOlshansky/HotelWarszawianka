@@ -30,7 +30,7 @@ const SKINS := [
 			"wall": "#e6dcc4", "roof": "#6f9f8a"},
 	{"key": "sw_krzyz", "osm": "Kościół pw. Świętego Krzyża", "mode": M_MONUMENT, "wall": "#e3d9c0", "roof": "#5d6e64"},
 	{"key": "staszic", "osm": "Pałac Staszica", "mode": M_MONUMENT, "wall": "#e6dcc4", "roof": "#6a8f80"},
-	{"key": "wszystkich", "osm": "Kościół Wszystkich Świętych", "mode": M_MONUMENT, "wall": "#c6b186", "roof": "#6e7f6e"},
+	{"key": "wszystkich", "osm": "Kościół Wszystkich Świętych", "model": true, "mode": M_MONUMENT, "wall": "#c6b186", "roof": "#96b8a4"},
 	{"key": "wizytki", "osm": "Kościół Wizytek", "model": true, "mode": M_MONUMENT, "wall": "#ecdfc0", "roof": "#6d8f7f"},
 	{"key": "karmelici", "osm": "Kościół Wniebowzięcia Najświętszej Maryi Panny i świętego Józefa Oblubieńca", "mode": M_MONUMENT, "wall": "#d9cba6", "roof": "#5e8f80"},
 	{"key": "zamoyski", "osm": "Pałac Zamoyskich", "mode": M_MONUMENT, "wall": "#e7dcba", "roof": "#6a6762"},
@@ -39,8 +39,11 @@ const SKINS := [
 	{"key": "burger", "osm": "Kamienica Bürgera", "mode": M_MONUMENT, "wall": "#e8d7a8", "roof": "#6f655d"},
 	{"key": "jasinski", "osm": "Kamienica Jasińskiego", "mode": M_MONUMENT, "wall": "#e5b9a0", "roof": "#6b6059"},
 	{"key": "kossakowski", "osm": "Pałac Kossakowskich", "mode": M_MONUMENT, "wall": "#efe3c4", "roof": "#6e6a64"},
-	{"key": "potocki", "osm": "Pałac Potockich", "mode": M_MONUMENT, "wall": "#ede8dc", "roof": "#c5502f"},
-	{"key": "bristol", "osm": "Hotel Bristol", "mode": M_MONUMENT, "wall": "#e9e1c8", "roof": "#6f7477"},
+	# The LoD2 run for the whole U is centred in the open court, outside the mapped walls. A map-space
+	# point: re-check it after a LoD2 re-bake (the court must show grass, no LoD2 mass, in a city shot).
+	{"key": "potocki", "osm": "Pałac Potockich", "model": true, "run": [-669.55, -944.90],
+			"mode": M_MONUMENT, "wall": "#ede8dc", "roof": "#d0643a"},
+	{"key": "bristol", "osm": "Hotel Bristol", "mode": M_MONUMENT, "wall": "#e9e1c8", "roof": "#a9adb0", "model": true},
 	# Plac Bankowy (2026-11-02): the palaces round the square in their real colours.
 	# The Mac photo report (ratusz.md, 2026-11-02): pale ochre-cream walls under green copper;
 	# the colonnades, the portico and the rotunda are models (_build_ratusz, _build_gielda).
@@ -139,7 +142,7 @@ func _find_skins() -> void:
 		if t.get("model", false):
 			continue
 		if not sites.is_empty() and sites[-1]["key"] == t["key"]:
-			sites[-1]["skin"] = {"mode": t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
+			sites[-1]["skin"] = {"mode": M_MONUMENT_FLOOD if FLOODLIT_SITES.has(t["key"]) and t["mode"] == M_MONUMENT else t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
 			if t.has("steep"):
 				sites[-1]["skin"]["steep"] = t["steep"]
 			if t.has("upper"):
@@ -179,6 +182,18 @@ const NIKIDW_BLOCK := "43281056"
 ## The Mansjonaria on Plac Zamkowy, likewise (old_town.gd `_build_mansjonaria`, 2026-11-26).
 const MANSJONARIA_BLOCK := "101331240"
 
+## Street blocks that stood under a landmark built whole, so the building was drawn twice (z-fighting
+## walls, two roofs; check_sites lists the pairs). Looked at in the city one by one (2026-11-26):
+## the landmark reads better in each, so the block goes.
+const LM_BLOCKS := [
+	"28010955", "28010954", "44190667", "44190669",  # Aleje Jerozolimskie 57-63: the four houses, built whole
+	"1456269648", "1149651967",  # Prosta 28: the tower and its annex from the photos
+	"1186516012", "1186516013",  # Towarowa Towers (asbud): the quarter is rebuilt whole
+	"32129912",  # the blue glass tower on Plac Powstańców: its LoD2 mesh is open (see-through)
+	"338542425",  # Marszałkowska 99's white slab
+	"6520917",  # Grzybowska 77 (Bellona): the brick house from F's photos
+]
+
 
 func _find_blocks() -> void:
 	if not FileAccess.file_exists(BLOCKS_DIR + "/index.json"):
@@ -190,7 +205,8 @@ func _find_blocks() -> void:
 		var q := _pts(d["outline"])
 		if q.size() < 3:
 			continue
-		if str(d["id"]) in DE_BLOCKS or str(d["id"]) in [CM_BLOCK, MP_BLOCK, NIKIDW_BLOCK, MANSJONARIA_BLOCK]:
+		if str(d["id"]) in DE_BLOCKS or str(d["id"]) in LM_BLOCKS \
+				or str(d["id"]) in [CM_BLOCK, MP_BLOCK, UP_BLOCK, NIKIDW_BLOCK, MANSJONARIA_BLOCK]:
 			continue
 		var key := "blk_" + str(d["id"])
 		var zone: Array = [_largest(Geometry2D.offset_polygon(q, 1.0, Geometry2D.JOIN_MITER))]
@@ -897,9 +913,13 @@ func _pf_front(f: Dictionary, d: Dictionary) -> void:
 	_lbox(mid, 0.12, mid, 0.16, g - 0.3, g + gf, base)
 	_lbox(mid, 0.12, mid, 0.16, g + gf, g + h, wall)
 	_lbox(mid, 0.34, mid, 0.08, g + gf - 0.25, g + gf, trim)
+	var shops: bool = d.get("shops", false)
 	for k in bays:  # street level
 		var u := (k + 0.5) * bay
-		_lbox(u, 0.32, bay * 0.36, 0.03, g + 0.7, g + gf - 0.8, glass, _lit(u, 1.0))
+		# `shops`: the ground floor is shops and cafés, every window lit warm at night (Krakowskie
+		# Przedmieście's row, F's night photos 2026-11-26); otherwise lit by chance.
+		_lbox(u, 0.32, bay * 0.36, 0.03, g + 0.7, g + gf - 0.8, glass, M_PAVILION if shops else _lit(u, 1.0))
+	_pf_extras(f, d, width, h, gf, fh, bay, bays, floors, trim)
 	for i in floors:
 		var y := g + gf + 0.7 + i * fh
 		match style:
@@ -928,6 +948,47 @@ func _pf_front(f: Dictionary, d: Dictionary) -> void:
 		_lbox(mid, 0.62, mid + 0.3, 0.44, g + h - 0.5, g + h, trim)
 	else:
 		_lbox(mid, 0.3, mid, 0.14, g + h - 0.3, g + h, trim)
+
+
+## A photo front's optional extras (Krakowskie Przedmieście's tenements, F's night photos and
+## Street View, 2026-11-26), each a field of the entry (`d`) or of the front (`f`):
+## - `sign` (front or entry): a colour; a lit sign board over the ground floor across the middle of
+##   the front (M_LAMP: its colour by day, glowing at night), the shops' and cafés' boards.
+## - `dormers` (front): that many dormers in the roof over the front, each a small plastered box with
+##   a window and a little gable roof, set back from the cornice into the roof.
+## - `balcony` (front): the storey (1 = the first floor) with an iron balcony across the middle bays.
+## - `awning` (front): a colour; a café awning over the middle bays of the ground floor.
+func _pf_extras(f: Dictionary, d: Dictionary, width: float, h: float, gf: float, fh: float, bay: float, bays: int,
+		floors: int, trim: Color) -> void:
+	var g := _g
+	var mid := width * 0.5
+	var wall := Color(d["wall"])
+	var sign_col: String = f.get("sign", d.get("sign", ""))
+	if sign_col != "":
+		var sw := clampf(width * 0.55, 3.0, 14.0)
+		_lbox(mid, 0.42, sw * 0.5, 0.08, g + gf - 0.75, g + gf - 0.3, Color(sign_col), M_LAMP)
+	var awning: String = f.get("awning", "")
+	if awning != "":
+		var aw := clampf(width * 0.6, 3.0, 14.0)
+		_lbox(mid, 1.1, aw * 0.5, 0.9, g + 2.6, g + 2.75, Color(awning), M_STONE)
+		_lbox(mid, 1.95, aw * 0.5, 0.04, g + 2.3, g + 2.7, Color(awning).darkened(0.15), M_STONE)
+	var balcony: int = f.get("balcony", 0)
+	if balcony > 0 and balcony <= floors:
+		var y := g + gf + 0.7 + (balcony - 1) * fh
+		var bw := minf(bay * clampf(bays - 2, 1, 3), width - 1.0) * 0.5
+		var keep := _face
+		_face = 0.28  # the front wall's face (`_pf_front`: 0.12 out, 0.16 thick)
+		kit_balcony(mid, y, bw, Balcony.IRON, PAL_IRON, trim)
+		_face = keep
+	var dormers: int = f.get("dormers", 0)
+	if dormers > 0:
+		var roof := Color(d["roof"])
+		for k in dormers:
+			var u := (k + 0.5) * width / dormers
+			_lbox(u, -1.3, 0.7, 0.6, g + h - 0.3, g + h + 1.5, wall, M_STONE)
+			_lbox(u, -0.68, 0.38, 0.03, g + h + 0.15, g + h + 1.2, Color("#2c3640"), _lit(u, h + 1.0))
+			_lbox(u, -1.3, 0.82, 0.72, g + h + 1.5, g + h + 1.7, roof, M_STONE)
+			_lbox(u, -1.3, 0.5, 0.5, g + h + 1.7, g + h + 2.0, roof, M_STONE)
 
 
 # --- The Tides (F's photos, 2026-11-06): spec docs/landmarks/specs/tides.md ---------------------
