@@ -167,7 +167,15 @@ func show_offer(key: String, title: Array, offer: Dictionary, colour: Color) -> 
 	b.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.custom_minimum_size.x = 150.0 * pt
-	col.add_child(b)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# A long line scrolls inside its own box, so the buttons and the bar never leave the frame.
+	var sc := ScrollContainer.new()
+	sc.name = "offer_body"
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sc.custom_minimum_size.y = 40.0 * pt
+	sc.add_child(b)
+	col.add_child(sc)
 	_body.add_child(col)
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", UiKit.px(UiKit.GAP, pt))
@@ -323,6 +331,11 @@ func _tile(a: Dictionary) -> Button:
 	t.add_theme_color_override("font_color", col if on else UiKit.FAINT)
 	t.uppercase = true
 	words.add_child(t)
+	if not on:
+		# A greyed tile says why in a short word (busy / soon).
+		var s := _label(a["sub"], "faint")
+		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		words.add_child(s)
 	b.add_child(words)
 	b.disabled = not on
 	b.pressed.connect(func() -> void: app_pressed.emit(key))
