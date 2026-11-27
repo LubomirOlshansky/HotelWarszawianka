@@ -10,8 +10,9 @@ extends RefCounted
 ## transition crossing zero, 0.6 s), WRONG (the slip is on the wrong side after a crossover: pulled
 ## back to zero, it ends in grip and the pile banks: change 2), SPIN (1.5 s round to a stop).
 ## Events (strings in `state.events`, read and cleared by drift_score.gd each step): "kick", "slow"
-## (a kick under KICK_KMH), "nobend" (a kick with no bend in reach), "flick:<timing>", "nudge" (a
-## kick in a drift outside the window: -5°), "bank", "wrong", "spin", "end".
+## (a kick under KICK_KMH), "nobend" (a kick with no bend in reach), "flick:<timing>", "bank", "wrong"
+## (also a kick while on the wrong side: bank first), "spin", "end". A kick in a drift outside the
+## transition window does nothing (change 10: no -5° trim, so a blind rhythm gains nothing by it).
 
 enum Mode { GRIP, DRIFT, FLIP, WRONG, SPIN }
 
@@ -29,14 +30,12 @@ const LIFT_RATE := 40.0
 const GRIP_DEG := 8.0
 const GRIP_S := 0.4
 ## The transition window: from FLICK_BEFORE s before the sign change to FLICK_AFTER s after it.
-const FLICK_BEFORE := 0.8
-const FLICK_AFTER := 0.4
+const FLICK_BEFORE := 0.4
+const FLICK_AFTER := 0.25
 ## A transition crosses zero in FLICK_S s and lands at KICK_DEG on the other side.
 const FLICK_S := 0.6
 ## The flick's timing is 1.0 within this (s) of the sign change, 0.5 elsewhere in the window (change 9).
 const FLICK_PERFECT := 0.15
-## A kick in a drift outside the window takes this off |β| (°, 0b.2).
-const NUDGE_DEG := 5.0
 ## The wrong side is pulled back at this (°/s, change 2).
 const WRONG_RATE := 60.0
 ## Slow and deep spins too (m/s, °).
@@ -47,16 +46,18 @@ const SPIN_S := 1.5
 ## Speed (m/s): dv/dt = PUSH × gas × (1 - v / TOP) - SIDE_DRAG × v × sin|β| - COAST × (1 - gas).
 const PUSH := 9.0
 const TOP := 28.0
-const SIDE_DRAG := 0.3
+const SIDE_DRAG := 0.25
 const COAST := 1.5
 ## The gas pedal's travel (s from off to full and back, 0b.3).
 const GAS_S := 0.15
 
 ## The tunables the bots tune (critique section 3: "all numbers are guesses for the bots"). The
 ## sticky band is the assist (PEŁNA): inside it the gas grows |β| at `sticky` + `heat` × (chain - 1)
-## of the rate, capped at 1 (change 9's heat: the bigger the pile, the livelier the car).
+## of the rate, capped at 1 (change 9's heat: the bigger the pile, the livelier the car). Past the
+## band the heat makes the rate 1 + `heat` × (chain - 1) of it (the PR review: a deep needle on a big
+## chain now risks a spin, so the follower has something to lose).
 const DEFAULTS := {
-	"band_lo": 25.0, "band_hi": 50.0, "sticky": 0.35, "heat": 0.08, "spin_deg": 75.0,
+	"band_lo": 25.0, "band_hi": 50.0, "sticky": 0.35, "heat": 0.12, "spin_deg": 76.0,
 }
 
 
@@ -111,15 +112,18 @@ static func params(over: Dictionary = {}) -> Dictionary:
 ## The gas rate at |β| on curvature κ with the chain's heat (°/s).
 static func gas_rate(abs_beta: float, k: float, chain: int, p: Dictionary) -> float:
 	var r := RATE * (1.0 + CURVE_GAIN * absf(k))
+	var heat := float(p["heat"]) * float(maxi(chain, 1) - 1)
 	if abs_beta >= float(p["band_lo"]) and abs_beta < float(p["band_hi"]):
-		r *= minf(1.0, float(p["sticky"]) + float(p["heat"]) * float(maxi(chain, 1) - 1))
+		r *= minf(1.0, float(p["sticky"]) + heat)
+	elif abs_beta >= float(p["band_hi"]):
+		r *= 1.0 + heat
 	return r
 
 
 ## In the transition window at s and v (the line's nearest sign change).
-static func in_window(line: RefCounted, s: float, v: float) -> bool:
+static func in_window(line: RefCounted, s: float, v: float, p: Dictionary = DEFAULTS) -> bool:
 	var dt: float = line.flip_dt(s, v)
-	return dt >= -FLICK_BEFORE and dt <= FLICK_AFTER
+	return dt >= -float(p.get("flick_before", FLICK_BEFORE)) and dt <= float(p.get("flick_after", FLICK_AFTER))
 
 
 static func step(st: State, inp: Frame, line: RefCounted, p: Dictionary, dt: float) -> void:
@@ -130,7 +134,7 @@ static func step(st: State, inp: Frame, line: RefCounted, p: Dictionary, dt: flo
 	var target_gas := clampf(inp.gas, 0.0, 1.0)
 	st.gas = move_toward(st.gas, target_gas, dt / GAS_S)
 	if inp.kick and st.mode != Mode.SPIN:
-		_kick(st, line)
+		_kick(st, line, p)
 	match st.mode:
 		Mode.GRIP:
 			st.beta = 0.0
@@ -175,9 +179,12 @@ static func step(st: State, inp: Frame, line: RefCounted, p: Dictionary, dt: flo
 		st.events.append("end")
 
 
-static func _kick(st: State, line: RefCounted) -> void:
+static func _kick(st: State, line: RefCounted, p: Dictionary) -> void:
 	match st.mode:
 		Mode.GRIP, Mode.WRONG:
+			if st.mode == Mode.WRONG:
+				st.events.append("wrong")  # the wrong side ends in grip first (change 2: a new kick after the bank)
+				return
 			if st.v * 3.6 < KICK_KMH:
 				st.events.append("slow")
 				return
@@ -185,15 +192,13 @@ static func _kick(st: State, line: RefCounted) -> void:
 			if side == 0:
 				st.events.append("nobend")
 				return
-			if st.mode == Mode.WRONG:
-				return  # the wrong side ends in grip first (change 2: a new kick after the bank)
 			st.mode = Mode.DRIFT
 			st.kick_t = 0.0
 			st.kick_sign = side
 			st.grip_t = 0.0
 			st.events.append("kick")
 		Mode.DRIFT:
-			if in_window(line, st.s, st.v):
+			if in_window(line, st.s, st.v, p):
 				var to := -signf(st.beta) * KICK_DEG
 				if to == 0.0:
 					to = float(line.bend_sign(st.s + 1.0)) * KICK_DEG
@@ -203,9 +208,6 @@ static func _kick(st: State, line: RefCounted) -> void:
 				st.kick_t = -1.0
 				var off := absf(line.flip_dt(st.s, st.v))
 				st.events.append("flick:%.2f" % (1.0 if off <= FLICK_PERFECT else 0.5))
-			else:
-				st.beta = signf(st.beta) * maxf(0.0, absf(st.beta) - NUDGE_DEG)
-				st.events.append("nudge")
 
 
 static func _drift(st: State, inp: Frame, line: RefCounted, p: Dictionary, dt: float) -> void:
@@ -227,7 +229,7 @@ static func _drift(st: State, inp: Frame, line: RefCounted, p: Dictionary, dt: f
 	st.beta = side * ab
 	# Change 2: the slip opposite to the bend past the window is the wrong side.
 	var bend: int = line.bend_sign(st.s)
-	if bend != 0 and int(side) != bend and ab > GRIP_DEG * 0.5 and not in_window(line, st.s, st.v):
+	if bend != 0 and int(side) != bend and ab > GRIP_DEG * 0.5 and not in_window(line, st.s, st.v, p):
 		st.mode = Mode.WRONG
 		st.grip_t = 0.0
 		st.events.append("wrong")

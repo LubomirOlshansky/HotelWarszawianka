@@ -6,9 +6,12 @@ extends RefCounted
 ## for check_drift.gd and for the stadium's `--drift=osemka:bot` (shots).
 ##   - "decent" (B1, the follower the qualifying line is set from): holds under NEEDLE°, lifts over it,
 ##     REACT s late, kicks at the first chance, flicks both crossovers with a timing error σ 80 ms.
-##   - "clumsy" (B2): the same with σ 200 ms, eyes 0.4 s late and a needle that wanders.
-##   - "pulse" (B3): one kick at the first chance, then a fixed hold / lift clock, eyes shut.
-##   - "hold" (B4): one kick, then the gas held to the end.
+##   - "clumsy" (B2): the same with σ 200 ms, eyes 0.35 s late and a needle that wanders.
+##   - "pulse": one kick at the first chance, then a fixed hold / lift clock, eyes shut.
+##   - "cycle" (B3, the PR review): eyes shut from the start: the gas held CYCLE_FROM s, then from a
+##     start phase a fixed cycle of tap 0.1 s, gap 0.1 s, hold H, lift L, over and over: a blind
+##     rhythm that kicks again every cycle.
+##   - "hold" (B4): the gas held to the end, kicking again whenever it is back in grip.
 ##   - "bank" (B5): the decent bot that banks before each crossover and kicks again after it.
 ##   - "none" (B6): the gas held, never a kick.
 
@@ -20,15 +23,22 @@ const HZ := 60.0
 ## The decent bot's needle (°) and how late its eyes are (s).
 const NEEDLE := 42.0
 const REACT := 0.2
-## The clumsy bot: σ 200 ms on its flicks (0b.7), eyes 0.4 s late and a needle that wanders by 10°
+## The eyes' lateness wobbles by this (s, σ, a new value about twice a second): a thumb is not a
+## clock, so a deep needle overshoots into a spin in some seeds, not in all or none (the review's B7).
+const REACT_SIGMA := 0.05
+## The clumsy bot: σ 200 ms on its flicks (0b.7), eyes 0.35 s late and a needle that wanders by 6°
 ## (σ, a new aim about once a second): a thumb that overshoots into spins now and then.
 const CLUMSY_SIGMA := 0.2
-const CLUMSY_REACT := 0.4
-const CLUMSY_WANDER := 10.0
+const CLUMSY_REACT := 0.35
+const CLUMSY_WANDER := 6.0
 ## A run gives up after this (s, 0b.2).
 const RUN_LIMIT := 45.0
 ## A tap-tap from a hold: lift, tap, press (the press kicks): its edges after the start (s).
 const TAPTAP := [0.0, 0.10, 0.20, 0.33]
+## The cycle bot: the gas held this long first (s), then tap and gap (s) before each hold.
+const CYCLE_FROM := 2.5
+const CYCLE_TAP := 0.1
+const CYCLE_GAP := 0.1
 
 var kind := "decent"
 var rng := RandomNumberGenerator.new()
@@ -37,9 +47,10 @@ var sigma := 0.08
 var react := REACT
 var needle := NEEDLE
 var wander := 0.0
-## The pulse bot's clock: hold, lift (s).
+## The pulse and cycle bots' clock: hold, lift (s); the cycle's start phase (0-1 of a cycle).
 var hold_s := 1.0
 var lift_s := 0.4
+var phase := 0.0
 
 var _queue: Array = []
 var _seen: Array[float] = []
@@ -50,14 +61,17 @@ var _pulse_t := 0.0
 var _banking := false
 var _banked_for := INF
 var _needle_now := NEEDLE
+var _jit := 0.0
 
 
-static func make(bot_kind: String, run_seed: int, hold := 1.0, lift := 0.4) -> RefCounted:
+static func make(bot_kind: String, run_seed: int, hold := 1.0, lift := 0.4, start_phase := 0.0, needle_deg := NEEDLE) -> RefCounted:
 	var b := new()
 	b.kind = bot_kind
 	b.rng.seed = run_seed
 	b.hold_s = hold
 	b.lift_s = lift
+	b.phase = start_phase
+	b.needle = needle_deg
 	match bot_kind:
 		"clumsy":
 			b.sigma = CLUMSY_SIGMA
@@ -70,7 +84,9 @@ static func make(bot_kind: String, run_seed: int, hold := 1.0, lift := 0.4) -> R
 ## This frame's edges for the thumb `inp` at time t (s), from what the bot sees of `st`.
 func tick(t: float, st: DriftModel.State, line: RefCounted, inp: DriftInput) -> void:
 	_seen.append(absf(st.beta))
-	var lag := int(round(react * HZ))
+	if rng.randf() < 2.0 / HZ:
+		_jit = clampf(rng.randfn(0.0, REACT_SIGMA), -0.1, 0.15)
+	var lag := int(round(maxf(0.0, react + _jit) * HZ))
 	var seen: float = _seen[maxi(0, _seen.size() - 1 - lag)]
 	if _seen.size() > 120:
 		_seen.remove_at(0)
@@ -82,10 +98,13 @@ func tick(t: float, st: DriftModel.State, line: RefCounted, inp: DriftInput) -> 
 			else:
 				inp.release(t)
 		return
+	if kind == "cycle":
+		_cycle(t, inp)
+		return
 	var grip := st.mode == DriftModel.Mode.GRIP
 	var drifting := st.mode == DriftModel.Mode.DRIFT
-	# The kick: at the first chance (the pulse and hold bots once only; "none" never).
-	if grip and kind != "none" and not (kind in ["pulse", "hold"] and _kicks > 0):
+	# The kick: at the first chance (the pulse bot once only; "none" never).
+	if grip and kind != "none" and not (kind == "pulse" and _kicks > 0):
 		if st.v * 3.6 >= DriftModel.KICK_KMH + 1.0 and line.bend_ahead(st.s + st.v * 0.35) != 0:
 			_tap_tap(t + maxf(0.0, rng.randfn(0.0, sigma * 0.5)), inp)
 			_kicks += 1
@@ -131,6 +150,16 @@ func tick(t: float, st: DriftModel.State, line: RefCounted, inp: DriftInput) -> 
 	_hold(inp, t, seen < _needle_now)
 
 
+## The blind cycle: tap, gap, hold, lift from its phase, whatever the car does.
+func _cycle(t: float, inp: DriftInput) -> void:
+	if t < CYCLE_FROM:
+		_hold(inp, t, true)
+		return
+	var period := CYCLE_TAP + CYCLE_GAP + hold_s + lift_s
+	var c := fmod(t - CYCLE_FROM + phase * period, period)
+	_hold(inp, t, c < CYCLE_TAP or (c >= CYCLE_TAP + CYCLE_GAP and c < CYCLE_TAP + CYCLE_GAP + hold_s))
+
+
 func _hold(inp: DriftInput, t: float, on: bool) -> void:
 	if on and not inp.down:
 		inp.press(t)
@@ -150,8 +179,8 @@ func _tap_tap(at: float, inp: DriftInput) -> void:
 
 ## One whole run of `bot_kind` with `run_seed` on `line` (60 Hz, no scene): the score, the time, the
 ## spins, the flicks, the banks, the losses, the zones, the cards and the mean speed.
-static func run(bot_kind: String, run_seed: int, line: RefCounted, p: Dictionary, hold := 1.0, lift := 0.4, score_over := {}) -> Dictionary:
-	var bot: RefCounted = make(bot_kind, run_seed, hold, lift)
+static func run(bot_kind: String, run_seed: int, line: RefCounted, p: Dictionary, hold := 1.0, lift := 0.4, score_over := {}, start_phase := 0.0, needle_deg := NEEDLE) -> Dictionary:
+	var bot: RefCounted = make(bot_kind, run_seed, hold, lift, start_phase, needle_deg)
 	var st := DriftModel.State.new()
 	var sc := DriftScore.Score.new()
 	for k: String in score_over:

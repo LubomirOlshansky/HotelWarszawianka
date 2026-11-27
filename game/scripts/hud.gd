@@ -520,6 +520,9 @@ var _pedals_hidden := false
 ## the minimap, the wallet, the cards and the bubbles stay. Set once by main.gd.
 var touch_off := false
 # --- end desktop: --no-touch -----------------------------------------------------------------
+## A venue off the map has the screen (venues.gd; the drift stadium sets it, the PR review): the
+## hidden HUD takes no touch (no minimap, map, nitro, steering, pinch or landmark tap under it).
+var away := false
 ## Loop 3h slice 4 (docs/DEMO.md 6.2, 0:05): the ghost finger. first10.gd turns it on after 4 s
 ## without a touch or a key; it is drawn on the pad (no node of its own: +0 draw calls when off)
 ## and goes at the first touch, click or key. `input_ms`: when the last touch, click or key came
@@ -3906,6 +3909,8 @@ func _input(event: InputEvent) -> void:
 		input_ms = maxi(1, Time.get_ticks_msec())  # loop 3h slice 4: the ghost finger goes
 		if _finger:
 			ghost_finger(false)
+	if away:
+		return
 	if settings_open() or full_map_open():
 		return  # the panel's buttons take every touch; nothing steers under it
 	if event is InputEventScreenTouch:

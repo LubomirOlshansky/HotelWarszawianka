@@ -154,9 +154,27 @@ func setup(world: Node3D) -> void:
 	var panel: Variant = hud.get("settings_panel")
 	if panel is Control and (panel as Control).has_signal("changed"):
 		(panel as Control).connect("changed", func(key: String, _v: Variant) -> void:
-			# Not from the air: the helicopter has no stadium car to swap with.
-			if key == "drift" and phase == Phase.IDLE and not (vehicle.is_valid() and bool(vehicle.call()[2])):
-				start.call_deferred())
+			if key == "drift":
+				_ask_in.call_deferred())
+
+
+## The DEV page's BOKIEM: in only when the director says the player is free (its `free_now`: no other
+## activity on, nothing of main.gd's `_free_block`); refused with a toast saying why (the PR review).
+## Not from the air: the helicopter has no stadium car to swap with.
+func _ask_in() -> void:
+	if phase != Phase.IDLE:
+		return
+	var why := ""
+	if vehicle.is_valid() and bool(vehicle.call()[2]):
+		why = "air"
+	elif not free_now.call():
+		why = "busy"
+	if why != "":
+		var words := DriftLine.word(why)
+		hud.toast(str(words[0]), str(words[1]))
+		_log("refused: " + why)
+		return
+	start()
 
 
 func joined(ctx: GameCtx) -> void:
@@ -206,6 +224,7 @@ func _begin() -> void:
 	_root.visible = true
 	_skids.visible = true
 	_ui_layer.visible = true
+	_set_awake(true)
 	_new_run()
 	_ui.show_tips()
 	_log("in: %s, %.0f m, %d zones, %d flick spots" % [line.key, line.length, line.zones.size(), line.flips.size()])
@@ -218,12 +237,23 @@ func _ended() -> void:
 		_skids.visible = false
 	if _ui_layer != null:
 		_ui_layer.visible = false
+	_set_awake(false)
 	hud.visible = _hud_was
 	if sfx != null and _sfx_car != null:
 		sfx.set("car", _sfx_car)
 	if _player_car != null:
 		_player_car.process_mode = Node.PROCESS_MODE_INHERIT
 	_log("out: %d runs, best %d" % [runs, best])
+
+
+## The stadium's nodes process only on a visit (the PR review: after one visit the car, the marks and
+## the UI kept running in the city); the hidden HUD takes no touch meanwhile (hud.gd `away`).
+func _set_awake(on: bool) -> void:
+	var mode := Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
+	for n: Node in [_root, _skids, _ui_layer]:
+		if n != null:
+			n.process_mode = mode
+	hud.set("away", on)
 
 
 ## The ✕ is the stadium's own (the city's HUD is hidden).
@@ -330,6 +360,7 @@ func _physics_process(dt: float) -> void:
 	else:
 		_buzz_t = 0.0
 	if not st.finished and _clock >= RUN_LIMIT:
+		score.said.clear()  # this step's words are said above; the bank's alone now
 		DriftScore.bank(score)
 		for said in score.said:
 			_on_said(said)
@@ -366,6 +397,11 @@ func _on_said(said: String) -> void:
 
 func _end_run() -> void:
 	_over = true
+	# The car rolls to a stop under the card: no slide, no smoke, the engine back to idle (the review).
+	st.v = 0.0
+	st.beta = 0.0
+	st.gas = 0.0
+	st.mode = DriftModel.Mode.GRIP
 	runs += 1
 	var total := roundi(score.total)
 	best = maxi(best, total)
@@ -398,7 +434,7 @@ func _frame_visuals(dt: float) -> void:
 		_wedge.mesh = _wedge_meshes[0 if side > 0 else 1]
 		_wedge.global_transform = Transform3D(Basis(Vector3.UP, float(line.yaw_at(st.s))), Vector3(at.x, PLACE.y + 0.035, at.z))
 	# Smoke from the outer rear wheel, one puff a metre while it slides.
-	var sliding := st.mode in [DriftModel.Mode.DRIFT, DriftModel.Mode.FLIP, DriftModel.Mode.SPIN] and absf(st.beta) > 12.0
+	var sliding := not _over and _pose == Vector2.INF and st.mode in [DriftModel.Mode.DRIFT, DriftModel.Mode.FLIP, DriftModel.Mode.SPIN] and absf(st.beta) > 12.0
 	if sliding:
 		_puff_s += st.v * dt
 		if _puff_s >= PUFF_EVERY:

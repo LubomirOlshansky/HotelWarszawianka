@@ -1841,7 +1841,7 @@ func _build_world() -> void:
 	tapczan = _join(Tapczan.new(), world, func() -> bool: return title == null and not _phone_bench and not hud.cards_up()) as Tapczan
 	if tapczan != null:
 		tapczan.sfx = sfx  # the pub's bed, pour, clink and ball (sfx.gd)
-	drift = _join(DriftStadium.new(), world) as DriftStadium  # the drift practice; venues.gd's first venue
+	drift = _join(DriftStadium.new(), world, func() -> bool: return _free_block(true, true) == "") as DriftStadium  # asked in, not offered: no spacing or guide hold
 	if drift != null:
 		venues.add("stadium", drift.inside, drift.view, "car")
 	await LoadYield.tick("crawl")
@@ -5229,6 +5229,8 @@ func _on_setting(key: String, value: Variant) -> void:
 		"unstuck":
 			_unstuck.call_deferred()
 			return
+		"drift":
+			return  # DEV → BOKIEM: drift_stadium.gd's own (`_ask_in`), nothing to save
 		"new_game":
 			_on_new_game.call_deferred()  # G14: NOWA GRA in the settings (confirmed by two taps)
 			return

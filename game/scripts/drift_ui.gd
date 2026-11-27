@@ -163,9 +163,18 @@ func _input(event: InputEvent) -> void:
 		if t.pressed and not on_pad(t.position):
 			return
 		thumb.emit(t.pressed, t.index)
-	elif event is InputEventKey and not (event as InputEventKey).echo and (event as InputEventKey).keycode == KEY_SPACE:
-		thumb.emit((event as InputEventKey).pressed, 99)
+	elif event is InputEventKey:
+		# The keys are the stadium's while it is on (the PR review): Space is the thumb, Esc the ✕ (the
+		# settings panel lives in the hidden HUD), and the city's keys (camera, M, K, H, ...) do nothing.
+		var k := event as InputEventKey
+		if not k.echo and k.physical_keycode == KEY_SPACE:
+			thumb.emit(k.pressed, 99)
+		elif k.pressed and not k.echo and k.physical_keycode == KEY_ESCAPE:
+			leave_pressed.emit()
 		get_viewport().set_input_as_handled()
+	elif event is InputEventJoypadButton or event is InputEventJoypadMotion or event is InputEventMagnifyGesture \
+			or event is InputEventPanGesture or (event is InputEventMouseButton and (event as InputEventMouseButton).button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]):
+		get_viewport().set_input_as_handled()  # no city zoom, view flick or pad command under the stadium
 
 
 ## A word flashes for FLASH_S s: `id` of the words, `extra` after it, in `colour`.

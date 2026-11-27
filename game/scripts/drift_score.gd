@@ -1,17 +1,20 @@
 extends RefCounted
 ## The drift's score (Bokiem na Narodowym, docs/design/drift-narodowy.md 0b.2 with critique-drift.md
-## changes 1, 2 and 9; the grey box, section 4). Pure and static: `tick(score, state, line, dt)` reads
-## a drift_model.gd state and its events. Points are the only currency.
-##   - Points a second = km/h × A(|β|) × chain, A by `angle_factor` (change 1: depth pays), 0 on the
-##     wrong side (change 2), 0 under MIN_PROGRESS m/s of progress, past MAX_OFF m off the line or going
-##     backwards (0b.2, the farming rules).
-##   - The chain starts at ×1 on a kick, +1 every CHAIN_S s of unbroken drift and +1 per transition,
-##     capped at CHAIN_CAP; a transition also pays FLICK_PTS × its timing (1.0 within 0.15 s of the
-##     sign change: IDEALNIE!, 0.5 elsewhere in the window). Change 9 asked +1 every 4 s and ×6 with
-##     "banking at both crossovers 55-75 % of flicking both" as its target; the bots (check_drift B5)
-##     put 4 s / ×6 at 35 %, so the chain is tuned to its target: +1 every 2 s, ×4 (63 %; QUESTIONS.md).
-##   - Zones pay ZONE_PTS × chain once per zone per run: ZONA the tail within ZONE_R m of the outer
-##     board, KLIP the nose within ZONE_R m of the inner cones, both at |β| ≥ ZONE_DEG (change 1: 35°).
+## changes 1, 2 and 9; the grey box, section 4, and its PR review). Pure and static:
+## `tick(score, state, line, dt)` reads a drift_model.gd state and its events. Points are the only
+## currency.
+##   - Points a second = km/h × A(|β|) × chain, A by `angle_factor` (change 1: depth pays), 0 with the
+##     slip on the wrong side of the bend (change 2), 0 under MIN_PROGRESS m/s of progress, past
+##     MAX_OFF m off the line or going backwards (0b.2, the farming rules).
+##   - The chain starts at ×1 on a kick and climbs +1 every CHAIN_S s of unbroken drift up to the
+##     pile's cap, CHAIN_CAP at first; a transition raises the cap by one (to FLICK_CAP at most) and
+##     the chain +1 with it, so ×5 and ×6 come only from flicks (the review: a flick's +1 was worth
+##     nothing once the clock had reached the cap). A transition also pays FLICK_PTS × its timing
+##     (1.0 within 0.15 s of the sign change: IDEALNIE!, 0.5 elsewhere in the window).
+##   - Zones pay ZONE_PTS_M × chain per metre held with the tail within ZONE_R m of the outer board
+##     (ZONA) or the nose within ZONE_R m of the inner cones (KLIP), at |β| ≥ ZONE_DEG (change 1: 35°);
+##     the review: a zone paid in full on one frame let a blind rhythm brush it. The first metre says
+##     its name once per zone.
 ##   - Points pile up unbanked and go into the total on a clean end (the model's "bank": a lift to
 ##     grip, the wrong side pulled back, the run's end while drifting); the chain is ×1 again. A spin
 ##     (or a contact, later: the tandem) loses the pile: PRZEPADŁO.
@@ -21,10 +24,12 @@ extends RefCounted
 const DriftModel := preload("res://scripts/drift_model.gd")
 const DriftLine := preload("res://scripts/drift_line.gd")
 
-const CHAIN_S := 2.0
+const CHAIN_S := 1.5
 const CHAIN_CAP := 4
+const CHAIN_DEG := 32.0
+const FLICK_CAP := 6
 const FLICK_PTS := 400.0
-const ZONE_PTS := 300.0
+const ZONE_PTS_M := 25.0
 const ZONE_R := 1.5
 const ZONE_DEG := 35.0
 const MIN_PROGRESS := 8.0
@@ -38,9 +43,13 @@ class Score:
 	var pile := 0.0
 	var chain := 1
 	var chain_t := 0.0
-	## The chain's step (s) and cap: CHAIN_S and CHAIN_CAP unless a tuning run sets them.
+	## The chain's step (s) and the clock's cap: CHAIN_S and CHAIN_CAP unless a tuning run sets them;
+	## `cap` is this pile's cap (flicks raise it to FLICK_CAP).
 	var chain_s := CHAIN_S
 	var chain_cap := CHAIN_CAP
+	var cap := CHAIN_CAP
+	## The chain's clock runs only at |β| ≥ this (°): a shallow slide holds the chain, it does not build it.
+	var chain_deg := CHAIN_DEG
 	## The pile's parts and the banked cards: linia, kat, styl.
 	var pile_parts := {"linia": 0.0, "kat": 0.0, "styl": 0.0}
 	var cards := {"linia": 0.0, "kat": 0.0, "styl": 0.0}
@@ -60,6 +69,7 @@ class Score:
 			pile_parts[k] = 0.0
 		chain = 1
 		chain_t = 0.0
+		cap = chain_cap
 
 
 ## A(|β|), change 1: 0 under 15°, 0.5 at 25° (linear from 15°), linear to 1.0 at 45°, 1.0 to 55°,
@@ -114,12 +124,14 @@ static func add(sc: Score, card: String, pts: float) -> void:
 ## `offset` and `backwards` are the farming rules' inputs (the posed car is always on the line).
 static func tick(sc: Score, st: DriftModel.State, line: RefCounted, dt: float, offset := 0.0, backwards := false) -> void:
 	sc.said.clear()
+	var ending := false
 	for e in st.events:
 		if e == "kick":
 			sc.reset_pile()
 		elif e.begins_with("flick:"):
 			var timing := float(e.get_slice(":", 1))
-			sc.chain = mini(sc.chain_cap, sc.chain + 1)
+			sc.cap = mini(FLICK_CAP, maxi(sc.cap, sc.chain_cap) + 1)
+			sc.chain = mini(sc.cap, sc.chain + 1)
 			add(sc, "styl", FLICK_PTS * timing)
 			sc.flicks += 1
 			sc.said.append("perfect" if timing >= 1.0 else "flick")
@@ -134,29 +146,47 @@ static func tick(sc: Score, st: DriftModel.State, line: RefCounted, dt: float, o
 		elif e == "slow":
 			sc.said.append("slow")
 		elif e == "end":
-			bank(sc)
-			sc.said.append("end")
+			ending = true
+	_slide(sc, st, line, dt, offset, backwards)
+	# The run's end banks after this step's points are in the pile (none left behind).
+	if ending:
+		bank(sc)
+		sc.said.append("end")
+
+
+## The points of one sliding step: the angle, the chain's clock, the zones.
+static func _slide(sc: Score, st: DriftModel.State, line: RefCounted, dt: float, offset: float, backwards: bool) -> void:
 	var sliding := st.mode == DriftModel.Mode.DRIFT or st.mode == DriftModel.Mode.FLIP
 	if not sliding:
 		return
 	sc.drift_s += dt
-	sc.chain_t += dt
+	if absf(st.beta) >= sc.chain_deg:
+		sc.chain_t += dt
 	if sc.chain_t >= sc.chain_s:
 		sc.chain_t -= sc.chain_s
-		sc.chain = mini(sc.chain_cap, sc.chain + 1)
+		if sc.chain < sc.chain_cap:
+			sc.chain += 1
+	if st.mode == DriftModel.Mode.DRIFT and wrong_side(st, line):
+		return
 	var base := rate(st.v, st.beta, 1, st.v, offset, backwards) * dt
 	add(sc, "kat", base)
 	add(sc, "styl", base * float(sc.chain - 1))
 	if absf(st.beta) < ZONE_DEG or st.mode != DriftModel.Mode.DRIFT:
 		return
 	for i in line.zones.size():
-		if i in sc.zones_done:
-			continue
 		var z: Dictionary = line.zones[i]
 		if st.s < float(z["s0"]) - 3.0 or st.s > float(z["s1"]) + 3.0:
 			continue
 		var p := DriftModel.tail(st, line) if z["kind"] == "zona" else DriftModel.nose(st, line)
 		if DriftLine.board_distance(z, p) <= ZONE_R:
-			sc.zones_done.append(i)
-			add(sc, "linia", ZONE_PTS * float(sc.chain))
-			sc.said.append(str(z["kind"]))
+			add(sc, "linia", ZONE_PTS_M * float(sc.chain) * st.v * dt)
+			if not i in sc.zones_done:
+				sc.zones_done.append(i)
+				sc.said.append(str(z["kind"]))
+
+
+## The slip is on the other side of the bend under the car (change 2: no points; past the window
+## the model turns it into WRONG).
+static func wrong_side(st: DriftModel.State, line: RefCounted) -> bool:
+	var bend: int = line.bend_sign(st.s)
+	return bend != 0 and st.beta != 0.0 and int(signf(st.beta)) != bend
