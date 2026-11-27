@@ -166,6 +166,9 @@ func _find_kino_muranow() -> void:
 		return
 	var north := _outline_at(KM_NORTH_AT)
 	var south := _outline_at(KM_SOUTH_AT)
+	# A re-bake that moves the OSM outlines would leave the blocks out without a word: say so.
+	if north.size() < 3 or south.size() < 3:
+		push_error("kino_muranow: a residential block outline is missing at KM_NORTH_AT/KM_SOUTH_AT (north %d, south %d corners): re-measure them" % [north.size(), south.size()])
 	var zone: Array = [_largest(Geometry2D.offset_polygon(body, 0.5, Geometry2D.JOIN_MITER))]
 	if north.size() >= 3:
 		zone.append(_largest(Geometry2D.offset_polygon(north, 1.0, Geometry2D.JOIN_MITER)))
@@ -414,6 +417,8 @@ func _km_block_ring(raw: PackedVector2Array) -> PackedVector2Array:
 		return PackedVector2Array()
 	var cleaned := _simplify(piece, 0.7)
 	# Collapse the shallow 1.6 m OSM kink on the far north gable end so it stays a flat gable wall.
+	# Re-bake risk: the u/v window below is measured from today's OSM 2014 outline; re-check it
+	# (turntable, the north gable) whenever centrum.json is re-baked.
 	var out := PackedVector2Array()
 	var n := cleaned.size()
 	for i in n:
