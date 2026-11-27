@@ -3356,6 +3356,11 @@ func _world_free() -> bool:
 ## The boat race's share of the car's speed zoom (the river is open: the rest of the zoom only
 ## shrank the boats).
 const BOAT_ZOOM := 0.45
+## Above this share of the boat's top speed the race view pulls back to BOAT_ZOOM_FAST (speed you can see).
+const BOAT_ZOOM_FAST := 0.85   # 0.75 -> 0.85 (the arcade pass)
+## The arcade pass: in the race the Classic scheme's gas stays on unless the brake is held (the thumb
+## is free for the nitro; boat_race.gd `pad_frame`).
+const BOAT_AUTO_GAS := true
 ## A free ride's view (one boat, no rings to read): this share of the base view, so the hull's
 ## lean and pitch read on the phone (Autopilot, 2026-11-07: the boat was a few pixels long).
 const BOAT_FREE_VIEW := 0.7
@@ -6469,6 +6474,8 @@ func _read_input(dt: float) -> void:
 				bon = true
 			controls.arrows = hud.arrows()
 			controls.drive(boat_race.player, bstick, bon, bkeys, hud.gas or Gamepad.gas(), hud.brake or Gamepad.brake(), cam_yaw, dt)
+		# The arcade pass (boat_race.gd `pad_frame`): the nitro disc, the start's gas, the auto gas.
+		boat_race.pad_frame(gas or hud.gas or Gamepad.gas(), BOAT_AUTO_GAS and controls.scheme == Controls.CLASSIC)
 		return
 	if flying:
 		# The car waits where it was left.
@@ -7033,7 +7040,12 @@ func _update_camera(dt: float) -> void:
 	else:
 		fcam.stop_turning()
 		cam_yaw = lerpf(cam_yaw, cam_yaw_target, 1.0 - exp(-8.0 * dt))
-	var basis := Basis.from_euler(Vector3(deg_to_rad(_view_pitch()), deg_to_rad(cam_yaw), 0.0))
+	# The Szprotka look (boat_race.gd `look`): lower and leaning in the race, nothing elsewhere.
+	var boat_look := Vector2.ZERO
+	if boat_race != null and not flying:
+		boat_look = boat_race.look(dt)
+	_pitch_extra = boat_look.x
+	var basis := Basis.from_euler(Vector3(deg_to_rad(_view_pitch()), deg_to_rad(cam_yaw), deg_to_rad(boat_look.y)))
 	var focus := vehicle.get_global_transform_interpolated().origin
 	focus.y += flags.cam_lift
 	var size: float
@@ -7056,7 +7068,8 @@ func _update_camera(dt: float) -> void:
 		var view := base_size * (CoffeeRun.BIKE_VIEW if bike else 1.0)
 		var zoom := view * (FollowCamera.TOP_DOWN_ZOOM if top_down else FollowCamera.SPEED_ZOOM) * clampf(speed / (car.top_speed() if bike else car.max_speed * car.top_mult), 0.0, 1.0)
 		if boat_race != null and boat_race.boating():
-			zoom *= BOAT_ZOOM  # the boat race: the rings and the rivals stay big enough to read
+			var fast := clampf((speed / maxf(boat_race.player.top(), 1.0) - 0.8) / 0.2, 0.0, 1.0)
+			zoom *= lerpf(BOAT_ZOOM, BOAT_ZOOM_FAST, fast)  # the rings and rivals stay readable; flat out the view opens up
 			if boat_race.stage == BoatRace.Stage.FREE:
 				view *= BOAT_FREE_VIEW
 				zoom *= BOAT_FREE_VIEW
@@ -7069,15 +7082,21 @@ func _update_camera(dt: float) -> void:
 			_view_size, dt, forward)
 	cam_focus = fcam.focus_step(cam_focus, focus + lead, basis, _view_size, focus_rate, dt)
 
-	var distance := maxf(CAMERA_DISTANCE, _view_size * 1.6)
-	var view_xf := Transform3D(basis, _snap_to_pixels(cam_focus, basis, _view_size) + basis.z * distance)
+	var vsize := _view_size * (boat_race.view_k(dt) if boat_race != null and not flying else 1.0)  # the nitro's wider view
+	var distance := maxf(CAMERA_DISTANCE, vsize * 1.6)
+	var view_xf := Transform3D(basis, _snap_to_pixels(cam_focus, basis, vsize) + basis.z * distance)
 	if moments != null and moments.frame(view_xf, _view_size, dt):
 		# A cinematic moment (camera_shots.gd) placed the camera: snap where it put it.
 		var b := cam.global_transform.basis
 		cam.global_transform = Transform3D(b, _snap_to_pixels(cam.global_transform.origin, b, cam.size))
 	else:
-		cam.size = _view_size
+		cam.size = vsize
 		cam.global_transform = view_xf if tapczan == null else tapczan.sway(view_xf)
+		if boat_race != null and boat_race.shake > 0.01 and boat_race.boating():
+			# Boat race juice: a bump, a hard landing or the buoy line shakes the view (view only).
+			var t := Time.get_ticks_msec() * 0.001
+			var amp := boat_race.shake * boat_race.shake * vsize * 0.018
+			cam.global_translate(cam.global_transform.basis.x * sin(t * 61.0) * amp + cam.global_transform.basis.y * cos(t * 53.0) * amp)
 	cam.far = _camera_far(maxf(CAMERA_DISTANCE, cam.size * 1.6), size)
 
 
@@ -7161,7 +7180,11 @@ static func heli_widen(above_ground: float) -> float:
 
 ## The camera's pitch this frame: the road view's straight down, or the player's setting.
 func _view_pitch() -> float:
-	return TOP_DOWN_PITCH if top_down else camera_pitch
+	return TOP_DOWN_PITCH if top_down else minf(camera_pitch + _pitch_extra, -10.0)
+
+
+## Degrees the boat race's look lowers the view this frame (see `_update_camera`).
+var _pitch_extra := 0.0
 
 
 func _camera_far(distance: float, size: float) -> float:

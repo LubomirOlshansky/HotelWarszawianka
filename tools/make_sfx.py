@@ -110,6 +110,8 @@ levels (if their folder is given) to balance the buses against.
       two pint glasses touched (0.9 s)
   pong_bounce / pong_cup / pong_rim   beer pong (pong_match.gd): the ball's tock on the table; into a
       cup of beer (a tick and a plop); spinning on a rim (slowing ticks)
+  boat_nitro_loop / boat_spray / quack   the arcade pass (boat_race.gd, 2026-11-26): the boat's nitro
+      roar (a 1.2 s loop), a slap of spray off the hull (0.4 s), a duck's "kwa" (0.25 s)
 
   --only=club_leak,busker  makes just those (the city's sounds: club_leak, metro_chime,
   church_bell, busker, crowd_murmur, steps_guitar; loop MW-4's bark_small, bark_mid, bark_big,
@@ -2029,7 +2031,7 @@ def station_gong(seed):
 LOOPS = ["engine_idle", "engine_mid", "engine_high", "tyre_roll", "tyre_wet", "tyre_squeal", "rotor",
          "city_day", "city_night", "rain", "police_siren", "ambulance_siren", "fire_siren", "club_leak", "busker", "crowd_murmur", "steps_guitar",
          "queue_chatter", "amb_river", "amb_park", "amb_square", "amb_yard", "fan_chant", "gong_bowls", "techno_thump",
-         "jazz_trio", "bike_roll", "bike_freewheel", "lift_hum", "pub_room"]
+         "jazz_trio", "bike_roll", "bike_freewheel", "lift_hum", "pub_room", "boat_nitro_loop"]
 
 
 def loud_rev(seed):
@@ -2261,6 +2263,63 @@ def pong_rim(seed):
     return fade(out, 0.0, 0.05)
 
 
+def boat_nitro_loop(seed):
+    """The arcade pass (boat_race.gd's nitro, 2026-11-26): the Szprotka's outboard on nitro, a
+    1.2 s seamless roar: noise made once per loop length through a low body (90 / 180 Hz bands)
+    and a gritty 700 Hz band, throbbing at 25 Hz (30 whole cycles a loop) and a slow 2.5 Hz
+    surge (3 cycles), saturated; every filter runs over the loop three times."""
+    rnd = random.Random(seed)
+    n = int(1.2 * RATE)
+    w = noise(n, rnd)
+    body = mix((1.0, biquad(w, "bp", 90.0, 1.4, True)), (0.8, biquad(w, "bp", 180.0, 1.6, True)))
+    grit = biquad(biquad(w, "bp", 700.0, 0.9, True), "lp", 2400.0, 0.7, True)
+    hiss = biquad(w, "hp", 3500.0, 0.7, True)
+    out = mix((1.0, body), (0.45, grit), (0.06, hiss))
+    for i in range(n):
+        t = i / n
+        out[i] *= (1.0 + 0.35 * math.sin(TAU * 30 * t)) * (1.0 + 0.15 * math.sin(TAU * 3 * t + 0.7))
+    return biquad(saturate(out, 2.2), "hp", 40.0, 0.7, True)
+
+
+def boat_spray(seed):
+    """The arcade pass: a slap of spray off the hull, 0.4 s: a dull 120 Hz knock and a burst of
+    band-passed noise falling from 2.4 kHz to 900 Hz, fading out."""
+    rnd = random.Random(seed)
+    n = int(0.4 * RATE)
+    w = noise(n, rnd)
+    out = zeros(n)
+    chunk = 441
+    for a in range(0, n, chunk):
+        t = a / n
+        f = 2400.0 - 1500.0 * t
+        seg = biquad(w[a:a + chunk * 2] if a + chunk * 2 <= n else w[a:], "bp", f, 0.9)
+        env = min(1.0, t / 0.03) * (1.0 - t) ** 2.0
+        for i in range(min(chunk, n - a)):
+            out[a + i] = seg[i] * env
+    knock = zeros(n)
+    for i in range(int(0.09 * RATE)):
+        knock[i] = math.sin(TAU * 120.0 * i / RATE) * math.exp(-i / (0.025 * RATE))
+    return fade(saturate(mix((1.0, out), (0.6, knock)), 1.2), 0.002, 0.06)
+
+
+def quack(seed):
+    """The arcade pass (the ducks scattered): a duck's "kwa", 0.25 s: a buzzy square at 260 Hz
+    sliding down to 210 Hz through two nasal formants (1.0 and 2.3 kHz), a quick attack."""
+    rnd = random.Random(seed)
+    n = int(0.25 * RATE)
+    out = zeros(n)
+    ph = 0.0
+    for i in range(n):
+        t = i / n
+        f = 260.0 - 50.0 * t + rnd.uniform(-3.0, 3.0)
+        ph += f / RATE
+        sq = 1.0 if (ph % 1.0) < 0.42 else -1.0
+        env = min(1.0, t / 0.04) * (1.0 - t) ** 1.4
+        out[i] = sq * env
+    voice = mix((1.0, biquad(out, "bp", 1000.0, 4.0)), (0.7, biquad(out, "bp", 2300.0, 5.0)), (0.15, out))
+    return fade(saturate(voice, 1.6), 0.002, 0.04)
+
+
 # Loop MW-5: the city's sounds (city_sounds.gd), made on their own with --only=.
 CITY = {"club_leak": lambda: [club_leak(71)], "metro_chime": lambda: [metro_chime(72)],
         "church_bell": lambda: [church_bell(73)], "busker": lambda: [busker(74)],
@@ -2309,7 +2368,10 @@ CITY = {"club_leak": lambda: [club_leak(71)], "metro_chime": lambda: [metro_chim
         # THE TAPCZAN (tapczan_room.gd, pong_match.gd): the room's talk, the pour, the clink, the ball.
         "pub_room": lambda: [pub_room(115)], "beer_pour": lambda: [beer_pour(116)],
         "glass_clink": lambda: [glass_clink(117)], "pong_bounce": lambda: [pong_bounce(118)],
-        "pong_cup": lambda: [pong_cup(119)], "pong_rim": lambda: [pong_rim(120)]}
+        "pong_cup": lambda: [pong_cup(119)], "pong_rim": lambda: [pong_rim(120)],
+        # The arcade pass (boat_race.gd): the nitro's roar, the hull's spray, the ducks' quack.
+        "boat_nitro_loop": lambda: [boat_nitro_loop(121)], "boat_spray": lambda: [boat_spray(122)],
+        "quack": lambda: [quack(123)]}
 
 
 def main(out_dir, radio_dir=None, only=None):

@@ -7270,6 +7270,27 @@
       }
     ],
     [
+      "Pudło! Wrzucam na relację, oznaczę cię.",
+      "Missed! Going on my story, I'll tag you.",
+      {
+        "only": "kamil_player_miss"
+      }
+    ],
+    [
+      "Za moich czasów fala była za darmo. A, nadal jest.",
+      "In my day a wave was free. Oh, it still is.",
+      {
+        "only": "zdzisiek_player_miss"
+      }
+    ],
+    [
+      "Nie blokuję, ja zwiedzam!",
+      "I'm not blocking, I'm sightseeing!",
+      {
+        "only": "szymek_player_miss"
+      }
+    ],
+    [
       "Kółko? Jakie kółko? To był content!",
       "Ring? What ring? That was content!",
       {
@@ -7309,6 +7330,160 @@
       "Finish! Posting right now!",
       {
         "only": "kamil_finish"
+      }
+    ],
+    [
+      "Kaczki! Kaczki mają pierwszeństwo, ty nawigatorze!",
+      "Ducks! Ducks have right of way, you navigator!",
+      {
+        "only": "szymek_duck"
+      }
+    ],
+    [
+      "Ej, to kaczki Zdziśka! Zapłacisz za każde pióro!",
+      "Hey, those are Zdzisiek's ducks! You pay per feather!",
+      {
+        "only": "szymek_duck"
+      }
+    ],
+    [
+      "Rodzina z dziećmi! Trąbić trzeba!",
+      "A family with kids! You should honk!",
+      {
+        "only": "szymek_duck"
+      }
+    ],
+    [
+      "Moja Krysia i dzieci! Tyle lat je karmię!",
+      "My Krysia and the kids! I've been feeding them for years!",
+      {
+        "only": "zdzisiek_duck"
+      }
+    ],
+    [
+      "Kaczki były tu przed kółkami i będą po kółkach.",
+      "The ducks were here before the rings and they'll be here after.",
+      {
+        "only": "zdzisiek_duck"
+      }
+    ],
+    [
+      "W nasze czasy kaczki miały pierwszeństwo na ustawie.",
+      "In our day the ducks had right of way by law.",
+      {
+        "only": "zdzisiek_duck"
+      }
+    ],
+    [
+      "KACZKI! To idzie na viral! Kwa kwa kwa!",
+      "DUCKS! This is going viral! Quack quack quack!",
+      {
+        "only": "kamil_duck"
+      }
+    ],
+    [
+      "Pierzasta rodzina w kadrze, piękne!",
+      "A feathered family in shot, beautiful!",
+      {
+        "only": "kamil_duck"
+      }
+    ],
+    [
+      "Zrobiłem kaczkę! Znaczy, nie zrobiłem. Są całe!",
+      "I made a duck! I mean I didn't. They're fine!",
+      {
+        "only": "kamil_duck"
+      }
+    ],
+    [
+      "Dziś płynie ta rzeka i ten, kto stawia lody.",
+      "The river flows today, and so does whoever buys the ice cream.",
+      {
+        "only": "szymek_start"
+      }
+    ],
+    [
+      "Mamy kaczki na trasie, uważajcie na chat!",
+      "There are ducks on the course, mind the chat!",
+      {
+        "only": "kamil_start"
+      }
+    ],
+    [
+      "Kaczki mają swój tor. Szanujcie.",
+      "The ducks have their own lane. Respect it.",
+      {
+        "only": "zdzisiek_start"
+      }
+    ],
+    [
+      "Kółko było za wąskie. Zaraz napiszę skargę.",
+      "The ring was too narrow. I'm writing a complaint.",
+      {
+        "only": "szymek_miss"
+      }
+    ],
+    [
+      "Dobrze płynie, tylko lakier mu uciekł.",
+      "He sails well, it's only his paint that ran away.",
+      {
+        "only": "zdzisiek_pass"
+      }
+    ],
+    [
+      "Dzięki za kadr! Podlinkuję cię w opisie!",
+      "Thanks for the shot! I'll tag you in the caption!",
+      {
+        "only": "kamil_pass"
+      }
+    ],
+    [
+      "Lody dla zwycięzcy, loda dla mnie, a kaczkom bułka!",
+      "Ice cream for the winner, one for me, and a roll for the ducks!",
+      {
+        "only": "szymek_finish"
+      }
+    ],
+    [
+      "FALSTART! Za wcześnie na gazie",
+      "FALSE START! Gas too early",
+      {
+        "only": "hud_false_start"
+      }
+    ],
+    [
+      "START RAKIETA!",
+      "Rocket start!",
+      {
+        "only": "hud_rocket"
+      }
+    ],
+    [
+      "ŁAWICA! Dopalacz",
+      "SHOAL! Nitro",
+      {
+        "only": "hud_shoal"
+      }
+    ],
+    [
+      "ŚCINKA!",
+      "CLIPPED!",
+      {
+        "only": "hud_clip"
+      }
+    ],
+    [
+      "KWA! Kaczki mają pierwszeństwo",
+      "QUACK! Ducks have right of way",
+      {
+        "only": "hud_duck_scare"
+      }
+    ],
+    [
+      "Kaczki wystraszone ×%d, ale bułkę dostały.",
+      "Ducks scared ×%d, but they got a roll.",
+      {
+        "only": "card_ducks_scared"
       }
     ]
   ],

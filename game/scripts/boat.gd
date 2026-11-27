@@ -58,7 +58,7 @@ const SPECS := {
 ## speed and pull are scaled by this (about 2x: the runabout 21 -> 40 m/s, 145 km/h), the turn a
 ## little (a wider arc at speed), the rudder keeps its bite to a higher speed.
 const SPEED_SCALE := 1.9
-const TURN_SCALE := 1.3
+const TURN_SCALE := 1.4   # 1.3 -> 1.4 (the arcade pass, 2026-11-26: the classic thumb turns sharper)
 const DRAG := 0.06           # water drag on top of the thrust curve (1/s)
 const REVERSE := 4.0         # m/s back
 const BRAKE := 9.0           # m/s² while going forward and braking
@@ -67,6 +67,7 @@ const LAUNCH := 2.4          # m/s up the face of a wave that throws the boat in
 const HARD_LANDING := 4.0    # m/s down: a landing harder than this costs speed
 const BOW_UP := 0.07         # rad: the bow up while it climbs onto the plane
 const ROLL := 0.22           # rad of lean per rad/s of turn
+const BANK_SCRUB := 0.9      # /s of speed bled while scraping a bank
 const PUSH := 0.35           # share of the speed into a wall that bounces back
 ## A boat nosed into a bank at full throttle barely moves, so its rudder has no flow: for
 ## CONTACT_HOLD s after a touch, with the throttle on, the rudder keeps this much bite (the
@@ -83,6 +84,10 @@ const PIN_PUSH := 3.0
 var kind := Kind.RUNABOUT
 var spec: Dictionary = scaled_spec(Kind.RUNABOUT)
 var boost := 1.0
+## The arcade pass (2026-11-26): the race's nitro and a false start scale the pull off the line
+## (`surge`), and a burning nitro takes a share of the rudder (`turn_mult`); 1.0 is plain.
+var surge := 1.0
+var turn_mult := 1.0
 
 ## Inputs.
 var throttle := 0.0
@@ -116,6 +121,7 @@ var solid: Callable = Callable()
 ## Events of the last step, for the race (sound, haptics, lines): a bump's strength (m/s into
 ## the wall or boat), a landing's strength.
 var bumped := 0.0
+var _dt := 0.016
 var _contact := 0.0
 var _contact_n := Vector2.ZERO
 var _pinned := 0.0
@@ -169,6 +175,8 @@ func place(at: Vector2, heading: float) -> void:
 	soft_landing = false
 	planing = 0.0
 	boost = 1.0
+	surge = 1.0
+	turn_mult = 1.0
 	throttle = 0.0
 	steer = 0.0
 	braking = false
@@ -198,6 +206,7 @@ func top() -> float:
 
 ## One step of the boat's motion (the race calls it for every boat, in order).
 func step(dt: float) -> void:
+	_dt = dt
 	bumped = 0.0
 	landed = 0.0
 	var f := forward()
@@ -228,7 +237,7 @@ func step(dt: float) -> void:
 			# The thrust curve: falloff 2 for a propeller (fades towards the top), higher for an
 			# electric motor (full torque almost to the top); pull_plane: a heavy hull pulls
 			# weakly until it is up on the plane.
-			var pull := float(spec["pull"]) * lerpf(1.0, float(spec.get("pull_plane", 1.0)), planing)
+			var pull := float(spec["pull"]) * lerpf(1.0, float(spec.get("pull_plane", 1.0)), planing) * surge
 			vf += pull * thr * (1.0 - pow(share, float(spec.get("falloff", 2.0)))) * dt
 		vf -= vf * DRAG * dt
 		if vf > top_v:
@@ -258,7 +267,7 @@ func step(dt: float) -> void:
 		authority = maxf(authority, thr * 0.7) * lerpf(0.2, 1.0, thr)
 	if not on_water:
 		authority *= 0.25
-	var want_rate := float(spec["turn"]) * clampf(steer, -1.0, 1.0) * authority * (1.0 if vf >= -0.5 else -1.0)
+	var want_rate := float(spec["turn"]) * clampf(steer, -1.0, 1.0) * authority * turn_mult * (1.0 if vf >= -0.5 else -1.0)
 	yaw_rate = lerpf(yaw_rate, want_rate, 1.0 - exp(-6.0 * dt))
 	yaw = wrapf(yaw + yaw_rate * dt, -PI, PI)
 	vel = rel + flow
@@ -333,7 +342,7 @@ func _solids() -> void:
 	if push == Vector2.ZERO:
 		return
 	pos += push
-	_hit(push.normalized())
+	_hit(push.normalized(), false)
 
 
 func _boats() -> void:
@@ -355,14 +364,23 @@ func _boats() -> void:
 			bumped = maxf(bumped, -into)
 
 
-func _hit(n: Vector2) -> void:
+## `scrub`: a bank (not a pier). F 2026-11-26 ("a bank hit is a dead stop"): the first touch
+## costs 10 % of the speed and the touch goes on as a scrape that bleeds BANK_SCRUB /s, so a brush
+## along a bank keeps most of the speed (it was 8 % of it after half a second). Piers stay hard.
+func _hit(n: Vector2, scrub := true) -> void:
+	var first := _contact <= 0.0
 	_contact = CONTACT_HOLD
 	_contact_n = n
 	var into := vel.dot(n)
 	if into < 0.0:
 		vel -= n * into * (1.0 + PUSH)
-		vel *= 0.92
+		if not scrub:
+			vel *= 0.92
+		elif first:
+			vel *= 0.90
 		bumped = maxf(bumped, -into)
+	if scrub and not first:
+		vel *= exp(-BANK_SCRUB * _dt)
 
 
 func _sync() -> void:

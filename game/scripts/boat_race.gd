@@ -40,6 +40,10 @@ extends "res://scripts/activity.gd"
 ## marina's card and the free ride (the run's own `Stage`s), and the result cards' words.
 
 const Boat := preload("res://scripts/boat.gd")
+const BoatSpray := preload("res://scripts/boat_spray.gd")
+const BoatStreaks := preload("res://scripts/boat_streaks.gd")
+const Gamepad := preload("res://scripts/gamepad.gd")
+const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const Models := preload("res://scripts/models.gd")
 const FirstSteps := preload("res://scripts/first_steps.gd")
 
@@ -81,8 +85,9 @@ const PLAY_LIMIT := 1800.0
 
 ## The rules.
 const MISSES := 3
-const RHYTHM_STEP := 0.03
-const RHYTHM_MAX := 5
+const RHYTHM_STEP := 0.025
+const RHYTHM_MAX := 8
+const MISS_COST := 4   # rhythm lost on a miss (was a reset to 0)
 const GOLD_BOOST := 1.18
 const GOLD_TIME := 2.5
 const COUNT := 3.0
@@ -109,10 +114,10 @@ const OWN_WAKE := 0.7        # s: a boat does not feel its own newest rings
 ## a wheelie at half throttle: Kamil films everything, and the player gets past).
 const RIVALS := [
 	{"name": "Szymek", "kind": Boat.Kind.RUNABOUT, "paint": "#c8302c", "shirt": "#2f6fb5", "hair": "#4a3426",
-		"line": 0.15, "miss": 0.02, "block": 0.3, "pace": 0.975, "delay": 0.35, "tag": "szymek"},
-	{"name": "Pan Zdzisiek", "kind": Boat.Kind.TUB, "line": 0.0, "miss": 0.0, "block": 0.0, "pace": 1.0,
+		"line": 0.15, "miss": 0.02, "block": 0.3, "pace": 1.03, "delay": 0.35, "tag": "szymek"},
+	{"name": "Pan Zdzisiek", "kind": Boat.Kind.TUB, "line": 0.0, "miss": 0.0, "block": 0.0, "pace": 1.04,
 		"delay": 0.8, "tag": "zdzisiek"},
-	{"name": "Kamil", "kind": Boat.Kind.JETSKI, "line": 0.35, "miss": 0.035, "block": 0.8, "pace": 0.96,
+	{"name": "Kamil", "kind": Boat.Kind.JETSKI, "line": 0.35, "miss": 0.035, "block": 0.8, "pace": 1.01,
 		"delay": 0.15, "tag": "kamil", "stunt": 0.35},
 ]
 const STUNT_TIME := 1.0   # was 1.8; the boats are 1.9x faster (2026-11-10), a long show-off runs him out of the course
@@ -120,12 +125,27 @@ const STUNT_MAX := 3
 const PLAYER_PAINT := Color("#ff8a1a")
 const RUBBER := 0.08
 const RUBBER_GAP := 45.0
+## F 2026-11-26 ("the other boat is far ahead"): the pack waits for a slow player. A rival ahead
+## eases off by up to RUBBER_AHEAD (off screen) or RUBBER_AHEAD_SEEN (in view) from RUBBER_NEAR m
+## ahead, in full at RUBBER_FAR m; one behind pushes up to RUBBER_BEHIND (in view half of it).
+const RUBBER_AHEAD := 0.17
+const RUBBER_AHEAD_SEEN := 0.05
+const RUBBER_BEHIND := 0.08
+const RUBBER_NEAR := 25.0
+const RUBBER_FAR := 150.0
+## The inside buoy (docs/design/critique-boat-race.md 3.1): the last INSIDE_R m of each ring's opening,
+## on the side of the next ring, is the fast line (+rhythm, a boost) and sits next to a miss.
+const INSIDE_R := 5.0
+## Up to CLIP_W m past the inside edge is a clip (ŚCINKA!): no miss, a little speed lost.
+const CLIP_W := 1.5
+const INSIDE_BOOST := 1.07
+const INSIDE_TIME := 1.5
 ## Slipstream (F 2026-11-08, "it's boring, the jet ski is always in front"): a boat running in
 ## another's wake, DRAFT_AHEAD m behind it and within DRAFT_SIDE m of its line, pulls up to
 ## DRAFT more top speed after DRAFT_BUILD s there: the catch-up is in the player's hands and on
 ## screen, and the leader is never safe. Every boat gets it, the rivals too.
-const DRAFT := 0.09
-const DRAFT_AHEAD := Vector2(3.0, 28.0)
+const DRAFT := 0.11
+const DRAFT_AHEAD := Vector2(3.0, 40.0)
 const DRAFT_SIDE := 3.4
 const DRAFT_BUILD := 0.6
 ## Floating jump ramps on the crossings (tools/boat_course.py `ramps`): a boat over one at more
@@ -140,6 +160,87 @@ const RAMP_PULL := 6.0
 const JUMP_BOOST := 1.12
 const JUMP_TIME := 1.8
 
+## Kaczki (F 2026-11-26, "Szprotka is boring, make it funnier"): DUCK_N families of a mother and
+## four ducklings pace across the river between two rings, one mesh each (3 draw calls). A boat
+## closer than DUCK_HIT to the mother scatters them (they fly off, nobody is hurt) and loses
+## DUCK_BRAKE of its speed, and the player a rhythm pip: "ducks have right of way". Passing the
+## family within DUCK_NEAR m without a scare is a clean pass (a toast the first time a race).
+const DUCK_SPOTS := [0.22, 0.5, 0.77]    # where in the course (share of the ordinary rings)
+const DUCK_SWING := 11.0                 # m: how far across the line a family paces
+const DUCK_RATE := 0.33                  # rad/s of the pacing
+const DUCK_HIT := 4.8
+const DUCK_NEAR := 11.0
+const DUCK_BRAKE := 0.88
+const DUCK_FLY := 1.6                    # s the scattered family stays in the air
+
+## The arcade pass (Fable's plan, 2026-11-26). DOPALACZ: the player's nitro tank (0..1) fills
+## from the race (rings, the buoy line, gold rings, jumps, crates, a slipstream, hugging a bank,
+## a clean pass of the ducks) and is burnt by holding the HUD's nitro disc (Shift, LB / RB):
+## NITRO_BOOST top speed and NITRO_PULL pull, NITRO_TURN of the rudder, NITRO_BURN a second; it
+## lights from NITRO_MIN. A miss and a duck scare take some back. The rivals have none.
+const NITRO_START := 0.35
+const NITRO_BOOST := 1.32
+const NITRO_BURN := 0.33
+const NITRO_MIN := 0.2
+const NITRO_PULL := 1.8
+const NITRO_TURN := 0.85
+const FILL_RING := 0.06
+const FILL_BUOY := 0.18
+const FILL_GOLD := 0.25
+const FILL_JUMP := 0.15
+const FILL_CRATE := 0.12
+const FILL_DRAFT := 0.05     # a second in full slipstream
+const FILL_HUG := 0.08       # a second hugging a bank
+const FILL_DUCKS := 0.10     # a family passed close without a scare
+const FILL_SHOAL := 0.15     # three crates inside SHOAL_T s
+const COST_MISS := 0.15
+const COST_DUCK := 0.10
+## The start: gas pressed within START_WINDOW s after START! is a rocket start (START_INSIDE s of
+## the buoy line's boost, FILL_ROCKET nitro); gas held from more than FALSE_EARLY s before it is a
+## false start (FALSE_T s at FALSE_SURGE of the pull).
+const START_WINDOW := 0.25
+const START_INSIDE := 2.0
+const FILL_ROCKET := 0.25
+const FALSE_EARLY := 0.6
+const FALSE_T := 0.4
+const FALSE_SURGE := 0.5
+## Near the banks: between HUG_IN and HUG_D m off a bank at HUG_SPEED of the top for HUG_BUILD s,
+## HUG_BOOST top speed and the tank fills; a touch of the bank ends it.
+const HUG_IN := 2.5
+const HUG_D := 9.0
+const HUG_SPEED := 0.6
+const HUG_BUILD := 0.5
+const HUG_BOOST := 1.05
+## Szymek likes the inside: his line through a ring leans this share of the half-opening that way.
+const SZYMEK_INSIDE := 0.3
+## Skrzynki szprotek (parody tins, a gold lid): three (CRATE_AT) on the chord between two ordinary
+## rings, pushed towards the ring's inside until the bank is CRATE_BANK m away (at most
+## CRATE_CAP of the river's half width), CRATE_N at most, one MultiMesh. The player takes one
+## within CRATE_R m: FILL_CRATE nitro, CRATE_PAY zł at the finish; SHOAL_N within SHOAL_T s is a shoal.
+const CRATE_AT := [0.3, 0.5, 0.7]
+const CRATE_BANK := 7.0
+const CRATE_CAP := 0.45
+## Rivals run this much faster all race, standing for the nitro the player burns (2026-11-26: the autopilot won by 3-9 s).
+const RIVAL_NITRO := 1.06
+const CRATE_OFF_MAX := 16.0   # m off the chord at most: a crate is a nudge, not a detour
+const CRATE_N := 64
+const CRATE_R := 3.2
+const CRATE_PAY := 2
+const SHOAL_N := 3
+const SHOAL_T := 4.0
+## The spray (boat_spray.gd): drops a second from a fast hull (over SPRAY_SPEED of its top), on
+## nitro, and in a burst.
+const SPRAY_RATE := 20.0
+const SPRAY_NITRO := 60.0
+const SPRAY_BURST := 16
+const SPRAY_SPEED := 0.55
+const SPRAY_NEAR := 60.0
+## The camera (main.gd `_update_camera` through `view_k`): the view opens to NITRO_VIEW of its size
+## while the nitro burns, eased in at NITRO_VIEW_IN and out at NITRO_VIEW_OUT a second.
+const NITRO_VIEW := 1.08
+const NITRO_VIEW_IN := 6.0
+const NITRO_VIEW_OUT := 2.0
+
 ## The run's own stages (the kit's `phase` is RUN for all of them; the marina's card and a free
 ## ride are stages of a run too).
 enum Stage { NONE, MENU, FREE, TO_PIER, COUNTDOWN, RACE, OUT, DONE }
@@ -147,6 +248,11 @@ enum Stage { NONE, MENU, FREE, TO_PIER, COUNTDOWN, RACE, OUT, DONE }
 ## Set by the game.
 ## (Vector3) -> bool: the point is on screen (the rubber band only works off it).
 var seen: Callable = func(_p: Vector3) -> bool: return true
+## The game's sounds (sfx.gd; null in the checks): the race's one-shots, the nitro's roar.
+var sfx: Node
+## The player's controls this frame (main.gd): the nitro held, the gas held (the start's timing).
+var nitro_hold := false
+var gas_hold := false
 ## A stop at the pontoon hands the race the controls; leaving hands them back (main.gd).
 signal boarded
 signal left_boat
@@ -193,6 +299,45 @@ var rng_seed := -1
 var _ring_nodes: Array[MeshInstance3D] = []
 var _mats := {}
 var _barge: MeshInstance3D
+## The duck families: {node, at (Vector2), across (Vector2), phase, state 0 pacing / 1 flying / 2 gone, t}.
+var _ducks: Array = []
+var ducks_scared := 0
+var _ducks_ok_said := false
+## The arcade pass: the tank (0..1), burning now, burns this race (check_boat_race.gd), the latch
+## after it ran dry (let go of the disc to light it again), the false start's clock, the start judged.
+var nitro := NITRO_START
+var nitro_on := false
+var nitro_burns := 0
+var _nitro_latch := false
+var _false_t := 0.0
+var _start_judged := false
+var _gas_was := false
+var _gas_early := false
+## Hugging a bank: seconds built, on, the side of the bank (+1 the boat's right), hugs this race.
+var hug_t := 0.0
+var hugging := false
+var _hug_side := 1.0
+var _hug_side_t := 0.0
+var hugs := 0
+var _bank_said := -9.0
+## The crates: centres (x, z), taken, the MultiMesh, their count got this race, the pickups' times.
+var crates: PackedVector2Array = PackedVector2Array()
+var _crate_taken: Array[bool] = []
+var _crate_mm: MultiMeshInstance3D
+var _crate_buf := PackedFloat32Array()
+var sprats := 0
+var _crate_times: Array[float] = []
+var shoals := 0
+## The spray pool and its emission clocks (one a boat), the nitro flame at the player's stern.
+var _spray: BoatSpray
+var _spray_acc: Array[float] = [0.0, 0.0, 0.0, 0.0]
+var _flame: MeshInstance3D
+## The speed streaks and the rank tag on the HUD (boat_streaks.gd; made on the first race frame in
+## the game, none in the checks' stand-in HUD), and the nitro's view share now.
+var _streaks: BoatStreaks
+var _view_k := 1.0
+## The Szprotka look (view only, main.gd's camera): smoothed pitch lift and roll, see `look`.
+var _look := Vector2.ZERO
 var _barge_pos := Vector2.ZERO
 var _barge_dir := Vector2.ZERO
 var _barge_li := 0.0
@@ -237,6 +382,7 @@ func install(ctx: GameCtx) -> bool:
 	force_hours = ctx.flags.boat_flag != ""
 	vehicle = ctx.vehicle
 	seen = ctx.seen
+	sfx = ctx.sfx
 	clock = ctx.life_hour
 	return true
 
@@ -298,6 +444,12 @@ func setup(world: Node3D) -> void:
 	_build_rings()
 	_build_ramps()
 	_build_barge()
+	_build_ducks()
+	_build_crates()
+	_spray = BoatSpray.new()
+	_spray.name = "Spray"
+	add_child(_spray)
+	_build_flame()
 	_foam_mesh = ImmediateMesh.new()
 	_foam = MeshInstance3D.new()
 	_foam.mesh = _foam_mesh
@@ -317,6 +469,18 @@ func _load_course() -> void:
 		line.append(Vector2(float(p[0]), float(p[1])))
 		half_w.append(float(p[2]))
 	rings = data["rings"]
+	for i in rings.size():
+		# Which side of this ring the next ring lies on: the inside buoy's side (gold cap).
+		var g: Dictionary = rings[i]
+		var yaw := float(g["yaw"])
+		var across := Vector2(cos(yaw), -sin(yaw))
+		var j := i + 1
+		while j < rings.size() and bool(rings[j]["gold"]):
+			j += 1
+		var side := 0.0
+		if j < rings.size():
+			side = (Vector2(float(rings[j]["x"]) - float(g["x"]), float(rings[j]["z"]) - float(g["z"]))).dot(across)
+		g["in"] = 1.0 if side >= 0.0 else -1.0
 	grid = data["grid"]
 	barge_cfg = data["barge"]
 	ramps = data.get("ramps", [])
@@ -584,6 +748,7 @@ func _start_grid() -> void:
 	racers.clear()
 	_finish_order.clear()
 	jumps = 0
+	_arcade_reset()
 	for k in boats.size():
 		var b: Boat = boats[k]
 		var g: Array = grid[k]
@@ -593,9 +758,10 @@ func _start_grid() -> void:
 				"gold_t": 0.0, "out": false, "finished": false, "time": 0.0, "li": 0.0, "prev": b.pos,
 				"aim": _rng.randf_range(-1.0, 1.0), "mistake": false, "block_t": 0.0, "said": 0.0,
 				"draft": 0.0, "draft_said": -99.0, "jump_t": 0.0, "jumping": false, "ramp_cd": 0.0,
-				"stunt_t": 0.0, "stunts": 0}
+				"stunt_t": 0.0, "stunts": 0, "inside_t": 0.0}
 		racers.append(r)
 	_place_barge()
+	_reset_ducks()
 	for w: Array in _wakes:
 		w.clear()
 	for k in _wake_t.size():
@@ -614,7 +780,15 @@ var _count_said := 0
 
 func _countdown_tick(dt: float) -> void:
 	_count -= dt
+	# The start's timing: gas pressed (and held) from more than FALSE_EARLY s before START! is early.
+	if gas_hold and not _gas_was and _count - 0.6 > FALSE_EARLY:
+		_gas_early = true
+	if not gas_hold:
+		_gas_early = false
+	_gas_was = gas_hold
 	_hold_boats(dt)
+	_draw_crates()
+	_streaks_tick(dt)
 	_status()
 	var n := ceili(_count - 0.6)
 	if n >= 1:
@@ -631,6 +805,13 @@ func _countdown_tick(dt: float) -> void:
 		_say(1, "start")
 		Access.buzz(80, 0.8)
 		_log("start")
+		if gas_hold and _gas_early:
+			# FALSTART: the boat sits a moment with half its pull.
+			_start_judged = true
+			_false_t = FALSE_T
+			boats[0].vel = Vector2.ZERO
+			_toast_words("hud_false_start")
+			_log("false start")
 
 
 ## Before the start: the boats sit on the grid, bobbing.
@@ -666,6 +847,8 @@ func _idle_boats(dt: float) -> void:
 			b.target_dir = Vector3.ZERO
 			b.braking = b.forward_speed() > 1.0
 		b.step(dt)
+	_spray_tick(dt)
+	_draw_crates()
 	_draw_foam()
 
 
@@ -791,10 +974,14 @@ func _build_free_boat() -> void:
 
 func _race_tick(dt: float) -> void:
 	clock_t += dt
+	shake = maxf(0.0, shake - dt * 2.2)
 	if _stage_t > 1.0:
 		hud.hide_banner()
 	_tick_wakes(dt)
 	_barge_tick(dt)
+	_ducks_tick(dt)
+	_start_tick()
+	_nitro_tick(dt)
 	for k in boats.size():
 		var b: Boat = boats[k]
 		var r: Dictionary = racers[k]
@@ -811,18 +998,39 @@ func _race_tick(dt: float) -> void:
 			_drive_rival(0, dt)
 		r["gold_t"] = maxf(0.0, float(r["gold_t"]) - dt)
 		r["jump_t"] = maxf(0.0, float(r["jump_t"]) - dt)
+		r["inside_t"] = maxf(0.0, float(r["inside_t"]) - dt)
 		b.boost = (1.0 + RHYTHM_STEP * mini(int(r["rhythm"]), RHYTHM_MAX)) * (GOLD_BOOST if float(r["gold_t"]) > 0.0 else 1.0)
 		b.boost *= JUMP_BOOST if float(r["jump_t"]) > 0.0 else 1.0
-		b.boost *= 1.0 + DRAFT * _draft(k, dt)
+		b.boost *= INSIDE_BOOST if float(r["inside_t"]) > 0.0 else 1.0
+		var dr := _draft(k, dt)
+		b.boost *= 1.0 + DRAFT * dr
+		if k == 0:
+			if not bool(r["out"]) and not bool(r["finished"]):
+				_fill(FILL_DRAFT * dr * dt)
+			b.boost *= NITRO_BOOST if nitro_on else 1.0
+			b.boost *= HUG_BOOST if hugging else 1.0
 		if k > 0:
-			b.boost *= _rubber(k)
+			b.boost *= _rubber(k) * RIVAL_NITRO  # the rivals have a little nitro of their own (the player's is the disc)
 		b.step(dt)
 		_ramps_tick(k, dt)
 		_check_rings(k)
 		_progress(k)
+		if k == 0:
+			_hug_tick(dt)
+			_crates_tick()
 		if k == 0 and (b.bumped > 2.5 or b.landed > Boat.HARD_LANDING):
 			Access.buzz(40, clampf(maxf(b.bumped, b.landed) / 10.0, 0.3, 0.9))
+			shake = maxf(shake, clampf(maxf(b.bumped, b.landed) / 12.0, 0.25, 1.0))
+			if b.bumped > 2.5:
+				_play("thump_soft", 0.8)
+		if k == 0 and b.landed > 1.5 and not bool(r["jumping"]) and float(r["jump_t"]) <= 0.0:
+			# A hop off a wake: a slap of spray.
+			_play("boat_spray")
+			_spray.burst(Vector3(b.pos.x, water_y + 0.2, b.pos.y), SPRAY_BURST / 2, 0.7)
 	_update_rings()
+	_spray_tick(dt)
+	_streaks_tick(dt)
+	_draw_crates()
 	_draw_foam()
 	_status()
 	_chatter(dt)
@@ -863,11 +1071,22 @@ func _check_rings(k: int) -> void:
 			elif bool(g["gold"]):
 				r["gold_t"] = GOLD_TIME
 				if k == 0:
+					_fill(FILL_GOLD)
 					hud.toast("ZŁOTE KÓŁKO! Dopalacz", "GOLD RING! Boost")
 					Access.buzz(30, 0.5)
 					hud.cue("checkpoint")
 			else:
 				r["rhythm"] = int(r["rhythm"]) + 1
+				if k == 0:
+					_fill(FILL_RING)
+				if _last_across * float(g["in"]) >= float(g["w"]) * 0.5 - 0.4 - INSIDE_R:
+					# The buoy line: a bonus step and a short boost, a hair from a miss.
+					r["rhythm"] = int(r["rhythm"]) + 1
+					r["inside_t"] = INSIDE_TIME
+					if k == 0:
+						_fill(FILL_BUOY)
+						hud.toast("PO BOI! Dopalacz", "BUOY LINE! Boost")
+						shake = maxf(shake, 0.5)
 				if k == 0:
 					hud.cue("checkpoint")
 				_maybe_stunt(k)
@@ -880,11 +1099,25 @@ func _check_rings(k: int) -> void:
 			var w: Array = FirstSteps.words("finish_arch")
 			hud.toast(str(w[0]), str(w[1]))
 			return
+		elif not bool(g["gold"]) and _last_across * float(g["in"]) > 0.0 \
+				and _last_across * float(g["in"]) <= float(g["w"]) * 0.5 - 0.4 + CLIP_W:
+			# Clipped the inside buoy: not a miss, a scrape.
+			r["rhythm"] = maxi(0, int(r["rhythm"]) - 1)
+			b.vel *= 0.85
+			if k == 0:
+				_toast_words("hud_clip")
+				shake = maxf(shake, 0.6)
+				Access.buzz(40, 0.6)
 		elif not bool(g["gold"]):
 			_miss(k, i)
 		i += 1
 		r["next"] = i
 		return
+
+
+var _last_across := 0.0  ## the last `_crossing`'s offset from the ring's middle (+ towards local +x)
+## Camera shake 0..1 (bumps, landings, the buoy line); main.gd reads it and eases it down.
+var shake := 0.0
 
 
 ## +1 through the opening, -1 over the ring's line but outside the opening, 0 not crossed.
@@ -897,7 +1130,8 @@ func _crossing(g: Dictionary, p0: Vector2, p1: Vector2) -> int:
 	if not (s0 < 0.0 and s1 >= 0.0):
 		return 0
 	var x := p0 + (p1 - p0) * (s0 / (s0 - s1))
-	var across := absf((x - c).dot(Vector2(f.y, -f.x)))
+	_last_across = (x - c).dot(Vector2(f.y, -f.x))
+	var across := absf(_last_across)
 	if across > 260.0:
 		return 0
 	return 1 if across <= float(g["w"]) * 0.5 - 0.4 else -1
@@ -906,10 +1140,11 @@ func _crossing(g: Dictionary, p0: Vector2, p1: Vector2) -> int:
 func _miss(k: int, i: int) -> void:
 	var r: Dictionary = racers[k]
 	r["misses"] = int(r["misses"]) + 1
-	r["rhythm"] = 0
+	r["rhythm"] = maxi(0, int(r["rhythm"]) - MISS_COST)
 	_log("%s misses ring %d (%d/%d)" % [r["name"], i, int(r["misses"]), MISSES])
 	if k == 0:
 		Access.buzz(90, 0.9)
+		_fill(-COST_MISS)
 		if int(r["misses"]) >= MISSES:
 			_out()
 		else:
@@ -929,6 +1164,10 @@ func _out() -> void:
 	racers[0]["out"] = true
 	stage = Stage.OUT
 	_stage_t = 0.0
+	_nitro_set(false)
+	hugging = false
+	if _streaks != null:
+		_streaks.off()
 	hide_status()
 	hud.show_banner("ODPADASZ!", FAIL)
 	hud.cue("fail")
@@ -943,20 +1182,54 @@ func _finish() -> void:
 	_stage_t = 0.0
 	var place := _finish_order.find(0) + 1
 	var pay: Array = PAY[clampi(place - 1, 0, PAY.size() - 1)]
-	if wallet != null and int(pay[0]) > 0:
-		wallet.pay(int(pay[0]), int(pay[1]), "boat_race")
+	# The crates are paid with the place, once (CRATE_PAY zł a tin).
+	var cash := int(pay[0]) + CRATE_PAY * sprats
+	if wallet != null and cash > 0:
+		wallet.pay(cash, int(pay[1]), "boat_race")
+	_nitro_set(false)
+	hugging = false
+	if _streaks != null:
+		_streaks.off()
+	if place == 1:
+		_play("crowd_cheer")
 	hide_status()
 	hud.hide_banner()
 	var t := _clock_text(float(racers[0]["time"]))
-	var words := ["Pierwszy! Szymek stawia lody na bulwarach.", "Drugi. Szymek: „Rewanż, ale już!”", "Trzeci. Pan Zdzisiek kiwa głową z uznaniem.", "Ostatni. Kamil już nagrywa relację."]
-	var words_en := ["First! Szymek buys the ice cream on the boulevards.", "Second. Szymek: \"Rematch, right now!\"", "Third. Pan Zdzisiek nods his approval.", "Last. Kamil is already filming his story."]
+	var words := ["Pierwszy! Szymek stawia lody na bulwarach.", "Drugi. Szymek: „Rewanż, ale już!”", "Trzeci. Pan Zdzisiek kiwa głową z uznaniem.", "Ostatni. Stawiasz lody, a Kamil już nagrywa relację."]
+	var words_en := ["First! Szymek buys the ice cream on the boulevards.", "Second. Szymek: \"Rematch, right now!\"", "Third. Pan Zdzisiek nods his approval.", "Last. You're buying the ice cream, and Kamil is already filming his story."]
 	var w := clampi(place - 1, 0, 3)
 	hud.cue("win" if place == 1 else "step")  # first wins; any other place is a finish, not a loss
+	# A time to beat (critique 2026-11-25): the record is kept, the card says when it falls.
+	var old_best: float = wallet.best_time("boat_szprotka") if wallet != null else -1.0
+	var fresh: bool = wallet != null and wallet.record("boat_szprotka", float(racers[0]["time"]))
+	var rec_pl := ""
+	var rec_en := ""
+	if fresh and old_best > 0.0:
+		rec_pl = "  REKORD! −%.1f s" % (old_best - float(racers[0]["time"]))
+		rec_en = "  RECORD! −%.1f s" % (old_best - float(racers[0]["time"]))
+	elif fresh:
+		rec_pl = "  Pierwszy czas: %s" % t
+		rec_en = "  First time on the board: %s" % t
+	elif old_best > 0.0:
+		rec_pl = "  Rekord: %s" % _clock_text(old_best)
+		rec_en = "  Record: %s" % _clock_text(old_best)
+	var duck_pl := ""
+	var duck_en := ""
+	if ducks_scared == 0:
+		duck_pl = "  Kaczki zdrowe i zadowolone."
+		duck_en = "  The ducks are fine and delighted."
+	else:
+		var dw: Array = words("card_ducks_scared")
+		duck_pl = "  " + str(dw[0]) % ducks_scared
+		duck_en = "  " + str(dw[1]) % ducks_scared
+	var tins_pl := "  Szprotki %d/%d" % [sprats, crates.size()]
+	var tins_en := "  Sprats %d/%d" % [sprats, crates.size()]
 	show_card(["META! %d. miejsce · %s" % [place, t], "FINISH! Place %d · %s" % [place, t]],
-			["%s%s" % [words[w], "  +%d zł  +%d szacunu" % pay if int(pay[0]) > 0 else ""],
-			"%s%s" % [words_en[w], "  +%d zł  +%d respect" % pay if int(pay[0]) > 0 else ""]],
+			["%s%s%s%s%s" % [words[w], "  +%d zł  +%d szacunu" % [cash, int(pay[1])] if cash > 0 else "", tins_pl, rec_pl, duck_pl],
+			"%s%s%s%s%s" % [words_en[w], "  +%d zł  +%d respect" % [cash, int(pay[1])] if cash > 0 else "", tins_en, rec_en, duck_en]],
 			PackedStringArray(["REWANŻ|REMATCH", "WYJDŹ|QUIT"]))
-	_result = {"place": place, "time": float(racers[0]["time"]), "misses": int(racers[0]["misses"])}
+	_result = {"place": place, "time": float(racers[0]["time"]), "misses": int(racers[0]["misses"]), "sprats": sprats,
+			"cash": cash, "nitro_burns": nitro_burns}
 	_log("player finishes %d. in %.1f s, %d misses" % [place, float(racers[0]["time"]), int(racers[0]["misses"])])
 
 
@@ -1109,6 +1382,10 @@ func _ramps_tick(k: int, dt: float) -> void:
 		if k == 0:
 			hud.ambient_toast("SKOK! Dopalacz", "JUMP! Boost")
 			Access.buzz(30, 0.4)
+			_fill(FILL_JUMP)
+			if sfx != null:
+				sfx.splash(b.forward_speed())
+			_spray.burst(Vector3(b.pos.x, water_y + 0.2, b.pos.y), SPRAY_BURST)
 	if b.air or float(r["ramp_cd"]) > 0.0 or b.forward_speed() < RAMP_MIN:
 		return
 	for rp: Dictionary in ramps:
@@ -1158,6 +1435,9 @@ func _ring_aim(k: int, i: int, cfg: Dictionary) -> Vector2:
 	var r: Dictionary = racers[k]
 	var half := float(g["w"]) * 0.5 - 2.4
 	var off := float(r["aim"]) * float(cfg["line"]) * half
+	if k == 1:
+		# Szymek takes the inside (the buoy's side): a bolder line through every ring.
+		off = clampf(off + float(g["in"]) * half * SZYMEK_INSIDE, -half, half)
 	# A gold ring is a detour: the careful skip it when it is off their line.
 	var key := "m%d" % i
 	if not r.has(key):
@@ -1167,18 +1447,17 @@ func _ring_aim(k: int, i: int, cfg: Dictionary) -> Vector2:
 	return c + across * off
 
 
-## Off screen only: a rival far ahead eases, one far behind pushes (never on the player's screen).
+## The pack stays with the player: a rival far ahead eases off, one far behind pushes. Stronger out
+## of sight, gentler (and only up to a point) in view.
 func _rubber(k: int) -> float:
-	var me: float = racers[k]["li"]
-	var you: float = racers[0]["li"]
-	var b: Boat = boats[k]
-	if seen.call(b.position):
-		return 1.0
-	var gap := (me - you) * 10.0
-	if gap > RUBBER_GAP:
-		return 1.0 - RUBBER
+	var gap := (float(racers[k]["li"]) - float(racers[0]["li"])) * 10.0
+	var seen_now: bool = seen.call(boats[k].position)
+	if gap > RUBBER_NEAR:
+		var x := clampf((gap - RUBBER_NEAR) / (RUBBER_FAR - RUBBER_NEAR), 0.0, 1.0)
+		return 1.0 - (RUBBER_AHEAD_SEEN if seen_now else RUBBER_AHEAD) * x
 	if gap < -RUBBER_GAP:
-		return 1.0 + RUBBER
+		var x := clampf((-gap - RUBBER_GAP) / (RUBBER_FAR - RUBBER_GAP), 0.0, 1.0)
+		return 1.0 + RUBBER_BEHIND * (0.5 if seen_now else 1.0) * x
 	return 1.0
 
 
@@ -1235,7 +1514,7 @@ func _status() -> void:
 				done += 1
 	var rh := mini(int(r["rhythm"]), RHYTHM_MAX)
 	status(NAME, _clock_text(clock_t), "%d/%d" % [done, total],
-			["Pudła %s · Rytm ×%d" % [marks, rh], "Misses %s · Rhythm ×%d" % [marks, rh]],
+			["Pudła %s · Rytm ×%d · Szprotki %d" % [marks, rh, sprats], "Misses %s · Rhythm ×%d · Sprats %d" % [marks, rh, sprats]],
 			float(r["li"]) / float(line.size() - 1), Color(0, 0, 0, 0), ["1ST", "2ND", "3RD", "4TH"][place - 1])
 	var dots := PackedVector2Array()
 	var cols := PackedColorArray()
@@ -1299,6 +1578,607 @@ func _chatter(_dt: float) -> void:
 			return
 
 
+# --- the arcade pass: the nitro, the start, the banks, the crates, the spray --------------------------
+
+## A fresh grid: a part-filled tank, no burn, the crates back, nobody hugging.
+func _arcade_reset() -> void:
+	_nitro_set(false)
+	nitro = NITRO_START
+	nitro_burns = 0
+	_nitro_latch = false
+	_false_t = 0.0
+	_start_judged = false
+	_gas_was = false
+	_gas_early = false
+	hug_t = 0.0
+	hugging = false
+	hugs = 0
+	sprats = 0
+	shoals = 0
+	_crate_times.clear()
+	for i in _crate_taken.size():
+		_crate_taken[i] = false
+	for k in _spray_acc.size():
+		_spray_acc[k] = 0.0
+	if _spray != null:
+		_spray.clear()
+	_draw_crates()
+
+
+## The race's own HUD words (dialogue.json group "boat_race", tagged "only": hud_*, card_*), [Polish,
+## English]; the tag itself when it is missing.
+static var _words := {}
+
+
+static func words(key: String) -> Array:
+	if _words.is_empty():
+		var d: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
+		for l: Variant in (d.get("boat_race", []) if d is Dictionary else []):
+			if l is Array and l.size() >= 3 and l[2] is Dictionary and l[2].has("only"):
+				_words[str(l[2]["only"])] = [str(l[0]), str(l[1])]
+	return _words.get(key, [key, key])
+
+
+func _toast_words(key: String) -> void:
+	var w: Array = words(key)
+	hud.toast(str(w[0]), str(w[1]))
+
+
+## main.gd's boat input, after the controls drove the player's boat: the nitro on the car's disc,
+## Shift and LB / RB; the gas held (the start's timing); with `auto_gas` (main.gd BOAT_AUTO_GAS in
+## the Classic scheme) the race's gas stays on unless the brake is held; and the HUD's disc shows
+## the race's tank on the grid and in the race (the car's own otherwise).
+func pad_frame(gas: bool, auto_gas: bool) -> void:
+	nitro_hold = hud.nitro_held or Input.is_physical_key_pressed(KEY_SHIFT) or Gamepad.nitro()
+	gas_hold = gas
+	if auto_gas and stage == Stage.RACE and not autopilot and player != null and not player.braking:
+		player.throttle = 1.0
+	var racing := stage in [Stage.COUNTDOWN, Stage.RACE]
+	if racing:
+		hud.set_nitro(true, nitro, 1, nitro_on)
+	elif car != null:
+		hud.set_nitro(car.nitro_owned, car.nitro_charge, car.nitro_bottles, car.nitro_on)
+
+
+## The camera's share of its size now (1.0 off the water): NITRO_VIEW while the nitro burns, eased.
+func view_k(dt: float) -> float:
+	var want := NITRO_VIEW if nitro_on and boating() else 1.0
+	_view_k = lerpf(_view_k, want, 1.0 - exp(-(NITRO_VIEW_IN if want > _view_k else NITRO_VIEW_OUT) * dt))
+	return _view_k
+
+
+## The streaks and the rank tag over the boat just ahead (view only), every frame of the grid and
+## the race; made on the first one under the HUD's panels. Only in the game (a CanvasLayer HUD with
+## a camera to project through).
+func _streaks_tick(dt: float) -> void:
+	if _streaks == null:
+		var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+		if cam == null or not (hud is CanvasLayer) or not ("pt" in hud):
+			return
+		_streaks = BoatStreaks.new()
+		_streaks.name = "BoatStreaks"
+		_streaks.pt = float(hud.get("pt"))
+		hud.add_child(_streaks)
+		hud.move_child(_streaks, 0)
+	var me: Boat = boats[0]
+	_streaks.set_speed(me.forward_speed() / maxf(float(me.spec["top"]), 1.0), nitro_on, dt)
+	var k := rival_ahead()
+	var view := get_viewport().get_camera_3d()
+	if k > 0 and stage == Stage.RACE and view != null:
+		var at := boats[k].global_position + Vector3.UP * 3.0
+		if not view.is_position_behind(at):
+			_streaks.set_tag(["1ST", "2ND", "3RD", "4TH"][clampi(place_now() - 2, 0, 3)], view.unproject_position(at))
+			return
+	_streaks.set_tag("", Vector2.ZERO)
+
+
+## The tank: + fills, - costs; always 0..1.
+func _fill(amount: float) -> void:
+	nitro = clampf(nitro + amount, 0.0, 1.0)
+
+
+func _play(n: String, pitch := 1.0, gain_db := 0.0) -> void:
+	if sfx != null:
+		sfx.play(n, gain_db, pitch)
+
+
+## The first START_WINDOW s of the race: gas pressed now (not held through START!) is a rocket
+## start. The autopilot always gets it (a test run shows the start).
+func _start_tick() -> void:
+	if _start_judged:
+		return
+	if clock_t > START_WINDOW:
+		_start_judged = true
+		return
+	var gas := gas_hold or autopilot
+	if gas and (not _gas_was or autopilot):
+		_start_judged = true
+		racers[0]["inside_t"] = START_INSIDE
+		_fill(FILL_ROCKET)
+		shake = maxf(shake, 0.5)
+		_toast_words("hud_rocket")
+		_play("loud_rev", 1.1, -4.0)
+		Access.buzz(50, 0.7)
+		_log("rocket start")
+	_gas_was = gas
+
+
+## Lights or puts out the nitro: the hull's pull and rudder, the flame, the roar, the motor's pitch.
+func _nitro_set(on: bool) -> void:
+	if on != nitro_on:
+		nitro_on = on
+		if on:
+			nitro_burns += 1
+			shake = maxf(shake, 0.45)
+			_play("nitro_whoosh")
+			Access.buzz(40, 0.5)
+			_log("nitro lit at %.2f" % nitro)
+	if not boats.is_empty():
+		boats[0].surge = (NITRO_PULL if nitro_on else 1.0) * (FALSE_SURGE if _false_t > 0.0 else 1.0)
+		boats[0].turn_mult = NITRO_TURN if nitro_on else 1.0
+	if _flame != null:
+		_flame.visible = nitro_on
+	if sfx != null:
+		sfx.set("boat_nitro", nitro_on)
+		sfx.set("motor_pitch", 1.15 if nitro_on else 1.0)
+
+
+## Every race frame before the boats move: the player's disc (or the autopilot) burns the tank.
+func _nitro_tick(dt: float) -> void:
+	var r: Dictionary = racers[0]
+	_false_t = maxf(0.0, _false_t - dt)
+	var want := nitro_hold
+	if autopilot:
+		want = _auto_nitro()
+	if bool(r["out"]) or bool(r["finished"]):
+		want = false
+	if not want:
+		_nitro_latch = false
+	if nitro_on:
+		nitro = maxf(0.0, nitro - NITRO_BURN * dt)
+		shake = maxf(shake, 0.18)
+		if nitro <= 0.0:
+			_nitro_latch = true
+			hud.cue("tick")
+			_nitro_set(false)
+		elif not want:
+			_nitro_set(false)
+	elif want and not _nitro_latch and nitro >= NITRO_MIN:
+		_nitro_set(true)
+	else:
+		_nitro_set(nitro_on)  # the false start's surge runs out
+	if _flame != null and nitro_on:
+		_flame.scale = Vector3(1.0, 1.0, 0.75 + 0.35 * absf(sin(wave_t * 31.0)))
+
+
+## The autopilot burns a full tank on a straight: the next ring far and dead ahead, then to empty.
+func _auto_nitro() -> bool:
+	if nitro_on:
+		return true
+	if nitro < 0.99:
+		return false
+	var b: Boat = boats[0]
+	var i := mini(int(racers[0]["next"]), rings.size() - 1)
+	var c := Vector2(float(rings[i]["x"]), float(rings[i]["z"]))
+	var to := c - b.pos
+	return to.length() > 90.0 and absf(b.forward().angle_to(to)) < 0.2
+
+
+## Near the banks: one shore sample a frame; the side of the bank, two more, four times a second.
+func _hug_tick(dt: float) -> void:
+	var b: Boat = boats[0]
+	var r: Dictionary = racers[0]
+	if map == null or not map.has_method("shore_distance") or bool(r["out"]) or bool(r["finished"]):
+		hugging = false
+		hug_t = 0.0
+		return
+	var d: float = map.shore_distance(b.pos.x, b.pos.y)
+	var fast := not b.air and b.forward_speed() > HUG_SPEED * float(b.spec["top"])
+	if b.bumped > 0.0:
+		hug_t = 0.0
+	elif d > HUG_IN and d < HUG_D and fast:
+		hug_t = minf(hug_t + dt, HUG_BUILD + 1.0)
+	else:
+		hug_t = maxf(0.0, hug_t - dt * 3.0)
+	var was := hugging
+	hugging = hug_t >= HUG_BUILD
+	if not hugging:
+		return
+	_fill(FILL_HUG * dt)
+	_hug_side_t -= dt
+	if not was or _hug_side_t <= 0.0:
+		_hug_side_t = 0.25
+		var f: Vector2 = b.forward()
+		var right := Vector2(f.y, -f.x) * 3.0
+		_hug_side = 1.0 if float(map.shore_distance(b.pos.x + right.x, b.pos.y + right.y)) < float(map.shore_distance(b.pos.x - right.x, b.pos.y - right.y)) else -1.0
+	if not was:
+		hugs += 1
+		if clock_t - _bank_said > 6.0:
+			_bank_said = clock_t
+			hud.ambient_toast("BRZEG ×%d" % hugs, "BANK ×%d" % hugs)
+
+
+## The crates, once at setup: three (CRATE_AT) a chord between two ordinary rings, pushed towards the
+## ring's inside until the bank is CRATE_BANK m away (or CRATE_CAP of the river's half width).
+func _build_crates() -> void:
+	var ord: Array[int] = []
+	for i in rings.size():
+		if not bool(rings[i]["gold"]) and not bool(rings[i]["finish"]):
+			ord.append(i)
+	var shore_ok: bool = map != null and map.has_method("shore_distance")
+	# More chords than CRATE_N allows: every other one, evenly down the whole course.
+	var pairs := ord.size() - 1
+	var use := mini(pairs, CRATE_N / CRATE_AT.size())
+	for u in use:
+		var j := int(float(u) * float(pairs) / float(use))
+		var ga: Dictionary = rings[ord[j]]
+		var gb: Dictionary = rings[ord[j + 1]]
+		var pa := Vector2(float(ga["x"]), float(ga["z"]))
+		var pb := Vector2(float(gb["x"]), float(gb["z"]))
+		var chord := pb - pa
+		if chord.length() < 20.0:
+			continue
+		var n := Vector2(-chord.y, chord.x).normalized()
+		var yaw := float(ga["yaw"])
+		if n.dot(Vector2(cos(yaw), -sin(yaw)) * float(ga["in"])) < 0.0:
+			n = -n
+		for t: float in CRATE_AT:
+			if crates.size() >= CRATE_N:
+				break
+			var p := pa.lerp(pb, t)
+			var cap := minf(CRATE_CAP * _half_w_at(p), CRATE_OFF_MAX)
+			var off := 0.0
+			if shore_ok:
+				while off + 1.0 < cap:
+					var q := p + n * (off + 1.0)
+					if float(map.shore_distance(q.x, q.y)) <= CRATE_BANK:
+						break
+					off += 1.0
+			crates.append(p + n * off)
+			_crate_taken.append(false)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_custom_data = true
+	InstanceBuffers.prepare(mm)
+	mm.mesh = crate_mesh()
+	mm.instance_count = crates.size()
+	_crate_mm = MultiMeshInstance3D.new()
+	_crate_mm.name = "Crates"
+	_crate_mm.multimesh = mm
+	_crate_mm.material_override = Models.material()
+	_crate_mm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_crate_mm.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	_crate_mm.visible = false
+	add_child(_crate_mm)
+	_crate_buf.resize(crates.size() * 16)
+	for i in crates.size():
+		_crate_buf[i * 16 + 12] = 1.0
+		_crate_buf[i * 16 + 13] = 1.0
+		_crate_buf[i * 16 + 14] = 1.0
+	if crates.size() > 0:
+		var lo := Vector2(INF, INF)
+		var hi := -lo
+		for c in crates:
+			lo = Vector2(minf(lo.x, c.x), minf(lo.y, c.y))
+			hi = Vector2(maxf(hi.x, c.x), maxf(hi.y, c.y))
+		mm.custom_aabb = AABB(Vector3(lo.x - 3.0, water_y - 2.0, lo.y - 3.0), Vector3(hi.x - lo.x + 6.0, 6.0, hi.y - lo.y + 6.0))
+	_draw_crates()
+
+
+## The river's half width at the line point nearest p.
+func _half_w_at(p: Vector2) -> float:
+	var best := 0
+	var bd := INF
+	for i in line.size():
+		var d := p.distance_squared_to(line[i])
+		if d < bd:
+			bd = d
+			best = i
+	return half_w[best] if best < half_w.size() else 40.0
+
+
+## "Szprotki w oleju": a parody sprat tin (no real brand) on a float, a gold lid with its ring pull,
+## a blue body with a cream label and a little red fish; +Z forward, the waterline at y = 0.
+static func crate_mesh() -> ArrayMesh:
+	var st := Models._begin()
+	var blue := Color("#2f5fa0")
+	var cream := Color("#f2e6c4")
+	Models.box(st, Vector3(0, 0.05, 0), Vector3(1.9, 0.3, 1.4), Color("#26282b"))
+	Models.box(st, Vector3(0, 0.45, 0), Vector3(1.7, 0.55, 1.2), blue)
+	Models.box(st, Vector3(0, 0.45, 0), Vector3(1.74, 0.26, 1.24), cream)
+	Models.box(st, Vector3(0, 0.78, 0), Vector3(1.78, 0.12, 1.28), GOLD)
+	Models.box(st, Vector3(0.55, 0.88, 0), Vector3(0.36, 0.06, 0.3), GOLD.darkened(0.25))
+	# the fish on the label, both sides
+	for s2: float in [-1.0, 1.0]:
+		Models.box(st, Vector3(0, 0.45, s2 * 0.63), Vector3(0.7, 0.16, 0.04), Color("#c8302c"))
+		Models.box(st, Vector3(-0.45, 0.45, s2 * 0.63), Vector3(0.16, 0.24, 0.04), Color("#c8302c"))
+	return st.commit()
+
+
+## The crates bobbing and turning (one buffer upload); a taken one is a scale of 0.
+func _draw_crates() -> void:
+	if _crate_mm == null or crates.is_empty() or not _crate_mm.visible:
+		return
+	for i in crates.size():
+		var c: Vector2 = crates[i]
+		var b := i * 16
+		var sc := 0.0 if _crate_taken[i] else 1.0
+		var yaw := wave_t * 0.9 + float(i) * 1.3
+		var cy := cos(yaw) * sc
+		var sy := sin(yaw) * sc
+		_crate_buf[b] = cy
+		_crate_buf[b + 1] = 0.0
+		_crate_buf[b + 2] = sy
+		_crate_buf[b + 3] = c.x
+		_crate_buf[b + 4] = 0.0
+		_crate_buf[b + 5] = sc
+		_crate_buf[b + 6] = 0.0
+		_crate_buf[b + 7] = water_y + 0.08 * sin(wave_t * 2.6 + float(i))
+		_crate_buf[b + 8] = -sy
+		_crate_buf[b + 9] = 0.0
+		_crate_buf[b + 10] = cy
+		_crate_buf[b + 11] = c.y
+	if _crate_mm.is_inside_tree():
+		InstanceBuffers.send(_crate_mm.multimesh.get_rid(), _crate_buf)
+
+
+## The player over a crate takes it: nitro, a coin's ting climbing with the chain, a shoal of three.
+func _crates_tick() -> void:
+	var r: Dictionary = racers[0]
+	if bool(r["out"]) or bool(r["finished"]):
+		return
+	var b: Boat = boats[0]
+	var reach := CRATE_R * CRATE_R
+	for i in crates.size():
+		if _crate_taken[i] or b.pos.distance_squared_to(crates[i]) > reach:
+			continue
+		_crate_taken[i] = true
+		sprats += 1
+		_fill(FILL_CRATE)
+		while not _crate_times.is_empty() and clock_t - _crate_times[0] > SHOAL_T:
+			_crate_times.pop_front()
+		_crate_times.append(clock_t)
+		var chain := _crate_times.size()
+		_play("coin", 1.0 + 0.05 * float(chain))
+		_spray.burst(Vector3(crates[i].x, water_y + 0.4, crates[i].y), SPRAY_BURST, 0.8)
+		if chain >= SHOAL_N:
+			_crate_times.clear()
+			shoals += 1
+			_fill(FILL_SHOAL)
+			_toast_words("hud_shoal")
+			Access.buzz(30, 0.5)
+		_log("crate %d (%d this race)" % [i, sprats])
+
+
+## Spray off every fast hull near the player (more on nitro), then the pool's frame.
+func _spray_tick(dt: float) -> void:
+	if _spray == null or player == null:
+		return
+	var me: Boat = boats[0]
+	for k in boats.size():
+		var b: Boat = boats[k]
+		if not b.visible or b.air or b.pos.distance_to(me.pos) > SPRAY_NEAR:
+			_spray_acc[k] = 0.0
+			continue
+		var rate := SPRAY_RATE if b.forward_speed() > SPRAY_SPEED * float(b.spec["top"]) else 0.0
+		if k == 0 and nitro_on:
+			rate = SPRAY_NITRO
+		if rate <= 0.0:
+			_spray_acc[k] = 0.0
+			continue
+		_spray_acc[k] += rate * dt
+		var f: Vector2 = b.forward()
+		var right := Vector2(f.y, -f.x)
+		var half := float(b.spec["len"]) * 0.5
+		while _spray_acc[k] >= 1.0:
+			_spray_acc[k] -= 1.0
+			var side := 1.0 if _spray.rand(-1.0, 1.0) >= 0.0 else -1.0
+			var at2: Vector2 = b.pos + f * half * _spray.rand(0.0, 0.5) + right * side * b.radius() * 0.7
+			var out: Vector2 = right * side * _spray.rand(2.0, 4.5) + b.vel * 0.35
+			if k == 0 and nitro_on:
+				at2 = b.pos - f * half * _spray.rand(0.9, 1.1) + right * _spray.rand(-0.5, 0.5)
+				out = -f * _spray.rand(1.0, 3.0) + b.vel * 0.6 + right * _spray.rand(-1.5, 1.5)
+			_spray.emit(Vector3(at2.x, water_y + 0.3, at2.y), Vector3(out.x, _spray.rand(2.5, 5.5), out.y))
+	_spray.step(dt, Vector3(me.pos.x, water_y, me.pos.y))
+
+
+## The nitro's flame: one bright box at the player's stern, shown while it burns (one draw call).
+func _build_flame() -> void:
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.55, 0.4, 1.4)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color("#ffb13b")
+	bm.material = m
+	_flame = MeshInstance3D.new()
+	_flame.name = "NitroFlame"
+	_flame.mesh = bm
+	_flame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_flame.position = Vector3(0.0, 0.55, -float(boats[0].spec["len"]) * 0.5 - 0.6)
+	_flame.visible = false
+	boats[0].add_child(_flame)
+
+
+## The rival just ahead of the player in the standings (main.gd's rank tag), -1 when leading.
+func rival_ahead() -> int:
+	if racers.is_empty() or bool(racers[0]["finished"]) or bool(racers[0]["out"]):
+		return -1
+	var mine := float(racers[0]["li"])
+	var best := -1
+	var bl := INF
+	for k in range(1, racers.size()):
+		var o: Dictionary = racers[k]
+		if bool(o["out"]) or bool(o["finished"]):
+			continue
+		var li := float(o["li"])
+		if li > mine and li < bl:
+			bl = li
+			best = k
+	return best
+
+
+# --- the ducks and the camera's look ------------------------------------------------------------------
+
+## Three families, placed between ordinary rings by their share of the course.
+func _build_ducks() -> void:
+	var ord: Array = []
+	for i in rings.size():
+		if not bool(rings[i]["gold"]) and not bool(rings[i]["finish"]):
+			ord.append(i)
+	for share: float in DUCK_SPOTS:
+		var a := int(ord[clampi(int(float(ord.size() - 2) * share), 0, ord.size() - 2)])
+		var b := int(ord[clampi(int(float(ord.size() - 2) * share) + 1, 0, ord.size() - 1)])
+		var pa := Vector2(float(rings[a]["x"]), float(rings[a]["z"]))
+		var pb := Vector2(float(rings[b]["x"]), float(rings[b]["z"]))
+		var mid := pa.lerp(pb, 0.5)
+		var along := (pb - pa).normalized()
+		var node := MeshInstance3D.new()
+		node.mesh = _duck_mesh()
+		node.material_override = Models.material()
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		node.visible = false
+		add_child(node)
+		_ducks.append({"node": node, "at": mid, "across": Vector2(-along.y, along.x), "along": along,
+				"phase": float(_ducks.size()) * 2.1, "state": 0, "t": 0.0, "pos": mid})
+
+
+## A mother (yellow bill, brown) and four ducklings in a line behind her, +Z forward.
+static func _duck_mesh() -> ArrayMesh:
+	var st := Models._begin()
+	var brown := Color("#6b4a2b")
+	var cream := Color("#efe3b8")
+	var fluff := Color("#f2cf3f")
+	var bill := Color("#ee8b1d")
+	Models.box(st, Vector3(0, 0.22, 0), Vector3(0.7, 0.4, 1.0), brown)
+	Models.box(st, Vector3(0, 0.45, 0.45), Vector3(0.36, 0.4, 0.36), Color("#2f6b3a"))
+	Models.box(st, Vector3(0, 0.42, 0.72), Vector3(0.18, 0.1, 0.22), bill)
+	Models.box(st, Vector3(0, 0.1, -0.1), Vector3(0.74, 0.1, 0.9), cream)
+	for j in 4:
+		var z := -1.6 - 0.9 * float(j)
+		var x := 0.15 * float(j % 2) - 0.07
+		Models.box(st, Vector3(x, 0.12, z), Vector3(0.3, 0.2, 0.4), fluff)
+		Models.box(st, Vector3(x, 0.26, z + 0.2), Vector3(0.18, 0.18, 0.18), fluff)
+		Models.box(st, Vector3(x, 0.24, z + 0.32), Vector3(0.08, 0.05, 0.1), bill)
+	return st.commit()
+
+
+func _reset_ducks() -> void:
+	ducks_scared = 0
+	_ducks_ok_said = false
+	for d: Dictionary in _ducks:
+		d["state"] = 0
+		d["t"] = 0.0
+		d["near"] = false
+		d["clean"] = false
+		(d["node"] as MeshInstance3D).visible = true
+	_ducks_tick(0.0)
+
+
+## Pacing across the line, the scare (any boat near the mother), the flight.
+func _ducks_tick(dt: float) -> void:
+	for d: Dictionary in _ducks:
+		var node: MeshInstance3D = d["node"]
+		d["t"] = float(d["t"]) + dt
+		var st := int(d["state"])
+		if st == 2:
+			node.visible = false
+			continue
+		if st == 0:
+			var swing := sin(wave_t * DUCK_RATE + float(d["phase"]))
+			var c: Vector2 = d["at"]
+			var across: Vector2 = d["across"]
+			var p: Vector2 = c + across * swing * DUCK_SWING
+			d["pos"] = p
+			var heading: Vector2 = across * (1.0 if cos(wave_t * DUCK_RATE + float(d["phase"])) >= 0.0 else -1.0)
+			node.position = Vector3(p.x, water_y + 0.05 + 0.05 * sin(wave_t * 3.0 + float(d["phase"])), p.y)
+			node.rotation = Vector3(0.0, atan2(heading.x, heading.y), 0.0)
+			if stage != Stage.RACE:
+				continue
+			for k in boats.size():
+				var r: Dictionary = racers[k]
+				if bool(r["out"]) or bool(r["finished"]):
+					continue
+				var b: Boat = boats[k]
+				var dist := b.pos.distance_to(p)
+				if dist < DUCK_HIT:
+					_scare(d, k)
+					break
+				if k == 0 and dist < DUCK_NEAR and float(d["t"]) > 2.0:
+					d["near"] = true
+					if not _ducks_ok_said:
+						_ducks_ok_said = true
+						hud.ambient_toast("Kaczki bezpieczne!", "Ducks safe!")
+				elif k == 0 and bool(d.get("near", false)) and not bool(d.get("clean", false)) and dist > DUCK_NEAR * 1.6:
+					# Past the family close and nobody scared: a clean pass fills the tank.
+					d["clean"] = true
+					_fill(FILL_DUCKS)
+		else:
+			# Flying off: up and away, flapping.
+			var tt := float(d["t"])
+			var c2: Vector3 = node.position
+			c2.y += (5.0 - tt * 2.0) * dt
+			c2.x += float(d.get("vx", 0.0)) * dt
+			c2.z += float(d.get("vz", 0.0)) * dt
+			node.position = c2
+			node.rotation.z = sin(tt * 28.0) * 0.5
+			node.rotation.x = -0.35
+			if tt > DUCK_FLY:
+				d["state"] = 2
+				node.visible = false
+
+
+func _scare(d: Dictionary, k: int) -> void:
+	d["state"] = 1
+	d["t"] = 0.0
+	var b: Boat = boats[k]
+	var away: Vector2 = ((d["pos"] as Vector2) - b.pos).normalized()
+	d["vx"] = away.x * 9.0
+	d["vz"] = away.y * 9.0
+	b.vel *= DUCK_BRAKE
+	ducks_scared += 1
+	_log("%s scatters the ducks" % racers[k]["name"])
+	if k == 0:
+		racers[0]["rhythm"] = maxi(int(racers[0]["rhythm"]) - 1, 0)
+		_fill(-COST_DUCK)
+		_play("quack")
+		_play("pigeons", 1.3)
+		Access.buzz(40, 0.6)
+		_toast_words("hud_duck_scare")
+		_say(-1, "duck")
+	else:
+		_say(k, "duck")
+		if sfx != null:
+			var dp: Vector2 = d["pos"]
+			sfx.play_at("quack", Vector3(dp.x, water_y, dp.y))
+
+
+## The camera's look in the race (view only; main.gd `_update_camera` reads it): the camera drops
+## a few degrees as the boat comes up to speed (the horizon climbs: speed you can see), leans with
+## the turn (a dutch roll) and kicks on a boost. Returns (extra pitch down in degrees, roll in degrees).
+func look(dt: float) -> Vector2:
+	var want := Vector2.ZERO
+	if boating() and player != null and stage in [Stage.RACE, Stage.COUNTDOWN, Stage.OUT, Stage.DONE]:
+		var top: float = maxf(float(player.spec["top"]), 1.0)
+		var sp := clampf(player.forward_speed() / top, 0.0, 1.2)
+		want.x = LOOK_PITCH * sp + (LOOK_KICK_NITRO if nitro_on else (LOOK_KICK if boost_now() else 0.0))
+		want.y = clampf(-player.yaw_rate * LOOK_ROLL_PER_RAD, -LOOK_ROLL, LOOK_ROLL) * clampf(sp * 1.5, 0.0, 1.0)
+	_look = _look.lerp(want, 1.0 - exp(-3.2 * dt))
+	return _look
+
+
+const LOOK_PITCH := 7.0       # deg lower at full speed (30 -> 23: more water ahead, the horizon up)
+const LOOK_KICK := 2.5        # deg more while a boost runs
+const LOOK_KICK_NITRO := 4.0  # deg more while the nitro burns
+const LOOK_ROLL := 5.5        # deg of dutch roll at most
+const LOOK_ROLL_PER_RAD := 6.0
+
+
+func boost_now() -> bool:
+	if racers.is_empty():
+		return false
+	return float(racers[0]["gold_t"]) > 0.0 or float(racers[0]["jump_t"]) > 0.0 or float(racers[0]["inside_t"]) > 0.0 or nitro_on
+
+
 # --- the river: waves, wakes, the barge, the solid world -----------------------------------------------
 
 ## The water's height over its rest level at (x, z): the chop and the wake rings.
@@ -1334,6 +2214,8 @@ func _tick_wakes(dt: float) -> void:
 		if b.visible and v > 4.0 and not b.air and float(_wake_t[k]) >= WAKE_EVERY:
 			_wake_t[k] = 0.0
 			var amp: float = float(b.spec["wake"]) * clampf(v / float(b.spec["top"]), 0.0, 1.2)
+			if b.kind == Boat.Kind.TUB:
+				amp = maxf(amp, 0.5)  # Pan Zdzisiek's tub: a wake worth hopping
 			_drop(k, b.pos - b.forward() * float(b.spec["len"]) * 0.45, amp, b.forward())
 	if _barge.visible:
 		var s := boats.size()
@@ -1463,7 +2345,7 @@ func _build_materials() -> void:
 
 ## A ring: an upright half torus standing in the water (the boats go through under its arch),
 ## orange with white bands and a float at each foot. Width w, tube 0.45 m.
-static func ring_mesh(w: float, paint: Color, band: Color) -> ArrayMesh:
+static func ring_mesh(w: float, paint: Color, band: Color, inside := 0.0) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var big := w * 0.5
@@ -1486,6 +2368,9 @@ static func ring_mesh(w: float, paint: Color, band: Color) -> ArrayMesh:
 				st.add_vertex(v)
 	for s: float in [-1.0, 1.0]:
 		Models.box(st, Vector3(s * big, 0.2, 0.0), Vector3(1.6, 0.7, 1.6), paint)
+	if inside != 0.0:
+		# The inside buoy: a taller gold cap on the side of the next ring.
+		Models.box(st, Vector3(inside * big, 1.1, 0.0), Vector3(1.9, 1.6, 1.9), GOLD)
 	return st.commit()
 
 
@@ -1504,7 +2389,7 @@ func _build_rings() -> void:
 		elif bool(g["gold"]):
 			mi.mesh = ring_mesh(w, GOLD, Color("#fff6c8"))
 		else:
-			mi.mesh = ring_mesh(w, RING, Color("#fff4ea"))
+			mi.mesh = ring_mesh(w, RING, Color("#fff4ea"), float(g["in"]))
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mi.position = Vector3(float(g["x"]), water_y, float(g["z"]))
 		# The ring's plane is across the course: its forward (sin, cos)(yaw) is its normal.
@@ -1760,6 +2645,30 @@ func _draw_foam() -> void:
 					for v: Vector3 in [i0, o0, o1, i0, o1, i1]:
 						_foam_mesh.surface_set_color(c)
 						_foam_mesh.surface_add_vertex(v)
+	if hugging and stage == Stage.RACE:
+		# Near the bank: up to 8 short white dashes along the hull's bank side (the same draw call).
+		if not any:
+			_foam_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+			any = true
+		var hb: Boat = boats[0]
+		var hf: Vector2 = hb.forward()
+		var hr := Vector2(hf.y, -hf.x) * _hug_side
+		var hl := float(hb.spec["len"])
+		var edge: Vector2 = hb.pos + hr * (hb.radius() * 0.85 + 0.2)
+		for k in 8:
+			var along := hl * 0.45 - hl * 1.4 * float(k) / 8.0
+			var flick := 0.5 + 0.5 * sin(wave_t * 23.0 + float(k) * 1.7)
+			var a2: Vector2 = edge + hf * along + hr * (0.15 * float(k))
+			var b2: Vector2 = a2 - hf * (0.6 + 0.4 * flick)
+			var wv := hr * (0.22 + 0.05 * float(k))
+			var col := Color(0.97, 0.99, 1.0, 0.85 * (1.0 - float(k) / 9.0) * (0.6 + 0.4 * flick))
+			var q0 := Vector3(a2.x, y + 0.03, a2.y)
+			var q1 := Vector3(a2.x + wv.x, y + 0.03, a2.y + wv.y)
+			var q2 := Vector3(b2.x + wv.x, y + 0.03, b2.y + wv.y)
+			var q3 := Vector3(b2.x, y + 0.03, b2.y)
+			for v: Vector3 in [q0, q1, q2, q0, q2, q3]:
+				_foam_mesh.surface_set_color(col)
+				_foam_mesh.surface_add_vertex(v)
 	if any:
 		_foam_mesh.surface_end()
 
@@ -1769,10 +2678,19 @@ func _show_race(on: bool) -> void:
 		b.visible = on
 	for mi in _ramp_nodes:
 		mi.visible = on
+	_crate_mm.visible = on
 	if not on:
+		if _streaks != null:
+			_streaks.off()
+		_nitro_set(false)
+		hugging = false
+		hug_t = 0.0
+		_spray.clear()
 		for mi in _ring_nodes:
 			mi.visible = false
 		_barge.visible = false
+		for d: Dictionary in _ducks:
+			(d["node"] as MeshInstance3D).visible = false
 		_foam_mesh.clear_surfaces()
 		if hud != null:
 			hud.set_minimap_dots(PackedVector2Array(), PackedColorArray())

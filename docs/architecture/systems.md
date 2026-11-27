@@ -102,6 +102,7 @@ fails if a script is in neither page, so add a row when you add a file.
 | `lane_assist.gd`, `stop_assist.gd` | Lane assist; how forgiving every stop zone is. |
 | `heli.gd` | The helicopter. |
 | `boat.gd` | Boats for the boat race. |
+| `boat_spray.gd`, `boat_streaks.gd` | The boat race's arcade juice (2026-11-26), owned by `boat_race.gd`: one shared MultiMesh pool of spray drops for every boat (splash.gd's pattern), and the HUD's speed streaks (one `_draw`) with the rank tag over the boat ahead (one Label). View only. |
 | `gamepad.gd` | Controllers. |
 | `follow_camera.gd` | The follow camera's rules (shared with tests), and the test-only free camera's flag text and view (`--cam=X,Y,Z`, main.gd `_update_free_camera`; check `check_free_cam`, verify step `freecam`). |
 | `camera_shots.gd` | Cinematic moments on Phantom Camera. |

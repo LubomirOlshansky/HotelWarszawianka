@@ -81,6 +81,9 @@ const LOOPS := {
 	# THE TAPCZAN's room (tapczan.gd `pub_bed`, tools/make_sfx.py): the pub's talk and glasses, at the
 	# street crowds' level by the file's RMS; the city's beds fall to PUB_OUTSIDE under it.
 	"pub_room": ["Ambience", -4.0],
+	# The arcade pass (boat_race.gd, tools/make_sfx.py, 2026-11-26): the Szprotka's nitro roar under
+	# its motor while it burns (`boat_nitro`).
+	"boat_nitro_loop": ["SFX", -12.0],
 }
 ## Inside the pub the city's beds (day, night, rain, the district's) keep this share: through the windows.
 const PUB_OUTSIDE := 0.2
@@ -146,6 +149,8 @@ const SHOTS := {
 	# cheering a clean hand-over and a hot phrase, its short "eee" at a gallop, and the record's
 	# spin-back when the DJ takes the decks back (over the two decks' music, so a little louder).
 	"crowd_cheer": -8.0, "crowd_eee": -9.0, "vinyl_spinback": -8.0,
+	# The arcade pass (boat_race.gd, tools/make_sfx.py): a slap of spray off the hull, a duck's quack.
+	"boat_spray": -10.0, "quack": -12.0,
 }
 ## Loop 3g-2: the siren loop (one positional voice) and its level there.
 const SIREN := "police_siren"
@@ -188,6 +193,7 @@ const SHOT_RULES := {
 	"beer_pour": [NORMAL, 1, 0.03], "glass_clink": [NORMAL, 1, 0.05], "pong_bounce": [NORMAL, 2, 0.08],
 	"pong_cup": [HIGH, 1, 0.05], "pong_rim": [NORMAL, 1, 0.04],
 	"crowd_cheer": [NORMAL, 1, 0.04], "crowd_eee": [NORMAL, 1, 0.05], "vinyl_spinback": [HIGH, 1, 0.0],
+	"boat_spray": [LOW, 1, 0.08], "quack": [NORMAL, 1, 0.06],
 }
 ## A sound may have more than one take: `name.wav`, then `name_2.wav` up to `name_4.wav` beside
 ## it. A take is picked at random, never the same one twice running.
@@ -273,6 +279,10 @@ var _rails := {}
 ## silent) or "foot" (the club's, the lounge's room or the padel court: the parked car is quiet).
 ## The helicopter is `flying`.
 var mode := "car"
+## The boat race's nitro (boat_race.gd `_nitro_set`): its roar plays while true, and the boat's
+## motor (the engine loops in mode "boat") runs at `motor_pitch` of its pitch.
+var boat_nitro := false
+var motor_pitch := 1.0
 ## Loop MW-5: seconds left of the softer engine (the 02:00 beat on Plac Trzech Krzyży).
 var _soft_t := 0.0
 ## Loop MW-5: the engine's level while softened (×0.45, about -7 dB).
@@ -582,6 +592,7 @@ func _process(dt: float) -> void:
 	_drive("rain", raining * outside, 1.0, dt, 1.5)
 	_drive("lift_hum", 1.0 if _lift_on else 0.0, 1.0, dt, 3.0)
 	_drive("pub_room", 1.0 if _pub_on else 0.0, 1.0, dt, 2.0)
+	_drive("boat_nitro_loop", 1.0 if boat_nitro and mode == "boat" and not flying else 0.0, 1.0, dt, 8.0)
 	# The district's bed: fades under rain, at night and in the helicopter (the ground is far).
 	var bed_level := (1.0 - 0.6 * raining) * (0.5 + 0.5 * daylight) * (0.4 if flying else 1.0) * outside
 	var bed := bed_now()
@@ -637,8 +648,9 @@ func _engine(dt: float, wet: float) -> void:
 	var level := (0.5 + 0.5 * _load) * (0.45 if _dip > 0.0 else 1.0) * float(motor) * (ENGINE_SOFT if _soft_t > 0.0 else 1.0)
 	var names := ["engine_idle", "engine_mid", "engine_high"]
 	var weights := [w_idle, w_mid, w_high]
+	var lift := motor_pitch if mode == "boat" else 1.0
 	for k in 3:
-		_drive(names[k], level * sqrt(weights[k]), clampf(_rpm / ENGINE_RPM[k], 0.5, 2.2), dt, 14.0)
+		_drive(names[k], level * sqrt(weights[k]), clampf(_rpm / ENGINE_RPM[k], 0.5, 2.2) * lift, dt, 14.0)
 	var fast := clampf(v / 28.0, 0.0, 1.0)
 	_drive("tyre_roll", pow(fast, 0.8) * (1.0 - 0.6 * wet) * float(on), 0.75 + 0.5 * fast, dt, 6.0)
 	_drive("tyre_wet", pow(fast, 0.9) * wet * float(on), 0.85 + 0.35 * fast, dt, 6.0)
