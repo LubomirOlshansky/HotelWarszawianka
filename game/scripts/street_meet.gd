@@ -492,6 +492,9 @@ var _spin_t := 0.0
 var _rev_gas := false
 var _top_was := 1.0
 var _accel_was := 1.0
+## True from the line until `_restore_car`: the car wears the drag tune, so a second `_stage` (a
+## rematch that skipped the restore) must not take that tune for the car's own.
+var _tuned := false
 var _nitro_was := false
 var _night := 1
 var _nitro_save: Array = []
@@ -2437,6 +2440,9 @@ func _stage() -> void:
 	if place_car.is_valid():
 		place_car.call(strip_at(0.0), strip_yaw())
 	_put_node(_skajlajner, strip_at(0.0, -float(strip["lane_gap"])), strip_yaw())
+	if _tuned:
+		_restore_car()
+	_tuned = true
 	_top_was = float(car.top_mult)
 	_accel_was = float(car.accel_mult)
 	_nitro_was = bool(car.nitro_owned)
@@ -2485,7 +2491,8 @@ func _stage() -> void:
 	_tacho.kmh = 0.0
 	_tacho.limiter = false
 	_tacho.visible = true
-	_log("stage: Tadek's run %.2f s (ok %.2f, perfect %.2f)" % [rr[2], rr[3], rr[4]])
+	_log("stage: Tadek's run %.2f s (ok %.2f, perfect %.2f), car accel %.2f top %.2f" % [rr[2], rr[3], rr[4],
+			float(car.accel) * _accel_was, float(car.max_speed) * _top_was])
 
 
 ## Called by main.gd after the controls set the car's inputs: on the line and in the run the car
@@ -2790,8 +2797,10 @@ func _drag_end(won: bool, how: String) -> void:
 func _restore_car() -> void:
 	if car == null:
 		return
-	car.top_mult = _top_was
-	car.accel_mult = _accel_was
+	if _tuned:
+		car.top_mult = _top_was
+		car.accel_mult = _accel_was
+		_tuned = false
 	if "nitro_wait" in car:
 		car.nitro_wait = false
 	car.nitro_owned = _nitro_was
