@@ -196,7 +196,7 @@ const BUDGET := {
 	"bez_kantow": 8000,  # 2026-11-15 Dom bez Kantów and Królewska 2 rebuilt whole from F's photos and the orthophoto: the ring, arcades, panes, cornices (measured 6679)
 	"politechnika": 950,  # 2026-11-15 front from F's photos: the columned middle on Plac Politechniki, attic and figures, stairs, lamp pillars
 	"pasta": 580,
-	"msn": 500,
+	"msn": 900,
 	# Norblin on its real block (2026-11-02, photo report): two blocks, Plater and Galwan, about
 	# three times the first footprint, arched windows round their courts, green roofs and terraces.
 	# 2026-11-03 look check: the copper base, finned storeys, set-back tops, the passage roof and
