@@ -11,11 +11,14 @@ extends RefCounted
 const Rules := preload("res://scripts/phone_rules.gd")
 const Lines := preload("res://scripts/quest_lines.gd")
 const PauseReasons := preload("res://scripts/pause_reasons.gd")
+const Feedback := preload("res://scripts/feedback.gd")
 
 var m: Node
 var hud: CanvasLayer
 ## The food offer on screen (phone_rules.gd `food_offer`), taken by TAKE.
 var _food := {}
+## COTAM's card (feedback.gd, the same one Settings opens), built on first use under the phone.
+var _feedback: Feedback
 
 
 func _init(main: Node) -> void:
@@ -81,6 +84,8 @@ func _closed() -> void:
 	if rides != null:
 		rides.peeked = {}  # a passenger looked at and not taken is gone
 	_food = {}
+	if _feedback != null and _feedback.visible:
+		_feedback.close()  # puts the keyboard away too
 	print("phone: closed%s" % pause.still())
 
 
@@ -95,7 +100,7 @@ func _app_def(key: String) -> Array:
 	return []
 
 
-## An app tile: the offering apps search, QUESTS opens the big screen, COTAM is not built.
+## An app tile: the offering apps search, QUESTS opens the big screen, COTAM opens the feedback card.
 func _app(key: String) -> void:
 	print("phone: app %s" % key)
 	match Rules.kind(key):
@@ -107,6 +112,22 @@ func _app(key: String) -> void:
 			m.call("_open_full_map")
 			if hud.full_map_open():
 				hud.full_map.open_screen("stories")
+		"form":
+			_open_feedback()
+
+
+## COTAM: the feedback card over the phone (the game stays paused; BACK on the card returns to the phone).
+func _open_feedback() -> void:
+	var hub: Control = hud.phone_hub
+	if _feedback == null:
+		_feedback = Feedback.new()
+		_feedback.name = "FeedbackCard"
+		hub.add_child(_feedback)
+		_feedback.visible = false
+	_feedback.pt = hub.pt
+	_feedback.safe = hub.safe
+	_feedback.where = str(m.call("_feedback_where"))
+	_feedback.open()
 
 
 ## The search is over: the offer, or nothing.

@@ -7738,7 +7738,7 @@
     ["ZADANIA", "QUESTS", {"only": "app_quests"}],
     ["Wątki i zlecenia", "Questlines and jobs", {"only": "app_quests_sub"}],
     ["COTAM", "COTAM", {"only": "app_cotam"}],
-    ["Wiadomości", "Messages", {"only": "app_cotam_sub"}],
+    ["Napisz do autora", "Write to the author", {"only": "app_cotam_sub"}],
     ["Wkrótce", "Soon", {"only": "soon"}],
     ["Brak kierowców", "No drivers", {"only": "no_ride"}],
     ["Nie teraz", "Not now", {"only": "busy"}],
