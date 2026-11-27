@@ -586,7 +586,7 @@ func _free() -> bool:
 	if jobs != null and jobs.side_busy():
 		return false  # loop MW-4: the "Na czasie" job too
 	# PT-15 (2026-11-03): nor while a rival's prompt is up or Pani Halina rolls up to flash for the
-	# first race (rivals.gd `calling`): a "New ride" card came up over her flash-back offer.
+	# first race (rivals.gd `calling`): a "ŁUBER · New ride" card came up over her flash-back offer.
 	return rivals == null or not (rivals.busy() or rivals.calling())
 
 
@@ -613,7 +613,7 @@ func _idle_tick(dt: float) -> void:
 func _set_pill(on: bool) -> void:
 	var shown: bool = hud.pill_shown("ride")
 	if on and not shown and hud.pill_free_for("ride"):
-		hud.show_pill("ŁUBER", "ride app", "ride")
+		hud.show_pill("ŁUBER", "ŁUBER", "ride")
 	elif not on and shown:
 		hud.hide_pill()
 
@@ -1540,7 +1540,7 @@ func _cancel(by_passenger: bool) -> void:
 				"%s picked another Łuber. No charge; the streak is gone." % who],
 				PackedStringArray(), RESULT_LIFE, FAIL_COLOUR)
 	else:
-		show_side_card(["KURS ANULOWANY", "Ride cancelled"],
+		show_side_card(["KURS ANULOWANY", "ŁUBER · Ride cancelled"],
 				[("%s wysiada tutaj." if riding else "%s zostaje na chodniku.") % who + " Bez opłat; seria przepadła.",
 				("%s gets out here." if riding else "%s stays on the pavement.") % who + " No charge; the streak is gone."],
 				PackedStringArray(), RESULT_LIFE, FAIL_COLOUR)

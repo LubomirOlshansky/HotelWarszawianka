@@ -1109,7 +1109,7 @@ func _c_request() -> void:
 			"the request: offer phase, no stage, not busy, offering")
 	_ok(not q.has_target() and director.current() == null and director.may_start(other), "the request: no target, the director sees nothing on")
 	_ok(hud.side and hud.card_is(q) and not hud.stacked and hud.face == "", "the request: beside the road, its own card, not stacked, no face")
-	_ok(hud.card == "ŁUBER · NOWY KURS" and hud.card_en == "New ride" and hud.accent == TEAL, "the request's title and colour: %s" % hud.card)
+	_ok(hud.card == "ŁUBER · NOWY KURS" and hud.card_en == "ŁUBER · New ride" and hud.accent == TEAL, "the request's title and colour: %s" % hud.card)
 	_ok(hud.button_words == PackedStringArray(["ACCEPT", "SKIP"]), "the request's buttons: %s" % [hud.button_words])
 	_ok(r["note"] == ["Komentarz", "A comment"], "the note is the request line: %s" % [r["note"]])
 	_ok(hud.body == _offer_body(r, true), "the request's body: %s / %s" % [hud.body, _offer_body(r, true)])
@@ -1206,11 +1206,11 @@ func _c_request() -> void:
 	hud.hide_card()
 	_secs(3.0 / 60.0)
 	# The surge in the title.
-	var cases := [[2, 0.0, false, "ŁUBER · MNOŻNIK ×1,5", "New ride · surge ×1.5 · night"],
-			[0, 0.0, true, "ŁUBER · MNOŻNIK ×1,2", "New ride · surge ×1.2 · rain"],
-			[2, 0.0, true, "ŁUBER · MNOŻNIK ×1,8", "New ride · surge ×1.8 · night + rain"],
-			[3, 0.6, false, "ŁUBER · MNOŻNIK ×1,5", "New ride · surge ×1.5 · night"],
-			[3, 0.4, false, "ŁUBER · NOWY KURS", "New ride"]]
+	var cases := [[2, 0.0, false, "ŁUBER · MNOŻNIK ×1,5", "ŁUBER · New ride · surge ×1.5 · night"],
+			[0, 0.0, true, "ŁUBER · MNOŻNIK ×1,2", "ŁUBER · New ride · surge ×1.2 · rain"],
+			[2, 0.0, true, "ŁUBER · MNOŻNIK ×1,8", "ŁUBER · New ride · surge ×1.8 · night + rain"],
+			[3, 0.6, false, "ŁUBER · MNOŻNIK ×1,5", "ŁUBER · New ride · surge ×1.5 · night"],
+			[3, 0.4, false, "ŁUBER · NOWY KURS", "ŁUBER · New ride"]]
 	for c: Array in cases:
 		tod.mode = int(c[0])
 		tod.lights_on = float(c[1])
@@ -1440,7 +1440,7 @@ func _d_pickup() -> void:
 	_ok(hud.status == "Stań przy pasażerze" and hud.hint_en == "Pull up by the passenger", "within 25 m of the passenger: %s" % hud.status)
 	_abort()
 	var onm := str(o["name"])
-	_cancel_card("KURS ANULOWANY", "Ride cancelled", "%s zostaje na chodniku. Bez opłat; seria przepadła." % onm,
+	_cancel_card("KURS ANULOWANY", "ŁUBER · Ride cancelled", "%s zostaje na chodniku. Bez opłat; seria przepadła." % onm,
 			"%s stays on the pavement. No charge; the streak is gone." % onm, "the ✕ on the way")
 	var cancel_at := _v2(_car)
 	_at(cancel_at + Vector2(24.0, 0.0), 9.0)
@@ -1827,7 +1827,7 @@ func _pay_case(n: int, final: float, cfg := {}) -> void:
 	var why := str(cfg.get("why", "" if cfg.has("clock") else "przed czasem +½"))
 	var no_lines := bool(cfg.get("no_lines", false))
 	var body := ("" if no_lines else "%s: Komentarz\n" % r["name"]) + "%s\nOcena %s%s" % [money_text, _num(rating, 2), (" · " + why) if why != "" else ""]
-	_ok(hud.card == "KURS · " + _stars_text(final) and hud.card_en == "Ride done", "%s: the card reads %s / %s" % [what, hud.card, hud.card_en])
+	_ok(hud.card == "KURS · " + _stars_text(final) and hud.card_en == "ŁUBER · Ride done", "%s: the card reads %s / %s" % [what, hud.card, hud.card_en])
 	_ok(hud.body == body, "%s: the body reads %s, want %s" % [what, hud.body, body])
 	_ok(hud.body_en == (("" if no_lines else "A comment ") + "%d\u00a0zł." % p["total"]), "%s: the English body reads %s" % [what, hud.body_en])
 	_ok(hud.side and hud.card_is(q) and hud.buttons == 0 and not hud.stacked and hud.accent == (TEAL if final >= 4.0 else RED),
@@ -1892,7 +1892,7 @@ func _e_ends(n: int) -> void:
 	r = _ride_ready(n)
 	nm = str(r["name"])
 	_abort()
-	_cancel_card("KURS ANULOWANY", "Ride cancelled", "%s wysiada tutaj. Bez opłat; seria przepadła." % nm,
+	_cancel_card("KURS ANULOWANY", "ŁUBER · Ride cancelled", "%s wysiada tutaj. Bez opłat; seria przepadła." % nm,
 			"%s gets out here. No charge; the streak is gone." % nm, "the ✕ on the ride")
 	_ok(_in_stage(Rides.Stage.RESULT) and director.current() == q, "after the ✕ the director still sees the ride")
 	_secs(12.1)
@@ -4399,7 +4399,7 @@ func _t_misc() -> void:
 	q.force_story = "none"
 	_at(HOME)
 	_secs(0.2)
-	_ok(hud.pill == "ride" and hud.pill_word == "ŁUBER" and hud.pill_en == "ride app", "the idle button: %s / %s" % [hud.pill_word, hud.pill_en])
+	_ok(hud.pill == "ride" and hud.pill_word == "ŁUBER" and hud.pill_en == "ŁUBER", "the idle button: %s / %s" % [hud.pill_word, hud.pill_en])
 	hud.pill = "tape"
 	hud.pill_free = false
 	_fly = true

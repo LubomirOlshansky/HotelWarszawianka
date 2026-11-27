@@ -153,7 +153,7 @@ func _pill_ranks() -> void:
 	var hud: CanvasLayer = Hud.new()
 	root.add_child(hud)
 	var fails: Array[String] = []
-	hud.show_pill("ŁUBER", "ride app", "ride")
+	hud.show_pill("ŁUBER", "ŁUBER", "ride")
 	if not hud.pill_free_for("unstuck"):
 		fails.append("POMOC DROGOWA can't take the button from ŁUBER")
 	hud.show_pill("POMOC DROGOWA", "tow truck", "unstuck")
@@ -167,7 +167,7 @@ func _pill_ranks() -> void:
 	hud.show_pill("WEZWANIE", "rescue call")
 	if hud.pill_free_for("unstuck"):
 		fails.append("POMOC DROGOWA takes the button from a rescue call")
-	hud.show_pill("ŁUBER", "ride app", "ride")
+	hud.show_pill("ŁUBER", "ŁUBER", "ride")
 	if not hud.pill_free_for("tape"):
 		fails.append("KASETA can't take the button from ŁUBER")
 	hud.queue_free()
