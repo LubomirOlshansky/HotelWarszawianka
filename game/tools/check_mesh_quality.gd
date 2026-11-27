@@ -333,6 +333,8 @@ const BUDGET := {
 	"flisac": 4200,  # 2026-11-13: the grid of panes, loggias and shop glass, 3,552 triangles
 	"florian": 2480,
 	"bazar": 2210,
+	"centrum_praha": 4000,
+	"targowa33a": 3000,
 	"port_praski": 25000,  # 2026-11-20: the whole Port Praski district from photos: 13 tenement blocks in sections (glass balconies from kit_balcony), Krowia 6 works, the Minter hotel (measured 24161)
 	"pp_basin": 8800,  # 2026-11-20: Port Praski basin: lock, tower, pump houses, sheds, boulevard, hoardings (measured 7776)
 	"kosciuszkowcy": 400,  # 2026-11-20: Pomnik Kościuszkowców from the bridge-ramp photos: the 12 m soldier with the cape, the plinth, the skaters' ledges (measured 245)
