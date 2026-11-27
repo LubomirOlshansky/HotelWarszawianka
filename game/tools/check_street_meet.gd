@@ -1104,16 +1104,21 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	for l: Array in Meet.MEET2_LINES:
 		talked2 = talked2 and _said(String(l[1]))
 	_ok(talked2, "the club said all of MEET2_LINES")
-	_ok(_police.raids.size() == 2 and _hud.banners.count("NALOT!") == 2 and _police.cordon.size() == 2 * Meet.CORDON and m._cordon.size() == Meet.CORDON and _police.left == Meet.CORDON - Meet.CHASERS, "the second raid: its cordon, the first one sent away")
+	# Critique 3.4: raid 2 is a searchlight, no second cordon and no police until it finds you.
+	_ok(_hud.banners.count("NALOT!") == 2 and _police.raids.size() == 1 and _police.cordon.size() == Meet.CORDON and m._search_t >= 0.0 and m._pool.visible, "the second raid: a searchlight, no cordon, no police yet")
+	_ok(m.search_pos(0.0) == m._exit_a and m.search_pos(Meet.SEARCH_LIT) == m._exit_a and m.search_pos(Meet.SEARCH_T) == m._exit_b \
+			and m.search_pos((Meet.SEARCH_LIT + Meet.SEARCH_T) * 0.5).is_equal_approx(m._exit_a.lerp(m._exit_b, 0.5)), "the light sits on exit A for SEARCH_LIT s, then crosses to exit B by SEARCH_T")
 	_frames(Meet.PIN_AFTER - 1.5)
 	_ok(_in(Meet.Stage.RAID2), "the second raid counts its own PIN_AFTER s (not on from the race's)")
 	_ok(_until(_in.bind(Meet.Stage.TO_DRAG), 12.0), "the pin to the drag")
+	var pot_lit: int = m.pot
+	_ok(_until(func() -> bool: return m.search_found, Meet.SEARCH_T + 2.0) and _police.raids.size() == 2 and not m._pool.visible and m.pot < pot_lit, "still in the square when the light has looked everywhere: found, the police come, the pot halves")
 	var watch: Vector3 = m.strip["watch"]
 	_ok(_hud.notes.size() == 2 and m._gate.visible and m._gate.mesh != null and not m._scene.visible and m._racers.is_empty() and _hud.dots == 0, "the note, the gate, the scene and the racers gone")
 	_ok(m.has_target() and m.target_position() == watch and m._beacon.global_position.is_equal_approx(watch) and is_equal_approx(float(m._beacon.get("_ring_radius")), Meet.MEET_R), "the target is the start, ring MEET_R")
 	_traffic.seen = false
 	_frames(0.6)
-	_ok(m._cordon.is_empty() and _police.left == 2 * Meet.CORDON - Meet.CHASERS and not m._flash.visible, "the cordon leaves once out of sight")
+	_ok(m._cordon.is_empty() and not m._flash.visible, "the cordon leaves once out of sight")
 	_traffic.seen = true
 	var on_strip := _traffic.spawn(m.strip_at(60.0))
 	var off_strip := _traffic.spawn(Vector3(5000.0, 0.0, 5000.0))

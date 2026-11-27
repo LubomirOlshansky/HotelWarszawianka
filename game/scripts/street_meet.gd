@@ -174,6 +174,15 @@ const CORDON_HOLD := 25.0
 ## Two of the cordon's cars turn chasers CHASER_AT s after NALOT! (critique-night-quest 3.3); the raid's chase
 ## then has no 15 s floor (police.raid `hold`).
 const CHASERS := 2
+## Raid 2 is a searchlight, no cordon (critique-night-quest 3.4): a light on the road above sweeps the square;
+## SEARCH_T s to be SEARCH_LEAVE m from the meet's middle before it finds you. It sits on the short way to
+## the strip (exit A) for SEARCH_LIT s, then crosses to the long way (exit B) by SEARCH_T. Inside its pool
+## (SEARCH_R m) you are found: koguty 2 and the pot's MANDAT. The exits are on the lanes SEARCH_EXIT m out.
+const SEARCH_T := 8.0
+const SEARCH_LIT := 4.0
+const SEARCH_R := 7.0
+const SEARCH_EXIT := 30.0
+const SEARCH_LEAVE := 50.0
 const CHASER_AT := 3.2
 ## The pin (the next destination) comes this long after the sirens start, once the cordon has
 ## closed in, whether or not the chase is still on.
@@ -437,6 +446,13 @@ var _cordon: Array[Dictionary] = []
 var _cordon_leaving := false
 ## The cordon's chasers have gone after the player this raid.
 var _chasers_sent := false
+## The searchlight (raid 2): seconds since NALOT! (-1 off), the two exits, the pool's disc, the verdict.
+var _search_t := -1.0
+var _exit_a := Vector3.ZERO
+var _exit_b := Vector3.ZERO
+var _pool: MultiMeshInstance3D
+var search_found := false
+var search_clear := false
 ## Seconds since the cordon came in (`_tick`): CORDON_HOLD past the pin it goes whatever the distance.
 var _cordon_t := 0.0
 ## Red and blue light pools on the ground under the cordon's cars (one draw call, raids only), so
@@ -1030,6 +1046,19 @@ func _build_scene() -> void:
 	_flash.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_flash.visible = false
 	world.add_child(_flash)
+	var pm := MultiMesh.new()
+	pm.transform_format = MultiMesh.TRANSFORM_3D
+	pm.use_colors = true
+	pm.mesh = disc
+	pm.instance_count = 1
+	_pool = MultiMeshInstance3D.new()
+	_pool.name = "SearchPool"
+	_pool.multimesh = pm
+	_pool.material_override = Models.glow_material()
+	_pool.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_pool.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	_pool.visible = false
+	world.add_child(_pool)
 	_gate = MeshInstance3D.new()
 	_gate.name = "DragGate"
 	_gate.material_override = Models.material()
@@ -1214,6 +1243,8 @@ func _process(dt: float) -> void:
 		_race_frame(dt)
 	if not _cordon.is_empty():
 		_cordon_frame(dt)
+	if _search_t >= 0.0:
+		_search_frame(dt)
 	if not _shows.is_empty():
 		_shows_frame(dt)
 	if stage == Stage.LINE or stage == Stage.DRAG:
@@ -1414,13 +1445,18 @@ func _mandat_poll() -> void:
 		_cautions_seen = c  # the day turned over: the notebook starts again
 	elif c > _cautions_seen:
 		_cautions_seen = c
-		if pot > 0:
-			var was := pot
-			pot = maxi(pot / 2, 1)
-			var w := _w("pot_fine")
-			hud.toast(str(w[0]) % [was, pot], str(w[1]) % [was, pot])
-			pot_parts.append([pot - was, "MANDAT", "FINE"])
-			_log("mandat: pot %d -> %d" % [was, pot])
+		_fine_pot()
+
+
+## MANDAT: the pot halves (never to nothing by itself), with its toast.
+func _fine_pot() -> void:
+	if pot > 0:
+		var was := pot
+		pot = maxi(pot / 2, 1)
+		var w := _w("pot_fine")
+		hud.toast(str(w[0]) % [was, pot], str(w[1]) % [was, pot])
+		pot_parts.append([pot - was, "MANDAT", "FINE"])
+		_log("mandat: pot %d -> %d" % [was, pot])
 
 
 func _arrived(dt: float, at: Vector3, kmh: float, to: Vector3, r: float) -> bool:
@@ -1632,7 +1668,9 @@ func _raid() -> void:
 		if hud != null:
 			hud.hide_banner())
 	var sent := 0
-	if police != null and police.has_method("raid"):
+	if meet_i == 1:
+		_search_begin()
+	elif police != null and police.has_method("raid"):
 		sent = int(police.raid(m["at"], RAID_CARS, RAID_LEVEL, 0.0))
 	_crowd_run = 0.01
 	_drifting = false
@@ -1640,7 +1678,7 @@ func _raid() -> void:
 	_scatter()
 	if meet_i == 0:
 		_race_prepare()
-	var boxed := 0 if raid_clean else _cordon_in()
+	var boxed := 0 if (raid_clean or meet_i == 1) else _cordon_in()
 	_log("raid at %s: %d patrol cars, %d in the cordon" % [m["id"], sent, boxed])
 
 
@@ -1665,6 +1703,82 @@ func _on_chase_ended(how: String) -> void:
 	if stage == Stage.RAID or stage == Stage.RAID2:
 		_log("chase ended: %s" % how)
 		_chase_seen = true
+
+
+# --- the searchlight (raid 2) ----------------------------------------------------------------------
+
+## A lane point `d` m from the meet's middle in direction `ang`, off the graph's reach: the raw point.
+func _exit_point(c: Vector3, ang: float) -> Vector3:
+	var q := Vector2(c.x, c.z) + Vector2.from_angle(ang) * SEARCH_EXIT
+	if graph != null:
+		var hit: Array = graph.snap(q, 25.0, Vector2.ZERO, true, true)
+		if not hit.is_empty():
+			var e: int = hit[0]
+			var s := clampf(float(hit[2]), graph.e_s0[e] + 1.0, graph.e_s1[e] - 1.0)
+			var p2 := graph.point_at(e, s)
+			return Vector3(p2.x, _terrain(p2.x, p2.y), p2.y)
+	return Vector3(q.x, _terrain(q.x, q.y), q.y)
+
+
+## The light comes on: exit A is the short way to the strip (lit first), exit B the long way round.
+func _search_begin() -> void:
+	var c: Vector3 = meets[1]["at"]
+	var to := strip_at(0.0)
+	var ang := atan2(to.z - c.z, to.x - c.x) if bool(strip.get("ok", false)) else 0.0
+	_exit_a = _exit_point(c, ang)
+	_exit_b = _exit_point(c, ang + PI * 0.8)
+	_search_t = 0.0
+	search_found = false
+	search_clear = false
+	_pool.visible = true
+	_log("searchlight: exits %s and %s" % [str(_exit_a), str(_exit_b)])
+
+
+## Where the light's pool is `t` s after NALOT!: exit A for SEARCH_LIT s, then across to exit B by SEARCH_T.
+func search_pos(t: float) -> Vector3:
+	if t <= SEARCH_LIT:
+		return _exit_a
+	return _exit_a.lerp(_exit_b, clampf((t - SEARCH_LIT) / (SEARCH_T - SEARCH_LIT), 0.0, 1.0))
+
+
+## Per frame: the pool moves, you are found inside it or still in the square when it has looked everywhere,
+## you are clear once SEARCH_LEAVE m out.
+func _search_frame(dt: float) -> void:
+	_search_t += dt
+	var p := Vector2(_at.x, _at.z)
+	var c: Vector3 = meets[1]["at"]
+	var pool := search_pos(_search_t)
+	var red := fmod(_search_t * 4.0, 1.0) < 0.5
+	var on := 0.0 if Access.calm else 1.0
+	var sc := SEARCH_R / 3.6
+	_pool.multimesh.set_instance_transform(0, Transform3D(Basis().scaled(Vector3(sc, 1.0, sc)), pool + Vector3(0, 0.07, 0)))
+	_pool.multimesh.set_instance_color(0, Color(1.0, 0.95, 0.75, 0.55 * on) if not red else Color(0.85, 0.9, 1.0, 0.55 * on))
+	if p.distance_to(Vector2(c.x, c.z)) >= SEARCH_LEAVE:
+		_search_end()
+		search_clear = true
+		_log("searchlight: clear at %.1f s" % _search_t)
+	elif p.distance_to(Vector2(pool.x, pool.z)) <= SEARCH_R or _search_t >= SEARCH_T:
+		_search_found()
+
+
+func _search_found() -> void:
+	search_found = true
+	_search_end()
+	hud.show_banner(Lang.pick("ZNALEZIONY!", "FOUND!"), Color("#ff2a3a"))
+	get_tree().create_timer(1.6).timeout.connect(func() -> void:
+		if hud != null:
+			hud.hide_banner())
+	var sent := 0
+	if police != null and police.has_method("raid"):
+		sent = int(police.raid(meets[1]["at"], RAID_CARS, RAID_LEVEL, 0.0))
+	_fine_pot()
+	_log("searchlight: found, %d patrol cars" % sent)
+
+
+func _search_end() -> void:
+	_search_t = -1.0
+	if _pool != null:
+		_pool.visible = false
 
 
 # --- the cordon -------------------------------------------------------------------------------
@@ -2779,6 +2893,7 @@ func _ended() -> void:
 			n.visible = false
 		_shows.clear()
 		_cordon_leave(true)
+		_search_end()
 	stage = Stage.NONE
 	_hold_t = 0.0
 	# The dice as they always rolled: once when the call came by the clock (`call_in` ran out),
