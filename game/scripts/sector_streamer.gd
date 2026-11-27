@@ -347,7 +347,9 @@ static func open_whole(parent: Node, use_prebuilt: bool) -> Node3D:
 
 
 ## Quitting: the worker's load or build ends before the map it reads goes, and what is not in
-## the tree (its result, the nodes still queued) is freed.
+## the tree (its result, the nodes still queued) is freed. A runtime build is told to stop at its
+## next step (map_builder.gd `cancel_build`): the main thread waited out a whole sector's build
+## before (CI's firstlife EXIT HANG, 2026-11-27); the partial root it hands back is freed below.
 func _exit_tree() -> void:
 	_gate_lock.lock()
 	_quitting = true
@@ -356,8 +358,24 @@ func _exit_tree() -> void:
 		_gate.post()
 	_gate_lock.unlock()
 	if _thread != null:
+		var t0 := Time.get_ticks_msec()
+		if map != null and not prebuilt:
+			map.cancel_build = true
+		# A line every 10 s while it runs: a stop that never comes (a stuck worker, not a slow
+		# step) shows in the log above the CI watch's backtrace.
+		var said := 0
+		while _thread.is_alive():
+			OS.delay_msec(5)
+			if Time.get_ticks_msec() - t0 >= (said + 1) * 10000:
+				said += 1
+				print("stream: quit: still waiting for the worker's %s %s after %d s" % [
+						"load of" if prebuilt else "build of", MapBuilder.sector_name(_task_key), said * 10])
 		_thread.wait_to_finish()
 		_thread = null
+		if map != null and not prebuilt:
+			map.cancel_build = false
+		print("stream: quit: the worker's %s %s stopped in %d ms" % [
+				"load of" if prebuilt else "build of", MapBuilder.sector_name(_task_key), Time.get_ticks_msec() - t0])
 	if _task_root != null:
 		_task_root.free()
 		_task_root = null
