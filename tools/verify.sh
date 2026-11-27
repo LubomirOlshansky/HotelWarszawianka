@@ -189,6 +189,10 @@
 # and sway, Pani Gienia's late skill) and 300 seeded games, the tipsy fade and pull, the room's mesh,
 # the door's ring and WEJDŹ pill on the kit with stand-ins. `tapczan-run` (full set only) plays it
 # in the whole game: in, a pint, a self-playing game, out to the tipsy drive.
+# Bokiem na Narodowym, the grey box (2026-11-27, critique-drift.md 4): `drift` runs
+# game/tools/check_drift.gd: the drift model (M), the one-thumb input (I), the score (S) and the bots on
+# Ósemka (B: Q_LINE from the follower bot, the fixed-pulse sweep, hold-only, bank-at-crossovers), no
+# scene, ~6 s. `drift-run` (full set only) plays the practice in the whole game with the decent bot.
 # Sekretny rave (2026-11-06): `rave` runs game/tools/check_rave.gd: the cone, booth and club-room meshes,
 # LEKTI's, Mati's, the door's and the club's lines (no brand), the rave clock, the door's three
 # questions, the lights' poses, the spots and Smoła on the real lane graph; centrum.json only (CI too).
@@ -1600,6 +1604,7 @@ for s in $want; do
 		kebabstand) check kebabstand '^check_kebab_stand:' --script res://tools/check_kebab_stand.gd -- --nosave ;;
 		palmtasting) check palmtasting '^check_palm_tasting:' --script res://tools/check_palm_tasting.gd -- --nosave ;;
 		tapczan) check tapczan '^check_tapczan:' --script res://tools/check_tapczan.gd ;;
+		drift) check drift '^check_drift:' --script res://tools/check_drift.gd ;;
 		# Za deckami, stage A: the DJ game's rules, tracks and tuning; four bots against the design's targets.
 		decks) check decks '^check_decks:' --script res://tools/check_decks.gd ;;
 		# Dead electric cars: the TESŁO, the lines, the sling, the chargers on the real graph.
@@ -1759,6 +1764,7 @@ for s in $want; do
 		# THE TAPCZAN in the whole game: straight in, a pint, a self-playing beer pong game, out to the tipsy drive.
 		tajny-run) game tajny-run 19000 '^tajny klient: beat done' --tajny --autopilot ;;
 		tapczan-run) game tapczan 12000 '^tapczan: out: won' --tapczan=pong --tapczan-log ;;
+		drift-run) game drift 4500 '^drift: run over' --drift=osemka:bot ;;
 		decks-run) game decks 12000 '^decks: over: PIEC' --decks --decks-bot=perfect --decks-log ;;
 		shisha-run) game shisha 30000 '^shisha: done: smoke' --shisha-call --shisha-log --autopilot ;;
 		# Loop 2d-1 x 3g-1: a pull-over 25 s into that ride takes exactly one star (police.gd calls

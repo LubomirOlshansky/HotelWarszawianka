@@ -1,0 +1,53 @@
+{
+	"_note": "Bokiem na Narodowym, the grey box (docs/design/drift-narodowy.md 0b, critique-drift.md section 4). A track is its ideal line as segments from a start point and heading (yaw in degrees, 0 = towards -z, + = left, the game's rotation.y); `straight` m, `arc` [radius m, sweep degrees, +1 left / -1 right]. Zones: `zona` (the tail at the outer board) and `klip` (the nose at an inner cone), on a segment between two fractions of it, BOARD m from the line. Words: [Polish, English] (warsaw-tone).",
+	"tracks": {
+		"osemka": {
+			"name": ["Ósemka", "Figure eight"],
+			"start": [5.0, 24.0],
+			"yaw": 90.0,
+			"segments": [
+				{"straight": 40.0},
+				{"arc": [24.0, 216.87, -1]},
+				{"straight": 56.0},
+				{"arc": [18.0, 253.74, 1]},
+				{"straight": 56.0},
+				{"arc": [24.0, 216.80, -1]},
+				{"straight": 40.0}
+			],
+			"zones": [
+				{"kind": "zona", "seg": 1, "from": 0.33, "to": 0.62, "side": "out"},
+				{"kind": "klip", "seg": 1, "from": 0.80, "to": 0.90, "side": "in"},
+				{"kind": "klip", "seg": 4, "from": 0.70, "to": 0.82, "side": "in"},
+				{"kind": "klip", "seg": 3, "from": 0.14, "to": 0.24, "side": "in"},
+				{"kind": "zona", "seg": 3, "from": 0.42, "to": 0.72, "side": "out"}
+			],
+			"islands": [[-35.0, 0.0, 14.0, 10.0], [35.0, 0.0, 13.0, 9.0]]
+		}
+	},
+	"words": {
+		"title": ["Bokiem: trening · Ósemka", "Sideways: practice · Figure eight"],
+		"tip": ["Trzymasz: gaz. Stuk-stuk: bokiem. Puszczasz: prosto.", "Hold: gas. Tap-tap: sideways. Let go: straight."],
+		"tip_wedge": ["Nos w zielonym klinie. Za płytko to jazda, za głęboko to bączek.", "Nose in the green wedge. Too shallow is just driving, too deep is a spin."],
+		"score": ["WYNIK", "SCORE"],
+		"time": ["CZAS", "TIME"],
+		"bank": ["ZAKSIĘGOWANE", "BANKED"],
+		"lost": ["PRZEPADŁO", "LOST"],
+		"zona": ["ZONA!", "ZONE!"],
+		"klip": ["KLIP!", "CLIP!"],
+		"flick": ["PRZEKŁADKA!", "TRANSITION!"],
+		"perfect": ["IDEALNIE!", "PERFECT!"],
+		"wrong": ["ZŁA STRONA", "WRONG SIDE"],
+		"slow": ["ZA WOLNO", "TOO SLOW"],
+		"spin": ["BĄCZEK!", "SPIN!"],
+		"top": ["WIDOK Z GÓRY", "TOP VIEW"],
+		"iso": ["WIDOK ZWYKŁY", "NORMAL VIEW"],
+		"retry": ["PONÓW", "RETRY"],
+		"leave": ["WYJDŹ", "EXIT"],
+		"run": ["PRZEJAZD", "RUN"],
+		"linia": ["LINIA", "LINE"],
+		"kat": ["KĄT", "ANGLE"],
+		"styl": ["STYL", "STYLE"],
+		"best": ["NAJLEPSZY", "BEST"],
+		"grounded": ["Najpierw wyjdź ze stadionu (✕)", "Leave the stadium first (✕)"]
+	}
+}
