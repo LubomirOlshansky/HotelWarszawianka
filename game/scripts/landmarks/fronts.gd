@@ -113,6 +113,9 @@ const SKINS := [
 	{"key": "meridian", "osm": "Meridian", "model": true, "mode": M_STONE, "wall": "#c8beb0", "roof": "#938780",
 			"runs": [[-2657.45, -305.6], [-2661.72, -298.11]]},
 	{"key": "oxygen", "osm": "Oxygen", "model": true, "mode": M_STONE, "wall": "#a8a6a2", "roof": "#aaa49a"},
+	# The named court outline registers the whole model and drops the GUGiK run.
+	{"key": "sad_okregowy", "osm": "Sąd Okręgowy w Warszawie", "model": true,
+			"mode": M_STONE, "wall": "#dcd6c9", "roof": "#7d7f8c"},
 	# The mapped theatre registers here as a whole model, so its LoD2 run is replaced.
 	{"key": "powszechny", "osm": "Teatr Powszechny", "model": true, "mode": M_STONE, "wall": "#ebe8df", "roof": "#b9babc"},
 	# PKO BP's office on Marszałkowska by Nowogrodzka from Mapillary photos (2026-11-16,
@@ -122,6 +125,7 @@ const SKINS := [
 	# Its neighbour Wolf Marszałkowska (the same photos): a glass tower with silver floor bands
 	# over a dark stone and glass base, not a dark punched block.
 	{"key": "wolf_marszalkowska", "osm": "Wolf Marszałkowska", "mode": M_SKIN + float(S_BANDS) / 16.0, "wall": "#5f7a90", "roof": "#596066"},
+	{"key": "mostowski", "osm": "Pałac Mostowskich", "model": true, "mode": M_STONE, "wall": "#eee3c9", "roof": "#9a9ba2"},
 ]
 
 
@@ -201,6 +205,8 @@ const LM_BLOCKS := [
 	"6520917",  # Grzybowska 77 (Bellona): the brick house from F's photos
 	"905863487",  # Unique Tower's north and shoulder outline, rebuilt by the unique site
 	"141043447",  # Kino Muranów: whole complex (podium + residential blocks) rebuilt in muranow.gd
+	"1871615",  # Sądy na Lesznie: the whole court model includes the façades and roofs
+	"1371716",  # Pałac Mostowskich: the whole palace and its roofs are built in muranow.gd
 	"295124092", "699441160",  # Generation Park X and Z: rebuilt whole in wola.gd (`gpxz`)
 	"947208951",  # Meridian: the whole office model includes its street front (wola.gd `meridian`)
 	"2892939",  # Oxygen: the whole office ring is built in wola.gd (`oxygen`)
@@ -878,8 +884,8 @@ func _find_photo_fronts() -> void:
 	if not list is Array:
 		return
 	for d: Dictionary in list:
-		# The theatre's whole-building site already supplies this frontage.
-		if str(d["id"]) == "b12747":
+		# Whole-building sites that already supply their own frontages (Teatr Powszechny, Centrum Praha).
+		if str(d["id"]) in ["b12747", "b12642"]:
 			continue
 		var key := "pf_" + str(d["id"])
 		_add_site(key, [_pts(d["outline"])])

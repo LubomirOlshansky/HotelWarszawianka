@@ -2544,6 +2544,222 @@ func _build_kolejowa(site: Dictionary) -> void:
 	_mode = M_STONE
 
 
+# --- Sądy na Lesznie -----------------------------------------------------------------------
+
+## GUGiK's roof tiers in the named footprint, measured from its lowest terrain sample.
+## Each row ends at a depth v. Its spans give the start, end and roof height along u.
+const SAD_ORIGIN := Vector2(-2237.1, -762.2)
+const SAD_AXIS := Vector2(69.3, -36.3)
+const SAD_FRONT := 26.0
+const SAD_TOWER := 28.3
+const SAD_HIGH := 30.5
+const SAD_RETURN := 26.6
+const SAD_REAR := 23.2
+const SAD_REAR_END := 24.6
+const SAD_COLUMNS := [0.0, 4.4, 9.5, 10.0, 16.5, 25.0, 33.5, 35.0, 50.5, 53.5, 61.5, 70.0, 76.1, 77.0, 82.7, 86.0]
+const SAD_PLAN := [
+	[0.4, [[0.0, 4.4, SAD_TOWER], [82.7, 86.0, SAD_TOWER]]],
+	[8.2, [[0.0, 4.4, SAD_TOWER], [4.4, 82.7, SAD_FRONT], [82.7, 86.0, SAD_TOWER]]],
+	[10.5, [[0.0, 86.0, SAD_FRONT]]],
+	[12.4, [[0.0, 10.0, SAD_FRONT], [25.0, 61.5, SAD_FRONT], [77.0, 86.0, SAD_FRONT]]],
+	[27.5, [[0.0, 10.0, SAD_FRONT], [25.0, 35.0, SAD_FRONT], [50.5, 61.5, SAD_FRONT], [77.0, 86.0, SAD_FRONT]]],
+	[36.5, [[0.0, 86.0, SAD_HIGH]]],
+	[42.5, [[16.5, 70.0, SAD_HIGH]]],
+	[77.8, [[16.5, 33.5, SAD_HIGH], [53.5, 70.0, SAD_HIGH]]],
+	[79.6, [[16.5, 70.0, SAD_RETURN]]],
+	[89.0, [[0.0, 86.0, SAD_RETURN]]],
+	[105.5, [[0.0, 9.5, SAD_RETURN], [76.1, 86.0, SAD_RETURN]]],
+	[111.0, [[0.0, 9.5, SAD_RETURN], [9.5, 76.1, SAD_REAR], [76.1, 86.0, SAD_RETURN]]],
+	[121.0, [[0.0, 4.4, SAD_REAR_END], [4.4, 82.7, SAD_REAR], [82.7, 86.0, SAD_REAR_END]]],
+]
+const SAD_WALL := Color("#dcd6c9")  # Cream-grey stone in the lit courtyard views.
+const SAD_ROOF := Color("#7d7f8c")  # Blue-grey membrane, lifted to read as grey under the city shader.
+const SAD_SOFFIT := Color("#a8a094")
+enum SadFace { COURT, BLANK_END, SOLIDARNOSCI, OGRODOWA, CORNER }
+
+
+## Replace the named LoD2 run with the court wings and keep the mapped perimeter collision.
+func _build_sad_okregowy(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["zone"][0]
+	_g = _ground_under(outline)
+	_mode = M_STONE
+	_o = SAD_ORIGIN
+	_a = SAD_AXIS.normalized()
+	_b = Vector2(-_a.y, _a.x) + _a * 0.014
+	_sad_okregowy_roof_fittings()
+	_sad_okregowy_rear_bay()
+	_sad_okregowy_massing()
+	_collide(outline)
+
+
+## Place service caps on the roof spans so the flat planes pick up the reference's small shadows.
+func _sad_okregowy_roof_fittings() -> void:
+	for at: Vector2 in [Vector2(6.3, 11.0), Vector2(30.0, 20.0), Vector2(56.0, 18.2), Vector2(81.0, 15.0)]:
+		_lbox(at.x, at.y, 1.25, 0.85, _g + SAD_FRONT - 0.02, _g + SAD_FRONT + 0.65, PAL_ROOF_PALE)
+	for at: Vector2 in [Vector2(13.0, 32.0), Vector2(40.0, 31.4), Vector2(74.0, 33.2),
+			Vector2(24.1, 53.0), Vector2(27.3, 71.0), Vector2(63.0, 51.0), Vector2(60.1, 72.5)]:
+		_lbox(at.x, at.y, 1.7, 1.0, _g + SAD_HIGH - 0.02, _g + SAD_HIGH + 0.88, PAL_ROOF_PALE)
+	for u: float in [39.5, 48.0]:
+		_lbox(u, 108.4, 1.6, 1.25, _g + SAD_REAR - 0.02, _g + SAD_REAR + 1.2, PAL_ROOF_GREY)
+
+
+## Round off the projecting bay inside the long rear court, under the Ogrodowa roof line.
+func _sad_okregowy_rear_bay() -> void:
+	var bay := _lpoly([[35.8, 105.55], [36.4, 104.1], [38.7, 102.7], [51.5, 102.7],
+			[53.0, 103.7], [53.4, 105.55]])
+	_prism(bay, _g - 0.55, _g + 22.9, SAD_WALL, SAD_ROOF, M_STONE, M_STONE)
+
+
+## Cap the occupied spans and draw the height difference at each boundary. Coalesce adjacent
+## edges of the same height so windows stay in step across each uninterrupted facade.
+func _sad_okregowy_massing() -> void:
+	var rows: Array[Array] = []
+	var depths: Array[float] = [0.0]
+	var plan_origin := _o
+	var east := _a
+	var south := _b
+	for band: Array in SAD_PLAN:
+		var v0 := depths[-1]
+		var v1: float = band[0]
+		depths.append(v1)
+		var heights: Array[float] = []
+		heights.resize(SAD_COLUMNS.size() - 1)
+		heights.fill(0.0)
+		for span: Array in band[1]:
+			var u0: float = span[0]
+			var u1: float = span[1]
+			var top: float = span[2]
+			_cap(_urect(u0, u1, v0, v1), _g + top, SAD_ROOF)
+			for k in range(SAD_COLUMNS.find(u0), SAD_COLUMNS.find(u1)):
+				heights[k] = top
+		rows.append(heights)
+	for across: bool in [true, false]:
+		var fixed: Array = depths if across else SAD_COLUMNS
+		var along: Array = SAD_COLUMNS if across else depths
+		for line in fixed.size():
+			var previous := Vector2.ZERO
+			var start := 0
+			for cell in along.size():
+				var sides := Vector2.ZERO
+				if cell < along.size() - 1:
+					if line > 0:
+						sides.x = rows[line - 1][cell] if across else rows[cell][line - 1]
+					if line < fixed.size() - 1:
+						sides.y = rows[line][cell] if across else rows[cell][line]
+				if sides == previous:
+					continue
+				if previous.x != previous.y:
+					var axis := east if across else south
+					var origin: Vector2 = plan_origin + (south if across else east) * float(fixed[line])
+					var from := origin + axis * float(along[start])
+					var to := origin + axis * float(along[cell])
+					if (previous.x < previous.y) == across:
+						var swap := from
+						from = to
+						to = swap
+					var top := maxf(previous.x, previous.y)
+					var bottom := minf(previous.x, previous.y)
+					var face := SadFace.COURT
+					if is_equal_approx(top, SAD_TOWER) or is_equal_approx(top, SAD_REAR_END):
+						face = SadFace.CORNER
+					elif across and line == 1:
+						face = SadFace.SOLIDARNOSCI
+					elif across and line == fixed.size() - 1:
+						face = SadFace.OGRODOWA
+					elif not across and (line == 0 or line == fixed.size() - 1):
+						face = SadFace.BLANK_END
+					_sad_okregowy_shell(from, to, bottom, top, face)
+				start = cell
+				previous = sides
+
+
+## Apply the facade kit in the boundary's outward frame. Walls above lower roofs get a
+## coping, while the full-height walls carry the grid visible from the street or the courts.
+func _sad_okregowy_shell(from: Vector2, to: Vector2, bottom: float, top: float, face: SadFace) -> void:
+	var width := kit_front(from, to)
+	var y0 := _g + (bottom if bottom > 0.0 else -0.55)
+	var y1 := _g + top
+	if bottom > 0.0:
+		if width > 2.0 and top - bottom > 1.0:
+			kit_ledge(0.22, width - 0.22, y1 - 0.48, 0.29, PAL_PALE_CONCRETE, 0.21)
+		_wall(from, to, y0, y1, _b, SAD_WALL)
+		return
+	if face == SadFace.SOLIDARNOSCI:
+		_sad_okregowy_portal(width)
+		y0 = _g + 5.4
+		kit_cornice(0.52, width - 0.52, y1 - 0.5, PAL_WHITE_STONE, 0.38, 0.57)
+		var bays := kit_window_grid(1.0, width - 1.0, 27, [_g + 7.25], 2.55, Win.SILL,
+				PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.69)
+		kit_panes(bays, [_g + 12.05, _g + 16.85], 1.38, 2.55, PAL_GLASS_DARK)
+		kit_face(0.02)
+		kit_panes(_spread(0.9, width - 0.9, 51), [_g + 21.95], 0.56, 2.7, PAL_GLASS_DARK)
+		kit_face(0.0)
+		kit_ledge(0.3, width - 0.3, _g + 21.45, 0.32, PAL_WHITE_STONE, 0.26)
+		_wall(from + _b * 0.042, to + _b * 0.042, _g + 21.77, _g + 24.76, _b, SAD_SOFFIT.darkened(0.25))
+	elif width > 2.2:
+		var trim_end := 0.22
+		kit_ledge(trim_end, width - trim_end, y1 - 0.47, 0.31, PAL_WHITE_STONE, 0.27)
+		kit_ledge(trim_end, width - trim_end, y0, 1.75, PAL_WARM_GRANITE, 0.12)
+		match face:
+			SadFace.COURT:
+				var floor_count := 8 if is_equal_approx(top, SAD_HIGH) else 7
+				var sills: Array[float] = []
+				for i in floor_count:
+					sills.append(_g + 1.9 + float(i) * 3.6)
+				if width > 3.2:
+					kit_panes(_spread(0.65, width - 0.65, maxi(1, roundi(width / 2.9))),
+							sills, 1.42, 2.1, PAL_GLASS_DARK)
+				kit_ledge(trim_end, width - trim_end, y1 - 3.92, 0.25, PAL_PALE_CONCRETE, 0.18)
+			SadFace.OGRODOWA:
+				var sills: Array[float] = []
+				for i in 5:
+					sills.append(_g + 5.15 + float(i) * 3.29)
+				var bays := _spread(0.9, width - 0.9, 29)
+				kit_panes(bays, sills, 1.56, 1.95, PAL_GLASS_STEEL)
+				for k in range(3, bays.size(), 3):
+					var centre := (float(bays[k - 1]) + float(bays[k])) * 0.5
+					kit_pilaster(centre, _g + 4.84, y1 - 0.55, PAL_PALE_CONCRETE, 0.37, 0.09)
+				var doors := [width * 0.25, width * 0.5, width * 0.75]
+				var ground_bays: Array[float] = []
+				for u: float in _spread(0.85, width - 0.85, 37):
+					if absf(u - doors[0]) > 1.8 and absf(u - doors[1]) > 1.8 and absf(u - doors[2]) > 1.8:
+						ground_bays.append(u)
+				kit_panes(ground_bays, [_g + 1.75], 0.77, 1.35, PAL_GLASS_DARK)
+				kit_ledge(trim_end, width - trim_end, _g + 4.5, 0.32, PAL_WARM_GRANITE, 0.22)
+				for u: float in doors:
+					kit_door(u, _g + 0.65, 3.5, 1.32, PAL_WARM_GRANITE, PAL_BRONZE)
+			SadFace.CORNER:
+				if width < 5.0:
+					if is_equal_approx(top, SAD_REAR_END):
+						kit_window(width * 0.5, _g + 2.0, 19.5, Win.PLAIN, PAL_WHITE_STONE, PAL_GLASS_DARK, 0.68)
+					else:
+						for i in 7:
+							kit_window(width * 0.5, _g + 2.25 + float(i) * 3.55, 1.8, Win.PLAIN,
+									PAL_WHITE_STONE, PAL_GLASS_DARK, 0.64)
+	_wall(from, to, y0, y1, _b, SAD_WALL)
+
+
+## Recess the original public front under the stone slab and give each doorway group its
+## own steps. The continuous backing wall, return cheeks and soffit close the recess.
+func _sad_okregowy_portal(width: float) -> void:
+	var base := _g - 0.55
+	var underside := _g + 5.4
+	var depth := -2.3
+	kit_face(depth)
+	for u: float in [width * 0.21, width * 0.5, width * 0.79]:
+		for offset: float in [-1.44, 1.44]:
+			kit_door(u + offset, _g + 1.12, 3.35, 0.99, PAL_WARM_GRANITE, PAL_BRONZE)
+		for i in 4:
+			var v := depth + float(i) * 0.73
+			var tread := _g + 1.12 - float(i) * 0.21
+			_ubox(u - 4.3, u + 4.3, v, v + 0.73, base, tread, PAL_WARM_GRANITE)
+	kit_face(0.0)
+	kit_ledge(0.28, width - 0.28, underside + 0.02, 0.58, PAL_WARM_GRANITE, 0.24)
+	_soffit(_urect(0.0, width, depth, 0.0), underside, SAD_SOFFIT)
+	_wall(_w(0.0, depth), _w(width, depth), base, underside, _b, SAD_SOFFIT)
+	_wall(_w(0.0, 0.0), _w(0.0, depth), base, underside, _a, SAD_WALL)
+	_wall(_w(width, depth), _w(width, 0.0), base, underside, -_a, SAD_WALL)
+
 # --- Generation Park X and Z (Towarowa 28 / Prosta 36, Rondo Daszyńskiego) ---------------------
 
 ## Generation Park X (11 storeys, 37.3 m) and Generation Park Z (13 storeys / 43.9 m stepping to

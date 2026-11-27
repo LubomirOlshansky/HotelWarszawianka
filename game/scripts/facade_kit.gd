@@ -61,7 +61,8 @@ const M_MONUMENT_FLOOD := M_MONUMENT + 0.5
 ## Krakowskie Przedmieście's floodlit palaces, churches and monuments (F's night photos,
 ## 2026-11-26): their stone walls glow cream-white at night (facade_kit.gd M_STONE_FLOOD).
 const FLOODLIT_SITES := ["bristol", "europejski", "prezydencki", "potocki", "kordegarda", "karmelici",
-		"wizytki", "staszic", "czapski", "kazimierzowski", "uruski", "brama_uw", "sw_krzyz", "mickiewicz", "kopernik"]
+		"wizytki", "staszic", "czapski", "kazimierzowski", "uruski", "brama_uw", "sw_krzyz", "mickiewicz", "kopernik",
+		"mostowski"]
 
 
 # --- state ---

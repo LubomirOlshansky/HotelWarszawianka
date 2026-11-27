@@ -182,7 +182,9 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"STRYCH", "WEGE FUD", "AUREOLA TEA", "BLISKI ZACHÓD", "SŁOICZEK", "PIEROŻKARNIA", "KISIEL SUSHI",
 		"PO CZESKU", "KAWIARNIA RELAKS", "WŁOSKI ZASTÓJ", "KOSMOSIK",
 		# Warsztat u Mirka on Grzybowska (F, 2026-11-24): the fascia, the west wall, the roof's meme.
-		"WARSZTAT U MIRKA", "CHIP TUNING", "OLEJ DO BAWARKI", "ZROBI SIĘ!"]
+		"WARSZTAT U MIRKA", "CHIP TUNING", "OLEJ DO BAWARKI", "ZROBI SIĘ!",
+		# Polskie Radio on Myśliwiecka: plain RADIO sign over the main entrance (no brand logo).
+		"RADIO"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)
