@@ -2134,6 +2134,7 @@ func _build_sound(data: Dictionary, world: Node3D) -> void:
 func _set_quality(choice: int) -> void:
 	quality_choice = clampi(choice, Tiers.AUTO, Tiers.EXPERIMENTAL)
 	quality = auto_quality if quality_choice == Tiers.AUTO else quality_choice
+	Tiers.level = quality  # the drift stadium reads its tiers on each run (tiers.gd DRIFT)
 	if settings.quality != quality_choice and _started: _keep.chosen(self)  # perf thread: saved, Experimental too (quality_keep.gd)
 	tod.shadows_allowed = bool(Tiers.value(quality, "shadows"))
 	tod.glow_allowed = bool(Tiers.value(quality, "glow"))

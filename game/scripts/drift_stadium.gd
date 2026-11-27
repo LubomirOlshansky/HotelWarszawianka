@@ -19,12 +19,22 @@ extends "res://scripts/activity.gd"
 ##     car. WIDOK Z GÓRY (TOP_PITCH, TOP_VIEW m) and back.
 ##   - Change 12: smoke from the outer rear wheel, one puff per PUFF_EVERY m of path, alpha SMOKE_A,
 ##     SMOKE_CAP puffs; skids.gd's marks along the path, 8,192 kept.
-##   - Light (change 14's default): the floor and its paint glow from within at night (the actors'
-##     HERO part, as the player's car), no light of its own; the city's sun lights it by day.
+##   - PR 2 (2026-11-27), the Stadion Narodowy round the floor (drift_venue.gd builds it on the first
+##     visit): the two tiers in red and white as a cutaway (the near quadrant keeps its lower tier), the
+##     roof ring and the spire with its screen cube, the crowd (one MultiMesh, the tier's cap, phones at
+##     night, a wave round the bowl on a bank or a zone), the LED ring and banners with parody sponsors
+##     (drift_tracks.json `boards`), the islands with their stages, screens and flame jets (FLAME_* , a
+##     pool fired by a zone), the track wall and tyre stacks along the loops (visual only).
+##   - Light (change 14): the bowl, crowd and boards are unshaded (drift_venue.gdshader: no light, the
+##     time of day from the city's globals); the floor and the cars, in the actors' lit material, get the
+##     venue's own floodlight at night (a DirectionalLight3D with no shadow, FLOOD_* , on only inside); the
+##     city's sun lights them by day. Only the cars cast shadows.
+##   - Tiers (tiers.gd DRIFT, read on each run): smoke 64 / 40 / 24, crowd 1,500 / 900 / 400, flames.
 ## Flags (dev_flags.gd): --drift=osemka (straight in), --drift=osemka:bot (the decent bot drives, for
 ## shots and the run step), --drift=osemka:pose:H:B (the car stands posed at the first point of the
 ## line whose course is H° with B° of slip on the bend's side, the clock still: the wedge's shots),
-## a last `:top` starts in WIDOK Z GÓRY (shots); --drift=0 (none). With any of them the run's lines are logged ("drift: ...").
+## a last `:top` starts in WIDOK Z GÓRY (shots), `:wide` frames the whole bowl from the iso side (shots of
+## the venue; with `:top` from above); --drift=0 (none). With any of them the run's lines are logged ("drift: ...").
 ## Add-ons: Beehave and Dialogue Manager not used (taps and a score; no NPC, no conversation).
 
 const DriftLine := preload("res://scripts/drift_line.gd")
@@ -35,6 +45,8 @@ const DriftBot := preload("res://scripts/drift_bot.gd")
 const DriftCar := preload("res://scripts/drift_car.gd")
 const DriftUi := preload("res://scripts/drift_ui.gd")
 const Skids := preload("res://scripts/skids.gd")
+const DriftVenue := preload("res://scripts/drift_venue.gd")
+const Tiers := preload("res://scripts/tiers.gd")
 const Models := preload("res://scripts/models.gd")
 const UiKit := preload("res://scripts/ui_kit.gd")
 
@@ -48,13 +60,17 @@ const ISO_VIEW := 34.0
 const YAW := 45.0
 const TOP_PITCH := -85.0
 const TOP_VIEW := 60.0
+## The `:wide` shot camera (the whole bowl): pitch and view (m), from the iso side and from above.
+const WIDE_PITCH := -30.0
+const WIDE_VIEW := 150.0
+const WIDE_TOP_VIEW := 200.0
 ## Change 6: the loop camera's pull towards the car and its slide between loops (s).
 const LOOP_PULL := 0.35
 const SLIDE_S := 1.2
 ## Change 5: the hand's ticks past BUZZ_DEG.
 const BUZZ_DEG := 60.0
 const BUZZ_HZ := 6.0
-## Change 12: the smoke.
+## Change 12: the smoke. SMOKE_CAP is the pool; the tier's cap (tiers.gd drift_smoke) uses its first N.
 const SMOKE_CAP := 64
 const SMOKE_A := 0.16
 const SMOKE_LIFE := 1.2
@@ -63,6 +79,13 @@ const PUFF_FROM := 2.5
 const PUFF_TO := 5.0
 ## Change 12: the marks kept.
 const MARKS := 8192
+## PR 2: the flame jets on a zone: each jet two instances (core and outer), FLAME_LIFE s, FLAME_H m high.
+const FLAME_LIFE := 0.6
+const FLAME_H := 5.0
+## PR 2: the crowd's wave (drift_venue.gdshader WAVE_LIFE) and the venue's floodlight at night (change 14).
+const WAVE_LIFE := 2.4
+const FLOOD_ENERGY := 0.85
+const FLOOD_COLOUR := Color("#fff1dc")
 ## A run gives up after this (s, 0b.2).
 const RUN_LIMIT := 45.0
 ## The wedge (change 4): its radii (m) and bands (°).
@@ -79,7 +102,6 @@ const GATE_V := 13.0
 const BOARD_RED := Color("#d23a35")
 const BOARD_WHITE := Color("#f1ede4")
 const CONE := Color("#ff8a2a")
-const WALL := Color("#a9a59b")
 const WEDGE_GREEN := Color("#3fcf73")
 const WEDGE_RIM := Color("#e8ff7a")
 const WEDGE_RED := Color("#ff4f5e")
@@ -111,6 +133,19 @@ var _smoke: MultiMeshInstance3D
 var _smoke_t: Array[float] = []
 var _smoke_at: Array[Vector3] = []
 var _smoke_next := 0
+var _smoke_cap := SMOKE_CAP
+var _bowl: MeshInstance3D
+var _spire: MeshInstance3D
+var _crowd: MultiMeshInstance3D
+var _crowd_mat: ShaderMaterial
+var _flames: MultiMeshInstance3D
+var _flame_spots: Array[Vector3] = []
+var _flame_t: Array[float] = []
+var _flame_cap := 16
+var _wave_t := 99.0
+var _flood: DirectionalLight3D
+var _tod: Node
+var _wide := false
 var _puff_s := 0.0
 var _skids: Node
 var _car: DriftCar
@@ -145,6 +180,7 @@ func install(ctx: GameCtx) -> bool:
 	vehicle = ctx.vehicle
 	clock = ctx.hour
 	sfx = ctx.sfx
+	_tod = ctx.tod
 	_player_car = ctx.car
 	world_node = ctx.world
 	return true
@@ -190,6 +226,7 @@ func joined(ctx: GameCtx) -> void:
 		_pose = Vector2(float(parts[2]), float(parts[3]))
 	if parts[parts.size() - 1] == "top":
 		top = true  # WIDOK Z GÓRY from the start (shots)
+	_wide = parts.has("wide")  # the whole bowl (shots of the venue)
 	get_tree().create_timer(1.0).timeout.connect(func() -> void:
 		if phase == Phase.IDLE:
 			start())
@@ -225,6 +262,7 @@ func _begin() -> void:
 		cam = world_node.get_viewport().get_camera_3d()
 	_root.visible = true
 	_skids.visible = true
+	_flood.visible = true
 	_ui_layer.visible = true
 	_set_awake(true)
 	_new_run()
@@ -237,6 +275,7 @@ func _ended() -> void:
 	if _root != null:
 		_root.visible = false
 		_skids.visible = false
+		_flood.visible = false
 	if _ui_layer != null:
 		_ui_layer.visible = false
 	_set_awake(false)
@@ -292,6 +331,7 @@ func _new_run() -> void:
 		_place_pose(_pose.x, _pose.y)
 	_car.state = st
 	_ui.hide_result()
+	_apply_tiers()
 	hud.cue("go")
 
 
@@ -376,6 +416,7 @@ func _on_said(said: String) -> void:
 	match what:
 		"bank":
 			_ui.flash("bank", "+" + DriftUi.num(int(said.get_slice(":", 1))), UiKit.GO)
+			_wave()
 			hud.cue("checkpoint")
 			Access.buzz(20, 0.5)
 			get_tree().create_timer(0.09).timeout.connect(func() -> void: Access.buzz(20, 0.5))
@@ -387,6 +428,9 @@ func _on_said(said: String) -> void:
 			_ui.flash(what)
 			hud.cue("ping")
 			Access.buzz(30, 0.6)
+			if what == "zona":
+				_fire_flames()
+				_wave()
 		"flick", "perfect":
 			_ui.flash(what)
 			hud.cue("step")
@@ -421,9 +465,10 @@ func _process(dt: float) -> void:
 	_frame_visuals(dt)
 	if log_on and not _frame_noted and _clock > 6.0:
 		_frame_noted = true
-		_log("frame: %d draw calls, %d objects, %d primitives, %d puffs alive, %d marks" % [int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
+		_log("frame: %d draw calls, %d objects, %d primitives, %d puffs alive, %d marks · %s: smoke cap %d, crowd %d, flames %d" % [int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
 				int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)), int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
-				_smoke_t.filter(func(x: float) -> bool: return x < SMOKE_LIFE).size(), (_skids as MultiMeshInstance3D).multimesh.visible_instance_count])
+				_smoke_t.filter(func(x: float) -> bool: return x < SMOKE_LIFE).size(), (_skids as MultiMeshInstance3D).multimesh.visible_instance_count,
+				Tiers.NAMES[Tiers.level], _smoke_cap, _crowd.multimesh.visible_instance_count, _flame_cap])
 
 
 func _frame_visuals(dt: float) -> void:
@@ -443,6 +488,7 @@ func _frame_visuals(dt: float) -> void:
 			_puff_s = 0.0
 			_puff(_wheel_point())
 	_smoke_frame(dt)
+	_venue_frame(dt)
 	# The UI's numbers and the pile over the car.
 	_ui.total = roundi(score.total)
 	_ui.best = best
@@ -468,7 +514,69 @@ func _wheel_point() -> Vector3:
 func _puff(at: Vector3) -> void:
 	_smoke_t[_smoke_next] = 0.0
 	_smoke_at[_smoke_next] = at
-	_smoke_next = (_smoke_next + 1) % SMOKE_CAP
+	_smoke_next = (_smoke_next + 1) % _smoke_cap
+
+
+## The tiers (tiers.gd DRIFT at the level main.gd applies): the smoke's pool, the crowd, the flames.
+func _apply_tiers() -> void:
+	_smoke_cap = clampi(int(Tiers.value(Tiers.level, "drift_smoke", Tiers.DRIFT["drift_smoke"])), 1, SMOKE_CAP)
+	_smoke_next = _smoke_next % _smoke_cap
+	var mm := _crowd.multimesh
+	mm.visible_instance_count = mini(int(Tiers.value(Tiers.level, "drift_crowd", Tiers.DRIFT["drift_crowd"])), mm.instance_count)
+	_flame_cap = clampi(int(Tiers.value(Tiers.level, "drift_flames", Tiers.DRIFT["drift_flames"])), 0, _flames.multimesh.instance_count)
+
+
+## A zone: the jets on the island nearest the car fire for FLAME_LIFE s (as many as the tier's cap allows).
+func _fire_flames() -> void:
+	var at := _car.global_position - PLACE
+	var best_d := INF
+	var best_i := 0
+	for i in _flame_spots.size():
+		var d := Vector2(_flame_spots[i].x, _flame_spots[i].z).distance_to(Vector2(at.x, at.z))
+		if d < best_d:
+			best_d = d
+			best_i = i
+	var per := DriftVenue.FLAMES_PER_ISLAND
+	var first := best_i - best_i % per
+	# Two instances a jet: Low's cap of 4 fires two of the island's jets.
+	for k in mini(per, _flame_cap >> 1):
+		_flame_t[first + k] = 0.0
+	_flames.visible = _flame_cap > 0
+
+
+## A bank or a zone: the crowd's wave starts at the car's side of the bowl.
+func _wave() -> void:
+	var at := _car.global_position - PLACE
+	_wave_t = 0.0
+	_crowd_mat.set_shader_parameter("wave_from", atan2(at.z, at.x))
+
+
+## The venue's frame: the flames' pool, the wave's clock, the floodlight by the time of day.
+func _venue_frame(dt: float) -> void:
+	if _wave_t < WAVE_LIFE:
+		_wave_t += dt
+		_crowd_mat.set_shader_parameter("wave_age", _wave_t)
+	if _flames.visible:
+		var mm := _flames.multimesh
+		var alive := false
+		for i in _flame_spots.size():
+			var t := _flame_t[i]
+			var on := t < FLAME_LIFE
+			if on:
+				_flame_t[i] = t + dt
+				alive = true
+			var k := clampf(t / 0.08, 0.0, 1.0) * clampf((FLAME_LIFE - t) / 0.15, 0.0, 1.0) if on else 0.0
+			var flick := 0.85 + 0.15 * sin(t * 60.0 + i)
+			var p := _flame_spots[i]
+			for layer in 2:
+				var h := FLAME_H * k * flick * (1.0 if layer == 0 else 0.6)
+				var w := (2.2 if layer == 0 else 1.2) * maxf(k, 0.01)
+				mm.set_instance_transform(i * 2 + layer, Transform3D(Basis().scaled(Vector3(w, maxf(h, 0.01), w)), p))
+		_flames.visible = alive
+	if _tod != null:
+		var night := 1.0 - clampf(float(_tod.get("daylight")), 0.0, 1.0)
+		_flood.light_energy = FLOOD_ENERGY * night
+		_flood.visible = _inside and night > 0.02
 
 
 func _smoke_frame(dt: float) -> void:
@@ -521,8 +629,14 @@ func view(c: Camera3D, _pitch: float, dt: float) -> bool:
 	_cam_last = target
 	var b := Basis.from_euler(Vector3(deg_to_rad(TOP_PITCH if top else ISO_PITCH), deg_to_rad(YAW), 0.0))
 	c.size = TOP_VIEW if top else ISO_VIEW
-	c.global_transform = Transform3D(b, target + b.z * 120.0)
-	c.far = 300.0
+	if _wide:
+		b = Basis.from_euler(Vector3(deg_to_rad(TOP_PITCH if top else WIDE_PITCH), deg_to_rad(YAW), 0.0))
+		c.size = WIDE_TOP_VIEW if top else WIDE_VIEW
+		target = PLACE + Vector3(0.0, 10.0, 0.0)
+	c.global_transform = Transform3D(b, target + b.z * (260.0 if _wide else 120.0))
+	c.far = 600.0 if _wide else 300.0
+	# WIDOK Z GÓRY: the spire's cube would hang over the crossover.
+	_spire.visible = _wide or not top
 	return true
 
 
@@ -551,7 +665,9 @@ func _build() -> void:
 	_floor.name = "Floor"
 	_floor.mesh = floor_mesh(line)
 	_floor.material_override = Models.material()
+	_floor.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # only the cars cast (0b.4)
 	_root.add_child(_floor)
+	_build_venue()
 	_wedge_meshes = [wedge_mesh(1), wedge_mesh(-1)]
 	_wedge = MeshInstance3D.new()
 	_wedge.name = "Wedge"
@@ -572,6 +688,7 @@ func _build() -> void:
 	_skids.max_marks = MARKS
 	_skids.along_velocity = true
 	_skids.ground_height = func(_x: float, _z: float) -> float: return PLACE.y
+	_skids.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var ctx_mat: Variant = _ground_mat()
 	if ctx_mat is Material:
 		_skids.material_override = ctx_mat
@@ -595,6 +712,67 @@ func _build() -> void:
 	_ui.set_top(top)
 	_root.visible = false
 	_ui_layer.visible = false
+
+
+## PR 2: the Stadion Narodowy round the floor (drift_venue.gd): the bowl and the spire in the venue's
+## unshaded material, the crowd, the flame jets' pool, the floodlight. Nothing of it casts a shadow.
+func _build_venue() -> void:
+	var tex := DriftVenue.atlas()
+	var mat := DriftVenue.material(tex, false)
+	_bowl = MeshInstance3D.new()
+	_bowl.name = "Bowl"
+	_bowl.mesh = DriftVenue.bowl_mesh(line)
+	_bowl.material_override = mat
+	_bowl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_root.add_child(_bowl)
+	_spire = MeshInstance3D.new()
+	_spire.name = "Spire"
+	_spire.mesh = DriftVenue.spire_mesh()
+	_spire.material_override = mat
+	_spire.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_root.add_child(_spire)
+	_crowd_mat = DriftVenue.material(tex, true)
+	_crowd = MultiMeshInstance3D.new()
+	_crowd.name = "Crowd"
+	_crowd.multimesh = DriftVenue.crowd(int(Tiers.DRIFT["drift_crowd"]))
+	_crowd.material_override = _crowd_mat
+	_crowd.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_root.add_child(_crowd)
+	_flame_spots = DriftVenue.flame_spots(line)
+	_flame_t.resize(_flame_spots.size())
+	_flame_t.fill(99.0)
+	var fmat := StandardMaterial3D.new()
+	fmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA  # mixed, not added: a lit floor washed added flames white
+	fmat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	fmat.vertex_color_use_as_albedo = true
+	fmat.render_priority = 1  # after the post-process quad, as the smoke
+	var fm := MultiMesh.new()
+	fm.transform_format = MultiMesh.TRANSFORM_3D
+	fm.mesh = DriftVenue.flame_mesh()
+	fm.instance_count = _flame_spots.size() * 2
+	for i in fm.instance_count:
+		fm.set_instance_transform(i, Transform3D(Basis().scaled(Vector3.ONE * 0.01), _flame_spots[i >> 1]))
+	fm.custom_aabb = AABB(Vector3(-FLOOR.x * 0.5, 0.0, -FLOOR.y * 0.5), Vector3(FLOOR.x, 8.0, FLOOR.y))
+	_flames = MultiMeshInstance3D.new()
+	_flames.name = "Flames"
+	_flames.multimesh = fm
+	_flames.material_override = fmat
+	_flames.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_flames.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	_flames.visible = false
+	_root.add_child(_flames)
+	# Change 14: the floodlight from the roof for the lit floor and cars, at night, inside only; no shadow.
+	_flood = DirectionalLight3D.new()
+	_flood.name = "Floodlight"
+	_flood.light_color = FLOOD_COLOUR
+	_flood.light_energy = 0.0
+	_flood.shadow_enabled = false
+	_flood.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
+	_flood.rotation = Vector3(deg_to_rad(-62.0), deg_to_rad(20.0), 0.0)
+	_flood.visible = false
+	add_child(_flood)
+	_apply_tiers()
 
 
 ## The marks' material: the actors' (dark vertex colour, lit like the floor).
@@ -745,9 +923,8 @@ static func floor_mesh(ln: RefCounted) -> ArrayMesh:
 				var p := pts[i]
 				_box(st, Vector3(p.x, 0.3, p.y), Vector3(0.4, 0.6, 0.4), 0.0, CONE, GLOW_PAINT)
 				_box(st, Vector3(p.x, 0.62, p.y), Vector3(0.26, 0.06, 0.26), 0.0, BOARD_WHITE, GLOW_PAINT)
-	# The low wall round the floor.
-	for side in [Vector4(0, -hz, FLOOR.x, 0.5), Vector4(0, hz, FLOOR.x, 0.5), Vector4(-hx, 0, 0.5, FLOOR.y), Vector4(hx, 0, 0.5, FLOOR.y)]:
-		_box(st, Vector3(side.x, 0.5, side.y), Vector3(side.z, 1.0, side.w), 0.0, WALL, GLOW_FLOOR)
+	# PR 2: the apron to the stands, the track wall, tyres, kerbs, stages and flame posts (drift_venue.gd).
+	DriftVenue.dress(st, ln, GLOW_FLOOR)
 	st.index()
 	return st.commit()
 
