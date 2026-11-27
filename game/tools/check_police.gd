@@ -804,6 +804,20 @@ func _part_two() -> void:
 	var toasted: bool = hud.toasts.any(func(t: Array) -> bool: return String(t[0]).contains("RATUJESZ"))
 	_case("rescue ends the chase", p.phase == Police.Phase.CALM and p.cooldown > 170.0 and toasted
 			and p.chases_started == p.chases_ended, "%s, cooldown %.0f s, toast %s" % [Police.PHASES[p.phase], p.cooldown, toasted])
+	# A raid's cordon car turns chaser (street_meet.gd, critique-night-quest 3.3): only a scene car, only in a chase.
+	_fresh(true)
+	p.now = false
+	var sc = p.scene_car(0, 0, 470.0, Vector3(470.0, 0.0, 6.5), 0.0, 0)
+	var lone: bool = p.scene_to_chaser(sc)
+	var su = p._unit_of.get(sc)
+	_case("scene car, no chase: stays a scene car", not lone and su != null and su.role() == "crash",
+			"no chase: returned %s, role %s" % [lone, su.role() if su != null else "-"])
+	var pu = _patrol(560.0)
+	p._start_chase(1, pu, "check")
+	var plain: bool = p.scene_to_chaser(pu.driver)
+	var joined: bool = p.scene_to_chaser(sc)
+	_case("scene car joins the chase", joined and not plain and su.role() == "chaser" and not sc.parked,
+			"a patrol unit refused %s, the scene car joined %s, role %s, parked %s" % [not plain, joined, su.role(), sc.parked])
 	# The escort on the first rescue: none in sight, so one placed 150 m ahead out of sight; +10 s.
 	_fresh()
 	missions.state = 3

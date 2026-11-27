@@ -408,7 +408,7 @@ func _check_screen(screen: Vector2i) -> int:
 							"note": ["Uwagi: „jestem tam, gdzie pinezka, tylko po drugiej stronie”.",
 							"Note: \"I'm where the pin is, just on the other side.\""], "night": true, "rain": true, "rating": 4.87})
 					hud.show_side_card(offer[0], offer[1], PackedStringArray(["ACCEPT", "SKIP"]), Color("#4fd8c4"), offer[2], offer[3])
-					hud.show_pill("ŁUBER", "ride app", "ride")
+					hud.show_pill("ŁUBER", "ŁUBER", "ride")
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
 				"ride":
 					hud.show_status("ŁUBER → Plac Trzech Krzyży", RideRules.stars_text(4.5), "1840 m",

@@ -1,0 +1,1 @@
+- English players now see ŁUBER too: the ride button, the new-ride card, the result and the cancelled card all carry the brand.

@@ -50,7 +50,7 @@ of git (CLAUDE.md: no keys in tracked files).
 | `activity_start` / `activity_end` | activity, job, how (done/quit/timeout/ended; a street race says won/lost/quit from 2026-11-23), duration_s, t_play_s | which jobs and quests are played and finished |
 | `first_job` | stage (start / end), activity, how, t_play_s (once per install each) | the drop between the guide's beats, the first job and its completion |
 | `chase_end` | how, t_play_s | police chases |
-| `discover` | kind (district/egg), id, t_play_s | exploration |
+| `discover` | kind (district/egg/napkin), id, t_play_s | exploration (napkin: a LISTA line ticked, napkin.gd) |
 | `garage` | action (visit/paint/upgrade), id | the garage |
 | `heli_landed` | t_play_s | the helicopter |
 | `radio` | station | the radio |

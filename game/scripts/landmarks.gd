@@ -124,8 +124,11 @@ const TOWERS := [
 	# Equator II graphite with blue-grey ribbon glass. The software house on Equator II's 9th floor
 	# gets the parody BLUZOFT on the roof edge.
 	{"key": "brama", "osm": "Brama Zachodnia", "style": S_PUNCHED, "glass": "#c99573", "roof": "#8d8a86", "h": 47.2},
-	{"key": "equator", "osm": "Equator", "style": S_RIBBON, "glass": "#4a5a6c", "roof": "#8a8f93", "h": 53.8},
-	{"key": "equator2", "osm": "Equator II", "style": S_RIBBON, "glass": "#5a7490", "roof": "#8a8f93", "h": 50.5, "sign": "BLUZOFT"},
+	# Both stand on modelled street blocks (blk_31002630, blk_305521858) that carry their roofs and
+	# plant: `on_block` (the block's roof height) leaves the body to the block, the tower adds its sign.
+	{"key": "equator", "osm": "Equator", "style": S_RIBBON, "glass": "#4a5a6c", "roof": "#8a8f93", "h": 53.8, "on_block": 63.4},
+	{"key": "equator2", "osm": "Equator II", "style": S_RIBBON, "glass": "#5a7490", "roof": "#8a8f93", "h": 50.5, "sign": "BLUZOFT",
+			"on_block": 61.9},
 	{"key": "skysawa", "osm": "Skysawa", "style": S_BANDS, "glass": "#7e93a3", "roof": "#a7b0b6"},
 	# Błękitny Wieżowiec (Plac Bankowy 2, 1991): untinted reflective float glass that mirrors the
 	# sky, hence blue (its first cladding was copper, the "Golden Tower"; spec blekitny.md). Deep
@@ -167,8 +170,9 @@ const TOWERS := [
 			"skins": {"#c1a48b": [S_PUNCHED, "#e4e0d6"], "#647887": [S_BANDS, "#8aa1ad"]}},
 	# The bank tower on Grzybowska (T37, 2026-11-08; OSM name kept for the lookup only): beige stone with punched windows over a green
 	# glass grid on the lower floors, the bank's name (the parody) on the crown, grey glass podium.
+	# The street block under it (blk_238169923) is the better body (the stone crown, the glass grid): `on_block`.
 	{"key": "pepeo_tower", "osm": "Pekao Tower", "style": S_PUNCHED, "glass": "#d9d2c2", "roof": "#a9a69c", "mapped": true,
-			"sign": "PEPEO ŻUBR",
+			"sign": "PEPEO ŻUBR", "on_block": 82.2,
 			"skins": {"#ffffff": [S_PUNCHED, "#d9d2c2"], "#2c4c50": [S_GRID, "#4f7a76"], "#545a56": [S_DARK, "#545a56"],
 					"": [S_GRID, "#6f7c80"]}},
 	# Widok Towers (F's photos, 2026-11-08, folder E4-widok): pale blue-grey glass in a white
@@ -1900,8 +1904,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the facade and towers are ours
 				_build_krzyz(s)
 			"wszystkich":
-				_mark_zone(s)  # the nave stays LoD2's, in its skin; the front and towers are ours
-				_build_wszystkich(s)
+				_build_wszystkich(s)  # the whole church (SKINS entry with `model`: it replaces LoD2)
 			"archikatedra":
 				_mark_zone(s)  # the nave stays LoD2's, in its brick; the stepped-gable front is ours
 				_build_archikatedra(s)
@@ -2265,6 +2268,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 					_build_photo_fronts(s)
 				elif s.has("tower"):
 					_build_tower(s)
+					if (s["tower"] as Dictionary).has("on_block"):
+						_mark_zone(s)  # no body of its own to tap: the block's outline
 				elif s.has("skin"):
 					_mark_zone(s)
 		if not _holes.is_empty():

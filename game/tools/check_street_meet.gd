@@ -201,12 +201,19 @@ class PlayPolice extends Node:
 	## often the chase was called off.
 	var raids: Array = []
 	var cordon: Array = []
+	var chasers: Array = []
 	var left := 0
 	var stood_down := 0
 
-	func raid(at: Vector3, n: int, lvl := 2) -> int:
+	func raid(at: Vector3, n: int, lvl := 2, _hold := 15.0) -> int:
 		raids.append([at, n, lvl])
 		return n
+
+	func scene_to_chaser(d: Driver) -> bool:
+		if not chase:
+			return false
+		chasers.append(d)
+		return true
 
 	func chasing() -> bool:
 		return chase
@@ -425,6 +432,9 @@ func _check_drag(digest: PackedStringArray) -> void:
 		problems.append("the bottle's place: third %.2f, fifth %.2f, none %.2f" % [third[0], fifth[0], bare[0]])
 	if float(third[0]) >= times[2]:
 		problems.append("four IDEALNIE and the bottle into third (%.2f s) don't beat Tadek's night 3 (%.2f s)" % [third[0], times[2]])
+	# PT-63: night 2 can be won: four IDEALNIE and the bottle into third beat Tadek's night 2 by over a second.
+	if float(third[0]) >= times[1] - 1.0:
+		problems.append("night 2 is not winnable by a clean run: %.2f s against Tadek's %.2f s" % [third[0], times[1]])
 	if float(bare[0]) <= times[3] - 1.0:
 		problems.append("no bottle beats night 4's Tadek (%.2f s) by over a second" % times[3])
 	if ok > 30.0:
@@ -1001,6 +1011,18 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	# player is 22 m out; a caution halves the pot, never to nothing by itself.
 	_ok(m._tell_t < 0.0 and not m.raid_clean, "the siren tell came first and the player in the ring is boxed (no CZYSTO)")
 	var pot_save: int = m.pot
+	# PT-64: a bonus is a quest toast (not the dropped ambient kind), and the tell clears Lena's subtitle.
+	var toasts0: int = _hud.toasts.size()
+	var amb0: int = _hud.ambient.size()
+	m._pot_add(60, "CZYSTO!", "CLEAN!")
+	_ok(_hud.toasts.size() == toasts0 + 1 and _hud.ambient.size() == amb0 and String(_hud.toasts[-1]).contains("60"), "PT-64: +60 CZYSTO! is a normal-priority toast")
+	m.pot = pot_save
+	m.pot_parts.pop_back()
+	var cleared0: int = _bubbles.cleared
+	m._tell()
+	m._tell_t = -1.0
+	_ok(_bubbles.cleared == cleared0 + 1, "PT-64: the siren tell clears the bubbles (Lena's subtitle)")
+	_ok(m._punctual >= Meet.POT_PUNCTUAL, "NA CZAS allows at least POT_PUNCTUAL s, more for a long way (%.0f s, PT-59)" % m._punctual)
 	_ok(Meet.is_clean(gap + Vector3(Meet.CLEAN_M + 1.0, 0.0, 0.0), gap) and not Meet.is_clean(gap + Vector3(5.0, 0.0, 0.0), gap), "CZYSTO is CLEAN_M m from the gap")
 	m.pot = 100
 	_wallet.cautions_today += 1
@@ -1010,6 +1032,13 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(m.pot == 50, "one halving per caution")
 	_ok(m.night_bar() == "●●○○○ · 50 zł", "the night bar: the second beat and the pot (%s)" % m.night_bar())
 	m.pot = pot_save
+	# Critique 3.3: CHASER_AT s after NALOT! two of the four become chasers, the other two stay boxed.
+	_ok(_police.chasers.is_empty(), "no cordon car chases before CHASER_AT")
+	_police.chase = true
+	m._stage_t = Meet.CHASER_AT - 0.01
+	_frames(0.3)
+	_ok(_police.chasers.size() == Meet.CHASERS and m._cordon.size() == Meet.CORDON - Meet.CHASERS and _in(Meet.Stage.RAID), "CHASERS cordon cars join the chase, the rest stay")
+	_police.chase = false
 
 	# 5. The pin, the race.
 	_ok(_until(_in.bind(Meet.Stage.RACE), 10.0), "PIN_AFTER s after the sirens the race begins")
@@ -1075,16 +1104,21 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	for l: Array in Meet.MEET2_LINES:
 		talked2 = talked2 and _said(String(l[1]))
 	_ok(talked2, "the club said all of MEET2_LINES")
-	_ok(_police.raids.size() == 2 and _hud.banners.count("NALOT!") == 2 and _police.cordon.size() == 2 * Meet.CORDON and m._cordon.size() == Meet.CORDON and _police.left == Meet.CORDON, "the second raid: its cordon, the first one sent away")
+	# Critique 3.4: raid 2 is a searchlight, no second cordon and no police until it finds you.
+	_ok(_hud.banners.count("NALOT!") == 2 and _police.raids.size() == 1 and _police.cordon.size() == Meet.CORDON and m._search_t >= 0.0 and m._pool.visible, "the second raid: a searchlight, no cordon, no police yet")
+	_ok(m.search_pos(0.0) == m._exit_a and m.search_pos(Meet.SEARCH_LIT) == m._exit_a and m.search_pos(Meet.SEARCH_T) == m._exit_b \
+			and m.search_pos((Meet.SEARCH_LIT + Meet.SEARCH_T) * 0.5).is_equal_approx(m._exit_a.lerp(m._exit_b, 0.5)), "the light sits on exit A for SEARCH_LIT s, then crosses to exit B by SEARCH_T")
 	_frames(Meet.PIN_AFTER - 1.5)
 	_ok(_in(Meet.Stage.RAID2), "the second raid counts its own PIN_AFTER s (not on from the race's)")
 	_ok(_until(_in.bind(Meet.Stage.TO_DRAG), 12.0), "the pin to the drag")
+	var pot_lit: int = m.pot
+	_ok(_until(func() -> bool: return m.search_found, Meet.SEARCH_T + 2.0) and _police.raids.size() == 2 and not m._pool.visible and m.pot < pot_lit, "still in the square when the light has looked everywhere: found, the police come, the pot halves")
 	var watch: Vector3 = m.strip["watch"]
 	_ok(_hud.notes.size() == 2 and m._gate.visible and m._gate.mesh != null and not m._scene.visible and m._racers.is_empty() and _hud.dots == 0, "the note, the gate, the scene and the racers gone")
 	_ok(m.has_target() and m.target_position() == watch and m._beacon.global_position.is_equal_approx(watch) and is_equal_approx(float(m._beacon.get("_ring_radius")), Meet.MEET_R), "the target is the start, ring MEET_R")
 	_traffic.seen = false
 	_frames(0.6)
-	_ok(m._cordon.is_empty() and _police.left == 2 * Meet.CORDON and not m._flash.visible, "the cordon leaves once out of sight")
+	_ok(m._cordon.is_empty() and not m._flash.visible, "the cordon leaves once out of sight")
 	_traffic.seen = true
 	var on_strip := _traffic.spawn(m.strip_at(60.0))
 	var off_strip := _traffic.spawn(Vector3(5000.0, 0.0, 5000.0))
@@ -1117,6 +1151,10 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(_car.vel == Vector3.ZERO and m.stage == Meet.Stage.LINE, "on the line the car stays (no false start by gas)")
 	_ok(_drive_until(func() -> bool: return m.stage == Meet.Stage.DRAG, 3.0, 1.0), "green after TREE_PRE + 3 * TREE_STEP")
 	_ok(m._tree.green and not m._tacho.staging and m._boost_t > 0.0 and Meet.launch_grade(m._revs) == "perfect", "the revs in the launch zone (%.2f): a perfect launch, a burst" % m._revs)
+	# PT-63: a car that turns onto the strip 12 m ahead mid-run is gone within a frame, not at the next tick.
+	var late_car := _traffic.spawn(m.strip_at(m._player_s + 12.0))
+	_driven(0.05, 1.0)
+	_ok(not late_car.active, "PT-63: a car on the strip 12 m ahead is swept within a few frames")
 	var gears_ok := true
 	for k in 3:
 		var top_before := _car.top_mult

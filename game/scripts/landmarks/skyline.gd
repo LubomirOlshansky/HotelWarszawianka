@@ -823,6 +823,11 @@ func _build_tower(site: Dictionary) -> void:
 		return
 	_g = _ground_under(zone)
 	var g := _g
+	if spec.has("on_block"):
+		# A modelled street block draws the body (check_sites: no second model of one building);
+		# the tower keeps its card, its tap cells (landmarks.gd build marks its zone) and the sign.
+		_dusk_details(spec, zone, g, float(spec["on_block"]))
+		return
 	var glass := Color(spec["glass"])
 	var roof := Color(spec["roof"])
 	var skin := M_SKIN + float(spec["style"]) / 16.0
@@ -866,6 +871,8 @@ func _build_tower(site: Dictionary) -> void:
 		# with its roof garden.
 		_zlota_sail(g, glass, roof, skin)
 		_zlota_garden(parts, g)
+		_zlota_pool(parts, g)
+		_zlota_foot(parts, g)
 	elif spec["key"] == "spire":
 		# Warsaw Spire: the leaf-shaped tower lofted and tapering (_spire); the two lower
 		# office buildings beside it are built from their parts.
@@ -3291,6 +3298,16 @@ const ZLOTA_EAST_SEGS := 10
 const ZLOTA_SOUTH_SEGS := 6
 const ZLOTA_RINGS := [0.0, 0.04, 0.1, 0.17, 0.25, 0.33, 0.42, 0.52, 0.62, 0.72, 0.81, 0.89, 0.95, 1.0]
 const ZLOTA_CROWN_GLASS := Color("#58788c")
+# Update 2026-11-26 (spec "3D Tiles + Street View pass"): all in the site's one building mesh.
+const ZLOTA_BLUE := Color("#4f78b0")      # z26_blue: the glass patches along the wing's crease
+const ZLOTA_LID := 181.0                  # z26_well: the crown box's floor, 3 m under its walls' top
+const ZLOTA_COPING := Color("#e4e8ea")
+const ZLOTA_LOBBY_AT := 0.35              # z26_lobby: share of the south face from the SE end
+const ZLOTA_LOBBY_W := 12.0
+const ZLOTA_LOBBY_H := 8.1               # the portal head sits on it (8.1-8.7), over the blade at 8.0-8.5
+const ZLOTA_BLADE_LEN := 18.0
+const ZLOTA_BLADE_OUT := 3.0
+const ZLOTA_PLINTH_H := 4.2
 ## The LED line on the sharp south-east corner (F's photos, 2026-11-08): a thin blue light up the
 ## whole wing edge to the tip, lit at night (M_LAMP). A strip ZLOTA_EDGE_W wide, standing
 ## ZLOTA_EDGE_OUT off the corner along its bisector, through the same rings as the tower.
@@ -3440,7 +3457,12 @@ func _zlota_sail(g: float, glass: Color, roof: Color, skin: float) -> void:
 				nrm = -nrm
 			var length := r0[i].distance_to(r0[j])
 			var hi := maxf(tops[i], tops[j])
-			_quad(a0, b0, b1, a1, nrm, glass, Vector2(run, ya0 - _g), Vector2(run + length, yb0 - _g),
+			# z26_blue: saturated blue panes in patches up the wing's crease (the east face's last
+			# segment and the south face's first), from ring 2 up.
+			var pane := glass
+			if k >= 2 and (i == ZLOTA_EAST_SEGS - 1 or i == ZLOTA_EAST_SEGS):
+				pane = glass.lerp(ZLOTA_BLUE, 0.8 if k % 2 == 0 else 0.6)
+			_quad(a0, b0, b1, a1, nrm, pane, Vector2(run, ya0 - _g), Vector2(run + length, yb0 - _g),
 					Vector2(run + length, b1.y - _g), Vector2(run, a1.y - _g), hi)
 			run += length
 	_zlota_edge_light(rings, tops, g)
@@ -3490,7 +3512,8 @@ func _zlota_sail(g: float, glass: Color, roof: Color, skin: float) -> void:
 					Vector2(run, ZLOTA_CROWN), ZLOTA_CROWN)
 			run += length
 		_mode = M_STONE
-		_cap(box, g + ZLOTA_CROWN, ZLOTA_CROWN_GLASS.lerp(roof, 0.6))
+		_cap(box, g + ZLOTA_LID, ZLOTA_CROWN_GLASS.lerp(roof, 0.6))
+		_zlota_well(box, g, axis, side)
 		_aviation(box, func(_q: Vector2) -> float: return g + ZLOTA_CROWN)
 	# A red light on the tip itself.
 	var inward := tip + (_centre(top_ring) - tip).normalized() * 1.2
@@ -3517,6 +3540,242 @@ func _zlota_garden(parts: Array, g: float) -> void:
 					pieces.append(q)
 		for piece in pieces:
 			_varso_garden(piece, g + h, ZLOTA_TERRACE)
+
+
+## z26_well, z26_coping, z26_plant: the crown box is an open well (its floor ZLOTA_LID, its dark
+## glass walls keep their top at ZLOTA_CROWN): the walls' inner faces, a pale coping on their top,
+## one plant block on the floor and four duct runs round it (top view: a pale frame round an open
+## roof full of plant). `axis` is the slope's long axis, `side` across it.
+func _zlota_well(box: PackedVector2Array, g: float, axis: Vector2, side: Vector2) -> void:
+	var keep := _mode
+	_mode = M_SKIN + float(S_FINS) / 16.0
+	var inset := _ring_out(box, -0.05)
+	var run := 0.0
+	for i in inset.size():
+		var j := (i + 1) % inset.size()
+		var a := inset[i]
+		var b := inset[j]
+		var o := -_out(box, box[i], box[j])
+		var length := a.distance_to(b)
+		_quad(Vector3(a.x, g + ZLOTA_LID, a.y), Vector3(b.x, g + ZLOTA_LID, b.y),
+				Vector3(b.x, g + ZLOTA_CROWN, b.y), Vector3(a.x, g + ZLOTA_CROWN, a.y),
+				Vector3(o.x, 0.0, o.y), ZLOTA_CROWN_GLASS.darkened(0.2),
+				Vector2(run, ZLOTA_LID), Vector2(run + length, ZLOTA_LID),
+				Vector2(run + length, ZLOTA_CROWN), Vector2(run, ZLOTA_CROWN), ZLOTA_CROWN)
+		run += length
+	_mode = M_STONE
+	kit_ledge_ring(box, g + ZLOTA_CROWN - 0.4, 0.4, ZLOTA_COPING, 0.05)
+	# The plant block 12 x 18 m, long side along the slope axis, and the ducts round it.
+	var c := _centre(box)
+	var hx := axis * 9.0
+	var hy := side * 6.0
+	_prism(PackedVector2Array([c - hx - hy, c + hx - hy, c + hx + hy, c - hx + hy]), g + ZLOTA_LID, g + 183.5,
+			PAL_PALE_CONCRETE, PAL_ROOF_GRAVEL, M_STONE, M_STONE)
+	# The long runs cover the corners; the end runs stop at their inner faces (no overlap).
+	var ex := axis * 10.5
+	var ey := side * 7.5
+	var corner := axis * 11.0
+	var inner := side * 7.0
+	var lines: Array[PackedVector2Array] = [
+		PackedVector2Array([c - corner - ey, c + corner - ey]), PackedVector2Array([c - corner + ey, c + corner + ey]),
+		PackedVector2Array([c - ex - inner, c - ex + inner]), PackedVector2Array([c + ex - inner, c + ex + inner])]
+	for room in Geometry2D.offset_polygon(box, -1.0):
+		for line in lines:
+			for seg in Geometry2D.intersect_polyline_with_polygon(line, room):
+				for k in seg.size() - 1:
+					_beam(Vector3(seg[k].x, g + ZLOTA_LID + 0.53, seg[k].y),
+							Vector3(seg[k + 1].x, g + ZLOTA_LID + 0.53, seg[k + 1].y), 1.0, PAL_ALUMINIUM)
+	_mode = keep
+
+
+## Samples [point, outward normal] along the open run ring[i0..i1] from arc distance s0 to s1:
+## both ends and every ring vertex between them (normals blended at the vertices).
+func _zlota_run(ring: PackedVector2Array, i0: int, i1: int, s0: float, s1: float) -> Array:
+	var cnt := i1 - i0
+	var arcs := PackedFloat32Array([0.0])
+	for k in cnt:
+		arcs.append(arcs[k] + ring[i0 + k].distance_to(ring[i0 + k + 1]))
+	var vn: Array[Vector2] = []
+	for k in cnt + 1:
+		var n := Vector2.ZERO
+		if k > 0:
+			n += _out(ring, ring[i0 + k - 1], ring[i0 + k])
+		if k < cnt:
+			n += _out(ring, ring[i0 + k], ring[i0 + k + 1])
+		vn.append(n.normalized())
+	var stops: Array[float] = [s0]
+	for k in range(1, cnt):
+		if arcs[k] > s0 + 0.3 and arcs[k] < s1 - 0.3:
+			stops.append(arcs[k])
+	if s1 > s0:
+		stops.append(s1)
+	var out: Array = []
+	for s in stops:
+		var k := 0
+		while k < cnt - 1 and s > arcs[k + 1]:
+			k += 1
+		var t := clampf((s - arcs[k]) / maxf(arcs[k + 1] - arcs[k], 0.001), 0.0, 1.0)
+		out.append([ring[i0 + k].lerp(ring[i0 + k + 1], t), vn[k].lerp(vn[k + 1], t).normalized()])
+	return out
+
+
+## z26_lobby, z26_portal, z26_blade, z26_plinth: the south entrance on Złota and the dark foot.
+## All on the foot ring (`_zlota_ring(0.0)`); the south face is its run SE (index
+## ZLOTA_EAST_SEGS) to the soft south-west corner.
+func _zlota_foot(parts: Array, g: float) -> void:
+	var keep := _mode
+	var none := Vector2(-1, -1)
+	var ring := _zlota_ring(0.0)
+	var i0 := ZLOTA_EAST_SEGS
+	var i1 := ZLOTA_EAST_SEGS + ZLOTA_SOUTH_SEGS
+	var sc := ZLOTA_LOBBY_AT * ZLOTA_SE.distance_to(ZLOTA_SW)
+	var l0 := sc - ZLOTA_LOBBY_W * 0.5
+	var l1 := sc + ZLOTA_LOBBY_W * 0.5
+	# z26_lobby: a dark double-height glass quad, 0.08 m out of the skin (warm at night).
+	_mode = M_PAVILION
+	var run := _zlota_run(ring, i0, i1, l0, l1)
+	for k in run.size() - 1:
+		var a: Array = run[k]
+		var b: Array = run[k + 1]
+		var pa: Vector2 = (a[0] as Vector2) + (a[1] as Vector2) * 0.08
+		var pb: Vector2 = (b[0] as Vector2) + (b[1] as Vector2) * 0.08
+		var n: Vector2 = ((a[1] as Vector2) + (b[1] as Vector2)).normalized()
+		_quad(Vector3(pa.x, g, pa.y), Vector3(pb.x, g, pb.y), Vector3(pb.x, g + ZLOTA_LOBBY_H, pb.y),
+				Vector3(pa.x, g + ZLOTA_LOBBY_H, pa.y), Vector3(n.x, 0.0, n.y), Color("#2c3a44"))
+	# z26_portal: two jambs and a head, 0.6 m, black, 0.25 m proud of the skin.
+	for s in [l0 - 0.3, l1 + 0.3]:
+		var at: Array = _zlota_run(ring, i0, i1, s, s)[0]
+		var p: Vector2 = (at[0] as Vector2) - (at[1] as Vector2) * 0.05
+		_beam(Vector3(p.x, g, p.y), Vector3(p.x, g + ZLOTA_LOBBY_H + 0.3, p.y), 0.6, PAL_IRON)
+	var head := _zlota_run(ring, i0, i1, l0 - 0.6, l1 + 0.6)
+	for k in head.size() - 1:
+		var a: Array = head[k]
+		var b: Array = head[k + 1]
+		var pa: Vector2 = (a[0] as Vector2) - (a[1] as Vector2) * 0.05
+		var pb: Vector2 = (b[0] as Vector2) - (b[1] as Vector2) * 0.05
+		_beam(Vector3(pa.x, g + ZLOTA_LOBBY_H + 0.3, pa.y), Vector3(pb.x, g + ZLOTA_LOBBY_H + 0.3, pb.y), 0.6, PAL_IRON)
+	# z26_blade: a thin white canopy at 8 m, 18 m along the face from the SE corner, 3 m out, its
+	# east end cut at 45 degrees; under its front edge a warm strip (lit at night).
+	var plan := PackedVector2Array()
+	for s: Array in _zlota_run(ring, i0, i1, 0.0, ZLOTA_BLADE_LEN):
+		plan.append((s[0] as Vector2) + (s[1] as Vector2) * 0.1)
+	var front: Array = []
+	var cut := ZLOTA_BLADE_OUT - 0.1
+	for s in [ZLOTA_BLADE_LEN, (cut + ZLOTA_BLADE_LEN) * 0.5, cut]:
+		var at: Array = _zlota_run(ring, i0, i1, s, s)[0]
+		front.append(at)
+		plan.append((at[0] as Vector2) + (at[1] as Vector2) * ZLOTA_BLADE_OUT)
+	var blade := Color("#e9ecee")
+	_prism(plan, g + 8.0, g + 8.5, blade, blade, M_STONE, M_STONE)
+	_soffit(plan, g + 8.0, blade.darkened(0.15))
+	for k in front.size() - 1:
+		var fa: Array = front[k]
+		var fb: Array = front[k + 1]
+		var a2: Vector2 = (fa[0] as Vector2) + (fa[1] as Vector2) * ZLOTA_BLADE_OUT
+		var b2: Vector2 = (fb[0] as Vector2) + (fb[1] as Vector2) * ZLOTA_BLADE_OUT
+		_prism(PackedVector2Array([a2, b2, b2 - (fb[1] as Vector2) * 0.15, a2 - (fa[1] as Vector2) * 0.15]),
+				g + 7.85, g + 8.0, Color("#f6e7c2"), Color(0, 0, 0, 0), M_LAMP, M_LAMP)
+	# z26_plinth: 4.6 m of dark granite panels (diagonal joints) on every foot-ring edge whose
+	# front is not the podium's, except across the lobby.
+	_mode = M_STONE
+	var podium: Array[PackedVector2Array] = []
+	for b: Dictionary in parts:
+		var h := float(b["h"])
+		if h >= 20.0 and h <= 40.0 and float(b["mh"]) <= 0.5:
+			podium.append(_pts(b["p"]))
+	var outer := _ring_out(ring, 0.25)
+	var dark := PAL_DARK_GRANITE
+	var arc := 0.0
+	var y0 := g - 0.4
+	var y1 := g + ZLOTA_PLINTH_H
+	for i in ring.size():
+		var j := (i + 1) % ring.size()
+		var a := ring[i]
+		var b := ring[j]
+		var length := a.distance_to(b)
+		var s_mid := arc + length * 0.5
+		if i >= i0 and i < i1:
+			arc += length
+		var o := _out(ring, a, b)
+		var skip := i >= i0 and i < i1 and s_mid > l0 and s_mid < l1
+		for q in podium:
+			if Geometry2D.is_point_in_polygon((a + b) * 0.5 + o * 0.3, q):
+				skip = true
+		if skip:
+			continue
+		var nrm := Vector3(o.x, 0.0, o.y)
+		var cnt := maxi(1, ceili(length / 4.5))
+		for q in cnt:
+			var p0 := outer[i].lerp(outer[j], float(q) / cnt)
+			var p1 := outer[i].lerp(outer[j], float(q + 1) / cnt)
+			var v00 := Vector3(p0.x, y0, p0.y)
+			var v10 := Vector3(p1.x, y0, p1.y)
+			var v11 := Vector3(p1.x, y1, p1.y)
+			var v01 := Vector3(p0.x, y1, p0.y)
+			_tri(v00, v10, v11, nrm, dark, none, none, none, -1.0)
+			_tri(v00, v11, v01, nrm, dark.lightened(0.06), none, none, none, -1.0)
+		_quad(Vector3(a.x, y1, a.y), Vector3(b.x, y1, b.y), Vector3(outer[j].x, y1, outer[j].y),
+				Vector3(outer[i].x, y1, outer[i].y), Vector3.UP, dark.lightened(0.12))
+	_mode = keep
+
+
+## z26_pool and z26_path on the 32 m podium's roof garden, after its deck (out of the roof grid):
+## a small pool with a pale coping and a diagonal paved path across the lawn. The deck top is
+## 0.12 m over the part's roof (`_varso_garden`).
+func _zlota_pool(parts: Array, g: float) -> void:
+	var at := Vector2(-1457.0, 288.2)  # spec 289.0, moved north out of the lawn bed (F: option a)
+	var keep := _mode
+	var keep_roof := _no_roof
+	_no_roof = true
+	for b: Dictionary in parts:
+		var h := float(b["h"])
+		if h < 20.0 or h > 40.0 or float(b["mh"]) > 0.5:
+			continue
+		var poly := _pts(b["p"])
+		if not Geometry2D.is_point_in_polygon(at, poly):
+			continue
+		var pieces: Array[PackedVector2Array] = [poly]
+		var grown := Geometry2D.offset_polygon(_zlota_ring(h), 0.6)
+		if not grown.is_empty():
+			pieces = []
+			for q in Geometry2D.clip_polygons(poly, grown[0]):
+				if q.size() >= 3 and not Geometry2D.is_polygon_clockwise(q) and _area(q) >= 60.0:
+					pieces.append(q)
+		var deck := g + h + 0.12
+		for piece in pieces:
+			for rim: PackedVector2Array in Geometry2D.offset_polygon(piece, -0.5):
+				if rim.size() < 3 or Geometry2D.is_polygon_clockwise(rim) or not Geometry2D.is_point_in_polygon(at, rim):
+					continue
+				# The pool: 5.0 x 3.6 m, long side east-west.
+				var pool := PackedVector2Array([at + Vector2(-2.5, -1.8), at + Vector2(2.5, -1.8),
+						at + Vector2(2.5, 1.8), at + Vector2(-2.5, 1.8)])
+				var edge := _ring_out(pool, 0.25)
+				# Raised 0.43 m: the lawn bed's top is that high over the deck, and would bury the pool.
+				var top := deck + 0.43 + 0.3
+				var wet := deck + 0.43 + 0.05
+				_mode = M_STONE
+				_prism(edge, deck, top, PAL_PALE_CONCRETE, Color(0, 0, 0, 0), M_STONE)
+				_strip(pool, edge, top, PAL_PALE_CONCRETE.darkened(0.1))
+				for i in 4:
+					var a := pool[i]
+					var c := pool[(i + 1) % 4]
+					var o := -_out(pool, a, c)
+					_quad(Vector3(a.x, wet, a.y), Vector3(c.x, wet, c.y), Vector3(c.x, top, c.y),
+							Vector3(a.x, top, a.y), Vector3(o.x, 0.0, o.y), PAL_PALE_CONCRETE.darkened(0.2))
+				_mode = M_LAMP + 0.5
+				_cap(pool, wet, Color("#7fc4c0"))
+				# The path: 2 m wide, over the deck, under any bed it crosses.
+				var from := Vector2(-1455.0, 292.0)
+				var to := Vector2(-1450.0, 322.0)
+				var across := (to - from).normalized().orthogonal()
+				var strip := PackedVector2Array([from - across, from + across, to + across, to - across])
+				_mode = M_STONE
+				for q in Geometry2D.intersect_polygons(strip, rim):
+					if q.size() >= 3 and not Geometry2D.is_polygon_clockwise(q) and _area(q) > 1.0:
+						_cap(q, deck + 0.04, PAL_PALE_CONCRETE)
+				break
+	_no_roof = keep_roof
+	_mode = keep
 
 
 ## Warsaw Spire (rebuilt 2026-11-06 from F's ten photos; spec docs/landmarks/specs/spire.md).

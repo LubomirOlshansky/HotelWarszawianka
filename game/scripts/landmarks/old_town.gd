@@ -1221,6 +1221,7 @@ func _zamek_e_front(yard: float) -> void:
 	var saxon := _zamek_saxon_ring()
 	var o3: Vector2 = ZAMEK_U_OUT[3]
 	var o4: Vector2 = ZAMEK_U_OUT[4]
+	# never null: the ring's corners are constants and the two lines cross at about 75 degrees
 	var end: Vector2 = Geometry2D.line_intersects_line(o3, o4 - o3, saxon[2], saxon[3] - saxon[2])
 	var len := kit_front(o3, end)
 	# the notch's roof: the east slope carried on from O4 to the new end, up to the ridge over O4
