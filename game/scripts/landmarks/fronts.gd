@@ -115,6 +115,7 @@ const SKINS := [
 	# Its neighbour Wolf Marszałkowska (the same photos): a glass tower with silver floor bands
 	# over a dark stone and glass base, not a dark punched block.
 	{"key": "wolf_marszalkowska", "osm": "Wolf Marszałkowska", "mode": M_SKIN + float(S_BANDS) / 16.0, "wall": "#5f7a90", "roof": "#596066"},
+	{"key": "mostowski", "osm": "Pałac Mostowskich", "model": true, "mode": M_STONE, "wall": "#eee3c9", "roof": "#818594"},
 ]
 
 
@@ -193,6 +194,7 @@ const LM_BLOCKS := [
 	"338542425",  # Marszałkowska 99's white slab
 	"6520917",  # Grzybowska 77 (Bellona): the brick house from F's photos
 	"141043447",  # Kino Muranów: whole complex (podium + residential blocks) rebuilt in muranow.gd
+	"1371716",  # Pałac Mostowskich: the whole palace and its roofs are built in muranow.gd
 ]
 
 

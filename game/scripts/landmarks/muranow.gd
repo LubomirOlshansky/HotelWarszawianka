@@ -7,6 +7,198 @@ extends "res://scripts/landmarks/river.gd"
 ## area: a helper two areas need goes to common.gd.
 
 
+# --- Pałac Mostowskich ----------------------------------------------------------------------
+
+## Southeast front, with positive u along the facade and positive v into the forecourt.
+const MOSTOWSKI_O := Vector2(-1720.3, -1304.3)
+const MOSTOWSKI_U := Vector2(0.853, -0.522)
+const MOSTOWSKI_OUTER := [[0.0, 0.0], [51.1, 0.0], [52.0, -116.2], [0.3, -124.2]]
+## Inner eaves from GUGiK. The rear court flares out in front of the skewed rear range.
+const MOSTOWSKI_COURTS := [
+	[[14.9, -12.6], [37.7, -12.6], [37.8, -37.7], [14.7, -37.3]],
+	[[17.0, -47.3], [35.6, -47.7], [35.8, -60.8], [16.9, -60.7]],
+	[[15.1, -71.5], [37.2, -71.9], [37.9, -94.5], [42.8, -94.7], [43.1, -99.2],
+			[9.9, -104.2], [9.5, -97.3], [14.7, -97.3]],
+]
+## Ridge points opposite the eaves. The cross ranges share ridge edges between adjacent courts.
+const MOSTOWSKI_RIDGE := [[7.4, -6.5], [44.6, -6.5], [44.6, -108.0], [7.4, -115.0]]
+const MOSTOWSKI_COURT_RIDGES := [
+	[[7.4, -6.5], [44.6, -6.5], [44.6, -42.5], [7.4, -42.5]],
+	[[7.4, -42.5], [44.6, -42.5], [44.6, -66.2], [7.4, -66.2]],
+	[[7.4, -66.2], [44.6, -66.2], [44.6, -92.0], [44.6, -96.0], [44.6, -108.0],
+			[7.4, -115.0], [7.4, -102.0], [7.4, -95.0]],
+]
+const MOSTOWSKI_EAVE := 13.35
+const MOSTOWSKI_RISE := 3.85
+const MOSTOWSKI_SHOULDER := 17.75
+const MOSTOWSKI_BREAKS := Vector2(13.1, 37.9)
+const MOSTOWSKI_FACE := 3.7
+## Cream plaster and blue-grey roofing from the daylight views of the two long wings.
+const MOSTOWSKI_WALL := Color("#eee3c9")
+const MOSTOWSKI_ROOF := Color("#818594")
+
+
+## Replace the mapped palace as one mesh, retaining the open courts in the roof and collision.
+func _build_mostowski(site: Dictionary) -> void:
+	kit_front(MOSTOWSKI_O, MOSTOWSKI_O + MOSTOWSKI_U)
+	var entrance := _w(25.6, 6.0)
+	_g = map.terrain_height(entrance.x, entrance.y)
+	_mode = M_STONE
+	var outline: PackedVector2Array = site["zone"][0]
+	var foot := _ground_under(outline) - 0.6
+	var outer := _lpoly(MOSTOWSKI_OUTER)
+	var courts: Array[PackedVector2Array] = []
+	for plan: Array in MOSTOWSKI_COURTS:
+		courts.append(_lpoly(plan))
+	_mostowski_roofs(outer, courts)
+	_mostowski_chimneys()
+	_mostowski_shell(outer, courts, foot)
+	_mostowski_portico(foot)
+	_collide(outline)
+	for court: PackedVector2Array in courts:
+		_collide(court)
+
+
+## Build the outer and court walls as separate loops so the stonework leaves each court open.
+func _mostowski_shell(outer: PackedVector2Array, courts: Array[PackedVector2Array], foot: float) -> void:
+	var trim := PAL_CREAM_STONE
+	var eave := _g + MOSTOWSKI_EAVE
+	kit_ledge_ring(outer, foot, _g + 0.42 - foot, PAL_WARM_GRANITE, 0.09)
+	kit_ledge_ring(outer, _g + 4.8, 0.22, trim, 0.15)
+	kit_cornice_ring(outer, eave - 0.35, trim, 0.35, 0.47)
+	for i in outer.size():
+		var a := outer[i]
+		var b := outer[(i + 1) % outer.size()]
+		var width := kit_front(a, b)
+		if i == 0:
+			_mostowski_elevations(0.0, MOSTOWSKI_BREAKS.x, 3, true)
+			_mostowski_elevations(MOSTOWSKI_BREAKS.y, width, 3, true)
+			for span: Vector2 in [Vector2(0.1, MOSTOWSKI_BREAKS.x), Vector2(MOSTOWSKI_BREAKS.y, width - 0.1)]:
+				kit_bands(span.x, span.y, _g + 0.48, _g + 4.7, 0.64, MOSTOWSKI_WALL)
+		elif i == 2:
+			# The skewed rear face has seven close-set bays between two groups of four.
+			_mostowski_elevations(0.0, 16.5, 4, true)
+			_mostowski_elevations(16.5, 35.2, 7, true, false, true)
+			_mostowski_elevations(35.2, width, 4, true)
+		else:
+			_mostowski_elevations(0.0, width, roundi(width / 4.0), false)
+		_wall(a, b, foot, eave, _b, MOSTOWSKI_WALL)
+	for court: PackedVector2Array in courts:
+		for i in court.size():
+			var a := court[(i + 1) % court.size()]
+			var b := court[i]
+			var width := kit_front(a, b)
+			if width > 3.5:
+				kit_ledge(0.23, width - 0.23, _g + 4.8, 0.18, trim, 0.14)
+				kit_cornice(0.9, width - 0.9, eave - 0.35, trim, 0.35, 0.34)
+				var door := i == 2 or (i == 0 and court.size() == 4) or i == 4
+				_mostowski_elevations(0.0, width, roundi(width / 3.65), false, true, door)
+			_wall(a, b, foot, eave, _b, MOSTOWSKI_WALL)
+
+
+## Lay out the same three storeys on each elevation, with simpler surrounds inside the courts.
+func _mostowski_elevations(u0: float, u1: float, bays: int, formal: bool, court := false,
+		door := false) -> void:
+	var trim := PAL_WHITE_STONE
+	var glass := PAL_GLASS_DARK
+	var sash := PAL_CREAM_STONE
+	for k in bays:
+		var u := lerpf(u0, u1, (float(k) + 0.5) / bays)
+		if door and k == bays / 2:
+			kit_door(u, _g - 0.25, 4.45, 1.28, trim, PAL_DARK_DOOR, true)
+		elif court:
+			kit_panes([u], [_g + 1.06], 1.38, 2.56, glass)
+		else:
+			kit_window(u, _g + 1.06, 2.56, Win.PLAIN, trim, glass, 0.73, sash)
+		var middle := Win.PLAIN if court else (Win.SILL_HEAD if formal else Win.SILL)
+		kit_window(u, _g + 6.04, 2.90, middle, trim, glass, 0.73, sash)
+		if court:
+			kit_panes([u], [_g + 10.43], 1.38, 1.8, glass)
+		else:
+			kit_window(u, _g + 10.43, 1.8, Win.SILL if formal else Win.PLAIN, trim, glass, 0.68, sash)
+
+
+## The portico stands on the three-arched podium. The flared kit capitals approximate the Ionic order.
+func _mostowski_portico(foot: float) -> void:
+	kit_front(MOSTOWSKI_O, MOSTOWSKI_O + MOSTOWSKI_U)
+	var trim := PAL_WHITE_STONE
+	var g := _g
+	var u0 := MOSTOWSKI_BREAKS.x
+	var u1 := MOSTOWSKI_BREAKS.y
+	var mid := 25.65
+	var half := 6.7
+	var face := MOSTOWSKI_FACE
+	var podium := 6.0
+	kit_face(face)
+	_mostowski_elevations(u0 + 0.2, mid - half - 0.2, 1, true)
+	_mostowski_elevations(mid + half + 0.2, u1 - 0.2, 1, true)
+	for u: float in [21.5, 25.65, 29.8]:
+		kit_window(u, g + 6.04, 3.1, Win.SILL_HEAD, trim, PAL_GLASS_DARK, 0.76, PAL_CREAM_STONE)
+		kit_window(u, g + 11.2, 1.95, Win.SILL, trim, PAL_GLASS_DARK, 0.72, PAL_CREAM_STONE)
+	kit_ledge(u0, u1, g + 4.8, 0.23, trim, 0.2)
+	kit_cornice(u0 + 0.5, u1 - 0.5, g + 17.40, trim, 0.35, 0.36)
+	kit_bands(u0 + 0.1, u1 - 0.1, g + 0.48, g + 4.7, 0.64, MOSTOWSKI_WALL)
+	kit_ledge(mid - half, mid + half, g + 16.20, 0.92, trim, 2.46)
+	kit_cornice(mid - half + 0.16, mid + half - 0.16, g + 17.15, trim, 0.48, 2.62)
+	kit_pediment(mid, 7.04, g + 17.63, 1.96, trim, MOSTOWSKI_ROOF, 2.61, PAL_CREAM_STONE)
+	kit_colonnade(19.9, 31.4, 4, 5.1, g + 4.88, g + 16.20, trim, 0.56, Order.CORINTHIAN)
+	kit_face(podium)
+	kit_ledge(mid - half, mid + half, g + 4.61, 0.27, trim, 0.22)
+	kit_bands(mid - half, mid + half, g + 0.48, g + 4.5, 0.64, MOSTOWSKI_WALL)
+	kit_face(podium + 0.04)  # clear the rustication with the arch surrounds
+	for u: float in [21.5, 25.65, 29.8]:
+		kit_door(u, g - 0.25, 4.45, 1.26 if u == mid else 0.96, trim, PAL_OAK, true)
+	_ubox(19.0, 32.4, face - 0.1, podium, foot, g + 4.81, PAL_SANDSTONE)
+	_prism(_urect(u0, u1, -5.8, face), foot, g + MOSTOWSKI_SHOULDER,
+			MOSTOWSKI_WALL, Color.TRANSPARENT, M_STONE)
+	_hip(mid - 0.15, -1.05, 12.4, 4.75, g + MOSTOWSKI_SHOULDER, 1.15, MOSTOWSKI_ROOF)
+
+
+## Join outer hips and court slopes along the same ridges without spanning the courtyards.
+func _mostowski_roofs(outer: PackedVector2Array, courts: Array[PackedVector2Array]) -> void:
+	var eave := _g + MOSTOWSKI_EAVE
+	var top := eave + MOSTOWSKI_RISE
+	var eaves: Array[PackedVector2Array] = [_ring_out(outer, 0.20)]
+	eaves.append_array(courts)
+	var ridges: Array[PackedVector2Array] = [_lpoly(MOSTOWSKI_RIDGE)]
+	for plan: Array in MOSTOWSKI_COURT_RIDGES:
+		ridges.append(_lpoly(plan))
+	for k in eaves.size():
+		var lower := eaves[k]
+		var upper := ridges[k]
+		for i in lower.size():
+			var j := (i + 1) % lower.size()
+			var corners := PackedVector2Array([lower[i], lower[j], upper[j], upper[i]])
+			# The rear court's shoulders make concave slopes in plan. Triangulate there
+			# with the same eave and ridge corners as the neighbouring slopes.
+			var plan := PackedVector2Array()
+			var points: Array[Vector3] = []
+			for m in corners.size():
+				var p := corners[m]
+				plan.append(p - MOSTOWSKI_O)
+				points.append(Vector3(p.x, eave if m < 2 else top, p.y))
+			var triangles := Geometry2D.triangulate_polygon(plan)
+			var uv := Vector2(-1.0, -1.0)
+			for m in range(0, triangles.size(), 3):
+				var a := points[triangles[m]]
+				var b := points[triangles[m + 1]]
+				var c := points[triangles[m + 2]]
+				var n := (b - a).cross(c - a).normalized()
+				_tri(a, b, c, n if n.y > 0.0 else -n, MOSTOWSKI_ROOF, uv, uv, uv, -1.0)
+
+
+## Pale chimney stacks and caps break the silhouette of the long roofs in the aerial views.
+func _mostowski_chimneys() -> void:
+	var top := _g + MOSTOWSKI_EAVE + MOSTOWSKI_RISE
+	for v: float in [-19.0, -32.0, -55.0, -78.0, -90.0]:
+		for u: float in [7.4, 44.6]:
+			_lbox(u, v, 0.56, 0.84, top - 0.74, top + 0.8, PAL_CREAM_STONE)
+			_lbox(u, v, 0.64, 0.92, top + 0.8, top + 0.98, PAL_PALE_CONCRETE)
+	for p: Vector2 in [Vector2(19.2, -111.7), Vector2(34.3, -109.9), Vector2(25.6, -66.2), Vector2(14.8, -42.5)]:
+		_lbox(p.x, p.y, 0.96, 0.56, top - 0.75, top + 1.04, PAL_CREAM_STONE)
+		_lbox(p.x, p.y, 1.04, 0.64, top + 1.04, top + 1.25, PAL_PALE_CONCRETE)
+
+
 # --- Pokorna 2: the residential tower by Muranów ---------------------------------------------
 
 ## F (2026-11-01): "Pokorna 2 looks strange, not as an apartment". OpenStreetMap has it as one
