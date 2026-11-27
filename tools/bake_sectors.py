@@ -303,6 +303,7 @@ SITE_AREAS = [
     (1715.0, 1295.0, 1755.0, 1345.0),       # the Monkey Love garden (landmarks.gd MONKEY_AT, built as Małpi Love)
     (1385.0, 670.0, 1480.0, 900.0),         # Port Czerniakowski's spit: Majami, WTW and the halls (landmarks.gd PORT_TIP, PORT_WTW, PORT_HALLS)
     (1025.0, -2032.0, 1135.0, -1962.0),     # Bazar Różyckiego's stalls (landmarks.gd BAZAR_BOX, unnamed retail outlines)
+    (-2365.0, -5.0, -2295.0, 100.0),        # Unique Tower's two unnamed outlines (wola.gd UNIQUE_NORTH_AT, UNIQUE_SOUTH_AT)
 ]
 
 
