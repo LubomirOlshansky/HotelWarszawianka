@@ -533,6 +533,8 @@ func _build_jarmark(_site: Dictionary) -> void:
 	for p: Array in JM_PAVED:
 		_jm_drape(p[0], p[1], p[2], p[3])
 	for h: Array in _jm_huts():
+		if map._cancelled():
+			return  # the quit fix (map_builder.gd `cancel_build`): this site takes seconds a sector
 		_jm_hut(h[0], h[1], h[2], h[3], h[4])
 	# The tree's plaza by Marszałkowska: the platform, the ring of yellow benches (open towards the
 	# fan mast's square), the big snowman on the ring towards the Palace.
@@ -565,6 +567,8 @@ func _build_jarmark(_site: Dictionary) -> void:
 		_jm_line(l[0], l[1], l[2])
 	# The kit objects at their anchors: every small thing on the official map, the photo details.
 	_jm_kit_objects()
+	if map._cancelled():
+		return
 	# The fence along Marszałkowska with its white banners and along the south access road, the
 	# entrances (the map's wejście 1, 2, 7, 8) open.
 	_jm_fence(147.0, 263.0, -9.5, [[171.5, 182.5], [219.0, 236.0]])
@@ -573,6 +577,8 @@ func _build_jarmark(_site: Dictionary) -> void:
 		_jm_banner(bu, -9.6)
 	# The gold sign and the light-up trees at the entrances, big stars.
 	_jm_greeting(177.0, -7.0)
+	if map._cancelled():
+		return
 	# The plaza sign stands 11.5 m along from the map's spot (91.5): there it ran 1 m beside the lawn
 	# railing's north edge (u 91.5..105, v 16), a slot that pinned cars sliding along the railing
 	# (Autopilot PT-60 re-run, 2026-11-27). Now its east end is 6 m short of the railing's corner.
@@ -608,6 +614,8 @@ func _jm_kit_objects() -> void:
 	for m: Dictionary in kit.get_script_method_list():
 		have[m["name"]] = m["args"]
 	for name: String in JM_ANCHORS:
+		if map._cancelled():
+			return
 		var e: Array = JM_ANCHORS[name]
 		var bld: String = e[0]
 		if bld.is_empty():

@@ -3,7 +3,7 @@ extends SceneTree
 ## runtime sector ends within seconds, not after the whole build (33-63 s on 2 cores).
 ##
 ## Sets up the runtime map (map_builder.gd `setup_streamed`, as sector_streamer.gd `open` does,
-## without the roof pass), builds the biggest sector file whole on the main thread (its time is
+## without the roof pass), builds sector SLOW whole on the main thread (its time is
 ## what a quit waited before), then twice starts a streamer's worker on it and takes the streamer
 ## out of the tree, which is what quitting does (`_exit_tree`), at STOP_AT of that time. Checks: the
 ## worker was still building when the quit came (else the check proves nothing), the quit waited
@@ -18,6 +18,10 @@ extends SceneTree
 
 const MapBuilder := preload("res://scripts/map_builder.gd")
 const SectorStreamer := preload("res://scripts/sector_streamer.gd")
+## The sector the quit waited on in CI's firstlife hang: by the start (Plac Defilad, the Christmas
+## market's site, whose build alone takes 20-23 s of the sector's 30 s on 4 cores). With no such
+## sector, the biggest sector file.
+const SLOW := Vector2i(-2, 1)
 ## When the quit comes, as shares of the sector's whole build: in the flat layers, and in the walls.
 const STOP_AT: Array[float] = [0.15, 0.6]
 ## A quit may wait at most this share of the whole build (before the fix: the rest of it), or MIN_STOP_MS.
@@ -39,8 +43,10 @@ func _run() -> void:
 		quit(1)
 		return
 	var keys := _by_size(index)
-	var big: Vector2i = keys[-1]
+	var big := SLOW
 	var small: Vector2i = keys[0]
+	if not big in keys:
+		big = keys[-1]
 	var map: Node3D = MapBuilder.new()
 	root.add_child(map)
 	map.setup_streamed(index, ShaderMaterial.new(), ShaderMaterial.new())

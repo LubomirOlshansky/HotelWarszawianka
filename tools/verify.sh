@@ -1804,7 +1804,7 @@ for s in $want; do
 		# Loop 3c: the sectors are the whole city (meshes, pixels at 10 spots), streaming misses nothing.
 		# The loading fix (2026-10-31): seven passes now, ~13 min: at least 25 min before it's stopped.
 		# The quit fix (CI's firstlife EXIT HANG, 2026-11-27): a quit while the streamer's worker builds a
-		# runtime sector stops the build at its next step instead of waiting it out (~15 s, headless).
+		# runtime sector stops the build at its next step instead of waiting it out (~70 s, headless).
 		streamquit) check streamquit '^check_stream_quit:' --script res://tools/check_stream_quit.gd ;;
 		streaming) STEP_LIMIT=$(( STEP_LIMIT > 1500 ? STEP_LIMIT : 1500 )) shown streaming '^check_streaming:' --script res://tools/check_streaming.gd -- --keep=$logs/streaming ;;
 		# Loop 3g-1: the police's lines, flow and state machine (P11, P12), the runs P1-P7, the soak P13.
