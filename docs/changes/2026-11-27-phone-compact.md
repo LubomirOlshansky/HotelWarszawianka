@@ -6,4 +6,5 @@
 - found: the GŁODNO name is a first guess (F can rename it in dialogue.json group phone_hub)
 
 ## Roadmap
-- ticked: "The phone with jobs: compact phone, ŁUBER, GŁODNO, quests (COTAM inbox open)"
+- ticked: "The phone with jobs: compact phone with ŁUBER, GŁODNO and the quests screen"
+- added: "COTAM inbox (the phone's fourth app) is not built; GŁODNO is an offer and a pin, not a real delivery order"

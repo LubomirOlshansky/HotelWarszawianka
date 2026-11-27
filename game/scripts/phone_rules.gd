@@ -18,7 +18,7 @@ const GROUP := "phone_hub"
 ## The apps in the order the phone shows them: [key, colour, kind]. "cotam" is the messenger parody's
 ## inbox, not built yet (parked): its tile shows and says SOON. kind: "offer" an app that searches
 ## and offers inside the phone, "screen" opens the big QUESTS screen, "soon" does nothing yet.
-const APPS := [["luber", Color("#5fd4ff"), "offer"], ["glodno", Color("#ffb020"), "offer"],
+const APPS := [["luber", Color("#5fd4ff"), "offer"], ["glodno", Color("#ff4fd8"), "offer"],
 		["quests", Color("#ff7a2a"), "screen"], ["cotam", Color("#8e879e"), "soon"]]
 ## The food-delivery app's places: the side-job groups (main.gd `_quest_entries`) it offers.
 const FOOD_GROUPS := ["kebab"]
