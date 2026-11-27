@@ -170,6 +170,10 @@ const CORDON_GONE := 90.0
 ## cars) never got 90 m away, and the on-screen cordon never left (200 s stuck). The cordon goes
 ## this long after the pin whatever the distance, on screen or not.
 const CORDON_HOLD := 25.0
+## Two of the cordon's cars turn chasers CHASER_AT s after NALOT! (critique-night-quest 3.3); the raid's chase
+## then has no 15 s floor (police.raid `hold`).
+const CHASERS := 2
+const CHASER_AT := 3.2
 ## The pin (the next destination) comes this long after the sirens start, once the cordon has
 ## closed in, whether or not the chase is still on.
 const PIN_AFTER := 4.5
@@ -297,12 +301,15 @@ const MEET2_LINES := [
 ## sirens land is CZYSTO +60; the race pays its place; a caution in the night halves the pot (MANDAT);
 ## the drag wins it doubled (and pays it) or loses it halved. The respect is paid as it is earned.
 const POT_PUNCTUAL := 60.0
+## The limit grows with the way: PUNCT_PER_M s per straight metre from where the yes was said (PT-59: 140 m in a
+## straight line was a route of 800 to 1,300 m, and 60 s was never enough).
+const PUNCT_PER_M := 0.85
 const POT_ON_TIME := 40
 const POT_CLEAN := 60
 ## The siren tell (3.3): the sirens are heard this long before NALOT, so a player who was already rolling is
 ## out of the ring when the cordon would close (CLEAN_M from the gap).
 const RAID_TELL := 2.0
-const CLEAN_M := 22.0
+const CLEAN_M := 16.0
 ## The night bar's five beats (3.2), shown in the status line: SPOT · NALOT · WYŚCIG · SPOT 2 · DRAG.
 const PIPS := 5
 const RAID_LINES := [
@@ -366,6 +373,8 @@ var nights := 0
 var pot := 0
 var pot_parts: Array = []
 var _night_t := 0.0
+## The seconds NA CZAS allows this night (POT_PUNCTUAL, more for a long way).
+var _punctual := POT_PUNCTUAL
 var _tell_t := -1.0
 var _cautions_seen := 0
 var raid_clean := false
@@ -422,6 +431,8 @@ var _tandem := false
 ## player is away (out of sight, one a tick).
 var _cordon: Array[Dictionary] = []
 var _cordon_leaving := false
+## The cordon's chasers have gone after the player this raid.
+var _chasers_sent := false
 ## Seconds since the cordon came in (`_tick`): CORDON_HOLD past the pin it goes whatever the distance.
 var _cordon_t := 0.0
 ## Red and blue light pools on the ground under the cordon's cars (one draw call, raids only), so
@@ -1255,7 +1266,7 @@ func _run_tick(_dt: float) -> void:
 			_status("%s · SPOT" % String(m["name"][0]).to_upper(), "Stań w luce między autami", "Park in the gap between the cars",
 					_at, m["gap"], COLOUR)
 			if _arrived(_due, _at, _kmh, m["gap"], MEET_R):
-				if _night_t <= POT_PUNCTUAL:
+				if _night_t <= _punctual:
 					_pot_add(POT_ON_TIME, "NA CZAS", "ON TIME")
 				_start_meet(0)
 		Stage.MEET, Stage.MEET2:
@@ -1497,6 +1508,8 @@ func _begin() -> void:
 	_night_t = 0.0
 	_tell_t = -1.0
 	raid_clean = false
+	var g0: Vector3 = meets[0]["gap"]
+	_punctual = maxf(POT_PUNCTUAL, Vector2(_at.x, _at.z).distance_to(Vector2(g0.x, g0.z)) * PUNCT_PER_M)
 	_cautions_seen = _cautions_now()
 	_show_meet(0)
 	var g: Vector3 = meets[0]["gap"]
@@ -1605,6 +1618,7 @@ func _raid() -> void:
 	stage = Stage.RAID if meet_i == 0 else Stage.RAID2
 	_stage_t = 0.0
 	_chase_seen = false
+	_chasers_sent = false
 	_line(RAID_LINES[0], 3.0)
 	get_tree().create_timer(1.2).timeout.connect(func() -> void: _line(RAID_LINES[1 + (meet_i % 2)], 3.5))
 	hud.show_banner("NALOT!", COLOUR)
@@ -1613,7 +1627,7 @@ func _raid() -> void:
 			hud.hide_banner())
 	var sent := 0
 	if police != null and police.has_method("raid"):
-		sent = int(police.raid(m["at"], RAID_CARS, RAID_LEVEL))
+		sent = int(police.raid(m["at"], RAID_CARS, RAID_LEVEL, 0.0))
 	_crowd_run = 0.01
 	_drifting = false
 	_tandem = false
@@ -1631,6 +1645,9 @@ func _t_raid(dt: float) -> void:
 		_chase_seen = true
 		# The police pill says it all while they chase (PT-34).
 		hide_status()
+	if chasing and not _chasers_sent and _stage_t >= CHASER_AT:
+		_chasers_sent = true
+		_cordon_chasers()
 	# F 2026-11-10: the next destination comes as soon as the police are in (the cordon has
 	# closed), not once the player has driven away or the chase has ended.
 	if _stage_t > PIN_AFTER:
@@ -1680,6 +1697,25 @@ func _cordon_in() -> int:
 		traffic.park(d, e, s, from, yaw, -1)
 		_cordon.append({"d": d, "from": from, "to": to, "yaw": yaw, "t": -k * CORDON_STAGGER, "dur": CORDON_T, "e": e, "s": s})
 	return _cordon.size()
+
+
+## CHASERS of the cordon's cars nearest the player stop being a wall and join the chase (police.gd
+## `scene_to_chaser`); the rest stay boxed in and leave as before.
+func _cordon_chasers() -> void:
+	if _cordon.is_empty() or police == null or not police.has_method("scene_to_chaser"):
+		return
+	var by_dist: Array[Dictionary] = _cordon.duplicate()
+	by_dist.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return (a["d"].pos as Vector3).distance_to(_at) < (b["d"].pos as Vector3).distance_to(_at))
+	var sent := 0
+	for cd in by_dist:
+		if sent >= CHASERS:
+			break
+		var d = cd["d"]
+		if d != null and d.active and police.scene_to_chaser(d):
+			_cordon.erase(cd)
+			sent += 1
+	_log("%d cordon cars join the chase" % sent)
 
 
 ## Per frame: the cordon's cars coming in (fast, braking hard at the end), their light pools.
