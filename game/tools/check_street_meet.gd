@@ -1008,6 +1008,17 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	# player is 22 m out; a caution halves the pot, never to nothing by itself.
 	_ok(m._tell_t < 0.0 and not m.raid_clean, "the siren tell came first and the player in the ring is boxed (no CZYSTO)")
 	var pot_save: int = m.pot
+	# PT-64: a bonus is a quest toast (not the dropped ambient kind), and the tell clears Lena's subtitle.
+	var toasts0: int = _hud.toasts.size()
+	var amb0: int = _hud.ambient.size()
+	m._pot_add(60, "CZYSTO!", "CLEAN!")
+	_ok(_hud.toasts.size() == toasts0 + 1 and _hud.ambient.size() == amb0 and String(_hud.toasts[-1]).contains("60"), "PT-64: +60 CZYSTO! is a normal-priority toast")
+	m.pot = pot_save
+	m.pot_parts.pop_back()
+	var cleared0: int = _bubbles.cleared
+	m._tell()
+	m._tell_t = -1.0
+	_ok(_bubbles.cleared == cleared0 + 1, "PT-64: the siren tell clears the bubbles (Lena's subtitle)")
 	_ok(m._punctual >= Meet.POT_PUNCTUAL, "NA CZAS allows at least POT_PUNCTUAL s, more for a long way (%.0f s, PT-59)" % m._punctual)
 	_ok(Meet.is_clean(gap + Vector3(Meet.CLEAN_M + 1.0, 0.0, 0.0), gap) and not Meet.is_clean(gap + Vector3(5.0, 0.0, 0.0), gap), "CZYSTO is CLEAN_M m from the gap")
 	m.pot = 100
