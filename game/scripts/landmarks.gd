@@ -1693,7 +1693,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 	var t0 := Time.get_ticks_msec()
 	var built := 0
 	for k in sites.size():
-		if map._cancelled():
+		if _quit_stop():
 			return  # the quit fix: the game quits while this sector builds (map_builder.gd `cancel_build`)
 		var s: Dictionary = sites[k]
 		# Loop 3c: building one sector, only the sites that reach `near` (the sector grown by
