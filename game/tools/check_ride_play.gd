@@ -3846,7 +3846,7 @@ func _t_stranded() -> void:
 	_ok(bool(r.get("stranded", false)) and float(r["away"]) == 0.0, "stranded: away %s" % r.get("away"))
 	_ok(_flat(r["pin"], Vector3(at.x, 0.0, at.y)) < 0.5, "the pin is where they stand: %s" % r["pin"])
 	_ok((r["story"] as Dictionary).is_empty() and not bool(r["offset"]), "no story, no offset")
-	_ok(hud.card == "Komentarz · NOWY KURS" and hud.card_en == "A comment · New ride", "the title from podwozka_request stranded_title: %s / %s" % [hud.card, hud.card_en])
+	_ok(hud.card == "Komentarz · NOWY KURS" and hud.card_en == "A comment · ŁUBER · New ride", "the title from podwozka_request stranded_title: %s / %s" % [hud.card, hud.card_en])
 	_ok(dialogue.line_asks.has("podwozka_request:stranded"), "the stranded note was asked for: %s" % [dialogue.line_asks])
 	_ok(not q.offer_stranded(at), "no second request over the first")
 	hud.press(0)
