@@ -7,10 +7,10 @@
 // UV2.x is the part:
 //   0 plain (the concrete, the roof, the seats' risers): the colour, dimmed at night;
 //   1 a lamp or LED strip: the colour, brighter at night;
-//   2 an LED board: the atlas's row (UV2.y >= 0 forces a row, else the board's own along UV.x in metres,
-//     BOARD_LEN m a board), lit as a screen, an LED grid over it;
+//   2 an LED board: the atlas's row UV2.y, UV.x across the atlas (0..1, cropped to the board's word by
+//     drift_venue.gd, one texel TEXEL m so iso has two render pixels a texel), lit as a screen, an LED grid;
 //   3 a tread full of people: 0.55 m cells of the crowd's colours over the seats' red and white, a few
-//     phones lit at night;
+//     phones lit at night; where a cell is under about two pixels it fades to the cells' mean colour;
 //   4 printed: the atlas's row like 2, not lit (the track wall's banners).
 // `crowd` (the crowd's own material): a MultiMesh of figures. INSTANCE_CUSTOM.rgb is the shirt, .a a seed;
 // UV2.x 5 is the head (a skin tone), 6 the phone (only for one figure in PHONE_SHARE, only at night).
@@ -28,7 +28,6 @@ uniform sampler2D atlas : source_color, filter_nearest;
 uniform float rows = 6.0;
 uniform float atlas_px = 128.0;
 uniform float row_px = 12.0;
-uniform float board_len = 9.0;
 uniform float crowd = 0.0;
 uniform float wave_age = 99.0;
 uniform float wave_from = 0.0;
@@ -95,10 +94,9 @@ void fragment() {
 	} else if (part < 1.5) {
 		c *= 1.0 + 0.8 * lights_on;
 	} else if (part < 2.5 || part > 3.5) {
-		float board = floor(UV.x / board_len);
-		float row = forced >= 0.0 ? forced : mod(board, rows);
-		vec2 px = vec2(fract(UV.x / board_len) * atlas_px, (1.0 - UV.y) * row_px);
-		c = texture(atlas, vec2(px.x / atlas_px, (row * row_px + px.y) / (rows * row_px))).rgb;
+		float row = max(forced, 0.0);
+		vec2 px = vec2(UV.x * atlas_px, (1.0 - UV.y) * row_px);
+		c = texture(atlas, vec2(UV.x, (row * row_px + px.y) / (rows * row_px))).rgb;
 		if (part < 2.5) {
 			// An LED board: a grid between the pixels, brighter at night.
 			// The grid fades out where a texel is under about three screen pixels (it ate the letters).
@@ -122,10 +120,15 @@ void fragment() {
 		vec3 hair = h2 < 0.55 ? vec3(0.02, 0.015, 0.01) : (h2 < 0.85 ? vec3(0.1, 0.055, 0.03) : vec3(0.45, 0.33, 0.16));
 		vec3 who = r < 0.19 ? hair : (r < 0.43 ? shirt : c * 0.7);
 		float seat = step(0.86, hash(cell + 17.0));
-		c = mix(who, c, seat) * dim;
-		// At night a few phones: a cell lights for a while, then another.
-		float on = step(0.985, hash(cell + floor(TIME * 0.4 + h * 7.0)));
-		c = mix(c, vec3(0.75, 0.88, 1.0) * 1.4, on * step(0.3, lights_on));
+		// The cells' mean (hair 0.113 of a cell, shirt 0.468, the gap 0.419; one seat in seven empty), for
+		// wide and far views where a cell is under about two pixels and the hash would sparkle.
+		vec3 mean = 0.86 * (0.113 * vec3(0.06, 0.04, 0.025) + 0.468 * vec3(0.237, 0.157, 0.16) + 0.293 * c) + 0.14 * c;
+		float far = smoothstep(0.3, 0.6, max(fwidth(g.x), fwidth(g.y)));
+		c = mix(mix(who, c, seat), mean, far) * dim;
+		// At night a few phones: a cell lights for a while, then another (a faint glow when far).
+		vec3 glow = vec3(0.75, 0.88, 1.0) * 1.4;
+		float on = step(0.985, hash(cell + floor(TIME * 0.4 + h * 7.0))) * (1.0 - far);
+		c = mix(c, glow, (on + 0.015 * far) * step(0.3, lights_on));
 	}
 	ALBEDO = c;
 }

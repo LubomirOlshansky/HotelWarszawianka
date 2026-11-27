@@ -178,12 +178,16 @@ func _input(event: InputEvent) -> void:
 		var t := event as InputEventScreenTouch
 		if t.pressed and not on_pad(t.position):
 			return
+		if t.pressed:
+			_tip_gone()
 		thumb.emit(t.pressed, t.index)
 	elif event is InputEventKey:
 		# The keys are the stadium's while it is on (the PR review): Space is the thumb, Esc the ✕ (the
 		# settings panel lives in the hidden HUD), and the city's keys (camera, M, K, H, ...) do nothing.
 		var k := event as InputEventKey
 		if not k.echo and k.physical_keycode == KEY_SPACE:
+			if k.pressed:
+				_tip_gone()
 			thumb.emit(k.pressed, 99)
 		elif k.pressed and not k.echo and k.physical_keycode == KEY_ESCAPE:
 			leave_pressed.emit()
@@ -198,6 +202,11 @@ func flash(id: String, extra := "", colour := UiKit.GOLD) -> void:
 	_flash.text = w(id) + ("" if extra == "" else " " + extra)
 	_flash.add_theme_color_override("font_color", colour)
 	_flash_t = FLASH_S
+
+
+## The first thumb press fades the tips out (PR 2 review: the card covered the lower track).
+func _tip_gone() -> void:
+	_tip_t = minf(_tip_t, 0.25)
 
 
 func show_tips() -> void:

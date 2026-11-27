@@ -44,6 +44,8 @@ const CORNER_STEPS := 8
 const SIDE_STEPS := Vector2i(20, 10)
 ## The lower tier: the pitch-side wall (its LED ring), then LOW_ROWS rows up to LOW_T m back, LOW_Y m high.
 const FRONT_Y := 2.2
+## The pitch-side LED ring's foot (m); it is ROW_PX × TEXEL high.
+const PITCH_LED_Y := 0.1
 const LOW_ROWS := 12
 const LOW_T := 24.0
 const LOW_Y := 13.0
@@ -76,10 +78,21 @@ const TYRE_ARC := 0.75
 ## The kerb round each island and the flame posts on it.
 const KERB_W := 0.6
 const FLAMES_PER_ISLAND := 4
-## The boards' atlas: a row a board, ROW_PX high, ATLAS_PX wide; a board is BOARD_LEN m along.
+## The boards' atlas: a row a board's words (then the screens' lines), ROW_PX high, ATLAS_PX wide.
 const ATLAS_PX := 128
 const ROW_PX := 12
-const BOARD_LEN := 9.0
+## The PR 2 review: a board's texel is TEXEL m square (a screen's SCREEN_TEXEL), so each is at least two
+## render pixels in the iso view at High (ISO_PX_M; check_drift V7). A board is as long as its words plus
+## BOARD_MARGIN texels each side, BOARD_GAP m of dark between two; a band is ROW_PX × TEXEL (1.98 m) high.
+const TEXEL := 0.165
+const SCREEN_TEXEL := 0.155
+const BOARD_MARGIN := 3
+const BOARD_GAP := 0.4
+## The iso view's render pixels a metre at High on the 6.1" phone: 1,170 lines at pixel size 2 over
+## drift_stadium.gd ISO_VIEW (34 m). Low and Medium draw one step coarser (about 11.5).
+const ISO_PX_M := 585.0 / 34.0
+## The stages' and the cube's screens: their width (m).
+const SCREEN_W := 7.2
 ## The baked light on the unshaded venue.
 const SUN := Vector3(0.35, 0.85, 0.4)
 
@@ -435,9 +448,6 @@ static func bowl_mesh(ln: RefCounted) -> ArrayMesh:
 	var n_rg := rg.size()
 	var low := _low_profile()
 	var up := _up_profile()
-	# Arc length round the pitch-side ring and the walkway's band (the boards' metres).
-	var along := _along(rg, 0.0)
-	var along_up := _along(rg, WALK_T)
 	for i in n_rg:
 		var ra := rg[i]
 		var rb := rg[(i + 1) % n_rg]
@@ -450,12 +460,9 @@ static func bowl_mesh(ln: RefCounted) -> ArrayMesh:
 			var nrm := _profile_normal(p0, p1, nmid)
 			var q := [_pt(ra, p0), _pt(rb, p0), _pt(rb, p1), _pt(ra, p1)]
 			if k == 0:
-				# The pitch-side wall: dark, an LED band from 0.3 m to 1.3 m.
-				var lo := 0.3
-				var hi := 1.3
-				_face(st, [_pt(ra, Vector2(0, 0)), _pt(rb, Vector2(0, 0)), _pt(rb, Vector2(0, lo)), _pt(ra, Vector2(0, lo))], nrm, BOARD_DARK)
-				_face(st, [_pt(ra, Vector2(0, lo)), _pt(rb, Vector2(0, lo)), _pt(rb, Vector2(0, hi)), _pt(ra, Vector2(0, hi))], nrm, Color.WHITE, LED, -1.0,
-						[Vector2(along[i], 0), Vector2(along[i + 1], 0), Vector2(along[i + 1], 1), Vector2(along[i], 1)])
+				# The pitch-side wall: dark round its LED ring (the boards, below).
+				var hi := PITCH_LED_Y + ROW_PX * TEXEL
+				_face(st, [_pt(ra, Vector2(0, 0)), _pt(rb, Vector2(0, 0)), _pt(rb, Vector2(0, PITCH_LED_Y)), _pt(ra, Vector2(0, PITCH_LED_Y))], nrm, BOARD_DARK)
 				_face(st, [_pt(ra, Vector2(0, hi)), _pt(rb, Vector2(0, hi)), _pt(rb, Vector2(0, FRONT_Y)), _pt(ra, Vector2(0, FRONT_Y))], nrm, BOARD_DARK)
 				continue
 			if p0.y == p1.y:
@@ -479,14 +486,11 @@ static func bowl_mesh(ln: RefCounted) -> ArrayMesh:
 			var p1 := up[k + 1]
 			var nrm := _profile_normal(p0, p1, nmid)
 			if k == 1:
-				# The band under the upper tier: an LED ring, then the boxes' glass with their windows.
-				var lo := LOW_Y + 0.15
-				var hi := LOW_Y + 1.15
+				# The band under the upper tier: an LED ring (the boards, below), then the boxes' glass with
+				# their windows.
+				var lo := LOW_Y + 0.05
+				var hi := lo + ROW_PX * TEXEL
 				_face(st, [_pt(ra, Vector2(WALK_T, LOW_Y)), _pt(rb, Vector2(WALK_T, LOW_Y)), _pt(rb, Vector2(WALK_T, lo)), _pt(ra, Vector2(WALK_T, lo))], nrm, BOARD_DARK)
-				var ua := along_up[i]
-				var ub := along_up[i + 1]
-				_face(st, [_pt(ra, Vector2(WALK_T, lo)), _pt(rb, Vector2(WALK_T, lo)), _pt(rb, Vector2(WALK_T, hi)), _pt(ra, Vector2(WALK_T, hi))], nrm, Color.WHITE, LED, -1.0,
-						[Vector2(ua, 0), Vector2(ub, 0), Vector2(ub, 1), Vector2(ua, 1)])
 				_face(st, [_pt(ra, Vector2(WALK_T, hi)), _pt(rb, Vector2(WALK_T, hi)), _pt(rb, Vector2(WALK_T, UP_Y0 - 1.2)), _pt(ra, Vector2(WALK_T, UP_Y0 - 1.2))], nrm, GLASS)
 				_face(st, [_pt(ra, Vector2(WALK_T, UP_Y0 - 1.2)), _pt(rb, Vector2(WALK_T, UP_Y0 - 1.2)), _pt(rb, Vector2(WALK_T, UP_Y0 - 0.4)), _pt(ra, Vector2(WALK_T, UP_Y0 - 0.4))], nrm, WINDOW.darkened(0.55), LAMP)
 				_face(st, [_pt(ra, Vector2(WALK_T, UP_Y0 - 0.4)), _pt(rb, Vector2(WALK_T, UP_Y0 - 0.4)), _pt(rb, Vector2(WALK_T, UP_Y0)), _pt(ra, Vector2(WALK_T, UP_Y0))], nrm, GLASS)
@@ -525,48 +529,157 @@ static func bowl_mesh(ln: RefCounted) -> ArrayMesh:
 		var tris := Geometry2D.triangulate_polygon(poly)
 		for j in range(0, tris.size(), 3):
 			_tri(st, _pt(r, poly[tris[j]]), _pt(r, poly[tris[j + 1]]), _pt(r, poly[tris[j + 2]]), face, SECTION)
-	# The track wall's banners (printed, its track side).
+	# The LED rings: at the pitch-side wall all round, under the upper tier on the far sections.
+	var ring0 := PackedVector2Array()
+	var ring_up := PackedVector2Array()
+	var all_on: Array[bool] = []
+	var far_on: Array[bool] = []
+	var inward: Array[Vector2] = []
+	for i in n_rg + 1:
+		ring0.append(_at(rg[i % n_rg], 0.0))
+		ring_up.append(_at(rg[i % n_rg], WALK_T))
+	for i in n_rg:
+		all_on.append(true)
+		far_on.append(not near(rg[i], rg[(i + 1) % n_rg]))
+		inward.append(-((_n(rg[i]) + _n(rg[(i + 1) % n_rg])) * 0.5).normalized())
+	_boards_along(st, ring0, inward, all_on, PITCH_LED_Y, true)
+	_boards_along(st, ring_up, inward, far_on, LOW_Y + 0.05, true)
+	# The track wall's banners: blocks in each sponsor's colours, as long as its board (words this low
+	# would be under two render pixels a texel, the PR 2 review).
 	var wp := wall_path(ln)
-	var u := 0.0
+	var wp_in: Array[Vector2] = []
+	var wp_on: Array[bool] = []
 	for i in wp.size() - 1:
-		var a := wp[i]
-		var b := wp[i + 1]
-		var seg_len := a.distance_to(b)
-		if seg_len < 0.05:
-			continue
-		var on := -_out_normal(wp, i)
-		var o := on * 0.02
-		_face(st, [Vector3(a.x + o.x, 0.12, a.y + o.y), Vector3(b.x + o.x, 0.12, b.y + o.y), Vector3(b.x + o.x, WALL_H - 0.1, b.y + o.y), Vector3(a.x + o.x, WALL_H - 0.1, a.y + o.y)],
-				Vector3(on.x, 0, on.y), Color.WHITE, PRINT, -1.0, [Vector2(u, 0), Vector2(u + seg_len, 0), Vector2(u + seg_len, 1), Vector2(u, 1)])
-		u += seg_len
-	# The stages' screens: two LED rows on each, facing the iso camera.
+		wp_in.append(-_out_normal(wp, i) if wp[i].distance_to(wp[i + 1]) > 1e-4 else Vector2.ZERO)
+		wp_on.append(wp[i].distance_to(wp[i + 1]) > 0.05)
+	_boards_along(st, wp, wp_in, wp_on, 0.12, false, WALL_H - 0.1)
+	# The stages' screens: one short word a line, two lines filling the screen, facing the iso camera.
 	var yaw := _stage_yaw()
 	var bs := Basis(Vector3.UP, yaw)
 	var fn := bs * Vector3(0, 0, 1)
+	var screens := screen_lines()
+	var si := 0
 	for isl: Array in ln.islands:
 		var sc := Vector3(float(isl[0]), 0, float(isl[1])) + bs * Vector3(0, 0, -1.0)
 		var face := sc + bs * Vector3(0, 0, -2.6)
-		for row: Array in [[5.0, 4.6, 5.3], [0.0, 2.7, 3.4]]:
-			var y0: float = row[1]
-			var y1: float = row[2]
-			var l := face + bs * Vector3(-3.6, 0, 0)
-			var r2 := face + bs * Vector3(3.6, 0, 0)
-			_face(st, [l + Vector3(0, y0, 0), r2 + Vector3(0, y0, 0), r2 + Vector3(0, y1, 0), l + Vector3(0, y1, 0)], fn, Color.WHITE, LED, row[0],
-					[Vector2(0, 0), Vector2(BOARD_LEN, 0), Vector2(BOARD_LEN, 1), Vector2(0, 1)])
-		# A picture on the big screen: the floor's own colours, lit.
-		var l2 := face + bs * Vector3(-3.6, 0, 0)
-		var r3 := face + bs * Vector3(3.6, 0, 0)
-		_face(st, [l2 + Vector3(0, 3.55, 0), r3 + Vector3(0, 3.55, 0), r3 + Vector3(0, 4.45, 0), l2 + Vector3(0, 4.45, 0)], fn, Color("#3e6fb0"), LAMP)
+		var pair: Array = screens[mini(si, screens.size() - 1)]
+		si += 1
+		_screen(st, face + Vector3(0, 2.15, 0), bs, fn, pair, SCREEN_TEXEL)
 	st.index()
 	return st.commit()
 
 
-## The metres round the ring `t` m off the floor's side, at each sample (and the whole round last).
-static func _along(rg: Array[Vector4], t: float) -> PackedFloat32Array:
-	var out := PackedFloat32Array([0.0])
-	for i in rg.size():
-		out.append(out[i] + _at(rg[i], t).distance_to(_at(rg[(i + 1) % rg.size()], t)))
+## Boards one after another along a polyline (`pts`, closed by repeating its first point when it is a
+## ring): each as long as its words (TEXEL a texel, BOARD_MARGIN each side), BOARD_GAP m of dark between,
+## the board's words cycling through drift_tracks.json `boards`. `inward[i]` faces segment i's boards,
+## `on[i]` false skips it (the sequence goes on behind it). `led`: an LED band ROW_PX × TEXEL high from y0;
+## otherwise printed blocks in the board's colours from y0 to y1, a stripe of its words' colour across.
+static func _boards_along(st: SurfaceTool, pts: PackedVector2Array, inward: Array[Vector2], on: Array[bool], y0: float, led: bool, y1 := 0.0) -> void:
+	var rows := board_rows()
+	var n_b := rows.size()
+	if n_b == 0:
+		return
+	var spans: Array[Vector2] = []
+	for j in n_b:
+		spans.append(word_span(j))
+	var top := y0 + ROW_PX * TEXEL if led else y1
+	var s := 0.0
+	var k := 0
+	var board_s := 0.0
+	for i in pts.size() - 1:
+		var a := pts[i]
+		var b := pts[i + 1]
+		var seg := a.distance_to(b)
+		if seg < 1e-4:
+			continue
+		var nrm := Vector3(inward[i].x, 0, inward[i].y)
+		var o := inward[i] * 0.02
+		var p := 0.0
+		while p < seg - 1e-4:
+			var sp := spans[k % n_b]
+			var blen := (sp.y - sp.x) * TEXEL
+			var pos := s + p - board_s
+			var in_board := pos < blen
+			var end_in := blen if in_board else blen + BOARD_GAP
+			var step := minf(end_in - pos, seg - p)
+			if step > 1e-5 and on[i]:
+				var q0 := a.lerp(b, p / seg) + o
+				var q1 := a.lerp(b, (p + step) / seg) + o
+				var quad := [Vector3(q0.x, y0, q0.y), Vector3(q1.x, y0, q1.y), Vector3(q1.x, top, q1.y), Vector3(q0.x, top, q0.y)]
+				var row: Dictionary = rows[k % n_b]
+				if not in_board:
+					_face(st, quad, nrm, BOARD_DARK)
+				elif led:
+					var u0 := (sp.x + pos / TEXEL) / ATLAS_PX
+					var u1 := (sp.x + (pos + step) / TEXEL) / ATLAS_PX
+					_face(st, quad, nrm, Color.WHITE, LED, float(k % n_b), [Vector2(u0, 0), Vector2(u1, 0), Vector2(u1, 1), Vector2(u0, 1)])
+				else:
+					var m0 := lerpf(y0, top, 0.42)
+					var m1 := lerpf(y0, top, 0.6)
+					_face(st, [quad[0], quad[1], Vector3(q1.x, m0, q1.y), Vector3(q0.x, m0, q0.y)], nrm, row["bg"])
+					_face(st, [Vector3(q0.x, m0, q0.y), Vector3(q1.x, m0, q1.y), Vector3(q1.x, m1, q1.y), Vector3(q0.x, m1, q0.y)], nrm, row["fg"])
+					_face(st, [Vector3(q0.x, m1, q0.y), Vector3(q1.x, m1, q1.y), quad[2], quad[3]], nrm, row["bg"])
+			p += maxf(step, 0.0)
+			if not in_board and pos + step >= end_in - 1e-4:
+				k += 1
+				board_s = s + p
+		s += seg
+
+
+## A screen's two lines (`pair`: two atlas rows) from `foot` up, SCREEN_W wide, `texel` m a texel, facing `fn`.
+static func _screen(st: SurfaceTool, foot: Vector3, bs: Basis, fn: Vector3, pair: Array, texel: float) -> void:
+	var h := ROW_PX * texel
+	var half_px := SCREEN_W * 0.5 / texel
+	for line in 2:
+		var row := int(pair[line])
+		var sp := word_span(row)
+		var c := (sp.x + sp.y) * 0.5
+		var u0 := (c - half_px) / ATLAS_PX
+		var u1 := (c + half_px) / ATLAS_PX
+		var y0 := foot.y + (1 - line) * (h + 0.02)
+		var l := Vector3(foot.x, y0, foot.z) + bs * Vector3(-SCREEN_W * 0.5, 0, 0)
+		var r := Vector3(foot.x, y0, foot.z) + bs * Vector3(SCREEN_W * 0.5, 0, 0)
+		_face(st, [l, r, r + Vector3(0, h, 0), l + Vector3(0, h, 0)], fn, Color.WHITE, LED, float(row),
+				[Vector2(u0, 0), Vector2(u1, 0), Vector2(u1, 1), Vector2(u0, 1)])
+
+
+## The atlas's rows: the boards' words, then each screen's lines. [{"text", "fg", "bg"}].
+static func atlas_rows() -> Array:
+	var out := board_rows()
+	for sc: Dictionary in DriftLine.data().get("screens", []):
+		for w in sc.get("lines", []):
+			out.append({"text": str(w), "fg": Color(str(sc.get("fg", "#ffffff"))), "bg": Color(str(sc.get("bg", "#16181d")))})
 	return out
+
+
+## The boards' rows (the first rows of the atlas).
+static func board_rows() -> Array:
+	var out: Array = []
+	for bd: Dictionary in DriftLine.data().get("boards", []):
+		out.append({"text": str((bd.get("text", [""]) as Array)[0]), "fg": Color(str(bd.get("fg", "#ffffff"))), "bg": Color(str(bd.get("bg", "#16181d")))})
+	return out
+
+
+## The screens' lines as pairs of atlas rows.
+static func screen_lines() -> Array:
+	var out: Array = []
+	var row := board_rows().size()
+	for sc: Dictionary in DriftLine.data().get("screens", []):
+		var n := (sc.get("lines", []) as Array).size()
+		if n >= 2:
+			out.append([row, row + 1])
+		row += n
+	if out.is_empty():
+		out.append([0, 0])
+	return out
+
+
+## An atlas row's words' span in texels (x0, x1), with BOARD_MARGIN each side.
+static func word_span(row: int) -> Vector2:
+	var rows := atlas_rows()
+	var w := PixelFont.width(str(rows[row]["text"])) if row < rows.size() else 0
+	var x0 := (ATLAS_PX - w) >> 1
+	return Vector2(x0 - BOARD_MARGIN, x0 + w + BOARD_MARGIN)
 
 
 ## A ring sample's point at profile (t, y), in the stadium's coordinates.
@@ -613,18 +726,12 @@ static func spire_mesh() -> ArrayMesh:
 	var cy := HUB_Y - 1.0 - CUBE.y * 0.5
 	_vbox(st, Vector3(0, cy, 0), Vector3(CUBE.x, CUBE.y, CUBE.x), 0.0, BOARD_DARK)
 	_vbox(st, Vector3(0, HUB_Y - 0.5, 0), Vector3(0.6, 1.0, 0.6), 0.0, STEEL)
+	var pair: Array = screen_lines()[0]
 	for k in 4:
-		var yaw := PI * 0.5 * k
-		var b := Basis(Vector3.UP, yaw)
+		var b := Basis(Vector3.UP, PI * 0.5 * k)
 		var fn := b * Vector3(0, 0, 1)
-		var c := Vector3(0, cy, 0) + fn * (CUBE.x * 0.5 + 0.03)
-		var l := c + b * Vector3(-CUBE.x * 0.45, 0, 0)
-		var r := c + b * Vector3(CUBE.x * 0.45, 0, 0)
-		for row: Array in [[2.0, 0.6, 1.35], [0.0, -1.35, -0.6]]:
-			var y0: float = row[1]
-			var y1: float = row[2]
-			_face(st, [l + Vector3(0, y0, 0), r + Vector3(0, y0, 0), r + Vector3(0, y1, 0), l + Vector3(0, y1, 0)], fn, Color.WHITE, LED, row[0],
-					[Vector2(0, 0), Vector2(BOARD_LEN, 0), Vector2(BOARD_LEN, 1), Vector2(0, 1)])
+		var foot := Vector3(0, cy - ROW_PX * TEXEL - 0.01, 0) + fn * (CUBE.x * 0.5 + 0.03)
+		_screen(st, foot, b, fn, pair, TEXEL)
 	# The cables from the hub to the roof's inner edge, on the far side only (the near roof is cut).
 	var rg := ring()
 	for i in range(0, rg.size(), 4):
@@ -740,19 +847,18 @@ static func flame_mesh() -> ArrayMesh:
 	return st.commit()
 
 
-## The boards' words as one texture: a row (ROW_PX high) a board of drift_tracks.json `boards`, the text
-## centred in its colour on the board's.
+## The boards' and screens' words as one texture (atlas_rows): a row ROW_PX high each, the words centred
+## in their colour on the board's.
 static func atlas() -> ImageTexture:
-	var boards: Array = DriftLine.data().get("boards", [])
-	var n := maxi(1, boards.size())
+	var rows := atlas_rows()
+	var n := maxi(1, rows.size())
 	var img := Image.create(ATLAS_PX, ROW_PX * n, false, Image.FORMAT_RGBA8)
 	img.fill(BOARD_DARK)
-	for i in boards.size():
-		var bd: Dictionary = boards[i]
-		var text := str((bd.get("text", [""]) as Array)[0])
-		img.fill_rect(Rect2i(0, i * ROW_PX, ATLAS_PX, ROW_PX), Color(str(bd.get("bg", "#16181d"))))
+	for i in rows.size():
+		var text := str(rows[i]["text"])
+		img.fill_rect(Rect2i(0, i * ROW_PX, ATLAS_PX, ROW_PX), rows[i]["bg"])
 		var w := PixelFont.width(text)
-		PixelFont.draw(img, text, maxi(0, (ATLAS_PX - w) / 2), i * ROW_PX + 1, Color(str(bd.get("fg", "#ffffff"))))
+		PixelFont.draw(img, text, (ATLAS_PX - w) >> 1, i * ROW_PX + 1, rows[i]["fg"])
 	return ImageTexture.create_from_image(img)
 
 
@@ -761,9 +867,8 @@ static func material(tex: Texture2D, is_crowd: bool) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = load(SHADER)
 	m.set_shader_parameter("atlas", tex)
-	m.set_shader_parameter("rows", float(maxi(1, (DriftLine.data().get("boards", []) as Array).size())))
+	m.set_shader_parameter("rows", float(maxi(1, atlas_rows().size())))
 	m.set_shader_parameter("atlas_px", float(ATLAS_PX))
 	m.set_shader_parameter("row_px", float(ROW_PX))
-	m.set_shader_parameter("board_len", BOARD_LEN)
 	m.set_shader_parameter("crowd", 1.0 if is_crowd else 0.0)
 	return m

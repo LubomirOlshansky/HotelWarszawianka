@@ -86,6 +86,12 @@ const FLAME_H := 5.0
 const WAVE_LIFE := 2.4
 const FLOOD_ENERGY := 0.85
 const FLOOD_COLOUR := Color("#fff1dc")
+## The stadium's budget (0b.4 and the PR review): its main pass and the shadow pass (the cars only).
+const MAIN_DRAWS := 20
+const SHADOW_DRAWS := 8
+## The floodlight's own render layer (20): only the floor, wedge, marks and the stadium's car are on it, so
+## the light touches nothing of the city round the stadium (the PR review).
+const FLOOD_LAYER := 1 << 19
 ## A run gives up after this (s, 0b.2).
 const RUN_LIMIT := 45.0
 ## The wedge (change 4): its radii (m) and bands (°).
@@ -262,7 +268,10 @@ func _begin() -> void:
 		cam = world_node.get_viewport().get_camera_3d()
 	_root.visible = true
 	_skids.visible = true
-	_flood.visible = true
+	# The floodlight waits for _venue_frame (the PR review): no flash of the last visit's energy.
+	_flood.light_energy = 0.0
+	_flood.visible = false
+	_flood_lit(_car)
 	_ui_layer.visible = true
 	_set_awake(true)
 	_new_run()
@@ -469,6 +478,44 @@ func _process(dt: float) -> void:
 				int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)), int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
 				_smoke_t.filter(func(x: float) -> bool: return x < SMOKE_LIFE).size(), (_skids as MultiMeshInstance3D).multimesh.visible_instance_count,
 				Tiers.NAMES[Tiers.level], _smoke_cap, _crowd.multimesh.visible_instance_count, _flame_cap])
+		_frame_budget()
+
+
+## The review's budget gate, once a visit with the frame note: the stadium's own draws (its visible meshes'
+## surfaces, an upper bound of its main pass, counted without a renderer too) and the renderer's main and
+## shadow passes when there is one, and every shadow caster but the stadium's car. A breach is a push_error,
+## so the drift-run step (headless: the count and the casters) and a shot run (the passes) fail on it.
+func _frame_budget() -> void:
+	var draws := 0
+	var casters: Array[String] = []
+	var todo: Array[Node] = [self]
+	while not todo.is_empty():
+		var n: Node = todo.pop_back()
+		todo.append_array(n.get_children())
+		if not n is GeometryInstance3D or not (n as GeometryInstance3D).is_visible_in_tree():
+			continue
+		var g := n as GeometryInstance3D
+		var m: Mesh = null
+		if g is MeshInstance3D:
+			m = (g as MeshInstance3D).mesh
+		elif g is MultiMeshInstance3D and (g as MultiMeshInstance3D).multimesh != null \
+				and (g as MultiMeshInstance3D).multimesh.visible_instance_count != 0:
+			m = (g as MultiMeshInstance3D).multimesh.mesh
+		if m == null:
+			continue
+		draws += m.get_surface_count()
+		if g.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF and not _car.is_ancestor_of(g):
+			casters.append(str(g.name))
+	var vp := get_viewport().get_viewport_rid()
+	var main := RenderingServer.viewport_get_render_info(vp, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_VISIBLE,
+			RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME)
+	var shadow := RenderingServer.viewport_get_render_info(vp, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_SHADOW,
+			RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME)
+	_log("budget: %d stadium draws, main pass %d, shadow pass %d, %d other casters (main <= %d, shadow <= %d)" % [
+			draws, main, shadow, casters.size(), MAIN_DRAWS, SHADOW_DRAWS])
+	if draws > MAIN_DRAWS or main > MAIN_DRAWS or shadow > SHADOW_DRAWS or not casters.is_empty():
+		push_error("drift: over the stadium's budget: %d stadium draws, main %d, shadow %d, casters %s" % [
+				draws, main, shadow, casters])
 
 
 func _frame_visuals(dt: float) -> void:
@@ -676,6 +723,8 @@ func _build() -> void:
 	_wedge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_wedge.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_root.add_child(_wedge)
+	_floor.layers |= FLOOD_LAYER
+	_wedge.layers |= FLOOD_LAYER
 	_car = DriftCar.new()
 	_car.name = "DriftCar"
 	_car.line = line
@@ -694,6 +743,7 @@ func _build() -> void:
 		_skids.material_override = ctx_mat
 	# The marks are stamped in world coordinates: the node sits at the world's origin, not under _root.
 	add_child(_skids)
+	_skids.layers |= FLOOD_LAYER
 	_skids.visible = false
 	_build_smoke()
 	_ui_layer = CanvasLayer.new()
@@ -735,6 +785,7 @@ func _build_venue() -> void:
 	_crowd = MultiMeshInstance3D.new()
 	_crowd.name = "Crowd"
 	_crowd.multimesh = DriftVenue.crowd(int(Tiers.DRIFT["drift_crowd"]))
+	_crowd.multimesh.custom_aabb = _crowd.multimesh.get_aabb().grow(1.0)  # the wave lifts them 0.5 m (review)
 	_crowd.material_override = _crowd_mat
 	_crowd.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_root.add_child(_crowd)
@@ -763,6 +814,7 @@ func _build_venue() -> void:
 	_flames.visible = false
 	_root.add_child(_flames)
 	# Change 14: the floodlight from the roof for the lit floor and cars, at night, inside only; no shadow.
+	# Its cull mask is a layer only the floor, the wedge, the marks and the stadium's car carry (the review).
 	_flood = DirectionalLight3D.new()
 	_flood.name = "Floodlight"
 	_flood.light_color = FLOOD_COLOUR
@@ -771,8 +823,18 @@ func _build_venue() -> void:
 	_flood.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
 	_flood.rotation = Vector3(deg_to_rad(-62.0), deg_to_rad(20.0), 0.0)
 	_flood.visible = false
+	_flood.light_cull_mask = FLOOD_LAYER
 	add_child(_flood)
 	_apply_tiers()
+
+
+## Puts the floodlight's layer on `n` and every mesh under it (the stadium's car gets its model on each
+## visit, so _begin calls this again).
+func _flood_lit(n: Node) -> void:
+	if n is VisualInstance3D:
+		(n as VisualInstance3D).layers |= FLOOD_LAYER
+	for c in n.get_children():
+		_flood_lit(c)
 
 
 ## The marks' material: the actors' (dark vertex colour, lit like the floor).

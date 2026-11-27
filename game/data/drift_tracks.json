@@ -1,5 +1,5 @@
 {
-	"_note": "Bokiem na Narodowym, the grey box (docs/design/drift-narodowy.md 0b, critique-drift.md section 4). A track is its ideal line as segments from a start point and heading (yaw in degrees, 0 = towards -z, + = left, the game's rotation.y); `straight` m, `arc` [radius m, sweep degrees, +1 left / -1 right]. Zones: `zona` (the tail at the outer board) and `klip` (the nose at an inner cone), on a segment between two fractions of it, BOARD m from the line. Words: [Polish, English] (warsaw-tone). Islands (the stadium, PR 2): the grass inside each loop, the loop's radius less 6.5 m, so the angle wedge (6 m long, on the bend's side) stays on the asphalt; the KLIP cones stand on the asphalt too. Boards (PR 2): the LED ring's and the banners' words, Polish only in the world (the 5x7 pixel font) with the English gloss here, `fg` and `bg` their colours; parody sponsors only (warsaw-tone).",
+	"_note": "Bokiem na Narodowym, the drift practice in the Stadion Narodowy venue (docs/design/drift-narodowy.md 0b and 6, critique-drift.md section 4; drift_venue.gd builds the stadium round the floor). A track is its ideal line as segments from a start point and heading (yaw in degrees, 0 = towards -z, + = left, the game's rotation.y); `straight` m, `arc` [radius m, sweep degrees, +1 left / -1 right]. Zones: `zona` (the tail at the outer board) and `klip` (the nose at an inner cone), on a segment between two fractions of it, BOARD m from the line. Words: [Polish, English] (warsaw-tone). Islands (the stadium, PR 2): the grass inside each loop, the loop's radius less 6.5 m, so the angle wedge (6 m long, on the bend's side) stays on the asphalt; the KLIP cones stand on the asphalt too. Boards (PR 2): the LED rings' words (and the track wall's banners' colours), Polish only in the world (the 5x7 pixel font) with the English gloss here, `fg` and `bg` their colours; parody sponsors only (warsaw-tone). Screens: the stages' and the spire cube's two short lines each (one word a line, so each reads at the iso camera's scale), with the whole phrase and its English in `text`.",
 	"tracks": {
 		"osemka": {
 			"name": ["Ósemka", "Figure eight"],
@@ -60,5 +60,9 @@
 		{"text": ["OPONY U MIRKA", "Tyres at Mirek's"], "fg": "#111318", "bg": "#ffd23a"},
 		{"text": ["DYM W CENIE BILETU", "Smoke included in the ticket"], "fg": "#ffffff", "bg": "#14706e"},
 		{"text": ["BOKIEM NA NARODOWYM", "Sideways at the Narodowy"], "fg": "#ffffff", "bg": "#c8202a"}
+	],
+	"screens": [
+		{"lines": ["PUCHAR", "BOKIEM"], "text": ["PUCHAR BOKIEM", "The Sideways Cup"], "fg": "#ffd23a", "bg": "#111318"},
+		{"lines": ["TURBO", "TUR"], "text": ["TURBO TUR", "Turbo Tur (a parody energy drink)"], "fg": "#2a1606", "bg": "#ff7a1a"}
 	]
 }
