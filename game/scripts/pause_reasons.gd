@@ -15,6 +15,7 @@ const LOAD := &"load"          ## the loading bar: nothing half-built moves betw
 const SETTINGS := &"settings"  ## the settings card
 const MAP := &"map"            ## the full-screen map
 const GARAGE := &"garage"      ## the garage card
+const PHONE := &"phone"        ## the phone (phone_hub.gd)
 const TITLE := &"title"        ## the title waits for the tap: the world stands still until it
 
 var _tree: SceneTree

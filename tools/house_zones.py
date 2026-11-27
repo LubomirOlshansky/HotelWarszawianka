@@ -50,6 +50,12 @@ TYPES = {
 #      (0..1), share of bays with a loggia
 #   D: rusticated ground floor (0/1), mix towards pale panel concrete (0..1), share of lit rooms
 #      at night, roof (0 by the photo's colour, 1 tar paper, 2 membrane)
+# The share of the bake's parked cars a zone keeps (map_builder.gd, seeded by place): the estates
+# and the pre-war streets stay full, the office belt (garages under the towers), MDM's wide paid
+# avenues, the embassies of Ujazdów and the Ściana Wschodnia's shopping street run thinner.
+PARKED = {"wola_offices": 0.55, "sciana_wschodnia": 0.6, "mdm": 0.75, "ujazdow": 0.65,
+          "srodmiescie_polnoc": 0.75, "port_praski": 0.8}
+
 FACADE = {
  "0":  [4.0, 3.4, 2.8, 0.7,  0.45, 1.8, 0.85, 0.0,   0.6, 0.0, 0.0, 0.0,   0.0, 0.0, 0.34, 0.0],
  "1":  [4.4, 3.7, 2.8, 0.9,  0.55, 2.1, 0.85, 0.18,  0.75, 0.0, 0.0, 0.0,  1.0, 0.0, 0.34, 0.0],
@@ -82,7 +88,7 @@ out = {
  "default_mix": {"1": 5, "9": 3, "13": 2},
  "family_default": {"prewar": "1", "postwar": "9", "office": "11"},
  "types": TYPES,
- "zones": [{"id": i, "about": a, "p": p, "mix": m, "grey_override": True} for i, a, p, m in Z],
+ "zones": [{"id": i, "about": a, "p": p, "mix": m, "grey_override": True, "parked": PARKED.get(i, 1.0)} for i, a, p, m in Z],
 }
 open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'game', 'data', 'house_types.json'), 'w').write(json.dumps(out, ensure_ascii=False, indent='\t') + "\n")
 

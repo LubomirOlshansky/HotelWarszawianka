@@ -7638,6 +7638,29 @@
       }
     ]
   ],
+  "phone_hub": [
+    ["TELEFON", "PHONE", {"only": "title"}],
+    ["ŁUBER", "ŁUBER", {"only": "app_luber"}],
+    ["Podwózka na życzenie", "A ride on demand", {"only": "app_luber_sub"}],
+    ["GŁODNO", "GŁODNO", {"only": "app_glodno"}],
+    ["Dowóz jedzenia", "Food delivery", {"only": "app_glodno_sub"}],
+    ["ZADANIA", "QUESTS", {"only": "app_quests"}],
+    ["Wątki i zlecenia", "Questlines and jobs", {"only": "app_quests_sub"}],
+    ["COTAM", "COTAM", {"only": "app_cotam"}],
+    ["Wiadomości", "Messages", {"only": "app_cotam_sub"}],
+    ["Wkrótce", "Soon", {"only": "soon"}],
+    ["Brak kierowców", "No drivers", {"only": "no_ride"}],
+    ["Nie teraz", "Not now", {"only": "busy"}],
+    ["Szukam…", "Looking…", {"only": "searching"}],
+    ["Brak pasażerów w pobliżu", "No passengers nearby", {"only": "none_luber"}],
+    ["Brak zamówień w pobliżu", "No orders nearby", {"only": "none_glodno"}],
+    ["GŁODNO · ZAMÓWIENIE", "GŁODNO · NEW ORDER", {"only": "offer_glodno"}],
+    ["Kebab do odebrania i dowiezienia. Gorący, póki gorący.", "A kebab to pick up and deliver. Hot while it is hot.", {"only": "offer_glodno_sub"}],
+    ["WEŹ", "TAKE", {"only": "b_take"}],
+    ["POMIŃ", "SKIP", {"only": "b_skip"}],
+    ["WRÓĆ", "BACK", {"only": "b_back"}],
+    ["ZAMKNIJ", "CLOSE", {"only": "b_close"}]
+  ],
   "quest_book": [
     ["ZADANIA", "QUESTS", {"only": "quests"}],
     ["PIERWSZE KROKI", "FIRST STEPS", {"only": "tab_steps"}],

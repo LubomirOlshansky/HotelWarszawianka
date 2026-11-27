@@ -77,10 +77,13 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## 2026-11-26 (double models, check_sites DRESSES_BLOCK): Marszałkowska 99's street block
 ## (blk_338542425) no longer drawn under its landmark in (-2, 1): -46 faces, 47944 → 47898, `--record` on
 ## a fresh bake of the branch after merging main.
-## 2026-11-27 (#1107, the metro wells): +66 faces (47898 → 47964), the other stations' 37 sunken wells'
+## 2026-11-27 (house types, parked cars by zone #1111): -17 faces (47898 → 47881), the parked cars
+## the Ściana Wschodnia and Śródmieście Północne zones thin out in (-2, 0) and (-2, 1)
+## (HouseTypes.keeps_parked); measured on the runtime path before the merge (47760 → 47743).
+## 2026-11-27 (#1107, the metro wells): +66 faces (47881 → 47947), the other stations' 37 sunken wells'
 ## edge and mouth colliders (sites `mw_*`), less the wall lines on their rings; `--record` on a fresh bake
 ## of the branch after merging main; TOTAL_TYPED not measured again here.
-const TOTAL := 47964
+const TOTAL := 47947
 ## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
