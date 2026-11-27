@@ -54,6 +54,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 3tn | Open the phone, tap ŁUBER, wait; then tap SKIP, then WEŹ | "Szukam…" shows for about 1.4 s (not longer, not a flash), the passenger's face, ★ rating, distance and destination read clearly; SKIP looks again and a new passenger comes; WEŹ closes the phone and the ride starts as after the old ACCEPT (pin, route, pay and rating at the end); a passenger left by the home bar is gone | phone v2, #1138 |
 | 3to | Open the phone, tap GŁODNO, wait, WEŹ; then open the big map | the nearest kebab place is offered with its distance; WEŹ closes the phone and the place is the pin (arrow, map); with a job or a call on, the tile is greyed and says a short "busy" | phone v2, #1138 |
 | 3tp | Open the phone and tap ZADANIA | the phone closes and the big QUESTS screen opens on the questlines; the map's back button returns to the game; the tiles' colours are our own (ŁUBER cyan, GŁODNO pink), no real app's look | phone v2, #1138 |
+| 3tq | Open the phone, tap COTAM, write a line, send | the feedback card opens over the phone (keyboard does not hide the SEND button), the line arrives at the author as from Settings, closing the card leaves the phone open, and closing the phone with the card open puts the keyboard away | phone cotam |
 
 ## 2. Driving feel: Settings → Świat (6 min)
 
