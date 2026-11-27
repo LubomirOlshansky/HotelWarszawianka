@@ -243,6 +243,7 @@ const BUDGET := {
 	"jarmark": 192000,  # 2026-11-22 the official-map rebuild with the object kit (jarmark_kit.gd: shutters, plank grooves, bulbs on every chalet, Santa's Workshop, the castle stage), 190,815 tris, still one mesh, +0 draw calls; the iPhone bench near the Palace is owed before TestFlight. Before: 2026-11-20 the finished Jarmark Warszawski 2026 (F, for the trailer), 69,003 tris: over 200 stalls, the LED tree, the 38 m tower carousel, the Venetian carousel, bulb strings over every aisle; an exception to the L3 cap, a whole 160 by 90 m market in one site, +0 draw calls (one mesh)
 	"obeliski": 600,  # the two 1955 granite obelisks by the Palace and their exit hatches (F, 2026-11-15, 2026-11-17)
 	"tower75": 220,
+	"unique": 7000,
 	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
 	"tapczan": 4700,  # 2026-11-24 THE TAPCZAN pub on Sienkiewicza 4 (F's photos): street level, carved panels, sign, pallet terrace, 7 tables, 28 chairs, 2 umbrellas, planters
 	"sienkiewicza4": 5300,  # 2026-11-24 the Art Nouveau tenement on Sienkiewicza 4 (F's photos): bows, friezes, canopy, windows, rear range

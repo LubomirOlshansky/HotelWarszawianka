@@ -7,6 +7,178 @@ extends "res://scripts/landmarks/powisle.gd"
 ## common.gd and the facade kit, never another area: a helper two areas need goes to common.gd.
 
 
+# --- Unique Tower, Grzybowska 51 --------------------------------------------------------------
+
+## Two unnamed footprints share a podium. The north outline also contains the main tower's shoulder.
+const UNIQUE_NORTH_AT := Vector2(-2337.0, 25.0)
+const UNIQUE_SOUTH_AT := Vector2(-2322.0, 76.0)
+const UNIQUE_ORIGIN := Vector2(-2358.5, 5.3)
+const UNIQUE_AXIS := Vector2(0.96, -0.28)
+const UNIQUE_PODIUM_TOP := 17.2
+const UNIQUE_SHOULDER_TOP := 55.6
+const UNIQUE_SOUTH_TOP := 57.4
+const UNIQUE_TOWER_TOP := 91.3
+## Daylight photos show off-white slab edges, blue glass and champagne metal against charcoal.
+const UNIQUE_WHITE := Color("#f2f2ed")
+const UNIQUE_BODY := Color("#393e45")
+const UNIQUE_BRONZE := Color("#b7a080")
+const UNIQUE_GLASS := Color("#62798b")
+const UNIQUE_GUARD := Color("#536979")
+const UNIQUE_ROOF := Color("#92948f")
+const UNIQUE_SCREEN := Color("#41464d")
+const UNIQUE_GREEN := Color("#69704c")
+const UNIQUE_BAND := 0.64
+const UNIQUE_BEND_EDGES := 5
+
+## Local plans, u east along the frontage and v south. The first five edges turn the northwest
+## corner. Keep the same profile up the tower so its bands line up above the shoulder.
+const UNIQUE_PODIUM := [[0.0, 3.5], [0.35, 1.25], [1.25, -0.65], [2.8, -2.1], [4.5, -2.8],
+		[6.5, -3.0], [30.9, -3.0], [30.9, 57.4], [27.2, 57.4], [27.2, 87.1],
+		[18.8, 87.1], [18.5, 83.0], [6.5, 83.0], [6.4, 87.1], [0.0, 87.1],
+		[0.0, 63.3], [16.7, 63.3], [16.7, 40.3], [0.0, 40.3]]
+const UNIQUE_NORTH_FRONT := [[0.7, 3.8], [1.0, 1.75], [1.8, 0.0], [3.1, -1.35], [4.8, -2.1],
+		[6.7, -2.3], [11.2, -2.3], [12.2, -1.0], [15.4, -1.0], [16.4, -2.3], [30.2, -2.3]]
+const UNIQUE_SOUTH := [[0.8, 65.05], [1.75, 64.1], [25.5, 64.1], [26.4, 65.0], [26.4, 85.2],
+		[25.5, 86.1], [1.7, 86.1], [0.8, 85.2]]
+
+
+## Replace the OSM fallback buildings and any LoD2 runs centred in their two plots.
+func _find_unique() -> void:
+	var north := _outline_at(UNIQUE_NORTH_AT)
+	var south := _outline_at(UNIQUE_SOUTH_AT)
+	if north.size() >= 3 and south.size() >= 3:
+		_add_site("unique", [_grown(north, 3.0), _grown(south, 3.0)])
+	else:
+		# Older streamed indexes omit both unnamed outlines. The podium follows their union.
+		_o = UNIQUE_ORIGIN
+		_a = UNIQUE_AXIS.normalized()
+		_b = Vector2(-_a.y, _a.x)
+		_add_site("unique", [_grown(_lpoly(UNIQUE_PODIUM), 3.0)])
+
+
+## Use one ground datum and draw the connected base, terraced shoulder and two skyline roofs.
+func _build_unique(_site: Dictionary) -> void:
+	_o = UNIQUE_ORIGIN
+	_a = UNIQUE_AXIS.normalized()
+	_b = Vector2(-_a.y, _a.x)
+	var podium := _lpoly(UNIQUE_PODIUM)
+	var shoulder := _lpoly(UNIQUE_NORTH_FRONT + [[30.2, 39.5], [0.7, 39.5]])
+	var tower := _lpoly(UNIQUE_NORTH_FRONT + [[30.2, 22.2], [0.7, 22.2]])
+	var south := _lpoly(UNIQUE_SOUTH)
+	_g = _ground_under(podium)
+	_mode = M_STONE
+	_unique_terraces()
+	_unique_plant()
+	_unique_crown(tower)
+	_unique_podium(podium)
+	_unique_blocks(shoulder, UNIQUE_PODIUM_TOP, UNIQUE_SHOULDER_TOP, 12, true)
+	_unique_blocks(tower, UNIQUE_SHOULDER_TOP, UNIQUE_TOWER_TOP, 11, true)
+	_unique_blocks(south, UNIQUE_PODIUM_TOP, UNIQUE_SOUTH_TOP, 12, false)
+	_collide(podium)
+
+
+## Set tall lobby glazing between stone piers, under the four levels tying the blocks together.
+func _unique_podium(ring: PackedVector2Array) -> void:
+	var lobby_top := _g + 5.0
+	_prism(ring, _g - 0.65, lobby_top, PAL_WARM_GRANITE, Color.TRANSPARENT, M_STONE)
+	_prism(ring, lobby_top, _g + UNIQUE_PODIUM_TOP, UNIQUE_BODY, UNIQUE_ROOF, M_STONE, M_STONE)
+	for i in ring.size():
+		var width := kit_front(ring[(i + 1) % ring.size()], ring[i])
+		if width < 3.0:
+			continue
+		var bays := maxi(1, roundi(width / 4.3))
+		var bay := width / bays
+		for j in bays:
+			var u := (j + 0.5) * bay
+			if i in [5, 14, 18] and j == bays / 2:
+				kit_door(u, _g - 0.05, 3.4, minf(1.55, bay * 0.37), UNIQUE_BRONZE, UNIQUE_BODY)
+			else:
+				kit_panes([u], [_g + 0.45], bay - 0.85, 3.92, UNIQUE_GLASS)
+	_unique_bands(ring, 5.0, 3.05, 4, false)
+	_unique_glazing(ring, 5.0, 3.05, 4)
+
+
+## Layer a glazed residential block over the roof supporting it.
+func _unique_blocks(ring: PackedVector2Array, bottom: float, top: float, floors: int, rounded: bool) -> void:
+	_prism(ring, _g + bottom, _g + top, UNIQUE_BODY, UNIQUE_ROOF, M_STONE, M_STONE)
+	var step := (top - bottom) / floors
+	_unique_bands(ring, bottom, step, floors, rounded)
+	_unique_glazing(ring, bottom, step, floors)
+
+
+## Wrap slab edges and soffits around the plan. Sit the glass guards just inboard of the edge
+## and pick out the north bend with the champagne trim visible in the street photos.
+func _unique_bands(ring: PackedVector2Array, bottom: float, step: float, floors: int, rounded: bool) -> void:
+	var residential := bottom >= UNIQUE_PODIUM_TOP
+	var depth := 0.78 if residential else 0.40
+	var edge := _ring_out(ring, depth)
+	var guard := _ring_out(ring, depth - 0.13)
+	var trim := _ring_out(ring, depth + 0.045)
+	for floor_index in floors:
+		var y := _g + bottom + floor_index * step
+		kit_ledge_ring(ring, y, UNIQUE_BAND, UNIQUE_WHITE, depth)
+		_mode = M_STONE
+		_soffit(edge, y, UNIQUE_WHITE.darkened(0.23))
+		for i in ring.size():
+			var j := (i + 1) % ring.size()
+			var out := _out(ring, ring[i], ring[j])
+			if residential and out.dot(UNIQUE_AXIS) < 0.48:
+				_mode = M_GLASS
+				_wall(guard[i], guard[j], y + UNIQUE_BAND, y + UNIQUE_BAND + 0.83, out, UNIQUE_GUARD)
+			if rounded and i < UNIQUE_BEND_EDGES:
+				_mode = M_STONE
+				_wall(trim[i], trim[j], y + 0.13, y + 0.50, out, UNIQUE_BRONZE)
+	_mode = M_STONE
+
+
+## Keep the shadows of the cladding between panes. Each opening uses a single kit quad.
+func _unique_glazing(ring: PackedVector2Array, bottom: float, step: float, floors: int) -> void:
+	var rows: Array[float] = []
+	for floor_index in floors:
+		rows.append(_g + bottom + floor_index * step + UNIQUE_BAND + 0.08)
+	for i in ring.size():
+		var width := kit_front(ring[(i + 1) % ring.size()], ring[i])
+		var bays := maxi(1, roundi(width / 3.35))
+		var bay := width / bays
+		var places: Array[float] = []
+		for j in bays:
+			places.append((j + 0.5) * bay)
+		kit_panes(places, rows, bay * 0.81, step - UNIQUE_BAND - 0.26, UNIQUE_GLASS, 0.06)
+
+
+## Close the tall roof's parapet on both sides, with champagne only at the rounded street corner.
+func _unique_crown(ring: PackedVector2Array) -> void:
+	var y := _g + UNIQUE_TOWER_TOP
+	var outer := _ring_out(ring, 0.14)
+	var inner := _inset_ring(ring, 0.25)
+	for i in ring.size():
+		var j := (i + 1) % ring.size()
+		var out := _out(ring, ring[i], ring[j])
+		_wall(outer[i], outer[j], y - 0.24, y + 2.0, out, UNIQUE_BRONZE if i <= UNIQUE_BEND_EDGES else UNIQUE_SCREEN)
+		_wall(inner[i], inner[j], y, y + 2.0, -out, UNIQUE_SCREEN)
+	_strip(inner, outer, y + 2.0, UNIQUE_SCREEN.lightened(0.10))
+
+
+## Low planting on the shoulder and the podium connector reads from the overhead game camera.
+func _unique_terraces() -> void:
+	var y := _g + UNIQUE_SHOULDER_TOP
+	_lbox(8.0, 31.6, 5.2, 2.4, y, y + 0.37, PAL_GREY_GRANITE, M_STONE, UNIQUE_GREEN)
+	_lbox(15.0, 37.3, 12.3, 0.75, y, y + 0.34, PAL_GREY_GRANITE, M_STONE, UNIQUE_GREEN)
+	y = _g + UNIQUE_PODIUM_TOP
+	_lbox(23.0, 50.0, 4.6, 6.1, y, y + 0.35, PAL_GREY_GRANITE, M_STONE, UNIQUE_GREEN)
+
+
+## Set back the broad dark equipment screen on the tower and the two smaller roof houses.
+func _unique_plant() -> void:
+	var y := _g + UNIQUE_TOWER_TOP
+	_lbox(18.4, 11.7, 8.8, 6.9, y, y + 5.0, UNIQUE_SCREEN)
+	_lbox(8.05, 12.8, 1.1, 4.15, y, y + 1.9, UNIQUE_SCREEN.lightened(0.12))
+	y = _g + UNIQUE_SHOULDER_TOP
+	_lbox(23.0, 29.6, 5.1, 4.6, y, y + 3.4, UNIQUE_SCREEN)
+	y = _g + UNIQUE_SOUTH_TOP
+	_lbox(13.8, 74.4, 8.9, 5.7, y, y + 1.9, UNIQUE_SCREEN)
+
+
 # --- Osiedle Za Żelazną Bramą: eleven large-panel blocks ---------------------------------------
 
 ## F's ask (2026-11-01): the estate between Żelazna and Aleja Jana Pawła II (Jerzy Skolimowski's,
