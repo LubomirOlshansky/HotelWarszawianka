@@ -1904,8 +1904,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the facade and towers are ours
 				_build_krzyz(s)
 			"wszystkich":
-				_mark_zone(s)  # the nave stays LoD2's, in its skin; the front and towers are ours
-				_build_wszystkich(s)
+				_build_wszystkich(s)  # the whole church (SKINS entry with `model`: it replaces LoD2)
 			"archikatedra":
 				_mark_zone(s)  # the nave stays LoD2's, in its brick; the stepped-gable front is ours
 				_build_archikatedra(s)
