@@ -10,7 +10,7 @@ the north wing's street end with a lion, the forecourt at night with the statue 
 ## v2 changes (what the rebuild fixes)
 
 v1 was 1,181 triangles for a hero site seen in the trailer from the street and from the dzik's
-flight. v2 is **L3, budget 7,000** (`check_mesh_quality.gd` BUDGET).
+flight. v2 is **L3, budget 7,000** (`check_mesh_quality.gd` BUDGET). The v2 build measures 6,990 (2026-11-27), so the budget leaves no headroom: any added part must take its triangles from another, or the budget is raised on purpose with a reason.
 
 1. **The wings** (u 0..84 / 0..88): two storeys over a rusticated ground floor, as the photos show
    (eaves 10.5 m kept): ground floor 4.2 m, banded rustication, **round-headed** windows (1.4 x
