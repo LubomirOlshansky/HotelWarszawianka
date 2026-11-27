@@ -207,6 +207,7 @@ const BUDGET := {
 	"koszyki": 1900,
 	"torwar": 1500,  # 2026-11-15 from photos, over its street block: the portico's columns, entablature, parapet and letters; pilasters and lattice panels round the hall
 	"nbp": 1000,  # 2026-11-16 from photos, the whole branch: the folded panel bands, the glass ground floor, the steps, the white wall with the eagle and NBP, the stair slot, planters
+	"powszechny": 6000,
 	"dom_chlopa": 3000,  # 2026-11-16 from photos, over its street block: the wavy roof edge on every street front, GROMADKA, the HOTEL corner sign, KASYNO TRAF
 	"batalion_kilinski": 1100,  # 2026-11-16 from photos: the tilted granite slab, the white step and four stelae, the white blocks, five flower bowls
 	"powstancow_ramp": 1500,  # 2026-11-16: Plac Powstańców Warszawy's car park ramp: the concrete walls, 22 strips of setts
@@ -340,7 +341,7 @@ const BUDGET := {
 	"mansjonaria": 2700,  # 2026-11-26: the buttressed house by the oak modelled whole (measured 2458)
 	"nikidw": 2400,  # 2026-11-26: the Institute modelled whole: 12-bay two-storey arcade, wings, hipped roofs (measured 2268)
 	"arkady": 2600,
-	"kino_muranow": 6000,
+	"kino_muranow": 11000,  # 2026-11-27 v2 whole complex: both 4-storey blocks, arch block, arcaded podium, square
 	"zbawiciela": 3400,
 	"zbawiciela_plac": 2200,
 	"tarasy": 9400,  # 2026-11-11 F's photos: the triangular glass wave, the guitar, the café (5455); the whole complex: podium ledges, shop boards, Lumen's setback (7781)

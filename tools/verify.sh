@@ -658,14 +658,76 @@ shown() {
 	fi
 }
 
+# stuck_kill PID: SIGSEGV first so the engine's crash handler prints the GDScript backtrace of where
+# the run is stuck into the job log, then (after 5 s) SIGKILL if it is still there.
+stuck_kill() {
+	kill -SEGV $1 2>/dev/null
+	local i
+	for i in 1 2 3 4 5; do kill -0 $1 2>/dev/null || break; sleep 1; done
+	kill -9 $1 2>/dev/null; wait $1 2>/dev/null
+}
+
+# watched LIMIT OKRE GRACE LOG CMD...: run CMD (stdout+stderr to LOG) under a LIMIT-second cap like
+# `limited`, and once a line matching OKRE shows in LOG, give it GRACE seconds to exit. Sets
+# WATCH_OK_AT / WATCH_EXIT_AT (seconds from the start; OK_AT is -1 if the line never came) and
+# returns the exit code (a timeout or hang is killed with SIGSEGV first, see stuck_kill), 142 when LIMIT ran out, 144 when the process was still alive GRACE seconds
+# after the OK line (an exit hang on a slow runner, not a game failure: it is killed and reported alone).
+WATCH_OK_AT=-1
+WATCH_EXIT_AT=-1
+watched() {
+	local limit=$1 okre=$2 grace=$3 logf=$4; shift 4
+	local t0=$EPOCHREALTIME pid code now
+	WATCH_OK_AT=-1
+	WATCH_EXIT_AT=-1
+	"$@" > $logf 2>&1 &
+	pid=$!
+	while kill -0 $pid 2>/dev/null; do
+		now=$(( EPOCHREALTIME - t0 ))
+		if (( WATCH_OK_AT < 0 )) && grep -qE "$okre" $logf; then
+			WATCH_OK_AT=$now
+			print -u2 -- "[watch] $(date -u +%H:%M:%S) OK line after $(printf '%.0f' $now) s"
+		fi
+		if (( now > limit )); then
+			stuck_kill $pid
+			WATCH_EXIT_AT=$(( EPOCHREALTIME - t0 ))
+			return 142
+		fi
+		if (( WATCH_OK_AT >= 0 && now - WATCH_OK_AT > grace )); then
+			stuck_kill $pid
+			WATCH_EXIT_AT=$(( EPOCHREALTIME - t0 ))
+			print -u2 -- "[watch] $(date -u +%H:%M:%S) still alive ${grace} s after the OK line: killed"
+			return 144
+		fi
+		sleep 1
+	done
+	wait $pid; code=$?
+	WATCH_EXIT_AT=$(( EPOCHREALTIME - t0 ))
+	if (( WATCH_OK_AT < 0 )) && grep -qE "$okre" $logf; then WATCH_OK_AT=$WATCH_EXIT_AT; fi
+	print -u2 -- "[watch] $(date -u +%H:%M:%S) exited ($code) after $(printf '%.0f' $WATCH_EXIT_AT) s"
+	return $code
+}
+
 # game NAME FRAMES OUTCOME GAMEARGS...: a headless game run with --nosave that quits after
 # FRAMES frames; OUTCOME is a regex for the line that says the activity finished ("" = none).
 game() {
 	local name=$1 frames=$2 outcome=$3; shift 3
-	local logf=$logs/run_$name.log t0=$EPOCHREALTIME code
-	( cd $GAME && limited $STEP_LIMIT $GODOT --headless --path . --fixed-fps 60 --quit-after $frames \
-		-- --nosave --notitle "$@" ) > $logf 2>&1
-	code=$?
+	local logf=$logs/run_$name.log t0=$EPOCHREALTIME code watchnote=""
+	if [[ -n $GAME_GRACE && -n $outcome ]]; then
+		# GAME_GRACE=N: the outcome line's time and the exit's time are logged, and a process still
+		# alive N s after the outcome line is killed and reported as an exit hang, not a game failure.
+		watched $STEP_LIMIT "$outcome" $GAME_GRACE $logf zsh -c 'cd "$1" && shift && exec "$@"' _ $GAME \
+			$GODOT --headless --path . --fixed-fps 60 --quit-after $frames -- --nosave --notitle "$@"
+		code=$?
+		watchnote=" [outcome line at $(printf '%.0f' $WATCH_OK_AT) s, exit at $(printf '%.0f' $WATCH_EXIT_AT) s]"
+		if (( code == 144 )); then
+			row FAIL "run: $name" $(printf '%.0f' $WATCH_EXIT_AT) "EXIT HANG, not a game failure: outcome line at $(printf '%.0f' $WATCH_OK_AT) s, process still alive ${GAME_GRACE} s later, killed ($logf)"
+			return
+		fi
+	else
+		( cd $GAME && limited $STEP_LIMIT $GODOT --headless --path . --fixed-fps 60 --quit-after $frames \
+			-- --nosave --notitle "$@" ) > $logf 2>&1
+		code=$?
+	fi
 	local secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
 	local np=$(problems $logf | wc -l | tr -d ' ')
 	local built=$(grep -m1 '^city built in' $logf)
@@ -682,7 +744,7 @@ game() {
 	elif [[ -n $outcome ]]; then
 		local fin=$(grep -E -m1 "$outcome" $logf)
 		if [[ -n $fin ]]; then
-			row PASS "$label" $secs "0 errors$known · ${fin[1,110]}"
+			row PASS "$label" $secs "0 errors$known · ${fin[1,110]}$watchnote"
 		else
 			row WARN "$label" $secs "0 errors$known, but no '$outcome' line in $frames frames ($(( frames / 60 )) s of play)"
 		fi
@@ -1786,7 +1848,7 @@ for s in $want; do
 		teleport) game teleport 3000 '^teleport test: OK' --teleport-test --no-police ;;
 		# First scene items 6-7: at the start, after 15 s of play: walkers on Marszałkowska's busy
 		# pavements, people at the start's furniture, a tram's bell as it passes, the square's bed.
-		firstlife) game firstlife 1200 '^first life: OK' --first-life --at=-961.6,95 --heading=339.8 ;;
+		firstlife) GAME_GRACE=60 game firstlife 1200 '^first life: OK' --first-life --at=-961.6,95 --heading=339.8 ;;
 		rain) game rain-night 600 "" --weather=rain --time=night ;;
 		prebuilt) skip_prebuilt "run: prebuilt-night" || game prebuilt-night 600 "" --prebuilt --time=night ;;
 		# Tech-debt TD-15: the game started as a player starts it (boot.gd: the title up, the game's

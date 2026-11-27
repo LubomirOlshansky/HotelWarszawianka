@@ -729,6 +729,9 @@ const INFO := {
 	"bazar": ["Bazar Różyckiego",
 			"Najstarszy bazar Warszawy, od 1882 roku. Stare budy obok nowych zielonych pawilonów. Kupisz tu wszystko.",
 			"Warsaw's oldest market, since 1882. Old sheds face the new green kiosks. Everything is for sale."],
+	"powszechny": ["Teatr Powszechny im. Zygmunta Hübnera",
+			"Przy Zamoyskiego 20 praska scena nosi imię Zygmunta Hübnera. Wysoka wieża nad dachem mieści sceniczne dekoracje.",
+			"At Zamoyskiego 20, Praga's theatre bears Zygmunt Hübner's name. The tower above the roof holds the stage scenery."],
 	"teresy": ["Kościół św. Teresy od Dzieciątka Jezus",
 			"Jasny kościół parafialny przy Tamce, z wysokimi łukowymi oknami, okrągłym oknem i wielkim portalem.",
 			"A light parish church on Tamka, with tall arched windows, a round window and a big arched porch."],
@@ -2146,6 +2149,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_florian(s)
 			"bazar":
 				_build_bazar(s)
+			"powszechny":
+				_build_powszechny(s)
 			"port_praski":
 				_build_port_praski(s)
 			"kosciuszkowcy":

@@ -27,7 +27,7 @@ const Fakes := preload("res://tools/fakes.gd")
 ## Triangles a site may hold (the museum and Plac loop's own models).
 const BUDGET := {"muzeum": 4600, "europejski": 8000, "grob": 600, "metropolitan": 3200, "wiktoria": 4500,
 		"hotel_kasztel": 400, "hotel_canaletto": 400, "hotel_starowka": 400, "polonia": 1450, "ujazdowski": 1650, "sobieski": 1500,
-		"zamek": 24500, "arkady": 2400, "kino_muranow": 6000, "dekalog_estate": 18000, "inflancka_pools": 1000, "zamkowy": 2900}
+		"zamek": 24500, "arkady": 2400, "kino_muranow": 11000, "dekalog_estate": 18000, "inflancka_pools": 1000, "zamkowy": 2900}
 ## The Królewska edge's skins: key -> a point in a building the skin must cover.
 const SKINNED := {"departament": Vector2(-596.0, -702.0)}
 ## Words no card may hold (the hotel's real brand and name).
@@ -237,7 +237,7 @@ func _check_card(key: String, card: Array) -> void:
 ## block went to `_find_blocks`'s skip list (LM_BLOCKS, like CM_BLOCK, MP_BLOCK and UP_BLOCK); where
 ## the block is better the tower builds only its sign on it (TOWERS `on_block`). What is left draws
 ## on top of the block by design: the landmark is dress over the block's mass (its spec says so).
-const DRESSES_BLOCK := ["blk_25844922 torwar", "blk_2250406 dom_chlopa", "blk_141043447 kino_muranow"]
+const DRESSES_BLOCK := ["blk_25844922 torwar", "blk_2250406 dom_chlopa"]
 ## Other sites inside a landmark's outline that are one scene by design (a statue on its square, a
 ## barge in its dock, a church in its precinct), as "guest host".
 const NESTED := ["barka_kaskada kaskada", "kaskada barka_kaskada", "bulwary_bary kopernik",
