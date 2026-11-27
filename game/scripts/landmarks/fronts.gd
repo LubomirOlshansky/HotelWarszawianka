@@ -110,7 +110,7 @@ const SKINS := [
 	{"key": "nbp", "osm": "NBP Oddział Okręgowy w Warszawie", "model": true, "mode": M_STONE, "wall": "#4d4446", "roof": "#6f7173"},
 	# The named court outline registers the whole model and drops the GUGiK run.
 	{"key": "sad_okregowy", "osm": "Sąd Okręgowy w Warszawie", "model": true,
-			"mode": M_STONE, "wall": SAD_WALL, "roof": SAD_ROOF},
+			"mode": M_STONE, "wall": "#dcd6c9", "roof": "#7d7f8c"},
 	# The mapped theatre registers here as a whole model, so its LoD2 run is replaced.
 	{"key": "powszechny", "osm": "Teatr Powszechny", "model": true, "mode": M_STONE, "wall": "#ebe8df", "roof": "#b9babc"},
 	# PKO BP's office on Marszałkowska by Nowogrodzka from Mapillary photos (2026-11-16,
