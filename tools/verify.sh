@@ -658,13 +658,21 @@ shown() {
 	fi
 }
 
-# stuck_kill PID: SIGSEGV first so the engine's crash handler prints the GDScript backtrace of where
-# the run is stuck into the job log, then (after 5 s) SIGKILL if it is still there.
+# stuck_kill PID LOG: SIGSEGV first so the engine's crash handler prints the C++ and GDScript
+# backtraces of where the run is stuck into LOG, then (after up to 15 s: the handler symbolizes
+# the frames) SIGKILL if it is still there. The job log gets the first C++ frames and the whole
+# GDScript block, because the step logs are artifacts and the job output is what a reader sees.
 stuck_kill() {
-	kill -SEGV $1 2>/dev/null
-	local i
-	for i in 1 2 3 4 5; do kill -0 $1 2>/dev/null || break; sleep 1; done
-	kill -9 $1 2>/dev/null; wait $1 2>/dev/null
+	local pid=$1 logf=$2 i
+	kill -SEGV $pid 2>/dev/null
+	for i in {1..15}; do kill -0 $pid 2>/dev/null || break; sleep 1; done
+	kill -9 $pid 2>/dev/null; wait $pid 2>/dev/null
+	print -u2 -- "[watch] backtrace of the killed run (${logf:t}):"
+	{
+		grep -E -A8 'Program crashed|Dumping the backtrace' $logf | head -14
+		sed -n '/GDScript backtrace/,/END OF GDSCRIPT/p' $logf | head -24
+	} >&2
+	grep -qE 'GDScript backtrace|Dumping the backtrace' $logf || print -u2 -- "[watch] no backtrace in the log (the process may have died before the handler ran)"
 }
 
 # watched LIMIT OKRE GRACE LOG CMD...: run CMD (stdout+stderr to LOG) under a LIMIT-second cap like
@@ -688,12 +696,12 @@ watched() {
 			print -u2 -- "[watch] $(date -u +%H:%M:%S) OK line after $(printf '%.0f' $now) s"
 		fi
 		if (( now > limit )); then
-			stuck_kill $pid
+			stuck_kill $pid $logf
 			WATCH_EXIT_AT=$(( EPOCHREALTIME - t0 ))
 			return 142
 		fi
 		if (( WATCH_OK_AT >= 0 && now - WATCH_OK_AT > grace )); then
-			stuck_kill $pid
+			stuck_kill $pid $logf
 			WATCH_EXIT_AT=$(( EPOCHREALTIME - t0 ))
 			print -u2 -- "[watch] $(date -u +%H:%M:%S) still alive ${grace} s after the OK line: killed"
 			return 144
