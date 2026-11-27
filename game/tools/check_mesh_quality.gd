@@ -132,10 +132,10 @@ const BUDGET := {
 	"hotel_canaletto": 330,
 	"hotel_starowka": 330,
 	"karmelici": 1300,
-	"kordegarda": 950,
+	"kordegarda": 1750,  # 2026-11-27 v2 whole gallery (Codex): 1,350 measured, ~1.3x room
 	"mdm": 4100,
 	"mickiewicz": 1150,
-	"potocki": 760,
+	"potocki": 6500,
 	"prus": 250,
 	"wyszynski": 300,
 	"arkadia": 20300,
