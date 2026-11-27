@@ -1505,6 +1505,9 @@ for s in $want; do
 		# 2026-11-17 (F's QUESTS screen): the tabs and items quest_book.gd builds from the facts, the
 		# words of every key, the icons and the beta card's tiles (pure, no map, ~1 s).
 		questbook) check questbook '^check_quest_book:' --script res://tools/check_quest_book.gd ;;
+		# 2026-11-26 (the phone with jobs): phone_rules.gd's apps and featured quests for made-up facts, the
+		# words of every key, and phone_hub.gd's card (buttons of 44 pt, presses handed back; pure, ~1 s).
+		phonehub) check phonehub '^check_phone_hub:' --script res://tools/check_phone_hub.gd ;;
 		# Wątki (2026-11-07): the questlines' hours, starts, map badges, quest focus, the WĄTKI tab and
 		# the friend walking up in person (story_quests.gd; no map, CI too).
 		stories) check stories '^check_story_quests:' --script res://tools/check_story_quests.gd ;;

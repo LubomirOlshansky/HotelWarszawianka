@@ -155,6 +155,7 @@ const GameCtx := preload("res://scripts/game_ctx.gd")
 ## The QUESTS screen's words and tabs (2026-11-17).
 const QuestBook := preload("res://scripts/quest_book.gd")
 const PauseReasons := preload("res://scripts/pause_reasons.gd")
+const Phone := preload("res://scripts/phone.gd")
 const Tour := preload("res://scripts/tour.gd")
 
 ## "Dym u Senatorka", Ivan's shisha night (shisha.gd, F's ask 2026-11-08), and the lounge upstairs
@@ -650,6 +651,7 @@ var quest_pick_flag := -1
 ## --quests (shots): the full map opens at the start with the QUESTS screen up (2026-11-17).
 ## Also written by a command-line flag (dev_flags.gd).
 var quests_flag := false
+var phone: Phone  # the phone with jobs (phone.gd)
 ## [x, z, what]: above the four driven tunnels (the bug: a hold over a tunnel put the car on its
 ## floor), by a portal, and plain streets.
 const TELEPORT_TESTS := [
@@ -1587,6 +1589,8 @@ func _build_world() -> void:
 	hud.settings_panel.changed.connect(_on_setting)
 	hud.settings_panel.closed.connect(_close_settings)
 	hud.map_pressed.connect(_open_full_map)  # F's asks: a tap on the minimap
+	phone = Phone.new(self)  # F 2026-11-26: the phone with jobs (phone.gd wires the TELEFON chip)
+	phone.wire(hud)
 	# Loop 2e: TIME, VHS, RAIN, STYLE, CAM, QUALITY and the rotate and zoom buttons left the
 	# driving screen (Settings has them; the keys stay; zoom is a pinch, a twist turns a fixed
 	# camera).
@@ -6912,7 +6916,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				settings.perf = show_perf
 				settings.save()
 			KEY_ESCAPE:
-				_open_settings()
+				if phone == null or not phone.close_if_open():
+					_open_settings()
 			KEY_U:
 				# Loop G1: Auto → Low → Medium → High → Ultra → Experimental → Auto.
 				_blip_sound()
