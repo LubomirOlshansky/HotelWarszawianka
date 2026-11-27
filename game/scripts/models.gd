@@ -1819,13 +1819,13 @@ const SCULPT := {
 	# standing above the bonnet with round lamps, one arc from the windscreen to the ducktail.
 	"player_porsza": {
 		"shape": [0.9, 0.5, 0.9, 0.06], "wheels": [-1.26, 1.01, 0.31, 0.26],
-		"lower": [[-2.08, 0.3, 0.46, 0.42, 0.62], [-1.98, 0.22, 0.66, 0.5, 0.76], [-1.8, 0.2, 0.72, 0.58, 0.81],
-				[-1.26, 0.2, 0.76, 0.68, 0.84], [-0.9, 0.2, 0.8, 0.78, 0.81], [-0.7, 0.2, 0.83, 0.84, 0.8],
-				[0.3, 0.2, 0.86, 0.87, 0.8], [0.7, 0.2, 0.86, 0.87, 0.85], [1.01, 0.2, 0.85, 0.85, 0.89],
-				[1.45, 0.22, 0.8, 0.78, 0.88], [1.85, 0.26, 0.72, 0.7, 0.8], [2.08, 0.32, 0.62, 0.62, 0.7]],
-		"house": [[-0.7, 0.83, 0.83, 0.7, 0.7, "ws"], [-0.18, 0.85, 1.24, 0.7, 0.56, "win"], [0.1, 0.86, 1.26, 0.7, 0.56, "win"],
-				[0.7, 0.86, 1.17, 0.7, 0.56, "rw"], [1.2, 0.82, 0.98, 0.7, 0.54, "rq"], [1.72, 0.73, 0.8, 0.62, 0.56, "rq"],
-				[1.95, 0.65, 0.86, 0.62, 0.62, "rq"], [1.99, 0.64, 0.64, 0.62, 0.62, ""]]},
+		"lower": [[-2.08, 0.3, 0.46, 0.42, 0.62], [-1.98, 0.22, 0.66, 0.5, 0.76], [-1.8, 0.2, 0.72, 0.58, 0.78],
+				[-1.26, 0.2, 0.76, 0.68, 0.8], [-0.9, 0.2, 0.8, 0.78, 0.77], [-0.7, 0.2, 0.83, 0.84, 0.76],
+				[0.3, 0.2, 0.86, 0.87, 0.76], [0.7, 0.2, 0.86, 0.87, 0.87], [1.01, 0.2, 0.85, 0.85, 0.94],
+				[1.45, 0.22, 0.8, 0.78, 0.93], [1.85, 0.26, 0.72, 0.7, 0.83], [2.08, 0.32, 0.62, 0.62, 0.7]],
+		"house": [[-0.7, 0.83, 0.83, 0.66, 0.66, "ws"], [-0.18, 0.85, 1.24, 0.66, 0.53, "win"], [0.1, 0.86, 1.26, 0.66, 0.53, "win"],
+				[0.7, 0.86, 1.17, 0.66, 0.53, "rw"], [1.2, 0.82, 0.98, 0.66, 0.53, "rq"], [1.72, 0.73, 0.78, 0.62, 0.56, "rq"],
+				[1.95, 0.65, 0.94, 0.68, 0.68, "rq"], [2.0, 0.64, 0.64, 0.68, 0.68, ""]]},
 	# Tojota GieR 86: a long bonnet, the cabin set back, a short fastback deck with a lip.
 	"player_gr86": {
 		"shape": [0.9, 0.5, 0.88, 0.05], "wheels": [-1.29, 1.28, 0.33, 0.25],
@@ -1833,7 +1833,7 @@ const SCULPT := {
 				[-1.29, 0.16, 0.74, 0.78, 0.92], [-0.7, 0.16, 0.8, 0.83, 0.88], [0.3, 0.16, 0.86, 0.88, 0.87],
 				[1.0, 0.16, 0.9, 0.92, 0.91], [1.28, 0.16, 0.91, 0.93, 0.93], [1.7, 0.18, 0.93, 0.95, 0.91],
 				[2.03, 0.24, 0.98, 1.0, 0.87], [2.13, 0.3, 0.9, 0.92, 0.8]],
-		"house": [[-0.7, 0.83, 0.83, 0.8, 0.8, "ws"], [-0.05, 0.85, 1.24, 0.77, 0.58, "win"], [0.25, 0.86, 1.27, 0.77, 0.57, "win"],
+		"house": [[-0.55, 0.84, 0.84, 0.8, 0.8, "ws"], [0.08, 0.85, 1.24, 0.77, 0.58, "win"], [0.35, 0.86, 1.27, 0.77, 0.57, "win"],
 				[0.75, 0.88, 1.23, 0.78, 0.58, "rq"], [0.95, 0.89, 1.17, 0.79, 0.6, "rw"], [1.72, 0.93, 0.93, 0.8, 0.8, ""]]},
 	# Kadilak Bruhem: the 5.6 m American land yacht, three boxes, a formal vinyl roof, chrome.
 	"player_kadilak": {
@@ -2069,10 +2069,11 @@ static func _sculpt_meshes(kind: String, paint: Array, stripes: Array, wing: boo
 		rim = Color("#d6d9de")
 	match kind:
 		"player_kadilak":
-			roof = fin(Color("#c4c7cd").lerp(Color(paint[0]), 0.3), HERO, 1.0)  # the vinyl: greyer and lighter than the glass
+			roof = fin(Color("#4a5160"), HERO, 1.0)  # the vinyl: darker and greyer than any paint
 			rim = Color("#dfe2e6")
 		"player_mruczelago":
 			rim = Color("#a5a9b0")
+			roof = chrome  # the photo car's silver roof, pillars and wing on any paint
 		"player_gr86":
 			rim = Color("#222326")
 		"player_bolonez":
@@ -2101,7 +2102,7 @@ static func _sculpt_meshes(kind: String, paint: Array, stripes: Array, wing: boo
 			z_end = 0.3
 			y_end = 0.85
 		# The mirror sits on the door against the glass (a gap under it threw a shadow bar).
-		s.box(Vector3(sgn * (maxf(float(h1[3]) + 0.07, _side_x(c, float(house[0][0]) + 0.24, float(h1[1])) + 0.05)), float(h1[1]) + 0.05, float(house[0][0]) + 0.24), Vector3(0.14, 0.1, 0.1), blue if kind == "player_bawarka" else chrome if kind == "player_tt" else paint)
+		s.box(Vector3(sgn * (maxf(float(h1[3]) + 0.07, _side_x(c, float(house[0][0]) + 0.24, float(h1[1])) + 0.05)), float(h1[1]) + 0.05, float(house[0][0]) + 0.24), Vector3(0.14, 0.1, 0.1), blue if kind == "player_bawarka" else chrome if kind == "player_tt" else black if kind == "player_gr86" else paint)
 		var ys := float(h1[1])
 		_decal(s, c, sgn, [Vector2(float(house[0][0]) + 0.1, ys - 0.045), Vector2(z_end, y_end - 0.045),
 				Vector2(z_end, y_end - 0.005), Vector2(float(house[0][0]) + 0.1, ys - 0.005)], black, 0.01, 6)
@@ -2292,14 +2293,14 @@ static func _sculpt_meshes(kind: String, paint: Array, stripes: Array, wing: boo
 				_plate(s, Vector3(sgn * 0.6, 0.72, zr + 0.01), Vector2(0.48, 0.18), Vector3(0, 0.1, 1), black)
 				_plate(tails, Vector3(sgn * 0.6, 0.72, zr + 0.015), Vector2(0.4, 0.12), Vector3(0, 0.1, 1), lamp)
 				s.box(Vector3(sgn * 0.78, 1.0, 2.12), Vector3(0.05, 0.24, 0.14), paint)
-			for z: float in [0.85, 1.15, 1.45]:
-				s.box(Vector3(0.0, _top_y(c, z, 0.0) + 0.01, z), Vector3(0.9, 0.02, 0.07), paint)
+			for zy: Array in [[0.8, 1.08], [1.1, 1.045], [1.4, 1.005], [1.7, 0.965]]:
+				s.box(Vector3(0.0, float(zy[1]), float(zy[0])), Vector3(1.0, 0.04, 0.16), paint)
 			_plate(s, Vector3(0.0, 0.42, zf - 0.006), Vector2(0.5, 0.11), Vector3(0, 0, -1), fin(PLATE))
 			_plate(s, Vector3(0.0, 0.5, zr + 0.008), Vector2(0.5, 0.11), Vector3(0, 0, 1), fin(PLATE))
 			_plate(s, Vector3(0.0, 0.3, zr + 0.008), Vector2(1.3, 0.16), Vector3(0, 0, 1), black)
 			for sgn: float in [-1.0, 1.0]:
 				_plate(s, Vector3(sgn * 0.08, 0.3, zr + 0.014), Vector2(0.11, 0.1), Vector3(0, 0, 1), chrome, true)
-			s.box(Vector3(0.0, 1.12, 2.12), Vector3(1.96, 0.05, 0.34), paint)
+			s.box(Vector3(0.0, 1.12, 2.12), Vector3(1.96, 0.05, 0.34), chrome)
 		"player_porsza":
 			# The classic (Fable's v2: one arc from the roof to the ducktail): round lamps on the
 			# wings' fronts with chrome rings, amber corners, the black lip, the side stripe, the
@@ -2314,13 +2315,16 @@ static func _sculpt_meshes(kind: String, paint: Array, stripes: Array, wing: boo
 			_plate(s, Vector3(0.0, 0.3, zf - 0.006), Vector2(1.2, 0.08), Vector3(0, 0, -1), black)
 			_plate(s, Vector3(0.0, 0.42, zf - 0.008), Vector2(0.5, 0.11), Vector3(0, 0, -1), fin(PLATE))
 			_plate(s, Vector3(0.0, 0.4, zr + 0.008), Vector2(0.5, 0.11), Vector3(0, 0, 1), fin(PLATE))
-			_plate(s, Vector3(0.0, 0.915, 1.42), Vector2(0.6, 0.26), Vector3(0, 1, 0.35), black)
+			_plate(s, Vector3(0.0, 0.975, 1.42), Vector2(0.56, 0.3), Vector3(0, 1, 0.38), black)
 		"player_gr86":
 			# The 86: a wide low black mesh mouth, slim lamps swept up the corners, the slit vents
 			# behind the front wheels, the raised ducktail with a black bar under it joining wide
 			# tails, two pipes.
 			_plate(s, Vector3(0.0, 0.32, zf - 0.006), Vector2(0.9, 0.24), Vector3(0, 0, -1), black)
 			_plate(s, Vector3(0.0, 0.34, zf - 0.012), Vector2(0.44, 0.11), Vector3(0, 0, -1), fin(PLATE))
+			# The black bonnet (F's photo of the pair): the one paint-proof mark apart from the TT.
+			for k in 4:
+				_top_decal(s, c, -0.6 + k * 0.3, -0.3 + k * 0.3, -1.95, -0.6, black, 0.014, 6)
 			for sgn: float in [-1.0, 1.0]:
 				_plate(s, Vector3(sgn * 0.6, 0.6, zf + 0.09), Vector2(0.4, 0.13), Vector3(sgn * 0.55, 0.45, -1), black)
 				_plate(heads, Vector3(sgn * 0.6, 0.6, zf + 0.086), Vector2(0.34, 0.08), Vector3(sgn * 0.55, 0.45, -1), lamp)

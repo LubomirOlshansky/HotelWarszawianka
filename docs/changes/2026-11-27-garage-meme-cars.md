@@ -5,7 +5,7 @@
 ## Backlog
 - fixed: the garage plan's C1a (each car's own feel and engine note) and C1b (the bodies, with turntable sheets), for eight new cars, F's pick of 2026-11-27 (the Łanos and the Szupra built then dropped; four cars from F's own photos added); the hatch drives as before
 - fixed: the Ołdi TT rebuilt as the 8J from F's photos (shape from an art-director comparison, the 8J lamps with two lenses and the LED wave, alloy mirrors, the active spoiler up above about 86 km/h, down under 58)
-- fixed: every shop body reworked after two art critiques (sheets v3 and v7): the 911's one arc from the roof to the ducktail, the Mruczelago cab-forward with blade lamps and the wing on end struts, the GieR 86's raised ducktail, the Kadilak's long formal cabin and fins
+- fixed: every shop body reworked after two art critiques (sheets v3, v7 and v8): the 911's one arc from the roof to the ducktail, the Mruczelago cab-forward with blade lamps and the wing on end struts, the GieR 86's raised ducktail, the Kadilak's long formal cabin, fins and dark vinyl roof; the GieR 86's black bonnet and mirrors, the 911's hips and engine grille, the Mruczelago's silver roof, wing and engine slats
 - adds: the top two cars need respect (wallet.respect: the Porsza 340, the Mruczelago 640, the ladder's Seba and Mike rungs); nothing in the shop is class S, so the Trzy mosty final stays the hardest race
 - found: the TT's spoiler is its own mesh, +1 draw call on the TT only (bench with the TT owed on the phone)
 - found: the Bawarka keeps Darek's livery whatever the paint; whether paints should apply to it is F's call (parked)

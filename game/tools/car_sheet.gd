@@ -19,7 +19,7 @@ const MIX := {"hatch": ["#d8432f", "#f4efe4"], "tt": ["#1f2024", "#c9ccd1"], "bo
 		"paszat": ["#2f72c8", "#f4efe4"], "mjata": ["#c4161c", "#f4efe4"], "kadilak": ["#8ea6c8", "#c9ccd1"],
 		"gr86": ["#eeeeea", "#1c1d21"], "porsza": ["#f2f0ea", "#1c1d21"], "mruczelago": ["#e3a2c8", "#f4efe4"]}
 ## [yaw (deg, 0 = from the front), pitch (deg, down), distance (m)] of each column.
-const VIEWS := [[35.0, 14.0, 7.2], [90.0, 6.0, 7.4], [215.0, 18.0, 7.2], [165.0, 52.0, 9.5], [180.0, 89.0, 8.5]]
+const VIEWS := [[35.0, 14.0, 7.2], [90.0, 6.0, 7.4], [215.0, 18.0, 7.2], [165.0, 52.0, 11.0], [180.0, 89.0, 11.0]]
 
 
 func _init() -> void:
