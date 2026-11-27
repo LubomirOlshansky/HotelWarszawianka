@@ -910,9 +910,13 @@ func _pf_front(f: Dictionary, d: Dictionary) -> void:
 	_lbox(mid, 0.12, mid, 0.16, g - 0.3, g + gf, base)
 	_lbox(mid, 0.12, mid, 0.16, g + gf, g + h, wall)
 	_lbox(mid, 0.34, mid, 0.08, g + gf - 0.25, g + gf, trim)
+	var shops: bool = d.get("shops", false)
 	for k in bays:  # street level
 		var u := (k + 0.5) * bay
-		_lbox(u, 0.32, bay * 0.36, 0.03, g + 0.7, g + gf - 0.8, glass, _lit(u, 1.0))
+		# `shops`: the ground floor is shops and cafés, every window lit warm at night (Krakowskie
+		# Przedmieście's row, F's night photos 2026-11-26); otherwise lit by chance.
+		_lbox(u, 0.32, bay * 0.36, 0.03, g + 0.7, g + gf - 0.8, glass, M_PAVILION if shops else _lit(u, 1.0))
+	_pf_extras(f, d, width, h, gf, fh, bay, bays, floors, trim)
 	for i in floors:
 		var y := g + gf + 0.7 + i * fh
 		match style:
@@ -941,6 +945,47 @@ func _pf_front(f: Dictionary, d: Dictionary) -> void:
 		_lbox(mid, 0.62, mid + 0.3, 0.44, g + h - 0.5, g + h, trim)
 	else:
 		_lbox(mid, 0.3, mid, 0.14, g + h - 0.3, g + h, trim)
+
+
+## A photo front's optional extras (Krakowskie Przedmieście's tenements, F's night photos and
+## Street View, 2026-11-26), each a field of the entry (`d`) or of the front (`f`):
+## - `sign` (front or entry): a colour; a lit sign board over the ground floor across the middle of
+##   the front (M_LAMP: its colour by day, glowing at night), the shops' and cafés' boards.
+## - `dormers` (front): that many dormers in the roof over the front, each a small plastered box with
+##   a window and a little gable roof, set back from the cornice into the roof.
+## - `balcony` (front): the storey (1 = the first floor) with an iron balcony across the middle bays.
+## - `awning` (front): a colour; a café awning over the middle bays of the ground floor.
+func _pf_extras(f: Dictionary, d: Dictionary, width: float, h: float, gf: float, fh: float, bay: float, bays: int,
+		floors: int, trim: Color) -> void:
+	var g := _g
+	var mid := width * 0.5
+	var wall := Color(d["wall"])
+	var sign_col: String = f.get("sign", d.get("sign", ""))
+	if sign_col != "":
+		var sw := clampf(width * 0.55, 3.0, 14.0)
+		_lbox(mid, 0.42, sw * 0.5, 0.08, g + gf - 0.75, g + gf - 0.3, Color(sign_col), M_LAMP)
+	var awning: String = f.get("awning", "")
+	if awning != "":
+		var aw := clampf(width * 0.6, 3.0, 14.0)
+		_lbox(mid, 1.1, aw * 0.5, 0.9, g + 2.6, g + 2.75, Color(awning), M_STONE)
+		_lbox(mid, 1.95, aw * 0.5, 0.04, g + 2.3, g + 2.7, Color(awning).darkened(0.15), M_STONE)
+	var balcony: int = f.get("balcony", 0)
+	if balcony > 0 and balcony <= floors:
+		var y := g + gf + 0.7 + (balcony - 1) * fh
+		var bw := minf(bay * clampf(bays - 2, 1, 3), width - 1.0) * 0.5
+		var keep := _face
+		_face = 0.28  # the front wall's face (`_pf_front`: 0.12 out, 0.16 thick)
+		kit_balcony(mid, y, bw, Balcony.IRON, PAL_IRON, trim)
+		_face = keep
+	var dormers: int = f.get("dormers", 0)
+	if dormers > 0:
+		var roof := Color(d["roof"])
+		for k in dormers:
+			var u := (k + 0.5) * width / dormers
+			_lbox(u, -1.3, 0.7, 0.6, g + h - 0.3, g + h + 1.5, wall, M_STONE)
+			_lbox(u, -0.68, 0.38, 0.03, g + h + 0.15, g + h + 1.2, Color("#2c3640"), _lit(u, h + 1.0))
+			_lbox(u, -1.3, 0.82, 0.72, g + h + 1.5, g + h + 1.7, roof, M_STONE)
+			_lbox(u, -1.3, 0.5, 0.5, g + h + 1.7, g + h + 2.0, roof, M_STONE)
 
 
 # --- The Tides (F's photos, 2026-11-06): spec docs/landmarks/specs/tides.md ---------------------
