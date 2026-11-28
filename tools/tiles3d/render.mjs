@@ -16,8 +16,10 @@
 //          --no-top (skip the top-down view) --size=1600x1200 --timeout=150 (seconds per view)
 //          --out=DIR (default refs/<slug>/3dtiles)
 //
-// Key: GOOGLE_MAPTILES_KEY, else GOOGLE_STREETVIEW_KEY (the same restricted key with Map Tiles API
-// added); an environment secret, never in a file, never printed. Setup: docs/design/tiles3d-setup.md.
+// Key: CESIUM_ION_TOKEN first (Google's tiles through Cesium ion asset 2275207: Google blocks 3D Tiles
+// for EEA-billed Cloud projects since 28 Nov 2026, HTTP 403 "not available for your account and
+// region"), else GOOGLE_MAPTILES_KEY, else GOOGLE_STREETVIEW_KEY (the same restricted key with Map
+// Tiles API added). An environment secret, never in a file, never printed. Setup: docs/design/tiles3d-setup.md.
 //
 // Google's Map Tiles terms: view live only. Nothing here caches, exports or traces the mesh: the tiles
 // live only for one run (a fresh temporary browser profile, deleted at exit) and only
@@ -87,8 +89,9 @@ const pitch = Number(opt("pitch", Number.isFinite(area) ? -35 : -28));
 const [W, H] = opt("size", "1600x1200").split("x").map(Number);
 const timeoutMs = Number(opt("timeout", 150)) * 1000;
 const out = resolve(opt("out", join(root, "refs", slug, "3dtiles")));
-const key = process.env.GOOGLE_MAPTILES_KEY || process.env.GOOGLE_STREETVIEW_KEY || "";
-if (!key) die("GOOGLE_MAPTILES_KEY (or GOOGLE_STREETVIEW_KEY) not set; see docs/design/tiles3d-setup.md");
+const ion = process.env.CESIUM_ION_TOKEN || "";
+const key = ion || process.env.GOOGLE_MAPTILES_KEY || process.env.GOOGLE_STREETVIEW_KEY || "";
+if (!key) die("CESIUM_ION_TOKEN (or GOOGLE_MAPTILES_KEY / GOOGLE_STREETVIEW_KEY) not set; see docs/design/tiles3d-setup.md");
 
 // CesiumJS from npm, once, into the gitignored build/ (the CDNs are blocked from the cloud).
 const deps = join(root, "build", "tiles3d_deps");
@@ -125,10 +128,10 @@ try {
 	const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 	page.on("pageerror", (e) => console.error(`tiles3d_render: page: ${String(e.message).replaceAll(key, "KEY")}`));
 	// The key rides in the fragment, which browsers never send to the server.
-	await page.goto(`http://127.0.0.1:${port}/#key=${encodeURIComponent(key)}`);
+	await page.goto(`http://127.0.0.1:${port}/#${ion ? "ion" : "key"}=${encodeURIComponent(key)}`);
 	await page.waitForFunction(() => window.status_ && (window.status_.ready || window.status_.error), null, { timeout: 60000 });
 	const err = await page.evaluate(() => window.status_.error);
-	if (err) die(`tileset did not load: ${err.replaceAll(key, "KEY")} (is Map Tiles API enabled and allowed on the key?)`);
+	if (err) die(`tileset did not load: ${err.replaceAll(key, "KEY")} (${ion ? "is the ion token valid?" : "is Map Tiles API enabled and allowed on the key? An EEA-billed project gets 403: set CESIUM_ION_TOKEN"})`);
 
 	// Find the ground: look from above first so tiles load, then sample the mesh at the point.
 	await page.evaluate(([la, lo, r, t]) => window.shoot(la, lo, 120, 0, -89.9, r * 4, "", t), [lat, lon, radius, timeoutMs]);
