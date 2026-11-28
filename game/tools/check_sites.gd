@@ -33,7 +33,7 @@ const BUDGET := {"nik": 5000, "hotel_saski": 5000, "city_gate": 3500, "meridian"
 		"rembielinskiego": 2800, "willa_raua": 2000, "dziewulskich": 1600, "pod_karczochem": 2800,
 		"ambasada_wegier": 2800, "leszczynskich": 2800, "szelechowa": 2800, "wielopolskich": 2400,
 		"ministerstwo_sprawiedliwosci": 5000,
-		"prymasowski": 7000, "jablonowskich": 7500, "gmach_chemii": 7500, "itc": 5500}  # itc raised to 5500 for 3D Tiles courtyard industrial hall and skylight strips
+		"prymasowski": 7000, "jablonowskich": 7500, "biskupow_krakowskich": 5000, "gmach_chemii": 7500, "itc": 5500}  # itc raised to 5500 for 3D Tiles courtyard industrial hall and skylight strips
 ## The Królewska edge's skins: key -> a point in a building the skin must cover.
 const SKINNED := {"departament": Vector2(-596.0, -702.0)}
 ## Words no card may hold (the hotel's real brand and name).
@@ -188,6 +188,8 @@ func _check_site(marks, map: Fakes.BuilderMap, key: String) -> void:
 			marks._build_prymasowski(s)
 		"jablonowskich":
 			marks._build_jablonowskich(s)
+		"biskupow_krakowskich":
+			marks._build_biskupow_krakowskich(s)
 		"gmach_chemii":
 			marks._build_gmach_chemii(s)
 		"itc":

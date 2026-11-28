@@ -364,6 +364,7 @@ const BUDGET := {
 	"zamkowy": 2900,  # 2026-11-26: + the oak's granite block bench in two tiers and railing (measured 2778)
 	"prymasowski": 7000,
 	"jablonowskich": 7500,
+	"biskupow_krakowskich": 5000,
 	"mansjonaria": 2700,  # 2026-11-26: the buttressed house by the oak modelled whole (measured 2458)
 	"nikidw": 2400,  # 2026-11-26: the Institute modelled whole: 12-bay two-storey arcade, wings, hipped roofs (measured 2268)
 	"arkady": 2600,
