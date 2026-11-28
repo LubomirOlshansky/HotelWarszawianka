@@ -794,11 +794,28 @@ func _claim() -> void:
 func _ended() -> void:
 	stage = Stage.NONE
 	job = Job.NONE
+	_cool_places_near_car()
 	for st in _stations:
 		(st["person"] as Node3D).visible = true
 	_remove_ghost()
 	if next_stand < 0:
 		_route_off(true)
+
+
+## F 2026-11-25 ("it showed me the next kebab at once", "spams the kebab"): a job that ends leaves
+## the car at a customer's door, often by another stand, and a pull-in under PULL_IN_SPEED m/s
+## started the next order the moment the result card went. Every stand and station within
+## COOL_NEAR m of the car now waits until the car has driven off (the `cool` rule of
+## `_look_for_work`), the same as after NOT NOW.
+const COOL_NEAR := 30.0
+
+func _cool_places_near_car() -> void:
+	if car == null:
+		return
+	var p := car.global_position
+	for place: Dictionary in _stands + _stations:
+		if _flat(p, place["ring"]) < COOL_NEAR:
+			place["cool"] = true
 
 
 # --- the route on the minimap (beta values, 2026-11-04) -----------------------------------------
