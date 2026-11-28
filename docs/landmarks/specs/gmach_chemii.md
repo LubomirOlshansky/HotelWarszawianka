@@ -35,9 +35,15 @@ outline's north-east side, roughly from (-1038, 1325) to (-986, 1374), with its 
   18.0 m, a 1.0 m attic over the risalits.
 - Risalits: the outline's forward steps on the front and the corners; 1.0 m forward where the
   outline shows none at an entrance.
-- Courtyard: the wings are about 14 m deep round an open courtyard inside the outline (the outline
-  has no hole; make the wing depth from the outline so the courtyard is about 40 x 40 m or what fits).
-- Roof: hipped, 4.0 m tall over each wing, dark grey; low flat attic tops over the risalits.
+- Courtyard: the wings are about 14 m deep round an inner courtyard holding a central T-shaped
+  inner wing projecting from the Noakowskiego front wing (about 25.6 m wide, neck 14.0 m wide,
+  same 18.0 m height), creating two large SE/NW light wells and a narrow SW courtyard strip.
+  (As built from 3D Tiles, 2026-11-28: orbits show this central courtyard block at the same height
+  dividing the court into two light wells, and flat-ish low dark grey roofs ~1.4 m tall instead of
+  4.0 m hips.)
+- Roof: flat-ish low dark grey roofs (1.4 m rise with broad flat tops) over all four outer wings
+  and the central inner block (with a small rooftop skylight box); low flat attic tops over the
+  risalits.
 
 ## Facade
 
@@ -50,8 +56,10 @@ risalits. Courtyard faces: kit_panes with sill ledges.
 
 ## Roof
 
-Hipped dark grey #5b5f63 over all wings, 4.0 m; risalit attics flat with coping #b3a27f; no
-dormers (none show in the photos).
+Flat-ish low dark grey roofs #5b5f63 (1.4 m rise with broad flat tops) over all outer wings and
+the central inner courtyard block (plus a small central skylight box on the inner block); risalit
+attics flat with coping #b3a27f; no dormers. (As built from 3D Tiles, 2026-11-28: lowered wing
+roofs to flat-ish dark grey profiles and added the central courtyard block roof.)
 
 ## Colour and material
 
@@ -78,6 +86,6 @@ and game/tools/check_sites.gd BUDGET.
 | gc_risalits | forward steps, paired giant pilasters, attic | 0-19.0 m | front ends and entrances | M_STONE #b3a27f | 2 |
 | gc_doors | three wooden doors with steps | 2.2 x 4.0 m | main risalit | M_STONE #5a3e2a | 1 |
 | gc_cornice | frieze and crowning cornice | 17.0-18.0 m | all outer faces | M_STONE #efece4 | 3 |
-| gc_roof | hipped roofs | 4.0 m | over each wing | M_STONE #5b5f63 | 3 |
-| gc_court | courtyard faces with panes | 0-17.0 m | inside | M_STONE #c9bd9f | 4 |
+| gc_roof | flat-ish low dark grey roofs + inner skylight box | 1.4 m rise | over outer wings and inner block | M_STONE #5b5f63 | 3 |
+| gc_court | courtyard perimeter and central inner block with panes | 0-18.0 m | inside courtyard (two light wells) | M_STONE #c9bd9f | 4 |
 | collision | outline | full height | outline | (collider) | 4 |
