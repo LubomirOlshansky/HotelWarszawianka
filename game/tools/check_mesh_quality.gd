@@ -123,6 +123,11 @@ const BUDGET := {
 	"willa_raua": 2000,
 	"dziewulskich": 1600,
 	"pod_karczochem": 2800,
+	"ambasada_wegier": 2800,
+	"leszczynskich": 2800,
+	"szelechowa": 2800,
+	"wielopolskich": 2400,
+	"ministerstwo_sprawiedliwosci": 5000,
 	"sobieski": 1500,
 	"vitkac": 2600,  # 2026-11-21 teaser 4 (F's photo): rounded granite corners, glass ribbons, shop glass and mullions, the glass top storey and its bar terrace: 2403 tris
 	"jablkowscy": 1450,

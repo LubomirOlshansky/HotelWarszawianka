@@ -222,6 +222,9 @@ const LM_BLOCKS := [
 	"29042524",  # Pałacyk Dziewulskich: rebuilt whole in ujazdow.gd (`dziewulskich`)
 	"221947049",  # Pałac pod Karczochem: rebuilt whole in ujazdow.gd (`pod_karczochem`)
 	"2387794",  # Gmach Chemii PW: rebuilt whole in srodmiescie.gd (`gmach_chemii`)
+	"29092778",  # Ambasada Węgier: rebuilt whole in ujazdow.gd (`ambasada_wegier`)
+	"29092777",  # Pałacyk Leszczyńskich: rebuilt whole in ujazdow.gd (`leszczynskich`)
+	"996681677",  # Kamienica Szelechowa: rebuilt whole in ujazdow.gd (`szelechowa`)
 ]
 
 

@@ -572,6 +572,21 @@ const INFO := {
 	"pod_karczochem": ["Pałac pod Karczochem",
 			"Pałacowa kamienica z balkonami i wieżyczką z kamiennym karczochem.",
 			"Five-storey tenement with balconies and a stone artichoke turret."],
+	"ambasada_wegier": ["Ambasada Węgier",
+			"Biały neorenesansowy pałacyk z arkadami przy Chopina.",
+			"A white neo-Renaissance palazzo with arcades by Chopina."],
+	"leszczynskich": ["Pałacyk Leszczyńskich",
+			"Kremowy klasycystyczny pałacyk z arkadową loggią w parterze.",
+			"A cream classical palace with an arched ground-floor loggia."],
+	"szelechowa": ["Kamienica Szelechowa",
+			"Czteropiętrowa eklektyczna kamienica z balkonami na konsolach.",
+			"A four-storey eclectic tenement with stone balconies on corbels."],
+	"wielopolskich": ["Pałacyk Wielopolskich",
+			"Dwupiętrowy klasycystyczny pałacyk wśród drzew w głębi.",
+			"A two-storey classical palace set back among the trees."],
+	"ministerstwo_sprawiedliwosci": ["Ministerstwo Sprawiedliwości",
+			"Kremowy gmach belle époque z mansardowym dachem i portalami.",
+			"A cream belle-époque block with mansard roofs, dormers and portals."],
 	"sobieski": ["Radysław Blu",
 			"Hotel przy placu Zawiszy, w kolorowych pasach.",
 			"A hotel on Plac Zawiszy, in colourful bands."],
@@ -1575,6 +1590,11 @@ func _find_sites() -> void:
 	_find_willa_raua()
 	_find_dziewulskich()
 	_find_pod_karczochem()
+	_find_ambasada_wegier()
+	_find_leszczynskich()
+	_find_szelechowa()
+	_find_wielopolskich()
+	_find_ministerstwo_sprawiedliwosci()
 	# F's ask (2026-11-01): Norblin, Browary Warszawskie, Hala Koszyki, Elektrownia Powiśle.
 	_find_works()
 	# F's ask (2026-11-02, CITY_INVENTORY #21): the Warsaw Rising Museum, from the Mac's photos.
@@ -2110,6 +2130,16 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_dziewulskich(s)
 			"pod_karczochem":
 				_build_pod_karczochem(s)
+			"ambasada_wegier":
+				_build_ambasada_wegier(s)
+			"leszczynskich":
+				_build_leszczynskich(s)
+			"szelechowa":
+				_build_szelechowa(s)
+			"wielopolskich":
+				_build_wielopolskich(s)
+			"ministerstwo_sprawiedliwosci":
+				_build_ministerstwo_sprawiedliwosci(s)
 			"sobieski":
 				_build_sobieski(s)
 			"bristol":

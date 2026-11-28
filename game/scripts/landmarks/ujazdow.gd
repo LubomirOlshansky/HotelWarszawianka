@@ -2988,3 +2988,1267 @@ func _pk_turret(c: Vector2, g: float) -> void:
 	_mode = keep
 
 
+
+# --- Embassy row 2 on al. Ujazdowskie (docs/landmarks/specs/ujazdowskie_row2.md) -----------------
+# Five landmarks on the west side of al. Ujazdowskie (fronts facing the avenue, east, +x):
+# Ambasada Węgier, Pałacyk Leszczyńskich, Kamienica Szelechowa, Pałacyk Wielopolskich, and
+# Ministerstwo Sprawiedliwości. Massing, heights and roof colours follow the 3D Tiles orbits
+# (refs/<key>/3dtiles/) and Street View references, built exclusively with facade-kit parts.
+
+## Ambasada Węgier (al. Ujazdowskie / Chopina): white three-storey neo-renaissance palazzo (#eeece6)
+## with a rusticated ground floor (deep round-arched Chopina bays, recessed three-bay avenue porch),
+## balustrades under first-floor windows, paired corner pilasters, strong cornice, balustraded attic
+## (14.0 m) and a flat pale-grey roof with a central vaulted glass skylight (3D Tiles top view).
+const AW_NAME := "Ambasada Węgier"
+const AW_WALL := Color("#eeece6")           # white neo-renaissance plaster (spec & Street View)
+const AW_BASE := Color("#e4e1d8")           # rusticated ground-floor render
+const AW_PLINTH := Color("#b8b4ab")         # grey stone plinth (0 - 0.8 m)
+const AW_TRIM := Color("#f5f3ee")           # crisp white surrounds, pilasters, cornice, balustrades
+const AW_GLASS := Color("#4a5660")          # window glass
+const AW_SKYLIGHT := Color("#748692")       # central roof skylight glazing
+const AW_DOOR := Color("#5e432f")           # dark wooden entrance doors
+const AW_ROOF := Color("#888d91")           # low pale-grey roof deck behind the attic balustrade
+const AW_LAMP := Color("#ffd9a0")           # warm entrance night lamps (M_LAMP)
+const AW_PLINTH_H := 0.8
+const AW_BASE_H := 4.5
+const AW_EAVE_H := 13.0
+const AW_ATTIC_H := 1.0
+
+## Pałacyk Leszczyńskich (al. Ujazdowskie 24): cream three-storey classical palace (#e3d8bc) with a
+## grey stone plinth (#b9b3a5), rusticated ground floor with a central three-arch open loggia on the
+## avenue front, white window surrounds, cornice, balustraded parapet (14.0 m) and low grey metal
+## hipped roofs (3D Tiles top & orbit views).
+const LS_NAME := "Pałacyk Leszczyńskich"
+const LS_WALL := Color("#e3d8bc")           # cream classical render (spec & Street View)
+const LS_BASE := Color("#d8ccb0")           # rusticated ground-floor base
+const LS_PLINTH := Color("#b9b3a5")         # grey stone plinth (0 - 0.85 m)
+const LS_TRIM := Color("#f1eee6")           # white window surrounds, cornice and balustrade
+const LS_GLASS := Color("#4a5660")          # window glass
+const LS_DOOR := Color("#5e432f")           # wooden door inside the ground-floor arcade
+const LS_ROOF := Color("#888d92")           # low grey metal hipped roofs (3D Tiles)
+const LS_LAMP := Color("#ffd9a0")           # warm entrance lamp inside the arcade (M_LAMP)
+const LS_PLINTH_H := 0.85
+const LS_BASE_H := 4.5
+const LS_EAVE_H := 13.0
+const LS_BAL_H := 1.0
+const LS_ROOF_RISE := 2.2
+
+## Kamienica Szelechowa (al. Ujazdowskie 18, x~0 z~1318): rich four-storey L-plan eclectic tenement
+## in warm cream (#e0d3ad) with rusticated ground floor, round-arched first-floor windows, chunky
+## stone balconies on brackets, pilastered corner bays, projecting avenue bay, heavy cornice
+## (16.5 m), and patina green copper hipped roofs (#7fa392, 3D Tiles orbits).
+const SZL_NAME := "Kamienica Szelechowa"
+const SZL_WALL := Color("#e0d3ad")          # warm cream eclectic render (spec & Street View)
+const SZL_BASE := Color("#d5c69d")          # rusticated ground floor
+const SZL_PLINTH := Color("#afa797")        # stone plinth (0 - 0.75 m)
+const SZL_TRIM := Color("#f1ece0")          # pale stone surrounds, balconies, pilasters, cornice
+const SZL_GLASS := Color("#4a5660")         # window glass
+const SZL_DOOR := Color("#6b4a32")          # arched wooden entrance doors
+const SZL_ROOF := Color("#7fa392")          # patina green copper roofs (3D Tiles orbits & spec)
+const SZL_LAMP := Color("#ffd9a0")          # warm entrance lamps (M_LAMP)
+const SZL_PLINTH_H := 0.75
+const SZL_GROUND_H := 4.2
+const SZL_EAVE_H := 16.5
+const SZL_ROOF_RISE := 3.0
+
+## Pałacyk Wielopolskich (al. Ujazdowskie 15/16): two-storey U-plan pale cream classical palace
+## (#e4dcc8, 10.9 m) among trees, with a projecting pilastered avenue middle risalit carrying a
+## four-column entrance portico and a low triangular pediment (+2.0 m), plain cornice, and patina
+## green copper hipped roofs (#7fa392, 3D Tiles orbits).
+const WP_NAME := "Pałacyk Wielopolskich"
+const WP_WALL := Color("#e4dcc8")           # pale cream classical plaster (spec & 3D Tiles)
+const WP_PLINTH := Color("#b9b3a5")         # grey stone plinth (0 - 0.8 m)
+const WP_TRIM := Color("#f1eee6")           # white surrounds, portico, pilasters, pediment, cornice
+const WP_GLASS := Color("#4a5660")          # window glass
+const WP_DOOR := Color("#6b4a32")           # wooden main entrance door
+const WP_ROOF := Color("#7fa392")           # patina green copper hipped roofs (3D Tiles orbits)
+const WP_LAMP := Color("#ffd9a0")           # warm portico entrance lamps (M_LAMP)
+const WP_PLINTH_H := 0.8
+const WP_EAVE_H := 10.9
+const WP_PED_H := 2.0
+const WP_ROOF_RISE := 2.8
+
+## Ministerstwo Sprawiedliwości (al. Ujazdowskie 11 by Plac na Rozdrożu): large belle-époque block
+## in cream render (#e4dccb) over a rusticated ground floor (#cfc6b2), six storeys with rich window
+## surrounds, arched fourth-floor windows, balconies, two tall projecting avenue stair pavilions
+## with ground-floor portals, a chamfered SW corner wing toward the roundabout, and steep grey metal
+## mansard roofs (#7c8186) with dormers (3D Tiles orbits).
+const MSP_NAME := "Ministerstwo Sprawiedliwości"
+const MSP_WALL := Color("#e4dccb")          # cream belle-époque render (spec & 3D Tiles)
+const MSP_BASE := Color("#cfc6b2")          # rusticated ground floor
+const MSP_PLINTH := Color("#a8a296")        # stone base plinth
+const MSP_TRIM := Color("#f1eee6")          # white frames, pilasters, balustrades, heavy cornice
+const MSP_GLASS := Color("#4a5660")         # window glass
+const MSP_DOOR := Color("#6b4a32")          # wooden portal doors
+const MSP_ROOF := Color("#7c8186")          # steep grey metal mansards and pavilion caps (3D Tiles)
+const MSP_LAMP := Color("#ffd9a0")          # warm portal night lamps (M_LAMP)
+const MSP_GROUND_H := 4.6
+const MSP_CORNICE_H := 18.2                 # heavy projecting cornice above the arched 4th upper floor
+const MSP_ATTIC_TOP := 21.4                 # top of the 5th attic storey beneath the mansard eaves
+const MSP_PAV_TOP := 23.0                   # top of the two projecting avenue stair pavilion walls
+const MSP_MANSARD_H := 3.6                  # steep grey metal mansard rise (to 25.0 m)
+
+
+## Shared finder for embassy row 2: looks up a named OSM landmark outline via `_landmark`, offsets
+## it outward by 0.5 m to replace the map's plain prism, and keeps the raw ring on the site dict.
+func _ur2_find(key: String, osm_name: String) -> void:
+	var raw := _landmark(osm_name)
+	if raw.size() < 3:
+		push_error("%s: landmark outline '%s' is missing from centrum.json" % [key, osm_name])
+		return
+	var zone := _largest(Geometry2D.offset_polygon(raw, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = raw
+	_add_site(key, [zone])
+	if not sites.is_empty() and sites[-1]["key"] == key:
+		sites[-1]["raw"] = raw
+
+
+## Simplifies `raw` to straight runs with Douglas-Peucker (`tol`), rotating first to an extreme
+## corner so all real wing corners and projecting pavilions stay sharp, drops near-collinear points,
+## and enforces counter-clockwise winding for `_prism` and `_cap`.
+func _ur2_simplify(raw: PackedVector2Array, tol: float) -> PackedVector2Array:
+	var c := _centre(raw)
+	var start := 0
+	var best_d := -1.0
+	for i in raw.size():
+		var d := raw[i].distance_squared_to(c)
+		if d > best_d:
+			best_d = d
+			start = i
+	var rot := PackedVector2Array()
+	for i in raw.size():
+		rot.append(raw[(start + i) % raw.size()])
+	var cur := _simplify(rot, tol)
+	if cur.size() < 3:
+		cur = rot
+	var changed := true
+	while changed and cur.size() > 3:
+		changed = false
+		var next := PackedVector2Array()
+		var n := cur.size()
+		for i in n:
+			var prev := cur[(i + n - 1) % n]
+			var p := cur[i]
+			var nxt := cur[(i + 1) % n]
+			var d0 := p - prev
+			var d1 := nxt - p
+			if d0.length() < 0.45 or d1.length() < 0.45:
+				changed = true
+				continue
+			if d0.normalized().dot(d1.normalized()) > 0.996:
+				changed = true
+				continue
+			next.append(p)
+		cur = next
+	if Geometry2D.is_polygon_clockwise(cur):
+		cur.reverse()
+	return cur if cur.size() >= 3 else raw
+
+
+## Starts a `kit_front` along edge `a->b` oriented so `_b` matches the outward normal `out`.
+func _ur2_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
+## Computes the dominant east-west axis (+u east, perpendicular +v south) of an avenue block from
+## its longest edge (rotating N-S edges 90 deg so +u always points east toward al. Ujazdowskie).
+func _ur2_axis(ring: PackedVector2Array) -> Vector2:
+	var best := Vector2(1.0, 0.0)
+	var longest := 0.0
+	for i in ring.size():
+		var e := ring[(i + 1) % ring.size()] - ring[i]
+		if e.length() > longest:
+			longest = e.length()
+			best = e.normalized()
+	if absf(best.y) > absf(best.x):
+		if best.y < 0.0:
+			best = -best
+		return Vector2(best.y, -best.x)
+	if best.x < 0.0:
+		best = -best
+	return best
+
+
+## Draws rustication grooves (`kit_bands`) along piers between `u0` and `u1`, skipping opening spans
+## in `skips` (sorted Vector2(lo, hi)) so grooves never z-fight with windows, doors or arches.
+func _ur2_rusticate_piers(u0: float, u1: float, skips: Array, y0: float, y1: float, step: float, col: Color) -> void:
+	var cur := u0
+	for sp: Vector2 in skips:
+		if sp.x - cur > 0.32:
+			kit_bands(cur + 0.08, sp.x - 0.08, y0, y1, step, col)
+		cur = maxf(cur, sp.y)
+	if u1 - cur > 0.32:
+		kit_bands(cur + 0.08, u1 - 0.08, y0, y1, step, col)
+
+
+# --- 1. Ambasada Węgier --------------------------------------------------------------------------
+
+## Finds Ambasada Węgier's OSM outline and registers the `ambasada_wegier` site.
+func _find_ambasada_wegier() -> void:
+	_ur2_find("ambasada_wegier", AW_NAME)
+
+
+## Builds Ambasada Węgier: white three-storey neo-renaissance palazzo on the Chopina corner with a
+## rusticated ground floor (deep round-arched Chopina bays, recessed three-bay avenue porch with
+## terrace balustrade), balustrades under first-floor windows, paired wing pilasters, strong cornice,
+## balustraded attic, low grey roof with central glass skylight, and full outline collision.
+func _build_ambasada_wegier(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var ring := _ur2_simplify(raw, 0.45)
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	var axis := _ur2_axis(ring)
+	var south := Vector2(-axis.y, axis.x)
+	var block_o := _centre(ring)
+	_o = block_o
+	_a = axis
+	_b = south
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in ring:
+		var l := _local(p)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	# Rusticated base (0 - 4.5 m) and white upper storeys (4.5 - 13.0 m) under a low flat grey roof.
+	_prism(ring, g - 0.5, g + AW_BASE_H, AW_BASE, none, M_STONE)
+	_prism(ring, g + AW_BASE_H, g + AW_EAVE_H, AW_WALL, none, M_STONE)
+	_cap(ring, g + AW_EAVE_H - 0.05, AW_ROOF)
+	kit_ledge_ring(ring, g - 0.4, AW_PLINTH_H + 0.4, AW_PLINTH, 0.12)
+	kit_ledge_ring(ring, g + AW_BASE_H - 0.14, 0.28, AW_TRIM, 0.12)
+	kit_ledge_ring(ring, g + 8.85, 0.18, AW_TRIM, 0.08)
+	kit_cornice_ring(ring, g + AW_EAVE_H - 0.50, AW_TRIM, 0.50, 0.56)
+	# Dress every face of the palazzo: recessed avenue middle, flanking wings, Chopina south front.
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		if ln < 2.2:
+			continue
+		var out := _out(ring, a, b)
+		var ml := _local((a + b) * 0.5)
+		var kind := "side"
+		if out.dot(axis) > 0.85 and ml.x < hi.x - 0.45:
+			kind = "east_recess"
+		elif out.dot(axis) > 0.85:
+			kind = "east_wing"
+		elif out.dot(south) > 0.85 and ln > 15.0:
+			kind = "chopina"
+		elif out.dot(-axis) > 0.85 and ml.x < lo.x + 1.5:
+			kind = "west_party"
+		elif out.dot(-south) > 0.85 and ln > 10.0:
+			kind = "north"
+		_aw_dress_face(a, b, out, g, kind)
+		_o = block_o
+		_a = axis
+		_b = south
+	_aw_roof(g, lo, hi)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Dresses one face of Ambasada Węgier: Chopina south front gets seven bays with deep round-arched
+## ground-floor openings and balustrades under first-floor windows; avenue middle gets the three-bay
+## portico terrace; flanking wings get corner pilasters; street fronts carry balustraded attics.
+func _aw_dress_face(a: Vector2, b: Vector2, out: Vector2, g: float, kind: String) -> void:
+	var w := _ur2_front_edge(a, b, out)
+	var fa := _o
+	var fdir := _a
+	var fout := _b
+	var sy1 := g + 5.20
+	var sy2 := g + 9.25
+	var h1 := 2.50
+	var h2 := 1.90
+	match kind:
+		"east_recess":
+			_aw_porch(w, g)
+			var cols := _spread(1.1, w - 1.1, 3)
+			for bu: float in cols:
+				kit_window(bu, sy1, h1, Win.SILL_HEAD, AW_TRIM, AW_GLASS, 0.58)
+				kit_window(bu, sy2, h2, Win.SILL_HEAD, AW_TRIM, AW_GLASS, 0.56)
+				# Small dark iron Juliet window-rail bars on 2nd-floor middle bays (Street View).
+				_kbox(bu - 0.56, bu + 0.56, 0.08, 0.14, sy2 + 0.56, sy2 + 0.64, PAL_IRON)
+			kit_attic(0.25, w - 0.25, g + AW_EAVE_H, AW_TRIM, AW_ATTIC_H, Attic.BALUSTRADE)
+		"east_wing":
+			var cu := w * 0.5
+			kit_window(cu, g + 1.45, 2.20, Win.SILL_HEAD, AW_TRIM, AW_GLASS, 0.62)
+			_ur2_rusticate_piers(0.16, w - 0.16, [Vector2(cu - 0.95, cu + 0.95)],
+					g + AW_PLINTH_H + 0.12, g + AW_BASE_H - 0.30, 1.10, AW_BASE)
+			# Giant corner pilasters framing the single window bay on each projecting avenue wing.
+			for pu: float in [0.75, w - 0.75]:
+				kit_pilaster(pu, g + AW_BASE_H + 0.18, g + AW_EAVE_H - 0.94, AW_TRIM, 0.64, 0.16)
+			# Stone balustrade apron beneath the first-floor wing window.
+			_kbox(cu - 0.78, cu + 0.78, 0.01, 0.15, g + AW_BASE_H + 0.18, sy1 - 0.22, AW_WALL.darkened(0.18))
+			kit_window(cu, sy1, h1, Win.HOODED, AW_TRIM, AW_GLASS, 0.62)
+			kit_window(cu, sy2, h2, Win.SILL_HEAD, AW_TRIM, AW_GLASS, 0.60)
+			kit_attic(0.25, w - 0.25, g + AW_EAVE_H, AW_TRIM, AW_ATTIC_H, Attic.BALUSTRADE)
+		"chopina":
+			var bays := 7
+			var cols := _spread(1.6, w - 1.6, bays)
+			var skips: Array = []
+			for k in bays:
+				var bu: float = cols[k]
+				if k == 3:
+					kit_door(bu, g + AW_PLINTH_H + 0.04, 3.15, 0.92, AW_TRIM, AW_DOOR, true)
+					for s: float in [-1.0, 1.0]:
+						_lbox(bu + s * 1.25, 0.12, 0.09, 0.08, g + 2.65, g + 2.98, AW_LAMP, M_LAMP, AW_LAMP)
+					skips.append(Vector2(bu - 1.38, bu + 1.38))
+				elif k >= 1 and k <= 5:
+					kit_round_window(fa + fdir * bu, fdir, fout, g + 1.25, g + 2.95, 0.64, AW_TRIM, AW_GLASS)
+					skips.append(Vector2(bu - 1.02, bu + 1.02))
+				else:
+					kit_window(bu, g + 1.45, 2.15, Win.SILL_HEAD, AW_TRIM, AW_GLASS, 0.58)
+					skips.append(Vector2(bu - 0.95, bu + 0.95))
+				# Crisp recessed stone balustrade apron panel directly beneath each first-floor window.
+				_kbox(bu - 0.74, bu + 0.74, 0.01, 0.15, g + AW_BASE_H + 0.18, sy1 - 0.22, AW_WALL.darkened(0.18))
+				kit_window(bu, sy1, h1, Win.SILL_HEAD, AW_TRIM, AW_GLASS, 0.58)
+			_ur2_rusticate_piers(0.16, w - 0.16, skips, g + AW_PLINTH_H + 0.12, g + AW_BASE_H - 0.30, 1.10, AW_BASE)
+			kit_ledge(0.45, w - 0.45, sy2 - 0.18, 0.14, AW_TRIM, 0.10)
+			kit_ledge(0.45, w - 0.45, sy2 + h2 + 0.06, 0.14, AW_TRIM, 0.10)
+			kit_panes(cols, [sy2], 1.14, h2, AW_GLASS, 0.06)
+			for pu: float in [0.55, w - 0.55]:
+				kit_pilaster(pu, g + AW_BASE_H + 0.18, g + AW_EAVE_H - 0.94, AW_TRIM, 0.56, 0.16)
+			kit_attic(0.25, w - 0.25, g + AW_EAVE_H, AW_TRIM, AW_ATTIC_H, Attic.BALUSTRADE)
+		"north":
+			var bays := maxi(4, roundi((w - 2.0) / 3.4))
+			var cols := _spread(1.4, w - 1.4, bays)
+			kit_ledge(0.4, w - 0.4, sy1 - 0.18, 0.14, AW_TRIM, 0.09)
+			kit_ledge(0.4, w - 0.4, sy2 - 0.18, 0.14, AW_TRIM, 0.09)
+			kit_panes(cols, [g + 1.45, sy1], 1.16, 2.20, AW_GLASS, 0.06)
+			kit_panes(cols, [sy2], 1.16, h2, AW_GLASS, 0.06)
+			kit_attic(0.25, w - 0.25, g + AW_EAVE_H, AW_TRIM, AW_ATTIC_H * 0.85, Attic.WALL)
+		"west_party":
+			kit_attic(0.25, w - 0.25, g + AW_EAVE_H, AW_TRIM, AW_ATTIC_H * 0.85, Attic.WALL)
+		_:
+			var bays := maxi(1, roundi((w - 1.6) / 3.4))
+			var cols := _spread(0.9, w - 0.9, bays)
+			kit_panes(cols, [g + 1.45, sy1], 1.12, 2.15, AW_GLASS, 0.06)
+			kit_panes(cols, [sy2], 1.12, h2, AW_GLASS, 0.06)
+			kit_attic(0.25, w - 0.25, g + AW_EAVE_H, AW_TRIM, AW_ATTIC_H * 0.85, Attic.WALL)
+
+
+## Builds Ambasada Węgier's recessed avenue three-bay entrance porch and balustraded first-floor
+## terrace (matching front_ambasada_leszczynskich.jpg): four rusticated stone piers flush with the
+## wings, shadowed central wooden entrance with warm lamps, and a stone terrace rail above.
+func _aw_porch(w: float, g: float) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	var depth := 0.96
+	# Entrance step platform tucked cleanly clear of the plinth top and flanking wing returns.
+	_kbox(0.22, w - 0.22, 0.16, depth + 0.55, g - 0.35, g + AW_PLINTH_H - 0.04, AW_PLINTH.lightened(0.04))
+	# Shadowed backing inside the open three-bay porch and central arched wooden entrance door.
+	_kbox(0.25, w - 0.25, 0.01, 0.05, g + AW_PLINTH_H + 0.04, g + AW_BASE_H - 0.20, AW_BASE.darkened(0.20))
+	kit_face(0.06)
+	kit_door(w * 0.5, g + AW_PLINTH_H + 0.04, 3.00, 0.92, AW_TRIM, AW_DOOR, true)
+	for s: float in [-1.0, 1.0]:
+		_lbox(w * 0.5 + s * 1.32, 0.16, 0.09, 0.08, g + 2.65, g + 2.98, AW_LAMP, M_LAMP, AW_LAMP)
+		kit_window(w * 0.5 + s * 2.90, g + 1.35, 2.20, Win.SILL_HEAD, AW_TRIM, AW_GLASS, 0.60)
+	kit_face(0.0)
+	# Four square porch piers supporting the first-floor terrace slab (4 cm clear of the ring ledge).
+	var piers := [0.52, w * 0.5 - 1.52, w * 0.5 + 1.52, w - 0.52]
+	for pu: float in piers:
+		_kbox(pu - 0.30, pu + 0.30, 0.44, depth, g + AW_PLINTH_H - 0.04, g + AW_BASE_H - 0.18, AW_TRIM)
+	_kbox(0.20, w - 0.20, 0.18, depth + 0.10, g + AW_BASE_H - 0.18, g + AW_BASE_H + 0.20, AW_TRIM)
+	kit_face(depth - 0.02)
+	kit_attic(0.24, w - 0.24, g + AW_BASE_H + 0.20, AW_TRIM, 0.80, Attic.BALUSTRADE)
+	kit_face(0.0)
+	_mode = keep
+
+
+## Builds Ambasada Węgier's central vaulted glass skylight standing on the flat pale-grey roof deck
+## (seen in refs/ambasada_wegier/3dtiles/ambasada_wegier_top.png).
+func _aw_roof(g: float, lo: Vector2, hi: Vector2) -> void:
+	_mode = M_STONE
+	var deck := g + AW_EAVE_H - 0.04
+	var cu := (lo.x + hi.x) * 0.5 + 0.8
+	var cv := (lo.y + hi.y) * 0.5 - 0.5
+	_lbox(cu, cv, 3.20, 2.60, deck, deck + 0.45, AW_ROOF.lightened(0.08), M_STONE, AW_ROOF)
+	_frustum(_rect(cu, cv, 2.95, 2.35), deck + 0.45, _rect(cu, cv, 2.10, 1.50), deck + 1.20,
+			AW_SKYLIGHT, AW_SKYLIGHT.lightened(0.08))
+	_frustum(_rect(cu, cv, 2.10, 1.50), deck + 1.20, _rect(cu, cv, 1.35, 0.60), deck + 1.55,
+			AW_SKYLIGHT.lightened(0.05), AW_ROOF.lightened(0.10))
+
+
+# --- 2. Pałacyk Leszczyńskich --------------------------------------------------------------------
+
+## Finds Pałacyk Leszczyńskich's OSM outline and registers the `leszczynskich` site.
+func _find_leszczynskich() -> void:
+	_ur2_find("leszczynskich", LS_NAME)
+
+
+## Builds Pałacyk Leszczyńskich: cream three-storey classical palace with grey stone plinth,
+## rusticated ground floor with a central three-arch open avenue arcade, white window surrounds,
+## balustrade over the cornice, low grey metal hipped roofs over both wings, and full collision.
+func _build_leszczynskich(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var ring := _ur2_simplify(raw, 0.55)
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	var axis := _ur2_axis(ring)
+	var south := Vector2(-axis.y, axis.x)
+	var block_o := _centre(ring)
+	_o = block_o
+	_a = axis
+	_b = south
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in ring:
+		var l := _local(p)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	# Rusticated cream base (0 - 4.5 m), upper classical storeys (4.5 - 13.0 m), plinth and cornice.
+	_prism(ring, g - 0.5, g + LS_BASE_H, LS_BASE, none, M_STONE)
+	_prism(ring, g + LS_BASE_H, g + LS_EAVE_H, LS_WALL, none, M_STONE)
+	_cap(ring, g + LS_EAVE_H - 0.05, LS_ROOF.darkened(0.18))
+	kit_ledge_ring(ring, g - 0.4, LS_PLINTH_H + 0.4, LS_PLINTH, 0.14)
+	kit_ledge_ring(ring, g + LS_BASE_H - 0.14, 0.28, LS_TRIM, 0.12)
+	kit_ledge_ring(ring, g + 8.75, 0.18, LS_TRIM, 0.08)
+	kit_cornice_ring(ring, g + LS_EAVE_H - 0.50, LS_TRIM, 0.50, 0.52)
+	# Identify the East avenue front and dress all faces of the two-wing palace.
+	var east_i := _edge_facing(ring, axis, 14.0)
+	var split_u := lo.x + 15.6
+	for p in ring:
+		var l := _local(p)
+		if l.y < lo.y + 1.5 and l.x < hi.x - 5.0:
+			split_u = minf(split_u, l.x)
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		if ln < 2.2:
+			continue
+		var out := _out(ring, a, b)
+		var ml := _local((a + b) * 0.5)
+		var kind := "side"
+		if i == east_i:
+			kind = "avenue"
+		elif out.dot(south) > 0.85 and ml.x > split_u + 1.0:
+			kind = "south_front"
+		elif out.dot(-south) > 0.85 and ml.x > split_u + 1.0:
+			kind = "north_front"
+		_ls_dress_face(a, b, out, g, kind)
+		_o = block_o
+		_a = axis
+		_b = south
+	_ls_roof(ring, g, lo, hi, split_u)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Dresses one face of Pałacyk Leszczyńskich: the avenue front carries the central three-arch open
+## loggia with stone balustrade above, white hooded first-floor windows and cornice balustrade;
+## flanks and garden wing carry white window surrounds and panes.
+func _ls_dress_face(a: Vector2, b: Vector2, out: Vector2, g: float, kind: String) -> void:
+	var w := _ur2_front_edge(a, b, out)
+	var sy1 := g + 5.20
+	var sy2 := g + 9.20
+	var h1 := 2.45
+	var h2 := 2.00
+	match kind:
+		"avenue":
+			var bays := 7
+			var cols := _spread(1.4, w - 1.4, bays)
+			_ls_arcade(w * 0.5, 4.70, g)
+			var skips: Array = [Vector2(w * 0.5 - 5.05, w * 0.5 + 5.05)]
+			for k in [0, 1, 5, 6]:
+				var bu: float = cols[k]
+				kit_window(bu, g + 1.45, 2.20, Win.SILL_HEAD, LS_TRIM, LS_GLASS, 0.56)
+				skips.append(Vector2(bu - 0.92, bu + 0.92))
+			skips.sort_custom(func(x: Vector2, y: Vector2) -> bool: return x.x < y.x)
+			_ur2_rusticate_piers(0.16, w - 0.16, skips, g + LS_PLINTH_H + 0.12, g + LS_BASE_H - 0.30, 1.05, LS_BASE)
+			for k in bays:
+				var bu: float = cols[k]
+				kit_window(bu, sy1, h1, Win.PEDIMENT, LS_TRIM, LS_GLASS, 0.58)
+				kit_window(bu, sy2, h2, Win.SILL_HEAD, LS_TRIM, LS_GLASS, 0.56)
+			for pu: float in [0.52, w - 0.52]:
+				kit_pilaster(pu, g + LS_BASE_H + 0.18, g + LS_EAVE_H - 0.94, LS_TRIM, 0.54, 0.15)
+			kit_attic(0.25, w - 0.25, g + LS_EAVE_H, LS_TRIM, LS_BAL_H, Attic.BALUSTRADE)
+		"south_front", "north_front":
+			var bays := maxi(1, roundi((w - 1.4) / 3.2))
+			var cols := _spread(1.1 if w >= 5.0 else w * 0.5, w - 1.1 if w >= 5.0 else w * 0.5, bays)
+			for bu: float in cols:
+				kit_window(bu, sy1, h1, Win.SILL_HEAD, LS_TRIM, LS_GLASS, 0.56)
+			kit_ledge(0.35, w - 0.35, g + 1.28, 0.14, LS_TRIM, 0.09)
+			kit_ledge(0.35, w - 0.35, sy2 - 0.18, 0.14, LS_TRIM, 0.09)
+			kit_panes(cols, [g + 1.45], 1.14, 2.20, LS_GLASS, 0.06)
+			kit_panes(cols, [sy2], 1.14, h2, LS_GLASS, 0.06)
+			if w >= 5.0:
+				kit_attic(0.25, w - 0.25, g + LS_EAVE_H, LS_TRIM, LS_BAL_H, Attic.BALUSTRADE)
+		_:
+			var bays := maxi(1, roundi((w - 1.4) / 3.3))
+			var cols := _spread(1.0 if w >= 4.2 else w * 0.5, w - 1.0 if w >= 4.2 else w * 0.5, bays)
+			kit_ledge(0.35, w - 0.35, sy1 - 0.18, 0.14, LS_TRIM, 0.09)
+			kit_ledge(0.35, w - 0.35, sy2 - 0.18, 0.14, LS_TRIM, 0.09)
+			kit_panes(cols, [g + 1.45, sy1], 1.14, 2.15, LS_GLASS, 0.06)
+			kit_panes(cols, [sy2], 1.14, h2, LS_GLASS, 0.06)
+
+
+## Builds Pałacyk Leszczyńskich's ground-floor avenue arcade of three big round arches (matching
+## refs/leszczynskich/streetview): stone steps, four rusticated piers with plinth bases, three round
+## arch spandrels, shadowed loggia backing with arched wooden entrance door and warm night lamp, and
+## a crowning stone balustrade at first-floor sill level.
+func _ls_arcade(cu: float, hw: float, g: float) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	var depth := 1.25
+	var y_pl := g + LS_PLINTH_H
+	var y_sp := g + 2.55
+	var y_top := g + LS_BASE_H - 0.18
+	# Three broad entrance steps staying 4 cm below plinth top so no horizontal cap z-fights.
+	for k in 3:
+		var sd := depth + 0.95 - float(k) * 0.30
+		var h_step := (LS_PLINTH_H - 0.04) / 3.0
+		var y0 := g - 0.35 if k == 0 else g + float(k) * h_step
+		_kbox(cu - hw - 0.30, cu + hw + 0.30, 0.18, sd, y0, g + float(k + 1) * h_step,
+				LS_PLINTH.lightened(0.04))
+	# Shadowed backing inside the arcade with arched central door, flanking windows and warm lamp.
+	_kbox(cu - hw + 0.15, cu + hw - 0.15, 0.01, 0.06, y_pl + 0.04, y_top - 0.02, LS_BASE.darkened(0.24))
+	kit_face(0.07)
+	kit_door(cu, y_pl + 0.04, 2.95, 0.92, LS_TRIM, LS_DOOR, true)
+	_lbox(cu, 0.22, 0.14, 0.10, y_top - 0.45, y_top - 0.18, LS_LAMP, M_LAMP, LS_LAMP)
+	for s: float in [-1.0, 1.0]:
+		kit_window(cu + s * 3.05, g + 1.55, 1.85, Win.SILL_HEAD, LS_TRIM, LS_GLASS, 0.56)
+	kit_face(0.0)
+	# Four rusticated arcade piers with grey stone plinth blocks, carrying three round arches.
+	var span := (hw * 2.0 - 0.68) / 3.0
+	var pier_us := [cu - hw + 0.34, cu - span * 0.5, cu + span * 0.5, cu + hw - 0.34]
+	for pu: float in pier_us:
+		_kbox(pu - 0.38, pu + 0.38, 0.20, depth + 0.04, g - 0.3, y_pl + 0.30, LS_PLINTH)
+		_kbox(pu - 0.34, pu + 0.34, 0.22, depth, y_pl + 0.30, y_top, LS_BASE)
+	# Three round arch spandrels across the front of the arcade plus entablature clear of ring ledge.
+	for k in 3:
+		var u0: float = pier_us[k] + 0.34
+		var u1: float = pier_us[k + 1] - 0.34
+		_arch(u0, u1, depth, y_sp, y_top, LS_BASE)
+	_kbox(cu - hw - 0.06, cu + hw + 0.06, 0.18, depth + 0.12, y_top, g + LS_BASE_H + 0.20, LS_TRIM)
+	# Stone balustrade crowning the open arcade at first-floor level.
+	kit_face(depth - 0.02)
+	kit_attic(cu - hw + 0.08, cu + hw - 0.08, g + LS_BASE_H + 0.20, LS_TRIM, 0.80, Attic.BALUSTRADE)
+	kit_face(0.0)
+	_mode = keep
+
+
+## Builds Pałacyk Leszczyńskich's low grey metal hipped roofs over the east front pavilion and the
+## west rear wing, measured from `ring` and tucked inside the balustrade (3D Tiles top view).
+func _ls_roof(ring: PackedVector2Array, g: float, lo: Vector2, hi: Vector2, split_u: float) -> void:
+	_mode = M_STONE
+	var eave := g + LS_EAVE_H
+	var east_v1 := hi.y - 2.0
+	var west_v0 := lo.y + 5.7
+	for p in ring:
+		var l := _local(p)
+		if l.x > hi.x - 1.0 and l.y > 0.0:
+			east_v1 = maxf(east_v1, l.y)
+		if l.x < lo.x + 1.5 and l.y < 0.0:
+			west_v0 = minf(west_v0, l.y)
+	# 1. East avenue pavilion hipped roof (N-S ridge, 2.2 m rise).
+	var eu0 := split_u + 0.35
+	var eu1 := hi.x - 0.35
+	var ev0 := lo.y + 0.35
+	var ev1 := east_v1 - 0.35
+	if eu1 > eu0 + 2.0 and ev1 > ev0 + 2.0:
+		_hip((eu0 + eu1) * 0.5, (ev0 + ev1) * 0.5, (eu1 - eu0) * 0.5, (ev1 - ev0) * 0.5,
+				eave, LS_ROOF_RISE, LS_ROOF)
+	# 2. West rear wing hipped roof (E-W ridge, 0.12 m lower so ridges tuck without z-fighting).
+	var wu0 := lo.x + 0.35
+	var wu1 := split_u + 1.40
+	var wv0 := west_v0 + 0.35
+	var wv1 := hi.y - 0.65
+	if wu1 > wu0 + 2.0 and wv1 > wv0 + 2.0:
+		_hip((wu0 + wu1) * 0.5, (wv0 + wv1) * 0.5, (wu1 - wu0) * 0.5, (wv1 - wv0) * 0.5,
+				eave, LS_ROOF_RISE - 0.12, LS_ROOF)
+
+
+# --- 3. Kamienica Szelechowa ---------------------------------------------------------------------
+
+## Finds Kamienica Szelechowa's OSM outline (al. Ujazdowskie 18, near x~0 z~1318) and registers
+## the `szelechowa` site. Verifies the match is the Ujazdowskie tenement, not Mikołaja Szelechowa.
+func _find_szelechowa() -> void:
+	var raw := _landmark(SZL_NAME)
+	if raw.size() < 3:
+		push_error("szelechowa: landmark outline '%s' is missing from centrum.json" % SZL_NAME)
+		return
+	var c := _centre(raw)
+	if c.distance_to(Vector2(0.0, 1318.0)) > 80.0:
+		raw = _landmark_near(SZL_NAME, Vector2(0.0, 1318.0), 80.0)
+	if raw.size() < 3:
+		push_error("szelechowa: '%s' near (0, 1318) is missing from centrum.json" % SZL_NAME)
+		return
+	var zone := _largest(Geometry2D.offset_polygon(raw, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = raw
+	_add_site("szelechowa", [zone])
+	if not sites.is_empty() and sites[-1]["key"] == "szelechowa":
+		sites[-1]["raw"] = raw
+
+
+## Builds Kamienica Szelechowa: four-storey warm cream eclectic L-plan tenement (16.5 m) with
+## rusticated ground floor, round-arched first-floor windows, chunky stone balconies on brackets,
+## pilastered corner bays, projecting avenue bay, heavy cornice, patina green copper hipped roofs
+## (3.0 m rise, 3D Tiles orbits), and full outline collision.
+func _build_szelechowa(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var ring := _ur2_simplify(raw, 0.55)
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	var axis := _ur2_axis(ring)
+	var south := Vector2(-axis.y, axis.x)
+	var block_o := _centre(ring)
+	_o = block_o
+	_a = axis
+	_b = south
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in ring:
+		var l := _local(p)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	# Rusticated ground floor (0 - 4.2 m), three eclectic upper storeys (4.2 - 16.5 m), heavy cornice.
+	_prism(ring, g - 0.5, g + SZL_GROUND_H, SZL_BASE, none, M_STONE)
+	_prism(ring, g + SZL_GROUND_H, g + SZL_EAVE_H, SZL_WALL, none, M_STONE)
+	_cap(ring, g + SZL_EAVE_H - 0.05, SZL_ROOF.darkened(0.20))
+	kit_ledge_ring(ring, g - 0.4, SZL_PLINTH_H + 0.4, SZL_PLINTH, 0.12)
+	kit_ledge_ring(ring, g + SZL_GROUND_H - 0.14, 0.28, SZL_TRIM, 0.14)
+	kit_ledge_ring(ring, g + 8.30, 0.20, SZL_TRIM, 0.10)
+	kit_ledge_ring(ring, g + 12.15, 0.20, SZL_TRIM, 0.10)
+	kit_cornice_ring(ring, g + SZL_EAVE_H - 0.60, SZL_TRIM, 0.60, 0.62)
+	# Dress every exposed face (skipping north and west party walls against taller neighbours).
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		if ln < 2.4:
+			continue
+		var out := _out(ring, a, b)
+		var ml := _local((a + b) * 0.5)
+		if out.dot(-south) > 0.85 and ml.y < lo.y + 1.5:
+			continue  # north party wall against al. Ujazdowskie 20
+		if out.dot(-axis) > 0.85 and ml.x < lo.x + 1.5:
+			continue  # west party wall against taller white office block
+		var kind := "court"
+		if out.dot(south) > 0.85 and ln > 25.0:
+			kind = "south_street"
+		elif out.dot(axis) > 0.35 and ml.x > hi.x - 4.5:
+			kind = "east_avenue"
+		_sz_dress_face(a, b, out, g, kind)
+		_o = block_o
+		_a = axis
+		_b = south
+	_sz_roof(ring, g, lo, hi)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Dresses one face of Kamienica Szelechowa: street fronts get round-arched first-floor windows,
+## second-floor windows with chunky stone balconies on brackets, pilastered corner bays, arched
+## wooden portals with warm night lamps, and attic windows tucked under the heavy cornice.
+func _sz_dress_face(a: Vector2, b: Vector2, out: Vector2, g: float, kind: String) -> void:
+	var w := _ur2_front_edge(a, b, out)
+	var fa := _o
+	var fdir := _a
+	var fout := _b
+	var sy0 := g + 1.25
+	var sy1 := g + 5.00
+	var sp1 := g + 6.95
+	var sy2 := g + 8.95
+	var sy3 := g + 12.80
+	match kind:
+		"south_street":
+			var bays := 13
+			var cols := _spread(1.5, w - 1.5, bays)
+			var gf_cols: Array[float] = []
+			var skips: Array = []
+			for k in bays:
+				var bu: float = cols[k]
+				if k == 3 or k == 11:
+					kit_door(bu, g + SZL_PLINTH_H + 0.04, 3.05, 0.88, SZL_TRIM, SZL_DOOR, true)
+					_lbox(bu + 1.15, 0.14, 0.10, 0.08, g + 2.75, g + 3.08, SZL_LAMP, M_LAMP, SZL_LAMP)
+					skips.append(Vector2(bu - 1.28, bu + 1.28))
+				else:
+					gf_cols.append(bu)
+					skips.append(Vector2(bu - 0.88, bu + 0.88))
+				# Round-arched first-floor windows across the whole eclectic tenement front.
+				kit_round_window(fa + fdir * bu, fdir, fout, sy1, sp1, 0.58, SZL_TRIM, SZL_GLASS)
+				kit_window(bu, sy2, 2.20, Win.SILL_HEAD, SZL_TRIM, SZL_GLASS, 0.56)
+			kit_panes(gf_cols, [sy0], 1.12, 2.25, SZL_GLASS, 0.06)
+			_ur2_rusticate_piers(0.15, w - 0.15, skips, g + SZL_PLINTH_H + 0.12, g + SZL_GROUND_H - 0.25, 1.15, SZL_BASE)
+			# Chunky stone balconies on corbel brackets on the second floor (Street View & spec).
+			for bk: int in [1, 5, 8, 11]:
+				kit_balcony(cols[bk], sy2, 1.10, Balcony.STONE, SZL_TRIM, SZL_TRIM.darkened(0.06), 1.05)
+			# Top mezzanine storey windows tucked under the heavy projecting cornice.
+			kit_ledge(0.4, w - 0.4, sy3 - 0.18, 0.14, SZL_TRIM, 0.09)
+			kit_panes(cols, [sy3], 1.12, 1.80, SZL_GLASS, 0.06)
+			# Pilastered corner bays and focal bay dividers.
+			for pu: float in [0.55, (cols[2] + cols[3]) * 0.5, (cols[9] + cols[10]) * 0.5, w - 0.55]:
+				kit_pilaster(pu, g + SZL_GROUND_H + 0.18, g + SZL_EAVE_H - 1.04, SZL_TRIM, 0.56, 0.16)
+		"east_avenue":
+			var bays := clampi(roundi((w - 1.2) / 3.1), 1, 3)
+			var cols := _spread(1.1 if w >= 4.2 else w * 0.5, w - 1.1 if w >= 4.2 else w * 0.5, bays)
+			var gf_cols: Array[float] = []
+			for k in bays:
+				var bu: float = cols[k]
+				if bays == 1 and w >= 3.3 and w <= 3.8 and out.dot(Vector2(1.0, 0.0)) > 0.85:
+					kit_door(bu, g + SZL_PLINTH_H + 0.04, 3.05, 0.86, SZL_TRIM, SZL_DOOR, true)
+					_lbox(bu + 1.08, 0.14, 0.10, 0.08, g + 2.75, g + 3.08, SZL_LAMP, M_LAMP, SZL_LAMP)
+				else:
+					gf_cols.append(bu)
+				kit_round_window(fa + fdir * bu, fdir, fout, sy1, sp1, 0.56, SZL_TRIM, SZL_GLASS)
+				kit_window(bu, sy2, 2.20, Win.SILL_HEAD, SZL_TRIM, SZL_GLASS, 0.54)
+			if not gf_cols.is_empty():
+				kit_panes(gf_cols, [sy0], 1.10, 2.25, SZL_GLASS, 0.06)
+			if w >= 6.0:
+				kit_balcony(cols[bays / 2], sy2, 1.05, Balcony.STONE, SZL_TRIM, SZL_TRIM.darkened(0.06), 1.00)
+				for pu: float in [0.52, w - 0.52]:
+					kit_pilaster(pu, g + SZL_GROUND_H + 0.18, g + SZL_EAVE_H - 1.04, SZL_TRIM, 0.54, 0.16)
+			elif bays == 1 and w >= 3.3 and out.dot(Vector2(1.0, 0.0)) > 0.85:
+				kit_balcony(cols[0], sy2, 0.95, Balcony.STONE, SZL_TRIM, SZL_TRIM.darkened(0.06), 0.95)
+			kit_ledge(0.3, w - 0.3, sy3 - 0.18, 0.14, SZL_TRIM, 0.09)
+			kit_panes(cols, [sy3], 1.10, 1.80, SZL_GLASS, 0.06)
+		_:
+			var bays := maxi(1, roundi((w - 1.4) / 3.4))
+			var cols := _spread(0.9, w - 0.9, bays)
+			kit_panes(cols, [sy0, sy1, sy2], 1.12, 2.05, SZL_GLASS, 0.06)
+			kit_panes(cols, [sy3], 1.12, 1.75, SZL_GLASS, 0.06)
+
+
+## Builds Kamienica Szelechowa's patina green copper hipped roofs (#7fa392) over both arms of its
+## L-plan and the projecting East avenue bay (3D Tiles top & orbit views).
+func _sz_roof(ring: PackedVector2Array, g: float, lo: Vector2, hi: Vector2) -> void:
+	_mode = M_STONE
+	var eave := g + SZL_EAVE_H
+	var wing_v0 := hi.y - 8.8
+	var east_u0 := hi.x - 19.2
+	var east_u1 := hi.x - 2.5
+	var bay_v_sum := 0.0
+	var bay_v_cnt := 0
+	for p in ring:
+		var l := _local(p)
+		if l.x < lo.x + 1.5 and l.y < hi.y - 3.0:
+			wing_v0 = minf(wing_v0, l.y)
+		if l.y < lo.y + 1.5 and l.x < hi.x - 8.0:
+			east_u0 = minf(east_u0, l.x)
+		if l.y > hi.y - 1.5 and l.x > hi.x - 6.0:
+			east_u1 = maxf(east_u1, l.x)
+		if l.x > hi.x - 0.8:
+			bay_v_sum += l.y
+			bay_v_cnt += 1
+	# 1. Long South wing copper hipped roof (E-W ridge, 3.0 m rise).
+	var su0 := lo.x + 0.25
+	var su1 := east_u1 - 0.20
+	var sv0 := wing_v0 + 0.20
+	var sv1 := hi.y - 0.20
+	_hip((su0 + su1) * 0.5, (sv0 + sv1) * 0.5, (su1 - su0) * 0.5, (sv1 - sv0) * 0.5,
+			eave, SZL_ROOF_RISE, SZL_ROOF)
+	# 2. East avenue wing copper hipped roof (N-S ridge, tucked 0.12 m below main ridge).
+	var eu0 := east_u0 + 0.25
+	var eu1 := east_u1 - 0.25
+	var ev0 := lo.y + 0.25
+	var ev1 := hi.y - 0.30
+	_hip((eu0 + eu1) * 0.5, (ev0 + ev1) * 0.5, (eu1 - eu0) * 0.5, (ev1 - ev0) * 0.5,
+			eave, SZL_ROOF_RISE - 0.12, SZL_ROOF)
+	# 3. Copper roof cap over the projecting East avenue bay (merged cleanly into the east slope).
+	var bay_cv := bay_v_sum / float(bay_v_cnt) if bay_v_cnt > 0 else (lo.y + hi.y) * 0.5 - 2.0
+	var bu0 := east_u1 - 2.0
+	var bu1 := hi.x - 0.25
+	if bu1 > bu0 + 1.2:
+		_hip((bu0 + bu1) * 0.5, bay_cv, (bu1 - bu0) * 0.5, 3.2, eave, SZL_ROOF_RISE - 0.45, SZL_ROOF)
+
+
+# --- 4. Pałacyk Wielopolskich --------------------------------------------------------------------
+
+## Finds Pałacyk Wielopolskich's OSM outline and registers the `wielopolskich` site.
+func _find_wielopolskich() -> void:
+	_ur2_find("wielopolskich", WP_NAME)
+
+
+## Builds Pałacyk Wielopolskich: two-storey pale cream U-plan classical palace (10.9 m) among trees,
+## with a projecting pilastered avenue middle risalit carrying a four-column Tuscan portico and low
+## triangular pediment (+2.0 m), plain cornice, patina green copper hipped roofs (#7fa392, 3D Tiles
+## orbits) over all three wings, and full outline collision.
+func _build_wielopolskich(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var ring := _ur2_simplify(raw, 0.85)
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	var axis := _ur2_axis(ring)
+	var south := Vector2(-axis.y, axis.x)
+	var block_o := _centre(ring)
+	_o = block_o
+	_a = axis
+	_b = south
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in ring:
+		var l := _local(p)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	# Two-storey pale cream body (0 - 10.9 m), plinth, mid-storey string course and plain cornice.
+	_prism(ring, g - 0.5, g + WP_EAVE_H, WP_WALL, none, M_STONE)
+	_cap(ring, g + WP_EAVE_H - 0.05, WP_ROOF.darkened(0.20))
+	kit_ledge_ring(ring, g - 0.4, WP_PLINTH_H + 0.4, WP_PLINTH, 0.12)
+	kit_ledge_ring(ring, g + 5.15, 0.24, WP_TRIM, 0.10)
+	kit_cornice_ring(ring, g + WP_EAVE_H - 0.46, WP_TRIM, 0.46, 0.50)
+	# Identify the East avenue front and the projecting North risalit of the east pavilion.
+	var east_i := _edge_facing(ring, axis, 14.0)
+	var north_ris_i := -1
+	var north_ris_cu := hi.x - 10.5
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		var out := _out(ring, a, b)
+		var ml := _local((a + b) * 0.5)
+		if out.dot(-south) > 0.85 and ml.y < lo.y + 1.0 and ln >= 7.0:
+			north_ris_i = i
+			north_ris_cu = ml.x
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		if ln < 2.6:
+			continue
+		var out := _out(ring, a, b)
+		var ml := _local((a + b) * 0.5)
+		var kind := "side"
+		if i == east_i:
+			kind = "avenue"
+		elif i == north_ris_i:
+			kind = "north_risalit"
+		elif out.dot(-south) > 0.85 and ml.y > lo.y + 5.0:
+			kind = "courtyard"
+		_wp_dress_face(a, b, out, g, kind)
+		_o = block_o
+		_a = axis
+		_b = south
+	_wp_roof(ring, g, lo, hi, north_ris_cu)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Dresses one face of Pałacyk Wielopolskich: the East avenue front gets the projecting middle
+## risalit with four-column Tuscan entrance portico, giant pilasters and low pediment; the north
+## risalit gets framed classical windows and a low pediment; courtyard and outer wings get panes.
+func _wp_dress_face(a: Vector2, b: Vector2, out: Vector2, g: float, kind: String) -> void:
+	var w := _ur2_front_edge(a, b, out)
+	var sy0 := g + 1.45
+	var sy1 := g + 5.95
+	var h0 := 2.45
+	var h1 := 2.55
+	match kind:
+		"avenue":
+			var cu := w * 0.5
+			var mid_hw := minf(3.8, w * 0.28)
+			_wp_portico(cu, mid_hw, g)
+			# Flanking bays on either side of the projecting central risalit + corner pilasters.
+			for side: float in [-1.0, 1.0]:
+				var u_in := cu + side * (mid_hw + 0.45)
+				var u_out := w - 1.1 if side > 0.0 else 1.1
+				var span := absf(u_out - u_in)
+				if span >= 2.2:
+					var b_lo := minf(u_in, u_out)
+					var b_hi := maxf(u_in, u_out)
+					var cnt := clampi(roundi(span / 3.3), 1, 2)
+					kit_window_grid(b_lo, b_hi, cnt, [sy0], h0, Win.SILL_HEAD, WP_TRIM, WP_GLASS, 0.58)
+					kit_window_grid(b_lo, b_hi, cnt, [sy1], h1, Win.PEDIMENT, WP_TRIM, WP_GLASS, 0.58)
+			for pu: float in [0.52, w - 0.52]:
+				kit_pilaster(pu, g + WP_PLINTH_H + 0.08, g + WP_EAVE_H - 0.90, WP_TRIM, 0.54, 0.15)
+		"north_risalit":
+			var cols := _spread(1.3, w - 1.3, 3)
+			for bu: float in cols:
+				kit_window(bu, sy0, h0, Win.SILL_HEAD, WP_TRIM, WP_GLASS, 0.56)
+				kit_window(bu, sy1, h1, Win.HOODED, WP_TRIM, WP_GLASS, 0.56)
+			for pu: float in [0.55, w - 0.55]:
+				kit_pilaster(pu, g + WP_PLINTH_H + 0.08, g + WP_EAVE_H - 0.90, WP_TRIM, 0.52, 0.14)
+			kit_pediment(w * 0.5, w * 0.48, g + WP_EAVE_H, 1.55, WP_TRIM, WP_ROOF, 0.55)
+		"courtyard":
+			var bays := maxi(2, roundi((w - 1.6) / 3.1))
+			var cols := _spread(1.1, w - 1.1, bays)
+			kit_ledge(0.4, w - 0.4, sy0 - 0.18, 0.14, WP_TRIM, 0.09)
+			kit_ledge(0.4, w - 0.4, sy1 - 0.18, 0.14, WP_TRIM, 0.09)
+			kit_panes(cols, [sy0], 1.16, h0, WP_GLASS, 0.06)
+			kit_panes(cols, [sy1], 1.16, h1, WP_GLASS, 0.06)
+		_:
+			var bays := maxi(1, roundi((w - 1.8) / 3.4))
+			var cols := _spread(1.1 if w >= 4.5 else w * 0.5, w - 1.1 if w >= 4.5 else w * 0.5, bays)
+			kit_ledge(0.4, w - 0.4, sy1 - 0.18, 0.14, WP_TRIM, 0.09)
+			kit_panes(cols, [sy0], 1.14, h0, WP_GLASS, 0.06)
+			kit_panes(cols, [sy1], 1.14, h1, WP_GLASS, 0.06)
+
+
+## Builds Pałacyk Wielopolskich's projecting East avenue middle risalit (1.0 m forward): four-column
+## ground-floor Tuscan entrance portico carrying a balustraded terrace, wooden main door with warm
+## lamps, four giant classical pilasters framing the first-floor triple window, and a low pediment.
+func _wp_portico(cu: float, hw: float, g: float) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	var proj := 1.00
+	# Projecting middle risalit mass (1.0 m proud of the avenue wall, top tucked inside its cornice).
+	_kbox(cu - hw, cu + hw, -0.15, proj, g - 0.5, g + WP_EAVE_H - 0.10, WP_WALL)
+	_kbox(cu - hw - 0.12, cu + hw + 0.12, 0.16, proj + 0.12, g - 0.4, g + WP_PLINTH_H + 0.04, WP_PLINTH)
+	_kbox(cu - hw - 0.12, cu + hw + 0.12, 0.16, proj + 0.12, g + 5.10, g + 5.44, WP_TRIM)
+	_kbox(cu - hw - 0.35, cu + hw + 0.35, 0.18, proj + 0.48, g + WP_EAVE_H - 0.50, g + WP_EAVE_H + 0.04, WP_TRIM)
+	# Four-column Tuscan entrance portico projecting 2.0 m ahead of the risalit with steps & terrace.
+	var port_hw := hw * 0.84
+	var port_v := proj + 2.05
+	var step_h := (WP_PLINTH_H - 0.04) / 3.0
+	for k in 3:
+		var sd := port_v + 0.85 - float(k) * 0.28
+		var y0 := g - 0.35 if k == 0 else g + float(k) * step_h
+		_kbox(cu - port_hw - 0.35, cu + port_hw + 0.35, proj + 0.14, sd, y0,
+				g + float(k + 1) * step_h, WP_PLINTH.lightened(0.04))
+	kit_colonnade(cu - port_hw + 0.36, cu + port_hw - 0.36, 4, port_v - 0.28,
+			g + WP_PLINTH_H - 0.04, g + 4.92, WP_TRIM, 0.22, Order.TUSCAN)
+	_kbox(cu - port_hw - 0.10, cu + port_hw + 0.10, proj + 0.14, port_v + 0.10, g + 4.92, g + 5.40, WP_TRIM)
+	kit_face(port_v - 0.02)
+	kit_attic(cu - port_hw + 0.05, cu + port_hw - 0.05, g + 5.40, WP_TRIM, 0.82, Attic.BALUSTRADE)
+	# Risalit front face: wooden door + warm night lamps, first-floor triple window & four pilasters.
+	kit_face(proj)
+	kit_door(cu, g + WP_PLINTH_H + 0.06, 3.30, 0.95, WP_TRIM, WP_DOOR, false)
+	for s: float in [-1.0, 1.0]:
+		_lbox(cu + s * 1.32, proj + 0.14, 0.10, 0.08, g + 2.85, g + 3.18, WP_LAMP, M_LAMP, WP_LAMP)
+		kit_window(cu + s * 1.95, g + 5.95, 2.50, Win.SILL_HEAD, WP_TRIM, WP_GLASS, 0.48)
+	kit_window(cu, g + 5.95, 2.55, Win.SILL_HEAD, WP_TRIM, WP_GLASS, 0.56)
+	for pu: float in [cu - hw + 0.42, cu - 1.02, cu + 1.02, cu + hw - 0.42]:
+		kit_pilaster(pu, g + 5.46, g + WP_EAVE_H - 0.54, WP_TRIM, 0.46, 0.16)
+	# Low classical triangular pediment crowning the risalit (2.0 m rise, green copper slopes).
+	kit_pediment(cu, hw + 0.28, g + WP_EAVE_H + 0.04, WP_PED_H, WP_TRIM, WP_ROOF, 0.55, WP_WALL.darkened(0.08))
+	kit_face(0.0)
+	_mode = keep
+
+
+## Builds Pałacyk Wielopolskich's patina green copper hipped roofs (#7fa392) over all three arms of
+## its U-plan (east pavilion + north risalit, central courtyard wing, west wing; 3D Tiles top view).
+func _wp_roof(ring: PackedVector2Array, g: float, lo: Vector2, hi: Vector2, north_ris_cu: float) -> void:
+	_mode = M_STONE
+	var eave := g + WP_EAVE_H
+	var east_u0 := hi.x - 21.1
+	var west_u1 := lo.x + 12.3
+	var mid_v0 := hi.y - 8.1
+	var north_v0 := lo.y + 1.9
+	for p in ring:
+		var l := _local(p)
+		if l.x > hi.x - 24.0 and l.x < hi.x - 16.0 and l.y < lo.y + 5.0:
+			east_u0 = minf(east_u0, l.x)
+		if l.x > lo.x + 8.0 and l.x < lo.x + 15.0 and l.y < lo.y + 5.0:
+			west_u1 = maxf(west_u1, l.x)
+		if l.x > lo.x + 18.0 and l.x < hi.x - 24.0 and l.y < hi.y - 4.0:
+			mid_v0 = minf(mid_v0, l.y)
+	# 1. East main palace pavilion hipped roof (2.8 m rise).
+	var eu0 := east_u0 + 0.25
+	var eu1 := hi.x - 0.35
+	var ev0 := north_v0 + 0.25
+	var ev1 := hi.y - 0.45
+	_hip((eu0 + eu1) * 0.5, (ev0 + ev1) * 0.5, (eu1 - eu0) * 0.5, (ev1 - ev0) * 0.5,
+			eave, WP_ROOF_RISE, WP_ROOF)
+	# 2. North projecting risalit cross-hip roof (tucked cleanly into the east pavilion slope).
+	_hip(north_ris_cu, (lo.y + 0.25 + north_v0 + 3.0) * 0.5, 4.35, (north_v0 + 3.0 - (lo.y + 0.25)) * 0.5,
+			eave, WP_ROOF_RISE - 0.45, WP_ROOF)
+	# 3. Central courtyard wing hipped roof (E-W ridge, tucked 0.14 m under the east pavilion).
+	var mu0 := west_u1 - 2.0
+	var mu1 := east_u0 + 1.5
+	var mv0 := mid_v0 + 0.25
+	var mv1 := hi.y - 0.35
+	if mu1 > mu0 + 4.0 and mv1 > mv0 + 2.0:
+		_hip((mu0 + mu1) * 0.5, (mv0 + mv1) * 0.5, (mu1 - mu0) * 0.5, (mv1 - mv0) * 0.5,
+				eave, WP_ROOF_RISE - 0.14, WP_ROOF)
+		# Small cross-hip over the projecting central courtyard bay (3D Tiles top view).
+		_hip(lo.x + 20.0, (mv0 - 1.45 + mv1 - 1.0) * 0.5, 1.75, (mv1 - mv0 + 0.45) * 0.5,
+				eave, WP_ROOF_RISE - 0.45, WP_ROOF)
+	# 4. West courtyard wing hipped roof (N-S ridge, tucked 0.08 m under the east pavilion).
+	var wu0 := lo.x + 0.30
+	var wu1 := west_u1 - 0.10
+	var wv0 := lo.y + 1.95
+	var wv1 := hi.y - 0.35
+	if wu1 > wu0 + 2.0 and wv1 > wv0 + 2.0:
+		_hip((wu0 + wu1) * 0.5, (wv0 + wv1) * 0.5, (wu1 - wu0) * 0.5, (wv1 - wv0) * 0.5,
+				eave, WP_ROOF_RISE - 0.08, WP_ROOF)
+
+
+# --- 5. Ministerstwo Sprawiedliwości -------------------------------------------------------------
+
+## Finds Ministerstwo Sprawiedliwości's OSM outline and registers `ministerstwo_sprawiedliwosci`.
+func _find_ministerstwo_sprawiedliwosci() -> void:
+	_ur2_find("ministerstwo_sprawiedliwosci", MSP_NAME)
+
+
+## Builds Ministerstwo Sprawiedliwości: large belle-époque cream block (0 - 25.0 m) on al.
+## Ujazdowskie by Plac na Rozdrożu with rusticated ground floor, six storeys of rich window
+## surrounds (round-arched fourth floor) and balconies, two tall projecting avenue stair pavilions
+## with ground-floor stone portals, a chamfered SW corner wing, steep grey metal mansards with
+## dormers, and full outline collision.
+func _build_ministerstwo_sprawiedliwosci(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var ring := _ur2_simplify(raw, 0.75)
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	var axis := _ur2_axis(ring)
+	var south := Vector2(-axis.y, axis.x)
+	var block_o := _centre(ring)
+	_o = block_o
+	_a = axis
+	_b = south
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in ring:
+		var l := _local(p)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	# Rusticated ground floor (0 - 4.6 m), upper belle-époque storeys + attic (4.6 - 21.4 m).
+	_prism(ring, g - 0.5, g + MSP_GROUND_H, MSP_BASE, none, M_STONE)
+	_prism(ring, g + MSP_GROUND_H, g + MSP_ATTIC_TOP, MSP_WALL, none, M_STONE)
+	_cap(ring, g + MSP_ATTIC_TOP - 0.05, MSP_ROOF.darkened(0.20))
+	kit_ledge_ring(ring, g - 0.4, 1.15, MSP_PLINTH, 0.12)
+	kit_ledge_ring(ring, g + MSP_GROUND_H - 0.16, 0.30, MSP_TRIM, 0.14)
+	kit_cornice_ring(ring, g + MSP_CORNICE_H - 0.55, MSP_TRIM, 0.55, 0.60)
+	kit_ledge_ring(ring, g + MSP_ATTIC_TOP - 0.34, 0.34, MSP_TRIM, 0.28)
+	# Collect the two projecting East avenue stair pavilions and the chamfered SW corner edge.
+	var pav_vs: Array[Vector2] = []
+	var sw_edge: Array = []
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		var out := _out(ring, a, b)
+		var la := _local(a)
+		var lb := _local(b)
+		var ml := (la + lb) * 0.5
+		if out.dot(axis) > 0.85 and ml.x > hi.x - 1.0 and ln >= 5.5 and ln <= 9.5:
+			pav_vs.append(Vector2(minf(la.y, lb.y), maxf(la.y, lb.y)))
+		elif out.dot((-axis + south).normalized()) > 0.75 and ln >= 8.0:
+			sw_edge = [a, b, out]
+	pav_vs.sort_custom(func(x: Vector2, y: Vector2) -> bool: return x.x < y.x)
+	# Dress every significant face of the block.
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		if ln < 2.8:
+			continue
+		var out := _out(ring, a, b)
+		var ml := _local((a + b) * 0.5)
+		var kind := "rear"
+		if out.dot(axis) > 0.85 and ml.x > hi.x - 1.0 and ln >= 5.5 and ln <= 9.5:
+			kind = "pavilion"
+		elif out.dot(axis) > 0.85 and ml.x > hi.x - 3.2:
+			kind = "avenue"
+		elif out.dot(south) > 0.85 and ml.y > hi.y - 2.0 and ln > 12.0:
+			kind = "south_front"
+		elif out.dot((-axis + south).normalized()) > 0.75 and ln >= 8.0:
+			kind = "corner_sw"
+		_ms_dress_face(a, b, out, g, kind)
+		_o = block_o
+		_a = axis
+		_b = south
+	_ms_roof(g, lo, hi, pav_vs, sw_edge)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Dresses one face of Ministerstwo Sprawiedliwości: East avenue wings get rusticated ground floors,
+## vertical pilasters, round-arched fourth-floor windows, stone balconies and attic balustrades; the
+## two projecting pavilions carry monumental stone ground-floor portals; south & SW corner faces get
+## full six-storey belle-époque grids; courtyard rear walls use efficient `kit_panes` + ledges.
+func _ms_dress_face(a: Vector2, b: Vector2, out: Vector2, g: float, kind: String) -> void:
+	var w := _ur2_front_edge(a, b, out)
+	var fa := _o
+	var fdir := _a
+	var fout := _b
+	var sy0 := g + 1.25
+	var mid_sills := [g + 5.30, g + 8.35, g + 11.40]
+	var sy4 := g + 14.55
+	var sp4 := g + 16.05
+	var sy5 := g + 18.75
+	match kind:
+		"pavilion":
+			# Two-bay vertical stair pavilion with monumental ground-floor portal and corner pilasters.
+			_ms_portal(w * 0.5, g)
+			var cols := _spread(1.4, w - 1.4, 2)
+			for sy_v: float in mid_sills:
+				kit_ledge(0.35, w - 0.35, sy_v - 0.16, 0.14, MSP_TRIM, 0.09)
+			kit_panes(cols, mid_sills, 1.14, 1.95, MSP_GLASS, 0.06)
+			for bu: float in cols:
+				kit_window(bu, sy4, 1.95, Win.SILL, MSP_TRIM, MSP_GLASS, 0.56)
+				kit_window(bu, sy5, 1.85, Win.SILL, MSP_TRIM, MSP_GLASS, 0.54)
+			for pu: float in [0.48, w - 0.48]:
+				kit_pilaster(pu, g + MSP_GROUND_H + 0.18, g + MSP_CORNICE_H - 0.98, MSP_TRIM, 0.52, 0.16)
+		"avenue":
+			var bays := clampi(roundi((w - 1.6) / 3.5), 3, 7)
+			var cols := _spread(1.4, w - 1.4, bays)
+			var skips: Array = []
+			for bu: float in cols:
+				skips.append(Vector2(bu - 0.88, bu + 0.88))
+				# Round-arched 4th-floor windows right under the heavy cornice (3D Tiles face270).
+				kit_round_window(fa + fdir * bu, fdir, fout, sy4, sp4, 0.56, MSP_TRIM, MSP_GLASS)
+			kit_ledge(0.35, w - 0.35, sy0 - 0.16, 0.14, MSP_TRIM, 0.09)
+			kit_panes(cols, [sy0], 1.16, 2.30, MSP_GLASS, 0.06)
+			_ur2_rusticate_piers(0.18, w - 0.18, skips, g + 1.15, g + MSP_GROUND_H - 0.25, 1.25, MSP_BASE)
+			for sy_v: float in [float(mid_sills[0]), float(mid_sills[1]), float(mid_sills[2]), sy5]:
+				kit_ledge(0.35, w - 0.35, sy_v - 0.16, 0.14, MSP_TRIM, 0.09)
+			kit_panes(cols, mid_sills, 1.18, 2.00, MSP_GLASS, 0.06)
+			kit_panes(cols, [sy5], 1.14, 1.85, MSP_GLASS, 0.06)
+			# Giant vertical pilasters framing the outer and middle bay pairs.
+			kit_pilaster(0.50, g + MSP_GROUND_H + 0.18, g + MSP_CORNICE_H - 0.98, MSP_TRIM, 0.52, 0.16)
+			kit_pilaster(w - 0.50, g + MSP_GROUND_H + 0.18, g + MSP_CORNICE_H - 0.98, MSP_TRIM, 0.52, 0.16)
+			if bays >= 6:
+				kit_balcony(cols[bays / 2], float(mid_sills[0]), 1.15, Balcony.STONE, MSP_TRIM, MSP_TRIM.darkened(0.06), 0.95)
+				kit_balcony(cols[bays / 2], float(mid_sills[2]), 1.15, Balcony.IRON, PAL_IRON, MSP_TRIM, 0.85)
+			kit_attic(0.25, w - 0.25, g + MSP_ATTIC_TOP, MSP_TRIM, 0.72, Attic.WALL)
+		"south_front", "corner_sw":
+			var bays := clampi(roundi((w - 1.6) / 3.5), 2, 6)
+			var cols := _spread(1.4, w - 1.4, bays)
+			var skips: Array = []
+			for bu: float in cols:
+				skips.append(Vector2(bu - 0.88, bu + 0.88))
+				kit_round_window(fa + fdir * bu, fdir, fout, sy4, sp4, 0.54, MSP_TRIM, MSP_GLASS)
+			kit_ledge(0.35, w - 0.35, sy0 - 0.16, 0.14, MSP_TRIM, 0.09)
+			kit_panes(cols, [sy0], 1.16, 2.30, MSP_GLASS, 0.06)
+			_ur2_rusticate_piers(0.18, w - 0.18, skips, g + 1.15, g + MSP_GROUND_H - 0.25, 1.25, MSP_BASE)
+			kit_ledge(0.35, w - 0.35, sy5 - 0.16, 0.14, MSP_TRIM, 0.09)
+			kit_panes(cols, mid_sills, 1.18, 2.00, MSP_GLASS, 0.06)
+			kit_panes(cols, [sy5], 1.14, 1.80, MSP_GLASS, 0.06)
+			for pu: float in [0.50, w - 0.50]:
+				kit_pilaster(pu, g + MSP_GROUND_H + 0.18, g + MSP_CORNICE_H - 0.98, MSP_TRIM, 0.52, 0.16)
+			if kind == "corner_sw":
+				var cu_b: float = cols[bays / 2]
+				kit_balcony(cu_b, float(mid_sills[0]), 1.10, Balcony.STONE, MSP_TRIM, MSP_TRIM.darkened(0.06), 0.95)
+		_:
+			var bays := maxi(1, roundi((w - 1.6) / 3.6))
+			var cols := _spread(1.0 if w >= 4.2 else w * 0.5, w - 1.0 if w >= 4.2 else w * 0.5, bays)
+			kit_panes(cols, [sy0, float(mid_sills[0]), float(mid_sills[1]), float(mid_sills[2]), sy4],
+					1.14, 1.95, MSP_GLASS, 0.06)
+			kit_panes(cols, [sy5], 1.12, 1.75, MSP_GLASS, 0.06)
+
+
+## Builds one monumental stone entrance portal at the foot of Ministerstwo Sprawiedliwości's
+## projecting avenue pavilions: granite steps, projecting stone surround piers and cornice hood,
+## double wooden entrance door with arched head, and warm night lamps (M_LAMP / M_PAVILION).
+func _ms_portal(cu: float, g: float) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	# Three entrance steps standing outside the plinth.
+	for k in 3:
+		var sd := 1.85 - float(k) * 0.42
+		var y0 := g - 0.35 if k == 0 else g + float(k) * 0.25
+		_kbox(cu - 2.35, cu + 2.35, 0.14, 0.14 + sd, y0, g + float(k + 1) * 0.25, MSP_PLINTH.lightened(0.05))
+	# Projecting stone portal surround (piers + heavy cornice hood).
+	_kbox(cu - 2.05, cu - 1.25, 0.02, 0.44, g + 0.75, g + 4.05, MSP_TRIM)
+	_kbox(cu + 1.25, cu + 2.05, 0.02, 0.44, g + 0.75, g + 4.05, MSP_TRIM)
+	_kbox(cu - 2.25, cu + 2.25, 0.02, 0.62, g + 4.05, g + 4.55, MSP_TRIM)
+	kit_face(0.16)
+	kit_door(cu, g + 0.75, 3.15, 1.05, MSP_TRIM, MSP_DOOR, true)
+	# Warm glowing portal transom and flanking stone lanterns at night.
+	_kbox(cu - 0.85, cu + 0.85, 0.22, 0.27, g + 3.10, g + 3.65, MSP_LAMP, M_PAVILION)
+	for s: float in [-1.0, 1.0]:
+		_lbox(cu + s * 1.65, 0.50, 0.11, 0.09, g + 2.95, g + 3.35, MSP_LAMP, M_LAMP, MSP_LAMP)
+	kit_face(0.0)
+	_mode = keep
+
+
+## Builds Ministerstwo Sprawiedliwości's steep grey metal mansard roofs (#7c8186) with dormers
+## (`kit_dormer`), the two raised avenue pavilion tower caps (to 25.8 m), the broad south-east
+## corner barrel/curved roof cap, and the angled SW corner wing mansard (3D Tiles top & orbits).
+func _ms_roof(g: float, lo: Vector2, hi: Vector2, pav_vs: Array[Vector2], sw_edge: Array) -> void:
+	_mode = M_STONE
+	var eave := g + MSP_ATTIC_TOP
+	var mans_top := eave + MSP_MANSARD_H
+	var main_u1 := hi.x - 1.65
+	var main_u0 := main_u1 - 13.4
+	var main_v0 := lo.y + 0.35
+	var main_v1 := hi.y - 12.2
+	# 1. Main N-S block steep grey metal mansard (steep lower slope 3.0 m + shallow upper cap 0.6 m).
+	var m_base := _urect(main_u0, main_u1, main_v0, main_v1)
+	var m_mid := _urect(main_u0 + 1.45, main_u1 - 1.45, main_v0 + 1.45, main_v1 - 1.45)
+	var m_top := _urect(main_u0 + 2.60, main_u1 - 2.60, main_v0 + 2.60, main_v1 - 2.60)
+	_frustum(m_base, eave, m_mid, eave + 3.0, MSP_ROOF)
+	_frustum(m_mid, eave + 3.0, m_top, mans_top, MSP_ROOF.lightened(0.06), MSP_ROOF.darkened(0.06))
+	# Dormers (`kit_dormer`) along the East avenue mansard slope, positioned between the pavilions.
+	var d_slope_y := eave + 0.95
+	if pav_vs.size() >= 2:
+		var p0: Vector2 = pav_vs[0]
+		var p1: Vector2 = pav_vs[1]
+		var east_spans := [
+			[main_v0 + 2.0, p0.x - 2.0, 1],
+			[p0.y + 2.5, p1.x - 2.5, 3],
+			[p1.y + 2.5, main_v1 - 2.0, 1],
+		]
+		for sp: Array in east_spans:
+			var sa: float = sp[0]
+			var sb: float = sp[1]
+			if sb > sa + 2.0:
+				for dv: float in _spread(sa, sb, int(sp[2])):
+					kit_dormer(_w(main_u1 - 0.55, dv), _a, d_slope_y, MSP_ROOF.lightened(0.04), MSP_TRIM, MSP_GLASS)
+		for dv: float in _spread(p0.y + 3.5, p1.x - 3.5, 2):
+			kit_dormer(_w(main_u0 + 0.55, dv), -_a, d_slope_y, MSP_ROOF.lightened(0.04), MSP_TRIM, MSP_GLASS)
+	# 2. Two raised East avenue stair pavilions (21.4 - 23.0 m) with steep grey metal mansard caps.
+	for pv: Vector2 in pav_vs:
+		var pu0 := main_u1 - 3.60
+		var pu1 := hi.x - 0.14
+		var pv0 := pv.x + 0.14
+		var pv1 := pv.y - 0.14
+		var pring := _urect(pu0, pu1, pv0, pv1)
+		_prism(pring, eave - 0.04, g + MSP_PAV_TOP, MSP_WALL, Color(0, 0, 0, 0), M_STONE)
+		kit_ledge_ring(pring, g + MSP_PAV_TOP - 0.32, 0.32, MSP_TRIM, 0.24)
+		var p_mid := _urect(pu0 + 1.05, pu1 - 1.05, pv0 + 1.05, pv1 - 1.05)
+		var p_top := _urect(pu0 + 1.95, pu1 - 1.95, pv0 + 1.95, pv1 - 1.95)
+		_frustum(pring, g + MSP_PAV_TOP, p_mid, g + MSP_PAV_TOP + 2.25, MSP_ROOF)
+		_frustum(p_mid, g + MSP_PAV_TOP + 2.25, p_top, g + MSP_PAV_TOP + 2.80,
+				MSP_ROOF.lightened(0.06), MSP_ROOF.darkened(0.06))
+	# 3. Broad South-East corner pavilion roof: curved-profile grey metal roof cap (3D Tiles top).
+	var su0 := hi.x - 24.0
+	var su1 := main_u1 + 0.15
+	var sv0 := main_v1 - 0.20
+	var sv1 := hi.y - 0.45
+	var s_base := _urect(su0, su1, sv0, sv1)
+	var s_mid := _urect(su0 + 1.25, su1 - 1.25, sv0 + 1.60, sv1 - 1.60)
+	var s_top := _urect(su0 + 2.10, su1 - 2.10, sv0 + 3.40, sv1 - 3.40)
+	_frustum(s_base, eave, s_mid, eave + 2.65, MSP_ROOF)
+	_frustum(s_mid, eave + 2.65, s_top, eave + 3.85, MSP_ROOF.lightened(0.08), MSP_ROOF.darkened(0.04))
+	for du: float in _spread(su0 + 3.0, su1 - 3.0, 2):
+		kit_dormer(_w(du, sv1 - 0.55), _b, eave + 0.85, MSP_ROOF.lightened(0.04), MSP_TRIM, MSP_GLASS)
+	# 4. Angled SW corner wing steep mansard roof derived directly from the SW street edge.
+	if sw_edge.size() == 3:
+		var sa: Vector2 = sw_edge[0]
+		var sb: Vector2 = sw_edge[1]
+		var sout: Vector2 = sw_edge[2]
+		var sw_len := sa.distance_to(sb)
+		var keep_o := _o
+		var keep_a := _a
+		var keep_b := _b
+		_o = (sa + sb) * 0.5 - sout * 4.4
+		_a = (sb - sa) / sw_len
+		_b = sout
+		var h_u := sw_len * 0.34
+		var h_v := 3.8
+		var sw_base := _rect(0.0, 0.0, h_u, h_v)
+		var sw_mid := _rect(0.0, 0.0, h_u - 1.2, h_v - 1.2)
+		var sw_top := _rect(0.0, 0.0, h_u - 2.2, h_v - 2.2)
+		_frustum(sw_base, eave, sw_mid, eave + 2.80, MSP_ROOF)
+		_frustum(sw_mid, eave + 2.80, sw_top, eave + 3.40, MSP_ROOF.lightened(0.06), MSP_ROOF.darkened(0.06))
+		for du: float in _spread(-h_u + 2.2, h_u - 2.2, 2):
+			kit_dormer(_w(du, h_v - 0.55), sout, eave + 0.85, MSP_ROOF.lightened(0.04), MSP_TRIM, MSP_GLASS)
+		_o = keep_o
+		_a = keep_a
+		_b = keep_b
