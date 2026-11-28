@@ -211,6 +211,7 @@ const BUDGET := {
 	"sad_okregowy": 7000,
 	"nbp": 1000,  # 2026-11-16 from photos, the whole branch: the folded panel bands, the glass ground floor, the steps, the white wall with the eagle and NBP, the stair slot, planters
 	"mostowski": 7000,  # the palace, portico and three open courts
+	"hotel_saski": 5000,  # the whole hotel, its courtyard and roof dormers
 	"powszechny": 6000,
 	"dom_chlopa": 3000,  # 2026-11-16 from photos, over its street block: the wavy roof edge on every street front, GROMADKA, the HOTEL corner sign, KASYNO TRAF
 	"batalion_kilinski": 1100,  # 2026-11-16 from photos: the tilted granite slab, the white step and four stelae, the white blocks, five flower bowls
