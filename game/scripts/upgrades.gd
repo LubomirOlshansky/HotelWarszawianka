@@ -51,7 +51,7 @@ const CARS: Array[Dictionary] = [
 	# the backdated 911 and the pink V12. The two top cars open with respect, not cash alone
 	# (`respect`: wallet.respect at least this; ladder.gd's rungs: Seba 340, Mike 640).
 	{"id": "kadilak", "name": ["Kadilak Bruhem", "Cadillack Bruhgham"], "short": ["Kadilak", "Cadilla"],
-			"blurb": ["Pięć i pół metra komfortu. Skręca w przyszły wtorek.", "Five and a half metres of comfort. Turns next Tuesday."],
+			"blurb": ["Sofa z silnikiem V8. Hamuj wczoraj.", "A sofa with a V8. Brake yesterday."],
 			"price": 900, "top": 1.06, "pull": 1.15, "grip": 0.92,
 			"feel": {"turn": 0.8, "steer": 1.6, "slide": 1.3, "onset": 0.7, "fade": 0.9, "note": 0.6}},
 	{"id": "gr86", "name": ["Tojota GieR 86", "Toyoda GeeR 86"], "short": ["GieR 86", "GeeR 86"],
