@@ -608,6 +608,9 @@ const INFO := {
 	"nbp": ["NBP, Oddział Okręgowy",
 			"Oddział Narodowego Banku Polskiego przy placu Powstańców: długi dom w ciemnych, pochylonych blachach, szklany parter na tarasie, szerokie granitowe schody. Tu pieniądze śpią, zanim pójdą w miasto.",
 			"The National Bank's Warsaw branch on Plac Powstańców: a long block in dark, leaning metal panels, a glass ground floor on a terrace, a wide flight of granite steps. The money sleeps here before it goes out into the city."],
+	"nik": ["Najwyższa Izba Kontroli",
+			"Za dziedzińcem przy Filtrowej od 1986 roku pracuje NIK.",
+			"Beyond the Filtrowa courtyard, NIK has worked here since 1986."],
 	"city_gate": ["City Gate",
 			"Biurowiec przy Wolskiej: białe pasy na wygiętym szkle.",
 			"An office block on Wolska: white bands on curved glass."],
@@ -1960,6 +1963,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_sad_okregowy(s)
 			"nbp":
 				_build_nbp(s)  # the whole branch (SKINS entry with `model`: it replaces LoD2)
+			"nik":
+				_build_nik(s)
 			"city_gate":
 				_build_city_gate(s)
 			"meridian":

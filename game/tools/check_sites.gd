@@ -25,7 +25,7 @@ const Landmarks := preload("res://scripts/landmarks.gd")
 const Chunked := preload("res://scripts/chunked_surface.gd")
 const Fakes := preload("res://tools/fakes.gd")
 ## Triangles a site may hold (the museum and Plac loop's own models).
-const BUDGET := {"hotel_saski": 5000, "city_gate": 3500, "meridian": 3500, "oxygen": 3500, "muzeum": 4600, "europejski": 8000, "grob": 600, "metropolitan": 3200, "wiktoria": 4500,
+const BUDGET := {"nik": 5000, "hotel_saski": 5000, "city_gate": 3500, "meridian": 3500, "oxygen": 3500, "muzeum": 4600, "europejski": 8000, "grob": 600, "metropolitan": 3200, "wiktoria": 4500,
 		"hotel_kasztel": 400, "hotel_canaletto": 400, "hotel_starowka": 400, "polonia": 1450, "ujazdowski": 1650, "sobieski": 1500,
 		"zamek": 24500, "arkady": 2400, "kino_muranow": 11000, "dekalog_estate": 18000, "inflancka_pools": 1000, "zamkowy": 2900,
 		"gpxz": 12000, "centrum_praha": 4000, "targowa33a": 3000, "polskie_radio": 3000,
@@ -158,6 +158,8 @@ func _check_site(marks, map: Fakes.BuilderMap, key: String) -> void:
 	marks._id = k + 1
 	var walls0 := map._wall_faces.size()
 	match key:
+		"nik":
+			marks._build_nik(s)
 		"muzeum":
 			marks._build_muzeum(s)
 		"europejski":

@@ -31,6 +31,7 @@ const Fakes := preload("res://tools/fakes.gd")
 const Neon := preload("res://scripts/neon_signs.gd")
 ## Triangles a site may hold: measured on 2026-10-31 plus about 20 % (raise on purpose only).
 const BUDGET := {
+	"nik": 5000,
 	"scena_relax": 600,
 	"smolna38": 2700,
 	"jerozolimskie57": 10000,  # 2026-11-15: the Jerozolimskie row from F's photos: four fronts, canopies, showcases, the building site (measured 9179)
