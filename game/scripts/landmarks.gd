@@ -31,6 +31,8 @@ extends "res://scripts/landmarks/niecala.gd"
 ## paler than life for the game's palette. The Rondo Daszyńskiego towers (Spire, Skyliner, Unit,
 ## Mennica, Generation Park Y, the HUB) are the exception: dark navy glass as in life (F's photos,
 ## 2026-11-17: the light blue read wrong next to them).
+const ChunkedSurface := preload("res://scripts/chunked_surface.gd")
+
 const TOWERS := [
 	{"key": "zlota44", "osm": "Złota 44", "style": S_SAIL, "glass": "#bccdd8", "roof": "#e4e8ea", "crest": "slope"},
 	{"key": "spire", "osm": "Warsaw Spire", "style": S_MIRROR, "glass": "#2f4562", "roof": "#b9c4cc",
@@ -411,6 +413,9 @@ const INFO := {
 	"branickich": ["Pałac Branickich",
 			"Barokowy pałac z 1740 roku przy Miodowej, z attyką pełną rzeźb i lukarnami z oculusami.",
 			"The baroque palace of 1740 on Miodowa, its attic crowded with statues and oculus dormers."],
+	"prymasowski": ["Pałac Prymasowski",
+			"Klasycystyczny pałac przy Senatorskiej z półkolistymi kolumnadami.",
+			"A classical palace on Senatorska with curved courtyard colonnades."],
 	"karmelici": ["Kościół Karmelitów",
 			"Rokokowo-klasycystyczna fasada z końca XVIII wieku, ze złotym globem na szczycie.",
 			"A late-18th-century front with a gilt globe on top."],
@@ -546,6 +551,24 @@ const INFO := {
 	"polskie_radio": ["Polskie Radio",
 			"Siedziba Polskiego Radia przy Myśliwieckiej, tuż obok Agrykoli.",
 			"Polish Radio headquarters on Myśliwiecka, right beside Agrykola."],
+	"dom_poselski": ["Dom Poselski",
+			"Hotel posłów przy Sejmie.",
+			"The deputies' hotel by the Sejm."],
+	"stary_dom_poselski": ["Stary Dom Poselski",
+			"Przedwojenny gmach przy Sejmie z okrągłym narożnikiem na Wiejskiej.",
+			"Pre-war Sejm building with a rounded corner on Wiejska."],
+	"rembielinskiego": ["Pałacyk Rembielińskiego",
+			"Klasycystyczny pałacyk z lat 40. XIX w. z kolumnową loggią.",
+			"An 1840s classical palace with a columned loggia on the avenue."],
+	"willa_raua": ["Willa Raua",
+			"Włoska willa z lat 60. XIX w. z boniowaniem i głębokim gzymsem.",
+			"An 1860s Italianate villa with rusticated corners and deep eaves."],
+	"dziewulskich": ["Pałacyk Dziewulskich",
+			"Kameralny kremowy pałacyk w ogrodzie przy Alejach Ujazdowskich.",
+			"A compact cream villa in a garden along Aleje Ujazdowskie."],
+	"pod_karczochem": ["Pałac pod Karczochem",
+			"Pałacowa kamienica z balkonami i wieżyczką z kamiennym karczochem.",
+			"Five-storey tenement with balconies and a stone artichoke turret."],
 	"sobieski": ["Radysław Blu",
 			"Hotel przy placu Zawiszy, w kolorowych pasach.",
 			"A hotel on Plac Zawiszy, in colourful bands."],
@@ -582,6 +605,15 @@ const INFO := {
 	"nbp": ["NBP, Oddział Okręgowy",
 			"Oddział Narodowego Banku Polskiego przy placu Powstańców: długi dom w ciemnych, pochylonych blachach, szklany parter na tarasie, szerokie granitowe schody. Tu pieniądze śpią, zanim pójdą w miasto.",
 			"The National Bank's Warsaw branch on Plac Powstańców: a long block in dark, leaning metal panels, a glass ground floor on a terrace, a wide flight of granite steps. The money sleeps here before it goes out into the city."],
+	"city_gate": ["City Gate",
+			"Biurowiec przy Wolskiej: białe pasy na wygiętym szkle.",
+			"An office block on Wolska: white bands on curved glass."],
+	"meridian": ["Meridian",
+			"Jasne skrzydła z balkonami wokół otwartego dziedzińca.",
+			"Pale wings with balconies round an open courtyard."],
+	"oxygen": ["Oxygen",
+			"Zaokrąglone narożniki, pasy okien, a z góry tarasy.",
+			"Rounded corners, ribbons of windows and terraces on top."],
 	"mostowski": ["Pałac Mostowskich",
 			"Cztery kolumny w portyku Corazziego witają od strony alei Solidarności. Odbudowany po wojnie pałac jest dziś siedzibą stołecznej policji.",
 			"Four columns in Corazzi’s portico greet you from al. Solidarności. Rebuilt after the war, the palace is now home to Warsaw’s police headquarters."],
@@ -1329,6 +1361,7 @@ func _find_sites() -> void:
 	_find_mansjonaria()
 	# Before the column: a later site's tap cells win, and the column's must (check_landmarks).
 	_find_zamkowy()
+	_find_prymasowski()
 	_find_zygmunt()
 	_find_gaulle()
 	_find_rondo()
@@ -1518,6 +1551,12 @@ func _find_sites() -> void:
 	_find_hotels()
 	_find_ujazdowski()
 	_find_polskie_radio()
+	_find_dom_poselski()
+	_find_stary_dom_poselski()
+	_find_rembielinskiego()
+	_find_willa_raua()
+	_find_dziewulskich()
+	_find_pod_karczochem()
 	# F's ask (2026-11-01): Norblin, Browary Warszawskie, Hala Koszyki, Elektrownia Powiśle.
 	_find_works()
 	# F's ask (2026-11-02, CITY_INVENTORY #21): the Warsaw Rising Museum, from the Mac's photos.
@@ -1701,6 +1740,13 @@ func _find_sites() -> void:
 ## `only` (the mesh-quality check, loop 0.1): build just the site with this key.
 func build(surface, near := Rect2(), only := "") -> void:
 	st = surface
+	# What this build keeps: a sector's own tiles (chunked_surface.gd `only`) when it has them,
+	# else `near`; the market skips the parts that reach none of it (jarmark.gd _jm_here).
+	_near = near
+	var tiles = surface.get("only") if near.has_area() else null
+	if tiles is Rect2i and (tiles as Rect2i).has_area():
+		var tile: float = ChunkedSurface.TILE
+		_near = Rect2(Vector2((tiles as Rect2i).position) * tile, Vector2((tiles as Rect2i).size) * tile)
 	pocket_rings.clear()
 	_pick.resize(map._roof_nx * map._roof_nz * 2)
 	_pick.fill(0)
@@ -1773,6 +1819,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_syrenka(s)
 			"zamkowy":
 				_build_zamkowy(s)
+			"prymasowski":
+				_build_prymasowski(s)
 			"arkadia":
 				_build_arkadia(s)
 			"forest":
@@ -1895,6 +1943,12 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_sad_okregowy(s)
 			"nbp":
 				_build_nbp(s)  # the whole branch (SKINS entry with `model`: it replaces LoD2)
+			"city_gate":
+				_build_city_gate(s)
+			"meridian":
+				_build_meridian(s)
+			"oxygen":
+				_build_oxygen(s)
 			"mostowski":
 				_build_mostowski(s)
 			"hotel_saski":
@@ -2018,6 +2072,18 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_ujazdowski(s)
 			"polskie_radio":
 				_build_polskie_radio(s)
+			"dom_poselski":
+				_build_dom_poselski(s)
+			"stary_dom_poselski":
+				_build_stary_dom_poselski(s)
+			"rembielinskiego":
+				_build_rembielinskiego(s)
+			"willa_raua":
+				_build_willa_raua(s)
+			"dziewulskich":
+				_build_dziewulskich(s)
+			"pod_karczochem":
+				_build_pod_karczochem(s)
 			"sobieski":
 				_build_sobieski(s)
 			"bristol":
@@ -2070,7 +2136,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"rondo":
 				_id = 0
 				_build_rondo(s)
-			"sunken", "underpass", "defilad_ramp", "powstancow_ramp", "tarasy_plaza", "rondo_wells":
+			"sunken", "underpass", "defilad_ramp", "powstancow_ramp", "tarasy_plaza", "rondo_wells", "mw_cen", "mw_onz", "mw_dasz", "mw_ratusz", "mw_nsu", "mw_poli", "mw_cnk":
 				_id = 0
 				_build_sunken(s)
 			"metro_tubes":

@@ -60,6 +60,8 @@ devflags             quick
 districts            quick
 drape                ground
 drift                quick
+drift-event          quick
+drift-quest          smoke     slow
 drift-run            runs      slow
 drive                roads
 drive-prebuilt       smoke     slow

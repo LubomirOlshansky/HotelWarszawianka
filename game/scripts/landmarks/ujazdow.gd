@@ -1118,3 +1118,1690 @@ func _pr_roof(g: float, u0: float, u1: float, vm0: float, vm1: float,
 	for ch_u: float in [lerpf(u0, um0, 0.5), lerpf(um1, u1, 0.5)]:
 		_lbox(ch_u, cv, 0.65, 0.55, eave + PR_ROOF_RISE - 0.9, eave + PR_ROOF_RISE + 1.25, PR_CHIMNEY)
 		_lbox(ch_u, cv, 0.78, 0.68, eave + PR_ROOF_RISE + 1.25, eave + PR_ROOF_RISE + 1.42, PR_CHIMNEY.darkened(0.18))
+
+
+# --- Dom Poselski and Stary Dom Poselski (Wiejska 4/6/8, docs/landmarks/specs/dom_poselski.md) --
+
+## Dom Poselski (the deputies' hotel, 1970s-80s): a stepped seven-storey grey concrete block
+## (24.1 m) with long dark ribbon windows between pale spandrel bands, blank lighter-grey stair
+## towers rising 2.5 m above the roof at outer corners, an inset dark-glazed ground floor with a
+## south entrance canopy toward the Sejm, and a flat roof with a 0.8 m parapet and plant boxes.
+## Colours from docs/landmarks/specs/dom_poselski.md and refs/dp_new/3dtiles/.
+const DP_NAME := "Dom Poselski"
+const DP_CONCRETE := Color("#a9aaa6")       # main concrete body
+const DP_TOWER := Color("#b9b9b4")          # blank concrete service towers
+const DP_SPANDREL := Color("#c3c4bf")       # pale horizontal spandrel bands
+const DP_GLASS := Color("#2e3236")          # dark ribbon window glass
+const DP_ROOF := Color("#8d969c")           # flat roof membrane
+const DP_PLANT := Color("#6f767b")          # roof plant boxes
+const DP_CANOPY := Color("#bfc3c6")         # south entrance flat canopy
+const DP_ENTRANCE_GLOW := Color("#e8d4a2")  # warm entrance glazing (M_PAVILION at night)
+const DP_PLINTH_H := 1.0
+const DP_STOREY := 3.3
+const DP_GROUND_H := 4.3                    # 1.0 m plinth + 3.3 m ground storey
+const DP_H := 24.1                          # 1.0 + 7 * 3.3 m
+const DP_TOWER_H := 26.6                    # 2.5 m above the 24.1 m main roof
+const DP_PARAPET_H := 0.8
+
+## Stary Dom Poselski (1930s, built with the Sejm): six storeys of cream stone (22.5 m) over a
+## two-storey rusticated base (7.0 m), dense vertical windows on 2.6 m bays round both straight
+## faces and curved corners, a big rounded west corner on Wiejska, a round east drum rising to
+## 24.5 m by the Sejm hall, a Wiejska double-leaf entrance, and a low grey hipped roof (2.5 m)
+## with dormers and three chimneys. Colours from docs/landmarks/specs/dom_poselski.md and refs/dp_old/.
+const SDP_NAME := "Stary Dom Poselski"
+const SDP_STONE := Color("#ddd6c6")         # upper cream stone body and cornice
+const SDP_BASE := Color("#cfc7b5")          # rusticated two-storey base
+const SDP_FRAME := Color("#ece8de")         # white window frames and sills
+const SDP_GLASS := Color("#4a5660")         # vertical window glass
+const SDP_ROOF := Color("#74797b")          # low grey hipped roof and drum cap
+const SDP_CHIMNEY := Color("#8a7f74")       # masonry chimney stacks
+const SDP_ENTRANCE_GLOW := Color("#e8d4a2") # warm Wiejska entrance glass (M_PAVILION at night)
+const SDP_BASE_H := 7.0
+const SDP_EAVE_H := 22.5
+const SDP_ROOF_RISE := 2.5
+const SDP_DRUM_TOP := 24.5
+const SDP_BAY := 2.6
+
+
+## Finds Dom Poselski's OSM landmark outline by name and registers a 0.5 m outward zone so the
+## map's 24.1 m hotel prism under it is replaced while the Sejm and neighbours stay untouched.
+func _find_dom_poselski() -> void:
+	var raw := _landmark(DP_NAME)
+	if raw.size() < 3:
+		push_error("dom_poselski: landmark outline '%s' is missing from centrum.json" % DP_NAME)
+		return
+	var zone := _largest(Geometry2D.offset_polygon(raw, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = raw
+	_add_site("dom_poselski", [zone])
+	if not sites.is_empty() and sites[-1]["key"] == "dom_poselski":
+		sites[-1]["raw"] = raw
+
+
+## Cleans `raw` into straight runs by dropping edges shorter than `min_edge` and collinear nodes
+## (dot > `col_dot`), then ensures counter-clockwise winding. Preserves curved arcs when `col_dot`
+## is strict (0.9985 drops < 3 deg bends while keeping ~9 deg quarter-circle segments intact).
+func _dp_clean_ring(raw: PackedVector2Array, min_edge: float, col_dot: float) -> PackedVector2Array:
+	var cur := PackedVector2Array(raw)
+	var changed := true
+	while changed and cur.size() > 3:
+		changed = false
+		var next := PackedVector2Array()
+		var n := cur.size()
+		for i in n:
+			var prev := cur[(i + n - 1) % n]
+			var p := cur[i]
+			var nxt := cur[(i + 1) % n]
+			var d0 := p - prev
+			var d1 := nxt - p
+			if d0.length() < min_edge:
+				changed = true
+				continue
+			if d1.length() > 0.001 and d0.normalized().dot(d1.normalized()) > col_dot:
+				changed = true
+				continue
+			next.append(p)
+		cur = next
+	if Geometry2D.is_polygon_clockwise(cur):
+		cur.reverse()
+	return cur if cur.size() >= 3 else raw
+
+
+## Starts a kit_front along edge a->b oriented so _b matches the outward normal `out`.
+func _dp_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
+## Computes Dom Poselski's five 6 x 6 m blank concrete service towers as local Rect2 footprints
+## (u, v) measured directly from `ring` (never hardcoded offsets) and anchored slightly proud of the
+## outer wing corners and stair-core projections so they never z-fight and cleanly cut the ribbons.
+func _dp_tower_rects(ring: PackedVector2Array) -> Array[Rect2]:
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in ring:
+		var l := _local(p)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	# Measure the north-central step (east end of the v == lo.y edge), NE wing north edge,
+	# west spine stair bump (its exact min/max v), and SE spine corner directly from `ring`.
+	var nc_u1 := -INF
+	var ne_v0 := INF
+	var wb_u0 := INF
+	var wb_v0 := INF
+	var wb_v1 := -INF
+	var se_u := -INF
+	var se_v := -INF
+	for p in ring:
+		var l := _local(p)
+		if l.y < lo.y + 1.0:
+			nc_u1 = maxf(nc_u1, l.x)
+		if l.x > hi.x - 15.0:
+			ne_v0 = minf(ne_v0, l.y)
+		if l.x > lo.x + 10.0 and l.x < hi.x - 20.0 and l.y > lo.y + 30.0 and l.y < hi.y - 25.0:
+			wb_u0 = minf(wb_u0, l.x)
+		if l.x > hi.x - 35.0 and l.y > hi.y - 12.0 and l.y < hi.y - 3.0:
+			se_u = maxf(se_u, l.x)
+			se_v = maxf(se_v, l.y)
+	for p in ring:
+		var l := _local(p)
+		if wb_u0 < INF and absf(l.x - wb_u0) < 0.8 and l.y > lo.y + 30.0 and l.y < hi.y - 25.0:
+			wb_v0 = minf(wb_v0, l.y)
+			wb_v1 = maxf(wb_v1, l.y)
+	var towers: Array[Rect2] = []
+	# 1. North-west wing outer corner.
+	towers.append(Rect2(lo.x - 0.22, lo.y - 0.22, 6.2, 6.2))
+	# 2. North-central stair projection (measured at the east end of the north-most edge).
+	if nc_u1 > lo.x + 10.0:
+		towers.append(Rect2(nc_u1 - 6.0, lo.y - 0.22, 6.22, 6.2))
+	# 3. North-east wing outer corner.
+	if ne_v0 < INF:
+		towers.append(Rect2(hi.x - 5.98, ne_v0 - 0.22, 6.2, 6.2))
+	# 4. West central spine stair core projection (measured from its actual bump vertices).
+	if wb_u0 < INF and wb_v1 > wb_v0 + 2.0:
+		towers.append(Rect2(wb_u0 - 0.22, wb_v0 - 0.22, 5.8, (wb_v1 - wb_v0) + 0.44))
+	# 5. South-east spine corner facing the Sejm courtyard.
+	if se_u > -INF and se_v > -INF:
+		towers.append(Rect2(se_u - 5.8, se_v - 5.98, 6.02, 6.2))
+	return towers
+
+
+## Splits face span [0, w] along world edge a->b into sub-intervals clear of `towers` (grown by
+## `pad`), so ribbons and spandrels stop cleanly against every blank service tower.
+func _dp_free_spans(a: Vector2, b: Vector2, out: Vector2, w: float, towers: Array[Rect2],
+		block_o: Vector2, block_a: Vector2, block_b: Vector2, pad := 0.35) -> Array[Vector2]:
+	var spans: Array[Vector2] = [Vector2(0.35, w - 0.35)]
+	if w <= 0.7:
+		return []
+	var dir := (b - a) / w
+	for tr in towers:
+		var grown := tr.grow(pad)
+		var next: Array[Vector2] = []
+		for sp in spans:
+			var t0 := sp.x
+			var t1 := sp.y
+			# Sample along the span to find where the face passes through or along this tower box.
+			var steps := maxi(8, ceili((t1 - t0) / 0.5))
+			var in_free := false
+			var seg_start := t0
+			for k in steps + 1:
+				var t := lerpf(t0, t1, float(k) / float(steps))
+				var wp := a + dir * t + out * 0.08
+				var d := wp - block_o
+				var lp := Vector2(d.dot(block_a), d.dot(block_b))
+				var blocked := grown.has_point(lp)
+				if not blocked and not in_free:
+					seg_start = t
+					in_free = true
+				elif blocked and in_free:
+					if t - seg_start > 1.2:
+						next.append(Vector2(seg_start, t))
+					in_free = false
+			if in_free and t1 - seg_start > 1.2:
+				next.append(Vector2(seg_start, t1))
+		spans = next
+		if spans.is_empty():
+			break
+	return spans
+
+
+## Builds Dom Poselski: inset dark-glazed ground floor with south Sejm entrance and flat canopy,
+## six upper storeys of dark ribbon windows (kit_panes) over pale spandrel ledges (kit_ledge),
+## five blank concrete service towers rising to 26.6 m with cap ledges, flat roof with 0.8 m
+## parapet and rooftop plant boxes, and full outline collision.
+func _build_dom_poselski(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var ring := _dp_clean_ring(raw, 0.5, 0.996)
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	# Align block frame to the building's dominant east-west axis (+u east, +v south).
+	var axis := Vector2(1.0, 0.0)
+	var longest := 0.0
+	for i in ring.size():
+		var e := ring[(i + 1) % ring.size()] - ring[i]
+		if e.length() > longest and absf(e.x) > absf(e.y):
+			longest = e.length()
+			axis = e.normalized()
+	if axis.x < 0.0:
+		axis = -axis
+	var south := Vector2(-axis.y, axis.x)
+	var block_o := _centre(ring)
+	_o = block_o
+	_a = axis
+	_b = south
+	var towers := _dp_tower_rects(ring)
+	var g_top := g + DP_GROUND_H
+	var roof_y := g + DP_H
+	# Ground floor set back 1.0 m under the overhanging upper body, sealed by a concrete soffit.
+	var inset := _largest(Geometry2D.offset_polygon(ring, -1.0, Geometry2D.JOIN_MITER))
+	if inset.size() < 3:
+		inset = ring
+	_prism(inset, g - 0.5, g_top, DP_CONCRETE.darkened(0.08), none, M_STONE)
+	kit_ledge_ring(inset, g - 0.4, DP_PLINTH_H + 0.4, DP_CONCRETE.darkened(0.20), 0.08)
+	_soffit(ring, g_top, DP_CONCRETE.darkened(0.24))
+	# Upper body (4.3 - 24.1 m) in light grey concrete, capped at roof membrane height.
+	_prism(ring, g_top, roof_y, DP_CONCRETE, DP_ROOF, M_STONE, M_STONE)
+	# Identify the south-most entrance face toward the Sejm complex.
+	var south_i := -1
+	var best_v := -INF
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		if a.distance_to(b) < 12.0:
+			continue
+		if _out(ring, a, b).dot(south) > 0.8:
+			var mv := _local((a + b) * 0.5).y
+			if mv > best_v:
+				best_v = mv
+				south_i = i
+	# Build the five blank concrete service towers (0 - 26.6 m) with thin cap ledges.
+	for tr in towers:
+		var t_ring := _lrect(tr)
+		_prism(t_ring, g - 0.5, g + DP_TOWER_H, DP_TOWER, DP_ROOF.darkened(0.06), M_STONE, M_STONE)
+		kit_ledge_ring(t_ring, g + DP_TOWER_H - 0.35, 0.35, DP_TOWER.lightened(0.06), 0.14)
+	# Dress every straight face of the upper body with 6 storeys of pale spandrels + dark ribbons.
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		if ln < 2.2:
+			continue
+		var out := _out(ring, a, b)
+		var w := _dp_front_edge(a, b, out)
+		var fa := _o
+		var fb := _o + _a * w
+		var spans := _dp_free_spans(fa, fb, out, w, towers, block_o, axis, south)
+		for sp in spans:
+			var u0 := sp.x
+			var u1 := sp.y
+			var slen := u1 - u0
+			var cols := _spread(u0 + 0.08, u1 - 0.08, maxi(1, roundi((slen - 0.16) / 1.5)))
+			var pane_w := clampf((slen - 0.16) / float(cols.size()) - 0.09, 0.70, 1.42)
+			var win_rows: Array[float] = []
+			for fl in 6:
+				var fy := g_top + float(fl) * DP_STOREY
+				kit_ledge(u0, u1, fy, 1.32, DP_SPANDREL, 0.09)
+				win_rows.append(fy + 1.44)
+			kit_panes(cols, win_rows, pane_w, 1.54, DP_GLASS, 0.06)
+			# Ground floor dark glass and structural overhang piers on street faces.
+			if i == south_i:
+				_dp_entrance(u0, u1, g)
+			else:
+				kit_face(-1.0)
+				kit_panes(cols, [g + DP_PLINTH_H + 0.35], pane_w, 2.55, DP_GLASS, 0.06)
+				kit_face(0.0)
+				if slen >= 8.0:
+					var n_piers := maxi(2, roundi(slen / 11.0))
+					for k in range(1, n_piers):
+						var pu := lerpf(u0, u1, float(k) / float(n_piers))
+						_kbox(pu - 0.32, pu + 0.32, -1.04, -0.04, g - 0.4, g_top - 0.02, DP_CONCRETE.darkened(0.06))
+		_o = block_o
+		_a = axis
+		_b = south
+	# Flat roof parapet (0.8 m tall) and rooftop plant boxes clear of the service towers.
+	_dp_roof(ring, towers, g, roof_y)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Builds Dom Poselski's south ground-floor entrance toward the Sejm: three kit_shop_bay openings
+## on the inset ground wall with warm night-glowing M_PAVILION glass, flanked by concrete piers,
+## and a thin flat 2.5 m deep canopy (#bfc3c6) on two slender steel posts.
+func _dp_entrance(u0: float, u1: float, g: float) -> void:
+	var keep := _mode
+	var cu := (u0 + u1) * 0.5
+	var avail := u1 - u0
+	var bay_hw := clampf(avail * 0.14, 1.1, 1.65)
+	var step := bay_hw * 2.0 + 0.55
+	kit_face(-1.0)
+	for k: int in [-1, 0, 1]:
+		var bu := cu + float(k) * step
+		if bu - bay_hw < u0 + 0.3 or bu + bay_hw > u1 - 0.3:
+			continue
+		kit_shop_bay(bu, g + 0.15, g + 3.45, bay_hw, DP_SPANDREL, DP_GLASS)
+		# Warm entrance glass (M_PAVILION) 4 cm proud of kit_shop_bay's pane so it glows at night.
+		_mode = M_PAVILION
+		_wall(_w(bu - bay_hw + 0.12, -0.91), _w(bu + bay_hw - 0.12, -0.91), g + 0.25, g + 3.35, _b, DP_ENTRANCE_GLOW)
+		_mode = M_STONE
+	kit_face(0.0)
+	# Thin flat canopy projecting 2.5 m from the inset ground wall (v = -1.0 to +1.5) on slim posts.
+	var cw := minf(avail * 0.46, 5.8)
+	_kbox(cu - cw, cu + cw, -1.02, 1.50, g + 3.70, g + 4.02, DP_CANOPY)
+	_kbox(cu - cw - 0.06, cu + cw + 0.06, -1.02, 1.56, g + 4.02, g + 4.12, DP_CANOPY.darkened(0.18))
+	for s: float in [-1.0, 1.0]:
+		var pu := cu + s * (cw - 0.40)
+		_kbox(pu - 0.12, pu + 0.12, 1.16, 1.40, g - 0.3, g + 3.70, PAL_DARK_STEEL)
+	_mode = keep
+
+
+## Builds Dom Poselski's 0.8 m perimeter roof parapet with pale coping and rooftop plant boxes
+## (2 x 4 m, 1.8 m tall, #6f767b) plus low vent housings strictly inside the roof and clear of towers.
+func _dp_roof(ring: PackedVector2Array, towers: Array[Rect2], g: float, roof_y: float) -> void:
+	_mode = M_STONE
+	var inner := _largest(Geometry2D.offset_polygon(ring, -0.35, Geometry2D.JOIN_MITER))
+	_prism(ring, roof_y, roof_y + DP_PARAPET_H, DP_SPANDREL, Color(0, 0, 0, 0), M_STONE)
+	if inner.size() >= 3:
+		# Inner face of parapet and thin coping ring on top (reversed winding turns walls inward).
+		var rev := PackedVector2Array(inner)
+		rev.reverse()
+		_prism(rev, roof_y + 0.02, roof_y + DP_PARAPET_H, DP_CONCRETE.darkened(0.10), Color(0, 0, 0, 0), M_STONE)
+	kit_ledge_ring(ring, roof_y + DP_PARAPET_H - 0.14, 0.14, DP_SPANDREL.lightened(0.04), 0.12)
+	# Six plant boxes (2 x 4 m, 1.8 m tall) and three low vent housings across the roof.
+	var candidates := [
+		[Vector4(-15.5, -24.5, 2.0, 1.0), 1.8, DP_PLANT],   # NW wing plant box
+		[Vector4(11.0, -21.0, 2.0, 1.0), 1.8, DP_PLANT],    # N central bar plant box
+		[Vector4(23.5, -18.5, 2.0, 1.0), 1.8, DP_PLANT],    # NE wing plant box
+		[Vector4(-0.5, -12.0, 1.0, 2.0), 1.8, DP_PLANT],    # central spine north plant box
+		[Vector4(-0.5, 10.5, 1.0, 2.0), 1.8, DP_PLANT],     # central spine south plant box
+		[Vector4(-5.5, 27.5, 2.0, 1.0), 1.8, DP_PLANT],     # south wing plant box
+		[Vector4(-15.5, -19.5, 1.1, 0.7), 1.0, DP_PLANT.lightened(0.08)],  # NW vent housing
+		[Vector4(16.5, -13.5, 1.2, 0.7), 1.0, DP_PLANT.lightened(0.08)],   # NE vent housing
+		[Vector4(-4.0, 20.5, 0.8, 1.2), 1.1, DP_PLANT.lightened(0.08)],    # south spine vent
+	]
+	for item: Array in candidates:
+		var cb: Vector4 = item[0]
+		var bh: float = item[1]
+		var col: Color = item[2]
+		var box_r := Rect2(cb.x - cb.z, cb.y - cb.w, cb.z * 2.0, cb.w * 2.0)
+		var blocked := false
+		for tr in towers:
+			if tr.grow(0.6).intersects(box_r):
+				blocked = true
+				break
+		if blocked:
+			continue
+		var corners := _rect(cb.x, cb.y, cb.z + 0.6, cb.w + 0.6)
+		var ok := true
+		for c_pt in corners:
+			if not Geometry2D.is_point_in_polygon(c_pt, ring):
+				ok = false
+				break
+		if not ok:
+			continue
+		_lbox(cb.x, cb.y, cb.z, cb.w, roof_y, roof_y + bh, col, M_STONE, col.darkened(0.12))
+		_lbox(cb.x, cb.y, cb.z + 0.08, cb.w + 0.08, roof_y + bh, roof_y + bh + 0.14, col.lightened(0.08))
+
+
+## Finds Stary Dom Poselski's OSM landmark outline by name and registers a 0.5 m outward zone so
+## the map's 22.5 m block and 22-24.5 m east drum under it are replaced while the Sejm stays clear.
+func _find_stary_dom_poselski() -> void:
+	var raw := _landmark(SDP_NAME)
+	if raw.size() < 3:
+		push_error("stary_dom_poselski: landmark outline '%s' is missing from centrum.json" % SDP_NAME)
+		return
+	var zone := _largest(Geometry2D.offset_polygon(raw, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = raw
+	# Find the east-corner round drum (min_height >= 20 m) dynamically inside the outline, not by index.
+	var drum_parts := _parts_in(zone, func(b: Dictionary) -> bool:
+			return float(b.get("mh", 0.0)) >= 20.0 and float(b.get("h", 0.0)) >= 23.0)
+	var drum_ring := PackedVector2Array()
+	if not drum_parts.is_empty():
+		drum_ring = _pts(drum_parts[0]["p"])
+	_add_site("stary_dom_poselski", [zone])
+	if not sites.is_empty() and sites[-1]["key"] == "stary_dom_poselski":
+		sites[-1]["raw"] = raw
+		sites[-1]["drum"] = drum_ring
+
+
+## Builds Stary Dom Poselski: cream stone six-storey block on its round-cornered outline with a
+## two-storey rusticated base (kit_bands) and 7.0 m string course, dense vertical windows on every
+## face and round both curved corners, double-leaf Wiejska entrance with warm night glow, 22.5 m
+## cornice ring, low grey hipped roof with dormers and three chimneys, east round drum to 24.5 m,
+## and full outline collision.
+func _build_stary_dom_poselski(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	# Keep round corners round (>= 8 segments per quarter circle) while merging straight runs.
+	var ring := _dp_clean_ring(raw, 0.35, 0.9985)
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	# Main north-bar frame: +u east along the longest north edge, +v south into the courtyard.
+	var axis := Vector2(1.0, 0.0)
+	var longest := 0.0
+	for i in ring.size():
+		var e := ring[(i + 1) % ring.size()] - ring[i]
+		if e.length() > longest and absf(e.x) > absf(e.y):
+			longest = e.length()
+			axis = e.normalized()
+	if axis.x < 0.0:
+		axis = -axis
+	var south := Vector2(-axis.y, axis.x)
+	var block_o := _centre(ring)
+	_o = block_o
+	_a = axis
+	_b = south
+	# Two-storey rusticated base (0 - 7.0 m), upper cream stone body (7.0 - 22.5 m), attic floor cap.
+	_prism(ring, g - 0.5, g + SDP_BASE_H, SDP_BASE, none, M_STONE)
+	_prism(ring, g + SDP_BASE_H, g + SDP_EAVE_H, SDP_STONE, none, M_STONE)
+	_cap(ring, g + SDP_EAVE_H - 0.05, SDP_ROOF.darkened(0.18))
+	# Ground plinth lip, 7.0 m string course ring, and 22.5 m main cornice ring.
+	kit_ledge_ring(ring, g - 0.4, 0.95, SDP_BASE.darkened(0.10), 0.08)
+	kit_ledge_ring(ring, g + SDP_BASE_H - 0.16, 0.32, SDP_FRAME, 0.14)
+	kit_cornice_ring(ring, g + SDP_EAVE_H - 0.40, SDP_STONE, 0.40, 0.45)
+	# Identify the long angled Wiejska street face (facing SW, length > 20 m) and the north central risalit.
+	var wiejska_dir := Vector2(-0.78, 0.62).normalized()
+	var wiejska_i := _edge_facing(ring, wiejska_dir, 20.0)
+	var sills := [g + 1.15, g + 4.20, g + 8.05, g + 11.60, g + 15.15, g + 18.70]
+	var win_h := [2.20, 2.05, 2.20, 2.20, 2.15, 1.95]
+	# Group consecutive short curved edges into arcs so curved corners get evenly spaced windows
+	# and continuous base rustication bands without overlapping sills.
+	var n := ring.size()
+	var is_curve: Array[bool] = []
+	for i in n:
+		var a := ring[i]
+		var b := ring[(i + 1) % n]
+		var ln := a.distance_to(b)
+		var prev_e := (a - ring[(i + n - 1) % n]).normalized()
+		var cur_e := (b - a).normalized()
+		var next_e := (ring[(i + 2) % n] - b).normalized()
+		var d0 := prev_e.dot(cur_e)
+		var d1 := cur_e.dot(next_e)
+		is_curve.append(ln >= 0.3 and ln <= 2.3 and ((d0 > 0.78 and d0 < 0.998) or (d1 > 0.78 and d1 < 0.998)))
+	# Dress every straight edge (length >= 4.5 m) with kit_window_grid or kit_panes + sill ledges.
+	for i in n:
+		if is_curve[i]:
+			continue
+		var a := ring[i]
+		var b := ring[(i + 1) % n]
+		var ln := a.distance_to(b)
+		if ln < 4.5:
+			continue
+		var out := _out(ring, a, b)
+		var mid_l := _local((a + b) * 0.5)
+		var kind := "courtyard"
+		if i == wiejska_i:
+			kind = "wiejska"
+		elif out.dot(-south) > 0.8 and mid_l.y < -12.0:
+			kind = "north_risalit"
+		elif out.dot(-south) > 0.8 or out.dot(axis) > 0.8:
+			kind = "outer_long"
+		elif ln > 12.0 and (mid_l.y > 16.0 or mid_l.x < -25.0):
+			kind = "end"
+		_sdp_dress_face(a, b, out, g, sills, win_h, kind)
+		_o = block_o
+		_a = axis
+		_b = south
+	# Dress the two outer rounded corners (west Wiejska corner and east drum corner).
+	_sdp_dress_curves(ring, is_curve, g, sills, win_h, block_o, axis, south)
+	_o = block_o
+	_a = axis
+	_b = south
+	# Low hipped grey roof (2.5 m), dormers on street slopes, three chimney stacks, and east drum.
+	var drum_ring: PackedVector2Array = site.get("drum", PackedVector2Array())
+	_sdp_roof_and_drum(ring, drum_ring, wiejska_i, g, block_o, axis, south)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Dresses one straight face of Stary Dom Poselski: base rustication via kit_bands on outer faces,
+## dense 2.6 m bay windows (hero Wiejska and north risalit use kit_window_grid with Win.SILL,
+## other faces use kit_panes with crisp white kit_ledge sill bands to stay under 7,000 triangles),
+## and the double-leaf Wiejska entrance door.
+func _sdp_dress_face(a: Vector2, b: Vector2, out: Vector2, g: float, sills: Array, win_h: Array,
+		kind: String) -> void:
+	var w := _dp_front_edge(a, b, out)
+	var margin := 1.1
+	var bays := maxi(2, roundi((w - 2.0 * margin) / SDP_BAY))
+	if kind == "wiejska":
+		if bays % 2 == 0:
+			bays += 1
+		var mid_bay := bays / 2
+		var centres := _spread(margin, w - margin, bays)
+		var cu: float = centres[mid_bay]
+		# Rusticated two-storey base grooves (kit_bands) split cleanly around the entrance surround.
+		if cu - 2.1 > 0.4:
+			kit_bands(0.15, cu - 2.05, g + 0.4, g + SDP_BASE_H - 0.25, 1.8, SDP_BASE)
+		if w - (cu + 2.1) > 0.4:
+			kit_bands(cu + 2.05, w - 0.15, g + 0.4, g + SDP_BASE_H - 0.25, 1.8, SDP_BASE)
+		# Hero Wiejska windows with white sills and crisp white sash crosses.
+		for fl in sills.size():
+			var sy: float = sills[fl]
+			var sh: float = win_h[fl]
+			for k in bays:
+				if fl == 0 and k == mid_bay:
+					continue
+				kit_window(centres[k], sy, sh, Win.SILL, SDP_FRAME, SDP_GLASS, 0.65, SDP_FRAME)
+		_sdp_entrance(cu, g)
+		return
+	if kind == "north_risalit" or kind == "outer_long" or kind == "end":
+		kit_bands(0.15, w - 0.15, g + 0.4, g + SDP_BASE_H - 0.25, 1.8, SDP_BASE)
+	var cols := _spread(margin, w - margin, bays)
+	for fl in sills.size():
+		var sy: float = sills[fl]
+		var sh: float = win_h[fl]
+		kit_ledge(margin - 0.5, w - margin + 0.5, sy - 0.20, 0.16, SDP_FRAME, 0.13)
+		kit_panes(cols, [sy], 1.30, sh, SDP_GLASS, 0.06)
+
+
+## Places windows and rustication grooves around Stary Dom Poselski's outer curved corners
+## (west Wiejska quarter drum and east corner drum), skipping the tight concave courtyard corner.
+func _sdp_dress_curves(ring: PackedVector2Array, is_curve: Array[bool], g: float, sills: Array,
+		win_h: Array, block_o: Vector2, axis: Vector2, south: Vector2) -> void:
+	var n := ring.size()
+	# Find contiguous runs of curved edges.
+	var start := 0
+	while start < n and is_curve[start]:
+		start += 1
+	if start == n:
+		return
+	var idx := 0
+	while idx < n:
+		var e_i := (start + idx) % n
+		if not is_curve[e_i]:
+			idx += 1
+			continue
+		var arc: Array[int] = []
+		while idx < n and is_curve[(start + idx) % n]:
+			arc.append((start + idx) % n)
+			idx += 1
+		if arc.size() < 4:
+			continue
+		# Measure total arc length and check convexity (skip the tight inner courtyard curve).
+		var total_len := 0.0
+		var cum: Array[float] = [0.0]
+		for ai in arc:
+			total_len += ring[ai].distance_to(ring[(ai + 1) % n])
+			cum.append(total_len)
+		if total_len < 6.0:
+			continue
+		# Base rustication grooves wrapping smoothly along each curve segment.
+		for ai in arc:
+			var ea := ring[ai]
+			var eb := ring[(ai + 1) % n]
+			var out := _out(ring, ea, eb)
+			var seg_w := _dp_front_edge(ea, eb, out)
+			kit_bands(0.0, seg_w, g + 0.4, g + SDP_BASE_H - 0.25, 2.1, SDP_BASE)
+		# Evenly spaced windows (~2.2-2.4 m arc pitch) centred on local curve chords.
+		var n_wins := clampi(roundi(total_len / 2.3), 3, 5)
+		var is_west := (_local(ring[arc[0]]).x < 0.0)
+		for wk in n_wins:
+			var target_s := total_len * (float(wk) + 0.5) / float(n_wins)
+			var seg_k := 0
+			while seg_k < arc.size() - 1 and cum[seg_k + 1] < target_s:
+				seg_k += 1
+			var ai := arc[seg_k]
+			var ea := ring[ai]
+			var eb := ring[(ai + 1) % n]
+			var seg_l := ea.distance_to(eb)
+			var t := clampf((target_s - cum[seg_k]) / maxf(seg_l, 0.01), 0.0, 1.0)
+			var pos := ea.lerp(eb, t)
+			var out := _out(ring, ea, eb)
+			var tang := Vector2(-out.y, out.x)
+			_o = pos
+			_a = tang
+			_b = out
+			kit_face(0.03)
+			var hw := 0.54 if is_west else 0.50
+			for fl in sills.size():
+				kit_window(0.0, float(sills[fl]), float(win_h[fl]), Win.SILL, SDP_FRAME, SDP_GLASS,
+						hw, SDP_FRAME if is_west else Color(0, 0, 0, 0))
+			kit_face(0.0)
+		_o = block_o
+		_a = axis
+		_b = south
+
+
+## Builds Stary Dom Poselski's Wiejska entrance: stone surround standing proud of the rusticated
+## base, double-leaf kit_door (2.4 x 3.2 m), and warm night-glowing entrance glass (M_PAVILION).
+func _sdp_entrance(cu: float, g: float) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	_kbox(cu - 1.95, cu + 1.95, 0.12, 1.30, g - 0.4, g + 0.16, SDP_BASE.darkened(0.12))
+	_kbox(cu - 1.80, cu - 1.24, -0.02, 0.28, g - 0.3, g + 3.50, SDP_FRAME)
+	_kbox(cu + 1.24, cu + 1.80, -0.02, 0.28, g - 0.3, g + 3.50, SDP_FRAME)
+	_kbox(cu - 1.86, cu + 1.86, -0.02, 0.32, g + 3.50, g + 3.92, SDP_FRAME)
+	kit_face(0.14)
+	kit_door(cu, g + 0.16, 3.2, 1.20, SDP_FRAME, PAL_DARK_DOOR)
+	# Warm glowing entrance door glass (M_PAVILION) 4 cm proud of the door leaf.
+	_mode = M_PAVILION
+	_wall(_w(cu - 1.04, 0.23), _w(cu - 0.08, 0.23), g + 0.42, g + 3.12, _b, SDP_ENTRANCE_GLOW)
+	_wall(_w(cu + 0.08, 0.23), _w(cu + 1.04, 0.23), g + 0.42, g + 3.12, _b, SDP_ENTRANCE_GLOW)
+	kit_face(0.0)
+	_mode = keep
+
+
+## Builds Stary Dom Poselski's low grey hipped roofs over its three wings and rounded west corner,
+## kit_dormer rows on the street slopes, three masonry chimney stacks, and the round east drum
+## rising to 24.5 m with its flat round cap and cap ledge.
+func _sdp_roof_and_drum(ring: PackedVector2Array, drum_ring: PackedVector2Array, wiejska_i: int,
+		g: float, block_o: Vector2, axis: Vector2, south: Vector2) -> void:
+	_mode = M_STONE
+	var eave := g + SDP_EAVE_H
+	# Measure main north bar, projecting north/south bays, and east wing directly from `ring`
+	# in the current local frame (never hardcoded offsets relative to _centre(ring)).
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in ring:
+		var l := _local(p)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	var u_north0 := INF
+	var u_north1 := -INF
+	var v_north := lo.y + 2.4
+	var v_court := lo.y + 17.9
+	var nr_u0 := INF
+	var nr_u1 := -INF
+	var sb_u0 := INF
+	var sb_u1 := -INF
+	var sb_v1 := -INF
+	var u_east0 := INF
+	var u_east1 := -INF
+	var v_east1 := -INF
+	for p in ring:
+		var l := _local(p)
+		if l.y < lo.y + 1.0:
+			nr_u0 = minf(nr_u0, l.x)
+			nr_u1 = maxf(nr_u1, l.x)
+		elif l.y < lo.y + 3.2:
+			u_north0 = minf(u_north0, l.x)
+			u_north1 = maxf(u_north1, l.x)
+			v_north = minf(v_north, l.y)
+		if l.x > nr_u0 - 2.0 and l.x < nr_u1 + 2.0 and l.y > lo.y + 19.0 and l.y < lo.y + 23.0:
+			sb_u0 = minf(sb_u0, l.x)
+			sb_u1 = maxf(sb_u1, l.x)
+			sb_v1 = maxf(sb_v1, l.y)
+		if l.x > hi.x - 18.0 and l.y > lo.y + 26.0:
+			u_east0 = minf(u_east0, l.x)
+			u_east1 = maxf(u_east1, l.x)
+			v_east1 = maxf(v_east1, l.y)
+	# Second pass for south courtyard projection once nr_u0/nr_u1 are known.
+	if sb_u0 == INF:
+		for p in ring:
+			var l := _local(p)
+			if l.x > nr_u0 - 1.0 and l.x < nr_u1 + 1.0 and l.y > v_north + 16.5 and l.y < v_north + 21.0:
+				sb_u0 = minf(sb_u0, l.x)
+				sb_u1 = maxf(sb_u1, l.x)
+				sb_v1 = maxf(sb_v1, l.y)
+	# 1. Main north bar hipped roof (rise 2.50 m -> ridge at g + 25.0 m).
+	var n_cu := (u_north0 + u_north1) * 0.5
+	var n_cv := (v_north + v_court) * 0.5
+	var n_hu := (u_north1 - u_north0) * 0.5
+	var n_hv := (v_court - v_north) * 0.5
+	_hip(n_cu, n_cv, n_hu, n_hv, eave, SDP_ROOF_RISE, SDP_ROOF)
+	# Tucked hips over the north central risalit and south courtyard bay, aligned to measured walls.
+	if nr_u1 > nr_u0 + 6.0:
+		_hip((nr_u0 + nr_u1) * 0.5, (lo.y + n_cv) * 0.5, (nr_u1 - nr_u0) * 0.5, (n_cv - lo.y) * 0.5,
+				eave, SDP_ROOF_RISE - 0.08, SDP_ROOF)
+	if sb_u1 > sb_u0 + 4.0 and sb_v1 > n_cv + 4.0:
+		_hip((sb_u0 + sb_u1) * 0.5, (n_cv + sb_v1) * 0.5, (sb_u1 - sb_u0) * 0.5, (sb_v1 - n_cv) * 0.5,
+				eave, SDP_ROOF_RISE - 0.14, SDP_ROOF)
+	# 2. East wing hipped roof (tucked 5 cm under main bar ridge).
+	var e_cu := (u_east0 + u_east1) * 0.5
+	var e_cv := (n_cv + v_east1) * 0.5
+	var e_hu := (u_east1 - u_east0) * 0.5
+	var e_hv := (v_east1 - n_cv) * 0.5
+	_hip(e_cu, e_cv, e_hu, e_hv, eave, SDP_ROOF_RISE - 0.05, SDP_ROOF)
+	# 3. West rounded corner conical hip cap joining the north bar and Wiejska wing cleanly.
+	var west_c := _w(u_north0 + 0.4, n_cv + 0.2)
+	_frustum(_circle(west_c, 7.55, 16), eave, _circle(west_c, 0.50, 16), eave + SDP_ROOF_RISE - 0.16,
+			SDP_ROOF, SDP_ROOF.darkened(0.08))
+	# 4. East corner round drum (22.0 - 24.5 m) with crisp cream rim and darker flat round cap.
+	var drum_c := _centre(drum_ring) if drum_ring.size() >= 3 else _w(e_cu, n_cv)
+	var drum_r := 6.05
+	if drum_ring.size() >= 3:
+		drum_r = 0.0
+		for dp in drum_ring:
+			drum_r += dp.distance_to(drum_c)
+		drum_r /= float(drum_ring.size())
+	var drum_poly := _circle(drum_c, drum_r, 16)
+	_prism(drum_poly, eave - 0.5, g + SDP_DRUM_TOP, SDP_STONE, SDP_ROOF.darkened(0.22), M_STONE, M_STONE)
+	kit_ledge_ring(drum_poly, g + SDP_DRUM_TOP - 0.30, 0.36, SDP_FRAME, 0.20)
+	# 5. Dormers (kit_dormer) on the North (Sejm) and East slopes, ~7.8 m apart.
+	var d_in := 2.1
+	var n_slope_y := eave + SDP_ROOF_RISE * (d_in / maxf(n_hv - 0.15, 1.0))
+	if nr_u0 > u_north0 + 10.0:
+		for du: float in _spread(u_north0 + 5.5, nr_u0 - 2.0, 3):
+			kit_dormer(_w(du, v_north + d_in), -south, n_slope_y, SDP_ROOF.lightened(0.06), SDP_FRAME, SDP_GLASS)
+	if u_north1 > nr_u1 + 12.0:
+		for du: float in _spread(nr_u1 + 2.5, u_north1 - 7.5, 3):
+			kit_dormer(_w(du, v_north + d_in), -south, n_slope_y, SDP_ROOF.lightened(0.06), SDP_FRAME, SDP_GLASS)
+	var e_slope_y := eave + (SDP_ROOF_RISE - 0.05) * (d_in / maxf(e_hu - 0.15, 1.0))
+	for dv: float in _spread(n_cv + 6.5, v_east1 - 5.5, 2):
+		kit_dormer(_w(u_east1 - d_in, dv), axis, e_slope_y, SDP_ROOF.lightened(0.06), SDP_FRAME, SDP_GLASS)
+	# 6. Two chimney stacks on the North bar and East wing ridges.
+	for ch: Vector2 in [Vector2(lerpf(u_north0, nr_u0, 0.55), n_cv), Vector2(e_cu, lerpf(n_cv, v_east1, 0.6))]:
+		_lbox(ch.x, ch.y, 0.65, 0.55, eave + SDP_ROOF_RISE - 0.7, eave + SDP_ROOF_RISE + 1.35, SDP_CHIMNEY)
+		_lbox(ch.x, ch.y, 0.78, 0.68, eave + SDP_ROOF_RISE + 1.35, eave + SDP_ROOF_RISE + 1.52, SDP_CHIMNEY.darkened(0.18))
+	# 7. West angled Wiejska wing hipped roof, three street-slope dormers, and third chimney stack.
+	if wiejska_i >= 0:
+		var wa := ring[wiejska_i]
+		var wb := ring[(wiejska_i + 1) % ring.size()]
+		var wlen := wa.distance_to(wb)
+		var w_out := _out(ring, wa, wb)
+		var w_dir := (wb - wa) / wlen
+		_o = wa
+		_a = w_dir
+		_b = -w_out  # +v points into the west wing
+		var w_depth := 14.5
+		_hip(wlen * 0.5, w_depth * 0.5, wlen * 0.5, w_depth * 0.5, eave, SDP_ROOF_RISE - 0.10, SDP_ROOF)
+		var w_slope_y := eave + (SDP_ROOF_RISE - 0.10) * (d_in / maxf(w_depth * 0.5 - 0.15, 1.0))
+		for du: float in _spread(4.0, wlen - 5.0, 3):
+			kit_dormer(_w(du, d_in), w_out, w_slope_y, SDP_ROOF.lightened(0.06), SDP_FRAME, SDP_GLASS)
+		_lbox(wlen * 0.45, w_depth * 0.5, 0.65, 0.55, eave + SDP_ROOF_RISE - 0.8, eave + SDP_ROOF_RISE + 1.25, SDP_CHIMNEY)
+		_lbox(wlen * 0.45, w_depth * 0.5, 0.78, 0.68, eave + SDP_ROOF_RISE + 1.25, eave + SDP_ROOF_RISE + 1.42, SDP_CHIMNEY.darkened(0.18))
+		_o = block_o
+		_a = axis
+		_b = south
+
+
+# --- Embassy row 1 on al. Ujazdowskie and Wiejska (docs/landmarks/specs/ujazdowskie_row1.md) ----
+
+## Pałacyk Rembielińskiego (al. Ujazdowskie 6A, 1840s): wide two-storey classical H-plan palace
+## (10.9 m) in pale cream with a raised central attic (+1.5 m), four two-storey loggia pilasters
+## and entablature on the avenue courtyard front, balustraded parapet, and low grey hipped roofs.
+const RB_NAME := "Pałacyk Rembielińskiego"
+const RB_WALL := Color("#ddd6c4")           # pale cream classical render
+const RB_PLINTH := Color("#b8b1a0")         # base plinth (0 - 1.0 m)
+const RB_TRIM := Color("#ece8de")           # white window frames, cornice, pilasters, balustrade
+const RB_GLASS := Color("#4a5660")          # window glass
+const RB_ROOF := Color("#7a8084")           # low grey hipped roof
+const RB_DOOR := Color("#5e432f")           # wooden palace doors
+const RB_LAMP := Color("#ffd9a0")           # warm entrance door lights (M_LAMP)
+const RB_PLINTH_H := 1.0
+const RB_EAVE_H := 10.9
+const RB_ATTIC_H := 1.5
+const RB_BAL_H := 1.0
+const RB_ROOF_RISE := 2.0
+
+## Willa Raua (al. Ujazdowskie 27, 1860s): two-storey Italianate cream villa (7.6 m) with
+## rusticated corners (kit_bands), round-arched ground-floor openings and wooden door, pedimented
+## first-floor windows, deep bracketed cornice (0.6 m), and low grey hipped roof (2.4 m).
+const WR_NAME := "Willa Raua"
+const WR_WALL := Color("#e2dccb")           # cream Italianate render
+const WR_PLINTH := Color("#bcb5a4")         # plinth (0 - 0.8 m)
+const WR_TRIM := Color("#ece8de")           # white frames, cornice, brackets, pediments
+const WR_GLASS := Color("#4a5660")          # window glass
+const WR_DOOR := Color("#6b4a32")           # round-arched wooden entrance door
+const WR_ROOF := Color("#6f767b")           # low grey hipped roof
+const WR_LAMP := Color("#ffd9a0")           # warm entrance door light (M_LAMP)
+const WR_PLINTH_H := 0.8
+const WR_EAVE_H := 7.6
+const WR_CORNICE_H := 0.6
+const WR_ROOF_RISE := 2.4
+
+## Pałacyk Dziewulskich (al. Ujazdowskie 33/35): compact two-storey white-cream villa (7.6 m)
+## with a rounded SE corner bay, plain cornice, 0.8 m parapet hiding a very low grey roof (1.0 m),
+## and a small columned porch on the avenue side.
+const DZW_NAME := "Pałacyk Dziewulskich"
+const DZW_WALL := Color("#e6e1d3")          # white-cream render
+const DZW_PLINTH := Color("#c4bfb2")        # plinth (0 - 0.6 m)
+const DZW_TRIM := Color("#ece8de")          # plain cornice, coping, white frames
+const DZW_GLASS := Color("#4a5660")         # window glass
+const DZW_DOOR := Color("#5e432f")          # porch wooden door
+const DZW_ROOF := Color("#8a9094")          # very low grey roof behind parapet
+const DZW_LAMP := Color("#ffd9a0")          # warm porch door light (M_LAMP)
+const DZW_PLINTH_H := 0.6
+const DZW_EAVE_H := 7.6
+const DZW_PARAPET_H := 0.8
+const DZW_ROOF_RISE := 1.0
+
+## Pałac pod Karczochem (al. Ujazdowskie / Wiejska): five-storey cream palatial tenement (17.5 m)
+## with glowing ground-floor shops (M_PAVILION), iron balconies on the 1st and 3rd floors, eave
+## cornice, flat roof, and a SW corner turret rising 3.0 m with a domed cap and stone artichoke.
+const PK_NAME := "Pałac Pod Karczochem"
+const PK_WALL := Color("#ddd3bd")           # cream palatial render
+const PK_BASE := Color("#cfc4ac")           # ground-floor shopfront render
+const PK_TRIM := Color("#ece8de")           # window surrounds, ledges, cornice, balcony slabs
+const PK_GLASS := Color("#4a5660")          # upper storey window glass
+const PK_SHOP_GLOW := Color("#e8d4a2")      # warm glowing shop glass (M_PAVILION)
+const PK_ROOF := Color("#7d8286")           # flat roof membrane behind cornice
+const PK_TURRET_CAP := Color("#6c7277")     # domed turret cap
+const PK_ARTICHOKE := Color("#e5dec9")      # cream stone artichoke finial
+const PK_GROUND_H := 4.0
+const PK_EAVE_H := 17.5
+const PK_TURRET_RISE := 3.0
+
+
+## Shared helper for embassy row 1: finds a named OSM landmark outline, offsets it outward by 0.5 m
+## for its replacement zone so the map's plain prism is dropped, and stores the raw outline.
+func _ur1_find(key: String, osm_name: String) -> void:
+	var raw := _landmark(osm_name)
+	if raw.size() < 3:
+		push_error("%s: landmark outline '%s' is missing from centrum.json" % [key, osm_name])
+		return
+	var zone := _largest(Geometry2D.offset_polygon(raw, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = raw
+	_add_site(key, [zone])
+	if not sites.is_empty() and sites[-1]["key"] == key:
+		sites[-1]["raw"] = raw
+
+
+## Cleans an outline into straight runs by dropping edges shorter than `min_edge` and near-collinear
+## vertices (`dot > col_dot`), then ensures counter-clockwise winding.
+func _ur1_clean_ring(raw: PackedVector2Array, min_edge: float, col_dot: float) -> PackedVector2Array:
+	var cur := PackedVector2Array(raw)
+	var changed := true
+	while changed and cur.size() > 3:
+		changed = false
+		var next := PackedVector2Array()
+		var n := cur.size()
+		for i in n:
+			var prev := cur[(i + n - 1) % n]
+			var p := cur[i]
+			var nxt := cur[(i + 1) % n]
+			var d0 := p - prev
+			var d1 := nxt - p
+			if d0.length() < min_edge:
+				changed = true
+				continue
+			if d1.length() > 0.001 and d0.normalized().dot(d1.normalized()) > col_dot:
+				changed = true
+				continue
+			next.append(p)
+		cur = next
+	if Geometry2D.is_polygon_clockwise(cur):
+		cur.reverse()
+	return cur if cur.size() >= 3 else raw
+
+
+## Starts a kit_front along edge a->b oriented so _b matches the outward normal `out`.
+func _ur1_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
+## Computes the dominant east-west axis (+u east-ish, +v south-ish) from the longest east-west edge.
+func _ur1_axis(ring: PackedVector2Array) -> Vector2:
+	var axis := Vector2(1.0, 0.0)
+	var longest := 0.0
+	for i in ring.size():
+		var e := ring[(i + 1) % ring.size()] - ring[i]
+		if e.length() > longest and absf(e.x) >= absf(e.y):
+			longest = e.length()
+			axis = e.normalized()
+	if axis.x < 0.0:
+		axis = -axis
+	return axis
+
+
+## Finds Pałacyk Rembielińskiego's OSM outline and registers the `rembielinskiego` site.
+func _find_rembielinskiego() -> void:
+	_ur1_find("rembielinskiego", RB_NAME)
+
+
+## Builds Pałacyk Rembielińskiego: pale cream H-plan classical palace (10.9 m) with plinth,
+## string course, eave cornice ring, raised central attic (+1.5 m), four-pilaster entrance loggia
+## with steps and entablature on the avenue face, balustraded parapet, low grey hipped roofs,
+## and full outline collision.
+func _build_rembielinskiego(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var ring := _ur1_clean_ring(raw, 0.75, 0.990)
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	var axis := _ur1_axis(ring)
+	var south := Vector2(-axis.y, axis.x)
+	var block_o := _centre(ring)
+	_o = block_o
+	_a = axis
+	_b = south
+	# Measure H-plan wings and recessed courtyard bounds directly from ring edges.
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in ring:
+		var l := _local(p)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	# Identify the recessed West avenue courtyard front (longest edge facing -axis, ~25 m long).
+	var ave_i := -1
+	var ave_len := 0.0
+	var west_mid_u := (lo.x + hi.x) * 0.5 - 8.5
+	var mid_v := (lo.y + hi.y) * 0.5
+	var east_mid_u := (lo.x + hi.x) * 0.5 + 8.5
+	var north_in_v := lo.y + 8.5
+	var south_in_v := hi.y - 8.5
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		var out := _out(ring, a, b)
+		var ml := _local((a + b) * 0.5)
+		if out.dot(-axis) > 0.85 and ln > 14.0 and ln > ave_len:
+			ave_len = ln
+			ave_i = i
+			west_mid_u = ml.x
+			mid_v = ml.y
+		elif out.dot(axis) > 0.85 and ln >= 4.5 and ml.x > (lo.x + hi.x) * 0.5 and ml.x < hi.x - 4.0:
+			east_mid_u = ml.x
+		elif out.dot(south) > 0.85 and ln >= 6.0 and ml.y < mid_v - 4.0:
+			north_in_v = ml.y
+		elif out.dot(-south) > 0.85 and ln >= 6.0 and ml.y > mid_v + 4.0:
+			south_in_v = ml.y
+	# Main two-storey classical body, dark attic floor cap, plinth, string course, and eave cornice.
+	_prism(ring, g - 0.5, g + RB_EAVE_H, RB_WALL, none, M_STONE)
+	_cap(ring, g + RB_EAVE_H - 0.05, RB_ROOF.darkened(0.20))
+	kit_ledge_ring(ring, g - 0.4, RB_PLINTH_H + 0.4, RB_PLINTH, 0.12)
+	kit_ledge_ring(ring, g + 5.35, 0.24, RB_TRIM, 0.10)
+	kit_cornice_ring(ring, g + RB_EAVE_H - 0.45, RB_TRIM, 0.45, 0.48)
+	# Dress every straight facade of the H-plan palace.
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		if ln < 2.8:
+			continue
+		var out := _out(ring, a, b)
+		var ml := _local((a + b) * 0.5)
+		var kind := "side"
+		if i == ave_i:
+			kind = "avenue"
+		elif out.dot(-axis) > 0.85 and ml.x < lo.x + 2.5:
+			kind = "west_wing"
+		elif out.dot(south) > 0.85 and ml.y > hi.y - 3.0:
+			kind = "south_front"
+		elif out.dot(-south) > 0.85 and ml.y < lo.y + 3.0:
+			kind = "north_front"
+		elif out.dot(axis) > 0.55 and absf(ml.y - mid_v) < 7.5 and ml.x > east_mid_u + 1.0:
+			kind = "bow"
+		_rb_dress_face(a, b, out, g, kind)
+		_o = block_o
+		_a = axis
+		_b = south
+	# Raised central attic (+1.5 m) over the middle third and low grey hipped roofs (2.0 m rise).
+	_rb_attic_and_roof(g, lo, hi, west_mid_u, east_mid_u, mid_v, north_in_v, south_in_v)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Dresses one straight facade of Pałacyk Rembielińskiego: the recessed avenue front gets the
+## four-pilaster two-storey entrance loggia, steps, tall arched ground-floor openings and attic
+## balustrade; front wings and Piękna face get kit_window rows and parapet balustrade; secondary
+## faces use kit_panes with sill ledges to stay comfortably under 2,800 triangles.
+func _rb_dress_face(a: Vector2, b: Vector2, out: Vector2, g: float, kind: String) -> void:
+	var w := _ur1_front_edge(a, b, out)
+	var sy0 := g + 1.40
+	var sy1 := g + 6.25
+	var h0 := 2.85
+	var h1 := 2.25
+	match kind:
+		"avenue":
+			var cu := w * 0.5
+			var mid_hw := minf(6.6, w * 0.30)
+			# Entrance loggia: four two-storey kit_pilaster columns, projecting entablature, steps.
+			_rb_loggia(cu, mid_hw, g)
+			# Flanking bays outside the loggia on the recessed avenue wall.
+			for side: float in [-1.0, 1.0]:
+				var u_in := cu + side * (mid_hw + 0.5)
+				var u_out := w - 1.1 if side > 0.0 else 1.1
+				var span := absf(u_out - u_in)
+				if span >= 2.2:
+					var b_lo := minf(u_in, u_out)
+					var b_hi := maxf(u_in, u_out)
+					var n_fl := clampi(roundi(span / 3.0), 1, 2)
+					kit_window_grid(b_lo, b_hi, n_fl, [sy0, sy1], [h0, h1], Win.SILL, RB_TRIM, RB_GLASS, 0.60)
+			# Balustraded parapet on the flanking segments outside the raised middle attic.
+			if cu - mid_hw > 1.2:
+				kit_attic(0.2, cu - mid_hw - 0.1, g + RB_EAVE_H, RB_TRIM, RB_BAL_H, Attic.BALUSTRADE)
+			if w - (cu + mid_hw) > 1.2:
+				kit_attic(cu + mid_hw + 0.1, w - 0.2, g + RB_EAVE_H, RB_TRIM, RB_BAL_H, Attic.BALUSTRADE)
+		"west_wing":
+			var bays := clampi(roundi((w - 1.4) / 3.0), 2, 3)
+			kit_window_grid(0.9, w - 0.9, bays, [sy0, sy1], [h0, h1], Win.SILL, RB_TRIM, RB_GLASS, 0.60)
+			kit_attic(0.2, w - 0.2, g + RB_EAVE_H, RB_TRIM, RB_BAL_H, Attic.BALUSTRADE)
+		"south_front":
+			var bays := maxi(2, roundi((w - 1.4) / 3.0))
+			var cols := _spread(0.9, w - 0.9, bays)
+			kit_ledge(0.4, w - 0.4, sy0 - 0.18, 0.14, RB_TRIM, 0.10)
+			kit_ledge(0.4, w - 0.4, sy1 - 0.18, 0.14, RB_TRIM, 0.10)
+			kit_panes(cols, [sy0], 1.20, h0, RB_GLASS, 0.06)
+			kit_panes(cols, [sy1], 1.20, h1, RB_GLASS, 0.06)
+			kit_attic(0.2, w - 0.2, g + RB_EAVE_H, RB_TRIM, RB_BAL_H, Attic.BALUSTRADE)
+		"north_front":
+			var bays := maxi(2, roundi((w - 1.4) / 3.1))
+			var cols := _spread(0.9, w - 0.9, bays)
+			kit_panes(cols, [sy0], 1.20, h0, RB_GLASS, 0.06)
+			kit_panes(cols, [sy1], 1.20, h1, RB_GLASS, 0.06)
+		"bow":
+			var cols := [w * 0.5]
+			kit_panes(cols, [sy0], 1.15, h0, RB_GLASS, 0.06)
+			kit_panes(cols, [sy1], 1.15, h1, RB_GLASS, 0.06)
+		_:
+			var bays := maxi(1, roundi((w - 1.4) / 3.2))
+			var cols := _spread(0.8, w - 0.8, bays)
+			kit_panes(cols, [sy0], 1.15, h0, RB_GLASS, 0.06)
+			kit_panes(cols, [sy1], 1.15, h1, RB_GLASS, 0.06)
+
+
+## Builds Pałacyk Rembielińskiego's avenue entrance loggia: wide classical steps, shadowed recess
+## behind four bold two-storey kit_pilaster columns, projecting mid-storey balcony with rail, deep
+## upper entablature, arched wooden door with warm night lights (M_LAMP), and tall arched openings.
+func _rb_loggia(cu: float, mid_hw: float, g: float) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	# Three broad classical entrance steps rising cleanly outside the 0.12 m plinth lip.
+	for k in 3:
+		var step_d := 2.8 - float(k) * 0.65
+		var y0 := g - 0.3 if k == 0 else g + float(k) * 0.30
+		_kbox(cu - mid_hw - 0.4, cu + mid_hw + 0.4, 0.16, 0.16 + step_d, y0, g + float(k + 1) * 0.30, RB_PLINTH.lightened(0.04))
+	# Recessed dark-cream loggia backing (thin slab proud of wall, clear of plinth and string course).
+	_kbox(cu - mid_hw + 0.1, cu + mid_hw - 0.1, 0.01, 0.04, g + RB_PLINTH_H + 0.06, g + 5.28, RB_WALL.darkened(0.18))
+	_kbox(cu - mid_hw + 0.1, cu + mid_hw - 0.1, 0.01, 0.04, g + 5.64, g + 10.08, RB_WALL.darkened(0.18))
+	# Four bold two-storey-tall kit_pilaster columns standing proud of the loggia face.
+	kit_face(0.16)
+	var col_us := [cu - mid_hw + 0.45, cu - mid_hw * 0.34, cu + mid_hw * 0.34, cu + mid_hw - 0.45]
+	for pu: float in col_us:
+		kit_pilaster(pu, g + RB_PLINTH_H + 0.06, g + 10.12, RB_TRIM, 0.72, 0.62)
+	kit_face(0.0)
+	# Projecting mid-storey loggia balcony slab + parapet rail, clear of the 0.10 m string course.
+	_kbox(cu - mid_hw - 0.2, cu + mid_hw + 0.2, 0.16, 1.24, g + 5.20, g + 5.52, RB_TRIM)
+	_kbox(cu - mid_hw - 0.15, cu + mid_hw + 0.15, 0.98, 1.18, g + 5.52, g + 6.14, RB_TRIM.darkened(0.08))
+	_kbox(cu - mid_hw - 0.18, cu + mid_hw + 0.18, 0.94, 1.22, g + 6.14, g + 6.28, RB_TRIM)
+	# Deep upper entablature crowning the four columns, tucked cleanly under the 10.9 m cornice top.
+	_kbox(cu - mid_hw - 0.35, cu + mid_hw + 0.35, 0.18, 1.22, g + 10.12, g + 10.68, RB_TRIM)
+	# Central arched wooden entrance door flanked by two tall arched ground-floor openings.
+	kit_face(0.08)
+	kit_door(cu, g + RB_PLINTH_H + 0.06, 3.30, 1.05, RB_TRIM, RB_DOOR, true)
+	for s: float in [-1.0, 1.0]:
+		var bu := cu + s * mid_hw * 0.66
+		kit_window(bu, g + 1.45, 2.70, Win.ARCHED, RB_TRIM, RB_GLASS, 0.62)
+		# Small warm door lamps flanking the central palace portal (glow at night).
+		_lbox(cu + s * 1.45, 0.22, 0.12, 0.10, g + 2.85, g + 3.20, RB_LAMP, M_LAMP, RB_LAMP)
+	# Three arched first-floor windows between the four pilasters.
+	for bu: float in [cu - mid_hw * 0.66, cu, cu + mid_hw * 0.66]:
+		kit_window(bu, g + 6.38, 2.12, Win.ARCHED, RB_TRIM, RB_GLASS, 0.62)
+	kit_face(0.0)
+	_mode = keep
+
+
+## Builds Pałacyk Rembielińskiego's raised central attic (+1.5 m over the middle third) with its
+## cornice, pilasters and balustrade, plus low grey hipped roofs (2.0 m rise) over the north bar,
+## south bar, central spine, and east garden bow.
+func _rb_attic_and_roof(g: float, lo: Vector2, hi: Vector2, west_mid_u: float, east_mid_u: float,
+		mid_v: float, north_in_v: float, south_in_v: float) -> void:
+	_mode = M_STONE
+	var eave := g + RB_EAVE_H
+	var attic_top := eave + RB_ATTIC_H
+	# Raised middle third attic box (10.9 - 12.4 m), aligned to the measured avenue front centre `mid_v`.
+	var au0 := west_mid_u + 0.08
+	var au1 := east_mid_u - 0.08
+	var av0 := mid_v - 6.8
+	var av1 := mid_v + 6.8
+	var attic_ring := _urect(au0, au1, av0, av1)
+	_prism(attic_ring, eave - 0.05, attic_top, RB_WALL, RB_ROOF.darkened(0.14), M_STONE, M_STONE)
+	kit_cornice_ring(attic_ring, attic_top - 0.35, RB_TRIM, 0.35, 0.35)
+	# Classical pilasters and balustrade crowning the raised central attic on the avenue (west) face.
+	var keep_o := _o
+	var keep_a := _a
+	var keep_b := _b
+	var aw := _ur1_front_edge(_w(au0, av1), _w(au0, av0), -keep_a)
+	for pu: float in [0.55, aw * 0.35, aw * 0.65, aw - 0.55]:
+		kit_pilaster(pu, eave + 0.05, attic_top - 0.35, RB_TRIM, 0.55, 0.14)
+	kit_attic(0.2, aw - 0.2, attic_top, RB_TRIM, 0.85, Attic.BALUSTRADE)
+	_o = keep_o
+	_a = keep_a
+	_b = keep_b
+	# Low hipped roof over the raised middle attic, plus north bar, south bar, and central spine.
+	_hip((au0 + au1) * 0.5, mid_v, (au1 - au0) * 0.5 - 0.3, 6.4, attic_top, 1.4, RB_ROOF)
+	_hip((lo.x + hi.x) * 0.5, (lo.y + north_in_v) * 0.5, (hi.x - lo.x) * 0.5 - 0.4,
+			(north_in_v - lo.y) * 0.5 - 0.4, eave, RB_ROOF_RISE, RB_ROOF)
+	_hip((lo.x + hi.x) * 0.5, (south_in_v + hi.y) * 0.5, (hi.x - lo.x) * 0.5 - 0.4,
+			(hi.y - south_in_v) * 0.5 - 0.4, eave, RB_ROOF_RISE, RB_ROOF)
+	_hip((west_mid_u + east_mid_u) * 0.5, (north_in_v + south_in_v) * 0.5,
+			(east_mid_u - west_mid_u) * 0.5 - 0.25, (south_in_v - north_in_v) * 0.5 + 3.2,
+			eave, RB_ROOF_RISE - 0.12, RB_ROOF)
+	# Conical grey roof cap fitted strictly inside the east garden bow parapet.
+	var bow_c := _w(east_mid_u + 0.45, mid_v)
+	_frustum(_circle(bow_c, 5.85, 10), eave, _circle(bow_c, 0.55, 10), eave + RB_ROOF_RISE - 0.22,
+			RB_ROOF, RB_ROOF.darkened(0.08))
+
+
+## Finds Willa Raua's OSM outline and registers the `willa_raua` site.
+func _find_willa_raua() -> void:
+	_ur1_find("willa_raua", WR_NAME)
+
+
+## Builds Willa Raua: two-storey Italianate cream villa (7.6 m) with plinth, string course,
+## rusticated corners (kit_bands), round-arched ground-floor openings and wooden entrance door,
+## pedimented first-floor windows, deep 0.6 m bracketed cornice, low grey hipped roof (2.4 m),
+## and full outline collision.
+func _build_willa_raua(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var ring := _ur1_clean_ring(raw, 0.55, 0.992)
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	var axis := _ur1_axis(ring)
+	var south := Vector2(-axis.y, axis.x)
+	var block_o := _centre(ring)
+	_o = block_o
+	_a = axis
+	_b = south
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in ring:
+		var l := _local(p)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	# Two-storey Italianate cream body, attic floor cap, plinth, string course, and deep 0.6 m cornice.
+	_prism(ring, g - 0.5, g + WR_EAVE_H, WR_WALL, none, M_STONE)
+	_cap(ring, g + WR_EAVE_H - 0.05, WR_ROOF.darkened(0.18))
+	kit_ledge_ring(ring, g - 0.4, WR_PLINTH_H + 0.4, WR_PLINTH, 0.12)
+	kit_ledge_ring(ring, g + 4.10, 0.22, WR_TRIM, 0.10)
+	kit_cornice_ring(ring, g + WR_EAVE_H - WR_CORNICE_H, WR_TRIM, WR_CORNICE_H, 0.65)
+	# Identify main Piękna (south) face and dress every straight face.
+	var south_i := _edge_facing(ring, south, 15.0)
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		if ln < 2.8:
+			continue
+		var out := _out(ring, a, b)
+		var ml := _local((a + b) * 0.5)
+		var kind := "west"
+		if i == south_i:
+			kind = "south"
+		elif out.dot(axis) > 0.85 and ml.x > hi.x - 1.5:
+			kind = "east_wing"
+		elif out.dot(axis) > 0.85:
+			kind = "east_recess"
+		elif out.dot(-south) > 0.85:
+			kind = "north"
+		_wr_dress_face(a, b, out, g, kind)
+		_o = block_o
+		_a = axis
+		_b = south
+	# Low grey hipped roof (2.4 m rise) over the main block, north wing, and east projections.
+	_wr_roof(ring, g, lo, hi)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Dresses one face of Willa Raua: rusticated corner strips (kit_bands), round-arched ground-floor
+## windows and wooden entrance door (on Piękna), pedimented first-floor windows, and brackets under
+## the deep 0.6 m cornice on street faces.
+func _wr_dress_face(a: Vector2, b: Vector2, out: Vector2, g: float, kind: String) -> void:
+	var w := _ur1_front_edge(a, b, out)
+	var fa := _o
+	var fdir := _a
+	var fout := _b
+	var sy0 := g + 1.15
+	var sp0 := g + 2.65
+	var sy1 := g + 4.55
+	var h1 := 1.90
+	# Bracketed cornice corbels under the 0.6 m deep cornice on visible street faces.
+	if kind in ["south", "east_wing", "east_recess"] or (kind == "north" and w >= 6.0):
+		_wr_brackets(w, g + WR_EAVE_H - WR_CORNICE_H)
+	# Rusticated corners via kit_bands at both ends of the street-facing corner fronts.
+	if kind in ["south", "east_wing"] and w >= 5.5:
+		kit_bands(0.08, 1.30, g + WR_PLINTH_H + 0.05, g + WR_EAVE_H - WR_CORNICE_H - 0.15, 1.10, WR_WALL.darkened(0.10))
+		kit_bands(w - 1.30, w - 0.08, g + WR_PLINTH_H + 0.05, g + WR_EAVE_H - WR_CORNICE_H - 0.15, 1.10, WR_WALL.darkened(0.10))
+	match kind:
+		"south":
+			# Five bays matching Street View: two tall arched windows each side of the pedimented portal.
+			var bays := 5
+			var cols := _spread(1.8, w - 1.8, bays)
+			var mid := bays / 2
+			var cu: float = cols[mid]
+			# Round-arched wooden door framed by pilasters, triangular pediment, step, and warm lamp.
+			_kbox(cu - 1.5, cu + 1.5, 0.14, 1.10, g - 0.3, g + 0.30, WR_PLINTH.lightened(0.04))
+			kit_pilaster(cu - 1.25, g + 0.30, g + 3.65, WR_TRIM, 0.38, 0.24)
+			kit_pilaster(cu + 1.25, g + 0.30, g + 3.65, WR_TRIM, 0.38, 0.24)
+			kit_door(cu, g + 0.30, 3.05, 0.90, WR_TRIM, WR_DOOR, true)
+			kit_pediment(cu, 1.55, g + 3.65, 0.72, WR_TRIM, WR_ROOF, 0.35)
+			_lbox(cu + 1.52, 0.14, 0.10, 0.08, g + 2.55, g + 2.85, WR_LAMP, M_LAMP, WR_LAMP)
+			for k in bays:
+				var bu: float = cols[k]
+				if k != mid:
+					kit_round_window(fa + fdir * bu, fdir, fout, sy0, sp0, 0.56, WR_TRIM, WR_GLASS)
+				kit_window(bu, sy1, h1, Win.PEDIMENT, WR_TRIM, WR_GLASS, 0.58)
+		"east_wing":
+			var cols := _spread(1.4, w - 1.4, 2)
+			for bu: float in cols:
+				kit_round_window(fa + fdir * bu, fdir, fout, sy0, sp0, 0.56, WR_TRIM, WR_GLASS)
+				kit_window(bu, sy1, h1, Win.PEDIMENT, WR_TRIM, WR_GLASS, 0.58)
+		"east_recess":
+			var bays := maxi(1, roundi((w - 1.6) / 3.0))
+			var cols := _spread(1.2 if w >= 5.5 else w * 0.5, w - 1.2 if w >= 5.5 else w * 0.5, bays)
+			for bu: float in cols:
+				kit_round_window(fa + fdir * bu, fdir, fout, sy0, sp0, 0.54, WR_TRIM, WR_GLASS)
+			kit_ledge(0.6, w - 0.6, sy1 - 0.18, 0.14, WR_TRIM, 0.10)
+			kit_panes(cols, [sy1], 1.16, h1, WR_GLASS, 0.06)
+		"north":
+			var bays := maxi(1, roundi((w - 1.6) / 3.4))
+			var cols := _spread(1.1 if w >= 5.0 else w * 0.5, w - 1.1 if w >= 5.0 else w * 0.5, bays)
+			if w >= 11.0:
+				for bu: float in cols:
+					kit_round_window(fa + fdir * bu, fdir, fout, sy0, sp0, 0.54, WR_TRIM, WR_GLASS)
+			else:
+				kit_ledge(0.5, w - 0.5, sy0 - 0.18, 0.14, WR_TRIM, 0.10)
+				kit_panes(cols, [sy0], 1.12, 1.95, WR_GLASS, 0.06)
+			kit_ledge(0.5, w - 0.5, sy1 - 0.18, 0.14, WR_TRIM, 0.10)
+			kit_panes(cols, [sy1], 1.12, h1, WR_GLASS, 0.06)
+		_:
+			var bays := maxi(1, roundi((w - 1.8) / 3.2))
+			var cols := _spread(1.0, w - 1.0, bays)
+			kit_ledge(0.6, w - 0.6, sy0 - 0.18, 0.14, WR_TRIM, 0.10)
+			kit_ledge(0.6, w - 0.6, sy1 - 0.18, 0.14, WR_TRIM, 0.10)
+			kit_panes(cols, [sy0, sy1], 1.15, 1.95, WR_GLASS, 0.06)
+
+
+## Places regularly spaced stone corbel brackets under Willa Raua's deep 0.6 m overhanging cornice.
+func _wr_brackets(w: float, cornice_y: float) -> void:
+	var n := maxi(2, roundi((w - 0.6) / 2.2))
+	for bu: float in _spread(0.45, w - 0.45, n):
+		_kbox(bu - 0.10, bu + 0.10, 0.02, 0.56, cornice_y - 0.42, cornice_y, WR_TRIM.darkened(0.08))
+
+
+## Builds Willa Raua's low grey hipped roof (2.4 m rise) over the main block, north wing, and east
+## corner wings, tucked cleanly with slight ridge offsets so intersecting slopes never z-fight.
+func _wr_roof(ring: PackedVector2Array, g: float, lo: Vector2, hi: Vector2) -> void:
+	_mode = M_STONE
+	var eave := g + WR_EAVE_H
+	var nw_u0 := -4.3
+	var nw_u1 := 7.8
+	var main_v0 := -6.3
+	var east_in_u := 8.7
+	var rec_v0 := 0.45
+	var rec_v1 := 10.25
+	for p in ring:
+		var l := _local(p)
+		if l.y < lo.y + 1.5:
+			nw_u0 = minf(nw_u0, l.x)
+			nw_u1 = maxf(nw_u1, l.x)
+		if l.x < lo.x + 2.0 and l.y < 0.0:
+			main_v0 = minf(main_v0, l.y)
+	# 1. Main villa body hipped roof (2.40 m rise).
+	var m_cu := (lo.x + east_in_u) * 0.5
+	var m_cv := (main_v0 + hi.y) * 0.5
+	_hip(m_cu, m_cv, (east_in_u - lo.x) * 0.5 + 0.25, (hi.y - main_v0) * 0.5 + 0.25, eave, WR_ROOF_RISE, WR_ROOF)
+	# 2. North wing hipped roof tucked 0.08 m under the main ridge.
+	_hip((nw_u0 + nw_u1) * 0.5, (lo.y + main_v0 + 4.0) * 0.5, (nw_u1 - nw_u0) * 0.5 + 0.20,
+			(main_v0 + 4.0 - lo.y) * 0.5 + 0.20, eave, WR_ROOF_RISE - 0.08, WR_ROOF)
+	# 3. East projecting wings (NE and SE pavilions) tucked 0.16 m under the main ridge.
+	_hip((east_in_u - 2.5 + hi.x) * 0.5, (main_v0 + rec_v0) * 0.5, (hi.x - (east_in_u - 2.5)) * 0.5 + 0.20,
+			(rec_v0 - main_v0) * 0.5 + 0.20, eave, WR_ROOF_RISE - 0.16, WR_ROOF)
+	_hip((east_in_u - 2.5 + hi.x) * 0.5, (rec_v1 + hi.y) * 0.5, (hi.x - (east_in_u - 2.5)) * 0.5 + 0.20,
+			(hi.y - rec_v1) * 0.5 + 0.20, eave, WR_ROOF_RISE - 0.16, WR_ROOF)
+	# Two modest chimney stacks straddling the main ridge (seen in 3D Tiles top view).
+	for cv: float in [m_cv - 4.0, m_cv + 4.0]:
+		_lbox(m_cu, cv, 0.45, 0.40, eave + WR_ROOF_RISE - 0.6, eave + WR_ROOF_RISE + 0.85, WR_WALL.darkened(0.14))
+
+
+## Finds Pałacyk Dziewulskich's OSM outline and registers the `dziewulskich` site.
+func _find_dziewulskich() -> void:
+	_ur1_find("dziewulskich", DZW_NAME)
+
+
+## Builds Pałacyk Dziewulskich: compact two-storey white-cream villa (7.6 m) on its rounded-corner
+## outline with plinth, string course, plain cornice ring, 0.8 m perimeter parapet hiding a very low
+## grey roof (1.0 m rise), small columned porch on the avenue side, and full outline collision.
+func _build_dziewulskich(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	# Simplify with Douglas-Peucker so both the true SW corner and the curved SE bay stay intact.
+	var ring := _simplify(raw, 0.35)
+	if Geometry2D.is_polygon_clockwise(ring):
+		ring.reverse()
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	var axis := _ur1_axis(ring)
+	var south := Vector2(-axis.y, axis.x)
+	var block_o := _centre(ring)
+	_o = block_o
+	_a = axis
+	_b = south
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in ring:
+		var l := _local(p)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	# Two-storey white-cream body, dark roof deck, plinth, string course, plain cornice, 0.8 m parapet.
+	_prism(ring, g - 0.5, g + DZW_EAVE_H, DZW_WALL, none, M_STONE)
+	_cap(ring, g + DZW_EAVE_H - 0.05, DZW_ROOF.darkened(0.15))
+	kit_ledge_ring(ring, g - 0.4, DZW_PLINTH_H + 0.4, DZW_PLINTH, 0.10)
+	kit_ledge_ring(ring, g + 4.05, 0.20, DZW_TRIM, 0.08)
+	kit_cornice_ring(ring, g + DZW_EAVE_H - 0.38, DZW_TRIM, 0.38, 0.34)
+	# Perimeter parapet (0.8 m tall, 7.6 - 8.4 m) with inner face and pale coping lip.
+	var par_top := g + DZW_EAVE_H + DZW_PARAPET_H
+	_prism(ring, g + DZW_EAVE_H, par_top, DZW_WALL, none, M_STONE)
+	var inner := _largest(Geometry2D.offset_polygon(ring, -0.32, Geometry2D.JOIN_MITER))
+	if inner.size() >= 3:
+		var rev := PackedVector2Array(inner)
+		rev.reverse()
+		_prism(rev, g + DZW_EAVE_H + 0.02, par_top, DZW_WALL.darkened(0.12), none, M_STONE)
+	kit_ledge_ring(ring, par_top - 0.14, 0.14, DZW_TRIM, 0.08)
+	# Identify the East avenue front (longest edge facing +axis).
+	var east_i := -1
+	var east_len := 0.0
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		var out := _out(ring, a, b)
+		if out.dot(axis) > 0.85 and ln > east_len:
+			east_len = ln
+			east_i = i
+	# Dress every face: avenue porch face, rounded SE corner bay, north driveway bay, and garden walls.
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		if ln < 0.75:
+			continue
+		var out := _out(ring, a, b)
+		var ml := _local((a + b) * 0.5)
+		var kind := "side"
+		if i == east_i:
+			kind = "avenue"
+		elif ml.x > hi.x - 5.5 and ml.y > hi.y - 8.0 and ln < 2.2:
+			kind = "bay"
+		elif out.dot(-south) > 0.85 and ml.y < lo.y + 1.5:
+			kind = "north_bay"
+		elif out.dot(south) > 0.85 and ln > 5.0:
+			kind = "south"
+		_dz_dress_face(a, b, out, g, kind)
+		_o = block_o
+		_a = axis
+		_b = south
+	# Very low grey roof (1.0 m rise) measured directly from `ring` and tucked inside the parapet.
+	_dz_roof(ring, g, lo, hi)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Dresses one face of Pałacyk Dziewulskich: the East avenue face gets the small columned porch
+## with warm door light and framed windows; the north bay and south garden face get kit windows;
+## curved SE bay and side walls use kit_panes to stay comfortably under the 1,600-triangle budget.
+func _dz_dress_face(a: Vector2, b: Vector2, out: Vector2, g: float, kind: String) -> void:
+	var w := _ur1_front_edge(a, b, out)
+	var sy0 := g + 1.15
+	var sy1 := g + 4.50
+	var h0 := 2.15
+	var h1 := 1.95
+	match kind:
+		"avenue":
+			var cu := w * 0.5
+			_dz_porch(cu, g)
+			if w >= 6.5:
+				for bu: float in [1.15, w - 1.15]:
+					kit_window(bu, sy0, h0, Win.SILL_HEAD, DZW_TRIM, DZW_GLASS, 0.54)
+			var cols := _spread(1.15, w - 1.15, 3)
+			for bu: float in cols:
+				kit_window(bu, sy1, h1, Win.SILL_HEAD, DZW_TRIM, DZW_GLASS, 0.54)
+		"north_bay":
+			var bays := clampi(roundi((w - 1.6) / 3.0), 2, 3)
+			kit_window_grid(1.1, w - 1.1, bays, [sy0, sy1], [h0, h1], Win.SILL_HEAD, DZW_TRIM, DZW_GLASS, 0.56)
+		"bay":
+			# Curved SE corner bay: slim pane on facets wide enough to hold one cleanly.
+			if w >= 0.70:
+				var pw := clampf(w * 0.62, 0.42, 0.85)
+				kit_panes([w * 0.5], [sy0], pw, h0, DZW_GLASS, 0.06)
+				kit_panes([w * 0.5], [sy1], pw, h1, DZW_GLASS, 0.06)
+		"south":
+			var bays := maxi(2, roundi((w - 1.8) / 3.1))
+			var cols := _spread(1.1, w - 1.1, bays)
+			kit_ledge(0.5, w - 0.5, sy0 - 0.18, 0.14, DZW_TRIM, 0.09)
+			kit_ledge(0.5, w - 0.5, sy1 - 0.18, 0.14, DZW_TRIM, 0.09)
+			kit_panes(cols, [sy0], 1.16, h0, DZW_GLASS, 0.06)
+			kit_panes(cols, [sy1], 1.16, h1, DZW_GLASS, 0.06)
+		_:
+			if w < 2.6:
+				return
+			var bays := maxi(1, roundi((w - 1.6) / 3.2))
+			var cols := _spread(0.9, w - 0.9, bays)
+			kit_ledge(0.4, w - 0.4, sy0 - 0.18, 0.14, DZW_TRIM, 0.09)
+			kit_ledge(0.4, w - 0.4, sy1 - 0.18, 0.14, DZW_TRIM, 0.09)
+			kit_panes(cols, [sy0], 1.15, h0, DZW_GLASS, 0.06)
+			kit_panes(cols, [sy1], 1.15, h1, DZW_GLASS, 0.06)
+
+
+## Builds Pałacyk Dziewulskich's small classical porch on the avenue side: stepped base, two
+## Tuscan kit_column posts supporting a flat porch entablature and coping, wooden entrance door,
+## and a warm porch lamp (M_LAMP).
+func _dz_porch(cu: float, g: float) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	var hw := 1.75
+	var depth := 1.95
+	# Two-step porch platform.
+	_kbox(cu - hw - 0.25, cu + hw + 0.25, 0.10, depth + 0.45, g - 0.3, g + 0.25, DZW_PLINTH)
+	_kbox(cu - hw, cu + hw, 0.10, depth, g + 0.25, g + DZW_PLINTH_H, DZW_PLINTH.lightened(0.05))
+	# Two Tuscan columns carrying the porch entablature.
+	kit_colonnade(cu - hw + 0.32, cu + hw - 0.32, 2, depth - 0.30, g + DZW_PLINTH_H, g + 3.85, DZW_TRIM, 0.20, Order.TUSCAN)
+	_kbox(cu - hw - 0.08, cu + hw + 0.08, -0.04, depth + 0.08, g + 3.85, g + 4.22, DZW_TRIM)
+	_kbox(cu - hw - 0.14, cu + hw + 0.14, -0.04, depth + 0.14, g + 4.22, g + 4.38, DZW_TRIM.lightened(0.04))
+	# Main wooden door and warm night light inside the porch.
+	kit_door(cu, g + DZW_PLINTH_H, 2.75, 0.78, DZW_TRIM, DZW_DOOR, false)
+	_lbox(cu, 0.12, 0.12, 0.08, g + 3.45, g + 3.70, DZW_LAMP, M_LAMP, DZW_LAMP)
+	_mode = keep
+
+
+## Builds Pałacyk Dziewulskich's very low grey hipped roof (1.0 m rise) measured directly from
+## `ring` in the active local frame so every slope sits cleanly inside the 0.8 m parapet.
+func _dz_roof(ring: PackedVector2Array, g: float, lo: Vector2, hi: Vector2) -> void:
+	_mode = M_STONE
+	var base_y := g + DZW_EAVE_H - 0.02
+	# Measure main block, north bay, west annex, and SE rounded bay directly from `ring`.
+	var main_u0 := INF
+	var main_u1 := -INF
+	var main_v0 := INF
+	var main_v1 := hi.y - 0.45
+	var nb_u0 := INF
+	var nb_u1 := -INF
+	var ww_v1 := -INF
+	for p in ring:
+		var l := _local(p)
+		if l.y < lo.y + 1.0:
+			nb_u0 = minf(nb_u0, l.x)
+			nb_u1 = maxf(nb_u1, l.x)
+		elif l.y < lo.y + 4.5 and l.x < lo.x + 25.0:
+			main_v0 = minf(main_v0, l.y)
+		if l.y > hi.y - 6.0 and l.x < lo.x + 12.0:
+			main_u0 = minf(main_u0, l.x)
+		if l.x < lo.x + 1.5:
+			ww_v1 = maxf(ww_v1, l.y)
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var out := _out(ring, a, b)
+		if out.dot(_a) > 0.85 and a.distance_to(b) > 6.0:
+			main_u1 = _local((a + b) * 0.5).x
+	if main_u0 == INF:
+		main_u0 = lo.x + 7.5
+	if main_u1 == -INF:
+		main_u1 = hi.x - 4.5
+	if main_v0 == INF:
+		main_v0 = lo.y + 3.5
+	if ww_v1 == -INF:
+		ww_v1 = main_v0 + 6.5
+	var pad := 0.45
+	# 1. Main villa body low hipped roof tucked inside the parapet.
+	var m_u0 := main_u0 + pad
+	var m_u1 := main_u1 - pad
+	var m_v0 := main_v0 + pad
+	var m_v1 := main_v1 - pad
+	var m_cu := (m_u0 + m_u1) * 0.5
+	var m_cv := (m_v0 + m_v1) * 0.5
+	if m_u1 > m_u0 + 2.0 and m_v1 > m_v0 + 2.0:
+		_hip(m_cu, m_cv, (m_u1 - m_u0) * 0.5, (m_v1 - m_v0) * 0.5, base_y, DZW_ROOF_RISE, DZW_ROOF)
+	# 2. North projecting entrance bay low hip roof (tucked 0.08 m lower).
+	if nb_u1 > nb_u0 + 3.0:
+		var nu0 := nb_u0 + pad
+		var nu1 := nb_u1 - pad
+		var nv0 := lo.y + pad
+		var nv1 := m_v0 + 2.0
+		_hip((nu0 + nu1) * 0.5, (nv0 + nv1) * 0.5, (nu1 - nu0) * 0.5, (nv1 - nv0) * 0.5,
+				base_y, DZW_ROOF_RISE - 0.08, DZW_ROOF)
+	# 3. West annex low hip roof (tucked 0.12 m lower).
+	if m_u0 > lo.x + 2.5 and ww_v1 > main_v0 + 2.0:
+		var wu0 := lo.x + pad
+		var wu1 := m_u0 + 2.0
+		var wv0 := main_v0 + pad
+		var wv1 := ww_v1 - pad
+		_hip((wu0 + wu1) * 0.5, (wv0 + wv1) * 0.5, (wu1 - wu0) * 0.5, (wv1 - wv0) * 0.5,
+				base_y, DZW_ROOF_RISE - 0.12, DZW_ROOF)
+	# 4. SE rounded pavilion low conical cap tucked inside the rounded parapet.
+	var bay_c := _w(main_u1 + 0.5, hi.y - 3.6)
+	_frustum(_circle(bay_c, 2.8, 10), base_y, _circle(bay_c, 0.45, 10),
+			base_y + DZW_ROOF_RISE - 0.16, DZW_ROOF, DZW_ROOF.darkened(0.08))
+	# Two low masonry chimneys along the main ridge (seen in 3D Tiles top view).
+	for ch_u: float in [lerpf(m_u0, m_u1, 0.35), lerpf(m_u0, m_u1, 0.68)]:
+		_lbox(ch_u, m_cv, 0.40, 0.35, base_y + DZW_ROOF_RISE - 0.35, base_y + DZW_ROOF_RISE + 0.55, DZW_WALL.darkened(0.14))
+
+
+## Finds Pałac Pod Karczochem's OSM outline and registers the `pod_karczochem` site.
+func _find_pod_karczochem() -> void:
+	_ur1_find("pod_karczochem", PK_NAME)
+
+
+## Builds Pałac pod Karczochem: five-storey cream palatial tenement (17.5 m) with glowing street
+## shopfronts (M_PAVILION), window surrounds, iron balconies on the 1st and 3rd floors, crowning
+## cornice and flat roof, SW corner turret (+3.0 m) with domed cap and stone artichoke finial
+## (1.2 m), and full outline collision.
+func _build_pod_karczochem(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var ring := _ur1_clean_ring(raw, 1.15, 0.985)
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	var axis := _ur1_axis(ring)
+	var south := Vector2(-axis.y, axis.x)
+	var block_o := _centre(ring)
+	_o = block_o
+	_a = axis
+	_b = south
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in ring:
+		var l := _local(p)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	# Ground floor (0 - 4.0 m) and four upper storeys (4.0 - 17.5 m) with flat roof behind cornice.
+	_prism(ring, g - 0.5, g + PK_GROUND_H, PK_BASE, none, M_STONE)
+	_prism(ring, g + PK_GROUND_H, g + PK_EAVE_H, PK_WALL, PK_ROOF, M_STONE, M_STONE)
+	kit_ledge_ring(ring, g - 0.4, 0.85, PK_BASE.darkened(0.14), 0.10)
+	kit_ledge_ring(ring, g + PK_GROUND_H - 0.12, 0.28, PK_TRIM, 0.14)
+	kit_cornice_ring(ring, g + PK_EAVE_H - 0.50, PK_TRIM, 0.50, 0.54)
+	# Low roof parapet behind the cornice so the flat roof sits recessed.
+	_prism(ring, g + PK_EAVE_H, g + PK_EAVE_H + 0.55, PK_WALL, none, M_STONE)
+	kit_ledge_ring(ring, g + PK_EAVE_H + 0.43, 0.12, PK_TRIM, 0.08)
+	# Locate the chamfered SW street corner edge (facing roughly (-axis + south)).
+	var sw_dir := (-axis + south).normalized()
+	var corner_i := _edge_facing(ring, sw_dir, 3.5)
+	var turret_c := _w(lo.x + 2.8, hi.y - 2.8)
+	if corner_i >= 0:
+		var ca := ring[corner_i]
+		var cb := ring[(corner_i + 1) % ring.size()]
+		var cout := _out(ring, ca, cb)
+		turret_c = (ca + cb) * 0.5 - cout * 1.9
+	# Dress every non-party face (skipping north party wall against Lindelfelda and far east party wall).
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		if ln < 2.8:
+			continue
+		var out := _out(ring, a, b)
+		var ml := _local((a + b) * 0.5)
+		if out.dot(-south) > 0.85 and ml.y < lo.y + 1.5:
+			continue  # north party wall
+		if out.dot(axis) > 0.85 and ml.x > hi.x - 1.5:
+			continue  # east party wall
+		var kind := "court"
+		if i == corner_i:
+			kind = "corner"
+		elif out.dot(-axis) > 0.80 and ml.x < lo.x + 3.0:
+			kind = "west_street"
+		elif out.dot(south) > 0.80 and ml.y > hi.y - 3.5:
+			kind = "south_street"
+		_pk_dress_face(a, b, out, g, kind)
+		_o = block_o
+		_a = axis
+		_b = south
+	# Corner turret (+3.0 m above cornice), domed grey cap, and cream stone artichoke finial (1.2 m).
+	_pk_turret(turret_c, g)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Dresses one face of Pałac pod Karczochem: street faces and the chamfered corner get glowing
+## ground-floor shop bays (M_PAVILION), four storeys of kit windows, and iron balconies on the
+## first and third upper floors; courtyard wings use kit_panes + sill ledges to keep triangles tight.
+func _pk_dress_face(a: Vector2, b: Vector2, out: Vector2, g: float, kind: String) -> void:
+	var w := _ur1_front_edge(a, b, out)
+	var sills := [g + 4.95, g + 8.15, g + 11.35, g + 14.55]
+	var hs := [2.15, 2.15, 2.10, 1.85]
+	match kind:
+		"corner":
+			var cu := w * 0.5
+			# Corner shop entrance with warm glowing glass.
+			kit_shop_bay(cu, g + 0.45, g + 3.40, minf(1.55, w * 0.34), PK_TRIM, PK_GLASS)
+			var keep := _mode
+			_mode = M_PAVILION
+			var ghw := minf(1.42, w * 0.30)
+			_wall(_w(cu - ghw, 0.09), _w(cu + ghw, 0.09), g + 0.55, g + 3.30, _b, PK_SHOP_GLOW)
+			_mode = keep
+			# Giant corner pilasters framing the focal chamfered SW bay (Street View rhythm).
+			kit_pilaster(0.42, g + PK_GROUND_H, g + PK_EAVE_H - 0.50, PK_TRIM, 0.55, 0.14)
+			kit_pilaster(w - 0.42, g + PK_GROUND_H, g + PK_EAVE_H - 0.50, PK_TRIM, 0.55, 0.14)
+			# Four storeys of focal corner windows with iron balconies on floors 1 and 3.
+			for fl in 4:
+				var st_win := Win.PEDIMENT if fl == 0 else Win.SILL_HEAD
+				kit_window(cu, float(sills[fl]), float(hs[fl]), st_win, PK_TRIM, PK_GLASS, 0.65)
+			kit_balcony(cu, float(sills[0]), 0.82, Balcony.IRON, PAL_IRON, PK_TRIM, 0.85)
+			kit_balcony(cu, float(sills[2]), 0.82, Balcony.IRON, PAL_IRON, PK_TRIM, 0.85)
+		"west_street", "south_street":
+			var bays := maxi(1, roundi((w - 1.2) / 3.0))
+			var cols := _spread(0.9, w - 0.9, bays)
+			# Ground-floor glowing shop bays (and an arched portal door on the longest west face).
+			var door_k := bays / 2 if (kind == "west_street" and bays >= 3) else -1
+			for k in bays:
+				var bu: float = cols[k]
+				if k == door_k:
+					kit_door(bu, g + 0.25, 3.15, 0.88, PK_TRIM, PAL_OAK, true)
+				else:
+					var shw := clampf((w - 1.8) / float(bays) * 0.38, 0.65, 1.10)
+					kit_shop_bay(bu, g + 0.45, g + 3.40, shw, PK_TRIM, PK_GLASS)
+					var keep := _mode
+					_mode = M_PAVILION
+					_wall(_w(bu - shw + 0.08, 0.09), _w(bu + shw - 0.08, 0.09), g + 0.55, g + 3.30, _b, PK_SHOP_GLOW)
+					_mode = keep
+			# Upper 4 storeys: framed windows on 1st & 2nd floors, crisp panes + sill bands above.
+			for k in bays:
+				kit_window(cols[k], float(sills[0]), float(hs[0]), Win.SILL_HEAD, PK_TRIM, PK_GLASS, 0.58)
+				kit_window(cols[k], float(sills[1]), float(hs[1]), Win.SILL_HEAD, PK_TRIM, PK_GLASS, 0.58)
+			for fl in [2, 3]:
+				kit_ledge(0.4, w - 0.4, float(sills[fl]) - 0.18, 0.14, PK_TRIM, 0.10)
+				kit_panes(cols, [float(sills[fl])], 1.16, float(hs[fl]), PK_GLASS, 0.06)
+			# Small iron balconies on 1st and 3rd floors on the main street front runs.
+			if w >= 7.5:
+				var bk := bays / 2
+				kit_balcony(cols[bk], float(sills[0]), 0.80, Balcony.IRON, PAL_IRON, PK_TRIM, 0.80)
+				kit_balcony(cols[bk], float(sills[2]), 0.80, Balcony.IRON, PAL_IRON, PK_TRIM, 0.80)
+		_:
+			var bays := maxi(1, roundi((w - 1.4) / 3.2))
+			var cols := _spread(0.8, w - 0.8, bays)
+			var all_sills := [g + 1.15, float(sills[0]), float(sills[1]), float(sills[2]), float(sills[3])]
+			kit_panes(cols, all_sills, 1.12, 1.90, PK_GLASS, 0.06)
+
+
+## Builds Pałac pod Karczochem's corner turret (5.0 m across, rising 3.0 m above the 17.5 m
+## cornice), its domed grey cap (#6c7277), and the crowning 1.2 m cream stone artichoke finial.
+func _pk_turret(c: Vector2, g: float) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	var base_y := g + PK_EAVE_H - 0.25
+	var drum_top := g + PK_EAVE_H + PK_TURRET_RISE
+	var r := 2.45
+	var sides := 12
+	var drum := _circle(c, r, sides)
+	# Flared stone corbel collar anchoring the turret drum cleanly onto the corner cornice.
+	_frustum(_circle(c, r * 0.84, sides), g + PK_EAVE_H - 0.75, _circle(c, r + 0.08, sides), base_y + 0.15, PK_TRIM.darkened(0.06))
+	# Turret drum anchored into the corner roof mass, with tall lit panes on every second facet.
+	_prism(drum, base_y, drum_top, PK_WALL, Color(0, 0, 0, 0), M_STONE)
+	for i in sides:
+		if i % 2 != 0:
+			continue
+		var ea := drum[i]
+		var eb := drum[(i + 1) % sides]
+		var eo := _out(drum, ea, eb)
+		var em := (ea + eb) * 0.5 + eo * 0.05
+		var eh := (eb - ea) * 0.34
+		_mode = _lit(float(i) * 2.1 + c.x, drum_top)
+		_wall(em - eh, em + eh, g + PK_EAVE_H + 0.55, drum_top - 0.55, eo, PK_GLASS)
+	_mode = M_STONE
+	kit_ledge_ring(drum, drum_top - 0.28, 0.34, PK_TRIM, 0.26)
+	# Domed grey sheet cap rising 2.3 m in three curved frustum tiers to a small finial plinth.
+	var d0 := drum_top + 0.06
+	var d1 := d0 + 0.75
+	var d2 := d1 + 0.85
+	var d3 := d2 + 0.70
+	_frustum(_circle(c, r + 0.18, sides), d0, _circle(c, r * 0.92, sides), d1, PK_TURRET_CAP)
+	_frustum(_circle(c, r * 0.92, sides), d1, _circle(c, r * 0.62, sides), d2, PK_TURRET_CAP.lightened(0.04))
+	_frustum(_circle(c, r * 0.62, sides), d2, _circle(c, 0.55, sides), d3, PK_TURRET_CAP.lightened(0.08), PK_TURRET_CAP)
+	# Cream stone artichoke finial (1.2 m tall: stalk base, two layered swelling leaf crowns, bud tip).
+	var a0 := d3
+	_frustum(_circle(c, 0.42, 8), a0, _circle(c, 0.26, 8), a0 + 0.18, PK_ARTICHOKE.darkened(0.10))
+	_frustum(_circle(c, 0.26, 8), a0 + 0.18, _circle(c, 0.56, 8), a0 + 0.54, PK_ARTICHOKE.darkened(0.05))
+	_frustum(_circle(c, 0.56, 8), a0 + 0.54, _circle(c, 0.44, 8), a0 + 0.88, PK_ARTICHOKE)
+	_pyramid(_circle(c, 0.44, 8), a0 + 0.88, a0 + 1.22, PK_ARTICHOKE.lightened(0.05))
+	_mode = keep
+
+
