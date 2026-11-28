@@ -21,11 +21,15 @@ extends "res://scripts/activity.gd"
 ##      the drumroll and the grade from the player's own run (the dish, how warm it came, the
 ##      bumps, the pour), an 11/10 for a perfect one, and the RECENZJA card.
 ##   3. PAYOFF. "Kto pierwszy pod Kemalem, ten przykleja!": a race back to the shop against his
-##      Porsza on the race session (race_session.gd: one racer, Halina's gentle profile). Whoever
-##      wins slaps the MLASK sticker on the window (the player taps PRZYKLEJ!), and for good the
-##      queue at Kemal's door (crowds.gd `kemal_mlask`, the save's `keep` KEEP), KEBAB FM's line,
-##      the RECENZJA card and CO DALEJ?: the three featured quests (F 11:52: the night meet,
-##      Rave na Smolnej, TESŁO) and a button to the QUESTS screen.
+##      Porsza on the race session (race_session.gd: one racer, Halina's gentle profile). At the
+##      door SZYBA, the 2D payoff (Fable's critique 2026-11-26: kemal_window.gd's beats,
+##      kemal_window_ui.gd's view, the city's 3D off): Kemal's window from the pavement, the
+##      winner's hand slaps the round MLASK sticker on the glass (one tap; the high five when
+##      Kebabulo won), the street queues at the door, Kemal cries, and PARAGON, the receipt (the
+##      order, the grade, +120 zł, +30 respect, the badges, the leak line). After it, for good, the
+##      queue at Kemal's door in the city (crowds.gd `kemal_mlask`, the save's `keep` KEEP), the
+##      sticker on the 3D window, KEBAB FM's line and CO DALEJ?: the three featured quests (F 11:52:
+##      the night meet, Rave na Smolnej, TESŁO) and a button to the QUESTS screen.
 ## Everyone gets the race, the sticker and the queue; the choices give badges (Fable's director
 ## pass: no bad endings).
 ##
@@ -54,6 +58,7 @@ const LaneGraph := preload("res://scripts/lane_graph.gd")
 const KebabStand := preload("res://scripts/kebab_stand.gd")
 const KebabStandUi := preload("res://scripts/kebab_stand_ui.gd")
 const PalmTastingUi := preload("res://scripts/palm_tasting_ui.gd")
+const KemalWindowUi := preload("res://scripts/kemal_window_ui.gd")
 
 const SITE := Crowds.KEMAL_ID
 const KEEP := "kemal_mlask"
@@ -77,6 +82,11 @@ const PALM := Vector2(-213.9, 238.5)
 ## place to park): a little way up each street, the first with free pavement.
 const PALM_TRIES := [Vector2(0, -70), Vector2(70, 0), Vector2(-70, 0), Vector2(0, 70), Vector2(50, -50), Vector2(-50, 50)]
 const PORSZA_SIZE := Vector3(1.85, 1.3, 4.4)
+## The race back's start (F 2026-11-26): both cars side by side on the Palm's kerb, 3, 2, 1, START!
+## (COUNT_S s; the Porsza held still, the player's car held on the brake until the start).
+const COUNT_S := 3.6
+## A one-lane kerb: the player's car this far behind the Porsza, in its lane.
+const GRID_BEHIND := 7.5
 const ARRIVE_R := 9.0
 const STOP_KMH := 12.0
 const HOLD := 0.8
@@ -147,10 +157,17 @@ var _race: RaceSession
 var _racer: RaceSession.Racer
 var _race_dist := PackedFloat32Array()
 var _race_t := 0.0
+## The countdown before the race back (COUNT_S down to 0, then the start); 0 while racing.
+var _count := 0.0
+var _count_said := 0
+## Puts the car at (position, yaw) at once, the camera cut too (main.gd `_place_car`, set after
+## the join, as street_meet.gd's).
+var place_car: Callable
 var _rank_t := 0.0
 var _sticker: MeshInstance3D
 var _stand_ui: KebabStandUi
 var _palm_ui: PalmTastingUi
+var _window_ui: KemalWindowUi
 var _city_drawn: Callable
 var _hud_was := true
 var _banner_t := 0.0
@@ -332,6 +349,7 @@ func _refused(timed_out: bool) -> void:
 func _ended() -> void:
 	_close_stand()
 	_close_palm()
+	_close_window()
 	if active and stage != Stage.NONE:
 		# Dropped with the ✕ (or the clock): the call comes again, the chapter kept.
 		_due = _drove + RETRY
@@ -355,7 +373,7 @@ func _begin() -> void:
 		_save(Saved.TAKEN)
 	hud.show_banner(w("banner")[0], COLOUR)
 	_banner_t = BANNER
-	hud.cue("start")
+	hud.cue("sting")
 	Access.buzz(120, 0.9)
 	if saved >= Saved.BOUGHT:
 		_to_palm(true)
@@ -529,14 +547,6 @@ func _card_pressed(index: int) -> void:
 			_bribe_answer(index)
 		"race_call":
 			_start_race()
-		"slap":
-			_slap()
-		"cry":
-			step = "result"
-			_result_card()
-		"result":
-			step = "next"
-			show_card(w("next_title"), w("next_body"), PackedStringArray([_b("btn_quests"), _b("btn_drive")]), 0.0, true)
 		"next":
 			_done(index == 0)
 		_:
@@ -663,6 +673,8 @@ func tasting_spec() -> Dictionary:
 		"cam": cam,
 		"order": ["%s · %s" % [order[0], sc[0]], "%s · %s" % [order[1], sc[1]]],
 		"badge": b[0] if not b.is_empty() else [],
+		"dish": KebabStand.dish_id(STAND, dish),
+		"caption": w("mlask_caption"),
 		"seed": int(grade * 10.0) + dish * 7 + bumps,
 	}
 
@@ -726,10 +738,12 @@ static func roast_of(cool: float, bump_n: int, for_cam: bool, g: float, poured :
 	return "fine"
 
 
-## His verdict, line by line: the bite (the sparklers if the camera saw Kemal), the bun, Berlin, and
-## DŻEMINI if the camera saw the bribe (or the quiet one if the player took it).
+## His verdict, line by line: the sparklers if the camera saw Kemal, the bun, Berlin, and DŻEMINI if
+## the camera saw the bribe (or the quiet one if the player took it). The bite's "…ale dobry" is the
+## MLASK panel's caption now (`mlask_caption`; Fable's critique: one tap fewer).
 func _verdict() -> Array:
-	var out: Array = [w("bite_cam" if cam else "bite"), w("bun"), w("berlin")]
+	var out: Array = [w("bite_cam")] if cam else []
+	out.append_array([w("bun"), w("berlin")])
 	if bribe == 2:
 		out.append(w("dzemini_roast"))
 	elif bribe == 1:
@@ -757,11 +771,14 @@ func _start_race() -> void:
 	_race_dist = graph.distances_to(node)
 	var e := int(_palm_kerb["edge"])
 	var lane: int = maxi(graph.e_lanes[e] - 1, 0)
-	_porsza_d = traffic.add_node_driver(_porsza, PORSZA_SIZE, e, lane, float(_palm_kerb["s"]))
+	var s := float(_palm_kerb["s"])
+	_porsza_d = traffic.add_node_driver(_porsza, PORSZA_SIZE, e, lane, s)
 	if _porsza_d == null:
 		_payoff(true)
 		return
 	_porsza_d.persistent = true
+	_porsza_d.stun = COUNT_S + 0.5
+	_grid(e, lane, s)
 	_race = RaceSession.new()
 	_race.setup(graph, traffic, RacePlanner.new(graph), RaceCuts.new(), {node: _race_dist})
 	_race.course(PackedInt32Array([node]), Vector2(goal.x, goal.z), RaceSession.FINISH_RADIUS)
@@ -771,15 +788,66 @@ func _start_race() -> void:
 	_racer = _race.add(_porsza_d, "Kebabulo", Ladder.FIRST_RACER, Ladder.pace(0),
 			{"top": Ladder.class_top(Ladder.race_class(0), pc), "cuts": false, "dice": _rng.randi()})
 	_race.prepare()
-	_race.start(_racer)
 	_race_t = 0.0
 	_rank_t = 0.0
+	_count = COUNT_S
+	_count_said = 0
 	set_target(Vector2(goal.x, goal.z))
-	hud.show_banner(w("race_banner")[0], COLOUR)
+	_beat("grid")
+	_log("the grid at the Palm, race to Kemal: %.0f m by road" % _player_left())
+
+
+## The player's car beside the Porsza on the next lane in (behind it on a one-lane kerb).
+func _grid(e: int, lane: int, s: float) -> void:
+	if not place_car.is_valid():
+		return
+	var d: Vector2 = graph.direction(e, s)
+	var at: Vector2
+	if lane >= 1:
+		at = graph.point_at(e, s, graph.lane_offset(e, lane - 1))
+	else:
+		at = graph.point_at(e, maxf(0.0, s - GRID_BEHIND), graph.lane_offset(e, lane))
+	place_car.call(Vector3(at.x, graph.surface(e, at), at.y), atan2(-d.x, -d.y))
+
+
+## The race's start, after the countdown: GO for him and for the player.
+func _go() -> void:
+	_count = 0.0
+	if _porsza_d != null:
+		_porsza_d.stun = 0.0
+	_race.start(_racer)
+	_race_t = 0.0
+	hud.show_banner(w("race_go")[0], COLOUR)
 	_banner_t = BANNER
 	hud.cue("go")
+	Access.buzz(80, 0.8)
 	_beat("race")
-	_log("race to Kemal: %.0f m by road" % _player_left())
+
+
+## The countdown's frame: a number a second, the cue once a number.
+func _count_tick(dt: float) -> void:
+	_count -= dt
+	_race.plan_tick(false)
+	var n := ceili(_count - 0.6)
+	if n >= 1:
+		if n != _count_said:
+			_count_said = n
+			hud.cue("count")
+			Access.buzz(30, 0.4)
+		hud.show_banner(str(n), COLOUR)
+	else:
+		_go()
+
+
+## The player's car held on the brake on the grid (main.gd calls it each frame, as rivals.gd's).
+func hold_car(c: Node) -> void:
+	if c == null or stage != Stage.RACE or _count <= 0.0 or phase != Phase.RUN:
+		return
+	c.target_dir = Vector3.ZERO
+	c.steer = 0.0
+	c.throttle = 0.0
+	c.nitro_on = false
+	c.braking = true
 
 
 func _player_left() -> float:
@@ -798,6 +866,9 @@ func _player_left() -> float:
 
 func _race_tick(dt: float, at: Vector3) -> void:
 	if _race == null:
+		return
+	if _count > 0.0:
+		_count_tick(dt)
 		return
 	_race_t += dt
 	_race.plan_tick(false)
@@ -826,7 +897,7 @@ func _race_end() -> void:
 		_porsza_d = null
 
 
-## At Kemal's door: the winner slaps the sticker (the player taps PRZYKLEJ!).
+## At Kemal's door: SZYBA, the 2D payoff (the winner's slap, the queue, Kemal's tears, PARAGON).
 func _payoff(player_first: bool) -> void:
 	won = player_first
 	_race_end()
@@ -836,29 +907,73 @@ func _payoff(player_first: bool) -> void:
 	if not _shop_kerb.is_empty():
 		_park_porsza({"ring": _shop_kerb["ring"], "heading": _shop_kerb["heading"]})
 	_beat("race_end", "won" if won else "lost")
+	_open_window()
+
+
+## SZYBA over everything (the root's viewport, as the stand and the tasting), the city's 3D off.
+func _open_window() -> void:
 	step = "slap"
-	card_face = "Kebabulo"
-	show_card(w("kebabulo"), w("race_won" if won else "race_lost"), PackedStringArray([_b("btn_slap") if won else _b("btn_ok")]), 0.0)
+	if _window_ui == null:
+		_window_ui = KemalWindowUi.new()
+		_window_ui.name = "KemalWindow"
+		var host: Node = hud.get_parent() if hud != null and hud.get_parent() != null else self
+		host.add_child(_window_ui)
+		_window_ui.finished.connect(_window_done)
+	_window_ui.auto_play = autopilot
+	_window_ui.log_on = log_on
+	_window_ui.cue = func(n: String) -> void:
+		if hud != null:
+			hud.cue(n)
+	_hold_world(true)
+	_window_ui.open(window_spec())
+	_beat("szyba")
 
 
-func _slap() -> void:
+## What SZYBA shows, from this run: who won, the winner's line, Kemal's, and the receipt's rows.
+func window_spec() -> Dictionary:
+	var order := KebabStand.say("dish_%d" % dish)
+	var sc := KebabStand.say("sauce_%d" % sauce)
+	return {
+		"won": won,
+		"line": w("race_won" if won else "race_lost"),
+		"cry": w("kemal_cry"),
+		"title": w("result_title"),
+		"order": ["%s · %s" % [order[0], sc[0]], "%s · %s" % [order[1], sc[1]]],
+		"grade": grade_text(grade),
+		"pay": PAY,
+		"respect": RESPECT,
+		"badges": badges(),
+		"leak": w("leak") if bribe == 1 else [],
+	}
+
+
+func _close_window() -> void:
+	if _window_ui != null and _window_ui.inside:
+		_window_ui.hide_now()
+		_hold_world(false)
+
+
+## SZYBA over: the sticker for good (the queue in the city, the 3D sticker), the pay, KEBAB FM, and
+## CO DALEJ?.
+func _window_done(r: Dictionary) -> void:
+	_hold_world(false)
+	if phase != Phase.RUN or stage != Stage.PAYOFF:
+		return
 	if wallet != null:
 		wallet.keep[KEEP] = true
 	if crowds != null:
 		crowds.kemal_mlask()
 	_place_sticker()
-	hud.cue("checkpoint")
-	Access.buzz(80, 1.0)
-	var s := w("slapped")
-	hud.toast(s[0], s[1], Messages.QUEST_LINE)
 	var radio := w("radio")
 	hud.toast(radio[0], radio[1], Messages.RADIO)
 	if wallet != null:
 		wallet.pay(PAY, RESPECT, "tajny")
-	step = "cry"
-	card_face = "Kemal"
-	show_card(w("kemal"), w("kemal_cry"), PackedStringArray([_b("btn_next")]), 0.0)
 	_beat("sticker", "player" if won else "kebabulo")
+	if bool(r.get("skipped", false)):
+		_beat("szyba_skip")
+	_beat("paragon")
+	step = "next"
+	show_card(w("next_title"), w("next_body"), PackedStringArray([_b("btn_quests"), _b("btn_drive")]), 0.0, true)
 
 
 ## The badges of this run, [Polish, English] names.
@@ -871,22 +986,6 @@ func badges() -> Array:
 	if bribe == 1:
 		out.append(w("badge_sold"))
 	return out
-
-
-func _result_card() -> void:
-	var order := KebabStand.say("dish_%d" % dish)
-	var sc := KebabStand.say("sauce_%d" % sauce)
-	var head := w("result_body")
-	var pl := str(head[0]).format({"dish": order[0], "sauce": sc[0], "grade": grade_text(grade), "zl": PAY, "respect": RESPECT})
-	var en := str(head[1]).format({"dish": order[1], "sauce": sc[1], "grade": grade_text(grade).replace(",", "."), "zl": PAY, "respect": RESPECT})
-	for b: Array in badges():
-		pl += "\n★ " + str(b[0])
-		en += "\n★ " + str(b[1])
-	if bribe == 1:
-		var leak := w("leak")
-		pl += "\n" + leak[0]
-		en += "\n" + leak[1]
-	show_card(w("result_title"), [pl, en], PackedStringArray([_b("btn_next")]), 0.0)
 
 
 func _done(quests: bool) -> void:

@@ -103,6 +103,7 @@ jobs2                quick
 juice                quick
 kebab                local     slow
 kebabstand           quick
+kemalwindow          quick
 kinotour             quick
 kladka               quick
 kukuryznik           quick

@@ -273,6 +273,8 @@ func _react(dt: float) -> void:
 				_log("paid %d zl" % stand.price())
 	if stand.line != _last_line:
 		_last_line = stand.line
+		if stand.line != "":
+			_cue("voice_kemal")
 		match stand.line:
 			"pour_good":
 				_set_face("proud")

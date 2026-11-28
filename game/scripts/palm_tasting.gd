@@ -8,10 +8,17 @@ extends RefCounted
 ##   IN      Zbyszek's viewfinder closes in: the REC frame, the mosaic down to the canvas (IN_S);
 ##   HELLO   Kebabulo: "Don't say a thing. I'm biting." (a tap);
 ##   CHEW    the close-up on his face, chewing, eyes shut, the chat frozen (CHEW_S, by itself);
-##   MLASK   the pop, the sticker-shaped burst, the shake, the chat erupting (MLASK_S, by itself);
-##   VERDICT his lines one by one: the bite, the bun, Berlin, DŻEMINI or the quiet one (a tap each);
+##   MLASK   the comic panel, held MLASK_S and staged (Fable's critique 2026-11-26, section 2 rows
+##           1-2): the word at once, his face up at MLASK_FACE_AT, a dead hold, Zbyszek's inset at
+##           MLASK_INSET_AT, the chat at MLASK_CHAT_AT, F's "…ALE DOBRY." caption at
+##           MLASK_CAPTION_AT; by itself, a tap after MLASK_TAP_S cuts it short (the autopilot
+##           lets it run);
+##   VERDICT his lines one by one: the bun, Berlin, DŻEMINI or the quiet one (the bite's "ale dobry"
+##           is the MLASK's caption now; the camera's sparkler line stays) (a tap each);
 ##   DRUM    the drumroll, the scoreboard's digits rolling (DRUM_S, by itself);
 ##   GRADE   the decimal grade and the roast of the player's own run (a tap; 11/10 cracks the board);
+##   FAN     a fan walks up and asks for a photo, Kebabulo says yes (a tap each; F 2026-11-26);
+##   SELFIE  the flash and the snap (SELFIE_S, by itself);
 ##   CARD    the RECENZJA card: the order, the grade, the badge, the game's name (held CARD_S, then
 ##           a tap);
 ##   DONE    the owner takes it from here (the race call).
@@ -26,13 +33,23 @@ extends RefCounted
 const WORDS_PATH := "res://data/dialogue.json"
 const GROUP := "palm_tasting"
 
-enum Phase {IN, HELLO, CHEW, MLASK, VERDICT, DRUM, GRADE, CARD, DONE}
+enum Phase {IN, HELLO, CHEW, MLASK, VERDICT, DRUM, GRADE, FAN, SELFIE, CARD, DONE}
 
 const IN_S := 1.4
 const CHEW_S := 1.5
-const MLASK_S := 1.1
+## The MLASK's hold and its staging (seconds into the beat; the view reads them).
+const MLASK_S := 2.4
+const MLASK_FACE_AT := 0.3
+const MLASK_INSET_AT := 0.9
+const MLASK_CHAT_AT := 1.2
+const MLASK_CAPTION_AT := 1.5
+## A tap in the MLASK before this does nothing (the face and the insets have to land first).
+const MLASK_TAP_S := 1.2
 const DRUM_S := 1.4
 const CARD_S := 3.0
+const SELFIE_S := 1.2
+## The fan's walk in (the view's): a tap before it does nothing.
+const FAN_WALK_S := 0.9
 ## A tap within this of a line's start does nothing (a stray second tap must not eat a line).
 const TAP_S := 0.35
 ## The autopilot's (and the screenshot tool's) time on each tap beat.
@@ -47,11 +64,13 @@ var phase := Phase.IN
 var t := 0.0
 ## Time since the scene opened.
 var total := 0.0
-## The line on screen now ([pl, en]) and who says it ("kebabulo", "zbyszek" or "").
+## The line on screen now ([pl, en]) and who says it ("kebabulo", "zbyszek", "fan" or "").
 var line: Array = ["", ""]
 var who := ""
 ## Which verdict line is up.
 var line_i := 0
+## Which of the fan's two lines is up (0 the ask, 1 his yes).
+var fan_i := 0
 var auto_play := false
 var skipped := false
 ## How long ✕ has been held (the view draws its ring).
@@ -71,6 +90,10 @@ var cam := false
 ## The card's lines: the order ([pl, en]) and the badge ([pl, en], or empty).
 var order: Array = ["", ""]
 var badge: Array = []
+## What he eats: "bun", "wrap", "box" or "xxl" (the stand's dish ids), drawn in his hand.
+var dish := "bun"
+## The MLASK panel's caption under his face ([pl, en]; F's "…ALE DOBRY."), empty for none.
+var caption: Array = ["", ""]
 
 var _chat_t := 0.0
 var _rng := RandomNumberGenerator.new()
@@ -80,7 +103,7 @@ static var _words: Dictionary = {}
 
 
 ## `spec`: hello, verdict (an Array of [pl, en]), roast, grade, grade_label, cam, order, badge,
-## seed.
+## dish, caption, seed.
 func _init(spec: Dictionary = {}) -> void:
 	hello = spec.get("hello", hello)
 	verdict = spec.get("verdict", verdict)
@@ -91,6 +114,8 @@ func _init(spec: Dictionary = {}) -> void:
 	cam = bool(spec.get("cam", false))
 	order = spec.get("order", order)
 	badge = spec.get("badge", [])
+	dish = str(spec.get("dish", dish))
+	caption = spec.get("caption", caption)
 	_rng.seed = int(spec.get("seed", 87))
 	if cam:
 		viewers = VIEWERS_0 * 3
@@ -149,7 +174,10 @@ func tick(dt: float, skip_held := false) -> void:
 		Phase.DRUM:
 			if t >= DRUM_S:
 				_go(Phase.GRADE)
-	if auto_play and t >= (CARD_S if phase == Phase.CARD else AUTO_S):
+		Phase.SELFIE:
+			if t >= SELFIE_S:
+				_go(Phase.CARD)
+	if auto_play and phase != Phase.MLASK and t >= (CARD_S if phase == Phase.CARD else AUTO_S):
 		tap()
 	_chat_tick(dt)
 
@@ -161,6 +189,10 @@ func tap() -> bool:
 	match phase:
 		Phase.HELLO:
 			_go(Phase.CHEW)
+		Phase.MLASK:
+			if t < MLASK_TAP_S:
+				return false
+			_go(Phase.VERDICT)
 		Phase.VERDICT:
 			if line_i + 1 < verdict.size():
 				line_i += 1
@@ -169,7 +201,16 @@ func tap() -> bool:
 			else:
 				_go(Phase.DRUM)
 		Phase.GRADE:
-			_go(Phase.CARD)
+			_go(Phase.FAN)
+		Phase.FAN:
+			if fan_i == 0:
+				if t < FAN_WALK_S:
+					return false
+				fan_i = 1
+				_set_line(say("fan_yes"), "kebabulo")
+				t = 0.0
+			else:
+				_go(Phase.SELFIE)
 		Phase.CARD:
 			if t < CARD_S:
 				return false
@@ -231,6 +272,13 @@ func _go(p: Phase) -> void:
 			_set_line(roast, "kebabulo")
 			viewers += 900 if perfect else 260
 			_chat_burst("chat_perfect" if perfect else "chat_grade", 2)
+		Phase.FAN:
+			fan_i = 0
+			_set_line(say("fan_ask"), "fan")
+		Phase.SELFIE:
+			_set_line(["", ""], "")
+			viewers += 120 + _rng.randi_range(0, 60)
+			_chat_burst("chat_fan", 2)
 		Phase.CARD:
 			_set_line(["", ""], "")
 
@@ -250,6 +298,8 @@ func _chat_bag() -> String:
 			return "chat_verdict"
 		Phase.GRADE, Phase.CARD:
 			return "chat_perfect" if perfect else "chat_grade"
+		Phase.FAN, Phase.SELFIE:
+			return "chat_fan"
 	return ""
 
 

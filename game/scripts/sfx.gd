@@ -212,6 +212,16 @@ const UI := {
 	"step": ["res://audio/ui/step.wav", -10.5],
 	"offer": ["res://audio/ui/offer.wav", -11.5],
 	"ping": ["res://audio/ui/ping.wav", -12.0],
+	# The Tajny klient set (tools/make_ui_sounds.py): the MLASK sting, Zbyszek's drumroll with its
+	# crash, the mission's start sting, and each character's line blip (under the blip: they come
+	# with every line).
+	"mlask": ["res://audio/ui/mlask.wav", -5.0],
+	"drumroll": ["res://audio/ui/drumroll.wav", -9.0],
+	"sting": ["res://audio/ui/sting.wav", -5.5],
+	"voice_kebabulo": ["res://audio/ui/voice_kebabulo.wav", -15.0],
+	"voice_kemal": ["res://audio/ui/voice_kemal.wav", -15.0],
+	"voice_zbyszek": ["res://audio/ui/voice_zbyszek.wav", -15.0],
+	"voice_fan": ["res://audio/ui/voice_fan.wav", -16.0],
 }
 ## Positional sounds: full level within UNIT metres of the listener, gone past REACH.
 const UNIT := 14.0

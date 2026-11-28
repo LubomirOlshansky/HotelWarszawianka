@@ -3858,8 +3858,8 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 		trend_job.egg = func(id: String) -> bool: return egg_book != null and egg_book.fire(id, _egg_state())
 	# The Tajny klient opening (tajny_klient.gd) wires itself; while it is on, its story has DŻEMINI.
 	tajny = _join(TajnyKlient.new(), world) as TajnyKlient
-	if tajny != null and tajny.on and trend_job != null:
-		trend_job.dz_off = true
+	if tajny != null: tajny.place_car = _place_car  # the race back's grid by the Palm (as the meet's)
+	if tajny != null and tajny.on and trend_job != null: trend_job.dz_off = true
 	if flags.zajac_flag or flags.trend_job_flag > 0 or flags.armchair_flag or flags.dzemini_flag:
 		_life_start.call_deferred()
 
@@ -6531,6 +6531,7 @@ func _read_input(dt: float) -> void:
 	# The drag (street_meet.gd) holds the strip, any gas full gas; a race's start (rivals.gd) the line.
 	if meet != null: meet.hold_car(car)
 	if rivals != null: rivals.hold_car(car)
+	if tajny != null: tajny.hold_car(car)  # the race back's countdown by the Palm
 	_lane_tick(dt)
 	# G13: the nitro (bought at the garage): the disc, Shift on a keyboard, LB or RB on a pad (N1: the
 	# press is a tap that fires a bottle; car.gd). Not N: N switches the time of day.
