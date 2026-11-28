@@ -219,6 +219,7 @@ const LM_BLOCKS := [
 	"29042523",  # Willa Raua: rebuilt whole in ujazdow.gd (`willa_raua`)
 	"29042524",  # Pałacyk Dziewulskich: rebuilt whole in ujazdow.gd (`dziewulskich`)
 	"221947049",  # Pałac pod Karczochem: rebuilt whole in ujazdow.gd (`pod_karczochem`)
+	"2387794",  # Gmach Chemii PW: rebuilt whole in srodmiescie.gd (`gmach_chemii`)
 ]
 
 
