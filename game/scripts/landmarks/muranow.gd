@@ -199,6 +199,157 @@ func _mostowski_chimneys() -> void:
 		_lbox(p.x, p.y, 1.04, 0.64, top + 1.04, top + 1.25, PAL_PALE_CONCRETE)
 
 
+# --- Hotel Saski, Plac Bankowy ---------------------------------------------------------------
+
+## The named outline with shallow wall offsets removed. The first edge is the square front.
+const HOTEL_SASKI_RING := [
+	Vector2(-1457.3, -846.4), Vector2(-1456.4, -868.6), Vector2(-1455.7, -872.8),
+	Vector2(-1452.6, -877.8), Vector2(-1448.0, -881.1), Vector2(-1442.4, -882.8),
+	Vector2(-1396.7, -889.1), Vector2(-1396.2, -886.1), Vector2(-1398.3, -844.1),
+]
+## GUGiK roof break and court walls. Each shoulder vertex matches an outer eave vertex.
+const HOTEL_SASKI_SHOULDER := [
+	Vector2(-1449.6, -851.4), Vector2(-1448.7, -868.8), Vector2(-1447.9, -870.8),
+	Vector2(-1445.9, -872.9), Vector2(-1443.6, -874.5), Vector2(-1439.1, -875.0),
+	Vector2(-1405.0, -880.1), Vector2(-1403.3, -879.7), Vector2(-1404.6, -850.4),
+]
+const HOTEL_SASKI_COURT := [
+	Vector2(-1442.5, -857.5), Vector2(-1442.6, -868.4), Vector2(-1427.8, -870.5),
+	Vector2(-1425.8, -872.6), Vector2(-1415.8, -872.4), Vector2(-1409.0, -869.4),
+	Vector2(-1409.6, -857.0),
+]
+const HOTEL_SASKI_EAVE := 16.1
+const HOTEL_SASKI_TOP := 20.2
+## Daylight colours sampled for the Hotel Saski photo front.
+const HOTEL_SASKI_WALL := Color("#e6dfcd")
+const HOTEL_SASKI_BASE := Color("#cfc6b0")
+const HOTEL_SASKI_TRIM := Color("#f3eee0")
+const HOTEL_SASKI_ROOF := Color("#5f6468")
+
+
+## Replace the full hotel at the mapped corner and retain the open court in its roof.
+func _build_hotel_saski(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["zone"][0]
+	var ring := PackedVector2Array(HOTEL_SASKI_RING)
+	var court := PackedVector2Array(HOTEL_SASKI_COURT)
+	var grade := (ring[0] + ring[1]) * 0.5
+	_g = map.terrain_height(grade.x, grade.y)
+	_mode = M_STONE
+	var foot := _ground_under(outline) - 0.6
+	_hotel_saski_shell(ring, foot)
+	_hotel_saski_court(court, foot)
+	_hotel_saski_roof(ring, court)
+	_hotel_saski_dormers(ring)
+	_collide(outline)
+	_collide(court)
+
+
+## Keep the plinth, string course and cornice continuous around the faceted corner.
+func _hotel_saski_shell(ring: PackedVector2Array, foot: float) -> void:
+	var top := _g + HOTEL_SASKI_EAVE
+	kit_ledge_ring(ring, foot, _g + 0.45 - foot, HOTEL_SASKI_BASE, 0.10)
+	kit_ledge_ring(ring, _g + 4.8, 0.20, HOTEL_SASKI_TRIM, 0.16)
+	kit_cornice_ring(ring, top - 0.36, HOTEL_SASKI_TRIM, 0.36, 0.38)
+	for i in ring.size():
+		var a := ring[(i + 1) % ring.size()]
+		var b := ring[i]
+		var width := kit_front(a, b)
+		if i == 0:
+			_hotel_saski_elevations(0.0, width, 6, true)
+			_hotel_saski_entrance(width)
+		elif i == 5 or i == 7:
+			_hotel_saski_elevations(0.0, width, roundi(width / 3.85))
+		elif i == ring.size() - 1:
+			# The south range shares its middle with the next building.
+			var returns: Array = [1.8, 5.4, 9.0, width - 10.0, width - 6.0, width - 2.0]
+			kit_panes(returns, [_g + 1.1, _g + 5.55], 1.44, 2.58, PAL_GLASS_DARK)
+			kit_panes(returns, [_g + 9.45], 1.30, 2.32, PAL_GLASS_DARK)
+			kit_panes(returns, [_g + 13.1], 1.12, 1.46, PAL_GLASS_DARK)
+		elif i != 6:
+			_hotel_saski_elevations(0.0, width, 1)
+		_wall(a, b, foot, _g + 4.8, _b, HOTEL_SASKI_BASE)
+		_wall(a, b, _g + 4.8, top, _b, HOTEL_SASKI_WALL)
+
+
+## Put tall arched openings under the first string course and shorter openings under the eaves.
+func _hotel_saski_elevations(u0: float, u1: float, bays: int, square := false) -> void:
+	kit_bands(u0 + 0.18, u1 - 0.18, _g + 0.45, _g + 4.74, 0.59, HOTEL_SASKI_BASE)
+	var glass := PAL_GLASS_DARK
+	for k in bays:
+		var u := lerpf(u0, u1, (float(k) + 0.5) / bays)
+		kit_face(0.045)
+		if square and k == 2:
+			kit_door(u, _g - 0.12, 4.22, 1.02, HOTEL_SASKI_TRIM, PAL_DARK_DOOR, true)
+		else:
+			kit_round_window(_w(u, 0.045), _a, _b, _g + 0.82, _g + 3.15,
+					0.79, HOTEL_SASKI_TRIM, glass)
+		kit_face(0.0)
+		var sash := HOTEL_SASKI_TRIM if square else Color.TRANSPARENT
+		kit_window(u, _g + 5.55, 2.72, Win.HOODED if square else Win.SILL_HEAD,
+				HOTEL_SASKI_TRIM, glass, 0.72, sash)
+		kit_window(u, _g + 9.45, 2.32, Win.FRAMED if square else Win.SILL,
+				HOTEL_SASKI_TRIM, glass, 0.65, sash)
+		kit_window(u, _g + 13.1, 1.46, Win.SILL, HOTEL_SASKI_TRIM, glass, 0.56, sash)
+
+
+## Pale pilasters and a shallow iron balcony mark the entrance on Plac Bankowy.
+func _hotel_saski_entrance(width: float) -> void:
+	var bay := width / 6.0
+	for i: int in [1, 2, 3, 4]:
+		kit_pilaster(i * bay, _g + 5.02, _g + 15.28, HOTEL_SASKI_TRIM, 0.53, 0.14)
+	kit_balcony(2.5 * bay, _g + 5.55, 1.26, Balcony.IRON, PAL_IRON, HOTEL_SASKI_TRIM, 0.73)
+
+
+## Face the walls into the open court and give its rebuilt ranges warmer brick and simple glazing.
+func _hotel_saski_court(court: PackedVector2Array, foot: float) -> void:
+	for i in court.size():
+		var a := court[i]
+		var b := court[(i + 1) % court.size()]
+		var width := kit_front(a, b)
+		var brick := i > 0 and i < 5
+		var wall := PAL_RED_BRICK.lerp(PAL_WARM_GRANITE, 0.34) if brick else PAL_WARM_GRANITE.lightened(0.2)
+		var bays := roundi(width / 3.45)
+		var cols: Array = []
+		for k in bays:
+			cols.append(width * (float(k) + 0.5) / bays)
+		var ground_cols := cols.duplicate()
+		if i == 0:
+			kit_door(float(cols[0]), _g - 0.12, 4.0, 1.15,
+					HOTEL_SASKI_TRIM, PAL_DARK_DOOR, true)
+			ground_cols.pop_front()
+		kit_panes(ground_cols, [_g + 1.05], 1.38, 2.65, PAL_GLASS_STEEL)
+		kit_panes(cols, [_g + 5.35, _g + 9.30, _g + 13.20, _g + 16.80],
+				1.38, 2.06, PAL_GLASS_STEEL)
+		if width > 4.0:
+			kit_ledge(0.13, width - 0.13, _g + 4.72, 0.19, wall.lightened(0.15), 0.09)
+		_wall(a, b, foot, _g + HOTEL_SASKI_TOP, _b, wall)
+
+
+## Join the street hips to a shallow deck that follows the measured roof break around the court.
+func _hotel_saski_roof(ring: PackedVector2Array, court: PackedVector2Array) -> void:
+	var eaves := _ring_out(ring, 0.29)
+	var shoulder := PackedVector2Array(HOTEL_SASKI_SHOULDER)
+	var top := _g + HOTEL_SASKI_TOP
+	_frustum(eaves, _g + HOTEL_SASKI_EAVE, shoulder, top, HOTEL_SASKI_ROOF)
+	_cap_holes(shoulder, [court], top, HOTEL_SASKI_ROOF.lightened(0.06))
+
+
+## Set the small attic openings into the lower roof slopes over the main street bays.
+func _hotel_saski_dormers(ring: PackedVector2Array) -> void:
+	for i: int in [0, 5]:
+		var width := kit_front(ring[i + 1], ring[i])
+		var bays := 6 if i == 0 else 12
+		for k in range(1, bays, 2):
+			var u := width * (float(k) + 0.5) / bays
+			var front := -1.7
+			var top := _g + 18.42
+			kit_face(front)
+			kit_window(u, _g + 17.35, 0.83, Win.SILL, HOTEL_SASKI_TRIM, PAL_GLASS_DARK, 0.45)
+			_prism(_rect(u, front - 0.99, 0.68, 0.99), _g + 16.51, top,
+					HOTEL_SASKI_TRIM, Color.TRANSPARENT, M_STONE)
+			_hip(u, front - 1.01, 0.79, 1.12, top, 0.68, HOTEL_SASKI_ROOF)
+
+
 # --- Pokorna 2: the residential tower by Muranów ---------------------------------------------
 
 ## F (2026-11-01): "Pokorna 2 looks strange, not as an apartment". OpenStreetMap has it as one

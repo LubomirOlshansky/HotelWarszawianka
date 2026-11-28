@@ -617,6 +617,9 @@ const INFO := {
 	"mostowski": ["Pałac Mostowskich",
 			"Cztery kolumny w portyku Corazziego witają od strony alei Solidarności. Odbudowany po wojnie pałac jest dziś siedzibą stołecznej policji.",
 			"Four columns in Corazzi’s portico greet you from al. Solidarności. Rebuilt after the war, the palace is now home to Warsaw’s police headquarters."],
+	"hotel_saski": ["Hotel Saski",
+			"Dawny hotel przy placu Bankowym, z dziedzińcem ukrytym za bramą.",
+			"The old hotel on Plac Bankowy hides a courtyard behind its gate."],
 	"dom_chlopa": ["Dom Chłopa",
 			"Hotel na placu Powstańców z lat 1958-61, zbudowany dla chłopów przyjeżdżających do stolicy. Falisty gzyms na dachu, zielony neon, kasyno na parterze.",
 			"The hotel on Plac Powstańców of 1958-61, built for farmers visiting the capital. A wavy roof edge, a green neon on top, a casino on the ground floor."],
@@ -1948,6 +1951,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_oxygen(s)
 			"mostowski":
 				_build_mostowski(s)
+			"hotel_saski":
+				_build_hotel_saski(s)
 			"dom_chlopa":
 				_build_dom_chlopa(s)  # over its street block: the wavy roof edge and the signs
 			"batalion_kilinski":

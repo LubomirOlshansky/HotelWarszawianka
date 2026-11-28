@@ -126,6 +126,7 @@ const SKINS := [
 	# over a dark stone and glass base, not a dark punched block.
 	{"key": "wolf_marszalkowska", "osm": "Wolf Marszałkowska", "mode": M_SKIN + float(S_BANDS) / 16.0, "wall": "#5f7a90", "roof": "#596066"},
 	{"key": "mostowski", "osm": "Pałac Mostowskich", "model": true, "mode": M_STONE, "wall": "#eee3c9", "roof": "#9a9ba2"},
+	{"key": "hotel_saski", "osm": "Hotel Saski", "model": true, "mode": M_STONE, "wall": "#e6dfcd", "roof": "#5f6468", "photo_front": "b12827"},
 ]
 
 
@@ -151,6 +152,8 @@ func _find_skins() -> void:
 		# `model`: the whole building is a model now (it replaces LoD2); the entry keeps its place in
 		# the site order (tap ids) and its wall colour for the skyline (tower_colour)
 		if t.get("model", false):
+			if t.has("photo_front") and not sites.is_empty() and sites[-1]["key"] == t["key"]:
+				sites[-1]["replaces_photo_front"] = t["photo_front"]
 			continue
 		if not sites.is_empty() and sites[-1]["key"] == t["key"]:
 			sites[-1]["skin"] = {"mode": M_MONUMENT_FLOOD if FLOODLIT_SITES.has(t["key"]) and t["mode"] == M_MONUMENT else t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
@@ -888,9 +891,13 @@ func _find_photo_fronts() -> void:
 	var list = JSON.parse_string(FileAccess.get_file_as_string(PF_PATH))
 	if not list is Array:
 		return
+	var replaced := {}
+	for site: Dictionary in sites:
+		if site.has("replaces_photo_front"):
+			replaced[site["replaces_photo_front"]] = true
 	for d: Dictionary in list:
 		# Whole-building sites that already supply their own frontages (Teatr Powszechny, Centrum Praha, Dom Poselski).
-		if str(d["id"]) in ["b12747", "b12642", "b7893"]:
+		if replaced.has(str(d["id"])) or str(d["id"]) in ["b12747", "b12642", "b7893"]:
 			continue
 		var key := "pf_" + str(d["id"])
 		_add_site(key, [_pts(d["outline"])])
