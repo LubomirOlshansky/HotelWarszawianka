@@ -605,6 +605,15 @@ const INFO := {
 	"nbp": ["NBP, Oddział Okręgowy",
 			"Oddział Narodowego Banku Polskiego przy placu Powstańców: długi dom w ciemnych, pochylonych blachach, szklany parter na tarasie, szerokie granitowe schody. Tu pieniądze śpią, zanim pójdą w miasto.",
 			"The National Bank's Warsaw branch on Plac Powstańców: a long block in dark, leaning metal panels, a glass ground floor on a terrace, a wide flight of granite steps. The money sleeps here before it goes out into the city."],
+	"city_gate": ["City Gate",
+			"Biurowiec przy Wolskiej: białe pasy na wygiętym szkle.",
+			"An office block on Wolska: white bands on curved glass."],
+	"meridian": ["Meridian",
+			"Jasne skrzydła z balkonami wokół otwartego dziedzińca.",
+			"Pale wings with balconies round an open courtyard."],
+	"oxygen": ["Oxygen",
+			"Zaokrąglone narożniki, pasy okien, a z góry tarasy.",
+			"Rounded corners, ribbons of windows and terraces on top."],
 	"mostowski": ["Pałac Mostowskich",
 			"Cztery kolumny w portyku Corazziego witają od strony alei Solidarności. Odbudowany po wojnie pałac jest dziś siedzibą stołecznej policji.",
 			"Four columns in Corazzi’s portico greet you from al. Solidarności. Rebuilt after the war, the palace is now home to Warsaw’s police headquarters."],
@@ -1931,6 +1940,12 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_sad_okregowy(s)
 			"nbp":
 				_build_nbp(s)  # the whole branch (SKINS entry with `model`: it replaces LoD2)
+			"city_gate":
+				_build_city_gate(s)
+			"meridian":
+				_build_meridian(s)
+			"oxygen":
+				_build_oxygen(s)
 			"mostowski":
 				_build_mostowski(s)
 			"dom_chlopa":
