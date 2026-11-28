@@ -342,62 +342,111 @@ static func palace_source() -> String:
 	return env if env != "" else "blender"
 
 
+## The glb that `palace_source` names (LOD 1 for "blender1", else LOD 0).
+static func palace_glb_path() -> String:
+	return "res://models/pkin/pkin_lod%d.glb" % (1 if palace_source() == "blender1" else 0)
+
+
+## The Palace glb's surfaces, read once on the main thread and kept for every sector build after:
+## path -> [{"mat": the material's name, "vs", "ns", "uv", "uv2", "idx"}], [] when the file is
+## missing. Why (the runtime city's hang, 2026-11-28): `load` and `Mesh.surface_get_arrays` are
+## synchronous calls into the RenderingServer, which on the streamer's worker wait for the main
+## thread; the main thread blocks joining the worker on a jump or a quit (sector_streamer.gd
+## `_join_worker`), so the build of the Palace's sector never ended (since #1100 made the glb the
+## default). The Landmarks constructor fills it (`warm_palace_glb`), on the main thread.
+static var _glb_surfaces: Dictionary = {}
+static var _glb_lock := Mutex.new()
+
+
+## Reads the glb that the Palace is built from into `_glb_surfaces`. Called by landmarks.gd's
+## constructor (the main thread) so no sector build reads the file on the worker.
+static func warm_palace_glb() -> void:
+	if palace_source() != "code":
+		palace_glb_surfaces(palace_glb_path())
+
+
+## The surfaces of the glb at `path`, from `_glb_surfaces`; read here when not there yet, on the
+## main thread only: on another thread an unread glb gives [] (the code model is built, with a
+## warning) rather than a read that can wait for a blocked main thread for ever.
+static func palace_glb_surfaces(path: String) -> Array:
+	_glb_lock.lock()
+	var have: Variant = _glb_surfaces.get(path)
+	_glb_lock.unlock()
+	if have != null:
+		return have
+	if OS.get_thread_caller_id() != OS.get_main_thread_id():
+		push_warning("palace: %s not read on the main thread (warm_palace_glb), building the code model" % path)
+		return []
+	var out: Array = []
+	if not ResourceLoader.exists(path):
+		push_warning("palace: %s missing, building the code model" % path)
+	else:
+		var scene: Node = (load(path) as PackedScene).instantiate()
+		for node: Node in scene.find_children("*", "MeshInstance3D", true, false):
+			var mesh := (node as MeshInstance3D).mesh
+			for si in mesh.get_surface_count():
+				var mat := mesh.surface_get_material(si)
+				var arr := mesh.surface_get_arrays(si)
+				var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+				var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+				if idx.is_empty():
+					idx = PackedInt32Array(range(vs.size()))
+				out.append({"mat": mat.resource_name if mat else "M3_d8c49c", "vs": vs,
+						"ns": arr[Mesh.ARRAY_NORMAL] as PackedVector3Array, "uv": arr[Mesh.ARRAY_TEX_UV] as PackedVector2Array,
+						"uv2": arr[Mesh.ARRAY_TEX_UV2] as PackedVector2Array, "idx": idx})
+		scene.free()
+	_glb_lock.lock()
+	_glb_surfaces[path] = out
+	_glb_lock.unlock()
+	return out
+
+
 ## The Palace from the Blender model: every triangle of the glb into the city mesh with the
 ## material code and colour its material name carries (`M<code>_<rrggbb>`), the wall UVs from
 ## UV, the wall's top from UV2.y, and the glb's own normals (round columns and the drum shade
 ## smooth). The clocks, the gates, the collision and the venues stay in code. False if the
 ## file is missing (the code model is built instead).
 func _palace_glb(outer: PackedVector2Array, g: float) -> bool:
-	var path := "res://models/pkin/pkin_lod%d.glb" % (1 if palace_source() == "blender1" else 0)
-	if not ResourceLoader.exists(path):
-		push_warning("palace: %s missing, building the code model" % path)
+	var surfaces := palace_glb_surfaces(palace_glb_path())
+	if surfaces.is_empty():
 		return false
-	var scene: Node = (load(path) as PackedScene).instantiate()
-	var meshes := scene.find_children("*", "MeshInstance3D", true, false)
-	for node: Node in meshes:
-		var mesh := (node as MeshInstance3D).mesh
-		for si in mesh.get_surface_count():
-			var mat := mesh.surface_get_material(si)
-			var parts := (mat.resource_name if mat else "M3_d8c49c").trim_prefix("M").split("_")
-			var mode := float(parts[0])
-			var col := Color("#" + parts[1])
-			var arr := mesh.surface_get_arrays(si)
-			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
-			var ns: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
-			var uv: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV]
-			var uv2: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV2]
-			var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
-			if idx.is_empty():
-				idx = PackedInt32Array(range(vs.size()))
-			_mode = mode
-			for t in range(0, idx.size(), 3):
-				var p: Array[Vector3] = []
-				var n: Array[Vector3] = []
-				var u: Array[Vector2] = []
-				for k in 3:
-					var i := idx[t + k]
-					var q := vs[i]
-					var w := _w(q.x, q.z)
-					p.append(Vector3(w.x, g + q.y, w.y))
-					var nq := ns[i]
-					var nw := _a * nq.x + _b * nq.z
-					n.append(Vector3(nw.x, nq.y, nw.y).normalized())
-					# glTF flips V (v' = 1 - v): turn the metres above the ground back.
-					u.append(Vector2(-1.0, -1.0) if uv[i].x < 0.0 else Vector2(uv[i].x, 1.0 - uv[i].y))
-				var top := 1.0 - uv2[idx[t]].y
-				# The projector's terrace height (tools/blender/pkin.py lamp_level) into the vertex
-				# alpha, 0.75 + metres / 1024: building.gdshader's floodlight() fades the light up
-				# from it. Alpha 1 (every other model) keeps the shader's own falloff.
-				col.a = 0.75 + clampf(uv2[idx[t]].x, 0.0, 250.0) / 1024.0
-				var fn := (p[1] - p[0]).cross(p[2] - p[0])
-				if fn.length_squared() < 1e-10:
-					continue
-				fn = fn.normalized()
-				# The glb's winding is outward: keep the face normal on the side the corners face.
-				if fn.dot(n[0] + n[1] + n[2]) < 0.0:
-					fn = -fn
-				_tri_smooth(p, n, fn, col, u, top)
-	scene.free()
+	for surf: Dictionary in surfaces:
+		var parts := str(surf["mat"]).trim_prefix("M").split("_")
+		var mode := float(parts[0])
+		var col := Color("#" + parts[1])
+		var vs: PackedVector3Array = surf["vs"]
+		var ns: PackedVector3Array = surf["ns"]
+		var uv: PackedVector2Array = surf["uv"]
+		var uv2: PackedVector2Array = surf["uv2"]
+		var idx: PackedInt32Array = surf["idx"]
+		_mode = mode
+		for t in range(0, idx.size(), 3):
+			var p: Array[Vector3] = []
+			var n: Array[Vector3] = []
+			var u: Array[Vector2] = []
+			for k in 3:
+				var i := idx[t + k]
+				var q := vs[i]
+				var w := _w(q.x, q.z)
+				p.append(Vector3(w.x, g + q.y, w.y))
+				var nq := ns[i]
+				var nw := _a * nq.x + _b * nq.z
+				n.append(Vector3(nw.x, nq.y, nw.y).normalized())
+				# glTF flips V (v' = 1 - v): turn the metres above the ground back.
+				u.append(Vector2(-1.0, -1.0) if uv[i].x < 0.0 else Vector2(uv[i].x, 1.0 - uv[i].y))
+			var top := 1.0 - uv2[idx[t]].y
+			# The projector's terrace height (tools/blender/pkin.py lamp_level) into the vertex
+			# alpha, 0.75 + metres / 1024: building.gdshader's floodlight() fades the light up
+			# from it. Alpha 1 (every other model) keeps the shader's own falloff.
+			col.a = 0.75 + clampf(uv2[idx[t]].x, 0.0, 250.0) / 1024.0
+			var fn := (p[1] - p[0]).cross(p[2] - p[0])
+			if fn.length_squared() < 1e-10:
+				continue
+			fn = fn.normalized()
+			# The glb's winding is outward: keep the face normal on the side the corners face.
+			if fn.dot(n[0] + n[1] + n[2]) < 0.0:
+				fn = -fn
+			_tri_smooth(p, n, fn, col, u, top)
 	_mode = M_STONE
 	# What stays in code: the car's collision, the clocks, the courtyard gates, the venues.
 	_collide(outer)

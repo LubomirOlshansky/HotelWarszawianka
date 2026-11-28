@@ -84,6 +84,9 @@
 # `heightthreads` runs game/tools/check_height_threads.gd (the NaN car, 2026-11-16): the map's
 # heights read on the main thread give the same number while another thread reads heights and
 # builds sectors, as the runtime city's streamer does (~40 s, map index).
+# `workerbuild` runs game/tools/check_worker_build.gd (the runtime city's hang, 2026-11-28): the
+# Palace's sector builds on a second thread while the main thread only waits, as the streamer's
+# `_join_worker` does; a build reading a file there (the Palace's glb) used to wait for ever (~40 s).
 # `tiers` and `governor` (loop G1): the device tiers and the pixel image's size rule, and the
 # frame governor's rules on scripted frames. `shaderbudget` (2026-11-08): every spatial shader
 # under the Adreno 6xx driver's control-flow limit (check_shader_budget.gd, source only). `heliview` (GAMEPLAY_PLAN 3.1): the helicopter's framing
@@ -1570,6 +1573,7 @@ for s in $want; do
 		oldtowndrive) check oldtowndrive '^check_old_town_drive:' --fixed-fps 60 --script res://tools/check_old_town_drive.gd ;;
 		finite) check finite '^check_finite:' --fixed-fps 60 --script res://tools/check_finite.gd ;;
 		heightthreads) check heightthreads '^check_height_threads:' --script res://tools/check_height_threads.gd ;;
+		workerbuild) check workerbuild '^check_worker_build:' --script res://tools/check_worker_build.gd ;;
 		steering) check steering 'check_steering:' --fixed-fps 60 --script res://tools/check_steering.gd ;;
 		colliderules) check colliderules '^check_collide_rules:' --fixed-fps 60 --script res://tools/check_collide_rules.gd ;;
 		stats) check stats '^check_stats:' --script res://tools/check_stats.gd ;;
