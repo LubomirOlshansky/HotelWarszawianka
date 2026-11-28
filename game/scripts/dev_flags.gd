@@ -248,6 +248,10 @@ var tapczan_flag := ""
 ## Bokiem na Narodowym, the grey box (drift_stadium.gd): --drift=osemka (straight in),
 ## --drift=osemka:bot (the decent bot drives), --drift=osemka:pose:H:B (posed for the wedge's shots),
 ## a last `:top` (WIDOK Z GÓRY) or `:wide` (the whole stadium, PR 2), --drift=0 (none). Any of them logs the run ("drift: ...").
+## PR 3, the side quest (drift_event.gd): --drift=quest (the gate forced open, Darek calls at once),
+## --drift=quest:bot (the whole quest plays itself: the call, the car put at the gate, the warm-up, the
+## qualifying and the final with the decent bot, every card pressed; "drift: quest over: ..."),
+## --drift=final:bot (the same as a rematch: straight to the final).
 var drift_flag := ""
 var tapczan_log := false
 var _crawl_auto := false

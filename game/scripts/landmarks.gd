@@ -31,6 +31,8 @@ extends "res://scripts/landmarks/niecala.gd"
 ## paler than life for the game's palette. The Rondo Daszyńskiego towers (Spire, Skyliner, Unit,
 ## Mennica, Generation Park Y, the HUB) are the exception: dark navy glass as in life (F's photos,
 ## 2026-11-17: the light blue read wrong next to them).
+const ChunkedSurface := preload("res://scripts/chunked_surface.gd")
+
 const TOWERS := [
 	{"key": "zlota44", "osm": "Złota 44", "style": S_SAIL, "glass": "#bccdd8", "roof": "#e4e8ea", "crest": "slope"},
 	{"key": "spire", "osm": "Warsaw Spire", "style": S_MIRROR, "glass": "#2f4562", "roof": "#b9c4cc",
@@ -546,6 +548,12 @@ const INFO := {
 	"polskie_radio": ["Polskie Radio",
 			"Siedziba Polskiego Radia przy Myśliwieckiej, tuż obok Agrykoli.",
 			"Polish Radio headquarters on Myśliwiecka, right beside Agrykola."],
+	"dom_poselski": ["Dom Poselski",
+			"Hotel posłów przy Sejmie.",
+			"The deputies' hotel by the Sejm."],
+	"stary_dom_poselski": ["Stary Dom Poselski",
+			"Przedwojenny gmach przy Sejmie z okrągłym narożnikiem na Wiejskiej.",
+			"Pre-war Sejm building with a rounded corner on Wiejska."],
 	"sobieski": ["Radysław Blu",
 			"Hotel przy placu Zawiszy, w kolorowych pasach.",
 			"A hotel on Plac Zawiszy, in colourful bands."],
@@ -1524,6 +1532,8 @@ func _find_sites() -> void:
 	_find_hotels()
 	_find_ujazdowski()
 	_find_polskie_radio()
+	_find_dom_poselski()
+	_find_stary_dom_poselski()
 	# F's ask (2026-11-01): Norblin, Browary Warszawskie, Hala Koszyki, Elektrownia Powiśle.
 	_find_works()
 	# F's ask (2026-11-02, CITY_INVENTORY #21): the Warsaw Rising Museum, from the Mac's photos.
@@ -1707,6 +1717,13 @@ func _find_sites() -> void:
 ## `only` (the mesh-quality check, loop 0.1): build just the site with this key.
 func build(surface, near := Rect2(), only := "") -> void:
 	st = surface
+	# What this build keeps: a sector's own tiles (chunked_surface.gd `only`) when it has them,
+	# else `near`; the market skips the parts that reach none of it (jarmark.gd _jm_here).
+	_near = near
+	var tiles = surface.get("only") if near.has_area() else null
+	if tiles is Rect2i and (tiles as Rect2i).has_area():
+		var tile: float = ChunkedSurface.TILE
+		_near = Rect2(Vector2((tiles as Rect2i).position) * tile, Vector2((tiles as Rect2i).size) * tile)
 	pocket_rings.clear()
 	_pick.resize(map._roof_nx * map._roof_nz * 2)
 	_pick.fill(0)
@@ -2028,6 +2045,10 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_ujazdowski(s)
 			"polskie_radio":
 				_build_polskie_radio(s)
+			"dom_poselski":
+				_build_dom_poselski(s)
+			"stary_dom_poselski":
+				_build_stary_dom_poselski(s)
 			"sobieski":
 				_build_sobieski(s)
 			"bristol":

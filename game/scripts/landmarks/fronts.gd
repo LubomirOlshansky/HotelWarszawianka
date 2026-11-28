@@ -211,6 +211,7 @@ const LM_BLOCKS := [
 	"947208951",  # Meridian: the whole office model includes its street front (wola.gd `meridian`)
 	"2892939",  # Oxygen: the whole office ring is built in wola.gd (`oxygen`)
 	"947207781",  # City Gate: the whole curved office is built in wola.gd (`city_gate`)
+	"964367459",  # Stary Dom Poselski: rebuilt whole in ujazdow.gd (`stary_dom_poselski`)
 ]
 
 
@@ -884,8 +885,8 @@ func _find_photo_fronts() -> void:
 	if not list is Array:
 		return
 	for d: Dictionary in list:
-		# Whole-building sites that already supply their own frontages (Teatr Powszechny, Centrum Praha).
-		if str(d["id"]) in ["b12747", "b12642"]:
+		# Whole-building sites that already supply their own frontages (Teatr Powszechny, Centrum Praha, Dom Poselski).
+		if str(d["id"]) in ["b12747", "b12642", "b7893"]:
 			continue
 		var key := "pf_" + str(d["id"])
 		_add_site(key, [_pts(d["outline"])])

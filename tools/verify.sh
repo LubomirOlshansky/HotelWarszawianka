@@ -193,6 +193,12 @@
 # game/tools/check_drift.gd: the drift model (M), the one-thumb input (I), the score (S) and the bots on
 # Ósemka (B: Q_LINE from the follower bot, the fixed-pulse sweep, hold-only, bank-at-crossovers), no
 # scene, ~6 s. `drift-run` (full set only) plays the practice in the whole game with the decent bot.
+# PR 3, the side quest (2026-11-27): `drift-event` runs game/tools/check_drift_event.gd: the final's
+# tandem (T: the gap, BLISKO, KONTAKT, no passing, his chase's cap, PREZENT!, shallow pulls away and deep
+# is caught, the finals by skill, the cut) and the event on stand-ins (E1-E7: the gate, the call and the
+# ring, the pay, the never-again rule, the rematch, ✕, the chase, the words; W the warm-up), ~15 s.
+# `drift-quest` (full set only) plays the whole quest in the game: --drift=quest:bot --prebuilt (the phone's
+# path; on the runtime build the teleport to the gate hangs the sector streamer, see the change note), its `quest over` line.
 # Sekretny rave (2026-11-06): `rave` runs game/tools/check_rave.gd: the cone, booth and club-room meshes,
 # LEKTI's, Mati's, the door's and the club's lines (no brand), the rave clock, the door's three
 # questions, the lights' poses, the spots and Smoła on the real lane graph; centrum.json only (CI too).
@@ -1678,6 +1684,7 @@ for s in $want; do
 		palmtasting) check palmtasting '^check_palm_tasting:' --script res://tools/check_palm_tasting.gd -- --nosave ;;
 		tapczan) check tapczan '^check_tapczan:' --script res://tools/check_tapczan.gd ;;
 		drift) check drift '^check_drift:' --script res://tools/check_drift.gd ;;
+		drift-event) check drift-event '^check_drift_event:' --fixed-fps 60 --script res://tools/check_drift_event.gd ;;
 		# Za deckami, stage A: the DJ game's rules, tracks and tuning; four bots against the design's targets.
 		decks) check decks '^check_decks:' --script res://tools/check_decks.gd ;;
 		# Dead electric cars: the TESŁO, the lines, the sling, the chargers on the real graph.
@@ -1844,6 +1851,7 @@ for s in $want; do
 		tajny-run) game tajny-run 19000 '^tajny klient: beat done' --tajny --autopilot ;;
 		tapczan-run) game tapczan 12000 '^tapczan: out: won' --tapczan=pong --tapczan-log ;;
 		drift-run) game drift 4500 '^drift: run over' --drift=osemka:bot ;;
+		drift-quest) skip_prebuilt "run: drift-quest" || game drift-quest 30000 '^drift: quest over: won' --drift=quest:bot --prebuilt ;;
 		decks-run) game decks 12000 '^decks: over: PIEC' --decks --decks-bot=perfect --decks-log ;;
 		shisha-run) game shisha 30000 '^shisha: done: smoke' --shisha-call --shisha-log --autopilot ;;
 		# Loop 2d-1 x 3g-1: a pull-over 25 s into that ride takes exactly one star (police.gd calls

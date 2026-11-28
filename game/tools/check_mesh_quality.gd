@@ -116,6 +116,8 @@ const BUDGET := {
 	"polonia": 1450,
 	"ujazdowski": 1650,
 	"polskie_radio": 3000,
+	"dom_poselski": 5000,
+	"stary_dom_poselski": 7000,
 	"sobieski": 1500,
 	"vitkac": 2600,  # 2026-11-21 teaser 4 (F's photo): rounded granite corners, glass ribbons, shop glass and mullions, the glass top storey and its bar terrace: 2403 tris
 	"jablkowscy": 1450,
