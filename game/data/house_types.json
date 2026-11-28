@@ -452,7 +452,8 @@
 				"5": 8,
 				"1": 2
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 0.75
 		},
 		{
 			"id": "sciana_wschodnia",
@@ -471,7 +472,8 @@
 				"11": 6,
 				"7": 4
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 0.6
 		},
 		{
 			"id": "za_zelazna_brama",
@@ -491,7 +493,8 @@
 				"8": 20,
 				"10": 25
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 1.0
 		},
 		{
 			"id": "stawki",
@@ -511,7 +514,8 @@
 				"8": 20,
 				"10": 20
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 1.0
 		},
 		{
 			"id": "muranow",
@@ -531,7 +535,8 @@
 				"7": 10,
 				"13": 15
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 1.0
 		},
 		{
 			"id": "wola_offices",
@@ -551,7 +556,8 @@
 				"13": 4,
 				"11": 2
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 0.55
 		},
 		{
 			"id": "mirow",
@@ -571,7 +577,8 @@
 				"9": 3,
 				"13": 4
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 1.0
 		},
 		{
 			"id": "srodmiescie_polnoc",
@@ -592,7 +599,8 @@
 				"1": 20,
 				"13": 20
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 0.75
 		},
 		{
 			"id": "solec_ludna",
@@ -612,7 +620,8 @@
 				"9": 5,
 				"13": 2
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 1.0
 		},
 		{
 			"id": "powisle",
@@ -633,7 +642,8 @@
 				"7": 2,
 				"13": 2
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 1.0
 		},
 		{
 			"id": "ujazdow",
@@ -653,7 +663,8 @@
 				"3": 3,
 				"11": 2
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 0.65
 		},
 		{
 			"id": "srodmiescie_poludnie",
@@ -673,7 +684,8 @@
 				"3": 10,
 				"13": 5
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 1.0
 		},
 		{
 			"id": "ochota",
@@ -693,7 +705,8 @@
 				"1": 2,
 				"9": 2
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 1.0
 		},
 		{
 			"id": "port_praski",
@@ -712,7 +725,8 @@
 				"13": 6,
 				"2": 4
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 0.8
 		},
 		{
 			"id": "praga_polnoc",
@@ -733,7 +747,8 @@
 				"13": 10,
 				"15": 10
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 1.0
 		},
 		{
 			"id": "kamionek",
@@ -753,7 +768,8 @@
 				"2": 3,
 				"13": 3
 			},
-			"grey_override": true
+			"grey_override": true,
+			"parked": 1.0
 		}
 	]
 }

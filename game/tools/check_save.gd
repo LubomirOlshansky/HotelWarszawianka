@@ -165,6 +165,7 @@ func _round_trip() -> void:
 	w.districts = {"powisle": 20261031, "srodmiescie": 20261030}
 	w.syrenki = {"s01": 20261031}
 	w.intro = {"finger": 20261031, "end_seen": 20261031}  # loop 3h slice 4
+	w.napkin = {"plan_c": 20261126, "karowa": 20261127}  # the napkin (story-structure, 2026-11-26)
 	w.district = "powisle"
 	# Step 7: the smash counters (soft_things.gd), in [keep], saved with the next save.
 	w.count_smash("fence")
@@ -187,11 +188,12 @@ func _round_trip() -> void:
 			and b.keep == w.keep and b.tracks == w.tracks, "round trip of the v1 sections: %s" % b.summary())
 	_expect(b.district == "", "the district now is not saved: %s" % b.district)
 	_expect(b.intro == w.intro, "round trip of [intro] (loop 3h slice 4): %s" % b.intro)
+	_expect(b.napkin == w.napkin, "round trip of [napkin] (story-structure): %s" % b.napkin)
 	_expect(b.smashed("fence") == 2 and b.smashed("hedge") == 1 and b.smashed("wall") == 0,
 			"round trip of the smash counters (step 7): fence %d, hedge %d" % [b.smashed("fence"), b.smashed("hedge")])
 	_expect(b.pushed_cars() == 3, "round trip of the pushed cars' counter (step 8a): %d" % b.pushed_cars())
 	b.reset()
-	_expect(b.districts.is_empty() and b.district_jobs.is_empty() and b.syrenki.is_empty() and b.intro.is_empty() and b.zl == 0, "reset() left %s" % b.summary())
+	_expect(b.districts.is_empty() and b.district_jobs.is_empty() and b.syrenki.is_empty() and b.intro.is_empty() and b.napkin.is_empty() and b.zl == 0, "reset() left %s" % b.summary())
 	_expect(b.smashed("fence") == 0, "reset() left the smash counters: %d" % b.smashed("fence"))
 	_expect(b.pushed_cars() == 0, "reset() left the pushed cars' counter: %d" % b.pushed_cars())
 	w.free()

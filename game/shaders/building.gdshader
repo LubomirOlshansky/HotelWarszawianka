@@ -832,13 +832,20 @@ vec3 glass_roof(vec3 col, vec2 xz, vec2 uv, float param, out vec3 glow) {
 	vec2 f = abs(fract(d) - 0.5);
 	vec2 b = -2.0 - uv;
 	float edge = min(min(b.x, b.y), 1.0 - b.x - b.y);
-	float panes = step(0.25, param);
+	// Param 0.75: an unlit gallery roof (Muzeum Sztuki Nowoczesnej, F's night photos 2026-11-26):
+	// the grid of the plain roof, but dark at night but for a few faintly lit cool panels.
+	float unlit = step(0.7, param);
+	float panes = step(0.25, param) * (1.0 - unlit);
 	float bar = mix(step(0.43, max(f.x, f.y)), step(edge, 0.035), panes);
 	vec3 sky = srgb_to_linear(sky_colour);
 	float n = value_noise(xz * 0.035);
 	vec3 c = mix(col * mix(0.4, 0.95, daylight), sky, mix(0.12 + 0.2 * n, 0.18 + 0.32 * n, panes));
 	c = mix(c, mix(c, srgb_to_linear(vec3(0.93, 0.93, 0.9)), mix(0.7, 0.45, panes) * daylight + 0.1), bar);
 	float lit = step(0.001, lights_on);
+	if (unlit > 0.5) {
+		glow = lit * step(0.92, hash12(floor(d))) * (1.0 - bar) * vec3(0.5, 0.56, 0.62) * 0.3;
+		return c * mix(1.0, 0.5, lit);
+	}
 	vec3 warm = mix(WARM_PALE, vec3(1.0, 0.85, 0.55), n) * (0.55 + 0.35 * hash12(floor(d)));
 	// Param 0.5 at night (F, 2026-11-13, his Varso photo): the whole wave glows warm gold from the
 	// mall under it. The steel frame is the brightest (the lattice reads as gold lines), each
@@ -914,15 +921,37 @@ vec3 gothic(vec3 col, float u, float h, float top, vec3 wp, float lit, out vec3 
 	return c;
 }
 
+// Krakowskie Przedmieście's floodlit palaces (F's night photos, 2026-11-26): a warm cream-white
+// wash from lamps on the pavement, brightest on the ground floor, fading up the walls, the
+// cornice caught again at the top. A factor on the lit surface's own colour (`h` metres up the
+// wall, `top` its top).
+vec3 palace_flood(float h, float top) {
+	vec3 warm = vec3(1.0, 0.84, 0.62);
+	float low = 0.36 + 0.4 * exp(-max(h, 0.0) / 6.0);
+	float edge = smoothstep(top - 2.5, top - 0.3, h) * 0.18;
+	return warm * (low + edge);
+}
+
 vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, vec3 wp, out vec3 glow, out bool cut) {
 	glow = vec3(0.0);
 	cut = false;
 	if (mode == M_MONUMENT) {
-		return wall ? monument(col, uv.x, uv.y, top, glow) : col * (0.94 + 0.08 * value_noise(wp.xz * 1.7));
+		if (!wall) {
+			return col * (0.94 + 0.08 * value_noise(wp.xz * 1.7));
+		}
+		vec3 m = monument(col, uv.x, uv.y, top, glow);
+		// M_MONUMENT_FLOOD (fraction 0.5): a floodlit palace (facade_kit.gd FLOODLIT_SITES).
+		glow += m * palace_flood(uv.y, top) * step(0.25, param);
+		return m;
 	} else if (mode == M_STONE) {
 		float grain = 0.95 + 0.07 * value_noise(wp.xz * 2.1 + wp.y * 1.3);
 		// M_STONE_LIT (fraction 0.5): stone washed by floodlights at night (the Cathedral's gable panels).
-		glow = col * vec3(1.0, 0.8, 0.56) * step(0.25, param) * 0.55;
+		// M_STONE_FLOOD (fraction 0.75): a floodlit palace's stone, walls only, brightest low.
+		if (param > 0.6) {
+			glow = wall ? col * palace_flood(uv.y, top) : vec3(0.0);
+		} else {
+			glow = col * vec3(1.0, 0.8, 0.56) * step(0.25, param) * 0.55;
+		}
 		if (all(bvec3(wall, top > 2.0, uv.y > top - 0.5))) {
 			return col * 1.12;
 		}

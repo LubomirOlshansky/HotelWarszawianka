@@ -10,8 +10,8 @@ queue, with logic too."
 
 The screenshot (a race to the car park under the stadium, with the police after the car) had six
 texts up at once over the road: the radio's news (KEBAB FM, a fender bender on Aleje), the
-app-taxi's GPS joke (Podwózka), the race card (two-line title, the metres, the hint and an empty
-English line), the police pill, the partner's bubble (Darek „Bawarka") and the TYGRAM pin. None of
+app-taxi's GPS joke (Łuber), the race card (two-line title, the metres, the hint and an empty
+English line), the police pill, the partner's bubble (Darek „Bawarka") and the COTAM pin. None of
 them knew about the others: each script decided on its own that its line mattered.
 
 ## 1. What talks today (the inventory)
@@ -23,10 +23,10 @@ About fifty scripts put text on screen through seven channels:
 | Speech bubbles | `bubbles.say`, `dialogue.say`, `say_reaction`, `say_ambient` | quests and partners, police and guards, rivals, crowds, buses, fans, packs, loud cars, crash scenes, GPS moments, eggs (≈30 scripts) | over the speaker, kept off the HUD |
 | Radio ticker | `hud.ticker` from radio.gd (`announce`) | the host (dialogue.gd), crash scenes, crazy drivers, loud cars, EV tow, police radio, rave password, track and station captions | bottom left |
 | Toasts | `hud.toast`, `hud.ambient_toast` | every quest's feedback (≈150 calls), flavour (packs, fans, wellness, city life) | bottom centre |
-| Notes and info cards | `hud.show_note`, `hud.show_info` | easter eggs, notebook, districts, syrenki, cassettes, tape, storefronts, the TYGRAM pin; a tapped landmark | right column |
+| Notes and info cards | `hud.show_note`, `hud.show_info` | easter eggs, notebook, districts, syrenki, cassettes, tape, storefronts, the COTAM pin; a tapped landmark | right column |
 | Cards | `show_card`, `show_side_card` | offers, results, calls (ODBIERZ / ODRZUĆ), story answers | top centre or right column |
 | Quest status | `show_status` | every running quest, race and ride | top right |
-| Prompts and alerts | `show_challenge`, `show_banner`, `police_pill`, the context button (`show_pill`) | rivals and couriers, countdowns, the police, calls, Podwózka, the tow | bottom centre, middle, top centre, top row |
+| Prompts and alerts | `show_challenge`, `show_banner`, `police_pill`, the context button (`show_pill`) | rivals and couriers, countdowns, the police, calls, Łuber, the tow | bottom centre, middle, top centre, top row |
 
 The layout (hud.gd `_layout`) already keeps panels from covering each other, and the chatter budget
 (chatter.gd, 2026-11-03) already caps the bubbles. What was missing is the game's state: a radio
@@ -47,7 +47,7 @@ One small pure object, owned by the HUD (`hud.messages`), decides every line: **
 | FOCUS | a scripted moment (the drag's rev counter: `hush`) |
 
 **Priorities**, low to high: AMBIENT (flavour toasts), RADIO (the host, the news, a new track), INFO
-(easter eggs, a district found), QUEST_LINE (a quest's own message: the TYGRAM pin), ALERT (a result,
+(easter eggs, a district found), QUEST_LINE (a quest's own message: the COTAM pin), ALERT (a result,
 a warning, the player's own action such as a station they picked).
 
 **The rules** (the lowest priority each channel shows at once):
@@ -129,9 +129,9 @@ breathes while it is up. The same for the couriers ("WYŚCIG · PĘDZIK") and a 
 
 ## 6. The ride app during quests
 
-PR #646 (open when this was written) keeps PODWÓZKA off the context button while any mission, race,
+PR #646 (open when this was written) keeps ŁUBER off the context button while any mission, race,
 job, questline or tour runs (rides.gd `mission_on`). The director adds the other half: with a quest
-on, Podwózka's GPS jokes (ambient now) keep quiet too.
+on, Łuber's GPS jokes (ambient now) keep quiet too.
 
 ## 7. How to add a new message
 
@@ -149,7 +149,7 @@ on, Podwózka's GPS jokes (ambient now) keep quiet too.
 
 ## Open questions (parked in docs/QUESTIONS.md)
 
-- Rides (Podwózka) count as a quest, so the radio host keeps quiet during a ride. If F wants the
+- Rides (Łuber) count as a quest, so the radio host keeps quiet during a ride. If F wants the
   radio on a ride, rides move to their own context (radio on, flavour off).
 - The hint folds after a few seconds in every quest. If a quest's hint is a standing instruction F
   wants kept, that quest can pin it.

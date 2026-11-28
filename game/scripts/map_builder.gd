@@ -534,6 +534,32 @@ static func sector_name(key: Vector2i) -> String:
 	return "s_%d_%d" % [key.x, key.y]
 
 
+## The quit fix (CI's firstlife EXIT HANG, 2026-11-27): set by the main thread when the game quits
+## (sector_streamer.gd _exit_tree) while a sector builds on the worker. The build stops at its next
+## step (`_cancelled`) and hands back a partial root, which the streamer frees; without it the main
+## thread waited up to a whole sector's build (33-63 s on 2 cores, more on a slow runner) before it
+## could exit. Only a sector build reads it; a whole-map build (bake_city, the editor) never stops.
+var cancel_build := false
+
+
+## Whether a sector build was told to stop (`cancel_build`).
+func _cancelled() -> bool:
+	return cancel_build and _in_sector
+
+
+## `_cancelled` inside the flat layers: the drape's state goes back to what it is between builds
+## (check_stream_quit.gd builds a sector after a stopped one and compares it with a fresh build).
+func _flat_cancelled() -> bool:
+	if not _cancelled():
+		return false
+	_cover_on = false
+	_cover_reset()
+	_drape_bias = -1.0
+	_dk = -1
+	_layer = L_GROUND
+	return true
+
+
 ## Loop 3c: one sector from map/sectors/<i>_<j>.json, under a new node (not in the tree):
 ## ground, roads and markings, buildings and the landmarks' parts in it, trees, lamps,
 ## signals, parked cars and props, and its colliders. Its cells of the roof and picking grids
@@ -576,7 +602,7 @@ func build_sector(key: Vector2i, roofs_only := false, merge := true) -> Node3D:
 		_scratch_wall.fill(0)
 	_merge = merge
 	_build_parts(_marks, roofs_only)
-	if not roofs_only:
+	if not roofs_only and not _cancelled():
 		_build_collision()
 		# Loop 3d-2b: the sector's slices of the baked maps travel with it (saved in its scene).
 		var slices := map_slices(key)
@@ -591,7 +617,7 @@ func build_sector(key: Vector2i, roofs_only := false, merge := true) -> Node3D:
 		var cars := soft_cars_data()
 		if not cars.is_empty():
 			root.set_meta(&"soft_cars", cars)
-	if merge:
+	if merge and not _cancelled():
 		_merge_roofs()
 	_merge = true
 	_solids.clear()
@@ -633,6 +659,8 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		_drape_bias = 0.01
 		_cover_on = true
 		_build_areas(flat)
+		if _flat_cancelled():
+			return
 		_build_portal_lids(flat)
 		_build_cut_banks(flat)
 		_cover_on = false
@@ -645,8 +673,12 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		_cover_on = true
 		_drape_bias = 0.08
 		_build_surfaces(flat)
+		if _flat_cancelled():
+			return
 		_drape_bias = 0.1
 		_build_paths(flat)
+		if _flat_cancelled():
+			return
 		_build_steps(flat)
 		# The cutting's floor under the tracks' gravel shoulders (0.18): it had their bias, the
 		# same layer at the same height, and the two greys z-fought (F's phone videos, 2026-11-07).
@@ -656,8 +688,12 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		_build_rail_beds(flat)
 		_drape_bias = 0.3
 		_build_roads(flat)
+		if _flat_cancelled():
+			return
 		_build_tunnel_roads(flat)
 		_build_carriageways(flat)
+		if _flat_cancelled():
+			return
 		_cover_on = false
 		_drape_bias = 0.34
 		_build_islands(flat)
@@ -672,9 +708,13 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		_build_tram_noses(flat)
 		_drape_bias = 0.36
 		_build_kerbs(flat)
+		if _flat_cancelled():
+			return
 		_build_shore_stone(flat)
 		_drape_bias = 0.38
 		_build_markings(flat)
+		if _flat_cancelled():
+			return
 		_build_symbols(flat)
 		_build_crossings(flat)
 		_build_tactile(flat)
@@ -685,17 +725,25 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		_dk = -1
 		_build_ground(flat)
 		_cover_reset()
+		if _flat_cancelled():
+			return
 		_add_mesh(flat, flat_material, false)
 
 	var walls := _new_surface()
 	walls.none = roofs_only
 	var keep := _build_lod2(walls, marks)
+	if _cancelled():
+		return
 	var t_parts := Time.get_ticks_msec()
 	_build_buildings(walls, keep, marks)
+	if _cancelled():
+		return
 	if not _in_sector:
 		print("buildings: %d floating parts: %d lowered (%d to the ground), %d tiny left out · %d ms" % [floating_parts,
 				floating_parts - floating_dropped, floating_to_ground, floating_dropped, Time.get_ticks_msec() - t_parts])
 	marks.build(walls, _near if _in_sector else Rect2())
+	if _cancelled():
+		return
 	if not _in_sector:
 		_pick = marks.pick_grid()
 	elif _merge:
@@ -711,6 +759,8 @@ func _build_parts(marks, roofs_only: bool) -> void:
 	_uv2 = Vector2.ZERO
 	_build_stair_flights(walls)
 	barriers.build_city_walls(walls)
+	if _cancelled():
+		return
 	_build_bridge_structures(walls)
 	_build_walls(walls)
 	_build_portals(walls)
@@ -731,12 +781,20 @@ func _build_parts(marks, roofs_only: bool) -> void:
 	_build_garage_mouths(walls)
 	barriers.build_guard_rails(walls)
 	_build_shore()
+	if _cancelled():
+		return
 	_add_mesh(walls, building_material, true)
 	_build_neon(keep, marks)
 	_build_landmark_signs(marks)
+	if _cancelled():
+		return
 
 	_build_trees()
+	if _cancelled():
+		return
 	_build_street_furniture()
+	if _cancelled():
+		return
 	_build_props()
 	_bridge_pockets(keep, marks)
 
@@ -2278,6 +2336,166 @@ const SUNKEN := [
 		"a": Vector2(-868.8, 503.5), "b": Vector2(-861.6, 504.2),
 		"ring": [Vector2(-869.1, 506.3), Vector2(-860.2, 507.1), Vector2(-859.7, 501.5), Vector2(-868.6, 500.7)],
 		"walk": [Vector2(-868.8, 503.5), Vector2(-861.6, 504.2), Vector2(-858.0, 504.5)]},
+	# The other stations' open wells (F, 2026-11-26: "can we make the others we have on the map", "sink
+	# them and adapt them to the real stairs that are there"): every flight OSM tags as going down
+	# under the street, as Rondo Dmowskiego's. Rings from the mapped walls round each well, OSM's
+	# canopy roof parts (Rondo ONZ) or, where nothing is mapped, the flights and Google 3D Tiles
+	# (2026-11-26); the drop from the flights' steps (0.165 m risers) up to 0.55 of the run and 5 m;
+	# the look per station from Street View (refs/metro_wells, never committed): M1's granite
+	# parapets (Metro Centrum's north exits with pink marble inside, Ratusz Arsenał, Politechnika's
+	# rough stone), M2's dark granite under glass (Ratusz's tram-stop exits, Centrum Nauki Kopernik,
+	# Rondo ONZ's west well) or a coloured glass canopy (Rondo ONZ teal, Rondo Daszyńskiego red,
+	# Nowy Świat-Uniwersytet violet). Site per station (`mw_cen` ...), landmarks/centre.gd
+	# METRO_WELLS_BOXES; made by a one-off script from centrum.json (thread "Sink the other metro
+	# and underpass stairs").
+	{"key": "mw_cen_1", "site": "mw_cen", "style": "parapet", "sub": 20, "hb": NAN, "drop": 3.8, "tile": Color("#c2a294"),
+		"a": Vector2(-923.4, 169.0), "b": Vector2(-921.4, 176.5),
+		"ring": [Vector2(-921.1, 168.2), Vector2(-918.8, 177.1), Vector2(-923.2, 178.2), Vector2(-925.4, 169.4)],
+		"walk": [Vector2(-923.4, 169.0), Vector2(-921.4, 176.5), Vector2(-920.7, 179.1)]},
+	{"key": "mw_cen_2", "site": "mw_cen", "style": "parapet", "sub": 20, "hb": NAN, "drop": 4.1, "tile": Color("#c2a294"),
+		"a": Vector2(-963.2, 176.3), "b": Vector2(-960.3, 184.1),
+		"ring": [Vector2(-961.3, 175.4), Vector2(-957.9, 184.5), Vector2(-961.9, 186.0), Vector2(-965.3, 177.0)],
+		"walk": [Vector2(-963.2, 176.3), Vector2(-960.3, 184.1), Vector2(-959.4, 186.7)]},
+	{"key": "mw_cen_3", "site": "mw_cen", "style": "parapet", "sub": 20, "hb": NAN, "drop": 4.0, "tile": Color("#c2a294"),
+		"a": Vector2(-914.6, 195.7), "b": Vector2(-917.3, 188.3),
+		"ring": [Vector2(-916.7, 196.7), Vector2(-920.0, 188.1), Vector2(-915.9, 186.5), Vector2(-915.5, 186.4), Vector2(-912.2, 195.0)],
+		"walk": [Vector2(-914.6, 195.7), Vector2(-917.3, 188.3), Vector2(-918.2, 185.8)]},
+	{"key": "mw_cen_4", "site": "mw_cen", "style": "parapet", "sub": 20, "hb": NAN, "drop": 3.8, "tile": Color("#c2a294"),
+		"a": Vector2(-949.0, 215.1), "b": Vector2(-951.7, 207.6),
+		"ring": [Vector2(-951.0, 216.1), Vector2(-954.2, 207.2), Vector2(-950.1, 205.7), Vector2(-946.9, 214.5)],
+		"walk": [Vector2(-949.0, 215.1), Vector2(-951.7, 207.6), Vector2(-952.6, 205.0)]},
+	{"key": "mw_onz_1", "site": "mw_onz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 3.9, "roof": Color("#4f9e97"),
+		"a": Vector2(-1731.9, 167.9), "b": Vector2(-1734.3, 161.4),
+		"ring": [Vector2(-1733.1, 168.6), Vector2(-1736.0, 160.8), Vector2(-1731.7, 159.2), Vector2(-1728.8, 167.0)],
+		"walk": [Vector2(-1731.9, 167.9), Vector2(-1734.3, 161.4), Vector2(-1735.2, 158.9)]},
+	{"key": "mw_onz_2", "site": "mw_onz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 4.8, "roof": Color("#4f9e97"),
+		"a": Vector2(-1750.2, 173.9), "b": Vector2(-1755.5, 167.2),
+		"ring": [Vector2(-1751.0, 174.7), Vector2(-1757.1, 166.9), Vector2(-1755.3, 165.5), Vector2(-1749.2, 173.3)],
+		"walk": [Vector2(-1750.2, 173.9), Vector2(-1755.5, 167.2), Vector2(-1757.2, 165.1)]},
+	{"key": "mw_onz_3", "site": "mw_onz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 3.9, "roof": Color("#4f9e97"),
+		"a": Vector2(-1808.6, 149.8), "b": Vector2(-1801.7, 148.8),
+		"ring": [Vector2(-1809.2, 146.6), Vector2(-1801.0, 145.4), Vector2(-1800.4, 149.9), Vector2(-1808.6, 151.0)],
+		"walk": [Vector2(-1808.6, 149.8), Vector2(-1801.7, 148.8), Vector2(-1799.1, 148.4)]},
+	{"key": "mw_onz_4", "site": "mw_onz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 4.8, "roof": Color("#4f9e97"),
+		"a": Vector2(-1696.8, 155.1), "b": Vector2(-1698.5, 146.8),
+		"ring": [Vector2(-1698.0, 155.6), Vector2(-1700.0, 145.9), Vector2(-1697.5, 145.4), Vector2(-1695.5, 155.1)],
+		"walk": [Vector2(-1696.8, 155.1), Vector2(-1698.5, 146.8), Vector2(-1699.1, 144.2)]},
+	{"key": "mw_onz_5", "site": "mw_onz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 3.9, "roof": Color("#4f9e97"),
+		"a": Vector2(-1686.9, 98.3), "b": Vector2(-1691.7, 103.2),
+		"ring": [Vector2(-1684.3, 100.5), Vector2(-1690.2, 106.4), Vector2(-1693.3, 103.3), Vector2(-1687.5, 97.4)],
+		"walk": [Vector2(-1686.9, 98.3), Vector2(-1691.7, 103.2), Vector2(-1693.6, 105.1)]},
+	{"key": "mw_onz_6", "site": "mw_onz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 4.0, "roof": Color("#4f9e97"),
+		"a": Vector2(-1697.2, 55.8), "b": Vector2(-1704.2, 55.4),
+		"ring": [Vector2(-1697.2, 60.0), Vector2(-1705.6, 59.5), Vector2(-1705.3, 54.2), Vector2(-1696.9, 54.7)],
+		"walk": [Vector2(-1697.2, 55.8), Vector2(-1704.2, 55.4), Vector2(-1706.9, 55.2)]},
+	{"key": "mw_onz_7", "site": "mw_onz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 4.5, "roof": Color("#4f9e97"),
+		"a": Vector2(-1739.0, 29.3), "b": Vector2(-1735.5, 36.6),
+		"ring": [Vector2(-1737.6, 28.4), Vector2(-1733.5, 36.9), Vector2(-1736.4, 38.4), Vector2(-1740.6, 29.9)],
+		"walk": [Vector2(-1739.0, 29.3), Vector2(-1735.5, 36.6), Vector2(-1734.3, 39.0)]},
+	{"key": "mw_onz_8", "site": "mw_onz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 4.8, "roof": Color("#4f9e97"),
+		"a": Vector2(-1798.5, 42.7), "b": Vector2(-1798.6, 51.2),
+		"ring": [Vector2(-1797.7, 42.5), Vector2(-1797.8, 52.4), Vector2(-1799.4, 52.4), Vector2(-1799.3, 42.5)],
+		"walk": [Vector2(-1798.5, 42.7), Vector2(-1798.6, 51.2), Vector2(-1798.6, 53.9)]},
+	{"key": "mw_onz_9", "site": "mw_onz", "style": "glass", "sub": 20, "hb": NAN, "drop": 5.0,
+		"a": Vector2(-1818.8, 110.5), "b": Vector2(-1809.5, 107.5),
+		"ring": [Vector2(-1818.5, 111.9), Vector2(-1808.0, 108.5), Vector2(-1808.4, 107.1), Vector2(-1808.9, 105.7), Vector2(-1819.4, 109.1)],
+		"walk": [Vector2(-1818.8, 110.5), Vector2(-1809.5, 107.5), Vector2(-1807.0, 106.6)]},
+	{"key": "mw_onz_10", "site": "mw_onz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 3.9, "roof": Color("#4f9e97"),
+		"a": Vector2(-1824.9, 97.0), "b": Vector2(-1819.1, 93.3),
+		"ring": [Vector2(-1826.3, 95.3), Vector2(-1819.3, 90.8), Vector2(-1816.8, 94.7), Vector2(-1823.7, 99.2)],
+		"walk": [Vector2(-1824.9, 97.0), Vector2(-1819.1, 93.3), Vector2(-1816.8, 91.9)]},
+	{"key": "mw_onz_11", "site": "mw_onz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 4.3, "roof": Color("#4f9e97"),
+		"a": Vector2(-1758.1, 34.7), "b": Vector2(-1755.0, 42.1),
+		"ring": [Vector2(-1756.2, 33.7), Vector2(-1752.6, 42.4), Vector2(-1756.7, 44.1), Vector2(-1760.3, 35.4)],
+		"walk": [Vector2(-1758.1, 34.7), Vector2(-1755.0, 42.1), Vector2(-1753.9, 44.6)]},
+	{"key": "mw_dasz_1", "site": "mw_dasz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 3.9, "roof": Color("#9a2a33"),
+		"a": Vector2(-2832.8, 469.9), "b": Vector2(-2840.1, 471.8),
+		"ring": [Vector2(-2832.1, 471.7), Vector2(-2840.8, 474.1), Vector2(-2841.8, 470.2), Vector2(-2833.1, 467.9)],
+		"walk": [Vector2(-2832.8, 469.9), Vector2(-2840.1, 471.8), Vector2(-2842.7, 472.5)]},
+	{"key": "mw_dasz_2", "site": "mw_dasz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 3.9, "roof": Color("#9a2a33"),
+		"a": Vector2(-2878.2, 485.0), "b": Vector2(-2870.9, 483.0),
+		"ring": [Vector2(-2879.5, 481.1), Vector2(-2870.8, 478.7), Vector2(-2869.3, 484.3), Vector2(-2877.9, 486.7)],
+		"walk": [Vector2(-2878.2, 485.0), Vector2(-2870.9, 483.0), Vector2(-2868.3, 482.3)]},
+	{"key": "mw_dasz_3", "site": "mw_dasz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 4.3, "roof": Color("#9a2a33"),
+		"a": Vector2(-2760.3, 457.8), "b": Vector2(-2752.7, 456.8),
+		"ring": [Vector2(-2760.7, 456.1), Vector2(-2751.8, 455.0), Vector2(-2751.0, 461.4), Vector2(-2759.9, 462.5)],
+		"walk": [Vector2(-2760.3, 457.8), Vector2(-2752.7, 456.8), Vector2(-2750.1, 456.5)]},
+	{"key": "mw_dasz_4", "site": "mw_dasz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 3.9, "roof": Color("#9a2a33"),
+		"a": Vector2(-2845.7, 424.9), "b": Vector2(-2852.8, 427.7),
+		"ring": [Vector2(-2844.8, 426.7), Vector2(-2853.1, 430.0), Vector2(-2854.6, 426.3), Vector2(-2846.2, 422.9)],
+		"walk": [Vector2(-2845.7, 424.9), Vector2(-2852.8, 427.7), Vector2(-2855.3, 428.7)]},
+	{"key": "mw_dasz_5", "site": "mw_dasz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 4.3, "roof": Color("#9a2a33"),
+		"a": Vector2(-2771.6, 416.3), "b": Vector2(-2764.3, 414.3),
+		"ring": [Vector2(-2772.3, 414.5), Vector2(-2763.7, 412.1), Vector2(-2762.6, 415.9), Vector2(-2771.3, 418.3)],
+		"walk": [Vector2(-2771.6, 416.3), Vector2(-2764.3, 414.3), Vector2(-2761.7, 413.6)]},
+	{"key": "mw_dasz_6", "site": "mw_dasz", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 3.9, "roof": Color("#9a2a33"),
+		"a": Vector2(-2890.8, 438.2), "b": Vector2(-2883.5, 436.1),
+		"ring": [Vector2(-2891.8, 435.7), Vector2(-2883.1, 433.2), Vector2(-2881.7, 438.4), Vector2(-2890.3, 440.9)],
+		"walk": [Vector2(-2890.8, 438.2), Vector2(-2883.5, 436.1), Vector2(-2880.4, 437.3)]},
+	{"key": "mw_ra_1", "site": "mw_ratusz", "style": "parapet", "sub": 20, "hb": NAN, "drop": 2.6,
+		"a": Vector2(-1588.5, -1234.7), "b": Vector2(-1590.7, -1239.3),
+		"ring": [Vector2(-1590.5, -1233.7), Vector2(-1594.8, -1242.8), Vector2(-1590.8, -1244.7), Vector2(-1586.5, -1235.4)],
+		"walk": [Vector2(-1588.5, -1234.7), Vector2(-1590.7, -1239.3), Vector2(-1593.5, -1245.1)]},
+	{"key": "mw_ra_2", "site": "mw_ratusz", "style": "parapet", "sub": 20, "hb": NAN, "drop": 2.6,
+		"a": Vector2(-1553.6, -1252.3), "b": Vector2(-1560.3, -1249.0),
+		"ring": [Vector2(-1554.8, -1255.1), Vector2(-1562.7, -1251.3), Vector2(-1560.1, -1245.8), Vector2(-1552.1, -1249.6)],
+		"walk": [Vector2(-1553.6, -1252.3), Vector2(-1560.3, -1249.0), Vector2(-1562.8, -1247.9)]},
+	{"key": "mw_ra_3", "site": "mw_ratusz", "style": "parapet", "sub": 20, "hb": NAN, "drop": 4.5,
+		"a": Vector2(-1511.1, -1119.0), "b": Vector2(-1514.7, -1126.3),
+		"ring": [Vector2(-1512.5, -1118.0), Vector2(-1516.8, -1126.6), Vector2(-1513.7, -1128.2), Vector2(-1509.4, -1119.6)],
+		"walk": [Vector2(-1511.1, -1119.0), Vector2(-1514.7, -1126.3), Vector2(-1516.0, -1128.7)]},
+	{"key": "mw_ra_4", "site": "mw_ratusz", "style": "parapet", "sub": 20, "hb": NAN, "drop": 4.3,
+		"a": Vector2(-1566.1, -1188.6), "b": Vector2(-1562.2, -1180.0),
+		"ring": [Vector2(-1564.5, -1189.6), Vector2(-1559.9, -1179.7), Vector2(-1563.3, -1178.1), Vector2(-1568.0, -1188.0)],
+		"walk": [Vector2(-1566.1, -1188.6), Vector2(-1562.2, -1180.0), Vector2(-1561.1, -1177.5)]},
+	{"key": "mw_ra_5", "site": "mw_ratusz", "style": "parapet", "sub": 20, "hb": NAN, "drop": 4.5,
+		"a": Vector2(-1521.8, -1191.8), "b": Vector2(-1528.5, -1187.5),
+		"ring": [Vector2(-1520.6, -1190.3), Vector2(-1528.5, -1185.3), Vector2(-1530.5, -1188.4), Vector2(-1522.6, -1193.4)],
+		"walk": [Vector2(-1521.8, -1191.8), Vector2(-1528.5, -1187.5), Vector2(-1530.8, -1186.0)]},
+	{"key": "mw_ra_6", "site": "mw_ratusz", "style": "glass", "sub": 20, "hb": NAN, "drop": 4.3,
+		"a": Vector2(-1510.7, -1175.2), "b": Vector2(-1518.2, -1170.5),
+		"ring": [Vector2(-1509.8, -1173.9), Vector2(-1518.3, -1168.4), Vector2(-1520.0, -1171.4), Vector2(-1511.5, -1176.8)],
+		"walk": [Vector2(-1510.7, -1175.2), Vector2(-1518.2, -1170.5), Vector2(-1520.5, -1169.1)]},
+	{"key": "mw_ra_7", "site": "mw_ratusz", "style": "glass", "sub": 20, "hb": NAN, "drop": 4.5,
+		"a": Vector2(-1503.6, -1159.8), "b": Vector2(-1511.6, -1156.4),
+		"ring": [Vector2(-1502.8, -1158.4), Vector2(-1512.0, -1154.3), Vector2(-1513.4, -1157.4), Vector2(-1504.2, -1161.5)],
+		"walk": [Vector2(-1503.6, -1159.8), Vector2(-1511.6, -1156.4), Vector2(-1514.1, -1155.3)]},
+	{"key": "mw_nsu_1", "site": "mw_nsu", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 3.6, "roof": Color("#4a3f86"),
+		"a": Vector2(-517.4, -285.8), "b": Vector2(-515.4, -279.0),
+		"ring": [Vector2(-515.8, -286.5), Vector2(-513.3, -278.4), Vector2(-516.7, -277.4), Vector2(-519.2, -285.5)],
+		"walk": [Vector2(-517.4, -285.8), Vector2(-515.4, -279.0), Vector2(-514.6, -276.5)]},
+	{"key": "mw_nsu_2", "site": "mw_nsu", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 4.0, "roof": Color("#4a3f86"),
+		"a": Vector2(-506.0, -289.2), "b": Vector2(-503.8, -281.8),
+		"ring": [Vector2(-504.4, -289.9), Vector2(-501.8, -281.1), Vector2(-505.2, -280.1), Vector2(-507.8, -288.9)],
+		"walk": [Vector2(-506.0, -289.2), Vector2(-503.8, -281.8), Vector2(-503.1, -279.2)]},
+	{"key": "mw_nsu_3", "site": "mw_nsu", "style": "canopy_glass", "sub": 20, "hb": NAN, "drop": 4.7, "roof": Color("#4a3f86"),
+		"a": Vector2(-548.2, -303.1), "b": Vector2(-539.5, -305.7),
+		"ring": [Vector2(-548.9, -304.7), Vector2(-538.8, -307.7), Vector2(-537.8, -304.3), Vector2(-547.9, -301.3)],
+		"walk": [Vector2(-548.2, -303.1), Vector2(-539.5, -305.7), Vector2(-536.9, -306.4)]},
+	{"key": "mw_poli_1", "site": "mw_poli", "style": "parapet", "sub": 20, "hb": NAN, "drop": 3.8, "tile": Color("#a89f8f"),
+		"a": Vector2(-594.0, 1579.6), "b": Vector2(-594.7, 1586.6),
+		"ring": [Vector2(-592.2, 1579.6), Vector2(-593.0, 1587.9), Vector2(-596.4, 1587.6), Vector2(-595.6, 1579.3)],
+		"walk": [Vector2(-594.0, 1579.6), Vector2(-594.7, 1586.6), Vector2(-594.9, 1589.3)]},
+	{"key": "mw_poli_2", "site": "mw_poli", "style": "parapet", "sub": 20, "hb": NAN, "drop": 2.6, "tile": Color("#a89f8f"),
+		"a": Vector2(-555.6, 1584.3), "b": Vector2(-556.3, 1590.9),
+		"ring": [Vector2(-553.9, 1584.3), Vector2(-554.7, 1592.3), Vector2(-558.0, 1591.9), Vector2(-557.2, 1583.9)],
+		"walk": [Vector2(-555.6, 1584.3), Vector2(-556.3, 1590.9), Vector2(-556.5, 1593.6)]},
+	{"key": "mw_poli_3", "site": "mw_poli", "style": "parapet", "sub": 20, "hb": NAN, "drop": 4.0, "tile": Color("#a89f8f"),
+		"a": Vector2(-595.9, 1622.6), "b": Vector2(-595.1, 1612.7),
+		"ring": [Vector2(-593.6, 1622.8), Vector2(-592.8, 1611.4), Vector2(-597.3, 1611.1), Vector2(-598.1, 1622.6)],
+		"walk": [Vector2(-595.9, 1622.6), Vector2(-595.1, 1612.7), Vector2(-594.9, 1609.7)]},
+	{"key": "mw_poli_4", "site": "mw_poli", "style": "parapet", "sub": 20, "hb": NAN, "drop": 3.6, "tile": Color("#a89f8f"),
+		"a": Vector2(-557.4, 1626.7), "b": Vector2(-556.6, 1617.3),
+		"ring": [Vector2(-555.0, 1626.8), Vector2(-554.6, 1616.2), Vector2(-558.9, 1616.2), Vector2(-559.0, 1626.8)],
+		"walk": [Vector2(-557.4, 1626.7), Vector2(-556.6, 1617.3), Vector2(-556.4, 1614.5)]},
+	{"key": "mw_cnk_1", "site": "mw_cnk", "style": "glass", "sub": 20, "hb": NAN, "drop": 2.6,
+		"a": Vector2(481.8, -643.2), "b": Vector2(477.5, -639.5),
+		"ring": [Vector2(483.0, -642.1), Vector2(477.6, -637.5), Vector2(473.8, -642.0), Vector2(479.2, -646.6)],
+		"walk": [Vector2(481.8, -643.2), Vector2(477.5, -639.5), Vector2(475.5, -637.7)]},
+	{"key": "mw_cnk_2", "site": "mw_cnk", "style": "glass", "sub": 20, "hb": NAN, "drop": 2.6,
+		"a": Vector2(432.3, -625.8), "b": Vector2(436.6, -620.7),
+		"ring": [Vector2(433.8, -627.2), Vector2(440.2, -619.3), Vector2(437.3, -617.0), Vector2(430.7, -624.7)],
+		"walk": [Vector2(432.3, -625.8), Vector2(436.6, -620.7), Vector2(439.6, -616.9)]},
 ]
 ## Grid nodes held up to the street (the 10 m grid's pit at Złote Tarasy's plaza pulled the upper
 ## terrace, the stair's sides and the station forecourt down into a crater): [node, at least m].
@@ -2369,7 +2587,7 @@ static func sunk_entry(e: Dictionary, ha: float, step: float) -> Dictionary:
 			"site": e.get("site", "sunken"), "style": e.get("style", "rail"), "walk": PackedVector2Array(e.get("walk", [])),
 			"rows": int(e.get("rows", 0)), "rim": float(e.get("rim", -INF)), "tile": e.get("tile", Color(0, 0, 0, 0)),
 			"floor": e.get("floor", Color(0, 0, 0, 0)), "rise": float(e.get("rise", -1.0)),
-			"bare": bool(e.get("bare", false))}
+			"bare": bool(e.get("bare", false)), "roof": e.get("roof", Color(0, 0, 0, 0))}
 
 
 ## A sunken ring's floor at a point (its ring, or `grown` its ring grown for the drawn ground),
@@ -7173,6 +7391,8 @@ func _build_areas(st) -> void:
 				_fill_on_grid(st, _pts(a["p"]), y, GRAVEL if a.has("g") else SAND)
 			continue
 		for a in data["areas"]:
+			if _cancelled():
+				return  # _build_parts' _flat_cancelled puts the state back
 			var k: String = a["k"]
 			var group := "plaza" if k == "plaza" else ("water" if k == "water" else "green")
 			if group != pass_kind:
@@ -9765,6 +9985,8 @@ func _build_buildings(st, keep: Array, marks) -> void:
 	var bottoms := _part_bottoms(list, drawn, marks)
 	var royal := _royal_segments()
 	for index in drawn:
+		if _cancelled():
+			return
 		var bld: Dictionary = list[index]
 		var poly := _pts(bld["p"])
 		var h := float(bld["h"])
@@ -10926,6 +11148,7 @@ func _make_shared() -> void:
 		_box(candelabra, c + Vector3(0, 0.4, 0), Vector3(0.62, 0.1, 0.62), iron)
 		_box(candelabra, c + Vector3(0, 0.55, 0), Vector3(0.08, 0.22, 0.08), iron)
 	_shared["candelabra"] = _mark_head(candelabra.commit())
+	_shared["kp_lamp"] = _mark_glow(_kp_lamp_mesh(), [LAMP_HEAD], [KP_GLASS, KP_GOLD])
 	var fixture := ShaderMaterial.new()
 	fixture.shader = load("res://shaders/fixture.gdshader")
 	_shared["fixture"] = fixture
@@ -11449,6 +11672,9 @@ func _build_street_furniture() -> void:
 	var royal := _royal_segments()
 	var candelabras: Array[Transform3D] = []
 	var candelabra_glows: Array[Color] = []
+	var kp: Array[Transform3D] = []
+	var kp_glows: Array[Color] = []
+	var kp_segs := _street_segments(KP_STREET)
 	var list: Array = data.get("lamps", [])
 	for i in range(0, list.size() - 1, 2):
 		var x := float(list[i])
@@ -11463,6 +11689,12 @@ func _build_street_furniture() -> void:
 		if Vector2(x, z).distance_to(Vector2(CANDELABRAS.x, CANDELABRAS.y)) < CANDELABRAS.z:
 			candelabras.append(t)
 			candelabra_glows.append(SODIUM_GLOW)
+			continue
+		var kp_dir := _kp_facing(Vector2(x, z), kp_segs)
+		if kp_dir != Vector2.ZERO:
+			# Krakowskie Przedmieście: the crozier over the carriageway.
+			kp.append(Transform3D(Basis(Vector3.UP, atan2(-kp_dir.y, kp_dir.x)), t.origin))
+			kp_glows.append(LED_GLOW)  # white LED heads (the night photos), whatever the light map says
 			continue
 		if _on_royal_route(x, z, royal) or _on_karowa(Vector2(x, z)):
 			lanterns.append(t)
@@ -11516,6 +11748,8 @@ func _build_street_furniture() -> void:
 		mmi.add_to_group(SMALL_CASTERS, true)
 	for mmi in _tree_multimesh(_shared["candelabra"], _shared["fixture"], candelabras, none, candelabra_glows):
 		mmi.add_to_group(SMALL_CASTERS, true)
+	for mmi in _tree_multimesh(_shared["kp_lamp"], _shared["fixture"], kp, none, kp_glows):
+		mmi.add_to_group(SMALL_CASTERS, true)
 	var heads: Array[Transform3D] = []
 	for t in spots:
 		heads.append(Transform3D(Basis(), t * Vector3(1.2, 6.78, 0.0)))
@@ -11523,8 +11757,11 @@ func _build_street_furniture() -> void:
 		heads.append(Transform3D(Basis(), t * LANTERN_HEAD))
 	for t in candelabras:
 		heads.append(Transform3D(Basis(), t * Vector3(0, 7.9, 0)))
+	for t in kp:
+		heads.append(Transform3D(Basis(), t * KP_HEAD))
 	glows.append_array(lantern_glows)
 	glows.append_array(candelabra_glows)
+	glows.append_array(kp_glows)
 	_build_lamp_halos(heads, glows)
 
 	spots = []
@@ -11544,8 +11781,8 @@ func _build_street_furniture() -> void:
 	for i in range(0, list.size() - 3, 4):
 		var x := float(list[i])
 		var z := float(list[i + 1])
-		if _parked_blocked(x, z):
-			continue
+		if _parked_blocked(x, z) or not HouseTypes.keeps_parked(Vector2(x, z)):
+			continue  # a landmark's clear spot, or a zone that parks thinner (house types)
 		spots.append(Transform3D(Basis(Vector3.UP, float(list[i + 2])), Vector3(x, terrain_height(x, z), z)))
 		paints.append(Color(CAR_PAINT[int(list[i + 3]) % CAR_PAINT.size()]))
 	for mmi in _tree_multimesh(_shared["parked"], _shared["car_paint"], spots, paints, [], null, PARKED_TILE):
@@ -11605,6 +11842,16 @@ const LED_GLOW := Color(0.72, 0.82, 1.0, 0.5)
 
 ## The landmarks loop (street furniture): the historic lantern's glass centre above its spot.
 const LANTERN_HEAD := Vector3(0, 4.38, 0)
+## Krakowskie Przedmieście's own lamps (F's night photos and Street View, 2026-11-26): a tall
+## dark cast-iron post with a crozier at the top and the lamp hanging from it over the street,
+## and round the post, from late November, the street's Christmas chandelier: a cone of gold bead
+## strands from a collar, a wide drum of green glass panels between gold rims, a smaller drum under
+## it and gold tassels below, glowing green-gold at night. KP_HEAD is the lamp's light (local +x
+## points over the carriageway).
+const KP_STREET := "Krakowskie Przedmieście"
+const KP_HEAD := Vector3(0.62, 6.55, 0)
+const KP_GLASS := Color("#5f9a63")
+const KP_GOLD := Color("#d9b35a")
 ## Streets whose lamps are the historic lanterns (the Royal Route and round the Old Town),
 ## within ROYAL_REACH metres of the carriageway's edge; and the Old Town itself, a circle.
 const ROYAL_STREETS := ["Krakowskie Przedmieście", "Nowy Świat", "Senatorska", "Miodowa", "Podwale",
@@ -12385,6 +12632,98 @@ func _on_royal_route(x: float, z: float, royal: Array) -> bool:
 	return false
 
 
+## Krakowskie Przedmieście's lamp with its Christmas chandelier (KP_HEAD above). About 330
+## triangles; one MultiMesh per tile like the other lamps.
+func _kp_lamp_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var iron := Color("#262d28")
+	# The post: a fluted foot, a collar, the shaft, a ring under the crozier.
+	_box(st, Vector3(0, 0.35, 0), Vector3(0.46, 0.7, 0.46), iron)
+	_box(st, Vector3(0, 0.78, 0), Vector3(0.32, 0.16, 0.32), iron)
+	_box(st, Vector3(0, 3.7, 0), Vector3(0.14, 5.9, 0.14), iron)
+	_box(st, Vector3(0, 2.2, 0), Vector3(0.22, 0.12, 0.22), iron)
+	# The crozier: up, over and down to the hanging lamp.
+	_box(st, Vector3(0.0, 6.85, 0), Vector3(0.1, 0.4, 0.1), iron)
+	_box(st, Vector3(0.3, 7.05, 0), Vector3(0.62, 0.09, 0.09), iron)
+	_box(st, Vector3(0.62, 6.88, 0), Vector3(0.08, 0.3, 0.08), iron)
+	_box(st, KP_HEAD + Vector3(0, 0.2, 0), Vector3(0.42, 0.1, 0.42), iron)
+	_box(st, KP_HEAD, Vector3(0.32, 0.34, 0.32), LAMP_HEAD)
+	# The chandelier round the shaft, its drum centred 4.5 m up.
+	var n := 10
+	_box(st, Vector3(0, 5.42, 0), Vector3(0.22, 0.14, 0.22), KP_GOLD)
+	for k in n:
+		var a := TAU * (k + 0.5) / n
+		var d := Vector3(cos(a), 0, sin(a))
+		_strand(st, Vector3(0, 5.36, 0) + d * 0.1, Vector3(0, 4.8, 0) + d * 0.64, 0.05, KP_GOLD)
+		_strand(st, Vector3(0, 3.9, 0) + d * 0.4, Vector3(0, 3.45, 0) + d * 0.12, 0.05, KP_GOLD)
+	_drum(st, 0.68, 4.3, 4.78, n, KP_GLASS, KP_GOLD)
+	_drum(st, 0.44, 3.9, 4.24, n, KP_GLASS, KP_GOLD)
+	return st.commit()
+
+
+## A thin square strand from a to b (the chandelier's bead strings).
+func _strand(st, a: Vector3, b: Vector3, w: float, col: Color) -> void:
+	var d := (b - a).normalized()
+	var s := d.cross(Vector3.UP)
+	if s.length() < 0.01:
+		s = Vector3.RIGHT
+	s = s.normalized() * w * 0.5
+	var t := s.cross(d).normalized() * w * 0.5
+	var c := [s + t, s - t, -s - t, -s + t]
+	for i in 4:
+		var p: Vector3 = c[i]
+		var q: Vector3 = c[(i + 1) % 4]
+		_quad(st, a + p, a + q, b + q, b + p, (p + q).normalized(), col)
+
+
+## An open drum of `n` glass panels from y0 to y1 at radius r, both faces drawn (the glass is seen
+## from inside across the street too), with a gold rim at top and bottom.
+func _drum(st, r: float, y0: float, y1: float, n: int, glass: Color, rim: Color) -> void:
+	for k in n:
+		var a0 := TAU * k / n
+		var a1 := TAU * (k + 1) / n
+		var p := Vector3(cos(a0), 0, sin(a0)) * r
+		var q := Vector3(cos(a1), 0, sin(a1)) * r
+		var out := ((p + q) * 0.5).normalized()
+		_quad(st, p + Vector3(0, y0, 0), q + Vector3(0, y0, 0), q + Vector3(0, y1, 0), p + Vector3(0, y1, 0), out, glass)
+		_quad(st, p + Vector3(0, y0, 0), p + Vector3(0, y1, 0), q + Vector3(0, y1, 0), q + Vector3(0, y0, 0), -out, glass)
+		for y in [y0, y1]:
+			var rp := p * 1.06
+			var rq := q * 1.06
+			_quad(st, rp + Vector3(0, y - 0.03, 0), rq + Vector3(0, y - 0.03, 0), rq + Vector3(0, y + 0.03, 0),
+					rp + Vector3(0, y + 0.03, 0), out, rim)
+
+
+## One named street's segments: [a, b, half width + ROYAL_REACH].
+func _street_segments(street: String) -> Array:
+	var out := []
+	for r in data.get("roads", []):
+		if r.get("name", "") != street:
+			continue
+		var p: Array = r["p"]
+		var reach := float(r.get("w", 6.0)) * 0.5 + ROYAL_REACH
+		for i in range(0, p.size() - 3, 2):
+			out.append([Vector2(float(p[i]), float(p[i + 1])), Vector2(float(p[i + 2]), float(p[i + 3])), reach])
+	return out
+
+
+## A lamp within reach of one of `segs`: the unit direction from it to the street's centre line
+## (where its crozier points); ZERO when it is not on that street.
+func _kp_facing(at: Vector2, segs: Array) -> Vector2:
+	var best := INF
+	var dir := Vector2.ZERO
+	for s in segs:
+		if absf(at.x - s[0].x) > 150.0 or absf(at.y - s[0].y) > 150.0:
+			continue
+		var c := Geometry2D.get_closest_point_to_segment(at, s[0], s[1])
+		var d := c.distance_to(at)
+		if d < float(s[2]) and d < best:
+			best = d
+			dir = (c - at).normalized() if d > 0.3 else (s[1] - s[0]).normalized().orthogonal()
+	return dir
+
+
 ## Marks the lamp head's vertices (its colour) with UV.x = 1, so fixture.gdshader
 ## knows what glows.
 func _mark_head(mesh: ArrayMesh) -> ArrayMesh:
@@ -12392,7 +12731,9 @@ func _mark_head(mesh: ArrayMesh) -> ArrayMesh:
 
 
 ## The landmarks loop: _mark_head for any parts, by their colours (the shelter's posters).
-func _mark_glow(mesh: ArrayMesh, glowing: Array) -> ArrayMesh:
+## `own` parts glow in their own colour (UV.x = 2, fixture.gdshader), not the lamp's light: the
+## Christmas chandeliers' green glass and gold beads.
+func _mark_glow(mesh: ArrayMesh, glowing: Array, own: Array = []) -> ArrayMesh:
 	var arrays := mesh.surface_get_arrays(0)
 	var colours: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
 	var uv: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
@@ -12400,7 +12741,10 @@ func _mark_glow(mesh: ArrayMesh, glowing: Array) -> ArrayMesh:
 		var lit := false
 		for c: Color in glowing:
 			lit = lit or colours[i].is_equal_approx(c)
-		uv[i] = Vector2(1.0, 1.0) if lit else Vector2(-1.0, -1.0)
+		var self_lit := false
+		for c: Color in own:
+			self_lit = self_lit or colours[i].is_equal_approx(c)
+		uv[i] = Vector2(2.0, 1.0) if self_lit else (Vector2(1.0, 1.0) if lit else Vector2(-1.0, -1.0))
 	arrays[Mesh.ARRAY_TEX_UV] = uv
 	var out := ArrayMesh.new()
 	out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)

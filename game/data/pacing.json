@@ -10,11 +10,12 @@
 		"decline_max": 600
 	},
 	"time": {
-		"_note": "The game clock (game_time.gd). by_day 1: the night friends (shisha, bar crawl, racing club, Mati's raves) call at any hour, and saying yes jumps the clock to their opening hour; 0: they call only in their hours. F 2026-11-19: show the night activities by day too, the time changes when the player picks the quest. The game clock (time_of_day.gd, F 2026-11-19): speed 30 = one game day in 48 real minutes, one game hour in 2; the sun by the game's date in Warsaw (a new game starts at 14:00 on this week's Friday); golden 2.5 = the hour and a half round sunrise and sunset lasts 2.5 times longer than in life (like GTA), taken from midday and midnight; look_every = the light is worked out again every this many real seconds.",
+		"_note": "The game clock (game_time.gd). by_day 1: the night friends (shisha, bar crawl, racing club, Mati's raves) call at any hour, and saying yes jumps the clock to their opening hour; 0: they call only in their hours. F 2026-11-19: show the night activities by day too, the time changes when the player picks the quest. The game clock (time_of_day.gd, F 2026-11-19): speed 30 = one game day in 48 real minutes, one game hour in 2; the sun by the game's date in Warsaw (a new game starts at 14:00 on this week's Friday); golden 2.5 = the hour and a half round sunrise and sunset lasts 2.5 times longer than in life (like GTA), taken from midday and midnight; look_every = the light is worked out again every this many real seconds. hold_speed (F 2026-11-26, story-structure): while a story chapter or a questline runs the clock goes this fast instead (1 = real time, so a 3-minute boat race started at 21:00 ends at 21:03); jobs, rides, rival races and rescues keep speed.",
 		"by_day": 1,
 		"speed": 30,
 		"golden": 2.5,
-		"look_every": 1
+		"look_every": 1,
+		"hold_speed": 1
 	},
 	"rescue": {
 		"_note": "The rescue line (WEZWANIE): the first call this long after the start, the next this long after a rescue ends or is skipped.",
@@ -65,6 +66,13 @@
 		"next_call": [1500, 2400],
 		"retry": 20
 	},
+	"bokiem": {
+		"_note": "Darek's drift side quest, Bokiem na Narodowym (drift_event.gd): no call before the first night meet is done; then the first call first_call s after that gate opens (any hour with time.by_day, a yes jumps the clock into hours), a call turned down or let ring rings again after next_call s; a call that could not ring tries again after retry s. Never again once the quest is won.",
+		"hours": [20, 2],
+		"first_call": [60, 180],
+		"next_call": [600, 900],
+		"retry": 20
+	},
 	"rave": {
 		"_note": "Mati's nights: his tease between tease_hours, the first after first_tease s and the next after next_tease s; his call call_after s after the tease; retry as above.",
 		"tease_hours": [19, 4],
@@ -82,7 +90,7 @@
 		"strand_gap": [170, 320]
 	},
 	"rides": {
-		"_note": "Podwózka: the first request after first_offer s of driving, then offer_gap s after each ride or request; a request held by the first minutes' guide comes at least hold_gap s after the hold lets go.",
+		"_note": "Łuber: the first request after first_offer s of driving, then offer_gap s after each ride or request; a request held by the first minutes' guide comes at least hold_gap s after the hold lets go.",
 		"first_offer": 120,
 		"offer_gap": [75, 120],
 		"hold_gap": 30

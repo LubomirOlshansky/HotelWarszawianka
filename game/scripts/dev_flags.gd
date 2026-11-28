@@ -245,6 +245,14 @@ var crawl_group := ""
 var crawl_log := false
 ## THE TAPCZAN (tapczan.gd): --tapczan=0|in|taps|pong|drunk, --tapczan-log.
 var tapczan_flag := ""
+## Bokiem na Narodowym, the grey box (drift_stadium.gd): --drift=osemka (straight in),
+## --drift=osemka:bot (the decent bot drives), --drift=osemka:pose:H:B (posed for the wedge's shots),
+## a last `:top` (WIDOK Z GÓRY) or `:wide` (the whole stadium, PR 2), --drift=0 (none). Any of them logs the run ("drift: ...").
+## PR 3, the side quest (drift_event.gd): --drift=quest (the gate forced open, Darek calls at once),
+## --drift=quest:bot (the whole quest plays itself: the call, the car put at the gate, the warm-up, the
+## qualifying and the final with the decent bot, every card pressed; "drift: quest over: ..."),
+## --drift=final:bot (the same as a rematch: straight to the final).
+var drift_flag := ""
 var tapczan_log := false
 var _crawl_auto := false
 var ev_flag := ""
@@ -812,7 +820,7 @@ func parse_with(args: PackedStringArray) -> void:
 			start_heat = clampf(float(arg.trim_prefix("--heat=")), 0.0, 1.0)
 		elif arg == "--craft=plain":
 			craft_plain = true
-		# --- loop 2d-1: Podwózka's flags ---
+		# --- loop 2d-1: Łuber's flags ---
 		elif arg.begins_with("--ride="):
 			start_ride = maxi(0, int(arg.trim_prefix("--ride=")))
 		elif arg.begins_with("--ride-quirk="):
@@ -978,6 +986,8 @@ func parse_with(args: PackedStringArray) -> void:
 			crawl_log = true
 		elif arg.begins_with("--tapczan="):
 			tapczan_flag = arg.trim_prefix("--tapczan=")
+		elif arg.begins_with("--drift="):
+			drift_flag = arg.trim_prefix("--drift=")
 		elif arg == "--tapczan-log":
 			tapczan_log = true
 		elif arg == "--rave-log":

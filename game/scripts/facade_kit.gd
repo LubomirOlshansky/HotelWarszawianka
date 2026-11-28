@@ -52,6 +52,17 @@ const M_STEEL := M_GOLD + 0.5
 ## ground, and stone washed the same (building.gdshader gothic() `lit`, the M_STONE branch).
 const M_GOTHIC_LIT := M_GOTHIC + 0.5
 const M_STONE_LIT := M_STONE + 0.5
+## A palace washed by floodlights from the pavement at night (F's Krakowskie Przedmieście night
+## photos, 2026-11-26: Bristol, Europejski, the Presidential Palace, the Potocki Palace all stand
+## cream-white in the dark): the stone and monument walls of a site in FLOODLIT_SITES take these
+## (building.gdshader palace_flood()); every other part keeps its own mode.
+const M_STONE_FLOOD := M_STONE + 0.75
+const M_MONUMENT_FLOOD := M_MONUMENT + 0.5
+## Krakowskie Przedmieście's floodlit palaces, churches and monuments (F's night photos,
+## 2026-11-26): their stone walls glow cream-white at night (facade_kit.gd M_STONE_FLOOD).
+const FLOODLIT_SITES := ["bristol", "europejski", "prezydencki", "potocki", "kordegarda", "karmelici",
+		"wizytki", "staszic", "czapski", "kazimierzowski", "uruski", "brama_uw", "sw_krzyz", "mickiewicz", "kopernik",
+		"mostowski"]
 
 
 # --- state ---
@@ -62,11 +73,19 @@ var st  # the city's building surface (chunked_surface.gd)
 var _mode := M_STONE
 var _no_roof := false  # true: triangles go into the mesh but not the roof grid (glass the cassette must not pick)
 var _g := 0.0          # the landmark's ground height
+var _flood := false    # the current site is floodlit at night (landmarks.gd FLOODLIT_SITES)
 var _id := 0           # landmark id for the picking grid (0: none)
 var _pick := PackedByteArray()  # 16-bit landmark ids, two bytes a cell (257 sites by 2026-11-08)
 ## Walls already drawn by the current site, to cut a later coplanar wall back to what shows
 ## (z-fighting fix, 2026-10-31): [ax, az, bx, bz, y0, y1, nx, nz] per wall.
 var _walls: Array[PackedFloat32Array] = []
+## A grid over _walls for `_wall`'s coplanar test (2026-11-27, the Jarmark's ~20,800 walls made the
+## plain scan O(n^2): 26 s of the site's 30 s build): cell -> indices of the walls whose line passes
+## through it. Kept in step lazily (`_wall_grid_sync`), since sites clear and append _walls directly.
+var _wall_grid := {}
+var _wall_grid_n := 0
+var _wall_grid_first := PackedFloat32Array()  # _walls[0] when indexed: a clear and refill shows as a new first wall
+const WALL_CELL := 4.0
 ## Flat tops already drawn by the current site: [height, outline] (same fix, see _cap).
 var _caps: Array = []
 ## The current site's courts while it builds (`_cap` leaves them open).
@@ -79,6 +98,18 @@ var _b := Vector2.DOWN
 
 # --- emitting ---
 
+## The mode a triangle is written with: on a floodlit site, plain stone and monument walls become
+## their floodlit variants.
+func _flooded(mode: float) -> float:
+	if not _flood:
+		return mode
+	if mode == M_STONE:
+		return M_STONE_FLOOD
+	if mode == M_MONUMENT:
+		return M_MONUMENT_FLOOD
+	return mode
+
+
 ## One triangle into the city mesh, the roof grid and the picking grid. `top` is the
 ## wall top above the ground (UV2.y), uv the shader's wall coordinates (x < 0 on tops).
 func _tri(a: Vector3, b: Vector3, c: Vector3, n: Vector3, col: Color, ua: Vector2, ub: Vector2, uc: Vector2,
@@ -90,7 +121,7 @@ func _tri(a: Vector3, b: Vector3, c: Vector3, n: Vector3, col: Color, ua: Vector
 		var tu := ub
 		ub = uc
 		uc = tu
-	var uv2 := Vector2(_mode, top)
+	var uv2 := Vector2(_flooded(_mode), top)
 	st.set_color(col)
 	st.set_normal(n)
 	st.set_uv(ua)
@@ -138,7 +169,19 @@ func _wall(a: Vector2, b: Vector2, y0: float, y1: float, out: Vector2, col: Colo
 	# in metres along a→b and absolute height.
 	var d := (b - a) / length
 	var pieces: Array[Vector4] = [Vector4(0.0, length, y0, y1)]
-	for w in _walls:
+	_wall_grid_sync()
+	# Only the walls whose line passes a cell next to this one's can share its plane and span;
+	# taken in the order they were drawn, so the cut comes out as the full scan made it.
+	var near := {}
+	for c: Vector2i in _wall_cells(a, b):
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				for i: int in _wall_grid.get(c + Vector2i(dx, dz), []):
+					near[i] = true
+	var order: Array = near.keys()
+	order.sort()
+	for i: int in order:
+		var w := _walls[i]
 		if w[6] * n.x + w[7] * n.z < 0.9995:
 			continue
 		var wa := Vector2(w[0], w[1])
@@ -166,6 +209,7 @@ func _wall(a: Vector2, b: Vector2, y0: float, y1: float, out: Vector2, col: Colo
 				next.append(Vector4(m0, m1, w[5], pc.w))
 		pieces = next
 	_walls.append(PackedFloat32Array([a.x, a.y, b.x, b.y, y0, y1, n.x, n.z]))
+	_wall_grid_sync()
 	for pc in pieces:
 		var pa := a + d * pc.x
 		var pb := a + d * pc.y
@@ -175,6 +219,36 @@ func _wall(a: Vector2, b: Vector2, y0: float, y1: float, out: Vector2, col: Colo
 		var r1 := run + pc.y
 		_quad(Vector3(pa.x, pc.z, pa.y), Vector3(pb.x, pc.z, pb.y), Vector3(pb.x, pc.w, pb.y), Vector3(pa.x, pc.w, pa.y), n, col,
 				Vector2(r0, h0), Vector2(r1, h0), Vector2(r1, h1), Vector2(r0, h1), h1)
+
+
+## The grid cells a wall's line a→b passes (sampled every half cell, both ends).
+func _wall_cells(a: Vector2, b: Vector2) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	var n := maxi(1, ceili(a.distance_to(b) / (WALL_CELL * 0.5)))
+	var last := Vector2i(1 << 30, 0)
+	for k in n + 1:
+		var p := a.lerp(b, float(k) / n)
+		var c := Vector2i(floori(p.x / WALL_CELL), floori(p.y / WALL_CELL))
+		if c != last:
+			out.append(c)
+			last = c
+	return out
+
+
+## Brings _wall_grid in step with _walls: rebuilt after a clear, the new walls added after appends.
+func _wall_grid_sync() -> void:
+	if _walls.size() < _wall_grid_n or (_wall_grid_n > 0 and _walls[0] != _wall_grid_first):
+		_wall_grid.clear()
+		_wall_grid_n = 0
+	if _wall_grid_n == 0 and not _walls.is_empty():
+		_wall_grid_first = _walls[0]
+	while _wall_grid_n < _walls.size():
+		var w := _walls[_wall_grid_n]
+		for c: Vector2i in _wall_cells(Vector2(w[0], w[1]), Vector2(w[2], w[3])):
+			if not _wall_grid.has(c):
+				_wall_grid[c] = []
+			(_wall_grid[c] as Array).append(_wall_grid_n)
+		_wall_grid_n += 1
 
 
 ## The outward normal of edge a→b of a polygon (plan).
@@ -206,7 +280,7 @@ func _tri_smooth(p: Array[Vector3], n: Array[Vector3], fn: Vector3, col: Color, 
 		ub = uc
 		uc = tu
 	st.set_color(col)
-	st.set_uv2(Vector2(_mode, top))
+	st.set_uv2(Vector2(_flooded(_mode), top))
 	st.set_normal(na)
 	st.set_uv(ua)
 	st.add_vertex(a)

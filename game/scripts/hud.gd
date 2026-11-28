@@ -34,6 +34,7 @@ const Access := preload("res://scripts/access.gd")
 const Sfx := preload("res://scripts/sfx.gd")
 const Lang := preload("res://scripts/lang.gd")  # one language at a time: every pl/en pair below shows one
 const SettingsPanel := preload("res://scripts/settings_panel.gd")
+const PhoneHub := preload("res://scripts/phone_hub.gd")
 const Gamepad := preload("res://scripts/gamepad.gd")  # the pad's A on the context button (2026-11-03)
 const FullMap := preload("res://scripts/full_map.gd")
 const MapArt := preload("res://scripts/map_art.gd")
@@ -169,6 +170,7 @@ signal pill_pressed                   # the context button: a rescue call that c
 signal context_pressed(owner: String) # loop 2d-1: the context button, whoever showed it
 signal abort_pressed                  # the ✕ on the mission status
 signal challenge_pressed              # FLASH LIGHTS: challenge the rival in front
+signal phone_pressed                  # TELEFON: main.gd opens the phone (phone_hub.gd)
 signal radio_pressed                  # RADIO: next station or off
 signal radio_skip_pressed             # RADIO held RADIO_HOLD s: the station's next track
 signal tapped(at: Vector2)            # a short tap on the city, not on a control (v0.8: landmarks)
@@ -227,6 +229,10 @@ var _gear: Button
 var _speed: Label
 var _speed_text := ""
 var _vehicle_button: Button
+## F 2026-11-26 (the phone with jobs): TELEFON, left of RADIO; shown and hidden with HELI (the
+## Tajny klient opening hides both until its first quest is done). It opens `phone_hub`.
+var _phone_button: Button
+var phone_hub: Control
 var _zoom_out_button: Button
 var _zoom_in_button: Button
 var _zoom_in_down_ms := -1
@@ -437,7 +443,7 @@ var _card_x: Button
 var _card_x_room: Control
 var _card_x_as := -1
 var _side_call := false
-## Loop 2d-1: the Podwózka app's route on the minimap (map coordinates), drawn dotted.
+## Loop 2d-1: the Łuber app's route on the minimap (map coordinates), drawn dotted.
 var _mini_route := PackedVector2Array()
 var _mini_route_colour := Color.WHITE
 var _mini_route_owner := ""
@@ -520,6 +526,9 @@ var _pedals_hidden := false
 ## the minimap, the wallet, the cards and the bubbles stay. Set once by main.gd.
 var touch_off := false
 # --- end desktop: --no-touch -----------------------------------------------------------------
+## A venue off the map has the screen (venues.gd; the drift stadium sets it, the PR review): the
+## hidden HUD takes no touch (no minimap, map, nitro, steering, pinch or landmark tap under it).
+var away := false
 ## Loop 3h slice 4 (docs/DEMO.md 6.2, 0:05): the ghost finger. first10.gd turns it on after 4 s
 ## without a touch or a key; it is drawn on the pad (no node of its own: +0 draw calls when off)
 ## and goes at the first touch, click or key. `input_ms`: when the last touch, click or key came
@@ -669,6 +678,24 @@ func _ready() -> void:
 	add_child(_skip_button)
 	_vehicle_button = _chip(self, "HELI", "HELI")
 	_vehicle_button.pressed.connect(func(): vehicle_pressed.emit())
+	# A round 44 pt button like the gear's, right of it (the centre of the top row is the context
+	# button's, and the right is RADIO and HELI's: check_hud found no room for a chip there).
+	_phone_button = Button.new()
+	_phone_button.name = "phone"
+	_phone_button.focus_mode = Control.FOCUS_NONE
+	_phone_button.flat = true
+	_phone_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	_phone_button.draw.connect(_draw_phone)
+	_phone_button.button_down.connect(_phone_button.queue_redraw)
+	_phone_button.button_up.connect(_phone_button.queue_redraw)
+	_phone_button.pressed.connect(func(): phone_pressed.emit())
+	add_child(_phone_button)
+	phone_hub = PhoneHub.new()
+	phone_hub.name = "PhoneHub"
+	phone_hub.pt = pt
+	phone_hub.safe = _safe
+	phone_hub.local_clock = func() -> Dictionary: return local_clock.call() if local_clock.is_valid() else {"hour": 12.0}
+	add_child(phone_hub)
 	# G3 (F, 2026-11-01): pinch is hard to discover, so − and + sit beside the speed (the car's
 	# view only: the helicopter has its own height pads).
 	_zoom_out_button = _chip(self, "−", "", Color(0, 0, 0, 0))
@@ -866,7 +893,12 @@ func _layout_fixed() -> void:
 	_gear.position = Vector2(x0, y)
 	_gear.size = Vector2.ONE * TOUCH * pt
 	_speed.size = _speed.get_combined_minimum_size()
-	_speed.position = Vector2(x0 + (TOUCH + 8.0) * pt, y + (ROW_H * pt - _speed.size.y) * 0.5)
+	var sx := x0 + (TOUCH + 8.0) * pt
+	_phone_button.size = Vector2.ONE * TOUCH * pt
+	_phone_button.position = Vector2(sx, y)
+	if _phone_button.visible:
+		sx += (TOUCH + 8.0) * pt
+	_speed.position = Vector2(sx, y + (ROW_H * pt - _speed.size.y) * 0.5)
 	var right := _safe.end.x - EDGE * pt
 	for b: Button in [_vehicle_button, _skip_button, _radio_button]:
 		if not b.visible:
@@ -932,7 +964,7 @@ func _layout() -> void:
 	if _call_mode and (not is_equal_approx(_call_w, _call_base()) or _call_about.text != _call_about_full):
 		_call_about.text = _call_about_full
 		_set_call_width()  # the phone's own width first; it grows again only if it must
-	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _zoom_out_button, _zoom_in_button, _minimap, _wallet, _koguty]:
+	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _phone_button, _zoom_out_button, _zoom_in_button, _minimap, _wallet, _koguty]:
 		if c != null and c.visible:
 			_taken.append(Rect2(c.position, c.size))
 	_taken.append(_speed_rect())
@@ -1279,7 +1311,7 @@ func touch_targets() -> Dictionary:
 	if _dirty:
 		_layout()
 	var out := {}
-	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _zoom_out_button, _zoom_in_button, _challenge]:
+	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _phone_button, _zoom_out_button, _zoom_in_button, _challenge]:
 		if c.is_visible_in_tree():
 			out[c.name] = c.get_global_rect()
 	for c: Control in [_card, _status, _bench_card] + _panel_spots.keys():
@@ -1311,7 +1343,7 @@ func named_rects() -> Dictionary:
 	if _dirty:
 		_layout()
 	var out := {}
-	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _zoom_out_button, _zoom_in_button, _minimap, _wallet, _koguty]:
+	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _phone_button, _zoom_out_button, _zoom_in_button, _minimap, _wallet, _koguty]:
 		if c != null and c.visible:
 			out[c.name] = Rect2(c.position, c.size)
 	out["speed"] = _speed_rect()
@@ -1407,7 +1439,7 @@ func language_changed(state: Dictionary) -> void:
 
 
 ## The context button: a call came in (Polish, English under it); pressing it emits pill_pressed.
-## Loop 2d-1: `owner` says whose it is ("call", or "ride" for PODWÓZKA · rides.gd); every press
+## Loop 2d-1: `owner` says whose it is ("call", or "ride" for ŁUBER · rides.gd); every press
 ## also emits context_pressed(owner).
 func show_pill(pl: String, en := "", owner := "call") -> void:
 	pill_owner = owner
@@ -1466,7 +1498,7 @@ func pill_free() -> bool:
 	return not _pill.visible
 
 
-## Who may take the context button from whom (PT-23, 2026-11-06): the ride app's PODWÓZKA is up
+## Who may take the context button from whom (PT-23, 2026-11-06): the ride app's ŁUBER is up
 ## whenever the player could take a ride, so "wait for a free button" meant the stuck offer's
 ## POMOC DROGOWA (and KASETA by a tape) never came up while it was. A higher rank takes the button;
 ## the one it took comes back on its own once the button is free again. A rescue call ranks top.
@@ -2685,7 +2717,7 @@ func set_target(at: Vector2, label: String, colour: Color, show: bool) -> void:
 
 ## Touches on the buttons and cards belong to them, not to the stick.
 func _over_panel(p: Vector2) -> bool:
-	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _zoom_out_button, _zoom_in_button, _card, _status, _challenge, _bench_card]:
+	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _phone_button, _zoom_out_button, _zoom_in_button, _card, _status, _challenge, _bench_card]:
 		if c != null and c.visible and c.get_global_rect().has_point(p):
 			return true
 	return false
@@ -3210,10 +3242,10 @@ func set_quest_focus(focus: bool) -> void:
 		full_map.focus = focus
 
 
-# --- loop 2d-1: the Podwózka app's route (rides.gd) -------------------------------------------
+# --- loop 2d-1: the Łuber app's route (rides.gd) -------------------------------------------
 
 ## A card in the right-hand column under the top row, as wide as the room right of the car's
-## spot allows (at most CARD_W points): the car stays in view (Podwózka's request and result).
+## spot allows (at most CARD_W points): the car stays in view (Łuber's request and result).
 ## The same card, recipe and point sizes; the next show_card() puts it back in the middle.
 ## F 2026-11-10: `face` names who is talking (a quest offer: "Ivan"), and their portrait, or
 ## their initial on a disc, stands before the title (Portraits).
@@ -3282,7 +3314,7 @@ func minimap_route() -> PackedVector2Array:
 	return _mini_route
 
 
-## Who drew the route now ("" for Podwózka's; target_route.gd steps aside for any other).
+## Who drew the route now ("" for Łuber's; target_route.gd steps aside for any other).
 func minimap_route_owner() -> String:
 	return _mini_route_owner
 
@@ -3447,7 +3479,7 @@ static func _money(amount: int) -> String:
 
 ## A small card under the wallet for a few seconds (an easter egg found). The message director:
 ## during a quest, a chase or a scripted moment a note waits in the queue and shows after it
-## (`priority` messages.gd: INFO by default; a quest's own message, the TYGRAM pin, is QUEST_LINE).
+## (`priority` messages.gd: INFO by default; a quest's own message, the COTAM pin, is QUEST_LINE).
 func show_note(title: String, body: String, colour: Color, priority := Messages.INFO) -> void:
 	match _decide("note", priority):
 		Messages.DEFER:
@@ -3906,6 +3938,8 @@ func _input(event: InputEvent) -> void:
 		input_ms = maxi(1, Time.get_ticks_msec())  # loop 3h slice 4: the ghost finger goes
 		if _finger:
 			ghost_finger(false)
+	if away:
+		return
 	if settings_open() or full_map_open():
 		return  # the panel's buttons take every touch; nothing steers under it
 	if event is InputEventScreenTouch:
@@ -4358,7 +4392,7 @@ func spotlight_label_rect() -> Rect2:
 	# Off the fixed controls (the wallet under the minimap, the zoom buttons beside it): step on,
 	# away from the target, until the words sit on free ground.
 	var fixed: Array[Rect2] = []
-	for k: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _zoom_out_button, _zoom_in_button, _minimap, _wallet, _koguty]:
+	for k: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _phone_button, _zoom_out_button, _zoom_in_button, _minimap, _wallet, _koguty]:
 		if k != null and k.visible:
 			fixed.append(Rect2(k.position, k.size).grow(4.0 * pt))
 	fixed.append(_speed_rect())
@@ -4401,10 +4435,24 @@ func _draw_spotlight() -> void:
 ## Loop 3h slice 4: the HELI chip shown or hidden (first10.gd: the helicopter waits for the first
 ## rescue on a fresh save).
 func set_vehicle_shown(on: bool) -> void:
-	if _vehicle_button.visible == on:
+	if _vehicle_button.visible == on and _phone_button.visible == on:
 		return
 	_vehicle_button.visible = on
+	_phone_button.visible = on  # F 2026-11-26: the phone comes with the helicopter, after the first quest
 	_mark()
+
+
+## F 2026-11-26 (the phone with jobs): opens the phone for phone_rules.gd's `model`.
+func open_phone(model: Dictionary) -> void:
+	release_all()
+	move_child(phone_hub, -1)
+	phone_hub.pt = pt
+	phone_hub.safe = _safe
+	phone_hub.open(model)
+
+
+func phone_open() -> bool:
+	return phone_hub != null and phone_hub.is_open()
 
 
 func _draw_pad() -> void:
@@ -4616,6 +4664,19 @@ func _draw_gear() -> void:
 		pts.append(c + Vector2(cos(a), sin(a)) * r)
 	_gear.draw_colored_polygon(pts, ACCENT if held else INK)
 	_gear.draw_circle(c, 3.4 * pt, Color(CARD_BG, 1.0))
+
+
+## The phone chip: the gear's round plate with a small handset (a rounded body, its screen, a button).
+func _draw_phone() -> void:
+	var c := Vector2.ONE * TOUCH * 0.5 * pt
+	var held := _phone_button.button_pressed or _phone_button.is_pressed()
+	_phone_button.draw_circle(c, 20.0 * pt, CARD_BG)
+	_phone_button.draw_arc(c, 20.0 * pt - 0.5 * pt, 0, TAU, 40, ACCENT if held else UiKit.EDGE_STRONG, maxf(1.0, 0.6 * pt))
+	var ink := ACCENT if held else INK
+	var body := Rect2(c - Vector2(6.0, 11.0) * pt, Vector2(12.0, 22.0) * pt)
+	_phone_button.draw_rect(body, ink, false, maxf(1.5, 1.6 * pt))
+	_phone_button.draw_rect(Rect2(body.position + Vector2(2.2, 3.0) * pt, Vector2(7.6, 11.0) * pt), Color(ink, 0.35))
+	_phone_button.draw_circle(c + Vector2(0, 8.0) * pt, 1.3 * pt, ink)
 
 
 ## On screen: a bobbing pointer over the target with the distance. Off screen: an arrow on the

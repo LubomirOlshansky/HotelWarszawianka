@@ -141,6 +141,8 @@ SITE_AREAS = [
     (-1360.0, -262.0, -1275.0, -225.0),     # Próżna's two south tenements (landmarks.gd _find_prozna, F's photos 2026-11-08)
     (-1345.0, -1790.0, -1200.0, -1690.0),   # Sąd Najwyższy's colonnade (landmarks.gd SN_BOX: unnamed OSM columns)
     (-270.0, -1510.0, -20.0, -1260.0),      # the boulevards' bar pavilions (landmarks.gd BULWAR_PAW_BOX)
+    (1015.0, -1845.0, 1152.0, -1714.0),     # Pasaż Targowa 33A's podium and the flats it keeps (unnamed in OSM; praga.gd TG_PODIUM_AT)
+    (300.0, 995.0, 335.0, 1025.0),          # Stary Dom Poselski's east drum (unnamed in OSM; ujazdow.gd _find_stary_dom_poselski reads it by height)
     (25.0, -1110.0, 65.0, -1065.0),         # and their containers and kiosks (BULWAR_BAR_BOXES)
     (195.0, -1068.0, 245.0, -1025.0),
     (670.0, -575.0, 712.0, -525.0),
@@ -163,6 +165,7 @@ SITE_AREAS = [
     (-260.0, 325.0, -240.0, 345.0),         # the BGK building, Al. Jerozolimskie 7 (unnamed in OSM; landmarks.gd BGK_AT)
     (-290.0, 356.0, -288.0, 358.0),         # BGK's stray roof part by Bracka (srodmiescie.gd BGK_STRAY_PARTS)
     (-313.0, 363.0, -311.0, 365.0),         # the other one
+    (-1053.0, 795.0, -995.0, 852.0),        # Ufficio Primo, Wspólna 62 (unnamed in OSM; srodmiescie.gd UP_AT, _find_ufficio_primo)
     (-165.0, 55.0, -155.0, 65.0),           # Foksal 13 (unnamed in OSM; landmarks.gd _find_foksal, its address point)
     (-193.0, 46.0, -183.0, 56.0),           # and Foksal 15
     (70.0, 20.0, 100.0, 45.0),              # Młotek, Smolna 8 (landmarks.gd ML_AT)
@@ -302,6 +305,7 @@ SITE_AREAS = [
     (1715.0, 1295.0, 1755.0, 1345.0),       # the Monkey Love garden (landmarks.gd MONKEY_AT, built as Małpi Love)
     (1385.0, 670.0, 1480.0, 900.0),         # Port Czerniakowski's spit: Majami, WTW and the halls (landmarks.gd PORT_TIP, PORT_WTW, PORT_HALLS)
     (1025.0, -2032.0, 1135.0, -1962.0),     # Bazar Różyckiego's stalls (landmarks.gd BAZAR_BOX, unnamed retail outlines)
+    (-2365.0, -5.0, -2295.0, 100.0),        # Unique Tower's two unnamed outlines (wola.gd UNIQUE_NORTH_AT, UNIQUE_SOUTH_AT)
 ]
 
 

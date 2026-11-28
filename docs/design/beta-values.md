@@ -28,8 +28,8 @@ so it shows on the dev console's Approvals tab (`tools/console.py`).
 
 | # | Finding | Effect on the player |
 | --- | --- | --- |
-| D-1 | The only guidance was the edge arrow, straight at the door. | In a grid of one-way streets the arrow points through blocks: the player turns into the wrong street, or the wrong way. Podwózka already drew its route on the minimap; the kebab didn't. |
-| D-2 | The order's road length counted the **off-map links** (the lane graph's portals). | The edge roadworks close every road out, so the player can't drive them. About 1 order in 30 (2 of 60 sampled) was a "1,053 m" trip that was much longer on the map's own roads, with a heat clock for the short one: cold however well you drove. The same pick serves Podwózka and "Na czasie". |
+| D-1 | The only guidance was the edge arrow, straight at the door. | In a grid of one-way streets the arrow points through blocks: the player turns into the wrong street, or the wrong way. Łuber already drew its route on the minimap; the kebab didn't. |
+| D-2 | The order's road length counted the **off-map links** (the lane graph's portals). | The edge roadworks close every road out, so the player can't drive them. About 1 order in 30 (2 of 60 sampled) was a "1,053 m" trip that was much longer on the map's own roads, with a heat clock for the short one: cold however well you drove. The same pick serves Łuber and "Na czasie". |
 | D-3 | The heat showed as "GORĄCY 85 %" and a bar. | No idea how long is left: the tip band (hot / warm / no tip) is the whole game, and it was hidden. |
 | D-4 | After a delivery, nothing points anywhere. | The dead time of the loop: find a stand on the minimap, drive back, pull in, wait out the card. Crazy Taxi's rule is that the next fare is always in sight. |
 | D-5 | The tip drops to 0 at 40 % heat (a cliff), and 50 km/h door to door is needed for "hot". | Most city trips with traffic arrive warm; a cliff at 40 % feels like a fail, not a smaller tip. A feel call (A/B 1, 2). |
@@ -39,7 +39,7 @@ so it shows on the dev console's Approvals tab (`tools/console.py`).
 ### 1.3 Built (2026-11-04)
 
 - **The route on the minimap** (D-1): kebab and słoiki deliveries draw the way to the door as
-  Podwózka's dotted route, in the job's colour; it is walked again from the car every second
+  Łuber's dotted route, in the job's colour; it is walked again from the car every second
   (`scripts/route_line.gd`, one search per order, then a 0.13 ms walk), so a wrong turn re-routes.
 - **Honest road lengths** (D-2): order, ride and "Na czasie" picks and the job autopilot measure
   without the off-map links (`LaneGraph.distances_from/to(…, portals = false)`).

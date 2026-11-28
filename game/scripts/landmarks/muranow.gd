@@ -7,6 +7,198 @@ extends "res://scripts/landmarks/river.gd"
 ## area: a helper two areas need goes to common.gd.
 
 
+# --- Pałac Mostowskich ----------------------------------------------------------------------
+
+## Southeast front, with positive u along the facade and positive v into the forecourt.
+const MOSTOWSKI_O := Vector2(-1720.3, -1304.3)
+const MOSTOWSKI_U := Vector2(0.853, -0.522)
+const MOSTOWSKI_OUTER := [[0.0, 0.0], [51.1, 0.0], [52.0, -116.2], [0.3, -124.2]]
+## Inner eaves from GUGiK. The rear court flares out in front of the skewed rear range.
+const MOSTOWSKI_COURTS := [
+	[[14.9, -12.6], [37.7, -12.6], [37.8, -37.7], [14.7, -37.3]],
+	[[17.0, -47.3], [35.6, -47.7], [35.8, -60.8], [16.9, -60.7]],
+	[[15.1, -71.5], [37.2, -71.9], [37.9, -94.5], [42.8, -94.7], [43.1, -99.2],
+			[9.9, -104.2], [9.5, -97.3], [14.7, -97.3]],
+]
+## Ridge points opposite the eaves. The cross ranges share ridge edges between adjacent courts.
+const MOSTOWSKI_RIDGE := [[7.4, -6.5], [44.6, -6.5], [44.6, -108.0], [7.4, -115.0]]
+const MOSTOWSKI_COURT_RIDGES := [
+	[[7.4, -6.5], [44.6, -6.5], [44.6, -42.5], [7.4, -42.5]],
+	[[7.4, -42.5], [44.6, -42.5], [44.6, -66.2], [7.4, -66.2]],
+	[[7.4, -66.2], [44.6, -66.2], [44.6, -92.0], [44.6, -96.0], [44.6, -108.0],
+			[7.4, -115.0], [7.4, -102.0], [7.4, -95.0]],
+]
+const MOSTOWSKI_EAVE := 13.35
+const MOSTOWSKI_RISE := 3.85
+const MOSTOWSKI_SHOULDER := 17.75
+const MOSTOWSKI_BREAKS := Vector2(13.1, 37.9)
+const MOSTOWSKI_FACE := 3.7
+## Cream plaster and blue-grey roofing from the daylight views of the two long wings.
+const MOSTOWSKI_WALL := Color("#eee3c9")
+const MOSTOWSKI_ROOF := Color("#9a9ba2")
+
+
+## Replace the mapped palace as one mesh, retaining the open courts in the roof and collision.
+func _build_mostowski(site: Dictionary) -> void:
+	kit_front(MOSTOWSKI_O, MOSTOWSKI_O + MOSTOWSKI_U)
+	var entrance := _w(25.6, 6.0)
+	_g = map.terrain_height(entrance.x, entrance.y)
+	_mode = M_STONE
+	var outline: PackedVector2Array = site["zone"][0]
+	var foot := _ground_under(outline) - 0.6
+	var outer := _lpoly(MOSTOWSKI_OUTER)
+	var courts: Array[PackedVector2Array] = []
+	for plan: Array in MOSTOWSKI_COURTS:
+		courts.append(_lpoly(plan))
+	_mostowski_roofs(outer, courts)
+	_mostowski_chimneys()
+	_mostowski_shell(outer, courts, foot)
+	_mostowski_portico(foot)
+	_collide(outline)
+	for court: PackedVector2Array in courts:
+		_collide(court)
+
+
+## Build the outer and court walls as separate loops so the stonework leaves each court open.
+func _mostowski_shell(outer: PackedVector2Array, courts: Array[PackedVector2Array], foot: float) -> void:
+	var trim := PAL_CREAM_STONE
+	var eave := _g + MOSTOWSKI_EAVE
+	kit_ledge_ring(outer, foot, _g + 0.42 - foot, PAL_WARM_GRANITE, 0.09)
+	kit_ledge_ring(outer, _g + 4.8, 0.22, trim, 0.15)
+	kit_cornice_ring(outer, eave - 0.35, trim, 0.35, 0.47)
+	for i in outer.size():
+		var a := outer[i]
+		var b := outer[(i + 1) % outer.size()]
+		var width := kit_front(a, b)
+		if i == 0:
+			_mostowski_elevations(0.0, MOSTOWSKI_BREAKS.x, 3, true)
+			_mostowski_elevations(MOSTOWSKI_BREAKS.y, width, 3, true)
+			for span: Vector2 in [Vector2(0.1, MOSTOWSKI_BREAKS.x), Vector2(MOSTOWSKI_BREAKS.y, width - 0.1)]:
+				kit_bands(span.x, span.y, _g + 0.48, _g + 4.7, 0.64, MOSTOWSKI_WALL)
+		elif i == 2:
+			# The skewed rear face has seven close-set bays between two groups of four.
+			_mostowski_elevations(0.0, 16.5, 4, true)
+			_mostowski_elevations(16.5, 35.2, 7, true, false, true)
+			_mostowski_elevations(35.2, width, 4, true)
+		else:
+			_mostowski_elevations(0.0, width, roundi(width / 4.0), false)
+		_wall(a, b, foot, eave, _b, MOSTOWSKI_WALL)
+	for court: PackedVector2Array in courts:
+		for i in court.size():
+			var a := court[(i + 1) % court.size()]
+			var b := court[i]
+			var width := kit_front(a, b)
+			if width > 3.5:
+				kit_ledge(0.23, width - 0.23, _g + 4.8, 0.18, trim, 0.14)
+				kit_cornice(0.9, width - 0.9, eave - 0.35, trim, 0.35, 0.34)
+				var door := i == 2 or (i == 0 and court.size() == 4) or i == 4
+				_mostowski_elevations(0.0, width, roundi(width / 3.65), false, true, door)
+			_wall(a, b, foot, eave, _b, MOSTOWSKI_WALL)
+
+
+## Lay out the same three storeys on each elevation, with simpler surrounds inside the courts.
+func _mostowski_elevations(u0: float, u1: float, bays: int, formal: bool, court := false,
+		door := false) -> void:
+	var trim := PAL_WHITE_STONE
+	var glass := PAL_GLASS_DARK
+	var sash := PAL_CREAM_STONE
+	for k in bays:
+		var u := lerpf(u0, u1, (float(k) + 0.5) / bays)
+		if door and k == bays / 2:
+			kit_door(u, _g - 0.25, 4.45, 1.28, trim, PAL_DARK_DOOR, true)
+		elif court:
+			kit_panes([u], [_g + 1.06], 1.38, 2.56, glass)
+		else:
+			kit_window(u, _g + 1.06, 2.56, Win.PLAIN, trim, glass, 0.73, sash)
+		var middle := Win.PLAIN if court else (Win.SILL_HEAD if formal else Win.SILL)
+		kit_window(u, _g + 6.04, 2.90, middle, trim, glass, 0.73, sash)
+		if court:
+			kit_panes([u], [_g + 10.43], 1.38, 1.8, glass)
+		else:
+			kit_window(u, _g + 10.43, 1.8, Win.SILL if formal else Win.PLAIN, trim, glass, 0.68, sash)
+
+
+## The portico stands on the three-arched podium. The flared kit capitals approximate the Ionic order.
+func _mostowski_portico(foot: float) -> void:
+	kit_front(MOSTOWSKI_O, MOSTOWSKI_O + MOSTOWSKI_U)
+	var trim := PAL_WHITE_STONE
+	var g := _g
+	var u0 := MOSTOWSKI_BREAKS.x
+	var u1 := MOSTOWSKI_BREAKS.y
+	var mid := 25.65
+	var half := 6.7
+	var face := MOSTOWSKI_FACE
+	var podium := 6.0
+	kit_face(face)
+	_mostowski_elevations(u0 + 0.2, mid - half - 0.2, 1, true)
+	_mostowski_elevations(mid + half + 0.2, u1 - 0.2, 1, true)
+	for u: float in [21.5, 25.65, 29.8]:
+		kit_window(u, g + 6.04, 3.1, Win.SILL_HEAD, trim, PAL_GLASS_DARK, 0.76, PAL_CREAM_STONE)
+		kit_window(u, g + 11.2, 1.95, Win.SILL, trim, PAL_GLASS_DARK, 0.72, PAL_CREAM_STONE)
+	kit_ledge(u0, u1, g + 4.8, 0.23, trim, 0.2)
+	kit_cornice(u0 + 0.5, u1 - 0.5, g + 17.40, trim, 0.35, 0.36)
+	kit_bands(u0 + 0.1, u1 - 0.1, g + 0.48, g + 4.7, 0.64, MOSTOWSKI_WALL)
+	kit_ledge(mid - half, mid + half, g + 16.20, 0.92, trim, 2.46)
+	kit_cornice(mid - half + 0.16, mid + half - 0.16, g + 17.15, trim, 0.48, 2.62)
+	kit_pediment(mid, 7.04, g + 17.63, 1.96, trim, MOSTOWSKI_ROOF, 2.61, PAL_CREAM_STONE)
+	kit_colonnade(19.9, 31.4, 4, 5.1, g + 4.88, g + 16.20, trim, 0.56, Order.CORINTHIAN)
+	kit_face(podium)
+	kit_ledge(mid - half, mid + half, g + 4.61, 0.27, trim, 0.22)
+	kit_bands(mid - half, mid + half, g + 0.48, g + 4.5, 0.64, MOSTOWSKI_WALL)
+	kit_face(podium + 0.04)  # clear the rustication with the arch surrounds
+	for u: float in [21.5, 25.65, 29.8]:
+		kit_door(u, g - 0.25, 4.45, 1.26 if u == mid else 0.96, trim, PAL_OAK, true)
+	_ubox(19.0, 32.4, face - 0.1, podium, foot, g + 4.81, PAL_SANDSTONE)
+	_prism(_urect(u0, u1, -5.8, face), foot, g + MOSTOWSKI_SHOULDER,
+			MOSTOWSKI_WALL, Color.TRANSPARENT, M_STONE)
+	_hip(mid - 0.15, -1.05, 12.4, 4.75, g + MOSTOWSKI_SHOULDER, 1.15, MOSTOWSKI_ROOF)
+
+
+## Join outer hips and court slopes along the same ridges without spanning the courtyards.
+func _mostowski_roofs(outer: PackedVector2Array, courts: Array[PackedVector2Array]) -> void:
+	var eave := _g + MOSTOWSKI_EAVE
+	var top := eave + MOSTOWSKI_RISE
+	var eaves: Array[PackedVector2Array] = [_ring_out(outer, 0.20)]
+	eaves.append_array(courts)
+	var ridges: Array[PackedVector2Array] = [_lpoly(MOSTOWSKI_RIDGE)]
+	for plan: Array in MOSTOWSKI_COURT_RIDGES:
+		ridges.append(_lpoly(plan))
+	for k in eaves.size():
+		var lower := eaves[k]
+		var upper := ridges[k]
+		for i in lower.size():
+			var j := (i + 1) % lower.size()
+			var corners := PackedVector2Array([lower[i], lower[j], upper[j], upper[i]])
+			# The rear court's shoulders make concave slopes in plan. Triangulate there
+			# with the same eave and ridge corners as the neighbouring slopes.
+			var plan := PackedVector2Array()
+			var points: Array[Vector3] = []
+			for m in corners.size():
+				var p := corners[m]
+				plan.append(p - MOSTOWSKI_O)
+				points.append(Vector3(p.x, eave if m < 2 else top, p.y))
+			var triangles := Geometry2D.triangulate_polygon(plan)
+			var uv := Vector2(-1.0, -1.0)
+			for m in range(0, triangles.size(), 3):
+				var a := points[triangles[m]]
+				var b := points[triangles[m + 1]]
+				var c := points[triangles[m + 2]]
+				var n := (b - a).cross(c - a).normalized()
+				_tri(a, b, c, n if n.y > 0.0 else -n, MOSTOWSKI_ROOF, uv, uv, uv, -1.0)
+
+
+## Pale chimney stacks and caps break the silhouette of the long roofs in the aerial views.
+func _mostowski_chimneys() -> void:
+	var top := _g + MOSTOWSKI_EAVE + MOSTOWSKI_RISE
+	for v: float in [-19.0, -32.0, -55.0, -78.0, -90.0]:
+		for u: float in [7.4, 44.6]:
+			_lbox(u, v, 0.56, 0.84, top - 0.74, top + 0.8, PAL_CREAM_STONE)
+			_lbox(u, v, 0.64, 0.92, top + 0.8, top + 0.98, PAL_PALE_CONCRETE)
+	for p: Vector2 in [Vector2(19.2, -111.7), Vector2(34.3, -109.9), Vector2(25.6, -66.2), Vector2(14.8, -42.5)]:
+		_lbox(p.x, p.y, 0.96, 0.56, top - 0.75, top + 1.04, PAL_CREAM_STONE)
+		_lbox(p.x, p.y, 1.04, 0.64, top + 1.04, top + 1.25, PAL_PALE_CONCRETE)
+
+
 # --- Pokorna 2: the residential tower by Muranów ---------------------------------------------
 
 ## F (2026-11-01): "Pokorna 2 looks strange, not as an apartment". OpenStreetMap has it as one
@@ -89,15 +281,16 @@ func _build_pokorna2(site: Dictionary) -> void:
 # --- Kino Muranów: the cinema under the arcaded block on Andersa ---------------------------
 
 ## F's four photos (2026-11-07, thread "Add arthouse cinema tour quest"; spec
-## docs/landmarks/specs/kino_muranow.md): the cream one-storey pavilion along the socialist-realist
-## block's front on Generała Andersa 5, its flat roof a paved terrace with a white balustrade and two
-## pillars with ball finials before the arch through the block above; red MURANÓW letters over the
-## doors with a white KINO either side; poster boards under little lamps; a grey plinth; the round
-## fountain with the putti on the square in front, on the arch's axis; at night festoons of bulbs and
-## paper lanterns over a café garden by the doors. OpenStreetMap maps the pavilion as one jagged
-## `commercial` outline; the model straightens its front (KM_FRONT) the way the photos show it.
+## docs/landmarks/specs/kino_muranow.md, v2 whole-building rebuild 2026-11-27): the full Generała
+## Andersa 3-7 socialist-realist complex as one site: both four-storey residential blocks (OSM 2014
+## and 2904), the raised arch block between them with its passage through to the courtyard, the full
+## arcaded podium along the square with the cinema front in the middle (red MURANÓW, white KINO,
+## doors, poster boards under lamps), the paved terrace with its white balustrade and two pillars,
+## the round putti fountain on the square, and the café garden with festoons and paper lanterns.
 ## In the frame: u along the front (towards Nowolipki, south-east), v out to the square.
-const KM_AT := Vector2(-1661.5, -1209.8)          # the OSM cinema point (inside the pavilion)
+const KM_AT := Vector2(-1661.5, -1209.8)          # the OSM cinema point (inside the podium, 2018)
+const KM_NORTH_AT := Vector2(-1698.0, -1224.0)    # inside the north residential block (OSM 2014)
+const KM_SOUTH_AT := Vector2(-1671.0, -1173.0)    # inside the south residential block (OSM 2904)
 const KM_O := Vector2(-1653.5, -1212.1)           # the front's middle (the doors)
 const KM_U := Vector2(0.481, 0.876)               # along the front
 const KM_V := Vector2(0.876, -0.481)              # out to the square
@@ -106,8 +299,16 @@ const KM_DEEP := 14.0                             # how deep the straightened bl
 const KM_H := 4.8                                 # the pavilion's top over the square
 const KM_PLINTH := 0.9
 const KM_RAIL := 1.05                             # the balustrade over the terrace
-const KM_ARCH_U := -3.0                           # the arch's (and the fountain's) axis along u
-const KM_ARCH_V := -27.3                          # the block's front behind the terrace
+const KM_ARCH_U := -0.62                          # the arch bridge centerline between OSM 2014 & 2904
+const KM_ARCH_V := -27.3                          # the blocks' front line behind the terrace
+const KM_ARCH_HALF := 5.2                         # arch block half width (10.4 m wide)
+const KM_ARCH_BACK_V := -37.0                     # arch block back face (framed by back risalits)
+const KM_SLOT_N := -6.95                          # north block inner edge (recessed balcony slot)
+const KM_SLOT_S := 5.92                           # south block inner edge (recessed balcony slot)
+const KM_BLOCK_STOREY := 3.2                      # four storeys over the terrace
+const KM_BLOCK_CORNICE := 13.4                    # crowning cornice foot over the terrace
+const KM_BLOCK_PARAPET := 14.8                    # parapet top over the terrace (cornice 0.5 + parapet 0.9)
+const KM_ROOF_RISE := 1.8                         # low hipped roof rise
 const KM_FOUNT := Vector2(-0.3, 19.2)             # the fountain's middle (u, v): OSM's basin ring
 const KM_FOUNT_R := 5.0                           # the basin
 const KM_STEP := 0.15                             # the round platform's steps (photo 4): rise,
@@ -125,6 +326,12 @@ const KM_TERRACE := Color("#bdb7aa")
 const KM_BALUSTER := Color("#ece8dc")
 const KM_STEP_STONE := Color("#c9c3b6")
 const KM_STONE := Color("#d2c5a3")                # the arch block's stone, a shade under the walls
+const KM_BLOCK_WALL := Color("#b5a993")           # warm grey-beige render of the 1950s blocks (spec v2)
+const KM_BLOCK_BASE := Color("#9a9284")           # plinth and back rusticated base band
+const KM_BLOCK_TRIM := Color("#d6ccb8")           # pale surrounds, sill bands, and crowning cornice
+const KM_BLOCK_ROOF := Color("#8a8e92")           # grey sheet low hipped roof (3D Tiles h135)
+const KM_IRON := Color("#2c2e30")                 # iron balconies (spec v2)
+const KM_ARCADE := Color("#2a2d30")               # podium wings' dark arcade openings (3D Tiles h270)
 const KM_RED := Color(0.86, 0.13, 0.1)            # the letters (lit at night)
 const KM_WHITE := Color(0.96, 0.95, 0.9)
 const KM_GLASS := Color("#2e3539")
@@ -149,11 +356,23 @@ func _find_kino_muranow() -> void:
 	var body := _simplify(_largest(Geometry2D.merge_polygons(_simplify(q, 0.6), front)), 0.4)
 	if body.size() < 3:
 		return
+	var north := _outline_at(KM_NORTH_AT)
+	var south := _outline_at(KM_SOUTH_AT)
+	# A re-bake that moves the OSM outlines would leave the blocks out without a word: say so.
+	if north.size() < 3 or south.size() < 3:
+		push_error("kino_muranow: a residential block outline is missing at KM_NORTH_AT/KM_SOUTH_AT (north %d, south %d corners): re-measure them" % [north.size(), south.size()])
+	var zone: Array = [_largest(Geometry2D.offset_polygon(body, 0.5, Geometry2D.JOIN_MITER))]
+	if north.size() >= 3:
+		zone.append(_largest(Geometry2D.offset_polygon(north, 1.0, Geometry2D.JOIN_MITER)))
+	if south.size() >= 3:
+		zone.append(_largest(Geometry2D.offset_polygon(south, 1.0, Geometry2D.JOIN_MITER)))
 	var fc := _km(KM_FOUNT.x, KM_FOUNT.y)
-	_add_site("kino_muranow", [_largest(Geometry2D.offset_polygon(body, 0.5, Geometry2D.JOIN_MITER))])
+	_add_site("kino_muranow", zone)
 	if sites.is_empty() or sites[-1]["key"] != "kino_muranow":
 		return
 	sites[-1]["body"] = body
+	sites[-1]["north"] = north
+	sites[-1]["south"] = south
 	tree_free.append([fc, KM_PLAT_R + KM_TREAD * (KM_STEPS - 1) + 1.0])
 
 
@@ -162,12 +381,36 @@ static func _km(u: float, v: float) -> Vector2:
 	return KM_O + KM_U * u + KM_V * v
 
 
+## World point into the cinema's (u, v) frame.
+static func _km_uv(p: Vector2) -> Vector2:
+	var d := p - KM_O
+	return Vector2(d.dot(KM_U), d.dot(KM_V))
+
+
+## Restores the site's local frame (u along the front, v out to the square) for _lbox/_hip calls.
+func _km_frame() -> void:
+	_o = KM_O
+	_a = KM_U
+	_b = KM_V
+	kit_face(0.0)
+
+
+## Starts a kit_front along edge a->b oriented so _b matches the outward normal `out`.
+func _km_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
 func _build_kino_muranow(site: Dictionary) -> void:
 	var body: PackedVector2Array = site["body"]
+	var north: PackedVector2Array = site.get("north", PackedVector2Array())
+	var south: PackedVector2Array = site.get("south", PackedVector2Array())
 	var g := float(map.terrain_height(_km(0.0, 3.0).x, _km(0.0, 3.0).y))
 	_g = g
 	var top := g + KM_H
-	# The pavilion: a grey plinth, the cream walls, a cornice slab whose top is the terrace.
+	# The podium: a grey plinth, the cream walls, a cornice slab whose top is the terrace.
 	_prism(body, g - 0.6, g + KM_PLINTH, KM_GREY, Color(0, 0, 0, 0), M_STONE)
 	_prism(body, g + KM_PLINTH, top - 0.35, KM_WALL, Color(0, 0, 0, 0), M_STONE)
 	var lip := _largest(Geometry2D.offset_polygon(body, 0.22, Geometry2D.JOIN_MITER))
@@ -183,11 +426,18 @@ func _build_kino_muranow(site: Dictionary) -> void:
 		var mid := (a + b) * 0.5 + o * 0.05
 		_pow_box(mid, d, a.distance_to(b) * 0.5 + 0.1, 0.13, top, top + KM_RAIL - 0.12, KM_BALUSTER, KM_BALUSTER)
 		_pow_box(mid, d, a.distance_to(b) * 0.5 + 0.15, 0.2, top + KM_RAIL - 0.12, top + KM_RAIL, KM_CORNICE.darkened(0.06), KM_CORNICE)
+	_km_arcade(body, g, top)
 	_km_front(g, top)
 	_km_terrace(top)
+	_km_blocks(north, south, top)
+	_km_arch_block(top)
 	_km_fountain()
 	_km_garden(g, top)
 	_collide(body)
+	if north.size() >= 3:
+		_collide(north)
+	if south.size() >= 3:
+		_collide(south)
 	_collide(_circle(_km(KM_FOUNT.x, KM_FOUNT.y), KM_PLAT_R + KM_TREAD * (KM_STEPS - 1), 16))
 	_mode = M_STONE
 
@@ -282,8 +532,7 @@ func _km_word(text: String, u: float, y: float, h: float, sx: float, col: Color,
 	_mode = keep
 
 
-## The terrace on the roof: the two pillars with ball finials before the arch, and the arch block
-## in the residential front behind (piers, the round arch, a dark passage, the attic).
+## The terrace on the roof: the two pillars with dark ball finials before the arch.
 func _km_terrace(top: float) -> void:
 	for side: float in [-1.0, 1.0]:
 		var p := _km(KM_ARCH_U + side * 5.6, -19.5)
@@ -298,38 +547,296 @@ func _km_terrace(top: float) -> void:
 		var under := _circle(p, 0.3, 8)
 		under.reverse()
 		_pyramid(under, top + 5.17, top + 5.05, KM_GREY.darkened(0.4))
-	# The arch block: proud of the block's front, from the terrace to over the eaves.
-	var gb := float(map.terrain_height(_km(KM_ARCH_U, KM_ARCH_V - 6.0).x, _km(KM_ARCH_U, KM_ARCH_V - 6.0).y))
-	var crown := maxf(gb + 15.4, top + 12.0)
-	var v0 := KM_ARCH_V - 0.2
-	var v1 := KM_ARCH_V + 0.9
-	var half := 5.2      # the block's half width
-	var r := 2.6         # the arch's radius
+
+
+## The podium's north and south wings carry a row of round-headed dark arcade openings along their
+## square faces (3D Tiles h270, h315): 2.4 m wide, 3.6 m high, every 3.4 m, in a pale stone trim.
+func _km_arcade(body: PackedVector2Array, g: float, top: float) -> void:
+	var step := 3.4
+	var hw := 1.2
+	var y0 := g - 0.1
+	var spring := minf(g + 2.6, top - 1.85)
+	for i in body.size():
+		var a := body[i]
+		var b := body[(i + 1) % body.size()]
+		var length := a.distance_to(b)
+		var out := _out(body, a, b)
+		if out.dot(KM_V) < 0.7 or length < 20.0:
+			continue
+		var mid_u := _km_uv((a + b) * 0.5).x
+		if absf(mid_u) < 25.0:
+			continue  # the central cinema pavilion front stays as v1
+		var along := (b - a) / length
+		var n := floori((length - 1.6) / step)
+		if n < 1:
+			continue
+		var start := (length - float(n - 1) * step) * 0.5
+		for k in n:
+			var at := a + along * (start + float(k) * step)
+			_arch_panel(at, along, out, hw + 0.16, y0, spring, KM_CORNICE, 0.03, M_STONE)
+			_arch_panel(at, along, out, hw, y0, spring, KM_ARCADE, 0.08, M_STONE)
+
+
+## Both four-storey socialist-realist residential blocks (OSM 2014 north, 2904 south) over the
+## terrace: shells, crowning cornice and parapet, front/back/gable kit windows, iron balconies,
+## low hipped grey sheet roofs with skylights and chimneys.
+func _km_blocks(north: PackedVector2Array, south: PackedVector2Array, top: float) -> void:
+	for entry: Array in [[north, true], [south, false]]:
+		var raw: PackedVector2Array = entry[0]
+		var is_north: bool = entry[1]
+		if raw.size() < 3:
+			continue
+		var ring := _km_block_ring(raw)
+		if ring.size() < 3:
+			continue
+		_km_block_mass(ring, top)
+		_km_block_front(ring, top, is_north)
+		_km_block_back_ends(ring, top)
+		_km_block_roof(ring, top)
+
+
+## Trims the central arch bridge and narrow recessed slots out of an OSM block outline, and
+## smooths minor gable-end kinks (under 1.8 m) so each wing has a clean ring for `kit_cornice_ring`.
+func _km_block_ring(raw: PackedVector2Array) -> PackedVector2Array:
+	var cut := PackedVector2Array([
+		_km(KM_SLOT_N, -46.0),
+		_km(KM_SLOT_S, -46.0),
+		_km(KM_SLOT_S, -20.0),
+		_km(KM_SLOT_N, -20.0),
+	])
+	var piece := _largest(Geometry2D.clip_polygons(raw, cut))
+	if piece.size() < 3:
+		return PackedVector2Array()
+	var cleaned := _simplify(piece, 0.7)
+	# Collapse the shallow 1.6 m OSM kink on the far north gable end so it stays a flat gable wall.
+	# Re-bake risk: the u/v window below is measured from today's OSM 2014 outline; re-check it
+	# (turntable, the north gable) whenever centrum.json is re-baked.
+	var out := PackedVector2Array()
+	var n := cleaned.size()
+	for i in n:
+		var uv := _km_uv(cleaned[i])
+		if uv.x < -77.3 and uv.y > -35.0 and uv.y < -28.0:
+			continue
+		out.append(cleaned[i])
+	return _simplify(out, 0.7) if out.size() >= 3 else cleaned
+
+
+## The block's masonry shell: plinth on the terrace front, full-depth rusticated base to terrain on
+## the back and ends, warm grey-beige render, crowning cornice ring, 0.9 m parapet and roof deck.
+func _km_block_mass(ring: PackedVector2Array, top: float) -> void:
+	var eave := top + KM_BLOCK_CORNICE
+	var parapet := top + KM_BLOCK_PARAPET
+	_mode = M_STONE
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var out := _out(ring, a, b)
+		if out.dot(KM_V) > 0.5:
+			_wall(a, b, top - 0.3, top + 0.5, out, KM_BLOCK_BASE)
+			_wall(a, b, top + 0.5, eave, out, KM_BLOCK_WALL)
+		else:
+			var mid := (a + b) * 0.5
+			var foot := minf(top - 0.3, minf(float(map.terrain_height(a.x, a.y)),
+					minf(float(map.terrain_height(b.x, b.y)), float(map.terrain_height(mid.x, mid.y)))) - 0.8)
+			_wall(a, b, foot, top + 0.9, out, KM_BLOCK_BASE)
+			_wall(a, b, top + 0.9, eave, out, KM_BLOCK_WALL)
+	kit_cornice_ring(ring, eave, KM_BLOCK_TRIM, 0.5, 0.6)
+	_prism(ring, eave + 0.5, parapet, KM_BLOCK_WALL, Color(0, 0, 0, 0), M_STONE)
+	_cap(ring, top + 14.4, KM_BLOCK_ROOF.darkened(0.08))
+
+
+## Square-facing long facade of one block: 14 paired window bays across 4 storeys, pale sill bands,
+## `kit_window` surrounds with white sash crosses on floors 2-3, lit `kit_panes` on floors 1 and 4,
+## and 2.4 m iron balconies on floors 2-4 mirrored symmetrically about the central arch block.
+func _km_block_front(ring: PackedVector2Array, top: float, is_north: bool) -> void:
+	var best_i := -1
+	var best_len := 0.0
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var out := _out(ring, a, b)
+		var length := a.distance_to(b)
+		if out.dot(KM_V) > 0.7 and length > best_len:
+			best_len = length
+			best_i = i
+	if best_i < 0 or best_len < 30.0:
+		return
+	var a := ring[best_i]
+	var b := ring[(best_i + 1) % ring.size()]
+	var w := _km_front_edge(a, b, _out(ring, a, b))
+	# Seven pairs of windows (14 bays) match the paired socialist-realist rhythm in h225/h270.
+	var margin := 2.4
+	var pairs := 7
+	var pair_step := (w - 2.0 * margin) / float(pairs)
+	var bays: Array[float] = []
+	for p in pairs:
+		var c := margin + (float(p) + 0.5) * pair_step
+		bays.append(c - 1.55)
+		bays.append(c + 1.55)
+	var sills: Array[float] = []
+	for fl in 4:
+		var sy := top + 1.2 + float(fl) * KM_BLOCK_STOREY
+		sills.append(sy)
+		kit_ledge(0.2, w - 0.2, sy - 0.34, 0.12, KM_BLOCK_TRIM, 0.08)
+	kit_panes(bays, [sills[0], sills[3]], 1.4, 1.7, PAL_GLASS_DARK)
+	for fl in [1, 2]:
+		for bu in bays:
+			kit_window(bu, sills[fl], 1.7, Win.SILL, KM_BLOCK_TRIM, PAL_GLASS_DARK, 0.7, PAL_WHITE_STONE)
+	# Small iron balconies (2.4 m wide) on floors 2-4, mirrored symmetrically across the arch.
+	var balc_bays: Array = [3, 7, 11] if is_north else [2, 6, 10]
+	for idx: int in balc_bays:
+		var bu := bays[idx]
+		for fl in [1, 2, 3]:
+			kit_balcony(bu, sills[fl] - 0.04, 1.2, Balcony.IRON, KM_IRON, KM_BLOCK_TRIM, 0.9)
+
+
+## Courtyard-facing back edges (rusticated base groove, sill bands, lit `kit_panes`) and the far
+## gable end wall (one vertical column of `kit_window` SILL on all four floors).
+func _km_block_back_ends(ring: PackedVector2Array, top: float) -> void:
+	var sills: Array[float] = []
+	for fl in 4:
+		sills.append(top + 1.2 + float(fl) * KM_BLOCK_STOREY)
+	var best_end := -1
+	var best_end_len := 0.0
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var length := a.distance_to(b)
+		if length < 4.0:
+			continue
+		var out := _out(ring, a, b)
+		if out.dot(-KM_V) > 0.7:
+			var w := _km_front_edge(a, b, out)
+			if length > 15.0:
+				kit_bands(0.2, w - 0.2, top, top + 0.9, 0.46, KM_BLOCK_BASE)
+			for sy in sills:
+				kit_ledge(0.2, w - 0.2, sy - 0.22, 0.12, KM_BLOCK_TRIM, 0.08)
+			var n := maxi(1, roundi((w - 1.4) / 4.2))
+			kit_panes(_spread(0.7, w - 0.7, n), sills, 1.4, 1.7, PAL_GLASS_DARK)
+		elif absf(out.dot(KM_U)) > 0.7 and absf(_km_uv((a + b) * 0.5).x) > 40.0 and length > best_end_len:
+			best_end_len = length
+			best_end = i
+	if best_end >= 0:
+		var ea := ring[best_end]
+		var eb := ring[(best_end + 1) % ring.size()]
+		var w := _km_front_edge(ea, eb, _out(ring, ea, eb))
+		for sy in sills:
+			kit_window(w * 0.5, sy, 1.7, Win.SILL, KM_BLOCK_TRIM, PAL_GLASS_DARK, 0.7)
+
+
+## Low hipped grey sheet roof tucked inside the parapet, with skylight boxes and chimney stacks
+## spaced every ~9 m along the ridge (3D Tiles h135).
+func _km_block_roof(ring: PackedVector2Array, top: float) -> void:
+	var u0 := INF
+	var u1 := -INF
+	var v0 := INF
+	var v1 := -INF
+	for p in ring:
+		var uv := _km_uv(p)
+		u0 = minf(u0, uv.x)
+		u1 = maxf(u1, uv.x)
+		v0 = minf(v0, uv.y)
+		v1 = maxf(v1, uv.y)
+	var v_back := maxf(v0 + 0.45, -37.8)
+	var v_front := v1 - 0.45
+	var cu := (u0 + u1) * 0.5
+	var cv := (v_back + v_front) * 0.5
+	var hu := (u1 - u0) * 0.5 - 0.45
+	var hv := (v_front - v_back) * 0.5
+	if hu < 2.0 or hv < 2.0:
+		return
+	var eave := top + 14.4
+	var ridge := eave + KM_ROOF_RISE
+	_km_frame()
+	_hip(cu, cv, hu, hv, eave, KM_ROOF_RISE, KM_BLOCK_ROOF)
+	var span := (u1 - u0) - 10.0
+	var count := maxi(2, roundi(span / 9.0) + 1)
+	for k in count:
+		var u := (u0 + 5.0) + span * float(k) / float(maxi(count - 1, 1))
+		if k % 2 == 0:
+			_lbox(u, cv, 1.4, 1.0, ridge - 0.25, ridge + 0.55, KM_BLOCK_ROOF.lightened(0.08), M_STONE, PAL_GLASS_STEEL)
+		else:
+			_lbox(u, cv, 0.85, 0.55, ridge - 0.25, ridge + 1.1, KM_BLOCK_WALL.darkened(0.08), M_STONE, KM_IRON)
+
+
+## The central arch block connecting the two residential wings (10.4 m wide at KM_ARCH_U, 1.1 m
+## proud of the block front, full depth through to the back with the same round arch on both faces),
+## rising 1.6 m over the blocks' parapet with its own cornice, plain attic, narrow upper windows,
+## dark through-passage, and the two recessed flanking balcony slots on all four floors.
+func _km_arch_block(top: float) -> void:
+	_km_frame()
+	var v_front := KM_ARCH_V + 1.1
+	var v_back := KM_ARCH_BACK_V
+	var v_mid := (v_front + v_back) * 0.5
+	var hv := (v_front - v_back) * 0.5
+	var half := KM_ARCH_HALF
+	var r := 2.6
 	var spring := top + 6.2
-	var piers := [[KM_ARCH_U - half, KM_ARCH_U - r], [KM_ARCH_U + r, KM_ARCH_U + half]]
-	for pr: Array in piers:
-		var c := (float(pr[0]) + float(pr[1])) * 0.5
-		_pow_box(_km(c, (v0 + v1) * 0.5), KM_U, (float(pr[1]) - float(pr[0])) * 0.5, (v1 - v0) * 0.5, top - 0.2, crown, KM_STONE, KM_STONE.darkened(0.1))
-	# Over the arch: the solid part from its crown up, then the arch's curve in steps.
-	_pow_box(_km(KM_ARCH_U, (v0 + v1) * 0.5), KM_U, r, (v1 - v0) * 0.5, spring + r, crown, KM_STONE, KM_STONE.darkened(0.1))
+	var eave := top + 14.7
+	var crown := top + KM_BLOCK_PARAPET + 1.6
+	var back_pt := _km(KM_ARCH_U, v_back)
+	var foot := minf(top - 0.3, float(map.terrain_height(back_pt.x, back_pt.y)) - 0.8)
+	# Two full-depth piers and the solid upper span over the arch, plus the raised attic mass.
+	for side: float in [-1.0, 1.0]:
+		var pu := KM_ARCH_U + side * (r + (half - r) * 0.5)
+		_lbox(pu, v_mid, (half - r) * 0.5, hv, foot, eave, KM_STONE, M_STONE, KM_STONE.darkened(0.1))
+	_lbox(KM_ARCH_U, v_mid, r, hv, spring + r, eave, KM_STONE, M_STONE, KM_STONE.darkened(0.1))
+	_lbox(KM_ARCH_U, v_mid, half, hv, eave, crown, KM_STONE, M_STONE, KM_BLOCK_ROOF)
+	# Round arch curve in six steps a side spanning the full depth (front arch, back arch and vault).
 	var steps := 6
 	for k in steps:
-		var a0 := PI * 0.5 * k / steps
-		var a1 := PI * 0.5 * (k + 1) / steps
-		var w := r * cos(a1)   # the opening's half width at this step's top
+		var a0 := PI * 0.5 * float(k) / float(steps)
+		var a1 := PI * 0.5 * float(k + 1) / float(steps)
+		var w := r * cos(a1)
 		var y0 := spring + r * sin(a0)
 		var y1 := spring + r * sin(a1)
 		for side: float in [-1.0, 1.0]:
 			var cu := KM_ARCH_U + side * (w + (r - w) * 0.5)
-			_pow_box(_km(cu, (v0 + v1) * 0.5), KM_U, (r - w) * 0.5, (v1 - v0) * 0.5, y0, y1 + 0.02, KM_STONE, KM_STONE)
-	# The passage: dark behind the opening.
-	var n3 := Vector3(KM_V.x, 0.0, KM_V.y)
-	var a := _km(KM_ARCH_U - r, v0 + 0.05)
-	var b := _km(KM_ARCH_U + r, v0 + 0.05)
-	_quad(Vector3(a.x, top, a.y), Vector3(b.x, top, b.y), Vector3(b.x, spring + r, b.y), Vector3(a.x, spring + r, a.y), n3, Color("#3b3a36"))
-	# The cornice over the block and the attic's band.
-	_pow_box(_km(KM_ARCH_U, (v0 + v1) * 0.5 + 0.1), KM_U, half + 0.3, (v1 - v0) * 0.5 + 0.3, crown - 0.5, crown - 0.15, KM_CORNICE, KM_CORNICE)
-	_pow_box(_km(KM_ARCH_U, (v0 + v1) * 0.5 + 0.2), KM_U, half + 0.05, 0.12, spring + r + 1.2, spring + r + 1.45, KM_CORNICE, KM_CORNICE)
+			_lbox(cu, v_mid, (r - w) * 0.5, hv, y0, y1, KM_STONE, M_STONE, KM_STONE)
+	# Deep shadow walls and paved floor through the passage so both arch faces read cleanly.
+	_mode = M_STONE
+	_lbox(KM_ARCH_U, v_mid, r - 0.04, hv - 0.04, foot, top - 0.04, KM_TERRACE.darkened(0.18), M_STONE, KM_TERRACE.darkened(0.14))
+	_wall(_km(KM_ARCH_U - r + 0.05, v_mid + 0.2), _km(KM_ARCH_U + r - 0.05, v_mid + 0.2), top - 0.04, spring + r - 0.05, KM_V, Color("#2a2926"))
+	_wall(_km(KM_ARCH_U + r - 0.05, v_mid - 0.2), _km(KM_ARCH_U - r + 0.05, v_mid - 0.2), top - 0.04, spring + r - 0.05, -KM_V, Color("#2a2926"))
+	# Cornice, arch band, attic coping, and two narrow windows on floors 3-4 on both faces.
+	var faces: Array = [
+		[_km(KM_ARCH_U + half, v_front), _km(KM_ARCH_U - half, v_front), KM_V, true],
+		[_km(KM_ARCH_U - half, v_back), _km(KM_ARCH_U + half, v_back), -KM_V, false],
+	]
+	for fc: Array in faces:
+		var fw := _km_front_edge(fc[0], fc[1], fc[2])
+		var is_front: bool = fc[3]
+		kit_ledge(0.0, fw, spring + r + 0.6, 0.22, KM_CORNICE, 0.14)
+		kit_cornice(0.0, fw, eave, KM_CORNICE, 0.42, 0.45)
+		kit_ledge(0.0, fw, crown - 0.16, 0.16, KM_CORNICE, 0.12)
+		# Floor 3 narrow windows on the piers beside the arch; floor 4 narrow windows over the arch.
+		if is_front:
+			for off: float in [-3.9, 3.9]:
+				kit_window(fw * 0.5 + off, top + 7.6, 1.6, Win.SILL, KM_CORNICE, PAL_GLASS_DARK, 0.42)
+			for off: float in [-1.8, 1.8]:
+				kit_window(fw * 0.5 + off, top + 10.6, 1.6, Win.SILL, KM_CORNICE, PAL_GLASS_DARK, 0.45)
+		else:
+			kit_panes([fw * 0.5 - 3.9, fw * 0.5 + 3.9], [top + 7.6], 0.84, 1.6, PAL_GLASS_DARK)
+			kit_panes([fw * 0.5 - 1.8, fw * 0.5 + 1.8], [top + 10.6], 0.9, 1.6, PAL_GLASS_DARK)
+	# Two narrow recessed balcony slots flanking the arch (all four floors, photos 2 and 4).
+	# Held 0.35 m under the blocks' parapet so their flat roof never shares a plane with the coping.
+	var slot_v_front := -31.6
+	var slot_v_back := -36.5
+	var slot_spans: Array = [[KM_SLOT_N, KM_ARCH_U - half], [KM_ARCH_U + half, KM_SLOT_S]]
+	for sp: Array in slot_spans:
+		var su0: float = sp[0]
+		var su1: float = sp[1]
+		var sw := su1 - su0
+		if sw < 0.6:
+			continue
+		_km_frame()
+		_lbox((su0 + su1) * 0.5, (slot_v_front + slot_v_back) * 0.5, sw * 0.5 - 0.02,
+				(slot_v_front - slot_v_back) * 0.5, foot, top + KM_BLOCK_PARAPET - 0.35, KM_BLOCK_WALL, M_STONE, KM_BLOCK_ROOF)
+		var fw := _km_front_edge(_km(su1, slot_v_front), _km(su0, slot_v_front), KM_V)
+		for fl in 4:
+			var sy := top + 1.2 + float(fl) * KM_BLOCK_STOREY
+			kit_panes([fw * 0.5], [sy], minf(0.95, fw - 0.2), 1.7, PAL_GLASS_DARK)
+			kit_balcony(fw * 0.5, sy - 0.04, fw * 0.46, Balcony.IRON, KM_IRON, KM_BLOCK_TRIM, 1.0)
 
 
 ## The fountain on the square: a round platform up three steps (photo 4; OSM's ring `wall` is

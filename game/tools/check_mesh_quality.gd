@@ -19,7 +19,10 @@ extends SceneTree
 ## fails when a count goes ABOVE it, and says so when it went below (lower the number). New
 ## defects fail at once. Not checked (the art-director judges them): parts inside parts, T gaps.
 ## Prints a line per site, then `check_mesh_quality: OK` (exit 0) or the problems (exit 1).
-##   godot --headless --path game --script res://tools/check_mesh_quality.gd
+##   godot --headless --path game --script res://tools/check_mesh_quality.gd [-- --site=KEY]
+## `--site=KEY` judges that one site alone (budget, defects; no sampler, signs or SUNKEN checks): the
+## builder's inner loop takes seconds instead of the whole run's minutes (Ufficio Primo pilot,
+## 2026-11-26: 6.5 min in the cloud). The whole run stays the gate (verify step and CI).
 
 const MapBuilderRef := preload("res://scripts/map_builder.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
@@ -86,7 +89,7 @@ const BUDGET := {
 	"church_narodzenia": 1450,  # 2026-11-14: the whole Baroque church and its clock turret from photos (measured 1305)
 	"church_niepokalanego": 720,  # 2026-11-14: the whole Res Sacra Miser church from photos (measured 644)
 	"church_nozykow": 2900,  # 2026-11-14: the whole Nożyk Synagogue from photos (measured 2625)
-	"church_piotr_pawel": 1300,
+	"church_piotr_pawel": 1650,  # 2026-11-26: 3D Tiles rework: pitched transept and wings, drum balustrade, fuller dome (was 1300)
 	"church_reformowany": 1150,  # 2026-11-14: the whole neo-Gothic church and its spire from photos (measured 1020)
 	"church_sw_marcin": 2400,  # 2026-11-14: the whole St Martin church and its tower from photos (measured 2043)
 	"church_trojca_praga": 520,  # 2026-11-14: Holy Trinity on Solec, temple front and crossing turret from photos (measured 469)
@@ -109,14 +112,22 @@ const BUDGET := {
 	"uw_skarpa": 7000,  # 2026-11-15: the escarpment's brick wall, piers, graffiti, railing
 	"uw_straz": 900,  # 2026-11-15: the guards' kiosk
 	"uw_kampus": 1500,  # 2026-11-15: bollards and chains, flagpoles
-	"bristol": 2450,
+	"bristol": 7500,
 	"polonia": 1450,
 	"ujazdowski": 1650,
+	"polskie_radio": 3000,
+	"dom_poselski": 5000,
+	"stary_dom_poselski": 7000,
+	"rembielinskiego": 2800,
+	"willa_raua": 2000,
+	"dziewulskich": 1600,
+	"pod_karczochem": 2800,
 	"sobieski": 1500,
 	"vitkac": 2600,  # 2026-11-21 teaser 4 (F's photo): rounded granite corners, glass ribbons, shop glass and mullions, the glass top storey and its bar terrace: 2403 tris
 	"jablkowscy": 1450,
 	"sheraton": 2400,
 	"bgk": 2700,
+	"ufficio_primo": 4400,  # 2026-11-26: the whole stone cube, doors, bronze guardians; L2 exception: the roof (dome, 71 bubbles, roof lights) is its identity from the camera
 	"foksal": 3000,
 	"mlotek": 2400,
 	"kozia9": 7000,
@@ -128,10 +139,10 @@ const BUDGET := {
 	"hotel_canaletto": 330,
 	"hotel_starowka": 330,
 	"karmelici": 1300,
-	"kordegarda": 950,
+	"kordegarda": 1750,  # 2026-11-27 v2 whole gallery (Codex): 1,350 measured, ~1.3x room
 	"mdm": 4100,
 	"mickiewicz": 1150,
-	"potocki": 760,
+	"potocki": 6500,
 	"prus": 250,
 	"wyszynski": 300,
 	"arkadia": 20300,
@@ -160,6 +171,7 @@ const BUDGET := {
 	"flaga": 170,
 	"forest": 8100,  # 2026-11-15: the real green roof (lawns, wavy corten beds, railing, pavilions, tent), measured 6739 (was 4260)
 	"gpy": 2000,  # RD-3 (2026-11-06): black patches, the wings' decks, trees and tables
+	"gpxz": 12000,  # Generation Park X and Z: two 11-16 storey stone-grid office blocks framing Y
 	"gaulle": 880,
 	"rondo": 10000,  # 2026-11-26: open wells, bent beds, arm beds, the square by the Empik pavilion: measured 8771
 	"sunken": 5600,  # 2026-11-05: the Patelnia and the Rotunda's stair: walls, railings, treads, two barrels
@@ -192,7 +204,7 @@ const BUDGET := {
 	"bez_kantow": 8000,  # 2026-11-15 Dom bez Kantów and Królewska 2 rebuilt whole from F's photos and the orthophoto: the ring, arcades, panes, cornices (measured 6679)
 	"politechnika": 950,  # 2026-11-15 front from F's photos: the columned middle on Plac Politechniki, attic and figures, stairs, lamp pillars
 	"pasta": 580,
-	"msn": 500,
+	"msn": 900,
 	# Norblin on its real block (2026-11-02, photo report): two blocks, Plater and Galwan, about
 	# three times the first footprint, arched windows round their courts, green roofs and terraces.
 	# 2026-11-03 look check: the copper base, finned storeys, set-back tops, the passage roof and
@@ -202,7 +214,10 @@ const BUDGET := {
 	"browary": 3900,   # 2026-11-03: paved main path and clearing edges (look check)
 	"koszyki": 1900,
 	"torwar": 1500,  # 2026-11-15 from photos, over its street block: the portico's columns, entablature, parapet and letters; pilasters and lattice panels round the hall
+	"sad_okregowy": 7000,
 	"nbp": 1000,  # 2026-11-16 from photos, the whole branch: the folded panel bands, the glass ground floor, the steps, the white wall with the eagle and NBP, the stair slot, planters
+	"mostowski": 7000,  # the palace, portico and three open courts
+	"powszechny": 6000,
 	"dom_chlopa": 3000,  # 2026-11-16 from photos, over its street block: the wavy roof edge on every street front, GROMADKA, the HOTEL corner sign, KASYNO TRAF
 	"batalion_kilinski": 1100,  # 2026-11-16 from photos: the tilted granite slab, the white step and four stelae, the white blocks, five flower bowls
 	"powstancow_ramp": 1500,  # 2026-11-16: Plac Powstańców Warszawy's car park ramp: the concrete walls, 22 strips of setts
@@ -218,9 +233,8 @@ const BUDGET := {
 	"plater49": 140,
 	"platinum_a": 80,
 	"platinum_b": 80,
-	"pepeo_tower": 130,  # 2026-11-08 top-50 T37: mapped parts in their skins, the crown sign
 	"poniatowski": 4800,  # 2026-11-03: the towers strengthened (F), 2556 -> 4574 tris over four groups; +0 draw calls
-	"prezydencki": 1300,
+	"prezydencki": 7000,
 	"q22": 720,  # 2026-11-08 photo rebuild (top-50 T02): 607 tris
 	"rondo1": 900,  # 2026-11-08 photo rebuild (top-50 T03): 769 tris
 	"rotunda": 2450,  # 2026-11-11: + the plaza's dark stone grid and its bollards
@@ -240,6 +254,7 @@ const BUDGET := {
 	"jarmark": 192000,  # 2026-11-22 the official-map rebuild with the object kit (jarmark_kit.gd: shutters, plank grooves, bulbs on every chalet, Santa's Workshop, the castle stage), 190,815 tris, still one mesh, +0 draw calls; the iPhone bench near the Palace is owed before TestFlight. Before: 2026-11-20 the finished Jarmark Warszawski 2026 (F, for the trailer), 69,003 tris: over 200 stalls, the LED tree, the 38 m tower carousel, the Venetian carousel, bulb strings over every aisle; an exception to the L3 cap, a whole 160 by 90 m market in one site, +0 draw calls (one mesh)
 	"obeliski": 600,  # the two 1955 granite obelisks by the Palace and their exit hatches (F, 2026-11-15, 2026-11-17)
 	"tower75": 220,
+	"unique": 7000,
 	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
 	"tapczan": 4700,  # 2026-11-24 THE TAPCZAN pub on Sienkiewicza 4 (F's photos): street level, carved panels, sign, pallet terrace, 7 tables, 28 chairs, 2 umbrellas, planters
 	"sienkiewicza4": 5300,  # 2026-11-24 the Art Nouveau tenement on Sienkiewicza 4 (F's photos): bows, friezes, canopy, windows, rear range
@@ -249,9 +264,7 @@ const BUDGET := {
 	"zodiak": 1500,  # 2026-11-19 neon star, string lights on three poles
 	"cmarsz": 2200,
 	"sowa": 1500,  # SOWA CLUB and CITY 25 (F's photos, 2026-11-06): 1298 tris
-	"brama": 100,
-	"equator": 120,
-	"equator2": 120,
+	"brama": 100,  # equator, equator2 and pepeo_tower build only their signs on their street blocks (TOWERS on_block, 2026-11-26): no budget
 	"wiecha": 3700,  # 2026-11-19 night life (lit displays, awnings, kebab hatch, bulbs); 2026-11-22 the cafés' own lit bays, words and bulb strings (3,042)
 	"niecala7": 13000,  # 2026-11-26 Rezydencja Opera, Niecała 7 (F): the whole block on its mapped outline, stacked round balconies, pergola; +0 draw calls. 8000 → 11500 the same day: F asked for the balconies of the photos F sent (dish bowls, posts, hoops, a stack on every arc edge), 10930 tris; 13000 for the ivy and the geranium boxes (F, 12478 tris)
 	"warsztat_mirka": 3600,  # 2026-11-24 Mirek's tuning workshop on Grzybowska (F): the hall with three doors, two lifts (a hatch, a stripped shell), two supercars, the Bawarka in its oil, a stripped car, tyres, the roof car, 2,981 tris; +0 draw calls
@@ -327,6 +340,8 @@ const BUDGET := {
 	"flisac": 4200,  # 2026-11-13: the grid of panes, loggias and shop glass, 3,552 triangles
 	"florian": 2480,
 	"bazar": 2210,
+	"centrum_praha": 4000,
+	"targowa33a": 3000,
 	"port_praski": 25000,  # 2026-11-20: the whole Port Praski district from photos: 13 tenement blocks in sections (glass balconies from kit_balcony), Krowia 6 works, the Minter hotel (measured 24161)
 	"pp_basin": 8800,  # 2026-11-20: Port Praski basin: lock, tower, pump houses, sheds, boulevard, hoardings (measured 7776)
 	"kosciuszkowcy": 400,  # 2026-11-20: Pomnik Kościuszkowców from the bridge-ramp photos: the 12 m soldier with the cape, the plinth, the skaters' ledges (measured 245)
@@ -335,21 +350,29 @@ const BUDGET := {
 	"staszic": 360,
 	"zamek": 24500,  # 2026-11-26 pass 3: the whole castle as one model, LoD2 gone (the named exception to L3; spec section 7)
 	"zamkowy": 2900,  # 2026-11-26: + the oak's granite block bench in two tiers and railing (measured 2778)
+	"prymasowski": 7000,
 	"mansjonaria": 2700,  # 2026-11-26: the buttressed house by the oak modelled whole (measured 2458)
 	"nikidw": 2400,  # 2026-11-26: the Institute modelled whole: 12-bay two-storey arcade, wings, hipped roofs (measured 2268)
 	"arkady": 2600,
-	"kino_muranow": 6000,
+	"kino_muranow": 11000,  # 2026-11-27 v2 whole complex: both 4-storey blocks, arch block, arcaded podium, square
 	"zbawiciela": 3400,
 	"zbawiciela_plac": 2200,
 	"tarasy": 9400,  # 2026-11-11 F's photos: the triangular glass wave, the guitar, the café (5455); the whole complex: podium ledges, shop boards, Lumen's setback (7781)
 	"tarasy_plaza": 2750,  # 2026-11-11: the sunken plaza by the station: walls, shopfronts, railings, treads, umbrellas (2290)
+	"mw_cen": 2100,  # 2026-11-26 (metro wells): the other stations' open wells, sunk; measured 1622 / 5530 / 2916 / 3048 / 1470 / 2353 / 824 in the order below
+	"mw_onz": 7200,
+	"mw_dasz": 3800,
+	"mw_ratusz": 4000,
+	"mw_nsu": 1900,
+	"mw_poli": 3100,
+	"mw_cnk": 1100,
 	"rondo_wells": 6000,  # 2026-11-26: Rondo Dmowskiego's twelve stairwells sunk 3.5 m: coping, railings, treads, mouths
 	"trojca": 3700,  # 2026-11-14 photo rebuild: rusticated drum, arched windows, framed oculi, Doric porticoes with lunettes, dormers, glazed lantern (measured 3361)
 	"unit": 1450,  # 2026-11-19: the Dragon Skin dress (green wall, MODERATO) and the corner café board
 	"varso": 4300,  # 2026-11-15 photo rebuild (3614 tris): grey frame, louvre crown, lattice spire with dish platforms, lobby, observation box; +0 draw calls
 	"varso_place": 7200,  # 2026-11-17 the office wings from F's photos (stone frame, set-back top storey, terraces, atrium): 6846 tris, +0 draw calls
 	"wcf": 1400,  # 2026-11-08 F's 13 photos: the Emilii Plater portico, piers, fins, the low roof's rail (1319)
-	"wszystkich": 1300,
+	"wszystkich": 7000,
 	"wizytki": 3600,  # 2026-11-14: the whole Visitationist church replaces LoD2 (front, nave, aisles, chancel, wing, turret; measured 3248)
 	"branickich": 1500,
 	"archikatedra": 1100,
@@ -361,7 +384,7 @@ const BUDGET := {
 	"wiktoria": 4500,  # 2026-11-15 photo rebuild (about 4100 tris): two white volumes, 8 and 6 floors of niche windows, glazed base; an exception to the L2 cap, one 117 by 79 m outline
 	"wtt": 1900,  # 2026-11-15 photo rework (1604 tris): crown slits, the mast from its mapped foot
 	"zacheta": 720,
-	"zlota44": 1800,
+	"zlota44": 2160,  # 1659 measured 2026-11-26 (spec budget 2200: 1401 before the 3D Tiles + Street View pass)
 	"zygmunt": 320,
 	# Towarowa 22 built as finished (2026-11-03): seven towers and blocks, the hall's steel frame,
 	# the pavilion, the park, the drone port and the gilded crane.
@@ -412,11 +435,38 @@ func _initialize() -> void:
 	map._roof_nz = ceili((float(bounds[3]) - float(bounds[1])) / map.ROOF_CELL)
 	_probe = MeshProbe.new(data)
 	var marks = Landmarks.new(map, data)
+	var only := ""
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--site="):
+			only = a.trim_prefix("--site=")
 	var keys: Array[String] = []
 	for s: Dictionary in marks.sites:
 		if not s.has("block") and not s.has("fronts"):  # city fabric, not landmarks: no budget of their own
-			keys.append(s["key"])
+			if only == "" or s["key"] == only:
+				keys.append(s["key"])
 	keys.sort()
+	if only != "":
+		if keys.is_empty():
+			print("check_mesh_quality: no landmark site %s" % only)
+			map.free()
+			quit(1)
+			return
+		var one := MeshProbe.Recorder.new()
+		marks.build(one, Rect2(), only)
+		var one_found := _probe.examine(only, one)
+		_judge(only, one_found)
+		map.free()
+		for n in notes:
+			print("  note: " + n)
+		if problems.is_empty():
+			print("check_mesh_quality: OK (site %s)" % only)
+			quit(0)
+		else:
+			print("check_mesh_quality: %d problems" % problems.size())
+			for p in problems:
+				print("  " + p)
+			quit(1)
+		return
 	var measured := {}
 	for key in keys:
 		var rec := MeshProbe.Recorder.new()

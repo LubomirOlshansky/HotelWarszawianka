@@ -79,7 +79,7 @@ const ErrorTrap := preload("res://scripts/error_trap.gd")  # the error trap (TD-
 const Boot := preload("res://scripts/boot.gd")  # the boot scene (TD-15): its title and trap are taken over
 const Dialogue := preload("res://scripts/dialogue.gd")
 const Jobs := preload("res://scripts/jobs.gd")
-## Loop 2d-1: Podwózka, the app-taxi side job.
+## Loop 2d-1: Łuber, the app-taxi side job.
 const Rides := preload("res://scripts/rides.gd")
 const Lines := preload("res://scripts/quest_lines.gd")
 const Eggs := preload("res://scripts/eggs.gd")
@@ -89,6 +89,7 @@ const Notebook := preload("res://scripts/notebook.gd")
 ## Loop MW-6: the eggs as notebook cards, KASETA and Fotka.
 const EggBook := preload("res://scripts/egg_book.gd")
 const Tape := preload("res://scripts/tape.gd")
+const Napkin := preload("res://scripts/napkin.gd")
 const Fotka := preload("res://scripts/fotka.gd")
 const PromoMode := preload("res://scripts/promo_mode.gd")
 ## Loop 3h slice 1: the demo's districts (discovery, "?" marks, completion).
@@ -154,6 +155,7 @@ const GameCtx := preload("res://scripts/game_ctx.gd")
 ## The QUESTS screen's words and tabs (2026-11-17).
 const QuestBook := preload("res://scripts/quest_book.gd")
 const PauseReasons := preload("res://scripts/pause_reasons.gd")
+const Phone := preload("res://scripts/phone.gd")
 const Tour := preload("res://scripts/tour.gd")
 
 ## "Dym u Senatorka", Ivan's shisha night (shisha.gd, F's ask 2026-11-08), and the lounge upstairs
@@ -173,6 +175,10 @@ const EvTow := preload("res://scripts/ev_tow.gd")
 const BarCrawl := preload("res://scripts/bar_crawl.gd")
 ## THE TAPCZAN's door, room, beer pong and the tipsy drive after (tapczan.gd, F 2026-11-24).
 const Tapczan := preload("res://scripts/tapczan.gd")
+## Bokiem na Narodowym's grey box (drift_stadium.gd, critique-drift.md 4) and the venue owner (venues.gd).
+const DriftStadium := preload("res://scripts/drift_stadium.gd")
+const DriftEvent := preload("res://scripts/drift_event.gd")  # PR 3: the side quest on the stadium (one activity)
+const Venues := preload("res://scripts/venues.gd")
 ## Packs (docs/design/packs.md): running clubs, cycling packs and coffee raves.
 const Packs := preload("res://scripts/packs.gd")
 ## Kibice (docs/design/city-life-satire.md 7): friendly fans by Stadion Leguminy on match evenings.
@@ -371,6 +377,8 @@ var notes: Notebook
 ## then card, the tape played), --tape-log, --fotka (Fotka open at the start), --kadr=<n|id> (Fotka aimed at a Kadr spot,
 ## a photo after 2 s), --fotka-shot=S (a photo S s after --fotka opens), --photo-log.
 var egg_book: EggBook
+## The napkin, LISTA (napkin.gd): story-arc places where Warsaw lives, after chapter 1.
+var napkin: Napkin
 ## Loop 3h slice 1: the districts (districts.gd) and their flags: --district=<id> (that district's
 ## "discovered" card at the first check), --districts=all|none|<id>[:jobs],... (the record, in
 ## memory), --districts-log.
@@ -451,6 +459,9 @@ var ev_tow: EvTow
 ## --crawl-route=ID, --crawl-group=ID, --crawl=0 (none), --crawl-log.
 var crawl: BarCrawl
 var tapczan: Tapczan
+## The drift stadium (--drift=osemka, the DEV page's BOKIEM) and the scenes off the map that joined venues.gd.
+var drift: DriftStadium
+var venues := Venues.new()
 ## Sekretny rave (rave.gd): flags --rave-call (LEKTI and Mati's call now), --rave-smola (Mati's
 ## Smoła night now), --rave=on / --rave=day (that rave on at any hour), --rave-spot=ID, --rave=0,
 ## --rave-log.
@@ -528,7 +539,7 @@ var wellness: Wellness
 ## that paint, owned for the run), --garage (the car on the garage's forecourt, the card open; the
 ## garage shown whatever the wallet), --garage-log (`garage:` lines).
 var garage: Garage
-# --- loop 2d-1: Podwózka (rides.gd) and its testing flags ---
+# --- loop 2d-1: Łuber (rides.gd) and its testing flags ---
 var rides: Rides
 ## G12 part 2: the quest pin, a place picked on the full map's ZADANIA card (quest_lines.gd entry;
 ## {} none): the arrow and minimap dot point at it while nothing else is on, until it is reached.
@@ -647,6 +658,7 @@ var quest_pick_flag := -1
 ## --quests (shots): the full map opens at the start with the QUESTS screen up (2026-11-17).
 ## Also written by a command-line flag (dev_flags.gd).
 var quests_flag := false
+var phone: Phone  # the phone with jobs (phone.gd)
 ## [x, z, what]: above the four driven tunnels (the bug: a hold over a tunnel put the car on its
 ## floor), by a portal, and plain streets.
 const TELEPORT_TESTS := [
@@ -1584,6 +1596,8 @@ func _build_world() -> void:
 	hud.settings_panel.changed.connect(_on_setting)
 	hud.settings_panel.closed.connect(_close_settings)
 	hud.map_pressed.connect(_open_full_map)  # F's asks: a tap on the minimap
+	phone = Phone.new(self)  # F 2026-11-26: the phone with jobs (phone.gd wires the TELEFON chip)
+	phone.wire(hud)
 	# Loop 2e: TIME, VHS, RAIN, STYLE, CAM, QUALITY and the rotate and zoom buttons left the
 	# driving screen (Settings has them; the keys stay; zoom is a pinch, a twist turns a fixed
 	# camera).
@@ -1823,6 +1837,7 @@ func _build_world() -> void:
 	# everything outside the kit: it may start from the air (`world_free` refuses the helicopter).
 	ev_tow = _join(EvTow.new(), self, _ev_free) as EvTow
 	await LoadYield.tick("ev_tow")
+	drift = venues.join("stadium", _join(DriftEvent.new(), world, func() -> bool: return _free_block(true, true) == ""), "car") as DriftStadium  # Darek's call; DEV asks in
 	_build_stories(world)
 	await LoadYield.tick("_build_stories")
 	# The night groups' calls and their crawls (bar_crawl.gd wires itself); none with --no-traffic or --crawl=0.
@@ -2120,6 +2135,7 @@ func _build_sound(data: Dictionary, world: Node3D) -> void:
 func _set_quality(choice: int) -> void:
 	quality_choice = clampi(choice, Tiers.AUTO, Tiers.EXPERIMENTAL)
 	quality = auto_quality if quality_choice == Tiers.AUTO else quality_choice
+	Tiers.level = quality  # the drift stadium reads its tiers on each run (tiers.gd DRIFT)
 	if settings.quality != quality_choice and _started: _keep.chosen(self)  # perf thread: saved, Experimental too (quality_keep.gd)
 	tod.shadows_allowed = bool(Tiers.value(quality, "shadows"))
 	tod.glow_allowed = bool(Tiers.value(quality, "glow"))
@@ -2538,9 +2554,9 @@ func _end_phone_bench(done: bool) -> void:
 
 ## The side jobs (kebab stands, the słoiki run) and the easter eggs.
 func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
-	# The deliveries and Podwózka (jobs.gd, rides.gd: each wires itself) set up in one order (the
-	# deliveries first: Podwózka picks its addresses from theirs) and join the director in the other
-	# (Podwózka first). Each one's own `_free` holds every rule for what is outside the kit, so the
+	# The deliveries and Łuber (jobs.gd, rides.gd: each wires itself) set up in one order (the
+	# deliveries first: Łuber picks its addresses from theirs) and join the director in the other
+	# (Łuber first). Each one's own `_free` holds every rule for what is outside the kit, so the
 	# test the director gets here is "yes".
 	jobs = _install(Jobs.new(), self) as Jobs
 	add_child(preload("res://scripts/target_route.gd").new(hud, graph))  # the road route to any target (TD-13)
@@ -2697,7 +2713,7 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 				var g: Vector2 = site["guitar"]
 				city_sounds.add_crowd(str(site["id"]), "guitar", Vector3(g.x, map.ground_height(g.x, g.y), g.y),
 						func() -> bool: return bool(site.get("guitar_on", false)))
-	# Podwózka at dawn: requests from the club doors.
+	# Łuber at dawn: requests from the club doors.
 	if rides != null:
 		rides.mission_on = func() -> bool:
 			return _quest_running() \
@@ -2899,7 +2915,7 @@ func _build_play_stats() -> void:
 			{"platform": OS.get_name(), "lang": Lang.code, "quality_tier": Tiers.NAMES[auto_quality] if quality_choice == Tiers.AUTO else Tiers.NAMES[quality_choice],
 			"controls": controls.scheme, "test_device": settings.test_device})
 	play_stats.watch({"wallet": wallet, "car": car, "is_flying": func() -> bool: return flying, "activities": activities,
-			"police": police, "first10": first10, "tajny": tajny, "districts": districts, "egg_book": egg_book, "garage": garage,
+			"police": police, "first10": first10, "tajny": tajny, "districts": districts, "egg_book": egg_book, "napkin": napkin, "garage": garage,
 			"heli": heli, "radio": radio, "panel": hud.settings_panel, "save_note": wallet.load_note, "look": func() -> Array: return [Tiers.NAMES[quality], view.stretch_shrink, _cap]})
 
 
@@ -3069,7 +3085,7 @@ func _build_crash_scenes() -> void:
 	crash_scenes.name = "CrashScenes"
 	crash_scenes.install(_build_ctx())
 	crash_scenes.walkers = walkers
-	# Road life stage 3, "Pan wolny?!": a taxi check's passenger asks Podwózka for the ride.
+	# Road life stage 3, "Pan wolny?!": a taxi check's passenger asks Łuber for the ride.
 	crash_scenes.stranded = func(at: Vector2) -> bool: return rides != null and rides.offer_stranded(at)
 	crash_scenes.stranded_on = func() -> bool: return rides != null and rides.stranded_on()
 	# Road life (2026-11-26): the sobriety check reads the pub's beer.
@@ -3173,8 +3189,7 @@ func _build_stories(world: Node3D) -> void:
 				"hello": TrendJob.PADEL_HELLO, "closed": TrendJob.PADEL_CLOSED,
 				"at": TrendJob.DESKI_GATE, "colour": TrendJob.PADEL_COLOUR, "hours": Vector2(TrendJob.DESKI_HOURS[0], TrendJob.DESKI_HOURS[1]), "days": [],
 				"call": trend_job.padel_ring, "meet": trend_job.padel_meet, "busy": trend_job.padel_busy, "idle": trend_job.padel_idle})
-	# The night racing club (street_meet.gd): Darek at Plac Defilad, 21:00-4:00. Null with
-	# --no-traffic or --meet=0.
+	# The night racing club (street_meet.gd): Darek at Plac Defilad, 21:00-4:00; null with --no-traffic or --meet=0.
 	if meet != null and meet.meets.size() > 0:
 		# The start is Darek on the kerb of Parkingowa by Rondo Dmowskiego (StreetMeet.START, F
 		# 2026-11-11: out of the first view, a short drive from the spawn); the meet stays on Plac
@@ -3187,6 +3202,7 @@ func _build_stories(world: Node3D) -> void:
 				"closed": ["„Za dnia tu tylko turyści. Wpadnij po 21.”", "\"By day it's all tourists here. Come after nine.\""],
 				"at": Vector2(g.x, g.z), "colour": StreetMeet.COLOUR, "hours": StreetMeet.NIGHT_HOURS, "days": [],
 				"call": meet.ring, "meet": meet.meet_in_person, "busy": meet.busy, "idle": meet.idle})
+	if drift != null: (drift as DriftEvent).story = stories.defs[stories.add((drift as DriftEvent).story_def())]  # Bokiem na Narodowym, drift_event.gd
 	if kino_tour != null:
 		stories.add({"id": "kino", "pl": str(kino_tour.title()[0]), "en": "Cinema tour", "who": ["Wiktor", "Wiktor"],
 				"hello": ["„Jesteś! Mam film, jedną kopię na 35 mm i cztery kina do objechania. Amondo, Atlantic, Kinoteka, Muranów. Wsiadam?”",
@@ -3274,6 +3290,8 @@ func _story_tick() -> void:
 		_restore_track()
 	var focus := _quest_running()
 	stories.focus = focus
+	if tod != null:  # real time inside a questline (game_time.gd `held_for`), never under Promo mode's speeds
+		tod.held = GameTime.held_for(stories.defs, tajny != null and tajny.busy()) and not (promo != null and promo.on)
 	_shisha_secret(focus)
 	_meet_night()
 	_rave_night()
@@ -3405,6 +3423,8 @@ func _sound_mode() -> String:
 		return "electric" if boat_race.player.kind == BoatRace.Boat.Kind.ELECTRIC else "boat"
 	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside) or (tapczan != null and tapczan.inside()):
 		return "foot"
+	if venues.sound_mode() != "":
+		return venues.sound_mode()
 	return "bike" if car.model == "bike" else "car"
 
 
@@ -3540,6 +3560,8 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "club inside"
 	if lounge != null and lounge.inside:
 		return "lounge inside"
+	if venues.inside_name() != "":
+		return venues.inside_name() + " inside"
 	if title != null or _phone_bench or _bench_ghost != null:
 		return "title/bench"
 	# First hour, step 3: the guide holds the friends' calls until 3 First steps (or 3 minutes of play,
@@ -4091,6 +4113,14 @@ func _build_moments(data: Dictionary, world: Node3D) -> void:
 		egg_book.probe = _egg_state
 		if flags.found_eggs != "":
 			egg_book.preset(flags.found_eggs)
+	napkin = Napkin.new()
+	napkin.name = "Napkin"
+	napkin.wallet = wallet
+	napkin.hud = hud
+	napkin.blip = _blip_sound
+	napkin.probe = _egg_state
+	add_child(napkin)
+	napkin.setup(places, data.get("origin", [52.234, 21.024]))
 	tape = Tape.new()
 	tape.name = "Tape"
 	tape.wallet = wallet
@@ -4818,7 +4848,7 @@ func _wire_full_map() -> void:
 
 ## G12 part 2: what the ZADANIA card lists now (quest_lines.gd entries). AUTO: the kebab stands,
 ## the słoiki stations and the Leżak depots (jobs.gd `offer_places`), Warsztat u Mirka, and "ask for
-## a ride" (Podwózka's rule). HELI: the cassettes on the roofs not taken, and "a rescue call" (one
+## a ride" (Łuber's rule). HELI: the cassettes on the roofs not taken, and "a rescue call" (one
 ## only the helicopter reaches). Nothing while a race, a job or a rescue is on.
 ## G12c: AUTO also lists the open "Na czasie" slots, Mrożulo's van (Mlask) and the Friday drop
 ## (trend_job.gd `offer_places`), and the ladder's next rival where they cruise now (or Seba's start
@@ -4855,7 +4885,7 @@ func _quest_entries() -> Array:
 			out.append(Lines.entry("final", "final", Lines.Line.CAR, "Trzy mosty · Seba czeka", "Three bridges · Seba waits",
 					rivals.start_marker(), Rivals.FINAL_COLOUR))
 	if rides != null and rides.can_request():
-		out.append(Lines.entry("ride", "ride", Lines.Line.CAR, "Podwózka · poproś o kurs", "Podwózka · ask for a ride",
+		out.append(Lines.entry("ride", "ride", Lines.Line.CAR, "Łuber · poproś o kurs", "Łuber · ask for a ride",
 				Vector2.INF, Rides.COLOUR, "ride"))
 	if tapczan != null:
 		out.append(tapczan.quest_entry())  # the pub and the Kraftowa crawl's door (SIDE JOBS)
@@ -4897,7 +4927,7 @@ func _quest_now() -> Dictionary:
 		at = trend_job.target_position()
 		colour = trend_job.target_colour()
 	elif rides != null and rides.has_target():
-		what = ["Teraz · Podwózka", "Now · Podwózka ride"]
+		what = ["Teraz · Łuber", "Now · Łuber ride"]
 		at = rides.target_position()
 		colour = rides.target_colour()
 	elif jobs != null and jobs.round_busy() and jobs.roundup.has_target():
@@ -5203,6 +5233,8 @@ func _on_setting(key: String, value: Variant) -> void:
 		"unstuck":
 			_unstuck.call_deferred()
 			return
+		"drift":
+			return  # DEV → BOKIEM: drift_stadium.gd's own (`_ask_in`), nothing to save
 		"new_game":
 			_on_new_game.call_deferred()  # G14: NOWA GRA in the settings (confirmed by two taps)
 			return
@@ -6638,7 +6670,7 @@ func _toggle_vehicle() -> void:
 	# Inside the club, the lounge or the padel hall the HUD is hidden, but H and the pad's vehicle
 	# button still came here: the helicopter rose over the parked car and the player left the room
 	# in the air.
-	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside) or (tapczan != null and tapczan.inside()):
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside) or (tapczan != null and tapczan.inside()) or venues.inside_name() != "":
 		return
 	if flying and ev_tow != null and ev_tow.carrying():
 		hud.toast("Najpierw odstaw %s pod ładowarkę (albo ✕)" % EvTow.NAME, "Set the %s down at the charger first (or ✕)" % EvTow.NAME)
@@ -6900,7 +6932,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				settings.perf = show_perf
 				settings.save()
 			KEY_ESCAPE:
-				_open_settings()
+				if phone == null or not phone.close_if_open():
+					_open_settings()
 			KEY_U:
 				# Loop G1: Auto → Low → Medium → High → Ultra → Experimental → Auto.
 				_blip_sound()
@@ -6913,7 +6946,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				_zoom_view(-1)
 
 
-## M / the pad's A: the mission card's first button (loop 2d-1: a Podwózka request or result first).
+## M / the pad's A: the mission card's first button (loop 2d-1: a Łuber request or result first).
 ## The context button comes after the cards (a card on screen is what A answers first) and before
 ## the rescue line's own A (which offers the next call): the pad had no way to press KASETA, START
 ## KURS or POMOC DROGOWA (2026-11-03). The director asks each activity in turn (a ride, a
@@ -6987,6 +7020,8 @@ func _screen_to_world(s: Vector2) -> Vector3:
 
 
 func _update_camera(dt: float) -> void:
+	if venues.view(cam, camera_pitch, dt):
+		return  # a venue off the map placed it (venues.gd: the drift stadium)
 	if tapczan != null and tapczan.room_view(cam, camera_pitch):
 		return
 	if lounge != null and lounge.inside:

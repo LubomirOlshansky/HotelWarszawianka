@@ -39,7 +39,7 @@ as Warsaw. You don't spawn agents and you don't touch git.
 - No guessing about landmarks or anything in docs/CITY_INVENTORY.md tier S/A: those are CHECK until
   F's or the Mac's photos say what they are (the photos-only rule).
 - Street-level photos only from open sources (Mapillary, Panoramax, KartaView) and only as
-  evidence; never Google Street View; nothing from a photo is drawn in the game.
+  evidence; Google Street View only via `tools/streetview_fetch.py`; nothing from a photo is drawn in the game.
 - Every verdict carries its evidence (map rule, contact count, crop path, photo id); a verdict
   with none is CHECK.
 - Count before you judge: how many of the street's contacts each verdict removes is part of the

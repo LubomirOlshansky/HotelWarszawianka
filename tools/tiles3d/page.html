@@ -52,7 +52,9 @@ window.ground = async (lat, lon) => {
 };
 
 /** Point the camera at (lat, lon, h) from heading/pitch (degrees) and range (m); resolves when tiles settle. */
-window.shoot = (lat, lon, h, heading, pitch, range, label, timeoutMs) => new Promise((resolve) => {
+window.shoot = (lat, lon, h, heading, pitch, range, label, timeoutMs, far) => new Promise((resolve) => {
+	// A far plane culls the tiles out to the horizon that low views would otherwise wait for.
+	viewer.camera.frustum.far = far || 5e8;
 	document.getElementById("label").textContent = label || "";
 	const target = Cesium.Cartesian3.fromDegrees(lon, lat, h);
 	viewer.camera.lookAt(target, new Cesium.HeadingPitchRange(

@@ -13,7 +13,7 @@ extends "res://scripts/activity.gd"
 ##      camera: the cover blown, the KEBAB DLA KAMERY badge and Kemal's VIP kebab), Kemal builds
 ##      it, the player pours the sauce (dry, just right or on the jacket: it shows in the grade).
 ##   2. TASTE. To the Palm at Rondo de Gaulle'a while it's warm; on the way DŻEMINI KEBAB's AI
-##      agent offers 100 zł on TYGRAM to say it was bad (take it: the money and the SPRZEDAWCZYK
+##      agent offers 100 zł on COTAM to say it was bad (take it: the money and the SPRZEDAWCZYK
 ##      badge; show it to the camera: Kebabulo roasts DŻEMINI). Kebabulo is never bribed. At the
 ##      Palm the tasting is Zbyszek's livestream (phase 3: palm_tasting.gd's beats,
 ##      palm_tasting_ui.gd's pixel view, the city's 3D off): he bites, chews in close-up, MLASK,
@@ -76,7 +76,7 @@ enum Saved {NONE, TAKEN, BOUGHT, DONE}
 const WORDS := "tajny_klient"
 const COLOUR := Color("#ff7a2a")
 const DARK := Color("#7a2a08")
-const TYGRAM_COLOUR := Color("#2aa3e0")
+const COTAM_COLOUR := Color("#2fd36b")
 const PALM := Vector2(-213.9, 238.5)
 ## Where the meeting's kerb is looked for round the Palm (the roundabout's own lanes are not a
 ## place to park): a little way up each street, the first with free pavement.
@@ -606,12 +606,12 @@ func _on_impact(_collider: Object, speed: float) -> void:
 		bumps += 1
 
 
-## DŻEMINI KEBAB's agent on TYGRAM, beside the road: 100 zł to say it was bad.
+## DŻEMINI KEBAB's agent on COTAM, beside the road: 100 zł to say it was bad.
 func _bribe() -> void:
 	step = "bribe"
 	bribe = 3
 	show_side_card(w("bribe_title"), w("bribe_body"), PackedStringArray([_b("btn_take"), _b("btn_show")]), BRIBE_LIFE,
-			TYGRAM_COLOUR, true)
+			COTAM_COLOUR, true)
 	hud.cue("offer")
 	_beat("bribe_offered")
 

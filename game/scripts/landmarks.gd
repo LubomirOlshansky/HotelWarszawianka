@@ -31,6 +31,8 @@ extends "res://scripts/landmarks/niecala.gd"
 ## paler than life for the game's palette. The Rondo Daszyńskiego towers (Spire, Skyliner, Unit,
 ## Mennica, Generation Park Y, the HUB) are the exception: dark navy glass as in life (F's photos,
 ## 2026-11-17: the light blue read wrong next to them).
+const ChunkedSurface := preload("res://scripts/chunked_surface.gd")
+
 const TOWERS := [
 	{"key": "zlota44", "osm": "Złota 44", "style": S_SAIL, "glass": "#bccdd8", "roof": "#e4e8ea", "crest": "slope"},
 	{"key": "spire", "osm": "Warsaw Spire", "style": S_MIRROR, "glass": "#2f4562", "roof": "#b9c4cc",
@@ -124,8 +126,11 @@ const TOWERS := [
 	# Equator II graphite with blue-grey ribbon glass. The software house on Equator II's 9th floor
 	# gets the parody BLUZOFT on the roof edge.
 	{"key": "brama", "osm": "Brama Zachodnia", "style": S_PUNCHED, "glass": "#c99573", "roof": "#8d8a86", "h": 47.2},
-	{"key": "equator", "osm": "Equator", "style": S_RIBBON, "glass": "#4a5a6c", "roof": "#8a8f93", "h": 53.8},
-	{"key": "equator2", "osm": "Equator II", "style": S_RIBBON, "glass": "#5a7490", "roof": "#8a8f93", "h": 50.5, "sign": "BLUZOFT"},
+	# Both stand on modelled street blocks (blk_31002630, blk_305521858) that carry their roofs and
+	# plant: `on_block` (the block's roof height) leaves the body to the block, the tower adds its sign.
+	{"key": "equator", "osm": "Equator", "style": S_RIBBON, "glass": "#4a5a6c", "roof": "#8a8f93", "h": 53.8, "on_block": 63.4},
+	{"key": "equator2", "osm": "Equator II", "style": S_RIBBON, "glass": "#5a7490", "roof": "#8a8f93", "h": 50.5, "sign": "BLUZOFT",
+			"on_block": 61.9},
 	{"key": "skysawa", "osm": "Skysawa", "style": S_BANDS, "glass": "#7e93a3", "roof": "#a7b0b6"},
 	# Błękitny Wieżowiec (Plac Bankowy 2, 1991): untinted reflective float glass that mirrors the
 	# sky, hence blue (its first cladding was copper, the "Golden Tower"; spec blekitny.md). Deep
@@ -167,8 +172,9 @@ const TOWERS := [
 			"skins": {"#c1a48b": [S_PUNCHED, "#e4e0d6"], "#647887": [S_BANDS, "#8aa1ad"]}},
 	# The bank tower on Grzybowska (T37, 2026-11-08; OSM name kept for the lookup only): beige stone with punched windows over a green
 	# glass grid on the lower floors, the bank's name (the parody) on the crown, grey glass podium.
+	# The street block under it (blk_238169923) is the better body (the stone crown, the glass grid): `on_block`.
 	{"key": "pepeo_tower", "osm": "Pekao Tower", "style": S_PUNCHED, "glass": "#d9d2c2", "roof": "#a9a69c", "mapped": true,
-			"sign": "PEPEO ŻUBR",
+			"sign": "PEPEO ŻUBR", "on_block": 82.2,
 			"skins": {"#ffffff": [S_PUNCHED, "#d9d2c2"], "#2c4c50": [S_GRID, "#4f7a76"], "#545a56": [S_DARK, "#545a56"],
 					"": [S_GRID, "#6f7c80"]}},
 	# Widok Towers (F's photos, 2026-11-08, folder E4-widok): pale blue-grey glass in a white
@@ -287,6 +293,9 @@ const INFO := {
 	"gpy": ["Generation Park Y",
 			"140 m przy rondzie Daszyńskiego.",
 			"140 m by Rondo Daszyńskiego."],
+	"gpxz": ["Generation Park X i Z",
+			"Dwa biurowce przy rondzie Daszyńskiego po bokach wieży Y.",
+			"Two office blocks by Rondo Daszyńskiego framing tower Y."],
 	"powstancow_blue": ["Szklana wieża przy placu Powstańców",
 			"70 m niebieskiego szkła przy Hotelu Warszawa.",
 			"70 m of blue glass beside Hotel Warszawa."],
@@ -315,6 +324,9 @@ const INFO := {
 			"Biurowiec z cegły i kamienia w stylu lat 50.: kamienne filary parteru, długi balkon nad ulicą. Stoi u stóp The Bridge.",
 			"An office block of brick and stone in the 1950s style: stone piers on the ground floor, a long balcony over the street. It stands at the foot of The Bridge."],
 	"grzybowska63": ["Chilton", "Hotel przy Grzybowskiej 63, 94 m. Na luzie.", "A hotel at Grzybowska 63, 94 m. Chilled."],
+	"unique": ["Unique Tower",
+			"Białe balkony oplatają trzy budynki przy Grzybowskiej 51.",
+			"White balconies wrap around three buildings at Grzybowska 51."],
 	"jp2_21": ["Westynka", "Hotel przy Jana Pawła II 21, 94 m, z rurą szkła na fasadzie.", "A hotel at Jana Pawła II 21, 94 m, with a glass tube up its front."],
 	"marszalkowska94": ["Nowotel", "Hotel przy Marszałkowskiej 94/98, 95 m. Nowy od 1974 roku.", "A hotel at Marszałkowska 94/98, 95 m. New since 1974."],
 	"central": ["Central Tower", "115 m przy Alejach Jerozolimskich.", "115 m on Al. Jerozolimskie."],
@@ -401,6 +413,9 @@ const INFO := {
 	"branickich": ["Pałac Branickich",
 			"Barokowy pałac z 1740 roku przy Miodowej, z attyką pełną rzeźb i lukarnami z oculusami.",
 			"The baroque palace of 1740 on Miodowa, its attic crowded with statues and oculus dormers."],
+	"prymasowski": ["Pałac Prymasowski",
+			"Klasycystyczny pałac przy Senatorskiej z półkolistymi kolumnadami.",
+			"A classical palace on Senatorska with curved courtyard colonnades."],
 	"karmelici": ["Kościół Karmelitów",
 			"Rokokowo-klasycystyczna fasada z końca XVIII wieku, ze złotym globem na szczycie.",
 			"A late-18th-century front with a gilt globe on top."],
@@ -533,6 +548,27 @@ const INFO := {
 	"ujazdowski": ["Zamek Ujazdowski",
 			"Z 1624 roku, zburzony w 1944, odbudowany. Dziś sztuka współczesna.",
 			"Built 1624, razed 1944, rebuilt. Now a centre for modern art."],
+	"polskie_radio": ["Polskie Radio",
+			"Siedziba Polskiego Radia przy Myśliwieckiej, tuż obok Agrykoli.",
+			"Polish Radio headquarters on Myśliwiecka, right beside Agrykola."],
+	"dom_poselski": ["Dom Poselski",
+			"Hotel posłów przy Sejmie.",
+			"The deputies' hotel by the Sejm."],
+	"stary_dom_poselski": ["Stary Dom Poselski",
+			"Przedwojenny gmach przy Sejmie z okrągłym narożnikiem na Wiejskiej.",
+			"Pre-war Sejm building with a rounded corner on Wiejska."],
+	"rembielinskiego": ["Pałacyk Rembielińskiego",
+			"Klasycystyczny pałacyk z lat 40. XIX w. z kolumnową loggią.",
+			"An 1840s classical palace with a columned loggia on the avenue."],
+	"willa_raua": ["Willa Raua",
+			"Włoska willa z lat 60. XIX w. z boniowaniem i głębokim gzymsem.",
+			"An 1860s Italianate villa with rusticated corners and deep eaves."],
+	"dziewulskich": ["Pałacyk Dziewulskich",
+			"Kameralny kremowy pałacyk w ogrodzie przy Alejach Ujazdowskich.",
+			"A compact cream villa in a garden along Aleje Ujazdowskie."],
+	"pod_karczochem": ["Pałac pod Karczochem",
+			"Pałacowa kamienica z balkonami i wieżyczką z kamiennym karczochem.",
+			"Five-storey tenement with balconies and a stone artichoke turret."],
 	"sobieski": ["Radysław Blu",
 			"Hotel przy placu Zawiszy, w kolorowych pasach.",
 			"A hotel on Plac Zawiszy, in colourful bands."],
@@ -563,9 +599,15 @@ const INFO := {
 	"torwar": ["Torwar",
 			"Hala przy Łazienkowskiej z lat 50.: hokej, koncerty, gale. Od ulicy biały portyk na smukłych kolumnach, po meczu zawsze korek.",
 			"The 1950s hall on Łazienkowska: hockey, concerts, galas. A white portico on slender columns faces the street, and there's a jam after every game."],
+	"sad_okregowy": ["Sąd Okręgowy w Warszawie",
+			"Sądy na Lesznie to dzieło Bohdana Pniewskiego z lat 1935–39. Za jasną fasadą kryje się pięć dziedzińców.",
+			"Bohdan Pniewski designed the Leszno courts, built in 1935–39. Five courtyards lie behind the pale stone front."],
 	"nbp": ["NBP, Oddział Okręgowy",
 			"Oddział Narodowego Banku Polskiego przy placu Powstańców: długi dom w ciemnych, pochylonych blachach, szklany parter na tarasie, szerokie granitowe schody. Tu pieniądze śpią, zanim pójdą w miasto.",
 			"The National Bank's Warsaw branch on Plac Powstańców: a long block in dark, leaning metal panels, a glass ground floor on a terrace, a wide flight of granite steps. The money sleeps here before it goes out into the city."],
+	"mostowski": ["Pałac Mostowskich",
+			"Cztery kolumny w portyku Corazziego witają od strony alei Solidarności. Odbudowany po wojnie pałac jest dziś siedzibą stołecznej policji.",
+			"Four columns in Corazzi’s portico greet you from al. Solidarności. Rebuilt after the war, the palace is now home to Warsaw’s police headquarters."],
 	"dom_chlopa": ["Dom Chłopa",
 			"Hotel na placu Powstańców z lat 1958-61, zbudowany dla chłopów przyjeżdżających do stolicy. Falisty gzyms na dachu, zielony neon, kasyno na parterze.",
 			"The hotel on Plac Powstańców of 1958-61, built for farmers visiting the capital. A wavy roof edge, a green neon on top, a casino on the ground floor."],
@@ -722,6 +764,15 @@ const INFO := {
 	"bazar": ["Bazar Różyckiego",
 			"Najstarszy bazar Warszawy, od 1882 roku. Stare budy obok nowych zielonych pawilonów. Kupisz tu wszystko.",
 			"Warsaw's oldest market, since 1882. Old sheds face the new green kiosks. Everything is for sale."],
+	"centrum_praha": ["Centrum Praha",
+			"Piaskowcowy gmach na Pradze z fryzem twarzy i cynkową mansardą.",
+			"A Praga sandstone block with a carved-faces frieze and zinc mansard."],
+	"targowa33a": ["Pasaż Handlowy Targowa 33A",
+			"Dwukondygnacyjny pasaż handlowy w głębi kwartału przy Targowej.",
+			"A low two-storey trade podium tucked inside the Targowa block."],
+	"powszechny": ["Teatr Powszechny im. Zygmunta Hübnera",
+			"Przy Zamoyskiego 20 praska scena nosi imię Zygmunta Hübnera. Wysoka wieża nad dachem mieści sceniczne dekoracje.",
+			"At Zamoyskiego 20, Praga's theatre bears Zygmunt Hübner's name. The tower above the roof holds the stage scenery."],
 	"teresy": ["Kościół św. Teresy od Dzieciątka Jezus",
 			"Jasny kościół parafialny przy Tamce, z wysokimi łukowymi oknami, okrągłym oknem i wielkim portalem.",
 			"A light parish church on Tamka, with tall arched windows, a round window and a big arched porch."],
@@ -818,6 +869,9 @@ const INFO := {
 	"bgk": ["Gmach Banku Gospodarstwa Krajowego",
 			"Al. Jerozolimskie 7, 1928–31: kamienny gmach Rudolfa Świerczyńskiego.",
 			"Al. Jerozolimskie 7, 1928–31: Rudolf Świerczyński's granite bank."],
+	"ufficio_primo": ["Ufficio Primo",
+			"Wspólna 62, 1952: kamienna kostka Marka Leykama, dziś biura.",
+			"Wspólna 62, 1952: Marek Leykam's stone cube, offices today."],
 	"mlotek": ["Młotek",
 			"Smolna 8, 1976: blok Bogusławskiego i Gniewiewskiego, głowa młotka nad skarpą.",
 			"Smolna 8, 1976: Bogusławski and Gniewiewski's block, a hammer's head over the escarpment."],
@@ -1174,6 +1228,8 @@ static func tower_colour(key: String, fallback: Color) -> Color:
 		return SHER_WHITE
 	if key == "bgk":
 		return BGK_STONE
+	if key == "ufficio_primo":
+		return UP_STONE
 	if key == "mlotek":
 		return ML_WALL
 	if key == "kozia9":
@@ -1293,6 +1349,7 @@ func _find_sites() -> void:
 	_find_mansjonaria()
 	# Before the column: a later site's tap cells win, and the column's must (check_landmarks).
 	_find_zamkowy()
+	_find_prymasowski()
 	_find_zygmunt()
 	_find_gaulle()
 	_find_rondo()
@@ -1359,6 +1416,8 @@ func _find_sites() -> void:
 	_find_behind()
 	# Osiedle Za Żelazną Bramą (2026-11-01): the eleven blocks between Żelazna and Jana Pawła II.
 	_find_zelazna()
+	# Generation Park X and Z (Rondo Daszyńskiego): the two stone-grid office blocks framing Y.
+	_find_gpxz()
 	# Pokorna 2 (F, 2026-11-01): the 57 m residential block by Muranów, a model with balconies.
 	_find_pokorna2()
 	# I Oddział PKO (F's photo, 2026-11-09): the first branch on Marszałkowska, rebuilt as one block.
@@ -1449,6 +1508,8 @@ func _find_sites() -> void:
 	_find_bracka()
 	# The BGK building next to Vitkac (F, 2026-11-03), from the Mac photo gather.
 	_find_bgk()
+	# Ufficio Primo, Wspólna 62 (spec 2026-11-26): the whole stone cube from its four corners.
+	_find_ufficio_primo()
 	# Foksal 13 and 15 (F's photos, 2026-11-05): the two restored tenements' street fronts.
 	_find_foksal()
 	# Warsaw modernism (F, 2026-11-03), from the Mac photo gathers.
@@ -1477,6 +1538,13 @@ func _find_sites() -> void:
 	# F's ask (2026-11-01): the Old Town hotels, as fronts on the tenements.
 	_find_hotels()
 	_find_ujazdowski()
+	_find_polskie_radio()
+	_find_dom_poselski()
+	_find_stary_dom_poselski()
+	_find_rembielinskiego()
+	_find_willa_raua()
+	_find_dziewulskich()
+	_find_pod_karczochem()
 	# F's ask (2026-11-01): Norblin, Browary Warszawskie, Hala Koszyki, Elektrownia Powiśle.
 	_find_works()
 	# F's ask (2026-11-02, CITY_INVENTORY #21): the Warsaw Rising Museum, from the Mac's photos.
@@ -1495,6 +1563,8 @@ func _find_sites() -> void:
 	# Praga (2026-11-02, the Mac's photo reports): St Florian's cathedral and Bazar Różyckiego.
 	_find_florian()
 	_find_bazar()
+	_find_centrum_praha()
+	_find_targowa33a()
 	_find_port_praski()
 	_find_kosciuszkowcy()
 	# Stacja Filtrów (F, 2026-11-06): the water tower and Starynkiewicz's bust.
@@ -1615,6 +1685,7 @@ func _find_sites() -> void:
 	_find_warsztat_mirka()
 	# Rezydencja Opera, Niecała 7 (F, 2026-11-26): a whole model over the mapped outline, with a card.
 	_find_niecala7()
+	_find_unique()
 	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
 	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
@@ -1657,6 +1728,13 @@ func _find_sites() -> void:
 ## `only` (the mesh-quality check, loop 0.1): build just the site with this key.
 func build(surface, near := Rect2(), only := "") -> void:
 	st = surface
+	# What this build keeps: a sector's own tiles (chunked_surface.gd `only`) when it has them,
+	# else `near`; the market skips the parts that reach none of it (jarmark.gd _jm_here).
+	_near = near
+	var tiles = surface.get("only") if near.has_area() else null
+	if tiles is Rect2i and (tiles as Rect2i).has_area():
+		var tile: float = ChunkedSurface.TILE
+		_near = Rect2(Vector2((tiles as Rect2i).position) * tile, Vector2((tiles as Rect2i).size) * tile)
 	pocket_rings.clear()
 	_pick.resize(map._roof_nx * map._roof_nz * 2)
 	_pick.fill(0)
@@ -1670,6 +1748,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 	var t0 := Time.get_ticks_msec()
 	var built := 0
 	for k in sites.size():
+		if _quit_stop():
+			return  # the quit fix: the game quits while this sector builds (map_builder.gd `cancel_build`)
 		var s: Dictionary = sites[k]
 		# Loop 3c: building one sector, only the sites that reach `near` (the sector grown by
 		# the split's margin); the builder keeps the triangles that lie in the sector. Every
@@ -1684,6 +1764,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 		_walls.clear()
 		_caps.clear()
 		_holes = s.get("courts", [] as Array[PackedVector2Array])
+		_flood = FLOODLIT_SITES.has(key)
 		built += 1
 		match key:
 			"palace":
@@ -1726,6 +1807,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_syrenka(s)
 			"zamkowy":
 				_build_zamkowy(s)
+			"prymasowski":
+				_build_prymasowski(s)
 			"arkadia":
 				_build_arkadia(s)
 			"forest":
@@ -1844,8 +1927,12 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_koszyki(s)
 			"torwar":
 				_build_torwar(s)
+			"sad_okregowy":
+				_build_sad_okregowy(s)
 			"nbp":
 				_build_nbp(s)  # the whole branch (SKINS entry with `model`: it replaces LoD2)
+			"mostowski":
+				_build_mostowski(s)
 			"dom_chlopa":
 				_build_dom_chlopa(s)  # over its street block: the wavy roof edge and the signs
 			"batalion_kilinski":
@@ -1892,8 +1979,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the facade and towers are ours
 				_build_krzyz(s)
 			"wszystkich":
-				_mark_zone(s)  # the nave stays LoD2's, in its skin; the front and towers are ours
-				_build_wszystkich(s)
+				_build_wszystkich(s)  # the whole church (SKINS entry with `model`: it replaces LoD2)
 			"archikatedra":
 				_mark_zone(s)  # the nave stays LoD2's, in its brick; the stepped-gable front is ours
 				_build_archikatedra(s)
@@ -1916,7 +2002,6 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"brama_uw":
 				_build_brama_uw(s)
 			"potocki":
-				_mark_zone(s)  # the mass stays LoD2's, in its skin; the court front is ours
 				_build_potocki(s)
 			"kordegarda":
 				_build_kordegarda(s)
@@ -1965,11 +2050,24 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_polonia(s)
 			"ujazdowski":
 				_build_ujazdowski(s)
+			"polskie_radio":
+				_build_polskie_radio(s)
+			"dom_poselski":
+				_build_dom_poselski(s)
+			"stary_dom_poselski":
+				_build_stary_dom_poselski(s)
+			"rembielinskiego":
+				_build_rembielinskiego(s)
+			"willa_raua":
+				_build_willa_raua(s)
+			"dziewulskich":
+				_build_dziewulskich(s)
+			"pod_karczochem":
+				_build_pod_karczochem(s)
 			"sobieski":
 				_build_sobieski(s)
 			"bristol":
-				_mark_zone(s)  # the mass stays LoD2's, in its skin; the corner tower is ours
-				_build_bristol(s)
+				_build_bristol(s)  # the whole hotel replaces LoD2
 			"sw_anna":
 				_mark_zone(s)  # the whole church and the bell tower are ours (a model, SKINS `runs`)
 				_build_anna(s)
@@ -1988,11 +2086,15 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"tower75":
 				_id = 0  # unnamed: no card, not on the picking grid
 				_build_tower75(s)
+			"unique":
+				_build_unique(s)
 			"slabs":
 				_id = 0
 				_build_slabs(s)
 			"zelazna":
 				_build_zelazna(s)
+			"gpxz":
+				_build_gpxz(s)
 			"pokorna2":
 				_id = 0
 				_build_pokorna2(s)
@@ -2014,7 +2116,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"rondo":
 				_id = 0
 				_build_rondo(s)
-			"sunken", "underpass", "defilad_ramp", "powstancow_ramp", "tarasy_plaza", "rondo_wells":
+			"sunken", "underpass", "defilad_ramp", "powstancow_ramp", "tarasy_plaza", "rondo_wells", "mw_cen", "mw_onz", "mw_dasz", "mw_ratusz", "mw_nsu", "mw_poli", "mw_cnk":
 				_id = 0
 				_build_sunken(s)
 			"metro_tubes":
@@ -2131,6 +2233,12 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_florian(s)
 			"bazar":
 				_build_bazar(s)
+			"centrum_praha":
+				_build_centrum_praha(s)
+			"targowa33a":
+				_build_targowa33a(s)
+			"powszechny":
+				_build_powszechny(s)
 			"port_praski":
 				_build_port_praski(s)
 			"kosciuszkowcy":
@@ -2154,6 +2262,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_sheraton(s)
 			"bgk":
 				_build_bgk(s)
+			"ufficio_primo":
+				_build_ufficio_primo(s)
 			"foksal":
 				_mark_zone(s)  # the masses and the mansards stay LoD2's, in their skin; the fronts are ours
 				_build_foksal(s)
@@ -2255,12 +2365,15 @@ func build(surface, near := Rect2(), only := "") -> void:
 					_build_photo_fronts(s)
 				elif s.has("tower"):
 					_build_tower(s)
+					if (s["tower"] as Dictionary).has("on_block"):
+						_mark_zone(s)  # no body of its own to tap: the block's outline
 				elif s.has("skin"):
 					_mark_zone(s)
 		if not _holes.is_empty():
 			_court_walls(_court_wall_colour(key))
 			_holes = []
 	_id = 0
+	_flood = false
 	if not near.has_area():
 		print("landmarks: %d built in %d ms" % [built, Time.get_ticks_msec() - t0])
 

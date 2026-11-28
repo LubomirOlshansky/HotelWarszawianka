@@ -347,7 +347,9 @@ static func open_whole(parent: Node, use_prebuilt: bool) -> Node3D:
 
 
 ## Quitting: the worker's load or build ends before the map it reads goes, and what is not in
-## the tree (its result, the nodes still queued) is freed.
+## the tree (its result, the nodes still queued) is freed. A runtime build is told to stop at its
+## next step (map_builder.gd `cancel_build`): the main thread waited out a whole sector's build
+## before (CI's firstlife EXIT HANG, 2026-11-27); the partial root it hands back is freed below.
 func _exit_tree() -> void:
 	_gate_lock.lock()
 	_quitting = true
@@ -356,8 +358,9 @@ func _exit_tree() -> void:
 		_gate.post()
 	_gate_lock.unlock()
 	if _thread != null:
-		_thread.wait_to_finish()
-		_thread = null
+		var ms := _join_worker("quit", true)
+		print("stream: quit: the worker's %s %s stopped in %d ms" % [
+				"load of" if prebuilt else "build of", MapBuilder.sector_name(_task_key), ms])
 	if _task_root != null:
 		_task_root.free()
 		_task_root = null
@@ -836,8 +839,36 @@ func _on_process_frame() -> void:
 	_stamps[3] = Time.get_ticks_usec()
 
 
-## Waits for the worker and keeps what it made when it is still wanted.
-func _drop_task() -> void:
+## Joins the worker (`_thread` is null after): with `cancel`, a runtime build is told to stop at its
+## next step (map_builder.gd `cancel_build`) and what it hands back is partial. Prints a line every
+## 10 s while it waits, so a stop that never comes (a stuck worker, not a slow step) shows in the log
+## above the CI watch's backtrace. Returns the ms it waited. `why`: the log line's word.
+func _join_worker(why: String, cancel: bool) -> int:
+	var t0 := Time.get_ticks_msec()
+	var runtime_cancel := cancel and map != null and not prebuilt
+	if runtime_cancel:
+		map.cancel_build = true
+	var said := 0
+	while _thread.is_alive():
+		OS.delay_msec(2)
+		if Time.get_ticks_msec() - t0 >= (said + 1) * 10000:
+			said += 1
+			print("stream: %s: still waiting for the worker's %s %s after %d s" % [why,
+					"load of" if prebuilt else "build of", MapBuilder.sector_name(_task_key), said * 10])
+	_thread.wait_to_finish()
+	_thread = null
+	if runtime_cancel:
+		map.cancel_build = false
+	return Time.get_ticks_msec() - t0
+
+
+## Waits for the worker and keeps what it made when it is still wanted. `need`: the sector the
+## main thread loads at once next (`_load_now`). The teleport fix (audit, 2026-11-27): a runtime
+## build of another sector is stopped at its next step (it goes back in the queue) instead of
+## waited out, up to a whole sector's build (s_-2_1 by the start: 30 s on 4 cores) before the jump
+## could load its own; the worker's own sector is still waited for (the rest of its build is less
+## than a new one). The prebuilt worker's load is rushed as before (no gates).
+func _drop_task(need: Variant = null) -> void:
 	if _thread == null:
 		return
 	_gate_lock.lock()
@@ -847,9 +878,16 @@ func _drop_task() -> void:
 		_gate_waiting = false
 		_gate.post()
 	_gate_lock.unlock()
-	_thread.wait_to_finish()
+	var cancel: bool = not prebuilt and need != null and need != _task_key
+	var ms := _join_worker("jump", cancel)
 	_rush = false
-	_thread = null
+	if cancel:
+		if log or ms > 1000:
+			print("stream: jump: the worker's build of %s stopped in %d ms (for %s)" % [
+					MapBuilder.sector_name(_task_key), ms, MapBuilder.sector_name(need)])
+		if _task_root != null:
+			_task_root.free()  # partial
+		_task_root = null
 	if _task_root != null:
 		if _state.has(_task_key) and _state[_task_key]["s"] == LOADING:
 			_start_adding(_task_key, _task_root)
@@ -990,7 +1028,7 @@ func _load_now(key: Vector2i) -> void:
 	var t := Time.get_ticks_usec()
 	_worked = true
 	if st["s"] != ADDING:
-		_drop_task()  # the worker's sector (this one or another) goes into its queue
+		_drop_task(key)  # the worker's sector (this one, or another stopped) goes into its queue
 		if _state[key]["s"] != ADDING:
 			_state[key] = {"s": LOADING, "t0": int(st.get("t0", t)), "ms": 0.0}
 			_make(key)

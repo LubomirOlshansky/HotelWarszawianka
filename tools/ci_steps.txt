@@ -59,6 +59,10 @@ design               quick
 devflags             quick
 districts            quick
 drape                ground
+drift                quick
+drift-event          quick
+drift-quest          smoke     slow
+drift-run            runs      slow
 drive                roads
 drive-prebuilt       smoke     slow
 drivelog             smoke     slow
@@ -126,6 +130,7 @@ mixer                quick
 models               quick
 monumentmesh         quick
 monuments            quick
+napkin               quick
 objects              quick
 objecttypes          quick
 oldtowndrive         smoke
@@ -148,6 +153,7 @@ parkmesh             quick
 parodies             quick
 pause                quick
 pause-run            smoke
+phonehub             quick
 photofronts          quick
 places               quick
 placescripts         quick
@@ -216,7 +222,9 @@ steering             quick
 stopassist           smoke
 stops                quick
 stories              quick
+storyarc             quick
 streaming            local     slow
+streamquit           smoke
 streetdetails        quick
 streetmesh           roads
 streetpass           quick

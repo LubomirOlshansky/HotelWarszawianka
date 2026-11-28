@@ -73,7 +73,7 @@ on purpose, because the kit has one answer where the script had its own:
 - **Busy from the offer card to the close of the result card.** Before, the crawl counted as on
   only between the two, so another call could come while its last card was still up.
 - **No kebab or słoiki delivery during a crawl.** Every side job stands down while a crawl is on,
-  as during a tour. Before, Podwózka and "Na czasie" already did, but a delivery could be started
+  as during a tour. Before, Łuber and "Na czasie" already did, but a delivery could be started
   with the group in the car.
 - **The call card goes away before the offer card comes**, and an unanswered call or offer and the
   result card close on the frame their time is up (before: on the crawl's quarter-second step).

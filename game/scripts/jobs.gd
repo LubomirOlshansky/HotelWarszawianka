@@ -48,7 +48,7 @@ const ARRIVE := StopAssist.RING          # the door's ring
 const ARRIVE_SPEED := StopAssist.STOP_SPEED
 ## PT-16 (2026-11-03): a result card (delivered, or the order dropped) goes by itself RESULT_LIFE s
 ## after it comes up, or once the car is RESULT_OFF m from where it came up (OK closes it at once),
-## as Podwózka's does (rides.gd). It waited for OK: the playtest agent never pressed it, drove
+## as Łuber's does (rides.gd). It waited for OK: the playtest agent never pressed it, drove
 ## back to the customer still standing in the ring six times, and every beat of the guide waited.
 const RESULT_LIFE := 12.0
 const RESULT_OFF := 25.0
@@ -129,7 +129,7 @@ var flying := false
 ## Testing: the kebab's starting heat (--heat=), jars already broken (--sloik=K).
 var start_heat := 1.0
 var start_broken := 0
-## Loop 2d-1: the Podwózka job (rides.gd), so the two never run at once.
+## Loop 2d-1: the Łuber job (rides.gd), so the two never run at once.
 var rides: Node
 ## () -> bool: something else runs (main.gd `_quest_running`: a questline, a tow): no stands' rings.
 var others_busy: Callable
@@ -222,7 +222,7 @@ signal first_dropped(reason: String)
 
 
 ## Wires the deliveries from the game (activity.gd `install`; main.gd's `_build_side_jobs` until TD-4
-## b8). main.gd builds the side jobs only with a lane graph. Podwózka (rides.gd) installs right
+## b8). main.gd builds the side jobs only with a lane graph. Łuber (rides.gd) installs right
 ## after: it picks its addresses from these. `start_heat` keeps its default unless --heat= sets it.
 func install(ctx: GameCtx) -> bool:
 	super(ctx)
@@ -581,7 +581,7 @@ func heat() -> float:
 	return _heat
 
 
-## PT-15 (2026-11-03): a Podwózka request card is up (rides.gd OFFER, not "busy"): a rival's
+## PT-15 (2026-11-03): a Łuber request card is up (rides.gd OFFER, not "busy"): a rival's
 ## prompt and Halina's first-race call wait for it, so two offers never share the screen.
 func ride_offered() -> bool:
 	return rides != null and rides.offering()

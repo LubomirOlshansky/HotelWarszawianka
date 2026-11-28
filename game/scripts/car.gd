@@ -208,6 +208,11 @@ var nitro_on := false
 var nitro_charge := 1.0
 ## The drag's line (street_meet.gd hold_car): a tap waits here until the run starts.
 var nitro_wait := false
+## The bottle's strength and length (NITRO_*): the drag on Aleja Zieleniecka lowers them for its strip
+## (street_meet.gd: pull x1.6, top x1.15) and puts them back.
+var nitro_accel_scale := NITRO_ACCEL
+var nitro_top_scale := NITRO_TOP
+var nitro_burn_s := NITRO_BURN
 ## A tap waiting to fire (s left; INF while `nitro_wait` holds it), the burn's seconds left, and
 ## the button as it was last step.
 var nitro_queued := 0.0
@@ -715,7 +720,7 @@ func _step(dt: float) -> void:
 			speed = move_toward(speed, top, 4.0 * dt)
 	else:
 		speed = move_toward(speed, 0.0, 5.0 * dt)
-	speed = minf(speed, BIKE_TOP if model == "bike" else max_speed * top_mult * NITRO_TOP)
+	speed = minf(speed, BIKE_TOP if model == "bike" else max_speed * top_mult * maxf(NITRO_TOP, nitro_top_scale))
 	var cap := _assist_cap(speed, fwd, dt)
 	if speed > cap:
 		speed = move_toward(speed, cap, brake_decel * dt)
@@ -1110,7 +1115,7 @@ func _corner_pivot(v_in: Vector3, n: Vector3, fwd: Vector3, s: float) -> bool:
 ## The gas's pull from `speed` towards `top` this step (every profile: the drag and the races
 ## measure it). A light push accelerates gently; the pull fades as the car nears its top speed.
 func _pull(speed: float, top: float, gas: float, dt: float) -> float:
-	return minf(top, speed + accel * (BIKE_PULL if model == "bike" else accel_mult) * (NITRO_ACCEL if nitro_on else 1.0) \
+	return minf(top, speed + accel * (BIKE_PULL if model == "bike" else accel_mult) * (nitro_accel_scale if nitro_on else 1.0) \
 			* (onset + (1.0 - onset) * gas) * dt * (1.0 - 0.6 * clampf(speed / top_speed(), 0.0, 1.0)))
 
 
@@ -1332,7 +1337,7 @@ func _apply_handling() -> void:
 func top_speed() -> float:
 	if model == "bike":
 		return BIKE_TOP
-	return max_speed * top_mult * (NITRO_TOP if nitro_on else 1.0)
+	return max_speed * top_mult * (nitro_top_scale if nitro_on else 1.0)
 
 
 ## G13: the shop's tuning (upgrades.gd `stats`): multipliers on top speed, pull and grip. Grip goes
@@ -1433,7 +1438,7 @@ func _nitro_tick(dt: float) -> void:
 	if _nitro_burn <= 0.0 and nitro_queued > 0.0 and not nitro_wait and not parked and can \
 			and nitro_charge * n >= 0.999:
 		nitro_queued = 0.0
-		_nitro_burn = NITRO_BURN
+		_nitro_burn = nitro_burn_s
 		nitro_started.emit()
 	if _nitro_burn > 0.0 and (not can or braking or parked):
 		_nitro_burn = 0.0
@@ -1441,12 +1446,26 @@ func _nitro_tick(dt: float) -> void:
 		nitro_on = true
 		var step := minf(dt, _nitro_burn)
 		_nitro_burn -= step
-		nitro_charge = maxf(0.0, nitro_charge - step / (NITRO_BURN * n))
+		nitro_charge = maxf(0.0, nitro_charge - step / (nitro_burn_s * n))
 		if nitro_charge <= 0.0:
 			_nitro_burn = 0.0
 	else:
 		nitro_on = false
 		nitro_charge = minf(1.0, nitro_charge + dt / (NITRO_REFILL * n))
+
+
+## The burn ends now and the bottle is gone (the drag: a bottle in a low gear is wheelspin).
+func nitro_cancel() -> void:
+	_nitro_burn = 0.0
+	nitro_charge = 0.0
+	nitro_on = false
+
+
+## The burn lasts `s` s more (the drag's STRZAŁ: a shot just after a perfect shift burns longer).
+func nitro_extend(s: float) -> void:
+	if _nitro_burn > 0.0:
+		_nitro_burn = maxf(_nitro_burn, s)
+		nitro_burn_s = maxf(nitro_burn_s, s)  # the charge drains on this, or the burn would cut at the old length
 
 
 ## N1: a tap from code (the same as a press of the button): fires a bottle as soon as it can.

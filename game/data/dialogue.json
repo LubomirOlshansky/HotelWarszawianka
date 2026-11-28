@@ -27,7 +27,7 @@
     ["Wielka płyta to dla mnie egzotyka. Dla pana to pewnie babcia na czwartym piętrze.", "Large-panel blocks are exotic to me. To you it's probably grandma on the fourth floor."],
     ["Wpiszę pana w podziękowaniach: „kierowca, który rozumiał długie ujęcia”.", "I'll thank you in my thesis: \"the driver who understood long takes\"."]
   ],
-  "_about": "Original lines for Around Warsaw: affectionate Warsaw humour about the city and its stereotypes, never about real private people, no brand names. Each line is [Polish, English], optionally with a third element of notes for the game: {\"only\": tag or [tags]} limits it to one situation (kebab orders: \"powisle\", \"praga\" across the river, \"office\"; rescues: \"roof\", \"street\", \"river\", \"child\", \"square\"; słoiki: \"all\" jars intact, \"some\"; water_tow, loop 10a: \"river\", \"pond\"), {\"customer\": name} names who ordered. {\"poster\": [lines]} (column_posters, loop 1) is how the poster on an advertising column breaks the line: at most four lines of eight letters. Loop 3g-1 (police, docs/design/police.md section 6): police_warn \"speed\", \"red\", \"bump\"; police_chase \"start\", \"backup\", \"roadblock\" (untagged: every 10 to 12 s); police_lost \"escaped\", \"shift\", \"heli\"; police_stop \"routine\", \"roosters\", \"trap\", \"kebab\", \"sloik\" (untagged: the generic opener); police_reply \"trap\", \"kebab\" (untagged: always offered; at most 28 characters, they are buttons); police_caution \"police\", \"fifth\"; radio_host \"traps\" ({pl} / {en}: the day's three speed traps). Speech bubbles stay under 70 characters in Polish. Loop MW-0 (Moja Warszawa, docs/design/vision.md section 7): radio_polnoc (PÓŁNOC FM's host Kuba, \"south_gate\": entering the box from Plac Na Rozdrożu); radio_host (the Hyrax line); club_door (the bouncer: \"reject\", \"queue\", \"car\", \"car_black\", \"dawn\"); clubbers; dawn_crowd (\"palm\"); police_club (the units parked by the clubs, \"sober\"); schodki (\"sunset\", \"guitar\", \"fourth\"); viral (Wiralek: \"queue\", \"new\", \"gone\", \"glon\", \"late\"); runners (\"zajac\", \"hyrax\"); dog_walkers (\"horn\", \"influencer\"); cyclists (\"lane\"); metro_announce; bus_stop (\"night\"); podwozka_request and podwozka_passenger \"club\" (dawn rides from the club doors); notes (the notebook toasts: \"found\", \"chapter\", \"kadr\"); four signs and four column_posters. The notebook's place cards are in places.json and the tape's then cards in then_cards.json. Crash scenes (crash_scenes.gd, 2026-11-01): crash_scene \"driver\", \"officer\", \"medic\", \"gawker\" (bubbles at a fender bender); tow_scene \"operator\", \"guard\", \"owner\", \"gawker\" (road life stage 2, the Odholowanie); radio_host \"crash\", \"tow\" ({street}: the road's name, starting the line). Office crowds at Rondo Daszyńskiego (crowds.gd \"office\" sites and walkers, 2026-11-02): office (\"morning\" 07-10, \"lunch\" 11-14, \"evening\" 16-19, \"rain\"; untagged anywhere): overheard corporate jokes, no brand names. Beta radio (2026-11-02): the host's greeting when the game starts (dialogue.gd greeting) = radio_hello_morning / _day / _evening / _night + radio_weather_warm / _mild / _cold / _rain ({t}: the temperature, \"20 stopni\" / \"20 degrees\") + radio_bye (\"morning\", \"day\", \"evening\", \"night\"). City-life satire #1, loud cars (loud_cars.gd, 2026-11-02): car_meet (the crowd at the Browary meet; \"rev\" when a parked car revs), loud_driver (a passing loud supercar's driver), radio_host \"loud\" (KEBAB FM: \"Sąsiedzi znów liczą obroty\"). Crazy drivers (crazy_drivers.gd, docs/design/crazy-drivers.md, 2026-11-05): crazy_taxi (the Szkoda Oktawia taxis), crazy_courier (the Szprynter couriers), crazy_pasatini (Janusz in the Pasatini 1.9 TDJ), said when one cuts in or blocks near the player; radio_host \"pasatini\" (KEBAB FM: a Pasatini sighting). The city objects plan, step 7 (soft_things.gd, main.gd _on_soft_broke): smash (someone who saw the player drive through a fence or hedge; \"fence\", \"hedge\"). Step 8a (soft_things.gd, main.gd _on_car_pushed): parked_push (the owner of a parked car the player pushed).",
+  "_about": "Original lines for Around Warsaw: affectionate Warsaw humour about the city and its stereotypes, never about real private people, no brand names. Each line is [Polish, English], optionally with a third element of notes for the game: {\"only\": tag or [tags]} limits it to one situation (kebab orders: \"powisle\", \"praga\" across the river, \"office\"; rescues: \"roof\", \"street\", \"river\", \"child\", \"square\"; słoiki: \"all\" jars intact, \"some\"; water_tow, loop 10a: \"river\", \"pond\"), {\"customer\": name} names who ordered. {\"poster\": [lines]} (column_posters, loop 1) is how the poster on an advertising column breaks the line: at most four lines of eight letters. Loop 3g-1 (police, docs/design/police.md section 6): police_warn \"speed\", \"red\", \"bump\"; police_chase \"start\", \"backup\", \"roadblock\" (untagged: every 10 to 12 s); police_lost \"escaped\", \"shift\", \"heli\"; police_stop \"routine\", \"roosters\", \"trap\", \"kebab\", \"sloik\" (untagged: the generic opener); police_reply \"trap\", \"kebab\" (untagged: always offered; at most 28 characters, they are buttons); police_caution \"police\", \"fifth\"; radio_host \"traps\" ({pl} / {en}: the day's three speed traps). Speech bubbles stay under 70 characters in Polish. Loop MW-0 (Moja Warszawa, docs/design/vision.md section 7): radio_polnoc (PÓŁNOC FM's host Kuba, \"south_gate\": entering the box from Plac Na Rozdrożu); radio_host (the Hyrax line); club_door (the bouncer: \"reject\", \"queue\", \"car\", \"car_black\", \"dawn\"); clubbers; dawn_crowd (\"palm\"); police_club (the units parked by the clubs, \"sober\"); schodki (\"sunset\", \"guitar\", \"fourth\"); viral (Wiralek: \"queue\", \"new\", \"gone\", \"glon\", \"late\"); runners (\"zajac\", \"hyrax\"); dog_walkers (\"horn\", \"influencer\"); cyclists (\"lane\"); metro_announce; bus_stop (\"night\"); podwozka_request and podwozka_passenger \"club\" (dawn rides from the club doors); notes (the notebook toasts: \"found\", \"chapter\", \"kadr\"); four signs and four column_posters. The notebook's place cards are in places.json and the tape's then cards in then_cards.json. Crash scenes (crash_scenes.gd, 2026-11-01): crash_scene \"driver\", \"officer\", \"medic\", \"gawker\" (bubbles at a fender bender); tow_scene \"operator\", \"guard\", \"owner\", \"gawker\" (road life stage 2, the Odholowanie); radio_host \"crash\", \"tow\" ({street}: the road's name, starting the line). Office crowds at Rondo Daszyńskiego (crowds.gd \"office\" sites and walkers, 2026-11-02): office (\"morning\" 07-10, \"lunch\" 11-14, \"evening\" 16-19, \"rain\"; untagged anywhere): overheard corporate jokes, no brand names. Beta radio (2026-11-02): the host's greeting when the game starts (dialogue.gd greeting) = radio_hello_morning / _day / _evening / _night + radio_weather_warm / _mild / _cold / _rain ({t}: the temperature, \"20 stopni\" / \"20 degrees\") + radio_bye (\"morning\", \"day\", \"evening\", \"night\"). City-life satire #1, loud cars (loud_cars.gd, 2026-11-02): car_meet (the crowd at the Browary meet; \"rev\" when a parked car revs), loud_driver (a passing loud supercar's driver), radio_host \"loud\" (KEBAB FM: \"Sąsiedzi znów liczą obroty\"). Crazy drivers (crazy_drivers.gd, docs/design/crazy-drivers.md, 2026-11-05): crazy_taxi (the Szkoda Oktawia taxis), crazy_courier (the Szprynter couriers), crazy_pasatini (Janusz in the Pasatini 1.9 TDJ), said when one cuts in or blocks near the player; radio_host \"pasatini\" (KEBAB FM: a Pasatini sighting). The city objects plan, step 7 (soft_things.gd, main.gd _on_soft_broke): smash (someone who saw the player drive through a fence or hedge; \"fence\", \"hedge\"). Step 8a (soft_things.gd, main.gd _on_car_pushed): parked_push (the owner of a parked car the player pushed). Bokiem na Narodowym, the drift side quest (drift_event.gd, docs/design/drift-narodowy.md 0b.5, critique-drift.md 7, 8, 11): bokiem, each line {\"only\": tag, \"who\": the speaker}: Darek's call, car, gate, decline, practice, rematch, out; Lena's tip, retry, bank, transition, zone, spin, warm_kick, warm_shallow, warm_deep, warm_flick, warm_done, quali_pass, chase, draw, podium; bjorn, kaska; Hrabia's hrabia_intro, hrabia_run2, hrabia_lost, hrabia_won.",
   "radio_host": [
     ["{street}: drogówka dmucha w balonik. Kto był w Tapczanie, niech wybierze tramwaj.", "{street}: the police are doing breath tests. If you've been to the Tapczan, take the tram.", {"only": "sober"}],
     ["Uwaga, {street}: kontrola trzeźwości. Ustniki nowe, humory różne.", "Heads up, {street}: a sobriety check. Fresh mouthpieces, mixed moods.", {"only": "sober"}],
@@ -124,8 +124,8 @@
       }
     ],
     [
-      "Podwózka: przyjedziemy tam, gdzie pokaże pinezka. Mniej więcej.",
-      "Podwózka: we'll come wherever the pin says. More or less."
+      "Łuber: przyjedziemy tam, gdzie pokaże pinezka. Mniej więcej.",
+      "Łuber: we'll come wherever the pin says. More or less."
     ],
     [
       "W sobotę Hyrax przy Narodowym. Prosimy nie gonić tramwajów.",
@@ -743,8 +743,8 @@
       "Five stars if we make it. Six if there's no honking."
     ],
     [
-      "To pan od Podwózki? Bo tu czeka jeszcze trzech.",
-      "Are you my Podwózka? Because three more are waiting here."
+      "To pan od Łubera? Bo tu czeka jeszcze trzech.",
+      "Are you my Łuber? Because three more are waiting here."
     ]
   ],
   "podwozka_gps": [
@@ -1062,8 +1062,8 @@
       "FROGS · HERE TOO"
     ],
     [
-      "PODWÓZKA · GPS WIE LEPIEJ",
-      "PODWÓZKA · THE GPS KNOWS BEST"
+      "ŁUBER · GPS WIE LEPIEJ",
+      "ŁUBER · THE GPS KNOWS BEST"
     ],
     [
       "PĘDZIK · PLECAK WIĘKSZY NIŻ KAWALERKA",
@@ -1663,14 +1663,14 @@
       }
     ],
     [
-      "ZAGINĄŁ SYGNAŁ GPS. PODWÓZKA.",
-      "Missing: one GPS signal. Podwózka.",
+      "ZAGINĄŁ SYGNAŁ GPS. ŁUBER.",
+      "Missing: one GPS signal. Łuber.",
       {
         "poster": [
           "ZAGINĄŁ",
           "SYGNAŁ",
           "GPS.",
-          "PODWÓZKA"
+          "ŁUBER"
         ]
       }
     ],
@@ -2199,8 +2199,8 @@
       "The pigeons look down on us. They have a point."
     ],
     [
-      "Bierzemy Podwózkę. Nikt z nas nie prowadzi, i bardzo dobrze.",
-      "We're getting a Podwózka. None of us is driving, and that's how it should be."
+      "Bierzemy Łubera. Nikt z nas nie prowadzi, i bardzo dobrze.",
+      "We're getting a Łuber. None of us is driving, and that's how it should be."
     ],
     [
       "Dzień dobry, Palmo. Ty też całą noc na nogach?",
@@ -7547,7 +7547,7 @@
   ],
   "first_steps": [
     ["Dowieź kebab", "Deliver a kebab", {"only": "step_kebab"}],
-    ["Podwieź kogoś (Podwózka)", "Give a lift (Podwózka)", {"only": "step_ride"}],
+    ["Podwieź kogoś (Łuber)", "Give a lift (Łuber)", {"only": "step_ride"}],
     ["Ścigaj się z rywalem", "Race a rival", {"only": "step_race"}],
     ["Odbierz wezwanie ratunkowe", "Answer a rescue call", {"only": "step_rescue"}],
     ["Polataj helikopterem", "Fly the helicopter", {"only": "step_heli"}],
@@ -7559,7 +7559,7 @@
     ["PANI HALINA MRUGA", "Pani Halina is flashing you", {"only": "choice_title"}],
     ["„Do Palmy, kto pierwszy?”\n%s km · %d zł + %d respektu. Pierwsza z sześciu rywali.", "\"Race you to the Palm?\"\n%s km · %d zł + %d respect. First of six rivals.", {"only": "choice_body"}],
     ["ŚCIGAJ SIĘ · +%d zł", "START RACE · +%d zł", {"only": "choice_race"}],
-    ["Podwózka · od %d zł", "Give a lift · from %d zł", {"only": "choice_ride"}],
+    ["Łuber · od %d zł", "Give a lift · from %d zł", {"only": "choice_ride"}],
     ["Lot · kaseta na dachu BUW", "Fly · a mixtape on the BUW roof", {"only": "choice_fly"}],
     ["NASTĘPNY: %s · %d zł", "Next: %s · %d zł", {"only": "next_rival"}],
     ["%s czeka w kole", "%s waits in the ring", {"only": "next_waits"}],
@@ -7573,16 +7573,102 @@
     ["Ktoś szuka podwózki. Nowe: zlecenie w aplikacji.", "Someone needs a lift. New: a request in the app.", {"only": "intro_ride"}],
     ["Pierwsze kroki: jeszcze %d. Złota strzałka pokazuje drogę.", "First steps: %d to go. The gold arrow shows the way.", {"only": "what_next"}],
     ["✓ Pierwsze kroki %d/%d: %s  +%d zł", "✓ First steps %d/%d: %s  +%d zł", {"only": "tick"}],
-    ["✓ Pierwsze kroki %d/%d: %s  +%d zł · Dalej: garaż", "✓ First steps %d/%d: %s  +%d zł · Next: the garage", {"only": "tick_race"}]
+    ["✓ Pierwsze kroki %d/%d: %s  +%d zł · Dalej: garaż", "✓ First steps %d/%d: %s  +%d zł · Next: the garage", {"only": "tick_race"}],
+    [
+      "%s · %d zł",
+      "%s · %d zł",
+      {
+        "only": "pot_bar"
+      }
+    ],
+    [
+      "%s  +%d zł do puli",
+      "%s  +%d zł to the pot",
+      {
+        "only": "pot_add"
+      }
+    ],
+    [
+      "MANDAT: pula %d → %d zł",
+      "FINE: pot %d → %d zł",
+      {
+        "only": "pot_fine"
+      }
+    ],
+    [
+      "Syreny! Słychać je z oddali.",
+      "Sirens! You can hear them coming.",
+      {
+        "only": "pot_tell"
+      }
+    ],
+    [
+      "%s  +%d respektu · pula %d zł",
+      "%s  +%d RESPECT · pot %d zł",
+      {
+        "only": "pot_place"
+      }
+    ],
+    [
+      "  Pula czeka: %d zł.",
+      "  The pot waits: %d zł.",
+      {
+        "only": "pot_wait"
+      }
+    ],
+    [
+      "  Pula %d zł × 2 = %d zł  +%d szacunu",
+      "  Pot %d zł × 2 = %d zł  +%d respect",
+      {
+        "only": "pot_win"
+      }
+    ],
+    [
+      "  Pula %d → %d zł. Rewanż ją znów ryzykuje.  +%d szacunu",
+      "  Pot %d → %d zł. A rematch risks it again.  +%d respect",
+      {
+        "only": "pot_lose"
+      }
+    ],
+    [
+      "Pula: +%d zł",
+      "Pot: +%d zł",
+      {
+        "only": "pot_paid"
+      }
+    ]
+  ],
+  "phone_hub": [
+    ["TELEFON", "PHONE", {"only": "title"}],
+    ["ŁUBER", "ŁUBER", {"only": "app_luber"}],
+    ["Podwózka na życzenie", "A ride on demand", {"only": "app_luber_sub"}],
+    ["GŁODNO", "GŁODNO", {"only": "app_glodno"}],
+    ["Dowóz jedzenia", "Food delivery", {"only": "app_glodno_sub"}],
+    ["ZADANIA", "QUESTS", {"only": "app_quests"}],
+    ["Wątki i zlecenia", "Questlines and jobs", {"only": "app_quests_sub"}],
+    ["COTAM", "COTAM", {"only": "app_cotam"}],
+    ["Napisz do autora", "Write to the author", {"only": "app_cotam_sub"}],
+    ["Wkrótce", "Soon", {"only": "soon"}],
+    ["Brak kierowców", "No drivers", {"only": "no_ride"}],
+    ["Nie teraz", "Not now", {"only": "busy"}],
+    ["Szukam…", "Looking…", {"only": "searching"}],
+    ["Brak pasażerów w pobliżu", "No passengers nearby", {"only": "none_luber"}],
+    ["Brak zamówień w pobliżu", "No orders nearby", {"only": "none_glodno"}],
+    ["GŁODNO · ZAMÓWIENIE", "GŁODNO · NEW ORDER", {"only": "offer_glodno"}],
+    ["Kebab do odebrania i dowiezienia. Gorący, póki gorący.", "A kebab to pick up and deliver. Hot while it is hot.", {"only": "offer_glodno_sub"}],
+    ["WEŹ", "TAKE", {"only": "b_take"}],
+    ["POMIŃ", "SKIP", {"only": "b_skip"}],
+    ["WRÓĆ", "BACK", {"only": "b_back"}],
+    ["ZAMKNIJ", "CLOSE", {"only": "b_close"}]
   ],
   "quest_book": [
     ["ZADANIA", "QUESTS", {"only": "quests"}],
     ["PIERWSZE KROKI", "FIRST STEPS", {"only": "tab_steps"}],
     ["WĄTKI", "QUESTLINES", {"only": "tab_stories"}],
     ["ZLECENIA", "SIDE JOBS", {"only": "tab_jobs"}],
-    ["PODWÓZKA", "PODWÓZKA", {"only": "tab_taxi"}],
+    ["ŁUBER", "ŁUBER", {"only": "tab_taxi"}],
     ["Konto kierowcy", "Driver account", {"only": "taxi_title"}],
-    ["Twoje konto w aplikacji Podwózka: ile zarobiono na kursach, średnia cena kursu i ocena pasażerów (z ostatnich 20 kursów). Jedź, a liczby rosną.", "Your Podwózka app account: what rides earned, the average fare and your passengers' rating (the last 20 rides). Drive, and the numbers grow.", {"only": "taxi_about"}],
+    ["Twoje konto w aplikacji Łuber: ile zarobiono na kursach, średnia cena kursu i ocena pasażerów (z ostatnich 20 kursów). Jedź, a liczby rosną.", "Your Łuber app account: what rides earned, the average fare and your passengers' rating (the last 20 rides). Drive, and the numbers grow.", {"only": "taxi_about"}],
     ["ZAROBIONE", "EARNED", {"only": "f_earned"}],
     ["ŚREDNIA CENA", "AVERAGE FARE", {"only": "f_avg_fare"}],
     ["OCENA", "RATING", {"only": "f_rating"}],
@@ -7658,7 +7744,7 @@
     ["Mirek na Grzybowskiej lakieruje i tuninguje. W becie tanio.", "Mirek on Grzybowska does paint jobs and tuning. Cheap in the beta.", {"only": "step_garage_about"}],
     ["Kebab na dowóz", "Kebab deliveries", {"only": "job_kebab"}],
     ["Budki z kebabem w całym centrum. Weź zamówienie i dowieź, zanim wystygnie.", "Kebab stands all over the centre. Take an order and deliver it before it goes cold.", {"only": "job_kebab_about"}],
-    ["Podwózka", "Podwózka rides", {"only": "job_ride"}],
+    ["Łuber", "Łuber rides", {"only": "job_ride"}],
     ["Pasażerowie z aplikacji: odbierz i dowieź pod adres. Każdy ma swoją historię.", "Passengers from the app: pick them up and drive them there. Everyone has a story.", {"only": "job_ride_about"}],
     ["Wezwania ratunkowe", "Rescue calls", {"only": "job_call"}],
     ["Ktoś utknął na dachu, w parku albo nad Wisłą. Zabierz go do szpitala.", "Someone is stuck on a roof, in a park or by the river. Get them to hospital.", {"only": "job_call_about"}],
@@ -7707,7 +7793,7 @@
     ["To był dopiero kebab. Znajomi będą dzwonić z zadaniami: odrzuć, a dadzą ci spokój. Gra jest w becie, próbuj wszystkiego!", "That was just a kebab. Friends will phone you with quests: say no and they leave you alone a while. It's a beta, try everything!", {"only": "show_body"}],
     ["Warszawa jest twoja. Znajomi będą dzwonić z zadaniami: odrzuć, a dadzą ci spokój. Gra jest w becie, próbuj wszystkiego!", "Warsaw is all yours. Friends will phone you with quests: say no and they leave you alone a while. It's a beta, try everything!", {"only": "show_body_open"}],
     ["Kebaby", "Kebabs", {"only": "show_kebab"}],
-    ["Podwózki", "Rides", {"only": "show_ride"}],
+    ["Łubery", "Rides", {"only": "show_ride"}],
     ["Wyścigi", "Races", {"only": "show_race"}],
     ["Helikopter", "Heli rescues", {"only": "show_rescue"}],
     ["Wątki znajomych", "Friends' quests", {"only": "show_stories"}],
@@ -7987,7 +8073,7 @@
     ["WEJDŹ", "GO IN", {"only": "btn_enter"}],
     ["Dawaj pod Palmę na de Gaulle'a, póki ciepły!", "Get to the Palm at Rondo de Gaulle'a while it's warm!", {"only": "to_palm"}],
     ["Pod Palmę, póki ciepły. Nie trzęś torbą.", "To the Palm while it's warm. Don't shake the bag.", {"only": "st_palm"}],
-    ["TYGRAM · DŻEMINI KEBAB (agent AI)", "TYGRAM · DŻEMINI KEBAB (AI agent)", {"only": "bribe_title"}],
+    ["COTAM · DŻEMINI KEBAB (agent AI)", "COTAM · DŻEMINI KEBAB (AI agent)", {"only": "bribe_title"}],
     ["„Dzień dobry! Tu agent AI DŻEMINI KEBAB. Proszę powiedzieć, że u Kemala słabo. 100 zł na BLIP. Albo wiersz. Albo oba.”", "\"Good day! DŻEMINI KEBAB's AI agent here. Please say Kemal's was bad. 100 zł by BLIP. Or a poem. Or both.\"", {"only": "bribe_body"}],
     ["BIERZ 100 ZŁ", "TAKE 100 ZŁ", {"only": "btn_take"}],
     ["ZRÓB SCREENA", "SCREENSHOT IT", {"only": "btn_show"}],
@@ -8026,7 +8112,7 @@
     ["ZŁOTY MLASK", "GOLDEN SMACK", {"only": "badge_gold"}],
     ["KEBAB DLA KAMERY", "KEBAB FOR THE CAMERA", {"only": "badge_cam"}],
     ["SPRZEDAWCZYK", "SELLOUT", {"only": "badge_sold"}],
-    ["TYGRAM · DŻEMINI KEBAB: „Przelew wysłany. Ups, czat wyciekł do KEBAB FM.”", "TYGRAM · DŻEMINI KEBAB: \"Transfer sent. Oops, the chat leaked to KEBAB FM.\"", {"only": "leak"}],
+    ["COTAM · DŻEMINI KEBAB: „Przelew wysłany. Ups, czat wyciekł do KEBAB FM.”", "COTAM · DŻEMINI KEBAB: \"Transfer sent. Oops, the chat leaked to KEBAB FM.\"", {"only": "leak"}],
     ["CO DALEJ?", "WHAT NEXT?", {"only": "next_title"}],
     ["Miasto już o tobie gada. Na start:\n• Nocny zlot pod Narodowym\n• Rave na Smolnej\n• TESŁO z helikoptera", "The city's already talking about you. Start with:\n• The night car meet by the stadium\n• Rave na Smolnej\n• TESŁO by helicopter", {"only": "next_body"}],
     ["ZADANIA", "QUESTS", {"only": "btn_quests"}],
@@ -8050,5 +8136,97 @@
     ["+{n} ZŁ", "+{n} ZŁ", {"only": "r_zl"}],
     ["MLASK", "MLASK", {"only": "sticker_word"}],
     ["DALEJ", "NEXT", {"only": "btn_next"}]
+  ],
+  "padel_match": [
+    ["PADEL NA DESCE", "PADEL AT DESKA", {"only": "title"}],
+    ["UDERZ, GDY KÓŁKO SIĘ ZAMKNIE. WYSOKA PIŁKA: SMECZ.", "HIT WHEN THE RING CLOSES. A HIGH BALL: SMASH.", {"only": "hint"}],
+    ["BIEGASZ SAM. LEWY KCIUK CELUJE: W RÓG, GŁĘBOKO, SKRÓT.", "YOU RUN BY YOURSELF. THE LEFT THUMB AIMS: A CORNER, DEEP, A DROP.", {"only": "hint"}],
+    ["LOB NAD PARĄ PRZY SIATCE. SZYBA JEST CZĘŚCIĄ GRY.", "LOB OVER A PAIR AT THE NET. THE GLASS IS PART OF THE GAME.", {"only": "hint"}],
+    ["TWÓJ SERWIS: UDERZ", "YOUR SERVE: HIT", {"only": "serve"}],
+    ["SIATKA", "NET", {"only": "net"}],
+    ["NIE PRZESZŁA", "DIDN'T CROSS", {"only": "short"}],
+    ["ZA DŁUGO: W SZYBĘ", "LONG: INTO THE GLASS", {"only": "long"}],
+    ["W BOCZNĄ SIATKĘ", "INTO THE SIDE FENCE", {"only": "wide"}],
+    ["WINNER!", "WINNER!", {"only": "winner"}],
+    ["POR TRES! ZA KORT!", "POR TRES! OFF THE COURT!", {"only": "over"}],
+    ["AUT", "OUT", {"only": "out"}],
+    ["WRÓCIŁA ZA SIATKĘ!", "IT CAME BACK OVER!", {"only": "back"}],
+    ["PIŁKA UTKNĘŁA", "THE BALL GOT STUCK", {"only": "stall"}],
+    ["PUNKT DLA WAS", "YOUR POINT", {"only": "point_us"}],
+    ["PUNKT DLA RYWALI", "THEIR POINT", {"only": "point_them"}],
+    ["ZŁOTY PUNKT!", "GOLDEN POINT!", {"only": "golden"}],
+    ["GEM DLA WAS!", "GAME TO YOU!", {"only": "game_us"}],
+    ["GEM DLA RYWALI", "GAME TO THEM", {"only": "game_them"}],
+    ["WYGRANA!", "YOU WIN!", {"only": "win"}],
+    ["PRZEGRANA", "YOU LOSE", {"only": "lose"}],
+    ["CZYSTO!", "CLEAN!", {"only": "perfect"}],
+    ["ZA WCZEŚNIE", "TOO EARLY", {"only": "early"}],
+    ["ZA PÓŹNO", "TOO LATE", {"only": "late"}],
+    ["TWOJA!", "YOURS!", {"only": "yours"}],
+    ["WYMIANA ×%d", "RALLY ×%d", {"only": "rally"}],
+    ["PREZES: „RAKIETA NR %d.”", "PREZES: RACKET NUMBER %d.", {"only": "racket"}],
+    ["PREZES: „RAKIETA NR %d. TO WINA STRUN.”", "PREZES: RACKET NUMBER %d. IT'S THE STRINGS.", {"only": "racket"}],
+    ["PREZES: „TO PRZEZ STRUNY.”", "PREZES: IT'S THE STRINGS.", {"only": "strings"}],
+    ["SMECZ!", "SMASH!", {"only": "smash"}],
+    ["PUDŁO", "MISS", {"only": "whiff"}],
+    ["OOOCH!", "OOOH!", {"only": "ooh"}],
+    ["TY", "YOU", {"only": "you"}],
+    ["UDERZ", "HIT", {"only": "hit"}],
+    ["LOB", "LOB", {"only": "lob"}],
+    ["GEMY", "GAMES", {"only": "games"}],
+    ["DOMINIK: „NIE BIEGAJ, USTAW SIĘ!”", "DOMINIK: DON'T RUN, GET IN PLACE!", {"only": "coach"}],
+    ["DOMINIK: „ŚCIANA TO CZĘŚĆ GRY!”", "DOMINIK: THE WALL IS PART OF THE GAME!", {"only": "coach"}],
+    ["DOMINIK: „LOB, KIEDY STOJĄ PRZY SIATCE!”", "DOMINIK: LOB WHEN THEY'RE AT THE NET!", {"only": "coach"}],
+    ["DOMINIK: „NIE MACHAJ. CZEKAJ NA KÓŁKO.”", "DOMINIK: DON'T FLAIL. WAIT FOR THE RING.", {"only": "coach"}],
+    ["PANI BASIA: „PARKING DLA HELIKOPTERÓW OD STRONY WISŁY.”", "PANI BASIA: THE HELICOPTER PARKING IS ON THE RIVER SIDE.", {"only": "basia"}],
+    ["%s I %s KONTRA %s I %s", "%s AND %s VS %s AND %s", {"only": "vs"}],
+    ["JAK GRAĆ", "HOW TO PLAY", {"only": "howto_title"}],
+    ["UDERZ, GDY KÓŁKO ZAMKNIE SIĘ NA PIŁCE: CZYSTO!", "HIT AS THE RING CLOSES ON THE BALL: CLEAN!", {"only": "howto"}],
+    ["ZA WCZEŚNIE: PO SKOSIE. ZA PÓŹNO: PO LINII.", "EARLY: CROSS-COURT. LATE: DOWN THE LINE.", {"only": "howto"}],
+    ["BIEGASZ SAM. LEWY KCIUK CELUJE: W RÓG, GŁĘBOKO, SKRÓT.", "YOU RUN BY YOURSELF. THE LEFT THUMB AIMS: A CORNER, DEEP, A DROP.", {"only": "howto"}],
+    ["WYSOKA PIŁKA: SMECZ. ONI PRZY SIATCE: LOB.", "A HIGH BALL: SMASH. THEY'RE AT THE NET: LOB.", {"only": "howto"}],
+    ["DOTKNIJ: ROZGRZEWKA", "TAP: WARM-UP", {"only": "howto_go"}],
+    ["DOMINIK: „TRZY PIŁKI NA ROZGRZEWKĘ. NIE MACHAJ, CZEKAJ NA KÓŁKO.”", "DOMINIK: THREE BALLS TO WARM UP. DON'T FLAIL, WAIT FOR THE RING.", {"only": "howto_coach"}],
+    ["ROZGRZEWKA %d/%d", "WARM-UP %d/%d", {"only": "warm"}],
+    ["POMIŃ", "SKIP", {"only": "skip"}],
+    ["DOMINIK: „TAK JEST! TO JEST CZYSTO.”", "DOMINIK: THAT'S IT! THAT'S CLEAN.", {"only": "warm_clean"}],
+    ["DOMINIK: „PIĘKNIE. PREZES JUŻ SIĘ POCI.”", "DOMINIK: BEAUTIFUL. PREZES IS SWEATING ALREADY.", {"only": "warm_clean"}],
+    ["DOMINIK: „DOBRZE! JESZCZE BLIŻEJ KÓŁKA.”", "DOMINIK: GOOD! EVEN CLOSER TO THE RING.", {"only": "warm_good"}],
+    ["DOMINIK: „ZA WCZEŚNIE. KÓŁKO JESZCZE SIĘ ZAMYKAŁO.”", "DOMINIK: TOO EARLY. THE RING WAS STILL CLOSING.", {"only": "warm_early"}],
+    ["DOMINIK: „ZA PÓŹNO. KÓŁKO JUŻ BYŁO.”", "DOMINIK: TOO LATE. THE RING HAD CLOSED.", {"only": "warm_late"}],
+    ["DOMINIK: „SPOKOJNIE. JESZCZE RAZ.”", "DOMINIK: EASY. AGAIN.", {"only": "warm_miss"}],
+    ["GRAMY NA SERIO!", "NOW FOR REAL!", {"only": "warm_done"}],
+    ["PREZES: „JA SIĘ NIE ROZGRZEWAM. JA OD RAZU GRAM.”", "PREZES: I DON'T WARM UP. I JUST PLAY.", {"only": "prezes_warm"}]
+  ],
+  "bokiem": [
+    ["„Lena wypadła, słoik ogórków wygrał z jej nadgarstkiem. Dziś Puchar Bokiem na Narodowym. Wchodzisz?”", "\"Lena's out, a pickle jar beat her wrist. Puchar Bokiem at the Narodowy tonight. You in?\"", {"only": "call", "who": "Darek „Bawarka”"}],
+    ["„Bawarka stoi u Mirka bez dyfra, więc jedziesz swoim. Spawany dyfer dostaniesz na wieczór.”", "\"The Bawarka's at Mirek's with no diff, so you're driving yours. You get a welded diff for the night.\"", {"only": "car", "who": "Darek „Bawarka”"}],
+    ["„Pokaż ochronie opaskę. Nie masz? Powiedz, że od Darka.”", "\"Show security your wristband. None? Say Darek sent you.\"", {"only": "gate", "who": "Darek „Bawarka”"}],
+    ["„Spoko. Puchar nie zając, nie ucieknie. Zadzwonię później.”", "\"No worries. The cup's not a hare, it won't run off. I'll call later.\"", {"only": "decline", "who": "Darek „Bawarka”"}],
+    ["„Narodowy otwarty, ochrona już cię zna. Wpadaj pokręcić kółka, wynik zapisują.”", "\"The Narodowy's open and security knows you now. Come and burn some rubber, they keep your score.\"", {"only": "practice", "who": "Darek „Bawarka”"}],
+    ["„Hrabia dalej się puszy na parkingu. Rewanż? Kwalifikacje masz zaliczone.”", "\"Hrabia's still strutting round the car park. Rematch? You've already qualified.\"", {"only": "rematch", "who": "Darek „Bawarka”"}],
+    ["„Nic się nie stało. Jutro druga runda, a dyfer dalej spawany.”", "\"No harm done. Round two's tomorrow and the diff's still welded.\"", {"only": "out", "who": "Darek „Bawarka”"}],
+    ["„Trzymasz: gaz. Stuk-stuk: bokiem. Puszczasz: prosto.”", "\"Hold: gas. Tap-tap: sideways. Let go: straight.\"", {"only": "tip", "who": "Lena"}],
+    ["„Nos w zielonym klinie. Za płytko to jazda, za głęboko to bączek.”", "\"Nose in the green wedge. Too shallow is just driving, too deep is a spin.\"", {"only": "tip", "who": "Lena"}],
+    ["„Za wcześnie puszczasz. Trzymaj, aż nos dotknie zielonego.”", "\"You let go too early. Hold till the nose touches the green.\"", {"only": "retry", "who": "Lena"}],
+    ["„Zaksięgowane! Księgowa na trybunach płacze.”", "\"Banked! The accountant in the stands is crying.\"", {"only": "bank", "who": "Lena"}],
+    ["„Przekładka! Z lewej na prawą jak na Rondzie Dmowskiego.”", "\"Transition! Left to right, like on Rondo Dmowskiego.\"", {"only": "transition", "who": "Lena"}],
+    ["„Ogon przy bandzie, babcia przy telewizorze.”", "\"Tail on the wall, gran glued to the TV.\"", {"only": "zone", "who": "Lena"}],
+    ["„Bączek! Pełne trzysta sześćdziesiąt, gratis.”", "\"A spin! The full three-sixty, on the house.\"", {"only": "spin", "who": "Lena"}],
+    ["„Przed łukiem stuk-stuk, nie w łuku. Łuk nie lubi spóźnialskich.”", "\"Tap-tap before the bend, not in it. Bends hate latecomers.\"", {"only": "warm_kick", "who": "Lena"}],
+    ["„Płytko jak kałuża na Nowym Świecie. Trzymaj dłużej.”", "\"Shallow as a puddle on Nowy Świat. Hold it longer.\"", {"only": "warm_shallow", "who": "Lena"}],
+    ["„Za głęboko! Puść na chwilę, bo zobaczysz trybuny od tyłu.”", "\"Too deep! Let go a moment or you'll see the stands backwards.\"", {"only": "warm_deep", "who": "Lena"}],
+    ["„Niebieska bramka: tam stuk-stuk i zmieniasz stronę.”", "\"The blue gate: tap-tap there and swap sides.\"", {"only": "warm_flick", "who": "Lena"}],
+    ["„Dobra, łapiesz. Teraz na serio, sędziowie już piją kawę.”", "\"Right, you've got it. Now for real, the judges are on their coffee.\"", {"only": "warm_done", "who": "Lena"}],
+    ["„Jest próg! Hrabia już poprawia rękawiczki.”", "\"You're through! Hrabia's already adjusting his gloves.\"", {"only": "quali_pass", "who": "Lena"}],
+    ["„Płytko gonisz, głęboko hamujesz.”", "\"Shallow to catch him, deep to brake.\"", {"only": "chase", "who": "Lena"}],
+    ["„Remis? Sędziowie każą jeszcze raz. Ja bym brała.”", "\"A draw? The judges want one more. I'd take it.\"", {"only": "draw", "who": "Lena"}],
+    ["„Na pudle! Babcia dzwoniła, mówi, że ogórki w słoiku też się cieszą.”", "\"On the podium! Gran called, says even the pickles in the jar are cheering.\"", {"only": "podium", "who": "Lena"}],
+    ["„U nas zimą wszyscy jeżdżą bokiem. Tu jeszcze dają puchar.”", "\"Back home everyone drives sideways in winter. Here they even give you a cup.\"", {"only": "bjorn", "who": "Bjørn"}],
+    ["„Ścinam zakręty jak grzywkę: równo i bez litości.”", "\"I cut corners like a fringe: neat and merciless.\"", {"only": "kaska", "who": "Kaśka „Ścinka”"}],
+    ["„Hrabia jeździ bokiem od urodzenia, ty od dziś. Za mną, tylko nie w zderzak.”", "\"Hrabia's driven sideways since birth, you since today. Follow me, just not into my bumper.\"", {"only": "hrabia_intro", "who": "Hrabia"}],
+    ["„Teraz ty z przodu. Nie hamuj mi przed nosem, to nieeleganckie.”", "\"Your turn up front. Don't brake under my nose, it's ill-mannered.\"", {"only": "hrabia_run2", "who": "Hrabia"}],
+    ["„Przegrałem z seryjnym autem. Nikomu ani słowa. Zwłaszcza moim oponom.”", "\"Lost to a street car. Not a word to anyone. Especially my tyres.\"", {"only": "hrabia_lost", "who": "Hrabia"}],
+    ["„Piękna próba. Puchar zostaje w rodzinie, jak srebra po prababci.”", "\"A lovely try. The cup stays in the family, like great-gran's silver.\"", {"only": "hrabia_won", "who": "Hrabia"}]
   ]
 }
