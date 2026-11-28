@@ -419,6 +419,9 @@ const INFO := {
 	"jablonowskich": ["Pałac Jabłonowskich",
 			"Neobarokowy pałac z wieżą zegarową przy placu Teatralnym.",
 			"A neo-baroque palace with a clock tower on Plac Teatralny."],
+	"biskupow_krakowskich": ["Pałac Biskupów Krakowskich",
+			"Barokowy pałac na rogu Miodowej i Senatorskiej pod zieloną miedzią.",
+			"A baroque palace at Miodowa and Senatorska under green copper."],
 	"karmelici": ["Kościół Karmelitów",
 			"Rokokowo-klasycystyczna fasada z końca XVIII wieku, ze złotym globem na szczycie.",
 			"A late-18th-century front with a gilt globe on top."],
@@ -1393,6 +1396,7 @@ func _find_sites() -> void:
 	_find_zamkowy()
 	_find_prymasowski()
 	_find_jablonowskich()
+	_find_biskupow_krakowskich()
 	_find_gmach_chemii()
 	_find_itc()
 	_find_zygmunt()
@@ -1861,6 +1865,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_prymasowski(s)
 			"jablonowskich":
 				_build_jablonowskich(s)
+			"biskupow_krakowskich":
+				_build_biskupow_krakowskich(s)
 			"arkadia":
 				_build_arkadia(s)
 			"forest":

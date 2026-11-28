@@ -6971,3 +6971,388 @@ func _pj_atrium_roof(ct_u0: float, ct_u1: float, ct_v0: float, rv_f: float, g: f
 		_beam(at3.call(bu0, tv, y_eave + lift), top_pt, w_bar, PJ_ATRIUM_FRAME)
 		_beam(at3.call(bu1, tv, y_eave + lift), top_pt, w_bar, PJ_ATRIUM_FRAME)
 
+
+# --- Pałac Biskupów Krakowskich (Miodowa 5, corner of Senatorska; docs/landmarks/specs/palac_biskupow_krakowskich.md) ---
+
+## Pałac Biskupów Krakowskich: late-baroque L-shaped bishops' palace around a west-facing parking
+## courtyard. The NE palace wing wears cream render over an ochre rusticated ground floor, giant
+## pilasters, an arched wooden portal under a wide wrought-iron balcony, a central attic pediment,
+## and a tall hipped green copper roof with dormers wrapping the east corner; the SW side wing is
+## slightly lower in pale cream under a red tile roof with dormer rows.
+const BK_NAME := "Pałac Biskupów Krakowskich"
+const BK_PALACE_WALL := Color("#eadcbf")   # palace upper cream render (spec)
+const BK_GROUND := Color("#d9a66a")        # ochre rusticated ground floor (spec & Street View)
+const BK_TRIM := Color("#f4f1ea")          # white surrounds, pilasters, string courses, cornices
+const BK_PLINTH := Color("#b9b2a2")        # warm stone plinth band (PAL_WARM_GRANITE)
+const BK_WING_WALL := Color("#e8dcc2")     # side wing pale cream render (spec)
+const BK_COPPER := Color("#7fa392")        # green copper hipped roof (spec & 3D Tiles)
+const BK_TILE := Color("#b4553f")          # red tile side-wing roof (spec & 3D Tiles)
+const BK_GLASS := Color("#4a5660")         # window glass (spec)
+const BK_DOOR := Color("#6b4a32")          # arched wooden main portal (spec)
+const BK_DOOR_GLOW := Color("#ffd9a0")     # warm night glow in the main door arch
+const BK_IRON := Color("#2e3236")          # wrought-iron balcony railing (spec)
+const BK_RELIEF := Color("#ded8cc")        # shaded tympanum panel on the central attic pediment
+const BK_GROUND_H := 4.8                   # palace rusticated ground-floor height
+const BK_PALACE_H := 14.0                  # palace wing eaves height
+const BK_WING_H := 13.0                    # side wing eaves height
+const BK_COPPER_RISE := 6.0                # palace green copper hipped roof rise (ridge ~20 m)
+const BK_TILE_RISE := 5.0                  # side wing red tile roof rise (ridge ~18 m)
+
+
+## Finds Pałac Biskupów Krakowskich's OSM outline and registers the `biskupow_krakowskich` site
+## with a 0.5 m outward zone offset so the map's plain 14 m prism and photo front b822 are replaced.
+func _find_biskupow_krakowskich() -> void:
+	var raw := _landmark(BK_NAME)
+	if raw.size() < 3:
+		push_error("biskupow_krakowskich: landmark outline '%s' is missing from centrum.json" % BK_NAME)
+		return
+	var zone := _largest(Geometry2D.offset_polygon(raw, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = raw
+	_add_site("biskupow_krakowskich", [zone])
+	if not sites.is_empty() and sites[-1]["key"] == "biskupow_krakowskich":
+		sites[-1]["raw"] = raw
+		sites[-1]["replaces_photo_front"] = "b822"
+
+
+## Builds Pałac Biskupów Krakowskich from its mapped L-outline: the NE late-baroque palace arm
+## (ochre rusticated ground floor, arched portal with warm night glow, wrought-iron balcony,
+## cream upper storeys, giant pilasters, tall hipped green copper roof with dormers wrapping the
+## east corner), the SW cream three-storey wing under a red tile roof with dormer rows, plainer
+## courtyard faces, and full outline collision.
+func _build_biskupow_krakowskich(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var m := _bk_frame(raw)
+	if m.is_empty():
+		return
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	_bk_set_frame(m)
+	_bk_palace_wing(m, g)
+	_bk_side_wing(m, g)
+	_bk_roofs(m, g)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Restores the L-plan local frame: origin at the east corner, +u WNW along the palace wing,
+## +v SSW along the side wing.
+func _bk_set_frame(m: Dictionary) -> void:
+	_o = m["o"]
+	_a = m["a"]
+	_b = m["b"]
+	kit_face(0.0)
+
+
+## Starts a kit_front along edge a->b oriented so _b matches the outward normal `out`.
+func _bk_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
+## Ensures counter-clockwise winding for plan rings handed to _prism, _cap, and ring helpers.
+func _bk_ccw(ring: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array(ring)
+	if Geometry2D.is_polygon_clockwise(out):
+		out.reverse()
+	return out
+
+
+## Derives the L-plan axes and exact arm extents directly from the OSM outline vertices: east
+## corner origin, +u along the NE palace arm (WNW), +v along the SW side wing (SSW).
+func _bk_frame(raw: PackedVector2Array) -> Dictionary:
+	var corner := raw[0]
+	var nw := raw[0]
+	var sw := raw[0]
+	for p in raw:
+		if p.x > corner.x:
+			corner = p
+		if p.y < nw.y:
+			nw = p
+		if p.y > sw.y:
+			sw = p
+	var arm_a := nw - corner
+	if arm_a.length() < 10.0:
+		return {}
+	var axis_a := arm_a.normalized()
+	var axis_b := Vector2(-axis_a.y, axis_a.x)
+	if axis_b.dot(sw - corner) < 0.0:
+		axis_b = -axis_b
+	_o = corner
+	_a = axis_a
+	_b = axis_b
+	var u_max := 0.0
+	var v_max := 0.0
+	var v_split_sum := 0.0
+	var v_split_cnt := 0
+	var u_split_sum := 0.0
+	var u_split_cnt := 0
+	for p in raw:
+		var l := _local(p)
+		u_max = maxf(u_max, l.x)
+		v_max = maxf(v_max, l.y)
+		if l.x > 12.0 and l.y > 5.0 and l.y < 25.0:
+			v_split_sum += l.y
+			v_split_cnt += 1
+		if l.y > 12.0 and l.x > 5.0 and l.x < 25.0:
+			u_split_sum += l.x
+			u_split_cnt += 1
+	var v_split := v_split_sum / float(v_split_cnt) if v_split_cnt > 0 else 14.85
+	var u_split := u_split_sum / float(u_split_cnt) if u_split_cnt > 0 else 15.25
+	return {
+		"o": corner, "a": axis_a, "b": axis_b,
+		"u_max": u_max, "v_max": v_max,
+		"u_split": u_split, "v_split": v_split,
+	}
+
+
+## Draws horizontal rustication bands (kit_bands) only on wall piers between ground-floor openings
+## so grooves never overlap window surrounds or the arched portal.
+func _bk_rusticate_piers(u0: float, u1: float, skips: Array, y0: float, y1: float) -> void:
+	var cur := u0
+	for sp_var in skips:
+		var sp: Vector2 = sp_var
+		if sp.x - cur > 0.35:
+			kit_bands(cur + 0.08, sp.x - 0.08, y0, y1, 1.50, BK_GROUND)
+		cur = maxf(cur, sp.y)
+	if u1 - cur > 0.35:
+		kit_bands(cur + 0.08, u1 - 0.08, y0, y1, 1.50, BK_GROUND)
+
+
+## Builds the NE late-baroque palace arm (0 - 14.0 m): ochre rusticated ground floor, cream upper
+## storeys, main street front with 13 bays, arched wooden portal (glowing warm at night), 3-bay
+## wrought-iron balcony, giant pilasters, central attic pediment, grand 3-bay east corner end,
+## and plainer west and courtyard faces.
+func _bk_palace_wing(m: Dictionary, g: float) -> void:
+	_bk_set_frame(m)
+	var u_max: float = m["u_max"]
+	var u_split: float = m["u_split"]
+	var v_split: float = m["v_split"]
+	var none := Color(0, 0, 0, 0)
+	var ring := _bk_ccw(_urect(0.0, u_max, 0.0, v_split))
+	# Courtyard and west-end ground floors are cream like the upper storeys (3D Tiles h045 & h090);
+	# emitting them first lets `_wall` clip the ochre street-front prism cleanly with zero z-fighting.
+	_wall(_w(u_split, v_split), _w(u_max, v_split), g - 0.5, g + BK_GROUND_H, m["b"] as Vector2, BK_PALACE_WALL)
+	_wall(_w(u_max, 0.0), _w(u_max, v_split), g - 0.5, g + BK_GROUND_H, m["a"] as Vector2, BK_PALACE_WALL)
+	_prism(ring, g - 0.5, g + BK_GROUND_H, BK_GROUND, none, M_STONE)
+	_prism(ring, g + BK_GROUND_H, g + BK_PALACE_H, BK_PALACE_WALL, none, M_STONE)
+	_cap(ring, g + BK_PALACE_H - 0.05, BK_COPPER.darkened(0.24))
+	# Belt course, second-floor sill string course, and main cornice cleanly mitred around the palace arm.
+	kit_ledge_ring(ring, g + BK_GROUND_H - 0.14, 0.28, BK_TRIM, 0.10)
+	kit_ledge_ring(ring, g + 9.76, 0.18, BK_TRIM, 0.09)
+	kit_cornice_ring(ring, g + BK_PALACE_H - 0.50, BK_TRIM, 0.50, 0.52)
+	var sy0 := g + 1.25
+	var sy1 := g + 5.65
+	var sy2 := g + 9.95
+	var h0 := 2.35
+	var h1 := 2.40
+	var h2 := 2.15
+	# 1. Main NNE street front (v = 0, facing -b): 13 bays, central portal + iron balcony + pilasters.
+	var wn := _bk_front_edge(_w(0.0, 0.0), _w(u_max, 0.0), -(m["b"] as Vector2))
+	var cu := wn * 0.5
+	var bays := 13
+	var bay_w := (wn - 2.70) / float(bays)
+	var centres := _spread(1.35, wn - 1.35, bays)
+	# Plinth and ground-floor sill band split cleanly either side of the main arched portal.
+	kit_ledge(0.06, cu - 1.38, g - 0.4, 1.15, BK_PLINTH, 0.10)
+	kit_ledge(cu + 1.38, wn - 0.06, g - 0.4, 1.15, BK_PLINTH, 0.10)
+	kit_ledge(0.80, cu - 1.45, sy0 - 0.16, 0.14, BK_TRIM, 0.10)
+	kit_ledge(cu + 1.45, wn - 0.80, sy0 - 0.16, 0.14, BK_TRIM, 0.10)
+	# Big arched wooden door in the middle bay with warm night glow inside the arch fanlight.
+	kit_door(cu, g + 0.05, 3.85, 1.15, BK_TRIM, BK_DOOR, true)
+	_arch_panel(_w(cu, 0.0), _a, _b, 0.96, g + 2.55, g + 2.75, BK_DOOR_GLOW, 0.11, M_PAVILION)
+	# Ground-floor flanking panes and rustication grooves on the ochre piers between openings.
+	var gf_cols: Array[float] = []
+	var n_skips: Array = []
+	for k in bays:
+		var c: float = centres[k]
+		var hw_gap := 1.42 if k == 6 else 0.92
+		n_skips.append(Vector2(c - hw_gap, c + hw_gap))
+		if k != 6:
+			gf_cols.append(c)
+	kit_panes(gf_cols, [sy0], 1.28, h0, BK_GLASS, 0.06)
+	_bk_rusticate_piers(0.12, wn - 0.12, n_skips, g + 0.80, g + BK_GROUND_H - 0.20)
+	# First floor (piano nobile): kit_window_grid on flanks, pedimented windows in the central 3 bays.
+	kit_window_grid(1.35, wn - 1.35, bays, [sy1], h1, Win.SILL_HEAD, BK_TRIM, BK_GLASS, 0.64,
+			[Vector2i(5, 0), Vector2i(6, 0), Vector2i(7, 0)])
+	for k: int in [5, 6, 7]:
+		var c: float = centres[k]
+		kit_window(c, sy1, h1, Win.PEDIMENT, BK_TRIM, BK_GLASS, 0.65)
+		kit_window(c, sy2, h2, Win.SILL_HEAD, BK_TRIM, BK_GLASS, 0.62)
+	# Second-floor flanking panes resting directly over the continuous string course at g + 9.76.
+	var f2_cols: Array[float] = []
+	for k in bays:
+		if k < 5 or k > 7:
+			f2_cols.append(float(centres[k]))
+	kit_panes(f2_cols, [sy2], 1.24, h2, BK_GLASS, 0.06)
+	# Wrought-iron balcony spanning the central 3 bays over the arched portal (Street View).
+	kit_balcony(cu, sy1, bay_w * 1.32, Balcony.IRON, BK_IRON, BK_TRIM, 1.02)
+	# Giant white pilasters flanking the central 3 bays and corners (rising from balcony to cornice).
+	for pu: float in [0.55, cu - bay_w * 1.5, cu - bay_w * 0.5, cu + bay_w * 0.5, cu + bay_w * 1.5, wn - 0.55]:
+		var y_base := g + 5.60 if absf(pu - cu) < bay_w * 1.6 else g + BK_GROUND_H + 0.16
+		kit_pilaster(pu, y_base, g + BK_PALACE_H - 0.92, BK_TRIM, 0.56, 0.14)
+	# Central late-baroque attic pediment crowning the middle 3 bays, tucked fully into the copper roof.
+	_kbox(cu - 4.70, cu + 4.70, -3.15, 0.08, g + BK_PALACE_H, g + BK_PALACE_H + 1.15, BK_TRIM)
+	kit_face(-3.15)
+	kit_pediment(cu, 4.85, g + BK_PALACE_H + 1.15, 1.55, BK_TRIM, BK_COPPER, 3.31, BK_RELIEF)
+	kit_face(0.0)
+	_bk_set_frame(m)
+	# 2. Grand ESE east corner end (u = 0, v = 0..v_split, facing -a): 3 bays, pilasters, rustication.
+	var we := _bk_front_edge(_w(0.0, 0.0), _w(0.0, v_split), -(m["a"] as Vector2))
+	kit_ledge(0.06, we - 0.06, g - 0.4, 1.15, BK_PLINTH, 0.10)
+	var ec := kit_window_grid(1.55, we - 1.55, 3, [sy0], h0, Win.SILL, BK_TRIM, BK_GLASS, 0.64)
+	kit_window_grid(1.55, we - 1.55, 3, [sy1], h1, Win.PEDIMENT, BK_TRIM, BK_GLASS, 0.65)
+	kit_window_grid(1.55, we - 1.55, 3, [sy2], h2, Win.SILL_HEAD, BK_TRIM, BK_GLASS, 0.62)
+	var e_skips: Array = []
+	for c_var in ec:
+		var c := float(c_var)
+		e_skips.append(Vector2(c - 1.00, c + 1.00))
+	_bk_rusticate_piers(0.12, we - 0.12, e_skips, g + 0.80, g + BK_GROUND_H - 0.20)
+	for pu: float in [0.58, (ec[0] + ec[1]) * 0.5, (ec[1] + ec[2]) * 0.5, we - 0.58]:
+		kit_pilaster(pu, g + BK_GROUND_H + 0.16, g + BK_PALACE_H - 0.92, BK_TRIM, 0.56, 0.14)
+	_bk_set_frame(m)
+	# 3. Plainer WNW west end (u = u_max, v = 0..v_split, facing +a).
+	var ww := _bk_front_edge(_w(u_max, 0.0), _w(u_max, v_split), m["a"] as Vector2)
+	kit_ledge(0.06, ww - 0.06, g - 0.4, 1.15, BK_PLINTH, 0.10)
+	var wcols := _spread(2.4, ww - 2.4, 2)
+	for row: Array in [[sy0, h0], [sy1, h1]]:
+		kit_ledge(1.4, ww - 1.4, float(row[0]) - 0.16, 0.12, BK_TRIM, 0.08)
+		kit_panes(wcols, [float(row[0])], 1.25, float(row[1]), BK_GLASS, 0.06)
+	kit_panes(wcols, [sy2], 1.25, h2, BK_GLASS, 0.06)
+	_bk_set_frame(m)
+	# 4. Plainer SSW courtyard face of the palace wing (v = v_split, u = u_split..u_max, facing +b).
+	var wc := _bk_front_edge(_w(u_split, v_split), _w(u_max, v_split), m["b"] as Vector2)
+	kit_ledge(0.14, wc - 0.06, g - 0.4, 1.15, BK_PLINTH, 0.10)
+	var ccols := _spread(1.5, wc - 1.5, 9)
+	for row: Array in [[sy0, h0], [sy1, h1]]:
+		kit_ledge(0.8, wc - 0.8, float(row[0]) - 0.16, 0.12, BK_TRIM, 0.08)
+		kit_panes(ccols, [float(row[0])], 1.25, float(row[1]), BK_GLASS, 0.06)
+	kit_panes(ccols, [sy2], 1.25, h2, BK_GLASS, 0.06)
+	_bk_set_frame(m)
+
+
+## Builds the long SW cream side wing (0 - 13.0 m): three-storey street front with 11 window bays,
+## string courses, pilasters and cornice, plus plainer courtyard and SW end faces.
+func _bk_side_wing(m: Dictionary, g: float) -> void:
+	_bk_set_frame(m)
+	var u_split: float = m["u_split"]
+	var v_split: float = m["v_split"]
+	var v_max: float = m["v_max"]
+	var none := Color(0, 0, 0, 0)
+	var ring := _bk_ccw(_urect(0.0, u_split, v_split, v_max))
+	_prism(ring, g - 0.5, g + BK_WING_H, BK_WING_WALL, none, M_STONE)
+	_cap(ring, g + BK_WING_H - 0.05, BK_TILE.darkened(0.24))
+	var sy0 := g + 1.20
+	var sy1 := g + 5.00
+	var sy2 := g + 9.05
+	var h0 := 2.15
+	var h1 := 2.30
+	var h2 := 2.00
+	# 1. ESE street front (u = 0, v = v_split..v_max, facing -a): 11 regular bays, pilasters, cornice.
+	var ws := _bk_front_edge(_w(0.0, v_split), _w(0.0, v_max), -(m["a"] as Vector2))
+	kit_ledge(0.14, ws - 0.06, g - 0.4, 1.15, BK_PLINTH, 0.10)
+	kit_ledge(0.14, ws - 0.06, g + 4.35, 0.22, BK_TRIM, 0.09)
+	kit_ledge(0.14, ws - 0.06, sy2 - 0.18, 0.16, BK_TRIM, 0.09)
+	kit_cornice(0.56, ws - 0.56, g + BK_WING_H - 0.46, BK_TRIM, 0.46, 0.48)
+	var sbays := 11
+	var sc := kit_window_grid(1.45, ws - 1.45, sbays, [sy1], h1, Win.SILL_HEAD, BK_TRIM, BK_GLASS, 0.62)
+	kit_ledge(0.80, ws - 0.80, sy0 - 0.16, 0.14, BK_TRIM, 0.09)
+	kit_panes(sc, [sy0], 1.22, h0, BK_GLASS, 0.06)
+	kit_panes(sc, [sy2], 1.22, h2, BK_GLASS, 0.06)
+	for pu: float in [0.55, (sc[3] + sc[4]) * 0.5, (sc[6] + sc[7]) * 0.5, ws - 0.55]:
+		kit_pilaster(pu, g + 4.58, g + BK_WING_H - 0.88, BK_TRIM, 0.50, 0.12)
+	_bk_set_frame(m)
+	# 2. Plainer WNW courtyard face (u = u_split, v = v_split..v_max, facing +a): panes + sill ledges.
+	var wc := _bk_front_edge(_w(u_split, v_split), _w(u_split, v_max), m["a"] as Vector2)
+	kit_ledge(0.14, wc - 0.06, g - 0.4, 1.15, BK_PLINTH, 0.10)
+	kit_ledge(0.14, wc - 0.06, g + 4.35, 0.18, BK_TRIM, 0.08)
+	kit_cornice(0.56, wc - 0.56, g + BK_WING_H - 0.42, BK_TRIM, 0.42, 0.36)
+	var ccols := _spread(1.45, wc - 1.45, 11)
+	for row: Array in [[sy0, h0], [sy1, h1], [sy2, h2]]:
+		kit_ledge(0.8, wc - 0.8, float(row[0]) - 0.16, 0.12, BK_TRIM, 0.08)
+		kit_panes(ccols, [float(row[0])], 1.20, float(row[1]), BK_GLASS, 0.06)
+	_bk_set_frame(m)
+	# 3. SW end face (v = v_max, u = 0..u_split, facing +b).
+	var we := _bk_front_edge(_w(0.0, v_max), _w(u_split, v_max), m["b"] as Vector2)
+	kit_ledge(0.06, we - 0.06, g - 0.4, 1.15, BK_PLINTH, 0.10)
+	kit_ledge(0.06, we - 0.06, g + 4.35, 0.18, BK_TRIM, 0.08)
+	kit_cornice(0.56, we - 0.56, g + BK_WING_H - 0.42, BK_TRIM, 0.42, 0.36)
+	var ecols := _spread(2.2, we - 2.2, 3)
+	for row: Array in [[sy0, h0], [sy1, h1], [sy2, h2]]:
+		kit_ledge(1.2, we - 1.2, float(row[0]) - 0.16, 0.12, BK_TRIM, 0.08)
+		kit_panes(ecols, [float(row[0])], 1.20, float(row[1]), BK_GLASS, 0.06)
+	_bk_set_frame(m)
+
+
+## Builds both pitched roofs solid down to the cornices and places kit_dormer rows on every slope:
+## the tall green copper hipped roof over the palace arm and east corner, and the red tile roof
+## over the SW side wing hipped at the far end and tucked cleanly into the copper roof at the L-junction.
+func _bk_roofs(m: Dictionary, g: float) -> void:
+	_bk_set_frame(m)
+	_mode = M_STONE
+	var u_max: float = m["u_max"]
+	var u_split: float = m["u_split"]
+	var v_split: float = m["v_split"]
+	var v_max: float = m["v_max"]
+	var axis_a: Vector2 = m["a"]
+	var axis_b: Vector2 = m["b"]
+	# 1. Palace tall hipped green copper roof (14.0 -> 20.0 m) wrapping the east corner.
+	var p_eave := g + BK_PALACE_H
+	var p_ov := 0.35
+	var p_hv := v_split * 0.5 + p_ov
+	_hip(u_max * 0.5, v_split * 0.5, u_max * 0.5 + p_ov, p_hv, p_eave, BK_COPPER_RISE, BK_COPPER)
+	# Dormers low on all four slopes of the green copper roof (6 NNE street, 2 ESE east hip, 5 SSW court, 1 WNW hip).
+	var p_din := 1.08
+	var p_dy := p_eave + BK_COPPER_RISE * (p_din / maxf(p_hv - 0.15, 1.0))
+	var p_in := p_din - p_ov
+	var p_mid := u_max * 0.5
+	for span: Array in [[6.4, p_mid - 5.4, 3], [p_mid + 5.4, u_max - 6.4, 3]]:
+		for du: float in _spread(float(span[0]), float(span[1]), int(span[2])):
+			kit_dormer(_w(du, p_in), -axis_b, p_dy, BK_TRIM, BK_TRIM, BK_GLASS)
+	for dv: float in _spread(3.5, v_split - 3.5, 2):
+		kit_dormer(_w(p_in, dv), -axis_a, p_dy, BK_TRIM, BK_TRIM, BK_GLASS)
+	for du: float in _spread(16.0, u_max - 6.4, 5):
+		kit_dormer(_w(du, v_split - p_in), axis_b, p_dy, BK_TRIM, BK_TRIM, BK_GLASS)
+	kit_dormer(_w(u_max - p_in, v_split * 0.5), axis_a, p_dy, BK_TRIM, BK_TRIM, BK_GLASS)
+	# 2. Side wing red tile roof (13.0 -> 18.0 m), hipped at the SW end and meeting the palace copper
+	# roof along the exact diagonal valley so nothing protrudes past the palace's ESE corner wall.
+	var w_eave := g + BK_WING_H
+	var w_ridge := w_eave + BK_TILE_RISE
+	var w_ov := 0.30
+	var u_r := u_split * 0.5
+	var half_run := u_r + w_ov
+	var v_end := v_max + w_ov
+	var v_r0 := 9.9
+	var v_r1 := v_end - half_run
+	var pt3 := func(u: float, v: float, y: float) -> Vector3:
+		var q := _w(u, v)
+		return Vector3(q.x, y, q.y)
+	var e_se0: Vector3 = pt3.call(-w_ov, v_split, w_eave)
+	var e_se1: Vector3 = pt3.call(-w_ov, v_end, w_eave)
+	var e_nw0: Vector3 = pt3.call(u_split + w_ov, v_split, w_eave)
+	var e_nw1: Vector3 = pt3.call(u_split + w_ov, v_end, w_eave)
+	var r0: Vector3 = pt3.call(u_r, v_r0, w_ridge)
+	var r1: Vector3 = pt3.call(u_r, v_r1, w_ridge)
+	var a3 := Vector3(axis_a.x, 0.0, axis_a.y)
+	var b3 := Vector3(axis_b.x, 0.0, axis_b.y)
+	var n_se := (-a3 * BK_TILE_RISE + Vector3.UP * half_run).normalized()
+	var n_nw := (a3 * BK_TILE_RISE + Vector3.UP * half_run).normalized()
+	var n_sw := (b3 * BK_TILE_RISE + Vector3.UP * half_run).normalized()
+	_quad(e_se0, e_se1, r1, r0, n_se, BK_TILE)
+	_quad(e_nw1, e_nw0, r0, r1, n_nw, BK_TILE)
+	_tri(e_se1, e_nw1, r1, n_sw, BK_TILE.darkened(0.05), Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	# Dormer rows low on both slopes of the red tile roof (longer row on the courtyard slope, smaller on street).
+	var w_din := 1.30
+	var w_dy := w_eave + BK_TILE_RISE * (w_din / half_run)
+	var w_in := w_din - w_ov
+	for dv: float in _spread(17.2, v_r1 - 1.2, 6):
+		kit_dormer(_w(u_split - w_in, dv), axis_a, w_dy, BK_TRIM, BK_TRIM, BK_GLASS)
+	for dv: float in _spread(18.0, v_r1 - 1.2, 4):
+		kit_dormer(_w(w_in, dv), -axis_a, w_dy, BK_TRIM, BK_TRIM, BK_GLASS)
+
+
