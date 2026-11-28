@@ -152,7 +152,7 @@ func _find_skins() -> void:
 		# `model`: the whole building is a model now (it replaces LoD2); the entry keeps its place in
 		# the site order (tap ids) and its wall colour for the skyline (tower_colour)
 		if t.get("model", false):
-			if t.has("photo_front"):
+			if t.has("photo_front") and not sites.is_empty() and sites[-1]["key"] == t["key"]:
 				sites[-1]["replaces_photo_front"] = t["photo_front"]
 			continue
 		if not sites.is_empty() and sites[-1]["key"] == t["key"]:
