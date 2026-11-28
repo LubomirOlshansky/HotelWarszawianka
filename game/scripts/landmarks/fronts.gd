@@ -212,6 +212,10 @@ const LM_BLOCKS := [
 	"2892939",  # Oxygen: the whole office ring is built in wola.gd (`oxygen`)
 	"947207781",  # City Gate: the whole curved office is built in wola.gd (`city_gate`)
 	"964367459",  # Stary Dom Poselski: rebuilt whole in ujazdow.gd (`stary_dom_poselski`)
+	"29092781",  # Pałacyk Rembielińskiego: rebuilt whole in ujazdow.gd (`rembielinskiego`)
+	"29042523",  # Willa Raua: rebuilt whole in ujazdow.gd (`willa_raua`)
+	"29042524",  # Pałacyk Dziewulskich: rebuilt whole in ujazdow.gd (`dziewulskich`)
+	"221947049",  # Pałac pod Karczochem: rebuilt whole in ujazdow.gd (`pod_karczochem`)
 ]
 
 

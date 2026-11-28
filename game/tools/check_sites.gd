@@ -29,7 +29,9 @@ const BUDGET := {"muzeum": 4600, "europejski": 8000, "grob": 600, "metropolitan"
 		"hotel_kasztel": 400, "hotel_canaletto": 400, "hotel_starowka": 400, "polonia": 1450, "ujazdowski": 1650, "sobieski": 1500,
 		"zamek": 24500, "arkady": 2400, "kino_muranow": 11000, "dekalog_estate": 18000, "inflancka_pools": 1000, "zamkowy": 2900,
 		"gpxz": 12000, "centrum_praha": 4000, "targowa33a": 3000, "polskie_radio": 3000,
-		"dom_poselski": 5000, "stary_dom_poselski": 7000, "city_gate": 3500, "meridian": 3500, "oxygen": 3500}
+		"dom_poselski": 5000, "stary_dom_poselski": 7000,
+		"rembielinskiego": 2800, "willa_raua": 2000, "dziewulskich": 1600, "pod_karczochem": 2800,
+		"city_gate": 3500, "meridian": 3500, "oxygen": 3500}
 ## The Królewska edge's skins: key -> a point in a building the skin must cover.
 const SKINNED := {"departament": Vector2(-596.0, -702.0)}
 ## Words no card may hold (the hotel's real brand and name).
@@ -202,6 +204,14 @@ func _check_site(marks, map: Fakes.BuilderMap, key: String) -> void:
 			marks._build_dom_poselski(s)
 		"stary_dom_poselski":
 			marks._build_stary_dom_poselski(s)
+		"rembielinskiego":
+			marks._build_rembielinskiego(s)
+		"willa_raua":
+			marks._build_willa_raua(s)
+		"dziewulskich":
+			marks._build_dziewulskich(s)
+		"pod_karczochem":
+			marks._build_pod_karczochem(s)
 		"hotel_kasztel", "hotel_canaletto", "hotel_starowka":
 			marks._build_hotel(s)
 	marks._id = 0
