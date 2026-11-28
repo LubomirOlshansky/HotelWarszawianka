@@ -203,6 +203,8 @@ const BUDGET := {
 	"poczta": 710,
 	"bez_kantow": 8000,  # 2026-11-15 Dom bez Kantów and Królewska 2 rebuilt whole from F's photos and the orthophoto: the ring, arcades, panes, cornices (measured 6679)
 	"politechnika": 950,  # 2026-11-15 front from F's photos: the columned middle on Plac Politechniki, attic and figures, stairs, lamp pillars
+	"gmach_chemii": 7500,  # 2026-11-28 Gmach Chemii PW on Noakowskiego: wings round courtyard, rusticated base, risalits, arched windows, hipped roofs
+	"itc": 4500,  # 2026-11-28 Instytut Techniki Cieplnej PW on Nowowiejska: 6-storey front, portal, steps, canopies, 4-storey back wings
 	"pasta": 580,
 	"msn": 900,
 	# Norblin on its real block (2026-11-02, photo report): two blocks, Plater and Galwan, about

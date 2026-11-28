@@ -7889,3 +7889,895 @@ func _build_sienkiewicza3(site: Dictionary) -> void:
 		return (_local(p).x > le - 1.5 and _local(q).x > le - 1.5) or (_local(p).y > -SB_ARCADE + 0.5 and _local(q).y > -SB_ARCADE + 0.5)
 	_sk_sides(inner, SB_E, SB_W, rows, SB_SAND_L, party)
 	kit_front(SB_E, SB_W)
+
+
+# --- Gmach Chemii Politechniki Warszawskiej (Noakowskiego 3) ------------------------------------
+# Spec docs/landmarks/specs/gmach_chemii.md: neo-Renaissance Chemistry building (1899-1901).
+# Dark ochre sandstone front with grey rusticated ground floor, three wooden doors up steps in
+# a projecting three-part central entrance risalit with giant Corinthian columns and paired
+# corner pilasters, two tall upper storeys of arched windows, crowning cornice at 18 m, dark
+# grey hipped roofs over four wings round an inner courtyard.
+
+const GC_NAME := "Gmach Chemii"
+const GC_WALL := Color("#b3a27f")          # dark ochre sandstone front (spec)
+const GC_BASE := Color("#8f8c85")          # grey rusticated ground floor (spec)
+const GC_TRIM := Color("#efece4")          # white frames, string courses and cornice (spec)
+const GC_COURT := Color("#c9bd9f")         # courtyard render (spec)
+const GC_ROOF := Color("#5b5f63")          # dark grey hipped roofs (spec)
+const GC_GLASS := Color("#4a5660")         # window glass (spec)
+const GC_DOOR := Color("#5a3e2a")          # wooden entrance doors (spec)
+const GC_GLOW := Color("#ffd9a0")          # warm night entrance glow (M_LAMP / M_PAVILION)
+const GC_BASE_H := 5.5                     # rusticated ground floor height
+const GC_WALL_H := 17.0                    # top of upper storeys
+const GC_EAVE_H := 18.0                    # top of frieze and main cornice
+const GC_ATTIC_H := 1.0                    # attic height over risalits and corner pavilions
+const GC_ROOF_H := 4.0                     # hipped roof rise over wings
+
+
+## Finds Gmach Chemii's OSM outline and registers the `gmach_chemii` site with a 0.5 m outward
+## zone offset so the map's plain 10.9 m prism is replaced cleanly.
+func _find_gmach_chemii() -> void:
+	var raw := _landmark(GC_NAME)
+	if raw.size() < 3:
+		push_error("gmach_chemii: landmark outline '%s' is missing from centrum.json" % GC_NAME)
+		return
+	var zone := _largest(Geometry2D.offset_polygon(raw, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = raw
+	_add_site("gmach_chemii", [zone])
+	if not sites.is_empty() and sites[-1]["key"] == "gmach_chemii":
+		sites[-1]["raw"] = raw
+
+
+## Builds Gmach Chemii from its mapped outline: four 18 m neo-Renaissance wings round an inner
+## courtyard, rusticated grey base, three-part central entrance risalit with steps, three wooden
+## doors, warm night lanterns and giant columns, four corner pavilions with paired pilasters and
+## attics, round-top upper windows, crowning cornice, hipped roofs, and outline collision.
+func _build_gmach_chemii(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var m := _gc_frame(raw)
+	if m.is_empty():
+		return
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	_gc_set_frame(m)
+	var outer := _gc_outer_ring(m)
+	var court := _gc_ccw(_urect(m["cu0"], m["cu1"], m["cv0"], m["cv1"]))
+	_gc_main_walls(m, outer, court, g)
+	_gc_risalit(m, g)
+	_gc_dress_outer(m, g)
+	_gc_dress_court(m, g)
+	_gc_roofs(m, g)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Restores Gmach Chemii's main local frame (+u SE->NW along Noakowskiego, +v outward NE).
+func _gc_set_frame(m: Dictionary) -> void:
+	_o = m["o"]
+	_a = m["a"]
+	_b = m["b"]
+	kit_face(0.0)
+
+
+## Starts a kit_front along edge a->b oriented so _b aligns with the outward normal `out`.
+func _gc_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
+## Returns a counter-clockwise copy of `ring` for _prism, _cap, _holes and ring helpers.
+func _gc_ccw(ring: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array(ring)
+	if Geometry2D.is_polygon_clockwise(out):
+		out.reverse()
+	return out
+
+
+## Derives Gmach Chemii's local symmetry frame and wing/risalit/pavilion bounds directly from
+## its 56-node OSM outline, discarding sub-1.5 m corner wiggles.
+func _gc_frame(raw: PackedVector2Array) -> Dictionary:
+	var poly := _gc_ccw(raw)
+	var n := poly.size()
+	var want_ne := Vector2(0.743, -0.669).normalized()
+	var front_pts: Array[Vector2] = []
+	for i in n:
+		var a := poly[i]
+		var b := poly[(i + 1) % n]
+		if a.distance_to(b) > 15.0 and _out(poly, a, b).dot(want_ne) > 0.90:
+			front_pts.append(a)
+			front_pts.append(b)
+	if front_pts.size() < 2:
+		return {}
+	# Extreme NW and SE endpoints of the Noakowskiego front line (smaller x+z is NW).
+	var p_nw := front_pts[0]
+	var p_se := front_pts[0]
+	for p in front_pts:
+		if p.x + p.y < p_nw.x + p_nw.y:
+			p_nw = p
+		if p.x + p.y > p_se.x + p_se.y:
+			p_se = p
+	var axis_a := (p_nw - p_se).normalized()
+	var out_b := Vector2(-axis_a.y, axis_a.x)
+	var origin := (p_nw + p_se) * 0.5
+	_o = origin
+	_a = axis_a
+	_b = out_b
+	var front_hw := p_nw.distance_to(p_se) * 0.5
+	var u_min := INF
+	var u_max := -INF
+	var v_min := INF
+	var ris_u0 := INF
+	var ris_u1 := -INF
+	var ris_v_tower := 3.6
+	var ris_v_mid := 2.8
+	var mid_u0 := -4.9
+	var mid_u1 := 4.9
+	var v_fpav_front := -6.75
+	var v_fpav_back := -16.25
+	var v_rpav_front := -54.95
+	var v_back_wing := -63.30
+	var side_se := -42.30
+	var side_nw := 42.50
+	var rpav_se_u := -29.10
+	var rpav_nw_u := 29.50
+	for p in poly:
+		var l := _local(p)
+		u_min = minf(u_min, l.x)
+		u_max = maxf(u_max, l.x)
+		v_min = minf(v_min, l.y)
+		if l.y > 1.5:
+			ris_u0 = minf(ris_u0, l.x)
+			ris_u1 = maxf(ris_u1, l.x)
+			ris_v_tower = maxf(ris_v_tower, l.y)
+	# Refine side-wing, rear-wing and recessed central entrance coordinates from long edges.
+	for i in n:
+		var a := poly[i]
+		var b := poly[(i + 1) % n]
+		var ln := a.distance_to(b)
+		var out := _out(poly, a, b)
+		var ml := _local((a + b) * 0.5)
+		if ln > 25.0 and out.dot(-out_b) > 0.90:
+			v_back_wing = ml.y
+		elif ln > 25.0 and out.dot(-axis_a) > 0.90:
+			side_se = ml.x
+		elif ln > 25.0 and out.dot(axis_a) > 0.90:
+			side_nw = ml.x
+		elif ln > 6.0 and ln < 12.0 and out.dot(out_b) > 0.90 and ml.y < -4.0 and ml.y > -10.0:
+			v_fpav_front = ml.y
+		elif ln > 4.0 and ln < 8.0 and out.dot(out_b) > 0.90 and absf(ml.x) < 5.5 and ml.y > 2.0 and ml.y < 3.3:
+			ris_v_mid = minf(ml.y, ris_v_tower - 0.80)
+	if ris_u0 >= ris_u1:
+		ris_u0 = -10.9
+		ris_u1 = 10.9
+	mid_u0 = ris_u0 + 6.0
+	mid_u1 = ris_u1 - 6.0
+	var cv0 := v_back_wing + 13.3
+	var cv1 := v_fpav_back
+	return {
+		"o": origin, "a": axis_a, "b": out_b,
+		"front_hw": front_hw,
+		"u_se": u_min, "u_nw": u_max,
+		"side_se": side_se, "side_nw": side_nw,
+		"ris_u0": ris_u0, "ris_u1": ris_u1,
+		"mid_u0": mid_u0, "mid_u1": mid_u1,
+		"ris_v_tower": ris_v_tower, "ris_v_mid": ris_v_mid,
+		"v_fpav_front": v_fpav_front, "v_fpav_back": v_fpav_back,
+		"v_rpav_front": v_rpav_front,
+		"v_back_wing": v_back_wing, "v_back_pav": v_min,
+		"rpav_se_u": rpav_se_u, "rpav_nw_u": rpav_nw_u,
+		"cu0": rpav_se_u, "cu1": rpav_nw_u,
+		"cv0": cv0, "cv1": cv1,
+	}
+
+
+## Builds the clean orthogonal 28-vertex outer plan ring of Gmach Chemii matching all four wings,
+## four corner pavilions and the three-part central entrance risalit (no sub-1.5 m wiggles).
+func _gc_outer_ring(m: Dictionary) -> PackedVector2Array:
+	var fhw: float = m["front_hw"]
+	var u_se: float = m["u_se"]
+	var u_nw: float = m["u_nw"]
+	var s_se: float = m["side_se"]
+	var s_nw: float = m["side_nw"]
+	var ru0: float = m["ris_u0"]
+	var ru1: float = m["ris_u1"]
+	var mu0: float = m["mid_u0"]
+	var mu1: float = m["mid_u1"]
+	var rvt: float = m["ris_v_tower"]
+	var rvm: float = m["ris_v_mid"]
+	var fpf: float = m["v_fpav_front"]
+	var fpb: float = m["v_fpav_back"]
+	var rpf: float = m["v_rpav_front"]
+	var vbw: float = m["v_back_wing"]
+	var vbp: float = m["v_back_pav"]
+	var rse: float = m["rpav_se_u"]
+	var rnw: float = m["rpav_nw_u"]
+	return _gc_ccw(_lpoly([
+		[u_se, fpf], [-fhw, fpf], [-fhw, 0.0],
+		[ru0, 0.0], [ru0, rvt], [mu0, rvt], [mu0, rvm],
+		[mu1, rvm], [mu1, rvt], [ru1, rvt], [ru1, 0.0],
+		[fhw, 0.0], [fhw, fpf], [u_nw, fpf],
+		[u_nw, fpb], [s_nw, fpb], [s_nw, rpf], [u_nw, rpf], [u_nw, vbp],
+		[rnw, vbp], [rnw, vbw], [rse, vbw], [rse, vbp],
+		[u_se, vbp], [u_se, rpf], [s_se, rpf], [s_se, fpb], [u_se, fpb],
+	]))
+
+
+## Draws horizontal rustication bands (kit_bands) only on ground-floor piers between openings
+## so grooves never overlap window panes or doors.
+func _gc_rusticate_piers(u0: float, u1: float, centres: Array, gap_hw: float, y0: float, y1: float) -> void:
+	var cur := u0
+	for c_var in centres:
+		var c := float(c_var)
+		var stop := c - gap_hw
+		if stop - cur > 0.35:
+			kit_bands(cur + 0.08, stop - 0.08, y0, y1, 1.25, GC_BASE)
+		cur = maxf(cur, c + gap_hw)
+	if u1 - cur > 0.35:
+		kit_bands(cur + 0.08, u1 - 0.08, y0, y1, 1.25, GC_BASE)
+
+
+## Builds Gmach Chemii's outer perimeter walls, inward-facing courtyard walls, roof deck with
+## open courtyard hole, plinth, string courses and crowning cornice ring.
+func _gc_main_walls(m: Dictionary, outer: PackedVector2Array, court: PackedVector2Array, g: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	_prism(outer, g - 0.5, g + GC_BASE_H, GC_BASE, none, M_STONE)
+	_prism(outer, g + GC_BASE_H, g + GC_WALL_H, GC_WALL, none, M_STONE)
+	_prism(outer, g + GC_WALL_H, g + GC_EAVE_H, GC_WALL.lightened(0.05), none, M_STONE)
+	# Inner courtyard walls facing inward toward the open court.
+	var run := 0.0
+	for i in court.size():
+		var a := court[i]
+		var b := court[(i + 1) % court.size()]
+		var inward := -_out(court, a, b)
+		_wall(a, b, g - 0.5, g + GC_WALL_H, inward, GC_COURT, run)
+		_wall(a, b, g + GC_WALL_H, g + GC_EAVE_H, inward, GC_COURT.lightened(0.05), run)
+		run += a.distance_to(b)
+	_holes = [court]
+	_cap(outer, g + GC_EAVE_H - 0.05, GC_ROOF.darkened(0.22))
+	_holes = []
+	# Continuous ground plinth, floor string courses and crowning cornice around the outer ring.
+	kit_ledge_ring(outer, g - 0.4, 1.35, GC_BASE.darkened(0.08), 0.12)
+	kit_ledge_ring(outer, g + 5.45, 0.28, GC_TRIM, 0.14)
+	kit_ledge_ring(outer, g + 11.20, 0.26, GC_TRIM, 0.15)
+	kit_cornice_ring(outer, g + 17.48, GC_TRIM, 0.52, 0.52)
+
+
+## Builds Gmach Chemii's projecting three-part central entrance risalit on Noakowskiego: broad
+## stone steps, three wooden double doors with warm night lanterns and transoms, four giant
+## Corinthian columns, six round-arched upper windows, flanking projecting piers with paired
+## giant pilasters, round-arched first-floor windows and flat-topped attics.
+func _gc_risalit(m: Dictionary, g: float) -> void:
+	_gc_set_frame(m)
+	var ru0: float = m["ris_u0"]
+	var ru1: float = m["ris_u1"]
+	var mu0: float = m["mid_u0"]
+	var mu1: float = m["mid_u1"]
+	var rvt: float = m["ris_v_tower"]
+	var rvm: float = m["ris_v_mid"]
+	var out_ne: Vector2 = m["b"]
+	# Recessed central 3-bay entrance loggia (steps, 3 doors, 4 Corinthian columns, 6 arched windows).
+	var wm := _gc_front_edge(_w(mu0, rvm), _w(mu1, rvm), out_ne)
+	var step_top := g + 0.66
+	for k in 3:
+		var run_d := 0.52 * float(3 - k)
+		_kbox(-0.08, wm + 0.08, 0.0, run_d, g - 0.4 + k * 0.22, g + 0.22 * float(k + 1), GC_BASE.lightened(0.14))
+	var door_cs := _spread(0.35, wm - 0.35, 3)
+	for du_var in door_cs:
+		var du := float(du_var)
+		kit_door(du, step_top, 3.85, 1.00, GC_TRIM, GC_DOOR, false)
+		# Warm night glow in the entrance transom over each wooden double door.
+		_kbox(du - 0.90, du + 0.90, 0.04, 0.09, step_top + 3.15, step_top + 3.75, GC_GLOW, M_PAVILION)
+	_gc_rusticate_piers(0.10, wm - 0.10, door_cs, 1.18, g + 0.95, g + 5.25)
+	# Four giant Corinthian columns standing on the rusticated ground floor, plus wall lanterns.
+	var col_us: Array[float] = [0.42, (float(door_cs[0]) + float(door_cs[1])) * 0.5,
+			(float(door_cs[1]) + float(door_cs[2])) * 0.5, wm - 0.42]
+	for cu_c in col_us:
+		kit_column(cu_c, 0.48, g + 5.75, g + 17.0, GC_WALL.lightened(0.14), 0.42, Order.CORINTHIAN)
+		_kbox(cu_c - 0.10, cu_c + 0.10, 0.08, 0.24, g + 3.55, g + 4.10, GC_GLOW, M_LAMP)
+	for du_var in door_cs:
+		var du := float(du_var)
+		kit_round_window(_w(du, 0.0), _a, _b, g + 6.30, g + 9.10, 0.78, GC_TRIM, GC_GLASS)
+		kit_round_window(_w(du, 0.0), _a, _b, g + 12.15, g + 14.55, 0.75, GC_TRIM, GC_GLASS)
+	kit_attic(0.0, wm, g + GC_EAVE_H, GC_WALL, 0.85, Attic.WALL)
+	# Two projecting flanking risalit towers (paired giant pilasters, arched 1st floor, framed 2nd).
+	_gc_set_frame(m)
+	for span: Array in [[ru0, mu0], [mu1, ru1]]:
+		var u0: float = span[0]
+		var u1: float = span[1]
+		var wt := _gc_front_edge(_w(u0, rvt), _w(u1, rvt), out_ne)
+		var tc := wt * 0.5
+		kit_window(tc - 0.52, g + 1.45, 2.75, Win.PLAIN, GC_TRIM, GC_GLASS, 0.34)
+		kit_window(tc + 0.52, g + 1.45, 2.75, Win.PLAIN, GC_TRIM, GC_GLASS, 0.34)
+		_gc_rusticate_piers(0.08, wt - 0.08, [tc], 1.12, g + 0.95, g + 5.25)
+		kit_round_window(_w(tc, 0.0), _a, _b, g + 6.30, g + 9.25, 0.84, GC_TRIM, GC_GLASS)
+		kit_window(tc, g + 12.15, 2.95, Win.FRAMED, GC_TRIM, GC_GLASS, 0.84)
+		for pu: float in [0.42, 1.05, wt - 1.05, wt - 0.42]:
+			kit_pilaster(pu, g + 5.75, g + 17.0, GC_WALL.lightened(0.06), 0.48, 0.14)
+		kit_attic(0.0, wt, g + GC_EAVE_H, GC_WALL, GC_ATTIC_H, Attic.WALL)
+		_gc_set_frame(m)
+	# Side return attics on the flanking risalit towers (so the attic wraps cleanly back to v = 0).
+	for side_cfg: Array in [[ru0, 0.0, rvt, -(m["a"] as Vector2)], [ru1, 0.0, rvt, m["a"] as Vector2]]:
+		var su: float = side_cfg[0]
+		var out_s: Vector2 = side_cfg[3]
+		var ws := _gc_front_edge(_w(su, side_cfg[1]), _w(su, side_cfg[2]), out_s)
+		kit_attic(0.0, ws, g + GC_EAVE_H, GC_WALL, GC_ATTIC_H, Attic.WALL)
+		_gc_set_frame(m)
+
+
+## Dresses every outer facade of Gmach Chemii: Noakowskiego main wings with rusticated ground
+## floors and arched upper windows, four corner pavilions with paired giant pilasters and attics,
+## and side and rear wings with regular window grids.
+func _gc_dress_outer(m: Dictionary, g: float) -> void:
+	_gc_set_frame(m)
+	var fhw: float = m["front_hw"]
+	var u_se: float = m["u_se"]
+	var u_nw: float = m["u_nw"]
+	var s_se: float = m["side_se"]
+	var s_nw: float = m["side_nw"]
+	var ru0: float = m["ris_u0"]
+	var ru1: float = m["ris_u1"]
+	var fpf: float = m["v_fpav_front"]
+	var fpb: float = m["v_fpav_back"]
+	var rpf: float = m["v_rpav_front"]
+	var vbw: float = m["v_back_wing"]
+	var vbp: float = m["v_back_pav"]
+	var rse: float = m["rpav_se_u"]
+	var rnw: float = m["rpav_nw_u"]
+	var a_nw: Vector2 = m["a"]
+	var b_ne: Vector2 = m["b"]
+	# Front Noakowskiego main wings (6 bays each, ~3.8 m spacing, round-top upper windows between giant pilasters).
+	for span: Array in [[-fhw, ru0], [ru1, fhw]]:
+		var wf := _gc_front_edge(_w(span[0], 0.0), _w(span[1], 0.0), b_ne)
+		var g_cs := kit_window_grid(0.95, wf - 0.95, 6, [g + 1.45], 2.90, Win.SILL, GC_TRIM, GC_GLASS, 0.74)
+		_gc_rusticate_piers(0.12, wf - 0.12, g_cs, 1.06, g + 0.95, g + 5.25)
+		for wu: float in g_cs:
+			kit_round_window(_w(wu, 0.0), _a, _b, g + 6.30, g + 9.05, 0.78, GC_TRIM, GC_GLASS)
+			kit_round_window(_w(wu, 0.0), _a, _b, g + 12.10, g + 14.65, 0.76, GC_TRIM, GC_GLASS)
+		for k in g_cs.size() - 1:
+			var pu := (g_cs[k] + g_cs[k + 1]) * 0.5
+			kit_pilaster(pu, g + 5.75, g + 17.0, GC_WALL.lightened(0.08), 0.48, 0.14)
+		_gc_set_frame(m)
+	# Front wing side returns stepping back to the front corner pavilions.
+	for ret: Array in [[-fhw, fpf, 0.0, -a_nw], [fhw, fpf, 0.0, a_nw]]:
+		var wr := _gc_front_edge(_w(ret[0], ret[1]), _w(ret[0], ret[2]), ret[3])
+		kit_window_grid(1.1, wr - 1.1, 1, [g + 1.45, g + 6.30, g + 12.05], [2.8, 3.1, 3.1], Win.SILL, GC_TRIM, GC_GLASS, 0.74)
+		_gc_set_frame(m)
+	# Front corner pavilions (NE street-facing fronts with paired giant pilasters, round-top windows, attic).
+	for fp: Array in [[u_se, -fhw], [fhw, u_nw]]:
+		var wfp := _gc_front_edge(_w(fp[0], fpf), _w(fp[1], fpf), b_ne)
+		var fp_cs := kit_window_grid(1.45, wfp - 1.45, 2, [g + 1.45], 2.85, Win.SILL, GC_TRIM, GC_GLASS, 0.72)
+		_gc_rusticate_piers(0.12, wfp - 0.12, fp_cs, 1.04, g + 0.95, g + 5.25)
+		for wu: float in fp_cs:
+			kit_round_window(_w(wu, 0.0), _a, _b, g + 6.30, g + 9.05, 0.74, GC_TRIM, GC_GLASS)
+			kit_round_window(_w(wu, 0.0), _a, _b, g + 12.10, g + 14.65, 0.72, GC_TRIM, GC_GLASS)
+		for pu: float in [0.42, 1.02, wfp - 1.02, wfp - 0.42]:
+			kit_pilaster(pu, g + 5.75, g + 17.0, GC_WALL.lightened(0.06), 0.46, 0.14)
+		kit_attic(0.0, wfp, g + GC_EAVE_H, GC_WALL, GC_ATTIC_H, Attic.WALL)
+		_gc_set_frame(m)
+	# Front corner pavilions (NW & SE outer side faces with corner pilasters and attic).
+	for fs: Array in [[u_se, fpb, fpf, -a_nw], [u_nw, fpb, fpf, a_nw]]:
+		var wfs := _gc_front_edge(_w(fs[0], fs[1]), _w(fs[0], fs[2]), fs[3])
+		var fs_cs := kit_window_grid(1.55, wfs - 1.55, 2, [g + 1.45], 2.80, Win.PLAIN, GC_TRIM, GC_GLASS, 0.72)
+		kit_window_grid(1.55, wfs - 1.55, 2, [g + 6.30], 3.05, Win.SILL, GC_TRIM, GC_GLASS, 0.74)
+		for wu: float in fs_cs:
+			kit_window(wu, g + 12.05, 3.00, Win.PLAIN, GC_TRIM, GC_GLASS, 0.72, GC_TRIM)
+		for pu: float in [0.45, wfs - 0.45]:
+			kit_pilaster(pu, g + 5.75, g + 17.0, GC_WALL.lightened(0.06), 0.48, 0.13)
+		kit_attic(0.0, wfs, g + GC_EAVE_H, GC_WALL, GC_ATTIC_H, Attic.WALL)
+		_gc_set_frame(m)
+	# Side wings (SE and NW outer flanks, 9 bays each).
+	for sw: Array in [[s_se, rpf, fpb, -a_nw], [s_nw, rpf, fpb, a_nw]]:
+		var wsw := _gc_front_edge(_w(sw[0], sw[1]), _w(sw[0], sw[2]), sw[3])
+		var sw_cs := kit_window_grid(1.1, wsw - 1.1, 9, [g + 1.45], 2.75, Win.PLAIN, GC_TRIM, GC_GLASS, 0.72)
+		kit_window_grid(1.1, wsw - 1.1, 9, [g + 6.35], 3.00, Win.SILL, GC_TRIM, GC_GLASS, 0.74)
+		for wu: float in sw_cs:
+			kit_window(wu, g + 12.10, 2.95, Win.PLAIN, GC_TRIM, GC_GLASS, 0.72, GC_TRIM)
+		_gc_set_frame(m)
+	# Rear corner pavilions (side faces and rear SW faces, corner pilasters and attic).
+	for rs: Array in [[u_se, vbp, rpf, -a_nw], [u_nw, vbp, rpf, a_nw]]:
+		var wrs := _gc_front_edge(_w(rs[0], rs[1]), _w(rs[0], rs[2]), rs[3])
+		var rs_cs := kit_window_grid(1.5, wrs - 1.5, 2, [g + 1.45], 2.75, Win.PLAIN, GC_TRIM, GC_GLASS, 0.72)
+		kit_window_grid(1.5, wrs - 1.5, 2, [g + 6.35], 3.00, Win.SILL, GC_TRIM, GC_GLASS, 0.74)
+		for wu: float in rs_cs:
+			kit_window(wu, g + 12.10, 2.95, Win.PLAIN, GC_TRIM, GC_GLASS, 0.72, GC_TRIM)
+		for pu: float in [0.45, wrs - 0.45]:
+			kit_pilaster(pu, g + 5.75, g + 17.0, GC_WALL.lightened(0.06), 0.50, 0.13)
+		kit_attic(0.0, wrs, g + GC_EAVE_H, GC_WALL, GC_ATTIC_H, Attic.WALL)
+		_gc_set_frame(m)
+	for rb: Array in [[u_se, rse], [rnw, u_nw]]:
+		var wrb := _gc_front_edge(_w(rb[0], vbp), _w(rb[1], vbp), -b_ne)
+		var rb_cs := kit_window_grid(1.5, wrb - 1.5, 3, [g + 1.45], 2.75, Win.PLAIN, GC_TRIM, GC_GLASS, 0.72)
+		kit_window_grid(1.5, wrb - 1.5, 3, [g + 6.35], 3.00, Win.SILL, GC_TRIM, GC_GLASS, 0.74)
+		for wu: float in rb_cs:
+			kit_window(wu, g + 12.10, 2.95, Win.PLAIN, GC_TRIM, GC_GLASS, 0.72, GC_TRIM)
+		for pu: float in [0.45, wrb - 0.45]:
+			kit_pilaster(pu, g + 5.75, g + 17.0, GC_WALL.lightened(0.06), 0.50, 0.13)
+		kit_attic(0.0, wrb, g + GC_EAVE_H, GC_WALL, GC_ATTIC_H, Attic.WALL)
+		_gc_set_frame(m)
+	# Rear SW main wing (14 bays).
+	var wrw := _gc_front_edge(_w(rse, vbw), _w(rnw, vbw), -b_ne)
+	var rw_cs := kit_window_grid(1.2, wrw - 1.2, 14, [g + 1.45], 2.75, Win.PLAIN, GC_TRIM, GC_GLASS, 0.72)
+	kit_window_grid(1.2, wrw - 1.2, 14, [g + 6.35], 3.00, Win.SILL, GC_TRIM, GC_GLASS, 0.74)
+	for wu: float in rw_cs:
+		kit_window(wu, g + 12.10, 2.95, Win.PLAIN, GC_TRIM, GC_GLASS, 0.72, GC_TRIM)
+	_gc_set_frame(m)
+
+
+## Dresses the four inner courtyard walls of Gmach Chemii with kit_panes and bold floor ledges.
+func _gc_dress_court(m: Dictionary, g: float) -> void:
+	_gc_set_frame(m)
+	var cu0: float = m["cu0"]
+	var cu1: float = m["cu1"]
+	var cv0: float = m["cv0"]
+	var cv1: float = m["cv1"]
+	var a_nw: Vector2 = m["a"]
+	var b_ne: Vector2 = m["b"]
+	var faces := [
+		[_w(cu0, cv1), _w(cu1, cv1), -b_ne, 13],  # back of front wing (facing SW into court)
+		[_w(cu0, cv0), _w(cu1, cv0), b_ne, 13],   # inner face of rear wing (facing NE into court)
+		[_w(cu0, cv0), _w(cu0, cv1), a_nw, 8],    # inner face of SE wing (facing NW into court)
+		[_w(cu1, cv0), _w(cu1, cv1), -a_nw, 8],   # inner face of NW wing (facing SE into court)
+	]
+	var rows: Array = [g + 1.45, g + 6.40, g + 12.10]
+	for cf: Array in faces:
+		var wc := _gc_front_edge(cf[0], cf[1], cf[2])
+		var cols := _spread(1.2, wc - 1.2, int(cf[3]))
+		kit_ledge(0.2, wc - 0.2, g + 5.45, 0.26, GC_TRIM, 0.14)
+		kit_ledge(0.2, wc - 0.2, g + 11.20, 0.24, GC_TRIM, 0.14)
+		kit_ledge(0.2, wc - 0.2, g + GC_EAVE_H - 0.35, 0.35, GC_TRIM, 0.26)
+		kit_panes(cols, rows, 1.40, 2.70, GC_GLASS, 0.06)
+		_gc_set_frame(m)
+
+
+## Builds Gmach Chemii's 4.0 m dark grey hipped roofs over all four wings and low flat attic
+## tops with coping over the central entrance risalit and four corner pavilions.
+func _gc_roofs(m: Dictionary, g: float) -> void:
+	_gc_set_frame(m)
+	var y0 := g + GC_EAVE_H
+	var fhw: float = m["front_hw"]
+	var u_se: float = m["u_se"]
+	var u_nw: float = m["u_nw"]
+	var s_se: float = m["side_se"]
+	var s_nw: float = m["side_nw"]
+	var ru0: float = m["ris_u0"]
+	var ru1: float = m["ris_u1"]
+	var mu0: float = m["mid_u0"]
+	var mu1: float = m["mid_u1"]
+	var rvt: float = m["ris_v_tower"]
+	var rvm: float = m["ris_v_mid"]
+	var fpf: float = m["v_fpav_front"]
+	var fpb: float = m["v_fpav_back"]
+	var rpf: float = m["v_rpav_front"]
+	var vbw: float = m["v_back_wing"]
+	var vbp: float = m["v_back_pav"]
+	var cu0: float = m["cu0"]
+	var cu1: float = m["cu1"]
+	var cv0: float = m["cv0"]
+	var cv1: float = m["cv1"]
+	# Four main wing hipped roofs (inset 0.2 m from eaves so hips sit cleanly inside the cornice).
+	_hip(0.0, (cv1 + 0.0) * 0.5, fhw - 0.2, (0.0 - cv1) * 0.5 - 0.2, y0, GC_ROOF_H, GC_ROOF)
+	_hip((s_se + cu0) * 0.5, (rpf + fpb) * 0.5, (cu0 - s_se) * 0.5 - 0.2, (fpb - rpf) * 0.5 - 0.2, y0, GC_ROOF_H, GC_ROOF)
+	_hip((cu1 + s_nw) * 0.5, (rpf + fpb) * 0.5, (s_nw - cu1) * 0.5 - 0.2, (fpb - rpf) * 0.5 - 0.2, y0, GC_ROOF_H, GC_ROOF)
+	_hip((cu0 + cu1) * 0.5, (vbw + cv0) * 0.5, (cu1 - cu0) * 0.5 - 0.2, (cv0 - vbw) * 0.5 - 0.2, y0, GC_ROOF_H, GC_ROOF)
+	# Flat attic coping roofs over the projecting central risalit and four corner pavilions.
+	var coping := GC_WALL.darkened(0.06)
+	var flat_top := GC_ROOF.darkened(0.14)
+	_ubox(ru0 + 0.22, mu0 - 0.22, 0.20, rvt - 0.22, y0, y0 + 0.82, coping, M_STONE, flat_top)
+	_ubox(mu1 + 0.22, ru1 - 0.22, 0.20, rvt - 0.22, y0, y0 + 0.82, coping, M_STONE, flat_top)
+	_ubox(mu0 + 0.15, mu1 - 0.15, 0.20, rvm - 0.22, y0, y0 + 0.72, coping, M_STONE, flat_top)
+	# Four corner pavilion flat attic tops (each inset 0.22 m inside its attic parapet).
+	_ubox(u_se + 0.22, -fhw - 0.22, fpb + 0.22, fpf - 0.22, y0, y0 + 0.82, coping, M_STONE, flat_top)
+	_ubox(fhw + 0.22, u_nw - 0.22, fpb + 0.22, fpf - 0.22, y0, y0 + 0.82, coping, M_STONE, flat_top)
+	_ubox(u_se + 0.22, cu0 - 0.22, vbp + 0.22, rpf - 0.22, y0, y0 + 0.82, coping, M_STONE, flat_top)
+	_ubox(cu1 + 0.22, u_nw - 0.22, vbp + 0.22, rpf - 0.22, y0, y0 + 0.82, coping, M_STONE, flat_top)
+
+
+# --- Instytut Techniki Cieplnej PW (Nowowiejska 21/25) ------------------------------------------
+# Spec docs/landmarks/specs/instytut_techniki_cieplnej.md: 1950s socialist-realist block.
+# Six-storey pale beige front block (20.5 m) on Nowowiejska with light stone rusticated ground
+# floor, strict window grid, central stone portal with three wooden doors, plain frieze (no
+# lettering) and broad front steps, two dark sloping canopies over side entrances, and four-storey
+# back wings (14.0 m) round an inner courtyard under low grey hipped roofs.
+
+const ITC_NAME := "Instytut Techniki Cieplnej"
+const ITC_WALL := Color("#d8cfb9")         # pale beige render (spec)
+const ITC_BASE := Color("#e6e1d4")         # light stone ground floor (spec)
+const ITC_PORTAL := Color("#ece8de")       # tall stone portal (spec)
+const ITC_TRIM := Color("#f1eee6")         # white frames, ledges and cornice (spec)
+const ITC_ROOF := Color("#7d8084")         # grey low hipped roofs (spec)
+const ITC_GLASS := Color("#4a5660")        # window glass (spec)
+const ITC_DOOR := Color("#6b4a32")         # wooden doors (spec)
+const ITC_CANOPY := Color("#3e4448")       # dark grey-glass canopies (spec)
+const ITC_GLOW := Color("#ffd9a0")         # warm night portal glow (M_LAMP / M_PAVILION)
+const ITC_FRONT_H := 20.5                  # front block eaves height (6 storeys)
+const ITC_FRONT_ROOF_H := 2.5              # front block low hipped roof rise
+const ITC_BACK_H := 14.0                   # back wings eaves height (4 storeys)
+const ITC_BACK_ROOF_H := 2.0               # back wings low hipped roof rise
+
+
+## Finds Instytut Techniki Cieplnej's OSM outline and registers the `itc` site with a 0.5 m
+## outward zone offset so the map's plain prisms under it are replaced cleanly.
+func _find_itc() -> void:
+	var raw := _landmark(ITC_NAME)
+	if raw.size() < 3:
+		push_error("itc: landmark outline '%s' is missing from centrum.json" % ITC_NAME)
+		return
+	var zone := _largest(Geometry2D.offset_polygon(raw, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = raw
+	_add_site("itc", [zone])
+	if not sites.is_empty() and sites[-1]["key"] == "itc":
+		sites[-1]["raw"] = raw
+
+
+## Builds Instytut Techniki Cieplnej from its mapped outline: six-storey pale beige front block
+## on Nowowiejska with strict window grid, central stone portal with three wooden doors, plain
+## frieze and broad steps, two dark sloping canopies over side entrances, lower four-storey back
+## wings round an inner courtyard under low grey hipped roofs, and outline collision.
+func _build_itc(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var m := _itc_frame(raw)
+	if m.is_empty():
+		return
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	_itc_set_frame(m)
+	_itc_front_block(m, g)
+	_itc_portal(m, g)
+	_itc_canopies(m, g)
+	_itc_back_wings(m, g)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Restores ITC's main local frame (+u E->W along Nowowiejska, +v outward North).
+func _itc_set_frame(m: Dictionary) -> void:
+	_o = m["o"]
+	_a = m["a"]
+	_b = m["b"]
+	kit_face(0.0)
+
+
+## Starts a kit_front along edge a->b oriented so _b aligns with the outward normal `out`.
+func _itc_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
+## Returns a counter-clockwise copy of `ring` for _prism and _cap.
+func _itc_ccw(ring: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array(ring)
+	if Geometry2D.is_polygon_clockwise(out):
+		out.reverse()
+	return out
+
+
+## Derives ITC's local frame (+u along Nowowiejska E->W, +v outward North) and measures the front
+## block, wider rear wings and recessed south wall directly from the 33-node OSM outline.
+func _itc_frame(raw: PackedVector2Array) -> Dictionary:
+	var poly := _itc_ccw(raw)
+	var n := poly.size()
+	var want_n := Vector2(0.052, -0.999).normalized()
+	var front_pts: Array[Vector2] = []
+	for i in n:
+		var a := poly[i]
+		var b := poly[(i + 1) % n]
+		if a.distance_to(b) > 20.0 and _out(poly, a, b).dot(want_n) > 0.90:
+			front_pts.append(a)
+			front_pts.append(b)
+	if front_pts.size() < 2:
+		return {}
+	# Extreme West (smaller x) and East (larger x) ends of the Nowowiejska front run.
+	var p_w := front_pts[0]
+	var p_e := front_pts[0]
+	for p in front_pts:
+		if p.x < p_w.x:
+			p_w = p
+		if p.x > p_e.x:
+			p_e = p
+	var axis_a := (p_w - p_e).normalized()
+	var out_b := Vector2(-axis_a.y, axis_a.x)
+	var origin := (p_w + p_e) * 0.5
+	_o = origin
+	_a = axis_a
+	_b = out_b
+	var front_hw := p_w.distance_to(p_e) * 0.5
+	var u_min := INF
+	var u_max := -INF
+	var v_min := INF
+	var v_front_back := -15.35
+	var south_rec_v := -74.70
+	var rec_u0 := -13.80
+	var rec_u1 := 13.75
+	for p in poly:
+		var l := _local(p)
+		u_min = minf(u_min, l.x)
+		u_max = maxf(u_max, l.x)
+		v_min = minf(v_min, l.y)
+		if l.y < -12.0 and l.y > -18.0 and absf(l.x) > front_hw - 1.0:
+			v_front_back = minf(v_front_back, l.y)
+	for i in n:
+		var a := poly[i]
+		var b := poly[(i + 1) % n]
+		var ln := a.distance_to(b)
+		var out := _out(poly, a, b)
+		var ml := _local((a + b) * 0.5)
+		if ln > 7.0 and out.dot(-out_b) > 0.90 and ml.y > v_min + 2.5 and ml.y < v_min + 7.5:
+			south_rec_v = ml.y
+	var cu0 := u_min + 14.0
+	var cu1 := u_max - 14.0
+	var cv0 := south_rec_v + 12.8
+	var cv1 := v_front_back
+	return {
+		"o": origin, "a": axis_a, "b": out_b,
+		"front_hw": front_hw,
+		"v_fb": v_front_back,
+		"back_u_e": u_min, "back_u_w": u_max,
+		"back_v_s": v_min,
+		"south_rec_v": south_rec_v,
+		"rec_u0": rec_u0, "rec_u1": rec_u1,
+		"cu0": cu0, "cu1": cu1,
+		"cv0": cv0, "cv1": cv1,
+	}
+
+
+## Draws horizontal stone cladding grooves (kit_bands) on ITC's ground-floor wall piers between
+## window and door openings so grooves never overlap panes or portal surrounds.
+func _itc_rusticate_piers(u0: float, u1: float, skips: Array, y0: float, y1: float) -> void:
+	var cur := u0
+	for sp: Vector2 in skips:
+		if sp.x - cur > 0.35:
+			kit_bands(cur + 0.08, sp.x - 0.08, y0, y1, 1.05, ITC_BASE)
+		cur = maxf(cur, sp.y)
+	if u1 - cur > 0.35:
+		kit_bands(cur + 0.08, u1 - 0.08, y0, y1, 1.05, ITC_BASE)
+
+
+## Builds ITC's six-storey Nowowiejska front block (0-20.5 m) with light stone ground floor,
+## pale beige upper storeys, strict 19-bay window grid, string courses, crowning cornice, low
+## 2.5 m grey hipped roof and courtyard-facing back panes.
+func _itc_front_block(m: Dictionary, g: float) -> void:
+	_itc_set_frame(m)
+	var fhw: float = m["front_hw"]
+	var v_fb: float = m["v_fb"]
+	var cu0: float = m["cu0"]
+	var cu1: float = m["cu1"]
+	var out_n: Vector2 = m["b"]
+	var a_w: Vector2 = m["a"]
+	var none := Color(0, 0, 0, 0)
+	var ring := _itc_ccw(_urect(-fhw, fhw, v_fb, 0.0))
+	_prism(ring, g - 0.5, g + 4.5, ITC_BASE, none, M_STONE)
+	_prism(ring, g + 4.5, g + ITC_FRONT_H, ITC_WALL, none, M_STONE)
+	_cap(ring, g + ITC_FRONT_H - 0.05, ITC_ROOF.darkened(0.20))
+	kit_ledge_ring(ring, g + 7.68, 0.28, ITC_TRIM, 0.15)
+	kit_cornice_ring(ring, g + ITC_FRONT_H - 0.60, ITC_TRIM, 0.60, 0.55)
+	_hip(0.0, v_fb * 0.5, fhw - 0.2, absf(v_fb) * 0.5 - 0.2, g + ITC_FRONT_H, ITC_FRONT_ROOF_H, ITC_ROOF)
+	# Nowowiejska north front: 19 strict 3.2 m bays across 63.5 m.
+	var wf := _itc_front_edge(_w(-fhw, 0.0), _w(fhw, 0.0), out_n)
+	var cu := wf * 0.5
+	# Split ground-floor string course around the 12 m central portal so nothing z-fights.
+	kit_ledge(0.0, cu - 6.08, g + 4.44, 0.28, ITC_TRIM, 0.14)
+	kit_ledge(cu + 6.08, wf, g + 4.44, 0.28, ITC_TRIM, 0.14)
+	var upper_sills: Array = [g + 5.20, g + 8.40, g + 11.60, g + 14.80, g + 18.00]
+	# Ground floor windows: skip the 3 portal bays (8, 9, 10) and the 2 side-door bays (3, 15).
+	var gf_skip: Array = [Vector2i(3, 0), Vector2i(8, 0), Vector2i(9, 0), Vector2i(10, 0), Vector2i(15, 0)]
+	var bays := kit_window_grid(1.40, wf - 1.40, 19, [g + 1.45], 2.40, Win.SILL, ITC_TRIM, ITC_GLASS, 0.65, gf_skip)
+	# Five upper storeys: strict 19-bay grid with individual white sills and window sashes.
+	for sy_var in upper_sills:
+		var sy := float(sy_var)
+		for bu: float in bays:
+			kit_window(bu, sy, 1.90, Win.SILL, ITC_TRIM, ITC_GLASS, 0.65, ITC_TRIM)
+	# Rustication grooves on ground-floor stone piers between openings and outside the portal.
+	var band_skips: Array = []
+	for k in bays.size():
+		if k == 8 or k == 9 or k == 10:
+			continue
+		var hw_gap := 1.15 if (k == 3 or k == 15) else 0.96
+		band_skips.append(Vector2(bays[k] - hw_gap, bays[k] + hw_gap))
+	band_skips.append(Vector2(cu - 6.15, cu + 6.15))
+	band_skips.sort_custom(func(x: Vector2, y: Vector2) -> bool: return x.x < y.x)
+	_itc_rusticate_piers(0.10, wf - 0.10, band_skips, g + 1.25, g + 4.35)
+	# Save the exact side-entrance bay u-positions in front-block coordinates for the two canopies.
+	m["canopy_u_e"] = -fhw + bays[3]
+	m["canopy_u_w"] = -fhw + bays[15]
+	_itc_set_frame(m)
+	# East and West ends of the six-storey front block (4 bays x 6 storeys).
+	for end_cfg: Array in [[-fhw, -a_w], [fhw, a_w]]:
+		var eu: float = end_cfg[0]
+		var out_e: Vector2 = end_cfg[1]
+		var we := _itc_front_edge(_w(eu, v_fb), _w(eu, 0.0), out_e)
+		var e_cols := _spread(1.4, we - 1.4, 4)
+		kit_ledge(0.0, we, g + 4.44, 0.28, ITC_TRIM, 0.14)
+		kit_panes(e_cols, [g + 1.45], 1.30, 2.35, ITC_GLASS, 0.06)
+		kit_panes(e_cols, upper_sills, 1.30, 1.90, ITC_GLASS, 0.06)
+		_itc_set_frame(m)
+	# South face of the front block: lower 4 storeys face the courtyard, top 2 span full width above the side wings.
+	var wc := _itc_front_edge(_w(cu0, v_fb), _w(cu1, v_fb), -out_n)
+	var c_cols := _spread(1.2, wc - 1.2, 12)
+	kit_ledge(0.2, wc - 0.2, g + 4.44, 0.26, ITC_TRIM, 0.13)
+	kit_panes(c_cols, [g + 1.45], 1.30, 2.30, ITC_GLASS, 0.06)
+	kit_panes(c_cols, [g + 5.20, g + 8.40, g + 11.60], 1.30, 1.90, ITC_GLASS, 0.06)
+	_itc_set_frame(m)
+	var w_back_top := _itc_front_edge(_w(-fhw, v_fb), _w(fhw, v_fb), -out_n)
+	var top_cols := _spread(1.4, w_back_top - 1.4, 18)
+	kit_panes(top_cols, [g + 14.80, g + 18.00], 1.30, 1.90, ITC_GLASS, 0.06)
+	_itc_set_frame(m)
+
+
+## Builds ITC's central 12 m pale stone portal on Nowowiejska (0-7.5 m, 0.6 m proud): broad
+## steps rising 1.2 m over 4 m across ~30 m of the front with flanking plinth terraces, four
+## stone piers, three tall wooden double doors, warm night lanterns and transoms, and a plain
+## stone frieze (no lettering).
+func _itc_portal(m: Dictionary, g: float) -> void:
+	_itc_set_frame(m)
+	var fhw: float = m["front_hw"]
+	var wf := _itc_front_edge(_w(-fhw, 0.0), _w(fhw, 0.0), m["b"])
+	var cu := wf * 0.5
+	var proj := 0.60
+	var hw := 6.0
+	# Main stone portal surround box and projecting cornice cap (frieze stays completely plain).
+	_kbox(cu - hw, cu + hw, -0.15, proj, g - 0.5, g + 7.05, ITC_PORTAL)
+	_kbox(cu - hw - 0.22, cu + hw + 0.22, -0.15, proj + 0.32, g + 7.05, g + 7.52, ITC_TRIM)
+	# Broad entrance steps rising 1.2 m over 4.0 m across the front, flanked by stone terraces.
+	var step_top := g + 1.20
+	for k in 6:
+		var run_d := 4.0 * float(6 - k) / 6.0
+		_kbox(cu - 8.2, cu + 8.2, proj - 0.05, proj + run_d, g - 0.35 + k * 0.20,
+				g + 0.20 * float(k + 1), ITC_BASE.darkened(0.10))
+	for s: float in [-1.0, 1.0]:
+		var t0 := cu + s * 8.2
+		var t1 := cu + s * 15.0
+		_kbox(minf(t0, t1), maxf(t0, t1), -0.05, 3.10, g - 0.35, step_top, ITC_BASE.darkened(0.06))
+		_kbox(minf(t0, t1), maxf(t0, t1), 2.85, 3.15, step_top, step_top + 0.22, ITC_TRIM)
+	# Portal face: four stone piers, three tall wooden doors, warm night lanterns and transoms.
+	kit_face(proj)
+	for pu: float in [cu - 4.95, cu - 1.65, cu + 1.65, cu + 4.95]:
+		kit_pilaster(pu, step_top, g + 5.75, ITC_PORTAL.lightened(0.03), 0.96, 0.22)
+		_kbox(pu - 0.09, pu + 0.09, proj + 0.22, proj + 0.34, g + 3.70, g + 4.25, ITC_GLOW, M_LAMP)
+	for du: float in [cu - 3.30, cu, cu + 3.30]:
+		kit_door(du, step_top, 3.70, 0.96, ITC_TRIM, ITC_DOOR, false)
+		_kbox(du - 0.86, du + 0.86, proj + 0.04, proj + 0.09, step_top + 3.05, step_top + 3.60, ITC_GLOW, M_PAVILION)
+	kit_face(0.0)
+	_itc_set_frame(m)
+
+
+## Builds ITC's two dark sloping glass canopies (~8 x 4 m at 4.0-5.0 m) on slender steel posts
+## over the side entrances near the front's ends.
+func _itc_canopies(m: Dictionary, g: float) -> void:
+	_itc_set_frame(m)
+	var fhw: float = m["front_hw"]
+	var wf := _itc_front_edge(_w(-fhw, 0.0), _w(fhw, 0.0), m["b"])
+	var post_col := ITC_ROOF.darkened(0.18)
+	var c_top := ITC_CANOPY.lightened(0.04)
+	var c_bot := ITC_CANOPY.darkened(0.16)
+	var c_edge := ITC_CANOPY.darkened(0.08)
+	var out_n := Vector3(_b.x, 0.0, _b.y)
+	var along_n := Vector3(_a.x, 0.0, _a.y)
+	for key: String in ["canopy_u_e", "canopy_u_w"]:
+		var cu_c: float = float(m.get(key, 0.0)) + fhw
+		cu_c = clampf(cu_c, 5.0, wf - 5.0)
+		# Stone landing slab grounding the side entrance door and the two canopy steel posts.
+		_kbox(cu_c - 3.5, cu_c + 3.5, -0.05, 3.20, g - 0.35, g + 0.16, ITC_BASE.darkened(0.08))
+		# Side entrance wooden door centred beneath the canopy.
+		kit_door(cu_c, g + 0.16, 3.30, 0.88, ITC_TRIM, ITC_DOOR, false)
+		# Thin sloping canopy slab: 8.0 m wide x 4.0 m deep, rising from 4.05 m at wall to 4.95 m out.
+		var u0 := cu_c - 4.0
+		var u1 := cu_c + 4.0
+		var v0 := -0.05
+		var v1 := 4.05
+		var yb0 := g + 4.05
+		var yt0 := g + 4.20
+		var yb1 := g + 4.85
+		var yt1 := g + 5.00
+		var p_fn := func(u: float, v: float, y: float) -> Vector3:
+			var q := _w(u, v)
+			return Vector3(q.x, y, q.y)
+		var b00: Vector3 = p_fn.call(u0, v0, yb0)
+		var b10: Vector3 = p_fn.call(u1, v0, yb0)
+		var b11: Vector3 = p_fn.call(u1, v1, yb1)
+		var b01: Vector3 = p_fn.call(u0, v1, yb1)
+		var t00: Vector3 = p_fn.call(u0, v0, yt0)
+		var t10: Vector3 = p_fn.call(u1, v0, yt0)
+		var t11: Vector3 = p_fn.call(u1, v1, yt1)
+		var t01: Vector3 = p_fn.call(u0, v1, yt1)
+		var n_top := (t10 - t00).cross(t01 - t00).normalized()
+		if n_top.y < 0.0:
+			n_top = -n_top
+		_mode = M_STONE
+		_quad(t00, t10, t11, t01, n_top, c_top)
+		_quad(b00, b01, b11, b10, -n_top, c_bot)
+		_quad(b01, b11, t11, t01, out_n, c_edge)
+		_quad(b00, b01, t01, t00, -along_n, c_edge)
+		_quad(b11, b10, t10, t11, along_n, c_edge)
+		# Two slender steel posts standing cleanly on the entrance landing slab.
+		for du: float in [-2.3, 2.3]:
+			_lbox(cu_c + du, 2.55, 0.11, 0.11, g + 0.14, g + 4.62, post_col, M_STONE)
+	_itc_set_frame(m)
+
+
+## Builds ITC's lower four-storey back wings (0-14.0 m) round an open courtyard, matching the
+## outline's wider side wings and recessed south elevation, with low 2.0 m grey hipped roofs,
+## outer window grids with sill ledges and courtyard panes.
+func _itc_back_wings(m: Dictionary, g: float) -> void:
+	_itc_set_frame(m)
+	var fhw: float = m["front_hw"]
+	var v_fb: float = m["v_fb"]
+	var u_e: float = m["back_u_e"]
+	var u_w: float = m["back_u_w"]
+	var v_s: float = m["back_v_s"]
+	var rec_v: float = m["south_rec_v"]
+	var rec_u0: float = m["rec_u0"]
+	var rec_u1: float = m["rec_u1"]
+	var cu0: float = m["cu0"]
+	var cu1: float = m["cu1"]
+	var cv0: float = m["cv0"]
+	var out_n: Vector2 = m["b"]
+	var a_w: Vector2 = m["a"]
+	var none := Color(0, 0, 0, 0)
+	# Single U-shaped back wing polygon, tucked 0.25 m into the front block where they join.
+	var u_ring := _itc_ccw(_lpoly([
+		[u_e, v_fb], [-fhw - 0.05, v_fb], [-fhw - 0.05, v_fb + 0.25], [cu0, v_fb + 0.25],
+		[cu0, cv0], [cu1, cv0], [cu1, v_fb + 0.25], [fhw + 0.05, v_fb + 0.25],
+		[fhw + 0.05, v_fb], [u_w, v_fb],
+		[u_w, v_s], [rec_u1, v_s], [rec_u1, rec_v],
+		[rec_u0, rec_v], [rec_u0, v_s], [u_e, v_s],
+	]))
+	_prism(u_ring, g - 0.5, g + 3.8, ITC_BASE, none, M_STONE)
+	_prism(u_ring, g + 3.8, g + ITC_BACK_H, ITC_WALL, none, M_STONE)
+	_cap(u_ring, g + ITC_BACK_H - 0.05, ITC_ROOF.darkened(0.20))
+	# Five non-overlapping low grey hipped roofs (2.0 m rise) covering East, West, South and both projecting South bays.
+	_hip((u_e + cu0) * 0.5, (v_s + v_fb) * 0.5, (cu0 - u_e) * 0.5 - 0.2, (v_fb - v_s) * 0.5 - 0.2,
+			g + ITC_BACK_H, ITC_BACK_ROOF_H, ITC_ROOF)
+	_hip((cu1 + u_w) * 0.5, (v_s + v_fb) * 0.5, (u_w - cu1) * 0.5 - 0.2, (v_fb - v_s) * 0.5 - 0.2,
+			g + ITC_BACK_H, ITC_BACK_ROOF_H, ITC_ROOF)
+	_hip((cu0 + rec_u0) * 0.5, (v_s + cv0) * 0.5, (rec_u0 - cu0) * 0.5 - 0.15, (cv0 - v_s) * 0.5 - 0.2,
+			g + ITC_BACK_H, ITC_BACK_ROOF_H, ITC_ROOF)
+	_hip((rec_u0 + rec_u1) * 0.5, (rec_v + cv0) * 0.5, (rec_u1 - rec_u0) * 0.5 - 0.15, (cv0 - rec_v) * 0.5 - 0.2,
+			g + ITC_BACK_H, ITC_BACK_ROOF_H, ITC_ROOF)
+	_hip((rec_u1 + cu1) * 0.5, (v_s + cv0) * 0.5, (cu1 - rec_u1) * 0.5 - 0.15, (cv0 - v_s) * 0.5 - 0.2,
+			g + ITC_BACK_H, ITC_BACK_ROOF_H, ITC_ROOF)
+	var rows: Array = [g + 1.20, g + 4.40, g + 7.60, g + 10.80]
+	# Outer faces of the four-storey back wings: cornice, floor band and dense panes.
+	var outer_faces := [
+		[_w(u_e, v_s), _w(u_e, v_fb), -a_w, 17],         # East flank
+		[_w(u_w, v_s), _w(u_w, v_fb), a_w, 17],          # West flank
+		[_w(u_e, v_s), _w(rec_u0, v_s), -out_n, 5],      # South-East corner face
+		[_w(rec_u0, rec_v), _w(rec_u1, rec_v), -out_n, 7],  # Recessed South middle face
+		[_w(rec_u1, v_s), _w(u_w, v_s), -out_n, 5],      # South-West corner face
+	]
+	for of: Array in outer_faces:
+		var wo := _itc_front_edge(of[0], of[1], of[2])
+		var cols := _spread(1.1, wo - 1.1, int(of[3]))
+		kit_ledge(0.0, wo, g + 3.76, 0.24, ITC_TRIM, 0.13)
+		kit_cornice(0.50, wo - 0.50, g + ITC_BACK_H - 0.45, ITC_TRIM, 0.45, 0.42)
+		kit_panes(cols, rows, 1.30, 1.90, ITC_GLASS, 0.06)
+		_itc_set_frame(m)
+	# Short North-facing shoulders where the wider back wings step out past the front block.
+	for sh: Array in [[u_e, -fhw], [fhw, u_w]]:
+		var wsh := _itc_front_edge(_w(sh[0], v_fb), _w(sh[1], v_fb), out_n)
+		kit_ledge(0.0, wsh, g + 3.76, 0.24, ITC_TRIM, 0.13)
+		kit_cornice(0.45, wsh - 0.45, g + ITC_BACK_H - 0.45, ITC_TRIM, 0.45, 0.42)
+		_itc_set_frame(m)
+	# Courtyard inner faces of the three back wings (kit_panes).
+	var court_faces := [
+		[_w(cu0, cv0), _w(cu0, v_fb), a_w, 12],          # Inner face of East wing
+		[_w(cu1, cv0), _w(cu1, v_fb), -a_w, 12],         # Inner face of West wing
+		[_w(cu0, cv0), _w(cu1, cv0), out_n, 11],         # Inner face of South wing
+	]
+	for cf: Array in court_faces:
+		var wc := _itc_front_edge(cf[0], cf[1], cf[2])
+		var cols := _spread(1.2, wc - 1.2, int(cf[3]))
+		kit_ledge(0.2, wc - 0.2, g + ITC_BACK_H - 0.32, 0.32, ITC_TRIM, 0.24)
+		kit_panes(cols, rows, 1.30, 1.90, ITC_GLASS, 0.06)
+		_itc_set_frame(m)
