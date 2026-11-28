@@ -34,7 +34,9 @@ extends Node
 ##   busy: Callable() -> bool (under way), idle: Callable() -> bool (can start now: not ringing,
 ##   not cooling down after a card), jump: bool (default true: outside its hours the friend still
 ##   says hello with WCHODZĘ, and the clock jumps to the opening hour on the tap: the night meet,
-##   F 2026-11-08, then every questline with hours, F 2026-11-22; false: the CZEKAM card).
+##   F 2026-11-08, then every questline with hours, F 2026-11-22; false: the CZEKAM card), shown:
+##   Callable() -> bool (optional, 2026-11-27: the drift side quest, drift_event.gd: false while its
+##   gate is closed, so no badge, no start, no QUESTS row and no call from the list until it opens).
 ##
 ## Cost: a 0.25 s timer; one shared start beacon (ring, column, waving friend: about 10 draw calls)
 ## shown only within BEACON_R of the nearest start, never during a quest.
@@ -124,6 +126,12 @@ func find(id: String) -> int:
 
 # --- the rules (static: check_story_quests.gd runs them) ---------------------------------------
 
+## The questline is on the map and the lists now (its `shown`; true without one).
+static func shown(def: Dictionary) -> bool:
+	var c: Callable = def.get("shown", Callable())
+	return not c.is_valid() or bool(c.call())
+
+
 ## Within hours (from, to) that may wrap past midnight; Vector2(-1, -1) is any time.
 static func hours_ok(hours: Vector2, hour: float) -> bool:
 	if hours.x < 0.0:
@@ -169,7 +177,7 @@ static func nearest(list: Array, at: Vector2, reach: float, skip := {}) -> int:
 	var best_d := reach
 	for i in list.size():
 		var p: Vector2 = list[i].get("at", Vector2.INF)
-		if p == Vector2.INF or skip.has(str(list[i]["id"])):
+		if p == Vector2.INF or skip.has(str(list[i]["id"])) or not shown(list[i]):
 			continue
 		var d := at.distance_to(p)
 		if d <= best_d:
@@ -190,7 +198,7 @@ static func marks(list: Array, in_focus: bool) -> Array:
 	if not in_focus:
 		for d: Dictionary in list:
 			var p: Vector2 = d.get("at", Vector2.INF)
-			if p != Vector2.INF:
+			if p != Vector2.INF and shown(d):
 				pts.append(p)
 				cols.append(d.get("colour", COLOUR))
 	return [pts, cols]
@@ -204,7 +212,7 @@ static func map_marks(list: Array) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for d: Dictionary in list:
 		var p: Vector2 = d.get("at", Vector2.INF)
-		if p == Vector2.INF:
+		if p == Vector2.INF or not shown(d):
 			continue
 		var b: Array = d.get("blurb", ["", ""])
 		out.append({"layer": MapMarkers.Layer.STORY, "at": p, "colour": d.get("colour", COLOUR), "group": "story",
@@ -218,6 +226,8 @@ static func map_marks(list: Array) -> Array[Dictionary]:
 static func entries(list: Array, hour: float, weekday: int) -> Array:
 	var out: Array = []
 	for d: Dictionary in list:
+		if not shown(d):
+			continue
 		var e := Lines.entry("story_" + str(d["id"]), "story", Lines.Line.STORY, "▶ " + str(d["pl"]), "▶ " + str(d["en"]),
 				d.get("at", Vector2.INF), d.get("colour", COLOUR), "story")
 		e["story"] = str(d["id"])
@@ -396,7 +406,7 @@ func _on_card(index: int) -> void:
 ## The beta list's start: the friend phones now (any hour). False when it can't (busy, no call).
 func start(id: String) -> bool:
 	var i := find(id)
-	if i < 0:
+	if i < 0 or not shown(defs[i]):
 		return false
 	var call: Callable = defs[i].get("call", Callable())
 	var ok := call.is_valid() and bool(call.call())

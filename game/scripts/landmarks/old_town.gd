@@ -5528,3 +5528,672 @@ func _build_kras_garden() -> void:
 		_kg_flat(_rect(0.0, v + 6.0, 9.0, 0.4), 0.6, KG_HEDGE)
 		_kg_flat(_rect(-9.0, v, 0.4, 6.0), 0.6, KG_HEDGE)
 		_kg_flat(_rect(9.0, v, 0.4, 6.0), 0.6, KG_HEDGE)
+
+
+# --- Pałac Prymasowski (Senatorska 13/15, docs/landmarks/specs/palac_prymasowski.md) ------------
+
+## Classical three-storey palace behind a cour d'honneur on Senatorska: cream render with white
+## trim, steep red-tiled mansard with white dormers and chimneys, central four-column/pilaster
+## risalit with triangular pediment and warm night-lit door under a balcony, two curved single-
+## storey quadrant colonnades of white columns, and two street-end pavilions with four-column
+## porticos and red hipped roofs.
+const PP_NAME := "Pałac Prymasowski"
+const PP_RENDER := Color("#e4ddca")          # cream classical render (spec)
+const PP_TRIM := Color("#f1eee6")            # white trim, frames, pilasters, columns, cornice (spec)
+const PP_PLINTH := Color("#cfc7b5")          # base plinth (spec)
+const PP_TILE := Color("#b4513a")            # steep red-tiled mansard and pavilion roofs (spec)
+const PP_PANE := Color("#4a5660")            # window glass (spec)
+const PP_DOOR_WOOD := Color("#6b4a32")       # main entrance wooden door (spec)
+const PP_CHIMNEY := Color("#c9c2b3")         # chimney stacks (spec)
+const PP_RELIEF := Color("#d5cdb8")          # shaded tympanum and end-attic relief panels
+const PP_DOOR_GLOW := Color("#ffd9a0")       # warm night glow at main door (M_PAVILION / M_LAMP)
+const PP_PLINTH_H := 0.8
+const PP_MAIN_H := 14.0
+const PP_MANSARD_H := 4.0
+const PP_PEDIMENT_H := 3.0
+const PP_COL_H := 6.0
+const PP_PAV_H := 9.0
+const PP_PAV_HIP_H := 2.5
+const PP_ARC_SEGS := 10                      # segments per curved colonnade arc (>= 8 required)
+
+
+## Finds Pałac Prymasowski's OSM outline and registers the `prymasowski` site with a 0.5 m outward
+## zone offset so the map's plain 14 m prism is replaced cleanly.
+func _find_prymasowski() -> void:
+	var raw := _landmark(PP_NAME)
+	if raw.size() < 3:
+		push_error("prymasowski: landmark outline '%s' is missing from centrum.json" % PP_NAME)
+		return
+	var zone := _largest(Geometry2D.offset_polygon(raw, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = raw
+	_add_site("prymasowski", [zone])
+	if not sites.is_empty() and sites[-1]["key"] == "prymasowski":
+		sites[-1]["raw"] = raw
+
+
+## Builds Pałac Prymasowski entirely from its mapped outline: three-storey corps de logis with
+## pedimented piano nobile windows, central giant-order risalit and pediment, steep red mansard
+## with white dormers and chimneys, rear two-storey annexes, two curved colonnades, two corner
+## pavilions with four-column porticos and red hipped roofs, and outline collision.
+func _build_prymasowski(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var m := _pp_frame(raw)
+	if m.is_empty():
+		return
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	_pp_set_frame(m)
+	_pp_main_block(m, g)
+	_pp_risalit(m, g)
+	_pp_mansard(m, g)
+	# Rear two-storey side annexes behind the curved galleries, covering the full OSM footprint.
+	_pp_rear_annex(float(m["u_pos"]) - 0.25, float(m["sw_rear_u1"]), float(m["v_back"]) + 0.08,
+			float(m["sw_rear_v1"]), g, 1.0)
+	_pp_rear_annex(float(m["ne_rear_u0"]), float(m["u_neg"]) + 0.25, float(m["v_back"]) + 0.08,
+			float(m["ne_rear_v1"]), g, -1.0)
+	# Curved quadrant colonnades (NE = -1.0, SW = +1.0) and corner pavilions at Senatorska.
+	for side: float in [-1.0, 1.0]:
+		_pp_arc_wing(m, side, g)
+		_pp_pavilion(m, side, g)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Restores the palace's main local frame (+u along main block toward SW, +v into courtyard NW).
+func _pp_set_frame(m: Dictionary) -> void:
+	_o = m["o"]
+	_a = m["a"]
+	_b = m["b"]
+	kit_face(0.0)
+
+
+## Starts a kit_front along edge a->b oriented so _b matches the outward normal `out`.
+func _pp_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
+## Ensures counter-clockwise winding for plan polygons handed to _prism, _cap and ring helpers.
+func _pp_ccw(ring: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array(ring)
+	if Geometry2D.is_polygon_clockwise(out):
+		out.reverse()
+	return out
+
+
+## Derives the palace's symmetry frame and measures the main block, central risalit, both curved
+## arcs, both corner pavilions, and both rear annexes directly from the OSM outline.
+func _pp_frame(raw: PackedVector2Array) -> Dictionary:
+	var poly := _pp_ccw(raw)
+	var n := poly.size()
+	var best_i := 0
+	var best_l := 0.0
+	for i in n:
+		var ln := poly[i].distance_to(poly[(i + 1) % n])
+		if ln > best_l:
+			best_l = ln
+			best_i = i
+	if best_l < 5.0:
+		return {}
+	var ea := poly[best_i]
+	var eb := poly[(best_i + 1) % n]
+	var axis := (eb - ea).normalized()
+	var court := Vector2(-axis.y, axis.x)
+	var mid_long := (ea + eb) * 0.5
+	if (_centre(poly) - mid_long).dot(court) < 0.0:
+		court = -court
+		axis = -axis
+	_o = _centre(poly)
+	_a = axis
+	_b = court
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in poly:
+		var l := _local(p)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	var umid := (lo.x + hi.x) * 0.5
+	# Locate the central courtyard risalit front edge (facing +court near the middle of the U).
+	var ris_i := -1
+	var ris_v := -INF
+	var ris_len := 12.7
+	for i in n:
+		var p0 := poly[i]
+		var p1 := poly[(i + 1) % n]
+		var ln := p0.distance_to(p1)
+		var out := _out(poly, p0, p1)
+		var ml := _local((p0 + p1) * 0.5)
+		if out.dot(court) > 0.9 and ln > 8.0 and ln < 18.0 and absf(ml.x - umid) < 15.0 and ml.y < hi.y - 20.0:
+			if ml.y > ris_v:
+				ris_v = ml.y
+				ris_i = i
+				ris_len = ln
+	if ris_i < 0:
+		return {}
+	var origin := (poly[ris_i] + poly[(ris_i + 1) % n]) * 0.5
+	_o = origin
+	_a = axis
+	_b = court
+	var loc: Array[Vector2] = []
+	lo = Vector2(INF, INF)
+	hi = Vector2(-INF, -INF)
+	for p in poly:
+		var l := _local(p)
+		loc.append(l)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	var ris_hw := ris_len * 0.5
+	# Measure main block courtyard wings, projecting end blocks, and rear garden recess from edges.
+	var v_front := -4.78
+	var v_end := -3.36
+	var u_wing_neg := -16.9
+	var u_wing_pos := 16.9
+	var u_neg := -26.1
+	var u_pos := 26.35
+	var v_back := lo.y
+	var v_back_mid := lo.y + 5.5
+	var u_back_neg := -14.1
+	var u_back_pos := 13.7
+	for i in n:
+		var p0 := poly[i]
+		var p1 := poly[(i + 1) % n]
+		var l0 := loc[i]
+		var l1 := loc[(i + 1) % n]
+		var ln := p0.distance_to(p1)
+		var out := _out(poly, p0, p1)
+		var mu := (l0.x + l1.x) * 0.5
+		var mv := (l0.y + l1.y) * 0.5
+		if out.dot(court) > 0.9 and ln > 7.0 and ln < 14.0 and mv < -1.0 and mv > -10.0:
+			if absf(mu) > ris_hw + 1.0 and absf(mu) < 15.0:
+				v_front = mv
+				if mu < 0.0:
+					u_wing_neg = minf(l0.x, l1.x)
+				else:
+					u_wing_pos = maxf(l0.x, l1.x)
+			elif absf(mu) >= 15.0 and absf(mu) < 28.0:
+				v_end = mv
+				if mu < 0.0:
+					u_neg = minf(l0.x, l1.x)
+				else:
+					u_pos = maxf(l0.x, l1.x)
+		elif out.dot(-court) > 0.9 and ln > 20.0 and mv > v_back + 2.0 and mv < v_back + 9.0:
+			v_back_mid = mv
+			u_back_neg = minf(l0.x, l1.x)
+			u_back_pos = maxf(l0.x, l1.x)
+	# Measure the two inner straight colonnade transitions and street-end pavilions from vertices.
+	var sw_pav_u0 := INF
+	var sw_pav_u1 := -INF
+	var sw_pav_v0 := INF
+	var sw_pav_v1 := -INF
+	var ne_pav_u0 := INF
+	var ne_pav_u1 := -INF
+	var ne_pav_v0 := INF
+	var ne_pav_v1 := -INF
+	var sw_arc_u := 45.8
+	var sw_arc_v := 15.6
+	var sw_pav_meet := 28.7
+	var ne_arc_u := -45.6
+	var ne_arc_v := 13.8
+	var ne_pav_meet := 28.5
+	var sw_rear_u1 := u_pos + 12.0
+	var sw_rear_v1 := -8.5
+	var ne_rear_u0 := u_neg - 10.0
+	var ne_rear_v1 := -15.0
+	for l in loc:
+		if l.x > 38.0 and l.y > 25.0:
+			sw_pav_u0 = minf(sw_pav_u0, l.x)
+			sw_pav_u1 = maxf(sw_pav_u1, l.x)
+			sw_pav_v0 = minf(sw_pav_v0, l.y)
+			sw_pav_v1 = maxf(sw_pav_v1, l.y)
+		elif l.x < -38.0 and l.y > 22.0:
+			ne_pav_u0 = minf(ne_pav_u0, l.x)
+			ne_pav_u1 = maxf(ne_pav_u1, l.x)
+			ne_pav_v0 = minf(ne_pav_v0, l.y)
+			ne_pav_v1 = maxf(ne_pav_v1, l.y)
+		if l.x > u_pos + 5.0 and l.y < -7.0:
+			sw_rear_u1 = maxf(sw_rear_u1, l.x)
+			sw_rear_v1 = maxf(sw_rear_v1, l.y)
+		elif l.x < u_neg - 2.0 and l.y < -14.0:
+			ne_rear_u0 = minf(ne_rear_u0, l.x)
+			ne_rear_v1 = maxf(ne_rear_v1, l.y)
+	for i in n:
+		var l0 := loc[i]
+		var l1 := loc[(i + 1) % n]
+		var ln := l0.distance_to(l1)
+		var out := _out(poly, poly[i], poly[(i + 1) % n])
+		if ln > 10.0 and ln < 18.0 and l0.y > 10.0 and l1.y > 10.0 and l0.y < 32.0 and l1.y < 32.0:
+			if out.dot(-axis) > 0.9 and l0.x > 35.0:
+				sw_arc_u = (l0.x + l1.x) * 0.5
+				sw_arc_v = minf(l0.y, l1.y)
+				sw_pav_meet = maxf(l0.y, l1.y)
+			elif out.dot(axis) > 0.9 and l0.x < -35.0:
+				ne_arc_u = (l0.x + l1.x) * 0.5
+				ne_arc_v = minf(l0.y, l1.y)
+				ne_pav_meet = maxf(l0.y, l1.y)
+	return {
+		"o": origin, "a": axis, "b": court,
+		"ris_hw": ris_hw, "v_ris_wall": -1.55,
+		"v_front": v_front, "v_end": v_end,
+		"u_wing_neg": u_wing_neg, "u_wing_pos": u_wing_pos,
+		"u_neg": u_neg, "u_pos": u_pos,
+		"v_back": v_back, "v_back_mid": v_back_mid,
+		"u_back_neg": u_back_neg, "u_back_pos": u_back_pos,
+		"sw_arc_u": sw_arc_u, "sw_arc_v": sw_arc_v, "sw_pav_meet": sw_pav_meet,
+		"ne_arc_u": ne_arc_u, "ne_arc_v": ne_arc_v, "ne_pav_meet": ne_pav_meet,
+		"sw_pav": Rect2(sw_pav_u0, sw_pav_v0, sw_pav_u1 - sw_pav_u0, sw_pav_v1 - sw_pav_v0),
+		"ne_pav": Rect2(ne_pav_u0, ne_pav_v0, ne_pav_u1 - ne_pav_u0, ne_pav_v1 - ne_pav_v0),
+		"sw_rear_u1": sw_rear_u1, "sw_rear_v1": sw_rear_v1,
+		"ne_rear_u0": ne_rear_u0, "ne_rear_v1": ne_rear_v1,
+	}
+
+
+## Builds the three-storey corps de logis (0 - 14.0 m) with plinth, floor string courses, cornice
+## ring, classical end-block attics, courtyard pedimented first-floor windows, and garden windows.
+func _pp_main_block(m: Dictionary, g: float) -> void:
+	_pp_set_frame(m)
+	var u_neg: float = m["u_neg"]
+	var u_wing_neg: float = m["u_wing_neg"]
+	var ris_hw: float = m["ris_hw"]
+	var u_wing_pos: float = m["u_wing_pos"]
+	var u_pos: float = m["u_pos"]
+	var v_front: float = m["v_front"]
+	var v_end: float = m["v_end"]
+	var v_ris: float = m["v_ris_wall"]
+	var v_back: float = m["v_back"]
+	var v_back_mid: float = m["v_back_mid"]
+	var u_bneg: float = m["u_back_neg"]
+	var u_bpos: float = m["u_back_pos"]
+	var none := Color(0, 0, 0, 0)
+	var ring := _pp_ccw(_lpoly([
+		[u_neg, v_back], [u_bneg, v_back], [u_bneg, v_back_mid],
+		[u_bpos, v_back_mid], [u_bpos, v_back], [u_pos, v_back],
+		[u_pos, v_end], [u_wing_pos, v_end], [u_wing_pos, v_front],
+		[ris_hw, v_front], [ris_hw, v_ris], [-ris_hw, v_ris],
+		[-ris_hw, v_front], [u_wing_neg, v_front], [u_wing_neg, v_end],
+		[u_neg, v_end],
+	]))
+	_prism(ring, g - 0.5, g + PP_MAIN_H, PP_RENDER, none, M_STONE)
+	_cap(ring, g + PP_MAIN_H - 0.05, PP_TILE.darkened(0.24))
+	kit_ledge_ring(ring, g - 0.4, PP_PLINTH_H + 0.4, PP_PLINTH, 0.10)
+	kit_ledge_ring(ring, g + 4.65, 0.22, PP_TRIM, 0.08)
+	kit_ledge_ring(ring, g + 9.25, 0.18, PP_TRIM, 0.07)
+	kit_cornice_ring(ring, g + PP_MAIN_H - 0.45, PP_TRIM, 0.45, 0.48)
+	var sy0 := g + 1.35
+	var sy1 := g + 5.45
+	var sy2 := g + 9.95
+	var h0 := 2.45
+	var h1 := 2.40
+	var h2 := 2.10
+	# Courtyard front: flanking wings (3 bays each) and slightly projecting end blocks (3 bays each).
+	var front_spans := [
+		[u_neg, u_wing_neg, v_end, true],
+		[u_wing_neg, -ris_hw, v_front, false],
+		[ris_hw, u_wing_pos, v_front, false],
+		[u_wing_pos, u_pos, v_end, true],
+	]
+	for sp: Array in front_spans:
+		var u0: float = sp[0]
+		var u1: float = sp[1]
+		var vf: float = sp[2]
+		var is_end: bool = sp[3]
+		var w := _pp_front_edge(_w(u0, vf), _w(u1, vf), m["b"])
+		var pad := 1.05 if is_end else 0.90
+		kit_window_grid(pad, w - pad, 3, [sy0], h0, Win.SILL, PP_TRIM, PP_PANE, 0.62)
+		kit_window_grid(pad, w - pad, 3, [sy1], h1, Win.PEDIMENT, PP_TRIM, PP_PANE, 0.65)
+		kit_window_grid(pad, w - pad, 3, [sy2], h2, Win.SILL, PP_TRIM, PP_PANE, 0.60)
+		if is_end:
+			# Flanking corner pilasters and classical sculpted attic pavilion over each end block,
+			# extending back to meet the steep mansard skirt cleanly with no dark gap behind the wall.
+			kit_pilaster(0.45, g + PP_PLINTH_H, g + PP_MAIN_H - 0.45, PP_TRIM, 0.56, 0.14)
+			kit_pilaster(w - 0.45, g + PP_PLINTH_H, g + PP_MAIN_H - 0.45, PP_TRIM, 0.56, 0.14)
+			var attic_d := absf(v_end - v_front) + 0.55
+			_kbox(0.06, w - 0.06, -attic_d, 0.04, g + PP_MAIN_H + 0.02, g + PP_MAIN_H + 1.78, PP_RENDER)
+			_kbox(-0.02, w + 0.02, -attic_d - 0.06, 0.14, g + PP_MAIN_H + 1.78, g + PP_MAIN_H + 2.00, PP_TRIM)
+			_kbox(0.85, w - 0.85, 0.02, 0.10, g + PP_MAIN_H + 0.34, g + PP_MAIN_H + 1.54, PP_RELIEF)
+		_pp_set_frame(m)
+	# Rear garden faces and outer side flanks: rhythmic windows with sill bands.
+	var back_runs := [
+		[_w(u_neg, v_back), _w(u_bneg, v_back), -(m["b"] as Vector2), 3],
+		[_w(u_bneg, v_back_mid), _w(u_bpos, v_back_mid), -(m["b"] as Vector2), 8],
+		[_w(u_bpos, v_back), _w(u_pos, v_back), -(m["b"] as Vector2), 3],
+		[_w(u_neg, v_end), _w(u_neg, v_back), -(m["a"] as Vector2), 4],
+		[_w(u_pos, v_back), _w(u_pos, v_end), m["a"] as Vector2, 4],
+	]
+	for br: Array in back_runs:
+		var a_pt: Vector2 = br[0]
+		var b_pt: Vector2 = br[1]
+		var out_n: Vector2 = br[2]
+		var bays: int = br[3]
+		var w := _pp_front_edge(a_pt, b_pt, out_n)
+		var cols := _spread(1.1, w - 1.1, bays)
+		for row: Array in [[sy0, h0], [sy1, h1], [sy2, h2]]:
+			kit_ledge(0.6, w - 0.6, float(row[0]) - 0.18, 0.14, PP_TRIM, 0.10)
+			kit_panes(cols, [float(row[0])], 1.25, float(row[1]), PP_PANE, 0.06)
+		_pp_set_frame(m)
+
+
+## Builds the central courtyard risalit: steps, four giant pilasters behind four giant white Tuscan
+## columns, wooden main door with warm night glow under a first-floor stone balcony, three bays of
+## upper windows, entablature, and a 3.0 m triangular pediment returning into the mansard.
+func _pp_risalit(m: Dictionary, g: float) -> void:
+	_pp_set_frame(m)
+	var ris_hw: float = m["ris_hw"]
+	var v_ris: float = m["v_ris_wall"]
+	var v_front: float = m["v_front"]
+	var w := _pp_front_edge(_w(-ris_hw, v_ris), _w(ris_hw, v_ris), m["b"])
+	var cu := w * 0.5
+	var port_depth := absf(v_ris)  # distance from recessed risalit wall to v = 0.0 (~1.55 m)
+	# Classical entrance steps / stylobate under the four giant columns (top 4 cm below the
+	# plinth ring so the step cap never z-fights with kit_ledge_ring at y = g + 0.8 m).
+	var step_top := g + PP_PLINTH_H - 0.04
+	for k in 3:
+		var step_d := port_depth + 0.55 - float(k) * 0.25
+		var y0 := g - 0.4 if k == 0 else g + float(k) * 0.25
+		var y1 := step_top if k == 2 else g + float(k + 1) * 0.25
+		_kbox(-0.20, w + 0.20, 0.13, step_d, y0, y1, PP_PLINTH)
+	# Three-bay wall openings behind the portico: main wooden door + warm glow, balcony, windows.
+	var bays := _spread(1.4, w - 1.4, 3)
+	kit_door(cu, step_top, 3.38, 1.12, PP_TRIM, PP_DOOR_WOOD, false)
+	# Warm night-lit glazed transom and flanking door lamps (M_PAVILION / M_LAMP, existing codes).
+	var keep := _mode
+	_mode = M_PAVILION
+	_wall(_w(cu - 0.96, 0.08), _w(cu + 0.96, 0.08), step_top + 2.58, step_top + 3.25,
+			_b, PP_DOOR_GLOW)
+	_mode = M_LAMP
+	for su: float in [-1.52, 1.52]:
+		_kbox(cu + su - 0.12, cu + su + 0.12, 0.02, 0.24, g + 2.55, g + 3.05, PP_DOOR_GLOW, M_LAMP)
+	_mode = keep
+	for k in 3:
+		var bu: float = bays[k]
+		if k != 1:
+			kit_window(bu, g + 1.35, 2.45, Win.SILL, PP_TRIM, PP_PANE, 0.62)
+		kit_window(bu, g + 5.45, 2.40, Win.PEDIMENT, PP_TRIM, PP_PANE, 0.65)
+		kit_window(bu, g + 9.95, 2.10, Win.SILL, PP_TRIM, PP_PANE, 0.60)
+	# Small stone balcony over the main door (tucked cleanly behind the giant portico columns).
+	kit_balcony(cu, g + 5.45, 1.35, Balcony.STONE, PP_TRIM, PP_TRIM, 0.72)
+	# Four giant pilasters (0.8 - 13.1 m) on the wall and four giant white Tuscan columns in front.
+	var col_u := [0.95, cu - 1.95, cu + 1.95, w - 0.95]
+	for pu: float in col_u:
+		kit_pilaster(pu, g + PP_PLINTH_H, g + PP_MAIN_H - 0.90, PP_TRIM, 0.72, 0.16)
+		kit_column(pu, port_depth - 0.35, step_top, g + PP_MAIN_H - 0.90, PP_TRIM, 0.38, Order.TUSCAN)
+	# Portico entablature bridging out over the giant columns (top 6 cm proud of cornice ring).
+	_kbox(-0.14, w + 0.14, 0.08, port_depth + 0.18, g + PP_MAIN_H - 0.90, g + PP_MAIN_H + 0.06, PP_TRIM)
+	# 3.0 m triangular pediment whose red tile slopes run back into the main mansard.
+	var back_reach := absf(v_front - v_ris) + 0.80
+	kit_face(-back_reach)
+	kit_pediment(cu, ris_hw + 0.22, g + PP_MAIN_H + 0.06, PP_PEDIMENT_H, PP_TRIM, PP_TILE,
+			back_reach + port_depth + 0.18, PP_RELIEF)
+	kit_face(0.0)
+	_pp_set_frame(m)
+
+
+## Builds the steep red-tiled mansard roof (4.0 m rise to 18.0 m) over the main block, rear corner
+## hips, eight white kit_dormer windows (front and rear slopes), and three chimney stacks.
+func _pp_mansard(m: Dictionary, g: float) -> void:
+	_pp_set_frame(m)
+	_mode = M_STONE
+	var u_neg: float = m["u_neg"]
+	var u_pos: float = m["u_pos"]
+	var u_wing_neg: float = m["u_wing_neg"]
+	var u_wing_pos: float = m["u_wing_pos"]
+	var ris_hw: float = m["ris_hw"]
+	var v_front: float = m["v_front"]
+	var v_back: float = m["v_back"]
+	var v_back_mid: float = m["v_back_mid"]
+	var u_bneg: float = m["u_back_neg"]
+	var u_bpos: float = m["u_back_pos"]
+	var eave := g + PP_MAIN_H + 0.04
+	var curb := eave + 2.90
+	var top := g + PP_MAIN_H + PP_MANSARD_H
+	# Main two-slope mansard over the corps de logis core.
+	var m0 := _pp_ccw(_urect(u_neg + 0.15, u_pos - 0.15, v_back_mid + 0.05, v_front - 0.05))
+	var m1 := _pp_ccw(_urect(u_neg + 1.30, u_pos - 1.30, v_back_mid + 1.20, v_front - 1.20))
+	var m2 := _pp_ccw(_urect(u_neg + 5.20, u_pos - 5.20, v_back_mid + 4.40, v_front - 4.40))
+	_slope(m0, m0, eave, m1, curb, PP_TILE)
+	_slope(m0, m1, curb, m2, top, PP_TILE.lightened(0.06))
+	_cap(m2, top, PP_TILE.darkened(0.05))
+	# Rear projecting corner wings get tucked red hip roofs joining the main mansard cleanly.
+	_hip((u_neg + u_bneg) * 0.5, (v_back + v_back_mid + 1.2) * 0.5,
+			(u_bneg - u_neg) * 0.5 - 0.12, (v_back_mid + 1.2 - v_back) * 0.5 - 0.10,
+			eave, PP_MANSARD_H - 0.45, PP_TILE)
+	_hip((u_bpos + u_pos) * 0.5, (v_back + v_back_mid + 1.2) * 0.5,
+			(u_pos - u_bpos) * 0.5 - 0.12, (v_back_mid + 1.2 - v_back) * 0.5 - 0.10,
+			eave, PP_MANSARD_H - 0.45, PP_TILE)
+	# White dormers (kit_dormer) on the steep lower mansard skirt: two per courtyard flank and four
+	# along the garden rear slope (every second bay).
+	var court_dir: Vector2 = m["b"]
+	var dorm_y := eave + 0.68
+	for span: Array in [[u_wing_neg + 1.1, -ris_hw - 1.1, 2], [ris_hw + 1.1, u_wing_pos - 1.1, 2]]:
+		for du: float in _spread(float(span[0]), float(span[1]), int(span[2])):
+			kit_dormer(_w(du, v_front - 0.28), court_dir, dorm_y, PP_TRIM, PP_TRIM, PP_PANE)
+	for du: float in _spread(u_bneg + 1.8, u_bpos - 1.8, 4):
+		kit_dormer(_w(du, v_back_mid + 0.28), -court_dir, dorm_y, PP_TRIM, PP_TRIM, PP_PANE)
+	# Three cream masonry chimney stacks along the mansard crest.
+	_pp_chimney(-ris_hw + 0.9, v_front - 3.6, top - 1.0, top + 2.00)
+	_pp_chimney(ris_hw - 0.9, v_front - 3.6, top - 1.0, top + 2.00)
+	_pp_chimney(0.0, (v_back_mid + v_front) * 0.5, top - 1.0, top + 1.65)
+
+
+## Builds one masonry chimney stack with a slightly projecting cap, rooted inside the roof.
+func _pp_chimney(cu: float, cv: float, y0: float, y1: float) -> void:
+	_lbox(cu, cv, 0.58, 0.45, y0, y1 - 0.18, PP_CHIMNEY)
+	_lbox(cu, cv, 0.70, 0.57, y1 - 0.18, y1, PP_TRIM)
+
+
+## Builds a two-storey rear service annex (0 - 9.0 m) behind the curved colonnade with plinth,
+## string course, cornice, red hipped roof (+2.5 m), and windows on exposed sides.
+func _pp_rear_annex(u0: float, u1: float, v0: float, v1: float, g: float, out_u: float) -> void:
+	if u1 - u0 < 3.0 or v1 - v0 < 3.0:
+		return
+	var none := Color(0, 0, 0, 0)
+	var ring := _pp_ccw(_urect(u0, u1, v0, v1))
+	_prism(ring, g - 0.5, g + PP_PAV_H, PP_RENDER, none, M_STONE)
+	_cap(ring, g + PP_PAV_H - 0.05, PP_TILE.darkened(0.24))
+	kit_ledge_ring(ring, g - 0.4, PP_PLINTH_H + 0.4, PP_PLINTH, 0.08)
+	kit_ledge_ring(ring, g + 4.60, 0.20, PP_TRIM, 0.07)
+	kit_cornice_ring(ring, g + PP_PAV_H - 0.40, PP_TRIM, 0.40, 0.40)
+	_hip((u0 + u1) * 0.5, (v0 + v1) * 0.5, (u1 - u0) * 0.5 + 0.12, (v1 - v0) * 0.5 + 0.12,
+			g + PP_PAV_H + 0.03, PP_PAV_HIP_H, PP_TILE)
+	var keep_o := _o
+	var keep_a := _a
+	var keep_b := _b
+	# Rear face (facing -b) and outer flank (facing out_u * a).
+	var rear_w := _pp_front_edge(_w(u0, v0), _w(u1, v0), -keep_b)
+	var rear_bays := maxi(2, roundi((rear_w - 2.0) / 3.6))
+	var rear_cols := _spread(1.1, rear_w - 1.1, rear_bays)
+	for sy: float in [g + 1.35, g + 5.35]:
+		kit_ledge(0.6, rear_w - 0.6, sy - 0.16, 0.12, PP_TRIM, 0.08)
+		kit_panes(rear_cols, [sy], 1.20, 2.15, PP_PANE, 0.06)
+	_o = keep_o
+	_a = keep_a
+	_b = keep_b
+	var side_u := u1 if out_u > 0.0 else u0
+	var side_w := _pp_front_edge(_w(side_u, v0), _w(side_u, v1), keep_a * out_u)
+	var side_bays := maxi(2, roundi((side_w - 2.0) / 3.6))
+	var side_cols := _spread(1.1, side_w - 1.1, side_bays)
+	for sy: float in [g + 1.35, g + 5.35]:
+		kit_ledge(0.6, side_w - 0.6, sy - 0.16, 0.12, PP_TRIM, 0.08)
+		kit_panes(side_cols, [sy], 1.20, 2.15, PP_PANE, 0.06)
+	_o = keep_o
+	_a = keep_a
+	_b = keep_b
+	# Courtyard-facing upper storey windows above the 6.0 m colonnade roof so no blank rear wing wall shows.
+	var front_w := _pp_front_edge(_w(u0, v1), _w(u1, v1), keep_b)
+	var front_bays := maxi(2, roundi((front_w - 2.0) / 3.8))
+	var front_cols := _spread(1.2, front_w - 1.2, front_bays)
+	kit_ledge(0.6, front_w - 0.6, g + 6.30, 0.12, PP_TRIM, 0.08)
+	kit_panes(front_cols, [g + 6.46], 1.20, 1.55, PP_PANE, 0.06)
+	_o = keep_o
+	_a = keep_a
+	_b = keep_b
+
+
+## Builds one curved single-storey quadrant colonnade (NE: side = -1.0, SW: side = +1.0): 10-segment
+## smooth circular arc plus straight gallery run to the corner pavilion, continuous stylobate,
+## free-standing white Tuscan columns every ~3.1 m standing 1.7 m proud of the recessed cream back
+## wall, flat entablature roof at 6.0 m with soffit, and thin cream parapet.
+func _pp_arc_wing(m: Dictionary, side: float, g: float) -> void:
+	_pp_set_frame(m)
+	var u_start: float = m["u_pos"] if side > 0.0 else m["u_neg"]
+	var v_start: float = float(m["v_end"]) - 0.75
+	var u_end: float = m["sw_arc_u"] if side > 0.0 else m["ne_arc_u"]
+	var v_arc_end: float = m["sw_arc_v"] if side > 0.0 else m["ne_arc_v"]
+	var v_pav: float = m["sw_pav_meet"] if side > 0.0 else m["ne_pav_meet"]
+	var r_u := absf(u_end - u_start)
+	var r_v := absf(v_arc_end - v_start)
+	var cu := u_start
+	var cv := v_arc_end
+	var p_in := PackedVector2Array()
+	var n_out := PackedVector2Array()
+	# Sample PP_ARC_SEGS (10 >= 8) smooth quadrant arc segments from the main block to the straight run.
+	for k in PP_ARC_SEGS + 1:
+		var t := float(k) / float(PP_ARC_SEGS)
+		var ang := t * PI * 0.5
+		var lu := cu + side * r_u * sin(ang)
+		var lv := cv - r_v * cos(ang)
+		if k == 0:
+			lu -= side * 0.35  # tuck cleanly into the main block side wall
+		p_in.append(Vector2(lu, lv))
+		n_out.append(Vector2(side * sin(ang), -cos(ang)).normalized())
+	# Continue along the straight gallery run to meet the street-end pavilion.
+	var straight_segs := 3
+	for k in range(1, straight_segs + 1):
+		var t := float(k) / float(straight_segs)
+		var lv := lerpf(v_arc_end, v_pav + 0.45, t)
+		p_in.append(Vector2(u_end, lv))
+		n_out.append(Vector2(side, 0.0))
+	var cnt := p_in.size()
+	var col_off := 0.45
+	var back_off := 2.15  # back wall recessed 1.70 m behind column centers
+	var outer_off := 8.10
+	var stylo := PackedVector2Array()
+	var back_poly := PackedVector2Array()
+	var roof_poly := PackedVector2Array()
+	var soffit_poly := PackedVector2Array()
+	var par_in := PackedVector2Array()
+	var par_out := PackedVector2Array()
+	for i in cnt:
+		stylo.append(_w(p_in[i].x, p_in[i].y))
+		back_poly.append(_w(p_in[i].x + n_out[i].x * back_off, p_in[i].y + n_out[i].y * back_off))
+		roof_poly.append(_w(p_in[i].x - n_out[i].x * 0.08, p_in[i].y - n_out[i].y * 0.08))
+		soffit_poly.append(_w(p_in[i].x - n_out[i].x * 0.08, p_in[i].y - n_out[i].y * 0.08))
+		par_in.append(_w(p_in[i].x - n_out[i].x * 0.04, p_in[i].y - n_out[i].y * 0.04))
+		par_out.append(_w(p_in[i].x + n_out[i].x * (outer_off - 0.36), p_in[i].y + n_out[i].y * (outer_off - 0.36)))
+	for i in range(cnt - 1, -1, -1):
+		stylo.append(_w(p_in[i].x + n_out[i].x * (back_off + 0.12), p_in[i].y + n_out[i].y * (back_off + 0.12)))
+		back_poly.append(_w(p_in[i].x + n_out[i].x * outer_off, p_in[i].y + n_out[i].y * outer_off))
+		roof_poly.append(_w(p_in[i].x + n_out[i].x * (outer_off + 0.08), p_in[i].y + n_out[i].y * (outer_off + 0.08)))
+		soffit_poly.append(_w(p_in[i].x + n_out[i].x * (back_off + 0.06), p_in[i].y + n_out[i].y * (back_off + 0.06)))
+		par_in.append(_w(p_in[i].x + n_out[i].x * 0.34, p_in[i].y + n_out[i].y * 0.34))
+		par_out.append(_w(p_in[i].x + n_out[i].x * outer_off, p_in[i].y + n_out[i].y * outer_off))
+	var none := Color(0, 0, 0, 0)
+	# Stylobate plinth (0 - 0.45 m), recessed gallery back wing (0 - 5.30 m), flat entablature roof
+	# (5.30 - 6.00 m), overhang soffit, and thin cream parapet (6.00 - 6.45 m).
+	_prism(_pp_ccw(stylo), g - 0.5, g + 0.45, PP_PLINTH, PP_PLINTH.lightened(0.05), M_STONE, M_STONE)
+	_prism(_pp_ccw(back_poly), g - 0.5, g + PP_COL_H - 0.70, PP_RENDER, none, M_STONE)
+	_prism(_pp_ccw(roof_poly), g + PP_COL_H - 0.70, g + PP_COL_H, PP_TRIM, PAL_ROOF_PALE, M_STONE, M_STONE)
+	_mode = M_STONE
+	_soffit(_pp_ccw(soffit_poly), g + PP_COL_H - 0.70, PP_TRIM.darkened(0.12))
+	_prism(_pp_ccw(par_in), g + PP_COL_H, g + PP_COL_H + 0.46, PP_RENDER, PP_TRIM, M_STONE, M_STONE)
+	_prism(_pp_ccw(par_out), g + PP_COL_H, g + PP_COL_H + 0.46, PP_RENDER, PP_TRIM, M_STONE, M_STONE)
+	# Free-standing white Tuscan columns every ~3.1 m along the curved colonnade and straight run.
+	for i in range(1, cnt - 1):
+		var col_l := p_in[i] + n_out[i] * col_off
+		kit_column(col_l.x, col_l.y, g + 0.45, g + PP_COL_H - 0.70, PP_TRIM, 0.28, Order.TUSCAN)
+	# Back-wall openings in the shadow of the colonnade (central arched door + alternating panes)
+	# and outer wall windows along the street/garden side.
+	var mid_seg := PP_ARC_SEGS / 2
+	for i in cnt - 1:
+		var b0 := _w(p_in[i].x + n_out[i].x * back_off, p_in[i].y + n_out[i].y * back_off)
+		var b1 := _w(p_in[i + 1].x + n_out[i + 1].x * back_off, p_in[i + 1].y + n_out[i + 1].y * back_off)
+		var o0 := _w(p_in[i].x + n_out[i].x * outer_off, p_in[i].y + n_out[i].y * outer_off)
+		var o1 := _w(p_in[i + 1].x + n_out[i + 1].x * outer_off, p_in[i + 1].y + n_out[i + 1].y * outer_off)
+		var in_n := -((_a * n_out[i].x + _b * n_out[i].y) + (_a * n_out[i + 1].x + _b * n_out[i + 1].y)).normalized()
+		var seg_w := _pp_front_edge(b0, b1, in_n)
+		if i == mid_seg:
+			kit_door(seg_w * 0.5, g + 0.45, 3.10, 0.85, PP_TRIM, PP_DOOR_WOOD, true)
+		elif i > 0 and i < cnt - 2 and seg_w > 2.2:
+			kit_panes([seg_w * 0.5], [g + 1.25], 1.15, 2.45, PP_PANE, 0.06)
+		var out_w := _pp_front_edge(o0, o1, -in_n)
+		if i > 0 and i < cnt - 2 and out_w > 2.4:
+			kit_panes([out_w * 0.5], [g + 1.45], 1.25, 2.25, PP_PANE, 0.06)
+		_pp_set_frame(m)
+
+
+## Builds one street-end corner pavilion (NE: side = -1.0, SW: side = +1.0): two storeys to 9.0 m,
+## four-column Tuscan portico with triangular pediment facing into the courtyard entrance, street
+## and flank windows, red hipped roof (+2.5 m), and chimney stack.
+func _pp_pavilion(m: Dictionary, side: float, g: float) -> void:
+	_pp_set_frame(m)
+	var rect: Rect2 = m["sw_pav"] if side > 0.0 else m["ne_pav"]
+	var port_depth := 1.80
+	var u0 := rect.position.x + (port_depth if side > 0.0 else 0.0)
+	var u1 := rect.end.x - (0.0 if side > 0.0 else port_depth)
+	var v0 := rect.position.y
+	var v1 := rect.end.y
+	var none := Color(0, 0, 0, 0)
+	var ring := _pp_ccw(_urect(u0, u1, v0, v1))
+	_prism(ring, g - 0.5, g + PP_PAV_H, PP_RENDER, none, M_STONE)
+	_cap(ring, g + PP_PAV_H - 0.05, PP_TILE.darkened(0.24))
+	kit_ledge_ring(ring, g - 0.4, PP_PLINTH_H + 0.4, PP_PLINTH, 0.10)
+	kit_ledge_ring(ring, g + 4.55, 0.22, PP_TRIM, 0.08)
+	kit_cornice_ring(ring, g + PP_PAV_H - 0.45, PP_TRIM, 0.45, 0.45)
+	# Courtyard-facing four-column portico and triangular pediment (facing inward along -side * axis).
+	var port_u := u0 if side > 0.0 else u1
+	var court_in := -(m["a"] as Vector2) * side
+	var pw := _pp_front_edge(_w(port_u, v0), _w(port_u, v1), court_in)
+	# Center the 9.2 m four-column portico cleanly within the courtyard face so its triangular
+	# pediment tucks under the pavilion's red hipped roof without poking past the street corner.
+	var port_w := minf(9.2, pw - 2.2)
+	var p_lo := (pw - port_w - 1.2) if side > 0.0 else 1.2
+	var p_hi := p_lo + port_w
+	var p_mid := (p_lo + p_hi) * 0.5
+	# Portico stylobate / steps, four white Tuscan columns, entablature, and triangular pediment.
+	for k in 2:
+		var sd := port_depth + 0.30 - float(k) * 0.25
+		var y0 := g - 0.4 if k == 0 else g + 0.32
+		var y1 := g + 0.65 if k == 1 else g + 0.32
+		_kbox(p_lo - 0.15, p_hi + 0.15, -0.04, sd, y0, y1, PP_PLINTH)
+	kit_colonnade(p_lo + 0.60, p_hi - 0.60, 4, port_depth - 0.30, g + 0.65, g + PP_PAV_H - 0.65,
+			PP_TRIM, 0.34, Order.TUSCAN)
+	_kbox(p_lo - 0.12, p_hi + 0.12, 0.08, port_depth + 0.10, g + PP_PAV_H - 0.65, g + PP_PAV_H + 0.05, PP_TRIM)
+	kit_face(-1.80)
+	kit_pediment(p_mid, port_w * 0.5 + 0.12, g + PP_PAV_H + 0.05, 1.85, PP_TRIM, PP_TILE,
+			port_depth + 1.90, PP_RELIEF)
+	kit_face(0.0)
+	# Three-bay two-storey openings behind the portico columns.
+	var p_bays := _spread(p_lo + 0.9, p_hi - 0.9, 3)
+	kit_door(p_bays[1], g + 0.65, 2.95, 0.85, PP_TRIM, PP_DOOR_WOOD, false)
+	for k in 3:
+		if k != 1:
+			kit_window(p_bays[k], g + 1.35, 2.25, Win.SILL, PP_TRIM, PP_PANE, 0.58)
+		kit_window(p_bays[k], g + 5.30, 2.15, Win.SILL, PP_TRIM, PP_PANE, 0.58)
+	_pp_set_frame(m)
+	# Senatorska street face (+b): five classical two-storey bays.
+	var st_w := _pp_front_edge(_w(u0, v1), _w(u1, v1), m["b"])
+	var st_bays := clampi(roundi((st_w - 1.8) / 3.2), 4, 5)
+	kit_window_grid(1.1, st_w - 1.1, st_bays, [g + 1.35], 2.25, Win.SILL, PP_TRIM, PP_PANE, 0.60)
+	kit_window_grid(1.1, st_w - 1.1, st_bays, [g + 5.30], 2.15, Win.SILL_HEAD, PP_TRIM, PP_PANE, 0.60)
+	_pp_set_frame(m)
+	# Outer flank and rear face of the pavilion.
+	var outer_u := u1 if side > 0.0 else u0
+	for face: Array in [[_w(outer_u, v0), _w(outer_u, v1), (m["a"] as Vector2) * side],
+			[_w(u0, v0), _w(u1, v0), -(m["b"] as Vector2)]]:
+		var fw := _pp_front_edge(face[0], face[1], face[2])
+		var fbays := maxi(2, roundi((fw - 2.0) / 3.4))
+		var fcols := _spread(1.1, fw - 1.1, fbays)
+		for sy: float in [g + 1.35, g + 5.30]:
+			kit_ledge(0.6, fw - 0.6, sy - 0.16, 0.12, PP_TRIM, 0.08)
+			kit_panes(fcols, [sy], 1.20, 2.10, PP_PANE, 0.06)
+		_pp_set_frame(m)
+	# Red hipped roof (+2.5 m) and chimney stack.
+	var pcu := (u0 + u1) * 0.5
+	var pcv := (v0 + v1) * 0.5
+	_hip(pcu, pcv, (u1 - u0) * 0.5 + 0.16, (v1 - v0) * 0.5 + 0.16, g + PP_PAV_H + 0.04, PP_PAV_HIP_H, PP_TILE)
+	_pp_chimney(pcu, pcv, g + PP_PAV_H + PP_PAV_HIP_H - 0.8, g + PP_PAV_H + PP_PAV_HIP_H + 1.15)

@@ -1,0 +1,4 @@
+## Backlog
+- fixed: a jump on the runtime city (a teleport, a tow, a respawn: anything that loads a sector at once) waited in `sector_streamer.gd` `_drop_task` for the worker's whole build of another sector, up to 30 s for s_-2_1 by the start, with the game frozen (audit, after #1153). Now that build is stopped at its next step (map_builder.gd `cancel_build`, as a quit does since #1153) and goes back in the queue. The worker's own sector is still waited for, because the rest of its build costs less than a new one. In the cloud a jump 60 % into s_-2_1's 38 s build waits 346 ms
+- added: `streamquit` (check_stream_quit.gd) also jumps during the build and fails if the jump waits more than 35 % of the whole build or leaves the worker's sector out of the queue
+- found: the waits for the worker (quit and jump) share one helper now, which prints "still waiting" every 10 s

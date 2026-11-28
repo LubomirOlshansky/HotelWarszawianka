@@ -2604,6 +2604,11 @@ func _rondo_m(c: Vector2, along: Vector2, n: Vector2, y: float) -> void:
 const SUNK_CONCRETE := Color("#bfb9ad")
 const SUNK_COPING := Color("#cdc7bb")
 const SUNK_RAIL := Color("#3b4046")
+## M2's exits (Rondo ONZ, Rondo Daszyńskiego, Nowy Świat-Uniwersytet, Centrum Nauki Kopernik;
+## Street View 2015-2021, Google 3D Tiles 2026-11-26): dark polished granite walls, frameless glass.
+const M2_GRANITE := Color("#33373b")
+const M2_GLASS := Color("#9db5b9")
+const M2_STEEL := Color("#b9bec2")
 const SUNK_TREAD := Color("#c4beb1")
 const SUNK_PLANTER := Color("#5f8a3f")
 ## The Rotunda's stair (F's photos, 2026-11-11): its side walls are living green walls, tall grasses
@@ -2628,6 +2633,25 @@ const POWSTANCOW_RAMP_BOX := [Vector2(-729.0, -189.0), Vector2(-711.0, -155.0)]
 const TARASY_PLAZA_BOX := [Vector2(-1436.0, 456.0), Vector2(-1352.0, 499.0)]
 ## Rondo Dmowskiego's twelve stairwells (SUNKEN `rondo_w0`..`rondo_w11`, site `rondo_wells`).
 const RONDO_WELLS_BOX := [Vector2(-890.0, 400.0), Vector2(-772.0, 521.0)]
+## The stations whose open wells are SUNKEN entries of their own site (Metro Centrum's north exits
+## on Marszałkowska, Rondo ONZ, Rondo Daszyńskiego, Ratusz Arsenał, Nowy Świat-Uniwersytet,
+## Politechnika, Centrum Nauki Kopernik): each site's box round its wells.
+const METRO_WELLS_BOXES := {
+	"mw_cen": [Vector2(-968.3, 165.2), Vector2(-909.2, 219.1)],
+	"mw_onz": [Vector2(-1829.3, 25.4), Vector2(-1681.3, 177.7)],
+	"mw_dasz": [Vector2(-2894.8, 409.1), Vector2(-2748.0, 489.7)],
+	"mw_ratusz": [Vector2(-1597.8, -1258.1), Vector2(-1499.8, -1115.0)],
+	"mw_nsu": [Vector2(-551.9, -310.7), Vector2(-498.8, -274.4)],
+	"mw_poli": [Vector2(-601.1, 1576.3), Vector2(-550.9, 1629.8)],
+	"mw_cnk": [Vector2(427.7, -649.6), Vector2(486.0, -614.0)],
+}
+## Politechnika's two mapped escalators under their glass barrels (3D Tiles 2026-11-26: the
+## Patelnia's kind, grey glass on steel ribs, beside each north well): q0-q1 the long side, q1-q2
+## the mouth.
+const POLI_BARRELS := [
+	[Vector2(-593.0, 1589.0), Vector2(-592.4, 1579.1), Vector2(-590.0, 1579.1), Vector2(-590.6, 1589.0)],
+	[Vector2(-554.2, 1593.8), Vector2(-553.4, 1583.8), Vector2(-551.2, 1583.8), Vector2(-552.0, 1593.8)],
+]
 ## Złote Tarasy's plaza (F's photos 2026-11-11): the curved wall under the upper terrace is red-brown
 ## brick over a band of lit shopfronts (the electronics store, the restaurants); white café umbrellas
 ## on the square.
@@ -2712,6 +2736,23 @@ func _find_sunken() -> void:
 	for a: Vector2 in RONDO_WELLS_BOX:
 		wells.append(PackedVector2Array([a, a + Vector2(0.2, 0), a + Vector2(0.2, 0.2), a + Vector2(0, 0.2)]))
 	_add_site("rondo_wells", wells)
+	# The other metro stations' open wells (SUNKEN `mw_*`): a site per station, tiny squares at the
+	# corners of its box (the mapped walls on the rings are map_builder's to leave out).
+	for key: String in METRO_WELLS_BOXES:
+		var mw: Array = []
+		for a: Vector2 in METRO_WELLS_BOXES[key]:
+			mw.append(PackedVector2Array([a, a + Vector2(0.2, 0), a + Vector2(0.2, 0.2), a + Vector2(0, 0.2)]))
+		# Each well's ring grown 0.6 m: an OSM part centred in it goes (Rondo ONZ's canopy roofs,
+		# drawn here now).
+		for sk: Dictionary in map._sunk:
+			if str(sk.get("site", "")) == key:
+				var g := Geometry2D.offset_polygon(sk["ring"], 0.6, Geometry2D.JOIN_MITER)
+				if not g.is_empty():
+					mw.append(g[0])
+		if key == "mw_poli":
+			for b: Array in POLI_BARRELS:
+				mw.append(PackedVector2Array(b))
+		_add_site(key, mw)
 	# Metro Centrum's other two glass barrels (OSM `transportation` outlines 3224 and 3401 by the
 	# Palace's park, refs 10 and 4): the mapped outlines are the plans, the boxes go.
 	var tubes: Array = []
@@ -2742,10 +2783,17 @@ func _build_sunken(site: Dictionary) -> void:
 			_sunk_treads(sk)
 		if not (sk.get("walk", PackedVector2Array()) as PackedVector2Array).is_empty():
 			_sunk_mouth(sk)
-		if str(sk.get("style", "")).begins_with("canopy"):
+		if str(sk["key"]).begins_with("mw_"):
+			_mw_handrails(sk)
+		if str(sk.get("style", "")) == "canopy_glass":
+			_sunk_glass_canopy(sk)
+		elif str(sk.get("style", "")).begins_with("canopy"):
 			_sunk_canopy(sk)
 	if key == "tarasy_plaza":
 		_tarasy_plaza_dress()
+	if key == "mw_poli":
+		for b: Array in POLI_BARRELS:
+			_glass_barrel(b)
 	if key == "sunken":
 		for b: Array in PATELNIA_BARRELS:
 			_glass_barrel(b)
@@ -2799,6 +2847,17 @@ func _sunk_edges(sk: Dictionary) -> void:
 			rise = float(sk["rise"])
 	elif style == "shops":
 		face_col = PLAZA_BRICK
+	elif style == "glass" or style == "canopy_glass":
+		# M2's exits (Street View 2015-2021): a low dark granite upstand, dark granite inside, a
+		# frameless glass balustrade on it (or the coloured glass canopy, `_sunk_glass_canopy`).
+		rise = 0.3
+		face_col = M2_GRANITE
+		top_col = M2_GRANITE.lightened(0.1)
+	# A well's own inner walls (SUNKEN `tile`: Metro Centrum's pink marble, Politechnika's rough
+	# stone); the parapet's street side stays `face_col`.
+	var inner_col := face_col
+	if style != "ramp" and (sk.get("tile", Color(0, 0, 0, 0)) as Color).a > 0.0:
+		inner_col = sk["tile"]
 	var run := 0.0
 	# A stair's band lies over the square's where they meet: 0.1 m higher (no flicker).
 	var band_lift := 0.0 if (sk["a"] as Vector2).distance_to(sk["b"]) < 0.1 else 0.1
@@ -2827,7 +2886,12 @@ func _sunk_edges(sk: Dictionary) -> void:
 			var u0 := maxf(_sunk_upper(p0, out), float(sk.get("rim", -INF)))
 			var u1 := maxf(_sunk_upper(p1, out), float(sk.get("rim", -INF)))
 			if u0 - f0 < 0.35 and u1 - f1 < 0.35:
-				continue  # a stair's top: level with the street
+				# A stair's top: level with the street, open to walkers; a metro well's mouth keeps
+				# the car out (an unseen 1.2 m wall on it: no car fits down a station's stair).
+				if str(sk["key"]).begins_with("mw_"):
+					map._solid(&"landmark", [Vector3(p0.x, u0 - 0.5, p0.y), Vector3(p1.x, u1 - 0.5, p1.y), Vector3(p1.x, u1 + 1.2, p1.y),
+							Vector3(p0.x, u0 - 0.5, p0.y), Vector3(p1.x, u1 + 1.2, p1.y), Vector3(p0.x, u0 + 1.2, p0.y)], _r2)
+				continue
 			var t0 := u0 + rise
 			var t1 := u1 + rise
 			var nin := Vector3(-out.x, 0.0, -out.y)
@@ -2837,7 +2901,7 @@ func _sunk_edges(sk: Dictionary) -> void:
 			# The retaining face (the square's side), the coping on top and its street face; by the
 			# Rotunda a living green wall, patchy in three greens.
 			_mode = M_STONE
-			var fc := face_col
+			var fc := inner_col
 			if planted:
 				fc = ROT_GREEN_WALL[(i * 3 + k) % ROT_GREEN_WALL.size()]
 			_quad(Vector3(p0.x, f0 - 0.3, p0.y), Vector3(p1.x, f1 - 0.3, p1.y), Vector3(p1.x, t1, p1.y), Vector3(p0.x, t0, p0.y),
@@ -2875,10 +2939,125 @@ func _sunk_edges(sk: Dictionary) -> void:
 			if style == "rail" or style == "shops":
 				_sunk_band(w0, w1, t0 + 0.99, t1 + 0.99, 0.07, nout)
 				_sunk_band(w0 + d * 0.02, w0 + d * 0.08, t0, t0, 0.99, nout)
+			elif style == "glass":
+				_sunk_glass(w0, w1, t0, t1, nout)
 			# The car: from the floor to well over the railing (or the parapet), on the edge.
-			var over := 1.6 if style == "rail" or style == "shops" else 0.6
+			var over := 1.6 if style in ["rail", "shops", "glass", "canopy_glass"] else 0.6
 			map._solid(&"landmark", [Vector3(p0.x, f0 - 0.5, p0.y), Vector3(p1.x, f1 - 0.5, p1.y), Vector3(p1.x, t1 + over, p1.y),
 					Vector3(p0.x, f0 - 0.5, p0.y), Vector3(p1.x, t1 + over, p1.y), Vector3(p0.x, t0 + over, p0.y)], _r2)
+
+
+## A metro well's handrails (Street View: steel rails down both sides of every flight, one down the
+## middle of a wide one): from a post at the mouth, 0.95 m over the treads to the stair's foot.
+## The posts at the mouth are what the car meets there (`_sunk_edges` keeps it out).
+func _mw_handrails(sk: Dictionary) -> void:
+	var ring: PackedVector2Array = sk["ring"]
+	var a: Vector2 = sk["a"]
+	var b: Vector2 = sk["b"]
+	var length := a.distance_to(b)
+	if length < 1.0:
+		return
+	var d := (b - a) / length
+	var side := Vector2(-d.y, d.x)
+	# The mouth's width across the ring at its top (a little in from the mouth).
+	var lo := INF
+	var hi := -INF
+	var probe := a + d * 0.3
+	for i in ring.size():
+		var p := ring[i]
+		var q := ring[(i + 1) % ring.size()]
+		var hit: Variant = Geometry2D.line_intersects_line(probe, side, p, q - p)
+		if hit == null:
+			continue
+		var h: Vector2 = hit
+		if (h - p).dot(q - p) < -0.01 or (h - q).dot(p - q) < -0.01:
+			continue
+		var t := (h - probe).dot(side)
+		lo = minf(lo, t)
+		hi = maxf(hi, t)
+	if not is_finite(lo) or hi - lo < 1.0:
+		return
+	var offs: Array[float] = [lo + 0.25, hi - 0.25]
+	if hi - lo > 3.0:
+		offs.append((lo + hi) * 0.5)
+	var ha := float(sk["ha"])
+	var hb := float(sk["hb"])
+	# M2's brushed steel; Ratusz Arsenał's green (Street View 2019); M1's dark steel elsewhere.
+	var col := M2_STEEL if str(sk["style"]) in ["glass", "canopy_glass"] else SUNK_RAIL
+	if str(sk["key"]).begins_with("mw_ra_"):
+		col = Color("#2f5d45")
+	for o: float in offs:
+		var t0 := a + side * o
+		var t1 := b + side * o
+		_beam(Vector3(t0.x, ha, t0.y), Vector3(t0.x, ha + 1.0, t0.y), 0.07, col, false)
+		_beam(Vector3(t0.x, ha + 1.0, t0.y), Vector3(t1.x, hb + 0.95, t1.y), 0.05, col, false)
+
+
+## A frameless glass balustrade on a well's upstand from w0 to w1 (tops t0, t1): one pane 0.85 m
+## tall, a slim steel cap on it, both faces.
+func _sunk_glass(w0: Vector2, w1: Vector2, t0: float, t1: float, n: Vector3) -> void:
+	_mode = M_STONE
+	var a := Vector3(w0.x, t0, w0.y)
+	var b := Vector3(w1.x, t1, w1.y)
+	var up := Vector3(0.0, 0.85, 0.0)
+	_quad(a, b, b + up, a + up, n, M2_GLASS)
+	_quad(b, a, a + up, b + up, -n, M2_GLASS)
+	_quad(a + up, b + up, b + up + Vector3(0.0, 0.05, 0.0), a + up + Vector3(0.0, 0.05, 0.0), n, M2_STEEL)
+	_quad(b + up, a + up, a + up + Vector3(0.0, 0.05, 0.0), b + up + Vector3(0.0, 0.05, 0.0), -n, M2_STEEL)
+
+
+## M2's coloured glass canopy over a well (SUNKEN style "canopy_glass", `roof` its glass: Rondo
+## Daszyński's red, Nowy Świat-Uniwersytet's violet; Google 3D Tiles 2026-11-26): a long low wedge,
+## 2.6 m over the street at the mouth sinking to 1.2 m at the far end, glass sides on the granite
+## upstand along every edge that drops, the tinted roof over the whole ring, dark frame edges.
+## The mouth (the stair's top, level with the street) stays open.
+func _sunk_glass_canopy(sk: Dictionary) -> void:
+	var ring: PackedVector2Array = sk["ring"]
+	var a: Vector2 = sk["a"]
+	var d: Vector2 = ((sk["b"] as Vector2) - a).normalized()
+	var u0 := INF
+	var u1 := -INF
+	for q in ring:
+		u0 = minf(u0, (q - a).dot(d))
+		u1 = maxf(u1, (q - a).dot(d))
+	var street: float = map._grid_height(a.x, a.y)
+	var roof_y := func(p: Vector2) -> float:
+		var t := clampf(((p - a).dot(d) - u0) / maxf(u1 - u0, 0.1), 0.0, 1.0)
+		return street + lerpf(2.6, 1.2, t)
+	var col: Color = sk.get("roof", Color("#8e2b33"))
+	_mode = M_STONE
+	# The roof: the ring's triangles at the wedge's height, both faces (the camera looks down on it).
+	var idx := Geometry2D.triangulate_polygon(ring)
+	for t in range(0, idx.size() - 2, 3):
+		var p := [ring[idx[t]], ring[idx[t + 1]], ring[idx[t + 2]]]
+		var v: Array[Vector3] = []
+		for q: Vector2 in p:
+			v.append(Vector3(q.x, float(roof_y.call(q)), q.y))
+		_tri(v[0], v[1], v[2], Vector3.UP, col, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+		_tri(v[0], v[2], v[1], Vector3.DOWN, col.darkened(0.25), Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	# The sides: glass from the upstand to the roof on every edge but the mouth; a frame along the
+	# roof's edges and a post at each corner.
+	for i in ring.size():
+		var p0 := ring[i]
+		var p1 := ring[(i + 1) % ring.size()]
+		var r0: float = roof_y.call(p0)
+		var r1: float = roof_y.call(p1)
+		_beam(Vector3(p0.x, r0, p0.y), Vector3(p1.x, r1, p1.y), 0.09, M2_GRANITE, false)
+		_beam(Vector3(p0.x, map._grid_height(p0.x, p0.y), p0.y), Vector3(p0.x, r0, p0.y), 0.08, M2_GRANITE, false)
+		var mid := (p0 + p1) * 0.5
+		if absf((mid - a).dot(d) - u0) < 0.3:
+			continue  # the mouth
+		var dd := (p1 - p0).normalized()
+		var out := Vector2(dd.y, -dd.x)
+		if Geometry2D.is_point_in_polygon(mid + out * 0.1, ring):
+			out = -out
+		var g0: float = map._grid_height(p0.x, p0.y) + 0.3
+		var g1: float = map._grid_height(p1.x, p1.y) + 0.3
+		var n3 := Vector3(out.x, 0.0, out.y)
+		var q0 := p0 + out * 0.1
+		var q1 := p1 + out * 0.1
+		_quad(Vector3(q0.x, g0, q0.y), Vector3(q1.x, g1, q1.y), Vector3(q1.x, r1, q1.y), Vector3(q0.x, r0, q0.y), n3, col.lerp(M2_GLASS, 0.45))
+		_quad(Vector3(q1.x, g1, q1.y), Vector3(q0.x, g0, q0.y), Vector3(q0.x, r0, q0.y), Vector3(q1.x, r1, q1.y), -n3, col.lerp(M2_GLASS, 0.45).darkened(0.2))
 
 
 ## The car park ramp's surface between its walls (ring edges 5-0 and 1-2 are the sides): a dark slab

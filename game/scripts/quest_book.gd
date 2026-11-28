@@ -51,7 +51,7 @@ const JOB_COUNT := {"kebab": "kebab", "ride": "podwozka", "call": "rescue", "slo
 ## A questline's wallet.gd `jobs` key, where its runs are counted on their own ("" none: the coffee
 ## run and padel are paid as "trend", with the other trend jobs).
 const STORY_COUNT := {"boat": "boat_race", "rave": "rave", "dekalog": "dekalog_tour", "kino": "kino_tour", "meet": "meet_race",
-		"tesla": "ev_tow"}
+		"tesla": "ev_tow", "bokiem": "bokiem"}
 ## Each item's icon (game/art/quest_icons/<name>.png, made with Codex on 2026-11-17 for F's ask "an
 ## icon for each quest"): by questline id, job group, First step id or tab. A missing file draws the
 ## item's colour dot instead (`icon`).
@@ -64,7 +64,7 @@ const DONE_KEY := "qdone_"
 const ICONS := {"kebab": "kebab", "ride": "ride", "call": "rescue", "rescue": "rescue", "sloik": "jars", "lezak": "scooter",
 		"trend": "trend", "mlask": "foodvan", "drop": "drop", "peacock": "peacock", "cassette": "cassette", "garage": "garage", "crawl": "club",
 		"boat": "boat", "rave": "rave", "smola": "club", "dekalog": "film_tour", "kawa": "coffee", "padel": "padel",
-		"meet": "meet", "kino": "cinema", "tesla": "ev_tow", "race": "rivals", "rivals": "rivals", "final": "rivals",
+		"meet": "meet", "bokiem": "meet", "kino": "cinema", "tesla": "ev_tow", "race": "rivals", "rivals": "rivals", "final": "rivals",
 		"heli": "heli", "police": "police", "districts": "collection", "syrenki": "collection", "tapes": "cassette",
 		"places": "collection", "collection": "collection"}
 ## The beta card's tiles (F 2026-11-17: "in the first minutes introduce that there are the different
@@ -118,6 +118,8 @@ static func fmt(key: String, args: Array) -> Array:
 static func story_facts(defs: Array, clock: Array, intro: Dictionary) -> Array:
 	var out: Array = []
 	for d: Dictionary in defs:
+		if not StoryQuests.shown(d):
+			continue  # a gated questline (drift_event.gd before the first night meet)
 		out.append({"id": d["id"], "pl": d["pl"], "en": d["en"], "who": d["who"], "blurb": d.get("blurb", ["", ""]),
 				"hello": d.get("hello", ["", ""]), "colour": d.get("colour", Lines.STORY_COLOUR), "at": d.get("at", Vector2.INF),
 				"open": StoryQuests.open_at(d, float(clock[0]), int(clock[1])), "new": intro.has(NEW_KEY + str(d["id"])),

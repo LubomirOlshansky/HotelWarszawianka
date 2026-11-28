@@ -30,6 +30,13 @@ extends SceneTree
 ##   needle spins in DEEP_SPIN_MIN of seeds or more; B8 a human 0.07-0.15 s late lands both flicks in
 ##   HUMAN_FLICKS of SEEDS; B9 the follower's runs last 28-40 s. W2: a tap anywhere in the window flicks
 ##   and never says WRONG SIDE.
+## - V (the venue, PR 2, drift_venue.gd's builders with no scene): V1 no bowl vertex hides the floor from the
+##   iso camera inside the track wall (the cutaway: the stands and the spire); V2 the venue's triangles at High (floor, bowl, spire, the crowd's cap,
+##   flames) are under TRI_BUDGET; V3 the line, the zones' boards and cones are at least WALL_CLEAR m inside
+##   the track wall; V4 no line sample within ISLAND_CLEAR m of an island's grass, no cone on it; V5 the
+##   tiers: smoke 64 / 40 / 24, crowd 1,500 / 900 / 400, the crowd has 1,500 to take; V6 every board's
+##   words fit the atlas's row and have their English; V8 the floodlight (layer 20) is built dark and
+##   hidden, lights only its own layer, and shows only inside the stadium at night.
 ##   godot --headless --path game --script res://tools/check_drift.gd
 
 const DriftLine := preload("res://scripts/drift_line.gd")
@@ -37,6 +44,10 @@ const DriftModel := preload("res://scripts/drift_model.gd")
 const DriftScore := preload("res://scripts/drift_score.gd")
 const DriftInput := preload("res://scripts/drift_input.gd")
 const DriftBot := preload("res://scripts/drift_bot.gd")
+const DriftVenue := preload("res://scripts/drift_venue.gd")
+const DriftStadium := preload("res://scripts/drift_stadium.gd")
+const PixelFont := preload("res://scripts/pixel_font.gd")
+const Tiers := preload("res://scripts/tiers.gd")
 
 const DT := 1.0 / 60.0
 const SEEDS := 32
@@ -58,6 +69,10 @@ const DEEP_NEEDLE := 55.0
 const DEEP_SPIN_MIN := 0.15
 ## B8: seeds (of SEEDS) where the late human lands both flicks.
 const HUMAN_FLICKS := 28
+## V: the venue's budgets (drift-narodowy.md 0b.4: 60k triangles in all) and clearances (m).
+const TRI_BUDGET := 60000
+const WALL_CLEAR := 3.5
+const ISLAND_CLEAR := 2.0
 
 var fails: Array[String] = []
 var osemka: RefCounted
@@ -75,6 +90,7 @@ func _init() -> void:
 	_input()
 	_score()
 	_bots()
+	_venue()
 	if fails.is_empty():
 		print("check_drift: OK")
 		quit(0)
@@ -662,3 +678,206 @@ func _bots() -> void:
 	if float(none["total"]) != 0.0:
 		_fail("B6: no kick scored %.0f" % float(none["total"]))
 	print("check_drift: bots in %.1f s" % ((Time.get_ticks_msec() - t0) / 1000.0))
+
+
+# --- V: the venue ---------------------------------------------------------------------------------
+
+func _tris(m: Mesh) -> int:
+	var n := 0
+	for i in m.get_surface_count():
+		var a := m.surface_get_arrays(i)
+		var idx: Variant = a[Mesh.ARRAY_INDEX]
+		n += ((idx as PackedInt32Array).size() if idx != null else (a[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()) / 3
+	return n
+
+
+## Inside the track wall's path (convex: on the inner side of every edge; Geometry2D's ray test misread
+## a point level with a vertex).
+func _inside(q: Vector2, wp: PackedVector2Array) -> bool:
+	var sgn := 0.0
+	for i in wp.size():
+		var a := wp[i]
+		var b := wp[(i + 1) % wp.size()]
+		if a.distance_to(b) < 1e-4:
+			continue
+		var c := (b - a).cross(q - a)
+		if sgn == 0.0:
+			sgn = signf(c)
+		elif c * sgn < 0.0:
+			return false
+	return true
+
+
+## A mesh's vertices, triangle centroids and edge midpoints (V1).
+func _samples(m: Mesh) -> PackedVector3Array:
+	var a := m.surface_get_arrays(0)
+	var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+	var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX] if a[Mesh.ARRAY_INDEX] != null else PackedInt32Array(range(v.size()))
+	var out := v.duplicate()
+	for t in range(0, idx.size(), 3):
+		var p0 := v[idx[t]]
+		var p1 := v[idx[t + 1]]
+		var p2 := v[idx[t + 2]]
+		out.append_array([(p0 + p1 + p2) / 3.0, (p0 + p1) * 0.5, (p1 + p2) * 0.5, (p2 + p0) * 0.5])
+	return out
+
+
+## V7: the LED and printed triangles' texels a metre (the gradient of the atlas's u in texels and of the
+## row's v over the face): Vector2(the most, the triangles over ISO_PX_M / 2).
+func _texel_density(m: Mesh) -> Vector2:
+	var a := m.surface_get_arrays(0)
+	var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+	var uv: PackedVector2Array = a[Mesh.ARRAY_TEX_UV]
+	var uv2: PackedVector2Array = a[Mesh.ARRAY_TEX_UV2]
+	var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX] if a[Mesh.ARRAY_INDEX] != null else PackedInt32Array(range(v.size()))
+	var most := 0.0
+	var over := 0
+	var cap := DriftVenue.ISO_PX_M * 0.5
+	for t in range(0, idx.size(), 3):
+		var part := uv2[idx[t]].x
+		if not (is_equal_approx(part, DriftVenue.LED) or is_equal_approx(part, DriftVenue.PRINT)):
+			continue
+		var e1 := v[idx[t + 1]] - v[idx[t]]
+		var e2 := v[idx[t + 2]] - v[idx[t]]
+		var g11 := e1.dot(e1)
+		var g12 := e1.dot(e2)
+		var g22 := e2.dot(e2)
+		var det := g11 * g22 - g12 * g12
+		if det < 1e-10:
+			continue
+		var worst := 0.0
+		for k in 2:
+			var s := Vector2(DriftVenue.ATLAS_PX, DriftVenue.ROW_PX)[k]
+			var d1: float = (uv[idx[t + 1]][k] - uv[idx[t]][k]) * s
+			var d2: float = (uv[idx[t + 2]][k] - uv[idx[t]][k]) * s
+			var ca := (d1 * g22 - d2 * g12) / det
+			var cb := (d2 * g11 - d1 * g12) / det
+			worst = maxf(worst, (e1 * ca + e2 * cb).length())
+		most = maxf(most, worst)
+		if worst > cap:
+			over += 1
+	return Vector2(most, over)
+
+
+func _venue() -> void:
+	var ln: RefCounted = osemka
+	var t0 := Time.get_ticks_msec()
+	var bowl := DriftVenue.bowl_mesh(ln)
+	var spire := DriftVenue.spire_mesh()
+	var crowd := DriftVenue.crowd(int(Tiers.DRIFT["drift_crowd"]))
+	var floor_m := DriftStadium.floor_mesh(ln)
+	var built := Time.get_ticks_msec() - t0
+	# V1: the cutaway.
+	var hidden := 0
+	var wp := DriftVenue.wall_path(ln)
+	for m: Mesh in [bowl, spire]:
+		# Every vertex, triangle centroid and edge midpoint (the review: a long face can cross the track
+		# between two vertices outside it).
+		for v: Vector3 in _samples(m):
+			# The stands and the spire: the boards and screens on the floor stand on what they hide.
+			var stands := absf(v.x) > DriftVenue.HALF.x or absf(v.z) > DriftVenue.HALF.y or v.y > 20.0
+			if stands and _inside(DriftVenue.footprint(v), wp):
+				hidden += 1
+	if hidden > 0:
+		_fail("V1: %d vertices of the stands or the spire hide the track from the iso camera" % hidden)
+	# V2: the triangles at High.
+	var fig := _tris(crowd.mesh)
+	var tris := {"floor": _tris(floor_m), "bowl": _tris(bowl), "spire": _tris(spire), "crowd": fig * crowd.instance_count,
+			"flames": _tris(DriftVenue.flame_mesh()) * int(Tiers.DRIFT["drift_flames"])}
+	var total := 0
+	for k: String in tris:
+		total += int(tris[k])
+	if total > TRI_BUDGET:
+		_fail("V2: %d triangles at High (%s), over %d" % [total, str(tris), TRI_BUDGET])
+	# V3: the wall round the line, the boards and the cones.
+	if wp.size() < 10:
+		_fail("V3: no track wall (%d points)" % wp.size())
+	else:
+		var pts: Array[Vector2] = []
+		for q: Vector2 in ln.pos:
+			pts.append(q)
+		for z: Dictionary in ln.zones:
+			for q: Vector2 in z["points"]:
+				pts.append(q)
+		var worst := INF
+		for q: Vector2 in pts:
+			var d := INF
+			for i in wp.size() - 1:
+				d = minf(d, q.distance_to(Geometry2D.get_closest_point_to_segment(q, wp[i], wp[i + 1])))
+			if not _inside(q, wp):
+				d = -d
+			worst = minf(worst, d)
+		if worst < WALL_CLEAR:
+			_fail("V3: the line or a board comes %.1f m from the track wall (%.1f)" % [worst, WALL_CLEAR])
+	# V4: the islands' grass.
+	for isl: Array in ln.islands:
+		var c := Vector2(float(isl[0]), float(isl[1]))
+		var r := float(isl[2])
+		for q: Vector2 in ln.pos:
+			if q.distance_to(c) < r + ISLAND_CLEAR:
+				_fail("V4: the line at %s is %.1f m from the island at %s" % [str(q), q.distance_to(c) - r, str(c)])
+				break
+		for z: Dictionary in ln.zones:
+			for q: Vector2 in z["points"]:
+				if q.distance_to(c) < r + DriftVenue.KERB_W:
+					_fail("V4: a %s cone or board at %s stands on the island" % [z["kind"], str(q)])
+					break
+	# V5: the tiers.
+	var want := {Tiers.LOW: [24, 400, 4], Tiers.MEDIUM: [40, 900, 8], Tiers.HIGH: [64, 1500, 16], Tiers.ULTRA: [64, 1500, 16]}
+	for q: int in want:
+		var got := []
+		for key: String in ["drift_smoke", "drift_crowd", "drift_flames"]:
+			got.append(int(Tiers.value(q, key, Tiers.DRIFT[key])))
+		if got != want[q]:
+			_fail("V5: %s's smoke, crowd and flames are %s (%s)" % [Tiers.NAMES[q], str(got), str(want[q])])
+	if crowd.instance_count < 1500:
+		_fail("V5: the crowd has %d seats (1,500)" % crowd.instance_count)
+	if DriftStadium.SMOKE_CAP < int(Tiers.DRIFT["drift_smoke"]):
+		_fail("V5: the smoke's pool %d is under High's %d" % [DriftStadium.SMOKE_CAP, int(Tiers.DRIFT["drift_smoke"])])
+	# V6: the boards' words.
+	var boards: Array = DriftLine.data().get("boards", [])
+	if boards.is_empty():
+		_fail("V6: no boards in drift_tracks.json")
+	for bd: Dictionary in boards:
+		var words: Array = bd.get("text", [])
+		if words.size() < 2 or str(words[1]) == "":
+			_fail("V6: board %s has no English" % str(words))
+		elif PixelFont.width(str(words[0])) > DriftVenue.ATLAS_PX - 4:
+			_fail("V6: board '%s' is %d px (%d)" % [words[0], PixelFont.width(str(words[0])), DriftVenue.ATLAS_PX - 4])
+	var screens: Array = DriftLine.data().get("screens", [])
+	if screens.is_empty():
+		_fail("V6: no screens in drift_tracks.json")
+	var window := int(DriftVenue.SCREEN_W / DriftVenue.SCREEN_TEXEL)
+	for sc: Dictionary in screens:
+		var words: Array = sc.get("text", [])
+		var lines: Array = sc.get("lines", [])
+		if words.size() < 2 or str(words[1]) == "":
+			_fail("V6: screen %s has no English" % str(lines))
+		if lines.size() != 2:
+			_fail("V6: screen %s has %d lines (2)" % [str(words), lines.size()])
+		for w in lines:
+			if PixelFont.width(str(w)) + 2 * DriftVenue.BOARD_MARGIN > window:
+				_fail("V6: screen line '%s' is %d px, its window %d" % [w, PixelFont.width(str(w)), window])
+	# V7: the review's texel density: every LED and printed face has at most ISO_PX_M / 2 texels a metre,
+	# so a texel is two render pixels or more in the iso view at High.
+	var dens := 0.0
+	var dense := 0
+	for m: Mesh in [bowl, spire]:
+		var d := _texel_density(m)
+		dens = maxf(dens, d.x)
+		dense += int(d.y)
+	if dense > 0:
+		_fail("V7: %d LED or printed triangles have over %.1f texels a metre (max %.2f)" % [dense, DriftVenue.ISO_PX_M * 0.5, dens])
+	# V8: the floodlight (layer 20) is off outside the stadium: built dark and hidden with no shadow,
+	# lights only its own layer (never the city's layer 1), and shows only inside at night.
+	var fl := DriftStadium.make_flood()
+	if fl.visible or fl.light_energy != 0.0 or fl.shadow_enabled or fl.light_cull_mask != DriftStadium.FLOOD_LAYER or (fl.light_cull_mask & 1) != 0:
+		_fail("V8: the floodlight is built lit, visible, shadowed or on the city's layer (mask %d)" % fl.light_cull_mask)
+	fl.free()
+	for n: float in [0.0, 0.5, 1.0]:
+		if DriftStadium.flood_on(false, n):
+			_fail("V8: the floodlight shows outside the stadium at night %.1f" % n)
+	if not DriftStadium.flood_on(true, 1.0) or DriftStadium.flood_on(true, 0.0):
+		_fail("V8: the floodlight inside: on at night, off by day")
+	print("check_drift: venue boards %.2f texels a metre at most (%.2f render px a texel in iso at High)" % [dens, DriftVenue.ISO_PX_M / maxf(dens, 1e-3)])
+	print("check_drift: venue %d triangles at High %s, %d stand vertices hide the track, built in %d ms" % [total, str(tris), hidden, built])

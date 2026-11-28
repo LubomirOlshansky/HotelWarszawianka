@@ -1597,3 +1597,751 @@ func _stadium_arka() -> void:
 func _stair_top(p: Vector2, half: Vector2) -> float:
 	return maxf(map.ground_height(p.x, p.y), maxf(map.ground_height(p.x + half.x, p.y + half.y),
 			map.ground_height(p.x - half.x, p.y - half.y)))
+
+
+# --- Teatr Powszechny (docs/landmarks/specs/powszechny.md) --------------------------------------
+
+const PWS_ORIGIN := Vector2(1636.1, -1474.2)
+const PWS_WEST_NORTH := Vector2(1636.5, -1464.5)
+const PWS_WEST_SOUTH := Vector2(1636.1, -1402.5)
+const PWS_OFFICE_TOP := 10.9
+const PWS_STAGE_TOP := 11.5
+const PWS_ANNEX_TOP := 12.2
+const PWS_TOWER_TOP := 18.6
+const PWS_FOYER := Vector2(27.0, 53.0)
+const PWS_RECESS := -0.9
+const PWS_FOYER_HEAD := 8.9
+## Cool grey roof membrane, lifted from the dark palette value to match the aerial views in game light.
+const PWS_ROOF := Color("#b9babc")
+
+
+## Build the full SKINS replacement around the open court, then use the mapped ring for collision.
+func _build_powszechny(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["zone"][0]
+	var ring := _simplify(outline, 0.25)
+	_g = map.terrain_height(1636.3, -1431.0)
+	_mode = M_STONE
+	_o = PWS_ORIGIN
+	_a = Vector2.RIGHT
+	_b = Vector2.DOWN
+	var court := _urect(22.6, 34.8, 41.6, 63.6)
+	var annex := _lpoly([[20.4, 0.0], [22.5, 0.2], [36.5, 1.3], [36.5, 10.0], [20.4, 10.0]])
+	_powszechny_roofs(ring, court, annex)
+	_powszechny_tower()
+	_powszechny_plant()
+	_powszechny_court(court)
+	_powszechny_offices(annex)
+	kit_front(PWS_WEST_NORTH, PWS_WEST_SOUTH)
+	_powszechny_sign()
+	_powszechny_foyer()
+	_powszechny_mass(ring)
+	_collide(outline)
+
+
+## Close the stepped envelope and leave the west lobby open back to its recessed glazing.
+func _powszechny_mass(ring: PackedVector2Array) -> void:
+	var foot := _g - 1.8
+	var top := _g + PWS_OFFICE_TOP
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		if a == PWS_WEST_SOUTH and b == PWS_WEST_NORTH:
+			continue
+		_wall(a, b, foot, top, _out(ring, a, b), PAL_WHITE_STONE)
+	var span := PWS_WEST_NORTH.distance_to(PWS_WEST_SOUTH)
+	var head := _g + PWS_FOYER_HEAD
+	var cream := PAL_SANDSTONE.lightened(0.28)
+	_wall(_w(0.0, 0.0), _w(PWS_FOYER.x, 0.0), foot, _g + 2.55, _b, PAL_WHITE_STONE)
+	_wall(_w(0.0, 0.0), _w(PWS_FOYER.x, 0.0), _g + 2.55, top, _b, cream)
+	_wall(_w(PWS_FOYER.x, 0.0), _w(PWS_FOYER.y, 0.0), head, top, _b, PAL_WHITE_STONE)
+	_wall(_w(PWS_FOYER.y, 0.0), _w(span, 0.0), foot, top, _b, PAL_WHITE_STONE)
+	_wall(_w(PWS_FOYER.x, PWS_RECESS), _w(PWS_FOYER.y, PWS_RECESS), foot, head, _b, PAL_DARK_STEEL)
+	_wall(_w(PWS_FOYER.x, 0.0), _w(PWS_FOYER.x, PWS_RECESS), foot, head, _a, PAL_PALE_CONCRETE)
+	_wall(_w(PWS_FOYER.y, PWS_RECESS), _w(PWS_FOYER.y, 0.0), foot, head, -_a, PAL_PALE_CONCRETE)
+	var soffit := _urect(PWS_FOYER.x, PWS_FOYER.y, PWS_RECESS, 0.0)
+	_quad(Vector3(soffit[0].x, head, soffit[0].y), Vector3(soffit[1].x, head, soffit[1].y),
+			Vector3(soffit[2].x, head, soffit[2].y), Vector3(soffit[3].x, head, soffit[3].y),
+			Vector3.DOWN, PAL_DARK_STEEL)
+
+
+## Run tight rows of square office lights along the east and south, with service doors at grade.
+func _powszechny_offices(annex: PackedVector2Array) -> void:
+	var upper := [_g + 4.8, _g + 8.0]
+	var length := kit_front(Vector2(1678.0, -1402.1), Vector2(1678.7, -1469.5))
+	kit_window_grid(1.2, length - 1.6, 34, upper, 1.12, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.54)
+	kit_window_grid(1.0, 10.0, 5, [_g + 1.4], 0.9, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.51)
+	kit_door(14.0, _g - 0.45, 2.8, 1.45, PAL_GREY_STONE, PAL_DARK_DOOR)
+	kit_door(56.0, _g - 0.25, 2.95, 1.6, PAL_GREY_STONE, PAL_DARK_DOOR)
+	_ubox(17.0, 51.0, -0.06, 0.055, _g - 1.3, _g + 3.6, PAL_BROWN_RENDER.lightened(0.2))
+	kit_face(0.055)
+	kit_window_grid(18.0, 50.0, 15, [_g + 1.4], 0.85, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.48)
+	kit_face(0.0)
+	for h: float in [4.58, 7.79]:
+		kit_ledge(0.25, length - 0.3, _g + h, 0.14, PAL_PALE_CONCRETE, 0.12)
+	length = kit_front(PWS_WEST_SOUTH, Vector2(1678.0, -1402.1))
+	kit_window_grid(7.0, length - 4.1, 19, upper, 1.12, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.54)
+	kit_window_grid(13.4, length - 4.1, 15, [_g + 1.4], 0.9, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.48)
+	kit_window_grid(4.7, 6.6, 1, [_g + 1.4, _g + 4.8, _g + 8.0],
+			1.12, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.51)
+	kit_door(9.9, _g - 0.2, 2.9, 2.7, PAL_GREY_STONE, PAL_GLASS_STEEL)
+	for h: float in [4.58, 7.79]:
+		kit_ledge(6.8, length - 0.3, _g + h, 0.14, PAL_PALE_CONCRETE, 0.12)
+	length = kit_front(annex[2], annex[1])
+	kit_window_grid(2.2, length - 1.1, 4, [_g + 7.3], 1.1, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.44)
+	kit_door(length * 0.54, _g - 0.3, 2.5, 1.25, PAL_GREY_STONE, PAL_DARK_DOOR)
+	kit_front(Vector2(1656.4, -1472.6), Vector2(1640.8, -1472.9))
+	kit_door(5.25, _g - 0.48, 7.75, 3.25, PAL_GREY_STONE, PAL_DARK_STEEL)
+
+
+## Glaze the recessed public foyer and give the secondary doors on the cream wall a smaller hood.
+func _powszechny_foyer() -> void:
+	_ubox(PWS_FOYER.x, PWS_FOYER.y, PWS_RECESS - 0.05, 0.95, _g - 1.4, _g + 0.12,
+			PAL_GREY_GRANITE, M_STONE, PAL_PALE_CONCRETE)
+	kit_face(PWS_RECESS)
+	var screen_start := PWS_FOYER.x + 0.35
+	var screen_end := PWS_FOYER.y - 0.35
+	kit_window_grid(screen_start, screen_end, 13, [_g + 3.35], 5.05, Win.PLAIN,
+			PAL_ALUMINIUM, PAL_GLASS_NAVY, 0.89)
+	for u: float in _spread(screen_start, screen_end, 13):
+		if u >= 33.0 and u <= 47.0:
+			kit_door(u, _g + 0.12, 2.68, 0.78, PAL_DARK_STEEL, PAL_GLASS_STEEL)
+		else:
+			kit_window(u, _g + 0.28, 2.52, Win.PLAIN, PAL_ALUMINIUM, PAL_GLASS_NAVY, 0.89)
+	for h: float in [3.11, 4.32, 5.46, 6.6, 7.74, 8.55]:
+		kit_ledge(PWS_FOYER.x, PWS_FOYER.y, _g + h, 0.085, PAL_DARK_STEEL.lightened(0.18), 0.145)
+	kit_face(0.0)
+	kit_door(9.5, _g - 0.2, 2.45, 1.03, PAL_DARK_STEEL, PAL_GLASS_STEEL)
+	kit_window_grid(13.0, 25.9, 7, [_g + 1.15], 0.9, Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.49)
+	for u: float in [4.45, 9.0, 13.5, 18.0, 22.5]:
+		_wall(_w(u, 0.04), _w(u + 0.065, 0.04), _g + 3.2, _g + 9.04, _b, PAL_SANDSTONE.lightened(0.16))
+	kit_window_grid(54.5, 61.0, 3, [_g + 1.4, _g + 4.8, _g + 8.0], 1.08,
+			Win.PLAIN, PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.52)
+	kit_ledge(5.0, 12.9, _g + 2.88, 0.3, PAL_DARK_STEEL, 1.45)
+
+
+## Put pale mesh letters on the street's dark fascia, using the same font as other site signs.
+func _powszechny_sign() -> void:
+	_ubox(4.2, 53.2, -0.16, 0.22, _g + 9.04, _g + 11.27, PAL_DARK_STEEL)
+	var word := "TEATR POWSZECHNY"
+	var pixel_width := 0.41
+	var pixel_height := 0.24
+	var start := 28.7 - PixelFont.width(word) * pixel_width * 0.5
+	PixelFont.each_pixel(word, 0, func(x: int, row: int) -> void:
+		var u := start + x * pixel_width
+		var y := _g + 11.02 - (row - PixelFont.BODY) * pixel_height
+		_wall(_w(u, 0.26), _w(u + pixel_width, 0.26), y - pixel_height, y, _b, PAL_WHITE_STONE))
+
+
+## Finish the four inward-facing walls of the light court down to its paved floor.
+func _powszechny_court(court: PackedVector2Array) -> void:
+	_prism(court, _g - 1.6, _g - 0.4, PAL_GREY_STONE, PAL_GREY_GRANITE, M_STONE, M_STONE)
+	for i in court.size():
+		var length := kit_front(court[i], court[(i + 1) % court.size()])
+		var sills := [_g + 1.2, _g + 4.8, _g + 8.0]
+		if i == 3:
+			sills = [_g + 1.2, _g + 4.0]
+			kit_window_grid(0.65, length - 0.65, 10, [_g + 6.3], 2.4, Win.PLAIN,
+					PAL_ALUMINIUM, PAL_GLASS_NAVY, 0.94)
+		kit_window_grid(0.8, length - 0.8, roundi(length / 1.92), sills, 1.05, Win.PLAIN,
+				PAL_PALE_CONCRETE, PAL_GLASS_DARK, 0.5)
+		kit_ledge(0.16, length - 0.16, _g + PWS_OFFICE_TOP - 0.13, 0.24, PAL_PALE_CONCRETE, 0.12)
+		_wall(_w(0.0, 0.0), _w(length, 0.0), _g - 1.8, _g + PWS_OFFICE_TOP, _b, PAL_WHITE_STONE)
+
+
+## Keep the roof open where the court cuts it and lift the auditorium, foyer and north annex.
+func _powszechny_roofs(ring: PackedVector2Array, court: PackedVector2Array, annex: PackedVector2Array) -> void:
+	var roof := _g + PWS_OFFICE_TOP
+	_cap_holes(ring, [court], roof, PWS_ROOF)
+	kit_ledge_ring(ring, roof - 0.13, 0.22, PAL_PALE_CONCRETE, 0.12)
+	_prism(annex, roof - 0.22, _g + PWS_ANNEX_TOP, PAL_WHITE_STONE, PWS_ROOF, M_STONE, M_STONE)
+	_ubox(4.5, 20.0, 10.5, 31.5, roof - 0.2, _g + 12.5, PAL_WHITE_STONE, M_STONE, PWS_ROOF.lightened(0.06))
+	_ubox(6.3, 20.3, 34.5, 61.5, roof - 0.2, _g + 11.8, PAL_PALE_CONCRETE, M_STONE, PWS_ROOF)
+	kit_ledge_ring(_urect(4.5, 20.0, 10.5, 31.5), _g + 12.37, 0.21, PAL_PALE_CONCRETE, 0.12)
+	kit_ledge_ring(_urect(6.3, 20.3, 34.5, 61.5), _g + 11.68, 0.2, PAL_PALE_CONCRETE, 0.12)
+
+
+## Raise the white fly tower over its lower stage block and give the blank head a shallow coping.
+func _powszechny_tower() -> void:
+	_ubox(20.1, 35.3, 23.8, 41.5, _g + PWS_OFFICE_TOP - 0.2, _g + PWS_STAGE_TOP,
+			PAL_WHITE_STONE, M_STONE, PWS_ROOF)
+	var tower := _urect(20.3, 35.0, 24.2, 34.4)
+	_prism(tower, _g + PWS_STAGE_TOP - 0.18, _g + PWS_TOWER_TOP - 0.08,
+			PAL_WHITE_STONE, PWS_ROOF, M_STONE, M_STONE)
+	kit_ledge_ring(tower, _g + PWS_TOWER_TOP - 0.25, 0.25, PAL_PALE_CONCRETE, 0.18)
+	for v: float in [26.1, 28.3, 31.9]:
+		_ubox(20.23, 20.35, v, v + 0.16, _g + PWS_STAGE_TOP, _g + PWS_TOWER_TOP - 0.31, PAL_PALE_CONCRETE)
+
+
+## Group the larger vents and duct runs by roof so each machine sits on the roof it serves.
+func _powszechny_plant() -> void:
+	var roof := _g + PWS_OFFICE_TOP
+	var duct := PAL_ALUMINIUM.darkened(0.12)
+	var housing := PAL_PALE_CONCRETE.darkened(0.09)
+	# Twin housings behind the auditorium and the three feeds running towards the tower.
+	_ubox(4.7, 19.2, 31.9, 33.7, roof, roof + 1.75, housing, M_STONE, duct)
+	_ubox(4.7, 15.6, 34.0, 35.1, roof, roof + 1.52, duct)
+	for u: float in [22.3, 29.1, 36.4]:
+		_ubox(u, u + 1.45, 14.5, 22.0, roof, roof + 0.86, duct)
+		_ubox(u - 0.2, u + 1.65, 13.6, 16.9, roof, roof + 1.53, housing)
+	_ubox(22.3, 37.85, 22.0, 23.5, roof, roof + 1.04, duct)
+	_ubox(24.5, 34.1, 23.35, 24.38, roof, roof + 1.18, duct)
+	# The return duct follows the east and south roof edges around the open court.
+	_ubox(37.1, 38.35, 49.4, 68.8, roof, roof + 0.92, duct)
+	_ubox(12.1, 38.1, 67.65, 69.15, roof, roof + 1.16, duct)
+	_ubox(11.25, 12.6, 64.2, 69.0, roof, roof + 0.82, duct)
+	_ubox(23.4, 24.8, 64.0, 68.4, roof, roof + 0.77, housing)
+	for v: float in [11.3, 29.6, 38.7, 46.2, 55.4, 61.0]:
+		_ubox(39.0, 40.3, v, v + 1.3, roof, roof + 0.58, housing)
+	# Local exhausts above the north annex, stage roof and west foyer.
+	_ubox(26.8, 34.6, 6.2, 7.5, _g + PWS_ANNEX_TOP, _g + PWS_ANNEX_TOP + 0.52, duct)
+	_ubox(33.8, 35.4, 3.7, 7.3, _g + PWS_ANNEX_TOP, _g + PWS_ANNEX_TOP + 0.83, housing)
+	for u: float in [22.8, 27.1, 32.4]:
+		_ubox(u, u + 1.0, 36.5, 37.8, _g + PWS_STAGE_TOP, _g + PWS_STAGE_TOP + 0.7, housing)
+	_ubox(25.2, 34.84, 34.25, 35.35, _g + PWS_STAGE_TOP, _g + PWS_STAGE_TOP + 1.78, duct)
+	for at: Vector2 in [Vector2(11.0, 44.0), Vector2(15.5, 50.1), Vector2(10.5, 57.3)]:
+		_lbox(at.x, at.y, 0.45, 0.56, _g + 11.8, _g + 12.22, PAL_ROOF_PALE)
+	_ubox(16.8, 19.3, 55.6, 56.5, _g + 11.8, _g + 12.36, duct)
+	_ubox(18.4, 19.3, 56.4, 60.0, _g + 11.8, _g + 12.43, duct)
+	_ubox(27.8, 30.2, 25.4, 31.2, _g + PWS_TOWER_TOP - 0.08, _g + PWS_TOWER_TOP + 0.73, housing)
+
+
+# --- Centrum Praha (docs/landmarks/specs/centrum_praha.md) --------------------------------------
+
+## Sandstone tones, piers, zinc mansard, glazing and roof membrane measured from refs/centrum_praha/.
+const CP_NAME := "Centrum Praha"
+const CP_STONE := Color("#d4c8b0")       # main pale sandstone
+const CP_STONE_HI := Color("#d9ceb7")    # lighter sandstone fins and relief plaques
+const CP_SHADOW := Color("#bfb39c")      # recessed sandstone shadow panels and carved features
+const CP_PIER := Color("#6d6a66")        # dark grey ground-floor stone piers
+const CP_SHOP_BACK := Color("#3a4246")   # recessed dark backing behind ground-floor glazing
+const CP_SHOP_GLASS := Color("#5d6f74")  # ground-floor shopfront glass (M_PAVILION at night)
+const CP_GLASS := Color("#4a5a63")       # upper window storey and mansard glazing
+const CP_ZINC := Color("#6e7378")        # sloped grey zinc mansard and ridge cap
+const CP_ROOF := Color("#5f6266")        # flat dark roof membrane inside the mansard
+const CP_H_GROUND := 4.5
+const CP_H_FRIEZE := 6.0
+const CP_H_FRAMES := 12.0
+const CP_H_WINDOWS := 14.8
+const CP_H_TOP := 17.5
+const CP_BAY := 6.5
+
+
+## Finds Centrum Praha's OSM outline by name and registers a 0.5 m outward zone so the map's plain
+## prism is replaced by the detailed sandstone block.
+func _find_centrum_praha() -> void:
+	var raw := _landmark(CP_NAME)
+	if raw.size() < 3:
+		push_error("centrum_praha: landmark outline '%s' is missing from centrum.json" % CP_NAME)
+		return
+	var zone := _largest(Geometry2D.offset_polygon(raw, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = raw
+	_add_site("centrum_praha", [zone])
+	if not sites.is_empty() and sites[-1]["key"] == "centrum_praha":
+		sites[-1]["raw"] = raw
+
+
+## Starts a kit_front along edge a->b oriented so _b matches the outward normal `out`.
+func _cp_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
+## Builds Centrum Praha: glazed ground floor between dark stone piers, carved-faces sandstone
+## frieze, deep two-storey stone frames over vertical fin panels, recessed square-window storey,
+## cornice ring, sloped zinc mansard with tilted pale-framed windows, flat roof and collision.
+func _build_centrum_praha(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var ring := _simplify(raw, 0.5)
+	if ring.size() < 3:
+		ring = raw
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	# Stacked body tiers: dark ground backing, frieze backing, recessed sandstone shadow panel,
+	# and upper window storey wall. No vertical overlap so no wall planes z-fight.
+	_prism(ring, g - 0.5, g + CP_H_GROUND, CP_SHOP_BACK, none, M_STONE)
+	_prism(ring, g + CP_H_GROUND, g + CP_H_FRIEZE, CP_SHADOW, none, M_STONE)
+	_prism(ring, g + CP_H_FRIEZE, g + CP_H_FRAMES, CP_SHADOW.darkened(0.12), none, M_STONE)
+	_prism(ring, g + CP_H_FRAMES, g + CP_H_WINDOWS, CP_STONE, none, M_STONE)
+	# Continuous sandstone frieze band wrapping all four corners cleanly (slightly darker recessed
+	# ground so the carved lighter-stone portrait plaques read crisply from the isometric camera).
+	kit_ledge_ring(ring, g + CP_H_GROUND, CP_H_FRIEZE - CP_H_GROUND, CP_SHADOW, 0.14)
+	# Corner piers aligned to the block's primary edges so ground and upper frames turn cleanly.
+	_cp_corners(ring, g)
+	# Per-face facade dressing: shop bays, carved face reliefs, deep bay frames, fins, and windows.
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var out := _out(ring, a, b)
+		if a.distance_to(b) >= 4.0:
+			_cp_dress_face(a, b, out, g)
+	# Main stone cornice right under the zinc mansard (top flush at g + 14.8 m).
+	kit_cornice_ring(ring, g + CP_H_WINDOWS - 0.30, CP_STONE, 0.30, 0.36)
+	# Sloped grey zinc mansard leaning 1.2 m inward with tilted windows, plus flat roof & plant.
+	var top_ring := _inset_ring(ring, 1.2)
+	_cp_mansard(ring, top_ring, g)
+	_cp_roof(ring, top_ring, g)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Places ground-floor dark piers and upper sandstone corner piers aligned to `ring`'s first edge.
+func _cp_corners(ring: PackedVector2Array, g: float) -> void:
+	var ua := (ring[1] - ring[0]).normalized()
+	var vb := Vector2(-ua.y, ua.x)
+	var r := 0.52
+	for p in ring:
+		var sq := PackedVector2Array([
+			p - ua * r - vb * r,
+			p + ua * r - vb * r,
+			p + ua * r + vb * r,
+			p - ua * r + vb * r,
+		])
+		_prism(sq, g - 0.5, g + CP_H_GROUND - 0.03, CP_PIER, CP_PIER.darkened(0.08), M_STONE, M_STONE)
+		_prism(sq, g + CP_H_FRIEZE + 0.03, g + CP_H_WINDOWS - 0.32, CP_STONE, CP_STONE.darkened(0.06), M_STONE, M_STONE)
+
+
+## Dresses one straight face of Centrum Praha with ground shopfronts, carved portrait reliefs in
+## the frieze, deep two-storey sandstone frames with vertical fins, and the square-window storey.
+func _cp_dress_face(a: Vector2, b: Vector2, out: Vector2, g: float) -> void:
+	var w := _cp_front_edge(a, b, out)
+	var margin := 0.65
+	var usable := w - 2.0 * margin
+	if usable < 3.0:
+		return
+	var bays := maxi(1, roundi(usable / CP_BAY))
+	var step := usable / float(bays)
+	var keep := _mode
+	# Horizontal frame sill (6.0 m) and mid beam (11.75 m) spanning between corner piers.
+	kit_ledge(margin - 0.08, w - margin + 0.08, g + CP_H_FRIEZE + 0.04, 0.34, CP_STONE, 0.36)
+	kit_ledge(margin - 0.08, w - margin + 0.08, g + CP_H_FRAMES - 0.25, 0.36, CP_STONE, 0.36)
+	# Intermediate bay piers: dark ground piers, deep framed pilasters, and upper window piers.
+	for k in range(1, bays):
+		var pu := margin + float(k) * step
+		_kbox(pu - 0.45, pu + 0.45, -0.04, 0.26, g - 0.5, g + CP_H_GROUND - 0.03, CP_PIER)
+		kit_pilaster(pu, g + CP_H_FRIEZE + 0.40, g + CP_H_FRAMES - 0.28, CP_STONE, 0.70, 0.40)
+		_kbox(pu - 0.35, pu + 0.35, -0.04, 0.40, g + CP_H_FRAMES + 0.14, g + CP_H_WINDOWS - 0.34, CP_STONE)
+	# Per-bay openings, carved face relief, recessed sandstone fins, and paired square windows.
+	var shop_hw := clampf((step - 1.15) * 0.5, 1.2, 2.7)
+	var bay_clear := step - 0.85
+	var win_hw := clampf((bay_clear - 0.65) * 0.25, 0.55, 1.15)
+	for k in bays:
+		var u0 := margin + float(k) * step
+		var u1 := u0 + step
+		var bc := (u0 + u1) * 0.5
+		# Ground floor: glazed shopfront via kit_shop_bay + M_PAVILION night-glowing glass pane.
+		kit_shop_bay(bc, g, g + CP_H_GROUND - 0.35, shop_hw, CP_PIER.lightened(0.08), CP_SHOP_GLASS)
+		_mode = M_PAVILION
+		_wall(_w(bc - shop_hw + 0.05, 0.08), _w(bc + shop_hw - 0.05, 0.08), g + 0.05, g + CP_H_GROUND - 0.38, _b, CP_SHOP_GLASS)
+		_mode = M_STONE
+		# Sculpted frieze: one carved portrait relief plaque per bay.
+		_cp_relief(bc, g + CP_H_GROUND, 0.14)
+		# Framed storeys (6.38-11.72 m): central projecting rib + vertical sandstone fin strips.
+		var fin_y0 := g + CP_H_FRIEZE + 0.40
+		var fin_y1 := g + CP_H_FRAMES - 0.28
+		_kbox(bc - 0.18, bc + 0.18, -0.02, 0.24, fin_y0, fin_y1, CP_STONE_HI)
+		var inner_lo := u0 + 0.48
+		var inner_hi := u1 - 0.48
+		var half_w := (bc - 0.24) - inner_lo
+		if half_w > 0.7:
+			for side_start: float in [inner_lo, bc + 0.24]:
+				for s in 3:
+					var fu := side_start + half_w * (float(s) + 0.5) / 3.0
+					_wall(_w(fu - 0.12, 0.06), _w(fu + 0.12, 0.06), fin_y0 + 0.04, fin_y1 - 0.04, _b, CP_STONE_HI)
+		# Window storey (12.12-14.48 m): two square windows per bay in thin stone surrounds.
+		kit_window_grid(u0 + 0.45, u1 - 0.45, 2, [g + CP_H_FRAMES + 0.28], 1.85, Win.PLAIN, CP_STONE, CP_GLASS, win_hw)
+		_wall(_w(bc - 0.10, 0.08), _w(bc + 0.10, 0.08), g + CP_H_FRAMES + 0.20, g + CP_H_WINDOWS - 0.42, _b, CP_STONE)
+	_mode = keep
+
+
+## Places one carved Praga portrait relief in the frieze at `u`: a bold sandstone portrait plaque
+## standing proud of the frieze band, with a projecting 3D nose ridge and high-contrast shaded eye
+## sockets and mouth relief sized to read clearly from the isometric camera.
+func _cp_relief(u: float, frieze_y0: float, face_v: float) -> void:
+	var cy := frieze_y0 + 0.75
+	_kbox(u - 0.80, u + 0.80, face_v - 0.02, face_v + 0.16, cy - 0.56, cy + 0.56, CP_STONE_HI)
+	var v_plaque := face_v + 0.16
+	# Projecting nose ridge box in shaded sandstone.
+	_kbox(u - 0.10, u + 0.10, v_plaque - 0.02, v_plaque + 0.10, cy - 0.16, cy + 0.18, CP_SHADOW.darkened(0.08))
+	# Two recessed-tone eye sockets and a mouth shadow bar standing 3 cm proud of the plaque.
+	var eye_col := CP_SHADOW.darkened(0.28)
+	var v_feat := v_plaque + 0.03
+	for s: float in [-1.0, 1.0]:
+		_wall(_w(u + s * 0.28 - 0.12, v_feat), _w(u + s * 0.28 + 0.12, v_feat), cy + 0.14, cy + 0.30, _b, eye_col)
+	_wall(_w(u - 0.20, v_feat), _w(u + 0.20, v_feat), cy - 0.36, cy - 0.24, _b, eye_col)
+
+
+## Builds the sloped grey zinc mansard from g + 14.8 m to g + 17.5 m (leaning 1.2 m in) and sets
+## two large tilted pale-framed windows per bay parallel to each sloped face.
+func _cp_mansard(ring: PackedVector2Array, top_ring: PackedVector2Array, g: float) -> void:
+	var y0 := g + CP_H_WINDOWS
+	var y1 := g + CP_H_TOP
+	_mode = M_STONE
+	_slope(ring, ring, y0, top_ring, y1, CP_ZINC)
+	var n := ring.size()
+	for i in n:
+		var j := (i + 1) % n
+		var a0 := ring[i]
+		var b0 := ring[j]
+		var a1 := top_ring[i]
+		var b1 := top_ring[j]
+		var ln := a0.distance_to(b0)
+		if ln < 4.0:
+			continue
+		var p0 := Vector3(a0.x, y0, a0.y)
+		var p1 := Vector3(b0.x, y0, b0.y)
+		var p3 := Vector3(a1.x, y1, a1.y)
+		var out := _out(ring, a0, b0)
+		var nrm := (p1 - p0).cross(p3 - p0).normalized()
+		if Vector2(nrm.x, nrm.z).dot(out) < 0.0:
+			nrm = -nrm
+		var margin := 0.85
+		var usable := ln - 2.0 * margin
+		var bays := maxi(1, roundi(usable / CP_BAY))
+		var step := usable / float(bays)
+		var win_w := minf(step * 0.38, 2.35)
+		for k in bays:
+			var bay_lo := margin + float(k) * step
+			for w_idx in 2:
+				var cu := bay_lo + step * (0.27 if w_idx == 0 else 0.73)
+				var t0 := clampf((cu - win_w * 0.5) / ln, 0.03, 0.97)
+				var t1 := clampf((cu + win_w * 0.5) / ln, 0.03, 0.97)
+				# Pale stone frame quad (5 cm proud) and tilted dark glass pane (10 cm proud).
+				_cp_slope_quad(a0, b0, a1, b1, y0, y1, t0, t1, 0.08, 0.92, nrm, 0.05, CP_STONE_HI)
+				var inset_t := 0.16 / ln
+				_cp_slope_quad(a0, b0, a1, b1, y0, y1, t0 + inset_t, t1 - inset_t, 0.16, 0.84, nrm, 0.10, CP_GLASS)
+
+
+## Emits one quad on the sloped mansard face parameterized by horizontal t0..t1 and slope s0..s1.
+func _cp_slope_quad(a0: Vector2, b0: Vector2, a1: Vector2, b1: Vector2, y0: float, y1: float,
+		t0: float, t1: float, s0: float, s1: float, nrm: Vector3, proud: float, col: Color) -> void:
+	var pt := func(t: float, s: float) -> Vector3:
+		var bot := a0.lerp(b0, t)
+		var top := a1.lerp(b1, t)
+		var p2 := bot.lerp(top, s)
+		return Vector3(p2.x, lerpf(y0, y1, s), p2.y) + nrm * proud
+	_quad(pt.call(t0, s0), pt.call(t1, s0), pt.call(t1, s1), pt.call(t0, s1), nrm, col)
+
+
+## Builds Centrum Praha's flat dark membrane roof at 17.5 m, a 0.5 m zinc ridge cap closing cleanly
+## on both faces, and two low 2 x 4 m rooftop plant boxes.
+func _cp_roof(ring: PackedVector2Array, top_ring: PackedVector2Array, g: float) -> void:
+	var roof_y := g + CP_H_TOP
+	_mode = M_STONE
+	_cap(top_ring, roof_y, CP_ROOF)
+	# 0.5 m zinc ridge cap round the mansard crest, with inner faces closed down to the membrane.
+	kit_ledge_ring(top_ring, roof_y, 0.5, CP_ZINC.lightened(0.06), 0.12)
+	for i in top_ring.size():
+		var a := top_ring[i]
+		var b := top_ring[(i + 1) % top_ring.size()]
+		_wall(b, a, roof_y, roof_y + 0.5, -_out(top_ring, a, b), CP_ZINC.darkened(0.1))
+	# Two low 2 x 4 m rooftop plant boxes aligned to the block's main axes.
+	_o = _centre(top_ring)
+	_a = (ring[1] - ring[0]).normalized()
+	_b = Vector2(-_a.y, _a.x)
+	_lbox(-7.5, -4.0, 2.0, 1.0, roof_y, roof_y + 1.25, CP_ZINC.lightened(0.12), M_STONE, CP_ROOF.lightened(0.08))
+	_lbox(6.5, 5.5, 2.0, 1.0, roof_y, roof_y + 1.15, CP_ZINC.lightened(0.12), M_STONE, CP_ROOF.lightened(0.08))
+
+
+# --- Pasaż Handlowy Targowa 33A (docs/landmarks/specs/targowa33a.md) ----------------------------
+
+## Point well inside the 7.6 m trade podium and colours from refs/targowa33a/ and the spec.
+const TG_NAME := "Pasaż Handlowy \"Targowa 33A\""
+const TG_PODIUM_AT := Vector2(1090.0, -1780.0)
+const TG_PODIUM_H := 7.6
+const TG_BLOCK_H := 24.1
+const TG_RENDER := Color("#d9d4c8")       # pale render walls
+const TG_PLINTH := Color("#4b4d50")       # dark grey plinth
+const TG_FRAME := Color("#3e4246")        # dark shopfront frames
+const TG_SIGN_BAND := Color("#ecebe6")    # white sign band fascia
+const TG_ROOF := Color("#8a8c8e")         # flat grey roof membrane
+const TG_PARAPET := Color("#b9b8b3")      # light grey parapet & coping
+const TG_SHOP_GLASS := Color("#50636b")   # ground-floor shop glass (M_PAVILION at night)
+const TG_UPPER_GLASS := Color("#4a5a63")  # upper ribbon windows
+const TG_SKY_GLASS := Color("#6f8590")    # skylight strip glazing
+const TG_VENT := Color("#a8aaac")         # rooftop vent boxes
+const TG_H_PLINTH := 0.4
+const TG_H_GROUND := 3.6
+const TG_H_ROOF := 7.0
+const TG_H_TOP := 7.6
+## Generic Polish shop words already present in neon_signs.gd (no real brands).
+const TG_WORDS := ["APTEKA", "KEBAB 24H", "KANTOR", "PIEKARNIA", "KWIATY", "SPOŻYWCZAK", "PIZZA", "BAR"]
+const TG_WORD_COLS := [Color("#2fd168"), Color("#ff6a2a"), Color("#ffb81f"), Color("#ffd27a"),
+		Color("#ff527a"), Color("#3fb4ff"), Color("#ff4a3a"), Color("#ff8a2b")]
+
+
+## Finds Targowa 33A's 7.6 m commercial podium building (cross-checked with the landmark outline)
+## and every 24.1 m residential block that stands on or overlaps its 0.5 m zone, passing those
+## blocks as `keep` so the flats stay drawn while the podium is rebuilt inside the block.
+func _find_targowa33a() -> void:
+	var lm := _landmark(TG_NAME)
+	var podium := PackedVector2Array()
+	for bld: Dictionary in data.get("buildings", []):
+		if absf(float(bld["h"]) - TG_PODIUM_H) > 0.3:
+			continue
+		var q := _pts(bld["p"])
+		if q.size() >= 3 and Geometry2D.is_point_in_polygon(TG_PODIUM_AT, q):
+			podium = q
+			break
+	if podium.size() < 3 and lm.size() >= 3:
+		podium = lm
+	if podium.size() < 3:
+		push_error("targowa33a: 7.6 m trade podium outline holding %s (and landmark '%s') is missing from centrum.json" % [TG_PODIUM_AT, TG_NAME])
+		return
+	if lm.size() >= 3 and _centre(podium).distance_to(_centre(lm)) > 5.0:
+		push_error("targowa33a: 7.6 m building centre %s disagrees with landmark '%s' centre %s" % [_centre(podium), TG_NAME, _centre(lm)])
+	var zone := _largest(Geometry2D.offset_polygon(podium, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = podium
+	var zbox := _box_of([zone])
+	var keep_blocks: Array[PackedVector2Array] = []
+	for bld: Dictionary in data.get("buildings", []):
+		if absf(float(bld["h"]) - TG_BLOCK_H) > 0.3:
+			continue
+		var q := _pts(bld["p"])
+		if q.size() < 3 or not zbox.intersects(_box_of([q])):
+			continue
+		if not Geometry2D.intersect_polygons(zone, q).is_empty():
+			keep_blocks.append(q)
+	_add_site("targowa33a", [zone], keep_blocks)
+	if not sites.is_empty() and sites[-1]["key"] == "targowa33a":
+		sites[-1]["podium"] = podium
+		sites[-1]["keep_blocks"] = keep_blocks
+
+
+## Starts a kit_front along edge a->b oriented so _b matches the outward normal `out`.
+func _tg_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
+## Merges consecutive collinear edges of `poly` (within ~3 deg) without moving any real sawtooth
+## corner, so long straight arms get clean continuous bay spacing.
+func _tg_merge_collinear(poly: PackedVector2Array) -> PackedVector2Array:
+	var cur := poly
+	var changed := true
+	while changed and cur.size() > 3:
+		changed = false
+		var next := PackedVector2Array()
+		var n := cur.size()
+		for i in n:
+			var prev := cur[(i + n - 1) % n]
+			var p := cur[i]
+			var nxt := cur[(i + 1) % n]
+			var d0 := p - prev
+			var d1 := nxt - p
+			if d0.length() < 0.05 or d1.length() < 0.05:
+				changed = true
+				continue
+			if d0.normalized().dot(d1.normalized()) > 0.9985:
+				changed = true
+				continue
+			next.append(p)
+		cur = next
+	return cur if cur.size() >= 3 else poly
+
+
+## Clips `podium` against every kept 24.1 m residential block so nothing is built inside them.
+func _tg_clip_blocks(podium: PackedVector2Array, keep_blocks: Array) -> Array[PackedVector2Array]:
+	var parts: Array[PackedVector2Array] = [podium]
+	for kb: PackedVector2Array in keep_blocks:
+		var next: Array[PackedVector2Array] = []
+		for p in parts:
+			for q: PackedVector2Array in Geometry2D.clip_polygons(p, kb):
+				if q.size() >= 3 and not Geometry2D.is_polygon_clockwise(q) and absf(_area(q)) > 2.0:
+					next.append(q)
+		parts = next
+	return parts
+
+
+## Returns true if edge a->b (with outward normal `out`) abuts or faces straight into a kept block.
+func _tg_touches_keep(a: Vector2, b: Vector2, out: Vector2, keep_blocks: Array) -> bool:
+	var mid := (a + b) * 0.5
+	var probe := mid + out * 0.45
+	for kb: PackedVector2Array in keep_blocks:
+		if Geometry2D.is_point_in_polygon(probe, kb) or _dist_to_ring(mid, kb) < 0.35:
+			return true
+	return false
+
+
+## Builds Pasaż Handlowy Targowa 33A: clipped two-storey podium body over dark plinth, exposed
+## edges dressed with shop bays, glowing sign band with generic words, upper ribbon windows, inset
+## roof parapet with coping, and the flat grey roof with two pitched skylight strips and vent boxes.
+func _build_targowa33a(site: Dictionary) -> void:
+	var podium: PackedVector2Array = site.get("podium", PackedVector2Array())
+	if podium.size() < 3:
+		return
+	var keep_blocks: Array = site.get("keep_blocks", [])
+	var clipped := _tg_clip_blocks(podium, keep_blocks)
+	if clipped.is_empty():
+		return
+	var g := _ground_under(podium)
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	var roof_y := g + TG_H_ROOF
+	var top_y := g + TG_H_TOP
+	var word_idx := 0
+	var inner_roofs: Array[PackedVector2Array] = []
+	for raw_piece in clipped:
+		var piece := _tg_merge_collinear(raw_piece)
+		# Podium shell: dark plinth (0-0.4 m), pale render body (0.4-7.0 m), outer parapet (7.0-7.6 m).
+		_prism(piece, g - 0.5, g + TG_H_PLINTH, TG_PLINTH, none, M_STONE)
+		_prism(piece, g + TG_H_PLINTH, roof_y, TG_RENDER, none, M_STONE)
+		_prism(piece, roof_y, top_y, TG_PARAPET, none, M_STONE)
+		# Inset roof membrane (0.35 m inside outline so parapet never pokes into kept 24.1 m flats).
+		var inners: Array[PackedVector2Array] = []
+		for q: PackedVector2Array in Geometry2D.offset_polygon(piece, -0.35, Geometry2D.JOIN_MITER):
+			if q.size() >= 3 and not Geometry2D.is_polygon_clockwise(q) and absf(_area(q)) > 2.0:
+				inners.append(q)
+				inner_roofs.append(q)
+		if inners.is_empty():
+			_cap(piece, roof_y, TG_ROOF)
+		else:
+			for iq in inners:
+				_cap(iq, roof_y, TG_ROOF)
+				for i in iq.size():
+					var ia := iq[i]
+					var ib := iq[(i + 1) % iq.size()]
+					_wall(ib, ia, roof_y, top_y, -_out(iq, ia, ib), TG_PARAPET.darkened(0.08))
+			_cap_holes(piece, inners, top_y, TG_PARAPET.lightened(0.05))
+		# Dress every exposed edge longer than 3 m with shop bays, sign band, ribbon windows, coping.
+		for i in piece.size():
+			var a := piece[i]
+			var b := piece[(i + 1) % piece.size()]
+			var ln := a.distance_to(b)
+			if ln <= 3.0:
+				continue
+			var out := _out(piece, a, b)
+			if _tg_touches_keep(a, b, out, keep_blocks):
+				continue
+			word_idx = _tg_dress_edge(a, b, out, g, word_idx)
+		_collide(raw_piece)
+	# Rooftop skylights and vents clipped strictly inside the inner roof polygons.
+	if not inner_roofs.is_empty():
+		_tg_roof_features(inner_roofs, roof_y)
+	_mode = M_STONE
+
+
+## Dresses one exposed edge (> 3 m) of Targowa 33A with ground-floor shop bays, white sign band
+## and generic glowing shop words, upper ribbon windows, and parapet coping trim.
+func _tg_dress_edge(a: Vector2, b: Vector2, out: Vector2, g: float, word_idx: int) -> int:
+	var w := _tg_front_edge(a, b, out)
+	var m := 0.35
+	var usable := w - 2.0 * m
+	if usable < 2.2:
+		return word_idx
+	var keep := _mode
+	# White sign band (3.0-3.6 m) and light grey parapet trim (7.42-7.62 m) via kit_ledge.
+	kit_ledge(m * 0.5, w - m * 0.5, g + 3.0, 0.60, TG_SIGN_BAND, 0.12)
+	kit_ledge(m * 0.5, w - m * 0.5, g + TG_H_TOP - 0.16, 0.18, TG_PARAPET.lightened(0.06), 0.08)
+	# Ground-floor shop bays every 4-5 m with glowing M_PAVILION glass and periodic shop signs.
+	var shops := maxi(1, roundi(usable / 4.5))
+	var step := usable / float(shops)
+	var shop_hw := clampf((step - 0.65) * 0.5, 0.85, 2.0)
+	for k in shops:
+		var cu := m + (float(k) + 0.5) * step
+		kit_shop_bay(cu, g + TG_H_PLINTH, g + 2.80, shop_hw, TG_FRAME, TG_SHOP_GLASS)
+		_mode = M_PAVILION
+		_wall(_w(cu - shop_hw + 0.04, 0.08), _w(cu + shop_hw - 0.04, 0.08), g + TG_H_PLINTH + 0.04, g + 2.76, _b, TG_SHOP_GLASS)
+		_mode = M_STONE
+		if k % 2 == 0 and step >= 3.2:
+			var word: String = TG_WORDS[word_idx % TG_WORDS.size()]
+			var col: Color = TG_WORD_COLS[word_idx % TG_WORD_COLS.size()]
+			var sw := minf(step * 0.72, 3.0)
+			# Coloured daytime fascia nameplate on the white sign band behind the night-lit neon word.
+			_mode = M_STONE
+			_wall(_w(cu - sw * 0.5, 0.15), _w(cu + sw * 0.5, 0.15), g + 3.09, g + 3.51, _b, col.darkened(0.28))
+			_usign(word, cu, 0.19, g + 3.08, _b, sw, 0.46, col)
+			word_idx += 1
+	# Upper floor (3.6-7.0 m): continuous sill ledge and ribbon windows via kit_window_grid.
+	kit_ledge(m, w - m, g + 4.48, 0.14, TG_PARAPET, 0.08)
+	var upper_n := maxi(1, roundi(usable / 3.2))
+	var upper_step := usable / float(upper_n)
+	var win_hw := clampf((upper_step - 0.42) * 0.5, 0.65, 1.35)
+	kit_window_grid(m, w - m, upper_n, [g + 4.65], 1.55, Win.PLAIN, TG_PARAPET, TG_UPPER_GLASS, win_hw)
+	_mode = keep
+	return word_idx
+
+
+## Returns true if all corners and the centre of `poly` lie inside one of `roof_polys`.
+func _tg_inside_roof(poly: PackedVector2Array, roof_polys: Array[PackedVector2Array]) -> bool:
+	var c := _centre(poly)
+	for rp in roof_polys:
+		if not Geometry2D.is_point_in_polygon(c, rp):
+			continue
+		var ok := true
+		for p in poly:
+			if not Geometry2D.is_point_in_polygon(p, rp):
+				ok = false
+				break
+		if ok:
+			return true
+	return false
+
+
+## Populates Targowa 33A's flat grey roof (7.0 m) with two bold pitched skylight strips along its
+## two longest arms, three pale-walled square rooftop shafts, and eight low vent boxes (matching
+## the 3D Tiles top view).
+func _tg_roof_features(roof_polys: Array[PackedVector2Array], roof_y: float) -> void:
+	# Align local frame to the podium's NE (u) and SE (v) building axes.
+	_o = Vector2(1089.3, -1778.8)
+	_a = Vector2(0.6632, -0.7485).normalized()
+	_b = Vector2(-_a.y, _a.x)
+	_mode = M_STONE
+	# Two bold glazed skylight strips (3.2 m wide) along the NW arm (along u) and SE arm (along v).
+	_tg_skylight_strip(-17.0, 13.0, -20.0, true, 6, roof_polys, roof_y)
+	_tg_skylight_strip(7.0, 33.0, -2.0, false, 5, roof_polys, roof_y)
+	# Three pale-walled square stairwell/lightwell shafts visible between the skylights in 3D Tiles.
+	var shafts := [[7.5, -10.5], [9.5, 5.5], [4.5, 19.0]]
+	for sh: Array in shafts:
+		var su := float(sh[0])
+		var sv := float(sh[1])
+		var outer := _rect(su, sv, 1.8, 1.8)
+		if _tg_inside_roof(outer, roof_polys):
+			_prism(outer, roof_y, roof_y + 1.25, TG_SIGN_BAND.darkened(0.08), TG_PARAPET.lightened(0.06), M_STONE, M_STONE)
+			var cap_in := _rect(su, sv, 1.25, 1.25)
+			_cap(cap_in, roof_y + 1.29, TG_FRAME)
+	# Eight rooftop vent boxes (1.0 x 1.5 m, 0.8 m tall) in pale grey with darker tops for contrast.
+	var vents := [
+		[12.0, 26.0, 0.75, 0.55, 0.85],
+		[12.0, -26.0, 0.75, 0.55, 0.85],
+		[14.0, -14.0, 0.55, 0.75, 0.85],
+		[-18.0, -26.0, 0.75, 0.55, 0.85],
+		[-16.0, 26.0, 0.55, 0.75, 0.85],
+		[-8.0, -28.0, 0.75, 0.55, 0.85],
+		[11.0, 15.0, 0.55, 0.75, 0.85],
+		[-11.0, 16.0, 0.75, 0.55, 0.85],
+	]
+	for v: Array in vents:
+		var poly := _rect(float(v[0]), float(v[1]), float(v[2]), float(v[3]))
+		if _tg_inside_roof(poly, roof_polys):
+			_prism(poly, roof_y, roof_y + float(v[4]), TG_PARAPET.lightened(0.08), TG_PLINTH.lightened(0.14), M_STONE, M_STONE)
+
+
+## Builds one segmented pitched-glass skylight strip (3.2 m wide) on the podium roof, emitting only
+## segments whose footprint lies completely inside `roof_polys`.
+func _tg_skylight_strip(s0: float, s1: float, fixed: float, along_u: bool, segs: int,
+		roof_polys: Array[PackedVector2Array], roof_y: float) -> void:
+	var step := (s1 - s0) / float(segs)
+	var hw := 1.6
+	for k in segs:
+		var mid := s0 + (float(k) + 0.5) * step
+		var hl := step * 0.46
+		var cu := mid if along_u else fixed
+		var cv := fixed if along_u else mid
+		var hu := hl if along_u else hw
+		var hv := hw if along_u else hl
+		var base := _rect(cu, cv, hu, hv)
+		if not _tg_inside_roof(base, roof_polys):
+			continue
+		_prism(base, roof_y, roof_y + 0.35, TG_PARAPET.lightened(0.05), Color(0, 0, 0, 0), M_STONE)
+		_pyramid(base, roof_y + 0.35, roof_y + 1.55, TG_SKY_GLASS)

@@ -97,13 +97,13 @@ func _check_paints() -> void:
 		if name.size() != 2 or str(name[0]) == "" or str(name[1]) == "":
 			problems.append("paint %s: a name without Polish and English" % id)
 		var price := int(p["price"])
-		if id == Garage.DEFAULT or p.has("eggs") or p.has("syrenki"):
+		if id == Garage.DEFAULT or p.has("eggs") or p.has("syrenki") or p.has("prize"):
 			if price != 0:
 				problems.append("paint %s: %d zł (want free)" % [id, price])
 		elif price < 50 or price > 150:
 			problems.append("paint %s: %d zł (want 50-150)" % [id, price])
-	if Garage.PAINTS.size() < 6 or Garage.PAINTS.size() > 10:
-		problems.append("%d paints (want 6-10)" % Garage.PAINTS.size())
+	if Garage.PAINTS.size() < 6 or Garage.PAINTS.size() > 11:  # 11: the drift quest's prize (PR 3)
+		problems.append("%d paints (want 6-11)" % Garage.PAINTS.size())
 	for need in ["red", "black", "green", "gold"]:
 		if not ids.has(need):
 			problems.append("no %s paint" % need)
@@ -128,6 +128,8 @@ func _check_rules() -> void:
 	_expect("rule black a złoty short", Garage.rule("black", "red", black_zl - 1, {}, 0), "short")
 	_expect("rule gold 4 eggs", Garage.rule("gold", "red", 9999, {}, 4), "locked")
 	_expect("rule scale 4 syrenki", Garage.rule("scale", "red", 9999, {}, 99, 4), "locked")
+	_expect("rule bokiem not won", Garage.rule("bokiem", "red", 9999, {}, 99, 99), "locked")
+	_expect("rule bokiem won", Garage.rule("bokiem", "red", 0, {"bokiem": 1}, 0), "switch")
 	_expect("rule scale 5 syrenki", Garage.rule("scale", "red", 0, {}, 0, 5), "switch")
 	_expect("rule gold 5 eggs", Garage.rule("gold", "red", 0, {}, 5), "switch")
 	_expect("rule nothing", Garage.rule("chrome", "red", 0, {}, 0), "")

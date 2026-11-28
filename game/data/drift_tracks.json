@@ -1,5 +1,5 @@
 {
-	"_note": "Bokiem na Narodowym, the grey box (docs/design/drift-narodowy.md 0b, critique-drift.md section 4). A track is its ideal line as segments from a start point and heading (yaw in degrees, 0 = towards -z, + = left, the game's rotation.y); `straight` m, `arc` [radius m, sweep degrees, +1 left / -1 right]. Zones: `zona` (the tail at the outer board) and `klip` (the nose at an inner cone), on a segment between two fractions of it, BOARD m from the line. Words: [Polish, English] (warsaw-tone).",
+	"_note": "Bokiem na Narodowym, the drift practice in the Stadion Narodowy venue (docs/design/drift-narodowy.md 0b and 6, critique-drift.md section 4; drift_venue.gd builds the stadium round the floor). A track is its ideal line as segments from a start point and heading (yaw in degrees, 0 = towards -z, + = left, the game's rotation.y); `straight` m, `arc` [radius m, sweep degrees, +1 left / -1 right]. Zones: `zona` (the tail at the outer board) and `klip` (the nose at an inner cone), on a segment between two fractions of it, BOARD m from the line. Words: [Polish, English] (warsaw-tone). Islands (the stadium, PR 2): the grass inside each loop, the loop's radius less 6.5 m, so the angle wedge (6 m long, on the bend's side) stays on the asphalt; the KLIP cones stand on the asphalt too. Boards (PR 2): the LED rings' words (and the track wall's banners' colours), Polish only in the world (the 5x7 pixel font) with the English gloss here, `fg` and `bg` their colours; parody sponsors only (warsaw-tone). Screens: the stages' and the spire cube's two short lines each (one word a line, so each reads at the iso camera's scale), with the whole phrase and its English in `text`.",
 	"tracks": {
 		"osemka": {
 			"name": ["Ósemka", "Figure eight"],
@@ -21,7 +21,7 @@
 				{"kind": "klip", "seg": 3, "from": 0.14, "to": 0.24, "side": "in"},
 				{"kind": "zona", "seg": 3, "from": 0.42, "to": 0.72, "side": "out"}
 			],
-			"islands": [[-35.0, 0.0, 14.0, 10.0], [35.0, 0.0, 13.0, 9.0]]
+			"islands": [[-35.0, 0.0, 17.5, 17.5], [35.0, 0.0, 11.5, 11.5]]
 		}
 	},
 	"words": {
@@ -51,6 +51,56 @@
 		"grounded": ["Najpierw wyjdź ze stadionu (✕)", "Leave the stadium first (✕)"],
 		"now": ["TERAZ!", "NOW!"],
 		"busy": ["Narodowy poczeka. Najpierw dokończ, co zacząłeś.", "The stadium can wait. Finish what you started first."],
-		"air": ["Na Narodowy wjeżdża się na kołach. Najpierw wyląduj.", "The stadium takes wheels, not rotors. Land first."]
-	}
+		"air": ["Na Narodowy wjeżdża się na kołach. Najpierw wyląduj.", "The stadium takes wheels, not rotors. Land first."],
+		"warmup": ["ROZGRZEWKA", "WARM-UP"],
+		"quali": ["KWALIFIKACJE", "QUALIFYING"],
+		"final": ["FINAŁ", "FINAL"],
+		"start": ["START", "START"],
+		"to_final": ["DO FINAŁU", "TO THE FINAL"],
+		"rematch": ["REWANŻ", "REMATCH"],
+		"again": ["JESZCZE RAZ", "ONE MORE"],
+		"next": ["DALEJ", "NEXT"],
+		"take": ["ODBIERZ", "COLLECT"],
+		"q_line": ["PRÓG", "CUT"],
+		"you": ["TY", "YOU"],
+		"hrabia": ["HRABIA", "HRABIA"],
+		"close": ["BLISKO!", "CLOSE!"],
+		"contact": ["KONTAKT!", "CONTACT!"],
+		"away": ["UCIEKASZ!", "PULLING AWAY!"],
+		"gift": ["PREZENT!", "A GIFT!"],
+		"run1": ["PRZEJAZD 1 · PROWADZI HRABIA, TY GONISZ", "RUN 1 · HRABIA LEADS, YOU CHASE"],
+		"run2": ["PRZEJAZD 2 · TY PROWADZISZ, HRABIA GONI", "RUN 2 · YOU LEAD, HRABIA CHASES"],
+		"pair": ["DOGRYWKA", "TIEBREAK"],
+		"won": ["WYGRANA · PUCHAR BOKIEM", "WIN · THE SIDEWAYS CUP"],
+		"lost_final": ["PRZEGRANA", "LOST"],
+		"draw": ["REMIS", "A DRAW"],
+		"passed": ["JEST PRÓG!", "THROUGH!"],
+		"short": ["ZA MAŁO", "NOT ENOUGH"],
+		"board": ["TABLICA", "BOARD"],
+		"prize": ["+%s zł · +%d szacunu · lakier Bokiem", "+%s zł · +%d respect · the Bokiem paint"],
+		"paid": ["+%s zł", "+%s zł"],
+		"practice": ["Bokiem: trening", "Sideways: practice"],
+		"quest_name": ["Bokiem na Narodowym", "Sideways at the Narodowy"],
+		"blurb": ["Drift na Narodowym, tandem z Hrabią.", "Drifting at the Narodowy, a tandem with Hrabia."],
+		"in": ["WCHODZĘ", "I'M IN"],
+		"not_today": ["NIE DZIŚ", "NOT TODAY"],
+		"tail": ["Najpierw zgub ogon", "Lose the tail first"]
+	},
+	"event": {
+		"_note": "PR 3, the side quest (drift_event.gd): q_line is the qualifying cut, 55 % of the follower bot's median on Ósemka (check_drift prints it, check_drift_event holds it within 3 %); the board's other two names and scores (names only, no cars: 0b.5).",
+		"q_line": 7700,
+		"board": [["Kaśka „Ścinka”", 9120], ["Bjørn", 8410]]
+	},
+	"boards": [
+		{"text": ["TURBO TUR", "Turbo Tur (a parody energy drink; a tur is an aurochs)"], "fg": "#2a1606", "bg": "#ff7a1a"},
+		{"text": ["KEBAB FM 87,3", "KEBAB FM 87.3 (the game's own radio)"], "fg": "#ffffff", "bg": "#b8186f"},
+		{"text": ["PUCHAR BOKIEM", "The Sideways Cup"], "fg": "#ffd23a", "bg": "#111318"},
+		{"text": ["OPONY U MIRKA", "Tyres at Mirek's"], "fg": "#111318", "bg": "#ffd23a"},
+		{"text": ["DYM W CENIE BILETU", "Smoke included in the ticket"], "fg": "#ffffff", "bg": "#14706e"},
+		{"text": ["BOKIEM NA NARODOWYM", "Sideways at the Narodowy"], "fg": "#ffffff", "bg": "#c8202a"}
+	],
+	"screens": [
+		{"lines": ["PUCHAR", "BOKIEM"], "text": ["PUCHAR BOKIEM", "The Sideways Cup"], "fg": "#ffd23a", "bg": "#111318"},
+		{"lines": ["TURBO", "TUR"], "text": ["TURBO TUR", "Turbo Tur (a parody energy drink)"], "fg": "#2a1606", "bg": "#ff7a1a"}
+	]
 }

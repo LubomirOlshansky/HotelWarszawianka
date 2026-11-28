@@ -7,6 +7,69 @@ from the steps), kept in the project files `kino-muranow/photos/`, and seven Map
 photos of the terrace and the arch (`refs/kino_muranow/street/`, CC BY-SA 4.0, gitignored). The
 cinema is the quest stop of "Kino objazdowe" (docs/design/kino-tour.md).
 
+**v2, 2026-11-27 (Gemini pilot, F's go): the whole building.** v1 built only the cinema pavilion,
+the terrace and the arch; the two four-storey blocks above stayed the map's plain prisms. v2 builds
+the whole complex at Generała Andersa 3-7 as one site: both residential blocks, the arch block
+between them, and the full arcaded podium along the square. Read "v2 changes" first; the sections
+below are the v1 spec, still right where v2 does not overrule them. Refs (gitignored, never
+committed): `refs/kino_muranow/3dtiles/` (Google 3D Tiles, 8 orbit views, 2026-11-27: h270 and
+h315 show the square front with the arcades, h045 the back on Nowolipki/Andersa, h135 the roofs),
+F's four photos in the project files `kino-muranow/photos/`.
+
+## v2 changes (what the rebuild adds)
+
+Frame as v1 (KM_O, KM_U along the front, KM_V out to the square). From OpenStreetMap: the north
+block (index 2014) runs u -78..-0.6, the south block (index 2904) u -0.8..75, both v -39..-26
+(12-13 m deep), height 14.2 m over the ground behind. The terrace (the podium's top, KM_H over the
+square) is the level of the street behind: the square in front sits a storey lower.
+
+1. **The two blocks** (socialist-realist housing, 1950s): four storeys over the terrace, 3.2 m a
+   storey, a 0.5 m plinth band, a crowning cornice 0.6 m proud at 13.4 m over the terrace and a
+   0.9 m parapet over it. Walls a warm grey-beige render (#b5a993), window surrounds and cornice
+   paler (#d6ccb8). Bays every 3.3 m along both long faces (square side and back): windows 1.4 x 1.7
+   m, `kit_window` FRAMED on floors 1-3, SILL on floor 4, a thin sill band under each floor. Small
+   iron balconies (`kit_balcony` IRON, 2.4 m wide) on floors 2-4 in every fourth bay, and on all
+   four floors in the two bays either side of the arch block (photo 1). The blocks' far ends
+   (u -78, u 75) are plain gable walls with one column of windows. A low hipped roof, grey sheet
+   (#8a8e92), rise 1.8 m, with a row of small skylight boxes and chimney stacks along the ridge
+   every 9 m (3D Tiles h135). The back faces reach down to the ground behind (terrain), with a
+   0.9 m rusticated base band.
+2. **The arch block**: as v1 (10.4 m wide at u -3, 1.1 m proud of the block front, round arch r 2.6
+   m springing 6.2 m over the terrace, six steps a side) but now part of the whole: it rises 1.6 m
+   over the blocks' parapet with its own cornice and a plain attic, its faces paler stone
+   (KM_STONE), two narrow windows over the arch on floors 3-4, the passage dark through to the back.
+   The same arch face on the back.
+3. **The podium**: the whole OSM `commercial` outline (index 2018) is built, not only the cinema's
+   30 m: the long north and south wings carry an **arcade** on their square faces: round-headed
+   dark openings 2.4 m wide, 3.6 m high, every 3.4 m (3D Tiles h270, h315), in the cream wall
+   (KM_WALL) with the grey plinth, the white balustrade along the top as v1. The cinema front
+   (doors, posters, MURANÓW, KINO) stays exactly as v1 in the middle.
+4. **Keep** everything v1 built on the square: the fountain, the café garden, the festoons, the two
+   pillars with balls, the terrace paving, the collision of the pavilion and the fountain.
+5. **Removal**: the site's zone must cover both blocks (2014, 2904) and the podium, so the map's
+   own prisms, the LoD2 runs and street block blk_141043447 there are not drawn under the model
+   (check_sites must show no landmark over a street block; DRESSES_BLOCK may drop the entry).
+   Collision: the blocks' outlines.
+6. **Night**: windows lit through the facade kit's usual pane flicker (no new lights); the
+   letters, doors and festoons as v1.
+
+**Detail level L3, budget 11,000 triangles: an exception** to the L3 range, because the site is
+now a 150 m long housing complex with two four-storey blocks, not one pavilion (the v1 parts stay
+inside their old 6,000). One site mesh, the shared building material: no new draw call,
+material or light.
+
+### v2 parts table (added rows; the v1 table below is kept)
+
+| id | shape | size | position | material | feature |
+| --- | --- | --- | --- | --- | --- |
+| km_blocks | two prisms of the OSM outlines | 12-13 m deep, to 14.0 m + parapet over the terrace | OSM 2014, 2904 | M_STONE #b5a993 | v2 1 |
+| km_windows | kit_window FRAMED / SILL | 1.4 x 1.7 m, bays 3.3 m, 4 floors | both long faces of both blocks | M_STONE #d6ccb8 | v2 1 |
+| km_balconies | kit_balcony IRON | 2.4 m wide | every 4th bay, floors 2-4; all floors by the arch | M_STONE #2c2e30 | v2 1 |
+| km_cornice | kit_cornice_ring, parapet | 0.6 m proud, parapet 0.9 m | both blocks, 13.4 m over the terrace | M_STONE #d6ccb8 | v2 1 |
+| km_roofs | low hip, skylights, chimneys | rise 1.8 m, boxes every 9 m | both blocks | M_STONE #8a8e92 | v2 1 |
+| km_arch_v2 | arch block raised, attic, windows | 10.4 m wide, +1.6 m over the parapet | u -3, both faces | M_STONE KM_STONE | v2 2 |
+| km_arcade | round-headed dark openings | 2.4 x 3.6 m every 3.4 m | podium wings' square faces | M_STONE #2a2d30 | v2 3 |
+
 ## Identity
 
 1. The red MURANÓW letters over the doors, a white KINO at each end of the front.

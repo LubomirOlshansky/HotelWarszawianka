@@ -8,6 +8,11 @@ extends Control
 ##     chain's chip (×3); a flash for what happened (ZAKSIĘGOWANE +2 340 in green, PRZEPADŁO in red,
 ##     ZONA!, KLIP!, PRZEKŁADKA!, IDEALNIE!, ZŁA STRONA, ZA WOLNO, BĄCZEK!).
 ##   - The tips at the start; the run's card at its end (the total, LINIA, KĄT, STYL; PONÓW, WYJDŹ).
+##   - PR 3 (drift_event.gd, the side quest): the stage's word on the top strip (ROZGRZEWKA,
+##     KWALIFIKACJE, FINAŁ), the total hidden in the unscored warm-up, a line said by someone (Lena's
+##     tips, Hrabia, Darek: `say`), a card with the stage's own buttons (`show_card`: `card_button`),
+##     and in the final the live bar (critique-drift.md change 8c): TY 6 240 · HRABIA 5 900 over a bar
+##     whose two sides fill as each scores.
 ##   - Change 4: the angle's arc only in WIDOK Z GÓRY (a 2D copy of the floor's wedge; in the iso view
 ##     the wedge under the car is the gauge).
 ## Everything under the top strip is the thumb's pad: `_input` hands its touches to the stadium
@@ -22,6 +27,8 @@ signal retry_pressed
 signal leave_pressed
 ## The thumb on the pad (or Space on a keyboard): down or up, the touch's index.
 signal thumb(down: bool, index: int)
+## PR 3: a button of `show_card` other than PONÓW and WYJDŹ, by its id.
+signal card_button(id: String)
 
 ## The top strip's share of the screen's height (0b.3: the pad is everything under it).
 const TOP_SHARE := 0.18
@@ -47,6 +54,15 @@ var cue_dt := INF
 var cue_before := 0.35
 var cue_after := 0.5
 var cue_perfect := 0.15
+## PR 3: the stage's word on the top strip ("" none), whether the total shows (not in the warm-up), the
+## final's live bar (on, your total, Hrabia's).
+var stage := ""
+var scored := true
+## PR 3 (Fable's review): PONÓW in the strip; drift_event.gd hides it in the final and on the podium.
+var retry_on := true
+var bar_on := false
+var bar_you := 0
+var bar_him := 0
 
 var _total: Label
 var _clock: Label
@@ -60,6 +76,9 @@ var _card: PanelContainer
 var _card_text: Label
 var _flash_t := 0.0
 var _tip_t := 0.0
+var _row: HBoxContainer
+var _bar: Label
+var _retry_b: Button
 
 
 static func w(id: String) -> String:
@@ -102,7 +121,8 @@ func build(points: float) -> void:
 	strip.add_child(gap2)
 	_top = _button(strip, w("top"), UiKit.Kind.SECONDARY)
 	_top.pressed.connect(func() -> void: top_pressed.emit())
-	_button(strip, w("retry"), UiKit.Kind.SECONDARY).pressed.connect(func() -> void: retry_pressed.emit())
+	_retry_b = _button(strip, w("retry"), UiKit.Kind.SECONDARY)
+	_retry_b.pressed.connect(func() -> void: retry_pressed.emit())
 	_button(strip, "✕", UiKit.Kind.DANGER).pressed.connect(func() -> void: leave_pressed.emit())
 	_pile = _label(self, "title", UiKit.T_BANNER * 0.8)
 	_pile.add_theme_color_override("font_outline_color", UiKit.OUTLINE)
@@ -128,13 +148,16 @@ func build(points: float) -> void:
 	_card.add_child(col)
 	_card_text = _label(col, "body", UiKit.T_BODY)
 	_card_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", UiKit.px(UiKit.GAP, pt))
-	col.add_child(row)
-	_button(row, w("retry"), UiKit.Kind.PRIMARY).pressed.connect(func() -> void: retry_pressed.emit())
-	_button(row, w("leave"), UiKit.Kind.SECONDARY).pressed.connect(func() -> void: leave_pressed.emit())
+	_row = HBoxContainer.new()
+	_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_row.add_theme_constant_override("separation", UiKit.px(UiKit.GAP, pt))
+	col.add_child(_row)
 	_card.visible = false
+	_bar = _label(self, "body", UiKit.T_BODY)
+	_bar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_bar.add_theme_color_override("font_outline_color", UiKit.OUTLINE)
+	_bar.add_theme_constant_override("outline_size", UiKit.px(3.0, pt))
+	_bar.visible = false
 	_now = _label(self, "title", UiKit.T_TITLE)
 	_now.add_theme_color_override("font_outline_color", UiKit.OUTLINE)
 	_now.add_theme_constant_override("outline_size", UiKit.px(4.0, pt))
@@ -178,12 +201,16 @@ func _input(event: InputEvent) -> void:
 		var t := event as InputEventScreenTouch
 		if t.pressed and not on_pad(t.position):
 			return
+		if t.pressed:
+			_tip_gone()
 		thumb.emit(t.pressed, t.index)
 	elif event is InputEventKey:
 		# The keys are the stadium's while it is on (the PR review): Space is the thumb, Esc the ✕ (the
 		# settings panel lives in the hidden HUD), and the city's keys (camera, M, K, H, ...) do nothing.
 		var k := event as InputEventKey
 		if not k.echo and k.physical_keycode == KEY_SPACE:
+			if k.pressed:
+				_tip_gone()
 			thumb.emit(k.pressed, 99)
 		elif k.pressed and not k.echo and k.physical_keycode == KEY_ESCAPE:
 			leave_pressed.emit()
@@ -200,9 +227,25 @@ func flash(id: String, extra := "", colour := UiKit.GOLD) -> void:
 	_flash_t = FLASH_S
 
 
+## The first thumb press fades the tips out (PR 2 review: the card covered the lower track).
+func _tip_gone() -> void:
+	_tip_t = minf(_tip_t, 0.25)
+
+
 func show_tips() -> void:
 	_tip.text = w("tip") + "\n" + w("tip_wedge")
 	_tip_t = 7.0
+
+
+## PR 3: `who` says `text` in the tip box for `seconds` (Lena's tips in the warm-up, Hrabia before the final).
+func say(who: String, text: String, seconds := 5.0) -> void:
+	_tip.text = (who + ": " if who != "" else "") + text
+	_tip_t = seconds
+
+
+## The tip box is up (drift_event.gd waits for one line before the next).
+func saying() -> bool:
+	return _tip_t > 0.0
 
 
 func set_top(on: bool) -> void:
@@ -212,21 +255,59 @@ func set_top(on: bool) -> void:
 
 ## The run's card: the total and the three cards (LINIA, KĄT, STYL), the best so far.
 func show_result(run_total: int, cards: Dictionary, best_total: int) -> void:
-	_card_text.text = "%s · %s\n\n%s  %s\n%s  %s\n%s  %s\n\n%s  %s" % [w("run"), num(run_total),
+	show_card(result_text(run_total, cards, best_total), [["retry", "retry"], ["leave", "leave"]])
+
+
+## The run's lines: the total, LINIA, KĄT, STYL and the best.
+static func result_text(run_total: int, cards: Dictionary, best_total: int) -> String:
+	return "%s · %s\n\n%s  %s\n%s  %s\n%s  %s\n\n%s  %s" % [w("run"), num(run_total),
 			w("linia"), num(roundi(float(cards.get("linia", 0.0)))), w("kat"), num(roundi(float(cards.get("kat", 0.0)))),
 			w("styl"), num(roundi(float(cards.get("styl", 0.0)))), w("best"), num(best_total)]
+
+
+## PR 3: the card with `text` and its buttons, [id, word key] each, the first the primary: "retry" and
+## "leave" press PONÓW and WYJDŹ, any other id comes out of `card_button`.
+func show_card(text: String, buttons: Array) -> void:
+	_card_text.text = text
+	for c in _row.get_children():
+		c.queue_free()
+	for i in buttons.size():
+		var id := str(buttons[i][0])
+		var b := _button(_row, w(str(buttons[i][1])), UiKit.Kind.PRIMARY if i == 0 else UiKit.Kind.SECONDARY)
+		b.name = "Card_" + id
+		b.pressed.connect(func() -> void: press_card(id))
 	_card.visible = true
+
+
+## A card's button by its id (the buttons, and drift_event.gd's bot on its test runs).
+func press_card(id: String) -> void:
+	if not _card.visible:
+		return
+	match id:
+		"retry":
+			retry_pressed.emit()
+		"leave":
+			leave_pressed.emit()
+		_:
+			card_button.emit(id)
+
+
+## The ids of the card's buttons now, in order (none when the card is down).
+func card_ids() -> PackedStringArray:
+	var out := PackedStringArray()
+	if _card.visible:
+		for c in _row.get_children():
+			if not c.is_queued_for_deletion():
+				out.append(str(c.name).trim_prefix("Card_"))
+	return out
+
+
+func card_text() -> String:
+	return _card_text.text if _card.visible else ""
 
 
 func hide_result() -> void:
 	_card.visible = false
-	_now = _label(self, "title", UiKit.T_TITLE)
-	_now.add_theme_color_override("font_outline_color", UiKit.OUTLINE)
-	_now.add_theme_constant_override("outline_size", UiKit.px(4.0, pt))
-	_now.text = w("now")
-	_now.visible = false
-	# The flashes over the run's card (BANKED +640 came under it).
-	move_child(_flash, -1)
 
 
 func result_up() -> bool:
@@ -235,9 +316,10 @@ func result_up() -> bool:
 
 func _process(dt: float) -> void:
 	size = get_viewport_rect().size  # a Control under a CanvasLayer: its rect is the screen's
-	_total.text = "%s %s" % [w("score"), num(total)] + ("" if best <= 0 else "   %s %s" % [w("best"), num(best)])
+	_total.text = ("%s   " % stage if stage != "" else "") + ("%s %s" % [w("score"), num(total)] + ("" if best <= 0 else "   %s %s" % [w("best"), num(best)]) if scored else "")
 	_clock.text = "%s %.1f" % [w("time"), clock]
-	var show_pile := pile > 0 and pile_at.x > -500.0
+	_retry_b.visible = retry_on
+	var show_pile := pile > 0 and pile_at.x > -500.0 and scored  # the unscored warm-up shows no number
 	_pile.visible = show_pile
 	_chip.visible = show_pile and chain > 1
 	if show_pile:
@@ -256,6 +338,8 @@ func _process(dt: float) -> void:
 		_flash.modulate.a = clampf(_flash_t / 0.3, 0.0, 1.0)
 		_flash.reset_size()
 		var fy := size.y * 0.24
+		if _bar.visible:  # PR 3: under the tandem bar's numbers, not on them
+			fy = maxf(fy, _bar.position.y + _bar.size.y + UiKit.px(6.0, pt))
 		if _card.visible:  # over the run's card, not on it
 			fy = minf(fy, _card.position.y - _flash.size.y - UiKit.px(8.0, pt))
 		_flash.position = Vector2(size.x * 0.5 - _flash.size.x * 0.5, fy)
@@ -267,6 +351,12 @@ func _process(dt: float) -> void:
 		_tip.reset_size()
 		_tip.size.x = minf(size.x * 0.6, UiKit.px(520.0, pt))
 		_tip.position = Vector2(size.x * 0.5 - _tip.size.x * 0.5, size.y - _tip.size.y - UiKit.px(28.0, pt))
+	_bar.visible = bar_on
+	if bar_on:
+		_bar.text = "%s %s  ·  %s %s" % [w("you"), num(bar_you), w("hrabia"), num(bar_him)]
+		_bar.reset_size()
+		# Under the bar (which sits just below the top strip): the strip's TIME has the line above.
+		_bar.position = Vector2(size.x * 0.5 - _bar.size.x * 0.5, size.y * TOP_SHARE + UiKit.px(18.0, pt))
 	_now.visible = cue_open() and car_at.x > -500.0
 	if _now.visible:
 		_now.add_theme_color_override("font_color", UiKit.GOLD if absf(cue_dt) <= cue_perfect else UiKit.GO)
@@ -298,10 +388,27 @@ func _draw_cue() -> void:
 	draw_arc(car_at, _ring_r(), 0.0, TAU, 48, col, w_ * (2.5 if open else 1.2))
 
 
+## PR 3, change 8c: the live bar just below the top strip (its numbers under it), your side gold from the left, Hrabia's red from
+## the right, each its share of the two totals so far (half and half before anyone scores).
+func _draw_bar() -> void:
+	if not bar_on:
+		return
+	var wide := minf(size.x * 0.5, float(UiKit.px(420.0, pt)))
+	var h := float(UiKit.px(10.0, pt))
+	var r := Rect2(Vector2(size.x * 0.5 - wide * 0.5, size.y * TOP_SHARE + UiKit.px(4.0, pt)), Vector2(wide, h))
+	var all := float(bar_you + bar_him)
+	var share := 0.5 if all <= 0.0 else float(bar_you) / all
+	draw_rect(r.grow(float(UiKit.px(2.0, pt))), UiKit.GLASS)
+	draw_rect(Rect2(r.position, Vector2(wide * share, h)), UiKit.GOLD)
+	draw_rect(Rect2(r.position + Vector2(wide * share, 0.0), Vector2(wide * (1.0 - share), h)), UiKit.ALERT)
+	draw_line(Vector2(r.position.x + wide * 0.5, r.position.y - h * 0.4), Vector2(r.position.x + wide * 0.5, r.end.y + h * 0.4), UiKit.INK, float(UiKit.px(2.0, pt)))
+
+
 ## Change 4's 2D copy of the wedge, only in WIDOK Z GÓRY: a 120° arc at the bottom centre, the green
 ## band 25-50°, the bright rim 45-55°, red past 65°, the needle on the slip.
 func _draw() -> void:
 	_draw_cue()
+	_draw_bar()
 	if not arc_on or arc_side == 0:
 		return
 	var r := float(UiKit.px(70.0, pt))

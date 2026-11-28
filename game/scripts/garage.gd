@@ -83,6 +83,10 @@ const PAINTS: Array[Dictionary] = [
 			"stripe": Color("#f4efe4"), "stripe_glow": 0.3, "price": 0, "syrenki": 5},
 	{"id": "silver", "name": ["Srebro Syreny", "Mermaid silver"], "paint": Color("#c9ced6"), "glow": 1.1,
 			"stripe": Color("#2b2620"), "stripe_glow": 0.0, "price": 0, "syrenki": 20},
+	# PR 3 of the drift side quest (drift_event.gd): the prize of the Puchar Bokiem, WNRC's neon red; owned
+	# only by winning it (`prize`: the questline's id), never bought.
+	{"id": "bokiem", "name": ["Neon Bokiem", "Bokiem neon"], "paint": Color("#ff2d55"), "glow": 1.8,
+			"stripe": Color("#111318"), "stripe_glow": 0.0, "price": 0, "prize": "bokiem"},
 ]
 
 var wallet: Node
@@ -133,7 +137,8 @@ static func find(id: String) -> Dictionary:
 
 ## What a tap on `id` would do with `zl` złoty, `owned` (id -> day) and `eggs` egg cards found:
 ## "on" (on the car now), "switch" (owned: free), "buy" (affordable), "short" (too little money),
-## "locked" (gold, too few eggs; loop 3h slice 2: or too few `syrenki`), "" (no such paint).
+## "locked" (gold, too few eggs; loop 3h slice 2: or too few `syrenki`; PR 3 of the drift quest: a prize not
+## won yet), "" (no such paint).
 static func rule(id: String, current: String, zl: int, owned: Dictionary, eggs: int, syrenki := 0) -> String:
 	var p := find(id)
 	if p.is_empty():
@@ -142,6 +147,8 @@ static func rule(id: String, current: String, zl: int, owned: Dictionary, eggs: 
 		return "on"
 	if owned.has(id) or id == DEFAULT:
 		return "switch"
+	if p.has("prize"):
+		return "locked"  # a quest's prize: owned once won (drift_event.gd puts it in `paints`)
 	if p.has("eggs"):
 		return "switch" if eggs >= int(p["eggs"]) else "locked"
 	if p.has("syrenki"):

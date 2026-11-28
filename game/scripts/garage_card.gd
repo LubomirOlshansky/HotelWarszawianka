@@ -487,6 +487,15 @@ func _refresh() -> void:
 		_place()
 		return
 	var cur: String = garage.current()
+	# PR 3 of the drift quest: a prize paint (garage.gd "prize") shows only once won, and the rows
+	# stay two (six across with it) so the card keeps inside the safe area (check_hud).
+	var shown := 0
+	for id: String in _swatches:
+		shown += 1 if _swatch_shows(id, garage.rule_now(id)) else 0
+	var across := maxi(COLUMNS, ceili(shown / 2.0))
+	_grid.columns = across
+	for id: String in _swatches:
+		(_swatches[id] as Button).custom_minimum_size.x = maxf(44.0, (_inner - GAP * 0.75 * (across - 1)) / across) * pt
 	for id: String in _swatches:
 		var b: Button = _swatches[id]
 		var r: String = garage.rule_now(id)
@@ -501,7 +510,9 @@ func _refresh() -> void:
 				price.text = Lang.pick("masz", "yours") if not (p.has("eggs") or p.has("syrenki")) or w.paints.has(id) else Lang.pick("gratis", "free")
 				ink = UiKit.GO
 			"locked":
-				if p.has("syrenki"):
+				if p.has("prize"):
+					price.text = Lang.pick("nagroda", "a prize")
+				elif p.has("syrenki"):
 					price.text = Lang.pick("%d/%d Syrenek", "%d/%d Mermaids") % [garage.syrenki_now(), int(p["syrenki"])]
 				else:
 					price.text = Lang.pick("%d/%d sekretów", "%d/%d easter eggs") % [garage.eggs_now(), int(p["eggs"])]
@@ -513,7 +524,7 @@ func _refresh() -> void:
 				price.text = w.money(int(p["price"]))
 				ink = UiKit.INK
 		price.add_theme_color_override("font_color", ink)
-		b.visible = garage.mode != "mine" or mine_shows("paint", r)
+		b.visible = _swatch_shows(id, r)
 		_tile_style(b, id == picked, id == cur)
 	var p2: Dictionary = garage.find(picked)
 	var name_pl := str(p2["name"][0]) if not p2.is_empty() else ""
@@ -529,12 +540,21 @@ func _refresh() -> void:
 			var miss := int(p2["price"]) - int(w.zl)
 			_set_action("BRAKUJE %s" % w.money(miss).to_upper(), "%s short" % _money_en(miss), false)
 		"locked":
-			if p2.has("syrenki"):
+			if p2.has("prize"):
+				_set_action("ZA PUCHAR BOKIEM", "Win the Puchar Bokiem", false)
+			elif p2.has("syrenki"):
 				_set_action("ZA %d SYRENEK" % int(p2["syrenki"]), "Find %d Mermaids" % int(p2["syrenki"]), false)
 			else:
 				_set_action("ZA %d SEKRETÓW" % int(p2["eggs"]), "Find %d easter eggs" % int(p2["eggs"]), false)
 	_mine_gate(garage.rule_now(picked))
 	_place()
+
+
+## A paint's swatch shows: MOJE AUTO keeps the paints you have; a quest's prize waits for its win.
+func _swatch_shows(id: String, rule: String) -> bool:
+	if garage.find(id).has("prize") and rule == "locked":
+		return false
+	return garage.mode != "mine" or mine_shows("paint", rule)
 
 
 ## F 2026-11-24: what MOJE AUTO shows: a car bought, a paint owned (on the car now, or one to

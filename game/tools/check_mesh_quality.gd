@@ -115,6 +115,13 @@ const BUDGET := {
 	"bristol": 7500,
 	"polonia": 1450,
 	"ujazdowski": 1650,
+	"polskie_radio": 3000,
+	"dom_poselski": 5000,
+	"stary_dom_poselski": 7000,
+	"rembielinskiego": 2800,
+	"willa_raua": 2000,
+	"dziewulskich": 1600,
+	"pod_karczochem": 2800,
 	"sobieski": 1500,
 	"vitkac": 2600,  # 2026-11-21 teaser 4 (F's photo): rounded granite corners, glass ribbons, shop glass and mullions, the glass top storey and its bar terrace: 2403 tris
 	"jablkowscy": 1450,
@@ -164,6 +171,7 @@ const BUDGET := {
 	"flaga": 170,
 	"forest": 8100,  # 2026-11-15: the real green roof (lawns, wavy corten beds, railing, pavilions, tent), measured 6739 (was 4260)
 	"gpy": 2000,  # RD-3 (2026-11-06): black patches, the wings' decks, trees and tables
+	"gpxz": 12000,  # Generation Park X and Z: two 11-16 storey stone-grid office blocks framing Y
 	"gaulle": 880,
 	"rondo": 10000,  # 2026-11-26: open wells, bent beds, arm beds, the square by the Empik pavilion: measured 8771
 	"sunken": 5600,  # 2026-11-05: the Patelnia and the Rotunda's stair: walls, railings, treads, two barrels
@@ -206,7 +214,10 @@ const BUDGET := {
 	"browary": 3900,   # 2026-11-03: paved main path and clearing edges (look check)
 	"koszyki": 1900,
 	"torwar": 1500,  # 2026-11-15 from photos, over its street block: the portico's columns, entablature, parapet and letters; pilasters and lattice panels round the hall
+	"sad_okregowy": 7000,
 	"nbp": 1000,  # 2026-11-16 from photos, the whole branch: the folded panel bands, the glass ground floor, the steps, the white wall with the eagle and NBP, the stair slot, planters
+	"mostowski": 7000,  # the palace, portico and three open courts
+	"powszechny": 6000,
 	"dom_chlopa": 3000,  # 2026-11-16 from photos, over its street block: the wavy roof edge on every street front, GROMADKA, the HOTEL corner sign, KASYNO TRAF
 	"batalion_kilinski": 1100,  # 2026-11-16 from photos: the tilted granite slab, the white step and four stelae, the white blocks, five flower bowls
 	"powstancow_ramp": 1500,  # 2026-11-16: Plac Powstańców Warszawy's car park ramp: the concrete walls, 22 strips of setts
@@ -243,6 +254,7 @@ const BUDGET := {
 	"jarmark": 192000,  # 2026-11-22 the official-map rebuild with the object kit (jarmark_kit.gd: shutters, plank grooves, bulbs on every chalet, Santa's Workshop, the castle stage), 190,815 tris, still one mesh, +0 draw calls; the iPhone bench near the Palace is owed before TestFlight. Before: 2026-11-20 the finished Jarmark Warszawski 2026 (F, for the trailer), 69,003 tris: over 200 stalls, the LED tree, the 38 m tower carousel, the Venetian carousel, bulb strings over every aisle; an exception to the L3 cap, a whole 160 by 90 m market in one site, +0 draw calls (one mesh)
 	"obeliski": 600,  # the two 1955 granite obelisks by the Palace and their exit hatches (F, 2026-11-15, 2026-11-17)
 	"tower75": 220,
+	"unique": 7000,
 	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
 	"tapczan": 4700,  # 2026-11-24 THE TAPCZAN pub on Sienkiewicza 4 (F's photos): street level, carved panels, sign, pallet terrace, 7 tables, 28 chairs, 2 umbrellas, planters
 	"sienkiewicza4": 5300,  # 2026-11-24 the Art Nouveau tenement on Sienkiewicza 4 (F's photos): bows, friezes, canopy, windows, rear range
@@ -328,6 +340,8 @@ const BUDGET := {
 	"flisac": 4200,  # 2026-11-13: the grid of panes, loggias and shop glass, 3,552 triangles
 	"florian": 2480,
 	"bazar": 2210,
+	"centrum_praha": 4000,
+	"targowa33a": 3000,
 	"port_praski": 25000,  # 2026-11-20: the whole Port Praski district from photos: 13 tenement blocks in sections (glass balconies from kit_balcony), Krowia 6 works, the Minter hotel (measured 24161)
 	"pp_basin": 8800,  # 2026-11-20: Port Praski basin: lock, tower, pump houses, sheds, boulevard, hoardings (measured 7776)
 	"kosciuszkowcy": 400,  # 2026-11-20: Pomnik Kościuszkowców from the bridge-ramp photos: the 12 m soldier with the cape, the plinth, the skaters' ledges (measured 245)
@@ -336,14 +350,22 @@ const BUDGET := {
 	"staszic": 360,
 	"zamek": 24500,  # 2026-11-26 pass 3: the whole castle as one model, LoD2 gone (the named exception to L3; spec section 7)
 	"zamkowy": 2900,  # 2026-11-26: + the oak's granite block bench in two tiers and railing (measured 2778)
+	"prymasowski": 7000,
 	"mansjonaria": 2700,  # 2026-11-26: the buttressed house by the oak modelled whole (measured 2458)
 	"nikidw": 2400,  # 2026-11-26: the Institute modelled whole: 12-bay two-storey arcade, wings, hipped roofs (measured 2268)
 	"arkady": 2600,
-	"kino_muranow": 6000,
+	"kino_muranow": 11000,  # 2026-11-27 v2 whole complex: both 4-storey blocks, arch block, arcaded podium, square
 	"zbawiciela": 3400,
 	"zbawiciela_plac": 2200,
 	"tarasy": 9400,  # 2026-11-11 F's photos: the triangular glass wave, the guitar, the café (5455); the whole complex: podium ledges, shop boards, Lumen's setback (7781)
 	"tarasy_plaza": 2750,  # 2026-11-11: the sunken plaza by the station: walls, shopfronts, railings, treads, umbrellas (2290)
+	"mw_cen": 2100,  # 2026-11-26 (metro wells): the other stations' open wells, sunk; measured 1622 / 5530 / 2916 / 3048 / 1470 / 2353 / 824 in the order below
+	"mw_onz": 7200,
+	"mw_dasz": 3800,
+	"mw_ratusz": 4000,
+	"mw_nsu": 1900,
+	"mw_poli": 3100,
+	"mw_cnk": 1100,
 	"rondo_wells": 6000,  # 2026-11-26: Rondo Dmowskiego's twelve stairwells sunk 3.5 m: coping, railings, treads, mouths
 	"trojca": 3700,  # 2026-11-14 photo rebuild: rusticated drum, arched windows, framed oculi, Doric porticoes with lunettes, dormers, glazed lantern (measured 3361)
 	"unit": 1450,  # 2026-11-19: the Dragon Skin dress (green wall, MODERATO) and the corner café board

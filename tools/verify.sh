@@ -193,6 +193,12 @@
 # game/tools/check_drift.gd: the drift model (M), the one-thumb input (I), the score (S) and the bots on
 # Ósemka (B: Q_LINE from the follower bot, the fixed-pulse sweep, hold-only, bank-at-crossovers), no
 # scene, ~6 s. `drift-run` (full set only) plays the practice in the whole game with the decent bot.
+# PR 3, the side quest (2026-11-27): `drift-event` runs game/tools/check_drift_event.gd: the final's
+# tandem (T: the gap, BLISKO, KONTAKT, no passing, his chase's cap, PREZENT!, shallow pulls away and deep
+# is caught, the finals by skill, the cut) and the event on stand-ins (E1-E7: the gate, the call and the
+# ring, the pay, the never-again rule, the rematch, ✕, the chase, the words; W the warm-up), ~15 s.
+# `drift-quest` (full set only) plays the whole quest in the game: --drift=quest:bot --prebuilt (the phone's
+# path; on the runtime build the teleport to the gate hangs the sector streamer, see the change note), its `quest over` line.
 # Sekretny rave (2026-11-06): `rave` runs game/tools/check_rave.gd: the cone, booth and club-room meshes,
 # LEKTI's, Mati's, the door's and the club's lines (no brand), the rave clock, the door's three
 # questions, the lights' poses, the spots and Smoła on the real lane graph; centrum.json only (CI too).
@@ -658,14 +664,84 @@ shown() {
 	fi
 }
 
+# stuck_kill PID LOG: SIGSEGV first so the engine's crash handler prints the C++ and GDScript
+# backtraces of where the run is stuck into LOG, then (after up to 15 s: the handler symbolizes
+# the frames) SIGKILL if it is still there. The job log gets the first C++ frames and the whole
+# GDScript block, because the step logs are artifacts and the job output is what a reader sees.
+stuck_kill() {
+	local pid=$1 logf=$2 i
+	kill -SEGV $pid 2>/dev/null
+	for i in {1..15}; do kill -0 $pid 2>/dev/null || break; sleep 1; done
+	kill -9 $pid 2>/dev/null; wait $pid 2>/dev/null
+	print -u2 -- "[watch] backtrace of the killed run (${logf:t}):"
+	{
+		grep -E -A8 'Program crashed|Dumping the backtrace' $logf | head -14
+		sed -n '/GDScript backtrace/,/END OF GDSCRIPT/p' $logf | head -24
+	} >&2
+	grep -qE 'GDScript backtrace|Dumping the backtrace' $logf || print -u2 -- "[watch] no backtrace in the log (the process may have died before the handler ran)"
+}
+
+# watched LIMIT OKRE GRACE LOG CMD...: run CMD (stdout+stderr to LOG) under a LIMIT-second cap like
+# `limited`, and once a line matching OKRE shows in LOG, give it GRACE seconds to exit. Sets
+# WATCH_OK_AT / WATCH_EXIT_AT (seconds from the start; OK_AT is -1 if the line never came) and
+# returns the exit code (a timeout or hang is killed with SIGSEGV first, see stuck_kill), 142 when LIMIT ran out, 144 when the process was still alive GRACE seconds
+# after the OK line (an exit hang on a slow runner, not a game failure: it is killed and reported alone).
+WATCH_OK_AT=-1
+WATCH_EXIT_AT=-1
+watched() {
+	local limit=$1 okre=$2 grace=$3 logf=$4; shift 4
+	local t0=$EPOCHREALTIME pid code now
+	WATCH_OK_AT=-1
+	WATCH_EXIT_AT=-1
+	"$@" > $logf 2>&1 &
+	pid=$!
+	while kill -0 $pid 2>/dev/null; do
+		now=$(( EPOCHREALTIME - t0 ))
+		if (( WATCH_OK_AT < 0 )) && grep -qE "$okre" $logf; then
+			WATCH_OK_AT=$now
+			print -u2 -- "[watch] $(date -u +%H:%M:%S) OK line after $(printf '%.0f' $now) s"
+		fi
+		if (( now > limit )); then
+			stuck_kill $pid $logf
+			WATCH_EXIT_AT=$(( EPOCHREALTIME - t0 ))
+			return 142
+		fi
+		if (( WATCH_OK_AT >= 0 && now - WATCH_OK_AT > grace )); then
+			stuck_kill $pid $logf
+			WATCH_EXIT_AT=$(( EPOCHREALTIME - t0 ))
+			print -u2 -- "[watch] $(date -u +%H:%M:%S) still alive ${grace} s after the OK line: killed"
+			return 144
+		fi
+		sleep 1
+	done
+	wait $pid; code=$?
+	WATCH_EXIT_AT=$(( EPOCHREALTIME - t0 ))
+	if (( WATCH_OK_AT < 0 )) && grep -qE "$okre" $logf; then WATCH_OK_AT=$WATCH_EXIT_AT; fi
+	print -u2 -- "[watch] $(date -u +%H:%M:%S) exited ($code) after $(printf '%.0f' $WATCH_EXIT_AT) s"
+	return $code
+}
+
 # game NAME FRAMES OUTCOME GAMEARGS...: a headless game run with --nosave that quits after
 # FRAMES frames; OUTCOME is a regex for the line that says the activity finished ("" = none).
 game() {
 	local name=$1 frames=$2 outcome=$3; shift 3
-	local logf=$logs/run_$name.log t0=$EPOCHREALTIME code
-	( cd $GAME && limited $STEP_LIMIT $GODOT --headless --path . --fixed-fps 60 --quit-after $frames \
-		-- --nosave --notitle "$@" ) > $logf 2>&1
-	code=$?
+	local logf=$logs/run_$name.log t0=$EPOCHREALTIME code watchnote=""
+	if [[ -n $GAME_GRACE && -n $outcome ]]; then
+		# GAME_GRACE=N: the outcome line's time and the exit's time are logged, and a process still
+		# alive N s after the outcome line is killed and reported as an exit hang, not a game failure.
+		watched $STEP_LIMIT "$outcome" $GAME_GRACE $logf zsh -c 'cd "$1" && shift && exec "$@"' _ $GAME \
+			$GODOT --headless --path . --fixed-fps 60 --quit-after $frames -- --nosave --notitle "$@"
+		code=$?
+		watchnote=" [outcome line at $(printf '%.0f' $WATCH_OK_AT) s, exit at $(printf '%.0f' $WATCH_EXIT_AT) s]"
+		if (( code == 144 )); then
+			row FAIL "run: $name" $(printf '%.0f' $WATCH_EXIT_AT) "EXIT HANG, not a game failure: outcome line at $(printf '%.0f' $WATCH_OK_AT) s, process still alive ${GAME_GRACE} s later, killed ($logf)"
+			return
+		fi
+	else
+		( cd $GAME && limited $STEP_LIMIT $GODOT --headless --path . --fixed-fps 60 --quit-after $frames \
+			-- --nosave --notitle "$@" ) > $logf 2>&1
+		code=$?
+	fi
 	local secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
 	local np=$(problems $logf | wc -l | tr -d ' ')
 	local built=$(grep -m1 '^city built in' $logf)
@@ -682,7 +758,7 @@ game() {
 	elif [[ -n $outcome ]]; then
 		local fin=$(grep -E -m1 "$outcome" $logf)
 		if [[ -n $fin ]]; then
-			row PASS "$label" $secs "0 errors$known · ${fin[1,110]}"
+			row PASS "$label" $secs "0 errors$known · ${fin[1,110]}$watchnote"
 		else
 			row WARN "$label" $secs "0 errors$known, but no '$outcome' line in $frames frames ($(( frames / 60 )) s of play)"
 		fi
@@ -1608,6 +1684,7 @@ for s in $want; do
 		palmtasting) check palmtasting '^check_palm_tasting:' --script res://tools/check_palm_tasting.gd -- --nosave ;;
 		tapczan) check tapczan '^check_tapczan:' --script res://tools/check_tapczan.gd ;;
 		drift) check drift '^check_drift:' --script res://tools/check_drift.gd ;;
+		drift-event) check drift-event '^check_drift_event:' --fixed-fps 60 --script res://tools/check_drift_event.gd ;;
 		# Za deckami, stage A: the DJ game's rules, tracks and tuning; four bots against the design's targets.
 		decks) check decks '^check_decks:' --script res://tools/check_decks.gd ;;
 		# Dead electric cars: the TESŁO, the lines, the sling, the chargers on the real graph.
@@ -1733,6 +1810,9 @@ for s in $want; do
 		sectororder) STEP_LIMIT=$(( STEP_LIMIT > 1500 ? STEP_LIMIT : 1500 )) shown sectororder '^check_sector_order:' --script res://tools/check_sector_order.gd ;;
 		# Loop 3c: the sectors are the whole city (meshes, pixels at 10 spots), streaming misses nothing.
 		# The loading fix (2026-10-31): seven passes now, ~13 min: at least 25 min before it's stopped.
+		# The quit fix (CI's firstlife EXIT HANG, 2026-11-27): a quit while the streamer's worker builds a
+		# runtime sector stops the build at its next step instead of waiting it out (~70 s, headless).
+		streamquit) check streamquit '^check_stream_quit:' --script res://tools/check_stream_quit.gd ;;
 		streaming) STEP_LIMIT=$(( STEP_LIMIT > 1500 ? STEP_LIMIT : 1500 )) shown streaming '^check_streaming:' --script res://tools/check_streaming.gd -- --keep=$logs/streaming ;;
 		# Loop 3g-1: the police's lines, flow and state machine (P11, P12), the runs P1-P7, the soak P13.
 		police) check police '^check_police:' --script res://tools/check_police.gd ;;
@@ -1771,6 +1851,7 @@ for s in $want; do
 		tajny-run) game tajny-run 19000 '^tajny klient: beat done' --tajny --autopilot ;;
 		tapczan-run) game tapczan 12000 '^tapczan: out: won' --tapczan=pong --tapczan-log ;;
 		drift-run) game drift 4500 '^drift: run over' --drift=osemka:bot ;;
+		drift-quest) skip_prebuilt "run: drift-quest" || game drift-quest 30000 '^drift: quest over: won' --drift=quest:bot --prebuilt ;;
 		decks-run) game decks 12000 '^decks: over: PIEC' --decks --decks-bot=perfect --decks-log ;;
 		shisha-run) game shisha 30000 '^shisha: done: smoke' --shisha-call --shisha-log --autopilot ;;
 		# Loop 2d-1 x 3g-1: a pull-over 25 s into that ride takes exactly one star (police.gd calls
@@ -1786,7 +1867,7 @@ for s in $want; do
 		teleport) game teleport 3000 '^teleport test: OK' --teleport-test --no-police ;;
 		# First scene items 6-7: at the start, after 15 s of play: walkers on Marszałkowska's busy
 		# pavements, people at the start's furniture, a tram's bell as it passes, the square's bed.
-		firstlife) game firstlife 1200 '^first life: OK' --first-life --at=-961.6,95 --heading=339.8 ;;
+		firstlife) GAME_GRACE=60 game firstlife 1200 '^first life: OK' --first-life --at=-961.6,95 --heading=339.8 ;;
 		rain) game rain-night 600 "" --weather=rain --time=night ;;
 		prebuilt) skip_prebuilt "run: prebuilt-night" || game prebuilt-night 600 "" --prebuilt --time=night ;;
 		# Tech-debt TD-15: the game started as a player starts it (boot.gd: the title up, the game's
