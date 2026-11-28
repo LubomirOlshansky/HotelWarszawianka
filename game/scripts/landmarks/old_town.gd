@@ -7356,3 +7356,571 @@ func _bk_roofs(m: Dictionary, g: float) -> void:
 		kit_dormer(_w(w_in, dv), -axis_a, w_dy, BK_TRIM, BK_TRIM, BK_GLASS)
 
 
+# --- Archiwum Główne Akt Dawnych (Pałac Raczyńskich, Długa 7; docs/landmarks/specs/archiwum_agad.md) ---
+
+## Classicist Raczyński Palace on Długa, seat of the Central Archives of Historical Records:
+## U-shaped complex round an open tree courtyard (the SE Kilińskiego block is a separate mapped
+## apartment building outside this outline). The Długa front wears cream render over a rusticated
+## ground floor, a stepped 13-bay composition with four giant engaged columns under a wide
+## triangular pediment, flanking giant pilasters under stone attic balustrades, a stone balustrade
+## balcony, pedimented piano-nobile windows, short mezzanine windows, and a big red tile hipped
+## roof with dormers; the two plain yellow three-storey courtyard wings carry grey-green metal
+## pitched roofs meeting the red tile roof in clean valleys.
+const AG_NAME := "Archiwum Główne Akt Dawnych"
+const AG_WALL := Color("#e2d3a8")       # palace front warm cream render (spec & Street View)
+const AG_BASE := Color("#d4c497")       # rusticated ground-floor render (spec & Street View)
+const AG_PLINTH := Color("#9e9684")     # weathered stone socle at pavement level (Street View)
+const AG_TRIM := Color("#efe6cc")       # columns, pilasters, balustrade, cornices, surrounds (spec)
+const AG_RELIEF := Color("#cfc6ad")     # shaded tympanum relief inside the pediment
+const AG_REAR := Color("#d9c48f")       # plain yellow render of the courtyard wings (spec & Street View)
+const AG_TILE := Color("#b5583f")       # red tile hipped roof on the Długa front wing (spec & 3D Tiles)
+const AG_METAL := Color("#7d8b80")      # grey-green standing-seam metal roofs on courtyard wings & pediment saddle (3D Tiles)
+const AG_COURT := Color("#5d6a55")      # dark green-grey courtyard ground (spec)
+const AG_GLASS := Color("#4a5660")      # window glass (spec)
+const AG_DOOR := Color("#6b4a32")       # main wooden door on Długa (spec)
+const AG_DOOR_GLOW := Color("#e0be82")  # warm amber night glow over the main Długa entrance
+const AG_GROUND_H := 5.0                # palace rusticated ground-floor height
+const AG_FRONT_H := 15.0                # palace front wing eaves height
+const AG_FRONT_ROOF_H := 6.0            # front wing red tile hipped roof rise (ridge 21.0 m)
+const AG_WING_H := 13.0                 # courtyard wings eaves height
+const AG_WING_ROOF_H := 4.0             # courtyard wings grey-green metal roof rise (ridge 17.0 m)
+
+
+## Finds Archiwum Główne Akt Dawnych's OSM outline and registers the `archiwum_agad` site with a
+## 0.5 m outward zone offset so the map's plain 14 m prism and photo front b1828 are replaced cleanly.
+func _find_archiwum_agad() -> void:
+	var raw := _landmark(AG_NAME)
+	if raw.size() < 3:
+		push_error("archiwum_agad: landmark outline '%s' is missing from centrum.json" % AG_NAME)
+		return
+	var zone := _largest(Geometry2D.offset_polygon(raw, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = raw
+	_add_site("archiwum_agad", [zone])
+	if not sites.is_empty() and sites[-1]["key"] == "archiwum_agad":
+		sites[-1]["raw"] = raw
+		sites[-1]["replaces_photo_front"] = "b1828"
+
+
+## Builds Archiwum Główne Akt Dawnych (Pałac Raczyńskich) from its mapped U-outline: stepped
+## classicist palace front on Długa with engaged columns, pediment, balustrade balcony and red tile
+## hipped roof with dormers; two plain yellow courtyard wings under grey-green metal pitched roofs;
+## dark courtyard ground with trees; and full outline collision.
+func _build_archiwum_agad(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var m := _ag_frame(raw)
+	if m.is_empty():
+		return
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	_ag_set_frame(m)
+	_ag_front_wing(m, g)
+	_ag_front_risalit(m, g)
+	_ag_side_wings(m, g)
+	_ag_roofs(m, g)
+	_ag_courtyard(m, g)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Restores the palace's main local frame: origin at the SW Długa corner, +u SW-to-NE along Długa,
+## +v NW-to-SE into the courtyard.
+func _ag_set_frame(m: Dictionary) -> void:
+	_o = m["o"]
+	_a = m["a"]
+	_b = m["b"]
+	kit_face(0.0)
+
+
+## Starts a kit_front along edge a->b oriented so _b matches the outward normal `out`.
+func _ag_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
+## Ensures counter-clockwise winding for plan polygons handed to _prism, _cap, and ring helpers.
+func _ag_ccw(ring: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array(ring)
+	if Geometry2D.is_polygon_clockwise(out):
+		out.reverse()
+	return out
+
+
+## Derives the U-plan axes, stepped Długa front risalit bounds, and courtyard wing extents directly
+## from the OSM outline vertices.
+func _ag_frame(raw: PackedVector2Array) -> Dictionary:
+	var sw := raw[0]
+	var ne := raw[0]
+	for p in raw:
+		if p.x < sw.x:
+			sw = p
+		if p.y < ne.y:
+			ne = p
+	var span := ne - sw
+	if span.length() < 20.0:
+		return {}
+	var axis_a := span.normalized()
+	var axis_b := Vector2(-axis_a.y, axis_a.x)
+	if axis_b.dot(_centre(raw) - sw) < 0.0:
+		axis_b = -axis_b
+	_o = sw
+	_a = axis_a
+	_b = axis_b
+	var u_front := span.length()
+	var u_ris0 := INF
+	var u_ris1 := -INF
+	var u_mid0 := INF
+	var u_mid1 := -INF
+	var v_back_sum := 0.0
+	var v_back_cnt := 0
+	var sw_out0 := 10.35
+	var sw_in0 := 19.02
+	var sw_out1 := 11.88
+	var sw_in1 := 20.34
+	var v_sw_end := 54.80
+	var ne_in0 := 35.66
+	var ne_out0 := 45.75
+	var ne_in1 := 36.72
+	var ne_out1 := 47.42
+	var v_ne_end := 53.75
+	var sw_max_v := 0.0
+	var ne_max_v := 0.0
+	for p in raw:
+		var l := _local(p)
+		if l.y < -0.60:
+			u_ris0 = minf(u_ris0, l.x)
+			u_ris1 = maxf(u_ris1, l.x)
+		if l.y < -0.15 and l.y > -0.60:
+			u_mid0 = minf(u_mid0, l.x)
+			u_mid1 = maxf(u_mid1, l.x)
+		if l.y > 15.8 and l.y < 17.2 and l.x > 1.0 and l.x < 36.0:
+			v_back_sum += l.y
+			v_back_cnt += 1
+		if l.y > 48.0 and l.x < 28.0:
+			if l.y > sw_max_v:
+				sw_max_v = l.y
+			if l.x < 14.0 and l.y > 53.0:
+				sw_out1 = l.x
+			if l.x > 18.0:
+				sw_in1 = l.x
+		if l.y > 48.0 and l.x > 30.0:
+			if l.y > ne_max_v:
+				ne_max_v = l.y
+			if l.x < 40.0 and l.y > 53.0:
+				ne_in1 = minf(ne_in1, l.x)
+			if l.x > 44.0:
+				ne_out1 = maxf(ne_out1, l.x)
+		if l.y > 16.0 and l.y < 20.5:
+			if l.x > 9.0 and l.x < 13.0:
+				sw_out0 = l.x
+			elif l.x > 18.0 and l.x < 20.2:
+				sw_in0 = l.x
+			elif l.x > 35.0 and l.x < 36.5:
+				ne_in0 = l.x
+	var v_back := v_back_sum / float(v_back_cnt) if v_back_cnt > 0 else 16.45
+	if u_ris0 >= u_ris1:
+		u_ris0 = u_front * 0.36
+		u_ris1 = u_front * 0.64
+	if u_mid0 >= u_mid1:
+		u_mid0 = u_front * 0.22
+		u_mid1 = u_front * 0.78
+	if sw_max_v > 40.0:
+		v_sw_end = sw_max_v
+	if ne_max_v > 40.0:
+		v_ne_end = ne_max_v
+	# Keep each side wing a constant-width parallelogram so roof eaves and ridge stay coplanar.
+	var sw_w := ((sw_in0 - sw_out0) + (sw_in1 - sw_out1)) * 0.5
+	var sw_c0 := (sw_out0 + sw_in0) * 0.5
+	var sw_c1 := (sw_out1 + sw_in1) * 0.5
+	var ne_w := ((ne_out0 - ne_in0) + (ne_out1 - ne_in1)) * 0.5
+	var ne_c0 := (ne_in0 + ne_out0) * 0.5
+	var ne_c1 := (ne_in1 + ne_out1) * 0.5
+	# Align the front wing's NE end flush with the NE courtyard wing's outer edge at v_back.
+	var u_front_aligned := maxf(u_front, ne_c0 + ne_w * 0.5)
+	return {
+		"o": sw, "a": axis_a, "b": axis_b,
+		"u_front": u_front_aligned, "v_back": v_back,
+		"u_mid0": u_mid0, "u_mid1": u_mid1,
+		"u_ris0": u_ris0, "u_ris1": u_ris1,
+		"v_mid": -0.32, "v_ris": -1.12,
+		"sw_c0": sw_c0, "sw_c1": sw_c1, "sw_hw": sw_w * 0.5, "v_sw_end": v_sw_end,
+		"ne_c0": ne_c0, "ne_c1": ne_c1, "ne_hw": ne_w * 0.5, "v_ne_end": v_ne_end,
+	}
+
+
+## Draws horizontal rustication grooves (kit_bands) only on the wall piers between openings so
+## bands never overlap window surrounds or the main portal.
+func _ag_rusticate_piers(u0: float, u1: float, skips: Array, y0: float, y1: float) -> void:
+	var cur := u0
+	for sp_var in skips:
+		var sp: Vector2 = sp_var
+		if sp.x - cur > 0.35:
+			kit_bands(cur + 0.08, sp.x - 0.08, y0, y1, 0.98, AG_BASE)
+		cur = maxf(cur, sp.y)
+	if u1 - cur > 0.35:
+		kit_bands(cur + 0.08, u1 - 0.08, y0, y1, 0.98, AG_BASE)
+
+
+## Builds the Długa palace front wing (0 - 15.0 m): stepped 12-vertex mass with rusticated ground
+## floor, cream upper storeys, outer 3-bay flanks, 2-bay pilastered intermediate wings under stone
+## attic balustrades, 5-bay SW end face, dressed NE end face, SW lawn return, and courtyard front face.
+func _ag_front_wing(m: Dictionary, g: float) -> void:
+	_ag_set_frame(m)
+	var uf: float = m["u_front"]
+	var vb: float = m["v_back"]
+	var um0: float = m["u_mid0"]
+	var um1: float = m["u_mid1"]
+	var ur0: float = m["u_ris0"]
+	var ur1: float = m["u_ris1"]
+	var vm: float = m["v_mid"]
+	var vr: float = m["v_ris"]
+	var sw_out0: float = float(m["sw_c0"]) - float(m["sw_hw"])
+	var sw_in0: float = float(m["sw_c0"]) + float(m["sw_hw"])
+	var ne_in0: float = float(m["ne_c0"]) - float(m["ne_hw"])
+	var none := Color(0, 0, 0, 0)
+	var ring := _ag_ccw(_lpoly([
+		[0.0, 0.0], [um0, 0.0], [um0, vm], [ur0, vm], [ur0, vr],
+		[ur1, vr], [ur1, vm], [um1, vm], [um1, 0.0], [uf, 0.0],
+		[uf, vb], [0.0, vb],
+	]))
+	# Emit the courtyard-facing ground floor in cream/yellow first so `_wall` clips the rusticated prism cleanly.
+	_wall(_w(sw_in0, vb), _w(ne_in0, vb), g - 0.5, g + AG_GROUND_H, m["b"] as Vector2, AG_REAR)
+	_prism(ring, g - 0.5, g + AG_GROUND_H, AG_BASE, none, M_STONE)
+	_prism(ring, g + AG_GROUND_H, g + AG_FRONT_H, AG_WALL, none, M_STONE)
+	_cap(ring, g + AG_FRONT_H - 0.06, AG_TILE.darkened(0.24))
+	var sy0 := g + 1.45
+	var sy1 := g + 5.75
+	var sy2 := g + 11.20
+	var h0 := 2.15
+	var h1 := 2.60
+	var h2 := 1.45
+	var out_nw := -(m["b"] as Vector2)
+	# 1. Outer 3-bay flanks along Długa (v = 0.0) with white window sashes across all three storeys.
+	for span: Array in [[0.0, um0], [um1, uf]]:
+		var wf := _ag_front_edge(_w(float(span[0]), 0.0), _w(float(span[1]), 0.0), out_nw)
+		kit_ledge(0.06, wf - 0.06, g - 0.4, 1.25, AG_PLINTH, 0.10)
+		kit_ledge(0.06, wf - 0.06, g + AG_GROUND_H - 0.14, 0.26, AG_TRIM, 0.10)
+		kit_ledge(0.06, wf - 0.06, g + 10.65, 0.20, AG_TRIM, 0.09)
+		kit_cornice(0.54, wf - 0.54, g + AG_FRONT_H - 0.50, AG_TRIM, 0.50, 0.48)
+		var bays := _spread(1.10, wf - 1.10, 3)
+		var skips: Array = []
+		for c_var in bays:
+			var c := float(c_var)
+			kit_window(c, sy0, h0, Win.SILL, AG_TRIM, AG_GLASS, 0.62, AG_TRIM)
+			kit_window(c, sy1, h1, Win.SILL_HEAD, AG_TRIM, AG_GLASS, 0.64, AG_TRIM)
+			kit_window(c, sy2, h2, Win.SILL_HEAD, AG_TRIM, AG_GLASS, 0.60, AG_TRIM)
+			skips.append(Vector2(c - 0.96, c + 0.96))
+		_ag_rusticate_piers(0.10, wf - 0.10, skips, g + 0.90, g + AG_GROUND_H - 0.20)
+		_ag_set_frame(m)
+	# 2. Intermediate 2-bay stepped wings (v = v_mid): giant pilasters + stone attic balustrades.
+	for seg: Array in [[um0, ur0, false], [ur1, um1, true]]:
+		var u_lo: float = seg[0]
+		var u_hi: float = seg[1]
+		var is_ne: bool = seg[2]
+		var wm := _ag_front_edge(_w(u_lo, vm), _w(u_hi, vm), out_nw)
+		kit_ledge(0.06, wm - 0.06, g - 0.4, 1.25, AG_PLINTH, 0.10)
+		kit_ledge(0.06, wm - 0.06, g + AG_GROUND_H - 0.14, 0.26, AG_TRIM, 0.10)
+		kit_ledge(0.06, wm - 0.06, g + 10.65, 0.20, AG_TRIM, 0.09)
+		kit_cornice(0.54, wm - 0.54, g + AG_FRONT_H - 0.50, AG_TRIM, 0.50, 0.50)
+		kit_attic(0.15, wm - 0.15, g + AG_FRONT_H + 0.02, AG_TRIM, 1.05, Attic.BALUSTRADE)
+		var mbays := _spread(1.05, wm - 1.05, 2)
+		var mskips: Array = []
+		for c_var in mbays:
+			var c := float(c_var)
+			kit_window(c, sy0, h0, Win.SILL, AG_TRIM, AG_GLASS, 0.62, AG_TRIM)
+			kit_window(c, sy1, h1, Win.SILL_HEAD, AG_TRIM, AG_GLASS, 0.64, AG_TRIM)
+			kit_window(c, sy2, h2, Win.SILL_HEAD, AG_TRIM, AG_GLASS, 0.58, AG_TRIM)
+			mskips.append(Vector2(c - 0.96, c + 0.96))
+		_ag_rusticate_piers(0.10, wm - 0.10, mskips, g + 0.90, g + AG_GROUND_H - 0.20)
+		# Two giant flat pilasters per intermediate wing: one at the outer corner, one between bays.
+		var outer_u := 0.42 if is_ne else wm - 0.42
+		for pu: float in [outer_u, (float(mbays[0]) + float(mbays[1])) * 0.5]:
+			kit_pilaster(pu, g + AG_GROUND_H + 0.14, g + AG_FRONT_H - 0.92, AG_TRIM, 0.58, 0.15)
+		_ag_set_frame(m)
+	# 3. SW end face of front wing (u = 0, v = 0..v_back, facing -a): 5 bays, rusticated ground floor.
+	var wsw := _ag_front_edge(_w(0.0, 0.0), _w(0.0, vb), -(m["a"] as Vector2))
+	kit_ledge(0.06, wsw - 0.06, g - 0.4, 1.25, AG_PLINTH, 0.10)
+	kit_ledge(0.06, wsw - 0.06, g + AG_GROUND_H - 0.14, 0.26, AG_TRIM, 0.10)
+	kit_ledge(0.06, wsw - 0.06, g + 10.65, 0.20, AG_TRIM, 0.09)
+	kit_cornice(0.54, wsw - 0.54, g + AG_FRONT_H - 0.50, AG_TRIM, 0.50, 0.48)
+	var swb := _spread(1.40, wsw - 1.40, 5)
+	var sw_skips: Array = []
+	for c_var in swb:
+		var c := float(c_var)
+		kit_window(c, sy0, h0, Win.SILL, AG_TRIM, AG_GLASS, 0.60, AG_TRIM)
+		kit_window(c, sy1, h1, Win.SILL_HEAD, AG_TRIM, AG_GLASS, 0.62, AG_TRIM)
+		kit_window(c, sy2, h2, Win.SILL, AG_TRIM, AG_GLASS, 0.58, AG_TRIM)
+		sw_skips.append(Vector2(c - 0.92, c + 0.92))
+	_ag_rusticate_piers(0.12, wsw - 0.12, sw_skips, g + 0.90, g + AG_GROUND_H - 0.20)
+	_ag_set_frame(m)
+	# 4. NE end face of front wing (u = u_front, v = 0..v_back, facing +a): party wall dressed cleanly.
+	var wne := _ag_front_edge(_w(uf, 0.0), _w(uf, vb), m["a"] as Vector2)
+	kit_ledge(0.06, wne - 0.06, g - 0.4, 1.25, AG_PLINTH, 0.09)
+	kit_ledge(0.06, wne - 0.06, g + AG_GROUND_H - 0.14, 0.24, AG_TRIM, 0.08)
+	kit_ledge(0.06, wne - 0.06, g + 10.65, 0.18, AG_TRIM, 0.08)
+	kit_cornice(0.54, wne - 0.54, g + AG_FRONT_H - 0.50, AG_TRIM, 0.50, 0.40)
+	_ag_set_frame(m)
+	# 5. SE lawn return of front wing (v = v_back, u = 0..sw_out0, facing +b): quiet 1-bay corner return.
+	var wl := _ag_front_edge(_w(0.0, vb), _w(sw_out0, vb), m["b"] as Vector2)
+	kit_ledge(0.06, wl - 0.08, g - 0.4, 1.25, AG_PLINTH, 0.10)
+	kit_ledge(0.06, wl - 0.08, g + AG_GROUND_H - 0.14, 0.26, AG_TRIM, 0.10)
+	kit_ledge(0.06, wl - 0.08, g + 10.65, 0.20, AG_TRIM, 0.09)
+	kit_cornice(0.54, wl - 0.54, g + AG_FRONT_H - 0.50, AG_TRIM, 0.50, 0.46)
+	kit_panes([wl - 1.85], [sy0], 1.18, h0, AG_GLASS, 0.06)
+	kit_panes([wl - 1.85], [sy1], 1.18, h1, AG_GLASS, 0.06)
+	kit_panes([wl - 1.85], [sy2], 1.18, h2, AG_GLASS, 0.06)
+	_ag_rusticate_piers(0.12, wl - 0.12, [Vector2(wl - 2.75, wl - 0.95)], g + 0.90, g + AG_GROUND_H - 0.20)
+	_ag_set_frame(m)
+	# 6. SE courtyard face of front wing (v = v_back, u = sw_in0..ne_in0, facing +b): 5 bays + arched passage.
+	var wc := _ag_front_edge(_w(sw_in0, vb), _w(ne_in0, vb), m["b"] as Vector2)
+	kit_ledge(0.10, wc - 0.10, g - 0.4, 1.15, AG_PLINTH, 0.08)
+	kit_ledge(0.10, wc - 0.10, g + AG_GROUND_H - 0.14, 0.22, AG_TRIM, 0.08)
+	kit_ledge(0.10, wc - 0.10, g + 10.65, 0.18, AG_TRIM, 0.08)
+	kit_cornice(0.54, wc - 0.54, g + AG_FRONT_H - 0.46, AG_TRIM, 0.46, 0.40)
+	var cbays := _spread(1.30, wc - 1.30, 5)
+	kit_door(wc * 0.5, g + 0.05, 3.65, 1.15, AG_TRIM, AG_DOOR, true)
+	var c_gf: Array[float] = []
+	for k in 5:
+		if k != 2:
+			c_gf.append(float(cbays[k]))
+	kit_panes(c_gf, [sy0], 1.20, h0, AG_GLASS, 0.06)
+	for row: Array in [[sy1, h1], [sy2, h2]]:
+		kit_ledge(0.75, wc - 0.75, float(row[0]) - 0.16, 0.12, AG_TRIM, 0.08)
+		kit_panes(cbays, [float(row[0])], 1.20, float(row[1]), AG_GLASS, 0.06)
+	_ag_set_frame(m)
+
+
+## Dresses the projecting central risalit on Długa (v = v_ris): rusticated ground floor with the
+## warm-glowing main wooden door, stone balustrade balcony at 5.0 m, four giant engaged Tuscan
+## columns framing three pedimented piano-nobile windows and three mezzanine windows, entablature
+## architrave and cornice, and the classical triangular pediment returning into the red tile roof.
+func _ag_front_risalit(m: Dictionary, g: float) -> void:
+	_ag_set_frame(m)
+	var ur0: float = m["u_ris0"]
+	var ur1: float = m["u_ris1"]
+	var vr: float = m["v_ris"]
+	var out_nw := -(m["b"] as Vector2)
+	var w := _ag_front_edge(_w(ur0, vr), _w(ur1, vr), out_nw)
+	var cu := w * 0.5
+	var sy0 := g + 1.45
+	var sy1 := g + 5.75
+	var sy2 := g + 11.20
+	var h0 := 2.15
+	var h1 := 2.60
+	var h2 := 1.45
+	# Plinth split cleanly around the main Długa entrance door, plus belt, string course, architrave and cornice.
+	kit_ledge(0.04, cu - 1.32, g - 0.4, 1.25, AG_PLINTH, 0.10)
+	kit_ledge(cu + 1.32, w - 0.04, g - 0.4, 1.25, AG_PLINTH, 0.10)
+	kit_ledge(0.04, w - 0.04, g + AG_GROUND_H - 0.14, 0.26, AG_TRIM, 0.10)
+	kit_ledge(0.04, w - 0.04, g + 10.65, 0.20, AG_TRIM, 0.09)
+	kit_ledge(0.04, w - 0.04, g + AG_FRONT_H - 1.15, 0.24, AG_TRIM.lightened(0.03), 0.20)
+	kit_cornice(0.35, w - 0.35, g + AG_FRONT_H - 0.50, AG_TRIM, 0.50, 0.58)
+	# Main wooden door in the central bay, glowing warm at night via transom and entrance sconces.
+	kit_door(cu, g + 0.05, 3.60, 1.05, AG_TRIM, AG_DOOR, false)
+	var keep := _mode
+	_mode = M_PAVILION
+	_kbox(cu - 0.90, cu + 0.90, 0.05, 0.09, g + 2.85, g + 3.45, AG_DOOR_GLOW, M_PAVILION)
+	_mode = M_LAMP
+	for su: float in [-1.40, 1.40]:
+		_kbox(cu + su - 0.10, cu + su + 0.10, 0.02, 0.18, g + 2.45, g + 2.92, AG_DOOR_GLOW, M_LAMP)
+	_mode = keep
+	# Three-bay rhythm across ground, piano nobile (pedimented), and mezzanine storeys with white sashes.
+	var bays := _spread(1.15, w - 1.15, 3)
+	var skips: Array = []
+	for k in 3:
+		var bu: float = bays[k]
+		if k == 1:
+			skips.append(Vector2(cu - 1.56, cu + 1.56))
+		else:
+			kit_window(bu, sy0, h0, Win.FRAMED, AG_TRIM, AG_GLASS, 0.64, AG_TRIM)
+			skips.append(Vector2(bu - 0.98, bu + 0.98))
+		kit_window(bu, sy1, h1, Win.PEDIMENT, AG_TRIM, AG_GLASS, 0.66, AG_TRIM)
+		kit_window(bu, sy2, h2, Win.SILL_HEAD, AG_TRIM, AG_GLASS, 0.60, AG_TRIM)
+	_ag_rusticate_piers(0.10, w - 0.10, skips, g + 0.90, g + AG_GROUND_H - 0.20)
+	# Stone balustrade balcony spanning the central risalit at 5.0 m.
+	kit_balcony(cu, g + 5.18, w * 0.46, Balcony.STONE, AG_TRIM.lightened(0.03), AG_TRIM, 0.92)
+	# Four giant engaged Tuscan columns framing the three bays from the balcony up to the architrave.
+	var col_stone := AG_TRIM.lightened(0.04)
+	for col_u: float in [1.05, (float(bays[0]) + float(bays[1])) * 0.5, (float(bays[1]) + float(bays[2])) * 0.5, w - 1.05]:
+		kit_column(col_u, 0.40, g + 5.16, g + AG_FRONT_H - 1.12, col_stone, 0.42, Order.TUSCAN)
+	# Classical triangular pediment (2.65 m tall, ~1:4.8 pitch matching Street View) returning into the red roof.
+	kit_face(-4.95)
+	kit_pediment(cu, w * 0.5 + 0.15, g + AG_FRONT_H + 0.03, 2.65, col_stone, AG_METAL, 5.20, AG_RELIEF)
+	kit_face(0.0)
+	_ag_set_frame(m)
+
+
+## Builds the two plain yellow three-storey courtyard wings (SW and NE, 0 - 13.0 m) as clean
+## constant-width parallelograms with plinths, belt/string courses, cornices, and kit_panes grids.
+func _ag_side_wings(m: Dictionary, g: float) -> void:
+	_ag_set_frame(m)
+	var vb: float = m["v_back"]
+	var none := Color(0, 0, 0, 0)
+	var sy0 := g + 1.30
+	var sy1 := g + 5.15
+	var sy2 := g + 9.45
+	var h0 := 2.05
+	var h1 := 2.40
+	var h2 := 1.50
+	var wings := [
+		[float(m["sw_c0"]), float(m["sw_c1"]), float(m["sw_hw"]), float(m["v_sw_end"])],
+		[float(m["ne_c0"]), float(m["ne_c1"]), float(m["ne_hw"]), float(m["v_ne_end"])],
+	]
+	for wd: Array in wings:
+		var c0: float = wd[0]
+		var c1: float = wd[1]
+		var hw: float = wd[2]
+		var ve: float = wd[3]
+		var p_sw0 := _w(c0 - hw, vb)
+		var p_ne0 := _w(c0 + hw, vb)
+		var p_ne1 := _w(c1 + hw, ve)
+		var p_sw1 := _w(c1 - hw, ve)
+		var ring := _ag_ccw(PackedVector2Array([p_sw0, p_ne0, p_ne1, p_sw1]))
+		_prism(ring, g - 0.5, g + AG_WING_H, AG_REAR, none, M_STONE)
+		_cap(ring, g + AG_WING_H - 0.05, AG_METAL.darkened(0.24))
+		# Long SW face, long NE face, and SE end face.
+		var d_sw := (p_sw1 - p_sw0).normalized()
+		var n_sw := Vector2(-d_sw.y, d_sw.x)
+		if n_sw.dot(-(m["a"] as Vector2)) < 0.0:
+			n_sw = -n_sw
+		var n_ne := -n_sw
+		var faces := [
+			[p_sw0, p_sw1, n_sw, 10],
+			[p_ne0, p_ne1, n_ne, 10],
+			[p_sw1, p_ne1, m["b"] as Vector2, 2],
+		]
+		for fc: Array in faces:
+			var wf := _ag_front_edge(fc[0], fc[1], fc[2])
+			var nbays: int = fc[3]
+			kit_ledge(0.08, wf - 0.08, g - 0.4, 1.15, AG_PLINTH, 0.09)
+			kit_ledge(0.08, wf - 0.08, g + 4.55, 0.20, AG_TRIM, 0.08)
+			kit_ledge(0.08, wf - 0.08, g + 9.05, 0.16, AG_TRIM, 0.08)
+			kit_cornice(0.54, wf - 0.54, g + AG_WING_H - 0.42, AG_TRIM, 0.42, 0.36)
+			var margin := minf(1.45, wf * 0.24)
+			var cols := _spread(margin, wf - margin, nbays)
+			for row: Array in [[sy0, h0], [sy1, h1], [sy2, h2]]:
+				kit_ledge(0.70, wf - 0.70, float(row[0]) - 0.16, 0.12, AG_TRIM, 0.08)
+				kit_panes(cols, [float(row[0])], 1.22, float(row[1]), AG_GLASS, 0.06)
+			_ag_set_frame(m)
+
+
+## Builds all pitched roofs solid down to the cornices: the tall red tile hipped roof over the
+## Długa front wing with six small dormers (four street-facing, two courtyard-facing), and the
+## grey-green metal pitched roofs on both courtyard wings tucked cleanly into the red tile slope.
+func _ag_roofs(m: Dictionary, g: float) -> void:
+	_ag_set_frame(m)
+	_mode = M_STONE
+	var uf: float = m["u_front"]
+	var vb: float = m["v_back"]
+	var axis_b: Vector2 = m["b"]
+	# 1. Front wing red tile hipped roof (15.0 -> 21.0 m): full hip at the SW corner and shorter
+	# hip at the NE party-wall end (matching top.jpg) so the NE courtyard wing joins cleanly.
+	var f_eave := g + AG_FRONT_H
+	var f_ov := 0.35
+	var f_hv := vb * 0.5 + f_ov
+	var fr0 := _ag_ccw(_lpoly([
+		[-f_ov, -f_ov], [uf + f_ov, -f_ov], [uf + f_ov, vb + f_ov], [-f_ov, vb + f_ov],
+	]))
+	var fr1 := _ag_ccw(_lpoly([
+		[vb * 0.5, vb * 0.5 - 0.15], [uf - 3.60, vb * 0.5 - 0.15],
+		[uf - 3.60, vb * 0.5 + 0.15], [vb * 0.5, vb * 0.5 + 0.15],
+	]))
+	_frustum(fr0, f_eave, fr1, f_eave + AG_FRONT_ROOF_H, AG_TILE, AG_TILE.darkened(0.06))
+	# Small dormers on the red tile front slope (2 each side of the pediment) and courtyard slope (2).
+	var f_din := 1.45
+	var f_dy := f_eave + AG_FRONT_ROOF_H * (f_din / maxf(f_hv - 0.15, 1.0))
+	var f_in := f_din - f_ov
+	for du: float in [6.4, 12.8, uf - 12.8, uf - 6.4]:
+		kit_dormer(_w(du, f_in), -axis_b, f_dy, AG_TILE.darkened(0.08), AG_TRIM, AG_GLASS)
+	var court_mid: float = (float(m["sw_c0"]) + float(m["sw_hw"]) + float(m["ne_c0"]) - float(m["ne_hw"])) * 0.5
+	for du: float in [court_mid - 3.6, court_mid + 3.6]:
+		kit_dormer(_w(du, vb - f_in), axis_b, f_dy, AG_TILE.darkened(0.08), AG_TRIM, AG_GLASS)
+	# 2. Grey-green metal pitched roofs (13.0 -> 17.0 m) on both courtyard wings, hipped at the SE
+	# ends and extending their ridges cleanly into the front red tile slope so no gap shows.
+	var w_eave := g + AG_WING_H
+	var w_ridge := w_eave + AG_WING_ROOF_H
+	var w_ov := 0.28
+	var wings := [
+		[float(m["sw_c0"]), float(m["sw_c1"]), float(m["sw_hw"]), float(m["v_sw_end"])],
+		[float(m["ne_c0"]), float(m["ne_c1"]), float(m["ne_hw"]), float(m["v_ne_end"])],
+	]
+	for wd: Array in wings:
+		var c0: float = wd[0]
+		var c1: float = wd[1]
+		var hw: float = wd[2]
+		var ve: float = wd[3]
+		var span_v := ve - vb
+		var slope_u := (c1 - c0) / maxf(span_v, 1.0)
+		var v_r0 := vb - 2.90  # ridge tucked cleanly inside front red tile roof (where red roof > 17.2 m)
+		var c_r0 := c0 + slope_u * (v_r0 - vb)
+		var half_run := hw + w_ov
+		var v_e1 := ve + w_ov
+		var c_e1 := c0 + slope_u * (v_e1 - vb)
+		var v_r1 := v_e1 - half_run
+		var c_r1 := c0 + slope_u * (v_r1 - vb)
+		var p3 := func(u: float, v: float, y: float) -> Vector3:
+			var q := _w(u, v)
+			return Vector3(q.x, y, q.y)
+		var e_sw0: Vector3 = p3.call(c0 - half_run, vb, w_eave)
+		var e_sw1: Vector3 = p3.call(c_e1 - half_run, v_e1, w_eave)
+		var e_ne0: Vector3 = p3.call(c0 + half_run, vb, w_eave)
+		var e_ne1: Vector3 = p3.call(c_e1 + half_run, v_e1, w_eave)
+		var r0: Vector3 = p3.call(c_r0, v_r0, w_ridge)
+		var r1: Vector3 = p3.call(c_r1, v_r1, w_ridge)
+		var n_sw := (e_sw1 - e_sw0).cross(r0 - e_sw0).normalized()
+		if n_sw.y < 0.0:
+			n_sw = -n_sw
+		var n_ne := (e_ne0 - e_ne1).cross(r1 - e_ne1).normalized()
+		if n_ne.y < 0.0:
+			n_ne = -n_ne
+		var n_se := (e_ne1 - e_sw1).cross(r1 - e_sw1).normalized()
+		if n_se.y < 0.0:
+			n_se = -n_se
+		_quad(e_sw0, e_sw1, r1, r0, n_sw, AG_METAL)
+		_quad(e_ne1, e_ne0, r0, r1, n_ne, AG_METAL)
+		_tri(e_sw1, e_ne1, r1, n_se, AG_METAL.darkened(0.05),
+				Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+
+
+## Builds the open inner courtyard ground (dark green-grey #5d6a55) and three low courtyard trees
+## matching the 3D Tiles top view, well below the palace roof ridge.
+func _ag_courtyard(m: Dictionary, g: float) -> void:
+	_ag_set_frame(m)
+	_mode = M_STONE
+	var vb: float = m["v_back"]
+	var v_sw: float = m["v_sw_end"]
+	var v_ne: float = m["v_ne_end"]
+	var ve := minf(v_sw, v_ne)
+	var sw_in0: float = float(m["sw_c0"]) + float(m["sw_hw"])
+	var sw_in1: float = float(m["sw_c1"]) + float(m["sw_hw"])
+	var ne_in0: float = float(m["ne_c0"]) - float(m["ne_hw"])
+	var ne_in1: float = float(m["ne_c1"]) - float(m["ne_hw"])
+	var court_ring := _ag_ccw(_lpoly([
+		[sw_in0 + 0.15, vb + 0.15],
+		[ne_in0 - 0.15, vb + 0.15],
+		[ne_in1 - 0.15, v_ne - 0.10],
+		[sw_in1 + 0.15, v_sw - 0.10],
+	]))
+	_cap(court_ring, g + 0.06, AG_COURT)
+	var mid0 := (sw_in0 + ne_in0) * 0.5
+	var mid1 := (sw_in1 + ne_in1) * 0.5
+	# Three trees along the inner courtyard (matching top.jpg and h315), well under roof height.
+	var trees := [
+		[0.24, -2.2, 9.5, 2.7],
+		[0.52, 1.8, 10.8, 3.0],
+		[0.78, -0.6, 9.2, 2.6],
+	]
+	for tr: Array in trees:
+		var t: float = tr[0]
+		var du: float = tr[1]
+		var cu := lerpf(mid0, mid1, t) + du
+		var cv := lerpf(vb, ve, t)
+		_varso_tree(_w(cu, cv), g + 0.06, float(tr[2]), float(tr[3]))
+
+
+

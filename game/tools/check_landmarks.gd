@@ -230,6 +230,8 @@ func _fly_checks() -> int:
 			alt = 4.0  # the pavilion stands 7.6-8.5 m over its plinth; the 1950s block behind lifts the default
 		elif info["key"] == "wszystkich":
 			alt = 14.0  # the towers' crosses (56 m) would lift the heli over the 26 m ridges it aims at (eave 16-17 m)
+		elif info["key"] == "biskupow_krakowskich":
+			alt = 16.0  # the 14 m offices east of the crossing stop a 10 m heli 115 m out; at 16 m it clears them and meets the palace's 14-20 m copper roof
 		elif info["key"] == "jablonowskich":
 			alt = 12.0  # the clock tower (47 m) would lift the heli over the 14 m cornice and 21.5 m mansards it aims at
 		elif info["key"] == "tarasy":
