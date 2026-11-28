@@ -365,6 +365,9 @@ func _set_car_meshes() -> void:
 	var mats: Array[Material] = [_gloss(), _glow_mat(Color("#fff6d8"), 1.6), _glow_mat(Color("#ff3a2a"), 1.3)]
 	for i in 3:
 		_mesh(_car_root, meshes[i], mats[i], Vector3.ZERO)
+	if _kind == "player_tt":
+		# The active spoiler shown up, as it is at speed.
+		_mesh(_car_root, Models.tt_spoiler(Models.fin(_paint, Models.HERO, 1.0)), _gloss(), Vector3(0.0, Models.SPOILER_LIFT, 0.0))
 	_mesh(_mirror_root, meshes[0], _gloss(), Vector3.ZERO)  # the body only: lit lamps glare through the floor
 	_car_root.rotation.y = _yaw
 	_mirror_root.rotation.y = _yaw

@@ -204,6 +204,8 @@ const BUDGET := {
 	"poczta": 710,
 	"bez_kantow": 8000,  # 2026-11-15 Dom bez Kantów and Królewska 2 rebuilt whole from F's photos and the orthophoto: the ring, arcades, panes, cornices (measured 6679)
 	"politechnika": 950,  # 2026-11-15 front from F's photos: the columned middle on Plac Politechniki, attic and figures, stairs, lamp pillars
+	"gmach_chemii": 7500,  # 2026-11-28 Gmach Chemii PW on Noakowskiego: wings round courtyard, rusticated base, risalits, arched windows, hipped roofs
+	"itc": 4500,  # 2026-11-28 Instytut Techniki Cieplnej PW on Nowowiejska: 6-storey front, portal, steps, canopies, 4-storey back wings
 	"pasta": 580,
 	"msn": 900,
 	# Norblin on its real block (2026-11-02, photo report): two blocks, Plater and Galwan, about
@@ -218,7 +220,11 @@ const BUDGET := {
 	"sad_okregowy": 7000,
 	"nbp": 1000,  # 2026-11-16 from photos, the whole branch: the folded panel bands, the glass ground floor, the steps, the white wall with the eagle and NBP, the stair slot, planters
 	"mostowski": 7000,  # the palace, portico and three open courts
+	"hotel_saski": 5000,  # the whole hotel, its courtyard and roof dormers
 	"powszechny": 6000,
+	"city_gate": 3500,
+	"meridian": 3500,
+	"oxygen": 3500,
 	"dom_chlopa": 3000,  # 2026-11-16 from photos, over its street block: the wavy roof edge on every street front, GROMADKA, the HOTEL corner sign, KASYNO TRAF
 	"batalion_kilinski": 1100,  # 2026-11-16 from photos: the tilted granite slab, the white step and four stelae, the white blocks, five flower bowls
 	"powstancow_ramp": 1500,  # 2026-11-16: Plac Powstańców Warszawy's car park ramp: the concrete walls, 22 strips of setts
@@ -352,6 +358,7 @@ const BUDGET := {
 	"zamek": 24500,  # 2026-11-26 pass 3: the whole castle as one model, LoD2 gone (the named exception to L3; spec section 7)
 	"zamkowy": 2900,  # 2026-11-26: + the oak's granite block bench in two tiers and railing (measured 2778)
 	"prymasowski": 7000,
+	"jablonowskich": 7500,
 	"mansjonaria": 2700,  # 2026-11-26: the buttressed house by the oak modelled whole (measured 2458)
 	"nikidw": 2400,  # 2026-11-26: the Institute modelled whole: 12-bay two-storey arcade, wings, hipped roofs (measured 2268)
 	"arkady": 2600,

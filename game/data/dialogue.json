@@ -3390,8 +3390,8 @@
       }
     ],
     [
-      "Dwie fury do wyboru: Ołdi szybsze, hatchback bardziej uczciwy.",
-      "Two rides to pick: the Owdy is quicker, the hatch more honest.",
+      "Od Bolonezu po Lambo. Każde jeździ po swojemu.",
+      "From the Bolonez to the Lambo. Each drives its own way.",
       {
         "only": "cars"
       }
@@ -3471,6 +3471,83 @@
       "The Owdy TT. Low, fast, don't ask where I got it.",
       {
         "only": "tt"
+      }
+    ],
+    [
+      "Bolonez Karo. Czołg z homologacją. Hamuj wcześniej.",
+      "The Bolonez Karo. A tank with a road licence. Brake early.",
+      {
+        "only": "bolonez"
+      }
+    ],
+    [
+      "Paszat TDI. Przebieg? Mało. Jak na Księżyc i z powrotem.",
+      "The Pashat TDI. Mileage? Low. To the Moon and back.",
+      {
+        "only": "paszat"
+      }
+    ],
+    [
+      "Mjata! Dach schowany, lampy w górze. Teraz tylko się uśmiechaj.",
+      "The Myata! Roof stowed, lamps up. Now just grin.",
+      {
+        "only": "mjata"
+      }
+    ],
+    [
+      "Kadilak! Hamuj wcześnie, skręcaj jeszcze wcześniej.",
+      "The Cadillack! Brake early, turn even earlier.",
+      {
+        "only": "kadilak"
+      }
+    ],
+    [
+      "GieR 86. Mało koni, dużo frajdy. Na Bulwarach będziesz bokiem.",
+      "The GeeR 86. Few horses, lots of fun. Sideways on the Boulevards.",
+      {
+        "only": "gr86"
+      }
+    ],
+    [
+      "Dziewięćset jedenastka. Gaz w zakręcie z wyczuciem, bo pokaże ci tył.",
+      "The nine-eleven. Easy on the gas in a bend, or it shows you its tail.",
+      {
+        "only": "porsza"
+      }
+    ],
+    [
+      "Za mało szacunku, młody. Najpierw się pokaż na mieście.",
+      "Not enough respect yet, kid. Show yourself in town first.",
+      {
+        "only": "porsza_locked"
+      }
+    ],
+    [
+      "Lambo? Różowe? Szacun, młody. Tylko nie zahacz o krawężnik.",
+      "A Lambo? Pink? Respect, kid. Just mind the kerb.",
+      {
+        "only": "mruczelago"
+      }
+    ],
+    [
+      "Różowe Lambo nie dla każdego. Wróć, jak cała Warszawa cię pozna.",
+      "The pink Lambo isn't for everyone. Come back when all Warsaw knows you.",
+      {
+        "only": "mruczelago_locked"
+      }
+    ],
+    [
+      "Bawarka Darka. Olej dolewaj częściej niż paliwo.",
+      "Darek's Bawarka. Top up the oil more often than the fuel.",
+      {
+        "only": "bawarka"
+      }
+    ],
+    [
+      "Bawarki Darek nie sprzedaje byle komu. Najpierw drag na Nocnym spocie.",
+      "Darek doesn't sell the Bawarka to just anyone. First the drag at the night meet.",
+      {
+        "only": "bawarka_locked"
       }
     ],
     [
@@ -7614,6 +7691,20 @@
       "  The pot waits: %d zł.",
       {
         "only": "pot_wait"
+      }
+    ],
+    [
+      "Darek rzuca ci kluczyki: „Nagroda klubu. Bawarka twoja, olej dolewaj co tankowanie.”",
+      "Darek tosses you the keys: \"The club's prize. The Bawarka's yours, top up the oil every fill-up.\"",
+      {
+        "only": "bawarka_given"
+      }
+    ],
+    [
+      "Darek: „Bawarkę ci odstąpię. Za 2500 u Mirka. Albo wygraj rewanż.”",
+      "Darek: \"I'll sell you the Bawarka. 2,500 at Mirek's. Or win the rematch.\"",
+      {
+        "only": "bawarka_opened"
       }
     ],
     [

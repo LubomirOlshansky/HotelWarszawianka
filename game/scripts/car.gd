@@ -182,6 +182,16 @@ const BIKE_PULL := 0.8
 var top_mult := 1.0
 var accel_mult := 1.0
 var grip_mult := 1.0
+## C1a (F 2026-11-27: "a few different cars at Mirek's, each drives its own way"): the car's own
+## feel on top of the slider and the tuning (upgrades.gd CARS `feel`, all 1.0 for the hatch):
+## `turn` the turning (turn limit, sideways pull, pivot), `steer` the steering's lag (more is
+## lazier), `slide` how far the tail lets go (only on the slider's sporty end, as the slider's own
+## slides), `onset` the gas's first bite, `fade` how much the pull fades near the top (0.6 the
+## hatch's; a diesel fades more), `note` the engine sound's pitch (sfx.gd).
+const FEEL_PLAIN := {"turn": 1.0, "steer": 1.0, "slide": 1.0, "onset": 1.0, "fade": 0.6, "note": 1.0}
+var feel := FEEL_PLAIN.duplicate()
+## The engine's pitch for sfx.gd (`feel.note`): the strongest cue of which car you are in.
+var engine_note := 1.0
 ## NITRO ("Kebab Boost"): bought at the garage. N1 (F 2026-11-22: "you have to take your thumb off
 ## the gas to use it; I want a normal nitro, one tap and a few seconds"): a **tap** fires one bottle,
 ## which burns NITRO_BURN s with the gas held for you (top speed ×NITRO_TOP, pull ×NITRO_ACCEL);
@@ -416,6 +426,13 @@ var _pin_at := Vector2.ZERO
 var _last_unstick := -100.0
 var _clock := 0.0
 var _body: Node3D
+## F 2026-11-27: the TT's active spoiler (models.gd tt_spoiler), up above SPOILER_UP m/s, down
+## below SPOILER_DOWN (the real one's two speeds, scaled to the game's), sliding in between.
+var _spoiler: MeshInstance3D
+var _spoiler_want := false
+var _spoiler_up := 0.0
+const SPOILER_UP := 24.0
+const SPOILER_DOWN := 16.0
 var _headlights: Array[StandardMaterial3D] = []
 var _tails: Array[StandardMaterial3D] = []
 var _beams: Node3D
@@ -499,6 +516,13 @@ func _process(dt: float) -> void:
 		_flame.visible = nitro_on
 	if nitro_on:
 		_flame.scale = Vector3(1.0, 1.0, 0.8 + 0.5 * absf(sin(Time.get_ticks_msec() * 0.045)) + 0.2 * randf())
+	if _spoiler != null:
+		var fs := absf(forward_speed)
+		_spoiler_want = fs > SPOILER_UP or (_spoiler_want and fs > SPOILER_DOWN)
+		var up := move_toward(_spoiler_up, 1.0 if _spoiler_want else 0.0, dt * 2.5)
+		if up != _spoiler_up:
+			_spoiler_up = up
+			_spoiler.position.y = Models.SPOILER_LIFT * up
 	if _flash <= 0.0 and not _beams.visible:
 		return
 	_flash -= dt
@@ -1116,7 +1140,7 @@ func _corner_pivot(v_in: Vector3, n: Vector3, fwd: Vector3, s: float) -> bool:
 ## measure it). A light push accelerates gently; the pull fades as the car nears its top speed.
 func _pull(speed: float, top: float, gas: float, dt: float) -> float:
 	return minf(top, speed + accel * (BIKE_PULL if model == "bike" else accel_mult) * (nitro_accel_scale if nitro_on else 1.0) \
-			* (onset + (1.0 - onset) * gas) * dt * (1.0 - 0.6 * clampf(speed / top_speed(), 0.0, 1.0)))
+			* (onset + (1.0 - onset) * gas) * dt * (1.0 - _fade * clampf(speed / top_speed(), 0.0, 1.0)))
 
 
 ## GROUNDED's forward speed this step: brakes that build to GR_BRAKE over BRAKE_BUILD s (a
@@ -1331,6 +1355,19 @@ func _apply_handling() -> void:
 				set(k, lerpf(float(cr[k]), float(sp[k]), b.y if k == "grip" or k == "drift_grip" else b.x))
 	grip *= grip_mult
 	drift_grip *= grip_mult
+	# The car's own feel (C1a): the turn and the steering's lag always; the tail's grip only as far
+	# as the slider lets it slide at all (b.y), so the calm half stays planted in every car.
+	var tf := float(feel.get("turn", 1.0))
+	turn_cap *= tf
+	turn_pull *= tf
+	pivot *= tf
+	steer_time *= float(feel.get("steer", 1.0))
+	onset = clampf(onset * float(feel.get("onset", 1.0)), 0.05, 1.0)
+	var tail := lerpf(1.0, 1.0 / maxf(float(feel.get("slide", 1.0)), 0.1), b.y)
+	grip *= tail
+	drift_grip *= tail
+	_fade = float(feel.get("fade", 0.6))
+	engine_note = float(feel.get("note", 1.0))
 
 
 ## G13: the car's top speed now (m/s): the model's and the engine's, with nitro on top.
@@ -1338,6 +1375,18 @@ func top_speed() -> float:
 	if model == "bike":
 		return BIKE_TOP
 	return max_speed * top_mult * (nitro_top_scale if nitro_on else 1.0)
+
+
+## The pull's fade near the top (see `feel`).
+var _fade := 0.6
+
+
+## C1a: the car's own feel (upgrades.gd `feel`; {} or missing keys: the plain hatch's), then the
+## slider and the tuning are applied again over it.
+func set_feel(f: Dictionary) -> void:
+	feel = FEEL_PLAIN.duplicate()
+	feel.merge(f, true)
+	_apply_handling()
 
 
 ## G13: the shop's tuning (upgrades.gd `stats`): multipliers on top speed, pull and grip. Grip goes
@@ -1351,7 +1400,7 @@ func set_tuning(top: float, pull: float, grip_x: float) -> void:
 
 ## G13: the model on the road: the three body meshes are made again once (a swap, no new node).
 func set_model(id: String) -> void:
-	model = id if id == "tt" or id == "bike" else "hatch"
+	model = id if id in Models.PLAYER_BODIES or id == "bike" else "hatch"
 	if _night_beams != null:
 		_apply_lights()
 	if _body != null and _body.get_child_count() >= 3:
@@ -1360,12 +1409,14 @@ func set_model(id: String) -> void:
 		(_body.get_child(0) as MeshInstance3D).mesh = m[0]
 		(_body.get_child(1) as MeshInstance3D).mesh = m[1]
 		(_body.get_child(2) as MeshInstance3D).mesh = m[2]
+		_fit_spoiler(_body)
 	if _neon_pad != null:
 		_neon_pad.visible = neon and model != "bike"  # no underglow under the ROWERILO bike
 
 
 func _kind() -> String:
-	return "player_tt" if model == "tt" else ("player_bike" if model == "bike" else "player")
+	return "player_bike" if model == "bike" else str(Models.PLAYER_BODIES.get(model, "player"))
+
 
 
 ## F 2026-11-24: the looks bought at Mirek's: the GT wing (the body made again once) and the underglow.
@@ -1694,7 +1745,22 @@ func _make_body() -> Node3D:
 	tail.emission_energy_multiplier = 0.0
 	_tails.append(tail)
 	_part(root, meshes[2], tail, false)
+	_fit_spoiler(root)
 	return root
+
+
+## The TT's active spoiler on (or off) the body `root` (child 3, after the body and the lamps).
+func _fit_spoiler(root: Node3D) -> void:
+	if model == "tt":
+		if _spoiler == null:
+			_spoiler = MeshInstance3D.new()
+			_spoiler.name = "Spoiler"
+			_spoiler.material_override = Models.material()
+			root.add_child(_spoiler)
+		_spoiler.mesh = Models.tt_spoiler(Models.fin(paint, Models.HERO, paint_glow))
+	elif _spoiler != null:
+		_spoiler.queue_free()
+		_spoiler = null
 
 
 ## The garage loop: a new paint job. The body's one mesh is made again once with the new vertex
@@ -1707,6 +1773,8 @@ func set_paint(body: Color, stripes: Color, body_glow := HERO_PAINT, stripes_glo
 	if _body_mesh != null:
 		_body_mesh.mesh = Models.player_meshes(Models.fin(paint, Models.HERO, paint_glow),
 				Models.fin(stripe, Models.HERO, stripe_glow), _kind(), wing)[0]
+		if _body != null:
+			_fit_spoiler(_body)
 
 
 ## G13b: two flames out of the tail, orange fading to a transparent blue-white tip, drawn like the

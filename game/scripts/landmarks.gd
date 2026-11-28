@@ -416,6 +416,9 @@ const INFO := {
 	"prymasowski": ["Pałac Prymasowski",
 			"Klasycystyczny pałac przy Senatorskiej z półkolistymi kolumnadami.",
 			"A classical palace on Senatorska with curved courtyard colonnades."],
+	"jablonowskich": ["Pałac Jabłonowskich",
+			"Neobarokowy pałac z wieżą zegarową przy placu Teatralnym.",
+			"A neo-baroque palace with a clock tower on Plac Teatralny."],
 	"karmelici": ["Kościół Karmelitów",
 			"Rokokowo-klasycystyczna fasada z końca XVIII wieku, ze złotym globem na szczycie.",
 			"A late-18th-century front with a gilt globe on top."],
@@ -608,9 +611,21 @@ const INFO := {
 	"nik": ["Najwyższa Izba Kontroli",
 			"Za dziedzińcem przy Filtrowej od 1986 roku pracuje NIK.",
 			"Beyond the Filtrowa courtyard, NIK has worked here since 1986."],
+	"city_gate": ["City Gate",
+			"Biurowiec przy Wolskiej: białe pasy na wygiętym szkle.",
+			"An office block on Wolska: white bands on curved glass."],
+	"meridian": ["Meridian",
+			"Jasne skrzydła z balkonami wokół otwartego dziedzińca.",
+			"Pale wings with balconies round an open courtyard."],
+	"oxygen": ["Oxygen",
+			"Zaokrąglone narożniki, pasy okien, a z góry tarasy.",
+			"Rounded corners, ribbons of windows and terraces on top."],
 	"mostowski": ["Pałac Mostowskich",
 			"Cztery kolumny w portyku Corazziego witają od strony alei Solidarności. Odbudowany po wojnie pałac jest dziś siedzibą stołecznej policji.",
 			"Four columns in Corazzi’s portico greet you from al. Solidarności. Rebuilt after the war, the palace is now home to Warsaw’s police headquarters."],
+	"hotel_saski": ["Hotel Saski",
+			"Dawny hotel przy placu Bankowym, z dziedzińcem ukrytym za bramą.",
+			"The old hotel on Plac Bankowy hides a courtyard behind its gate."],
 	"dom_chlopa": ["Dom Chłopa",
 			"Hotel na placu Powstańców z lat 1958-61, zbudowany dla chłopów przyjeżdżających do stolicy. Falisty gzyms na dachu, zielony neon, kasyno na parterze.",
 			"The hotel on Plac Powstańców of 1958-61, built for farmers visiting the capital. A wavy roof edge, a green neon on top, a casino on the ground floor."],
@@ -743,6 +758,12 @@ const INFO := {
 	"politechnika": ["Gmach Główny Politechniki",
 			"Gmach Główny Politechniki Warszawskiej z 1901 roku. W środku Duża Aula pod szklanym dachem, na froncie Nauka z pochodnią.",
 			"The Warsaw University of Technology's main building of 1901. Inside, the Great Hall under its glass roof; on the front, Science with her torch."],
+	"gmach_chemii": ["Gmach Chemii Politechniki Warszawskiej",
+			"Neorenesansowy gmach przy Noakowskiego z lat 1899-1901.",
+			"Neo-Renaissance chemistry building on Noakowskiego (1899-1901)."],
+	"itc": ["Instytut Techniki Cieplnej PW",
+			"Socrealistyczny gmach z lat 50. przy Nowowiejskiej z portalem.",
+			"1950s socialist-realist institute on Nowowiejska with a stone portal."],
 	"poczta": ["Poczta Główna",
 			"Główna poczta przy Świętokrzyskiej, z kopułką na rogu Jasnej. Kolejka do okienka jak zawsze.",
 			"The main post office on Świętokrzyska, a small dome on the Jasna corner. A queue at the counter, as ever."],
@@ -1299,6 +1320,9 @@ func _find_sites() -> void:
 	var palace := _landmark("Pałac Kultury i Nauki")
 	if palace.size() >= 3:
 		_add_site("palace", [palace])
+		# The glb's triangles read here, on the main thread, for every build of the Palace's
+		# sector after, the streamer's worker's too (centre.gd `palace_glb_surfaces`).
+		warm_palace_glb()
 	# Złote Tarasy (spec docs/landmarks/specs/tarasy.md, 2026-10-31): the whole complex inside
 	# its outline is the landmark, built from its mapped parts. The glass wave is mapped as
 	# eight glass domes over the mall; the rest is the terraced mall, Lumen and Skylight.
@@ -1353,6 +1377,9 @@ func _find_sites() -> void:
 	# Before the column: a later site's tap cells win, and the column's must (check_landmarks).
 	_find_zamkowy()
 	_find_prymasowski()
+	_find_jablonowskich()
+	_find_gmach_chemii()
+	_find_itc()
 	_find_zygmunt()
 	_find_gaulle()
 	_find_rondo()
@@ -1812,6 +1839,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_zamkowy(s)
 			"prymasowski":
 				_build_prymasowski(s)
+			"jablonowskich":
+				_build_jablonowskich(s)
 			"arkadia":
 				_build_arkadia(s)
 			"forest":
@@ -1936,8 +1965,16 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_nbp(s)  # the whole branch (SKINS entry with `model`: it replaces LoD2)
 			"nik":
 				_build_nik(s)
+			"city_gate":
+				_build_city_gate(s)
+			"meridian":
+				_build_meridian(s)
+			"oxygen":
+				_build_oxygen(s)
 			"mostowski":
 				_build_mostowski(s)
+			"hotel_saski":
+				_build_hotel_saski(s)
 			"dom_chlopa":
 				_build_dom_chlopa(s)  # over its street block: the wavy roof edge and the signs
 			"batalion_kilinski":
@@ -1958,6 +1995,10 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"politechnika":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the rounded front pavilion is ours
 				_build_politechnika(s)
+			"gmach_chemii":
+				_build_gmach_chemii(s)
+			"itc":
+				_build_itc(s)
 			"pasta":
 				_build_pasta(s)
 			"teatr":

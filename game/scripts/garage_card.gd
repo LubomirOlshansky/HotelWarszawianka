@@ -48,7 +48,7 @@ const CLASS_COLOURS := [UiKit.SUB, UiKit.GO, UiKit.NEON_CYAN, UiKit.NEON_PINK, U
 const GAP := 6.0
 ## The tabs: id, words [pl, en], the shop ids on it (the paints on "paint"), tiles across.
 const TABS := [
-	{"id": "cars", "words": ["AUTA", "CARS"], "across": 2},
+	{"id": "cars", "words": ["AUTA", "CARS"], "across": 5, "tile_h": 50.0},
 	{"id": "tune", "words": ["TUNING", "TUNING"], "across": 3},
 	{"id": "paint", "words": ["LAKIER", "PAINT"], "across": 5},
 	{"id": "style", "words": ["STYL", "STYLE"], "across": 2},
@@ -296,13 +296,16 @@ func _item(id: String, width: float) -> Button:
 	var hud := _hud()
 	var t := tab_of(id)
 	var across := 2
+	var tile_h := TILE_H
 	for td: Dictionary in TABS:
 		if str(td["id"]) == t:
 			across = int(td["across"])
+			# AUTA holds seven cars in two rows of four (C1a), a little lower than one row of two.
+			tile_h = float(td.get("tile_h", TILE_H))
 	var b := Button.new()
 	b.name = "item_%s" % id
 	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2((width - GAP * 0.75 * (across - 1)) / across, TILE_H) * pt
+	b.custom_minimum_size = Vector2((width - GAP * 0.75 * (across - 1)) / across, tile_h) * pt
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	var box := VBoxContainer.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -369,6 +372,8 @@ func pick_item(id: String) -> void:
 		stage.focus("engine" if id == "engine" else ("tyres" if id == "tyres" else ("nitro" if id == "nitro" else "")))
 	if Upgrades.kind(id) == "look":
 		_say(id)
+	elif garage.item_rule_now(id) == "locked":
+		_say(id + "_locked")
 	else:
 		var row: Dictionary = Upgrades.find(id)
 		_line.text = Lang.pick(str((row["blurb"] as Array)[0]), str((row["blurb"] as Array)[1]))
@@ -433,7 +438,7 @@ func _on_action() -> void:
 			if Upgrades.kind(picked_item) == "look":
 				_say(picked_item + "_buy")
 			else:
-				_say(picked_item if picked_item in ["tt", "nitro"] else ("max" if maxed else "part"))
+				_say(picked_item if picked_item == "nitro" or Upgrades.kind(picked_item) == "car" else ("max" if maxed else "part"))
 		elif r == "switch":
 			_say("switch")
 		_refresh()
@@ -585,7 +590,7 @@ func _refresh_look() -> void:
 	var wing: bool = Upgrades.has_look(tune, "wing") or (tab == "style" and picked_item == "wing")
 	var neon: bool = Upgrades.has_look(tune, "neon") or (tab == "style" and picked_item == "neon")
 	if stage != null and not p.is_empty():
-		stage.set_car("player_tt" if car_id == "tt" else "player", p["paint"], p["stripe"], wing, neon)
+		stage.set_car(str(CarStage.Models.PLAYER_BODIES.get(car_id, "player")), p["paint"], p["stripe"], wing, neon)
 		stage.visible = visible
 	var c0 := Ladder.car_class(float(now["top_mult"]), float(now["pull"]))
 	var c1 := Ladder.car_class(float(after["top_mult"]), float(after["pull"]))
@@ -620,6 +625,13 @@ func _refresh_parts() -> void:
 			"short":
 				price.text = w.money(Upgrades.price(id, st["tune"]))
 				ink = UiKit.FAINT
+			"locked":
+				var need := int(Upgrades.car(id).get("respect", 0))
+				if need > 0:
+					price.text = Lang.pick("%d szac.", "%d resp.") % need
+				else:
+					price.text = Lang.pick("za drag", "win the drag")
+				ink = UiKit.FAINT
 			_:
 				price.text = w.money(Upgrades.price(id, st["tune"]))
 		price.add_theme_color_override("font_color", ink)
@@ -648,6 +660,14 @@ func _refresh_parts() -> void:
 			var lv := Upgrades.level(st["tune"], picked_item)
 			var what := (" · POZ. %d" % (lv + 1)) if Upgrades.kind(picked_item) == "part" else ""
 			_set_action("KUP ZA %s%s" % [w.money(Upgrades.price(picked_item, st["tune"])).to_upper(), what], "Buy: %s" % name_en, true)
+		"locked":
+			var need := int(Upgrades.car(picked_item).get("respect", 0))
+			if need > 0:
+				# The top cars (F 2026-11-27: "they unlock with respect, not at once").
+				_set_action("ZA %d SZACUNKU" % need, "Earn %d respect" % need, false)
+			else:
+				# The Bawarka before the night meet's drag: gold gives it, a loss opens it here.
+				_set_action("WYGRAJ DRAG · NOCNY SPOT", "Race the drag at the night meet", false)
 		_:
 			var miss: int = Upgrades.price(picked_item, st["tune"]) - int(w.zl)
 			_set_action("BRAKUJE %s" % w.money(miss).to_upper(), "%s short" % _money_en(miss), false)
