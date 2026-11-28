@@ -2086,7 +2086,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"rondo":
 				_id = 0
 				_build_rondo(s)
-			"sunken", "underpass", "defilad_ramp", "powstancow_ramp", "tarasy_plaza", "rondo_wells":
+			"sunken", "underpass", "defilad_ramp", "powstancow_ramp", "tarasy_plaza", "rondo_wells", "mw_cen", "mw_onz", "mw_dasz", "mw_ratusz", "mw_nsu", "mw_poli", "mw_cnk":
 				_id = 0
 				_build_sunken(s)
 			"metro_tubes":
