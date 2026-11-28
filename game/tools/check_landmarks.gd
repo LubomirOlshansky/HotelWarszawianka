@@ -178,6 +178,8 @@ func _fly_checks() -> int:
 			c = Vector2(-2718.0, -2258.0)  # the tower (the box holds its office block's courtyard: its middle is open air)
 		if str(info["key"]).begins_with("bulwary_"):
 			continue  # the boulevards' 3.6 m pavilions, 2.6 m containers and 25 cm decks: the heli hovers over them
+		if str(info["key"]).begins_with("mw_"):
+			continue  # the metro stations' wells (2026-11-26): holes in the pavement under 2.6 m canopies, the heli hovers over them; their neighbours' towers are their own sites' checks
 		var heli: Node3D = Heli.new()
 		heli.ground_height = map.ground_height
 		heli.top_height = map.top_height
