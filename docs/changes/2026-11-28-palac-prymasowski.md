@@ -2,3 +2,4 @@
 
 ## Backlog
 - fixed: Pałac Prymasowski on Senatorska was a plain map box (modelling queue v2, row 12)
+- found: the rear annexes behind the main block are built from Street View only, so their heights are assumed (no 3D Tiles orbit that day); check them when the 3D Tiles cap allows
