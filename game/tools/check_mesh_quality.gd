@@ -350,6 +350,7 @@ const BUDGET := {
 	"staszic": 360,
 	"zamek": 24500,  # 2026-11-26 pass 3: the whole castle as one model, LoD2 gone (the named exception to L3; spec section 7)
 	"zamkowy": 2900,  # 2026-11-26: + the oak's granite block bench in two tiers and railing (measured 2778)
+	"prymasowski": 7000,
 	"mansjonaria": 2700,  # 2026-11-26: the buttressed house by the oak modelled whole (measured 2458)
 	"nikidw": 2400,  # 2026-11-26: the Institute modelled whole: 12-bay two-storey arcade, wings, hipped roofs (measured 2268)
 	"arkady": 2600,
