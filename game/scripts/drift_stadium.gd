@@ -169,6 +169,9 @@ var _cam_slide := SLIDE_S
 var _cam_last := Vector3.INF
 var _frame_noted := false
 var _fr := DriftModel.Frame.new()
+var _set_awake_on := false
+## PR 3: the cars of the stadium that may cast a shadow (the player's; drift_event.gd adds Hrabia's).
+var _cars: Array[Node3D] = []
 
 
 func install(ctx: GameCtx) -> bool:
@@ -246,6 +249,12 @@ func _idle_tick(_dt: float) -> void:
 # --- the visit ---------------------------------------------------------------------------------
 
 func _begin() -> void:
+	_enter_stadium()
+
+
+## Into the stadium: the HUD aside, the player's car parked with its process off, the stadium's car on
+## sfx.gd, the floor shown, a run begun (PR 3: drift_event.gd enters it at the gate, not at the run's start).
+func _enter_stadium() -> void:
 	if not _built:
 		_build()
 	_inside = true
@@ -275,11 +284,24 @@ func _begin() -> void:
 	_ui_layer.visible = true
 	_set_awake(true)
 	_new_run()
-	_ui.show_tips()
+	_entered()
 	_log("in: %s, %.0f m, %d zones, %d flick spots" % [line.key, line.length, line.zones.size(), line.flips.size()])
 
 
 func _ended() -> void:
+	_exit_stadium()
+
+
+## The first run's words on entry: the tips (drift_event.gd: Lena's by the stage).
+func _entered() -> void:
+	_ui.show_tips()
+
+
+## Out of the stadium, back where the player's car was parked (once: drift_event.gd leaves at the gate
+## before its run ends).
+func _exit_stadium() -> void:
+	if not _inside and not _set_awake_on:
+		return
 	_inside = false
 	if _root != null:
 		_root.visible = false
@@ -299,6 +321,7 @@ func _ended() -> void:
 ## The stadium's nodes process only on a visit (the PR review: after one visit the car, the marks and
 ## the UI kept running in the city); the hidden HUD takes no touch meanwhile (hud.gd `away`).
 func _set_awake(on: bool) -> void:
+	_set_awake_on = on
 	var mode := Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
 	for n: Node in [_root, _skids, _ui_layer]:
 		if n != null:
@@ -375,6 +398,11 @@ func _leave() -> void:
 		finish()
 
 
+## A button of the stadium's own card other than PONÓW and WYJDŹ (drift_event.gd's stages).
+func _card_button(_id: String) -> void:
+	pass
+
+
 func _toggle_top() -> void:
 	top = not top
 	_ui.set_top(top)
@@ -391,11 +419,13 @@ func _physics_process(dt: float) -> void:
 	_clock += dt
 	if _bot != null:
 		_bot.tick(_clock, st, line, thumb)
+		_bot_more()
 	_fr.gas = thumb.gas()
 	_fr.kick = thumb.take_kick()
 	_fr.chain = score.chain
 	DriftModel.step(st, _fr, line, params, dt)
 	DriftScore.tick(score, st, line, dt)
+	_tick_more(dt)
 	for e in st.events:
 		if e == "kick":
 			Access.buzz(15, 0.35)
@@ -410,6 +440,8 @@ func _physics_process(dt: float) -> void:
 			Access.buzz(10, 0.2)
 	else:
 		_buzz_t = 0.0
+	if _over:
+		return  # _tick_more ended the run (drift_event.gd: the warm-up's early end)
 	if not st.finished and _clock >= RUN_LIMIT:
 		score.said.clear()  # this step's words are said above; the bank's alone now
 		DriftScore.bank(score)
@@ -418,6 +450,16 @@ func _physics_process(dt: float) -> void:
 		_end_run()
 	elif st.finished:
 		_end_run()
+
+
+## PR 3: after the bot's thumb, before the step (drift_event.gd: the bot chaser's rule).
+func _bot_more() -> void:
+	pass
+
+
+## PR 3: more of the frame after the score's tick (drift_event.gd: Hrabia's car, the tandem, the warm-up).
+func _tick_more(_dt: float) -> void:
+	pass
 
 
 func _on_said(said: String) -> void:
@@ -460,11 +502,16 @@ func _end_run() -> void:
 	runs += 1
 	var total := roundi(score.total)
 	best = maxi(best, total)
-	_ui.show_result(total, score.cards, best)
-	hud.cue("win")
+	_run_card(total)
 	_log("run over: total %d (linia %d, kat %d, styl %d), %.1f s, %d spins, %d flicks, %d banks, %d zones%s" % [total,
 			roundi(score.cards["linia"]), roundi(score.cards["kat"]), roundi(score.cards["styl"]), _clock, score.spins,
 			score.flicks, score.banks, score.zones_done.size(), ", bot" if _bot != null else ""])
+
+
+## The run's card: the practice's total, its three cards, the best (drift_event.gd: the stage's own).
+func _run_card(total: int) -> void:
+	_ui.show_result(total, score.cards, best)
+	hud.cue("win")
 
 
 func _process(dt: float) -> void:
@@ -504,7 +551,7 @@ func _frame_budget() -> void:
 		if m == null:
 			continue
 		draws += m.get_surface_count()
-		if g.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF and not _car.is_ancestor_of(g):
+		if g.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF and not _cars.any(func(c: Node3D) -> bool: return c.is_ancestor_of(g)):
 			casters.append(str(g.name))
 	var vp := get_viewport().get_viewport_rid()
 	var main := RenderingServer.viewport_get_render_info(vp, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_VISIBLE,
@@ -731,6 +778,7 @@ func _build() -> void:
 	_car.origin = PLACE
 	_car.floor_y = PLACE.y
 	_root.add_child(_car)
+	_cars.append(_car)
 	_skids = Skids.new()
 	_skids.name = "DriftMarks"
 	_skids.car = _car
@@ -759,6 +807,7 @@ func _build() -> void:
 	_ui.retry_pressed.connect(_retry)
 	_ui.leave_pressed.connect(_leave)
 	_ui.thumb.connect(_thumb)
+	_ui.card_button.connect(_card_button)
 	_ui.set_top(top)
 	_root.visible = false
 	_ui_layer.visible = false
