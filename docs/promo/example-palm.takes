@@ -1,0 +1,6 @@
+# Teaser 4, the palm (F, 2026-11-21): three variants of one Promo Mode frame. Copy this file for a new piece.
+COPY=--cam=-178.5,260.8,0 --yaw=237.2 --pitch=-27.6 --size=135 --game-clock --clock=15:20 --date=20261120
+OPTS=--at=-170,250 --secs=7 --view-scale=1
+takeA | --wider=0 -- --season=summer --promo-at=-214,250,6 --scoot-gang=-185,282,3 --people=60
+takeB | --wider=0 -- --season=summer --promo-at=-214,250,6 --scoot-gang=-198,268,3,-1 --people=60
+takeC | --wider=0 -- --season=summer --promo-at=-214,250,6 --scoot-gang=-170,250,4 --people=60
