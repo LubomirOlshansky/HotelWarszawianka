@@ -6197,3 +6197,693 @@ func _pp_pavilion(m: Dictionary, side: float, g: float) -> void:
 	var pcv := (v0 + v1) * 0.5
 	_hip(pcu, pcv, (u1 - u0) * 0.5 + 0.16, (v1 - v0) * 0.5 + 0.16, g + PP_PAV_H + 0.04, PP_PAV_HIP_H, PP_TILE)
 	_pp_chimney(pcu, pcv, g + PP_PAV_H + PP_PAV_HIP_H - 0.8, g + PP_PAV_H + PP_PAV_HIP_H + 1.15)
+
+
+# --- Pałac Jabłonowskich (Senatorska 14, Plac Teatralny; docs/landmarks/specs/palac_jablonowskich.md) ---
+
+## Rebuilt neo-baroque palace on Plac Teatralny opposite Teatr Wielki: long concave white front
+## (three storeys over a rusticated ground floor), two projecting corner pavilions under tall
+## grey-green mansards with round-top central dormers, a central risalit with four-column portico,
+## arched wooden door, stone balcony, triangular pediment and attic lucarne, lower mansards with
+## dormers between, a slender ~45 m clock tower with glowing dials, balustrade, cupola, lantern
+## and spire behind the west pavilion, and pale-yellow rear wings round a courtyard behind.
+const PJ_NAME := "Pałac Jabłonowskich"
+const PJ_WALL := Color("#ecebe6")          # white neo-baroque front plaster (spec)
+const PJ_BASE := Color("#dcdad3")          # rusticated ground floor (spec)
+const PJ_TRIM := Color("#f4f3ef")          # white trim, frames, pilasters, cornices, lantern (spec)
+const PJ_PLINTH := Color("#cbc8bf")        # stone base plinth
+const PJ_ROOF := Color("#6f7f7a")          # grey-green copper mansards and tower cupola (spec)
+const PJ_REAR := Color("#e6d9b0")          # pale yellow rear wings render (spec)
+const PJ_REAR_PLINTH := Color("#cfc5aa")   # pale stone plinth on rear wings
+const PJ_REAR_ROOF := Color("#8a8f8c")     # low grey hipped roofs on rear wings (spec)
+const PJ_GLASS := Color("#4a5660")         # window glass (spec)
+const PJ_DOOR := Color("#6b4a32")          # main arched wooden door (spec)
+const PJ_DOOR_GLOW := Color("#ffd9a0")     # warm night glow at the main entrance arch
+const PJ_CLOCK_FACE := Color("#f6f2e2")    # white clock face, softly lit at night via M_LAMP
+const PJ_CLOCK_INK := Color("#242428")     # dark clock hands and cardinal marks
+const PJ_SPIRE := Color("#3a4042")         # dark metal tower spire
+const PJ_RELIEF := Color("#dedcd4")        # shaded tympanum relief panel
+const PJ_FRONT_H := 14.0                   # main wing eaves height
+const PJ_PAV_H := 15.5                     # corner pavilion attic top height
+const PJ_PAV_MANSARD_H := 6.0              # steep corner pavilion mansard rise
+const PJ_MID_MANSARD_H := 4.5              # lower middle wing mansard rise
+const PJ_REAR_H := 11.0                    # pale-yellow rear wings eaves height
+const PJ_REAR_HIP_H := 2.3                 # low grey hipped roof rise on rear wings
+const PJ_TOWER_TOP := 34.0                 # clock tower square shaft top
+
+
+## Finds Pałac Jabłonowskich's OSM outline and registers the `jablonowskich` site with a 0.5 m
+## outward zone offset so the map's plain 14 m prism is replaced cleanly.
+func _find_jablonowskich() -> void:
+	var raw := _landmark(PJ_NAME)
+	if raw.size() < 3:
+		push_error("jablonowskich: landmark outline '%s' is missing from centrum.json" % PJ_NAME)
+		return
+	var zone := _largest(Geometry2D.offset_polygon(raw, 0.5, Geometry2D.JOIN_MITER))
+	if zone.size() < 3:
+		zone = raw
+	_add_site("jablonowskich", [zone])
+	if not sites.is_empty() and sites[-1]["key"] == "jablonowskich":
+		sites[-1]["raw"] = raw
+
+
+## Builds Pałac Jabłonowskich from its mapped outline: concave white neo-baroque front with
+## rusticated ground floor, central risalit and portico, two tall-mansard corner pavilions,
+## lower mansards with dormers, ~45 m clock tower behind the west pavilion, pale-yellow rear
+## wings round a paved courtyard, and full outline collision.
+func _build_jablonowskich(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site.get("raw", PackedVector2Array())
+	if raw.size() < 3:
+		return
+	var m := _pj_frame(raw)
+	if m.is_empty():
+		return
+	var g := _ground_under(raw)
+	_g = g
+	_mode = M_STONE
+	_pj_set_frame(m)
+	_pj_front_wing(m, g)
+	_pj_risalit(m, g)
+	_pj_mansard(m, g)
+	for side: float in [-1.0, 1.0]:
+		_pj_pavilion(m, side, g)
+	_pj_tower(m, g)
+	_pj_rear_wings(m, g)
+	_collide(raw)
+	_mode = M_STONE
+
+
+## Restores the palace's main local frame (+u West-to-East along Senatorska, +v SE toward Plac Teatralny).
+func _pj_set_frame(m: Dictionary) -> void:
+	_o = m["o"]
+	_a = m["a"]
+	_b = m["b"]
+	kit_face(0.0)
+
+
+## Starts a kit_front along edge a->b oriented so _b matches the outward normal `out`.
+func _pj_front_edge(a: Vector2, b: Vector2, out: Vector2) -> float:
+	var dir := (b - a).normalized()
+	if Vector2(-dir.y, dir.x).dot(out) < 0.0:
+		return kit_front(b, a)
+	return kit_front(a, b)
+
+
+## Ensures counter-clockwise winding for plan polygons handed to _prism, _cap, _slope and ring helpers.
+func _pj_ccw(ring: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array(ring)
+	if Geometry2D.is_polygon_clockwise(out):
+		out.reverse()
+	return out
+
+
+## Derives the palace symmetry frame and measures the central front, angled wings, corner pavilions,
+## and rear courtyard wings directly from the OSM outline vertices.
+func _pj_frame(raw: PackedVector2Array) -> Dictionary:
+	var poly := _pj_ccw(raw)
+	var n := poly.size()
+	var want_se := Vector2(0.52, 0.85).normalized()
+	var best_i := -1
+	var best_l := 0.0
+	for i in n:
+		var a := poly[i]
+		var b := poly[(i + 1) % n]
+		var ln := a.distance_to(b)
+		if ln > 20.0 and _out(poly, a, b).dot(want_se) > 0.85 and ln > best_l:
+			best_l = ln
+			best_i = i
+	if best_i < 0:
+		return {}
+	var ea := poly[best_i]
+	var eb := poly[(best_i + 1) % n]
+	var out_b := _out(poly, ea, eb)
+	var axis_a := Vector2(out_b.y, -out_b.x)
+	var origin := (ea + eb) * 0.5
+	_o = origin
+	_a = axis_a
+	_b = out_b
+	var loc: Array[Vector2] = []
+	for p in poly:
+		loc.append(_local(p))
+	var mid_hw := best_l * 0.5
+	var wp_u0 := INF
+	var wp_u1 := -INF
+	var wp_v0 := INF
+	var wp_v1 := -INF
+	var wp_v_in := 6.80
+	var ep_u0 := INF
+	var ep_u1 := -INF
+	var ep_u_back := 32.38
+	var ep_v0 := INF
+	var ep_v1 := -INF
+	var ep_v_in := 6.68
+	var rear_u0 := INF
+	var rear_u1 := -INF
+	var rear_v_front := -INF
+	var rear_v_back := INF
+	var rear_v_mid := -49.10
+	var rear_back_u0 := INF
+	var rear_back_u1 := -INF
+	for l in loc:
+		if l.x < -16.0 and l.y > -4.0:
+			wp_u0 = minf(wp_u0, l.x)
+			wp_u1 = maxf(wp_u1, l.x)
+			wp_v0 = minf(wp_v0, l.y)
+			wp_v1 = maxf(wp_v1, l.y)
+			if l.x > -21.0 and l.y > 4.0 and l.y < 9.0:
+				wp_v_in = l.y
+		elif l.x > 16.0 and l.y > -5.0:
+			ep_u0 = minf(ep_u0, l.x)
+			ep_u1 = maxf(ep_u1, l.x)
+			ep_v0 = minf(ep_v0, l.y)
+			ep_v1 = maxf(ep_v1, l.y)
+			if l.x > 30.0 and l.y < 0.0:
+				ep_u_back = l.x
+			if l.x < 21.0 and l.y > 4.0 and l.y < 9.0:
+				ep_v_in = l.y
+		if l.y < -14.5:
+			rear_u0 = minf(rear_u0, l.x)
+			rear_u1 = maxf(rear_u1, l.x)
+			rear_v_front = maxf(rear_v_front, l.y)
+			rear_v_back = minf(rear_v_back, l.y)
+			if l.y < -52.0:
+				rear_back_u0 = minf(rear_back_u0, l.x)
+				rear_back_u1 = maxf(rear_back_u1, l.x)
+			elif l.y < -46.0 and l.y > -51.5:
+				rear_v_mid = l.y
+	return {
+		"o": origin, "a": axis_a, "b": out_b,
+		"mid_hw": mid_hw,
+		"wp_u0": wp_u0, "wp_u1": wp_u1, "wp_v0": wp_v0, "wp_v1": wp_v1, "wp_v_in": wp_v_in,
+		"ep_u0": ep_u0, "ep_u1": ep_u1, "ep_u_back": ep_u_back,
+		"ep_v0": ep_v0, "ep_v1": ep_v1, "ep_v_in": ep_v_in,
+		"rear_u0": rear_u0, "rear_u1": rear_u1,
+		"rear_v_front": minf(rear_v_front, -15.10),
+		"rear_v_mid": rear_v_mid, "rear_v_back": rear_v_back,
+		"rear_back_u0": rear_back_u0, "rear_back_u1": rear_back_u1,
+		"ris_hw": 5.5,
+	}
+
+
+## Draws horizontal rustication bands (kit_bands) only on the wall piers between openings so the
+## grooves never overlap window panes or doors.
+func _pj_rusticate_piers(u0: float, u1: float, centres: Array, gap_hw: float, y0: float, y1: float) -> void:
+	var cur := u0
+	for c_var in centres:
+		var c := float(c_var)
+		var stop := c - gap_hw
+		if stop - cur > 0.35:
+			kit_bands(cur + 0.08, stop - 0.08, y0, y1, 1.35, PJ_BASE)
+		cur = maxf(cur, c + gap_hw)
+	if u1 - cur > 0.35:
+		kit_bands(cur + 0.08, u1 - 0.08, y0, y1, 1.35, PJ_BASE)
+
+
+## Builds a white neo-baroque roof frontispiece / central dormer gable using kit_round_window and
+## kit_pediment, rooted cleanly into the mansard slope behind it.
+func _pj_attic_gable(cu: float, y0: float, hw: float, h: float, depth: float) -> void:
+	_kbox(cu - hw, cu + hw, -depth, 0.06, y0 - 0.20, y0 + h, PJ_TRIM)
+	_kbox(cu - hw - 0.14, cu + hw + 0.14, -depth - 0.04, 0.16, y0 + h, y0 + h + 0.22, PJ_TRIM)
+	# Flanking narrow scroll shoulders at the base of the lucarne.
+	for s: float in [-1.0, 1.0]:
+		_kbox(cu + s * (hw + 0.32) - 0.32, cu + s * (hw + 0.32) + 0.32,
+				-depth * 0.55, 0.04, y0 - 0.10, y0 + h * 0.45, PJ_TRIM)
+	kit_round_window(_w(cu, 0.06), _a, _b, y0 + 0.35, y0 + h - 0.92, minf(0.66, hw * 0.44), PJ_TRIM, PJ_GLASS)
+	kit_face(-depth)
+	kit_pediment(cu, hw + 0.16, y0 + h + 0.22, hw * 0.65, PJ_TRIM, PJ_ROOF, depth + 0.18, PJ_RELIEF)
+	kit_face(0.0)
+
+
+## Builds the concave central front wing (0 - 14.0 m) between the two corner pavilions: rusticated
+## ground floor (0 - 5.0 m), white upper storeys (5.0 - 14.0 m), string courses, main cornice,
+## flanking window grids with pedimented first floor and iron balconies, and rear courtyard panes.
+func _pj_front_wing(m: Dictionary, g: float) -> void:
+	_pj_set_frame(m)
+	var mid_hw: float = m["mid_hw"]
+	var wp_u1: float = m["wp_u1"]
+	var wp_v0: float = m["wp_v0"]
+	var wp_v_in: float = m["wp_v_in"]
+	var ep_u0: float = m["ep_u0"]
+	var ep_v0: float = m["ep_v0"]
+	var ep_v_in: float = m["ep_v_in"]
+	var rv: float = m["rear_v_front"]
+	var ru0: float = m["rear_u0"]
+	var ru1: float = m["rear_u1"]
+	var ris_hw: float = m["ris_hw"]
+	var none := Color(0, 0, 0, 0)
+	var ring := _pj_ccw(_lpoly([
+		[wp_u1, wp_v_in], [-mid_hw, 0.0], [mid_hw, 0.0], [ep_u0, ep_v_in],
+		[ep_u0, ep_v0], [ep_u0 + 10.2, ep_v0], [ru1 - 0.4, rv + 1.0], [ru1 - 0.4, rv],
+		[ru0 + 0.4, rv], [ru0 + 0.4, rv + 1.0], [wp_u1 - 10.9, wp_v0], [wp_u1, wp_v0],
+	]))
+	_prism(ring, g - 0.5, g + 5.0, PJ_BASE, none, M_STONE)
+	_prism(ring, g + 5.0, g + PJ_FRONT_H, PJ_WALL, none, M_STONE)
+	_cap(ring, g + PJ_FRONT_H - 0.05, PJ_ROOF.darkened(0.24))
+	var sy0 := g + 1.35
+	var sy1 := g + 5.65
+	var sy2 := g + 10.25
+	var h0 := 2.45
+	var h1 := 2.60
+	var h2 := 2.25
+	# Central straight front flanking spans (outside the central risalit).
+	var w_mid := _pj_front_edge(_w(-mid_hw, 0.0), _w(mid_hw, 0.0), m["b"])
+	var cu := w_mid * 0.5
+	var flank_spans := [
+		[0.06, cu - ris_hw - 0.06, 1],
+		[cu + ris_hw + 0.06, w_mid - 0.06, 0],
+	]
+	for span: Array in flank_spans:
+		var u0: float = span[0]
+		var u1: float = span[1]
+		var bal_idx: int = span[2]
+		kit_ledge(u0, u1, g - 0.4, 1.12, PJ_PLINTH, 0.10)
+		kit_ledge(u0, u1, g + 4.88, 0.22, PJ_TRIM, 0.09)
+		kit_ledge(u0, u1, g + 9.70, 0.16, PJ_TRIM, 0.07)
+		kit_cornice(u0 + 0.50, u1 - 0.50, g + PJ_FRONT_H - 0.45, PJ_TRIM, 0.45, 0.50)
+		var bays := kit_window_grid(u0 + 0.65, u1 - 0.65, 2, [sy0], h0, Win.SILL, PJ_TRIM, PJ_GLASS, 0.66)
+		kit_window_grid(u0 + 0.65, u1 - 0.65, 2, [sy1], h1, Win.PEDIMENT, PJ_TRIM, PJ_GLASS, 0.68)
+		kit_window_grid(u0 + 0.65, u1 - 0.65, 2, [sy2], h2, Win.SILL, PJ_TRIM, PJ_GLASS, 0.64)
+		_pj_rusticate_piers(u0 + 0.10, u1 - 0.10, bays, 0.98, g + 0.72, g + 4.80)
+		kit_balcony(bays[bal_idx], sy1, 0.74, Balcony.IRON, PAL_IRON, PJ_TRIM, 0.60)
+	_pj_set_frame(m)
+	# Two angled transition wings linking the central straight front to the corner pavilions.
+	var angled := [
+		[_w(wp_u1, wp_v_in), _w(-mid_hw, 0.0)],
+		[_w(mid_hw, 0.0), _w(ep_u0, ep_v_in)],
+	]
+	for seg: Array in angled:
+		var a_pt: Vector2 = seg[0]
+		var b_pt: Vector2 = seg[1]
+		var d := (b_pt - a_pt).normalized()
+		var out_n := Vector2(-d.y, d.x)
+		if out_n.dot(m["b"]) < 0.0:
+			out_n = -out_n
+		var wa := _pj_front_edge(a_pt, b_pt, out_n)
+		kit_ledge(0.08, wa - 0.08, g - 0.4, 1.12, PJ_PLINTH, 0.09)
+		kit_ledge(0.08, wa - 0.08, g + 4.88, 0.22, PJ_TRIM, 0.08)
+		kit_ledge(0.08, wa - 0.08, g + 9.70, 0.16, PJ_TRIM, 0.07)
+		kit_cornice(0.56, wa - 0.56, g + PJ_FRONT_H - 0.45, PJ_TRIM, 0.45, 0.48)
+		var abays := kit_window_grid(0.85, wa - 0.85, 2, [sy0], h0, Win.SILL, PJ_TRIM, PJ_GLASS, 0.66)
+		kit_window_grid(0.85, wa - 0.85, 2, [sy1], h1, Win.PEDIMENT, PJ_TRIM, PJ_GLASS, 0.68)
+		kit_window_grid(0.85, wa - 0.85, 2, [sy2], h2, Win.SILL, PJ_TRIM, PJ_GLASS, 0.64)
+		_pj_rusticate_piers(0.12, wa - 0.12, abays, 0.98, g + 0.72, g + 4.80)
+		_pj_set_frame(m)
+	# Courtyard-facing back wall of the central front wing (between the rear side wings).
+	var back_w := _pj_front_edge(_w(-11.2, rv), _w(11.2, rv), -(m["b"] as Vector2))
+	var back_cols := _spread(1.2, back_w - 1.2, 6)
+	kit_ledge(0.2, back_w - 0.2, g + 4.88, 0.18, PJ_TRIM, 0.08)
+	kit_ledge(0.2, back_w - 0.2, g + 9.70, 0.14, PJ_TRIM, 0.07)
+	kit_ledge(0.2, back_w - 0.2, g + PJ_FRONT_H - 0.35, 0.35, PJ_TRIM, 0.28)
+	for row: Array in [[sy0, h0], [sy1, h1], [sy2, h2]]:
+		kit_ledge(0.6, back_w - 0.6, float(row[0]) - 0.16, 0.12, PJ_TRIM, 0.08)
+		kit_panes(back_cols, [float(row[0])], 1.25, float(row[1]), PJ_GLASS, 0.06)
+	_pj_set_frame(m)
+	# Two diagonal rear shoulder walls linking the corner pavilions back to the rear courtyard wings.
+	var shoulders := [
+		[_w(ep_u0 + 10.2, ep_v0), _w(ru1 - 0.4, rv + 1.0), 1.0],
+		[_w(ru0 + 0.4, rv + 1.0), _w(wp_u1 - 10.9, wp_v0), -1.0],
+	]
+	for sh: Array in shoulders:
+		var p0: Vector2 = sh[0]
+		var p1: Vector2 = sh[1]
+		var side_s: float = sh[2]
+		var d := (p1 - p0).normalized()
+		var out_n := Vector2(-d.y, d.x)
+		if out_n.dot((m["a"] as Vector2) * side_s - (m["b"] as Vector2)) < 0.0:
+			out_n = -out_n
+		var ws := _pj_front_edge(p0, p1, out_n)
+		var scols := _spread(1.4, ws - 1.4, 3)
+		kit_ledge(0.35, ws - 0.35, g + 4.88, 0.18, PJ_TRIM, 0.08)
+		kit_ledge(0.35, ws - 0.35, g + 9.70, 0.14, PJ_TRIM, 0.07)
+		kit_ledge(0.35, ws - 0.35, g + PJ_FRONT_H - 0.38, 0.32, PJ_TRIM, 0.24)
+		for row: Array in [[sy0, h0], [sy1, h1], [sy2, h2]]:
+			kit_panes(scols, [float(row[0])], 1.25, float(row[1]), PJ_GLASS, 0.06)
+		_pj_set_frame(m)
+
+
+## Builds the central risalit projecting 1.0 m forward of the central front: entrance steps, four
+## Tuscan portico columns, arched wooden main door with warm night glow, first-floor stone balcony,
+## four giant upper pilasters, three bays of pedimented/framed windows, 3.0 m triangular pediment,
+## and the neo-baroque arched attic lucarne behind it.
+func _pj_risalit(m: Dictionary, g: float) -> void:
+	_pj_set_frame(m)
+	var ris_hw: float = m["ris_hw"]
+	var w := _pj_front_edge(_w(-ris_hw, 0.0), _w(ris_hw, 0.0), m["b"])
+	var cu := w * 0.5
+	var proj := 1.0
+	# Projecting risalit mass (1.0 m forward of v = 0.0, tucked 10 cm behind into the main wall).
+	_kbox(0.0, w, -0.10, proj, g - 0.5, g + 5.0, PJ_BASE)
+	_kbox(0.0, w, -0.10, proj, g + 5.0, g + PJ_FRONT_H, PJ_WALL)
+	kit_face(proj)
+	kit_ledge(-0.04, w + 0.04, g + 9.72, 0.18, PJ_TRIM, 0.08)
+	kit_cornice(0.45, w - 0.45, g + PJ_FRONT_H - 0.45, PJ_TRIM, 0.48, 0.56)
+	# Four-column entrance portico in front of the main arched door, carrying the first-floor balcony.
+	var port_d := 2.10
+	var step_top := g + 0.45
+	_kbox(0.10, w - 0.10, proj + 0.04, proj + port_d + 0.45, g - 0.4, g + 0.22, PJ_PLINTH)
+	_kbox(0.28, w - 0.28, proj + 0.04, proj + port_d + 0.20, g + 0.22, step_top, PJ_PLINTH)
+	kit_colonnade(1.05, w - 1.05, 4, proj + port_d - 0.32, step_top, g + 4.48, PJ_TRIM, 0.34, Order.TUSCAN)
+	_kbox(0.18, w - 0.18, proj + 0.04, proj + port_d + 0.12, g + 4.48, g + 5.04, PJ_TRIM)
+	# Stone balustrade crowning the portico balcony (front and two side returns).
+	kit_face(proj + port_d + 0.02)
+	kit_attic(0.25, w - 0.25, g + 5.04, PJ_TRIM, 0.96, Attic.BALUSTRADE)
+	for s_u: float in [0.36, w - 0.36]:
+		_kbox(s_u - 0.14, s_u + 0.14, proj + 0.08, proj + port_d - 0.18, g + 5.04, g + 5.24, PJ_TRIM)
+		_kbox(s_u - 0.10, s_u + 0.10, proj + 0.08, proj + port_d - 0.18, g + 5.24, g + 5.80, PJ_TRIM.darkened(0.12))
+		_kbox(s_u - 0.14, s_u + 0.14, proj + 0.08, proj + port_d - 0.18, g + 5.80, g + 6.00, PJ_TRIM)
+	kit_face(proj)
+	# Main arched wooden door with warm night glow inside the arch head and flanking entrance lamps.
+	kit_door(cu, step_top, 3.65, 1.15, PJ_TRIM, PJ_DOOR, true)
+	var keep := _mode
+	_mode = M_PAVILION
+	_arch_panel(_w(cu, proj), _a, _b, 0.96, step_top + 2.35, step_top + 2.55, PJ_DOOR_GLOW, 0.11, M_PAVILION)
+	_mode = M_LAMP
+	for su: float in [-1.62, 1.62]:
+		_kbox(cu + su - 0.12, cu + su + 0.12, proj + 0.02, proj + 0.22, g + 2.40, g + 2.95, PJ_DOOR_GLOW, M_LAMP)
+	_mode = keep
+	# Three-bay openings on the risalit behind the portico and across the two upper storeys.
+	var bays := _spread(1.1, w - 1.1, 3)
+	for k in 3:
+		var bu: float = bays[k]
+		if k != 1:
+			kit_window(bu, g + 1.35, 2.45, Win.SILL, PJ_TRIM, PJ_GLASS, 0.62)
+		kit_window(bu, g + 5.65, 2.60, Win.PEDIMENT, PJ_TRIM, PJ_GLASS, 0.68)
+		kit_window(bu, g + 10.25, 2.25, Win.SILL_HEAD, PJ_TRIM, PJ_GLASS, 0.64)
+	# Four giant white pilasters framing the three upper bays of the central risalit.
+	for pu: float in [0.55, cu - 1.72, cu + 1.72, w - 0.55]:
+		kit_pilaster(pu, g + 5.06, g + PJ_FRONT_H - 0.45, PJ_TRIM, 0.64, 0.15)
+	# 3.0 m triangular pediment crowning the risalit (14.03 - 17.03 m) returning into the mansard.
+	kit_face(-1.80)
+	kit_pediment(cu, ris_hw + 0.25, g + PJ_FRONT_H + 0.03, 3.0, PJ_TRIM, PJ_ROOF, proj + 2.30, PJ_RELIEF)
+	# Signature neo-baroque arched attic lucarne rising behind the triangular pediment.
+	kit_face(0.0)
+	_pj_attic_gable(cu, g + PJ_FRONT_H + 1.30, 1.95, 2.95, 2.60)
+	_pj_set_frame(m)
+
+
+## Builds the lower grey-green mansard (4.5 m rise to 18.5 m) over the concave central wing and
+## places kit_dormer windows along the front, angled, and rear slopes.
+func _pj_mansard(m: Dictionary, g: float) -> void:
+	_pj_set_frame(m)
+	_mode = M_STONE
+	var mid_hw: float = m["mid_hw"]
+	var wp_u1: float = m["wp_u1"]
+	var wp_v0: float = m["wp_v0"]
+	var wp_v_in: float = m["wp_v_in"]
+	var ep_u0: float = m["ep_u0"]
+	var ep_v0: float = m["ep_v0"]
+	var ep_v_in: float = m["ep_v_in"]
+	var rv: float = m["rear_v_front"]
+	var ru0: float = m["rear_u0"]
+	var ru1: float = m["rear_u1"]
+	var ris_hw: float = m["ris_hw"]
+	var eave := g + PJ_FRONT_H + 0.03
+	var curb := eave + 3.30
+	var top := g + PJ_FRONT_H + PJ_MID_MANSARD_H
+	var m0 := _pj_ccw(_lpoly([
+		[wp_u1 + 0.08, wp_v_in - 0.08], [-mid_hw, -0.05], [mid_hw, -0.05], [ep_u0 - 0.08, ep_v_in - 0.08],
+		[ep_u0 - 0.08, rv + 0.12], [wp_u1 + 0.08, rv + 0.12],
+	]))
+	var m1 := _inset_ring(m0, 1.85)
+	var m2 := _inset_ring(m0, 4.40)
+	_slope(m0, m0, eave, m1, curb, PJ_ROOF)
+	_slope(m0, m1, curb, m2, top, PJ_ROOF.lightened(0.05))
+	_cap(m2, top, PJ_ROOF.darkened(0.06))
+	# Pitched grey-green mansard skirts over both diagonal rear shoulders so no flat wedges show from above.
+	var sh_e := _pj_ccw(_lpoly([
+		[ep_u0 + 0.04, ep_v0 - 0.06], [ep_u0 + 9.9, ep_v0 - 0.06],
+		[ru1 - 0.55, rv + 0.20], [ep_u0 + 0.04, rv + 0.20],
+	]))
+	var sh_e1 := _inset_ring(sh_e, 1.10)
+	_slope(sh_e, sh_e, eave + 0.04, sh_e1, eave + 2.40, PJ_ROOF)
+	_cap(sh_e1, eave + 2.40, PJ_ROOF.darkened(0.06))
+	var sh_w := _pj_ccw(_lpoly([
+		[wp_u1 - 10.6, wp_v0 - 0.06], [wp_u1 - 0.04, wp_v0 - 0.06],
+		[wp_u1 - 0.04, rv + 0.20], [ru0 + 0.55, rv + 0.20],
+	]))
+	var sh_w1 := _inset_ring(sh_w, 1.10)
+	_slope(sh_w, sh_w, eave + 0.04, sh_w1, eave + 2.40, PJ_ROOF)
+	_cap(sh_w1, eave + 2.40, PJ_ROOF.darkened(0.06))
+	# Rows of dormers on the steep lower mansard slopes (front wings, angled wings, rear slope).
+	var front_dir: Vector2 = m["b"]
+	var dorm_y := eave + 0.72
+	for span: Array in [[-mid_hw + 0.8, -ris_hw - 0.8, 2], [ris_hw + 0.8, mid_hw - 0.8, 2]]:
+		for du: float in _spread(float(span[0]), float(span[1]), int(span[2])):
+			kit_dormer(_w(du, -0.35), front_dir, dorm_y, PJ_TRIM, PJ_TRIM, PJ_GLASS)
+	for seg: Array in [[_w(wp_u1, wp_v_in), _w(-mid_hw, 0.0)], [_w(mid_hw, 0.0), _w(ep_u0, ep_v_in)]]:
+		var a_pt: Vector2 = seg[0]
+		var b_pt: Vector2 = seg[1]
+		var d := (b_pt - a_pt).normalized()
+		var out_n := Vector2(-d.y, d.x)
+		if out_n.dot(front_dir) < 0.0:
+			out_n = -out_n
+		kit_dormer((a_pt + b_pt) * 0.5 - out_n * 0.35, out_n, dorm_y, PJ_TRIM, PJ_TRIM, PJ_GLASS)
+	for du: float in _spread(-10.0, 10.0, 2):
+		kit_dormer(_w(du, rv + 0.45), -front_dir, dorm_y, PJ_TRIM, PJ_TRIM, PJ_GLASS)
+
+
+## Builds one projecting corner pavilion (West: side = -1.0, East: side = +1.0): rusticated ground
+## floor, two tall upper storeys with pilasters, pedimented first-floor windows and central stone
+## balcony, elevated cornice and attic parapet to 15.5 m, steep 6.0 m grey-green mansard with a
+## prominent round-top central dormer gable, and flank dormers.
+func _pj_pavilion(m: Dictionary, side: float, g: float) -> void:
+	_pj_set_frame(m)
+	var u0: float = m["wp_u0"] if side < 0.0 else m["ep_u0"]
+	var u1: float = m["wp_u1"] if side < 0.0 else m["ep_u1"]
+	var v0: float = m["wp_v0"] if side < 0.0 else m["ep_v0"]
+	var v1: float = m["wp_v1"] if side < 0.0 else m["ep_v1"]
+	var v_in: float = m["wp_v_in"] if side < 0.0 else m["ep_v_in"]
+	var u_back_out: float = u0 if side < 0.0 else float(m["ep_u_back"])
+	var none := Color(0, 0, 0, 0)
+	var ring: PackedVector2Array
+	if side < 0.0:
+		ring = _pj_ccw(_lpoly([[u0, v0], [u1, v0], [u1, v1], [u0, v1]]))
+	else:
+		ring = _pj_ccw(_lpoly([[u0, v0], [u_back_out, v0], [u1, v1], [u0, v1]]))
+	_prism(ring, g - 0.5, g + 5.0, PJ_BASE, none, M_STONE)
+	_prism(ring, g + 5.0, g + PJ_PAV_H, PJ_WALL, none, M_STONE)
+	_cap(ring, g + PJ_PAV_H - 0.06, PJ_ROOF.darkened(0.24))
+	kit_ledge_ring(ring, g - 0.4, 1.15, PJ_PLINTH, 0.11)
+	kit_ledge_ring(ring, g + 4.92, 0.24, PJ_TRIM, 0.11)
+	kit_ledge_ring(ring, g + 9.78, 0.18, PJ_TRIM, 0.08)
+	kit_cornice_ring(ring, g + 14.20, PJ_TRIM, 0.50, 0.56)
+	kit_ledge_ring(ring, g + PJ_PAV_H - 0.18, 0.18, PJ_TRIM, 0.16)
+	var sy0 := g + 1.40
+	var sy1 := g + 5.75
+	var sy2 := g + 10.45
+	var h0 := 2.48
+	var h1 := 2.75
+	var h2 := 2.25
+	# Senatorska front face: three grand bays, pilasters, central stone balcony, pedimented first floor.
+	var wf := _pj_front_edge(_w(u0, v1), _w(u1, v1), m["b"])
+	var fbays := kit_window_grid(1.45, wf - 1.45, 3, [sy0], h0, Win.SILL_HEAD, PJ_TRIM, PJ_GLASS, 0.72)
+	kit_window_grid(1.45, wf - 1.45, 3, [sy1], h1, Win.PEDIMENT, PJ_TRIM, PJ_GLASS, 0.74)
+	kit_window_grid(1.45, wf - 1.45, 3, [sy2], h2, Win.SILL_HEAD, PJ_TRIM, PJ_GLASS, 0.70)
+	_pj_rusticate_piers(0.18, wf - 0.18, fbays, 1.05, g + 0.75, g + 4.86)
+	kit_balcony(fbays[1], sy1, 2.35, Balcony.STONE, PJ_TRIM, PJ_TRIM, 1.05)
+	for pu: float in [0.58, (fbays[0] + fbays[1]) * 0.5, (fbays[1] + fbays[2]) * 0.5, wf - 0.58]:
+		kit_pilaster(pu, g + 5.18, g + 13.80, PJ_TRIM, 0.66, 0.15)
+	# Prominent white round-top central dormer gable breaking into the steep pavilion mansard.
+	_pj_attic_gable(wf * 0.5, g + PJ_PAV_H + 0.04, 2.25, 3.35, 3.10)
+	_pj_set_frame(m)
+	# Inner forecourt return face (exposed between v_in and v1).
+	var in_u := u1 if side < 0.0 else u0
+	var in_out := -(m["a"] as Vector2) * side
+	var wi := _pj_front_edge(_w(in_u, v_in + 0.15), _w(in_u, v1), in_out)
+	var ibays := kit_window_grid(0.85, wi - 0.85, 2, [sy0], h0, Win.SILL, PJ_TRIM, PJ_GLASS, 0.62)
+	kit_window_grid(0.85, wi - 0.85, 2, [sy1], h1, Win.SILL_HEAD, PJ_TRIM, PJ_GLASS, 0.64)
+	kit_window_grid(0.85, wi - 0.85, 2, [sy2], h2, Win.SILL, PJ_TRIM, PJ_GLASS, 0.60)
+	_pj_rusticate_piers(0.14, wi - 0.14, ibays, 0.94, g + 0.75, g + 4.86)
+	_pj_set_frame(m)
+	# Outer flank face: four rhythmic window bays with sill bands.
+	var p_out0 := _w(u0, v0) if side < 0.0 else _w(u_back_out, v0)
+	var p_out1 := _w(u0, v1) if side < 0.0 else _w(u1, v1)
+	var d_out := (p_out1 - p_out0).normalized()
+	var n_out := Vector2(-d_out.y, d_out.x)
+	if n_out.dot((m["a"] as Vector2) * side) < 0.0:
+		n_out = -n_out
+	var wo := _pj_front_edge(p_out0, p_out1, n_out)
+	var ocols := _spread(1.4, wo - 1.4, 4)
+	for row: Array in [[sy0, h0], [sy1, h1], [sy2, h2]]:
+		kit_ledge(0.6, wo - 0.6, float(row[0]) - 0.18, 0.14, PJ_TRIM, 0.10)
+		kit_panes(ocols, [float(row[0])], 1.32, float(row[1]), PJ_GLASS, 0.06)
+	_pj_set_frame(m)
+	# Steep 6.0 m grey-green mansard roof over the corner pavilion (15.5 - 21.5 m).
+	_mode = M_STONE
+	var eave := g + PJ_PAV_H + 0.03
+	var curb := eave + 5.15
+	var top := g + PJ_PAV_H + PJ_PAV_MANSARD_H
+	var m0 := _inset_ring(ring, 0.16)
+	var m1 := _inset_ring(ring, 3.10)
+	var m2 := _inset_ring(ring, 5.40)
+	_slope(m0, m0, eave, m1, curb, PJ_ROOF)
+	_slope(m0, m1, curb, m2, top, PJ_ROOF.lightened(0.06))
+	_cap(m2, top, PJ_ROOF.darkened(0.06))
+	kit_ledge_ring(m1, curb - 0.10, 0.18, PJ_TRIM.darkened(0.08), 0.10)
+	# Central kit_dormer on the outer flank slope of the pavilion mansard.
+	var dp := p_out0.lerp(p_out1, 0.55) - n_out * 0.60
+	kit_dormer(dp, n_out, eave + 0.90, PJ_TRIM, PJ_TRIM, PJ_GLASS)
+
+
+## Builds the ~45 m clock tower rising behind the west corner pavilion (toward Teatr Wielki):
+## 7 x 7 m white square shaft with corner pilasters, arched belfry windows, four softly glowing
+## clock faces with dark hands, overhanging cornice and balustrade at 34 m, grey-green baroque
+## cupola, white octagonal kit_lantern, and slender dark spire to ~45.4 m.
+func _pj_tower(m: Dictionary, g: float) -> void:
+	_pj_set_frame(m)
+	var wp_u0: float = m["wp_u0"]
+	var wp_u1: float = m["wp_u1"]
+	var wp_v0: float = m["wp_v0"]
+	var tu := (wp_u0 + wp_u1) * 0.5 - 0.9
+	var tv := wp_v0 + 4.1
+	var h := 3.5
+	var ring := _pj_ccw(_rect(tu, tv, h, h))
+	# Square shaft rooted inside the west pavilion up to 34.0 m.
+	_prism(ring, g + 13.0, g + PJ_TOWER_TOP, PJ_WALL, PJ_ROOF.darkened(0.20), M_STONE, M_STONE)
+	# Four corner pilasters and horizontal stage string courses.
+	for su: float in [-1.0, 1.0]:
+		for sv: float in [-1.0, 1.0]:
+			_lbox(tu + su * h, tv + sv * h, 0.34, 0.34, g + 18.0, g + PJ_TOWER_TOP - 0.60, PJ_TRIM, M_STONE, PJ_TRIM)
+	kit_ledge_ring(ring, g + 22.8, 0.28, PJ_TRIM, 0.18)
+	kit_ledge_ring(ring, g + 27.6, 0.28, PJ_TRIM, 0.18)
+	kit_cornice_ring(ring, g + PJ_TOWER_TOP - 0.55, PJ_TRIM, 0.55, 0.65)
+	# Belfry arched windows (middle stage) and glowing clock faces (upper stage) on all four faces.
+	var faces := [
+		[Vector2(0.0, 1.0), m["b"] as Vector2, m["a"] as Vector2],
+		[Vector2(0.0, -1.0), -(m["b"] as Vector2), -(m["a"] as Vector2)],
+		[Vector2(1.0, 0.0), m["a"] as Vector2, -(m["b"] as Vector2)],
+		[Vector2(-1.0, 0.0), -(m["a"] as Vector2), m["b"] as Vector2],
+	]
+	for f: Array in faces:
+		var fv: Vector2 = f[0]
+		var out_n: Vector2 = f[1]
+		var along: Vector2 = f[2]
+		var fc := _w(tu + fv.x * h, tv + fv.y * h)
+		kit_round_window(fc, along, out_n, g + 23.6, g + 25.5, 0.72, PJ_TRIM, PJ_GLASS)
+		_pj_clock_face(fc, g + 30.6, out_n, 1.58)
+	# Balustraded gallery around the 34.0 m tower top (kit_attic on all four sides + corner piers).
+	var gal_h := 3.72
+	for f: Array in faces:
+		var fv: Vector2 = f[0]
+		var out_n: Vector2 = f[1]
+		var along: Vector2 = f[2]
+		var fc := _w(tu + fv.x * gal_h, tv + fv.y * gal_h)
+		var gw := _pj_front_edge(fc - along * (gal_h - 0.36), fc + along * (gal_h - 0.36), out_n)
+		kit_attic(0.0, gw, g + PJ_TOWER_TOP, PJ_TRIM, 1.08, Attic.BALUSTRADE)
+		_pj_set_frame(m)
+	for su: float in [-1.0, 1.0]:
+		for sv: float in [-1.0, 1.0]:
+			_lbox(tu + su * gal_h, tv + sv * gal_h, 0.32, 0.32, g + PJ_TOWER_TOP, g + PJ_TOWER_TOP + 1.32, PJ_TRIM)
+	# Baroque grey-green copper cupola (34.0 - 38.6 m) rising to the octagonal white lantern.
+	_mode = M_STONE
+	var c := _w(tu, tv)
+	var prof := [[2.95, 34.0], [3.20, 35.3], [2.55, 36.7], [1.75, 37.9], [1.45, 38.6]]
+	for k in prof.size() - 1:
+		_frustum(_circle(c, float(prof[k][0]), 8), g + float(prof[k][1]),
+				_circle(c, float(prof[k + 1][0]), 8), g + float(prof[k + 1][1]),
+				PJ_ROOF.lightened(0.02 * k), PJ_ROOF.darkened(0.05))
+	# White octagonal lantern (kit_lantern: 38.6 - 42.2 m), upper bulb cap, and bold dark spire (~46.4 m).
+	kit_lantern(tu, tv, g + 38.6, 3.6, 1.42, PJ_TRIM, PJ_ROOF, PJ_GLASS, 8)
+	_mode = M_STONE
+	_frustum(_circle(c, 1.25, 8), g + 41.7, _circle(c, 0.85, 8), g + 42.7, PJ_ROOF.darkened(0.04))
+	_frustum(_circle(c, 0.85, 8), g + 42.7, _circle(c, 0.28, 8), g + 43.4, PJ_ROOF)
+	_frustum(_circle(c, 0.28, 6), g + 43.3, _circle(c, 0.08, 6), g + 46.4, PJ_SPIRE, PJ_SPIRE)
+	_prism(_circle(c, 0.32, 6), g + 44.3, g + 44.85, PAL_GOLD, PAL_GOLD, M_STONE, M_STONE)
+
+
+## Draws one tower clock face at plan point `c` and height `y` facing `n`: a dark contrast rim,
+## a softly glowing M_LAMP dial face, four dark cardinal marks, and bold dark hour/minute hands.
+func _pj_clock_face(c: Vector2, y: float, n: Vector2, r: float) -> void:
+	var n3 := Vector3(n.x, 0.0, n.y)
+	var side := Vector2(-n.y, n.x)
+	var s3 := Vector3(side.x, 0.0, side.y)
+	var base := Vector3(c.x, y, c.y)
+	var keep := _mode
+	_mode = M_STONE
+	_disc(base + n3 * 0.04, n3, r * 1.15, 12, PJ_SPIRE)
+	_mode = M_LAMP
+	_disc(base + n3 * 0.08, n3, r, 12, PJ_CLOCK_FACE)
+	_mode = M_STONE
+	# Four dark cardinal hour ticks (12, 3, 6, 9) and hands at ten past ten, spaced cleanly off the dial.
+	var tick_base := base + n3 * 0.115
+	for k in 4:
+		var ang := TAU * float(k) / 4.0
+		var dir := s3 * cos(ang) + Vector3.UP * sin(ang)
+		var perp := Vector3(dir.x, dir.y, dir.z).cross(n3).normalized() * 0.09
+		var p0 := tick_base + dir * (r * 0.68)
+		var p1 := tick_base + dir * (r * 0.92)
+		_quad(p0 - perp, p1 - perp, p1 + perp, p0 + perp, n3, PJ_CLOCK_INK)
+	var h_base := base + n3 * 0.14
+	for hand: Array in [[0.55, 0.83, r * 0.58, 0.10, 0.0], [-0.50, 0.87, r * 0.82, 0.075, 0.03]]:
+		var dir := (s3 * float(hand[0]) + Vector3.UP * float(hand[1])).normalized()
+		var wide := dir.cross(n3).normalized() * float(hand[3])
+		var mid := h_base + n3 * float(hand[4])
+		var tip := mid + dir * float(hand[2])
+		_quad(mid - wide, mid + wide, tip + wide * 0.38, tip - wide * 0.38, n3, PJ_CLOCK_INK)
+	_mode = keep
+
+
+## Builds the pale-yellow rear wings (0 - 11.0 m) round an open paved inner courtyard behind the
+## front palace, with low grey hipped roofs and kit_panes + sill ledges on outer and court faces.
+func _pj_rear_wings(m: Dictionary, g: float) -> void:
+	_pj_set_frame(m)
+	var ru0: float = m["rear_u0"]
+	var ru1: float = m["rear_u1"]
+	var rv_f: float = m["rear_v_front"]
+	var rv_mid: float = m["rear_v_mid"]
+	var rv_b: float = m["rear_v_back"]
+	var rb_u0: float = m["rear_back_u0"]
+	var rb_u1: float = m["rear_back_u1"]
+	var ct_u0 := ru0 + 10.0
+	var ct_u1 := ru1 - 9.9
+	var ct_v0 := rv_mid + 4.6
+	var none := Color(0, 0, 0, 0)
+	# Paved inner courtyard floor (at ground + 4 cm) framed by the three pale-yellow rear wings.
+	_mode = M_STONE
+	_cap(_pj_ccw(_urect(ct_u0, ct_u1, ct_v0, rv_f)), g + 0.04, PAL_PALE_CONCRETE)
+	# Three non-overlapping rear wings matching the exact stepped OSM rear footprint.
+	var west_ring := _pj_ccw(_urect(ru0, ct_u0, ct_v0, rv_f))
+	var east_ring := _pj_ccw(_urect(ct_u1, ru1, ct_v0, rv_f))
+	var back_ring := _pj_ccw(_lpoly([
+		[ru0, ct_v0], [ru1, ct_v0], [ru1, rv_mid], [rb_u1, rv_mid],
+		[rb_u1, rv_b], [rb_u0, rv_b], [rb_u0, rv_mid], [ru0, rv_mid],
+	]))
+	for wing_ring: PackedVector2Array in [west_ring, east_ring, back_ring]:
+		_prism(wing_ring, g - 0.5, g + PJ_REAR_H, PJ_REAR, none, M_STONE)
+		_cap(wing_ring, g + PJ_REAR_H - 0.06, PJ_REAR_ROOF.darkened(0.20))
+	# Low grey hipped roofs (+2.3 m) over all three rear wings.
+	_hip((ru0 + ct_u0) * 0.5, (ct_v0 + rv_f) * 0.5, (ct_u0 - ru0) * 0.5 - 0.06,
+			(rv_f - ct_v0) * 0.5 - 0.06, g + PJ_REAR_H + 0.03, PJ_REAR_HIP_H, PJ_REAR_ROOF)
+	_hip((ct_u1 + ru1) * 0.5, (ct_v0 + rv_f) * 0.5, (ru1 - ct_u1) * 0.5 - 0.06,
+			(rv_f - ct_v0) * 0.5 - 0.06, g + PJ_REAR_H + 0.03, PJ_REAR_HIP_H, PJ_REAR_ROOF)
+	var b_m0 := _inset_ring(back_ring, 0.08)
+	var b_m1 := _inset_ring(back_ring, 1.95)
+	_slope(b_m0, b_m0, g + PJ_REAR_H + 0.03, b_m1, g + PJ_REAR_H + PJ_REAR_HIP_H, PJ_REAR_ROOF)
+	_cap(b_m1, g + PJ_REAR_H + PJ_REAR_HIP_H, PJ_REAR_ROOF.darkened(0.06))
+	# Dress all exposed outer, stepped-corner, and courtyard faces with plinth, string course, cornice,
+	# sill ledges (on outer faces) and kit_panes.
+	var faces := [
+		[_w(ru0, rv_mid), _w(ru0, rv_f), -(m["a"] as Vector2), 9, true],
+		[_w(ru1, rv_mid), _w(ru1, rv_f), m["a"] as Vector2, 9, true],
+		[_w(rb_u0, rv_b), _w(rb_u1, rv_b), -(m["b"] as Vector2), 8, true],
+		[_w(rb_u1, rv_mid), _w(ru1, rv_mid), -(m["b"] as Vector2), 2, true],
+		[_w(ru0, rv_mid), _w(rb_u0, rv_mid), -(m["b"] as Vector2), 1, false],
+		[_w(rb_u0, rv_b), _w(rb_u0, rv_mid), -(m["a"] as Vector2), 1, false],
+		[_w(rb_u1, rv_b), _w(rb_u1, rv_mid), m["a"] as Vector2, 1, false],
+		[_w(ct_u0, ct_v0), _w(ct_u0, rv_f), m["a"] as Vector2, 7, false],
+		[_w(ct_u1, ct_v0), _w(ct_u1, rv_f), -(m["a"] as Vector2), 7, false],
+		[_w(ct_u0, ct_v0), _w(ct_u1, ct_v0), m["b"] as Vector2, 6, false],
+	]
+	for fc: Array in faces:
+		var wf := _pj_front_edge(fc[0], fc[1], fc[2])
+		var cols := _spread(minf(1.1, wf * 0.28), wf - minf(1.1, wf * 0.28), int(fc[3]))
+		var outer_face: bool = fc[4]
+		kit_ledge(0.06, wf - 0.06, g - 0.4, 1.45, PJ_REAR_PLINTH, 0.08)
+		kit_ledge(0.06, wf - 0.06, g + 5.30, 0.20, PJ_TRIM, 0.08)
+		kit_ledge(0.06, wf - 0.06, g + PJ_REAR_H - 0.36, 0.36, PJ_TRIM, 0.28)
+		for row: Array in [[g + 1.70, 2.35], [g + 6.05, 2.65]]:
+			if outer_face:
+				kit_ledge(0.55, wf - 0.55, float(row[0]) - 0.16, 0.12, PJ_TRIM, 0.09)
+			kit_panes(cols, [float(row[0])], 1.25, float(row[1]), PJ_GLASS, 0.06)
+		_pj_set_frame(m)
+

@@ -260,6 +260,7 @@ uikit                quick
 water                water     slow
 water-prebuilt       smoke     slow
 wellness             quick
+workerbuild          smoke
 zaglebie             quick
 zamekramps           quick
 zebras               quick

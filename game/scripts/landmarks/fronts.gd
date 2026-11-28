@@ -108,6 +108,11 @@ const SKINS := [
 	# NBP's regional branch on Plac Powstańców from F's photos (2026-11-16, docs/landmarks/specs/nbp.md):
 	# the whole building is the site's own model (_build_nbp), dark folded panels over a glass ground floor.
 	{"key": "nbp", "osm": "NBP Oddział Okręgowy w Warszawie", "model": true, "mode": M_STONE, "wall": "#4d4446", "roof": "#6f7173"},
+	{"key": "city_gate", "osm": "City Gate", "model": true, "mode": M_STONE, "wall": "#d8dedd", "roof": "#5c6063"},
+	# Both the LoD2 bounds centre and the OSM vertex mean fall in the open court.
+	{"key": "meridian", "osm": "Meridian", "model": true, "mode": M_STONE, "wall": "#c8beb0", "roof": "#938780",
+			"runs": [[-2657.45, -305.6], [-2661.72, -298.11]]},
+	{"key": "oxygen", "osm": "Oxygen", "model": true, "mode": M_STONE, "wall": "#a8a6a2", "roof": "#aaa49a"},
 	# The named court outline registers the whole model and drops the GUGiK run.
 	{"key": "sad_okregowy", "osm": "Sąd Okręgowy w Warszawie", "model": true,
 			"mode": M_STONE, "wall": "#dcd6c9", "roof": "#7d7f8c"},
@@ -121,6 +126,7 @@ const SKINS := [
 	# over a dark stone and glass base, not a dark punched block.
 	{"key": "wolf_marszalkowska", "osm": "Wolf Marszałkowska", "mode": M_SKIN + float(S_BANDS) / 16.0, "wall": "#5f7a90", "roof": "#596066"},
 	{"key": "mostowski", "osm": "Pałac Mostowskich", "model": true, "mode": M_STONE, "wall": "#eee3c9", "roof": "#9a9ba2"},
+	{"key": "hotel_saski", "osm": "Hotel Saski", "model": true, "mode": M_STONE, "wall": "#e6dfcd", "roof": "#5f6468", "photo_front": "b12827"},
 ]
 
 
@@ -146,6 +152,8 @@ func _find_skins() -> void:
 		# `model`: the whole building is a model now (it replaces LoD2); the entry keeps its place in
 		# the site order (tap ids) and its wall colour for the skyline (tower_colour)
 		if t.get("model", false):
+			if t.has("photo_front") and not sites.is_empty() and sites[-1]["key"] == t["key"]:
+				sites[-1]["replaces_photo_front"] = t["photo_front"]
 			continue
 		if not sites.is_empty() and sites[-1]["key"] == t["key"]:
 			sites[-1]["skin"] = {"mode": M_MONUMENT_FLOOD if FLOODLIT_SITES.has(t["key"]) and t["mode"] == M_MONUMENT else t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
@@ -203,6 +211,9 @@ const LM_BLOCKS := [
 	"1871615",  # Sądy na Lesznie: the whole court model includes the façades and roofs
 	"1371716",  # Pałac Mostowskich: the whole palace and its roofs are built in muranow.gd
 	"295124092", "699441160",  # Generation Park X and Z: rebuilt whole in wola.gd (`gpxz`)
+	"947208951",  # Meridian: the whole office model includes its street front (wola.gd `meridian`)
+	"2892939",  # Oxygen: the whole office ring is built in wola.gd (`oxygen`)
+	"947207781",  # City Gate: the whole curved office is built in wola.gd (`city_gate`)
 	"964367459",  # Stary Dom Poselski: rebuilt whole in ujazdow.gd (`stary_dom_poselski`)
 	"29092781",  # Pałacyk Rembielińskiego: rebuilt whole in ujazdow.gd (`rembielinskiego`)
 	"29042523",  # Willa Raua: rebuilt whole in ujazdow.gd (`willa_raua`)
@@ -880,9 +891,13 @@ func _find_photo_fronts() -> void:
 	var list = JSON.parse_string(FileAccess.get_file_as_string(PF_PATH))
 	if not list is Array:
 		return
+	var replaced := {}
+	for site: Dictionary in sites:
+		if site.has("replaces_photo_front"):
+			replaced[site["replaces_photo_front"]] = true
 	for d: Dictionary in list:
 		# Whole-building sites that already supply their own frontages (Teatr Powszechny, Centrum Praha, Dom Poselski).
-		if str(d["id"]) in ["b12747", "b12642", "b7893"]:
+		if replaced.has(str(d["id"])) or str(d["id"]) in ["b12747", "b12642", "b7893"]:
 			continue
 		var key := "pf_" + str(d["id"])
 		_add_site(key, [_pts(d["outline"])])

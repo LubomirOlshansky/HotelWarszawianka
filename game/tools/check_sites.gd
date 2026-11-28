@@ -25,13 +25,13 @@ const Landmarks := preload("res://scripts/landmarks.gd")
 const Chunked := preload("res://scripts/chunked_surface.gd")
 const Fakes := preload("res://tools/fakes.gd")
 ## Triangles a site may hold (the museum and Plac loop's own models).
-const BUDGET := {"muzeum": 4600, "europejski": 8000, "grob": 600, "metropolitan": 3200, "wiktoria": 4500,
+const BUDGET := {"hotel_saski": 5000, "city_gate": 3500, "meridian": 3500, "oxygen": 3500, "muzeum": 4600, "europejski": 8000, "grob": 600, "metropolitan": 3200, "wiktoria": 4500,
 		"hotel_kasztel": 400, "hotel_canaletto": 400, "hotel_starowka": 400, "polonia": 1450, "ujazdowski": 1650, "sobieski": 1500,
 		"zamek": 24500, "arkady": 2400, "kino_muranow": 11000, "dekalog_estate": 18000, "inflancka_pools": 1000, "zamkowy": 2900,
 		"gpxz": 12000, "centrum_praha": 4000, "targowa33a": 3000, "polskie_radio": 3000,
 		"dom_poselski": 5000, "stary_dom_poselski": 7000,
 		"rembielinskiego": 2800, "willa_raua": 2000, "dziewulskich": 1600, "pod_karczochem": 2800,
-		"prymasowski": 7000}
+		"prymasowski": 7000, "jablonowskich": 7500}
 ## The Królewska edge's skins: key -> a point in a building the skin must cover.
 const SKINNED := {"departament": Vector2(-596.0, -702.0)}
 ## Words no card may hold (the hotel's real brand and name).
@@ -182,6 +182,8 @@ func _check_site(marks, map: Fakes.BuilderMap, key: String) -> void:
 			marks._build_zamkowy(s)
 		"prymasowski":
 			marks._build_prymasowski(s)
+		"jablonowskich":
+			marks._build_jablonowskich(s)
 		"dekalog_estate":
 			marks._build_dekalog_estate(s)
 		"inflancka_pools":
@@ -196,6 +198,12 @@ func _check_site(marks, map: Fakes.BuilderMap, key: String) -> void:
 			marks._build_targowa33a(s)
 		"polskie_radio":
 			marks._build_polskie_radio(s)
+		"city_gate":
+			marks._build_city_gate(s)
+		"meridian":
+			marks._build_meridian(s)
+		"oxygen":
+			marks._build_oxygen(s)
 		"dom_poselski":
 			marks._build_dom_poselski(s)
 		"stary_dom_poselski":
@@ -208,6 +216,8 @@ func _check_site(marks, map: Fakes.BuilderMap, key: String) -> void:
 			marks._build_dziewulskich(s)
 		"pod_karczochem":
 			marks._build_pod_karczochem(s)
+		"hotel_saski":
+			marks._build_hotel_saski(s)
 		"hotel_kasztel", "hotel_canaletto", "hotel_starowka":
 			marks._build_hotel(s)
 	marks._id = 0
