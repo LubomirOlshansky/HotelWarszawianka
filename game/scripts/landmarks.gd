@@ -1305,6 +1305,9 @@ func _find_sites() -> void:
 	var palace := _landmark("Pałac Kultury i Nauki")
 	if palace.size() >= 3:
 		_add_site("palace", [palace])
+		# The glb's triangles read here, on the main thread, for every build of the Palace's
+		# sector after, the streamer's worker's too (centre.gd `palace_glb_surfaces`).
+		warm_palace_glb()
 	# Złote Tarasy (spec docs/landmarks/specs/tarasy.md, 2026-10-31): the whole complex inside
 	# its outline is the landmark, built from its mapped parts. The glass wave is mapped as
 	# eight glass domes over the mall; the rest is the terraced mall, Lumen and Skylight.
