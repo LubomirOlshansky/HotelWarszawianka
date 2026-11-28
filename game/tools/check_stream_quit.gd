@@ -10,7 +10,9 @@ extends SceneTree
 ## at most MAX_STOP_SHARE of the whole build (or MIN_STOP_MS), the builder handed back the map's
 ## own data and output node (`data`, `_out`), its flag is down again, and a small sector built
 ## afterwards by the same builder has the same nodes as one from a fresh builder (a stopped build
-## leaves nothing behind for the next).
+## leaves nothing behind for the next). Then the same at JUMP_AT for a jump: `_drop_task` for another
+## sector (a teleport, tow or respawn loads that one at once) stops the build too and puts the
+## worker's sector back in the queue.
 ## Headless is enough (it times the build and counts nodes; no mesh data is compared).
 ##   godot --headless --path game --script res://tools/check_stream_quit.gd
 ## Needs the sector split (tools/bake_sectors.py). Prints `check_stream_quit: OK` (exit 0) or the
@@ -24,6 +26,8 @@ const SectorStreamer := preload("res://scripts/sector_streamer.gd")
 const SLOW := Vector2i(-2, 1)
 ## When the quit comes, as shares of the sector's whole build: in the flat layers, and in the walls.
 const STOP_AT: Array[float] = [0.15, 0.6]
+## When the jump (a teleport to another sector) comes: in the landmarks.
+const JUMP_AT := 0.6
 ## A quit may wait at most this share of the whole build (before the fix: the rest of it), or MIN_STOP_MS.
 const MAX_STOP_SHARE := 0.35
 const MIN_STOP_MS := 300
@@ -69,6 +73,14 @@ func _run() -> void:
 			problems.append("the stopped build left the builder's output on the sector's root")
 		if map.cancel_build:
 			problems.append("cancel_build stays set after the quit")
+	# The teleport fix: a jump to another sector while the worker builds this one stops the build too.
+	var jump_ms := await _quit_during(map, big, int(full_ms * JUMP_AT), small)
+	stops.append("a jump %d ms at %d %%" % [jump_ms, roundi(JUMP_AT * 100.0)])
+	if jump_ms > maxi(MIN_STOP_MS, int(full_ms * MAX_STOP_SHARE)):
+		problems.append("a jump to %s %d %% into the build of %s waited %d ms for the worker (the whole build takes %d ms; at most %d %% of it, or %d ms)" % [
+				MapBuilder.sector_name(small), roundi(JUMP_AT * 100.0), MapBuilder.sector_name(big), jump_ms, full_ms, roundi(MAX_STOP_SHARE * 100.0), MIN_STOP_MS])
+	if not is_same(map.data, whole) or map._out != map or map.cancel_build:
+		problems.append("the jump's stopped build left the builder on the sector (data, output or cancel_build)")
 	# Nothing of the stopped build carries into the next one.
 	var after := _shape(map.build_sector(small))
 	var fresh_map: Node3D = MapBuilder.new()
@@ -93,7 +105,10 @@ func _run() -> void:
 
 ## Starts the streamer's worker on `key` as `_poll_worker` does, lets it run `after_ms`, then takes
 ## the streamer out of the tree as quitting does (`_exit_tree`): the ms that took.
-func _quit_during(map: Node3D, key: Vector2i, after_ms: int) -> int:
+## With `jump_to` (a sector key), the main thread loads that one at once instead (a teleport, a tow,
+## a respawn: `_load_now` calls `_drop_task`): the ms `_drop_task` took, the worker's sector back in
+## the queue.
+func _quit_during(map: Node3D, key: Vector2i, after_ms: int, jump_to: Variant = null) -> int:
 	var streamer := SectorStreamer.new()
 	streamer.map = map
 	streamer.prebuilt = false
@@ -107,10 +122,20 @@ func _quit_during(map: Node3D, key: Vector2i, after_ms: int) -> int:
 	if not streamer._thread.is_alive():
 		problems.append("the build of %s ended within %d ms, before the quit: nothing was stopped" % [MapBuilder.sector_name(key), after_ms])
 	var t0 := Time.get_ticks_msec()
-	root.remove_child(streamer)
+	if jump_to != null:
+		streamer._state[key] = {"s": SectorStreamer.LOADING}
+		streamer._drop_task(jump_to)
+	else:
+		root.remove_child(streamer)
 	var ms := Time.get_ticks_msec() - t0
 	if streamer._thread != null:
-		problems.append("the streamer still holds its worker after _exit_tree")
+		problems.append("the streamer still holds its worker after %s" % ("_drop_task" if jump_to != null else "_exit_tree"))
+	if jump_to != null:
+		if streamer._task_root != null:
+			problems.append("the jump kept the stopped build's partial root")
+		if streamer._state[key]["s"] != SectorStreamer.WANTED:
+			problems.append("the jump left the worker's sector %s in state %s, not back in the queue" % [MapBuilder.sector_name(key), streamer._state[key]["s"]])
+		root.remove_child(streamer)
 	streamer.free()
 	return ms
 
