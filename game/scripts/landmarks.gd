@@ -422,6 +422,9 @@ const INFO := {
 	"biskupow_krakowskich": ["Pałac Biskupów Krakowskich",
 			"Barokowy pałac na rogu Miodowej i Senatorskiej pod zieloną miedzią.",
 			"A baroque palace at Miodowa and Senatorska under green copper."],
+	"archiwum_agad": ["Archiwum Główne Akt Dawnych",
+			"Klasycystyczny Pałac Raczyńskich przy Długiej, siedziba archiwum.",
+			"The classicist Raczyński Palace on Długa, state archive of records."],
 	"karmelici": ["Kościół Karmelitów",
 			"Rokokowo-klasycystyczna fasada z końca XVIII wieku, ze złotym globem na szczycie.",
 			"A late-18th-century front with a gilt globe on top."],
@@ -1397,6 +1400,7 @@ func _find_sites() -> void:
 	_find_prymasowski()
 	_find_jablonowskich()
 	_find_biskupow_krakowskich()
+	_find_archiwum_agad()
 	_find_gmach_chemii()
 	_find_itc()
 	_find_zygmunt()
@@ -1867,6 +1871,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_jablonowskich(s)
 			"biskupow_krakowskich":
 				_build_biskupow_krakowskich(s)
+			"archiwum_agad":
+				_build_archiwum_agad(s)
 			"arkadia":
 				_build_arkadia(s)
 			"forest":
