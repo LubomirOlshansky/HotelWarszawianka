@@ -1,7 +1,7 @@
 <!doctype html>
 <!-- Live viewer for tools/tiles3d/render.mjs: Google Photorealistic 3D Tiles in CesiumJS, no globe,
-     no Cesium ion. The driver sets the camera with window.shoot() and screenshots the page.
-     The key comes in the URL fragment (never sent to the local server, never logged).
+     either straight from Google (key=) or through Cesium ion's Google asset (ion=). The driver sets the camera with window.shoot() and screenshots the page.
+     The key or token comes in the URL fragment (never sent to the local server, never logged).
      Cesium's credit bar stays on screen: Google's logo and data attributions must show in every image. -->
 <html>
 <head>
@@ -22,9 +22,10 @@
 <div id="label"></div>
 <script>
 "use strict";
-const key = new URLSearchParams(location.hash.slice(1)).get("key");
-Cesium.Ion.defaultAccessToken = "";
-Cesium.GoogleMaps.defaultApiKey = key;
+const hash = new URLSearchParams(location.hash.slice(1));
+// With no Google key, createGooglePhotorealistic3DTileset loads ion asset 2275207 with the ion token.
+Cesium.Ion.defaultAccessToken = hash.get("ion") || "";
+Cesium.GoogleMaps.defaultApiKey = hash.get("ion") ? undefined : hash.get("key");
 const viewer = new Cesium.Viewer("v", {
 	globe: false, baseLayer: false, skyBox: false, skyAtmosphere: false,
 	animation: false, timeline: false, geocoder: false, homeButton: false, sceneModePicker: false,

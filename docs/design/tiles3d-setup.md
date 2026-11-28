@@ -37,7 +37,16 @@ the same command (Node + `npx playwright install chromium` once).
 
 ## Key and costs
 
-- Key: `GOOGLE_MAPTILES_KEY` if set, else `GOOGLE_STREETVIEW_KEY`. The existing restricted key
+- **Since 28 Nov 2026 Google answers 403** "satellite tiles and 3D tiles are not available for
+  your account and region" for our project: Google's EEA terms (since 8 Jul 2025) block
+  Photorealistic 3D Tiles for Cloud projects whose billing account address is in the EEA (ours
+  bills in zł). Street View and roadmap tiles still work.
+- So the tool takes `CESIUM_ION_TOKEN` first: the same Google tiles through Cesium ion's asset
+  2275207 (Cesium's own Google contract; free Community account, non-commercial, which fits a
+  free fan game). Same terms as below; the Cesium ion and Google credits show on every image.
+  F's token is an environment secret like the Google key, never in a file or chat.
+  Hosts: `api.cesium.com`, `assets.ion.cesium.com` (allowed in the cloud environment 2026-11-28).
+- Without it: `GOOGLE_MAPTILES_KEY` if set, else `GOOGLE_STREETVIEW_KEY`. The existing restricted key
   (Google Cloud project "Around Warsaw release", "Maps Platform API Key") allows Street View
   Static API and Map Tiles API only, so the one environment secret serves both tools. Never in
   a file, never in chat.
