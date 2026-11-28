@@ -413,6 +413,9 @@ const INFO := {
 	"branickich": ["Pałac Branickich",
 			"Barokowy pałac z 1740 roku przy Miodowej, z attyką pełną rzeźb i lukarnami z oculusami.",
 			"The baroque palace of 1740 on Miodowa, its attic crowded with statues and oculus dormers."],
+	"prymasowski": ["Pałac Prymasowski",
+			"Klasycystyczny pałac przy Senatorskiej z półkolistymi kolumnadami.",
+			"A classical palace on Senatorska with curved courtyard colonnades."],
 	"karmelici": ["Kościół Karmelitów",
 			"Rokokowo-klasycystyczna fasada z końca XVIII wieku, ze złotym globem na szczycie.",
 			"A late-18th-century front with a gilt globe on top."],
@@ -1355,6 +1358,7 @@ func _find_sites() -> void:
 	_find_mansjonaria()
 	# Before the column: a later site's tap cells win, and the column's must (check_landmarks).
 	_find_zamkowy()
+	_find_prymasowski()
 	_find_zygmunt()
 	_find_gaulle()
 	_find_rondo()
@@ -1812,6 +1816,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_syrenka(s)
 			"zamkowy":
 				_build_zamkowy(s)
+			"prymasowski":
+				_build_prymasowski(s)
 			"arkadia":
 				_build_arkadia(s)
 			"forest":
