@@ -533,71 +533,138 @@ func _find_jarmark() -> void:
 			tree_free.append([_w(h[0], h[1]), 2.6])
 
 
+## Loop 3c: the box a sector build keeps, its own tiles (landmarks.gd build; empty: the whole map).
+var _near := Rect2()
+## How far one market part (a chalet, a ride, a sign, a kit object) reaches from its spot, with slack.
+const JM_PART_REACH := 30.0
+
+
+## Does the market part at (u, v) reach into the sector being built? A sector keeps only its own
+## triangles, so a part wholly outside `near` is skipped there instead of built and thrown away
+## (perf, 2026-11-27: the whole market was built again in every sector it touched). The frame is
+## kept as it was, so a part built after a skipped one comes out the same.
+func _jm_here(u: float, v: float, r := JM_PART_REACH) -> bool:
+	if not _near.has_area():
+		return true
+	var o := _o
+	var a := _a
+	var b := _b
+	_jm_frame()
+	var p := _w(u, v)
+	_o = o
+	_a = a
+	_b = b
+	return _near.grow(r).has_point(p)
+
+
+## Does the stretch u0..u1 x v0..v1 (a light string, the fence, the paving) reach the sector?
+func _jm_here_box(u0: float, u1: float, v0: float, v1: float, r := JM_PART_REACH) -> bool:
+	if not _near.has_area():
+		return true
+	var o := _o
+	var a := _a
+	var b := _b
+	_jm_frame()
+	var box := Rect2(_w(u0, v0), Vector2.ZERO).expand(_w(u1, v0)).expand(_w(u0, v1)).expand(_w(u1, v1))
+	_o = o
+	_a = a
+	_b = b
+	return _near.grow(r).intersects(box, true)
+
+
 func _build_jarmark(_site: Dictionary) -> void:
 	_jm_frame()
 	_mode = M_STONE
 	for p: Array in JM_PAVED:
-		_jm_drape(p[0], p[1], p[2], p[3])
+		if _jm_here_box(p[0], p[1], p[2], p[3]):
+			_jm_drape(p[0], p[1], p[2], p[3])
 	for h: Array in _jm_huts():
 		if _quit_stop():
 			return  # the quit fix (map_builder.gd `cancel_build`): this site takes seconds a sector
-		_jm_hut(h[0], h[1], h[2], h[3], h[4])
+		if _jm_here(h[0], h[1]):
+			_jm_hut(h[0], h[1], h[2], h[3], h[4])
 	# The tree's plaza by Marszałkowska: the platform, the ring of yellow benches (open towards the
 	# fan mast's square), the big snowman on the ring towards the Palace.
-	_jm_tree(JM_TREE)
+	if _jm_here(JM_TREE.x, JM_TREE.y):
+		_jm_tree(JM_TREE)
 	var gap := (JM_FAN - JM_TREE).angle()
 	for k in 16:
 		var t := TAU * (float(k) + 0.5) / 16.0
 		if absf(wrapf(t - gap, -PI, PI)) < 0.45 or absf(wrapf(t - 2.4, -PI, PI)) < 0.25:
 			continue
-		_jm_bench(JM_TREE + Vector2(cos(t), sin(t)) * 9.6, t)
-	_jm_snowman(JM_TREE.x + cos(2.4) * 9.9, JM_TREE.y + sin(2.4) * 9.9, 1.5)
-	_jm_hat(169.0, 6.0)
-	_jm_fan(JM_FAN)
-	_jm_carousel(JM_CAROUSEL)
-	_jm_redbar(186.1, 23.2, 3.2, 2.2, "KIEŁBASKI")
-	_jm_hexbar(JM_KURANT)
-	_jm_stage(JM_STAGE)
-	_jm_foodzone(JM_FOODZONE)
-	_jm_redbar(158.9, 68.2, 4.2, 3.0, "GRZANIEC")
-	_jm_redbar(223.2, 67.2, 3.0, 2.0, "GRZANIEC")
+		if _jm_here(JM_TREE.x, JM_TREE.y):
+			_jm_bench(JM_TREE + Vector2(cos(t), sin(t)) * 9.6, t)
+	if _jm_here(JM_TREE.x, JM_TREE.y):
+		_jm_snowman(JM_TREE.x + cos(2.4) * 9.9, JM_TREE.y + sin(2.4) * 9.9, 1.5)
+	if _jm_here(169.0, 6.0):
+		_jm_hat(169.0, 6.0)
+	if _jm_here(JM_FAN.x, JM_FAN.y):
+		_jm_fan(JM_FAN)
+	if _jm_here(JM_CAROUSEL.x, JM_CAROUSEL.y):
+		_jm_carousel(JM_CAROUSEL)
+	if _jm_here(186.1, 23.2):
+		_jm_redbar(186.1, 23.2, 3.2, 2.2, "KIEŁBASKI")
+	if _jm_here(JM_KURANT.x, JM_KURANT.y):
+		_jm_hexbar(JM_KURANT)
+	if _jm_here(JM_STAGE.x, JM_STAGE.y, 60.0):
+		_jm_stage(JM_STAGE)
+	if _jm_here(JM_FOODZONE.x, JM_FOODZONE.y, 60.0):
+		_jm_foodzone(JM_FOODZONE)
+	if _jm_here(158.9, 68.2):
+		_jm_redbar(158.9, 68.2, 4.2, 3.0, "GRZANIEC")
+	if _jm_here(223.2, 67.2):
+		_jm_redbar(223.2, 67.2, 3.0, 2.0, "GRZANIEC")
 	# The red and green barrel tables in the plazas.
 	var barrels := [[189.0, 83.5], [192.5, 84.0], [196.0, 83.5], [184.5, 19.0], [206.5, 15.0], [156.0, 63.0],
 			[161.0, 63.0], [221.0, 63.5], [225.5, 63.0], [95.0, 33.0], [112.0, 34.0], [120.0, 112.0], [125.0, 112.5]]
 	for i in barrels.size():
-		_jm_barrel(barrels[i][0], barrels[i][1], JM_RED if i % 2 == 0 else Color("#2f7a3c"))
+		if _jm_here(barrels[i][0], barrels[i][1]):
+			_jm_barrel(barrels[i][0], barrels[i][1], JM_RED if i % 2 == 0 else Color("#2f7a3c"))
 	# The light strings over the aisles.
 	for s: Array in JM_STRINGS:
-		_jm_zigzag(s[0], s[1], s[2], s[3], s[4])
+		if _jm_here_box(s[0], s[1], s[2], s[3]):
+			_jm_zigzag(s[0], s[1], s[2], s[3], s[4])
 	for l: Array in JM_LINES:
-		_jm_line(l[0], l[1], l[2])
+		if _jm_here_box(l[0], l[0], l[1], l[2]):
+			_jm_line(l[0], l[1], l[2])
 	# The kit objects at their anchors: every small thing on the official map, the photo details.
 	_jm_kit_objects()
 	if _quit_stop():
 		return
 	# The fence along Marszałkowska with its white banners and along the south access road, the
 	# entrances (the map's wejście 1, 2, 7, 8) open.
-	_jm_fence(147.0, 263.0, -9.5, [[171.5, 182.5], [219.0, 236.0]])
-	_jm_fence_v(263.0, -9.5, 93.0, [[24.0, 35.0], [67.0, 79.0]])
+	if _jm_here_box(147.0, 263.0, -9.5, -9.5):
+		_jm_fence(147.0, 263.0, -9.5, [[171.5, 182.5], [219.0, 236.0]])
+	if _jm_here_box(263.0, 263.0, -9.5, 93.0):
+		_jm_fence_v(263.0, -9.5, 93.0, [[24.0, 35.0], [67.0, 79.0]])
 	for bu: float in [158.0, 205.0, 250.0]:
-		_jm_banner(bu, -9.6)
+		if _jm_here(bu, -9.6):
+			_jm_banner(bu, -9.6)
 	# The gold sign and the light-up trees at the entrances, big stars.
-	_jm_greeting(177.0, -7.0)
+	if _jm_here(177.0, -7.0):
+		_jm_greeting(177.0, -7.0)
 	if _quit_stop():
 		return
 	# The plaza sign stands 11.5 m along from the map's spot (91.5): there it ran 1 m beside the lawn
 	# railing's north edge (u 91.5..105, v 16), a slot that pinned cars sliding along the railing
 	# (Autopilot PT-60 re-run, 2026-11-27). Now its east end is 6 m short of the railing's corner.
-	_jm_greeting(80.0, 17.0)
+	if _jm_here(80.0, 17.0):
+		_jm_greeting(80.0, 17.0)
 	for t: Array in [[150.5, -6.5], [168.5, -7.0], [236.5, -7.0], [261.0, 22.0], [261.0, 37.0],
 			[261.0, 81.0], [155.0, 12.0], [155.0, 21.0], [92.0, 40.0], [74.5, 13.0], [85.5, 13.0]]:
-		_jm_ledtree(t[0], t[1], 3.4)
-	_jm_bigstar(160.0, -6.5, 1.9)
-	_jm_bigstar(262.0, 50.0, 1.6)
+		if _jm_here(t[0], t[1]):
+			_jm_ledtree(t[0], t[1], 3.4)
+	if _jm_here(160.0, -6.5):
+		_jm_bigstar(160.0, -6.5, 1.9)
+	if _jm_here(262.0, 50.0):
+		_jm_bigstar(262.0, 50.0, 1.6)
 	# Plac Centralny: the tower, the teacups; Santa's cabin by the stage's plaza.
-	_jm_tower(JM_TOWER)
-	_jm_teacups(JM_TEACUPS)
-	_jm_santa(JM_SANTA, 2)
+	if _jm_here(JM_TOWER.x, JM_TOWER.y):
+		_jm_tower(JM_TOWER)
+	if _jm_here(JM_TEACUPS.x, JM_TEACUPS.y):
+		_jm_teacups(JM_TEACUPS)
+	if _jm_here(JM_SANTA.x, JM_SANTA.y):
+		_jm_santa(JM_SANTA, 2)
 	_jm_frame()
 
 
@@ -629,6 +696,8 @@ func _jm_kit_objects() -> void:
 		_jm_frame()
 		var r := jm_anchor(name)
 		var at := Vector2(r.x, r.y)
+		if _near.has_area() and not _near.grow(JM_PART_REACH).has_point(at):
+			continue
 		var g := NAN
 		if bld == "led_figure_hung":
 			bld = "led_figure"

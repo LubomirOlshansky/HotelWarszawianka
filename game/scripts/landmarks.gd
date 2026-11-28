@@ -31,6 +31,8 @@ extends "res://scripts/landmarks/niecala.gd"
 ## paler than life for the game's palette. The Rondo Daszyńskiego towers (Spire, Skyliner, Unit,
 ## Mennica, Generation Park Y, the HUB) are the exception: dark navy glass as in life (F's photos,
 ## 2026-11-17: the light blue read wrong next to them).
+const ChunkedSurface := preload("res://scripts/chunked_surface.gd")
+
 const TOWERS := [
 	{"key": "zlota44", "osm": "Złota 44", "style": S_SAIL, "glass": "#bccdd8", "roof": "#e4e8ea", "crest": "slope"},
 	{"key": "spire", "osm": "Warsaw Spire", "style": S_MIRROR, "glass": "#2f4562", "roof": "#b9c4cc",
@@ -1706,6 +1708,13 @@ func _find_sites() -> void:
 ## `only` (the mesh-quality check, loop 0.1): build just the site with this key.
 func build(surface, near := Rect2(), only := "") -> void:
 	st = surface
+	# What this build keeps: a sector's own tiles (chunked_surface.gd `only`) when it has them,
+	# else `near`; the market skips the parts that reach none of it (jarmark.gd _jm_here).
+	_near = near
+	var tiles = surface.get("only") if near.has_area() else null
+	if tiles is Rect2i and (tiles as Rect2i).has_area():
+		var tile: float = ChunkedSurface.TILE
+		_near = Rect2(Vector2((tiles as Rect2i).position) * tile, Vector2((tiles as Rect2i).size) * tile)
 	pocket_rings.clear()
 	_pick.resize(map._roof_nx * map._roof_nz * 2)
 	_pick.fill(0)
