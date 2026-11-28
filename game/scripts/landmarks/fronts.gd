@@ -108,6 +108,8 @@ const SKINS := [
 	# NBP's regional branch on Plac Powstańców from F's photos (2026-11-16, docs/landmarks/specs/nbp.md):
 	# the whole building is the site's own model (_build_nbp), dark folded panels over a glass ground floor.
 	{"key": "nbp", "osm": "NBP Oddział Okręgowy w Warszawie", "model": true, "mode": M_STONE, "wall": "#4d4446", "roof": "#6f7173"},
+	## The whole NIK headquarters takes the named Filtrowa 57 outline.
+	{"key": "nik", "osm": "Najwyższa Izba Kontroli", "model": true, "mode": M_STONE, "wall": "#d5cbb7", "roof": "#777a7b"},
 	# The named court outline registers the whole model and drops the GUGiK run.
 	{"key": "sad_okregowy", "osm": "Sąd Okręgowy w Warszawie", "model": true,
 			"mode": M_STONE, "wall": "#dcd6c9", "roof": "#7d7f8c"},

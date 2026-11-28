@@ -7,6 +7,189 @@ extends "res://scripts/landmarks/fronts.gd"
 ## never another area: a helper two areas need goes to common.gd.
 
 
+# --- Najwyższa Izba Kontroli, Filtrowa 57 -----------------------------------------------------
+
+## Measured from the named outline in centrum.json. The northern notch opens onto Filtrowa
+## and its middle face projects into the forecourt. See docs/landmarks/specs/nik.md.
+const NIK_ORIGIN := Vector2(-1724.1, 1702.8)
+const NIK_AXIS := Vector2(0.99912, 0.04193)
+const NIK_PLAN := [[-0.4, -19.2], [18.6, -19.2], [18.6, -7.5], [15.3, -7.5],
+		[15.3, 22.4], [21.7, 22.4], [21.7, 14.9], [41.1, 14.9], [41.1, 22.4],
+		[46.1, 22.4], [46.1, 16.0], [47.8, 16.0], [47.8, -7.5], [44.4, -7.5],
+		[44.4, -19.2], [63.3, -19.2], [63.3, 48.3], [63.7, 48.3], [63.7, 67.0],
+		[56.7, 67.0], [56.7, 69.4], [63.7, 69.4], [63.7, 79.9], [56.7, 79.9],
+		[56.7, 82.6], [1.7, 82.6], [1.7, 69.5], [6.7, 69.5], [6.7, 67.0],
+		[-0.35, 67.0], [-0.35, 48.3], [0.15, 48.3], [0.15, 0.0], [-0.4, 0.0]]
+const NIK_WING_ENDS := [0, 14]
+const NIK_ARCADES := [1, 13]
+const NIK_PORTAL := 6
+const NIK_TOP := 19.22
+const NIK_BASE := 1.45
+const NIK_ARCADE_TOP := 4.55
+## The Mapillary street views show warm pale plaster below a cooler attic and a grey cap.
+const NIK_PLASTER := Color("#d5cbb7")
+const NIK_ROOF := Color("#777a7b")
+## The simplified eagle in the entrance photo, with the spread wings and small crown.
+const NIK_EAGLE := ["....#....", "#..##...#", "##..#..##", ".#######.", "..#####..", "...###...", "....#...."]
+
+
+## The named SKINS outline registers the whole site and its collision. Use one terrain datum
+## for the joined wings, the entrance cross-range and the south range.
+func _build_nik(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["zone"][0]
+	_g = _ground_under(outline)
+	_o = NIK_ORIGIN
+	_a = NIK_AXIS.normalized()
+	_b = Vector2(-_a.y, _a.x)
+	_mode = M_STONE
+	var ring := _lpoly(NIK_PLAN)
+	var court := _urect(18.5, 44.1, 45.0, 58.5)
+	court.reverse()
+	_nik_massing(ring, court)
+	_nik_roof(ring, court)
+	_collide(outline)
+	_collide(court)
+
+
+## Trace each face from its outward kit frame, reversing the traversal inside the rear court.
+func _nik_massing(ring: PackedVector2Array, court: PackedVector2Array) -> void:
+	for edge in ring.size():
+		var width := kit_front(ring[(edge + 1) % ring.size()], ring[edge])
+		_nik_shell(width, edge)
+	for edge in court.size():
+		var width := kit_front(court[(edge + 1) % court.size()], court[edge])
+		_nik_shell(width, -1)
+
+
+## Keep the courts open to the sky and carry the main cornice continuously around the outer plan.
+func _nik_roof(ring: PackedVector2Array, court: PackedVector2Array) -> void:
+	_mode = M_STONE
+	_cap_holes(ring, [court], _g + NIK_TOP - 0.08, NIK_ROOF)
+	kit_cornice_ring(ring, _g + 15.45, PAL_CREAM_STONE, 0.31, 0.42)
+	kit_ledge_ring(ring, _g + NIK_TOP - 0.1, 0.18, NIK_ROOF, 0.12)
+
+
+## The plaster above the granite base takes a tall three-row grid with smaller attic openings.
+## Use modeled sills and sashes on the four-bay ends seen across Filtrowa.
+func _nik_shell(width: float, edge: int) -> void:
+	var arcade := edge in NIK_ARCADES
+	var top := _g + NIK_TOP
+	if arcade:
+		_nik_arcades(width)
+		_wall(_w(0.0, 0.0), _w(width, 0.0), _g + NIK_ARCADE_TOP, top, _b, NIK_PLASTER)
+	else:
+		_wall(_w(0.0, 0.0), _w(width, 0.0), _g - 0.6, _g + NIK_BASE, _b, PAL_GREY_GRANITE)
+		_wall(_w(0.0, 0.0), _w(width, 0.0), _g + NIK_BASE, top, _b, NIK_PLASTER)
+	if edge == NIK_PORTAL:
+		_nik_portal(width)
+		return
+	if width < 3.4:
+		return
+	if edge in NIK_WING_ENDS:
+		var arch_at_start := edge == NIK_WING_ENDS[0]
+		var start := 3.3 if arch_at_start else 0.0
+		var end := width if arch_at_start else width - 3.4
+		var arch_u := 1.65 if arch_at_start else width - 1.7
+		var bays := _spread(start + 0.5, end - 0.5, 4)
+		for u: float in bays:
+			for y: float in [2.55, 6.45, 10.55]:
+				kit_window(u, _g + y, 2.4, Win.SILL, PAL_CREAM_STONE, PAL_GLASS_DARK,
+						0.725, PAL_WHITE_STONE)
+			kit_window(u, _g + 16.5, 1.48, Win.PLAIN, PAL_CREAM_STONE, PAL_GLASS_DARK,
+					0.6, PAL_WHITE_STONE)
+		for i in range(1, bays.size()):
+			kit_pilaster(lerpf(bays[i - 1], bays[i], 0.5), _g + NIK_BASE, _g + 15.03,
+					PAL_CREAM_STONE, 0.27, 0.09)
+		kit_panes(bays, [_g + 0.4], 1.02, 0.72, PAL_GLASS_DARK)
+		kit_door(arch_u, _g + 0.03, 4.0, 1.07, PAL_CREAM_STONE, PAL_BRONZE, true)
+		return
+	var bays := _spread(0.38, width - 0.38, maxi(1, roundi(width / 3.6)))
+	var sills := [_g + 6.45, _g + 10.55]
+	if not arcade:
+		sills.push_front(_g + 2.55)
+		kit_panes(bays, [_g + 0.4], 0.99, 0.69, PAL_GLASS_DARK)
+	if width > 22.0:
+		## The exposed plaster between the paired panes reads as a mullion from street level.
+		var panes: Array[float] = []
+		for u: float in bays:
+			panes.append(u - 0.395)
+			panes.append(u + 0.395)
+		kit_panes(panes, sills, 0.69, 2.38, PAL_GLASS_DARK)
+	else:
+		kit_panes(bays, sills, 1.48, 2.38, PAL_GLASS_DARK)
+	kit_panes(bays, [_g + 16.5], 1.22, 1.46, PAL_GLASS_DARK)
+	if width > 12.0 and not arcade:
+		for u: float in bays:
+			kit_ledge(u - 0.89, u + 0.89, _g + 6.26, 0.12, PAL_CREAM_STONE)
+	if edge == -1:
+		kit_ledge(0.12, width - 0.12, _g + 15.45, 0.31, PAL_CREAM_STONE, 0.23)
+
+
+## The three arches on each forecourt return have open spandrels and shaded reveals. A wall
+## sits behind them in the wing so the passage reads from the street and from the court.
+func _nik_arcades(width: float) -> void:
+	var floor_y := _g - 0.6
+	var spring := _g + 2.55
+	var top := _g + NIK_ARCADE_TOP
+	var depth := 1.4
+	var radius := 1.18
+	var cursor := 0.0
+	_wall(_w(0.0, -depth), _w(width, -depth), floor_y, top, _b, NIK_PLASTER.darkened(0.28))
+	_soffit(_urect(0.0, width, -depth, 0.0), top, NIK_PLASTER.darkened(0.16))
+	for u: float in _spread(0.0, width, 3):
+		var left := u - radius
+		var right := u + radius
+		_wall(_w(cursor, 0.0), _w(left, 0.0), floor_y, top, _b, NIK_PLASTER)
+		_o -= _b * 0.1
+		_arch(left, right, 0.1, spring, top, NIK_PLASTER)
+		_o += _b * 0.1
+		_wall(_w(left, 0.0), _w(left, -depth), floor_y, spring, _a, PAL_CREAM_STONE)
+		_wall(_w(right, 0.0), _w(right, -depth), floor_y, spring, -_a, PAL_CREAM_STONE)
+		var prev := Vector2(left, spring)
+		var inward := Vector3(_b.x, 0.0, _b.y) * -depth
+		for step in range(1, 7):
+			var angle := PI * (1.0 - float(step) / 6.0)
+			var next := Vector2(u + cos(angle) * radius, spring + sin(angle) * radius)
+			var a := _w(prev.x, 0.0)
+			var b := _w(next.x, 0.0)
+			var p := Vector3(a.x, prev.y, a.y)
+			var q := Vector3(b.x, next.y, b.y)
+			_quad(p, q, q + inward, p + inward, inward.cross(q - p).normalized(), PAL_CREAM_STONE)
+			prev = next
+		cursor = right
+	_wall(_w(cursor, 0.0), _w(width, 0.0), floor_y, top, _b, NIK_PLASTER)
+
+
+## Three bronze arches sit beneath the giant order. The short pediment sits over the
+## attic instead of copying the tall pitch of a freestanding portico.
+func _nik_portal(width: float) -> void:
+	var centre := width * 0.5
+	for offset: float in [-4.5, 0.0, 4.5]:
+		var u := centre + offset
+		kit_door(u, _g + 0.09, 3.72, 1.13, PAL_CREAM_STONE, PAL_BRONZE, true)
+		for y: float in [6.25, 10.42, 16.5]:
+			var height := 1.12 if y > 16.0 else 2.62
+			kit_window(u, _g + y, height, Win.SILL, PAL_CREAM_STONE, PAL_GLASS_DARK,
+					0.85, PAL_WHITE_STONE)
+	kit_ledge(centre - 7.65, centre + 7.65, _g + 4.32, 0.26, PAL_CREAM_STONE, 0.88)
+	kit_colonnade(centre - 6.75, centre + 6.75, 4, 0.17, _g + 4.58, _g + 15.12,
+			PAL_WHITE_STONE, 0.53)
+	kit_cornice(centre - 7.42, centre + 7.42, _g + 15.12, PAL_CREAM_STONE, 0.28, 0.84)
+	kit_ledge(centre - 8.35, centre + 8.35, _g + 17.68, 0.17, PAL_CREAM_STONE, 0.46)
+	kit_face(-2.8)
+	kit_pediment(centre, 8.35, _g + 17.85, 2.65, PAL_CREAM_STONE, NIK_ROOF,
+			3.26, NIK_PLASTER.darkened(0.07))
+	kit_face(0.0)
+	var cell := 0.19
+	for row in NIK_EAGLE.size():
+		var y := _g + 19.73 - float(row + 1) * cell
+		var pixels: String = NIK_EAGLE[row]
+		for i in pixels.length():
+			if pixels[i] == "#":
+				var u := centre + (float(i) - 4.5) * cell
+				_wall(_w(u, 0.52), _w(u + cell, 0.52), y, y + cell, _b, PAL_WHITE_STONE)
+
+
 # --- Filharmonia Narodowa and Teatr Polski ----------------------------------------------------
 
 ## The Sejm (Sejm RP; Skórewicz and Pniewski, 1925-1928): the mass of the complex stays LoD2's (a
