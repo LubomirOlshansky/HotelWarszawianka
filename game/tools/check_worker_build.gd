@@ -13,6 +13,7 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/check_worker_build.gd [-- --seconds=S]
 
 const MapBuilder := preload("res://scripts/map_builder.gd")
+const Landmarks := preload("res://scripts/landmarks.gd")
 const INDEX_JSON := "res://map/index.json"
 ## The sites whose build reads a file; each one's sectors are built on the worker.
 const SITES := ["palace"]
@@ -21,6 +22,8 @@ const SECONDS := 120.0
 
 var map: Node3D
 var seconds := SECONDS
+## The glb's triangles in the cache after `setup_streamed`.
+var _glb_tris := 0
 
 
 func _initialize() -> void:
@@ -34,6 +37,20 @@ func _initialize() -> void:
 	map = MapBuilder.new()
 	root.add_child(map)
 	map.setup_streamed(JSON.parse_string(FileAccess.get_file_as_string(INDEX_JSON)), ShaderMaterial.new(), ShaderMaterial.new())
+	# A worker that finds no glb surfaces in the cache builds the code model and ends quickly, so
+	# a fast build alone would pass a silent fallback (audit, 2026-11-28): the cache must hold the
+	# glb that the Palace builds from, filled on this (the main) thread by `setup_streamed`.
+	if Landmarks.palace_source() == "code":
+		print("check_worker_build: the Palace builds from code (--palace= or AW_PALACE): nothing read from a file")
+		quit(1)
+		return
+	var path := Landmarks.palace_glb_path()
+	_glb_tris = _cached_tris(path)
+	if _glb_tris <= 0:
+		print("check_worker_build: setup_streamed left no surfaces of %s in the cache: every Palace sector would be the code model" % path)
+		quit(1)
+		return
+	print("check_worker_build: %s cached on the main thread, %d triangles" % [path, _glb_tris])
 	var keys: Array[Vector2i] = []
 	for s: Dictionary in map._marks.sites:
 		if not str(s["key"]) in SITES:
@@ -58,6 +75,18 @@ func _initialize() -> void:
 		print("check_worker_build: %s built on the worker in %d ms" % [MapBuilder.sector_name(key), ms])
 	print("check_worker_build: OK")
 	quit(0)
+
+
+## The triangles of the cached surfaces of the glb at `path` (centre.gd `_glb_surfaces`, read
+## without loading anything), 0 when it is not cached or empty.
+func _cached_tris(path: String) -> int:
+	var have: Variant = Landmarks._glb_surfaces.get(path)
+	if not have is Array:
+		return 0
+	var n := 0
+	for surf: Dictionary in have:
+		n += floori((surf["idx"] as PackedInt32Array).size() / 3.0)
+	return n
 
 
 ## Builds the sector on a second thread while this one only sleeps (no frame, no queue flushed),
