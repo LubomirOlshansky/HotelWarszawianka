@@ -73,6 +73,7 @@ const Models := preload("res://scripts/models.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const Messages := preload("res://scripts/messages.gd")
+const Upgrades := preload("res://scripts/upgrades.gd")  # the night meet's prize, the Bawarka
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const Rave := preload("res://scripts/rave.gd")
 const Lang := preload("res://scripts/lang.gd")
@@ -2747,6 +2748,14 @@ func _drag_end(won: bool, how: String) -> void:
 	# loser's respect and a job tick for a tap of the gas on the line, again with every REWANŻ).
 	if wallet != null and how not in ["false", "off"]:
 		wallet.pay(int(pay[0]), int(pay[1]), "meet_drag")
+		# The Bawarka (F 2026-11-27): gold gives Darek's car, a loss opens it at Mirek's.
+		var owned: Variant = wallet.get("cars")
+		var kept: Variant = wallet.get("keep")
+		var prize := Upgrades.meet_prize(owned, kept, won, int(Time.get_date_string_from_system().replace("-", ""))) \
+				if owned is Dictionary and kept is Dictionary else ""
+		if prize != "":
+			var said := _w("bawarka_" + prize)
+			hud.toast(str(said[0]), str(said[1]))
 		if won:
 			wallet.keep["wnrc_member"] = true
 			wallet.keep["wnrc_wins"] = int(wallet.keep.get("wnrc_wins", 0)) + 1

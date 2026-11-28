@@ -637,8 +637,11 @@ func _engine(dt: float, wet: float) -> void:
 	var level := (0.5 + 0.5 * _load) * (0.45 if _dip > 0.0 else 1.0) * float(motor) * (ENGINE_SOFT if _soft_t > 0.0 else 1.0)
 	var names := ["engine_idle", "engine_mid", "engine_high"]
 	var weights := [w_idle, w_mid, w_high]
+	# C1a: each shop car's own engine note (car.gd `engine_note`: a diesel lower, a Szupra higher).
+	var note_v: Variant = car.get(&"engine_note")
+	var note: float = float(note_v) if note_v != null else 1.0
 	for k in 3:
-		_drive(names[k], level * sqrt(weights[k]), clampf(_rpm / ENGINE_RPM[k], 0.5, 2.2), dt, 14.0)
+		_drive(names[k], level * sqrt(weights[k]), clampf(_rpm / ENGINE_RPM[k] * note, 0.5, 2.2), dt, 14.0)
 	var fast := clampf(v / 28.0, 0.0, 1.0)
 	_drive("tyre_roll", pow(fast, 0.8) * (1.0 - 0.6 * wet) * float(on), 0.75 + 0.5 * fast, dt, 6.0)
 	_drive("tyre_wet", pow(fast, 0.9) * wet * float(on), 0.85 + 0.35 * fast, dt, 6.0)
