@@ -31,6 +31,8 @@ const BUDGET := {"nik": 5000, "hotel_saski": 5000, "city_gate": 3500, "meridian"
 		"gpxz": 12000, "centrum_praha": 4000, "targowa33a": 3000, "polskie_radio": 3000,
 		"dom_poselski": 5000, "stary_dom_poselski": 7000,
 		"rembielinskiego": 2800, "willa_raua": 2000, "dziewulskich": 1600, "pod_karczochem": 2800,
+		"ambasada_wegier": 2800, "leszczynskich": 2800, "szelechowa": 2800, "wielopolskich": 2400,
+		"ministerstwo_sprawiedliwosci": 5000,
 		"prymasowski": 7000, "jablonowskich": 7500, "gmach_chemii": 7500, "itc": 4500}
 ## The Królewska edge's skins: key -> a point in a building the skin must cover.
 const SKINNED := {"departament": Vector2(-596.0, -702.0)}
@@ -222,6 +224,16 @@ func _check_site(marks, map: Fakes.BuilderMap, key: String) -> void:
 			marks._build_dziewulskich(s)
 		"pod_karczochem":
 			marks._build_pod_karczochem(s)
+		"ambasada_wegier":
+			marks._build_ambasada_wegier(s)
+		"leszczynskich":
+			marks._build_leszczynskich(s)
+		"szelechowa":
+			marks._build_szelechowa(s)
+		"wielopolskich":
+			marks._build_wielopolskich(s)
+		"ministerstwo_sprawiedliwosci":
+			marks._build_ministerstwo_sprawiedliwosci(s)
 		"hotel_saski":
 			marks._build_hotel_saski(s)
 		"hotel_kasztel", "hotel_canaletto", "hotel_starowka":
