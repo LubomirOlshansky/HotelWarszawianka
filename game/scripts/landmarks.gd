@@ -546,6 +546,12 @@ const INFO := {
 	"polskie_radio": ["Polskie Radio",
 			"Siedziba Polskiego Radia przy Myśliwieckiej, tuż obok Agrykoli.",
 			"Polish Radio headquarters on Myśliwiecka, right beside Agrykola."],
+	"dom_poselski": ["Dom Poselski",
+			"Hotel posłów przy Sejmie.",
+			"The deputies' hotel by the Sejm."],
+	"stary_dom_poselski": ["Stary Dom Poselski",
+			"Przedwojenny gmach przy Sejmie z okrągłym narożnikiem na Wiejskiej.",
+			"Pre-war Sejm building with a rounded corner on Wiejska."],
 	"sobieski": ["Radysław Blu",
 			"Hotel przy placu Zawiszy, w kolorowych pasach.",
 			"A hotel on Plac Zawiszy, in colourful bands."],
@@ -1515,6 +1521,8 @@ func _find_sites() -> void:
 	_find_hotels()
 	_find_ujazdowski()
 	_find_polskie_radio()
+	_find_dom_poselski()
+	_find_stary_dom_poselski()
 	# F's ask (2026-11-01): Norblin, Browary Warszawskie, Hala Koszyki, Elektrownia Powiśle.
 	_find_works()
 	# F's ask (2026-11-02, CITY_INVENTORY #21): the Warsaw Rising Museum, from the Mac's photos.
@@ -2013,6 +2021,10 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_ujazdowski(s)
 			"polskie_radio":
 				_build_polskie_radio(s)
+			"dom_poselski":
+				_build_dom_poselski(s)
+			"stary_dom_poselski":
+				_build_stary_dom_poselski(s)
 			"sobieski":
 				_build_sobieski(s)
 			"bristol":
