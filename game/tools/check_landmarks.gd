@@ -178,8 +178,6 @@ func _fly_checks() -> int:
 			c = Vector2(-2718.0, -2258.0)  # the tower (the box holds its office block's courtyard: its middle is open air)
 		if str(info["key"]).begins_with("bulwary_"):
 			continue  # the boulevards' 3.6 m pavilions, 2.6 m containers and 25 cm decks: the heli hovers over them
-		if str(info["key"]).begins_with("mw_"):
-			continue  # the metro stations' wells (2026-11-26): holes in the pavement under 2.6 m canopies, the heli hovers over them; their neighbours' towers are their own sites' checks
 		var heli: Node3D = Heli.new()
 		heli.ground_height = map.ground_height
 		heli.top_height = map.top_height
@@ -230,6 +228,8 @@ func _fly_checks() -> int:
 			alt = 4.0  # the pavilion stands 7.6-8.5 m over its plinth; the 1950s block behind lifts the default
 		elif info["key"] == "wszystkich":
 			alt = 14.0  # the towers' crosses (56 m) would lift the heli over the 26 m ridges it aims at (eave 16-17 m)
+		elif info["key"] == "jablonowskich":
+			alt = 12.0  # the clock tower (47 m) would lift the heli over the 14 m cornice and 21.5 m mansards it aims at
 		elif info["key"] == "tarasy":
 			alt = 15.0  # the wave stands 30 m; the towers in its box (110 m) would lift the heli over it
 		elif LOW_MONUMENTS.has(info["key"]):
