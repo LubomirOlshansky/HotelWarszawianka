@@ -28,8 +28,15 @@ The landmark outline; ground = `_ground_under`. The front is the run along Nowow
 outline's north side, roughly from (-1016, 1563) to (-953, 1566); work out the front block and the
 back wings from the outline itself, simplifying only short wiggles (under 1.5 m).
 - Front block: about 14 m deep along the north side, 0-20.5 m (ground floor 0-4.5 m, five upper
-  storeys of 3.2 m), cornice 0.6 m, low hipped roof 2.5 m.
-- Back wings: round an open courtyard, 0-14.0 m (four storeys), cornice, low hipped roofs 2.0 m.
+  storeys of 3.2 m), cornice 0.6 m, flat dark grey roof with low parapet and rooftop plant units.
+- Back wings: two four-storey flat-roofed flanking wings (East and West), 0-14.0 m, with low
+  parapets and central roof monitors.
+- Courtyard industrial hall: fills the courtyard between the East and West back wings (0-9.2 m,
+  flat dark grey roof #5d6266), topped by long parallel pitched skylight roof strips (glass
+  #8fa3ad over dark grey kerbs) and a central raised mechanical penthouse box. (As built from
+  3D Tiles, 2026-11-28: orbits show flat roofs on the front block and back wings instead of hips,
+  and a low ~9 m industrial hall with long parallel skylight strips filling the courtyard between
+  the East and West wings.)
 - Portal: 12 m wide in the middle of the front, 0-7.5 m, stepping forward 0.6 m; steps 1.2 m over 4 m
   in front of it, across about 30 m of the front.
 - Canopies: two thin sloping roofs about 8 x 4 m at 4.0-5.0 m, one near each end of the front.
@@ -43,7 +50,11 @@ and the side entrances; kit_pilaster for the portal's stone piers. Courtyard fac
 
 ## Roof
 
-Low hipped roofs, grey #7d8084, over the front block and the back wings.
+Flat dark grey roof #5d6266 over the front block and East wing (slightly paler grey membrane #787c80 on
+the West wing), with low parapets and long roof monitors; low industrial hall roof #5d6266 with
+long parallel pitched skylight strips in glass #8fa3ad and dark steel framing. (As built from 3D
+Tiles, 2026-11-28: replaced hipped roofs with flat roofs + monitors and added the courtyard
+industrial hall with parallel skylight strips.)
 
 ## Colour and material
 
@@ -59,16 +70,18 @@ existing codes); the rest stays dark.
 ## Detail level and budget
 
 L3 (a whole block on Nowowiejska, seen at length from the street and Plac Politechniki's side).
-Budget 4,500 triangles; set `"itc": 4500` in both game/tools/check_mesh_quality.gd BUDGET and
-game/tools/check_sites.gd BUDGET.
+Budget 5,500 triangles (raised from 4,500 on 2026-11-28 for the courtyard industrial hall and
+parallel skylight roof strips seen in 3D Tiles); set `"itc": 5500` in both
+game/tools/check_mesh_quality.gd BUDGET and game/tools/check_sites.gd BUDGET.
 
 ## Parts table
 
 | id | shape | size | position | material | feature |
 | --- | --- | --- | --- | --- | --- |
-| it_front | six-storey block, stone base, cornice, hip | 0-20.5 m (+2.5 m) | north side | M_STONE #d8cfb9 | 1 |
+| it_front | six-storey block, stone base, cornice, flat roof + parapet | 0-20.5 m (+0.55 m) | north side | M_STONE #d8cfb9 / #5d6266 | 1 |
 | it_windows | window grid | 3.2 m bays | outer faces | M_STONE / glass | 1 |
 | it_portal | stone portal, three doors, frieze, steps | 12 x 7.5 m | front middle | M_STONE #ece8de | 2 |
 | it_canopies | two sloping dark canopies | 8 x 4 m | front ends | M_STONE #3e4448 | 3 |
-| it_wings | four-storey back wings, courtyard | 0-14.0 m (+2.0 m) | rest of the outline | M_STONE #d8cfb9 | 4 |
+| it_wings | flat-roofed four-storey East and West back wings + roof monitors | 0-14.0 m (+0.95 m) | East and West sides | M_STONE #d8cfb9 / #5d6266 | 4 |
+| it_hall | low industrial hall with parallel skylight strips + penthouse | 0-9.2 m (+1.8 m skylights) | courtyard between wings | M_STONE #5d6266 / M_GLASS #8fa3ad | 4 |
 | collision | outline | full height | outline | (collider) | 4 |

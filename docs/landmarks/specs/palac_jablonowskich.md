@@ -44,7 +44,7 @@ shows south-east, and the model follows the outline.)
 - Clock tower: square about 7 x 7 m, from the roof to 34 m (body), balustrade, then cupola and lantern
   to about 42 m with a 3 m spire. Place it at the front's west end (toward Teatr Wielki), just behind
   the pavilion.
-- Rear wings: pale yellow, 0-11.0 m, low hipped roofs.
+- Rear wings: modern 5-6 storey grey-beige stone blocks (#cfc8bb, 0-21.0 m with 0.58 m parapets), flat dark roofs with mechanical plant boxes, round a courtyard covered by a big pitched glass atrium roof (18.8-22.35 m, glass #8fa3ad, thin dark steel frame lines). (As built from 3D Tiles, 2026-11-28: orbits show dark grey mansards and cupola #5f6468 instead of grey-green, modern 5-6 storey grey-beige stone rear blocks with flat dark roofs and plant boxes instead of low pale-yellow hipped wings, and a pitched glass atrium roof covering the courtyard.)
 
 ## Facade
 
@@ -57,8 +57,12 @@ with sill ledges.
 
 ## Roof
 
-Steep mansards in grey-green #6f7f7a on the pavilions and lower ones on the middle wings; tower
-cupola #6f7f7a with a white lantern and a dark spire; rear wings low hipped grey #8a8f8c.
+Steep mansards in dark grey #5f6468 on the pavilions and lower ones on the middle wings; tower
+cupola dark grey #5f6468 with a white lantern and a dark spire; modern rear blocks flat dark grey
+#52575b inside stone parapets with rooftop HVAC plant boxes; big pitched glass atrium roof
+(#8fa3ad, thin dark steel frame lines) covering the courtyard. (As built from 3D Tiles, 2026-11-28:
+recoloured mansards and tower cupola to dark grey, replaced rear hips with flat dark roofs + plant
+boxes, and added the pitched glass atrium roof.)
 
 ## Colour and material
 
@@ -84,9 +88,10 @@ game/tools/check_sites.gd BUDGET.
 | --- | --- | --- | --- | --- | --- |
 | pj_front | three storeys, rusticated base, cornice | 0-14.0 m | Senatorska front | M_STONE #ecebe6 | 1 |
 | pj_windows | window grid, pedimented first floor, balconies | 3.6 m bays | front faces | M_STONE / glass | 1 |
-| pj_pavilions | forward corner blocks, steep mansards, oeil-de-boeuf | to 15.5 m + 6.0 m | both front ends | M_STONE #6f7f7a | 2 |
+| pj_pavilions | forward corner blocks, steep mansards, oeil-de-boeuf | to 15.5 m + 6.0 m | both front ends | M_STONE #5f6468 | 2 |
 | pj_risalit | pilasters, balcony, arched door, pediment | 0-17.0 m | front middle | M_STONE | 3 |
-| pj_mansard | lower mansard with dormers | 4.5 m | middle wings | M_STONE #6f7f7a | 3 |
+| pj_mansard | lower mansard with dormers | 4.5 m | middle wings | M_STONE #5f6468 | 3 |
 | pj_tower | square tower, clocks, balustrade, cupola, lantern, spire | to about 45 m | front's west end | M_STONE / M_LAMP | 4 |
-| pj_rear | pale yellow rear wings, low roofs | 0-11.0 m | rest of the outline | M_STONE #e6d9b0 | 5 |
+| pj_rear | modern 5-6 storey grey-beige stone blocks, flat dark roofs, plant boxes | 0-21.0 m (+0.6 m parapet) | rest of the outline | M_STONE #cfc8bb / #52575b | 5 |
+| pj_atrium | pitched glass atrium roof with dark steel frame lines | 18.8-22.35 m | whole courtyard | M_GLASS #8fa3ad / M_STONE #3b4044 | 5 |
 | collision | outline | full height | outline | (collider) | 5 |
